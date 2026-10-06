@@ -65,7 +65,14 @@ class EnumType(type):
                     raise TypeError('auto() needs _generate_next_value_')
                 value = generate(key, 1, len(last_values), last_values[:])
             args = value if isinstance(value, tuple) and member_type is not tuple else (value,)
-            if member_type is object:
+            if '__new__' in clean:
+                # `__new__` do corpo do Enum (ex.: `int.__new__(cls, value)` + atributos): cria o membro.
+                member = clean['__new__'](cls, *args)
+                if not hasattr(member, '_value_'):
+                    member._value_ = args[0] if len(args) == 1 else value
+                value = member._value_
+                args = (value,)
+            elif member_type is object:
                 member = object.__new__(cls)
                 if '__init__' in clean or hasattr(cls, '__init__') and cls.__init__ is not object.__init__:
                     pass

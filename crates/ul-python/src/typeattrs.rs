@@ -271,6 +271,22 @@ fn object_new(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     }
 }
 
+/// `object.__str__`: o `repr` do objeto.
+fn object_str(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    match args.as_slice() {
+        [a] => Ok(Value::str(vm.repr_of(a)?)),
+        _ => Err(type_error("expected 0 arguments")),
+    }
+}
+
+/// `object.__repr__`: `<módulo.Classe object at 0x...>`.
+fn object_repr(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    match args.as_slice() {
+        [a] => Ok(Value::str(vm.default_text(a, false))),
+        _ => Err(type_error("expected 0 arguments")),
+    }
+}
+
 /// `object.__eq__`: identidade; devolve `NotImplemented` para outro objeto.
 fn object_eq(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     match args.as_slice() {
@@ -313,6 +329,8 @@ pub fn object_attr(name: &str) -> Option<Value> {
         "__eq__" => native("__eq__", object_eq),
         "__ne__" => native("__ne__", object_ne),
         "__hash__" => native("__hash__", object_hash),
+        "__str__" => native("__str__", object_str),
+        "__repr__" => native("__repr__", object_repr),
         "__name__" => Value::str("object"),
         _ => return None,
     })

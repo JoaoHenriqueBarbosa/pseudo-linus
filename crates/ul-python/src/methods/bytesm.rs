@@ -172,6 +172,11 @@ fn decode_utf8(data: &[u8], errors: &str) -> PyResult<String> {
                 match errors {
                     "ignore" => {}
                     "replace" => out.push('\u{fffd}'),
+                    "surrogateescape" => {
+                        for &b in &data[bad_start..bad_start + bad_len] {
+                            out.push(char::from_u32(0xF700 + u32::from(b)).unwrap_or('\u{fffd}'));
+                        }
+                    }
                     _ => return Err(decode_error("utf-8", bad_start, bad_len, first, reason)),
                 }
                 pos = bad_start + bad_len;
@@ -191,6 +196,7 @@ fn decode_ascii(data: &[u8], errors: &str) -> PyResult<String> {
         match errors {
             "ignore" => {}
             "replace" => out.push('\u{fffd}'),
+            "surrogateescape" => out.push(char::from_u32(0xF700 + u32::from(b)).unwrap_or('\u{fffd}')),
             _ => return Err(decode_error("ascii", i, 1, b, "ordinal not in range(128)")),
         }
     }

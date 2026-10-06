@@ -503,8 +503,33 @@ fn b_enumerate(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     crate::lazy::EnumerateIter::new(src, start)
 }
 
-fn b_reversed(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+fn b_reversed(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let v = one("reversed", args, &kw)?;
+    if let Value::Instance(inst) = &v {
+        if inst.class.lookup("__reversed__").is_some() {
+            let f = vm.getattr(&v, "__reversed__")?;
+            return vm.call_value(&f, Vec::new(), Vec::new());
+        }
+        // Subclasse de `list`/`tuple`/`str`: inverte o conteúdo guardado.
+        let payload = inst.payload.borrow().clone();
+        if let Some(p @ (Value::List(_) | Value::Tuple(_) | Value::Str(_) | Value::Bytes(_) | Value::ByteArray(_))) = payload {
+            let mut items = iterate(&p)?;
+            items.reverse();
+            return Ok(Value::list(items));
+        }
+        // Protocolo de sequência: `__len__` e `__getitem__`.
+        if inst.class.lookup("__len__").is_some() && inst.class.lookup("__getitem__").is_some() {
+            let n = vm.getattr(&v, "__len__").and_then(|f| vm.call_value(&f, Vec::new(), Vec::new()))?;
+            let getitem = vm.getattr(&v, "__getitem__")?;
+            let mut out = Vec::new();
+            if let Value::Int(n) = n {
+                for i in (0..n).rev() {
+                    out.push(vm.call_value(&getitem, vec![Value::Int(i)], Vec::new())?);
+                }
+            }
+            return Ok(Value::list(out));
+        }
+    }
     match &v {
         Value::List(_) | Value::Tuple(_) | Value::Str(_) | Value::Range(_) | Value::Bytes(_) | Value::ByteArray(_) | Value::Dict(_) => {
             let mut items = iterate(&v)?;

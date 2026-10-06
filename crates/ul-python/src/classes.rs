@@ -756,6 +756,9 @@ impl Vm {
             }
             return self.getattr(&p, name);
         }
+        if name == "__doc__" {
+            return Ok(inst.class.lookup("__doc__").unwrap_or(Value::None));
+        }
         if name == "with_traceback" && inst.class.builtin_base.is_some() {
             return Ok(Value::Ext(Rc::new(ExcWithTraceback { obj: obj.clone() })));
         }
@@ -784,6 +787,12 @@ impl Vm {
             "__doc__" => return Ok(cls.dict.borrow().get("__doc__").cloned().unwrap_or(Value::None)),
             _ => {}
         }
+        if name == "mro" && cls.lookup("mro").is_none() {
+            let m = crate::modules::import_checked(self, "copyreg")?;
+            if let Value::Function(f) = self.getattr(&Value::Module(m), "_type_mro")? {
+                return Ok(Value::BoundFn(Rc::new((Value::Class(cls.clone()), f))));
+            }
+        }
         if let Some(attr) = cls.lookup(name) {
             // `__init_subclass__` e `__class_getitem__` são métodos de classe implícitos.
             if let (Value::Function(f), "__init_subclass__" | "__class_getitem__") = (&attr, name) {
@@ -792,7 +801,8 @@ impl Vm {
             return self.bind_class_attr(&attr, Value::Class(cls.clone()), cls);
         }
         // Atributos da metaclasse (`Color.__members__`, métodos de `EnumMeta`).
-        if let Some(meta) = &cls.meta {
+        // `__new__` e `__init__` existem em `object`, que vem antes da metaclasse na busca de atributos da classe.
+        if let Some(meta) = cls.meta.as_ref().filter(|_| !matches!(name, "__new__" | "__init__")) {
             if let Some(attr) = meta.lookup(name) {
                 let me = Value::Class(cls.clone());
                 return match &attr {
@@ -1050,6 +1060,11 @@ impl Vm {
     /// Texto padrão de uma instância sem `__str__`/`__repr__` de usuário.
     pub(crate) fn default_text(&mut self, v: &Value, is_str: bool) -> String {
         let Value::Instance(i) = v else { return to_str(v) };
+        // Subclasse de `str`/`int`/`list`...: o texto padrão é o do valor guardado.
+        let payload = i.payload.borrow().clone();
+        if let Some(p) = payload {
+            return if is_str { to_str(&p) } else { crate::object::repr(&p) };
+        }
         if i.class.builtin_base.is_some() {
             let args = match i.dict.borrow().get("args") {
                 Some(Value::Tuple(t)) => t.to_vec(),
@@ -1075,6 +1090,10 @@ impl Vm {
     pub(crate) fn str_of(&mut self, v: &Value) -> PyResult<String> {
         if let Value::Instance(i) = v {
             for name in ["__str__", "__repr__"] {
+                // `str.__str__` devolve o próprio texto: o `__repr__` de usuário não entra em `str(x)`.
+                if name == "__repr__" && matches!(&*i.payload.borrow(), Some(Value::Str(_))) {
+                    continue;
+                }
                 if let Some(Value::Function(f)) = i.class.lookup(name) {
                     let r = self.call_function(&f, vec![v.clone()], Vec::new())?;
                     return match r {
@@ -1305,6 +1324,9 @@ pub fn instance_text(v: &Value, is_str: bool) -> Option<String> {
     let mut vm = current()?;
     let names: &[&str] = if is_str { &["__str__", "__repr__"] } else { &["__repr__"] };
     for name in names {
+        if *name == "__repr__" && is_str && matches!(&*i.payload.borrow(), Some(Value::Str(_))) {
+            continue;
+        }
         if let Some(Value::Function(f)) = i.class.lookup(name) {
             return match vm.call_function(&f, vec![v.clone()], Vec::new()) {
                 Ok(Value::Str(s)) => Some(s.as_str().to_string()),

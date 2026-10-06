@@ -283,6 +283,11 @@ def _object_reduce_ex(self, proto=0):
     return _reconstructor, (cls, base, None if base is object else base(self)), state
 
 
+def _type_mro(cls):
+    """`type.mro(cls)`."""
+    return list(cls.__mro__)
+
+
 def _builtin_reduce_ex(self, proto=0):
     """`__reduce_ex__` dos valores embutidos sem classe em Python (`range`, `Ellipsis`)."""
     if self is Ellipsis:

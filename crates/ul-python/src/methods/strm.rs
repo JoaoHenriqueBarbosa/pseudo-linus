@@ -510,6 +510,15 @@ fn join(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     };
     let mut out = String::new();
     for (i, item) in items.iter().enumerate() {
+        // Subclasse de `str` guarda o texto no payload.
+        let payload = match item {
+            Value::Instance(inst) => inst.payload.borrow().clone(),
+            _ => None,
+        };
+        let item = match &payload {
+            Some(p @ Value::Str(_)) => p,
+            _ => item,
+        };
         match item {
             Value::Str(x) => {
                 if i > 0 {
@@ -844,6 +853,34 @@ fn encode(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let norm = enc.to_lowercase().replace(['-', ' '], "_");
     let (cname, limit): (&str, u32) = match norm.as_str() {
         "utf_8" | "utf8" | "u8" | "utf" | "cp65001" => {
+            // `surrogateescape`: os bytes não decodificáveis vivem em U+F780..U+F7FF (o texto não guarda
+            // surrogates solitários) e voltam a ser o byte original.
+            if errors == "surrogateescape" {
+                let mut out = Vec::with_capacity(s.as_str().len());
+                for ch in s.as_str().chars() {
+                    match ch as u32 {
+                        cp @ 0xF780..=0xF7FF => out.push((cp - 0xF700) as u8),
+                        _ => out.extend(ch.to_string().bytes()),
+                    }
+                }
+                return Ok(Value::bytes(out));
+            }
+            // Strict/ignore/replace: os bytes escapados (U+F780..U+F7FF) fazem o papel dos surrogates
+            // solitários, que o `encode` estrito recusa (`_has_surrogates` do `email` depende disso).
+            let text = s.as_str();
+            if text.as_bytes().contains(&0xEF) {
+                if let Some((pos, ch)) = text.chars().enumerate().find(|(_, c)| (0xF780..=0xF7FF).contains(&(*c as u32))) {
+                    if errors == "strict" {
+                        return Err(exc(
+                            "UnicodeEncodeError",
+                            format!(
+                                "'utf-8' codec can't encode character '\\udc{:02x}' in position {pos}: surrogates not allowed",
+                                ch as u32 - 0xF700
+                            ),
+                        ));
+                    }
+                }
+            }
             return Ok(Value::bytes(s.as_str().as_bytes().to_vec()));
         }
         "ascii" | "us_ascii" | "646" | "ansi_x3.4_1968" => ("ascii", 128),
@@ -884,6 +921,9 @@ fn encode(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
                 ));
             }
             "ignore" => {}
+            "surrogateescape" if chars[i..j].iter().all(|c| (0xF780..=0xF7FF).contains(&(*c as u32))) => {
+                out.extend(chars[i..j].iter().map(|c| (*c as u32 - 0xF700) as u8));
+            }
             "replace" => out.extend(std::iter::repeat_n(b'?', j - i)),
             "backslashreplace" => {
                 for &ch in &chars[i..j] {

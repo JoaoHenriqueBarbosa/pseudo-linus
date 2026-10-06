@@ -1788,7 +1788,7 @@ impl Vm {
         match obj {
             Value::Instance(inst) => return self.instance_getattr(obj, inst, name),
             Value::Class(c) => return self.class_getattr(c, name),
-            Value::Builtin("object") => {
+            Value::Builtin("object") if !matches!(name, "__name__" | "__qualname__" | "__mro__" | "__bases__") => {
                 if let Some(v) = crate::typeattrs::object_attr(name) {
                     return Ok(v);
                 }
@@ -1797,6 +1797,33 @@ impl Vm {
                 return Ok(Value::Builtin("BaseException.__init__"));
             }
             Value::Builtin(n) if name == "__name__" || name == "__qualname__" => return Ok(Value::str(*n)),
+            Value::Builtin(_) | Value::NativeFn(_)
+                if matches!(name, "__mro__" | "__bases__") && crate::builtins::class_name(obj).is_some() =>
+            {
+                let n = &crate::builtins::class_name(obj).unwrap_or("object");
+                // Cadeia de bases: exceções pelo mapa de pais, `bool` -> `int`, e `object` no fim.
+                let cls_of = |s: &'static str| crate::builtins::get(s).unwrap_or(Value::Builtin(s));
+                let mut chain = vec![obj.clone()];
+                let mut cur: &'static str = n;
+                while let Some((_, parent)) = EXC_CLASSES.iter().find(|(e, _)| *e == cur) {
+                    if parent.is_empty() {
+                        break;
+                    }
+                    chain.push(cls_of(parent));
+                    cur = parent;
+                }
+                if *n == "bool" {
+                    chain.push(cls_of("int"));
+                }
+                if *n != "object" {
+                    chain.push(cls_of("object"));
+                }
+                if name == "__bases__" {
+                    let bases = if *n == "object" { Vec::new() } else { chain[1..2].to_vec() };
+                    return Ok(Value::tuple(bases));
+                }
+                return Ok(Value::tuple(chain));
+            }
             Value::Builtin(_) if name == "__module__" => return Ok(Value::str("builtins")),
             Value::Builtin(_) | Value::NativeFn(_) if name == "__doc__" => return Ok(Value::None),
             Value::NativeFn(f) => {
@@ -1959,6 +1986,12 @@ impl Vm {
             Value::Float(x) if name == "real" => Ok(Value::Float(*x)),
             Value::Float(_) if name == "imag" => Ok(Value::Float(0.0)),
             Value::Exception(_) if matches!(name, "__cause__" | "__context__") => Ok(Value::None),
+            Value::Str(_) | Value::Int(_) | Value::Big(_) | Value::Bool(_) | Value::Float(_) | Value::None
+                | Value::Tuple(_) | Value::List(_) | Value::Dict(_) | Value::Bytes(_)
+                if name == "__doc__" =>
+            {
+                Ok(Value::None)
+            }
             v if name == "__class__" && !matches!(v, Value::Instance(_) | Value::Class(_) | Value::Exception(_)) => {
                 Ok(self.type_of(v))
             }

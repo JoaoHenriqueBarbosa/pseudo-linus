@@ -94,6 +94,7 @@ fn decode_fallback(errors: &str, bytes: &[u8]) -> PyResult<Option<String>> {
         "strict" => None,
         "ignore" => Some(String::new()),
         "replace" => Some("\u{FFFD}".to_string()),
+        "surrogateescape" => Some(bytes.iter().filter_map(|b| char::from_u32(0xF700 + u32::from(*b))).collect()),
         "backslashreplace" => Some(bytes.iter().map(|b| format!("\\x{b:02x}")).collect()),
         other => return Err(exc("LookupError", format!("unknown error handler name '{other}'"))),
     })
