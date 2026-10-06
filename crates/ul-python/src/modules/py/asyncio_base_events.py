@@ -459,10 +459,18 @@ class BaseEventLoop(loopback.NetworkMixin, events.AbstractEventLoop):
             when = self._scheduled[0]._when
             timeout = min(max(0, when - self.time()), MAXIMUM_SELECT_TIMEOUT)
 
+        # Conexões com outros processos chegam pelo `poll` do kernel (`threading._pollers`): a espera ociosa
+        # passa por ele, e o que chega dispara os ganchos de I/O que enchem `_io_ready`.
+        import threading
+        external = bool(threading._pollers)
         if timeout is None:
-            # Sem prontos nem temporizadores o laço ficaria parado para sempre (não há I/O a esperar).
-            raise RuntimeError('event loop has nothing to wait for: no ready callbacks, timers or I/O')
-        if timeout > 0:
+            if not external:
+                # Sem prontos nem temporizadores o laço ficaria parado para sempre (não há I/O a esperar).
+                raise RuntimeError('event loop has nothing to wait for: no ready callbacks, timers or I/O')
+            threading._poll_external(None)
+        elif external:
+            threading._poll_external(timeout)
+        elif timeout > 0:
             time.sleep(timeout)
 
         # O `select` do CPython devolve os eventos de I/O depois dos prontos que já estavam na fila.
