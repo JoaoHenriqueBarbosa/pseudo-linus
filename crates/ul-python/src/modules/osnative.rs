@@ -310,7 +310,18 @@ fn clock(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         1 => sysabi::Clock::Monotonic,
         _ => sysabi::Clock::ProcessCpuTime,
     };
-    let t = sys::current().clock_gettime(which).map_err(|e| os_error(e, None))?;
+    let Some(process) = sys::try_current() else {
+        // Sem pseudo-processo (testes unitários): o relógio do hospedeiro.
+        static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+        let d = match which {
+            sysabi::Clock::Realtime => {
+                std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default()
+            }
+            _ => START.get_or_init(std::time::Instant::now).elapsed(),
+        };
+        return Ok(Value::tuple(vec![Value::Int(d.as_secs() as i64), Value::Int(i64::from(d.subsec_nanos()))]));
+    };
+    let t = process.clock_gettime(which).map_err(|e| os_error(e, None))?;
     Ok(Value::tuple(vec![Value::Int(t.sec), Value::Int(i64::from(t.nsec))]))
 }
 

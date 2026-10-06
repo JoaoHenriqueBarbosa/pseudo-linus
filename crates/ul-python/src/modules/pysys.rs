@@ -78,10 +78,32 @@ fn modules_snapshot(vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> 
     Ok(Value::dict(d))
 }
 
+/// O diretório absoluto do script (`sys.path[0]`); vazio para `-c`, stdin e o REPL.
+fn script_dir(vm: &Vm) -> String {
+    let Some(arg0) = vm.argv.first().filter(|a| !matches!(a.as_str(), "" | "-" | "-c")) else {
+        return String::new();
+    };
+    if sysabi::sys::try_current().is_none() {
+        return String::new();
+    }
+    let abs = if arg0.starts_with('/') {
+        arg0.clone()
+    } else {
+        let cwd = sysabi::sys::current().getcwd().unwrap_or_default();
+        format!("{}/{arg0}", String::from_utf8_lossy(&cwd).trim_end_matches('/'))
+    };
+    match abs.rsplit_once('/') {
+        Some(("", _)) => "/".to_string(),
+        Some((dir, _)) => dir.to_string(),
+        None => String::new(),
+    }
+}
+
 pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
     let argv = vm.argv.iter().map(|a| Value::str(a.clone())).collect();
     ModuleBuilder::new("_sys")
         .value("argv", Value::list(argv))
+        .value("script_dir", Value::str(script_dir(vm)))
         .value("stdin", Value::Native(vm.std_files[0].clone()))
         .value("stdout", Value::Native(vm.std_files[1].clone()))
         .value("stderr", Value::Native(vm.std_files[2].clone()))

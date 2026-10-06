@@ -27,6 +27,7 @@ pub mod shlex;
 pub mod string;
 pub mod weakrefmod;
 pub mod textwrap;
+pub mod userimport;
 pub mod zlibnative;
 
 use std::cell::RefCell;
@@ -34,7 +35,7 @@ use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use crate::object::{ModuleObj, NativeFn, NativeFnPtr, Value};
-use crate::vm::Vm;
+use crate::vm::{exc, PyResult, Vm};
 
 /// Monta um [`ModuleObj`] atributo a atributo.
 pub struct ModuleBuilder {
@@ -73,7 +74,7 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     }
     let m = match name {
         "_sys" => pysys::build(vm),
-        "csv" => builtin::csv(),
+        "_csvimpl" => builtin::csv(),
         "re" => re::build(vm),
         "math" => math::build(vm),
         "base64" => base64::build(vm),
@@ -95,6 +96,57 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     Some(m)
 }
 
+/// `import nome` vindo do programa: arquivos do usuário em `sys.path` primeiro (como o CPython), depois
+/// os módulos embutidos. Importa os pais de `a.b.c` antes.
+pub fn import_checked(vm: &mut Vm, name: &str) -> PyResult<Rc<ModuleObj>> {
+    if let Some(m) = vm.modules.borrow().get(name) {
+        return Ok(m.clone());
+    }
+    if let Some((parent, _)) = name.rsplit_once('.') {
+        import_checked(vm, parent)?;
+        if let Some(m) = vm.modules.borrow().get(name) {
+            return Ok(m.clone());
+        }
+    }
+    if let Some(m) = userimport::load(vm, name)? {
+        return Ok(m);
+    }
+    import(vm, name).ok_or_else(|| exc("ModuleNotFoundError", format!("No module named '{name}'")))
+}
+
+/// O nome absoluto de `from <level pontos><rel> import ...` a partir do pacote das globais atuais.
+pub fn resolve_relative(vm: &mut Vm, rel: &str, level: usize) -> PyResult<String> {
+    let (package, has_path) = {
+        let g = vm.globals.borrow();
+        let name = match g.get("__name__") {
+            Some(Value::Str(s)) => s.as_str().to_string(),
+            _ => String::new(),
+        };
+        let has_path = g.contains_key("__path__");
+        match g.get("__package__") {
+            Some(Value::Str(s)) => (s.as_str().to_string(), has_path),
+            _ if has_path => (name, has_path),
+            _ => (name.rsplit_once('.').map(|(p, _)| p.to_string()).unwrap_or_default(), has_path),
+        }
+    };
+    let _ = has_path;
+    if package.is_empty() {
+        return Err(exc("ImportError", "attempted relative import with no known parent package"));
+    }
+    let mut parts: Vec<&str> = package.split('.').collect();
+    if level - 1 >= parts.len() {
+        return Err(exc("ImportError", "attempted relative import beyond top-level package"));
+    }
+    parts.truncate(parts.len() - (level - 1));
+    let base = parts.join(".");
+    Ok(if rel.is_empty() { base } else { format!("{base}.{rel}") })
+}
+
+/// Se `name` é um pacote embutido (algum módulo embutido tem `name.` como prefixo).
+pub fn is_embedded_package(name: &str) -> bool {
+    pysrc::names().iter().any(|n| n.strip_prefix(name).is_some_and(|r| r.starts_with('.')))
+}
+
 /// Módulos que já existiam antes do registro; os atributos ainda apontam para os nomes que a
 /// VM resolve em `Vm::call`.
 mod builtin {
@@ -112,7 +164,7 @@ mod builtin {
 
     pub fn csv() -> Rc<ModuleObj> {
         use crate::modules::csv as c;
-        ModuleBuilder::new("csv")
+        ModuleBuilder::new("_csvimpl")
             .value("reader", Value::Builtin("csv.reader"))
             .value("writer", Value::Builtin("csv.writer"))
             .value("Error", Value::Builtin("_csv.Error"))

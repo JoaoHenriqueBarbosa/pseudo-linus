@@ -227,6 +227,7 @@ fn python3_main(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
     let mut getopt = GetOpt { args: &args, optind: 0, pos: 0, optarg: None };
     let mut print_version = 0u32;
     let mut command: Option<Vec<u8>> = None;
+    let mut module: Option<Vec<u8>> = None;
     loop {
         match getopt.next() {
             Opt::End => break,
@@ -242,7 +243,10 @@ fn python3_main(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
                 command = getopt.optarg.take();
                 break;
             }
-            Opt::Found(b'm') => break,
+            Opt::Found(b'm') => {
+                module = getopt.optarg.take();
+                break;
+            }
             Opt::Found(_) => {}
         }
     }
@@ -254,12 +258,54 @@ fn python3_main(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
         let rest: Vec<Vec<u8>> = args[getopt.optind.min(args.len())..].to_vec();
         return run_command(&command, &rest);
     }
-    // `-m` ainda não existe; arquivo e stdin seguem o `pymain_run_python` do CPython.
-    if args.iter().take(getopt.optind).any(|a| a == b"-m") {
-        return usage_error(&program);
+    if let Some(module) = module {
+        let rest: Vec<Vec<u8>> = args[getopt.optind.min(args.len())..].to_vec();
+        return run_module(&String::from_utf8_lossy(&module), &rest, &program);
     }
     let rest: Vec<Vec<u8>> = args[getopt.optind.min(args.len())..].to_vec();
     run_script(&rest, &program)
+}
+
+fn is_regular(path: &str) -> bool {
+    sys::stat(path.as_bytes()).is_ok_and(|st| st.mode & 0o170_000 == 0o100_000)
+}
+
+/// `python3 -m pacote.modulo args...`: procura no diretório atual (e em `sys.path`), roda como `__main__`.
+fn run_module(name: &str, rest: &[Vec<u8>], program: &str) -> i32 {
+    let cwd = String::from_utf8_lossy(&sys::current().getcwd().unwrap_or_default()).into_owned();
+    let cwd = cwd.trim_end_matches('/').to_string();
+    let parts: Vec<&str> = name.split('.').collect();
+    let mut dir = cwd.clone();
+    let mut found: Option<(String, String)> = None;
+    for (i, part) in parts.iter().enumerate() {
+        let last = i + 1 == parts.len();
+        let pkg_dir = format!("{dir}/{part}");
+        if last {
+            let main = format!("{pkg_dir}/__main__.py");
+            if is_regular(&format!("{pkg_dir}/__init__.py")) && is_regular(&main) {
+                found = Some((main, name.to_string()));
+            } else if is_regular(&format!("{dir}/{part}.py")) {
+                let package = parts[..i].join(".");
+                found = Some((format!("{dir}/{part}.py"), package));
+            }
+        } else if is_regular(&format!("{pkg_dir}/__init__.py")) {
+            dir = pkg_dir;
+        } else {
+            break;
+        }
+    }
+    let Some((path, package)) = found else {
+        write_stderr(&format!("{program}: No module named {name}\n"));
+        return 1;
+    };
+    let text = sys::read_file(path.as_bytes()).unwrap_or_default();
+    let argv = std::iter::once(path.clone()).chain(rest.iter().map(|a| String::from_utf8_lossy(a).into_owned())).collect();
+    let outcome = run_main(&String::from_utf8_lossy(&text), argv, &path, true, Some((package, cwd)));
+    let _ = sys::write_all(Fd::STDOUT, &outcome.stdout);
+    if !outcome.stderr.is_empty() {
+        write_stderr(&outcome.stderr);
+    }
+    outcome.status
 }
 
 /// `python3 arquivo.py args...`, `python3 - args...` ou o programa lido do stdin.
@@ -318,6 +364,11 @@ pub fn run_source_args(src: &str, argv: Vec<String>) -> Outcome {
 
 /// Executa o texto com o nome de arquivo mostrado nos tracebacks (`file_mode` mostra a linha fonte).
 pub fn run_with(src: &str, argv: Vec<String>, name: &str, file_mode: bool) -> Outcome {
+    run_main(src, argv, name, file_mode, None)
+}
+
+/// `run_with` de um módulo de `-m`: `(pacote, diretório atual)` define `__package__` e `sys.path[0]`.
+fn run_main(src: &str, argv: Vec<String>, name: &str, file_mode: bool, module: Option<(String, String)>) -> Outcome {
     let owned = src.to_string();
     let name = name.to_string();
     // A thread nova não herda o pseudo-processo: instala o do chamador para `open`, stdin e stderr.
@@ -326,7 +377,7 @@ pub fn run_with(src: &str, argv: Vec<String>, name: &str, file_mode: bool) -> Ou
         if let Some(c) = current {
             sys::install(c);
         }
-        run_source_inner(&owned, argv, &name, file_mode)
+        run_source_inner(&owned, argv, &name, file_mode, module)
     });
     match spawned.map(|h| h.join()) {
         Ok(Ok(outcome)) => outcome,
@@ -338,7 +389,13 @@ pub fn run_with(src: &str, argv: Vec<String>, name: &str, file_mode: bool) -> Ou
     }
 }
 
-fn run_source_inner(src: &str, argv: Vec<String>, name: &str, file_mode: bool) -> Outcome {
+fn run_source_inner(
+    src: &str,
+    argv: Vec<String>,
+    name: &str,
+    file_mode: bool,
+    main_module: Option<(String, String)>,
+) -> Outcome {
     // O `-c` do CPython compila o texto como um arquivo que termina em nova linha.
     let mut src = src.to_string();
     if !src.ends_with('\n') {
@@ -374,7 +431,30 @@ fn run_source_inner(src: &str, argv: Vec<String>, name: &str, file_mode: bool) -
         }
     };
     let mut machine = vm::Vm::with_argv(argv);
-    let result = machine.run(&std::rc::Rc::new(code));
+    if file_mode && name != "<stdin>" {
+        machine.globals.borrow_mut().insert("__file__".to_string(), object::Value::str(name));
+    }
+    let mut code = code;
+    code.set_filename("");
+    let mut prelude: Result<(), vm::RuntimeError> = Ok(());
+    if let Some((package, cwd)) = &main_module {
+        machine.globals.borrow_mut().insert("__package__".to_string(), object::Value::str(package.clone()));
+        if let Some(sysmod) = modules::import(&mut machine, "sys") {
+            if let Some(object::Value::List(path)) = sysmod.attrs.borrow().get("path") {
+                path.borrow_mut()[0] = object::Value::str(cwd.clone());
+            }
+        }
+        // Como o CPython, importa o pacote pai (que roda o `__init__.py`) antes do módulo.
+        if !package.is_empty() && !name.ends_with("__main__.py") {
+            if let Err(e) = modules::import_checked(&mut machine, package) {
+                prelude = Err(vm::RuntimeError { exc: e, lineno: 0 });
+            }
+        }
+    }
+    let result = match prelude {
+        Ok(()) => machine.run(&std::rc::Rc::new(code)),
+        Err(e) => Err(e),
+    };
     machine.run_exit_hooks();
     let stdout = std::mem::take(&mut *machine.stdout.borrow_mut());
     match result {

@@ -105,6 +105,8 @@ pub enum Op {
     Return,
     /// `import nome`: empilha o módulo.
     Import(u32),
+    /// `from .m import nome`: importa o módulo relativo (`level` pontos, `names[name]` pode ser vazio).
+    ImportRel { name: u32, level: u32 },
     /// `from m import nome`: com o módulo no topo, empilha o atributo ou levanta `ImportError`.
     ImportName(u32),
     /// Nome declarado `global` dentro de uma função: sempre nas globais.
@@ -192,6 +194,8 @@ pub struct Code {
     pub functions: Vec<Rc<Code>>,
     /// Arquivo de origem; vazio para o script do usuário (módulos embutidos preenchem o deles).
     pub filename: String,
+    /// Docstring (primeira instrução do corpo, se for um literal de texto).
+    pub doc: Option<String>,
 }
 
 impl Code {
@@ -217,11 +221,26 @@ pub struct CompileError {
 }
 
 /// Compila um `Mod::Module`.
+/// O docstring de um corpo: a primeira instrução, se for só um literal de texto.
+fn docstring(body: &[Stmt]) -> Option<String> {
+    match body.first().map(|s| &s.kind) {
+        Some(S::Expr { value }) => match &value.kind {
+            E::Constant { value: Constant::Str(s), .. } => Some(s.clone()),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
 pub fn compile_module(module: &Mod) -> Result<Code, CompileError> {
     let Mod::Module { body, .. } = module else {
         return Err(CompileError { kind: "NotImplementedError", msg: "only modules can be compiled".into(), lineno: 1 });
     };
     let mut c = Compiler::new(Code { name: "<module>".into(), ..Code::default() }, 1);
+    let doc = docstring(body).map_or(Value::None, Value::str);
+    let k = c.constant(doc);
+    c.emit(Op::LoadConst(k));
+    c.emit_store("__doc__");
     c.block(body)?;
     Ok(c.code)
 }
@@ -767,12 +786,14 @@ impl Compiler {
                 }
             }
             S::ImportFrom { module, names, level } => {
-                let Some(module) = module.as_ref().filter(|_| level.unwrap_or(0) == 0) else {
-                    return Err(self.unsupported("relative import"));
-                };
+                let level = level.unwrap_or(0);
+                if level == 0 && module.is_none() {
+                    return Err(self.unsupported("import without a module name"));
+                }
+                let module = module.clone().unwrap_or_default();
                 for alias in names {
-                    let m = self.name(module);
-                    self.emit(Op::Import(m));
+                    let m = self.name(&module);
+                    self.emit(if level == 0 { Op::Import(m) } else { Op::ImportRel { name: m, level: level as u32 } });
                     if alias.name == "*" {
                         self.emit(Op::ImportStar);
                         continue;
@@ -991,6 +1012,7 @@ impl Compiler {
         inner.enclosing_class = if self.in_class_body { self.class_name.clone() } else { self.enclosing_class.clone() };
         match body {
             FnBody::Stmts(b) => {
+                inner.code.doc = docstring(b);
                 inner.block(b)?;
                 let c = inner.constant_none();
                 inner.emit(Op::LoadConst(c));
@@ -1036,6 +1058,14 @@ impl Compiler {
         inner.nonlocals_decl = nonlocals;
         inner.in_class_body = true;
         inner.class_name = Some(name.to_string());
+        if let Some(doc) = docstring(body) {
+            let k = inner.constant(Value::str(doc));
+            inner.emit(Op::LoadConst(k));
+            if let Some(l) = &mut inner.locals {
+                l.insert("__doc__".to_string());
+            }
+            inner.emit_store("__doc__");
+        }
         inner.block(body)?;
         let c = inner.constant_none();
         inner.emit(Op::LoadConst(c));

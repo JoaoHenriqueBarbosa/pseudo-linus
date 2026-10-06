@@ -451,6 +451,10 @@ fn b_next(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
                 _ => Ok(line),
             }
         }
+        Value::Native(n) if matches!(&*n.borrow(), Native::CsvReader { .. }) => match crate::vm::native_next(n)? {
+            Some(v) => Ok(v),
+            None => stop_or(default),
+        },
         other => Err(type_error(format!("'{}' object is not an iterator", other.type_name()))),
     }
 }
@@ -1506,6 +1510,13 @@ fn b_int(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
                     }
                     Some(Err(e)) => return Err(e),
                     None => {}
+                }
+            }
+            // Subclasse de `int`/`float`/`str` (`IntEnum`...): vale o valor da base.
+            if let Value::Instance(i) = other {
+                let payload = i.payload.borrow().clone();
+                if let Some(p @ (Value::Int(_) | Value::Big(_) | Value::Bool(_) | Value::Float(_) | Value::Str(_))) = payload {
+                    return b_int(vm, vec![p], Vec::new());
                 }
             }
             Err(type_error(format!(

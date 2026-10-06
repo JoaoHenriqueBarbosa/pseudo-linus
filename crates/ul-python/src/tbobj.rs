@@ -8,21 +8,23 @@ use crate::object::{ExtObject, Kw, Value};
 use crate::vm::{exc, PyException, PyResult, Vm};
 
 /// Uma entrada: linha e nome do código, do quadro mais externo para o mais interno.
-pub type Entries = Rc<Vec<(usize, String)>>;
+pub type Entries = Rc<Vec<(usize, String, Rc<str>)>>;
 
 pub struct TracebackObj {
     entries: Entries,
     idx: usize,
     filename: Rc<str>,
+    /// `tb.tb_next = ...` (o `unittest` corta tracebacks): vale no lugar do próximo quadro.
+    next: std::cell::RefCell<Option<Value>>,
 }
 
 impl TracebackObj {
     /// O traceback que começa no quadro mais externo de `entries`; `None` se estiver vazio.
-    pub fn make(entries: Vec<(usize, String)>, filename: &str) -> Value {
+    pub fn make(entries: Vec<(usize, String, Rc<str>)>, filename: &str) -> Value {
         if entries.is_empty() {
             return Value::None;
         }
-        Value::Ext(Rc::new(TracebackObj { entries: Rc::new(entries), idx: 0, filename: Rc::from(filename) }))
+        Value::Ext(Rc::new(TracebackObj { entries: Rc::new(entries), idx: 0, filename: Rc::from(filename), next: Default::default() }))
     }
 }
 
@@ -36,20 +38,23 @@ impl ExtObject for TracebackObj {
     }
 
     fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
-        let (line, code) = &self.entries[self.idx];
+        let (line, code, own) = &self.entries[self.idx];
+        let file = if own.is_empty() { self.filename.clone() } else { own.clone() };
         Some(Ok(match name {
             "tb_lineno" => Value::Int(*line as i64),
             "tb_lasti" => Value::Int(0),
             "tb_frame" => Value::Ext(Rc::new(FrameObj {
-                chain: Rc::new(vec![(*line, code.clone(), self.filename.clone())]),
+                chain: Rc::new(vec![(*line, code.clone(), file)]),
                 idx: 0,
             })),
+            "tb_next" if self.next.borrow().is_some() => self.next.borrow().clone().unwrap_or(Value::None),
             "tb_next" => {
                 if self.idx + 1 < self.entries.len() {
                     Value::Ext(Rc::new(TracebackObj {
                         entries: self.entries.clone(),
                         idx: self.idx + 1,
                         filename: self.filename.clone(),
+                        next: Default::default(),
                     }))
                 } else {
                     Value::None
@@ -57,6 +62,14 @@ impl ExtObject for TracebackObj {
             }
             _ => return None,
         }))
+    }
+
+    fn setattr(&self, name: &str, value: Value) -> Option<Result<(), PyException>> {
+        if name == "tb_next" {
+            *self.next.borrow_mut() = Some(value);
+            return Some(Ok(()));
+        }
+        None
     }
 
     fn call_method(&self, _vm: &mut Vm, name: &str, _args: Vec<Value>, _kw: Kw) -> Result<Value, PyException> {

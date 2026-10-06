@@ -91,6 +91,19 @@ const SOURCES: &[(&str, &str)] = &[
     ("locale", include_str!("py/locale.py")),
     ("urllib", include_str!("py/urllib.py")),
     ("urllib.parse", include_str!("py/urllib_parse.py")),
+    ("_csv", include_str!("py/_csv.py")),
+    ("csv", include_str!("py/csv.py")),
+    ("signal", include_str!("py/signal.py")),
+    ("unittest", include_str!("py/unittest.py")),
+    ("unittest._log", include_str!("py/unittest__log.py")),
+    ("unittest.case", include_str!("py/unittest_case.py")),
+    ("unittest.loader", include_str!("py/unittest_loader.py")),
+    ("unittest.main", include_str!("py/unittest_main.py")),
+    ("unittest.result", include_str!("py/unittest_result.py")),
+    ("unittest.runner", include_str!("py/unittest_runner.py")),
+    ("unittest.signals", include_str!("py/unittest_signals.py")),
+    ("unittest.suite", include_str!("py/unittest_suite.py")),
+    ("unittest.util", include_str!("py/unittest_util.py")),
 ];
 
 /// Nomes de módulo que são apelidos de outro.
@@ -116,13 +129,25 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     // Registrado antes de rodar, para que importações circulares enxerguem o módulo.
     vm.modules.borrow_mut().insert(real.to_string(), module.clone());
     let globals: Rc<RefCell<HashMap<String, Value>>> = Rc::new(RefCell::new(HashMap::new()));
-    globals.borrow_mut().insert("__name__".to_string(), Value::str(real));
+    {
+        let mut g = globals.borrow_mut();
+        g.insert("__name__".to_string(), Value::str(real));
+        // Pacote: `__package__` é ele mesmo e `__path__` existe (vazio); módulo: o pacote pai.
+        if crate::modules::is_embedded_package(real) {
+            g.insert("__package__".to_string(), Value::str(real));
+            g.insert("__path__".to_string(), Value::list(Vec::new()));
+        } else {
+            g.insert("__package__".to_string(), Value::str(real.rsplit_once('.').map_or("", |(p, _)| p)));
+        }
+    }
     let mut inner = vm.clone();
     inner.globals = globals.clone();
     let parsed = crate::parser::parse_module(src).unwrap_or_else(|e| panic!("módulo embutido {real}: {e:?}"));
     let mut code = crate::compile::compile_module(&parsed)
         .unwrap_or_else(|e| panic!("módulo embutido {real}: {}: {}", e.kind, e.msg));
-    code.set_filename(&format!("/usr/lib/python3.13/{}.py", real.replace('.', "/")));
+    let filename = format!("/usr/lib/python3.13/{}.py", real.replace('.', "/"));
+    code.set_filename(&filename);
+    crate::vm::register_source(&filename, src);
     if let Err(e) = inner.run(&Rc::new(code)) {
         panic!("módulo embutido {real}:\n{}", crate::vm::format_traceback_in(&e, real, Some(src)));
     }

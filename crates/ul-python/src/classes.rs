@@ -159,6 +159,32 @@ impl ExtObject for SuperProxy {
     }
 }
 
+/// `exc.with_traceback(tb)`: grava `__traceback__` e devolve a própria exceção.
+pub(crate) struct ExcWithTraceback {
+    pub(crate) obj: Value,
+}
+
+impl ExtObject for ExcWithTraceback {
+    fn type_name(&self) -> &'static str {
+        "builtin_function_or_method"
+    }
+    fn methods(&self) -> &'static [&'static str] {
+        &["__call__"]
+    }
+    fn call_method(&self, _vm: &mut Vm, _name: &str, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+        let [tb] = <[Value; 1]>::try_from(args)
+            .map_err(|a| type_error(format!("with_traceback() takes exactly one argument ({} given)", a.len())))?;
+        match &self.obj {
+            Value::Exception(e) => *e.traceback.borrow_mut() = Some(tb),
+            Value::Instance(i) => {
+                i.dict.borrow_mut().insert("__traceback__".to_string(), tb);
+            }
+            _ => {}
+        }
+        Ok(self.obj.clone())
+    }
+}
+
 /// Método mágico de uma instância (`d.__getitem__`) que passa pelo despacho da classe.
 struct InstanceDunder {
     obj: Value,
@@ -695,6 +721,9 @@ impl Vm {
             }
             return self.getattr(&p, name);
         }
+        if name == "with_traceback" && inst.class.builtin_base.is_some() {
+            return Ok(Value::Ext(Rc::new(ExcWithTraceback { obj: obj.clone() })));
+        }
         Err(exc("AttributeError", format!("'{}' object has no attribute '{name}'", inst.class.name)))
     }
 
@@ -716,6 +745,8 @@ impl Vm {
                 return Ok(Value::dict(d));
             }
             "__class__" => return Ok(Value::Builtin("type")),
+            // O docstring não é herdado: sem o próprio, `__doc__` é `None`.
+            "__doc__" => return Ok(cls.dict.borrow().get("__doc__").cloned().unwrap_or(Value::None)),
             _ => {}
         }
         if let Some(attr) = cls.lookup(name) {
@@ -777,6 +808,9 @@ impl Vm {
                 Ok(())
             }
             Value::Module(m) => {
+                if let Some(g) = self.module_globals.borrow().get(m.name) {
+                    g.borrow_mut().insert(name.to_string(), value.clone());
+                }
                 m.attrs.borrow_mut().insert(name.to_string(), value);
                 Ok(())
             }

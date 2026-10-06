@@ -12,8 +12,8 @@ fn out(src: &str) -> String {
 
 #[test]
 fn every_embedded_module_imports() {
-    // `logging` lê o relógio ao importar, e o relógio é do pseudo-processo (só existe na bancada).
-    const NEEDS_PROCESS: &[&str] = &["logging"];
+    // `logging` (e `unittest._log`, que o importa) lê o relógio ao importar, e o relógio é do pseudo-processo (só existe na bancada).
+    const NEEDS_PROCESS: &[&str] = &[];
     for name in crate::modules::pysrc::names() {
         if NEEDS_PROCESS.contains(&name) {
             continue;
@@ -1686,6 +1686,71 @@ byte must be in range(0, 256)
 unhashable type: 'bytearray'
 unhashable type: 'bytearray'
 bytearray(b'a\x00\xff') bytearray(b'ab') <class 'bytearray'>
+"##
+    );
+}
+
+#[test]
+fn docstrings_csv_unittest_signal_match_cpython() {
+    let src = r##"
+"""Doc do módulo."""
+import csv, io, unittest, signal
+
+
+class A:
+    """Classe A."""
+    def m(self):
+        """método m"""
+
+
+class B(A): pass
+
+
+print(__doc__, A.__doc__, B.__doc__, A().m.__doc__, A.m.__doc__, (lambda: 1).__doc__)
+buf = io.StringIO()
+w = csv.DictWriter(buf, fieldnames=["a", "b"], lineterminator="\n")
+w.writeheader()
+w.writerow({"a": 1, "b": "x,y"})
+print(repr(buf.getvalue()), list(csv.DictReader(io.StringIO(buf.getvalue()))))
+print(csv.list_dialects() == ['excel', 'excel-tab', 'unix'], csv.Sniffer().sniff("a;b\n1;2\n").delimiter)
+
+
+class T(unittest.TestCase):
+    def test_a(self):
+        self.assertEqual(1 + 1, 2)
+        with self.assertRaises(ZeroDivisionError):
+            1 / 0
+
+    def test_b(self):
+        self.assertEqual([1, 2], [1, 2])
+
+    @unittest.skip("não")
+    def test_c(self):
+        pass
+
+
+s = io.StringIO()
+r = unittest.TextTestRunner(stream=s, verbosity=2).run(unittest.defaultTestLoader.loadTestsFromTestCase(T))
+print(r.testsRun, len(r.failures), len(r.skipped), r.wasSuccessful())
+print("\n".join(l for l in s.getvalue().splitlines() if not l.startswith(("Ran ", "File ", "  File")) and "~~" not in l and "^^" not in l and "assertEqual" not in l))
+print(signal.SIGINT, int(signal.SIGTERM), signal.getsignal(signal.SIGINT).__name__)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"Doc do módulo. Classe A. None método m método m None
+'a,b\n1,"x,y"\n' [{'a': '1', 'b': 'x,y'}]
+True ;
+3 0 1 True
+test_a (__main__.T.test_a) ... ok
+test_b (__main__.T.test_b) ... ok
+test_c (__main__.T.test_c) ... skipped 'não'
+
+----------------------------------------------------------------------
+
+OK (skipped=1)
+2 15 default_int_handler
 "##
     );
 }

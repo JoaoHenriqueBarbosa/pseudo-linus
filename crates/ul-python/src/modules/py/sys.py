@@ -36,6 +36,8 @@ warnoptions = []
 dont_write_bytecode = True
 platlibdir = 'lib'
 pycache_prefix = None
+if _sys.script_dir:
+    path[0] = _sys.script_dir
 
 
 class _Modules:

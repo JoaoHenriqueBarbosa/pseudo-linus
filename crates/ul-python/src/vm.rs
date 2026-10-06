@@ -36,7 +36,8 @@ pub struct PyException {
     pub value: Option<Value>,
     /// Quadros que a exceção atravessou sem tratamento: linha e nome do código, do mais interno
     /// para o mais externo.
-    pub tb: Vec<(usize, String)>,
+    /// O terceiro item é o arquivo do código (vazio: o script principal).
+    pub tb: Vec<(usize, String, Rc<str>)>,
 }
 
 impl PyException {
@@ -102,11 +103,31 @@ pub fn format_traceback(err: &RuntimeError) -> String {
 
 /// Traceback com o nome do arquivo; com `src` (execução de arquivo) cada quadro mostra a linha fonte
 /// sem a indentação, como o CPython faz fora do `-c`.
+thread_local! {
+    /// Texto dos módulos carregados (por nome de arquivo), para mostrar a linha no traceback.
+    static SOURCES: RefCell<HashMap<String, Rc<str>>> = RefCell::new(HashMap::new());
+}
+
+/// Registra o texto de um módulo, para os tracebacks que passam por ele.
+pub fn register_source(file: &str, text: &str) {
+    SOURCES.with(|s| s.borrow_mut().insert(file.to_string(), Rc::from(text)));
+}
+
+fn source_line(file: &str, line: usize) -> Option<String> {
+    SOURCES.with(|s| s.borrow().get(file).and_then(|t| t.lines().nth(line.saturating_sub(1)).map(str::to_string)))
+}
+
 pub fn format_traceback_in(err: &RuntimeError, file: &str, src: Option<&str>) -> String {
     let mut out = String::from("Traceback (most recent call last):\n");
-    let frame = |out: &mut String, line: usize, name: &str| {
-        out.push_str(&format!("  File \"{file}\", line {line}, in {name}\n"));
-        if let Some(text) = src.and_then(|s| s.lines().nth(line.saturating_sub(1))) {
+    let frame = |out: &mut String, line: usize, name: &str, own: &str| {
+        let shown = if own.is_empty() { file } else { own };
+        out.push_str(&format!("  File \"{shown}\", line {line}, in {name}\n"));
+        let text = if own.is_empty() {
+            src.and_then(|s| s.lines().nth(line.saturating_sub(1))).map(str::to_string)
+        } else {
+            source_line(own, line)
+        };
+        if let Some(text) = text {
             let t = text.trim();
             if !t.is_empty() {
                 out.push_str(&format!("    {t}\n"));
@@ -114,10 +135,10 @@ pub fn format_traceback_in(err: &RuntimeError, file: &str, src: Option<&str>) ->
         }
     };
     if err.exc.tb.is_empty() {
-        frame(&mut out, err.lineno, "<module>");
+        frame(&mut out, err.lineno, "<module>", "");
     }
-    for (line, name) in err.exc.tb.iter().rev() {
-        frame(&mut out, *line, name);
+    for (line, name, own) in err.exc.tb.iter().rev() {
+        frame(&mut out, *line, name, own);
     }
     if err.exc.msg.is_empty() {
         out.push_str(err.exc.kind);
@@ -346,6 +367,9 @@ pub struct Vm {
     pub(crate) std_files: [Rc<RefCell<Native>>; 3],
     /// Módulos já importados, por nome.
     pub(crate) modules: Rc<RefCell<HashMap<String, Rc<crate::object::ModuleObj>>>>,
+    /// Globais vivas dos módulos carregados de arquivo (por nome): `mod.x` lê e grava aqui, então
+    /// o módulo e quem o importou enxergam o mesmo estado.
+    pub(crate) module_globals: Rc<RefCell<HashMap<&'static str, Rc<RefCell<HashMap<String, Value>>>>>>,
 }
 
 thread_local! {
@@ -424,6 +448,7 @@ impl Vm {
             frames: Rc::new(RefCell::new(Vec::new())),
             argv: Rc::new(argv),
             modules: Rc::new(RefCell::new(HashMap::new())),
+            module_globals: Rc::new(RefCell::new(HashMap::new())),
             std_files: [file(FileKind::Stdin, "<stdin>"), file(FileKind::Stdout, "<stdout>"), file(FileKind::Stderr, "<stderr>")],
         };
         CURRENT.with(|c| *c.borrow_mut() = Some(vm.clone()));
@@ -511,7 +536,7 @@ impl Vm {
                         self.handled.borrow_mut().truncate(b.handled);
                         let value = e.to_value();
                         // `__traceback__`: o quadro que captura primeiro, depois os internos.
-                        let mut entries = vec![(code.lines[*pc], code.name.clone())];
+                        let mut entries = vec![(code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str()))];
                         entries.extend(e.tb.iter().rev().cloned());
                         let filename = match self.argv.first().map(String::as_str) {
                             Some(a) if !a.is_empty() && a != "-c" => a.to_string(),
@@ -529,7 +554,7 @@ impl Vm {
                         *pc = b.handler;
                     }
                     None => {
-                        e.tb.push((code.lines[*pc], code.name.clone()));
+                        e.tb.push((code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str())));
                         return Err(e);
                     }
                 },
@@ -1263,16 +1288,23 @@ impl Vm {
             Op::Yield => return Err(internal("yield outside run loop")),
             Op::Import(i) => {
                 let name = &code.names[i as usize];
-                let Some(m) = crate::modules::import(self, name) else {
-                    return Err(exc("ModuleNotFoundError", format!("No module named '{name}'")));
-                };
+                let m = crate::modules::import_checked(self, name)?;
+                stack.push(Slot::Val(Value::Module(m)));
+            }
+            Op::ImportRel { name, level } => {
+                let rel = &code.names[name as usize];
+                let abs = crate::modules::resolve_relative(self, rel, level as usize)?;
+                let m = crate::modules::import_checked(self, &abs)?;
                 stack.push(Slot::Val(Value::Module(m)));
             }
             Op::ImportStar => {
                 let Value::Module(m) = pop(stack)? else {
                     return Err(internal("import * from a non-module"));
                 };
-                let attrs = m.attrs.borrow().clone();
+                let mut attrs = m.attrs.borrow().clone();
+                if let Some(g) = self.module_globals.borrow().get(m.name) {
+                    attrs.extend(g.borrow().iter().map(|(k, v)| (k.clone(), v.clone())));
+                }
                 let listed: Option<Vec<String>> = match attrs.get("__all__") {
                     Some(Value::List(l)) => Some(l.borrow().iter().map(|v| to_str(v)).collect()),
                     Some(Value::Tuple(t)) => Some(t.iter().map(|v| to_str(v)).collect()),
@@ -1310,6 +1342,19 @@ impl Vm {
                             Value::Module(m) => m.name,
                             _ => "?",
                         };
+                        // `from pacote import submodulo`: importa o submódulo.
+                        if let Value::Module(m) = &obj {
+                            if m.attrs.borrow().contains_key("__path__")
+                                || self.module_globals.borrow().get(m.name).is_some_and(|g| g.borrow().contains_key("__path__"))
+                                || crate::modules::is_embedded_package(m.name)
+                            {
+                                let full = format!("{module}.{name}");
+                                if let Ok(sub) = crate::modules::import_checked(self, &full) {
+                                    stack.push(Slot::Val(Value::Module(sub)));
+                                    return Ok(None);
+                                }
+                            }
+                        }
                         return Err(exc(
                             "ImportError",
                             format!("cannot import name '{name}' from '{module}' (unknown location)"),
@@ -1598,6 +1643,7 @@ impl Vm {
             }
             Value::Builtin(n) if name == "__name__" || name == "__qualname__" => return Ok(Value::str(*n)),
             Value::Builtin(_) if name == "__module__" => return Ok(Value::str("builtins")),
+            Value::Builtin(_) | Value::NativeFn(_) if name == "__doc__" => return Ok(Value::None),
             Value::NativeFn(f) => {
                 if let Some(v) = crate::typeattrs::type_attr(f.name, name) {
                     return Ok(v);
@@ -1613,7 +1659,7 @@ impl Vm {
                 }
                 match name {
                     "__name__" | "__qualname__" => return Ok(Value::str(f.code.name.clone())),
-                    "__doc__" => return Ok(Value::None),
+                    "__doc__" => return Ok(f.code.doc.clone().map_or(Value::None, Value::str)),
                     "__code__" => {
                         let file = if f.code.filename.is_empty() {
                             match self.argv.first().map(String::as_str) {
@@ -1645,6 +1691,9 @@ impl Vm {
                 _ => {}
             },
             Value::BoundFn(b) => match name {
+                "__doc__" | "__module__" | "__qualname__" | "__code__" | "__dict__" => {
+                    return self.getattr(&Value::Function(b.1.clone()), name)
+                }
                 "__name__" => return Ok(Value::str(b.1.code.name.clone())),
                 "__self__" => return Ok(b.0.clone()),
                 "__func__" => return Ok(Value::Function(b.1.clone())),
@@ -1660,6 +1709,9 @@ impl Vm {
         }
         match obj {
             Value::Exception(e) if name == "args" => Ok(Value::tuple(e.args.clone())),
+            Value::Exception(_) if name == "with_traceback" => {
+                Ok(Value::Ext(Rc::new(crate::classes::ExcWithTraceback { obj: obj.clone() })))
+            }
             Value::Exception(e) if name == "__traceback__" => Ok(e.traceback.borrow().clone().unwrap_or(Value::None)),
             Value::Exception(e) if name == "code" && e.kind == "SystemExit" => Ok(match e.args.as_slice() {
                 [] => Value::None,
@@ -1692,10 +1744,17 @@ impl Vm {
             v if name == "__class__" && !matches!(v, Value::Instance(_) | Value::Class(_) | Value::Exception(_)) => {
                 Ok(self.type_of(v))
             }
-            Value::Module(m) => match m.attrs.borrow().get(name) {
-                Some(v) => Ok(v.clone()),
-                None => Err(exc("AttributeError", format!("module '{}' has no attribute '{name}'", m.name))),
-            },
+            Value::Module(m) => {
+                if let Some(g) = self.module_globals.borrow().get(m.name) {
+                    if let Some(v) = g.borrow().get(name) {
+                        return Ok(v.clone());
+                    }
+                }
+                match m.attrs.borrow().get(name) {
+                    Some(v) => Ok(v.clone()),
+                    None => Err(exc("AttributeError", format!("module '{}' has no attribute '{name}'", m.name))),
+                }
+            }
             Value::Native(n) => {
                 let methods: &[&'static str] = match &*n.borrow() {
                     Native::File(f) => {
@@ -1967,7 +2026,7 @@ fn file_readline(n: &Rc<RefCell<Native>>) -> PyResult<Option<String>> {
 }
 
 /// Próximo item de um arquivo (linha) ou de um leitor de `csv` (lista de campos).
-fn native_next(n: &Rc<RefCell<Native>>) -> PyResult<Option<Value>> {
+pub(crate) fn native_next(n: &Rc<RefCell<Native>>) -> PyResult<Option<Value>> {
     let is_reader = matches!(&*n.borrow(), Native::CsvReader { .. });
     if !is_reader {
         return Ok(file_readline(n)?.map(Value::str));
