@@ -2660,3 +2660,28 @@ b'\x80\x04K\x01.' b'\x80\x02X\x01\x00\x00\x00aq\x00.' 5 4
 "##
     );
 }
+
+#[test]
+fn quopri_plist_code() {
+    let src = r##"
+import quopri, plistlib, codeop, code
+print(quopri.encodestring(b"caf\xc3\xa9 = ok\n"))
+print(quopri.decodestring(b"caf=C3=A9\n"))
+d = {"a": 1, "b": [1.5, "x", True], "c": b"zz"}
+s = plistlib.dumps(d)
+print(plistlib.loads(s) == d, plistlib.dumps(d, fmt=plistlib.FMT_BINARY)[:8])
+print(plistlib.loads(plistlib.dumps(d, fmt=plistlib.FMT_BINARY)) == d)
+c = code.InteractiveInterpreter()
+c.runsource("x = 2 + 3")
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"b'caf=C3=A9 =3D ok\n'
+b'caf\xc3\xa9\n'
+True b'bplist00'
+True
+"##
+    );
+}

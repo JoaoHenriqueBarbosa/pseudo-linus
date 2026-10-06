@@ -359,6 +359,8 @@ impl crate::object::ExtObject for CodeSource {
             "_source" => Value::str(self.src.clone()),
             "co_filename" => Value::str(self.filename.clone()),
             "co_name" => Value::str("<module>".to_string()),
+            "co_flags" => Value::Int(0x40),
+            "co_firstlineno" => Value::Int(1),
             _ => return None,
         }))
     }

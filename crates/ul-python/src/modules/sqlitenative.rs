@@ -161,6 +161,14 @@ impl SqliteConn {
 
 /// `(None, nomes, tipos_declarados, linhas, mudanças, último_rowid)` ou `(tipo, mensagem)`.
 fn run_statement(conn: &Connection, sql: &str, params: &Value) -> Value {
+    // O VFS do sandbox não tem memória compartilhada: WAL cai para o modo `delete`, que é o que o
+    // SQLite devolve num sistema de arquivos sem suporte a WAL.
+    let lowered = sql.trim().to_ascii_lowercase();
+    let sql = if lowered.starts_with("pragma journal_mode") && lowered.contains("wal") {
+        "PRAGMA journal_mode = delete"
+    } else {
+        sql
+    };
     let mut stmt = match conn.prepare(sql) {
         Ok(s) => s,
         Err(e) => return map_error(&e),

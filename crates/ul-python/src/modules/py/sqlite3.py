@@ -323,7 +323,8 @@ class Cursor:
     def _run(self, sql, parameters):
         conn = self.connection
         first = _first_word(sql)
-        if first in _DML and conn._isolation_level is not None and not conn.in_transaction:
+        if first in _DML and conn._isolation_level is not None and not conn.in_transaction \
+                and conn.autocommit == LEGACY_TRANSACTION_CONTROL:
             conn._begin()
         res = conn._h.run(sql, self._convert_params(parameters))
         _raise(res)
@@ -509,6 +510,8 @@ class Connection:
         self.row_factory = None
         self.text_factory = str
         self.autocommit = autocommit
+        if autocommit is False:
+            _raise(self._h.run('BEGIN', ()))
 
     @property
     def isolation_level(self):
@@ -570,11 +573,15 @@ class Connection:
         self._check()
         if not self._h.is_autocommit():
             _raise(self._h.run('COMMIT', ()))
+            if self.autocommit is False:
+                _raise(self._h.run('BEGIN', ()))
 
     def rollback(self):
         self._check()
         if not self._h.is_autocommit():
             _raise(self._h.run('ROLLBACK', ()))
+            if self.autocommit is False:
+                _raise(self._h.run('BEGIN', ()))
 
     def close(self):
         if self._closed:
