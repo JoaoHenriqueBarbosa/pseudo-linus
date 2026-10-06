@@ -933,3 +933,62 @@ False
 "#
     );
 }
+
+#[test]
+fn threading_and_futures_serial() {
+    let src = r#"
+import threading, time
+from concurrent.futures import ThreadPoolExecutor, as_completed, wait
+results = []
+lock = threading.Lock()
+def work(n):
+    with lock:
+        results.append(n * n)
+ts = [threading.Thread(target=work, args=(i,)) for i in range(4)]
+for t in ts:
+    t.start()
+for t in ts:
+    t.join()
+print(sorted(results), threading.current_thread().name, threading.active_count())
+ev = threading.Event()
+ev.set()
+print(ev.wait(0.01), ev.is_set())
+with ThreadPoolExecutor(max_workers=3) as ex:
+    fs = [ex.submit(pow, 2, i) for i in range(5)]
+    print([f.result() for f in fs])
+    print(list(ex.map(lambda x: x + 1, [1, 2, 3])))
+    bad = ex.submit(lambda: 1 / 0)
+    print(type(bad.exception()).__name__, bad.done())
+    done, pending = wait(fs)
+    print(len(done), len(pending), sorted(f.result() for f in as_completed(fs)))
+t = threading.Thread(target=lambda: print("in", threading.current_thread().name), name="worker")
+t.start()
+print(t.is_alive(), repr(t).split()[0])
+class Counter:
+    def __init__(self):
+        self.n = 0
+        self.lock = threading.RLock()
+    def inc(self):
+        with self.lock:
+            self.n += 1
+c = Counter()
+for _ in range(3):
+    threading.Thread(target=c.inc).start()
+print(c.n)
+"#;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r#"[0, 1, 4, 9] MainThread 1
+True True
+[1, 2, 4, 8, 16]
+[2, 3, 4]
+ZeroDivisionError True
+5 0 [1, 2, 4, 8, 16]
+in worker
+False <Thread(worker,
+3
+"#
+    );
+}
