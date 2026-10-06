@@ -1648,6 +1648,13 @@ impl Vm {
                     _ => file,
                 })
             }
+            Value::Int(_) | Value::Big(_) | Value::Bool(_) if matches!(name, "real" | "numerator") => {
+                Ok(if let Value::Bool(b) = obj { Value::Int(i64::from(*b)) } else { obj.clone() })
+            }
+            Value::Int(_) | Value::Big(_) | Value::Bool(_) if name == "imag" => Ok(Value::Int(0)),
+            Value::Int(_) | Value::Big(_) | Value::Bool(_) if name == "denominator" => Ok(Value::Int(1)),
+            Value::Float(x) if name == "real" => Ok(Value::Float(*x)),
+            Value::Float(_) if name == "imag" => Ok(Value::Float(0.0)),
             Value::Exception(_) if matches!(name, "__cause__" | "__context__") => Ok(Value::None),
             v if name == "__class__" && !matches!(v, Value::Instance(_) | Value::Class(_) | Value::Exception(_)) => {
                 Ok(self.type_of(v))
@@ -1993,6 +2000,7 @@ fn builtin_seq(name: &'static str, args: Vec<Value>, kwargs: Vec<(String, Value)
             match args.first() {
                 None => Ok(Value::Float(0.0)),
                 Some(Value::Int(i)) => Ok(Value::Float(*i as f64)),
+                Some(Value::Big(n)) => Ok(Value::Float(crate::bigint::to_f64(n)?)),
                 Some(Value::Bool(b)) => Ok(Value::Float(f64::from(u8::from(*b)))),
                 Some(Value::Float(x)) => Ok(Value::Float(*x)),
                 Some(v @ Value::Str(s)) => {
@@ -2016,7 +2024,11 @@ fn builtin_seq(name: &'static str, args: Vec<Value>, kwargs: Vec<(String, Value)
         "abs" => {
             let [v] = one_arg(name, args)?;
             match v {
-                Value::Int(i) => i.checked_abs().map(Value::Int).ok_or_else(|| ObjError::IntOverflow.into()),
+                Value::Int(i) => Ok(i.checked_abs().map_or_else(
+                    || crate::bigint::norm(num_traits::Signed::abs(&num_bigint::BigInt::from(i))),
+                    Value::Int,
+                )),
+                Value::Big(n) => Ok(crate::bigint::norm(num_traits::Signed::abs(&*n))),
                 Value::Bool(b) => Ok(Value::Int(i64::from(b))),
                 Value::Float(x) => Ok(Value::Float(x.abs())),
                 other => Err(type_error(format!("bad operand type for abs(): '{}'", other.type_name()))),
@@ -2213,6 +2225,7 @@ fn range_of(args: &[Value]) -> PyResult<Value> {
 fn int_of(v: &Value) -> PyResult<Value> {
     match v {
         Value::Int(i) => Ok(Value::Int(*i)),
+        Value::Big(_) => Ok(v.clone()),
         Value::Bool(b) => Ok(Value::Int(i64::from(*b))),
         Value::Float(x) => {
             if x.is_nan() {
@@ -2223,12 +2236,11 @@ fn int_of(v: &Value) -> PyResult<Value> {
             }
             let t = x.trunc();
             if !(-9_223_372_036_854_775_808.0..9_223_372_036_854_775_808.0).contains(&t) {
-                return Err(ObjError::IntOverflow.into());
+                return Ok(crate::bigint::norm(crate::bigint::float_to_big(t).unwrap_or_default()));
             }
             Ok(Value::Int(t as i64))
         }
         Value::Str(s) => parse_int(s.as_str())
-            .map(Value::Int)
             .ok_or_else(|| exc("ValueError", format!("invalid literal for int() with base 10: {}", repr(v)))),
         _ => Err(type_error(format!(
             "int() argument must be a string, a bytes-like object or a real number, not '{}'",
@@ -2238,7 +2250,7 @@ fn int_of(v: &Value) -> PyResult<Value> {
 }
 
 /// Literal decimal do `int(str)`: espaços em volta, sinal opcional, `_` só entre dígitos.
-fn parse_int(text: &str) -> Option<i64> {
+pub(crate) fn parse_int(text: &str) -> Option<Value> {
     let t = text.trim_matches(char::is_whitespace);
     let (negative, digits) = match t.as_bytes().first() {
         Some(b'-') => (true, &t[1..]),
@@ -2248,19 +2260,13 @@ fn parse_int(text: &str) -> Option<i64> {
     if digits.is_empty() || digits.starts_with('_') || digits.ends_with('_') || digits.contains("__") {
         return None;
     }
-    let mut value: i128 = 0;
-    for c in digits.chars() {
-        if c == '_' {
-            continue;
-        }
-        let d = c.to_digit(10)?;
-        value = value * 10 + i128::from(d);
-        if value > i128::from(i64::MAX) + 1 {
-            return None;
-        }
+    let clean: String = digits.chars().filter(|c| *c != '_').collect();
+    if !clean.chars().all(|c| c.is_ascii_digit() || c.to_digit(10).is_some()) {
+        return None;
     }
-    let value = if negative { -value } else { value };
-    i64::try_from(value).ok()
+    let ascii: String = clean.chars().map(|c| char::from_digit(c.to_digit(10).unwrap_or(0), 10).unwrap_or('0')).collect();
+    let big = crate::bigint::parse(&ascii, 10)?;
+    Some(crate::bigint::norm(if negative { -big } else { big }))
 }
 
 /// Índice normalizado de uma sequência de tamanho `len`, ou `None` se estiver fora.
@@ -2569,6 +2575,23 @@ fn binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyResult<Value> 
                 _ => {}
             }
         }
+    if matches!(a, Value::Big(_)) || matches!(b, Value::Big(_)) {
+        if let (Some(x), Some(y)) = (crate::bigint::as_big(a), crate::bigint::as_big(b)) {
+            return crate::bigint::binary(op, &x, &y).map_err(|e| e.unwrap_or_else(|| unsupported(op, a, b, inplace)));
+        }
+        let float_of = |v: &Value| -> PyResult<Option<f64>> {
+            Ok(match v {
+                Value::Float(x) => Some(*x),
+                Value::Big(n) => Some(crate::bigint::to_f64(n)?),
+                Value::Int(i) => Some(*i as f64),
+                Value::Bool(b) => Some(f64::from(u8::from(*b))),
+                _ => None,
+            })
+        };
+        if let (Some(x), Some(y)) = (float_of(a)?, float_of(b)?) {
+            return float_binary(op, x, y).map_err(|e| e.unwrap_or_else(|| unsupported(op, a, b, inplace)));
+        }
+    }
     if let (Some(x), Some(y)) = (num(a), num(b)) {
         // `bool & bool` (e `|`, `^`) continua `bool`.
         if let (Value::Bool(p), Value::Bool(q)) = (a, b) {
@@ -2580,10 +2603,18 @@ fn binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyResult<Value> 
             }
         }
         return match (x, y) {
-            (Num::Int(x), Num::Int(y)) => int_binary(op, x, y).map_err(|e| match e {
-                Some(e) => e,
-                None => unsupported(op, a, b, inplace),
-            }),
+            (Num::Int(x), Num::Int(y)) => match int_binary(op, x, y) {
+                Ok(v) => Ok(v),
+                // Estourou o `i64`: refaz a conta em precisão arbitrária.
+                Err(Some(e)) if crate::bigint::is_overflow(&e) => {
+                    crate::bigint::binary(op, &x.into(), &y.into()).map_err(|e| match e {
+                        Some(e) => e,
+                        None => unsupported(op, a, b, inplace),
+                    })
+                }
+                Err(Some(e)) => Err(e),
+                Err(None) => Err(unsupported(op, a, b, inplace)),
+            },
             _ => float_binary(op, as_float(x), as_float(y)).map_err(|e| match e {
                 Some(e) => e,
                 None => unsupported(op, a, b, inplace),
@@ -2925,8 +2956,16 @@ fn unary(op: UnaryOp, a: &Value) -> PyResult<Value> {
     let bad = |sym: &str| type_error(format!("bad operand type for unary {sym}: '{}'", a.type_name()));
     match op {
         UnaryOp::Not => Ok(Value::Bool(!a.is_true())),
+        UnaryOp::USub if matches!(a, Value::Big(_)) => Ok(crate::bigint::norm(-crate::bigint::as_big(a).unwrap_or_default())),
+        UnaryOp::UAdd if matches!(a, Value::Big(_)) => Ok(a.clone()),
+        UnaryOp::Invert if matches!(a, Value::Big(_)) => {
+            Ok(crate::bigint::norm(-crate::bigint::as_big(a).unwrap_or_default() - 1))
+        }
         UnaryOp::USub => match num(a) {
-            Some(Num::Int(i)) => Ok(Value::Int(int_neg(i)?)),
+            Some(Num::Int(i)) => match int_neg(i) {
+                Ok(n) => Ok(Value::Int(n)),
+                Err(_) => Ok(crate::bigint::norm(-num_bigint::BigInt::from(i))),
+            },
             Some(Num::Float(x)) => Ok(Value::Float(-x)),
             None => Err(bad("-")),
         },
@@ -3167,6 +3206,19 @@ fn int_float_cmp(i: i64, x: f64) -> Option<std::cmp::Ordering> {
 
 /// Comparações de ordem (`<`, `<=`, `>`, `>=`).
 fn order(op: CmpOp, a: &Value, b: &Value) -> PyResult<bool> {
+    if matches!(a, Value::Big(_)) || matches!(b, Value::Big(_)) {
+        let ord = match (a, b) {
+            (Value::Float(x), Value::Big(n)) => Some(crate::bigint::cmp_float(n, *x).map(std::cmp::Ordering::reverse)),
+            (Value::Big(n), Value::Float(x)) => Some(crate::bigint::cmp_float(n, *x)),
+            _ => match (crate::bigint::as_big(a), crate::bigint::as_big(b)) {
+                (Some(x), Some(y)) => Some(Some(x.cmp(&y))),
+                _ => None,
+            },
+        };
+        if let Some(ord) = ord {
+            return Ok(ord.is_some_and(|o| apply(op, o)));
+        }
+    }
     if let (Some(x), Some(y)) = (num(a), num(b)) {
         let ord = match (x, y) {
             (Num::Int(x), Num::Int(y)) => Some(x.cmp(&y)),

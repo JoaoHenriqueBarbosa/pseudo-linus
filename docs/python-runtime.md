@@ -24,8 +24,10 @@ fn minha_funcao(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> { ... 
   `crate::vm::py_lt(a, b)` e `crate::vm::py_binary("+", a, b)` aplicam a semântica do Python.
 - `crate::object`: `Value`, `repr(&v)`, `to_str(&v)`, `py_eq(&a, &b)`, `hash(&v)`, `Dict`, `Set`,
   `PyStr` (`as_str()`, `len()` em pontos de código), `Value::str(..)`, `Value::list(vec)`,
-  `Value::tuple(vec)`. `Value::Int` é `i64` (inteiro arbitrário ainda não existe: use `i64` e
-  levante `OverflowError` onde estourar).
+  `Value::tuple(vec)`. `int` é `Value::Int(i64)` ou, quando não cabe, `Value::Big` (sempre
+  normalizado, nunca guarda um valor de `i64`). Use `crate::bigint::{norm, as_big}` para criar e
+  ler inteiros de qualquer tamanho; `native_util::want_int` só aceita `i64` e levanta
+  `OverflowError` para `Big`.
 
 ## Onde cada coisa vai
 

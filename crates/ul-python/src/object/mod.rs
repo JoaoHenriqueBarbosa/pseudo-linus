@@ -25,7 +25,7 @@ use std::rc::Rc;
 
 pub use self::dict::Dict;
 pub use self::float::{float_hash, float_repr, format_float_short};
-pub use self::int::{int_add, int_hash, int_mul, int_neg, int_repr, int_sub};
+pub use self::int::{HASH_MODULUS, int_add, int_hash, int_mul, int_neg, int_repr, int_sub};
 pub use self::set::Set;
 pub use self::pystr::{bytes_hash, bytes_repr, is_printable, str_repr, PyStr};
 
@@ -34,8 +34,10 @@ pub use self::pystr::{bytes_hash, bytes_repr, is_printable, str_repr, PyStr};
 pub enum Value {
     None,
     Bool(bool),
-    /// Até a fatia 19, só a faixa de `i64` (ver `int`).
+    /// Faixa de `i64`; o que não cabe vira [`Value::Big`] (sempre normalizado, ver `bigint`).
     Int(i64),
+    /// `int` fora da faixa de `i64`. Nunca guarda um valor que caiba em `Int`.
+    Big(Rc<num_bigint::BigInt>),
     Float(f64),
     Str(Rc<PyStr>),
     Bytes(Rc<[u8]>),
@@ -122,6 +124,10 @@ pub trait ExtObject {
     }
     /// Atributo de dado (`match.string`, `zipinfo.filename`); `None` = não existe.
     fn getattr(&self, _vm: &mut crate::vm::Vm, _name: &str) -> Option<Result<Value, crate::vm::PyException>> {
+        None
+    }
+    /// Atribui o atributo `name`; `None` = o objeto não aceita atributos novos.
+    fn setattr(&self, _name: &str, _value: Value) -> Option<Result<(), crate::vm::PyException>> {
         None
     }
     /// Chama o método `name` (um dos de [`methods`]).
@@ -576,7 +582,7 @@ impl Value {
         match self {
             Value::None => "NoneType",
             Value::Bool(_) => "bool",
-            Value::Int(_) => "int",
+            Value::Int(_) | Value::Big(_) => "int",
             Value::Float(_) => "float",
             Value::Str(_) => "str",
             Value::Bytes(_) => "bytes",
@@ -611,6 +617,7 @@ impl Value {
             Value::None => false,
             Value::Bool(b) => *b,
             Value::Int(i) => *i != 0,
+            Value::Big(_) => true,
             Value::Float(x) => *x != 0.0,
             Value::Str(s) => !s.is_empty(),
             Value::Bytes(b) => !b.is_empty(),
@@ -733,6 +740,7 @@ pub(crate) fn repr_into(v: &Value, out: &mut String, stack: &mut ReprStack) {
         Value::Bool(true) => out.push_str("True"),
         Value::Bool(false) => out.push_str("False"),
         Value::Int(i) => out.push_str(&int_repr(*i)),
+        Value::Big(b) => out.push_str(&b.to_string()),
         Value::Float(x) => out.push_str(&float_repr(*x)),
         Value::Str(s) => out.push_str(&str_repr(s.as_str())),
         Value::Bytes(b) => out.push_str(&bytes_repr(b)),
@@ -789,6 +797,7 @@ pub fn is(a: &Value, b: &Value) -> bool {
         (Value::None, Value::None) => true,
         (Value::Bool(x), Value::Bool(y)) => x == y,
         (Value::Int(x), Value::Int(y)) => x == y && (-5..=256).contains(x),
+        (Value::Big(x), Value::Big(y)) => Rc::ptr_eq(x, y),
         (Value::Str(x), Value::Str(y)) => Rc::ptr_eq(x, y),
         (Value::Bytes(x), Value::Bytes(y)) => Rc::ptr_eq(x, y),
         (Value::List(x), Value::List(y)) => Rc::ptr_eq(x, y),
@@ -855,6 +864,17 @@ pub fn py_eq(a: &Value, b: &Value) -> bool {
             return r;
         }
     }
+    if matches!(a, Value::Big(_)) || matches!(b, Value::Big(_)) {
+        return match (a, b) {
+            (Value::Float(x), Value::Big(n)) | (Value::Big(n), Value::Float(x)) => {
+                crate::bigint::cmp_float(n, *x) == Some(std::cmp::Ordering::Equal)
+            }
+            _ => match (crate::bigint::as_big(a), crate::bigint::as_big(b)) {
+                (Some(x), Some(y)) => x == y,
+                _ => false,
+            },
+        };
+    }
     if let (Some(x), Some(y)) = (as_num(a), as_num(b)) {
         return match (x, y) {
             (Num::Int(x), Num::Int(y)) => x == y,
@@ -896,6 +916,7 @@ pub fn hash(v: &Value) -> Result<i64, ObjError> {
         Value::None => Ok(NONE_HASH),
         Value::Bool(b) => Ok(i64::from(*b)),
         Value::Int(i) => Ok(int_hash(*i)),
+        Value::Big(b) => Ok(crate::bigint::hash(b)),
         Value::Float(x) => Ok(float_hash(*x)),
         Value::Str(s) => Ok(s.hash()),
         Value::Bytes(b) => Ok(bytes_hash(b)),

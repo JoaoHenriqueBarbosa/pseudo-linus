@@ -68,10 +68,21 @@ const SOURCES: &[(&str, &str)] = &[
     ("traceback", include_str!("py/traceback.py")),
     ("warnings", include_str!("py/warnings.py")),
     ("subprocess", include_str!("py/subprocess.py")),
+    ("_complex", include_str!("py/_complex.py")),
     ("json", include_str!("py/json.py")),
     ("json.decoder", include_str!("py/json_decoder.py")),
     ("json.encoder", include_str!("py/json_encoder.py")),
     ("json.scanner", include_str!("py/json_scanner.py")),
+    ("configparser", include_str!("py/configparser.py")),
+    ("queue", include_str!("py/queue.py")),
+    ("calendar", include_str!("py/calendar.py")),
+    ("uuid", include_str!("py/uuid.py")),
+    ("secrets", include_str!("py/secrets.py")),
+    ("hmac", include_str!("py/hmac.py")),
+    ("numbers", include_str!("py/numbers.py")),
+    ("locale", include_str!("py/locale.py")),
+    ("urllib", include_str!("py/urllib.py")),
+    ("urllib.parse", include_str!("py/urllib_parse.py")),
 ];
 
 /// Nomes de módulo que são apelidos de outro.

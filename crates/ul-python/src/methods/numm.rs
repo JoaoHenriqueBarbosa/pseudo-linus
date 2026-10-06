@@ -5,7 +5,7 @@
 //! os métodos de `int`.
 
 use crate::native_util::{bind, want_int};
-use crate::object::{Kw, NativeFnPtr, ObjError, Value};
+use crate::object::{Kw, NativeFnPtr, Value};
 use crate::vm::{exc, type_error, PyException, PyResult, Vm};
 
 fn nokw(fname: &str, kw: &Kw) -> PyResult<()> {
@@ -28,23 +28,20 @@ fn no_attr(recv: &Value, name: &str) -> PyException {
     exc("AttributeError", format!("'{}' object has no attribute '{name}'", recv.type_name()))
 }
 
-/// O receptor como inteiro (`int` ou `bool`).
-fn int_of(recv: &Value) -> Option<i64> {
-    match recv {
-        Value::Int(i) => Some(*i),
-        Value::Bool(b) => Some(i64::from(*b)),
-        _ => None,
-    }
+/// O receptor como inteiro (`int`, `int` grande ou `bool`).
+fn int_of(recv: &Value) -> Option<num_bigint::BigInt> {
+    crate::bigint::as_big(recv)
 }
 
 fn bit_length(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("bit_length", &kw)?;
     noargs("bit_length", &args[1..])?;
     let Some(i) = int_of(&args[0]) else { return Err(no_attr(&args[0], "bit_length")) };
-    Ok(Value::Int(i64::from(64 - i.unsigned_abs().leading_zeros())))
+    Ok(Value::Int(i.bits() as i64))
 }
 
 fn to_bytes(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    use num_traits::Signed;
     let Some(v) = int_of(&args[0]) else { return Err(no_attr(&args[0], "to_bytes")) };
     if args.len() > 3 {
         return Err(type_error(format!(
@@ -72,39 +69,32 @@ fn to_bytes(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     if length < 0 {
         return Err(exc("ValueError", "length argument must be non-negative"));
     }
-    if v < 0 && !signed {
+    if v.is_negative() && !signed {
         return Err(exc("OverflowError", "can't convert negative int to unsigned"));
     }
     let length = length as usize;
-    // Cabe? `length * 8` bits (menos um de sinal quando `signed`); acima de 8 bytes tudo cabe.
-    if length < 8 {
-        let bits = (length * 8) as u32;
-        let wide = i128::from(v);
-        let fits = if signed {
-            bits > 0 && wide >= -(1i128 << (bits - 1)) && wide < (1i128 << (bits - 1))
-        } else {
-            wide >= 0 && wide < (1i128 << bits)
-        };
-        if !fits {
-            return Err(exc("OverflowError", "int too big to convert"));
-        }
+    // Complemento de dois em `length` bytes; cabe?
+    let bits = length * 8;
+    let modulus = num_bigint::BigInt::from(1) << bits;
+    let fits = if signed {
+        bits > 0 && v >= -(&modulus >> 1usize) && v < (&modulus >> 1usize)
+    } else {
+        v < modulus
+    };
+    if !fits {
+        return Err(exc("OverflowError", "int too big to convert"));
     }
-    let full = i128::from(v).to_be_bytes();
-    let mut le: Vec<u8> = Vec::with_capacity(length);
-    for i in 0..length {
-        let b = if i < 16 {
-            full[15 - i]
-        } else if v < 0 {
-            0xff
-        } else {
-            0
-        };
-        le.push(b);
+    let wrapped = if v.is_negative() { &v + &modulus } else { v };
+    let (_, mut mag) = wrapped.to_bytes_be();
+    if wrapped.sign() == num_bigint::Sign::NoSign {
+        mag.clear();
     }
-    if big {
-        le.reverse();
+    let mut out = vec![0u8; length - mag.len()];
+    out.extend(mag);
+    if !big {
+        out.reverse();
     }
-    Ok(Value::bytes(le))
+    Ok(Value::bytes(out))
 }
 
 fn conjugate(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -113,7 +103,7 @@ fn conjugate(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     match &args[0] {
         Value::Float(x) => Ok(Value::Float(*x)),
         other => match int_of(other) {
-            Some(i) => Ok(Value::Int(i)),
+            Some(i) => Ok(crate::bigint::norm(i)),
             None => Err(no_attr(other, "conjugate")),
         },
     }
@@ -170,7 +160,7 @@ fn as_integer_ratio(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         Value::Float(x) => *x,
         other => {
             return match int_of(other) {
-                Some(i) => Ok(Value::tuple(vec![Value::Int(i), Value::Int(1)])),
+                Some(i) => Ok(Value::tuple(vec![crate::bigint::norm(i), Value::Int(1)])),
                 None => Err(no_attr(other, "as_integer_ratio")),
             }
         }
@@ -192,21 +182,13 @@ fn as_integer_ratio(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let tz = m.trailing_zeros() as i32;
     m >>= tz;
     e += tz;
-    let overflow = || PyException::from(ObjError::IntOverflow);
-    let (num, den): (i64, i64) = if e >= 0 {
-        if e > 62 {
-            return Err(overflow());
-        }
-        let wide = (m as i128) << e;
-        (i64::try_from(wide).map_err(|_| overflow())?, 1)
+    let (num, den): (num_bigint::BigInt, num_bigint::BigInt) = if e >= 0 {
+        (num_bigint::BigInt::from(m) << e as usize, num_bigint::BigInt::from(1))
     } else {
-        if -e > 62 {
-            return Err(overflow());
-        }
-        (m as i64, 1i64 << (-e))
+        (num_bigint::BigInt::from(m), num_bigint::BigInt::from(1) << (-e) as usize)
     };
     let num = if neg { -num } else { num };
-    Ok(Value::tuple(vec![Value::Int(num), Value::Int(den)]))
+    Ok(Value::tuple(vec![crate::bigint::norm(num), crate::bigint::norm(den)]))
 }
 
 pub const TABLE: &[(&str, NativeFnPtr)] = &[

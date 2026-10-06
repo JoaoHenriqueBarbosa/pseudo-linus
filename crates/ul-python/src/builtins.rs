@@ -169,7 +169,7 @@ fn instance_of(v: &Value, cname: &str) -> bool {
     }
     match cname {
         "object" => true,
-        "int" => matches!(v, Value::Int(_) | Value::Bool(_)),
+        "int" => matches!(v, Value::Int(_) | Value::Big(_) | Value::Bool(_)),
         "bool" => matches!(v, Value::Bool(_)),
         "float" => matches!(v, Value::Float(_)),
         "str" => matches!(v, Value::Str(_)),
@@ -743,7 +743,11 @@ fn b_all(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 fn b_abs(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let v = one("abs", args, &kw)?;
     match v {
-        Value::Int(i) => i.checked_abs().map(Value::Int).ok_or_else(overflow),
+        Value::Int(i) => Ok(i.checked_abs().map_or_else(
+            || crate::bigint::norm(num_traits::Signed::abs(&num_bigint::BigInt::from(i))),
+            Value::Int,
+        )),
+        Value::Big(n) => Ok(crate::bigint::norm(num_traits::Signed::abs(&*n))),
         Value::Bool(b) => Ok(Value::Int(i64::from(b))),
         Value::Float(x) => Ok(Value::Float(x.abs())),
         other => match vm.call_dunder(&other, "__abs__", Vec::new()) {
@@ -790,7 +794,23 @@ fn round_int(n: i64, nd: i64) -> PyResult<Value> {
     if r * 2 > p || (r * 2 == p && (base / p) % 2 != 0) {
         base += p;
     }
-    i64::try_from(base).map(Value::Int).map_err(|_| overflow())
+    Ok(crate::bigint::norm(num_bigint::BigInt::from(base)))
+}
+
+/// `round(n, nd)` de `int` grande com `nd < 0`.
+fn round_big(n: &num_bigint::BigInt, nd: i64) -> Value {
+    use num_integer::Integer;
+    if nd >= 0 {
+        return crate::bigint::norm(n.clone());
+    }
+    let p = num_traits::pow::Pow::pow(num_bigint::BigInt::from(10), (-nd) as u32);
+    let r = n.mod_floor(&p);
+    let mut base = n - &r;
+    let twice = &r * 2;
+    if twice > p || (twice == p && (&base / &p).is_odd()) {
+        base += &p;
+    }
+    crate::bigint::norm(base)
 }
 
 fn b_round(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -801,6 +821,7 @@ fn b_round(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         Some(v) => Some(want_int(v)?),
     };
     match (&number, nd) {
+        (Value::Big(n), d) => Ok(round_big(n, d.unwrap_or(0))),
         (Value::Int(_) | Value::Bool(_), None) => Ok(Value::Int(as_i64(&number).unwrap_or(0))),
         (Value::Int(_) | Value::Bool(_), Some(d)) => round_int(as_i64(&number).unwrap_or(0), d),
         (Value::Float(x), None) => {
@@ -812,7 +833,7 @@ fn b_round(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
             }
             let r = x.round_ties_even();
             if !(-9_223_372_036_854_775_808.0..9_223_372_036_854_775_808.0).contains(&r) {
-                return Err(overflow());
+                return Ok(crate::bigint::norm(crate::bigint::float_to_big(r).unwrap_or_default()));
             }
             Ok(Value::Int(r as i64))
         }
@@ -836,7 +857,8 @@ fn b_divmod(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
             return Err(exc("ZeroDivisionError", "integer division or modulo by zero"));
         }
         if x == i64::MIN && y == -1 {
-            return Err(overflow());
+            let q = crate::bigint::norm(-num_bigint::BigInt::from(x));
+            return Ok(Value::tuple(vec![q, Value::Int(0)]));
         }
         let mut q = x / y;
         let mut r = x % y;
@@ -846,7 +868,7 @@ fn b_divmod(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         }
         return Ok(Value::tuple(vec![Value::Int(q), Value::Int(r)]));
     }
-    let numeric = |v: &Value| matches!(v, Value::Int(_) | Value::Bool(_) | Value::Float(_));
+    let numeric = |v: &Value| matches!(v, Value::Int(_) | Value::Big(_) | Value::Bool(_) | Value::Float(_));
     if !numeric(a) || !numeric(b) {
         if let Some(r) = vm.call_dunder(a, "__divmod__", vec![b.clone()]) {
             return r;
@@ -862,43 +884,35 @@ fn b_divmod(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::tuple(vec![q, r]))
 }
 
-/// Inverso modular de `a` módulo `m` (`m > 0`), se existir.
-fn mod_inverse(a: i128, m: i128) -> Option<i128> {
-    let (mut r0, mut r1) = (m, a);
-    let (mut t0, mut t1) = (0i128, 1i128);
-    while r1 != 0 {
-        let q = r0 / r1;
-        (r0, r1) = (r1, r0 - q * r1);
-        (t0, t1) = (t1, t0 - q * t1);
-    }
-    if r0 != 1 {
-        None
-    } else {
-        Some(t0.rem_euclid(m))
-    }
-}
-
-/// `pow(b, e, m)` com o sinal do resultado seguindo `m`, como o Python.
-fn pow_mod(b: i128, e: i128, m: i128) -> PyResult<i128> {
-    if m == 0 {
+/// `pow(b, e, m)` em precisão arbitrária; o sinal do resultado segue `m`.
+fn big_pow_mod(b: &num_bigint::BigInt, e: &num_bigint::BigInt, m: &num_bigint::BigInt) -> PyResult<num_bigint::BigInt> {
+    use num_integer::Integer;
+    use num_traits::{Signed, Zero};
+    if m.is_zero() {
         return Err(value_error("pow() 3rd argument cannot be 0"));
     }
     let mm = m.abs();
-    let mut base = b.rem_euclid(mm);
-    let mut e = e;
-    if e < 0 {
-        base = mod_inverse(base, mm).ok_or_else(|| value_error("base is not invertible for the given modulus"))?;
+    let mut base = b.mod_floor(&mm);
+    let mut e = e.clone();
+    if e.is_negative() {
+        // Inverso modular por Euclides estendido.
+        let (mut r0, mut r1) = (mm.clone(), base.clone());
+        let (mut t0, mut t1) = (num_bigint::BigInt::zero(), num_bigint::BigInt::from(1));
+        while !r1.is_zero() {
+            let q = &r0 / &r1;
+            let r2 = &r0 - &q * &r1;
+            (r0, r1) = (r1, r2);
+            let t2 = &t0 - &q * &t1;
+            (t0, t1) = (t1, t2);
+        }
+        if r0 != num_bigint::BigInt::from(1) {
+            return Err(value_error("base is not invertible for the given modulus"));
+        }
+        base = t0.mod_floor(&mm);
         e = -e;
     }
-    let mut result = 1 % mm;
-    while e > 0 {
-        if e & 1 == 1 {
-            result = result * base % mm;
-        }
-        base = base * base % mm;
-        e >>= 1;
-    }
-    if m < 0 && result != 0 {
+    let mut result = base.modpow(&e, &mm);
+    if m.is_negative() && !result.is_zero() {
         result += m;
     }
     Ok(result)
@@ -910,11 +924,8 @@ fn b_pow(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let exp = s[1].clone().unwrap_or(Value::None);
     match &s[2] {
         None | Some(Value::None) => py_binary("**", &base, &exp),
-        Some(m) => match (as_i64(&base), as_i64(&exp), as_i64(m)) {
-            (Some(b), Some(e), Some(m)) => {
-                let r = pow_mod(i128::from(b), i128::from(e), i128::from(m))?;
-                i64::try_from(r).map(Value::Int).map_err(|_| overflow())
-            }
+        Some(m) => match (crate::bigint::as_big(&base), crate::bigint::as_big(&exp), crate::bigint::as_big(m)) {
+            (Some(b), Some(e), Some(m)) => Ok(crate::bigint::norm(big_pow_mod(&b, &e, &m)?)),
             _ => Err(type_error("pow() 3rd argument not allowed unless all arguments are integers")),
         },
     }
@@ -922,14 +933,11 @@ fn b_pow(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 
 fn radix_str(fname: &str, args: Vec<Value>, kw: Kw, prefix: &str, radix: u32) -> PyResult<Value> {
     let v = one(fname, args, &kw)?;
-    let n = want_int(&v)?;
-    let mag = (n as i128).unsigned_abs();
-    let digits = match radix {
-        16 => format!("{mag:x}"),
-        8 => format!("{mag:o}"),
-        _ => format!("{mag:b}"),
+    let Some(n) = crate::bigint::as_big(&v) else {
+        return Err(type_error(format!("'{}' object cannot be interpreted as an integer", v.type_name())));
     };
-    Ok(Value::str(format!("{}{prefix}{digits}", if n < 0 { "-" } else { "" })))
+    let digits = crate::bigint::to_radix(&num_traits::Signed::abs(&n), radix);
+    Ok(Value::str(format!("{}{prefix}{digits}", if num_traits::Signed::is_negative(&n) { "-" } else { "" })))
 }
 
 fn b_hex(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -988,6 +996,7 @@ fn b_id(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         Value::Bool(b) => 0x7f00_0000_2000 + i64::from(*b) * 32,
         Value::Int(i) => 0x7f00_1000_0000_i64.wrapping_add(i.wrapping_mul(32)),
         Value::Float(x) => (x.to_bits() >> 4) as i64,
+        Value::Big(b) => (Rc::as_ptr(b) as usize >> 4) as i64,
         Value::Range(r) => r.start.wrapping_mul(31).wrapping_add(r.stop).wrapping_mul(31).wrapping_add(r.step),
         Value::Builtin(name) => crate::object::PyStr::new(*name).hash() >> 4,
         Value::Str(s) => addr(s),
@@ -1350,12 +1359,11 @@ fn b_str(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 
 enum IntParseError {
     Invalid,
-    Overflow,
 }
 
 /// Literal inteiro na `base` (2 a 36, ou 0 para deduzir do prefixo): espaços em volta, sinal,
 /// prefixo `0x`/`0o`/`0b` e `_` só entre dígitos.
-fn parse_int_base(text: &str, base: u32) -> Result<i64, IntParseError> {
+fn parse_int_base(text: &str, base: u32) -> Result<Value, IntParseError> {
     let t = text.trim_matches(char::is_whitespace);
     let (neg, mut rest) = match t.strip_prefix('-') {
         Some(r) => (true, r),
@@ -1398,26 +1406,16 @@ fn parse_int_base(text: &str, base: u32) -> Result<i64, IntParseError> {
     if rest.is_empty() || rest.starts_with('_') || rest.ends_with('_') || rest.contains("__") {
         return Err(IntParseError::Invalid);
     }
-    let limit = i128::from(i64::MAX) + 1;
-    let mut value: i128 = 0;
-    let mut too_big = false;
+    let mut digits = String::with_capacity(rest.len());
     for c in rest.chars() {
         if c == '_' {
             continue;
         }
-        let d = c.to_digit(base).ok_or(IntParseError::Invalid)?;
-        if !too_big {
-            value = value * i128::from(base) + i128::from(d);
-            if value > limit {
-                too_big = true;
-            }
-        }
+        c.to_digit(base).ok_or(IntParseError::Invalid)?;
+        digits.push(c);
     }
-    if too_big {
-        return Err(IntParseError::Overflow);
-    }
-    let value = if neg { -value } else { value };
-    i64::try_from(value).map_err(|_| IntParseError::Overflow)
+    let value = crate::bigint::parse(&digits, base).ok_or(IntParseError::Invalid)?;
+    Ok(crate::bigint::norm(if neg { -value } else { value }))
 }
 
 fn int_from_float(x: f64) -> PyResult<Value> {
@@ -1429,7 +1427,7 @@ fn int_from_float(x: f64) -> PyResult<Value> {
     }
     let t = x.trunc();
     if !(-9_223_372_036_854_775_808.0..9_223_372_036_854_775_808.0).contains(&t) {
-        return Err(overflow());
+        return Ok(crate::bigint::norm(crate::bigint::float_to_big(t).unwrap_or_default()));
     }
     Ok(Value::Int(t as i64))
 }
@@ -1445,8 +1443,7 @@ fn text_of(v: &Value) -> Option<String> {
 
 fn int_from_text(v: &Value, text: &str, base: u32) -> PyResult<Value> {
     match parse_int_base(text, base) {
-        Ok(i) => Ok(Value::Int(i)),
-        Err(IntParseError::Overflow) => Err(overflow()),
+        Ok(v) => Ok(v),
         Err(IntParseError::Invalid) => {
             Err(value_error(format!("invalid literal for int() with base {base}: {}", repr(v))))
         }
@@ -1473,6 +1470,7 @@ fn b_int(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     }
     match x {
         Value::Int(i) => Ok(Value::Int(*i)),
+        Value::Big(_) => Ok(x.clone()),
         Value::Bool(b) => Ok(Value::Int(i64::from(*b))),
         Value::Float(f) => int_from_float(*f),
         Value::Str(_) | Value::Bytes(_) => {
@@ -1512,6 +1510,7 @@ fn b_float(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     match args.first() {
         None => Ok(Value::Float(0.0)),
         Some(Value::Int(i)) => Ok(Value::Float(*i as f64)),
+        Some(Value::Big(n)) => Ok(Value::Float(crate::bigint::to_f64(n)?)),
         Some(Value::Bool(b)) => Ok(Value::Float(f64::from(u8::from(*b)))),
         Some(Value::Float(x)) => Ok(Value::Float(*x)),
         Some(v @ (Value::Str(_) | Value::Bytes(_))) => {

@@ -6,6 +6,9 @@
 
 use std::rc::Rc;
 
+use num_bigint::BigInt;
+use num_traits::{Signed, ToPrimitive};
+
 use crate::native_util::value_error;
 use crate::object::{float_repr, repr, to_str, ExcObj, Kw, Value};
 use crate::vm::{exc, type_error, PyException, PyResult, Vm};
@@ -307,14 +310,21 @@ pub fn format_value(v: &Value, spec: &str) -> PyResult<String> {
             if spec.is_empty() {
                 Ok(if *b { "True" } else { "False" }.to_string())
             } else {
-                format_int(i64::from(*b), spec, "bool")
+                format_int(&BigInt::from(i64::from(*b)), spec, "bool")
             }
         }
         Value::Int(n) => {
             if spec.is_empty() {
                 Ok(n.to_string())
             } else {
-                format_int(*n, spec, "int")
+                format_int(&BigInt::from(*n), spec, "int")
+            }
+        }
+        Value::Big(n) => {
+            if spec.is_empty() {
+                Ok(n.to_string())
+            } else {
+                format_int(n, spec, "int")
             }
         }
         Value::Float(x) => {
@@ -375,11 +385,11 @@ fn sign_str(neg: bool, sign: Option<char>) -> &'static str {
     }
 }
 
-fn format_int(n: i64, spec: &str, tname: &str) -> PyResult<String> {
+fn format_int(n: &BigInt, spec: &str, tname: &str) -> PyResult<String> {
     let sp = parse_spec(spec, tname)?;
     let ty = sp.ty.unwrap_or('d');
     match ty {
-        'e' | 'E' | 'f' | 'F' | 'g' | 'G' | '%' => return format_float_sp(n as f64, &sp),
+        'e' | 'E' | 'f' | 'F' | 'g' | 'G' | '%' => return format_float_sp(crate::bigint::to_f64(n)?, &sp),
         'b' | 'o' | 'x' | 'X' | 'd' | 'n' | 'c' => {}
         t => return Err(unknown_code(t, tname)),
     }
@@ -393,21 +403,21 @@ fn format_int(n: i64, spec: &str, tname: &str) -> PyResult<String> {
         if sp.alt {
             return Err(value_error("Alternate form (#) not allowed with integer format specifier 'c'"));
         }
-        let ch = u32::try_from(n)
-            .ok()
+        let ch = n
+            .to_u32()
             .and_then(char::from_u32)
             .ok_or_else(|| exc("OverflowError", "%c arg not in range(0x110000)"))?;
         return Ok(pad(&ch.to_string(), sp.width, sp.fill, sp.align.unwrap_or('>')));
     }
-    let a = n.unsigned_abs();
+    let a = n.abs();
     let (digits, prefix, size) = match ty {
-        'b' => (format!("{a:b}"), "0b", 4),
-        'o' => (format!("{a:o}"), "0o", 4),
-        'x' => (format!("{a:x}"), "0x", 4),
-        'X' => (format!("{a:X}"), "0X", 4),
+        'b' => (a.to_str_radix(2), "0b", 4),
+        'o' => (a.to_str_radix(8), "0o", 4),
+        'x' => (a.to_str_radix(16), "0x", 4),
+        'X' => (a.to_str_radix(16).to_uppercase(), "0X", 4),
         _ => (a.to_string(), "", 3),
     };
-    let mut lead = String::from(sign_str(n < 0, sp.sign));
+    let mut lead = String::from(sign_str(n.is_negative(), sp.sign));
     if sp.alt {
         lead.push_str(prefix);
     }
@@ -496,18 +506,14 @@ fn layout(lead: &str, body: &str, width: Option<usize>, left: bool, zero: bool) 
     }
 }
 
-fn float_to_i64(x: f64) -> PyResult<i64> {
+fn float_to_bigint(x: f64) -> PyResult<BigInt> {
     if x.is_nan() {
         return Err(value_error("cannot convert float NaN to integer"));
     }
     if x.is_infinite() {
         return Err(exc("OverflowError", "cannot convert float infinity to integer"));
     }
-    let t = x.trunc();
-    if t >= 9_223_372_036_854_775_808.0 || t < -9_223_372_036_854_775_808.0 {
-        return Err(exc("OverflowError", "integer result outside the 64-bit range (arbitrary int is pending)"));
-    }
-    Ok(t as i64)
+    Ok(crate::bigint::float_to_big(x).unwrap_or_default())
 }
 
 /// `fmt % args` com `fmt` em `bytes`: `%b` vale como `%s`, e argumentos `bytes` entram como estão.
@@ -705,10 +711,11 @@ pub fn percent_format(fmt: &str, args: &Value) -> PyResult<String> {
                 out.push_str(&layout("", &ch.to_string(), width, left, false));
             }
             'd' | 'i' | 'u' => {
-                let n: i64 = match &arg {
-                    Value::Int(n) => *n,
-                    Value::Bool(b) => i64::from(*b),
-                    Value::Float(x) => float_to_i64(*x)?,
+                let n: BigInt = match &arg {
+                    Value::Int(n) => BigInt::from(*n),
+                    Value::Big(n) => (**n).clone(),
+                    Value::Bool(b) => BigInt::from(i64::from(*b)),
+                    Value::Float(x) => float_to_bigint(*x)?,
                     other => {
                         return Err(type_error(format!(
                             "%{conv} format: a real number is required, not {}",
@@ -716,18 +723,19 @@ pub fn percent_format(fmt: &str, args: &Value) -> PyResult<String> {
                         )))
                     }
                 };
-                let mut digits = n.unsigned_abs().to_string();
+                let mut digits = n.abs().to_string();
                 if let Some(p) = prec {
                     while digits.len() < p {
                         digits.insert(0, '0');
                     }
                 }
-                out.push_str(&layout(sign_for(n < 0), &digits, width, left, zero));
+                out.push_str(&layout(sign_for(n.is_negative()), &digits, width, left, zero));
             }
             'o' | 'x' | 'X' => {
-                let n: i64 = match &arg {
-                    Value::Int(n) => *n,
-                    Value::Bool(b) => i64::from(*b),
+                let n: BigInt = match &arg {
+                    Value::Int(n) => BigInt::from(*n),
+                    Value::Big(n) => (**n).clone(),
+                    Value::Bool(b) => BigInt::from(i64::from(*b)),
                     other => {
                         return Err(type_error(format!(
                             "%{conv} format: an integer is required, not {}",
@@ -735,18 +743,18 @@ pub fn percent_format(fmt: &str, args: &Value) -> PyResult<String> {
                         )))
                     }
                 };
-                let a = n.unsigned_abs();
+                let a = n.abs();
                 let (mut digits, prefix) = match conv {
-                    'o' => (format!("{a:o}"), "0o"),
-                    'x' => (format!("{a:x}"), "0x"),
-                    _ => (format!("{a:X}"), "0X"),
+                    'o' => (a.to_str_radix(8), "0o"),
+                    'x' => (a.to_str_radix(16), "0x"),
+                    _ => (a.to_str_radix(16).to_uppercase(), "0X"),
                 };
                 if let Some(p) = prec {
                     while digits.len() < p {
                         digits.insert(0, '0');
                     }
                 }
-                let mut lead = String::from(sign_for(n < 0));
+                let mut lead = String::from(sign_for(n.is_negative()));
                 if alt {
                     lead.push_str(prefix);
                 }
@@ -756,6 +764,7 @@ pub fn percent_format(fmt: &str, args: &Value) -> PyResult<String> {
                 let x: f64 = match &arg {
                     Value::Float(x) => *x,
                     Value::Int(n) => *n as f64,
+                    Value::Big(n) => crate::bigint::to_f64(n)?,
                     Value::Bool(b) => f64::from(u8::from(*b)),
                     other => return Err(type_error(format!("must be real number, not {}", other.type_name()))),
                 };

@@ -11,6 +11,7 @@
 //! o mesmo caminho de erro de uso do CPython.
 
 pub mod ast;
+pub mod bigint;
 pub mod builtins;
 pub mod builtins_ext;
 pub mod classes;

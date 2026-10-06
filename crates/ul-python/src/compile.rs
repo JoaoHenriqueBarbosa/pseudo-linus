@@ -1363,6 +1363,15 @@ impl Compiler {
 
     fn expr_inner(&mut self, expr: &Expr) -> Result<(), CompileError> {
         match &expr.kind {
+            E::Constant { value: Constant::Complex(re, im), .. } => {
+                // `3j` é `complex(0.0, 3.0)`: o tipo vive em `modules/py/_complex.py`.
+                self.emit_load("complex");
+                for part in [*re, *im] {
+                    let i = self.constant(Value::Float(part));
+                    self.emit(Op::LoadConst(i));
+                }
+                self.emit(Op::Call { argc: 2, kwnames: None });
+            }
             E::Constant { value, .. } => {
                 let v = self.constant_value(value)?;
                 let i = self.constant(v);
@@ -1629,10 +1638,12 @@ impl Compiler {
         Ok(match c {
             Constant::None => Value::None,
             Constant::Bool(b) => Value::Bool(*b),
-            // Até o `int` arbitrário da fatia 19, literal fora de `i64` não compila.
             Constant::Int(digits) => match digits.parse::<i64>() {
                 Ok(i) => Value::Int(i),
-                Err(_) => return Err(self.unsupported("integer literals outside the 64-bit range")),
+                Err(_) => match crate::bigint::parse(digits, 10) {
+                    Some(big) => crate::bigint::norm(big),
+                    None => return Err(self.unsupported("integer literal")),
+                },
             },
             Constant::Float(x) => Value::Float(*x),
             Constant::Str(s) => Value::str(s.clone()),

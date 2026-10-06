@@ -1162,3 +1162,221 @@ JSONDecodeError Expecting property name enclosed in double quotes 1 1 2 Expectin
 "##
     );
 }
+
+#[test]
+fn bigint_arithmetic_matches_cpython() {
+    let src = r##"
+a = 2 ** 100
+b = 3 ** 70
+print(a, b, a * b, a + b, b - a, -a, abs(-a), a // 7, a % 7, divmod(b, a), a / 3, b / a)
+print(a == 2 ** 100, a != b, a < b, a >= b, a == float(a), a < 1e40, hash(a), hash(-a), type(a), isinstance(a, int))
+print(a & (2 ** 70 - 1), a | 1, a ^ (a - 1), a >> 90, 1 << 100, ~a, -7 >> 100, 7 << 70)
+print(int("123456789012345678901234567890"), int("-0xffffffffffffffffffff", 16), int(1e30), int("1" * 40, 2) if False else 0)
+print(float(a), float(10 ** 30), 10 ** 30 / 3, 10 ** 25 // 3, (10 ** 25) % 7, round(10 ** 25 + 5, -1), round(2 ** 70, -3))
+print(hex(a), oct(2 ** 70), bin(2 ** 65), hex(-a))
+print(str(a), repr(b), "%d|%s|%x|%o" % (a, a, a, a), f"{a}|{a:,}|{a:x}|{a:#o}|{a:>40}|{a:_d}|{a:e}|{-a:+}")
+print("{:d} {:b} {:X} {:030d}".format(a, a, a, a))
+print(pow(a, 3), pow(3, 200, 10 ** 20 + 7), pow(a, -1, 10 ** 20 + 7), a ** 0, (-2) ** 101, 2 ** -3)
+print(sum([2 ** 63, 2 ** 63, 5]), max(a, b), min(a, b), sorted([b, a, 5, 2 ** 64]), 2 ** 63, -2 ** 63, 2 ** 63 - 1, 9223372036854775807 + 1, -9223372036854775808 - 1)
+print(9223372036854775807 * 9223372036854775807, (2 ** 64) // (2 ** 32), (2 ** 64) % 1000, 2 ** 64 // -3, -(2 ** 64) // 3, -(2 ** 64) % 7)
+print(a.bit_length(), (-a).bit_length(), a.to_bytes(13, "big"), int.from_bytes(b"\x01" + b"\x00" * 15, "big"), a.to_bytes(16, "little").hex())
+print(int.from_bytes(b"\xff" * 16, "little", signed=True), (-a).to_bytes(14, "big", signed=True).hex(), a.real, a.imag, a.numerator, a.denominator, a.conjugate())
+print({a: 1}[2 ** 100], a in {2 ** 100}, [a, b].index(b), a is a, bool(a), a.__class__.__name__, a.is_integer() if hasattr(a, "is_integer") else "-")
+import math
+print(math.factorial(25), math.factorial(30), math.comb(100, 50), math.perm(30, 15), math.gcd(2 ** 80, 6 ** 40), math.lcm(2 ** 70, 3 ** 40), math.isqrt(10 ** 40), math.prod([2 ** 40, 2 ** 40]))
+print(math.floor(1e30), math.ceil(1e30), math.trunc(-1e30), math.sqrt(a), math.log2(a), math.log10(10 ** 40), math.log(a), math.fsum([1e30, 1]))
+print(int(str(a)) == a, [int(c) for c in str(2 ** 70)][:5], len(str(3 ** 1000)), sum(map(int, str(2 ** 1000))))
+import json, struct
+print(json.dumps({"n": a}), json.loads('{"n": 123456789012345678901234567890}'))
+print(divmod(-a, 7), divmod(a, -7), (-a) // 7, a.__add__(1) if hasattr(a, "__add__") else "", a.__mul__(2), int.__repr__(a))
+x = 1
+for i in range(1, 40):
+    x *= i
+print(x, x % 1000007, x // 10 ** 20, str(x)[::-1])
+f1, f2 = 0, 1
+for _ in range(300):
+    f1, f2 = f2, f1 + f2
+print(f1, len(str(f1)))
+print(range(3)[1], 5 ** 30 % 97, 7 ** 77 % 1000, (a + 1) % 2, bytes([a % 256]), "x" * (a % 5), [0] * (a % 3))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"1267650600228229401496703205376 2503155504993241601315571986085849 3173126578369279394610431020106175019306389315838160670214324224 2504423155593469830717068689291225 2501887854393013371914075282880473 -1267650600228229401496703205376 1267650600228229401496703205376 181092942889747057356671886482 2 (1974, 813220142716762761079858673625) 4.2255020007607644e+29 1974.6415175779275
+True True True False True True 549755813888 -549755813888 <class 'int'> True
+0 1267650600228229401496703205377 2535301200456458802993406410751 1024 1267650600228229401496703205376 -1267650600228229401496703205377 -1 8264141345021879123968
+123456789012345678901234567890 -1208925819614629174706175 1000000000000000019884624838656 0
+1.2676506002282294e+30 1e+30 3.333333333333333e+29 3333333333333333333333333 3 10000000000000000000000000 1180591620717411303000
+0x10000000000000000000000000 0o200000000000000000000000 0b100000000000000000000000000000000000000000000000000000000000000000 -0x10000000000000000000000000
+1267650600228229401496703205376 2503155504993241601315571986085849 1267650600228229401496703205376|1267650600228229401496703205376|10000000000000000000000000|2000000000000000000000000000000000 1267650600228229401496703205376|1,267,650,600,228,229,401,496,703,205,376|10000000000000000000000000|0o2000000000000000000000000000000000|         1267650600228229401496703205376|1_267_650_600_228_229_401_496_703_205_376|1.267651e+30|-1267650600228229401496703205376
+1267650600228229401496703205376 10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 10000000000000000000000000 1267650600228229401496703205376
+2037035976334486086268445688409378161051468393665936250636140449354381299763336706183397376 68354989064495052399 88697245551632721 1 -2535301200456458802993406410752 0.125
+18446744073709551621 2503155504993241601315571986085849 1267650600228229401496703205376 [5, 18446744073709551616, 1267650600228229401496703205376, 2503155504993241601315571986085849] 9223372036854775808 -9223372036854775808 9223372036854775807 9223372036854775808 -9223372036854775809
+85070591730234615847396907784232501249 4294967296 616 -6148914691236517206 -6148914691236517206 5
+101 101 b'\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' 1329227995784915872903807060280344576 00000000000000000000000010000000
+-1 fff0000000000000000000000000 1267650600228229401496703205376 0 1267650600228229401496703205376 1 1267650600228229401496703205376
+1 True 1 True True int True
+15511210043330985984000000 265252859812191058636308480000000 100891344545564193334812497256 202843204931727360000 1099511627776 14353237968448109868972222216943775514624 100000000000000000000 1208925819614629174706176
+1000000000000000019884624838656 1000000000000000019884624838656 -1000000000000000019884624838656 1125899906842624.0 100.0 40.0 69.31471805599453 1e+30
+True [1, 1, 8, 0, 5] 478 1366
+{"n": 1267650600228229401496703205376} {'n': 123456789012345678901234567890}
+(-181092942889747057356671886483, 5) (-181092942889747057356671886483, -5) -181092942889747057356671886483 1267650600228229401496703205377 2535301200456458802993406410752 1267650600228229401496703205376
+20397882081197443358640281739902897356800000000 327758 203978820811974433586402817 00000000865379820993718204685334479118028879302
+222232244629420445529739893461909967206666939096499764990979600 63
+1 79 207 1 b'\x00' x [0]
+"##
+    );
+}
+
+#[test]
+fn complex_type_matches_cpython() {
+    let src = r##"
+a = 3 + 4j
+b = complex(1, -2)
+print(a, b, repr(1j), 2.5j, -3j, complex(0, 0), complex(-0.0, 1), complex("1+2j"), complex(" (3-4j) "), complex("2j"), complex(1.5))
+print(a + b, a - b, a * b, a / b, -a, +a, abs(a), a.conjugate(), a.real, a.imag, a == complex(3, 4), a != b, a == 3, complex(2, 0) == 2)
+print(a ** 2, a ** 0, 1j ** 2, 2 ** 1j, a ** -1, a ** 0.5, 5 + a, 5 - a, 5 * a, 1 / a, bool(0j), bool(a), type(a), isinstance(a, complex))
+print(hash(1j) == hash(complex(0, 1)), hash(complex(3, 0)) == hash(3), {a: 1}[3 + 4j], f"{a}", f"{a:.2f}", format(b, ".1e"), str(a), [a, b])
+try:
+    a < b
+except TypeError as e:
+    print(e)
+try:
+    1j / 0
+except ZeroDivisionError as e:
+    print(e)
+try:
+    complex("abc")
+except ValueError as e:
+    print(e)
+import numbers
+print(isinstance(a, numbers.Complex), isinstance(3, numbers.Complex), isinstance(3, numbers.Rational), isinstance(2.5, numbers.Rational), isinstance(a, numbers.Real))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"(3+4j) (1-2j) 1j 2.5j (-0-3j) 0j (-0+1j) (1+2j) (3-4j) 2j (1.5+0j)
+(4+2j) (2+6j) (11-2j) (-1+2j) (-3-4j) (3+4j) 5.0 (3-4j) 3.0 4.0 True True False True
+(-7+24j) (1+0j) (-1+0j) (0.7692389013639721+0.6389612763136348j) (0.12-0.16j) (2+1j) (8+4j) (2-4j) (15+20j) (0.12-0.16j) False True <class 'complex'> True
+True True 1 (3+4j) 3.00+4.00j 1.0e+00-2.0e+00j (3+4j) [(3+4j), (1-2j)]
+'<' not supported between instances of 'complex' and 'complex'
+complex division by zero
+complex() arg is a malformed string
+True True True False False
+"##
+    );
+}
+
+#[test]
+fn config_queue_calendar_uuid_urllib_matches_cpython() {
+    let src = r##"
+import configparser, io, queue, calendar, uuid, hmac, hashlib, secrets, numbers
+from urllib.parse import urlparse, urlsplit, parse_qs, parse_qsl, urlencode, quote, unquote, urljoin, quote_plus, urlunparse
+
+cfg = configparser.ConfigParser()
+cfg.read_string("""
+[server]
+host = example.com
+port = 8080
+debug = yes
+path = /srv/%(host)s
+
+[db]
+url = postgres://u:p@h/db
+timeout = 2.5
+""")
+print(cfg.sections(), cfg["server"]["host"], cfg.getint("server", "port"), cfg.getboolean("server", "debug"))
+print(cfg.getfloat("db", "timeout"), cfg.get("server", "path"), cfg.has_option("db", "x"), dict(cfg["db"]))
+cfg["new"] = {"a": "1", "b": "two"}
+buf = io.StringIO()
+cfg.write(buf)
+print(buf.getvalue())
+try:
+    cfg.get("nope", "x")
+except configparser.NoSectionError as e:
+    print(type(e).__name__, e)
+
+q = queue.Queue()
+for i in range(3):
+    q.put(i)
+print(q.qsize(), q.get(), q.get_nowait(), q.empty(), q.full())
+pq = queue.PriorityQueue()
+for v in (5, 1, 3):
+    pq.put(v)
+print([pq.get() for _ in range(3)])
+lq = queue.LifoQueue()
+lq.put("a"); lq.put("b")
+print(lq.get(), lq.get())
+try:
+    q.get_nowait(); q.get_nowait()
+except queue.Empty:
+    print("Empty")
+
+print(calendar.isleap(2024), calendar.monthrange(2025, 2), calendar.weekday(2025, 1, 31), calendar.month_name[3], calendar.day_abbr[0])
+print(calendar.month(2025, 2))
+print(calendar.TextCalendar().formatmonth(2024, 12).splitlines()[1])
+
+u = uuid.UUID("12345678-1234-5678-1234-567812345678")
+print(u, u.hex, u.int, u.version, repr(u), u.bytes[:4], str(u.urn))
+print(uuid.uuid5(uuid.NAMESPACE_DNS, "example.com"), uuid.uuid3(uuid.NAMESPACE_URL, "http://x/"))
+
+print(hmac.new(b"key", b"msg", hashlib.sha256).hexdigest())
+print(hmac.compare_digest("abc", "abc"), hmac.digest(b"k", b"m", "md5").hex())
+print(isinstance(3, numbers.Integral), isinstance(2.5, numbers.Real), isinstance(1, numbers.Number), isinstance("a", numbers.Number))
+
+p = urlparse("https://user:pw@example.com:8443/a/b;p?x=1&y=2#frag")
+print(p, p.hostname, p.port, p.username, p.path, p.query, p.fragment)
+print(parse_qs("a=1&a=2&b=%C3%A7"), parse_qsl("x=1&y=&z"))
+print(urlencode({"q": "a b", "n": [1, 2]}, doseq=True), quote("/ã b?"), quote_plus("a b/c"), unquote("%E2%9C%93+x"))
+print(urljoin("http://a/b/c/d;p?q", "../g"), urlunparse(("http", "h", "/p", "", "q=1", "")), urlsplit("//h/p").netloc)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"['server', 'db'] example.com 8080 True
+2.5 /srv/example.com False {'url': 'postgres://u:p@h/db', 'timeout': '2.5'}
+[server]
+host = example.com
+port = 8080
+debug = yes
+path = /srv/%(host)s
+
+[db]
+url = postgres://u:p@h/db
+timeout = 2.5
+
+[new]
+a = 1
+b = two
+
+
+NoSectionError No section: 'nope'
+3 0 1 False False
+[1, 3, 5]
+b a
+Empty
+True (calendar.SATURDAY, 28) 4 March Mon
+   February 2025
+Mo Tu We Th Fr Sa Su
+                1  2
+ 3  4  5  6  7  8  9
+10 11 12 13 14 15 16
+17 18 19 20 21 22 23
+24 25 26 27 28
+
+Mo Tu We Th Fr Sa Su
+12345678-1234-5678-1234-567812345678 12345678123456781234567812345678 24197857161011715162171839636988778104 None UUID('12345678-1234-5678-1234-567812345678') b'\x124Vx' urn:uuid:12345678-1234-5678-1234-567812345678
+cfbff0d1-9375-5685-968c-48ce8b15ae17 c96e1d5f-9e80-3fac-af64-6996b5d74334
+2d93cbc1be167bcb1637a4a23cbff01a7878f0c50ee833954ea5221bb1b8c628
+True ed7e724d3a91554aaa2043041d9c5305
+True True True False
+ParseResult(scheme='https', netloc='user:pw@example.com:8443', path='/a/b', params='p', query='x=1&y=2', fragment='frag') example.com 8443 user /a/b x=1&y=2 frag
+{'a': ['1', '2'], 'b': ['ç']} [('x', '1')]
+q=a+b&n=1&n=2 /%C3%A3%20b%3F a+b%2Fc ✓+x
+http://a/b/g http://h/p?q=1 h
+"##
+    );
+}

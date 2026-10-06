@@ -71,6 +71,7 @@ pub fn want_int(v: &Value) -> PyResult<i64> {
     match v {
         Value::Int(i) => Ok(*i),
         Value::Bool(b) => Ok(i64::from(*b)),
+        Value::Big(_) => Err(exc("OverflowError", "Python int too large to convert to C ssize_t")),
         other => Err(type_error(format!("'{}' object cannot be interpreted as an integer", other.type_name()))),
     }
 }

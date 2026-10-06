@@ -31,6 +31,11 @@ class ABCMeta(type):
     def __new__(mcs, name, bases, ns, **kwargs):
         cls = super().__new__(mcs, name, bases, ns, **kwargs)
         cls._abc_registry_ = []
+        cls._abc_subclasses_ = []
+        for base in bases:
+            subs = getattr(base, '_abc_subclasses_', None)
+            if subs is not None:
+                subs.append(cls)
         return cls
 
     def register(cls, subclass):
@@ -51,6 +56,9 @@ class ABCMeta(type):
         hook = cls.__subclasshook__(subclass)
         if hook is not NotImplemented:
             return hook
+        for scls in cls._abc_subclasses_:
+            if issubclass(subclass, scls):
+                return True
         return False
 
     def __subclasshook__(cls, subclass):

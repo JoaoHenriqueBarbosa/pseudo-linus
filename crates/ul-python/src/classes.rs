@@ -48,6 +48,13 @@ struct Property {
     get: Value,
     set: Option<Value>,
     del: Option<Value>,
+    doc: RefCell<Value>,
+}
+
+impl Property {
+    fn new(get: Value, set: Option<Value>, del: Option<Value>) -> Property {
+        Property { get, set, del, doc: RefCell::new(Value::None) }
+    }
 }
 
 impl ExtObject for Property {
@@ -60,6 +67,22 @@ impl ExtObject for Property {
     fn methods(&self) -> &'static [&'static str] {
         &["setter", "getter", "deleter"]
     }
+    fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
+        match name {
+            "__doc__" => Some(Ok(self.doc.borrow().clone())),
+            "fget" => Some(Ok(self.get.clone())),
+            "fset" => Some(Ok(self.set.clone().unwrap_or(Value::None))),
+            "fdel" => Some(Ok(self.del.clone().unwrap_or(Value::None))),
+            _ => None,
+        }
+    }
+    fn setattr(&self, name: &str, value: Value) -> Option<PyResult<()>> {
+        if name == "__doc__" {
+            *self.doc.borrow_mut() = value;
+            return Some(Ok(()));
+        }
+        None
+    }
     fn call_method(&self, _vm: &mut Vm, name: &str, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
         let [f] = <[Value; 1]>::try_from(args).map_err(|a| {
             type_error(format!("{name}() takes exactly one argument ({} given)", a.len()))
@@ -70,7 +93,7 @@ impl ExtObject for Property {
             "deleter" => del = Some(f),
             _ => get = f,
         }
-        Ok(Value::Ext(Rc::new(Property { get, set, del })))
+        Ok(Value::Ext(Rc::new(Property::new(get, set, del))))
     }
 }
 
@@ -133,6 +156,27 @@ impl ExtObject for SuperProxy {
     }
     fn call_method(&self, _vm: &mut Vm, name: &str, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
         Err(exc("AttributeError", format!("'super' object has no attribute '{name}'")))
+    }
+}
+
+/// Método mágico de uma instância (`d.__getitem__`) que passa pelo despacho da classe.
+struct InstanceDunder {
+    obj: Value,
+    name: &'static str,
+}
+
+impl ExtObject for InstanceDunder {
+    fn type_name(&self) -> &'static str {
+        "method"
+    }
+    fn methods(&self) -> &'static [&'static str] {
+        &["__call__"]
+    }
+    fn call_method(&self, vm: &mut Vm, _name: &str, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+        match vm.call_dunder(&self.obj, self.name, args) {
+            Some(r) => r,
+            None => Err(exc("AttributeError", format!("object has no attribute '{}'", self.name))),
+        }
     }
 }
 
@@ -298,6 +342,13 @@ impl Vm {
             "property" => Ok(Value::Builtin("property")),
             "super" => Ok(Value::Builtin("super")),
             "type" => Ok(Value::Builtin("type")),
+            // `complex` é uma classe em Python (`modules/py/_complex.py`), carregada na primeira vez.
+            "complex" => {
+                let mut vm = self.clone();
+                crate::modules::import(&mut vm, "_complex")
+                    .and_then(|m| m.attrs.borrow().get("complex").cloned())
+                    .ok_or_else(|| exc("NameError", "name 'complex' is not defined"))
+            }
             _ => Err(exc("NameError", format!("name '{name}' is not defined"))),
         }
     }
@@ -624,6 +675,10 @@ impl Vm {
         }
         let payload = inst.payload.borrow().clone();
         if let Some(p) = payload {
+            // `d.__getitem__` de subclasse de `dict` com `__missing__`: a chave ausente chama o gancho.
+            if name == "__getitem__" && matches!(p, Value::Dict(_)) && inst.class.lookup("__missing__").is_some() {
+                return Ok(Value::Ext(Rc::new(InstanceDunder { obj: obj.clone(), name: "__getitem__" })));
+            }
             return self.getattr(&p, name);
         }
         Err(exc("AttributeError", format!("'{}' object has no attribute '{name}'", inst.class.name)))
@@ -715,6 +770,7 @@ impl Vm {
                 f.attrs.borrow_mut().insert(name.to_string(), value);
                 Ok(())
             }
+            Value::Ext(e) if e.setattr(name, value.clone()).is_some() => e.setattr(name, value).unwrap_or(Ok(())),
             _ => Err(exc(
                 "AttributeError",
                 format!("'{}' object has no attribute '{name}' and no __dict__ for setting new attributes", obj.type_name()),
@@ -1028,7 +1084,7 @@ impl Vm {
                         _ => return Err(type_error(format!("property() got an unexpected keyword argument '{k}'"))),
                     }
                 }
-                Ok(Value::Ext(Rc::new(Property { get, set, del })))
+                Ok(Value::Ext(Rc::new(Property::new(get, set, del))))
             }
             "super" => match args.as_slice() {
                 // `super()` sem argumentos vira `super(self, "Classe")` no compilador.

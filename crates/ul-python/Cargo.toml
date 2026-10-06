@@ -15,6 +15,10 @@ flate2 = { version = "1.1", default-features = false, features = ["zlib-rs"] }
 zdeflate = { path = "../../wip/zdeflate" }
 # `__dict__` de instâncias e classes na ordem de inserção, como no CPython.
 indexmap = "2"
+# `int` de precisão arbitrária (o que não cabe em `i64`).
+num-bigint = "0.4"
+num-traits = "0.2"
+num-integer = "0.1"
 
 [lints]
 workspace = true

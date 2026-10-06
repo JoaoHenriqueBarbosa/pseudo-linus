@@ -30,7 +30,7 @@ fn table(recv: &Value) -> Option<&'static [(&'static str, NativeFnPtr)]> {
         Value::Set(_) => setm::TABLE,
         Value::Tuple(_) => tuplem::TABLE,
         Value::Bytes(_) => bytesm::TABLE,
-        Value::Int(_) | Value::Bool(_) | Value::Float(_) => numm::TABLE,
+        Value::Int(_) | Value::Big(_) | Value::Bool(_) | Value::Float(_) => numm::TABLE,
         _ => return None,
     })
 }

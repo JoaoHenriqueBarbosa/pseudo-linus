@@ -122,20 +122,14 @@ fn int_from_bytes(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     if little {
         bytes.reverse();
     }
-    if bytes.len() > 8 {
-        return Err(crate::vm::exc("OverflowError", "Python int too large to convert to C long"));
-    }
-    let mut v: u64 = 0;
-    for b in &bytes {
-        v = (v << 8) | u64::from(*b);
-    }
-    let bits = (bytes.len() * 8) as u32;
-    let n = if signed && bits > 0 && bits < 64 && v >> (bits - 1) == 1 {
-        (v as i64) - (1i64 << bits)
+    let mag = num_bigint::BigInt::from_bytes_be(num_bigint::Sign::Plus, &bytes);
+    let bits = bytes.len() * 8;
+    let n = if signed && bits > 0 && !bytes.is_empty() && bytes[0] & 0x80 != 0 {
+        mag - (num_bigint::BigInt::from(1) << bits)
     } else {
-        v as i64
+        mag
     };
-    Ok(Value::Int(n))
+    Ok(crate::bigint::norm(n))
 }
 
 fn str_maketrans(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
@@ -170,6 +164,31 @@ fn str_maketrans(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
         _ => return Err(type_error("maketrans() argument error")),
     }
     Ok(Value::dict(d))
+}
+
+/// `bytes.fromhex(texto)`: pares de dígitos hexadecimais, espaços ASCII entre os bytes são ignorados.
+fn bytes_fromhex(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let [Value::Str(s)] = args.as_slice() else {
+        return Err(type_error("fromhex() argument must be str"));
+    };
+    let chars: Vec<char> = s.as_str().chars().collect();
+    let bad = |at: usize| crate::vm::exc("ValueError", format!("non-hexadecimal number found in fromhex() arg at position {at}"));
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i].is_ascii_whitespace() {
+            i += 1;
+            continue;
+        }
+        let hi = chars[i].to_digit(16).ok_or_else(|| bad(i))?;
+        let lo = match chars.get(i + 1) {
+            Some(c) => c.to_digit(16).ok_or_else(|| bad(i + 1))?,
+            None => return Err(bad(i + 1)),
+        };
+        out.push((hi * 16 + lo) as u8);
+        i += 2;
+    }
+    Ok(Value::bytes(out))
 }
 
 fn native(name: &'static str, f: crate::object::NativeFnPtr) -> Value {
@@ -263,6 +282,7 @@ pub fn type_attr(tname: &str, name: &str) -> Option<Value> {
         (t, "__new__") if t != "bool" => return Some(Value::Ext(Rc::new(NewFn { tname }))),
         ("dict", "fromkeys") => return Some(native("fromkeys", fromkeys)),
         ("int", "from_bytes") => return Some(native("from_bytes", int_from_bytes)),
+        ("bytes", "fromhex") => return Some(native("fromhex", bytes_fromhex)),
         ("str", "maketrans") => return Some(native("maketrans", str_maketrans)),
         _ => {}
     }

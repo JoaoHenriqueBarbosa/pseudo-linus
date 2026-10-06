@@ -5,10 +5,13 @@
 //! não cabe em 64 bits. Ficam de fora: `nextafter`, `ulp`, `erf`, `gamma`, `lgamma`, `remainder`,
 //! `sumprod`, `cbrt` de inteiros enormes.
 
+use num_bigint::BigInt;
+use num_integer::Integer;
+use num_traits::{Signed, ToPrimitive, Zero};
 use std::rc::Rc;
 
 use crate::modules::ModuleBuilder;
-use crate::native_util::{bind, exactly, no_kwargs, want_int};
+use crate::native_util::{bind, exactly, no_kwargs};
 use crate::object::{Kw, ModuleObj, Value};
 use crate::vm::{exc, iterate, py_binary, type_error, PyException, PyResult, Vm};
 
@@ -28,6 +31,7 @@ fn to_f(v: &Value) -> PyResult<f64> {
     match v {
         Value::Float(x) => Ok(*x),
         Value::Int(i) => Ok(*i as f64),
+        Value::Big(n) => crate::bigint::to_f64(n),
         Value::Bool(b) => Ok(if *b { 1.0 } else { 0.0 }),
         other => Err(type_error(format!("must be real number, not {}", other.type_name()))),
     }
@@ -81,8 +85,21 @@ unary!(exp, "exp", |x| checked_range(x, x.exp()));
 unary!(expm1, "expm1", |x| checked_range(x, x.exp_m1()));
 unary!(exp2, "exp2", |x| checked_range(x, x.exp2()));
 unary!(cbrt, "cbrt", |x| Ok(x.cbrt()));
-unary!(log2, "log2", |x| if x <= 0.0 { Err(domain()) } else { Ok(x.log2()) });
-unary!(log10, "log10", |x| if x <= 0.0 { Err(domain()) } else { Ok(x.log10()) });
+fn log2(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    if let ([Value::Big(n)], true) = (args.as_slice(), kw.is_empty()) {
+        return big_log(n, 2).map(Value::Float);
+    }
+    let x = one("log2", &args, &kw)?;
+    if x <= 0.0 { Err(domain()) } else { Ok(Value::Float(x.log2())) }
+}
+
+fn log10(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    if let ([Value::Big(n)], true) = (args.as_slice(), kw.is_empty()) {
+        return big_log(n, 10).map(Value::Float);
+    }
+    let x = one("log10", &args, &kw)?;
+    if x <= 0.0 { Err(domain()) } else { Ok(Value::Float(x.log10())) }
+}
 unary!(log1p, "log1p", |x| if x <= -1.0 { Err(domain()) } else { Ok(x.ln_1p()) });
 unary!(sin, "sin", |x| if x.is_infinite() { Err(domain()) } else { Ok(x.sin()) });
 unary!(cos, "cos", |x| if x.is_infinite() { Err(domain()) } else { Ok(x.cos()) });
@@ -104,6 +121,26 @@ predicate!(isnan, "isnan", |x| x.is_nan());
 predicate!(isinf, "isinf", |x| x.is_infinite());
 predicate!(isfinite, "isfinite", |x| x.is_finite());
 
+/// `ln` de um `int` grande, mesmo quando não cabe em `double`.
+fn big_ln(n: &BigInt) -> PyResult<f64> {
+    big_log(n, 0)
+}
+
+/// Logaritmo de `int` grande na base 2, 10 ou `e` (0), separando o expoente binário da mantissa.
+fn big_log(n: &BigInt, base: u32) -> PyResult<f64> {
+    if !n.is_positive() {
+        return Err(domain());
+    }
+    let shift = n.bits().saturating_sub(60);
+    let mant = (n >> shift as usize).to_f64().unwrap_or(1.0);
+    let e = shift as f64;
+    Ok(match base {
+        2 => mant.log2() + e,
+        10 => mant.log10() + e * std::f64::consts::LOG10_2,
+        _ => mant.ln() + e * std::f64::consts::LN_2,
+    })
+}
+
 fn log(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("log", &kw)?;
     if args.is_empty() {
@@ -113,6 +150,9 @@ fn log(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         return Err(type_error(format!("log expected at most 2 arguments, got {}", args.len())));
     }
     let ln = |v: &Value| -> PyResult<f64> {
+        if let Value::Big(n) = v {
+            return big_ln(n);
+        }
         let x = to_f(v)?;
         if x <= 0.0 {
             Err(domain())
@@ -226,7 +266,7 @@ fn float_to_int(x: f64) -> PyResult<Value> {
         return Err(exc("OverflowError", "cannot convert float infinity to integer"));
     }
     if x >= 9_223_372_036_854_775_808.0 || x < -9_223_372_036_854_775_808.0 {
-        return Err(overflow64());
+        return Ok(crate::bigint::norm(crate::bigint::float_to_big(x).unwrap_or_default()));
     }
     Ok(Value::Int(x as i64))
 }
@@ -236,6 +276,7 @@ fn rounding(fname: &str, special: &str, args: &[Value], kw: &Kw, f: fn(f64) -> f
     exactly(fname, args, 1)?;
     match &args[0] {
         Value::Int(i) => Ok(Value::Int(*i)),
+        Value::Big(_) => Ok(args[0].clone()),
         Value::Bool(b) => Ok(Value::Int(i64::from(*b))),
         Value::Float(x) => float_to_int(f(*x)),
         other => Err(type_error(format!("type {} doesn't define {} method", other.type_name(), special))),
@@ -279,116 +320,109 @@ fn isclose(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::Bool(diff <= (rel * b).abs() || diff <= (rel * a).abs() || diff <= abs))
 }
 
-fn gcd128(mut a: i128, mut b: i128) -> i128 {
-    a = a.abs();
-    b = b.abs();
-    while b != 0 {
-        let t = a % b;
-        a = b;
-        b = t;
-    }
-    a
-}
-
-fn i128_to_value(v: i128) -> PyResult<Value> {
-    i64::try_from(v).map(Value::Int).map_err(|_| overflow64())
+/// Argumento inteiro (`int`, `int` grande ou `bool`) como `BigInt`.
+fn want_big(v: &Value) -> PyResult<BigInt> {
+    crate::bigint::as_big(v)
+        .ok_or_else(|| type_error(format!("'{}' object cannot be interpreted as an integer", v.type_name())))
 }
 
 fn gcd(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("gcd", &kw)?;
-    let mut g: i128 = 0;
+    let mut g = BigInt::zero();
     for a in &args {
-        g = gcd128(g, i128::from(want_int(a)?));
+        g = g.gcd(&want_big(a)?);
     }
-    i128_to_value(g)
+    Ok(crate::bigint::norm(g))
 }
 
 fn lcm(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("lcm", &kw)?;
-    let mut l: i128 = 1;
+    let mut l = BigInt::from(1);
     for a in &args {
-        let n = i128::from(want_int(a)?);
-        if n == 0 {
-            l = 0;
-            continue;
-        }
-        if l == 0 {
-            continue;
-        }
-        let g = gcd128(l, n);
-        l = (l / g).checked_mul(n).ok_or_else(overflow64)?.abs();
-        if l > i128::from(i64::MAX) {
-            return Err(overflow64());
-        }
+        l = l.lcm(&want_big(a)?);
     }
-    i128_to_value(l)
+    Ok(crate::bigint::norm(l))
 }
 
-fn u128_to_value(v: u128) -> PyResult<Value> {
-    i64::try_from(v).map(Value::Int).map_err(|_| overflow64())
+/// Produto `lo * (lo+1) * ... * hi` por divisão e conquista (como o CPython, evita multiplicar um
+/// número enorme por um pequeno a cada passo).
+fn product_range(lo: u64, hi: u64) -> BigInt {
+    if lo > hi {
+        return BigInt::from(1);
+    }
+    if hi - lo < 16 {
+        return (lo..=hi).fold(BigInt::from(1), |acc, i| acc * i);
+    }
+    let mid = lo + (hi - lo) / 2;
+    product_range(lo, mid) * product_range(mid + 1, hi)
+}
+
+fn count_arg(v: &Value, what: &str) -> PyResult<u64> {
+    let n = want_big(v)?;
+    if n.is_negative() {
+        return Err(exc("ValueError", what));
+    }
+    n.to_u64().ok_or_else(|| exc("OverflowError", format!("factorial() argument should not exceed {}", i64::MAX)))
 }
 
 fn factorial(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("factorial", &kw)?;
     exactly("factorial", &args, 1)?;
-    let n = want_int(&args[0])?;
-    if n < 0 {
+    let n = want_big(&args[0])?;
+    if n.is_negative() {
         return Err(exc("ValueError", "factorial() not defined for negative values"));
     }
-    let mut r: u128 = 1;
-    for i in 2..=(n as u128) {
-        r = r.checked_mul(i).ok_or_else(overflow64)?;
-        if r > u128::from(i64::MAX as u64) {
-            return Err(overflow64());
-        }
-    }
-    u128_to_value(r)
+    let n = n
+        .to_u64()
+        .ok_or_else(|| exc("OverflowError", format!("factorial() argument should not exceed {}", i64::MAX)))?;
+    Ok(crate::bigint::norm(product_range(2, n)))
 }
 
 fn comb(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("comb", &kw)?;
     exactly("comb", &args, 2)?;
-    let n = want_int(&args[0])?;
-    let k = want_int(&args[1])?;
-    if n < 0 {
+    let n = want_big(&args[0])?;
+    let k = want_big(&args[1])?;
+    if n.is_negative() {
         return Err(exc("ValueError", "n must be a non-negative integer"));
     }
-    if k < 0 {
+    if k.is_negative() {
         return Err(exc("ValueError", "k must be a non-negative integer"));
     }
     if k > n {
         return Ok(Value::Int(0));
     }
-    let k = k.min(n - k) as u128;
-    let n = n as u128;
-    let mut r: u128 = 1;
+    let k = k.clone().min(&n - &k);
+    let k = k.to_u64().ok_or_else(|| exc("OverflowError", "min(n - k, k) must not exceed 9223372036854775807"))?;
+    let mut r = BigInt::from(1);
     for i in 1..=k {
-        r = r.checked_mul(n - k + i).ok_or_else(overflow64)? / i;
+        r = r * (&n - k + i) / i;
     }
-    u128_to_value(r)
+    Ok(crate::bigint::norm(r))
 }
 
 fn perm(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let s = bind("perm", args, kw, &["n", "k"], 1)?;
-    let n = want_int(s[0].as_ref().unwrap())?;
+    let n = want_big(s[0].as_ref().unwrap())?;
     let k = match &s[1] {
-        None | Some(Value::None) => n,
-        Some(v) => want_int(v)?,
+        None | Some(Value::None) => n.clone(),
+        Some(v) => want_big(v)?,
     };
-    if n < 0 {
+    if n.is_negative() {
         return Err(exc("ValueError", "n must be a non-negative integer"));
     }
-    if k < 0 {
+    if k.is_negative() {
         return Err(exc("ValueError", "k must be a non-negative integer"));
     }
     if k > n {
         return Ok(Value::Int(0));
     }
-    let mut r: u128 = 1;
-    for i in 0..(k as u128) {
-        r = r.checked_mul(n as u128 - i).ok_or_else(overflow64)?;
+    let k = k.to_u64().ok_or_else(|| exc("OverflowError", "k must not exceed 9223372036854775807"))?;
+    let mut r = BigInt::from(1);
+    for i in 0..k {
+        r *= &n - i;
     }
-    u128_to_value(r)
+    Ok(crate::bigint::norm(r))
 }
 
 fn prod(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -481,19 +515,11 @@ fn fsum(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 fn isqrt(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("isqrt", &kw)?;
     exactly("isqrt", &args, 1)?;
-    let n = want_int(&args[0])?;
-    if n < 0 {
+    let n = want_big(&args[0])?;
+    if n.is_negative() {
         return Err(exc("ValueError", "isqrt() argument must be nonnegative"));
     }
-    let n128 = i128::from(n);
-    let mut r = i128::from((n as f64).sqrt() as i64);
-    while r * r > n128 {
-        r -= 1;
-    }
-    while (r + 1) * (r + 1) <= n128 {
-        r += 1;
-    }
-    Ok(Value::Int(r as i64))
+    Ok(crate::bigint::norm(n.sqrt()))
 }
 
 fn modf(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {

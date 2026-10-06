@@ -299,6 +299,31 @@ class IntFlag(int, Flag):
         return self.__class__(self._value_ ^ value)
 
 
+def global_enum_repr(self):
+    return '%s.%s' % (self.__class__.__module__, self._name_)
+
+
+def global_enum(cls, update_str=False):
+    """Marca o Enum como exportado no módulo: repr `modulo.MEMBRO`.
+
+    Quem define o enum exporta os membros (o sandbox não tem `globals()` vivo para o decorador).
+    """
+    cls.__repr__ = global_enum_repr
+    return cls
+
+
+def _simple_enum(etype=Enum, *, boundary=None, use_args=None):
+    """Recria a classe decorada como um Enum de `etype`, com os atributos dela como membros."""
+    def convert(cls):
+        ns = {}
+        for key, value in cls.__dict__.items():
+            if key in ('__dict__', '__weakref__'):
+                continue
+            ns[key] = value
+        return type(etype)(cls.__name__, (etype,), ns)
+    return convert
+
+
 def unique(enumeration):
     duplicates = []
     for name, member in enumeration._member_map_.items():
