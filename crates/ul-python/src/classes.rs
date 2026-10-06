@@ -286,6 +286,41 @@ impl ExtObject for ExcWithTraceback {
     }
 }
 
+/// `exc.add_note(texto)`: anexa a `exc.__notes__`, criando a lista na primeira nota.
+pub(crate) struct ExcAddNote {
+    pub(crate) obj: Value,
+}
+
+impl ExtObject for ExcAddNote {
+    fn type_name(&self) -> &'static str {
+        "builtin_function_or_method"
+    }
+    fn methods(&self) -> &'static [&'static str] {
+        &["__call__"]
+    }
+    fn call_method(&self, vm: &mut Vm, _name: &str, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+        let [note] = <[Value; 1]>::try_from(args)
+            .map_err(|a| type_error(format!("BaseException.add_note() takes exactly one argument ({} given)", a.len())))?;
+        if !matches!(note, Value::Str(_)) {
+            return Err(type_error(format!("note must be a str, not '{}'", note.type_name())));
+        }
+        let notes = match vm.getattr(&self.obj, "__notes__") {
+            Ok(Value::List(l)) => l,
+            Ok(_) => return Err(type_error("Cannot add note: __notes__ is not a list")),
+            Err(_) => {
+                let l = Value::list(Vec::new());
+                vm.store_attr(&self.obj, "__notes__", l.clone())?;
+                match l {
+                    Value::List(l) => l,
+                    _ => unreachable!(),
+                }
+            }
+        };
+        notes.borrow_mut().push(note);
+        Ok(Value::None)
+    }
+}
+
 /// Método mágico de uma instância (`d.__getitem__`) que passa pelo despacho da classe.
 struct InstanceDunder {
     obj: Value,
@@ -914,6 +949,9 @@ impl Vm {
         if name == "with_traceback" && inst.class.builtin_base.is_some() {
             return Ok(Value::Ext(Rc::new(ExcWithTraceback { obj: obj.clone() })));
         }
+        if name == "add_note" && inst.class.builtin_base.is_some() {
+            return Ok(Value::Ext(Rc::new(ExcAddNote { obj: obj.clone() })));
+        }
         Err(exc("AttributeError", format!("'{}' object has no attribute '{name}'", inst.class.name)))
     }
 
@@ -1067,6 +1105,12 @@ impl Vm {
             // `exc.__traceback__ = tb` (o `contextlib` devolve o traceback original ao propagar).
             Value::Exception(x) if name == "__traceback__" => {
                 *x.traceback.borrow_mut() = if matches!(value, Value::None) { None } else { Some(value) };
+                Ok(())
+            }
+            Value::Exception(x) if name == "__notes__" => {
+                let mut extra = x.extra.borrow_mut();
+                extra.retain(|(k, _)| *k != "__notes__");
+                extra.push(("__notes__", value));
                 Ok(())
             }
             _ => Err(exc(

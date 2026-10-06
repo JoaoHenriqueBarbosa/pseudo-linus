@@ -237,7 +237,24 @@ def format_exception_only(exc, /, value=_sentinel, *, show_group=False, _tb=None
         return list(_format_syntax_error(exc, value))
     # `NameError` só sugere com um traceback à mão (precisa do quadro); sem ele, o CPython não sugere
     with_hint = _tb is not None or not isinstance(value, NameError)
-    return [_format_final_line(exc, value, with_hint)]
+    return [_format_final_line(exc, value, with_hint)] + _note_lines(value)
+
+
+def _note_lines(value):
+    """As linhas de `exc.__notes__` que o CPython imprime depois da linha final."""
+    notes = getattr(value, '__notes__', None)
+    if notes is None:
+        return []
+    if not isinstance(notes, (list, tuple)):
+        try:
+            return ['%s\n' % (notes,)]
+        except Exception:
+            return ['<__notes__ repr() failed>\n']
+    out = []
+    for note in notes:
+        text = note if isinstance(note, str) else repr(note)
+        out.extend(line + '\n' for line in text.split('\n'))
+    return out
 
 
 def _format_syntax_error(exc, value):
@@ -343,6 +360,18 @@ class TracebackException:
         self.__cause__ = None
         self.__context__ = None
         self.__suppress_context__ = False
+        _seen = getattr(self, '_seen_ids', None) or set()
+        if exc_value is not None:
+            _seen.add(id(exc_value))
+            self.__suppress_context__ = bool(getattr(exc_value, '__suppress_context__', False))
+            for attr in ('__cause__', '__context__'):
+                linked = getattr(exc_value, attr, None)
+                if linked is not None and id(linked) not in _seen:
+                    sub = TracebackException.__new__(TracebackException)
+                    sub._seen_ids = _seen
+                    sub.__init__(type(linked), linked, linked.__traceback__, limit=limit,
+                                 lookup_lines=lookup_lines)
+                    setattr(self, attr, sub)
         self._str = str(exc_value) if exc_value is not None else ''
 
     @classmethod
@@ -356,6 +385,7 @@ class TracebackException:
     def format_exception_only(self):
         yield _format_final_line(self.exc_type, self._value,
                                  self._tb is not None or not isinstance(self._value, NameError))
+        yield from _note_lines(self._value)
 
     def format(self, *, chain=True):
         if chain and self._value is not None:

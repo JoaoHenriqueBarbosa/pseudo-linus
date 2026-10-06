@@ -355,7 +355,7 @@ except (KeyError, Plain) as e:
     print(str(e))
 ";
     assert_eq!(out(src), "boom 7 ('boom',) MyErr('boom')\nMyErr\nhi\n");
-    assert!(err("class E(Exception): pass\nraise E('bad')").ends_with("__main__.E: bad\n"));
+    assert!(err("class E(Exception): pass\nraise E('bad')").ends_with("\nE: bad\n"));
 }
 
 #[test]

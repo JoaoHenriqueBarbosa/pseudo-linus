@@ -123,9 +123,13 @@ impl PyException {
             Value::Exception(e) => {
                 PyException { kind: e.kind, msg: exc_str(e), value: Some(v.clone()), tb: Vec::new() }
             }
-            // Instância de exceção de usuário: o traceback mostra `__main__.Nome`.
+            // Instância de exceção de usuário: desde o 3.13 o traceback só qualifica o nome quando a
+            // classe não vem de `__main__` (`pkg.mod.Erro: ...`, mas `Erro: ...` no script).
             Value::Instance(i) if i.class.builtin_base.is_some() => PyException {
-                kind: crate::object::intern(&format!("__main__.{}", i.class.name)),
+                kind: match i.class.module().as_str() {
+                    "__main__" | "builtins" => crate::object::intern(&i.class.qualname()),
+                    m => crate::object::intern(&format!("{m}.{}", i.class.qualname())),
+                },
                 msg: instance_text(v, true).unwrap_or_default(),
                 value: Some(v.clone()),
                 tb: Vec::new(),
@@ -500,6 +504,7 @@ fn exc_section(v: &Value, file: &str, src: Option<&str>) -> String {
     } else {
         out.push_str(&format!("{}: {}{}\n", pe.kind, pe.msg, hint_of(v)));
     }
+    out.push_str(&notes_of(v));
     out
 }
 
@@ -524,6 +529,36 @@ pub fn format_traceback_in(err: &RuntimeError, file: &str, src: Option<&str>) ->
             err.exc.msg,
             err.exc.value.as_ref().map(hint_of).unwrap_or_default()
         ));
+    }
+    if let Some(v) = &err.exc.value {
+        out.push_str(&notes_of(v));
+    }
+    out
+}
+
+/// As linhas de `exc.__notes__` (de `add_note`), que vêm depois da linha final.
+fn notes_of(v: &Value) -> String {
+    let notes = match v {
+        Value::Exception(e) => e.extra_get("__notes__"),
+        Value::Instance(i) => i.dict.borrow().get("__notes__").cloned(),
+        _ => None,
+    };
+    let items = match notes {
+        Some(Value::List(l)) => l.borrow().clone(),
+        Some(Value::Tuple(t)) => t.to_vec(),
+        Some(other) => vec![other],
+        None => return String::new(),
+    };
+    let mut out = String::new();
+    for n in items {
+        let text = match &n {
+            Value::Str(s) => s.as_str().to_string(),
+            other => crate::object::repr(other),
+        };
+        for line in text.split('\n') {
+            out.push_str(line);
+            out.push('\n');
+        }
     }
     out
 }
@@ -2700,6 +2735,12 @@ impl Vm {
             }
             Value::Exception(_) if name == "with_traceback" => {
                 Ok(Value::Ext(Rc::new(crate::classes::ExcWithTraceback { obj: obj.clone() })))
+            }
+            Value::Exception(_) if name == "add_note" => {
+                Ok(Value::Ext(Rc::new(crate::classes::ExcAddNote { obj: obj.clone() })))
+            }
+            Value::Exception(e) if name == "__notes__" && e.extra_get("__notes__").is_some() => {
+                Ok(e.extra_get("__notes__").unwrap_or(Value::None))
             }
             Value::Exception(e) if name == "__traceback__" => Ok(e.traceback.borrow().clone().unwrap_or(Value::None)),
             Value::Exception(e) if name == "code" && e.kind == "SystemExit" => Ok(match e.args.as_slice() {

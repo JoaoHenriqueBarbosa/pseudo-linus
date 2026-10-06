@@ -5478,3 +5478,32 @@ I(3) 4 I(1) I
 "##
     );
 }
+
+#[test]
+fn exception_notes_and_traceback_exception_chain() {
+    let src = r##"
+import traceback
+class M(Exception): pass
+for e in (ValueError('x'), M('y')):
+    e.add_note('n1'); e.add_note('dois\nlinhas')
+    print(e.__notes__, traceback.format_exception_only(e))
+try:
+    try: {}['k']
+    except KeyError as e: raise RuntimeError('wrap') from e
+except RuntimeError as e:
+    tb = traceback.TracebackException.from_exception(e)
+    print(type(tb.__cause__).__name__, tb.__cause__.exc_type.__name__, tb.__context__ is not None, tb.__suppress_context__)
+try: raise M('fim')
+except M as e: print(''.join(traceback.format_exception_only(e)).strip())
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"['n1', 'dois\nlinhas'] ['ValueError: x\n', 'n1\n', 'dois\n', 'linhas\n']
+['n1', 'dois\nlinhas'] ['M: y\n', 'n1\n', 'dois\n', 'linhas\n']
+TracebackException KeyError False True
+M: fim
+"##
+    );
+}
