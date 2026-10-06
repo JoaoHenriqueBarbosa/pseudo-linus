@@ -824,7 +824,7 @@ impl Vm {
     fn instance_getattr_with(&mut self, obj: &Value, inst: &Rc<InstanceObj>, name: &str, hook: bool) -> PyResult<Value> {
         match name {
             "__class__" => return Ok(Value::Class(inst.class.clone())),
-            "__dict__" => return Ok(inst.live_dict()),
+            "__dict__" if inst.class.slots_allow("__dict__") => return Ok(inst.live_dict()),
             _ => {}
         }
         inst.sync_from_view();

@@ -5406,3 +5406,30 @@ print(sorted(counts.items()))
 "##
     );
 }
+
+#[test]
+fn dataclass_slots_and_get_overloads() {
+    let src = r##"
+import dataclasses, typing
+@dataclasses.dataclass(slots=True)
+class E:
+    a: int
+    b: int = 2
+e = E(1); print(e, E.__slots__, hasattr(e, '__dict__'))
+try: e.c = 1
+except AttributeError: print('no c')
+@typing.overload
+def f(x: int) -> int: ...
+def f(x): return x
+print(len(typing.get_overloads(f)), f(3))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"E(a=1, b=2) ('a', 'b') False
+no c
+1 3
+"##
+    );
+}

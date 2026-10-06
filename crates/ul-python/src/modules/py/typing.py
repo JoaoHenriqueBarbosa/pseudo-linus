@@ -366,8 +366,33 @@ def runtime_checkable(cls):
     return cls
 
 
+_overload_registry = {}
+
+
+def _overload_key(func):
+    func = getattr(func, '__func__', func)
+    return (getattr(func, '__module__', None), getattr(func, '__qualname__', None))
+
+
 def overload(func):
-    return func
+    """Guarda a variante para `get_overloads`; chamar a variante levanta como no CPython."""
+    _overload_registry.setdefault(_overload_key(func), []).append(func)
+
+    def _overload_dummy(*args, **kwds):
+        raise NotImplementedError(
+            "You should not call an overloaded function. "
+            "A series of @typing.overload-decorated functions "
+            "outside a stub module should always be followed "
+            "by an implementation that is not @typing.overload-decorated.")
+    return _overload_dummy
+
+
+def get_overloads(func):
+    return list(_overload_registry.get(_overload_key(func), []))
+
+
+def clear_overloads():
+    _overload_registry.clear()
 
 
 def final(f):

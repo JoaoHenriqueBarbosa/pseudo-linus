@@ -202,7 +202,8 @@ def _init_signature(positional, keyword_only):
     params += [param(f, 3) for f in keyword_only]
     return inspect.Signature(params, return_annotation=None)
 
-def _process_class(cls, init, repr, eq, order, unsafe_hash, frozen, match_args, kw_only, slots):
+def _process_class(cls, init, repr, eq, order, unsafe_hash, frozen, match_args, kw_only, slots,
+                   weakref_slot=False):
     fields_map = {}
     for base in reversed(cls.__mro__[1:]):
         base_fields = base.__dict__.get('__dataclass_fields__')
@@ -320,13 +321,38 @@ def _process_class(cls, init, repr, eq, order, unsafe_hash, frozen, match_args, 
         cls.__delattr__ = __delattr__
     if match_args:
         cls.__match_args__ = tuple(f.name for f in init_fields if not f.kw_only)
+    if slots:
+        cls = _add_slots(cls, weakref_slot)
     return cls
+
+
+def _add_slots(cls, weakref_slot):
+    """Recria a classe com `__slots__` dos campos, como o CPython faz."""
+    d = dict(cls.__dict__)
+    names = tuple(cls.__dataclass_fields__)
+    inherited = set()
+    for base in cls.__mro__[1:-1]:
+        inherited.update(getattr(base, '__slots__', ()))
+    slots = tuple(n for n in names if n not in inherited)
+    if weakref_slot and '__weakref__' not in inherited:
+        slots += ('__weakref__',)
+    d['__slots__'] = slots
+    for n in names:
+        d.pop(n, None)
+    d.pop('__dict__', None)
+    d.pop('__weakref__', None)
+    qualname = getattr(cls, '__qualname__', None)
+    new = type(cls)(cls.__name__, cls.__bases__, d)
+    if qualname is not None:
+        new.__qualname__ = qualname
+    return new
 
 
 def dataclass(cls=None, /, *, init=True, repr=True, eq=True, order=False, unsafe_hash=False, frozen=False,
               match_args=True, kw_only=False, slots=False, weakref_slot=False):
     def wrap(cls):
-        return _process_class(cls, init, repr, eq, order, unsafe_hash, frozen, match_args, kw_only, slots)
+        return _process_class(cls, init, repr, eq, order, unsafe_hash, frozen, match_args, kw_only, slots,
+                              weakref_slot)
 
     if cls is None:
         return wrap
