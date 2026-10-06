@@ -19,6 +19,7 @@ pub const TABLE: &[(&str, NativeFnPtr)] = &[
     ("input", b_input),
     ("exit", b_exit),
     ("quit", b_exit),
+    ("help", b_help),
     ("__import__", b_import),
     ("eval", b_eval),
     ("exec", b_exec),
@@ -173,6 +174,13 @@ fn b_input(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         line.pop();
     }
     Ok(Value::str(line))
+}
+
+fn b_help(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    crate::native_util::no_kwargs("help", &kw)?;
+    let m = crate::modules::import_checked(vm, "pydoc")?;
+    let helper = vm.getattr(&Value::Module(m), "help")?;
+    vm.call_value(&helper, args, Vec::new())
 }
 
 fn b_exit(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {

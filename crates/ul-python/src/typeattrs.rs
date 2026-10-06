@@ -274,6 +274,7 @@ fn object_getattribute(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value
                 }
             }
         }
+        [other, Value::Str(n)] => vm.getattr(other, n.as_str()),
         _ => Err(type_error("expected 2 arguments")),
     }
 }

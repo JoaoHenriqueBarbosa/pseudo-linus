@@ -278,6 +278,9 @@ class Signature:
         self.parameters = {p.name: p for p in (parameters or [])}
         self.return_annotation = return_annotation
 
+    def format(self, *, max_width=None):
+        return str(self)
+
     def __str__(self):
         parts = []
         params = list(self.parameters.values())
@@ -439,3 +442,145 @@ def signature(obj, *, follow_wrapped=True):
     if code.co_flags_varkw and rest:
         params.append(Parameter(rest[0], 4, annotation=annotations.get(rest[0], _empty)))
     return Signature(params, return_annotation=annotations.get('return', _empty))
+
+
+def isgetsetdescriptor(obj):
+    return type(obj).__name__ == 'getset_descriptor'
+
+
+def ismemberdescriptor(obj):
+    return type(obj).__name__ == 'member_descriptor'
+
+
+def isdatadescriptor(obj):
+    if isclass(obj) or ismethod(obj) or isfunction(obj):
+        return False
+    tp = type(obj)
+    return hasattr(tp, '__set__') or hasattr(tp, '__delete__')
+
+
+def getmro(cls):
+    return cls.__mro__
+
+
+def getabsfile(obj, _filename=None):
+    import os
+    return os.path.normcase(os.path.abspath(getsourcefile(obj) or getfile(obj)))
+
+
+def getattr_static(obj, attr, default=_empty):
+    """Sem executar descritores: procura no `__dict__` da instância e no das classes do MRO."""
+    instance_dict = getattr(obj, '__dict__', None) if not isclass(obj) else None
+    klass = obj if isclass(obj) else type(obj)
+    if instance_dict is not None and attr in instance_dict:
+        return instance_dict[attr]
+    for base in getmro(klass):
+        d = getattr(base, '__dict__', {})
+        if attr in d:
+            return d[attr]
+    if default is not _empty:
+        return default
+    raise AttributeError(attr)
+
+
+def getcomments(obj):
+    return None
+
+
+def getclasstree(classes, unique=False):
+    children = {}
+    roots = []
+    for c in classes:
+        if c.__bases__:
+            for parent in c.__bases__:
+                children.setdefault(parent, [])
+                if c not in children[parent]:
+                    children[parent].append(c)
+                if unique and parent in classes:
+                    break
+        elif c not in roots:
+            roots.append(c)
+    for parent in children:
+        if parent not in classes and parent not in roots:
+            roots.append(parent)
+
+    def walk(parent):
+        out = []
+        for c in sorted(children.get(parent, []), key=lambda k: (k.__module__, k.__name__)) if False else children.get(parent, []):
+            out.append((c, c.__bases__))
+            sub = walk(c)
+            if sub:
+                out.append(sub)
+        return out
+
+    result = []
+    for r in roots:
+        result.append((r, r.__bases__))
+        sub = walk(r)
+        if sub:
+            result.append(sub)
+    return result
+
+
+def classify_class_attrs(cls):
+    """(name, kind, defining class, objeto) de cada atributo de `cls`."""
+    from collections import namedtuple
+    Attribute = namedtuple('Attribute', 'name kind defining_class object')
+    mro = getmro(cls)
+    result = []
+    for name in dir(cls):
+        homecls = None
+        obj = None
+        for base in mro:
+            d = getattr(base, '__dict__', {})
+            if name in d:
+                homecls = base
+                obj = d[name]
+                break
+        if homecls is None:
+            try:
+                obj = getattr(cls, name)
+            except AttributeError:
+                continue
+            homecls = cls
+        if isinstance(obj, staticmethod):
+            kind = 'static method'
+        elif isinstance(obj, classmethod):
+            kind = 'class method'
+        elif isinstance(obj, property):
+            kind = 'readonly property' if obj.fset is None else 'data descriptor'
+        elif isfunction(obj) or ismethoddescriptor(obj) or isbuiltin(obj):
+            kind = 'method'
+        elif isdatadescriptor(obj):
+            kind = 'data descriptor'
+        else:
+            kind = 'data'
+        result.append(Attribute(name, kind, homecls, obj))
+    # Classes comuns ganham `__dict__` e `__weakref__` no primeiro ancestral de usuário.
+    names = {a.name for a in result}
+    if '__slots__' not in getattr(cls, '__dict__', {}):
+        root = None
+        for base in mro:
+            if base is not object and getattr(base, '__bases__', ()) in ((object,), ()):
+                root = base
+        if root is not None:
+            for dname, text in (('__dict__', 'dictionary for instance variables'),
+                                ('__weakref__', 'list of weak references to the object')):
+                if dname not in names:
+                    result.append(Attribute(dname, 'data descriptor', root, _DocHolder(text)))
+            result.sort(key=lambda a: a.name)
+    return result
+
+
+class _DocHolder:
+    def __init__(self, doc):
+        self.__doc__ = doc
+
+
+def stack(context=1):
+    frames = []
+    f = sys._getframe(1)
+    while f is not None:
+        frames.append((f, f.f_code.co_filename, f.f_lineno, f.f_code.co_name, None, None))
+        f = f.f_back
+    return frames

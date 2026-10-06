@@ -4835,3 +4835,153 @@ ValueError Circular reference detected
 "##
     );
 }
+
+#[test]
+fn pydoc_help_on_user_functions_and_classes() {
+    let src = r##"
+import collections
+def f(a, b=2, *c, d=1, **e):
+    """Soma a e b."""
+    return a + b
+
+class Animal:
+    """Um bicho."""
+    kind = 'x'
+    def __init__(self, name):
+        """Cria."""
+        self.name = name
+    def speak(self, loud=False):
+        """Fala."""
+        return self.name
+    @property
+    def upper(self):
+        """Nome em caixa alta."""
+        return self.name.upper()
+    @classmethod
+    def make(cls):
+        """Fábrica."""
+        return cls('a')
+
+class Dog(Animal):
+    """Cachorro."""
+    def speak(self, loud=True):
+        return 'au'
+
+help(f)
+help(Animal)
+help(Dog)
+help(Dog.speak)
+help(Dog('r').speak)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"Help on function f in module __main__:
+
+f(a, b=2, *c, d=1, **e)
+    Soma a e b.
+
+Help on class Animal in module __main__:
+
+class Animal(builtins.object)
+ |  Animal(name)
+ |
+ |  Um bicho.
+ |
+ |  Methods defined here:
+ |
+ |  __init__(self, name)
+ |      Cria.
+ |
+ |  speak(self, loud=False)
+ |      Fala.
+ |
+ |  ----------------------------------------------------------------------
+ |  Class methods defined here:
+ |
+ |  make()
+ |      Fábrica.
+ |
+ |  ----------------------------------------------------------------------
+ |  Readonly properties defined here:
+ |
+ |  upper
+ |      Nome em caixa alta.
+ |
+ |  ----------------------------------------------------------------------
+ |  Data descriptors defined here:
+ |
+ |  __dict__
+ |      dictionary for instance variables
+ |
+ |  __weakref__
+ |      list of weak references to the object
+ |
+ |  ----------------------------------------------------------------------
+ |  Data and other attributes defined here:
+ |
+ |  kind = 'x'
+
+Help on class Dog in module __main__:
+
+class Dog(Animal)
+ |  Dog(name)
+ |
+ |  Cachorro.
+ |
+ |  Method resolution order:
+ |      Dog
+ |      Animal
+ |      builtins.object
+ |
+ |  Methods defined here:
+ |
+ |  speak(self, loud=True)
+ |      Fala.
+ |
+ |  ----------------------------------------------------------------------
+ |  Methods inherited from Animal:
+ |
+ |  __init__(self, name)
+ |      Cria.
+ |
+ |  ----------------------------------------------------------------------
+ |  Class methods inherited from Animal:
+ |
+ |  make()
+ |      Fábrica.
+ |
+ |  ----------------------------------------------------------------------
+ |  Readonly properties inherited from Animal:
+ |
+ |  upper
+ |      Nome em caixa alta.
+ |
+ |  ----------------------------------------------------------------------
+ |  Data descriptors inherited from Animal:
+ |
+ |  __dict__
+ |      dictionary for instance variables
+ |
+ |  __weakref__
+ |      list of weak references to the object
+ |
+ |  ----------------------------------------------------------------------
+ |  Data and other attributes inherited from Animal:
+ |
+ |  kind = 'x'
+
+Help on function speak in module __main__:
+
+speak(self, loud=True)
+    Fala.
+
+Help on method speak in module __main__:
+
+speak(loud=True) method of __main__.Dog instance
+    Fala.
+
+"##
+    );
+}

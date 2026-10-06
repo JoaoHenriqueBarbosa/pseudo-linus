@@ -67,9 +67,16 @@ impl ExtObject for Property {
     fn methods(&self) -> &'static [&'static str] {
         &["setter", "getter", "deleter"]
     }
-    fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
+    fn getattr(&self, vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
         match name {
-            "__doc__" => Some(Ok(self.doc.borrow().clone())),
+            "__doc__" => {
+                // Sem `doc=`, o docstring vem do getter, como no CPython.
+                let own = self.doc.borrow().clone();
+                if matches!(own, Value::None) {
+                    return Some(Ok(vm.getattr(&self.get, "__doc__").unwrap_or(Value::None)));
+                }
+                Some(Ok(own))
+            }
             "fget" => Some(Ok(self.get.clone())),
             "fset" => Some(Ok(self.set.clone().unwrap_or(Value::None))),
             "fdel" => Some(Ok(self.del.clone().unwrap_or(Value::None))),
@@ -826,6 +833,10 @@ impl Vm {
             "__qualname__" => return Ok(Value::str(cls.qualname())),
             "__module__" => return Ok(Value::str(cls.module())),
             "__bases__" => {
+                if cls.bases.is_empty() {
+                    let base = cls.builtin_base.map_or(Value::Builtin("object"), Value::Builtin);
+                    return Ok(Value::tuple(vec![base]));
+                }
                 return Ok(Value::tuple(cls.bases.iter().map(|b| Value::Class(b.clone())).collect()));
             }
             "__mro__" => {
