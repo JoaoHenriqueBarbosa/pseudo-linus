@@ -877,7 +877,15 @@ impl Vm {
         let Some(f) = user else {
             // Subclasse de tipo embutido: o que a classe não redefine vai para o valor embutido.
             let payload = i.payload.borrow().clone()?;
-            let r = crate::vm::payload_dunder(&payload, name, args)?;
+            let r = crate::vm::payload_dunder(&payload, name, args.clone())?;
+            if let (Err(e), "__getitem__") = (&r, name) {
+                if e.kind == "KeyError" {
+                    if let Some(Value::Function(m)) = i.class.lookup("__missing__") {
+                        let key = args.first().cloned().unwrap_or(Value::None);
+                        return Some(self.call_function(&m, vec![obj.clone(), key], Vec::new()));
+                    }
+                }
+            }
             // `x += y` sobre lista/dict/set muta o valor embutido e continua sendo a mesma instância.
             return Some(match r {
                 Ok(_)

@@ -113,11 +113,10 @@ fn update(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let d = this(&args)?;
     let mut pairs: Vec<(Value, Value)> = Vec::new();
     if let Some(src) = args.get(1) {
-        match src {
-            Value::Dict(other) => {
-                pairs.extend(other.borrow().iter().map(|(k, v)| (k.clone(), v.clone())));
-            }
-            other => {
+        match crate::vm::mapping_pairs(src)? {
+            Some(found) => pairs.extend(found),
+            None => {
+                let other = src;
                 for (i, item) in iterate(other)?.into_iter().enumerate() {
                     let parts = iterate(&item).map_err(|_| {
                         type_error(format!("cannot convert dictionary update sequence element #{i} to a sequence"))

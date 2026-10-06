@@ -998,9 +998,9 @@ fn b_len(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 // ---------------------------------------------------------------------------------------------
 
 fn fill_dict(d: &mut Dict, src: &Value) -> PyResult<()> {
-    if let Value::Dict(o) = src {
-        for (k, v) in o.borrow().iter() {
-            d.set(k.clone(), v.clone())?;
+    if let Some(pairs) = crate::vm::mapping_pairs(src)? {
+        for (k, v) in pairs {
+            d.set(k, v)?;
         }
         return Ok(());
     }

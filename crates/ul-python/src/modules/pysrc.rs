@@ -22,6 +22,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("functools", include_str!("py/functools.py")),
     ("contextlib", include_str!("py/contextlib.py")),
     ("abc", include_str!("py/abc.py")),
+    ("collections", include_str!("py/collections.py")),
 ];
 
 /// Nomes de módulo que são apelidos de outro.

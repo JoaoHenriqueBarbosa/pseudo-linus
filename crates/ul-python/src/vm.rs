@@ -972,10 +972,9 @@ impl Vm {
             }
             Op::DictUpdate => {
                 let m = pop(stack)?;
-                let Value::Dict(src) = &m else {
+                let Some(pairs) = mapping_pairs(&m)? else {
                     return Err(type_error(format!("'{}' object is not a mapping", m.type_name())));
                 };
-                let pairs: Vec<(Value, Value)> = src.borrow().iter().map(|(k, v)| (k.clone(), v.clone())).collect();
                 match top(stack)? {
                     Value::Dict(d) => {
                         for (k, v) in pairs {
@@ -1378,6 +1377,11 @@ impl Vm {
             Value::Instance(inst) => return self.instance_getattr(obj, inst, name),
             Value::Class(c) => return self.class_getattr(c, name),
             Value::Builtin(n) if name == "__name__" => return Ok(Value::str(*n)),
+            Value::NativeFn(f) => {
+                if let Some(v) = crate::typeattrs::type_attr(f.name, name) {
+                    return Ok(v);
+                }
+            }
             Value::Exception(e) if name == "__class__" => return Ok(Value::Builtin(e.kind)),
             Value::Function(f) => {
                 if let Some(v) = f.attrs.borrow().get(name) {
@@ -2791,6 +2795,26 @@ pub(crate) fn payload_dunder(payload: &Value, name: &str, args: Vec<Value>) -> O
     let reflected = name.starts_with("__r") && !matches!(name, "__rshift__");
     let inplace = matches!(name, "__iadd__" | "__isub__" | "__imul__" | "__iand__" | "__ior__" | "__ixor__");
     Some(if reflected { binary(op, &other, payload, false) } else { binary(op, payload, &other, inplace) })
+}
+
+/// Os pares de um mapeamento: `dict`, subclasse de `dict` ou objeto com `keys()` e `__getitem__`.
+/// `None` quando `v` não é um mapeamento (e sim, talvez, um iterável de pares).
+pub(crate) fn mapping_pairs(v: &Value) -> PyResult<Option<Vec<(Value, Value)>>> {
+    match unwrap_payload(v) {
+        Value::Dict(d) => Ok(Some(d.borrow().iter().map(|(k, x)| (k.clone(), x.clone())).collect())),
+        Value::Instance(i) if i.class.lookup("keys").is_some() => {
+            let mut vm = current().ok_or_else(|| internal("no vm"))?;
+            let keys_fn = vm.getattr(v, "keys")?;
+            let keys = vm.call(&keys_fn, Vec::new(), Vec::new())?;
+            let mut out = Vec::new();
+            for k in collect(&keys)? {
+                let value = subscript(v, &k)?;
+                out.push((k, value));
+            }
+            Ok(Some(out))
+        }
+        _ => Ok(None),
+    }
 }
 
 /// `item in container`.

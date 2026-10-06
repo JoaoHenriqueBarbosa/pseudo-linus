@@ -138,3 +138,40 @@ print(s)
 ";
     assert_eq!(out(src), "{1, 3} {1, 2, 3} {2} {1, 3}\n{'a': 1, 'b': 2} x-3-2.5\n{1, 2}\n");
 }
+
+#[test]
+fn collections_module() {
+    let src = "\
+from collections import namedtuple, defaultdict, Counter, OrderedDict, deque, ChainMap
+P = namedtuple('P', 'x y')
+p = P(1, y=2)
+print(p, p.x, p[1], p._asdict(), p._replace(x=9), P._fields, tuple(p), len(p))
+x, y = p
+print(x, y, p == (1, 2), isinstance(p, tuple))
+dd = defaultdict(list)
+dd['a'].append(1); dd['b'].append(2); dd['a'].append(3)
+print(dd, dict(dd), len(dd))
+c = Counter('abracadabra')
+print(c, c.most_common(2), c['z'], sum(c.values()), list(c.elements())[:3])
+print(Counter(a=2) + Counter(a=1, b=1), Counter(a=3) - Counter(a=1))
+od = OrderedDict(); od['x'] = 1; od['y'] = 2; od.move_to_end('x')
+print(od, list(od), od.popitem())
+d = deque([1, 2, 3], maxlen=3); d.append(4); d.appendleft(0)
+print(d, d.popleft(), d.pop(), len(d), list(d), d[0])
+d.rotate(1); print(d)
+cm = ChainMap({'a': 1}, {'a': 2, 'b': 3})
+print(cm['a'], cm['b'], len(cm), sorted(cm), cm)
+";
+    assert_eq!(
+        out(src),
+        "P(x=1, y=2) 1 2 {'x': 1, 'y': 2} P(x=9, y=2) ('x', 'y') (1, 2) 2\n\
+         1 2 True True\n\
+         defaultdict(<class 'list'>, {'a': [1, 3], 'b': [2]}) {'a': [1, 3], 'b': [2]} 2\n\
+         Counter({'a': 5, 'b': 2, 'r': 2, 'c': 1, 'd': 1}) [('a', 5), ('b', 2)] 0 11 ['a', 'a', 'a']\n\
+         Counter({'a': 3, 'b': 1}) Counter({'a': 2})\n\
+         OrderedDict({'y': 2}) ['y', 'x'] ('x', 1)\n\
+         deque([2], maxlen=3) 0 3 1 [2] 2\n\
+         deque([2], maxlen=3)\n\
+         1 3 2 ['a', 'b'] ChainMap({'a': 1}, {'a': 2, 'b': 3})\n"
+    );
+}
