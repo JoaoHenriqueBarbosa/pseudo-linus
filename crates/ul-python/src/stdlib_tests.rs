@@ -1979,3 +1979,43 @@ cm ret 7
 "##
     );
 }
+
+#[test]
+fn exception_groups_and_except_star_match_cpython() {
+    let src = r##"
+try:
+    raise ExceptionGroup("g", [ValueError(1), TypeError(2), KeyError(3)])
+except* ValueError as e:
+    print("V", repr(e))
+except* (TypeError, KeyError) as e:
+    print("TK", [type(x).__name__ for x in e.exceptions])
+try:
+    try:
+        raise ExceptionGroup("g", [ValueError(1), OSError(2)])
+    except* ValueError:
+        print("v")
+except ExceptionGroup as e:
+    print("left", repr(e))
+try:
+    raise ValueError("naked")
+except* ValueError as e:
+    print(type(e).__name__, e.exceptions)
+eg = ExceptionGroup("m", [ValueError(1), ExceptionGroup("n", [TypeError(2), ValueError(3)])])
+m, r = eg.split(ValueError)
+print(repr(m), repr(r), str(eg), eg.message)
+print(isinstance(eg, Exception), isinstance(BaseExceptionGroup("b", [KeyboardInterrupt()]), Exception), type(BaseExceptionGroup("b", [ValueError()])).__name__)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"V ExceptionGroup('g', [ValueError(1)])
+TK ['TypeError', 'KeyError']
+v
+left ExceptionGroup('g', [OSError(2)])
+ExceptionGroup (ValueError('naked'),)
+ExceptionGroup('m', [ValueError(1), ExceptionGroup('n', [ValueError(3)])]) ExceptionGroup('m', [ExceptionGroup('n', [TypeError(2)])]) m (2 sub-exceptions) m
+True False ExceptionGroup
+"##
+    );
+}

@@ -135,7 +135,7 @@ pub(crate) const TYPE_NAMES: &[&str] = &[
 
 /// Tipos que só existem como o resultado de `type(valor)` (`type(f)`, `type(sys)`...).
 const PSEUDO_TYPES: &[&str] =
-    &["function", "module", "generator", "builtin_function_or_method", "method", "dict_keys", "dict_values", "dict_items"];
+    &["function", "module", "generator", "builtin_function_or_method", "method", "dict_keys", "dict_values", "dict_items", "coroutine", "async_generator", "coroutine_wrapper"];
 
 /// Nome da classe embutida representada por `v` (`Builtin` ou `NativeFn` de tipo), se for uma.
 fn class_name(v: &Value) -> Option<&'static str> {

@@ -21,6 +21,21 @@ LambdaType = type(lambda: None)
 CodeType = type(_f.__code__) if hasattr(_f, '__code__') else object
 MethodType = type(_C()._m)
 GeneratorType = type(_g())
+
+
+async def _co():
+    pass
+
+
+async def _ag():
+    yield 1
+
+
+_coro = _co()
+CoroutineType = type(_coro)
+_coro.close()
+_agen = _ag()
+AsyncGeneratorType = type(_agen)
 BuiltinFunctionType = type(len)
 BuiltinMethodType = type([].append)
 ModuleType = type(sys)

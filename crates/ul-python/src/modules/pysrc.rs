@@ -97,6 +97,29 @@ const SOURCES: &[(&str, &str)] = &[
     ("importlib", include_str!("py/importlib.py")),
     ("importlib.machinery", include_str!("py/importlib_machinery.py")),
     ("importlib.util", include_str!("py/importlib_util.py")),
+    ("asyncio", include_str!("py/asyncio.py")),
+    ("asyncio.base_events", include_str!("py/asyncio_base_events.py")),
+    ("asyncio.base_futures", include_str!("py/asyncio_base_futures.py")),
+    ("asyncio.base_tasks", include_str!("py/asyncio_base_tasks.py")),
+    ("asyncio.constants", include_str!("py/asyncio_constants.py")),
+    ("asyncio.coroutines", include_str!("py/asyncio_coroutines.py")),
+    ("asyncio.events", include_str!("py/asyncio_events.py")),
+    ("asyncio.exceptions", include_str!("py/asyncio_exceptions.py")),
+    ("asyncio.format_helpers", include_str!("py/asyncio_format_helpers.py")),
+    ("asyncio.futures", include_str!("py/asyncio_futures.py")),
+    ("asyncio.locks", include_str!("py/asyncio_locks.py")),
+    ("asyncio.log", include_str!("py/asyncio_log.py")),
+    ("asyncio.mixins", include_str!("py/asyncio_mixins.py")),
+    ("asyncio.queues", include_str!("py/asyncio_queues.py")),
+    ("asyncio.runners", include_str!("py/asyncio_runners.py")),
+    ("asyncio.taskgroups", include_str!("py/asyncio_taskgroups.py")),
+    ("asyncio.tasks", include_str!("py/asyncio_tasks.py")),
+    ("asyncio.threads", include_str!("py/asyncio_threads.py")),
+    ("asyncio.timeouts", include_str!("py/asyncio_timeouts.py")),
+    ("asyncio.unix_events", include_str!("py/asyncio_unix_events.py")),
+    ("inspect", include_str!("py/inspect.py")),
+    ("linecache", include_str!("py/linecache.py")),
+    ("_excgroup", include_str!("py/_excgroup.py")),
     ("signal", include_str!("py/signal.py")),
     ("unittest", include_str!("py/unittest.py")),
     ("unittest.__main__", include_str!("py/unittest___main__.py")),
@@ -153,6 +176,7 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
             g.insert("__package__".to_string(), Value::str(real.rsplit_once('.').map_or("", |(p, _)| p)));
         }
     }
+    vm.module_globals.borrow_mut().insert(module.name, globals.clone());
     let mut inner = vm.clone();
     inner.globals = globals.clone();
     let parsed = crate::parser::parse_module(src).unwrap_or_else(|e| panic!("módulo embutido {real}: {e:?}"));
@@ -172,6 +196,9 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     // `import pacote.sub` deixa `sub` como atributo do módulo `pacote`.
     if let Some((parent, child)) = real.rsplit_once('.') {
         if let Some(p) = crate::modules::import(vm, parent) {
+            if let Some(g) = vm.module_globals.borrow().get(p.name) {
+                g.borrow_mut().insert(child.to_string(), Value::Module(module.clone()));
+            }
             p.attrs.borrow_mut().insert(child.to_string(), Value::Module(module.clone()));
         }
     }

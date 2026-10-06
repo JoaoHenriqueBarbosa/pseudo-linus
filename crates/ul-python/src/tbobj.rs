@@ -95,7 +95,12 @@ pub fn frame_at(chain: Vec<(usize, String, Rc<str>)>, depth: usize) -> Option<Va
 
 /// Um objeto `code` solto (`função.__code__`).
 pub fn code_object(name: &str, filename: &str) -> Value {
-    Value::Ext(Rc::new(CodeObject { name: name.to_string(), filename: Rc::from(filename) }))
+    Value::Ext(Rc::new(CodeObject { name: name.to_string(), filename: Rc::from(filename), code: None }))
+}
+
+/// `função.__code__` com os parâmetros e as marcas que `inspect` lê.
+pub fn function_code(code: &Rc<crate::compile::Code>, filename: &str) -> Value {
+    Value::Ext(Rc::new(CodeObject { name: code.name.clone(), filename: Rc::from(filename), code: Some(code.clone()) }))
 }
 
 impl ExtObject for FrameObj {
@@ -112,7 +117,7 @@ impl ExtObject for FrameObj {
         let (line, code, filename) = &self.chain[self.idx];
         Some(Ok(match name {
             "f_lineno" => Value::Int(*line as i64),
-            "f_code" => Value::Ext(Rc::new(CodeObject { name: code.clone(), filename: filename.clone() })),
+            "f_code" => Value::Ext(Rc::new(CodeObject { name: code.clone(), filename: filename.clone(), code: None })),
             "f_back" => {
                 if self.idx + 1 < self.chain.len() {
                     Value::Ext(Rc::new(FrameObj { chain: self.chain.clone(), idx: self.idx + 1 }))
@@ -151,6 +156,8 @@ impl ExtObject for FrameObj {
 struct CodeObject {
     name: String,
     filename: Rc<str>,
+    /// O código compilado, quando o objeto vem de uma função (`f.__code__`).
+    code: Option<Rc<crate::compile::Code>>,
 }
 
 impl ExtObject for CodeObject {
@@ -167,7 +174,35 @@ impl ExtObject for CodeObject {
             "co_name" | "co_qualname" => Value::str(self.name.clone()),
             "co_filename" => Value::str(self.filename.to_string()),
             "co_firstlineno" => Value::Int(1),
-            _ => return None,
+            _ => {
+                let c = self.code.as_ref()?;
+                let strs = |v: Vec<String>| Value::tuple(v.into_iter().map(Value::str).collect());
+                match name {
+                    "co_argcount" => Value::Int(c.params.len() as i64),
+                    "co_posonlyargcount" => Value::Int(c.posonly as i64),
+                    "co_kwonlyargcount" => Value::Int(c.kwonly.len() as i64),
+                    "co_varnames" => {
+                        let mut v: Vec<String> = c.params.clone();
+                        v.extend(c.kwonly.iter().cloned());
+                        v.extend(c.vararg.iter().cloned());
+                        v.extend(c.kwarg.iter().cloned());
+                        strs(v)
+                    }
+                    "co_flags_varargs" => Value::Bool(c.vararg.is_some()),
+                    "co_flags_varkw" => Value::Bool(c.kwarg.is_some()),
+                    "co_kinds" => {
+                        let mut k = Vec::new();
+                        match (c.is_async, c.is_generator) {
+                            (true, true) => k.push("asyncgen".to_string()),
+                            (true, false) => k.push("coroutine".to_string()),
+                            (false, true) => k.push("generator".to_string()),
+                            _ => {}
+                        }
+                        strs(k)
+                    }
+                    _ => return None,
+                }
+            }
         }))
     }
 

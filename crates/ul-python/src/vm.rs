@@ -1768,6 +1768,19 @@ impl Vm {
                 }
                 match name {
                     "__name__" | "__qualname__" => return Ok(Value::str(f.code.name.clone())),
+                    "__defaults__" => {
+                        return Ok(if f.defaults.is_empty() { Value::None } else { Value::tuple(f.defaults.clone()) })
+                    }
+                    "__kwdefaults__" => {
+                        if f.kwdefaults.is_empty() {
+                            return Ok(Value::None);
+                        }
+                        let mut d = crate::object::Dict::new();
+                        for (k, v) in &f.kwdefaults {
+                            d.set(Value::str(k.clone()), v.clone())?;
+                        }
+                        return Ok(Value::dict(d));
+                    }
                     "__doc__" => return Ok(f.code.doc.clone().map_or(Value::None, Value::str)),
                     "__code__" => {
                         let file = if f.code.filename.is_empty() {
@@ -1778,7 +1791,7 @@ impl Vm {
                         } else {
                             f.code.filename.clone()
                         };
-                        return Ok(crate::tbobj::code_object(&f.code.name, &file));
+                        return Ok(crate::tbobj::function_code(&f.code, &file));
                     }
                     "__module__" => return Ok(Value::str("__main__")),
                     "__dict__" => {
@@ -3666,7 +3679,7 @@ impl Vm {
     fn get_awaitable(&mut self, v: &Value) -> PyResult<Value> {
         let not_awaitable = || type_error(format!("object {} can't be used in 'await' expression", v.type_name()));
         match v {
-            Value::Ext(e) if matches!(e.type_name(), "coroutine" | "async_generator_asend" | "coroutine_wrapper") => Ok(v.clone()),
+            Value::Ext(e) if matches!(e.type_name(), "coroutine" | "async_generator_asend" | "coroutine_wrapper" | "generator") => Ok(v.clone()),
             Value::Ext(e) if e.methods().contains(&"__await__") => {
                 e.clone().call_method(self, "__await__", Vec::new(), Vec::new())
             }

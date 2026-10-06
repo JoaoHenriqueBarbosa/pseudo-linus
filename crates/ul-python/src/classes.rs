@@ -389,6 +389,13 @@ impl Vm {
                     .and_then(|m| m.attrs.borrow().get("memoryview").cloned())
                     .ok_or_else(|| exc("NameError", "name 'memoryview' is not defined"))
             }
+            // Grupos de exceções e o auxiliar de `except*` (`modules/py/_excgroup.py`).
+            "ExceptionGroup" | "BaseExceptionGroup" | "_eg_split" => {
+                let mut vm = self.clone();
+                crate::modules::import(&mut vm, "_excgroup")
+                    .and_then(|m| m.attrs.borrow().get(name).cloned())
+                    .ok_or_else(|| exc("NameError", format!("name '{name}' is not defined")))
+            }
             // Auxiliares da instrução `match` (`modules/py/_match.py`).
             n if n.starts_with("_match_") => {
                 let mut vm = self.clone();
@@ -1341,7 +1348,12 @@ fn resolve_bases(bases: &[Value]) -> PyResult<BaseInfo> {
                 info.classes.push(c.clone());
             }
             Value::Builtin(n) if EXC_CLASSES.iter().any(|(e, _)| e == n) => {
-                if info.builtin_base.is_none() {
+                // Entre várias bases de exceção vale a mais específica (`A(BaseException)` + `Exception`).
+                let more_specific = match info.builtin_base {
+                    None => true,
+                    Some(cur) => cur != *n && crate::object::exc_is_subclass(n, cur),
+                };
+                if more_specific {
                     info.builtin_base = EXC_CLASSES.iter().find(|(e, _)| e == n).map(|(e, _)| *e);
                 }
             }

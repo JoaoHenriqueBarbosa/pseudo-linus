@@ -17,7 +17,8 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use crate::ast::{
-    Arguments, BoolOp, CmpOp, Comprehension, Constant, ExceptHandler, Expr, ExprKind as E, Keyword, Mod, Operator,
+    Arguments, BoolOp, CmpOp, Comprehension, Constant, ExceptHandler, Expr, ExprContext, ExprKind as E, Keyword, Mod,
+    Operator, Pos,
     Stmt, StmtKind as S, UnaryOp, WithItem,
 };
 use crate::object::Value;
@@ -243,6 +244,71 @@ pub struct CompileError {
 }
 
 /// Compila um `Mod::Module`.
+/// `try/except*` reescrito como um `try/except` comum que reparte o grupo capturado entre os
+/// tratadores com `_eg_split` e relança o que sobrou.
+fn lower_try_star(body: &[Stmt], handlers: &[ExceptHandler], orelse: &[Stmt], finalbody: &[Stmt], pos: Pos) -> Stmt {
+    let ex = |kind: E| Expr { kind, pos };
+    let st = |kind: S| Stmt { kind, pos };
+    let name = |id: &str, ctx: ExprContext| ex(E::Name { id: id.to_string(), ctx });
+    let eg = format!(".eg{}_{}", pos.lineno, pos.col_offset);
+    let rest = format!(".rest{}_{}", pos.lineno, pos.col_offset);
+    let part = format!(".part{}_{}", pos.lineno, pos.col_offset);
+    let mut inner = vec![st(S::Assign {
+        targets: vec![name(&rest, ExprContext::Store)],
+        value: Box::new(name(&eg, ExprContext::Load)),
+        type_comment: None,
+    })];
+    for h in handlers {
+        let kinds = h.r#type.clone().map(|t| *t).unwrap_or_else(|| name("BaseException", ExprContext::Load));
+        inner.push(st(S::Assign {
+            targets: vec![ex(E::Tuple {
+                elts: vec![name(&part, ExprContext::Store), name(&rest, ExprContext::Store)],
+                ctx: ExprContext::Store,
+            })],
+            value: Box::new(ex(E::Call {
+                func: Box::new(name("_eg_split", ExprContext::Load)),
+                args: vec![name(&rest, ExprContext::Load), kinds],
+                keywords: Vec::new(),
+            })),
+            type_comment: None,
+        }));
+        let mut then = Vec::new();
+        if let Some(n) = &h.name {
+            then.push(st(S::Assign {
+                targets: vec![name(n, ExprContext::Store)],
+                value: Box::new(name(&part, ExprContext::Load)),
+                type_comment: None,
+            }));
+        }
+        then.extend(h.body.iter().cloned());
+        inner.push(st(S::If {
+            test: Box::new(ex(E::Compare {
+                left: Box::new(name(&part, ExprContext::Load)),
+                ops: vec![CmpOp::IsNot],
+                comparators: vec![ex(E::Constant { value: Constant::None, kind: None })],
+            })),
+            body: then,
+            orelse: Vec::new(),
+        }));
+    }
+    inner.push(st(S::If {
+        test: Box::new(ex(E::Compare {
+            left: Box::new(name(&rest, ExprContext::Load)),
+            ops: vec![CmpOp::IsNot],
+            comparators: vec![ex(E::Constant { value: Constant::None, kind: None })],
+        })),
+        body: vec![st(S::Raise { exc: Some(Box::new(name(&rest, ExprContext::Load))), cause: None })],
+        orelse: Vec::new(),
+    }));
+    let handler = ExceptHandler {
+        r#type: Some(Box::new(name("BaseException", ExprContext::Load))),
+        name: Some(eg),
+        body: inner,
+        pos,
+    };
+    st(S::Try { body: body.to_vec(), handlers: vec![handler], orelse: orelse.to_vec(), finalbody: finalbody.to_vec() })
+}
+
 /// O docstring de um corpo: a primeira instrução, se for só um literal de texto.
 fn docstring(body: &[Stmt]) -> Option<String> {
     match body.first().map(|s| &s.kind) {
@@ -403,6 +469,10 @@ impl Scope {
                     }
                 }
                 self.block(body);
+            }
+            S::TryStar { body, handlers, orelse, finalbody } => {
+                let lowered = lower_try_star(body, handlers, orelse, finalbody, s.pos);
+                self.stmt(&lowered);
             }
             S::Try { body, handlers, orelse, finalbody } => {
                 self.block(body);
@@ -833,7 +903,10 @@ impl Compiler {
                     self.emit_store(&bound);
                 }
             }
-            S::TryStar { .. } => return Err(self.unsupported("except*")),
+            S::TryStar { body, handlers, orelse, finalbody } => {
+                let lowered = lower_try_star(body, handlers, orelse, finalbody, stmt.pos);
+                self.stmt(&lowered)?;
+            }
             S::Delete { targets } => {
                 for t in targets {
                     self.delete(t)?;
