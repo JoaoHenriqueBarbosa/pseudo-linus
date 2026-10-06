@@ -51,12 +51,95 @@ pub enum Value {
     Exception(Rc<ExcObj>),
     /// Função definida por `def`.
     Function(Rc<FuncObj>),
-    /// Módulo importado (`sys`, `csv`, `json`), pelo nome.
-    Module(&'static str),
+    /// Módulo importado, com os atributos dele (ver `modules::import`).
+    Module(Rc<ModuleObj>),
+    /// Função nativa registrada numa tabela (módulo, método de tipo embutido ou builtin).
+    NativeFn(Rc<NativeFn>),
+    /// Objeto definido por um módulo nativo (`re.Pattern`, `zipfile.ZipFile`...): ver [`ExtObject`].
+    Ext(Rc<dyn ExtObject>),
     /// Objeto nativo com estado (arquivo, leitor ou escritor de `csv`).
     Native(Rc<RefCell<Native>>),
     /// Método embutido preso ao receptor (`arquivo.write`).
     Bound(Rc<BoundMethod>),
+}
+
+/// Argumentos nomeados de uma chamada.
+pub type Kw = Vec<(String, Value)>;
+
+/// Assinatura de toda função nativa: recebe a VM, os posicionais (o receptor vem primeiro nos
+/// métodos de tipo) e os nomeados.
+pub type NativeFnPtr = fn(&mut crate::vm::Vm, Vec<Value>, Kw) -> Result<Value, crate::vm::PyException>;
+
+/// Função nativa com nome (o que `repr` e as mensagens de erro mostram).
+pub struct NativeFn {
+    pub name: &'static str,
+    pub f: NativeFnPtr,
+}
+
+impl fmt::Debug for NativeFn {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "<built-in function {}>", self.name)
+    }
+}
+
+/// Objeto definido por um módulo nativo. O estado mutável fica dentro do implementador (`Cell`,
+/// `RefCell`), porque o valor é compartilhado por `Rc` e os métodos recebem `&self`.
+///
+/// Só `type_name` e `call_method` são obrigatórios; o resto tem padrão "não suportado".
+pub trait ExtObject {
+    /// `type(obj).__name__` (ex.: `Pattern`, `Match`).
+    fn type_name(&self) -> &'static str;
+    /// `repr(obj)`.
+    fn repr(&self) -> String {
+        format!("<{} object>", self.type_name())
+    }
+    /// Nomes dos métodos: `obj.nome` devolve um método preso, chamado depois em [`call_method`].
+    fn methods(&self) -> &'static [&'static str] {
+        &[]
+    }
+    /// Atributo de dado (`match.string`, `zipinfo.filename`); `None` = não existe.
+    fn getattr(&self, _vm: &mut crate::vm::Vm, _name: &str) -> Option<Result<Value, crate::vm::PyException>> {
+        None
+    }
+    /// Chama o método `name` (um dos de [`methods`]).
+    fn call_method(
+        &self,
+        vm: &mut crate::vm::Vm,
+        name: &str,
+        args: Vec<Value>,
+        kw: Kw,
+    ) -> Result<Value, crate::vm::PyException>;
+    /// Torna o objeto iterável: `Ok(None)` encerra o laço.
+    fn is_iterable(&self) -> bool {
+        false
+    }
+    fn iter_next(&self) -> Result<Option<Value>, crate::vm::PyException> {
+        Ok(None)
+    }
+    /// `len(obj)`; `None` = não tem.
+    fn len(&self) -> Option<usize> {
+        None
+    }
+    /// `obj[key]`; `None` = não suporta.
+    fn getitem(&self, _key: &Value) -> Option<Result<Value, crate::vm::PyException>> {
+        None
+    }
+    /// `bool(obj)`.
+    fn is_true(&self) -> bool {
+        true
+    }
+}
+
+/// Módulo: nome e atributos (preenchidos pelo construtor do módulo em `modules`).
+pub struct ModuleObj {
+    pub name: &'static str,
+    pub attrs: RefCell<std::collections::BTreeMap<String, Value>>,
+}
+
+impl fmt::Debug for ModuleObj {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "<module '{}'>", self.name)
+    }
 }
 
 /// Método embutido com o receptor já escolhido.
@@ -267,7 +350,8 @@ impl Value {
             Value::Set(_) => "set",
             Value::Range(_) => "range",
             Value::Builtin(name) if is_builtin_type(name) => "type",
-            Value::Builtin(_) => "builtin_function_or_method",
+            Value::Builtin(_) | Value::NativeFn(_) => "builtin_function_or_method",
+            Value::Ext(e) => e.type_name(),
             Value::Exception(e) => e.kind,
             Value::Function(_) => "function",
             Value::Module(_) => "module",
@@ -294,10 +378,12 @@ impl Value {
             Value::Dict(d) => !d.borrow().is_empty(),
             Value::Set(s) => !s.borrow().is_empty(),
             Value::Range(r) => !r.is_empty(),
+            Value::Ext(e) => e.is_true(),
             Value::Builtin(_)
             | Value::Exception(_)
             | Value::Function(_)
             | Value::Module(_)
+            | Value::NativeFn(_)
             | Value::Native(_)
             | Value::Bound(_) => true,
         }
@@ -380,7 +466,9 @@ pub(crate) fn repr_into(v: &Value, out: &mut String, stack: &mut ReprStack) {
         Value::Builtin(name) => out.push_str(&format!("<built-in function {name}>")),
         Value::Exception(e) => out.push_str(&exc_repr(e)),
         Value::Function(f) => out.push_str(&format!("<function {} at {:#x}>", f.code.name, addr(f))),
-        Value::Module(name) => out.push_str(&format!("<module '{name}'>")),
+        Value::Module(m) => out.push_str(&format!("<module '{}'>", m.name)),
+        Value::NativeFn(n) => out.push_str(&format!("<built-in function {}>", n.name)),
+        Value::Ext(e) => out.push_str(&e.repr()),
         Value::Native(n) => match &*n.borrow() {
             Native::File(f) => out.push_str(&format!("<_io.TextIOWrapper name='{}' mode='r' encoding='utf-8'>", f.name)),
             Native::CsvReader { .. } => out.push_str("<_csv.reader object>"),
@@ -405,7 +493,9 @@ pub fn is(a: &Value, b: &Value) -> bool {
         (Value::Builtin(x), Value::Builtin(y)) => x == y,
         (Value::Exception(x), Value::Exception(y)) => Rc::ptr_eq(x, y),
         (Value::Function(x), Value::Function(y)) => Rc::ptr_eq(x, y),
-        (Value::Module(x), Value::Module(y)) => x == y,
+        (Value::Module(x), Value::Module(y)) => Rc::ptr_eq(x, y),
+        (Value::NativeFn(x), Value::NativeFn(y)) => x.name == y.name && x.f as usize == y.f as usize,
+        (Value::Ext(x), Value::Ext(y)) => std::ptr::addr_eq(Rc::as_ptr(x), Rc::as_ptr(y)),
         (Value::Native(x), Value::Native(y)) => Rc::ptr_eq(x, y),
         (Value::Bound(x), Value::Bound(y)) => Rc::ptr_eq(x, y),
         _ => false,
@@ -470,7 +560,9 @@ pub fn py_eq(a: &Value, b: &Value) -> bool {
         (Value::Builtin(x), Value::Builtin(y)) => x == y,
         (Value::Exception(x), Value::Exception(y)) => Rc::ptr_eq(x, y),
         (Value::Function(x), Value::Function(y)) => Rc::ptr_eq(x, y),
-        (Value::Module(x), Value::Module(y)) => x == y,
+        (Value::Module(x), Value::Module(y)) => Rc::ptr_eq(x, y),
+        (Value::NativeFn(x), Value::NativeFn(y)) => x.name == y.name && x.f as usize == y.f as usize,
+        (Value::Ext(x), Value::Ext(y)) => std::ptr::addr_eq(Rc::as_ptr(x), Rc::as_ptr(y)),
         (Value::Native(x), Value::Native(y)) => Rc::ptr_eq(x, y),
         (Value::Bound(x), Value::Bound(y)) => Rc::ptr_eq(x, y),
         _ => false,
@@ -501,7 +593,9 @@ pub fn hash(v: &Value) -> Result<i64, ObjError> {
         Value::Builtin(name) => Ok(PyStr::new(*name).hash()),
         Value::Exception(e) => Ok((Rc::as_ptr(e) as usize >> 4) as i64),
         Value::Function(f) => Ok((Rc::as_ptr(f) as usize >> 4) as i64),
-        Value::Module(name) => Ok(PyStr::new(*name).hash()),
+        Value::Module(m) => Ok((Rc::as_ptr(m) as usize >> 4) as i64),
+        Value::NativeFn(n) => Ok((Rc::as_ptr(n) as usize >> 4) as i64),
+        Value::Ext(e) => Ok((Rc::as_ptr(e) as *const () as usize >> 4) as i64),
         Value::Native(n) => Ok((Rc::as_ptr(n) as usize >> 4) as i64),
         Value::Bound(b) => Ok((Rc::as_ptr(b) as usize >> 4) as i64),
         Value::List(_) | Value::Dict(_) | Value::Set(_) => {

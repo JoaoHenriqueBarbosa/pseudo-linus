@@ -11,8 +11,11 @@
 //! o mesmo caminho de erro de uso do CPython.
 
 pub mod ast;
+pub mod builtins;
 pub mod compile;
+pub mod methods;
 pub mod modules;
+pub mod native_util;
 pub mod object;
 pub mod parser;
 pub mod token;

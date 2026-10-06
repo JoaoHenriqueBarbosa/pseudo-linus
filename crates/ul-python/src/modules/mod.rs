@@ -1,6 +1,102 @@
-//! Módulos embutidos do interpretador (fatias 13 a 16 de `docs/python3-port.md`): escritos em Rust,
-//! sem depender de `Lib/` em Python. Aqui ficam as partes puras (JSON, CSV); a ligação com a VM
-//! (`import`, `sys`, `open`, métodos de arquivo) está em `vm.rs`.
+//! Módulos embutidos do interpretador, escritos em Rust (sem depender de `Lib/` em Python).
+//!
+//! Cada módulo é um construtor `fn(&mut Vm) -> Rc<ModuleObj>` registrado em [`import`]; os atributos
+//! são funções nativas (`ModuleBuilder::func`), constantes ou outros valores. A VM guarda o módulo já
+//! construído em `Vm::modules`, então `import x` repetido devolve o mesmo objeto.
+//!
+//! Para acrescentar um módulo: crie `modules/<nome>.rs` com `pub fn build(vm: &mut Vm) -> Rc<ModuleObj>`,
+//! declare `pub mod <nome>;` aqui e acrescente o nome na tabela de [`import`].
 
 pub mod csv;
 pub mod json;
+
+use std::cell::RefCell;
+use std::collections::BTreeMap;
+use std::rc::Rc;
+
+use crate::object::{ModuleObj, NativeFn, NativeFnPtr, Value};
+use crate::vm::Vm;
+
+/// Monta um [`ModuleObj`] atributo a atributo.
+pub struct ModuleBuilder {
+    name: &'static str,
+    attrs: BTreeMap<String, Value>,
+}
+
+impl ModuleBuilder {
+    pub fn new(name: &'static str) -> ModuleBuilder {
+        let mut attrs = BTreeMap::new();
+        attrs.insert("__name__".to_string(), Value::str(name));
+        ModuleBuilder { name, attrs }
+    }
+
+    /// Função nativa `modulo.nome(...)`.
+    pub fn func(mut self, name: &'static str, f: NativeFnPtr) -> ModuleBuilder {
+        self.attrs.insert(name.to_string(), Value::NativeFn(Rc::new(NativeFn { name, f })));
+        self
+    }
+
+    /// Constante ou qualquer outro valor.
+    pub fn value(mut self, name: &str, v: Value) -> ModuleBuilder {
+        self.attrs.insert(name.to_string(), v);
+        self
+    }
+
+    pub fn build(self) -> Rc<ModuleObj> {
+        Rc::new(ModuleObj { name: self.name, attrs: RefCell::new(self.attrs) })
+    }
+}
+
+/// `import nome`: o módulo embutido, construído na primeira vez. `None` se não existe.
+pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
+    if let Some(m) = vm.modules.get(name) {
+        return Some(m.clone());
+    }
+    let m = match name {
+        "sys" => builtin::sys(vm),
+        "csv" => builtin::csv(),
+        "json" => builtin::json(),
+        _ => return None,
+    };
+    vm.modules.insert(name.to_string(), m.clone());
+    Some(m)
+}
+
+/// Módulos que já existiam antes do registro; os atributos ainda apontam para os nomes que a
+/// VM resolve em `Vm::call`.
+mod builtin {
+    use super::*;
+
+    pub fn sys(vm: &mut Vm) -> Rc<ModuleObj> {
+        let argv = vm.argv.iter().map(|a| Value::str(a.clone())).collect();
+        ModuleBuilder::new("sys")
+            .value("argv", Value::list(argv))
+            .value("stdin", Value::Native(vm.std_files[0].clone()))
+            .value("stdout", Value::Native(vm.std_files[1].clone()))
+            .value("stderr", Value::Native(vm.std_files[2].clone()))
+            .build()
+    }
+
+    pub fn csv() -> Rc<ModuleObj> {
+        use crate::modules::csv as c;
+        ModuleBuilder::new("csv")
+            .value("reader", Value::Builtin("csv.reader"))
+            .value("writer", Value::Builtin("csv.writer"))
+            .value("Error", Value::Builtin("_csv.Error"))
+            .value("QUOTE_MINIMAL", Value::Int(i64::from(c::QUOTE_MINIMAL)))
+            .value("QUOTE_ALL", Value::Int(i64::from(c::QUOTE_ALL)))
+            .value("QUOTE_NONNUMERIC", Value::Int(i64::from(c::QUOTE_NONNUMERIC)))
+            .value("QUOTE_NONE", Value::Int(i64::from(c::QUOTE_NONE)))
+            .value("QUOTE_STRINGS", Value::Int(i64::from(c::QUOTE_STRINGS)))
+            .value("QUOTE_NOTNULL", Value::Int(i64::from(c::QUOTE_NOTNULL)))
+            .build()
+    }
+
+    pub fn json() -> Rc<ModuleObj> {
+        ModuleBuilder::new("json")
+            .value("dumps", Value::Builtin("json.dumps"))
+            .value("loads", Value::Builtin("json.loads"))
+            .value("JSONDecodeError", Value::Builtin("json.decoder.JSONDecodeError"))
+            .build()
+    }
+}

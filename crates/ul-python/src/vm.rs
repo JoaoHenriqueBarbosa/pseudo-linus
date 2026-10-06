@@ -66,13 +66,14 @@ pub struct RuntimeError {
     pub lineno: usize,
 }
 
-type PyResult<T> = Result<T, PyException>;
+pub type PyResult<T> = Result<T, PyException>;
 
-fn exc(kind: &'static str, msg: impl Into<String>) -> PyException {
+/// Exceção da classe embutida `kind` com a mensagem.
+pub fn exc(kind: &'static str, msg: impl Into<String>) -> PyException {
     PyException { kind, msg: msg.into(), value: None, tb: Vec::new() }
 }
 
-fn type_error(msg: impl Into<String>) -> PyException {
+pub fn type_error(msg: impl Into<String>) -> PyException {
     exc("TypeError", msg)
 }
 
@@ -139,6 +140,8 @@ enum PyIter {
     Items(Vec<Value>, usize),
     /// Arquivo (uma linha por passo) ou leitor de `csv` (uma lista de campos por passo).
     Native(Rc<RefCell<Native>>),
+    /// Objeto de módulo nativo iterável (`re.finditer`).
+    Ext(Rc<dyn crate::object::ExtObject>),
 }
 
 impl PyIter {
@@ -176,6 +179,7 @@ impl PyIter {
                 Some(Value::Int(v))
             }
             PyIter::Native(n) => native_next(n)?,
+            PyIter::Ext(e) => e.iter_next()?,
         })
     }
 }
@@ -192,8 +196,14 @@ fn get_iter(v: &Value) -> PyResult<PyIter> {
         Value::Native(n) if matches!(&*n.borrow(), Native::File(_) | Native::CsvReader { .. }) => {
             PyIter::Native(n.clone())
         }
+        Value::Ext(e) if e.is_iterable() => PyIter::Ext(e.clone()),
         _ => return Err(type_error(format!("'{}' object is not iterable", v.type_name()))),
     })
+}
+
+/// Todos os itens de um iterável (para funções nativas que consomem uma sequência inteira).
+pub fn iterate(v: &Value) -> PyResult<Vec<Value>> {
+    collect(v)
 }
 
 /// Todos os itens de um iterável.
@@ -221,9 +231,11 @@ pub struct Vm {
     /// Profundidade de chamadas de função em andamento.
     depth: usize,
     /// `sys.argv`.
-    argv: Vec<String>,
+    pub(crate) argv: Vec<String>,
     /// `sys.stdin`, `sys.stdout` e `sys.stderr`, criados uma vez.
-    std_files: [Rc<RefCell<Native>>; 3],
+    pub(crate) std_files: [Rc<RefCell<Native>>; 3],
+    /// Módulos já importados, por nome.
+    pub(crate) modules: HashMap<String, Rc<crate::object::ModuleObj>>,
 }
 
 /// Limite de recursão (`sys.getrecursionlimit()` do CPython).
@@ -268,8 +280,15 @@ impl Vm {
             handled: Vec::new(),
             depth: 0,
             argv,
+            modules: HashMap::new(),
             std_files: [file(FileKind::Stdin, "<stdin>"), file(FileKind::Stdout, "<stdout>"), file(FileKind::Stderr, "<stderr>")],
         }
+    }
+
+    /// Chama qualquer valor chamável (função de usuário, builtin, método). É o que as funções
+    /// nativas usam para devolver a chamada ao Python (`key=` de `sorted`, `map`, callbacks).
+    pub fn call_value(&mut self, f: &Value, args: Vec<Value>, kw: crate::object::Kw) -> PyResult<Value> {
+        self.call(f, args, kw)
     }
 
     /// Executa o código de um módulo.
@@ -418,8 +437,8 @@ impl Vm {
                 let name = &code.names[i as usize];
                 let v = match self.globals.get(name) {
                     Some(v) => v.clone(),
-                    None => match BUILTINS.iter().find(|b| **b == name.as_str()) {
-                        Some(b) => Value::Builtin(b),
+                    None => match crate::builtins::get(name).or_else(|| BUILTINS.iter().find(|b| **b == name.as_str()).map(|b| Value::Builtin(b))) {
+                        Some(v) => v,
                         None => match EXC_CLASSES.iter().find(|(n, _)| *n == name.as_str()) {
                             Some((n, _)) => Value::Builtin(n),
                             None => return Err(exc("NameError", format!("name '{name}' is not defined"))),
@@ -625,11 +644,8 @@ impl Vm {
             }
             Op::Import(i) => {
                 let name = &code.names[i as usize];
-                let m = match name.as_str() {
-                    "sys" => "sys",
-                    "csv" => "csv",
-                    "json" => "json",
-                    _ => return Err(exc("ModuleNotFoundError", format!("No module named '{name}'"))),
+                let Some(m) = crate::modules::import(self, name) else {
+                    return Err(exc("ModuleNotFoundError", format!("No module named '{name}'")));
                 };
                 stack.push(Slot::Val(Value::Module(m)));
             }
@@ -640,7 +656,7 @@ impl Vm {
                     Ok(v) => stack.push(Slot::Val(v)),
                     Err(_) => {
                         let module = match &obj {
-                            Value::Module(m) => *m,
+                            Value::Module(m) => m.name,
                             _ => "?",
                         };
                         return Err(exc(
@@ -688,7 +704,23 @@ impl Vm {
             return self.call_function(f, args, kwargs);
         }
         if let Value::Bound(b) = func {
+            if let Value::Ext(e) = &b.recv {
+                let e = e.clone();
+                return e.call_method(self, b.name, args, kwargs);
+            }
+            if !matches!(b.recv, Value::Native(_)) {
+                let Some((_, f)) = crate::methods::lookup(&b.recv, b.name) else {
+                    return Err(internal("bound method without table entry"));
+                };
+                let mut full = Vec::with_capacity(args.len() + 1);
+                full.push(b.recv.clone());
+                full.extend(args);
+                return f(self, full, kwargs);
+            }
             return self.call_method(&b.recv, b.name, args, kwargs);
+        }
+        if let Value::NativeFn(n) = func {
+            return (n.f)(self, args, kwargs);
         }
         let Value::Builtin(name) = func else {
             return Err(type_error(format!("'{}' object is not callable", func.type_name())));
@@ -837,30 +869,9 @@ impl Vm {
         };
         match obj {
             Value::Exception(e) if name == "args" => Ok(Value::tuple(e.args.clone())),
-            Value::Module("sys") => match name {
-                "argv" => Ok(Value::list(self.argv.iter().map(|a| Value::str(a.clone())).collect())),
-                "stdin" => Ok(Value::Native(self.std_files[0].clone())),
-                "stdout" => Ok(Value::Native(self.std_files[1].clone())),
-                "stderr" => Ok(Value::Native(self.std_files[2].clone())),
-                _ => Err(exc("AttributeError", format!("module 'sys' has no attribute '{name}'"))),
-            },
-            Value::Module("csv") => match name {
-                "reader" => Ok(Value::Builtin("csv.reader")),
-                "writer" => Ok(Value::Builtin("csv.writer")),
-                "Error" => Ok(Value::Builtin("_csv.Error")),
-                "QUOTE_MINIMAL" => Ok(Value::Int(i64::from(csv::QUOTE_MINIMAL))),
-                "QUOTE_ALL" => Ok(Value::Int(i64::from(csv::QUOTE_ALL))),
-                "QUOTE_NONNUMERIC" => Ok(Value::Int(i64::from(csv::QUOTE_NONNUMERIC))),
-                "QUOTE_NONE" => Ok(Value::Int(i64::from(csv::QUOTE_NONE))),
-                "QUOTE_STRINGS" => Ok(Value::Int(i64::from(csv::QUOTE_STRINGS))),
-                "QUOTE_NOTNULL" => Ok(Value::Int(i64::from(csv::QUOTE_NOTNULL))),
-                _ => Err(exc("AttributeError", format!("module 'csv' has no attribute '{name}'"))),
-            },
-            Value::Module("json") => match name {
-                "dumps" => Ok(Value::Builtin("json.dumps")),
-                "loads" => Ok(Value::Builtin("json.loads")),
-                "JSONDecodeError" => Ok(Value::Builtin("json.decoder.JSONDecodeError")),
-                _ => Err(exc("AttributeError", format!("module 'json' has no attribute '{name}'"))),
+            Value::Module(m) => match m.attrs.borrow().get(name) {
+                Some(v) => Ok(v.clone()),
+                None => Err(exc("AttributeError", format!("module '{}' has no attribute '{name}'", m.name))),
             },
             Value::Native(n) => {
                 let methods: &[&'static str] = match &*n.borrow() {
@@ -886,7 +897,19 @@ impl Vm {
                     None => Err(missing()),
                 }
             }
-            _ => Err(missing()),
+            Value::Ext(e) => {
+                if let Some(m) = e.methods().iter().find(|m| **m == name) {
+                    return Ok(Value::Bound(Rc::new(BoundMethod { recv: obj.clone(), name: m })));
+                }
+                match e.clone().getattr(self, name) {
+                    Some(r) => r,
+                    None => Err(missing()),
+                }
+            }
+            _ => match crate::methods::lookup(obj, name) {
+                Some((n, _)) => Ok(Value::Bound(Rc::new(BoundMethod { recv: obj.clone(), name: n }))),
+                None => Err(missing()),
+            },
         }
     }
 
@@ -1369,6 +1392,7 @@ fn len(v: &Value) -> PyResult<i64> {
         Value::Dict(d) => d.borrow().len() as i64,
         Value::Set(s) => s.borrow().len() as i64,
         Value::Range(r) => r.len(),
+        Value::Ext(e) if e.len().is_some() => e.len().unwrap_or(0) as i64,
         _ => return Err(type_error(format!("object of type '{}' has no len()", v.type_name()))),
     })
 }
@@ -1479,6 +1503,10 @@ fn subscript(container: &Value, index: &Value) -> PyResult<Value> {
             .ok_or_else(|| type_error(format!("{what} indices must be integers or slices, not {}", index.type_name())))
     };
     match container {
+        Value::Ext(e) => match e.getitem(index) {
+            Some(r) => r,
+            None => Err(type_error(format!("'{}' object is not subscriptable", container.type_name()))),
+        },
         Value::List(l) => {
             let i = seq_index("list")?;
             let items = l.borrow();
@@ -2086,6 +2114,13 @@ mod tests {
         assert_eq!(out(src), "2 1 [12] {'k': 1} 1\n");
         let src = "l = [1]\nm = l\nl += [2]\nprint(m, len(m), len('héllo'), len({1: 2}))\n";
         assert_eq!(out(src), "[1, 2] 2 5 1\n");
+    }
+
+    #[test]
+    fn type_methods_come_from_the_tables() {
+        assert_eq!(out("print('abc'.upper(), 'AbC'.lower(), 'abc'.startswith('a'))"), "ABC abc True\n");
+        assert!(error("'abc'.nope").contains("AttributeError: 'str' object has no attribute 'nope'"));
+        assert!(error("'abc'.upper(1)").contains("TypeError: upper() takes exactly 0 argument"));
     }
 
     #[test]
