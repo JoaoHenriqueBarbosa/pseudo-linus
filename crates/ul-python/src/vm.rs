@@ -2137,10 +2137,55 @@ impl Vm {
         self.handled.borrow().last().cloned()
     }
 
+    /// Acrescenta ao buffer do stdout com a política do CPython: num terminal, descarrega a cada
+    /// quebra de linha; num pipe ou arquivo, em blocos de 8 KiB. O resto sai no `flush` ou no fim.
+    pub(crate) fn push_stdout(&self, data: &[u8]) {
+        self.stdout.borrow_mut().extend_from_slice(data);
+        let Some(sys) = sysabi::sys::try_current() else { return };
+        thread_local! {
+            static STDOUT_TTY: std::cell::Cell<Option<bool>> = const { std::cell::Cell::new(None) };
+        }
+        let tty = STDOUT_TTY.with(|c| match c.get() {
+            Some(t) => t,
+            None => {
+                let t = sys.isatty(sysabi::Fd::STDOUT);
+                c.set(Some(t));
+                t
+            }
+        });
+        if tty {
+            if data.contains(&b'\n') {
+                self.flush_stdout();
+            }
+            return;
+        }
+        const BLOCK: usize = 8192;
+        let mut buf = self.stdout.borrow_mut();
+        if buf.len() >= BLOCK {
+            let n = buf.len() - buf.len() % BLOCK;
+            let _ = sysabi::sys::write_all(sysabi::Fd::STDOUT, &buf[..n]);
+            buf.drain(..n);
+        }
+    }
+
+    /// Descarrega o stdout pendente (`print(flush=True)`, `sys.stdout.flush()`). Sem pseudo-processo
+    /// (os testes de unidade), o buffer fica como está para o chamador ler.
+    pub(crate) fn flush_stdout(&self) {
+        if sysabi::sys::try_current().is_none() {
+            return;
+        }
+        let mut buf = self.stdout.borrow_mut();
+        if !buf.is_empty() {
+            let _ = sysabi::sys::write_all(sysabi::Fd::STDOUT, &buf);
+            buf.clear();
+        }
+    }
+
     fn print(&mut self, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
         let mut sep = " ".to_string();
         let mut end = "\n".to_string();
         let mut file: Option<Value> = None;
+        let mut flush = false;
         for (name, value) in kwargs {
             match name.as_str() {
                 "sep" | "end" => {
@@ -2164,7 +2209,7 @@ impl Vm {
                 }
                 "file" if matches!(value, Value::None) => {}
                 "file" => file = Some(value),
-                "flush" => {}
+                "flush" => flush = value.is_true(),
                 _ => return Err(type_error(format!("'{name}' is an invalid keyword argument for print()"))),
             }
         }
@@ -2173,12 +2218,21 @@ impl Vm {
         match file {
             Some(f) => {
                 self.write_to(&f, &text)?;
+                if flush {
+                    let m = self.getattr(&f, "flush")?;
+                    self.call_value(&m, Vec::new(), Vec::new())?;
+                }
             }
             None => match self.redirected_stdout() {
                 Some(f) => {
                     self.write_to(&f, &text)?;
                 }
-                None => self.stdout.borrow_mut().extend_from_slice(text.as_bytes()),
+                None => {
+                    self.push_stdout(text.as_bytes());
+                    if flush {
+                        self.flush_stdout();
+                    }
+                }
             },
         }
         Ok(Value::None)
@@ -2202,11 +2256,10 @@ impl Vm {
             _ => return Err(exc("AttributeError", format!("'{}' object has no attribute 'write'", target.type_name()))),
         };
         match kind {
-            FileKind::Stdout => self.stdout.borrow_mut().extend_from_slice(text.as_bytes()),
+            FileKind::Stdout => self.push_stdout(text.as_bytes()),
             FileKind::Stderr => {
-                // O stderr do CPython é sem buffer; o stdout pendente sai antes, para manter a ordem.
-                let _ = sysabi::sys::write_all(sysabi::Fd::STDOUT, &self.stdout.borrow());
-                self.stdout.borrow_mut().clear();
+                // O stderr do CPython é sem buffer e independe do stdout: com stdout em pipe, o que está
+                // pendente só sai no fim (ou a cada 8 KiB), depois do que o stderr já escreveu.
                 let _ = sysabi::sys::write_all(sysabi::Fd::STDERR, text.as_bytes());
             }
             _ => return Err(exc("UnsupportedOperation", "not writable")),
@@ -2611,7 +2664,12 @@ impl Vm {
                 };
                 Ok(Value::Int(self.write_to(recv, s.as_str())? as i64))
             }
-            "flush" => Ok(Value::None),
+            "flush" => {
+                if matches!(&*n.borrow(), Native::File(f) if matches!(f.kind, FileKind::Stdout)) {
+                    self.flush_stdout();
+                }
+                Ok(Value::None)
+            }
             "close" => {
                 if let Native::File(f) = &mut *n.borrow_mut() {
                     f.closed = true;
@@ -2720,7 +2778,15 @@ impl Vm {
         }
         let native = if name == "csv.reader" {
             collect_check_iter(&target)?;
-            Native::CsvReader { reader: csv::Reader::new(d), src: target }
+            // Uma lista (ou qualquer iterável que não é arquivo) vira iterador agora: cada linha lida
+            // avança o mesmo iterador, em vez de recomeçar do início a cada `next`.
+            let src = match &target {
+                Value::List(_) | Value::Tuple(_) | Value::Range(_) | Value::Dict(_) | Value::Set(_) => {
+                    crate::builtins::make_iter(&target)?
+                }
+                _ => target,
+            };
+            Native::CsvReader { reader: csv::Reader::new(d), src }
         } else {
             Native::CsvWriter { dialect: d, target }
         };

@@ -3180,3 +3180,33 @@ SyntaxError asynchronous comprehension outside of an asynchronous function
 "##
     );
 }
+
+#[test]
+fn csv_list_reader_and_getattribute() {
+    let src = r##"
+import csv, sys, builtins
+r = csv.reader(["a,b", "1,2", '3,"x,y"'])
+print(next(r), list(r))
+print(list(csv.reader(("x,y",))), list(csv.reader(iter(["p,q"]))), 'ok', flush=True)
+sys.stdout.flush()
+print(type(builtins).__name__, 'count' in tuple.__dict__, '__await__' in list.__dict__, 'send' in tuple.__dict__)
+class L(tuple):
+    def __getattribute__(self, a):
+        if a == 'secret':
+            return 42
+        return tuple.__getattribute__(self, a)
+    def __getattr__(self, a):
+        return 'fallback:' + a
+x = L((1, 2)); print(x.secret, x.count(1), x.missing, len(x))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"['a', 'b'] [['1', '2'], ['3', 'x,y']]
+[['x', 'y']] [['p', 'q']] ok
+module True False False
+42 1 fallback:missing 2
+"##
+    );
+}

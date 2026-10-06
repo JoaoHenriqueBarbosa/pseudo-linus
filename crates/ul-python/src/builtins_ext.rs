@@ -159,7 +159,8 @@ fn b_input(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     crate::native_util::no_kwargs("input", &kw)?;
     if let Some(p) = args.first() {
         let text = crate::object::to_str(p);
-        vm.stdout.borrow_mut().extend_from_slice(text.as_bytes());
+        vm.push_stdout(text.as_bytes());
+        vm.flush_stdout();
     }
     let mut line: Vec<u8> = Vec::new();
     let mut byte = [0u8; 1];

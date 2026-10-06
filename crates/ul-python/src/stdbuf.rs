@@ -21,10 +21,8 @@ impl StdBuffer {
 
     fn write_bytes(&self, vm: &mut Vm, data: &[u8]) -> PyResult<()> {
         match self.kind {
-            FileKind::Stdout => vm.stdout.borrow_mut().extend_from_slice(data),
+            FileKind::Stdout => vm.push_stdout(data),
             FileKind::Stderr => {
-                let _ = sysabi::sys::write_all(sysabi::Fd::STDOUT, &vm.stdout.borrow());
-                vm.stdout.borrow_mut().clear();
                 let _ = sysabi::sys::write_all(sysabi::Fd::STDERR, data);
             }
             _ => return Err(exc("UnsupportedOperation", "write")),
@@ -123,7 +121,13 @@ impl ExtObject for StdBuffer {
                 }
                 Ok(Value::None)
             }
-            "flush" | "close" => Ok(Value::None),
+            "flush" => {
+                if matches!(self.kind, FileKind::Stdout) {
+                    vm.flush_stdout();
+                }
+                Ok(Value::None)
+            }
+            "close" => Ok(Value::None),
             "read" | "read1" => {
                 let take = match args.first() {
                     Some(Value::Int(n)) if *n >= 0 => Some(*n as usize),
