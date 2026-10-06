@@ -132,19 +132,31 @@ def enable_callback_tracebacks(flag):
     pass
 
 
+def _deprecated(what):
+    # No CPython o adaptador é chamado do C, então o aviso cai na linha do usuário: aqui pulamos os quadros
+    # deste módulo para chegar ao mesmo lugar.
+    import warnings
+    warnings.warn('The default %s is deprecated as of Python 3.12; see the sqlite3 documentation for '
+                  'suggested replacement recipes' % what, DeprecationWarning, skip_file_prefixes=(__file__,))
+
+
 def _adapt_date(val):
+    _deprecated('date adapter')
     return val.isoformat()
 
 
 def _adapt_datetime(val):
+    _deprecated('datetime adapter')
     return val.isoformat(' ')
 
 
 def _convert_date(val):
+    _deprecated('date converter')
     return datetime.date(*map(int, val.split(b'-')))
 
 
 def _convert_timestamp(val):
+    _deprecated('timestamp converter')
     datepart, timepart = val.split(b' ')
     year, month, day = map(int, datepart.split(b'-'))
     timepart_full = timepart.split(b'.')
