@@ -1,0 +1,17 @@
+[package]
+name = "zft"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+# Tradução de partes do FreeType 2.13.3 (licença FreeType, FTL).
+license = "FTL"
+publish = false
+description = "Fontes TrueType do FreeType 2.13.3 traduzidas sem unsafe, com bitmaps idênticos aos do Debian 13"
+
+# Fora do workspace principal enquanto amadurece (o Cargo.toml raiz exclui wip/).
+[workspace]
+
+[dependencies]
+
+[lints.rust]
+unsafe_code = "forbid"
