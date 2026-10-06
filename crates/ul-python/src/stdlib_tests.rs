@@ -2068,3 +2068,32 @@ ok
 "##
     );
 }
+
+#[test]
+fn array_module() {
+    let src = r##"
+import array
+a = array.array('i', [1, 2, 3]); a.append(4); a.extend([5])
+print(a, len(a), a[1], a.tolist(), a.typecode, a.itemsize, a.tobytes())
+b = array.array('d', [1.5, 2.5]); print(b, sum(b), b[::-1], b + b)
+c = array.array('B', b'abc'); print(c, bytes(c)); c.frombytes(b'd'); print(c)
+a.insert(0, 9); a.pop(); a.reverse(); print(a, a.index(9), a.count(1), 3 in a)
+for i, x in enumerate(array.array('H', range(3))): print(i, x)
+print(array.array('i', [1,2]) == array.array('i', [1,2]), array.typecodes)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"array('i', [1, 2, 3, 4, 5]) 5 2 [1, 2, 3, 4, 5] i 4 b'\x01\x00\x00\x00\x02\x00\x00\x00\x03\x00\x00\x00\x04\x00\x00\x00\x05\x00\x00\x00'
+array('d', [1.5, 2.5]) 4.0 array('d', [2.5, 1.5]) array('d', [1.5, 2.5, 1.5, 2.5])
+array('B', [97, 98, 99]) b'abc'
+array('B', [97, 98, 99, 100])
+array('i', [4, 3, 2, 1, 9]) 4 1 True
+0 0
+1 1
+2 2
+True bBuwhHiIlLqQfd
+"##
+    );
+}
