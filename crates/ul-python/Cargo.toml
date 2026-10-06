@@ -25,6 +25,8 @@ libm = "0.2"
 icu_normalizer = "2"
 icu_properties = "2"
 unicode_names2 = "3"
+# `bz2` e `lzma`: os mesmos codecs que o bzip2 e o xz do sandbox usam.
+ul-archive = { path = "../ul-archive" }
 
 [lints]
 workspace = true

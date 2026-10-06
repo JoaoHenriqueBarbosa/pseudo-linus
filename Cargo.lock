@@ -5347,6 +5347,7 @@ dependencies = [
  "num-integer",
  "num-traits",
  "sysabi",
+ "ul-archive",
  "unicode_names2",
  "zdeflate",
 ]
