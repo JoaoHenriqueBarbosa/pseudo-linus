@@ -364,6 +364,95 @@ fn utime(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::None)
 }
 
+fn want_bytes_list(fname: &str, v: &Value) -> PyResult<Vec<Vec<u8>>> {
+    let items = match v {
+        Value::List(l) => l.borrow().clone(),
+        Value::Tuple(t) => t.to_vec(),
+        other => return Err(type_error(format!("{fname}: expected a list, not {}", other.type_name()))),
+    };
+    items.iter().map(|i| path_bytes(fname, i)).collect()
+}
+
+/// `spawn(path, argv, env, cwd, dups, closes)` devolve o pid. `env` e `cwd` podem ser `None` (herda);
+/// `dups` é lista de `(de, para)` aplicada na ordem e `closes` a lista de fds fechados no filho.
+fn spawn(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("spawn", &kw)?;
+    let path = path_bytes("spawn", arg("spawn", &args, 0)?)?;
+    let argv = want_bytes_list("spawn", arg("spawn", &args, 1)?)?;
+    let env = match arg("spawn", &args, 2)? {
+        Value::None => None,
+        v => Some(want_bytes_list("spawn", v)?),
+    };
+    let cwd = match arg("spawn", &args, 3)? {
+        Value::None => None,
+        v => Some(path_bytes("spawn", v)?),
+    };
+    let mut fd_actions = Vec::new();
+    if let Value::List(l) = arg("spawn", &args, 4)? {
+        for pair in l.borrow().iter() {
+            let Value::Tuple(t) = pair else { return Err(type_error("spawn: dups must be (from, to) pairs")) };
+            fd_actions.push(sysabi::FdAction::Dup2 {
+                from: Fd(want_int(&t[0])? as i32),
+                to: Fd(want_int(&t[1])? as i32),
+            });
+        }
+    }
+    if let Value::List(l) = arg("spawn", &args, 5)? {
+        for fd in l.borrow().iter() {
+            fd_actions.push(sysabi::FdAction::Close(Fd(want_int(fd)? as i32)));
+        }
+    }
+    let spec = sysabi::SpawnSpec {
+        path: path.clone(),
+        argv,
+        attrs: sysabi::ProcAttrs { env, cwd, fd_actions, ..sysabi::ProcAttrs::default() },
+    };
+    let pid = sys::current().spawn(spec).map_err(|e| os_error(e, Some(&shown(&path))))?;
+    Ok(Value::Int(i64::from(pid)))
+}
+
+/// `wait(pid, nohang)` devolve `(pid, código)` (código negativo = morto pelo sinal) ou `None` se
+/// `nohang` e o filho ainda roda.
+fn wait(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("wait", &kw)?;
+    let pid = want_int(arg("wait", &args, 0)?)? as i32;
+    let nohang = matches!(args.get(1), Some(Value::Bool(true)));
+    let opts = if nohang { sysabi::WaitOptions::NOHANG } else { sysabi::WaitOptions::empty() };
+    let target = if pid < 0 { sysabi::WaitTarget::Any } else { sysabi::WaitTarget::Pid(pid) };
+    loop {
+        match sys::current().wait4(target, opts) {
+            Ok(None) => return Ok(Value::None),
+            Ok(Some((p, st))) => {
+                let code = match st {
+                    sysabi::WaitStatus::Exited(c) => i64::from(c),
+                    sysabi::WaitStatus::Signaled { signal, .. } => -i64::from(signal.0),
+                    _ => continue,
+                };
+                return Ok(Value::tuple(vec![Value::Int(i64::from(p)), Value::Int(code)]));
+            }
+            Err(e) => return Err(os_error(e, None)),
+        }
+    }
+}
+
+fn pipe(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let (r, w) = sys::current().pipe2(OFlags::CLOEXEC).map_err(|e| os_error(e, None))?;
+    Ok(Value::tuple(vec![Value::Int(i64::from(r.0)), Value::Int(i64::from(w.0))]))
+}
+
+fn kill_proc(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("kill", &kw)?;
+    let pid = want_int(arg("kill", &args, 0)?)? as i32;
+    let sig = want_int(arg("kill", &args, 1)?)? as i32;
+    sys::current()
+        .kill(sysabi::KillTarget::Pid(pid), sysabi::Signal(sig))
+        .map_err(|e| match e {
+            Errno::ESRCH => exc("ProcessLookupError", format!("[Errno {}] {}", e.0, e.message())),
+            _ => os_error(e, None),
+        })?;
+    Ok(Value::None)
+}
+
 pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
     ModuleBuilder::new("_os")
         .func("getcwd", getcwd)
@@ -396,6 +485,10 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
         .func("sleep", sleep)
         .func("urandom", urandom)
         .func("utime", utime)
+        .func("spawn", spawn)
+        .func("wait", wait)
+        .func("pipe", pipe)
+        .func("kill", kill_proc)
         .value("O_RDONLY", Value::Int(0))
         .value("O_WRONLY", Value::Int(0o1))
         .value("O_RDWR", Value::Int(0o2))

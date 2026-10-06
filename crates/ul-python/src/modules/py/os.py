@@ -461,3 +461,50 @@ def getlogin():
 
 def uname():
     return ('Linux', 'localhost', '6.12.0', '#1 SMP', 'x86_64')
+
+
+def kill(pid, sig):
+    _os.kill(pid, sig)
+
+
+def system(command):
+    """Roda `command` no `/bin/sh -c` e devolve o status de espera (código << 8, ou o sinal)."""
+    import subprocess
+    code = subprocess.call(command, shell=True)
+    return (-code if code < 0 else code << 8)
+
+
+class _wrap_close:
+    def __init__(self, stream, proc):
+        self._stream = stream
+        self._proc = proc
+
+    def close(self):
+        self._stream.close()
+        returncode = self._proc.wait()
+        if returncode == 0:
+            return None
+        return returncode << 8 if returncode > 0 else -returncode
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
+    def __getattr__(self, name):
+        return getattr(self._stream, name)
+
+    def __iter__(self):
+        return iter(self._stream)
+
+
+def popen(cmd, mode='r', buffering=-1):
+    import subprocess
+    if mode == 'r':
+        proc = subprocess.Popen(cmd, shell=True, text=True, stdout=subprocess.PIPE, bufsize=buffering)
+        return _wrap_close(proc.stdout, proc)
+    if mode == 'w':
+        proc = subprocess.Popen(cmd, shell=True, text=True, stdin=subprocess.PIPE, bufsize=buffering)
+        return _wrap_close(proc.stdin, proc)
+    raise ValueError('invalid mode %r' % mode)

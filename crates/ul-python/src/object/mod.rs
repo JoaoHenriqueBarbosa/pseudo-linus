@@ -466,6 +466,10 @@ pub fn exc_str(e: &ExcObj) -> String {
         [] => String::new(),
         [one] if e.kind == "KeyError" => repr(one),
         [one] => to_str(one),
+        [Value::Int(errno), msg, rest @ ..] if rest.len() <= 1 && exc_is_subclass(&e.kind, "OSError") => match rest {
+            [file] => format!("[Errno {errno}] {}: {}", to_str(msg), repr(file)),
+            _ => format!("[Errno {errno}] {}", to_str(msg)),
+        },
         many => repr(&Value::tuple(many.to_vec())),
     }
 }
