@@ -91,6 +91,11 @@ pub enum Op {
     DeleteName(u32),
     /// `objeto.nome`.
     LoadAttr(u32),
+    /// `objeto.nome` que vai ser chamado logo em seguida: empilha a função da classe e o objeto
+    /// separados (sem montar o método preso), ou o atributo já resolvido e um marcador.
+    LoadMethod(u32),
+    /// Fecha um [`Op::LoadMethod`]: como [`Op::Call`], com o objeto (se houver) na frente dos argumentos.
+    CallMethod { argc: u32, kwnames: Option<u32> },
     /// Variável local da função em execução (`UnboundLocalError` se ainda sem valor).
     LoadLocal(u32),
     /// `locals()` dentro de uma função: um dict com os locais ligados no momento.
@@ -2143,9 +2148,26 @@ impl Compiler {
                     self.emit(Op::Locals);
                     return Ok(());
                 }
-                self.expr(func)?;
                 let star_args = args.iter().any(|a| matches!(a.kind, E::Starred { .. }));
                 let star_kw = keywords.iter().any(|k| k.arg.is_none());
+                // `obj.m(...)` sem desempacotamento: o método é chamado sem montar o método preso.
+                if let (E::Attribute { value, attr, .. }, false, false) = (&func.kind, star_args, star_kw) {
+                    self.expr(value)?;
+                    let n = self.name(attr);
+                    self.at(&func.pos);
+                    self.emit(Op::LoadMethod(n));
+                    self.exprs(args)?;
+                    let mut names = Vec::new();
+                    for kw in keywords {
+                        names.push(Value::str(kw.arg.clone().unwrap_or_default()));
+                        self.expr(&kw.value)?;
+                    }
+                    let kwnames = if names.is_empty() { None } else { Some(self.constant(Value::tuple(names))) };
+                    self.at(&expr.pos);
+                    self.emit(Op::CallMethod { argc: (args.len() + keywords.len()) as u32, kwnames });
+                    return Ok(());
+                }
+                self.expr(func)?;
                 if !star_args && !star_kw {
                     self.exprs(args)?;
                     let mut names = Vec::new();

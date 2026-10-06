@@ -759,6 +759,24 @@ pub(crate) enum Slot {
     Iter(PyIter),
 }
 
+/// Marcador de [`Op::LoadMethod`] quando o atributo já veio resolvido: não há objeto a passar.
+const NO_SELF: &str = "<no self>";
+
+/// A função de classe que `obj.name(...)` chamaria com `obj` na frente, quando a busca é a comum:
+/// instância de classe de usuário, nome ausente do dict da instância, sem `__getattribute__` e sem
+/// `__dict__` vivo pendente. Qualquer outro caso fica com a busca completa (`None`).
+fn plain_method(obj: &Value, name: &str) -> Option<Rc<FuncObj>> {
+    let Value::Instance(inst) = obj else { return None };
+    if inst.view.borrow().is_some() || inst.dict.borrow().contains_key(name) {
+        return None;
+    }
+    let Some(Value::Function(f)) = inst.class.lookup(name) else { return None };
+    if f.attrs.borrow().contains_key("__no_bind__") || inst.class.lookup("__getattribute__").is_some() {
+        return None;
+    }
+    Some(f)
+}
+
 /// Estado do interpretador. Todos os campos são compartilhados (`Rc`), então clonar a `Vm` é barato
 /// e as cópias enxergam o mesmo estado: é assim que um gerador se retoma sozinho e que as funções
 /// livres (`binary`, `compare`, `repr`...) chamam de volta o Python (`__add__`, `__repr__`...).
@@ -1101,6 +1119,49 @@ impl Vm {
                                 Ok(None)
                             }
                             None => self.step(code, op, stack, env),
+                        }
+                    }
+                    Op::LoadMethod(i) => match stack.last() {
+                        Some(Slot::Val(obj)) => match plain_method(obj, &code.names[i as usize]) {
+                            Some(f) => {
+                                let obj = match stack.pop() {
+                                    Some(Slot::Val(v)) => v,
+                                    _ => return Err(internal("bad value stack")),
+                                };
+                                stack.push(Slot::Val(Value::Function(f)));
+                                stack.push(Slot::Val(obj));
+                                Ok(None)
+                            }
+                            None => self.step(code, op, stack, env),
+                        },
+                        _ => self.step(code, op, stack, env),
+                    },
+                    // `obj.m(a, b)` sem nomeados: os argumentos saem da pilha direto para a chamada.
+                    Op::CallMethod { argc, kwnames: None } if stack.len() > argc as usize + 1 => {
+                        let at = stack.len() - argc as usize - 2;
+                        let mut drained = stack.drain(at..);
+                        let func = match drained.next() {
+                            Some(Slot::Val(v)) => v,
+                            _ => return Err(internal("bad value stack")),
+                        };
+                        let mut values = Vec::with_capacity(argc as usize + 1);
+                        for s in drained {
+                            match s {
+                                Slot::Val(Value::Builtin(NO_SELF)) if values.is_empty() => {}
+                                Slot::Val(v) => values.push(v),
+                                _ => return Err(internal("bad value stack")),
+                            }
+                        }
+                        let r = match &func {
+                            Value::Function(f) => self.call_function(f, values, Vec::new()),
+                            _ => self.call(&func, values, Vec::new()),
+                        };
+                        match r {
+                            Ok(v) => {
+                                stack.push(Slot::Val(v));
+                                Ok(None)
+                            }
+                            Err(e) => Err(e),
                         }
                     }
                     Op::Call { argc, kwnames: None } if stack.len() > argc as usize => {
@@ -2257,6 +2318,34 @@ impl Vm {
                 let name = &code.names[i as usize];
                 let v = self.load_attr(&obj, name).map_err(|e| tag_attribute_error(e, &obj, name))?;
                 stack.push(Slot::Val(v));
+            }
+            Op::LoadMethod(i) => {
+                let obj = pop(stack)?;
+                let name = &code.names[i as usize];
+                if let Some(f) = plain_method(&obj, name) {
+                    stack.push(Slot::Val(Value::Function(f)));
+                    stack.push(Slot::Val(obj));
+                } else {
+                    let v = self.load_attr(&obj, name).map_err(|e| tag_attribute_error(e, &obj, name))?;
+                    stack.push(Slot::Val(v));
+                    stack.push(Slot::Val(Value::Builtin(NO_SELF)));
+                }
+            }
+            Op::CallMethod { argc, kwnames } => {
+                let mut values = pop_n(stack, argc as usize + 1)?;
+                let func = pop(stack)?;
+                if matches!(values.first(), Some(Value::Builtin(NO_SELF))) {
+                    values.remove(0);
+                }
+                let kwargs: Vec<(String, Value)> = match kwnames.map(|i| &code.consts[i as usize]) {
+                    Some(Value::Tuple(t)) => {
+                        let kw_values = values.split_off(values.len() - t.len());
+                        t.iter().map(to_str).zip(kw_values).collect()
+                    }
+                    _ => Vec::new(),
+                };
+                let result = self.call(&func, values, kwargs)?;
+                stack.push(Slot::Val(result));
             }
             Op::UnpackSequence(n) => {
                 let v = pop(stack)?;
