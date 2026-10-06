@@ -1,6 +1,7 @@
 """Módulo io do sandbox: `open`, arquivos binários e de texto sobre descritores, StringIO e BytesIO."""
 
 import _os
+import _sys
 
 SEEK_SET = 0
 SEEK_CUR = 1
@@ -874,6 +875,9 @@ def open(file, mode='r', buffering=-1, encoding=None, errors=None, newline=None,
     if binary:
         return raw
     return TextIOWrapper(raw, encoding, errors, newline)
+
+
+_sys._builtin(open)
 
 
 def open_code(path):

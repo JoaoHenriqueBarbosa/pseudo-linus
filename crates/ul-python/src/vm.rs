@@ -1148,7 +1148,15 @@ impl Vm {
         self.frames.borrow_mut().push((code.clone(), caller_line));
         // `return` dentro de um `except` sai sem fechar o tratador: a pilha volta ao tamanho de antes.
         let handled_len = self.handled.borrow().len();
-        let result = self.exec(&code, &env);
+        let mut result = self.exec(&code, &env);
+        // Função embutida no CPython (escrita em Python aqui): o traceback não mostra o interior dela.
+        if let Err(e) = &mut result {
+            if f.attrs.borrow().contains_key("__no_bind__") {
+                while e.tb.last().is_some_and(|t| t.2.starts_with("/usr/lib/python3.13/")) {
+                    e.tb.pop();
+                }
+            }
+        }
         self.handled.borrow_mut().truncate(handled_len);
         self.frames.borrow_mut().pop();
         self.cur_line.set(caller_line);
