@@ -201,6 +201,26 @@ fn get_iter(v: &Value) -> PyResult<PyIter> {
     })
 }
 
+/// `a < b` com a semântica do Python (usado por `sorted`, `min`, `max`, `list.sort`).
+pub fn py_lt(a: &Value, b: &Value) -> PyResult<bool> {
+    compare(CmpOp::Lt, a, b)
+}
+
+/// Operador binário `a <op> b` (`op` pelo símbolo: `"+"`, `"-"`, `"*"`, `"/"`, `"//"`, `"%"`, `"**"`).
+pub fn py_binary(sym: &str, a: &Value, b: &Value) -> PyResult<Value> {
+    let op = match sym {
+        "+" => Operator::Add,
+        "-" => Operator::Sub,
+        "*" => Operator::Mult,
+        "/" => Operator::Div,
+        "//" => Operator::FloorDiv,
+        "%" => Operator::Mod,
+        "**" => Operator::Pow,
+        _ => return Err(type_error(format!("unsupported operator {sym}"))),
+    };
+    binary(op, a, b, false)
+}
+
 /// Todos os itens de um iterável (para funções nativas que consomem uma sequência inteira).
 pub fn iterate(v: &Value) -> PyResult<Vec<Value>> {
     collect(v)
@@ -283,6 +303,11 @@ impl Vm {
             modules: HashMap::new(),
             std_files: [file(FileKind::Stdin, "<stdin>"), file(FileKind::Stdout, "<stdout>"), file(FileKind::Stderr, "<stderr>")],
         }
+    }
+
+    /// `obj.nome` (atributo ou método preso), como o bytecode `LoadAttr`.
+    pub fn getattr(&mut self, obj: &Value, name: &str) -> PyResult<Value> {
+        self.load_attr(obj, name)
     }
 
     /// Chama qualquer valor chamável (função de usuário, builtin, método). É o que as funções
@@ -1630,6 +1655,16 @@ fn unsupported(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyException
 }
 
 fn binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyResult<Value> {
+    if let Value::Ext(e) = a
+        && let Some(r) = e.binop(op_symbol(op), b, false)
+    {
+        return r;
+    }
+    if let Value::Ext(e) = b
+        && let Some(r) = e.binop(op_symbol(op), a, true)
+    {
+        return r;
+    }
     // `list += iterável` e `list *= n` mudam a própria lista.
     if inplace
         && let Value::List(l) = a {
@@ -1917,6 +1952,25 @@ fn cmp_symbol(op: CmpOp) -> &'static str {
 }
 
 fn compare(op: CmpOp, a: &Value, b: &Value) -> PyResult<bool> {
+    if !matches!(op, CmpOp::Is | CmpOp::IsNot | CmpOp::In | CmpOp::NotIn) {
+        if let Value::Ext(e) = a
+            && let Some(r) = e.richcmp(cmp_symbol(op), b)
+        {
+            return r;
+        }
+        if let Value::Ext(e) = b {
+            let mirrored = match op {
+                CmpOp::Lt => ">",
+                CmpOp::LtE => ">=",
+                CmpOp::Gt => "<",
+                CmpOp::GtE => "<=",
+                _ => cmp_symbol(op),
+            };
+            if let Some(r) = e.richcmp(mirrored, a) {
+                return r;
+            }
+        }
+    }
     match op {
         CmpOp::Eq => Ok(py_eq(a, b)),
         CmpOp::NotEq => Ok(!py_eq(a, b)),

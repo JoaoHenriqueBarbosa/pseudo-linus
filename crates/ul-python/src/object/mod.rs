@@ -128,6 +128,15 @@ pub trait ExtObject {
     fn is_true(&self) -> bool {
         true
     }
+    /// Operador binário com este objeto de um dos lados: `op` é o símbolo (`"+"`, `"-"`, `"/"`...) e
+    /// `reflected` indica que o objeto é o operando da direita. `None` = não suporta.
+    fn binop(&self, _op: &str, _other: &Value, _reflected: bool) -> Option<Result<Value, crate::vm::PyException>> {
+        None
+    }
+    /// Comparação `self <op> other` (`"=="`, `"!="`, `"<"`, `"<="`, `">"`, `">="`). `None` = não suporta.
+    fn richcmp(&self, _op: &str, _other: &Value) -> Option<Result<bool, crate::vm::PyException>> {
+        None
+    }
 }
 
 /// Módulo: nome e atributos (preenchidos pelo construtor do módulo em `modules`).
