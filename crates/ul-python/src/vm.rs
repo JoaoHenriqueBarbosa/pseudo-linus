@@ -235,6 +235,35 @@ fn push_frame(out: &mut String, file: &str, src: Option<&str>, line: usize, name
     }
 }
 
+/// Quadros do mais antigo ao mais novo; a partir da quarta repetição idêntica seguida, o CPython
+/// troca os quadros por `[Previous line repeated N more times]`.
+fn push_frames(out: &mut String, file: &str, src: Option<&str>, frames: &[(usize, &str, &str)]) {
+    let mut last: Option<(usize, &str, &str)> = None;
+    let mut count = 0usize;
+    let flush = |out: &mut String, count: usize| {
+        if count > 3 {
+            let extra = count - 3;
+            out.push_str(&format!("  [Previous line repeated {extra} more time{}]\n", if extra > 1 { "s" } else { "" }));
+        }
+    };
+    for f in frames {
+        // `warnings.warn` é código C no CPython: não aparece nos tracebacks.
+        if f.2.ends_with("/warnings.py") && matches!(f.1, "warn" | "warn_explicit") {
+            continue;
+        }
+        if last != Some(*f) {
+            flush(out, count);
+            last = Some(*f);
+            count = 0;
+        }
+        count += 1;
+        if count <= 3 {
+            push_frame(out, file, src, f.0, f.1, f.2);
+        }
+    }
+    flush(out, count);
+}
+
 /// As seções das exceções que antecedem `v` (causa ou contexto), do mais antigo para o mais novo,
 /// cada uma com o aviso que o CPython imprime entre elas.
 fn chain_prefix(v: &Value, file: &str, src: Option<&str>, seen: &mut Vec<Value>) -> String {
@@ -272,9 +301,8 @@ fn exc_section(v: &Value, file: &str, src: Option<&str>) -> String {
     };
     if let Some((frames, _)) = frames {
         out.push_str("Traceback (most recent call last):\n");
-        for (line, name, own) in &frames {
-            push_frame(&mut out, file, src, *line, name, own);
-        }
+        let list: Vec<(usize, &str, &str)> = frames.iter().map(|(l, n, o)| (*l, n.as_str(), &**o)).collect();
+        push_frames(&mut out, file, src, &list);
     }
     let pe = PyException::from_value(v);
     if pe.msg.is_empty() {
@@ -292,27 +320,11 @@ pub fn format_traceback_in(err: &RuntimeError, file: &str, src: Option<&str>) ->
         None => String::new(),
     };
     out.push_str("Traceback (most recent call last):\n");
-    let frame = |out: &mut String, line: usize, name: &str, own: &str| {
-        let shown = if own.is_empty() { file } else { own };
-        out.push_str(&format!("  File \"{shown}\", line {line}, in {name}\n"));
-        let text = if own.is_empty() {
-            src.and_then(|s| s.lines().nth(line.saturating_sub(1))).map(str::to_string)
-        } else {
-            source_line(own, line)
-        };
-        if let Some(text) = text {
-            let t = text.trim();
-            if !t.is_empty() {
-                out.push_str(&format!("    {t}\n"));
-            }
-        }
-    };
     if err.exc.tb.is_empty() {
-        frame(&mut out, err.lineno, "<module>", "");
+        push_frame(&mut out, file, src, err.lineno, "<module>", "");
     }
-    for (line, name, own) in err.exc.tb.iter().rev() {
-        frame(&mut out, *line, name, own);
-    }
+    let list: Vec<(usize, &str, &str)> = err.exc.tb.iter().rev().map(|(l, n, o)| (*l, n.as_str(), &**o)).collect();
+    push_frames(&mut out, file, src, &list);
     if err.exc.msg.is_empty() {
         out.push_str(err.exc.kind);
         out.push('\n');
@@ -567,6 +579,11 @@ pub fn current() -> Option<Vm> {
 /// Limite de recursão (`sys.getrecursionlimit()` do CPython).
 const MAX_DEPTH: usize = 1000;
 
+thread_local! {
+    /// Valor ajustável por `sys.setrecursionlimit`.
+    pub(crate) static RECURSION_LIMIT: std::cell::Cell<usize> = const { std::cell::Cell::new(MAX_DEPTH) };
+}
+
 /// Bloco protegido aberto por `SetupTry`.
 pub(crate) struct Block {
     pub(crate) handler: usize,
@@ -782,7 +799,7 @@ impl Vm {
         if code.is_generator || code.is_async {
             return Ok(crate::generator::new_generator(self.clone(), code, env));
         }
-        if self.depth.get() >= MAX_DEPTH {
+        if self.depth.get() + 1 >= RECURSION_LIMIT.with(|c| c.get()) {
             return Err(exc("RecursionError", "maximum recursion depth exceeded"));
         }
         self.depth.set(self.depth.get() + 1);

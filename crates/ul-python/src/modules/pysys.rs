@@ -88,10 +88,15 @@ fn pop_module(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
 }
 
 fn getrecursionlimit(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
-    Ok(Value::Int(1000))
+    Ok(Value::Int(crate::vm::RECURSION_LIMIT.with(|c| c.get()) as i64))
 }
 
-fn setrecursionlimit(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+fn setrecursionlimit(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    match args.first() {
+        Some(Value::Int(n)) if *n >= 1 => crate::vm::RECURSION_LIMIT.with(|c| c.set(*n as usize)),
+        Some(Value::Int(_)) => return Err(crate::vm::exc("ValueError", "recursion limit must be greater or equal than 1")),
+        _ => return Err(crate::vm::type_error("setrecursionlimit() argument must be an int")),
+    }
     Ok(Value::None)
 }
 
@@ -135,6 +140,10 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
     ModuleBuilder::new("_sys")
         .value("argv", Value::list(argv))
         .value("script_dir", Value::str(script_dir(vm)))
+        .value(
+            "warnoptions",
+            Value::list(crate::WARN_OPTIONS.lock().unwrap().iter().map(|s| Value::str(s.clone())).collect()),
+        )
         .value("stdin", Value::Native(vm.std_files[0].clone()))
         .value("stdout", Value::Native(vm.std_files[1].clone()))
         .value("stderr", Value::Native(vm.std_files[2].clone()))

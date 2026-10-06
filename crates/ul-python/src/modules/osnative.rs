@@ -315,6 +315,10 @@ fn getpid(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::Int(i64::from(sys::current().getpid())))
 }
 
+fn getppid(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    Ok(Value::Int(i64::from(sys::current().getppid())))
+}
+
 fn ftruncate(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("ftruncate", &kw)?;
     let fd = Fd(want_int(arg("ftruncate", &args, 0)?)? as i32);
@@ -516,6 +520,7 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
         .func("lseek", lseek)
         .func("isatty", isatty)
         .func("getpid", getpid)
+        .func("getppid", getppid)
         .func("ftruncate", ftruncate)
         .func("clock", clock)
         .func("sleep", sleep)

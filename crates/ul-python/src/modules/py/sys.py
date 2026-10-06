@@ -32,7 +32,7 @@ path = ['', '/usr/lib/python313.zip', '/usr/lib/python3.13', '/usr/lib/python3.1
         '/usr/local/lib/python3.13/dist-packages', '/usr/lib/python3/dist-packages']
 path_hooks = []
 meta_path = []
-warnoptions = []
+warnoptions = _sys.warnoptions
 dont_write_bytecode = True
 platlibdir = 'lib'
 pycache_prefix = None

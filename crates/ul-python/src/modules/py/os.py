@@ -521,6 +521,23 @@ def getpid():
     return _os.getpid()
 
 
+def getppid():
+    return _os.getppid()
+
+
+def _exit(status):
+    """Sai na hora: descarrega os fluxos, mas não roda as funções do `atexit`."""
+    import sys
+    import atexit
+    atexit._clear()
+    try:
+        sys.stdout.flush()
+        sys.stderr.flush()
+    except Exception:
+        pass
+    raise SystemExit(status)
+
+
 def urandom(n):
     return _os.urandom(n)
 

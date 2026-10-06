@@ -239,3 +239,33 @@ class catch_warnings:
         _state['show'] = self._showwarning
         _registry.clear()
         _registry.update(self._registry_backup)
+
+
+_CATEGORIES = {'Warning': Warning, 'UserWarning': UserWarning, 'DeprecationWarning': DeprecationWarning,
+               'PendingDeprecationWarning': PendingDeprecationWarning, 'SyntaxWarning': SyntaxWarning,
+               'RuntimeWarning': RuntimeWarning, 'FutureWarning': FutureWarning, 'ImportWarning': ImportWarning,
+               'UnicodeWarning': UnicodeWarning, 'BytesWarning': BytesWarning, 'ResourceWarning': ResourceWarning}
+
+
+def _process_option(arg):
+    """`-W acao[:mensagem[:categoria[:modulo[:linha]]]]`, como o `_setoption` do CPython."""
+    parts = [p.strip() for p in arg.split(':')]
+    if len(parts) > 5:
+        return
+    parts += [''] * (5 - len(parts))
+    action, message, category, module, lineno = parts
+    actions = ('default', 'always', 'all', 'ignore', 'module', 'once', 'error')
+    matches = [a for a in actions if a.startswith(action)] if action else ['default']
+    if len(matches) != 1:
+        return
+    action = 'always' if matches[0] == 'all' else matches[0]
+    cat = _CATEGORIES.get(category.split('.')[-1], Warning) if category else Warning
+    if message or module:
+        import re
+        message = re.escape(message)
+        module = (re.escape(module) + r'\Z') if module else ''
+    filterwarnings(action, message, cat, module, int(lineno) if lineno else 0)
+
+
+for _opt in reversed(sys.warnoptions):
+    _process_option(_opt)

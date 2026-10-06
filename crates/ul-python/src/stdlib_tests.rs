@@ -13,7 +13,8 @@ fn out(src: &str) -> String {
 #[test]
 fn every_embedded_module_imports() {
     // `unittest.__main__` roda o `unittest.main()` ao ser importado: só vale como `python3 -m unittest`.
-    const NEEDS_PROCESS: &[&str] = &["unittest.__main__"];
+    // `this` imprime o Zen do Python ao ser importado.
+    const NEEDS_PROCESS: &[&str] = &["unittest.__main__", "this"];
     for name in crate::modules::pysrc::names() {
         if NEEDS_PROCESS.contains(&name) {
             continue;

@@ -222,7 +222,11 @@ impl GetOpt<'_> {
     }
 }
 
+/// Opções `-W` da linha de comando, lidas por `sys.warnoptions` (o interpretador roda noutra thread).
+pub(crate) static WARN_OPTIONS: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
+
 fn python3_main(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
+    WARN_OPTIONS.lock().unwrap().clear();
     let program = argv.first().map(|a| String::from_utf8_lossy(a.as_bytes()).into_owned());
     let program = program.unwrap_or_else(|| "python3".to_string());
     let args: Vec<Vec<u8>> = argv.iter().skip(1).map(|a| a.as_bytes().to_vec()).collect();
@@ -240,6 +244,11 @@ fn python3_main(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
                 return 0;
             }
             Opt::Found(b'V') => print_version += 1,
+            Opt::Found(b'W') => {
+                if let Some(a) = getopt.optarg.take() {
+                    WARN_OPTIONS.lock().unwrap().push(String::from_utf8_lossy(&a).into_owned());
+                }
+            }
             // `-c` e `-m` encerram a lista de opções.
             Opt::Found(b'c') => {
                 command = getopt.optarg.take();
@@ -441,7 +450,7 @@ fn run_source_inner(
                         lineno: e.lineno,
                     },
                     name,
-                    file_mode.then_some(src.as_str()),
+                    Some(src.as_str()),
                 )
             };
             return Outcome { stdout: Vec::new(), stderr, status: 1 };
@@ -482,7 +491,7 @@ fn run_source_inner(
             Outcome { stdout, stderr, status }
         }
         Err(e) => {
-            Outcome { stdout, stderr: vm::format_traceback_in(&e, name, file_mode.then_some(src.as_str())), status: 1 }
+            Outcome { stdout, stderr: vm::format_traceback_in(&e, name, Some(src.as_str())), status: 1 }
         }
     }
 }
@@ -552,7 +561,7 @@ mod tests {
         assert_eq!(err.status, 1);
         assert_eq!(
             err.stderr,
-            "Traceback (most recent call last):\n  File \"<string>\", line 2, in <module>\n\
+            "Traceback (most recent call last):\n  File \"<string>\", line 2, in <module>\n    1/0\n\
              ZeroDivisionError: division by zero\n"
         );
         let syn = run_source("1 +");
