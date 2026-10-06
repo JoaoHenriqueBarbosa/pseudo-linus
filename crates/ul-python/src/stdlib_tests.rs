@@ -2685,3 +2685,76 @@ True
 "##
     );
 }
+
+#[test]
+fn tokenize_basic() {
+    let src = r##"
+import tokenize, io, token, keyword
+src = "x = 1 + 2  # c\nif x:\n    print('a')\n"
+for t in tokenize.generate_tokens(io.StringIO(src).readline):
+    print(token.tok_name[t.type], repr(t.string), t.start)
+print(keyword.iskeyword("if"), len(keyword.kwlist))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"NAME 'x' (1, 0)
+OP '=' (1, 2)
+NUMBER '1' (1, 4)
+OP '+' (1, 6)
+NUMBER '2' (1, 8)
+COMMENT '# c' (1, 11)
+NEWLINE '\n' (1, 14)
+NAME 'if' (2, 0)
+NAME 'x' (2, 3)
+OP ':' (2, 4)
+NEWLINE '\n' (2, 5)
+INDENT '    ' (3, 0)
+NAME 'print' (3, 4)
+OP '(' (3, 9)
+STRING "'a'" (3, 10)
+OP ')' (3, 13)
+NEWLINE '\n' (3, 14)
+DEDENT '' (4, 0)
+ENDMARKER '' (4, 0)
+True 35
+"##
+    );
+}
+
+#[test]
+fn cmath_funcs() {
+    let src = r##"
+import cmath
+z = complex(3, 4)
+for f in (cmath.sqrt, cmath.exp, cmath.log, cmath.log10, cmath.sin, cmath.cos, cmath.tan, cmath.sinh, cmath.cosh, cmath.tanh, cmath.asin, cmath.acos, cmath.atan, cmath.asinh, cmath.acosh, cmath.atanh):
+    print(f.__name__, f(z))
+print(cmath.sqrt(-4), cmath.sqrt(-1j), cmath.polar(1j), cmath.rect(2, cmath.pi/2), cmath.phase(-1), cmath.isclose(1+1j, 1+1.0000000001j), cmath.log(8, 2))
+print(cmath.exp(1j*cmath.pi), cmath.sqrt(complex(-1, -0.0)))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"sqrt (2+1j)
+exp (-13.128783081462158-15.200784463067954j)
+log (1.6094379124341003+0.9272952180016122j)
+log10 (0.6989700043360187+0.4027191962733731j)
+sin (3.853738037919377-27.016813258003932j)
+cos (-27.034945603074224-3.851153334811777j)
+tan (-0.0001873462046294784+0.999355987381473j)
+sinh (-6.5481200409110025-7.61923172032141j)
+cosh (-6.580663040551157-7.581552742746545j)
+tanh (1.000709536067233+0.00490825806749606j)
+asin (0.6339838656391766+2.305509031243477j)
+acos (0.9368124611557198-2.305509031243477j)
+atan (1.4483069952314644+0.15899719167999918j)
+asinh (2.2999140408792695+0.9176168533514787j)
+acosh (2.305509031243477+0.9368124611557198j)
+atanh (0.1175009073114339+1.4099210495965755j)
+2j (0.7071067811865476-0.7071067811865475j) (1.0, 1.5707963267948966) (1.2246467991473532e-16+2j) 3.141592653589793 True (3+0j)
+(-1+1.2246467991473532e-16j) -1j
+"##
+    );
+}

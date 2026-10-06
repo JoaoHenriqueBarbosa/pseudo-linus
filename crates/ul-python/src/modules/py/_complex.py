@@ -21,9 +21,16 @@ class complex:
     __slots__ = ('real', 'imag')
     __module__ = 'builtins'
 
-    def __new__(cls, real=0, imag=0):
+    def __new__(cls, real=0, imag=None):
+        if imag is None:
+            imag = 0
+            if isinstance(real, complex) and type(real) is cls:
+                return real
+            only_real = True
+        else:
+            only_real = False
         if isinstance(real, str):
-            if imag != 0:
+            if not only_real:
                 raise TypeError("complex() can't take second arg if first is a string")
             return cls._parse(real)
         if isinstance(imag, str):
@@ -32,8 +39,8 @@ class complex:
         re2, im2 = _split(imag)
         self = object.__new__(cls)
         # real + imag * 1j
-        object.__setattr__(self, 'real', float(re - im2))
-        object.__setattr__(self, 'imag', float(im + re2))
+        object.__setattr__(self, 'real', float(re) if only_real or not isinstance(imag, complex) else float(re - im2))
+        object.__setattr__(self, 'imag', float(im) if only_real else (float(re2) if not isinstance(real, complex) else float(im + re2)))
         return self
 
     @classmethod

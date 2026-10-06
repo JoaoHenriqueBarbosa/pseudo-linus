@@ -377,6 +377,9 @@ fn b_compile(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         _ => 0,
     };
     // Uma árvore (`ast.AST`) vira texto com `ast.unparse` e segue o caminho de sempre.
+    if let Value::Bytes(b) = &source {
+        source = Value::str(String::from_utf8_lossy(b).into_owned());
+    }
     if let Value::Instance(_) = &source {
         let ast = crate::modules::import_checked(vm, "ast")?;
         let unparse = vm.getattr(&Value::Module(ast), "unparse")?;
