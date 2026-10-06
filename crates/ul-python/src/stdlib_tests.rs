@@ -1837,3 +1837,145 @@ True 5
 "##
     );
 }
+
+#[test]
+fn coroutines_async_generators_delegation_match_cpython() {
+    let src = r##"
+class Fut:
+    def __init__(self): self.v = None
+    def __await__(self):
+        got = yield self
+        return got
+
+async def leaf(x):
+    r = await Fut()
+    return x + r
+
+async def mid():
+    a = await leaf(1)
+    b = await leaf(10)
+    return a + b
+
+c = mid()
+print(type(c).__name__)
+f = c.send(None)
+print(type(f).__name__)
+f = c.send(100)
+print(type(f).__name__)
+try:
+    c.send(1000)
+except StopIteration as e:
+    print("ret", e.value)
+
+def sub():
+    x = yield 1
+    y = yield x * 2
+    return x + y
+
+def outer():
+    r = yield from sub()
+    print("sub returned", r)
+    yield r * 10
+
+g = outer()
+print(next(g), g.send(5), g.send(7), list(g))
+
+def thrower():
+    try:
+        yield 1
+    except ValueError as e:
+        print("caught in sub", e)
+        yield 99
+    return "end"
+
+def deleg():
+    r = yield from thrower()
+    yield r
+
+g = deleg()
+print(next(g), g.throw(ValueError("boom")), next(g))
+
+async def raiser():
+    try:
+        await Fut()
+    except KeyError as e:
+        print("coro caught", e)
+        return "handled"
+
+c = raiser()
+c.send(None)
+try:
+    c.throw(KeyError("k"))
+except StopIteration as e:
+    print(e.value)
+
+async def agen():
+    for i in range(3):
+        await Fut()
+        yield i
+
+async def consume():
+    out = []
+    async for v in agen():
+        out.append(v)
+    return out
+
+c = consume()
+c.send(None)
+c.send(None)
+c.send(None)
+try:
+    c.send(None)
+except StopIteration as e:
+    print(e.value)
+
+class CM:
+    async def __aenter__(self):
+        print("aenter"); return 7
+    async def __aexit__(self, t, v, tb):
+        print("aexit", t.__name__ if t else None); return True
+
+async def uses_cm():
+    async with CM() as v:
+        print("body", v)
+        raise ValueError("x")
+    async with CM() as v:
+        return v
+
+c = uses_cm()
+try:
+    c.send(None)
+except StopIteration as e:
+    print("cm ret", e.value)
+
+async def not_started():
+    return 1
+c = not_started()
+print(repr(c)[:28])
+c.close()
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"coroutine
+Fut
+Fut
+ret 1111
+sub returned 12
+1 10 120 []
+caught in sub boom
+1 99 end
+coro caught 'k'
+handled
+[0, 1, 2]
+aenter
+body 7
+aexit ValueError
+aenter
+aexit None
+cm ret 7
+<coroutine object not_starte
+"##
+    );
+}

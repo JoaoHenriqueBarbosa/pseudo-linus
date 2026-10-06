@@ -152,6 +152,26 @@ pub enum Op {
     UnpackEx { before: u32, after: u32 },
     /// `yield`: suspende a função geradora entregando o topo; ao retomar, empilha o valor enviado.
     Yield,
+    /// `await` e `yield from`: `[iterador, enviado]`. Repassa o valor ao sub-iterador (`send`); se ele
+    /// entrega algo, empilha o valor (o `Yield` seguinte o devolve); se termina, troca o iterador pelo
+    /// valor de retorno e salta para o destino.
+    Delegate(u32),
+    /// Depois do `Yield` de uma delegação: volta ao `Delegate`. Marca o ponto onde `throw` é repassado.
+    DelegateNext(u32),
+    /// `await x`: o topo vira o iterador aguardável (`__await__`) ou a própria corrente.
+    GetAwaitable,
+    /// `async for`: o topo vira `type(x).__aiter__(x)`.
+    GetAIter,
+    /// `async for`: empilha `aiter.__anext__()` sem tirar o iterador assíncrono.
+    GetANext,
+    /// `async with`: `[mgr]` vira `[aexit, aenter()]` (o aguardável de `__aenter__`).
+    AsyncWithEnter,
+    /// `async with`, saída por exceção: `[exc, aexit]` vira `[exc, aexit(...)]` (o aguardável).
+    AsyncWithExceptCall,
+    /// `yield` num gerador assíncrono: entrega o valor embrulhado, distinto de um `await` suspenso.
+    AsyncGenYield,
+    /// Tratador do `async for`: `[aiter, exc]`; `StopAsyncIteration` encerra o laço (salta ao destino).
+    AsyncForExcept(u32),
     /// Dentro de uma compreensão: `[acum, iteradores(d)..., item]`, acrescenta o item à lista.
     ListAppendAt(u32),
     /// Lista do topo vira tupla.
@@ -191,6 +211,8 @@ pub struct Code {
     pub is_class: bool,
     /// A função contém `yield`: chamá-la devolve um gerador.
     pub is_generator: bool,
+    /// `async def`: chamar devolve uma corrente (coroutine), ou um gerador assíncrono se tiver `yield`.
+    pub is_async: bool,
     pub functions: Vec<Rc<Code>>,
     /// Arquivo de origem; vazio para o script do usuário (módulos embutidos preenchem o deles).
     pub filename: String,
@@ -362,7 +384,7 @@ impl Scope {
                     self.expr(v);
                 }
             }
-            S::For { target, iter, body, orelse, .. } => {
+            S::For { target, iter, body, orelse, .. } | S::AsyncFor { target, iter, body, orelse, .. } => {
                 self.target(target);
                 self.expr(iter);
                 self.block(body);
@@ -373,7 +395,7 @@ impl Scope {
                 self.block(body);
                 self.block(orelse);
             }
-            S::With { items, body, .. } => {
+            S::With { items, body, .. } | S::AsyncWith { items, body, .. } => {
                 for it in items {
                     self.expr(&it.context_expr);
                     if let Some(v) = &it.optional_vars {
@@ -406,7 +428,7 @@ impl Scope {
                 }
             }
             S::Delete { targets } => targets.iter().for_each(|t| self.target(t)),
-            S::FunctionDef { name, .. } | S::ClassDef { name, .. } => {
+            S::FunctionDef { name, .. } | S::AsyncFunctionDef { name, .. } | S::ClassDef { name, .. } => {
                 self.bound.insert(name.clone());
             }
             S::Import { names } => {
@@ -493,6 +515,8 @@ struct LoopCtx {
 struct TryCtx {
     finalbody: Vec<Stmt>,
     with_exit: Option<String>,
+    /// `async with`: a saída é um aguardável, que `break`/`return` precisam aguardar.
+    with_async: bool,
 }
 
 struct Compiler {
@@ -563,6 +587,8 @@ impl Compiler {
             Op::JumpIfTrueOrPop(_) => Op::JumpIfTrueOrPop(t),
             Op::ForIter(_) => Op::ForIter(t),
             Op::SetupTry(_) => Op::SetupTry(t),
+            Op::Delegate(_) => Op::Delegate(t),
+            Op::AsyncForExcept(_) => Op::AsyncForExcept(t),
             other => other,
         };
     }
@@ -720,11 +746,13 @@ impl Compiler {
                 let end = self.here();
                 self.patch(ok, end);
             }
-            S::FunctionDef { name, args, body, decorator_list, .. } => {
+            S::FunctionDef { name, args, body, decorator_list, .. }
+            | S::AsyncFunctionDef { name, args, body, decorator_list, .. } => {
+                let is_async = matches!(stmt.kind, S::AsyncFunctionDef { .. });
                 for d in decorator_list {
                     self.expr(d)?;
                 }
-                self.make_function(name, args, FnBody::Stmts(body), stmt.pos.lineno)?;
+                self.make_function(name, args, FnBody::Stmts(body), stmt.pos.lineno, is_async)?;
                 for _ in decorator_list {
                     self.line = stmt.pos.lineno;
                     self.emit(Op::Call { argc: 1, kwnames: None });
@@ -749,7 +777,6 @@ impl Compiler {
                 self.line = stmt.pos.lineno;
                 self.emit_return()?;
             }
-            S::AsyncFunctionDef { .. } => return Err(self.unsupported("async def")),
             S::ClassDef { name, bases, keywords, body, decorator_list, .. } => {
                 if keywords.iter().any(|k| k.arg.is_none()) {
                     return Err(self.unsupported("class keywords with **"));
@@ -812,8 +839,17 @@ impl Compiler {
                     self.delete(t)?;
                 }
             }
-            S::With { items, body, .. } => self.with_stmt(items, body)?,
-            S::AsyncWith { .. } => return Err(self.unsupported("async with")),
+            S::With { items, body, .. } => self.with_stmt(items, body, false)?,
+            S::AsyncWith { items, body, .. } => {
+                if !self.code.is_async {
+                    return Err(CompileError {
+                        kind: "SyntaxError",
+                        msg: "'async with' outside async function".into(),
+                        lineno: stmt.pos.lineno,
+                    });
+                }
+                self.with_stmt(items, body, true)?
+            }
             S::Match { subject, cases } => self.match_stmt(subject, cases)?,
             S::AnnAssign { target, annotation, value, .. } => {
                 if let Some(v) = value {
@@ -831,7 +867,39 @@ impl Compiler {
             }
             S::TypeAlias { .. } => return Err(self.unsupported("type aliases")),
             S::Nonlocal { .. } => {}
-            S::AsyncFor { .. } => return Err(self.unsupported("async for")),
+            S::AsyncFor { target, iter, body, orelse, .. } => {
+                if !self.code.is_async {
+                    return Err(CompileError {
+                        kind: "SyntaxError",
+                        msg: "'async for' outside async function".into(),
+                        lineno: stmt.pos.lineno,
+                    });
+                }
+                self.expr(iter)?;
+                self.line = stmt.pos.lineno;
+                self.emit(Op::GetAIter);
+                let top = self.emit(Op::SetupTry(0));
+                self.emit(Op::GetANext);
+                self.emit(Op::GetAwaitable);
+                self.await_delegate();
+                self.emit(Op::PopBlock);
+                self.store(target)?;
+                self.loops.push(LoopCtx { continue_target: top, breaks: Vec::new(), is_for: true, try_depth: self.tries.len() });
+                self.block(body)?;
+                self.line = stmt.pos.lineno;
+                self.emit(Op::Jump(top as u32));
+                let ctx = self.loops.pop().unwrap_or(LoopCtx { continue_target: top, breaks: Vec::new(), is_for: true, try_depth: 0 });
+                let handler = self.here();
+                self.patch(top, handler);
+                let stop = self.emit(Op::AsyncForExcept(0));
+                let else_start = self.here();
+                self.patch(stop, else_start);
+                self.block(orelse)?;
+                let end = self.here();
+                for b in ctx.breaks {
+                    self.patch(b, end);
+                }
+            }
         }
         Ok(())
     }
@@ -849,7 +917,7 @@ impl Compiler {
             return self.try_except(body, handlers, orelse);
         }
         let setup = self.emit(Op::SetupTry(0));
-        self.tries.push(TryCtx { finalbody: finalbody.to_vec(), with_exit: None });
+        self.tries.push(TryCtx { finalbody: finalbody.to_vec(), with_exit: None, with_async: false });
         if handlers.is_empty() {
             self.block(body)?;
             self.block(orelse)?;
@@ -872,7 +940,7 @@ impl Compiler {
 
     fn try_except(&mut self, body: &[Stmt], handlers: &[ExceptHandler], orelse: &[Stmt]) -> Result<(), CompileError> {
         let setup = self.emit(Op::SetupTry(0));
-        self.tries.push(TryCtx { finalbody: Vec::new(), with_exit: None });
+        self.tries.push(TryCtx { finalbody: Vec::new(), with_exit: None, with_async: false });
         self.block(body)?;
         self.tries.pop();
         self.emit(Op::PopBlock);
@@ -924,6 +992,17 @@ impl Compiler {
 
     /// Sai dos `try` abertos acima de `depth` (por `break`/`continue`): fecha o bloco de cada um e
     /// repete o `finally` dele.
+    /// Com o aguardável no topo, suspende até ele terminar e deixa o resultado dele no topo.
+    fn await_delegate(&mut self) {
+        let none = self.constant_none();
+        self.emit(Op::LoadConst(none));
+        let delegate = self.emit(Op::Delegate(0));
+        self.emit(Op::Yield);
+        self.emit(Op::DelegateNext(delegate as u32));
+        let end = self.here();
+        self.patch(delegate, end);
+    }
+
     fn leave_tries(&mut self, depth: usize) -> Result<(), CompileError> {
         let all = std::mem::take(&mut self.tries);
         let mut result = Ok(());
@@ -936,6 +1015,10 @@ impl Compiler {
                     self.emit(Op::LoadConst(none));
                 }
                 self.emit(Op::Call { argc: 3, kwnames: None });
+                if all[i].with_async {
+                    self.emit(Op::GetAwaitable);
+                    self.await_delegate();
+                }
                 self.emit(Op::Pop);
                 continue;
             }
@@ -978,7 +1061,14 @@ impl Compiler {
 
     /// Compila uma função (`def` ou `lambda`) num `Code` próprio e emite a criação dela: os padrões
     /// são avaliados aqui, no escopo de fora. Deixa a função na pilha; guardar é com o chamador.
-    fn make_function(&mut self, name: &str, args: &Arguments, body: FnBody, line: usize) -> Result<(), CompileError> {
+    fn make_function(
+        &mut self,
+        name: &str,
+        args: &Arguments,
+        body: FnBody,
+        line: usize,
+        is_async: bool,
+    ) -> Result<(), CompileError> {
         let mut params: Vec<String> = args.posonlyargs.iter().map(|a| a.arg.clone()).collect();
         let posonly = params.len();
         params.extend(args.args.iter().map(|a| a.arg.clone()));
@@ -1004,6 +1094,7 @@ impl Compiler {
                 kwonly: kwonly.clone(),
                 kwarg,
                 is_function: true,
+                is_async,
                 ..Code::default()
             },
             line,
@@ -1305,7 +1396,7 @@ impl Compiler {
         Ok(())
     }
 
-    fn with_stmt(&mut self, items: &[WithItem], body: &[Stmt]) -> Result<(), CompileError> {
+    fn with_stmt(&mut self, items: &[WithItem], body: &[Stmt], is_async: bool) -> Result<(), CompileError> {
         let Some((item, rest)) = items.split_first() else {
             return self.block(body);
         };
@@ -1315,7 +1406,13 @@ impl Compiler {
             l.insert(hidden.clone());
         }
         self.expr(&item.context_expr)?;
-        self.emit(Op::WithEnter);
+        if is_async {
+            self.emit(Op::AsyncWithEnter);
+            self.emit(Op::GetAwaitable);
+            self.await_delegate();
+        } else {
+            self.emit(Op::WithEnter);
+        }
         // `[exit, valor]`: o `__exit__` vai para a variável oculta, o valor para o alvo.
         self.emit(Op::Rot2);
         self.emit_store(&hidden);
@@ -1326,8 +1423,8 @@ impl Compiler {
             }
         }
         let setup = self.emit(Op::SetupTry(0));
-        self.tries.push(TryCtx { finalbody: Vec::new(), with_exit: Some(hidden.clone()) });
-        self.with_stmt(rest, body)?;
+        self.tries.push(TryCtx { finalbody: Vec::new(), with_exit: Some(hidden.clone()), with_async: is_async });
+        self.with_stmt(rest, body, is_async)?;
         self.tries.pop();
         self.emit(Op::PopBlock);
         self.emit_load(&hidden);
@@ -1336,13 +1433,23 @@ impl Compiler {
             self.emit(Op::LoadConst(none));
         }
         self.emit(Op::Call { argc: 3, kwnames: None });
+        if is_async {
+            self.emit(Op::GetAwaitable);
+            self.await_delegate();
+        }
         self.emit(Op::Pop);
         let to_end = self.emit(Op::Jump(0));
         let handler = self.here();
         self.patch(setup, handler);
         self.emit(Op::PushExc);
         self.emit_load(&hidden);
-        self.emit(Op::WithExcept);
+        if is_async {
+            self.emit(Op::AsyncWithExceptCall);
+            self.emit(Op::GetAwaitable);
+            self.await_delegate();
+        } else {
+            self.emit(Op::WithExcept);
+        }
         let suppressed = self.emit(Op::PopJumpIfTrue(0));
         self.emit(Op::Reraise);
         let ok = self.here();
@@ -1820,7 +1927,7 @@ impl Compiler {
                 self.line = expr.pos.lineno;
                 self.emit(Op::LoadAttr(n));
             }
-            E::Lambda { args, body } => self.make_function("<lambda>", args, FnBody::Expr(body), expr.pos.lineno)?,
+            E::Lambda { args, body } => self.make_function("<lambda>", args, FnBody::Expr(body), expr.pos.lineno, false)?,
             E::NamedExpr { target, value } => {
                 self.expr(value)?;
                 self.emit(Op::Dup);
@@ -1862,22 +1969,28 @@ impl Compiler {
                     }
                 }
                 self.line = expr.pos.lineno;
-                self.emit(Op::Yield);
+                self.emit(if self.code.is_async { Op::AsyncGenYield } else { Op::Yield });
             }
             E::YieldFrom { value } => {
                 self.code.is_generator = true;
                 self.expr(value)?;
+                self.line = expr.pos.lineno;
                 self.emit(Op::GetIter);
-                let top = self.emit(Op::ForIter(0));
-                self.emit(Op::Yield);
-                self.emit(Op::Pop);
-                self.emit(Op::Jump(top as u32));
-                let end = self.here();
-                self.patch(top, end);
-                let c = self.constant_none();
-                self.emit(Op::LoadConst(c));
+                self.await_delegate();
             }
-            E::Await { .. } => return Err(self.unsupported("await")),
+            E::Await { value } => {
+                if !self.code.is_async {
+                    return Err(CompileError {
+                        kind: "SyntaxError",
+                        msg: "'await' outside async function".into(),
+                        lineno: expr.pos.lineno,
+                    });
+                }
+                self.expr(value)?;
+                self.line = expr.pos.lineno;
+                self.emit(Op::GetAwaitable);
+                self.await_delegate();
+            }
             E::Starred { .. } => {
                 return Err(CompileError {
                     kind: "SyntaxError",

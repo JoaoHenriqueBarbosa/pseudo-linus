@@ -498,6 +498,23 @@ impl Vm {
         inject: Option<PyException>,
     ) -> PyResult<Exit> {
         let mut pending = inject;
+        // `throw` num gerador parado numa delegação (`await`/`yield from`) vai para o sub-iterador.
+        if pending.is_some() {
+            if let Some(Op::DelegateNext(l)) = code.ops.get(*pc).copied() {
+                let e = pending.take().unwrap_or_else(|| internal("no exception"));
+                match self.delegate_throw(stack, e) {
+                    Ok(Step::Yield(v)) => return Ok(Exit::Yield(v)),
+                    Ok(Step::Done(v)) => {
+                        stack.pop();
+                        stack.push(Slot::Val(v));
+                        if let Op::Delegate(end) = code.ops[l as usize] {
+                            *pc = end as usize;
+                        }
+                    }
+                    Err(e2) => pending = Some(e2),
+                }
+            }
+        }
         while *pc < code.ops.len() {
             let op = code.ops[*pc];
             self.cur_line.set(code.lines[*pc]);
@@ -521,6 +538,13 @@ impl Vm {
                         Some(Slot::Val(v)) => {
                             *pc += 1;
                             return Ok(Exit::Yield(v));
+                        }
+                        _ => Err(internal("bad value stack")),
+                    },
+                    Op::AsyncGenYield => match stack.pop() {
+                        Some(Slot::Val(v)) => {
+                            *pc += 1;
+                            return Ok(Exit::Yield(crate::generator::wrap_async_value(v)));
                         }
                         _ => Err(internal("bad value stack")),
                     },
@@ -572,7 +596,7 @@ impl Vm {
         }
         let env = self.bind_params(f, args, kwargs)?;
         let code = f.code.clone();
-        if code.is_generator {
+        if code.is_generator || code.is_async {
             return Ok(crate::generator::new_generator(self.clone(), code, env));
         }
         if self.depth.get() >= MAX_DEPTH {
@@ -1285,7 +1309,91 @@ impl Vm {
                 let cls = self.build_class(&body, bases, kw_values, locals)?;
                 stack.push(Slot::Val(cls));
             }
-            Op::Yield => return Err(internal("yield outside run loop")),
+            Op::Yield | Op::AsyncGenYield => return Err(internal("yield outside run loop")),
+            Op::DelegateNext(t) => return Ok(Some(t as usize)),
+            Op::GetAwaitable => {
+                let v = pop(stack)?;
+                let a = self.get_awaitable(&v)?;
+                stack.push(Slot::Val(a));
+            }
+            Op::Delegate(end) => {
+                let sent = pop(stack)?;
+                let step = match stack.last_mut() {
+                    Some(slot) => self.delegate_step(slot, sent)?,
+                    None => return Err(internal("delegate without iterator")),
+                };
+                match step {
+                    Step::Yield(v) => stack.push(Slot::Val(v)),
+                    Step::Done(v) => {
+                        stack.pop();
+                        stack.push(Slot::Val(v));
+                        return Ok(Some(end as usize));
+                    }
+                }
+            }
+            Op::GetAIter => {
+                let v = pop(stack)?;
+                let it = match &v {
+                    Value::Ext(e) if e.type_name() == "async_generator" => v.clone(),
+                    _ => match self.call_dunder(&v, "__aiter__", Vec::new()) {
+                        Some(r) => r?,
+                        None => {
+                            return Err(type_error(format!(
+                                "'async for' requires an object with __aiter__ method, got {}",
+                                v.type_name()
+                            )))
+                        }
+                    },
+                };
+                stack.push(Slot::Val(it));
+            }
+            Op::GetANext => {
+                let it = top(stack)?.clone();
+                let next = match &it {
+                    Value::Ext(e) if e.type_name() == "async_generator" => {
+                        e.clone().call_method(self, "__anext__", Vec::new(), Vec::new())?
+                    }
+                    _ => match self.call_dunder(&it, "__anext__", Vec::new()) {
+                        Some(r) => r?,
+                        None => {
+                            return Err(type_error(format!(
+                                "'async for' received an object from __aiter__ that does not implement __anext__: {}",
+                                it.type_name()
+                            )))
+                        }
+                    },
+                };
+                stack.push(Slot::Val(next));
+            }
+            Op::AsyncForExcept(target) => {
+                let e = pop(stack)?;
+                let is_stop = matches!(&e, Value::Exception(x) if x.kind == "StopAsyncIteration")
+                    || matches!(&e, Value::Instance(i) if i.class.mro().iter().any(|c| c.name == "StopAsyncIteration"));
+                if is_stop {
+                    stack.pop();
+                    return Ok(Some(target as usize));
+                }
+                return Err(PyException::from_value(&e));
+            }
+            Op::AsyncWithEnter => {
+                let mgr = pop(stack)?;
+                let missing = |what: &str| {
+                    type_error(format!("'{}' object does not support the asynchronous context manager protocol{what}", mgr.type_name()))
+                };
+                let (Some(enter), Some(exit)) = (self.attr_of_type(&mgr, "__aenter__"), self.attr_of_type(&mgr, "__aexit__")) else {
+                    return Err(missing(""));
+                };
+                let entered = self.call_value(&enter, Vec::new(), Vec::new())?;
+                stack.push(Slot::Val(exit));
+                stack.push(Slot::Val(entered));
+            }
+            Op::AsyncWithExceptCall => {
+                let exit = pop(stack)?;
+                let exc_value = top(stack)?.clone();
+                let ty = self.type_of(&exc_value);
+                let r = self.call(&exit, vec![ty, exc_value, Value::None], Vec::new())?;
+                stack.push(Slot::Val(r));
+            }
             Op::Import(i) => {
                 let name = &code.names[i as usize];
                 let m = crate::modules::import_checked(self, name)?;
@@ -3543,6 +3651,105 @@ fn seq_order(op: CmpOp, x: &[Value], y: &[Value]) -> PyResult<bool> {
         }
     }
     Ok(apply(op, x.len().cmp(&y.len())))
+}
+
+/// Resultado de repassar um `send`/`throw` ao sub-iterador de uma delegação (`await`, `yield from`).
+pub(crate) enum Step {
+    /// O sub-iterador entregou um valor: a delegação o devolve ao chamador e continua depois.
+    Yield(Value),
+    /// O sub-iterador terminou com este valor de retorno.
+    Done(Value),
+}
+
+impl Vm {
+    /// `await x`: o iterador aguardável de `x`.
+    fn get_awaitable(&mut self, v: &Value) -> PyResult<Value> {
+        let not_awaitable = || type_error(format!("object {} can't be used in 'await' expression", v.type_name()));
+        match v {
+            Value::Ext(e) if matches!(e.type_name(), "coroutine" | "async_generator_asend" | "coroutine_wrapper") => Ok(v.clone()),
+            Value::Ext(e) if e.methods().contains(&"__await__") => {
+                e.clone().call_method(self, "__await__", Vec::new(), Vec::new())
+            }
+            Value::Instance(_) => match self.call_dunder(v, "__await__", Vec::new()) {
+                Some(r) => {
+                    let it = r?;
+                    if matches!(it, Value::Ext(_) | Value::Instance(_)) {
+                        Ok(it)
+                    } else {
+                        Err(type_error(format!("__await__() returned non-iterator of type '{}'", it.type_name())))
+                    }
+                }
+                None => Err(not_awaitable()),
+            },
+            _ => Err(not_awaitable()),
+        }
+    }
+
+    /// Passa `sent` ao sub-iterador que está no topo da pilha.
+    fn delegate_step(&mut self, slot: &mut Slot, sent: Value) -> PyResult<Step> {
+        let into_step = |r: PyResult<Value>| match r {
+            Ok(v) => Ok(Step::Yield(v)),
+            Err(e) if e.kind == "StopIteration" => Ok(Step::Done(crate::generator::stop_value(&e))),
+            Err(e) => Err(e),
+        };
+        match slot {
+            Slot::Iter(PyIter::Ext(e)) | Slot::Val(Value::Ext(e)) if e.methods().contains(&"send") => {
+                let e = e.clone();
+                into_step(e.call_method(self, "send", vec![sent], Vec::new()))
+            }
+            Slot::Iter(PyIter::Inst(v)) | Slot::Val(v @ Value::Instance(_)) => {
+                let v = v.clone();
+                if matches!(sent, Value::None) {
+                    match self.call_dunder(&v, "__next__", Vec::new()) {
+                        Some(r) => into_step(r),
+                        None => Err(type_error(format!("'{}' object is not an iterator", v.type_name()))),
+                    }
+                } else {
+                    let send = self.getattr(&v, "send")?;
+                    into_step(self.call(&send, vec![sent], Vec::new()))
+                }
+            }
+            Slot::Iter(it) => Ok(match it.next()? {
+                Some(v) => Step::Yield(v),
+                None => Step::Done(Value::None),
+            }),
+            _ => Err(internal("bad delegation iterator")),
+        }
+    }
+
+    /// Repassa a exceção injetada (`throw`) ao sub-iterador que está no topo da pilha.
+    fn delegate_throw(&mut self, stack: &mut [Slot], e: PyException) -> PyResult<Step> {
+        let target: Option<Value> = match stack.last() {
+            Some(Slot::Iter(PyIter::Ext(x))) | Some(Slot::Val(Value::Ext(x))) => Some(Value::Ext(x.clone())),
+            Some(Slot::Iter(PyIter::Inst(v))) | Some(Slot::Val(v @ Value::Instance(_))) => Some(v.clone()),
+            _ => None,
+        };
+        let Some(target) = target else { return Err(e) };
+        if e.kind == "GeneratorExit" {
+            if let Ok(close) = self.getattr(&target, "close") {
+                self.call(&close, Vec::new(), Vec::new())?;
+            }
+            return Err(e);
+        }
+        let Ok(throw) = self.getattr(&target, "throw") else { return Err(e) };
+        match self.call(&throw, vec![e.to_value()], Vec::new()) {
+            Ok(v) => Ok(Step::Yield(v)),
+            Err(x) if x.kind == "StopIteration" => Ok(Step::Done(crate::generator::stop_value(&x))),
+            Err(x) => Err(x),
+        }
+    }
+
+    /// `type(obj).nome` ligado a `obj`: o método dunder que o protocolo usa (`__aenter__`...).
+    fn attr_of_type(&mut self, obj: &Value, name: &str) -> Option<Value> {
+        match obj {
+            Value::Instance(i) => {
+                let attr = i.class.lookup(name)?;
+                self.bind_class_attr(&attr, obj.clone(), &i.class).ok()
+            }
+            Value::Ext(e) if e.methods().contains(&name) => self.getattr(obj, name).ok(),
+            _ => None,
+        }
+    }
 }
 
 #[cfg(test)]
