@@ -629,8 +629,29 @@ def getlogin():
     return getenv('USER', 'root')
 
 
+class uname_result(tuple):
+    """`os.uname()`: tupla de cinco campos com nomes."""
+
+    _fields = ('sysname', 'nodename', 'release', 'version', 'machine')
+    n_fields = 5
+    n_sequence_fields = 5
+    n_unnamed_fields = 0
+
+    def __new__(cls, sequence):
+        return tuple.__new__(cls, tuple(sequence))
+
+    sysname = property(lambda self: self[0])
+    nodename = property(lambda self: self[1])
+    release = property(lambda self: self[2])
+    version = property(lambda self: self[3])
+    machine = property(lambda self: self[4])
+
+    def __repr__(self):
+        return 'posix.uname_result(sysname=%r, nodename=%r, release=%r, version=%r, machine=%r)' % tuple(self)
+
+
 def uname():
-    return ('Linux', 'localhost', '6.12.0', '#1 SMP', 'x86_64')
+    return uname_result(('Linux', 'localhost', '6.12.0', '#1 SMP', 'x86_64'))
 
 
 def kill(pid, sig):

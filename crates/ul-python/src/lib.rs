@@ -320,7 +320,7 @@ fn run_module(name: &str, rest: &[Vec<u8>], program: &str) -> i32 {
                 let package = parts[..parts.len() - 1].join(".");
                 (format!("{root}/{as_path}.py"), src.to_string(), package)
             } else {
-                write_stderr(&format!("{program}: No module named {name}\n"));
+                write_stderr(&format!("/usr/bin/python3: No module named {name}\n"));
                 return 1;
             }
         }
