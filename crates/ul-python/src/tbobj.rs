@@ -226,6 +226,18 @@ impl ExtObject for CodeObject {
                         strs(v)
                     }
                     "co_flags_varkw" => Value::Bool(c.kwarg.is_some()),
+                    // As constantes do código, com os corpos de funções e lambdas aninhados como `code`.
+                    "co_consts" => {
+                        let mut v: Vec<Value> = c.consts.clone();
+                        for f in &c.functions {
+                            v.push(Value::Ext(Rc::new(CodeObject {
+                                name: f.name.clone(),
+                                filename: self.filename.clone(),
+                                code: Some(f.clone()),
+                            })));
+                        }
+                        Value::tuple(v)
+                    }
                     "co_kinds" => {
                         let mut k = Vec::new();
                         match (c.is_async, c.is_generator) {

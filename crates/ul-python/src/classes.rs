@@ -567,9 +567,11 @@ impl Vm {
         let explicit_meta = kw.iter().position(|(k, _)| k == "metaclass").map(|i| kw.remove(i).1);
         // `__mro_entries__` (`class Box(Generic[T])`): o objeto-base escolhe as bases reais.
         let mut expanded: Vec<Value> = Vec::with_capacity(bases.len());
+        let mut any_entries = false;
         for b in &bases {
             if let Value::Instance(i) = b {
                 if let Some(Value::Function(f)) = i.class.lookup("__mro_entries__") {
+                    any_entries = true;
                     match self.call_function(&f, vec![b.clone(), Value::tuple(bases.clone())], Vec::new())? {
                         Value::Tuple(t) => expanded.extend(t.iter().cloned()),
                         _ => return Err(type_error("__mro_entries__ must return a tuple")),
@@ -577,12 +579,24 @@ impl Vm {
                     continue;
                 }
             }
+            // `class X(list[Any])`: o `types.GenericAlias` entra na MRO como a sua origem.
+            if let Value::Ext(e) = b {
+                if let Some(g) = e.as_any().and_then(|a| a.downcast_ref::<crate::generic::GenericAlias>()) {
+                    any_entries = true;
+                    expanded.push(g.origin.clone());
+                    continue;
+                }
+            }
             expanded.push(b.clone());
         }
+        let orig_bases = (expanded.len() != bases.len() || any_entries).then(|| Value::tuple(bases.clone()));
         let bases = expanded;
         let class_env = Env::new(env.capture(), true, false);
         self.exec(body, &class_env)?;
         let mut ns = namespace_of(&class_env);
+        if let Some(orig) = orig_bases {
+            ns.push(("__orig_bases__".to_string(), orig));
+        }
         if !ns.iter().any(|(k, _)| k == "__module__") {
             let module = self.globals.borrow().get("__name__").cloned().unwrap_or_else(|| Value::str("__main__"));
             ns.insert(0, ("__module__".to_string(), module));

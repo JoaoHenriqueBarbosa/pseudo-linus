@@ -2,6 +2,7 @@
 
 import _os
 from abc import ABCMeta as _ABCMeta
+from types import GenericAlias as _GenericAlias
 import posixpath as path
 from posixpath import curdir, pardir, sep, pathsep, defpath, extsep, altsep, devnull
 
@@ -35,6 +36,8 @@ class PathLike(metaclass=_ABCMeta):
     @classmethod
     def __subclasshook__(cls, subclass):
         return hasattr(subclass, '__fspath__')
+
+    __class_getitem__ = classmethod(_GenericAlias)
 
 
 def _get_exports_list(module):

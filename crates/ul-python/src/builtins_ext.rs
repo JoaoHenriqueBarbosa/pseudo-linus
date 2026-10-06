@@ -389,6 +389,8 @@ fn source_text(vm: &mut Vm, who: &str, v: &Value) -> PyResult<String> {
 struct CodeSource {
     src: String,
     filename: String,
+    /// O módulo compilado, para os atributos `co_*` que olham dentro do código.
+    code: Rc<crate::compile::Code>,
 }
 
 impl crate::object::ExtObject for CodeSource {
@@ -398,13 +400,25 @@ impl crate::object::ExtObject for CodeSource {
     fn repr(&self) -> String {
         format!("<code object <module> at 0x7f0000000000, file \"{}\", line 1>", self.filename)
     }
-    fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
+    fn getattr(&self, vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
         Some(Ok(match name {
             "_source" => Value::str(self.src.clone()),
             "co_filename" => Value::str(self.filename.clone()),
             "co_name" => Value::str("<module>".to_string()),
             "co_flags" => Value::Int(0x40),
             "co_firstlineno" => Value::Int(1),
+            "co_consts" | "co_names" => {
+                let inner = crate::tbobj::function_code(&self.code, &self.filename);
+                let Value::Ext(e) = &inner else { return None };
+                let v = e.getattr(vm, name)?;
+                // O `eval` compila `__eval_value__ = (expr)`: o nome auxiliar não é do código do usuário.
+                return Some(v.map(|v| match (&v, name) {
+                    (Value::Tuple(t), "co_names") => Value::tuple(
+                        t.iter().filter(|n| !matches!(n, Value::Str(s) if s.as_str() == "__eval_value__")).cloned().collect(),
+                    ),
+                    _ => v,
+                }));
+            }
             _ => return None,
         }))
     }
@@ -461,12 +475,12 @@ fn b_compile(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
             crate::vm::syntax_exc(e, &filename, &src)
         }
     })?;
-    crate::compile::compile_module(&module).map_err(|e| exc("SyntaxError", e.msg))?;
+    let code = Rc::new(crate::compile::compile_module(&module).map_err(|e| exc("SyntaxError", e.msg))?);
     // Modo `single`: uma expressão solta passa pelo `sys.displayhook` (é o que o doctest espera).
     let src = if mode == "single" && crate::parser::parse_module(&format!("__eval_value__ = ({})\n", src.trim())).is_ok() {
         format!("import sys as __single_sys__\n__single_sys__.displayhook({})\n", src.trim())
     } else {
         src
     };
-    Ok(Value::Ext(Rc::new(CodeSource { src, filename })))
+    Ok(Value::Ext(Rc::new(CodeSource { src, filename, code })))
 }

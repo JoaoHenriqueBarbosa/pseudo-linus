@@ -23,7 +23,11 @@ fn type_repr(v: &Value) -> String {
         Value::Builtin("Ellipsis") => "...".to_string(),
         Value::Builtin(n) => (*n).to_string(),
         Value::NativeFn(f) => f.name.to_string(),
-        Value::Class(c) => format!("__main__.{}", c.name),
+        Value::Class(c) => match c.lookup("__module__") {
+            Some(Value::Str(m)) if m.as_str() != "builtins" => format!("{}.{}", m.as_str(), c.name),
+            Some(Value::Str(_)) => c.name.to_string(),
+            _ => format!("__main__.{}", c.name),
+        },
         Value::List(items) => {
             let parts: Vec<String> = items.borrow().iter().map(type_repr).collect();
             format!("[{}]", parts.join(", "))
@@ -34,7 +38,7 @@ fn type_repr(v: &Value) -> String {
 
 /// `origem[args]`.
 pub struct GenericAlias {
-    origin: Value,
+    pub(crate) origin: Value,
     args: Vec<Value>,
 }
 
@@ -51,6 +55,9 @@ impl GenericAlias {
 impl ExtObject for GenericAlias {
     fn type_name(&self) -> &'static str {
         "GenericAlias"
+    }
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
     }
     fn repr(&self) -> String {
         let parts: Vec<String> = self.args.iter().map(type_repr).collect();
@@ -160,6 +167,10 @@ pub fn class_getitem(vm: &mut Vm, container: &Value, key: &Value) -> Option<PyRe
                     Some(crate::object::Descriptor::Class(Value::Function(f)))
                     | Some(crate::object::Descriptor::Static(Value::Function(f))) => {
                         Some(vm.call_function(&f, vec![container.clone(), key.clone()], Vec::new()))
+                    }
+                    // `__class_getitem__ = classmethod(GenericAlias)`, o idioma da stdlib.
+                    Some(crate::object::Descriptor::Class(Value::Class(g))) if g.name == "GenericAlias" => {
+                        Some(Ok(GenericAlias::make(container.clone(), key)))
                     }
                     _ => None,
                 },

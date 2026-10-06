@@ -13,10 +13,15 @@ fn out(src: &str) -> String {
 #[test]
 fn every_embedded_module_imports() {
     // `unittest.__main__` roda o `unittest.main()` ao ser importado: só vale como `python3 -m unittest`.
-    // `this` imprime o Zen do Python ao ser importado.
-    const NEEDS_PROCESS: &[&str] = &["unittest.__main__", "this"];
+    // `this` imprime o Zen do Python ao ser importado. `PIL.ImageShow` procura os visualizadores no
+    // `PATH` (`shutil.which`) ao ser importado; `PIL.__main__` e `PIL.report` imprimem o relatório
+    // do `python3 -m PIL`.
+    const NEEDS_PROCESS: &[&str] = &["unittest.__main__", "this", "PIL.ImageShow", "PIL.__main__", "PIL.report"];
+    // `tkinter` precisa do Tk nativo (`_tkinter`), que o sandbox não tem: o oráculo instala o
+    // `python3-tk` e importa, então este é um buraco conhecido do nosso lado, não do oráculo.
+    const MISSING_DEPS: &[&str] = &["PIL._tkinter_finder"];
     for name in crate::modules::pysrc::names() {
-        if NEEDS_PROCESS.contains(&name) {
+        if NEEDS_PROCESS.contains(&name) || MISSING_DEPS.contains(&name) {
             continue;
         }
         let o = run_source(&format!("import {name}\nprint('ok')"));

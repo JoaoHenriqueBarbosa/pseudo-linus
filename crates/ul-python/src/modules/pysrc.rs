@@ -317,6 +317,105 @@ const SOURCES: &[(&str, &str)] = &[
     ("unittest.signals", include_str!("py/unittest_signals.py")),
     ("unittest.suite", include_str!("py/unittest_suite.py")),
     ("unittest.util", include_str!("py/unittest_util.py")),
+    // olefile 0.47 (o `python3-olefile` do Debian 13), que o Pillow usa para FPX e MIC.
+    ("olefile", include_str!("py/olefile/__init__.py")),
+    ("olefile.olefile", include_str!("py/olefile/olefile.py")),
+    // Pillow 11.1.0 (o `python3-pil` do Debian 13), camada Python sem alterações; o núcleo C
+    // (`PIL._imaging`) é o módulo nativo `imaging`.
+    ("PIL", include_str!("py/PIL/__init__.py")),
+    ("PIL._version", include_str!("py/PIL/_version.py")),
+    ("PIL._binary", include_str!("py/PIL/_binary.py")),
+    ("PIL._deprecate", include_str!("py/PIL/_deprecate.py")),
+    ("PIL._typing", include_str!("py/PIL/_typing.py")),
+    ("PIL._util", include_str!("py/PIL/_util.py")),
+    ("PIL.ExifTags", include_str!("py/PIL/ExifTags.py")),
+    ("PIL.Image", include_str!("py/PIL/Image.py")),
+    ("PIL.ImageMode", include_str!("py/PIL/ImageMode.py")),
+    ("PIL.ImageColor", include_str!("py/PIL/ImageColor.py")),
+    ("PIL.ImageDraw", include_str!("py/PIL/ImageDraw.py")),
+    ("PIL.ImageFile", include_str!("py/PIL/ImageFile.py")),
+    ("PIL.ImagePalette", include_str!("py/PIL/ImagePalette.py")),
+    ("PIL.ImageChops", include_str!("py/PIL/ImageChops.py")),
+    ("PIL.ImageSequence", include_str!("py/PIL/ImageSequence.py")),
+    ("PIL.PngImagePlugin", include_str!("py/PIL/PngImagePlugin.py")),
+    ("PIL.TiffTags", include_str!("py/PIL/TiffTags.py")),
+    ("PIL.TiffImagePlugin", include_str!("py/PIL/TiffImagePlugin.py")),
+    ("PIL.ImageFont", include_str!("py/PIL/ImageFont.py")),
+    ("PIL.ImageOps", include_str!("py/PIL/ImageOps.py")),
+    ("PIL.ImageFilter", include_str!("py/PIL/ImageFilter.py")),
+    ("PIL.ImageStat", include_str!("py/PIL/ImageStat.py")),
+    ("PIL.ImageEnhance", include_str!("py/PIL/ImageEnhance.py")),
+    ("PIL.ImageMath", include_str!("py/PIL/ImageMath.py")),
+    ("PIL.JpegImagePlugin", include_str!("py/PIL/JpegImagePlugin.py")),
+    ("PIL.JpegPresets", include_str!("py/PIL/JpegPresets.py")),
+    ("PIL.BmpImagePlugin", include_str!("py/PIL/BmpImagePlugin.py")),
+    ("PIL.GifImagePlugin", include_str!("py/PIL/GifImagePlugin.py")),
+    ("PIL.PpmImagePlugin", include_str!("py/PIL/PpmImagePlugin.py")),
+    ("PIL.features", include_str!("py/PIL/features.py")),
+    ("PIL.BdfFontFile", include_str!("py/PIL/BdfFontFile.py")),
+    ("PIL.BlpImagePlugin", include_str!("py/PIL/BlpImagePlugin.py")),
+    ("PIL.BufrStubImagePlugin", include_str!("py/PIL/BufrStubImagePlugin.py")),
+    ("PIL.ContainerIO", include_str!("py/PIL/ContainerIO.py")),
+    ("PIL.CurImagePlugin", include_str!("py/PIL/CurImagePlugin.py")),
+    ("PIL.DcxImagePlugin", include_str!("py/PIL/DcxImagePlugin.py")),
+    ("PIL.DdsImagePlugin", include_str!("py/PIL/DdsImagePlugin.py")),
+    ("PIL.EpsImagePlugin", include_str!("py/PIL/EpsImagePlugin.py")),
+    ("PIL.FitsImagePlugin", include_str!("py/PIL/FitsImagePlugin.py")),
+    ("PIL.FliImagePlugin", include_str!("py/PIL/FliImagePlugin.py")),
+    ("PIL.FontFile", include_str!("py/PIL/FontFile.py")),
+    ("PIL.FpxImagePlugin", include_str!("py/PIL/FpxImagePlugin.py")),
+    ("PIL.FtexImagePlugin", include_str!("py/PIL/FtexImagePlugin.py")),
+    ("PIL.GbrImagePlugin", include_str!("py/PIL/GbrImagePlugin.py")),
+    ("PIL.GdImageFile", include_str!("py/PIL/GdImageFile.py")),
+    ("PIL.GimpGradientFile", include_str!("py/PIL/GimpGradientFile.py")),
+    ("PIL.GimpPaletteFile", include_str!("py/PIL/GimpPaletteFile.py")),
+    ("PIL.GribStubImagePlugin", include_str!("py/PIL/GribStubImagePlugin.py")),
+    ("PIL.Hdf5StubImagePlugin", include_str!("py/PIL/Hdf5StubImagePlugin.py")),
+    ("PIL.IcnsImagePlugin", include_str!("py/PIL/IcnsImagePlugin.py")),
+    ("PIL.IcoImagePlugin", include_str!("py/PIL/IcoImagePlugin.py")),
+    ("PIL.ImageCms", include_str!("py/PIL/ImageCms.py")),
+    ("PIL.ImageDraw2", include_str!("py/PIL/ImageDraw2.py")),
+    ("PIL.ImageGrab", include_str!("py/PIL/ImageGrab.py")),
+    ("PIL.ImageMorph", include_str!("py/PIL/ImageMorph.py")),
+    ("PIL.ImagePath", include_str!("py/PIL/ImagePath.py")),
+    ("PIL.ImageQt", include_str!("py/PIL/ImageQt.py")),
+    ("PIL.ImageShow", include_str!("py/PIL/ImageShow.py")),
+    ("PIL.ImageTransform", include_str!("py/PIL/ImageTransform.py")),
+    ("PIL.ImageWin", include_str!("py/PIL/ImageWin.py")),
+    ("PIL.ImImagePlugin", include_str!("py/PIL/ImImagePlugin.py")),
+    ("PIL.ImtImagePlugin", include_str!("py/PIL/ImtImagePlugin.py")),
+    ("PIL.IptcImagePlugin", include_str!("py/PIL/IptcImagePlugin.py")),
+    ("PIL.Jpeg2KImagePlugin", include_str!("py/PIL/Jpeg2KImagePlugin.py")),
+    ("PIL.__main__", include_str!("py/PIL/__main__.py")),
+    ("PIL.McIdasImagePlugin", include_str!("py/PIL/McIdasImagePlugin.py")),
+    ("PIL.MicImagePlugin", include_str!("py/PIL/MicImagePlugin.py")),
+    ("PIL.MpegImagePlugin", include_str!("py/PIL/MpegImagePlugin.py")),
+    ("PIL.MpoImagePlugin", include_str!("py/PIL/MpoImagePlugin.py")),
+    ("PIL.MspImagePlugin", include_str!("py/PIL/MspImagePlugin.py")),
+    ("PIL.PaletteFile", include_str!("py/PIL/PaletteFile.py")),
+    ("PIL.PalmImagePlugin", include_str!("py/PIL/PalmImagePlugin.py")),
+    ("PIL.PcdImagePlugin", include_str!("py/PIL/PcdImagePlugin.py")),
+    ("PIL.PcfFontFile", include_str!("py/PIL/PcfFontFile.py")),
+    ("PIL.PcxImagePlugin", include_str!("py/PIL/PcxImagePlugin.py")),
+    ("PIL.PdfImagePlugin", include_str!("py/PIL/PdfImagePlugin.py")),
+    ("PIL.PdfParser", include_str!("py/PIL/PdfParser.py")),
+    ("PIL.PixarImagePlugin", include_str!("py/PIL/PixarImagePlugin.py")),
+    ("PIL.PsdImagePlugin", include_str!("py/PIL/PsdImagePlugin.py")),
+    ("PIL.PSDraw", include_str!("py/PIL/PSDraw.py")),
+    ("PIL.QoiImagePlugin", include_str!("py/PIL/QoiImagePlugin.py")),
+    ("PIL.report", include_str!("py/PIL/report.py")),
+    ("PIL.SgiImagePlugin", include_str!("py/PIL/SgiImagePlugin.py")),
+    ("PIL.SpiderImagePlugin", include_str!("py/PIL/SpiderImagePlugin.py")),
+    ("PIL.SunImagePlugin", include_str!("py/PIL/SunImagePlugin.py")),
+    ("PIL.TarIO", include_str!("py/PIL/TarIO.py")),
+    ("PIL.TgaImagePlugin", include_str!("py/PIL/TgaImagePlugin.py")),
+    ("PIL._tkinter_finder", include_str!("py/PIL/_tkinter_finder.py")),
+    ("PIL.WalImageFile", include_str!("py/PIL/WalImageFile.py")),
+    ("PIL.WebPImagePlugin", include_str!("py/PIL/WebPImagePlugin.py")),
+    ("PIL.WmfImagePlugin", include_str!("py/PIL/WmfImagePlugin.py")),
+    ("PIL.XbmImagePlugin", include_str!("py/PIL/XbmImagePlugin.py")),
+    ("PIL.XpmImagePlugin", include_str!("py/PIL/XpmImagePlugin.py")),
+    ("PIL.XVThumbImagePlugin", include_str!("py/PIL/XVThumbImagePlugin.py")),
 ];
 
 /// Nomes de módulo que são apelidos de outro.
@@ -325,6 +424,27 @@ fn alias(name: &str) -> &str {
         "os.path" => "posixpath",
         other => other,
     }
+}
+
+thread_local! {
+    /// A exceção do último módulo embutido que falhou ao rodar.
+    static IMPORT_ERROR: RefCell<Option<crate::vm::PyException>> = const { RefCell::new(None) };
+}
+
+/// Recolhe a exceção deixada por um `import` que devolveu `None` porque o módulo falhou ao rodar.
+pub fn take_error() -> Option<crate::vm::PyException> {
+    IMPORT_ERROR.with(|c| c.borrow_mut().take())
+}
+
+/// Diretório de instalação de um módulo embutido: o Pillow do Debian mora em dist-packages, fora
+/// da stdlib.
+fn embedded_base(real: &str) -> &'static str {
+    let top = real.split('.').next().unwrap_or(real);
+    if matches!(top, "PIL" | "olefile") { "/usr/lib/python3/dist-packages" } else { "/usr/lib/python3.13" }
+}
+
+fn embedded_dir(real: &str) -> String {
+    format!("{}/{}", embedded_base(real), real.replace('.', "/"))
 }
 
 /// O módulo em Python embutido chamado `name`, construído na primeira vez.
@@ -347,16 +467,17 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         g.insert("__name__".into(), Value::str(real));
         g.insert("__doc__".into(), Value::None);
         let as_path = real.replace('.', "/");
+        let base = embedded_base(real);
         let file = if crate::modules::is_embedded_package(real) {
-            format!("/usr/lib/python3.13/{as_path}/__init__.py")
+            format!("{base}/{as_path}/__init__.py")
         } else {
-            format!("/usr/lib/python3.13/{as_path}.py")
+            format!("{base}/{as_path}.py")
         };
         g.insert("__file__".into(), Value::str(file));
         // Pacote: `__package__` é ele mesmo e `__path__` aponta o diretório dele; módulo: o pacote pai.
         if crate::modules::is_embedded_package(real) {
             g.insert("__package__".into(), Value::str(real));
-            g.insert("__path__".into(), Value::list(vec![Value::str(format!("/usr/lib/python3.13/{as_path}"))]));
+            g.insert("__path__".into(), Value::list(vec![Value::str(format!("{base}/{as_path}"))]));
         } else {
             g.insert("__package__".into(), Value::str(real.rsplit_once('.').map_or("", |(p, _)| p)));
         }
@@ -368,14 +489,18 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     let mut code = crate::compile::compile_module(&parsed)
         .unwrap_or_else(|e| panic!("módulo embutido {real}: {}: {}", e.kind, e.msg));
     let filename = if crate::modules::is_embedded_package(real) {
-        format!("/usr/lib/python3.13/{}/__init__.py", real.replace('.', "/"))
+        format!("{}/__init__.py", embedded_dir(real))
     } else {
-        format!("/usr/lib/python3.13/{}.py", real.replace('.', "/"))
+        format!("{}.py", embedded_dir(real))
     };
     code.set_filename(&filename);
     crate::vm::register_source(&filename, src);
     if let Err(e) = inner.run(&Rc::new(code)) {
-        panic!("módulo embutido {real}:\n{}", crate::vm::format_traceback_in(&e, real, Some(src)));
+        // Como no CPython, o módulo que falhou ao rodar sai de `sys.modules` e a exceção sobe para
+        // quem importou (o `import_checked` a recolhe com `take_error`).
+        vm.modules.borrow_mut().remove(real);
+        IMPORT_ERROR.with(|c| *c.borrow_mut() = Some(e.exc));
+        return None;
     }
     let mut attrs = module.attrs.borrow_mut();
     for (k, v) in globals.borrow().iter() {

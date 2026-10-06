@@ -174,25 +174,19 @@ fn int_operands(sym: &str, a: &Value, b: &Value) -> PyResult<(i64, i64, bool)> {
     }
 }
 
-fn bitop(sym: &str, a: &Value, b: &Value, f: fn(i64, i64) -> i64) -> PyResult<Value> {
-    let (x, y, both_bool) = int_operands(sym, a, b)?;
-    let r = f(x, y);
-    Ok(if both_bool { Value::Bool(r != 0) } else { Value::Int(r) })
-}
-
 fn op_and(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let (a, b) = pair("and_", &args, &kw)?;
-    bitop("&", a, b, |x, y| x & y)
+    py_binary("&", a, b)
 }
 
 fn op_or(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let (a, b) = pair("or_", &args, &kw)?;
-    bitop("|", a, b, |x, y| x | y)
+    py_binary("|", a, b)
 }
 
 fn op_xor(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let (a, b) = pair("xor", &args, &kw)?;
-    bitop("^", a, b, |x, y| x ^ y)
+    py_binary("^", a, b)
 }
 
 fn op_lshift(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {

@@ -758,6 +758,12 @@ pub fn py_binary(sym: &str, a: &Value, b: &Value) -> PyResult<Value> {
         "//" => Operator::FloorDiv,
         "%" => Operator::Mod,
         "**" => Operator::Pow,
+        "&" => Operator::BitAnd,
+        "|" => Operator::BitOr,
+        "^" => Operator::BitXor,
+        "<<" => Operator::LShift,
+        ">>" => Operator::RShift,
+        "@" => Operator::MatMult,
         _ => return Err(type_error(format!("unsupported operator {sym}"))),
     };
     binary(op, a, b, false)
@@ -2319,9 +2325,16 @@ impl Vm {
                                 || crate::modules::is_embedded_package(m.name)
                             {
                                 let full = format!("{module}.{name}");
-                                if let Ok(sub) = crate::modules::import_checked(self, &full) {
-                                    stack.push(Slot::Val(Value::Module(sub)));
-                                    return Ok(None);
+                                match crate::modules::import_checked(self, &full) {
+                                    Ok(sub) => {
+                                        stack.push(Slot::Val(Value::Module(sub)));
+                                        return Ok(None);
+                                    }
+                                    // O submódulo existe mas falhou ao rodar: a exceção dele sobe.
+                                    Err(e) if !(e.kind == "ModuleNotFoundError" && e.msg == format!("No module named '{full}'")) => {
+                                        return Err(e);
+                                    }
+                                    Err(_) => {}
                                 }
                             }
                         }
@@ -3964,6 +3977,13 @@ pub(crate) fn store_subscript(container: &Value, index: &Value, value: Value) ->
             }
         }
         return Err(type_error(format!("'{}' object does not support item assignment", container.type_name())));
+    }
+    if let Value::Ext(e) = container {
+        if e.methods().contains(&"__setitem__") {
+            if let Some(mut vm) = current() {
+                return e.call_method(&mut vm, "__setitem__", vec![index.clone(), value], Vec::new()).map(|_| ());
+            }
+        }
     }
     if let (Value::List(l), Value::Slice(s)) = (container, index) {
         let new_items = collect(&value)?;

@@ -42,6 +42,19 @@ ModuleType = type(sys)
 NoneType = type(None)
 EllipsisType = type(Ellipsis)
 NotImplementedType = type(NotImplemented)
+
+
+class PyCapsule:
+    """O tipo das cápsulas de C (`types.CapsuleType`); aqui nenhum módulo nativo cria uma."""
+
+    def __init__(self, *args, **kwargs):
+        raise TypeError("cannot create 'PyCapsule' instances")
+
+
+PyCapsule.__module__ = 'builtins'
+CapsuleType = PyCapsule
+del PyCapsule
+
 class MappingProxyType:
     """Visão somente leitura de um mapeamento."""
 

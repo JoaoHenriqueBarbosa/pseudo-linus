@@ -455,6 +455,17 @@ class ByteString(Sequence):
     _methods_ = ()
 
 
+class Buffer(metaclass=_Builtins):
+    """Objetos com o protocolo de buffer (PEP 688)."""
+
+    _builtins_ = (bytes, bytearray, memoryview)
+    _methods_ = ('__buffer__',)
+
+    @abstractmethod
+    def __buffer__(self, flags, /):
+        raise NotImplementedError
+
+
 class MappingView(Sized):
     _builtins_ = ()
     _methods_ = ()

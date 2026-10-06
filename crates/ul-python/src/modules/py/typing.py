@@ -541,8 +541,8 @@ class TypedDict(metaclass=_TypedDictMeta):
     pass
 
 
-class IO:
-    pass
+class IO(Generic):
+    __slots__ = ()
 
 
 class TextIO(IO):

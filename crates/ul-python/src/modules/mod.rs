@@ -14,6 +14,7 @@ pub mod builtinsmod;
 pub mod csv;
 pub mod hashlib;
 pub mod html;
+pub mod imaging;
 pub mod json;
 pub mod math;
 pub mod operator;
@@ -92,6 +93,9 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         "_operator" => operator::build(vm),
         "_os" => osnative::build(vm),
         "_zlib" => zlibnative::build(vm),
+        "PIL._imaging" => imaging::build(vm),
+        "PIL._imagingmath" => imaging::math::build_math(vm),
+        "PIL._imagingmorph" => imaging::math::build_morph(vm),
         "_archive" => archivenative::build(vm),
         "_sqlite3" => sqlitenative::build(vm),
         "_ast_native" => astnative::build(vm),
@@ -126,7 +130,10 @@ pub fn import_checked(vm: &mut Vm, name: &str) -> PyResult<Rc<ModuleObj>> {
     if let Some(m) = userimport::load(vm, name)? {
         return Ok(m);
     }
-    import(vm, name).ok_or_else(|| exc("ModuleNotFoundError", format!("No module named '{name}'")))
+    match import(vm, name) {
+        Some(m) => Ok(m),
+        None => Err(pysrc::take_error().unwrap_or_else(|| exc("ModuleNotFoundError", format!("No module named '{name}'")))),
+    }
 }
 
 /// O nome absoluto de `from <level pontos><rel> import ...` a partir do pacote das globais atuais.
@@ -180,6 +187,7 @@ pub fn new_module(vm: &mut Vm, args: Vec<Value>, kwargs: Vec<(String, Value)>) -
 const NATIVE_MODULES: &[&str] = &[
     "_sys", "_csvimpl", "_re", "math", "_base64", "binascii", "builtins", "hashlib", "html", "textwrap",
     "_struct", "unicodedata", "_operator", "_os", "_zlib", "_archive", "_sqlite3", "_ast_native", "_weakref", "_mt", "_json", "_prof",
+    "PIL._imaging", "PIL._imagingmath", "PIL._imagingmorph",
 ];
 
 /// `name` é um módulo que o interpretador traz embutido (nativo ou em Python).
