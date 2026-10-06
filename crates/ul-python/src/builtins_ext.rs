@@ -3,7 +3,6 @@
 
 use std::rc::Rc;
 
-use sysabi::{sys, Fd};
 
 use crate::native_util::{bind, want_str};
 use crate::object::{Dict, Kw, NativeFnPtr, Value};
@@ -162,29 +161,18 @@ fn b_input(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         vm.push_stdout(text.as_bytes());
         vm.flush_stdout();
     }
-    let mut line: Vec<u8> = Vec::new();
-    let mut byte = [0u8; 1];
-    loop {
-        match sys::read(Fd::STDIN, &mut byte) {
-            Ok(0) => {
-                if line.is_empty() {
-                    return Err(exc("EOFError", "EOF when reading a line"));
-                }
-                break;
-            }
-            Ok(_) => {
-                if byte[0] == b'\n' {
-                    break;
-                }
-                line.push(byte[0]);
-            }
-            Err(e) => return Err(exc("OSError", format!("[Errno {}] {}", e.0, e.message()))),
-        }
-    }
-    if line.last() == Some(&b'\r') {
+    let stdin = vm.std_files[0].clone();
+    let line = match &mut *stdin.borrow_mut() {
+        crate::object::Native::File(f) => crate::stdin::text_line(f),
+        _ => None,
+    };
+    let Some(mut line) = line else {
+        return Err(exc("EOFError", "EOF when reading a line"));
+    };
+    if line.ends_with('\n') {
         line.pop();
     }
-    Ok(Value::str(String::from_utf8_lossy(&line).into_owned()))
+    Ok(Value::str(line))
 }
 
 fn b_exit(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {

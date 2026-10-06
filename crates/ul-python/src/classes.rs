@@ -410,6 +410,13 @@ impl Vm {
                     .and_then(|m| m.attrs.borrow().get(name).cloned())
                     .ok_or_else(|| exc("NameError", format!("name '{name}' is not defined")))
             }
+            // `__builtins__`: o módulo `builtins` (que também aceita `__builtins__['nome']`).
+            "__builtins__" => {
+                let mut vm = self.clone();
+                crate::modules::import(&mut vm, "builtins")
+                    .map(Value::Module)
+                    .ok_or_else(|| exc("NameError", format!("name '{name}' is not defined")))
+            }
             // Auxiliares da instrução `match` (`modules/py/_match.py`).
             n if n.starts_with("_match_") => {
                 let mut vm = self.clone();

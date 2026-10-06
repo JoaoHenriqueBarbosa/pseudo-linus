@@ -30,38 +30,21 @@ impl StdBuffer {
         Ok(())
     }
 
-    /// O que falta ler, em bytes, e deixa o arquivo sem o que foi consumido (`take`: quantos bytes).
-    fn read_bytes(&self, take: Option<usize>) -> PyResult<Vec<u8>> {
+    /// Bytes exatos do stdin: `take` deles (bloqueia até juntar ou chegar ao fim do arquivo) ou o que falta.
+    fn read_bytes(&self, take: Option<usize>, available_only: bool) -> PyResult<Vec<u8>> {
         if self.kind != FileKind::Stdin {
             return Err(exc("UnsupportedOperation", "read"));
         }
-        let mut all = Vec::new();
-        while let Some(l) = crate::vm::file_readline_native(&self.file)? {
-            all.extend_from_slice(l.as_bytes());
-        }
-        match take {
-            Some(n) if n < all.len() => {
-                let rest = String::from_utf8_lossy(&all[n..]).into_owned();
-                if let Native::File(f) = &mut *self.file.borrow_mut() {
-                    f.lines.truncate(f.pos);
-                    f.lines.push(rest);
-                }
-                all.truncate(n);
-                // A linha devolvida recomeça na posição anterior.
-                if let Native::File(f) = &mut *self.file.borrow_mut() {
-                    f.pos = f.lines.len() - 1;
-                }
-                Ok(all)
-            }
-            _ => Ok(all),
-        }
+        let Native::File(f) = &mut *self.file.borrow_mut() else { return Ok(Vec::new()) };
+        Ok(if available_only { crate::stdin::bytes_read1(f, take) } else { crate::stdin::bytes_read(f, take) })
     }
 
     fn read_line(&self) -> PyResult<Vec<u8>> {
         if self.kind != FileKind::Stdin {
             return Err(exc("UnsupportedOperation", "read"));
         }
-        Ok(crate::vm::file_readline_native(&self.file)?.map(String::into_bytes).unwrap_or_default())
+        let Native::File(f) = &mut *self.file.borrow_mut() else { return Ok(Vec::new()) };
+        Ok(crate::stdin::bytes_line(f))
     }
 }
 
@@ -133,7 +116,7 @@ impl ExtObject for StdBuffer {
                     Some(Value::Int(n)) if *n >= 0 => Some(*n as usize),
                     _ => None,
                 };
-                Ok(Value::bytes(self.read_bytes(take)?))
+                Ok(Value::bytes(self.read_bytes(take, name == "read1")?))
             }
             "readline" => Ok(Value::bytes(self.read_line()?)),
             "readlines" => {

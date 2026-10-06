@@ -686,6 +686,8 @@ impl Vm {
                 loaded: !matches!(kind, FileKind::Stdin),
                 closed: false,
                 name: name.to_string(),
+                raw: Vec::new(),
+                raw_eof: false,
             })))
         };
         let vm = Vm {
@@ -2677,6 +2679,16 @@ impl Vm {
                 Ok(Value::None)
             }
             "read" => {
+                // `read(n)` do stdin devolve até `n` caracteres, sem puxar o resto do pipe.
+                let limit = match args.first() {
+                    Some(Value::Int(k)) if *k >= 0 => Some(*k as usize),
+                    _ => None,
+                };
+                if let (Some(k), Native::File(f)) = (limit, &mut *n.borrow_mut()) {
+                    if f.kind == FileKind::Stdin && !f.closed {
+                        return Ok(Value::str(crate::stdin::text_chars(f, k)));
+                    }
+                }
                 let mut out = String::new();
                 while let Some(l) = file_readline(n)? {
                     out.push_str(&l);
@@ -2846,10 +2858,9 @@ fn file_readline(n: &Rc<RefCell<Native>>) -> PyResult<Option<String>> {
     if f.closed {
         return Err(exc("ValueError", "I/O operation on closed file."));
     }
-    if !f.loaded {
-        f.loaded = true;
-        let bytes = sysabi::sys::read_to_end(sysabi::Fd::STDIN).unwrap_or_default();
-        f.lines = split_lines(&String::from_utf8_lossy(&bytes), false);
+    if f.kind == FileKind::Stdin {
+        // Incremental: um pipe vivo entrega as linhas conforme chegam (ver `stdin.rs`).
+        return Ok(crate::stdin::text_line(f));
     }
     if f.kind == FileKind::Stdout || f.kind == FileKind::Stderr {
         return Err(exc("UnsupportedOperation", "not readable"));
@@ -3414,6 +3425,20 @@ fn subscript(container: &Value, index: &Value) -> PyResult<Value> {
                 value: Some(Value::Exception(Rc::new(ExcObj::new("KeyError", vec![index.clone()])))),
                 tb: Vec::new(),
             }),
+        },
+        // `__builtins__['compile']`: nos módulos importados do CPython ele é o dicionário de `builtins`;
+        // aqui é sempre o módulo, que aceita a mesma consulta por nome.
+        Value::Module(m) if m.name == "builtins" => match index {
+            Value::Str(s) => match current().map(|mut vm| vm.getattr(container, s.as_str())) {
+                Some(Ok(v)) => Ok(v),
+                _ => Err(PyException {
+                    kind: "KeyError",
+                    msg: repr(index),
+                    value: Some(Value::Exception(Rc::new(ExcObj::new("KeyError", vec![index.clone()])))),
+                    tb: Vec::new(),
+                }),
+            },
+            _ => Err(type_error(format!("'{}' object is not subscriptable", container.type_name()))),
         },
         _ => Err(type_error(format!("'{}' object is not subscriptable", container.type_name()))),
     }

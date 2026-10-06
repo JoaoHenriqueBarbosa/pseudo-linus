@@ -235,6 +235,10 @@ pub struct PyFile {
     pub loaded: bool,
     pub closed: bool,
     pub name: String,
+    /// stdin: bytes lidos do descritor 0 e ainda não consumidos (ver `stdin.rs`).
+    pub raw: Vec<u8>,
+    /// stdin: o descritor 0 já devolveu o fim do arquivo.
+    pub raw_eof: bool,
 }
 
 /// Objetos nativos que guardam estado mutável.

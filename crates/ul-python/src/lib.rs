@@ -30,6 +30,7 @@ pub mod native_util;
 pub mod object;
 pub mod parser;
 pub mod stdbuf;
+pub mod stdin;
 pub mod textcodec;
 mod textcodec_tables;
 #[cfg(test)]
