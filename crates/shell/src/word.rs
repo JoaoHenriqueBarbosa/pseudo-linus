@@ -317,6 +317,11 @@ impl WordParser<'_> {
                     let inner = self.parse_double_like(Some(b'"'))?;
                     parts.extend(inner);
                 }
+                b'"' => {
+                    // Corpo de here-doc: a aspa dupla é texto comum.
+                    push_quoted(&mut parts, b"\"");
+                    self.i += 1;
+                }
                 b'\\' => {
                     let next = self.at(1);
                     let special = match next {
@@ -1106,6 +1111,20 @@ mod tests {
             other => panic!("{other:?}"),
         }
         assert!(matches!(&p[3], Part::Quoted(v) if v == b"e"));
+    }
+
+    #[test]
+    fn heredoc_body_keeps_double_quotes_literal() {
+        let p = parse_heredoc("<a href=\"x\">$v</a>\n", 1).expect("parse");
+        let text: Vec<u8> = p
+            .iter()
+            .flat_map(|x| match x {
+                Part::Quoted(v) => v.clone(),
+                _ => Vec::new(),
+            })
+            .collect();
+        assert_eq!(text, b"<a href=\"x\"></a>\n");
+        assert!(p.iter().any(|x| matches!(x, Part::Param(pe) if pe.name == ParamName::Var("v".into()))));
     }
 
     #[test]

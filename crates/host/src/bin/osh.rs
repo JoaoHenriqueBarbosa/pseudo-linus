@@ -92,6 +92,8 @@ struct Remote {
     keep: bool,
     session: Option<String>,
     timeout_ms: u64,
+    /// Diretório inicial da sessão (`--workdir` com `--sandbox`; na criação a sandbox já nasce nele).
+    cwd: Option<String>,
 }
 
 fn client_err(e: ClientError) -> String {
@@ -107,6 +109,9 @@ impl Remote {
 impl Target for Remote {
     fn run(&mut self, command: Option<&str>, argv: Option<&[String]>, stdin: Vec<u8>) -> Result<ExecResult, String> {
         let mut p = json!({ "sandbox_id": self.sandbox, "timeout_ms": self.timeout_ms, "stdin_base64": host::api::b64::encode(&stdin) });
+        if let Some(cwd) = &self.cwd {
+            p["cwd"] = json!(cwd);
+        }
         match (command, argv) {
             (Some(c), _) => p["command"] = json!(c),
             (None, Some(a)) => p["argv"] = json!(a),
@@ -118,7 +123,11 @@ impl Target for Remote {
 
     fn session(&mut self, line: &str) -> Result<ExecResult, String> {
         if self.session.is_none() {
-            let v = self.client.call("session.open", json!({ "sandbox_id": self.sandbox })).map_err(client_err)?;
+            let mut p = json!({ "sandbox_id": self.sandbox });
+            if let Some(cwd) = &self.cwd {
+                p["cwd"] = json!(cwd);
+            }
+            let v = self.client.call("session.open", p).map_err(client_err)?;
             self.session = v["session_id"].as_str().map(str::to_string);
         }
         let p = json!({ "session_id": self.session, "command": line, "timeout_ms": self.timeout_ms });
@@ -248,7 +257,7 @@ fn connect(cli: &Cli, url: &str, timeout_ms: u64) -> Result<Box<dyn Target>, Str
             (v["sandbox_id"].as_str().unwrap_or_default().to_string(), true)
         }
     };
-    Ok(Box::new(Remote { client, sandbox, created, keep: cli.keep, session: None, timeout_ms }))
+    Ok(Box::new(Remote { client, sandbox, created, keep: cli.keep, session: None, timeout_ms, cwd: cli.workdir.clone() }))
 }
 
 fn local(cli: &Cli, timeout: Duration) -> Result<Box<dyn Target>, String> {
