@@ -197,6 +197,46 @@ fn persisted_snapshot_restores_the_whole_tree_after_a_crash() {
     after_meta.clear();
 }
 
+/// O agente vê o erro do bash como no Debian (`bash: line N: ...`), nunca o caminho do arquivo de
+/// controle da sessão; e `return` fora de função falha como no `bash -c`.
+#[test]
+fn session_errors_look_like_bash_dash_c() {
+    let d = Daemon::kernel("");
+    let t = d.user("ana", json!({}));
+    let c = d.client(&t);
+    let sb = sandbox(&c);
+    let s = c.call("session.open", json!({ "sandbox_id": sb })).unwrap()["session_id"].as_str().unwrap().to_string();
+    let exec = |cmd: &str| c.call("session.exec", json!({ "session_id": s, "command": cmd })).unwrap();
+    let r = exec("cd /nope");
+    assert_eq!(r["stderr"], "bash: line 1: cd: /nope: No such file or directory\n", "{r}");
+    let r = exec("true\n\ncd /nope2");
+    assert_eq!(r["stderr"], "bash: line 3: cd: /nope2: No such file or directory\n", "{r}");
+    let r = exec("return 3");
+    assert_eq!(r["stderr"], "bash: line 1: return: can only `return' from a function or sourced script\n", "{r}");
+    let r = exec("echo $0");
+    assert_eq!(r["stdout"], "bash\n", "{r}");
+}
+
+/// Um snapshot de antes da sessão existir, restaurado com a sessão aberta, não a quebra.
+#[test]
+fn session_survives_restoring_a_snapshot_older_than_it() {
+    let d = Daemon::kernel("");
+    let t = d.user("bia", json!({}));
+    let c = d.client(&t);
+    let sb = sandbox(&c);
+    let snap = c.call("snapshot.create", json!({ "sandbox_id": sb, "name": "antes" })).unwrap()["snapshot_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let s = c.call("session.open", json!({ "sandbox_id": sb })).unwrap()["session_id"].as_str().unwrap().to_string();
+    let exec = |cmd: &str| c.call("session.exec", json!({ "session_id": s, "command": cmd })).unwrap();
+    exec("cd /tmp; export KEEP=1");
+    c.call("snapshot.restore", json!({ "sandbox_id": sb, "snapshot_id": snap })).unwrap();
+    let r = exec("pwd; echo $KEEP");
+    assert_eq!(r["exit_code"], 0, "{r}");
+    assert_eq!(r["stdout"], "/tmp\n1\n", "{r}");
+}
+
 #[test]
 fn session_restores_the_whole_shell_state_after_a_reset() {
     let d = Daemon::kernel("");

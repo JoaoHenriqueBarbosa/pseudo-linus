@@ -1,0 +1,22 @@
+[package]
+name = "pl-agent-harness"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Harness mínimo de agente (prana, transporte nativo) com uma única tool, o osh, para testar o sandbox do pseudo-linus com IA real"
+
+# Workspace próprio: o harness depende do prana, que não faz parte do workspace do pseudo-linus.
+[workspace]
+
+[dependencies]
+prana = { path = "../../rust-agent-sdk" }
+host = { path = "../crates/host", default-features = false }
+tokio = { version = "1", features = ["full"] }
+axum = "0.8"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+anyhow = "1"
+tempfile = "3"
+ureq = { version = "3", default-features = false }

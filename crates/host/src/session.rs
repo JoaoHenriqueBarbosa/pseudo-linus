@@ -7,7 +7,7 @@
 //! ```sh
 //! __osh_dir='/run/osh/<sessão>'
 //! while IFS= read -r __osh_id; do
-//!   . "$__osh_dir/$__osh_id.sh" < "$__osh_dir/$__osh_id.in"
+//!   eval "$(< "$__osh_dir/$__osh_id.sh")" < "$__osh_dir/$__osh_id.in"
 //!   __osh_rc=$?
 //!   { printf '%s\0' "$PWD"; env -0; } > "$__osh_dir/$__osh_id.state" 2>/dev/null
 //!   printf '\036OSH-END %s %d\036\n' "$__osh_id" "$__osh_rc"
@@ -16,7 +16,7 @@
 //! ```
 //!
 //! Por comando, o host grava o script e o stdin em arquivos da sandbox, manda o id numa linha e lê os
-//! dois fluxos até achar as sentinelas (o id é aleatório por comando). O `.` roda no próprio shell, então
+//! dois fluxos até achar as sentinelas (o id é aleatório por comando). O `eval` roda no próprio shell, então
 //! o estado fica; o stdin do comando vem do arquivo, então um `cat` não engole o próximo comando; e como
 //! o host só manda um id depois do anterior terminar, o `read` pode ler o pipe em blocos sem problema.
 //!
@@ -90,18 +90,22 @@ impl Shell {
         let restore = format!("{dir}/restore.sh");
         let w = WriteOpts { append: false, exclusive: false, mode: 0o600 };
         sb.write_file(restore.as_bytes(), &state.dump, w)?;
+        // Tudo numa linha só, e o comando entra por `eval` em vez de `.`: assim as mensagens de erro
+        // saem como as do `bash -c "<comando>"` do Debian (`bash: line 1: cd: ...`), sem o caminho do
+        // arquivo de controle, com a linha contada dentro do comando, e `return` fora de função falha
+        // como lá.
         let script = format!(
-            "__osh_dir='{dir}'\n\
-             . \"$__osh_dir/restore.sh\" </dev/null 2>/dev/null\n\
-             __osh_dir='{dir}'\n\
-             while IFS= read -r __osh_id; do\n\
-             . \"$__osh_dir/$__osh_id.sh\" < \"$__osh_dir/$__osh_id.in\"\n\
-             __osh_rc=$?\n\
-             {{ printf '%s\\0' \"$PWD\"; env -0; }} > \"$__osh_dir/$__osh_id.state\" 2>/dev/null\n\
-             {{ declare -p; declare -f; alias; shopt -p; set +o; }} > \"$__osh_dir/$__osh_id.dump\" 2>/dev/null\n\
-             printf '\\036OSH-END %s %d\\036\\n' \"$__osh_id\" \"$__osh_rc\"\n\
-             printf '\\036OSH-END %s\\036\\n' \"$__osh_id\" >&2\n\
-             done\n"
+            "__osh_dir='{dir}'; \
+             . \"$__osh_dir/restore.sh\" </dev/null 2>/dev/null; \
+             __osh_dir='{dir}'; \
+             while IFS= read -r __osh_id; do \
+             eval \"$(< \"$__osh_dir/$__osh_id.sh\")\" < \"$__osh_dir/$__osh_id.in\"; \
+             __osh_rc=$?; \
+             {{ printf '%s\\0' \"$PWD\"; env -0; }} > \"$__osh_dir/$__osh_id.state\" 2>/dev/null; \
+             {{ declare -p; declare -f; alias; shopt -p; set +o; }} > \"$__osh_dir/$__osh_id.dump\" 2>/dev/null; \
+             printf '\\036OSH-END %s %d\\036\\n' \"$__osh_id\" \"$__osh_rc\"; \
+             printf '\\036OSH-END %s\\036\\n' \"$__osh_id\" >&2; \
+             done"
         );
         let cwd = match sb.stat(&state.cwd, true) {
             Ok(st) if st.file_type() == sysabi::FileType::Directory => state.cwd.clone(),
@@ -296,15 +300,20 @@ impl std::fmt::Debug for Session {
     }
 }
 
+/// `/run/osh` e o diretório da sessão, criados se faltarem.
+fn ensure_dir(sb: &dyn Sandbox, dir: &str) -> BResult<()> {
+    fsops::mkdir_p(sb, SESSION_ROOT.as_bytes(), 0o755)?;
+    match sb.mkdir(dir.as_bytes(), 0o700) {
+        Ok(()) => Ok(()),
+        Err(BackendError::Os { errno, .. }) if errno == Errno::EEXIST => Ok(()),
+        Err(e) => Err(e),
+    }
+}
+
 impl Session {
     pub fn open(sb: Arc<dyn Sandbox>, id: &str, state: ShellState, fallback_cwd: &[u8]) -> BResult<Session> {
         let dir = format!("{SESSION_ROOT}/{id}");
-        fsops::mkdir_p(&*sb, SESSION_ROOT.as_bytes(), 0o755)?;
-        match sb.mkdir(dir.as_bytes(), 0o700) {
-            Ok(()) => {}
-            Err(BackendError::Os { errno, .. }) if errno == Errno::EEXIST => {}
-            Err(e) => return Err(e),
-        }
+        ensure_dir(&*sb, &dir)?;
         let shell = Shell::start(&*sb, &dir, &state, fallback_cwd)?;
         Ok(Session {
             sb,
@@ -357,6 +366,9 @@ impl Session {
 
         let cmd_id = crate::ids::random_id("c");
         let base = format!("{}/{cmd_id}", self.dir);
+        // Um `snapshot.restore` de antes da sessão existir volta o disco sem o diretório de controle,
+        // mas o shell segue vivo (o restore não mexe em processos): o diretório é refeito aqui.
+        ensure_dir(&*self.sb, &self.dir)?;
         let w = WriteOpts { append: false, exclusive: false, mode: 0o600 };
         let mut script = command.as_bytes().to_vec();
         script.push(b'\n');
@@ -665,6 +677,19 @@ mod tests {
         let alive = sb.processes().into_iter().filter(|p| p.state != 'Z').count();
         assert_eq!(alive, 0);
         assert!(sb.stat(b"/run/osh/ss_t3", false).is_err());
+    }
+
+    #[test]
+    fn restore_from_before_the_session_keeps_it_working() {
+        let sb = test_sandbox();
+        let snap = sb.snapshot().unwrap();
+        let s = Session::open(sb.clone(), "ss_t5", state(), b"/root").unwrap();
+        s.exec("cd /tmp", b"", limits(), None, &Cancel::new()).unwrap();
+        sb.restore(&snap).unwrap();
+        assert!(sb.stat(b"/run/osh/ss_t5", false).is_err(), "o restore deveria ter levado o diretório");
+        let o = s.exec("pwd", b"", limits(), None, &Cancel::new()).unwrap();
+        assert_eq!(o.exec.exit_code, Some(0));
+        assert_eq!(o.exec.stdout.data, b"/tmp\n");
     }
 
     #[test]
