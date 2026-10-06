@@ -38,6 +38,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("tempfile", include_str!("py/tempfile.py")),
     ("pathlib", include_str!("py/pathlib.py")),
     ("zlib", include_str!("py/zlib.py")),
+    ("gzip", include_str!("py/gzip.py")),
     ("zipfile", include_str!("py/zipfile.py")),
     ("traceback", include_str!("py/traceback.py")),
     ("warnings", include_str!("py/warnings.py")),

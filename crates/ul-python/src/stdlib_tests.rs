@@ -679,3 +679,45 @@ call stack is not deep enough
 "#
     );
 }
+
+#[test]
+fn gzip_module_matches_cpython() {
+    let src = r#"
+import gzip, io
+data = b"hello gzip world\n" * 50 + bytes(range(256))
+for lvl in (1, 6, 9):
+    c = gzip.compress(data, lvl, mtime=0)
+    print(lvl, len(c), c[:10].hex(), c[-8:].hex(), gzip.decompress(c) == data)
+buf = io.BytesIO()
+with gzip.GzipFile(filename="a.txt.gz", mode="wb", fileobj=buf, mtime=12345) as f:
+    f.write(b"linha1\nlinha2\n")
+    f.write(b"linha3\n")
+raw = buf.getvalue()
+print(raw.hex())
+with gzip.GzipFile(fileobj=io.BytesIO(raw)) as f:
+    print(f.readline(), f.read(3), f.readlines())
+print(gzip.decompress(raw + raw))
+try:
+    gzip.decompress(b"nope nope nope")
+except gzip.BadGzipFile as e:
+    print("bad", e)
+try:
+    gzip.decompress(raw[:-5])
+except EOFError as e:
+    print("eof", e)
+"#;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r#"1 318 1f8b08000000000004ff 2ce5cdd852040000 True
+6 316 1f8b08000000000000ff 2ce5cdd852040000 True
+9 316 1f8b08000000000002ff 2ce5cdd852040000 True
+1f8b08083930000002ff612e74787400cbc9cccb4834e4ca01514610ca980b00a8bc074c15000000
+b'linha1\n' b'lin' [b'ha2\n', b'linha3\n']
+b'linha1\nlinha2\nlinha3\nlinha1\nlinha2\nlinha3\n'
+bad Not a gzipped file (b'no')
+eof Compressed file ended before the end-of-stream marker was reached
+"#
+    );
+}
