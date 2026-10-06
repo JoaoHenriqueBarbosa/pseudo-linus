@@ -368,6 +368,32 @@ def getpid():
     return _os.getpid()
 
 
+def urandom(n):
+    return _os.urandom(n)
+
+
+def utime(p, times=None, *, ns=None, dir_fd=None, follow_symlinks=True):
+    p = fspath(p)
+    if ns is not None:
+        _os.utime(p, ns[0] / 1e9, ns[1] / 1e9)
+    elif times is None:
+        _os.utime(p, None, None)
+    else:
+        _os.utime(p, times[0], times[1])
+
+
+def truncate(p, length):
+    fd = _os.open(fspath(p), O_WRONLY, 0)
+    try:
+        _os.ftruncate(fd, length)
+    finally:
+        _os.close(fd)
+
+
+def ftruncate(fd, length):
+    _os.ftruncate(fd, length)
+
+
 def cpu_count():
     return 1
 

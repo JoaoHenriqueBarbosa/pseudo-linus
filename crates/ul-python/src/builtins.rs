@@ -130,6 +130,7 @@ fn overflow() -> PyException {
 /// Nomes dos tipos embutidos que não são classes de exceção.
 const TYPE_NAMES: &[&str] = &[
     "int", "str", "float", "bool", "list", "dict", "tuple", "set", "frozenset", "bytes", "bytearray", "range", "object",
+    "slice",
 ];
 
 /// Nome da classe embutida representada por `v` (`Builtin` ou `NativeFn` de tipo), se for uma.
@@ -172,6 +173,7 @@ fn instance_of(v: &Value, cname: &str) -> bool {
         "dict" => matches!(v, Value::Dict(_)),
         "tuple" => matches!(v, Value::Tuple(_)),
         "range" => matches!(v, Value::Range(_)),
+        "slice" => matches!(v, Value::Slice(_)),
         // `frozenset` e `bytearray` ainda são representados por `set` e `bytes`.
         "set" | "frozenset" => matches!(v, Value::Set(_)),
         "bytes" | "bytearray" => matches!(v, Value::Bytes(_)),
