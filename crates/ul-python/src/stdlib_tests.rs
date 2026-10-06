@@ -465,3 +465,52 @@ a/b/c /c/d a/b/c .
 "#
     );
 }
+
+#[test]
+fn zlib_module_matches_cpython() {
+    let src = r#"
+import zlib
+data = b'hello world ' * 200 + bytes(range(256)) * 8
+for lvl in (0, 1, 6, 9, -1):
+    c = zlib.compress(data, lvl)
+    print(lvl, len(c), c[:2].hex(), zlib.decompress(c) == data, zlib.crc32(c), zlib.adler32(c))
+r = zlib.compress(data, 6, -15); print(len(r), zlib.decompress(r, -15) == data)
+g = zlib.compress(data, 6, 31); print(len(g), g[:3].hex(), zlib.decompress(g, 31) == data, zlib.decompress(g, 47) == data)
+co = zlib.compressobj(6, zlib.DEFLATED, -15)
+parts = [co.compress(data[i:i + 700]) for i in range(0, len(data), 700)] + [co.flush()]
+blob = b''.join(parts); print(len(blob), zlib.decompress(blob, -15) == data)
+do = zlib.decompressobj(-15); out = b''
+for i in range(0, len(blob), 100): out += do.decompress(blob[i:i + 100])
+print(out == data, do.eof, do.unused_data)
+do = zlib.decompressobj(); z = zlib.compress(b'abc' * 50) + b'TRAIL'
+print(do.decompress(z), do.eof, do.unused_data)
+try:
+    zlib.decompress(b'not zlib at all')
+except zlib.error as e:
+    print(e)
+try:
+    zlib.decompress(zlib.compress(b'x' * 1000)[:-6])
+except zlib.error as e:
+    print(e)
+print(zlib.crc32(b''), zlib.crc32(b'a'), zlib.adler32(b''), zlib.adler32(b'abc'), zlib.crc32(b'abc', zlib.crc32(b'x')))
+"#;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r#"0 4459 7801 True 2373319531 3193209236
+1 335 7801 True 1316960334 1180939190
+6 327 789c True 1175475321 3885348811
+9 327 78da True 4096918293 915978249
+-1 327 789c True 1175475321 3885348811
+321 True
+339 1f8b08 True True
+321 True
+True True b''
+b'abcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabcabc' True b'TRAIL'
+Error -3 while decompressing data: incorrect header check
+Error -5 while decompressing data: incomplete or truncated stream
+0 3904355907 1 38600999 1168822207
+"#
+    );
+}

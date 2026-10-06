@@ -37,6 +37,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("shutil", include_str!("py/shutil.py")),
     ("tempfile", include_str!("py/tempfile.py")),
     ("pathlib", include_str!("py/pathlib.py")),
+    ("zlib", include_str!("py/zlib.py")),
 ];
 
 /// Nomes de módulo que são apelidos de outro.

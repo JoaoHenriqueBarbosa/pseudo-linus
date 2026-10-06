@@ -25,6 +25,7 @@ pub mod re_engine;
 pub mod shlex;
 pub mod string;
 pub mod textwrap;
+pub mod zlibnative;
 
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -85,6 +86,7 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         "struct" => pystruct::build(vm),
         "operator" => operator::build(vm),
         "_os" => osnative::build(vm),
+        "_zlib" => zlibnative::build(vm),
         _ => return pysrc::import(vm, name),
     };
     vm.modules.borrow_mut().insert(name.to_string(), m.clone());
