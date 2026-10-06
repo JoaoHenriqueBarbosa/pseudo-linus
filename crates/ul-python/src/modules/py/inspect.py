@@ -77,6 +77,71 @@ def isawaitable(obj):
     return iscoroutine(obj) or hasattr(obj, '__await__')
 
 
+def iscode(obj):
+    return type(obj).__name__ == 'code'
+
+
+def isframe(obj):
+    return type(obj).__name__ == 'frame'
+
+
+def istraceback(obj):
+    return type(obj).__name__ == 'traceback'
+
+
+def ismethoddescriptor(obj):
+    if isclass(obj) or ismethod(obj) or isfunction(obj):
+        return False
+    tp = type(obj)
+    return hasattr(tp, '__get__') and not hasattr(tp, '__set__')
+
+
+def ismethodwrapper(obj):
+    return type(obj).__name__ == 'method-wrapper'
+
+
+def getmodule(obj, _filename=None):
+    if ismodule(obj):
+        return obj
+    name = getattr(obj, '__module__', None)
+    if name:
+        return sys.modules.get(name)
+    return None
+
+
+def getfile(obj):
+    if ismodule(obj):
+        f = getattr(obj, '__file__', None)
+        if f:
+            return f
+        raise TypeError('{!r} is a built-in module'.format(obj))
+    if isclass(obj):
+        mod = sys.modules.get(getattr(obj, '__module__', None))
+        f = getattr(mod, '__file__', None)
+        if f:
+            return f
+        raise OSError('source code not available')
+    if ismethod(obj):
+        obj = obj.__func__
+    if isfunction(obj):
+        return obj.__code__.co_filename
+    if istraceback(obj):
+        obj = obj.tb_frame
+    if isframe(obj):
+        obj = obj.f_code
+    if iscode(obj):
+        return obj.co_filename
+    raise TypeError('module, class, method, function, traceback, frame, or code object was expected, got %s'
+                    % type(obj).__name__)
+
+
+def getsourcefile(obj):
+    filename = getfile(obj)
+    if filename.endswith('.py'):
+        return filename
+    return None
+
+
 def unwrap(func, *, stop=None):
     while hasattr(func, '__wrapped__'):
         if stop is not None and stop(func):

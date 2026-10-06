@@ -685,6 +685,60 @@ class BytesIO(BufferedIOBase):
         return size
 
 
+class IncrementalNewlineDecoder:
+    """Decodificador que traduz `\\r\\n` e `\\r` em `\\n` (opcional) e lembra quais fins de linha viu."""
+
+    def __init__(self, decoder, translate, errors='strict'):
+        self.decoder = decoder
+        self.translate = translate
+        self.errors = errors
+        self.seennl = 0
+        self.pendingcr = False
+
+    def decode(self, input, final=False):
+        if self.decoder is not None:
+            output = self.decoder.decode(input, final=final)
+        else:
+            output = input
+        if self.pendingcr and (output or final):
+            output = '\r' + output
+            self.pendingcr = False
+        if output.endswith('\r') and not final:
+            output = output[:-1]
+            self.pendingcr = True
+        crlf = output.count('\r\n')
+        cr = output.count('\r') - crlf
+        lf = output.count('\n') - crlf
+        self.seennl |= (1 if lf else 0) | (2 if cr else 0) | (4 if crlf else 0)
+        if self.translate:
+            if crlf:
+                output = output.replace('\r\n', '\n')
+            if cr:
+                output = output.replace('\r', '\n')
+        return output
+
+    def getstate(self):
+        buf, flag = (b'', 0) if self.decoder is None else self.decoder.getstate()
+        return buf, (flag << 1) | int(self.pendingcr)
+
+    def setstate(self, state):
+        buf, flag = state
+        self.pendingcr = bool(flag & 1)
+        if self.decoder is not None:
+            self.decoder.setstate((buf, flag >> 1))
+
+    def reset(self):
+        self.seennl = 0
+        self.pendingcr = False
+        if self.decoder is not None:
+            self.decoder.reset()
+
+    @property
+    def newlines(self):
+        return (None, '\n', '\r', ('\r', '\n'), '\r\n', ('\n', '\r\n'), ('\r', '\r\n'),
+                ('\r', '\n', '\r\n'))[self.seennl]
+
+
 class StringIO(TextIOBase):
     def __init__(self, initial_value='', newline='\n'):
         self._data = initial_value or ''

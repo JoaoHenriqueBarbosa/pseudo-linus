@@ -311,11 +311,57 @@ fn lower_try_star(body: &[Stmt], handlers: &[ExceptHandler], orelse: &[Stmt], fi
     st(S::Try { body: body.to_vec(), handlers: vec![handler], orelse: orelse.to_vec(), finalbody: finalbody.to_vec() })
 }
 
+/// Como o compilador do CPython 3.13: expande tabs e tira a indentação comum das linhas após a primeira
+/// (linhas vazias no começo e no fim ficam, ao contrário de `inspect.cleandoc`).
+fn clean_doc(doc: &str) -> String {
+    if !doc.contains('\n') && !doc.contains('\t') {
+        return doc.to_string();
+    }
+    let mut expanded = String::new();
+    let mut col = 0;
+    for ch in doc.chars() {
+        match ch {
+            '\t' => {
+                let n = 8 - col % 8;
+                expanded.extend(std::iter::repeat(' ').take(n));
+                col += n;
+            }
+            '\n' => {
+                expanded.push('\n');
+                col = 0;
+            }
+            _ => {
+                expanded.push(ch);
+                col += 1;
+            }
+        }
+    }
+    let lines: Vec<&str> = expanded.split('\n').collect();
+    let margin = lines
+        .iter()
+        .skip(1)
+        .filter_map(|l| {
+            let content = l.trim_start_matches(' ').len();
+            (content > 0).then(|| l.len() - content)
+        })
+        .min();
+    let mut out: Vec<String> = Vec::with_capacity(lines.len());
+    for (i, l) in lines.iter().enumerate() {
+        if i == 0 {
+            out.push(l.trim_start_matches(' ').to_string());
+        } else {
+            let cut = margin.unwrap_or(0).min(l.len());
+            out.push(l[cut..].to_string());
+        }
+    }
+    out.join("\n")
+}
+
 /// O docstring de um corpo: a primeira instrução, se for só um literal de texto.
 fn docstring(body: &[Stmt]) -> Option<String> {
     match body.first().map(|s| &s.kind) {
         Some(S::Expr { value }) => match &value.kind {
-            E::Constant { value: Constant::Str(s), .. } => Some(s.clone()),
+            E::Constant { value: Constant::Str(s), .. } => Some(clean_doc(s)),
             _ => None,
         },
         _ => None,

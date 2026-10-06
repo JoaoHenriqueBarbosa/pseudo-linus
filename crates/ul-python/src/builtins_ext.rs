@@ -418,5 +418,11 @@ fn b_compile(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         }
     })?;
     crate::compile::compile_module(&module).map_err(|e| exc("SyntaxError", e.msg))?;
+    // Modo `single`: uma expressão solta passa pelo `sys.displayhook` (é o que o doctest espera).
+    let src = if mode == "single" && crate::parser::parse_module(&format!("__eval_value__ = ({})\n", src.trim())).is_ok() {
+        format!("import sys as __single_sys__\n__single_sys__.displayhook({})\n", src.trim())
+    } else {
+        src
+    };
     Ok(Value::Ext(Rc::new(CodeSource { src, filename })))
 }

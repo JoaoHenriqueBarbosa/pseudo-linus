@@ -224,6 +224,18 @@ fn isinstance_check(v: &Value, cls: &Value) -> PyResult<bool> {
         }
         return Ok(matches!(v, Value::Instance(i) if i.class.mro().iter().any(|x| Rc::ptr_eq(x, c))));
     }
+    // `property`, `classmethod` e `staticmethod` são descritores nativos (objetos `Ext`).
+    if let Value::Builtin(n @ ("property" | "classmethod" | "staticmethod")) = cls {
+        return Ok(match v {
+            Value::Ext(e) => matches!(
+                (e.descriptor(), *n),
+                (Some(crate::object::Descriptor::Property { .. }), "property")
+                    | (Some(crate::object::Descriptor::Class(_)), "classmethod")
+                    | (Some(crate::object::Descriptor::Static(_)), "staticmethod")
+            ),
+            _ => false,
+        });
+    }
     if let Some(c) = class_name(cls) {
         return Ok(instance_of(v, c));
     }

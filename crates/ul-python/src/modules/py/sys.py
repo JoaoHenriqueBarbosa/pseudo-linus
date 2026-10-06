@@ -261,6 +261,42 @@ builtin_module_names = ('_abc', '_ast', '_codecs', '_io', '_os', '_sys', 'builti
 _audit_hooks = []
 
 
+_trace_func = None
+_profile_func = None
+
+
+def displayhook(value):
+    """Imprime o `repr` de `value` e o guarda em `builtins._` (ignora `None`)."""
+    if value is None:
+        return
+    import builtins
+    builtins._ = None
+    print(repr(value))
+    builtins._ = value
+
+
+__displayhook__ = displayhook
+
+
+def settrace(function):
+    """Guarda a função, mas o interpretador não gera eventos de linha (sem depurador)."""
+    global _trace_func
+    _trace_func = function
+
+
+def gettrace():
+    return _trace_func
+
+
+def setprofile(function):
+    global _profile_func
+    _profile_func = function
+
+
+def getprofile():
+    return _profile_func
+
+
 def addaudithook(hook):
     _audit_hooks.append(hook)
 
