@@ -329,3 +329,34 @@ def getstatusoutput(cmd, *, encoding=None, errors=None):
 
 def getoutput(cmd, *, encoding=None, errors=None):
     return getstatusoutput(cmd, encoding=encoding, errors=errors)[1]
+
+
+def list2cmdline(seq):
+    """Monta uma linha de comando no estilo do Windows (regras de aspas do MS C runtime), como o CPython."""
+    result = []
+    needquote = False
+    for arg in map(os.fsdecode, seq):
+        bs_buf = []
+        if result:
+            result.append(' ')
+        needquote = (' ' in arg) or ('\t' in arg) or not arg
+        if needquote:
+            result.append('"')
+        for c in arg:
+            if c == '\\':
+                bs_buf.append(c)
+            elif c == '"':
+                result.append('\\' * len(bs_buf) * 2)
+                bs_buf = []
+                result.append('\\"')
+            else:
+                if bs_buf:
+                    result.extend(bs_buf)
+                    bs_buf = []
+                result.append(c)
+        if bs_buf:
+            result.extend(bs_buf)
+        if needquote:
+            result.extend(bs_buf)
+            result.append('"')
+    return ''.join(result)
