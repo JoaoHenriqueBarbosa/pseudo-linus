@@ -44,6 +44,10 @@ const SOURCES: &[(&str, &str)] = &[
     ("types", include_str!("py/types.py")),
     ("weakref", include_str!("py/weakref.py")),
     ("threading", include_str!("py/threading.py")),
+    ("logging", include_str!("py/logging.py")),
+    ("atexit", include_str!("py/atexit.py")),
+    ("string", include_str!("py/string.py")),
+    ("_string", include_str!("py/_string.py")),
     ("concurrent", include_str!("py/concurrent.py")),
     ("concurrent.futures", include_str!("py/concurrent_futures.py")),
     ("_thread", include_str!("py/_thread.py")),
@@ -82,8 +86,9 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     let mut inner = vm.clone();
     inner.globals = globals.clone();
     let parsed = crate::parser::parse_module(src).unwrap_or_else(|e| panic!("módulo embutido {real}: {e:?}"));
-    let code = crate::compile::compile_module(&parsed)
+    let mut code = crate::compile::compile_module(&parsed)
         .unwrap_or_else(|e| panic!("módulo embutido {real}: {}: {}", e.kind, e.msg));
+    code.set_filename(&format!("/usr/lib/python3.13/{}.py", real.replace('.', "/")));
     if let Err(e) = inner.run(&Rc::new(code)) {
         panic!("módulo embutido {real}:\n{}", crate::vm::format_traceback_in(&e, real, Some(src)));
     }

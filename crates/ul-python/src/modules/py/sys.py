@@ -38,6 +38,74 @@ platlibdir = 'lib'
 pycache_prefix = None
 
 
+class _Modules:
+    """`sys.modules`: visão dos módulos carregados (leitura sempre atual; escritas ficam à parte)."""
+
+    def __init__(self):
+        self._extra = {}
+
+    def _all(self):
+        d = _sys._modules()
+        d.update(self._extra)
+        return d
+
+    def __getitem__(self, key):
+        return self._all()[key]
+
+    def __setitem__(self, key, value):
+        self._extra[key] = value
+
+    def __delitem__(self, key):
+        if key in self._extra:
+            del self._extra[key]
+        else:
+            raise KeyError(key)
+
+    def __contains__(self, key):
+        return key in self._all()
+
+    def __iter__(self):
+        return iter(self._all())
+
+    def __len__(self):
+        return len(self._all())
+
+    def get(self, key, default=None):
+        return self._all().get(key, default)
+
+    def keys(self):
+        return self._all().keys()
+
+    def values(self):
+        return self._all().values()
+
+    def items(self):
+        return self._all().items()
+
+    def pop(self, key, *default):
+        if key in self._extra:
+            return self._extra.pop(key)
+        if default:
+            return default[0]
+        raise KeyError(key)
+
+    def setdefault(self, key, default=None):
+        d = self._all()
+        if key in d:
+            return d[key]
+        self._extra[key] = default
+        return default
+
+    def copy(self):
+        return dict(self._all())
+
+    def __repr__(self):
+        return repr(self._all())
+
+
+modules = _Modules()
+
+
 class _VersionInfo:
     """`sys.version_info`: tupla nomeada (major, minor, micro, releaselevel, serial)."""
 

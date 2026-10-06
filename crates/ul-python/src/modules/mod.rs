@@ -82,7 +82,6 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         "builtins" => builtinsmod::build(vm),
         "hashlib" => hashlib::build(vm),
         "html" => html::build(vm),
-        "string" => string::build(vm),
         "textwrap" => textwrap::build(vm),
         "shlex" => shlex::build(vm),
         "fnmatch" => fnmatch::build(vm),

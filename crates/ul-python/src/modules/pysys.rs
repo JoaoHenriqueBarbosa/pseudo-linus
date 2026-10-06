@@ -38,18 +38,19 @@ fn getframe(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
         None => 0,
     };
     // Do quadro mais interno para o `<module>`: cada função guarda a linha do seu chamador.
-    let mut chain: Vec<(usize, String)> = Vec::new();
+    let script: std::rc::Rc<str> = match vm.argv.first().map(String::as_str) {
+        Some(a) if !a.is_empty() && a != "-c" => a.into(),
+        _ => "<string>".into(),
+    };
+    let mut chain: Vec<(usize, String, std::rc::Rc<str>)> = Vec::new();
     let mut line = vm.cur_line.get();
     for (code, caller_line) in vm.frames.borrow().iter().rev() {
-        chain.push((line, code.name.clone()));
+        let file: std::rc::Rc<str> = if code.filename.is_empty() { script.clone() } else { code.filename.as_str().into() };
+        chain.push((line, code.name.clone(), file));
         line = *caller_line;
     }
-    chain.push((line, "<module>".to_string()));
-    let filename = match vm.argv.first().map(String::as_str) {
-        Some(a) if !a.is_empty() && a != "-c" => a.to_string(),
-        _ => "<string>".to_string(),
-    };
-    crate::tbobj::frame_at(chain, &filename, depth).ok_or_else(|| exc("ValueError", "call stack is not deep enough"))
+    chain.push((line, "<module>".to_string(), script));
+    crate::tbobj::frame_at(chain, depth).ok_or_else(|| exc("ValueError", "call stack is not deep enough"))
 }
 
 fn getrecursionlimit(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
@@ -58,6 +59,23 @@ fn getrecursionlimit(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value
 
 fn setrecursionlimit(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::None)
+}
+
+/// Instantâneo dos módulos carregados (`sys.modules`), com `__main__` montado das globais do script.
+fn modules_snapshot(vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let mut d = crate::object::Dict::new();
+    let mut names: Vec<(String, Rc<ModuleObj>)> =
+        vm.modules.borrow().iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+    names.sort_by(|a, b| a.0.cmp(&b.0));
+    for (name, m) in names {
+        d.set(Value::str(name), Value::Module(m))?;
+    }
+    let main = ModuleObj { name: "__main__", attrs: std::cell::RefCell::new(std::collections::BTreeMap::new()) };
+    for (k, v) in vm.globals.borrow().iter() {
+        main.attrs.borrow_mut().insert(k.clone(), v.clone());
+    }
+    d.set(Value::str("__main__"), Value::Module(Rc::new(main)))?;
+    Ok(Value::dict(d))
 }
 
 pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
@@ -70,6 +88,7 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
         .func("exit", exit)
         .func("exc_info", exc_info)
         .func("_getframe", getframe)
+        .func("_modules", modules_snapshot)
         .func("getrecursionlimit", getrecursionlimit)
         .func("setrecursionlimit", setrecursionlimit)
         .build()

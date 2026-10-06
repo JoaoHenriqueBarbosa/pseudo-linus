@@ -373,6 +373,7 @@ fn run_source_inner(src: &str, argv: Vec<String>, name: &str, file_mode: bool) -
     };
     let mut machine = vm::Vm::with_argv(argv);
     let result = machine.run(&std::rc::Rc::new(code));
+    machine.run_exit_hooks();
     let stdout = std::mem::take(&mut *machine.stdout.borrow_mut());
     match result {
         Ok(()) => Outcome { stdout, stderr: String::new(), status: 0 },

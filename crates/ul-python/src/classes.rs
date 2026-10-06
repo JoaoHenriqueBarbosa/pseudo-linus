@@ -650,6 +650,10 @@ impl Vm {
             _ => {}
         }
         if let Some(attr) = cls.lookup(name) {
+            // `__init_subclass__` e `__class_getitem__` são métodos de classe implícitos.
+            if let (Value::Function(f), "__init_subclass__" | "__class_getitem__") = (&attr, name) {
+                return Ok(Value::BoundFn(Rc::new((Value::Class(cls.clone()), f.clone()))));
+            }
             return self.bind_class_attr(&attr, Value::Class(cls.clone()), cls);
         }
         // Atributos da metaclasse (`Color.__members__`, métodos de `EnumMeta`).

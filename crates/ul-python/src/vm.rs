@@ -368,6 +368,18 @@ impl Vm {
         Vm::with_argv(Vec::new())
     }
 
+    /// Roda as funções registradas em `atexit` (se o módulo foi importado), como o CPython na saída.
+    pub fn run_exit_hooks(&mut self) {
+        let hook = self
+            .modules
+            .borrow()
+            .get("atexit")
+            .and_then(|m| m.attrs.borrow().get("_run_exitfuncs").cloned());
+        if let Some(f) = hook {
+            let _ = self.call(&f, Vec::new(), Vec::new());
+        }
+    }
+
     pub fn with_argv(argv: Vec<String>) -> Vm {
         let file = |kind, name: &str| {
             Rc::new(RefCell::new(Native::File(PyFile {
@@ -520,7 +532,10 @@ impl Vm {
         self.depth.set(self.depth.get() + 1);
         let caller_line = self.cur_line.get();
         self.frames.borrow_mut().push((code.clone(), caller_line));
+        // `return` dentro de um `except` sai sem fechar o tratador: a pilha volta ao tamanho de antes.
+        let handled_len = self.handled.borrow().len();
         let result = self.exec(&code, &env);
+        self.handled.borrow_mut().truncate(handled_len);
         self.frames.borrow_mut().pop();
         self.cur_line.set(caller_line);
         self.depth.set(self.depth.get() - 1);
@@ -1540,6 +1555,17 @@ impl Vm {
                 match name {
                     "__name__" | "__qualname__" => return Ok(Value::str(f.code.name.clone())),
                     "__doc__" => return Ok(Value::None),
+                    "__code__" => {
+                        let file = if f.code.filename.is_empty() {
+                            match self.argv.first().map(String::as_str) {
+                                Some(a) if !a.is_empty() && a != "-c" => a.to_string(),
+                                _ => "<string>".to_string(),
+                            }
+                        } else {
+                            f.code.filename.clone()
+                        };
+                        return Ok(crate::tbobj::code_object(&f.code.name, &file));
+                    }
                     "__module__" => return Ok(Value::str("__main__")),
                     "__dict__" => {
                         let mut d = crate::object::Dict::new();

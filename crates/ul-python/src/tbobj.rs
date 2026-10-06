@@ -41,9 +41,8 @@ impl ExtObject for TracebackObj {
             "tb_lineno" => Value::Int(*line as i64),
             "tb_lasti" => Value::Int(0),
             "tb_frame" => Value::Ext(Rc::new(FrameObj {
-                chain: Rc::new(vec![(*line, code.clone())]),
+                chain: Rc::new(vec![(*line, code.clone(), self.filename.clone())]),
                 idx: 0,
-                filename: self.filename.clone(),
             })),
             "tb_next" => {
                 if self.idx + 1 < self.entries.len() {
@@ -65,19 +64,25 @@ impl ExtObject for TracebackObj {
     }
 }
 
+/// Quadros do mais interno para o mais externo: linha, nome do código e arquivo de cada um.
+type FrameChain = Rc<Vec<(usize, String, Rc<str>)>>;
+
 struct FrameObj {
-    /// Quadros do mais interno para o mais externo; `idx` é este.
-    chain: Entries,
+    chain: FrameChain,
     idx: usize,
-    filename: Rc<str>,
 }
 
 /// O quadro `depth` níveis acima do mais interno de `chain` (0 é o mais interno).
-pub fn frame_at(chain: Vec<(usize, String)>, filename: &str, depth: usize) -> Option<Value> {
+pub fn frame_at(chain: Vec<(usize, String, Rc<str>)>, depth: usize) -> Option<Value> {
     if depth >= chain.len() {
         return None;
     }
-    Some(Value::Ext(Rc::new(FrameObj { chain: Rc::new(chain), idx: depth, filename: Rc::from(filename) })))
+    Some(Value::Ext(Rc::new(FrameObj { chain: Rc::new(chain), idx: depth })))
+}
+
+/// Um objeto `code` solto (`função.__code__`).
+pub fn code_object(name: &str, filename: &str) -> Value {
+    Value::Ext(Rc::new(CodeObject { name: name.to_string(), filename: Rc::from(filename) }))
 }
 
 impl ExtObject for FrameObj {
@@ -86,22 +91,18 @@ impl ExtObject for FrameObj {
     }
 
     fn repr(&self) -> String {
-        let (line, name) = &self.chain[self.idx];
-        format!("<frame at {:p}, file '{}', line {}, code {}>", self, self.filename, line, name)
+        let (line, name, filename) = &self.chain[self.idx];
+        format!("<frame at {:p}, file '{}', line {}, code {}>", self, filename, line, name)
     }
 
     fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
-        let (line, code) = &self.chain[self.idx];
+        let (line, code, filename) = &self.chain[self.idx];
         Some(Ok(match name {
             "f_lineno" => Value::Int(*line as i64),
-            "f_code" => Value::Ext(Rc::new(CodeObject { name: code.clone(), filename: self.filename.clone() })),
+            "f_code" => Value::Ext(Rc::new(CodeObject { name: code.clone(), filename: filename.clone() })),
             "f_back" => {
                 if self.idx + 1 < self.chain.len() {
-                    Value::Ext(Rc::new(FrameObj {
-                        chain: self.chain.clone(),
-                        idx: self.idx + 1,
-                        filename: self.filename.clone(),
-                    }))
+                    Value::Ext(Rc::new(FrameObj { chain: self.chain.clone(), idx: self.idx + 1 }))
                 } else {
                     Value::None
                 }

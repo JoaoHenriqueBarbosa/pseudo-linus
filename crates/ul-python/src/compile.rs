@@ -190,6 +190,21 @@ pub struct Code {
     /// A função contém `yield`: chamá-la devolve um gerador.
     pub is_generator: bool,
     pub functions: Vec<Rc<Code>>,
+    /// Arquivo de origem; vazio para o script do usuário (módulos embutidos preenchem o deles).
+    pub filename: String,
+}
+
+impl Code {
+    /// Grava `filename` neste código e em todas as funções aninhadas (só vale logo após compilar,
+    /// quando cada `Rc` ainda tem um dono só).
+    pub fn set_filename(&mut self, filename: &str) {
+        self.filename = filename.to_string();
+        for f in &mut self.functions {
+            if let Some(inner) = Rc::get_mut(f) {
+                inner.set_filename(filename);
+            }
+        }
+    }
 }
 
 /// Erro de compilação: `SyntaxError` dos que o CPython detecta no compilador (`'break' outside
