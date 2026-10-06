@@ -224,6 +224,87 @@ pub fn exc(kind: &'static str, msg: impl Into<String>) -> PyException {
     PyException { kind, msg: msg.into(), value: None, tb: Vec::new() }
 }
 
+/// Dá ao `AttributeError` de um `obj.nome` o `name` e o `obj` que o CPython guarda (e que as sugestões usam).
+fn tag_attribute_error(mut e: PyException, obj: &Value, name: &str) -> PyException {
+    if e.kind == "AttributeError" && e.value.is_none() {
+        e.value = Some(crate::suggest::attribute_error(e.msg.clone(), obj, name));
+    }
+    e
+}
+
+impl Vm {
+    /// `NameError` com o `name` e a lista de nomes visíveis (locais, closures, globais, embutidos), para
+    /// o "Did you mean" na hora de mostrar o erro.
+    fn name_error_ctx(&self, mut e: PyException, env: &Rc<Env>) -> PyException {
+        if e.kind != "NameError" || e.value.is_some() {
+            return e;
+        }
+        let Some(name) = e.msg.strip_prefix("name '").and_then(|m| m.strip_suffix("' is not defined")) else {
+            return e;
+        };
+        let name = name.to_string();
+        let mut scope: Vec<Value> = Vec::new();
+        let mut seen = std::collections::HashSet::new();
+        let mut push = |k: &str| {
+            if seen.insert(k.to_string()) {
+                scope.push(Value::str(k.to_string()));
+            }
+        };
+        let mut self_has = false;
+        let mut cur = Some(env.clone());
+        while let Some(en) = cur {
+            for k in en.vars.borrow().keys() {
+                push(k);
+            }
+            if let Some(obj) = en.vars.borrow().get("self").cloned() {
+                self_has |= self.clone().getattr(&obj, &name).is_ok();
+            }
+            cur = en.parent.clone();
+        }
+        for k in self.globals.borrow().keys() {
+            push(k);
+        }
+        for k in crate::modules::builtinsmod::names() {
+            push(k);
+        }
+        let x = ExcObj::new("NameError", vec![Value::str(e.msg.clone())]);
+        x.extra.borrow_mut().push(("name", Value::str(name)));
+        x.extra.borrow_mut().push(("scope", Value::list(scope)));
+        if self_has {
+            x.extra.borrow_mut().push(("self_has", Value::Bool(true)));
+        }
+        e.value = Some(Value::Exception(Rc::new(x)));
+        e
+    }
+
+    /// Calcula o "Did you mean" da exceção que vai ser mostrada e das que a encadeiam.
+    pub(crate) fn prepare_error(&mut self, e: &PyException) {
+        let mut stack: Vec<Value> = e.value.iter().cloned().collect();
+        let mut seen: Vec<Value> = Vec::new();
+        while let Some(v) = stack.pop() {
+            if seen.iter().any(|s| crate::object::is(s, &v)) {
+                continue;
+            }
+            self.exc_hint(&v);
+            let (cause, context, _) = exc_chain(&v);
+            stack.extend(cause);
+            stack.extend(context);
+            seen.push(v);
+        }
+    }
+
+    /// Calcula (uma vez) o sufixo `. Did you mean: 'x'?` de uma exceção e o guarda em `extra`. Devolve o sufixo.
+    pub(crate) fn exc_hint(&mut self, v: &Value) -> String {
+        let Value::Exception(e) = v else { return String::new() };
+        if let Some(Value::Str(s)) = e.extra_get("hint") {
+            return s.as_str().to_string();
+        }
+        let hint = crate::suggest::hint_for(e, |obj| crate::builtins_ext::dir_names(self, Some(obj)));
+        e.extra.borrow_mut().push(("hint", Value::str(hint.clone())));
+        hint
+    }
+}
+
 pub fn type_error(msg: impl Into<String>) -> PyException {
     exc("TypeError", msg)
 }
@@ -328,6 +409,17 @@ fn chain_prefix(v: &Value, file: &str, src: Option<&str>, seen: &mut Vec<Value>)
     out
 }
 
+/// Sufixo "Did you mean" já calculado (`Vm::prepare_error`); vazio se não há.
+fn hint_of(v: &Value) -> String {
+    match v {
+        Value::Exception(e) => match e.extra_get("hint") {
+            Some(Value::Str(s)) => s.as_str().to_string(),
+            _ => String::new(),
+        },
+        _ => String::new(),
+    }
+}
+
 /// Traceback e linha final de uma exceção já capturada (usa o `__traceback__` dela).
 fn exc_section(v: &Value, file: &str, src: Option<&str>) -> String {
     let mut out = String::new();
@@ -353,7 +445,7 @@ fn exc_section(v: &Value, file: &str, src: Option<&str>) -> String {
         out.push_str(pe.kind);
         out.push('\n');
     } else {
-        out.push_str(&format!("{}: {}\n", pe.kind, pe.msg));
+        out.push_str(&format!("{}: {}{}\n", pe.kind, pe.msg, hint_of(v)));
     }
     out
 }
@@ -373,7 +465,12 @@ pub fn format_traceback_in(err: &RuntimeError, file: &str, src: Option<&str>) ->
         out.push_str(err.exc.kind);
         out.push('\n');
     } else {
-        out.push_str(&format!("{}: {}\n", err.exc.kind, err.exc.msg));
+        out.push_str(&format!(
+            "{}: {}{}\n",
+            err.exc.kind,
+            err.exc.msg,
+            err.exc.value.as_ref().map(hint_of).unwrap_or_default()
+        ));
     }
     out
 }
@@ -860,7 +957,7 @@ impl Vm {
                                 stack.push(Slot::Val(v));
                                 Ok(None)
                             }
-                            Err(e) => Err(e),
+                            Err(e) => Err(self.name_error_ctx(e, env)),
                         }
                     }
                     Op::Binary { op: bop, inplace } if num_pair(stack) => {
@@ -1227,13 +1324,13 @@ impl Vm {
                 }
                 let v = match found {
                     Some(v) => v,
-                    None => self.global_or_builtin(name)?,
+                    None => self.global_or_builtin(name).map_err(|e| self.name_error_ctx(e, locals))?,
                 };
                 stack.push(Slot::Val(v));
             }
             Op::LoadGlobal(i) => {
                 let name = &code.names[i as usize];
-                let v = self.global_or_builtin(name)?;
+                let v = self.global_or_builtin(name).map_err(|e| self.name_error_ctx(e, locals))?;
                 stack.push(Slot::Val(v));
             }
             Op::StoreName(i) => {
@@ -1944,17 +2041,28 @@ impl Vm {
                                 }
                             }
                         }
-                        return Err(exc(
-                            "ImportError",
-                            format!("cannot import name '{name}' from '{module}' (unknown location)"),
-                        ));
+                        let location = match self.load_attr(&obj, "__file__") {
+                            Ok(Value::Str(p)) => p.as_str().to_string(),
+                            _ => "unknown location".to_string(),
+                        };
+                        let msg = format!("cannot import name '{name}' from '{module}' ({location})");
+                        let x = ExcObj::new("ImportError", vec![Value::str(msg.clone())]);
+                        {
+                            let mut extra = x.extra.borrow_mut();
+                            extra.push(("name", Value::str(module.to_string())));
+                            extra.push(("name_from", Value::str(name.clone())));
+                            extra.push(("module", obj.clone()));
+                        }
+                        let mut e = exc("ImportError", msg);
+                        e.value = Some(Value::Exception(Rc::new(x)));
+                        return Err(e);
                     }
                 }
             }
             Op::LoadAttr(i) => {
                 let obj = pop(stack)?;
                 let name = &code.names[i as usize];
-                let v = self.load_attr(&obj, name)?;
+                let v = self.load_attr(&obj, name).map_err(|e| tag_attribute_error(e, &obj, name))?;
                 stack.push(Slot::Val(v));
             }
             Op::UnpackSequence(n) => {
@@ -2443,6 +2551,15 @@ impl Vm {
                         .map_or(Value::None, Value::str),
                     _ => Value::None,
                 })
+            }
+            // `name`/`obj` de AttributeError, `name` de NameError, `name`/`path`/`name_from` de ImportError.
+            Value::Exception(e)
+                if matches!(name, "name" | "obj" | "name_from" | "path")
+                    && ((matches!(name, "name" | "obj") && exc_is_subclass(e.kind, "AttributeError"))
+                        || (name == "name" && exc_is_subclass(e.kind, "NameError"))
+                        || (matches!(name, "name" | "path" | "name_from") && exc_is_subclass(e.kind, "ImportError"))) =>
+            {
+                Ok(e.extra_get(name).unwrap_or(Value::None))
             }
             Value::Exception(e) if exc_is_subclass(&e.kind, "SyntaxError") && matches!(
                 name,

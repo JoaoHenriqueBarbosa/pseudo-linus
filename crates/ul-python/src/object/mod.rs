@@ -522,11 +522,19 @@ pub struct ExcObj {
     /// `__traceback__`: preenchido quando a exceção é capturada por um `except`.
     pub traceback: RefCell<Option<Value>>,
     pub chain: RefCell<ExcChain>,
+    /// Atributos extras que o CPython guarda na exceção: `name`/`obj` do `AttributeError`, `name` do
+    /// `NameError`, `name`/`name_from` do `ImportError` e a lista de candidatos de um `NameError`.
+    pub extra: RefCell<Vec<(&'static str, Value)>>,
 }
 
 impl ExcObj {
     pub fn new(kind: &'static str, args: Vec<Value>) -> ExcObj {
-        ExcObj { kind, args, traceback: RefCell::new(None), chain: RefCell::new(ExcChain::default()) }
+        ExcObj { kind, args, traceback: RefCell::new(None), chain: RefCell::new(ExcChain::default()), extra: RefCell::new(Vec::new()) }
+    }
+
+    /// Valor de um atributo extra.
+    pub fn extra_get(&self, key: &str) -> Option<Value> {
+        self.extra.borrow().iter().find(|(k, _)| *k == key).map(|(_, v)| v.clone())
     }
 }
 

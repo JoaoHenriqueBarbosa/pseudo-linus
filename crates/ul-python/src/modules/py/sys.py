@@ -164,7 +164,7 @@ version_info = _VersionInfo((3, 13, 5, 'final', 0))
 
 
 class _Flags:
-    optimize = 0
+    optimize = _sys.optimize
     debug = 0
     verbose = 0
     quiet = 0

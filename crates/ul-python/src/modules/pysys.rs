@@ -100,6 +100,11 @@ fn setrecursionlimit(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value>
     Ok(Value::None)
 }
 
+/// `_exc_hint(exc)`: o sufixo ". Did you mean: 'x'?" de um `AttributeError`/`NameError`/`ImportError`.
+fn exc_hint(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    Ok(Value::str(args.first().map_or_else(String::new, |v| vm.exc_hint(v))))
+}
+
 /// Instantâneo dos módulos carregados (`sys.modules`), com `__main__` montado das globais do script.
 fn modules_snapshot(vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     // O `__main__` vivo (globais do script), o mesmo que `import __main__` devolve.
@@ -144,6 +149,7 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
             "warnoptions",
             Value::list(crate::WARN_OPTIONS.lock().unwrap().iter().map(|s| Value::str(s.clone())).collect()),
         )
+        .value("optimize", Value::Int(i64::from(crate::OPTIMIZE.load(std::sync::atomic::Ordering::Relaxed))))
         .value("stdin", Value::Native(vm.std_files[0].clone()))
         .value("stdout", Value::Native(vm.std_files[1].clone()))
         .value("stderr", Value::Native(vm.std_files[2].clone()))
@@ -151,6 +157,7 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
         .func("exc_info", exc_info)
         .func("_getframe", getframe)
         .func("_modules", modules_snapshot)
+        .func("_exc_hint", exc_hint)
         .func("_source_line", source_line)
         .func("_set_module", set_module)
         .func("_reload", reload)

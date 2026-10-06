@@ -31,6 +31,7 @@ pub mod object;
 pub mod parser;
 pub mod stdbuf;
 pub mod stdin;
+pub mod suggest;
 pub mod textcodec;
 mod textcodec_tables;
 #[cfg(test)]
@@ -226,8 +227,15 @@ impl GetOpt<'_> {
 /// Opções `-W` da linha de comando, lidas por `sys.warnoptions` (o interpretador roda noutra thread).
 pub(crate) static WARN_OPTIONS: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
 
+/// Nível de `-O` (0, 1 ou 2): com `-O` os `assert` somem e `__debug__` vira `False`.
+pub(crate) static OPTIMIZE: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
+
+/// Versão completa de `-VV` e de `sys.version`.
+pub const VERSION_LONG: &str = "3.13.5 (main, Aug 10 2026, 12:06:59) [GCC 14.2.0]";
+
 fn python3_main(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
     WARN_OPTIONS.lock().unwrap().clear();
+    OPTIMIZE.store(0, std::sync::atomic::Ordering::Relaxed);
     let program = argv.first().map(|a| String::from_utf8_lossy(a.as_bytes()).into_owned());
     let program = program.unwrap_or_else(|| "python3".to_string());
     let args: Vec<Vec<u8>> = argv.iter().skip(1).map(|a| a.as_bytes().to_vec()).collect();
@@ -245,6 +253,10 @@ fn python3_main(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
                 return 0;
             }
             Opt::Found(b'V') => print_version += 1,
+            Opt::Found(b'O') => {
+                let n = OPTIMIZE.load(std::sync::atomic::Ordering::Relaxed);
+                OPTIMIZE.store(n.saturating_add(1).min(2), std::sync::atomic::Ordering::Relaxed);
+            }
             Opt::Found(b'W') => {
                 if let Some(a) = getopt.optarg.take() {
                     WARN_OPTIONS.lock().unwrap().push(String::from_utf8_lossy(&a).into_owned());
@@ -263,7 +275,11 @@ fn python3_main(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
         }
     }
     if print_version > 0 {
-        write_stdout(&format!("Python {VERSION}\n"));
+        if print_version > 1 {
+            write_stdout(&format!("Python {VERSION_LONG}\n"));
+        } else {
+            write_stdout(&format!("Python {VERSION}\n"));
+        }
         return 0;
     }
     if let Some(command) = command {
@@ -505,6 +521,7 @@ fn run_source_inner(
             Outcome { stdout, stderr, status }
         }
         Err(e) => {
+            machine.prepare_error(&e.exc);
             Outcome { stdout, stderr: vm::format_traceback_in(&e, name, Some(src.as_str())), status: 1 }
         }
     }
@@ -613,7 +630,7 @@ mod tests {
         assert_eq!(out.stderr, "");
         assert_eq!(
             String::from_utf8_lossy(&out.stdout),
-            "[1] 2 ['-c']\ncannot import name 'nope' from 'json' (unknown location)\n"
+            "[1] 2 ['-c']\ncannot import name 'nope' from 'json' (/usr/lib/python3.13/json/__init__.py)\n"
         );
     }
 

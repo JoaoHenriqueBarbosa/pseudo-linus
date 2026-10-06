@@ -383,7 +383,7 @@ impl Vm {
             "object" => Ok(Value::Builtin("object")),
             "NotImplemented" => Ok(not_implemented()),
             "Ellipsis" => Ok(Value::Builtin("Ellipsis")),
-            "__debug__" => Ok(Value::Bool(true)),
+            "__debug__" => Ok(Value::Bool(crate::OPTIMIZE.load(std::sync::atomic::Ordering::Relaxed) == 0)),
             "staticmethod" => Ok(Value::Builtin("staticmethod")),
             "classmethod" => Ok(Value::Builtin("classmethod")),
             "property" => Ok(Value::Builtin("property")),

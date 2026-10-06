@@ -194,18 +194,20 @@ def _type_name(exc_type):
     return name
 
 
-def _format_final_line(exc_type, value):
+def _format_final_line(exc_type, value, with_hint=True):
     name = _type_name(exc_type)
     try:
         text = str(value)
     except Exception:
         text = '<exception str() failed>'
+    if with_hint and isinstance(value, (AttributeError, NameError, ImportError)):
+        text += _sys._exc_hint(value)
     if value is None or not text:
         return name + '\n'
     return '%s: %s\n' % (name, text)
 
 
-def format_exception_only(exc, /, value=_sentinel, *, show_group=False):
+def format_exception_only(exc, /, value=_sentinel, *, show_group=False, _tb=None):
     if value is _sentinel:
         value = exc
         exc = type(value)
@@ -213,7 +215,9 @@ def format_exception_only(exc, /, value=_sentinel, *, show_group=False):
         return ['None\n']
     if isinstance(value, SyntaxError) and issubclass(exc, SyntaxError):
         return list(_format_syntax_error(exc, value))
-    return [_format_final_line(exc, value)]
+    # `NameError` só sugere com um traceback à mão (precisa do quadro); sem ele, o CPython não sugere
+    with_hint = _tb is not None or not isinstance(value, NameError)
+    return [_format_final_line(exc, value, with_hint)]
 
 
 def _format_syntax_error(exc, value):
@@ -274,7 +278,7 @@ def _format_one(exc, value, tb, limit, chain, seen):
     if tb is not None:
         out.append('Traceback (most recent call last):\n')
         out.extend(format_tb(tb, limit))
-    out.extend(format_exception_only(exc, value))
+    out.extend(format_exception_only(exc, value, _tb=tb))
     return out
 
 
@@ -330,7 +334,8 @@ class TracebackException:
         return _type_name(self.exc_type)
 
     def format_exception_only(self):
-        yield _format_final_line(self.exc_type, self._value)
+        yield _format_final_line(self.exc_type, self._value,
+                                 self._tb is not None or not isinstance(self._value, NameError))
 
     def format(self, *, chain=True):
         if chain and self._value is not None:

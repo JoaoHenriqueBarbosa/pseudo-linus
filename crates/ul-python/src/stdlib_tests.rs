@@ -3210,3 +3210,65 @@ module True False False
 "##
     );
 }
+
+#[test]
+fn did_you_mean_suggestions() {
+    let src = r##"
+import traceback
+
+class A:
+    def __init__(self):
+        self.value = 1
+
+def f(alpha):
+    return alphaa
+
+def show(e):
+    print("".join(traceback.format_exception_only(e)).strip())
+
+for fn in (lambda: A().valeu, lambda: [].apend(1), lambda: "x".uper(), lambda: {}.itemz()):
+    try:
+        fn()
+    except AttributeError as e:
+        show(e)
+        print(e.name)
+try:
+    f(1)
+except NameError as e:
+    print("".join(traceback.format_exception(e)).splitlines()[-1], e.name)
+    show(e)
+try:
+    sys.exit
+except NameError as e:
+    print("".join(traceback.format_exception(e)).splitlines()[-1])
+try:
+    from os import pathh
+except ImportError as e:
+    show(e)
+    print(e.name, e.name_from)
+try:
+    zzzzzz.foo
+except NameError as e:
+    print(str(e))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"AttributeError: 'A' object has no attribute 'valeu'. Did you mean: 'value'?
+valeu
+AttributeError: 'list' object has no attribute 'apend'. Did you mean: 'append'?
+apend
+AttributeError: 'str' object has no attribute 'uper'. Did you mean: 'upper'?
+uper
+AttributeError: 'dict' object has no attribute 'itemz'. Did you mean: 'items'?
+itemz
+NameError: name 'alphaa' is not defined. Did you mean: 'alpha'? alphaa
+NameError: name 'alphaa' is not defined
+NameError: name 'sys' is not defined. Did you forget to import 'sys'?
+ImportError: cannot import name 'pathh' from 'os' (/usr/lib/python3.13/os.py). Did you mean: 'path'?
+os pathh
+name 'zzzzzz' is not defined
+"##
+    );
+}

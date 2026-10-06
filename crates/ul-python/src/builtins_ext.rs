@@ -109,8 +109,16 @@ pub(crate) fn probe_type_attrs(vm: &mut Vm, ty: &Value) -> Vec<(String, Value)> 
 /// `dir(obj)`: nomes de atributo ordenados (instância, classe e módulo; o resto sai vazio).
 fn b_dir(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     crate::native_util::no_kwargs("dir", &kw)?;
+    let mut names = dir_names(vm, args.first());
+    names.sort();
+    names.dedup();
+    Ok(Value::list(names.into_iter().map(Value::str).collect()))
+}
+
+/// Nomes de atributos de `obj` (ou das globais, sem argumento), na ordem em que o `dir()` os junta.
+pub(crate) fn dir_names(vm: &mut Vm, obj: Option<&Value>) -> Vec<String> {
     let mut names: Vec<String> = Vec::new();
-    match args.first() {
+    match obj {
         None => names.extend(vm.globals.borrow().keys().cloned()),
         Some(t @ (Value::Builtin(_) | Value::NativeFn(_))) if crate::builtins::class_name(t).is_some() => {
             names.extend(probe_type_attrs(vm, t).into_iter().map(|(n, _)| n));
@@ -133,11 +141,9 @@ fn b_dir(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
             }
         }
         Some(Value::Ext(e)) => names.extend(e.methods().iter().map(|s| (*s).to_string())),
-        Some(_) => {}
+        Some(v) => names.extend(crate::suggest::builtin_methods(v.type_name()).iter().map(|s| (*s).to_string())),
     }
-    names.sort();
-    names.dedup();
-    Ok(Value::list(names.into_iter().map(Value::str).collect()))
+    names
 }
 
 fn b_format(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {

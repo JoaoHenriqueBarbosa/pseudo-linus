@@ -895,6 +895,8 @@ impl Compiler {
                     }
                 }
             }
+            // `python -O` descarta os `assert`
+            S::Assert { .. } if crate::OPTIMIZE.load(std::sync::atomic::Ordering::Relaxed) > 0 => {}
             S::Assert { test, msg } => {
                 self.expr(test)?;
                 let ok = self.emit(Op::PopJumpIfTrue(0));
