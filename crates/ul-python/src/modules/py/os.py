@@ -605,6 +605,9 @@ def read(fd, n):
     return _os.read(fd, n)
 
 
+def set_blocking(fd, blocking):
+    _os.set_blocking(fd, blocking)
+
 def write(fd, data):
     return _os.write(fd, data)
 

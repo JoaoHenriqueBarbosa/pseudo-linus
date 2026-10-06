@@ -3119,3 +3119,64 @@ re.NOFLAG <flag 'RegexFlag'> DOTALL ['ASCII', 'DEBUG', 'DOTALL']
 "##
     );
 }
+
+#[test]
+fn async_comprehensions() {
+    let src = r##"
+def run(coro):
+    try:
+        while True:
+            coro.send(None)
+    except StopIteration as e:
+        return e.value
+async def agen(n):
+    for i in range(n):
+        yield i
+async def dbl(x):
+    return x * 2
+async def many(*cs):
+    return [await c for c in cs]
+async def main():
+    print([x async for x in agen(4)])
+    print([x async for x in agen(6) if x % 2 == 0])
+    print({x: x * x async for x in agen(3)}, {x % 2 async for x in agen(5)})
+    print([await dbl(x) for x in range(4)])
+    print([await dbl(x) for x in [1, 2, 3] if x > 1], {await dbl(1): 2})
+    print([(a, b) async for a in agen(2) async for b in agen(2)])
+    print([(a, b) for a in range(2) async for b in agen(2)])
+    print(sum([await dbl(i) for i in range(5)]))
+    g = (x async for x in agen(3)); print(type(g).__name__, [y async for y in g])
+    g2 = (await dbl(x) for x in range(3)); print([y async for y in g2])
+    print([[await dbl(y) for y in range(x)] for x in range(3)])
+    print(await many(*[dbl(i) for i in range(3)]), await many(*(dbl(i) for i in range(3))))
+    r = [x async for x in agen(5) if await dbl(x) > 4]; print(r)
+    async def inner():
+        return [i async for i in agen(2)]
+    print(await inner())
+run(main())
+try:
+    compile("def f():\n    return [x async for x in y]\n", "t", "exec")
+except SyntaxError as e: print('SyntaxError', e.msg)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"[0, 1, 2, 3]
+[0, 2, 4]
+{0: 0, 1: 1, 2: 4} {0, 1}
+[0, 2, 4, 6]
+[4, 6] {2: 2}
+[(0, 0), (0, 1), (1, 0), (1, 1)]
+[(0, 0), (0, 1), (1, 0), (1, 1)]
+20
+async_generator [0, 1, 2]
+[0, 2, 4]
+[[], [0], [0, 2]]
+[0, 2, 4] [0, 2, 4]
+[3, 4]
+[0, 1]
+SyntaxError asynchronous comprehension outside of an asynchronous function
+"##
+    );
+}

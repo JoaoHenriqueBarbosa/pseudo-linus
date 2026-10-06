@@ -2,6 +2,7 @@
 `threading`). O `Future` devolvido já está concluído, com resultado ou exceção."""
 
 import threading as _threading
+from collections import namedtuple as _namedtuple
 
 __all__ = ['FIRST_COMPLETED', 'FIRST_EXCEPTION', 'ALL_COMPLETED', 'CancelledError', 'TimeoutError', 'Future',
            'Executor', 'wait', 'as_completed', 'ThreadPoolExecutor', 'ProcessPoolExecutor', 'BrokenExecutor']
@@ -189,10 +190,14 @@ class ProcessPoolExecutor(ThreadPoolExecutor):
     pass
 
 
+DoneAndNotDoneFutures = _namedtuple('DoneAndNotDoneFutures', 'done not_done')
+
+
 def wait(fs, timeout=None, return_when=ALL_COMPLETED):
+    # Os executores concluem cada tarefa no `submit`: só falta separar o que já terminou do resto.
     fs = set(fs)
-    done = {f for f in fs if f.done()}
-    return (done, fs - done)
+    done = {f for f in fs if f._state in (FINISHED, CANCELLED)}
+    return DoneAndNotDoneFutures(done, fs - done)
 
 
 def as_completed(fs, timeout=None):

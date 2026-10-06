@@ -19,6 +19,9 @@ fn os_error(e: Errno, path: Option<&str>) -> PyException {
         Errno::EISDIR => "IsADirectoryError",
         Errno::ENOTDIR => "NotADirectoryError",
         Errno::EACCES | Errno::EPERM => "PermissionError",
+        Errno::EAGAIN => "BlockingIOError",
+        Errno::EPIPE => "BrokenPipeError",
+        Errno::ECHILD => "ChildProcessError",
         _ => "OSError",
     };
     let msg = match path {
@@ -514,6 +517,16 @@ fn pipe(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::tuple(vec![Value::Int(i64::from(r.0)), Value::Int(i64::from(w.0))]))
 }
 
+/// `os.set_blocking(fd, blocking)`: liga ou desliga `O_NONBLOCK` no descritor.
+fn set_blocking(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("set_blocking", &kw)?;
+    let fd = want_int(arg("set_blocking", &args, 0)?)? as i32;
+    let blocking = arg("set_blocking", &args, 1)?.is_true();
+    let flags = if blocking { OFlags::empty() } else { OFlags::NONBLOCK };
+    sys::current().set_status_flags(Fd(fd), flags).map_err(|e| os_error(e, None))?;
+    Ok(Value::None)
+}
+
 fn kill_proc(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("kill", &kw)?;
     let pid = want_int(arg("kill", &args, 0)?)? as i32;
@@ -579,6 +592,7 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
         .func("read", read)
         .func("write", write)
         .func("lseek", lseek)
+        .func("set_blocking", set_blocking)
         .func("isatty", isatty)
         .func("getpid", getpid)
         .func("getppid", getppid)

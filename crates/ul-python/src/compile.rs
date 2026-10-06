@@ -427,6 +427,8 @@ struct Scope {
     bound: HashSet<String>,
     globals: HashSet<String>,
     nonlocals: HashSet<String>,
+    /// Há um `await` no que o escopo percorreu (uma compreensão assim é assíncrona).
+    has_await: bool,
 }
 
 impl Scope {
@@ -507,7 +509,11 @@ impl Scope {
                 }
             }
             E::Yield { value: Some(v) } => self.expr(v),
-            E::YieldFrom { value } | E::Await { value } => self.expr(value),
+            E::YieldFrom { value } => self.expr(value),
+            E::Await { value } => {
+                self.has_await = true;
+                self.expr(value)
+            }
             _ => {}
         }
     }
@@ -1732,6 +1738,14 @@ impl Compiler {
         if let Some(v) = value {
             scope.expr(v);
         }
+        let is_async = generators.iter().any(|g| g.is_async != 0) || scope.has_await;
+        if is_async && !self.code.is_async {
+            return Err(CompileError {
+                kind: "SyntaxError",
+                msg: "asynchronous comprehension outside of an asynchronous function".into(),
+                lineno: line,
+            });
+        }
         let (locals, globals, nonlocals) = scope.locals();
         let mut inner = Compiler::new(
             Code { name: name.to_string(), params: vec![".0".to_string()], is_function: true, ..Code::default() },
@@ -1741,6 +1755,7 @@ impl Compiler {
         inner.globals_decl = globals;
         inner.nonlocals_decl = nonlocals;
         inner.code.is_generator = kind == 3;
+        inner.code.is_async = is_async;
         match kind {
             0 => {
                 inner.emit(Op::BuildList(0));
@@ -1767,6 +1782,11 @@ impl Compiler {
         self.expr(&generators[0].iter)?;
         self.line = line;
         self.emit(Op::Call { argc: 1, kwnames: None });
+        if is_async && kind != 3 {
+            // a compreensão é uma corotina: quem a escreveu espera o resultado
+            self.emit(Op::GetAwaitable);
+            self.await_delegate();
+        }
         Ok(())
     }
 
@@ -1785,8 +1805,19 @@ impl Compiler {
         } else {
             self.expr(&g.iter)?;
         }
-        self.emit(Op::GetIter);
-        let top = self.emit(Op::ForIter(0));
+        let is_async_loop = g.is_async != 0;
+        let top = if is_async_loop {
+            self.emit(Op::GetAIter);
+            let top = self.emit(Op::SetupTry(0));
+            self.emit(Op::GetANext);
+            self.emit(Op::GetAwaitable);
+            self.await_delegate();
+            self.emit(Op::PopBlock);
+            top
+        } else {
+            self.emit(Op::GetIter);
+            self.emit(Op::ForIter(0))
+        };
         self.store(&g.target)?;
         let mut skips = Vec::new();
         for cond in &g.ifs {
@@ -1812,7 +1843,7 @@ impl Compiler {
                 }
                 _ => {
                     self.expr(elt)?;
-                    self.emit(Op::Yield);
+                    self.emit(if self.code.is_async { Op::AsyncGenYield } else { Op::Yield });
                     self.emit(Op::Pop);
                 }
             }
@@ -1824,6 +1855,11 @@ impl Compiler {
         self.emit(Op::Jump(top as u32));
         let end = self.here();
         self.patch(top, end);
+        if is_async_loop {
+            let stop = self.emit(Op::AsyncForExcept(0));
+            let after = self.here();
+            self.patch(stop, after);
+        }
         Ok(())
     }
 

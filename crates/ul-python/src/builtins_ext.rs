@@ -83,12 +83,39 @@ fn b_globals(vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::dict(d))
 }
 
+/// Nomes que os protocolos (`collections.abc`, `numbers`, `io`) e os tipos embutidos costumam expor: o
+/// interpretador não enumera os métodos de um tipo embutido, então `dir`/`__dict__` sondam esta lista.
+const PROBE_NAMES: &[&str] = &[
+    "__abs__", "__add__", "__aenter__", "__aexit__", "__aiter__", "__and__", "__anext__", "__await__",
+    "__bool__", "__buffer__", "__bytes__", "__call__", "__class_getitem__", "__contains__", "__delitem__",
+    "__enter__", "__eq__", "__exit__", "__float__", "__floordiv__", "__format__", "__fspath__", "__ge__",
+    "__getitem__", "__gt__", "__hash__", "__iadd__", "__index__", "__init__", "__int__", "__invert__",
+    "__iter__", "__le__", "__len__", "__lshift__", "__lt__", "__mod__", "__mul__", "__ne__", "__neg__",
+    "__next__", "__or__", "__pos__", "__pow__", "__radd__", "__repr__", "__reversed__", "__rmul__",
+    "__rshift__", "__setitem__", "__str__", "__sub__", "__truediv__", "__xor__", "__length_hint__",
+    "append", "clear", "close", "copy", "count", "decode", "encode", "extend", "get", "index", "insert",
+    "items", "join", "keys", "pop", "popitem", "remove", "reverse", "send", "setdefault", "sort", "split",
+    "throw", "update", "values", "add", "discard", "difference", "intersection", "union", "isdisjoint",
+    "issubset", "issuperset", "read", "readable", "readline", "readlines", "seek", "seekable", "tell",
+    "truncate", "writable", "write", "writelines", "flush", "fileno", "isatty", "detach", "real", "imag",
+    "numerator", "denominator", "conjugate", "bit_length", "to_bytes", "from_bytes", "startswith",
+    "endswith", "strip", "replace", "format", "lower", "upper", "find", "fromkeys", "move_to_end",
+];
+
+/// Atributos de um tipo embutido que o interpretador resolve, na ordem de `PROBE_NAMES`.
+pub(crate) fn probe_type_attrs(vm: &mut Vm, ty: &Value) -> Vec<(String, Value)> {
+    PROBE_NAMES.iter().filter_map(|n| vm.getattr(ty, n).ok().map(|v| ((*n).to_string(), v))).collect()
+}
+
 /// `dir(obj)`: nomes de atributo ordenados (instância, classe e módulo; o resto sai vazio).
 fn b_dir(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     crate::native_util::no_kwargs("dir", &kw)?;
     let mut names: Vec<String> = Vec::new();
     match args.first() {
         None => names.extend(vm.globals.borrow().keys().cloned()),
+        Some(t @ (Value::Builtin(_) | Value::NativeFn(_))) if crate::builtins::class_name(t).is_some() => {
+            names.extend(probe_type_attrs(vm, t).into_iter().map(|(n, _)| n));
+        }
         Some(Value::Instance(i)) => {
             names.extend(i.dict.borrow().keys().cloned());
             for c in i.class.mro() {

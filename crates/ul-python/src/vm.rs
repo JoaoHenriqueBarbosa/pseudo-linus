@@ -2221,6 +2221,22 @@ impl Vm {
         match obj {
             Value::Instance(inst) => return self.instance_getattr(obj, inst, name),
             Value::Class(c) => return self.class_getattr(c, name),
+            Value::Builtin(_) | Value::NativeFn(_) if name == "__dict__" && crate::builtins::class_name(obj).is_some() => {
+                let mut d = crate::object::Dict::new();
+                for (k, v) in crate::builtins_ext::probe_type_attrs(self, obj) {
+                    d.set(Value::str(k), v)?;
+                }
+                return Ok(Value::dict(d));
+            }
+            Value::Builtin(_) | Value::NativeFn(_)
+                if matches!(name, "__getattribute__" | "__setattr__" | "__delattr__")
+                    && crate::builtins::class_name(obj).is_some() =>
+            {
+                // `tuple.__getattribute__(self, nome)` e companhia: os ganchos de atributo vêm de `object`.
+                if let Some(v) = crate::typeattrs::object_attr(name) {
+                    return Ok(v);
+                }
+            }
             Value::Builtin("object") if !matches!(name, "__name__" | "__qualname__" | "__mro__" | "__bases__") => {
                 if let Some(v) = crate::typeattrs::object_attr(name) {
                     return Ok(v);

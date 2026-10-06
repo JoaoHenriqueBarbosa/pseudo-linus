@@ -129,6 +129,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("asyncio.mixins", include_str!("py/asyncio_mixins.py")),
     ("asyncio.queues", include_str!("py/asyncio_queues.py")),
     ("asyncio.runners", include_str!("py/asyncio_runners.py")),
+    ("asyncio.subprocess", include_str!("py/asyncio_subprocess.py")),
     ("asyncio.taskgroups", include_str!("py/asyncio_taskgroups.py")),
     ("asyncio.tasks", include_str!("py/asyncio_tasks.py")),
     ("asyncio.threads", include_str!("py/asyncio_threads.py")),

@@ -431,7 +431,18 @@ impl ClassObj {
 
     /// Procura `name` na classe e nas bases, na ordem do MRO.
     pub fn lookup(self: &Rc<Self>, name: &str) -> Option<Value> {
-        self.mro().iter().find_map(|c| c.dict.borrow().get(name).cloned())
+        // Herança simples: anda pela cadeia sem montar o MRO (aloca um `Vec` de `Rc` por busca).
+        let mut cur = self;
+        loop {
+            if let Some(v) = cur.dict.borrow().get(name) {
+                return Some(v.clone());
+            }
+            match cur.bases.as_slice() {
+                [] => return None,
+                [one] => cur = one,
+                _ => return self.mro().iter().find_map(|c| c.dict.borrow().get(name).cloned()),
+            }
+        }
     }
 }
 

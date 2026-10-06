@@ -13,6 +13,7 @@ from .futures import *
 from .locks import *
 from .queues import *
 from .runners import *
+from .subprocess import *
 from .tasks import *
 from .taskgroups import *
 from .timeouts import *
@@ -27,6 +28,7 @@ __all__ = (base_events.__all__ +
            locks.__all__ +
            queues.__all__ +
            runners.__all__ +
+           subprocess.__all__ +
            tasks.__all__ +
            taskgroups.__all__ +
            threads.__all__ +

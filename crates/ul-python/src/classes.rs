@@ -723,6 +723,18 @@ impl Vm {
             _ => {}
         }
         inst.sync_from_view();
+        // `__getattribute__` de usuário intercepta toda busca; `AttributeError` dele cai no `__getattr__`.
+        if hook {
+            if let Some(Value::Function(f)) = inst.class.lookup("__getattribute__") {
+                return match self.call_function(&f, vec![obj.clone(), Value::str(name)], Vec::new()) {
+                    Err(e) if e.kind == "AttributeError" => match inst.class.lookup("__getattr__") {
+                        Some(Value::Function(g)) => self.call_function(&g, vec![obj.clone(), Value::str(name)], Vec::new()),
+                        _ => Err(e),
+                    },
+                    other => other,
+                };
+            }
+        }
         // Propriedades têm precedência sobre o dicionário da instância.
         let class_attr = inst.class.lookup(name);
         if let Some(Value::Ext(e)) = &class_attr {

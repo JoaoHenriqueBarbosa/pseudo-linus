@@ -307,6 +307,14 @@ class _local:
                 type(self).__init__(self, *args, **kw)
         return dicts[ident]
 
+    def __getattribute__(self, name):
+        if name.startswith('_local__') or name == '__class__':
+            return object.__getattribute__(self, name)
+        d = _local._local__dict(self)
+        if name in d:
+            return d[name]
+        return object.__getattribute__(self, name)
+
     def __getattr__(self, name):
         d = _local._local__dict(self)
         if name in d:
