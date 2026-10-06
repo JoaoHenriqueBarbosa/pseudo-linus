@@ -328,18 +328,39 @@ fn interactive(t: &mut dyn Target) -> u8 {
     let mut last: u8 = 0;
     let mut cwd = String::from("~");
     let mut buf = String::new();
+    // Em terminal, o rustyline cuida da edição da linha (setas, Home/End, histórico, Ctrl-R, Ctrl-A/E...).
+    let mut editor = if tty { rustyline::DefaultEditor::new().ok() } else { None };
     loop {
-        if tty {
-            eprint!("{}osh:{cwd}# ", if buf.is_empty() { "" } else { "> " });
-            let _ = std::io::stderr().flush();
-        }
         let mut line = String::new();
-        match stdin.lock().read_line(&mut line) {
-            Ok(0) => break,
-            Ok(_) => {}
-            Err(e) => {
-                eprintln!("osh: {e}");
-                break;
+        if let Some(ed) = editor.as_mut() {
+            let prompt = format!("{}osh:{cwd}# ", if buf.is_empty() { "" } else { "> " });
+            match ed.readline(&prompt) {
+                Ok(l) => {
+                    line = l;
+                    line.push('\n');
+                }
+                Err(rustyline::error::ReadlineError::Interrupted) => {
+                    buf.clear();
+                    continue;
+                }
+                Err(rustyline::error::ReadlineError::Eof) => break,
+                Err(e) => {
+                    eprintln!("osh: {e}");
+                    break;
+                }
+            }
+        } else {
+            if tty {
+                eprint!("{}osh:{cwd}# ", if buf.is_empty() { "" } else { "> " });
+                let _ = std::io::stderr().flush();
+            }
+            match stdin.lock().read_line(&mut line) {
+                Ok(0) => break,
+                Ok(_) => {}
+                Err(e) => {
+                    eprintln!("osh: {e}");
+                    break;
+                }
             }
         }
         let trimmed = line.trim_end_matches(['\n', '\r']);
@@ -352,6 +373,9 @@ fn interactive(t: &mut dyn Target) -> u8 {
         let cmd = std::mem::take(&mut buf);
         if cmd.trim().is_empty() {
             continue;
+        }
+        if let Some(ed) = editor.as_mut() {
+            let _ = ed.add_history_entry(cmd.trim_end());
         }
         match t.session(&cmd) {
             Ok(r) => {
