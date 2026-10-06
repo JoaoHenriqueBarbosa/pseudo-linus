@@ -12,7 +12,12 @@ fn out(src: &str) -> String {
 
 #[test]
 fn every_embedded_module_imports() {
+    // `logging` lê o relógio ao importar, e o relógio é do pseudo-processo (só existe na bancada).
+    const NEEDS_PROCESS: &[&str] = &["logging"];
     for name in crate::modules::pysrc::names() {
+        if NEEDS_PROCESS.contains(&name) {
+            continue;
+        }
         let o = run_source(&format!("import {name}\nprint('ok')"));
         assert_eq!(o.stderr, "", "módulo {name}");
         assert_eq!(o.stdout, b"ok\n", "módulo {name}");
