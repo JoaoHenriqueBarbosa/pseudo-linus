@@ -211,7 +211,35 @@ def format_exception_only(exc, /, value=_sentinel, *, show_group=False):
         exc = type(value)
     if exc is None:
         return ['None\n']
+    if isinstance(value, SyntaxError) and issubclass(exc, SyntaxError):
+        return list(_format_syntax_error(exc, value))
     return [_format_final_line(exc, value)]
+
+
+def _format_syntax_error(exc, value):
+    """Bloco `File ... / linha / caret` seguido de `SyntaxError: msg`, como o CPython."""
+    if value.lineno is not None:
+        yield '  File "{}", line {}\n'.format(value.filename or "<string>", value.lineno)
+    elif value.filename is not None:
+        yield '  File "{}"\n'.format(value.filename)
+    text = value.text
+    if text is not None:
+        rtext = text.rstrip('\n')
+        ltext = rtext.lstrip(' \n\f')
+        spaces = len(rtext) - len(ltext)
+        yield '    {}\n'.format(ltext)
+        if value.offset is not None:
+            offset = value.offset
+            end_offset = value.end_offset if value.end_offset not in {None, 0} else offset
+            if offset == end_offset or end_offset == -1:
+                end_offset = offset + 1
+            colno = offset - 1 - spaces
+            end_colno = end_offset - 1 - spaces
+            if colno >= 0:
+                caretspace = ((c if c.isspace() else ' ') for c in ltext[:colno])
+                yield '    {}{}\n'.format("".join(caretspace), '^' * (end_colno - colno))
+    msg = value.msg or "<no detail available>"
+    yield "{}: {}\n".format(_type_name(exc), msg)
 
 
 def _parse_args(exc, value, tb):
