@@ -255,7 +255,7 @@ pub enum Native {
 /// que a envolve. As funções internas guardam o `Env` onde nasceram, e é assim que enxergam e
 /// alteram as variáveis do escopo externo (closures, `nonlocal`).
 pub struct Env {
-    pub vars: RefCell<VarMap>,
+    pub vars: RefCell<LocalMap>,
     /// Ordem de criação dos nomes (só preenchida nos corpos de classe).
     pub order: RefCell<Vec<String>>,
     pub parent: Option<Rc<Env>>,
@@ -293,6 +293,108 @@ pub type VarMap = std::collections::HashMap<Rc<str>, Value, std::hash::BuildHash
 /// `obj.attr` e cada chamada de método passa por aqui.
 pub type AttrMap = indexmap::IndexMap<String, Value, std::hash::BuildHasherDefault<NameHasher>>;
 
+/// Variáveis de um escopo de função ou de classe. Quase sempre são poucos nomes, e uma busca
+/// linear (o ponteiro do `Rc` antes do texto) custa menos que montar e consultar uma tabela de
+/// hash a cada chamada. Passando de [`LocalMap::INDEX_AT`] nomes (função gerada, classe grande),
+/// ganha um índice por hash para não virar quadrático. As globais ficam num [`VarMap`].
+#[derive(Default, Clone)]
+pub struct LocalMap {
+    items: Vec<(Rc<str>, Value)>,
+    index: Option<std::collections::HashMap<Rc<str>, usize, std::hash::BuildHasherDefault<NameHasher>>>,
+}
+
+impl LocalMap {
+    const INDEX_AT: usize = 16;
+
+    #[inline]
+    fn position(&self, name: &str) -> Option<usize> {
+        if let Some(ix) = &self.index {
+            return ix.get(name).copied();
+        }
+        self.items.iter().position(|(k, _)| std::ptr::eq(k.as_ptr(), name.as_ptr()) && k.len() == name.len() || **k == *name)
+    }
+
+    fn rebuild_index(&mut self) {
+        self.index = (self.items.len() > Self::INDEX_AT)
+            .then(|| self.items.iter().enumerate().map(|(i, (k, _))| (k.clone(), i)).collect());
+    }
+
+    pub fn get(&self, name: &str) -> Option<&Value> {
+        self.position(name).map(|i| &self.items[i].1)
+    }
+
+    pub fn get_mut(&mut self, name: &str) -> Option<&mut Value> {
+        self.position(name).map(|i| &mut self.items[i].1)
+    }
+
+    pub fn contains_key(&self, name: &str) -> bool {
+        self.position(name).is_some()
+    }
+
+    /// Grava `name`; devolve o valor anterior, se havia.
+    pub fn insert(&mut self, name: Rc<str>, value: Value) -> Option<Value> {
+        match self.position(&name) {
+            Some(i) => Some(std::mem::replace(&mut self.items[i].1, value)),
+            None => {
+                let at = self.items.len();
+                match &mut self.index {
+                    Some(ix) => {
+                        ix.insert(name.clone(), at);
+                    }
+                    None if at + 1 > Self::INDEX_AT => {
+                        self.items.push((name, value));
+                        self.rebuild_index();
+                        return None;
+                    }
+                    None => {}
+                }
+                self.items.push((name, value));
+                None
+            }
+        }
+    }
+
+    pub fn remove(&mut self, name: &str) -> Option<Value> {
+        let i = self.position(name)?;
+        let (_, v) = self.items.remove(i);
+        if self.index.is_some() {
+            self.rebuild_index();
+        }
+        Some(v)
+    }
+
+    pub fn reserve(&mut self, n: usize) {
+        self.items.reserve(n);
+    }
+
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&Rc<str>, &Value)> {
+        self.items.iter().map(|(k, v)| (k, v))
+    }
+
+    pub fn keys(&self) -> impl Iterator<Item = &Rc<str>> {
+        self.items.iter().map(|(k, _)| k)
+    }
+
+    pub fn values(&self) -> impl Iterator<Item = &Value> {
+        self.items.iter().map(|(_, v)| v)
+    }
+
+    pub fn retain(&mut self, mut keep: impl FnMut(&Rc<str>, &mut Value) -> bool) {
+        self.items.retain_mut(|(k, v)| keep(k, v));
+        if self.index.is_some() {
+            self.rebuild_index();
+        }
+    }
+}
+
 impl fmt::Debug for Env {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "<env>")
@@ -302,7 +404,7 @@ impl fmt::Debug for Env {
 impl Env {
     pub fn new(parent: Option<Rc<Env>>, is_class: bool, is_module: bool) -> Rc<Env> {
         Rc::new(Env {
-            vars: RefCell::new(VarMap::default()),
+            vars: RefCell::new(LocalMap::default()),
             order: RefCell::new(Vec::new()),
             parent,
             is_class,

@@ -920,7 +920,8 @@ impl Vm {
 
     /// Executa o código de um módulo, de uma função ou de um corpo de classe até o `Return`.
     pub(crate) fn exec(&mut self, code: &Rc<Code>, env: &Rc<Env>) -> PyResult<Value> {
-        let mut stack: Vec<Slot> = Vec::new();
+        // A pilha de quase todo quadro cabe em poucas posições: uma alocação só, sem crescer aos poucos.
+        let mut stack: Vec<Slot> = Vec::with_capacity(8);
         let mut blocks: Vec<Block> = Vec::new();
         let mut pc = 0;
         match self.run_loop(code, env, &mut stack, &mut blocks, &mut pc, None)? {
