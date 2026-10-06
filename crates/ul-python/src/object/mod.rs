@@ -61,6 +61,12 @@ pub enum Value {
     Native(Rc<RefCell<Native>>),
     /// Método embutido preso ao receptor (`arquivo.write`).
     Bound(Rc<BoundMethod>),
+    /// Classe de usuário.
+    Class(Rc<ClassObj>),
+    /// Instância de classe de usuário.
+    Instance(Rc<InstanceObj>),
+    /// Função de usuário presa ao receptor (`obj.metodo`): o `self` entra como primeiro argumento.
+    BoundFn(Rc<(Value, Rc<FuncObj>)>),
 }
 
 /// Argumentos nomeados de uma chamada.
@@ -191,11 +197,63 @@ pub enum Native {
     CsvWriter { dialect: crate::modules::csv::Dialect, target: Value },
 }
 
-/// Função de usuário: o código compilado e os valores padrão dos últimos parâmetros.
+/// Célula de closure: variável capturada por uma função interna (`None` = ainda sem valor).
+pub type Cell = Rc<RefCell<Option<Value>>>;
+
+/// Função de usuário: o código compilado, os valores padrão dos últimos parâmetros posicionais, os
+/// padrões dos parâmetros só-nomeados e as células capturadas do escopo externo.
 #[derive(Debug)]
 pub struct FuncObj {
     pub code: Rc<crate::compile::Code>,
     pub defaults: Vec<Value>,
+    pub kwdefaults: Vec<(String, Value)>,
+    pub closure: Vec<Cell>,
+}
+
+/// Classe definida por `class`: nome, bases (já resolvidas) e o espaço de nomes.
+pub struct ClassObj {
+    pub name: String,
+    pub bases: Vec<Rc<ClassObj>>,
+    pub dict: RefCell<std::collections::BTreeMap<String, Value>>,
+}
+
+impl fmt::Debug for ClassObj {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "<class '{}'>", self.name)
+    }
+}
+
+impl ClassObj {
+    /// Ordem de resolução de métodos (`__mro__`): linearização C3 simplificada para herança simples
+    /// e losango comum (cada classe antes de suas bases, sem repetir).
+    pub fn mro(self: &Rc<Self>) -> Vec<Rc<ClassObj>> {
+        let mut out: Vec<Rc<ClassObj>> = vec![self.clone()];
+        for b in &self.bases {
+            for c in b.mro() {
+                if !out.iter().any(|x| Rc::ptr_eq(x, &c)) {
+                    out.push(c);
+                }
+            }
+        }
+        out
+    }
+
+    /// Procura `name` na classe e nas bases, na ordem do MRO.
+    pub fn lookup(self: &Rc<Self>, name: &str) -> Option<Value> {
+        self.mro().iter().find_map(|c| c.dict.borrow().get(name).cloned())
+    }
+}
+
+/// Instância de uma classe de usuário.
+pub struct InstanceObj {
+    pub class: Rc<ClassObj>,
+    pub dict: RefCell<std::collections::BTreeMap<String, Value>>,
+}
+
+impl fmt::Debug for InstanceObj {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "<{} object>", self.class.name)
+    }
 }
 
 /// Instância de uma exceção embutida.
@@ -381,6 +439,7 @@ impl Value {
             Value::Set(_) => "set",
             Value::Range(_) => "range",
             Value::Builtin(name) if is_builtin_type(name) => "type",
+            Value::NativeFn(n) if is_builtin_type(n.name) => "type",
             Value::Builtin(_) | Value::NativeFn(_) => "builtin_function_or_method",
             Value::Ext(e) => e.type_name(),
             Value::Exception(e) => e.kind,
@@ -392,6 +451,9 @@ impl Value {
                 Native::CsvWriter { .. } => "_csv.writer",
             },
             Value::Bound(_) => "builtin_function_or_method",
+            Value::Class(_) => "type",
+            Value::Instance(_) => "instance",
+            Value::BoundFn(_) => "method",
         }
     }
 
@@ -416,7 +478,10 @@ impl Value {
             | Value::Module(_)
             | Value::NativeFn(_)
             | Value::Native(_)
-            | Value::Bound(_) => true,
+            | Value::Bound(_)
+            | Value::Class(_)
+            | Value::Instance(_)
+            | Value::BoundFn(_) => true,
         }
     }
 }
@@ -498,6 +563,7 @@ pub(crate) fn repr_into(v: &Value, out: &mut String, stack: &mut ReprStack) {
         Value::Exception(e) => out.push_str(&exc_repr(e)),
         Value::Function(f) => out.push_str(&format!("<function {} at {:#x}>", f.code.name, addr(f))),
         Value::Module(m) => out.push_str(&format!("<module '{}'>", m.name)),
+        Value::NativeFn(n) if is_builtin_type(n.name) => out.push_str(&format!("<class '{}'>", n.name)),
         Value::NativeFn(n) => out.push_str(&format!("<built-in function {}>", n.name)),
         Value::Ext(e) => out.push_str(&e.repr()),
         Value::Native(n) => match &*n.borrow() {
@@ -506,6 +572,13 @@ pub(crate) fn repr_into(v: &Value, out: &mut String, stack: &mut ReprStack) {
             Native::CsvWriter { .. } => out.push_str("<_csv.writer object>"),
         },
         Value::Bound(b) => out.push_str(&format!("<built-in method {} of {} object at {:#x}>", b.name, b.recv.type_name(), addr(b))),
+        Value::Class(c) => out.push_str(&format!("<class '__main__.{}'>", c.name)),
+        Value::Instance(i) => out.push_str(&format!("<__main__.{} object at {:#x}>", i.class.name, addr(i))),
+        Value::BoundFn(b) => {
+            out.push_str(&format!("<bound method {} of ", b.1.code.name));
+            repr_into(&b.0, out, stack);
+            out.push('>');
+        }
     }
 }
 
@@ -529,6 +602,9 @@ pub fn is(a: &Value, b: &Value) -> bool {
         (Value::Ext(x), Value::Ext(y)) => std::ptr::addr_eq(Rc::as_ptr(x), Rc::as_ptr(y)),
         (Value::Native(x), Value::Native(y)) => Rc::ptr_eq(x, y),
         (Value::Bound(x), Value::Bound(y)) => Rc::ptr_eq(x, y),
+        (Value::Class(x), Value::Class(y)) => Rc::ptr_eq(x, y),
+        (Value::Instance(x), Value::Instance(y)) => Rc::ptr_eq(x, y),
+        (Value::BoundFn(x), Value::BoundFn(y)) => Rc::ptr_eq(x, y),
         _ => false,
     }
 }
@@ -596,6 +672,9 @@ pub fn py_eq(a: &Value, b: &Value) -> bool {
         (Value::Ext(x), Value::Ext(y)) => std::ptr::addr_eq(Rc::as_ptr(x), Rc::as_ptr(y)),
         (Value::Native(x), Value::Native(y)) => Rc::ptr_eq(x, y),
         (Value::Bound(x), Value::Bound(y)) => Rc::ptr_eq(x, y),
+        (Value::Class(x), Value::Class(y)) => Rc::ptr_eq(x, y),
+        (Value::Instance(x), Value::Instance(y)) => Rc::ptr_eq(x, y),
+        (Value::BoundFn(x), Value::BoundFn(y)) => Rc::ptr_eq(x, y),
         _ => false,
     }
 }
@@ -629,6 +708,9 @@ pub fn hash(v: &Value) -> Result<i64, ObjError> {
         Value::Ext(e) => Ok((Rc::as_ptr(e) as *const () as usize >> 4) as i64),
         Value::Native(n) => Ok((Rc::as_ptr(n) as usize >> 4) as i64),
         Value::Bound(b) => Ok((Rc::as_ptr(b) as usize >> 4) as i64),
+        Value::Class(c) => Ok((Rc::as_ptr(c) as usize >> 4) as i64),
+        Value::Instance(i) => Ok((Rc::as_ptr(i) as usize >> 4) as i64),
+        Value::BoundFn(b) => Ok((Rc::as_ptr(b) as usize >> 4) as i64),
         Value::List(_) | Value::Dict(_) | Value::Set(_) => {
             Err(ObjError::TypeError(format!("unhashable type: '{}'", v.type_name())))
         }

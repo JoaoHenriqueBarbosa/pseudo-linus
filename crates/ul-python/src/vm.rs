@@ -626,7 +626,12 @@ impl Vm {
             }
             Op::MakeFunction { code: idx, ndefaults } => {
                 let defaults = pop_n(stack, ndefaults as usize)?;
-                let f = FuncObj { code: code.functions[idx as usize].clone(), defaults };
+                let f = FuncObj {
+                    code: code.functions[idx as usize].clone(),
+                    defaults,
+                    kwdefaults: Vec::new(),
+                    closure: Vec::new(),
+                };
                 stack.push(Slot::Val(Value::Function(Rc::new(f))));
             }
             Op::PushExc => {
