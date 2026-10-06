@@ -147,6 +147,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("sysconfig", include_str!("py/sysconfig.py")),
     ("this", include_str!("py/this.py")),
     ("struct", include_str!("py/struct.py")),
+    ("multiprocessing", include_str!("py/multiprocessing.py")),
     ("faulthandler", include_str!("py/faulthandler.py")),
     ("re", include_str!("py/re.py")),
     ("base64", include_str!("py/base64.py")),

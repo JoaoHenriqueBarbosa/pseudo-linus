@@ -180,8 +180,11 @@ class Barrier:
         self.broken = True
 
 
-class local:
+class _local:
     """Dados locais da thread: com um fluxo só, são os dados do próprio objeto."""
+
+
+local = _local
 
 
 def excepthook(args):
