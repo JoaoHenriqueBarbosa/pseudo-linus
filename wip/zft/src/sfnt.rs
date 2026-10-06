@@ -60,8 +60,15 @@ pub(crate) struct Sfnt {
 
 impl Sfnt {
     pub fn table<'a>(&self, data: &'a [u8], tag: &[u8; 4]) -> Option<&'a [u8]> {
+        let (off, len) = self.table_range(data, tag)?;
+        Some(&data[off..off + len])
+    }
+
+    /// Onde a tabela está no arquivo, se ela cabe nele.
+    pub fn table_range(&self, data: &[u8], tag: &[u8; 4]) -> Option<(usize, usize)> {
         let &(_, off, len) = self.tables.iter().find(|(t, _, _)| t == tag)?;
-        data.get(off..off.checked_add(len)?)
+        data.get(off..off.checked_add(len)?)?;
+        Some((off, len))
     }
 
     pub fn has(&self, tag: &[u8; 4]) -> bool {

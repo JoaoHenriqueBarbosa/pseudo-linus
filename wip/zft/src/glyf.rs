@@ -1,17 +1,22 @@
-//! Carregador de glifos TrueType sem hinting (`ttgload.c`): contornos simples e compostos, pontos
-//! fantasmas e as métricas do `compute_glyph_metrics`.
+//! Carregador de glifos TrueType (`ttgload.c`): contornos simples e compostos, pontos fantasmas,
+//! o hinting por bytecode (`TT_Hint_Glyph`) e as métricas do `compute_glyph_metrics`.
 
-use crate::calc::{hypot, mul_fix};
+use std::rc::Rc;
+
+use crate::calc::{hypot, mul_fix, pix_round};
 use crate::outline::{Matrix, Outline, Vector};
 use crate::sfnt::{i16_at, u16_at, Sfnt};
+use crate::tt::{TtSize, Zone, TOUCH_BOTH};
 use crate::Error;
 
 const ARGS_ARE_WORDS: u16 = 0x0001;
 const ARGS_ARE_XY_VALUES: u16 = 0x0002;
+const ROUND_XY_TO_GRID: u16 = 0x0004;
 const WE_HAVE_A_SCALE: u16 = 0x0008;
 const MORE_COMPONENTS: u16 = 0x0020;
 const WE_HAVE_AN_XY_SCALE: u16 = 0x0040;
 const WE_HAVE_A_2X2: u16 = 0x0080;
+const WE_HAVE_INSTR: u16 = 0x0100;
 const USE_MY_METRICS: u16 = 0x0200;
 const SCALED_COMPONENT_OFFSET: u16 = 0x0800;
 
@@ -36,6 +41,8 @@ struct Loader<'a> {
     sfnt: &'a Sfnt,
     data: &'a [u8],
     scale: Option<(i64, i64)>,
+    /// O tamanho com o contexto de bytecode, quando o glifo é carregado com hinting.
+    hint: Option<&'a mut TtSize>,
     out: Outline,
     pp1: Vector,
     pp2: Vector,
@@ -45,6 +52,8 @@ struct Loader<'a> {
     vadvance: i64,
     bbox: [i64; 4],
     stack: Vec<u32>,
+    /// `loader->byte_len` do glifo corrente.
+    byte_len: usize,
 }
 
 struct SubGlyph {
@@ -118,10 +127,11 @@ impl Loader<'_> {
             self.scale_phantoms();
             return Ok(());
         }
+        self.byte_len = len;
         if n_contours > 0 {
             self.simple(&g[10..], n_contours as usize)
         } else {
-            self.composite(&g[10..], gid, depth)
+            self.composite(&g[10..], off + 10, gid, depth)
         }
     }
 
@@ -148,6 +158,7 @@ impl Loader<'_> {
         if p + n_ins > g.len() {
             return Err(Error::TooManyHints);
         }
+        let ins: Option<Rc<[u8]>> = (n_ins > 0).then(|| Rc::from(&g[p..p + n_ins]));
         p += n_ins;
         let mut flags = Vec::with_capacity(n);
         while flags.len() < n {
@@ -202,6 +213,7 @@ impl Loader<'_> {
         }
         // `TT_Process_Simple_Glyph`: os fantasmas entram junto e são escalados com os pontos.
         pts.extend([self.pp1, self.pp2, self.pp3, self.pp4]);
+        let orus = self.hint.is_some().then(|| pts.clone());
         if let Some((xs, ys)) = self.scale {
             for v in &mut pts {
                 v.x = mul_fix(v.x, xs);
@@ -212,18 +224,42 @@ impl Loader<'_> {
         self.pp2 = pts[n + 1];
         self.pp3 = pts[n + 2];
         self.pp4 = pts[n + 3];
+        let mut tags: Vec<u8> = flags.iter().map(|f| f & 1).collect();
+        if let (Some(size), Some(orus)) = (self.hint.as_deref_mut(), orus) {
+            tags.extend([0; 4]);
+            let zone = Zone {
+                n_points: n + 4,
+                org: vec![Vector::default(); n + 4],
+                cur: pts,
+                orus,
+                tags,
+                contours: ends.clone(),
+                first_point: 0,
+            };
+            let (zone, pp, scan) = size.hint_glyph(zone, ins, false);
+            pts = zone.cur;
+            tags = zone.tags;
+            tags.truncate(n);
+            if let Some(pp) = pp {
+                [self.pp1, self.pp2, self.pp3, self.pp4] = pp;
+            }
+            if let Some(s) = scan {
+                tags[0] |= s;
+            }
+        }
         pts.truncate(n);
         self.out.points.extend(pts);
-        self.out.tags.extend(flags.iter().map(|f| f & 1));
+        self.out.tags.extend(tags);
         self.out.contours.extend(ends.iter().map(|e| e + base));
         Ok(())
     }
 
-    fn composite(&mut self, g: &[u8], gid: u32, depth: usize) -> Result<(), Error> {
+    fn composite(&mut self, g: &[u8], abs: usize, gid: u32, depth: usize) -> Result<(), Error> {
         let bad = Error::InvalidComposite;
         if self.stack.contains(&gid) || depth > 64 {
             return Err(bad);
         }
+        let byte_len = self.byte_len;
         let mut subs = Vec::new();
         let mut p = 0usize;
         loop {
@@ -283,6 +319,8 @@ impl Loader<'_> {
         }
         self.stack.push(gid);
         let start_point = self.out.points.len();
+        let start_contour = self.out.contours.len();
+        let mut num_points = start_point;
         for sg in &subs {
             let saved = (self.pp1, self.pp2, self.pp3, self.pp4, self.linear, self.vadvance);
             let num_base = self.out.points.len();
@@ -290,12 +328,52 @@ impl Loader<'_> {
             if sg.flags & USE_MY_METRICS == 0 {
                 (self.pp1, self.pp2, self.pp3, self.pp4, self.linear, self.vadvance) = saved;
             }
-            if self.out.points.len() == num_base {
+            num_points = self.out.points.len();
+            if num_points == num_base {
                 continue;
             }
             self.process_component(sg, start_point, num_base)?;
         }
         self.stack.pop();
+        self.byte_len = byte_len;
+        let last = subs.last().map_or(0, |s| s.flags);
+        if self.hint.is_some() && last & WE_HAVE_INSTR != 0 && num_points > start_point {
+            self.hint_composite(abs + p, start_point, start_contour)?;
+        }
+        Ok(())
+    }
+
+    /// `TT_Process_Composite_Glyph`: o programa que vem depois do último componente.
+    fn hint_composite(&mut self, ins_pos: usize, start_point: usize, start_contour: usize) -> Result<(), Error> {
+        let n_ins = usize::from(u16_at(self.data, ins_pos).ok_or(Error::InvalidOutline)?);
+        if n_ins == 0 {
+            return Ok(());
+        }
+        if n_ins > self.byte_len {
+            return Err(Error::TooManyHints);
+        }
+        let ins: Rc<[u8]> = Rc::from(self.data.get(ins_pos + 2..ins_pos + 2 + n_ins).ok_or(Error::InvalidOutline)?);
+        let mut cur: Vec<Vector> = self.out.points[start_point..].to_vec();
+        let n = cur.len();
+        cur.extend([self.pp1, self.pp2, self.pp3, self.pp4]);
+        let mut tags: Vec<u8> = self.out.tags[start_point..].iter().map(|t| t & !TOUCH_BOTH).collect();
+        tags.extend([0; 4]);
+        let zone = Zone {
+            n_points: n + 4,
+            org: Vec::new(),
+            orus: Vec::new(),
+            cur,
+            tags,
+            contours: self.out.contours[start_contour..].to_vec(),
+            first_point: start_point,
+        };
+        let size = self.hint.as_deref_mut().expect("só com hinting");
+        let (zone, pp, _) = size.hint_glyph(zone, Some(ins), true);
+        self.out.points[start_point..].copy_from_slice(&zone.cur[..n]);
+        self.out.tags[start_point..].copy_from_slice(&zone.tags[..n]);
+        if let Some(pp) = pp {
+            [self.pp1, self.pp2, self.pp3, self.pp4] = pp;
+        }
         Ok(())
     }
 
@@ -329,6 +407,10 @@ impl Loader<'_> {
             if let Some((xs, ys)) = self.scale {
                 x = mul_fix(x, xs);
                 y = mul_fix(y, ys);
+                // A versão 40 só arredonda o deslocamento vertical.
+                if sg.flags & ROUND_XY_TO_GRID != 0 && self.hint.is_some() {
+                    y = pix_round(y);
+                }
             }
         }
         if x != 0 || y != 0 {
@@ -341,12 +423,21 @@ impl Loader<'_> {
     }
 }
 
-/// `TT_Load_Glyph` sem hinting. `scale` é `(x_scale, y_scale)`, ou `None` para `FT_LOAD_NO_SCALE`.
-pub(crate) fn load(sfnt: &Sfnt, data: &[u8], gid: u32, scale: Option<(i64, i64)>) -> Result<Loaded, Error> {
+/// `TT_Load_Glyph`. `scale` é `(x_scale, y_scale)`, ou `None` para `FT_LOAD_NO_SCALE`; `hint` é o
+/// tamanho já preparado pelo `tt_loader_init` e `widthp` as larguras do `hdmx` que ele escolheu.
+pub(crate) fn load(
+    sfnt: &Sfnt,
+    data: &[u8],
+    gid: u32,
+    scale: Option<(i64, i64)>,
+    hint: Option<&mut TtSize>,
+    widthp: Option<usize>,
+) -> Result<Loaded, Error> {
     let mut l = Loader {
         sfnt,
         data,
         scale,
+        hint,
         out: Outline::default(),
         pp1: Vector::default(),
         pp2: Vector::default(),
@@ -356,6 +447,7 @@ pub(crate) fn load(sfnt: &Sfnt, data: &[u8], gid: u32, scale: Option<(i64, i64)>
         vadvance: 0,
         bbox: [0; 4],
         stack: Vec::new(),
+        byte_len: 0,
     };
     l.load(gid, 0)?;
     let mut out = std::mem::take(&mut l.out);
@@ -374,7 +466,10 @@ pub(crate) fn load(sfnt: &Sfnt, data: &[u8], gid: u32, scale: Option<(i64, i64)>
     let top = (adv_fu - height_fu) / 2;
     let top = mul_fix(top, y_scale);
     let vadv = mul_fix(adv_fu, y_scale);
-    let advance = l.pp2.x - l.pp1.x;
+    let advance = match widthp {
+        Some(w) => i64::from(data[w + gid as usize]) * 64,
+        None => l.pp2.x - l.pp1.x,
+    };
     Ok(Loaded {
         hori_bearing_x: b.x_min,
         hori_bearing_y: b.y_max,

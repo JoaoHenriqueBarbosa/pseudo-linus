@@ -2,7 +2,8 @@
 //! para o `PIL._imagingft` do pseudo-linus.
 //!
 //! Cobre o caminho que o Pillow usa: `FT_New_Memory_Face`, `FT_Request_Size` nominal,
-//! `FT_Load_Glyph` com o autohinter (fontes sem bytecode) e o rasterizador `smooth`.
+//! `FT_Load_Glyph` com o bytecode TrueType (interpretador v40) ou o autohinter (fontes sem
+//! bytecode), e o rasterizador `smooth`.
 
 mod autofit;
 pub mod calc;
@@ -10,6 +11,7 @@ mod glyf;
 pub mod outline;
 pub mod raster;
 mod sfnt;
+mod tt;
 
 use calc::{div_fix, mul_div, mul_fix, pix_ceil, pix_floor, pix_round};
 pub use glyf::Loaded;
@@ -30,6 +32,20 @@ pub enum Error {
     InvalidPixelSize,
     InvalidPpem,
     DivideByZero,
+    InvalidOpcode,
+    TooFewArguments,
+    StackOverflow,
+    CodeOverflow,
+    BadArgument,
+    InvalidReference,
+    DebugOpcode,
+    EndfInExecStream,
+    NestedDefs,
+    InvalidCodeRange,
+    ExecutionTooLong,
+    TooManyFunctionDefs,
+    TooManyInstructionDefs,
+    DefInGlyfBytecode,
 }
 
 impl Error {
@@ -45,9 +61,23 @@ impl Error {
             Error::TooManyHints => 0x16,
             Error::InvalidTable => 0x08,
             Error::TableMissing => 0x8E,
-            Error::HorizHeaderMissing => 0x8B,
+            Error::HorizHeaderMissing => 0x8F,
             Error::InvalidPpem => 0x97,
-            Error::DivideByZero => 0x99,
+            Error::DivideByZero => 0x85,
+            Error::InvalidOpcode => 0x80,
+            Error::TooFewArguments => 0x81,
+            Error::StackOverflow => 0x82,
+            Error::CodeOverflow => 0x83,
+            Error::BadArgument => 0x84,
+            Error::InvalidReference => 0x86,
+            Error::DebugOpcode => 0x87,
+            Error::EndfInExecStream => 0x88,
+            Error::NestedDefs => 0x89,
+            Error::InvalidCodeRange => 0x8A,
+            Error::ExecutionTooLong => 0x8B,
+            Error::TooManyFunctionDefs => 0x8C,
+            Error::TooManyInstructionDefs => 0x8D,
+            Error::DefInGlyfBytecode => 0x9C,
         }
     }
 
@@ -66,6 +96,20 @@ impl Error {
             Error::InvalidPixelSize => "invalid pixel size",
             Error::InvalidPpem => "invalid ppem value",
             Error::DivideByZero => "division by zero",
+            Error::InvalidOpcode => "invalid opcode",
+            Error::TooFewArguments => "too few arguments",
+            Error::StackOverflow => "stack overflow",
+            Error::CodeOverflow => "code overflow",
+            Error::BadArgument => "bad argument",
+            Error::InvalidReference => "invalid reference",
+            Error::DebugOpcode => "found debug opcode",
+            Error::EndfInExecStream => "found ENDF opcode in execution stream",
+            Error::NestedDefs => "nested DEFS",
+            Error::InvalidCodeRange => "invalid code range",
+            Error::ExecutionTooLong => "execution context too long",
+            Error::TooManyFunctionDefs => "too many function definitions",
+            Error::TooManyInstructionDefs => "too many instruction definitions",
+            Error::DefInGlyfBytecode => "found FDEF or IDEF opcode in glyf bytecode",
         }
     }
 }
@@ -100,6 +144,10 @@ pub struct Face {
     pub size: SizeMetrics,
     /// Os globais do autohinter (`face->autohint.data`), criados na primeira carga.
     autohint: Option<Box<autofit::Globals>>,
+    /// `fpgm`, `prep`, `cvt `, `maxp` e `hdmx`.
+    progs: tt::Programs,
+    /// O `TT_SizeRec` do único tamanho da face.
+    tt: tt::TtSize,
 }
 
 /// `FT_GlyphSlot` depois de um `FT_Load_Glyph`.
@@ -158,6 +206,8 @@ impl Face {
             descender: desc,
             height: i64::from(h as i16),
             max_advance_width: i64::from(s.advance_width_max as i16),
+            progs: tt::Programs::load(&s, &data),
+            tt: tt::TtSize::default(),
             data,
             sfnt: s,
             size: SizeMetrics::default(),
@@ -351,25 +401,20 @@ impl Face {
         if m.x_ppem < 1 || m.y_ppem < 1 {
             return Err(Error::InvalidPpem);
         }
+        let (xp, yp, xs, ys) = (m.x_ppem, m.y_ppem, m.x_scale, m.y_scale);
+        self.tt.reset(&self.progs, self.sfnt.head_flags, upem, xp, yp, xs, ys);
         Ok(())
     }
 
     /// Escalas que o driver TrueType usa (`tt_size_reset`): com o bit 3 do `head`, baseadas no
     /// ppem inteiro.
     fn tt_scales(&self) -> (i64, i64) {
-        if self.sfnt.head_flags & 8 != 0 {
-            (
-                div_fix(i64::from(self.size.x_ppem) << 6, self.units_per_em),
-                div_fix(i64::from(self.size.y_ppem) << 6, self.units_per_em),
-            )
-        } else {
-            (self.size.x_scale, self.size.y_scale)
-        }
+        (self.tt.x_scale, self.tt.y_scale)
     }
 
     /// O glifo em unidades da fonte (`FT_LOAD_NO_SCALE`), como o autohinter o lê.
     pub fn load_unscaled(&self, gid: u32) -> Result<Loaded, Error> {
-        glyf::load(&self.sfnt, &self.data, gid, None)
+        glyf::load(&self.sfnt, &self.data, gid, None, None, None)
     }
 
     /// `FT_Load_Glyph`.
@@ -385,9 +430,20 @@ impl Face {
         } else {
             Some(self.tt_scales())
         };
-        let l = glyf::load(&self.sfnt, &self.data, gid, scale)?;
+        // `tt_loader_init`.
+        let mut hint = None;
+        let mut widthp = None;
+        if flags & (LOAD_NO_HINTING | LOAD_NO_SCALE) == 0 {
+            let mono = (flags >> 16) & 15 == LOAD_TARGET_MONO >> 16;
+            let setup = self.tt.prepare_load(&self.progs, mono, self.sfnt.is_fixed_pitch)?;
+            if !setup.no_hinting {
+                hint = Some(&mut self.tt);
+            }
+            widthp = setup.widthp;
+        }
+        let l = glyf::load(&self.sfnt, &self.data, gid, scale, hint, widthp)?;
         let linear = if scale.is_some() { mul_div(l.linear, self.size.x_scale, 64) } else { l.linear };
-        Ok(Slot {
+        let mut slot = Slot {
             outline: l.outline,
             hori_advance: l.advance,
             hori_bearing_x: l.hori_bearing_x,
@@ -397,6 +453,17 @@ impl Face {
             lsb_delta: 0,
             rsb_delta: 0,
             linear_hori_advance: linear,
-        })
+        };
+        // `ft_glyphslot_grid_fit_metrics` do `FT_Load_Glyph`, na horizontal.
+        if flags & LOAD_NO_HINTING == 0 {
+            let right = pix_ceil(slot.hori_bearing_x.wrapping_add(slot.width));
+            let bottom = pix_floor(slot.hori_bearing_y.wrapping_sub(slot.height));
+            slot.hori_bearing_x = pix_floor(slot.hori_bearing_x);
+            slot.hori_bearing_y = pix_ceil(slot.hori_bearing_y);
+            slot.width = right.wrapping_sub(slot.hori_bearing_x);
+            slot.height = slot.hori_bearing_y.wrapping_sub(bottom);
+            slot.hori_advance = pix_round(slot.hori_advance);
+        }
+        Ok(slot)
     }
 }
