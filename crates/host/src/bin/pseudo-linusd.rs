@@ -8,6 +8,7 @@
 use std::path::PathBuf;
 use std::process::ExitCode;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 
 use clap::{Args, Parser, Subcommand};
@@ -323,6 +324,12 @@ fn worker(index: usize) -> ExitCode {
     // prctl, o pai agora é outro processo: confere contra o pid que ele deixou no ambiente (num
     // container o supervisor é o PID 1, então "pai == 1" não serve de sinal).
     let _ = rustix::process::set_parent_process_death_signal(Some(rustix::process::Signal::KILL));
+    // SIGTERM/SIGINT chegam a todo o grupo (systemctl stop, Ctrl-C): o worker não morre com eles, senão
+    // o autosave final do supervisor falharia. Ele sai pelo `Shutdown` do supervisor ou quando o pai morre.
+    let ignored = Arc::new(AtomicBool::new(false));
+    for sig in [signal_hook::consts::SIGTERM, signal_hook::consts::SIGINT] {
+        let _ = signal_hook::flag::register(sig, ignored.clone());
+    }
     let expected = std::env::var("PL_SUPERVISOR_PID").ok().and_then(|p| p.parse::<i32>().ok());
     let parent = rustix::process::getppid().map(|p| p.as_raw_nonzero().get());
     if expected.is_none() || parent != expected {

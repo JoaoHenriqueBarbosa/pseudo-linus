@@ -265,6 +265,55 @@ fn autosave_recovers_the_sandbox_and_the_session_without_any_manual_snapshot() {
 }
 
 #[test]
+fn daemon_restart_brings_back_sandboxes_files_and_sessions() {
+    // Autosave de 1 hora: o que volta aqui só pode vir do salvamento feito no desligamento.
+    let mut d = Daemon::kernel("[sandbox]\nautosave_secs = 3600\n");
+    let t = d.user("jade", json!({}));
+    let c = d.client(&t);
+    let sb = c.call("sandbox.create", json!({ "labels": { "projeto": "site" } })).unwrap()["sandbox_id"].as_str().unwrap().to_string();
+    let gone = sandbox(&c);
+    c.call("fs.write", json!({ "sandbox_id": sb, "path": "/work/a.txt", "data": "alfa", "create_parents": true })).unwrap();
+    let sess = c.call("session.open", json!({ "sandbox_id": sb })).unwrap()["session_id"].as_str().unwrap().to_string();
+    c.call(
+        "session.exec",
+        json!({ "session_id": sess, "command": "cd /work; plain=viva; export B=2; greet() { echo \"oi $1\"; }" }),
+    )
+    .unwrap();
+    c.call("sandbox.destroy", json!({ "sandbox_id": gone })).unwrap();
+
+    d.restart();
+
+    let deadline = Instant::now() + Duration::from_secs(30);
+    loop {
+        let l = c.call("sandbox.list", json!({})).unwrap();
+        let all = l["sandboxes"].as_array().unwrap();
+        assert_eq!(all.len(), 1, "só a sandbox viva volta; a destruída não: {l}");
+        if all[0]["state"] == "active" {
+            assert_eq!(all[0]["sandbox_id"], sb.as_str());
+            assert_eq!(all[0]["labels"]["projeto"], "site");
+            break;
+        }
+        assert!(Instant::now() < deadline, "não voltou: {l}\n{}", d.log());
+        thread::sleep(Duration::from_millis(100));
+    }
+    assert_eq!(run(&c, &sb, &["cat", "/work/a.txt"], json!({}))["stdout"], "alfa");
+    let r = c.call("session.exec", json!({ "session_id": sess, "command": "pwd; echo $B $plain; greet mundo" })).unwrap();
+    assert_eq!(r["stdout"], "/work\n2 viva\noi mundo\n", "{r}");
+    // Outro usuário não enxerga a sandbox de volta.
+    let other = d.user("kai", json!({}));
+    assert!(d.client(&other).call("exec", json!({ "sandbox_id": sb, "argv": ["cat", "/work/a.txt"] })).is_err());
+    // E continua persistindo: um segundo restart ainda a encontra.
+    c.call("fs.write", json!({ "sandbox_id": sb, "path": "/work/b.txt", "data": "beta" })).unwrap();
+    d.restart();
+    let deadline = Instant::now() + Duration::from_secs(30);
+    while c.call("sandbox.list", json!({})).unwrap()["sandboxes"][0]["state"] != "active" {
+        assert!(Instant::now() < deadline, "não voltou no segundo restart\n{}", d.log());
+        thread::sleep(Duration::from_millis(100));
+    }
+    assert_eq!(run(&c, &sb, &["cat", "/work/b.txt"], json!({}))["stdout"], "beta");
+}
+
+#[test]
 fn worker_crash_with_real_kernel() {
     let d = Daemon::kernel("");
     let t = d.user("davi", json!({}));

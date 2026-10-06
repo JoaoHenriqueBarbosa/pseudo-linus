@@ -77,6 +77,8 @@ ureq = { version = "3", default-features = false, features = ["rustls"] }
 landlock = "0.4"
 seccompiler = "0.5"
 rustix = { version = "1", features = ["fs", "process", "stdio", "thread", "time"] }
+# O worker ignora SIGTERM/SIGINT (quem o encerra é o supervisor); API segura.
+signal-hook = "0.3"
 # Só constantes (números de syscall e flags) pro filtro seccomp.
 libc = "0.2"
 

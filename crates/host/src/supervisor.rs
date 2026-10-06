@@ -19,7 +19,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
 use parking_lot::Mutex;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tokio::process::Command;
 use tokio::sync::{Notify, mpsc, oneshot};
 
@@ -110,6 +110,42 @@ pub struct SnapEntry {
 
 /// Nome do snapshot que o host persiste sozinho (um por sandbox; não conta na cota do usuário).
 pub const AUTOSAVE_NAME: &str = "autosave";
+
+const MANIFEST_FILE: &str = "manifest.json";
+const MANIFEST_VERSION: u32 = 1;
+
+/// O que fica no disco, ao lado dos tars, pra sandbox e sessões voltarem depois de o daemon reiniciar.
+#[derive(Serialize, Deserialize)]
+struct Manifest {
+    version: u32,
+    id: String,
+    owner: String,
+    image: String,
+    hostname: String,
+    workdir: String,
+    env: BTreeMap<String, String>,
+    labels: BTreeMap<String, String>,
+    limits: SandboxLimits,
+    created_at: u64,
+    snapshots: Vec<ManifestSnap>,
+    sessions: Vec<ManifestSession>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct ManifestSnap {
+    id: String,
+    name: String,
+    created_at: u64,
+    bytes: u64,
+}
+
+#[derive(Serialize, Deserialize)]
+struct ManifestSession {
+    id: String,
+    owner: String,
+    created_at: u64,
+    snapshot: Option<crate::session::SessionSnapshot>,
+}
 
 #[derive(Clone, Debug)]
 pub struct SandboxEntry {
@@ -362,6 +398,7 @@ impl Supervisor {
             shutdown: Notify::new(),
             started: Instant::now(),
         });
+        sup.load_persisted();
         for i in 0..sup.slots.len() {
             tokio::spawn(sup.clone().run_slot(i));
         }
@@ -390,7 +427,9 @@ impl Supervisor {
     }
 
     /// Pede pros workers saírem (destruindo as sandboxes) e espera até `timeout`.
-    pub async fn shutdown(&self, timeout: Duration) {
+    pub async fn shutdown(self: &Arc<Self>, timeout: Duration) {
+        // Antes de os workers pararem: persiste o que mudou desde o último autosave.
+        self.autosave(true).await;
         self.shutting_down.store(true, Ordering::Release);
         self.shutdown.notify_waiters();
         let deadline = tokio::time::Instant::now() + timeout;
@@ -799,6 +838,166 @@ impl Supervisor {
     }
 
     /// Faxina periódica: sandboxes ociosas, donos removidos, lápides velhas e o último uso das chaves.
+    /// Grava `manifest.json` ao lado dos tars da sandbox: o que o boot precisa pra recriá-la (dono,
+    /// limites, labels, snapshots persistidos e o estado do shell de cada sessão). Sem snapshot
+    /// persistido não há o que recriar, então o manifesto some.
+    pub fn write_manifest_locked(&self, st: &State, sb_id: &str) {
+        let Some(sb) = st.sandboxes.get(sb_id) else { return };
+        let dir = self.cfg.snapshots_dir().join(sb_id);
+        let path = dir.join(MANIFEST_FILE);
+        let snapshots: Vec<ManifestSnap> = sb
+            .snapshots
+            .iter()
+            .filter_map(|s| {
+                s.persisted.as_ref().map(|(_, bytes)| ManifestSnap {
+                    id: s.id.clone(),
+                    name: s.name.clone(),
+                    created_at: s.created_at,
+                    bytes: *bytes,
+                })
+            })
+            .collect();
+        if snapshots.is_empty() || !matches!(sb.status, SbStatus::Active | SbStatus::Recovering { .. }) {
+            let _ = std::fs::remove_file(&path);
+            return;
+        }
+        let sessions = st
+            .sessions
+            .values()
+            .chain(st.orphan_sessions.values())
+            .filter(|s| s.sandbox_id == sb_id)
+            .map(|s| ManifestSession { id: s.id.clone(), owner: s.owner.clone(), created_at: s.created_at, snapshot: s.snapshot.clone() })
+            .collect();
+        let m = Manifest {
+            version: MANIFEST_VERSION,
+            id: sb.id.clone(),
+            owner: sb.owner.clone(),
+            image: sb.image.clone(),
+            hostname: sb.hostname.clone(),
+            workdir: sb.workdir.clone(),
+            env: sb.env.clone(),
+            labels: sb.labels.clone(),
+            limits: sb.limits.clone(),
+            created_at: sb.created_at,
+            snapshots,
+            sessions,
+        };
+        let result = serde_json::to_vec(&m).map_err(std::io::Error::other).and_then(|bytes| {
+            let tmp = dir.join(format!("{MANIFEST_FILE}.tmp"));
+            std::fs::write(&tmp, bytes)?;
+            std::fs::rename(&tmp, &path)
+        });
+        if let Err(e) = result {
+            tracing::warn!(sandbox = %sb_id, "não deu pra gravar o manifesto: {e}");
+        }
+    }
+
+    pub fn write_manifest(&self, sb_id: &str) {
+        let st = self.state.lock();
+        self.write_manifest_locked(&st, sb_id);
+    }
+
+    /// No boot: registra de novo as sandboxes e as sessões que o manifesto guardou. Cada uma entra como
+    /// `Recovering`; quando o worker dela sobe, `recover_sandboxes` a recria do snapshot mais novo.
+    fn load_persisted(&self) {
+        let root = self.cfg.snapshots_dir();
+        let Ok(rd) = std::fs::read_dir(&root) else { return };
+        let now = now_unix();
+        let mut st = self.state.lock();
+        let mut loaded = 0u32;
+        for ent in rd.flatten() {
+            let dir = ent.path();
+            if !dir.is_dir() {
+                continue;
+            }
+            let m: Manifest = match std::fs::read(dir.join(MANIFEST_FILE)) {
+                Ok(b) => match serde_json::from_slice(&b) {
+                    Ok(m) => m,
+                    Err(e) => {
+                        tracing::warn!(dir = %dir.display(), "manifesto ilegível, a sandbox não volta: {e}");
+                        continue;
+                    }
+                },
+                Err(_) => {
+                    tracing::warn!(dir = %dir.display(), "diretório de snapshots sem manifesto, a sandbox não volta");
+                    continue;
+                }
+            };
+            if m.version != MANIFEST_VERSION || st.sandboxes.contains_key(&m.id) {
+                continue;
+            }
+            let snapshots: Vec<SnapEntry> = m
+                .snapshots
+                .iter()
+                .filter_map(|s| {
+                    let path = dir.join(format!("{}.tar", s.id));
+                    path.is_file().then(|| SnapEntry {
+                        id: s.id.clone(),
+                        name: s.name.clone(),
+                        created_at: s.created_at,
+                        generation: 0,
+                        persisted: Some((path, s.bytes)),
+                    })
+                })
+                .collect();
+            let Some(latest) = snapshots.iter().max_by_key(|s| s.created_at).map(|s| s.id.clone()) else {
+                tracing::warn!(sandbox = %m.id, "manifesto sem nenhum tar no disco, a sandbox não volta");
+                continue;
+            };
+            let worker = match st.user_worker.get(&m.owner) {
+                Some(&w) => w,
+                None => (0..self.slots.len())
+                    .min_by_key(|i| st.user_worker.values().filter(|w| *w == i).count())
+                    .unwrap_or(0),
+            };
+            st.user_worker.insert(m.owner.clone(), worker);
+            st.total_sandboxes += 1;
+            st.total_mem += m.limits.mem_bytes;
+            let persisted = snapshots.iter().filter(|s| s.name != AUTOSAVE_NAME).count() as u32;
+            let u = st.users.entry(m.owner.clone()).or_default();
+            u.sandboxes += 1;
+            u.mem_bytes += m.limits.mem_bytes;
+            u.procs += u64::from(m.limits.max_procs);
+            u.persisted_snapshots += persisted;
+            u.sessions += m.sessions.len() as u32;
+            let mut sessions = BTreeSet::new();
+            for s in m.sessions {
+                sessions.insert(s.id.clone());
+                st.orphan_sessions.insert(
+                    s.id.clone(),
+                    SessionEntry { id: s.id, owner: s.owner, sandbox_id: m.id.clone(), created_at: s.created_at, snapshot: s.snapshot },
+                );
+            }
+            st.sandboxes.insert(
+                m.id.clone(),
+                SandboxEntry {
+                    id: m.id.clone(),
+                    owner: m.owner,
+                    worker,
+                    image: m.image,
+                    hostname: m.hostname,
+                    workdir: m.workdir,
+                    env: m.env,
+                    labels: m.labels,
+                    limits: m.limits,
+                    created_at: m.created_at,
+                    last_used_at: now,
+                    status: SbStatus::Recovering { from: latest },
+                    recovered_from: None,
+                    snapshots,
+                    sessions,
+                    reserved: true,
+                    dirty: false,
+                    last_autosave: now,
+                },
+            );
+            loaded += 1;
+        }
+        if loaded > 0 {
+            tracing::info!(sandboxes = loaded, "sandboxes persistidas registradas; voltam quando o worker subir");
+        }
+    }
+
     /// Marca a sandbox como alterada quando a chamada pode escrever nela (o autosave só persiste as sujas).
     fn mark_dirty(&self, call: &Call) {
         let mut st = self.state.lock();
@@ -809,7 +1008,8 @@ impl Supervisor {
             | Call::FsRemove { sandbox_id, .. }
             | Call::Import { sandbox_id, .. }
             | Call::Restore { sandbox_id, .. } => sandbox_id.clone(),
-            Call::SessionExec { session_id, .. } => match st.sessions.get(session_id) {
+            Call::SessionOpen { sandbox_id, .. } => sandbox_id.clone(),
+            Call::SessionExec { session_id, .. } | Call::SessionClose { session_id } => match st.sessions.get(session_id) {
                 Some(s) => s.sandbox_id.clone(),
                 None => return,
             },
@@ -824,7 +1024,7 @@ impl Supervisor {
     /// por `autosave_secs`, pra que a queda do worker recupere o estado mais novo sem ninguém ter pedido
     /// snapshot. Fica um só `autosave` por sandbox (o novo substitui o antigo) e ele não conta na cota
     /// de snapshots persistidos do usuário.
-    async fn autosave(self: &Arc<Self>) {
+    async fn autosave(self: &Arc<Self>, force: bool) {
         let every = self.cfg.sandbox.autosave_secs;
         if every == 0 {
             return;
@@ -834,7 +1034,7 @@ impl Supervisor {
             let mut st = self.state.lock();
             st.sandboxes
                 .values_mut()
-                .filter(|s| s.status == SbStatus::Active && s.dirty && now.saturating_sub(s.last_autosave) >= every)
+                .filter(|s| s.status == SbStatus::Active && s.dirty && (force || now.saturating_sub(s.last_autosave) >= every))
                 .map(|s| {
                     s.dirty = false;
                     (s.id.clone(), s.worker)
@@ -867,6 +1067,7 @@ impl Supervisor {
                         persisted: Some(path).zip(persisted_bytes),
                     });
                     entry.last_autosave = now_unix();
+                    self.write_manifest_locked(&st, &id);
                     gone
                 }
                 other => {
@@ -905,7 +1106,7 @@ impl Supervisor {
             }
             let auth = self.auth.clone();
             let _ = tokio::task::spawn_blocking(move || auth.flush_last_used()).await;
-            self.autosave().await;
+            self.autosave(false).await;
             let now = now_unix();
             let ttl = self.cfg.sandbox.idle_ttl_secs;
             let users: Option<BTreeSet<String>> =

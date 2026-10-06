@@ -980,6 +980,7 @@ impl Supervisor {
                     generation,
                     persisted: persist_path.zip(persisted_bytes),
                 });
+                self.write_manifest_locked(&st, &sb.id);
                 Ok(json!({ "snapshot_id": snapshot_id, "name": name, "created_at": now, "persisted": r.persist, "persisted_bytes": persisted_bytes }))
             }
             Ok(other) => Err(unexpected(&other)),
@@ -1019,6 +1020,7 @@ impl Supervisor {
             if let Some(e) = st.sandboxes.get_mut(&sb.id) {
                 e.snapshots.retain(|s| s.id != snap.id);
             }
+            self.write_manifest_locked(&st, &sb.id);
             if snap.persisted.is_some()
                 && snap.name != crate::supervisor::AUTOSAVE_NAME
                 && let Some(u) = st.users.get_mut(&sb.owner)

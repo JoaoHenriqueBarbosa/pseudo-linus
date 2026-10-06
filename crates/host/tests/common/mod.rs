@@ -19,6 +19,7 @@ pub struct Daemon {
     pub url: String,
     pub dir: tempfile::TempDir,
     pub admin_token: String,
+    cfg_path: PathBuf,
 }
 
 fn free_port() -> u16 {
@@ -69,21 +70,39 @@ impl Daemon {
         );
         let cfg_path = dir.path().join("config.toml");
         std::fs::write(&cfg_path, cfg).unwrap();
-        let log = std::fs::File::create(dir.path().join("daemon.log")).unwrap();
-        let child = Command::new(BIN)
+        let child = Daemon::spawn(&cfg_path, false);
+        let d = Daemon { child, url: format!("http://127.0.0.1:{port}"), dir, admin_token, cfg_path };
+        d.wait_health(|v| v["status"] == "ok", Duration::from_secs(30));
+        d
+    }
+
+    fn spawn(cfg_path: &Path, append: bool) -> Child {
+        let log_path = cfg_path.with_file_name("daemon.log");
+        let log = std::fs::OpenOptions::new().create(true).write(true).append(append).truncate(!append).open(log_path).unwrap();
+        Command::new(BIN)
             .arg("serve")
             .arg("--config")
-            .arg(&cfg_path)
+            .arg(cfg_path)
             .env("PL_ALLOW_FAKE_BACKEND", "1")
             .env("PL_LOG", "info")
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(log)
             .spawn()
-            .unwrap();
-        let d = Daemon { child, url: format!("http://127.0.0.1:{port}"), dir, admin_token };
-        d.wait_health(|v| v["status"] == "ok", Duration::from_secs(30));
-        d
+            .unwrap()
+    }
+
+    /// Desliga o daemon com SIGTERM (o desligamento gracioso, que ainda persiste o que mudou) e sobe de
+    /// novo, na mesma porta e sobre o mesmo diretório de dados.
+    pub fn restart(&mut self) {
+        let _ = rustix::process::kill_process(rustix::process::Pid::from_child(&self.child), rustix::process::Signal::TERM);
+        let deadline = Instant::now() + Duration::from_secs(30);
+        while self.child.try_wait().unwrap().is_none() {
+            assert!(Instant::now() < deadline, "o daemon não desligou; log:\n{}", self.log());
+            thread::sleep(Duration::from_millis(20));
+        }
+        self.child = Daemon::spawn(&self.cfg_path, true);
+        self.wait_health(|v| v["status"] == "ok", Duration::from_secs(30));
     }
 
     pub fn data_dir(&self) -> PathBuf {
