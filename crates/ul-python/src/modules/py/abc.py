@@ -25,13 +25,41 @@ def abstractproperty(f):
     return property(f)
 
 
-class ABC:
+class ABCMeta(type):
+    """Metaclasse das classes abstratas: `register`, `isinstance` e `issubclass` virtuais."""
+
+    def __new__(mcs, name, bases, ns, **kwargs):
+        cls = super().__new__(mcs, name, bases, ns, **kwargs)
+        cls._abc_registry_ = []
+        return cls
+
+    def register(cls, subclass):
+        cls._abc_registry_.append(subclass)
+        return subclass
+
+    def __instancecheck__(cls, instance):
+        return cls.__subclasscheck__(type(instance))
+
+    def __subclasscheck__(cls, subclass):
+        if not isinstance(subclass, type):
+            raise TypeError('issubclass() arg 1 must be a class')
+        if subclass is cls or cls in getattr(subclass, '__mro__', ()):
+            return True
+        for registered in cls._abc_registry_:
+            if subclass is registered or issubclass(subclass, registered):
+                return True
+        hook = cls.__subclasshook__(subclass)
+        if hook is not NotImplemented:
+            return hook
+        return False
+
+    def __subclasshook__(cls, subclass):
+        return NotImplemented
+
+
+class ABC(metaclass=ABCMeta):
     """Classe base para classes abstratas (`class Foo(ABC)`)."""
     __abstract_base__ = True
-
-
-class ABCMeta:
-    pass
 
 
 def get_cache_token():

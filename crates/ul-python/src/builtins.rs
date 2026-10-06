@@ -204,6 +204,12 @@ fn isinstance_check(v: &Value, cls: &Value) -> PyResult<bool> {
         return Ok(i.class.is_meta);
     }
     if let Value::Class(c) = cls {
+        // `__instancecheck__` da metaclasse (`collections.abc`, protocolos).
+        if let Some(mut vm) = crate::vm::current() {
+            if let Some(r) = vm.meta_dunder(c, "__instancecheck__", vec![v.clone()], Vec::new()) {
+                return Ok(r?.is_true());
+            }
+        }
         // Uma classe é instância da sua metaclasse (`isinstance(Color, EnumMeta)`).
         if let Value::Class(vc) = v {
             return Ok(vc.meta.as_ref().is_some_and(|m| m.mro().iter().any(|x| Rc::ptr_eq(x, c))));
@@ -237,6 +243,11 @@ fn subclass_of(a: &str, b: &str) -> bool {
 
 fn issubclass_check(a: &Value, cls: &Value) -> PyResult<bool> {
     if let Value::Class(b) = cls {
+        if let Some(mut vm) = crate::vm::current() {
+            if let Some(r) = vm.meta_dunder(b, "__subclasscheck__", vec![a.clone()], Vec::new()) {
+                return Ok(r?.is_true());
+            }
+        }
         return Ok(matches!(a, Value::Class(c) if c.mro().iter().any(|x| Rc::ptr_eq(x, b))));
     }
     if let Some(b) = class_name(cls) {

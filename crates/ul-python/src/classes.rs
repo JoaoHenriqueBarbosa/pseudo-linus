@@ -312,7 +312,11 @@ impl Vm {
         let explicit_meta = kw.iter().position(|(k, _)| k == "metaclass").map(|i| kw.remove(i).1);
         let class_env = Env::new(env.capture(), true, false);
         self.exec(body, &class_env)?;
-        let ns = namespace_of(&class_env);
+        let mut ns = namespace_of(&class_env);
+        if !ns.iter().any(|(k, _)| k == "__module__") {
+            let module = self.globals.borrow().get("__name__").cloned().unwrap_or_else(|| Value::str("__main__"));
+            ns.insert(0, ("__module__".to_string(), module));
+        }
         let explicit = match explicit_meta {
             Some(Value::Class(m)) => Some(m),
             Some(Value::Builtin("type")) | None => None,
@@ -606,7 +610,7 @@ impl Vm {
     pub(crate) fn class_getattr(&mut self, cls: &Rc<ClassObj>, name: &str) -> PyResult<Value> {
         match name {
             "__name__" | "__qualname__" => return Ok(Value::str(cls.name.clone())),
-            "__module__" => return Ok(Value::str("__main__")),
+            "__module__" => return Ok(Value::str(cls.module())),
             "__bases__" => {
                 return Ok(Value::tuple(cls.bases.iter().map(|b| Value::Class(b.clone())).collect()));
             }
@@ -813,12 +817,9 @@ impl Vm {
             Value::Exception(e) => Value::Builtin(e.kind),
             Value::Class(_) => Value::Builtin("type"),
             other => {
+                // Os tipos de dados são os mesmos valores que os nomes globais `int`, `dict`...
                 let n = other.type_name();
-                if is_builtin_type(n) || n == "type" {
-                    Value::Builtin(intern(n))
-                } else {
-                    Value::Builtin(intern(n))
-                }
+                crate::builtins::get(n).unwrap_or_else(|| Value::Builtin(intern(n)))
             }
         }
     }
@@ -841,7 +842,7 @@ impl Vm {
             let inner: Vec<String> = args.iter().map(crate::object::repr).collect();
             return format!("{}({})", i.class.name, inner.join(", "));
         }
-        format!("<__main__.{} object at {:#x}>", i.class.name, Rc::as_ptr(i) as usize)
+        format!("<{}.{} object at {:#x}>", i.class.module(), i.class.name, Rc::as_ptr(i) as usize)
     }
 
     /// `str(v)`, chamando `__str__` (ou `__repr__`) de usuário.

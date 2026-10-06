@@ -24,6 +24,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("abc", include_str!("py/abc.py")),
     ("collections", include_str!("py/collections.py")),
     ("enum", include_str!("py/enum.py")),
+    ("collections.abc", include_str!("py/collections_abc.py")),
 ];
 
 /// Nomes de módulo que são apelidos de outro.
@@ -59,6 +60,12 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         attrs.insert(k.clone(), v.clone());
     }
     drop(attrs);
+    // `import pacote.sub` deixa `sub` como atributo do módulo `pacote`.
+    if let Some((parent, child)) = real.rsplit_once('.') {
+        if let Some(p) = crate::modules::import(vm, parent) {
+            p.attrs.borrow_mut().insert(child.to_string(), Value::Module(module.clone()));
+        }
+    }
     Some(module)
 }
 

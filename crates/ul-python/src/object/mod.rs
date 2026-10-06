@@ -302,6 +302,14 @@ impl fmt::Debug for ClassObj {
 }
 
 impl ClassObj {
+    /// O módulo onde a classe foi definida (`__module__`), `__main__` por padrão.
+    pub fn module(&self) -> String {
+        match self.dict.borrow().get("__module__") {
+            Some(Value::Str(s)) => s.as_str().to_string(),
+            _ => "__main__".to_string(),
+        }
+    }
+
     /// Ordem de resolução de métodos (`__mro__`): linearização C3 simplificada para herança simples
     /// e losango comum (cada classe antes de suas bases, sem repetir).
     pub fn mro(self: &Rc<Self>) -> Vec<Rc<ClassObj>> {
@@ -574,11 +582,22 @@ impl fmt::Debug for Value {
     }
 }
 
+/// `módulo.` para o `repr` de uma classe (vazio para `builtins`).
+fn module_prefix(c: &ClassObj) -> String {
+    match c.module().as_str() {
+        "builtins" => String::new(),
+        m => format!("{m}."),
+    }
+}
+
 /// Embutidos que no CPython são classes (`str`, `int`, `range`...), não funções: o `repr` deles é
 /// `<class 'str'>` e o tipo é `type`.
 pub fn is_builtin_type(name: &str) -> bool {
-    matches!(name, "bool" | "int" | "float" | "str" | "list" | "tuple" | "dict" | "set" | "range")
-        || EXC_CLASSES.iter().any(|(n, _)| *n == name)
+    matches!(
+        name,
+        "bool" | "int" | "float" | "str" | "list" | "tuple" | "dict" | "set" | "range" | "NoneType" | "function"
+            | "frozenset" | "bytes" | "bytearray" | "generator" | "module" | "slice" | "builtin_function_or_method"
+    ) || EXC_CLASSES.iter().any(|(n, _)| *n == name)
 }
 
 thread_local! {
@@ -682,10 +701,10 @@ pub(crate) fn repr_into(v: &Value, out: &mut String, stack: &mut ReprStack) {
             Native::CsvWriter { .. } => out.push_str("<_csv.writer object>"),
         },
         Value::Bound(b) => out.push_str(&format!("<built-in method {} of {} object at {:#x}>", b.name, b.recv.type_name(), addr(b))),
-        Value::Class(c) => out.push_str(&format!("<class '__main__.{}'>", c.name)),
+        Value::Class(c) => out.push_str(&format!("<class '{}{}'>", module_prefix(c), c.name)),
         Value::Instance(i) => match crate::vm::instance_text(v, false) {
             Some(text) => out.push_str(&text),
-            None => out.push_str(&format!("<__main__.{} object at {:#x}>", i.class.name, addr(i))),
+            None => out.push_str(&format!("<{}{} object at {:#x}>", module_prefix(&i.class), i.class.name, addr(i))),
         },
         Value::Slice(s) => {
             out.push_str("slice(");
@@ -833,7 +852,7 @@ pub fn hash(v: &Value) -> Result<i64, ObjError> {
         Value::Exception(e) => Ok((Rc::as_ptr(e) as usize >> 4) as i64),
         Value::Function(f) => Ok((Rc::as_ptr(f) as usize >> 4) as i64),
         Value::Module(m) => Ok((Rc::as_ptr(m) as usize >> 4) as i64),
-        Value::NativeFn(n) => Ok((Rc::as_ptr(n) as usize >> 4) as i64),
+        Value::NativeFn(n) => Ok(PyStr::new(n.name).hash()),
         Value::Ext(e) => Ok((Rc::as_ptr(e) as *const () as usize >> 4) as i64),
         Value::Native(n) => Ok((Rc::as_ptr(n) as usize >> 4) as i64),
         Value::Bound(b) => Ok((Rc::as_ptr(b) as usize >> 4) as i64),
