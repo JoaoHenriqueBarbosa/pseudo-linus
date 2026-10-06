@@ -1722,6 +1722,17 @@ impl Vm {
             Value::Exception(e) if name == "value" && e.kind == "StopIteration" => {
                 Ok(e.args.first().cloned().unwrap_or(Value::None))
             }
+            // `ImportError.name`/`.path`: o nome vem da mensagem que o import monta.
+            Value::Exception(e) if matches!(name, "name" | "path") && exc_is_subclass(&e.kind, "ImportError") => {
+                let msg = exc_str(e);
+                let quoted = |after: &str| msg.split_once(after).and_then(|(_, r)| r.split('\'').next()).map(str::to_string);
+                Ok(match name {
+                    "name" => quoted("No module named '")
+                        .or_else(|| msg.split_once("' from '").and_then(|(_, r)| r.split('\'').next()).map(str::to_string))
+                        .map_or(Value::None, Value::str),
+                    _ => Value::None,
+                })
+            }
             Value::Exception(e) if matches!(name, "errno" | "strerror" | "filename") && exc_is_subclass(&e.kind, "OSError") => {
                 let (errno, msg, file) = match e.args.as_slice() {
                     [errno, msg] => (errno.clone(), msg.clone(), Value::None),
@@ -1749,6 +1760,11 @@ impl Vm {
                 if let Some(g) = self.module_globals.borrow().get(m.name) {
                     if let Some(v) = g.borrow().get(name) {
                         return Ok(v.clone());
+                    }
+                }
+                if matches!(name, "__spec__" | "__loader__") {
+                    if let Some(v) = self.module_spec(m, name)? {
+                        return Ok(v);
                     }
                 }
                 if name == "__dict__" {
@@ -1920,6 +1936,28 @@ impl Vm {
             }
             _ => Err(internal("unknown method")),
         }
+    }
+
+    /// `__spec__`/`__loader__` de um módulo carregado de arquivo: construídos na primeira leitura
+    /// por `importlib.machinery` e guardados nas globais do módulo.
+    fn module_spec(&mut self, m: &Rc<crate::object::ModuleObj>, name: &str) -> PyResult<Option<Value>> {
+        let Some(globals) = self.module_globals.borrow().get(m.name).cloned() else { return Ok(None) };
+        let (file, is_package) = {
+            let g = globals.borrow();
+            match g.get("__file__") {
+                Some(Value::Str(f)) => (f.as_str().to_string(), g.contains_key("__path__")),
+                _ => return Ok(None),
+            }
+        };
+        let Some(machinery) = crate::modules::import(self, "importlib.machinery") else { return Ok(None) };
+        let make = machinery.attrs.borrow().get("_spec_for_module").cloned();
+        let Some(make) = make else { return Ok(None) };
+        let spec = self.call(&make, vec![Value::str(m.name), Value::str(file), Value::Bool(is_package)], Vec::new())?;
+        let loader = self.getattr(&spec, "loader")?;
+        let mut g = globals.borrow_mut();
+        g.insert("__spec__".to_string(), spec.clone());
+        g.insert("__loader__".to_string(), loader.clone());
+        Ok(Some(if name == "__spec__" { spec } else { loader }))
     }
 
     /// `open(...)`: o `io.open` (em Python embutido) sobre os descritores do sandbox.

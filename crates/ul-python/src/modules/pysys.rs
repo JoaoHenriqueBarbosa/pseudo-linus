@@ -61,6 +61,17 @@ fn source_line(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(crate::vm::source_line(file.as_str(), *line as usize).map_or(Value::None, Value::str))
 }
 
+/// `_reload(módulo)`: relê o arquivo do módulo nas mesmas globais.
+fn reload(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let Some(Value::Module(m)) = args.first() else { return Err(crate::vm::type_error("reload() argument must be a module")) };
+    crate::modules::userimport::reload(vm, m)?;
+    Ok(Value::Module(m.clone()))
+}
+
+fn is_builtin_module(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    Ok(Value::Bool(matches!(args.first(), Some(Value::Str(n)) if crate::modules::is_builtin_module(n.as_str()))))
+}
+
 /// `sys.modules[nome] = módulo`: o `import nome` seguinte enxerga o módulo.
 fn set_module(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     let (Some(Value::Str(name)), Some(Value::Module(m))) = (args.first(), args.get(1)) else {
@@ -136,6 +147,8 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
         .func("_modules", modules_snapshot)
         .func("_source_line", source_line)
         .func("_set_module", set_module)
+        .func("_reload", reload)
+        .func("_is_builtin_module", is_builtin_module)
         .func("_pop_module", pop_module)
         .func("getrecursionlimit", getrecursionlimit)
         .func("setrecursionlimit", setrecursionlimit)

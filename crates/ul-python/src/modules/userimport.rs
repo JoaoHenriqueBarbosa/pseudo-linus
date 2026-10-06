@@ -158,3 +158,30 @@ pub fn exec_file(vm: &mut Vm, name: &str, file: &str, package_dir: Option<&str>)
 fn into_exception(e: crate::vm::RuntimeError) -> PyException {
     e.exc
 }
+
+/// `importlib.reload(módulo)`: roda o arquivo de novo nas mesmas globais, sem apagar o que já existe.
+pub fn reload(vm: &mut Vm, module: &Rc<ModuleObj>) -> PyResult<()> {
+    let globals = vm.module_globals.borrow().get(module.name).cloned();
+    let file = globals.as_ref().and_then(|g| match g.borrow().get("__file__") {
+        Some(Value::Str(f)) => Some(f.as_str().to_string()),
+        _ => None,
+    });
+    let (Some(globals), Some(file)) = (globals, file) else {
+        // Módulo embutido ou sem arquivo: não há o que reler.
+        return Ok(());
+    };
+    let Some(src) = read_text(&file) else {
+        return Err(exc("ModuleNotFoundError", format!("spec not found for the module '{}'", module.name)));
+    };
+    let mut text = src;
+    if !text.ends_with('\n') {
+        text.push('\n');
+    }
+    let parsed = crate::parser::parse_module(&text).map_err(|e| exc("SyntaxError", format!("{} ({file}, line {})", e.msg, e.lineno)))?;
+    let mut code = crate::compile::compile_module(&parsed).map_err(|e| exc(e.kind, e.msg))?;
+    code.set_filename(&file);
+    crate::vm::register_source(&file, &text);
+    let mut inner = vm.clone();
+    inner.globals = globals;
+    inner.run(&Rc::new(code)).map_err(into_exception)
+}

@@ -161,6 +161,17 @@ pub fn new_module(vm: &mut Vm, args: Vec<Value>, kwargs: Vec<(String, Value)>) -
     Ok(Value::Module(module))
 }
 
+/// Módulos escritos em Rust, além dos que `pysrc` embute em Python.
+const NATIVE_MODULES: &[&str] = &[
+    "_sys", "_csvimpl", "re", "math", "base64", "binascii", "builtins", "hashlib", "html", "textwrap", "shlex",
+    "fnmatch", "struct", "_operator", "_os", "_zlib", "_weakref",
+];
+
+/// `name` é um módulo que o interpretador traz embutido (nativo ou em Python).
+pub fn is_builtin_module(name: &str) -> bool {
+    NATIVE_MODULES.contains(&name) || pysrc::source(name).is_some()
+}
+
 /// Se `name` é um pacote embutido (algum módulo embutido tem `name.` como prefixo).
 pub fn is_embedded_package(name: &str) -> bool {
     pysrc::names().iter().any(|n| n.strip_prefix(name).is_some_and(|r| r.starts_with('.')))
