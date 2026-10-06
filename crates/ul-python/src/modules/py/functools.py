@@ -250,7 +250,7 @@ def total_ordering(cls):
 
 
 def singledispatch(func):
-    registry = {}
+    registry = {object: func}
 
     def dispatch(cls):
         for klass in cls.__mro__:
@@ -263,7 +263,19 @@ def singledispatch(func):
             if isinstance(cls, type):
                 return lambda f: register(cls, f)
             f = cls
-            raise TypeError('singledispatch register() needs an explicit class')
+            ann = getattr(f, '__annotations__', {})
+            if not ann:
+                raise TypeError('Invalid first argument to `register()`: %r. Use either `@register(some_class)` or plain `@register` on an annotated function.' % (f,))
+            hint = next(iter(ann.values()))
+            if isinstance(hint, str):
+                import typing
+                hint = typing.get_type_hints(f)[next(iter(ann))]
+            members = getattr(hint, '__args__', None) if type(hint).__name__ in ('UnionType', '_UnionGenericAlias') else None
+            if members:
+                for m in members:
+                    registry[m] = f
+                return f
+            cls = hint
         registry[cls] = f
         return f
 
@@ -276,3 +288,21 @@ def singledispatch(func):
     wrapper.dispatch = dispatch
     wrapper.registry = registry
     return update_wrapper(wrapper, func)
+
+
+class singledispatchmethod:
+    """`singledispatch` para métodos: despacha pelo tipo do primeiro argumento depois de `self`."""
+
+    def __init__(self, func):
+        self.dispatcher = singledispatch(func)
+        self.func = func
+
+    def register(self, cls, method=None):
+        return self.dispatcher.register(cls, method)
+
+    def __get__(self, obj, cls=None):
+        def method(*args, **kwargs):
+            return self.dispatcher.dispatch(args[0].__class__)(obj, *args, **kwargs)
+        method.register = self.register
+        update_wrapper(method, self.func)
+        return method

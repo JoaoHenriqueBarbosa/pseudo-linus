@@ -343,6 +343,27 @@ impl ClassObj {
         }
     }
 
+    /// `__slots__` restringe os atributos de instância quando toda classe da herança o declara
+    /// (e não há base embutida com `__dict__` próprio). `true` se `name` pode ser gravado.
+    pub fn slots_allow(self: &Rc<Self>, name: &str) -> bool {
+        let mut allowed: Vec<String> = Vec::new();
+        for c in self.mro() {
+            if c.builtin_base.is_some() || c.data_base.is_some() {
+                return true;
+            }
+            let Some(slots) = c.dict.borrow().get("__slots__").cloned() else {
+                return true;
+            };
+            match &slots {
+                Value::Str(s) => allowed.push(s.as_str().to_string()),
+                Value::Tuple(t) => allowed.extend(t.iter().map(to_str)),
+                Value::List(l) => allowed.extend(l.borrow().iter().map(to_str)),
+                _ => return true,
+            }
+        }
+        allowed.iter().any(|s| s == name || s == "__dict__")
+    }
+
     /// Ordem de resolução de métodos (`__mro__`): linearização C3. Herança simples não paga o
     /// merge; se as bases forem inconsistentes, cai na busca em profundidade sem repetir.
     pub fn mro(self: &Rc<Self>) -> Vec<Rc<ClassObj>> {

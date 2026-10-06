@@ -872,6 +872,15 @@ impl Vm {
                         return Ok(());
                     }
                 }
+                if !inst.class.slots_allow(name) {
+                    return Err(exc(
+                        "AttributeError",
+                        format!(
+                            "'{}' object has no attribute '{name}' and no __dict__ for setting new attributes",
+                            inst.class.name
+                        ),
+                    ));
+                }
                 inst.sync_from_view();
                 inst.dict.borrow_mut().insert(name.to_string(), value);
                 inst.sync_to_view();

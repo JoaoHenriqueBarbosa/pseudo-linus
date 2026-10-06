@@ -110,7 +110,18 @@ class MappingProxyType:
 CellType = object
 TracebackType = type(None)
 FrameType = type(None)
-GenericAlias = type(list[int])
+class _AliasMeta(type):
+    def __instancecheck__(cls, obj):
+        return type(obj).__name__ == 'GenericAlias'
+
+
+class GenericAlias(metaclass=_AliasMeta):
+    """`GenericAlias(list, (int,))` devolve o mesmo que `list[int]`."""
+
+    def __new__(cls, origin, args):
+        if not isinstance(args, tuple):
+            args = (args,)
+        return origin[args[0] if len(args) == 1 else args]
 
 try:
     raise ValueError

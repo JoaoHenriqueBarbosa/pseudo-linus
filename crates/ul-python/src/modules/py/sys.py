@@ -255,6 +255,27 @@ def getswitchinterval():
     return 0.005
 
 
+def getsizeof(obj, default=None):
+    """Estimativa do tamanho em bytes, no layout do CPython 64 bits (valores aproximados)."""
+    if obj is None or isinstance(obj, bool):
+        return 16 if obj is None else 28
+    if isinstance(obj, int):
+        return 24 + 4 * max(1, (abs(obj).bit_length() + 29) // 30) if obj else 24
+    if isinstance(obj, float):
+        return 24
+    if isinstance(obj, str):
+        return 40 + len(obj.encode('utf-8')) + (1 if obj.isascii() else 0) + (0 if obj.isascii() else 8)
+    if isinstance(obj, (bytes, bytearray)):
+        return 33 + len(obj)
+    if isinstance(obj, tuple):
+        return 40 + 8 * len(obj)
+    if isinstance(obj, list):
+        return 56 + 8 * len(obj)
+    if isinstance(obj, (dict, set, frozenset)):
+        return 64 + 32 * len(obj) if isinstance(obj, dict) else 200 + 16 * len(obj)
+    return 48
+
+
 builtin_module_names = ('_abc', '_ast', '_codecs', '_io', '_os', '_sys', 'builtins', 'itertools', 'math', 'sys')
 
 

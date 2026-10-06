@@ -2852,3 +2852,52 @@ True True False
 "##
     );
 }
+
+#[test]
+fn slots_genericalias_singledispatch() {
+    let src = r##"
+import functools, types
+class S:
+    __slots__ = ("a", "b")
+    def __init__(self): self.a = 1
+x = S()
+x.b = 2
+try:
+    x.c = 3
+except AttributeError as e:
+    print(e)
+class D(S):
+    pass
+D().zz = 1
+class W:
+    __slots__ = ("a", "__dict__")
+w = W(); w.q = 1; print(w.q)
+print(list[int], types.GenericAlias(dict, (str, int)), isinstance(list[int], types.GenericAlias))
+@functools.singledispatch
+def show(x): return "obj"
+@show.register
+def _(x: int): return "int"
+@show.register(list)
+def _(x): return "list"
+@show.register
+def _(x: str | bytes): return "text"
+print(show(1), show([1]), show(2.5), show("s"), show(b"b"), sorted(k.__name__ for k in show.registry))
+class C:
+    @functools.singledispatchmethod
+    def f(self, x): return "any"
+    @f.register
+    def _(self, x: int): return "int"
+print(C().f(1), C().f("a"))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"'S' object has no attribute 'c' and no __dict__ for setting new attributes
+1
+list[int] dict[str, int] True
+int list obj text text ['bytes', 'int', 'list', 'object', 'str']
+int any
+"##
+    );
+}
