@@ -149,7 +149,6 @@ const SOURCES: &[(&str, &str)] = &[
     ("grp", include_str!("py/grp.py")),
     ("wave", include_str!("py/wave.py")),
     ("webbrowser", include_str!("py/webbrowser.py")),
-    ("importlib.abc", include_str!("py/importlib_abc.py")),
     ("importlib.metadata", include_str!("py/importlib_metadata.py")),
     ("importlib.resources", include_str!("py/importlib_resources.py")),
     ("ssl", include_str!("py/ssl.py")),
