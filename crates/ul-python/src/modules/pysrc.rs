@@ -30,6 +30,8 @@ const SOURCES: &[(&str, &str)] = &[
     ("dataclasses", include_str!("py/dataclasses.py")),
     ("time", include_str!("py/time.py")),
     ("datetime", include_str!("py/datetime.py")),
+    ("random", include_str!("py/random.py")),
+    ("bisect", include_str!("py/bisect.py")),
 ];
 
 /// Nomes de módulo que são apelidos de outro.
