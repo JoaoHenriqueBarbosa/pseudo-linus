@@ -1318,6 +1318,12 @@ impl Vm {
                 let e = e.clone();
                 return e.call_method(self, "__call__", args, kwargs);
             }
+            Value::Builtin("method") => {
+                return match args.as_slice() {
+                    [recv, Value::Function(f)] => Ok(Value::BoundFn(Rc::new((recv.clone(), f.clone())))),
+                    _ => Err(type_error("method expected 2 arguments, got a different shape")),
+                };
+            }
             Value::Builtin(name @ ("staticmethod" | "classmethod" | "property" | "super" | "type" | "object")) => {
                 return self.call_class_builtin(name, args, kwargs);
             }

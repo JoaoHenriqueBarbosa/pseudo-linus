@@ -25,6 +25,7 @@ pub mod re;
 pub mod re_engine;
 pub mod shlex;
 pub mod string;
+pub mod weakrefmod;
 pub mod textwrap;
 pub mod zlibnative;
 
@@ -89,6 +90,7 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         "operator" => operator::build(vm),
         "_os" => osnative::build(vm),
         "_zlib" => zlibnative::build(vm),
+        "_weakref" => weakrefmod::build(vm),
         _ => return pysrc::import(vm, name),
     };
     vm.modules.borrow_mut().insert(name.to_string(), m.clone());

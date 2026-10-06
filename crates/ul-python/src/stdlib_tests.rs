@@ -878,3 +878,58 @@ namespace(a=1, b=2) 2 7
 "#
     );
 }
+
+#[test]
+fn weakref_module_matches_cpython() {
+    let src = r#"
+import weakref
+
+class C:
+    def m(self):
+        return 1
+
+o = C()
+r = weakref.ref(o)
+print(r() is o, r() is not None)
+called = []
+r2 = weakref.ref(o, lambda x: called.append("cb"))
+print(r == weakref.ref(o), hash(r) == hash(weakref.ref(o)))
+s = weakref.WeakSet()
+s.add(o)
+print(len(s), o in s)
+d = weakref.WeakValueDictionary()
+d["k"] = o
+print(list(d.keys()), d["k"] is o)
+wk = weakref.WeakKeyDictionary()
+wk[o] = 5
+print(len(wk), wk[o])
+wm = weakref.WeakMethod(o.m)
+print(wm()())
+del o
+print(r(), len(s), len(d), len(wk), wm())
+print(r2(), called)
+try:
+    weakref.ref([1])
+except TypeError as e:
+    print(e)
+f = weakref.finalize(C(), print, "fin")
+print(f.alive)
+"#;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r#"True True
+True True
+1 True
+['k'] True
+1 5
+1
+None 0 0 0 None
+None ['cb']
+cannot create weak reference to 'list' object
+fin
+False
+"#
+    );
+}

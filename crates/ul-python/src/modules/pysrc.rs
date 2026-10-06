@@ -42,6 +42,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("argparse", include_str!("py/argparse.py")),
     ("heapq", include_str!("py/heapq.py")),
     ("types", include_str!("py/types.py")),
+    ("weakref", include_str!("py/weakref.py")),
     ("_thread", include_str!("py/_thread.py")),
     ("colorsys", include_str!("py/colorsys.py")),
     ("keyword", include_str!("py/keyword.py")),

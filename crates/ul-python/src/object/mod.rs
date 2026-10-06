@@ -169,6 +169,18 @@ pub trait ExtObject {
     fn contains_item(&self, _item: &Value) -> Option<Result<bool, crate::vm::PyException>> {
         None
     }
+    /// `hash(obj)` quando o objeto define o próprio (referências fracas); `None` = por identidade.
+    fn hash_value(&self) -> Option<i64> {
+        None
+    }
+    /// `obj == other` quando o objeto define a própria igualdade; `None` = por identidade.
+    fn eq_value(&self, _other: &Value) -> Option<bool> {
+        None
+    }
+    /// O objeto para o qual uma referência fraca aponta, se for uma e ainda estiver viva.
+    fn referent(&self) -> Option<Value> {
+        None
+    }
 }
 
 /// Módulo: nome e atributos (preenchidos pelo construtor do módulo em `modules`).
@@ -864,7 +876,7 @@ pub fn py_eq(a: &Value, b: &Value) -> bool {
         (Value::Function(x), Value::Function(y)) => Rc::ptr_eq(x, y),
         (Value::Module(x), Value::Module(y)) => Rc::ptr_eq(x, y),
         (Value::NativeFn(x), Value::NativeFn(y)) => x.name == y.name && x.f as usize == y.f as usize,
-        (Value::Ext(x), Value::Ext(y)) => std::ptr::addr_eq(Rc::as_ptr(x), Rc::as_ptr(y)),
+        (Value::Ext(x), Value::Ext(y)) => x.eq_value(b).or_else(|| y.eq_value(a)).unwrap_or_else(|| std::ptr::addr_eq(Rc::as_ptr(x), Rc::as_ptr(y))),
         (Value::Native(x), Value::Native(y)) => Rc::ptr_eq(x, y),
         (Value::Bound(x), Value::Bound(y)) => Rc::ptr_eq(x, y),
         (Value::Class(x), Value::Class(y)) => Rc::ptr_eq(x, y),
@@ -901,7 +913,7 @@ pub fn hash(v: &Value) -> Result<i64, ObjError> {
         Value::Function(f) => Ok((Rc::as_ptr(f) as usize >> 4) as i64),
         Value::Module(m) => Ok((Rc::as_ptr(m) as usize >> 4) as i64),
         Value::NativeFn(n) => Ok(PyStr::new(n.name).hash()),
-        Value::Ext(e) => Ok((Rc::as_ptr(e) as *const () as usize >> 4) as i64),
+        Value::Ext(e) => Ok(e.hash_value().unwrap_or((Rc::as_ptr(e) as *const () as usize >> 4) as i64)),
         Value::Native(n) => Ok((Rc::as_ptr(n) as usize >> 4) as i64),
         Value::Bound(b) => Ok((Rc::as_ptr(b) as usize >> 4) as i64),
         Value::Class(c) => Ok((Rc::as_ptr(c) as usize >> 4) as i64),
