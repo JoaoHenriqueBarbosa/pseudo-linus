@@ -56,14 +56,14 @@ def fspath(p):
 def fsencode(filename):
     filename = fspath(filename)
     if isinstance(filename, str):
-        return filename.encode('utf-8')
+        return filename.encode('utf-8', 'surrogateescape')
     return filename
 
 
 def fsdecode(filename):
     filename = fspath(filename)
     if isinstance(filename, bytes):
-        return filename.decode('utf-8')
+        return filename.decode('utf-8', 'surrogateescape')
     return filename
 
 

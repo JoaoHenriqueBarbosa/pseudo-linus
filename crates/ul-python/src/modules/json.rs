@@ -42,6 +42,9 @@ fn encode_str(s: &str, ensure_ascii: bool, out: &mut String) {
             '\u{8}' => out.push_str("\\b"),
             '\u{c}' => out.push_str("\\f"),
             c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c if ensure_ascii && crate::object::char_surrogate(c).is_some() => {
+                out.push_str(&format!("\\u{:04x}", crate::object::char_surrogate(c).unwrap_or(0)))
+            }
             c if ensure_ascii && (c as u32) >= 0x7f => {
                 let mut buf = [0u16; 2];
                 for unit in c.encode_utf16(&mut buf) {

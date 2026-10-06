@@ -94,16 +94,31 @@ fn decode_fallback(errors: &str, bytes: &[u8]) -> PyResult<Option<String>> {
         "strict" => None,
         "ignore" => Some(String::new()),
         "replace" => Some("\u{FFFD}".to_string()),
-        "surrogateescape" => Some(bytes.iter().filter_map(|b| char::from_u32(0xF700 + u32::from(*b))).collect()),
+        "surrogateescape" => Some(bytes.iter().map(|b| crate::object::surrogate_to_char(0xDC00 + u32::from(*b))).collect()),
         "backslashreplace" => Some(bytes.iter().map(|b| format!("\\x{b:02x}")).collect()),
         other => return Err(exc("LookupError", format!("unknown error handler name '{other}'"))),
     })
 }
 
+/// O que fazer com `c` num codec UTF-16/32: `None` se não é surrogate (codifica normal),
+/// `Some(Some(cp))` para gravar o surrogate (`surrogatepass`), `Some(None)` para pular (`ignore`).
+fn surrogate_policy(c: char, name: &str, pos: usize, errors: &str) -> PyResult<Option<Option<u32>>> {
+    let Some(cp) = crate::object::char_surrogate(c) else { return Ok(None) };
+    match errors {
+        "surrogatepass" => Ok(Some(Some(cp))),
+        "ignore" => Ok(Some(None)),
+        "replace" => Ok(Some(Some(u32::from(b'?')))),
+        _ => Err(exc(
+            "UnicodeEncodeError",
+            format!("'{name}' codec can't encode character '\\u{cp:04x}' in position {pos}: surrogates not allowed"),
+        )),
+    }
+}
+
 pub fn encode(codec: &Codec, s: &str, errors: &str) -> PyResult<Vec<u8>> {
     match codec {
         Codec::Single(table) => encode_single(table, s, errors),
-        Codec::Utf16 { big, .. } => {
+        Codec::Utf16 { big, name } => {
             let mut out = Vec::new();
             let big = match big {
                 Some(b) => *b,
@@ -112,12 +127,24 @@ pub fn encode(codec: &Codec, s: &str, errors: &str) -> PyResult<Vec<u8>> {
                     false
                 }
             };
-            for u in s.encode_utf16() {
-                out.extend_from_slice(&if big { u.to_be_bytes() } else { u.to_le_bytes() });
+            let mut push = |u: u16, out: &mut Vec<u8>| {
+                out.extend_from_slice(&if big { u.to_be_bytes() } else { u.to_le_bytes() })
+            };
+            for (pos, c) in s.chars().enumerate() {
+                match surrogate_policy(c, name, pos, errors)? {
+                    Some(Some(cp)) => push(cp as u16, &mut out),
+                    Some(None) => {}
+                    None => {
+                        let mut buf = [0u16; 2];
+                        for u in c.encode_utf16(&mut buf) {
+                            push(*u, &mut out);
+                        }
+                    }
+                }
             }
             Ok(out)
         }
-        Codec::Utf32 { big, .. } => {
+        Codec::Utf32 { big, name } => {
             let mut out = Vec::new();
             let big = match big {
                 Some(b) => *b,
@@ -126,8 +153,12 @@ pub fn encode(codec: &Codec, s: &str, errors: &str) -> PyResult<Vec<u8>> {
                     false
                 }
             };
-            for c in s.chars() {
-                let v = c as u32;
+            for (pos, c) in s.chars().enumerate() {
+                let v = match surrogate_policy(c, name, pos, errors)? {
+                    Some(Some(cp)) => cp,
+                    Some(None) => continue,
+                    None => c as u32,
+                };
                 out.extend_from_slice(&if big { v.to_be_bytes() } else { v.to_le_bytes() });
             }
             Ok(out)

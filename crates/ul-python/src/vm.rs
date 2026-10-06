@@ -3365,7 +3365,9 @@ fn builtin_seq(name: &'static str, args: Vec<Value>, kwargs: Vec<(String, Value)
             let [v] = one_arg(name, args)?;
             match &v {
                 Value::Str(s) if s.as_str().chars().count() == 1 => {
-                    Ok(Value::Int(s.as_str().chars().next().map_or(0, |c| i64::from(u32::from(c)))))
+                    Ok(Value::Int(s.as_str().chars().next().map_or(0, |c| {
+                        i64::from(crate::object::char_surrogate(c).unwrap_or(u32::from(c)))
+                    })))
                 }
                 Value::Str(s) => Err(type_error(format!(
                     "ord() expected a character, but string of length {} found",
@@ -3377,6 +3379,9 @@ fn builtin_seq(name: &'static str, args: Vec<Value>, kwargs: Vec<(String, Value)
         _ => {
             let [v] = one_arg(name, args)?;
             match v {
+                Value::Int(i) if (0xD800..=0xDFFF).contains(&i) => {
+                    Ok(Value::str(crate::object::surrogate_to_char(i as u32).to_string()))
+                }
                 Value::Int(i) => u32::try_from(i)
                     .ok()
                     .and_then(char::from_u32)

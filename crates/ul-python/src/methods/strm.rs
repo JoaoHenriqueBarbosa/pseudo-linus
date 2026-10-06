@@ -825,7 +825,7 @@ fn translate(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 
 /// Como o CPython escreve um código-ponto nas mensagens e no `backslashreplace`.
 fn escape_cp(c: char) -> String {
-    let v = c as u32;
+    let v = crate::object::char_surrogate(c).unwrap_or(c as u32);
     if v <= 0xff {
         format!("\\x{v:02x}")
     } else if v <= 0xffff {
@@ -853,33 +853,37 @@ fn encode(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let norm = enc.to_lowercase().replace(['-', ' '], "_");
     let (cname, limit): (&str, u32) = match norm.as_str() {
         "utf_8" | "utf8" | "u8" | "utf" | "cp65001" => {
-            // `surrogateescape`: os bytes não decodificáveis vivem em U+F780..U+F7FF (o texto não guarda
-            // surrogates solitários) e voltam a ser o byte original.
-            if errors == "surrogateescape" {
-                let mut out = Vec::with_capacity(s.as_str().len());
-                for ch in s.as_str().chars() {
-                    match ch as u32 {
-                        cp @ 0xF780..=0xF7FF => out.push((cp - 0xF700) as u8),
-                        _ => out.extend(ch.to_string().bytes()),
+            // Surrogates solitários vivem em U+10D800..U+10DFFF (o texto não os guarda em UTF-8).
+            // `surrogateescape` devolve o byte original, `surrogatepass` grava os 3 bytes do surrogate,
+            // e o resto recusa como o CPython (`_has_surrogates` do `email` depende do erro estrito).
+            let text = s.as_str();
+            if text.as_bytes().contains(&0xF4) && text.chars().any(|c| crate::object::char_surrogate(c).is_some()) {
+                let mut out = Vec::with_capacity(text.len());
+                for (pos, ch) in text.chars().enumerate() {
+                    let Some(cp) = crate::object::char_surrogate(ch) else {
+                        out.extend(ch.to_string().bytes());
+                        continue;
+                    };
+                    match errors.as_str() {
+                        "surrogateescape" if (0xDC80..=0xDCFF).contains(&cp) => out.push((cp - 0xDC00) as u8),
+                        "surrogatepass" => {
+                            out.extend([0xE0 | (cp >> 12) as u8, 0x80 | ((cp >> 6) & 0x3F) as u8, 0x80 | (cp & 0x3F) as u8])
+                        }
+                        "ignore" => {}
+                        "replace" => out.push(b'?'),
+                        "backslashreplace" => out.extend(format!("\\u{cp:04x}").bytes()),
+                        "xmlcharrefreplace" => out.extend(format!("&#{cp};").bytes()),
+                        _ => {
+                            return Err(exc(
+                                "UnicodeEncodeError",
+                                format!(
+                                    "'utf-8' codec can't encode character '\\u{cp:04x}' in position {pos}: surrogates not allowed"
+                                ),
+                            ))
+                        }
                     }
                 }
                 return Ok(Value::bytes(out));
-            }
-            // Strict/ignore/replace: os bytes escapados (U+F780..U+F7FF) fazem o papel dos surrogates
-            // solitários, que o `encode` estrito recusa (`_has_surrogates` do `email` depende disso).
-            let text = s.as_str();
-            if text.as_bytes().contains(&0xEF) {
-                if let Some((pos, ch)) = text.chars().enumerate().find(|(_, c)| (0xF780..=0xF7FF).contains(&(*c as u32))) {
-                    if errors == "strict" {
-                        return Err(exc(
-                            "UnicodeEncodeError",
-                            format!(
-                                "'utf-8' codec can't encode character '\\udc{:02x}' in position {pos}: surrogates not allowed",
-                                ch as u32 - 0xF700
-                            ),
-                        ));
-                    }
-                }
             }
             return Ok(Value::bytes(s.as_str().as_bytes().to_vec()));
         }
@@ -921,8 +925,12 @@ fn encode(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
                 ));
             }
             "ignore" => {}
-            "surrogateescape" if chars[i..j].iter().all(|c| (0xF780..=0xF7FF).contains(&(*c as u32))) => {
-                out.extend(chars[i..j].iter().map(|c| (*c as u32 - 0xF700) as u8));
+            "surrogateescape"
+                if chars[i..j]
+                    .iter()
+                    .all(|c| crate::object::char_surrogate(*c).is_some_and(|cp| (0xDC80..=0xDCFF).contains(&cp))) =>
+            {
+                out.extend(chars[i..j].iter().filter_map(|c| crate::object::char_surrogate(*c)).map(|cp| (cp - 0xDC00) as u8));
             }
             "replace" => out.extend(std::iter::repeat_n(b'?', j - i)),
             "backslashreplace" => {

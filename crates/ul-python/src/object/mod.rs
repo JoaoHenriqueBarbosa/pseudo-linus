@@ -27,7 +27,7 @@ pub use self::dict::Dict;
 pub use self::float::{float_hash, float_repr, format_float_short};
 pub use self::int::{HASH_MODULUS, int_add, int_hash, int_mul, int_neg, int_repr, int_sub};
 pub use self::set::Set;
-pub use self::pystr::{bytes_hash, bytes_repr, is_printable, str_repr, PyStr};
+pub use self::pystr::{bytes_hash, bytes_repr, char_surrogate, is_printable, str_repr, surrogate_to_char, PyStr};
 
 /// Valor Python.
 #[derive(Clone)]

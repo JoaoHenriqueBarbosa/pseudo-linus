@@ -473,12 +473,7 @@ fn decode_str_escapes(body: &str) -> Result<String, String> {
                             i - 1
                         ))
                     }
-                    None => {
-                        return Err(format!(
-                            "surrogate escape \\{e}{value:04x} is not representable: str here holds \
-                             only Unicode scalar values"
-                        ))
-                    }
+                    None => out.push(crate::object::surrogate_to_char(value)),
                 }
             }
             'N' => {

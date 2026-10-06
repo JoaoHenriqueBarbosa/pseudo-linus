@@ -5019,3 +5019,38 @@ True
 "##
     );
 }
+
+#[test]
+fn lone_surrogates_and_surrogateescape() {
+    let src = r##"
+import os
+raw = b'ok \xff\xfe bad \xc3\x28 end'
+s = raw.decode('utf-8', 'surrogateescape')
+print(len(s), ascii(s))
+print(s.encode('utf-8', 'surrogateescape') == raw)
+print(raw.decode('utf-8', 'replace'), raw.decode('utf-8', 'backslashreplace'), raw.decode('utf-8', 'ignore'))
+fn = os.fsdecode(b'caf\xe9.txt'); print(ascii(fn), os.fsencode(fn))
+print(ascii(chr(0xd83d)), len(chr(0xd800) + 'a'), '\ud800'.encode('utf-16', 'surrogatepass'), ord('\udc80'), '\udcff' == chr(0xdcff))
+print('\ud800'.encode('utf-8', 'surrogatepass'), repr('\udfff x'), ('a\udc80b').encode('utf-8', 'backslashreplace'), ('a\udc80b').encode('ascii', 'surrogateescape'))
+try: '\ud800'.encode()
+except UnicodeEncodeError as e: print(e)
+import json
+print(json.dumps('\ud83d'), json.dumps('\ud83d', ensure_ascii=False) == '"\ud83d"', json.loads('"\\ud83d"') == '\ud83d', json.loads('"\\ud83d\\ude00"'))
+print(sorted(['\udc80', 'z', 'a']) == ['a', 'z', '\udc80'] or 'order')
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"16 'ok \udcff\udcfe bad \udcc3( end'
+True
+ok �� bad �( end ok \xff\xfe bad \xc3( end ok  bad ( end
+'caf\udce9.txt' b'caf\xe9.txt'
+'\ud83d' 2 b'\xff\xfe\x00\xd8' 56448 True
+b'\xed\xa0\x80' '\udfff x' b'a\\udc80b' b'a\x80b'
+'utf-8' codec can't encode character '\ud800' in position 0: surrogates not allowed
+"\ud83d" True True 😀
+True
+"##
+    );
+}

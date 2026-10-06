@@ -7,12 +7,27 @@ use std::fmt;
 /// Valor de um `str`. O texto fica em UTF-8; `len`, indexação e fatiamento contam código-pontos,
 /// como no CPython. Texto só ASCII (o caso comum) indexa em O(1) direto nos bytes.
 ///
-/// Limitação conhecida: código-pontos substitutos isolados (`'\udc80'`, que o CPython aceita e o
-/// `surrogateescape` produz) não cabem em UTF-8 e não são representáveis aqui.
+/// Surrogates solitários (`'\udc80'`, que o CPython aceita e o `surrogateescape` produz) não cabem
+/// em UTF-8: ficam em U+10D800..U+10DFFF (uso privado do plano 16) e voltam a ser U+D800..U+DFFF
+/// em `ord`, `repr`, `encode` e afins (`surrogate_to_char` e `char_surrogate`).
 pub struct PyStr {
     text: String,
     char_len: usize,
     hash: Cell<Option<i64>>,
+}
+
+/// Deslocamento que leva um surrogate (U+D800..U+DFFF) ao uso privado do plano 16.
+pub const SURROGATE_OFFSET: u32 = 0x10_0000;
+
+/// O `char` que guarda o surrogate `cp` (U+D800..U+DFFF) dentro de um `str`.
+pub fn surrogate_to_char(cp: u32) -> char {
+    char::from_u32(SURROGATE_OFFSET + cp).unwrap_or('\u{fffd}')
+}
+
+/// O código-ponto do surrogate que `c` guarda, se for um.
+pub fn char_surrogate(c: char) -> Option<u32> {
+    let v = c as u32;
+    (0x10_D800..=0x10_DFFF).contains(&v).then(|| v - SURROGATE_OFFSET)
 }
 
 impl PyStr {
@@ -105,7 +120,7 @@ pub fn str_repr(s: &str) -> String {
             ' '..='~' => out.push(c),
             c if is_printable(c) => out.push(c),
             c => {
-                let v = c as u32;
+                let v = char_surrogate(c).unwrap_or(c as u32);
                 if v <= 0xff {
                     out.push_str(&format!("\\x{v:02x}"));
                 } else if v <= 0xffff {

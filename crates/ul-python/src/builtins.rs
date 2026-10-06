@@ -1001,6 +1001,9 @@ fn b_bin(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 fn b_chr(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let v = one("chr", args, &kw)?;
     let n = want_int(&v)?;
+    if (0xD800..=0xDFFF).contains(&n) {
+        return Ok(Value::str(crate::object::surrogate_to_char(n as u32).to_string()));
+    }
     u32::try_from(n)
         .ok()
         .and_then(char::from_u32)
@@ -1014,7 +1017,9 @@ fn b_ord(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         Value::Str(s) => {
             let mut it = s.as_str().chars();
             match (it.next(), it.next()) {
-                (Some(c), None) => Ok(Value::Int(i64::from(u32::from(c)))),
+                (Some(c), None) => {
+                    Ok(Value::Int(i64::from(crate::object::char_surrogate(c).unwrap_or(u32::from(c)))))
+                }
                 _ => Err(type_error(format!(
                     "ord() expected a character, but string of length {} found",
                     s.as_str().chars().count()
