@@ -10,7 +10,7 @@ __all__ = (
 
 
 class SelectorEventLoop(base_events.BaseEventLoop):
-    """No sandbox não há sockets: este é o laço de tarefas, tempo e executores."""
+    """Laço de tarefas, tempo, executores e rede em loopback (sockets em processo, sem seletor)."""
 
 
 class _UnixDefaultEventLoopPolicy(events.BaseDefaultEventLoopPolicy):

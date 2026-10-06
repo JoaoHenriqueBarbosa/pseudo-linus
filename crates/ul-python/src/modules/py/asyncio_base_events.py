@@ -9,13 +9,16 @@ import itertools
 import sys
 import threading
 import time
+import weakref
 
 from . import constants
 from . import coroutines
 from . import events
 from . import exceptions
 from . import futures
+from . import loopback
 from . import tasks
+from . import trsock
 from .log import logger
 
 __all__ = 'BaseEventLoop', 'Server'
@@ -27,17 +30,133 @@ _MIN_SCHEDULED_TIMER_HANDLES = 100
 _MIN_CANCELLED_TIMER_HANDLES_FRACTION = 0.5
 
 
-class Server:
-    """Marcador: o sandbox não abre sockets, então não há servidor de verdade."""
+class Server(events.AbstractServer):
+
+    def __init__(self, loop, sockets, protocol_factory, ssl_context, backlog,
+                 ssl_handshake_timeout, ssl_shutdown_timeout=None):
+        self._loop = loop
+        self._sockets = sockets
+        self._clients = weakref.WeakSet()
+        self._waiters = []
+        self._protocol_factory = protocol_factory
+        self._backlog = backlog
+        self._ssl_context = ssl_context
+        self._ssl_handshake_timeout = ssl_handshake_timeout
+        self._ssl_shutdown_timeout = ssl_shutdown_timeout
+        self._serving = False
+        self._serving_forever_fut = None
+
+    def __repr__(self):
+        return f'<{self.__class__.__name__} sockets={self.sockets!r}>'
+
+    def _attach(self, transport):
+        assert self._sockets is not None
+        self._clients.add(transport)
+
+    def _detach(self, transport):
+        self._clients.discard(transport)
+        if len(self._clients) == 0 and self._sockets is None:
+            self._wakeup()
+
+    def _wakeup(self):
+        waiters = self._waiters
+        self._waiters = None
+        for waiter in waiters:
+            if not waiter.done():
+                waiter.set_result(None)
+
+    def _start_serving(self):
+        if self._serving:
+            return
+        self._serving = True
+        for sock in self._sockets:
+            sock.listen(self._backlog)
+            self._loop._start_serving(
+                self._protocol_factory, sock, self._ssl_context,
+                self, self._backlog, self._ssl_handshake_timeout,
+                self._ssl_shutdown_timeout)
+
+    def get_loop(self):
+        return self._loop
+
+    def is_serving(self):
+        return self._serving
+
+    @property
+    def sockets(self):
+        if self._sockets is None:
+            return ()
+        return tuple(trsock.TransportSocket(s) for s in self._sockets)
+
+    def close(self):
+        sockets = self._sockets
+        if sockets is None:
+            return
+        self._sockets = None
+
+        for sock in sockets:
+            self._loop._stop_serving(sock)
+
+        self._serving = False
+
+        if (self._serving_forever_fut is not None and
+                not self._serving_forever_fut.done()):
+            self._serving_forever_fut.cancel()
+            self._serving_forever_fut = None
+
+        if len(self._clients) == 0:
+            self._wakeup()
+
+    def close_clients(self):
+        for transport in self._clients.copy():
+            transport.close()
+
+    def abort_clients(self):
+        for transport in self._clients.copy():
+            transport.abort()
+
+    async def start_serving(self):
+        self._start_serving()
+        await tasks.sleep(0)
+
+    async def serve_forever(self):
+        if self._serving_forever_fut is not None:
+            raise RuntimeError(
+                f'server {self!r} is already being awaited on serve_forever()')
+        if self._sockets is None:
+            raise RuntimeError(f'server {self!r} is closed')
+
+        self._start_serving()
+        self._serving_forever_fut = self._loop.create_future()
+
+        try:
+            await self._serving_forever_fut
+        except exceptions.CancelledError:
+            try:
+                self.close()
+                await self.wait_closed()
+            finally:
+                raise
+        finally:
+            self._serving_forever_fut = None
+
+    async def wait_closed(self):
+        """Espera o servidor fechar e todas as conexões caírem (`_wakeup` zera `_waiters` ao cumprir as duas)."""
+        if self._waiters is None:
+            return
+        waiter = self._loop.create_future()
+        self._waiters.append(waiter)
+        await waiter
 
 
-class BaseEventLoop(events.AbstractEventLoop):
+class BaseEventLoop(loopback.NetworkMixin, events.AbstractEventLoop):
 
     def __init__(self):
         self._timer_cancelled_count = 0
         self._closed = False
         self._stopping = False
         self._ready = collections.deque()
+        self._io_ready = collections.deque()
         self._scheduled = []
         self._default_executor = None
         self._internal_fds = 0
@@ -334,7 +453,7 @@ class BaseEventLoop(events.AbstractEventLoop):
                 handle._scheduled = False
 
         timeout = None
-        if self._ready or self._stopping:
+        if self._ready or self._stopping or self._io_ready:
             timeout = 0
         elif self._scheduled:
             when = self._scheduled[0]._when
@@ -345,6 +464,10 @@ class BaseEventLoop(events.AbstractEventLoop):
             raise RuntimeError('event loop has nothing to wait for: no ready callbacks, timers or I/O')
         if timeout > 0:
             time.sleep(timeout)
+
+        # O `select` do CPython devolve os eventos de I/O depois dos prontos que já estavam na fila.
+        while self._io_ready:
+            self._ready.append(self._io_ready.popleft())
 
         end_time = self.time() + self._clock_resolution
         while self._scheduled:

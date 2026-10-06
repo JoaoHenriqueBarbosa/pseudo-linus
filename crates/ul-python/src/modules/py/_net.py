@@ -32,8 +32,8 @@ def hostname():
 def is_local(host):
     if isinstance(host, bytes):
         host = host.decode()
-    return host in ('', '0.0.0.0', '127.0.0.1', 'localhost', '::', '::1', '<broadcast>', hostname()) or \
-        host.startswith('127.')
+    return host in ('', '0.0.0.0', '127.0.0.1', 'localhost', '::', '::1', '<broadcast>') or \
+        host.startswith('127.') or host == hostname()
 
 
 def loopback_ip(family):
