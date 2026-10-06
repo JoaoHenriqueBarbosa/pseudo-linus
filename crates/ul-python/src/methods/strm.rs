@@ -850,26 +850,12 @@ fn encode(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         "latin_1" | "latin1" | "iso_8859_1" | "iso8859_1" | "l1" | "latin" | "8859" | "cp819" | "iso_ir_100" => {
             ("latin-1", 256)
         }
-        _ if matches!(norm.as_str(), "cp437" | "437" | "ibm437") => {
-            let mut out = Vec::with_capacity(s.as_str().len());
-            for (i, c) in s.as_str().chars().enumerate() {
-                match crate::cp437::encode_char(c) {
-                    Some(b) => out.push(b),
-                    None => {
-                        return Err(exc(
-                            "UnicodeEncodeError",
-                            format!(
-                                "'charmap' codec can't encode character '{}' in position {}: character maps to <undefined>",
-                                escape_cp(c),
-                                i
-                            ),
-                        ))
-                    }
-                }
+        _ => {
+            return match crate::textcodec::lookup(&enc) {
+                Some(c) => Ok(Value::bytes(crate::textcodec::encode(&c, s.as_str(), &errors)?)),
+                None => Err(exc("LookupError", format!("unknown encoding: {enc}"))),
             }
-            return Ok(Value::bytes(out));
         }
-        _ => return Err(exc("LookupError", format!("unknown encoding: {enc}"))),
     };
     let chars: Vec<char> = s.as_str().chars().collect();
     let mut out: Vec<u8> = Vec::with_capacity(chars.len());
@@ -907,6 +893,14 @@ fn encode(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
             "xmlcharrefreplace" => {
                 for &ch in &chars[i..j] {
                     out.extend(format!("&#{};", ch as u32).bytes());
+                }
+            }
+            "namereplace" => {
+                for &ch in &chars[i..j] {
+                    match unicode_names2::name(ch) {
+                        Some(n) => out.extend(format!("\\N{{{n}}}").bytes()),
+                        None => out.extend(escape_cp(ch).bytes()),
+                    }
                 }
             }
             other => return Err(exc("LookupError", format!("unknown error handler name '{other}'"))),

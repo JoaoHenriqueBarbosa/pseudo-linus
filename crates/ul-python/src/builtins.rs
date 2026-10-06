@@ -138,10 +138,10 @@ const PSEUDO_TYPES: &[&str] =
     &["function", "module", "generator", "builtin_function_or_method", "method", "dict_keys", "dict_values", "dict_items", "coroutine", "async_generator", "coroutine_wrapper"];
 
 /// Nome da classe embutida representada por `v` (`Builtin` ou `NativeFn` de tipo), se for uma.
-fn class_name(v: &Value) -> Option<&'static str> {
+pub(crate) fn class_name(v: &Value) -> Option<&'static str> {
     match v {
         Value::Builtin(n) => {
-            if TYPE_NAMES.contains(n) || PSEUDO_TYPES.contains(n) || *n == "NoneType" || EXC_CLASSES.iter().any(|(e, _)| e == n) {
+            if TYPE_NAMES.contains(n) || PSEUDO_TYPES.contains(n) || *n == "NoneType" || matches!(*n, "ellipsis" | "NotImplementedType") || EXC_CLASSES.iter().any(|(e, _)| e == n) {
                 Some(*n)
             } else {
                 None
@@ -250,6 +250,14 @@ fn subclass_of(a: &str, b: &str) -> bool {
 }
 
 fn issubclass_check(a: &Value, cls: &Value) -> PyResult<bool> {
+    // `issubclass(M, type)`: só as metaclasses (e o próprio `type`).
+    if matches!(cls, Value::Builtin("type")) {
+        return Ok(match a {
+            Value::Class(c) => c.is_meta || c.mro().iter().any(|x| x.is_meta),
+            Value::Builtin("type") => true,
+            _ => false,
+        });
+    }
     if let Value::Class(b) = cls {
         if let Some(mut vm) = crate::vm::current() {
             if let Some(r) = vm.meta_dunder(b, "__subclasscheck__", vec![a.clone()], Vec::new()) {
@@ -1209,7 +1217,10 @@ fn encode_text(s: &str, encoding: &str, errors: &str) -> PyResult<Vec<u8>> {
         "utf-8" | "utf8" | "u8" | "utf" => Ok(s.as_bytes().to_vec()),
         "ascii" | "us-ascii" => encode_limited(s, 128, "ascii", errors),
         "latin-1" | "latin1" | "iso-8859-1" | "iso8859-1" | "l1" => encode_limited(s, 256, "latin-1", errors),
-        _ => Err(exc("LookupError", format!("unknown encoding: {encoding}"))),
+        _ => match crate::textcodec::lookup(encoding) {
+            Some(c) => crate::textcodec::encode(&c, s, errors),
+            None => Err(exc("LookupError", format!("unknown encoding: {encoding}"))),
+        },
     }
 }
 
@@ -1284,7 +1295,10 @@ fn decode_bytes(b: &[u8], encoding: &str, errors: &str) -> PyResult<String> {
             Ok(out)
         }
         "latin-1" | "latin1" | "iso-8859-1" | "iso8859-1" | "l1" => Ok(b.iter().map(|&x| char::from(x)).collect()),
-        _ => Err(exc("LookupError", format!("unknown encoding: {encoding}"))),
+        _ => match crate::textcodec::lookup(encoding) {
+            Some(c) => crate::textcodec::decode(&c, b, errors),
+            None => Err(exc("LookupError", format!("unknown encoding: {encoding}"))),
+        },
     }
 }
 

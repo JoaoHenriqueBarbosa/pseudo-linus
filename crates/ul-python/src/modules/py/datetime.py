@@ -116,6 +116,9 @@ class timedelta:
     def total_seconds(self):
         return self._total_us() / 10**6
 
+    def __reduce__(self):
+        return (type(self), (self._days, self._seconds, self._microseconds))
+
     def __repr__(self):
         args = []
         if self._days:
@@ -314,6 +317,9 @@ class timezone(tzinfo):
     def __hash__(self):
         return hash(self._offset)
 
+    def __reduce__(self):
+        return (type(self), (self._offset, self._name))
+
     def __repr__(self):
         if self is timezone.utc:
             return 'datetime.timezone.utc'
@@ -463,6 +469,9 @@ class date:
         return type(self)(self._year if year is None else year,
                           self._month if month is None else month,
                           self._day if day is None else day)
+
+    def __reduce__(self):
+        return (type(self), (self._year, self._month, self._day))
 
     def __repr__(self):
         return 'datetime.date(%d, %d, %d)' % (self._year, self._month, self._day)
@@ -665,6 +674,9 @@ class time:
     def __bool__(self):
         return True
 
+    def __reduce__(self):
+        return (type(self), (self._hour, self._minute, self._second, self._microsecond, self._tzinfo))
+
     def __repr__(self):
         if self._microsecond:
             s = ', %d, %d' % (self._second, self._microsecond)
@@ -851,6 +863,10 @@ class datetime(date):
                           self._microsecond if microsecond is None else microsecond,
                           self._tzinfo if tzinfo is True else tzinfo,
                           fold=self._fold if fold is None else fold)
+
+    def __reduce__(self):
+        return (type(self), (self._year, self._month, self._day, self._hour, self._minute, self._second,
+                             self._microsecond, self._tzinfo), {"fold": self._fold} if self._fold else None)
 
     def __repr__(self):
         parts = [self._year, self._month, self._day, self._hour, self._minute, self._second, self._microsecond]

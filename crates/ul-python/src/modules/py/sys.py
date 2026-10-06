@@ -256,3 +256,15 @@ def getswitchinterval():
 
 
 builtin_module_names = ('_abc', '_ast', '_codecs', '_io', '_os', '_sys', 'builtins', 'itertools', 'math', 'sys')
+
+
+_audit_hooks = []
+
+
+def addaudithook(hook):
+    _audit_hooks.append(hook)
+
+
+def audit(event, *args):
+    for hook in _audit_hooks:
+        hook(event, args)

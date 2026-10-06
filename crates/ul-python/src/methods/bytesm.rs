@@ -140,6 +140,10 @@ fn decode_error(codec: &str, bad_start: usize, bad_len: usize, byte: u8, reason:
     exc("UnicodeDecodeError", msg)
 }
 
+pub(crate) fn decode_utf8_text(data: &[u8], errors: &str) -> PyResult<String> {
+    decode_utf8(data, errors)
+}
+
 fn decode_utf8(data: &[u8], errors: &str) -> PyResult<String> {
     let mut out = String::new();
     let mut pos = 0usize;
@@ -208,7 +212,10 @@ fn decode(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let encoding = text_arg(&slots[0], "encoding", "utf-8")?;
     let errors = text_arg(&slots[1], "errors", "strict")?;
     let Some(codec) = codec_of(&encoding) else {
-        return Err(exc("LookupError", format!("unknown encoding: {encoding}")));
+        return match crate::textcodec::lookup(&encoding) {
+            Some(c) => Ok(Value::str(crate::textcodec::decode(&c, &data, &errors)?)),
+            None => Err(exc("LookupError", format!("unknown encoding: {encoding}"))),
+        };
     };
     let text = match codec {
         Codec::Utf8 => decode_utf8(&data, &errors)?,

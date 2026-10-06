@@ -59,7 +59,15 @@ def _norm(encoding):
     if not isinstance(encoding, str):
         raise TypeError('lookup() argument must be str, not %s' % type(encoding).__name__)
     key = encoding.lower().replace(' ', '-').replace('_', '-')
-    return _CANON.get(key) or _CANON.get(encoding.lower()) or _CANON.get(key.replace('-', '_'))
+    found = _CANON.get(key) or _CANON.get(encoding.lower()) or _CANON.get(key.replace('-', '_'))
+    if found is None:
+        # Os codecs de texto do núcleo (cp125x, iso8859-x, koi8...): se `str.encode` conhece, vale.
+        try:
+            ''.encode(encoding)
+        except LookupError:
+            return None
+        found = key
+    return found
 
 
 def _hex_enc(data, errors='strict'):

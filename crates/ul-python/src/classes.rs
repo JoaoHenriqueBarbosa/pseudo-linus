@@ -736,6 +736,18 @@ impl Vm {
                 return self.call_function(&f, vec![obj.clone(), Value::str(name)], Vec::new());
             }
         }
+        // `object.__reduce_ex__`, `__reduce__` e `__getstate__` (pickle, copy) vivem em `copyreg`.
+        if let Some(fname) = match name {
+            "__reduce_ex__" => Some("_object_reduce_ex"),
+            "__reduce__" => Some("_object_reduce"),
+            "__getstate__" => Some("_object_getstate"),
+            _ => None,
+        } {
+            let m = crate::modules::import_checked(self, "copyreg")?;
+            if let Value::Function(f) = self.getattr(&Value::Module(m), fname)? {
+                return Ok(Value::BoundFn(Rc::new((obj.clone(), f))));
+            }
+        }
         let payload = inst.payload.borrow().clone();
         if let Some(p) = payload {
             // `d.__getitem__` de subclasse de `dict` com `__missing__`: a chave ausente chama o gancho.
@@ -795,6 +807,12 @@ impl Vm {
         }
         if name == "__new__" && cls.data_base.is_none() && cls.builtin_base.is_none() {
             return Ok(crate::typeattrs::object_new_value());
+        }
+        // Subclasse de `dict`/`list`/...: o `__new__` é o do tipo embutido (`dict.__new__(cls)`).
+        if name == "__new__" {
+            if let Some(v) = cls.data_base.and_then(|t| crate::typeattrs::type_attr(t, "__new__")) {
+                return Ok(v);
+            }
         }
         // Os métodos de `object` (`__init__`, `__eq__`, `__setattr__`...) valem para toda classe comum.
         if cls.data_base.is_none() && cls.builtin_base.is_none() && name != "__name__" {
@@ -1008,6 +1026,15 @@ impl Vm {
         match v {
             Value::Instance(i) => Value::Class(i.class.clone()),
             Value::Exception(e) => Value::Builtin(e.kind),
+            Value::Builtin("Ellipsis") => Value::Builtin("ellipsis"),
+            Value::Builtin("NotImplemented") => Value::Builtin("NotImplementedType"),
+            // `int`, `object`, `ValueError`...: as classes embutidas são instâncias de `type`.
+            Value::Builtin(_) | Value::NativeFn(_)
+                if crate::builtins::class_name(v).is_some()
+                    && !matches!(v, Value::Builtin("Ellipsis" | "NotImplemented")) =>
+            {
+                Value::Builtin("type")
+            }
             Value::Class(c) => match &c.meta {
                 Some(m) => Value::Class(m.clone()),
                 None => Value::Builtin("type"),

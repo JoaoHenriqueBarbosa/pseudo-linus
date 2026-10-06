@@ -8,7 +8,7 @@ use crate::vm::Vm;
 
 const EXTRA: &[&str] = &[
     "object", "NotImplemented", "Ellipsis", "staticmethod", "classmethod", "property", "super", "type", "IOError",
-    "EnvironmentError",
+    "EnvironmentError", "complex", "memoryview", "ExceptionGroup", "BaseExceptionGroup", "__debug__",
 ];
 
 pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {

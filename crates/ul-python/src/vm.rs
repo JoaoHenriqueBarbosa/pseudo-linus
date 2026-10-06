@@ -496,6 +496,8 @@ impl Vm {
             std_files: [file(FileKind::Stdin, "<stdin>"), file(FileKind::Stdout, "<stdout>"), file(FileKind::Stderr, "<stderr>")],
         };
         CURRENT.with(|c| *c.borrow_mut() = Some(vm.clone()));
+        // O script principal como módulo: o `__main__` enxerga as globais dele de qualquer módulo.
+        vm.module_globals.borrow_mut().insert("__main__", vm.globals.clone());
         vm
     }
 
@@ -1837,7 +1839,10 @@ impl Vm {
                         };
                         return Ok(crate::tbobj::function_code(&f.code, &file));
                     }
-                    "__module__" => return Ok(Value::str("__main__")),
+                    "__module__" => {
+                        let name = f.globals.borrow().get("__name__").cloned();
+                        return Ok(name.unwrap_or_else(|| Value::str("__main__")));
+                    }
                     "__dict__" => {
                         let mut d = crate::object::Dict::new();
                         for (k, v) in f.attrs.borrow().iter() {
@@ -1934,6 +1939,18 @@ impl Vm {
                     _ => file,
                 })
             }
+            Value::Range(_) | Value::Builtin("Ellipsis") if matches!(name, "__reduce_ex__" | "__reduce__") => {
+                let m = crate::modules::import_checked(self, "copyreg")?;
+                match self.getattr(&Value::Module(m), "_builtin_reduce_ex")? {
+                    Value::Function(f) => return Ok(Value::BoundFn(Rc::new((obj.clone(), f)))),
+                    _ => return Err(missing()),
+                }
+            }
+            Value::Range(r) if matches!(name, "start" | "stop" | "step") => Ok(Value::Int(match name {
+                "start" => r.start,
+                "stop" => r.stop,
+                _ => r.step,
+            })),
             Value::Int(_) | Value::Big(_) | Value::Bool(_) if matches!(name, "real" | "numerator") => {
                 Ok(if let Value::Bool(b) = obj { Value::Int(i64::from(*b)) } else { obj.clone() })
             }

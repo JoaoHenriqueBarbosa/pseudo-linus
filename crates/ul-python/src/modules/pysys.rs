@@ -97,6 +97,8 @@ fn setrecursionlimit(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value
 
 /// Instantâneo dos módulos carregados (`sys.modules`), com `__main__` montado das globais do script.
 fn modules_snapshot(vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    // O `__main__` vivo (globais do script), o mesmo que `import __main__` devolve.
+    super::import_checked(vm, "__main__")?;
     let mut d = crate::object::Dict::new();
     let mut names: Vec<(String, Rc<ModuleObj>)> =
         vm.modules.borrow().iter().map(|(k, v)| (k.clone(), v.clone())).collect();
@@ -104,11 +106,6 @@ fn modules_snapshot(vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> 
     for (name, m) in names {
         d.set(Value::str(name), Value::Module(m))?;
     }
-    let main = ModuleObj { name: "__main__", attrs: std::cell::RefCell::new(std::collections::BTreeMap::new()) };
-    for (k, v) in vm.globals.borrow().iter() {
-        main.attrs.borrow_mut().insert(k.clone(), v.clone());
-    }
-    d.set(Value::str("__main__"), Value::Module(Rc::new(main)))?;
     Ok(Value::dict(d))
 }
 

@@ -2423,3 +2423,240 @@ True <Q.B: 2>
 "##
     );
 }
+
+#[test]
+fn text_codecs() {
+    let src = r##"
+import io, codecs
+for enc in ('cp1252', 'iso-8859-1', 'utf-16', 'utf-8-sig', 'utf-16-be', 'utf-32-le', 'cp437', 'koi8-r'):
+    for err in ('strict', 'ignore', 'replace', 'backslashreplace', 'xmlcharrefreplace', 'namereplace'):
+        try: print(enc, err, 'ação €→日'.encode(enc, err))
+        except Exception as e: print(enc, err, type(e).__name__, e)
+for enc, data in [('cp1252', b'a\x81\x80z'), ('utf-16-le', b'a\x00b'), ('utf-16', b'\xff\xfea\x00\x00\xd8'), ('utf-16-le', b'\x00\xdc'), ('utf-32', b'abc'), ('utf-8-sig', b'\xef\xbb\xbfhi'), ('iso8859-2', b'\xa1\xb1'), ('unicode_escape', b'a\\n\\x41\\u20ac\\N{BULLET}\\101'), ('raw_unicode_escape', b'a\\u20ac\\n'), ('unicode_escape', b'\\xZ'), ('cp1252', b'\x9f\x8e')]:
+    for err in ('strict', 'replace', 'ignore', 'backslashreplace'):
+        try: print(enc, err, repr(data.decode(enc, err)))
+        except Exception as e: print(enc, err, type(e).__name__, e)
+print(codecs.encode('é', 'cp1252'), codecs.decode(b'\xe9', 'latin-1'), codecs.lookup('Windows-1252').name, codecs.lookup('latin1').name)
+print(io.TextIOWrapper(io.BytesIO('ñ'.encode('cp850')), encoding='cp850').read())
+print(str(b'\xe9', 'cp1252'), bytes('é', 'cp1252'), 'é'.encode('cp1252').decode('mac_roman'))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"cp1252 strict UnicodeEncodeError 'charmap' codec can't encode characters in position 6-7: character maps to <undefined>
+cp1252 ignore b'a\xe7\xe3o \x80'
+cp1252 replace b'a\xe7\xe3o \x80??'
+cp1252 backslashreplace b'a\xe7\xe3o \x80\\u2192\\u65e5'
+cp1252 xmlcharrefreplace b'a\xe7\xe3o \x80&#8594;&#26085;'
+cp1252 namereplace b'a\xe7\xe3o \x80\\N{RIGHTWARDS ARROW}\\N{CJK UNIFIED IDEOGRAPH-65E5}'
+iso-8859-1 strict UnicodeEncodeError 'latin-1' codec can't encode characters in position 5-7: ordinal not in range(256)
+iso-8859-1 ignore b'a\xe7\xe3o '
+iso-8859-1 replace b'a\xe7\xe3o ???'
+iso-8859-1 backslashreplace b'a\xe7\xe3o \\u20ac\\u2192\\u65e5'
+iso-8859-1 xmlcharrefreplace b'a\xe7\xe3o &#8364;&#8594;&#26085;'
+iso-8859-1 namereplace b'a\xe7\xe3o \\N{EURO SIGN}\\N{RIGHTWARDS ARROW}\\N{CJK UNIFIED IDEOGRAPH-65E5}'
+utf-16 strict b'\xff\xfea\x00\xe7\x00\xe3\x00o\x00 \x00\xac \x92!\xe5e'
+utf-16 ignore b'\xff\xfea\x00\xe7\x00\xe3\x00o\x00 \x00\xac \x92!\xe5e'
+utf-16 replace b'\xff\xfea\x00\xe7\x00\xe3\x00o\x00 \x00\xac \x92!\xe5e'
+utf-16 backslashreplace b'\xff\xfea\x00\xe7\x00\xe3\x00o\x00 \x00\xac \x92!\xe5e'
+utf-16 xmlcharrefreplace b'\xff\xfea\x00\xe7\x00\xe3\x00o\x00 \x00\xac \x92!\xe5e'
+utf-16 namereplace b'\xff\xfea\x00\xe7\x00\xe3\x00o\x00 \x00\xac \x92!\xe5e'
+utf-8-sig strict b'\xef\xbb\xbfa\xc3\xa7\xc3\xa3o \xe2\x82\xac\xe2\x86\x92\xe6\x97\xa5'
+utf-8-sig ignore b'\xef\xbb\xbfa\xc3\xa7\xc3\xa3o \xe2\x82\xac\xe2\x86\x92\xe6\x97\xa5'
+utf-8-sig replace b'\xef\xbb\xbfa\xc3\xa7\xc3\xa3o \xe2\x82\xac\xe2\x86\x92\xe6\x97\xa5'
+utf-8-sig backslashreplace b'\xef\xbb\xbfa\xc3\xa7\xc3\xa3o \xe2\x82\xac\xe2\x86\x92\xe6\x97\xa5'
+utf-8-sig xmlcharrefreplace b'\xef\xbb\xbfa\xc3\xa7\xc3\xa3o \xe2\x82\xac\xe2\x86\x92\xe6\x97\xa5'
+utf-8-sig namereplace b'\xef\xbb\xbfa\xc3\xa7\xc3\xa3o \xe2\x82\xac\xe2\x86\x92\xe6\x97\xa5'
+utf-16-be strict b'\x00a\x00\xe7\x00\xe3\x00o\x00  \xac!\x92e\xe5'
+utf-16-be ignore b'\x00a\x00\xe7\x00\xe3\x00o\x00  \xac!\x92e\xe5'
+utf-16-be replace b'\x00a\x00\xe7\x00\xe3\x00o\x00  \xac!\x92e\xe5'
+utf-16-be backslashreplace b'\x00a\x00\xe7\x00\xe3\x00o\x00  \xac!\x92e\xe5'
+utf-16-be xmlcharrefreplace b'\x00a\x00\xe7\x00\xe3\x00o\x00  \xac!\x92e\xe5'
+utf-16-be namereplace b'\x00a\x00\xe7\x00\xe3\x00o\x00  \xac!\x92e\xe5'
+utf-32-le strict b'a\x00\x00\x00\xe7\x00\x00\x00\xe3\x00\x00\x00o\x00\x00\x00 \x00\x00\x00\xac \x00\x00\x92!\x00\x00\xe5e\x00\x00'
+utf-32-le ignore b'a\x00\x00\x00\xe7\x00\x00\x00\xe3\x00\x00\x00o\x00\x00\x00 \x00\x00\x00\xac \x00\x00\x92!\x00\x00\xe5e\x00\x00'
+utf-32-le replace b'a\x00\x00\x00\xe7\x00\x00\x00\xe3\x00\x00\x00o\x00\x00\x00 \x00\x00\x00\xac \x00\x00\x92!\x00\x00\xe5e\x00\x00'
+utf-32-le backslashreplace b'a\x00\x00\x00\xe7\x00\x00\x00\xe3\x00\x00\x00o\x00\x00\x00 \x00\x00\x00\xac \x00\x00\x92!\x00\x00\xe5e\x00\x00'
+utf-32-le xmlcharrefreplace b'a\x00\x00\x00\xe7\x00\x00\x00\xe3\x00\x00\x00o\x00\x00\x00 \x00\x00\x00\xac \x00\x00\x92!\x00\x00\xe5e\x00\x00'
+utf-32-le namereplace b'a\x00\x00\x00\xe7\x00\x00\x00\xe3\x00\x00\x00o\x00\x00\x00 \x00\x00\x00\xac \x00\x00\x92!\x00\x00\xe5e\x00\x00'
+cp437 strict UnicodeEncodeError 'charmap' codec can't encode character '\xe3' in position 2: character maps to <undefined>
+cp437 ignore b'a\x87o '
+cp437 replace b'a\x87?o ???'
+cp437 backslashreplace b'a\x87\\xe3o \\u20ac\\u2192\\u65e5'
+cp437 xmlcharrefreplace b'a\x87&#227;o &#8364;&#8594;&#26085;'
+cp437 namereplace b'a\x87\\N{LATIN SMALL LETTER A WITH TILDE}o \\N{EURO SIGN}\\N{RIGHTWARDS ARROW}\\N{CJK UNIFIED IDEOGRAPH-65E5}'
+koi8-r strict UnicodeEncodeError 'charmap' codec can't encode characters in position 1-2: character maps to <undefined>
+koi8-r ignore b'ao '
+koi8-r replace b'a??o ???'
+koi8-r backslashreplace b'a\\xe7\\xe3o \\u20ac\\u2192\\u65e5'
+koi8-r xmlcharrefreplace b'a&#231;&#227;o &#8364;&#8594;&#26085;'
+koi8-r namereplace b'a\\N{LATIN SMALL LETTER C WITH CEDILLA}\\N{LATIN SMALL LETTER A WITH TILDE}o \\N{EURO SIGN}\\N{RIGHTWARDS ARROW}\\N{CJK UNIFIED IDEOGRAPH-65E5}'
+cp1252 strict UnicodeDecodeError 'charmap' codec can't decode byte 0x81 in position 1: character maps to <undefined>
+cp1252 replace 'a�€z'
+cp1252 ignore 'a€z'
+cp1252 backslashreplace 'a\\x81€z'
+utf-16-le strict UnicodeDecodeError 'utf-16-le' codec can't decode byte 0x62 in position 2: truncated data
+utf-16-le replace 'a�'
+utf-16-le ignore 'a'
+utf-16-le backslashreplace 'a\\x62'
+utf-16 strict UnicodeDecodeError 'utf-16-le' codec can't decode bytes in position 4-5: unexpected end of data
+utf-16 replace 'a�'
+utf-16 ignore 'a'
+utf-16 backslashreplace 'a\\x00\\xd8'
+utf-16-le strict UnicodeDecodeError 'utf-16-le' codec can't decode bytes in position 0-1: illegal encoding
+utf-16-le replace '�'
+utf-16-le ignore ''
+utf-16-le backslashreplace '\\x00\\xdc'
+utf-32 strict UnicodeDecodeError 'utf-32-le' codec can't decode bytes in position 0-2: truncated data
+utf-32 replace '�'
+utf-32 ignore ''
+utf-32 backslashreplace '\\x61\\x62\\x63'
+utf-8-sig strict 'hi'
+utf-8-sig replace 'hi'
+utf-8-sig ignore 'hi'
+utf-8-sig backslashreplace 'hi'
+iso8859-2 strict 'Ąą'
+iso8859-2 replace 'Ąą'
+iso8859-2 ignore 'Ąą'
+iso8859-2 backslashreplace 'Ąą'
+unicode_escape strict 'a\nA€•A'
+unicode_escape replace 'a\nA€•A'
+unicode_escape ignore 'a\nA€•A'
+unicode_escape backslashreplace 'a\nA€•A'
+raw_unicode_escape strict 'a€\\n'
+raw_unicode_escape replace 'a€\\n'
+raw_unicode_escape ignore 'a€\\n'
+raw_unicode_escape backslashreplace 'a€\\n'
+unicode_escape strict UnicodeDecodeError 'unicodeescape' codec can't decode bytes in position 0-1: truncated \xXX escape
+unicode_escape replace '�Z'
+unicode_escape ignore 'Z'
+unicode_escape backslashreplace '\\x5c\\x78Z'
+cp1252 strict 'ŸŽ'
+cp1252 replace 'ŸŽ'
+cp1252 ignore 'ŸŽ'
+cp1252 backslashreplace 'ŸŽ'
+b'\xe9' é cp1252 iso8859-1
+ñ
+é b'\xe9' È
+"##
+    );
+}
+
+#[test]
+fn stdlib_pickle_toml_ip_html() {
+    let src = r##"
+import pickle, copyreg, tomllib, ipaddress, mimetypes, fileinput
+from html.parser import HTMLParser
+data = {'a': [1, 2.5, (3, None)], 'b': {'x', 'y'}, 'c': b'zz', 'd': 'é', 'e': 10**30, 'f': True}
+for proto in range(0, 6):
+    s = pickle.dumps(data, protocol=proto)
+    assert pickle.loads(s) == data, proto
+print(len(pickle.dumps(data)), pickle.dumps([1, 'a']))
+class P:
+    def __init__(self, x): self.x = x
+    def __eq__(self, o): return isinstance(o, P) and o.x == self.x
+print(pickle.loads(pickle.dumps(P([1, 2]))).x)
+import collections, datetime
+print(pickle.loads(pickle.dumps(collections.OrderedDict(a=1))), pickle.loads(pickle.dumps(datetime.date(2024, 1, 2))))
+print(tomllib.loads('''
+title = "x"
+[owner]
+name = "Tom"
+dob = 1979-05-27T07:32:00-08:00
+[[items]]
+a = 1
+[[items]]
+a = 2.5
+tags = ["u", "v"]
+'''))
+n = ipaddress.ip_network('192.168.1.0/24'); print(n.num_addresses, ipaddress.ip_address('192.168.1.7') in n, list(n.hosts())[:2], ipaddress.ip_address('::1').is_loopback)
+class H(HTMLParser):
+    def handle_starttag(self, t, a): print('start', t, a)
+    def handle_endtag(self, t): print('end', t)
+    def handle_data(self, d): print('data', repr(d))
+H().feed('<div class="a"><a href="/x">hi &amp; bye</a><br/></div>')
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"98 b'\x80\x04\x95\x0b\x00\x00\x00\x00\x00\x00\x00]\x94(K\x01\x8c\x01a\x94e.'
+[1, 2]
+OrderedDict({'a': 1}) 2024-01-02
+{'title': 'x', 'owner': {'name': 'Tom', 'dob': datetime.datetime(1979, 5, 27, 7, 32, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=57600)))}, 'items': [{'a': 1}, {'a': 2.5, 'tags': ['u', 'v']}]}
+256 True [IPv4Address('192.168.1.1'), IPv4Address('192.168.1.2')] True
+start div [('class', 'a')]
+start a [('href', '/x')]
+data 'hi & bye'
+end a
+start br []
+end br
+end div
+"##
+    );
+}
+
+#[test]
+fn pickle_protocols() {
+    let src = r##"
+import pickle, copy, io, dataclasses, collections, enum, fractions, decimal, datetime, functools, array
+@dataclasses.dataclass
+class Pt:
+    x: int
+    y: int = 2
+    tags: list = dataclasses.field(default_factory=list)
+NT = collections.namedtuple('NT', 'a b')
+class Color(enum.Enum):
+    RED = 1
+    BLUE = 2
+class Slotted:
+    __slots__ = ('a', 'b')
+    def __init__(self, a, b): self.a, self.b = a, b
+class WithState:
+    def __init__(self): self.v = 1; self.cache = {'big': 1}
+    def __getstate__(self): return {'v': self.v}
+    def __setstate__(self, s): self.v = s['v']; self.cache = {}
+class Node:
+    def __init__(self, name): self.name = name; self.next = None
+objs = [Pt(1, tags=['a']), NT(1, 'z'), Color.BLUE, Slotted(1, 'q'), WithState(), fractions.Fraction(3, 7), decimal.Decimal('1.25'),
+        datetime.datetime(2024, 5, 6, 7, 8, 9, 10), datetime.timedelta(days=2, seconds=3), datetime.timezone.utc,
+        collections.Counter('abca'), collections.defaultdict(list, {'k': [1]}), collections.deque([1, 2, 3]),
+        frozenset({1, 2}), bytearray(b'xy'), range(5), complex(1, 2), None, ..., 1.5e300, -2**70, 'üñí', (1, (2, [3]))]
+for o in objs:
+    for proto in (0, 1, 2, 3, 4, 5):
+        try: r = pickle.loads(pickle.dumps(o, protocol=proto))
+        except Exception as e: print('ERR', type(o).__name__, proto, type(e).__name__, str(e)[:80]); break
+        if type(o).__name__ in ('Slotted', 'WithState'):
+            ok = (r.a, r.b) == (o.a, o.b) if isinstance(o, Slotted) else (r.v, r.cache) == (1, {})
+        else: ok = r == o
+        if not ok: print('DIFF', type(o).__name__, proto, r)
+print('roundtrip done')
+a = Node('a'); b = Node('b'); a.next = b; b.next = a
+c = pickle.loads(pickle.dumps(a)); print(c.name, c.next.name, c.next.next is c)
+d = copy.deepcopy(a); print(d.next.next is d, d is not a)
+e = copy.copy(Pt(1, 2, [3])); print(e)
+buf = io.BytesIO(); pickle.dump({'x': [1, 2]}, buf); pickle.dump('second', buf); buf.seek(0)
+print(pickle.load(buf), pickle.load(buf))
+try: pickle.dumps(lambda x: x)
+except Exception as ex: print(type(ex).__name__)
+try: pickle.loads(b'garbage')
+except Exception as ex: print(type(ex).__name__)
+print(pickle.dumps(1), pickle.dumps('a', protocol=2), pickle.HIGHEST_PROTOCOL, pickle.DEFAULT_PROTOCOL)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"ERR Slotted 0 TypeError a class that defines __slots__ without defining __getstate__ cannot be pickled
+roundtrip done
+a b True
+True True
+Pt(x=1, y=2, tags=[3])
+{'x': [1, 2]} second
+PicklingError
+UnpicklingError
+b'\x80\x04K\x01.' b'\x80\x02X\x01\x00\x00\x00aq\x00.' 5 4
+"##
+    );
+}

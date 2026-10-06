@@ -451,6 +451,7 @@ class TextIOWrapper(TextIOBase):
         self.buffer = buffer
         self.encoding = encoding or 'utf-8'
         self.errors = errors or 'strict'
+        self._wenc = None
         self._newline = newline
         self._tbuf = ''
         self._tpos = 0
@@ -532,8 +533,29 @@ class TextIOWrapper(TextIOBase):
             pass
         elif self._newline == '\r' or self._newline == '\r\n':
             text = text.replace('\n', self._newline)
-        self.buffer.write(text.encode(self.encoding, self.errors))
+        self.buffer.write(text.encode(self._write_encoding(), self.errors))
         return len(text)
+
+    def _write_encoding(self):
+        # Os codecs com BOM (utf-8-sig, utf-16, utf-32) escrevem o BOM só no começo do arquivo.
+        name = self._wenc
+        if name is None:
+            name = self.encoding.lower().replace('_', '-')
+            bare = {'utf-8-sig': 'utf-8', 'utf8-sig': 'utf-8', 'utf-16': 'utf-16-le', 'utf16': 'utf-16-le',
+                    'u16': 'utf-16-le', 'utf-32': 'utf-32-le', 'utf32': 'utf-32-le', 'u32': 'utf-32-le'}.get(name)
+            if bare is None:
+                self._wenc = self.encoding
+                return self.encoding
+            try:
+                fresh = self.buffer.seekable() and self.buffer.tell() == 0
+            except (OSError, ValueError):
+                fresh = True
+            if not fresh:
+                self._wenc = bare
+                return bare
+            self._wenc = bare
+            return self.encoding
+        return name
 
     def _unload(self):
         # Descarta o texto lido e devolve o buffer binário à posição lógica do texto consumido.
@@ -612,6 +634,13 @@ class BytesIO(BufferedIOBase):
         return data
 
     read1 = read
+
+    def readinto(self, b):
+        data = self.read(len(b))
+        b[:len(data)] = data
+        return len(data)
+
+    readinto1 = readinto
 
     def readline(self, size=-1):
         self._check_closed()

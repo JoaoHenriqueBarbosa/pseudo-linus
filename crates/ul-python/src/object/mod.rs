@@ -761,7 +761,7 @@ fn module_prefix(c: &ClassObj) -> String {
 pub fn is_builtin_type(name: &str) -> bool {
     matches!(
         name,
-        "bool" | "int" | "float" | "str" | "list" | "tuple" | "dict" | "set" | "range" | "NoneType" | "function"
+        "type" | "object" | "ellipsis" | "NotImplementedType" | "bool" | "int" | "float" | "str" | "list" | "tuple" | "dict" | "set" | "range" | "NoneType" | "function"
             | "frozenset" | "bytes" | "bytearray" | "generator" | "module" | "slice" | "builtin_function_or_method"
             | "dict_keys" | "dict_values" | "dict_items" | "coroutine" | "async_generator" | "coroutine_wrapper"
     ) || EXC_CLASSES.iter().any(|(n, _)| *n == name)
