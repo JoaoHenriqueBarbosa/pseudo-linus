@@ -118,7 +118,12 @@ fn referent_addr(v: &Value) -> usize {
 
 fn make_ref(obj: &Value, callback: Option<Value>) -> PyResult<Value> {
     let target = match obj {
-        Value::Instance(i) => Target::Instance(Rc::downgrade(i)),
+        Value::Instance(i) => {
+            if !i.class.slots_allow("__weakref__") {
+                return Err(type_error(format!("cannot create weak reference to '{}' object", i.class.name)));
+            }
+            Target::Instance(Rc::downgrade(i))
+        }
         Value::Class(c) => Target::Class(Rc::downgrade(c)),
         Value::Function(f) => Target::Function(Rc::downgrade(f)),
         Value::Module(m) => Target::Module(Rc::downgrade(m)),

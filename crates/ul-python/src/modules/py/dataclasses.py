@@ -171,8 +171,36 @@ def _make_init(cls, all_fields, frozen):
         if has_post_init:
             self.__post_init__(*post)
 
+    __init__.__signature__ = _init_signature(positional, keyword_only)
     return __init__
 
+
+class _HasDefaultFactory:
+    def __repr__(self):
+        return '<factory>'
+
+
+_HAS_DEFAULT_FACTORY = _HasDefaultFactory()
+
+
+def _init_signature(positional, keyword_only):
+    import inspect
+    empty = inspect.Parameter.empty
+
+    def param(f, kind):
+        if f.default is not MISSING:
+            default = f.default
+        elif f.default_factory is not MISSING:
+            default = _HAS_DEFAULT_FACTORY
+        else:
+            default = empty
+        annotation = empty if f.type is None else f.type
+        return inspect.Parameter(f.name, kind, default=default, annotation=annotation)
+
+    params = [inspect.Parameter('self', 1)]
+    params += [param(f, 1) for f in positional]
+    params += [param(f, 3) for f in keyword_only]
+    return inspect.Signature(params, return_annotation=None)
 
 def _process_class(cls, init, repr, eq, order, unsafe_hash, frozen, match_args, kw_only, slots):
     fields_map = {}

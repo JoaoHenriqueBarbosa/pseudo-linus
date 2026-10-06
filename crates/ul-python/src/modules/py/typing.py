@@ -51,6 +51,13 @@ class _SpecialForm:
             return _GenericAlias(Union, tuple(flat), name='Union')
         if not isinstance(params, tuple):
             params = (params,)
+        if self._name == 'Annotated':
+            if len(params) < 2:
+                raise TypeError('Annotated[...] should be used with at least two arguments (a type and an annotation).')
+            alias = _GenericAlias(params[0], (params[0],), name='Annotated',
+                                  display=params)
+            alias.__metadata__ = tuple(params[1:])
+            return alias
         return _GenericAlias(self, params, name=self._name)
 
     def __or__(self, other):
@@ -195,14 +202,22 @@ AnyStr = None
 
 
 class TypeVar:
-    def __init__(self, name, *constraints, bound=None, covariant=False, contravariant=False, default=None):
+    def __init__(self, name, *constraints, bound=None, covariant=False, contravariant=False, default=None,
+                 infer_variance=False):
         self.__name__ = name
         self.__constraints__ = constraints
         self.__bound__ = bound
         self.__covariant__ = covariant
         self.__contravariant__ = contravariant
+        self.__infer_variance__ = infer_variance
+        self.__default__ = default
+
+    def has_default(self):
+        return self.__default__ is not None
 
     def __repr__(self):
+        if self.__infer_variance__:
+            return self.__name__
         if self.__covariant__:
             prefix = '+'
         elif self.__contravariant__:
@@ -226,6 +241,48 @@ class TypeVarTuple(TypeVar):
     pass
 
 
+class TypeAliasType:
+    """`type X[T] = ...`: o valor é calculado na primeira leitura de `__value__`."""
+
+    def __init__(self, name, value, *, type_params=()):
+        self.__name__ = name
+        self.__qualname__ = name
+        self.__type_params__ = tuple(type_params)
+        self.__module__ = _sys_modules_name()
+        self._thunk = value
+        self._computed = False
+        self._value = None
+
+    @property
+    def __value__(self):
+        if not self._computed:
+            self._value = self._thunk()
+            self._computed = True
+        return self._value
+
+    def __getitem__(self, params):
+        if not isinstance(params, tuple):
+            params = (params,)
+        return _GenericAlias(self, params)
+
+    def __or__(self, other):
+        return Union[self, other]
+
+    def __ror__(self, other):
+        return Union[other, self]
+
+    def __repr__(self):
+        return self.__name__
+
+
+def _sys_modules_name():
+    import sys
+    try:
+        return sys._getframe(2).f_globals.get('__name__', '__main__')
+    except Exception:
+        return '__main__'
+
+
 AnyStr = TypeVar('AnyStr', str, bytes)
 
 
@@ -239,11 +296,73 @@ class Generic:
         super().__init_subclass__(**kwargs)
 
 
-class Protocol(Generic):
-    pass
+_PROTOCOL_SKIP = frozenset({
+    '__module__', '__doc__', '__dict__', '__annotations__', '_is_protocol', '_is_runtime_protocol',
+    '__abstractmethods__', '__parameters__', '__orig_bases__', '__orig_class__', '__init__', '__weakref__',
+    '__qualname__', '__slots__', '__subclasshook__', '__class_getitem__', '__init_subclass__', '__protocol_attrs__',
+    '__non_callable_proto_members__', '__match_args__', '__static_attributes__', '__firstlineno__', '__new__',
+    '__abc_impl__', '_abc_impl', '__type_params__', '__hash__', '__qualname__',
+})
+
+
+def _protocol_attrs(cls):
+    attrs = set()
+    for base in cls.__mro__[:-1]:
+        if base.__name__ in ('Protocol', 'Generic') and base.__module__ == __name__:
+            continue
+        if not base.__dict__.get('_is_protocol', False):
+            continue
+        for name in list(base.__dict__) + list(base.__dict__.get('__annotations__', {})):
+            if name not in _PROTOCOL_SKIP and not name.startswith('_abc_'):
+                attrs.add(name)
+    return attrs
+
+
+class _ProtocolMeta(type):
+    def __instancecheck__(cls, instance):
+        if not cls.__dict__.get('_is_protocol', False):
+            return cls in type(instance).__mro__
+        if not cls.__dict__.get('_is_runtime_protocol', False):
+            raise TypeError('Instance and class checks can only be used with @runtime_checkable protocols')
+        if cls in type(instance).__mro__:
+            return True
+        for attr in _protocol_attrs(cls):
+            try:
+                value = getattr(instance, attr)
+            except AttributeError:
+                return False
+            if value is None and callable(getattr(cls, attr, None)):
+                return False
+        return True
+
+    def __subclasscheck__(cls, other):
+        if not cls.__dict__.get('_is_protocol', False):
+            return isinstance(other, type) and cls in other.__mro__
+        if not cls.__dict__.get('_is_runtime_protocol', False):
+            raise TypeError('Instance and class checks can only be used with @runtime_checkable protocols')
+        if not isinstance(other, type):
+            raise TypeError('issubclass() arg 1 must be a class')
+        if cls in other.__mro__:
+            return True
+        for attr in _protocol_attrs(cls):
+            if not any(attr in base.__dict__ or attr in base.__dict__.get('__annotations__', {})
+                       for base in other.__mro__):
+                return False
+        return True
+
+
+class Protocol(Generic, metaclass=_ProtocolMeta):
+    _is_protocol = True
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        cls._is_protocol = any(b is Protocol for b in cls.__bases__)
 
 
 def runtime_checkable(cls):
+    if not cls.__dict__.get('_is_protocol', False):
+        raise TypeError('@runtime_checkable can be only applied to protocol classes, got %r' % cls)
+    cls._is_runtime_protocol = True
     return cls
 
 
@@ -305,19 +424,43 @@ def get_args(tp):
     return getattr(tp, '__args__', ())
 
 
+def _eval_hint(value, globalns, localns):
+    if isinstance(value, str):
+        value = eval(value, globalns, localns)
+    if value is None:
+        return type(None)
+    return value
+
+
 def get_type_hints(obj, globalns=None, localns=None, include_extras=False):
+    import sys
     hints = {}
     if isinstance(obj, type):
         for base in reversed(obj.__mro__):
-            hints.update(base.__dict__.get('__annotations__', {}))
-    else:
-        hints.update(getattr(obj, '__annotations__', {}))
-    result = {}
-    for name, value in hints.items():
-        if value is None:
-            value = type(None)
-        result[name] = value
-    return result
+            ann = base.__dict__.get('__annotations__', {})
+            if globalns is None:
+                module = sys.modules.get(base.__module__)
+                base_globals = dict(getattr(module, '__dict__', {}))
+            else:
+                base_globals = globalns
+            base_locals = dict(vars(base)) if localns is None else localns
+            for name, value in ann.items():
+                hints[name] = _eval_hint(value, base_globals, base_locals)
+        return hints
+    wrapped = obj
+    while hasattr(wrapped, '__wrapped__'):
+        wrapped = wrapped.__wrapped__
+    if globalns is None:
+        globalns = getattr(wrapped, '__globals__', None)
+        if globalns is None:
+            module = sys.modules.get(getattr(obj, '__module__', None))
+            globalns = getattr(module, '__dict__', {})
+    names = dict(localns) if localns else {}
+    for param in getattr(obj, '__type_params__', ()):
+        names.setdefault(param.__name__, param)
+    for name, value in getattr(obj, '__annotations__', {}).items():
+        hints[name] = _eval_hint(value, globalns, names)
+    return hints
 
 
 def is_typeddict(tp):
@@ -350,11 +493,19 @@ class _TypedDictMeta(type):
     def __new__(mcs, name, bases, ns, total=True):
         cls = super().__new__(mcs, name, bases, ns)
         annotations = {}
+        required = set()
+        optional = set()
         for base in bases:
             annotations.update(getattr(base, '__annotations__', {}))
-        annotations.update(ns.get('__annotations__', {}))
+            required |= set(getattr(base, '__required_keys__', ()))
+            optional |= set(getattr(base, '__optional_keys__', ()))
+        own = ns.get('__annotations__', {})
+        annotations.update(own)
+        (required if total else optional).update(own)
         cls.__annotations__ = annotations
         cls.__total__ = total
+        cls.__required_keys__ = frozenset(required)
+        cls.__optional_keys__ = frozenset(optional)
         return cls
 
     def __call__(cls, *args, **kwargs):

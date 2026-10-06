@@ -6,7 +6,7 @@ import sys
 __all__ = ['isfunction', 'ismethod', 'isclass', 'ismodule', 'iscoroutine', 'iscoroutinefunction',
            'isgenerator', 'isgeneratorfunction', 'isasyncgen', 'isasyncgenfunction', 'isawaitable',
            'isbuiltin', 'isroutine', 'callable', 'getdoc', 'signature', 'Signature', 'Parameter',
-           'getmembers', 'currentframe', 'unwrap', 'cleandoc']
+           'getmembers', 'currentframe', 'unwrap', 'cleandoc', 'isabstract', 'formatannotation', 'BoundArguments']
 
 callable = callable
 
@@ -171,11 +171,28 @@ def cleandoc(doc):
     return '\n'.join(lines)
 
 
+def _finddoc(obj):
+    if isinstance(obj, type):
+        for base in obj.__mro__[1:]:
+            doc = base.__dict__.get('__doc__') if base is not object else None
+            if isinstance(doc, str):
+                return doc
+    return None
+
+
 def getdoc(obj):
     doc = getattr(obj, '__doc__', None)
     if not isinstance(doc, str):
+        doc = _finddoc(obj)
+    if not isinstance(doc, str):
         return None
     return cleandoc(doc)
+
+
+def isabstract(obj):
+    if not isinstance(obj, type):
+        return False
+    return bool(getattr(obj, '__abstractmethods__', None))
 
 
 def getmembers(obj, predicate=None):
@@ -216,18 +233,42 @@ class Parameter:
         self.default = default
         self.annotation = annotation
 
+    def replace(self, *, name=_empty, kind=_empty, default=_empty, annotation=_empty):
+        return Parameter(self.name if name is _empty else name, self.kind if kind is _empty else kind,
+                         default=self.default if default is _empty else default,
+                         annotation=self.annotation if annotation is _empty else annotation)
+
     def __str__(self):
         text = self.name
+        if self.annotation is not _empty:
+            text += ': ' + formatannotation(self.annotation)
+        if self.default is not _empty:
+            text += (' = ' if self.annotation is not _empty else '=') + repr(self.default)
         if self.kind == 2:
             text = '*' + text
         elif self.kind == 4:
             text = '**' + text
-        if self.default is not _empty:
-            text += '=' + repr(self.default)
         return text
 
     def __repr__(self):
         return '<Parameter "%s">' % self
+
+    def __eq__(self, other):
+        return (isinstance(other, Parameter) and self.name == other.name and self.kind == other.kind
+                and self.default == other.default and self.annotation == other.annotation)
+
+    def __hash__(self):
+        return hash((self.name, self.kind))
+
+
+def formatannotation(annotation, base_module=None):
+    if getattr(annotation, '__module__', None) == 'typing':
+        return repr(annotation).replace('typing.', '')
+    if isinstance(annotation, type):
+        if annotation.__module__ in ('builtins', base_module):
+            return annotation.__qualname__
+        return annotation.__module__ + '.' + annotation.__qualname__
+    return repr(annotation)
 
 
 class Signature:
@@ -248,19 +289,134 @@ class Signature:
             parts.append(str(p))
             if p.kind == 0 and (i + 1 == len(params) or params[i + 1].kind != 0):
                 parts.append('/')
-        return '(' + ', '.join(parts) + ')'
+        text = '(' + ', '.join(parts) + ')'
+        if self.return_annotation is not _empty:
+            text += ' -> ' + formatannotation(self.return_annotation)
+        return text
+
+    def replace(self, *, parameters=_empty, return_annotation=_empty):
+        return Signature(list(self.parameters.values()) if parameters is _empty else parameters,
+                         return_annotation=self.return_annotation if return_annotation is _empty
+                         else return_annotation)
+
+    def bind(self, *args, **kwargs):
+        return self._bind(args, kwargs, False)
+
+    def bind_partial(self, *args, **kwargs):
+        return self._bind(args, kwargs, True)
+
+    def _bind(self, args, kwargs, partial):
+        params = list(self.parameters.values())
+        arguments = {}
+        args = list(args)
+        kwargs = dict(kwargs)
+        var_kw = None
+        for p in params:
+            if p.kind == 2:
+                arguments[p.name] = tuple(args)
+                args = []
+            elif p.kind == 4:
+                var_kw = p
+            elif p.kind in (0, 1) and args:
+                arguments[p.name] = args.pop(0)
+            elif p.kind in (1, 3) and p.name in kwargs:
+                arguments[p.name] = kwargs.pop(p.name)
+            elif p.default is _empty and not partial:
+                raise TypeError('missing a required argument: %r' % p.name)
+        if args:
+            raise TypeError('too many positional arguments')
+        if kwargs:
+            if var_kw is None:
+                raise TypeError('got an unexpected keyword argument %r' % next(iter(kwargs)))
+            arguments[var_kw.name] = kwargs
+        return BoundArguments(self, arguments)
 
     def __repr__(self):
         return '<Signature %s>' % self
+
+    def __eq__(self, other):
+        return (isinstance(other, Signature) and list(self.parameters.values()) == list(other.parameters.values())
+                and self.return_annotation == other.return_annotation)
+
+    def __hash__(self):
+        return hash(tuple(self.parameters))
+
+
+class BoundArguments:
+    def __init__(self, signature, arguments):
+        self.signature = signature
+        self.arguments = arguments
+
+    @property
+    def args(self):
+        out = []
+        for p in self.signature.parameters.values():
+            if p.kind in (3, 4) or p.name not in self.arguments:
+                break
+            value = self.arguments[p.name]
+            if p.kind == 2:
+                out.extend(value)
+            else:
+                out.append(value)
+        return tuple(out)
+
+    @property
+    def kwargs(self):
+        out = {}
+        seen_kw = False
+        for p in self.signature.parameters.values():
+            if p.kind == 4 and p.name in self.arguments:
+                out.update(self.arguments[p.name])
+            elif p.kind == 3 or seen_kw:
+                if p.name in self.arguments:
+                    out[p.name] = self.arguments[p.name]
+            elif p.name not in self.arguments:
+                seen_kw = True
+        return out
+
+    def apply_defaults(self):
+        for p in self.signature.parameters.values():
+            if p.name not in self.arguments and p.default is not _empty:
+                self.arguments[p.name] = p.default
+            elif p.name not in self.arguments and p.kind == 2:
+                self.arguments[p.name] = ()
+            elif p.name not in self.arguments and p.kind == 4:
+                self.arguments[p.name] = {}
+
+    def __repr__(self):
+        return '<BoundArguments (%s)>' % ', '.join('%s=%r' % kv for kv in self.arguments.items())
+
+
+def _class_signature(cls):
+    for klass in cls.__mro__[:-1]:
+        for attr in ('__new__', '__init__'):
+            if attr in klass.__dict__:
+                sig = signature(klass.__dict__[attr])
+                params = list(sig.parameters.values())[1:]
+                return Signature(params, return_annotation=sig.return_annotation)
+    return Signature([])
 
 
 def signature(obj, *, follow_wrapped=True):
     if follow_wrapped:
         obj = unwrap(obj)
+    explicit = getattr(obj, '__signature__', None)
+    if isinstance(explicit, Signature):
+        return explicit
+    if isinstance(obj, type):
+        return _class_signature(obj)
+    if ismethod(obj):
+        sig = signature(obj.__func__, follow_wrapped=follow_wrapped)
+        return Signature(list(sig.parameters.values())[1:], return_annotation=sig.return_annotation)
     obj = _unwrap_method(obj)
     code = getattr(obj, '__code__', None)
     if code is None:
+        call = getattr(type(obj), '__call__', None)
+        if call is not None and hasattr(call, '__code__'):
+            sig = signature(call)
+            return Signature(list(sig.parameters.values())[1:], return_annotation=sig.return_annotation)
         raise ValueError('no signature found for %r' % (obj,))
+    annotations = getattr(obj, '__annotations__', None) or {}
     names = list(code.co_varnames[:code.co_argcount])
     defaults = tuple(getattr(obj, '__defaults__', None) or ())
     kwdefaults = getattr(obj, '__kwdefaults__', None) or {}
@@ -270,14 +426,16 @@ def signature(obj, *, follow_wrapped=True):
     for i, name in enumerate(names):
         kind = 0 if i < posonly else 1
         default = defaults[i - first_default] if i >= first_default else _empty
-        params.append(Parameter(name, kind, default=default))
+        params.append(Parameter(name, kind, default=default, annotation=annotations.get(name, _empty)))
     rest = list(code.co_varnames[code.co_argcount:])
     kwonly = rest[:code.co_kwonlyargcount]
     rest = rest[code.co_kwonlyargcount:]
     if code.co_flags_varargs:
-        params.append(Parameter(rest.pop(0), 2))
+        vname = rest.pop(0)
+        params.append(Parameter(vname, 2, annotation=annotations.get(vname, _empty)))
     for name in kwonly:
-        params.append(Parameter(name, 3, default=kwdefaults.get(name, _empty)))
+        params.append(Parameter(name, 3, default=kwdefaults.get(name, _empty),
+                                annotation=annotations.get(name, _empty)))
     if code.co_flags_varkw and rest:
-        params.append(Parameter(rest[0], 4))
-    return Signature(params)
+        params.append(Parameter(rest[0], 4, annotation=annotations.get(rest[0], _empty)))
+    return Signature(params, return_annotation=annotations.get('return', _empty))

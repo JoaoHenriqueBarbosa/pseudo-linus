@@ -108,7 +108,12 @@ fn clear(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 fn copy(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("copy", &kw)?;
     argc("copy", &args[1..], 0)?;
-    let c = this(&args)?.borrow().clone();
+    let s = this(&args)?;
+    // `frozenset.copy()` devolve o próprio objeto.
+    if s.borrow().is_frozen() {
+        return Ok(args[0].clone());
+    }
+    let c = s.borrow().clone();
     Ok(Value::set(c))
 }
 
@@ -181,7 +186,8 @@ fn intersection_of(args: &[Value]) -> PyResult<Set> {
 
 fn intersection(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("intersection", &kw)?;
-    Ok(Value::set(intersection_of(&args)?))
+    let frozen = this(&args)?.borrow().is_frozen();
+    Ok(Value::set(intersection_of(&args)?.with_frozen(frozen)))
 }
 
 fn intersection_update(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -208,7 +214,8 @@ fn difference_of(args: &[Value]) -> PyResult<Set> {
 
 fn difference(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("difference", &kw)?;
-    Ok(Value::set(difference_of(&args)?))
+    let frozen = this(&args)?.borrow().is_frozen();
+    Ok(Value::set(difference_of(&args)?.with_frozen(frozen)))
 }
 
 fn difference_update(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -221,7 +228,9 @@ fn difference_update(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> 
 fn symmetric_difference(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("symmetric_difference", &kw)?;
     argc("symmetric_difference", &args[1..], 1)?;
-    let mine = snapshot(&this(&args)?);
+    let me = this(&args)?;
+    let frozen = me.borrow().is_frozen();
+    let mine = snapshot(&me);
     let mut out = to_set(&args[1])?;
     for k in mine {
         if out.contains(&k)? {
@@ -230,7 +239,7 @@ fn symmetric_difference(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Valu
             out.add(k)?;
         }
     }
-    Ok(Value::set(out))
+    Ok(Value::set(out.with_frozen(frozen)))
 }
 
 fn issubset(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -270,7 +279,31 @@ fn isdisjoint(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::Bool(true))
 }
 
+/// `set.__reduce__`/`__reduce_ex__`: `(tipo, ([itens],), None)`, o que `copy` e `pickle` reconstroem.
+fn reduce(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let s = this(&args)?;
+    let ty = if s.borrow().is_frozen() { "frozenset" } else { "set" };
+    let items = Value::list(snapshot(&s));
+    Ok(Value::tuple(vec![Value::Builtin(ty), Value::tuple(vec![items]), Value::None]))
+}
+
+/// Os métodos que o `frozenset` tem (os que não alteram o conjunto).
+pub const FROZEN_TABLE: &[(&str, NativeFnPtr)] = &[
+    ("__reduce__", reduce),
+    ("__reduce_ex__", reduce),
+    ("copy", copy),
+    ("union", union),
+    ("intersection", intersection),
+    ("difference", difference),
+    ("symmetric_difference", symmetric_difference),
+    ("issubset", issubset),
+    ("issuperset", issuperset),
+    ("isdisjoint", isdisjoint),
+];
+
 pub const TABLE: &[(&str, NativeFnPtr)] = &[
+    ("__reduce__", reduce),
+    ("__reduce_ex__", reduce),
     ("add", add),
     ("remove", remove),
     ("discard", discard),

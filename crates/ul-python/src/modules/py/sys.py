@@ -18,6 +18,7 @@ def exception():
     """A exceção em tratamento (o `sys.exc_info()[1]`), ou `None`."""
     return _sys.exc_info()[1]
 _getframe = _sys._getframe
+getrefcount = _sys.getrefcount
 getrecursionlimit = _sys.getrecursionlimit
 setrecursionlimit = _sys.setrecursionlimit
 

@@ -820,7 +820,9 @@ impl Vm {
                 return Ok(Value::tuple(cls.bases.iter().map(|b| Value::Class(b.clone())).collect()));
             }
             "__mro__" => {
-                return Ok(Value::tuple(cls.mro().into_iter().map(Value::Class).collect()));
+                let mut mro: Vec<Value> = cls.mro().into_iter().map(Value::Class).collect();
+                mro.push(Value::Builtin("object"));
+                return Ok(Value::tuple(mro));
             }
             "__dict__" => {
                 let mut d = crate::object::Dict::new();

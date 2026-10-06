@@ -28,6 +28,7 @@ fn table(recv: &Value) -> Option<&'static [(&'static str, NativeFnPtr)]> {
         Value::Str(_) => strm::TABLE,
         Value::List(_) => listm::TABLE,
         Value::Dict(_) => dictm::TABLE,
+        Value::Set(s) if s.borrow().is_frozen() => setm::FROZEN_TABLE,
         Value::Set(_) => setm::TABLE,
         Value::Tuple(_) => tuplem::TABLE,
         Value::Bytes(_) => bytesm::TABLE,

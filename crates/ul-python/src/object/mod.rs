@@ -768,6 +768,10 @@ impl Value {
         Value::Set(Rc::new(RefCell::new(s)))
     }
 
+    pub fn frozenset(s: Set) -> Value {
+        Value::set(s.with_frozen(true))
+    }
+
     /// `type(v).__name__`.
     pub fn type_name(&self) -> &'static str {
         match self {
@@ -781,7 +785,7 @@ impl Value {
             Value::List(_) => "list",
             Value::Tuple(_) => "tuple",
             Value::Dict(_) => "dict",
-            Value::Set(_) => "set",
+            Value::Set(s) => if s.borrow().is_frozen() { "frozenset" } else { "set" },
             Value::Range(_) => "range",
             Value::Builtin(name) if is_builtin_type(name) => "type",
             Value::NativeFn(n) if is_builtin_type(n.name) => "type",
@@ -1156,6 +1160,7 @@ pub fn hash(v: &Value) -> Result<i64, ObjError> {
         },
         Value::BoundFn(b) => Ok((Rc::as_ptr(b) as usize >> 4) as i64),
         Value::Slice(s) => Ok((Rc::as_ptr(s) as usize >> 4) as i64),
+        Value::Set(s) if s.borrow().is_frozen() => Ok(s.borrow().frozen_hash()),
         Value::List(_) | Value::Dict(_) | Value::Set(_) | Value::ByteArray(_) => {
             Err(ObjError::TypeError(format!("unhashable type: '{}'", v.type_name())))
         }

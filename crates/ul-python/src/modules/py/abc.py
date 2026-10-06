@@ -32,6 +32,12 @@ class ABCMeta(type):
         cls = super().__new__(mcs, name, bases, ns, **kwargs)
         cls._abc_registry_ = []
         cls._abc_subclasses_ = []
+        abstracts = {n for n, v in ns.items() if getattr(v, '__isabstractmethod__', False)}
+        for base in bases:
+            for n in getattr(base, '__abstractmethods__', ()):
+                if getattr(getattr(cls, n, None), '__isabstractmethod__', False):
+                    abstracts.add(n)
+        cls.__abstractmethods__ = frozenset(abstracts)
         for base in bases:
             subs = getattr(base, '_abc_subclasses_', None)
             if subs is not None:
@@ -66,7 +72,9 @@ class ABCMeta(type):
 
 
 class ABC(metaclass=ABCMeta):
-    """Classe base para classes abstratas (`class Foo(ABC)`)."""
+    """Helper class that provides a standard way to create an ABC using
+    inheritance.
+    """
     __abstract_base__ = True
 
 

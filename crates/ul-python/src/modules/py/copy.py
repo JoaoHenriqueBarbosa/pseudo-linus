@@ -41,6 +41,8 @@ def copy(x):
         return x.copy()
     if cls is set:
         return x.copy()
+    if cls is frozenset:
+        return x
     if cls is tuple:
         return x
     hook = getattr(cls, '__copy__', None)
@@ -99,6 +101,10 @@ def deepcopy(x, memo=None):
         return y
     if cls is tuple:
         y = tuple(deepcopy(item, memo) for item in x)
+        memo[key] = y
+        return y
+    if cls is frozenset:
+        y = frozenset(deepcopy(item, memo) for item in x)
         memo[key] = y
         return y
     if isinstance(x, tuple):

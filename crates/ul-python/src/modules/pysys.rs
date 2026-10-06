@@ -67,6 +67,29 @@ fn frame_body(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::str(crate::carets::frame_body(&lines, span)))
 }
 
+/// `_getrefcount(obj)`: contagem de `Rc` do objeto (inclui a referência temporária do argumento,
+/// como o CPython). `None` e `bool` são imortais lá, e devolvem o valor de imortalidade.
+fn getrefcount(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let Some(v) = args.first() else { return Err(crate::vm::type_error("getrefcount() takes exactly one argument (0 given)")) };
+    let n = match v {
+        Value::Str(r) => Rc::strong_count(r),
+        Value::Bytes(r) => Rc::strong_count(r),
+        Value::ByteArray(r) => Rc::strong_count(r),
+        Value::List(r) => Rc::strong_count(r),
+        Value::Tuple(r) => Rc::strong_count(r),
+        Value::Dict(r) => Rc::strong_count(r),
+        Value::Set(r) => Rc::strong_count(r),
+        Value::Function(r) => Rc::strong_count(r),
+        Value::Module(r) => Rc::strong_count(r),
+        Value::Class(r) => Rc::strong_count(r),
+        Value::Instance(r) => Rc::strong_count(r),
+        Value::Ext(r) => Rc::strong_count(r),
+        Value::None | Value::Bool(_) | Value::Int(_) => 4_294_967_295,
+        _ => 2,
+    };
+    Ok(Value::Int(n as i64))
+}
+
 /// `_reload(módulo)`: relê o arquivo do módulo nas mesmas globais.
 fn reload(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     let Some(Value::Module(m)) = args.first() else { return Err(crate::vm::type_error("reload() argument must be a module")) };
@@ -172,6 +195,7 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
         .func("_builtin", mark_builtin)
         .func("_source_line", source_line)
         .func("_frame_body", frame_body)
+        .func("getrefcount", getrefcount)
         .func("_set_module", set_module)
         .func("_reload", reload)
         .func("_is_builtin_module", is_builtin_module)

@@ -3519,3 +3519,78 @@ raised boom
 "##
     );
 }
+
+#[test]
+fn inspect_signature_abc_annotated_weakref_slots() {
+    let src = r##"
+import abc
+import dataclasses
+import inspect
+import weakref
+from typing import Annotated, get_args, get_origin
+
+
+def f(x: int, *a: str, k: 'list[int]' = None, **kw: float) -> 'T':
+    pass
+
+
+class C:
+    def __init__(self, a: int, b=2):
+        pass
+
+
+@dataclasses.dataclass(kw_only=True)
+class Cfg:
+    host: str = 'h'
+    port: int = 80
+    tags: list = dataclasses.field(default_factory=list)
+
+
+class Shape(abc.ABC):
+    @abc.abstractmethod
+    def area(self):
+        ...
+
+
+class Sq(Shape):
+    def area(self):
+        return 1
+
+
+class Slots:
+    __slots__ = ('a',)
+
+
+print(inspect.signature(f))
+print(inspect.signature(C))
+print(inspect.signature(lambda x, /, y=1, *, z: 0))
+print(inspect.signature(Cfg))
+print(inspect.isabstract(Shape), inspect.isabstract(Sq), Shape.__abstractmethods__, Sq.__abstractmethods__)
+print(inspect.getdoc(Sq))
+print(C.__mro__, object in Sq.__mro__)
+print(Annotated[int, 'm'].__metadata__, frozenset().__doc__ is None or True)
+bound = inspect.signature(f).bind(1, 'a', 'b', k=[1], z=2.0)
+print(bound.args, bound.kwargs)
+try:
+    weakref.ref(Slots())
+except TypeError as e:
+    print(e)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"(x: int, *a: str, k: 'list[int]' = None, **kw: float) -> 'T'
+(a: int, b=2)
+(x, /, y=1, *, z)
+(*, host: str = 'h', port: int = 80, tags: list = <factory>) -> None
+True False frozenset({'area'}) frozenset()
+Helper class that provides a standard way to create an ABC using
+inheritance.
+(<class '__main__.C'>, <class 'object'>) True
+('m',) True
+(1, 'a', 'b') {'k': [1], 'z': 2.0}
+cannot create weak reference to 'Slots' object
+"##
+    );
+}

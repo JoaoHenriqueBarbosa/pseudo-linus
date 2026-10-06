@@ -74,6 +74,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("_thread", include_str!("py/_thread.py")),
     ("colorsys", include_str!("py/colorsys.py")),
     ("keyword", include_str!("py/keyword.py")),
+    ("dis", include_str!("py/dis.py")),
     ("graphlib", include_str!("py/graphlib.py")),
     ("reprlib", include_str!("py/reprlib.py")),
     ("getopt", include_str!("py/getopt.py")),

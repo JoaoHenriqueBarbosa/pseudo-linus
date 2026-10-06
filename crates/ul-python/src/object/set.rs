@@ -26,6 +26,8 @@ pub struct Set {
     fill: usize,
     /// Entradas ativas.
     used: usize,
+    /// `frozenset`: imutável e com hash.
+    frozen: bool,
 }
 
 impl Default for Set {
@@ -36,7 +38,7 @@ impl Default for Set {
 
 impl Set {
     pub fn new() -> Set {
-        Set { table: vec![Slot::Empty; MIN_SIZE], fill: 0, used: 0 }
+        Set { table: vec![Slot::Empty; MIN_SIZE], fill: 0, used: 0, frozen: false }
     }
 
     pub fn len(&self) -> usize {
@@ -45,6 +47,38 @@ impl Set {
 
     pub fn is_empty(&self) -> bool {
         self.used == 0
+    }
+
+    pub fn is_frozen(&self) -> bool {
+        self.frozen
+    }
+
+    /// O mesmo conteúdo como `frozenset` (ou como `set`, com `false`).
+    pub fn with_frozen(mut self, frozen: bool) -> Set {
+        self.frozen = frozen;
+        self
+    }
+
+    /// `frozenset_hash`: combina os hashes dos elementos sem depender da ordem (`Objects/setobject.c`).
+    pub fn frozen_hash(&self) -> i64 {
+        fn shuffle(h: u64) -> u64 {
+            ((h ^ 89_869_747) ^ (h << 16)).wrapping_mul(3_644_798_167)
+        }
+        let mut acc: u64 = 0;
+        for slot in &self.table {
+            if let Slot::Active(h, _) = slot {
+                acc ^= shuffle(*h as u64);
+            }
+        }
+        acc ^= ((self.used as u64) + 1).wrapping_mul(1_927_868_237);
+        acc ^= (acc >> 11) ^ (acc >> 25);
+        acc = acc.wrapping_mul(69_069).wrapping_add(907_133_923);
+        let h = acc as i64;
+        if h == -1 {
+            590_923_713
+        } else {
+            h
+        }
     }
 
     fn mask(&self) -> usize {
@@ -71,6 +105,26 @@ impl Set {
         }
     }
 
+    /// A primeira posição `Dummy` da sequência de sondagem de `h` até a posição vazia `end`, se houver.
+    fn first_dummy(&self, h: i64, end: usize) -> Option<usize> {
+        let mask = self.mask();
+        let mut perturb = h as u64 as usize;
+        let mut i = h as u64 as usize & mask;
+        loop {
+            let probes = if i + LINEAR_PROBES <= mask { LINEAR_PROBES } else { 0 };
+            for j in i..=i + probes {
+                if j == end {
+                    return None;
+                }
+                if matches!(self.table[j], Slot::Dummy) {
+                    return Some(j);
+                }
+            }
+            perturb >>= PERTURB_SHIFT;
+            i = (i.wrapping_mul(5).wrapping_add(1).wrapping_add(perturb)) & mask;
+        }
+    }
+
     pub fn contains(&self, key: &Value) -> Result<bool, ObjError> {
         let h = hash(key)?;
         Ok(self.probe(h, key).is_ok())
@@ -80,6 +134,12 @@ impl Set {
     pub fn add(&mut self, key: Value) -> Result<(), ObjError> {
         let h = hash(&key)?;
         let Err(slot) = self.probe(h, &key) else { return Ok(()) };
+        // `set_add_entry`: a primeira posição removida da sequência de sondagem é reaproveitada.
+        if let Some(free) = self.first_dummy(h, slot) {
+            self.table[free] = Slot::Active(h, key);
+            self.used += 1;
+            return Ok(());
+        }
         self.table[slot] = Slot::Active(h, key);
         self.fill += 1;
         self.used += 1;
@@ -140,15 +200,21 @@ impl Set {
     }
 }
 
-/// `set_repr`: `set()` vazio, `set(...)` na recursão, `{a, b}` no resto.
+/// `set_repr`: `set()` vazio, `set(...)` na recursão, `{a, b}` no resto (`frozenset({a, b})` se congelado).
 pub(super) fn set_repr(s: &Set, id: usize, out: &mut String, stack: &mut ReprStack) {
+    let name = if s.frozen { "frozenset" } else { "set" };
     if s.is_empty() {
-        out.push_str("set()");
+        out.push_str(name);
+        out.push_str("()");
         return;
     }
     if !stack.enter(id) {
-        out.push_str("set(...)");
+        out.push_str(name);
+        out.push_str("(...)");
         return;
+    }
+    if s.frozen {
+        out.push_str("frozenset(");
     }
     out.push('{');
     for (i, item) in s.iter().enumerate() {
@@ -158,6 +224,9 @@ pub(super) fn set_repr(s: &Set, id: usize, out: &mut String, stack: &mut ReprSta
         repr_into(item, out, stack);
     }
     out.push('}');
+    if s.frozen {
+        out.push(')');
+    }
     stack.leave(id);
 }
 

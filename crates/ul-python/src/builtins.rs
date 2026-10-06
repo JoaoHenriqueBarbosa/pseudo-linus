@@ -178,8 +178,8 @@ fn instance_of(v: &Value, cname: &str) -> bool {
         "tuple" => matches!(v, Value::Tuple(_)),
         "range" => matches!(v, Value::Range(_)),
         "slice" => matches!(v, Value::Slice(_)),
-        // `frozenset` e `bytearray` ainda são representados por `set` e `bytes`.
-        "set" | "frozenset" => matches!(v, Value::Set(_)),
+        "set" => matches!(v, Value::Set(s) if !s.borrow().is_frozen()),
+        "frozenset" => matches!(v, Value::Set(s) if s.borrow().is_frozen()),
         "bytes" => matches!(v, Value::Bytes(_)),
         "bytearray" => matches!(v, Value::ByteArray(_)),
         other if PSEUDO_TYPES.contains(&other) => v.type_name() == other,
@@ -1165,7 +1165,7 @@ fn make_set(fname: &str, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
             s.add(x)?;
         }
     }
-    Ok(Value::set(s))
+    Ok(if fname == "frozenset" { Value::frozenset(s) } else { Value::set(s) })
 }
 
 fn b_set(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {

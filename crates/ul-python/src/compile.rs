@@ -824,6 +824,13 @@ impl Compiler {
 
     fn stmt(&mut self, stmt: &Stmt) -> Result<(), CompileError> {
         self.at(&stmt.pos);
+        if let Some(g) = crate::pep695::desugar(stmt) {
+            // PEP 695: o escopo sintético roda na hora e o resultado entra no nome original.
+            self.make_function(&g.scope_name, &crate::pep695::no_args(), FnBody::Stmts(&g.body), stmt.pos.lineno, false, None)?;
+            self.emit(Op::Call { argc: 0, kwnames: None });
+            self.emit_store(&g.target);
+            return Ok(());
+        }
         match &stmt.kind {
             S::Expr { value } => {
                 self.expr(value)?;
@@ -1082,7 +1089,7 @@ impl Compiler {
                     }
                 }
             }
-            S::TypeAlias { .. } => return Err(self.unsupported("type aliases")),
+            S::TypeAlias { .. } => {}
             S::Nonlocal { .. } => {}
             S::AsyncFor { target, iter, body, orelse, .. } => {
                 if !self.code.is_async {

@@ -2494,7 +2494,9 @@ impl Vm {
                     return Ok(v);
                 }
             }
-            Value::Builtin("object") if !matches!(name, "__name__" | "__qualname__" | "__mro__" | "__bases__") => {
+            Value::Builtin("object")
+                if !matches!(name, "__name__" | "__qualname__" | "__mro__" | "__bases__" | "__module__") =>
+            {
                 if let Some(v) = crate::typeattrs::object_attr(name) {
                     return Ok(v);
                 }
@@ -2731,7 +2733,7 @@ impl Vm {
                 })
             }
             Value::Str(_) | Value::Int(_) | Value::Big(_) | Value::Bool(_) | Value::Float(_) | Value::None
-                | Value::Tuple(_) | Value::List(_) | Value::Dict(_) | Value::Bytes(_)
+                | Value::Tuple(_) | Value::List(_) | Value::Dict(_) | Value::Bytes(_) | Value::Set(_)
                 if name == "__doc__" =>
             {
                 Ok(Value::None)
@@ -4022,6 +4024,9 @@ fn binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyResult<Value> 
 fn set_binary(op: Operator, x: &Rc<RefCell<Set>>, y: &Rc<RefCell<Set>>, inplace: bool) -> PyResult<Value> {
     let xs: Vec<Value> = x.borrow().iter().cloned().collect();
     let ys: Vec<Value> = y.borrow().iter().cloned().collect();
+    // O resultado tem o tipo do operando da esquerda; `frozenset |= x` não existe, o nome é religado.
+    let frozen = x.borrow().is_frozen();
+    let inplace = inplace && !frozen;
     let mut out = Set::new();
     match op {
         Operator::BitOr => {
@@ -4046,27 +4051,24 @@ fn set_binary(op: Operator, x: &Rc<RefCell<Set>>, y: &Rc<RefCell<Set>>, inplace:
             }
         }
         _ => {
-            {
-                let yb = y.borrow();
-                for v in &xs {
-                    if !yb.contains(v)? {
-                        out.add(v.clone())?;
-                    }
+            // `set_symmetric_difference`: cópia do da direita, alternando cada item do da esquerda; o `^=`
+            // (`set_symmetric_difference_update`) altera o da esquerda com os itens do da direita.
+            let (mut base, items) = if inplace { (x.borrow().clone(), &ys) } else { (y.borrow().clone(), &xs) };
+            for v in items {
+                if base.contains(v)? {
+                    base.discard(v)?;
+                } else {
+                    base.add(v.clone())?;
                 }
             }
-            let xb = x.borrow();
-            for v in &ys {
-                if !xb.contains(v)? {
-                    out.add(v.clone())?;
-                }
-            }
+            out = base;
         }
     }
     if inplace {
         *x.borrow_mut() = out;
         return Ok(Value::Set(x.clone()));
     }
-    Ok(Value::Set(Rc::new(RefCell::new(out))))
+    Ok(Value::set(out.with_frozen(frozen)))
 }
 
 fn is_sequence(v: &Value) -> bool {
@@ -4584,7 +4586,25 @@ fn order(op: CmpOp, a: &Value, b: &Value) -> PyResult<bool> {
             seq_order(op, &x, &y)
         }
         (Value::Tuple(x), Value::Tuple(y)) => seq_order(op, x, y),
-        (Value::Set(_), Value::Set(_)) => Err(exc("NotImplementedError", "set ordering is not supported yet")),
+        (Value::Set(x), Value::Set(y)) => {
+            // `<=` é subconjunto, `<` subconjunto próprio; `>=` e `>` os inversos.
+            let (x, y) = (x.borrow(), y.borrow());
+            let (small, big, strict) = match op {
+                CmpOp::Lt => (&*x, &*y, true),
+                CmpOp::LtE => (&*x, &*y, false),
+                CmpOp::Gt => (&*y, &*x, true),
+                _ => (&*y, &*x, false),
+            };
+            if small.len() > big.len() || (strict && small.len() == big.len()) {
+                return Ok(false);
+            }
+            for k in small.iter() {
+                if !big.contains(k)? {
+                    return Ok(false);
+                }
+            }
+            Ok(true)
+        }
         _ => Err(type_error(format!(
             "'{}' not supported between instances of '{}' and '{}'",
             cmp_symbol(op),
