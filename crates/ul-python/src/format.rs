@@ -510,6 +510,46 @@ fn float_to_i64(x: f64) -> PyResult<i64> {
     Ok(t as i64)
 }
 
+/// `fmt % args` com `fmt` em `bytes`: `%b` vale como `%s`, e argumentos `bytes` entram como estão.
+pub fn bytes_percent_format(fmt: &[u8], args: &Value) -> PyResult<Vec<u8>> {
+    let latin = |b: &[u8]| -> String { b.iter().map(|&c| c as char).collect() };
+    let mut text: Vec<char> = latin(fmt).chars().collect();
+    let mut i = 0usize;
+    while i < text.len() {
+        if text[i] != '%' {
+            i += 1;
+            continue;
+        }
+        i += 1;
+        if i < text.len() && text[i] == '(' {
+            while i < text.len() && text[i] != ')' {
+                i += 1;
+            }
+            i += 1;
+        }
+        while i < text.len() && "#0- +.*123456789".contains(text[i]) {
+            i += 1;
+        }
+        if i < text.len() && text[i] == 'b' {
+            text[i] = 's';
+        }
+        i += 1;
+    }
+    let conv = |v: &Value| match v {
+        Value::Bytes(b) => Value::str(&latin(b)),
+        other => other.clone(),
+    };
+    let args = match args {
+        Value::Tuple(t) => Value::tuple(t.iter().map(conv).collect()),
+        other => conv(other),
+    };
+    let text: String = text.into_iter().collect();
+    let out = percent_format(&text, &args)?;
+    out.chars()
+        .map(|c| u8::try_from(c as u32).map_err(|_| exc("ValueError", "bytes formatting: character out of latin-1 range")))
+        .collect()
+}
+
 /// `fmt % args`.
 pub fn percent_format(fmt: &str, args: &Value) -> PyResult<String> {
     let c: Vec<char> = fmt.chars().collect();

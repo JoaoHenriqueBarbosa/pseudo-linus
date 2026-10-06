@@ -74,7 +74,6 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     let m = match name {
         "_sys" => pysys::build(vm),
         "csv" => builtin::csv(),
-        "json" => builtin::json(),
         "re" => re::build(vm),
         "math" => math::build(vm),
         "base64" => base64::build(vm),

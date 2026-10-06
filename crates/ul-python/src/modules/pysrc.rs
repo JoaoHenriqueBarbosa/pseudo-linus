@@ -68,6 +68,10 @@ const SOURCES: &[(&str, &str)] = &[
     ("traceback", include_str!("py/traceback.py")),
     ("warnings", include_str!("py/warnings.py")),
     ("subprocess", include_str!("py/subprocess.py")),
+    ("json", include_str!("py/json.py")),
+    ("json.decoder", include_str!("py/json_decoder.py")),
+    ("json.encoder", include_str!("py/json_encoder.py")),
+    ("json.scanner", include_str!("py/json_scanner.py")),
 ];
 
 /// Nomes de módulo que são apelidos de outro.
@@ -82,6 +86,10 @@ fn alias(name: &str) -> &str {
 pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     let real = alias(name);
     let (_, src) = SOURCES.iter().find(|(n, _)| *n == real)?;
+    // Como o CPython, `import pacote.sub` importa `pacote` antes de `sub`.
+    if let Some((parent, _)) = real.rsplit_once('.') {
+        crate::modules::import(vm, parent);
+    }
     if let Some(m) = vm.modules.borrow().get(real) {
         return Some(m.clone());
     }

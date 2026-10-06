@@ -1413,6 +1413,15 @@ impl Vm {
                     Err(m) => Err(exc("ValueError", m)),
                 }
             }
+            // `ValueError.__init__(self, ...)` chamado à mão por uma subclasse.
+            "BaseException.__init__" => {
+                if let Some(Value::Instance(inst)) = args.first() {
+                    if inst.class.builtin_base.is_some() {
+                        inst.dict.borrow_mut().insert("args".to_string(), Value::tuple(args[1..].to_vec()));
+                    }
+                }
+                Ok(Value::None)
+            }
             "json.loads" => {
                 let [v] = one_arg(name, args)?;
                 let Value::Str(s) = &v else {
@@ -1553,6 +1562,9 @@ impl Vm {
                 if let Some(v) = crate::typeattrs::object_attr(name) {
                     return Ok(v);
                 }
+            }
+            Value::Builtin(n) if name == "__init__" && EXC_CLASSES.iter().any(|(k, _)| k == n) => {
+                return Ok(Value::Builtin("BaseException.__init__"));
             }
             Value::Builtin(n) if name == "__name__" || name == "__qualname__" => return Ok(Value::str(*n)),
             Value::Builtin(_) if name == "__module__" => return Ok(Value::str("builtins")),
@@ -2613,6 +2625,7 @@ fn binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyResult<Value> 
             Err(type_error(format!("can't multiply sequence by non-int of type '{}'", other.type_name())))
         }
         (Operator::Mod, Value::Str(s), args) => crate::format::percent_format(s.as_str(), args).map(Value::str),
+        (Operator::Mod, Value::Bytes(b), args) => crate::format::bytes_percent_format(b, args).map(Value::bytes),
         (Operator::BitOr | Operator::BitAnd | Operator::Sub | Operator::BitXor, Value::Set(x), Value::Set(y)) => {
             set_binary(op, x, y, inplace)
         }

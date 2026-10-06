@@ -1084,3 +1084,81 @@ end a
 "#
     );
 }
+
+#[test]
+fn bytes_percent_re_bytes_and_json_package() {
+    let src = r##"
+import re, json, os
+from pathlib import Path
+
+print(b"len=%d name=%s hex=%02x %b %%" % (7, b"ab", 255, b"zz"))
+print(b"%(a)s-%(b)d" % {b"a": b"x", b"b": 3} if False else b"%5.1f|%-4d|" % (3.14159, 42))
+
+m = re.search(rb"(?P<k>\w+)=(\d+)", b"xx key=42 yy")
+print(m, m.group(0), m.group("k"), m[2], m.span(2), m.groups(), m.groupdict())
+print(re.findall(rb"\d+", b"a1b22c333"), re.findall(rb"(a)(\d)", b"a1 a2"))
+print(re.sub(rb"\s+", b" ", b"a  b\n\tc"), re.sub(rb"(\d)", rb"<\1>", b"a1b2"))
+print(re.sub(rb"\d", lambda mo: b"#" * int(mo.group()), b"a2b3"))
+print(re.split(rb",\s*", b"a, b,c"), re.escape(b"a.b*c"))
+print(re.compile(rb"ab+", re.I), re.compile(rb"ab+").flags, re.compile(b"x").pattern)
+print([x.group() for x in re.finditer(rb"stream\r?\n(.*?)\r?\nendstream", b"stream\nAB\nendstream stream\nCD\nendstream", re.S)])
+print(re.match(rb"\xe9", b"\xe9") is not None, re.match(rb"\w", b"\xe9"))
+for bad in ((rb"a", "a"), ("a", b"a")):
+    try:
+        re.search(*bad)
+    except TypeError as e:
+        print(e)
+
+d = {"b": [1, 2.5, {"z": None}], "a": "ação", "t": True}
+print(json.dumps(d, indent=2, sort_keys=True, ensure_ascii=False))
+print(json.dumps(d, separators=(",", ":"), sort_keys=True))
+print(json.dumps({"x": (1, 2)}, indent="\t"))
+print(json.loads('{"a": [1, 2, {"b": null}], "c": "\\u00e7"}', object_pairs_hook=list))
+print(json.loads(b'{"k": 1.5e2}'))
+try:
+    json.loads("{bad")
+except json.JSONDecodeError as e:
+    print(type(e).__name__, e.msg, e.pos, e.lineno, e.colno, e)
+print(json.dumps(Path("/a"), default=str), json.dumps(set(), default=sorted))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"b'len=7 name=ab hex=ff zz %'
+b'  3.1|42  |'
+<re.Match object; span=(3, 9), match=b'key=42'> b'key=42' b'key' b'42' (7, 9) (b'key', b'42') {'k': b'key'}
+[b'1', b'22', b'333'] [(b'a', b'1'), (b'a', b'2')]
+b'a b c' b'a<1>b<2>'
+b'a##b###'
+[b'a', b'b', b'c'] b'a\\.b\\*c'
+re.compile(b'ab+', re.IGNORECASE) 0 b'x'
+[b'stream\nAB\nendstream', b'stream\nCD\nendstream']
+True None
+cannot use a bytes pattern on a string-like object
+cannot use a string pattern on a bytes-like object
+{
+  "a": "ação",
+  "b": [
+    1,
+    2.5,
+    {
+      "z": null
+    }
+  ],
+  "t": true
+}
+{"a":"a\u00e7\u00e3o","b":[1,2.5,{"z":null}],"t":true}
+{
+	"x": [
+		1,
+		2
+	]
+}
+[('a', [1, 2, [('b', None)]]), ('c', 'ç')]
+{'k': 150.0}
+JSONDecodeError Expecting property name enclosed in double quotes 1 1 2 Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+"/a" []
+"##
+    );
+}

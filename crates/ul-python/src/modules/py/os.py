@@ -1,6 +1,7 @@
 """Módulo os do sandbox: interface POSIX sobre as chamadas `_os` (VFS do pseudo-linus)."""
 
 import _os
+from abc import ABCMeta as _ABCMeta
 import posixpath as path
 from posixpath import curdir, pardir, sep, pathsep, defpath, extsep, altsep, devnull
 
@@ -25,7 +26,7 @@ SEEK_END = 2
 error = OSError
 
 
-class PathLike:
+class PathLike(metaclass=_ABCMeta):
     """Classe base de objetos que representam caminhos (`__fspath__`)."""
 
     def __fspath__(self):

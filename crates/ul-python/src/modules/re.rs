@@ -18,7 +18,7 @@ thread_local! {
     /// Endereço do objeto para o `Pattern` (o `dyn ExtObject` não permite recuperar o tipo).
     static REGISTRY: RefCell<HashMap<usize, Weak<PatternObj>>> = RefCell::new(HashMap::new());
     /// Cache de `re.compile` por (padrão, flags), como o do CPython.
-    static CACHE: RefCell<HashMap<(String, u32), Rc<PatternObj>>> = RefCell::new(HashMap::new());
+    static CACHE: RefCell<HashMap<(String, u32, bool), Rc<PatternObj>>> = RefCell::new(HashMap::new());
 }
 
 const CACHE_MAX: usize = 512;
@@ -46,12 +46,37 @@ fn flags_of(v: &Option<Value>) -> PyResult<u32> {
     }
 }
 
-/// O texto a casar: `str` (em pontos de código). `bytes` ainda não é suportado.
-fn want_text(v: &Value) -> PyResult<(Value, Rc<Vec<char>>)> {
+/// O texto a casar: `str` (em pontos de código), ou `bytes` (um ponto de código por byte, latin-1).
+fn want_text_for(v: &Value, bytes_pattern: bool) -> PyResult<(Value, Rc<Vec<char>>)> {
     match v {
+        Value::Str(_) if bytes_pattern => Err(type_error("cannot use a bytes pattern on a string-like object")),
         Value::Str(s) => Ok((v.clone(), Rc::new(s.as_str().chars().collect()))),
-        Value::Bytes(_) => Err(type_error("cannot use a string pattern on a bytes-like object")),
+        Value::Bytes(_) if !bytes_pattern => Err(type_error("cannot use a string pattern on a bytes-like object")),
+        Value::Bytes(b) => Ok((v.clone(), Rc::new(b.iter().map(|&c| c as char).collect()))),
         other => Err(type_error(format!("expected string or bytes-like object, got '{}'", other.type_name()))),
+    }
+}
+
+#[cfg(test)]
+fn want_text(v: &Value) -> PyResult<(Value, Rc<Vec<char>>)> {
+    want_text_for(v, false)
+}
+
+/// Texto `str` (pontos de código latin-1) devolvido como `bytes`; `Tuple` recursivamente.
+fn rebyte(v: Value) -> Value {
+    match v {
+        Value::Str(s) => Value::bytes(s.as_str().chars().map(|c| c as u32 as u8).collect::<Vec<u8>>()),
+        Value::Tuple(t) => Value::tuple(t.iter().cloned().map(rebyte).collect()),
+        other => other,
+    }
+}
+
+/// Um `str` ou `bytes` saído do motor, no tipo do padrão.
+fn out_text(bytes: bool, s: String) -> Value {
+    if bytes {
+        rebyte(Value::str(s))
+    } else {
+        Value::str(s)
     }
 }
 
@@ -333,17 +358,26 @@ pub struct PatternObj {
     me: Weak<PatternObj>,
     source: Value,
     text: String,
+    /// Padrão em `bytes`: casa `bytes`, com classes ASCII, e devolve `bytes`.
+    bytes: bool,
     pub regex: Rc<Regex>,
 }
 
 /// Compila `pattern` (sem cache) e registra o objeto para `as_pattern`.
 pub fn compile_pattern(pattern: &str, flags: u32) -> PyResult<Rc<PatternObj>> {
+    compile_pattern_kind(pattern, flags, false)
+}
+
+/// Como [`compile_pattern`]; `bytes` indica um padrão `bytes` (texto em latin-1).
+fn compile_pattern_kind(pattern: &str, flags: u32, bytes: bool) -> PyResult<Rc<PatternObj>> {
     let chars: Vec<char> = pattern.chars().collect();
+    let flags = if bytes { flags | eng::A } else { flags };
     let regex = eng::compile(&chars, flags).map_err(|e| to_py(&e, &chars))?;
     let rc = Rc::new_cyclic(|w| PatternObj {
         me: w.clone(),
-        source: Value::str(pattern),
+        source: if bytes { rebyte(Value::str(pattern)) } else { Value::str(pattern) },
         text: pattern.to_string(),
+        bytes,
         regex: Rc::new(regex),
     });
     let addr = Rc::as_ptr(&rc) as *const () as usize;
@@ -376,12 +410,17 @@ fn get_pattern(v: &Value, flags: u32) -> PyResult<Rc<PatternObj>> {
         return Ok(p);
     }
     match v {
-        Value::Str(s) => {
-            let key = (s.as_str().to_string(), flags);
+        Value::Str(_) | Value::Bytes(_) => {
+            let (text, bytes) = match v {
+                Value::Str(s) => (s.as_str().to_string(), false),
+                Value::Bytes(b) => (b.iter().map(|&c| c as char).collect::<String>(), true),
+                _ => unreachable!(),
+            };
+            let key = (text, flags, bytes);
             if let Some(p) = CACHE.with(|c| c.borrow().get(&key).cloned()) {
                 return Ok(p);
             }
-            let p = compile_pattern(s.as_str(), flags)?;
+            let p = compile_pattern_kind(&key.0, flags, bytes)?;
             CACHE.with(|c| {
                 let mut c = c.borrow_mut();
                 if c.len() >= CACHE_MAX {
@@ -391,7 +430,6 @@ fn get_pattern(v: &Value, flags: u32) -> PyResult<Rc<PatternObj>> {
             });
             Ok(p)
         }
-        Value::Bytes(_) => Err(exc("NotImplementedError", "bytes patterns are not supported yet")),
         _ => Err(type_error("first argument must be string or compiled pattern")),
     }
 }
@@ -420,7 +458,7 @@ impl PatternObj {
         endpos: Option<&Value>,
         mode: Mode,
     ) -> PyResult<Value> {
-        let (sv, chars) = want_text(string)?;
+        let (sv, chars) = want_text_for(string, self.bytes)?;
         let p = clamp_arg(pos, 0, chars.len())?;
         let e = clamp_arg(endpos, chars.len() as i64, chars.len())?;
         match self.regex.exec(&chars, p, e, mode, false) {
@@ -430,14 +468,15 @@ impl PatternObj {
     }
 
     pub fn findall_value(&self, string: &Value, pos: Option<&Value>, endpos: Option<&Value>) -> PyResult<Value> {
-        let (_, chars) = want_text(string)?;
+        let (_, chars) = want_text_for(string, self.bytes)?;
         let p = clamp_arg(pos, 0, chars.len())?;
         let e = clamp_arg(endpos, chars.len() as i64, chars.len())?;
-        Ok(Value::list(findall_core(&self.regex, &chars, p, e)))
+        let items = findall_core(&self.regex, &chars, p, e);
+        Ok(Value::list(if self.bytes { items.into_iter().map(rebyte).collect() } else { items }))
     }
 
     pub fn finditer_value(&self, string: &Value, pos: Option<&Value>, endpos: Option<&Value>) -> PyResult<Value> {
-        let (sv, chars) = want_text(string)?;
+        let (sv, chars) = want_text_for(string, self.bytes)?;
         let p = clamp_arg(pos, 0, chars.len())?;
         let e = clamp_arg(endpos, chars.len() as i64, chars.len())?;
         Ok(Value::Ext(Rc::new(FinditerObj {
@@ -459,7 +498,7 @@ impl PatternObj {
         count: Option<&Value>,
         want_n: bool,
     ) -> PyResult<Value> {
-        let (sv, chars) = want_text(string)?;
+        let (sv, chars) = want_text_for(string, self.bytes)?;
         let count = match count {
             None | Some(Value::None) => 0,
             Some(x) => want_int(x)?,
@@ -476,8 +515,15 @@ impl PatternObj {
             None
         } else {
             match repl {
+                Value::Str(_) if self.bytes => {
+                    return Err(type_error("expected a bytes-like object, str found"));
+                }
                 Value::Str(s) => {
                     let t: Vec<char> = s.as_str().chars().collect();
+                    Some(parse_template(&t, &self.regex)?)
+                }
+                Value::Bytes(b) if self.bytes => {
+                    let t: Vec<char> = b.iter().map(|&c| c as char).collect();
                     Some(parse_template(&t, &self.regex)?)
                 }
                 other => {
@@ -497,29 +543,30 @@ impl PatternObj {
             None => {
                 let m = pat.new_match(&sv, &chars, caps.clone(), 0, chars.len());
                 match vm.call_value(repl, vec![m], Vec::new())? {
-                    Value::Str(s) => Ok(s.as_str().to_string()),
+                    Value::Str(s) if !pat.bytes => Ok(s.as_str().to_string()),
+                    Value::Bytes(b) if pat.bytes => Ok(b.iter().map(|&c| c as char).collect()),
                     other => Err(type_error(format!("expected str instance, {} found", other.type_name()))),
                 }
             }
         })?;
-        Ok(finish(Value::str(out), n))
+        Ok(finish(out_text(self.bytes, out), n))
     }
 
     pub fn split_value(&self, string: &Value, maxsplit: Option<&Value>) -> PyResult<Value> {
-        let (_, chars) = want_text(string)?;
+        let (_, chars) = want_text_for(string, self.bytes)?;
         let max = match maxsplit {
             None | Some(Value::None) => 0,
             Some(x) => want_int(x)?,
         };
         if max < 0 {
-            return Ok(Value::list(vec![Value::str(slice_string(&chars, 0, chars.len()))]));
+            return Ok(Value::list(vec![out_text(self.bytes, slice_string(&chars, 0, chars.len()))]));
         }
         let items = split_core(&self.regex, &chars, max as usize);
         Ok(Value::list(
             items
                 .into_iter()
                 .map(|o| match o {
-                    Some(s) => Value::str(s),
+                    Some(s) => out_text(self.bytes, s),
                     None => Value::None,
                 })
                 .collect(),
@@ -545,7 +592,7 @@ impl ExtObject for PatternObj {
 
     fn repr(&self) -> String {
         let shown: String = if self.text.chars().count() > 200 { self.text.chars().take(200).collect() } else { self.text.clone() };
-        let mut rest = self.regex.flags & !eng::U;
+        let mut rest = self.regex.flags & !eng::U & !(if self.bytes { eng::A } else { 0 });
         let mut parts: Vec<String> = Vec::new();
         for (bit, name) in PATTERN_FLAG_NAMES {
             if rest & *bit != 0 {
@@ -556,7 +603,7 @@ impl ExtObject for PatternObj {
         if rest != 0 {
             parts.push(format!("0x{rest:x}"));
         }
-        let r = repr(&Value::str(shown));
+        let r = repr(&if self.bytes { rebyte(Value::str(shown)) } else { Value::str(shown) });
         if parts.is_empty() {
             format!("re.compile({r})")
         } else {
@@ -571,7 +618,7 @@ impl ExtObject for PatternObj {
     fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
         match name {
             "pattern" => Some(Ok(self.source.clone())),
-            "flags" => Some(Ok(Value::Int(i64::from(self.regex.flags)))),
+            "flags" => Some(Ok(Value::Int(i64::from(if self.bytes { self.regex.flags & !eng::A } else { self.regex.flags })))),
             "groups" => Some(Ok(Value::Int(self.regex.ngroups as i64))),
             "groupindex" => {
                 let mut d = Dict::new();
@@ -669,7 +716,7 @@ struct MatchObj {
 impl MatchObj {
     fn group_value(&self, k: usize) -> Value {
         match self.caps.spans.get(k).copied().flatten() {
-            Some((a, b)) => Value::str(slice_string(&self.chars, a, b)),
+            Some((a, b)) => out_text(self.pattern.bytes, slice_string(&self.chars, a, b)),
             None => Value::None,
         }
     }
@@ -713,7 +760,7 @@ impl ExtObject for MatchObj {
 
     fn repr(&self) -> String {
         let (a, b) = self.caps.spans[0].unwrap_or((0, 0));
-        let text = repr(&Value::str(slice_string(&self.chars, a, b)));
+        let text = repr(&out_text(self.pattern.bytes, slice_string(&self.chars, a, b)));
         format!("<re.Match object; span=({a}, {b}), match={text}>")
     }
 
@@ -810,7 +857,8 @@ impl ExtObject for MatchObj {
                 no_kwargs("expand", &kw)?;
                 exactly("expand", &args, 1)?;
                 let t: Vec<char> = match &args[0] {
-                    Value::Str(s) => s.as_str().chars().collect(),
+                    Value::Str(s) if !self.pattern.bytes => s.as_str().chars().collect(),
+                    Value::Bytes(b) if self.pattern.bytes => b.iter().map(|&c| c as char).collect(),
                     other => {
                         return Err(type_error(format!(
                             "expected string or bytes-like object, got '{}'",
@@ -819,7 +867,7 @@ impl ExtObject for MatchObj {
                     }
                 };
                 let parts = parse_template(&t, &self.pattern.regex)?;
-                Ok(Value::str(expand_parts(&parts, &self.chars, &self.caps)))
+                Ok(out_text(self.pattern.bytes, expand_parts(&parts, &self.chars, &self.caps)))
             }
             _ => Err(exc("AttributeError", format!("'re.Match' object has no attribute '{name}'"))),
         }
@@ -894,6 +942,10 @@ fn f_escape(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let a = bind("escape", args, kw, &["pattern"], 1)?;
     match arg(&a, 0) {
         Value::Str(s) => Ok(Value::str(escape_str(s.as_str()))),
+        Value::Bytes(b) => {
+            let s: String = b.iter().map(|&c| c as char).collect();
+            Ok(rebyte(Value::str(escape_str(&s))))
+        }
         other => Err(type_error(format!("expected str instance, {} found", other.type_name()))),
     }
 }
