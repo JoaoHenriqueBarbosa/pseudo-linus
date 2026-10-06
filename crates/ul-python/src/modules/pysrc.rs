@@ -344,21 +344,21 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     let globals: Rc<RefCell<crate::object::VarMap>> = Rc::new(RefCell::new(Default::default()));
     {
         let mut g = globals.borrow_mut();
-        g.insert("__name__".to_string(), Value::str(real));
-        g.insert("__doc__".to_string(), Value::None);
+        g.insert("__name__".into(), Value::str(real));
+        g.insert("__doc__".into(), Value::None);
         let as_path = real.replace('.', "/");
         let file = if crate::modules::is_embedded_package(real) {
             format!("/usr/lib/python3.13/{as_path}/__init__.py")
         } else {
             format!("/usr/lib/python3.13/{as_path}.py")
         };
-        g.insert("__file__".to_string(), Value::str(file));
+        g.insert("__file__".into(), Value::str(file));
         // Pacote: `__package__` é ele mesmo e `__path__` aponta o diretório dele; módulo: o pacote pai.
         if crate::modules::is_embedded_package(real) {
-            g.insert("__package__".to_string(), Value::str(real));
-            g.insert("__path__".to_string(), Value::list(vec![Value::str(format!("/usr/lib/python3.13/{as_path}"))]));
+            g.insert("__package__".into(), Value::str(real));
+            g.insert("__path__".into(), Value::list(vec![Value::str(format!("/usr/lib/python3.13/{as_path}"))]));
         } else {
-            g.insert("__package__".to_string(), Value::str(real.rsplit_once('.').map_or("", |(p, _)| p)));
+            g.insert("__package__".into(), Value::str(real.rsplit_once('.').map_or("", |(p, _)| p)));
         }
     }
     vm.module_globals.borrow_mut().insert(module.name, globals.clone());
@@ -379,14 +379,14 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     }
     let mut attrs = module.attrs.borrow_mut();
     for (k, v) in globals.borrow().iter() {
-        attrs.insert(k.clone(), v.clone());
+        attrs.insert(k.to_string(), v.clone());
     }
     drop(attrs);
     // `import pacote.sub` deixa `sub` como atributo do módulo `pacote`.
     if let Some((parent, child)) = real.rsplit_once('.') {
         if let Some(p) = crate::modules::import(vm, parent) {
             if let Some(g) = vm.module_globals.borrow().get(p.name) {
-                g.borrow_mut().insert(child.to_string(), Value::Module(module.clone()));
+                g.borrow_mut().insert(child.into(), Value::Module(module.clone()));
             }
             p.attrs.borrow_mut().insert(child.to_string(), Value::Module(module.clone()));
         }

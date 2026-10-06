@@ -40,7 +40,7 @@ fn name_of(key: &Value) -> Option<String> {
 fn refresh(view: &mut View, extras: &BTreeMap<String, Value>) {
     let mut all: BTreeMap<String, Value> = extras.clone();
     for (k, v) in view.map.borrow().iter() {
-        all.insert(k.clone(), v.clone());
+        all.insert(k.to_string(), v.clone());
     }
     let mut d = view.dict.borrow_mut();
     let stale: Vec<String> = view.keys.iter().filter(|k| !all.contains_key(*k)).cloned().collect();
@@ -96,13 +96,13 @@ pub fn sync_pull() {
             for (k, v) in d.iter() {
                 let Some(name) = name_of(k) else { continue };
                 present.insert(name.clone());
-                let unchanged = matches!(map.get(&name), Some(old) if crate::object::is(old, v));
+                let unchanged = matches!(map.get(name.as_str()), Some(old) if crate::object::is(old, v));
                 if !unchanged {
-                    map.insert(name, v.clone());
+                    map.insert(Rc::from(name.as_str()), v.clone());
                 }
             }
             for gone in view.keys.iter().filter(|k| !present.contains(*k)) {
-                map.remove(gone);
+                map.remove(gone.as_str());
             }
             view.keys = present;
             view.generation = d.generation;

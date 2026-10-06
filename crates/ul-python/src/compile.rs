@@ -229,17 +229,17 @@ pub struct Code {
     /// Intervalo de fonte de cada instrução, paralelo a `ops` (os carets do traceback).
     pub spans: Vec<Span>,
     pub consts: Vec<Value>,
-    pub names: Vec<String>,
+    pub names: Vec<Rc<str>>,
     /// Nome da função (`<module>` no nível de módulo, vazio por `Default`).
     pub name: String,
     /// Nome qualificado (`A.m`, `f.<locals>.g`); vazio quando é igual a `name`.
     pub qualname: String,
     /// Parâmetros posicionais (os `posonly` primeiros são só-posicionais).
-    pub params: Vec<String>,
+    pub params: Vec<Rc<str>>,
     pub posonly: usize,
-    pub vararg: Option<String>,
-    pub kwonly: Vec<String>,
-    pub kwarg: Option<String>,
+    pub vararg: Option<Rc<str>>,
+    pub kwonly: Vec<Rc<str>>,
+    pub kwarg: Option<Rc<str>>,
     pub is_function: bool,
     /// Corpo de classe: o resultado é o espaço de nomes, não um valor devolvido.
     pub is_class: bool,
@@ -815,7 +815,7 @@ impl Compiler {
             return i;
         }
         let i = self.code.names.len() as u32;
-        self.code.names.push(name.to_string());
+        self.code.names.push(Rc::from(name));
         self.name_index.insert(name.to_string(), i);
         i
     }
@@ -1324,15 +1324,16 @@ impl Compiler {
         }
         let (locals, globals, nonlocals) = scope.locals();
         let qualname = format!("{}{}", self.qual_prefix, name);
+        let rcs = |v: &[String]| -> Vec<Rc<str>> { v.iter().map(|s| Rc::from(s.as_str())).collect() };
         let mut inner = Compiler::new(
             Code {
                 name: name.to_string(),
                 qualname: qualname.clone(),
-                params,
+                params: rcs(&params),
                 posonly,
-                vararg,
-                kwonly: kwonly.clone(),
-                kwarg,
+                vararg: vararg.as_deref().map(Rc::from),
+                kwonly: rcs(&kwonly),
+                kwarg: kwarg.as_deref().map(Rc::from),
                 is_function: true,
                 is_async,
                 first_line: line,
@@ -1818,7 +1819,7 @@ impl Compiler {
         }
         let (locals, globals, nonlocals) = scope.locals();
         let mut inner = Compiler::new(
-            Code { name: name.to_string(), qualname: format!("{}{}", self.qual_prefix, name), params: vec![".0".to_string()], is_function: true, ..Code::default() },
+            Code { name: name.to_string(), qualname: format!("{}{}", self.qual_prefix, name), params: vec![Rc::from(".0")], is_function: true, ..Code::default() },
             line,
         );
         inner.qual_prefix = format!("{}{}.<locals>.", self.qual_prefix, name);

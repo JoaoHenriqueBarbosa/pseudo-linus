@@ -84,7 +84,7 @@ impl ExtObject for NewFn {
         Ok(Value::Instance(Rc::new(crate::object::InstanceObj {
             class: c.clone(),
             view: Default::default(),
-            dict: std::cell::RefCell::new(indexmap::IndexMap::new()),
+            dict: std::cell::RefCell::new(Default::default()),
             payload: std::cell::RefCell::new(Some(payload)),
         })))
     }
@@ -284,7 +284,7 @@ fn object_new(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
         Some(Value::Class(c)) => Ok(Value::Instance(Rc::new(crate::object::InstanceObj {
             class: c.clone(),
             view: Default::default(),
-            dict: std::cell::RefCell::new(indexmap::IndexMap::new()),
+            dict: std::cell::RefCell::new(Default::default()),
             payload: std::cell::RefCell::new(None),
         }))),
         _ => Err(type_error("object.__new__(X): X is not a type object")),

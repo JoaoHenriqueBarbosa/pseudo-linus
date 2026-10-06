@@ -114,7 +114,7 @@ fn b_dir(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 pub(crate) fn dir_names(vm: &mut Vm, obj: Option<&Value>) -> Vec<String> {
     let mut names: Vec<String> = Vec::new();
     match obj {
-        None => names.extend(vm.globals.borrow().keys().cloned()),
+        None => names.extend(vm.globals.borrow().keys().map(|k| k.to_string())),
         Some(t @ (Value::Builtin(_) | Value::NativeFn(_))) if crate::builtins::class_name(t).is_some() => {
             names.extend(probe_type_attrs(vm, t).into_iter().map(|(n, _)| n));
         }
@@ -132,7 +132,7 @@ pub(crate) fn dir_names(vm: &mut Vm, obj: Option<&Value>) -> Vec<String> {
         Some(Value::Module(m)) => {
             names.extend(m.attrs.borrow().keys().cloned());
             if let Some(g) = vm.module_globals.borrow().get(m.name) {
-                names.extend(g.borrow().keys().cloned());
+                names.extend(g.borrow().keys().map(|k| k.to_string()));
             }
         }
         Some(Value::Ext(e)) => names.extend(e.methods().iter().map(|s| (*s).to_string())),
@@ -258,10 +258,10 @@ fn write_back(target: &Value, map: &crate::object::VarMap, was: &[String]) -> Py
             _ => fresh.set(k, v)?,
         }
     }
-    let mut added: Vec<&String> = map.keys().filter(|k| !k.starts_with("__builtins__") && !fresh.contains(&Value::str((*k).clone())).unwrap_or(false)).collect();
+    let mut added: Vec<&Rc<str>> = map.keys().filter(|k| !k.starts_with("__builtins__") && !fresh.contains(&Value::str(&***k)).unwrap_or(false)).collect();
     added.sort();
     for k in added {
-        fresh.set(Value::str(k.clone()), map[k].clone())?;
+        fresh.set(Value::str(&**k), map[k].clone())?;
     }
     *d.borrow_mut() = fresh;
     Ok(())
@@ -315,7 +315,7 @@ fn run_ns(vm: &mut Vm, src: &str, globals: Option<Value>, locals: Option<Value>,
         if let Value::Str(name) = &k {
             was.push(name.as_str().to_string());
             if live.is_none() {
-                map.borrow_mut().insert(name.as_str().to_string(), v);
+                map.borrow_mut().insert(name.as_str().into(), v);
             }
         }
     }
@@ -328,7 +328,7 @@ fn run_ns(vm: &mut Vm, src: &str, globals: Option<Value>, locals: Option<Value>,
         for (k, v) in litems {
             if let Value::Str(name) = &k {
                 lwas.push(name.as_str().to_string());
-                map.borrow_mut().insert(name.as_str().to_string(), v);
+                map.borrow_mut().insert(name.as_str().into(), v);
             }
         }
     }
@@ -349,7 +349,8 @@ fn run_ns(vm: &mut Vm, src: &str, globals: Option<Value>, locals: Option<Value>,
                 .collect();
             let mut mine = snapshot.clone();
             mine.retain(|k, v| {
-                lwas.contains(k) || !initial.iter().any(|(n, old)| n == k && crate::object::is(old, v)) && k != "__eval_value__"
+                lwas.iter().any(|w| **w == **k)
+                    || !initial.iter().any(|(n, old)| **n == **k && crate::object::is(old, v)) && &**k != "__eval_value__"
             });
             write_back(l, &mine, &lwas)?
         }

@@ -197,7 +197,7 @@ fn make_namespace(vm: &mut Vm, name: &str, dirs: Vec<String>) -> Rc<ModuleObj> {
     }
     let module = Rc::new(ModuleObj { name: key, attrs: RefCell::new(BTreeMap::new()) });
     for (k, v) in globals.borrow().iter() {
-        module.attrs.borrow_mut().insert(k.clone(), v.clone());
+        module.attrs.borrow_mut().insert(k.to_string(), v.clone());
     }
     vm.modules.borrow_mut().insert(name.to_string(), module.clone());
     vm.module_globals.borrow_mut().insert(key, globals);
@@ -206,7 +206,7 @@ fn make_namespace(vm: &mut Vm, name: &str, dirs: Vec<String>) -> Rc<ModuleObj> {
         if let Some(p) = parent_module {
             let v = Value::Module(module.clone());
             if let Some(g) = vm.module_globals.borrow().get(p.name) {
-                g.borrow_mut().insert(child.to_string(), v.clone());
+                g.borrow_mut().insert(child.into(), v.clone());
             }
             p.attrs.borrow_mut().insert(child.to_string(), v);
         }
@@ -267,7 +267,7 @@ pub fn exec_file(vm: &mut Vm, name: &str, file: &str, package_dir: Option<&str>)
         if let Some(p) = parent_module {
             let v = Value::Module(module.clone());
             if let Some(g) = vm.module_globals.borrow().get(p.name) {
-                g.borrow_mut().insert(child.to_string(), v.clone());
+                g.borrow_mut().insert(child.into(), v.clone());
             }
             p.attrs.borrow_mut().insert(child.to_string(), v);
         }

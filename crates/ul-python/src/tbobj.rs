@@ -201,13 +201,13 @@ impl ExtObject for CodeObject {
             "co_firstlineno" => Value::Int(self.code.as_ref().map_or(1, |c| c.first_line.max(1)) as i64),
             _ => {
                 let c = self.code.as_ref()?;
-                let strs = |v: Vec<String>| Value::tuple(v.into_iter().map(Value::str).collect());
+                let strs = |v: Vec<Rc<str>>| Value::tuple(v.into_iter().map(|s| Value::str(&*s)).collect());
                 match name {
                     "co_argcount" => Value::Int(c.params.len() as i64),
                     "co_posonlyargcount" => Value::Int(c.posonly as i64),
                     "co_kwonlyargcount" => Value::Int(c.kwonly.len() as i64),
                     "co_varnames" => {
-                        let mut v: Vec<String> = c.params.clone();
+                        let mut v: Vec<Rc<str>> = c.params.clone();
                         v.extend(c.kwonly.iter().cloned());
                         v.extend(c.vararg.iter().cloned());
                         v.extend(c.kwarg.iter().cloned());
@@ -218,9 +218,9 @@ impl ExtObject for CodeObject {
                     "co_kinds" => {
                         let mut k = Vec::new();
                         match (c.is_async, c.is_generator) {
-                            (true, true) => k.push("asyncgen".to_string()),
-                            (true, false) => k.push("coroutine".to_string()),
-                            (false, true) => k.push("generator".to_string()),
+                            (true, true) => k.push(Rc::from("asyncgen")),
+                            (true, false) => k.push(Rc::from("coroutine")),
+                            (false, true) => k.push(Rc::from("generator")),
                             _ => {}
                         }
                         strs(k)

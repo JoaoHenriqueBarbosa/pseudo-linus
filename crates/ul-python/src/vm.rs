@@ -876,7 +876,7 @@ impl Vm {
             })))
         };
         let vm = Vm {
-            globals: Rc::new(RefCell::new(crate::object::VarMap::from_iter([("__name__".to_string(), Value::str("__main__"))]))),
+            globals: Rc::new(RefCell::new(crate::object::VarMap::from_iter([("__name__".into(), Value::str("__main__"))]))),
             stdout: Rc::new(RefCell::new(Vec::new())),
             handled: Rc::new(RefCell::new(Vec::new())),
             depth: Rc::new(std::cell::Cell::new(0)),
@@ -1301,6 +1301,35 @@ impl Vm {
             }
             return Ok(env);
         }
+        // Quase tão comum: só posicionais, faltando apenas parâmetros com padrão (e os só-nomeados,
+        // se houver, todos com padrão). Sem `*args`/`**kw`.
+        if kwargs.is_empty()
+            && args.len() <= code.params.len()
+            && args.len() + f.defaults.len() >= code.params.len()
+            && code.vararg.is_none()
+            && code.kwarg.is_none()
+            && code.kwonly.iter().all(|k| f.kwdefaults.iter().any(|(n, _)| n.as_str() == &**k))
+        {
+            let env = Env::new(f.closure.clone(), false, false);
+            {
+                let mut vars = env.vars.borrow_mut();
+                vars.reserve(code.params.len() + code.kwonly.len() + 4);
+                let given = args.len();
+                let first_default = code.params.len() - f.defaults.len();
+                for (p, v) in code.params.iter().zip(args) {
+                    vars.insert(p.clone(), v);
+                }
+                for (i, p) in code.params.iter().enumerate().skip(given) {
+                    vars.insert(p.clone(), f.defaults[i - first_default].clone());
+                }
+                for k in &code.kwonly {
+                    if let Some((_, v)) = f.kwdefaults.iter().find(|(n, _)| n.as_str() == &**k) {
+                        vars.insert(k.clone(), v.clone());
+                    }
+                }
+            }
+            return Ok(env);
+        }
         let name = code.qual();
         let params = &code.params;
         let n = params.len();
@@ -1332,11 +1361,12 @@ impl Vm {
                 extra.push(a);
             }
         }
-        let mut kwonly_vals: HashMap<String, Value> = HashMap::new();
+        // Poucos nomes: um `Vec` sai mais barato que um mapa com hasher.
+        let mut kwonly_vals: Vec<(Rc<str>, Value)> = Vec::new();
         let mut extra_kw: Vec<(String, Value)> = Vec::new();
         let mut posonly_given: Vec<String> = Vec::new();
         for (k, v) in kwargs {
-            match params.iter().position(|p| *p == k) {
+            match params.iter().position(|p| **p == *k) {
                 Some(i) if i < code.posonly => {
                     if code.kwarg.is_some() {
                         extra_kw.push((k, v));
@@ -1350,11 +1380,12 @@ impl Vm {
                     }
                     slots[i] = Some(v);
                 }
-                None if code.kwonly.contains(&k) => {
-                    if kwonly_vals.contains_key(&k) {
+                None if code.kwonly.iter().any(|x| **x == *k) => {
+                    if kwonly_vals.iter().any(|(n, _)| **n == *k) {
                         return Err(type_error(format!("{name}() got multiple values for argument '{k}'")));
                     }
-                    kwonly_vals.insert(k, v);
+                    let key = code.kwonly.iter().find(|x| ***x == *k).cloned().unwrap_or_else(|| Rc::from(k.as_str()));
+                    kwonly_vals.push((key, v));
                 }
                 None if code.kwarg.is_some() => extra_kw.push((k, v)),
                 None => return Err(type_error(format!("{name}() got an unexpected keyword argument '{k}'"))),
@@ -1372,7 +1403,7 @@ impl Vm {
                 if i >= required {
                     slots[i] = Some(f.defaults[i - required].clone());
                 } else {
-                    missing.push(params[i].clone());
+                    missing.push(params[i].to_string());
                 }
             }
         }
@@ -1386,12 +1417,12 @@ impl Vm {
         }
         let mut missing_kw: Vec<String> = Vec::new();
         for k in &code.kwonly {
-            if !kwonly_vals.contains_key(k) {
-                match f.kwdefaults.iter().find(|(n, _)| n == k) {
+            if !kwonly_vals.iter().any(|(n, _)| n == k) {
+                match f.kwdefaults.iter().find(|(n, _)| n.as_str() == &**k) {
                     Some((_, v)) => {
-                        kwonly_vals.insert(k.clone(), v.clone());
+                        kwonly_vals.push((k.clone(), v.clone()));
                     }
-                    None => missing_kw.push(k.clone()),
+                    None => missing_kw.push(k.to_string()),
                 }
             }
         }
@@ -1406,6 +1437,7 @@ impl Vm {
         let env = Env::new(f.closure.clone(), false, false);
         {
             let mut vars = env.vars.borrow_mut();
+            vars.reserve(n + code.kwonly.len() + 6);
             for (p, v) in params.iter().zip(slots) {
                 if let Some(v) = v {
                     vars.insert(p.clone(), v);
@@ -1619,15 +1651,14 @@ impl Vm {
             Op::Call { argc, kwnames } => {
                 let mut values = pop_n(stack, argc as usize)?;
                 let func = pop(stack)?;
-                let names: Vec<String> = match kwnames {
-                    Some(i) => match &code.consts[i as usize] {
-                        Value::Tuple(t) => t.iter().map(to_str).collect(),
-                        _ => Vec::new(),
-                    },
-                    None => Vec::new(),
+                // Os nomes vêm de uma tupla constante: os pares saem direto dela, sem lista intermediária.
+                let kwargs: Vec<(String, Value)> = match kwnames.map(|i| &code.consts[i as usize]) {
+                    Some(Value::Tuple(t)) => {
+                        let kw_values = values.split_off(values.len() - t.len());
+                        t.iter().map(to_str).zip(kw_values).collect()
+                    }
+                    _ => Vec::new(),
                 };
-                let kw_values = values.split_off(values.len() - names.len());
-                let kwargs: Vec<(String, Value)> = names.into_iter().zip(kw_values).collect();
                 let result = self.call(&func, values, kwargs)?;
                 stack.push(Slot::Val(result));
             }
@@ -1671,10 +1702,10 @@ impl Vm {
                 let mut d = Dict::new();
                 for p in code.params.iter().chain(code.vararg.iter()).chain(code.kwonly.iter()).chain(code.kwarg.iter()) {
                     if let Some(v) = vars.get(p) {
-                        d.set(Value::str(p.clone()), v.clone())?;
+                        d.set(Value::str(&**p), v.clone())?;
                     }
                 }
-                let mut rest: Vec<(&String, &Value)> = vars
+                let mut rest: Vec<(&Rc<str>, &Value)> = vars
                     .iter()
                     .filter(|(k, _)| {
                         !code.params.contains(k)
@@ -1685,7 +1716,7 @@ impl Vm {
                     .collect();
                 rest.sort_by(|a, b| a.0.cmp(b.0));
                 for (k, v) in rest {
-                    d.set(Value::str(k.clone()), v.clone())?;
+                    d.set(Value::str(&**k), v.clone())?;
                 }
                 stack.push(Slot::Val(Value::dict(d)));
             }
@@ -1732,7 +1763,7 @@ impl Vm {
                     _ => {
                         let d = Value::dict(crate::object::Dict::new());
                         if locals.is_module {
-                            self.globals.borrow_mut().insert("__annotations__".to_string(), d.clone());
+                            self.globals.borrow_mut().insert("__annotations__".into(), d.clone());
                         } else {
                             locals.set("__annotations__", d.clone());
                         }
@@ -1742,11 +1773,11 @@ impl Vm {
                         }
                     }
                 };
-                dict.borrow_mut().set(Value::str(name), ann)?;
+                dict.borrow_mut().set(Value::str(name.to_string()), ann)?;
             }
             Op::StoreLocal(i) => {
                 let v = pop(stack)?;
-                locals.set(&code.names[i as usize], v);
+                locals.set_rc(&code.names[i as usize], v);
             }
             Op::MakeFunction { code: idx, ndefaults, kwdefaults } => {
                 let kw_names: Vec<String> = match kwdefaults {
@@ -2150,7 +2181,7 @@ impl Vm {
                 };
                 let mut attrs = m.attrs.borrow().clone();
                 if let Some(g) = self.module_globals.borrow().get(m.name) {
-                    attrs.extend(g.borrow().iter().map(|(k, v)| (k.clone(), v.clone())));
+                    attrs.extend(g.borrow().iter().map(|(k, v)| (k.to_string(), v.clone())));
                 }
                 let listed: Option<Vec<String>> = match attrs.get("__all__") {
                     Some(Value::List(l)) => Some(l.borrow().iter().map(|v| to_str(v)).collect()),
@@ -2167,13 +2198,13 @@ impl Vm {
                                     format!("module '{}' has no attribute '{n}'", m.name),
                                 ));
                             };
-                            globals.insert(n, v.clone());
+                            globals.insert(n.into(), v.clone());
                         }
                     }
                     None => {
                         for (n, v) in attrs {
                             if !n.starts_with('_') {
-                                globals.insert(n, v);
+                                globals.insert(n.into(), v);
                             }
                         }
                     }
@@ -2211,7 +2242,7 @@ impl Vm {
                         {
                             let mut extra = x.extra.borrow_mut();
                             extra.push(("name", Value::str(module.to_string())));
-                            extra.push(("name_from", Value::str(name.clone())));
+                            extra.push(("name_from", Value::str(&**name)));
                             extra.push(("module", obj.clone()));
                         }
                         let mut e = exc("ImportError", msg);
@@ -3076,8 +3107,8 @@ impl Vm {
         let spec = self.call(&make, vec![Value::str(m.name), Value::str(file), Value::Bool(is_package)], Vec::new())?;
         let loader = self.getattr(&spec, "loader")?;
         let mut g = globals.borrow_mut();
-        g.insert("__spec__".to_string(), spec.clone());
-        g.insert("__loader__".to_string(), loader.clone());
+        g.insert("__spec__".into(), spec.clone());
+        g.insert("__loader__".into(), loader.clone());
         Ok(Some(if name == "__spec__" { spec } else { loader }))
     }
 

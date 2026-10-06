@@ -380,7 +380,7 @@ impl ExtObject for BuiltinSuperMethod {
                         Ok(Value::Instance(Rc::new(InstanceObj {
                             class: c.clone(),
                             view: Default::default(),
-                            dict: RefCell::new(indexmap::IndexMap::new()),
+                            dict: RefCell::new(Default::default()),
                             payload: RefCell::new(payload),
                         })))
                     }
@@ -770,7 +770,7 @@ impl Vm {
         let fresh = Rc::new(InstanceObj {
             class: cls.clone(),
             view: Default::default(),
-            dict: RefCell::new(indexmap::IndexMap::new()),
+            dict: RefCell::new(Default::default()),
             payload: RefCell::new(None),
         });
         if let Some(t) = cls.data_base {
@@ -1051,7 +1051,9 @@ impl Vm {
     pub(crate) fn store_attr(&mut self, obj: &Value, name: &str, value: Value) -> PyResult<()> {
         match obj {
             Value::Instance(inst) => {
-                if let Some(Value::Ext(e)) = inst.class.lookup(name) {
+                // Uma busca só serve aos dois casos de descritor (property e `__set__` em Python).
+                let class_attr = inst.class.lookup(name);
+                if let Some(Value::Ext(e)) = &class_attr {
                     if let Some(Descriptor::Property { set, .. }) = e.descriptor() {
                         return match set {
                             Some(f) => self.call_value(&f, vec![obj.clone(), value], Vec::new()).map(|_| ()),
@@ -1066,7 +1068,7 @@ impl Vm {
                     self.call_function(&f, vec![obj.clone(), Value::str(name), value], Vec::new())?;
                     return Ok(());
                 }
-                if let Some(Value::Instance(d)) = inst.class.lookup(name) {
+                if let Some(Value::Instance(d)) = &class_attr {
                     if let Some(Value::Function(f)) = d.class.lookup("__set__") {
                         self.call_function(&f, vec![Value::Instance(d.clone()), obj.clone(), value], Vec::new())?;
                         return Ok(());
@@ -1082,7 +1084,15 @@ impl Vm {
                     ));
                 }
                 inst.sync_from_view();
-                inst.dict.borrow_mut().insert(name.to_string(), value);
+                {
+                    let mut d = inst.dict.borrow_mut();
+                    match d.get_mut(name) {
+                        Some(slot) => *slot = value,
+                        None => {
+                            d.insert(name.to_string(), value);
+                        }
+                    }
+                }
                 inst.sync_to_view();
                 Ok(())
             }
@@ -1092,7 +1102,7 @@ impl Vm {
             }
             Value::Module(m) => {
                 if let Some(g) = self.module_globals.borrow().get(m.name) {
-                    g.borrow_mut().insert(name.to_string(), value.clone());
+                    g.borrow_mut().insert(name.into(), value.clone());
                 }
                 m.attrs.borrow_mut().insert(name.to_string(), value);
                 Ok(())
@@ -1566,13 +1576,13 @@ impl Vm {
                     data_base: None,
                     meta: None,
                     is_meta: false,
-                    dict: RefCell::new(indexmap::IndexMap::new()),
+                    dict: RefCell::new(Default::default()),
                     subclasses: RefCell::new(Vec::new()),
                 });
                 Ok(Value::Instance(Rc::new(InstanceObj {
                     class: base,
                     view: Default::default(),
-                    dict: RefCell::new(indexmap::IndexMap::new()),
+                    dict: RefCell::new(Default::default()),
                     payload: RefCell::new(None),
                 })))
             }
@@ -1754,7 +1764,7 @@ fn resolve_bases(bases: &[Value]) -> PyResult<BaseInfo> {
 /// Os nomes definidos no corpo da classe, na ordem em que nasceram.
 fn namespace_of(env: &Rc<Env>) -> Vec<(String, Value)> {
     let vars = env.vars.borrow();
-    env.order.borrow().iter().filter_map(|k| vars.get(k).map(|v| (k.clone(), v.clone()))).collect()
+    env.order.borrow().iter().filter_map(|k| vars.get(k.as_str()).map(|v| (k.clone(), v.clone()))).collect()
 }
 
 fn dict_to_ns(ns: &Value) -> PyResult<Vec<(String, Value)>> {

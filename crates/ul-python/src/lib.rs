@@ -570,9 +570,9 @@ fn run_source_inner(
         }
     };
     let mut machine = vm::Vm::with_argv(argv);
-    machine.globals.borrow_mut().insert("__doc__".to_string(), object::Value::None);
+    machine.globals.borrow_mut().insert("__doc__".into(), object::Value::None);
     if file_mode {
-        machine.globals.borrow_mut().insert("__file__".to_string(), object::Value::str(name));
+        machine.globals.borrow_mut().insert("__file__".into(), object::Value::str(name));
     }
     if file_mode && name != "<stdin>" {
         vm::register_source(name, &src);
@@ -582,7 +582,7 @@ fn run_source_inner(
     code.set_filename("");
     let mut prelude: Result<(), vm::RuntimeError> = Ok(());
     if let Some((package, cwd)) = &main_module {
-        machine.globals.borrow_mut().insert("__package__".to_string(), object::Value::str(package.clone()));
+        machine.globals.borrow_mut().insert("__package__".into(), object::Value::str(package.clone()));
         if let Some(sysmod) = modules::import(&mut machine, "sys") {
             if let Some(object::Value::List(path)) = sysmod.attrs.borrow().get("path") {
                 path.borrow_mut()[0] = object::Value::str(cwd.clone());

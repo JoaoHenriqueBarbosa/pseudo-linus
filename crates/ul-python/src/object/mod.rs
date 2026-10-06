@@ -285,8 +285,13 @@ impl std::hash::Hasher for NameHasher {
     }
 }
 
-/// Variáveis locais de um escopo.
-pub type VarMap = std::collections::HashMap<String, Value, std::hash::BuildHasherDefault<NameHasher>>;
+/// Variáveis locais de um escopo. A chave é `Rc<str>`: os nomes vêm compartilhados do código
+/// compilado, e ligar um parâmetro ou criar um local não aloca.
+pub type VarMap = std::collections::HashMap<Rc<str>, Value, std::hash::BuildHasherDefault<NameHasher>>;
+
+/// `__dict__` de classe e de instância: ordem de inserção e o mesmo hasher dos nomes, porque cada
+/// `obj.attr` e cada chamada de método passa por aqui.
+pub type AttrMap = indexmap::IndexMap<String, Value, std::hash::BuildHasherDefault<NameHasher>>;
 
 impl fmt::Debug for Env {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -311,7 +316,19 @@ impl Env {
             *slot = v;
             return;
         }
-        self.vars.borrow_mut().insert(name.to_string(), v);
+        self.vars.borrow_mut().insert(Rc::from(name), v);
+        if self.is_class {
+            self.order.borrow_mut().push(name.to_string());
+        }
+    }
+
+    /// Como [`Env::set`], com o nome já compartilhado do código: criar o local não aloca.
+    pub fn set_rc(&self, name: &Rc<str>, v: Value) {
+        if let Some(slot) = self.vars.borrow_mut().get_mut(name) {
+            *slot = v;
+            return;
+        }
+        self.vars.borrow_mut().insert(name.clone(), v);
         if self.is_class {
             self.order.borrow_mut().push(name.to_string());
         }
@@ -358,7 +375,7 @@ pub struct ClassObj {
     pub meta: Option<Rc<ClassObj>>,
     /// A classe herda de `type`: ela é uma metaclasse.
     pub is_meta: bool,
-    pub dict: RefCell<indexmap::IndexMap<String, Value>>,
+    pub dict: RefCell<AttrMap>,
     /// Subclasses diretas, em ordem de criação (referência fraca, para `__subclasses__()`).
     pub subclasses: RefCell<Vec<std::rc::Weak<ClassObj>>>,
 }
@@ -386,6 +403,11 @@ impl ClassObj {
     /// `__slots__` restringe os atributos de instância quando toda classe da herança o declara
     /// (e não há base embutida com `__dict__` próprio). `true` se `name` pode ser gravado.
     pub fn slots_allow(self: &Rc<Self>, name: &str) -> bool {
+        // Caso comum: a própria classe não declara `__slots__` (ou herda de embutido), e a resposta
+        // sai sem montar o MRO.
+        if self.builtin_base.is_some() || self.data_base.is_some() || !self.dict.borrow().contains_key("__slots__") {
+            return true;
+        }
         let mut allowed: Vec<String> = Vec::new();
         for c in self.mro() {
             if c.builtin_base.is_some() || c.data_base.is_some() {
@@ -462,7 +484,7 @@ impl ClassObj {
 /// Instância de uma classe de usuário.
 pub struct InstanceObj {
     pub class: Rc<ClassObj>,
-    pub dict: RefCell<indexmap::IndexMap<String, Value>>,
+    pub dict: RefCell<AttrMap>,
     /// Espelho vivo de `__dict__`: o `dict` entregue ao usuário, sincronizado com `dict` em cada acesso.
     pub view: RefCell<Option<Rc<RefCell<Dict>>>>,
     /// O valor embutido de uma instância cuja classe herda de `dict`, `list`, `tuple`, `str`, `int`...
@@ -488,7 +510,7 @@ impl InstanceObj {
     /// Traz para `dict` o que o usuário escreveu no `__dict__` (chaves não textuais ficam de fora).
     pub fn sync_from_view(&self) {
         let Some(v) = self.view.borrow().clone() else { return };
-        let mut fresh = indexmap::IndexMap::new();
+        let mut fresh = AttrMap::default();
         for (k, val) in v.borrow().iter() {
             if let Value::Str(s) = k {
                 fresh.insert(s.as_str().to_string(), val.clone());
