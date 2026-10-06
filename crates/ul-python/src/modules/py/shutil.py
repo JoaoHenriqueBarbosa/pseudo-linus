@@ -96,6 +96,7 @@ def ignore_patterns(*patterns):
 def copytree(src, dst, symlinks=False, ignore=None, copy_function=copy2,
              ignore_dangling_symlinks=False, dirs_exist_ok=False):
     src = os.fspath(src)
+    given_dst = dst
     dst = os.fspath(dst)
     names = sorted(os.listdir(src))
     ignored = ignore(src, names) if ignore is not None else set()
@@ -131,7 +132,7 @@ def copytree(src, dst, symlinks=False, ignore=None, copy_function=copy2,
         errors.append((src, dst, str(why)))
     if errors:
         raise Error(errors)
-    return dst
+    return given_dst
 
 
 def rmtree(path, ignore_errors=False, onerror=None, *, onexc=None, dir_fd=None):
