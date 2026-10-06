@@ -52,7 +52,7 @@ pub(crate) fn key_error(key: Value) -> PyException {
     PyException {
         kind: "KeyError",
         msg: repr(&key),
-        value: Some(Value::Exception(Rc::new(ExcObj { kind: "KeyError", args: vec![key] }))),
+        value: Some(Value::Exception(Rc::new(ExcObj::new("KeyError", vec![key])))),
         tb: Vec::new(),
     }
 }

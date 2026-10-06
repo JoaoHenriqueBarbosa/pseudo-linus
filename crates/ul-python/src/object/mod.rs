@@ -358,6 +358,14 @@ impl fmt::Debug for InstanceObj {
 pub struct ExcObj {
     pub kind: &'static str,
     pub args: Vec<Value>,
+    /// `__traceback__`: preenchido quando a exceção é capturada por um `except`.
+    pub traceback: RefCell<Option<Value>>,
+}
+
+impl ExcObj {
+    pub fn new(kind: &'static str, args: Vec<Value>) -> ExcObj {
+        ExcObj { kind, args, traceback: RefCell::new(None) }
+    }
 }
 
 /// Classes de exceção embutidas e a classe pai de cada uma (`BaseException` não tem).
@@ -396,7 +404,33 @@ pub const EXC_CLASSES: &[(&str, &str)] = &[
     ("FloatingPointError", "ArithmeticError"),
     ("KeyboardInterrupt", "BaseException"),
     ("SystemExit", "BaseException"),
-    ("UnicodeEncodeError", "ValueError"),
+    ("UnicodeError", "ValueError"),
+    ("UnicodeEncodeError", "UnicodeError"),
+    ("SyntaxError", "Exception"),
+    ("IndentationError", "SyntaxError"),
+    ("TabError", "IndentationError"),
+    ("ProcessLookupError", "OSError"),
+    ("ChildProcessError", "OSError"),
+    ("BlockingIOError", "OSError"),
+    ("InterruptedError", "OSError"),
+    ("BrokenPipeError", "ConnectionError"),
+    ("ConnectionAbortedError", "ConnectionError"),
+    ("ConnectionRefusedError", "ConnectionError"),
+    ("ConnectionResetError", "ConnectionError"),
+    ("StopAsyncIteration", "Exception"),
+    ("GeneratorExit", "BaseException"),
+    ("Warning", "Exception"),
+    ("UserWarning", "Warning"),
+    ("DeprecationWarning", "Warning"),
+    ("PendingDeprecationWarning", "Warning"),
+    ("SyntaxWarning", "Warning"),
+    ("RuntimeWarning", "Warning"),
+    ("FutureWarning", "Warning"),
+    ("ImportWarning", "Warning"),
+    ("UnicodeWarning", "Warning"),
+    ("BytesWarning", "Warning"),
+    ("ResourceWarning", "Warning"),
+    ("EncodingWarning", "Warning"),
     ("re.error", "Exception"),
     ("struct.error", "Exception"),
     ("binascii.Error", "ValueError"),
@@ -407,7 +441,7 @@ pub const EXC_CLASSES: &[(&str, &str)] = &[
     ("urllib.error.URLError", "OSError"),
     ("http.client.HTTPException", "Exception"),
     ("StopIteration", "Exception"),
-    ("UnicodeDecodeError", "ValueError"),
+    ("UnicodeDecodeError", "UnicodeError"),
     ("_csv.Error", "Exception"),
     ("json.decoder.JSONDecodeError", "ValueError"),
 ];

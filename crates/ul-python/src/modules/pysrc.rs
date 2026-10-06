@@ -39,6 +39,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("pathlib", include_str!("py/pathlib.py")),
     ("zlib", include_str!("py/zlib.py")),
     ("zipfile", include_str!("py/zipfile.py")),
+    ("traceback", include_str!("py/traceback.py")),
 ];
 
 /// Nomes de módulo que são apelidos de outro.

@@ -46,7 +46,7 @@ impl PyException {
             return v.clone();
         }
         let args = if self.msg.is_empty() { Vec::new() } else { vec![Value::str(self.msg.clone())] };
-        Value::Exception(Rc::new(ExcObj { kind: self.kind, args }))
+        Value::Exception(Rc::new(ExcObj::new(self.kind, args)))
     }
 
     pub(crate) fn from_value(v: &Value) -> PyException {
@@ -443,7 +443,23 @@ impl Vm {
                     Some(b) => {
                         stack.truncate(b.depth);
                         self.handled.borrow_mut().truncate(b.handled);
-                        stack.push(Slot::Val(e.to_value()));
+                        let value = e.to_value();
+                        // `__traceback__`: o quadro que captura primeiro, depois os internos.
+                        let mut entries = vec![(code.lines[*pc], code.name.clone())];
+                        entries.extend(e.tb.iter().rev().cloned());
+                        let filename = match self.argv.first().map(String::as_str) {
+                            Some(a) if !a.is_empty() && a != "-c" => a.to_string(),
+                            _ => "<string>".to_string(),
+                        };
+                        let tb = crate::tbobj::TracebackObj::make(entries, &filename);
+                        match &value {
+                            Value::Exception(x) => *x.traceback.borrow_mut() = Some(tb),
+                            Value::Instance(i) => {
+                                i.dict.borrow_mut().insert("__traceback__".to_string(), tb);
+                            }
+                            _ => {}
+                        }
+                        stack.push(Slot::Val(value));
                         *pc = b.handler;
                     }
                     None => {
@@ -1277,7 +1293,7 @@ impl Vm {
             if let Some((kw, _)) = kwargs.first() {
                 return Err(type_error(format!("{name}() takes no keyword arguments ('{kw}' given)")));
             }
-            return Ok(Value::Exception(Rc::new(ExcObj { kind, args })));
+            return Ok(Value::Exception(Rc::new(ExcObj::new(kind, args))));
         }
         if !matches!(name, "print" | "open" | "csv.reader" | "csv.writer" | "json.dumps" | "sorted" | "enumerate")
             && let Some((kw, _)) = kwargs.first() {
@@ -1491,6 +1507,7 @@ impl Vm {
         }
         match obj {
             Value::Exception(e) if name == "args" => Ok(Value::tuple(e.args.clone())),
+            Value::Exception(e) if name == "__traceback__" => Ok(e.traceback.borrow().clone().unwrap_or(Value::None)),
             Value::Module(m) => match m.attrs.borrow().get(name) {
                 Some(v) => Ok(v.clone()),
                 None => Err(exc("AttributeError", format!("module '{}' has no attribute '{name}'", m.name))),
@@ -1769,7 +1786,7 @@ pub(crate) fn raise_value(v: Value) -> PyResult<PyException> {
     match &v {
         Value::Exception(_) => Ok(PyException::from_value(&v)),
         Value::Builtin(name) => match EXC_CLASSES.iter().find(|(n, _)| n == name) {
-            Some((n, _)) => Ok(PyException::from_value(&Value::Exception(Rc::new(ExcObj { kind: n, args: Vec::new() })))),
+            Some((n, _)) => Ok(PyException::from_value(&Value::Exception(Rc::new(ExcObj::new(n, Vec::new()))))),
             None => Err(type_error("exceptions must derive from BaseException")),
         },
         _ => Err(type_error("exceptions must derive from BaseException")),
@@ -2251,7 +2268,7 @@ fn subscript(container: &Value, index: &Value) -> PyResult<Value> {
             None => Err(PyException {
                 kind: "KeyError",
                 msg: repr(index),
-                value: Some(Value::Exception(Rc::new(ExcObj { kind: "KeyError", args: vec![index.clone()] }))),
+                value: Some(Value::Exception(Rc::new(ExcObj::new("KeyError", vec![index.clone()])))),
                 tb: Vec::new(),
             }),
         },

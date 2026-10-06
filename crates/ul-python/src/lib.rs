@@ -32,6 +32,7 @@ pub mod parser;
 mod stdlib_tests;
 pub mod token;
 pub mod tokenizer;
+pub mod tbobj;
 pub mod typeattrs;
 pub mod vm;
 

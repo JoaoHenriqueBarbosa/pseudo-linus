@@ -154,10 +154,7 @@ fn b_input(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 }
 
 fn b_exit(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
-    Err(crate::vm::PyException::from_value(&Value::Exception(Rc::new(crate::object::ExcObj {
-        kind: "SystemExit",
-        args,
-    }))))
+    Err(crate::vm::PyException::from_value(&Value::Exception(Rc::new(crate::object::ExcObj::new("SystemExit", args)))))
 }
 
 fn b_import(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {

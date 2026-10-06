@@ -14,14 +14,19 @@ fn exit(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     if args.len() > 1 {
         return Err(crate::vm::type_error(format!("exit expected at most 1 argument, got {}", args.len())));
     }
-    Err(PyException::from_value(&Value::Exception(Rc::new(ExcObj { kind: "SystemExit", args }))))
+    Err(PyException::from_value(&Value::Exception(Rc::new(ExcObj::new("SystemExit", args)))))
 }
 
 fn exc_info(vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     match vm.handled_top() {
         Some(v) => {
             let ty = vm.type_of(&v);
-            Ok(Value::tuple(vec![ty, v, Value::None]))
+            let tb = match &v {
+                Value::Exception(e) => e.traceback.borrow().clone().unwrap_or(Value::None),
+                Value::Instance(i) => i.dict.borrow().get("__traceback__").cloned().unwrap_or(Value::None),
+                _ => Value::None,
+            };
+            Ok(Value::tuple(vec![ty, v, tb]))
         }
         None => Ok(Value::tuple(vec![Value::None, Value::None, Value::None])),
     }

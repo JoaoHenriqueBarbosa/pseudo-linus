@@ -587,3 +587,54 @@ b'hello' b'heo' b'hhllo'
 "#
     );
 }
+
+#[test]
+fn traceback_objects_and_exception_hierarchy() {
+    let src = r#"
+import traceback, sys
+
+def inner(n):
+    raise ValueError("boom %d" % n)
+
+def middle(n):
+    inner(n)
+
+class MyErr(Exception):
+    pass
+
+try:
+    middle(3)
+except ValueError as e:
+    tb = e.__traceback__
+    print([(f.f_code.co_name, ln) for f, ln in traceback.walk_tb(tb)])
+    print(tb.tb_lineno, tb.tb_frame.f_code.co_name, tb.tb_next.tb_lineno, tb.tb_next.tb_next.tb_next)
+    print(traceback.format_exception_only(e))
+    print(sys.exc_info()[2] is not None, sys.exc_info()[1] is e)
+    print([(x.name, x.lineno) for x in traceback.extract_tb(tb)])
+
+try:
+    raise KeyError('k')
+except KeyError as e:
+    print(traceback.format_exception_only(type(e), e), traceback.format_exception_only(e))
+try:
+    raise MyErr()
+except MyErr as e:
+    print(traceback.format_exception_only(e), issubclass(UnicodeDecodeError, UnicodeError), issubclass(BrokenPipeError, OSError), IOError is OSError)
+print(traceback.format_exc())
+"#;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r#"[('<module>', 14), ('middle', 8), ('inner', 5)]
+14 <module> 8 None
+['ValueError: boom 3\n']
+True True
+[('<module>', 14), ('middle', 8), ('inner', 5)]
+["KeyError: 'k'\n"] ["KeyError: 'k'\n"]
+['MyErr\n'] True True True
+NoneType: None
+
+"#
+    );
+}

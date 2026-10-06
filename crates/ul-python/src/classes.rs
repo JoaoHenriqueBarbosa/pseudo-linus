@@ -289,6 +289,7 @@ impl Vm {
             return Ok(Value::Builtin(n));
         }
         match name {
+            "IOError" | "EnvironmentError" => Ok(Value::Builtin("OSError")),
             "object" => Ok(Value::Builtin("object")),
             "NotImplemented" => Ok(not_implemented()),
             "Ellipsis" => Ok(Value::Builtin("Ellipsis")),
@@ -786,10 +787,7 @@ impl Vm {
             Value::Dict(d) => {
                 if d.borrow_mut().remove(index)?.is_none() {
                     let mut e = exc("KeyError", crate::object::repr(index));
-                    e.value = Some(Value::Exception(Rc::new(crate::object::ExcObj {
-                        kind: "KeyError",
-                        args: vec![index.clone()],
-                    })));
+                    e.value = Some(Value::Exception(Rc::new(crate::object::ExcObj::new("KeyError", vec![index.clone()]))));
                     return Err(e);
                 }
                 Ok(())

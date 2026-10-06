@@ -275,7 +275,7 @@ fn getitem_value(container: &Value, index: &Value) -> PyResult<Value> {
             None => Err(PyException {
                 kind: "KeyError",
                 msg: repr(index),
-                value: Some(Value::Exception(Rc::new(crate::object::ExcObj { kind: "KeyError", args: vec![index.clone()] }))),
+                value: Some(Value::Exception(Rc::new(crate::object::ExcObj::new("KeyError", vec![index.clone()])))),
                 tb: Vec::new(),
             }),
         },
