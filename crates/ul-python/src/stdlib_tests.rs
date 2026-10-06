@@ -2902,3 +2902,25 @@ int any
 "##
     );
 }
+
+#[test]
+fn strftime_week_numbers() {
+    let src = r##"
+import datetime as dt, time
+for d in (dt.datetime(2024, 1, 1), dt.datetime(2024, 2, 29, 13, 5), dt.datetime(2023, 1, 1), dt.datetime(2021, 1, 3), dt.datetime(2020, 12, 31)):
+    print(d.strftime("%Y-%m-%d %a %U %W %V %G %g %j %u %w"))
+print(time.strftime("%U %W", time.gmtime(86400 * 400)))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"2024-01-01 Mon 00 01 01 2024 24 001 1 1
+2024-02-29 Thu 08 09 09 2024 24 060 4 4
+2023-01-01 Sun 01 00 52 2022 22 001 7 0
+2021-01-03 Sun 01 00 53 2020 20 003 7 0
+2020-12-31 Thu 52 52 53 2020 20 366 4 4
+05 05
+"##
+    );
+}

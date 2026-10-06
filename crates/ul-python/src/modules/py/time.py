@@ -241,6 +241,14 @@ def strftime(fmt, t=None):
             out.append('%d' % ((t[6] + 1) % 7))
         elif k == 'u':
             out.append('%d' % (t[6] + 1))
+        elif k == 'U':
+            out.append('%02d' % ((t[7] - 1 + 7 - ((t[6] + 1) % 7)) // 7))
+        elif k == 'W':
+            out.append('%02d' % ((t[7] - 1 + 7 - t[6]) // 7))
+        elif k in 'VGg':
+            import datetime
+            iso = datetime.date(t[0], t[1], t[2]).isocalendar()
+            out.append('%02d' % iso[1] if k == 'V' else ('%d' % iso[0] if k == 'G' else '%02d' % (iso[0] % 100)))
         elif k == 'Z':
             out.append('UTC')
         elif k == 'z':
