@@ -5655,3 +5655,130 @@ um texto bem longo [...]
 "##
     );
 }
+
+#[test]
+fn core_closures_match_flag_dispatch() {
+    let src = r##"
+from dataclasses import dataclass, field, asdict, replace
+from functools import reduce, partial, cached_property, singledispatch, total_ordering, wraps
+from typing import NamedTuple
+import enum, contextlib
+
+def counter():
+    n = 0
+    def inc(step=1):
+        nonlocal n
+        n += step
+        return n
+    return inc
+c = counter(); c(); c(5); print(c(), c(0))
+
+def acc():
+    total = 0
+    while True:
+        x = yield total
+        if x is None:
+            return total
+        total += x
+def wrap():
+    r = yield from acc()
+    yield f'fim {r}'
+g = wrap(); next(g); g.send(3); print(g.send(4), g.send(None))
+
+class Cor(enum.Flag):
+    R = enum.auto(); G = enum.auto(); B = enum.auto()
+print(Cor.R | Cor.B, list(Cor.R | Cor.G), Cor(6).name, ~Cor.R)
+
+@dataclass(order=True, frozen=True)
+class Item:
+    prioridade: int
+    nome: str = field(compare=False)
+    tags: tuple = ()
+it = [Item(2, 'b'), Item(1, 'a', ('x',))]
+print(sorted(it)[0], asdict(it[1]), replace(it[0], nome='z'), hash(it[0]) == hash(Item(2, 'q')))
+
+def descr(obj):
+    match obj:
+        case {'tipo': 'pt', 'x': int(x), 'y': int(y)} if x == y:
+            return f'diag {x}'
+        case Item(prioridade=p, nome=n) if p > 1:
+            return f'item {n}'
+        case [first, *rest] if rest:
+            return f'lista {first}+{len(rest)}'
+        case str() | bytes() as s:
+            return f'texto {s!r}'
+        case _:
+            return 'outro'
+for o in [{'tipo': 'pt', 'x': 2, 'y': 2}, Item(5, 'k'), [1, 2, 3], b'ab', 3.5]:
+    print(descr(o))
+
+class P(NamedTuple):
+    x: int
+    y: int = 0
+    def norma(self): return (self.x ** 2 + self.y ** 2) ** .5
+p = P(3, 4); print(p, p.norma(), p._replace(y=0), P._fields, P._field_defaults)
+
+@singledispatch
+def fmt(v): return 'gen'
+@fmt.register
+def _(v: int): return 'int'
+@fmt.register(list)
+def _(v): return 'list'
+print(fmt(1), fmt([1]), fmt('a'), fmt(True))
+
+@total_ordering
+class V:
+    def __init__(s, v): s.v = v
+    def __eq__(s, o): return s.v == o.v
+    def __lt__(s, o): return s.v < o.v
+print(V(1) >= V(1), V(2) > V(1), max(V(3), V(7)).v)
+
+class Lazy:
+    @cached_property
+    def big(self):
+        print('calc'); return 42
+z = Lazy(); print(z.big, z.big, 'big' in z.__dict__)
+
+def deco(f):
+    @wraps(f)
+    def w(*a, **k):
+        return f(*a, **k) * 2
+    return w
+@deco
+def soma(a, b=1, *, c=0):
+    """doc"""
+    return a + b + c
+print(soma(1, c=2), soma.__name__, soma.__doc__, soma.__wrapped__(1))
+print(reduce(lambda a, b: a * b, range(1, 6)), partial(int, base=2)('101'))
+with contextlib.suppress(KeyError), contextlib.ExitStack() as st:
+    st.callback(print, 'saindo')
+    {}['x']
+print([(i, j) for i in range(3) for j in range(i) if (i + j) % 2], {k: v for k, v in zip('ab', 'cd')})
+print((lambda *a, **k: (a, sorted(k)))(1, 2, z=1, a=2), [*range(2), *'ab'], {**{'a': 1}, 'b': 2})
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"7 7
+7 fim 7
+Cor.R|B [<Cor.R: 1>, <Cor.G: 2>] G|B Cor.G|B
+Item(prioridade=1, nome='a', tags=('x',)) {'prioridade': 1, 'nome': 'a', 'tags': ('x',)} Item(prioridade=2, nome='z', tags=()) True
+diag 2
+item k
+lista 1+2
+texto b'ab'
+outro
+P(x=3, y=4) 5.0 P(x=3, y=0) ('x', 'y') {'y': 0}
+int list gen int
+True True 7
+calc
+42 42 True
+8 soma doc 2
+120 5
+saindo
+[(1, 0), (2, 1)] {'a': 'c', 'b': 'd'}
+((1, 2), ['a', 'z']) [0, 1, 'a', 'b'] {'a': 1, 'b': 2}
+"##
+    );
+}

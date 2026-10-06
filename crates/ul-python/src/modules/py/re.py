@@ -21,7 +21,7 @@ class RegexFlag(_enum.IntFlag):
     DEBUG = 128
 
     def __repr__(self):
-        if self._name_ is not None:
+        if self._name_ is not None and '|' not in self._name_:
             return 're.' + self._name_
         return '|'.join(n if n.isdigit() else 're.' + n for n in self._members_in())
 

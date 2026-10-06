@@ -270,8 +270,25 @@ class Flag(Enum):
         member = object.__new__(cls) if member_type is object else member_type.__new__(cls, value)
         member._name_ = None
         member._value_ = value
+        names = member._members_in()
+        if names and not value & ~known:
+            member._name_ = '|'.join(names)
         cls._value2member_map_[value] = member
         return member
+
+    def __iter__(self):
+        """Os membros de um bit só contidos no valor, em ordem crescente de valor."""
+        singles = [m for m in self.__class__._member_map_.values()
+                   if m._value_ and m._value_ & (m._value_ - 1) == 0]
+        singles.sort(key=lambda m: m._value_)
+        seen = set()
+        for m in singles:
+            if m._value_ & self._value_ == m._value_ and m._value_ not in seen:
+                seen.add(m._value_)
+                yield m
+
+    def __len__(self):
+        return sum(1 for _ in self)
 
     def _known_bits(self):
         known = 0
