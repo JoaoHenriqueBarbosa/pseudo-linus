@@ -514,3 +514,76 @@ Error -5 while decompressing data: incomplete or truncated stream
 "#
     );
 }
+
+#[test]
+fn zipfile_in_memory_matches_cpython() {
+    let src = r#"
+import zipfile, io, os, hashlib
+buf = io.BytesIO()
+with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as z:
+    for name, data in (('a.txt', b'hello ' * 100), ('dir/b.bin', bytes(range(256)) * 4), ('dir/', b''), ('ç.txt', 'ação'.encode())):
+        zi = zipfile.ZipInfo(name, (2024, 3, 15, 13, 45, 10))
+        zi.compress_type = zipfile.ZIP_DEFLATED if not name.endswith('/') else zipfile.ZIP_STORED
+        zi.external_attr = (0o644 << 16) if not name.endswith('/') else (0o40755 << 16) | 0x10
+        z.writestr(zi, data)
+    z.comment = b'meu comentario'
+raw = buf.getvalue()
+print(len(raw), hashlib.sha256(raw).hexdigest())
+print(zipfile.is_zipfile(io.BytesIO(raw)), zipfile.is_zipfile(io.BytesIO(b'nope')))
+with zipfile.ZipFile(io.BytesIO(raw)) as z:
+    print(z.namelist(), z.comment, z.testzip())
+    for i in z.infolist():
+        print(i.filename, i.file_size, i.compress_size, i.compress_type, i.date_time, oct(i.external_attr >> 16), i.CRC, i.is_dir())
+    print(z.read('a.txt')[:12], len(z.read('dir/b.bin')), z.getinfo('a.txt'))
+    with z.open('a.txt') as f: print(f.read(5), f.read(7))
+    try: z.read('missing')
+    except KeyError as e: print('KeyError', e)
+"#;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r#"690 7899bce14d5d831ea47a52335042928d8343c5cd9ddc8ee94a8bb39fe040632b
+True False
+['a.txt', 'dir/b.bin', 'dir/', 'ç.txt'] b'meu comentario' None
+a.txt 600 14 8 (2024, 3, 15, 13, 45, 10) 0o644 228733427 False
+dir/b.bin 1024 280 8 (2024, 3, 15, 13, 45, 10) 0o644 3070970918 False
+dir/ 0 0 0 (2024, 3, 15, 13, 45, 10) 0o40755 0 True
+ç.txt 6 8 8 (2024, 3, 15, 13, 45, 10) 0o644 3350033681 False
+b'hello hello ' 1024 <ZipInfo filename='a.txt' compress_type=deflate filemode='?rw-r--r--' file_size=600 compress_size=14>
+b'hello' b' hello '
+KeyError "There is no item named 'missing' in the archive"
+"#
+    );
+}
+
+#[test]
+fn bytes_methods_match_cpython() {
+    let src = r#"
+b = b'  Hello, World hello  \n'
+print(b.rfind(b'ello'), b.rfind(b'zz'), b.rfind(b'l', 0, 10), b.index(b'W'), b.rindex(b'o'))
+print(b.partition(b','), b.rpartition(b'l'), b'abc'.partition(b'x'), b'abc'.rpartition(b'x'))
+print(b'a,b,c,d'.rsplit(b',', 1), b'a b  c d '.rsplit(None, 2), b'a b c'.rsplit(), b'a,b'.rsplit(b','))
+print(b'a\nb\r\nc\rd'.splitlines(), b'a\nb\r\nc\n'.splitlines(True), b''.splitlines())
+print(b'abcdef'.removeprefix(b'abc'), b'abcdef'.removesuffix(b'def'), b'abc'.removeprefix(b'x'))
+print(b'ab'.center(7, b'*'), b'ab'.ljust(5), b'ab'.rjust(5, b'-'), b'ab'.center(6), b'-42'.zfill(6), b'42'.zfill(5), b'abc'.center(2))
+print(b'abc'.isalpha(), b'a1'.isalpha(), b'123'.isdigit(), b'a1'.isalnum(), b' \t'.isspace(), b'AB'.isupper(), b'ab'.islower(), b'\xff'.isascii(), b''.isalpha())
+print(b'Hello World'.swapcase(), b'hELLO'.capitalize(), b'hello wORLD-x y2z'.title(), b'a\tb\tc'.expandtabs(4))
+print(b'hello'.translate(bytes(range(256))), b'hello'.translate(None, b'l'), b'hello'.translate(bytes([ord('h') if i == ord('e') else i for i in range(256)])))
+"#;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r#"16 -1 5 9 19
+(b'  Hello', b',', b' World hello  \n') (b'  Hello, World hel', b'l', b'o  \n') (b'abc', b'', b'') (b'', b'', b'abc')
+[b'a,b,c', b'd'] [b'a b', b'c', b'd'] [b'a', b'b', b'c'] [b'a', b'b']
+[b'a', b'b', b'c', b'd'] [b'a\n', b'b\r\n', b'c\n'] []
+b'def' b'abc' b'abc'
+b'***ab**' b'ab   ' b'---ab' b'  ab  ' b'-00042' b'00042' b'abc'
+True False True True True True True False False
+b'hELLO wORLD' b'Hello' b'Hello World-X Y2Z' b'a   b   c'
+b'hello' b'heo' b'hhllo'
+"#
+    );
+}

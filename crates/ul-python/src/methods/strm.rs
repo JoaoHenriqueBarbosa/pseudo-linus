@@ -850,6 +850,25 @@ fn encode(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         "latin_1" | "latin1" | "iso_8859_1" | "iso8859_1" | "l1" | "latin" | "8859" | "cp819" | "iso_ir_100" => {
             ("latin-1", 256)
         }
+        _ if matches!(norm.as_str(), "cp437" | "437" | "ibm437") => {
+            let mut out = Vec::with_capacity(s.as_str().len());
+            for (i, c) in s.as_str().chars().enumerate() {
+                match crate::cp437::encode_char(c) {
+                    Some(b) => out.push(b),
+                    None => {
+                        return Err(exc(
+                            "UnicodeEncodeError",
+                            format!(
+                                "'charmap' codec can't encode character '{}' in position {}: character maps to <undefined>",
+                                escape_cp(c),
+                                i
+                            ),
+                        ))
+                    }
+                }
+            }
+            return Ok(Value::bytes(out));
+        }
         _ => return Err(exc("LookupError", format!("unknown encoding: {enc}"))),
     };
     let chars: Vec<char> = s.as_str().chars().collect();

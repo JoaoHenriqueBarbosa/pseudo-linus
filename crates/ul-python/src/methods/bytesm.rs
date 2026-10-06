@@ -117,11 +117,13 @@ enum Codec {
     Utf8,
     Ascii,
     Latin1,
+    Cp437,
 }
 
 fn codec_of(name: &str) -> Option<Codec> {
     let norm = name.trim().to_ascii_lowercase().replace('_', "-");
     match norm.as_str() {
+        "cp437" | "437" | "ibm437" => Some(Codec::Cp437),
         "utf-8" | "utf8" | "u8" | "utf" => Some(Codec::Utf8),
         "ascii" | "us-ascii" | "646" => Some(Codec::Ascii),
         "latin-1" | "latin1" | "iso-8859-1" | "iso8859-1" | "8859" | "cp819" | "latin" | "l1" => Some(Codec::Latin1),
@@ -212,6 +214,7 @@ fn decode(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         Codec::Utf8 => decode_utf8(&data, &errors)?,
         Codec::Ascii => decode_ascii(&data, &errors)?,
         Codec::Latin1 => data.iter().map(|&b| b as char).collect(),
+        Codec::Cp437 => data.iter().map(|&b| crate::cp437::decode_byte(b)).collect(),
     };
     Ok(Value::str(text))
 }
@@ -529,7 +532,392 @@ fn lower(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::bytes(this(&args)?.to_ascii_lowercase()))
 }
 
+fn rfind_impl(fname: &str, args: &[Value], kw: &Kw) -> PyResult<Option<usize>> {
+    nokw(fname, kw)?;
+    argc(fname, &args[1..], 1, 3)?;
+    let data = this(args)?;
+    let sub = sub_arg(&args[1])?;
+    let len = data.len();
+    let start = bound(args.get(2), len, 0)?;
+    let end = bound(args.get(3), len, len)?;
+    if start > len || end < start || end - start < sub.len() {
+        return Ok(None);
+    }
+    let window = &data[start..end];
+    let mut i = window.len() - sub.len();
+    loop {
+        if &window[i..i + sub.len()] == sub.as_slice() {
+            return Ok(Some(start + i));
+        }
+        if i == 0 {
+            return Ok(None);
+        }
+        i -= 1;
+    }
+}
+
+fn rfind(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    Ok(Value::Int(rfind_impl("rfind", &args, &kw)?.map_or(-1, |p| p as i64)))
+}
+
+fn rindex(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    match rfind_impl("rindex", &args, &kw)? {
+        Some(p) => Ok(Value::Int(p as i64)),
+        None => Err(exc("ValueError", "subsection not found")),
+    }
+}
+
+fn index(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    match find(vm, args, kw)? {
+        Value::Int(-1) => Err(exc("ValueError", "subsection not found")),
+        other => Ok(other),
+    }
+}
+
+fn partition_impl(fname: &str, args: Vec<Value>, kw: Kw, last: bool) -> PyResult<Value> {
+    nokw(fname, &kw)?;
+    argc(fname, &args[1..], 1, 1)?;
+    let data = this(&args)?;
+    let sep = want_bytes(&args[1])?;
+    if sep.is_empty() {
+        return Err(exc("ValueError", "empty separator"));
+    }
+    let at = if last {
+        (0..=data.len().saturating_sub(sep.len())).rev().find(|&i| data.len() >= sep.len() && data[i..i + sep.len()] == sep[..])
+    } else {
+        find_from(&data, &sep, 0)
+    };
+    Ok(match at {
+        Some(p) => Value::tuple(vec![
+            Value::bytes(data[..p].to_vec()),
+            Value::bytes(sep.to_vec()),
+            Value::bytes(data[p + sep.len()..].to_vec()),
+        ]),
+        None if last => Value::tuple(vec![Value::bytes(Vec::new()), Value::bytes(Vec::new()), Value::bytes(data.to_vec())]),
+        None => Value::tuple(vec![Value::bytes(data.to_vec()), Value::bytes(Vec::new()), Value::bytes(Vec::new())]),
+    })
+}
+
+fn partition(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    partition_impl("partition", args, kw, false)
+}
+
+fn rpartition(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    partition_impl("rpartition", args, kw, true)
+}
+
+fn rsplit(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    let data = this(&args)?;
+    let slots = bind("rsplit", args[1..].to_vec(), kw, &["sep", "maxsplit"], 0)?;
+    let maxsplit = match &slots[1] {
+        None => -1,
+        Some(v) => want_int(v)?,
+    };
+    if maxsplit < 0 {
+        let mut fwd = vec![Value::Bytes(data.clone())];
+        if let Some(s) = &slots[0] {
+            fwd.push(s.clone());
+        }
+        return split(vm, fwd, Vec::new());
+    }
+    let mut parts: Vec<Value> = Vec::new();
+    let mut end = data.len();
+    let mut count = 0i64;
+    match &slots[0] {
+        None | Some(Value::None) => {
+            while count < maxsplit {
+                while end > 0 && is_ws(data[end - 1]) {
+                    end -= 1;
+                }
+                if end == 0 {
+                    break;
+                }
+                let mut s = end;
+                while s > 0 && !is_ws(data[s - 1]) {
+                    s -= 1;
+                }
+                parts.push(Value::bytes(data[s..end].to_vec()));
+                end = s;
+                count += 1;
+            }
+            while end > 0 && is_ws(data[end - 1]) {
+                end -= 1;
+            }
+            if end > 0 {
+                parts.push(Value::bytes(data[..end].to_vec()));
+            }
+        }
+        Some(sep) => {
+            let sep = want_bytes(sep)?;
+            if sep.is_empty() {
+                return Err(exc("ValueError", "empty separator"));
+            }
+            while count < maxsplit && end >= sep.len() {
+                match (0..=end - sep.len()).rev().find(|&i| data[i..i + sep.len()] == sep[..]) {
+                    Some(p) => {
+                        parts.push(Value::bytes(data[p + sep.len()..end].to_vec()));
+                        end = p;
+                        count += 1;
+                    }
+                    None => break,
+                }
+            }
+            parts.push(Value::bytes(data[..end].to_vec()));
+        }
+    }
+    parts.reverse();
+    Ok(Value::list(parts))
+}
+
+fn splitlines(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    let data = this(&args)?;
+    let slots = bind("splitlines", args[1..].to_vec(), kw, &["keepends"], 0)?;
+    let keep = slots[0].as_ref().is_some_and(Value::is_true);
+    let mut out = Vec::new();
+    let mut i = 0;
+    let mut start = 0;
+    while i < data.len() {
+        let c = data[i];
+        if c == b'\n' || c == b'\r' {
+            let mut j = i + 1;
+            if c == b'\r' && j < data.len() && data[j] == b'\n' {
+                j += 1;
+            }
+            out.push(Value::bytes(data[start..if keep { j } else { i }].to_vec()));
+            start = j;
+            i = j;
+        } else {
+            i += 1;
+        }
+    }
+    if start < data.len() {
+        out.push(Value::bytes(data[start..].to_vec()));
+    }
+    Ok(Value::list(out))
+}
+
+fn removeprefix(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    nokw("removeprefix", &kw)?;
+    argc("removeprefix", &args[1..], 1, 1)?;
+    let data = this(&args)?;
+    let p = want_bytes(&args[1])?;
+    Ok(Value::bytes(if data.starts_with(&p) { data[p.len()..].to_vec() } else { data.to_vec() }))
+}
+
+fn removesuffix(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    nokw("removesuffix", &kw)?;
+    argc("removesuffix", &args[1..], 1, 1)?;
+    let data = this(&args)?;
+    let p = want_bytes(&args[1])?;
+    Ok(Value::bytes(if !p.is_empty() && data.ends_with(&p) { data[..data.len() - p.len()].to_vec() } else { data.to_vec() }))
+}
+
+/// `center`/`ljust`/`rjust`: 0 esquerda (preenche à direita), 1 direita, 2 centro.
+fn justify(fname: &str, args: Vec<Value>, kw: Kw, mode: u8) -> PyResult<Value> {
+    nokw(fname, &kw)?;
+    argc(fname, &args[1..], 1, 2)?;
+    let data = this(&args)?;
+    let width = want_int(&args[1])?.max(0) as usize;
+    let fill = match args.get(2) {
+        None => b' ',
+        Some(Value::Bytes(b)) if b.len() == 1 => b[0],
+        Some(_) => return Err(type_error(format!("{fname}() argument 2 must be a byte string of length 1"))),
+    };
+    if width <= data.len() {
+        return Ok(Value::bytes(data.to_vec()));
+    }
+    let pad = width - data.len();
+    let left = match mode {
+        0 => 0,
+        1 => pad,
+        _ => pad / 2 + (pad & width & 1),
+    };
+    let mut out = vec![fill; left];
+    out.extend_from_slice(&data);
+    out.resize(width, fill);
+    Ok(Value::bytes(out))
+}
+
+fn ljust(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    justify("ljust", args, kw, 0)
+}
+
+fn rjust(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    justify("rjust", args, kw, 1)
+}
+
+fn center(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    justify("center", args, kw, 2)
+}
+
+fn zfill(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    nokw("zfill", &kw)?;
+    argc("zfill", &args[1..], 1, 1)?;
+    let data = this(&args)?;
+    let width = want_int(&args[1])?.max(0) as usize;
+    if width <= data.len() {
+        return Ok(Value::bytes(data.to_vec()));
+    }
+    let pad = width - data.len();
+    let (sign, rest) = match data.first() {
+        Some(b'+' | b'-') => (&data[..1], &data[1..]),
+        _ => (&data[..0], &data[..]),
+    };
+    let mut out = sign.to_vec();
+    out.extend(std::iter::repeat_n(b'0', pad));
+    out.extend_from_slice(rest);
+    Ok(Value::bytes(out))
+}
+
+fn predicate(fname: &str, args: &[Value], kw: &Kw, f: fn(&[u8]) -> bool) -> PyResult<Value> {
+    nokw(fname, kw)?;
+    argc(fname, &args[1..], 0, 0)?;
+    Ok(Value::Bool(f(&this(args)?)))
+}
+
+fn isalpha(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    predicate("isalpha", &args, &kw, |d| !d.is_empty() && d.iter().all(u8::is_ascii_alphabetic))
+}
+
+fn isdigit(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    predicate("isdigit", &args, &kw, |d| !d.is_empty() && d.iter().all(u8::is_ascii_digit))
+}
+
+fn isalnum(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    predicate("isalnum", &args, &kw, |d| !d.is_empty() && d.iter().all(u8::is_ascii_alphanumeric))
+}
+
+fn isspace(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    predicate("isspace", &args, &kw, |d| !d.is_empty() && d.iter().all(|&b| is_ws(b)))
+}
+
+fn isupper(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    predicate("isupper", &args, &kw, |d| d.iter().any(u8::is_ascii_uppercase) && !d.iter().any(u8::is_ascii_lowercase))
+}
+
+fn islower(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    predicate("islower", &args, &kw, |d| d.iter().any(u8::is_ascii_lowercase) && !d.iter().any(u8::is_ascii_uppercase))
+}
+
+fn isascii(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    predicate("isascii", &args, &kw, |d| d.is_ascii())
+}
+
+fn swapcase(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    nokw("swapcase", &kw)?;
+    argc("swapcase", &args[1..], 0, 0)?;
+    let d = this(&args)?;
+    Ok(Value::bytes(
+        d.iter()
+            .map(|&b| if b.is_ascii_lowercase() { b.to_ascii_uppercase() } else { b.to_ascii_lowercase() })
+            .collect::<Vec<u8>>(),
+    ))
+}
+
+fn capitalize(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    nokw("capitalize", &kw)?;
+    argc("capitalize", &args[1..], 0, 0)?;
+    let d = this(&args)?;
+    Ok(Value::bytes(
+        d.iter().enumerate().map(|(i, b)| if i == 0 { b.to_ascii_uppercase() } else { b.to_ascii_lowercase() }).collect::<Vec<u8>>(),
+    ))
+}
+
+fn title(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    nokw("title", &kw)?;
+    argc("title", &args[1..], 0, 0)?;
+    let d = this(&args)?;
+    let mut prev_alpha = false;
+    let out: Vec<u8> = d
+        .iter()
+        .map(|&b| {
+            let r = if prev_alpha { b.to_ascii_lowercase() } else { b.to_ascii_uppercase() };
+            prev_alpha = b.is_ascii_alphabetic();
+            r
+        })
+        .collect();
+    Ok(Value::bytes(out))
+}
+
+fn expandtabs(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    let data = this(&args)?;
+    let slots = bind("expandtabs", args[1..].to_vec(), kw, &["tabsize"], 0)?;
+    let tab = slots[0].as_ref().map(want_int).transpose()?.unwrap_or(8).max(0) as usize;
+    let mut out = Vec::new();
+    let mut col = 0usize;
+    for &b in data.iter() {
+        match b {
+            b'\t' => {
+                if tab > 0 {
+                    let n = tab - col % tab;
+                    out.extend(std::iter::repeat_n(b' ', n));
+                    col += n;
+                }
+            }
+            b'\n' | b'\r' => {
+                out.push(b);
+                col = 0;
+            }
+            _ => {
+                out.push(b);
+                col += 1;
+            }
+        }
+    }
+    Ok(Value::bytes(out))
+}
+
+fn translate(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    let data = this(&args)?;
+    let slots = bind("translate", args[1..].to_vec(), kw, &["table", "delete"], 1)?;
+    let table: Option<Rc<[u8]>> = match &slots[0] {
+        Some(Value::None) | None => None,
+        Some(v) => {
+            let t = want_bytes(v)?;
+            if t.len() != 256 {
+                return Err(exc("ValueError", "translation table must be 256 characters long"));
+            }
+            Some(t)
+        }
+    };
+    let delete: Rc<[u8]> = match &slots[1] {
+        Some(v) => want_bytes(v)?,
+        None => Rc::from(Vec::new()),
+    };
+    let out: Vec<u8> = data
+        .iter()
+        .filter(|b| !delete.contains(b))
+        .map(|&b| table.as_ref().map_or(b, |t| t[b as usize]))
+        .collect();
+    Ok(Value::bytes(out))
+}
+
 pub const TABLE: &[(&str, NativeFnPtr)] = &[
+    ("rfind", rfind),
+    ("rindex", rindex),
+    ("index", index),
+    ("partition", partition),
+    ("rpartition", rpartition),
+    ("rsplit", rsplit),
+    ("splitlines", splitlines),
+    ("removeprefix", removeprefix),
+    ("removesuffix", removesuffix),
+    ("ljust", ljust),
+    ("rjust", rjust),
+    ("center", center),
+    ("zfill", zfill),
+    ("isalpha", isalpha),
+    ("isdigit", isdigit),
+    ("isalnum", isalnum),
+    ("isspace", isspace),
+    ("isupper", isupper),
+    ("islower", islower),
+    ("isascii", isascii),
+    ("swapcase", swapcase),
+    ("capitalize", capitalize),
+    ("title", title),
+    ("expandtabs", expandtabs),
+    ("translate", translate),
     ("decode", decode),
     ("hex", hex),
     ("split", split),
