@@ -823,7 +823,19 @@ fn p_sh(p: &mut Proc) -> Result<i32, Killed> {
                 return Ok(127);
             }
         },
-        _ => p.read_all()?,
+        _ => {
+            // Script pelo stdin: a primeira linha decide se é o laço de sessão do host, que manda
+            // o laço numa linha só e depois os ids pelo mesmo pipe.
+            let Some(first) = p.read_line()? else { return Ok(0) };
+            if first.starts_with(b"__osh_dir='") {
+                first
+            } else {
+                let mut s = first;
+                s.push(b'\n');
+                s.extend(p.read_all()?);
+                s
+            }
+        }
     };
     if let Some(rest) = script.strip_prefix(b"__osh_dir='") {
         let end = rest.iter().position(|b| *b == b'\'').unwrap_or(rest.len());

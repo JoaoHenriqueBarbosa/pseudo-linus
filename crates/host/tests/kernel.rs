@@ -217,6 +217,28 @@ fn session_errors_look_like_bash_dash_c() {
     assert_eq!(r["stdout"], "bash\n", "{r}");
 }
 
+/// Um job em segundo plano morto é recolhido pelo shell da sessão mesmo com ele parado esperando o
+/// próximo comando: outra sessão não vê zumbi no `ps`. E o shell da sessão aparece só como `bash`.
+#[test]
+fn background_job_is_reaped_and_session_shell_looks_like_bash() {
+    let d = Daemon::kernel("");
+    let t = d.user("caio", json!({}));
+    let c = d.client(&t);
+    let sb = sandbox(&c);
+    let open = || c.call("session.open", json!({ "sandbox_id": sb })).unwrap()["session_id"].as_str().unwrap().to_string();
+    let (a, b) = (open(), open());
+    let exec = |s: &str, cmd: &str| c.call("session.exec", json!({ "session_id": s, "command": cmd })).unwrap();
+    let r = exec(&a, "sh -c 'while :; do sleep 1; done' >/dev/null 2>&1 & echo $!");
+    let pid = r["stdout"].as_str().unwrap().trim().to_string();
+    let r = exec(&b, &format!("kill {pid}; sleep 0.3; ps -o stat= -p {pid} || echo gone"));
+    assert_eq!(r["stdout"], "gone\n", "{r}");
+    let r = exec(&b, "ps -eo args= > /tmp/ps.txt; grep -c -x bash /tmp/ps.txt; grep -c osh /tmp/ps.txt");
+    assert_eq!(r["stdout"], "2\n0\n", "{r}");
+    // A sessão que lançou o job segue funcionando e o `wait` vê o status do morto.
+    let r = exec(&a, &format!("wait {pid}; echo $?"));
+    assert_eq!(r["stdout"], "143\n", "{r}");
+}
+
 /// Um snapshot de antes da sessão existir, restaurado com a sessão aberta, não a quebra.
 #[test]
 fn session_survives_restoring_a_snapshot_older_than_it() {

@@ -79,6 +79,9 @@ pub struct Shell {
     pub traps: Traps,
     pub jobs: Vec<Job>,
     pub next_job: usize,
+    /// O shell captura SIGCHLD por conta própria (desde o primeiro job em segundo plano) para
+    /// recolher filhos mortos na hora, como o handler interno do bash, mesmo parado num `read`.
+    pub sigchld_armed: bool,
     /// Pilha do `pushd`/`popd` (sem o diretório corrente, que é o topo implícito).
     pub dirstack: Vec<Vec<u8>>,
     /// Tabela do `hash`: nome -> (caminho, acertos).
@@ -186,6 +189,7 @@ impl Shell {
             traps: Traps::default(),
             jobs: Vec::new(),
             next_job: 1,
+            sigchld_armed: false,
             dirstack: Vec::new(),
             hash: BTreeMap::new(),
             frames: Vec::new(),

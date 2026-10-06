@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use sysabi::{AtFlags, Errno, Fd, FdAction, FileType, OFlags, Pid, ProcAttrs, Signal, SpawnSpec, WaitOptions, WaitStatus, WaitTarget};
+use sysabi::{AtFlags, Errno, Fd, FdAction, FileType, OFlags, Pid, ProcAttrs, SigDisposition, Signal, SpawnSpec, WaitOptions, WaitStatus, WaitTarget};
 
 use crate::ast::*;
 use crate::builtins::{self, Arg, AssignArg, AssignedValue};
@@ -1429,6 +1429,7 @@ impl Shell {
         let id = self.next_job;
         self.next_job += 1;
         self.jobs.push(Job { id, pids: vec![pid], text: format!("coproc {name} {}", crate::print::command_text(body)), status: vec![None], reported: false });
+        self.arm_sigchld();
         Ok(0)
     }
 
@@ -1464,6 +1465,7 @@ impl Shell {
                 let id = self.next_job;
                 self.next_job += 1;
                 self.jobs.push(Job { id, pids: vec![pid], text: crate::print::and_or_text(ao), status: vec![None], reported: false });
+                self.arm_sigchld();
                 Ok(0)
             }
             Err(e) => {
@@ -1476,11 +1478,38 @@ impl Shell {
     // ---- traps ----
 
     /// Roda os traps de sinais que chegaram.
+    /// Passa a capturar SIGCHLD (uma vez), para que filhos em segundo plano sejam recolhidos assim
+    /// que morrem e não fiquem zumbis visíveis no `ps` enquanto o shell espera noutra coisa.
+    pub fn arm_sigchld(&mut self) {
+        if !self.sigchld_armed {
+            self.sigchld_armed = true;
+            let _ = sys().sigaction(Signal::SIGCHLD, SigDisposition::Catch);
+            // Um filho que morreu antes da captura não gerou sinal capturado: recolhe agora.
+            self.reap_background();
+        }
+    }
+
+    /// Recolhe sem bloquear os jobs que já terminaram, guardando o status para `wait` e `jobs`.
+    pub fn reap_background(&mut self) {
+        let s = sys();
+        for j in &mut self.jobs {
+            for (k, pid) in j.pids.iter().enumerate() {
+                if j.status[k].is_none()
+                    && let Ok(Some((_, st))) = s.wait4(WaitTarget::Pid(*pid), WaitOptions::NOHANG) {
+                        j.status[k] = Some(st.shell_status());
+                    }
+            }
+        }
+    }
+
     pub fn run_pending_traps(&mut self) -> Result<(), Flow> {
         if self.in_trap > 0 {
             return Ok(());
         }
         let sigs = sys().take_caught_signals();
+        if sigs.contains(&Signal::SIGCHLD) {
+            self.reap_background();
+        }
         for sig in sigs {
             if let Some(cmd) = self.traps.signals.get(&sig.0).cloned()
                 && !cmd.is_empty() {

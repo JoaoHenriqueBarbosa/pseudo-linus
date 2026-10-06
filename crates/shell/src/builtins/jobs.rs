@@ -173,6 +173,12 @@ pub fn trap(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
                 }
                 if n != TRAP_EXIT {
                     let sig = Signal(n);
+                    // Sem trap do usuário, o SIGCHLD volta para a captura interna, não para o padrão.
+                    let disp = if sig == Signal::SIGCHLD && disp == SigDisposition::Default && sh.sigchld_armed {
+                        SigDisposition::Catch
+                    } else {
+                        disp
+                    };
                     if !sig.is_uncatchable() {
                         let _ = sys().sigaction(sig, disp);
                     }

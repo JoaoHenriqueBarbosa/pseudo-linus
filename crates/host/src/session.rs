@@ -113,7 +113,7 @@ impl Shell {
         };
         let spawned = sb.spawn(SpawnRequest {
             path: bash,
-            argv: vec![b"bash".to_vec(), b"-c".to_vec(), script.into_bytes()],
+            argv: vec![b"bash".to_vec()],
             env: state.env.clone(),
             cwd,
         })?;
@@ -139,7 +139,17 @@ impl Shell {
             let (w, t, s) = (spawned.exit, tx, stop.clone());
             handles.push(spawn("wait", Box::new(move || waiter_thread(w, t, s)))?);
         }
-        Ok(Shell { pid, stdin: spawned.stdin, rx, stop, handles })
+        let mut shell = Shell { pid, stdin: spawned.stdin, rx, stop, handles };
+        // O laço entra pelo stdin, como num `bash` lendo comandos de um pipe: na tabela de processos
+        // o shell da sessão aparece só como `bash`, sem o laço de controle na linha de comando. O
+        // bash lê o script do pipe uma linha por vez, então o `read` do laço pega os ids seguintes.
+        let mut line = script.into_bytes();
+        line.push(b'\n');
+        if !shell.send_line(&line, Duration::from_secs(10)) {
+            let _ = shell.kill(sb);
+            return Err(BackendError::Internal("o shell da sessão não aceitou o laço de controle".into()));
+        }
+        Ok(shell)
     }
 
     /// Mata a sessão inteira e recolhe as threads.

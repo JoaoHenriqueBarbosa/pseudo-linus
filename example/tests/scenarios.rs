@@ -107,6 +107,71 @@ async fn session_state_persists() -> anyhow::Result<()> {
     s.finish().await
 }
 
+/// Um processo pendurado em segundo plano: o modelo precisa achar e matar, e o processo some mesmo.
+#[tokio::test(flavor = "multi_thread")]
+async fn find_and_kill_runaway_process() -> anyhow::Result<()> {
+    let s = Scenario::start("kill_runaway").await?;
+    s.sandbox.exec("setup", "nohup sh -c 'while :; do sleep 1; done' >/dev/null 2>&1 & echo $! > /tmp/runaway.pid", None).await?;
+    let t = s
+        .agent(
+            "main",
+            "Some shell loop running `sleep 1` forever was left in the background on this machine. Find it with \
+             ps, kill it (and only it), and prove it is gone.",
+        )
+        .await?;
+    assert!(!t.is_error, "{}", t.final_text);
+    let alive = s.sandbox.exec("check", "kill -0 $(cat /tmp/runaway.pid) 2>/dev/null && echo vivo || echo morto", None).await?;
+    assert_eq!(alive.stdout.trim(), "morto", "comandos: {:?}", t.commands());
+    s.finish().await
+}
+
+/// Um comando que estoura o timeout: a sessão é reiniciada mantendo cwd e `export`, e o modelo segue.
+#[tokio::test(flavor = "multi_thread")]
+async fn timeout_resets_session_and_agent_recovers() -> anyhow::Result<()> {
+    let s = Scenario::start("timeout_recovery").await?;
+    let t = s
+        .agent(
+            "main",
+            "In session \"main\": run `cd /var/tmp && export MARK=kept`, then run `sleep 120` with timeout_ms set to \
+             2000 (it will time out). After that, in the same session, print `pwd` and `$MARK` and tell me whether \
+             they survived the timeout.",
+        )
+        .await?;
+    assert!(!t.is_error, "{}", t.final_text);
+    assert!(t.tool_calls.iter().any(|c| c.output.contains("[timed out]")), "nenhum timeout: {:?}", t.commands());
+    let after = t.tool_calls.iter().rev().find(|c| c.output.contains("/var/tmp")).map(|c| c.output.clone());
+    assert!(after.as_deref().is_some_and(|o| o.contains("kept")), "{:?}", t.tool_calls);
+    s.finish().await
+}
+
+/// Dois sandboxes do mesmo usuário em paralelo: o que um agente escreve o outro não vê.
+#[tokio::test(flavor = "multi_thread")]
+async fn parallel_sandboxes_are_isolated() -> anyhow::Result<()> {
+    let s = Scenario::start("parallel_sandboxes").await?;
+    let other = pl_agent_harness::sandbox::Sandbox::create(&s.daemon.base_url, &s.daemon.token, "other").await?;
+    let a = pl_agent_harness::agent::run(
+        &s.sandbox,
+        &s.cassette,
+        "one",
+        "Write the text `belongs-to-one` to /root/secret.txt and show the file.",
+    );
+    let b = pl_agent_harness::agent::run(
+        &other,
+        &s.cassette,
+        "two",
+        "Check whether the file /root/secret.txt exists. Report exactly `EXISTS` or `MISSING`, and the hostname.",
+    );
+    let (a, b) = tokio::join!(a, b);
+    let (a, b) = (a?, b?);
+    assert!(!a.is_error && !b.is_error);
+    assert_eq!(s.sandbox.read_file("/root/secret.txt").await?.trim(), "belongs-to-one");
+    let check = other.exec("check", "test -e /root/secret.txt && echo sim || echo nao; hostname", None).await?;
+    assert_eq!(check.stdout, "nao\nother\n");
+    assert!(b.final_text.contains("MISSING") && b.final_text.contains("other"), "{}", b.final_text);
+    other.destroy().await?;
+    s.finish().await
+}
+
 /// Exercício livre: o modelo monta e roda um pipeline de verdade (compilar C, testar, empacotar).
 #[tokio::test(flavor = "multi_thread")]
 async fn build_test_package_pipeline() -> anyhow::Result<()> {
