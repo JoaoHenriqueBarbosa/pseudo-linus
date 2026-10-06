@@ -159,6 +159,10 @@ class Queue:
                         raise Full
                 elif timeout is None:
                     while self._qsize() >= self.maxsize:
+                        # Threads cooperativas: um produtor que só poderia esperar o consumidor da principal
+                        # (que não roda enquanto ele não terminar) passa do limite em vez de estacionar.
+                        if threading._would_park():
+                            break
                         self.not_full.wait()
                         if self.is_shutdown:
                             raise ShutDown

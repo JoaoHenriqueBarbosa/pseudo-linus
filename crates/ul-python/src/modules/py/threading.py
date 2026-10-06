@@ -66,6 +66,11 @@ def _no_progress(what):
     raise _Parked()
 
 
+def _would_park():
+    """Uma espera sem prazo agora estacionaria a thread atual (não é a principal e nada pendente a destravaria)."""
+    return _state['current'] is not _main and not _pending
+
+
 def _wait_for(cond, timeout, what):
     """Roda threads pendentes até `cond()` ficar verdadeira. Com `timeout`, dorme o que faltar e devolve `cond()`."""
     deadline = None if timeout is None else _time.monotonic() + max(timeout, 0)

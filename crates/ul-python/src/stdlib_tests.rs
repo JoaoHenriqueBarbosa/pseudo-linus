@@ -3440,3 +3440,26 @@ B.C B.C.n
 "##
     );
 }
+
+#[test]
+fn bounded_queue_with_producer_thread() {
+    let src = r##"
+import queue
+import threading
+
+q = queue.Queue(maxsize=2)
+prod = threading.Thread(target=lambda: ([q.put(i) for i in range(5)], q.put(None)))
+prod.start()
+got = []
+while (v := q.get()) is not None:
+    got.append(v)
+print(got)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"[0, 1, 2, 3, 4]
+"##
+    );
+}

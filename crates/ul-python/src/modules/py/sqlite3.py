@@ -360,7 +360,7 @@ class Cursor:
                 self.rowcount = (self.rowcount if accumulate and self.rowcount >= 0 else 0) + changes
             elif not accumulate:
                 self.rowcount = -1
-        if first in ('INSERT', 'REPLACE'):
+        if first in ('INSERT', 'REPLACE') and not accumulate:
             self.lastrowid = rowid
 
     def execute(self, sql, parameters=()):
