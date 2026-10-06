@@ -8,7 +8,7 @@ use crate::object::{ExtObject, Kw, Value};
 use crate::vm::{exc, PyException, PyResult, Vm};
 
 /// Uma entrada: linha e nome do código, do quadro mais externo para o mais interno.
-pub type Entries = Rc<Vec<(usize, String, Rc<str>)>>;
+pub type Entries = Rc<Vec<crate::vm::TbEntry>>;
 
 pub struct TracebackObj {
     entries: Entries,
@@ -20,7 +20,7 @@ pub struct TracebackObj {
 
 impl TracebackObj {
     /// O traceback que começa no quadro mais externo de `entries`; `None` se estiver vazio.
-    pub fn make(entries: Vec<(usize, String, Rc<str>)>, filename: &str) -> Value {
+    pub fn make(entries: Vec<crate::vm::TbEntry>, filename: &str) -> Value {
         if entries.is_empty() {
             return Value::None;
         }
@@ -30,7 +30,7 @@ impl TracebackObj {
 
 impl TracebackObj {
     /// Os quadros que este traceback cobre (do mais externo para o mais interno) e o arquivo padrão.
-    pub fn frames(&self) -> (Vec<(usize, String, Rc<str>)>, Rc<str>) {
+    pub fn frames(&self) -> (Vec<crate::vm::TbEntry>, Rc<str>) {
         let mut out = vec![self.entries[self.idx].clone()];
         match &*self.next.borrow() {
             // Cortado ou religado por `tb_next = ...`: segue o que foi atribuído.
@@ -60,11 +60,18 @@ impl ExtObject for TracebackObj {
     }
 
     fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
-        let (line, code, own) = &self.entries[self.idx];
+        let (line, code, own, span) = &self.entries[self.idx];
         let file = if own.is_empty() { self.filename.clone() } else { own.clone() };
         Some(Ok(match name {
             "tb_lineno" => Value::Int(*line as i64),
             "tb_lasti" => Value::Int(0),
+            "_position" if span.lineno > 0 => Value::tuple(vec![
+                Value::Int(span.lineno as i64),
+                Value::Int(span.end_lineno as i64),
+                Value::Int(span.col as i64),
+                Value::Int(span.end_col as i64),
+            ]),
+            "_position" => Value::None,
             "tb_frame" => Value::Ext(Rc::new(FrameObj {
                 chain: Rc::new(vec![(*line, code.clone(), file)]),
                 idx: 0,

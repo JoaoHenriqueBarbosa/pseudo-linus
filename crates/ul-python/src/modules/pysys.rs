@@ -58,6 +58,15 @@ fn source_line(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(crate::vm::source_line(file.as_str(), *line as usize).map_or(Value::None, Value::str))
 }
 
+/// `_frame_body(linhas, lineno, end_lineno, col, end_col)`: fonte e carets de um quadro, como no CPython 3.13.
+fn frame_body(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let Some(Value::List(list)) = args.first() else { return Ok(Value::None) };
+    let lines: Vec<String> = list.borrow().iter().map(|v| if let Value::Str(s) = v { s.as_str().to_string() } else { String::new() }).collect();
+    let num = |i: usize| if let Some(Value::Int(n)) = args.get(i) { *n as u32 } else { 0 };
+    let span = (num(1) > 0).then(|| crate::compile::Span { lineno: num(1), end_lineno: num(2), col: num(3), end_col: num(4) });
+    Ok(Value::str(crate::carets::frame_body(&lines, span)))
+}
+
 /// `_reload(módulo)`: relê o arquivo do módulo nas mesmas globais.
 fn reload(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     let Some(Value::Module(m)) = args.first() else { return Err(crate::vm::type_error("reload() argument must be a module")) };
@@ -161,6 +170,7 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
         .func("_exc_hint", exc_hint)
         .func("_builtin", mark_builtin)
         .func("_source_line", source_line)
+        .func("_frame_body", frame_body)
         .func("_set_module", set_module)
         .func("_reload", reload)
         .func("_is_builtin_module", is_builtin_module)

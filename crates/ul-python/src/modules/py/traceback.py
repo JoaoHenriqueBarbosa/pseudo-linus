@@ -12,12 +12,12 @@ _sentinel = object()
 _source_cache = {}
 
 
-def _source_line(filename, lineno):
+def _source_line(filename, lineno, strip=True):
     if filename.startswith('<'):
         return None
     text = _sys._source_line(filename, lineno)
     if text is not None:
-        return text.strip()
+        return text.strip() if strip else text
     lines = _source_cache.get(filename)
     if lines is None:
         try:
@@ -27,7 +27,7 @@ def _source_line(filename, lineno):
             lines = []
         _source_cache[filename] = lines
     if 1 <= lineno <= len(lines):
-        return lines[lineno - 1].strip()
+        return lines[lineno - 1].strip() if strip else lines[lineno - 1]
     return None
 
 
@@ -116,7 +116,15 @@ class StackSummary(list):
         row = ['  File "{}", line {}, in {}\n'.format(frame_summary.filename, frame_summary.lineno,
                                                        frame_summary.name)]
         if frame_summary.line:
-            row.append('    {}\n'.format(frame_summary.line.strip()))
+            body = None
+            end = frame_summary.end_lineno
+            if frame_summary.colno is not None and end is not None and end >= frame_summary.lineno:
+                lines = [_source_line(frame_summary.filename, n, False)
+                         for n in range(frame_summary.lineno, end + 1)]
+                if None not in lines:
+                    body = _sys._frame_body(lines, frame_summary.lineno, end,
+                                            frame_summary.colno, frame_summary.end_colno)
+            row.append(body if body else '    {}\n'.format(frame_summary.line.strip()))
         return ''.join(row)
 
     def format(self):
@@ -152,7 +160,19 @@ class StackSummary(list):
 
 
 def extract_tb(tb, limit=None):
-    return StackSummary.extract(walk_tb(tb), limit=limit)
+    result = StackSummary()
+    while tb is not None:
+        co = tb.tb_frame.f_code
+        pos = tb._position
+        if pos is None:
+            result.append(FrameSummary(co.co_filename, tb.tb_lineno, co.co_name))
+        else:
+            result.append(FrameSummary(co.co_filename, pos[0], co.co_name, end_lineno=pos[1],
+                                       colno=pos[2], end_colno=pos[3]))
+        tb = tb.tb_next
+    if limit is not None:
+        result[:] = result[:limit] if limit >= 0 else result[limit:]
+    return result
 
 
 def extract_stack(f=None, limit=None):

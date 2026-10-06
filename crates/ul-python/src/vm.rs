@@ -37,7 +37,17 @@ pub struct PyException {
     /// Quadros que a exceção atravessou sem tratamento: linha e nome do código, do mais interno
     /// para o mais externo.
     /// O terceiro item é o arquivo do código (vazio: o script principal).
-    pub tb: Vec<(usize, String, Rc<str>)>,
+    pub tb: Vec<TbEntry>,
+}
+
+/// Uma entrada de traceback: linha, nome do código, arquivo (vazio: o script principal) e o intervalo de fonte
+/// da instrução que falhou.
+pub type TbEntry = (usize, String, Rc<str>, crate::compile::Span);
+
+/// Desde o 3.12 (PEP 709) as compreensões de lista, conjunto e dicionário não têm quadro próprio:
+/// o traceback mostra a linha de dentro com o nome da função que as contém. (`<genexpr>` mantém o seu.)
+fn is_inlined_comp(name: &str) -> bool {
+    matches!(name, "<listcomp>" | "<setcomp>" | "<dictcomp>")
 }
 
 /// `(__cause__, __context__, __suppress_context__)` de uma exceção.
@@ -162,8 +172,8 @@ impl PyException {
 
 /// Entrada sentinela no fim de `tb`: "este quadro já está no traceback" (ver `PyException::reraised`).
 #[allow(non_snake_case)]
-fn RERAISE_MARK() -> (usize, String, Rc<str>) {
-    (usize::MAX, String::new(), Rc::from(""))
+fn RERAISE_MARK() -> TbEntry {
+    (usize::MAX, String::new(), Rc::from(""), crate::compile::Span::default())
 }
 
 impl PyException {
@@ -354,25 +364,33 @@ pub(crate) fn source_line(file: &str, line: usize) -> Option<String> {
 const CAUSE_MESSAGE: &str = "\nThe above exception was the direct cause of the following exception:\n\n";
 const CONTEXT_MESSAGE: &str = "\nDuring handling of the above exception, another exception occurred:\n\n";
 
-fn push_frame(out: &mut String, file: &str, src: Option<&str>, line: usize, name: &str, own: &str) {
+fn push_frame(out: &mut String, file: &str, src: Option<&str>, line: usize, name: &str, own: &str, span: crate::compile::Span) {
     let shown = if own.is_empty() { file } else { own };
     out.push_str(&format!("  File \"{shown}\", line {line}, in {name}\n"));
-    let text = if own.is_empty() {
-        src.and_then(|s| s.lines().nth(line.saturating_sub(1))).map(str::to_string)
-    } else {
-        source_line(own, line)
-    };
-    if let Some(text) = text {
-        let t = text.trim();
-        if !t.is_empty() {
-            out.push_str(&format!("    {t}\n"));
+    let fetch = |n: usize| -> Option<String> {
+        if own.is_empty() {
+            src.and_then(|s| s.lines().nth(n.saturating_sub(1))).map(str::to_string)
+        } else {
+            source_line(own, n)
         }
-    }
+    };
+    let Some(first) = fetch(line) else { return };
+    // O intervalo só vale se for da mesma linha que o quadro registrou (instruções sintéticas ficam sem carets).
+    let known = span.lineno as usize == line && span.end_lineno >= span.lineno && span.end_col > 0;
+    let (lines, span) = if known {
+        let lines = (span.lineno..=span.end_lineno)
+            .map(|n| if n as usize == line { first.clone() } else { fetch(n as usize).unwrap_or_default() })
+            .collect();
+        (lines, Some(span))
+    } else {
+        (vec![first], None)
+    };
+    out.push_str(&crate::carets::frame_body(&lines, span));
 }
 
 /// Quadros do mais antigo ao mais novo; a partir da quarta repetição idêntica seguida, o CPython
 /// troca os quadros por `[Previous line repeated N more times]`.
-fn push_frames(out: &mut String, file: &str, src: Option<&str>, frames: &[(usize, &str, &str)]) {
+fn push_frames(out: &mut String, file: &str, src: Option<&str>, frames: &[(usize, &str, &str, crate::compile::Span)]) {
     let mut last: Option<(usize, &str, &str)> = None;
     let mut count = 0usize;
     let flush = |out: &mut String, count: usize| {
@@ -386,14 +404,14 @@ fn push_frames(out: &mut String, file: &str, src: Option<&str>, frames: &[(usize
         if f.2.ends_with("/warnings.py") && matches!(f.1, "warn" | "warn_explicit") {
             continue;
         }
-        if last != Some(*f) {
+        if last != Some((f.0, f.1, f.2)) {
             flush(out, count);
-            last = Some(*f);
+            last = Some((f.0, f.1, f.2));
             count = 0;
         }
         count += 1;
         if count <= 3 {
-            push_frame(out, file, src, f.0, f.1, f.2);
+            push_frame(out, file, src, f.0, f.1, f.2, f.3);
         }
     }
     flush(out, count);
@@ -447,7 +465,7 @@ fn exc_section(v: &Value, file: &str, src: Option<&str>) -> String {
     };
     if let Some((frames, _)) = frames {
         out.push_str("Traceback (most recent call last):\n");
-        let list: Vec<(usize, &str, &str)> = frames.iter().map(|(l, n, o)| (*l, n.as_str(), &**o)).collect();
+        let list: Vec<(usize, &str, &str, crate::compile::Span)> = frames.iter().map(|(l, n, o, s)| (*l, n.as_str(), &**o, *s)).collect();
         push_frames(&mut out, file, src, &list);
     }
     let pe = PyException::from_value(v);
@@ -467,9 +485,9 @@ pub fn format_traceback_in(err: &RuntimeError, file: &str, src: Option<&str>) ->
     };
     out.push_str("Traceback (most recent call last):\n");
     if err.exc.tb.is_empty() {
-        push_frame(&mut out, file, src, err.lineno, "<module>", "");
+        push_frame(&mut out, file, src, err.lineno, "<module>", "", crate::compile::Span::default());
     }
-    let list: Vec<(usize, &str, &str)> = err.exc.tb.iter().rev().map(|(l, n, o)| (*l, n.as_str(), &**o)).collect();
+    let list: Vec<(usize, &str, &str, crate::compile::Span)> = err.exc.tb.iter().rev().map(|(l, n, o, s)| (*l, n.as_str(), &**o, *s)).collect();
     push_frames(&mut out, file, src, &list);
     if err.exc.msg.is_empty() {
         out.push_str(err.exc.kind);
@@ -1039,12 +1057,13 @@ impl Vm {
                         let value = e.to_value();
                         // `__traceback__`: o quadro que captura primeiro, depois os internos.
                         let reraised = e.take_reraise_mark();
-                        let mut entries = if reraised {
-                            Vec::new()
-                        } else {
-                            vec![(code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str()))]
-                        };
-                        entries.extend(e.tb.iter().rev().cloned());
+                        let mut entries: Vec<TbEntry> = e.tb.iter().rev().cloned().collect();
+                        if !reraised {
+                            match entries.first_mut() {
+                                Some(first) if is_inlined_comp(&first.1) => first.1 = code.name.clone(),
+                                _ => entries.insert(0, (code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str()), code.spans[*pc])),
+                            }
+                        }
                         let filename = self.script_name();
                         let tb = crate::tbobj::TracebackObj::make(entries, &filename);
                         match &value {
@@ -1059,7 +1078,10 @@ impl Vm {
                     }
                     None => {
                         if !e.take_reraise_mark() {
-                            e.tb.push((code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str())));
+                            match e.tb.last_mut() {
+                                Some(last) if is_inlined_comp(&last.1) => last.1 = code.name.clone(),
+                                _ => e.tb.push((code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str()), code.spans[*pc])),
+                            }
                         }
                         return Err(e);
                     }
@@ -2327,7 +2349,7 @@ impl Vm {
                 "file" if matches!(value, Value::None) => {}
                 "file" => file = Some(value),
                 "flush" => flush = value.is_true(),
-                _ => return Err(type_error(format!("'{name}' is an invalid keyword argument for print()"))),
+                _ => return Err(type_error(format!("print() got an unexpected keyword argument '{name}'"))),
             }
         }
         let parts: Vec<String> = args.iter().map(to_str).collect();

@@ -14,6 +14,7 @@ pub mod ast;
 pub mod bigint;
 pub mod builtins;
 pub mod builtins_ext;
+pub mod carets;
 pub mod classes;
 pub mod compile;
 pub mod cp437;
@@ -527,6 +528,8 @@ fn run_source_inner(
     machine.globals.borrow_mut().insert("__doc__".to_string(), object::Value::None);
     if file_mode && name != "<stdin>" {
         machine.globals.borrow_mut().insert("__file__".to_string(), object::Value::str(name));
+        vm::register_source(name, &src);
+        vm::register_source(&absolute_path(name), &src);
     }
     let mut code = code;
     code.set_filename("");
@@ -627,7 +630,7 @@ mod tests {
         assert_eq!(err.status, 1);
         assert_eq!(
             err.stderr,
-            "Traceback (most recent call last):\n  File \"<string>\", line 2, in <module>\n    1/0\n\
+            "Traceback (most recent call last):\n  File \"<string>\", line 2, in <module>\n    1/0\n    ~^~\n\
              ZeroDivisionError: division by zero\n"
         );
         let syn = run_source("1 +");
@@ -641,7 +644,124 @@ mod tests {
         let out = run_with("x = 1\nprint(1/0)\n", vec!["t.py".into()], "t.py", true);
         assert_eq!(
             out.stderr,
-            "Traceback (most recent call last):\n  File \"t.py\", line 2, in <module>\n    print(1/0)\nZeroDivisionError: division by zero\n"
+            "Traceback (most recent call last):\n  File \"t.py\", line 2, in <module>\n    print(1/0)\n          ~^~\nZeroDivisionError: division by zero\n"
+        );
+    }
+
+    #[test]
+    fn print_exc_shows_carets_like_cpython() {
+        let src = r##"import sys
+import traceback
+
+
+def f(x):
+    return 1 / x
+
+
+def g(d):
+    return d["k"]["z"]
+
+
+class A:
+    def m(self):
+        return self.nope.attr
+
+
+def run(case):
+    try:
+        case()
+    except Exception:
+        traceback.print_exc(file=sys.stdout)
+
+
+run(lambda: f(0))
+run(lambda: g({"k": {}}))
+run(lambda: A().m())
+run(lambda: [x.y for x in [1]])
+run(lambda: [i for i in 5])
+run(lambda: None + 1)
+run(lambda: len(5))
+run(lambda: f(1)(2))
+"##;
+        let out = run_with(src, vec!["t.py".into()], "t.py", true);
+        assert_eq!(out.status, 0, "{}", out.stderr);
+        assert_eq!(
+            // O caminho do script sai absoluto como no CPython; o teste roda com cwd arbitrário.
+            String::from_utf8(out.stdout).unwrap().replace("\"/t.py\"", "\"t.py\""),
+            r##"Traceback (most recent call last):
+  File "t.py", line 20, in run
+    case()
+    ~~~~^^
+  File "t.py", line 25, in <lambda>
+    run(lambda: f(0))
+                ~^^^
+  File "t.py", line 6, in f
+    return 1 / x
+           ~~^~~
+ZeroDivisionError: division by zero
+Traceback (most recent call last):
+  File "t.py", line 20, in run
+    case()
+    ~~~~^^
+  File "t.py", line 26, in <lambda>
+    run(lambda: g({"k": {}}))
+                ~^^^^^^^^^^^
+  File "t.py", line 10, in g
+    return d["k"]["z"]
+           ~~~~~~^^^^^
+KeyError: 'z'
+Traceback (most recent call last):
+  File "t.py", line 20, in run
+    case()
+    ~~~~^^
+  File "t.py", line 27, in <lambda>
+    run(lambda: A().m())
+                ~~~~~^^
+  File "t.py", line 15, in m
+    return self.nope.attr
+           ^^^^^^^^^
+AttributeError: 'A' object has no attribute 'nope'
+Traceback (most recent call last):
+  File "t.py", line 20, in run
+    case()
+    ~~~~^^
+  File "t.py", line 28, in <lambda>
+    run(lambda: [x.y for x in [1]])
+                 ^^^
+AttributeError: 'int' object has no attribute 'y'
+Traceback (most recent call last):
+  File "t.py", line 20, in run
+    case()
+    ~~~~^^
+  File "t.py", line 29, in <lambda>
+    run(lambda: [i for i in 5])
+                            ^
+TypeError: 'int' object is not iterable
+Traceback (most recent call last):
+  File "t.py", line 20, in run
+    case()
+    ~~~~^^
+  File "t.py", line 30, in <lambda>
+    run(lambda: None + 1)
+                ~~~~~^~~
+TypeError: unsupported operand type(s) for +: 'NoneType' and 'int'
+Traceback (most recent call last):
+  File "t.py", line 20, in run
+    case()
+    ~~~~^^
+  File "t.py", line 31, in <lambda>
+    run(lambda: len(5))
+                ~~~^^^
+TypeError: object of type 'int' has no len()
+Traceback (most recent call last):
+  File "t.py", line 20, in run
+    case()
+    ~~~~^^
+  File "t.py", line 32, in <lambda>
+    run(lambda: f(1)(2))
+                ~~~~^^^
+TypeError: 'float' object is not callable
+"##
         );
     }
 

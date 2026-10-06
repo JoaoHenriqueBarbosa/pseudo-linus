@@ -196,12 +196,38 @@ enum FnBody<'a> {
     Expr(&'a Expr),
 }
 
+/// Intervalo de fonte de uma instrução (linhas de 1, colunas em bytes UTF-8, como o `co_positions` do
+/// CPython). `lineno == 0`: posição desconhecida.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Span {
+    pub lineno: u32,
+    pub end_lineno: u32,
+    pub col: u32,
+    pub end_col: u32,
+}
+
+impl Span {
+    pub fn of(pos: &crate::ast::Pos) -> Span {
+        match (pos.end_lineno, pos.end_col_offset) {
+            (Some(end_lineno), Some(end_col)) => Span {
+                lineno: pos.lineno as u32,
+                end_lineno: end_lineno as u32,
+                col: pos.col_offset as u32,
+                end_col: end_col as u32,
+            },
+            _ => Span::default(),
+        }
+    }
+}
+
 /// Código compilado de um módulo ou de uma função.
 #[derive(Debug, Default)]
 pub struct Code {
     pub ops: Vec<Op>,
     /// Linha de cada instrução, paralela a `ops`.
     pub lines: Vec<usize>,
+    /// Intervalo de fonte de cada instrução, paralelo a `ops` (os carets do traceback).
+    pub spans: Vec<Span>,
     pub consts: Vec<Value>,
     pub names: Vec<String>,
     /// Nome da função (`<module>` no nível de módulo, vazio por `Default`).
@@ -683,6 +709,8 @@ struct TryCtx {
 struct Compiler {
     code: Code,
     line: usize,
+    /// Intervalo de fonte do nó que está sendo compilado (vira o `span` das instruções emitidas).
+    span: Span,
     loops: Vec<LoopCtx>,
     name_index: HashMap<String, u32>,
     tries: Vec<TryCtx>,
@@ -708,6 +736,7 @@ impl Compiler {
         Compiler {
             code,
             line,
+            span: Span::default(),
             loops: Vec::new(),
             name_index: HashMap::new(),
             tries: Vec::new(),
@@ -733,7 +762,14 @@ impl Compiler {
     fn emit(&mut self, op: Op) -> usize {
         self.code.ops.push(op);
         self.code.lines.push(self.line);
+        self.code.spans.push(self.span);
         self.code.ops.len() - 1
+    }
+
+    /// Passa a atribuir as instruções ao nó em `pos`.
+    fn at(&mut self, pos: &crate::ast::Pos) {
+        self.line = pos.lineno;
+        self.span = Span::of(pos);
     }
 
     fn here(&self) -> usize {
@@ -777,7 +813,7 @@ impl Compiler {
     }
 
     fn stmt(&mut self, stmt: &Stmt) -> Result<(), CompileError> {
-        self.line = stmt.pos.lineno;
+        self.at(&stmt.pos);
         match &stmt.kind {
             S::Expr { value } => {
                 self.expr(value)?;
@@ -814,12 +850,12 @@ impl Compiler {
             }
             S::While { test, body, orelse } => {
                 let top = self.here();
-                self.line = stmt.pos.lineno;
+                self.at(&stmt.pos);
                 self.expr(test)?;
                 let to_else = self.emit(Op::PopJumpIfFalse(0));
                 self.loops.push(LoopCtx { continue_target: top, breaks: Vec::new(), is_for: false, try_depth: self.tries.len() });
                 self.block(body)?;
-                self.line = stmt.pos.lineno;
+                self.at(&stmt.pos);
                 self.emit(Op::Jump(top as u32));
                 let ctx = self.loops.pop().unwrap_or(LoopCtx { continue_target: top, breaks: Vec::new(), is_for: false, try_depth: 0 });
                 let else_start = self.here();
@@ -832,13 +868,13 @@ impl Compiler {
             }
             S::For { target, iter, body, orelse, .. } => {
                 self.expr(iter)?;
-                self.line = stmt.pos.lineno;
+                self.at(&stmt.pos);
                 self.emit(Op::GetIter);
                 let top = self.emit(Op::ForIter(0));
                 self.store(target)?;
                 self.loops.push(LoopCtx { continue_target: top, breaks: Vec::new(), is_for: true, try_depth: self.tries.len() });
                 self.block(body)?;
-                self.line = stmt.pos.lineno;
+                self.at(&stmt.pos);
                 self.emit(Op::Jump(top as u32));
                 let ctx = self.loops.pop().unwrap_or(LoopCtx { continue_target: top, breaks: Vec::new(), is_for: true, try_depth: 0 });
                 let else_start = self.here();
@@ -883,10 +919,10 @@ impl Compiler {
                         // `raise X from Y`: `Y` vira `__cause__` de `X`.
                         if let Some(c) = cause {
                             self.expr(c)?;
-                            self.line = stmt.pos.lineno;
+                            self.at(&stmt.pos);
                             self.emit(Op::RaiseFrom);
                         } else {
-                            self.line = stmt.pos.lineno;
+                            self.at(&stmt.pos);
                             self.emit(Op::Raise);
                         }
                     }
@@ -900,7 +936,7 @@ impl Compiler {
             S::Assert { test, msg } => {
                 self.expr(test)?;
                 let ok = self.emit(Op::PopJumpIfTrue(0));
-                self.line = stmt.pos.lineno;
+                self.at(&test.pos);
                 self.emit_load("AssertionError");
                 let argc = if let Some(m) = msg {
                     self.expr(m)?;
@@ -908,7 +944,7 @@ impl Compiler {
                 } else {
                     0
                 };
-                self.line = stmt.pos.lineno;
+                self.at(&test.pos);
                 self.emit(Op::Call { argc, kwnames: None });
                 self.emit(Op::Raise);
                 let end = self.here();
@@ -922,7 +958,7 @@ impl Compiler {
                 }
                 self.make_function(name, args, FnBody::Stmts(body), stmt.pos.lineno, is_async, returns.as_deref())?;
                 for _ in decorator_list {
-                    self.line = stmt.pos.lineno;
+                    self.at(&stmt.pos);
                     self.emit(Op::Call { argc: 1, kwnames: None });
                 }
                 self.emit_store(name);
@@ -942,7 +978,7 @@ impl Compiler {
                         self.emit(Op::LoadConst(c));
                     }
                 }
-                self.line = stmt.pos.lineno;
+                self.at(&stmt.pos);
                 self.emit_return()?;
             }
             S::ClassDef { name, bases, keywords, body, decorator_list, .. } => {
@@ -957,7 +993,7 @@ impl Compiler {
                 }
                 self.class_def(name, bases, keywords, body, stmt.pos.lineno)?;
                 for _ in decorator_list {
-                    self.line = stmt.pos.lineno;
+                    self.at(&stmt.pos);
                     self.emit(Op::Call { argc: 1, kwnames: None });
                 }
                 self.emit_store(name);
@@ -1047,7 +1083,7 @@ impl Compiler {
                     });
                 }
                 self.expr(iter)?;
-                self.line = stmt.pos.lineno;
+                self.at(&stmt.pos);
                 self.emit(Op::GetAIter);
                 let top = self.emit(Op::SetupTry(0));
                 self.emit(Op::GetANext);
@@ -1057,7 +1093,7 @@ impl Compiler {
                 self.store(target)?;
                 self.loops.push(LoopCtx { continue_target: top, breaks: Vec::new(), is_for: true, try_depth: self.tries.len() });
                 self.block(body)?;
-                self.line = stmt.pos.lineno;
+                self.at(&stmt.pos);
                 self.emit(Op::Jump(top as u32));
                 let ctx = self.loops.pop().unwrap_or(LoopCtx { continue_target: top, breaks: Vec::new(), is_for: true, try_depth: 0 });
                 let handler = self.here();
@@ -1126,10 +1162,10 @@ impl Compiler {
                 let here = self.here();
                 self.patch(at, here);
             }
-            self.line = h.pos.lineno;
+            self.at(&h.pos);
             if let Some(t) = &h.r#type {
                 self.expr(t)?;
-                self.line = h.pos.lineno;
+                self.at(&h.pos);
                 self.emit(Op::ExcMatch);
                 pending = Some(self.emit(Op::PopJumpIfFalse(0)));
             }
@@ -1453,6 +1489,7 @@ impl Compiler {
     fn pattern(&mut self, p: &crate::ast::Pattern, d: usize, fails: &mut Vec<usize>) -> Result<(), CompileError> {
         use crate::ast::PatternKind as P;
         self.line = p.pos.lineno;
+        self.span = Span { lineno: p.pos.lineno as u32, end_lineno: p.pos.end_lineno as u32, col: p.pos.col_offset as u32, end_col: p.pos.end_col_offset as u32 };
         match &p.kind {
             P::MatchValue { value } => {
                 self.load_tmp(d);
@@ -1807,6 +1844,7 @@ impl Compiler {
         } else {
             self.expr(&g.iter)?;
         }
+        self.at(&g.iter.pos);
         let is_async_loop = g.is_async != 0;
         let top = if is_async_loop {
             self.emit(Op::GetAIter);
@@ -1911,8 +1949,8 @@ impl Compiler {
 
     /// Guarda o topo da pilha no alvo.
     fn store(&mut self, target: &Expr) -> Result<(), CompileError> {
-        let saved = self.line;
-        self.line = target.pos.lineno;
+        let saved = (self.line, self.span);
+        self.at(&target.pos);
         match &target.kind {
             E::Name { id, .. } => {
                 self.emit_store(id);
@@ -1954,15 +1992,15 @@ impl Compiler {
             }
             _ => return Err(self.unsupported("this assignment target")),
         }
-        self.line = saved;
+        (self.line, self.span) = saved;
         Ok(())
     }
 
     fn expr(&mut self, expr: &Expr) -> Result<(), CompileError> {
-        let saved = self.line;
-        self.line = expr.pos.lineno;
+        let saved = (self.line, self.span);
+        self.at(&expr.pos);
         self.expr_inner(expr)?;
-        self.line = saved;
+        (self.line, self.span) = saved;
         Ok(())
     }
 
@@ -2061,14 +2099,14 @@ impl Compiler {
                     self.emit_load(&first);
                     let c = self.constant(Value::str(class));
                     self.emit(Op::LoadConst(c));
-                    self.line = expr.pos.lineno;
+                    self.at(&expr.pos);
                     self.emit(Op::Call { argc: 2, kwnames: None });
                     return Ok(());
                 }
                 if let (E::Name { id, .. }, true, true, true) = (&func.kind, args.is_empty(), keywords.is_empty(), self.code.is_function)
                     && id == "locals"
                 {
-                    self.line = expr.pos.lineno;
+                    self.at(&expr.pos);
                     self.emit(Op::Locals);
                     return Ok(());
                 }
@@ -2084,7 +2122,7 @@ impl Compiler {
                         self.expr(&kw.value)?;
                     }
                     let kwnames = if names.is_empty() { None } else { Some(self.constant(Value::tuple(names))) };
-                    self.line = expr.pos.lineno;
+                    self.at(&expr.pos);
                     self.emit(Op::Call { argc: (args.len() + keywords.len()) as u32, kwnames });
                 } else {
                     self.build_list(args)?;
@@ -2105,7 +2143,7 @@ impl Compiler {
                             }
                         }
                     }
-                    self.line = expr.pos.lineno;
+                    self.at(&expr.pos);
                     self.emit(Op::CallEx { kwargs: !keywords.is_empty() });
                 }
             }
@@ -2157,13 +2195,13 @@ impl Compiler {
             E::Subscript { value, slice, .. } => {
                 self.expr(value)?;
                 self.slice_or_expr(slice)?;
-                self.line = expr.pos.lineno;
+                self.at(&expr.pos);
                 self.emit(Op::Subscript);
             }
             E::Attribute { value, attr, .. } => {
                 self.expr(value)?;
                 let n = self.name(attr);
-                self.line = expr.pos.lineno;
+                self.at(&expr.pos);
                 self.emit(Op::LoadAttr(n));
             }
             E::Lambda { args, body } => self.make_function("<lambda>", args, FnBody::Expr(body), expr.pos.lineno, false, None)?,
@@ -2195,7 +2233,7 @@ impl Compiler {
                     97 => 3,
                     _ => 0,
                 };
-                self.line = expr.pos.lineno;
+                self.at(&expr.pos);
                 self.emit(Op::FormatValue { conv, has_spec: format_spec.is_some() });
             }
             E::Yield { value } => {
@@ -2207,13 +2245,13 @@ impl Compiler {
                         self.emit(Op::LoadConst(c));
                     }
                 }
-                self.line = expr.pos.lineno;
+                self.at(&expr.pos);
                 self.emit(if self.code.is_async { Op::AsyncGenYield } else { Op::Yield });
             }
             E::YieldFrom { value } => {
                 self.code.is_generator = true;
                 self.expr(value)?;
-                self.line = expr.pos.lineno;
+                self.at(&expr.pos);
                 self.emit(Op::GetIter);
                 self.await_delegate();
             }
@@ -2226,7 +2264,7 @@ impl Compiler {
                     });
                 }
                 self.expr(value)?;
-                self.line = expr.pos.lineno;
+                self.at(&expr.pos);
                 self.emit(Op::GetAwaitable);
                 self.await_delegate();
             }
