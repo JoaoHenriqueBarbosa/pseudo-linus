@@ -665,6 +665,9 @@ impl Vm {
                 };
             }
         }
+        if name == "__new__" && cls.data_base.is_none() && cls.builtin_base.is_none() {
+            return Ok(crate::typeattrs::object_new_value());
+        }
         Err(exc("AttributeError", format!("type object '{}' has no attribute '{name}'", cls.name)))
     }
 

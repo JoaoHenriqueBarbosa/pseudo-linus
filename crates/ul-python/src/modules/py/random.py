@@ -107,6 +107,10 @@ class Random:
 
     def _genrand_uint32(self):
         mt = self._mt
+        if mt is None:
+            # Instância global: a semente de entropia só é lida no primeiro uso.
+            self.seed()
+            mt = self._mt
         if self._index >= _N:
             for kk in range(_N):
                 y = (mt[kk] & _UPPER) | (mt[(kk + 1) % _N] & _LOWER)
@@ -428,7 +432,10 @@ class SystemRandom(Random):
     setstate = getstate
 
 
-_inst = Random()
+_inst = Random.__new__(Random)
+_inst._mt = None
+_inst._index = _N
+_inst.gauss_next = None
 seed = _inst.seed
 random = _inst.random
 uniform = _inst.uniform

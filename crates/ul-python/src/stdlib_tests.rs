@@ -406,3 +406,37 @@ day is out of range for month
 "#
     );
 }
+
+#[test]
+fn random_module_matches_cpython() {
+    let src = r#"
+import random
+random.seed(42)
+print(random.random(), random.randint(1, 100), random.randrange(0, 50, 5), random.choice('abcdef'))
+l = list(range(10)); random.shuffle(l); print(l)
+print(random.sample(range(100), 5), random.sample('abcdefgh', 3), random.uniform(1, 5))
+print(random.getrandbits(8), random.getrandbits(40), random.randbytes(4))
+print(random.choices(['a', 'b', 'c'], k=5), random.choices([1, 2, 3], weights=[10, 1, 1], k=5))
+print(random.gauss(0, 1), random.normalvariate(10, 2), random.expovariate(0.5), random.triangular(0, 10, 3))
+r = random.Random('hello'); print(r.random(), r.randint(0, 10**6))
+r = random.Random(12345678901234); print(r.random(), r.randrange(10))
+st = r.getstate(); a = r.random(); r.setstate(st); print(a == r.random())
+print(random.betavariate(2, 3), random.gammavariate(2.0, 1.5), random.gammavariate(0.5, 1))
+"#;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r#"0.6394267984578837 4 20 b
+[9, 7, 8, 0, 4, 6, 5, 1, 2, 3]
+[4, 3, 11, 27, 29] ['a', 'e', 'b'] 3.864078451689614
+179 461902006518 b'\xe0\xcbn8'
+['b', 'a', 'c', 'c', 'a'] [1, 1, 1, 1, 1]
+-0.6871759112629331 9.272043816080757 0.08884536119027676 3.848556395205186
+0.3537754404730722 695414
+0.02504137575317178 2
+True
+0.3940634165047749 4.065437491299427 0.18331590922815402
+"#
+    );
+}

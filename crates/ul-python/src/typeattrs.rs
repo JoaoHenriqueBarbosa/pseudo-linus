@@ -249,6 +249,11 @@ pub fn is_type_name(name: &str) -> bool {
     TYPES.contains(&name)
 }
 
+/// `object.__new__`, para classes de usuário que não definem `__new__`.
+pub fn object_new_value() -> Value {
+    native("__new__", object_new)
+}
+
 /// O atributo `name` do tipo embutido `tname`, se existir.
 pub fn type_attr(tname: &str, name: &str) -> Option<Value> {
     let tname: &'static str = TYPES.iter().copied().find(|t| *t == tname)?;
