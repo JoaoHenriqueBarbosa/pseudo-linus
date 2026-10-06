@@ -795,7 +795,27 @@ impl Vm {
             Op::Binary { op, inplace } => {
                 let b = pop(stack)?;
                 let a = pop(stack)?;
-                stack.push(Slot::Val(binary(op, &a, &b, inplace)?));
+                // `"..." % args` com instâncias nos argumentos: `__str__`, `__int__`, `__float__`...
+                let has_instance = match (op, &a) {
+                    (Operator::Mod, Value::Str(_)) => match &b {
+                        Value::Instance(_) => true,
+                        Value::Tuple(t) => t.iter().any(|x| matches!(x, Value::Instance(_))),
+                        Value::Dict(d) => d.borrow().values().any(|x| matches!(x, Value::Instance(_))),
+                        _ => false,
+                    },
+                    _ => false,
+                };
+                if let (true, Value::Str(fmt)) = (has_instance, &a) {
+                    let text = crate::format::percent_format_with(fmt.as_str(), &b, &mut |conv, v| match conv {
+                        's' => self.str_of(v).map(Value::str),
+                        'r' | 'a' => self.repr_of(v).map(Value::str),
+                        'e' | 'E' | 'f' | 'F' | 'g' | 'G' => self.call_value(&crate::builtins::get("float").unwrap_or(Value::Builtin("float")), vec![v.clone()], Vec::new()),
+                        _ => self.call_value(&crate::builtins::get("int").unwrap_or(Value::Builtin("int")), vec![v.clone()], Vec::new()),
+                    })?;
+                    stack.push(Slot::Val(Value::str(text)));
+                } else {
+                    stack.push(Slot::Val(binary(op, &a, &b, inplace)?));
+                }
             }
             Op::Unary(op) => {
                 let a = pop(stack)?;
@@ -1571,6 +1591,9 @@ impl Vm {
             Value::NativeFn(f) => {
                 if let Some(v) = crate::typeattrs::type_attr(f.name, name) {
                     return Ok(v);
+                }
+                if matches!(name, "__name__" | "__qualname__") {
+                    return Ok(Value::str(f.name.rsplit('.').next().unwrap_or(f.name)));
                 }
             }
             Value::Exception(e) if name == "__class__" => return Ok(Value::Builtin(e.kind)),
@@ -3251,7 +3274,7 @@ fn order(op: CmpOp, a: &Value, b: &Value) -> PyResult<bool> {
 fn seq_order(op: CmpOp, x: &[Value], y: &[Value]) -> PyResult<bool> {
     for (p, q) in x.iter().zip(y) {
         if !(is(p, q) || py_eq(p, q)) {
-            return order(op, p, q);
+            return compare(op, p, q);
         }
     }
     Ok(apply(op, x.len().cmp(&y.len())))

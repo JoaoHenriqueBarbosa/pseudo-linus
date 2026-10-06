@@ -349,6 +349,13 @@ impl Vm {
                     .and_then(|m| m.attrs.borrow().get("complex").cloned())
                     .ok_or_else(|| exc("NameError", "name 'complex' is not defined"))
             }
+            // Auxiliares da instrução `match` (`modules/py/_match.py`).
+            n if n.starts_with("_match_") => {
+                let mut vm = self.clone();
+                crate::modules::import(&mut vm, "_match")
+                    .and_then(|m| m.attrs.borrow().get(n).cloned())
+                    .ok_or_else(|| exc("NameError", format!("name '{name}' is not defined")))
+            }
             _ => Err(exc("NameError", format!("name '{name}' is not defined"))),
         }
     }

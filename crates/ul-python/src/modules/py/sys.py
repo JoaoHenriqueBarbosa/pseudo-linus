@@ -165,6 +165,48 @@ class _Flags:
 flags = _Flags()
 
 
+class _HashInfo:
+    width = 64
+    modulus = 2305843009213693951
+    inf = 314159
+    nan = 0
+    imag = 1000003
+    algorithm = 'siphash13'
+    hash_bits = 64
+    seed_bits = 128
+    cutoff = 0
+
+
+hash_info = _HashInfo()
+
+
+class _FloatInfo:
+    max = 1.7976931348623157e+308
+    max_exp = 1024
+    max_10_exp = 308
+    min = 2.2250738585072014e-308
+    min_exp = -1021
+    min_10_exp = -307
+    dig = 15
+    mant_dig = 53
+    epsilon = 2.220446049250313e-16
+    radix = 2
+    rounds = 1
+
+
+float_info = _FloatInfo()
+
+
+class _IntInfo:
+    bits_per_digit = 30
+    sizeof_digit = 4
+    default_max_str_digits = 4300
+    str_digits_check_threshold = 640
+
+
+int_info = _IntInfo()
+
+
 class _Implementation:
     name = 'cpython'
     cache_tag = 'cpython-313'

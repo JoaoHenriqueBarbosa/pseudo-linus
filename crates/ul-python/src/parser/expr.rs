@@ -719,9 +719,10 @@ impl Parser {
             }
         }
         out.push('=');
-        let after = &self.tokens[to + 1];
-        if after.start.line == eq.end.line && after.start.col > eq.end.col {
-            out.push_str(&" ".repeat(after.start.col - eq.end.col));
+        if let Some(after) = self.tokens.get(to + 1) {
+            if after.start.line == eq.end.line && after.start.col > eq.end.col {
+                out.push_str(&" ".repeat(after.start.col - eq.end.col));
+            }
         }
         out
     }

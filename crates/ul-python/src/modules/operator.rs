@@ -321,7 +321,7 @@ fn op_contains(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 }
 
 pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
-    ModuleBuilder::new("operator")
+    ModuleBuilder::new("_operator")
         .func("add", op_add)
         .func("concat", op_add)
         .func("sub", op_sub)

@@ -35,6 +35,13 @@ impl ExtObject for Unbound {
     fn type_name(&self) -> &'static str {
         "method_descriptor"
     }
+    fn repr(&self) -> String {
+        if self.name.starts_with("__") && self.name.ends_with("__") {
+            format!("<slot wrapper '{}' of '{}' objects>", self.name, self.tname)
+        } else {
+            format!("<method '{}' of '{}' objects>", self.name, self.tname)
+        }
+    }
     fn methods(&self) -> &'static [&'static str] {
         &["__call__"]
     }
@@ -287,5 +294,13 @@ pub fn type_attr(tname: &str, name: &str) -> Option<Value> {
         _ => {}
     }
     let (method, _) = crate::methods::lookup(&sample(tname)?, name)?;
-    Some(Value::Ext(Rc::new(Unbound { tname, name: method })))
+    // Um objeto só por (tipo, método): `dict.__repr__ is dict.__repr__`, e vale de chave de dict
+    // (o `pprint` despacha por `type(obj).__repr__`).
+    thread_local! {
+        static UNBOUND: std::cell::RefCell<std::collections::HashMap<(&'static str, &'static str), Value>> =
+            std::cell::RefCell::new(std::collections::HashMap::new());
+    }
+    Some(UNBOUND.with(|c| {
+        c.borrow_mut().entry((tname, method)).or_insert_with(|| Value::Ext(Rc::new(Unbound { tname, name: method }))).clone()
+    }))
 }

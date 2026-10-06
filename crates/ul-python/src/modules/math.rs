@@ -85,6 +85,66 @@ unary!(exp, "exp", |x| checked_range(x, x.exp()));
 unary!(expm1, "expm1", |x| checked_range(x, x.exp_m1()));
 unary!(exp2, "exp2", |x| checked_range(x, x.exp2()));
 unary!(cbrt, "cbrt", |x| Ok(x.cbrt()));
+unary!(erf, "erf", |x| Ok(libm::erf(x)));
+unary!(erfc, "erfc", |x| Ok(libm::erfc(x)));
+unary!(gamma, "gamma", |x| {
+    if x.is_nan() || x == f64::INFINITY {
+        return Ok(x);
+    }
+    if x == f64::NEG_INFINITY || (x <= 0.0 && x == x.floor()) {
+        return Err(domain());
+    }
+    checked_range(x, libm::tgamma(x))
+});
+unary!(lgamma, "lgamma", |x| {
+    if x.is_nan() {
+        return Ok(x);
+    }
+    if x.is_infinite() {
+        return Ok(f64::INFINITY);
+    }
+    if x <= 0.0 && x == x.floor() {
+        return Err(domain());
+    }
+    Ok(libm::lgamma(x))
+});
+
+/// `sumprod(p, q)`: inteiros exatos; com `float`, produtos e soma sem perda (erro do produto via fma).
+fn sumprod(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("sumprod", &kw)?;
+    exactly("sumprod", &args, 2)?;
+    let p = iterate(&args[0])?;
+    let q = iterate(&args[1])?;
+    if p.len() != q.len() {
+        return Err(exc("ValueError", "Inputs are not the same length"));
+    }
+    let all_int = p.iter().chain(q.iter()).all(|v| matches!(v, Value::Int(_) | Value::Big(_) | Value::Bool(_)));
+    if all_int {
+        let mut acc = Value::Int(0);
+        for (a, b) in p.iter().zip(q.iter()) {
+            acc = py_binary("+", &acc, &py_binary("*", a, b)?)?;
+        }
+        return Ok(acc);
+    }
+    let numeric = |v: &Value| matches!(v, Value::Int(_) | Value::Big(_) | Value::Bool(_) | Value::Float(_));
+    if p.iter().chain(q.iter()).all(numeric) {
+        let mut terms = Vec::with_capacity(p.len() * 2);
+        for (a, b) in p.iter().zip(q.iter()) {
+            let (x, y) = (to_f(a)?, to_f(b)?);
+            let prod = x * y;
+            terms.push(Value::Float(prod));
+            if prod.is_finite() {
+                terms.push(Value::Float(x.mul_add(y, -prod)));
+            }
+        }
+        return fsum(vm, vec![Value::list(terms)], Kw::default());
+    }
+    let mut acc = Value::Int(0);
+    for (a, b) in p.iter().zip(q.iter()) {
+        acc = py_binary("+", &acc, &py_binary("*", a, b)?)?;
+    }
+    Ok(acc)
+}
 fn log2(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     if let ([Value::Big(n)], true) = (args.as_slice(), kw.is_empty()) {
         return big_log(n, 2).map(Value::Float);
@@ -271,7 +331,7 @@ fn float_to_int(x: f64) -> PyResult<Value> {
     Ok(Value::Int(x as i64))
 }
 
-fn rounding(fname: &str, special: &str, args: &[Value], kw: &Kw, f: fn(f64) -> f64) -> PyResult<Value> {
+fn rounding(vm: &mut Vm, fname: &str, special: &str, args: &[Value], kw: &Kw, f: fn(f64) -> f64) -> PyResult<Value> {
     no_kwargs(fname, kw)?;
     exactly(fname, args, 1)?;
     match &args[0] {
@@ -279,20 +339,31 @@ fn rounding(fname: &str, special: &str, args: &[Value], kw: &Kw, f: fn(f64) -> f
         Value::Big(_) => Ok(args[0].clone()),
         Value::Bool(b) => Ok(Value::Int(i64::from(*b))),
         Value::Float(x) => float_to_int(f(*x)),
-        other => Err(type_error(format!("type {} doesn't define {} method", other.type_name(), special))),
+        other => {
+            if let Some(r) = vm.call_dunder(other, special, Vec::new()) {
+                return r;
+            }
+            // Sem `__floor__`/`__ceil__`, o CPython converte por `__float__`; `trunc` exige `__trunc__`.
+            if special != "__trunc__" {
+                if let Some(Ok(Value::Float(x))) = vm.call_dunder(other, "__float__", Vec::new()) {
+                    return float_to_int(f(x));
+                }
+            }
+            Err(type_error(format!("type {} doesn't define {} method", other.type_name(), special)))
+        }
     }
 }
 
-fn floor(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    rounding("floor", "__floor__", &args, &kw, f64::floor)
+fn floor(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    rounding(vm, "floor", "__floor__", &args, &kw, f64::floor)
 }
 
-fn ceil(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    rounding("ceil", "__ceil__", &args, &kw, f64::ceil)
+fn ceil(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    rounding(vm, "ceil", "__ceil__", &args, &kw, f64::ceil)
 }
 
-fn trunc(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    rounding("trunc", "__trunc__", &args, &kw, f64::trunc)
+fn trunc(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    rounding(vm, "trunc", "__trunc__", &args, &kw, f64::trunc)
 }
 
 fn isclose(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -594,6 +665,11 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
         .func("expm1", expm1)
         .func("exp2", exp2)
         .func("cbrt", cbrt)
+        .func("erf", erf)
+        .func("erfc", erfc)
+        .func("gamma", gamma)
+        .func("lgamma", lgamma)
+        .func("sumprod", sumprod)
         .func("log", log)
         .func("log2", log2)
         .func("log10", log10)

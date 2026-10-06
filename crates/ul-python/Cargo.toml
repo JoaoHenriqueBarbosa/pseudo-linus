@@ -19,6 +19,8 @@ indexmap = "2"
 num-bigint = "0.4"
 num-traits = "0.2"
 num-integer = "0.1"
+# `erf`, `erfc`, `gamma` e `lgamma` do `math` (fdlibm, como a libm do CPython).
+libm = "0.2"
 
 [lints]
 workspace = true

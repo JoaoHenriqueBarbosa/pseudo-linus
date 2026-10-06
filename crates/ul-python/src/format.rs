@@ -558,6 +558,16 @@ pub fn bytes_percent_format(fmt: &[u8], args: &Value) -> PyResult<Vec<u8>> {
 
 /// `fmt % args`.
 pub fn percent_format(fmt: &str, args: &Value) -> PyResult<String> {
+    percent_format_with(fmt, args, &mut |_, v| Ok(v.clone()))
+}
+
+/// `fmt % args` com `hook(conversão, instância)`: devolve o texto (`%s`, `%r`, `%a`) ou o número que
+/// a instância representa (`%d`, `%f`...), chamando os métodos especiais da classe.
+pub fn percent_format_with(
+    fmt: &str,
+    args: &Value,
+    hook: &mut dyn FnMut(char, &Value) -> PyResult<Value>,
+) -> PyResult<String> {
     let c: Vec<char> = fmt.chars().collect();
     let items: Vec<Value> = match args {
         Value::Tuple(t) => t.to_vec(),
@@ -661,6 +671,11 @@ pub fn percent_format(fmt: &str, args: &Value) -> PyResult<String> {
             }
             None => next_arg(&items, &mut next)?,
         };
+        // Instância de classe do usuário: `__int__`, `__index__` e `__float__` valem nas conversões numéricas.
+        let arg = match &arg {
+            Value::Instance(_) if !matches!(conv, 's' | 'r' | 'a') => hook(conv, &arg)?,
+            _ => arg,
+        };
         let sign_for = |neg: bool| -> &'static str {
             if neg {
                 "-"
@@ -674,10 +689,18 @@ pub fn percent_format(fmt: &str, args: &Value) -> PyResult<String> {
         };
         match conv {
             's' | 'r' | 'a' => {
-                let mut t = match conv {
-                    's' => to_str(&arg),
-                    'r' => repr(&arg),
-                    _ => ascii_repr(&arg),
+                let hooked = match &arg {
+                    Value::Instance(_) => match hook(conv, &arg)? {
+                        Value::Str(s) => Some(s.as_str().to_string()),
+                        _ => None,
+                    },
+                    _ => None,
+                };
+                let mut t = match (hooked, conv) {
+                    (Some(t), _) => t,
+                    (None, 's') => to_str(&arg),
+                    (None, 'r') => repr(&arg),
+                    (None, _) => ascii_repr(&arg),
                 };
                 if let Some(p) = prec {
                     t = t.chars().take(p).collect();

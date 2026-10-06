@@ -85,7 +85,7 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         "shlex" => shlex::build(vm),
         "fnmatch" => fnmatch::build(vm),
         "struct" => pystruct::build(vm),
-        "operator" => operator::build(vm),
+        "_operator" => operator::build(vm),
         "_os" => osnative::build(vm),
         "_zlib" => zlibnative::build(vm),
         "_weakref" => weakrefmod::build(vm),

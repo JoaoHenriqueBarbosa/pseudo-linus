@@ -141,7 +141,7 @@ const PSEUDO_TYPES: &[&str] =
 fn class_name(v: &Value) -> Option<&'static str> {
     match v {
         Value::Builtin(n) => {
-            if TYPE_NAMES.contains(n) || PSEUDO_TYPES.contains(n) || EXC_CLASSES.iter().any(|(e, _)| e == n) {
+            if TYPE_NAMES.contains(n) || PSEUDO_TYPES.contains(n) || *n == "NoneType" || EXC_CLASSES.iter().any(|(e, _)| e == n) {
                 Some(*n)
             } else {
                 None
@@ -1450,7 +1450,7 @@ fn int_from_text(v: &Value, text: &str, base: u32) -> PyResult<Value> {
     }
 }
 
-fn b_int(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+fn b_int(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let s = bind("int", args, kw, &["x", "base"], 0)?;
     let Some(x) = &s[0] else {
         if s[1].is_some() {
@@ -1477,10 +1477,24 @@ fn b_int(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
             let text = text_of(x).unwrap_or_default();
             int_from_text(x, &text, 10)
         }
-        other => Err(type_error(format!(
-            "int() argument must be a string, a bytes-like object or a real number, not '{}'",
-            other.type_name()
-        ))),
+        other => {
+            for name in ["__int__", "__index__", "__trunc__"] {
+                match vm.call_dunder(other, name, Vec::new()) {
+                    Some(Ok(r @ (Value::Int(_) | Value::Big(_)))) => return Ok(r),
+                    Some(Ok(r @ Value::Bool(_))) => return b_int(vm, vec![r], Vec::new()),
+                    Some(Ok(r)) if name == "__trunc__" => return b_int(vm, vec![r], Vec::new()),
+                    Some(Ok(r)) => {
+                        return Err(type_error(format!("{}.{name} returned non-int (type {})", other.type_name(), r.type_name())))
+                    }
+                    Some(Err(e)) => return Err(e),
+                    None => {}
+                }
+            }
+            Err(type_error(format!(
+                "int() argument must be a string, a bytes-like object or a real number, not '{}'",
+                other.type_name()
+            )))
+        }
     }
 }
 
@@ -1504,7 +1518,7 @@ fn parse_float_text(text: &str) -> Option<f64> {
     t.replace('_', "").parse::<f64>().ok()
 }
 
-fn b_float(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+fn b_float(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("float", &kw)?;
     expect("float", &args, 0, 1)?;
     match args.first() {
@@ -1519,10 +1533,23 @@ fn b_float(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
                 .map(Value::Float)
                 .ok_or_else(|| value_error(format!("could not convert string to float: {}", repr(v))))
         }
-        Some(v) => Err(type_error(format!(
+        Some(v) => {
+            for name in ["__float__", "__index__"] {
+                match vm.call_dunder(v, name, Vec::new()) {
+                    Some(Ok(Value::Float(x))) if name == "__float__" => return Ok(Value::Float(x)),
+                    Some(Ok(r @ (Value::Int(_) | Value::Big(_)))) if name == "__index__" => return b_float(vm, vec![r], Vec::new()),
+                    Some(Ok(r)) => {
+                        return Err(type_error(format!("{}.{name} returned non-{} (type {})", v.type_name(), if name == "__float__" { "float" } else { "int" }, r.type_name())))
+                    }
+                    Some(Err(e)) => return Err(e),
+                    None => {}
+                }
+            }
+            Err(type_error(format!(
             "float() argument must be a string or a real number, not '{}'",
             v.type_name()
-        ))),
+        )))
+        }
     }
 }
 

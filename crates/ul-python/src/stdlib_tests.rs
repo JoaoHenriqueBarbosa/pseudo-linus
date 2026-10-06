@@ -1380,3 +1380,226 @@ http://a/b/g http://h/p?q=1 h
 "##
     );
 }
+
+#[test]
+fn match_statement_matches_cpython() {
+    let src = r##"
+from dataclasses import dataclass
+
+
+@dataclass
+class Point:
+    x: int
+    y: int
+
+
+class Box:
+    __match_args__ = ("w", "h")
+
+    def __init__(self, w, h):
+        self.w, self.h = w, h
+
+
+def f(v):
+    match v:
+        case 0 | 1:
+            return "small"
+        case int(n) if n > 100:
+            return f"big {n}"
+        case int():
+            return "int"
+        case str() as s:
+            return "str " + s
+        case [] | ():
+            return "empty"
+        case [x]:
+            return f"one {x}"
+        case [1, 2, *rest]:
+            return f"12 then {rest}"
+        case [first, *mid, last]:
+            return f"{first} {mid} {last}"
+        case {"k": 1, **kw}:
+            return f"k1 {kw}"
+        case {"name": name, "age": age}:
+            return f"{name} {age}"
+        case Point(x=0, y=0):
+            return "origin"
+        case Point(x, y):
+            return f"pt {x},{y}"
+        case Box(w, h):
+            return f"box {w}x{h}"
+        case None:
+            return "none"
+        case True:
+            return "true"
+        case float(z):
+            return f"float {z}"
+        case _:
+            return "other"
+
+
+for v in [0, 1, 5, 500, "hi", [], (), [9], [1, 2, 3, 4], [7, 8, 9, 10], {"k": 1, "z": 2}, {"name": "a", "age": 3},
+          Point(0, 0), Point(1, 2), Box(2, 3), None, 2.5, {1}, [1, 2]]:
+    print(type(v).__name__, "->", f(v))
+
+cmd = "go north"
+match cmd.split():
+    case ["go", direction]:
+        print("going", direction)
+    case ["quit"]:
+        print("bye")
+
+match (1, (2, 3)):
+    case (a, (b, c)):
+        print(a, b, c)
+
+Color = type("Color", (), {"RED": 1})
+match 1:
+    case Color.RED:
+        print("red")
+try:
+    match 3:
+        case Point(1, 2, 3):
+            pass
+except TypeError as e:
+    print(e)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"int -> small
+int -> small
+int -> int
+int -> big 500
+str -> str hi
+list -> empty
+tuple -> empty
+list -> one 9
+list -> 12 then [3, 4]
+list -> 7 [8, 9] 10
+dict -> k1 {'z': 2}
+dict -> a 3
+Point -> origin
+Point -> pt 1,2
+Box -> box 2x3
+NoneType -> none
+float -> float 2.5
+set -> other
+list -> 12 then []
+going north
+1 2 3
+red
+"##
+    );
+}
+
+#[test]
+fn decimal_fractions_statistics_pprint_match_cpython() {
+    let src = r##"
+from decimal import Decimal, getcontext, localcontext, ROUND_HALF_UP, ROUND_DOWN, InvalidOperation, DivisionByZero, Context, ROUND_HALF_EVEN
+from fractions import Fraction
+import statistics, pprint, math
+
+getcontext().prec = 28
+print(Decimal("0.1") + Decimal("0.2"), Decimal(1) / Decimal(3), Decimal("1.10") * 3, Decimal("2.5").quantize(Decimal("1"), rounding=ROUND_HALF_UP), Decimal("2.5").quantize(Decimal("1")))
+print(Decimal("10.456").quantize(Decimal("0.01")), Decimal("-3.7") // 2, Decimal("7") % 3, Decimal("1e3"), Decimal("1E+3").normalize(), Decimal(0.5), Decimal("NaN"), Decimal("-Infinity"))
+print(repr(Decimal("3.14")), str(Decimal("100")), float(Decimal("2.5")), int(Decimal("9.99")), round(Decimal("2.675"), 2), Decimal("1.5") == Decimal("1.50"), Decimal("1.5") < 2, hash(Decimal("1.5")) == hash(1.5))
+print(Decimal("123.456").as_tuple(), Decimal("2").sqrt(), Decimal("100").ln(), Decimal(1).exp(), Decimal("2") ** 10, abs(Decimal("-1.5")), -Decimal("1.5"), Decimal("1.5").to_integral_value(), sum([Decimal("0.1")] * 10))
+with localcontext() as ctx:
+    ctx.prec = 5
+    print(Decimal(1) / Decimal(7), Decimal("123456789") * 1)
+try:
+    Decimal("abc")
+except InvalidOperation as e:
+    print(type(e).__name__)
+try:
+    Decimal(1) / Decimal(0)
+except DivisionByZero as e:
+    print(type(e).__name__)
+print(f"{Decimal('1234.5678'):,.2f}", format(Decimal("0.000001234"), "e"), "%.3f" % Decimal("2.0005"))
+
+f = Fraction(3, 4)
+print(f, repr(f), f + Fraction(1, 4), f * 2, f / 3, f ** 2, Fraction("2/6"), Fraction(0.75), Fraction(1.5).limit_denominator(2), float(f), f.numerator, f.denominator, Fraction(7, 3).__floor__(), round(Fraction(7, 2)), f < 1, f == 0.75, hash(Fraction(1, 2)) == hash(0.5), Fraction(10 ** 30, 3))
+print(Fraction("1.25"), Fraction(-3, 6), Fraction(5) - Fraction(1, 3), math.floor(Fraction(7, 2)), Fraction(1, 3) + 1, 1 / Fraction(3), divmod(Fraction(7, 2), 1), Fraction(1, 3).as_integer_ratio())
+
+data = [2, 3, 5, 7, 7, 11, 13]
+print(statistics.mean(data), statistics.median(data), statistics.mode(data), statistics.pstdev(data), statistics.stdev(data), statistics.variance(data), statistics.pvariance(data), statistics.median_low(data), statistics.median_high([1, 2, 3, 4]), statistics.harmonic_mean([1, 2, 4]), statistics.fmean(data), statistics.geometric_mean([1, 4, 16]))
+print(statistics.mean([Fraction(1, 2), Fraction(3, 4)]), statistics.mean([Decimal("1.5"), Decimal("2.5")]), statistics.quantiles(data, n=4), statistics.multimode([1, 1, 2, 2, 3]), statistics.correlation([1, 2, 3, 4], [2, 4, 5, 9]), statistics.linear_regression([1, 2, 3], [2, 4, 7]))
+try:
+    statistics.mean([])
+except statistics.StatisticsError as e:
+    print(e)
+nd = statistics.NormalDist(10, 2)
+print(nd.mean, nd.stdev, round(nd.pdf(10), 6), round(nd.cdf(12), 6), round(nd.inv_cdf(0.9), 6))
+
+pprint.pprint({"alpha": list(range(30)), "beta": {"x": "a" * 40, "y": [1, 2, {"z": (1, 2, 3)}]}, "gamma": "g" * 70})
+print(pprint.pformat([1, 2, [3, 4]], width=10), pprint.pformat("x" * 5), pprint.isreadable({"a": 1}), pprint.saferepr([1, "a"]))
+pprint.pprint(list(range(100)), compact=True, width=60)
+pprint.pprint({"b": 1, "a": 2}, sort_dicts=False)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"0.3 0.3333333333333333333333333333 3.30 3 2
+10.46 -1 1 1E+3 1E+3 0.5 NaN -Infinity
+Decimal('3.14') 100 2.5 9 2.68 True True True
+DecimalTuple(sign=0, digits=(1, 2, 3, 4, 5, 6), exponent=-3) 1.414213562373095048801688724 4.605170185988091368035982909 2.718281828459045235360287471 1024 1.5 -1.5 2 1.0
+0.14286 1.2346E+8
+InvalidOperation
+DivisionByZero
+1,234.57 1.234e-6 2.001
+3/4 Fraction(3, 4) 1 3/2 1/4 9/16 1/3 3/4 3/2 0.75 3 4 2 4 True True True 1000000000000000000000000000000/3
+5/4 -1/2 14/3 3 4/3 1/3 (3, Fraction(1, 2)) (1, 3)
+6.857142857142857 7 7 3.719776161797582 4.0178174601214955 16.142857142857142 13.83673469387755 7 3 1.7142857142857142 6.857142857142857 4.0
+5/8 2 [3.0, 7.0, 11.0] [1, 2] 0.9647638212377322 LinearRegression(slope=2.5, intercept=-0.666666666666667)
+mean requires at least one data point
+10.0 2.0 0.199471 0.841345 12.563103
+{'alpha': [0,
+           1,
+           2,
+           3,
+           4,
+           5,
+           6,
+           7,
+           8,
+           9,
+           10,
+           11,
+           12,
+           13,
+           14,
+           15,
+           16,
+           17,
+           18,
+           19,
+           20,
+           21,
+           22,
+           23,
+           24,
+           25,
+           26,
+           27,
+           28,
+           29],
+ 'beta': {'x': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          'y': [1, 2, {'z': (1, 2, 3)}]},
+ 'gamma': 'gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg'}
+[1,
+ 2,
+ [3, 4]] 'xxxxx' True [1, 'a']
+[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+ 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+ 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46,
+ 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61,
+ 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76,
+ 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91,
+ 92, 93, 94, 95, 96, 97, 98, 99]
+{'b': 1, 'a': 2}
+"##
+    );
+}

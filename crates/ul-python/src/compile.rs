@@ -403,7 +403,48 @@ impl Scope {
             }
             S::Global { names } => self.globals.extend(names.iter().cloned()),
             S::Nonlocal { names } => self.nonlocals.extend(names.iter().cloned()),
+            S::Match { subject, cases } => {
+                self.expr(subject);
+                for c in cases {
+                    self.pattern(&c.pattern);
+                    if let Some(g) = &c.guard {
+                        self.expr(g);
+                    }
+                    self.block(&c.body);
+                }
+            }
             _ => {}
+        }
+    }
+
+    /// Os nomes que um padrão de `match` captura.
+    fn pattern(&mut self, p: &crate::ast::Pattern) {
+        use crate::ast::PatternKind as P;
+        match &p.kind {
+            P::MatchSequence { patterns } | P::MatchOr { patterns } => patterns.iter().for_each(|x| self.pattern(x)),
+            P::MatchMapping { patterns, rest, .. } => {
+                patterns.iter().for_each(|x| self.pattern(x));
+                if let Some(r) = rest {
+                    self.bound.insert(r.clone());
+                }
+            }
+            P::MatchClass { patterns, kwd_patterns, .. } => {
+                patterns.iter().chain(kwd_patterns.iter()).for_each(|x| self.pattern(x));
+            }
+            P::MatchStar { name } => {
+                if let Some(n) = name {
+                    self.bound.insert(n.clone());
+                }
+            }
+            P::MatchAs { pattern, name } => {
+                if let Some(x) = pattern {
+                    self.pattern(x);
+                }
+                if let Some(n) = name {
+                    self.bound.insert(n.clone());
+                }
+            }
+            P::MatchValue { .. } | P::MatchSingleton { .. } => {}
         }
     }
 
@@ -750,7 +791,7 @@ impl Compiler {
             }
             S::With { items, body, .. } => self.with_stmt(items, body)?,
             S::AsyncWith { .. } => return Err(self.unsupported("async with")),
-            S::Match { .. } => return Err(self.unsupported("match")),
+            S::Match { subject, cases } => self.match_stmt(subject, cases)?,
             S::AnnAssign { target, annotation, value, .. } => {
                 if let Some(v) = value {
                     self.expr(v)?;
@@ -1017,6 +1058,221 @@ impl Compiler {
 
     /// `with a as x, b as y: corpo`, aninhando um por item. O `__exit__` fica numa variável oculta
     /// para que `return`, `break` e `continue` consigam chamá-lo ao sair.
+    /// Variável oculta que guarda o sujeito do padrão na profundidade `d`.
+    fn match_tmp(&mut self, d: usize) -> String {
+        let name = format!(".m{d}");
+        if let Some(l) = &mut self.locals {
+            l.insert(name.clone());
+        }
+        name
+    }
+
+    fn load_tmp(&mut self, d: usize) {
+        let n = self.match_tmp(d);
+        self.emit_load(&n);
+    }
+
+    fn store_tmp(&mut self, d: usize) {
+        let n = self.match_tmp(d);
+        self.emit_store(&n);
+    }
+
+    /// Chama o auxiliar `_match_<name>` com `argc` argumentos já empilhados depois dele.
+    fn load_helper(&mut self, name: &str) {
+        self.emit_load(&format!("_match_{name}"));
+    }
+
+    fn load_int(&mut self, n: i64) {
+        let c = self.constant(Value::Int(n));
+        self.emit(Op::LoadConst(c));
+    }
+
+    fn is_wildcard(p: &crate::ast::Pattern) -> bool {
+        use crate::ast::PatternKind as P;
+        matches!(&p.kind, P::MatchAs { pattern: None, name: None })
+    }
+
+    fn match_stmt(&mut self, subject: &Expr, cases: &[crate::ast::MatchCase]) -> Result<(), CompileError> {
+        self.expr(subject)?;
+        self.store_tmp(0);
+        let mut ends = Vec::new();
+        for case in cases {
+            let mut fails = Vec::new();
+            self.pattern(&case.pattern, 0, &mut fails)?;
+            if let Some(g) = &case.guard {
+                self.expr(g)?;
+                fails.push(self.emit(Op::PopJumpIfFalse(0)));
+            }
+            self.block(&case.body)?;
+            ends.push(self.emit(Op::Jump(0)));
+            let next = self.here();
+            for f in fails {
+                self.patch(f, next);
+            }
+        }
+        let end = self.here();
+        for e in ends {
+            self.patch(e, end);
+        }
+        Ok(())
+    }
+
+    /// Compila o teste do padrão contra a variável oculta `d`; cada falha salta por um item de `fails`.
+    fn pattern(&mut self, p: &crate::ast::Pattern, d: usize, fails: &mut Vec<usize>) -> Result<(), CompileError> {
+        use crate::ast::PatternKind as P;
+        self.line = p.pos.lineno;
+        match &p.kind {
+            P::MatchValue { value } => {
+                self.load_tmp(d);
+                self.expr(value)?;
+                self.emit(Op::Compare(CmpOp::Eq));
+                fails.push(self.emit(Op::PopJumpIfFalse(0)));
+            }
+            P::MatchSingleton { value } => {
+                self.load_tmp(d);
+                let v = self.constant_value(value)?;
+                let c = self.constant(v);
+                self.emit(Op::LoadConst(c));
+                self.emit(Op::Compare(CmpOp::Is));
+                fails.push(self.emit(Op::PopJumpIfFalse(0)));
+            }
+            P::MatchAs { pattern, name } => {
+                if let Some(inner) = pattern {
+                    self.pattern(inner, d, fails)?;
+                }
+                if let Some(n) = name {
+                    self.load_tmp(d);
+                    self.emit_store(n);
+                }
+            }
+            P::MatchOr { patterns } => {
+                let mut ends = Vec::new();
+                for (i, alt) in patterns.iter().enumerate() {
+                    let mut f = Vec::new();
+                    self.pattern(alt, d, &mut f)?;
+                    if i + 1 == patterns.len() {
+                        fails.extend(f);
+                    } else {
+                        ends.push(self.emit(Op::Jump(0)));
+                        let next = self.here();
+                        for x in f {
+                            self.patch(x, next);
+                        }
+                    }
+                }
+                let end = self.here();
+                for e in ends {
+                    self.patch(e, end);
+                }
+            }
+            P::MatchSequence { patterns } => {
+                let star = patterns.iter().position(|x| matches!(x.kind, P::MatchStar { .. }));
+                self.load_helper("seq");
+                self.load_tmp(d);
+                self.load_int(patterns.len() as i64);
+                let flag = self.constant(Value::Bool(star.is_some()));
+                self.emit(Op::LoadConst(flag));
+                self.emit(Op::Call { argc: 3, kwnames: None });
+                fails.push(self.emit(Op::PopJumpIfFalse(0)));
+                let n = patterns.len();
+                for (i, sub) in patterns.iter().enumerate() {
+                    if let P::MatchStar { name } = &sub.kind {
+                        if let Some(name) = name {
+                            self.load_helper("star");
+                            self.load_tmp(d);
+                            self.load_int(i as i64);
+                            self.load_int((n - i - 1) as i64);
+                            self.emit(Op::Call { argc: 3, kwnames: None });
+                            self.emit_store(name);
+                        }
+                        continue;
+                    }
+                    if Self::is_wildcard(sub) {
+                        continue;
+                    }
+                    let idx = match star {
+                        Some(s) if i > s => -((n - i) as i64),
+                        _ => i as i64,
+                    };
+                    self.load_helper("item");
+                    self.load_tmp(d);
+                    self.load_int(idx);
+                    self.emit(Op::Call { argc: 2, kwnames: None });
+                    self.store_tmp(d + 2);
+                    self.pattern(sub, d + 2, fails)?;
+                }
+            }
+            P::MatchMapping { keys, patterns, rest } => {
+                self.load_helper("map");
+                self.load_tmp(d);
+                self.emit(Op::Call { argc: 1, kwnames: None });
+                fails.push(self.emit(Op::PopJumpIfFalse(0)));
+                for k in keys {
+                    self.expr(k)?;
+                }
+                self.emit(Op::BuildTuple(keys.len() as u32));
+                self.store_tmp(d + 1);
+                self.load_helper("vals");
+                self.load_tmp(d);
+                self.load_tmp(d + 1);
+                self.emit(Op::Call { argc: 2, kwnames: None });
+                self.store_tmp(d + 2);
+                self.load_tmp(d + 2);
+                let none = self.constant(Value::None);
+                self.emit(Op::LoadConst(none));
+                self.emit(Op::Compare(CmpOp::IsNot));
+                fails.push(self.emit(Op::PopJumpIfFalse(0)));
+                for (i, sub) in patterns.iter().enumerate() {
+                    if Self::is_wildcard(sub) {
+                        continue;
+                    }
+                    self.load_tmp(d + 2);
+                    self.load_int(i as i64);
+                    self.emit(Op::Subscript);
+                    self.store_tmp(d + 3);
+                    self.pattern(sub, d + 3, fails)?;
+                }
+                if let Some(r) = rest {
+                    self.load_helper("rest");
+                    self.load_tmp(d);
+                    self.load_tmp(d + 1);
+                    self.emit(Op::Call { argc: 2, kwnames: None });
+                    self.emit_store(r);
+                }
+            }
+            P::MatchClass { cls, patterns, kwd_attrs, kwd_patterns } => {
+                self.load_helper("class");
+                self.load_tmp(d);
+                self.expr(cls)?;
+                self.load_int(patterns.len() as i64);
+                for a in kwd_attrs {
+                    let c = self.constant(Value::str(a.clone()));
+                    self.emit(Op::LoadConst(c));
+                }
+                self.emit(Op::BuildTuple(kwd_attrs.len() as u32));
+                self.emit(Op::Call { argc: 4, kwnames: None });
+                self.store_tmp(d + 1);
+                self.load_tmp(d + 1);
+                let none = self.constant(Value::None);
+                self.emit(Op::LoadConst(none));
+                self.emit(Op::Compare(CmpOp::IsNot));
+                fails.push(self.emit(Op::PopJumpIfFalse(0)));
+                for (i, sub) in patterns.iter().chain(kwd_patterns.iter()).enumerate() {
+                    if Self::is_wildcard(sub) {
+                        continue;
+                    }
+                    self.load_tmp(d + 1);
+                    self.load_int(i as i64);
+                    self.emit(Op::Subscript);
+                    self.store_tmp(d + 2);
+                    self.pattern(sub, d + 2, fails)?;
+                }
+            }
+            P::MatchStar { .. } => return Err(self.unsupported("star pattern outside a sequence")),
+        }
+        Ok(())
+    }
+
     fn with_stmt(&mut self, items: &[WithItem], body: &[Stmt]) -> Result<(), CompileError> {
         let Some((item, rest)) = items.split_first() else {
             return self.block(body);
