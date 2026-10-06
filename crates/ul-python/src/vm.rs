@@ -1413,7 +1413,8 @@ impl Vm {
                     return Ok(v);
                 }
             }
-            Value::Builtin(n) if name == "__name__" => return Ok(Value::str(*n)),
+            Value::Builtin(n) if name == "__name__" || name == "__qualname__" => return Ok(Value::str(*n)),
+            Value::Builtin(_) if name == "__module__" => return Ok(Value::str("builtins")),
             Value::NativeFn(f) => {
                 if let Some(v) = crate::typeattrs::type_attr(f.name, name) {
                     return Ok(v);

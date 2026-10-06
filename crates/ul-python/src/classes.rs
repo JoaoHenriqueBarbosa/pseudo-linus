@@ -310,6 +310,21 @@ impl Vm {
         env: &Rc<Env>,
     ) -> PyResult<Value> {
         let explicit_meta = kw.iter().position(|(k, _)| k == "metaclass").map(|i| kw.remove(i).1);
+        // `__mro_entries__` (`class Box(Generic[T])`): o objeto-base escolhe as bases reais.
+        let mut expanded: Vec<Value> = Vec::with_capacity(bases.len());
+        for b in &bases {
+            if let Value::Instance(i) = b {
+                if let Some(Value::Function(f)) = i.class.lookup("__mro_entries__") {
+                    match self.call_function(&f, vec![b.clone(), Value::tuple(bases.clone())], Vec::new())? {
+                        Value::Tuple(t) => expanded.extend(t.iter().cloned()),
+                        _ => return Err(type_error("__mro_entries__ must return a tuple")),
+                    }
+                    continue;
+                }
+            }
+            expanded.push(b.clone());
+        }
+        let bases = expanded;
         let class_env = Env::new(env.capture(), true, false);
         self.exec(body, &class_env)?;
         let mut ns = namespace_of(&class_env);

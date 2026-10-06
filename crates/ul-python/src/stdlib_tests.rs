@@ -140,6 +140,45 @@ print(s)
 }
 
 #[test]
+fn typing_module() {
+    let src = r#"
+from typing import List, Dict, Optional, Union, Any, Tuple, Callable, TypeVar, Generic, NamedTuple, TypedDict, Iterable, ClassVar, Literal, cast, get_type_hints
+T = TypeVar('T')
+print(List[int], Dict[str, int], Optional[int], Union[int, str], Tuple[int, ...], Callable[[int], str], Any, T)
+print(Optional[List[str]], Union[int, None], List, Callable[..., int], Literal['a', 'b'])
+class Box(Generic[T]):
+    def __init__(self, item: T):
+        self.item = item
+b = Box[int](3)
+print(b.item, Box[int])
+class P(NamedTuple):
+    x: int
+    y: int = 0
+p = P(1)
+print(p, p.x, p._asdict(), P._fields)
+class M(TypedDict):
+    name: str
+m = M(name='a')
+print(m, type(m), M.__annotations__)
+def f(a: int, b: Optional[str] = None) -> List[int]:
+    return [a]
+print(cast(int, '3'), get_type_hints(P))
+x: ClassVar[int] = 3
+print(isinstance([], list), List[int].__origin__, List[int].__args__)
+"#;
+    assert_eq!(
+        out(src),
+        "typing.List[int] typing.Dict[str, int] typing.Optional[int] typing.Union[int, str] typing.Tuple[int, ...] typing.Callable[[int], str] typing.Any ~T\n\
+         typing.Optional[typing.List[str]] typing.Optional[int] typing.List typing.Callable[..., int] typing.Literal['a', 'b']\n\
+         3 __main__.Box[int]\n\
+         P(x=1, y=0) 1 {'x': 1, 'y': 0} ('x', 'y')\n\
+         {'name': 'a'} <class 'dict'> {'name': <class 'str'>}\n\
+         3 {'x': <class 'int'>, 'y': <class 'int'>}\n\
+         True <class 'list'> (<class 'int'>,)\n"
+    );
+}
+
+#[test]
 fn enum_module() {
     let src = r#"
 from enum import Enum, IntEnum, StrEnum, Flag, IntFlag, auto, unique
