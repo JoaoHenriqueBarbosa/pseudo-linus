@@ -46,6 +46,9 @@ impl PyException {
         if let Some(v) = &self.value {
             return v.clone();
         }
+        if let Some(args) = os_error_args(self.kind, &self.msg) {
+            return Value::Exception(Rc::new(ExcObj::new(self.kind, args)));
+        }
         let args = if self.msg.is_empty() { Vec::new() } else { vec![Value::str(self.msg.clone())] };
         Value::Exception(Rc::new(ExcObj::new(self.kind, args)))
     }
@@ -65,6 +68,26 @@ impl PyException {
             _ => type_error("exceptions must derive from BaseException"),
         }
     }
+}
+
+/// `OSError` montado pelos módulos nativos como `[Errno N] texto: 'caminho'`: decomposto em
+/// `(errno, strerror[, filename])`, os args que o CPython dá.
+fn os_error_args(kind: &str, msg: &str) -> Option<Vec<Value>> {
+    if !exc_is_subclass(kind, "OSError") {
+        return None;
+    }
+    let rest = msg.strip_prefix("[Errno ")?;
+    let (num, rest) = rest.split_once("] ")?;
+    let errno: i64 = num.parse().ok()?;
+    let mut args = vec![Value::Int(errno)];
+    match rest.rsplit_once(": '") {
+        Some((text, file)) if file.ends_with('\'') => {
+            args.push(Value::str(text.to_string()));
+            args.push(Value::str(file[..file.len() - 1].to_string()));
+        }
+        _ => args.push(Value::str(rest.to_string())),
+    }
+    Some(args)
 }
 
 /// Exceção não tratada com a linha da instrução que a levantou.
@@ -1830,7 +1853,10 @@ impl Vm {
             _ => {}
         }
         match obj {
-            Value::Exception(e) if name == "args" => Ok(Value::tuple(e.args.clone())),
+            Value::Exception(e) if name == "args" => {
+                let n = if e.args.len() > 2 && matches!(e.args[0], Value::Int(_)) && exc_is_subclass(&e.kind, "OSError") { 2 } else { e.args.len() };
+                Ok(Value::tuple(e.args[..n].to_vec()))
+            }
             Value::Exception(_) if name == "with_traceback" => {
                 Ok(Value::Ext(Rc::new(crate::classes::ExcWithTraceback { obj: obj.clone() })))
             }
@@ -2755,7 +2781,7 @@ fn subscript(container: &Value, index: &Value) -> PyResult<Value> {
     }
 }
 
-fn store_subscript(container: &Value, index: &Value, value: Value) -> PyResult<()> {
+pub(crate) fn store_subscript(container: &Value, index: &Value, value: Value) -> PyResult<()> {
     if let Value::Instance(_) = container {
         if let Some(mut vm) = current() {
             if let Some(r) = vm.call_dunder(container, "__setitem__", vec![index.clone(), value]) {

@@ -32,6 +32,18 @@ fn getitem(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     crate::vm::py_subscript(&a[0], &a[1])
 }
 
+fn setitem(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let a = recv_and(&args, "__setitem__", 2)?;
+    crate::vm::store_subscript(&a[0], &a[1], a[2].clone())?;
+    Ok(Value::None)
+}
+
+fn delitem(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let a = recv_and(&args, "__delitem__", 1)?;
+    vm.delete_subscript(&a[0], &a[1])?;
+    Ok(Value::None)
+}
+
 fn iter(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     recv_and(&args, "__iter__", 0)?;
     via_builtin(vm, "iter", args)
@@ -117,6 +129,8 @@ pub const TABLE: &[(&str, NativeFnPtr)] = &[
     ("__contains__", contains),
     ("__len__", len),
     ("__getitem__", getitem),
+    ("__setitem__", setitem),
+    ("__delitem__", delitem),
     ("__iter__", iter),
     ("__hash__", hash),
     ("__repr__", repr),
