@@ -92,7 +92,7 @@ const PROBE_NAMES: &[&str] = &[
     "throw", "update", "values", "add", "discard", "difference", "intersection", "union", "isdisjoint",
     "issubset", "issuperset", "read", "readable", "readline", "readlines", "seek", "seekable", "tell",
     "truncate", "writable", "write", "writelines", "flush", "fileno", "isatty", "detach", "real", "imag",
-    "numerator", "denominator", "conjugate", "bit_length", "to_bytes", "from_bytes", "startswith",
+    "numerator", "denominator", "conjugate", "bit_length", "bit_count", "to_bytes", "from_bytes", "startswith",
     "endswith", "strip", "replace", "format", "lower", "upper", "find", "fromkeys", "move_to_end",
 ];
 
@@ -160,8 +160,9 @@ fn b_input(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     if let Some(p) = args.first() {
         let text = crate::object::to_str(p);
         vm.push_stdout(text.as_bytes());
-        vm.flush_stdout();
     }
+    // O CPython descarrega stdout (e stderr) em todo `input()`, com ou sem prompt.
+    vm.flush_stdout();
     let stdin = vm.std_files[0].clone();
     let line = match &mut *stdin.borrow_mut() {
         crate::object::Native::File(f) => crate::stdin::text_line(f),

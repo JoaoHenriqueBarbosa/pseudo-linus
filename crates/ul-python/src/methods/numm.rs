@@ -40,6 +40,13 @@ fn bit_length(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::Int(i.bits() as i64))
 }
 
+fn bit_count(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    nokw("bit_count", &kw)?;
+    noargs("bit_count", &args[1..])?;
+    let Some(i) = int_of(&args[0]) else { return Err(no_attr(&args[0], "bit_count")) };
+    Ok(Value::Int(i.magnitude().iter_u64_digits().map(|d| i64::from(d.count_ones())).sum()))
+}
+
 fn to_bytes(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     use num_traits::Signed;
     let Some(v) = int_of(&args[0]) else { return Err(no_attr(&args[0], "to_bytes")) };
@@ -193,6 +200,7 @@ fn as_integer_ratio(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 
 pub const TABLE: &[(&str, NativeFnPtr)] = &[
     ("bit_length", bit_length),
+    ("bit_count", bit_count),
     ("to_bytes", to_bytes),
     ("conjugate", conjugate),
     ("is_integer", is_integer),

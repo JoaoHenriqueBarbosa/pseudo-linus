@@ -2658,6 +2658,7 @@ impl Vm {
                 "start" => return Ok(s.0.clone()),
                 "stop" => return Ok(s.1.clone()),
                 "step" => return Ok(s.2.clone()),
+                "indices" => return Ok(Value::Ext(Rc::new(crate::classes::SliceIndices(s.clone())))),
                 _ => {}
             },
             _ => {}

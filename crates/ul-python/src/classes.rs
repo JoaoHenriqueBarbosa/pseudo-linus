@@ -104,6 +104,54 @@ impl ExtObject for Property {
     }
 }
 
+/// `slice.indices(len)`: `(start, stop, step)` ajustados a um comprimento, como `PySlice_AdjustIndices`.
+pub(crate) struct SliceIndices(pub Rc<(Value, Value, Value)>);
+
+impl ExtObject for SliceIndices {
+    fn type_name(&self) -> &'static str {
+        "builtin_function_or_method"
+    }
+    fn methods(&self) -> &'static [&'static str] {
+        &["__call__"]
+    }
+    fn call_method(&self, _vm: &mut Vm, _name: &str, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+        let [len] = <[Value; 1]>::try_from(args)
+            .map_err(|a| type_error(format!("indices() takes exactly one argument ({} given)", a.len())))?;
+        let length = crate::native_util::want_int(&len)?;
+        if length < 0 {
+            return Err(exc("ValueError", "length should not be negative"));
+        }
+        let part = |v: &Value| -> PyResult<Option<i64>> {
+            match v {
+                Value::None => Ok(None),
+                other => Ok(Some(crate::native_util::want_int(other)?)),
+            }
+        };
+        let step = part(&self.0 .2)?.unwrap_or(1);
+        if step == 0 {
+            return Err(exc("ValueError", "slice step cannot be zero"));
+        }
+        let (lower, upper) = if step > 0 { (0, length) } else { (-1, length - 1) };
+        let clamp = |v: Option<i64>, default: i64| match v {
+            None => default,
+            Some(mut x) => {
+                if x < 0 {
+                    x += length;
+                    if x < lower {
+                        x = lower;
+                    }
+                } else if x > upper {
+                    x = upper;
+                }
+                x
+            }
+        };
+        let start = clamp(part(&self.0 .0)?, if step < 0 { upper } else { lower });
+        let stop = clamp(part(&self.0 .1)?, if step < 0 { lower } else { upper });
+        Ok(Value::tuple(vec![Value::Int(start), Value::Int(stop), Value::Int(step)]))
+    }
+}
+
 /// `Classe.__subclasses__`: chamável que devolve a lista das subclasses diretas vivas.
 struct SubclassesCall(Vec<Value>);
 

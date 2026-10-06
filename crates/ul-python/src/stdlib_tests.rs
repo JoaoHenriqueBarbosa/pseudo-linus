@@ -5054,3 +5054,118 @@ True
 "##
     );
 }
+
+#[test]
+fn slice_indices_for_custom_sequences() {
+    let src = r##"
+s = slice(None, None, -1); print(s.indices(5), slice(1, 10).indices(5), slice(-3, None).indices(10), slice(None, -20).indices(4), slice(2, 8, 3).indices(7), slice(None, None, -2).indices(0))
+class Seq:
+    def __init__(self, d): self.d = d
+    def __len__(self): return len(self.d)
+    def __getitem__(self, k):
+        if isinstance(k, slice):
+            return [self.d[i] for i in range(*k.indices(len(self)))]
+        return self.d[k]
+q = Seq(list(range(10)))
+print(q[2:5], q[::-3], q[-2:], q[:100], q[5:2])
+try: slice(1, 2, 0).indices(3)
+except ValueError as e: print(e)
+try: slice(1, 2).indices(-1)
+except ValueError as e: print(e)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"(4, -1, -1) (1, 5, 1) (7, 10, 1) (0, 0, 1) (2, 7, 3) (-1, -1, -2)
+[2, 3, 4] [9, 6, 3, 0] [8, 9] [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] []
+slice step cannot be zero
+length should not be negative
+"##
+    );
+}
+
+#[test]
+fn hashlib_sha3_matches_cpython() {
+    let src = r##"
+import hashlib, hmac
+for n in ('sha3_224', 'sha3_256', 'sha3_384', 'sha3_512'):
+    for m in (b'', b'abc', b'a' * 135, b'a' * 136, b'a' * 137, b'x' * 1000):
+        print(n, len(m), getattr(hashlib, n)(m).hexdigest()[:24], hashlib.new(n, m).digest_size, getattr(hashlib, n)().block_size)
+print(hmac.new(b'k', b'm', 'sha3_256').hexdigest(), hashlib.pbkdf2_hmac('sha3_256', b'p', b's', 3).hex())
+h = hashlib.sha3_256(); h.update(b'ab'); h.update(b'c'); print(h.name, h.hexdigest()[:16], h.copy().hexdigest() == h.hexdigest())
+print('sha3_256' in hashlib.algorithms_guaranteed, 'md5' in hashlib.algorithms_available)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"sha3_224 0 6b4e03423667dbb73b6e1545 28 144
+sha3_224 3 e642824c3f8cf24ad09234ee 28 144
+sha3_224 135 f9f28c21a2b0884bbd3594ca 28 144
+sha3_224 136 96136a6a094433b4aa855f16 28 144
+sha3_224 137 d0c9e8452b199b5149b9d06e 28 144
+sha3_224 1000 2459c65a000e217e65e99924 28 144
+sha3_256 0 a7ffc6f8bf1ed76651c14756 32 136
+sha3_256 3 3a985da74fe225b2045c172d 32 136
+sha3_256 135 8094bb53c44cfb1e67b7c304 32 136
+sha3_256 136 3fc5559f14db8e453a0a3091 32 136
+sha3_256 137 f8d6846cedd2ccfadf15c587 32 136
+sha3_256 1000 9392d9e39b54fd1ee9f46551 32 136
+sha3_384 0 0c63a75b845e4f7d01107d85 48 104
+sha3_384 3 ec01498288516fc926459f58 48 104
+sha3_384 135 a2d51907c0611e25c058f067 48 104
+sha3_384 136 cbbcb466417a2f6d466479bb 48 104
+sha3_384 137 8a9e401af96cfcdc6ee9e848 48 104
+sha3_384 1000 95a2b7f72e41a03e3ca1f012 48 104
+sha3_512 0 a69f73cca23a9ac5c8b567dc 64 72
+sha3_512 3 b751850b1a57168a5693cd92 64 72
+sha3_512 135 4be1e70276f9122f470a54c2 64 72
+sha3_512 136 e50392c91ed95768c8dcf52a 64 72
+sha3_512 137 c1a51bff785ff8443c873d0f 64 72
+sha3_512 1000 71a4118f314ec6f5bf8ba025 64 72
+1b92d4a22666154356c30c31595306c7db17a27a0fb02efae867f69018d3a876 4f24af1949a4edb7253a1913084c2688ec45787f06afb2ed9ba5d87d246dc739
+sha3_256 3a985da74fe225b2 True
+True True
+"##
+    );
+}
+
+#[test]
+fn mmap_anonymous_and_int_bit_count() {
+    let src = r##"
+import mmap
+m = mmap.mmap(-1, 32)
+m.write(b'hello\nworld\n'); m.seek(0)
+print(m.readline(), m.tell(), m.find(b'world'), m.rfind(b'o'), len(m), m[0], m[1:4], m[-1])
+m[0:5] = b'HELLO'; m[6] = ord('W'); m.seek(0); print(m.read(12), m.read_byte())
+m.move(0, 6, 5); print(m[:12], m.closed)
+try: m.size()
+except OSError as e: print(type(e).__name__, e)
+try: m[0:2] = b'abc'
+except IndexError as e: print('IndexError', e)
+try: m.seek(100)
+except ValueError as e: print('ValueError', e)
+try: m.write(b'x' * 40)
+except ValueError as e: print('ValueError', e)
+with m: pass
+try: m[0]
+except ValueError as e: print('ValueError', e)
+print((255).bit_count(), (-7).bit_count(), (2**70 + 1).bit_count(), True.bit_count())
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"b'hello\n' 6 6 7 32 104 b'ell' 0
+b'HELLO\nWorld\n' 0
+b'World\nWorld\n' False
+OSError [Errno 9] Bad file descriptor
+IndexError mmap slice assignment is wrong size
+ValueError seek out of range
+ValueError data out of range
+ValueError mmap closed or invalid
+8 3 2 1
+"##
+    );
+}

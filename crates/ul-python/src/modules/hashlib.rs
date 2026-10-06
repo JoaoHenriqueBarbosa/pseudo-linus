@@ -433,11 +433,79 @@ pub enum Algo {
     Sha384,
     Sha512,
     Blake2b(usize),
+    /// SHA-3 com o tamanho do resumo em bytes (28, 32, 48 ou 64).
+    Sha3(usize),
+}
+
+/// Keccak-f[1600]. As constantes de rodada saem do LFSR do padrão e as rotações da caminhada
+/// `(x, y) -> (y, 2x + 3y)`, em vez de digitadas.
+fn keccak_f(a: &mut [u64; 25]) {
+    let mut lfsr: u8 = 1;
+    for _ in 0..24 {
+        let mut c = [0u64; 5];
+        for x in 0..5 {
+            c[x] = a[x] ^ a[x + 5] ^ a[x + 10] ^ a[x + 15] ^ a[x + 20];
+        }
+        for x in 0..5 {
+            let d = c[(x + 4) % 5] ^ c[(x + 1) % 5].rotate_left(1);
+            for y in 0..5 {
+                a[x + 5 * y] ^= d;
+            }
+        }
+        let mut b = [0u64; 25];
+        b[0] = a[0];
+        let (mut x, mut y) = (1usize, 0usize);
+        for t in 0..24u32 {
+            let (nx, ny) = (y, (2 * x + 3 * y) % 5);
+            b[nx + 5 * ny] = a[x + 5 * y].rotate_left(((t + 1) * (t + 2) / 2) % 64);
+            x = nx;
+            y = ny;
+        }
+        for y in 0..5 {
+            for x in 0..5 {
+                a[x + 5 * y] = b[x + 5 * y] ^ (!b[(x + 1) % 5 + 5 * y] & b[(x + 2) % 5 + 5 * y]);
+            }
+        }
+        for j in 0..7 {
+            let bit = lfsr & 1 != 0;
+            lfsr = if lfsr & 0x80 != 0 { (lfsr << 1) ^ 0x71 } else { lfsr << 1 };
+            if bit {
+                a[0] ^= 1u64 << ((1u32 << j) - 1);
+            }
+        }
+    }
+}
+
+/// SHA-3 (FIPS 202) com resumo de `out_len` bytes.
+pub fn sha3(data: &[u8], out_len: usize) -> Vec<u8> {
+    let rate = 200 - 2 * out_len;
+    let mut msg = data.to_vec();
+    msg.push(0x06);
+    while msg.len() % rate != 0 {
+        msg.push(0);
+    }
+    let last = msg.len() - 1;
+    msg[last] |= 0x80;
+    let mut state = [0u64; 25];
+    for block in msg.chunks(rate) {
+        for (i, lane) in block.chunks(8).enumerate() {
+            let mut w = [0u8; 8];
+            w.copy_from_slice(lane);
+            state[i] ^= u64::from_le_bytes(w);
+        }
+        keccak_f(&mut state);
+    }
+    let mut out = Vec::with_capacity(out_len);
+    for lane in state.iter() {
+        out.extend_from_slice(&lane.to_le_bytes());
+    }
+    out.truncate(out_len);
+    out
 }
 
 impl Algo {
     pub fn from_name(name: &str) -> Option<Algo> {
-        Some(match name.to_ascii_lowercase().as_str() {
+        Some(match name.to_ascii_lowercase().replace('-', "_").as_str() {
             "md5" => Algo::Md5,
             "sha1" => Algo::Sha1,
             "sha224" => Algo::Sha224,
@@ -445,6 +513,10 @@ impl Algo {
             "sha384" => Algo::Sha384,
             "sha512" => Algo::Sha512,
             "blake2b" => Algo::Blake2b(64),
+            "sha3_224" => Algo::Sha3(28),
+            "sha3_256" => Algo::Sha3(32),
+            "sha3_384" => Algo::Sha3(48),
+            "sha3_512" => Algo::Sha3(64),
             _ => return None,
         })
     }
@@ -458,6 +530,10 @@ impl Algo {
             Algo::Sha384 => "sha384",
             Algo::Sha512 => "sha512",
             Algo::Blake2b(_) => "blake2b",
+            Algo::Sha3(28) => "sha3_224",
+            Algo::Sha3(32) => "sha3_256",
+            Algo::Sha3(48) => "sha3_384",
+            Algo::Sha3(_) => "sha3_512",
         }
     }
 
@@ -469,7 +545,7 @@ impl Algo {
             Algo::Sha256 => 32,
             Algo::Sha384 => 48,
             Algo::Sha512 => 64,
-            Algo::Blake2b(n) => *n,
+            Algo::Blake2b(n) | Algo::Sha3(n) => *n,
         }
     }
 
@@ -477,6 +553,7 @@ impl Algo {
         match self {
             Algo::Md5 | Algo::Sha1 | Algo::Sha224 | Algo::Sha256 => 64,
             Algo::Sha384 | Algo::Sha512 | Algo::Blake2b(_) => 128,
+            Algo::Sha3(n) => 200 - 2 * n,
         }
     }
 
@@ -489,6 +566,7 @@ impl Algo {
             Algo::Sha384 => sha384(data),
             Algo::Sha512 => sha512(data),
             Algo::Blake2b(n) => blake2b(data, *n),
+            Algo::Sha3(n) => sha3(data, *n),
         }
     }
 }
@@ -634,6 +712,10 @@ ctor!(sha224_new, "sha224", Algo::Sha224);
 ctor!(sha256_new, "sha256", Algo::Sha256);
 ctor!(sha384_new, "sha384", Algo::Sha384);
 ctor!(sha512_new, "sha512", Algo::Sha512);
+ctor!(sha3_224_new, "sha3_224", Algo::Sha3(28));
+ctor!(sha3_256_new, "sha3_256", Algo::Sha3(32));
+ctor!(sha3_384_new, "sha3_384", Algo::Sha3(48));
+ctor!(sha3_512_new, "sha3_512", Algo::Sha3(64));
 
 fn blake2b_new(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let s = bind("blake2b", args, kw, &["data", "digest_size"], 0)?;
@@ -686,6 +768,14 @@ fn pbkdf2_hmac(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::bytes(pbkdf2(algo, &password, &salt, iterations as u64, dklen as usize)))
 }
 
+fn names_set(names: &[&str]) -> Value {
+    let mut set = crate::object::Set::new();
+    for n in names {
+        let _ = set.add(Value::str(*n));
+    }
+    Value::set(set)
+}
+
 pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
     ModuleBuilder::new("hashlib")
         .func("md5", md5_new)
@@ -694,6 +784,12 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
         .func("sha256", sha256_new)
         .func("sha384", sha384_new)
         .func("sha512", sha512_new)
+        .func("sha3_224", sha3_224_new)
+        .func("sha3_256", sha3_256_new)
+        .func("sha3_384", sha3_384_new)
+        .func("sha3_512", sha3_512_new)
+        .value("algorithms_guaranteed", names_set(&["blake2b", "md5", "sha1", "sha224", "sha256", "sha384", "sha3_224", "sha3_256", "sha3_384", "sha3_512", "sha512"]))
+        .value("algorithms_available", names_set(&["blake2b", "md5", "sha1", "sha224", "sha256", "sha384", "sha3_224", "sha3_256", "sha3_384", "sha3_512", "sha512"]))
         .func("blake2b", blake2b_new)
         .func("new", new)
         .func("pbkdf2_hmac", pbkdf2_hmac)

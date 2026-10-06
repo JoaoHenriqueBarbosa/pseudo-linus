@@ -34,6 +34,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("random", include_str!("py/random.py")),
     ("_random", include_str!("py/_random.py")),
     ("_tracemalloc", include_str!("py/_tracemalloc.py")),
+    ("mmap", include_str!("py/mmap.py")),
     ("bisect", include_str!("py/bisect.py")),
     ("stat", include_str!("py/stat.py")),
     ("glob", include_str!("py/glob.py")),
