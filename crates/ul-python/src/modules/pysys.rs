@@ -97,6 +97,15 @@ fn setrecursionlimit(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value>
     Ok(Value::None)
 }
 
+/// `_builtin(f)`: marca uma função escrita em Python que no CPython é embutida (C). Ela não vira método
+/// ligado quando é guardada num atributo de classe (`converter = time.localtime` do `logging`).
+fn mark_builtin(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    if let Some(Value::Function(f)) = args.first() {
+        f.attrs.borrow_mut().insert("__no_bind__".to_string(), Value::Bool(true));
+    }
+    Ok(args.into_iter().next().unwrap_or(Value::None))
+}
+
 /// `_exc_hint(exc)`: o sufixo ". Did you mean: 'x'?" de um `AttributeError`/`NameError`/`ImportError`.
 fn exc_hint(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::str(args.first().map_or_else(String::new, |v| vm.exc_hint(v))))
@@ -150,6 +159,7 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
         .func("_getframe", getframe)
         .func("_modules", modules_snapshot)
         .func("_exc_hint", exc_hint)
+        .func("_builtin", mark_builtin)
         .func("_source_line", source_line)
         .func("_set_module", set_module)
         .func("_reload", reload)

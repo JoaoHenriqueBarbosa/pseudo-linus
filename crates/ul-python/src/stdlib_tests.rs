@@ -3272,3 +3272,112 @@ name 'zzzzzz' is not defined
 "##
     );
 }
+
+#[test]
+fn builtin_base_methods_skip_overrides() {
+    let src = r##"
+class D(dict):
+    def __getitem__(self, key):
+        v = dict.__getitem__(self, key)
+        return v * 2
+    def __setitem__(self, key, value):
+        dict.__setitem__(self, key, value + 1)
+    def __contains__(self, k):
+        return dict.__contains__(self, k)
+    def __len__(self):
+        return dict.__len__(self) + 100
+    def __iter__(self):
+        return dict.__iter__(self)
+    def get(self, k, d=None):
+        return dict.get(self, k, d)
+    def __repr__(self):
+        return "D" + dict.__repr__(self)
+    def pop(self, k, *a):
+        return dict.pop(self, k, *a)
+    def update(self, *a, **k):
+        dict.update(self, *a, **k)
+    def __delitem__(self, k):
+        dict.__delitem__(self, k)
+d = D()
+d["a"] = 1
+print(d["a"], "a" in d, len(d), list(d), d.get("a"), repr(d))
+d.update(b=5)
+print(dict.items(d), d.pop("b"))
+del d["a"]
+print(dict.__len__(d))
+class L(list):
+    def __getitem__(self, i):
+        return list.__getitem__(self, i) * 10
+    def append(self, x):
+        list.append(self, x + 1)
+    def __len__(self):
+        return list.__len__(self) + 1
+    def __iter__(self):
+        return list.__iter__(self)
+    def __setitem__(self, i, v):
+        list.__setitem__(self, i, v)
+l = L()
+l.append(1)
+l[0] = 7
+print(l[0], len(l), list(l), list.__len__(l))
+class S(str):
+    def __getitem__(self, i):
+        return str.__getitem__(self, i).upper()
+    def __len__(self):
+        return str.__len__(self) * 2
+print(S("abc")[1], len(S("abc")))
+class T(tuple):
+    def __getitem__(self, i):
+        return tuple.__getitem__(self, i) + 1
+print(T((1, 2))[1])
+class St(set):
+    def __contains__(self, x):
+        return set.__contains__(self, x) or x == "magic"
+print("magic" in St(), 1 in St({1}))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"4 True 101 ['a'] 2 D{'a': 2}
+dict_items([('a', 2)]) 5
+0
+70 2 [7] 1
+B 6
+3
+True True
+"##
+    );
+}
+
+#[test]
+fn builtin_functions_do_not_bind_in_class() {
+    let src = r##"
+import time
+
+class Clock:
+    conv = time.localtime
+    fmt = time.strftime
+
+    def go(self):
+        return self.conv(0).tm_year, self.fmt("%Y", self.conv(0))
+
+c = Clock()
+print(c.go(), Clock.conv(86400).tm_mday, c.conv(86400 * 2).tm_mday)
+
+def plain(x=None):
+    return "plain", x
+
+class K:
+    f = plain
+print(K().f()[0])
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"(1970, '1970') 2 3
+plain
+"##
+    );
+}

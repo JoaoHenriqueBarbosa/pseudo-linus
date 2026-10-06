@@ -1,7 +1,7 @@
 """time: relógio do sandbox (fuso sempre UTC)."""
 
 import _os
-
+import _sys
 timezone = 0
 altzone = 0
 daylight = 0
@@ -362,3 +362,24 @@ def get_clock_info(name):
     o.adjustable = name == 'time'
     o.resolution = 1e-09
     return o
+
+
+# No CPython estas funções são embutidas (C): guardadas num atributo de classe não viram método ligado.
+time = _sys._builtin(time)
+time_ns = _sys._builtin(time_ns)
+monotonic = _sys._builtin(monotonic)
+monotonic_ns = _sys._builtin(monotonic_ns)
+perf_counter = _sys._builtin(perf_counter)
+perf_counter_ns = _sys._builtin(perf_counter_ns)
+process_time = _sys._builtin(process_time)
+process_time_ns = _sys._builtin(process_time_ns)
+thread_time = _sys._builtin(thread_time)
+sleep = _sys._builtin(sleep)
+gmtime = _sys._builtin(gmtime)
+localtime = _sys._builtin(localtime)
+mktime = _sys._builtin(mktime)
+asctime = _sys._builtin(asctime)
+ctime = _sys._builtin(ctime)
+strftime = _sys._builtin(strftime)
+strptime = _sys._builtin(strptime)
+get_clock_info = _sys._builtin(get_clock_info)

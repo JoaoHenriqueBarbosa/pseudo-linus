@@ -683,6 +683,8 @@ impl Vm {
     /// presos, descritores são desembrulhados.
     pub(crate) fn bind_class_attr(&mut self, attr: &Value, recv: Value, cls: &Rc<ClassObj>) -> PyResult<Value> {
         match attr {
+            // Função embutida no CPython (escrita em Python aqui): `Classe.attr = time.time` não liga `self`.
+            Value::Function(f) if f.attrs.borrow().contains_key("__no_bind__") => Ok(attr.clone()),
             Value::Function(f) => match recv {
                 Value::Class(_) => Ok(attr.clone()),
                 _ => Ok(Value::BoundFn(Rc::new((recv, f.clone())))),

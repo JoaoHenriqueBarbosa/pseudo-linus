@@ -12,6 +12,11 @@ __stdout__ = _sys.stdout
 __stderr__ = _sys.stderr
 exit = _sys.exit
 exc_info = _sys.exc_info
+
+
+def exception():
+    """A exceção em tratamento (o `sys.exc_info()[1]`), ou `None`."""
+    return _sys.exc_info()[1]
 _getframe = _sys._getframe
 getrecursionlimit = _sys.getrecursionlimit
 setrecursionlimit = _sys.setrecursionlimit

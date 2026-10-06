@@ -54,7 +54,10 @@ impl ExtObject for Unbound {
             )));
         }
         let recv = args.remove(0);
-        let bound = vm.getattr(&recv, self.name)?;
+        // `dict.__getitem__(self, k)` numa subclasse que sobrescreve `__getitem__`: vale o método do tipo
+        // embutido sobre o dado de dentro da instância, não a sobrescrita (senão recursa).
+        let target = crate::vm::unwrap_payload(&recv);
+        let bound = vm.getattr(&target, self.name)?;
         vm.call_value(&bound, args, kw)
     }
 }

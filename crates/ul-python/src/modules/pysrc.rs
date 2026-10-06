@@ -146,6 +146,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("sqlite3.dbapi2", include_str!("py/sqlite3_dbapi2.py")),
     ("sqlite3.dump", include_str!("py/sqlite3_dump.py")),
     ("sysconfig", include_str!("py/sysconfig.py")),
+    ("logging.config", include_str!("py/logging_config.py")),
     ("sqlite3.__main__", include_str!("py/sqlite3___main__.py")),
     ("zipimport", include_str!("py/zipimport.py")),
     ("zipapp", include_str!("py/zipapp.py")),
@@ -303,10 +304,10 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
             format!("/usr/lib/python3.13/{as_path}.py")
         };
         g.insert("__file__".to_string(), Value::str(file));
-        // Pacote: `__package__` é ele mesmo e `__path__` existe (vazio); módulo: o pacote pai.
+        // Pacote: `__package__` é ele mesmo e `__path__` aponta o diretório dele; módulo: o pacote pai.
         if crate::modules::is_embedded_package(real) {
             g.insert("__package__".to_string(), Value::str(real));
-            g.insert("__path__".to_string(), Value::list(Vec::new()));
+            g.insert("__path__".to_string(), Value::list(vec![Value::str(format!("/usr/lib/python3.13/{as_path}"))]));
         } else {
             g.insert("__package__".to_string(), Value::str(real.rsplit_once('.').map_or("", |(p, _)| p)));
         }
@@ -317,7 +318,11 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     let parsed = crate::parser::parse_module(src).unwrap_or_else(|e| panic!("módulo embutido {real}: {e:?}"));
     let mut code = crate::compile::compile_module(&parsed)
         .unwrap_or_else(|e| panic!("módulo embutido {real}: {}: {}", e.kind, e.msg));
-    let filename = format!("/usr/lib/python3.13/{}.py", real.replace('.', "/"));
+    let filename = if crate::modules::is_embedded_package(real) {
+        format!("/usr/lib/python3.13/{}/__init__.py", real.replace('.', "/"))
+    } else {
+        format!("/usr/lib/python3.13/{}.py", real.replace('.', "/"))
+    };
     code.set_filename(&filename);
     crate::vm::register_source(&filename, src);
     if let Err(e) = inner.run(&Rc::new(code)) {
