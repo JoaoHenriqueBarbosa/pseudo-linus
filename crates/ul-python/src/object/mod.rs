@@ -339,10 +339,34 @@ impl ClassObj {
         }
     }
 
-    /// Ordem de resolução de métodos (`__mro__`): linearização C3 simplificada para herança simples
-    /// e losango comum (cada classe antes de suas bases, sem repetir).
+    /// Ordem de resolução de métodos (`__mro__`): linearização C3. Herança simples não paga o
+    /// merge; se as bases forem inconsistentes, cai na busca em profundidade sem repetir.
     pub fn mro(self: &Rc<Self>) -> Vec<Rc<ClassObj>> {
         let mut out: Vec<Rc<ClassObj>> = vec![self.clone()];
+        if self.bases.len() <= 1 {
+            for b in &self.bases {
+                out.extend(b.mro());
+            }
+            return out;
+        }
+        let mut seqs: Vec<Vec<Rc<ClassObj>>> = self.bases.iter().map(|b| b.mro()).collect();
+        seqs.push(self.bases.clone());
+        loop {
+            seqs.retain(|s| !s.is_empty());
+            if seqs.is_empty() {
+                return out;
+            }
+            let pick = seqs.iter().map(|s| s[0].clone()).find(|cand| {
+                !seqs.iter().any(|s| s[1..].iter().any(|x| Rc::ptr_eq(x, cand)))
+            });
+            let Some(next) = pick else { break };
+            for s in seqs.iter_mut() {
+                if Rc::ptr_eq(&s[0], &next) {
+                    s.remove(0);
+                }
+            }
+            out.push(next);
+        }
         for b in &self.bases {
             for c in b.mro() {
                 if !out.iter().any(|x| Rc::ptr_eq(x, &c)) {
@@ -363,8 +387,49 @@ impl ClassObj {
 pub struct InstanceObj {
     pub class: Rc<ClassObj>,
     pub dict: RefCell<indexmap::IndexMap<String, Value>>,
+    /// Espelho vivo de `__dict__`: o `dict` entregue ao usuário, sincronizado com `dict` em cada acesso.
+    pub view: RefCell<Option<Rc<RefCell<Dict>>>>,
     /// O valor embutido de uma instância cuja classe herda de `dict`, `list`, `tuple`, `str`, `int`...
     pub payload: RefCell<Option<Value>>,
+}
+
+impl InstanceObj {
+    /// O `__dict__` vivo: criado na primeira leitura e compartilhado nas seguintes.
+    pub fn live_dict(&self) -> Value {
+        if let Some(v) = self.view.borrow().as_ref() {
+            self.sync_from_view();
+            return Value::Dict(v.clone());
+        }
+        let mut d = Dict::new();
+        for (k, v) in self.dict.borrow().iter() {
+            let _ = d.set(Value::str(k.clone()), v.clone());
+        }
+        let rc = Rc::new(RefCell::new(d));
+        *self.view.borrow_mut() = Some(rc.clone());
+        Value::Dict(rc)
+    }
+
+    /// Traz para `dict` o que o usuário escreveu no `__dict__` (chaves não textuais ficam de fora).
+    pub fn sync_from_view(&self) {
+        let Some(v) = self.view.borrow().clone() else { return };
+        let mut fresh = indexmap::IndexMap::new();
+        for (k, val) in v.borrow().iter() {
+            if let Value::Str(s) = k {
+                fresh.insert(s.as_str().to_string(), val.clone());
+            }
+        }
+        *self.dict.borrow_mut() = fresh;
+    }
+
+    /// Reflete no `__dict__` vivo uma mudança feita direto em `dict`.
+    pub fn sync_to_view(&self) {
+        let Some(v) = self.view.borrow().clone() else { return };
+        let mut d = Dict::new();
+        for (k, val) in self.dict.borrow().iter() {
+            let _ = d.set(Value::str(k.clone()), val.clone());
+        }
+        *v.borrow_mut() = d;
+    }
 }
 
 impl fmt::Debug for InstanceObj {

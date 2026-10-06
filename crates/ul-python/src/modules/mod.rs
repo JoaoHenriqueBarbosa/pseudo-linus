@@ -102,6 +102,14 @@ pub fn import_checked(vm: &mut Vm, name: &str) -> PyResult<Rc<ModuleObj>> {
     if let Some(m) = vm.modules.borrow().get(name) {
         return Ok(m.clone());
     }
+    if name == "__main__" {
+        // O script principal como módulo: as globais dele, vivas.
+        let m = Rc::new(ModuleObj { name: "__main__", attrs: RefCell::new(BTreeMap::new()) });
+        let globals = vm.globals.clone();
+        vm.module_globals.borrow_mut().insert("__main__", globals);
+        vm.modules.borrow_mut().insert("__main__".to_string(), m.clone());
+        return Ok(m);
+    }
     if let Some((parent, _)) = name.rsplit_once('.') {
         import_checked(vm, parent)?;
         if let Some(m) = vm.modules.borrow().get(name) {

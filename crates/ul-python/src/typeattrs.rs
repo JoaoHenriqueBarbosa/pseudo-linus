@@ -80,6 +80,7 @@ impl ExtObject for NewFn {
         let payload = vm.call_value(&ctor, rest, kw)?;
         Ok(Value::Instance(Rc::new(crate::object::InstanceObj {
             class: c.clone(),
+            view: Default::default(),
             dict: std::cell::RefCell::new(indexmap::IndexMap::new()),
             payload: std::cell::RefCell::new(Some(payload)),
         })))
@@ -213,7 +214,9 @@ fn native(name: &'static str, f: crate::object::NativeFnPtr) -> Value {
 fn object_setattr(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     match args.as_slice() {
         [Value::Instance(i), Value::Str(n), v] => {
+            i.sync_from_view();
             i.dict.borrow_mut().insert(n.as_str().to_string(), v.clone());
+            i.sync_to_view();
             Ok(Value::None)
         }
         [other, ..] => Err(type_error(format!(
@@ -226,10 +229,15 @@ fn object_setattr(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
 
 fn object_delattr(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     match args.as_slice() {
-        [Value::Instance(i), Value::Str(n)] => match i.dict.borrow_mut().shift_remove(n.as_str()) {
-            Some(_) => Ok(Value::None),
-            None => Err(crate::vm::exc("AttributeError", n.as_str().to_string())),
-        },
+        [Value::Instance(i), Value::Str(n)] => {
+            i.sync_from_view();
+            let removed = i.dict.borrow_mut().shift_remove(n.as_str());
+            i.sync_to_view();
+            match removed {
+                Some(_) => Ok(Value::None),
+                None => Err(crate::vm::exc("AttributeError", n.as_str().to_string())),
+            }
+        }
         _ => Err(type_error("expected 2 arguments")),
     }
 }
@@ -237,6 +245,7 @@ fn object_delattr(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
 fn object_getattribute(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     match args.as_slice() {
         [Value::Instance(i), Value::Str(n)] => {
+            i.sync_from_view();
             let own = i.dict.borrow().get(n.as_str()).cloned();
             match own {
                 Some(v) => Ok(v),
@@ -254,10 +263,38 @@ fn object_new(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     match args.first() {
         Some(Value::Class(c)) => Ok(Value::Instance(Rc::new(crate::object::InstanceObj {
             class: c.clone(),
+            view: Default::default(),
             dict: std::cell::RefCell::new(indexmap::IndexMap::new()),
             payload: std::cell::RefCell::new(None),
         }))),
         _ => Err(type_error("object.__new__(X): X is not a type object")),
+    }
+}
+
+/// `object.__eq__`: identidade; devolve `NotImplemented` para outro objeto.
+fn object_eq(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    match args.as_slice() {
+        [a, b] if crate::object::is(a, b) => Ok(Value::Bool(true)),
+        [_, _] => Ok(crate::classes::not_implemented()),
+        _ => Err(type_error("expected 1 argument")),
+    }
+}
+
+/// `object.__ne__`: o inverso de `__eq__`, se ele souber responder.
+fn object_ne(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let [a, b] = <[Value; 2]>::try_from(args).map_err(|_| type_error("expected 1 argument"))?;
+    match vm.call_dunder(&a, "__eq__", vec![b]) {
+        Some(Ok(r)) if r.is_true() => Ok(Value::Bool(false)),
+        Some(Ok(Value::Bool(false))) => Ok(Value::Bool(true)),
+        Some(Ok(_)) | None => Ok(crate::classes::not_implemented()),
+        Some(Err(e)) => Err(e),
+    }
+}
+
+fn object_hash(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    match args.first() {
+        Some(v) => Ok(Value::Int(crate::object::hash(v)?)),
+        None => Err(type_error("expected 0 arguments")),
     }
 }
 
@@ -273,6 +310,9 @@ pub fn object_attr(name: &str) -> Option<Value> {
         "__getattribute__" => native("__getattribute__", object_getattribute),
         "__new__" => native("__new__", object_new),
         "__init__" => native("__init__", object_init),
+        "__eq__" => native("__eq__", object_eq),
+        "__ne__" => native("__ne__", object_ne),
+        "__hash__" => native("__hash__", object_hash),
         "__name__" => Value::str("object"),
         _ => return None,
     })

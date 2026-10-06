@@ -2019,3 +2019,52 @@ True False ExceptionGroup
 "##
     );
 }
+
+#[test]
+fn live_dict_and_mock() {
+    let src = r##"
+from unittest import mock
+
+
+class A:
+    def __init__(self):
+        self.x = 1
+
+
+a = A()
+d = a.__dict__
+d['y'] = 2
+print(a.y, sorted(a.__dict__))
+a.z = 3
+print(sorted(d))
+del d['x']
+print(hasattr(a, 'x'), sorted(vars(a)))
+del a.y
+print(sorted(d))
+
+m = mock.Mock(return_value=3)
+print(m(1, k=2), m.call_count, m.call_args)
+m.foo.bar.return_value = 'ok'
+print(m.foo.bar())
+with mock.patch('os.getcwd', return_value='/x'):
+    import os
+    print(os.getcwd())
+mm = mock.MagicMock()
+mm.__len__.return_value = 5
+print(len(mm))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"2 ['x', 'y']
+['x', 'y', 'z']
+False ['y', 'z']
+['z']
+3 1 call(1, k=2)
+ok
+/x
+5
+"##
+    );
+}

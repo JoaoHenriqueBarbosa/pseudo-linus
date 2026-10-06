@@ -243,6 +243,7 @@ impl ExtObject for BuiltinSuperMethod {
                         };
                         Ok(Value::Instance(Rc::new(InstanceObj {
                             class: c.clone(),
+                            view: Default::default(),
                             dict: RefCell::new(indexmap::IndexMap::new()),
                             payload: RefCell::new(payload),
                         })))
@@ -342,7 +343,7 @@ pub(crate) fn binop_dunder(sym: &str) -> Option<(&'static str, &'static str, &'s
     })
 }
 
-fn not_implemented() -> Value {
+pub(crate) fn not_implemented() -> Value {
     Value::Builtin("NotImplemented")
 }
 
@@ -606,6 +607,7 @@ impl Vm {
         let user_new_defined = user_new.is_some();
         let fresh = Rc::new(InstanceObj {
             class: cls.clone(),
+            view: Default::default(),
             dict: RefCell::new(indexmap::IndexMap::new()),
             payload: RefCell::new(None),
         });
@@ -704,15 +706,10 @@ impl Vm {
     fn instance_getattr_with(&mut self, obj: &Value, inst: &Rc<InstanceObj>, name: &str, hook: bool) -> PyResult<Value> {
         match name {
             "__class__" => return Ok(Value::Class(inst.class.clone())),
-            "__dict__" => {
-                let mut d = crate::object::Dict::new();
-                for (k, v) in inst.dict.borrow().iter() {
-                    d.set(Value::str(k.clone()), v.clone())?;
-                }
-                return Ok(Value::dict(d));
-            }
+            "__dict__" => return Ok(inst.live_dict()),
             _ => {}
         }
+        inst.sync_from_view();
         // Propriedades têm precedência sobre o dicionário da instância.
         let class_attr = inst.class.lookup(name);
         if let Some(Value::Ext(e)) = &class_attr {
@@ -825,7 +822,9 @@ impl Vm {
                         return Ok(());
                     }
                 }
+                inst.sync_from_view();
                 inst.dict.borrow_mut().insert(name.to_string(), value);
+                inst.sync_to_view();
                 Ok(())
             }
             Value::Class(c) => {
@@ -864,9 +863,11 @@ impl Vm {
                         return Ok(());
                     }
                 }
+                inst.sync_from_view();
                 if inst.dict.borrow_mut().shift_remove(name).is_none() {
                     return Err(exc("AttributeError", format!("'{}' object has no attribute '{name}'", inst.class.name)));
                 }
+                inst.sync_to_view();
                 Ok(())
             }
             Value::Class(c) => {
@@ -1133,6 +1134,19 @@ impl Vm {
             Some(bound @ (Value::Bound(_) | Value::BoundFn(_) | Value::Ext(_) | Value::NativeFn(_))) => {
                 return Some(self.call_value(&bound, args, Vec::new()));
             }
+            // Descritor de usuário (`__get__` em Python, como o `MagicProxy` do mock): resolve e chama.
+            Some(attr @ Value::Instance(_)) if matches!(&attr, Value::Instance(d) if d.class.lookup("__get__").is_some()) => {
+                let bound = match self.bind_class_attr(&attr, obj.clone(), &i.class) {
+                    Ok(b) => b,
+                    Err(e) => return Some(Err(e)),
+                };
+                return Some(self.call_value(&bound, args, Vec::new()));
+            }
+            // Objeto chamável sem `__get__` na classe (um `MagicMock` posto como `__len__`): o CPython o
+            // chama só com os argumentos, sem o `self`.
+            Some(attr @ Value::Instance(_)) if matches!(&attr, Value::Instance(d) if d.class.lookup("__call__").is_some()) => {
+                return Some(self.call_value(&attr, args, Vec::new()));
+            }
             _ => None,
         };
         let Some(f) = user else {
@@ -1229,6 +1243,7 @@ impl Vm {
                 });
                 Ok(Value::Instance(Rc::new(InstanceObj {
                     class: base,
+                    view: Default::default(),
                     dict: RefCell::new(indexmap::IndexMap::new()),
                     payload: RefCell::new(None),
                 })))
