@@ -3875,3 +3875,963 @@ number of bits must be non-negative
 "##
     );
 }
+
+#[test]
+fn json_native_fast_path_matches_cpython() {
+    let src = r##"
+import json
+
+seed = [12345]
+
+
+def rnd(n):
+    seed[0] = (seed[0] * 1103515245 + 12345) & 0x7fffffff
+    return (seed[0] >> 8) % n
+
+
+STRS = ['', 'a', 'hello world', 'ação', '日本語', '😀 emoji', 'q"uote', 'back\\slash', 'tab\there', 'nl\nx', '\x00\x1f', '\x7f', '  ', '/', 'é' * 20, '', 'à', '\U0010ffff']
+FLOATS = [0.0, -0.0, 0.1, 1.5, -2.25, 1e22, 1e-7, 1e21, 123456789.123456789, 5e-324, 1.7976931348623157e308, 3.14159, 100.0, 1e16, 1e15, 0.00001, 12345678901234567890.0, 2.5e-5]
+INTS = [0, 1, -1, 42, 2**31, -2**31, 2**53, 2**63 - 1, -2**63, 2**63, 10**30, -10**25]
+
+
+def gen(d):
+    k = rnd(9) if d < 4 else rnd(6)
+    if k == 0:
+        return None
+    if k == 1:
+        return bool(rnd(2))
+    if k == 2:
+        return INTS[rnd(len(INTS))]
+    if k == 3:
+        return FLOATS[rnd(len(FLOATS))]
+    if k == 4:
+        return STRS[rnd(len(STRS))] + str(rnd(10))
+    if k == 5:
+        return STRS[rnd(len(STRS))]
+    if k == 6:
+        return [gen(d + 1) for _ in range(rnd(5))]
+    if k == 7:
+        return {STRS[rnd(len(STRS))] + str(i): gen(d + 1) for i in range(rnd(5))}
+    return tuple(gen(d + 1) for _ in range(rnd(4)))
+
+
+bad = 0
+for i in range(400):
+    o = gen(0)
+    for ea in (True, False):
+        s = json.dumps(o, ensure_ascii=ea)
+        r = json.loads(s)
+        if i < 6:
+            print(ea, s[:90])
+        print(i, ea, len(s), hash(s) & 0xffff if False else sum(map(ord, s)) % 100003, repr(r)[:60] if i < 40 else len(repr(r)))
+
+special = [
+    '{"a": 1, "a": 2}', '[1, 2,3 ]', ' \n\t[ ] ', '-0', '-0.0', '1e400', '-1e400', '1E5', '0.5e-3', '123456789012345678901234567890',
+    '"\\ud83d\\ude00"', '"\\u00e9\\n\\/"', 'NaN', '-Infinity', 'Infinity', '[NaN, Infinity]', 'true', 'null',
+    '{"k": {"k": {"k": [[[]]]}}}', '"x"', '12', '3.0', '[1,]', '{"a":}', '', ' ', '[1] x', '"abc', '01', '1.', '.5', "'a'", '{"a" 1}', '[1 2]', '"\t"', 'nul', '﻿[1]',
+]
+for sp in special:
+    try:
+        r = json.loads(sp)
+        print('ok', repr(sp)[:30], repr(r)[:50], type(r).__name__)
+    except Exception as e:
+        print('err', repr(sp)[:30], type(e).__name__, e)
+
+for o in ({1: 'a', 2.5: 'b', True: 'c', None: 'd', 'e': 'f'}, {(1, 2): 3}, [object()], {'a': {1, 2}}, float('nan'), [float('inf'), -float('inf')], {'x': b'by'}, 10**40, [[1, [2, [3, {'k': (4, 5)}]]]]):
+    try:
+        print(json.dumps(o), json.dumps(o, ensure_ascii=False))
+    except Exception as e:
+        print('err', type(e).__name__, e)
+a = []
+a.append(a)
+try:
+    json.dumps(a)
+except Exception as e:
+    print(type(e).__name__, e)
+deep = []
+cur = deep
+for _ in range(600):
+    n = []
+    cur.append(n)
+    cur = n
+print(len(json.dumps(deep)), json.loads(json.dumps(deep)) == deep)
+print(json.dumps({'a': 1, 'b': [1, 2]}, sort_keys=True), json.dumps([1, {'a': 2}], indent=2), json.dumps({'a': 1}, separators=(',', ':')))
+class D(dict):
+    pass
+from collections import OrderedDict
+print(json.dumps(D(a=1)), json.dumps(OrderedDict([('z', 1), ('a', 2)])), json.dumps(True), json.dumps('é'), json.dumps(1.0))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"True {"tab\there0": 0.1, "1": {}}
+0 True 28 2067 {'tab\there0': 0.1, '1': {}}
+False {"tab\there0": 0.1, "1": {}}
+0 False 28 2067 {'tab\there0': 0.1, '1': {}}
+True null
+1 True 4 443 None
+False null
+1 False 4 443 None
+True null
+2 True 4 443 None
+False null
+2 False 4 443 None
+True [[[false]], true, 1.7976931348623157e+308]
+3 True 42 2918 [[[False]], True, 1.7976931348623157e+308]
+False [[[false]], true, 1.7976931348623157e+308]
+3 False 42 2918 [[[False]], True, 1.7976931348623157e+308]
+True ["\u65e5\u672c\u8a9e2", {"\u65e5\u672c\u8a9e0": ["a\u00e7\u00e3o6", null, "tab\there"], "\
+4 True 249 18479 ['日本語2', {'日本語0': ['ação6', None, 'tab\there'], '\ue0001': '
+False ["日本語2", {"日本語0": ["ação6", null, "tab\there"], "1": "q\"uote", "2": ""}, "ééééééééééééé
+4 False 99 242 ['日本語2', {'日本語0': ['ação6', None, 'tab\there'], '\ue0001': '
+True false
+5 True 5 523 False
+False false
+5 False 5 523 False
+6 True 10 522 [0.0, '4']
+6 False 10 522 [0.0, '4']
+7 True 27 1294 -10000000000000000000000000
+7 False 27 1294 -10000000000000000000000000
+8 True 19 1000 9223372036854775807
+8 False 19 1000 9223372036854775807
+9 True 67 4873 {'0': True, 'ação1': 1e-07, '日本語2': False}
+9 False 42 90939 {'0': True, 'ação1': 1e-07, '日本語2': False}
+10 True 217 15917 {'à0': None, 'a1': 9223372036854775808, '日本語2': ['ééééééééé
+10 False 97 98207 {'à0': None, 'a1': 9223372036854775808, '日本語2': ['ééééééééé
+11 True 4 443 None
+11 False 4 443 None
+12 True 20 1046 -9223372036854775808
+12 False 20 1046 -9223372036854775808
+13 True 2 248 {}
+13 False 2 248 {}
+14 True 5 239 100.0
+14 False 5 239 100.0
+15 True 4 443 None
+15 False 4 443 None
+16 True 21 1574 '日本語1'
+16 False 6 88100 '日本語1'
+17 True 37 3215 [False, 'tab\there7', '\U0010ffff']
+17 False 26 16067 [False, 'tab\there7', '\U0010ffff']
+18 True 4 448 True
+18 False 4 448 True
+19 True 3 142 0.0
+19 False 3 142 0.0
+20 True 4 448 True
+20 False 4 448 True
+21 True 63 4809 {'tab\there0': {'\ue0000': 'hello world'}, '\x00\x1f1': []}
+21 False 58 61699 {'tab\there0': {'\ue0000': 'hello world'}, '\x00\x1f1': []}
+22 True 122 9328 'éééééééééééééééééééé'
+22 False 22 4728 'éééééééééééééééééééé'
+23 True 34 2066 [42, 1.2345678901234567e+19, None]
+23 False 34 2066 [42, 1.2345678901234567e+19, None]
+24 True 186 13622 {'0': [1e+21, '\x7f4', 'tab\there0'], 'nl\nx1': 5e-324, 'ééé
+24 False 81 8687 {'0': [1e+21, '\x7f4', 'tab\there0'], 'nl\nx1': 5e-324, 'ééé
+25 True 5 523 False
+25 False 5 523 False
+26 True 4 215 'a2'
+26 False 4 215 'a2'
+27 True 14 1294 '\U0010ffff'
+27 False 3 14146 '\U0010ffff'
+28 True 3 165 'a'
+28 False 3 165 'a'
+29 True 42 3111 [[None, ['\ue000', []], '\x7f5'], False]
+29 False 32 59666 [[None, ['\ue000', []], '\x7f5'], False]
+30 True 243 18071 [[{'nl\nx0': 100.0, 'hello world1': -0.0, 'back\\slash2': '\
+30 False 127 25988 [[{'nl\nx0': 100.0, 'hello world1': -0.0, 'back\\slash2': '\
+31 True 2 248 {}
+31 False 2 248 {}
+32 True 7 396 2.5e-05
+32 False 7 396 2.5e-05
+33 True 4 443 None
+33 False 4 443 None
+34 True 20 1046 -9223372036854775808
+34 False 20 1046 -9223372036854775808
+35 True 45 2825 [None, None, 2147483648, 9223372036854775807]
+35 False 45 2825 [None, None, 2147483648, 9223372036854775807]
+36 True 4 443 None
+36 False 4 443 None
+37 True 5 523 False
+37 False 5 523 False
+38 True 5 523 False
+38 False 5 523 False
+39 True 5 523 False
+39 False 5 523 False
+40 True 31 2468 21
+40 False 21 2008 21
+41 True 5 292 5
+41 False 5 292 5
+42 True 4 443 4
+42 False 4 443 4
+43 True 39 3201 39
+43 False 34 60091 39
+44 True 4 443 4
+44 False 4 443 4
+45 True 11 1007 11
+45 False 11 1007 11
+46 True 157 11590 131
+46 False 131 25600 131
+47 True 7 608 7
+47 False 7 608 7
+48 True 3 148 3
+48 False 3 148 3
+49 True 61 3589 61
+49 False 61 3589 61
+50 True 4 443 4
+50 False 4 443 4
+51 True 4 443 4
+51 False 4 443 4
+52 True 31 2398 31
+52 False 31 2398 31
+53 True 14 1247 14
+53 False 14 1247 14
+54 True 141 11008 39
+54 False 30 19260 39
+55 True 26 2113 26
+55 False 26 2113 26
+56 True 4 443 4
+56 False 4 443 4
+57 True 21 1580 6
+57 False 6 88106 6
+58 True 2 248 2
+58 False 2 248 2
+59 True 21 1892 21
+59 False 21 1892 21
+60 True 5 523 5
+60 False 5 523 5
+61 True 5 244 5
+61 False 5 244 5
+62 True 20 1046 20
+62 False 20 1046 20
+63 True 15 951 15
+63 False 5 16589 15
+64 True 4 448 4
+64 False 4 448 4
+65 True 6 632 6
+65 False 6 632 6
+66 True 16 845 16
+66 False 16 845 16
+67 True 1 49 1
+67 False 1 49 1
+68 True 4 222 4
+68 False 4 222 4
+69 True 122 9328 22
+69 False 22 4728 22
+70 True 119 8580 119
+70 False 119 8580 119
+71 True 11 572 11
+71 False 11 572 11
+72 True 18 944 18
+72 False 18 944 18
+73 True 30 2612 28
+73 False 19 15464 28
+74 True 4 448 4
+74 False 4 448 4
+75 True 31 1489 31
+75 False 31 1489 31
+76 True 12 1058 12
+76 False 12 1058 12
+77 True 19 1001 19
+77 False 19 1001 19
+78 True 4 166 4
+78 False 4 166 4
+79 True 5 296 5
+79 False 5 296 5
+80 True 27 1294 27
+80 False 27 1294 27
+81 True 4 219 4
+81 False 4 219 4
+82 True 4 187 4
+82 False 4 187 4
+83 True 4 252 4
+83 False 4 252 4
+84 True 4 443 4
+84 False 4 443 4
+85 True 20 1046 20
+85 False 20 1046 20
+86 True 8 576 8
+86 False 8 576 8
+87 True 203 13609 175
+87 False 176 68947 175
+88 True 16 1194 6
+88 False 6 734 6
+89 True 4 443 4
+89 False 4 443 4
+90 True 4 443 4
+90 False 4 443 4
+91 True 4 187 4
+91 False 4 187 4
+92 True 249 18459 146
+92 False 134 27301 146
+93 True 6 352 6
+93 False 6 352 6
+94 True 20 1046 20
+94 False 20 1046 20
+95 True 2 184 2
+95 False 2 184 2
+96 True 4 443 4
+96 False 4 443 4
+97 True 16 1194 6
+97 False 6 734 6
+98 True 4 443 4
+98 False 4 443 4
+99 True 212 16390 104
+99 False 96 24307 104
+100 True 2 184 2
+100 False 2 184 2
+101 True 7 396 7
+101 False 7 396 7
+102 True 4 443 4
+102 False 4 443 4
+103 True 14 925 10
+103 False 14 925 10
+104 True 26 2012 21
+104 False 21 2376 21
+105 True 20 1525 5
+105 False 5 88051 5
+106 True 1 49 1
+106 False 1 49 1
+107 True 5 523 5
+107 False 5 523 5
+108 True 4 443 4
+108 False 4 443 4
+109 True 15 982 11
+109 False 15 982 11
+110 True 5 239 5
+110 False 5 239 5
+111 True 4 448 4
+111 False 4 448 4
+112 True 5 523 5
+112 False 5 523 5
+113 True 448 32323 229
+113 False 196 51290 229
+114 True 123 8281 97
+114 False 87 37929 97
+115 True 19 1390 19
+115 False 14 58280 19
+116 True 4 448 4
+116 False 4 448 4
+117 True 213 16106 99
+117 False 98 67936 99
+118 True 2 184 2
+118 False 2 184 2
+119 True 5 523 5
+119 False 5 523 5
+120 True 17 1248 7
+120 False 7 788 7
+121 True 2 68 2
+121 False 2 68 2
+122 True 2 184 2
+122 False 2 184 2
+123 True 83 5030 83
+123 False 83 5030 83
+124 True 4 443 4
+124 False 4 443 4
+125 True 26 1549 26
+125 False 26 1549 26
+126 True 5 523 5
+126 False 5 523 5
+127 True 18 863 18
+127 False 18 863 18
+128 True 19 1000 19
+128 False 19 1000 19
+129 True 4 443 4
+129 False 4 443 4
+130 True 5 293 5
+130 False 5 293 5
+131 True 27 1294 27
+131 False 27 1294 27
+132 True 23 1243 23
+132 False 23 1243 23
+133 True 2 102 2
+133 False 2 102 2
+134 True 4 443 4
+134 False 4 443 4
+135 True 8 530 6
+135 False 3 195 6
+136 True 14 1240 14
+136 False 14 1240 14
+137 True 33 2605 27
+137 False 22 15457 27
+138 True 11 1007 11
+138 False 11 1007 11
+139 True 17 1486 17
+139 False 17 1486 17
+140 True 4 286 4
+140 False 4 286 4
+141 True 23 1243 23
+141 False 23 1243 23
+142 True 9 569 4
+142 False 4 933 4
+143 True 4 443 4
+143 False 4 443 4
+144 True 5 523 5
+144 False 5 523 5
+145 True 12 1056 12
+145 False 12 1056 12
+146 True 5 332 5
+146 False 5 332 5
+147 True 4 443 4
+147 False 4 443 4
+148 True 116 7984 100
+148 False 85 36014 100
+149 True 207 14184 153
+149 False 127 31363 153
+150 True 8 661 8
+150 False 8 661 8
+151 True 17 1248 7
+151 False 7 788 7
+152 True 32 2370 30
+152 False 27 2035 30
+153 True 2 184 2
+153 False 2 184 2
+154 True 8 658 8
+154 False 8 658 8
+155 True 88 5568 76
+155 False 67 17960 76
+156 True 70 5683 70
+156 False 70 5683 70
+157 True 48 2805 44
+157 False 38 2135 44
+158 True 4 448 4
+158 False 4 448 4
+159 True 122 9328 22
+159 False 22 4728 22
+160 True 5 296 5
+160 False 5 296 5
+161 True 196 14444 96
+161 False 86 25482 96
+162 True 5 523 5
+162 False 5 523 5
+163 True 7 707 7
+163 False 7 707 7
+164 True 5 292 5
+164 False 5 292 5
+165 True 122 8236 104
+165 False 101 35752 104
+166 True 20 1046 20
+166 False 20 1046 20
+167 True 4 443 4
+167 False 4 443 4
+168 True 2 102 2
+168 False 2 102 2
+169 True 19 1000 19
+169 False 19 1000 19
+170 True 4 448 4
+170 False 4 448 4
+171 True 73 5340 62
+171 False 57 89717 62
+172 True 71 4908 71
+172 False 71 4908 71
+173 True 385 27689 272
+173 False 223 36650 272
+174 True 4 448 4
+174 False 4 448 4
+175 True 192 14046 92
+175 False 92 9446 92
+176 True 17 1243 7
+176 False 7 783 7
+177 True 4 443 4
+177 False 4 443 4
+178 True 14 1294 12
+178 False 3 14146 12
+179 True 27 1294 27
+179 False 27 1294 27
+180 True 4 443 4
+180 False 4 443 4
+181 True 148 11256 46
+181 False 43 6321 46
+182 True 28 2217 28
+182 False 28 2217 28
+183 True 122 9328 22
+183 False 22 4728 22
+184 True 7 608 7
+184 False 7 608 7
+185 True 47 3660 47
+185 False 47 3660 47
+186 True 85 6147 60
+186 False 60 92213 60
+187 True 4 368 4
+187 False 4 368 4
+188 True 11 1007 11
+188 False 11 1007 11
+189 True 18 944 18
+189 False 18 944 18
+190 True 5 523 5
+190 False 5 523 5
+191 True 23 1243 23
+191 False 23 1243 23
+192 True 4 187 4
+192 False 4 187 4
+193 True 4 448 4
+193 False 4 448 4
+194 True 4 448 4
+194 False 4 448 4
+195 True 3 143 3
+195 False 3 143 3
+196 True 23 1243 23
+196 False 23 1243 23
+197 True 14 1241 14
+197 False 14 1241 14
+198 True 15 975 11
+198 False 15 975 11
+199 True 23 1243 23
+199 False 23 1243 23
+200 True 4 443 4
+200 False 4 443 4
+201 True 2 248 2
+201 False 2 248 2
+202 True 4 213 4
+202 False 4 213 4
+203 True 350 24927 212
+203 False 198 75873 212
+204 True 351 25140 239
+204 False 215 36190 239
+205 True 5 523 5
+205 False 5 523 5
+206 True 7 396 7
+206 False 7 396 7
+207 True 19 1000 19
+207 False 19 1000 19
+208 True 5 296 5
+208 False 5 296 5
+209 True 29 1888 29
+209 False 29 1888 29
+210 True 286 21921 164
+210 False 143 70541 164
+211 True 21 1707 10
+211 False 10 29194 10
+212 True 39 2192 39
+212 False 39 2192 39
+213 True 62 4871 55
+213 False 46 18087 55
+214 True 2 248 2
+214 False 2 248 2
+215 True 78 4422 78
+215 False 78 4422 78
+216 True 31 1489 31
+216 False 31 1489 31
+217 True 19 1001 19
+217 False 19 1001 19
+218 True 5 523 5
+218 False 5 523 5
+219 True 7 357 7
+219 False 7 357 7
+220 True 4 443 4
+220 False 4 443 4
+221 True 5 296 5
+221 False 5 296 5
+222 True 5 239 5
+222 False 5 239 5
+223 True 18 944 18
+223 False 18 944 18
+224 True 7 608 7
+224 False 7 608 7
+225 True 18 1134 18
+225 False 13 58024 18
+226 True 1 48 1
+226 False 1 48 1
+227 True 40 2552 40
+227 False 40 2552 40
+228 True 16 845 16
+228 False 16 845 16
+229 True 5 298 5
+229 False 5 298 5
+230 True 7 357 7
+230 False 7 357 7
+231 True 5 523 5
+231 False 5 523 5
+232 True 48 3500 46
+232 False 37 16352 46
+233 True 15 1350 13
+233 False 4 14202 13
+234 True 20 1525 5
+234 False 5 88051 5
+235 True 5 523 5
+235 False 5 523 5
+236 True 6 352 6
+236 False 6 352 6
+237 True 9 573 9
+237 False 4 57463 9
+238 True 4 443 4
+238 False 4 443 4
+239 True 7 357 7
+239 False 7 357 7
+240 True 11 757 11
+240 False 6 57647 11
+241 True 85 5474 80
+241 False 80 5838 80
+242 True 11 654 11
+242 False 11 654 11
+243 True 5 523 5
+243 False 5 523 5
+244 True 18 944 18
+244 False 18 944 18
+245 True 383 27325 250
+245 False 242 81028 250
+246 True 90 5991 59
+246 False 60 92421 59
+247 True 8 522 8
+247 False 3 57412 8
+248 True 31 2580 31
+248 False 31 2580 31
+249 True 38 2567 38
+249 False 38 2567 38
+250 True 15 946 15
+250 False 5 16584 15
+251 True 4 443 4
+251 False 4 443 4
+252 True 4 448 4
+252 False 4 448 4
+253 True 65 4471 63
+253 False 54 17323 63
+254 True 9 752 8
+254 False 9 752 8
+255 True 22 2026 22
+255 False 22 2026 22
+256 True 43 3316 43
+256 False 43 3316 43
+257 True 2 248 2
+257 False 2 248 2
+258 True 20 1046 20
+258 False 20 1046 20
+259 True 221 16125 109
+259 False 95 80807 109
+260 True 1 48 1
+260 False 1 48 1
+261 True 19 1000 19
+261 False 19 1000 19
+262 True 4 443 4
+262 False 4 443 4
+263 True 27 1294 27
+263 False 27 1294 27
+264 True 5 296 5
+264 False 5 296 5
+265 True 11 1007 11
+265 False 11 1007 11
+266 True 4 448 4
+266 False 4 448 4
+267 True 2 248 2
+267 False 2 248 2
+268 True 23 1759 19
+268 False 23 1759 19
+269 True 2 68 2
+269 False 2 68 2
+270 True 19 1000 19
+270 False 19 1000 19
+271 True 48 3609 33
+271 False 33 90135 33
+272 True 2 184 2
+272 False 2 184 2
+273 True 2 68 2
+273 False 2 68 2
+274 True 11 1007 11
+274 False 11 1007 11
+275 True 4 220 4
+275 False 4 220 4
+276 True 8 656 8
+276 False 8 656 8
+277 True 4 286 4
+277 False 4 286 4
+278 True 17 1244 7
+278 False 7 784 7
+279 True 8 530 6
+279 False 3 195 6
+280 True 9 569 4
+280 False 4 933 4
+281 True 13 1184 13
+281 False 13 1184 13
+282 True 31 2122 31
+282 False 31 2122 31
+283 True 4 448 4
+283 False 4 448 4
+284 True 15 1021 15
+284 False 10 57911 15
+285 True 4 443 4
+285 False 4 443 4
+286 True 3 119 3
+286 False 3 119 3
+287 True 67 4293 62
+287 False 62 4657 62
+288 True 62 4216 58
+288 False 52 3546 58
+289 True 5 523 5
+289 False 5 523 5
+290 True 4 448 4
+290 False 4 448 4
+291 True 41 3482 30
+291 False 30 30969 30
+292 True 4 448 4
+292 False 4 448 4
+293 True 4 448 4
+293 False 4 448 4
+294 True 17 1245 7
+294 False 7 785 7
+295 True 3 143 3
+295 False 3 143 3
+296 True 4 443 4
+296 False 4 443 4
+297 True 20 1525 5
+297 False 5 88051 5
+298 True 20 1654 9
+298 False 9 29141 9
+299 True 9 578 9
+299 False 4 57468 9
+300 True 11 1007 11
+300 False 11 1007 11
+301 True 4 443 4
+301 False 4 443 4
+302 True 16 1194 6
+302 False 6 734 6
+303 True 15 943 15
+303 False 5 16581 15
+304 True 4 443 4
+304 False 4 443 4
+305 True 21 1703 10
+305 False 10 29190 10
+306 True 9 752 8
+306 False 9 752 8
+307 True 10 808 9
+307 False 10 808 9
+308 True 2 184 2
+308 False 2 184 2
+309 True 6 352 6
+309 False 6 352 6
+310 True 15 973 11
+310 False 15 973 11
+311 True 37 2231 37
+311 False 37 2231 37
+312 True 4 187 4
+312 False 4 187 4
+313 True 161 12017 61
+313 False 61 7417 61
+314 True 6 632 6
+314 False 6 632 6
+315 True 4 443 4
+315 False 4 443 4
+316 True 10 802 9
+316 False 10 802 9
+317 True 47 3427 37
+317 False 37 2967 37
+318 True 5 523 5
+318 False 5 523 5
+319 True 19 1000 19
+319 False 19 1000 19
+320 True 9 577 9
+320 False 4 57467 9
+321 True 13 1184 13
+321 False 13 1184 13
+322 True 20 1525 5
+322 False 5 88051 5
+323 True 4 443 4
+323 False 4 443 4
+324 True 2 68 2
+324 False 2 68 2
+325 True 26 1459 26
+325 False 26 1459 26
+326 True 14 1240 14
+326 False 14 1240 14
+327 True 14 1236 14
+327 False 14 1236 14
+328 True 2 184 2
+328 False 2 184 2
+329 True 21 1465 21
+329 False 11 17103 21
+330 True 13 1184 13
+330 False 13 1184 13
+331 True 27 1908 25
+331 False 22 1573 25
+332 True 2 184 2
+332 False 2 184 2
+333 True 22 1185 22
+333 False 22 1185 22
+334 True 5 298 5
+334 False 5 298 5
+335 True 118 8386 81
+335 False 62 10286 81
+336 True 218 16464 97
+336 False 87 54529 97
+337 True 2 184 2
+337 False 2 184 2
+338 True 8 522 8
+338 False 3 57412 8
+339 True 20 1654 9
+339 False 9 29141 9
+340 True 10 951 10
+340 False 10 951 10
+341 True 5 523 5
+341 False 5 523 5
+342 True 7 357 7
+342 False 7 357 7
+343 True 27 1294 27
+343 False 27 1294 27
+344 True 5 244 5
+344 False 5 244 5
+345 True 112 7852 99
+345 False 80 61968 99
+346 True 74 5863 61
+346 False 42 61840 61
+347 True 122 9328 22
+347 False 22 4728 22
+348 True 40 2394 40
+348 False 30 18032 40
+349 True 1 49 1
+349 False 1 49 1
+350 True 14 1247 14
+350 False 14 1247 14
+351 True 2 184 2
+351 False 2 184 2
+352 True 4 187 4
+352 False 4 187 4
+353 True 2 184 2
+353 False 2 184 2
+354 True 214 14808 163
+354 False 144 31591 163
+355 True 20 1654 9
+355 False 9 29141 9
+356 True 2 94 2
+356 False 2 94 2
+357 True 40 2580 30
+357 False 30 2120 30
+358 True 18 863 18
+358 False 18 863 18
+359 True 27 1294 27
+359 False 27 1294 27
+360 True 19 1000 19
+360 False 19 1000 19
+361 True 4 187 4
+361 False 4 187 4
+362 True 4 219 4
+362 False 4 219 4
+363 True 8 530 6
+363 False 3 195 6
+364 True 14 895 14
+364 False 4 16533 14
+365 True 139 10524 39
+365 False 39 5924 39
+366 True 9 792 9
+366 False 9 792 9
+367 True 58 3777 54
+367 False 58 3777 54
+368 True 4 443 4
+368 False 4 443 4
+369 True 4 443 4
+369 False 4 443 4
+370 True 19 1000 19
+370 False 19 1000 19
+371 True 17 1242 7
+371 False 7 782 7
+372 True 52 4413 41
+372 False 41 31900 41
+373 True 9 580 7
+373 False 4 245 7
+374 True 4 443 4
+374 False 4 443 4
+375 True 1 48 1
+375 False 1 48 1
+376 True 4 172 4
+376 False 4 172 4
+377 True 14 1294 12
+377 False 3 14146 12
+378 True 6 352 6
+378 False 6 352 6
+379 True 65 4521 65
+379 False 65 4521 65
+380 True 4 443 4
+380 False 4 443 4
+381 True 11 572 11
+381 False 11 572 11
+382 True 27 1294 27
+382 False 27 1294 27
+383 True 4 448 4
+383 False 4 448 4
+384 True 172 12569 71
+384 False 72 7969 71
+385 True 4 443 4
+385 False 4 443 4
+386 True 3 165 3
+386 False 3 165 3
+387 True 5 523 5
+387 False 5 523 5
+388 True 5 292 5
+388 False 5 292 5
+389 True 5 299 5
+389 False 5 299 5
+390 True 4 165 4
+390 False 4 165 4
+391 True 4 165 4
+391 False 4 165 4
+392 True 13 1192 13
+392 False 13 1192 13
+393 True 20 1046 20
+393 False 20 1046 20
+394 True 14 1294 12
+394 False 3 14146 12
+395 True 5 523 5
+395 False 5 523 5
+396 True 2 248 2
+396 False 2 248 2
+397 True 5 292 5
+397 False 5 292 5
+398 True 2 184 2
+398 False 2 184 2
+399 True 19 1520 19
+399 False 19 1520 19
+ok '{"a": 1, "a": 2}' {'a': 2} dict
+ok '[1, 2,3 ]' [1, 2, 3] list
+ok ' \n\t[ ] ' [] list
+ok '-0' 0 int
+ok '-0.0' -0.0 float
+ok '1e400' inf float
+ok '-1e400' -inf float
+ok '1E5' 100000.0 float
+ok '0.5e-3' 0.0005 float
+ok '12345678901234567890123456789 123456789012345678901234567890 int
+ok '"\\ud83d\\ude00"' '😀' str
+ok '"\\u00e9\\n\\/"' 'é\n/' str
+ok 'NaN' nan float
+ok '-Infinity' -inf float
+ok 'Infinity' inf float
+ok '[NaN, Infinity]' [nan, inf] list
+ok 'true' True bool
+ok 'null' None NoneType
+ok '{"k": {"k": {"k": [[[]]]}}}' {'k': {'k': {'k': [[[]]]}}} dict
+ok '"x"' 'x' str
+ok '12' 12 int
+ok '3.0' 3.0 float
+err '[1,]' JSONDecodeError Illegal trailing comma before end of array: line 1 column 3 (char 2)
+err '{"a":}' JSONDecodeError Expecting value: line 1 column 6 (char 5)
+err '' JSONDecodeError Expecting value: line 1 column 1 (char 0)
+err ' ' JSONDecodeError Expecting value: line 1 column 2 (char 1)
+err '[1] x' JSONDecodeError Extra data: line 1 column 5 (char 4)
+err '"abc' JSONDecodeError Unterminated string starting at: line 1 column 1 (char 0)
+err '01' JSONDecodeError Extra data: line 1 column 2 (char 1)
+err '1.' JSONDecodeError Extra data: line 1 column 2 (char 1)
+err '.5' JSONDecodeError Expecting value: line 1 column 1 (char 0)
+err "'a'" JSONDecodeError Expecting value: line 1 column 1 (char 0)
+err '{"a" 1}' JSONDecodeError Expecting ':' delimiter: line 1 column 6 (char 5)
+err '[1 2]' JSONDecodeError Expecting ',' delimiter: line 1 column 4 (char 3)
+err '"\t"' JSONDecodeError Invalid control character at: line 1 column 2 (char 1)
+err 'nul' JSONDecodeError Expecting value: line 1 column 1 (char 0)
+err '\ufeff[1]' JSONDecodeError Unexpected UTF-8 BOM (decode using utf-8-sig): line 1 column 1 (char 0)
+{"1": "c", "2.5": "b", "null": "d", "e": "f"} {"1": "c", "2.5": "b", "null": "d", "e": "f"}
+err TypeError keys must be str, int, float, bool or None, not tuple
+err TypeError Object of type object is not JSON serializable
+err TypeError Object of type set is not JSON serializable
+NaN NaN
+[Infinity, -Infinity] [Infinity, -Infinity]
+err TypeError Object of type bytes is not JSON serializable
+10000000000000000000000000000000000000000 10000000000000000000000000000000000000000
+[[1, [2, [3, {"k": [4, 5]}]]]] [[1, [2, [3, {"k": [4, 5]}]]]]
+ValueError Circular reference detected
+1202 True
+{"a": 1, "b": [1, 2]} [
+  1,
+  {
+    "a": 2
+  }
+] {"a":1}
+{"a": 1} {"z": 1, "a": 2} true "\u00e9" 1.0
+"##
+    );
+}

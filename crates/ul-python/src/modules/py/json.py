@@ -103,6 +103,7 @@ __all__ = [
 
 __author__ = 'Bob Ippolito <bob@redivi.com>'
 
+import _json
 from json.decoder import JSONDecoder, JSONDecodeError
 from json.encoder import JSONEncoder
 class codecs:
@@ -233,7 +234,17 @@ def dumps(obj, *, skipkeys=False, ensure_ascii=True, check_circular=True,
         check_circular and allow_nan and
         cls is None and indent is None and separators is None and
         default is None and not sort_keys and not kw):
+        fast = _json.dumps(obj, True)
+        if fast is not None:
+            return fast
         return _default_encoder.encode(obj)
+    if (not skipkeys and not ensure_ascii and
+        check_circular and allow_nan and
+        cls is None and indent is None and separators is None and
+        default is None and not sort_keys and not kw):
+        fast = _json.dumps(obj, False)
+        if fast is not None:
+            return fast
     if cls is None:
         cls = JSONEncoder
     return cls(
@@ -348,6 +359,11 @@ def loads(s, *, cls=None, object_hook=None, parse_float=None,
     if (cls is None and object_hook is None and
             parse_int is None and parse_float is None and
             parse_constant is None and object_pairs_hook is None and not kw):
+        fast = _json.loads(s)
+        if fast is not None:
+            if fast[0]:
+                return fast[1]
+            raise JSONDecodeError(fast[1], s, fast[2])
         return _default_decoder.decode(s)
     if cls is None:
         cls = JSONDecoder

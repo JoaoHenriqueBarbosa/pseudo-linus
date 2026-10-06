@@ -42,7 +42,7 @@ fn encode_str(s: &str, ensure_ascii: bool, out: &mut String) {
             '\u{8}' => out.push_str("\\b"),
             '\u{c}' => out.push_str("\\f"),
             c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
-            c if ensure_ascii && (c as u32) > 0x7f => {
+            c if ensure_ascii && (c as u32) >= 0x7f => {
                 let mut buf = [0u16; 2];
                 for unit in c.encode_utf16(&mut buf) {
                     out.push_str(&format!("\\u{:04x}", unit));
@@ -69,6 +69,10 @@ fn key_string(k: &Value) -> Result<String, String> {
 fn enter(stack: &mut Vec<usize>, id: usize) -> Result<(), String> {
     if stack.contains(&id) {
         return Err("Circular reference detected".to_string());
+    }
+    // Profundidade além do limite do CPython: o chamador cai no codificador em Python (RecursionError).
+    if stack.len() >= MAX_DEPTH {
+        return Err("maximum recursion depth exceeded while encoding a JSON object".to_string());
     }
     stack.push(id);
     Ok(())
@@ -134,9 +138,19 @@ fn encode(v: &Value, ascii: bool, out: &mut String, stack: &mut Vec<usize>) -> R
 // ---------------------------------------------------------------------------
 
 /// `json.JSONDecodeError`: a mensagem já inclui o sufixo `: line L column C (char N)`.
+/// `syntax` guarda a mensagem crua e a posição dos erros de sintaxe (o que o `JSONDecodeError` recebe);
+/// `None` marca o que o parser nativo não cobre (inteiro grande, surrogate solitário, profundidade), e que
+/// o chamador deve entregar ao decodificador em Python.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JsonError {
     pub msg: String,
+    pub syntax: Option<(String, usize)>,
+}
+
+impl JsonError {
+    fn unsupported(msg: &str) -> JsonError {
+        JsonError { msg: msg.to_string(), syntax: None }
+    }
 }
 
 const MAX_DEPTH: usize = 900;
@@ -154,7 +168,7 @@ impl Parser {
             Some(i) => pos - i,
             None => pos + 1,
         };
-        JsonError { msg: format!("{msg}: line {line} column {col} (char {pos})") }
+        JsonError { msg: format!("{msg}: line {line} column {col} (char {pos})"), syntax: Some((msg.to_string(), pos)) }
     }
 
     fn skip_ws(&self, mut i: usize) -> usize {
@@ -177,7 +191,7 @@ impl Parser {
 
     fn value(&self, i: usize, depth: usize) -> Result<(Value, usize), JsonError> {
         if depth > MAX_DEPTH {
-            return Err(JsonError { msg: "maximum recursion depth exceeded while decoding a JSON document".into() });
+            return Err(JsonError::unsupported("maximum recursion depth exceeded while decoding a JSON document"));
         }
         let Some(&c) = self.s.get(i) else {
             return Err(self.err("Expecting value", i));
@@ -244,7 +258,7 @@ impl Parser {
         } else {
             match text.parse::<i64>() {
                 Ok(n) => Ok((Value::Int(n), i)),
-                Err(_) => Err(JsonError { msg: "integer outside i64 not supported yet".into() }),
+                Err(_) => Err(JsonError::unsupported("integer outside i64 not supported yet")),
             }
         }
     }
@@ -297,7 +311,12 @@ impl Parser {
                                     i += 6;
                                 }
                             }
-                            out.push(char::from_u32(cp).unwrap_or('\u{FFFD}'));
+                            // Uma metade substituta solitária não cabe numa `String` do Rust: erro, para que o
+                            // chamador use o decodificador em Python em vez de trocá-la por U+FFFD.
+                            let Some(ch) = char::from_u32(cp) else {
+                                return Err(JsonError::unsupported("Lone surrogate"));
+                            };
+                            out.push(ch);
                             continue;
                         }
                         _ => return Err(self.err("Invalid \\escape", i)),
@@ -354,7 +373,7 @@ impl Parser {
             }
             i = self.skip_ws(i + 1);
             let (v, end) = self.value(i, depth + 1)?;
-            dict.set(Value::str(key), v).map_err(|_| JsonError { msg: "invalid dict key".into() })?;
+            dict.set(Value::str(key), v).map_err(|_| JsonError::unsupported("invalid dict key"))?;
             i = self.skip_ws(end);
             match self.s.get(i) {
                 Some('}') => return Ok((Value::dict(dict), i + 1)),
@@ -381,6 +400,41 @@ pub fn loads(s: &str) -> Result<Value, JsonError> {
         return Err(p.err("Extra data", end));
     }
     Ok(v)
+}
+
+// ---------------------------------------------------------------------------
+// `_json`: o caminho rápido do `json.dumps`/`json.loads` com as opções padrão
+// ---------------------------------------------------------------------------
+
+/// `_json.loads(s)`: `(True, valor)` ou `(False, mensagem, posição)` para erro de sintaxe (com a mensagem
+/// do scanner em C do CPython, que o chamador entrega ao `JSONDecodeError`); `None` quando o texto precisa
+/// do decodificador em Python (inteiro grande, surrogate solitário, profundidade).
+fn fast_loads(_vm: &mut crate::vm::Vm, args: Vec<Value>, kw: crate::object::Kw) -> crate::vm::PyResult<Value> {
+    crate::native_util::no_kwargs("loads", &kw)?;
+    crate::native_util::exactly("loads", &args, 1)?;
+    let Value::Str(s) = &args[0] else { return Ok(Value::None) };
+    Ok(match loads(s.as_str()) {
+        Ok(v) => Value::tuple(vec![Value::Bool(true), v]),
+        Err(JsonError { syntax: Some((msg, pos)), .. }) => {
+            Value::tuple(vec![Value::Bool(false), Value::str(msg), Value::Int(pos as i64)])
+        }
+        Err(_) => Value::None,
+    })
+}
+
+/// `_json.dumps(obj, ensure_ascii)`: o texto, ou `None` quando o objeto precisa do codificador em Python
+/// (tipos sem representação direta, referência circular, chaves inválidas, profundidade).
+fn fast_dumps(_vm: &mut crate::vm::Vm, args: Vec<Value>, kw: crate::object::Kw) -> crate::vm::PyResult<Value> {
+    crate::native_util::no_kwargs("dumps", &kw)?;
+    crate::native_util::exactly("dumps", &args, 2)?;
+    Ok(match dumps(&args[0], args[1].is_true()) {
+        Ok(text) => Value::str(text),
+        Err(_) => Value::None,
+    })
+}
+
+pub fn build(_vm: &mut crate::vm::Vm) -> Rc<crate::object::ModuleObj> {
+    crate::modules::ModuleBuilder::new("_json").func("loads", fast_loads).func("dumps", fast_dumps).build()
 }
 
 // ---------------------------------------------------------------------------
@@ -416,7 +470,7 @@ mod tests {
     #[test]
     fn dumps_strings() {
         assert_eq!(d(&Value::str("a\"b\\c\n\r\t\u{8}\u{c}\u{1}")), r#""a\"b\\c\n\r\t\b\f\u0001""#);
-        assert_eq!(d(&Value::str("é😀\u{7f}")), "\"\\u00e9\\ud83d\\ude00\u{7f}\"");
+        assert_eq!(d(&Value::str("é😀\u{7f}")), "\"\\u00e9\\ud83d\\ude00\\u007f\"");
         assert_eq!(dumps(&Value::str("é😀\u{7f}\u{1}"), false).unwrap(), "\"é😀\u{7f}\\u0001\"");
     }
 
