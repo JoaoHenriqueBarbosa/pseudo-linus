@@ -16,7 +16,7 @@ RUN apt-get update \
 # observados sem rede, já que o oráculo roda com --network none).
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-      dc tree xxd binutils gettext-base less psmisc curl wget \
+      dc tree xxd binutils gettext-base less psmisc curl wget python3-pil \
  && rm -rf /var/lib/apt/lists/*
 
 # awk alvo é o gawk (decisão do design v2).
