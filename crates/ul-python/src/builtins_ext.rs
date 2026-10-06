@@ -23,6 +23,7 @@ pub const TABLE: &[(&str, NativeFnPtr)] = &[
     ("__import__", b_import),
     ("eval", b_eval),
     ("exec", b_exec),
+    ("compile", b_compile),
 ];
 
 fn attr_name(v: &Value) -> PyResult<String> {
@@ -313,13 +314,75 @@ fn run_ns(vm: &mut Vm, src: &str, globals: Option<Value>, locals: Option<Value>,
 
 fn b_eval(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let a = bind("eval", args, kw, &["source", "globals", "locals"], 1)?;
-    let src = want_str("eval", a[0].as_ref().unwrap_or(&Value::None))?.to_string();
+    let src = source_text(vm, "eval", a[0].as_ref().unwrap_or(&Value::None))?;
     run_ns(vm, &src, a[1].clone(), a[2].clone(), true, "eval")
 }
 
 fn b_exec(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let a = bind("exec", args, kw, &["source", "globals", "locals"], 1)?;
-    let src = want_str("exec", a[0].as_ref().unwrap_or(&Value::None))?.to_string();
+    let src = source_text(vm, "exec", a[0].as_ref().unwrap_or(&Value::None))?;
     run_ns(vm, &src, a[1].clone(), a[2].clone(), false, "exec")?;
     Ok(Value::None)
+}
+
+/// O texto de um argumento de `exec`/`eval`: uma string ou o resultado de `compile`.
+fn source_text(vm: &mut Vm, who: &str, v: &Value) -> PyResult<String> {
+    if let Value::Ext(e) = v {
+        if e.type_name() == "code" {
+            if let Some(Ok(Value::Str(s))) = e.getattr(vm, "_source") {
+                return Ok(s.as_str().to_string());
+            }
+        }
+    }
+    Ok(want_str(who, v)?.to_string())
+}
+
+/// Resultado de `compile()`: o fonte já validado, que `exec`/`eval` executam depois.
+struct CodeSource {
+    src: String,
+    filename: String,
+}
+
+impl crate::object::ExtObject for CodeSource {
+    fn type_name(&self) -> &'static str {
+        "code"
+    }
+    fn repr(&self) -> String {
+        format!("<code object <module> at 0x7f0000000000, file \"{}\", line 1>", self.filename)
+    }
+    fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
+        Some(Ok(match name {
+            "_source" => Value::str(self.src.clone()),
+            "co_filename" => Value::str(self.filename.clone()),
+            "co_name" => Value::str("<module>".to_string()),
+            _ => return None,
+        }))
+    }
+    fn call_method(&self, _vm: &mut Vm, name: &str, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+        Err(type_error(format!("'code' object has no method '{name}'")))
+    }
+}
+
+fn b_compile(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    let a = bind("compile", args, kw, &["source", "filename", "mode", "flags", "dont_inherit", "optimize"], 3)?;
+    let src = want_str("compile", a[0].as_ref().unwrap_or(&Value::None))?.to_string();
+    let filename = a[1].as_ref().map(|f| crate::object::to_str(f)).unwrap_or_default();
+    let mode = a[2].as_ref().map(|m| crate::object::to_str(m)).unwrap_or_default();
+    if !matches!(mode.as_str(), "exec" | "eval" | "single") {
+        return Err(exc("ValueError", "compile() mode must be 'exec', 'eval' or 'single'"));
+    }
+    let mut text = if mode == "eval" { format!("__eval_value__ = ({})", src.trim()) } else { src.clone() };
+    if !text.ends_with('\n') {
+        text.push('\n');
+    }
+    let module = crate::parser::parse_module(&text).map_err(|e| {
+        let kind = match e.kind {
+            crate::parser::ErrorKind::Syntax => "SyntaxError",
+            crate::parser::ErrorKind::Indentation => "IndentationError",
+            crate::parser::ErrorKind::Tab => "TabError",
+        };
+        exc(kind, e.msg)
+    })?;
+    crate::compile::compile_module(&module).map_err(|e| exc("SyntaxError", e.msg))?;
+    Ok(Value::Ext(Rc::new(CodeSource { src, filename })))
 }
