@@ -28,7 +28,7 @@ use crate::native_util::bind;
 use crate::object::{ExtObject, Kw, ModuleObj, Value};
 use crate::vm::{exc, type_error, PyResult, Vm};
 
-use codec::{CodecState, JpegDecoder, RawDecoder, ZipDecoder, ZipEncoder};
+use codec::{CodecState, JpegDecoder, JpegEncoder, RawDecoder, ZipDecoder, ZipEncoder};
 use image::{Image, Palette, PixType};
 
 pub const PILLOW_VERSION: &str = "11.1.0";
@@ -1198,6 +1198,7 @@ impl ExtObject for DecoderObj {
 enum EncKind {
     Raw,
     Zip(Box<ZipEncoder>),
+    Jpeg(Box<JpegEncoder>),
 }
 
 struct EncState {
@@ -1219,6 +1220,7 @@ impl EncState {
         Ok(match &mut self.kind {
             EncKind::Raw => codec::raw_encode(&im, &mut self.st, buf),
             EncKind::Zip(z) => z.encode(&im, &mut self.st, buf),
+            EncKind::Jpeg(j) => j.encode(&im, &mut self.st, buf),
         })
     }
 }
@@ -1333,6 +1335,77 @@ fn jpeg_decoder(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     let st = CodecState::new(u.f, u.bits as i32);
     let kind = DecKind::Jpeg(Box::new(JpegDecoder::new(&rawmode, &jpegmode, scale, draft)));
     Ok(Value::Ext(Rc::new(DecoderObj { inner: RefCell::new(DecState { st, kind, im: None }) })))
+}
+
+/// `PyImaging_JpegEncoderNew(mode, rawmode, quality, progressive, smooth, optimize, keep_rgb,
+/// streamtype, xdpi, ydpi, subsampling, restart_marker_blocks, restart_marker_rows, qtables,
+/// comment, extra, exif)`.
+fn jpeg_encoder(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let (mode, mut rawmode) = mode_and_raw(&args)?;
+    let int = |i: usize| -> PyResult<i64> {
+        match args.get(i) {
+            None | Some(Value::None) => Ok(0),
+            Some(v) => int_arg(v),
+        }
+    };
+    let opt_bytes = |i: usize| -> PyResult<Option<Vec<u8>>> {
+        match args.get(i) {
+            None | Some(Value::None) => Ok(None),
+            Some(v) => bytes_arg(v).map(Some),
+        }
+    };
+    let quality = int(2)?;
+    let smooth = int(4)?;
+    let streamtype = int(7)?;
+    // Suavização de entrada e fluxos abreviados (só tabelas, só imagem) ficam fora do porte.
+    if smooth != 0 || streamtype != 0 {
+        return Err(exc("OSError", "encoder error -8 when writing image file"));
+    }
+    if rawmode == "RGB" {
+        rawmode = "RGBX".into();
+    }
+    let p = packer_for(&mode, &rawmode)?;
+    let mut o = zjpeg::EncodeOptions::new(0, 0, zjpeg::InputSpace::Rgb);
+    o.quality = (quality != -1).then_some(quality as i32);
+    o.progressive = int(3)? != 0;
+    o.optimize = int(5)? != 0;
+    o.keep_rgb = int(6)? != 0;
+    let (xdpi, ydpi) = (int(8)?, int(9)?);
+    if xdpi > 0 && ydpi > 0 {
+        o.dpi = Some((xdpi as u16, ydpi as u16));
+    }
+    o.subsampling = int(10)? as i32;
+    o.restart_interval = int(11)?.max(0) as usize;
+    o.restart_in_rows = int(12)?.max(0) as usize;
+    if let Some(q) = args.get(13).filter(|v| !matches!(v, Value::None)) {
+        let mut tables = Vec::new();
+        for t in getlist(q)? {
+            let vals = getlist(&t)?;
+            if vals.len() != 64 {
+                return Err(value_error("Invalid quantization table"));
+            }
+            let mut a = [0u32; 64];
+            for (k, v) in vals.iter().enumerate() {
+                a[k] = int_arg(v)? as u32;
+            }
+            tables.push(a);
+        }
+        if !tables.is_empty() {
+            o.qtables = Some(tables);
+        }
+    }
+    // `z#`: aceita `str` (em UTF-8) além de `bytes`.
+    o.comment = match args.get(14) {
+        None | Some(Value::None) => None,
+        Some(Value::Str(s)) => Some(s.as_str().as_bytes().to_vec()),
+        Some(v) => Some(bytes_arg(v)?),
+    }
+    .filter(|c| !c.is_empty());
+    o.extra = opt_bytes(15)?.unwrap_or_default();
+    o.exif = opt_bytes(16)?.unwrap_or_default();
+    let st = CodecState::new(p.f, p.bits as i32);
+    let kind = EncKind::Jpeg(Box::new(JpegEncoder::new(o, &rawmode)));
+    Ok(Value::Ext(Rc::new(EncoderObj { inner: RefCell::new(EncState { st, kind, im: None }) })))
 }
 
 fn zip_decoder(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
@@ -1546,6 +1619,7 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
         .func("raw_decoder", raw_decoder)
         .func("raw_encoder", raw_encoder)
         .func("zip_decoder", zip_decoder)
+        .func("jpeg_encoder", jpeg_encoder)
         .func("jpeg_decoder", jpeg_decoder)
         .func("zip_encoder", zip_encoder)
         .func("getcodecstatus", getcodecstatus)

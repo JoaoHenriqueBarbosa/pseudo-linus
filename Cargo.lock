@@ -5401,6 +5401,7 @@ dependencies = [
  "ul-sqlite",
  "unicode_names2",
  "zdeflate",
+ "zjpeg",
 ]
 
 [[package]]
@@ -6192,6 +6193,10 @@ dependencies = [
  "memchr",
  "typed-path",
 ]
+
+[[package]]
+name = "zjpeg"
+version = "0.1.0"
 
 [[package]]
 name = "zlib-rs"

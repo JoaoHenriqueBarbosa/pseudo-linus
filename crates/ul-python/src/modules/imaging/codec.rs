@@ -562,6 +562,74 @@ impl ZipEncoder {
 
 // ---- jpeg ----
 
+/// `ImagingJpegEncode` sobre o `zjpeg`: na primeira chamada empacota a imagem inteira e codifica;
+/// as chamadas seguintes entregam o fluxo em blocos do tamanho do buffer.
+pub struct JpegEncoder {
+    pub opts: Option<zjpeg::EncodeOptions>,
+    pub rawmode: String,
+    out: Vec<u8>,
+    sent: usize,
+}
+
+impl JpegEncoder {
+    pub fn new(opts: zjpeg::EncodeOptions, rawmode: &str) -> JpegEncoder {
+        JpegEncoder { opts: Some(opts), rawmode: rawmode.into(), out: Vec::new(), sent: 0 }
+    }
+
+    pub fn encode(&mut self, im: &Image, st: &mut CodecState, buf: &mut [u8]) -> i32 {
+        if let Some(mut o) = self.opts.take() {
+            o.width = st.xsize.max(0) as usize;
+            o.height = st.ysize.max(0) as usize;
+            o.input = match st.bits {
+                8 => zjpeg::InputSpace::Grayscale,
+                24 if im.mode == "YCbCr" => zjpeg::InputSpace::YCbCr,
+                24 => zjpeg::InputSpace::Rgb,
+                // `JCS_EXT_RGBX` com o rawmode `RGBX`, CMYK nos demais casos de 32 bits.
+                32 if self.rawmode == "RGBX" => zjpeg::InputSpace::Rgb,
+                32 => zjpeg::InputSpace::Cmyk,
+                _ => {
+                    st.errcode = CODEC_CONFIG;
+                    return -1;
+                }
+            };
+            let rgbx = self.rawmode == "RGBX";
+            let line_bytes = (st.xsize as usize) * (st.bits as usize / 8);
+            let comps = if rgbx { 3 } else { st.bits as usize / 8 };
+            let mut line = vec![0u8; line_bytes];
+            let mut pixels = Vec::with_capacity(o.width * o.height * comps);
+            for y in 0..st.ysize {
+                let off = st.row(im, y);
+                (st.shuffle)(&mut line, &im.data[off..], st.xsize as usize);
+                if rgbx {
+                    for px in line.chunks(4) {
+                        pixels.extend_from_slice(&px[..3]);
+                    }
+                } else {
+                    pixels.extend_from_slice(&line);
+                }
+            }
+            match zjpeg::encode(&o, &pixels) {
+                Ok(b) => self.out = b,
+                Err(zjpeg::EncodeError::Config) => {
+                    st.errcode = CODEC_CONFIG;
+                    return -1;
+                }
+                Err(_) => {
+                    st.errcode = CODEC_BROKEN;
+                    return -1;
+                }
+            }
+        }
+        let n = (self.out.len() - self.sent).min(buf.len());
+        buf[..n].copy_from_slice(&self.out[self.sent..self.sent + n]);
+        self.sent += n;
+        if self.sent >= self.out.len() {
+            st.errcode = CODEC_END;
+        }
+        n as i32
+    }
+}
+
 /// `ImagingJpegDecode` sobre o `zjpeg`. O libjpeg do original suspende quando faltam bytes e
 /// retoma na chamada seguinte; aqui os blocos se acumulam e a decodificação roda quando chega um
 /// `FF D9` (fim de imagem), repetindo se o arquivo ainda estiver incompleto naquele ponto.

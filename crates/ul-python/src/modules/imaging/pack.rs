@@ -415,7 +415,8 @@ pub fn packer(mode: &str, rawmode: &str) -> Option<Codec> {
         ("LA", "LA") | ("PA", "PA") => c(16, pack_la),
         ("P", "P;2") => c(2, pack_p2),
         ("P", "P;4") => c(4, pack_p4),
-        ("RGB" | "RGBA" | "RGBX", "RGB") => c(24, pack_rgb),
+        ("RGB" | "RGBA" | "RGBX", "RGB") | ("YCbCr", "YCbCr") => c(24, pack_rgb),
+        ("CMYK", "CMYK;I") => c(32, copy4i),
         ("RGB", "RGBX" | "RGBA") | ("RGBA", "RGBA") | ("RGBX", "RGBX") | ("CMYK", "CMYK") | ("I", "I") | ("F", "F") => {
             c(32, copy4)
         }
