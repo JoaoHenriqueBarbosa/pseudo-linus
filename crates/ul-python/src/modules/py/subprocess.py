@@ -135,7 +135,7 @@ class Popen:
                 envlist = [_fsencode(k) + b'=' + _fsencode(v) for k, v in env.items()]
             cwd_arg = None if cwd is None else os.fspath(cwd)
             closes = [fd for fd in parent_ends.values()]
-            self.pid = _os.spawn(program, [_fsencode(a) for a in argv], envlist, cwd_arg, dups, closes)
+            self.pid = _os.spawn(program, [_fsencode(a) for a in argv], envlist, cwd_arg, dups, closes, bool(restore_signals))
         finally:
             for fd in opened:
                 try:

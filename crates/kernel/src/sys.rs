@@ -587,11 +587,20 @@ impl Task {
                 if at.is_some() {
                     return Err(Errno::ESPIPE);
                 }
+                match c.take_reset() {
+                    crate::net::ResetState::Pending => return Err(Errno::ECONNRESET),
+                    crate::net::ResetState::Done => return Ok(0),
+                    crate::net::ResetState::None => {}
+                }
                 let Some(pipe) = c.rx() else { return Ok(0) };
                 let nonblock = ofd.nonblock();
                 let r = self.wait_event(None, |p| pipe.try_read(buf, nonblock, p));
                 if r.is_err() {
                     pipe.unregister(&self.parker);
+                }
+                // Acordou com EOF porque o outro lado fechou com RST: o erro vem antes do EOF.
+                if r == Ok(0) && matches!(c.take_reset(), crate::net::ResetState::Pending) {
+                    return Err(Errno::ECONNRESET);
                 }
                 r
             }
@@ -696,7 +705,14 @@ impl Task {
                 if at.is_some() {
                     return Err(Errno::ESPIPE);
                 }
-                match c.tx() {
+                let reset = c.take_reset();
+                if matches!(reset, crate::net::ResetState::Pending) {
+                    return Err(Errno::ECONNRESET);
+                }
+                if matches!(reset, crate::net::ResetState::None) && c.write_to_closed_peer() {
+                    return Ok(buf.len());
+                }
+                match c.tx().filter(|_| matches!(reset, crate::net::ResetState::None)) {
                     Some(pipe) => self.pipe_write(ofd, &pipe, buf),
                     None => {
                         generate_signal(&self.proc, Signal::SIGPIPE);

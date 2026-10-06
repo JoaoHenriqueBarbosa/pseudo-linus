@@ -46,6 +46,31 @@ pub type TbEntry = (usize, String, Rc<str>, crate::compile::Span);
 
 /// Desde o 3.12 (PEP 709) as compreensões de lista, conjunto e dicionário não têm quadro próprio:
 /// o traceback mostra a linha de dentro com o nome da função que as contém. (`<genexpr>` mantém o seu.)
+/// Módulos da biblioteca embutida que no CPython são código C (`_io`, `_socket`, `_csv`...) ou que só
+/// existem aqui: os quadros deles não entram no traceback, como não entrariam no do CPython.
+fn native_in_cpython(filename: &str) -> bool {
+    let Some(name) = filename.strip_prefix("/usr/lib/python3.13/") else { return false };
+    matches!(
+        name,
+        "io.py"
+            | "_socket.py"
+            | "_net.py"
+            | "_csv.py"
+            | "_random.py"
+            | "_thread.py"
+            | "_string.py"
+            | "_memoryview.py"
+            | "_complex.py"
+            | "_lsprof.py"
+            | "_tracemalloc.py"
+            | "_ast.py"
+            | "_tokenize.py"
+            | "_archivefile.py"
+            | "_match.py"
+            | "_excgroup.py"
+    )
+}
+
 fn is_inlined_comp(name: &str) -> bool {
     matches!(name, "<listcomp>" | "<setcomp>" | "<dictcomp>")
 }
@@ -1239,6 +1264,7 @@ impl Vm {
                         if !e.take_reraise_mark() {
                             match e.tb.last_mut() {
                                 Some(last) if is_inlined_comp(&last.1) => last.1 = code.name.clone(),
+                                _ if native_in_cpython(&code.filename) => {}
                                 _ => e.tb.push((code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str()), code.spans[*pc])),
                             }
                         }

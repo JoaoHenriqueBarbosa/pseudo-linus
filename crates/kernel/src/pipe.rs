@@ -246,6 +246,11 @@ impl Pipe {
         let s = self.st.lock();
         (s.readers, s.writers, s.r_counter, s.w_counter)
     }
+
+    /// Bytes escritos e ainda não lidos.
+    pub(crate) fn pending(&self) -> usize {
+        self.st.lock().buf.len()
+    }
 }
 
 /// Uma ponta aberta (dentro de uma descrição de arquivo aberto). Fechar a última ponta de um lado acorda

@@ -790,6 +790,10 @@ impl Transfer<'_> {
             (true, Some(enc)) => Some(Decoder::for_encoding(&enc).map_err(|e| fail(61, format!("Unrecognized content encoding type: {e}")))?),
             _ => None,
         };
+        // `-f` desiste na cabeça, sem ler o corpo (fechar com ele por ler manda RST ao servidor).
+        if failing && !self.o.fail_with_body {
+            return Err(fail(22, format!("The requested URL returned error: {}", head.status)));
+        }
         let mut down = 0u64;
         {
             let mut body = conn.body_reader(mode);

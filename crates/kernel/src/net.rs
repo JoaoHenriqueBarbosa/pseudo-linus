@@ -8,6 +8,7 @@
 //! Portas efêmeras saem de `ip_local_port_range` do Debian 13 (32768 a 60999).
 
 use std::collections::{HashMap, VecDeque};
+use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::{Arc, Weak};
 
 use parking_lot::Mutex;
@@ -91,8 +92,9 @@ impl Ports {
         };
         let up = mk_pipe();
         let down = mk_pipe();
-        let client = Conn::new(down.attach(true, false), up.attach(false, true), local, port, down.clone());
-        let server = Conn::new(up.attach(true, false), down.attach(false, true), port, local, up);
+        let (client_reset, server_reset) = (Arc::new(AtomicU8::new(RESET_NONE)), Arc::new(AtomicU8::new(RESET_NONE)));
+        let client = Conn::new(down.attach(true, false), up.attach(false, true), local, port, down.clone(), (client_reset.clone(), server_reset.clone()));
+        let server = Conn::new(up.attach(true, false), down.attach(false, true), port, local, up, (server_reset, client_reset));
         let wake = {
             let mut s = listener.st.lock();
             if s.closed || s.queue.len() >= listener.backlog {
@@ -171,8 +173,23 @@ impl Drop for Listener {
     }
 }
 
+/// Estado de RST de uma ponta: nenhum, erro pendente (a próxima operação dá ECONNRESET) ou já entregue.
+const RESET_NONE: u8 = 0;
+const RESET_PENDING: u8 = 1;
+const RESET_DONE: u8 = 2;
+
+/// O que uma operação numa conexão resetada devolve.
+pub(crate) enum ResetState {
+    None,
+    /// Primeira operação depois do RST: ECONNRESET.
+    Pending,
+    /// Depois do erro entregue: a leitura dá EOF e a escrita EPIPE.
+    Done,
+}
+
 /// Uma conexão estabelecida: a ponta de leitura do pipe que chega e a de escrita do que sai. `shutdown`
-/// solta uma delas.
+/// solta uma delas. Fechar com dados recebidos e não lidos manda RST, como o TCP do Linux: o outro lado
+/// recebe ECONNRESET na próxima operação.
 #[derive(Debug)]
 pub(crate) struct Conn {
     rx: Mutex<Option<PipeEnd>>,
@@ -181,11 +198,46 @@ pub(crate) struct Conn {
     pub peer: u16,
     /// Dá o inode, o dono e a data do `fstat`.
     pub ident: Arc<Pipe>,
+    /// O RST que esta ponta recebeu e o da outra ponta (que esta marca ao fechar).
+    reset_me: Arc<AtomicU8>,
+    reset_peer: Arc<AtomicU8>,
+}
+
+impl Drop for Conn {
+    fn drop(&mut self) {
+        let unread = self.rx.lock().as_ref().is_some_and(|e| e.pipe.pending() > 0);
+        if unread {
+            let _ = self.reset_peer.compare_exchange(RESET_NONE, RESET_PENDING, Ordering::SeqCst, Ordering::SeqCst);
+        }
+        // As pontas caem depois daqui: o outro lado acorda com a flag já posta.
+    }
 }
 
 impl Conn {
-    fn new(rx: PipeEnd, tx: PipeEnd, local: u16, peer: u16, ident: Arc<Pipe>) -> Conn {
-        Conn { rx: Mutex::new(Some(rx)), tx: Mutex::new(Some(tx)), local, peer, ident }
+    fn new(rx: PipeEnd, tx: PipeEnd, local: u16, peer: u16, ident: Arc<Pipe>, reset: (Arc<AtomicU8>, Arc<AtomicU8>)) -> Conn {
+        Conn { rx: Mutex::new(Some(rx)), tx: Mutex::new(Some(tx)), local, peer, ident, reset_me: reset.0, reset_peer: reset.1 }
+    }
+
+    /// Escrita para um par que já fechou: o Linux aceita a primeira e o outro lado responde com RST,
+    /// então a escrita conta como feita e a próxima operação desta ponta dá ECONNRESET.
+    pub(crate) fn write_to_closed_peer(&self) -> bool {
+        let closed = self.tx().is_some_and(|p| p.counters().0 == 0);
+        if closed {
+            let _ = self.reset_me.compare_exchange(RESET_NONE, RESET_PENDING, Ordering::SeqCst, Ordering::SeqCst);
+        }
+        closed
+    }
+
+    /// Consome o RST pendente: `Pending` só uma vez, depois `Done`.
+    pub(crate) fn take_reset(&self) -> ResetState {
+        match self.reset_me.load(Ordering::SeqCst) {
+            RESET_NONE => ResetState::None,
+            RESET_PENDING => {
+                self.reset_me.store(RESET_DONE, Ordering::SeqCst);
+                ResetState::Pending
+            }
+            _ => ResetState::Done,
+        }
     }
 
     /// O pipe de leitura; `None` depois de `shutdown(SHUT_RD)` (a leitura dá EOF).
@@ -205,6 +257,9 @@ impl Conn {
 
     pub(crate) fn poll(&self, waiter: Option<&Arc<Parker>>) -> PollEvents {
         let mut ev = PollEvents::empty();
+        if self.reset_me.load(Ordering::SeqCst) == RESET_PENDING {
+            ev |= PollEvents::IN | PollEvents::OUT | PollEvents::ERR | PollEvents::HUP;
+        }
         match self.rx() {
             Some(p) => ev |= p.poll(true, false, waiter),
             None => ev |= PollEvents::IN,

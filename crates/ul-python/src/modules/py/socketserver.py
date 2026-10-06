@@ -221,12 +221,7 @@ class BaseServer:
         Polls for shutdown every poll_interval seconds. Ignores
         self.timeout. If you need to do periodic tasks, do them in
         another thread.
-        """
-        # As threads do sandbox são cooperativas: fora da principal, o laço vira um serviço que o
-        # escalonador passa a cada espera (senão prenderia para sempre quem pôs a thread para rodar).
-        if threading._state['current'] is not threading._main:
-            self.__is_shut_down.clear()
-            threading._serve(self._cooperative_step)
+        """; threading._state['current'] is threading._main or _serve_cooperatively(self)
         self.__is_shut_down.clear()
         try:
             # XXX: Consider using another file descriptor or connecting to the
@@ -248,24 +243,6 @@ class BaseServer:
         finally:
             self.__shutdown_request = False
             self.__is_shut_down.set()
-
-    def _cooperative_step(self):
-        """Um passo do `serve_forever` como serviço: atende o pedido pronto, se houver; `None` no `shutdown()`."""
-        if self.__shutdown_request:
-            self.__shutdown_request = False
-            self.__is_shut_down.set()
-            return None
-        try:
-            with _ServerSelector() as selector:
-                selector.register(self, selectors.EVENT_READ)
-                ready = selector.select(0)
-        except (OSError, ValueError):
-            self.__is_shut_down.set()
-            return None
-        if ready:
-            self._handle_request_noblock()
-        self.service_actions()
-        return bool(ready)
 
     def shutdown(self):
         """Stops the serve_forever loop.
@@ -884,3 +861,32 @@ class DatagramRequestHandler(BaseRequestHandler):
 
     def finish(self):
         self.socket.sendto(self.wfile.getvalue(), self.client_address)
+
+
+# As threads do sandbox são cooperativas: fora da thread principal, o laço do `serve_forever` vira um
+# serviço que o escalonador passa a cada espera (senão prenderia para sempre quem pôs a thread para rodar).
+# Fica no fim do arquivo para as linhas do resto baterem com as do CPython nos tracebacks; fora da classe
+# não há mutilação de nome, então os atributos privados vão por extenso.
+
+def _serve_cooperatively(server):
+    server._BaseServer__is_shut_down.clear()
+    threading._serve(lambda: _cooperative_step(server))
+
+
+def _cooperative_step(server):
+    """Um passo do `serve_forever` como serviço: atende o pedido pronto, se houver; `None` no `shutdown()`."""
+    if server._BaseServer__shutdown_request:
+        server._BaseServer__shutdown_request = False
+        server._BaseServer__is_shut_down.set()
+        return None
+    try:
+        with _ServerSelector() as selector:
+            selector.register(server, selectors.EVENT_READ)
+            ready = selector.select(0)
+    except (OSError, ValueError):
+        server._BaseServer__is_shut_down.set()
+        return None
+    if ready:
+        server._handle_request_noblock()
+    server.service_actions()
+    return bool(ready)

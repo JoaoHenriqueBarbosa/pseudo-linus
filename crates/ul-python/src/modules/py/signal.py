@@ -74,7 +74,7 @@ def default_int_handler(signalnum, frame):
     raise KeyboardInterrupt
 
 
-_handlers = {Signals.SIGINT: default_int_handler}
+_handlers = {Signals.SIGINT: default_int_handler, Signals.SIGPIPE: Handlers.SIG_IGN, Signals.SIGXFSZ: Handlers.SIG_IGN}
 
 
 def _check(signalnum):

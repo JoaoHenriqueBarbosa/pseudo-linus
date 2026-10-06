@@ -5872,3 +5872,50 @@ linha 1
 "##
     );
 }
+
+#[test]
+fn private_name_mangling() {
+    let src = r##"
+class A:
+    __cls = 1
+    def __init__(self, __p=5):
+        self.__x = __p
+        self.__y__ = 2
+        self._A__z = 3
+    def __m(self): return 'm'
+    def call(self, **kw): return kw
+    def use(self):
+        import os as __os
+        __loc = 7
+        return self.__m(), self.call(__k=1), __loc, __os.sep, A.__cls, getattr(self, '__x', 'nao')
+    class __Inner:
+        def f(self): self.__q = 1; return vars(self)
+class ___:
+    def g(self): self.__w = 1; return vars(self)
+class _B:
+    def g(self): self.__w = 1; return vars(self)
+a = A()
+print(sorted(vars(a)), sorted(k for k in vars(A) if 'A' in k or k.startswith('__c')))
+print(a.use())
+print(A._A__Inner().f(), ___().g(), _B().g())
+print(A.__init__.__code__.co_varnames)
+def outer():
+    class C:
+        def h(self): return lambda: self.__v
+    return C
+print(outer().h.__code__.co_names if hasattr(outer().h, '__code__') else '')
+c = outer()(); c._C__v = 9; print(c.h()())
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"['_A__x', '_A__z', '__y__'] ['_A__Inner', '_A__cls', '_A__m']
+('m', {'__k': 1}, 7, '/', 1, 'nao')
+{'_Inner__q': 1} {'__w': 1} {'_B__w': 1}
+('self', '_A__p')
+()
+9
+"##
+    );
+}

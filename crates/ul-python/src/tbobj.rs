@@ -214,6 +214,17 @@ impl ExtObject for CodeObject {
                         strs(v)
                     }
                     "co_flags_varargs" => Value::Bool(c.vararg.is_some()),
+                    // Globais e atributos usados pelo código, sem os locais (que estão em `co_varnames`).
+                    "co_names" => {
+                        let locals: Vec<&Rc<str>> = c.params.iter().chain(&c.kwonly).chain(&c.vararg).chain(&c.kwarg).collect();
+                        let mut v: Vec<Rc<str>> = Vec::new();
+                        for n in &c.names {
+                            if !locals.contains(&n) && !v.contains(n) {
+                                v.push(n.clone());
+                            }
+                        }
+                        strs(v)
+                    }
                     "co_flags_varkw" => Value::Bool(c.kwarg.is_some()),
                     "co_kinds" => {
                         let mut k = Vec::new();

@@ -480,10 +480,14 @@ fn spawn(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
             fd_actions.push(sysabi::FdAction::Close(Fd(want_int(fd)? as i32)));
         }
     }
+    // `restore_signals` (sétimo argumento, verdadeiro por padrão): o filho volta a ter SIGPIPE e SIGXFSZ no
+    // padrão, que o interpretador ignora desde a partida.
+    let restore = args.get(6).is_none_or(|v| !matches!(v, Value::Bool(false)));
+    let reset_signals = if restore { vec![sysabi::Signal::SIGPIPE, sysabi::Signal::SIGXFSZ] } else { Vec::new() };
     let spec = sysabi::SpawnSpec {
         path: path.clone(),
         argv,
-        attrs: sysabi::ProcAttrs { env, cwd, fd_actions, ..sysabi::ProcAttrs::default() },
+        attrs: sysabi::ProcAttrs { env, cwd, fd_actions, reset_signals, ..sysabi::ProcAttrs::default() },
     };
     let pid = sys::current().spawn(spec).map_err(|e| os_error(e, Some(&shown(&path))))?;
     Ok(Value::Int(i64::from(pid)))

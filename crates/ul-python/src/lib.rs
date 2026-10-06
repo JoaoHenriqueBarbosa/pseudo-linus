@@ -26,6 +26,7 @@ pub mod globalsview;
 #[cfg(test)]
 mod lang_tests;
 pub mod lazy;
+mod mangle;
 pub mod methods;
 pub mod modules;
 pub mod native_util;
@@ -512,6 +513,12 @@ fn run_main(src: &str, argv: Vec<String>, name: &str, file_mode: bool, module: O
     let name = name.to_string();
     // A thread nova não herda o pseudo-processo: instala o do chamador para `open`, stdin e stderr.
     let current = sys::try_current();
+    // Como o CPython na partida: SIGPIPE e SIGXFSZ ignorados (a escrita num pipe fechado vira
+    // BrokenPipeError em vez de matar o processo).
+    if let Some(c) = &current {
+        let _ = c.sigaction(sysabi::Signal::SIGPIPE, sysabi::SigDisposition::Ignore);
+        let _ = c.sigaction(sysabi::Signal::SIGXFSZ, sysabi::SigDisposition::Ignore);
+    }
     let spawned = std::thread::Builder::new().stack_size(1 << 30).spawn(move || {
         if let Some(c) = current {
             sys::install(c);

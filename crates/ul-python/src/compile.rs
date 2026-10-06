@@ -1301,6 +1301,13 @@ impl Compiler {
         });
     }
 
+    /// Prefixo de mutilação do escopo corrente: a classe cujo corpo se compila ou, numa função, a classe
+    /// em que ela foi definida.
+    fn mangle_prefix(&self) -> Option<&str> {
+        let class = if self.in_class_body { self.class_name.as_deref() } else { self.enclosing_class.as_deref() };
+        class.and_then(crate::mangle::prefix)
+    }
+
     /// Compila uma função (`def` ou `lambda`) num `Code` próprio e emite a criação dela: os padrões
     /// são avaliados aqui, no escopo de fora. Deixa a função na pilha; guardar é com o chamador.
     fn make_function(
@@ -1312,6 +1319,9 @@ impl Compiler {
         is_async: bool,
         returns: Option<&Expr>,
     ) -> Result<(), CompileError> {
+        // `def __m` numa classe liga `_A__m`, mas o `__name__` e o `__qualname__` mostram `__m`.
+        let name = crate::mangle::unmangle(self.mangle_prefix(), name).to_string();
+        let name = name.as_str();
         let mut params: Vec<String> = args.posonlyargs.iter().map(|a| a.arg.clone()).collect();
         let posonly = params.len();
         params.extend(args.args.iter().map(|a| a.arg.clone()));
@@ -1415,6 +1425,12 @@ impl Compiler {
         body: &[Stmt],
         line: usize,
     ) -> Result<(), CompileError> {
+        // O nome ligado pode vir mutilado pela classe de fora (`class __Inner` em `A` liga `_A__Inner`), mas o
+        // `__name__` e o `__qualname__` mostram o original; o corpo é mutilado com o nome desta classe.
+        let name = crate::mangle::unmangle(self.mangle_prefix(), name).to_string();
+        let name = name.as_str();
+        let mangled_body = crate::mangle::class_body(name, body);
+        let body: &[Stmt] = mangled_body.as_deref().unwrap_or(body);
         let mut scope = Scope::default();
         scope.block(body);
         let (locals, globals, nonlocals) = scope.locals();

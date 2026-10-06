@@ -5362,6 +5362,7 @@ dependencies = [
  "brotli-decompressor",
  "flate2",
  "httparse",
+ "jiff",
  "pl-testing",
  "rustls",
  "rustls-pki-types",

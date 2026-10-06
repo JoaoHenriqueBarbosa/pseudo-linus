@@ -1,0 +1,88 @@
+tool = "curl"
+source = "manual"
+
+# Uso de agente contra um servidor HTTP local em segundo plano (http.server do Python no loopback do
+# sandbox). Sem cabeçalho Date nem medidor de progresso na saída comparada.
+
+[[case]]
+id = "get-post-status"
+tags = ["net"]
+script = '''
+cat > /tmp/srv.py <<'EOF'
+import http.server, json, gzip
+class H(http.server.BaseHTTPRequestHandler):
+    protocol_version = 'HTTP/1.1'
+    def log_message(self, *a): pass
+    def _send(self, code, body, ctype='text/plain', extra=()):
+        self.send_response(code)
+        self.send_header('Content-Type', ctype)
+        for k, v in extra: self.send_header(k, v)
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        if self.command != 'HEAD': self.wfile.write(body)
+    def do_GET(self):
+        p = self.path
+        if p.startswith('/redir'):
+            n = int(p[6:] or 1)
+            return self._send(302, b'', extra=[('Location', '/redir%d' % (n - 1) if n > 1 else '/ok')])
+        if p == '/ok': return self._send(200, b'tudo ok\n')
+        if p == '/json': return self._send(200, b'{"a": [1, 2], "b": "x"}', 'application/json')
+        if p == '/gz': return self._send(200, gzip.compress(b'comprimido\n', mtime=0), extra=[('Content-Encoding', 'gzip')])
+        if p == '/chunk':
+            self.send_response(200); self.send_header('Transfer-Encoding', 'chunked'); self.end_headers()
+            for part in (b'pri', b'meiro\n'): self.wfile.write(b'%x\r\n%s\r\n' % (len(part), part))
+            self.wfile.write(b'0\r\n\r\n'); return
+        if p.startswith('/echo'):
+            h = {k: v for k, v in self.headers.items() if k.lower() != 'host'}
+            return self._send(200, json.dumps({'m': self.command, 'path': p, 'h': h}, sort_keys=True).encode() + b'\n', 'application/json')
+        if p == '/500': return self._send(500, b'falhou\n')
+        return self._send(404, b'nao achei\n')
+    do_HEAD = do_GET
+    def do_POST(self):
+        n = int(self.headers.get('Content-Length', 0)); body = self.rfile.read(n)
+        info = {'m': self.command, 'ct': self.headers.get('Content-Type'), 'body': body.decode('latin-1'), 'len': n,
+                'ua': self.headers.get('User-Agent'), 'accept': self.headers.get('Accept'), 'x': self.headers.get('X-Tok')}
+        self._send(201, json.dumps(info, sort_keys=True).encode() + b'\n', 'application/json')
+    do_PUT = do_POST
+    do_DELETE = do_POST
+http.server.ThreadingHTTPServer(('127.0.0.1', 8099), H).serve_forever()
+EOF
+# O `curl -f` fecha sem ler o corpo do erro e o servidor leva RST: o traceback dele traz a porta efêmera,
+# então o stderr do servidor fica fora da comparação.
+python3 /tmp/srv.py 2>/dev/null &
+for i in $(seq 100); do curl -s -o /dev/null http://127.0.0.1:8099/ok && break; sleep 0.1; done
+cd /tmp && echo '{"k":1}' > d.json && echo 'conteúdo' > f.txt
+U=http://127.0.0.1:8099
+t() { echo "== $*"; "$@"; echo "[rc=$?]"; }
+t curl -s $U/ok
+t curl -s $U/json
+t curl -sS $U/nada
+t curl -s -o /dev/null -w '%{http_code} %{content_type} %{size_download} %{num_redirects} %{url_effective}\n' $U/ok
+t curl -sf $U/nada
+t curl -sSf $U/500
+t curl -s --fail-with-body $U/500
+t curl -sL $U/redir3
+t curl -s $U/redir2
+t curl -sL -w '%{num_redirects} %{url_effective} %{http_code}\n' -o /dev/null $U/redir2
+t curl -s -X POST -d 'a=1&b=2' $U/x
+t curl -s -d @d.json -H 'Content-Type: application/json' -H 'X-Tok: 9' $U/x
+t curl -s --json '{"z":0}' $U/x
+t curl -s --data-urlencode 'q=a b&c' $U/x
+t curl -s -X DELETE $U/x
+t curl -s -A agente/1 -e http://ref/ -u user:pw $U/echo
+t curl -s -H 'Accept: text/x' -G -d q=1 -d r=2 $U/echo
+t curl -s --compressed $U/gz
+t curl -s $U/chunk
+t curl -s -o out.txt $U/ok; cat out.txt
+t curl -s -O $U/ok; cat ok
+t curl -s --create-dirs -o a/b/c.txt $U/ok; cat a/b/c.txt
+t curl -s -T f.txt $U/up
+t curl -s $U/ok $U/json
+t curl -sS http://127.0.0.1:1/
+t curl -sS nada://x
+t curl -s file:///tmp/f.txt
+t curl -s 'file:///tmp/{d.json,f.txt}'
+t curl -sS 'http://[bad'
+t curl
+kill %1; wait
+'''

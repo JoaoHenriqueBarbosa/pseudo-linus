@@ -7,12 +7,14 @@ pub mod net {
     pub mod http;
     pub mod io;
     pub mod tls;
+    pub mod tz;
     pub mod url;
 }
 
 pub mod curl;
+pub mod wget;
 
 /// Os programas deste crate.
 pub fn programs() -> Vec<sysabi::Program> {
-    vec![sysabi::Program::bin("curl", curl::main)]
+    vec![sysabi::Program::bin("curl", curl::main), sysabi::Program::bin("wget", wget::main)]
 }
