@@ -297,6 +297,13 @@ class defaultdict(dict):
 
 
 class OrderedDict(dict):
+    @classmethod
+    def fromkeys(cls, iterable, value=None):
+        self = cls()
+        for key in iterable:
+            self[key] = value
+        return self
+
     def move_to_end(self, key, last=True):
         value = self.pop(key)
         if last:
@@ -447,6 +454,12 @@ class Counter(dict):
             if new > 0:
                 result[elem] = new
         return result
+
+    def __pos__(self):
+        return Counter({e: c for e, c in self.items() if c > 0})
+
+    def __neg__(self):
+        return Counter({e: -c for e, c in self.items() if c < 0})
 
     __hash__ = None
 

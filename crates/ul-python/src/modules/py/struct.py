@@ -1,8 +1,14 @@
 """struct: as funções vêm do módulo nativo `_struct`; `Struct` guarda o formato já validado."""
 
-from _struct import error, pack, unpack, pack_into, unpack_from, iter_unpack, calcsize
+from _struct import error, pack, unpack, pack_into, unpack_from, calcsize
+from _struct import iter_unpack as _iter_unpack
 
 __all__ = ['calcsize', 'pack', 'pack_into', 'unpack', 'unpack_from', 'iter_unpack', 'Struct', 'error']
+
+
+def iter_unpack(format, buffer, /):
+    """Como no CPython, devolve um iterador (o nativo devolve a lista já decodificada)."""
+    return iter(_iter_unpack(format, buffer))
 
 
 class Struct:

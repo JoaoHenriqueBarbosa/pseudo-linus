@@ -5433,3 +5433,21 @@ no c
 "##
     );
 }
+
+#[test]
+fn counter_unary_ordereddict_fromkeys_iter_unpack() {
+    let src = r##"
+import collections, struct
+c = collections.Counter(a=2, b=-1)
+print(+c, -c, collections.OrderedDict.fromkeys('ab', 0))
+it = struct.iter_unpack('<H', b'\x01\x00\x02\x00'); print(next(it), list(it))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"Counter({'a': 2}) Counter({'b': 1}) OrderedDict({'a': 0, 'b': 0})
+(1,) [(2,)]
+"##
+    );
+}
