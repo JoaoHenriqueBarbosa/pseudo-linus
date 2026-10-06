@@ -172,6 +172,51 @@ async fn parallel_sandboxes_are_isolated() -> anyhow::Result<()> {
     s.finish().await
 }
 
+/// Git de verdade: repositório, commits, branch e merge, conferidos pelo harness.
+#[tokio::test(flavor = "multi_thread")]
+async fn git_branch_and_merge() -> anyhow::Result<()> {
+    let s = Scenario::start("git_workflow").await?;
+    let t = s
+        .agent(
+            "main",
+            "Create a git repository in /repo (set user.name to `Bot` and user.email to `bot@example.com`). Commit a \
+             README.md with the line `v1`. Create a branch `feature`, add a file feature.txt with `done` and commit it. \
+             Go back to the default branch and merge `feature`. Finally show `git log --oneline` and list the files.",
+        )
+        .await?;
+    assert!(!t.is_error, "{}", t.final_text);
+    let r = s.sandbox.exec("check", "cd /repo && git log --oneline | wc -l && cat feature.txt README.md && git branch --list feature", None).await?;
+    let lines: Vec<&str> = r.stdout.lines().map(str::trim).collect();
+    assert_eq!(lines.first().copied(), Some("2"), "{r:?}");
+    assert!(lines.contains(&"done") && lines.contains(&"v1") && lines.contains(&"feature"), "{r:?}");
+    s.finish().await
+}
+
+/// Arquivo grande e pipeline com sort/uniq: saída truncada não pode confundir o resultado final.
+#[tokio::test(flavor = "multi_thread")]
+async fn large_file_statistics() -> anyhow::Result<()> {
+    let s = Scenario::start("large_file").await?;
+    s.sandbox
+        .exec("setup", "seq 1 200000 | awk '{print \"user\" ($1 % 37) \",\" $1}' > /data.csv", Some(60_000))
+        .await?;
+    let t = s
+        .agent(
+            "main",
+            "The file /data.csv has lines `name,value`. Without printing the whole file, tell me how many lines it \
+             has, how many distinct names there are, and which name has the largest sum of values.",
+        )
+        .await?;
+    assert!(!t.is_error, "{}", t.final_text);
+    let want = s
+        .sandbox
+        .exec("check", "awk -F, '{s[$1]+=$2} END {for (k in s) print s[k], k}' /data.csv | sort -n | tail -1 | cut -d' ' -f2", None)
+        .await?;
+    let txt = t.final_text.replace(',', "");
+    assert!(txt.contains("200000") && txt.contains("37"), "{}", t.final_text);
+    assert!(t.final_text.contains(want.stdout.trim()), "esperado {} em: {}", want.stdout.trim(), t.final_text);
+    s.finish().await
+}
+
 /// Exercício livre: o modelo monta e roda um pipeline de verdade (compilar C, testar, empacotar).
 #[tokio::test(flavor = "multi_thread")]
 async fn build_test_package_pipeline() -> anyhow::Result<()> {
