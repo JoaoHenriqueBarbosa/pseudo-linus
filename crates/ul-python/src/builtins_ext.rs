@@ -207,7 +207,7 @@ fn module_of_dict(d: &Value) -> Option<&'static str> {
 
 /// Substitui o conteúdo de `target` pelas globais `map`: nomes existentes na ordem de antes, os
 /// novos em ordem alfabética (o mapa de globais não guarda a ordem de inserção).
-fn write_back(target: &Value, map: &std::collections::HashMap<String, Value>, was: &[String]) -> PyResult<()> {
+fn write_back(target: &Value, map: &crate::object::VarMap, was: &[String]) -> PyResult<()> {
     let Value::Dict(d) = target else { return Ok(()) };
     let mut fresh = Dict::new();
     let old: Vec<(Value, Value)> = d.borrow().iter().map(|(k, v)| (k.clone(), v.clone())).collect();
@@ -267,9 +267,9 @@ fn run_ns(vm: &mut Vm, src: &str, globals: Option<Value>, locals: Option<Value>,
         }
     }
     let live = module_of_dict(&gdict).and_then(|n| vm.module_globals.borrow().get(n).cloned());
-    let map: Rc<std::cell::RefCell<std::collections::HashMap<String, Value>>> = match &live {
+    let map: Rc<std::cell::RefCell<crate::object::VarMap>> = match &live {
         Some(m) => m.clone(),
-        None => Rc::new(std::cell::RefCell::new(std::collections::HashMap::new())),
+        None => Rc::new(std::cell::RefCell::new(Default::default())),
     };
     let mut was: Vec<String> = Vec::new();
     let gitems: Vec<(Value, Value)> = g.borrow().iter().map(|(k, v)| (k.clone(), v.clone())).collect();

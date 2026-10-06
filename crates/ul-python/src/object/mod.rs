@@ -251,7 +251,7 @@ pub enum Native {
 /// que a envolve. As funções internas guardam o `Env` onde nasceram, e é assim que enxergam e
 /// alteram as variáveis do escopo externo (closures, `nonlocal`).
 pub struct Env {
-    pub vars: RefCell<std::collections::HashMap<String, Value>>,
+    pub vars: RefCell<VarMap>,
     /// Ordem de criação dos nomes (só preenchida nos corpos de classe).
     pub order: RefCell<Vec<String>>,
     pub parent: Option<Rc<Env>>,
@@ -260,6 +260,29 @@ pub struct Env {
     /// Escopo do módulo (as variáveis ficam nas globais da VM, não aqui).
     pub is_module: bool,
 }
+
+/// Hasher multiplicativo (FxHash) para os nomes de variáveis: curtos, e sem necessidade de resistir a ataque.
+#[derive(Default, Clone, Copy)]
+pub struct NameHasher(u64);
+
+impl std::hash::Hasher for NameHasher {
+    fn finish(&self) -> u64 {
+        self.0
+    }
+    fn write(&mut self, bytes: &[u8]) {
+        for chunk in bytes.chunks(8) {
+            let mut buf = [0u8; 8];
+            buf[..chunk.len()].copy_from_slice(chunk);
+            self.0 = (self.0.rotate_left(5) ^ u64::from_le_bytes(buf)).wrapping_mul(0x517c_c1b7_2722_0a95);
+        }
+    }
+    fn write_u8(&mut self, i: u8) {
+        self.0 = (self.0.rotate_left(5) ^ u64::from(i)).wrapping_mul(0x517c_c1b7_2722_0a95);
+    }
+}
+
+/// Variáveis locais de um escopo.
+pub type VarMap = std::collections::HashMap<String, Value, std::hash::BuildHasherDefault<NameHasher>>;
 
 impl fmt::Debug for Env {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -270,7 +293,7 @@ impl fmt::Debug for Env {
 impl Env {
     pub fn new(parent: Option<Rc<Env>>, is_class: bool, is_module: bool) -> Rc<Env> {
         Rc::new(Env {
-            vars: RefCell::new(std::collections::HashMap::new()),
+            vars: RefCell::new(VarMap::default()),
             order: RefCell::new(Vec::new()),
             parent,
             is_class,
@@ -280,8 +303,12 @@ impl Env {
 
     /// Grava uma variável local; nos corpos de classe lembra a ordem em que os nomes nasceram.
     pub fn set(&self, name: &str, v: Value) {
-        let fresh = self.vars.borrow_mut().insert(name.to_string(), v).is_none();
-        if fresh && self.is_class {
+        if let Some(slot) = self.vars.borrow_mut().get_mut(name) {
+            *slot = v;
+            return;
+        }
+        self.vars.borrow_mut().insert(name.to_string(), v);
+        if self.is_class {
             self.order.borrow_mut().push(name.to_string());
         }
     }
@@ -307,7 +334,7 @@ pub struct FuncObj {
     pub kwdefaults: Vec<(String, Value)>,
     pub closure: Option<Rc<Env>>,
     /// Globais do módulo onde a função nasceu (cada módulo em Python embutido tem as suas).
-    pub globals: Rc<RefCell<std::collections::HashMap<String, Value>>>,
+    pub globals: Rc<RefCell<VarMap>>,
     /// Atributos atribuídos à função (`f.cache_clear = ...`, `__name__`, `__wrapped__`...).
     pub attrs: RefCell<std::collections::BTreeMap<String, Value>>,
 }

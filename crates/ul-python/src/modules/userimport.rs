@@ -118,7 +118,7 @@ pub fn exec_file(vm: &mut Vm, name: &str, file: &str, package_dir: Option<&str>)
         Some(_) => name.to_string(),
         None => name.rsplit_once('.').map(|(p, _)| p.to_string()).unwrap_or_default(),
     };
-    let globals: Rc<RefCell<HashMap<String, Value>>> = Rc::new(RefCell::new(HashMap::new()));
+    let globals: Rc<RefCell<crate::object::VarMap>> = Rc::new(RefCell::new(Default::default()));
     {
         let mut g = globals.borrow_mut();
         g.insert("__name__".into(), Value::str(name));

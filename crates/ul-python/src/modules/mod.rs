@@ -160,7 +160,7 @@ pub fn resolve_relative(vm: &mut Vm, rel: &str, level: usize) -> PyResult<String
 pub fn new_module(vm: &mut Vm, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
     let a = crate::native_util::bind("module", args, kwargs, &["name", "doc"], 1)?;
     let name = crate::native_util::want_str("module", a[0].as_ref().unwrap_or(&Value::None))?.to_string();
-    let globals: Rc<RefCell<std::collections::HashMap<String, Value>>> = Rc::new(RefCell::new(Default::default()));
+    let globals: Rc<RefCell<crate::object::VarMap>> = Rc::new(RefCell::new(Default::default()));
     {
         let mut g = globals.borrow_mut();
         g.insert("__name__".into(), Value::str(name.clone()));

@@ -535,7 +535,7 @@ pub(crate) enum Slot {
 /// livres (`binary`, `compare`, `repr`...) chamam de volta o Python (`__add__`, `__repr__`...).
 #[derive(Clone)]
 pub struct Vm {
-    pub(crate) globals: Rc<RefCell<HashMap<String, Value>>>,
+    pub(crate) globals: Rc<RefCell<crate::object::VarMap>>,
     /// Buffer do stdout, descarregado pelo chamador no fim.
     pub stdout: Rc<RefCell<Vec<u8>>>,
     /// Exceções sendo tratadas (a mais recente por último), para `raise` sem argumento.
@@ -554,7 +554,7 @@ pub struct Vm {
     pub(crate) modules: Rc<RefCell<HashMap<String, Rc<crate::object::ModuleObj>>>>,
     /// Globais vivas dos módulos carregados de arquivo (por nome): `mod.x` lê e grava aqui, então
     /// o módulo e quem o importou enxergam o mesmo estado.
-    pub(crate) module_globals: Rc<RefCell<HashMap<&'static str, Rc<RefCell<HashMap<String, Value>>>>>>,
+    pub(crate) module_globals: Rc<RefCell<HashMap<&'static str, Rc<RefCell<crate::object::VarMap>>>>>,
 }
 
 thread_local! {
@@ -630,7 +630,7 @@ impl Vm {
             })))
         };
         let vm = Vm {
-            globals: Rc::new(RefCell::new(HashMap::from([("__name__".to_string(), Value::str("__main__"))]))),
+            globals: Rc::new(RefCell::new(crate::object::VarMap::from_iter([("__name__".to_string(), Value::str("__main__"))]))),
             stdout: Rc::new(RefCell::new(Vec::new())),
             handled: Rc::new(RefCell::new(Vec::new())),
             depth: Rc::new(std::cell::Cell::new(0)),
@@ -740,6 +740,58 @@ impl Vm {
                         }
                         _ => Err(internal("bad value stack")),
                     },
+                    // Instruções quentes resolvidas aqui: `step` tem um quadro enorme (um `match` com
+                    // centenas de braços) e chamá-lo a cada instrução custa mais que o trabalho.
+                    Op::LoadConst(i) => {
+                        stack.push(Slot::Val(code.consts[i as usize].clone()));
+                        Ok(None)
+                    }
+                    Op::Jump(t) => Ok(Some(t as usize)),
+                    Op::Pop => {
+                        stack.pop();
+                        Ok(None)
+                    }
+                    Op::StoreName(i) => match stack.pop() {
+                        Some(Slot::Val(v)) => {
+                            let name = &code.names[i as usize];
+                            let mut g = self.globals.borrow_mut();
+                            match g.get_mut(name) {
+                                Some(slot) => *slot = v,
+                                None => {
+                                    g.insert(name.clone(), v);
+                                }
+                            }
+                            Ok(None)
+                        }
+                        _ => Err(internal("bad value stack")),
+                    },
+                    Op::ForIter(t) => match stack.last_mut() {
+                        Some(Slot::Iter(it)) => match it.next() {
+                            Ok(Some(v)) => {
+                                stack.push(Slot::Val(v));
+                                Ok(None)
+                            }
+                            Ok(None) => {
+                                stack.pop();
+                                Ok(Some(t as usize))
+                            }
+                            Err(e) => Err(e),
+                        },
+                        _ => Err(internal("FOR_ITER without iterator")),
+                    },
+                    Op::PopJumpIfFalse(t) => match stack.pop() {
+                        Some(Slot::Val(v)) => Ok(if v.is_true() { None } else { Some(t as usize) }),
+                        _ => Err(internal("bad value stack")),
+                    },
+                    Op::LoadName(i) if env.parent.is_none() => {
+                        match self.global_or_builtin(&code.names[i as usize]) {
+                            Ok(v) => {
+                                stack.push(Slot::Val(v));
+                                Ok(None)
+                            }
+                            Err(e) => Err(e),
+                        }
+                    }
                     _ => self.step(code, op, stack, env),
                 }
             };
@@ -1006,7 +1058,14 @@ impl Vm {
             }
             Op::StoreName(i) => {
                 let v = pop(stack)?;
-                self.globals.borrow_mut().insert(code.names[i as usize].clone(), v);
+                let name = &code.names[i as usize];
+                let mut g = self.globals.borrow_mut();
+                match g.get_mut(name) {
+                    Some(slot) => *slot = v,
+                    None => {
+                        g.insert(name.clone(), v);
+                    }
+                }
             }
             Op::StoreNonlocal(i) => {
                 let v = pop(stack)?;
@@ -3224,6 +3283,38 @@ fn unsupported(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyException
 }
 
 fn binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyResult<Value> {
+    // Caminho rápido: aritmética de `int` e `float` sem estouro nem divisão por zero.
+    match (a, b) {
+        (Value::Int(x), Value::Int(y)) => {
+            let r = match op {
+                Operator::Add => x.checked_add(*y),
+                Operator::Sub => x.checked_sub(*y),
+                Operator::Mult => x.checked_mul(*y),
+                Operator::Mod if *y != 0 && *y != -1 => {
+                    let m = x % y;
+                    Some(if m != 0 && (m ^ y) < 0 { m + y } else { m })
+                }
+                Operator::FloorDiv if *y != 0 && *y != -1 => {
+                    let d = x / y;
+                    Some(if x % y != 0 && (x ^ y) < 0 { d - 1 } else { d })
+                }
+                Operator::BitAnd => Some(x & y),
+                Operator::BitOr => Some(x | y),
+                Operator::BitXor => Some(x ^ y),
+                _ => None,
+            };
+            if let Some(r) = r {
+                return Ok(Value::Int(r));
+            }
+        }
+        (Value::Float(x), Value::Float(y)) => match op {
+            Operator::Add => return Ok(Value::Float(x + y)),
+            Operator::Sub => return Ok(Value::Float(x - y)),
+            Operator::Mult => return Ok(Value::Float(x * y)),
+            _ => {}
+        },
+        _ => {}
+    }
     if op == Operator::BitOr
         && !matches!(a, Value::Set(_) | Value::Dict(_) | Value::Int(_) | Value::Bool(_))
         && crate::generic::is_type_like(a)

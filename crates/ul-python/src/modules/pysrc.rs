@@ -282,7 +282,7 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     let module = Rc::new(ModuleObj { name: intern(real), attrs: RefCell::new(BTreeMap::new()) });
     // Registrado antes de rodar, para que importações circulares enxerguem o módulo.
     vm.modules.borrow_mut().insert(real.to_string(), module.clone());
-    let globals: Rc<RefCell<HashMap<String, Value>>> = Rc::new(RefCell::new(HashMap::new()));
+    let globals: Rc<RefCell<crate::object::VarMap>> = Rc::new(RefCell::new(Default::default()));
     {
         let mut g = globals.borrow_mut();
         g.insert("__name__".to_string(), Value::str(real));
