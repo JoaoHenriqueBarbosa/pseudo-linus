@@ -2255,3 +2255,171 @@ except KeyError as e: print(e)
 "##
     );
 }
+
+#[test]
+fn ast_module() {
+    let src = r##"
+import ast
+src = '''
+"""mod doc"""
+import os, sys as s
+from a.b import c as d, e
+
+@deco(1)
+def f(a, /, b: int = 2, *args, k=None, **kw) -> str:
+    """fdoc"""
+    x = [i * 2 for i in range(a) if i % 2]
+    y = {k: v for k, v in kw.items()}
+    with open(b) as fh, other():
+        pass
+    try:
+        raise ValueError("bad") from None
+    except (KeyError, ValueError) as exc:
+        return f"{a!r:>10} {b}"
+    finally:
+        del x
+    lam = lambda q, *r: q if r else -q
+    async def g():
+        await h()
+    match a:
+        case [1, 2, *rest]: pass
+        case {"k": v, **kw2}: pass
+        case Point(x=0) | None: pass
+        case _: pass
+    return a < b <= 3 and not c or d[1:2, ::3]
+
+class C(Base, metaclass=M):
+    z: int = 5
+    def m(self): return self.z ** 2 @ other
+'''
+t = ast.parse(src)
+print(ast.get_docstring(t), ast.get_docstring(t.body[3]))
+f = t.body[3]
+print(f.name, f.lineno, f.end_lineno, f.col_offset, [a.arg for a in f.args.args], f.args.vararg.arg, f.returns.id)
+print(ast.dump(f.body[1], indent=1))
+class V(ast.NodeVisitor):
+    def __init__(self): self.names = []
+    def visit_Name(self, n): self.names.append(n.id)
+    def visit_Call(self, n): self.generic_visit(n)
+v = V(); v.visit(t); print(v.names)
+class T(ast.NodeTransformer):
+    def visit_Constant(self, n):
+        if isinstance(n.value, int): return ast.copy_location(ast.Constant(n.value + 100), n)
+        return n
+t2 = ast.fix_missing_locations(T().visit(ast.parse("a = 1 + 2\nb = 'x'")))
+print(ast.unparse(t2))
+print(ast.unparse(t))
+tree = ast.parse("def sq(n):\n    return n * n\nresult = sq(7)")
+ns = {}
+exec(compile(tree, '<ast>', 'exec'), ns); print(ns['result'])
+e = ast.Expression(ast.BinOp(ast.Constant(6), ast.Mult(), ast.Constant(7)))
+print(eval(compile(ast.fix_missing_locations(e), '<e>', 'eval')))
+print(ast.literal_eval('[1, -2.5, 3j, "a" "b", (1,), {}, set(), None, ...]') if hasattr(ast, 'literal_eval') else '')
+print([type(n).__name__ for n in ast.iter_child_nodes(ast.parse('a.b(c)').body[0].value)])
+try: ast.parse('def (:')
+except SyntaxError as e: print('SyntaxError', e.msg, e.lineno)
+print(ast.Constant.__match_args__, ast.Name._fields, ast.Constant(5).value, ast.Return().value)
+print(ast.dump(ast.parse('x: int = 1; y += 2; print(*a, **k)'), annotate_fields=False))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"mod doc fdoc
+f 7 27 0 ['b'] args str
+Assign(
+ targets=[
+  Name(id='x', ctx=Store())],
+ value=ListComp(
+  elt=BinOp(
+   left=Name(id='i', ctx=Load()),
+   op=Mult(),
+   right=Constant(value=2)),
+  generators=[
+   comprehension(
+    target=Name(id='i', ctx=Store()),
+    iter=Call(
+     func=Name(id='range', ctx=Load()),
+     args=[
+      Name(id='a', ctx=Load())]),
+    ifs=[
+     BinOp(
+      left=Name(id='i', ctx=Load()),
+      op=Mod(),
+      right=Constant(value=2))],
+    is_async=0)]))
+['int', 'x', 'i', 'i', 'range', 'a', 'i', 'y', 'k', 'v', 'k', 'v', 'kw', 'open', 'b', 'fh', 'other', 'ValueError', 'KeyError', 'ValueError', 'a', 'b', 'x', 'lam', 'r', 'q', 'q', 'h', 'a', 'Point', 'a', 'b', 'c', 'd', 'deco', 'str', 'Base', 'M', 'z', 'int', 'self', 'other']
+a = 101 + 102
+b = 'x'
+"""mod doc"""
+import os, sys as s
+from a.b import c as d, e
+
+@deco(1)
+def f(a, /, b: int=2, *args, k=None, **kw) -> str:
+    """fdoc"""
+    x = [i * 2 for i in range(a) if i % 2]
+    y = {k: v for k, v in kw.items()}
+    with open(b) as fh, other():
+        pass
+    try:
+        raise ValueError('bad') from None
+    except (KeyError, ValueError) as exc:
+        return f'{a!r:>10} {b}'
+    finally:
+        del x
+    lam = lambda q, *r: q if r else -q
+
+    async def g():
+        await h()
+    match a:
+        case [1, 2, *rest]:
+            pass
+        case {'k': v, **kw2}:
+            pass
+        case Point(x=0) | None:
+            pass
+        case _:
+            pass
+    return a < b <= 3 and (not c) or d[1:2, ::3]
+
+class C(Base, metaclass=M):
+    z: int = 5
+
+    def m(self):
+        return self.z ** 2 @ other
+49
+42
+[1, -2.5, 3j, 'ab', (1,), {}, set(), None, Ellipsis]
+['Attribute', 'Name']
+SyntaxError invalid syntax 1
+('value', 'kind') ('id', 'ctx') 5 None
+Module([AnnAssign(Name('x', Store()), Name('int', Load()), Constant(1), 1), AugAssign(Name('y', Store()), Add(), Constant(2)), Expr(Call(Name('print', Load()), [Starred(Name('a', Load()), Load())], [keyword(value=Name('k', Load()))]))])
+"##
+    );
+}
+
+#[test]
+fn enum_simple_enum_auto() {
+    let src = r##"
+from enum import IntEnum, auto, _simple_enum, Enum
+@_simple_enum(IntEnum)
+class P:
+    """doc"""
+    A = auto()
+    B = auto()
+print(type(P), P.A, P.B, P.A < P.B, int(P.B), list(P))
+class Q(IntEnum):
+    A = auto()
+    B = auto()
+print(Q.A < Q.B, repr(Q.B))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"<class 'enum.EnumType'> 1 2 True 2 [<P.A: 1>, <P.B: 2>]
+True <Q.B: 2>
+"##
+    );
+}

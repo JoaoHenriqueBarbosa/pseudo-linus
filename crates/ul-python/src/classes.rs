@@ -1008,7 +1008,10 @@ impl Vm {
         match v {
             Value::Instance(i) => Value::Class(i.class.clone()),
             Value::Exception(e) => Value::Builtin(e.kind),
-            Value::Class(_) => Value::Builtin("type"),
+            Value::Class(c) => match &c.meta {
+                Some(m) => Value::Class(m.clone()),
+                None => Value::Builtin("type"),
+            },
             other => {
                 // Os tipos de dados são os mesmos valores que os nomes globais `int`, `dict`...
                 let n = other.type_name();

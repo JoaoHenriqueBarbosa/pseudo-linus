@@ -239,12 +239,16 @@ fn run_ns(vm: &mut Vm, src: &str, globals: Option<Value>, locals: Option<Value>,
         text.push('\n');
     }
     let module = crate::parser::parse_module(&text).map_err(|e| {
-        let kind = match e.kind {
-            crate::parser::ErrorKind::Syntax => "SyntaxError",
-            crate::parser::ErrorKind::Indentation => "IndentationError",
-            crate::parser::ErrorKind::Tab => "TabError",
-        };
-        exc(kind, e.msg)
+        if eval {
+            let kind = match e.kind {
+                crate::parser::ErrorKind::Syntax => "SyntaxError",
+                crate::parser::ErrorKind::Indentation => "IndentationError",
+                crate::parser::ErrorKind::Tab => "TabError",
+            };
+            exc(kind, e.msg)
+        } else {
+            crate::vm::syntax_exc(e, "<string>", src)
+        }
     })?;
     let code = Rc::new(crate::compile::compile_module(&module).map_err(|e| exc("SyntaxError", e.msg))?);
     let globals = globals.filter(|g| !matches!(g, Value::None));
@@ -363,9 +367,30 @@ impl crate::object::ExtObject for CodeSource {
     }
 }
 
-fn b_compile(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+fn b_compile(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let a = bind("compile", args, kw, &["source", "filename", "mode", "flags", "dont_inherit", "optimize"], 3)?;
-    let src = want_str("compile", a[0].as_ref().unwrap_or(&Value::None))?.to_string();
+    let mut source = a[0].clone().unwrap_or(Value::None);
+    let flags = match a[3].as_ref() {
+        Some(Value::Int(n)) => *n,
+        _ => 0,
+    };
+    // Uma árvore (`ast.AST`) vira texto com `ast.unparse` e segue o caminho de sempre.
+    if let Value::Instance(_) = &source {
+        let ast = crate::modules::import_checked(vm, "ast")?;
+        let unparse = vm.getattr(&Value::Module(ast), "unparse")?;
+        source = vm.call_value(&unparse, vec![source], Vec::new())?;
+        if flags & 1024 != 0 {
+            return Ok(a[0].clone().unwrap_or(Value::None));
+        }
+    }
+    // `PyCF_ONLY_AST`: devolve a árvore em vez do código.
+    if flags & 1024 != 0 {
+        let m = crate::modules::import_checked(vm, "_ast")?;
+        let parse = vm.getattr(&Value::Module(m), "_parse")?;
+        let rest = vec![source, a[1].clone().unwrap_or(Value::None), a[2].clone().unwrap_or(Value::None)];
+        return vm.call_value(&parse, rest, Vec::new());
+    }
+    let src = want_str("compile", &source)?.to_string();
     let filename = a[1].as_ref().map(|f| crate::object::to_str(f)).unwrap_or_default();
     let mode = a[2].as_ref().map(|m| crate::object::to_str(m)).unwrap_or_default();
     if !matches!(mode.as_str(), "exec" | "eval" | "single") {
@@ -376,12 +401,16 @@ fn b_compile(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         text.push('\n');
     }
     let module = crate::parser::parse_module(&text).map_err(|e| {
-        let kind = match e.kind {
-            crate::parser::ErrorKind::Syntax => "SyntaxError",
-            crate::parser::ErrorKind::Indentation => "IndentationError",
-            crate::parser::ErrorKind::Tab => "TabError",
-        };
-        exc(kind, e.msg)
+        if mode == "eval" {
+            let kind = match e.kind {
+                crate::parser::ErrorKind::Syntax => "SyntaxError",
+                crate::parser::ErrorKind::Indentation => "IndentationError",
+                crate::parser::ErrorKind::Tab => "TabError",
+            };
+            exc(kind, e.msg)
+        } else {
+            crate::vm::syntax_exc(e, &filename, &src)
+        }
     })?;
     crate::compile::compile_module(&module).map_err(|e| exc("SyntaxError", e.msg))?;
     Ok(Value::Ext(Rc::new(CodeSource { src, filename })))

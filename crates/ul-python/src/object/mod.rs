@@ -551,6 +551,22 @@ pub fn exc_str(e: &ExcObj) -> String {
         [] => String::new(),
         [one] if e.kind == "KeyError" => repr(one),
         [one] => to_str(one),
+        [Value::Str(msg), Value::Tuple(d)] if exc_is_subclass(&e.kind, "SyntaxError") => {
+            let file = match d.first() {
+                Some(Value::Str(f)) => Some(f.as_str().rsplit('/').next().unwrap_or("").to_string()),
+                _ => None,
+            };
+            let line = match d.get(1) {
+                Some(Value::Int(n)) => Some(*n),
+                _ => None,
+            };
+            match (file, line) {
+                (Some(f), Some(n)) => format!("{} ({f}, line {n})", msg.as_str()),
+                (Some(f), None) => format!("{} ({f})", msg.as_str()),
+                (None, Some(n)) => format!("{} (line {n})", msg.as_str()),
+                (None, None) => msg.as_str().to_string(),
+            }
+        }
         [Value::Int(errno), msg, rest @ ..] if rest.len() <= 1 && exc_is_subclass(&e.kind, "OSError") => match rest {
             [file] => format!("[Errno {errno}] {}: {}", to_str(msg), repr(file)),
             _ => format!("[Errno {errno}] {}", to_str(msg)),

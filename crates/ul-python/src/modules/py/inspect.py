@@ -6,7 +6,7 @@ import sys
 __all__ = ['isfunction', 'ismethod', 'isclass', 'ismodule', 'iscoroutine', 'iscoroutinefunction',
            'isgenerator', 'isgeneratorfunction', 'isasyncgen', 'isasyncgenfunction', 'isawaitable',
            'isbuiltin', 'isroutine', 'callable', 'getdoc', 'signature', 'Signature', 'Parameter',
-           'getmembers', 'currentframe', 'unwrap']
+           'getmembers', 'currentframe', 'unwrap', 'cleandoc']
 
 callable = callable
 
@@ -85,24 +85,32 @@ def unwrap(func, *, stop=None):
     return func
 
 
-def getdoc(obj):
-    doc = getattr(obj, '__doc__', None)
-    if not isinstance(doc, str):
-        return None
+def cleandoc(doc):
+    """Tira a indentação comum das linhas de um docstring (da segunda em diante)."""
     lines = doc.expandtabs().split('\n')
-    margin = None
+    margin = sys.maxsize
     for line in lines[1:]:
-        content = len(line.lstrip())
+        content = len(line.lstrip(' '))
         if content:
             indent = len(line) - content
-            margin = indent if margin is None else min(margin, indent)
-    if margin is not None:
-        lines[1:] = [l[margin:] for l in lines[1:]]
+            margin = min(margin, indent)
+    if lines:
+        lines[0] = lines[0].lstrip(' ')
+    if margin < sys.maxsize:
+        for i in range(1, len(lines)):
+            lines[i] = lines[i][margin:]
     while lines and not lines[-1]:
         lines.pop()
     while lines and not lines[0]:
         lines.pop(0)
     return '\n'.join(lines)
+
+
+def getdoc(obj):
+    doc = getattr(obj, '__doc__', None)
+    if not isinstance(doc, str):
+        return None
+    return cleandoc(doc)
 
 
 def getmembers(obj, predicate=None):

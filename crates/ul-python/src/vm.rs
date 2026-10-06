@@ -99,6 +99,27 @@ pub struct RuntimeError {
 
 pub type PyResult<T> = Result<T, PyException>;
 
+/// `SyntaxError` (ou `IndentationError`/`TabError`) de um erro do parser, com os args do CPython:
+/// `(msg, (filename, lineno, offset, text, end_lineno, end_offset))`.
+pub fn syntax_exc(e: crate::parser::ParseError, filename: &str, src: &str) -> PyException {
+    let kind = match e.kind {
+        crate::parser::ErrorKind::Syntax => "SyntaxError",
+        crate::parser::ErrorKind::Indentation => "IndentationError",
+        crate::parser::ErrorKind::Tab => "TabError",
+    };
+    let text = src.lines().nth(e.lineno.saturating_sub(1)).map_or(Value::None, |l| Value::str(format!("{l}\n")));
+    let details = Value::tuple(vec![
+        Value::str(filename.to_string()),
+        Value::Int(e.lineno as i64),
+        Value::Int(e.offset as i64),
+        text,
+        Value::Int(e.end_lineno as i64),
+        Value::Int(e.end_offset as i64),
+    ]);
+    let value = Value::Exception(Rc::new(ExcObj::new(kind, vec![Value::str(e.msg.clone()), details])));
+    PyException { kind, msg: e.msg, value: Some(value), tb: Vec::new() }
+}
+
 /// Exceção da classe embutida `kind` com a mensagem.
 pub fn exc(kind: &'static str, msg: impl Into<String>) -> PyException {
     PyException { kind, msg: msg.into(), value: None, tb: Vec::new() }
@@ -1877,6 +1898,27 @@ impl Vm {
                     "name" => quoted("No module named '")
                         .or_else(|| msg.split_once("' from '").and_then(|(_, r)| r.split('\'').next()).map(str::to_string))
                         .map_or(Value::None, Value::str),
+                    _ => Value::None,
+                })
+            }
+            Value::Exception(e) if exc_is_subclass(&e.kind, "SyntaxError") && matches!(
+                name,
+                "msg" | "filename" | "lineno" | "offset" | "text" | "end_lineno" | "end_offset" | "print_file_and_line"
+            ) =>
+            {
+                let details = match e.args.get(1) {
+                    Some(Value::Tuple(t)) => t.to_vec(),
+                    _ => Vec::new(),
+                };
+                let at = |i: usize| details.get(i).cloned().unwrap_or(Value::None);
+                Ok(match name {
+                    "msg" => e.args.first().cloned().unwrap_or(Value::None),
+                    "filename" => at(0),
+                    "lineno" => at(1),
+                    "offset" => at(2),
+                    "text" => at(3),
+                    "end_lineno" => at(4),
+                    "end_offset" => at(5),
                     _ => Value::None,
                 })
             }

@@ -23,7 +23,7 @@ def _is_descriptor(value):
     return kind in ('function', 'property', 'classmethod', 'staticmethod', 'method', 'builtin_function_or_method')
 
 
-class EnumMeta(type):
+class EnumType(type):
     def __new__(mcs, name, bases, ns, **kwds):
         member_type = object
         first_enum = None
@@ -148,7 +148,10 @@ class EnumMeta(type):
         return dict(cls._member_map_)
 
 
-class Enum(metaclass=EnumMeta):
+EnumMeta = EnumType
+
+
+class Enum(metaclass=EnumType):
     @property
     def name(self):
         return self._name_
