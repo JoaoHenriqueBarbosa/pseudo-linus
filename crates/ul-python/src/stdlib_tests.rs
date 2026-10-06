@@ -2170,3 +2170,70 @@ end a
 "##
     );
 }
+
+#[test]
+fn sqlite3_dbapi() {
+    let src = r##"
+import sqlite3
+db = sqlite3.connect(':memory:')
+db.execute('create table t(id integer primary key, name text, score real, data blob)')
+db.executemany('insert into t(name, score, data) values (?, ?, ?)', [('a', 1.5, b'x'), ('b', 2.5, None), ('c', None, b'zz')])
+print(db.execute('select * from t').fetchall())
+cur = db.execute('select name, score from t where score > :m order by id', {'m': 1})
+print(cur.description, cur.fetchone(), cur.fetchmany(5), cur.rowcount)
+c = db.cursor(); c.execute('insert into t(name) values (?)', ('d',)); print(c.lastrowid, c.rowcount, db.total_changes, db.in_transaction)
+db.commit(); print(db.in_transaction)
+db.row_factory = sqlite3.Row
+r = db.execute('select id, name from t where name = ?', ('a',)).fetchone()
+print(r['name'], r[0], r.keys(), len(r), tuple(r))
+db.row_factory = None
+try: db.execute('insert into t(id, name) values (1, "dup")')
+except sqlite3.IntegrityError as e: print('IntegrityError', e)
+try: db.execute('selec 1')
+except sqlite3.OperationalError as e: print('OperationalError', e)
+try: db.execute('select ?', (1, 2))
+except sqlite3.ProgrammingError as e: print('ProgrammingError', e)
+with db: db.execute("update t set score = 9 where name = 'a'")
+print(db.execute('select count(*), sum(score) from t').fetchone())
+db.create_function('twice', 1, lambda x: x * 2)
+print(db.execute('select twice(21), twice(name) from t limit 1').fetchone())
+class Cat:
+    def __init__(self): self.n = 0
+    def step(self, v): self.n += len(v or '')
+    def finalize(self): return self.n
+db.create_aggregate('totlen', 1, Cat); print(db.execute('select totlen(name) from t').fetchone())
+db.create_collation('rev', lambda a, b: (a < b) - (a > b)); print(db.execute('select name from t order by name collate rev').fetchall())
+print('\n'.join(db.iterdump()))
+db.close()
+try: db.execute('select 1')
+except sqlite3.ProgrammingError as e: print(e)
+print(sqlite3.complete_statement('select 1;'), sqlite3.complete_statement('select 1'))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"[(1, 'a', 1.5, b'x'), (2, 'b', 2.5, None), (3, 'c', None, b'zz')]
+(('name', None, None, None, None, None, None), ('score', None, None, None, None, None, None)) ('a', 1.5) [('b', 2.5)] -1
+4 1 4 True
+False
+a 1 ['id', 'name'] 2 (1, 'a')
+IntegrityError UNIQUE constraint failed: t.id
+OperationalError near "selec": syntax error
+ProgrammingError Incorrect number of bindings supplied. The current statement uses 1, and there are 2 supplied.
+(4, 11.5)
+(42, 'aa')
+(4,)
+[('d',), ('c',), ('b',), ('a',)]
+BEGIN TRANSACTION;
+CREATE TABLE t(id integer primary key, name text, score real, data blob);
+INSERT INTO "t" VALUES(1,'a',9.0,X'78');
+INSERT INTO "t" VALUES(2,'b',2.5,NULL);
+INSERT INTO "t" VALUES(3,'c',NULL,X'7A7A');
+INSERT INTO "t" VALUES(4,'d',NULL,NULL);
+COMMIT;
+Cannot operate on a closed database.
+True False
+"##
+    );
+}

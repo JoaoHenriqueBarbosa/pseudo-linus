@@ -25,6 +25,7 @@ pub mod pysys;
 pub mod re;
 pub mod re_engine;
 pub mod shlex;
+pub mod sqlitenative;
 pub mod string;
 pub mod weakrefmod;
 pub mod textwrap;
@@ -93,6 +94,7 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         "_os" => osnative::build(vm),
         "_zlib" => zlibnative::build(vm),
         "_archive" => archivenative::build(vm),
+        "_sqlite3" => sqlitenative::build(vm),
         "_weakref" => weakrefmod::build(vm),
         _ => return pysrc::import(vm, name),
     };
@@ -176,7 +178,7 @@ pub fn new_module(vm: &mut Vm, args: Vec<Value>, kwargs: Vec<(String, Value)>) -
 /// Módulos escritos em Rust, além dos que `pysrc` embute em Python.
 const NATIVE_MODULES: &[&str] = &[
     "_sys", "_csvimpl", "re", "math", "base64", "binascii", "builtins", "hashlib", "html", "textwrap", "shlex",
-    "fnmatch", "struct", "unicodedata", "_operator", "_os", "_zlib", "_archive", "_weakref",
+    "fnmatch", "struct", "unicodedata", "_operator", "_os", "_zlib", "_archive", "_sqlite3", "_weakref",
 ];
 
 /// `name` é um módulo que o interpretador traz embutido (nativo ou em Python).

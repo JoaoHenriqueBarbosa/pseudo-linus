@@ -27,6 +27,9 @@ icu_properties = "2"
 unicode_names2 = "3"
 # `bz2` e `lzma`: os mesmos codecs que o bzip2 e o xz do sandbox usam.
 ul-archive = { path = "../ul-archive" }
+# `sqlite3`: o mesmo motor e o mesmo VFS (banco no FS do sandbox) do programa sqlite3.
+ul-sqlite = { path = "../ul-sqlite" }
+rusqlite = { version = "=0.40.2", default-features = false, features = ["functions", "hooks", "limits", "series", "collation", "window", "backup", "serialize", "modern_sqlite", "cache", "column_decltype"] }
 
 [lints]
 workspace = true

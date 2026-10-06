@@ -5346,8 +5346,10 @@ dependencies = [
  "num-bigint",
  "num-integer",
  "num-traits",
+ "rusqlite",
  "sysabi",
  "ul-archive",
+ "ul-sqlite",
  "unicode_names2",
  "zdeflate",
 ]
