@@ -81,10 +81,21 @@ fn is_py_space(c: char) -> bool {
 }
 
 fn title_char(c: char) -> String {
-    if c == 'ß' {
-        "Ss".to_string()
-    } else {
-        c.to_uppercase().collect()
+    match c {
+        'ß' => "Ss".to_string(),
+        // Dígrafos com forma própria de título (U+01C5, U+01C8, U+01CB, U+01F2).
+        '\u{1C4}'..='\u{1C6}' => "\u{1C5}".to_string(),
+        '\u{1C7}'..='\u{1C9}' => "\u{1C8}".to_string(),
+        '\u{1CA}'..='\u{1CC}' => "\u{1CB}".to_string(),
+        '\u{1F1}'..='\u{1F3}' => "\u{1F2}".to_string(),
+        // Ligaduras: só a primeira letra sobe.
+        '\u{FB00}' => "Ff".to_string(),
+        '\u{FB01}' => "Fi".to_string(),
+        '\u{FB02}' => "Fl".to_string(),
+        '\u{FB03}' => "Ffi".to_string(),
+        '\u{FB04}' => "Ffl".to_string(),
+        '\u{FB05}' | '\u{FB06}' => "St".to_string(),
+        _ => c.to_uppercase().collect(),
     }
 }
 
@@ -161,9 +172,14 @@ fn title(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         } else {
             out.push_str(&title_char(c));
         }
-        prev_cased = c.is_lowercase() || c.is_uppercase();
+        prev_cased = is_cased(c);
     }
     Ok(Value::str(out))
+}
+
+/// Maiúscula, minúscula ou de título (`Lt`, como `ǅ`), a noção de "com caixa" do `title`.
+fn is_cased(c: char) -> bool {
+    c.is_lowercase() || c.is_uppercase() || (!c.is_ascii() && crate::modules::unicodedata::category_code(c) == "Lt")
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -475,7 +491,7 @@ fn istitle(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let mut prev_cased = false;
     let mut any = false;
     for c in me(&args)?.as_str().chars() {
-        if c.is_uppercase() {
+        if c.is_uppercase() || (!c.is_ascii() && crate::modules::unicodedata::category_code(c) == "Lt") {
             if prev_cased {
                 return Ok(Value::Bool(false));
             }

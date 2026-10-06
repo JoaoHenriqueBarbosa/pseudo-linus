@@ -1514,6 +1514,8 @@ fn text_of(v: &Value) -> Option<String> {
 }
 
 fn int_from_text(v: &Value, text: &str, base: u32) -> PyResult<Value> {
+    let folded = crate::modules::unicodedata::fold_decimal_digits(text);
+    let text = folded.as_deref().unwrap_or(text);
     match parse_int_base(text, base) {
         Ok(v) => Ok(v),
         Err(IntParseError::Invalid) => {

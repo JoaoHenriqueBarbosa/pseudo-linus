@@ -26,7 +26,7 @@ fn one_char(fname: &str, v: Option<&Value>) -> PyResult<char> {
     }
 }
 
-fn category_code(c: char) -> &'static str {
+pub(crate) fn category_code(c: char) -> &'static str {
     use GeneralCategory as G;
     match CodePointMapData::<GeneralCategory>::new().get(c) {
         G::Control => "Cc",
@@ -65,6 +65,64 @@ fn category_code(c: char) -> &'static str {
 fn category(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let a = bind("category", args, kw, &["chr"], 1)?;
     Ok(Value::str(category_code(one_char("category", a[0].as_ref())?).to_string()))
+}
+
+fn east_asian_width(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    use icu_properties::props::EastAsianWidth as W;
+    let a = bind("east_asian_width", args, kw, &["chr"], 1)?;
+    let c = one_char("east_asian_width", a[0].as_ref())?;
+    let code = match CodePointMapData::<W>::new().get(c) {
+        W::Ambiguous => "A",
+        W::Fullwidth => "F",
+        W::Halfwidth => "H",
+        W::Narrow => "Na",
+        W::Wide => "W",
+        _ => "N",
+    };
+    Ok(Value::str(code.to_string()))
+}
+
+fn bidirectional(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    use icu_properties::props::BidiClass as B;
+    let a = bind("bidirectional", args, kw, &["chr"], 1)?;
+    let c = one_char("bidirectional", a[0].as_ref())?;
+    if category_code(c) == "Cn" {
+        return Ok(Value::str(String::new()));
+    }
+    let code = match CodePointMapData::<B>::new().get(c) {
+        B::LeftToRight => "L",
+        B::RightToLeft => "R",
+        B::ArabicLetter => "AL",
+        B::EuropeanNumber => "EN",
+        B::EuropeanSeparator => "ES",
+        B::EuropeanTerminator => "ET",
+        B::ArabicNumber => "AN",
+        B::CommonSeparator => "CS",
+        B::NonspacingMark => "NSM",
+        B::BoundaryNeutral => "BN",
+        B::ParagraphSeparator => "B",
+        B::SegmentSeparator => "S",
+        B::WhiteSpace => "WS",
+        B::LeftToRightEmbedding => "LRE",
+        B::LeftToRightOverride => "LRO",
+        B::RightToLeftEmbedding => "RLE",
+        B::RightToLeftOverride => "RLO",
+        B::PopDirectionalFormat => "PDF",
+        B::LeftToRightIsolate => "LRI",
+        B::RightToLeftIsolate => "RLI",
+        B::FirstStrongIsolate => "FSI",
+        B::PopDirectionalIsolate => "PDI",
+        _ => "ON",
+    };
+    Ok(Value::str(code.to_string()))
+}
+
+fn mirrored(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    use icu_properties::props::BidiMirrored;
+    use icu_properties::CodePointSetData;
+    let a = bind("mirrored", args, kw, &["chr"], 1)?;
+    let c = one_char("mirrored", a[0].as_ref())?;
+    Ok(Value::Int(i64::from(CodePointSetData::new::<BidiMirrored>().contains(c))))
 }
 
 fn combining(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -138,6 +196,26 @@ fn decimal_value(c: char) -> Option<u32> {
         start -= 1;
     }
     Some((c as u32 - start) % 10)
+}
+
+/// Troca os dígitos decimais Unicode (`Nd`) de um texto não ASCII pelos ASCII (`int('٣')` é 3).
+/// `None` se o texto já é ASCII ou não tem nada a trocar.
+pub fn fold_decimal_digits(s: &str) -> Option<String> {
+    if s.is_ascii() {
+        return None;
+    }
+    let mut changed = false;
+    let out: String = s
+        .chars()
+        .map(|c| match (c.is_ascii(), decimal_value(c)) {
+            (false, Some(d)) => {
+                changed = true;
+                char::from_digit(d, 10).unwrap_or(c)
+            }
+            _ => c,
+        })
+        .collect();
+    changed.then_some(out)
 }
 
 fn fraction(c: char) -> Option<f64> {
@@ -232,6 +310,9 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
     ModuleBuilder::new("unicodedata")
         .func("category", category)
         .func("combining", combining)
+        .func("east_asian_width", east_asian_width)
+        .func("bidirectional", bidirectional)
+        .func("mirrored", mirrored)
         .func("name", name)
         .func("lookup", lookup)
         .func("normalize", normalize)

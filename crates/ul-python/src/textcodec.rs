@@ -17,6 +17,8 @@ pub enum Codec {
     Utf8Sig,
     UnicodeEscape,
     RawUnicodeEscape,
+    Punycode,
+    Idna,
 }
 
 /// O codec de nome `name` (`cp1252`, `Windows-1252`, `utf-16-le`...), se existir.
@@ -32,6 +34,8 @@ pub fn lookup(name: &str) -> Option<Codec> {
         "utf_8_sig" | "utf8_sig" => return Some(Codec::Utf8Sig),
         "unicode_escape" | "unicodeescape" => return Some(Codec::UnicodeEscape),
         "raw_unicode_escape" => return Some(Codec::RawUnicodeEscape),
+        "punycode" => return Some(Codec::Punycode),
+        "idna" => return Some(Codec::Idna),
         _ => {}
     }
     let canon = ALIASES.iter().find(|(a, _)| *a == norm).map(|(_, c)| *c)?;
@@ -170,6 +174,8 @@ pub fn encode(codec: &Codec, s: &str, errors: &str) -> PyResult<Vec<u8>> {
         }
         Codec::UnicodeEscape => Ok(encode_unicode_escape(s, false)),
         Codec::RawUnicodeEscape => Ok(encode_unicode_escape(s, true)),
+        Codec::Punycode => Ok(punycode_encode(s).into_bytes()),
+        Codec::Idna => idna_encode(s),
     }
 }
 
@@ -230,7 +236,156 @@ pub fn decode(codec: &Codec, data: &[u8], errors: &str) -> PyResult<String> {
         }
         Codec::UnicodeEscape => decode_unicode_escape(data, false, errors),
         Codec::RawUnicodeEscape => decode_unicode_escape(data, true, errors),
+        Codec::Punycode => {
+            let text = String::from_utf8_lossy(data);
+            punycode_decode(&text).ok_or_else(|| exc("UnicodeError", "decoding with 'punycode' codec failed (UnicodeError: Incomplete punicode string)"))
+        }
+        Codec::Idna => {
+            let text = std::str::from_utf8(data)
+                .map_err(|_| exc("UnicodeError", "decoding with 'idna' codec failed (UnicodeError: ASCII decoding error)"))?;
+            let labels: Vec<String> = text
+                .split('.')
+                .map(|l| match l.get(..4) {
+                    Some(p) if p.eq_ignore_ascii_case("xn--") => punycode_decode(&l[4..]).unwrap_or_else(|| l.to_string()),
+                    _ => l.to_string(),
+                })
+                .collect();
+            Ok(labels.join("."))
+        }
     }
+}
+
+const PUNY_BASE: u32 = 36;
+const PUNY_TMIN: u32 = 1;
+const PUNY_TMAX: u32 = 26;
+
+fn puny_adapt(mut delta: u32, points: u32, first: bool) -> u32 {
+    delta = if first { delta / 700 } else { delta / 2 };
+    delta += delta / points;
+    let mut k = 0;
+    while delta > ((PUNY_BASE - PUNY_TMIN) * PUNY_TMAX) / 2 {
+        delta /= PUNY_BASE - PUNY_TMIN;
+        k += PUNY_BASE;
+    }
+    k + (PUNY_BASE - PUNY_TMIN + 1) * delta / (delta + 38)
+}
+
+fn puny_digit(d: u32) -> char {
+    if d < 26 { (b'a' + d as u8) as char } else { (b'0' + (d - 26) as u8) as char }
+}
+
+/// RFC 3492: a parte depois de `xn--`.
+pub fn punycode_encode(s: &str) -> String {
+    let cps: Vec<u32> = s.chars().map(|c| c as u32).collect();
+    let mut out: String = s.chars().filter(|c| c.is_ascii()).collect();
+    let b = out.len() as u32;
+    let mut h = b;
+    if b > 0 {
+        out.push('-');
+    }
+    let (mut n, mut delta, mut bias) = (128u32, 0u32, 72u32);
+    while (h as usize) < cps.len() {
+        let m = cps.iter().copied().filter(|&c| c >= n).min().unwrap_or(n);
+        delta += (m - n) * (h + 1);
+        n = m;
+        for &c in &cps {
+            if c < n {
+                delta += 1;
+            }
+            if c == n {
+                let mut q = delta;
+                let mut k = PUNY_BASE;
+                loop {
+                    let t = if k <= bias { PUNY_TMIN } else if k >= bias + PUNY_TMAX { PUNY_TMAX } else { k - bias };
+                    if q < t {
+                        break;
+                    }
+                    out.push(puny_digit(t + (q - t) % (PUNY_BASE - t)));
+                    q = (q - t) / (PUNY_BASE - t);
+                    k += PUNY_BASE;
+                }
+                out.push(puny_digit(q));
+                bias = puny_adapt(delta, h + 1, h == b);
+                delta = 0;
+                h += 1;
+            }
+        }
+        delta += 1;
+        n += 1;
+    }
+    out
+}
+
+pub fn punycode_decode(s: &str) -> Option<String> {
+    let (basic, rest) = match s.rfind('-') {
+        Some(i) => (&s[..i], &s[i + 1..]),
+        None => ("", s),
+    };
+    let mut out: Vec<char> = basic.chars().collect();
+    let (mut n, mut i, mut bias) = (128u32, 0u32, 72u32);
+    let mut it = rest.chars().peekable();
+    while it.peek().is_some() {
+        let oldi = i;
+        let mut w = 1u32;
+        let mut k = PUNY_BASE;
+        loop {
+            let c = it.next()?;
+            let digit = match c {
+                'a'..='z' => c as u32 - 'a' as u32,
+                'A'..='Z' => c as u32 - 'A' as u32,
+                '0'..='9' => c as u32 - '0' as u32 + 26,
+                _ => return None,
+            };
+            i = i.checked_add(digit.checked_mul(w)?)?;
+            let t = if k <= bias { PUNY_TMIN } else if k >= bias + PUNY_TMAX { PUNY_TMAX } else { k - bias };
+            if digit < t {
+                break;
+            }
+            w = w.checked_mul(PUNY_BASE - t)?;
+            k += PUNY_BASE;
+        }
+        let len = out.len() as u32 + 1;
+        bias = puny_adapt(i - oldi, len, oldi == 0);
+        n = n.checked_add(i / len)?;
+        i %= len;
+        out.insert(i as usize, char::from_u32(n)?);
+        i += 1;
+    }
+    Some(out.into_iter().collect())
+}
+
+/// IDNA 2003: cada rótulo não ASCII passa por nameprep (aqui NFKC e caixa baixa) e vira `xn--...`.
+fn idna_encode(s: &str) -> PyResult<Vec<u8>> {
+    use icu_normalizer::ComposingNormalizer;
+    let mut labels: Vec<String> = Vec::new();
+    let normalized = s.replace(['\u{3002}', '\u{ff0e}', '\u{ff61}'], ".");
+    let total = normalized.split('.').count();
+    let mut pos = 0usize;
+    for (idx, l) in normalized.split('.').enumerate() {
+        let label = if l.is_ascii() {
+            l.to_string()
+        } else {
+            let prepped = ComposingNormalizer::new_nfkc().normalize(l).to_lowercase();
+            if prepped.is_ascii() { prepped } else { format!("xn--{}", punycode_encode(&prepped)) }
+        };
+        let reason = if label.len() > 63 {
+            Some("label too long")
+        } else if label.is_empty() && idx + 1 != total {
+            Some("label empty")
+        } else {
+            None
+        };
+        if let Some(reason) = reason {
+            let shown = normalized.chars().nth(pos).map_or_else(String::new, |c| format!("\\x{:02x}", c as u32));
+            return Err(exc(
+                "UnicodeEncodeError",
+                format!("'idna' codec can't encode character '{shown}' in position {pos}: {reason}"),
+            ));
+        }
+        pos += l.chars().count() + 1;
+        labels.push(label);
+    }
+    Ok(labels.join(".").into_bytes())
 }
 
 /// O erro de UTF-8 do CPython no `utf-8-sig` conta as posições a partir do começo dos bytes originais.

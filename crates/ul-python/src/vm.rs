@@ -3500,6 +3500,7 @@ fn int_of(v: &Value) -> PyResult<Value> {
             Ok(Value::Int(t as i64))
         }
         Value::Str(s) => parse_int(s.as_str())
+            .or_else(|| parse_int(&crate::modules::unicodedata::fold_decimal_digits(s.as_str())?))
             .ok_or_else(|| exc("ValueError", format!("invalid literal for int() with base 10: {}", repr(v)))),
         _ => Err(type_error(format!(
             "int() argument must be a string, a bytes-like object or a real number, not '{}'",

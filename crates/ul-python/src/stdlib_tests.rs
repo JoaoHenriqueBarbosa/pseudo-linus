@@ -5169,3 +5169,83 @@ ValueError mmap closed or invalid
 "##
     );
 }
+
+#[test]
+fn idna_punycode_and_titlecase() {
+    let src = r##"
+for s in ('münchen.de', 'bücher.example', 'ação.com.br', '日本語.jp', 'ASCII.com', 'Ünï.Çom.', 'пример.рф', '😀.fm'):
+    e = s.encode('idna'); print(s, e, e.decode('idna'))
+for s in ('münchen', 'ação', '日本語', 'abc', 'a-b', '😀', 'Hello, 世界'):
+    p = s.encode('punycode'); print(s, p, p.decode('punycode') == s)
+print('xn--MNCHEN-3YA.de'.encode().decode('idna'), 'ǅ'.istitle(), 'ǆa'.title(), int('١٢٣') + 1, int(' ٤٢ '), 'ﬁx'.title())
+try: 'a..b'.encode('idna')
+except UnicodeError as e: print('UnicodeError', e)
+import urllib.parse as up
+print(up.urlsplit('http://münchen.de/x').hostname)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"münchen.de b'xn--mnchen-3ya.de' münchen.de
+bücher.example b'xn--bcher-kva.example' bücher.example
+ação.com.br b'xn--ao-siap.com.br' ação.com.br
+日本語.jp b'xn--wgv71a119e.jp' 日本語.jp
+ASCII.com b'ASCII.com' ASCII.com
+Ünï.Çom. b'xn--n-nga1b.xn--om-3ia.' ünï.çom.
+пример.рф b'xn--e1afmkfd.xn--p1ai' пример.рф
+😀.fm b'xn--e28h.fm' 😀.fm
+münchen b'mnchen-3ya' True
+ação b'ao-siap' True
+日本語 b'wgv71a119e' True
+abc b'abc-' True
+a-b b'a-b-' True
+😀 b'e28h' True
+Hello, 世界 b'Hello, -dz3ki820a' True
+MüNCHEN.de True ǅa 124 42 Fix
+UnicodeError 'idna' codec can't encode character '\x2e' in position 2: label empty
+münchen.de
+"##
+    );
+}
+
+#[test]
+fn regex_text_and_unicode_properties() {
+    let src = r##"
+import re, string, textwrap, unicodedata, locale, difflib
+t = 'Olá, João! Preço: R$ 1.234,56 (20% off) em 2026-10-06; e-mail: ana.silva+x@ex.com.br, tel (11) 98765-4321. ÇÃO ção İstanbul ß'
+print(re.findall(r'(?<=R\$ )[\d.,]+', t), re.findall(r'\b\w+@\w+(?:\.\w+)+', t), re.sub(r'(\d+)-(\d+)-(\d+)', r'\3/\2/\1', t)[:60])
+print(re.findall(r'(?i)ção', t), re.findall(r'[^\W\d_]+', t)[:6], re.split(r'[,;]\s*', t)[:3], re.findall(r'(\w)\1', 'aabbcd'))
+print(re.match(r'(?P<d>\d{4})-(?P<m>\d\d)', '2026-10-06').groupdict(), re.fullmatch(r'\w+', 'ação'), re.search(r'(?<!\d)\d{2}(?!\d)', 'a1 22 333').group())
+print(re.sub(r'\s+', ' ', 'a \n\t b'), re.escape('a.b*c'), re.compile(r'x*', re.M).sub('-', 'abc'), re.findall(r'^\w', 'ab\ncd', re.M), re.subn('a', 'b', 'aaa', count=2))
+print([m.span() for m in re.finditer(r'\b[A-ZÀ-Ý]{2,}\b', t)], re.findall(r'(?x) (\d+) \s* % ', t), re.sub(r'(?P<w>\w+)', lambda m: m['w'][::-1], 'ab cd'))
+print('{a:>8}|{b:<6}|{c:^7.2f}|{d!r}'.format_map({'a': 'x', 'b': 'y', 'c': 3.14159, 'd': 'q'}), string.Formatter().parse('a{b!r:>3}c').__next__())
+print(t.upper(), t.lower()[-8:], t.casefold()[-8:], 'ß'.upper(), 'İ'.lower().encode(), 'ǆ'.title(), 'ﬁ'.upper(), 'Σας'.lower(), 'ΑΣ'.lower())
+print(unicodedata.normalize('NFKC', 'ﬁ²①'), unicodedata.category('ç'), unicodedata.east_asian_width('日'), unicodedata.numeric('½'), unicodedata.mirrored("("), unicodedata.bidirectional('א'), unicodedata.combining('́'))
+print(textwrap.shorten('palavra ' * 20, 30), textwrap.indent('a\nb', '> '), textwrap.wrap('日本語' * 10, 8), len(textwrap.dedent('   a\n    b')))
+print('a\tb'.expandtabs(4), 'abc'.center(9, '*'), '%-5s|%05d|%x|%e|%c|%%' % ('ab', 42, 255, 12345.678, 65), 'x'.zfill(4), '-5'.zfill(4), 'a,b,,c'.split(','), 'a b  c'.split(None, 1), 'abc'.partition('b'), 'aXbXc'.rsplit('X', 1))
+print(sorted(['é', 'e', 'z', 'a', 'É', 'Z'], key=str.casefold), sorted(['b10', 'b9', 'b2'], key=lambda s: (s[0], int(s[1:]))), 'ação'.isalpha(), '²'.isdigit(), '²'.isdecimal(), '٣'.isdecimal(), int('٣'), 'a1'.isalnum(), ' '.isspace(), 'ǅ'.istitle())
+print(f'{"x":*^9}', f'{3.0:g}', f'{1e-5}', f'{12345.6789:_.2f}', f'{255:08b}', f'{-3:+}', f'{"a" "b"!r:>6}', f'{0.1+0.2:.17g}', f'{10**20:,}', f'{1/3:.3%}', f'{12:c}')
+print(repr('á'), repr('\x00\x7f​\U0001F600'), ascii('é'), 'é'.encode('idna') if False else '', 'münchen.de'.encode('idna'), b'xn--mnchen-3ya.de'.decode('idna'))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"['1.234,56'] ['x@ex.com.br'] Olá, João! Preço: R$ 1.234,56 (20% off) em 06/10/2026; e-mai
+['ÇÃO', 'ção'] ['Olá', 'João', 'Preço', 'R', 'off', 'em'] ['Olá', 'João! Preço: R$ 1.234', '56 (20% off) em 2026-10-06'] ['a', 'b']
+{'d': '2026', 'm': '10'} <re.Match object; span=(0, 4), match='ação'> 22
+a b a\.b\*c -a-b-c- ['a', 'c'] ('bba', 2)
+[(107, 110)] ['20'] ba dc
+       x|y     | 3.14  |'q' ('a', 'b', '>3', 'r')
+OLÁ, JOÃO! PREÇO: R$ 1.234,56 (20% OFF) EM 2026-10-06; E-MAIL: ANA.SILVA+X@EX.COM.BR, TEL (11) 98765-4321. ÇÃO ÇÃO İSTANBUL SS tanbul ß anbul ss SS b'i\xcc\x87' ǅ FI σας ας
+fi21 Ll W 0.5 1 R 230
+palavra palavra palavra [...] > a
+> b ['日本語日本語日本', '語日本語日本語日', '本語日本語日本語', '日本語日本語'] 4
+a   b ***abc*** ab   |00042|ff|1.234568e+04|A|% 000x -005 ['a', 'b', '', 'c'] ['a', 'b  c'] ('a', 'b', 'c') ['aXb', 'c']
+['a', 'e', 'z', 'Z', 'é', 'É'] ['b2', 'b9', 'b10'] True True False True 3 True True True
+****x**** 3 1e-05 12_345.68 11111111 -3   'ab' 0.30000000000000004 100,000,000,000,000,000,000 33.333% 
+'á' '\x00\x7f\u200b😀' '\xe9'  b'xn--mnchen-3ya.de' münchen.de
+"##
+    );
+}
