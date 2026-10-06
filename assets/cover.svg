@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="680" viewBox="0 0 1600 680">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#C9DCE6"/>
+      <stop offset="0.72" stop-color="#E7F0F3"/>
+      <stop offset="1" stop-color="#F3F7F8"/>
+    </linearGradient>
+    <clipPath id="term"><rect x="820" y="268" width="600" height="300" rx="14"/></clipPath>
+  </defs>
+  <rect width="1600" height="680" fill="url(#sky)"/>
+  <!-- distant ice shelf -->
+  <path d="M0 560 L120 548 L210 556 L330 540 L470 552 L560 544 L700 556 L820 548 L1000 558 L1180 546 L1340 556 L1600 544 L1600 680 L0 680 Z" fill="#DCE8EC"/>
+  <path d="M0 600 C300 588 520 610 800 598 C1080 586 1320 606 1600 594 L1600 680 L0 680 Z" fill="#F7FAFB"/>
+
+  <!-- wordmark -->
+  <text x="104" y="300" font-family="Bricolage Grotesque" font-weight="800" font-size="200" letter-spacing="-2" fill="#16364C">plinus</text>
+  <text x="116" y="384" font-family="Bricolage Grotesque" font-weight="500" font-size="44" fill="#16364C">A behavioral operating system.</text>
+  <text x="117" y="436" font-family="Bricolage Grotesque" font-weight="400" font-size="27" fill="#3F6276">Debian 13 on the outside. Simulated all the way down.</text>
+  <text x="117" y="474" font-family="Bricolage Grotesque" font-weight="400" font-size="27" fill="#3F6276">Built in safe Rust as the computer of an AI agent.</text>
+
+  <!-- sauropod standing behind the terminal, neck over it -->
+  <g fill="#5E8063">
+    <path d="M1392 470 C1360 400 1330 330 1300 260 C1282 218 1262 186 1236 168 C1218 156 1214 140 1228 132 C1246 122 1272 128 1288 146 C1316 178 1346 236 1380 300 C1404 346 1428 394 1446 430 Z"/>
+    <ellipse cx="1478" cy="468" rx="104" ry="60"/>
+    <path d="M1560 452 C1588 456 1600 470 1600 490 L1600 520 C1590 500 1572 488 1548 486 Z"/>
+    <rect x="1404" y="490" width="30" height="108" rx="12"/>
+    <rect x="1446" y="498" width="28" height="100" rx="12" fill="#4E6E53"/>
+    <rect x="1508" y="490" width="30" height="108" rx="12"/>
+    <rect x="1546" y="496" width="28" height="102" rx="12" fill="#4E6E53"/>
+  </g>
+  <circle cx="1238" cy="140" r="4.5" fill="#16364C"/>
+  <path d="M1258 170 C1270 166 1280 168 1288 174" stroke="#4C6B51" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <path d="M1290 222 C1302 218 1312 220 1320 226" stroke="#4C6B51" stroke-width="4" fill="none" stroke-linecap="round"/>
+  <ellipse cx="1488" cy="602" rx="110" ry="8" fill="#0E2633" opacity="0.12"/>
+
+  <!-- terminal -->
+  <rect x="826" y="276" width="600" height="300" rx="14" fill="#16364C" opacity="0.18"/>
+  <g clip-path="url(#term)">
+    <rect x="820" y="268" width="600" height="300" fill="#14303F"/>
+    <rect x="820" y="268" width="600" height="38" fill="#1C3D50"/>
+  </g>
+  <circle cx="846" cy="287" r="6" fill="#E0A33B"/>
+  <circle cx="866" cy="287" r="6" fill="#7FA8BA"/>
+  <circle cx="886" cy="287" r="6" fill="#7FA8BA"/>
+  <text x="1120" y="292" text-anchor="middle" font-family="JetBrains Mono" font-size="15" fill="#8FB1C1">root@plinus: /work</text>
+  <g font-family="JetBrains Mono" font-size="18">
+    <text x="846" y="344" fill="#E0A33B">$ <tspan fill="#EAF2F4">head -1 /etc/os-release</tspan></text>
+    <text x="846" y="370" fill="#B9D0DA">PRETTY_NAME="Debian GNU/Linux 13 (trixie)"</text>
+    <text x="846" y="408" fill="#E0A33B">$ <tspan fill="#EAF2F4">python3 -c 'import sys; print(sys.version[:6])'</tspan></text>
+    <text x="846" y="434" fill="#B9D0DA">3.13.5</text>
+    <text x="846" y="472" fill="#E0A33B">$ <tspan fill="#EAF2F4">gcc fib.c</tspan></text>
+    <text x="846" y="498" fill="#B9D0DA">bash: gcc: command not found</text>
+    <text x="846" y="536" fill="#9CC9A2">9264/9507 identical to debian:trixie</text>
+  </g>
+
+  <!-- emperor penguin standing on the terminal -->
+  <g transform="translate(900 134)">
+    <path d="M14 58 C2 72 -2 92 2 110 C8 100 12 86 18 74 Z" fill="#203B4A"/>
+    <path d="M66 58 C78 72 82 92 78 110 C72 100 68 86 62 74 Z" fill="#203B4A"/>
+    <path d="M40 0 C60 0 70 16 70 38 C72 66 74 94 70 114 C66 128 56 134 40 134 C24 134 14 128 10 114 C6 94 8 66 10 38 C10 16 20 0 40 0 Z" fill="#203B4A"/>
+    <path d="M40 34 C55 34 60 54 60 78 C60 106 54 126 40 126 C26 126 20 106 20 78 C20 54 25 34 40 34 Z" fill="#F7FAFB"/>
+    <path d="M17 28 C25 34 28 44 24 54 C17 48 14 38 17 28 Z" fill="#E0A33B"/>
+    <path d="M63 28 C55 34 52 44 56 54 C63 48 66 38 63 28 Z" fill="#E0A33B"/>
+    <circle cx="31" cy="18" r="3.4" fill="#F7FAFB"/>
+    <circle cx="49" cy="18" r="3.4" fill="#F7FAFB"/>
+    <circle cx="31.6" cy="18.6" r="1.6" fill="#16364C"/>
+    <circle cx="49.6" cy="18.6" r="1.6" fill="#16364C"/>
+    <path d="M35 24 L45 24 L40 36 Z" fill="#0F2531"/>
+    <path d="M37.2 30 L42.8 30 L40 36 Z" fill="#E0A33B"/>
+    <ellipse cx="29" cy="133" rx="9" ry="3.5" fill="#203B4A"/>
+    <ellipse cx="51" cy="133" rx="9" ry="3.5" fill="#203B4A"/>
+  </g>
+</svg>
