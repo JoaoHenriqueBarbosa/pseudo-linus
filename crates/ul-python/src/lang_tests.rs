@@ -67,6 +67,46 @@ print(Other())
 }
 
 #[test]
+fn subclasses_of_builtin_types() {
+    let src = "\
+class D(dict):
+    def __missing__(self, k):
+        return 'x'
+    def __setitem__(self, k, v):
+        super().__setitem__(k, v * 2)
+d = D(a=1)
+d['b'] = 5
+print(d, len(d), d['b'], 'a' in d, isinstance(d, dict), sorted(d), d == {'a': 1, 'b': 10})
+print(list(d.items()), d.get('zz'))
+class L(list):
+    def total(self):
+        return sum(self)
+l = L([1, 2, 3])
+l.append(4)
+l += [5]
+print(l, l.total(), len(l), l[0], l[-1], bool(L()), l == [1, 2, 3, 4, 5])
+class S(str):
+    def shout(self):
+        return self.upper() + '!'
+s = S('abc')
+print(s, s.shout(), len(s), s + 'd', isinstance(s, str))
+class N(int):
+    def double(self):
+        return self * 2
+print(N(21).double(), N(3) + 1)
+class T(tuple):
+    def __new__(cls, a, b):
+        return super().__new__(cls, (a, b))
+print(T(1, 2), T(1, 2)[1])
+";
+    assert_eq!(
+        out(src),
+        "{'a': 1, 'b': 10} 2 10 True True ['a', 'b'] True\n[('a', 1), ('b', 10)] None\n\
+         [1, 2, 3, 4, 5] 15 5 1 5 False True\nabc ABC! 3 abcd True\n42 4\n(1, 2) 2\n"
+    );
+}
+
+#[test]
 fn closures_and_nonlocal() {
     let src = "\
 def counter():

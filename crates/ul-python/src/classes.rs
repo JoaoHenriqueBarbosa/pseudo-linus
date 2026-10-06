@@ -161,15 +161,21 @@ impl ExtObject for BuiltinSuperMethod {
                 }
                 // `super().__new__(mcs, nome, bases, ns)` de uma metaclasse: é o `type.__new__`.
                 "__new__" => match args.as_slice() {
-                    [Value::Class(c)] => Ok(Value::Instance(Rc::new(InstanceObj {
-                        class: c.clone(),
-                        dict: RefCell::new(BTreeMap::new()),
-                        payload: RefCell::new(None),
-                    }))),
-                    [Value::Class(meta), Value::Str(n), Value::Tuple(bases), ns] => {
+                    [Value::Class(meta), Value::Str(n), Value::Tuple(bases), ns] if meta.is_meta => {
                         let ns = dict_to_ns(ns)?;
                         let c = vm.create_class(n.as_str().to_string(), bases, ns, Some(meta.clone()), kw)?;
                         Ok(Value::Class(c))
+                    }
+                    [Value::Class(c), rest @ ..] => {
+                        let payload = match c.data_base {
+                            Some(t) => Some(vm.call(&data_ctor(t), rest.iter().map(crate::vm::unwrap_payload).collect(), kw)?),
+                            None => None,
+                        };
+                        Ok(Value::Instance(Rc::new(InstanceObj {
+                            class: c.clone(),
+                            dict: RefCell::new(BTreeMap::new()),
+                            payload: RefCell::new(payload),
+                        })))
                     }
                     _ => Err(type_error("type.__new__() takes exactly 3 arguments")),
                 },
@@ -184,6 +190,18 @@ impl ExtObject for BuiltinSuperMethod {
             "__init__" => {
                 if inst.class.builtin_base.is_some() {
                     inst.dict.borrow_mut().insert("args".to_string(), Value::tuple(args));
+                    return Ok(Value::None);
+                }
+                // `super().__init__(...)` de subclasse de `dict`/`list`/`set`: preenche o valor embutido.
+                let payload = inst.payload.borrow().clone();
+                if let Some(p @ (Value::Dict(_) | Value::List(_) | Value::Set(_))) = payload {
+                    let fresh = vm.call(&data_ctor(inst.class.data_base.unwrap_or("dict")), args, kw)?;
+                    match (&p, &fresh) {
+                        (Value::Dict(d), Value::Dict(f)) => *d.borrow_mut() = f.borrow().clone(),
+                        (Value::List(l), Value::List(f)) => *l.borrow_mut() = f.borrow().clone(),
+                        (Value::Set(s), Value::Set(f)) => *s.borrow_mut() = f.borrow().clone(),
+                        _ => {}
+                    }
                 }
                 Ok(Value::None)
             }
@@ -203,7 +221,18 @@ impl ExtObject for BuiltinSuperMethod {
                 vm.getattr(&self.obj, &n)
             }
             "__new__" => Ok(self.obj.clone()),
-            _ => Err(exc("AttributeError", format!("'super' object has no attribute '{}'", self.name))),
+            other => {
+                // Método herdado de `dict`/`list`/`str`...: age sobre o valor embutido.
+                let payload = inst.payload.borrow().clone();
+                if let Some(p) = payload {
+                    if let Some(r) = crate::vm::payload_dunder(&p, other, args.clone()) {
+                        return r;
+                    }
+                    let method = vm.getattr(&p, other)?;
+                    return vm.call(&method, args, kw);
+                }
+                Err(exc("AttributeError", format!("'super' object has no attribute '{}'", self.name)))
+            }
         }
     }
 }
@@ -430,6 +459,13 @@ impl Vm {
             dict: RefCell::new(BTreeMap::new()),
             payload: RefCell::new(None),
         });
+        if let Some(t) = cls.data_base {
+            // Sem `__init__`/`__new__` de usuário os argumentos vão direto para o tipo embutido.
+            let own = user_new.is_some() || matches!(cls.lookup("__init__"), Some(Value::Function(_)));
+            let (a, k) = if own { (Vec::new(), Vec::new()) } else { (args.clone(), kw.clone()) };
+            let payload = self.call(&data_ctor(t), a, k)?;
+            *fresh.payload.borrow_mut() = Some(payload);
+        }
         let (inst, obj) = match user_new {
             Some(f) => {
                 let mut full = Vec::with_capacity(args.len() + 1);
@@ -458,7 +494,7 @@ impl Vm {
             }
             Some(_) => {}
             None => {
-                if cls.builtin_base.is_none() && (!args.is_empty() || !kw.is_empty()) {
+                if cls.builtin_base.is_none() && cls.data_base.is_none() && (!args.is_empty() || !kw.is_empty()) {
                     return Err(type_error(format!("{}() takes no arguments", cls.name)));
                 }
             }
@@ -518,6 +554,10 @@ impl Vm {
         }
         if let Some(Value::Function(f)) = inst.class.lookup("__getattr__") {
             return self.call_function(&f, vec![obj.clone(), Value::str(name)], Vec::new());
+        }
+        let payload = inst.payload.borrow().clone();
+        if let Some(p) = payload {
+            return self.getattr(&p, name);
         }
         Err(exc("AttributeError", format!("'{}' object has no attribute '{name}'", inst.class.name)))
     }
@@ -830,10 +870,24 @@ impl Vm {
     /// Chama o método mágico `name` de uma instância, se a classe o define.
     pub(crate) fn call_dunder(&mut self, obj: &Value, name: &str, args: Vec<Value>) -> Option<PyResult<Value>> {
         let Value::Instance(i) = obj else { return None };
-        let attr = i.class.lookup(name)?;
-        let f = match attr {
-            Value::Function(f) => f,
-            _ => return None,
+        let user = match i.class.lookup(name) {
+            Some(Value::Function(f)) => Some(f),
+            _ => None,
+        };
+        let Some(f) = user else {
+            // Subclasse de tipo embutido: o que a classe não redefine vai para o valor embutido.
+            let payload = i.payload.borrow().clone()?;
+            let r = crate::vm::payload_dunder(&payload, name, args)?;
+            // `x += y` sobre lista/dict/set muta o valor embutido e continua sendo a mesma instância.
+            return Some(match r {
+                Ok(_)
+                    if matches!(name, "__iadd__" | "__isub__" | "__imul__" | "__iand__" | "__ior__" | "__ixor__")
+                        && matches!(payload, Value::List(_) | Value::Dict(_) | Value::Set(_)) =>
+                {
+                    Ok(obj.clone())
+                }
+                other => other,
+            });
         };
         let mut full = Vec::with_capacity(args.len() + 1);
         full.push(obj.clone());
@@ -935,7 +989,8 @@ pub fn instance_text(v: &Value, is_str: bool) -> Option<String> {
     if i.class.builtin_base.is_some() {
         return Some(vm.default_text(v, is_str));
     }
-    None
+    let payload = i.payload.borrow().clone()?;
+    Some(if is_str { crate::object::to_str(&payload) } else { crate::object::repr(&payload) })
 }
 
 /// `a == b` quando um dos lados é instância com `__eq__`.
@@ -952,6 +1007,10 @@ pub fn instance_eq(a: &Value, b: &Value) -> Option<bool> {
             }
         }
     }
+    let has_payload = |v: &Value| matches!(v, Value::Instance(i) if i.payload.borrow().is_some());
+    if has_payload(a) || has_payload(b) {
+        return Some(crate::object::py_eq(&crate::vm::unwrap_payload(a), &crate::vm::unwrap_payload(b)));
+    }
     None
 }
 
@@ -964,7 +1023,8 @@ pub fn instance_hash(v: &Value) -> Option<i64> {
             return Some(h);
         }
     }
-    None
+    let payload = i.payload.borrow().clone()?;
+    crate::object::hash(&payload).ok()
 }
 
 /// `bool(v)` de uma instância: `__bool__`, depois `__len__`, senão verdadeiro.
@@ -975,6 +1035,11 @@ pub fn instance_truth(v: &Value) -> bool {
     }
     if let Some(Ok(Value::Int(n))) = vm.call_dunder(v, "__len__", Vec::new()) {
         return n != 0;
+    }
+    if let Value::Instance(i) = v {
+        if let Some(p) = i.payload.borrow().as_ref() {
+            return p.is_true();
+        }
     }
     true
 }
@@ -992,6 +1057,11 @@ struct BaseInfo {
 /// Tipos de dados embutidos que uma classe de usuário pode estender (a instância guarda o valor).
 fn data_type(name: &str) -> Option<&'static str> {
     ["int", "float", "str", "list", "tuple", "dict", "set", "bool"].into_iter().find(|n| *n == name)
+}
+
+/// O construtor embutido (`dict`, `list`...) de um tipo de dados.
+fn data_ctor(name: &str) -> Value {
+    crate::builtins::get(name).unwrap_or(Value::Builtin("object"))
 }
 
 fn resolve_bases(bases: &[Value]) -> PyResult<BaseInfo> {
@@ -1018,6 +1088,11 @@ fn resolve_bases(bases: &[Value]) -> PyResult<BaseInfo> {
             Value::Builtin(n) if data_type(n).is_some() => {
                 if info.data_base.is_none() {
                     info.data_base = data_type(n);
+                }
+            }
+            Value::NativeFn(f) if data_type(f.name).is_some() => {
+                if info.data_base.is_none() {
+                    info.data_base = data_type(f.name);
                 }
             }
             other => {

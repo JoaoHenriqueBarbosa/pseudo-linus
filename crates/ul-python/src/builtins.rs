@@ -157,7 +157,10 @@ fn class_name(v: &Value) -> Option<&'static str> {
 fn instance_of(v: &Value, cname: &str) -> bool {
     if let Value::Instance(i) = v {
         return cname == "object"
-            || i.class.mro().iter().any(|c| c.builtin_base.is_some_and(|b| subclass_of(b, cname)));
+            || i.class.mro().iter().any(|c| {
+                c.builtin_base.is_some_and(|b| subclass_of(b, cname))
+                    || c.data_base.is_some_and(|d| d == cname || (d == "bool" && cname == "int"))
+            });
     }
     match cname {
         "object" => true,

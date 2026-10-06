@@ -1154,7 +1154,7 @@ impl Vm {
         Ok(None)
     }
 
-    fn call(&mut self, func: &Value, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
+    pub(crate) fn call(&mut self, func: &Value, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
         if let Value::Function(f) = func {
             return self.call_function(f, args, kwargs);
         }
@@ -2744,6 +2744,53 @@ fn compare(op: CmpOp, a: &Value, b: &Value) -> PyResult<bool> {
         CmpOp::NotIn => Ok(!contains(b, a)?),
         CmpOp::Lt | CmpOp::LtE | CmpOp::Gt | CmpOp::GtE => order(op, a, b),
     }
+}
+
+/// O valor embutido por trás de uma instância de subclasse de `dict`, `list`, `str`... (ou o próprio valor).
+pub(crate) fn unwrap_payload(v: &Value) -> Value {
+    match v {
+        Value::Instance(i) => i.payload.borrow().clone().unwrap_or_else(|| v.clone()),
+        _ => v.clone(),
+    }
+}
+
+/// Método mágico de uma subclasse de tipo embutido que a classe não redefine: age sobre o valor
+/// embutido. `None` quando o nome não é um dos delegados.
+pub(crate) fn payload_dunder(payload: &Value, name: &str, args: Vec<Value>) -> Option<PyResult<Value>> {
+    let arg = |i: usize| args.get(i).map(unwrap_payload);
+    let op = match name {
+        "__getitem__" => return Some(subscript(payload, &args[0])),
+        "__setitem__" => return Some(store_subscript(payload, &args[0], args[1].clone()).map(|_| Value::None)),
+        "__delitem__" => {
+            let mut vm = current()?;
+            return Some(vm.delete_subscript(payload, &args[0]).map(|_| Value::None));
+        }
+        "__contains__" => return Some(contains(payload, &args[0]).map(Value::Bool)),
+        "__len__" => return Some(len(payload).map(Value::Int)),
+        "__iter__" => {
+            let mut vm = current()?;
+            return Some(vm.call(&crate::builtins::get("iter")?, vec![payload.clone()], Vec::new()));
+        }
+        "__lt__" => return Some(compare(CmpOp::Lt, payload, &arg(0)?).map(Value::Bool)),
+        "__le__" => return Some(compare(CmpOp::LtE, payload, &arg(0)?).map(Value::Bool)),
+        "__gt__" => return Some(compare(CmpOp::Gt, payload, &arg(0)?).map(Value::Bool)),
+        "__ge__" => return Some(compare(CmpOp::GtE, payload, &arg(0)?).map(Value::Bool)),
+        "__add__" | "__radd__" | "__iadd__" => Operator::Add,
+        "__sub__" | "__rsub__" | "__isub__" => Operator::Sub,
+        "__mul__" | "__rmul__" | "__imul__" => Operator::Mult,
+        "__truediv__" | "__rtruediv__" => Operator::Div,
+        "__floordiv__" | "__rfloordiv__" => Operator::FloorDiv,
+        "__mod__" | "__rmod__" => Operator::Mod,
+        "__pow__" | "__rpow__" => Operator::Pow,
+        "__and__" | "__rand__" | "__iand__" => Operator::BitAnd,
+        "__or__" | "__ror__" | "__ior__" => Operator::BitOr,
+        "__xor__" | "__rxor__" | "__ixor__" => Operator::BitXor,
+        _ => return None,
+    };
+    let other = arg(0)?;
+    let reflected = name.starts_with("__r") && !matches!(name, "__rshift__");
+    let inplace = matches!(name, "__iadd__" | "__isub__" | "__imul__" | "__iand__" | "__ior__" | "__ixor__");
+    Some(if reflected { binary(op, &other, payload, false) } else { binary(op, payload, &other, inplace) })
 }
 
 /// `item in container`.
