@@ -522,7 +522,7 @@ fn calcsize(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 }
 
 pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
-    ModuleBuilder::new("struct")
+    ModuleBuilder::new("_struct")
         .func("pack", pack)
         .func("unpack", unpack)
         .func("pack_into", pack_into)

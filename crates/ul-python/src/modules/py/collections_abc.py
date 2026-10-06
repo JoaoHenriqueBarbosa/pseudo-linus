@@ -50,6 +50,11 @@ _INSTANCE_CHECKS = {
 class _Builtins(ABCMeta):
     """Metaclasse que conhece quais tipos embutidos satisfazem a interface."""
 
+    def __new__(mcs, name, bases, ns, **kwargs):
+        # `Iterable[str]` e afins: em anotações a subscrição só precisa devolver a classe.
+        ns.setdefault('__class_getitem__', classmethod(lambda cls, params: cls))
+        return ABCMeta.__new__(mcs, name, bases, ns, **kwargs)
+
     def __instancecheck__(cls, instance):
         check = _INSTANCE_CHECKS.get(cls.__name__)
         if check is not None:

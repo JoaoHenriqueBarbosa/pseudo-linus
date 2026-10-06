@@ -207,6 +207,22 @@ fn bytes_fromhex(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::bytes(out))
 }
 
+fn bytes_maketrans(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    if args.len() != 2 {
+        return Err(type_error("maketrans() takes exactly 2 arguments"));
+    }
+    let want = |v: &Value| v.bytes_like().ok_or_else(|| type_error("a bytes-like object is required"));
+    let (from, to) = (want(&args[0])?, want(&args[1])?);
+    if from.len() != to.len() {
+        return Err(crate::vm::exc("ValueError", "maketrans arguments must have same length"));
+    }
+    let mut table: Vec<u8> = (0..=255u8).collect();
+    for (f, t) in from.iter().zip(to.iter()) {
+        table[*f as usize] = *t;
+    }
+    Ok(Value::bytes(table))
+}
+
 fn native(name: &'static str, f: crate::object::NativeFnPtr) -> Value {
     Value::NativeFn(Rc::new(NativeFn { name, f }))
 }
@@ -357,6 +373,7 @@ pub fn type_attr(tname: &str, name: &str) -> Option<Value> {
         ("int", "from_bytes") => return Some(native("from_bytes", int_from_bytes)),
         ("bytes", "fromhex") => return Some(native("fromhex", bytes_fromhex)),
         ("bytearray", "fromhex") => return Some(native("fromhex", bytearray_fromhex)),
+        ("bytes" | "bytearray", "maketrans") => return Some(native("maketrans", bytes_maketrans)),
         ("str", "maketrans") => return Some(native("maketrans", str_maketrans)),
         _ => {}
     }

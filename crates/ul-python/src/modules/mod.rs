@@ -79,9 +79,9 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     let m = match name {
         "_sys" => pysys::build(vm),
         "_csvimpl" => builtin::csv(),
-        "re" => re::build(vm),
+        "_re" => re::build(vm),
         "math" => math::build(vm),
-        "base64" => base64::build(vm),
+        "_base64" => base64::build(vm),
         "binascii" => binascii::build(vm),
         "builtins" => builtinsmod::build(vm),
         "hashlib" => hashlib::build(vm),
@@ -89,7 +89,7 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         "textwrap" => textwrap::build(vm),
         "shlex" => shlex::build(vm),
         "fnmatch" => fnmatch::build(vm),
-        "struct" => pystruct::build(vm),
+        "_struct" => pystruct::build(vm),
         "unicodedata" => unicodedata::build(vm),
         "_operator" => operator::build(vm),
         "_os" => osnative::build(vm),
@@ -177,8 +177,8 @@ pub fn new_module(vm: &mut Vm, args: Vec<Value>, kwargs: Vec<(String, Value)>) -
 
 /// Módulos escritos em Rust, além dos que `pysrc` embute em Python.
 const NATIVE_MODULES: &[&str] = &[
-    "_sys", "_csvimpl", "re", "math", "base64", "binascii", "builtins", "hashlib", "html", "textwrap", "shlex",
-    "fnmatch", "struct", "unicodedata", "_operator", "_os", "_zlib", "_archive", "_sqlite3", "_ast_native", "_weakref",
+    "_sys", "_csvimpl", "_re", "math", "_base64", "binascii", "builtins", "hashlib", "html", "textwrap", "shlex",
+    "fnmatch", "_struct", "unicodedata", "_operator", "_os", "_zlib", "_archive", "_sqlite3", "_ast_native", "_weakref",
 ];
 
 /// `name` é um módulo que o interpretador traz embutido (nativo ou em Python).

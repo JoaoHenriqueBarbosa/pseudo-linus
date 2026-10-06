@@ -1,0 +1,33 @@
+"""struct: as funções vêm do módulo nativo `_struct`; `Struct` guarda o formato já validado."""
+
+from _struct import error, pack, unpack, pack_into, unpack_from, iter_unpack, calcsize
+
+__all__ = ['calcsize', 'pack', 'pack_into', 'unpack', 'unpack_from', 'iter_unpack', 'Struct', 'error']
+
+
+class Struct:
+    def __init__(self, format):
+        if isinstance(format, (bytes, bytearray)):
+            format = bytes(format).decode('ascii')
+        elif not isinstance(format, str):
+            raise TypeError("Struct() argument 1 must be a str or bytes object, not %s" % type(format).__name__)
+        self.format = format
+        self.size = calcsize(format)
+
+    def pack(self, *values):
+        return pack(self.format, *values)
+
+    def unpack(self, buffer):
+        return unpack(self.format, buffer)
+
+    def pack_into(self, buffer, offset, *values):
+        return pack_into(self.format, buffer, offset, *values)
+
+    def unpack_from(self, buffer, offset=0):
+        return unpack_from(self.format, buffer, offset)
+
+    def iter_unpack(self, buffer):
+        return iter_unpack(self.format, buffer)
+
+    def __repr__(self):
+        return 'Struct(%r)' % (self.format,)

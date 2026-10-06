@@ -218,7 +218,7 @@ fn b16decode(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 }
 
 pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
-    ModuleBuilder::new("base64")
+    ModuleBuilder::new("_base64")
         .func("b64encode", b64encode)
         .func("b64decode", b64decode)
         .func("standard_b64encode", standard_b64encode)

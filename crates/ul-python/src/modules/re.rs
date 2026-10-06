@@ -972,7 +972,7 @@ fn f_purge(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 
 /// Constrói o módulo `re`.
 pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
-    ModuleBuilder::new("re")
+    ModuleBuilder::new("_re")
         .func("compile", f_compile)
         .func("match", f_match)
         .func("search", f_search)

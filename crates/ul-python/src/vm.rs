@@ -1260,6 +1260,20 @@ impl Vm {
                 };
                 stack.push(Slot::Val(Value::Function(Rc::new(f))));
             }
+            Op::SetAnnotations(c) => {
+                let names: Vec<String> = match &code.consts[c as usize] {
+                    Value::Tuple(t) => t.iter().map(to_str).collect(),
+                    _ => Vec::new(),
+                };
+                let values = pop_n(stack, names.len())?;
+                let mut d = crate::object::Dict::new();
+                for (k, v) in names.into_iter().zip(values) {
+                    d.set(Value::str(k), v)?;
+                }
+                if let Some(Slot::Val(Value::Function(f))) = stack.last() {
+                    f.attrs.borrow_mut().insert("__annotations__".to_string(), Value::dict(d));
+                }
+            }
             Op::PushExc => {
                 let v = top(stack)?.clone();
                 self.handled.borrow_mut().push(v);
@@ -2014,6 +2028,11 @@ impl Vm {
                         return Ok(Value::dict(d));
                     }
                     "__doc__" => return Ok(f.code.doc.clone().map_or(Value::None, Value::str)),
+                    "__annotations__" => {
+                        let d = Value::dict(crate::object::Dict::new());
+                        f.attrs.borrow_mut().insert("__annotations__".to_string(), d.clone());
+                        return Ok(d);
+                    }
                     "__code__" => {
                         let file = if f.code.filename.is_empty() {
                             match self.argv.first().map(String::as_str) {

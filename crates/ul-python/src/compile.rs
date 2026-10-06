@@ -104,6 +104,9 @@ pub enum Op {
     /// `kwdefaults` aponta uma tupla de nomes em `consts`, os padrões só-nomeados correspondentes
     /// (empilhados depois dos posicionais).
     MakeFunction { code: u32, ndefaults: u32, kwdefaults: Option<u32> },
+    /// Depois de `MakeFunction`: desempilha um valor por nome da tupla em `consts` e grava o
+    /// `__annotations__` da função que continua na pilha (`return` entra com esse nome).
+    SetAnnotations(u32),
     /// Devolve o topo ao chamador.
     Return,
     /// `import nome`: empilha o módulo.
@@ -368,11 +371,45 @@ fn docstring(body: &[Stmt]) -> Option<String> {
     }
 }
 
+/// Texto de uma anotação, para `from __future__ import annotations` (o que `ast.unparse` daria).
+fn ann_text(e: &Expr) -> String {
+    match &e.kind {
+        E::Name { id, .. } => id.clone(),
+        E::Attribute { value, attr, .. } => format!("{}.{attr}", ann_text(value)),
+        E::Subscript { value, slice, .. } => {
+            let inner = match &slice.kind {
+                E::Tuple { elts, .. } if !elts.is_empty() => elts.iter().map(ann_text).collect::<Vec<_>>().join(", "),
+                _ => ann_text(slice),
+            };
+            format!("{}[{inner}]", ann_text(value))
+        }
+        E::Tuple { elts, .. } => match elts.as_slice() {
+            [one] => format!("({},)", ann_text(one)),
+            _ => format!("({})", elts.iter().map(ann_text).collect::<Vec<_>>().join(", ")),
+        },
+        E::List { elts, .. } => format!("[{}]", elts.iter().map(ann_text).collect::<Vec<_>>().join(", ")),
+        E::BinOp { left, op: Operator::BitOr, right } => format!("{} | {}", ann_text(left), ann_text(right)),
+        E::Constant { value, .. } => match value {
+            Constant::None => "None".to_string(),
+            Constant::Bool(b) => if *b { "True" } else { "False" }.to_string(),
+            Constant::Int(i) => i.clone(),
+            Constant::Str(s) => crate::object::repr(&Value::str(s.clone())),
+            Constant::Ellipsis => "...".to_string(),
+            _ => "...".to_string(),
+        },
+        _ => "...".to_string(),
+    }
+}
+
 pub fn compile_module(module: &Mod) -> Result<Code, CompileError> {
     let Mod::Module { body, .. } = module else {
         return Err(CompileError { kind: "NotImplementedError", msg: "only modules can be compiled".into(), lineno: 1 });
     };
     let mut c = Compiler::new(Code { name: "<module>".into(), ..Code::default() }, 1);
+    c.future_annotations = body.iter().any(|s| {
+        matches!(&s.kind, S::ImportFrom { module: Some(m), names, .. }
+            if m == "__future__" && names.iter().any(|n| n.name == "annotations"))
+    });
     // Sem docstring, `__doc__` fica como o chamador definiu (`None` ao criar o módulo).
     if let Some(doc) = docstring(body) {
         let k = c.constant(Value::str(doc));
@@ -656,6 +693,8 @@ struct Compiler {
     class_name: Option<String>,
     /// Classe em cujo corpo a função sendo compilada foi definida (para o `super()` sem argumentos).
     enclosing_class: Option<String>,
+    /// `from __future__ import annotations`: anotações viram texto em vez de serem avaliadas.
+    future_annotations: bool,
 }
 
 impl Compiler {
@@ -673,6 +712,7 @@ impl Compiler {
             in_class_body: false,
             class_name: None,
             enclosing_class: None,
+            future_annotations: false,
         }
     }
 
@@ -866,13 +906,13 @@ impl Compiler {
                 let end = self.here();
                 self.patch(ok, end);
             }
-            S::FunctionDef { name, args, body, decorator_list, .. }
-            | S::AsyncFunctionDef { name, args, body, decorator_list, .. } => {
+            S::FunctionDef { name, args, body, decorator_list, returns, .. }
+            | S::AsyncFunctionDef { name, args, body, decorator_list, returns, .. } => {
                 let is_async = matches!(stmt.kind, S::AsyncFunctionDef { .. });
                 for d in decorator_list {
                     self.expr(d)?;
                 }
-                self.make_function(name, args, FnBody::Stmts(body), stmt.pos.lineno, is_async)?;
+                self.make_function(name, args, FnBody::Stmts(body), stmt.pos.lineno, is_async, returns.as_deref())?;
                 for _ in decorator_list {
                     self.line = stmt.pos.lineno;
                     self.emit(Op::Call { argc: 1, kwnames: None });
@@ -982,7 +1022,7 @@ impl Compiler {
                 // Anotações de nome simples no módulo e em corpo de classe viram `__annotations__`.
                 if self.locals.is_none() || self.in_class_body {
                     if let E::Name { id, .. } = &target.kind {
-                        self.expr(annotation)?;
+                        self.emit_annotation(annotation)?;
                         let n = self.name(id);
                         self.emit(Op::Annotate(n));
                     }
@@ -1170,6 +1210,17 @@ impl Compiler {
         });
     }
 
+    /// Empilha o valor de uma anotação: avaliada, ou o texto dela com `from __future__ import annotations`.
+    fn emit_annotation(&mut self, e: &Expr) -> Result<(), CompileError> {
+        if self.future_annotations {
+            let k = self.constant(Value::str(ann_text(e)));
+            self.emit(Op::LoadConst(k));
+            Ok(())
+        } else {
+            self.expr(e)
+        }
+    }
+
     fn emit_store(&mut self, id: &str) {
         let n = self.name(id);
         let local = self.locals.as_ref().is_some_and(|l| l.contains(id));
@@ -1191,6 +1242,7 @@ impl Compiler {
         body: FnBody,
         line: usize,
         is_async: bool,
+        returns: Option<&Expr>,
     ) -> Result<(), CompileError> {
         let mut params: Vec<String> = args.posonlyargs.iter().map(|a| a.arg.clone()).collect();
         let posonly = params.len();
@@ -1226,6 +1278,7 @@ impl Compiler {
         inner.globals_decl = globals;
         inner.nonlocals_decl = nonlocals;
         inner.enclosing_class = if self.in_class_body { self.class_name.clone() } else { self.enclosing_class.clone() };
+        inner.future_annotations = self.future_annotations;
         match body {
             FnBody::Stmts(b) => {
                 inner.code.doc = docstring(b);
@@ -1253,6 +1306,30 @@ impl Compiler {
         self.code.functions.push(code);
         let idx = (self.code.functions.len() - 1) as u32;
         self.emit(Op::MakeFunction { code: idx, ndefaults: args.defaults.len() as u32, kwdefaults });
+        // Anotações de parâmetros e de retorno, na ordem da assinatura (como o CPython).
+        let mut ann_names = Vec::new();
+        let ordered = args
+            .posonlyargs
+            .iter()
+            .chain(args.args.iter())
+            .chain(args.vararg.as_deref())
+            .chain(args.kwonlyargs.iter())
+            .chain(args.kwarg.as_deref());
+        for a in ordered {
+            if let Some(ann) = &a.annotation {
+                self.emit_annotation(ann)?;
+                ann_names.push(Value::str(a.arg.clone()));
+            }
+        }
+        if let Some(r) = returns {
+            self.emit_annotation(r)?;
+            ann_names.push(Value::str("return".to_string()));
+        }
+        if !ann_names.is_empty() {
+            self.line = line;
+            let k = self.constant(Value::tuple(ann_names));
+            self.emit(Op::SetAnnotations(k));
+        }
         Ok(())
     }
 
@@ -1273,6 +1350,7 @@ impl Compiler {
         inner.globals_decl = globals;
         inner.nonlocals_decl = nonlocals;
         inner.in_class_body = true;
+        inner.future_annotations = self.future_annotations;
         inner.class_name = Some(name.to_string());
         if let Some(doc) = docstring(body) {
             let k = inner.constant(Value::str(doc));
@@ -2050,7 +2128,7 @@ impl Compiler {
                 self.line = expr.pos.lineno;
                 self.emit(Op::LoadAttr(n));
             }
-            E::Lambda { args, body } => self.make_function("<lambda>", args, FnBody::Expr(body), expr.pos.lineno, false)?,
+            E::Lambda { args, body } => self.make_function("<lambda>", args, FnBody::Expr(body), expr.pos.lineno, false, None)?,
             E::NamedExpr { target, value } => {
                 self.expr(value)?;
                 self.emit(Op::Dup);
