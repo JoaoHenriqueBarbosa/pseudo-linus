@@ -180,6 +180,18 @@ fn instance_of(v: &Value, cname: &str) -> bool {
 }
 
 fn isinstance_check(v: &Value, cls: &Value) -> PyResult<bool> {
+    if let Some(args) = crate::generic::union_args(cls) {
+        for c in &args {
+            let c = if matches!(c, Value::None) { Value::Builtin("NoneType") } else { c.clone() };
+            if isinstance_check(v, &c)? {
+                return Ok(true);
+            }
+        }
+        return Ok(false);
+    }
+    if matches!(cls, Value::Builtin("NoneType")) {
+        return Ok(matches!(v, Value::None));
+    }
     if let Value::Class(c) = cls {
         return Ok(matches!(v, Value::Instance(i) if i.class.mro().iter().any(|x| Rc::ptr_eq(x, c))));
     }

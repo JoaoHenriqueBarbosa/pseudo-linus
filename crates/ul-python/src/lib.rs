@@ -17,6 +17,7 @@ pub mod classes;
 pub mod compile;
 pub mod format;
 pub mod generator;
+pub mod generic;
 #[cfg(test)]
 mod lang_tests;
 pub mod lazy;

@@ -286,6 +286,7 @@ impl Vm {
         match name {
             "object" => Ok(Value::Builtin("object")),
             "NotImplemented" => Ok(not_implemented()),
+            "Ellipsis" => Ok(Value::Builtin("Ellipsis")),
             "staticmethod" => Ok(Value::Builtin("staticmethod")),
             "classmethod" => Ok(Value::Builtin("classmethod")),
             "property" => Ok(Value::Builtin("property")),
@@ -522,6 +523,17 @@ impl Vm {
                 },
                 None => Ok(attr.clone()),
             },
+            // Descritor escrito em Python: `__get__(self, instância ou None, classe)`.
+            Value::Instance(d) => match d.class.lookup("__get__") {
+                Some(Value::Function(f)) => {
+                    let instance = match recv {
+                        Value::Class(_) => Value::None,
+                        other => other,
+                    };
+                    self.call_function(&f, vec![attr.clone(), instance, Value::Class(cls.clone())], Vec::new())
+                }
+                _ => Ok(attr.clone()),
+            },
             other => Ok(other.clone()),
         }
     }
@@ -542,6 +554,12 @@ impl Vm {
         let class_attr = inst.class.lookup(name);
         if let Some(Value::Ext(e)) = &class_attr {
             if matches!(e.descriptor(), Some(Descriptor::Property { .. })) {
+                return self.bind_class_attr(class_attr.as_ref().unwrap_or(&Value::None), obj.clone(), &inst.class);
+            }
+        }
+        // Descritor de dados escrito em Python (tem `__set__`) também vence o dicionário da instância.
+        if let Some(Value::Instance(d)) = &class_attr {
+            if d.class.lookup("__set__").is_some() {
                 return self.bind_class_attr(class_attr.as_ref().unwrap_or(&Value::None), obj.clone(), &inst.class);
             }
         }
@@ -606,6 +624,12 @@ impl Vm {
                     self.call_function(&f, vec![obj.clone(), Value::str(name), value], Vec::new())?;
                     return Ok(());
                 }
+                if let Some(Value::Instance(d)) = inst.class.lookup(name) {
+                    if let Some(Value::Function(f)) = d.class.lookup("__set__") {
+                        self.call_function(&f, vec![Value::Instance(d.clone()), obj.clone(), value], Vec::new())?;
+                        return Ok(());
+                    }
+                }
                 inst.dict.borrow_mut().insert(name.to_string(), value);
                 Ok(())
             }
@@ -631,6 +655,16 @@ impl Vm {
     pub(crate) fn delete_attr(&mut self, obj: &Value, name: &str) -> PyResult<()> {
         match obj {
             Value::Instance(inst) => {
+                if let Some(Value::Function(f)) = inst.class.lookup("__delattr__") {
+                    self.call_function(&f, vec![obj.clone(), Value::str(name)], Vec::new())?;
+                    return Ok(());
+                }
+                if let Some(Value::Instance(d)) = inst.class.lookup(name) {
+                    if let Some(Value::Function(f)) = d.class.lookup("__delete__") {
+                        self.call_function(&f, vec![Value::Instance(d.clone()), obj.clone()], Vec::new())?;
+                        return Ok(());
+                    }
+                }
                 if inst.dict.borrow_mut().remove(name).is_none() {
                     return Err(exc("AttributeError", format!("'{}' object has no attribute '{name}'", inst.class.name)));
                 }

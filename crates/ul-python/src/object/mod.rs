@@ -663,6 +663,11 @@ pub(crate) fn repr_into(v: &Value, out: &mut String, stack: &mut ReprStack) {
         Value::Set(s) => set::set_repr(&s.borrow(), addr(s), out, stack),
         Value::Range(r) if r.step == 1 => out.push_str(&format!("range({}, {})", r.start, r.stop)),
         Value::Range(r) => out.push_str(&format!("range({}, {}, {})", r.start, r.stop, r.step)),
+        Value::Builtin("Ellipsis" | "NotImplemented") => {
+            if let Value::Builtin(n) = v {
+                out.push_str(n);
+            }
+        }
         Value::Builtin(name) if is_builtin_type(name) => out.push_str(&format!("<class '{name}'>")),
         Value::Builtin(name) => out.push_str(&format!("<built-in function {name}>")),
         Value::Exception(e) => out.push_str(&exc_repr(e)),

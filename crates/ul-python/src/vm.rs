@@ -839,6 +839,31 @@ impl Vm {
                     }
                 }
             }
+            Op::Annotate(i) => {
+                let ann = pop(stack)?;
+                let name = code.names[i as usize].clone();
+                let existing = if locals.is_module {
+                    self.globals.borrow().get("__annotations__").cloned()
+                } else {
+                    locals.vars.borrow().get("__annotations__").cloned()
+                };
+                let dict = match existing {
+                    Some(Value::Dict(d)) => d,
+                    _ => {
+                        let d = Value::dict(crate::object::Dict::new());
+                        if locals.is_module {
+                            self.globals.borrow_mut().insert("__annotations__".to_string(), d.clone());
+                        } else {
+                            locals.set("__annotations__", d.clone());
+                        }
+                        match d {
+                            Value::Dict(d) => d,
+                            _ => return Err(internal("annotations dict")),
+                        }
+                    }
+                };
+                dict.borrow_mut().set(Value::str(name), ann)?;
+            }
             Op::StoreLocal(i) => {
                 let v = pop(stack)?;
                 locals.set(&code.names[i as usize], v);
@@ -1376,6 +1401,11 @@ impl Vm {
         match obj {
             Value::Instance(inst) => return self.instance_getattr(obj, inst, name),
             Value::Class(c) => return self.class_getattr(c, name),
+            Value::Builtin("object") => {
+                if let Some(v) = crate::typeattrs::object_attr(name) {
+                    return Ok(v);
+                }
+            }
             Value::Builtin(n) if name == "__name__" => return Ok(Value::str(*n)),
             Value::NativeFn(f) => {
                 if let Some(v) = crate::typeattrs::type_attr(f.name, name) {
@@ -2103,6 +2133,13 @@ fn subscript(container: &Value, index: &Value) -> PyResult<Value> {
             return slice_of(container, s);
         }
     }
+    if let Value::Class(_) | Value::NativeFn(_) | Value::Builtin(_) = container {
+        if let Some(mut vm) = current() {
+            if let Some(r) = crate::generic::class_getitem(&mut vm, container, index) {
+                return r;
+            }
+        }
+    }
     if let Value::Instance(_) = container {
         if let Some(mut vm) = current() {
             if let Some(r) = vm.call_dunder(container, "__getitem__", vec![index.clone()]) {
@@ -2278,6 +2315,14 @@ fn unsupported(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyException
 }
 
 fn binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyResult<Value> {
+    if op == Operator::BitOr
+        && !matches!(a, Value::Set(_) | Value::Dict(_) | Value::Int(_) | Value::Bool(_))
+        && crate::generic::is_type_like(a)
+        && crate::generic::is_type_like(b)
+        && !(matches!(a, Value::None) && matches!(b, Value::None))
+    {
+        return Ok(crate::generic::union(a, b));
+    }
     if (matches!(a, Value::Instance(_)) || matches!(b, Value::Instance(_)))
         && let Some(r) = instance_binary(op, a, b, inplace)
     {

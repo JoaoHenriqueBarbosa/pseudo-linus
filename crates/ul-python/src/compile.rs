@@ -91,6 +91,8 @@ pub enum Op {
     /// Variável local da função em execução (`UnboundLocalError` se ainda sem valor).
     LoadLocal(u32),
     StoreLocal(u32),
+    /// `[anotação]`: grava em `__annotations__[nome]` do módulo ou do corpo de classe.
+    Annotate(u32),
     /// Cria a função `functions[code]` com `ndefaults` valores padrão tirados da pilha e, se
     /// `kwdefaults` aponta uma tupla de nomes em `consts`, os padrões só-nomeados correspondentes
     /// (empilhados depois dos posicionais).
@@ -729,10 +731,18 @@ impl Compiler {
             S::With { items, body, .. } => self.with_stmt(items, body)?,
             S::AsyncWith { .. } => return Err(self.unsupported("async with")),
             S::Match { .. } => return Err(self.unsupported("match")),
-            S::AnnAssign { target, value, .. } => {
+            S::AnnAssign { target, annotation, value, .. } => {
                 if let Some(v) = value {
                     self.expr(v)?;
                     self.store(target)?;
+                }
+                // Anotações de nome simples no módulo e em corpo de classe viram `__annotations__`.
+                if self.locals.is_none() || self.in_class_body {
+                    if let E::Name { id, .. } = &target.kind {
+                        self.expr(annotation)?;
+                        let n = self.name(id);
+                        self.emit(Op::Annotate(n));
+                    }
                 }
             }
             S::TypeAlias { .. } => return Err(self.unsupported("type aliases")),
@@ -1601,7 +1611,7 @@ impl Compiler {
             Constant::Str(s) => Value::str(s.clone()),
             Constant::Bytes(b) => Value::bytes(b.clone()),
             Constant::Complex(..) => return Err(self.unsupported("complex numbers")),
-            Constant::Ellipsis => return Err(self.unsupported("Ellipsis")),
+            Constant::Ellipsis => Value::Builtin("Ellipsis"),
         })
     }
 }

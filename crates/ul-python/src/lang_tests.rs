@@ -107,6 +107,44 @@ print(T(1, 2), T(1, 2)[1])
 }
 
 #[test]
+fn descriptors_annotations_and_generics() {
+    let src = "\
+class Positive:
+    def __set_name__(self, owner, name):
+        self.name = '_' + name
+    def __get__(self, obj, objtype=None):
+        if obj is None:
+            return self
+        return getattr(obj, self.name)
+    def __set__(self, obj, value):
+        if value <= 0:
+            raise ValueError('must be positive')
+        object.__setattr__(obj, self.name, value)
+class Item:
+    qty = Positive()
+    label: str = 'x'
+    count: int
+    def __init__(self, qty):
+        self.qty = qty
+i = Item(3)
+print(i.qty, Item.__annotations__)
+try:
+    i.qty = -1
+except ValueError as e:
+    print('erro', e)
+print(list[int], dict[str, list[int]], int | None, isinstance(3, int | str), ...)
+def f(x: list[int] | None = None) -> tuple[int, ...]:
+    return ()
+print(f())
+";
+    assert_eq!(
+        out(src),
+        "3 {'label': <class 'str'>, 'count': <class 'int'>}\nerro must be positive\n\
+         list[int] dict[str, list[int]] int | None True Ellipsis\n()\n"
+    );
+}
+
+#[test]
 fn closures_and_nonlocal() {
     let src = "\
 def counter():

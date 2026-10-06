@@ -149,6 +149,79 @@ fn native(name: &'static str, f: crate::object::NativeFnPtr) -> Value {
     Value::NativeFn(Rc::new(NativeFn { name, f }))
 }
 
+fn object_setattr(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    match args.as_slice() {
+        [Value::Instance(i), Value::Str(n), v] => {
+            i.dict.borrow_mut().insert(n.as_str().to_string(), v.clone());
+            Ok(Value::None)
+        }
+        [other, ..] => Err(type_error(format!(
+            "can't apply this __setattr__ to {} object",
+            other.type_name()
+        ))),
+        [] => Err(type_error("expected 3 arguments, got 0")),
+    }
+}
+
+fn object_delattr(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    match args.as_slice() {
+        [Value::Instance(i), Value::Str(n)] => match i.dict.borrow_mut().remove(n.as_str()) {
+            Some(_) => Ok(Value::None),
+            None => Err(crate::vm::exc("AttributeError", n.as_str().to_string())),
+        },
+        _ => Err(type_error("expected 2 arguments")),
+    }
+}
+
+fn object_getattribute(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    match args.as_slice() {
+        [Value::Instance(i), Value::Str(n)] => {
+            let own = i.dict.borrow().get(n.as_str()).cloned();
+            match own {
+                Some(v) => Ok(v),
+                None => {
+                    let obj = Value::Instance(i.clone());
+                    vm.instance_getattr(&obj, i, n.as_str())
+                }
+            }
+        }
+        _ => Err(type_error("expected 2 arguments")),
+    }
+}
+
+fn object_new(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    match args.first() {
+        Some(Value::Class(c)) => Ok(Value::Instance(Rc::new(crate::object::InstanceObj {
+            class: c.clone(),
+            dict: std::cell::RefCell::new(std::collections::BTreeMap::new()),
+            payload: std::cell::RefCell::new(None),
+        }))),
+        _ => Err(type_error("object.__new__(X): X is not a type object")),
+    }
+}
+
+fn object_init(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    Ok(Value::None)
+}
+
+/// Atributos de `object`: `object.__setattr__(self, nome, valor)` e companhia.
+pub fn object_attr(name: &str) -> Option<Value> {
+    Some(match name {
+        "__setattr__" => native("__setattr__", object_setattr),
+        "__delattr__" => native("__delattr__", object_delattr),
+        "__getattribute__" => native("__getattribute__", object_getattribute),
+        "__new__" => native("__new__", object_new),
+        "__init__" => native("__init__", object_init),
+        "__name__" => Value::str("object"),
+        _ => return None,
+    })
+}
+
+/// O nome é o de um tipo embutido de dados (`int`, `dict`...)?
+pub fn is_type_name(name: &str) -> bool {
+    TYPES.contains(&name)
+}
+
 /// O atributo `name` do tipo embutido `tname`, se existir.
 pub fn type_attr(tname: &str, name: &str) -> Option<Value> {
     let tname: &'static str = TYPES.iter().copied().find(|t| *t == tname)?;
