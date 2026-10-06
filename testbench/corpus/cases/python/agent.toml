@@ -1,0 +1,256 @@
+tool = "python3"
+source = "manual"
+
+# Cenários de uso de agente que dependem do sistema de arquivos, de fusos (/usr/share/zoneinfo) ou de
+# vários processos (servidor em segundo plano mais cliente): ficam aqui, no kernel real, e não nos testes de
+# unidade do interpretador.
+
+[[case]]
+id = "fs-shutil-zip-tar"
+script = '''
+python3 - <<'PYEOF'
+import os, shutil, zipfile, gzip, tarfile, pathlib, tempfile, hashlib, fnmatch, glob, io, stat, time
+
+base = pathlib.Path(tempfile.mkdtemp(prefix='proj_'))
+src = base / 'src'
+(src / 'pkg' / 'sub').mkdir(parents=True)
+for i, name in enumerate(['a.py', 'b.txt', 'pkg/c.py', 'pkg/sub/d.md']):
+    (src / name).write_text(f'arquivo {i}\n' * (i + 1), encoding='utf-8')
+print(sorted(p.relative_to(src).as_posix() for p in src.rglob('*.py')))
+print(sorted(os.path.relpath(p, src) for p in glob.glob(str(src / '**' / '*'), recursive=True)))
+for root, dirs, files in sorted(os.walk(src)):
+    dirs.sort()
+    print(os.path.relpath(root, src), sorted(files))
+dst = base / 'copia'
+shutil.copytree(src, dst, ignore=shutil.ignore_patterns('*.md'))
+print(sorted(str(p.relative_to(dst)) for p in dst.rglob('*') if p.is_file()))
+arq = shutil.make_archive(str(base / 'pacote'), 'zip', root_dir=src)
+with zipfile.ZipFile(arq) as z:
+    print(sorted(z.namelist()), z.read('pkg/c.py').decode().count('\n'))
+    info = z.getinfo('a.py'); print(info.file_size, info.compress_type in (0, 8))
+with zipfile.ZipFile(base / 'm.zip', 'w', zipfile.ZIP_DEFLATED) as z:
+    z.writestr('x/y.txt', 'olá ' * 100)
+    z.write(src / 'b.txt', 'b.txt')
+with zipfile.ZipFile(base / 'm.zip') as z:
+    print(z.testzip(), [(i.filename, i.file_size) for i in z.infolist()])
+    z.extractall(base / 'ext')
+print((base / 'ext' / 'x' / 'y.txt').read_text()[:8])
+gz = base / 'log.gz'
+with gzip.open(gz, 'wt', encoding='utf-8') as f:
+    f.write('linha\n' * 50)
+with gzip.open(gz, 'rt') as f:
+    print(sum(1 for _ in f), gzip.decompress(gz.read_bytes())[:6])
+with tarfile.open(base / 't.tar.gz', 'w:gz') as t:
+    t.add(src, arcname='src')
+with tarfile.open(base / 't.tar.gz') as t:
+    print(sorted(m.name for m in t.getmembers() if m.isfile()))
+    print(t.extractfile('src/a.py').read())
+h = hashlib.sha256()
+with open(src / 'b.txt', 'rb') as f:
+    for chunk in iter(lambda: f.read(4), b''):
+        h.update(chunk)
+print(h.hexdigest()[:16], hashlib.md5(b'x').hexdigest())
+print(fnmatch.filter(['a.py', 'b.PY', 'c.txt'], '*.py'), fnmatch.fnmatch('B.PY', '*.py'))
+st = os.stat(src / 'a.py'); print(stat.S_ISREG(st.st_mode), st.st_size, oct(st.st_mode & 0o777) != '')
+os.chmod(src / 'a.py', 0o600); print(oct(os.stat(src / 'a.py').st_mode & 0o777))
+os.rename(src / 'b.txt', src / 'b2.txt'); os.replace(src / 'b2.txt', src / 'b3.txt')
+print(sorted(os.listdir(src)), os.path.splitext('x/y.tar.gz'), os.path.getsize(src / 'b3.txt'))
+p = src / 'pkg' / 'c.py'
+print(p.stem, p.suffix, p.parent.name, p.with_suffix('.bak').name, p.match('pkg/*.py'), p.exists())
+print(shutil.disk_usage(base).total > 0, shutil.which('sh') is not None)
+shutil.move(str(src / 'b3.txt'), str(dst / 'movido.txt'))
+print((dst / 'movido.txt').exists(), not (src / 'b3.txt').exists())
+shutil.rmtree(base)
+print(base.exists())
+PYEOF
+'''
+tags = ["agent"]
+
+[[case]]
+id = "dates-zones-decimal"
+script = '''
+python3 - <<'PYEOF'
+from datetime import datetime, date, time, timedelta, timezone
+from zoneinfo import ZoneInfo
+from decimal import Decimal, ROUND_HALF_UP, getcontext, localcontext
+import calendar, time as _t, email.utils, json
+
+sp = ZoneInfo('America/Sao_Paulo'); ny = ZoneInfo('America/New_York'); utc = timezone.utc
+t = datetime(2026, 3, 8, 6, 30, tzinfo=utc)
+print(t.astimezone(sp), t.astimezone(ny), t.astimezone(ny).tzname(), t.astimezone(ny).dst())
+print((datetime(2026, 11, 1, 12, tzinfo=ny) - datetime(2026, 10, 31, 12, tzinfo=ny)), datetime(2026, 11, 1, 1, 30, fold=1, tzinfo=ny).utcoffset())
+d = date(2026, 10, 6)
+print(d.isocalendar(), d.strftime('%A %d/%m/%Y %j %U'), d + timedelta(weeks=3), d.replace(day=31) if False else d.toordinal())
+print(calendar.monthrange(2026, 2), calendar.isleap(2028), calendar.month(2026, 10).splitlines()[0].strip())
+print(datetime.fromisoformat('2026-10-06T14:05:09.123+03:00').astimezone(utc).isoformat(timespec='milliseconds'))
+print(datetime.strptime('06/10/2026 23:59', '%d/%m/%Y %H:%M') + timedelta(minutes=2))
+print(timedelta(days=1, seconds=3725, microseconds=5), timedelta(hours=-1).total_seconds(), abs(timedelta(days=-2)) // timedelta(hours=5))
+print(email.utils.format_datetime(t), email.utils.parsedate_to_datetime('Tue, 06 Oct 2026 10:00:00 -0300').isoformat())
+print(datetime(2026, 1, 1, tzinfo=utc).timestamp(), datetime.fromtimestamp(0, utc), _t.strftime('%Y', _t.gmtime(86400 * 365)))
+precos = [Decimal('19.90'), Decimal('5.05'), Decimal('0.333')]
+tot = sum(precos); print(tot, tot.quantize(Decimal('0.01'), ROUND_HALF_UP), (tot * Decimal('1.075')).quantize(Decimal('.01')))
+with localcontext() as ctx:
+    ctx.prec = 5; print(Decimal(1) / Decimal(7), Decimal('2').sqrt())
+print(getcontext().prec, Decimal('1e3').normalize(), Decimal('-0.00').is_signed(), f"{Decimal('1234567.891'):,.2f}", Decimal(0.1))
+print(round(Decimal('2.675'), 2), Decimal('10') % Decimal('3'), divmod(Decimal(-7), Decimal(2)), Decimal('NaN').is_nan())
+print(json.dumps({'quando': t.isoformat(), 'valor': str(tot)}), sorted([date(2026, 1, 2), date(2025, 12, 31)])[0])
+print(time(23, 59, 59, 999999).isoformat(), (datetime.combine(d, time(8)) - datetime.combine(d, time(17, 30))).days)
+PYEOF
+'''
+tags = ["agent"]
+
+[[case]]
+id = "http-server-bg-client"
+script = '''
+mkdir -p /tmp/site && cd /tmp/site
+echo '<h1>oi</h1>' > index.html
+printf '{"a": 1}\n' > dados.json
+python3 -m http.server 8123 --bind 127.0.0.1 >/tmp/srv.log 2>&1 &
+sleep 1
+curl -s http://127.0.0.1:8123/dados.json
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8123/nada
+curl -sI http://127.0.0.1:8123/index.html | head -1
+wget -q -O - http://127.0.0.1:8123/index.html
+python3 -c "import urllib.request,json;print(json.load(urllib.request.urlopen('http://127.0.0.1:8123/dados.json')))"
+kill %1
+wait
+echo fim
+'''
+tags = ["agent", "net"]
+
+[[case]]
+id = "tcp-two-processes"
+script = '''
+cd /tmp
+cat > srv.py <<'EOF'
+import socket, os, sys
+s = socket.socket(); s.bind(('127.0.0.1', 0)); s.listen()
+open('/tmp/port', 'w').write(str(s.getsockname()[1]))
+for _ in range(2):
+    c, a = s.accept()
+    data = b''
+    while chunk := c.recv(7):
+        data += chunk
+    c.sendall(data.upper() * 3)
+    c.close()
+print('srv ok', a[0], file=sys.stderr)
+EOF
+cat > cli.py <<'EOF'
+import socket, time, os
+while not os.path.exists('/tmp/port') or not open('/tmp/port').read(): time.sleep(0.05)
+port = int(open('/tmp/port').read())
+for msg in (b'hello world', b'x' * 100000):
+    c = socket.create_connection(('127.0.0.1', port))
+    same = c.getpeername()[1] == port
+    c.sendall(msg); c.shutdown(socket.SHUT_WR)
+    got = b''
+    while chunk := c.recv(65536):
+        got += chunk
+    print(len(got), got[:11], same)
+    c.close()
+try:
+    socket.create_connection(('127.0.0.1', 1))
+except ConnectionRefusedError as e:
+    print('recusada', e.errno)
+EOF
+rm -f /tmp/port
+python3 srv.py &
+python3 cli.py
+wait
+echo fim
+'''
+tags = ["agent", "net"]
+
+[[case]]
+id = "asyncio-two-processes"
+script = '''
+cd /tmp
+cat > asrv.py <<'EOF'
+import asyncio
+async def handle(r, w):
+    while line := await r.readline():
+        w.write(b'eco: ' + line.upper())
+        await w.drain()
+    w.close()
+async def main():
+    srv = await asyncio.start_server(handle, '127.0.0.1', 8765)
+    async with srv:
+        await asyncio.sleep(3)
+asyncio.run(main())
+EOF
+cat > acli.py <<'EOF'
+import asyncio
+async def one(i):
+    r, w = await asyncio.open_connection('127.0.0.1', 8765)
+    for word in ('um', 'dois'):
+        w.write(f'{word} {i}\n'.encode()); await w.drain()
+        print((await r.readline()).decode().strip())
+    w.close(); await w.wait_closed()
+async def main():
+    for _ in range(50):
+        try:
+            await one(0); break
+        except ConnectionRefusedError:
+            await asyncio.sleep(0.05)
+    await asyncio.gather(one(1), one(2))
+asyncio.run(main())
+EOF
+python3 asrv.py &
+python3 acli.py | sort
+wait
+echo fim
+'''
+tags = ["agent", "net"]
+
+[[case]]
+id = "crawler-local-site"
+script = '''
+set -e
+mkdir -p /tmp/www/blog && cd /tmp/www
+cat > index.html <<'EOF'
+<!doctype html><html><head><title>Início &amp; mais</title><meta charset="utf-8"></head>
+<body><h1>Olá</h1><a href="/blog/a.html">A</a> <a href="blog/b.html">B</a> <a href="https://x.org">ext</a>
+<img src="logo.png" alt="logo"></body></html>
+EOF
+echo '<html><head><title>Post A</title></head><body><p>texto <b>forte</b></p><a href="/">home</a></body></html>' > blog/a.html
+echo '<html><head><title>Post B</title></head><body><a href="/nada.html">quebrado</a></body></html>' > blog/b.html
+python3 -m http.server 8181 --bind 127.0.0.1 -d /tmp/www >/tmp/www.log 2>&1 &
+cat > /tmp/crawl.py <<'EOF'
+import json, urllib.request, urllib.error, urllib.parse, time
+from html.parser import HTMLParser
+class P(HTMLParser):
+    def __init__(s):
+        super().__init__(); s.links = []; s.title = ''; s._t = False
+    def handle_starttag(s, tag, attrs):
+        a = dict(attrs)
+        if tag == 'a': s.links.append(a['href'])
+        if tag == 'title': s._t = True
+    def handle_endtag(s, tag):
+        if tag == 'title': s._t = False
+    def handle_data(s, d):
+        if s._t: s.title += d
+base = 'http://127.0.0.1:8181/'
+for _ in range(100):
+    try: urllib.request.urlopen(base).close(); break
+    except urllib.error.URLError: time.sleep(0.05)
+seen, queue, report = set(), [base], {}
+while queue:
+    url = queue.pop(0)
+    if url in seen: continue
+    seen.add(url)
+    try:
+        with urllib.request.urlopen(url) as r:
+            p = P(); p.feed(r.read().decode());
+            report[urllib.parse.urlparse(url).path] = {'status': r.status, 'title': p.title, 'type': r.headers.get_content_type()}
+            for h in p.links:
+                full = urllib.parse.urljoin(url, h)
+                if full.startswith(base): queue.append(full)
+    except urllib.error.HTTPError as e:
+        report[urllib.parse.urlparse(url).path] = {'status': e.code}
+print(json.dumps(report, indent=1, sort_keys=True, ensure_ascii=False))
+EOF
+python3 /tmp/crawl.py
+kill %1; wait || true
+grep -c 'GET' /tmp/www.log
+'''
+tags = ["agent", "net"]

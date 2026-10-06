@@ -1,0 +1,38 @@
+{
+  "asyncio-two-processes": {
+    "stdout": "eco: DOIS 0\neco: DOIS 1\neco: DOIS 2\neco: UM 0\neco: UM 1\neco: UM 2\nfim\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "crawler-local-site": {
+    "stdout": "{\n \"/\": {\n  \"status\": 200,\n  \"title\": \"Início & mais\",\n  \"type\": \"text/html\"\n },\n \"/blog/a.html\": {\n  \"status\": 200,\n  \"title\": \"Post A\",\n  \"type\": \"text/html\"\n },\n \"/blog/b.html\": {\n  \"status\": 200,\n  \"title\": \"Post B\",\n  \"type\": \"text/html\"\n },\n \"/nada.html\": {\n  \"status\": 404\n }\n}\n5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dates-zones-decimal": {
+    "stdout": "2026-03-08 03:30:00-03:00 2026-03-08 01:30:00-05:00 EST 0:00:00\n1 day, 0:00:00 -1 day, 19:00:00\ndatetime.IsoCalendarDate(year=2026, week=41, weekday=2) Tuesday 06/10/2026 279 40 2026-10-27 739895\n(calendar.SUNDAY, 28) True October 2026\n2026-10-06T11:05:09.123+00:00\n2026-10-07 00:01:00\n1 day, 1:02:05.000005 -3600.0 9\nSun, 08 Mar 2026 06:30:00 +0000 2026-10-06T10:00:00-03:00\n1767225600.0 1970-01-01 00:00:00+00:00 1971\n25.283 25.28 27.18\n0.14286 1.4142\n28 1E+3 True 1,234,567.89 0.1000000000000000055511151231257827021181583404541015625\n2.68 1 (Decimal('-3'), Decimal('-1')) True\n{\"quando\": \"2026-03-08T06:30:00+00:00\", \"valor\": \"25.283\"} 2025-12-31\n23:59:59.999999 -1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fs-shutil-zip-tar": {
+    "stdout": "['a.py', 'pkg/c.py']\n['a.py', 'b.txt', 'pkg', 'pkg/c.py', 'pkg/sub', 'pkg/sub/d.md']\n. ['a.py', 'b.txt']\npkg ['c.py']\npkg/sub ['d.md']\n['a.py', 'b.txt', 'pkg/c.py']\n['a.py', 'b.txt', 'pkg/', 'pkg/c.py', 'pkg/sub/', 'pkg/sub/d.md'] 3\n10 True\nNone [('x/y.txt', 500), ('b.txt', 20)]\nolá olá \n50 b'linha\\n'\n['src/a.py', 'src/b.txt', 'src/pkg/c.py', 'src/pkg/sub/d.md']\nb'arquivo 0\\n'\nfcc520946628ac91 9dd4e461268c8034f5c8564e155c67a6\n['a.py'] False\nTrue 10 True\n0o600\n['a.py', 'b3.txt', 'pkg'] ('x/y.tar', '.gz') 20\nc .py pkg c.bak True True\nTrue True\nTrue True\nFalse\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "http-server-bg-client": {
+    "stdout": "{\"a\": 1}\n404\nHTTP/1.0 200 OK\r\n<h1>oi</h1>\n{'a': 1}\nfim\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "tcp-two-processes": {
+    "stdout": "33 b'HELLO WORLD' True\n300000 b'XXXXXXXXXXX' True\nrecusada 111\nfim\n",
+    "stderr": "srv ok 127.0.0.1\n",
+    "exit": 0,
+    "files": {}
+  }
+}

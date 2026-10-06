@@ -10,7 +10,9 @@ pub mod net {
     pub mod url;
 }
 
+pub mod curl;
+
 /// Os programas deste crate.
 pub fn programs() -> Vec<sysabi::Program> {
-    Vec::new()
+    vec![sysabi::Program::bin("curl", curl::main)]
 }

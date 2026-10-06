@@ -2242,10 +2242,22 @@ impl Syscalls for Task {
 
     // ---- rede ----
 
-    fn net_connect(&self, _host: &[u8], _port: u16, _timeout: Option<Duration>) -> SysResult<NetConn> {
+    fn net_connect(&self, host: &[u8], port: u16, _timeout: Option<Duration>) -> SysResult<NetConn> {
         self.enter();
-        // Política padrão do sandbox: allowlist vazia (nenhum destino liberado). A allowlist configurável e
-        // a conexão numa thread do kernel entram no marco 3.
-        Err(Errno::EACCES)
+        // O loopback é sempre alcançável: fala com quem escuta no sandbox. Fora dele, a política padrão é a
+        // allowlist vazia (nenhum destino liberado); a allowlist configurável entra no marco 3.
+        let ip: std::net::IpAddr = match host {
+            b"localhost" | b"127.0.0.1" | b"localhost.localdomain" => std::net::Ipv4Addr::LOCALHOST.into(),
+            b"::1" | b"ip6-localhost" | b"ip6-loopback" => std::net::Ipv6Addr::LOCALHOST.into(),
+            h if h.starts_with(b"127.") && std::str::from_utf8(h).is_ok_and(|s| s.parse::<std::net::Ipv4Addr>().is_ok()) => {
+                std::str::from_utf8(h).unwrap_or("127.0.0.1").parse::<std::net::Ipv4Addr>().unwrap_or(std::net::Ipv4Addr::LOCALHOST).into()
+            }
+            _ => return Err(Errno::EACCES),
+        };
+        let conn = self.sb.ports.connect(port, || self.sock_pipe())?;
+        let local = conn.local;
+        let fd = self.install_sock(FileObj::Stream(conn), false, true)?;
+        let local_ip: std::net::IpAddr = if ip.is_ipv6() { std::net::Ipv6Addr::LOCALHOST.into() } else { std::net::Ipv4Addr::LOCALHOST.into() };
+        Ok(NetConn { fd, peer: std::net::SocketAddr::new(ip, port), local: std::net::SocketAddr::new(local_ip, local) })
     }
 }

@@ -878,12 +878,22 @@ class datetime(date):
         return r
 
     def _utc_us(self):
-        days = self.toordinal()
-        us = (((days * 24 + self._hour) * 60 + self._minute) * 60 + self._second) * 1000000 + self._microsecond
+        us = self._naive_us()
         off = self.utcoffset()
         if off is not None:
             us -= off._total_us()
         return us
+
+    def _naive_us(self):
+        days = self.toordinal()
+        return (((days * 24 + self._hour) * 60 + self._minute) * 60 + self._second) * 1000000 + self._microsecond
+
+    def _keys(self, other):
+        """Chaves para comparar e subtrair: com o mesmo objeto `tzinfo` o CPython ignora o deslocamento (é
+        aritmética de relógio de parede); senão compara os instantes em UTC."""
+        if self._tzinfo is other._tzinfo:
+            return self._naive_us(), other._naive_us()
+        return self._utc_us(), other._utc_us()
 
     def _cmp_other(self, other):
         if isinstance(other, datetime):
@@ -897,23 +907,36 @@ class datetime(date):
             return NotImplemented
         if (self._tzinfo is None) != (other._tzinfo is None):
             return False
-        return self._utc_us() == other._utc_us()
+        a, b = self._keys(other)
+        return a == b
 
     def __lt__(self, other):
         o = self._cmp_other(other)
-        return NotImplemented if o is None else self._utc_us() < o._utc_us()
+        if o is None:
+            return NotImplemented
+        a, b = self._keys(o)
+        return a < b
 
     def __le__(self, other):
         o = self._cmp_other(other)
-        return NotImplemented if o is None else self._utc_us() <= o._utc_us()
+        if o is None:
+            return NotImplemented
+        a, b = self._keys(o)
+        return a <= b
 
     def __gt__(self, other):
         o = self._cmp_other(other)
-        return NotImplemented if o is None else self._utc_us() > o._utc_us()
+        if o is None:
+            return NotImplemented
+        a, b = self._keys(o)
+        return a > b
 
     def __ge__(self, other):
         o = self._cmp_other(other)
-        return NotImplemented if o is None else self._utc_us() >= o._utc_us()
+        if o is None:
+            return NotImplemented
+        a, b = self._keys(o)
+        return a >= b
 
     def __hash__(self):
         return hash(self._utc_us())
@@ -938,7 +961,8 @@ class datetime(date):
         if isinstance(other, datetime):
             if (self._tzinfo is None) != (other._tzinfo is None):
                 raise TypeError("can't subtract offset-naive and offset-aware datetimes")
-            return timedelta(microseconds=self._utc_us() - other._utc_us())
+            a, b = self._keys(other)
+            return timedelta(microseconds=a - b)
         if isinstance(other, timedelta):
             return self + timedelta(microseconds=-other._total_us())
         return NotImplemented
