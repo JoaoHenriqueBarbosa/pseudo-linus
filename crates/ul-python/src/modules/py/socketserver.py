@@ -222,6 +222,11 @@ class BaseServer:
         self.timeout. If you need to do periodic tasks, do them in
         another thread.
         """
+        # As threads do sandbox são cooperativas: fora da principal, o laço vira um serviço que o
+        # escalonador passa a cada espera (senão prenderia para sempre quem pôs a thread para rodar).
+        if threading._state['current'] is not threading._main:
+            self.__is_shut_down.clear()
+            threading._serve(self._cooperative_step)
         self.__is_shut_down.clear()
         try:
             # XXX: Consider using another file descriptor or connecting to the
@@ -243,6 +248,24 @@ class BaseServer:
         finally:
             self.__shutdown_request = False
             self.__is_shut_down.set()
+
+    def _cooperative_step(self):
+        """Um passo do `serve_forever` como serviço: atende o pedido pronto, se houver; `None` no `shutdown()`."""
+        if self.__shutdown_request:
+            self.__shutdown_request = False
+            self.__is_shut_down.set()
+            return None
+        try:
+            with _ServerSelector() as selector:
+                selector.register(self, selectors.EVENT_READ)
+                ready = selector.select(0)
+        except (OSError, ValueError):
+            self.__is_shut_down.set()
+            return None
+        if ready:
+            self._handle_request_noblock()
+        self.service_actions()
+        return bool(ready)
 
     def shutdown(self):
         """Stops the serve_forever loop.

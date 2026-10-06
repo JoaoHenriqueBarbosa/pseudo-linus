@@ -34,6 +34,56 @@ class _Parked(BaseException):
         self.sliced = sliced
 
 
+class _Served(BaseException):
+    """Desenrola a pilha de uma thread que virou serviço (`_serve`): ela segue viva pelos passos registrados."""
+
+
+# Threads que viraram serviço: (thread, passo, ocupado). O passo não bloqueia, devolve `True` se fez algo,
+# `False` se não havia nada a fazer e `None` quando o serviço acabou.
+_services = []
+
+
+def _serve(step):
+    """Transforma a thread atual num serviço. Um laço que nunca retorna (`serve_forever`) prenderia, por cima
+    dele, a thread que o pôs para rodar; como serviço, cada espera do escalonador roda um passo dele, e a
+    thread fica viva até o passo devolver `None`. Não retorna."""
+    _services.append([_state['current'], step, False])
+    raise _Served()
+
+
+def _run_services():
+    """Um passo de cada serviço livre. `True` se algum fez progresso."""
+    progressed = False
+    for entry in list(_services):
+        thread, step, busy = entry
+        if busy or entry not in _services:
+            continue
+        entry[2] = True
+        previous = _state['current']
+        _state['current'] = thread
+        _thread._idents.append(thread._ident)
+        try:
+            result = step()
+        except BaseException as exc:
+            excepthook(_ExceptHookArgs(type(exc), exc, exc.__traceback__, thread))
+            result = None
+        finally:
+            _thread._idents.pop()
+            _state['current'] = previous
+            entry[2] = False
+        if result is None:
+            if entry in _services:
+                _services.remove(entry)
+            thread._parked = False
+            thread._finished = True
+            if thread in _threads:
+                _threads.remove(thread)
+            progressed = True
+        elif result:
+            progressed = True
+    return progressed
+
+
 def settrace(func):
     pass
 
@@ -72,11 +122,20 @@ def _would_park():
 
 
 def _wait_for(cond, timeout, what):
-    """Roda threads pendentes até `cond()` ficar verdadeira. Com `timeout`, dorme o que faltar e devolve `cond()`."""
+    """Roda threads pendentes (e os passos dos serviços) até `cond()` ficar verdadeira. Com `timeout`, dorme o
+    que faltar e devolve `cond()`."""
     deadline = None if timeout is None else _time.monotonic() + max(timeout, 0)
     while not cond():
         if _run_one():
             continue
+        if _services:
+            if _run_services():
+                continue
+            # Um serviço pode destravar a espera quando chegar trabalho: sonda de novo em pouco tempo.
+            if deadline is None or deadline - _time.monotonic() > 0:
+                if any(not busy for _, _, busy in _services):
+                    _time.sleep(0.001)
+                    continue
         if deadline is None:
             _no_progress(what)
         left = deadline - _time.monotonic()
@@ -436,6 +495,8 @@ class Thread:
                 self.run()
             except SystemExit:
                 pass
+            except _Served:
+                self._parked = True
             except _Parked as parked:
                 self._parked = not parked.sliced
             except BaseException as exc:

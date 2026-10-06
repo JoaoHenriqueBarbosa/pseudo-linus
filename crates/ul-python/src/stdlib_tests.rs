@@ -5533,3 +5533,56 @@ sem nope
 "##
     );
 }
+
+#[test]
+fn http_server_forever_in_thread() {
+    let src = r##"
+import http.server, threading, json, urllib.request, urllib.error, urllib.parse, socketserver, http.client, socket
+class H(http.server.BaseHTTPRequestHandler):
+    def log_message(self, *a): pass
+    def _send(self, code, obj, headers=()):
+        body = json.dumps(obj).encode(); self.send_response(code); self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
+        for k, v in headers: self.send_header(k, v)
+        self.end_headers(); self.wfile.write(body)
+    def do_GET(self):
+        u = urllib.parse.urlsplit(self.path)
+        if u.path == '/items': self._send(200, {'q': urllib.parse.parse_qs(u.query), 'ua': self.headers.get('User-Agent', '')[:6]})
+        elif u.path == '/redir': self.send_response(302); self.send_header('Location', '/items?r=1'); self.end_headers()
+        else: self._send(404, {'err': 'nf'})
+    def do_POST(self):
+        n = int(self.headers['Content-Length']); data = json.loads(self.rfile.read(n))
+        self._send(201, {'got': data, 'ct': self.headers.get_content_type()}, [('X-Id', '7')])
+srv = socketserver.ThreadingTCPServer(('127.0.0.1', 0), H); srv.daemon_threads = True
+port = srv.server_address[1]; t = threading.Thread(target=srv.serve_forever, daemon=True); t.start()
+base = f'http://127.0.0.1:{port}'
+with urllib.request.urlopen(base + '/items?a=1&a=2') as r: print(r.status, r.headers['Content-Type'], json.load(r))
+req = urllib.request.Request(base + '/items', data=json.dumps({'x': [1, 2]}).encode(), headers={'Content-Type': 'application/json'}, method='POST')
+with urllib.request.urlopen(req, timeout=5) as r: print(r.status, r.getheader('X-Id'), json.loads(r.read()))
+with urllib.request.urlopen(base + '/redir') as r: print(r.status, r.url.endswith('/items?r=1'), json.load(r)['q'])
+try: urllib.request.urlopen(base + '/nada')
+except urllib.error.HTTPError as e: print('HTTPError', e.code, e.reason, json.loads(e.read()))
+try: urllib.request.urlopen('http://127.0.0.1:1/x', timeout=2)
+except urllib.error.URLError as e: print('URLError', type(e.reason).__name__)
+c = http.client.HTTPConnection('127.0.0.1', port, timeout=5); c.request('GET', '/items?z=9', headers={'User-Agent': 'agente/1'}); resp = c.getresponse()
+print(resp.status, resp.reason, json.loads(resp.read())); c.close()
+s = socket.create_connection(('127.0.0.1', port)); s.sendall(b'GET /items HTTP/1.0\r\nHost: x\r\n\r\n'); data = b''
+while (chunk := s.recv(4096)): data += chunk
+s.close(); print(data.split(b'\r\n')[0], data.endswith(b'}'))
+srv.shutdown(); srv.server_close(); print('fim')
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"200 application/json {'q': {'a': ['1', '2']}, 'ua': 'Python'}
+201 7 {'got': {'x': [1, 2]}, 'ct': 'application/json'}
+200 True {'r': ['1']}
+HTTPError 404 Not Found {'err': 'nf'}
+URLError ConnectionRefusedError
+200 OK {'q': {'z': ['9']}, 'ua': 'agente'}
+b'HTTP/1.0 200 OK' True
+fim
+"##
+    );
+}
