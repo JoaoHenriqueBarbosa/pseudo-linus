@@ -286,6 +286,7 @@ class TracebackException:
                  capture_locals=False, compact=False, max_group_width=15, max_group_depth=10):
         self.exc_type = exc_type
         self._value = exc_value
+        self._tb = exc_traceback
         self.stack = StackSummary.extract(walk_tb(exc_traceback), limit=limit, lookup_lines=lookup_lines)
         self.__cause__ = None
         self.__context__ = None
@@ -305,7 +306,7 @@ class TracebackException:
 
     def format(self, *, chain=True):
         if chain and self._value is not None:
-            tb = getattr(self._value, '__traceback__', None)
+            tb = self._tb
             lines = _format_one(self.exc_type, self._value, tb, None, True, set())
             for line in lines:
                 yield line

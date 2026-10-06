@@ -235,7 +235,7 @@ impl ExtObject for GenObj {
                 let Some(first) = args.into_iter().next() else {
                     return Err(type_error("throw expected at least 1 argument, got 0"));
                 };
-                let e = vm.raise_any(first)?;
+                let e = raise_for_throw(vm, first)?;
                 self.step(None, Some(e))
             }
             "__next__" => self.step(None, None),
@@ -255,7 +255,7 @@ impl ExtObject for GenObj {
                 let Some(first) = args.into_iter().next() else {
                     return Err(type_error("athrow expected at least 1 argument, got 0"));
                 };
-                let e = vm.raise_any(first)?;
+                let e = raise_for_throw(vm, first)?;
                 Ok(self.awaitable(AGMode::Throw(e)))
             }
             "aclose" => Ok(self.awaitable(AGMode::Close)),
@@ -295,7 +295,7 @@ impl ExtObject for CoroWrapper {
             "__next__" => step(None, None),
             "throw" => {
                 let first = args.into_iter().next().ok_or_else(|| type_error("throw expected at least 1 argument, got 0"))?;
-                let e = vm.raise_any(first)?;
+                let e = raise_for_throw(vm, first)?;
                 step(None, Some(e))
             }
             "close" => {
@@ -305,6 +305,14 @@ impl ExtObject for CoroWrapper {
             _ => Err(exc("AttributeError", format!("'coroutine_wrapper' object has no attribute '{name}'"))),
         }
     }
+}
+
+/// `raise_any` para o `throw`: a exceção injetada carrega o traceback que já tinha (`__traceback__`),
+/// para os quadros de quem a levantou continuarem aparecendo depois de atravessar o gerador.
+fn raise_for_throw(vm: &mut Vm, v: Value) -> PyResult<PyException> {
+    let mut e = vm.raise_any(v)?;
+    e.seed_traceback();
+    Ok(e)
 }
 
 enum AGMode {
@@ -407,7 +415,7 @@ impl ExtObject for AGAwait {
             "__next__" => self.advance(vm, None, None),
             "throw" => {
                 let first = args.into_iter().next().ok_or_else(|| type_error("throw expected at least 1 argument, got 0"))?;
-                let e = vm.raise_any(first)?;
+                let e = raise_for_throw(vm, first)?;
                 self.advance(vm, None, Some(e))
             }
             "close" => {

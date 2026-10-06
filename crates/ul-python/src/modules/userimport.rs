@@ -16,6 +16,8 @@ struct Found {
     file: String,
     /// Diretório do pacote (`Some` se achou `nome/__init__.py`).
     package_dir: Option<String>,
+    /// Diretórios de um pacote de namespace (sem `__init__.py`); vazio nos demais casos.
+    namespace: Vec<String>,
 }
 
 /// `python3 app.pyz` ou `python3 diretório`: o `__main__.py` de um zip ou de um diretório, como
@@ -141,24 +143,76 @@ fn find(vm: &mut Vm, name: &str) -> Option<Found> {
         Some(p) => package_path(vm, p),
         None => sys_path(vm),
     };
+    // Diretórios sem `__init__.py` formam um pacote de namespace, se nenhum pacote ou módulo regular aparecer antes.
+    let mut namespace: Vec<String> = Vec::new();
     for dir in dirs {
         let pkg = join(&dir, leaf);
         let init = join(&pkg, "__init__.py");
         if is_file(&init) {
-            return Some(Found { file: init, package_dir: Some(pkg) });
+            return Some(Found { file: init, package_dir: Some(pkg), namespace: Vec::new() });
         }
         let file = join(&dir, &format!("{leaf}.py"));
         if is_file(&file) {
-            return Some(Found { file, package_dir: None });
+            return Some(Found { file, package_dir: None, namespace: Vec::new() });
+        }
+        if is_dir(&pkg) {
+            namespace.push(pkg);
         }
     }
-    None
+    if namespace.is_empty() {
+        return None;
+    }
+    Some(Found { file: String::new(), package_dir: None, namespace })
+}
+
+fn is_dir(path: &str) -> bool {
+    if sysabi::sys::try_current().is_none() {
+        return false;
+    }
+    match sysabi::sys::stat(if path.is_empty() { b"." } else { path.as_bytes() }) {
+        Ok(st) => st.mode & 0o170_000 == 0o040_000,
+        Err(_) => false,
+    }
 }
 
 /// Importa `name` de um arquivo, se existir. `Ok(None)`: não está no disco.
 pub fn load(vm: &mut Vm, name: &str) -> PyResult<Option<Rc<ModuleObj>>> {
     let Some(found) = find(vm, name) else { return Ok(None) };
+    if !found.namespace.is_empty() {
+        return Ok(Some(make_namespace(vm, name, found.namespace)));
+    }
     exec_file(vm, name, &found.file, found.package_dir.as_deref()).map(Some)
+}
+
+/// Pacote de namespace: sem código nem `__file__`, só o `__path__` com os diretórios achados.
+fn make_namespace(vm: &mut Vm, name: &str, dirs: Vec<String>) -> Rc<ModuleObj> {
+    let key: &'static str = intern(name);
+    let globals: Rc<RefCell<crate::object::VarMap>> = Rc::new(RefCell::new(Default::default()));
+    {
+        let mut g = globals.borrow_mut();
+        g.insert("__name__".into(), Value::str(name));
+        g.insert("__package__".into(), Value::str(name));
+        g.insert("__doc__".into(), Value::None);
+        g.insert("__file__".into(), Value::None);
+        g.insert("__path__".into(), Value::list(dirs.into_iter().map(Value::str).collect()));
+    }
+    let module = Rc::new(ModuleObj { name: key, attrs: RefCell::new(BTreeMap::new()) });
+    for (k, v) in globals.borrow().iter() {
+        module.attrs.borrow_mut().insert(k.clone(), v.clone());
+    }
+    vm.modules.borrow_mut().insert(name.to_string(), module.clone());
+    vm.module_globals.borrow_mut().insert(key, globals);
+    if let Some((parent, child)) = name.rsplit_once('.') {
+        let parent_module = vm.modules.borrow().get(parent).cloned();
+        if let Some(p) = parent_module {
+            let v = Value::Module(module.clone());
+            if let Some(g) = vm.module_globals.borrow().get(p.name) {
+                g.borrow_mut().insert(child.to_string(), v.clone());
+            }
+            p.attrs.borrow_mut().insert(child.to_string(), v);
+        }
+    }
+    module
 }
 
 /// Executa o arquivo `file` como o módulo `name` (`package_dir`: é o `__init__.py` de um pacote).

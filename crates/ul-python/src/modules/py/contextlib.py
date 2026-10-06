@@ -52,9 +52,10 @@ class _GeneratorContextManager(ContextDecorator):
             except StopIteration as exc:
                 return exc is not value
             except BaseException as exc:
-                if exc is value:
-                    return False
-                raise
+                if exc is not value:
+                    raise
+                exc.__traceback__ = traceback
+                return False
             raise RuntimeError("generator didn't stop after throw()")
 
 

@@ -31,7 +31,18 @@ impl TracebackObj {
 impl TracebackObj {
     /// Os quadros que este traceback cobre (do mais externo para o mais interno) e o arquivo padrão.
     pub fn frames(&self) -> (Vec<(usize, String, Rc<str>)>, Rc<str>) {
-        (self.entries[self.idx..].to_vec(), self.filename.clone())
+        let mut out = vec![self.entries[self.idx].clone()];
+        match &*self.next.borrow() {
+            // Cortado ou religado por `tb_next = ...`: segue o que foi atribuído.
+            Some(Value::None) => {}
+            Some(Value::Ext(n)) => {
+                if let Some(t) = n.as_any().and_then(|a| a.downcast_ref::<TracebackObj>()) {
+                    out.extend(t.frames().0);
+                }
+            }
+            _ => out.extend(self.entries[self.idx + 1..].iter().cloned()),
+        }
+        (out, self.filename.clone())
     }
 }
 
@@ -60,7 +71,8 @@ impl ExtObject for TracebackObj {
             })),
             "tb_next" if self.next.borrow().is_some() => self.next.borrow().clone().unwrap_or(Value::None),
             "tb_next" => {
-                if self.idx + 1 < self.entries.len() {
+                // O nó seguinte é criado uma vez e guardado: `tb.tb_next.tb_next = None` precisa valer depois.
+                let next = if self.idx + 1 < self.entries.len() {
                     Value::Ext(Rc::new(TracebackObj {
                         entries: self.entries.clone(),
                         idx: self.idx + 1,
@@ -69,7 +81,9 @@ impl ExtObject for TracebackObj {
                     }))
                 } else {
                     Value::None
-                }
+                };
+                *self.next.borrow_mut() = Some(next.clone());
+                next
             }
             _ => return None,
         }))

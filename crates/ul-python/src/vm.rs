@@ -123,6 +123,50 @@ impl PyException {
             _ => type_error("exceptions must derive from BaseException"),
         }
     }
+
+    /// A exceção de `v` voltando a subir (`raise` sem argumento, fim de `finally`/`with`): leva o traceback
+    /// que já tinha, e o quadro onde o re-raise acontece não ganha uma entrada nova (como no CPython).
+    pub(crate) fn reraised(v: &Value) -> PyException {
+        let mut e = PyException::from_value(v);
+        if e.seed_traceback() {
+            e.tb.push(RERAISE_MARK());
+        }
+        e
+    }
+
+    /// Copia para `tb` os quadros do `__traceback__` do valor. `false` se ele ainda não tinha traceback.
+    pub(crate) fn seed_traceback(&mut self) -> bool {
+        let tb = match &self.value {
+            Some(Value::Exception(x)) => x.traceback.borrow().clone(),
+            Some(Value::Instance(i)) => i.dict.borrow().get("__traceback__").cloned(),
+            _ => None,
+        };
+        if let Some(Value::Ext(t)) = tb {
+            if let Some(obj) = t.as_any().and_then(|a| a.downcast_ref::<crate::tbobj::TracebackObj>()) {
+                self.tb = obj.frames().0.into_iter().rev().collect();
+                return !self.tb.is_empty();
+            }
+        }
+        false
+    }
+
+    /// Tira a marca de re-raise, se houver. `true`: o quadro que está saindo não deve se acrescentar.
+    pub(crate) fn take_reraise_mark(&mut self) -> bool {
+        if self.tb.last().is_some_and(|t| t.0 == usize::MAX) {
+            self.tb.pop();
+            return true;
+        }
+        false
+    }
+}
+
+/// Entrada sentinela no fim de `tb`: "este quadro já está no traceback" (ver `PyException::reraised`).
+#[allow(non_snake_case)]
+fn RERAISE_MARK() -> (usize, String, Rc<str>) {
+    (usize::MAX, String::new(), Rc::from(""))
+}
+
+impl PyException {
 }
 
 /// `OSError` montado pelos módulos nativos como `[Errno N] texto: 'caminho'`: decomposto em
@@ -860,7 +904,12 @@ impl Vm {
                         self.handled.borrow_mut().truncate(b.handled);
                         let value = e.to_value();
                         // `__traceback__`: o quadro que captura primeiro, depois os internos.
-                        let mut entries = vec![(code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str()))];
+                        let reraised = e.take_reraise_mark();
+                        let mut entries = if reraised {
+                            Vec::new()
+                        } else {
+                            vec![(code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str()))]
+                        };
                         entries.extend(e.tb.iter().rev().cloned());
                         let filename = match self.argv.first().map(String::as_str) {
                             Some(a) if !a.is_empty() && a != "-c" => a.to_string(),
@@ -878,7 +927,9 @@ impl Vm {
                         *pc = b.handler;
                     }
                     None => {
-                        e.tb.push((code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str())));
+                        if !e.take_reraise_mark() {
+                            e.tb.push((code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str())));
+                        }
                         return Err(e);
                     }
                 },
@@ -1467,12 +1518,12 @@ impl Vm {
                 let Some(v) = last else {
                     return Err(exc("RuntimeError", "No active exception to reraise"));
                 };
-                return Err(PyException::from_value(&v));
+                return Err(PyException::reraised(&v));
             }
             Op::Reraise => {
                 let v = pop(stack)?;
                 self.handled.borrow_mut().pop();
-                return Err(PyException::from_value(&v));
+                return Err(PyException::reraised(&v));
             }
             Op::DeleteName(i) => {
                 let name = &code.names[i as usize];
@@ -1657,7 +1708,13 @@ impl Vm {
                 let exit = pop(stack)?;
                 let exc_value = top(stack)?.clone();
                 let ty = self.type_of(&exc_value);
-                let r = self.call(&exit, vec![ty, exc_value, Value::None], Vec::new())?;
+                let tb = match &exc_value {
+                    Value::Exception(x) => x.traceback.borrow().clone(),
+                    Value::Instance(i) => i.dict.borrow().get("__traceback__").cloned(),
+                    _ => None,
+                }
+                .unwrap_or(Value::None);
+                let r = self.call(&exit, vec![ty, exc_value, tb], Vec::new())?;
                 stack.push(Slot::Val(Value::Bool(r.is_true())));
             }
             Op::BuildClass { code: idx, nbases, kwnames } => {

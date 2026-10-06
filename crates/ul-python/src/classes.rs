@@ -902,6 +902,11 @@ impl Vm {
                 Ok(())
             }
             Value::Ext(e) if e.setattr(name, value.clone()).is_some() => e.setattr(name, value).unwrap_or(Ok(())),
+            // `exc.__traceback__ = tb` (o `contextlib` devolve o traceback original ao propagar).
+            Value::Exception(x) if name == "__traceback__" => {
+                *x.traceback.borrow_mut() = if matches!(value, Value::None) { None } else { Some(value) };
+                Ok(())
+            }
             _ => Err(exc(
                 "AttributeError",
                 format!("'{}' object has no attribute '{name}' and no __dict__ for setting new attributes", obj.type_name()),

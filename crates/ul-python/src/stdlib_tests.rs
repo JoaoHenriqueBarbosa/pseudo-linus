@@ -2950,3 +2950,45 @@ F.A|B <F.A|B: 3> <F: 0> True
 "##
     );
 }
+
+#[test]
+fn traceback_reraise_contextmanager() {
+    let src = r##"import sys, contextlib
+def g(): raise ValueError('x')
+def f(): g()
+def names(tb):
+    out = []
+    while tb: out.append((tb.tb_frame.f_code.co_name, tb.tb_lineno)); tb = tb.tb_next
+    return out
+def mid():
+    try: f()
+    except ValueError: raise
+def top():
+    try: mid()
+    finally: pass
+try: top()
+except ValueError as e: print(names(e.__traceback__))
+@contextlib.contextmanager
+def cm():
+    try: yield
+    except Exception: raise
+try:
+    with cm(): f()
+except ValueError as e: print(names(e.__traceback__))
+try:
+    try: f()
+    except ValueError as e1: raise KeyError('k') from e1
+except KeyError as e2: print(names(e2.__traceback__), names(e2.__cause__.__traceback__))
+e = ValueError('z'); e.__traceback__ = None; print(e.__traceback__)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"[('<module>', 14), ('top', 12), ('mid', 9), ('f', 3), ('g', 2)]
+[('<module>', 21), ('f', 3), ('g', 2)]
+[('<module>', 25)] [('<module>', 24), ('f', 3), ('g', 2)]
+None
+"##
+    );
+}
