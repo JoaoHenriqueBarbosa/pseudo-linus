@@ -27,6 +27,7 @@ pub mod astnative;
 pub mod sqlitenative;
 pub mod string;
 pub mod weakrefmod;
+pub mod lsprof;
 pub mod mtrandom;
 pub mod textwrap;
 pub mod unicodedata;
@@ -97,6 +98,7 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         "_weakref" => weakrefmod::build(vm),
         "_mt" => mtrandom::build(vm),
         "_json" => json::build(vm),
+        "_prof" => lsprof::build(vm),
         _ => return pysrc::import(vm, name),
     };
     vm.modules.borrow_mut().insert(name.to_string(), m.clone());
@@ -177,7 +179,7 @@ pub fn new_module(vm: &mut Vm, args: Vec<Value>, kwargs: Vec<(String, Value)>) -
 /// Módulos escritos em Rust, além dos que `pysrc` embute em Python.
 const NATIVE_MODULES: &[&str] = &[
     "_sys", "_csvimpl", "_re", "math", "_base64", "binascii", "builtins", "hashlib", "html", "textwrap",
-    "_struct", "unicodedata", "_operator", "_os", "_zlib", "_archive", "_sqlite3", "_ast_native", "_weakref", "_mt", "_json",
+    "_struct", "unicodedata", "_operator", "_os", "_zlib", "_archive", "_sqlite3", "_ast_native", "_weakref", "_mt", "_json", "_prof",
 ];
 
 /// `name` é um módulo que o interpretador traz embutido (nativo ou em Python).

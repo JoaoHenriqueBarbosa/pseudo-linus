@@ -5286,3 +5286,32 @@ for i in range(3):
 "##
     );
 }
+
+#[test]
+fn cprofile_counts_python_functions() {
+    let src = r##"
+import cProfile, pstats, io
+def leaf(n): return sum(range(n))
+def mid(n):
+    t = 0
+    for _ in range(20): t += leaf(n)
+    return t
+def fib(n): return n if n < 2 else fib(n - 1) + fib(n - 2)
+def main():
+    mid(100); fib(12); return mid(10)
+pr = cProfile.Profile(); pr.runcall(main); pr.create_stats()
+print(sorted((k[2], v[0], v[1]) for k, v in pr.stats.items() if k[2] in ('leaf', 'mid', 'fib', 'main')))
+print(sorted((k[2], sorted(kk[2] for kk in v[4])) for k, v in pr.stats.items() if k[2] in ('leaf', 'fib')))
+s = io.StringIO(); pstats.Stats(pr, stream=s).sort_stats('cumulative').print_stats(3)
+print('ncalls' in s.getvalue(), 'cumtime' in s.getvalue())
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"[('fib', 1, 465), ('leaf', 40, 40), ('main', 1, 1), ('mid', 2, 2)]
+[('fib', ['fib', 'main']), ('leaf', ['mid'])]
+True True
+"##
+    );
+}
