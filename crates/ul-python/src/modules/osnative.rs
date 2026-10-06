@@ -350,7 +350,7 @@ fn clock(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::tuple(vec![Value::Int(t.sec), Value::Int(i64::from(t.nsec))]))
 }
 
-fn sleep(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+fn sleep(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("sleep", &kw)?;
     let secs = match arg("sleep", &args, 0)? {
         Value::Float(f) => *f,
@@ -359,8 +359,42 @@ fn sleep(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     if secs < 0.0 {
         return Err(exc("ValueError", "sleep length must be non-negative"));
     }
+    // Dorme em fatias até o prazo do `signal.alarm`, para o tratador rodar na hora e o resto do sono continuar.
+    let total = (secs * 1e9) as i64;
+    let started = crate::vm::monotonic_ns();
+    loop {
+        let (Some(t0), Some(now)) = (started, crate::vm::monotonic_ns()) else { break };
+        let left = total - (now - t0);
+        if left <= 0 {
+            return Ok(Value::None);
+        }
+        let at = crate::vm::ALARM_AT_NS.load(std::sync::atomic::Ordering::Relaxed);
+        let chunk = if at != 0 && at > now && at - now < left { at - now } else { left };
+        match sys::current().nanosleep(std::time::Duration::from_nanos(chunk as u64)) {
+            Ok(()) | Err(Errno::EINTR) => {}
+            Err(e) => return Err(os_error(e, None)),
+        }
+        vm.deliver_signals()?;
+    }
     sys::current().nanosleep(std::time::Duration::from_secs_f64(secs)).map_err(|e| os_error(e, None))?;
+    vm.deliver_signals()?;
     Ok(Value::None)
+}
+
+/// `_alarm(segundos)`: agenda o SIGALRM (0 cancela) e devolve os segundos que faltavam do alarme anterior.
+fn alarm(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("_alarm", &kw)?;
+    let secs = want_int(arg("_alarm", &args, 0)?)?;
+    let now = crate::vm::monotonic_ns().unwrap_or(0);
+    let previous = crate::vm::ALARM_AT_NS.load(std::sync::atomic::Ordering::Relaxed);
+    let remaining = if previous > now { (previous - now + 999_999_999) / 1_000_000_000 } else { 0 };
+    let at = if secs > 0 { now + secs * 1_000_000_000 } else { 0 };
+    crate::vm::ALARM_AT_NS.store(at, std::sync::atomic::Ordering::Relaxed);
+    if at != 0 {
+        let _ = crate::vm::SIGNAL_THREAD.set(std::thread::current().id());
+        crate::vm::SIGNALS_ARMED.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+    Ok(Value::Int(remaining))
 }
 
 fn urandom(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -451,7 +485,7 @@ fn spawn(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 
 /// `wait(pid, nohang)` devolve `(pid, código)` (código negativo = morto pelo sinal) ou `None` se
 /// `nohang` e o filho ainda roda.
-fn wait(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+fn wait(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("wait", &kw)?;
     let pid = want_int(arg("wait", &args, 0)?)? as i32;
     let nohang = matches!(args.get(1), Some(Value::Bool(true)));
@@ -468,6 +502,8 @@ fn wait(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
                 };
                 return Ok(Value::tuple(vec![Value::Int(i64::from(p)), Value::Int(code)]));
             }
+            // Sinal capturado no meio da espera: roda o tratador e espera de novo (PEP 475).
+            Err(Errno::EINTR) => vm.deliver_signals()?,
             Err(e) => return Err(os_error(e, None)),
         }
     }
@@ -478,7 +514,7 @@ fn pipe(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::tuple(vec![Value::Int(i64::from(r.0)), Value::Int(i64::from(w.0))]))
 }
 
-fn kill_proc(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+fn kill_proc(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("kill", &kw)?;
     let pid = want_int(arg("kill", &args, 0)?)? as i32;
     let sig = want_int(arg("kill", &args, 1)?)? as i32;
@@ -488,7 +524,32 @@ fn kill_proc(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
             Errno::ESRCH => exc("ProcessLookupError", format!("[Errno {}] {}", e.0, e.message())),
             _ => os_error(e, None),
         })?;
+    // Sinal para si mesmo: o tratador do programa roda já, como no CPython.
+    vm.deliver_signals()?;
     Ok(Value::None)
+}
+
+/// `_sigaction(sinal, modo)`: 0 padrão, 1 ignorar, 2 capturar (o programa trata via `signal.signal`).
+fn sigaction(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("_sigaction", &kw)?;
+    let sig = want_int(arg("_sigaction", &args, 0)?)? as i32;
+    let disposition = match want_int(arg("_sigaction", &args, 1)?)? {
+        0 => sysabi::SigDisposition::Default,
+        1 => sysabi::SigDisposition::Ignore,
+        _ => sysabi::SigDisposition::Catch,
+    };
+    sys::current().sigaction(sysabi::Signal(sig), disposition).map_err(|e| os_error(e, None))?;
+    if disposition == sysabi::SigDisposition::Catch {
+        let _ = crate::vm::SIGNAL_THREAD.set(std::thread::current().id());
+        crate::vm::SIGNALS_ARMED.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+    Ok(Value::None)
+}
+
+/// `_take_signals()`: os sinais capturados que chegaram desde a última chamada.
+fn take_signals(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let sigs = sys::current().take_caught_signals();
+    Ok(Value::list(sigs.into_iter().map(|s| Value::Int(i64::from(s.0))).collect()))
 }
 
 pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
@@ -530,6 +591,9 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
         .func("wait", wait)
         .func("pipe", pipe)
         .func("kill", kill_proc)
+        .func("_sigaction", sigaction)
+        .func("_alarm", alarm)
+        .func("_take_signals", take_signals)
         .value("O_RDONLY", Value::Int(0))
         .value("O_WRONLY", Value::Int(0o1))
         .value("O_RDWR", Value::Int(0o2))

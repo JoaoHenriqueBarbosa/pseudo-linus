@@ -5,6 +5,7 @@ Não há entrega assíncrona de sinais ao programa Python: `signal.signal` regis
 """
 
 import enum as _enum
+import _os
 
 _NAMES = [
     ('SIGHUP', 1), ('SIGINT', 2), ('SIGQUIT', 3), ('SIGILL', 4), ('SIGTRAP', 5), ('SIGABRT', 6),
@@ -16,6 +17,7 @@ _NAMES = [
 ]
 
 Signals = _enum.IntEnum('Signals', _NAMES + [('SIGIOT', 6), ('SIGPOLL', 29), ('SIGCLD', 17)])
+_SIGNUMS = frozenset(v for _, v in _NAMES)
 
 
 class Handlers(_enum.IntEnum):
@@ -86,9 +88,35 @@ def signal(signalnum, handler):
     _check(signalnum)
     if signalnum in (Signals.SIGKILL, Signals.SIGSTOP):
         raise OSError(22, 'Invalid argument')
+    if not callable(handler) and handler not in (SIG_IGN, SIG_DFL):
+        raise TypeError('signal handler must be signal.SIG_IGN, signal.SIG_DFL, or a callable object')
     old = getsignal(signalnum)
+    if handler == SIG_IGN and not callable(handler):
+        _os._sigaction(int(signalnum), 1)
+    elif handler == SIG_DFL and not callable(handler):
+        _os._sigaction(int(signalnum), 0)
+    else:
+        _os._sigaction(int(signalnum), 2)
     _handlers[signalnum] = handler
     return old
+
+
+_delivered = 0
+
+
+def _dispatch(signums):
+    """Chamado pela VM com os sinais capturados que chegaram: roda o tratador de cada um."""
+    global _delivered
+    import sys
+    try:
+        frame = sys._getframe(1)
+    except (AttributeError, ValueError):
+        frame = None
+    for n in signums:
+        _delivered += 1
+        handler = _handlers.get(n, SIG_DFL)
+        if callable(handler):
+            handler(n, frame)
 
 
 def getsignal(signalnum):
@@ -129,11 +157,18 @@ def valid_signals():
 
 
 def alarm(seconds):
-    return 0
+    """Agenda um SIGALRM para daqui a `seconds` (0 cancela). Devolve os segundos que faltavam do alarme anterior."""
+    if not isinstance(seconds, int):
+        raise TypeError("'%s' object cannot be interpreted as an integer" % type(seconds).__name__)
+    return _os._alarm(seconds)
 
 
 def pause():
-    raise OSError(4, 'Interrupted system call')
+    # Espera chegar um sinal capturado; o tratador roda dentro do `sleep` (a VM entrega ao acordar).
+    import time
+    before = _delivered
+    while _delivered == before:
+        time.sleep(0.01)
 
 
 def siginterrupt(signalnum, flag):

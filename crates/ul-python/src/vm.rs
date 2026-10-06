@@ -623,6 +623,21 @@ pub fn current() -> Option<Vm> {
 /// Limite de recursão (`sys.getrecursionlimit()` do CPython).
 const MAX_DEPTH: usize = 1000;
 
+/// Ligada quando o programa registra um tratador de sinal: a VM passa a consultar os sinais capturados.
+pub(crate) static SIGNALS_ARMED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// A thread que registrou o primeiro tratador: só ela roda tratadores (no CPython, só a principal).
+pub(crate) static SIGNAL_THREAD: std::sync::OnceLock<std::thread::ThreadId> = std::sync::OnceLock::new();
+
+/// Prazo do `signal.alarm`, em nanossegundos do relógio monotônico (0: sem alarme).
+pub(crate) static ALARM_AT_NS: std::sync::atomic::AtomicI64 = std::sync::atomic::AtomicI64::new(0);
+
+/// O relógio monotônico do pseudo-processo, em nanossegundos (`None` sem pseudo-processo).
+pub(crate) fn monotonic_ns() -> Option<i64> {
+    let t = sysabi::sys::try_current()?.clock_gettime(sysabi::Clock::Monotonic).ok()?;
+    Some(t.sec * 1_000_000_000 + i64::from(t.nsec))
+}
+
 thread_local! {
     /// Valor ajustável por `sys.setrecursionlimit`.
     pub(crate) static RECURSION_LIMIT: std::cell::Cell<usize> = const { std::cell::Cell::new(MAX_DEPTH) };
@@ -734,6 +749,7 @@ impl Vm {
         inject: Option<PyException>,
     ) -> PyResult<Exit> {
         let mut pending = inject;
+        let mut signal_tick: u32 = 0;
         // `throw` num gerador parado numa delegação (`await`/`yield from`) vai para o sub-iterador.
         if pending.is_some() {
             if let Some(Op::DelegateNext(l)) = code.ops.get(*pc).copied() {
@@ -754,6 +770,15 @@ impl Vm {
         while *pc < code.ops.len() {
             let op = code.ops[*pc];
             self.cur_line.set(code.lines[*pc]);
+            // Sinais capturados chegam entre instruções, como no CPython (só depois de um `signal.signal`).
+            if SIGNALS_ARMED.load(std::sync::atomic::Ordering::Relaxed) && pending.is_none() {
+                signal_tick = signal_tick.wrapping_add(1);
+                if signal_tick & 0x1fff == 0 {
+                    if let Err(e) = self.deliver_signals() {
+                        pending = Some(e);
+                    }
+                }
+            }
             let result = if let Some(e) = pending.take() {
                 Err(e)
             } else {
@@ -944,6 +969,35 @@ impl Vm {
         let value = e.to_value();
         e.value = Some(value.clone());
         exc_set_context(&value, &ctx);
+    }
+
+    /// Roda os tratadores de `signal.signal` dos sinais capturados que chegaram. Só faz algo depois que o
+    /// programa registrou um tratador; um tratador que levanta (`KeyboardInterrupt`...) interrompe quem chamou.
+    pub(crate) fn deliver_signals(&mut self) -> PyResult<()> {
+        if !SIGNALS_ARMED.load(std::sync::atomic::Ordering::Relaxed) || sysabi::sys::try_current().is_none() {
+            return Ok(());
+        }
+        if SIGNAL_THREAD.get().is_some_and(|t| *t != std::thread::current().id()) {
+            return Ok(());
+        }
+        // Alarme vencido: o SIGALRM chega ao processo como qualquer outro sinal (padrão: termina; capturado: tratador).
+        let at = ALARM_AT_NS.load(std::sync::atomic::Ordering::Relaxed);
+        if at != 0 && monotonic_ns().is_some_and(|now| now >= at) {
+            ALARM_AT_NS.store(0, std::sync::atomic::Ordering::Relaxed);
+            let process = sysabi::sys::current();
+            let _ = process.kill(sysabi::KillTarget::Pid(process.getpid()), sysabi::Signal(14));
+        }
+        let caught = sysabi::sys::current().take_caught_signals();
+        if caught.is_empty() {
+            return Ok(());
+        }
+        let Some(module) = crate::modules::import(self, "signal") else { return Ok(()) };
+        let dispatch = module.attrs.borrow().get("_dispatch").cloned();
+        if let Some(f) = dispatch {
+            let list = Value::list(caught.into_iter().map(|s| Value::Int(i64::from(s.0))).collect());
+            self.call(&f, vec![list], Vec::new())?;
+        }
+        Ok(())
     }
 
     pub(crate) fn call_function(&mut self, f: &Rc<FuncObj>, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {

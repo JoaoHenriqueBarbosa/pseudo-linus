@@ -72,6 +72,11 @@ pub fn want_int(v: &Value) -> PyResult<i64> {
         Value::Int(i) => Ok(*i),
         Value::Bool(b) => Ok(i64::from(*b)),
         Value::Big(_) => Err(exc("OverflowError", "Python int too large to convert to C ssize_t")),
+        // Instância de subclasse de `int` (`IntEnum`, `IntFlag`...): vale o inteiro que ela carrega.
+        Value::Instance(i) if matches!(&*i.payload.borrow(), Some(Value::Int(_) | Value::Bool(_) | Value::Big(_))) => {
+            let inner = i.payload.borrow().clone().unwrap_or(Value::None);
+            want_int(&inner)
+        }
         other => Err(type_error(format!("'{}' object cannot be interpreted as an integer", other.type_name()))),
     }
 }
