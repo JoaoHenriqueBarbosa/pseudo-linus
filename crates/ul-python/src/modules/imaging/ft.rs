@@ -237,9 +237,6 @@ impl FontObj {
             Some(v) => float_arg(v)? as f32,
             None => 0.0,
         };
-        if stroke_width != 0.0 {
-            return Err(exc("OSError", "unsupported bitmap pixel mode"));
-        }
         let color = a.color();
         let mask = a.mask();
         let glyphs = self.layout(string, &a)?;
@@ -277,7 +274,12 @@ impl FontObj {
             let px = pixel(x + g.x_offset);
             let py = pixel(y + g.y_offset);
             let slot = face.load_glyph(g.index, load_flags).map_err(ft_error)?;
-            if let Some(bm) = render_slot(&slot, mask) {
+            let rendered = if stroke_width != 0.0 {
+                slot.render_stroked(f64::from(stroke_width * 64.0).round() as i64).map_err(ft_error)?
+            } else {
+                render_slot(&slot, mask)
+            };
+            if let Some(bm) = rendered {
                 let xx = px + i64::from(bm.left);
                 let mut yy = -(py + i64::from(bm.top));
                 let x0 = if xx < 0 { -xx } else { 0 };

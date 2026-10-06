@@ -62,7 +62,7 @@ pub fn msb(x: u32) -> i32 {
 /// `ft_trig_prenorm`, `ft_trig_pseudo_polarize` e `FT_Vector_Length` do `fttrigon.c` (CORDIC).
 pub mod trig {
     const SAFE_MSB: i32 = 29;
-    const ANGLE_PI2: i64 = 90 << 16;
+    pub const ANGLE_PI2: i64 = 90 << 16;
     const SCALE: u64 = 0xDBD9_5B16;
 
     static ARCTAN: [i64; 22] = [
@@ -156,6 +156,99 @@ pub mod trig {
         }
         prenorm(&mut dx, &mut dy);
         pseudo_polarize(&mut dx, &mut dy)
+    }
+
+    pub const ANGLE_PI: i64 = 180 << 16;
+    pub const ANGLE_2PI: i64 = ANGLE_PI * 2;
+    const ANGLE_PI4: i64 = ANGLE_PI / 4;
+
+    /// `ft_trig_pseudo_rotate`.
+    fn pseudo_rotate(x: &mut i64, y: &mut i64, mut theta: i64) {
+        while theta < -ANGLE_PI4 {
+            let xt = *y;
+            *y = -*x;
+            *x = xt;
+            theta += ANGLE_PI2;
+        }
+        while theta > ANGLE_PI4 {
+            let xt = -*y;
+            *y = *x;
+            *x = xt;
+            theta -= ANGLE_PI2;
+        }
+        let mut b = 1i64;
+        for (k, &at) in ARCTAN.iter().enumerate() {
+            let i = k + 1;
+            let xt;
+            if theta < 0 {
+                xt = *x + ((*y + b) >> i);
+                *y -= (*x + b) >> i;
+                theta += at;
+            } else {
+                xt = *x - ((*y + b) >> i);
+                *y += (*x + b) >> i;
+                theta -= at;
+            }
+            *x = xt;
+            b <<= 1;
+        }
+    }
+
+    /// `FT_Vector_Unit`.
+    pub fn unit(angle: i64) -> (i64, i64) {
+        let (mut x, mut y) = ((SCALE >> 8) as i64, 0);
+        pseudo_rotate(&mut x, &mut y, angle);
+        ((x + 0x80) >> 8, (y + 0x80) >> 8)
+    }
+
+    pub fn cos(angle: i64) -> i64 {
+        unit(angle).0
+    }
+
+    pub fn sin(angle: i64) -> i64 {
+        unit(angle).1
+    }
+
+    /// `FT_Tan`.
+    pub fn tan(angle: i64) -> i64 {
+        let (mut x, mut y) = (1i64 << 24, 0);
+        pseudo_rotate(&mut x, &mut y, angle);
+        super::div_fix(y, x)
+    }
+
+    /// `FT_Vector_Rotate`.
+    pub fn rotate(x: i64, y: i64, angle: i64) -> (i64, i64) {
+        if angle == 0 || (x == 0 && y == 0) {
+            return (x, y);
+        }
+        let (mut vx, mut vy) = (x, y);
+        let shift = prenorm(&mut vx, &mut vy);
+        pseudo_rotate(&mut vx, &mut vy, angle);
+        let (vx, vy) = (downscale(vx), downscale(vy));
+        if shift > 0 {
+            let half = 1i64 << (shift - 1);
+            ((vx + half - i64::from(vx < 0)) >> shift, (vy + half - i64::from(vy < 0)) >> shift)
+        } else {
+            let s = -shift;
+            (((vx as u64) << s) as i64, ((vy as u64) << s) as i64)
+        }
+    }
+
+    /// `FT_Vector_From_Polar`.
+    pub fn from_polar(length: i64, angle: i64) -> (i64, i64) {
+        rotate(length, 0, angle)
+    }
+
+    /// `FT_Angle_Diff`.
+    pub fn angle_diff(a1: i64, a2: i64) -> i64 {
+        let mut d = a2 - a1;
+        while d <= -ANGLE_PI {
+            d += ANGLE_2PI;
+        }
+        while d > ANGLE_PI {
+            d -= ANGLE_2PI;
+        }
+        d
     }
 }
 

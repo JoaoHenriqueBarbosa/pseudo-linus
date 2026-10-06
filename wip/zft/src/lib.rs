@@ -12,6 +12,7 @@ pub mod outline;
 pub mod raster;
 pub mod raster_mono;
 mod sfnt;
+pub mod stroke;
 mod tt;
 
 use calc::{div_fix, mul_div, mul_fix, pix_ceil, pix_floor, pix_round};
@@ -174,6 +175,14 @@ impl Slot {
     /// `FT_Render_Glyph` com `FT_RENDER_MODE_MONO`: um bit por pixel, `pitch` bytes por linha.
     pub fn render_mono(&self) -> Option<raster::Bitmap> {
         raster_mono::render(&self.outline)
+    }
+
+    /// `FT_Get_Glyph` + `FT_Glyph_Stroke` com pontas e junções redondas + `FT_Glyph_To_Bitmap` no
+    /// modo normal, como o `font_render` do Pillow faz com `stroke_width`. `radius` em 26.6.
+    pub fn render_stroked(&self, radius: i64) -> Result<Option<raster::Bitmap>, Error> {
+        let mut s = stroke::Stroker::new(radius, stroke::LineCap::Round, stroke::LineJoin::Round, 0);
+        let o = s.stroke(&self.outline)?;
+        Ok(raster::render(&o, o.overlap))
     }
 }
 
