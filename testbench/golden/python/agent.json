@@ -29,6 +29,12 @@
     "exit": 0,
     "files": {}
   },
+  "rest-api-client": {
+    "stdout": "--- curl+jq\n{\"id\":1,\"nome\":\"ana\"}\nsem token\n401\nHTTP/1.1 201 Created\nContent-Type: application/json; charset=utf-8\nLocation: /users/3\n2\nExpecting value: line 1 column 1 (char 0)\n204\n1\nrc=28\n--- python urllib\n(200, 'application/json', {'id': 1, 'nome': 'ana', 'tags': ['a']})\n(404, 'Not Found', {'erro': 'nao existe', 'id': 99})\n(401, 'Unauthorized', {'erro': 'sem token'})\n201 application/json {'id': 3, 'nome': 'davi', 'tags': ['ç']}\n['ana', 'bia', 'davi']\n(204, 'text/plain', None)\ntimeout: TimeoutError timed out\nurlerror: [Errno 111] Connection refused\n200 http://127.0.0.1:8088/users/2 36 True\n--- pip/venv\nrc=1\nrc=127\nrc=1\nThe virtual environment was not created successfully because ensurepip is not\navailable.  On Debian/Ubuntu systems, you need to install the python3-venv\npackage using the following command.\n\n    apt install python3.13-venv\n\nYou may need to use sudo with that command.  After installing the python3-venv\npackage, recreate your virtual environment.\n\nFailing command: /tmp/venv/bin/python3\n\nrc=1\n",
+    "stderr": "/usr/bin/python3: No module named pip\nbash: line 94: pip: command not found\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    import requests\nModuleNotFoundError: No module named 'requests'\n",
+    "exit": 0,
+    "files": {}
+  },
   "tcp-two-processes": {
     "stdout": "33 b'HELLO WORLD' True\n300000 b'XXXXXXXXXXX' True\nrecusada 111\nfim\n",
     "stderr": "srv ok 127.0.0.1\n",

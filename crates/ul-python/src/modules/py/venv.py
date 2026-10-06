@@ -125,7 +125,9 @@ class EnvBuilder:
         self.create_configuration(context)
         self.setup_python(context)
         if self.with_pip:
-            sys.stderr.write(_NO_PIP % context.env_exec_cmd)
+            # O Debian imprime o aviso no stdout (é um `print` no patch do venv).
+            sys.stdout.write(_NO_PIP % context.env_exec_cmd)
+            sys.stdout.flush()
             raise SystemExit(1)
         if not self.upgrade:
             self.setup_scripts(context)

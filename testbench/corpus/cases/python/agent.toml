@@ -254,3 +254,106 @@ kill %1; wait || true
 grep -c 'GET' /tmp/www.log
 '''
 tags = ["agent", "net"]
+
+[[case]]
+id = "rest-api-client"
+script = '''
+cat > /tmp/api.py <<'PY'
+import http.server, json, urllib.parse
+DB = {1: {'id': 1, 'nome': 'ana', 'tags': ['a']}, 2: {'id': 2, 'nome': 'bia', 'tags': []}}
+class H(http.server.BaseHTTPRequestHandler):
+    protocol_version = 'HTTP/1.1'
+    def log_message(self, *a): pass
+    def _json(self, code, obj, extra=()):
+        b = json.dumps(obj, ensure_ascii=False).encode()
+        self.send_response(code); self.send_header('Content-Type', 'application/json; charset=utf-8')
+        for k, v in extra: self.send_header(k, v)
+        self.send_header('Content-Length', str(len(b))); self.end_headers(); self.wfile.write(b)
+    def _auth(self):
+        if self.headers.get('Authorization') != 'Bearer s3cr3t':
+            self._json(401, {'erro': 'sem token'}, [('WWW-Authenticate', 'Bearer')]); return False
+        return True
+    def do_GET(self):
+        u = urllib.parse.urlsplit(self.path); q = urllib.parse.parse_qs(u.query)
+        if u.path == '/users':
+            if not self._auth(): return
+            items = sorted(DB.values(), key=lambda d: d['id'])
+            if 'nome' in q: items = [i for i in items if i['nome'].startswith(q['nome'][0])]
+            page = int(q.get('page', ['1'])[0])
+            return self._json(200, {'items': items[(page-1)*1:page*1], 'total': len(items), 'next': page + 1 if page < len(items) else None})
+        if u.path.startswith('/users/'):
+            uid = int(u.path.rsplit('/', 1)[1])
+            if uid in DB: return self._json(200, DB[uid])
+            return self._json(404, {'erro': 'nao existe', 'id': uid})
+        if u.path == '/slow':
+            import time; time.sleep(3); return self._json(200, {})
+        return self._json(404, {'erro': 'rota'})
+    def do_POST(self):
+        n = int(self.headers.get('Content-Length', 0)); raw = self.rfile.read(n)
+        try: body = json.loads(raw)
+        except ValueError as e: return self._json(400, {'erro': str(e)})
+        nid = max(DB) + 1; DB[nid] = {'id': nid, **body}
+        return self._json(201, DB[nid], [('Location', f'/users/{nid}')])
+    def do_DELETE(self):
+        uid = int(self.path.rsplit('/', 1)[1]); DB.pop(uid, None)
+        self.send_response(204); self.end_headers()
+http.server.ThreadingHTTPServer(('127.0.0.1', 8088), H).serve_forever()
+PY
+python3 /tmp/api.py 2>/dev/null &
+for i in $(seq 100); do curl -s -o /dev/null http://127.0.0.1:8088/ && break; sleep 0.1; done
+U=http://127.0.0.1:8088
+echo '--- curl+jq'
+curl -s -H 'Authorization: Bearer s3cr3t' $U/users | jq -c '.items[] | {id, nome}'
+curl -s $U/users | jq -r .erro
+curl -s -o /dev/null -w '%{http_code}\n' $U/users
+curl -s -X POST -H 'Content-Type: application/json' -d '{"nome":"caio","tags":["x","y"]}' -D - $U/users | tr -d '\r' | grep -i -E '^(HTTP|location|content-type)'
+curl -s $U/users/3 | jq '.tags | length'
+curl -s -X POST -d 'nao json' $U/users | jq -r .erro
+curl -s -X DELETE -w '%{http_code}\n' $U/users/3
+curl -s "$U/users?nome=b" -H 'Authorization: Bearer s3cr3t' | jq '.total'
+curl -s -m 1 $U/slow; echo "rc=$?"
+echo '--- python urllib'
+python3 - <<'PY'
+import json, urllib.request, urllib.error, urllib.parse, socket
+U = 'http://127.0.0.1:8088'
+def call(method, path, body=None, token='s3cr3t', timeout=5):
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(U + path, data=data, method=method)
+    if token: req.add_header('Authorization', f'Bearer {token}')
+    if data: req.add_header('Content-Type', 'application/json')
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            raw = r.read()
+            return r.status, r.headers.get_content_type(), json.loads(raw) if raw else None
+    except urllib.error.HTTPError as e:
+        return e.code, e.reason, json.loads(e.read())
+print(call('GET', '/users/1'))
+print(call('GET', '/users/99'))
+print(call('GET', '/users', token=None))
+st, ct, created = call('POST', '/users', {'nome': 'davi', 'tags': ['ç']})
+print(st, ct, created)
+page, out = 1, []
+while page:
+    st, _, d = call('GET', '/users?' + urllib.parse.urlencode({'page': page}))
+    out += [u['nome'] for u in d['items']]; page = d['next']
+print(out)
+print(call('DELETE', f"/users/{created['id']}"))
+try:
+    call('GET', '/slow', timeout=0.5)
+except (TimeoutError, socket.timeout, urllib.error.URLError) as e:
+    print('timeout:', type(e).__name__, e)
+try:
+    urllib.request.urlopen('http://127.0.0.1:1/', timeout=2)
+except urllib.error.URLError as e:
+    print('urlerror:', e.reason)
+r = urllib.request.urlopen(U + '/users/2')
+print(r.getcode(), r.geturl(), r.info()['Content-Length'], dict(r.getheaders()).keys() >= {'Content-Type'})
+PY
+echo '--- pip/venv'
+python3 -m pip --version; echo "rc=$?"
+pip install requests; echo "rc=$?"
+python3 -c 'import requests'; echo "rc=$?"
+python3 -m venv /tmp/venv; echo "rc=$?"
+kill %1; wait
+'''
+tags = ["agent", "net"]

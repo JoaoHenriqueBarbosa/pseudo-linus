@@ -5919,3 +5919,35 @@ c = outer()(); c._C__v = 9; print(c.h()())
 "##
     );
 }
+
+#[test]
+fn dict_view_set_comparisons() {
+    let src = r##"
+d = {'a': 1, 'b': 2}
+k = d.keys()
+print(k >= {'a'}, k > {'a'}, k <= {'a', 'b', 'c'}, k < {'a', 'b'}, {'a'} <= k, {'a', 'b', 'c'} >= k, k == {'b', 'a'})
+print(d.items() >= {('a', 1)}, d.items() <= {('a', 1)}, k >= d.keys(), k < frozenset('abc'))
+for bad in ([1], 'ab'):
+    try:
+        k < bad
+    except TypeError as e:
+        print(e)
+print(k == ['a', 'b'], k != 'ab')
+try:
+    d.values() < {1}
+except TypeError as e:
+    print(e)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"True True True False True True True
+True False True True
+'<' not supported between instances of 'dict_keys' and 'list'
+'<' not supported between instances of 'dict_keys' and 'str'
+False True
+'<' not supported between instances of 'dict_values' and 'set'
+"##
+    );
+}

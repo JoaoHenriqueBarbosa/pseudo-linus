@@ -19,8 +19,10 @@ impl Bytes {
         self.0.len()
     }
 
-    /// Representação curta pra mensagens de divergência.
+    /// Representação curta pra mensagens de divergência. `PL_PREVIEW_MAX` no ambiente troca o limite
+    /// (útil para ver a saída inteira de um caso que falha).
     pub fn preview(&self, max: usize) -> String {
+        let max = std::env::var("PL_PREVIEW_MAX").ok().and_then(|v| v.parse().ok()).unwrap_or(max);
         let text = String::from_utf8_lossy(&self.0);
         if text.chars().count() <= max {
             format!("{text:?}")

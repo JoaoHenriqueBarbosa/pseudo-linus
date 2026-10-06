@@ -166,7 +166,7 @@ impl ExtObject for DictView {
     }
 
     fn richcmp(&self, op: &str, other: &Value) -> Option<PyResult<bool>> {
-        if !self.set_like() || !matches!(op, "==" | "!=") {
+        if !self.set_like() || !matches!(op, "==" | "!=" | "<" | "<=" | ">" | ">=") {
             return None;
         }
         let comparable = match other {
@@ -175,21 +175,32 @@ impl ExtObject for DictView {
             _ => false,
         };
         if !comparable {
-            return Some(Ok(op == "!="));
+            // Igualdade com o que não é conjunto é falsa; ordem com ele não existe (TypeError).
+            return matches!(op, "==" | "!=").then_some(Ok(op == "!="));
         }
         let result = (|| -> PyResult<bool> {
             let mine = to_set(self.items())?;
             let theirs = to_set(crate::vm::iterate(other)?)?;
-            let mut same = mine.len() == theirs.len();
-            if same {
-                for x in mine.iter() {
-                    if !theirs.contains(x)? {
-                        same = false;
-                        break;
+            // `a <= b`: tudo de `a` está em `b`.
+            let subset = |a: &Set, b: &Set| -> PyResult<bool> {
+                if a.len() > b.len() {
+                    return Ok(false);
+                }
+                for x in a.iter() {
+                    if !b.contains(x)? {
+                        return Ok(false);
                     }
                 }
-            }
-            Ok(if op == "==" { same } else { !same })
+                Ok(true)
+            };
+            Ok(match op {
+                "==" => mine.len() == theirs.len() && subset(&mine, &theirs)?,
+                "!=" => !(mine.len() == theirs.len() && subset(&mine, &theirs)?),
+                "<=" => subset(&mine, &theirs)?,
+                "<" => mine.len() < theirs.len() && subset(&mine, &theirs)?,
+                ">=" => subset(&theirs, &mine)?,
+                _ => theirs.len() < mine.len() && subset(&theirs, &mine)?,
+            })
         })();
         Some(result)
     }
