@@ -198,7 +198,43 @@ fn as_integer_ratio(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::tuple(vec![crate::bigint::norm(num), crate::bigint::norm(den)]))
 }
 
+fn dunder_round(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    if !matches!(args[0], Value::Float(_)) && int_of(&args[0]).is_none() {
+        return Err(no_attr(&args[0], "__round__"));
+    }
+    crate::builtins::b_round(vm, args, kw)
+}
+
+/// `__trunc__`, `__floor__` e `__ceil__`: o inteiro na direção pedida.
+fn to_int(vm: &mut Vm, args: Vec<Value>, kw: Kw, name: &str, f: fn(f64) -> f64) -> PyResult<Value> {
+    nokw(name, &kw)?;
+    noargs(name, &args[1..])?;
+    match &args[0] {
+        Value::Float(x) => crate::builtins::b_int(vm, vec![Value::Float(f(*x))], Vec::new()),
+        other => match int_of(other) {
+            Some(i) => Ok(crate::bigint::norm(i)),
+            None => Err(no_attr(other, name)),
+        },
+    }
+}
+
+fn dunder_trunc(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    to_int(vm, args, kw, "__trunc__", f64::trunc)
+}
+
+fn dunder_floor(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    to_int(vm, args, kw, "__floor__", f64::floor)
+}
+
+fn dunder_ceil(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    to_int(vm, args, kw, "__ceil__", f64::ceil)
+}
+
 pub const TABLE: &[(&str, NativeFnPtr)] = &[
+    ("__round__", dunder_round),
+    ("__trunc__", dunder_trunc),
+    ("__floor__", dunder_floor),
+    ("__ceil__", dunder_ceil),
     ("bit_length", bit_length),
     ("bit_count", bit_count),
     ("to_bytes", to_bytes),

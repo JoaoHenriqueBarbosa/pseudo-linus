@@ -867,7 +867,7 @@ fn round_big(n: &num_bigint::BigInt, nd: i64) -> Value {
     crate::bigint::norm(base)
 }
 
-fn b_round(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(crate) fn b_round(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let s = bind("round", args, kw, &["number", "ndigits"], 1)?;
     let number = s[0].clone().unwrap_or(Value::None);
     let nd = match &s[1] {
@@ -1532,7 +1532,7 @@ fn int_from_text(v: &Value, text: &str, base: u32) -> PyResult<Value> {
     }
 }
 
-fn b_int(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(crate) fn b_int(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let s = bind("int", args, kw, &["x", "base"], 0)?;
     let Some(x) = &s[0] else {
         if s[1].is_some() {

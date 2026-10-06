@@ -5586,3 +5586,72 @@ fim
 "##
     );
 }
+
+#[test]
+fn csv_stats_report_decimal() {
+    let src = r##"
+import csv, io, statistics, itertools, operator, textwrap, decimal, fractions, heapq, bisect, json, pathlib, tempfile
+
+data = """nome,dept,salario,entrada
+Ana,TI,8500.50,2020-03-01
+Bruno,RH,4200,2019-07-15
+Carla,TI,9100,2021-01-10
+Davi,Vendas,5300.25,2018-11-30
+Eva,RH,4800,2022-05-05
+Fábio,Vendas,6100,2020-09-09
+"""
+rows = list(csv.DictReader(io.StringIO(data)))
+for r in rows:
+    r['salario'] = decimal.Decimal(r['salario'])
+rows.sort(key=operator.itemgetter('dept'))
+for dept, grp in itertools.groupby(rows, key=operator.itemgetter('dept')):
+    g = list(grp)
+    sal = [float(x['salario']) for x in g]
+    print(f"{dept:<8}|{len(g):>3}|{statistics.mean(sal):>10.2f}|{statistics.median(sal):>10,.2f}|{sum(x['salario'] for x in g)}")
+print(statistics.stdev(float(r['salario']) for r in rows).__round__(3))
+print(statistics.quantiles([float(r['salario']) for r in rows], n=4))
+print(heapq.nlargest(2, rows, key=lambda r: r['salario'])[0]['nome'])
+s = sorted(float(r['salario']) for r in rows)
+print(bisect.bisect_left(s, 5000), fractions.Fraction('0.125') + fractions.Fraction(1, 3))
+out = io.StringIO()
+w = csv.DictWriter(out, fieldnames=['nome', 'salario'], extrasaction='ignore', quoting=csv.QUOTE_NONNUMERIC)
+w.writeheader()
+w.writerows(rows[:2])
+print(repr(out.getvalue()))
+print(textwrap.fill('O relatório consolidado de salários por departamento mostra variação ' * 2, width=40, initial_indent='> ', subsequent_indent='  '))
+print(textwrap.shorten('um texto bem longo que precisa ser encurtado agora', width=25, placeholder=' [...]'))
+f = io.StringIO(newline='')
+csv.writer(f, delimiter=';', lineterminator='\n').writerows([['a', 'b;c'], [1, 'x"y']])
+print(repr(f.getvalue()))
+print(list(csv.reader(io.StringIO(f.getvalue()), delimiter=';')))
+print(json.dumps({'total': str(sum(r['salario'] for r in rows))}, indent=2, ensure_ascii=False))
+print(csv.Sniffer().sniff('a;b;c\n1;2;3\n').delimiter, csv.Sniffer().has_header(data))
+print(decimal.Decimal('8500.50').quantize(decimal.Decimal('1'), rounding=decimal.ROUND_HALF_EVEN), statistics.mode(['a', 'b', 'a']))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"RH      |  2|   4500.00|  4,500.00|9000
+TI      |  2|   8800.25|  8,800.25|17600.50
+Vendas  |  2|   5700.12|  5,700.12|11400.25
+2018.662
+[4650.0, 5700.125, 8650.375]
+Carla
+2 11/24
+'"nome","salario"\r\n"Bruno",4200\r\n"Eva",4800\r\n'
+> O relatório consolidado de salários
+  por departamento mostra variação O
+  relatório consolidado de salários por
+  departamento mostra variação
+um texto bem longo [...]
+'a;"b;c"\n1;"x""y"\n'
+[['a', 'b;c'], ['1', 'x"y']]
+{
+  "total": "38000.75"
+}
+; True
+8500 a
+"##
+    );
+}

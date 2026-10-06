@@ -337,7 +337,12 @@ pub fn writerow(dialect: &Dialect, fields: &[Value]) -> Result<String, CsvError>
         if i > 0 {
             out.push(dialect.delimiter);
         }
-        let is_number = matches!(f, Value::Int(_) | Value::Float(_) | Value::Bool(_));
+        // `PyNumber_Check`: inteiro, real, complexo, ou instância com `__index__`, `__int__` ou `__float__` (Decimal).
+        let is_number = match f {
+            Value::Int(_) | Value::Big(_) | Value::Float(_) | Value::Bool(_) => true,
+            Value::Instance(i) => ["__index__", "__int__", "__float__", "__complex__"].iter().any(|n| i.class.lookup(n).is_some()),
+            _ => false,
+        };
         let quoted = match dialect.quoting {
             QUOTE_NONNUMERIC => !is_number,
             QUOTE_ALL => true,
