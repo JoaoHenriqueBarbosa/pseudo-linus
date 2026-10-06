@@ -12,6 +12,9 @@ fn main() {
             _ => zjpeg::ColorSpace::Rgb,
         });
     }
+    if let Some(s) = args.get(4) {
+        opts.scale_denom = s.parse().expect("escala");
+    }
     match zjpeg::decode(&data, &opts) {
         Ok(d) => {
             std::fs::write(&args[2], &d.data).expect("gravar saída");

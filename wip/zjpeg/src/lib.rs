@@ -94,11 +94,13 @@ pub struct Options {
     pub out_color_space: Option<ColorSpace>,
     /// `do_fancy_upsampling`.
     pub fancy_upsampling: bool,
+    /// `scale_denom` com `scale_num = 1`: 1, 2, 4 ou 8.
+    pub scale_denom: usize,
 }
 
 impl Default for Options {
     fn default() -> Options {
-        Options { jpeg_color_space: None, out_color_space: None, fancy_upsampling: true }
+        Options { jpeg_color_space: None, out_color_space: None, fancy_upsampling: true, scale_denom: 1 }
     }
 }
 
@@ -134,6 +136,7 @@ pub fn decode(data: &[u8], opts: &Options) -> Result<Decoded, Error> {
         _ => ColorSpace::Unknown,
     };
     let ocs = opts.out_color_space.unwrap_or(default_out);
-    let (pixels, components) = output::output(&frame, jcs, ocs, opts.fancy_upsampling)?;
-    Ok(Decoded { width: frame.width, height: frame.height, components, data: pixels, warnings: frame.warnings })
+    let (pixels, components, width, height) =
+        output::output(&frame, jcs, ocs, opts.fancy_upsampling, opts.scale_denom)?;
+    Ok(Decoded { width, height, components, data: pixels, warnings: frame.warnings })
 }

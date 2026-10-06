@@ -7,7 +7,17 @@
 //! o que os ponteiros do `make_funny_pointers` e do `set_bottom_pointers` fazem.
 
 use crate::decode::{Component, Frame};
-use crate::idct::idct_islow;
+use crate::idct::idct_scaled;
+
+/// Tamanho de uma componente depois da IDCT escalada (`jpeg_calc_output_dimensions`).
+#[derive(Clone, Copy)]
+struct Geom {
+    /// `_DCT_scaled_size`: lado do bloco de saída da IDCT.
+    n: usize,
+    dw: usize,
+    dh: usize,
+    stride: usize,
+}
 use crate::ColorSpace;
 
 const SCALEBITS: i32 = 16;
@@ -111,16 +121,16 @@ fn predict(q00: i64, qk: i64, num_dc: i64, al: i32, limit: bool) -> i16 {
 }
 
 /// IDCT de todos os blocos úteis de uma componente, com a suavização quando ela se aplica.
-fn component_plane(f: &Frame, ci: usize, latch: Option<&[i32; 10]>) -> Vec<u8> {
+fn component_plane(f: &Frame, ci: usize, latch: Option<&[i32; 10]>, g: Geom) -> Vec<u8> {
     let c = &f.comps[ci];
     let quant = c.quant.unwrap_or([1; 64]);
-    let stride = c.width_in_blocks * 8;
-    let mut plane = vec![0u8; stride * c.height_in_blocks * 8];
+    let (n, stride) = (g.n, g.stride);
+    let mut plane = vec![0u8; stride * c.height_in_blocks * n];
     let block = |bx: usize, by: usize| &c.coefs[by * c.blocks_w + bx];
     let Some(bits) = latch else {
         for by in 0..c.height_in_blocks {
             for bx in 0..c.width_in_blocks {
-                idct_islow(block(bx, by), &quant, &mut plane, by * 8 * stride + bx * 8, stride);
+                idct_scaled(n, block(bx, by), &quant, &mut plane, by * n * stride + bx * n, stride);
             }
         }
         return plane;
@@ -269,7 +279,7 @@ fn component_plane(f: &Frame, ci: usize, latch: Option<&[i32; 10]>) -> Vec<u8> {
                     - 2 * dc25;
                 ws[0] = predict(q00, q00, n, 0, false);
             }
-            idct_islow(&ws, &quant, &mut plane, row * 8 * stride + bx * 8, stride);
+            idct_scaled(n, &ws, &quant, &mut plane, row * n * stride + bx * n, stride);
             for r in d.iter_mut() {
                 r.copy_within(1..5, 0);
             }
@@ -290,16 +300,18 @@ enum Up {
     Int(usize, usize),
 }
 
-fn up_method(f: &Frame, c: &Component, fancy: bool) -> Result<Up, crate::Error> {
-    let (hi, ho, vi, vo) = (c.h_samp, f.max_h, c.v_samp, f.max_v);
+fn up_method(f: &Frame, c: &Component, g: Geom, min: usize, fancy: bool) -> Result<Up, crate::Error> {
+    // `jinit_upsampler`: grupos de entrada medidos depois da IDCT escalada.
+    let (hi, ho, vi, vo) = (c.h_samp * g.n / min, f.max_h, c.v_samp * g.n / min, f.max_v);
+    let fancy = fancy && min > 1;
     Ok(if hi == ho && vi == vo {
         Up::Full
     } else if hi * 2 == ho && vi == vo {
-        if fancy && c.downsampled_width > 2 { Up::H2V1Fancy } else { Up::H2V1 }
+        if fancy && g.dw > 2 { Up::H2V1Fancy } else { Up::H2V1 }
     } else if hi == ho && vi * 2 == vo && fancy {
         Up::H1V2Fancy
     } else if hi * 2 == ho && vi * 2 == vo {
-        if fancy && c.downsampled_width > 2 { Up::H2V2Fancy } else { Up::H2V2 }
+        if fancy && g.dw > 2 { Up::H2V2Fancy } else { Up::H2V2 }
     } else if ho % hi == 0 && vo % vi == 0 {
         Up::Int(ho / hi, vo / vi)
     } else {
@@ -308,10 +320,10 @@ fn up_method(f: &Frame, c: &Component, fancy: bool) -> Result<Up, crate::Error> 
 }
 
 /// A linha `y` de saída da componente, com `width` amostras.
-fn upsample_row(c: &Component, plane: &[u8], m: Up, y: usize, width: usize, out: &mut Vec<u8>) {
-    let stride = c.width_in_blocks * 8;
-    let dw = c.downsampled_width;
-    let last_row = c.downsampled_height - 1;
+fn upsample_row(g: Geom, plane: &[u8], m: Up, y: usize, width: usize, out: &mut Vec<u8>) {
+    let stride = g.stride;
+    let dw = g.dw;
+    let last_row = g.dh - 1;
     let row = |r: usize| &plane[r * stride..r * stride + stride];
     out.clear();
     match m {
@@ -372,7 +384,15 @@ fn upsample_row(c: &Component, plane: &[u8], m: Up, y: usize, width: usize, out:
 }
 
 /// Monta a imagem de saída: `out` amostras intercaladas por pixel, `out_components` por pixel.
-pub fn output(f: &Frame, jcs: ColorSpace, ocs: ColorSpace, fancy: bool) -> Result<(Vec<u8>, usize), crate::Error> {
+/// Monta a imagem de saída: amostras intercaladas, `out_components` por pixel, com a largura e a
+/// altura da saída depois da escala `1/denom`.
+pub fn output(
+    f: &Frame,
+    jcs: ColorSpace,
+    ocs: ColorSpace,
+    fancy: bool,
+    denom: usize,
+) -> Result<(Vec<u8>, usize, usize, usize), crate::Error> {
     let n = f.comps.len();
     let expect = match jcs {
         ColorSpace::Grayscale => Some(1),
@@ -393,18 +413,37 @@ pub fn output(f: &Frame, jcs: ColorSpace, ocs: ColorSpace, fancy: bool) -> Resul
     };
     // `do_block_smoothing` é verdadeiro por padrão e o Pillow não o desliga.
     let latch = smoothing_latch(f);
-    let planes: Vec<Option<Vec<u8>>> = (0..n)
-        .map(|ci| needed[ci].then(|| component_plane(f, ci, latch.as_ref().map(|l| &l[ci]))))
+    // `jpeg_core_output_dimensions` com escala 1/denom (denominador potência de 2 até 8).
+    let min = 8 / denom.clamp(1, 8);
+    let geoms: Vec<Geom> = f
+        .comps
+        .iter()
+        .map(|c| {
+            let mut n = min;
+            while n < 8 && (f.max_h * min) % (c.h_samp * n * 2) == 0 && (f.max_v * min) % (c.v_samp * n * 2) == 0 {
+                n *= 2;
+            }
+            Geom {
+                n,
+                dw: (f.width * c.h_samp * n).div_ceil(f.max_h * 8),
+                dh: (f.height * c.v_samp * n).div_ceil(f.max_v * 8),
+                stride: c.width_in_blocks * n,
+            }
+        })
         .collect();
-    let methods = f.comps.iter().map(|c| up_method(f, c, fancy)).collect::<Result<Vec<_>, _>>()?;
-    let (w, h) = (f.width, f.height);
+    let planes: Vec<Option<Vec<u8>>> = (0..n)
+        .map(|ci| needed[ci].then(|| component_plane(f, ci, latch.as_ref().map(|l| &l[ci]), geoms[ci])))
+        .collect();
+    let methods =
+        f.comps.iter().zip(&geoms).map(|(c, &g)| up_method(f, c, g, min, fancy)).collect::<Result<Vec<_>, _>>()?;
+    let (w, h) = ((f.width * min).div_ceil(8), (f.height * min).div_ceil(8));
     let mut out = vec![0u8; w * h * out_comps];
     let ycc = YccTables::new();
     let mut rows: Vec<Vec<u8>> = vec![Vec::new(); n];
     for y in 0..h {
         for ci in 0..n {
             if let Some(p) = &planes[ci] {
-                upsample_row(&f.comps[ci], p, methods[ci], y, w, &mut rows[ci]);
+                upsample_row(geoms[ci], p, methods[ci], y, w, &mut rows[ci]);
             }
         }
         let o = &mut out[y * w * out_comps..(y + 1) * w * out_comps];
@@ -444,7 +483,7 @@ pub fn output(f: &Frame, jcs: ColorSpace, ocs: ColorSpace, fancy: bool) -> Resul
             }
         }
     }
-    Ok((out, out_comps))
+    Ok((out, out_comps, w, h))
 }
 
 impl YccTables {

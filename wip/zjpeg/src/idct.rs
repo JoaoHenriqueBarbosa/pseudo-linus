@@ -133,3 +133,121 @@ pub fn idct_islow(coef: &[i16; 64], quant: &[u16; 64], out: &mut [u8], off: usiz
         }
     }
 }
+
+// ---- jidctred.c: saída reduzida para as escalas 1/2, 1/4 e 1/8 ----
+
+const FIX_0_211164243: i64 = 1730;
+const FIX_0_509795579: i64 = 4176;
+const FIX_0_601344887: i64 = 4926;
+const FIX_0_720959822: i64 = 5906;
+const FIX_0_850430095: i64 = 6967;
+const FIX_1_061594337: i64 = 8697;
+const FIX_1_272758580: i64 = 10426;
+const FIX_1_451774981: i64 = 11893;
+const FIX_2_172734803: i64 = 17799;
+const FIX_3_624509785: i64 = 29692;
+
+/// `jpeg_idct_4x4`.
+pub fn idct_4x4(coef: &[i16; 64], quant: &[u16; 64], out: &mut [u8], off: usize, stride: usize) {
+    let mut ws = [0i64; 32];
+    for col in 0..8 {
+        if col == 4 {
+            continue;
+        }
+        let deq = |k: usize| i64::from(coef[k * 8 + col]) * i64::from(quant[k * 8 + col]);
+        if [1, 2, 3, 5, 6, 7].iter().all(|&k| coef[k * 8 + col] == 0) {
+            let dc = deq(0) << PASS1_BITS;
+            for k in 0..4 {
+                ws[k * 8 + col] = dc;
+            }
+            continue;
+        }
+        let tmp0 = deq(0) << (CONST_BITS + 1);
+        let tmp2 = deq(2) * FIX_1_847759065 + deq(6) * -FIX_0_765366865;
+        let tmp10 = tmp0 + tmp2;
+        let tmp12 = tmp0 - tmp2;
+        let (z1, z2, z3, z4) = (deq(7), deq(5), deq(3), deq(1));
+        let tmp0 = z1 * -FIX_0_211164243 + z2 * FIX_1_451774981 + z3 * -FIX_2_172734803 + z4 * FIX_1_061594337;
+        let tmp2 = z1 * -FIX_0_509795579 + z2 * -FIX_0_601344887 + z3 * FIX_0_899976223 + z4 * FIX_2_562915447;
+        let n = CONST_BITS - PASS1_BITS + 1;
+        ws[col] = i64::from(descale(tmp10 + tmp2, n) as i32);
+        ws[24 + col] = i64::from(descale(tmp10 - tmp2, n) as i32);
+        ws[8 + col] = i64::from(descale(tmp12 + tmp0, n) as i32);
+        ws[16 + col] = i64::from(descale(tmp12 - tmp0, n) as i32);
+    }
+    for row in 0..4 {
+        let w = &ws[row * 8..row * 8 + 8];
+        let o = off + row * stride;
+        if [1, 2, 3, 5, 6, 7].iter().all(|&k| w[k] == 0) {
+            let dc = range_limit_idct(i64::from(descale(w[0], PASS1_BITS + 3) as i32));
+            out[o..o + 4].fill(dc);
+            continue;
+        }
+        let tmp0 = w[0] << (CONST_BITS + 1);
+        let tmp2 = w[2] * FIX_1_847759065 + w[6] * -FIX_0_765366865;
+        let tmp10 = tmp0 + tmp2;
+        let tmp12 = tmp0 - tmp2;
+        let (z1, z2, z3, z4) = (w[7], w[5], w[3], w[1]);
+        let tmp0 = z1 * -FIX_0_211164243 + z2 * FIX_1_451774981 + z3 * -FIX_2_172734803 + z4 * FIX_1_061594337;
+        let tmp2 = z1 * -FIX_0_509795579 + z2 * -FIX_0_601344887 + z3 * FIX_0_899976223 + z4 * FIX_2_562915447;
+        let n = CONST_BITS + PASS1_BITS + 3 + 1;
+        let put = |v: i64| range_limit_idct(i64::from(descale(v, n) as i32));
+        out[o] = put(tmp10 + tmp2);
+        out[o + 3] = put(tmp10 - tmp2);
+        out[o + 1] = put(tmp12 + tmp0);
+        out[o + 2] = put(tmp12 - tmp0);
+    }
+}
+
+/// `jpeg_idct_2x2`.
+pub fn idct_2x2(coef: &[i16; 64], quant: &[u16; 64], out: &mut [u8], off: usize, stride: usize) {
+    let mut ws = [0i64; 16];
+    for col in 0..8 {
+        if matches!(col, 2 | 4 | 6) {
+            continue;
+        }
+        let deq = |k: usize| i64::from(coef[k * 8 + col]) * i64::from(quant[k * 8 + col]);
+        if [1, 3, 5, 7].iter().all(|&k| coef[k * 8 + col] == 0) {
+            let dc = deq(0) << PASS1_BITS;
+            ws[col] = dc;
+            ws[8 + col] = dc;
+            continue;
+        }
+        let tmp10 = deq(0) << (CONST_BITS + 2);
+        let tmp0 = deq(7) * -FIX_0_720959822 + deq(5) * FIX_0_850430095 + deq(3) * -FIX_1_272758580
+            + deq(1) * FIX_3_624509785;
+        let n = CONST_BITS - PASS1_BITS + 2;
+        ws[col] = i64::from(descale(tmp10 + tmp0, n) as i32);
+        ws[8 + col] = i64::from(descale(tmp10 - tmp0, n) as i32);
+    }
+    for row in 0..2 {
+        let w = &ws[row * 8..row * 8 + 8];
+        let o = off + row * stride;
+        if [1, 3, 5, 7].iter().all(|&k| w[k] == 0) {
+            let dc = range_limit_idct(i64::from(descale(w[0], PASS1_BITS + 3) as i32));
+            out[o..o + 2].fill(dc);
+            continue;
+        }
+        let tmp10 = w[0] << (CONST_BITS + 2);
+        let tmp0 = w[7] * -FIX_0_720959822 + w[5] * FIX_0_850430095 + w[3] * -FIX_1_272758580 + w[1] * FIX_3_624509785;
+        let n = CONST_BITS + PASS1_BITS + 3 + 2;
+        out[o] = range_limit_idct(i64::from(descale(tmp10 + tmp0, n) as i32));
+        out[o + 1] = range_limit_idct(i64::from(descale(tmp10 - tmp0, n) as i32));
+    }
+}
+
+/// `jpeg_idct_1x1`: a média do bloco.
+pub fn idct_1x1(coef: &[i16; 64], quant: &[u16; 64], out: &mut [u8], off: usize, _stride: usize) {
+    let dc = i32::from(coef[0]) * i32::from(quant[0]);
+    out[off] = range_limit_idct(i64::from(descale(i64::from(dc), 3) as i32));
+}
+
+/// A IDCT do tamanho escalado da componente (`jddctmgr.c`).
+pub fn idct_scaled(n: usize, coef: &[i16; 64], quant: &[u16; 64], out: &mut [u8], off: usize, stride: usize) {
+    match n {
+        1 => idct_1x1(coef, quant, out, off, stride),
+        2 => idct_2x2(coef, quant, out, off, stride),
+        4 => idct_4x4(coef, quant, out, off, stride),
+        _ => idct_islow(coef, quant, out, off, stride),
+    }
+}
