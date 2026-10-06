@@ -92,6 +92,13 @@ fn copy4(o: &mut [u8], i: &[u8], n: usize) {
     o[..n * 4].copy_from_slice(&i[..n * 4]);
 }
 
+/// `unpackRGBAI`: as quatro bandas invertidas (CMYK do Photoshop no JPEG Adobe).
+fn copy4i(o: &mut [u8], i: &[u8], n: usize) {
+    for (d, s) in o[..n * 4].iter_mut().zip(&i[..n * 4]) {
+        *d = !s;
+    }
+}
+
 fn unpack_li(o: &mut [u8], i: &[u8], n: usize) {
     for x in 0..n {
         o[x] = !i[x];
@@ -254,7 +261,8 @@ pub fn unpacker(mode: &str, rawmode: &str) -> Option<Codec> {
         ("P", "P;1") => c(1, unpack_p1),
         ("P", "P;2") => c(2, unpack_p2),
         ("P", "P;4") => c(4, unpack_p4),
-        ("RGB" | "RGBX", "RGB") => c(24, unpack_rgb),
+        ("RGB" | "RGBX", "RGB") | ("YCbCr", "YCbCr") => c(24, unpack_rgb),
+        ("CMYK", "CMYK;I") => c(32, copy4i),
         ("RGB" | "RGBX", "BGR") => c(24, unpack_bgr),
         ("RGB" | "RGBX", "RGB;16B") => c(48, unpack_rgb16b),
         ("RGB" | "RGBX", "RGBX") | ("RGBA", "RGBA") | ("CMYK", "CMYK") | ("I" | "F", "I" | "F") => c(32, copy4),

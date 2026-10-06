@@ -28,7 +28,7 @@ use crate::native_util::bind;
 use crate::object::{ExtObject, Kw, ModuleObj, Value};
 use crate::vm::{exc, type_error, PyResult, Vm};
 
-use codec::{CodecState, RawDecoder, ZipDecoder, ZipEncoder};
+use codec::{CodecState, JpegDecoder, RawDecoder, ZipDecoder, ZipEncoder};
 use image::{Image, Palette, PixType};
 
 pub const PILLOW_VERSION: &str = "11.1.0";
@@ -1132,6 +1132,7 @@ fn font_new(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
 enum DecKind {
     Raw(RawDecoder),
     Zip(ZipDecoder),
+    Jpeg(Box<JpegDecoder>),
 }
 
 struct DecState {
@@ -1183,6 +1184,7 @@ impl ExtObject for DecoderObj {
                 let status = match &mut d.kind {
                     DecKind::Raw(r) => r.decode(&mut im, &mut d.st, &data),
                     DecKind::Zip(z) => z.decode(&mut im, &mut d.st, &data),
+                    DecKind::Jpeg(j) => j.decode(&mut im, &mut d.st, &data),
                 };
                 Ok(Value::tuple(vec![Value::Int(i64::from(status)), Value::Int(i64::from(d.st.errcode))]))
             }
@@ -1312,6 +1314,25 @@ fn raw_decoder(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     let mut st = CodecState::new(u.f, u.bits as i32);
     st.ystep = ystep;
     Ok(Value::Ext(Rc::new(DecoderObj { inner: RefCell::new(DecState { st, kind: DecKind::Raw(RawDecoder::new(stride)), im: None }) })))
+}
+
+/// `PyImaging_JpegDecoderNew(mode, rawmode, jpegmode, scale=1, draft=0)`.
+fn jpeg_decoder(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let (mode, mut rawmode) = mode_and_raw(&args)?;
+    let jpegmode = match args.get(2) {
+        None | Some(Value::None) => String::new(),
+        Some(v) => str_arg(v)?,
+    };
+    let scale = args.get(3).map(i32_arg).transpose()?.unwrap_or(1);
+    let draft = args.get(4).map(i32_arg).transpose()?.unwrap_or(0) != 0;
+    // Com as extensões do libjpeg-turbo o Pillow pede `RGBX`, o formato nativo de 4 bytes.
+    if rawmode == "RGB" {
+        rawmode = "RGBX".into();
+    }
+    let u = unpacker_for(&mode, &rawmode)?;
+    let st = CodecState::new(u.f, u.bits as i32);
+    let kind = DecKind::Jpeg(Box::new(JpegDecoder::new(&rawmode, &jpegmode, scale, draft)));
+    Ok(Value::Ext(Rc::new(DecoderObj { inner: RefCell::new(DecState { st, kind, im: None }) })))
 }
 
 fn zip_decoder(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
@@ -1525,6 +1546,7 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
         .func("raw_decoder", raw_decoder)
         .func("raw_encoder", raw_encoder)
         .func("zip_decoder", zip_decoder)
+        .func("jpeg_decoder", jpeg_decoder)
         .func("zip_encoder", zip_encoder)
         .func("getcodecstatus", getcodecstatus)
         .func("path", path::path_create)

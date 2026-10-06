@@ -77,7 +77,7 @@ impl CodecState {
     }
 
     /// Onde começa, no armazenamento, a linha `y` do tile.
-    fn row(&self, im: &Image, y: i32) -> usize {
+    pub fn row(&self, im: &Image, y: i32) -> usize {
         im.offset(self.xoff, y + self.yoff)
     }
 }
@@ -557,5 +557,93 @@ impl ZipEncoder {
             }
         }
         w as i32
+    }
+}
+
+// ---- jpeg ----
+
+/// `ImagingJpegDecode` sobre o `zjpeg`. O libjpeg do original suspende quando faltam bytes e
+/// retoma na chamada seguinte; aqui os blocos se acumulam e a decodificação roda quando chega um
+/// `FF D9` (fim de imagem), repetindo se o arquivo ainda estiver incompleto naquele ponto.
+pub struct JpegDecoder {
+    rawmode: String,
+    jpegmode: String,
+    scale: i32,
+    draft: bool,
+    data: Vec<u8>,
+}
+
+impl JpegDecoder {
+    pub fn new(rawmode: &str, jpegmode: &str, scale: i32, draft: bool) -> JpegDecoder {
+        JpegDecoder { rawmode: rawmode.into(), jpegmode: jpegmode.into(), scale, draft, data: Vec::new() }
+    }
+
+    fn options(&self) -> zjpeg::Options {
+        use zjpeg::ColorSpace as C;
+        let mut o = zjpeg::Options::default();
+        o.jpeg_color_space = match self.jpegmode.as_str() {
+            "L" => Some(C::Grayscale),
+            "RGB" => Some(C::Rgb),
+            "CMYK" => Some(C::Cmyk),
+            "YCbCr" => Some(C::YCbCr),
+            "YCbCrK" => Some(C::Ycck),
+            _ => None,
+        };
+        o.out_color_space = Some(match self.rawmode.as_str() {
+            "L" => C::Grayscale,
+            "RGB" | "RGBX" => C::Rgb,
+            "CMYK" | "CMYK;I" => C::Cmyk,
+            "YCbCr" => C::YCbCr,
+            "YCbCrK" => C::Ycck,
+            _ => {
+                // Conversões desligadas: o que estiver no arquivo sai como está.
+                o.jpeg_color_space = Some(C::Unknown);
+                C::Unknown
+            }
+        });
+        if self.scale > 1 {
+            o.scale_denom = self.scale as usize;
+        }
+        if self.draft {
+            o.fancy_upsampling = false;
+        }
+        o
+    }
+
+    pub fn decode(&mut self, im: &mut Image, st: &mut CodecState, buf: &[u8]) -> i32 {
+        // O fim de imagem pode ter chegado partido entre o bloco anterior e este.
+        let tail = self.data.last() == Some(&0xFF) && buf.first() == Some(&0xD9);
+        self.data.extend_from_slice(buf);
+        if !tail && !buf.windows(2).any(|w| w == [0xFF, 0xD9]) {
+            return buf.len() as i32;
+        }
+        let d = match zjpeg::decode(&self.data, &self.options()) {
+            Ok(d) => d,
+            Err(zjpeg::Error::Truncated) => return buf.len() as i32,
+            Err(_) => {
+                st.errcode = CODEC_BROKEN;
+                return -1;
+            }
+        };
+        // O `RGBX` das extensões do libjpeg-turbo: quatro bytes por pixel com o quarto em 255.
+        let rgbx = self.rawmode == "RGBX";
+        let comps = d.components;
+        let mut line = vec![0u8; d.width * if rgbx { 4 } else { comps }];
+        let rows = (st.ysize.max(0) as usize).min(d.height);
+        for y in 0..rows {
+            let src = &d.data[y * d.width * comps..(y + 1) * d.width * comps];
+            if rgbx {
+                for x in 0..d.width {
+                    line[x * 4..x * 4 + 3].copy_from_slice(&src[x * 3..x * 3 + 3]);
+                    line[x * 4 + 3] = 255;
+                }
+            } else {
+                line.copy_from_slice(src);
+            }
+            let o = st.row(im, y as i32);
+            (st.shuffle)(&mut im.data[o..], &line, st.xsize as usize);
+        }
+        st.y = rows as i32;
+        -1
     }
 }
