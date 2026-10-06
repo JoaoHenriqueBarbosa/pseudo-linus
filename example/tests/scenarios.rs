@@ -241,6 +241,35 @@ async fn agent_writes_and_runs_bash_script() -> anyhow::Result<()> {
     s.finish().await
 }
 
+/// Python no sandbox: script com json, collections e argparse, rodado pelo modelo.
+#[tokio::test(flavor = "multi_thread")]
+async fn python_data_processing() -> anyhow::Result<()> {
+    let s = Scenario::start("python_data").await?;
+    s.sandbox
+        .exec(
+            "setup",
+            "mkdir -p /in && printf '%s\\n' '{\"city\":\"Recife\",\"temp\":31}' '{\"city\":\"Curitiba\",\"temp\":14}' \
+             '{\"city\":\"Recife\",\"temp\":29}' '{\"city\":\"Curitiba\",\"temp\":18}' > /in/readings.jsonl",
+            None,
+        )
+        .await?;
+    let t = s
+        .agent(
+            "main",
+            "Do not modify /in/readings.jsonl. Write /opt/agg.py, a python3 script using argparse (a positional input \
+             path and an optional --out path) that reads the JSON Lines file, computes the mean temperature per city \
+             with collections.defaultdict, and writes a JSON object {city: mean} sorted by city to --out. Run it with \
+             --out /opt/means.json and show the output file.",
+        )
+        .await?;
+    assert!(!t.is_error, "{}", t.final_text);
+    let v: serde_json::Value = serde_json::from_str(&s.sandbox.read_file("/opt/means.json").await?)?;
+    assert_eq!(v, serde_json::json!({ "Curitiba": 16.0, "Recife": 30.0 }));
+    let r = s.sandbox.exec("check", "python3 /opt/agg.py --help | head -1", None).await?;
+    assert!(r.stdout.starts_with("usage: agg.py"), "{r:?}");
+    s.finish().await
+}
+
 /// Exercício livre: o modelo monta e roda um pipeline de verdade (compilar C, testar, empacotar).
 #[tokio::test(flavor = "multi_thread")]
 async fn build_test_package_pipeline() -> anyhow::Result<()> {
