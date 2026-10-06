@@ -4,6 +4,7 @@
 //! Cobre o caminho que o Pillow usa: `FT_New_Memory_Face`, `FT_Request_Size` nominal,
 //! `FT_Load_Glyph` com o autohinter (fontes sem bytecode) e o rasterizador `smooth`.
 
+mod autofit;
 pub mod calc;
 mod glyf;
 pub mod outline;
@@ -97,6 +98,8 @@ pub struct Face {
     pub height: i64,
     pub max_advance_width: i64,
     pub size: SizeMetrics,
+    /// Os globais do autohinter (`face->autohint.data`), criados na primeira carga.
+    autohint: Option<Box<autofit::Globals>>,
 }
 
 /// `FT_GlyphSlot` depois de um `FT_Load_Glyph`.
@@ -158,7 +161,41 @@ impl Face {
             data,
             sfnt: s,
             size: SizeMetrics::default(),
+            autohint: None,
         })
+    }
+
+    /// `FT_STYLE_FLAG_ITALIC`, como o `sfnt_load_face` o deduz do OS/2 ou do `macStyle`.
+    pub fn is_italic(&self) -> bool {
+        match self.sfnt.os2 {
+            Some(o) => o.fs_selection & (512 | 1) != 0,
+            None => self.sfnt.mac_style & 2 != 0,
+        }
+    }
+
+    pub(crate) fn has_unicode_cmap(&self) -> bool {
+        self.sfnt.unicode_cmap.is_some()
+    }
+
+    pub(crate) fn mapped_chars(&self) -> Vec<(u32, u32)> {
+        self.sfnt.mapped_chars(&self.data)
+    }
+
+    /// `FT_Get_Advance` com `FT_LOAD_NO_SCALE`: o avanço do `hmtx`.
+    pub fn advance_unscaled(&self, gid: u32) -> i64 {
+        i64::from(self.sfnt.hmetrics(&self.data, gid).0)
+    }
+
+    /// O `ft_glyphslot_load` escolhe o autohinter quando a fonte não traz bytecode.
+    fn wants_autohint(&self, flags: u32) -> bool {
+        if flags & (LOAD_NO_HINTING | LOAD_NO_SCALE) != 0 {
+            return false;
+        }
+        flags & LOAD_FORCE_AUTOHINT != 0
+            || (self.sfnt.has(b"loca")
+                && self.sfnt.max_size_of_instructions == 0
+                && !self.sfnt.has(b"fpgm")
+                && !self.sfnt.has(b"prep"))
     }
 
     pub fn num_glyphs(&self) -> u32 {
@@ -248,7 +285,10 @@ impl Face {
     }
 
     /// `FT_Load_Glyph`.
-    pub fn load_glyph(&self, gid: u32, flags: u32) -> Result<Slot, Error> {
+    pub fn load_glyph(&mut self, gid: u32, flags: u32) -> Result<Slot, Error> {
+        if self.wants_autohint(flags) {
+            return self.autohint_glyph(gid, flags);
+        }
         // `tt_glyph_load`: sem hinting, o driver usa as métricas da camada base (escala exata).
         let scale = if flags & LOAD_NO_SCALE != 0 {
             None

@@ -42,6 +42,7 @@ pub(crate) struct Sfnt {
     pub tables: Vec<([u8; 4], usize, usize)>,
     pub units_per_em: u16,
     pub head_flags: u16,
+    pub mac_style: u16,
     pub bbox: [i16; 4],
     pub index_to_loc: i16,
     pub num_glyphs: u16,
@@ -97,6 +98,7 @@ impl Sfnt {
             tables,
             units_per_em: 0,
             head_flags: 0,
+            mac_style: 0,
             bbox: [0; 4],
             index_to_loc: 0,
             num_glyphs: 0,
@@ -116,6 +118,7 @@ impl Sfnt {
             return Err(Error::InvalidTable);
         }
         s.head_flags = u16_at(head, 16).unwrap_or(0);
+        s.mac_style = u16_at(head, 44).unwrap_or(0);
         s.units_per_em = u16_at(head, 18).unwrap_or(0);
         for k in 0..4 {
             s.bbox[k] = i16_at(head, 36 + 2 * k).unwrap_or(0);
@@ -188,6 +191,53 @@ impl Sfnt {
         let cm = &self.charmaps[ci];
         let g = cmap_lookup(data, cm.offset, cm.format, code).unwrap_or(0);
         if g >= u32::from(self.num_glyphs) { 0 } else { g }
+    }
+
+    /// Todos os pares (código, glifo) do charmap Unicode com glifo válido, em ordem de código,
+    /// como os devolveria uma sequência de `FT_Get_Next_Char`.
+    pub fn mapped_chars(&self, data: &[u8]) -> Vec<(u32, u32)> {
+        let Some(ci) = self.unicode_cmap else { return Vec::new() };
+        let cm = &self.charmaps[ci];
+        let (d, o) = (data, cm.offset);
+        let mut codes: Vec<u32> = Vec::new();
+        match cm.format {
+            0 => codes.extend(0..256),
+            4 => {
+                let seg2 = usize::from(u16_at(d, o + 6).unwrap_or(0));
+                for i in 0..seg2 / 2 {
+                    let end = u32::from(u16_at(d, o + 14 + 2 * i).unwrap_or(0));
+                    let start = u32::from(u16_at(d, o + 16 + seg2 + 2 * i).unwrap_or(0));
+                    if start <= end {
+                        codes.extend(start..=end);
+                    }
+                }
+            }
+            6 => {
+                let first = u32::from(u16_at(d, o + 6).unwrap_or(0));
+                let count = u32::from(u16_at(d, o + 8).unwrap_or(0));
+                codes.extend(first..first + count);
+            }
+            12 | 13 => {
+                let n = u32_at(d, o + 12).unwrap_or(0) as usize;
+                for i in 0..n {
+                    let r = o + 16 + 12 * i;
+                    let (Some(start), Some(end)) = (u32_at(d, r), u32_at(d, r + 4)) else { break };
+                    if start <= end && end <= 0x10FFFF {
+                        codes.extend(start..=end);
+                    }
+                }
+            }
+            _ => {}
+        }
+        codes.sort_unstable();
+        codes.dedup();
+        codes
+            .into_iter()
+            .filter_map(|c| {
+                let g = self.char_index(data, c);
+                (g != 0).then_some((c, g))
+            })
+            .collect()
     }
 
     /// `tt_face_get_metrics`: avanço e bearing horizontais em unidades da fonte.
