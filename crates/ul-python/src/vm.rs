@@ -233,6 +233,16 @@ fn tag_attribute_error(mut e: PyException, obj: &Value, name: &str) -> PyExcepti
 }
 
 impl Vm {
+    /// Nome do arquivo do script principal como o CPython o mostra (`co_filename`, tracebacks, avisos):
+    /// caminho absoluto normalizado, `<stdin>` ou `<string>` (`-c`).
+    pub(crate) fn script_name(&self) -> String {
+        match self.argv.first().map(String::as_str) {
+            Some("-") => "<stdin>".to_string(),
+            Some(a) if !a.is_empty() && a != "-c" => crate::absolute_path(a),
+            _ => "<string>".to_string(),
+        }
+    }
+
     /// `NameError` com o `name` e a lista de nomes visíveis (locais, closures, globais, embutidos), para
     /// o "Did you mean" na hora de mostrar o erro.
     fn name_error_ctx(&self, mut e: PyException, env: &Rc<Env>) -> PyException {
@@ -1035,10 +1045,7 @@ impl Vm {
                             vec![(code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str()))]
                         };
                         entries.extend(e.tb.iter().rev().cloned());
-                        let filename = match self.argv.first().map(String::as_str) {
-                            Some(a) if !a.is_empty() && a != "-c" => a.to_string(),
-                            _ => "<string>".to_string(),
-                        };
+                        let filename = self.script_name();
                         let tb = crate::tbobj::TracebackObj::make(entries, &filename);
                         match &value {
                             Value::Exception(x) => *x.traceback.borrow_mut() = Some(tb),
@@ -2476,10 +2483,7 @@ impl Vm {
                     }
                     "__code__" => {
                         let file = if f.code.filename.is_empty() {
-                            match self.argv.first().map(String::as_str) {
-                                Some(a) if !a.is_empty() && a != "-c" => a.to_string(),
-                                _ => "<string>".to_string(),
-                            }
+                            self.script_name()
                         } else {
                             f.code.filename.clone()
                         };

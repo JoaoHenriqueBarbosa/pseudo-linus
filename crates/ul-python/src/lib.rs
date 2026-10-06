@@ -298,6 +298,32 @@ fn is_regular(path: &str) -> bool {
     sys::stat(path.as_bytes()).is_ok_and(|st| st.mode & 0o170_000 == 0o100_000)
 }
 
+fn is_dir(path: &str) -> bool {
+    sys::stat(path.as_bytes()).is_ok_and(|st| st.mode & 0o170_000 == 0o040_000)
+}
+
+/// Caminho absoluto e normalizado (`.`, `..` e `//` resolvidos sem tocar o disco), como o CPython mostra o
+/// arquivo do script nos tracebacks e em `__file__`.
+pub(crate) fn absolute_path(path: &str) -> String {
+    let full = if path.starts_with('/') {
+        path.to_string()
+    } else {
+        let cwd = sys::try_current().and_then(|p| p.getcwd().ok()).unwrap_or_default();
+        format!("{}/{path}", String::from_utf8_lossy(&cwd).trim_end_matches('/'))
+    };
+    let mut parts: Vec<&str> = Vec::new();
+    for part in full.split('/') {
+        match part {
+            "" | "." => {}
+            ".." => {
+                parts.pop();
+            }
+            p => parts.push(p),
+        }
+    }
+    format!("/{}", parts.join("/"))
+}
+
 /// `python3 -m pacote.modulo args...`: procura no diretório atual (e em `sys.path`), roda como `__main__`.
 fn run_module(name: &str, rest: &[Vec<u8>], program: &str) -> i32 {
     let cwd = String::from_utf8_lossy(&sys::current().getcwd().unwrap_or_default()).into_owned();
@@ -310,13 +336,14 @@ fn run_module(name: &str, rest: &[Vec<u8>], program: &str) -> i32 {
         let pkg_dir = format!("{dir}/{part}");
         if last {
             let main = format!("{pkg_dir}/__main__.py");
-            if is_regular(&format!("{pkg_dir}/__init__.py")) && is_regular(&main) {
+            if is_dir(&pkg_dir) && is_regular(&main) {
                 found = Some((main, name.to_string()));
             } else if is_regular(&format!("{dir}/{part}.py")) {
                 let package = parts[..i].join(".");
                 found = Some((format!("{dir}/{part}.py"), package));
             }
-        } else if is_regular(&format!("{pkg_dir}/__init__.py")) {
+        } else if is_dir(&pkg_dir) {
+            // com ou sem `__init__.py` (pacote de namespace, PEP 420)
             dir = pkg_dir;
         } else {
             break;
@@ -343,10 +370,28 @@ fn run_module(name: &str, rest: &[Vec<u8>], program: &str) -> i32 {
         }
     };
     let argv = std::iter::once(path.clone()).chain(rest.iter().map(|a| String::from_utf8_lossy(a).into_owned())).collect();
-    let outcome = run_main(&text, argv, &path, true, Some((package, cwd)));
-    let _ = sys::write_all(Fd::STDOUT, &outcome.stdout);
-    if !outcome.stderr.is_empty() {
+    let mut outcome = run_main(&text, argv, &path, true, Some((package, cwd)));
+    // O `runpy` do CPython aparece no traceback do erro que sobe do módulo (o último bloco, se houver cadeia).
+    const HEADER: &str = "Traceback (most recent call last):\n";
+    if let Some(at) = outcome.stderr.rfind(HEADER) {
+        let frames = "  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n";
+        outcome.stderr.insert_str(at + HEADER.len(), frames);
+    }
+    // `-m` e `-c` mostram o erro antes de o stdout pendente descarregar (só os arquivos descarregam antes).
+    finish(outcome, true)
+}
+
+/// Escreve o resultado de uma execução e devolve o código de saída. Com `error_first`, o texto do erro
+/// sai antes do stdout que ainda estava no buffer, como no CPython com `-c` e `-m`.
+fn finish(outcome: Outcome, error_first: bool) -> i32 {
+    if error_first && !outcome.stderr.is_empty() {
         write_stderr(&outcome.stderr);
+        let _ = sys::write_all(Fd::STDOUT, &outcome.stdout);
+    } else {
+        let _ = sys::write_all(Fd::STDOUT, &outcome.stdout);
+        if !outcome.stderr.is_empty() {
+            write_stderr(&outcome.stderr);
+        }
     }
     outcome.status
 }
@@ -360,11 +405,7 @@ fn run_script(rest: &[Vec<u8>], program: &str) -> i32 {
         if let Some((main, text)) = modules::userimport::main_of_archive(&shown) {
             let argv = rest.iter().map(|a| to_s(a)).collect();
             let outcome = run_main(&text, argv, &main, true, Some((String::new(), shown)));
-            let _ = sys::write_all(Fd::STDOUT, &outcome.stdout);
-            if !outcome.stderr.is_empty() {
-                write_stderr(&outcome.stderr);
-            }
-            return outcome.status;
+            return finish(outcome, false);
         }
     }
     let (src, name, argv, file_mode) = match rest.first() {
@@ -382,7 +423,7 @@ fn run_script(rest: &[Vec<u8>], program: &str) -> i32 {
                     return 2;
                 }
             };
-            (String::from_utf8_lossy(&text).into_owned(), to_s(path), rest.iter().map(|a| to_s(a)).collect(), true)
+            (String::from_utf8_lossy(&text).into_owned(), absolute_path(&to_s(path)), rest.iter().map(|a| to_s(a)).collect(), true)
         }
         other => {
             let text = sys::read_to_end(Fd::STDIN).unwrap_or_default();
@@ -392,11 +433,7 @@ fn run_script(rest: &[Vec<u8>], program: &str) -> i32 {
         }
     };
     let outcome = run_with(&src, argv, &name, file_mode);
-    let _ = sys::write_all(Fd::STDOUT, &outcome.stdout);
-    if !outcome.stderr.is_empty() {
-        write_stderr(&outcome.stderr);
-    }
-    outcome.status
+    finish(outcome, false)
 }
 
 /// Saída de `python3 -c` já pronta: stdout, stderr e código de saída.
@@ -522,7 +559,9 @@ fn run_source_inner(
         }
         Err(e) => {
             machine.prepare_error(&e.exc);
-            Outcome { stdout, stderr: vm::format_traceback_in(&e, name, Some(src.as_str())), status: 1 }
+            // Programa lido do stdin: o CPython não tem como mostrar a linha fonte.
+            let shown_src = if name == "<stdin>" { None } else { Some(src.as_str()) };
+            Outcome { stdout, stderr: vm::format_traceback_in(&e, name, shown_src), status: 1 }
         }
     }
 }
@@ -572,11 +611,7 @@ fn run_command(command: &[u8], rest: &[Vec<u8>]) -> i32 {
     let mut argv = vec!["-c".to_string()];
     argv.extend(rest.iter().map(|a| String::from_utf8_lossy(a).into_owned()));
     let outcome = run_source_args(&src, argv);
-    let _ = sys::write_all(Fd::STDOUT, &outcome.stdout);
-    if !outcome.stderr.is_empty() {
-        write_stderr(&outcome.stderr);
-    }
-    outcome.status
+    finish(outcome, true)
 }
 
 #[cfg(test)]

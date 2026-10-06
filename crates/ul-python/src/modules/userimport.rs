@@ -126,11 +126,10 @@ fn package_path(vm: &mut Vm, package: &str) -> Vec<String> {
 }
 
 fn join(dir: &str, leaf: &str) -> String {
-    if dir.is_empty() {
-        leaf.to_string()
-    } else {
-        format!("{}/{leaf}", dir.trim_end_matches('/'))
-    }
+    // Como o `FileFinder`: entrada relativa de `sys.path` (inclusive o `''` do diretório atual) vira
+    // absoluta, e é assim que `__file__` e os tracebacks mostram o módulo.
+    let base = if dir.starts_with('/') { dir.to_string() } else { crate::absolute_path(dir) };
+    format!("{}/{leaf}", base.trim_end_matches('/'))
 }
 
 /// Procura o módulo `name` no disco.

@@ -38,10 +38,7 @@ fn getframe(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
         None => 0,
     };
     // Do quadro mais interno para o `<module>`: cada função guarda a linha do seu chamador.
-    let script: std::rc::Rc<str> = match vm.argv.first().map(String::as_str) {
-        Some(a) if !a.is_empty() && a != "-c" => a.into(),
-        _ => "<string>".into(),
-    };
+    let script: std::rc::Rc<str> = vm.script_name().into();
     let mut chain: Vec<(usize, String, std::rc::Rc<str>)> = Vec::new();
     let mut line = vm.cur_line.get();
     for (code, caller_line) in vm.frames.borrow().iter().rev() {
@@ -127,12 +124,7 @@ fn script_dir(vm: &Vm) -> String {
     if sysabi::sys::try_current().is_none() {
         return String::new();
     }
-    let abs = if arg0.starts_with('/') {
-        arg0.clone()
-    } else {
-        let cwd = sysabi::sys::current().getcwd().unwrap_or_default();
-        format!("{}/{arg0}", String::from_utf8_lossy(&cwd).trim_end_matches('/'))
-    };
+    let abs = crate::absolute_path(arg0);
     match abs.rsplit_once('/') {
         Some(("", _)) => "/".to_string(),
         Some((dir, _)) => dir.to_string(),
