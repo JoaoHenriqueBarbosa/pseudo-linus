@@ -93,6 +93,8 @@ pub enum Op {
     StoreLocal(u32),
     /// `[anotação]`: grava em `__annotations__[nome]` do módulo ou do corpo de classe.
     Annotate(u32),
+    /// `from m import *`: desempilha o módulo e grava seus nomes públicos nas globais.
+    ImportStar,
     /// Cria a função `functions[code]` com `ndefaults` valores padrão tirados da pilha e, se
     /// `kwdefaults` aponta uma tupla de nomes em `consts`, os padrões só-nomeados correspondentes
     /// (empilhados depois dos posicionais).
@@ -711,11 +713,12 @@ impl Compiler {
                     return Err(self.unsupported("relative import"));
                 };
                 for alias in names {
-                    if alias.name == "*" {
-                        return Err(self.unsupported("import *"));
-                    }
                     let m = self.name(module);
                     self.emit(Op::Import(m));
+                    if alias.name == "*" {
+                        self.emit(Op::ImportStar);
+                        continue;
+                    }
                     let n = self.name(&alias.name);
                     self.emit(Op::ImportName(n));
                     let bound = alias.asname.clone().unwrap_or_else(|| alias.name.clone());

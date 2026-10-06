@@ -1136,6 +1136,38 @@ impl Vm {
                 };
                 stack.push(Slot::Val(Value::Module(m)));
             }
+            Op::ImportStar => {
+                let Value::Module(m) = pop(stack)? else {
+                    return Err(internal("import * from a non-module"));
+                };
+                let attrs = m.attrs.borrow().clone();
+                let listed: Option<Vec<String>> = match attrs.get("__all__") {
+                    Some(Value::List(l)) => Some(l.borrow().iter().map(|v| to_str(v)).collect()),
+                    Some(Value::Tuple(t)) => Some(t.iter().map(|v| to_str(v)).collect()),
+                    _ => None,
+                };
+                let mut globals = self.globals.borrow_mut();
+                match listed {
+                    Some(names) => {
+                        for n in names {
+                            let Some(v) = attrs.get(&n) else {
+                                return Err(exc(
+                                    "AttributeError",
+                                    format!("module '{}' has no attribute '{n}'", m.name),
+                                ));
+                            };
+                            globals.insert(n, v.clone());
+                        }
+                    }
+                    None => {
+                        for (n, v) in attrs {
+                            if !n.starts_with('_') {
+                                globals.insert(n, v);
+                            }
+                        }
+                    }
+                }
+            }
             Op::ImportName(i) => {
                 let obj = pop(stack)?;
                 let name = &code.names[i as usize];

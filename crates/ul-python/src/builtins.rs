@@ -727,13 +727,16 @@ fn b_all(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 // Números
 // ---------------------------------------------------------------------------------------------
 
-fn b_abs(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+fn b_abs(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let v = one("abs", args, &kw)?;
     match v {
         Value::Int(i) => i.checked_abs().map(Value::Int).ok_or_else(overflow),
         Value::Bool(b) => Ok(Value::Int(i64::from(b))),
         Value::Float(x) => Ok(Value::Float(x.abs())),
-        other => Err(type_error(format!("bad operand type for abs(): '{}'", other.type_name()))),
+        other => match vm.call_dunder(&other, "__abs__", Vec::new()) {
+            Some(r) => r,
+            None => Err(type_error(format!("bad operand type for abs(): '{}'", other.type_name()))),
+        },
     }
 }
 
@@ -777,7 +780,7 @@ fn round_int(n: i64, nd: i64) -> PyResult<Value> {
     i64::try_from(base).map(Value::Int).map_err(|_| overflow())
 }
 
-fn b_round(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+fn b_round(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let s = bind("round", args, kw, &["number", "ndigits"], 1)?;
     let number = s[0].clone().unwrap_or(Value::None);
     let nd = match &s[1] {
@@ -801,11 +804,17 @@ fn b_round(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
             Ok(Value::Int(r as i64))
         }
         (Value::Float(x), Some(d)) => Ok(Value::Float(round_float(*x, d))),
-        _ => Err(type_error(format!("type {} doesn't define __round__ method", number.type_name()))),
+        _ => {
+            let extra: Vec<Value> = nd.map(|d| vec![Value::Int(d)]).unwrap_or_default();
+            match vm.call_dunder(&number, "__round__", extra) {
+                Some(r) => r,
+                None => Err(type_error(format!("type {} doesn't define __round__ method", number.type_name()))),
+            }
+        }
     }
 }
 
-fn b_divmod(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+fn b_divmod(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("divmod", &kw)?;
     expect("divmod", &args, 2, 2)?;
     let (a, b) = (&args[0], &args[1]);
@@ -826,6 +835,9 @@ fn b_divmod(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     }
     let numeric = |v: &Value| matches!(v, Value::Int(_) | Value::Bool(_) | Value::Float(_));
     if !numeric(a) || !numeric(b) {
+        if let Some(r) = vm.call_dunder(a, "__divmod__", vec![b.clone()]) {
+            return r;
+        }
         return Err(type_error(format!(
             "unsupported operand type(s) for divmod(): '{}' and '{}'",
             a.type_name(),

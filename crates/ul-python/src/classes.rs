@@ -497,6 +497,7 @@ impl Vm {
             },
             _ => None,
         };
+        let user_new_defined = user_new.is_some();
         let fresh = Rc::new(InstanceObj {
             class: cls.clone(),
             dict: RefCell::new(BTreeMap::new()),
@@ -537,7 +538,12 @@ impl Vm {
             }
             Some(_) => {}
             None => {
-                if cls.builtin_base.is_none() && cls.data_base.is_none() && (!args.is_empty() || !kw.is_empty()) {
+                // `object.__init__` só reclama de argumentos sobrando quando `__new__` não foi sobrescrito.
+                if !user_new_defined
+                    && cls.builtin_base.is_none()
+                    && cls.data_base.is_none()
+                    && (!args.is_empty() || !kw.is_empty())
+                {
                     return Err(type_error(format!("{}() takes no arguments", cls.name)));
                 }
             }

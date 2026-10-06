@@ -359,3 +359,50 @@ print(cm['a'], cm['b'], len(cm), sorted(cm), cm)
          1 3 2 ['a', 'b'] ChainMap({'a': 1}, {'a': 2, 'b': 3})\n"
     );
 }
+
+#[test]
+fn datetime_module() {
+    let src = r#"
+from datetime import *
+import datetime as dtm
+d = date(2024, 3, 15)
+print(d, repr(d), d.weekday(), d.isoweekday(), d.isocalendar(), d.toordinal(), d.ctime())
+print(d + timedelta(days=20), d - timedelta(days=75), date(2024, 12, 31) - d)
+print(d.strftime('%d/%m/%Y %A %B'), f'{d:%Y}', d.replace(day=1), date.fromisoformat('2023-02-28'))
+dt = datetime(2024, 3, 15, 13, 45, 10, 123456)
+print(dt, repr(dt), dt.isoformat(), dt.isoformat(' ', 'seconds'), dt.date(), dt.time())
+print(dt + timedelta(hours=12, minutes=30), dt - datetime(2024, 1, 1), (dt - datetime(2023, 1, 1)).total_seconds())
+print(dt.strftime('%Y-%m-%d %H:%M:%S.%f %j %p %I'), dt.timestamp())
+aware = datetime(2024, 3, 15, 13, 45, tzinfo=timezone.utc)
+print(aware, repr(aware), aware.astimezone(timezone(timedelta(hours=-3))), aware.timestamp())
+print(datetime.fromisoformat('2024-03-15T10:20:30'), datetime.fromisoformat('2024-03-15 10:20:30+02:00'))
+print(datetime.fromtimestamp(1700000000), datetime.strptime('15/03/2024 08:09', '%d/%m/%Y %H:%M'))
+td = timedelta(days=1, hours=2, minutes=3, seconds=4, microseconds=5)
+print(td, repr(td), td * 2, td / 2, td // timedelta(hours=1), -td, abs(-td), timedelta(0), timedelta(seconds=-1))
+print(sorted([dt, datetime(2020, 1, 1)]), d < date(2025, 1, 1), time(10, 30), repr(time(1, 2, 3)))
+print(datetime.min, datetime.max, date.max, timedelta.max)
+try:
+    date(2024, 2, 30)
+except ValueError as e:
+    print(e)
+"#;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r#"2024-03-15 datetime.date(2024, 3, 15) 4 5 datetime.IsoCalendarDate(year=2024, week=11, weekday=5) 738960 Fri Mar 15 00:00:00 2024
+2024-04-04 2023-12-31 291 days, 0:00:00
+15/03/2024 Friday March 2024 2024-03-01 2023-02-28
+2024-03-15 13:45:10.123456 datetime.datetime(2024, 3, 15, 13, 45, 10, 123456) 2024-03-15T13:45:10.123456 2024-03-15 13:45:10 2024-03-15 13:45:10.123456
+2024-03-16 02:15:10.123456 74 days, 13:45:10.123456 37979110.123456
+2024-03-15 13:45:10.123456 075 PM 01 1710510310.123456
+2024-03-15 13:45:00+00:00 datetime.datetime(2024, 3, 15, 13, 45, tzinfo=datetime.timezone.utc) 2024-03-15 10:45:00-03:00 1710510300.0
+2024-03-15 10:20:30 2024-03-15 10:20:30+02:00
+2023-11-14 22:13:20 2024-03-15 08:09:00
+1 day, 2:03:04.000005 datetime.timedelta(days=1, seconds=7384, microseconds=5) 2 days, 4:06:08.000010 13:01:32.000002 26 -2 days, 21:56:55.999995 1 day, 2:03:04.000005 0:00:00 -1 day, 23:59:59
+[datetime.datetime(2020, 1, 1, 0, 0), datetime.datetime(2024, 3, 15, 13, 45, 10, 123456)] True 10:30:00 datetime.time(1, 2, 3)
+0001-01-01 00:00:00 9999-12-31 23:59:59.999999 9999-12-31 999999999 days, 23:59:59.999999
+day is out of range for month
+"#
+    );
+}
