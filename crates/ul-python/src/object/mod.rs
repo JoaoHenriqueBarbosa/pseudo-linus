@@ -257,6 +257,10 @@ pub struct FuncObj {
     pub defaults: Vec<Value>,
     pub kwdefaults: Vec<(String, Value)>,
     pub closure: Option<Rc<Env>>,
+    /// Globais do módulo onde a função nasceu (cada módulo em Python embutido tem as suas).
+    pub globals: Rc<RefCell<std::collections::HashMap<String, Value>>>,
+    /// Atributos atribuídos à função (`f.cache_clear = ...`, `__name__`, `__wrapped__`...).
+    pub attrs: RefCell<std::collections::BTreeMap<String, Value>>,
 }
 
 /// Classe definida por `class`: nome, bases (já resolvidas) e o espaço de nomes.

@@ -44,25 +44,39 @@ pub fn new_generator(vm: Vm, code: Rc<Code>, env: Rc<Env>) -> Value {
 impl GenObj {
     /// Retoma o gerador; `Ok(None)` quando ele termina (o `StopIteration`).
     fn resume(&self, sent: Option<Value>) -> PyResult<Option<Value>> {
+        self.resume_with(sent, None)
+    }
+
+    /// Retoma o gerador; com `inject`, a exceção é levantada no ponto do `yield` em que ele parou.
+    fn resume_with(&self, sent: Option<Value>, inject: Option<crate::vm::PyException>) -> PyResult<Option<Value>> {
         let (mut stack, mut blocks, mut pc) = {
             let mut st = self.state.borrow_mut();
             if st.running {
                 return Err(exc("ValueError", "generator already executing"));
             }
             if st.done {
-                return Ok(None);
+                return match inject {
+                    Some(e) => Err(e),
+                    None => Ok(None),
+                };
             }
-            if st.started {
+            if !st.started {
+                if let Some(e) = inject {
+                    st.done = true;
+                    return Err(e);
+                }
+                if sent.is_some_and(|v| !matches!(v, Value::None)) {
+                    return Err(type_error("can't send non-None value to a just-started generator"));
+                }
+            } else if inject.is_none() {
                 st.stack.push(Slot::Val(sent.unwrap_or(Value::None)));
-            } else if sent.is_some_and(|v| !matches!(v, Value::None)) {
-                return Err(type_error("can't send non-None value to a just-started generator"));
             }
             st.started = true;
             st.running = true;
             (std::mem::take(&mut st.stack), std::mem::take(&mut st.blocks), st.pc)
         };
         let mut vm = self.vm.clone();
-        let result = vm.run_loop(&self.code, &self.env, &mut stack, &mut blocks, &mut pc);
+        let result = vm.run_loop(&self.code, &self.env, &mut stack, &mut blocks, &mut pc, inject);
         let mut st = self.state.borrow_mut();
         st.running = false;
         match result {
@@ -92,7 +106,7 @@ impl ExtObject for GenObj {
         format!("<generator object {} at {:#x}>", self.code.name, self as *const GenObj as usize)
     }
     fn methods(&self) -> &'static [&'static str] {
-        &["send", "close", "__next__"]
+        &["send", "throw", "close", "__next__"]
     }
     fn is_iterable(&self) -> bool {
         true
@@ -100,12 +114,19 @@ impl ExtObject for GenObj {
     fn iter_next(&self) -> PyResult<Option<Value>> {
         self.resume(None)
     }
-    fn call_method(&self, _vm: &mut Vm, name: &str, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    fn call_method(&self, vm: &mut Vm, name: &str, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
         match name {
             "send" => {
                 let [v] = <[Value; 1]>::try_from(args)
                     .map_err(|a| type_error(format!("send() takes exactly one argument ({} given)", a.len())))?;
                 self.resume(Some(v))?.ok_or_else(|| exc("StopIteration", ""))
+            }
+            "throw" => {
+                let Some(first) = args.into_iter().next() else {
+                    return Err(type_error("throw expected at least 1 argument, got 0"));
+                };
+                let e = vm.raise_any(first)?;
+                self.resume_with(None, Some(e))?.ok_or_else(|| exc("StopIteration", ""))
             }
             "__next__" => self.resume(None)?.ok_or_else(|| exc("StopIteration", "")),
             "close" => {

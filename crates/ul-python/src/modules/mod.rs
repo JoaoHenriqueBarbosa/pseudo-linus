@@ -16,7 +16,10 @@ pub mod html;
 pub mod json;
 pub mod math;
 pub mod operator;
+pub mod osnative;
 pub mod pystruct;
+pub mod pysrc;
+pub mod pysys;
 pub mod re;
 pub mod re_engine;
 pub mod shlex;
@@ -66,7 +69,7 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         return Some(m.clone());
     }
     let m = match name {
-        "sys" => builtin::sys(vm),
+        "_sys" => pysys::build(vm),
         "csv" => builtin::csv(),
         "json" => builtin::json(),
         "re" => re::build(vm),
@@ -81,7 +84,8 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         "fnmatch" => fnmatch::build(vm),
         "struct" => pystruct::build(vm),
         "operator" => operator::build(vm),
-        _ => return None,
+        "_os" => osnative::build(vm),
+        _ => return pysrc::import(vm, name),
     };
     vm.modules.borrow_mut().insert(name.to_string(), m.clone());
     Some(m)

@@ -260,8 +260,51 @@ impl Vm {
         })))
     }
 
+    /// Recusa instanciar uma classe derivada de `ABC` que ainda tem métodos abstratos.
+    fn check_abstract(&mut self, cls: &Rc<ClassObj>) -> PyResult<()> {
+        let mro = cls.mro();
+        if !mro.iter().any(|c| c.dict.borrow().contains_key("__abstract_base__")) {
+            return Ok(());
+        }
+        let is_abstract = |v: &Value| match v {
+            Value::Function(f) => f.attrs.borrow().contains_key("__isabstractmethod__"),
+            Value::Ext(e) => match e.descriptor() {
+                Some(Descriptor::Static(Value::Function(f))) | Some(Descriptor::Class(Value::Function(f))) => {
+                    f.attrs.borrow().contains_key("__isabstractmethod__")
+                }
+                Some(Descriptor::Property { get: Value::Function(f), .. }) => {
+                    f.attrs.borrow().contains_key("__isabstractmethod__")
+                }
+                _ => false,
+            },
+            _ => false,
+        };
+        let mut names: Vec<String> = Vec::new();
+        for c in mro.iter().rev() {
+            for (k, v) in c.dict.borrow().iter() {
+                if is_abstract(v) && !names.contains(k) {
+                    names.push(k.clone());
+                }
+            }
+        }
+        let missing: Vec<String> = names
+            .into_iter()
+            .filter(|n| cls.lookup(n).is_some_and(|v| is_abstract(&v)))
+            .collect();
+        if missing.is_empty() {
+            return Ok(());
+        }
+        let quoted: Vec<String> = missing.iter().map(|n| format!("'{n}'")).collect();
+        let (noun, list) = if missing.len() == 1 { ("method", quoted[0].clone()) } else { ("methods", quoted.join(", ")) };
+        Err(type_error(format!(
+            "Can't instantiate abstract class {} without an implementation for abstract {noun} {list}",
+            cls.name
+        )))
+    }
+
     /// `Classe(args)`: cria a instância e roda `__init__`.
     pub(crate) fn instantiate(&mut self, cls: &Rc<ClassObj>, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+        self.check_abstract(cls)?;
         let inst = Rc::new(InstanceObj { class: cls.clone(), dict: RefCell::new(BTreeMap::new()) });
         let obj = Value::Instance(inst.clone());
         if cls.builtin_base.is_some() {
@@ -353,6 +396,14 @@ impl Vm {
             "__mro__" => {
                 return Ok(Value::tuple(cls.mro().into_iter().map(Value::Class).collect()));
             }
+            "__dict__" => {
+                let mut d = crate::object::Dict::new();
+                for (k, v) in cls.dict.borrow().iter() {
+                    d.set(Value::str(k.clone()), v.clone())?;
+                }
+                return Ok(Value::dict(d));
+            }
+            "__class__" => return Ok(Value::Builtin("type")),
             _ => {}
         }
         if let Some(attr) = cls.lookup(name) {
@@ -388,6 +439,10 @@ impl Vm {
             }
             Value::Module(m) => {
                 m.attrs.borrow_mut().insert(name.to_string(), value);
+                Ok(())
+            }
+            Value::Function(f) => {
+                f.attrs.borrow_mut().insert(name.to_string(), value);
                 Ok(())
             }
             _ => Err(exc(

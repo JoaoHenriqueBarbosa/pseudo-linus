@@ -162,7 +162,7 @@ pub(crate) enum PyIter {
 }
 
 impl PyIter {
-    fn next(&mut self) -> PyResult<Option<Value>> {
+    pub(crate) fn next(&mut self) -> PyResult<Option<Value>> {
         Ok(match self {
             PyIter::List(items, i) => {
                 let Some(v) = items.borrow().get(*i).cloned() else { return Ok(None) };
@@ -210,7 +210,7 @@ impl PyIter {
     }
 }
 
-fn get_iter(v: &Value) -> PyResult<PyIter> {
+pub(crate) fn get_iter(v: &Value) -> PyResult<PyIter> {
     Ok(match v {
         Value::List(l) => PyIter::List(l.clone(), 0),
         Value::Tuple(t) => PyIter::Tuple(t.clone(), 0),
@@ -318,7 +318,7 @@ pub(crate) struct Block {
     pub(crate) handled: usize,
 }
 
-fn internal(msg: &str) -> PyException {
+pub(crate) fn internal(msg: &str) -> PyException {
     exc("SystemError", msg.to_string())
 }
 
@@ -345,7 +345,7 @@ impl Vm {
             })))
         };
         let vm = Vm {
-            globals: Rc::new(RefCell::new(HashMap::new())),
+            globals: Rc::new(RefCell::new(HashMap::from([("__name__".to_string(), Value::str("__main__"))]))),
             stdout: Rc::new(RefCell::new(Vec::new())),
             handled: Rc::new(RefCell::new(Vec::new())),
             depth: Rc::new(std::cell::Cell::new(0)),
@@ -382,7 +382,7 @@ impl Vm {
         let mut stack: Vec<Slot> = Vec::new();
         let mut blocks: Vec<Block> = Vec::new();
         let mut pc = 0;
-        match self.run_loop(code, env, &mut stack, &mut blocks, &mut pc)? {
+        match self.run_loop(code, env, &mut stack, &mut blocks, &mut pc, None)? {
             Exit::Return(v) => Ok(v),
             Exit::Yield(_) => Err(internal("yield outside generator")),
         }
@@ -397,30 +397,36 @@ impl Vm {
         stack: &mut Vec<Slot>,
         blocks: &mut Vec<Block>,
         pc: &mut usize,
+        inject: Option<PyException>,
     ) -> PyResult<Exit> {
+        let mut pending = inject;
         while *pc < code.ops.len() {
             let op = code.ops[*pc];
-            let result = match op {
-                Op::SetupTry(h) => {
-                    blocks.push(Block { handler: h as usize, depth: stack.len(), handled: self.handled.borrow().len() });
-                    Ok(None)
-                }
-                Op::PopBlock => {
-                    blocks.pop();
-                    Ok(None)
-                }
-                Op::Return => match stack.pop() {
-                    Some(Slot::Val(v)) => return Ok(Exit::Return(v)),
-                    _ => Err(internal("bad value stack")),
-                },
-                Op::Yield => match stack.pop() {
-                    Some(Slot::Val(v)) => {
-                        *pc += 1;
-                        return Ok(Exit::Yield(v));
+            let result = if let Some(e) = pending.take() {
+                Err(e)
+            } else {
+                match op {
+                    Op::SetupTry(h) => {
+                        blocks.push(Block { handler: h as usize, depth: stack.len(), handled: self.handled.borrow().len() });
+                        Ok(None)
                     }
-                    _ => Err(internal("bad value stack")),
-                },
-                _ => self.step(code, op, stack, env),
+                    Op::PopBlock => {
+                        blocks.pop();
+                        Ok(None)
+                    }
+                    Op::Return => match stack.pop() {
+                        Some(Slot::Val(v)) => return Ok(Exit::Return(v)),
+                        _ => Err(internal("bad value stack")),
+                    },
+                    Op::Yield => match stack.pop() {
+                        Some(Slot::Val(v)) => {
+                            *pc += 1;
+                            return Ok(Exit::Yield(v));
+                        }
+                        _ => Err(internal("bad value stack")),
+                    },
+                    _ => self.step(code, op, stack, env),
+                }
             };
             match result {
                 Ok(Some(target)) => *pc = target,
@@ -443,6 +449,12 @@ impl Vm {
     }
 
     pub(crate) fn call_function(&mut self, f: &Rc<FuncObj>, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
+        // Função de outro módulo: roda numa `Vm` que enxerga as globais dela.
+        if !Rc::ptr_eq(&self.globals, &f.globals) {
+            let mut other = self.clone();
+            other.globals = f.globals.clone();
+            return other.call_function(f, args, kwargs);
+        }
         let env = self.bind_params(f, args, kwargs)?;
         let code = f.code.clone();
         if code.is_generator {
@@ -846,6 +858,8 @@ impl Vm {
                     defaults,
                     kwdefaults: kw_names.into_iter().zip(kw_values).collect(),
                     closure: locals.capture(),
+                    globals: self.globals.clone(),
+                    attrs: RefCell::new(std::collections::BTreeMap::new()),
                 };
                 stack.push(Slot::Val(Value::Function(Rc::new(f))));
             }
@@ -1252,6 +1266,22 @@ impl Vm {
     }
 
     /// `print(*args, sep=' ', end='\n', file=None, flush=False)`.
+    /// `sys.stdout` quando o programa o trocou (por `redirect_stdout`, por exemplo); `None` enquanto
+    /// ele ainda é o fluxo padrão.
+    fn redirected_stdout(&self) -> Option<Value> {
+        let sys = self.modules.borrow().get("sys").cloned()?;
+        let current = sys.attrs.borrow().get("stdout").cloned()?;
+        match &current {
+            Value::Native(n) if Rc::ptr_eq(n, &self.std_files[1]) => None,
+            _ => Some(current),
+        }
+    }
+
+    /// A exceção que está sendo tratada agora (`sys.exc_info()`).
+    pub(crate) fn handled_top(&self) -> Option<Value> {
+        self.handled.borrow().last().cloned()
+    }
+
     fn print(&mut self, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
         let mut sep = " ".to_string();
         let mut end = "\n".to_string();
@@ -1289,7 +1319,12 @@ impl Vm {
             Some(f) => {
                 self.write_to(&f, &text)?;
             }
-            None => self.stdout.borrow_mut().extend_from_slice(text.as_bytes()),
+            None => match self.redirected_stdout() {
+                Some(f) => {
+                    self.write_to(&f, &text)?;
+                }
+                None => self.stdout.borrow_mut().extend_from_slice(text.as_bytes()),
+            },
         }
         Ok(Value::None)
     }
@@ -1297,7 +1332,10 @@ impl Vm {
     /// `arquivo.write(texto)`: devolve a quantidade de caracteres.
     fn write_to(&mut self, target: &Value, text: &str) -> PyResult<usize> {
         let Value::Native(n) = target else {
-            return Err(exc("AttributeError", format!("'{}' object has no attribute 'write'", target.type_name())));
+            // Objeto de arquivo escrito em Python (`io.TextIOWrapper`, `StringIO`...): chama `write`.
+            let write = self.load_attr(target, "write")?;
+            self.call(&write, vec![Value::str(text)], Vec::new())?;
+            return Ok(text.chars().count());
         };
         let kind = match &*n.borrow() {
             Native::File(f) => {
@@ -1330,11 +1368,27 @@ impl Vm {
             Value::Class(c) => return self.class_getattr(c, name),
             Value::Builtin(n) if name == "__name__" => return Ok(Value::str(*n)),
             Value::Exception(e) if name == "__class__" => return Ok(Value::Builtin(e.kind)),
-            Value::Function(f) => match name {
-                "__name__" | "__qualname__" => return Ok(Value::str(f.code.name.clone())),
-                "__doc__" => return Ok(Value::None),
-                _ => {}
-            },
+            Value::Function(f) => {
+                if let Some(v) = f.attrs.borrow().get(name) {
+                    return Ok(v.clone());
+                }
+                match name {
+                    "__name__" | "__qualname__" => return Ok(Value::str(f.code.name.clone())),
+                    "__doc__" => return Ok(Value::None),
+                    "__module__" => return Ok(Value::str("__main__")),
+                    "__dict__" => {
+                        let mut d = crate::object::Dict::new();
+                        for (k, v) in f.attrs.borrow().iter() {
+                            d.set(Value::str(k.clone()), v.clone())?;
+                        }
+                        return Ok(Value::dict(d));
+                    }
+                    _ => {}
+                }
+            }
+            Value::BoundFn(b) if b.1.attrs.borrow().contains_key(name) => {
+                return Ok(b.1.attrs.borrow().get(name).cloned().unwrap_or(Value::None))
+            }
             Value::BoundFn(b) => match name {
                 "__name__" => return Ok(Value::str(b.1.code.name.clone())),
                 "__self__" => return Ok(b.0.clone()),
@@ -1460,49 +1514,13 @@ impl Vm {
         }
     }
 
-    /// `open(path, mode='r', ..., newline=None, encoding=None)`: só leitura de texto UTF-8.
+    /// `open(...)`: o `io.open` (em Python embutido) sobre os descritores do sandbox.
     fn open(&mut self, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
-        let mut newline_keep = false;
-        let mut mode = "r".to_string();
-        for (k, v) in &kwargs {
-            match k.as_str() {
-                "newline" => newline_keep = matches!(v, Value::Str(s) if s.as_str().is_empty()),
-                "encoding" | "errors" => {}
-                "mode" => mode = to_str(v),
-                _ => return Err(type_error(format!("open() got an unexpected keyword argument '{k}'"))),
-            }
-        }
-        if let Some(m) = args.get(1) {
-            mode = to_str(m);
-        }
-        let Some(Value::Str(path)) = args.first() else {
-            return Err(type_error("expected str, bytes or os.PathLike object"));
+        let Some(io) = crate::modules::import(self, "io") else {
+            return Err(internal("io module missing"));
         };
-        if mode != "r" && mode != "rt" {
-            return Err(exc("NotImplementedError", format!("open(mode={mode:?}) is not supported yet")));
-        }
-        let path = path.as_str().to_string();
-        let bytes = match sysabi::sys::read_file(path.as_bytes()) {
-            Ok(b) => b,
-            Err(e) => {
-                let kind = if e == sysabi::Errno::ENOENT { "FileNotFoundError" } else { "OSError" };
-                let msg = format!("[Errno {}] {}: '{path}'", e.0, e.message());
-                return Err(exc(kind, msg));
-            }
-        };
-        let text = String::from_utf8(bytes).map_err(|e| {
-            let at = e.utf8_error().valid_up_to();
-            let b = e.as_bytes()[at];
-            exc("UnicodeDecodeError", format!("'utf-8' codec can't decode byte 0x{b:02x} in position {at}: invalid start byte"))
-        })?;
-        Ok(Value::Native(Rc::new(RefCell::new(Native::File(PyFile {
-            kind: FileKind::Read,
-            lines: split_lines(&text, newline_keep),
-            pos: 0,
-            loaded: true,
-            closed: false,
-            name: path,
-        })))))
+        let open = io.attrs.borrow().get("open").cloned().ok_or_else(|| internal("io.open missing"))?;
+        self.call(&open, args, kwargs)
     }
 
     /// `csv.reader(f, **dialeto)` e `csv.writer(f, **dialeto)`.
@@ -2334,9 +2352,77 @@ fn binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyResult<Value> 
         (Operator::Mult, seq, other) if is_sequence(seq) => {
             Err(type_error(format!("can't multiply sequence by non-int of type '{}'", other.type_name())))
         }
-        (Operator::Mod, Value::Str(_), _) => Err(exc("NotImplementedError", "str % formatting is not supported yet")),
+        (Operator::Mod, Value::Str(s), args) => crate::format::percent_format(s.as_str(), args).map(Value::str),
+        (Operator::BitOr | Operator::BitAnd | Operator::Sub | Operator::BitXor, Value::Set(x), Value::Set(y)) => {
+            set_binary(op, x, y, inplace)
+        }
+        (Operator::BitOr, Value::Dict(x), Value::Dict(y)) => {
+            let items: Vec<(Value, Value)> = y.borrow().iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+            if inplace {
+                for (k, v) in items {
+                    x.borrow_mut().set(k, v)?;
+                }
+                return Ok(a.clone());
+            }
+            let mut merged = x.borrow().clone();
+            for (k, v) in items {
+                merged.set(k, v)?;
+            }
+            Ok(Value::dict(merged))
+        }
         _ => Err(unsupported(op, a, b, inplace)),
     }
+}
+
+/// `|`, `&`, `-` e `^` entre conjuntos (e as versões `|=`... que mudam o da esquerda).
+fn set_binary(op: Operator, x: &Rc<RefCell<Set>>, y: &Rc<RefCell<Set>>, inplace: bool) -> PyResult<Value> {
+    let xs: Vec<Value> = x.borrow().iter().cloned().collect();
+    let ys: Vec<Value> = y.borrow().iter().cloned().collect();
+    let mut out = Set::new();
+    match op {
+        Operator::BitOr => {
+            for v in xs.iter().chain(ys.iter()) {
+                out.add(v.clone())?;
+            }
+        }
+        Operator::BitAnd => {
+            let yb = y.borrow();
+            for v in &xs {
+                if yb.contains(v)? {
+                    out.add(v.clone())?;
+                }
+            }
+        }
+        Operator::Sub => {
+            let yb = y.borrow();
+            for v in &xs {
+                if !yb.contains(v)? {
+                    out.add(v.clone())?;
+                }
+            }
+        }
+        _ => {
+            {
+                let yb = y.borrow();
+                for v in &xs {
+                    if !yb.contains(v)? {
+                        out.add(v.clone())?;
+                    }
+                }
+            }
+            let xb = x.borrow();
+            for v in &ys {
+                if !xb.contains(v)? {
+                    out.add(v.clone())?;
+                }
+            }
+        }
+    }
+    if inplace {
+        *x.borrow_mut() = out;
+        return Ok(Value::Set(x.clone()));
+    }
+    Ok(Value::Set(Rc::new(RefCell::new(out))))
 }
 
 fn is_sequence(v: &Value) -> bool {

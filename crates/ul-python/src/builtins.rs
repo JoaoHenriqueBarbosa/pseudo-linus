@@ -65,7 +65,11 @@ pub const TABLE: &[(&str, NativeFnPtr)] = &[
 
 /// A função embutida `name`, se existe na tabela.
 pub fn get(name: &str) -> Option<Value> {
-    TABLE.iter().find(|(n, _)| *n == name).map(|(n, f)| Value::NativeFn(Rc::new(NativeFn { name: n, f: *f })))
+    TABLE
+        .iter()
+        .chain(crate::builtins_ext::TABLE.iter())
+        .find(|(n, _)| *n == name)
+        .map(|(n, f)| Value::NativeFn(Rc::new(NativeFn { name: n, f: *f })))
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -326,6 +330,14 @@ fn make_iter(v: &Value) -> PyResult<Value> {
         Value::Native(n) if matches!(&*n.borrow(), Native::File(_) | Native::CsvReader { .. }) => {
             return Ok(v.clone());
         }
+        // Instância: o `__iter__` dela (preguiçoso, pode ser infinito).
+        Value::Instance(_) => {
+            let mut vm = crate::vm::current().ok_or_else(|| exc("SystemError", "no vm"))?;
+            return match vm.call_dunder(v, "__iter__", Vec::new()) {
+                Some(r) => r,
+                None => Err(type_error(format!("'{}' object is not iterable", v.type_name()))),
+            };
+        }
         _ => "iterator",
     };
     let items = iterate(v)?;
@@ -365,6 +377,12 @@ fn b_next(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     expect("next", &args, 1, 2)?;
     let default = args.get(1).cloned();
     match &args[0] {
+        Value::Instance(_) => match vm.call_dunder(&args[0], "__next__", Vec::new()) {
+            Some(Ok(v)) => Ok(v),
+            Some(Err(e)) if e.kind == "StopIteration" => stop_or(default),
+            Some(Err(e)) => Err(e),
+            None => Err(type_error(format!("'{}' object is not an iterator", args[0].type_name()))),
+        },
         Value::Ext(e) if e.is_iterable() => match e.iter_next()? {
             Some(v) => Ok(v),
             None => stop_or(default),
@@ -381,38 +399,18 @@ fn b_next(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     }
 }
 
-fn b_map(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+fn b_map(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("map", &kw)?;
     if args.len() < 2 {
         return Err(type_error("map() must have at least two arguments."));
     }
-    let f = args[0].clone();
-    let cols: Vec<Vec<Value>> = args[1..].iter().map(iterate).collect::<PyResult<_>>()?;
-    let n = cols.iter().map(Vec::len).min().unwrap_or(0);
-    let mut out = Vec::with_capacity(n);
-    for i in 0..n {
-        let call_args: Vec<Value> = cols.iter().map(|c| c[i].clone()).collect();
-        out.push(vm.call_value(&f, call_args, Vec::new())?);
-    }
-    Ok(Value::list(out))
+    crate::lazy::MapIter::new(args[0].clone(), &args[1..])
 }
 
-fn b_filter(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+fn b_filter(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("filter", &kw)?;
     expect("filter", &args, 2, 2)?;
-    let f = args[0].clone();
-    let mut out = Vec::new();
-    for x in iterate(&args[1])? {
-        let keep = if matches!(f, Value::None) {
-            x.is_true()
-        } else {
-            vm.call_value(&f, vec![x.clone()], Vec::new())?.is_true()
-        };
-        if keep {
-            out.push(x);
-        }
-    }
-    Ok(Value::list(out))
+    crate::lazy::FilterIter::new(args[0].clone(), &args[1])
 }
 
 fn b_zip(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -424,24 +422,7 @@ fn b_zip(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
             return Err(type_error(format!("'{k}' is an invalid keyword argument for zip()")));
         }
     }
-    let cols: Vec<Vec<Value>> = args.iter().map(iterate).collect::<PyResult<_>>()?;
-    if strict {
-        if let Some(first) = cols.first() {
-            for (i, c) in cols.iter().enumerate().skip(1) {
-                if c.len() != first.len() {
-                    let rel = if c.len() < first.len() { "shorter" } else { "longer" };
-                    let (plural, range) = if i == 1 { ("", "1".to_string()) } else { ("s", format!("1-{i}")) };
-                    return Err(value_error(format!(
-                        "zip() argument {} is {rel} than argument{plural} {range}",
-                        i + 1
-                    )));
-                }
-            }
-        }
-    }
-    let n = cols.iter().map(Vec::len).min().unwrap_or(0);
-    let out = (0..n).map(|i| Value::tuple(cols.iter().map(|c| c[i].clone()).collect())).collect();
-    Ok(Value::list(out))
+    crate::lazy::ZipIter::new(&args, strict)
 }
 
 fn b_enumerate(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -450,13 +431,8 @@ fn b_enumerate(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         Some(v) => want_int(v)?,
         None => 0,
     };
-    let Some(src) = &s[0] else { return Ok(Value::list(Vec::new())) };
-    let out = iterate(src)?
-        .into_iter()
-        .enumerate()
-        .map(|(i, x)| Value::tuple(vec![Value::Int(start + i as i64), x]))
-        .collect();
-    Ok(Value::list(out))
+    let Some(src) = &s[0] else { return Err(type_error("enumerate() missing required argument 'iterable' (pos 1)")) };
+    crate::lazy::EnumerateIter::new(src, start)
 }
 
 fn b_reversed(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {

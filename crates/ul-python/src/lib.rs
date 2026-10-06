@@ -12,17 +12,21 @@
 
 pub mod ast;
 pub mod builtins;
+pub mod builtins_ext;
 pub mod classes;
 pub mod compile;
 pub mod format;
 pub mod generator;
 #[cfg(test)]
 mod lang_tests;
+pub mod lazy;
 pub mod methods;
 pub mod modules;
 pub mod native_util;
 pub mod object;
 pub mod parser;
+#[cfg(test)]
+mod stdlib_tests;
 pub mod token;
 pub mod tokenizer;
 pub mod vm;
@@ -367,9 +371,34 @@ fn run_source_inner(src: &str, argv: Vec<String>, name: &str, file_mode: bool) -
     let stdout = std::mem::take(&mut *machine.stdout.borrow_mut());
     match result {
         Ok(()) => Outcome { stdout, stderr: String::new(), status: 0 },
+        Err(e) if e.exc.kind == "SystemExit" => {
+            let (status, stderr) = system_exit(&e.exc);
+            Outcome { stdout, stderr, status }
+        }
         Err(e) => {
             Outcome { stdout, stderr: vm::format_traceback_in(&e, name, file_mode.then_some(src.as_str())), status: 1 }
         }
+    }
+}
+
+/// Código de saída e texto de stderr de um `SystemExit` que chegou ao topo (como o
+/// `handle_system_exit` do CPython): sem argumento ou `None` sai com 0, um inteiro é o código e
+/// qualquer outro valor é impresso no stderr com saída 1.
+fn system_exit(e: &vm::PyException) -> (i32, String) {
+    let args: Vec<object::Value> = match &e.value {
+        Some(object::Value::Exception(x)) => x.args.clone(),
+        Some(object::Value::Instance(i)) => match i.dict.borrow().get("args") {
+            Some(object::Value::Tuple(t)) => t.to_vec(),
+            _ => Vec::new(),
+        },
+        _ if e.msg.is_empty() => Vec::new(),
+        _ => vec![object::Value::str(e.msg.clone())],
+    };
+    match args.as_slice() {
+        [] | [object::Value::None] => (0, String::new()),
+        [object::Value::Int(n)] => ((*n & 0xff) as i32, String::new()),
+        [object::Value::Bool(b)] => (i32::from(*b), String::new()),
+        [other, ..] => (1, format!("{}\n", object::to_str(other))),
     }
 }
 
