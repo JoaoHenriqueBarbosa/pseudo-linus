@@ -2924,3 +2924,29 @@ print(time.strftime("%U %W", time.gmtime(86400 * 400)))
 "##
     );
 }
+
+#[test]
+fn intflag_flag_repr() {
+    let src = r##"
+import enum
+class P(enum.IntFlag):
+    R = 4; W = 2; X = 1
+p = P.R | P.W
+print(p, repr(p), f'{p:03b}', 1 | P.X, P.R & 6, p in P.R | P.W | P.X, bool(P(0)), repr(P(0)), repr(P(8)), int(p), p == 6)
+print(sorted([P.X, P.R]), [m.name for m in P], P['W'], P(2), ~P.R)
+class F(enum.Flag):
+    A = enum.auto(); B = enum.auto()
+print(F.A | F.B, repr(F.A | F.B), repr(F(0)), F.A in (F.A | F.B))
+print(repr(P(12)), str(P(12)), repr(P(9)), P(8) | P.X, str(F(0)), str(P(0)))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"6 <P.R|W: 6> 110 1 4 True False <P: 0> <P: 8> 6 True
+[<P.X: 1>, <P.R: 4>] ['R', 'W', 'X'] 2 2 3
+F.A|B <F.A|B: 3> <F: 0> True
+<P.R|8: 12> 12 <P.X|8: 9> 9 F(0) 0
+"##
+    );
+}

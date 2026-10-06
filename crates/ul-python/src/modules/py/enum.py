@@ -229,6 +229,8 @@ class Flag(Enum):
         high = max(last_values)
         return 2 ** (_high_bit(high) + 1)
 
+    _boundary_keep_ = False
+
     @classmethod
     def _missing_(cls, value):
         if not isinstance(value, int):
@@ -236,33 +238,51 @@ class Flag(Enum):
         known = 0
         for member in cls._member_map_.values():
             known |= member._value_
-        if value & ~known:
+        if value & ~known and not cls._boundary_keep_:
             raise ValueError('%r is not a valid %s' % (value, cls.__name__))
-        member = object.__new__(cls)
+        member_type = cls._member_type_
+        member = object.__new__(cls) if member_type is object else member_type.__new__(cls, value)
         member._name_ = None
         member._value_ = value
         cls._value2member_map_[value] = member
         return member
 
+    def _known_bits(self):
+        known = 0
+        for member in self.__class__._member_map_.values():
+            known |= member._value_
+        return known
+
     def _members_in(self):
         names = []
+        known = 0
         for name in self.__class__._member_names_:
             member = self.__class__._member_map_[name]
+            known |= member._value_
             if member._value_ and member._value_ & self._value_ == member._value_:
                 names.append(name)
+        extra = self._value_ & ~known
+        if extra:
+            names.append(str(extra))
         return names
 
     def __repr__(self):
         cls_name = self.__class__.__name__
         if self._name_ is not None:
             return '<%s.%s: %r>' % (cls_name, self._name_, self._value_)
-        return '<%s.%s: %r>' % (cls_name, '|'.join(self._members_in()), self._value_)
+        names = self._members_in()
+        if not names or (len(names) == 1 and self._value_ & ~self._known_bits() == self._value_):
+            return '<%s: %r>' % (cls_name, self._value_)
+        return '<%s.%s: %r>' % (cls_name, '|'.join(names), self._value_)
 
     def __str__(self):
         cls_name = self.__class__.__name__
         if self._name_ is not None:
             return '%s.%s' % (cls_name, self._name_)
-        return '%s.%s' % (cls_name, '|'.join(self._members_in()))
+        names = self._members_in()
+        if not names:
+            return '%s(%r)' % (cls_name, self._value_)
+        return '%s.%s' % (cls_name, '|'.join(names))
 
     def __contains__(self, other):
         if not isinstance(other, self.__class__):
@@ -296,6 +316,14 @@ class Flag(Enum):
 
 
 class IntFlag(int, Flag):
+    _boundary_keep_ = True
+
+    def __str__(self):
+        return str(self._value_)
+
+    def __format__(self, spec):
+        return format(self._value_, spec)
+
     def __or__(self, other):
         value = other._value_ if isinstance(other, self.__class__) else other
         return self.__class__(self._value_ | value)
@@ -307,6 +335,10 @@ class IntFlag(int, Flag):
     def __xor__(self, other):
         value = other._value_ if isinstance(other, self.__class__) else other
         return self.__class__(self._value_ ^ value)
+
+    __ror__ = __or__
+    __rand__ = __and__
+    __rxor__ = __xor__
 
 
 def global_enum_repr(self):
