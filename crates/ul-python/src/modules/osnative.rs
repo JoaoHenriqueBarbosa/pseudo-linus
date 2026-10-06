@@ -261,7 +261,9 @@ fn write(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("write", &kw)?;
     let fd = Fd(want_int(arg("write", &args, 0)?)? as i32);
     let data: Vec<u8> = match arg("write", &args, 1)? {
-        Value::Bytes(b) => b.to_vec(),
+        v @ (Value::Bytes(_) | Value::ByteArray(_) | Value::Instance(_)) if v.bytes_like().is_some() => {
+            v.bytes_like().map(|b| b.to_vec()).unwrap_or_default()
+        }
         Value::Str(s) => s.as_str().as_bytes().to_vec(),
         other => return Err(type_error(format!("a bytes-like object is required, not '{}'", other.type_name()))),
     };

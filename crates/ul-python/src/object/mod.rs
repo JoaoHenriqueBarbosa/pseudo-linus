@@ -41,6 +41,8 @@ pub enum Value {
     Float(f64),
     Str(Rc<PyStr>),
     Bytes(Rc<[u8]>),
+    /// `bytearray`: bytes mutáveis, com identidade.
+    ByteArray(Rc<RefCell<Vec<u8>>>),
     List(Rc<RefCell<Vec<Value>>>),
     Tuple(Rc<[Value]>),
     Dict(Rc<RefCell<Dict>>),
@@ -561,6 +563,21 @@ impl Value {
         Value::Bytes(Rc::from(data.into()))
     }
 
+    pub fn bytearray(data: impl Into<Vec<u8>>) -> Value {
+        Value::ByteArray(Rc::new(RefCell::new(data.into())))
+    }
+
+    /// Os bytes de um valor "bytes-like" (`bytes` ou `bytearray`), copiados.
+    pub fn bytes_like(&self) -> Option<Rc<[u8]>> {
+        match self {
+            Value::Bytes(b) => Some(b.clone()),
+            Value::ByteArray(b) => Some(Rc::from(b.borrow().as_slice())),
+            // `memoryview` (classe em Python): os bytes da visão.
+            Value::Instance(i) if i.class.name == "memoryview" => crate::vm::memoryview_bytes(self),
+            _ => None,
+        }
+    }
+
     pub fn list(items: Vec<Value>) -> Value {
         Value::List(Rc::new(RefCell::new(items)))
     }
@@ -586,6 +603,7 @@ impl Value {
             Value::Float(_) => "float",
             Value::Str(_) => "str",
             Value::Bytes(_) => "bytes",
+            Value::ByteArray(_) => "bytearray",
             Value::List(_) => "list",
             Value::Tuple(_) => "tuple",
             Value::Dict(_) => "dict",
@@ -621,6 +639,7 @@ impl Value {
             Value::Float(x) => *x != 0.0,
             Value::Str(s) => !s.is_empty(),
             Value::Bytes(b) => !b.is_empty(),
+            Value::ByteArray(b) => !b.borrow().is_empty(),
             Value::List(l) => !l.borrow().is_empty(),
             Value::Tuple(t) => !t.is_empty(),
             Value::Dict(d) => !d.borrow().is_empty(),
@@ -744,6 +763,11 @@ pub(crate) fn repr_into(v: &Value, out: &mut String, stack: &mut ReprStack) {
         Value::Float(x) => out.push_str(&float_repr(*x)),
         Value::Str(s) => out.push_str(&str_repr(s.as_str())),
         Value::Bytes(b) => out.push_str(&bytes_repr(b)),
+        Value::ByteArray(b) => {
+            out.push_str("bytearray(");
+            out.push_str(&bytes_repr(&b.borrow()));
+            out.push(')');
+        }
         Value::List(l) => list::list_repr(&l.borrow(), addr(l), out, stack),
         Value::Tuple(t) => list::tuple_repr(t, addr(t), out, stack),
         Value::Dict(d) => dict::dict_repr(&d.borrow(), addr(d), out, stack),
@@ -800,6 +824,7 @@ pub fn is(a: &Value, b: &Value) -> bool {
         (Value::Big(x), Value::Big(y)) => Rc::ptr_eq(x, y),
         (Value::Str(x), Value::Str(y)) => Rc::ptr_eq(x, y),
         (Value::Bytes(x), Value::Bytes(y)) => Rc::ptr_eq(x, y),
+        (Value::ByteArray(x), Value::ByteArray(y)) => Rc::ptr_eq(x, y),
         (Value::List(x), Value::List(y)) => Rc::ptr_eq(x, y),
         (Value::Tuple(x), Value::Tuple(y)) => Rc::ptr_eq(x, y),
         (Value::Dict(x), Value::Dict(y)) => Rc::ptr_eq(x, y),
@@ -886,6 +911,8 @@ pub fn py_eq(a: &Value, b: &Value) -> bool {
         (Value::None, Value::None) => true,
         (Value::Str(x), Value::Str(y)) => Rc::ptr_eq(x, y) || x.as_str() == y.as_str(),
         (Value::Bytes(x), Value::Bytes(y)) => x[..] == y[..],
+        (Value::ByteArray(x), Value::ByteArray(y)) => Rc::ptr_eq(x, y) || *x.borrow() == *y.borrow(),
+        (Value::ByteArray(x), Value::Bytes(y)) | (Value::Bytes(y), Value::ByteArray(x)) => x.borrow()[..] == y[..],
         (Value::List(x), Value::List(y)) => Rc::ptr_eq(x, y) || list::seq_eq(&x.borrow(), &y.borrow()),
         (Value::Tuple(x), Value::Tuple(y)) => Rc::ptr_eq(x, y) || list::seq_eq(x, y),
         (Value::Dict(x), Value::Dict(y)) => Rc::ptr_eq(x, y) || dict::dict_eq(&x.borrow(), &y.borrow()),
@@ -948,7 +975,7 @@ pub fn hash(v: &Value) -> Result<i64, ObjError> {
         },
         Value::BoundFn(b) => Ok((Rc::as_ptr(b) as usize >> 4) as i64),
         Value::Slice(s) => Ok((Rc::as_ptr(s) as usize >> 4) as i64),
-        Value::List(_) | Value::Dict(_) | Value::Set(_) => {
+        Value::List(_) | Value::Dict(_) | Value::Set(_) | Value::ByteArray(_) => {
             Err(ObjError::TypeError(format!("unhashable type: '{}'", v.type_name())))
         }
     }

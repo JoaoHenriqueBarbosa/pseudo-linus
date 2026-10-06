@@ -49,7 +49,11 @@ fn flags_of(v: &Option<Value>) -> PyResult<u32> {
 /// O texto a casar: `str` (em pontos de código), ou `bytes` (um ponto de código por byte, latin-1).
 fn want_text_for(v: &Value, bytes_pattern: bool) -> PyResult<(Value, Rc<Vec<char>>)> {
     // Subclasse de `str`/`bytes` (como `configparser._Line`): casa o valor embutido.
-    let unwrapped = crate::vm::unwrap_payload(v);
+    let unwrapped = match crate::vm::unwrap_payload(v) {
+        // `bytearray` e `memoryview` casam como `bytes` (os grupos saem `bytes`).
+        b @ (Value::ByteArray(_) | Value::Instance(_)) => b.bytes_like().map_or(b, Value::Bytes),
+        other => other,
+    };
     let v = &unwrapped;
     match v {
         Value::Str(_) if bytes_pattern => Err(type_error("cannot use a bytes pattern on a string-like object")),
@@ -406,7 +410,11 @@ fn as_pattern(v: &Value) -> Option<Rc<PatternObj>> {
 
 /// Padrão a partir de `str` (com cache) ou de um `Pattern` já compilado.
 fn get_pattern(v: &Value, flags: u32) -> PyResult<Rc<PatternObj>> {
-    let unwrapped = crate::vm::unwrap_payload(v);
+    let unwrapped = match crate::vm::unwrap_payload(v) {
+        // `bytearray` e `memoryview` casam como `bytes` (os grupos saem `bytes`).
+        b @ (Value::ByteArray(_) | Value::Instance(_)) => b.bytes_like().map_or(b, Value::Bytes),
+        other => other,
+    };
     let v = &unwrapped;
     if let Some(p) = as_pattern(v) {
         if flags != 0 {

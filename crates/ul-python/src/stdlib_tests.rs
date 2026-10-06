@@ -1603,3 +1603,89 @@ mean requires at least one data point
 "##
     );
 }
+
+#[test]
+fn bytearray_memoryview_match_cpython() {
+    let src = r##"
+import struct, hashlib, base64, binascii, io
+
+ba = bytearray(b"hello")
+ba.append(33)
+ba.extend(b" world")
+ba[0] = 72
+ba += b"!!"
+print(ba, len(ba), bytes(ba), ba[1:3], ba.decode(), type(ba).__name__, isinstance(ba, bytes))
+ba.insert(0, 62)
+print(ba.pop(), ba.pop(0), ba.index(b"o"), ba.find(b"w"), ba.upper(), ba.hex())
+del ba[0:2]
+print(ba, ba == b"llo world!", bytearray(3), bytearray([1, 2, 3]), bytearray("é", "utf-8"))
+ba.reverse()
+print(ba, ba.count(b"l"), ba.startswith(b"!"), ba.replace(b"l", b"L"), ba.split(b"o"))
+ba.clear()
+print(ba, bool(ba))
+
+buf = bytearray(8)
+struct.pack_into("<I", buf, 0, 0xDEADBEEF)
+struct.pack_into(">H", buf, 4, 513)
+print(buf, struct.unpack_from("<I", buf, 0), struct.unpack_from(">H", buf, 4), struct.calcsize("<IH"))
+
+mv = memoryview(b"abcdef")
+print(mv[1], bytes(mv[1:3]), bytes(mv[2:4]), len(mv), mv.tobytes(), list(mv[:3]), mv.nbytes, mv.readonly)
+mb = memoryview(bytearray(b"abcdef"))
+mb[0] = 65
+mb[1:3] = b"XY"
+print(bytes(mb), mb.tolist(), mb.readonly)
+
+h = hashlib.sha256()
+h.update(bytearray(b"abc"))
+print(h.hexdigest()[:16], base64.b64encode(bytearray(b"hi")), binascii.hexlify(bytearray(b"hi")))
+b = io.BytesIO()
+b.write(bytearray(b"xyz"))
+print(b.getvalue(), b.getbuffer().nbytes)
+for x in bytearray(b"ab"):
+    print(x, end=" ")
+print()
+print(bytes(bytearray(b"ab")) + b"c", bytearray(b"ab") + b"c", b"c" + bytearray(b"ab"), bytearray(b"ab") * 2)
+print(bytearray(b"abc") < bytearray(b"abd"), sorted(bytearray(b"cab")), max(bytearray(b"cab")))
+print(bytearray.fromhex("4142"), bytearray(b"a").join([b"x", b"y"]), bytearray(b" a ").strip(), bytearray(b"ab").zfill(5) if hasattr(bytearray, "zfill") else "")
+try:
+    ba2 = bytearray(b"a")
+    ba2[0] = 300
+except ValueError as e:
+    print(e)
+try:
+    hash(bytearray(b"a"))
+except TypeError as e:
+    print(e)
+d = {}
+try:
+    d[bytearray(b"a")] = 1
+except TypeError as e:
+    print(e)
+print(repr(bytearray(b"a\x00\xff")), str(bytearray(b"ab")), bytearray(b"ab").__class__)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"bytearray(b'Hello! world!!') 14 b'Hello! world!!' bytearray(b'el') Hello! world!! bytearray False
+33 62 4 7 bytearray(b'HELLO! WORLD!') 48656c6c6f2120776f726c6421
+bytearray(b'llo! world!') False bytearray(b'\x00\x00\x00') bytearray(b'\x01\x02\x03') bytearray(b'\xc3\xa9')
+bytearray(b'!dlrow !oll') 3 True bytearray(b'!dLrow !oLL') [bytearray(b'!dlr'), bytearray(b'w !'), bytearray(b'll')]
+bytearray(b'') False
+bytearray(b'\xef\xbe\xad\xde\x02\x01\x00\x00') (3735928559,) (513,) 6
+98 b'bc' b'cd' 6 b'abcdef' [97, 98, 99] 6 True
+b'AXYdef' [65, 88, 89, 100, 101, 102] False
+ba7816bf8f01cfea b'aGk=' b'6869'
+b'xyz' 3
+97 98 
+b'abc' bytearray(b'abc') b'cab' bytearray(b'abab')
+True [97, 98, 99] 99
+bytearray(b'AB') bytearray(b'xay') bytearray(b'a') bytearray(b'000ab')
+byte must be in range(0, 256)
+unhashable type: 'bytearray'
+unhashable type: 'bytearray'
+bytearray(b'a\x00\xff') bytearray(b'ab') <class 'bytearray'>
+"##
+    );
+}

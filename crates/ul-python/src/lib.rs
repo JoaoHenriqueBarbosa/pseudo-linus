@@ -29,6 +29,7 @@ pub mod modules;
 pub mod native_util;
 pub mod object;
 pub mod parser;
+pub mod stdbuf;
 #[cfg(test)]
 mod stdlib_tests;
 pub mod token;

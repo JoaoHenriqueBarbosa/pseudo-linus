@@ -219,6 +219,7 @@ pub(crate) fn get_iter(v: &Value) -> PyResult<PyIter> {
         Value::Dict(d) => PyIter::Items(d.borrow().keys().cloned().collect(), 0),
         Value::Set(s) => PyIter::Items(s.borrow().iter().cloned().collect(), 0),
         Value::Bytes(b) => PyIter::Items(b.iter().map(|&x| Value::Int(i64::from(x))).collect(), 0),
+        Value::ByteArray(b) => PyIter::Items(b.borrow().iter().map(|&x| Value::Int(i64::from(x))).collect(), 0),
         Value::Native(n) if matches!(&*n.borrow(), Native::File(_) | Native::CsvReader { .. }) => {
             PyIter::Native(n.clone())
         }
@@ -353,6 +354,15 @@ thread_local! {
 }
 
 /// A `Vm` em execução nesta thread (clone barato), se existir.
+/// Os bytes de um `memoryview` (`tobytes()`), para os módulos nativos que pedem um buffer.
+pub(crate) fn memoryview_bytes(v: &Value) -> Option<Rc<[u8]>> {
+    let mut vm = current()?;
+    match vm.call_dunder(v, "__bytes__", Vec::new()) {
+        Some(Ok(Value::Bytes(b))) => Some(b),
+        _ => None,
+    }
+}
+
 pub fn current() -> Option<Vm> {
     CURRENT.with(|c| c.borrow().clone())
 }
@@ -1688,7 +1698,25 @@ impl Vm {
             },
             Value::Native(n) => {
                 let methods: &[&'static str] = match &*n.borrow() {
-                    Native::File(_) => &["write", "read", "readline", "readlines", "close", "flush"],
+                    Native::File(f) => {
+                        match name {
+                            "buffer" if matches!(f.kind, FileKind::Stdin | FileKind::Stdout | FileKind::Stderr) => {
+                                return Ok(crate::stdbuf::StdBuffer::value(n, f.kind));
+                            }
+                            "encoding" => return Ok(Value::str("utf-8")),
+                            "errors" => return Ok(Value::str("surrogateescape")),
+                            "newlines" => return Ok(Value::None),
+                            "line_buffering" | "write_through" => return Ok(Value::Bool(false)),
+                            "mode" => {
+                                return Ok(Value::str(if matches!(f.kind, FileKind::Stdin | FileKind::Read) { "r" } else { "w" }))
+                            }
+                            _ => {}
+                        }
+                        &[
+                            "write", "read", "readline", "readlines", "close", "flush", "isatty", "fileno", "writelines",
+                            "readable", "writable", "seekable", "reconfigure",
+                        ]
+                    }
                     Native::CsvWriter { .. } => &["writerow", "writerows"],
                     Native::CsvReader { reader, .. } => {
                         if name == "line_num" {
@@ -1733,11 +1761,42 @@ impl Vm {
         args: Vec<Value>,
         kwargs: Vec<(String, Value)>,
     ) -> PyResult<Value> {
+        if name == "reconfigure" {
+            return Ok(Value::None);
+        }
         if let Some((kw, _)) = kwargs.first() {
             return Err(type_error(format!("{name}() takes no keyword arguments ('{kw}' given)")));
         }
         let Value::Native(n) = recv else { return Err(internal("bound method without native receiver")) };
         match name {
+            "isatty" | "seekable" => Ok(Value::Bool(false)),
+            "readable" | "writable" => {
+                let kind = match &*n.borrow() {
+                    Native::File(f) => Some(f.kind),
+                    _ => None,
+                };
+                let reading = matches!(kind, Some(FileKind::Stdin | FileKind::Read));
+                Ok(Value::Bool(if name == "readable" { reading } else { !reading }))
+            }
+            "fileno" => match &*n.borrow() {
+                Native::File(f) => match f.kind {
+                    FileKind::Stdin => Ok(Value::Int(0)),
+                    FileKind::Stdout => Ok(Value::Int(1)),
+                    FileKind::Stderr => Ok(Value::Int(2)),
+                    FileKind::Read => Err(exc("UnsupportedOperation", "fileno")),
+                },
+                _ => Err(internal("fileno on non-file")),
+            },
+            "writelines" => {
+                let [lines] = one_arg(name, args)?;
+                for l in collect(&lines)? {
+                    let Value::Str(s) = &l else {
+                        return Err(type_error(format!("write() argument must be str, not {}", l.type_name())));
+                    };
+                    self.write_to(recv, s.as_str())?;
+                }
+                Ok(Value::None)
+            }
             "write" => {
                 let [v] = one_arg(name, args)?;
                 let Value::Str(s) = &v else {
@@ -1882,6 +1941,10 @@ fn split_lines(text: &str, keep: bool) -> Vec<String> {
 }
 
 /// Próxima linha de um arquivo de texto (o stdin carrega no primeiro uso).
+pub(crate) fn file_readline_native(n: &Rc<RefCell<Native>>) -> PyResult<Option<String>> {
+    file_readline(n)
+}
+
 fn file_readline(n: &Rc<RefCell<Native>>) -> PyResult<Option<String>> {
     let mut b = n.borrow_mut();
     let Native::File(f) = &mut *b else { return Err(type_error("not a file")) };
@@ -2169,6 +2232,7 @@ pub(crate) fn len(v: &Value) -> PyResult<i64> {
     Ok(match v {
         Value::Str(s) => s.len() as i64,
         Value::Bytes(b) => b.len() as i64,
+        Value::ByteArray(b) => b.borrow().len() as i64,
         Value::List(l) => l.borrow().len() as i64,
         Value::Tuple(t) => t.len() as i64,
         Value::Dict(d) => d.borrow().len() as i64,
@@ -2360,6 +2424,10 @@ fn slice_of(container: &Value, s: &(Value, Value, Value)) -> PyResult<Value> {
             Value::str(slice_indices(chars.len(), s)?.into_iter().map(|i| chars[i]).collect::<String>())
         }
         Value::Bytes(b) => Value::bytes(slice_indices(b.len(), s)?.into_iter().map(|i| b[i]).collect::<Vec<u8>>()),
+        Value::ByteArray(b) => {
+            let b = b.borrow();
+            Value::bytearray(slice_indices(b.len(), s)?.into_iter().map(|i| b[i]).collect::<Vec<u8>>())
+        }
         Value::Range(r) => {
             let items: Vec<Value> = slice_indices(r.len() as usize, s)?.into_iter().map(|i| Value::Int(r.item(i as i64))).collect();
             Value::list(items)
@@ -2370,7 +2438,7 @@ fn slice_of(container: &Value, s: &(Value, Value, Value)) -> PyResult<Value> {
 
 fn subscript(container: &Value, index: &Value) -> PyResult<Value> {
     if let Value::Slice(s) = index {
-        if matches!(container, Value::List(_) | Value::Tuple(_) | Value::Str(_) | Value::Bytes(_) | Value::Range(_)) {
+        if matches!(container, Value::List(_) | Value::Tuple(_) | Value::Str(_) | Value::Bytes(_) | Value::ByteArray(_) | Value::Range(_)) {
             return slice_of(container, s);
         }
     }
@@ -2423,6 +2491,13 @@ fn subscript(container: &Value, index: &Value) -> PyResult<Value> {
                 type_error(format!("byte indices must be integers or slices, not {}", index.type_name()))
             })?;
             normalize(i, b.len()).map(|i| Value::Int(i64::from(b[i]))).ok_or_else(|| exc("IndexError", "index out of range"))
+        }
+        Value::ByteArray(b) => {
+            let i = as_index(index).ok_or_else(|| {
+                type_error(format!("bytearray indices must be integers or slices, not {}", index.type_name()))
+            })?;
+            let b = b.borrow();
+            normalize(i, b.len()).map(|i| Value::Int(i64::from(b[i]))).ok_or_else(|| exc("IndexError", "bytearray index out of range"))
         }
         Value::Range(r) => {
             let i = as_index(index).ok_or_else(|| {
@@ -2485,7 +2560,49 @@ fn store_subscript(container: &Value, index: &Value, value: Value) -> PyResult<(
         }
         return Ok(());
     }
+    if let (Value::ByteArray(b), Value::Slice(s)) = (container, index) {
+        let new_bytes = match value.bytes_like() {
+            Some(x) => x.to_vec(),
+            None if matches!(value, Value::Int(_)) => return Err(type_error("can assign only bytes, buffers, or iterables of ints in range(0, 256)")),
+            None => crate::methods::bytearraym::bytes_of_iterable(&value)?,
+        };
+        let len = b.borrow().len();
+        let (start, stop, step) = slice_bounds(len as i64, s)?;
+        if step == 1 {
+            let start = start as usize;
+            let stop = (stop.max(start as i64)) as usize;
+            b.borrow_mut().splice(start..stop, new_bytes);
+            return Ok(());
+        }
+        let idxs = slice_indices(len, s)?;
+        if idxs.len() != new_bytes.len() {
+            return Err(exc(
+                "ValueError",
+                format!(
+                    "attempt to assign bytes of size {} to extended slice of size {}",
+                    new_bytes.len(),
+                    idxs.len()
+                ),
+            ));
+        }
+        let mut items = b.borrow_mut();
+        for (i, v) in idxs.into_iter().zip(new_bytes) {
+            items[i] = v;
+        }
+        return Ok(());
+    }
     match container {
+        Value::ByteArray(b) => {
+            let i = as_index(index).ok_or_else(|| {
+                type_error(format!("bytearray indices must be integers or slices, not {}", index.type_name()))
+            })?;
+            let byte = crate::methods::bytearraym::want_byte(&value)?;
+            let mut items = b.borrow_mut();
+            let len = items.len();
+            let i = normalize(i, len).ok_or_else(|| exc("IndexError", "bytearray assignment index out of range"))?;
+            items[i] = byte;
+            Ok(())
+        }
         Value::List(l) => {
             let i = as_index(index).ok_or_else(|| {
                 type_error(format!("list indices must be integers or slices, not {}", index.type_name()))
@@ -2669,6 +2786,33 @@ fn binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyResult<Value> 
             Err(type_error(format!("can only concatenate tuple (not \"{}\") to tuple", b.type_name())))
         }
         (Operator::Add, Value::Bytes(x), Value::Bytes(y)) => Ok(Value::bytes([&x[..], &y[..]].concat())),
+        (Operator::Add, Value::ByteArray(x), Value::ByteArray(_) | Value::Bytes(_)) => {
+            let extra = b.bytes_like().unwrap_or_else(|| Rc::from(&[][..]));
+            if inplace {
+                x.borrow_mut().extend_from_slice(&extra);
+                Ok(a.clone())
+            } else {
+                let mut out = x.borrow().clone();
+                out.extend_from_slice(&extra);
+                Ok(Value::bytearray(out))
+            }
+        }
+        (Operator::Add, Value::Bytes(x), Value::ByteArray(y)) => Ok(Value::bytes([&x[..], &y.borrow()[..]].concat())),
+        (Operator::Add, Value::Bytes(_) | Value::ByteArray(_), _) => Err(type_error(format!(
+            "can't concatenate {} and {}",
+            a.type_name(),
+            b.type_name()
+        ))),
+        (Operator::Mult, Value::ByteArray(x), n) | (Operator::Mult, n, Value::ByteArray(x)) if as_index(n).is_some() => {
+            let count = as_index(n).unwrap_or(0);
+            let out = repeat(&x.borrow()[..], count)?;
+            if inplace {
+                *x.borrow_mut() = out;
+                Ok(if matches!(a, Value::ByteArray(_)) { a.clone() } else { b.clone() })
+            } else {
+                Ok(Value::bytearray(out))
+            }
+        }
         (Operator::Mult, seq, n) | (Operator::Mult, n, seq) if is_sequence(seq) && !is_sequence(n) => {
             match as_index(n) {
                 Some(count) => repeat_value(seq, count),
@@ -2680,6 +2824,9 @@ fn binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyResult<Value> 
         }
         (Operator::Mod, Value::Str(s), args) => crate::format::percent_format(s.as_str(), args).map(Value::str),
         (Operator::Mod, Value::Bytes(b), args) => crate::format::bytes_percent_format(b, args).map(Value::bytes),
+        (Operator::Mod, Value::ByteArray(b), args) => {
+            crate::format::bytes_percent_format(&b.borrow(), args).map(Value::bytearray)
+        }
         (Operator::BitOr | Operator::BitAnd | Operator::Sub | Operator::BitXor, Value::Set(x), Value::Set(y)) => {
             set_binary(op, x, y, inplace)
         }
@@ -2753,7 +2900,7 @@ fn set_binary(op: Operator, x: &Rc<RefCell<Set>>, y: &Rc<RefCell<Set>>, inplace:
 }
 
 fn is_sequence(v: &Value) -> bool {
-    matches!(v, Value::Str(_) | Value::List(_) | Value::Tuple(_) | Value::Bytes(_))
+    matches!(v, Value::Str(_) | Value::List(_) | Value::Tuple(_) | Value::Bytes(_) | Value::ByteArray(_))
 }
 
 fn repeat<T: Clone>(items: &[T], n: i64) -> PyResult<Vec<T>> {
@@ -2779,6 +2926,7 @@ fn repeat_value(seq: &Value, n: i64) -> PyResult<Value> {
         Value::List(l) => Value::list(repeat(&l.borrow()[..], n)?),
         Value::Tuple(t) => Value::tuple(repeat(&t[..], n)?),
         Value::Bytes(b) => Value::bytes(repeat(&b[..], n)?),
+        Value::ByteArray(b) => Value::bytearray(repeat(&b.borrow()[..], n)?),
         _ => return Err(internal("repeat of non-sequence")),
     })
 }
@@ -3180,11 +3328,15 @@ fn contains(container: &Value, item: &Value) -> PyResult<bool> {
             Value::Bool(b) => Ok(r.contains_int(i64::from(*b))),
             _ => Ok(member(&collect(container)?)),
         },
-        Value::Bytes(b) => match as_index(item) {
-            Some(i) if (0..256).contains(&i) => Ok(b.contains(&(i as u8))),
+        Value::Bytes(_) | Value::ByteArray(_) => match as_index(item) {
+            Some(i) if (0..256).contains(&i) => Ok(container.bytes_like().is_some_and(|b| b.contains(&(i as u8)))),
             Some(_) => Err(exc("ValueError", "byte must be in range(0, 256)")),
             None => match item {
-                Value::Bytes(sub) => Ok(sub.is_empty() || b.windows(sub.len()).any(|w| w == &sub[..])),
+                Value::Bytes(_) | Value::ByteArray(_) => {
+                    let b = container.bytes_like().unwrap_or_else(|| Rc::from(&[][..]));
+                    let sub = item.bytes_like().unwrap_or_else(|| Rc::from(&[][..]));
+                    Ok(sub.is_empty() || b.windows(sub.len()).any(|w| w == &sub[..]))
+                }
                 _ => Err(type_error(format!(
                     "a bytes-like object is required, not '{}'",
                     item.type_name()
@@ -3253,7 +3405,10 @@ fn order(op: CmpOp, a: &Value, b: &Value) -> PyResult<bool> {
     }
     match (a, b) {
         (Value::Str(x), Value::Str(y)) => Ok(apply(op, x.as_str().cmp(y.as_str()))),
-        (Value::Bytes(x), Value::Bytes(y)) => Ok(apply(op, x[..].cmp(&y[..]))),
+        (Value::Bytes(_) | Value::ByteArray(_), Value::Bytes(_) | Value::ByteArray(_)) => {
+            let (x, y) = (a.bytes_like().unwrap_or_else(|| Rc::from(&[][..])), b.bytes_like().unwrap_or_else(|| Rc::from(&[][..])));
+            Ok(apply(op, x[..].cmp(&y[..])))
+        }
         (Value::List(x), Value::List(y)) => {
             let (x, y) = (x.borrow().clone(), y.borrow().clone());
             seq_order(op, &x, &y)

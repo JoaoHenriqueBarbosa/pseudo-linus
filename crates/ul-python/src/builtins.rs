@@ -56,7 +56,7 @@ pub const TABLE: &[(&str, NativeFnPtr)] = &[
     ("list", b_list),
     ("tuple", b_tuple),
     ("bytes", b_bytes),
-    ("bytearray", b_bytes),
+    ("bytearray", b_bytearray),
     ("bool", b_bool),
     ("int", b_int),
     ("float", b_float),
@@ -180,7 +180,8 @@ fn instance_of(v: &Value, cname: &str) -> bool {
         "slice" => matches!(v, Value::Slice(_)),
         // `frozenset` e `bytearray` ainda são representados por `set` e `bytes`.
         "set" | "frozenset" => matches!(v, Value::Set(_)),
-        "bytes" | "bytearray" => matches!(v, Value::Bytes(_)),
+        "bytes" => matches!(v, Value::Bytes(_)),
+        "bytearray" => matches!(v, Value::ByteArray(_)),
         other if PSEUDO_TYPES.contains(&other) => v.type_name() == other,
         other => matches!(v, Value::Exception(e) if exc_is_subclass(e.kind, other)),
     }
@@ -379,6 +380,7 @@ fn make_iter(v: &Value) -> PyResult<Value> {
         Value::Dict(_) => "dict_keyiterator",
         Value::Set(_) => "set_iterator",
         Value::Bytes(_) => "bytes_iterator",
+        Value::ByteArray(_) => "bytearray_iterator",
         // Iteradores e arquivos são o próprio iterador.
         Value::Ext(e) if e.is_iterable() => return Ok(v.clone()),
         Value::Native(n) if matches!(&*n.borrow(), Native::File(_) | Native::CsvReader { .. }) => {
@@ -492,7 +494,7 @@ fn b_enumerate(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 fn b_reversed(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let v = one("reversed", args, &kw)?;
     match &v {
-        Value::List(_) | Value::Tuple(_) | Value::Str(_) | Value::Range(_) | Value::Bytes(_) | Value::Dict(_) => {
+        Value::List(_) | Value::Tuple(_) | Value::Str(_) | Value::Range(_) | Value::Bytes(_) | Value::ByteArray(_) | Value::Dict(_) => {
             let mut items = iterate(&v)?;
             items.reverse();
             Ok(Value::list(items))
@@ -597,6 +599,7 @@ fn b_sum(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     match &acc {
         Value::Str(_) => return Err(type_error("sum() can't sum strings [use ''.join(seq) instead]")),
         Value::Bytes(_) => return Err(type_error("sum() can't sum bytes [use b''.join(seq) instead]")),
+        Value::ByteArray(_) => return Err(type_error("sum() can't sum bytearray [use b''.join(seq) instead]")),
         _ => {}
     }
     let mut idx = 0;
@@ -975,6 +978,7 @@ fn b_ord(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
                 ))),
             }
         }
+        Value::ByteArray(b) if b.borrow().len() == 1 => Ok(Value::Int(i64::from(b.borrow()[0]))),
         Value::Bytes(b) if b.len() == 1 => Ok(Value::Int(i64::from(b[0]))),
         Value::Bytes(b) => Err(type_error(format!("ord() expected a character, but string of length {} found", b.len()))),
         other => Err(type_error(format!("ord() expected string of length 1, but {} found", other.type_name()))),
@@ -1001,6 +1005,7 @@ fn b_id(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         Value::Builtin(name) => crate::object::PyStr::new(*name).hash() >> 4,
         Value::Str(s) => addr(s),
         Value::Bytes(b) => addr(b),
+        Value::ByteArray(b) => addr(b),
         Value::List(l) => addr(l),
         Value::Tuple(t) => addr(t),
         Value::Dict(d) => addr(d),
@@ -1053,6 +1058,7 @@ fn b_len(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let n = match &v {
         Value::Str(s) => s.len() as i64,
         Value::Bytes(b) => b.len() as i64,
+        Value::ByteArray(b) => b.borrow().len() as i64,
         Value::List(l) => l.borrow().len() as i64,
         Value::Tuple(t) => t.len() as i64,
         Value::Dict(d) => d.borrow().len() as i64,
@@ -1287,6 +1293,14 @@ fn opt_text(fname: &str, name: &str, v: &Option<Value>, default: &str) -> PyResu
     }
 }
 
+/// `bytearray(...)`: os mesmos argumentos de `bytes(...)`, com o resultado mutável.
+fn b_bytearray(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    match b_bytes(vm, args, kw)? {
+        Value::Bytes(b) => Ok(Value::bytearray(b.to_vec())),
+        other => Ok(other),
+    }
+}
+
 fn b_bytes(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let s = bind("bytes", args, kw, &["source", "encoding", "errors"], 0)?;
     let has_text_opts = s[1].is_some() || s[2].is_some();
@@ -1311,6 +1325,7 @@ fn b_bytes(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         return Err(type_error("errors without a string argument"));
     }
     match src {
+        Value::Instance(_) if src.bytes_like().is_some() => Ok(Value::Bytes(src.bytes_like().unwrap_or_else(|| Rc::from(&[][..])))),
         Value::Int(_) | Value::Bool(_) => {
             let n = as_i64(src).unwrap_or(0);
             if n < 0 {
@@ -1322,6 +1337,7 @@ fn b_bytes(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
             Ok(Value::bytes(vec![0u8; n as usize]))
         }
         Value::Bytes(b) => Ok(Value::Bytes(b.clone())),
+        Value::ByteArray(b) => Ok(Value::bytes(b.borrow().clone())),
         Value::Float(_) => Err(type_error("cannot convert 'float' object to bytes")),
         other => {
             let mut out = Vec::new();
@@ -1344,10 +1360,11 @@ fn b_str(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         return Ok(Value::str(to_str(obj)));
     }
     match obj {
-        Value::Bytes(b) => {
+        Value::Bytes(_) | Value::ByteArray(_) => {
+            let b = obj.bytes_like().unwrap_or_else(|| Rc::from(&[][..]));
             let enc = opt_text("str", "encoding", &s[1], "utf-8")?;
             let errs = opt_text("str", "errors", &s[2], "strict")?;
-            Ok(Value::str(decode_bytes(b, &enc, &errs)?))
+            Ok(Value::str(decode_bytes(&b, &enc, &errs)?))
         }
         other => Err(type_error(format!("decoding to str: need a bytes-like object, {} found", other.type_name()))),
     }
@@ -1437,6 +1454,7 @@ fn text_of(v: &Value) -> Option<String> {
     match v {
         Value::Str(s) => Some(s.as_str().to_string()),
         Value::Bytes(b) => Some(String::from_utf8_lossy(b).into_owned()),
+        Value::ByteArray(b) => Some(String::from_utf8_lossy(&b.borrow()).into_owned()),
         _ => None,
     }
 }
@@ -1473,7 +1491,7 @@ fn b_int(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         Value::Big(_) => Ok(x.clone()),
         Value::Bool(b) => Ok(Value::Int(i64::from(*b))),
         Value::Float(f) => int_from_float(*f),
-        Value::Str(_) | Value::Bytes(_) => {
+        Value::Str(_) | Value::Bytes(_) | Value::ByteArray(_) => {
             let text = text_of(x).unwrap_or_default();
             int_from_text(x, &text, 10)
         }
@@ -1527,7 +1545,7 @@ fn b_float(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         Some(Value::Big(n)) => Ok(Value::Float(crate::bigint::to_f64(n)?)),
         Some(Value::Bool(b)) => Ok(Value::Float(f64::from(u8::from(*b)))),
         Some(Value::Float(x)) => Ok(Value::Float(*x)),
-        Some(v @ (Value::Str(_) | Value::Bytes(_))) => {
+        Some(v @ (Value::Str(_) | Value::Bytes(_) | Value::ByteArray(_))) => {
             let text = text_of(v).unwrap_or_default();
             parse_float_text(&text)
                 .map(Value::Float)

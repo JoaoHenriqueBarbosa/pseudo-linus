@@ -349,6 +349,13 @@ impl Vm {
                     .and_then(|m| m.attrs.borrow().get("complex").cloned())
                     .ok_or_else(|| exc("NameError", "name 'complex' is not defined"))
             }
+            // `memoryview` é uma classe em Python (`modules/py/_memoryview.py`).
+            "memoryview" => {
+                let mut vm = self.clone();
+                crate::modules::import(&mut vm, "_memoryview")
+                    .and_then(|m| m.attrs.borrow().get("memoryview").cloned())
+                    .ok_or_else(|| exc("NameError", "name 'memoryview' is not defined"))
+            }
             // Auxiliares da instrução `match` (`modules/py/_match.py`).
             n if n.starts_with("_match_") => {
                 let mut vm = self.clone();
@@ -816,6 +823,36 @@ impl Vm {
     /// `del container[index]`.
     pub(crate) fn delete_subscript(&mut self, container: &Value, index: &Value) -> PyResult<()> {
         match container {
+            Value::ByteArray(b) => {
+                let len = b.borrow().len() as i64;
+                match index {
+                    Value::Slice(s) => {
+                        let mut doomed = crate::vm::slice_indices(len as usize, s)?;
+                        doomed.sort_unstable();
+                        let mut v = b.borrow_mut();
+                        for i in doomed.into_iter().rev() {
+                            v.remove(i);
+                        }
+                        Ok(())
+                    }
+                    Value::Int(_) | Value::Bool(_) => {
+                        let i = match index {
+                            Value::Int(i) => *i,
+                            _ => i64::from(index.is_true()),
+                        };
+                        let j = if i < 0 { i + len } else { i };
+                        if j < 0 || j >= len {
+                            return Err(exc("IndexError", "bytearray index out of range"));
+                        }
+                        b.borrow_mut().remove(j as usize);
+                        Ok(())
+                    }
+                    other => Err(type_error(format!(
+                        "bytearray indices must be integers or slices, not {}",
+                        other.type_name()
+                    ))),
+                }
+            }
             Value::List(l) => {
                 let len = l.borrow().len() as i64;
                 match index {

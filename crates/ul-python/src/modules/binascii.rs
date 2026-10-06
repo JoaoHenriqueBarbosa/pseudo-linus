@@ -19,7 +19,9 @@ pub fn binascii_error(msg: impl Into<String>) -> PyException {
 /// Bytes do argumento ou `TypeError: a bytes-like object is required, not 'str'`.
 pub fn want_bytes(v: &Value) -> PyResult<Vec<u8>> {
     match v {
-        Value::Bytes(b) => Ok(b.to_vec()),
+        Value::Bytes(_) | Value::ByteArray(_) | Value::Instance(_) if v.bytes_like().is_some() => {
+            Ok(v.bytes_like().map(|b| b.to_vec()).unwrap_or_default())
+        }
         other => Err(type_error(format!("a bytes-like object is required, not '{}'", other.type_name()))),
     }
 }

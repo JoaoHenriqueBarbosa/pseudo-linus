@@ -10,6 +10,7 @@
 //!
 //! `lookup` é o que `getattr` usa: `"abc".upper` vira um método preso ao receptor.
 
+pub mod bytearraym;
 pub mod bytesm;
 pub mod dictm;
 pub mod dunder;
@@ -38,5 +39,8 @@ fn table(recv: &Value) -> Option<&'static [(&'static str, NativeFnPtr)]> {
 /// O método `name` do tipo de `recv`, com o nome estático da tabela.
 pub fn lookup(recv: &Value, name: &str) -> Option<(&'static str, NativeFnPtr)> {
     let find = |t: &'static [(&'static str, NativeFnPtr)]| t.iter().find(|(n, _)| *n == name).map(|(n, f)| (*n, *f));
+    if matches!(recv, Value::ByteArray(_)) {
+        return find(bytearraym::TABLE).or_else(|| find(bytesm::TABLE)).or_else(|| find(dunder::TABLE));
+    }
     find(table(recv)?).or_else(|| find(dunder::TABLE))
 }

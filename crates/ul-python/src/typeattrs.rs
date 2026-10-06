@@ -20,7 +20,8 @@ fn sample(tname: &str) -> Option<Value> {
         "tuple" => Value::tuple(Vec::new()),
         "dict" => Value::dict(Dict::new()),
         "set" | "frozenset" => Value::set(crate::object::Set::new()),
-        "bytes" | "bytearray" => Value::bytes(Vec::new()),
+        "bytes" => Value::bytes(Vec::new()),
+        "bytearray" => Value::bytearray(Vec::new()),
         _ => return None,
     })
 }
@@ -82,6 +83,13 @@ impl ExtObject for NewFn {
             dict: std::cell::RefCell::new(indexmap::IndexMap::new()),
             payload: std::cell::RefCell::new(Some(payload)),
         })))
+    }
+}
+
+fn bytearray_fromhex(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    match bytes_fromhex(vm, args, kw)? {
+        Value::Bytes(b) => Ok(Value::bytearray(b.to_vec())),
+        other => Ok(other),
     }
 }
 
@@ -290,6 +298,7 @@ pub fn type_attr(tname: &str, name: &str) -> Option<Value> {
         ("dict", "fromkeys") => return Some(native("fromkeys", fromkeys)),
         ("int", "from_bytes") => return Some(native("from_bytes", int_from_bytes)),
         ("bytes", "fromhex") => return Some(native("fromhex", bytes_fromhex)),
+        ("bytearray", "fromhex") => return Some(native("fromhex", bytearray_fromhex)),
         ("str", "maketrans") => return Some(native("maketrans", str_maketrans)),
         _ => {}
     }

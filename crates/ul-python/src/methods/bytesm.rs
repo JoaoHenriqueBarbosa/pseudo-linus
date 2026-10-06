@@ -11,7 +11,7 @@ use crate::vm::{exc, iterate, type_error, PyResult, Vm};
 
 fn this(args: &[Value]) -> PyResult<Rc<[u8]>> {
     match args.first() {
-        Some(Value::Bytes(b)) => Ok(b.clone()),
+        Some(v @ (Value::Bytes(_) | Value::ByteArray(_))) => Ok(v.bytes_like().unwrap_or_else(|| Rc::from(&[][..]))),
         _ => Err(type_error("descriptor requires a 'bytes' object")),
     }
 }
@@ -47,16 +47,16 @@ fn argc(fname: &str, rest: &[Value], min: usize, max: usize) -> PyResult<()> {
 }
 
 fn want_bytes(v: &Value) -> PyResult<Rc<[u8]>> {
-    match v {
-        Value::Bytes(b) => Ok(b.clone()),
-        other => Err(type_error(format!("a bytes-like object is required, not '{}'", other.type_name()))),
+    match v.bytes_like() {
+        Some(b) => Ok(b),
+        None => Err(type_error(format!("a bytes-like object is required, not '{}'", v.type_name()))),
     }
 }
 
 /// Argumento `sub` de `find`/`count`: bytes ou um inteiro de 0 a 255.
 fn sub_arg(v: &Value) -> PyResult<Vec<u8>> {
     match v {
-        Value::Bytes(b) => Ok(b.to_vec()),
+        Value::Bytes(_) | Value::ByteArray(_) => Ok(v.bytes_like().map(|b| b.to_vec()).unwrap_or_default()),
         Value::Int(_) | Value::Bool(_) => {
             let i = want_int(v)?;
             if (0..256).contains(&i) {
@@ -263,7 +263,7 @@ fn hex(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 // ----------------------------------------------------------------------------------------------
 // split, strip
 
-fn split(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn split(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let data = this(&args)?;
     let slots = bind("split", args[1..].to_vec(), kw, &["sep", "maxsplit"], 0)?;
     let maxsplit = match &slots[1] {
@@ -346,15 +346,15 @@ fn strip_impl(fname: &str, args: Vec<Value>, kw: Kw, left: bool, right: bool) ->
     Ok(Value::bytes(data[lo..hi].to_vec()))
 }
 
-fn strip(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn strip(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     strip_impl("strip", args, kw, true, true)
 }
 
-fn lstrip(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn lstrip(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     strip_impl("lstrip", args, kw, true, false)
 }
 
-fn rstrip(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn rstrip(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     strip_impl("rstrip", args, kw, false, true)
 }
 
@@ -369,12 +369,12 @@ fn affix(fname: &str, args: Vec<Value>, kw: Kw, at_start: bool) -> PyResult<Valu
     let start = bound(args.get(2), len, 0)?;
     let end = bound(args.get(3), len, len)?;
     let candidates: Vec<Rc<[u8]>> = match &args[1] {
-        Value::Bytes(b) => vec![b.clone()],
+        Value::Bytes(_) | Value::ByteArray(_) => vec![want_bytes(&args[1])?],
         Value::Tuple(items) => {
             let mut v = Vec::new();
             for it in items.iter() {
                 match it {
-                    Value::Bytes(b) => v.push(b.clone()),
+                    Value::Bytes(_) | Value::ByteArray(_) => v.push(want_bytes(it)?),
                     other => {
                         return Err(type_error(format!(
                             "a bytes-like object is required, not '{}'",
@@ -452,7 +452,7 @@ fn count(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::Int(n))
 }
 
-fn replace(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn replace(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let data = this(&args)?;
     let slots = bind("replace", args[1..].to_vec(), kw, &["old", "new", "count"], 2)?;
     let (Some(old), Some(new)) = (&slots[0], &slots[1]) else {
@@ -495,7 +495,7 @@ fn replace(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::bytes(out))
 }
 
-fn join(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn join(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("join", &kw)?;
     argc("join", &args[1..], 1, 1)?;
     let sep = this(&args)?;
@@ -503,11 +503,11 @@ fn join(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let mut out: Vec<u8> = Vec::new();
     for (i, it) in items.iter().enumerate() {
         match it {
-            Value::Bytes(b) => {
+            Value::Bytes(_) | Value::ByteArray(_) => {
                 if i > 0 {
                     out.extend_from_slice(&sep);
                 }
-                out.extend_from_slice(b);
+                out.extend_from_slice(&want_bytes(it)?);
             }
             other => {
                 return Err(type_error(format!(
@@ -520,13 +520,13 @@ fn join(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::bytes(out))
 }
 
-fn upper(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn upper(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("upper", &kw)?;
     argc("upper", &args[1..], 0, 0)?;
     Ok(Value::bytes(this(&args)?.to_ascii_uppercase()))
 }
 
-fn lower(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn lower(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("lower", &kw)?;
     argc("lower", &args[1..], 0, 0)?;
     Ok(Value::bytes(this(&args)?.to_ascii_lowercase()))
@@ -598,15 +598,15 @@ fn partition_impl(fname: &str, args: Vec<Value>, kw: Kw, last: bool) -> PyResult
     })
 }
 
-fn partition(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn partition(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     partition_impl("partition", args, kw, false)
 }
 
-fn rpartition(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn rpartition(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     partition_impl("rpartition", args, kw, true)
 }
 
-fn rsplit(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn rsplit(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let data = this(&args)?;
     let slots = bind("rsplit", args[1..].to_vec(), kw, &["sep", "maxsplit"], 0)?;
     let maxsplit = match &slots[1] {
@@ -669,7 +669,7 @@ fn rsplit(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::list(parts))
 }
 
-fn splitlines(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn splitlines(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let data = this(&args)?;
     let slots = bind("splitlines", args[1..].to_vec(), kw, &["keepends"], 0)?;
     let keep = slots[0].as_ref().is_some_and(Value::is_true);
@@ -696,7 +696,7 @@ fn splitlines(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::list(out))
 }
 
-fn removeprefix(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn removeprefix(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("removeprefix", &kw)?;
     argc("removeprefix", &args[1..], 1, 1)?;
     let data = this(&args)?;
@@ -704,7 +704,7 @@ fn removeprefix(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::bytes(if data.starts_with(&p) { data[p.len()..].to_vec() } else { data.to_vec() }))
 }
 
-fn removesuffix(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn removesuffix(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("removesuffix", &kw)?;
     argc("removesuffix", &args[1..], 1, 1)?;
     let data = this(&args)?;
@@ -720,7 +720,9 @@ fn justify(fname: &str, args: Vec<Value>, kw: Kw, mode: u8) -> PyResult<Value> {
     let width = want_int(&args[1])?.max(0) as usize;
     let fill = match args.get(2) {
         None => b' ',
-        Some(Value::Bytes(b)) if b.len() == 1 => b[0],
+        Some(v @ (Value::Bytes(_) | Value::ByteArray(_))) if v.bytes_like().is_some_and(|b| b.len() == 1) => {
+            v.bytes_like().map_or(b' ', |b| b[0])
+        }
         Some(_) => return Err(type_error(format!("{fname}() argument 2 must be a byte string of length 1"))),
     };
     if width <= data.len() {
@@ -738,19 +740,19 @@ fn justify(fname: &str, args: Vec<Value>, kw: Kw, mode: u8) -> PyResult<Value> {
     Ok(Value::bytes(out))
 }
 
-fn ljust(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn ljust(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     justify("ljust", args, kw, 0)
 }
 
-fn rjust(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn rjust(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     justify("rjust", args, kw, 1)
 }
 
-fn center(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn center(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     justify("center", args, kw, 2)
 }
 
-fn zfill(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn zfill(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("zfill", &kw)?;
     argc("zfill", &args[1..], 1, 1)?;
     let data = this(&args)?;
@@ -803,7 +805,7 @@ fn isascii(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     predicate("isascii", &args, &kw, |d| d.is_ascii())
 }
 
-fn swapcase(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn swapcase(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("swapcase", &kw)?;
     argc("swapcase", &args[1..], 0, 0)?;
     let d = this(&args)?;
@@ -814,7 +816,7 @@ fn swapcase(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     ))
 }
 
-fn capitalize(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn capitalize(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("capitalize", &kw)?;
     argc("capitalize", &args[1..], 0, 0)?;
     let d = this(&args)?;
@@ -823,7 +825,7 @@ fn capitalize(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     ))
 }
 
-fn title(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn title(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("title", &kw)?;
     argc("title", &args[1..], 0, 0)?;
     let d = this(&args)?;
@@ -839,7 +841,7 @@ fn title(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::bytes(out))
 }
 
-fn expandtabs(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn expandtabs(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let data = this(&args)?;
     let slots = bind("expandtabs", args[1..].to_vec(), kw, &["tabsize"], 0)?;
     let tab = slots[0].as_ref().map(want_int).transpose()?.unwrap_or(8).max(0) as usize;
@@ -867,7 +869,7 @@ fn expandtabs(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::bytes(out))
 }
 
-fn translate(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(super) fn translate(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let data = this(&args)?;
     let slots = bind("translate", args[1..].to_vec(), kw, &["table", "delete"], 1)?;
     let table: Option<Rc<[u8]>> = match &slots[0] {

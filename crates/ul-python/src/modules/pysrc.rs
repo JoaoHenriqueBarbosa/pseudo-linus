@@ -70,6 +70,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("subprocess", include_str!("py/subprocess.py")),
     ("_complex", include_str!("py/_complex.py")),
     ("_match", include_str!("py/_match.py")),
+    ("_memoryview", include_str!("py/_memoryview.py")),
     ("operator", include_str!("py/operator.py")),
     ("json", include_str!("py/json.py")),
     ("json.decoder", include_str!("py/json_decoder.py")),

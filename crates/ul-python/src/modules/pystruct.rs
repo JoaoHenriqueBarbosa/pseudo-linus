@@ -1,11 +1,10 @@
 //! Módulo `struct` do CPython 3.13 (arquivo `pystruct.rs`, porque `struct` é palavra reservada em
-//! Rust): `pack`, `unpack`, `unpack_from`, `iter_unpack` (devolve lista) e `calcsize`.
+//! Rust): `pack`, `unpack`, `pack_into`, `unpack_from`, `iter_unpack` (devolve lista) e `calcsize`.
 //!
 //! Ordem de bytes e alinhamento: `@` (nativo, little endian e alinhado, `l`/`L` com 8 bytes), `=`
 //! (nativo sem alinhamento, tamanhos padrão), `<`, `>` e `!`. Códigos: `x c b B ? h H i I l L q Q n
 //! N e f d s p P`, com contagens. Limitações: sem inteiros arbitrários, então `Q`, `N` e `P` acima
-//! de `i64::MAX` levantam `OverflowError` no `unpack`. Ficam de fora: `pack_into` (não há
-//! `bytearray` ainda), `unpack_from` sobre buffers que não são `bytes`, a classe `Struct`.
+//! de `i64::MAX` levantam `OverflowError` no `unpack`. Fica de fora a classe `Struct`.
 
 use std::rc::Rc;
 
@@ -269,7 +268,7 @@ pub fn pack_values(fmt: &str, vals: &[Value]) -> PyResult<Vec<u8>> {
         match it.code {
             'x' => out.resize(out.len() + it.count, 0),
             's' | 'p' => {
-                let Value::Bytes(data) = &vals[vi] else {
+                let Some(data) = vals[vi].bytes_like() else {
                     return Err(struct_error(format!("argument for '{}' must be a bytes object", it.code)));
                 };
                 vi += 1;
@@ -295,7 +294,9 @@ pub fn pack_values(fmt: &str, vals: &[Value]) -> PyResult<Vec<u8>> {
                     vi += 1;
                     match code {
                         'c' => match v {
-                            Value::Bytes(b) if b.len() == 1 => out.push(b[0]),
+                            Value::Bytes(_) | Value::ByteArray(_) if v.bytes_like().is_some_and(|b| b.len() == 1) => {
+                                out.push(v.bytes_like().map_or(0, |b| b[0]))
+                            }
                             _ => return Err(struct_error("char format requires a bytes object of length 1")),
                         },
                         '?' => out.push(u8::from(v.is_true())),
@@ -407,11 +408,41 @@ fn unpack_items(mode: Mode, items: &[Item], data: &[u8]) -> PyResult<Vec<Value>>
     Ok(out)
 }
 
-fn want_buffer(v: &Value) -> PyResult<&[u8]> {
-    match v {
-        Value::Bytes(b) => Ok(&b[..]),
-        other => Err(type_error(format!("a bytes-like object is required, not '{}'", other.type_name()))),
+fn want_buffer(v: &Value) -> PyResult<Rc<[u8]>> {
+    v.bytes_like()
+        .ok_or_else(|| type_error(format!("a bytes-like object is required, not '{}'", v.type_name())))
+}
+
+/// `pack_into(format, buffer, offset, v1, v2, ...)`: grava no `bytearray` a partir de `offset`.
+fn pack_into(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("pack_into", &kw)?;
+    if args.len() < 3 {
+        return Err(type_error(format!("pack_into expected at least 3 arguments, got {}", args.len())));
     }
+    let fmt = fmt_of(&args[0])?;
+    let Value::ByteArray(buf) = &args[1] else {
+        return Err(type_error(format!(
+            "argument must be read-write bytes-like object, not {}",
+            args[1].type_name()
+        )));
+    };
+    let orig = want_int(&args[2])?;
+    let packed = pack_values(&fmt, &args[3..])?;
+    let len = buf.borrow().len() as i64;
+    let off = if orig < 0 { orig + len } else { orig };
+    if off < 0 || off > len {
+        return Err(struct_error(format!("offset {orig} out of range for {len}-byte buffer")));
+    }
+    let off = off as usize;
+    if buf.borrow().len() - off < packed.len() {
+        return Err(struct_error(format!(
+            "pack_into requires a buffer of at least {} bytes for packing {} bytes at offset {off} (actual buffer size is {len})",
+            packed.len() + off,
+            packed.len()
+        )));
+    }
+    buf.borrow_mut()[off..off + packed.len()].copy_from_slice(&packed);
+    Ok(Value::None)
 }
 
 fn pack(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -433,7 +464,7 @@ fn unpack(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     if data.len() != size {
         return Err(struct_error(format!("unpack requires a buffer of {size} bytes")));
     }
-    Ok(Value::tuple(unpack_items(mode, &items, data)?))
+    Ok(Value::tuple(unpack_items(mode, &items, &data)?))
 }
 
 fn unpack_from(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -494,6 +525,7 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
     ModuleBuilder::new("struct")
         .func("pack", pack)
         .func("unpack", unpack)
+        .func("pack_into", pack_into)
         .func("unpack_from", unpack_from)
         .func("iter_unpack", iter_unpack)
         .func("calcsize", calcsize)

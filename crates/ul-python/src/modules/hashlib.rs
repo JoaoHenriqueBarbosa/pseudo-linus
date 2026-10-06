@@ -544,7 +544,9 @@ fn hex_of(bytes: &[u8]) -> String {
 
 fn want_hash_input(v: &Value) -> PyResult<Vec<u8>> {
     match v {
-        Value::Bytes(b) => Ok(b.to_vec()),
+        Value::Bytes(_) | Value::ByteArray(_) | Value::Instance(_) if v.bytes_like().is_some() => {
+            Ok(v.bytes_like().map(|b| b.to_vec()).unwrap_or_default())
+        }
         Value::Str(_) => Err(type_error("Strings must be encoded before hashing")),
         _ => Err(type_error("object supporting the buffer API required")),
     }

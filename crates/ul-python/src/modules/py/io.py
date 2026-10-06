@@ -380,7 +380,7 @@ class BytesIO(BufferedIOBase):
         return self._data
 
     def getbuffer(self):
-        return self._data
+        return memoryview(self._data)
 
     def read(self, size=-1):
         self._check_closed()
