@@ -41,8 +41,8 @@ impl ExtObject for TracebackObj {
             "tb_lineno" => Value::Int(*line as i64),
             "tb_lasti" => Value::Int(0),
             "tb_frame" => Value::Ext(Rc::new(FrameObj {
-                line: *line,
-                name: code.clone(),
+                chain: Rc::new(vec![(*line, code.clone())]),
+                idx: 0,
                 filename: self.filename.clone(),
             })),
             "tb_next" => {
@@ -66,9 +66,18 @@ impl ExtObject for TracebackObj {
 }
 
 struct FrameObj {
-    line: usize,
-    name: String,
+    /// Quadros do mais interno para o mais externo; `idx` é este.
+    chain: Entries,
+    idx: usize,
     filename: Rc<str>,
+}
+
+/// O quadro `depth` níveis acima do mais interno de `chain` (0 é o mais interno).
+pub fn frame_at(chain: Vec<(usize, String)>, filename: &str, depth: usize) -> Option<Value> {
+    if depth >= chain.len() {
+        return None;
+    }
+    Some(Value::Ext(Rc::new(FrameObj { chain: Rc::new(chain), idx: depth, filename: Rc::from(filename) })))
 }
 
 impl ExtObject for FrameObj {
@@ -77,14 +86,26 @@ impl ExtObject for FrameObj {
     }
 
     fn repr(&self) -> String {
-        format!("<frame at {:p}, file '{}', line {}, code {}>", self, self.filename, self.line, self.name)
+        let (line, name) = &self.chain[self.idx];
+        format!("<frame at {:p}, file '{}', line {}, code {}>", self, self.filename, line, name)
     }
 
     fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
+        let (line, code) = &self.chain[self.idx];
         Some(Ok(match name {
-            "f_lineno" => Value::Int(self.line as i64),
-            "f_code" => Value::Ext(Rc::new(CodeObject { name: self.name.clone(), filename: self.filename.clone() })),
-            "f_back" => Value::None,
+            "f_lineno" => Value::Int(*line as i64),
+            "f_code" => Value::Ext(Rc::new(CodeObject { name: code.clone(), filename: self.filename.clone() })),
+            "f_back" => {
+                if self.idx + 1 < self.chain.len() {
+                    Value::Ext(Rc::new(FrameObj {
+                        chain: self.chain.clone(),
+                        idx: self.idx + 1,
+                        filename: self.filename.clone(),
+                    }))
+                } else {
+                    Value::None
+                }
+            }
             "f_globals" | "f_locals" | "f_builtins" => Value::dict(crate::object::Dict::new()),
             _ => return None,
         }))

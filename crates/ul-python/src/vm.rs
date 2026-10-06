@@ -298,6 +298,10 @@ pub struct Vm {
     handled: Rc<RefCell<Vec<Value>>>,
     /// Profundidade de chamadas de função em andamento.
     depth: Rc<std::cell::Cell<usize>>,
+    /// Linha da instrução em execução (para `sys._getframe` e `warnings`).
+    pub(crate) cur_line: Rc<std::cell::Cell<usize>>,
+    /// Funções em andamento (a mais interna por último), cada uma com a linha do chamador.
+    pub(crate) frames: Rc<RefCell<Vec<(Rc<Code>, usize)>>>,
     /// `sys.argv`.
     pub(crate) argv: Rc<Vec<String>>,
     /// `sys.stdin`, `sys.stdout` e `sys.stderr`, criados uma vez.
@@ -357,6 +361,8 @@ impl Vm {
             stdout: Rc::new(RefCell::new(Vec::new())),
             handled: Rc::new(RefCell::new(Vec::new())),
             depth: Rc::new(std::cell::Cell::new(0)),
+            cur_line: Rc::new(std::cell::Cell::new(0)),
+            frames: Rc::new(RefCell::new(Vec::new())),
             argv: Rc::new(argv),
             modules: Rc::new(RefCell::new(HashMap::new())),
             std_files: [file(FileKind::Stdin, "<stdin>"), file(FileKind::Stdout, "<stdout>"), file(FileKind::Stderr, "<stderr>")],
@@ -410,6 +416,7 @@ impl Vm {
         let mut pending = inject;
         while *pc < code.ops.len() {
             let op = code.ops[*pc];
+            self.cur_line.set(code.lines[*pc]);
             let result = if let Some(e) = pending.take() {
                 Err(e)
             } else {
@@ -488,7 +495,11 @@ impl Vm {
             return Err(exc("RecursionError", "maximum recursion depth exceeded"));
         }
         self.depth.set(self.depth.get() + 1);
+        let caller_line = self.cur_line.get();
+        self.frames.borrow_mut().push((code.clone(), caller_line));
         let result = self.exec(&code, &env);
+        self.frames.borrow_mut().pop();
+        self.cur_line.set(caller_line);
         self.depth.set(self.depth.get() - 1);
         result
     }

@@ -12,6 +12,7 @@ __stdout__ = _sys.stdout
 __stderr__ = _sys.stderr
 exit = _sys.exit
 exc_info = _sys.exc_info
+_getframe = _sys._getframe
 getrecursionlimit = _sys.getrecursionlimit
 setrecursionlimit = _sys.setrecursionlimit
 

@@ -638,3 +638,44 @@ NoneType: None
 "#
     );
 }
+
+#[test]
+fn warnings_and_getframe() {
+    let src = r#"
+import warnings, sys
+
+def f():
+    warnings.warn("careful", UserWarning)
+
+base = sys._getframe().f_lineno
+with warnings.catch_warnings(record=True) as w:
+    warnings.simplefilter("always")
+    f(); f()
+    warnings.warn("dep", DeprecationWarning)
+    print(len(w), w[0].category.__name__, str(w[0].message), w[0].lineno - base, w[2].category.__name__)
+with warnings.catch_warnings():
+    warnings.simplefilter("error")
+    try:
+        f()
+    except UserWarning as e:
+        print("raised", e)
+def deep():
+    fr = sys._getframe(1)
+    return fr.f_code.co_name, fr.f_lineno - base, sys._getframe().f_back.f_lineno - base, sys._getframe(0).f_code.co_name
+print(deep(), sys._getframe(0).f_code.co_name)
+try:
+    sys._getframe(5)
+except ValueError as e:
+    print(e)
+"#;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r#"3 UserWarning careful -2 DeprecationWarning
+raised careful
+('<module>', 15, 15, 'deep') <module>
+call stack is not deep enough
+"#
+    );
+}

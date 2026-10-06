@@ -7,7 +7,7 @@ use std::rc::Rc;
 use crate::modules::ModuleBuilder;
 use crate::native_util::no_kwargs;
 use crate::object::{ExcObj, Kw, ModuleObj, Value};
-use crate::vm::{PyException, PyResult, Vm};
+use crate::vm::{exc, PyException, PyResult, Vm};
 
 fn exit(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("exit", &kw)?;
@@ -32,6 +32,26 @@ fn exc_info(vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     }
 }
 
+fn getframe(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let depth = match args.first() {
+        Some(v) => crate::native_util::want_int(v)?.max(0) as usize,
+        None => 0,
+    };
+    // Do quadro mais interno para o `<module>`: cada função guarda a linha do seu chamador.
+    let mut chain: Vec<(usize, String)> = Vec::new();
+    let mut line = vm.cur_line.get();
+    for (code, caller_line) in vm.frames.borrow().iter().rev() {
+        chain.push((line, code.name.clone()));
+        line = *caller_line;
+    }
+    chain.push((line, "<module>".to_string()));
+    let filename = match vm.argv.first().map(String::as_str) {
+        Some(a) if !a.is_empty() && a != "-c" => a.to_string(),
+        _ => "<string>".to_string(),
+    };
+    crate::tbobj::frame_at(chain, &filename, depth).ok_or_else(|| exc("ValueError", "call stack is not deep enough"))
+}
+
 fn getrecursionlimit(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::Int(1000))
 }
@@ -49,6 +69,7 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
         .value("stderr", Value::Native(vm.std_files[2].clone()))
         .func("exit", exit)
         .func("exc_info", exc_info)
+        .func("_getframe", getframe)
         .func("getrecursionlimit", getrecursionlimit)
         .func("setrecursionlimit", setrecursionlimit)
         .build()
