@@ -841,7 +841,7 @@ impl Vm {
             }
             Op::StoreLocal(i) => {
                 let v = pop(stack)?;
-                locals.vars.borrow_mut().insert(code.names[i as usize].clone(), v);
+                locals.set(&code.names[i as usize], v);
             }
             Op::MakeFunction { code: idx, ndefaults, kwdefaults } => {
                 let kw_names: Vec<String> = match kwdefaults {
@@ -1079,10 +1079,21 @@ impl Vm {
                 let r = self.call(&exit, vec![ty, exc_value, Value::None], Vec::new())?;
                 stack.push(Slot::Val(Value::Bool(r.is_true())));
             }
-            Op::BuildClass { code: idx, nbases } => {
+            Op::BuildClass { code: idx, nbases, kwnames } => {
+                let kw_values = match kwnames {
+                    Some(k) => match &code.consts[k as usize] {
+                        Value::Tuple(names) => pop_n(stack, names.len())?
+                            .into_iter()
+                            .zip(names.iter())
+                            .map(|(v, n)| (to_str(n), v))
+                            .collect(),
+                        _ => Vec::new(),
+                    },
+                    None => Vec::new(),
+                };
                 let bases = pop_n(stack, nbases as usize)?;
                 let body = code.functions[idx as usize].clone();
-                let cls = self.build_class(&body, bases, locals)?;
+                let cls = self.build_class(&body, bases, kw_values, locals)?;
                 stack.push(Slot::Val(cls));
             }
             Op::Yield => return Err(internal("yield outside run loop")),

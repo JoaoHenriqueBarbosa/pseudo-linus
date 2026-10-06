@@ -17,8 +17,8 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use crate::ast::{
-    Arguments, BoolOp, CmpOp, Comprehension, Constant, ExceptHandler, Expr, ExprKind as E, Mod, Operator, Stmt,
-    StmtKind as S, UnaryOp, WithItem,
+    Arguments, BoolOp, CmpOp, Comprehension, Constant, ExceptHandler, Expr, ExprKind as E, Keyword, Mod, Operator,
+    Stmt, StmtKind as S, UnaryOp, WithItem,
 };
 use crate::object::Value;
 
@@ -128,7 +128,7 @@ pub enum Op {
     /// `[lo, hi, step]` vira um objeto `slice`.
     BuildSlice,
     /// Cria uma classe: `[nome-ignorado, bases...]` com `nbases`; executa o corpo `functions[code]`.
-    BuildClass { code: u32, nbases: u32 },
+    BuildClass { code: u32, nbases: u32, kwnames: Option<u32> },
     /// Concatena `n` textos da pilha (f-strings).
     BuildString(u32),
     /// `[valor]` vira `[str]` por `format(valor, spec)`; com `has_spec` o topo é a especificação.
@@ -668,13 +668,16 @@ impl Compiler {
             }
             S::AsyncFunctionDef { .. } => return Err(self.unsupported("async def")),
             S::ClassDef { name, bases, keywords, body, decorator_list, .. } => {
-                if !keywords.is_empty() {
-                    return Err(self.unsupported("class keywords (metaclass)"));
+                if keywords.iter().any(|k| k.arg.is_none()) {
+                    return Err(self.unsupported("class keywords with **"));
+                }
+                if bases.iter().any(|b| matches!(b.kind, E::Starred { .. })) {
+                    return Err(self.unsupported("starred class bases"));
                 }
                 for d in decorator_list {
                     self.expr(d)?;
                 }
-                self.class_def(name, bases, body, stmt.pos.lineno)?;
+                self.class_def(name, bases, keywords, body, stmt.pos.lineno)?;
                 for _ in decorator_list {
                     self.line = stmt.pos.lineno;
                     self.emit(Op::Call { argc: 1, kwnames: None });
@@ -945,7 +948,14 @@ impl Compiler {
     }
 
     /// `class Nome(Bases): corpo`: o corpo roda num escopo próprio e o resultado é a classe.
-    fn class_def(&mut self, name: &str, bases: &[Expr], body: &[Stmt], line: usize) -> Result<(), CompileError> {
+    fn class_def(
+        &mut self,
+        name: &str,
+        bases: &[Expr],
+        keywords: &[Keyword],
+        body: &[Stmt],
+        line: usize,
+    ) -> Result<(), CompileError> {
         let mut scope = Scope::default();
         scope.block(body);
         let (locals, globals, nonlocals) = scope.locals();
@@ -962,10 +972,16 @@ impl Compiler {
         let code = Rc::new(inner.code);
         self.line = line;
         self.exprs(bases)?;
+        let mut kw_names = Vec::new();
+        for k in keywords {
+            self.expr(&k.value)?;
+            kw_names.push(Value::str(k.arg.clone().unwrap_or_default()));
+        }
         self.line = line;
         self.code.functions.push(code);
         let idx = (self.code.functions.len() - 1) as u32;
-        self.emit(Op::BuildClass { code: idx, nbases: bases.len() as u32 });
+        let kwnames = if kw_names.is_empty() { None } else { Some(self.constant(Value::tuple(kw_names))) };
+        self.emit(Op::BuildClass { code: idx, nbases: bases.len() as u32, kwnames });
         Ok(())
     }
 

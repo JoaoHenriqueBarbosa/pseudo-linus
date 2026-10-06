@@ -219,6 +219,8 @@ pub enum Native {
 /// alteram as variáveis do escopo externo (closures, `nonlocal`).
 pub struct Env {
     pub vars: RefCell<std::collections::HashMap<String, Value>>,
+    /// Ordem de criação dos nomes (só preenchida nos corpos de classe).
+    pub order: RefCell<Vec<String>>,
     pub parent: Option<Rc<Env>>,
     /// Corpo de classe: as funções definidas nele não enxergam estas variáveis.
     pub is_class: bool,
@@ -234,7 +236,21 @@ impl fmt::Debug for Env {
 
 impl Env {
     pub fn new(parent: Option<Rc<Env>>, is_class: bool, is_module: bool) -> Rc<Env> {
-        Rc::new(Env { vars: RefCell::new(std::collections::HashMap::new()), parent, is_class, is_module })
+        Rc::new(Env {
+            vars: RefCell::new(std::collections::HashMap::new()),
+            order: RefCell::new(Vec::new()),
+            parent,
+            is_class,
+            is_module,
+        })
+    }
+
+    /// Grava uma variável local; nos corpos de classe lembra a ordem em que os nomes nasceram.
+    pub fn set(&self, name: &str, v: Value) {
+        let fresh = self.vars.borrow_mut().insert(name.to_string(), v).is_none();
+        if fresh && self.is_class {
+            self.order.borrow_mut().push(name.to_string());
+        }
     }
 
     /// O escopo que uma função definida aqui captura.
@@ -269,6 +285,13 @@ pub struct ClassObj {
     pub bases: Vec<Rc<ClassObj>>,
     /// A classe embutida mais próxima na herança (uma exceção como `Exception`), se houver.
     pub builtin_base: Option<&'static str>,
+    /// Tipo de dados embutido de que a classe herda (`dict`, `list`, `tuple`, `str`...): as
+    /// instâncias carregam um valor desse tipo em `InstanceObj::payload`.
+    pub data_base: Option<&'static str>,
+    /// Metaclasse (`class A(metaclass=M)` ou herdada das bases); `None` é o `type` padrão.
+    pub meta: Option<Rc<ClassObj>>,
+    /// A classe herda de `type`: ela é uma metaclasse.
+    pub is_meta: bool,
     pub dict: RefCell<std::collections::BTreeMap<String, Value>>,
 }
 
@@ -303,6 +326,8 @@ impl ClassObj {
 pub struct InstanceObj {
     pub class: Rc<ClassObj>,
     pub dict: RefCell<std::collections::BTreeMap<String, Value>>,
+    /// O valor embutido de uma instância cuja classe herda de `dict`, `list`, `tuple`, `str`, `int`...
+    pub payload: RefCell<Option<Value>>,
 }
 
 impl fmt::Debug for InstanceObj {

@@ -14,6 +14,59 @@ fn err(src: &str) -> String {
 }
 
 #[test]
+fn class_hooks_and_metaclass() {
+    let src = "\
+class Base:
+    registry = []
+    def __init_subclass__(cls, tag=None, **kw):
+        super().__init_subclass__(**kw)
+        Base.registry.append((cls.__name__, tag))
+class A(Base, tag='a'): pass
+class B(Base): pass
+print(Base.registry)
+class Field:
+    def __set_name__(self, owner, name):
+        self.name = name
+class M:
+    x = Field()
+    y = Field()
+print(M.x.name, M.y.name)
+class Meta(type):
+    def __new__(mcs, name, bases, ns):
+        ns['order'] = [k for k in ns if not k.startswith('__')]
+        return super().__new__(mcs, name, bases, ns)
+class C(metaclass=Meta):
+    b = 1
+    a = 2
+print(C.order)
+";
+    assert_eq!(out(src), "[('A', 'a'), ('B', None)]\nx y\n['b', 'a']\n");
+}
+
+#[test]
+fn type_three_args_and_dunder_new() {
+    let src = "\
+K = type('K', (), {'x': 1, 'hi': lambda self: 'oi'})
+print(K.__name__, K().x, K().hi())
+class Single:
+    _inst = None
+    def __new__(cls, *a):
+        if cls._inst is None:
+            cls._inst = super().__new__(cls)
+        return cls._inst
+    def __init__(self, v):
+        self.v = v
+a = Single(1); b = Single(2)
+print(a is b, a.v)
+class Other:
+    def __new__(cls):
+        return 42
+print(Other())
+";
+    assert_eq!(out(src), "K 1 oi\nTrue 2\n42\n");
+}
+
+#[test]
 fn closures_and_nonlocal() {
     let src = "\
 def counter():

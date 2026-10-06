@@ -102,6 +102,23 @@ impl ExtObject for SuperProxy {
         "super"
     }
     fn getattr(&self, vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
+        if let Value::Class(recv) = &self.obj {
+            // Receptor é uma classe (`__init_subclass__`, `__new__` de metaclasse, classmethods).
+            let mro = recv.mro();
+            let start = mro.iter().position(|c| Rc::ptr_eq(c, &self.cls)).map_or(0, |i| i + 1);
+            for c in &mro[start..] {
+                let attr = c.dict.borrow().get(name).cloned();
+                if let Some(attr) = attr {
+                    return Some(match (&attr, name) {
+                        (Value::Function(f), "__init_subclass__") => {
+                            Ok(Value::BoundFn(Rc::new((self.obj.clone(), f.clone()))))
+                        }
+                        _ => vm.bind_class_attr(&attr, self.obj.clone(), recv),
+                    });
+                }
+            }
+            return Some(Ok(Value::Ext(Rc::new(BuiltinSuperMethod { obj: self.obj.clone(), name: intern(name) }))));
+        }
         let Value::Instance(inst) = &self.obj else { return None };
         let mro = inst.class.mro();
         let start = mro.iter().position(|c| Rc::ptr_eq(c, &self.cls)).map_or(0, |i| i + 1);
@@ -132,7 +149,34 @@ impl ExtObject for BuiltinSuperMethod {
     fn methods(&self) -> &'static [&'static str] {
         &["__call__"]
     }
-    fn call_method(&self, vm: &mut Vm, _name: &str, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    fn call_method(&self, vm: &mut Vm, _name: &str, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+        if let Value::Class(_) = &self.obj {
+            return match self.name {
+                "__init_subclass__" => {
+                    if kw.is_empty() {
+                        Ok(Value::None)
+                    } else {
+                        Err(type_error("__init_subclass__() takes no keyword arguments"))
+                    }
+                }
+                // `super().__new__(mcs, nome, bases, ns)` de uma metaclasse: é o `type.__new__`.
+                "__new__" => match args.as_slice() {
+                    [Value::Class(c)] => Ok(Value::Instance(Rc::new(InstanceObj {
+                        class: c.clone(),
+                        dict: RefCell::new(BTreeMap::new()),
+                        payload: RefCell::new(None),
+                    }))),
+                    [Value::Class(meta), Value::Str(n), Value::Tuple(bases), ns] => {
+                        let ns = dict_to_ns(ns)?;
+                        let c = vm.create_class(n.as_str().to_string(), bases, ns, Some(meta.clone()), kw)?;
+                        Ok(Value::Class(c))
+                    }
+                    _ => Err(type_error("type.__new__() takes exactly 3 arguments")),
+                },
+                "__init__" => Ok(Value::None),
+                _ => Err(exc("AttributeError", format!("'super' object has no attribute '{}'", self.name))),
+            };
+        }
         let Value::Instance(inst) = &self.obj else {
             return Err(exc("AttributeError", format!("'super' object has no attribute '{}'", self.name)));
         };
@@ -222,42 +266,110 @@ impl Vm {
         }
     }
 
-    /// Executa o corpo de `class` e monta a classe.
-    pub(crate) fn build_class(&mut self, body: &Rc<Code>, bases: Vec<Value>, env: &Rc<Env>) -> PyResult<Value> {
-        let mut class_bases: Vec<Rc<ClassObj>> = Vec::new();
-        let mut builtin_base: Option<&'static str> = None;
-        for b in &bases {
-            match b {
-                Value::Class(c) => {
-                    if builtin_base.is_none() {
-                        builtin_base = c.builtin_base;
-                    }
-                    class_bases.push(c.clone());
+    /// Executa o corpo de `class` e monta a classe (com metaclasse, se houver).
+    pub(crate) fn build_class(
+        &mut self,
+        body: &Rc<Code>,
+        bases: Vec<Value>,
+        mut kw: Kw,
+        env: &Rc<Env>,
+    ) -> PyResult<Value> {
+        let explicit_meta = kw.iter().position(|(k, _)| k == "metaclass").map(|i| kw.remove(i).1);
+        let class_env = Env::new(env.capture(), true, false);
+        self.exec(body, &class_env)?;
+        let ns = namespace_of(&class_env);
+        let explicit = match explicit_meta {
+            Some(Value::Class(m)) => Some(m),
+            Some(Value::Builtin("type")) | None => None,
+            Some(other) => {
+                return Err(type_error(format!("metaclass must be a class, not '{}'", other.type_name())))
+            }
+        };
+        let meta = explicit.or_else(|| {
+            bases.iter().find_map(|b| match b {
+                Value::Class(c) => c.meta.clone(),
+                _ => None,
+            })
+        });
+        let name = body.name.clone();
+        if let Some(m) = &meta {
+            let ns_dict = ns_to_dict(&ns)?;
+            let cls = match m.lookup("__new__") {
+                Some(Value::Function(new)) => {
+                    let args = vec![Value::Class(m.clone()), Value::str(name.clone()), Value::tuple(bases.clone()), ns_dict.clone()];
+                    self.call_function(&new, args, kw.clone())?
                 }
-                Value::Builtin(n) if EXC_CLASSES.iter().any(|(e, _)| e == n) => {
-                    if builtin_base.is_none() {
-                        builtin_base = EXC_CLASSES.iter().find(|(e, _)| e == n).map(|(e, _)| *e);
-                    }
+                _ => Value::Class(self.create_class(name.clone(), &bases, ns, Some(m.clone()), kw.clone())?),
+            };
+            if let (Value::Class(c), Some(Value::Function(init))) = (&cls, m.lookup("__init__")) {
+                if c.meta.as_ref().is_some_and(|cm| Rc::ptr_eq(cm, m)) {
+                    let args = vec![cls.clone(), Value::str(name), Value::tuple(bases), ns_dict];
+                    self.call_function(&init, args, kw)?;
                 }
-                Value::Builtin("object") => {}
-                other => {
-                    return Err(type_error(format!(
-                        "cannot create a class from base '{}' (builtin base classes are not supported yet)",
-                        to_str(other)
-                    )))
+            }
+            return Ok(cls);
+        }
+        Ok(Value::Class(self.create_class(name, &bases, ns, None, kw)?))
+    }
+
+    /// `type.__new__`: monta a classe a partir do nome, das bases e do espaço de nomes, depois roda
+    /// `__set_name__` dos atributos e o `__init_subclass__` da base.
+    pub(crate) fn create_class(
+        &mut self,
+        name: String,
+        bases: &[Value],
+        ns: Vec<(String, Value)>,
+        meta: Option<Rc<ClassObj>>,
+        kw: Kw,
+    ) -> PyResult<Rc<ClassObj>> {
+        let info = resolve_bases(bases)?;
+        let meta = meta.or_else(|| info.classes.iter().find_map(|c| c.meta.clone()));
+        let named: Vec<(String, Value)> =
+            ns.iter().filter(|(_, v)| matches!(v, Value::Instance(_))).cloned().collect();
+        let cls = Rc::new(ClassObj {
+            name,
+            bases: info.classes,
+            builtin_base: info.builtin_base,
+            data_base: info.data_base,
+            meta,
+            is_meta: info.derives_type,
+            dict: RefCell::new(ns.into_iter().collect()),
+        });
+        let owner = Value::Class(cls.clone());
+        for (k, v) in named {
+            if let Value::Instance(i) = &v {
+                if i.class.lookup("__set_name__").is_some() {
+                    if let Some(r) = self.call_dunder(&v, "__set_name__", vec![owner.clone(), Value::str(k)]) {
+                        r?;
+                    }
                 }
             }
         }
-        let class_env = Env::new(env.capture(), true, false);
-        self.exec(body, &class_env)?;
-        let dict: BTreeMap<String, Value> =
-            class_env.vars.borrow().iter().map(|(k, v)| (k.clone(), v.clone())).collect();
-        Ok(Value::Class(Rc::new(ClassObj {
-            name: body.name.clone(),
-            bases: class_bases,
-            builtin_base,
-            dict: RefCell::new(dict),
-        })))
+        let mro = cls.mro();
+        let hook = mro[1..].iter().find_map(|c| c.dict.borrow().get("__init_subclass__").cloned());
+        match hook {
+            Some(Value::Function(f)) => {
+                self.call_function(&f, vec![owner], kw)?;
+            }
+            Some(Value::Ext(e)) => {
+                if let Some(Descriptor::Class(Value::Function(f))) = e.descriptor() {
+                    self.call_function(&f, vec![owner], kw)?;
+                }
+            }
+            _ => {
+                if let Some((k, _)) = kw.first() {
+                    return Err(type_error(format!(
+                        "{}.__init_subclass__() takes no keyword arguments",
+                        cls.name
+                    )));
+                    #[allow(unreachable_code)]
+                    {
+                        let _ = k;
+                    }
+                }
+            }
+        }
+        Ok(cls)
     }
 
     /// Recusa instanciar uma classe derivada de `ABC` que ainda tem métodos abstratos.
@@ -305,8 +417,32 @@ impl Vm {
     /// `Classe(args)`: cria a instância e roda `__init__`.
     pub(crate) fn instantiate(&mut self, cls: &Rc<ClassObj>, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         self.check_abstract(cls)?;
-        let inst = Rc::new(InstanceObj { class: cls.clone(), dict: RefCell::new(BTreeMap::new()) });
-        let obj = Value::Instance(inst.clone());
+        let user_new = match cls.lookup("__new__") {
+            Some(Value::Function(f)) => Some(f),
+            Some(Value::Ext(e)) => match e.descriptor() {
+                Some(Descriptor::Static(Value::Function(f))) => Some(f),
+                _ => None,
+            },
+            _ => None,
+        };
+        let fresh = Rc::new(InstanceObj {
+            class: cls.clone(),
+            dict: RefCell::new(BTreeMap::new()),
+            payload: RefCell::new(None),
+        });
+        let (inst, obj) = match user_new {
+            Some(f) => {
+                let mut full = Vec::with_capacity(args.len() + 1);
+                full.push(Value::Class(cls.clone()));
+                full.extend(args.iter().cloned());
+                let made = self.call_function(&f, full, kw.clone())?;
+                match &made {
+                    Value::Instance(i) if i.class.mro().iter().any(|c| Rc::ptr_eq(c, cls)) => (i.clone(), made),
+                    _ => return Ok(made),
+                }
+            }
+            None => (fresh.clone(), Value::Instance(fresh)),
+        };
         if cls.builtin_base.is_some() {
             inst.dict.borrow_mut().insert("args".to_string(), Value::tuple(args.clone()));
         }
@@ -733,12 +869,12 @@ impl Vm {
             "super" => match args.as_slice() {
                 // `super()` sem argumentos vira `super(self, "Classe")` no compilador.
                 [obj, Value::Str(cname)] => {
-                    let Value::Instance(inst) = obj else {
-                        return Err(type_error("super(): __self__ is not an instance"));
+                    let mro = match obj {
+                        Value::Instance(inst) => inst.class.mro(),
+                        Value::Class(c) => c.mro(),
+                        _ => return Err(type_error("super(): __self__ is not an instance")),
                     };
-                    let cls = inst
-                        .class
-                        .mro()
+                    let cls = mro
                         .into_iter()
                         .find(|c| c.name == cname.as_str())
                         .ok_or_else(|| exc("RuntimeError", "super(): __class__ cell not found"))?;
@@ -749,7 +885,11 @@ impl Vm {
             },
             "type" => match args.as_slice() {
                 [v] => Ok(self.type_of(v)),
-                _ => Err(type_error("type() takes 1 argument (class creation with type() is not supported)")),
+                [Value::Str(n), Value::Tuple(bases), ns] => {
+                    let ns = dict_to_ns(ns)?;
+                    Ok(Value::Class(self.create_class(n.as_str().to_string(), bases, ns, None, kw)?))
+                }
+                _ => Err(type_error("type() takes 1 or 3 arguments")),
             },
             "object" => {
                 if !args.is_empty() {
@@ -759,9 +899,16 @@ impl Vm {
                     name: "object".to_string(),
                     bases: Vec::new(),
                     builtin_base: None,
+                    data_base: None,
+                    meta: None,
+                    is_meta: false,
                     dict: RefCell::new(BTreeMap::new()),
                 });
-                Ok(Value::Instance(Rc::new(InstanceObj { class: base, dict: RefCell::new(BTreeMap::new()) })))
+                Ok(Value::Instance(Rc::new(InstanceObj {
+                    class: base,
+                    dict: RefCell::new(BTreeMap::new()),
+                    payload: RefCell::new(None),
+                })))
             }
             _ => Err(type_error(format!("'{name}' object is not callable"))),
         }
@@ -830,4 +977,77 @@ pub fn instance_truth(v: &Value) -> bool {
         return n != 0;
     }
     true
+}
+
+// ------------------------------------------------------------------------------------------------
+// Construção de classes: bases, espaço de nomes
+
+struct BaseInfo {
+    classes: Vec<Rc<ClassObj>>,
+    builtin_base: Option<&'static str>,
+    data_base: Option<&'static str>,
+    derives_type: bool,
+}
+
+/// Tipos de dados embutidos que uma classe de usuário pode estender (a instância guarda o valor).
+fn data_type(name: &str) -> Option<&'static str> {
+    ["int", "float", "str", "list", "tuple", "dict", "set", "bool"].into_iter().find(|n| *n == name)
+}
+
+fn resolve_bases(bases: &[Value]) -> PyResult<BaseInfo> {
+    let mut info = BaseInfo { classes: Vec::new(), builtin_base: None, data_base: None, derives_type: false };
+    for b in bases {
+        match b {
+            Value::Class(c) => {
+                if info.builtin_base.is_none() {
+                    info.builtin_base = c.builtin_base;
+                }
+                if info.data_base.is_none() {
+                    info.data_base = c.data_base;
+                }
+                info.derives_type |= c.is_meta;
+                info.classes.push(c.clone());
+            }
+            Value::Builtin(n) if EXC_CLASSES.iter().any(|(e, _)| e == n) => {
+                if info.builtin_base.is_none() {
+                    info.builtin_base = EXC_CLASSES.iter().find(|(e, _)| e == n).map(|(e, _)| *e);
+                }
+            }
+            Value::Builtin("type") => info.derives_type = true,
+            Value::Builtin("object") => {}
+            Value::Builtin(n) if data_type(n).is_some() => {
+                if info.data_base.is_none() {
+                    info.data_base = data_type(n);
+                }
+            }
+            other => {
+                return Err(type_error(format!(
+                    "cannot create a class from base '{}' (this builtin base class is not supported yet)",
+                    to_str(other)
+                )))
+            }
+        }
+    }
+    Ok(info)
+}
+
+/// Os nomes definidos no corpo da classe, na ordem em que nasceram.
+fn namespace_of(env: &Rc<Env>) -> Vec<(String, Value)> {
+    let vars = env.vars.borrow();
+    env.order.borrow().iter().filter_map(|k| vars.get(k).map(|v| (k.clone(), v.clone()))).collect()
+}
+
+fn dict_to_ns(ns: &Value) -> PyResult<Vec<(String, Value)>> {
+    let Value::Dict(d) = ns else {
+        return Err(type_error("type.__new__() argument 3 must be dict"));
+    };
+    Ok(d.borrow().iter().map(|(k, v)| (to_str(k), v.clone())).collect())
+}
+
+fn ns_to_dict(ns: &[(String, Value)]) -> PyResult<Value> {
+    let mut d = crate::object::Dict::new();
+    for (k, v) in ns {
+        d.set(Value::str(k.clone()), v.clone()).map_err(|_| type_error("unhashable type"))?;
+    }
+    Ok(Value::dict(d))
 }
