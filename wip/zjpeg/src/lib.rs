@@ -9,8 +9,12 @@
 //! modo de imagem em buffer e saída por quantização de cores, que o Pillow não usa.
 
 mod decode;
+mod encode;
+mod encode_prog;
 mod idct;
 mod output;
+
+pub use encode::{encode, EncodeError, EncodeOptions, InputSpace};
 
 /// `J_COLOR_SPACE` restrito aos valores que o Pillow usa.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
