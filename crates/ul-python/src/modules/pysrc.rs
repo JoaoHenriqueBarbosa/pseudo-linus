@@ -122,6 +122,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("_excgroup", include_str!("py/_excgroup.py")),
     ("pkgutil", include_str!("py/pkgutil.py")),
     ("errno", include_str!("py/errno.py")),
+    ("tarfile", include_str!("py/tarfile.py")),
     ("array", include_str!("py/array.py")),
     ("codecs", include_str!("py/codecs.py")),
     ("gc", include_str!("py/gc.py")),

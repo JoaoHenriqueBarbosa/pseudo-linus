@@ -390,6 +390,17 @@ def chmod(p, mode):
     _os.chmod(fspath(p), mode)
 
 
+def chown(path, uid, gid, *, dir_fd=None, follow_symlinks=True):
+    if follow_symlinks:
+        _os.chown(fspath(path), uid, gid)
+    else:
+        _os.lchown(fspath(path), uid, gid)
+
+
+def lchown(path, uid, gid):
+    _os.lchown(fspath(path), uid, gid)
+
+
 def access(p, mode):
     return _os.access(fspath(p), mode)
 

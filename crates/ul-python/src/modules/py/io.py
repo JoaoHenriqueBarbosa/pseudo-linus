@@ -212,9 +212,228 @@ class FileIO(RawIOBase):
         return "<_io.FileIO name=%r mode=%r closefd=%r>" % (self.name, self.mode, self._closefd)
 
 
-BufferedReader = FileIO
-BufferedWriter = FileIO
-BufferedRandom = FileIO
+class _BufferedBase(BufferedIOBase):
+    """Camada de buffer sobre um objeto bruto (`read`/`readinto`, `write`, `seek`...)."""
+
+    def __init__(self, raw, buffer_size=DEFAULT_BUFFER_SIZE):
+        if buffer_size <= 0:
+            raise ValueError('buffer size must be strictly positive')
+        self.raw = raw
+        self.buffer_size = buffer_size
+        self._rbuf = b''
+        self._wbuf = bytearray()
+
+    @property
+    def closed(self):
+        return self._closed or self.raw.closed
+
+    @property
+    def name(self):
+        return self.raw.name
+
+    @property
+    def mode(self):
+        return self.raw.mode
+
+    def fileno(self):
+        return self.raw.fileno()
+
+    def isatty(self):
+        return self.raw.isatty()
+
+    def seekable(self):
+        return self.raw.seekable()
+
+    def readable(self):
+        return self.raw.readable()
+
+    def writable(self):
+        return self.raw.writable()
+
+    def detach(self):
+        self.flush()
+        raw, self.raw = self.raw, None
+        return raw
+
+    def close(self):
+        if not self._closed:
+            try:
+                self.flush()
+            finally:
+                self._closed = True
+                self.raw.close()
+
+    def _raw_read(self, n):
+        raw = self.raw
+        if hasattr(raw, 'read'):
+            data = raw.read(n)
+            return b'' if data is None else bytes(data)
+        buf = bytearray(n)
+        got = raw.readinto(buf)
+        return bytes(buf[:got or 0])
+
+    def _drop_rbuf(self):
+        if self._rbuf:
+            self.raw.seek(-len(self._rbuf), 1)
+            self._rbuf = b''
+
+    def flush(self):
+        self._check_closed()
+        if self._wbuf:
+            data = bytes(self._wbuf)
+            self._wbuf = bytearray()
+            while data:
+                n = self.raw.write(data)
+                data = data[n:] if n is not None else b''
+        if hasattr(self.raw, 'flush'):
+            self.raw.flush()
+
+    def tell(self):
+        return self.raw.tell() - len(self._rbuf) + len(self._wbuf)
+
+    def seek(self, offset, whence=0):
+        self._check_closed()
+        if self._wbuf:
+            self.flush()
+        if whence == 1:
+            offset -= len(self._rbuf)
+        self._rbuf = b''
+        return self.raw.seek(offset, whence)
+
+    def read(self, size=-1):
+        self._check_closed()
+        if self._wbuf:
+            self.flush()
+        if size is None or size < 0:
+            chunks = [self._rbuf]
+            self._rbuf = b''
+            while True:
+                data = self._raw_read(self.buffer_size)
+                if not data:
+                    break
+                chunks.append(data)
+            return b''.join(chunks)
+        while len(self._rbuf) < size:
+            data = self._raw_read(max(size - len(self._rbuf), self.buffer_size))
+            if not data:
+                break
+            self._rbuf += data
+        out, self._rbuf = self._rbuf[:size], self._rbuf[size:]
+        return out
+
+    def read1(self, size=-1):
+        self._check_closed()
+        if size is None or size < 0:
+            size = self.buffer_size
+        if not self._rbuf:
+            self._rbuf = self._raw_read(max(size, 1))
+        out, self._rbuf = self._rbuf[:size], self._rbuf[size:]
+        return out
+
+    def peek(self, size=0):
+        self._check_closed()
+        if not self._rbuf:
+            self._rbuf = self._raw_read(self.buffer_size)
+        return self._rbuf
+
+    def readinto(self, b):
+        data = self.read(len(b))
+        b[:len(data)] = data
+        return len(data)
+
+    def readinto1(self, b):
+        data = self.read1(len(b))
+        b[:len(data)] = data
+        return len(data)
+
+    def readline(self, size=-1):
+        self._check_closed()
+        out = b''
+        while size < 0 or len(out) < size:
+            if not self._rbuf:
+                self._rbuf = self._raw_read(self.buffer_size)
+                if not self._rbuf:
+                    break
+            i = self._rbuf.find(b'\n')
+            take = len(self._rbuf) if i < 0 else i + 1
+            if size >= 0:
+                take = min(take, size - len(out))
+            out += self._rbuf[:take]
+            self._rbuf = self._rbuf[take:]
+            if i >= 0 and take == i + 1:
+                break
+        return out
+
+    def write(self, b):
+        self._check_closed()
+        self._drop_rbuf()
+        data = bytes(b)
+        self._wbuf += data
+        if len(self._wbuf) >= self.buffer_size:
+            self.flush()
+        return len(data)
+
+    def truncate(self, pos=None):
+        self.flush()
+        self._drop_rbuf()
+        if pos is None:
+            pos = self.tell()
+        return self.raw.truncate(pos)
+
+    def __repr__(self):
+        name = getattr(self.raw, 'name', None)
+        if name is None:
+            return '<_io.%s>' % type(self).__name__
+        return '<_io.%s name=%r>' % (type(self).__name__, name)
+
+
+class BufferedReader(_BufferedBase):
+    pass
+
+
+class BufferedWriter(_BufferedBase):
+    pass
+
+
+class BufferedRandom(_BufferedBase):
+    pass
+
+
+class BufferedRWPair(BufferedIOBase):
+    def __init__(self, reader, writer, buffer_size=DEFAULT_BUFFER_SIZE):
+        self.reader = BufferedReader(reader, buffer_size)
+        self.writer = BufferedWriter(writer, buffer_size)
+
+    def read(self, size=-1):
+        return self.reader.read(size)
+
+    def peek(self, size=0):
+        return self.reader.peek(size)
+
+    def readline(self, size=-1):
+        return self.reader.readline(size)
+
+    def write(self, b):
+        return self.writer.write(b)
+
+    def flush(self):
+        self.writer.flush()
+
+    def readable(self):
+        return True
+
+    def writable(self):
+        return True
+
+    def close(self):
+        try:
+            self.writer.close()
+        finally:
+            self.reader.close()
+
+    @property
+    def closed(self):
+        return self.writer.closed
 
 
 def _translate_newlines(text):

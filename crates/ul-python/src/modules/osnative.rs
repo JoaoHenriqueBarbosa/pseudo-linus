@@ -178,6 +178,27 @@ fn chmod(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::None)
 }
 
+/// `chown(path, uid, gid)` e `lchown`: `-1` deixa o dono ou o grupo como está.
+fn chown_at(fname: &'static str, args: Vec<Value>, kw: Kw, flags: AtFlags) -> PyResult<Value> {
+    no_kwargs(fname, &kw)?;
+    let p = path_bytes(fname, arg(fname, &args, 0)?)?;
+    let id = |i: usize| -> PyResult<Option<u32>> {
+        let n = want_int(arg(fname, &args, i)?)?;
+        Ok(if n < 0 { None } else { Some(n as u32) })
+    };
+    let (uid, gid) = (id(1)?, id(2)?);
+    sys::current().fchownat(Fd::CWD, &p, uid, gid, flags).map_err(|e| os_error(e, Some(&shown(&p))))?;
+    Ok(Value::None)
+}
+
+fn chown(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    chown_at("chown", args, kw, AtFlags::empty())
+}
+
+fn lchown(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    chown_at("lchown", args, kw, AtFlags::SYMLINK_NOFOLLOW)
+}
+
 /// `access(path, mode)` como booleano.
 fn access(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("access", &kw)?;
@@ -481,6 +502,8 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
         .func("readlink", readlink)
         .func("symlink", symlink)
         .func("chmod", chmod)
+        .func("chown", chown)
+        .func("lchown", lchown)
         .func("access", access)
         .func("getenv", getenv)
         .func("environ", environ)
