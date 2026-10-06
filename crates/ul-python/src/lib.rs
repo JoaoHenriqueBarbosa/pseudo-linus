@@ -12,8 +12,12 @@
 
 pub mod ast;
 pub mod builtins;
+pub mod classes;
 pub mod compile;
 pub mod format;
+pub mod generator;
+#[cfg(test)]
+mod lang_tests;
 pub mod methods;
 pub mod modules;
 pub mod native_util;
@@ -359,8 +363,8 @@ fn run_source_inner(src: &str, argv: Vec<String>, name: &str, file_mode: bool) -
         }
     };
     let mut machine = vm::Vm::with_argv(argv);
-    let result = machine.run(&code);
-    let stdout = std::mem::take(&mut machine.stdout);
+    let result = machine.run(&std::rc::Rc::new(code));
+    let stdout = std::mem::take(&mut *machine.stdout.borrow_mut());
     match result {
         Ok(()) => Outcome { stdout, stderr: String::new(), status: 0 },
         Err(e) => {

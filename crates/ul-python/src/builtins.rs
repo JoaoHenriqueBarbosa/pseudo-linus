@@ -151,6 +151,10 @@ fn class_name(v: &Value) -> Option<&'static str> {
 
 /// `isinstance(v, cname)` para a classe embutida `cname`.
 fn instance_of(v: &Value, cname: &str) -> bool {
+    if let Value::Instance(i) = v {
+        return cname == "object"
+            || i.class.mro().iter().any(|c| c.builtin_base.is_some_and(|b| subclass_of(b, cname)));
+    }
     match cname {
         "object" => true,
         "int" => matches!(v, Value::Int(_) | Value::Bool(_)),
@@ -169,6 +173,9 @@ fn instance_of(v: &Value, cname: &str) -> bool {
 }
 
 fn isinstance_check(v: &Value, cls: &Value) -> PyResult<bool> {
+    if let Value::Class(c) = cls {
+        return Ok(matches!(v, Value::Instance(i) if i.class.mro().iter().any(|x| Rc::ptr_eq(x, c))));
+    }
     if let Some(c) = class_name(cls) {
         return Ok(instance_of(v, c));
     }
@@ -194,9 +201,15 @@ fn subclass_of(a: &str, b: &str) -> bool {
     a == b || b == "object" || (a == "bool" && b == "int") || exc_is_subclass(a, b)
 }
 
-fn issubclass_check(a: &str, cls: &Value) -> PyResult<bool> {
+fn issubclass_check(a: &Value, cls: &Value) -> PyResult<bool> {
+    if let Value::Class(b) = cls {
+        return Ok(matches!(a, Value::Class(c) if c.mro().iter().any(|x| Rc::ptr_eq(x, b))));
+    }
     if let Some(b) = class_name(cls) {
-        return Ok(subclass_of(a, b));
+        return Ok(match a {
+            Value::Class(c) => b == "object" || c.mro().iter().any(|x| x.builtin_base.is_some_and(|n| subclass_of(n, b))),
+            other => class_name(other).is_some_and(|n| subclass_of(n, b)),
+        });
     }
     if let Value::Tuple(t) = cls {
         for c in t.iter() {
@@ -212,10 +225,10 @@ fn issubclass_check(a: &str, cls: &Value) -> PyResult<bool> {
 fn b_issubclass(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("issubclass", &kw)?;
     expect("issubclass", &args, 2, 2)?;
-    let Some(a) = class_name(&args[0]) else {
+    if !matches!(args[0], Value::Class(_)) && class_name(&args[0]).is_none() {
         return Err(type_error("issubclass() arg 1 must be a class"));
-    };
-    Ok(Value::Bool(issubclass_check(a, &args[1])?))
+    }
+    Ok(Value::Bool(issubclass_check(&args[0], &args[1])?))
 }
 
 fn b_callable(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -951,6 +964,7 @@ fn b_id(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         Value::Class(c) => addr(c),
         Value::Instance(i) => addr(i),
         Value::BoundFn(b) => addr(b),
+        Value::Slice(s) => addr(s),
     };
     Ok(Value::Int(id))
 }
@@ -994,6 +1008,7 @@ fn b_len(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         Value::Set(s) => s.borrow().len() as i64,
         Value::Range(r) => r.len(),
         Value::Ext(e) if e.len().is_some() => e.len().unwrap_or(0) as i64,
+        Value::Instance(_) => crate::vm::len(&v)?,
         other => return Err(type_error(format!("object of type '{}' has no len()", other.type_name()))),
     };
     Ok(Value::Int(n))

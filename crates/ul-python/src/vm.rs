@@ -23,8 +23,8 @@ use crate::ast::{CmpOp, Operator, UnaryOp};
 use crate::compile::{Code, Op};
 use crate::modules::{csv, json};
 use crate::object::{
-    exc_is_subclass, exc_str, int_add, int_mul, int_neg, int_sub, is, py_eq, repr, to_str, BoundMethod, Dict, ExcObj,
-    FileKind, FuncObj, Native, ObjError, PyFile, PyStr, Range, Set, Value, EXC_CLASSES,
+    exc_is_subclass, exc_str, int_add, int_mul, int_neg, int_sub, is, py_eq, repr, to_str, BoundMethod, Dict, Env,
+    ExcObj, FileKind, FuncObj, Native, ObjError, PyFile, PyStr, Range, Set, Value, EXC_CLASSES,
 };
 
 /// Exceção Python levantada durante a execução: o nome da classe e a mensagem (`str(exc)`). Quando
@@ -49,11 +49,18 @@ impl PyException {
         Value::Exception(Rc::new(ExcObj { kind: self.kind, args }))
     }
 
-    fn from_value(v: &Value) -> PyException {
+    pub(crate) fn from_value(v: &Value) -> PyException {
         match v {
             Value::Exception(e) => {
                 PyException { kind: e.kind, msg: exc_str(e), value: Some(v.clone()), tb: Vec::new() }
             }
+            // Instância de exceção de usuário: o traceback mostra `__main__.Nome`.
+            Value::Instance(i) if i.class.builtin_base.is_some() => PyException {
+                kind: crate::object::intern(&format!("__main__.{}", i.class.name)),
+                msg: instance_text(v, true).unwrap_or_default(),
+                value: Some(v.clone()),
+                tb: Vec::new(),
+            },
             _ => type_error("exceptions must derive from BaseException"),
         }
     }
@@ -122,13 +129,21 @@ pub fn format_traceback_in(err: &RuntimeError, file: &str, src: Option<&str>) ->
 }
 
 /// Funções embutidas desta fatia.
-const BUILTINS: &[&str] = &[
+pub(crate) const BUILTINS: &[&str] = &[
     "print", "len", "range", "str", "int", "repr", "open", "list", "tuple", "bool", "float", "abs", "min",
     "max", "sum", "sorted", "reversed", "enumerate", "zip", "any", "all", "ord", "chr",
 ];
 
+pub use crate::classes::{instance_eq, instance_hash, instance_text, instance_truth};
+
+/// Como um quadro termina: devolvendo um valor ou suspendendo num `yield`.
+pub(crate) enum Exit {
+    Return(Value),
+    Yield(Value),
+}
+
 /// Iterador de um laço `for`, que vive na pilha da VM e não é um `Value`.
-enum PyIter {
+pub(crate) enum PyIter {
     /// O iterador de `list` relê a lista a cada passo, como o `listiter_next` (mudanças no laço
     /// são vistas).
     List(Rc<std::cell::RefCell<Vec<Value>>>, usize),
@@ -142,6 +157,8 @@ enum PyIter {
     Native(Rc<RefCell<Native>>),
     /// Objeto de módulo nativo iterável (`re.finditer`).
     Ext(Rc<dyn crate::object::ExtObject>),
+    /// Instância de classe de usuário com `__next__`.
+    Inst(Value),
 }
 
 impl PyIter {
@@ -180,6 +197,15 @@ impl PyIter {
             }
             PyIter::Native(n) => native_next(n)?,
             PyIter::Ext(e) => e.iter_next()?,
+            PyIter::Inst(v) => {
+                let mut vm = current().ok_or_else(|| internal("no vm"))?;
+                match vm.call_dunder(v, "__next__", Vec::new()) {
+                    Some(Ok(x)) => Some(x),
+                    Some(Err(e)) if e.kind == "StopIteration" => None,
+                    Some(Err(e)) => return Err(e),
+                    None => return Err(type_error(format!("'{}' object is not an iterator", v.type_name()))),
+                }
+            }
         })
     }
 }
@@ -197,6 +223,16 @@ fn get_iter(v: &Value) -> PyResult<PyIter> {
             PyIter::Native(n.clone())
         }
         Value::Ext(e) if e.is_iterable() => PyIter::Ext(e.clone()),
+        Value::Instance(_) => {
+            let mut vm = current().ok_or_else(|| internal("no vm"))?;
+            match vm.call_dunder(v, "__iter__", Vec::new()) {
+                Some(r) => match r? {
+                    it @ Value::Instance(_) => PyIter::Inst(it),
+                    other => get_iter(&other)?,
+                },
+                None => return Err(type_error(format!("'{}' object is not iterable", v.type_name()))),
+            }
+        }
         _ => return Err(type_error(format!("'{}' object is not iterable", v.type_name()))),
     })
 }
@@ -237,35 +273,49 @@ fn collect(v: &Value) -> PyResult<Vec<Value>> {
 }
 
 /// Elemento da pilha.
-enum Slot {
+pub(crate) enum Slot {
     Val(Value),
     Iter(PyIter),
 }
 
-/// Estado do interpretador: variáveis globais e o buffer do stdout.
+/// Estado do interpretador. Todos os campos são compartilhados (`Rc`), então clonar a `Vm` é barato
+/// e as cópias enxergam o mesmo estado: é assim que um gerador se retoma sozinho e que as funções
+/// livres (`binary`, `compare`, `repr`...) chamam de volta o Python (`__add__`, `__repr__`...).
+#[derive(Clone)]
 pub struct Vm {
-    globals: HashMap<String, Value>,
-    pub stdout: Vec<u8>,
+    pub(crate) globals: Rc<RefCell<HashMap<String, Value>>>,
+    /// Buffer do stdout, descarregado pelo chamador no fim.
+    pub stdout: Rc<RefCell<Vec<u8>>>,
     /// Exceções sendo tratadas (a mais recente por último), para `raise` sem argumento.
-    handled: Vec<Value>,
+    handled: Rc<RefCell<Vec<Value>>>,
     /// Profundidade de chamadas de função em andamento.
-    depth: usize,
+    depth: Rc<std::cell::Cell<usize>>,
     /// `sys.argv`.
-    pub(crate) argv: Vec<String>,
+    pub(crate) argv: Rc<Vec<String>>,
     /// `sys.stdin`, `sys.stdout` e `sys.stderr`, criados uma vez.
     pub(crate) std_files: [Rc<RefCell<Native>>; 3],
     /// Módulos já importados, por nome.
-    pub(crate) modules: HashMap<String, Rc<crate::object::ModuleObj>>,
+    pub(crate) modules: Rc<RefCell<HashMap<String, Rc<crate::object::ModuleObj>>>>,
+}
+
+thread_local! {
+    /// A `Vm` da thread, para as funções livres que precisam chamar código Python.
+    static CURRENT: RefCell<Option<Vm>> = const { RefCell::new(None) };
+}
+
+/// A `Vm` em execução nesta thread (clone barato), se existir.
+pub fn current() -> Option<Vm> {
+    CURRENT.with(|c| c.borrow().clone())
 }
 
 /// Limite de recursão (`sys.getrecursionlimit()` do CPython).
 const MAX_DEPTH: usize = 1000;
 
 /// Bloco protegido aberto por `SetupTry`.
-struct Block {
-    handler: usize,
-    depth: usize,
-    handled: usize,
+pub(crate) struct Block {
+    pub(crate) handler: usize,
+    pub(crate) depth: usize,
+    pub(crate) handled: usize,
 }
 
 fn internal(msg: &str) -> PyException {
@@ -294,15 +344,17 @@ impl Vm {
                 name: name.to_string(),
             })))
         };
-        Vm {
-            globals: HashMap::new(),
-            stdout: Vec::new(),
-            handled: Vec::new(),
-            depth: 0,
-            argv,
-            modules: HashMap::new(),
+        let vm = Vm {
+            globals: Rc::new(RefCell::new(HashMap::new())),
+            stdout: Rc::new(RefCell::new(Vec::new())),
+            handled: Rc::new(RefCell::new(Vec::new())),
+            depth: Rc::new(std::cell::Cell::new(0)),
+            argv: Rc::new(argv),
+            modules: Rc::new(RefCell::new(HashMap::new())),
             std_files: [file(FileKind::Stdin, "<stdin>"), file(FileKind::Stdout, "<stdout>"), file(FileKind::Stderr, "<stderr>")],
-        }
+        };
+        CURRENT.with(|c| *c.borrow_mut() = Some(vm.clone()));
+        vm
     }
 
     /// `obj.nome` (atributo ou método preso), como o bytecode `LoadAttr`.
@@ -317,24 +369,40 @@ impl Vm {
     }
 
     /// Executa o código de um módulo.
-    pub fn run(&mut self, code: &Code) -> Result<(), RuntimeError> {
-        let mut locals = HashMap::new();
-        match self.exec(code, &mut locals) {
+    pub fn run(&mut self, code: &Rc<Code>) -> Result<(), RuntimeError> {
+        let env = Env::new(None, false, true);
+        match self.exec(code, &env) {
             Ok(_) => Ok(()),
             Err(e) => Err(RuntimeError { lineno: e.tb.last().map_or(0, |t| t.0), exc: e }),
         }
     }
 
-    /// Executa o código de um módulo ou de uma função até o `Return` (ou o fim do módulo).
-    fn exec(&mut self, code: &Code, locals: &mut HashMap<String, Value>) -> PyResult<Value> {
+    /// Executa o código de um módulo, de uma função ou de um corpo de classe até o `Return`.
+    pub(crate) fn exec(&mut self, code: &Rc<Code>, env: &Rc<Env>) -> PyResult<Value> {
         let mut stack: Vec<Slot> = Vec::new();
         let mut blocks: Vec<Block> = Vec::new();
         let mut pc = 0;
-        while pc < code.ops.len() {
-            let op = code.ops[pc];
+        match self.run_loop(code, env, &mut stack, &mut blocks, &mut pc)? {
+            Exit::Return(v) => Ok(v),
+            Exit::Yield(_) => Err(internal("yield outside generator")),
+        }
+    }
+
+    /// O laço de instruções, com o estado do quadro (pilha, blocos protegidos, `pc`) vindo de fora:
+    /// um gerador guarda esse estado entre um `yield` e o `next` seguinte.
+    pub(crate) fn run_loop(
+        &mut self,
+        code: &Rc<Code>,
+        env: &Rc<Env>,
+        stack: &mut Vec<Slot>,
+        blocks: &mut Vec<Block>,
+        pc: &mut usize,
+    ) -> PyResult<Exit> {
+        while *pc < code.ops.len() {
+            let op = code.ops[*pc];
             let result = match op {
                 Op::SetupTry(h) => {
-                    blocks.push(Block { handler: h as usize, depth: stack.len(), handled: self.handled.len() });
+                    blocks.push(Block { handler: h as usize, depth: stack.len(), handled: self.handled.borrow().len() });
                     Ok(None)
                 }
                 Op::PopBlock => {
@@ -342,99 +410,196 @@ impl Vm {
                     Ok(None)
                 }
                 Op::Return => match stack.pop() {
-                    Some(Slot::Val(v)) => return Ok(v),
+                    Some(Slot::Val(v)) => return Ok(Exit::Return(v)),
                     _ => Err(internal("bad value stack")),
                 },
-                _ => self.step(code, op, &mut stack, locals),
+                Op::Yield => match stack.pop() {
+                    Some(Slot::Val(v)) => {
+                        *pc += 1;
+                        return Ok(Exit::Yield(v));
+                    }
+                    _ => Err(internal("bad value stack")),
+                },
+                _ => self.step(code, op, stack, env),
             };
             match result {
-                Ok(Some(target)) => pc = target,
-                Ok(None) => pc += 1,
+                Ok(Some(target)) => *pc = target,
+                Ok(None) => *pc += 1,
                 Err(mut e) => match blocks.pop() {
                     Some(b) => {
                         stack.truncate(b.depth);
-                        self.handled.truncate(b.handled);
+                        self.handled.borrow_mut().truncate(b.handled);
                         stack.push(Slot::Val(e.to_value()));
-                        pc = b.handler;
+                        *pc = b.handler;
                     }
                     None => {
-                        e.tb.push((code.lines[pc], code.name.clone()));
+                        e.tb.push((code.lines[*pc], code.name.clone()));
                         return Err(e);
                     }
                 },
             }
         }
-        Ok(Value::None)
+        Ok(Exit::Return(Value::None))
     }
 
-    fn call_function(&mut self, f: &Rc<FuncObj>, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
+    pub(crate) fn call_function(&mut self, f: &Rc<FuncObj>, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
+        let env = self.bind_params(f, args, kwargs)?;
         let code = f.code.clone();
+        if code.is_generator {
+            return Ok(crate::generator::new_generator(self.clone(), code, env));
+        }
+        if self.depth.get() >= MAX_DEPTH {
+            return Err(exc("RecursionError", "maximum recursion depth exceeded"));
+        }
+        self.depth.set(self.depth.get() + 1);
+        let result = self.exec(&code, &env);
+        self.depth.set(self.depth.get() - 1);
+        result
+    }
+
+    /// Liga os argumentos aos parâmetros como o CPython (`_PyEval_MakeFrameVector`) e devolve o
+    /// escopo da chamada, com as mesmas mensagens de `TypeError`.
+    fn bind_params(
+        &mut self,
+        f: &Rc<FuncObj>,
+        args: Vec<Value>,
+        kwargs: Vec<(String, Value)>,
+    ) -> PyResult<Rc<Env>> {
+        let code = &f.code;
         let name = code.name.as_str();
         let params = &code.params;
+        let n = params.len();
         let ndefaults = f.defaults.len();
-        let required = params.len() - ndefaults;
-        if args.len() > params.len() {
-            let takes = if ndefaults == 0 {
-                format!("{}", params.len())
-            } else {
-                format!("from {required} to {}", params.len())
-            };
-            let plural = if ndefaults == 0 && params.len() == 1 { "" } else { "s" };
+        let required = n - ndefaults;
+        let join = |missing: &[String]| -> String {
+            let quoted: Vec<String> = missing.iter().map(|m| format!("'{m}'")).collect();
+            match quoted.as_slice() {
+                [one] => one.clone(),
+                [a, b] => format!("{a} and {b}"),
+                many => format!("{}, and {}", many[..many.len() - 1].join(", "), many[many.len() - 1]),
+            }
+        };
+        if args.len() > n && code.vararg.is_none() {
+            let takes = if ndefaults == 0 { format!("{n}") } else { format!("from {required} to {n}") };
+            let plural = if ndefaults == 0 && n == 1 { "" } else { "s" };
             let given = if args.len() == 1 { "was" } else { "were" };
             return Err(type_error(format!(
                 "{name}() takes {takes} positional argument{plural} but {} {given} given",
                 args.len()
             )));
         }
-        let mut locals: HashMap<String, Value> = HashMap::new();
-        for (p, a) in params.iter().zip(args) {
-            locals.insert(p.clone(), a);
+        let mut slots: Vec<Option<Value>> = vec![None; n];
+        let mut extra: Vec<Value> = Vec::new();
+        for (i, a) in args.into_iter().enumerate() {
+            if i < n {
+                slots[i] = Some(a);
+            } else {
+                extra.push(a);
+            }
         }
+        let mut kwonly_vals: HashMap<String, Value> = HashMap::new();
+        let mut extra_kw: Vec<(String, Value)> = Vec::new();
+        let mut posonly_given: Vec<String> = Vec::new();
         for (k, v) in kwargs {
-            if !params.contains(&k) {
-                return Err(type_error(format!("{name}() got an unexpected keyword argument '{k}'")));
+            match params.iter().position(|p| *p == k) {
+                Some(i) if i < code.posonly => {
+                    if code.kwarg.is_some() {
+                        extra_kw.push((k, v));
+                    } else {
+                        posonly_given.push(k);
+                    }
+                }
+                Some(i) => {
+                    if slots[i].is_some() {
+                        return Err(type_error(format!("{name}() got multiple values for argument '{k}'")));
+                    }
+                    slots[i] = Some(v);
+                }
+                None if code.kwonly.contains(&k) => {
+                    if kwonly_vals.contains_key(&k) {
+                        return Err(type_error(format!("{name}() got multiple values for argument '{k}'")));
+                    }
+                    kwonly_vals.insert(k, v);
+                }
+                None if code.kwarg.is_some() => extra_kw.push((k, v)),
+                None => return Err(type_error(format!("{name}() got an unexpected keyword argument '{k}'"))),
             }
-            if locals.contains_key(&k) {
-                return Err(type_error(format!("{name}() got multiple values for argument '{k}'")));
-            }
-            locals.insert(k, v);
         }
-        let mut missing: Vec<&String> = Vec::new();
-        for (i, p) in params.iter().enumerate() {
-            if !locals.contains_key(p) {
+        if !posonly_given.is_empty() {
+            let list = posonly_given.iter().map(|m| format!("'{m}'")).collect::<Vec<_>>().join(", ");
+            return Err(type_error(format!(
+                "{name}() got some positional-only arguments passed as keyword arguments: {list}"
+            )));
+        }
+        let mut missing: Vec<String> = Vec::new();
+        for i in 0..n {
+            if slots[i].is_none() {
                 if i >= required {
-                    locals.insert(p.clone(), f.defaults[i - required].clone());
+                    slots[i] = Some(f.defaults[i - required].clone());
                 } else {
-                    missing.push(p);
+                    missing.push(params[i].clone());
                 }
             }
         }
         if !missing.is_empty() {
-            let quoted: Vec<String> = missing.iter().map(|m| format!("'{m}'")).collect();
-            let list = match quoted.as_slice() {
-                [one] => one.clone(),
-                [a, b] => format!("{a} and {b}"),
-                many => format!("{}, and {}", many[..many.len() - 1].join(", "), many[many.len() - 1]),
-            };
             let plural = if missing.len() == 1 { "" } else { "s" };
-            return Err(type_error(format!("{name}() missing {} required positional argument{plural}: {list}", missing.len())));
+            return Err(type_error(format!(
+                "{name}() missing {} required positional argument{plural}: {}",
+                missing.len(),
+                join(&missing)
+            )));
         }
-        if self.depth >= MAX_DEPTH {
-            return Err(exc("RecursionError", "maximum recursion depth exceeded"));
+        let mut missing_kw: Vec<String> = Vec::new();
+        for k in &code.kwonly {
+            if !kwonly_vals.contains_key(k) {
+                match f.kwdefaults.iter().find(|(n, _)| n == k) {
+                    Some((_, v)) => {
+                        kwonly_vals.insert(k.clone(), v.clone());
+                    }
+                    None => missing_kw.push(k.clone()),
+                }
+            }
         }
-        self.depth += 1;
-        let result = self.exec(&code, &mut locals);
-        self.depth -= 1;
-        result
+        if !missing_kw.is_empty() {
+            let plural = if missing_kw.len() == 1 { "" } else { "s" };
+            return Err(type_error(format!(
+                "{name}() missing {} required keyword-only argument{plural}: {}",
+                missing_kw.len(),
+                join(&missing_kw)
+            )));
+        }
+        let env = Env::new(f.closure.clone(), false, false);
+        {
+            let mut vars = env.vars.borrow_mut();
+            for (p, v) in params.iter().zip(slots) {
+                if let Some(v) = v {
+                    vars.insert(p.clone(), v);
+                }
+            }
+            if let Some(va) = &code.vararg {
+                vars.insert(va.clone(), Value::tuple(extra));
+            }
+            for (k, v) in kwonly_vals {
+                vars.insert(k, v);
+            }
+            if let Some(kw) = &code.kwarg {
+                let mut d = Dict::new();
+                for (k, v) in extra_kw {
+                    d.set(Value::str(k), v)?;
+                }
+                vars.insert(kw.clone(), Value::dict(d));
+            }
+        }
+        Ok(env)
     }
 
     /// Executa uma instrução; `Some(alvo)` quando ela salta.
     fn step(
         &mut self,
-        code: &Code,
+        code: &Rc<Code>,
         op: Op,
         stack: &mut Vec<Slot>,
-        locals: &mut HashMap<String, Value>,
+        locals: &Rc<Env>,
     ) -> PyResult<Option<usize>> {
         fn pop(stack: &mut Vec<Slot>) -> PyResult<Value> {
             match stack.pop() {
@@ -460,21 +625,45 @@ impl Vm {
             Op::LoadConst(i) => stack.push(Slot::Val(code.consts[i as usize].clone())),
             Op::LoadName(i) => {
                 let name = &code.names[i as usize];
-                let v = match self.globals.get(name) {
-                    Some(v) => v.clone(),
-                    None => match crate::builtins::get(name).or_else(|| BUILTINS.iter().find(|b| **b == name.as_str()).map(|b| Value::Builtin(b))) {
-                        Some(v) => v,
-                        None => match EXC_CLASSES.iter().find(|(n, _)| *n == name.as_str()) {
-                            Some((n, _)) => Value::Builtin(n),
-                            None => return Err(exc("NameError", format!("name '{name}' is not defined"))),
-                        },
-                    },
+                // Escopos de função externos (closures), depois globais e embutidos.
+                let mut found = None;
+                let mut cur = locals.parent.clone();
+                while let Some(env) = cur {
+                    if let Some(v) = env.vars.borrow().get(name) {
+                        found = Some(v.clone());
+                        break;
+                    }
+                    cur = env.parent.clone();
+                }
+                let v = match found {
+                    Some(v) => v,
+                    None => self.global_or_builtin(name)?,
                 };
+                stack.push(Slot::Val(v));
+            }
+            Op::LoadGlobal(i) => {
+                let name = &code.names[i as usize];
+                let v = self.global_or_builtin(name)?;
                 stack.push(Slot::Val(v));
             }
             Op::StoreName(i) => {
                 let v = pop(stack)?;
-                self.globals.insert(code.names[i as usize].clone(), v);
+                self.globals.borrow_mut().insert(code.names[i as usize].clone(), v);
+            }
+            Op::StoreNonlocal(i) => {
+                let v = pop(stack)?;
+                let name = &code.names[i as usize];
+                let mut cur = locals.parent.clone();
+                loop {
+                    let Some(env) = cur else {
+                        return Err(exc("SyntaxError", format!("no binding for nonlocal '{name}' found")));
+                    };
+                    if env.vars.borrow().contains_key(name) {
+                        env.vars.borrow_mut().insert(name.clone(), v);
+                        break;
+                    }
+                    cur = env.parent.clone();
+                }
             }
             Op::Pop => {
                 stack.pop();
@@ -610,8 +799,26 @@ impl Vm {
             Op::SetupTry(_) | Op::PopBlock | Op::Return => {}
             Op::LoadLocal(i) => {
                 let name = &code.names[i as usize];
-                match locals.get(name) {
-                    Some(v) => stack.push(Slot::Val(v.clone())),
+                let found = locals.vars.borrow().get(name).cloned();
+                match found {
+                    Some(v) => stack.push(Slot::Val(v)),
+                    // Corpo de classe: o nome ainda não ligado cai para os escopos de fora.
+                    None if locals.is_class => {
+                        let mut found = None;
+                        let mut cur = locals.parent.clone();
+                        while let Some(env) = cur {
+                            if let Some(v) = env.vars.borrow().get(name) {
+                                found = Some(v.clone());
+                                break;
+                            }
+                            cur = env.parent.clone();
+                        }
+                        let v = match found {
+                            Some(v) => v,
+                            None => self.global_or_builtin(name)?,
+                        };
+                        stack.push(Slot::Val(v));
+                    }
                     None => {
                         return Err(exc(
                             "UnboundLocalError",
@@ -622,56 +829,249 @@ impl Vm {
             }
             Op::StoreLocal(i) => {
                 let v = pop(stack)?;
-                locals.insert(code.names[i as usize].clone(), v);
+                locals.vars.borrow_mut().insert(code.names[i as usize].clone(), v);
             }
-            Op::MakeFunction { code: idx, ndefaults } => {
+            Op::MakeFunction { code: idx, ndefaults, kwdefaults } => {
+                let kw_names: Vec<String> = match kwdefaults {
+                    Some(c) => match &code.consts[c as usize] {
+                        Value::Tuple(t) => t.iter().map(to_str).collect(),
+                        _ => Vec::new(),
+                    },
+                    None => Vec::new(),
+                };
+                let kw_values = pop_n(stack, kw_names.len())?;
                 let defaults = pop_n(stack, ndefaults as usize)?;
                 let f = FuncObj {
                     code: code.functions[idx as usize].clone(),
                     defaults,
-                    kwdefaults: Vec::new(),
-                    closure: Vec::new(),
+                    kwdefaults: kw_names.into_iter().zip(kw_values).collect(),
+                    closure: locals.capture(),
                 };
                 stack.push(Slot::Val(Value::Function(Rc::new(f))));
             }
             Op::PushExc => {
                 let v = top(stack)?.clone();
-                self.handled.push(v);
+                self.handled.borrow_mut().push(v);
             }
             Op::PopExc => {
-                self.handled.pop();
+                self.handled.borrow_mut().pop();
             }
             Op::ExcMatch => {
                 let cls = pop(stack)?;
-                let matched = {
-                    let Value::Exception(e) = top(stack)? else { return Err(internal("ExcMatch without exception")) };
-                    exc_matches(e.kind, &cls)?
-                };
+                let exc_value = top(stack)?.clone();
+                let matched = self.exc_matches_value(&exc_value, &cls)?;
                 stack.push(Slot::Val(Value::Bool(matched)));
             }
             Op::Raise => {
                 let v = pop(stack)?;
-                return Err(raise_value(v)?);
+                return Err(self.raise_any(v)?);
             }
             Op::ReraiseCurrent => {
-                let Some(v) = self.handled.last().cloned() else {
+                let last = self.handled.borrow().last().cloned();
+                let Some(v) = last else {
                     return Err(exc("RuntimeError", "No active exception to reraise"));
                 };
                 return Err(PyException::from_value(&v));
             }
             Op::Reraise => {
                 let v = pop(stack)?;
-                self.handled.pop();
+                self.handled.borrow_mut().pop();
                 return Err(PyException::from_value(&v));
             }
             Op::DeleteName(i) => {
                 let name = &code.names[i as usize];
-                if code.is_function {
-                    locals.remove(name);
+                if locals.is_module {
+                    self.globals.borrow_mut().remove(name);
                 } else {
-                    self.globals.remove(name);
+                    locals.vars.borrow_mut().remove(name);
                 }
             }
+            Op::DeleteLocal(i) => {
+                let name = &code.names[i as usize];
+                if locals.vars.borrow_mut().remove(name).is_none() {
+                    return Err(exc(
+                        "UnboundLocalError",
+                        format!("cannot access local variable '{name}' where it is not associated with a value"),
+                    ));
+                }
+            }
+            Op::DeleteGlobal(i) => {
+                let name = &code.names[i as usize];
+                if self.globals.borrow_mut().remove(name).is_none() {
+                    return Err(exc("NameError", format!("name '{name}' is not defined")));
+                }
+            }
+            Op::CallEx { kwargs } => {
+                let kw = if kwargs { Some(pop(stack)?) } else { None };
+                let args = pop(stack)?;
+                let func = pop(stack)?;
+                let positional = collect(&args)?;
+                let mut named: Vec<(String, Value)> = Vec::new();
+                if let Some(Value::Dict(d)) = kw {
+                    for (k, v) in d.borrow().iter() {
+                        let Value::Str(s) = k else {
+                            return Err(type_error("keywords must be strings"));
+                        };
+                        named.push((s.as_str().to_string(), v.clone()));
+                    }
+                }
+                let result = self.call(&func, positional, named)?;
+                stack.push(Slot::Val(result));
+            }
+            Op::ListAppend => {
+                let item = pop(stack)?;
+                match top(stack)? {
+                    Value::List(l) => l.borrow_mut().push(item),
+                    _ => return Err(internal("ListAppend without list")),
+                }
+            }
+            Op::ListExtend => {
+                let it = pop(stack)?;
+                let items = collect(&it)?;
+                match top(stack)? {
+                    Value::List(l) => l.borrow_mut().extend(items),
+                    _ => return Err(internal("ListExtend without list")),
+                }
+            }
+            Op::ListToTuple => {
+                let v = pop(stack)?;
+                match v {
+                    Value::List(l) => stack.push(Slot::Val(Value::tuple(l.borrow().clone()))),
+                    _ => return Err(internal("ListToTuple without list")),
+                }
+            }
+            Op::ListToSet => {
+                let v = pop(stack)?;
+                let mut set = Set::new();
+                for item in collect(&v)? {
+                    set.add(item)?;
+                }
+                stack.push(Slot::Val(Value::set(set)));
+            }
+            Op::DictSet => {
+                let value = pop(stack)?;
+                let key = pop(stack)?;
+                match top(stack)? {
+                    Value::Dict(d) => d.borrow_mut().set(key, value)?,
+                    _ => return Err(internal("DictSet without dict")),
+                }
+            }
+            Op::DictUpdate => {
+                let m = pop(stack)?;
+                let Value::Dict(src) = &m else {
+                    return Err(type_error(format!("'{}' object is not a mapping", m.type_name())));
+                };
+                let pairs: Vec<(Value, Value)> = src.borrow().iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+                match top(stack)? {
+                    Value::Dict(d) => {
+                        for (k, v) in pairs {
+                            d.borrow_mut().set(k, v)?;
+                        }
+                    }
+                    _ => return Err(internal("DictUpdate without dict")),
+                }
+            }
+            Op::ListAppendAt(d) | Op::SetAddAt(d) => {
+                let item = pop(stack)?;
+                let idx = stack.len().checked_sub(1 + d as usize).ok_or_else(|| internal("bad value stack"))?;
+                match (&stack[idx], op) {
+                    (Slot::Val(Value::List(l)), Op::ListAppendAt(_)) => l.borrow_mut().push(item),
+                    (Slot::Val(Value::Set(s)), Op::SetAddAt(_)) => s.borrow_mut().add(item)?,
+                    _ => return Err(internal("bad comprehension accumulator")),
+                }
+            }
+            Op::MapAddAt(d) => {
+                let value = pop(stack)?;
+                let key = pop(stack)?;
+                let idx = stack.len().checked_sub(1 + d as usize).ok_or_else(|| internal("bad value stack"))?;
+                match &stack[idx] {
+                    Slot::Val(Value::Dict(m)) => m.borrow_mut().set(key, value)?,
+                    _ => return Err(internal("bad comprehension accumulator")),
+                }
+            }
+            Op::BuildSlice => {
+                let step = pop(stack)?;
+                let hi = pop(stack)?;
+                let lo = pop(stack)?;
+                stack.push(Slot::Val(Value::Slice(Rc::new((lo, hi, step)))));
+            }
+            Op::BuildString(n) => {
+                let parts = pop_n(stack, n as usize)?;
+                let mut out = String::new();
+                for p in &parts {
+                    out.push_str(&to_str(p));
+                }
+                stack.push(Slot::Val(Value::str(out)));
+            }
+            Op::FormatValue { conv, has_spec } => {
+                let spec = if has_spec { Some(pop(stack)?) } else { None };
+                let v = pop(stack)?;
+                let v = match conv {
+                    1 => Value::str(self.str_of(&v)?),
+                    2 => Value::str(self.repr_of(&v)?),
+                    3 => Value::str(crate::format::ascii_repr(&v)),
+                    _ => v,
+                };
+                let spec = match &spec {
+                    Some(Value::Str(s)) => s.as_str().to_string(),
+                    _ => String::new(),
+                };
+                stack.push(Slot::Val(Value::str(self.format_value(&v, &spec)?)));
+            }
+            Op::StoreAttr(i) => {
+                let obj = pop(stack)?;
+                let value = pop(stack)?;
+                self.store_attr(&obj, &code.names[i as usize], value)?;
+            }
+            Op::DeleteAttr(i) => {
+                let obj = pop(stack)?;
+                self.delete_attr(&obj, &code.names[i as usize])?;
+            }
+            Op::DeleteSubscript => {
+                let index = pop(stack)?;
+                let container = pop(stack)?;
+                self.delete_subscript(&container, &index)?;
+            }
+            Op::UnpackEx { before, after } => {
+                let v = pop(stack)?;
+                let items = collect(&v)?;
+                let (b, a) = (before as usize, after as usize);
+                if items.len() < b + a {
+                    return Err(exc(
+                        "ValueError",
+                        format!("not enough values to unpack (expected at least {}, got {})", b + a, items.len()),
+                    ));
+                }
+                let middle: Vec<Value> = items[b..items.len() - a].to_vec();
+                // O primeiro alvo fica no topo: empilha de trás para frente.
+                for x in items[items.len() - a..].iter().rev() {
+                    stack.push(Slot::Val(x.clone()));
+                }
+                stack.push(Slot::Val(Value::list(middle)));
+                for x in items[..b].iter().rev() {
+                    stack.push(Slot::Val(x.clone()));
+                }
+            }
+            Op::WithEnter => {
+                let mgr = pop(stack)?;
+                let (exit, entered) = self.with_enter(&mgr)?;
+                stack.push(Slot::Val(exit));
+                stack.push(Slot::Val(entered));
+            }
+            Op::WithExcept => {
+                let exit = pop(stack)?;
+                let exc_value = top(stack)?.clone();
+                let ty = self.type_of(&exc_value);
+                let r = self.call(&exit, vec![ty, exc_value, Value::None], Vec::new())?;
+                stack.push(Slot::Val(Value::Bool(r.is_true())));
+            }
+            Op::BuildClass { code: idx, nbases } => {
+                let bases = pop_n(stack, nbases as usize)?;
+                let body = code.functions[idx as usize].clone();
+                let cls = self.build_class(&body, bases, locals)?;
+                stack.push(Slot::Val(cls));
+            }
+            Op::Yield => return Err(internal("yield outside run loop")),
             Op::Import(i) => {
                 let name = &code.names[i as usize];
                 let Some(m) = crate::modules::import(self, name) else {
@@ -732,6 +1132,34 @@ impl Vm {
     fn call(&mut self, func: &Value, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
         if let Value::Function(f) = func {
             return self.call_function(f, args, kwargs);
+        }
+        match func {
+            Value::BoundFn(b) => {
+                let mut full = Vec::with_capacity(args.len() + 1);
+                full.push(b.0.clone());
+                full.extend(args);
+                return self.call_function(&b.1, full, kwargs);
+            }
+            Value::Class(c) => return self.instantiate(c, args, kwargs),
+            Value::Instance(i) => {
+                return match i.class.lookup("__call__") {
+                    Some(Value::Function(f)) => {
+                        let mut full = Vec::with_capacity(args.len() + 1);
+                        full.push(func.clone());
+                        full.extend(args);
+                        self.call_function(&f, full, kwargs)
+                    }
+                    _ => Err(type_error(format!("'{}' object is not callable", func.type_name()))),
+                };
+            }
+            Value::Ext(e) if e.methods().contains(&"__call__") => {
+                let e = e.clone();
+                return e.call_method(self, "__call__", args, kwargs);
+            }
+            Value::Builtin(name @ ("staticmethod" | "classmethod" | "property" | "super" | "type" | "object")) => {
+                return self.call_class_builtin(name, args, kwargs);
+            }
+            _ => {}
         }
         if let Value::Bound(b) = func {
             if let Value::Ext(e) = &b.recv {
@@ -861,7 +1289,7 @@ impl Vm {
             Some(f) => {
                 self.write_to(&f, &text)?;
             }
-            None => self.stdout.extend_from_slice(text.as_bytes()),
+            None => self.stdout.borrow_mut().extend_from_slice(text.as_bytes()),
         }
         Ok(Value::None)
     }
@@ -881,11 +1309,11 @@ impl Vm {
             _ => return Err(exc("AttributeError", format!("'{}' object has no attribute 'write'", target.type_name()))),
         };
         match kind {
-            FileKind::Stdout => self.stdout.extend_from_slice(text.as_bytes()),
+            FileKind::Stdout => self.stdout.borrow_mut().extend_from_slice(text.as_bytes()),
             FileKind::Stderr => {
                 // O stderr do CPython é sem buffer; o stdout pendente sai antes, para manter a ordem.
-                let _ = sysabi::sys::write_all(sysabi::Fd::STDOUT, &self.stdout);
-                self.stdout.clear();
+                let _ = sysabi::sys::write_all(sysabi::Fd::STDOUT, &self.stdout.borrow());
+                self.stdout.borrow_mut().clear();
                 let _ = sysabi::sys::write_all(sysabi::Fd::STDERR, text.as_bytes());
             }
             _ => return Err(exc("UnsupportedOperation", "not writable")),
@@ -897,6 +1325,30 @@ impl Vm {
         let missing = || {
             exc("AttributeError", format!("'{}' object has no attribute '{name}'", obj.type_name()))
         };
+        match obj {
+            Value::Instance(inst) => return self.instance_getattr(obj, inst, name),
+            Value::Class(c) => return self.class_getattr(c, name),
+            Value::Builtin(n) if name == "__name__" => return Ok(Value::str(*n)),
+            Value::Exception(e) if name == "__class__" => return Ok(Value::Builtin(e.kind)),
+            Value::Function(f) => match name {
+                "__name__" | "__qualname__" => return Ok(Value::str(f.code.name.clone())),
+                "__doc__" => return Ok(Value::None),
+                _ => {}
+            },
+            Value::BoundFn(b) => match name {
+                "__name__" => return Ok(Value::str(b.1.code.name.clone())),
+                "__self__" => return Ok(b.0.clone()),
+                "__func__" => return Ok(Value::Function(b.1.clone())),
+                _ => {}
+            },
+            Value::Slice(s) => match name {
+                "start" => return Ok(s.0.clone()),
+                "stop" => return Ok(s.1.clone()),
+                "step" => return Ok(s.2.clone()),
+                _ => {}
+            },
+            _ => {}
+        }
         match obj {
             Value::Exception(e) if name == "args" => Ok(Value::tuple(e.args.clone())),
             Value::Module(m) => match m.attrs.borrow().get(name) {
@@ -1209,7 +1661,7 @@ fn exc_matches(kind: &str, cls: &Value) -> PyResult<bool> {
 }
 
 /// Valor do `raise X`: uma classe vira instância sem argumentos.
-fn raise_value(v: Value) -> PyResult<PyException> {
+pub(crate) fn raise_value(v: Value) -> PyResult<PyException> {
     match &v {
         Value::Exception(_) => Ok(PyException::from_value(&v)),
         Value::Builtin(name) => match EXC_CLASSES.iter().find(|(n, _)| n == name) {
@@ -1413,7 +1865,7 @@ fn one_arg(name: &str, args: Vec<Value>) -> PyResult<[Value; 1]> {
         .map_err(|_| type_error(format!("{name}() takes exactly one argument ({n} given)")))
 }
 
-fn len(v: &Value) -> PyResult<i64> {
+pub(crate) fn len(v: &Value) -> PyResult<i64> {
     Ok(match v {
         Value::Str(s) => s.len() as i64,
         Value::Bytes(b) => b.len() as i64,
@@ -1423,6 +1875,22 @@ fn len(v: &Value) -> PyResult<i64> {
         Value::Set(s) => s.borrow().len() as i64,
         Value::Range(r) => r.len(),
         Value::Ext(e) if e.len().is_some() => e.len().unwrap_or(0) as i64,
+        Value::Instance(_) => {
+            let mut vm = current().ok_or_else(|| internal("no vm"))?;
+            match vm.call_dunder(v, "__len__", Vec::new()) {
+                Some(r) => match r? {
+                    Value::Int(n) if n >= 0 => n,
+                    Value::Int(_) => return Err(exc("ValueError", "__len__() should return >= 0")),
+                    other => {
+                        return Err(type_error(format!(
+                            "'{}' object cannot be interpreted as an integer",
+                            other.type_name()
+                        )))
+                    }
+                },
+                None => return Err(type_error(format!("object of type '{}' has no len()", v.type_name()))),
+            }
+        }
         _ => return Err(type_error(format!("object of type '{}' has no len()", v.type_name()))),
     })
 }
@@ -1527,7 +1995,89 @@ fn normalize(i: i64, len: usize) -> Option<usize> {
     (0..len).contains(&i).then_some(i as usize)
 }
 
+/// `start, stop, step` já ajustados de uma fatia sobre uma sequência de tamanho `len`
+/// (`PySlice_Unpack` seguido de `PySlice_AdjustIndices`).
+pub(crate) fn slice_bounds(len: i64, s: &(Value, Value, Value)) -> PyResult<(i64, i64, i64)> {
+    let index = |v: &Value| -> PyResult<Option<i64>> {
+        match v {
+            Value::None => Ok(None),
+            Value::Int(i) => Ok(Some(*i)),
+            Value::Bool(b) => Ok(Some(i64::from(*b))),
+            _ => Err(type_error("slice indices must be integers or None or have an __index__ method")),
+        }
+    };
+    let step = index(&s.2)?.unwrap_or(1);
+    if step == 0 {
+        return Err(exc("ValueError", "slice step cannot be zero"));
+    }
+    let adjust = |v: Option<i64>, default: i64| -> i64 {
+        match v {
+            None => default,
+            Some(mut v) => {
+                if v < 0 {
+                    v += len;
+                    if v < 0 {
+                        v = if step < 0 { -1 } else { 0 };
+                    }
+                } else if v >= len {
+                    v = if step < 0 { len - 1 } else { len };
+                }
+                v
+            }
+        }
+    };
+    let (lo_default, hi_default) = if step < 0 { (len - 1, -1) } else { (0, len) };
+    let start = adjust(index(&s.0)?, lo_default);
+    let stop = adjust(index(&s.1)?, hi_default);
+    Ok((start, stop, step))
+}
+
+/// Os índices que uma fatia seleciona numa sequência de tamanho `len`.
+pub(crate) fn slice_indices(len: usize, s: &(Value, Value, Value)) -> PyResult<Vec<usize>> {
+    let (start, stop, step) = slice_bounds(len as i64, s)?;
+    let mut out = Vec::new();
+    let mut i = start;
+    while (step > 0 && i < stop) || (step < 0 && i > stop) {
+        out.push(i as usize);
+        i += step;
+    }
+    Ok(out)
+}
+
+fn slice_of(container: &Value, s: &(Value, Value, Value)) -> PyResult<Value> {
+    Ok(match container {
+        Value::List(l) => {
+            let items = l.borrow();
+            Value::list(slice_indices(items.len(), s)?.into_iter().map(|i| items[i].clone()).collect())
+        }
+        Value::Tuple(t) => Value::tuple(slice_indices(t.len(), s)?.into_iter().map(|i| t[i].clone()).collect()),
+        Value::Str(text) => {
+            let chars: Vec<char> = text.as_str().chars().collect();
+            Value::str(slice_indices(chars.len(), s)?.into_iter().map(|i| chars[i]).collect::<String>())
+        }
+        Value::Bytes(b) => Value::bytes(slice_indices(b.len(), s)?.into_iter().map(|i| b[i]).collect::<Vec<u8>>()),
+        Value::Range(r) => {
+            let items: Vec<Value> = slice_indices(r.len() as usize, s)?.into_iter().map(|i| Value::Int(r.item(i as i64))).collect();
+            Value::list(items)
+        }
+        _ => return Err(type_error(format!("'{}' object is not subscriptable", container.type_name()))),
+    })
+}
+
 fn subscript(container: &Value, index: &Value) -> PyResult<Value> {
+    if let Value::Slice(s) = index {
+        if matches!(container, Value::List(_) | Value::Tuple(_) | Value::Str(_) | Value::Bytes(_) | Value::Range(_)) {
+            return slice_of(container, s);
+        }
+    }
+    if let Value::Instance(_) = container {
+        if let Some(mut vm) = current() {
+            if let Some(r) = vm.call_dunder(container, "__getitem__", vec![index.clone()]) {
+                return r;
+            }
+        }
+        return Err(type_error(format!("'{}' object is not subscriptable", container.type_name())));
+    }
     let seq_index = |what: &str| -> PyResult<i64> {
         as_index(index)
             .ok_or_else(|| type_error(format!("{what} indices must be integers or slices, not {}", index.type_name())))
@@ -1589,6 +2139,41 @@ fn subscript(container: &Value, index: &Value) -> PyResult<Value> {
 }
 
 fn store_subscript(container: &Value, index: &Value, value: Value) -> PyResult<()> {
+    if let Value::Instance(_) = container {
+        if let Some(mut vm) = current() {
+            if let Some(r) = vm.call_dunder(container, "__setitem__", vec![index.clone(), value]) {
+                return r.map(|_| ());
+            }
+        }
+        return Err(type_error(format!("'{}' object does not support item assignment", container.type_name())));
+    }
+    if let (Value::List(l), Value::Slice(s)) = (container, index) {
+        let new_items = collect(&value)?;
+        let len = l.borrow().len();
+        let (start, stop, step) = slice_bounds(len as i64, s)?;
+        if step == 1 {
+            let start = start as usize;
+            let stop = (stop.max(start as i64)) as usize;
+            l.borrow_mut().splice(start..stop, new_items);
+            return Ok(());
+        }
+        let idxs = slice_indices(len, s)?;
+        if idxs.len() != new_items.len() {
+            return Err(exc(
+                "ValueError",
+                format!(
+                    "attempt to assign sequence of size {} to extended slice of size {}",
+                    new_items.len(),
+                    idxs.len()
+                ),
+            ));
+        }
+        let mut items = l.borrow_mut();
+        for (i, v) in idxs.into_iter().zip(new_items) {
+            items[i] = v;
+        }
+        return Ok(());
+    }
     match container {
         Value::List(l) => {
             let i = as_index(index).ok_or_else(|| {
@@ -1660,6 +2245,11 @@ fn unsupported(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyException
 }
 
 fn binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyResult<Value> {
+    if (matches!(a, Value::Instance(_)) || matches!(b, Value::Instance(_)))
+        && let Some(r) = instance_binary(op, a, b, inplace)
+    {
+        return r;
+    }
     if let Value::Ext(e) = a
         && let Some(r) = e.binop(op_symbol(op), b, false)
     {
@@ -1919,7 +2509,60 @@ fn float_divmod(vx: f64, wx: f64) -> (f64, f64) {
     (floordiv, m)
 }
 
+/// Operador binário com instância de classe de usuário: `__add__`, depois `__radd__` do outro lado.
+fn instance_binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> Option<PyResult<Value>> {
+    let sym = match op {
+        Operator::Add => "+",
+        Operator::Sub => "-",
+        Operator::Mult => "*",
+        Operator::Div => "/",
+        Operator::FloorDiv => "//",
+        Operator::Mod => "%",
+        Operator::Pow => "**",
+        Operator::BitAnd => "&",
+        Operator::BitOr => "|",
+        Operator::BitXor => "^",
+        Operator::LShift => "<<",
+        Operator::RShift => ">>",
+        Operator::MatMult => "@",
+    };
+    let (fwd, rev, inp) = crate::classes::binop_dunder(sym)?;
+    let mut vm = current()?;
+    let mut tries: Vec<(&Value, &str, &Value)> = Vec::new();
+    if matches!(a, Value::Instance(_)) {
+        if inplace {
+            tries.push((a, inp, b));
+        }
+        tries.push((a, fwd, b));
+    }
+    if matches!(b, Value::Instance(_)) {
+        tries.push((b, rev, a));
+    }
+    for (recv, name, other) in tries {
+        if let Some(r) = vm.call_dunder(recv, name, vec![other.clone()]) {
+            match r {
+                Ok(v) if crate::classes::is_not_implemented(&v) => {}
+                other => return Some(other),
+            }
+        }
+    }
+    None
+}
+
 fn unary(op: UnaryOp, a: &Value) -> PyResult<Value> {
+    if let Value::Instance(_) = a {
+        let name = match op {
+            UnaryOp::USub => Some("__neg__"),
+            UnaryOp::UAdd => Some("__pos__"),
+            UnaryOp::Invert => Some("__invert__"),
+            UnaryOp::Not => None,
+        };
+        if let (Some(name), Some(mut vm)) = (name, current())
+            && let Some(r) = vm.call_dunder(a, name, Vec::new())
+        {
+            return r;
+        }
+    }
     let bad = |sym: &str| type_error(format!("bad operand type for unary {sym}: '{}'", a.type_name()));
     match op {
         UnaryOp::Not => Ok(Value::Bool(!a.is_true())),
@@ -1957,6 +2600,25 @@ fn cmp_symbol(op: CmpOp) -> &'static str {
 }
 
 fn compare(op: CmpOp, a: &Value, b: &Value) -> PyResult<bool> {
+    if matches!(op, CmpOp::Lt | CmpOp::LtE | CmpOp::Gt | CmpOp::GtE)
+        && (matches!(a, Value::Instance(_)) || matches!(b, Value::Instance(_)))
+        && let Some(mut vm) = current()
+    {
+        let (fwd, rev) = match op {
+            CmpOp::Lt => ("__lt__", "__gt__"),
+            CmpOp::LtE => ("__le__", "__ge__"),
+            CmpOp::Gt => ("__gt__", "__lt__"),
+            _ => ("__ge__", "__le__"),
+        };
+        for (recv, name, other) in [(a, fwd, b), (b, rev, a)] {
+            if let Some(r) = vm.call_dunder(recv, name, vec![other.clone()]) {
+                let v = r?;
+                if !crate::classes::is_not_implemented(&v) {
+                    return Ok(v.is_true());
+                }
+            }
+        }
+    }
     if !matches!(op, CmpOp::Is | CmpOp::IsNot | CmpOp::In | CmpOp::NotIn) {
         if let Value::Ext(e) = a
             && let Some(r) = e.richcmp(cmp_symbol(op), b)
@@ -1989,6 +2651,15 @@ fn compare(op: CmpOp, a: &Value, b: &Value) -> PyResult<bool> {
 
 /// `item in container`.
 fn contains(container: &Value, item: &Value) -> PyResult<bool> {
+    if let Value::Instance(_) = container
+        && let Some(mut vm) = current()
+    {
+        if let Some(r) = vm.call_dunder(container, "__contains__", vec![item.clone()]) {
+            return Ok(r?.is_true());
+        }
+        let items = collect(container)?;
+        return Ok(items.iter().any(|x| is(x, item) || py_eq(x, item)));
+    }
     let member = |items: &[Value]| items.iter().any(|x| is(x, item) || py_eq(x, item));
     match container {
         Value::List(l) => Ok(member(&l.borrow()[..])),
@@ -2110,8 +2781,8 @@ mod tests {
                 let module = parse_module(&src).expect("parse");
                 let code = compile_module(&module).expect("compile");
                 let mut vm = Vm::new();
-                let err = vm.run(&code).err().map(|e| format_traceback(&e));
-                (String::from_utf8(vm.stdout).expect("utf-8"), err)
+                let err = vm.run(&Rc::new(code)).err().map(|e| format_traceback(&e));
+                (String::from_utf8(vm.stdout.borrow().clone()).expect("utf-8"), err)
             })
             .expect("thread")
             .join()

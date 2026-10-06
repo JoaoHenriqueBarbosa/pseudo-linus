@@ -67,6 +67,8 @@ pub enum Value {
     Instance(Rc<InstanceObj>),
     /// Função de usuário presa ao receptor (`obj.metodo`): o `self` entra como primeiro argumento.
     BoundFn(Rc<(Value, Rc<FuncObj>)>),
+    /// `slice(lo, hi, step)`, como em `x[1:3]`.
+    Slice(Rc<(Value, Value, Value)>),
 }
 
 /// Argumentos nomeados de uma chamada.
@@ -88,11 +90,26 @@ impl fmt::Debug for NativeFn {
     }
 }
 
+/// Descritor que o acesso a atributo de classe e de instância desembrulha.
+#[derive(Clone)]
+pub enum Descriptor {
+    /// `@staticmethod`: devolve a função sem prender receptor.
+    Static(Value),
+    /// `@classmethod`: prende a classe como primeiro argumento.
+    Class(Value),
+    /// `@property`: leitura chama `get`; atribuição chama `set`.
+    Property { get: Value, set: Option<Value>, del: Option<Value> },
+}
+
 /// Objeto definido por um módulo nativo. O estado mutável fica dentro do implementador (`Cell`,
 /// `RefCell`), porque o valor é compartilhado por `Rc` e os métodos recebem `&self`.
 ///
 /// Só `type_name` e `call_method` são obrigatórios; o resto tem padrão "não suportado".
 pub trait ExtObject {
+    /// Descritor de classe (`staticmethod`, `classmethod`, `property`); `None` nos demais objetos.
+    fn descriptor(&self) -> Option<Descriptor> {
+        None
+    }
     /// `type(obj).__name__` (ex.: `Pattern`, `Match`).
     fn type_name(&self) -> &'static str;
     /// `repr(obj)`.
@@ -197,23 +214,57 @@ pub enum Native {
     CsvWriter { dialect: crate::modules::csv::Dialect, target: Value },
 }
 
-/// Célula de closure: variável capturada por uma função interna (`None` = ainda sem valor).
-pub type Cell = Rc<RefCell<Option<Value>>>;
+/// Escopo de execução: as variáveis de uma função (ou do corpo de uma classe) e o escopo de função
+/// que a envolve. As funções internas guardam o `Env` onde nasceram, e é assim que enxergam e
+/// alteram as variáveis do escopo externo (closures, `nonlocal`).
+pub struct Env {
+    pub vars: RefCell<std::collections::HashMap<String, Value>>,
+    pub parent: Option<Rc<Env>>,
+    /// Corpo de classe: as funções definidas nele não enxergam estas variáveis.
+    pub is_class: bool,
+    /// Escopo do módulo (as variáveis ficam nas globais da VM, não aqui).
+    pub is_module: bool,
+}
+
+impl fmt::Debug for Env {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "<env>")
+    }
+}
+
+impl Env {
+    pub fn new(parent: Option<Rc<Env>>, is_class: bool, is_module: bool) -> Rc<Env> {
+        Rc::new(Env { vars: RefCell::new(std::collections::HashMap::new()), parent, is_class, is_module })
+    }
+
+    /// O escopo que uma função definida aqui captura.
+    pub fn capture(self: &Rc<Env>) -> Option<Rc<Env>> {
+        if self.is_module {
+            None
+        } else if self.is_class {
+            self.parent.clone()
+        } else {
+            Some(self.clone())
+        }
+    }
+}
 
 /// Função de usuário: o código compilado, os valores padrão dos últimos parâmetros posicionais, os
-/// padrões dos parâmetros só-nomeados e as células capturadas do escopo externo.
+/// padrões dos parâmetros só-nomeados e o escopo externo capturado.
 #[derive(Debug)]
 pub struct FuncObj {
     pub code: Rc<crate::compile::Code>,
     pub defaults: Vec<Value>,
     pub kwdefaults: Vec<(String, Value)>,
-    pub closure: Vec<Cell>,
+    pub closure: Option<Rc<Env>>,
 }
 
 /// Classe definida por `class`: nome, bases (já resolvidas) e o espaço de nomes.
 pub struct ClassObj {
     pub name: String,
     pub bases: Vec<Rc<ClassObj>>,
+    /// A classe embutida mais próxima na herança (uma exceção como `Exception`), se houver.
+    pub builtin_base: Option<&'static str>,
     pub dict: RefCell<std::collections::BTreeMap<String, Value>>,
 }
 
@@ -452,8 +503,9 @@ impl Value {
             },
             Value::Bound(_) => "builtin_function_or_method",
             Value::Class(_) => "type",
-            Value::Instance(_) => "instance",
+            Value::Instance(i) => intern(&i.class.name),
             Value::BoundFn(_) => "method",
+            Value::Slice(_) => "slice",
         }
     }
 
@@ -480,8 +532,9 @@ impl Value {
             | Value::Native(_)
             | Value::Bound(_)
             | Value::Class(_)
-            | Value::Instance(_)
-            | Value::BoundFn(_) => true,
+            | Value::BoundFn(_)
+            | Value::Slice(_) => true,
+            Value::Instance(_) => crate::vm::instance_truth(self),
         }
     }
 }
@@ -497,6 +550,25 @@ impl fmt::Debug for Value {
 pub fn is_builtin_type(name: &str) -> bool {
     matches!(name, "bool" | "int" | "float" | "str" | "list" | "tuple" | "dict" | "set" | "range")
         || EXC_CLASSES.iter().any(|(n, _)| *n == name)
+}
+
+thread_local! {
+    static INTERNED: RefCell<std::collections::HashSet<&'static str>> =
+        RefCell::new(std::collections::HashSet::new());
+}
+
+/// Texto com tempo de vida `'static`, um só por conteúdo (nomes de classes de usuário, que as
+/// mensagens de erro e `type_name` precisam devolver como `&'static str`).
+pub fn intern(name: &str) -> &'static str {
+    INTERNED.with(|set| {
+        let mut set = set.borrow_mut();
+        if let Some(s) = set.get(name) {
+            return *s;
+        }
+        let leaked: &'static str = Box::leak(name.to_string().into_boxed_str());
+        set.insert(leaked);
+        leaked
+    })
 }
 
 /// Endereço de um objeto compartilhado, para identidade e para a pilha do `repr`.
@@ -539,6 +611,10 @@ pub fn to_str(v: &Value) -> String {
     match v {
         Value::Str(s) => s.as_str().to_string(),
         Value::Exception(e) => exc_str(e),
+        Value::Instance(_) => match crate::vm::instance_text(v, true) {
+            Some(text) => text,
+            None => repr(v),
+        },
         _ => repr(v),
     }
 }
@@ -573,7 +649,19 @@ pub(crate) fn repr_into(v: &Value, out: &mut String, stack: &mut ReprStack) {
         },
         Value::Bound(b) => out.push_str(&format!("<built-in method {} of {} object at {:#x}>", b.name, b.recv.type_name(), addr(b))),
         Value::Class(c) => out.push_str(&format!("<class '__main__.{}'>", c.name)),
-        Value::Instance(i) => out.push_str(&format!("<__main__.{} object at {:#x}>", i.class.name, addr(i))),
+        Value::Instance(i) => match crate::vm::instance_text(v, false) {
+            Some(text) => out.push_str(&text),
+            None => out.push_str(&format!("<__main__.{} object at {:#x}>", i.class.name, addr(i))),
+        },
+        Value::Slice(s) => {
+            out.push_str("slice(");
+            repr_into(&s.0, out, stack);
+            out.push_str(", ");
+            repr_into(&s.1, out, stack);
+            out.push_str(", ");
+            repr_into(&s.2, out, stack);
+            out.push(')');
+        }
         Value::BoundFn(b) => {
             out.push_str(&format!("<bound method {} of ", b.1.code.name));
             repr_into(&b.0, out, stack);
@@ -605,6 +693,7 @@ pub fn is(a: &Value, b: &Value) -> bool {
         (Value::Class(x), Value::Class(y)) => Rc::ptr_eq(x, y),
         (Value::Instance(x), Value::Instance(y)) => Rc::ptr_eq(x, y),
         (Value::BoundFn(x), Value::BoundFn(y)) => Rc::ptr_eq(x, y),
+        (Value::Slice(x), Value::Slice(y)) => Rc::ptr_eq(x, y),
         _ => false,
     }
 }
@@ -648,6 +737,11 @@ fn int_float_eq(i: i64, x: f64) -> bool {
 
 /// `a == b` dos tipos embutidos.
 pub fn py_eq(a: &Value, b: &Value) -> bool {
+    if matches!(a, Value::Instance(_)) || matches!(b, Value::Instance(_)) {
+        if let Some(r) = crate::vm::instance_eq(a, b) {
+            return r;
+        }
+    }
     if let (Some(x), Some(y)) = (as_num(a), as_num(b)) {
         return match (x, y) {
             (Num::Int(x), Num::Int(y)) => x == y,
@@ -675,6 +769,7 @@ pub fn py_eq(a: &Value, b: &Value) -> bool {
         (Value::Class(x), Value::Class(y)) => Rc::ptr_eq(x, y),
         (Value::Instance(x), Value::Instance(y)) => Rc::ptr_eq(x, y),
         (Value::BoundFn(x), Value::BoundFn(y)) => Rc::ptr_eq(x, y),
+        (Value::Slice(x), Value::Slice(y)) => Rc::ptr_eq(x, y),
         _ => false,
     }
 }
@@ -709,8 +804,12 @@ pub fn hash(v: &Value) -> Result<i64, ObjError> {
         Value::Native(n) => Ok((Rc::as_ptr(n) as usize >> 4) as i64),
         Value::Bound(b) => Ok((Rc::as_ptr(b) as usize >> 4) as i64),
         Value::Class(c) => Ok((Rc::as_ptr(c) as usize >> 4) as i64),
-        Value::Instance(i) => Ok((Rc::as_ptr(i) as usize >> 4) as i64),
+        Value::Instance(i) => match crate::vm::instance_hash(v) {
+            Some(h) => Ok(h),
+            None => Ok((Rc::as_ptr(i) as usize >> 4) as i64),
+        },
         Value::BoundFn(b) => Ok((Rc::as_ptr(b) as usize >> 4) as i64),
+        Value::Slice(s) => Ok((Rc::as_ptr(s) as usize >> 4) as i64),
         Value::List(_) | Value::Dict(_) | Value::Set(_) => {
             Err(ObjError::TypeError(format!("unhashable type: '{}'", v.type_name())))
         }

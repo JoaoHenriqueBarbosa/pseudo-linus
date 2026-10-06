@@ -62,7 +62,7 @@ impl ModuleBuilder {
 
 /// `import nome`: o módulo embutido, construído na primeira vez. `None` se não existe.
 pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
-    if let Some(m) = vm.modules.get(name) {
+    if let Some(m) = vm.modules.borrow().get(name) {
         return Some(m.clone());
     }
     let m = match name {
@@ -83,7 +83,7 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         "operator" => operator::build(vm),
         _ => return None,
     };
-    vm.modules.insert(name.to_string(), m.clone());
+    vm.modules.borrow_mut().insert(name.to_string(), m.clone());
     Some(m)
 }
 

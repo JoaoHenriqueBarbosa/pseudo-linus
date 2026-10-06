@@ -17,7 +17,8 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use crate::ast::{
-    Arguments, BoolOp, CmpOp, Constant, ExceptHandler, Expr, ExprKind as E, Mod, Operator, Stmt, StmtKind as S, UnaryOp,
+    Arguments, BoolOp, CmpOp, Comprehension, Constant, ExceptHandler, Expr, ExprKind as E, Mod, Operator, Stmt,
+    StmtKind as S, UnaryOp, WithItem,
 };
 use crate::object::Value;
 
@@ -90,14 +91,75 @@ pub enum Op {
     /// Variável local da função em execução (`UnboundLocalError` se ainda sem valor).
     LoadLocal(u32),
     StoreLocal(u32),
-    /// Cria a função `functions[code]` com `ndefaults` valores padrão tirados da pilha.
-    MakeFunction { code: u32, ndefaults: u32 },
+    /// Cria a função `functions[code]` com `ndefaults` valores padrão tirados da pilha e, se
+    /// `kwdefaults` aponta uma tupla de nomes em `consts`, os padrões só-nomeados correspondentes
+    /// (empilhados depois dos posicionais).
+    MakeFunction { code: u32, ndefaults: u32, kwdefaults: Option<u32> },
     /// Devolve o topo ao chamador.
     Return,
     /// `import nome`: empilha o módulo.
     Import(u32),
     /// `from m import nome`: com o módulo no topo, empilha o atributo ou levanta `ImportError`.
     ImportName(u32),
+    /// Nome declarado `global` dentro de uma função: sempre nas globais.
+    LoadGlobal(u32),
+    /// Nome declarado `nonlocal`: guarda no escopo de função externo mais próximo que o tem.
+    StoreNonlocal(u32),
+    /// Chamada com `*args` e `**kwargs`: `[func, lista]` ou, com `kwargs`, `[func, lista, dict]`.
+    CallEx { kwargs: bool },
+    /// `[lista, item]` vira `[lista]` com o item no fim.
+    ListAppend,
+    /// `[lista, iterável]` vira `[lista]` estendida.
+    ListExtend,
+    /// `[dict, chave, valor]` vira `[dict]` com o par.
+    DictSet,
+    /// `[dict, mapeamento]` vira `[dict]` atualizado (`**m`); chave repetida é `TypeError`.
+    DictUpdate,
+    /// `objeto.nome = valor`, com a pilha `[value, objeto]`.
+    StoreAttr(u32),
+    /// `del objeto.nome`.
+    DeleteAttr(u32),
+    /// `del container[index]`, com a pilha `[container, index]`.
+    DeleteSubscript,
+    /// `del x` em função: o nome precisa existir.
+    DeleteLocal(u32),
+    /// `del x` no módulo ou de nome `global`: o nome precisa existir.
+    DeleteGlobal(u32),
+    /// `[lo, hi, step]` vira um objeto `slice`.
+    BuildSlice,
+    /// Cria uma classe: `[nome-ignorado, bases...]` com `nbases`; executa o corpo `functions[code]`.
+    BuildClass { code: u32, nbases: u32 },
+    /// Concatena `n` textos da pilha (f-strings).
+    BuildString(u32),
+    /// `[valor]` vira `[str]` por `format(valor, spec)`; com `has_spec` o topo é a especificação.
+    /// `conv`: 0 nenhuma, 1 `!s`, 2 `!r`, 3 `!a`.
+    FormatValue { conv: u8, has_spec: bool },
+    /// Abre o `with`: `[mgr]` vira `[exit, valor]` (chama `__enter__`; o `__exit__` fica logo
+    /// abaixo para o compilador guardar numa variável oculta).
+    WithEnter,
+    /// No tratador do `with`: `[exc, exit]` chama `exit(tipo, exc, None)` e vira `[exc, bool]` com o
+    /// "suprimir" do `__exit__`.
+    WithExcept,
+    /// Desempacota com um alvo estrelado: `before` itens, o resto numa lista, `after` itens.
+    UnpackEx { before: u32, after: u32 },
+    /// `yield`: suspende a função geradora entregando o topo; ao retomar, empilha o valor enviado.
+    Yield,
+    /// Dentro de uma compreensão: `[acum, iteradores(d)..., item]`, acrescenta o item à lista.
+    ListAppendAt(u32),
+    /// Lista do topo vira tupla.
+    ListToTuple,
+    /// Lista do topo vira conjunto.
+    ListToSet,
+    /// Como `ListAppendAt`, para conjunto.
+    SetAddAt(u32),
+    /// Como `ListAppendAt`, com `[chave, valor]` no topo, para dicionário.
+    MapAddAt(u32),
+}
+
+/// Corpo de uma função: instruções (`def`) ou uma expressão (`lambda`).
+enum FnBody<'a> {
+    Stmts(&'a [Stmt]),
+    Expr(&'a Expr),
 }
 
 /// Código compilado de um módulo ou de uma função.
@@ -110,8 +172,17 @@ pub struct Code {
     pub names: Vec<String>,
     /// Nome da função (`<module>` no nível de módulo, vazio por `Default`).
     pub name: String,
+    /// Parâmetros posicionais (os `posonly` primeiros são só-posicionais).
     pub params: Vec<String>,
+    pub posonly: usize,
+    pub vararg: Option<String>,
+    pub kwonly: Vec<String>,
+    pub kwarg: Option<String>,
     pub is_function: bool,
+    /// Corpo de classe: o resultado é o espaço de nomes, não um valor devolvido.
+    pub is_class: bool,
+    /// A função contém `yield`: chamá-la devolve um gerador.
+    pub is_generator: bool,
     pub functions: Vec<Rc<Code>>,
 }
 
@@ -129,61 +200,198 @@ pub fn compile_module(module: &Mod) -> Result<Code, CompileError> {
     let Mod::Module { body, .. } = module else {
         return Err(CompileError { kind: "NotImplementedError", msg: "only modules can be compiled".into(), lineno: 1 });
     };
-    let mut c = Compiler {
-        code: Code { name: "<module>".into(), ..Code::default() },
-        line: 1,
-        loops: Vec::new(),
-        name_index: HashMap::new(),
-        tries: Vec::new(),
-        locals: None,
-    };
+    let mut c = Compiler::new(Code { name: "<module>".into(), ..Code::default() }, 1);
     c.block(body)?;
     Ok(c.code)
 }
 
-/// Nomes ligados no corpo de uma função (alvos de atribuição, `for`, `except as`, `def`) e os
-/// declarados `global`; os primeiros, menos os segundos, são as variáveis locais.
-fn collect_scope(body: &[Stmt], locals: &mut HashSet<String>, globals: &mut HashSet<String>) {
-    fn target(e: &Expr, locals: &mut HashSet<String>) {
+/// Nomes de um escopo de função: os ligados no corpo (alvos de atribuição, `for`, `with`, `except
+/// as`, `import`, `def`, `class`, `del`, walrus) e os declarados `global` e `nonlocal`.
+#[derive(Default)]
+struct Scope {
+    bound: HashSet<String>,
+    globals: HashSet<String>,
+    nonlocals: HashSet<String>,
+}
+
+impl Scope {
+    fn target(&mut self, e: &Expr) {
         match &e.kind {
             E::Name { id, .. } => {
-                locals.insert(id.clone());
+                self.bound.insert(id.clone());
             }
-            E::Tuple { elts, .. } | E::List { elts, .. } => elts.iter().for_each(|x| target(x, locals)),
-            E::Starred { value, .. } => target(value, locals),
+            E::Tuple { elts, .. } | E::List { elts, .. } => elts.iter().for_each(|x| self.target(x)),
+            E::Starred { value, .. } => self.target(value),
             _ => {}
         }
     }
-    for s in body {
-        match &s.kind {
-            S::Assign { targets, .. } => targets.iter().for_each(|t| target(t, locals)),
-            S::AugAssign { target: t, .. } => target(t, locals),
-            S::For { target: t, body, orelse, .. } => {
-                target(t, locals);
-                collect_scope(body, locals, globals);
-                collect_scope(orelse, locals, globals);
+
+    /// Procura `x := v` em uma expressão (o alvo liga no escopo da função que a contém). Não entra
+    /// em `lambda`; entra nas compreensões, cujo walrus também liga no escopo externo.
+    fn expr(&mut self, e: &Expr) {
+        match &e.kind {
+            E::NamedExpr { target, value } => {
+                self.target(target);
+                self.expr(value);
             }
-            S::While { body, orelse, .. } | S::If { body, orelse, .. } => {
-                collect_scope(body, locals, globals);
-                collect_scope(orelse, locals, globals);
+            E::BinOp { left, right, .. } => {
+                self.expr(left);
+                self.expr(right);
             }
-            S::Try { body, handlers, orelse, finalbody } => {
-                collect_scope(body, locals, globals);
-                for h in handlers {
-                    if let Some(n) = &h.name {
-                        locals.insert(n.clone());
-                    }
-                    collect_scope(&h.body, locals, globals);
+            E::UnaryOp { operand, .. } => self.expr(operand),
+            E::BoolOp { values, .. } => values.iter().for_each(|v| self.expr(v)),
+            E::IfExp { test, body, orelse } => {
+                self.expr(test);
+                self.expr(body);
+                self.expr(orelse);
+            }
+            E::Compare { left, comparators, .. } => {
+                self.expr(left);
+                comparators.iter().for_each(|v| self.expr(v));
+            }
+            E::Call { func, args, keywords } => {
+                self.expr(func);
+                args.iter().for_each(|v| self.expr(v));
+                keywords.iter().for_each(|k| self.expr(&k.value));
+            }
+            E::List { elts, .. } | E::Tuple { elts, .. } | E::Set { elts } => elts.iter().for_each(|v| self.expr(v)),
+            E::Dict { keys, values } => {
+                keys.iter().flatten().for_each(|v| self.expr(v));
+                values.iter().for_each(|v| self.expr(v));
+            }
+            E::Subscript { value, slice, .. } => {
+                self.expr(value);
+                self.expr(slice);
+            }
+            E::Attribute { value, .. } | E::Starred { value, .. } => self.expr(value),
+            E::Slice { lower, upper, step } => {
+                for x in [lower, upper, step].into_iter().flatten() {
+                    self.expr(x);
                 }
-                collect_scope(orelse, locals, globals);
-                collect_scope(finalbody, locals, globals);
             }
-            S::FunctionDef { name, .. } => {
-                locals.insert(name.clone());
+            E::ListComp { elt, generators } | E::SetComp { elt, generators } | E::GeneratorExp { elt, generators } => {
+                self.expr(elt);
+                for g in generators {
+                    self.expr(&g.iter);
+                    g.ifs.iter().for_each(|v| self.expr(v));
+                }
             }
-            S::Global { names } => globals.extend(names.iter().cloned()),
+            E::DictComp { key, value, generators } => {
+                self.expr(key);
+                self.expr(value);
+                for g in generators {
+                    self.expr(&g.iter);
+                    g.ifs.iter().for_each(|v| self.expr(v));
+                }
+            }
+            E::JoinedStr { values } => values.iter().for_each(|v| self.expr(v)),
+            E::FormattedValue { value, format_spec, .. } => {
+                self.expr(value);
+                if let Some(f) = format_spec {
+                    self.expr(f);
+                }
+            }
+            E::Yield { value: Some(v) } => self.expr(v),
+            E::YieldFrom { value } | E::Await { value } => self.expr(value),
             _ => {}
         }
+    }
+
+    fn block(&mut self, body: &[Stmt]) {
+        for s in body {
+            self.stmt(s);
+        }
+    }
+
+    fn stmt(&mut self, s: &Stmt) {
+        match &s.kind {
+            S::Expr { value } => self.expr(value),
+            S::Assign { targets, value, .. } => {
+                targets.iter().for_each(|t| self.target(t));
+                self.expr(value);
+            }
+            S::AugAssign { target, value, .. } => {
+                self.target(target);
+                self.expr(value);
+            }
+            S::AnnAssign { target, value, .. } => {
+                self.target(target);
+                if let Some(v) = value {
+                    self.expr(v);
+                }
+            }
+            S::For { target, iter, body, orelse, .. } => {
+                self.target(target);
+                self.expr(iter);
+                self.block(body);
+                self.block(orelse);
+            }
+            S::While { test, body, orelse } | S::If { test, body, orelse } => {
+                self.expr(test);
+                self.block(body);
+                self.block(orelse);
+            }
+            S::With { items, body, .. } => {
+                for it in items {
+                    self.expr(&it.context_expr);
+                    if let Some(v) = &it.optional_vars {
+                        self.target(v);
+                    }
+                }
+                self.block(body);
+            }
+            S::Try { body, handlers, orelse, finalbody } => {
+                self.block(body);
+                for h in handlers {
+                    if let Some(n) = &h.name {
+                        self.bound.insert(n.clone());
+                    }
+                    self.block(&h.body);
+                }
+                self.block(orelse);
+                self.block(finalbody);
+            }
+            S::Return { value: Some(v) } => self.expr(v),
+            S::Raise { exc, cause } => {
+                for x in [exc, cause].into_iter().flatten() {
+                    self.expr(x);
+                }
+            }
+            S::Assert { test, msg } => {
+                self.expr(test);
+                if let Some(m) = msg {
+                    self.expr(m);
+                }
+            }
+            S::Delete { targets } => targets.iter().for_each(|t| self.target(t)),
+            S::FunctionDef { name, .. } | S::ClassDef { name, .. } => {
+                self.bound.insert(name.clone());
+            }
+            S::Import { names } => {
+                for a in names {
+                    let n = a.asname.clone().unwrap_or_else(|| a.name.split('.').next().unwrap_or("").to_string());
+                    self.bound.insert(n);
+                }
+            }
+            S::ImportFrom { names, .. } => {
+                for a in names {
+                    if a.name != "*" {
+                        self.bound.insert(a.asname.clone().unwrap_or_else(|| a.name.clone()));
+                    }
+                }
+            }
+            S::Global { names } => self.globals.extend(names.iter().cloned()),
+            S::Nonlocal { names } => self.nonlocals.extend(names.iter().cloned()),
+            _ => {}
+        }
+    }
+
+    /// As variáveis locais: o que o corpo liga, menos o declarado `global` ou `nonlocal`.
+    fn locals(mut self) -> (HashSet<String>, HashSet<String>, HashSet<String>) {
+        for g in self.globals.iter().chain(self.nonlocals.iter()) {
+            self.bound.remove(g);
+        }
+        (self.bound, self.globals, self.nonlocals)
     }
 }
 
@@ -196,10 +404,12 @@ struct LoopCtx {
     try_depth: usize,
 }
 
-/// `try` aberto durante a compilação: o `finally`, se houver, é repetido onde o controle sai.
+/// `try` aberto durante a compilação: o `finally`, se houver, é repetido onde o controle sai. Num
+/// `with`, `with_exit` é a variável oculta que guarda o `__exit__`, chamado no lugar do `finally`.
 #[derive(Clone)]
 struct TryCtx {
     finalbody: Vec<Stmt>,
+    with_exit: Option<String>,
 }
 
 struct Compiler {
@@ -210,9 +420,37 @@ struct Compiler {
     tries: Vec<TryCtx>,
     /// Variáveis locais da função sendo compilada (`None` no módulo).
     locals: Option<HashSet<String>>,
+    /// Nomes declarados `global` na função sendo compilada.
+    globals_decl: HashSet<String>,
+    /// Nomes declarados `nonlocal` na função sendo compilada.
+    nonlocals_decl: HashSet<String>,
+    /// Contador para nomear as variáveis ocultas do `with`.
+    hidden: usize,
+    in_class_body: bool,
+    /// Nome da classe cujo corpo este compilador compila.
+    class_name: Option<String>,
+    /// Classe em cujo corpo a função sendo compilada foi definida (para o `super()` sem argumentos).
+    enclosing_class: Option<String>,
 }
 
 impl Compiler {
+    fn new(code: Code, line: usize) -> Compiler {
+        Compiler {
+            code,
+            line,
+            loops: Vec::new(),
+            name_index: HashMap::new(),
+            tries: Vec::new(),
+            locals: None,
+            globals_decl: HashSet::new(),
+            nonlocals_decl: HashSet::new(),
+            hidden: 0,
+            in_class_body: false,
+            class_name: None,
+            enclosing_class: None,
+        }
+    }
+
     fn unsupported(&self, what: &str) -> CompileError {
         CompileError {
             kind: "NotImplementedError",
@@ -366,12 +604,14 @@ impl Compiler {
             }
             S::Try { body, handlers, orelse, finalbody } => self.try_stmt(body, handlers, orelse, finalbody)?,
             S::Raise { exc, cause } => {
-                if cause.is_some() {
-                    return Err(self.unsupported("raise ... from"));
-                }
                 match exc {
                     Some(e) => {
                         self.expr(e)?;
+                        // `raise X from Y`: o encadeamento não é impresso; `Y` é só avaliado.
+                        if let Some(c) = cause {
+                            self.expr(c)?;
+                            self.emit(Op::Pop);
+                        }
                         self.line = stmt.pos.lineno;
                         self.emit(Op::Raise);
                     }
@@ -397,11 +637,16 @@ impl Compiler {
                 let end = self.here();
                 self.patch(ok, end);
             }
-            S::FunctionDef { name, args, body, decorator_list, returns, .. } => {
-                if !decorator_list.is_empty() || returns.is_some() {
-                    return Err(self.unsupported("decorators and annotations"));
+            S::FunctionDef { name, args, body, decorator_list, .. } => {
+                for d in decorator_list {
+                    self.expr(d)?;
                 }
-                self.function_def(stmt, name, args, body)?;
+                self.make_function(name, args, FnBody::Stmts(body), stmt.pos.lineno)?;
+                for _ in decorator_list {
+                    self.line = stmt.pos.lineno;
+                    self.emit(Op::Call { argc: 1, kwnames: None });
+                }
+                self.emit_store(name);
             }
             S::Return { value } => {
                 if !self.code.is_function {
@@ -422,15 +667,37 @@ impl Compiler {
                 self.emit_return()?;
             }
             S::AsyncFunctionDef { .. } => return Err(self.unsupported("async def")),
-            S::ClassDef { .. } => return Err(self.unsupported("class")),
+            S::ClassDef { name, bases, keywords, body, decorator_list, .. } => {
+                if !keywords.is_empty() {
+                    return Err(self.unsupported("class keywords (metaclass)"));
+                }
+                for d in decorator_list {
+                    self.expr(d)?;
+                }
+                self.class_def(name, bases, body, stmt.pos.lineno)?;
+                for _ in decorator_list {
+                    self.line = stmt.pos.lineno;
+                    self.emit(Op::Call { argc: 1, kwnames: None });
+                }
+                self.emit_store(name);
+            }
             S::Import { names } => {
                 for alias in names {
-                    if alias.name.contains('.') && alias.asname.is_none() {
-                        return Err(self.unsupported("dotted imports"));
-                    }
+                    // `import a.b.c` liga `a` (depois de carregar `a.b.c`); com `as d`, liga `d` ao
+                    // submódulo `a.b.c`.
                     let n = self.name(&alias.name);
                     self.emit(Op::Import(n));
-                    let bound = alias.asname.clone().unwrap_or_else(|| alias.name.clone());
+                    let bound = match &alias.asname {
+                        Some(a) => a.clone(),
+                        None if alias.name.contains('.') => {
+                            self.emit(Op::Pop);
+                            let top = alias.name.split('.').next().unwrap_or("").to_string();
+                            let t = self.name(&top);
+                            self.emit(Op::Import(t));
+                            top
+                        }
+                        None => alias.name.clone(),
+                    };
                     self.emit_store(&bound);
                 }
             }
@@ -451,11 +718,22 @@ impl Compiler {
                 }
             }
             S::TryStar { .. } => return Err(self.unsupported("except*")),
-            S::Delete { .. } => return Err(self.unsupported("del")),
-            S::With { .. } | S::AsyncWith { .. } => return Err(self.unsupported("with")),
+            S::Delete { targets } => {
+                for t in targets {
+                    self.delete(t)?;
+                }
+            }
+            S::With { items, body, .. } => self.with_stmt(items, body)?,
+            S::AsyncWith { .. } => return Err(self.unsupported("async with")),
             S::Match { .. } => return Err(self.unsupported("match")),
-            S::AnnAssign { .. } | S::TypeAlias { .. } => return Err(self.unsupported("annotations")),
-            S::Nonlocal { .. } => return Err(self.unsupported("nonlocal")),
+            S::AnnAssign { target, value, .. } => {
+                if let Some(v) = value {
+                    self.expr(v)?;
+                    self.store(target)?;
+                }
+            }
+            S::TypeAlias { .. } => return Err(self.unsupported("type aliases")),
+            S::Nonlocal { .. } => {}
             S::AsyncFor { .. } => return Err(self.unsupported("async for")),
         }
         Ok(())
@@ -474,7 +752,7 @@ impl Compiler {
             return self.try_except(body, handlers, orelse);
         }
         let setup = self.emit(Op::SetupTry(0));
-        self.tries.push(TryCtx { finalbody: finalbody.to_vec() });
+        self.tries.push(TryCtx { finalbody: finalbody.to_vec(), with_exit: None });
         if handlers.is_empty() {
             self.block(body)?;
             self.block(orelse)?;
@@ -497,7 +775,7 @@ impl Compiler {
 
     fn try_except(&mut self, body: &[Stmt], handlers: &[ExceptHandler], orelse: &[Stmt]) -> Result<(), CompileError> {
         let setup = self.emit(Op::SetupTry(0));
-        self.tries.push(TryCtx { finalbody: Vec::new() });
+        self.tries.push(TryCtx { finalbody: Vec::new(), with_exit: None });
         self.block(body)?;
         self.tries.pop();
         self.emit(Op::PopBlock);
@@ -554,6 +832,16 @@ impl Compiler {
         let mut result = Ok(());
         for i in (depth..all.len()).rev() {
             self.emit(Op::PopBlock);
+            if let Some(name) = all[i].with_exit.clone() {
+                self.emit_load(&name);
+                let none = self.constant_none();
+                for _ in 0..3 {
+                    self.emit(Op::LoadConst(none));
+                }
+                self.emit(Op::Call { argc: 3, kwnames: None });
+                self.emit(Op::Pop);
+                continue;
+            }
             if all[i].finalbody.is_empty() {
                 continue;
             }
@@ -570,54 +858,330 @@ impl Compiler {
     fn emit_load(&mut self, id: &str) {
         let n = self.name(id);
         let local = self.locals.as_ref().is_some_and(|l| l.contains(id));
-        self.emit(if local { Op::LoadLocal(n) } else { Op::LoadName(n) });
+        self.emit(if local {
+            Op::LoadLocal(n)
+        } else if self.globals_decl.contains(id) {
+            Op::LoadGlobal(n)
+        } else {
+            Op::LoadName(n)
+        });
     }
 
     fn emit_store(&mut self, id: &str) {
         let n = self.name(id);
         let local = self.locals.as_ref().is_some_and(|l| l.contains(id));
-        self.emit(if local { Op::StoreLocal(n) } else { Op::StoreName(n) });
+        self.emit(if local {
+            Op::StoreLocal(n)
+        } else if self.nonlocals_decl.contains(id) {
+            Op::StoreNonlocal(n)
+        } else {
+            Op::StoreName(n)
+        });
     }
 
-    /// `def nome(a, b=1): ...`: compila o corpo num `Code` próprio (nomes atribuídos viram locais,
-    /// salvo os declarados `global`) e guarda o nome da função no escopo atual.
-    fn function_def(&mut self, stmt: &Stmt, name: &str, args: &Arguments, body: &[Stmt]) -> Result<(), CompileError> {
-        if !args.posonlyargs.is_empty()
-            || args.vararg.is_some()
-            || !args.kwonlyargs.is_empty()
-            || args.kwarg.is_some()
-        {
-            return Err(self.unsupported("this kind of parameter"));
+    /// Compila uma função (`def` ou `lambda`) num `Code` próprio e emite a criação dela: os padrões
+    /// são avaliados aqui, no escopo de fora. Deixa a função na pilha; guardar é com o chamador.
+    fn make_function(&mut self, name: &str, args: &Arguments, body: FnBody, line: usize) -> Result<(), CompileError> {
+        let mut params: Vec<String> = args.posonlyargs.iter().map(|a| a.arg.clone()).collect();
+        let posonly = params.len();
+        params.extend(args.args.iter().map(|a| a.arg.clone()));
+        let kwonly: Vec<String> = args.kwonlyargs.iter().map(|a| a.arg.clone()).collect();
+        let vararg = args.vararg.as_ref().map(|a| a.arg.clone());
+        let kwarg = args.kwarg.as_ref().map(|a| a.arg.clone());
+        let mut scope = Scope::default();
+        scope.bound.extend(params.iter().cloned());
+        scope.bound.extend(kwonly.iter().cloned());
+        scope.bound.extend(vararg.iter().cloned());
+        scope.bound.extend(kwarg.iter().cloned());
+        match &body {
+            FnBody::Stmts(b) => scope.block(b),
+            FnBody::Expr(e) => scope.expr(e),
         }
-        let params: Vec<String> = args.args.iter().map(|a| a.arg.clone()).collect();
-        let mut locals: HashSet<String> = params.iter().cloned().collect();
-        let mut globals: HashSet<String> = HashSet::new();
-        collect_scope(body, &mut locals, &mut globals);
-        for g in &globals {
-            locals.remove(g);
+        let (locals, globals, nonlocals) = scope.locals();
+        let mut inner = Compiler::new(
+            Code {
+                name: name.to_string(),
+                params,
+                posonly,
+                vararg,
+                kwonly: kwonly.clone(),
+                kwarg,
+                is_function: true,
+                ..Code::default()
+            },
+            line,
+        );
+        inner.locals = Some(locals);
+        inner.globals_decl = globals;
+        inner.nonlocals_decl = nonlocals;
+        inner.enclosing_class = if self.in_class_body { self.class_name.clone() } else { self.enclosing_class.clone() };
+        match body {
+            FnBody::Stmts(b) => {
+                inner.block(b)?;
+                let c = inner.constant_none();
+                inner.emit(Op::LoadConst(c));
+            }
+            FnBody::Expr(e) => inner.expr(e)?,
         }
-        let mut inner = Compiler {
-            code: Code { name: name.to_string(), params: params.clone(), is_function: true, ..Code::default() },
-            line: stmt.pos.lineno,
-            loops: Vec::new(),
-            name_index: HashMap::new(),
-            tries: Vec::new(),
-            locals: Some(locals),
-        };
+        inner.emit(Op::Return);
+        let code = Rc::new(inner.code);
+        self.line = line;
+        for d in &args.defaults {
+            self.expr(d)?;
+        }
+        let mut kw_names = Vec::new();
+        for (arg, default) in args.kwonlyargs.iter().zip(&args.kw_defaults) {
+            if let Some(d) = default {
+                kw_names.push(Value::str(arg.arg.clone()));
+                self.expr(d)?;
+            }
+        }
+        let kwdefaults = if kw_names.is_empty() { None } else { Some(self.constant(Value::tuple(kw_names))) };
+        self.line = line;
+        self.code.functions.push(code);
+        let idx = (self.code.functions.len() - 1) as u32;
+        self.emit(Op::MakeFunction { code: idx, ndefaults: args.defaults.len() as u32, kwdefaults });
+        Ok(())
+    }
+
+    /// `class Nome(Bases): corpo`: o corpo roda num escopo próprio e o resultado é a classe.
+    fn class_def(&mut self, name: &str, bases: &[Expr], body: &[Stmt], line: usize) -> Result<(), CompileError> {
+        let mut scope = Scope::default();
+        scope.block(body);
+        let (locals, globals, nonlocals) = scope.locals();
+        let mut inner = Compiler::new(Code { name: name.to_string(), is_class: true, ..Code::default() }, line);
+        inner.locals = Some(locals);
+        inner.globals_decl = globals;
+        inner.nonlocals_decl = nonlocals;
+        inner.in_class_body = true;
+        inner.class_name = Some(name.to_string());
         inner.block(body)?;
         let c = inner.constant_none();
         inner.emit(Op::LoadConst(c));
         inner.emit(Op::Return);
         let code = Rc::new(inner.code);
-        self.line = stmt.pos.lineno;
-        for d in &args.defaults {
-            self.expr(d)?;
-        }
-        self.line = stmt.pos.lineno;
+        self.line = line;
+        self.exprs(bases)?;
+        self.line = line;
         self.code.functions.push(code);
         let idx = (self.code.functions.len() - 1) as u32;
-        self.emit(Op::MakeFunction { code: idx, ndefaults: args.defaults.len() as u32 });
-        self.emit_store(name);
+        self.emit(Op::BuildClass { code: idx, nbases: bases.len() as u32 });
+        Ok(())
+    }
+
+    /// `with a as x, b as y: corpo`, aninhando um por item. O `__exit__` fica numa variável oculta
+    /// para que `return`, `break` e `continue` consigam chamá-lo ao sair.
+    fn with_stmt(&mut self, items: &[WithItem], body: &[Stmt]) -> Result<(), CompileError> {
+        let Some((item, rest)) = items.split_first() else {
+            return self.block(body);
+        };
+        self.hidden += 1;
+        let hidden = format!(".with{}", self.hidden);
+        if let Some(l) = &mut self.locals {
+            l.insert(hidden.clone());
+        }
+        self.expr(&item.context_expr)?;
+        self.emit(Op::WithEnter);
+        // `[exit, valor]`: o `__exit__` vai para a variável oculta, o valor para o alvo.
+        self.emit(Op::Rot2);
+        self.emit_store(&hidden);
+        match &item.optional_vars {
+            Some(t) => self.store(t)?,
+            None => {
+                self.emit(Op::Pop);
+            }
+        }
+        let setup = self.emit(Op::SetupTry(0));
+        self.tries.push(TryCtx { finalbody: Vec::new(), with_exit: Some(hidden.clone()) });
+        self.with_stmt(rest, body)?;
+        self.tries.pop();
+        self.emit(Op::PopBlock);
+        self.emit_load(&hidden);
+        let none = self.constant_none();
+        for _ in 0..3 {
+            self.emit(Op::LoadConst(none));
+        }
+        self.emit(Op::Call { argc: 3, kwnames: None });
+        self.emit(Op::Pop);
+        let to_end = self.emit(Op::Jump(0));
+        let handler = self.here();
+        self.patch(setup, handler);
+        self.emit(Op::PushExc);
+        self.emit_load(&hidden);
+        self.emit(Op::WithExcept);
+        let suppressed = self.emit(Op::PopJumpIfTrue(0));
+        self.emit(Op::Reraise);
+        let ok = self.here();
+        self.patch(suppressed, ok);
+        self.emit(Op::Pop);
+        self.emit(Op::PopExc);
+        let end = self.here();
+        self.patch(to_end, end);
+        Ok(())
+    }
+
+    /// `del alvo`.
+    fn delete(&mut self, target: &Expr) -> Result<(), CompileError> {
+        match &target.kind {
+            E::Name { id, .. } => {
+                let n = self.name(id);
+                let local = self.locals.as_ref().is_some_and(|l| l.contains(id.as_str()));
+                self.emit(if local { Op::DeleteLocal(n) } else { Op::DeleteGlobal(n) });
+            }
+            E::Attribute { value, attr, .. } => {
+                self.expr(value)?;
+                let n = self.name(attr);
+                self.emit(Op::DeleteAttr(n));
+            }
+            E::Subscript { value, slice, .. } => {
+                self.expr(value)?;
+                self.slice_or_expr(slice)?;
+                self.emit(Op::DeleteSubscript);
+            }
+            E::Tuple { elts, .. } | E::List { elts, .. } => {
+                for e in elts {
+                    self.delete(e)?;
+                }
+            }
+            _ => return Err(self.unsupported("this del target")),
+        }
+        Ok(())
+    }
+
+    /// O índice de um subscript: uma fatia vira um objeto `slice`.
+    fn slice_or_expr(&mut self, slice: &Expr) -> Result<(), CompileError> {
+        if let E::Slice { lower, upper, step } = &slice.kind {
+            for part in [lower, upper, step] {
+                match part {
+                    Some(e) => self.expr(e)?,
+                    None => {
+                        let c = self.constant_none();
+                        self.emit(Op::LoadConst(c));
+                    }
+                }
+            }
+            self.emit(Op::BuildSlice);
+            Ok(())
+        } else {
+            self.expr(slice)
+        }
+    }
+
+    /// Compreensão: o corpo vira uma função `<listcomp>` etc. chamada com o primeiro iterável, como
+    /// no CPython (o alvo do laço não vaza para fora). `kind`: 0 lista, 1 conjunto, 2 dicionário,
+    /// 3 gerador.
+    fn comprehension(
+        &mut self,
+        kind: u8,
+        elt: &Expr,
+        value: Option<&Expr>,
+        generators: &[Comprehension],
+        line: usize,
+    ) -> Result<(), CompileError> {
+        let name = ["<listcomp>", "<setcomp>", "<dictcomp>", "<genexpr>"][kind as usize];
+        let mut scope = Scope::default();
+        scope.bound.insert(".0".to_string());
+        for g in generators {
+            scope.target(&g.target);
+            scope.expr(&g.iter);
+            g.ifs.iter().for_each(|i| scope.expr(i));
+        }
+        scope.expr(elt);
+        if let Some(v) = value {
+            scope.expr(v);
+        }
+        let (locals, globals, nonlocals) = scope.locals();
+        let mut inner = Compiler::new(
+            Code { name: name.to_string(), params: vec![".0".to_string()], is_function: true, ..Code::default() },
+            line,
+        );
+        inner.locals = Some(locals);
+        inner.globals_decl = globals;
+        inner.nonlocals_decl = nonlocals;
+        inner.code.is_generator = kind == 3;
+        match kind {
+            0 => {
+                inner.emit(Op::BuildList(0));
+            }
+            1 => {
+                inner.emit(Op::BuildSet(0));
+            }
+            2 => {
+                inner.emit(Op::BuildDict(0));
+            }
+            _ => {}
+        }
+        inner.comp_loops(kind, elt, value, generators, 0)?;
+        if kind == 3 {
+            let c = inner.constant_none();
+            inner.emit(Op::LoadConst(c));
+        }
+        inner.emit(Op::Return);
+        let code = Rc::new(inner.code);
+        self.line = line;
+        self.code.functions.push(code);
+        let idx = (self.code.functions.len() - 1) as u32;
+        self.emit(Op::MakeFunction { code: idx, ndefaults: 0, kwdefaults: None });
+        self.expr(&generators[0].iter)?;
+        self.line = line;
+        self.emit(Op::Call { argc: 1, kwnames: None });
+        Ok(())
+    }
+
+    /// Laços aninhados de uma compreensão; no mais interno, acrescenta o elemento.
+    fn comp_loops(
+        &mut self,
+        kind: u8,
+        elt: &Expr,
+        value: Option<&Expr>,
+        generators: &[Comprehension],
+        depth: usize,
+    ) -> Result<(), CompileError> {
+        let g = &generators[depth];
+        if depth == 0 {
+            self.emit_load(".0");
+        } else {
+            self.expr(&g.iter)?;
+        }
+        self.emit(Op::GetIter);
+        let top = self.emit(Op::ForIter(0));
+        self.store(&g.target)?;
+        let mut skips = Vec::new();
+        for cond in &g.ifs {
+            self.expr(cond)?;
+            skips.push(self.emit(Op::PopJumpIfFalse(0)));
+        }
+        if depth + 1 < generators.len() {
+            self.comp_loops(kind, elt, value, generators, depth + 1)?;
+        } else {
+            match kind {
+                0 => {
+                    self.expr(elt)?;
+                    self.emit(Op::ListAppendAt(depth as u32 + 1));
+                }
+                1 => {
+                    self.expr(elt)?;
+                    self.emit(Op::SetAddAt(depth as u32 + 1));
+                }
+                2 => {
+                    self.expr(elt)?;
+                    self.expr(value.ok_or_else(|| self.unsupported("dict comprehension value"))?)?;
+                    self.emit(Op::MapAddAt(depth as u32 + 1));
+                }
+                _ => {
+                    self.expr(elt)?;
+                    self.emit(Op::Yield);
+                    self.emit(Op::Pop);
+                }
+            }
+        }
+        let next = self.here();
+        for s in skips {
+            self.patch(s, next);
+        }
+        self.emit(Op::Jump(top as u32));
+        let end = self.here();
+        self.patch(top, end);
         Ok(())
     }
 
@@ -642,13 +1206,23 @@ impl Compiler {
             }
             E::Subscript { value: container, slice, .. } => {
                 self.expr(container)?;
-                self.expr(slice)?;
+                self.slice_or_expr(slice)?;
                 self.emit(Op::Dup2);
                 self.emit(Op::Subscript);
                 self.expr(value)?;
                 self.emit(Op::Binary { op, inplace: true });
                 self.emit(Op::Rot3);
                 self.emit(Op::StoreSubscript);
+            }
+            E::Attribute { value: obj, attr, .. } => {
+                self.expr(obj)?;
+                self.emit(Op::Dup);
+                let n = self.name(attr);
+                self.emit(Op::LoadAttr(n));
+                self.expr(value)?;
+                self.emit(Op::Binary { op, inplace: true });
+                self.emit(Op::Rot2);
+                self.emit(Op::StoreAttr(n));
             }
             _ => return Err(self.unsupported("this augmented assignment target")),
         }
@@ -665,16 +1239,37 @@ impl Compiler {
             }
             E::Subscript { value, slice, .. } => {
                 self.expr(value)?;
-                self.expr(slice)?;
+                self.slice_or_expr(slice)?;
                 self.emit(Op::StoreSubscript);
             }
+            E::Attribute { value, attr, .. } => {
+                self.expr(value)?;
+                let n = self.name(attr);
+                self.emit(Op::StoreAttr(n));
+            }
             E::Tuple { elts, .. } | E::List { elts, .. } => {
-                if elts.iter().any(|e| matches!(e.kind, E::Starred { .. })) {
-                    return Err(self.unsupported("starred assignment"));
+                let stars: Vec<usize> =
+                    elts.iter().enumerate().filter(|(_, e)| matches!(e.kind, E::Starred { .. })).map(|(i, _)| i).collect();
+                match stars.as_slice() {
+                    [] => {
+                        self.emit(Op::UnpackSequence(elts.len() as u32));
+                    }
+                    [i] => {
+                        self.emit(Op::UnpackEx { before: *i as u32, after: (elts.len() - i - 1) as u32 });
+                    }
+                    _ => {
+                        return Err(CompileError {
+                            kind: "SyntaxError",
+                            msg: "multiple starred expressions in assignment".into(),
+                            lineno: self.line,
+                        })
+                    }
                 }
-                self.emit(Op::UnpackSequence(elts.len() as u32));
                 for elt in elts {
-                    self.store(elt)?;
+                    match &elt.kind {
+                        E::Starred { value, .. } => self.store(value)?,
+                        _ => self.store(elt)?,
+                    }
                 }
             }
             _ => return Err(self.unsupported("this assignment target")),
@@ -691,11 +1286,33 @@ impl Compiler {
         Ok(())
     }
 
+    /// Avalia as expressões em ordem, cada uma deixando um valor (sem `*x`: ver `build_sequence`).
     fn exprs(&mut self, exprs: &[Expr]) -> Result<(), CompileError> {
-        if exprs.iter().any(|e| matches!(e.kind, E::Starred { .. })) {
-            return Err(self.unsupported("starred expressions"));
-        }
         exprs.iter().try_for_each(|e| self.expr(e))
+    }
+
+    /// Lista com os elementos de `elts` no topo da pilha, expandindo os `*x`. Sem estrelas é o
+    /// `BuildList` direto; com estrelas, acrescenta item a item.
+    fn build_list(&mut self, elts: &[Expr]) -> Result<(), CompileError> {
+        if !elts.iter().any(|e| matches!(e.kind, E::Starred { .. })) {
+            self.exprs(elts)?;
+            self.emit(Op::BuildList(elts.len() as u32));
+            return Ok(());
+        }
+        self.emit(Op::BuildList(0));
+        for e in elts {
+            match &e.kind {
+                E::Starred { value, .. } => {
+                    self.expr(value)?;
+                    self.emit(Op::ListExtend);
+                }
+                _ => {
+                    self.expr(e)?;
+                    self.emit(Op::ListAppend);
+                }
+            }
+        }
+        Ok(())
     }
 
     fn expr_inner(&mut self, expr: &Expr) -> Result<(), CompileError> {
@@ -746,44 +1363,104 @@ impl Compiler {
             }
             E::Compare { left, ops, comparators } => self.compare(left, ops, comparators)?,
             E::Call { func, args, keywords } => {
-                self.expr(func)?;
-                self.exprs(args)?;
-                let mut names = Vec::new();
-                for kw in keywords {
-                    let Some(name) = &kw.arg else { return Err(self.unsupported("**kwargs in calls")) };
-                    names.push(Value::str(name.clone()));
-                    self.expr(&kw.value)?;
+                // `super()` sem argumentos dentro de um método: `super(self, "Classe")`.
+                if let (E::Name { id, .. }, true, true, Some(class), Some(first)) =
+                    (&func.kind, args.is_empty(), keywords.is_empty(), self.enclosing_class.clone(), self.code.params.first().cloned())
+                    && id == "super"
+                {
+                    self.emit_load("super");
+                    self.emit_load(&first);
+                    let c = self.constant(Value::str(class));
+                    self.emit(Op::LoadConst(c));
+                    self.line = expr.pos.lineno;
+                    self.emit(Op::Call { argc: 2, kwnames: None });
+                    return Ok(());
                 }
-                let kwnames = if names.is_empty() { None } else { Some(self.constant(Value::tuple(names))) };
-                self.line = expr.pos.lineno;
-                self.emit(Op::Call { argc: (args.len() + keywords.len()) as u32, kwnames });
+                self.expr(func)?;
+                let star_args = args.iter().any(|a| matches!(a.kind, E::Starred { .. }));
+                let star_kw = keywords.iter().any(|k| k.arg.is_none());
+                if !star_args && !star_kw {
+                    self.exprs(args)?;
+                    let mut names = Vec::new();
+                    for kw in keywords {
+                        let name = kw.arg.clone().unwrap_or_default();
+                        names.push(Value::str(name));
+                        self.expr(&kw.value)?;
+                    }
+                    let kwnames = if names.is_empty() { None } else { Some(self.constant(Value::tuple(names))) };
+                    self.line = expr.pos.lineno;
+                    self.emit(Op::Call { argc: (args.len() + keywords.len()) as u32, kwnames });
+                } else {
+                    self.build_list(args)?;
+                    if !keywords.is_empty() {
+                        self.emit(Op::BuildDict(0));
+                        for kw in keywords {
+                            match &kw.arg {
+                                Some(name) => {
+                                    let c = self.constant(Value::str(name.clone()));
+                                    self.emit(Op::LoadConst(c));
+                                    self.expr(&kw.value)?;
+                                    self.emit(Op::DictSet);
+                                }
+                                None => {
+                                    self.expr(&kw.value)?;
+                                    self.emit(Op::DictUpdate);
+                                }
+                            }
+                        }
+                    }
+                    self.line = expr.pos.lineno;
+                    self.emit(Op::CallEx { kwargs: !keywords.is_empty() });
+                }
             }
-            E::List { elts, .. } => {
-                self.exprs(elts)?;
-                self.emit(Op::BuildList(elts.len() as u32));
-            }
+            E::List { elts, .. } => self.build_list(elts)?,
             E::Tuple { elts, .. } => {
-                self.exprs(elts)?;
-                self.emit(Op::BuildTuple(elts.len() as u32));
+                if elts.iter().any(|e| matches!(e.kind, E::Starred { .. })) {
+                    self.build_list(elts)?;
+                    self.emit(Op::ListToTuple);
+                } else {
+                    self.exprs(elts)?;
+                    self.emit(Op::BuildTuple(elts.len() as u32));
+                }
             }
             E::Set { elts } => {
-                self.exprs(elts)?;
-                self.emit(Op::BuildSet(elts.len() as u32));
+                if elts.iter().any(|e| matches!(e.kind, E::Starred { .. })) {
+                    self.build_list(elts)?;
+                    self.emit(Op::ListToSet);
+                } else {
+                    self.exprs(elts)?;
+                    self.emit(Op::BuildSet(elts.len() as u32));
+                }
             }
             E::Dict { keys, values } => {
-                for (key, value) in keys.iter().zip(values) {
-                    let Some(key) = key else { return Err(self.unsupported("** in dict displays")) };
-                    self.expr(key)?;
-                    self.expr(value)?;
+                if keys.iter().all(Option::is_some) {
+                    for (key, value) in keys.iter().zip(values) {
+                        if let Some(key) = key {
+                            self.expr(key)?;
+                        }
+                        self.expr(value)?;
+                    }
+                    self.emit(Op::BuildDict(values.len() as u32));
+                } else {
+                    self.emit(Op::BuildDict(0));
+                    for (key, value) in keys.iter().zip(values) {
+                        match key {
+                            Some(k) => {
+                                self.expr(k)?;
+                                self.expr(value)?;
+                                self.emit(Op::DictSet);
+                            }
+                            None => {
+                                self.expr(value)?;
+                                self.emit(Op::DictUpdate);
+                            }
+                        }
+                    }
                 }
-                self.emit(Op::BuildDict(values.len() as u32));
             }
             E::Subscript { value, slice, .. } => {
-                if matches!(slice.kind, E::Slice { .. }) {
-                    return Err(self.unsupported("slicing"));
-                }
                 self.expr(value)?;
-                self.expr(slice)?;
+                self.slice_or_expr(slice)?;
                 self.line = expr.pos.lineno;
                 self.emit(Op::Subscript);
             }
@@ -793,15 +1470,72 @@ impl Compiler {
                 self.line = expr.pos.lineno;
                 self.emit(Op::LoadAttr(n));
             }
-            E::Lambda { .. } => return Err(self.unsupported("lambda")),
-            E::NamedExpr { .. } => return Err(self.unsupported("assignment expressions")),
-            E::ListComp { .. } | E::SetComp { .. } | E::DictComp { .. } | E::GeneratorExp { .. } => {
-                return Err(self.unsupported("comprehensions"))
+            E::Lambda { args, body } => self.make_function("<lambda>", args, FnBody::Expr(body), expr.pos.lineno)?,
+            E::NamedExpr { target, value } => {
+                self.expr(value)?;
+                self.emit(Op::Dup);
+                self.store(target)?;
             }
-            E::JoinedStr { .. } | E::FormattedValue { .. } => return Err(self.unsupported("f-strings")),
-            E::Await { .. } | E::Yield { .. } | E::YieldFrom { .. } => return Err(self.unsupported("generators")),
-            E::Starred { .. } => return Err(self.unsupported("starred expressions")),
-            E::Slice { .. } => return Err(self.unsupported("slicing")),
+            E::ListComp { elt, generators } => self.comprehension(0, elt, None, generators, expr.pos.lineno)?,
+            E::SetComp { elt, generators } => self.comprehension(1, elt, None, generators, expr.pos.lineno)?,
+            E::DictComp { key, value, generators } => {
+                self.comprehension(2, key, Some(value), generators, expr.pos.lineno)?
+            }
+            E::GeneratorExp { elt, generators } => self.comprehension(3, elt, None, generators, expr.pos.lineno)?,
+            E::JoinedStr { values } => {
+                for v in values {
+                    self.expr(v)?;
+                }
+                self.emit(Op::BuildString(values.len() as u32));
+            }
+            E::FormattedValue { value, conversion, format_spec } => {
+                self.expr(value)?;
+                if let Some(spec) = format_spec {
+                    self.expr(spec)?;
+                }
+                let conv = match conversion {
+                    115 => 1,
+                    114 => 2,
+                    97 => 3,
+                    _ => 0,
+                };
+                self.line = expr.pos.lineno;
+                self.emit(Op::FormatValue { conv, has_spec: format_spec.is_some() });
+            }
+            E::Yield { value } => {
+                self.code.is_generator = true;
+                match value {
+                    Some(v) => self.expr(v)?,
+                    None => {
+                        let c = self.constant_none();
+                        self.emit(Op::LoadConst(c));
+                    }
+                }
+                self.line = expr.pos.lineno;
+                self.emit(Op::Yield);
+            }
+            E::YieldFrom { value } => {
+                self.code.is_generator = true;
+                self.expr(value)?;
+                self.emit(Op::GetIter);
+                let top = self.emit(Op::ForIter(0));
+                self.emit(Op::Yield);
+                self.emit(Op::Pop);
+                self.emit(Op::Jump(top as u32));
+                let end = self.here();
+                self.patch(top, end);
+                let c = self.constant_none();
+                self.emit(Op::LoadConst(c));
+            }
+            E::Await { .. } => return Err(self.unsupported("await")),
+            E::Starred { .. } => {
+                return Err(CompileError {
+                    kind: "SyntaxError",
+                    msg: "can't use starred expression here".into(),
+                    lineno: self.line,
+                })
+            }
+            E::Slice { .. } => return Err(self.unsupported("slicing outside a subscript")),
         }
         Ok(())
     }
