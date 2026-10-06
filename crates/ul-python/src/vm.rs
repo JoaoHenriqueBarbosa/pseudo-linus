@@ -1182,7 +1182,7 @@ impl Vm {
             }
             return Ok(env);
         }
-        let name = code.name.as_str();
+        let name = code.qual();
         let params = &code.params;
         let n = params.len();
         let ndefaults = f.defaults.len();
@@ -2483,7 +2483,8 @@ impl Vm {
                     return Ok(v.clone());
                 }
                 match name {
-                    "__name__" | "__qualname__" => return Ok(Value::str(f.code.name.clone())),
+                    "__name__" => return Ok(Value::str(f.code.name.clone())),
+                    "__qualname__" => return Ok(Value::str(f.code.qual())),
                     "__defaults__" => {
                         return Ok(if f.defaults.is_empty() { Value::None } else { Value::tuple(f.defaults.clone()) })
                     }

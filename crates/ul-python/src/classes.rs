@@ -507,7 +507,17 @@ impl Vm {
         let meta = meta.or_else(|| info.classes.iter().find_map(|c| c.meta.clone()));
         let named: Vec<(String, Value)> =
             ns.iter().filter(|(_, v)| matches!(v, Value::Instance(_))).cloned().collect();
+        let mut ns = ns;
+        // Como `type.__new__`: o `__qualname__` do corpo sai do espaço de nomes e vira atributo do tipo.
+        let qualname = match ns.iter().position(|(k, _)| k == "__qualname__") {
+            Some(i) => match ns.remove(i).1 {
+                Value::Str(s) => s.as_str().to_string(),
+                _ => name.clone(),
+            },
+            None => name.clone(),
+        };
         let cls = Rc::new(ClassObj {
+            qualname,
             name,
             bases: info.classes,
             builtin_base: info.builtin_base,
@@ -803,7 +813,8 @@ impl Vm {
 
     pub(crate) fn class_getattr(&mut self, cls: &Rc<ClassObj>, name: &str) -> PyResult<Value> {
         match name {
-            "__name__" | "__qualname__" => return Ok(Value::str(cls.name.clone())),
+            "__name__" => return Ok(Value::str(cls.name.clone())),
+            "__qualname__" => return Ok(Value::str(cls.qualname())),
             "__module__" => return Ok(Value::str(cls.module())),
             "__bases__" => {
                 return Ok(Value::tuple(cls.bases.iter().map(|b| Value::Class(b.clone())).collect()));
@@ -1369,6 +1380,7 @@ impl Vm {
                     return Err(type_error("object() takes no arguments"));
                 }
                 let base = Rc::new(ClassObj {
+                    qualname: "object".to_string(),
                     name: "object".to_string(),
                     bases: Vec::new(),
                     builtin_base: None,

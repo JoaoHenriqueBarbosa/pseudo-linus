@@ -346,6 +346,8 @@ pub struct FuncObj {
 /// Classe definida por `class`: nome, bases (já resolvidas) e o espaço de nomes.
 pub struct ClassObj {
     pub name: String,
+    /// `__qualname__` (`Outer.Inner`, `f.<locals>.C`); igual a `name` fora de aninhamento.
+    pub qualname: String,
     pub bases: Vec<Rc<ClassObj>>,
     /// A classe embutida mais próxima na herança (uma exceção como `Exception`), se houver.
     pub builtin_base: Option<&'static str>,
@@ -366,6 +368,11 @@ impl fmt::Debug for ClassObj {
 }
 
 impl ClassObj {
+    /// `__qualname__`: `Outer.Inner` ou `f.<locals>.C`; o corpo da classe o grava no espaço de nomes.
+    pub fn qualname(&self) -> String {
+        self.qualname.clone()
+    }
+
     /// O módulo onde a classe foi definida (`__module__`), `__main__` por padrão.
     pub fn module(&self) -> String {
         match self.dict.borrow().get("__module__") {
@@ -953,7 +960,7 @@ pub(crate) fn repr_into(v: &Value, out: &mut String, stack: &mut ReprStack) {
         Value::Builtin(name) if is_builtin_type(name) => out.push_str(&format!("<class '{name}'>")),
         Value::Builtin(name) => out.push_str(&format!("<built-in function {name}>")),
         Value::Exception(e) => out.push_str(&exc_repr(e)),
-        Value::Function(f) => out.push_str(&format!("<function {} at {:#x}>", f.code.name, addr(f))),
+        Value::Function(f) => out.push_str(&format!("<function {} at {:#x}>", f.code.qual(), addr(f))),
         Value::Module(m) => out.push_str(&format!("<module '{}'>", m.name)),
         Value::NativeFn(n) if is_builtin_type(n.name) => out.push_str(&format!("<class '{}'>", n.name)),
         Value::NativeFn(n) => out.push_str(&format!("<built-in function {}>", n.name)),
@@ -966,7 +973,7 @@ pub(crate) fn repr_into(v: &Value, out: &mut String, stack: &mut ReprStack) {
         Value::Bound(b) => out.push_str(&format!("<built-in method {} of {} object at {:#x}>", b.name, b.recv.type_name(), addr(b))),
         Value::Class(c) => match c.meta.is_some().then(|| crate::vm::instance_text(v, false)).flatten() {
             Some(text) => out.push_str(&text),
-            None => out.push_str(&format!("<class '{}{}'>", module_prefix(c), c.name)),
+            None => out.push_str(&format!("<class '{}{}'>", module_prefix(c), c.qualname())),
         },
         Value::Instance(i) => match crate::vm::instance_text(v, false) {
             Some(text) => out.push_str(&text),
@@ -982,7 +989,7 @@ pub(crate) fn repr_into(v: &Value, out: &mut String, stack: &mut ReprStack) {
             out.push(')');
         }
         Value::BoundFn(b) => {
-            out.push_str(&format!("<bound method {} of ", b.1.code.name));
+            out.push_str(&format!("<bound method {} of ", b.1.code.qual()));
             repr_into(&b.0, out, stack);
             out.push('>');
         }

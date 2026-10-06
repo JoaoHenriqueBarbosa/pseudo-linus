@@ -232,6 +232,8 @@ pub struct Code {
     pub names: Vec<String>,
     /// Nome da função (`<module>` no nível de módulo, vazio por `Default`).
     pub name: String,
+    /// Nome qualificado (`A.m`, `f.<locals>.g`); vazio quando é igual a `name`.
+    pub qualname: String,
     /// Parâmetros posicionais (os `posonly` primeiros são só-posicionais).
     pub params: Vec<String>,
     pub posonly: usize,
@@ -253,6 +255,11 @@ pub struct Code {
 }
 
 impl Code {
+    /// `__qualname__` da função.
+    pub fn qual(&self) -> &str {
+        if self.qualname.is_empty() { &self.name } else { &self.qualname }
+    }
+
     /// Grava `filename` neste código e em todas as funções aninhadas (só vale logo após compilar,
     /// quando cada `Rc` ainda tem um dono só).
     pub fn set_filename(&mut self, filename: &str) {
@@ -725,6 +732,8 @@ struct Compiler {
     in_class_body: bool,
     /// Nome da classe cujo corpo este compilador compila.
     class_name: Option<String>,
+    /// Prefixo do `__qualname__` dos filhos (`A.` num corpo de classe, `f.<locals>.` numa função).
+    qual_prefix: String,
     /// Classe em cujo corpo a função sendo compilada foi definida (para o `super()` sem argumentos).
     enclosing_class: Option<String>,
     /// `from __future__ import annotations`: anotações viram texto em vez de serem avaliadas.
@@ -746,6 +755,7 @@ impl Compiler {
             hidden: 0,
             in_class_body: false,
             class_name: None,
+            qual_prefix: String::new(),
             enclosing_class: None,
             future_annotations: false,
         }
@@ -1304,9 +1314,11 @@ impl Compiler {
             FnBody::Expr(e) => scope.expr(e),
         }
         let (locals, globals, nonlocals) = scope.locals();
+        let qualname = format!("{}{}", self.qual_prefix, name);
         let mut inner = Compiler::new(
             Code {
                 name: name.to_string(),
+                qualname: qualname.clone(),
                 params,
                 posonly,
                 vararg,
@@ -1319,6 +1331,7 @@ impl Compiler {
             line,
         );
         inner.locals = Some(locals);
+        inner.qual_prefix = format!("{qualname}.<locals>.");
         inner.globals_decl = globals;
         inner.nonlocals_decl = nonlocals;
         inner.enclosing_class = if self.in_class_body { self.class_name.clone() } else { self.enclosing_class.clone() };
@@ -1389,13 +1402,21 @@ impl Compiler {
         let mut scope = Scope::default();
         scope.block(body);
         let (locals, globals, nonlocals) = scope.locals();
-        let mut inner = Compiler::new(Code { name: name.to_string(), is_class: true, ..Code::default() }, line);
+        let qualname = format!("{}{}", self.qual_prefix, name);
+        let mut inner = Compiler::new(Code { name: name.to_string(), qualname: qualname.clone(), is_class: true, ..Code::default() }, line);
+        inner.qual_prefix = format!("{qualname}.");
         inner.locals = Some(locals);
         inner.globals_decl = globals;
         inner.nonlocals_decl = nonlocals;
         inner.in_class_body = true;
         inner.future_annotations = self.future_annotations;
         inner.class_name = Some(name.to_string());
+        let k = inner.constant(Value::str(qualname));
+        inner.emit(Op::LoadConst(k));
+        if let Some(l) = &mut inner.locals {
+            l.insert("__qualname__".to_string());
+        }
+        inner.emit_store("__qualname__");
         if let Some(doc) = docstring(body) {
             let k = inner.constant(Value::str(doc));
             inner.emit(Op::LoadConst(k));
@@ -1787,9 +1808,10 @@ impl Compiler {
         }
         let (locals, globals, nonlocals) = scope.locals();
         let mut inner = Compiler::new(
-            Code { name: name.to_string(), params: vec![".0".to_string()], is_function: true, ..Code::default() },
+            Code { name: name.to_string(), qualname: format!("{}{}", self.qual_prefix, name), params: vec![".0".to_string()], is_function: true, ..Code::default() },
             line,
         );
+        inner.qual_prefix = format!("{}{}.<locals>.", self.qual_prefix, name);
         inner.locals = Some(locals);
         inner.globals_decl = globals;
         inner.nonlocals_decl = nonlocals;

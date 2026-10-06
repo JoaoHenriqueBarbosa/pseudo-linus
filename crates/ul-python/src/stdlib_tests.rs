@@ -3381,3 +3381,62 @@ plain
 "##
     );
 }
+
+#[test]
+fn qualname_in_messages_and_repr() {
+    let src = r##"
+class A:
+    def __init__(self, x):
+        self.x = x
+
+    def m(self, y):
+        def inner(z):
+            pass
+        return inner
+
+    @staticmethod
+    def s(a):
+        pass
+
+
+def outer():
+    def f(a):
+        pass
+    return f
+
+
+print(A.m.__qualname__, A.s.__qualname__, outer().__qualname__, outer.__qualname__)
+print(A.__qualname__, (lambda: 0).__qualname__)
+print(A(1).m(2).__qualname__)
+print(repr(A.m).split(" at ")[0], repr(outer()).split(" at ")[0])
+for call in (lambda: A(), lambda: A(1).m(), lambda: A.s(), lambda: outer()()):
+    try:
+        call()
+    except TypeError as e:
+        print(e)
+
+
+class B:
+    class C:
+        def n(self):
+            pass
+
+
+print(B.C.__qualname__, B.C.n.__qualname__)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"A.m A.s outer.<locals>.f outer
+A <lambda>
+A.m.<locals>.inner
+<function A.m <function outer.<locals>.f
+A.__init__() missing 1 required positional argument: 'x'
+A.m() missing 1 required positional argument: 'y'
+A.s() missing 1 required positional argument: 'a'
+outer.<locals>.f() missing 1 required positional argument: 'a'
+B.C B.C.n
+"##
+    );
+}
