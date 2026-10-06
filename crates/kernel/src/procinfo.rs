@@ -16,6 +16,8 @@ use crate::sys::{UNAME_RELEASE, UNAME_VERSION};
 
 /// `mnt_id` do pipefs, a montagem interna dos pipes (o valor que o oráculo mostra).
 const PIPEFS_MNT_ID: u32 = 16;
+/// `mnt_id` do sockfs (o valor que o oráculo mostra).
+const SOCKFS_MNT_ID: u32 = 10;
 /// `O_LARGEFILE` do x86_64: o kernel o põe em todo `f_flags` de arquivo aberto por 64 bits.
 const O_LARGEFILE: u32 = 0o100000;
 
@@ -210,6 +212,14 @@ impl ProcProvider for SbProcProvider {
             ),
             FileObj::Dev { loc: Some(loc), .. } => (sb.ns.fd_path(cx, loc), Link::Jump(loc.clone())),
             FileObj::Dev { loc: None, .. } => (b"/dev/null".to_vec(), Link::Path(b"/dev/null".to_vec())),
+            FileObj::Listener(l) => {
+                let text = format!("socket:[{}]", l.ident.ino).into_bytes();
+                (text.clone(), Link::Path(text))
+            }
+            FileObj::Stream(c) => {
+                let text = format!("socket:[{}]", c.ident.ino).into_bytes();
+                (text.clone(), Link::Path(text))
+            }
         };
         Some(FdLink { text, target, perm })
     }
@@ -326,6 +336,8 @@ fn describe_fd(sb: &SbInner, ofd: &Ofd, cloexec: bool) -> FdInfo {
         FileObj::Path { loc, .. } => (loc.mnt.id, loc.ino),
         FileObj::Pipe { fifo: Some(loc), .. } => (loc.mnt.id, loc.ino),
         FileObj::Pipe { end, fifo: None } => (PIPEFS_MNT_ID, end.pipe.ino),
+        FileObj::Listener(l) => (SOCKFS_MNT_ID, l.ident.ino),
+        FileObj::Stream(c) => (SOCKFS_MNT_ID, c.ident.ino),
         FileObj::Dev { loc: Some(loc), .. } => {
             flags |= O_LARGEFILE;
             (loc.mnt.id, loc.ino)

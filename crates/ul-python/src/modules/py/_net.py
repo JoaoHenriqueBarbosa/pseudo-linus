@@ -84,6 +84,8 @@ class Listener(_Notifier):
         self.pending = collections.deque()
         self.closed = False
         self.on_connection = None
+        # O fd do kernel em que a mesma porta escuta para os outros processos (só TCP).
+        self.kfd = None
 
     def push(self, endpoint):
         if self.on_connection is not None:
@@ -92,13 +94,30 @@ class Listener(_Notifier):
             self.pending.append(endpoint)
             self._notify()
 
+    def _pump(self):
+        """Traz as conexões que chegaram pelo kernel."""
+        while self.kfd is not None:
+            got = _os.tcp_accept(self.kfd)
+            if got is None:
+                return
+            fd, peer_port = got
+            ip = loopback_ip(self.family)
+            self.push(KernelEndpoint(self.family, fd, address(self.family, ip, self.addr[1]),
+                                     address(self.family, ip, peer_port)))
+
     def readable(self):
+        if not self.pending and self.kfd is not None:
+            self._pump()
         return bool(self.pending) or self.closed
 
     def close(self):
         if self.closed:
             return
         self.closed = True
+        if self.kfd is not None:
+            kfd, self.kfd = self.kfd, None
+            _kunregister(kfd)
+            _os.close(kfd)
         if _listeners.get(self.key) is self:
             del _listeners[self.key]
         for endpoint in self.pending:
@@ -107,18 +126,70 @@ class Listener(_Notifier):
         self._notify()
 
 
-def listen(family, addr, backlog, reuse=False):
+def listen(family, addr, backlog, reuse=False, ephemeral=False):
+    """Um `Listener` em `addr`. Com `ephemeral` (o `bind` pediu a porta 0), quem escolhe a porta é o kernel,
+    que conhece as portas em escuta de todos os processos: o endereço do ouvinte sai com a porta dele."""
     if family == AF_UNIX:
         key = ('u', addr)
         if key in _listeners:
             raise OSError(errno.EADDRINUSE, 'Address already in use')
+        kfd = None
     else:
-        key = ('t', addr[1])
-        if key in _listeners:
+        if not ephemeral and ('t', addr[1]) in _listeners:
             raise OSError(errno.EADDRINUSE, 'Address already in use')
+        # A mesma porta escuta também no kernel, para os outros processos do sandbox.
+        try:
+            kfd, kport = _os.tcp_listen(0 if ephemeral else addr[1], backlog)
+        except OSError as e:
+            if e.errno != errno.ENOSYS:
+                raise
+            kfd, kport = None, addr[1]
+        if kport != addr[1]:
+            release_port(addr[1])
+            _ports.add(kport)
+            addr = address(family, addr[0], kport)
+        key = ('t', kport)
     listener = Listener(family, key, addr, backlog)
+    if kfd is not None:
+        listener.kfd = kfd
+        _kregister(kfd, listener)
     _listeners[key] = listener
     return listener
+
+
+# ---- conexões com outros processos (kernel) ---------------------------------------------------------
+# Um `Listener` TCP escuta também no kernel; quem conecta a uma porta sem ouvinte neste interpretador vai
+# ao kernel. Os fds do kernel são não bloqueantes: as esperas passam pelo `threading._wait_for`, que chama
+# `_kpoll` quando não há thread cooperativa para rodar.
+
+import _os
+
+_kfds = {}
+
+
+def _kregister(kfd, obj):
+    import threading
+    if not _kfds and _kpoll not in threading._pollers:
+        threading._pollers.append(_kpoll)
+    _kfds[kfd] = obj
+
+
+def _kunregister(kfd):
+    _kfds.pop(kfd, None)
+    if not _kfds:
+        import threading
+        if _kpoll in threading._pollers:
+            threading._pollers.remove(_kpoll)
+
+
+def _kpoll(timeout):
+    """Espera até `timeout` por dado, conexão ou EOF em algum fd do kernel e os entrega."""
+    if not _kfds:
+        return
+    for kfd in _os.tcp_poll(list(_kfds), timeout):
+        obj = _kfds.get(kfd)
+        if obj is not None:
+            obj._pump()
 
 
 class Endpoint(_Notifier):
@@ -188,6 +259,61 @@ class Endpoint(_Notifier):
         self._notify()
 
 
+class KernelEndpoint(Endpoint):
+    """Uma ponta de conexão com outro processo: os bytes chegam pelo fd do kernel e são trazidos para `rx`
+    quando alguém pergunta se há o que ler (`readable`) ou quando o `poll` do escalonador os encontra."""
+
+    def __init__(self, family, kfd, local, peer):
+        Endpoint.__init__(self, family, local, peer)
+        self.kfd = kfd
+        self.port = None
+        _kregister(kfd, self)
+
+    def _pump(self):
+        while self.kfd is not None and not self.rx_eof:
+            try:
+                data = _os.tcp_recv(self.kfd, 65536)
+            except ConnectionResetError:
+                self.reset = True
+                break
+            if data is None:
+                break
+            if not data:
+                self.rx_eof = True
+                _kunregister(self.kfd)
+                break
+            self.rx += data
+        self._notify()
+
+    def readable(self):
+        if not self.rx and not self.rx_eof:
+            self._pump()
+        return Endpoint.readable(self)
+
+    def write(self, data):
+        if self.closed or self.wr_shut or self.kfd is None:
+            raise BrokenPipeError(errno.EPIPE, 'Broken pipe')
+        return _os.tcp_send(self.kfd, data)
+
+    def shutdown_write(self):
+        if self.wr_shut:
+            return
+        self.wr_shut = True
+        if self.kfd is not None:
+            _os.tcp_shutdown(self.kfd, False, True)
+
+    def close(self):
+        if self.closed:
+            return
+        self.closed = True
+        self.wr_shut = True
+        if self.kfd is not None:
+            kfd, self.kfd = self.kfd, None
+            _kunregister(kfd)
+            _os.close(kfd)
+        self._notify()
+
+
 def connect(family, addr):
     """Abre uma conexão com um `Listener` local e devolve a ponta do cliente."""
     if family == AF_UNIX:
@@ -203,7 +329,15 @@ def connect(family, addr):
             raise OSError(errno.ENETUNREACH, 'Network is unreachable')
         listener = _listeners.get(('t', port))
         if listener is None or listener.closed:
-            raise ConnectionRefusedError(errno.ECONNREFUSED, 'Connection refused')
+            # Ninguém escuta neste interpretador: talvez outro processo do sandbox.
+            try:
+                kfd, cport = _os.tcp_connect(port)
+            except OSError as e:
+                if e.errno == errno.ENOSYS:
+                    raise ConnectionRefusedError(errno.ECONNREFUSED, 'Connection refused') from None
+                raise
+            ip = loopback_ip(family)
+            return KernelEndpoint(family, kfd, address(family, ip, cport), address(family, ip, port))
         ip = loopback_ip(family)
         cport = alloc_port()
         client = Endpoint(family, address(family, ip, cport), address(family, ip, port))

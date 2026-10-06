@@ -22,6 +22,8 @@ fn os_error(e: Errno, path: Option<&str>) -> PyException {
         Errno::EAGAIN => "BlockingIOError",
         Errno::EPIPE => "BrokenPipeError",
         Errno::ECHILD => "ChildProcessError",
+        Errno::ECONNREFUSED => "ConnectionRefusedError",
+        Errno::ECONNRESET => "ConnectionResetError",
         _ => "OSError",
     };
     let msg = match path {
@@ -565,8 +567,129 @@ fn take_signals(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::list(sigs.into_iter().map(|s| Value::Int(i64::from(s.0))).collect()))
 }
 
+// ---- TCP de loopback entre processos (o `_net` usa quando o par não está neste interpretador) ----
+// Os fds nascem não bloqueantes: quem espera é o `_net`, pelo `tcp_poll`, para não travar as threads
+// cooperativas do interpretador.
+
+/// Sem pseudo-processo (o interpretador embutido nos testes) não há kernel: ENOSYS, e o `_net` fica só
+/// com a rede dentro do interpretador.
+fn need_kernel() -> PyResult<()> {
+    if sys::try_current().is_none() {
+        return Err(os_error(Errno::ENOSYS, None));
+    }
+    Ok(())
+}
+
+fn want_port(fname: &str, args: &[Value], i: usize) -> PyResult<u16> {
+    need_kernel()?;
+    u16::try_from(want_int(arg(fname, args, i)?)?).map_err(|_| exc("OverflowError", format!("{fname}(): port must be 0-65535.")))
+}
+
+/// `tcp_listen(port, backlog)`: `(fd, porta)`.
+fn tcp_listen(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("tcp_listen", &kw)?;
+    let port = want_port("tcp_listen", &args, 0)?;
+    let backlog = want_int(arg("tcp_listen", &args, 1)?)?.clamp(0, i64::from(u32::MAX)) as u32;
+    let (fd, port) = sys::tcp_listen(port, backlog, true, true).map_err(|e| os_error(e, None))?;
+    Ok(Value::tuple(vec![Value::Int(i64::from(fd.0)), Value::Int(i64::from(port))]))
+}
+
+/// `tcp_accept(fd)`: `(fd, porta do par)`, ou `None` sem conexão pronta.
+fn tcp_accept(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("tcp_accept", &kw)?;
+    let fd = Fd(want_int(arg("tcp_accept", &args, 0)?)? as i32);
+    match sys::tcp_accept(fd, true, true) {
+        Ok((fd, peer)) => Ok(Value::tuple(vec![Value::Int(i64::from(fd.0)), Value::Int(i64::from(peer))])),
+        Err(Errno::EAGAIN) => Ok(Value::None),
+        Err(e) => Err(os_error(e, None)),
+    }
+}
+
+/// `tcp_connect(port)`: `(fd, porta local)`.
+fn tcp_connect(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("tcp_connect", &kw)?;
+    let port = want_port("tcp_connect", &args, 0)?;
+    let (fd, local) = sys::tcp_connect(port, true, true).map_err(|e| os_error(e, None))?;
+    Ok(Value::tuple(vec![Value::Int(i64::from(fd.0)), Value::Int(i64::from(local))]))
+}
+
+/// `tcp_shutdown(fd, read, write)`.
+fn tcp_shutdown(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("tcp_shutdown", &kw)?;
+    let fd = Fd(want_int(arg("tcp_shutdown", &args, 0)?)? as i32);
+    let read = arg("tcp_shutdown", &args, 1)?.is_true();
+    let write = arg("tcp_shutdown", &args, 2)?.is_true();
+    sys::tcp_shutdown(fd, read, write).map_err(|e| os_error(e, None))?;
+    Ok(Value::None)
+}
+
+/// `tcp_recv(fd, n)`: até `n` bytes (`b''` no fim), ou `None` se ainda não chegou nada.
+fn tcp_recv(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("tcp_recv", &kw)?;
+    let fd = Fd(want_int(arg("tcp_recv", &args, 0)?)? as i32);
+    let n = want_int(arg("tcp_recv", &args, 1)?)?.max(0) as usize;
+    let mut buf = vec![0u8; n];
+    match sys::read(fd, &mut buf) {
+        Ok(got) => {
+            buf.truncate(got);
+            Ok(Value::bytes(buf))
+        }
+        Err(Errno::EAGAIN) => Ok(Value::None),
+        Err(e) => Err(os_error(e, None)),
+    }
+}
+
+/// `tcp_send(fd, data)`: escreve tudo. Com o pipe cheio espera o par (em outro processo) esvaziar.
+fn tcp_send(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("tcp_send", &kw)?;
+    let fd = Fd(want_int(arg("tcp_send", &args, 0)?)? as i32);
+    let data = arg("tcp_send", &args, 1)?.bytes_like().map(|b| b.to_vec()).unwrap_or_default();
+    let mut off = 0;
+    while off < data.len() {
+        match sys::write(fd, &data[off..]) {
+            Ok(n) => off += n,
+            Err(Errno::EAGAIN) => {
+                let mut pfd = [sysabi::PollFd { fd, events: sysabi::PollEvents::OUT, revents: sysabi::PollEvents::empty() }];
+                sys::current().poll(&mut pfd, None).map_err(|e| os_error(e, None))?;
+            }
+            Err(e) => return Err(os_error(e, None)),
+        }
+    }
+    Ok(Value::Int(data.len() as i64))
+}
+
+/// `tcp_poll(fds, timeout)`: os fds de `fds` prontos para leitura (dado, conexão, EOF), esperando até
+/// `timeout` segundos (`None`, sem limite).
+fn tcp_poll(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("tcp_poll", &kw)?;
+    let list = match arg("tcp_poll", &args, 0)? {
+        Value::List(l) => l.borrow().clone(),
+        Value::Tuple(t) => t.to_vec(),
+        other => return Err(type_error(format!("tcp_poll: expected list, not {}", other.type_name()))),
+    };
+    let timeout = match arg("tcp_poll", &args, 1)? {
+        Value::None => None,
+        Value::Float(f) => Some(std::time::Duration::from_secs_f64(f.max(0.0))),
+        v => Some(std::time::Duration::from_secs(want_int(&v)?.max(0) as u64)),
+    };
+    let mut pfds = Vec::with_capacity(list.len());
+    for v in &list {
+        pfds.push(sysabi::PollFd { fd: Fd(want_int(v)? as i32), events: sysabi::PollEvents::IN, revents: sysabi::PollEvents::empty() });
+    }
+    sys::current().poll(&mut pfds, timeout).map_err(|e| os_error(e, None))?;
+    let ready = pfds.iter().filter(|p| !p.revents.is_empty()).map(|p| Value::Int(i64::from(p.fd.0))).collect();
+    Ok(Value::list(ready))
+}
+
 pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
     ModuleBuilder::new("_os")
+        .func("tcp_listen", tcp_listen)
+        .func("tcp_accept", tcp_accept)
+        .func("tcp_connect", tcp_connect)
+        .func("tcp_shutdown", tcp_shutdown)
+        .func("tcp_recv", tcp_recv)
+        .func("tcp_send", tcp_send)
+        .func("tcp_poll", tcp_poll)
         .func("getcwd", getcwd)
         .func("chdir", chdir)
         .func("listdir", listdir)

@@ -270,6 +270,45 @@ fn p_scenario(ctx: &mut Ctx, args: &[OsString]) -> i32 {
             }
             deep(2)
         }
+        "tcp" => {
+            let (lfd, port) = s.tcp_listen(0, 4, false, true).unwrap();
+            let busy = s.tcp_listen(port, 4, false, true).map(|_| ());
+            let refused = s.tcp_connect(1, false, true).map(|_| ());
+            let server = s
+                .spawn_thread(Box::new(move || {
+                    let s = sys::current();
+                    let (c, _) = s.tcp_accept(lfd, false, true).unwrap();
+                    let mut data = Vec::new();
+                    let mut buf = [0u8; 3];
+                    loop {
+                        let n = s.read(c, &mut buf).unwrap();
+                        if n == 0 {
+                            break;
+                        }
+                        data.extend_from_slice(&buf[..n]);
+                    }
+                    write_all(c, &data.to_ascii_uppercase()).unwrap();
+                    s.close(c).unwrap();
+                }))
+                .unwrap();
+            let (c, local) = s.tcp_connect(port, false, true).unwrap();
+            let ports = s.tcp_ports(c).unwrap();
+            write_all(c, b"hello tcp").unwrap();
+            s.tcp_shutdown(c, false, true).unwrap();
+            let got = sys::read_to_end(c).unwrap();
+            s.join_thread(server).unwrap();
+            let st = s.fstat(c).unwrap();
+            out(format!(
+                "{} {:?} {:?} {} {} {}\n",
+                String::from_utf8_lossy(&got),
+                busy,
+                refused,
+                ports == (local, Some(port)),
+                (32768..=60999).contains(&port),
+                st.mode & sysabi::mode::S_IFMT == sysabi::mode::S_IFSOCK
+            ));
+            0
+        }
         "threads" => {
             let (r, w) = s.pipe2(OFlags::empty()).unwrap();
             let mut tids = Vec::new();
@@ -506,6 +545,13 @@ fn exit_unwinds_and_runs_drops() {
     let r = run(&sb, &["scenario", "exit-drop"]);
     assert_eq!(text(&r.stdout), "drop ran\ndrop ran\ndrop ran\n");
     assert_eq!(r.status, WaitStatus::Exited(42));
+}
+
+#[test]
+fn tcp_loopback_listen_connect_shutdown() {
+    let sb = sandbox();
+    let r = run(&sb, &["scenario", "tcp"]);
+    assert_eq!(text(&r.stdout), "HELLO TCP Err(EADDRINUSE) Err(ECONNREFUSED) true true true\n", "stderr: {}", text(&r.stderr));
 }
 
 #[test]

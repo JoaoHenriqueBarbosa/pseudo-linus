@@ -27,6 +27,10 @@ pub(crate) enum FileObj {
     /// Pipe anônimo ou FIFO (com o lugar da FIFO no VFS).
     Pipe { end: PipeEnd, fifo: Option<Loc> },
     Dev { dev: Device, loc: Option<Loc> },
+    /// Socket TCP de loopback em escuta.
+    Listener(Arc<crate::net::Listener>),
+    /// Conexão TCP de loopback estabelecida.
+    Stream(crate::net::Conn),
 }
 
 impl std::fmt::Debug for FileObj {
@@ -36,6 +40,8 @@ impl std::fmt::Debug for FileObj {
             FileObj::Path { loc, .. } => write!(f, "Path({loc:?})"),
             FileObj::Pipe { end, .. } => write!(f, "Pipe(ino {}, r {}, w {})", end.pipe.ino, end.read, end.write),
             FileObj::Dev { dev, .. } => write!(f, "Dev({dev:?})"),
+            FileObj::Listener(l) => write!(f, "Listener({})", l.port),
+            FileObj::Stream(c) => write!(f, "Stream({} -> {})", c.local, c.peer),
         }
     }
 }
@@ -121,6 +127,7 @@ impl Ofd {
             FileObj::Vfs { loc, .. } | FileObj::Path { loc, .. } => Some(loc),
             FileObj::Pipe { fifo, .. } => fifo.as_ref(),
             FileObj::Dev { loc, .. } => loc.as_ref(),
+            FileObj::Listener(_) | FileObj::Stream(_) => None,
         }
     }
 

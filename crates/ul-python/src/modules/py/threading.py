@@ -123,7 +123,8 @@ def _would_park():
 
 def _wait_for(cond, timeout, what):
     """Roda threads pendentes (e os passos dos serviços) até `cond()` ficar verdadeira. Com `timeout`, dorme o
-    que faltar e devolve `cond()`."""
+    que faltar e devolve `cond()`. Com fontes externas registradas (`_pollers`: sockets ligados a outros
+    processos), espera nelas em vez de acusar deadlock, porque outro processo pode destravar a espera."""
     deadline = None if timeout is None else _time.monotonic() + max(timeout, 0)
     while not cond():
         if _run_one():
@@ -134,8 +135,16 @@ def _wait_for(cond, timeout, what):
             # Um serviço pode destravar a espera quando chegar trabalho: sonda de novo em pouco tempo.
             if deadline is None or deadline - _time.monotonic() > 0:
                 if any(not busy for _, _, busy in _services):
-                    _time.sleep(0.001)
+                    if _pollers:
+                        _poll_external(0.001)
+                    else:
+                        _time.sleep(0.001)
                     continue
+        if _pollers:
+            left = None if deadline is None else deadline - _time.monotonic()
+            if left is None or left > 0:
+                _poll_external(left)
+                continue
         if deadline is None:
             _no_progress(what)
         left = deadline - _time.monotonic()
@@ -143,6 +152,16 @@ def _wait_for(cond, timeout, what):
             _time.sleep(left)
         return cond()
     return True
+
+
+# Fontes de eventos fora do interpretador: `poller(timeout)` espera até `timeout` segundos (`None`, sem
+# limite) por algo novo e o entrega aos objetos interessados.
+_pollers = []
+
+
+def _poll_external(timeout):
+    for poller in list(_pollers):
+        poller(timeout)
 
 
 class RLock:

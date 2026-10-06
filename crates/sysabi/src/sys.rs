@@ -88,6 +88,33 @@ pub trait Syscalls: Send + Sync {
         self.fstat(fd)?;
         Err(Errno::ENOTTY)
     }
+
+    // ---- TCP de loopback (`127.0.0.1`) entre os processos do sandbox ----
+    /// `socket` + `bind` + `listen`: porta 0 escolhe uma efêmera. Devolve o fd e a porta.
+    fn tcp_listen(&self, port: u16, backlog: u32, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
+        let _ = (port, backlog, nonblock, cloexec);
+        Err(Errno::ENOSYS)
+    }
+    /// `accept4`: a conexão e a porta de quem conectou.
+    fn tcp_accept(&self, fd: Fd, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
+        let _ = (fd, nonblock, cloexec);
+        Err(Errno::ENOSYS)
+    }
+    /// `socket` + `connect`: a conexão e a porta efêmera local.
+    fn tcp_connect(&self, port: u16, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
+        let _ = (port, nonblock, cloexec);
+        Err(Errno::ENOSYS)
+    }
+    /// `shutdown(2)`: fecha a leitura, a escrita ou as duas.
+    fn tcp_shutdown(&self, fd: Fd, read: bool, write: bool) -> SysResult<()> {
+        let _ = (fd, read, write);
+        Err(Errno::ENOSYS)
+    }
+    /// Portas local e remota (`getsockname`, `getpeername`); a remota é `None` num socket em escuta.
+    fn tcp_ports(&self, fd: Fd) -> SysResult<(u16, Option<u16>)> {
+        let _ = fd;
+        Err(Errno::ENOSYS)
+    }
     /// `TIOCSPTLCK`: trava (`true`) ou destrava o escravo de um mestre (`unlockpt` destrava).
     fn pty_set_lock(&self, fd: Fd, locked: bool) -> SysResult<()> {
         let _ = locked;
@@ -465,6 +492,26 @@ pub fn tcsetwinsize(fd: Fd, ws: Winsize) -> SysResult<()> {
 
 pub fn tcgetpgrp(fd: Fd) -> SysResult<Pid> {
     current().tcgetpgrp(fd)
+}
+
+pub fn tcp_listen(port: u16, backlog: u32, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
+    current().tcp_listen(port, backlog, nonblock, cloexec)
+}
+
+pub fn tcp_accept(fd: Fd, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
+    current().tcp_accept(fd, nonblock, cloexec)
+}
+
+pub fn tcp_connect(port: u16, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
+    current().tcp_connect(port, nonblock, cloexec)
+}
+
+pub fn tcp_shutdown(fd: Fd, read: bool, write: bool) -> SysResult<()> {
+    current().tcp_shutdown(fd, read, write)
+}
+
+pub fn tcp_ports(fd: Fd) -> SysResult<(u16, Option<u16>)> {
+    current().tcp_ports(fd)
 }
 
 pub fn tcsetpgrp(fd: Fd, pgrp: Pid) -> SysResult<()> {

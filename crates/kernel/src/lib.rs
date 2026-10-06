@@ -15,6 +15,7 @@ mod fd;
 mod hostio;
 mod image;
 mod loadavg;
+mod net;
 mod park;
 mod pipe;
 mod proc;

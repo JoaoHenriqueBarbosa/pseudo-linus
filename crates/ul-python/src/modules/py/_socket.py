@@ -156,6 +156,7 @@ class _State:
         self.timeout = _default_timeout[0]
         self.addr = None
         self.port = None
+        self.ephemeral = False
         self.endpoint = None
         self.listener = None
         self.dgram = None
@@ -383,6 +384,7 @@ class socket:
         reuse = bool(st.options.get((SOL_SOCKET, SO_REUSEADDR)) or st.options.get((SOL_SOCKET, SO_REUSEPORT)))
         if port == 0:
             port = _net.alloc_port()
+            st.ephemeral = True
         else:
             _net.reserve_port(port, reuse)
         st.port = port
@@ -402,7 +404,10 @@ class socket:
             if st.family == AF_UNIX:
                 raise OSError(_errno.EINVAL, 'Invalid argument')
             self.bind(('', 0))
-        st.listener = _net.listen(st.family, st.addr if st.family == AF_UNIX else st.addr, backlog)
+        st.listener = _net.listen(st.family, st.addr, backlog, ephemeral=st.ephemeral)
+        if st.family != AF_UNIX:
+            st.addr = st.listener.addr
+            st.port = st.addr[1]
 
     def _accept(self):
         st = self._live()

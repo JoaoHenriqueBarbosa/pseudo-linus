@@ -237,6 +237,8 @@ pub(crate) struct SbInner {
     /// Pseudoterminais vivos, pelo número (o `/dev/pts/N`). O número só volta a ficar livre quando
     /// todas as pontas do par fecharam.
     pub ptys: Mutex<BTreeMap<u32, Weak<Pty>>>,
+    /// Portas TCP em escuta no loopback.
+    pub ports: Arc<crate::net::Ports>,
 }
 
 impl SbInner {
@@ -530,6 +532,7 @@ impl Sandbox {
             load: LoadAvg::new(),
             exit_waiters: Mutex::new(WaitList::default()),
             ptys: Mutex::new(BTreeMap::new()),
+            ports: Arc::default(),
         });
         let _ = provider.sb.set(Arc::downgrade(&inner));
         inner.load.bind(&inner);

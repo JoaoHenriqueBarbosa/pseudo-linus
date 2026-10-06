@@ -535,6 +535,8 @@ impl Task {
             FileObj::Pipe { end, fifo } => self.pipe_stat(&end.pipe, fifo),
             FileObj::Dev { loc: Some(l), .. } => self.sb.ns.stat_loc(&cx, l),
             FileObj::Dev { loc: None, .. } => Err(Errno::EBADF),
+            FileObj::Listener(l) => Ok(crate::net::sock_stat(&l.ident)),
+            FileObj::Stream(c) => Ok(crate::net::sock_stat(&c.ident)),
         }
     }
 
@@ -579,6 +581,61 @@ impl Task {
             }
             FileObj::Dev { dev, .. } => dev.read(buf),
             FileObj::Path { .. } => Err(Errno::EBADF),
+            // `read` num socket em escuta: ENOTCONN, como no Linux.
+            FileObj::Listener(_) => Err(Errno::ENOTCONN),
+            FileObj::Stream(c) => {
+                if at.is_some() {
+                    return Err(Errno::ESPIPE);
+                }
+                let Some(pipe) = c.rx() else { return Ok(0) };
+                let nonblock = ofd.nonblock();
+                let r = self.wait_event(None, |p| pipe.try_read(buf, nonblock, p));
+                if r.is_err() {
+                    pipe.unregister(&self.parker);
+                }
+                r
+            }
+        }
+    }
+
+    /// Um pipe novo do processo: cada sentido de uma conexão TCP de loopback, e a identidade de um socket.
+    fn sock_pipe(&self) -> Arc<Pipe> {
+        let cred = self.proc.st.lock().cred.clone();
+        Pipe::new(self.sb.kernel.pipe_ino(), cred.uid, cred.gid, self.sb.now())
+    }
+
+    /// Instala um socket (sempre `O_RDWR`) no menor fd livre.
+    fn install_sock(&self, obj: FileObj, nonblock: bool, cloexec: bool) -> SysResult<Fd> {
+        let flags = if nonblock { OFlags::RDWR | OFlags::NONBLOCK } else { OFlags::RDWR };
+        let ofd = Ofd::new(obj, flags, Arc::downgrade(&self.sb.locks));
+        let limit = self.nofile();
+        self.proc.fds.lock().install(ofd, cloexec, 0, limit)
+    }
+
+    /// Escrita num pipe (anônimo, FIFO ou o sentido de saída de uma conexão TCP de loopback).
+    fn pipe_write(&self, ofd: &Arc<Ofd>, pipe: &Arc<Pipe>, buf: &[u8]) -> SysResult<usize> {
+        if buf.is_empty() {
+            return Ok(0);
+        }
+        let nonblock = ofd.nonblock();
+        let mut done = 0usize;
+        let r = self.wait_event(None, |p| match pipe.try_write(buf, &mut done, nonblock, p) {
+            Try::Ready(Ok(n)) => Try::Ready(Ok(Ok(n))),
+            Try::Ready(Err(e)) => Try::Ready(Ok(Err(e))),
+            Try::Pending => Try::Pending,
+        });
+        match r {
+            Ok(Ok(n)) => Ok(n),
+            Ok(Err(WriteError::Again)) => Err(Errno::EAGAIN),
+            Ok(Err(WriteError::BrokenPipe { written })) => {
+                generate_signal(&self.proc, Signal::SIGPIPE);
+                self.enter();
+                if written > 0 { Ok(written) } else { Err(Errno::EPIPE) }
+            }
+            Err(e) => {
+                pipe.unregister(&self.parker);
+                if done > 0 { Ok(done) } else { Err(e) }
+            }
         }
     }
 
@@ -632,27 +689,19 @@ impl Task {
                 if at.is_some() {
                     return Err(Errno::ESPIPE);
                 }
-                if buf.is_empty() {
-                    return Ok(0);
+                self.pipe_write(ofd, &end.pipe, buf)
+            }
+            FileObj::Listener(_) => Err(Errno::ENOTCONN),
+            FileObj::Stream(c) => {
+                if at.is_some() {
+                    return Err(Errno::ESPIPE);
                 }
-                let nonblock = ofd.nonblock();
-                let mut done = 0usize;
-                let r = self.wait_event(None, |p| match end.pipe.try_write(buf, &mut done, nonblock, p) {
-                    Try::Ready(Ok(n)) => Try::Ready(Ok(Ok(n))),
-                    Try::Ready(Err(e)) => Try::Ready(Ok(Err(e))),
-                    Try::Pending => Try::Pending,
-                });
-                match r {
-                    Ok(Ok(n)) => Ok(n),
-                    Ok(Err(WriteError::Again)) => Err(Errno::EAGAIN),
-                    Ok(Err(WriteError::BrokenPipe { written })) => {
+                match c.tx() {
+                    Some(pipe) => self.pipe_write(ofd, &pipe, buf),
+                    None => {
                         generate_signal(&self.proc, Signal::SIGPIPE);
                         self.enter();
-                        if written > 0 { Ok(written) } else { Err(Errno::EPIPE) }
-                    }
-                    Err(e) => {
-                        end.pipe.unregister(&self.parker);
-                        if done > 0 { Ok(done) } else { Err(e) }
+                        Err(Errno::EPIPE)
                     }
                 }
             }
@@ -824,6 +873,8 @@ impl Task {
             FileObj::Dev { dev: Device::Pty(end), .. } => end.pty.poll(end.master, w),
             FileObj::Vfs { .. } | FileObj::Dev { .. } => PollEvents::IN | PollEvents::OUT,
             FileObj::Pipe { end, .. } => end.pipe.poll(end.read, end.write, w),
+            FileObj::Listener(l) => l.poll(w),
+            FileObj::Stream(c) => c.poll(w),
         };
         ready & (pfd.events | PollEvents::ERR | PollEvents::HUP | PollEvents::NVAL)
     }
@@ -898,7 +949,7 @@ impl Syscalls for Task {
         self.enter();
         let ofd = self.ofd(fd)?;
         match &ofd.obj {
-            FileObj::Pipe { .. } => Err(Errno::ESPIPE),
+            FileObj::Pipe { .. } | FileObj::Listener(_) | FileObj::Stream(_) => Err(Errno::ESPIPE),
             FileObj::Path { .. } => Err(Errno::EBADF),
             FileObj::Dev { dev, .. } => dev.lseek(),
             FileObj::Vfs { kind: FileType::Directory, .. } => {
@@ -1323,6 +1374,65 @@ impl Syscalls for Task {
 
     fn isatty(&self, fd: Fd) -> bool {
         self.tty_of(fd).is_ok()
+    }
+
+    fn tcp_listen(&self, port: u16, backlog: u32, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
+        self.enter();
+        let listener = self.sb.ports.listen(port, backlog, self.sock_pipe())?;
+        let port = listener.port;
+        let fd = self.install_sock(FileObj::Listener(listener), nonblock, cloexec)?;
+        Ok((fd, port))
+    }
+
+    fn tcp_accept(&self, fd: Fd, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        let FileObj::Listener(l) = &ofd.obj else {
+            return Err(if matches!(ofd.obj, FileObj::Stream(_)) { Errno::EINVAL } else { Errno::ENOTSOCK });
+        };
+        let wait_nb = ofd.nonblock();
+        let r = self.wait_event(None, |p| l.try_accept(wait_nb, p));
+        let conn = match r {
+            Ok(c) => c,
+            Err(e) => {
+                l.unregister(&self.parker);
+                return Err(e);
+            }
+        };
+        let peer = conn.peer;
+        let fd = self.install_sock(FileObj::Stream(conn), nonblock, cloexec)?;
+        Ok((fd, peer))
+    }
+
+    fn tcp_connect(&self, port: u16, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
+        self.enter();
+        let conn = self.sb.ports.connect(port, || self.sock_pipe())?;
+        let local = conn.local;
+        let fd = self.install_sock(FileObj::Stream(conn), nonblock, cloexec)?;
+        Ok((fd, local))
+    }
+
+    fn tcp_shutdown(&self, fd: Fd, read: bool, write: bool) -> SysResult<()> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        match &ofd.obj {
+            FileObj::Stream(c) => {
+                c.shutdown(read, write);
+                Ok(())
+            }
+            FileObj::Listener(_) => Err(Errno::ENOTCONN),
+            _ => Err(Errno::ENOTSOCK),
+        }
+    }
+
+    fn tcp_ports(&self, fd: Fd) -> SysResult<(u16, Option<u16>)> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        match &ofd.obj {
+            FileObj::Stream(c) => Ok((c.local, Some(c.peer))),
+            FileObj::Listener(l) => Ok((l.port, None)),
+            _ => Err(Errno::ENOTSOCK),
+        }
     }
 
     // Terminais: só os pseudoterminais existem (não há console nem tty virtual). EBADF primeiro, depois
@@ -2081,6 +2191,8 @@ impl Syscalls for Task {
             if let Ok(ofd) = self.ofd(pfd.fd) {
                 match &ofd.obj {
                     FileObj::Pipe { end, .. } => end.pipe.unregister(&self.parker),
+                    FileObj::Listener(l) => l.unregister(&self.parker),
+                    FileObj::Stream(c) => c.unregister(&self.parker),
                     FileObj::Dev { dev: Device::Pty(end), .. } => end.pty.unregister(&self.parker),
                     _ => {}
                 }
