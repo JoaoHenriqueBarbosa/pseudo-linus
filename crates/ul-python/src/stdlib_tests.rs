@@ -3798,3 +3798,80 @@ True True True /usr/local/lib /usr/local/lib/python3.13/x.py
 "##
     );
 }
+
+#[test]
+fn str_slice_and_regex_cache_on_long_text() {
+    let src = r##"
+import re
+s = 'abcdefghij' * 200
+print(s[3:8], s[-5:], s[:3], s[5:2] == '', s[::7][:5], s[::-97][:4], s[1:100:13][:3], s[-3:-1], len(s[:]))
+u = 'áéíóú' * 300
+print(u[1:4], u[::600], u[-2:], u[2:1000:301])
+big = '{"k": [1, 2, 3], "s": "x"}' * 40
+m = re.compile(r'\d+')
+pos = 0
+found = []
+while True:
+    mm = m.search(big, pos)
+    if not mm:
+        break
+    found.append(mm.group())
+    pos = mm.end()
+print(len(found), found[:6])
+b = (b'ab12' * 300)
+print(len(re.findall(rb'\d+', b)), re.compile(rb'[a-z]+').match(b, 4).group())
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"defgh fghij abc True ahebi jcfi beh hi 2000
+éíó ááá óú íóúá
+120 ['1', '2', '3', '1', '2', '3']
+300 b'ab'
+"##
+    );
+}
+
+#[test]
+fn random_native_twister_matches_cpython() {
+    let src = r##"
+import random
+random.seed(42)
+print(random.random(), random.randint(1, 100), random.getrandbits(5), random.getrandbits(32), random.getrandbits(33), random.getrandbits(62), random.getrandbits(100))
+random.seed('abc'); print(random.random(), random.choice(range(1000)), random.sample(range(50), 5))
+random.seed(b'xyz'); l = list(range(20)); random.shuffle(l); print(l)
+r = random.Random(7)
+print([r.randrange(10) for _ in range(8)], r.gauss(0, 1), r.uniform(1, 2), r.betavariate(2, 3), r.randbytes(5))
+st = r.getstate(); a = r.random(); r.setstate(st); print(a == r.random(), len(st[1]), st[1][-1], st[0])
+class R2(random.Random):
+    def random(self):
+        return 0.25
+print(R2(1).randint(1, 4), R2().random())
+random.seed(0); print(random.random(), random.random())
+random.seed(2**70 + 5); print(random.random(), random.getrandbits(64))
+print(random.choices(range(5), k=6), random.randrange(10**20), random.getrandbits(0))
+try:
+    random.getrandbits(-1)
+except ValueError as e:
+    print(e)
+random.seed(99); print(random.triangular(), random.expovariate(1.5), random.normalvariate(0, 1), random.binomialvariate(10, .5))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"0.6394267984578837 4 23 1181241943 1051802512 3396374007001956841 1167876019479626170561453694887
+0.7720246314157545 571 [29, 45, 22, 49, 10]
+[5, 0, 17, 1, 11, 3, 2, 13, 18, 4, 14, 16, 6, 15, 12, 7, 19, 9, 10, 8]
+[5, 2, 6, 0, 1, 8, 1, 5] -1.9029547557688855 1.2146981808356618 0.22156998794866342 b'\xb6\xdd!\x0f\xd3'
+True 625 27 3
+1 0.25
+0.8444218515250481 0.7579544029403025
+0.46679953776226335 11542059036137560337
+[1, 1, 2, 1, 4, 0] 87701585912082931622 0
+number of bits must be non-negative
+0.4494319052668971 0.14882524098663694 -0.7331645826020126 7
+"##
+    );
+}

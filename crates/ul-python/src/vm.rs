@@ -3586,8 +3586,23 @@ fn slice_of(container: &Value, s: &(Value, Value, Value)) -> PyResult<Value> {
         }
         Value::Tuple(t) => Value::tuple(slice_indices(t.len(), s)?.into_iter().map(|i| t[i].clone()).collect()),
         Value::Str(text) => {
-            let chars: Vec<char> = text.as_str().chars().collect();
-            Value::str(slice_indices(chars.len(), s)?.into_iter().map(|i| chars[i]).collect::<String>())
+            let (start, stop, step) = slice_bounds(text.len() as i64, s)?;
+            if step == 1 {
+                // `s[a:b]` custa o tamanho do trecho, não o da string (parsers fatiam em laço).
+                Value::str(if stop > start { text.slice(start as usize, stop as usize) } else { "" })
+            } else if text.is_ascii() {
+                let bytes = text.as_str().as_bytes();
+                let mut out = String::new();
+                let mut i = start;
+                while (step > 0 && i < stop) || (step < 0 && i > stop) {
+                    out.push(char::from(bytes[i as usize]));
+                    i += step;
+                }
+                Value::str(out)
+            } else {
+                let chars: Vec<char> = text.as_str().chars().collect();
+                Value::str(slice_indices(chars.len(), s)?.into_iter().map(|i| chars[i]).collect::<String>())
+            }
         }
         Value::Bytes(b) => Value::bytes(slice_indices(b.len(), s)?.into_iter().map(|i| b[i]).collect::<Vec<u8>>()),
         Value::ByteArray(b) => {

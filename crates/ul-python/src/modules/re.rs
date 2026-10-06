@@ -60,6 +60,36 @@ fn flags_of(v: &Option<Value>) -> PyResult<u32> {
     }
 }
 
+/// Textos longos já convertidos: um scanner chama `match(s, pos)` centenas de vezes sobre a mesma `str`, e
+/// converter a string inteira a cada chamada tornaria o laço quadrático. Guarda a última conversão (por
+/// identidade do objeto, mantido vivo pela própria entrada).
+const TEXT_CACHE_MIN: usize = 512;
+
+thread_local! {
+    static TEXT_CACHE: std::cell::RefCell<Option<(Value, Rc<Vec<char>>)>> = const { std::cell::RefCell::new(None) };
+}
+
+fn cached_chars(v: &Value, convert: impl FnOnce() -> Vec<char>, len: usize) -> Rc<Vec<char>> {
+    if len < TEXT_CACHE_MIN {
+        return Rc::new(convert());
+    }
+    let same = |a: &Value, b: &Value| match (a, b) {
+        (Value::Str(x), Value::Str(y)) => Rc::ptr_eq(x, y),
+        (Value::Bytes(x), Value::Bytes(y)) => Rc::ptr_eq(x, y),
+        _ => false,
+    };
+    TEXT_CACHE.with(|c| {
+        if let Some((held, chars)) = c.borrow().as_ref() {
+            if same(held, v) {
+                return chars.clone();
+            }
+        }
+        let chars = Rc::new(convert());
+        *c.borrow_mut() = Some((v.clone(), chars.clone()));
+        chars
+    })
+}
+
 /// O texto a casar: `str` (em pontos de código), ou `bytes` (um ponto de código por byte, latin-1).
 fn want_text_for(v: &Value, bytes_pattern: bool) -> PyResult<(Value, Rc<Vec<char>>)> {
     // Subclasse de `str`/`bytes` (como `configparser._Line`): casa o valor embutido.
@@ -71,9 +101,9 @@ fn want_text_for(v: &Value, bytes_pattern: bool) -> PyResult<(Value, Rc<Vec<char
     let v = &unwrapped;
     match v {
         Value::Str(_) if bytes_pattern => Err(type_error("cannot use a bytes pattern on a string-like object")),
-        Value::Str(s) => Ok((v.clone(), Rc::new(s.as_str().chars().collect()))),
+        Value::Str(s) => Ok((v.clone(), cached_chars(v, || s.as_str().chars().collect(), s.len()))),
         Value::Bytes(_) if !bytes_pattern => Err(type_error("cannot use a string pattern on a bytes-like object")),
-        Value::Bytes(b) => Ok((v.clone(), Rc::new(b.iter().map(|&c| c as char).collect()))),
+        Value::Bytes(b) => Ok((v.clone(), cached_chars(v, || b.iter().map(|&c| c as char).collect(), b.len()))),
         other => Err(type_error(format!("expected string or bytes-like object, got '{}'", other.type_name()))),
     }
 }

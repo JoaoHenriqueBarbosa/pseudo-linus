@@ -32,6 +32,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("time", include_str!("py/time.py")),
     ("datetime", include_str!("py/datetime.py")),
     ("random", include_str!("py/random.py")),
+    ("_random", include_str!("py/_random.py")),
     ("bisect", include_str!("py/bisect.py")),
     ("stat", include_str!("py/stat.py")),
     ("glob", include_str!("py/glob.py")),

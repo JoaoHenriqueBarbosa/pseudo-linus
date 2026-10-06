@@ -92,7 +92,11 @@ fn op_truth(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 }
 
 fn op_index(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    Ok(Value::Int(want_int(single("index", &args, &kw)?)?))
+    let v = single("index", &args, &kw)?;
+    if matches!(v, Value::Big(_)) {
+        return Ok(v.clone());
+    }
+    Ok(Value::Int(want_int(v)?))
 }
 
 fn op_is(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
