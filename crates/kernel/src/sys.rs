@@ -2120,7 +2120,7 @@ impl Syscalls for Task {
             release: UNAME_RELEASE.to_vec(),
             version: UNAME_VERSION.to_vec(),
             machine: b"x86_64".to_vec(),
-            domainname: b"(none)".to_vec(),
+            domainname: self.sb.domainname.lock().clone(),
         };
         // `override_release` e `override_architecture`: UNAME26 e PER_LINUX32.
         sched::personality::apply_to_uname(self.proc.tune.lock().personality, &mut u);
@@ -2136,6 +2136,18 @@ impl Syscalls for Task {
             return Err(Errno::EINVAL);
         }
         *self.sb.hostname.lock() = name.to_vec();
+        Ok(())
+    }
+
+    fn setdomainname(&self, name: &[u8]) -> SysResult<()> {
+        self.enter();
+        if !self.proc.st.lock().cred.is_root() {
+            return Err(Errno::EPERM);
+        }
+        if name.len() > 64 {
+            return Err(Errno::EINVAL);
+        }
+        *self.sb.domainname.lock() = name.to_vec();
         Ok(())
     }
 

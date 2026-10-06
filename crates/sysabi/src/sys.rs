@@ -294,6 +294,8 @@ pub trait Syscalls: Send + Sync {
     fn unsetenv(&self, name: &[u8]) -> SysResult<()>;
     fn uname(&self) -> Utsname;
     fn sethostname(&self, name: &[u8]) -> SysResult<()>;
+    /// `setdomainname(2)`: o domínio NIS do `uname`.
+    fn setdomainname(&self, name: &[u8]) -> SysResult<()>;
 
     // ---- tempo e aleatoriedade ----
     fn clock_gettime(&self, clock: Clock) -> SysResult<TimeSpec>;

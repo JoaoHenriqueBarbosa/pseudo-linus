@@ -262,8 +262,36 @@ fn write_stdout(bytes: &[u8]) {
 }
 
 fn fail(message: &str) -> i32 {
-    sysio::eprintln!("hostname: {message}");
+    sysio::eprintln!("{}: {message}", prog_name());
     1
+}
+
+/// O nome com que o programa foi chamado, sem diretório: é o prefixo das mensagens de erro. Por
+/// thread, porque todos os programas dividem o mesmo processo hospedeiro.
+thread_local! {
+    static PROG: std::cell::RefCell<String> = std::cell::RefCell::new("hostname".to_string());
+}
+
+fn prog_name() -> String {
+    PROG.with(|p| p.borrow().clone())
+}
+
+/// O papel que o nome do link dá ao programa (`{yp,nis,}domainname` é o `-y`, `dnsdomainname` é
+/// o `-d`).
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Mode {
+    Host,
+    Nis,
+    Dns,
+}
+
+fn mode_of(argv0: &[u8]) -> Mode {
+    let base = argv0.rsplit(|&b| b == b'/').next().unwrap_or(argv0);
+    match base {
+        b"domainname" | b"nisdomainname" | b"ypdomainname" => Mode::Nis,
+        b"dnsdomainname" => Mode::Dns,
+        _ => Mode::Host,
+    }
 }
 
 fn usage_error(message: Option<&str>) -> i32 {
@@ -275,17 +303,44 @@ fn usage_error(message: Option<&str>) -> i32 {
 }
 
 fn run(argv: &[OsString]) -> i32 {
+    let argv0 = argv.first().map(|a| a.as_bytes().to_vec()).unwrap_or_default();
+    let base = argv0.rsplit(|&b| b == b'/').next().unwrap_or(&argv0);
+    PROG.with(|p| *p.borrow_mut() = String::from_utf8_lossy(base).into_owned());
+    let mode = mode_of(&argv0);
     let req = match parse(argv) {
         Ok(req) => req,
         Err(Stop::Done(code)) => return code,
         Err(Stop::Usage(message)) => return usage_error(Some(message.as_str())),
     };
-    // Nome a mais, ou nome junto de uma opção de exibição ou de -F: o texto de uso.
+    // Nome a mais, ou nome junto de uma opção de exibição ou de -F: o texto de uso. Como
+    // `domainname`, o `-d` também é uso errado.
     if req.operands.len() > 1
         || (!req.operands.is_empty() && (req.display.is_some() || req.file.is_some()))
         || (req.file.is_some() && req.display.is_some())
+        || (mode == Mode::Nis && req.display == Some(Display::Domain))
     {
         return usage_error(None);
+    }
+    if mode == Mode::Nis {
+        if let Some(file) = &req.file {
+            let data = match sysio::fs::read(std::path::Path::new(file)) {
+                Ok(data) => data,
+                Err(e) if e.raw_os_error() == Some(sysio::errno::EISDIR) => Vec::new(),
+                Err(e) => return fail(&sysio::errno::strerror(&e)),
+            };
+            return set_domain(&first_name(&data));
+        }
+        if let Some(name) = req.operands.first() {
+            return set_domain(name.as_bytes());
+        }
+        // Sem opção, o `domainname` mostra o domínio como o kernel guarda, `(none)` incluído (o
+        // `nisdomainname` e o `ypdomainname` são o `-y`).
+        if req.display.is_none() && prog_name() == "domainname" {
+            let mut domain = sysio::unistd::uname().domainname;
+            domain.push(b'\n');
+            write_stdout(&domain);
+            return 0;
+        }
     }
     if let Some(file) = &req.file {
         return set_from_file(std::path::Path::new(file));
@@ -297,7 +352,24 @@ fn run(argv: &[OsString]) -> i32 {
     if req.boot && (current.is_empty() || current == b"(none)") {
         return set_default_name();
     }
-    show(req.display.unwrap_or(Display::Plain), &current)
+    let default = match mode {
+        Mode::Dns => Display::Domain,
+        Mode::Nis if prog_name() != "domainname" => Display::Yp,
+        _ => Display::Plain,
+    };
+    show(req.display.unwrap_or(default), &current)
+}
+
+/// `{yp,nis,}domainname nome`: troca o domínio NIS.
+fn set_domain(name: &[u8]) -> i32 {
+    match sysio::unistd::setdomainname(name) {
+        Ok(()) => 0,
+        Err(e) => match e.raw_os_error() {
+            Some(n) if n == sysio::errno::EPERM => fail("you must be root to change the domain name"),
+            Some(n) if n == sysio::errno::EINVAL => fail("name too long"),
+            _ => fail(&sysio::errno::strerror(&e)),
+        },
+    }
 }
 
 /// O nome da primeira linha útil de um arquivo de nome: sem as linhas vazias nem as de comentário
@@ -423,7 +495,9 @@ fn show(display: Display, current: &[u8]) -> i32 {
         Display::Yp => {
             let domain = sysio::unistd::uname().domainname;
             if domain.is_empty() || domain == b"(none)" {
-                return fail("Local domain name not set");
+                // O original escreve este aviso no stdout, diferente dos outros.
+                write_stdout(format!("{}: Local domain name not set\n", prog_name()).as_bytes());
+                return 1;
             }
             write_stdout(&domain);
             write_stdout(b"\n");

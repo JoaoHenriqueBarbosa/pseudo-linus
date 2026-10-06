@@ -185,6 +185,7 @@ struct World {
     next_pid: Pid,
     now: TimeSpec,
     hostname: Vec<u8>,
+    domainname: Vec<u8>,
     rng: u64,
     net: Option<NetHandler>,
     /// Travas OFD por inode; o dono é a open file description (fraca: some sozinha quando o último fd
@@ -231,6 +232,7 @@ impl World {
             next_pid: 100,
             now: TimeSpec { sec: DEFAULT_TIME, nsec: 0 },
             hostname: b"pseudo-linus".to_vec(),
+            domainname: b"(none)".to_vec(),
             rng: 0x9E37_79B9_7F4A_7C15,
             net: None,
             locks: BTreeMap::new(),
@@ -2123,7 +2125,7 @@ impl Syscalls for ProcHandle {
             release: b"6.12.101+deb13-amd64".to_vec(),
             version: b"#1 SMP PREEMPT_DYNAMIC Debian 6.12.101-1".to_vec(),
             machine: b"x86_64".to_vec(),
-            domainname: b"(none)".to_vec(),
+            domainname: w.domainname.clone(),
         };
         sched::personality::apply_to_uname(w.procs[&self.pid].persona, &mut u);
         u
@@ -2131,6 +2133,11 @@ impl Syscalls for ProcHandle {
 
     fn sethostname(&self, name: &[u8]) -> SysResult<()> {
         self.w().hostname = name.to_vec();
+        Ok(())
+    }
+
+    fn setdomainname(&self, name: &[u8]) -> SysResult<()> {
+        self.w().domainname = name.to_vec();
         Ok(())
     }
 

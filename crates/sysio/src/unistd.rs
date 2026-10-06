@@ -46,6 +46,10 @@ pub fn sethostname(name: &[u8]) -> io::Result<()> {
     cvt(proc::sys().sethostname(name))
 }
 
+pub fn setdomainname(name: &[u8]) -> io::Result<()> {
+    cvt(proc::sys().setdomainname(name))
+}
+
 /// `isatty(3)`.
 pub fn isatty(fd: i32) -> bool {
     proc::sys().isatty(Fd(fd))
