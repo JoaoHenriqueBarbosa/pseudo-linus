@@ -15,6 +15,7 @@ pub mod builtins;
 pub mod builtins_ext;
 pub mod classes;
 pub mod compile;
+pub mod dictview;
 pub mod format;
 pub mod generator;
 pub mod generic;

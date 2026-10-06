@@ -165,23 +165,19 @@ fn copy(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 fn keys(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("keys", &kw)?;
     noargs("keys", &args[1..])?;
-    let v: Vec<Value> = this(&args)?.borrow().keys().cloned().collect();
-    Ok(Value::list(v))
+    Ok(crate::dictview::DictView::make(this(&args)?.clone(), crate::dictview::Kind::Keys))
 }
 
 fn values(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("values", &kw)?;
     noargs("values", &args[1..])?;
-    let v: Vec<Value> = this(&args)?.borrow().values().cloned().collect();
-    Ok(Value::list(v))
+    Ok(crate::dictview::DictView::make(this(&args)?.clone(), crate::dictview::Kind::Values))
 }
 
 fn items(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("items", &kw)?;
     noargs("items", &args[1..])?;
-    let v: Vec<Value> =
-        this(&args)?.borrow().iter().map(|(k, v)| Value::tuple(vec![k.clone(), v.clone()])).collect();
-    Ok(Value::list(v))
+    Ok(crate::dictview::DictView::make(this(&args)?.clone(), crate::dictview::Kind::Items))
 }
 
 pub const TABLE: &[(&str, NativeFnPtr)] = &[
@@ -243,7 +239,10 @@ mod tests {
     #[test]
     fn clear_copy_views() {
         let (out, _, _) = run("d = {'a': 1, 'b': 2}\nc = d.copy()\nd.clear()\nprint(d, c)\nprint(c.keys(), c.values(), c.items())\n");
-        assert_eq!(out, "{} {'a': 1, 'b': 2}\n['a', 'b'] [1, 2] [('a', 1), ('b', 2)]\n");
+        assert_eq!(
+            out,
+            "{} {'a': 1, 'b': 2}\ndict_keys(['a', 'b']) dict_values([1, 2]) dict_items([('a', 1), ('b', 2)])\n"
+        );
     }
 
     #[test]

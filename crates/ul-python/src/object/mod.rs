@@ -160,6 +160,15 @@ pub trait ExtObject {
     fn richcmp(&self, _op: &str, _other: &Value) -> Option<Result<bool, crate::vm::PyException>> {
         None
     }
+    /// Os itens de um objeto iterável que pode ser percorrido várias vezes (views de dicionário):
+    /// cada `for` pega um instantâneo novo, ao contrário de `is_iterable`, que é um iterador único.
+    fn to_items(&self) -> Option<Vec<Value>> {
+        None
+    }
+    /// `item in obj` quando o objeto sabe responder sem percorrer.
+    fn contains_item(&self, _item: &Value) -> Option<Result<bool, crate::vm::PyException>> {
+        None
+    }
 }
 
 /// Módulo: nome e atributos (preenchidos pelo construtor do módulo em `modules`).
@@ -597,6 +606,7 @@ pub fn is_builtin_type(name: &str) -> bool {
         name,
         "bool" | "int" | "float" | "str" | "list" | "tuple" | "dict" | "set" | "range" | "NoneType" | "function"
             | "frozenset" | "bytes" | "bytearray" | "generator" | "module" | "slice" | "builtin_function_or_method"
+            | "dict_keys" | "dict_values" | "dict_items"
     ) || EXC_CLASSES.iter().any(|(n, _)| *n == name)
 }
 

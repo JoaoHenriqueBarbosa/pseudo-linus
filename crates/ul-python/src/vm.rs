@@ -222,6 +222,7 @@ pub(crate) fn get_iter(v: &Value) -> PyResult<PyIter> {
         Value::Native(n) if matches!(&*n.borrow(), Native::File(_) | Native::CsvReader { .. }) => {
             PyIter::Native(n.clone())
         }
+        Value::Ext(e) if e.to_items().is_some() => PyIter::Items(e.to_items().unwrap_or_default(), 0),
         Value::Ext(e) if e.is_iterable() => PyIter::Ext(e.clone()),
         Value::Class(c) => {
             let mut vm = current().ok_or_else(|| internal("no vm"))?;
@@ -2882,6 +2883,14 @@ pub(crate) fn mapping_pairs(v: &Value) -> PyResult<Option<Vec<(Value, Value)>>> 
 
 /// `item in container`.
 fn contains(container: &Value, item: &Value) -> PyResult<bool> {
+    if let Value::Ext(e) = container {
+        if let Some(r) = e.contains_item(item) {
+            return r;
+        }
+        if let Some(items) = e.to_items() {
+            return Ok(items.iter().any(|x| is(x, item) || py_eq(x, item)));
+        }
+    }
     if let Value::Class(c) = container
         && let Some(mut vm) = current()
         && let Some(r) = vm.meta_dunder(c, "__contains__", vec![item.clone()], Vec::new())
