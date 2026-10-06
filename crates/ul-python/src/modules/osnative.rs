@@ -300,6 +300,70 @@ fn ftruncate(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::None)
 }
 
+/// `clock(kind)` devolve `(segundos, nanossegundos)`; `kind`: 0 real, 1 monotônico, 2 CPU do processo.
+fn clock(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("clock", &kw)?;
+    let which = match want_int(arg("clock", &args, 0)?)? {
+        0 => sysabi::Clock::Realtime,
+        1 => sysabi::Clock::Monotonic,
+        _ => sysabi::Clock::ProcessCpuTime,
+    };
+    let t = sys::current().clock_gettime(which).map_err(|e| os_error(e, None))?;
+    Ok(Value::tuple(vec![Value::Int(t.sec), Value::Int(i64::from(t.nsec))]))
+}
+
+fn sleep(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("sleep", &kw)?;
+    let secs = match arg("sleep", &args, 0)? {
+        Value::Float(f) => *f,
+        other => want_int(other)? as f64,
+    };
+    if secs < 0.0 {
+        return Err(exc("ValueError", "sleep length must be non-negative"));
+    }
+    sys::current().nanosleep(std::time::Duration::from_secs_f64(secs)).map_err(|e| os_error(e, None))?;
+    Ok(Value::None)
+}
+
+fn urandom(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("urandom", &kw)?;
+    let n = want_int(arg("urandom", &args, 0)?)?;
+    if n < 0 {
+        return Err(exc("ValueError", "negative argument not allowed"));
+    }
+    let mut buf = vec![0u8; n as usize];
+    let mut filled = 0;
+    while filled < buf.len() {
+        let got = sys::current().getrandom(&mut buf[filled..]).map_err(|e| os_error(e, None))?;
+        if got == 0 {
+            break;
+        }
+        filled += got;
+    }
+    Ok(Value::bytes(buf))
+}
+
+/// `utime(path, atime, mtime)`, com segundos (float ou int); `None` nos dois significa agora.
+fn utime(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("utime", &kw)?;
+    let path = path_bytes("utime", arg("utime", &args, 0)?)?;
+    let at = |v: Option<&Value>| -> PyResult<sysabi::SetTime> {
+        Ok(match v {
+            None | Some(Value::None) => sysabi::SetTime::Now,
+            Some(Value::Float(f)) => sysabi::SetTime::At(sysabi::TimeSpec {
+                sec: f.floor() as i64,
+                nsec: ((f - f.floor()) * 1e9) as u32,
+            }),
+            Some(other) => sysabi::SetTime::At(sysabi::TimeSpec { sec: want_int(other)?, nsec: 0 }),
+        })
+    };
+    let (a, m) = (at(args.get(1))?, at(args.get(2))?);
+    sys::current()
+        .utimensat(Fd::CWD, &path, a, m, AtFlags::empty())
+        .map_err(|e| os_error(e, Some(&shown(&path))))?;
+    Ok(Value::None)
+}
+
 pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
     ModuleBuilder::new("_os")
         .func("getcwd", getcwd)
@@ -328,6 +392,10 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
         .func("isatty", isatty)
         .func("getpid", getpid)
         .func("ftruncate", ftruncate)
+        .func("clock", clock)
+        .func("sleep", sleep)
+        .func("urandom", urandom)
+        .func("utime", utime)
         .value("O_RDONLY", Value::Int(0))
         .value("O_WRONLY", Value::Int(0o1))
         .value("O_RDWR", Value::Int(0o2))
