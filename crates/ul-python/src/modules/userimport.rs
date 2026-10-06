@@ -18,19 +18,87 @@ struct Found {
     package_dir: Option<String>,
 }
 
-fn is_file(path: &str) -> bool {
-    if sysabi::sys::try_current().is_none() {
-        return false;
-    }
+/// `python3 app.pyz` ou `python3 diretório`: o `__main__.py` de um zip ou de um diretório, como
+/// `(caminho do __main__.py, texto)`.
+pub fn main_of_archive(path: &str) -> Option<(String, String)> {
+    let main = format!("{}/__main__.py", path.trim_end_matches('/'));
+    let text = read_text(&main)?;
+    Some((main, text))
+}
+
+fn is_regular(path: &str) -> bool {
     match sysabi::sys::stat(path.as_bytes()) {
         Ok(st) => st.mode & 0o170_000 == 0o100_000,
         Err(_) => false,
     }
 }
 
+fn is_file(path: &str) -> bool {
+    if sysabi::sys::try_current().is_none() {
+        return false;
+    }
+    is_regular(path) || zip_member(path).is_some()
+}
+
 fn read_text(path: &str) -> Option<String> {
-    let bytes = sysabi::sys::read_file(path.as_bytes()).ok()?;
+    let bytes = match sysabi::sys::read_file(path.as_bytes()) {
+        Ok(b) => b,
+        Err(_) => zip_member(path)?,
+    };
     Some(String::from_utf8_lossy(&bytes).into_owned())
+}
+
+/// Divide `caminho/a.zip/dir/mod.py` em (arquivo zip, `dir/mod.py`): o prefixo mais longo que é arquivo regular.
+fn zip_split(path: &str) -> Option<(String, String)> {
+    let mut end = path.len();
+    while let Some(i) = path[..end].rfind('/') {
+        let prefix = &path[..i];
+        if !prefix.is_empty() && is_regular(prefix) {
+            return Some((prefix.to_string(), path[i + 1..].to_string()));
+        }
+        end = i;
+    }
+    None
+}
+
+/// O conteúdo do membro `inner` do zip `archive` (guardado/deflate), como o `zipimport` do CPython lê o módulo.
+fn zip_member(path: &str) -> Option<Vec<u8>> {
+    use std::io::Read;
+    let (archive, inner) = zip_split(path)?;
+    let data = sysabi::sys::read_file(archive.as_bytes()).ok()?;
+    let u16le = |at: usize| data.get(at..at + 2).map(|b| u16::from_le_bytes([b[0], b[1]]) as usize);
+    let u32le = |at: usize| data.get(at..at + 4).map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]) as usize);
+    // Fim do diretório central: assinatura PK\x05\x06 nos últimos 64 KiB.
+    let floor = data.len().saturating_sub(22 + 65_535);
+    let eocd = (floor..=data.len().checked_sub(22)?).rev().find(|&i| data[i..].starts_with(b"PK\x05\x06"))?;
+    let count = u16le(eocd + 10)?;
+    let mut at = u32le(eocd + 16)?;
+    for _ in 0..count {
+        if data.get(at..at + 4)? != b"PK\x01\x02" {
+            return None;
+        }
+        let method = u16le(at + 10)?;
+        let csize = u32le(at + 20)?;
+        let (nlen, xlen, clen) = (u16le(at + 28)?, u16le(at + 30)?, u16le(at + 32)?);
+        let local = u32le(at + 42)?;
+        let name = data.get(at + 46..at + 46 + nlen)?;
+        if name == inner.as_bytes() {
+            // O cabeçalho local repete nome e extra com tamanhos próprios.
+            let start = local + 30 + u16le(local + 26)? + u16le(local + 28)?;
+            let raw = data.get(start..start + csize)?;
+            return match method {
+                0 => Some(raw.to_vec()),
+                8 => {
+                    let mut out = Vec::new();
+                    flate2::read::DeflateDecoder::new(raw).read_to_end(&mut out).ok()?;
+                    Some(out)
+                }
+                _ => None,
+            };
+        }
+        at += 46 + nlen + xlen + clen;
+    }
+    None
 }
 
 /// Entradas de `sys.path` (o módulo `sys` pode não ter sido carregado ainda: então só o diretório atual).

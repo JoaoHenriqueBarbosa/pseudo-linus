@@ -337,6 +337,19 @@ fn run_module(name: &str, rest: &[Vec<u8>], program: &str) -> i32 {
 /// `python3 arquivo.py args...`, `python3 - args...` ou o programa lido do stdin.
 fn run_script(rest: &[Vec<u8>], program: &str) -> i32 {
     let to_s = |b: &[u8]| String::from_utf8_lossy(b).into_owned();
+    if let Some(path) = rest.first().filter(|p| p.as_slice() != b"-") {
+        // `python3 app.pyz` e `python3 diretório`: roda o `__main__.py` de dentro, com o arquivo em `sys.path[0]`.
+        let shown = to_s(path);
+        if let Some((main, text)) = modules::userimport::main_of_archive(&shown) {
+            let argv = rest.iter().map(|a| to_s(a)).collect();
+            let outcome = run_main(&text, argv, &main, true, Some((String::new(), shown)));
+            let _ = sys::write_all(Fd::STDOUT, &outcome.stdout);
+            if !outcome.stderr.is_empty() {
+                write_stderr(&outcome.stderr);
+            }
+            return outcome.status;
+        }
+    }
     let (src, name, argv, file_mode) = match rest.first() {
         Some(path) if path.as_slice() != b"-" => {
             let text = match sys::read_file(path) {
