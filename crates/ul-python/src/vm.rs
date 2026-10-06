@@ -792,6 +792,62 @@ impl Vm {
                             Err(e) => Err(e),
                         }
                     }
+                    Op::Binary { op: bop, inplace } if num_pair(stack) => {
+                        let (Some(Slot::Val(b)), Some(Slot::Val(a))) = (stack.pop(), stack.pop()) else {
+                            return Err(internal("bad value stack"));
+                        };
+                        match binary(bop, &a, &b, inplace) {
+                            Ok(v) => {
+                                stack.push(Slot::Val(v));
+                                Ok(None)
+                            }
+                            Err(e) => Err(e),
+                        }
+                    }
+                    Op::Compare(cop) if num_pair(stack) => {
+                        let (Some(Slot::Val(b)), Some(Slot::Val(a))) = (stack.pop(), stack.pop()) else {
+                            return Err(internal("bad value stack"));
+                        };
+                        match compare(cop, &a, &b) {
+                            Ok(v) => {
+                                stack.push(Slot::Val(Value::Bool(v)));
+                                Ok(None)
+                            }
+                            Err(e) => Err(e),
+                        }
+                    }
+                    Op::LoadLocal(i) if !env.is_class => {
+                        let found = env.vars.borrow().get(&code.names[i as usize]).cloned();
+                        match found {
+                            Some(v) => {
+                                stack.push(Slot::Val(v));
+                                Ok(None)
+                            }
+                            None => self.step(code, op, stack, env),
+                        }
+                    }
+                    Op::Call { argc, kwnames: None } if stack.len() > argc as usize => {
+                        let at = stack.len() - argc as usize - 1;
+                        let mut drained = stack.drain(at..);
+                        let func = match drained.next() {
+                            Some(Slot::Val(v)) => v,
+                            _ => return Err(internal("bad value stack")),
+                        };
+                        let mut values = Vec::with_capacity(argc as usize);
+                        for s in drained {
+                            match s {
+                                Slot::Val(v) => values.push(v),
+                                _ => return Err(internal("bad value stack")),
+                            }
+                        }
+                        match self.call(&func, values, Vec::new()) {
+                            Ok(v) => {
+                                stack.push(Slot::Val(v));
+                                Ok(None)
+                            }
+                            Err(e) => Err(e),
+                        }
+                    }
                     _ => self.step(code, op, stack, env),
                 }
             };
@@ -876,6 +932,23 @@ impl Vm {
         kwargs: Vec<(String, Value)>,
     ) -> PyResult<Rc<Env>> {
         let code = &f.code;
+        // Caminho rápido: só posicionais, na quantidade exata e sem `*args`/`**kw`/só-nomeados.
+        if kwargs.is_empty()
+            && args.len() == code.params.len()
+            && code.vararg.is_none()
+            && code.kwarg.is_none()
+            && code.kwonly.is_empty()
+        {
+            let env = Env::new(f.closure.clone(), false, false);
+            {
+                let mut vars = env.vars.borrow_mut();
+                vars.reserve(args.len() + 4);
+                for (p, v) in code.params.iter().zip(args) {
+                    vars.insert(p.clone(), v);
+                }
+            }
+            return Ok(env);
+        }
         let name = code.name.as_str();
         let params = &code.params;
         let n = params.len();
@@ -3280,6 +3353,15 @@ fn unsupported(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyException
         a.type_name(),
         b.type_name()
     ))
+}
+
+/// Os dois valores do topo da pilha são `int` ou `float` (os operadores correm sem despacho de objetos).
+#[inline]
+fn num_pair(stack: &[Slot]) -> bool {
+    let n = stack.len();
+    n >= 2
+        && matches!(&stack[n - 1], Slot::Val(Value::Int(_) | Value::Float(_)))
+        && matches!(&stack[n - 2], Slot::Val(Value::Int(_) | Value::Float(_)))
 }
 
 fn binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyResult<Value> {
