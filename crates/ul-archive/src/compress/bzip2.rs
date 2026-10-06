@@ -456,8 +456,14 @@ impl Bzip2 {
             } else {
                 let peek = input.ensure(4);
                 if !(peek.len() >= 4 && peek.starts_with(b"BZh") && (b'1'..=b'9').contains(&peek[3])) {
+                    let short_prefix = peek.len() < 4 && peek.iter().zip(b"BZh").all(|(a, b)| a == b);
                     if let Some(e) = input.error {
                         return Outcome::Read(e);
+                    }
+                    // Acabou ainda casando com o começo de "BZh" (inclusive vazio): o libbz2 vê EOF antes de
+                    // um byte errado, e isso é arquivo truncado, não assinatura errada.
+                    if short_prefix {
+                        return Outcome::Truncated;
                     }
                     return Outcome::NotBzip2;
                 }
@@ -576,6 +582,39 @@ impl Bzip2 {
                 }
                 Ok(())
             }
+            // `-f` com entrada que não é bzip2: o bzip2 faz `rewind` e copia a entrada para a saída. Num pipe
+            // o `rewind` falha e o bloco já lido (5000 bytes, o BZ_MAX_UNUSED) se perde.
+            Outcome::NotBzip2 if self.force => {
+                let data = match name {
+                    Some(p) => crate::sysutil::read_path(p).unwrap_or_default(),
+                    None => {
+                        let mut rest = Vec::new();
+                        loop {
+                            let chunk = input.fill();
+                            if chunk.is_empty() {
+                                break;
+                            }
+                            rest.extend_from_slice(chunk);
+                            let n = chunk.len();
+                            input.consume(n);
+                        }
+                        let read = (input.consumed - rest.len() as u64) as usize;
+                        rest.split_off(5000usize.saturating_sub(read).min(rest.len()))
+                    }
+                };
+                let _ = sysabi::sys::write_all(ofd, &data);
+                if self.verbose > 0 {
+                    common::eprint("done\n");
+                }
+                if let (Some(o), Some(st), Some(p)) = (&out_path, &st, name) {
+                    common::copy_attrs(ofd, o, st, st.mtime);
+                    common::close(ofd);
+                    if !self.keep {
+                        let _ = common::unlink(p);
+                    }
+                }
+                Ok(())
+            }
             Outcome::NotBzip2 => {
                 remove_out(self);
                 if self.noisy() {
@@ -589,8 +628,15 @@ impl Bzip2 {
                     "\n{p}: Compressed file ends unexpectedly;\n\tperhaps it is corrupted?  *Possible* reason follows.\n{p}: {reason}\n\tInput file = {shown}, output file = {out_shown}\n{CORRUPT_ADVICE}{RECOVER}",
                     p = self.prog,
                     // O "motivo" é o errno que sobrou: a conferência de que a saída não existe deixa
-                    // ENOENT no modo arquivo pra arquivo; pra stdout ele é zero.
-                    reason = if out_path.is_some() { Errno::ENOENT.message() } else { "Success".to_string() }
+                    // ENOENT no modo arquivo pra arquivo; lendo do stdin, o `isatty(stdin)` deixa ENOTTY;
+                    // de arquivo pra stdout ele é zero.
+                    reason = if out_path.is_some() {
+                        Errno::ENOENT.message()
+                    } else if name.is_none() {
+                        Errno::ENOTTY.message()
+                    } else {
+                        "Success".to_string()
+                    }
                 ));
                 self.fail_cleanup(&out_path, ofd);
                 Err(Exit(2))

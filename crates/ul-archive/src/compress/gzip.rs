@@ -419,6 +419,27 @@ impl Gzip {
         Ok(hlen)
     }
 
+    /// `-c -d -f` com entrada que não é gzip: o `get_method` do gzip passa o resto como está (é o que
+    /// faz o `zcat -f`/`zgrep`/`zless` funcionarem com arquivo comum).
+    fn pass_through(&self) -> bool {
+        self.force > 0 && self.to_stdout && !self.list
+    }
+
+    fn copy_rest(input: &mut Input, sink: &mut Sink, u: &mut Unzipped) {
+        loop {
+            let chunk = input.fill();
+            if chunk.is_empty() {
+                break;
+            }
+            let n = chunk.len();
+            if sink.write_all(chunk).is_err() {
+                u.status = Status::Fatal(String::new());
+                return;
+            }
+            input.consume(n);
+        }
+    }
+
     /// Descomprime os membros gzip de `input` em `sink`, com as mensagens e a contabilidade do gzip.
     /// `prefix`, quando há, é o "nome:\t" do `-v`, impresso depois que o primeiro cabeçalho é lido.
     fn unzip(&mut self, input: &mut Input, sink: &mut Sink, name: &str, prefix: Option<String>) -> Unzipped {
@@ -434,7 +455,11 @@ impl Gzip {
                     return u;
                 }
                 self.header_bytes = 0;
-                if peek.len() >= 2 && (peek[0] != 0x1f || peek[1] != 0x8b) {
+                if peek.len() >= 2 && (peek[0] != 0x1f || peek[1] != 0x8b) || peek.len() == 1 && self.pass_through() {
+                    if self.pass_through() {
+                        Self::copy_rest(input, sink, &mut u);
+                        return u;
+                    }
                     let (zeros, _) = input.drain_check_zeros();
                     u.trailing = true;
                     if zeros {
@@ -461,6 +486,15 @@ impl Gzip {
             };
             let h = match parsed {
                 Ok(h) => h,
+                // Sem a assinatura gzip (inclusive entrada vazia ou de um byte): com `-cdf` passa direto.
+                Err(codec::DecodeError::NotFormat) if self.pass_through() => {
+                    Self::copy_rest(input, sink, &mut u);
+                    return u;
+                }
+                Err(codec::DecodeError::Truncated) if self.pass_through() && !input.ensure(2).starts_with(&[0x1f, 0x8b]) => {
+                    Self::copy_rest(input, sink, &mut u);
+                    return u;
+                }
                 Err(codec::DecodeError::NotFormat) => {
                     u.status = Status::Bad(self.bad_nl(name, "not in gzip format"));
                     return u;

@@ -15,7 +15,10 @@
 use std::ffi::OsString;
 use std::io::Write;
 
-use sysabi::{Ctx, Errno, Fd, FileType, sys};
+use sysabi::{
+    Ctx, Errno, Fd, FdAction, FileType, OFlags, ProcAttrs, SpawnSpec, WaitOptions, WaitStatus,
+    WaitTarget, sys,
+};
 
 use crate::util::io::{self, File};
 use crate::util::{Getopt, HasArg, LongOpt};
@@ -279,6 +282,10 @@ fn less_run(args: &[OsString]) -> i32 {
             }
             Ok(_) => {}
         }
+        if let Some(text) = lessopen(f) {
+            let _ = out.write_all(&text);
+            continue;
+        }
         match File::open(f) {
             Ok(mut file) => {
                 copy_fd(&mut file, &mut out);
@@ -290,6 +297,87 @@ fn less_run(args: &[OsString]) -> i32 {
         }
     }
     0
+}
+
+/// Preprocessador de entrada do `LESSOPEN` no modo pipe (`|cmd %s`, ou `||cmd %s`, ou `|-cmd %s`):
+/// roda o comando pelo `sh` com o nome do arquivo citado no lugar do `%s` e devolve o que ele
+/// escreveu. Saída vazia volta como `None` (o less mostra o arquivo original), exceto no `||`, em que
+/// vazio é conteúdo válido. O modo de arquivo temporário (sem `|`) não é suportado e cai na cópia.
+fn lessopen(file: &[u8]) -> Option<Vec<u8>> {
+    let spec = sys::getenv("LESSOPEN")?;
+    let mut cmd = spec.strip_prefix(b"|")?;
+    let mut empty_ok = false;
+    if let Some(rest) = cmd.strip_prefix(b"|") {
+        cmd = rest;
+        empty_ok = true;
+    }
+    if let Some(rest) = cmd.strip_prefix(b"-") {
+        cmd = rest;
+    }
+    let mut quoted = b"'".to_vec();
+    for &b in file {
+        if b == b'\'' {
+            quoted.extend_from_slice(b"'\\''");
+        } else {
+            quoted.push(b);
+        }
+    }
+    quoted.push(b'\'');
+    let mut script = Vec::new();
+    let mut k = 0;
+    while k < cmd.len() {
+        if cmd[k] == b'%' && cmd.get(k + 1) == Some(&b's') {
+            script.extend_from_slice(&quoted);
+            k += 2;
+        } else {
+            script.push(cmd[k]);
+            k += 1;
+        }
+    }
+    let s = sys::current();
+    let (r, w) = s.pipe2(OFlags::CLOEXEC).ok()?;
+    let attrs = ProcAttrs {
+        fd_actions: vec![
+            FdAction::Dup2 { from: w, to: Fd::STDOUT },
+            FdAction::Close(r),
+            FdAction::Close(w),
+        ],
+        ..ProcAttrs::default()
+    };
+    let spawned = s.spawn(SpawnSpec {
+        path: b"/bin/sh".to_vec(),
+        argv: vec![b"sh".to_vec(), b"-c".to_vec(), script],
+        attrs,
+    });
+    let _ = s.close(w);
+    let pid = match spawned {
+        Ok(p) => p,
+        Err(_) => {
+            let _ = s.close(r);
+            return None;
+        }
+    };
+    let mut text = Vec::new();
+    let mut buf = vec![0u8; 64 * 1024];
+    loop {
+        match sys::read(r, &mut buf) {
+            Ok(0) => break,
+            Ok(n) => text.extend_from_slice(&buf[..n]),
+            Err(Errno::EINTR) => continue,
+            Err(_) => break,
+        }
+    }
+    let _ = s.close(r);
+    loop {
+        match s.wait4(WaitTarget::Pid(pid), WaitOptions::empty()) {
+            Err(Errno::EINTR) | Ok(Some((_, WaitStatus::Stopped { .. }))) => continue,
+            _ => break,
+        }
+    }
+    if text.is_empty() && !empty_ok {
+        return None;
+    }
+    Some(text)
 }
 
 /// Copia um fd inteiro pro stdout em blocos.

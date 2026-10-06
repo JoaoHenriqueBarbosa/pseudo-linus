@@ -590,6 +590,30 @@ impl Xz {
         let mut input = Input::new(fd);
         // Descompressão: o formato vem do cabeçalho, antes de decidir o nome de saída.
         let detected = if self.mode == Mode::Compress { None } else { Some(self.detect(&mut input)) };
+        // `-dcf` com formato desconhecido: o xz copia a entrada como está (o `xzcat -f` de arquivo comum).
+        // Vale só com `-c` explícito: ler do stdin sem ele dá o erro de formato.
+        if let Some(None) = detected
+            && input.error.is_none()
+            && self.force
+            && self.stdout
+            && self.mode == Mode::Decompress
+        {
+            loop {
+                let chunk = input.fill();
+                if chunk.is_empty() {
+                    break;
+                }
+                let n = chunk.len();
+                if sysabi::sys::write_all(Fd::STDOUT, chunk).is_err() {
+                    break;
+                }
+                input.consume(n);
+            }
+            if !stdin {
+                common::close(fd);
+            }
+            return Ok(());
+        }
         if let Some(None) = detected {
             if !stdin {
                 common::close(fd);
