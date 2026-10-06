@@ -223,6 +223,13 @@ pub(crate) fn get_iter(v: &Value) -> PyResult<PyIter> {
             PyIter::Native(n.clone())
         }
         Value::Ext(e) if e.is_iterable() => PyIter::Ext(e.clone()),
+        Value::Class(c) => {
+            let mut vm = current().ok_or_else(|| internal("no vm"))?;
+            match vm.meta_dunder(c, "__iter__", Vec::new(), Vec::new()) {
+                Some(r) => get_iter(&r?)?,
+                None => return Err(type_error(format!("'type' object is not iterable"))),
+            }
+        }
         Value::Instance(_) => {
             let mut vm = current().ok_or_else(|| internal("no vm"))?;
             match vm.call_dunder(v, "__iter__", Vec::new()) {
@@ -1938,6 +1945,16 @@ pub(crate) fn len(v: &Value) -> PyResult<i64> {
         Value::Set(s) => s.borrow().len() as i64,
         Value::Range(r) => r.len(),
         Value::Ext(e) if e.len().is_some() => e.len().unwrap_or(0) as i64,
+        Value::Class(c) => {
+            let mut vm = current().ok_or_else(|| internal("no vm"))?;
+            match vm.meta_dunder(c, "__len__", Vec::new(), Vec::new()) {
+                Some(r) => match r? {
+                    Value::Int(n) => n,
+                    _ => return Err(type_error("'__len__' should return an integer")),
+                },
+                None => return Err(type_error("object of type 'type' has no len()")),
+            }
+        }
         Value::Instance(_) => {
             let mut vm = current().ok_or_else(|| internal("no vm"))?;
             match vm.call_dunder(v, "__len__", Vec::new()) {
@@ -2864,6 +2881,12 @@ pub(crate) fn mapping_pairs(v: &Value) -> PyResult<Option<Vec<(Value, Value)>>> 
 
 /// `item in container`.
 fn contains(container: &Value, item: &Value) -> PyResult<bool> {
+    if let Value::Class(c) = container
+        && let Some(mut vm) = current()
+        && let Some(r) = vm.meta_dunder(c, "__contains__", vec![item.clone()], Vec::new())
+    {
+        return Ok(r?.is_true());
+    }
     if let Value::Instance(_) = container
         && let Some(mut vm) = current()
     {

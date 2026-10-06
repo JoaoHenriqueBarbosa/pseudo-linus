@@ -150,16 +150,22 @@ impl ExtObject for UnionType {
 /// `tipo[chave]` para um tipo embutido ou de usuário (com `__class_getitem__`).
 pub fn class_getitem(vm: &mut Vm, container: &Value, key: &Value) -> Option<PyResult<Value>> {
     match container {
-        Value::Class(c) => match c.lookup("__class_getitem__") {
-            Some(Value::Function(f)) => Some(vm.call_function(&f, vec![container.clone(), key.clone()], Vec::new())),
-            Some(Value::Ext(e)) => match e.descriptor() {
-                Some(crate::object::Descriptor::Class(Value::Function(f))) | Some(crate::object::Descriptor::Static(Value::Function(f))) => {
-                    Some(vm.call_function(&f, vec![container.clone(), key.clone()], Vec::new()))
-                }
-                _ => None,
-            },
-            _ => Some(Err(type_error(format!("type '{}' is not subscriptable", c.name)))),
-        },
+        Value::Class(c) => {
+            if let Some(r) = vm.meta_dunder(c, "__getitem__", vec![key.clone()], Vec::new()) {
+                return Some(r);
+            }
+            match c.lookup("__class_getitem__") {
+                Some(Value::Function(f)) => Some(vm.call_function(&f, vec![container.clone(), key.clone()], Vec::new())),
+                Some(Value::Ext(e)) => match e.descriptor() {
+                    Some(crate::object::Descriptor::Class(Value::Function(f)))
+                    | Some(crate::object::Descriptor::Static(Value::Function(f))) => {
+                        Some(vm.call_function(&f, vec![container.clone(), key.clone()], Vec::new()))
+                    }
+                    _ => None,
+                },
+                _ => Some(Err(type_error(format!("type '{}' is not subscriptable", c.name)))),
+            }
+        }
         Value::NativeFn(f) if crate::typeattrs::is_type_name(f.name) => Some(Ok(GenericAlias::make(container.clone(), key))),
         Value::Builtin(n) if crate::object::is_builtin_type(n) => Some(Ok(GenericAlias::make(container.clone(), key))),
         _ => None,

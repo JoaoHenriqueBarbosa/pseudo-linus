@@ -192,7 +192,22 @@ fn isinstance_check(v: &Value, cls: &Value) -> PyResult<bool> {
     if matches!(cls, Value::Builtin("NoneType")) {
         return Ok(matches!(v, Value::None));
     }
+    if matches!(cls, Value::Builtin("type")) {
+        return Ok(match v {
+            Value::Class(_) => true,
+            Value::Builtin(n) => crate::object::is_builtin_type(n) || *n == "object" || *n == "type",
+            Value::NativeFn(f) => crate::typeattrs::is_type_name(f.name),
+            _ => false,
+        });
+    }
+    if let (Value::Instance(i), Value::Builtin("type")) = (v, cls) {
+        return Ok(i.class.is_meta);
+    }
     if let Value::Class(c) = cls {
+        // Uma classe é instância da sua metaclasse (`isinstance(Color, EnumMeta)`).
+        if let Value::Class(vc) = v {
+            return Ok(vc.meta.as_ref().is_some_and(|m| m.mro().iter().any(|x| Rc::ptr_eq(x, c))));
+        }
         return Ok(matches!(v, Value::Instance(i) if i.class.mro().iter().any(|x| Rc::ptr_eq(x, c))));
     }
     if let Some(c) = class_name(cls) {
@@ -999,7 +1014,7 @@ fn b_len(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         Value::Set(s) => s.borrow().len() as i64,
         Value::Range(r) => r.len(),
         Value::Ext(e) if e.len().is_some() => e.len().unwrap_or(0) as i64,
-        Value::Instance(_) => crate::vm::len(&v)?,
+        Value::Instance(_) | Value::Class(_) => crate::vm::len(&v)?,
         other => return Err(type_error(format!("object of type '{}' has no len()", other.type_name()))),
     };
     Ok(Value::Int(n))

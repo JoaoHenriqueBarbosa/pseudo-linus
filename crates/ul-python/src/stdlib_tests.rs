@@ -140,6 +140,62 @@ print(s)
 }
 
 #[test]
+fn enum_module() {
+    let src = r#"
+from enum import Enum, IntEnum, StrEnum, Flag, IntFlag, auto, unique
+class Color(Enum):
+    RED = 1
+    GREEN = 2
+    BLUE = 3
+    ALIAS = 1
+    def describe(self):
+        return f'{self.name}={self.value}'
+print(Color.RED, repr(Color.GREEN), Color.RED.name, Color.BLUE.value, Color(2), Color['BLUE'])
+print(list(Color), len(Color), Color.RED in Color, Color.ALIAS is Color.RED, Color.RED.describe())
+print(list(Color.__members__))
+for c in Color:
+    print(c.name, end=' ')
+print()
+try:
+    Color(9)
+except ValueError as e:
+    print('erro:', e)
+class Num(IntEnum):
+    A = 1
+    B = 2
+print(Num.A + 1, Num.B == 2, Num(1), repr(Num.A), str(Num.A), f'{Num.B}', sorted([Num.B, Num.A]), isinstance(Num.A, int))
+class S(StrEnum):
+    X = auto()
+    Y = auto()
+print(S.X, S.Y.value, S('x'), S.X == 'x', repr(S.X))
+class P(Flag):
+    R = auto()
+    W = auto()
+    X = auto()
+print(P.R | P.W, repr(P.R | P.W), P.R in (P.R | P.W), bool(P.R & P.W), (P.R | P.W | P.X).value)
+class N(Enum):
+    A = auto()
+    B = auto()
+print(N.A.value, N.B.value, {Color.RED: 'r'}[Color.RED])
+E = Enum('E', 'ONE TWO THREE')
+print(list(E), E.TWO.value)
+"#;
+    assert_eq!(
+        out(src),
+        "Color.RED <Color.GREEN: 2> RED 3 Color.GREEN Color.BLUE\n\
+         [<Color.RED: 1>, <Color.GREEN: 2>, <Color.BLUE: 3>] 3 True True RED=1\n\
+         ['RED', 'GREEN', 'BLUE', 'ALIAS']\n\
+         RED GREEN BLUE \n\
+         erro: 9 is not a valid Color\n\
+         2 True 1 <Num.A: 1> 1 2 [<Num.A: 1>, <Num.B: 2>] True\n\
+         x y x True <S.X: 'x'>\n\
+         P.R|W <P.R|W: 3> True False 7\n\
+         1 2 r\n\
+         [<E.ONE: 1>, <E.TWO: 2>, <E.THREE: 3>] 2\n"
+    );
+}
+
+#[test]
 fn collections_module() {
     let src = "\
 from collections import namedtuple, defaultdict, Counter, OrderedDict, deque, ChainMap

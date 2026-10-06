@@ -180,6 +180,11 @@ impl ExtObject for BuiltinSuperMethod {
                     _ => Err(type_error("type.__new__() takes exactly 3 arguments")),
                 },
                 "__init__" => Ok(Value::None),
+                // `super().__call__(...)` de uma metaclasse: instancia a classe normalmente.
+                "__call__" => match args.as_slice() {
+                    [Value::Class(c), rest @ ..] => vm.instantiate_default(c, rest.to_vec(), kw),
+                    _ => Err(type_error("type.__call__() needs a class")),
+                },
                 _ => Err(exc("AttributeError", format!("'super' object has no attribute '{}'", self.name))),
             };
         }
@@ -444,8 +449,26 @@ impl Vm {
         )))
     }
 
-    /// `Classe(args)`: cria a instância e roda `__init__`.
+    /// Método mágico definido na metaclasse de `cls` (`__call__`, `__iter__`, `__getitem__`...).
+    pub(crate) fn meta_dunder(&mut self, cls: &Rc<ClassObj>, name: &str, args: Vec<Value>, kw: Kw) -> Option<PyResult<Value>> {
+        let meta = cls.meta.as_ref()?;
+        let Some(Value::Function(f)) = meta.lookup(name) else { return None };
+        let mut full = Vec::with_capacity(args.len() + 1);
+        full.push(Value::Class(cls.clone()));
+        full.extend(args);
+        Some(self.call_function(&f, full, kw))
+    }
+
+    /// `Classe(args)`: respeita o `__call__` da metaclasse, senão cria a instância.
     pub(crate) fn instantiate(&mut self, cls: &Rc<ClassObj>, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+        if let Some(r) = self.meta_dunder(cls, "__call__", args.clone(), kw.clone()) {
+            return r;
+        }
+        self.instantiate_default(cls, args, kw)
+    }
+
+    /// `Classe(args)`: cria a instância e roda `__init__`.
+    pub(crate) fn instantiate_default(&mut self, cls: &Rc<ClassObj>, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         self.check_abstract(cls)?;
         let user_new = match cls.lookup("__new__") {
             Some(Value::Function(f)) => Some(f),
@@ -602,6 +625,20 @@ impl Vm {
         }
         if let Some(attr) = cls.lookup(name) {
             return self.bind_class_attr(&attr, Value::Class(cls.clone()), cls);
+        }
+        // Atributos da metaclasse (`Color.__members__`, métodos de `EnumMeta`).
+        if let Some(meta) = &cls.meta {
+            if let Some(attr) = meta.lookup(name) {
+                let me = Value::Class(cls.clone());
+                return match &attr {
+                    Value::Function(f) => Ok(Value::BoundFn(Rc::new((me, f.clone())))),
+                    Value::Ext(e) => match e.descriptor() {
+                        Some(Descriptor::Property { get, .. }) => self.call_value(&get, vec![me], Vec::new()),
+                        _ => Ok(attr.clone()),
+                    },
+                    other => Ok(other.clone()),
+                };
+            }
         }
         Err(exc("AttributeError", format!("type object '{}' has no attribute '{name}'", cls.name)))
     }

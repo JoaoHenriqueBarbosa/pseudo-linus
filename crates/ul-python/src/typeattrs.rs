@@ -51,6 +51,33 @@ impl ExtObject for Unbound {
     }
 }
 
+/// `int.__new__(cls, valor)`, `str.__new__(cls, ...)`: instância de `cls` com o valor embutido.
+struct NewFn {
+    tname: &'static str,
+}
+
+impl ExtObject for NewFn {
+    fn type_name(&self) -> &'static str {
+        "builtin_function_or_method"
+    }
+    fn methods(&self) -> &'static [&'static str] {
+        &["__call__"]
+    }
+    fn call_method(&self, vm: &mut Vm, _name: &str, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+        let Some(Value::Class(c)) = args.first() else {
+            return Err(type_error(format!("{}.__new__(X): X is not a type object", self.tname)));
+        };
+        let rest: Vec<Value> = args[1..].iter().map(crate::vm::unwrap_payload).collect();
+        let ctor = crate::builtins::get(self.tname).unwrap_or(Value::Builtin("object"));
+        let payload = vm.call_value(&ctor, rest, kw)?;
+        Ok(Value::Instance(Rc::new(crate::object::InstanceObj {
+            class: c.clone(),
+            dict: std::cell::RefCell::new(std::collections::BTreeMap::new()),
+            payload: std::cell::RefCell::new(Some(payload)),
+        })))
+    }
+}
+
 fn fromkeys(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     let (keys, value) = match args.as_slice() {
         [k] => (k, Value::None),
@@ -228,6 +255,7 @@ pub fn type_attr(tname: &str, name: &str) -> Option<Value> {
     match (tname, name) {
         (_, "__name__" | "__qualname__") => return Some(Value::str(tname)),
         (_, "__module__") => return Some(Value::str("builtins")),
+        (t, "__new__") if t != "bool" => return Some(Value::Ext(Rc::new(NewFn { tname }))),
         ("dict", "fromkeys") => return Some(native("fromkeys", fromkeys)),
         ("int", "from_bytes") => return Some(native("from_bytes", int_from_bytes)),
         ("str", "maketrans") => return Some(native("maketrans", str_maketrans)),
