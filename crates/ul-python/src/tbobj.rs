@@ -198,7 +198,7 @@ impl ExtObject for CodeObject {
         Some(Ok(match name {
             "co_name" | "co_qualname" => Value::str(self.name.clone()),
             "co_filename" => Value::str(self.filename.to_string()),
-            "co_firstlineno" => Value::Int(1),
+            "co_firstlineno" => Value::Int(self.code.as_ref().map_or(1, |c| c.first_line.max(1)) as i64),
             _ => {
                 let c = self.code.as_ref()?;
                 let strs = |v: Vec<String>| Value::tuple(v.into_iter().map(Value::str).collect());

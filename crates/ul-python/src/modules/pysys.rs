@@ -37,6 +37,24 @@ fn getframe(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
         Some(v) => crate::native_util::want_int(v)?.max(0) as usize,
         None => 0,
     };
+    frame_at_depth(vm, depth)
+}
+
+/// O quadro em execução (o `frame` que os rastreadores do `sys.settrace` recebem).
+pub fn current_frame(vm: &mut Vm) -> PyResult<Value> {
+    frame_at_depth(vm, 0)
+}
+
+fn settrace(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    crate::tracing::set(args.into_iter().next().filter(|v| !matches!(v, Value::None)));
+    Ok(Value::None)
+}
+
+fn gettrace(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    Ok(crate::tracing::get())
+}
+
+fn frame_at_depth(vm: &mut Vm, depth: usize) -> PyResult<Value> {
     // Do quadro mais interno para o `<module>`: cada função guarda a linha do seu chamador.
     let script: std::rc::Rc<str> = vm.script_name().into();
     let mut chain: Vec<(usize, String, std::rc::Rc<str>)> = Vec::new();
@@ -190,6 +208,8 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
         .func("exit", exit)
         .func("exc_info", exc_info)
         .func("_getframe", getframe)
+        .func("settrace", settrace)
+        .func("gettrace", gettrace)
         .func("_modules", modules_snapshot)
         .func("_exc_hint", exc_hint)
         .func("_builtin", mark_builtin)

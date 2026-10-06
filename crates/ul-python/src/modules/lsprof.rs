@@ -59,7 +59,7 @@ pub(crate) fn enter(code: &Rc<Code>) -> bool {
     if !ENABLED.with(Cell::get) {
         return false;
     }
-    let key: Key = (code.filename.clone(), code.lines.first().copied().unwrap_or(0), code.qual().to_string());
+    let key: Key = (code.filename.clone(), code.first_line, code.qual().to_string());
     STATE.with(|s| {
         let mut s = s.borrow_mut();
         let entry = s.entries.entry(key.clone()).or_default();

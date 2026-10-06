@@ -5315,3 +5315,94 @@ True True
 "##
     );
 }
+
+#[test]
+fn settrace_call_line_exception_return() {
+    let src = r##"
+import sys
+BASE = sys._getframe().f_lineno
+n = []
+def tr(frame, event, arg):
+    n.append((event, frame.f_code.co_name, frame.f_lineno - BASE, arg if event == 'return' else (arg[0].__name__ if event == 'exception' else None)))
+    return tr
+def f(a):
+    b = a + 1
+    if b > 1:
+        b *= 2
+    return b
+def g():
+    x = f(1)
+    try:
+        1 / 0
+    except ZeroDivisionError:
+        pass
+    return x
+def boom():
+    raise ValueError('x')
+sys.settrace(tr); g()
+try: boom()
+except ValueError: pass
+sys.settrace(None)
+for e in n: print(e)
+print(sys.gettrace())
+only_calls = []
+def gl(frame, event, arg):
+    only_calls.append(frame.f_code.co_name)
+sys.settrace(gl); f(5); g(); sys.settrace(None)
+print(only_calls)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"('call', 'g', 10, None)
+('line', 'g', 11, None)
+('call', 'f', 5, None)
+('line', 'f', 6, None)
+('line', 'f', 7, None)
+('line', 'f', 8, None)
+('line', 'f', 9, None)
+('return', 'f', 9, 4)
+('line', 'g', 12, None)
+('line', 'g', 13, None)
+('exception', 'g', 13, 'ZeroDivisionError')
+('line', 'g', 14, None)
+('line', 'g', 15, None)
+('line', 'g', 16, None)
+('return', 'g', 16, 4)
+('call', 'boom', 17, None)
+('line', 'boom', 18, None)
+('exception', 'boom', 18, 'ValueError')
+('return', 'boom', 18, None)
+None
+['f', 'g', 'f']
+"##
+    );
+}
+
+#[test]
+fn trace_module_counts_lines() {
+    let src = r##"
+import trace
+import sys
+BASE = sys._getframe().f_lineno
+def f(n):
+    s = 0
+    for i in range(n):
+        s += i
+    return s
+def g():
+    return f(3) + f(2)
+t = trace.Trace(count=1, trace=0)
+t.runfunc(g)
+counts = {(k[1] - BASE): v for k, v in t.results().counts.items()}
+print(sorted(counts.items()))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"[(2, 2), (3, 7), (4, 5), (5, 2), (7, 1)]
+"##
+    );
+}

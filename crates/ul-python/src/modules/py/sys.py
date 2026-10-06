@@ -357,14 +357,8 @@ def displayhook(value):
 __displayhook__ = displayhook
 
 
-def settrace(function):
-    """Guarda a função, mas o interpretador não gera eventos de linha (sem depurador)."""
-    global _trace_func
-    _trace_func = function
-
-
-def gettrace():
-    return _trace_func
+settrace = _sys.settrace
+gettrace = _sys.gettrace
 
 
 def setprofile(function):

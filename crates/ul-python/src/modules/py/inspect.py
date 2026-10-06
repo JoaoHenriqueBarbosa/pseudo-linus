@@ -10,6 +10,17 @@ __all__ = ['isfunction', 'ismethod', 'isclass', 'ismodule', 'iscoroutine', 'isco
 
 callable = callable
 
+CO_OPTIMIZED = 1
+CO_NEWLOCALS = 2
+CO_VARARGS = 4
+CO_VARKEYWORDS = 8
+CO_NESTED = 16
+CO_GENERATOR = 32
+CO_NOFREE = 64
+CO_COROUTINE = 128
+CO_ITERABLE_COROUTINE = 256
+CO_ASYNC_GENERATOR = 512
+
 
 def isfunction(obj):
     return type(obj) is type(isfunction)

@@ -927,6 +927,11 @@ impl Vm {
         while *pc < code.ops.len() {
             let op = code.ops[*pc];
             self.cur_line.set(code.lines[*pc]);
+            if crate::tracing::active() && pending.is_none() {
+                if let Err(e) = crate::tracing::line(self, code, code.lines[*pc]) {
+                    pending = Some(e);
+                }
+            }
             // Sinais capturados chegam entre instruções, como no CPython (só depois de um `signal.signal`).
             if crate::globalsview::ARMED.load(std::sync::atomic::Ordering::Relaxed) {
                 crate::globalsview::sync_pull();
@@ -1093,6 +1098,13 @@ impl Vm {
                 }
                 other => other,
             };
+            let result = match result {
+                Err(e) if crate::tracing::active() => match crate::tracing::exception(self, code, &e) {
+                    Ok(()) => Err(e),
+                    Err(e2) => Err(e2),
+                },
+                other => other,
+            };
             match result {
                 Ok(Some(target)) => *pc = target,
                 Ok(None) => *pc += 1,
@@ -1195,7 +1207,21 @@ impl Vm {
         // `return` dentro de um `except` sai sem fechar o tratador: a pilha volta ao tamanho de antes.
         let handled_len = self.handled.borrow().len();
         let profiled = crate::modules::lsprof::enter(&code);
+        let traced = match crate::tracing::enter(self, &code) {
+            Ok(t) => t,
+            Err(e) => {
+                self.frames.borrow_mut().pop();
+                self.cur_line.set(caller_line);
+                self.depth.set(self.depth.get() - 1);
+                return Err(e);
+            }
+        };
         let mut result = self.exec(&code, &env);
+        if traced {
+            if let Err(e) = crate::tracing::leave(self, &result) {
+                result = Err(e);
+            }
+        }
         if profiled {
             crate::modules::lsprof::leave();
         }

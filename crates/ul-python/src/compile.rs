@@ -252,6 +252,8 @@ pub struct Code {
     pub filename: String,
     /// Docstring (primeira instrução do corpo, se for um literal de texto).
     pub doc: Option<String>,
+    /// Linha do `def` (`co_firstlineno`); 0 quando não se aplica.
+    pub first_line: usize,
 }
 
 impl Code {
@@ -1333,6 +1335,7 @@ impl Compiler {
                 kwarg,
                 is_function: true,
                 is_async,
+                first_line: line,
                 ..Code::default()
             },
             line,
