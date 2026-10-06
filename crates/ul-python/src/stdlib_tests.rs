@@ -5451,3 +5451,30 @@ it = struct.iter_unpack('<H', b'\x01\x00\x02\x00'); print(next(it), list(it))
 "##
     );
 }
+
+#[test]
+fn builtin_subclass_alt_constructors() {
+    let src = r##"
+class D(dict): pass
+d = D.fromkeys('ab', 1); print(type(d).__name__, d)
+class L(list):
+    def total(self): return sum(self)
+l = L([1, 2]); l += [3]; print(type(l).__name__, l.total(), l[1:], type(l + [4]).__name__)
+class S(str):
+    def shout(self): return self.upper() + '!'
+print(S('hi').shout(), type(S('a') + 'b').__name__, S.maketrans('a', 'b'))
+class I(int):
+    def __repr__(self): return f'I({int(self)})'
+print(I(3), I(3) + 1, I.from_bytes(b'\x01', 'big'), type(I.from_bytes(b'\x01', 'big')).__name__)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"D {'a': 1, 'b': 1}
+L 6 [2, 3] list
+HI! str {97: 98}
+I(3) 4 I(1) I
+"##
+    );
+}

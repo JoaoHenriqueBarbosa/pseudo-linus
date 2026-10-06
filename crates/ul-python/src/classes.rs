@@ -170,6 +170,26 @@ impl ExtObject for SubclassesCall {
     }
 }
 
+/// `D.fromkeys(...)` numa subclasse de tipo embutido: o construtor do tipo base, convertido para
+/// a subclasse (`cls(resultado)`), como o CPython faz.
+struct AltCtor {
+    cls: Value,
+    inner: Value,
+}
+
+impl ExtObject for AltCtor {
+    fn type_name(&self) -> &'static str {
+        "builtin_function_or_method"
+    }
+    fn methods(&self) -> &'static [&'static str] {
+        &["__call__"]
+    }
+    fn call_method(&self, vm: &mut Vm, _name: &str, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+        let base = vm.call_value(&self.inner, args, kw)?;
+        vm.call_value(&self.cls, vec![base], Vec::new())
+    }
+}
+
 /// `exit` de um `with` sobre arquivo: fechar o arquivo.
 struct FileExit(Value);
 
@@ -966,6 +986,19 @@ impl Vm {
         if name == "__new__" {
             if let Some(v) = cls.data_base.and_then(|t| crate::typeattrs::type_attr(t, "__new__")) {
                 return Ok(v);
+            }
+        }
+        // Construtores alternativos do tipo base (`fromkeys`, `from_bytes`, `fromhex`, `maketrans`).
+        if let Some(t) = cls.data_base {
+            if matches!(name, "fromkeys" | "from_bytes" | "fromhex") {
+                if let Some(inner) = crate::typeattrs::type_attr(t, name) {
+                    return Ok(Value::Ext(Rc::new(AltCtor { cls: Value::Class(cls.clone()), inner })));
+                }
+            }
+            if name == "maketrans" {
+                if let Some(v) = crate::typeattrs::type_attr(t, name) {
+                    return Ok(v);
+                }
             }
         }
         // Os métodos de `object` (`__init__`, `__eq__`, `__setattr__`...) valem para toda classe comum.
