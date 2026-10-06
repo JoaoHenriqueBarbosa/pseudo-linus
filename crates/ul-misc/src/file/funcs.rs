@@ -128,10 +128,26 @@ pub fn file_buffer(ms: &mut MagicSet, b: &Buffer<'_>, inname: Option<&[u8]>) -> 
                 break 'tests Next::Done;
             }
         }
+        // O leitor de ELF roda antes das regras, num buffer à parte; o texto dele entra depois da
+        // descrição que as regras derem (`#ifdef BUILTIN_ELF`).
+        let mut rbuf: Option<Vec<u8>> = None;
+        if ms.flags & MAGIC_NO_CHECK_ELF == 0 && nb > 5 && b.fd.is_some() {
+            let Some(pb) = ms.push_buffer() else { return -1 };
+            rv = super::readelf::file_tryelf(ms, b);
+            rbuf = ms.pop_buffer(pb);
+            if rv == -1 {
+                rbuf = None;
+            }
+        }
         if ms.flags & MAGIC_NO_CHECK_SOFT == 0 {
             m = file_softmagic(ms, b, BINTEST, looks_text);
-            if m != 0 && checkdone(ms, &mut rv) {
-                break 'tests Next::Done;
+            if m != 0 {
+                if m == 1 && let Some(r) = rbuf.as_deref() && ms.print(r).is_err() {
+                    break 'tests Next::Done;
+                }
+                if checkdone(ms, &mut rv) {
+                    break 'tests Next::Done;
+                }
             }
         }
         if ms.flags & MAGIC_NO_CHECK_TEXT == 0 {

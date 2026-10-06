@@ -1120,8 +1120,153 @@ struct Opts {
     syms: bool,
     dyn_syms: bool,
     dynamic: bool,
+    notes: bool,
     wide: bool,
     silent: bool,
+}
+
+/// Nome e descrição de um tipo de nota do dono `GNU` (`get_gnu_elf_note_type`).
+fn gnu_note_type(t: u32) -> String {
+    match t {
+        1 => "NT_GNU_ABI_TAG (ABI version tag)".into(),
+        2 => "NT_GNU_HWCAP (DSO-supplied software HWCAP info)".into(),
+        3 => "NT_GNU_BUILD_ID (unique build ID bitstring)".into(),
+        4 => "NT_GNU_GOLD_VERSION (gold version)".into(),
+        5 => "NT_GNU_PROPERTY_TYPE_0".into(),
+        0x100 => "OPEN".into(),
+        0x101 => "func".into(),
+        _ => format!("Unknown note type: (0x{t:08x})"),
+    }
+}
+
+/// Bits do `GNU_PROPERTY_X86_ISA_1_*` (`decode_x86_isa`).
+fn x86_isa(mut bits: u32) -> String {
+    if bits == 0 {
+        return "<None>".into();
+    }
+    let names = [(1, "x86-64-baseline"), (2, "x86-64-v2"), (4, "x86-64-v3"), (8, "x86-64-v4")];
+    let mut v = Vec::new();
+    for (b, n) in names {
+        if bits & b != 0 {
+            v.push(n.to_string());
+            bits &= !b;
+        }
+    }
+    if bits != 0 {
+        v.push(format!("<unknown: {bits:x}>"));
+    }
+    v.join(", ")
+}
+
+/// Bits do `GNU_PROPERTY_X86_FEATURE_1_AND` (`decode_x86_feature_1`).
+fn x86_feature_1(mut bits: u32) -> String {
+    if bits == 0 {
+        return "<None>".into();
+    }
+    let names = [(1, "IBT"), (2, "SHSTK"), (4, "LAM_U48"), (8, "LAM_U57")];
+    let mut v = Vec::new();
+    for (b, n) in names {
+        if bits & b != 0 {
+            v.push(n.to_string());
+            bits &= !b;
+        }
+    }
+    if bits != 0 {
+        v.push(format!("<unknown: {bits:x}>"));
+    }
+    v.join(", ")
+}
+
+/// `print_gnu_property_note` para x86-64: as propriedades de um `NT_GNU_PROPERTY_TYPE_0`.
+fn gnu_properties(desc: &[u8]) -> String {
+    let mut parts = Vec::new();
+    let mut o = 0;
+    while o + 8 <= desc.len() {
+        let ptype = u32::from_le_bytes([desc[o], desc[o + 1], desc[o + 2], desc[o + 3]]);
+        let datasz = u32::from_le_bytes([desc[o + 4], desc[o + 5], desc[o + 6], desc[o + 7]]) as usize;
+        o += 8;
+        if o + datasz > desc.len() {
+            parts.push(format!("<corrupt type (0x{ptype:x}) datasz: 0x{datasz:x}>"));
+            break;
+        }
+        let d = &desc[o..o + datasz];
+        let word = (datasz == 4).then(|| u32::from_le_bytes([d[0], d[1], d[2], d[3]]));
+        let text = match (ptype, word) {
+            (0xc000_8002, Some(w)) => format!("x86 ISA needed: {}", x86_isa(w)),
+            (0xc001_0002, Some(w)) => format!("x86 ISA used: {}", x86_isa(w)),
+            (0xc000_0002, Some(w)) => format!("x86 feature: {}", x86_feature_1(w)),
+            (0xc000_0001, Some(_)) => "no copy on protected".into(),
+            (1, _) => "stack size: ...".into(),
+            (2, _) => "no copy on protected".into(),
+            _ => format!("<unknown type (0x{ptype:x}) datasz: 0x{datasz:x}>"),
+        };
+        parts.push(text);
+        // Cada propriedade é alinhada a 8 bytes num ELF de 64 bits.
+        o += (datasz + 7) & !7;
+    }
+    format!("      Properties: {}\n", parts.join(", "))
+}
+
+/// `process_notes`: as notas de cada seção `SHT_NOTE`, na ordem da tabela de seções.
+fn print_notes(e: &Elf<'_>, wide: bool, out: &mut String) {
+    for s in e.sh.iter().filter(|s| s.kind == SHT_NOTE) {
+        let start = s.offset as usize;
+        let Some(data) = e.d.get(start..start + s.size as usize) else { continue };
+        out.push_str(&format!("\nDisplaying notes found in: {}\n", String::from_utf8_lossy(&s.name)));
+        out.push_str("  Owner                Data size \tDescription\n");
+        let align = if s.align >= 8 { 8 } else { 4 };
+        let mut o = 0;
+        while o + 12 <= data.len() {
+            let namesz = rd32(data, o).unwrap_or(0) as usize;
+            let descsz = rd32(data, o + 4).unwrap_or(0) as usize;
+            let ntype = rd32(data, o + 8).unwrap_or(0);
+            let noff = o + 12;
+            let doff = (noff + namesz + align - 1) & !(align - 1);
+            let next = (doff + descsz + align - 1) & !(align - 1);
+            if doff + descsz > data.len() {
+                break;
+            }
+            let name = cstr(&data[noff..noff + namesz], 0);
+            let desc = &data[doff..doff + descsz];
+            let owner = String::from_utf8_lossy(&name).into_owned();
+            let gnu = name == b"GNU";
+            let tdesc = if gnu { gnu_note_type(ntype) } else { format!("Unknown note type: (0x{ntype:08x})") };
+            // Com `-W` o detalhe da nota segue na mesma linha, depois de um tab.
+            let detailed = gnu && matches!(ntype, 3 | 4 | 5) || gnu && ntype == 1 && descsz >= 16;
+            let sep = if wide && detailed { '\t' } else { '\n' };
+            out.push_str(&format!("  {owner:<20} 0x{descsz:08x}\t{tdesc}{sep}"));
+            if gnu {
+                match ntype {
+                    3 => {
+                        let hex: String = desc.iter().map(|b| format!("{b:02x}")).collect();
+                        out.push_str(&format!("    Build ID: {hex}\n"));
+                    }
+                    1 if descsz >= 16 => {
+                        let w = |i: usize| rd32(desc, i * 4).unwrap_or(0);
+                        let os = match w(0) {
+                            0 => "Linux",
+                            1 => "Hurd",
+                            2 => "Solaris",
+                            3 => "FreeBSD",
+                            4 => "NetBSD",
+                            5 => "Syllable",
+                            _ => "Unknown",
+                        };
+                        out.push_str(&format!("    OS: {os}, ABI: {}.{}.{}\n", w(1), w(2), w(3)));
+                    }
+                    4 => {
+                        out.push_str(&format!("    Version: {}\n", String::from_utf8_lossy(&cstr(desc, 0))));
+                    }
+                    5 => out.push_str(&gnu_properties(desc)),
+                    _ => {}
+                }
+            }
+            if next <= o {
+                break;
+            }
+            o = next;
+        }
+    }
 }
 
 pub fn main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
@@ -1188,6 +1333,7 @@ fn run(args: &[OsString]) -> i32 {
                     o.syms = true;
                     o.dyn_syms = true;
                     o.dynamic = true;
+                    o.notes = true;
                     acted = true;
                 }
                 b'h' => {
@@ -1219,7 +1365,11 @@ fn run(args: &[OsString]) -> i32 {
                 }
                 b'W' => o.wide = true,
                 b'T' => o.silent = true,
-                b'g' | b't' | b'n' | b'r' | b'u' | b'V' | b'A' | b'c' | b'I' | b'x' | b'p'
+                b'n' => {
+                    o.notes = true;
+                    acted = true;
+                }
+                b'g' | b't' | b'r' | b'u' | b'V' | b'A' | b'c' | b'I' | b'x' | b'p'
                 | b'R' | b'j' => acted = true,
                 b'H' => return usage(&prog, true),
                 b'v' => {
@@ -1301,6 +1451,9 @@ fn process(prog: &str, path: &[u8], o: &Opts, show_name: bool) -> Result<(), ()>
     }
     if o.syms || o.dyn_syms {
         print_symbols(&elf, o.dyn_syms, o.syms, o.wide, o.silent, &mut out);
+    }
+    if o.notes {
+        print_notes(&elf, o.wide, &mut out);
     }
     let mut so = io::stdout();
     let _ = so.write_all(out.as_bytes());
