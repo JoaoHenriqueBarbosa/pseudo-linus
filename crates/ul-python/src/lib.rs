@@ -13,6 +13,7 @@
 pub mod ast;
 pub mod builtins;
 pub mod compile;
+pub mod format;
 pub mod methods;
 pub mod modules;
 pub mod native_util;
