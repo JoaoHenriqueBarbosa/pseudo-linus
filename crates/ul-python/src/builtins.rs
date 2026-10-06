@@ -128,16 +128,20 @@ fn overflow() -> PyException {
 // ---------------------------------------------------------------------------------------------
 
 /// Nomes dos tipos embutidos que não são classes de exceção.
-const TYPE_NAMES: &[&str] = &[
+pub(crate) const TYPE_NAMES: &[&str] = &[
     "int", "str", "float", "bool", "list", "dict", "tuple", "set", "frozenset", "bytes", "bytearray", "range", "object",
     "slice",
 ];
+
+/// Tipos que só existem como o resultado de `type(valor)` (`type(f)`, `type(sys)`...).
+const PSEUDO_TYPES: &[&str] =
+    &["function", "module", "generator", "builtin_function_or_method", "method", "dict_keys", "dict_values", "dict_items"];
 
 /// Nome da classe embutida representada por `v` (`Builtin` ou `NativeFn` de tipo), se for uma.
 fn class_name(v: &Value) -> Option<&'static str> {
     match v {
         Value::Builtin(n) => {
-            if TYPE_NAMES.contains(n) || EXC_CLASSES.iter().any(|(e, _)| e == n) {
+            if TYPE_NAMES.contains(n) || PSEUDO_TYPES.contains(n) || EXC_CLASSES.iter().any(|(e, _)| e == n) {
                 Some(*n)
             } else {
                 None
@@ -177,6 +181,7 @@ fn instance_of(v: &Value, cname: &str) -> bool {
         // `frozenset` e `bytearray` ainda são representados por `set` e `bytes`.
         "set" | "frozenset" => matches!(v, Value::Set(_)),
         "bytes" | "bytearray" => matches!(v, Value::Bytes(_)),
+        other if PSEUDO_TYPES.contains(&other) => v.type_name() == other,
         other => matches!(v, Value::Exception(e) if exc_is_subclass(e.kind, other)),
     }
 }

@@ -250,6 +250,29 @@ pub fn py_lt(a: &Value, b: &Value) -> PyResult<bool> {
     compare(CmpOp::Lt, a, b)
 }
 
+/// `a <op> b` pelo símbolo de comparação (`==`, `!=`, `<`, `<=`, `>`, `>=`), para os `__eq__`... dos embutidos.
+pub(crate) fn py_compare(sym: &str, a: &Value, b: &Value) -> PyResult<bool> {
+    let op = match sym {
+        "==" => CmpOp::Eq,
+        "!=" => CmpOp::NotEq,
+        "<" => CmpOp::Lt,
+        "<=" => CmpOp::LtE,
+        ">" => CmpOp::Gt,
+        _ => CmpOp::GtE,
+    };
+    compare(op, a, b)
+}
+
+/// `item in container`.
+pub(crate) fn py_contains(container: &Value, item: &Value) -> PyResult<bool> {
+    contains(container, item)
+}
+
+/// `container[index]`.
+pub(crate) fn py_subscript(container: &Value, index: &Value) -> PyResult<Value> {
+    subscript(container, index)
+}
+
 /// Operador binário `a <op> b` (`op` pelo símbolo: `"+"`, `"-"`, `"*"`, `"/"`, `"//"`, `"%"`, `"**"`).
 pub fn py_binary(sym: &str, a: &Value, b: &Value) -> PyResult<Value> {
     let op = match sym {
@@ -1525,6 +1548,11 @@ impl Vm {
             Value::BoundFn(b) if b.1.attrs.borrow().contains_key(name) => {
                 return Ok(b.1.attrs.borrow().get(name).cloned().unwrap_or(Value::None))
             }
+            Value::Bound(b) => match name {
+                "__self__" => return Ok(b.recv.clone()),
+                "__name__" | "__qualname__" => return Ok(Value::str(b.name)),
+                _ => {}
+            },
             Value::BoundFn(b) => match name {
                 "__name__" => return Ok(Value::str(b.1.code.name.clone())),
                 "__self__" => return Ok(b.0.clone()),
@@ -1563,6 +1591,9 @@ impl Vm {
                 })
             }
             Value::Exception(_) if matches!(name, "__cause__" | "__context__") => Ok(Value::None),
+            v if name == "__class__" && !matches!(v, Value::Instance(_) | Value::Class(_) | Value::Exception(_)) => {
+                Ok(self.type_of(v))
+            }
             Value::Module(m) => match m.attrs.borrow().get(name) {
                 Some(v) => Ok(v.clone()),
                 None => Err(exc("AttributeError", format!("module '{}' has no attribute '{name}'", m.name))),

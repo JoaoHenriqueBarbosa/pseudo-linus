@@ -9,6 +9,7 @@
 
 pub mod base64;
 pub mod binascii;
+pub mod builtinsmod;
 pub mod csv;
 pub mod fnmatch;
 pub mod hashlib;
@@ -77,6 +78,7 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         "math" => math::build(vm),
         "base64" => base64::build(vm),
         "binascii" => binascii::build(vm),
+        "builtins" => builtinsmod::build(vm),
         "hashlib" => hashlib::build(vm),
         "html" => html::build(vm),
         "string" => string::build(vm),

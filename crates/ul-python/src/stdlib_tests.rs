@@ -825,3 +825,56 @@ options:
 "#
     );
 }
+
+#[test]
+fn stdlib_batch_heapq_difflib_types() {
+    let src = r#"
+import heapq, colorsys, keyword, graphlib, reprlib, getopt, difflib, types, builtins
+h = []
+for x in [5, 1, 8, 3, 2]:
+    heapq.heappush(h, x)
+print([heapq.heappop(h) for _ in range(5)], heapq.nlargest(2, [4, 9, 1, 7]), heapq.nsmallest(2, [4, 9, 1, 7]))
+print(heapq.merge([1, 4], [2, 3]).__class__.__name__, list(heapq.merge([1, 4], [2, 3])))
+print(colorsys.rgb_to_hsv(0.2, 0.4, 0.4), colorsys.hls_to_rgb(0.5, 0.5, 0.5))
+print(keyword.iskeyword("for"), keyword.iskeyword("foo"), len(keyword.kwlist))
+ts = graphlib.TopologicalSorter({"b": ["a"], "c": ["a", "b"]})
+print(list(ts.static_order()))
+print(reprlib.repr(list(range(100))), reprlib.repr("x" * 100))
+print(getopt.getopt(["-a", "-b", "val", "--long=3", "rest"], "ab:", ["long="]))
+print(list(difflib.unified_diff(["a\n", "b\n", "c\n"], ["a\n", "x\n", "c\n"], "f1", "f2")))
+print(difflib.SequenceMatcher(None, "abcd", "bcde").ratio(), difflib.get_close_matches("appel", ["apple", "ape", "peach"]))
+print(types.FunctionType is type(lambda: 0), isinstance(len, types.BuiltinFunctionType), isinstance(types, types.ModuleType))
+print(types.SimpleNamespace(a=1, b=2), builtins.len([1, 2]), builtins.int("7"))
+print([1].__len__(), {1}.__contains__(1), "x".__class__.__name__, (3).__add__(4))
+def f():
+    a = 1
+    b = 2
+    return locals()
+print(f(), callable(int), callable(f), callable(5))
+class P:
+    def __init__(self):
+        self.z = 1
+        self.a = 2
+print(vars(P()), list(P().__dict__))
+"#;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r#"[1, 2, 3, 5, 8] [9, 7] [1, 4]
+generator [1, 2, 3, 4]
+(0.5, 0.5, 0.4) (0.25, 0.7499999999999999, 0.75)
+True False 35
+['a', 'b', 'c']
+[0, 1, 2, 3, 4, 5, ...] 'xxxxxxxxxxxx...xxxxxxxxxxxxx'
+([('-a', ''), ('-b', 'val'), ('--long', '3')], ['rest'])
+['--- f1\n', '+++ f2\n', '@@ -1,3 +1,3 @@\n', ' a\n', '-b\n', '+x\n', ' c\n']
+0.75 ['apple', 'ape']
+True True True
+namespace(a=1, b=2) 2 7
+1 True str 7
+{'a': 1, 'b': 2} True True False
+{'z': 1, 'a': 2} ['z', 'a']
+"#
+    );
+}
