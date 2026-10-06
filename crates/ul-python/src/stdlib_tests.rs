@@ -4985,3 +4985,37 @@ speak(loud=True) method of __main__.Dog instance
 "##
     );
 }
+
+#[test]
+fn class_subclasses_registry() {
+    let src = r##"
+class Base:
+    registry = []
+    def __init_subclass__(cls, **kw):
+        super().__init_subclass__(**kw)
+        Base.registry.append(cls.__name__)
+class A(Base): pass
+class B(Base): pass
+class C(A): pass
+print(Base.registry)
+print(Base.__subclasses__())
+print(A.__subclasses__(), C.__subclasses__())
+def walk(c):
+    for s in c.__subclasses__():
+        yield s
+        yield from walk(s)
+print([k.__name__ for k in walk(Base)])
+print(issubclass(C, Base))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"['A', 'B', 'C']
+[<class '__main__.A'>, <class '__main__.B'>]
+[<class '__main__.C'>] []
+['A', 'C', 'B']
+True
+"##
+    );
+}

@@ -359,6 +359,8 @@ pub struct ClassObj {
     /// A classe herda de `type`: ela é uma metaclasse.
     pub is_meta: bool,
     pub dict: RefCell<indexmap::IndexMap<String, Value>>,
+    /// Subclasses diretas, em ordem de criação (referência fraca, para `__subclasses__()`).
+    pub subclasses: RefCell<Vec<std::rc::Weak<ClassObj>>>,
 }
 
 impl fmt::Debug for ClassObj {

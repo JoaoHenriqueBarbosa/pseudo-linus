@@ -104,6 +104,24 @@ impl ExtObject for Property {
     }
 }
 
+/// `Classe.__subclasses__`: chamável que devolve a lista das subclasses diretas vivas.
+struct SubclassesCall(Vec<Value>);
+
+impl ExtObject for SubclassesCall {
+    fn type_name(&self) -> &'static str {
+        "builtin_function_or_method"
+    }
+    fn methods(&self) -> &'static [&'static str] {
+        &["__call__"]
+    }
+    fn call_method(&self, _vm: &mut Vm, _name: &str, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+        if !args.is_empty() {
+            return Err(type_error(format!("__subclasses__() takes no arguments ({} given)", args.len())));
+        }
+        Ok(Value::list(self.0.clone()))
+    }
+}
+
 /// `exit` de um `with` sobre arquivo: fechar o arquivo.
 struct FileExit(Value);
 
@@ -532,7 +550,11 @@ impl Vm {
             meta,
             is_meta: info.derives_type,
             dict: RefCell::new(ns.into_iter().collect()),
+            subclasses: RefCell::new(Vec::new()),
         });
+        for base in &cls.bases {
+            base.subclasses.borrow_mut().push(Rc::downgrade(&cls));
+        }
         let owner = Value::Class(cls.clone());
         for (k, v) in named {
             if let Value::Instance(i) = &v {
@@ -852,6 +874,11 @@ impl Vm {
                 return Ok(Value::dict(d));
             }
             "__class__" => return Ok(Value::Builtin("type")),
+            "__subclasses__" => {
+                let alive: Vec<Value> =
+                    cls.subclasses.borrow().iter().filter_map(|w| w.upgrade()).map(Value::Class).collect();
+                return Ok(Value::Ext(Rc::new(SubclassesCall(alive))));
+            }
             // O docstring não é herdado: sem o próprio, `__doc__` é `None`.
             "__doc__" => return Ok(cls.dict.borrow().get("__doc__").cloned().unwrap_or(Value::None)),
             _ => {}
@@ -1415,6 +1442,7 @@ impl Vm {
                     meta: None,
                     is_meta: false,
                     dict: RefCell::new(indexmap::IndexMap::new()),
+                    subclasses: RefCell::new(Vec::new()),
                 });
                 Ok(Value::Instance(Rc::new(InstanceObj {
                     class: base,
