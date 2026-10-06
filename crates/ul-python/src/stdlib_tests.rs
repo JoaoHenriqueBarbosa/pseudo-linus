@@ -5507,3 +5507,29 @@ M: fim
 "##
     );
 }
+
+#[test]
+fn mock_side_effect_function_and_autospec() {
+    let src = r##"
+from unittest import mock
+class Svc:
+    def greet(self): return 'x'
+m = mock.Mock(side_effect=lambda k: k * 2); print(m(4))
+mm = mock.MagicMock(); mm.__getitem__.side_effect = lambda k: k + 1; print(mm[1])
+a = mock.create_autospec(Svc, instance=True); a.greet.return_value = 'ok'; print(a.greet())
+try: a.nope
+except AttributeError: print('sem nope')
+f = lambda: 3; print(f.__call__(), issubclass(type(Svc), object), issubclass(type, (int, type)), issubclass(type(Svc), Svc))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"8
+2
+ok
+sem nope
+3 True True False
+"##
+    );
+}

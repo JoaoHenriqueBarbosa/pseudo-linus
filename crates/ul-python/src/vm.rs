@@ -2780,6 +2780,8 @@ impl Vm {
                     return Ok(v.clone());
                 }
                 match name {
+                    // `f.__call__(...)` chama `f` (o `unittest.mock` testa `__call__` para saber se é chamável).
+                    "__call__" => return Ok(obj.clone()),
                     "__name__" => return Ok(Value::str(f.code.name.clone())),
                     "__qualname__" => return Ok(Value::str(f.code.qual())),
                     "__defaults__" => {
@@ -2838,6 +2840,7 @@ impl Vm {
                 "__name__" => return Ok(Value::str(b.1.code.name.clone())),
                 "__self__" => return Ok(b.0.clone()),
                 "__func__" => return Ok(Value::Function(b.1.clone())),
+                "__call__" => return Ok(obj.clone()),
                 _ => {}
             },
             Value::Slice(s) => match name {

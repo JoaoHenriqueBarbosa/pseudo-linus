@@ -270,6 +270,14 @@ fn issubclass_check(a: &Value, cls: &Value) -> PyResult<bool> {
             _ => false,
         });
     }
+    // O próprio `type` (é o `type(Classe)`): subclasse só de `type` e de `object`.
+    if matches!(a, Value::Builtin("type")) {
+        return Ok(match cls {
+            Value::Builtin("object") => true,
+            Value::Tuple(t) => t.iter().any(|c| matches!(c, Value::Builtin("type" | "object"))),
+            _ => false,
+        });
+    }
     if let Value::Class(b) = cls {
         if let Some(mut vm) = crate::vm::current() {
             if let Some(r) = vm.meta_dunder(b, "__subclasscheck__", vec![a.clone()], Vec::new()) {
@@ -298,7 +306,7 @@ fn issubclass_check(a: &Value, cls: &Value) -> PyResult<bool> {
 fn b_issubclass(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("issubclass", &kw)?;
     expect("issubclass", &args, 2, 2)?;
-    if !matches!(args[0], Value::Class(_)) && class_name(&args[0]).is_none() {
+    if !matches!(args[0], Value::Class(_) | Value::Builtin("type" | "object")) && class_name(&args[0]).is_none() {
         return Err(type_error("issubclass() arg 1 must be a class"));
     }
     Ok(Value::Bool(issubclass_check(&args[0], &args[1])?))
