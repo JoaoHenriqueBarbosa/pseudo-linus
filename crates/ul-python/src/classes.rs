@@ -1432,7 +1432,17 @@ pub fn instance_text(v: &Value, is_str: bool) -> Option<String> {
         if let Some(Value::Function(f)) = i.class.lookup(name) {
             return match vm.call_function(&f, vec![v.clone()], Vec::new()) {
                 Ok(Value::Str(s)) => Some(s.as_str().to_string()),
-                _ => None,
+                Ok(other) => {
+                    crate::vm::note_text_error(
+                        type_error(format!("{name} returned non-string (type {})", other.type_name())),
+                        vm.depth_now(),
+                    );
+                    None
+                }
+                Err(e) => {
+                    crate::vm::note_text_error(e, vm.depth_now());
+                    None
+                }
             };
         }
     }

@@ -10,7 +10,7 @@
 
 use crate::native_util::{bind, value_error, want_int};
 use crate::object::{
-    exc_is_subclass, py_eq, repr, to_str, Dict, ExtObject, Kw, Native, NativeFn, NativeFnPtr, ObjError, Set, Value,
+    exc_is_subclass, repr, to_str, Dict, ExtObject, Kw, Native, NativeFn, NativeFnPtr, ObjError, Set, Value,
     EXC_CLASSES,
 };
 use crate::vm::{exc, iterate, py_binary, py_lt, type_error, PyException, PyResult, Vm};
@@ -304,15 +304,18 @@ fn b_issubclass(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::Bool(issubclass_check(&args[0], &args[1])?))
 }
 
-fn b_callable(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    let v = one("callable", args, &kw)?;
-    let callable = match &v {
+fn is_callable(v: &Value) -> bool {
+    match v {
         Value::Function(_) | Value::Builtin(_) | Value::NativeFn(_) | Value::Bound(_) | Value::BoundFn(_) | Value::Class(_) => true,
         Value::Instance(i) => matches!(i.class.lookup("__call__"), Some(Value::Function(_))),
         Value::Ext(e) => e.methods().contains(&"__call__"),
         _ => false,
-    };
-    Ok(Value::Bool(callable))
+    }
+}
+
+fn b_callable(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    let v = one("callable", args, &kw)?;
+    Ok(Value::Bool(is_callable(&v)))
 }
 
 fn attr_name(v: &Value) -> PyResult<String> {
@@ -420,25 +423,16 @@ pub(crate) fn make_iter(v: &Value) -> PyResult<Value> {
     Ok(Value::Ext(Rc::new(SeqIter { items, pos: Cell::new(0), kind })))
 }
 
-fn b_iter(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+fn b_iter(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("iter", &kw)?;
     expect("iter", &args, 1, 2)?;
     if args.len() == 1 {
         return make_iter(&args[0]);
     }
-    let f = args[0].clone();
-    if !matches!(f, Value::Function(_) | Value::Builtin(_) | Value::NativeFn(_) | Value::Bound(_)) {
+    if !is_callable(&args[0]) {
         return Err(type_error("iter(v, w): v must be callable"));
     }
-    let mut items = Vec::new();
-    loop {
-        let x = vm.call_value(&f, Vec::new(), Vec::new())?;
-        if py_eq(&x, &args[1]) {
-            break;
-        }
-        items.push(x);
-    }
-    Ok(Value::Ext(Rc::new(SeqIter { items, pos: Cell::new(0), kind: "callable_iterator" })))
+    Ok(crate::lazy::CallIter::new(args[0].clone(), args[1].clone()))
 }
 
 fn stop_or(default: Option<Value>) -> PyResult<Value> {

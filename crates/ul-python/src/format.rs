@@ -569,6 +569,9 @@ pub fn percent_format_with(
     hook: &mut dyn FnMut(char, &Value) -> PyResult<Value>,
 ) -> PyResult<String> {
     let c: Vec<char> = fmt.chars().collect();
+    // Subclasse de tupla (namedtuple) ou de dict: os argumentos são o valor embutido que ela carrega.
+    let unwrapped = crate::vm::unwrap_payload(args);
+    let args = if matches!(unwrapped, Value::Tuple(_) | Value::Dict(_)) { &unwrapped } else { args };
     let items: Vec<Value> = match args {
         Value::Tuple(t) => t.to_vec(),
         other => vec![other.clone()],

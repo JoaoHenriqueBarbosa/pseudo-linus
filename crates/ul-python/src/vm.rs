@@ -15,7 +15,7 @@
 //!   bloco do stdout do CPython quando ele não é um terminal; `file=` fica para a fatia 13.
 //! - O traceback é a forma simples (sem a linha fonte nem os marcadores), refinada na fatia 11.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -348,7 +348,32 @@ pub fn format_traceback(err: &RuntimeError) -> String {
 /// Traceback com o nome do arquivo; com `src` (execução de arquivo) cada quadro mostra a linha fonte
 /// sem a indentação, como o CPython faz fora do `-c`.
 thread_local! {
-    /// Texto dos módulos carregados (por nome de arquivo), para mostrar a linha no traceback.
+    /// Erro de um `__repr__`/`__str__` de usuário, que o `repr()` interno (sem `Result`) não consegue devolver:
+    /// a instrução em andamento o levanta assim que termina.
+    static TEXT_ERROR: RefCell<Option<PyException>> = const { RefCell::new(None) };
+    static TEXT_ERROR_SET: Cell<bool> = const { Cell::new(false) };
+    /// Profundidade de chamadas de quem pediu o texto: só instruções desse quadro (ou de fora dele) levantam o erro.
+    static TEXT_ERROR_DEPTH: Cell<usize> = const { Cell::new(0) };
+}
+
+/// Guarda o primeiro erro de conversão para texto, para o laço de instruções levantá-lo.
+pub(crate) fn note_text_error(e: PyException, depth: usize) {
+    TEXT_ERROR.with(|t| {
+        let mut t = t.borrow_mut();
+        if t.is_none() {
+            *t = Some(e);
+            TEXT_ERROR_DEPTH.with(|d| d.set(depth));
+        }
+    });
+    TEXT_ERROR_SET.with(|s| s.set(true));
+}
+
+fn take_text_error() -> Option<PyException> {
+    TEXT_ERROR_SET.with(|s| s.set(false));
+    TEXT_ERROR.with(|t| t.borrow_mut().take())
+}
+
+thread_local! {
     static SOURCES: RefCell<HashMap<String, Rc<str>>> = RefCell::new(HashMap::new());
 }
 
@@ -844,6 +869,11 @@ impl Vm {
         self.call(f, args, kw)
     }
 
+    /// Profundidade atual de chamadas de função (para quem precisa saber em que quadro está).
+    pub(crate) fn depth_now(&self) -> usize {
+        self.depth.get()
+    }
+
     /// Executa o código de um módulo.
     pub fn run(&mut self, code: &Rc<Code>) -> Result<(), RuntimeError> {
         let env = Env::new(None, false, true);
@@ -1046,6 +1076,12 @@ impl Vm {
                     }
                     _ => self.step(code, op, stack, env),
                 }
+            };
+            let result = match result {
+                Ok(_) if TEXT_ERROR_SET.with(Cell::get) && self.depth.get() <= TEXT_ERROR_DEPTH.with(Cell::get) => {
+                    take_text_error().map_or(Ok(None), Err)
+                }
+                other => other,
             };
             match result {
                 Ok(Some(target)) => *pc = target,
@@ -2360,8 +2396,26 @@ impl Vm {
                 _ => return Err(type_error(format!("print() got an unexpected keyword argument '{name}'"))),
             }
         }
-        let parts: Vec<String> = args.iter().map(to_str).collect();
-        let text = format!("{}{}", parts.join(&sep), end);
+        // `print` escreve argumento por argumento: um `__str__` que falha deixa na saída o que veio antes dele.
+        let mut parts: Vec<String> = Vec::with_capacity(args.len());
+        let mut failure = None;
+        for a in &args {
+            parts.push(to_str(a));
+            if let Some(e) = take_text_error() {
+                parts.pop();
+                failure = Some(e);
+                break;
+            }
+        }
+        let text = if failure.is_some() {
+            let mut t = parts.join(&sep);
+            if !parts.is_empty() {
+                t.push_str(&sep);
+            }
+            t
+        } else {
+            format!("{}{}", parts.join(&sep), end)
+        };
         match file {
             Some(f) => {
                 self.write_to(&f, &text)?;
@@ -2381,6 +2435,9 @@ impl Vm {
                     }
                 }
             },
+        }
+        if let Some(e) = failure {
+            return Err(e);
         }
         Ok(Value::None)
     }

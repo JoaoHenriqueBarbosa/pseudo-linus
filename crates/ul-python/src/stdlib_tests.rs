@@ -3463,3 +3463,59 @@ print(got)
 "##
     );
 }
+
+#[test]
+fn repr_errors_namedtuple_percent_lazy_iter() {
+    let src = r##"
+import collections
+import io
+
+P = collections.namedtuple("P", "a b")
+print("%s-%s" % P(1, 2))
+f = io.StringIO("a\nb\n\nc\n")
+print(list(iter(f.readline, "")))
+n = [0]
+
+
+def tick():
+    n[0] += 1
+    return n[0]
+
+
+it = iter(tick, 3)
+print(next(it), next(it), list(it), n[0])
+
+
+class R:
+    def __repr__(self):
+        raise ValueError("boom")
+
+
+for g in (repr, str, lambda o: "%r" % (o,), lambda o: f"{o!r}", lambda o: [o].__repr__(), print):
+    try:
+        g(R())
+    except ValueError as e:
+        print("raised", e)
+print(1, 2, end="|")
+try:
+    print("x", R(), "y")
+except ValueError:
+    print("<fail>")
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"1-2
+['a\n', 'b\n', '\n', 'c\n']
+1 2 [] 3
+raised boom
+raised boom
+raised boom
+raised boom
+raised boom
+raised boom
+1 2|x <fail>
+"##
+    );
+}

@@ -63,6 +63,55 @@ impl ExtObject for MapIter {
     }
 }
 
+/// `iter(chamável, sentinela)`: chama a função a cada passo e termina ao receber o valor sentinela.
+pub struct CallIter {
+    func: Value,
+    sentinel: Value,
+    done: Cell<bool>,
+}
+
+impl CallIter {
+    pub fn new(func: Value, sentinel: Value) -> Value {
+        Value::Ext(std::rc::Rc::new(CallIter { func, sentinel, done: Cell::new(false) }))
+    }
+}
+
+impl ExtObject for CallIter {
+    fn type_name(&self) -> &'static str {
+        "callable_iterator"
+    }
+    fn repr(&self) -> String {
+        format!("<callable_iterator object at {:#x}>", self as *const CallIter as usize)
+    }
+    fn methods(&self) -> &'static [&'static str] {
+        &["__next__"]
+    }
+    fn is_iterable(&self) -> bool {
+        true
+    }
+    fn iter_next(&self) -> PyResult<Option<Value>> {
+        if self.done.get() {
+            return Ok(None);
+        }
+        let mut vm = current().ok_or_else(|| internal("no vm"))?;
+        let x = vm.call_value(&self.func, Vec::new(), Vec::new())?;
+        if crate::object::py_eq(&x, &self.sentinel) {
+            self.done.set(true);
+            return Ok(None);
+        }
+        Ok(Some(x))
+    }
+    fn call_method(&self, _vm: &mut Vm, name: &str, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+        match name {
+            "__next__" => match self.iter_next()? {
+                Some(v) => Ok(v),
+                None => stop("callable_iterator", name),
+            },
+            _ => Err(attr_error("callable_iterator", name)),
+        }
+    }
+}
+
 pub struct FilterIter {
     func: Value,
     iter: RefCell<PyIter>,
