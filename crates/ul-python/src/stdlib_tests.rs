@@ -3745,3 +3745,56 @@ ConnectionRefusedError FileNotFoundError BlockingIOError
 "##
     );
 }
+
+#[test]
+fn official_pathlib_ntpath_fnmatch_glob_pickletools() {
+    let src = r##"
+import fnmatch
+import genericpath
+import glob
+import ntpath
+import pathlib
+import pickle
+import pickletools
+
+print(ntpath.join('C:\\a', 'b', '..\\c'), ntpath.normpath('C:/a/./b/../c'), ntpath.splitdrive('D:\\x\\y'), ntpath.basename('C:\\a\\b.txt'))
+p = pathlib.PureWindowsPath('C:/Users/me/file.tar.gz')
+print(p, p.drive, p.parts, p.suffixes, p.parent, p.as_posix(), p.name)
+print(pathlib.PureWindowsPath('a/b') / 'c', pathlib.PureWindowsPath('A:/x') == pathlib.PureWindowsPath('a:/X'))
+print(genericpath.commonprefix(['/usr/lib', '/usr/local']))
+pickletools.dis(pickle.dumps({'a': [1, 2]}, protocol=2))
+print(fnmatch.fnmatch('a.PY', '*.py'), fnmatch.fnmatchcase('a.PY', '*.py'), fnmatch.filter(['a.py', 'b.txt', 'c.py'], '*.py'))
+print(fnmatch.translate('*.[ch]'), glob.translate('**/*.py', recursive=True, include_hidden=True))
+print(glob.has_magic('a*'), glob.escape('a*b[c]'))
+q = pathlib.PurePosixPath('/usr/local/lib/python3.13/site.py')
+print(q.match('*.py'), q.match('lib/*/site.py'), q.full_match('/usr/**/*.py'), q.parents[1], q.with_stem('x'))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"C:\a\b\..\c C:\a\c ('D:', '\\x\\y') b.txt
+C:\Users\me\file.tar.gz C: ('C:\\', 'Users', 'me', 'file.tar.gz') ['.tar', '.gz'] C:\Users\me C:/Users/me/file.tar.gz file.tar.gz
+a\b\c True
+/usr/l
+    0: \x80 PROTO      2
+    2: }    EMPTY_DICT
+    3: q    BINPUT     0
+    5: X    BINUNICODE 'a'
+   11: q    BINPUT     1
+   13: ]    EMPTY_LIST
+   14: q    BINPUT     2
+   16: (    MARK
+   17: K        BININT1    1
+   19: K        BININT1    2
+   21: e        APPENDS    (MARK at 16)
+   22: s    SETITEM
+   23: .    STOP
+highest protocol among opcodes = 2
+False False ['a.py', 'c.py']
+(?s:.*\.[ch])\Z (?s:(?:.+/)?[^/]*\.py)\Z
+True a[*]b[[]c]
+True True True /usr/local/lib /usr/local/lib/python3.13/x.py
+"##
+    );
+}

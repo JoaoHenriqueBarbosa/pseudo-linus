@@ -412,6 +412,9 @@ def access(p, mode):
     return _os.access(fspath(p), mode)
 
 
+_walk_symlinks_as_files = object()
+
+
 def walk(top, topdown=True, onerror=None, followlinks=False):
     top = fspath(top)
     try:
@@ -422,8 +425,9 @@ def walk(top, topdown=True, onerror=None, followlinks=False):
         return
     dirs = []
     nondirs = []
+    as_files = followlinks is _walk_symlinks_as_files
     for name, kind in entries:
-        is_dir = kind == 'd' or (kind == 'l' and path.isdir(path.join(top, name)))
+        is_dir = kind == 'd' or (kind == 'l' and not as_files and path.isdir(path.join(top, name)))
         if is_dir:
             dirs.append(name)
         else:

@@ -12,7 +12,6 @@ pub mod base64;
 pub mod binascii;
 pub mod builtinsmod;
 pub mod csv;
-pub mod fnmatch;
 pub mod hashlib;
 pub mod html;
 pub mod json;
@@ -86,7 +85,6 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         "hashlib" => hashlib::build(vm),
         "html" => html::build(vm),
         "textwrap" => textwrap::build(vm),
-        "fnmatch" => fnmatch::build(vm),
         "_struct" => pystruct::build(vm),
         "unicodedata" => unicodedata::build(vm),
         "_operator" => operator::build(vm),
@@ -176,7 +174,7 @@ pub fn new_module(vm: &mut Vm, args: Vec<Value>, kwargs: Vec<(String, Value)>) -
 /// Módulos escritos em Rust, além dos que `pysrc` embute em Python.
 const NATIVE_MODULES: &[&str] = &[
     "_sys", "_csvimpl", "_re", "math", "_base64", "binascii", "builtins", "hashlib", "html", "textwrap",
-    "fnmatch", "_struct", "unicodedata", "_operator", "_os", "_zlib", "_archive", "_sqlite3", "_ast_native", "_weakref",
+    "_struct", "unicodedata", "_operator", "_os", "_zlib", "_archive", "_sqlite3", "_ast_native", "_weakref",
 ];
 
 /// `name` é um módulo que o interpretador traz embutido (nativo ou em Python).
