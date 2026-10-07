@@ -16,7 +16,7 @@ use crate::strings::expand_response_files;
 use crate::util::io;
 use crate::util::{Getopt, HasArg, LongOpt};
 
-use super::elf::{Versions, cstr, cstr_lossy, rd16, rd32, rd64, slice_at};
+use super::elf::{Versions, cstr, cstr_lossy, rd16, rd32, rd64, segment_type_name, slice_at};
 
 const SHORTOPTS: &str = "ahlSegtsnrudVAcDLCvHWTzIx:p:R:j:";
 
@@ -478,13 +478,16 @@ fn sec_type_text(k: u32) -> String {
         0x6fff_fffe => "VERNEED".to_string(),
         0x6fff_ffff => "VERSYM".to_string(),
         0x7000_0001 => "X86_64_UNWIND".to_string(),
-        k if (0x6000_0000..0x7000_0000).contains(&k) => {
-            format!("LOOS+{:x}", k - 0x6000_0000)
-        }
-        k if (0x7000_0000..0x8000_0000).contains(&k) => {
-            format!("LOPROC+{:x}", k - 0x7000_0000)
-        }
-        k => format!("{k:08x}: <unknown>"),
+        k => os_proc_type(k).unwrap_or_else(|| format!("{k:08x}: <unknown>")),
+    }
+}
+
+/// Tipo de seção ou segmento nas faixas do sistema operacional e do processador.
+fn os_proc_type(k: u32) -> Option<String> {
+    match k {
+        0x6000_0000..0x7000_0000 => Some(format!("LOOS+{:x}", k - 0x6000_0000)),
+        0x7000_0000..0x8000_0000 => Some(format!("LOPROC+{:x}", k - 0x7000_0000)),
+        _ => None,
     }
 }
 
@@ -590,23 +593,9 @@ fn print_sections(e: &Elf<'_>, wide: bool, silent: bool, summary: bool, out: &mu
 }
 
 fn seg_type_text(k: u32) -> String {
-    match k {
-        0 => "NULL".to_string(),
-        1 => "LOAD".to_string(),
-        2 => "DYNAMIC".to_string(),
-        3 => "INTERP".to_string(),
-        4 => "NOTE".to_string(),
-        5 => "SHLIB".to_string(),
-        6 => "PHDR".to_string(),
-        7 => "TLS".to_string(),
-        0x6474_e550 => "GNU_EH_FRAME".to_string(),
-        0x6474_e551 => "GNU_STACK".to_string(),
-        0x6474_e552 => "GNU_RELRO".to_string(),
-        0x6474_e553 => "GNU_PROPERTY".to_string(),
-        0x6474_e554 => "GNU_SFRAME".to_string(),
-        k if (0x7000_0000..0x8000_0000).contains(&k) => format!("LOPROC+{:x}", k - 0x7000_0000),
-        k if (0x6000_0000..0x7000_0000).contains(&k) => format!("LOOS+{:x}", k - 0x6000_0000),
-        k => format!("<unknown>: {k:x}"),
+    match segment_type_name(k) {
+        Some(n) => n.to_string(),
+        None => os_proc_type(k).unwrap_or_else(|| format!("<unknown>: {k:x}")),
     }
 }
 

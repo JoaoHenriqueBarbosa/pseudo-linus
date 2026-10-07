@@ -22,7 +22,7 @@ use crate::strings::expand_response_files;
 use crate::util::io;
 use crate::util::{Getopt, HasArg, LongOpt};
 
-use super::elf::{SHT_VERDEF, SHT_VERNEED, Versions, cstr, cstr_lossy, is_elf64_le, rd16, rd32, rd64, slice_at, walk_chain};
+use super::elf::{SHT_VERDEF, SHT_VERNEED, Versions, cstr, cstr_lossy, is_elf64_le, rd16, rd32, rd64, segment_type_name, slice_at, walk_chain};
 
 const SHORTOPTS: &str = "pP:ib:m:M:VvCdDlfFaHhrRtTxsSj:wzZgeGWLI:E:";
 
@@ -823,25 +823,6 @@ fn print_section_headers(e: &Elf<'_>, o: &Opts, out: &mut String) {
     }
 }
 
-fn seg_type_text(k: u32) -> String {
-    match k {
-        0 => "NULL".to_string(),
-        1 => "LOAD".to_string(),
-        2 => "DYNAMIC".to_string(),
-        3 => "INTERP".to_string(),
-        4 => "NOTE".to_string(),
-        5 => "SHLIB".to_string(),
-        6 => "PHDR".to_string(),
-        7 => "TLS".to_string(),
-        0x6474_e550 => "EH_FRAME".to_string(),
-        0x6474_e551 => "STACK".to_string(),
-        0x6474_e552 => "RELRO".to_string(),
-        0x6474_e553 => "PROPERTY".to_string(),
-        0x6474_e554 => "SFRAME".to_string(),
-        k => format!("0x{k:08x}"),
-    }
-}
-
 fn dyn_tag_name(tag: u64) -> Option<&'static str> {
     Some(match tag {
         1 => "NEEDED",
@@ -918,7 +899,10 @@ fn print_private(e: &Elf<'_>, out: &mut String) {
                 .collect();
             out.push_str(&format!(
                 "{:>8} off    0x{:016x} vaddr 0x{:016x} paddr 0x{:016x} align 2**{}\n",
-                seg_type_text(p.kind),
+                segment_type_name(p.kind).map_or_else(
+                    || format!("0x{:08x}", p.kind),
+                    |n| n.trim_start_matches("GNU_").to_string()
+                ),
                 p.offset,
                 p.vaddr,
                 p.paddr,

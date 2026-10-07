@@ -222,6 +222,26 @@ pub(crate) const SHT_VERDEF: u32 = 0x6fff_fffd;
 pub(crate) const SHT_VERNEED: u32 = 0x6fff_fffe;
 pub(crate) const SHT_VERSYM: u32 = 0x6fff_ffff;
 
+/// Nome do tipo de segmento (`p_type`) como o readelf escreve; o objdump tira o `GNU_`.
+pub(crate) fn segment_type_name(k: u32) -> Option<&'static str> {
+    Some(match k {
+        0 => "NULL",
+        1 => "LOAD",
+        2 => "DYNAMIC",
+        3 => "INTERP",
+        4 => "NOTE",
+        5 => "SHLIB",
+        6 => "PHDR",
+        7 => "TLS",
+        0x6474_e550 => "GNU_EH_FRAME",
+        0x6474_e551 => "GNU_STACK",
+        0x6474_e552 => "GNU_RELRO",
+        0x6474_e553 => "GNU_PROPERTY",
+        0x6474_e554 => "GNU_SFRAME",
+        _ => return None,
+    })
+}
+
 /// Percorre `count` registros encadeados (verdef, verneed e os auxiliares deles): cada um diz,
 /// na posição `next_at`, quanto pular até o próximo, e zero encerra. `each` recebe o deslocamento
 /// do registro; `None` (registro truncado) para a caminhada.
