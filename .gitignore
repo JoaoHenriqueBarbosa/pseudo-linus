@@ -1,6 +1,7 @@
 /target/
 /testbench/target/
 /testbench/experiments/*/target/
+/wip/*/target/
 /testbench/corpus/agent/
 /testbench/corpus/upstream/
 # O scratch é versionado (trabalho que só existia nele se perdeu quando uma worktree foi limpa);
