@@ -10,7 +10,7 @@ fn conformance_hexdump() {
         report.missing_golden, 0,
         "casos sem golden: rode `oracle gen --tool hexdump`"
     );
-    assert!(report.strict_rate() >= 1.0, "placar estrito caiu");
+    assert!(report.conformance.strict_rate() >= 1.0, "placar estrito caiu");
 }
 
 #[test]
@@ -19,7 +19,7 @@ fn conformance_hexdump_kernel() {
     let report = pl_testing::score_tool("hexdump", &cand);
     report.print();
     assert!(
-        report.strict_rate() >= 1.0,
+        report.conformance.strict_rate() >= 1.0,
         "placar estrito no kernel real caiu"
     );
 }

@@ -6,7 +6,7 @@
 //! let cand = pl_testing::TestkitCandidate::new("grep (testkit)", ul_textproc::programs());
 //! let report = pl_testing::score_tool("grep", &cand);
 //! report.print();
-//! assert!(report.lenient_rate() >= 0.95);
+//! assert!(report.conformance.lenient_rate() >= 0.95);
 //! ```
 //!
 //! Casos `script` precisam de um `bash` entre os programas (o crate `shell` exporta).
@@ -298,14 +298,6 @@ pub struct Report {
 }
 
 impl Report {
-    pub fn strict_rate(&self) -> f64 {
-        self.conformance.strict_rate()
-    }
-
-    pub fn lenient_rate(&self) -> f64 {
-        self.conformance.lenient_rate()
-    }
-
     /// Resumo legível (vai pro stderr do teste; rode com `--nocapture` pra ver).
     pub fn summary(&self) -> String {
         let c = &self.conformance;

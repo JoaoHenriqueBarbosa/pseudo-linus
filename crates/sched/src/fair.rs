@@ -1153,11 +1153,6 @@ impl<C: Clock> Sched<C> {
         self.enqueue_load_avg(cfs, se);
     }
 
-    /// `detach_entity_load_avg`.
-    fn detach_entity_load_avg(&mut self, cfs: CfsId, se: EntityId) {
-        self.dequeue_load_avg(cfs, se);
-    }
-
     /// `attach_entity_cfs_rq` (grupo novo): atualiza e anexa a entidade de grupo na fila do pai.
     pub(crate) fn attach_entity_cfs_rq(&mut self, se: EntityId) {
         let cfs = self.cfs_rq_of(se);
@@ -1179,7 +1174,8 @@ impl<C: Clock> Sched<C> {
             self.attach_entity_load_avg(cfs, se);
             self.update_tg_load_avg(cfs);
         } else if flags & DO_DETACH != 0 {
-            self.detach_entity_load_avg(cfs, se);
+            // `detach_entity_load_avg`.
+            self.dequeue_load_avg(cfs, se);
             self.update_tg_load_avg(cfs);
         } else if decayed && flags & UPDATE_TG != 0 {
             self.update_tg_load_avg(cfs);

@@ -8,7 +8,7 @@ fn conformance_file() {
     let report = pl_testing::score_tool("file", &cand);
     report.print();
     assert_eq!(report.missing_golden, 0, "casos sem golden: rode `oracle gen --tool file`");
-    assert!(report.strict_rate() >= 1.0, "placar estrito caiu");
+    assert!(report.conformance.strict_rate() >= 1.0, "placar estrito caiu");
 }
 
 #[test]
@@ -16,5 +16,5 @@ fn conformance_file_kernel() {
     let cand = pl_testing::KernelCandidate::new("file (kernel)", ul_misc::programs());
     let report = pl_testing::score_tool("file", &cand);
     report.print();
-    assert!(report.strict_rate() >= 1.0, "placar estrito no kernel real caiu");
+    assert!(report.conformance.strict_rate() >= 1.0, "placar estrito no kernel real caiu");
 }

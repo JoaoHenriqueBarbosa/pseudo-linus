@@ -168,10 +168,6 @@ impl Ldisc {
         if self.canon() { !self.lines.is_empty() } else { !self.raw.is_empty() }
     }
 
-    pub(crate) fn raw_len(&self) -> usize {
-        self.raw.len()
-    }
-
     /// Entrada vinda do mestre (`n_tty_receive_buf`). Devolve os sinais de ISIG gerados, na ordem.
     pub(crate) fn receive(&mut self, data: &[u8]) -> Vec<Signal> {
         let mut sigs = Vec::new();
@@ -689,7 +685,7 @@ impl Pty {
             let got = if s.ld.canon() {
                 s.ld.read_canon(buf)
             } else {
-                let avail = s.ld.raw_len();
+                let avail = s.ld.raw.len();
                 if need == 0 || avail >= need || (nonblock && avail > 0) { Some(s.ld.read_raw(buf)) } else { None }
             };
             match got {
@@ -1052,7 +1048,7 @@ mod tests {
         ld.receive(b"\r\n");
         // O CR traduzido pelo ICRNL ecoa como quebra de linha; o LF literal, como ^J.
         assert_eq!(out(&mut ld), b"\r\n^J");
-        assert_eq!(ld.raw_len(), 2);
+        assert_eq!(ld.raw.len(), 2);
     }
 
     #[test]
