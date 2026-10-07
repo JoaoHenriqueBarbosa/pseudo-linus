@@ -1217,30 +1217,21 @@ fn dot_parameter(sh: &mut Shell, args: &[Vec<u8>]) -> Result<i32, Exit> {
         (4, Some(b"set")) => {
             funcs::bind_table_init(conn);
             let key = text::squote(&args[2]);
-            let try1 = format!(
-                "REPLACE INTO temp.sqlite_parameters(key,value)VALUES({},{});",
-                lossy(&key),
-                lossy(&args[3])
-            );
-            let ok = conn.prepare(&try1).map(|mut s| {
-                let _ = s.raw_execute();
-            });
-            unwind::reraise();
-            if ok.is_err() {
-                let try2 = format!(
-                    "REPLACE INTO temp.sqlite_parameters(key,value)VALUES({},{});",
-                    lossy(&key),
-                    lossy(&text::squote(&args[3]))
-                );
-                let r = conn.prepare(&try2).map(|mut s| {
+            // O valor vai primeiro como expressão SQL e, se não compilar, como texto entre aspas.
+            let replace = |value: &[u8]| {
+                let sql = format!("REPLACE INTO temp.sqlite_parameters(key,value)VALUES({},{});", lossy(&key), lossy(value));
+                let r = conn.prepare(&sql).map(|mut s| {
                     let _ = s.raw_execute();
                 });
                 unwind::reraise();
-                if let Err(e) = r {
-                    let msg = exec::error_parts(&e).1;
-                    sh.oputs(&format!("Error: {msg}\n"));
-                    rc = 1;
-                }
+                r
+            };
+            if replace(&args[3]).is_err()
+                && let Err(e) = replace(&text::squote(&args[3]))
+            {
+                let msg = exec::error_parts(&e).1;
+                sh.oputs(&format!("Error: {msg}\n"));
+                rc = 1;
             }
         }
         (3, Some(b"unset")) => {
@@ -1301,38 +1292,29 @@ fn dot_read(sh: &mut Shell, args: &[Vec<u8>]) -> Result<i32, Exit> {
     }
     let saved = sh.lineno;
     let arg = &args[1];
-    let rc;
-    if arg.first() == Some(&b'|') {
-        match popen(&arg[1..], false) {
-            Some((fd, pid)) => {
-                let mut r = LineReader::new(fd, true);
-                rc = i32::from(sh.process_input(&mut r, false)?);
-                r.close();
+    // `|comando` lê a saída do comando; senão, um arquivo comum, FIFO ou dispositivo de caractere.
+    let input = if arg.first() == Some(&b'|') {
+        popen(&arg[1..], false).map(|(fd, pid)| (fd, Some(pid)))
+    } else {
+        let ok = sys::stat(arg)
+            .is_ok_and(|st| matches!(st.file_type(), sysabi::FileType::Regular | sysabi::FileType::Fifo | sysabi::FileType::CharDevice));
+        ok.then(|| sys::open(arg, OFlags::RDONLY | OFlags::CLOEXEC, 0).ok()).flatten().map(|fd| (fd, None))
+    };
+    let rc = match input {
+        Some((fd, pid)) => {
+            let mut r = LineReader::new(fd, true);
+            let rc = i32::from(sh.process_input(&mut r, false)?);
+            r.close();
+            if let Some(pid) = pid {
                 wait_status(pid);
             }
-            None => {
-                sh.eputs(&format!("Error: cannot open \"{}\"\n", lossy(arg)));
-                rc = 1;
-            }
+            rc
         }
-    } else {
-        let ok = match sys::stat(arg) {
-            Ok(st) => matches!(st.file_type(), sysabi::FileType::Regular | sysabi::FileType::Fifo | sysabi::FileType::CharDevice),
-            Err(_) => false,
-        };
-        let fd = if ok { sys::open(arg, OFlags::RDONLY | OFlags::CLOEXEC, 0).ok() } else { None };
-        match fd {
-            Some(fd) => {
-                let mut r = LineReader::new(fd, true);
-                rc = i32::from(sh.process_input(&mut r, false)?);
-                r.close();
-            }
-            None => {
-                sh.eputs(&format!("Error: cannot open \"{}\"\n", lossy(arg)));
-                rc = 1;
-            }
+        None => {
+            sh.eputs(&format!("Error: cannot open \"{}\"\n", lossy(arg)));
+            1
         }
-    }
+    };
     sh.lineno = saved;
     Ok(rc)
 }
