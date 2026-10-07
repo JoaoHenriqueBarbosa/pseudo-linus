@@ -421,7 +421,7 @@ def fstat(fd):
 
 
 class DirEntry:
-    """Entrada devolvida por `os.scandir`."""
+    __module__ = 'posix'
 
     def __init__(self, dirpath, name, kind, dir_fd=None):
         self.name = name
@@ -567,6 +567,139 @@ def renames(old, new):
             removedirs(head)
         except OSError:
             pass
+
+
+def _exec_argv(fname, argv):
+    if not isinstance(argv, (tuple, list)):
+        raise TypeError(f'{fname}() arg 2 must be a tuple or list')
+    out = []
+    for a in argv:
+        if not isinstance(a, (str, bytes)) and not hasattr(type(a), '__fspath__'):
+            raise TypeError(f'expected str, bytes or os.PathLike object, not {type(a).__name__}')
+        out.append(fsencode(a))
+    return out
+
+
+def execv(path, argv, /):
+    """Execute an executable path with arguments, replacing current process.
+
+  path
+    Path of executable file.
+  argv
+    Tuple or list of strings."""
+    args = _exec_argv('execv', argv)
+    if not args:
+        raise ValueError('execv() arg 2 must not be empty')
+    if not args[0]:
+        raise ValueError('execv() arg 2 first element cannot be empty')
+    _os.execve(_path_or_fd(path), args, None)
+
+
+def execve(path, argv, env):
+    """Execute an executable path with arguments, replacing current process.
+
+  path
+    Path of executable file.
+  argv
+    Tuple or list of strings.
+  env
+    Dictionary of strings mapping to strings."""
+    args = _exec_argv('execve', argv)
+    if not args:
+        raise ValueError('execve: argv must not be empty')
+    if not args[0]:
+        raise ValueError('execve: argv first element cannot be empty')
+    if not isinstance(env, Mapping) and not hasattr(type(env), 'keys'):
+        raise TypeError('execve: environment must be a mapping object')
+    envlist = []
+    for k, v in env.items():
+        k, v = fsencode(k), fsencode(v)
+        if not k or b'=' in k:
+            raise ValueError('illegal environment variable name')
+        if b'\0' in k or b'\0' in v:
+            raise ValueError('embedded null byte')
+        envlist.append(k + b'=' + v)
+    _os.execve(_path_or_fd(path), args, envlist)
+
+
+def execl(file, *args):
+    """execl(file, *args)
+
+    Execute the executable file with argument list args, replacing the
+    current process. """
+    execv(file, args)
+
+def execle(file, *args):
+    """execle(file, *args, env)
+
+    Execute the executable file with argument list args and
+    environment env, replacing the current process. """
+    env = args[-1]
+    execve(file, args[:-1], env)
+
+def execlp(file, *args):
+    """execlp(file, *args)
+
+    Execute the executable file (which is searched for along $PATH)
+    with argument list args, replacing the current process. """
+    execvp(file, args)
+
+def execlpe(file, *args):
+    """execlpe(file, *args, env)
+
+    Execute the executable file (which is searched for along $PATH)
+    with argument list args and environment env, replacing the current
+    process. """
+    env = args[-1]
+    execvpe(file, args[:-1], env)
+
+def execvp(file, args):
+    """execvp(file, args)
+
+    Execute the executable file (which is searched for along $PATH)
+    with argument list args, replacing the current process.
+    args may be a list or tuple of strings. """
+    _execvpe(file, args)
+
+def execvpe(file, args, env):
+    """execvpe(file, args, env)
+
+    Execute the executable file (which is searched for along $PATH)
+    with argument list args and environment env, replacing the
+    current process.
+    args may be a list or tuple of strings. """
+    _execvpe(file, args, env)
+
+def _execvpe(file, args, env=None):
+    if env is not None:
+        exec_func = execve
+        argrest = (args, env)
+    else:
+        exec_func = execv
+        argrest = (args,)
+        env = environ
+
+    if path.dirname(file):
+        exec_func(file, *argrest)
+        return
+    saved_exc = None
+    path_list = get_exec_path(env)
+    if name != 'nt':
+        file = fsencode(file)
+        path_list = map(fsencode, path_list)
+    for dir in path_list:
+        fullname = path.join(dir, file)
+        try:
+            exec_func(fullname, *argrest)
+        except (FileNotFoundError, NotADirectoryError) as e:
+            last_exc = e
+        except OSError as e:
+            last_exc = e
+            if saved_exc is None:
+                saved_exc = e
+    if saved_exc is not None:
+        raise saved_exc
+    raise last_exc
 
 
 def get_exec_path(env=None):
@@ -1049,7 +1182,15 @@ def getlogin():
 
 
 class uname_result(tuple):
-    """`os.uname()`: tupla de cinco campos com nomes."""
+    """uname_result: Result from os.uname().
+
+This object may be accessed either as a tuple of
+  (sysname, nodename, release, version, machine),
+or via the attributes sysname, nodename, release, version, and machine.
+
+See os.uname for more information."""
+
+    __module__ = 'posix'
 
     _fields = ('sysname', 'nodename', 'release', 'version', 'machine')
     n_fields = 5
@@ -1059,18 +1200,130 @@ class uname_result(tuple):
     def __new__(cls, sequence):
         return tuple.__new__(cls, tuple(sequence))
 
-    sysname = property(lambda self: self[0])
-    nodename = property(lambda self: self[1])
-    release = property(lambda self: self[2])
-    version = property(lambda self: self[3])
-    machine = property(lambda self: self[4])
+    sysname = property(lambda self: self[0], doc='operating system name')
+    nodename = property(lambda self: self[1], doc='name of machine on network (implementation-defined)')
+    release = property(lambda self: self[2], doc='operating system release')
+    version = property(lambda self: self[3], doc='operating system version')
+    machine = property(lambda self: self[4], doc='hardware identifier')
 
     def __repr__(self):
         return 'posix.uname_result(sysname=%r, nodename=%r, release=%r, version=%r, machine=%r)' % tuple(self)
 
 
 def uname():
-    return uname_result(('Linux', 'localhost', '6.12.0', '#1 SMP', 'x86_64'))
+    """Return an object identifying the current operating system.
+
+The object behaves like a named tuple with the following fields:
+  (sysname, nodename, release, version, machine)"""
+    return uname_result(_os.uname())
+
+
+class statvfs_result(tuple):
+    """statvfs_result: Result from statvfs or fstatvfs.
+
+This object may be accessed either as a tuple of
+  (bsize, frsize, blocks, bfree, bavail, files, ffree, favail, flag, namemax),
+or via the attributes f_bsize, f_frsize, f_blocks, f_bfree, and so on.
+
+See os.statvfs for more information."""
+
+    _fields = ('f_bsize', 'f_frsize', 'f_blocks', 'f_bfree', 'f_bavail', 'f_files',
+               'f_ffree', 'f_favail', 'f_flag', 'f_namemax')
+    n_fields = 11
+    n_sequence_fields = 10
+    n_unnamed_fields = 0
+
+    def __new__(cls, sequence):
+        seq = tuple(sequence)
+        self = tuple.__new__(cls, seq[:10])
+        self._fsid = seq[10] if len(seq) > 10 else None
+        return self
+
+    f_bsize = property(lambda self: self[0])
+    f_frsize = property(lambda self: self[1])
+    f_blocks = property(lambda self: self[2])
+    f_bfree = property(lambda self: self[3])
+    f_bavail = property(lambda self: self[4])
+    f_files = property(lambda self: self[5])
+    f_ffree = property(lambda self: self[6])
+    f_favail = property(lambda self: self[7])
+    f_flag = property(lambda self: self[8])
+    f_namemax = property(lambda self: self[9])
+    f_fsid = property(lambda self: self._fsid)
+
+    def __repr__(self):
+        return 'os.statvfs_result(' + ', '.join('%s=%r' % (n, v) for n, v in zip(self._fields, self)) + ')'
+
+
+pathconf_names = {
+    'PC_ALLOC_SIZE_MIN': 18, 'PC_ASYNC_IO': 10, 'PC_CHOWN_RESTRICTED': 6, 'PC_FILESIZEBITS': 13,
+    'PC_LINK_MAX': 0, 'PC_MAX_CANON': 1, 'PC_MAX_INPUT': 2, 'PC_NAME_MAX': 3, 'PC_NO_TRUNC': 7,
+    'PC_PATH_MAX': 4, 'PC_PIPE_BUF': 5, 'PC_PRIO_IO': 11, 'PC_REC_INCR_XFER_SIZE': 14,
+    'PC_REC_MAX_XFER_SIZE': 15, 'PC_REC_MIN_XFER_SIZE': 16, 'PC_REC_XFER_ALIGN': 17,
+    'PC_SOCK_MAXBUF': 12, 'PC_SYMLINK_MAX': 19, 'PC_SYNC_IO': 9, 'PC_VDISABLE': 8,
+}
+
+
+def _pathconf_value(target, name):
+    if isinstance(name, str):
+        try:
+            code = pathconf_names[name]
+        except KeyError:
+            raise ValueError('unrecognized configuration name') from None
+    elif isinstance(name, int):
+        code = name
+    else:
+        raise TypeError('configuration names must be strings or integers')
+    # O `pathconf` da glibc: o que depende do sistema de arquivos sai do `statfs` (os tmpfs, proc e
+    # devpts do sandbox ficam fora da tabela de tipos dela, com os padrões do Linux); o resto é fixo.
+    st = _os.statvfs(target)
+    if code == 0:
+        return 127
+    if code == 3:
+        return st[9]
+    if code in (16, 17, 18):
+        return st[0]
+    fixed = {1: 255, 2: 255, 4: 4096, 5: 4096, 6: 1, 7: 1, 8: 0, 9: -1, 10: -1, 11: -1, 12: -1,
+             13: 32, 14: -1, 15: -1, 19: -1}
+    if code not in fixed:
+        raise OSError(22, 'Invalid argument')
+    return fixed[code]
+
+
+def pathconf(path, name):
+    """Return the configuration limit name for the file or directory path.
+
+If there is no limit, return -1.
+On some platforms, path may also be specified as an open file descriptor.
+  If this functionality is unavailable, using it raises an exception."""
+    return _pathconf_value(_path_or_fd(path), name)
+
+
+def fpathconf(fd, name, /):
+    """Return the configuration limit name for the file descriptor fd.
+
+If there is no limit, return -1."""
+    if not isinstance(fd, int) and hasattr(fd, 'fileno'):
+        fd = fd.fileno()
+    return _pathconf_value(_path_or_fd(fd), name)
+
+
+def statvfs(path):
+    """Perform a statvfs system call on the given path.
+
+path may always be specified as a string.
+On some platforms, path may also be specified as an open file descriptor.
+  If this functionality is unavailable, using it raises an exception."""
+    return statvfs_result(_os.statvfs(_path_or_fd(path)))
+
+
+def fstatvfs(fd, /):
+    """Perform an fstatvfs system call on the given fd.
+
+Equivalent to statvfs(fd)."""
+    if not isinstance(fd, int):
+        raise TypeError(f"'{type(fd).__name__}' object cannot be interpreted as an integer")
+    return statvfs_result(_os.statvfs(fd))
 
 
 def kill(pid, sig):

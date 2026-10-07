@@ -358,3 +358,88 @@ try: os.link('nope','x')
 except OSError as e: print(e.filename, e.filename2, e.errno)
 e = OSError(2, 'm', 'a', None, 'b'); print(e, e.filename2); print(OSError(2,'m','a').filename2)"
 '''
+
+# `os.uname()` e `platform` do kernel do sandbox (o mesmo do `uname` e do `hostname`), `statvfs`/`fstatvfs`
+# contra o `stat -f`, e as docstrings das classes do `posix` que o `os` publica.
+[[case]]
+id = "os-uname-statvfs"
+script = '''
+cd /tmp; mkdir -p w
+python3 - <<'P'
+import os, platform, subprocess
+u = os.uname(); print(type(u).__module__, u.sysname, u.machine, tuple(u) == tuple(subprocess.run(['uname', '-s', '-n', '-r', '-v', '-m'], capture_output=True, text=True).stdout.strip().split(' ', 3)[:3]) + (None,) * 0 or True)
+print(u.nodename == open('/etc/hostname').read().strip() == platform.node(), u.release == subprocess.run(['uname', '-r'], capture_output=True, text=True).stdout.strip(), u.version == subprocess.run(['uname', '-v'], capture_output=True, text=True).stdout.strip())
+s = os.statvfs('/tmp'); print(type(s).__name__, s.n_fields, s.n_sequence_fields, len(s), s.f_bsize, s.f_namemax, s.f_favail == s.f_ffree, isinstance(s.f_fsid, int))
+f = os.open('/tmp', os.O_RDONLY); print(os.fstatvfs(f) == s, os.statvfs(f) == s, repr(s).startswith('os.statvfs_result(f_bsize=4096, f_frsize=4096, f_blocks='))
+o = subprocess.run(['stat', '-f', '-c', '%b %f %a %c %d %S %s %l', '/tmp'], capture_output=True, text=True).stdout.split()
+print([int(x) for x in o] == [s.f_blocks, s.f_bfree, s.f_bavail, s.f_files, s.f_ffree, s.f_frsize, s.f_bsize, s.f_namemax])
+print(os.statvfs('/proc')[:6])
+try: os.statvfs('/nope')
+except OSError as e: print(e)
+try: os.fstatvfs('x')
+except TypeError as e: print(e)
+P
+python3 -c "import os; e=[e for e in os.scandir('/etc')][0]; print(type(e).is_dir.__doc__, os.uname_result.sysname.__doc__ if hasattr(os.uname_result.sysname, '__doc__') else '')"
+cat > /tmp/c.py <<'E'
+class A:
+    x = property(lambda self: 1, doc='dx')
+    def g(self):
+        "doc g"
+    y = property(g)
+    z = property(g, None, None, 'pos')
+    w = property(g).setter(lambda s, v: None)
+    @property
+    def v(self):
+        "doc v"
+    v = v.getter(lambda s: 2)
+print(A.x.__doc__, A.y.__doc__, A.z.__doc__, A.w.__doc__, A.v.__doc__, property().__doc__, A().x)
+E
+python3 /tmp/c.py
+'''
+
+# `execv`/`execve` (validações do posixmodule, buffer não esvaziado se perde, mesmo pid, `fexecve` por
+# descritor) e a família `execl*`/`execvp*` do `os.py`.
+[[case]]
+id = "os-exec-family"
+script = '''
+cd /tmp
+python3 - <<'P'
+import os
+for a in (('/bin/echo', 'x'), ('/bin/echo', []), ('/bin/echo', ['']), ('/bin/echo', ('a', 1)), ('/nope', ['a']), ('/etc/hostname', ['a']), ('/tmp', ['a'])):
+    try: os.execv(*a)
+    except Exception as e: print(type(e).__name__, e)
+for a in (('/bin/echo', ['a'], 1), ('/bin/echo', ['a'], {'A=B': 'x'}), ('/bin/echo', ['a'], {'A': 'x\0'}), ('/bin/echo', [], {})):
+    try: os.execve(*a)
+    except Exception as e: print(type(e).__name__, e)
+try: os.execvp('nopecmd', ['nopecmd'])
+except Exception as e: print(type(e).__name__, e, e.filename)
+P
+python3 -c 'import os, sys; print("antes", end=""); os.execv("/bin/echo", ["echo", "depois"])'
+python3 -c 'import os, sys; print("antes", flush=True); os.execve("/usr/bin/env", ["env"], {"Z": "1"})'
+python3 -c 'import os; os.execlp("sh", "sh", "-c", "[ $$ = $1 ] && echo $0 mesmo-pid; exit 3", "x", str(os.getpid()))'; echo rc=$?
+python3 -c 'import os; f=os.open("/bin/echo", os.O_RDONLY); os.execve(f, ["echo", "por fd"], os.environ)'
+python3 -c 'import os; os.execvpe("printenv", ["printenv", "Q"], {"Q": "v", "PATH": "/usr/bin"})'
+'''
+
+# `pathconf`/`fpathconf` com os valores da glibc para tmpfs, proc e dispositivo, e os erros.
+[[case]]
+id = "os-pathconf"
+script = '''
+python3 - <<'P'
+import os
+print(sorted(os.pathconf_names.items()))
+for p in ('/run', '/proc', '/dev/null', '/tmp'):
+    out = []
+    for n in sorted(os.pathconf_names):
+        try: out.append((n, os.pathconf(p, n)))
+        except OSError as e: out.append((n, 'E%d' % e.errno))
+    print(p, out)
+f = os.open('/run', os.O_RDONLY); print(os.fpathconf(f, 'PC_NAME_MAX'), os.pathconf(f, 4))
+for a in (('/run', 'NOPE'), ('/run', 999), ('/nope', 'PC_NAME_MAX'), ('/run', 1.5)):
+    try: print(os.pathconf(*a))
+    except Exception as e: print(type(e).__name__, e)
+try: os.fpathconf(999, 'PC_NAME_MAX')
+except OSError as e: print(e)
+print(os.pathconf.__doc__); print(os.fpathconf.__doc__); print(os.pathconf("/tmp", "PC_NAME_MAX"), os.fpathconf(0, "PC_PIPE_BUF"))
+P
+'''

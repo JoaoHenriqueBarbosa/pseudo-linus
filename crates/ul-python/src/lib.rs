@@ -634,6 +634,10 @@ fn run_main(src: &str, argv: Vec<String>, name: &str, file_mode: bool, module: O
     });
     match spawned.map(|h| h.join()) {
         Ok(Ok(outcome)) => outcome,
+        // Os desvios de controle do kernel (`execve`, `_exit`, morte por sinal) desempilham a thread do
+        // interpretador e seguem até o pseudo-processo, que é quem troca o programa ou termina. Panic
+        // de bug (mensagem `&str`/`String`) fica como erro fatal do interpretador.
+        Ok(Err(payload)) if !payload.is::<&'static str>() && !payload.is::<String>() => std::panic::resume_unwind(payload),
         _ => Outcome {
             stdout: Vec::new(),
             stderr: "Fatal Python error: could not run the interpreter thread\n".into(),

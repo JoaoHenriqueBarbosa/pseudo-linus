@@ -405,6 +405,41 @@ fn isatty(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::Bool(sys::current().isatty(fd)))
 }
 
+/// `uname()` do kernel do sandbox: `(sysname, nodename, release, version, machine)`.
+fn uname(_vm: &mut Vm, _args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("uname", &kw)?;
+    let u = sys::current().uname();
+    Ok(Value::tuple(
+        [&u.sysname, &u.nodename, &u.release, &u.version, &u.machine].iter().map(|f| Value::str(shown(f))).collect(),
+    ))
+}
+
+/// `statvfs(path ou fd)`: `(bsize, frsize, blocks, bfree, bavail, files, ffree, favail, flag, namemax, fsid)`.
+fn statvfs(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("statvfs", &kw)?;
+    let st = match arg("statvfs", &args, 0)? {
+        Value::Int(fd) => sys::current().fstatfs(Fd(*fd as i32)).map_err(|e| os_error(e, None))?,
+        v => {
+            let p = path_bytes("statvfs", v)?;
+            sys::current().statfs(&p).map_err(|e| os_error(e, Some(&shown(&p))))?
+        }
+    };
+    let n = |v: u64| Value::Int(v as i64);
+    Ok(Value::tuple(vec![
+        n(st.bsize),
+        n(st.frsize),
+        n(st.blocks),
+        n(st.bfree),
+        n(st.bavail),
+        n(st.files),
+        n(st.ffree),
+        n(st.ffree),
+        n(st.flags),
+        n(st.namelen),
+        n(0),
+    ]))
+}
+
 fn getpid(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     // Sem pseudo-processo (o interpretador embutido nos testes) não há pid: o `logging` pede um a cada registro.
     Ok(Value::Int(sys::try_current().map_or(1, |s| i64::from(s.getpid()))))
@@ -547,6 +582,22 @@ fn utime(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         .utimensat(dir_fd, &path, a, m, AtFlags::empty())
         .map_err(|e| os_error(e, Some(&shown(&path))))?;
     Ok(Value::None)
+}
+
+/// `execve(path ou fd, argv, env)`: troca o programa do pseudo-processo (só volta com erro). `env`
+/// é a lista `NOME=valor` ou `None` (herda). O fd vai como `/proc/self/fd/N`, como o `fexecve` da glibc.
+fn execve(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("execve", &kw)?;
+    let path = match arg("execve", &args, 0)? {
+        Value::Int(fd) => format!("/proc/self/fd/{fd}").into_bytes(),
+        v => path_bytes("execve", v)?,
+    };
+    let argv = want_bytes_list("execve", arg("execve", &args, 1)?)?;
+    let env = match args.get(2) {
+        None | Some(Value::None) => None,
+        Some(v) => Some(want_bytes_list("execve", v)?),
+    };
+    Err(os_error(sys::current().execve(&path, &argv, env.as_deref()), None))
 }
 
 fn want_bytes_list(fname: &str, v: &Value) -> PyResult<Vec<Vec<u8>>> {
@@ -832,6 +883,8 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
         .func("set_blocking", set_blocking)
         .func("isatty", isatty)
         .func("getpid", getpid)
+        .func("uname", uname)
+        .func("statvfs", statvfs)
         .func("getppid", getppid)
         .func("umask", umask)
         .func("fsync", fsync)
@@ -841,6 +894,7 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
         .func("urandom", urandom)
         .func("utime", utime)
         .func("spawn", spawn)
+        .func("execve", execve)
         .func("wait", wait)
         .func("pipe", pipe)
         .func("kill", kill_proc)

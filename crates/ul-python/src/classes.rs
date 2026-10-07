@@ -1888,7 +1888,7 @@ impl Vm {
                 let get = it.next().unwrap_or(Value::None);
                 let set = it.next().filter(|v| !matches!(v, Value::None));
                 let del = it.next().filter(|v| !matches!(v, Value::None));
-                let _doc = it.next();
+                let mut doc = it.next().unwrap_or(Value::None);
                 let mut get = get;
                 let (mut set, mut del) = (set, del);
                 for (k, v) in kw {
@@ -1896,11 +1896,13 @@ impl Vm {
                         "fget" => get = v,
                         "fset" => set = Some(v),
                         "fdel" => del = Some(v),
-                        "doc" => {}
+                        "doc" => doc = v,
                         _ => return Err(type_error(format!("property() got an unexpected keyword argument '{k}'"))),
                     }
                 }
-                Ok(Value::Ext(Rc::new(Property::new(get, set, del))))
+                let p = Property::new(get, set, del);
+                *p.doc.borrow_mut() = doc;
+                Ok(Value::Ext(Rc::new(p)))
             }
             "super" => match args.as_slice() {
                 // `super()` sem argumentos vira `super(__class__, primeiro_parâmetro)` no compilador.

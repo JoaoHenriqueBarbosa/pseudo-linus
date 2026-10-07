@@ -77,7 +77,11 @@ def main(names):
         for key in sorted(vars(module)):
             value = vars(module)[key]
             if inspect.isclass(value):
-                if value.__module__ not in (name, name.rsplit('.', 1)[-1], module.__name__):
+                # Classe de outro módulo é reexportação e fica de fora, salvo a de um módulo em C
+                # embutido no interpretador que este módulo publica como sua (o `os.uname_result`
+                # e o `os.DirEntry` são do `posix`).
+                if (value.__module__ not in (name, name.rsplit('.', 1)[-1], module.__name__)
+                        and (value.__module__ not in sys.builtin_module_names or value.__module__ == 'builtins')):
                     continue
                 emit(key, value)
                 for attr in sorted(vars(value)):

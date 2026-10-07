@@ -17,8 +17,20 @@
     "exit": 0,
     "files": {}
   },
+  "os-exec-family": {
+    "stdout": "TypeError execv() arg 2 must be a tuple or list\nValueError execv() arg 2 must not be empty\nValueError execv() arg 2 first element cannot be empty\nTypeError expected str, bytes or os.PathLike object, not int\nFileNotFoundError [Errno 2] No such file or directory\nPermissionError [Errno 13] Permission denied\nPermissionError [Errno 13] Permission denied\nTypeError execve: environment must be a mapping object\nValueError illegal environment variable name\nValueError embedded null byte\nValueError execve: argv must not be empty\nFileNotFoundError [Errno 2] No such file or directory None\ndepois\nantes\nZ=1\nx mesmo-pid\nrc=3\npor fd\nv\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "os-link-mkfifo-mknod-filename2": {
     "stdout": "2 True\nFileExistsError [Errno 17] File exists: 'la' -> 'lb'\nFileNotFoundError [Errno 2] No such file or directory: 'nope' -> 'x'\nTrue 0o10644\n0o100600\n1050668 8 300 5000\nExtracts a device major number from a raw device number.\nnope x 2\n[Errno 2] m: 'a' -> 'b' b\nNone\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "os-pathconf": {
+    "stdout": "[('PC_ALLOC_SIZE_MIN', 18), ('PC_ASYNC_IO', 10), ('PC_CHOWN_RESTRICTED', 6), ('PC_FILESIZEBITS', 13), ('PC_LINK_MAX', 0), ('PC_MAX_CANON', 1), ('PC_MAX_INPUT', 2), ('PC_NAME_MAX', 3), ('PC_NO_TRUNC', 7), ('PC_PATH_MAX', 4), ('PC_PIPE_BUF', 5), ('PC_PRIO_IO', 11), ('PC_REC_INCR_XFER_SIZE', 14), ('PC_REC_MAX_XFER_SIZE', 15), ('PC_REC_MIN_XFER_SIZE', 16), ('PC_REC_XFER_ALIGN', 17), ('PC_SOCK_MAXBUF', 12), ('PC_SYMLINK_MAX', 19), ('PC_SYNC_IO', 9), ('PC_VDISABLE', 8)]\n/run [('PC_ALLOC_SIZE_MIN', 4096), ('PC_ASYNC_IO', -1), ('PC_CHOWN_RESTRICTED', 1), ('PC_FILESIZEBITS', 32), ('PC_LINK_MAX', 127), ('PC_MAX_CANON', 255), ('PC_MAX_INPUT', 255), ('PC_NAME_MAX', 255), ('PC_NO_TRUNC', 1), ('PC_PATH_MAX', 4096), ('PC_PIPE_BUF', 4096), ('PC_PRIO_IO', -1), ('PC_REC_INCR_XFER_SIZE', -1), ('PC_REC_MAX_XFER_SIZE', -1), ('PC_REC_MIN_XFER_SIZE', 4096), ('PC_REC_XFER_ALIGN', 4096), ('PC_SOCK_MAXBUF', -1), ('PC_SYMLINK_MAX', -1), ('PC_SYNC_IO', -1), ('PC_VDISABLE', 0)]\n/proc [('PC_ALLOC_SIZE_MIN', 4096), ('PC_ASYNC_IO', -1), ('PC_CHOWN_RESTRICTED', 1), ('PC_FILESIZEBITS', 32), ('PC_LINK_MAX', 127), ('PC_MAX_CANON', 255), ('PC_MAX_INPUT', 255), ('PC_NAME_MAX', 255), ('PC_NO_TRUNC', 1), ('PC_PATH_MAX', 4096), ('PC_PIPE_BUF', 4096), ('PC_PRIO_IO', -1), ('PC_REC_INCR_XFER_SIZE', -1), ('PC_REC_MAX_XFER_SIZE', -1), ('PC_REC_MIN_XFER_SIZE', 4096), ('PC_REC_XFER_ALIGN', 4096), ('PC_SOCK_MAXBUF', -1), ('PC_SYMLINK_MAX', -1), ('PC_SYNC_IO', -1), ('PC_VDISABLE', 0)]\n/dev/null [('PC_ALLOC_SIZE_MIN', 4096), ('PC_ASYNC_IO', -1), ('PC_CHOWN_RESTRICTED', 1), ('PC_FILESIZEBITS', 32), ('PC_LINK_MAX', 127), ('PC_MAX_CANON', 255), ('PC_MAX_INPUT', 255), ('PC_NAME_MAX', 255), ('PC_NO_TRUNC', 1), ('PC_PATH_MAX', 4096), ('PC_PIPE_BUF', 4096), ('PC_PRIO_IO', -1), ('PC_REC_INCR_XFER_SIZE', -1), ('PC_REC_MAX_XFER_SIZE', -1), ('PC_REC_MIN_XFER_SIZE', 4096), ('PC_REC_XFER_ALIGN', 4096), ('PC_SOCK_MAXBUF', -1), ('PC_SYMLINK_MAX', -1), ('PC_SYNC_IO', -1), ('PC_VDISABLE', 0)]\n/tmp [('PC_ALLOC_SIZE_MIN', 4096), ('PC_ASYNC_IO', -1), ('PC_CHOWN_RESTRICTED', 1), ('PC_FILESIZEBITS', 32), ('PC_LINK_MAX', 127), ('PC_MAX_CANON', 255), ('PC_MAX_INPUT', 255), ('PC_NAME_MAX', 255), ('PC_NO_TRUNC', 1), ('PC_PATH_MAX', 4096), ('PC_PIPE_BUF', 4096), ('PC_PRIO_IO', -1), ('PC_REC_INCR_XFER_SIZE', -1), ('PC_REC_MAX_XFER_SIZE', -1), ('PC_REC_MIN_XFER_SIZE', 4096), ('PC_REC_XFER_ALIGN', 4096), ('PC_SOCK_MAXBUF', -1), ('PC_SYMLINK_MAX', -1), ('PC_SYNC_IO', -1), ('PC_VDISABLE', 0)]\n255 4096\nValueError unrecognized configuration name\nOSError [Errno 22] Invalid argument\nFileNotFoundError [Errno 2] No such file or directory: '/nope'\nTypeError configuration names must be strings or integers\n[Errno 9] Bad file descriptor\nReturn the configuration limit name for the file or directory path.\n\nIf there is no limit, return -1.\nOn some platforms, path may also be specified as an open file descriptor.\n  If this functionality is unavailable, using it raises an exception.\nReturn the configuration limit name for the file descriptor fd.\n\nIf there is no limit, return -1.\n255 4096\n",
     "stderr": "",
     "exit": 0,
     "files": {}
@@ -31,6 +43,12 @@
   },
   "os-renames-exec-path-fdopen-pipe": {
     "stdout": "False x\n\n['/usr/local/sbin', '/usr/local/bin', '/usr/sbin', '/usr/bin', '/sbin', '/bin'] ['/bin', '/usr/bin'] ['/q', '/r'] ['/z']\nenv cannot contain 'PATH' and b'PATH' keys\nhi r TextIOWrapper\ninvalid fd type (<class 'str'>, expected integer)\nrenames(old, new) None\ntuple 2 b'ab'\nCreate a pipe.\n\nReturns a tuple of two file descriptors:\n  (read_fd, write_fd)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "os-uname-statvfs": {
+    "stdout": "posix Linux x86_64 True\nTrue True True\nstatvfs_result 11 10 10 4096 255 True True\nTrue True True\nTrue\n(4096, 4096, 0, 0, 0, 0)\n[Errno 2] No such file or directory: '/nope'\n'str' object cannot be interpreted as an integer\nReturn True if the entry is a directory; cached per entry. operating system name\ndx doc g pos doc g None None 1\n",
     "stderr": "",
     "exit": 0,
     "files": {}
