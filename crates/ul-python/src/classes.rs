@@ -1425,17 +1425,7 @@ impl Vm {
                         ),
                     ));
                 }
-                inst.sync_from_view();
-                {
-                    let mut d = inst.dict.borrow_mut();
-                    match d.get_mut(name) {
-                        Some(slot) => *slot = value,
-                        None => {
-                            d.insert(name.to_string(), value);
-                        }
-                    }
-                }
-                inst.sync_to_view();
+                inst.set_own(name, value);
                 Ok(())
             }
             Value::Class(c) => {
@@ -1485,11 +1475,9 @@ impl Vm {
                         return Ok(());
                     }
                 }
-                inst.sync_from_view();
-                if inst.dict.borrow_mut().shift_remove(name).is_none() {
+                if inst.remove_own(name).is_none() {
                     return Err(crate::object::no_attribute(&inst.class.name, name));
                 }
-                inst.sync_to_view();
                 Ok(())
             }
             Value::Class(c) => {

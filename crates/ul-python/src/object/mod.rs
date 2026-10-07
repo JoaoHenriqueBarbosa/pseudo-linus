@@ -611,11 +611,7 @@ impl InstanceObj {
             self.sync_from_view();
             return Value::Dict(v.clone());
         }
-        let mut d = Dict::new();
-        for (k, v) in self.dict.borrow().iter() {
-            let _ = d.set(Value::str(k.clone()), v.clone());
-        }
-        let rc = Rc::new(RefCell::new(d));
+        let rc = Rc::new(RefCell::new(self.attrs_dict()));
         *self.view.borrow_mut() = Some(rc.clone());
         Value::Dict(rc)
     }
@@ -635,11 +631,31 @@ impl InstanceObj {
     /// Reflete no `__dict__` vivo uma mudança feita direto em `dict`.
     pub fn sync_to_view(&self) {
         let Some(v) = self.view.borrow().clone() else { return };
+        *v.borrow_mut() = self.attrs_dict();
+    }
+
+    /// Os atributos próprios como um `dict` do Python.
+    fn attrs_dict(&self) -> Dict {
         let mut d = Dict::new();
         for (k, val) in self.dict.borrow().iter() {
             let _ = d.set(Value::str(k.clone()), val.clone());
         }
-        *v.borrow_mut() = d;
+        d
+    }
+
+    /// `obj.name = value` no espaço próprio da instância, mantendo o `__dict__` vivo em dia.
+    pub fn set_own(&self, name: &str, value: Value) {
+        self.sync_from_view();
+        self.dict.borrow_mut().insert(name.to_string(), value);
+        self.sync_to_view();
+    }
+
+    /// `del obj.name` no espaço próprio; `None` se o atributo não estava lá.
+    pub fn remove_own(&self, name: &str) -> Option<Value> {
+        self.sync_from_view();
+        let removed = self.dict.borrow_mut().shift_remove(name)?;
+        self.sync_to_view();
+        Some(removed)
     }
 }
 

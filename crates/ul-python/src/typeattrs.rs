@@ -265,9 +265,7 @@ fn native(name: &'static str, f: crate::object::NativeFnPtr) -> Value {
 fn object_setattr(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     match args.as_slice() {
         [Value::Instance(i), Value::Str(n), v] => {
-            i.sync_from_view();
-            i.dict.borrow_mut().insert(n.as_str().to_string(), v.clone());
-            i.sync_to_view();
+            i.set_own(n.as_str(), v.clone());
             Ok(Value::None)
         }
         [other, ..] => Err(type_error(format!(
@@ -280,15 +278,10 @@ fn object_setattr(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
 
 fn object_delattr(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     match args.as_slice() {
-        [Value::Instance(i), Value::Str(n)] => {
-            i.sync_from_view();
-            let removed = i.dict.borrow_mut().shift_remove(n.as_str());
-            i.sync_to_view();
-            match removed {
-                Some(_) => Ok(Value::None),
-                None => Err(crate::vm::exc("AttributeError", n.as_str().to_string())),
-            }
-        }
+        [Value::Instance(i), Value::Str(n)] => match i.remove_own(n.as_str()) {
+            Some(_) => Ok(Value::None),
+            None => Err(crate::vm::exc("AttributeError", n.as_str().to_string())),
+        },
         _ => Err(type_error("expected 2 arguments")),
     }
 }
