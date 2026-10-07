@@ -18,9 +18,17 @@ use host::supervisor::{Supervisor, WorkerCommand};
 use host::timeutil::{fmt_utc, now_unix, parse_duration, parse_expiry};
 
 /// Allocator global rastreado (E07): a tabela de grupos é do kernel, que a instala no worker.
+#[cfg(not(target_env = "musl"))]
 #[global_allocator]
 static GLOBAL: tracking_allocator::Allocator<mimalloc::MiMalloc> =
     tracking_allocator::Allocator::from_allocator(mimalloc::MiMalloc);
+
+// No musl o unwinder (libunwind do LLVM) exige a exceção alinhada a 16 e o mimalloc dá 8 em blocos
+// pequenos; ver o `osh.rs`.
+#[cfg(target_env = "musl")]
+#[global_allocator]
+static GLOBAL: tracking_allocator::Allocator<std::alloc::System> =
+    tracking_allocator::Allocator::from_allocator(std::alloc::System);
 
 #[derive(Parser)]
 #[command(name = "pseudo-linusd", version, about = "Daemon multiusuário do pseudo-linus (JSON-RPC sobre HTTP)")]

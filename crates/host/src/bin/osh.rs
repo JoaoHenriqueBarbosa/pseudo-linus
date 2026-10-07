@@ -24,9 +24,18 @@ use host::exec::{Cancel, ExecLimits, OutputSink, Stream};
 use host::session::{Session, ShellState};
 use serde_json::{Value, json};
 
+#[cfg(not(target_env = "musl"))]
 #[global_allocator]
 static GLOBAL: tracking_allocator::Allocator<mimalloc::MiMalloc> =
     tracking_allocator::Allocator::from_allocator(mimalloc::MiMalloc);
+
+// No musl o unwinder é o libunwind do LLVM, que grava a exceção com `movaps` e exige 16 bytes de
+// alinhamento; o mimalloc devolve blocos pequenos alinhados a 8, e o `execve` (que desempilha) caía
+// com SIGSEGV. O malloc do musl alinha sempre a 16.
+#[cfg(target_env = "musl")]
+#[global_allocator]
+static GLOBAL: tracking_allocator::Allocator<std::alloc::System> =
+    tracking_allocator::Allocator::from_allocator(std::alloc::System);
 
 #[derive(Parser)]
 #[command(name = "osh", version, about = "Shell do pseudo-linus (local ou num pseudo-linusd remoto)")]
