@@ -38,9 +38,40 @@ pub struct Worker {
     sandboxes: RwLock<HashMap<String, Arc<SandboxRt>>>,
     sessions: RwLock<HashMap<String, Arc<SessionRt>>>,
     cancels: Mutex<HashMap<u64, Cancel>>,
+    /// Stdin em fluxo dos execs em andamento, por (sandbox, stdin_id).
+    stdins: Mutex<HashMap<(String, String), std::sync::mpsc::SyncSender<Vec<u8>>>>,
     out: Mutex<BufWriter<Box<dyn Write + Send>>>,
     in_flight: AtomicU32,
 }
+
+/// Leitor do stdin em fluxo de um exec: os pedaços que chegam por `ExecStdin`. Fim do canal é EOF.
+struct ChannelReader {
+    rx: std::sync::mpsc::Receiver<Vec<u8>>,
+    buf: Vec<u8>,
+    pos: usize,
+}
+
+impl Read for ChannelReader {
+    fn read(&mut self, out: &mut [u8]) -> io::Result<usize> {
+        while self.pos >= self.buf.len() {
+            match self.rx.recv() {
+                Ok(b) => {
+                    self.buf = b;
+                    self.pos = 0;
+                }
+                Err(_) => return Ok(0),
+            }
+        }
+        let n = out.len().min(self.buf.len() - self.pos);
+        out[..n].copy_from_slice(&self.buf[self.pos..self.pos + n]);
+        self.pos += n;
+        Ok(n)
+    }
+}
+
+/// Quanto um `ExecStdin` espera o exec registrar o fluxo (as duas chamadas chegam por conexões
+/// diferentes e podem se cruzar).
+const STDIN_REGISTER_WAIT: std::time::Duration = std::time::Duration::from_secs(10);
 
 struct EventSink<'a> {
     worker: &'a Worker,
@@ -72,6 +103,7 @@ impl Worker {
             sandboxes: RwLock::new(HashMap::new()),
             sessions: RwLock::new(HashMap::new()),
             cancels: Mutex::new(HashMap::new()),
+            stdins: Mutex::new(HashMap::new()),
             out: Mutex::new(BufWriter::new(out)),
             in_flight: AtomicU32::new(0),
         })
@@ -208,8 +240,57 @@ impl Worker {
                 let req = Self::spawn_request(&*rt.sb, &e)?;
                 let sink = EventSink { worker: self, id };
                 let sink_ref: Option<&dyn OutputSink> = if stream { Some(&sink) } else { None };
-                let outcome = exec::run(&*rt.sb, req, e.stdin, e.limits.to_exec(), sink_ref, cancel)?;
-                Ok(Reply::Exec { outcome })
+                let Some(stdin_id) = e.stdin_id.clone() else {
+                    let outcome = exec::run(&*rt.sb, req, e.stdin, e.limits.to_exec(), sink_ref, cancel)?;
+                    return Ok(Reply::Exec { outcome });
+                };
+                let key = (sandbox_id, stdin_id);
+                let (tx, rx) = std::sync::mpsc::sync_channel::<Vec<u8>>(4);
+                {
+                    let mut m = self.stdins.lock();
+                    if m.contains_key(&key) {
+                        return Err(RpcError::invalid_params("stdin_id já está em uso por outro exec"));
+                    }
+                    m.insert(key.clone(), tx);
+                }
+                let feed = exec::StdinFeed::Stream(Box::new(ChannelReader { rx, buf: e.stdin, pos: 0 }));
+                let outcome = exec::run_feed(&*rt.sb, req, feed, e.limits.to_exec(), sink_ref, cancel);
+                self.stdins.lock().remove(&key);
+                Ok(Reply::Exec { outcome: outcome? })
+            }
+            Call::ExecStdin { sandbox_id, stdin_id, data, eof } => {
+                let key = (sandbox_id, stdin_id);
+                let start = std::time::Instant::now();
+                let tx = loop {
+                    if let Some(tx) = self.stdins.lock().get(&key).cloned() {
+                        break tx;
+                    }
+                    if cancel.is_cancelled() || start.elapsed() > STDIN_REGISTER_WAIT {
+                        return Err(RpcError::not_found("o exec com stdin_id", &key.1));
+                    }
+                    std::thread::sleep(exec::POLL);
+                };
+                let mut chunk = Some(data).filter(|d| !d.is_empty());
+                while let Some(c) = chunk.take() {
+                    match tx.try_send(c) {
+                        Ok(()) => {}
+                        Err(std::sync::mpsc::TrySendError::Full(c)) => {
+                            // O processo ainda não leu: espera, sem prender a chamada além do exec.
+                            if cancel.is_cancelled() || !self.stdins.lock().contains_key(&key) {
+                                return Ok(Reply::Ok);
+                            }
+                            chunk = Some(c);
+                            std::thread::sleep(exec::POLL);
+                        }
+                        // O exec terminou: o resto do stdin não tem mais leitor, como num pipe fechado.
+                        Err(std::sync::mpsc::TrySendError::Disconnected(_)) => return Ok(Reply::Ok),
+                    }
+                }
+                drop(tx);
+                if eof {
+                    self.stdins.lock().remove(&key);
+                }
+                Ok(Reply::Ok)
             }
             Call::SessionOpen { sandbox_id, session_id, cwd, env, workdir, dump } => {
                 let rt = self.sandbox(&sandbox_id)?;

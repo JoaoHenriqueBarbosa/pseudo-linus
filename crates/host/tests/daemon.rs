@@ -370,8 +370,14 @@ fn osh(args: &[&str], stdin: &str, envs: &[(&str, &str)]) -> (i32, String, Strin
         .stderr(Stdio::piped())
         .spawn()
         .unwrap();
-    child.stdin.take().unwrap().write_all(stdin.as_bytes()).unwrap();
+    // Numa thread: com o stdin em fluxo, uma entrada grande só termina de entrar enquanto a saída é lida.
+    let mut w = child.stdin.take().unwrap();
+    let data = stdin.as_bytes().to_vec();
+    let feeder = thread::spawn(move || {
+        let _ = w.write_all(&data);
+    });
     let out = child.wait_with_output().unwrap();
+    feeder.join().unwrap();
     (
         out.status.code().unwrap_or(-1),
         String::from_utf8_lossy(&out.stdout).into_owned(),
@@ -381,13 +387,30 @@ fn osh(args: &[&str], stdin: &str, envs: &[(&str, &str)]) -> (i32, String, Strin
 
 #[test]
 fn osh_local_does_not_wait_for_stdin_eof() {
+    osh_does_not_wait_for_stdin_eof(&["--backend", "fake"], &[("PL_ALLOW_FAKE_BACKEND", "1")]);
+}
+
+#[test]
+fn osh_remote_streams_stdin() {
+    let d = Daemon::fake("");
+    let t = d.user("ivo", json!({}));
+    osh_does_not_wait_for_stdin_eof(&["--remote", &d.url], &[("OSH_KEY", t.as_str())]);
+    // Entrada maior que vários pedaços chega inteira e na ordem.
+    let big: String = (0..40000).map(|i| format!("{i}\n")).collect();
+    let (rc, out, _) = osh(&["--remote", &d.url, "-c", "cat"], &big, &[("OSH_KEY", t.as_str())]);
+    assert_eq!(rc, 0);
+    assert!(out == big, "{} bytes de {}", out.len(), big.len());
+}
+
+fn osh_does_not_wait_for_stdin_eof(target: &[&str], envs: &[(&str, &str)]) {
     // Stdin em pipe aberto e sem dados: o `bash -c` roda na hora, o osh também (antes lia até o EOF
     // e travava para sempre).
     let mut child = Command::new(env!("CARGO_BIN_EXE_osh"))
-        .args(["--backend", "fake", "-c", "echo oi"])
+        .args(target)
+        .args(["-c", "echo oi"])
         .env_remove("OSH_KEY")
         .env_remove("OSH_REMOTE")
-        .env("PL_ALLOW_FAKE_BACKEND", "1")
+        .envs(envs.iter().copied())
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
@@ -404,7 +427,9 @@ fn osh_local_does_not_wait_for_stdin_eof() {
     child.stdout.take().unwrap().read_to_string(&mut out).unwrap();
     assert_eq!(out, "oi\n");
     // O que chega no pipe continua indo para o fd 0 do comando.
-    let (rc, out, _) = osh(&["--backend", "fake", "-c", "cat"], "linha\n", &[("PL_ALLOW_FAKE_BACKEND", "1")]);
+    let mut args = target.to_vec();
+    args.extend(["-c", "cat"]);
+    let (rc, out, _) = osh(&args, "linha\n", envs);
     assert_eq!((rc, out.as_str()), (0, "linha\n"));
 }
 

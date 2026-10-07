@@ -150,13 +150,28 @@ pub struct ExecParams {
     pub clear_env: bool,
     pub stdin: Option<String>,
     pub stdin_base64: Option<String>,
+    /// Stdin em fluxo: depois do `stdin`/`stdin_base64` (que vão primeiro), o processo lê os pedaços
+    /// mandados por `exec.stdin` com este id, até um com `eof`. Id escolhido pelo cliente (até 64
+    /// letras, dígitos, `-` e `_`), único entre os execs em andamento da sandbox.
+    pub stdin_id: Option<String>,
     pub timeout_ms: Option<u64>,
     /// Limite de saída guardada por fluxo.
     pub output_limit_bytes: Option<u64>,
     pub encoding: Encoding,
 }
 
-/// Resultado de `exec`, `exec.stream` e `session.exec`.
+/// Parâmetros de `exec.stdin`: um pedaço do stdin em fluxo de um `exec` com `stdin_id`. A resposta
+/// só vem quando o pedaço entrou no pipe do processo (ou o processo já terminou).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct ExecStdinParams {
+    pub sandbox_id: String,
+    pub stdin_id: String,
+    pub data: Option<String>,
+    pub data_base64: Option<String>,
+    /// Fecha o stdin do processo depois deste pedaço.
+    pub eof: bool,
+}
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExecResult {
     /// Código de saída, quando o processo saiu normalmente.

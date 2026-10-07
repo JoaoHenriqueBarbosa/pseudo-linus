@@ -87,6 +87,8 @@ fn print_chunk(stream: &str, data: &[u8]) {
 
 struct Remote {
     client: Client,
+    url: String,
+    key: String,
     sandbox: String,
     created: bool,
     keep: bool,
@@ -100,6 +102,22 @@ fn client_err(e: ClientError) -> String {
     e.to_string()
 }
 
+/// Manda o stdin do osh ao exec remoto em pedaços, até o EOF (ou até o exec acabar).
+fn pump_stdin(client: Client, sandbox: String, id: String, mut src: Box<dyn Read + Send>) {
+    let mut buf = vec![0u8; 64 << 10];
+    loop {
+        let n = match src.read(&mut buf) {
+            Ok(n) => n,
+            Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(_) => 0,
+        };
+        let p = json!({ "sandbox_id": sandbox, "stdin_id": id, "data_base64": host::api::b64::encode(&buf[..n]), "eof": n == 0 });
+        if client.call("exec.stdin", p).is_err() || n == 0 {
+            return;
+        }
+    }
+}
+
 impl Remote {
     fn result(v: Value) -> Result<ExecResult, String> {
         serde_json::from_value(v).map_err(|e| format!("resposta inesperada do daemon: {e}"))
@@ -108,16 +126,19 @@ impl Remote {
 
 impl Target for Remote {
     fn run(&mut self, command: Option<&str>, argv: Option<&[String]>, stdin: StdinFeed) -> Result<ExecResult, String> {
-        // O protocolo do daemon leva o stdin inteiro na chamada: aqui ainda se lê até o EOF.
-        let stdin = match stdin {
-            StdinFeed::Bytes(v) => v,
-            StdinFeed::Stream(mut r) => {
-                let mut v = Vec::new();
-                let _ = r.read_to_end(&mut v);
-                v
+        let mut p = json!({ "sandbox_id": self.sandbox, "timeout_ms": self.timeout_ms });
+        match stdin {
+            StdinFeed::Bytes(v) => p["stdin_base64"] = json!(host::api::b64::encode(&v)),
+            // Stdin em fluxo: uma thread manda os pedaços por `exec.stdin` (noutra conexão) à medida que
+            // chegam; o comando não espera o EOF. A thread fica solta: pode estar presa num `read`.
+            StdinFeed::Stream(r) => {
+                let id = host::ids::random_id("in");
+                p["stdin_id"] = json!(id);
+                let client = Client::new(&self.url, &self.key);
+                let sandbox = self.sandbox.clone();
+                let _ = std::thread::Builder::new().name("osh-stdin".into()).spawn(move || pump_stdin(client, sandbox, id, r));
             }
-        };
-        let mut p = json!({ "sandbox_id": self.sandbox, "timeout_ms": self.timeout_ms, "stdin_base64": host::api::b64::encode(&stdin) });
+        }
         if let Some(cwd) = &self.cwd {
             p["cwd"] = json!(cwd);
         }
@@ -254,7 +275,8 @@ fn read_key(cli: &Cli) -> Result<String, String> {
 }
 
 fn connect(cli: &Cli, url: &str, timeout_ms: u64) -> Result<Box<dyn Target>, String> {
-    let client = Client::new(url, &read_key(cli)?);
+    let key = read_key(cli)?;
+    let client = Client::new(url, &key);
     let (sandbox, created) = match &cli.sandbox {
         Some(s) => (s.clone(), false),
         None => {
@@ -266,7 +288,7 @@ fn connect(cli: &Cli, url: &str, timeout_ms: u64) -> Result<Box<dyn Target>, Str
             (v["sandbox_id"].as_str().unwrap_or_default().to_string(), true)
         }
     };
-    Ok(Box::new(Remote { client, sandbox, created, keep: cli.keep, session: None, timeout_ms, cwd: cli.workdir.clone() }))
+    Ok(Box::new(Remote { client, url: url.to_string(), key, sandbox, created, keep: cli.keep, session: None, timeout_ms, cwd: cli.workdir.clone() }))
 }
 
 fn local(cli: &Cli, timeout: Duration) -> Result<Box<dyn Target>, String> {

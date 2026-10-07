@@ -155,6 +155,13 @@ fn bytes_param(text: Option<String>, b64v: Option<String>, what: &str) -> Result
     }
 }
 
+fn check_stdin_id(id: &str) -> Result<(), RpcError> {
+    if id.is_empty() || id.len() > 64 || !id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_') {
+        return Err(RpcError::invalid_params("stdin_id: até 64 letras, dígitos, - e _"));
+    }
+    Ok(())
+}
+
 fn valid_env_name(k: &str) -> bool {
     !k.is_empty() && !k.contains('=') && !k.contains('\0')
 }
@@ -312,6 +319,17 @@ impl Supervisor {
             }
             "exec" => self.exec(p, params(prm)?, None).await,
             "exec.stream" => self.exec(p, params(prm)?, notifier).await,
+            "exec.stdin" => {
+                let r: ExecStdinParams = params(prm)?;
+                check_stdin_id(&r.stdin_id)?;
+                let data = bytes_param(r.data, r.data_base64, "data")?;
+                let sb = self.active(p, &r.sandbox_id)?;
+                let call = Call::ExecStdin { sandbox_id: sb.id.clone(), stdin_id: r.stdin_id, data, eof: r.eof };
+                match self.call(sb.worker, call, None).await? {
+                    Reply::Ok => Ok(json!({})),
+                    other => Err(unexpected(&other)),
+                }
+            }
             "session.open" => self.session_open(p, params(prm)?).await,
             "session.exec" => self.session_exec(p, params(prm)?, None).await,
             "session.exec.stream" => self.session_exec(p, params(prm)?, notifier).await,
@@ -639,6 +657,9 @@ impl Supervisor {
             return Err(RpcError::invalid_params("command com NUL"));
         }
         check_env(&r.env)?;
+        if let Some(id) = &r.stdin_id {
+            check_stdin_id(id)?;
+        }
         let stdin = bytes_param(r.stdin, r.stdin_base64, "stdin")?;
         let limits = self.limits_for(p, r.timeout_ms, r.output_limit_bytes)?;
         let sb = self.active(p, &r.sandbox_id)?;
@@ -648,7 +669,7 @@ impl Supervisor {
         let _permit = self.acquire_exec(&p.user, &quota)?;
         let call = Call::Exec {
             sandbox_id: sb.id.clone(),
-            exec: ExecCall { command: r.command, argv: r.argv, cwd, env, stdin, limits },
+            exec: ExecCall { command: r.command, argv: r.argv, cwd, env, stdin, stdin_id: r.stdin_id, limits },
             stream: notifier.is_some(),
         };
         let streamed = notifier.is_some();

@@ -51,6 +51,10 @@ pub struct ExecCall {
     pub env: Vec<String>,
     #[serde(with = "b64")]
     pub stdin: Vec<u8>,
+    /// Stdin em fluxo: os pedaços chegam depois por `Call::ExecStdin` com este id (o `stdin` acima vai
+    /// primeiro).
+    #[serde(default)]
+    pub stdin_id: Option<String>,
     pub limits: WireLimits,
 }
 
@@ -82,6 +86,15 @@ pub enum Call {
         sandbox_id: String,
         exec: ExecCall,
         stream: bool,
+    },
+    /// Um pedaço do stdin em fluxo de um `Exec` da sandbox. Só responde quando o pedaço entrou no
+    /// pipe do processo (ou o exec terminou), o que dá contrapressão até o cliente.
+    ExecStdin {
+        sandbox_id: String,
+        stdin_id: String,
+        #[serde(with = "b64")]
+        data: Vec<u8>,
+        eof: bool,
     },
     SessionOpen {
         sandbox_id: String,
@@ -192,6 +205,7 @@ impl Call {
             Call::DestroySandbox { .. } => "destroy_sandbox",
             Call::UpdateUser { .. } => "update_user",
             Call::Exec { .. } => "exec",
+            Call::ExecStdin { .. } => "exec_stdin",
             Call::SessionOpen { .. } => "session_open",
             Call::SessionExec { .. } => "session_exec",
             Call::SessionClose { .. } => "session_close",
