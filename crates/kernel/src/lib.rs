@@ -26,6 +26,7 @@ mod signal;
 mod spawn;
 mod sys;
 mod tty;
+mod unix;
 
 pub mod config;
 pub mod kernel;

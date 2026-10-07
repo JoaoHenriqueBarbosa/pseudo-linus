@@ -25,9 +25,21 @@
     "exit": 0,
     "files": {}
   },
+  "procfs-net-unix-live": {
+    "stdout": "00000002 00000000 00000000 0001 01 ino \n00000002 00000000 00000000 0001 03 ino @abs\n00000002 00000000 00000000 0002 03 ino \n00000002 00000000 00010000 0001 01 ino /tmp/a.sock\n00000002 00000000 00010000 0001 01 ino @abs\n00000003 00000000 00000000 0001 02 ino0 /tmp/a.sock\n00000003 00000000 00000000 0001 03 ino \n00000003 00000000 00000000 0001 03 ino \n00000003 00000000 00000000 0001 03 ino \n00000003 00000000 00000000 0001 03 ino \n00000003 00000000 00000000 0001 03 ino /tmp/a.sock\n00000003 00000000 00000000 0002 03 ino r.sock\nNum       RefCount Protocol Flags    Type St Inode Path\n'' '' '/tmp/a.sock' '/tmp/a.sock' b'\\x00abs'\n0o140700\nsrwx------\nsrwx------\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "procfs-write-errors": {
     "stdout": "exit=1\nexit=1\nexit=1\nexit=0\nexit=1\n",
     "stderr": "bash: line 1: /proc/net/dev: Permission denied\nbash: line 2: /proc/version: Permission denied\nbash: line 3: echo: write error: Invalid argument\nchmod: changing permissions of '/proc/version': Permission denied\n",
+    "exit": 0,
+    "files": {}
+  },
+  "unix-socket-errors-and-processes": {
+    "stdout": "parent got b'from child'\nchild got b'ok'\n(b'anon', None)\n(b'named', b'\\x00abs-n')\nrebind [Errno 98] Address already in use\nnolisten [Errno 111] Connection refused\nmissing [Errno 2] No such file or directory\nnotsock [Errno 111] Connection refused\nabs missing [Errno 111] Connection refused\nlisten unbound [Errno 22] Invalid argument\nlisten dgram [Errno 95] Operation not supported\nsend unconn [Errno 107] Transport endpoint is not connected\nclosed [Errno 111] Connection refused\nsocket 0 1 755\n[Errno 2] No such file or directory\n",
+    "stderr": "",
     "exit": 0,
     "files": {}
   }

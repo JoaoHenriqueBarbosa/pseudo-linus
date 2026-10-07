@@ -250,6 +250,28 @@ pub trait ProcProvider: Send + Sync {
     fn tcp_socks(&self) -> Vec<TcpSock> {
         Vec::new()
     }
+    /// Os sockets do domínio Unix, na ordem em que o `/proc/net/unix` os lista.
+    fn unix_socks(&self) -> Vec<UnixSockRow> {
+        Vec::new()
+    }
+}
+
+/// Uma linha do `/proc/net/unix` (`unix_seq_show`).
+#[derive(Clone, Debug)]
+pub struct UnixSockRow {
+    /// O `%pK` do socket.
+    pub ptr: u32,
+    pub refcnt: u32,
+    /// `__SO_ACCEPTCON` (0x10000) num socket em escuta.
+    pub flags: u32,
+    /// `SOCK_STREAM` (1), `SOCK_DGRAM` (2) ou `SOCK_SEQPACKET` (5).
+    pub ty: u16,
+    /// `SS_UNCONNECTED` (1), `SS_CONNECTING` (2, o par ainda não aceito) ou `SS_CONNECTED` (3).
+    pub state: u8,
+    /// Zero no par ainda não aceito, que não tem inode.
+    pub inode: u64,
+    /// O nome como o `bind` recebeu; no espaço abstrato começa com o byte nulo.
+    pub path: Option<Vec<u8>>,
 }
 
 /// Estados do TCP no formato do `/proc/net/tcp` (`include/net/tcp_states.h`).

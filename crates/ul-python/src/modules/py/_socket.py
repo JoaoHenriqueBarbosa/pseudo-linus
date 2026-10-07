@@ -6,6 +6,7 @@ Cada socket tem um descritor inteiro numa tabela própria, para o `socket.py` of
 import errno as _errno
 
 import _net
+import _os
 
 AF_UNSPEC = 0
 AF_UNIX = 1
@@ -165,6 +166,16 @@ class _State:
         self.closed = False
         self.fd = None
         self.refs = 0
+        # O socket do kernel de um `AF_UNIX` ainda sem conexão, escuta nem fila de datagramas (que, quando
+        # nascem, passam a ser donos dele).
+        self.kfd = None
+
+    def unix_kfd(self):
+        """O fd do kernel deste socket Unix, com quem quer que seja o dono agora."""
+        for owner in (self.endpoint, self.listener, self.dgram):
+            if owner is not None and getattr(owner, 'kfd', None) is not None:
+                return owner.kfd
+        return self.kfd
 
 
 def _new_fd(state):
@@ -215,6 +226,12 @@ class socket:
         state = _State(family, type, proto)
         if flags & SOCK_NONBLOCK:
             state.timeout = 0.0
+        if family == AF_UNIX:
+            try:
+                state.kfd = _os.unix_socket(type)
+            except OSError as e:
+                if e.errno != _errno.ENOSYS:
+                    raise
         _new_fd(state)
         state.refs = 1
         self._st = state
@@ -274,6 +291,9 @@ class socket:
             st.listener.close()
         if st.dgram is not None:
             st.dgram.close()
+        if st.kfd is not None:
+            kfd, st.kfd = st.kfd, None
+            _os.close(kfd)
         if st.port is not None and st.dgram is None and st.endpoint is None:
             _net.release_port(st.port)
 
@@ -323,9 +343,11 @@ class socket:
     def _norm(self, address):
         st = self._st
         if st.family == AF_UNIX:
-            if isinstance(address, bytes):
+            if isinstance(address, bytearray):
+                address = bytes(address)
+            if isinstance(address, bytes) and st.kfd is None and st.unix_kfd() is None:
                 address = address.decode()
-            if not isinstance(address, str):
+            if not isinstance(address, (str, bytes)):
                 raise TypeError('a bytes-like object is required, not %r' % type(address).__name__)
             return address
         if not isinstance(address, tuple):
@@ -352,6 +374,8 @@ class socket:
 
     def getsockname(self):
         st = self._live()
+        if st.family == AF_UNIX and st.unix_kfd() is not None:
+            return _net.unix_name(_os.unix_names(st.unix_kfd())[0])
         if st.endpoint is not None:
             return st.endpoint.local
         if st.dgram is not None and st.dgram.addr is not None:
@@ -364,6 +388,11 @@ class socket:
 
     def getpeername(self):
         st = self._live()
+        if st.family == AF_UNIX and st.unix_kfd() is not None:
+            _, peer, connected = _os.unix_names(st.unix_kfd())
+            if not connected:
+                raise OSError(_errno.ENOTCONN, 'Transport endpoint is not connected')
+            return _net.unix_name(peer)
         if st.endpoint is not None:
             return st.endpoint.peer
         if st.peer is not None:
@@ -376,6 +405,11 @@ class socket:
             raise OSError(_errno.EINVAL, 'Invalid argument')
         address = self._norm(address)
         if st.family == AF_UNIX:
+            kfd = st.unix_kfd()
+            if kfd is not None:
+                _os.unix_bind(kfd, _net.unix_encode(address))
+                if st.type == SOCK_DGRAM and st.dgram is None:
+                    st.dgram, st.kfd = _net.KernelDatagram(kfd), None
             st.addr = address
             return
         host, port = address[0], address[1]
@@ -395,6 +429,14 @@ class socket:
 
     def listen(self, backlog=128):
         st = self._live()
+        if st.family == AF_UNIX and st.unix_kfd() is not None:
+            if st.endpoint is not None and st.type == SOCK_STREAM:
+                raise OSError(_errno.EINVAL, 'Invalid argument')
+            kfd = st.unix_kfd()
+            _os.unix_listen(kfd, max(backlog, 0))
+            if st.listener is None:
+                st.listener, st.kfd = _net.unix_listener(kfd, st.addr, backlog), None
+            return
         if st.type != SOCK_STREAM or st.endpoint is not None:
             raise OSError(_errno.EOPNOTSUPP if st.type != SOCK_STREAM else _errno.EINVAL, 'Operation not supported')
         if st.listener is not None:
@@ -439,6 +481,24 @@ class socket:
         if st.endpoint is not None or st.listener is not None:
             return _errno.EISCONN
         address = self._norm(address)
+        if st.family == AF_UNIX and st.unix_kfd() is not None:
+            kfd = st.unix_kfd()
+            try:
+                while not _os.unix_connect(kfd, _net.unix_encode(address)):
+                    # A fila de quem escuta está cheia: espera vaga, como o connect bloqueante.
+                    if st.timeout == 0.0:
+                        return _errno.EAGAIN
+                    import time
+                    time.sleep(0.001)
+            except OSError as e:
+                return e.errno
+            if st.type == SOCK_DGRAM:
+                if st.dgram is None:
+                    st.dgram, st.kfd = _net.KernelDatagram(kfd), None
+                st.peer = address
+            elif st.endpoint is None:
+                st.endpoint, st.kfd = _net.unix_endpoint(kfd), None
+            return 0
         if st.type == SOCK_DGRAM:
             if not _net.is_local(address[0]) if st.family != AF_UNIX else False:
                 return _errno.ENETUNREACH
@@ -488,7 +548,10 @@ class socket:
             data = socket.recv(self, bufsize, flags)
             return data, (st.endpoint.peer if st.endpoint is not None else None)
         if st.dgram is None:
-            socket.bind(self, ('', 0))
+            if st.family == AF_UNIX and st.kfd is not None:
+                st.dgram, st.kfd = _net.KernelDatagram(st.kfd), None
+            else:
+                socket.bind(self, ('', 0))
         dg = st.dgram
         if not _wait(dg.readable, 0.0 if flags & MSG_DONTWAIT else st.timeout, 'socket.recvfrom()'):
             if st.timeout == 0.0 or flags & MSG_DONTWAIT:
@@ -507,6 +570,9 @@ class socket:
         st = self._live()
         data = bytes(data)
         if st.type == SOCK_DGRAM:
+            if isinstance(st.dgram, _net.KernelDatagram) and st.peer is not None:
+                # O kernel manda para o par do `connect` (e recusa se ele fechou).
+                return st.dgram.sendto(data)
             if st.peer is None:
                 raise OSError(_errno.EDESTADDRREQ, 'Destination address required')
             return socket.sendto(self, data, st.peer)
@@ -525,6 +591,9 @@ class socket:
                 raise OSError(_errno.ENOTCONN, 'Transport endpoint is not connected')
             return st.endpoint.write(data)
         address = self._norm(address)
+        if st.dgram is None and st.family == AF_UNIX and st.kfd is not None:
+            # Um socket Unix sem nome envia sem nome: o kernel não faz autobind.
+            st.dgram, st.kfd = _net.KernelDatagram(st.kfd), None
         if st.dgram is None:
             st.dgram = _net.Datagram(st.family)
             socket.bind(self, (_net.loopback_ip(st.family), 0))
@@ -549,6 +618,26 @@ def _os_error(code):
 def socketpair(family=AF_UNIX, type=SOCK_STREAM, proto=0):
     if family not in (AF_UNIX, AF_INET, AF_INET6):
         raise OSError(_errno.EAFNOSUPPORT, 'Address family not supported by protocol')
+    if family == AF_UNIX:
+        try:
+            ka, kb = _os.unix_socketpair(type & ~(SOCK_NONBLOCK | SOCK_CLOEXEC))
+        except OSError as e:
+            if e.errno != _errno.ENOSYS:
+                raise
+        else:
+            out = []
+            for kfd in (ka, kb):
+                s = socket(AF_UNIX, type, proto)
+                st = s._st
+                _os.close(st.kfd)
+                st.kfd = None
+                if st.type == SOCK_DGRAM:
+                    st.dgram = _net.KernelDatagram(kfd)
+                    st.peer = ''
+                else:
+                    st.endpoint = _net.unix_endpoint(kfd)
+                out.append(s)
+            return tuple(out)
     a_ep, b_ep = _net.pair(AF_UNIX)
     out = []
     for ep in (a_ep, b_ep):

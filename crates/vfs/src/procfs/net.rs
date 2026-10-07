@@ -2,7 +2,7 @@
 //! sem rede, só com o `lo`. O conteúdo foi capturado do oráculo (`docker run --network none`); o
 //! `softnet_stat` tem uma linha por CPU e é cortado no número de CPUs da máquina.
 
-use super::data::TcpSock;
+use super::data::{ProcProvider, TcpSock, UnixSockRow};
 
 /// Uma entrada da árvore. `parent` 0 é o próprio `net`; os outros são o índice (1 em diante) do
 /// diretório que a contém.
@@ -119,8 +119,10 @@ pub(super) fn children(parent: u32) -> Vec<u32> {
     v
 }
 
-/// Conteúdo de um arquivo. `tcp`, `tcp6` e o `sockstat` saem da tabela de sockets do kernel.
-pub(super) fn content(i: u32, ncpus: u32, socks: impl FnOnce() -> Vec<TcpSock>) -> Option<Vec<u8>> {
+/// Conteúdo de um arquivo. `tcp`, `tcp6`, `unix` e o `sockstat` saem das tabelas de sockets do kernel.
+pub(super) fn content(i: u32, p: &dyn ProcProvider) -> Option<Vec<u8>> {
+    let ncpus = p.ncpus();
+    let socks = || p.tcp_socks();
     let e = ent(i).filter(|e| !e.dir)?;
     if e.parent == 0 && e.name == SOFTNET_STAT {
         let mut out = Vec::new();
@@ -134,6 +136,7 @@ pub(super) fn content(i: u32, ncpus: u32, socks: impl FnOnce() -> Vec<TcpSock>) 
             "tcp" => return Some(tcp_table(&socks(), false)),
             "tcp6" => return Some(tcp_table(&socks(), true)),
             "sockstat" | "sockstat6" => return Some(sockstat(e.data, &socks(), e.name == "sockstat6")),
+            "unix" => return Some(unix_table(&p.unix_socks())),
             _ => {}
         }
     }
@@ -210,6 +213,22 @@ fn sockstat(base: &[u8], socks: &[TcpSock], v6: bool) -> Vec<u8> {
         } else {
             out.extend_from_slice(line);
         }
+    }
+    out
+}
+
+/// `unix_seq_show`: no espaço abstrato o nulo inicial (e qualquer outro) sai como `@`.
+fn unix_table(socks: &[UnixSockRow]) -> Vec<u8> {
+    let mut out = b"Num       RefCount Protocol Flags    Type St Inode Path\n".to_vec();
+    for s in socks {
+        out.extend_from_slice(
+            format!("{:016x}: {:08X} {:08X} {:08X} {:04X} {:02X} {:5}", s.ptr, s.refcnt, 0, s.flags, s.ty, s.state, s.inode).as_bytes(),
+        );
+        if let Some(path) = &s.path {
+            out.push(b' ');
+            out.extend(path.iter().map(|&b| if b == 0 { b'@' } else { b }));
+        }
+        out.push(b'\n');
     }
     out
 }

@@ -241,6 +241,8 @@ pub(crate) struct SbInner {
     pub ptys: Mutex<BTreeMap<u32, Weak<Pty>>>,
     /// Portas TCP em escuta no loopback.
     pub ports: Arc<crate::net::Ports>,
+    /// Sockets do domínio Unix e os nomes ligados a eles.
+    pub unix: Arc<crate::unix::UnixTable>,
 }
 
 impl SbInner {
@@ -545,6 +547,7 @@ impl Sandbox {
             exit_waiters: Mutex::new(WaitList::default()),
             ptys: Mutex::new(BTreeMap::new()),
             ports: Arc::default(),
+            unix: Arc::default(),
         });
         let _ = provider.sb.set(Arc::downgrade(&inner));
         inner.load.bind(&inner);

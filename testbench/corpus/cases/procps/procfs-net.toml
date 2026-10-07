@@ -87,3 +87,70 @@ print("sequential", eph == list(range(eph[0], eph[0] + 20)))
 '
 '''
 tags = ["proc", "net", "tcp", "ports"]
+
+# /proc/net/unix a partir dos sockets vivos: escuta, embrião ainda na fila do accept (estado 02, sem
+# inode), conexão aceita (herda o caminho), cliente sem nome, socketpair, datagrama com nome, conectado
+# (as duas pontas em 03 e a referência a mais no destino), espaço abstrato (@) e caminho relativo como
+# o bind recebeu. Ponteiros e inodes variam: o awk tira o ponteiro, troca o inode pela forma e ordena.
+[[case]]
+id = "procfs-net-unix-live"
+script = '''
+cd /tmp
+umask 077
+python3 -c '
+import socket, os
+u = socket.socket(socket.AF_UNIX); u.bind("/tmp/a.sock"); u.listen(4)
+c = socket.socket(socket.AF_UNIX); c.connect("/tmp/a.sock")
+s, addr = u.accept()
+c2 = socket.socket(socket.AF_UNIX); c2.connect("/tmp/a.sock")
+p, q = socket.socketpair()
+nb = socket.socket(socket.AF_UNIX)
+r = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM); r.bind("r.sock")
+d = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM); d.connect("r.sock")
+a = socket.socket(socket.AF_UNIX); a.bind("\0abs"); a.listen(1)
+b = socket.socket(socket.AF_UNIX); b.connect("\0abs"); x, _ = a.accept(); b.close()
+print(repr(addr), repr(c.getsockname()), repr(c.getpeername()), repr(s.getsockname()), repr(x.getsockname()))
+print(oct(os.stat("/tmp/a.sock").st_mode))
+os.system("awk '\''NR == 1 { print; next } { print $2, $3, $4, $5, $6, ($7 == 0 ? \"ino0\" : \"ino\"), $8 }'\'' /proc/net/unix | sort")
+'
+ls -l /tmp/a.sock /tmp/r.sock | cut -c1-10
+'''
+tags = ["proc", "net", "unix"]
+
+# AF_UNIX entre processos e os erros do bind e do connect.
+[[case]]
+id = "unix-socket-errors-and-processes"
+script = '''
+cd /tmp
+python3 -c '
+import socket, subprocess
+s = socket.socket(socket.AF_UNIX); s.bind("/tmp/srv2.sock"); s.listen(1)
+child = subprocess.Popen(["python3", "-c", "import socket\nc = socket.socket(socket.AF_UNIX); c.connect(\"/tmp/srv2.sock\"); c.sendall(b\"from child\"); print(\"child got\", c.recv(20), flush=True)"])
+x, _ = s.accept(); print("parent got", x.recv(20), flush=True); x.sendall(b"ok"); child.wait()
+r = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM); r.bind("r2.sock")
+socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM).sendto(b"anon", "r2.sock"); print(r.recvfrom(100))
+n = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM); n.bind("\0abs-n"); n.sendto(b"named", "/tmp/r2.sock"); print(r.recvfrom(100))
+def err(what, f):
+    try: f()
+    except OSError as e: print(what, e)
+err("rebind", lambda: socket.socket(socket.AF_UNIX).bind("/tmp/srv2.sock"))
+s2 = socket.socket(socket.AF_UNIX); s2.bind("/tmp/b2.sock")
+err("nolisten", lambda: socket.socket(socket.AF_UNIX).connect("/tmp/b2.sock"))
+err("missing", lambda: socket.socket(socket.AF_UNIX).connect("/tmp/nope.sock"))
+open("/tmp/f", "w").close()
+err("notsock", lambda: socket.socket(socket.AF_UNIX).connect("/tmp/f"))
+err("abs missing", lambda: socket.socket(socket.AF_UNIX).connect("\0nope"))
+err("listen unbound", lambda: socket.socket(socket.AF_UNIX).listen(1))
+err("listen dgram", lambda: r.listen(1))
+err("send unconn", lambda: socket.socket(socket.AF_UNIX).send(b"x"))
+s.close()
+err("closed", lambda: socket.socket(socket.AF_UNIX).connect("/tmp/srv2.sock"))
+'
+stat -c '%F %s %h %a' /tmp/srv2.sock
+rm /tmp/srv2.sock
+python3 -c '
+import socket
+try: socket.socket(socket.AF_UNIX).connect("/tmp/srv2.sock")
+except OSError as e: print(e)'
+'''
+tags = ["net", "unix"]

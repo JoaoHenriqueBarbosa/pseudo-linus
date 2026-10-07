@@ -539,6 +539,7 @@ impl Task {
             FileObj::Dev { loc: None, .. } => Err(Errno::EBADF),
             FileObj::Listener(l) => Ok(crate::net::sock_stat(&l.ident)),
             FileObj::Stream(c) => Ok(crate::net::sock_stat(&c.ident)),
+            FileObj::Unix(u) => Ok(crate::net::sock_stat(&u.ident)),
         }
     }
 
@@ -589,27 +590,113 @@ impl Task {
                 if at.is_some() {
                     return Err(Errno::ESPIPE);
                 }
-                match c.take_reset() {
-                    crate::net::ResetState::Pending => return Err(Errno::ECONNRESET),
-                    crate::net::ResetState::Done => return Ok(0),
-                    crate::net::ResetState::None => {}
+                self.stream_read(ofd, c, buf)
+            }
+            FileObj::Unix(u) => {
+                if at.is_some() {
+                    return Err(Errno::ESPIPE);
                 }
-                let Some(pipe) = c.rx() else { return Ok(0) };
-                let nonblock = ofd.nonblock();
-                let r = self.wait_event(None, |p| pipe.try_read(buf, nonblock, p));
-                if r.is_err() {
-                    pipe.unregister(&self.parker);
+                if u.ty == crate::unix::SOCK_DGRAM {
+                    let (data, _) = self.unix_recv(ofd, u, false)?;
+                    let n = data.len().min(buf.len());
+                    buf[..n].copy_from_slice(&data[..n]);
+                    return Ok(n);
                 }
-                // Acordou com EOF porque o outro lado fechou com RST: o erro vem antes do EOF.
-                if r == Ok(0) && matches!(c.take_reset(), crate::net::ResetState::Pending) {
-                    return Err(Errno::ECONNRESET);
+                // `unix_stream_read_generic`: fora de uma conexão, EINVAL.
+                match u.conn() {
+                    Some(c) => self.stream_read(ofd, &c, buf),
+                    None => Err(Errno::EINVAL),
                 }
-                if r == Ok(0) && !buf.is_empty() {
-                    c.saw_eof();
-                }
-                r
             }
         }
+    }
+
+    /// Leitura de uma conexão (TCP de loopback ou socket Unix de fluxo).
+    fn stream_read(&self, ofd: &Arc<Ofd>, c: &crate::net::Conn, buf: &mut [u8]) -> SysResult<usize> {
+        match c.take_reset() {
+            crate::net::ResetState::Pending => return Err(Errno::ECONNRESET),
+            crate::net::ResetState::Done => return Ok(0),
+            crate::net::ResetState::None => {}
+        }
+        let Some(pipe) = c.rx() else { return Ok(0) };
+        let nonblock = ofd.nonblock();
+        let r = self.wait_event(None, |p| pipe.try_read(buf, nonblock, p));
+        if r.is_err() {
+            pipe.unregister(&self.parker);
+        }
+        // Acordou com EOF porque o outro lado fechou com RST: o erro vem antes do EOF.
+        if r == Ok(0) && matches!(c.take_reset(), crate::net::ResetState::Pending) {
+            return Err(Errno::ECONNRESET);
+        }
+        if r == Ok(0) && !buf.is_empty() {
+            c.saw_eof();
+        }
+        r
+    }
+
+    /// A próxima mensagem de um socket Unix de datagrama, esperando se o fd é bloqueante.
+    fn unix_recv(&self, ofd: &Arc<Ofd>, u: &Arc<crate::unix::UnixSock>, peek: bool) -> SysResult<(Vec<u8>, Option<Vec<u8>>)> {
+        let nonblock = ofd.nonblock();
+        let r = self.wait_event(None, |p| u.try_recv(peek, nonblock, p));
+        if r.is_err() {
+            u.unregister(&self.parker);
+        }
+        r
+    }
+
+    /// Escrita numa conexão (TCP de loopback ou socket Unix de fluxo).
+    fn stream_write(&self, ofd: &Arc<Ofd>, c: &crate::net::Conn, buf: &[u8]) -> SysResult<usize> {
+        let reset = c.take_reset();
+        if matches!(reset, crate::net::ResetState::Pending) {
+            return Err(Errno::ECONNRESET);
+        }
+        if matches!(reset, crate::net::ResetState::None) && c.write_to_closed_peer() {
+            return Ok(buf.len());
+        }
+        match c.tx().filter(|_| matches!(reset, crate::net::ResetState::None)) {
+            Some(pipe) => self.pipe_write(ofd, &pipe, buf),
+            None => {
+                generate_signal(&self.proc, Signal::SIGPIPE);
+                self.enter();
+                Err(Errno::EPIPE)
+            }
+        }
+    }
+
+    /// Um datagrama de um socket Unix para `target` (ou para o par do `connect`).
+    fn unix_send(&self, ofd: &Arc<Ofd>, u: &Arc<crate::unix::UnixSock>, buf: &[u8], target: Option<&Arc<crate::unix::UnixSock>>) -> SysResult<usize> {
+        let nonblock = ofd.nonblock();
+        let r = self.wait_event(None, |p| u.try_send(buf, target, nonblock, p));
+        if r.is_err() {
+            u.unregister(&self.parker);
+        }
+        r
+    }
+
+    /// O socket Unix de `fd`; ENOTSOCK se não é um.
+    fn unix_of(&self, fd: Fd) -> SysResult<Arc<crate::unix::UnixSock>> {
+        match &self.ofd(fd)?.obj {
+            FileObj::Unix(u) => Ok(u.clone()),
+            _ => Err(Errno::ENOTSOCK),
+        }
+    }
+
+    /// O socket de um nome, como o `unix_find_other`: o caminho resolve (ENOENT...), precisa de
+    /// permissão de escrita (EACCES) e de ser um socket com alguém ligado a ele (ECONNREFUSED).
+    fn unix_find(&self, name: &[u8]) -> SysResult<Arc<crate::unix::UnixSock>> {
+        if name.is_empty() || name.len() > 107 {
+            return Err(Errno::EINVAL);
+        }
+        if name[0] == 0 {
+            return self.sb.unix.lookup(&crate::unix::Key::Abstract(name.to_vec())).ok_or(Errno::ECONNREFUSED);
+        }
+        let st = self.fstatat(Fd::CWD, name, AtFlags::empty())?;
+        // `AT_EACCESS`: a permissão é a do uid efetivo, como o `path_permission` do kernel.
+        self.faccessat(Fd::CWD, name, sysabi::AccessMode::W_OK, AtFlags::REMOVEDIR)?;
+        if st.mode & sysabi::mode::S_IFMT != sysabi::mode::S_IFSOCK {
+            return Err(Errno::ECONNREFUSED);
+        }
+        self.sb.unix.lookup(&crate::unix::Key::Node(st.dev, st.ino)).ok_or(Errno::ECONNREFUSED)
     }
 
     /// Um pipe novo do processo: cada sentido de uma conexão TCP de loopback, e a identidade de um socket.
@@ -710,20 +797,18 @@ impl Task {
                 if at.is_some() {
                     return Err(Errno::ESPIPE);
                 }
-                let reset = c.take_reset();
-                if matches!(reset, crate::net::ResetState::Pending) {
-                    return Err(Errno::ECONNRESET);
+                self.stream_write(ofd, c, buf)
+            }
+            FileObj::Unix(u) => {
+                if at.is_some() {
+                    return Err(Errno::ESPIPE);
                 }
-                if matches!(reset, crate::net::ResetState::None) && c.write_to_closed_peer() {
-                    return Ok(buf.len());
+                if u.ty == crate::unix::SOCK_DGRAM {
+                    return self.unix_send(ofd, u, buf, None);
                 }
-                match c.tx().filter(|_| matches!(reset, crate::net::ResetState::None)) {
-                    Some(pipe) => self.pipe_write(ofd, &pipe, buf),
-                    None => {
-                        generate_signal(&self.proc, Signal::SIGPIPE);
-                        self.enter();
-                        Err(Errno::EPIPE)
-                    }
+                match u.conn() {
+                    Some(c) => self.stream_write(ofd, &c, buf),
+                    None => Err(Errno::ENOTCONN),
                 }
             }
             FileObj::Dev { dev: Device::Pty(end), .. } => {
@@ -908,6 +993,7 @@ impl Task {
             FileObj::Pipe { end, .. } => end.pipe.poll(end.read, end.write, w),
             FileObj::Listener(l) => l.poll(w),
             FileObj::Stream(c) => c.poll(w),
+            FileObj::Unix(u) => u.poll(w),
         };
         ready & (pfd.events | PollEvents::ERR | PollEvents::HUP | PollEvents::NVAL)
     }
@@ -982,7 +1068,7 @@ impl Syscalls for Task {
         self.enter();
         let ofd = self.ofd(fd)?;
         match &ofd.obj {
-            FileObj::Pipe { .. } | FileObj::Listener(_) | FileObj::Stream(_) => Err(Errno::ESPIPE),
+            FileObj::Pipe { .. } | FileObj::Listener(_) | FileObj::Stream(_) | FileObj::Unix(_) => Err(Errno::ESPIPE),
             FileObj::Path { .. } => Err(Errno::EBADF),
             FileObj::Dev { dev, .. } => dev.lseek(),
             FileObj::Vfs { kind: FileType::Directory, .. } => {
@@ -1462,6 +1548,13 @@ impl Syscalls for Task {
                 Ok(())
             }
             FileObj::Listener(_) => Err(Errno::ENOTCONN),
+            FileObj::Unix(u) => match u.conn() {
+                Some(c) => {
+                    c.shutdown(read, write);
+                    Ok(())
+                }
+                None => Err(Errno::ENOTCONN),
+            },
             _ => Err(Errno::ENOTSOCK),
         }
     }
@@ -1474,6 +1567,140 @@ impl Syscalls for Task {
             FileObj::Listener(l) => Ok((l.port, None)),
             _ => Err(Errno::ENOTSOCK),
         }
+    }
+
+    fn unix_socket(&self, ty: u8, nonblock: bool, cloexec: bool) -> SysResult<Fd> {
+        self.enter();
+        if ![crate::unix::SOCK_STREAM, crate::unix::SOCK_DGRAM, crate::unix::SOCK_SEQPACKET].contains(&ty) {
+            return Err(Errno::ESOCKTNOSUPPORT);
+        }
+        let sock = self.sb.unix.socket(ty, self.sock_pipe());
+        self.install_sock(FileObj::Unix(sock), nonblock, cloexec)
+    }
+
+    fn unix_socketpair(&self, ty: u8, nonblock: bool, cloexec: bool) -> SysResult<(Fd, Fd)> {
+        self.enter();
+        if ![crate::unix::SOCK_STREAM, crate::unix::SOCK_DGRAM, crate::unix::SOCK_SEQPACKET].contains(&ty) {
+            return Err(Errno::ESOCKTNOSUPPORT);
+        }
+        let (a, b) = self.sb.unix.pair(ty, (self.sock_pipe(), self.sock_pipe()), || self.sock_pipe());
+        let fa = self.install_sock(FileObj::Unix(a), nonblock, cloexec)?;
+        match self.install_sock(FileObj::Unix(b), nonblock, cloexec) {
+            Ok(fb) => Ok((fa, fb)),
+            Err(e) => {
+                let _ = self.close(fa);
+                Err(e)
+            }
+        }
+    }
+
+    fn unix_bind(&self, fd: Fd, name: &[u8]) -> SysResult<()> {
+        self.enter();
+        let u = self.unix_of(fd)?;
+        if name.is_empty() || name.len() > 107 {
+            return Err(Errno::EINVAL);
+        }
+        if name[0] == 0 {
+            return self.sb.unix.bind(&u, name.to_vec(), crate::unix::Key::Abstract(name.to_vec()));
+        }
+        if u.names().0.is_some() {
+            return Err(Errno::EINVAL);
+        }
+        // `unix_bind_bsd`: o arquivo nasce com 0777 menos a umask; já existir é EADDRINUSE.
+        match self.mknodat(Fd::CWD, name, sysabi::mode::S_IFSOCK | 0o777, 0) {
+            Err(Errno::EEXIST) => return Err(Errno::EADDRINUSE),
+            r => r?,
+        }
+        let st = self.fstatat(Fd::CWD, name, AtFlags::SYMLINK_NOFOLLOW)?;
+        let r = self.sb.unix.bind(&u, name.to_vec(), crate::unix::Key::Node(st.dev, st.ino));
+        if r.is_err() {
+            let _ = self.unlinkat(Fd::CWD, name, AtFlags::empty());
+        }
+        r
+    }
+
+    fn unix_listen(&self, fd: Fd, backlog: u32) -> SysResult<()> {
+        self.enter();
+        self.unix_of(fd)?.listen(backlog)
+    }
+
+    fn unix_accept(&self, fd: Fd, nonblock: bool, cloexec: bool) -> SysResult<Fd> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        let FileObj::Unix(u) = &ofd.obj else { return Err(Errno::ENOTSOCK) };
+        if u.ty == crate::unix::SOCK_DGRAM {
+            return Err(Errno::EOPNOTSUPP);
+        }
+        let wait_nb = ofd.nonblock();
+        let r = self.wait_event(None, |p| u.try_accept(wait_nb, p));
+        let sock = match r {
+            Ok(s) => s,
+            Err(e) => {
+                u.unregister(&self.parker);
+                return Err(e);
+            }
+        };
+        self.install_sock(FileObj::Unix(sock), nonblock, cloexec)
+    }
+
+    fn unix_connect(&self, fd: Fd, name: &[u8]) -> SysResult<()> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        let FileObj::Unix(u) = &ofd.obj else { return Err(Errno::ENOTSOCK) };
+        let target = self.unix_find(name)?;
+        if u.ty == crate::unix::SOCK_DGRAM {
+            return u.dgram_connect(&target);
+        }
+        let nonblock = ofd.nonblock();
+        let mk = || self.sock_pipe();
+        let r = self.wait_event(None, |p| u.try_connect(&target, nonblock, p, &mk));
+        if r.is_err() {
+            target.unregister(&self.parker);
+        }
+        r
+    }
+
+    fn unix_names(&self, fd: Fd) -> SysResult<(Option<Vec<u8>>, Option<Vec<u8>>, bool)> {
+        self.enter();
+        Ok(self.unix_of(fd)?.names())
+    }
+
+    fn unix_sendto(&self, fd: Fd, data: &[u8], name: Option<&[u8]>) -> SysResult<usize> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        let FileObj::Unix(u) = &ofd.obj else { return Err(Errno::ENOTSOCK) };
+        if u.ty != crate::unix::SOCK_DGRAM {
+            // `unix_stream_sendmsg`: com endereço, EOPNOTSUPP (ou EISCONN se conectado).
+            return match (name, u.conn()) {
+                (Some(_), Some(_)) => Err(Errno::EISCONN),
+                (Some(_), None) => Err(Errno::EOPNOTSUPP),
+                (None, Some(c)) => self.stream_write(&ofd, &c, data),
+                (None, None) => Err(Errno::ENOTCONN),
+            };
+        }
+        let target = match name {
+            Some(n) => Some(self.unix_find(n)?),
+            None => None,
+        };
+        self.unix_send(&ofd, u, data, target.as_ref())
+    }
+
+    fn unix_recvfrom(&self, fd: Fd, max: usize, peek: bool) -> SysResult<(Vec<u8>, Option<Vec<u8>>)> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        let FileObj::Unix(u) = &ofd.obj else { return Err(Errno::ENOTSOCK) };
+        if u.ty != crate::unix::SOCK_DGRAM {
+            let mut buf = vec![0u8; max];
+            let n = match u.conn() {
+                Some(c) => self.stream_read(&ofd, &c, &mut buf)?,
+                None => return Err(Errno::EINVAL),
+            };
+            buf.truncate(n);
+            return Ok((buf, None));
+        }
+        let (mut data, from) = self.unix_recv(&ofd, u, peek)?;
+        data.truncate(max);
+        Ok((data, from))
     }
 
     // Terminais: só os pseudoterminais existem (não há console nem tty virtual). EBADF primeiro, depois
@@ -2378,6 +2605,7 @@ impl Syscalls for Task {
                     FileObj::Pipe { end, .. } => end.pipe.unregister(&self.parker),
                     FileObj::Listener(l) => l.unregister(&self.parker),
                     FileObj::Stream(c) => c.unregister(&self.parker),
+                    FileObj::Unix(u) => u.unregister(&self.parker),
                     FileObj::Dev { dev: Device::Pty(end), .. } => end.pty.unregister(&self.parker),
                     _ => {}
                 }

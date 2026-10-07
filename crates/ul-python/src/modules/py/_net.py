@@ -98,6 +98,11 @@ class Listener(_Notifier):
         """Tira uma conexão da fila do kernel, ou None se não há nenhuma pronta."""
         if self.kfd is None:
             return None
+        if self.family == AF_UNIX:
+            fd = _os.unix_accept(self.kfd)
+            if fd is None:
+                return None
+            return KernelEndpoint(AF_UNIX, fd, self.addr, unix_name(_os.unix_names(fd)[1]))
         got = _os.tcp_accept(self.kfd)
         if got is None:
             return None
@@ -380,6 +385,93 @@ def pair(family=AF_UNIX):
     b.peer_ep = a
     a.port = b.port = None
     return a, b
+
+
+# ---- sockets do domínio Unix (kernel) ---------------------------------------------------------------
+# Todo socket `AF_UNIX` é um fd do kernel desde a criação: é lá que o `bind` cria o arquivo do socket, que
+# outro processo consegue conectar e que o `/proc/net/unix` lista. Os nomes vão ao kernel em bytes.
+
+def unix_name(raw):
+    """O endereço que o Python mostra para um nome do kernel: str no sistema de arquivos, bytes no espaço
+    abstrato, '' sem nome."""
+    if raw is None:
+        return ''
+    if raw[:1] == b'\0':
+        return raw
+    import os
+    return os.fsdecode(raw)
+
+
+def unix_encode(addr):
+    if isinstance(addr, str):
+        import os
+        return os.fsencode(addr)
+    return bytes(addr)
+
+
+def unix_listener(kfd, addr, backlog):
+    """Um `Listener` sobre o socket do kernel que já escuta em `addr`."""
+    listener = Listener(AF_UNIX, ('u', addr), addr, backlog)
+    listener.kfd = kfd
+    _kregister(kfd, listener)
+    return listener
+
+
+def unix_endpoint(kfd):
+    """A ponta de uma conexão de fluxo já feita no kernel."""
+    me, peer, _ = _os.unix_names(kfd)
+    return KernelEndpoint(AF_UNIX, kfd, unix_name(me), unix_name(peer))
+
+
+class KernelDatagram(_Notifier):
+    """Socket Unix de datagrama: as mensagens chegam pelo fd do kernel e esperam em `rx` com o endereço de
+    quem enviou (`None` se o remetente não tem nome)."""
+
+    def __init__(self, kfd):
+        _Notifier.__init__(self)
+        self.family = AF_UNIX
+        self.kfd = kfd
+        self.rx = collections.deque()
+        self.closed = False
+        _kregister(kfd, self)
+
+    @property
+    def addr(self):
+        return unix_name(_os.unix_names(self.kfd)[0]) if self.kfd is not None else ''
+
+    def _pump(self):
+        while self.kfd is not None:
+            got = _os.unix_recvfrom(self.kfd, 1 << 20)
+            if got is None:
+                break
+            data, source = got
+            self.rx.append((data, None if source is None else unix_name(source)))
+        self._notify()
+
+    def readable(self):
+        if not self.rx:
+            self._pump()
+        return bool(self.rx) or self.closed
+
+    def sendto(self, data, addr=None):
+        """Envia para `addr` (ou para o par do `connect`); com a fila do destino cheia, espera."""
+        name = None if addr is None else unix_encode(addr)
+        while True:
+            n = _os.unix_sendto(self.kfd, data, name)
+            if n is not None:
+                return n
+            import time
+            time.sleep(0.001)
+
+    def close(self):
+        if self.closed:
+            return
+        self.closed = True
+        if self.kfd is not None:
+            kfd, self.kfd = self.kfd, None
+            _kunregister(kfd)
+            _os.close(kfd)
+        self._notify()
 
 
 class Datagram(_Notifier):

@@ -31,7 +31,7 @@ const SOCKFS_DEV: u64 = 9;
 const TIMEWAIT_LEN: Duration = Duration::from_secs(60);
 
 /// O `%pK` de um socket: o ponteiro com hash, 32 bits aleatórios por objeto.
-fn hashed_ptr() -> u32 {
+pub(crate) fn hashed_ptr() -> u32 {
     let mut b = [0u8; 4];
     let _ = getrandom::fill(&mut b);
     u32::from_ne_bytes(b)
@@ -144,8 +144,8 @@ impl Ports {
         let server = Side::new((server_ip, port), (server_ip, local), up.ino, listener.uid, &up, false);
         let pair = Arc::new(Pair { sides: Mutex::new([client, server]) });
         let (client_reset, server_reset) = (Arc::new(AtomicU8::new(RESET_NONE)), Arc::new(AtomicU8::new(RESET_NONE)));
-        let client = Conn::new(down.attach(true, false), up.attach(false, true), local, port, down.clone(), (client_reset.clone(), server_reset.clone()), (pair.clone(), 0));
-        let server = Conn::new(up.attach(true, false), down.attach(false, true), port, local, up, (server_reset, client_reset), (pair.clone(), 1));
+        let client = Conn::new(down.attach(true, false), up.attach(false, true), local, port, down.clone(), (client_reset.clone(), server_reset.clone()), Some((pair.clone(), 0)));
+        let server = Conn::new(up.attach(true, false), down.attach(false, true), port, local, up, (server_reset, client_reset), Some((pair.clone(), 1)));
         let wake = {
             let mut s = listener.st.lock();
             if s.closed || s.queue.len() >= listener.backlog {
@@ -339,7 +339,9 @@ impl Listener {
         let mut s = self.st.lock();
         if let Some(c) = s.queue.pop_front() {
             s.wait.unregister(waiter);
-            c.pair.0.sides.lock()[c.pair.1].accepted = true;
+            if let Some((pair, i)) = &c.pair {
+                pair.sides.lock()[*i].accepted = true;
+            }
             return Try::Ready(Ok(c));
         }
         if nonblock {
@@ -410,8 +412,8 @@ pub(crate) struct Conn {
     /// O RST que esta ponta recebeu e o da outra ponta (que esta marca ao fechar).
     reset_me: Arc<AtomicU8>,
     reset_peer: Arc<AtomicU8>,
-    /// O par desta conexão na tabela do TCP e qual ponta esta é.
-    pair: (Arc<Pair>, usize),
+    /// O par desta conexão na tabela do TCP e qual ponta esta é; `None` no par de um socket Unix.
+    pair: Option<(Arc<Pair>, usize)>,
 }
 
 impl Drop for Conn {
@@ -420,19 +422,38 @@ impl Drop for Conn {
         if unread {
             let _ = self.reset_peer.compare_exchange(RESET_NONE, RESET_PENDING, Ordering::SeqCst, Ordering::SeqCst);
         }
-        self.pair.0.sides.lock()[self.pair.1].closed.get_or_insert_with(Instant::now);
+        if let Some((pair, i)) = &self.pair {
+            pair.sides.lock()[*i].closed.get_or_insert_with(Instant::now);
+        }
         // As pontas caem depois daqui: o outro lado acorda com a flag já posta.
     }
 }
 
+/// As duas pontas de uma conexão sem lugar na tabela do TCP (um par de sockets Unix). Como no TCP,
+/// fechar com dados não lidos faz o outro lado receber ECONNRESET.
+pub(crate) fn conn_pair(mk_pipe: impl Fn() -> Arc<Pipe>) -> (Conn, Conn) {
+    let (up, down) = (mk_pipe(), mk_pipe());
+    let (ra, rb) = (Arc::new(AtomicU8::new(RESET_NONE)), Arc::new(AtomicU8::new(RESET_NONE)));
+    let a = Conn::new(down.attach(true, false), up.attach(false, true), 0, 0, down.clone(), (ra.clone(), rb.clone()), None);
+    let b = Conn::new(up.attach(true, false), down.attach(false, true), 0, 0, up, (rb, ra), None);
+    (a, b)
+}
+
 impl Conn {
-    fn new(rx: PipeEnd, tx: PipeEnd, local: u16, peer: u16, ident: Arc<Pipe>, reset: (Arc<AtomicU8>, Arc<AtomicU8>), pair: (Arc<Pair>, usize)) -> Conn {
+    fn new(rx: PipeEnd, tx: PipeEnd, local: u16, peer: u16, ident: Arc<Pipe>, reset: (Arc<AtomicU8>, Arc<AtomicU8>), pair: Option<(Arc<Pair>, usize)>) -> Conn {
         Conn { rx: Mutex::new(Some(rx)), tx: Mutex::new(Some(tx)), local, peer, ident, reset_me: reset.0, reset_peer: reset.1, pair }
+    }
+
+    /// A outra ponta ainda existe (não foi fechada nem descartada).
+    pub(crate) fn peer_open(&self) -> bool {
+        Arc::strong_count(&self.reset_me) > 1
     }
 
     /// A leitura desta ponta já devolveu o EOF: o FIN do outro lado foi consumido.
     pub(crate) fn saw_eof(&self) {
-        self.pair.0.sides.lock()[self.pair.1].saw_eof = true;
+        if let Some((pair, i)) = &self.pair {
+            pair.sides.lock()[*i].saw_eof = true;
+        }
     }
 
     /// Escrita para um par que já fechou: o Linux aceita a primeira e o outro lado responde com RST,

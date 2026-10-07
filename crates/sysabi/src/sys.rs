@@ -126,6 +126,54 @@ pub trait Syscalls: Send + Sync {
         let _ = fd;
         Err(Errno::ENOSYS)
     }
+
+    // ---- sockets do domínio Unix (`AF_UNIX`) ----
+    // Os tipos são os do Linux: 1 (`SOCK_STREAM`), 2 (`SOCK_DGRAM`) e 5 (`SOCK_SEQPACKET`). Nomes vêm
+    // como o `sun_path` (no espaço abstrato, com o byte nulo na frente).
+    /// `socket(AF_UNIX, ty)`.
+    fn unix_socket(&self, ty: u8, nonblock: bool, cloexec: bool) -> SysResult<Fd> {
+        let _ = (ty, nonblock, cloexec);
+        Err(Errno::ENOSYS)
+    }
+    /// `socketpair(AF_UNIX, ty)`.
+    fn unix_socketpair(&self, ty: u8, nonblock: bool, cloexec: bool) -> SysResult<(Fd, Fd)> {
+        let _ = (ty, nonblock, cloexec);
+        Err(Errno::ENOSYS)
+    }
+    /// `bind`: num caminho, cria o arquivo do socket.
+    fn unix_bind(&self, fd: Fd, name: &[u8]) -> SysResult<()> {
+        let _ = (fd, name);
+        Err(Errno::ENOSYS)
+    }
+    fn unix_listen(&self, fd: Fd, backlog: u32) -> SysResult<()> {
+        let _ = (fd, backlog);
+        Err(Errno::ENOSYS)
+    }
+    /// `accept4`.
+    fn unix_accept(&self, fd: Fd, nonblock: bool, cloexec: bool) -> SysResult<Fd> {
+        let _ = (fd, nonblock, cloexec);
+        Err(Errno::ENOSYS)
+    }
+    /// `connect`: num socket de datagrama, só o destino padrão.
+    fn unix_connect(&self, fd: Fd, name: &[u8]) -> SysResult<()> {
+        let _ = (fd, name);
+        Err(Errno::ENOSYS)
+    }
+    /// `getsockname` e `getpeername` juntos: o nome, o do par e se está conectado.
+    fn unix_names(&self, fd: Fd) -> SysResult<(Option<Vec<u8>>, Option<Vec<u8>>, bool)> {
+        let _ = fd;
+        Err(Errno::ENOSYS)
+    }
+    /// `sendto` de datagrama; sem `name`, para o par do `connect`.
+    fn unix_sendto(&self, fd: Fd, data: &[u8], name: Option<&[u8]>) -> SysResult<usize> {
+        let _ = (fd, data, name);
+        Err(Errno::ENOSYS)
+    }
+    /// `recvfrom` de datagrama: até `max` bytes da próxima mensagem e o nome de quem enviou.
+    fn unix_recvfrom(&self, fd: Fd, max: usize, peek: bool) -> SysResult<(Vec<u8>, Option<Vec<u8>>)> {
+        let _ = (fd, max, peek);
+        Err(Errno::ENOSYS)
+    }
     /// `TIOCSPTLCK`: trava (`true`) ou destrava o escravo de um mestre (`unlockpt` destrava).
     fn pty_set_lock(&self, fd: Fd, locked: bool) -> SysResult<()> {
         let _ = locked;
@@ -576,6 +624,42 @@ pub fn tcp_shutdown(fd: Fd, read: bool, write: bool) -> SysResult<()> {
 
 pub fn tcp_ports(fd: Fd) -> SysResult<(u16, Option<u16>)> {
     current().tcp_ports(fd)
+}
+
+pub fn unix_socket(ty: u8, nonblock: bool, cloexec: bool) -> SysResult<Fd> {
+    current().unix_socket(ty, nonblock, cloexec)
+}
+
+pub fn unix_socketpair(ty: u8, nonblock: bool, cloexec: bool) -> SysResult<(Fd, Fd)> {
+    current().unix_socketpair(ty, nonblock, cloexec)
+}
+
+pub fn unix_bind(fd: Fd, name: &[u8]) -> SysResult<()> {
+    current().unix_bind(fd, name)
+}
+
+pub fn unix_listen(fd: Fd, backlog: u32) -> SysResult<()> {
+    current().unix_listen(fd, backlog)
+}
+
+pub fn unix_accept(fd: Fd, nonblock: bool, cloexec: bool) -> SysResult<Fd> {
+    current().unix_accept(fd, nonblock, cloexec)
+}
+
+pub fn unix_connect(fd: Fd, name: &[u8]) -> SysResult<()> {
+    current().unix_connect(fd, name)
+}
+
+pub fn unix_names(fd: Fd) -> SysResult<(Option<Vec<u8>>, Option<Vec<u8>>, bool)> {
+    current().unix_names(fd)
+}
+
+pub fn unix_sendto(fd: Fd, data: &[u8], name: Option<&[u8]>) -> SysResult<usize> {
+    current().unix_sendto(fd, data, name)
+}
+
+pub fn unix_recvfrom(fd: Fd, max: usize, peek: bool) -> SysResult<(Vec<u8>, Option<Vec<u8>>)> {
+    current().unix_recvfrom(fd, max, peek)
 }
 
 pub fn tcsetpgrp(fd: Fd, pgrp: Pid) -> SysResult<()> {

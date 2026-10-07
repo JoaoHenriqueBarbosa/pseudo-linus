@@ -31,6 +31,8 @@ pub(crate) enum FileObj {
     Listener(Arc<crate::net::Listener>),
     /// Conexão TCP de loopback estabelecida.
     Stream(crate::net::Conn),
+    /// Socket do domínio Unix, em qualquer estado.
+    Unix(Arc<crate::unix::UnixSock>),
 }
 
 impl std::fmt::Debug for FileObj {
@@ -42,6 +44,7 @@ impl std::fmt::Debug for FileObj {
             FileObj::Dev { dev, .. } => write!(f, "Dev({dev:?})"),
             FileObj::Listener(l) => write!(f, "Listener({})", l.port),
             FileObj::Stream(c) => write!(f, "Stream({} -> {})", c.local, c.peer),
+            FileObj::Unix(u) => write!(f, "Unix(ino {})", u.ident.ino),
         }
     }
 }
@@ -127,7 +130,7 @@ impl Ofd {
             FileObj::Vfs { loc, .. } | FileObj::Path { loc, .. } => Some(loc),
             FileObj::Pipe { fifo, .. } => fifo.as_ref(),
             FileObj::Dev { loc, .. } => loc.as_ref(),
-            FileObj::Listener(_) | FileObj::Stream(_) => None,
+            FileObj::Listener(_) | FileObj::Stream(_) | FileObj::Unix(_) => None,
         }
     }
 

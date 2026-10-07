@@ -928,8 +928,130 @@ fn tcp_poll(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::list(ready))
 }
 
+// ---- sockets do domínio Unix (o `_socket` usa para todo `AF_UNIX`) ----
+// Nomes vão e voltam em bytes (o `sun_path`); os fds nascem não bloqueantes, e EAGAIN vira `None`.
+
+fn want_fd(fname: &str, args: &[Value], i: usize) -> PyResult<Fd> {
+    need_kernel()?;
+    Ok(Fd(want_int(arg(fname, args, i)?)? as i32))
+}
+
+fn want_name(fname: &str, args: &[Value], i: usize) -> PyResult<Vec<u8>> {
+    let v = arg(fname, args, i)?;
+    v.bytes_like().map(|b| b.to_vec()).ok_or_else(|| type_error(format!("{fname}: expected bytes, not {}", v.type_name())))
+}
+
+fn opt_bytes(b: Option<Vec<u8>>) -> Value {
+    b.map_or(Value::None, Value::bytes)
+}
+
+/// `unix_socket(type)`: o fd.
+fn unix_socket(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("unix_socket", &kw)?;
+    need_kernel()?;
+    let ty = want_int(arg("unix_socket", &args, 0)?)? as u8;
+    let fd = sys::unix_socket(ty, true, true).map_err(|e| os_error(e, None))?;
+    Ok(Value::Int(i64::from(fd.0)))
+}
+
+/// `unix_socketpair(type)`: os dois fds.
+fn unix_socketpair(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("unix_socketpair", &kw)?;
+    need_kernel()?;
+    let ty = want_int(arg("unix_socketpair", &args, 0)?)? as u8;
+    let (a, b) = sys::unix_socketpair(ty, true, true).map_err(|e| os_error(e, None))?;
+    Ok(Value::tuple(vec![Value::Int(i64::from(a.0)), Value::Int(i64::from(b.0))]))
+}
+
+/// `unix_bind(fd, name)`.
+fn unix_bind(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("unix_bind", &kw)?;
+    let fd = want_fd("unix_bind", &args, 0)?;
+    let name = want_name("unix_bind", &args, 1)?;
+    sys::unix_bind(fd, &name).map_err(|e| os_error(e, None))?;
+    Ok(Value::None)
+}
+
+/// `unix_listen(fd, backlog)`.
+fn unix_listen(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("unix_listen", &kw)?;
+    let fd = want_fd("unix_listen", &args, 0)?;
+    let backlog = want_int(arg("unix_listen", &args, 1)?)?.clamp(0, i64::from(u32::MAX)) as u32;
+    sys::unix_listen(fd, backlog).map_err(|e| os_error(e, None))?;
+    Ok(Value::None)
+}
+
+/// `unix_accept(fd)`: o fd da conexão, ou `None` sem conexão pronta.
+fn unix_accept(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("unix_accept", &kw)?;
+    let fd = want_fd("unix_accept", &args, 0)?;
+    match sys::unix_accept(fd, true, true) {
+        Ok(fd) => Ok(Value::Int(i64::from(fd.0))),
+        Err(Errno::EAGAIN) => Ok(Value::None),
+        Err(e) => Err(os_error(e, None)),
+    }
+}
+
+/// `unix_connect(fd, name)`: `True`, ou `False` se a fila de quem escuta está cheia.
+fn unix_connect(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("unix_connect", &kw)?;
+    let fd = want_fd("unix_connect", &args, 0)?;
+    let name = want_name("unix_connect", &args, 1)?;
+    match sys::unix_connect(fd, &name) {
+        Ok(()) => Ok(Value::Bool(true)),
+        Err(Errno::EAGAIN) => Ok(Value::Bool(false)),
+        Err(e) => Err(os_error(e, None)),
+    }
+}
+
+/// `unix_names(fd)`: `(nome, nome do par, conectado)`, os nomes em bytes ou `None`.
+fn unix_names(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("unix_names", &kw)?;
+    let fd = want_fd("unix_names", &args, 0)?;
+    let (me, peer, connected) = sys::unix_names(fd).map_err(|e| os_error(e, None))?;
+    Ok(Value::tuple(vec![opt_bytes(me), opt_bytes(peer), Value::Bool(connected)]))
+}
+
+/// `unix_sendto(fd, data, name)`: os bytes enviados, ou `None` com a fila do destino cheia.
+fn unix_sendto(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("unix_sendto", &kw)?;
+    let fd = want_fd("unix_sendto", &args, 0)?;
+    let data = want_name("unix_sendto", &args, 1)?;
+    let name = match args.get(2) {
+        None | Some(Value::None) => None,
+        Some(_) => Some(want_name("unix_sendto", &args, 2)?),
+    };
+    match sys::unix_sendto(fd, &data, name.as_deref()) {
+        Ok(n) => Ok(Value::Int(n as i64)),
+        Err(Errno::EAGAIN) => Ok(Value::None),
+        Err(e) => Err(os_error(e, None)),
+    }
+}
+
+/// `unix_recvfrom(fd, n, peek)`: `(dados, nome de quem enviou)`, ou `None` se não chegou nada.
+fn unix_recvfrom(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("unix_recvfrom", &kw)?;
+    let fd = want_fd("unix_recvfrom", &args, 0)?;
+    let n = want_int(arg("unix_recvfrom", &args, 1)?)?.max(0) as usize;
+    let peek = args.get(2).is_some_and(Value::is_true);
+    match sys::unix_recvfrom(fd, n, peek) {
+        Ok((data, from)) => Ok(Value::tuple(vec![Value::bytes(data), opt_bytes(from)])),
+        Err(Errno::EAGAIN) => Ok(Value::None),
+        Err(e) => Err(os_error(e, None)),
+    }
+}
+
 pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
     ModuleBuilder::new("_os")
+        .func("unix_socket", unix_socket)
+        .func("unix_socketpair", unix_socketpair)
+        .func("unix_bind", unix_bind)
+        .func("unix_listen", unix_listen)
+        .func("unix_accept", unix_accept)
+        .func("unix_connect", unix_connect)
+        .func("unix_names", unix_names)
+        .func("unix_sendto", unix_sendto)
+        .func("unix_recvfrom", unix_recvfrom)
         .func("tcp_listen", tcp_listen)
         .func("tcp_accept", tcp_accept)
         .func("tcp_connect", tcp_connect)

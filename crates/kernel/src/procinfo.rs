@@ -224,6 +224,10 @@ impl ProcProvider for SbProcProvider {
                 let text = format!("socket:[{}]", c.ident.ino).into_bytes();
                 (text.clone(), Link::Path(text))
             }
+            FileObj::Unix(u) => {
+                let text = format!("socket:[{}]", u.ident.ino).into_bytes();
+                (text.clone(), Link::Path(text))
+            }
         };
         Some(FdLink { text, target, perm })
     }
@@ -281,6 +285,10 @@ impl ProcProvider for SbProcProvider {
 
     fn tcp_socks(&self) -> Vec<vfs::procfs::TcpSock> {
         self.sb().map_or_else(Vec::new, |sb| sb.ports.tcp_socks())
+    }
+
+    fn unix_socks(&self) -> Vec<vfs::procfs::UnixSockRow> {
+        self.sb().map_or_else(Vec::new, |sb| sb.unix.rows())
     }
 
     fn version(&self) -> Vec<u8> {
@@ -346,6 +354,7 @@ fn describe_fd(sb: &SbInner, ofd: &Ofd, cloexec: bool) -> FdInfo {
         FileObj::Pipe { end, fifo: None } => (PIPEFS_MNT_ID, end.pipe.ino),
         FileObj::Listener(l) => (SOCKFS_MNT_ID, l.ident.ino),
         FileObj::Stream(c) => (SOCKFS_MNT_ID, c.ident.ino),
+        FileObj::Unix(u) => (SOCKFS_MNT_ID, u.ident.ino),
         FileObj::Dev { loc: Some(loc), .. } => {
             flags |= O_LARGEFILE;
             (loc.mnt.id, loc.ino)
