@@ -680,7 +680,7 @@ impl ExtObject for HashObj {
                 crate::native_util::exactly("copy", &args, 0)?;
                 Ok(make_hash(self.algo, self.data.borrow().clone()))
             }
-            _ => Err(exc("AttributeError", format!("'HASH' object has no attribute '{name}'"))),
+            _ => Err(crate::object::no_attribute("HASH", name)),
         }
     }
 }

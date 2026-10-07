@@ -717,7 +717,7 @@ impl ExtObject for PatternObj {
                 let a = bind(name, args, kw, &["string", "maxsplit"], 1)?;
                 self.split_value(&arg(&a, 0), a[1].as_ref())
             }
-            _ => Err(exc("AttributeError", format!("'re.Pattern' object has no attribute '{name}'"))),
+            _ => Err(crate::object::no_attribute("re.Pattern", name)),
         }
     }
 }
@@ -922,7 +922,7 @@ impl ExtObject for MatchObj {
                 let parts = parse_template(&t, &self.pattern.regex)?;
                 Ok(out_text(self.pattern.bytes, expand_parts(&parts, &self.chars, &self.caps)))
             }
-            _ => Err(exc("AttributeError", format!("'re.Match' object has no attribute '{name}'"))),
+            _ => Err(crate::object::no_attribute("re.Match", name)),
         }
     }
 

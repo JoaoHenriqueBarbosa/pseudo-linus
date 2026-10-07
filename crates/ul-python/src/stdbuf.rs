@@ -138,7 +138,7 @@ impl ExtObject for StdBuffer {
             "isatty" | "seekable" => Ok(Value::Bool(false)),
             "readable" => Ok(Value::Bool(self.kind == FileKind::Stdin)),
             "writable" => Ok(Value::Bool(self.kind != FileKind::Stdin)),
-            _ => Err(exc("AttributeError", format!("'{}' object has no attribute '{name}'", self.type_name()))),
+            _ => Err(crate::object::no_attribute(self.type_name(), name)),
         }
     }
 

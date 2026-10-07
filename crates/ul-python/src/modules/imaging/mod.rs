@@ -806,7 +806,7 @@ impl ExtObject for Core {
                 let offset = args.get(2).map(float_arg).transpose()?.unwrap_or(0.0);
                 self.putdata(&arg(0).unwrap_or(Value::None), scale, offset)
             }
-            _ => Err(exc("AttributeError", format!("'ImagingCore' object has no attribute '{name}'"))),
+            _ => Err(crate::object::no_attribute("ImagingCore", name)),
         }
     }
 }
@@ -855,7 +855,7 @@ impl ExtObject for PixelAccess {
                 im.put_pixel(x, y, ink);
                 none()
             }
-            _ => Err(exc("AttributeError", format!("'PixelAccess' object has no attribute '{name}'"))),
+            _ => Err(crate::object::no_attribute("PixelAccess", name)),
         }
     }
 }
@@ -997,7 +997,7 @@ impl ExtObject for DrawObj {
                 none()
             }
             "draw_outline" => Err(type_error("expected outline object")),
-            _ => Err(exc("AttributeError", format!("'ImagingDraw' object has no attribute '{name}'"))),
+            _ => Err(crate::object::no_attribute("ImagingDraw", name)),
         }
     }
 }
@@ -1077,7 +1077,7 @@ impl ExtObject for FontObj {
                 }
                 Ok(new_core(im))
             }
-            _ => Err(exc("AttributeError", format!("'ImagingFont' object has no attribute '{name}'"))),
+            _ => Err(crate::object::no_attribute("ImagingFont", name)),
         }
     }
 }
@@ -1191,7 +1191,7 @@ impl ExtObject for DecoderObj {
             }
             "cleanup" => none(),
             "setfd" => none(),
-            _ => Err(exc("AttributeError", format!("'ImagingDecoder' object has no attribute '{name}'"))),
+            _ => Err(crate::object::no_attribute("ImagingDecoder", name)),
         }
     }
 }
@@ -1290,7 +1290,7 @@ impl ExtObject for EncoderObj {
                 }
             }
             "cleanup" | "setfd" => none(),
-            _ => Err(exc("AttributeError", format!("'ImagingEncoder' object has no attribute '{name}'"))),
+            _ => Err(crate::object::no_attribute("ImagingEncoder", name)),
         }
     }
 }

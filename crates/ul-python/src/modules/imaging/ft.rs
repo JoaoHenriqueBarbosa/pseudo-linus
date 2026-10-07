@@ -548,7 +548,7 @@ impl ExtObject for FontObj {
                 }
                 Err(ft_error(zft::Error::InvalidArgument))
             }
-            _ => Err(exc("AttributeError", format!("'Font' object has no attribute '{name}'"))),
+            _ => Err(crate::object::no_attribute("Font", name)),
         }
     }
 }

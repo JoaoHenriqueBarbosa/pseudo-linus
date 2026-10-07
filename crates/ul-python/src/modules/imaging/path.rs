@@ -304,7 +304,7 @@ impl ExtObject for PathObj {
                 xy[2 * i as usize + 1] = y;
                 Ok(Value::None)
             }
-            _ => Err(exc("AttributeError", format!("'Path' object has no attribute '{name}'"))),
+            _ => Err(crate::object::no_attribute("Path", name)),
         }
     }
 }

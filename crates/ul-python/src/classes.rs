@@ -63,7 +63,7 @@ impl ExtObject for NativeTypeMethod {
     }
     fn call_method(&self, vm: &mut Vm, name: &str, mut args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         if name != "__call__" {
-            return Err(exc("AttributeError", format!("'method_descriptor' object has no attribute '{name}'")));
+            return Err(crate::object::no_attribute("method_descriptor", name));
         }
         if args.is_empty() {
             return Err(type_error(format!("unbound method {}.{}() needs an argument", self.owner, self.name)));
@@ -151,7 +151,7 @@ impl ExtObject for StaticMethod {
         if name == "__call__" {
             return vm.call_value(&self.0, args, kw);
         }
-        Err(exc("AttributeError", format!("'staticmethod' object has no attribute '{name}'")))
+        Err(crate::object::no_attribute("staticmethod", name))
     }
 }
 
@@ -398,7 +398,7 @@ impl ExtObject for PlainObject {
             ("__sizeof__", []) => Ok(Value::Int(16)),
             ("__init__", []) => Ok(Value::None),
             ("__getstate__", []) => Ok(Value::None),
-            _ => Err(exc("AttributeError", format!("'object' object has no attribute '{name}'"))),
+            _ => Err(crate::object::no_attribute("object", name)),
         }
     }
     fn hash_value(&self) -> Option<i64> {
@@ -1258,7 +1258,7 @@ impl Vm {
         if name == "add_note" && inst.class.builtin_base.is_some() {
             return Ok(Value::Ext(Rc::new(ExcAddNote { obj: obj.clone() })));
         }
-        Err(exc("AttributeError", format!("'{}' object has no attribute '{name}'", inst.class.name)))
+        Err(crate::object::no_attribute(&inst.class.name, name))
     }
 
     pub(crate) fn class_getattr(&mut self, cls: &Rc<ClassObj>, name: &str) -> PyResult<Value> {
@@ -1487,7 +1487,7 @@ impl Vm {
                 }
                 inst.sync_from_view();
                 if inst.dict.borrow_mut().shift_remove(name).is_none() {
-                    return Err(exc("AttributeError", format!("'{}' object has no attribute '{name}'", inst.class.name)));
+                    return Err(crate::object::no_attribute(&inst.class.name, name));
                 }
                 inst.sync_to_view();
                 Ok(())
@@ -1506,11 +1506,11 @@ impl Vm {
                     .is_some_and(|g| g.borrow_mut().remove(name).is_some());
                 let from_attrs = m.attrs.borrow_mut().remove(name).is_some();
                 if !from_globals && !from_attrs {
-                    return Err(exc("AttributeError", format!("'module' object has no attribute '{name}'")));
+                    return Err(crate::object::no_attribute("module", name));
                 }
                 Ok(())
             }
-            _ => Err(exc("AttributeError", format!("'{}' object has no attribute '{name}'", obj.type_name()))),
+            _ => Err(crate::object::no_attribute(obj.type_name(), name)),
         }
     }
 

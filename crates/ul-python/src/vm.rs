@@ -2922,7 +2922,7 @@ impl Vm {
 
     pub(crate) fn load_attr(&mut self, obj: &Value, name: &str) -> PyResult<Value> {
         let missing = || {
-            exc("AttributeError", format!("'{}' object has no attribute '{name}'", obj.type_name()))
+            crate::object::no_attribute(obj.type_name(), name)
         };
         match obj {
             Value::Instance(inst) => return self.instance_getattr(obj, inst, name),

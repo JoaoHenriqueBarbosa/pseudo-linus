@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::object::{Dict, ExtObject, Kw, Set, Value};
-use crate::vm::{exc, type_error, PyException, PyResult, Vm};
+use crate::vm::{type_error, PyException, PyResult, Vm};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Kind {
@@ -81,7 +81,7 @@ impl ExtObject for DictView {
                 }
                 Ok(Value::Bool(true))
             }
-            _ => Err(exc("AttributeError", format!("'{}' object has no attribute '{name}'", self.name()))),
+            _ => Err(crate::object::no_attribute(self.name(), name)),
         }
     }
 

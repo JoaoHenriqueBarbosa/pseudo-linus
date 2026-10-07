@@ -399,7 +399,7 @@ impl ExtObject for SeqIter {
     fn call_method(&self, _vm: &mut Vm, name: &str, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
         match name {
             "__next__" => self.iter_next()?.ok_or_else(|| exc("StopIteration", "")),
-            _ => Err(exc("AttributeError", format!("'{}' object has no attribute '{name}'", self.kind))),
+            _ => Err(crate::object::no_attribute(self.kind, name)),
         }
     }
 

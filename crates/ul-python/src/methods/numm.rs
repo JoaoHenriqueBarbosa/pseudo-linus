@@ -6,7 +6,7 @@
 
 use crate::native_util::{bind, want_int};
 use crate::object::{Kw, NativeFnPtr, Value};
-use crate::vm::{exc, type_error, PyException, PyResult, Vm};
+use crate::vm::{exc, type_error, PyResult, Vm};
 
 fn nokw(fname: &str, kw: &Kw) -> PyResult<()> {
     if kw.is_empty() {
@@ -24,10 +24,6 @@ fn noargs(fname: &str, rest: &[Value]) -> PyResult<()> {
     }
 }
 
-fn no_attr(recv: &Value, name: &str) -> PyException {
-    exc("AttributeError", format!("'{}' object has no attribute '{name}'", recv.type_name()))
-}
-
 /// O receptor como inteiro (`int`, `int` grande ou `bool`).
 fn int_of(recv: &Value) -> Option<num_bigint::BigInt> {
     crate::bigint::as_big(recv)
@@ -36,20 +32,20 @@ fn int_of(recv: &Value) -> Option<num_bigint::BigInt> {
 fn bit_length(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("bit_length", &kw)?;
     noargs("bit_length", &args[1..])?;
-    let Some(i) = int_of(&args[0]) else { return Err(no_attr(&args[0], "bit_length")) };
+    let Some(i) = int_of(&args[0]) else { return Err(crate::object::no_attribute(&args[0].type_name(), "bit_length")) };
     Ok(Value::Int(i.bits() as i64))
 }
 
 fn bit_count(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("bit_count", &kw)?;
     noargs("bit_count", &args[1..])?;
-    let Some(i) = int_of(&args[0]) else { return Err(no_attr(&args[0], "bit_count")) };
+    let Some(i) = int_of(&args[0]) else { return Err(crate::object::no_attribute(&args[0].type_name(), "bit_count")) };
     Ok(Value::Int(i.magnitude().iter_u64_digits().map(|d| i64::from(d.count_ones())).sum()))
 }
 
 fn to_bytes(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     use num_traits::Signed;
-    let Some(v) = int_of(&args[0]) else { return Err(no_attr(&args[0], "to_bytes")) };
+    let Some(v) = int_of(&args[0]) else { return Err(crate::object::no_attribute(&args[0].type_name(), "to_bytes")) };
     if args.len() > 3 {
         return Err(type_error(format!(
             "to_bytes() takes at most 2 positional arguments ({} given)",
@@ -111,7 +107,7 @@ fn conjugate(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         Value::Float(x) => Ok(Value::Float(*x)),
         other => match int_of(other) {
             Some(i) => Ok(crate::bigint::norm(i)),
-            None => Err(no_attr(other, "conjugate")),
+            None => Err(crate::object::no_attribute(other.type_name(), "conjugate")),
         },
     }
 }
@@ -123,7 +119,7 @@ fn is_integer(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         Value::Float(x) => Ok(Value::Bool(x.is_finite() && x.fract() == 0.0)),
         other => match int_of(other) {
             Some(_) => Ok(Value::Bool(true)),
-            None => Err(no_attr(other, "is_integer")),
+            None => Err(crate::object::no_attribute(other.type_name(), "is_integer")),
         },
     }
 }
@@ -156,7 +152,7 @@ fn hex(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     noargs("hex", &args[1..])?;
     match &args[0] {
         Value::Float(x) => Ok(Value::str(float_hex(*x))),
-        other => Err(no_attr(other, "hex")),
+        other => Err(crate::object::no_attribute(other.type_name(), "hex")),
     }
 }
 
@@ -168,7 +164,7 @@ fn as_integer_ratio(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         other => {
             return match int_of(other) {
                 Some(i) => Ok(Value::tuple(vec![crate::bigint::norm(i), Value::Int(1)])),
-                None => Err(no_attr(other, "as_integer_ratio")),
+                None => Err(crate::object::no_attribute(other.type_name(), "as_integer_ratio")),
             }
         }
     };
@@ -200,7 +196,7 @@ fn as_integer_ratio(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 
 fn dunder_round(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     if !matches!(args[0], Value::Float(_)) && int_of(&args[0]).is_none() {
-        return Err(no_attr(&args[0], "__round__"));
+        return Err(crate::object::no_attribute(&args[0].type_name(), "__round__"));
     }
     crate::builtins::b_round(vm, args, kw)
 }
@@ -213,7 +209,7 @@ fn to_int(vm: &mut Vm, args: Vec<Value>, kw: Kw, name: &str, f: fn(f64) -> f64) 
         Value::Float(x) => crate::builtins::b_int(vm, vec![Value::Float(f(*x))], Vec::new()),
         other => match int_of(other) {
             Some(i) => Ok(crate::bigint::norm(i)),
-            None => Err(no_attr(other, name)),
+            None => Err(crate::object::no_attribute(other.type_name(), name)),
         },
     }
 }

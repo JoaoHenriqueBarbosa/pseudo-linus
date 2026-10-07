@@ -11,7 +11,7 @@ use crate::vm::{current, exc, get_iter, internal, PyIter, PyResult, Vm};
 fn next_method(it: &dyn ExtObject, name: &str) -> PyResult<Value> {
     match name {
         "__next__" => it.iter_next()?.ok_or_else(|| exc("StopIteration", "")),
-        _ => Err(exc("AttributeError", format!("'{}' object has no attribute '{name}'", it.type_name()))),
+        _ => Err(crate::object::no_attribute(it.type_name(), name)),
     }
 }
 

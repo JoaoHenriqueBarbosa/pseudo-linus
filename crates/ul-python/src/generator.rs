@@ -283,7 +283,7 @@ impl ExtObject for GenObj {
                 Ok(self.awaitable(AGMode::Throw(e)))
             }
             "aclose" => Ok(self.awaitable(AGMode::Close)),
-            _ => Err(exc("AttributeError", format!("'{}' object has no attribute '{name}'", self.type_str()))),
+            _ => Err(crate::object::no_attribute(self.type_str(), name)),
         }
     }
 }
@@ -326,7 +326,7 @@ impl ExtObject for CoroWrapper {
                 self.core.close();
                 Ok(Value::None)
             }
-            _ => Err(exc("AttributeError", format!("'coroutine_wrapper' object has no attribute '{name}'"))),
+            _ => Err(crate::object::no_attribute("coroutine_wrapper", name)),
         }
     }
 }
@@ -447,7 +447,7 @@ impl ExtObject for AGAwait {
                 Ok(Value::None)
             }
             "__await__" => Err(type_error("__await__ returns self")),
-            _ => Err(exc("AttributeError", format!("'async_generator_asend' object has no attribute '{name}'"))),
+            _ => Err(crate::object::no_attribute("async_generator_asend", name)),
         }
     }
 }

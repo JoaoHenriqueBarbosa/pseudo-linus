@@ -109,6 +109,11 @@ pub enum Descriptor {
 /// `RefCell`), porque o valor é compartilhado por `Rc` e os métodos recebem `&self`.
 ///
 /// Só `type_name` e `call_method` são obrigatórios; o resto tem padrão "não suportado".
+/// `AttributeError: 'tipo' object has no attribute 'nome'`.
+pub fn no_attribute(kind: &str, name: &str) -> crate::vm::PyException {
+    crate::vm::exc("AttributeError", format!("'{kind}' object has no attribute '{name}'"))
+}
+
 pub trait ExtObject {
     /// Descritor de classe (`staticmethod`, `classmethod`, `property`); `None` nos demais objetos.
     fn descriptor(&self) -> Option<Descriptor> {
@@ -144,7 +149,7 @@ pub trait ExtObject {
         _args: Vec<Value>,
         _kw: Kw,
     ) -> Result<Value, crate::vm::PyException> {
-        Err(crate::vm::exc("AttributeError", format!("'{}' object has no attribute '{name}'", self.type_name())))
+        Err(no_attribute(self.type_name(), name))
     }
     /// Torna o objeto iterável: `Ok(None)` encerra o laço.
     fn is_iterable(&self) -> bool {
