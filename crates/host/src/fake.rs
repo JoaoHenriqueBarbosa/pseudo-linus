@@ -1292,7 +1292,6 @@ pub struct FakeBackend {
 }
 
 impl FakeBackend {
-
     pub fn user(&self, name: &str) -> Option<UserSched> {
         self.users.lock().get(name).cloned()
     }

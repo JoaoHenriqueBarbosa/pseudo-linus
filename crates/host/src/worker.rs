@@ -496,7 +496,7 @@ fn fake_backend() -> Result<Arc<dyn Backend>, String> {
     if std::env::var("PL_ALLOW_FAKE_BACKEND").as_deref() != Ok("1") {
         return Err("o backend falso é só pra teste; ligue PL_ALLOW_FAKE_BACKEND=1 se é isso mesmo".into());
     }
-    Ok(Arc::new(crate::fake::FakeBackend::new()))
+    Ok(Arc::new(crate::fake::FakeBackend::default()))
 }
 
 #[cfg(not(feature = "fake-backend"))]
