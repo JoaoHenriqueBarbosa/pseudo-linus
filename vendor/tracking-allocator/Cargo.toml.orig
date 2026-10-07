@@ -1,0 +1,43 @@
+[package]
+name = "tracking-allocator"
+description = "global allocator that provides hooks for tracking allocation events"
+version = "0.4.0"
+edition = "2018"
+repository = "https://github.com/tobz/tracking-allocator"
+license = "MPL-2.0"
+readme = "README.md"
+keywords = ["allocation", "observability", "memory"]
+categories = ["development-tools::profiling", "memory-management"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[[bench]]
+harness = false
+name = "baseline"
+
+[[bench]]
+harness = false
+name = "overhead"
+
+[[bench]]
+harness = false
+name = "registry"
+
+[[example]]
+name = "tracing"
+required-features = ["tracing-compat"]
+
+[features]
+default = ["tracing-compat"]
+tracing-compat = ["tracing", "tracing-subscriber", "tracing-subscriber/std"]
+
+[dependencies] 
+tracing = { version = "0.1", default-features = false,  optional = true }
+tracing-subscriber = { version = "0.3.7", default-features = false, optional = true }
+
+[dev-dependencies]
+criterion = { version = "0.3.5", default-features = false, features = ["cargo_bench_support", "html_reports"] }
+tokio = { version = "1.12.0", features = ["rt", "sync"] }
+tracing-subscriber = { version = "0.3.7", default-features = false, features = ["registry"] }

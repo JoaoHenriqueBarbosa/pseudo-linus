@@ -58,3 +58,6 @@ lto = false
 # proíbem; a correção fica na dependência, que já é unsafe por natureza.
 [patch.crates-io]
 rusqlite = { path = "vendor/rusqlite" }
+# tracking-allocator 0.4.0 vendorizado: o cabeçalho de 8 bytes deixava o objeto em 8 mod 16, e o
+# unwinder do alvo musl exige 16 na exceção do panic (o binário estático caía em todo `execve`).
+tracking-allocator = { path = "vendor/tracking-allocator" }
