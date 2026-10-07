@@ -245,6 +245,7 @@ pub fn pause(p: Pause, plan: &ArabicPlan, font: &Font, buffer: &mut Buffer) {
         Pause::ArabicRecordStch => record_stch(plan, buffer),
         Pause::ArabicDeallocate => {}
         Pause::ArabicFallback => fallback_shape(plan, font, buffer),
+        _ => {}
     }
 }
 

@@ -35,6 +35,18 @@ pub enum Pause {
     ArabicDeallocate,
     /// `arabic_fallback_shape`.
     ArabicFallback,
+    /// `setup_syllables_use`.
+    UseSetupSyllables,
+    /// `_hb_clear_substitution_flags`.
+    ClearSubstitutionFlags,
+    /// `record_rphf_use`.
+    UseRecordRphf,
+    /// `record_pref_use`.
+    UseRecordPref,
+    /// `reorder_use`.
+    UseReorder,
+    /// `hb_syllabic_clear_var`.
+    SyllabicClearVar,
 }
 
 #[derive(Clone, Copy, Debug)]

@@ -21,5 +21,8 @@ pub mod props;
 pub mod raqm;
 pub mod shape;
 pub mod thai;
+pub mod universal;
+mod use_machine;
+mod use_table;
 mod ucd_table;
 pub mod unicode;
