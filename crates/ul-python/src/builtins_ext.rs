@@ -215,13 +215,15 @@ fn b_import(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     if !trusted && crate::modules::is_internal(&full) {
         return Err(crate::vm::exc("ModuleNotFoundError", format!("No module named '{full}'")));
     }
-    // Importa a cadeia inteira (`a.b.c` carrega `a`, `a.b`, `a.b.c`); sem `fromlist` devolve a raiz.
-    let leaf = crate::modules::import_checked(vm, &full)?;
+    // Importa a cadeia inteira (`a.b.c` carrega `a`, `a.b`, `a.b.c`); sem `fromlist` devolve a raiz. O
+    // caminho é o da instrução `import`, com os finders do programa em `sys.meta_path` (o
+    // `_distutils_hack` do setuptools troca o `distutils` por um deles via `importlib.import_module`).
+    let leaf = crate::modules::import_value(vm, &full)?;
     if wants_leaf || level > 0 {
-        return Ok(Value::Module(leaf));
+        return Ok(leaf);
     }
     let top = full.split('.').next().unwrap_or("").to_string();
-    Ok(Value::Module(crate::modules::import_checked(vm, &top)?))
+    crate::modules::import_value(vm, &top)
 }
 
 thread_local! {

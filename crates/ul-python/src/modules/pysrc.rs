@@ -37,7 +37,8 @@ const SOURCES: &[(&str, &str)] = &[
     ("mmap", include_str!("py/mmap.py")),
     ("_lsprof", include_str!("py/_lsprof.py")),
     ("bisect", include_str!("py/bisect.py")),
-    ("stat", include_str!("py/stat.py")),
+    // Congelado no CPython; o texto é o do `stat.py` do Debian, que o boot precisa antes do `sys.path`.
+    ("stat", include_str!("../../../kernel/image/usr/lib/python3.13/stat.py")),
     ("glob", include_str!("py/glob.py")),
     ("shutil", include_str!("py/shutil.py")),
     ("tempfile", include_str!("py/tempfile.py")),
@@ -195,7 +196,6 @@ const SOURCES: &[(&str, &str)] = &[
     ("zipapp", include_str!("py/zipapp.py")),
     ("this", include_str!("py/this.py")),
     ("struct", include_str!("py/struct.py")),
-    ("site", include_str!("py/site.py")),
     ("py_compile", include_str!("py/py_compile.py")),
     ("compileall", include_str!("py/compileall.py")),
     ("multiprocessing", include_str!("py/multiprocessing.py")),

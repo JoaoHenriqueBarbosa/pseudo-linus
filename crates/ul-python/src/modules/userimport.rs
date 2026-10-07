@@ -117,8 +117,22 @@ fn sys_path(vm: &mut Vm) -> Vec<String> {
 fn package_path(vm: &mut Vm, package: &str) -> Vec<String> {
     let live = vm.module_globals.borrow().get(package).and_then(|g| g.borrow().get("__path__").cloned());
     let path = live.or_else(|| {
-        vm.modules.borrow().get(package).and_then(|m| m.attrs.borrow().get("__path__").cloned())
+        vm.modules.borrow().get(package).and_then(|m| {
+            // Um módulo posto em `sys.modules` com outro nome (o `setuptools._distutils` que o
+            // `_distutils_hack` instala como `distutils`) guarda o `__path__` nas globais do nome dele.
+            let own = vm.module_globals.borrow().get(m.name).and_then(|g| g.borrow().get("__path__").cloned());
+            own.or_else(|| m.attrs.borrow().get("__path__").cloned())
+        })
     });
+    // Como o `_find_and_load`, vale o `__path__` de qualquer objeto em `sys.modules`.
+    let foreign = vm.foreign_modules.borrow().get(package).cloned();
+    let path = match path {
+        Some(p) => Some(p),
+        None => match foreign {
+            Some(v) => vm.load_attr(&v, "__path__").ok(),
+            None => None,
+        },
+    };
     match path {
         Some(Value::List(l)) => l.borrow().iter().filter_map(|v| if let Value::Str(s) = v { Some(s.as_str().to_string()) } else { None }).collect(),
         _ => Vec::new(),

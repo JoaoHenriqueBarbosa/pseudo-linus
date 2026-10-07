@@ -477,7 +477,44 @@ fn decode_str_escapes(body: &str) -> Result<String, String> {
                 }
             }
             'N' => {
-                return Err("\\N{...} escapes need the unicodedata name table, which is not ported".to_string())
+                // `_PyUnicode_DecodeUnicodeEscapeInternal`: o nome vai ao `getcode` sem sequências
+                // nomeadas (os apelidos formais valem); as posições são as do C, no texto em que o
+                // `decode_unicode_with_escapes` já trocou cada caractere não ASCII por `\U%08x`.
+                let at = |byte: usize| body[..byte].chars().map(|c| if c.is_ascii() { 1 } else { 10 }).sum::<usize>();
+                let fail = |end: usize, why: &str| {
+                    format!(
+                        "(unicode error) 'unicodeescape' codec can't decode bytes in position {}-{}: {why}",
+                        at(esc_start),
+                        at(end) - 1
+                    )
+                };
+                if i >= b.len() {
+                    return Err(fail(i, "malformed \\N character escape"));
+                }
+                if b[i] != b'{' {
+                    return Err(fail(i, "malformed \\N character escape"));
+                }
+                i += 1;
+                let start = i;
+                while i < b.len() && b[i] != b'}' {
+                    i += 1;
+                }
+                if i >= b.len() {
+                    return Err(fail(i, "malformed \\N character escape"));
+                }
+                if i == start {
+                    return Err(fail(i, "malformed \\N character escape"));
+                }
+                let name = &body[start..i];
+                i += 1;
+                use crate::modules::ucd::Props as _;
+                match crate::modules::ucd::current().lookup(name).as_deref() {
+                    Some(&[cp]) => match char::from_u32(cp) {
+                        Some(ch) => out.push(ch),
+                        None => out.push(crate::object::surrogate_to_char(cp)),
+                    },
+                    _ => return Err(fail(i, "unknown Unicode character name")),
+                }
             }
             other => {
                 // Escape inválido: o CPython mantém a barra (e emite SyntaxWarning).

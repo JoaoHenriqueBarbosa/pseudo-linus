@@ -682,6 +682,15 @@ fn run_source_inner(
     let mut code = code;
     code.set_filename("");
     let mut prelude: Result<(), vm::RuntimeError> = Ok(());
+    // `init_import_site`: sem `-S`, o `site` do disco roda o `main()` antes do programa (venv,
+    // site-packages, arquivos `.pth`, sitecustomize, `quit`/`exit`/`help`). Os testes de unidade rodam
+    // sem a imagem no disco, e aí não há `site` para importar.
+    let has_site = sysabi::sys::try_current().is_some_and(|_| is_regular("/usr/lib/python3.13/site.py"));
+    if CLI_FLAGS.lock().unwrap()[6] == 0 && has_site {
+        if let Err(e) = modules::import_checked(&mut machine, "site") {
+            prelude = Err(vm::RuntimeError { exc: e, lineno: 0 });
+        }
+    }
     if let Some((package, cwd)) = &main_module {
         machine.globals.borrow_mut().insert("__package__".into(), object::Value::str(package.clone()));
         if let Some(sysmod) = modules::import(&mut machine, "sys") {

@@ -162,3 +162,26 @@ try: ImportError(foo=1)
 except TypeError as e: print(e)
 PYEOF
 '''
+
+# `site` real no startup (`.pth` de um venv), `stat` do disco, `\N{}` e finder em `sys.meta_path`.
+[[case]]
+id = "site-pth-meta-path-named-escape"
+script = '''
+cd /tmp && python3 -m venv --without-pip v && echo 'import sys; sys.pth_ran = 1' > v/lib/python3.13/site-packages/x.pth
+v/bin/python -c 'import sys, site, stat; print(sys.pth_ran, site.__spec__.origin, stat.UF_HIDDEN, stat.filemode(0o100644))'
+python3 -c 'print("\N{LATIN SMALL LETTER A WITH ACUTE}", ascii("\N{EM DASH}"))'
+python3 -c 'print("é\N{NOPE}")'; python3 -c 'print("\N{abc")'
+python3 - <<'PYEOF'
+import sys, importlib, importlib.abc, importlib.util
+class L(importlib.abc.Loader):
+    def create_module(self, spec): return None
+    def exec_module(self, mod): mod.x = 42
+class F:
+    def find_spec(self, name, path, target=None):
+        if name.startswith("magic"):
+            return importlib.util.spec_from_loader(name, L())
+sys.meta_path.insert(0, F())
+print(importlib.import_module("magic1").x, __import__("magic2").x)
+import magic3; print(magic3.x)
+PYEOF
+'''

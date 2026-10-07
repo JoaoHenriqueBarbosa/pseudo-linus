@@ -226,9 +226,15 @@ class FileFinder:
         return f'FileFinder({self.path!r})'
 
 
-def _spec_for_module(name, file, is_package):
+def _spec_for_module(name, file, is_package, frozen=False):
     """O `__spec__` de um módulo carregado de arquivo (criado sob demanda pelo interpretador)."""
-    spec = ModuleSpec(name, SourceFileLoader(name, file), origin=file, is_package=is_package)
+    if frozen:
+        from _frozen_importlib import FrozenImporter
+        import types
+        spec = ModuleSpec(name, FrozenImporter, origin='frozen', is_package=is_package)
+        spec.loader_state = types.SimpleNamespace(filename=file, origname=name)
+        return spec
+    spec =ModuleSpec(name, SourceFileLoader(name, file), origin=file, is_package=is_package)
     spec._set_fileattr = True
     if is_package:
         import os.path

@@ -3375,7 +3375,9 @@ impl Vm {
         let Some(machinery) = crate::modules::import(self, "importlib.machinery") else { return Ok(None) };
         let make = machinery.attrs.borrow().get("_spec_for_module").cloned();
         let Some(make) = make else { return Ok(None) };
-        let spec = self.call(&make, vec![Value::str(m.name), Value::str(file), Value::Bool(is_package)], Vec::new())?;
+        // O `site` e os demais congelados rodam do texto do disco, mas o spec é o do `FrozenImporter`.
+        let frozen = file.starts_with("/usr/lib/python3.13/") && crate::object::FROZEN_MODULES.contains(&m.name);
+        let spec = self.call(&make, vec![Value::str(m.name), Value::str(file), Value::Bool(is_package), Value::Bool(frozen)], Vec::new())?;
         let loader = self.getattr(&spec, "loader")?;
         let mut g = globals.borrow_mut();
         g.insert("__spec__".into(), spec.clone());
