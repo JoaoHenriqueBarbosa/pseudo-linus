@@ -3241,35 +3241,20 @@ impl Zstd {
         let a = arg;
         let prog = c.prog.clone();
         let exact = |s: &str| a == s.as_bytes();
+        if let Some(&(_, ch)) = LONG_FLAGS.iter().find(|(name, _)| a == name.as_bytes()) {
+            self.flag(ch, c)?;
+            return Ok(());
+        }
+        if let Some(&(_, suffix, ctype)) = FORMATS.iter().find(|(name, ..)| a == name.as_bytes()) {
+            c.suffix = suffix;
+            self.prefs.ctype = ctype;
+            return Ok(());
+        }
         let p = &mut self.prefs;
         match a {
             b"--" => c.next_are_files = true,
-            b"--list" => c.op = Op::List,
-            b"--compress" => c.op = Op::Compress,
             b"--decompress" | b"--uncompress" => c.op = Op::Decompress,
-            b"--force" => {
-                p.overwrite = true;
-                c.force_stdin = true;
-                c.force_stdout = true;
-                c.follow_links = true;
-                p.allow_block_devices = true;
-            }
-            b"--version" => {
-                self.out.write_str(&version_text(self.level));
-                return Err(Exit(0));
-            }
-            b"--help" => {
-                self.out.write(&usage_advanced_text(&prog));
-                return Err(Exit(0));
-            }
-            b"--verbose" => self.level += 1,
-            b"--quiet" => self.level -= 1,
-            b"--stdout" => {
-                c.force_stdout = true;
-                c.out_name = Some(STDOUT_MARK.to_vec());
-            }
             b"--ultra" => c.ultra = true,
-            b"--check" => p.checksum_flag = 2,
             b"--no-check" => p.checksum_flag = 0,
             b"--sparse" => p.sparse = 2,
             b"--no-sparse" => p.sparse = 0,
@@ -3281,13 +3266,8 @@ impl Zstd {
             b"--no-compress-literals" => c.literals = 2,
             b"--pass-through" => p.pass_through = 1,
             b"--no-pass-through" => p.pass_through = 0,
-            b"--test" => c.op = Op::Test,
-            b"--train" => {
-                c.op = Op::Train;
-                c.out_name.get_or_insert_with(|| b"dictionary".to_vec());
-            }
+            b"--train" => c.train(None),
             b"--no-dictID" => p.dict_id_flag = false,
-            b"--keep" => p.remove_src = false,
             b"--rm" => p.remove_src = true,
             b"--show-default-cparams" => c.show_default_cparams = true,
             b"--content-size" => p.content_size = true,
@@ -3296,26 +3276,6 @@ impl Zstd {
             b"--single-thread" => {
                 c.nb_workers = 0;
                 c.single_thread = true;
-            }
-            b"--format=zstd" => {
-                c.suffix = b".zst";
-                p.ctype = CType::Zstd;
-            }
-            b"--format=gzip" => {
-                c.suffix = b".gz";
-                p.ctype = CType::Gzip;
-            }
-            b"--format=lzma" => {
-                c.suffix = b".lzma";
-                p.ctype = CType::Lzma;
-            }
-            b"--format=xz" => {
-                c.suffix = b".xz";
-                p.ctype = CType::Xz;
-            }
-            b"--format=lz4" => {
-                c.suffix = b".lz4";
-                p.ctype = CType::Lz4;
             }
             b"--rsyncable" => c.rsyncable = true,
             b"--no-progress" => self.progress = Progress::Never,
@@ -3338,10 +3298,7 @@ impl Zstd {
                     overlap_log: Some(9),
                 };
             }
-            _ if exact("--best") && exe_name_match(&prog, "gzip") => {
-                c.clevel = 9;
-                c.dict_clevel = 9;
-            }
+            _ if exact("--best") && exe_name_match(&prog, "gzip") => c.set_level(9),
             _ if exact("--no-name") && exe_name_match(&prog, "gzip") => {}
             _ => return self.parse_long_with_arg(args, idx, a, c),
         }
@@ -3364,9 +3321,7 @@ impl Zstd {
         }
         for (name, kind) in [("--train-cover", DictKind::Cover), ("--train-fastcover", DictKind::FastCover)] {
             let Some(r) = long_arg(a, name) else { continue };
-            c.op = Op::Train;
-            c.out_name.get_or_insert_with(|| b"dictionary".to_vec());
-            c.dict_kind = kind;
+            c.train(Some(kind));
             let fast = kind == DictKind::FastCover;
             let params = if r.is_empty() {
                 Some(CoverArgs::ZERO)
@@ -3384,9 +3339,7 @@ impl Zstd {
             return Ok(());
         }
         if let Some(r) = long_arg(a, "--train-legacy") {
-            c.op = Op::Train;
-            c.out_name.get_or_insert_with(|| b"dictionary".to_vec());
-            c.dict_kind = DictKind::Legacy;
+            c.train(Some(DictKind::Legacy));
             if r.is_empty() {
                 return Ok(());
             }
@@ -3424,24 +3377,14 @@ impl Zstd {
         } else if let Some(r) = long_arg(a, "--size-hint") {
             c.size_hint = self.next_size(args, idx, r)?;
         } else if let Some(r) = long_arg(a, "--output-dir-flat") {
-            let (v, _) = self.next_field(args, idx, r)?;
-            if v.is_empty() {
-                self.disp(1, "error: output dir cannot be empty string (did you mean to pass '.' instead?)\n");
-                return Err(Exit(1));
-            }
-            c.out_dir = Some(v);
+            c.out_dir = Some(self.next_dir(args, idx, r)?);
         } else if let Some(r) = long_arg(a, "--auto-threads") {
             let (v, _) = self.next_field(args, idx, r)?;
             if v == b"logical" {
                 c.logical_cores = true;
             }
         } else if let Some(r) = long_arg(a, "--output-dir-mirror") {
-            let (v, _) = self.next_field(args, idx, r)?;
-            if v.is_empty() {
-                self.disp(1, "error: output dir cannot be empty string (did you mean to pass '.' instead?)\n");
-                return Err(Exit(1));
-            }
-            c.out_mirror = Some(v);
+            c.out_mirror = Some(self.next_dir(args, idx, r)?);
         } else if let Some(r) = long_arg(a, "--trace") {
             // O rastro do C vai pra um arquivo de diagnóstico interno; aqui só consome o argumento.
             self.next_field(args, idx, r)?;
@@ -3471,8 +3414,7 @@ impl Zstd {
                 if lvl == 0 {
                     return Err(self.bad_usage(&prog, a));
                 }
-                c.clevel = -(lvl as i32);
-                c.dict_clevel = c.clevel;
+                c.set_level(-(lvl as i32));
             } else if !r.is_empty() {
                 return Err(self.bad_usage(&prog, a));
             } else {
@@ -3493,35 +3435,12 @@ impl Zstd {
         let mut i = 1;
         while let Some(&ch) = arg.get(i) {
             if ch.is_ascii_digit() {
-                c.clevel = self.u32_of(arg, &mut i)? as i32;
-                c.dict_clevel = c.clevel;
+                let lvl = self.u32_of(arg, &mut i)? as i32;
+                c.set_level(lvl);
                 continue;
             }
             i += 1;
             match ch {
-                b'V' => {
-                    self.out.write_str(&version_text(self.level));
-                    return Err(Exit(0));
-                }
-                b'H' => {
-                    self.out.write(&usage_advanced_text(&prog));
-                    return Err(Exit(0));
-                }
-                b'h' => {
-                    self.out.write(&usage_text(&prog));
-                    return Err(Exit(0));
-                }
-                b'z' => c.op = Op::Compress,
-                b'd' => {
-                    c.decode_only = true;
-                    if c.op != Op::Bench {
-                        c.op = Op::Decompress;
-                    }
-                }
-                b'c' => {
-                    c.force_stdout = true;
-                    c.out_name = Some(STDOUT_MARK.to_vec());
-                }
                 b'o' | b'D' => {
                     // `NEXT_FIELD` sem `=` pega o argumento seguinte e continua lendo este como opções.
                     let (v, whole) = self.next_field(args, idx, &arg[i..])?;
@@ -3534,27 +3453,10 @@ impl Zstd {
                         c.dict_name = Some(v);
                     }
                 }
-                b'n' => {}
-                b'f' => {
-                    self.prefs.overwrite = true;
-                    c.force_stdin = true;
-                    c.force_stdout = true;
-                    c.follow_links = true;
-                    self.prefs.allow_block_devices = true;
-                }
-                b'v' => self.level += 1,
-                b'q' => self.level -= 1,
-                b'k' => self.prefs.remove_src = false,
-                b'C' => self.prefs.checksum_flag = 2,
-                b't' => c.op = Op::Test,
                 b'M' => c.mem_limit = self.u32_of(arg, &mut i)?,
-                b'l' => c.op = Op::List,
-                b'r' => c.recursive = true,
-                b'b' => c.op = Op::Bench,
                 b'e' => c.clevel_last = self.u32_of(arg, &mut i)? as i32,
                 b'i' => c.bench_seconds = self.u32_of(arg, &mut i)?,
                 b'B' => c.block_size = u64::from(self.u32_of(arg, &mut i)?),
-                b'S' => c.separate_files = true,
                 b'T' => c.nb_workers = i64::from(self.u32_of(arg, &mut i)?),
                 b's' => c.dict_select = self.u32_of(arg, &mut i)?,
                 b'p' => {
@@ -3565,10 +3467,109 @@ impl Zstd {
                     }
                 }
                 b'P' => c.compressibility = f64::from(self.u32_of(arg, &mut i)?) / 100.0,
+                _ if self.flag(ch, c)? => {}
                 _ => return Err(self.bad_usage(&prog, &[b'-', ch])),
             }
         }
         Ok(())
+    }
+
+    /// As opções curtas sem argumento; as longas de `LONG_FLAGS` chegam aqui pela letra.
+    /// `false` quando a letra não é uma delas.
+    fn flag(&mut self, ch: u8, c: &mut Cli) -> R<bool> {
+        let p = &mut self.prefs;
+        match ch {
+            b'V' | b'H' | b'h' => {
+                let text = match ch {
+                    b'V' => version_text(self.level).into_bytes(),
+                    b'H' => usage_advanced_text(&c.prog),
+                    _ => usage_text(&c.prog),
+                };
+                self.out.write(&text);
+                return Err(Exit(0));
+            }
+            b'z' => c.op = Op::Compress,
+            b'd' => {
+                c.decode_only = true;
+                if c.op != Op::Bench {
+                    c.op = Op::Decompress;
+                }
+            }
+            b'c' => {
+                c.force_stdout = true;
+                c.out_name = Some(STDOUT_MARK.to_vec());
+            }
+            b'n' => {}
+            b'f' => {
+                p.overwrite = true;
+                c.force_stdin = true;
+                c.force_stdout = true;
+                c.follow_links = true;
+                p.allow_block_devices = true;
+            }
+            b'v' => self.level += 1,
+            b'q' => self.level -= 1,
+            b'k' => p.remove_src = false,
+            b'C' => p.checksum_flag = 2,
+            b't' => c.op = Op::Test,
+            b'l' => c.op = Op::List,
+            b'r' => c.recursive = true,
+            b'b' => c.op = Op::Bench,
+            b'S' => c.separate_files = true,
+            _ => return Ok(false),
+        }
+        Ok(true)
+    }
+
+    /// O diretório de `--output-dir-flat`/`--output-dir-mirror`, que não pode ser vazio.
+    fn next_dir(&mut self, args: &[Vec<u8>], idx: &mut usize, r: &[u8]) -> R<Vec<u8>> {
+        let (v, _) = self.next_field(args, idx, r)?;
+        if v.is_empty() {
+            self.disp(1, "error: output dir cannot be empty string (did you mean to pass '.' instead?)\n");
+            return Err(Exit(1));
+        }
+        Ok(v)
+    }
+}
+
+/// As opções longas que fazem o mesmo que uma curta sem argumento.
+const LONG_FLAGS: &[(&str, u8)] = &[
+    ("--list", b'l'),
+    ("--compress", b'z'),
+    ("--force", b'f'),
+    ("--version", b'V'),
+    ("--help", b'H'),
+    ("--verbose", b'v'),
+    ("--quiet", b'q'),
+    ("--stdout", b'c'),
+    ("--check", b'C'),
+    ("--test", b't'),
+    ("--keep", b'k'),
+];
+
+/// `--format=`: o sufixo e o compressor de cada formato.
+const FORMATS: &[(&str, &[u8], CType)] = &[
+    ("--format=zstd", b".zst", CType::Zstd),
+    ("--format=gzip", b".gz", CType::Gzip),
+    ("--format=lzma", b".lzma", CType::Lzma),
+    ("--format=xz", b".xz", CType::Xz),
+    ("--format=lz4", b".lz4", CType::Lz4),
+];
+
+impl Cli {
+    /// O nível de compressão vale também para o dicionário.
+    fn set_level(&mut self, level: i32) {
+        self.clevel = level;
+        self.dict_clevel = level;
+    }
+
+    /// As `--train*`: a operação, o nome padrão da saída e, se dado, o algoritmo.
+    fn train(&mut self, kind: Option<DictKind>) {
+        self.op = Op::Train;
+        self.out_name.get_or_insert_with(|| b"dictionary".to_vec());
+        if let Some(kind) = kind {
+            self.dict_kind = kind;
+        }
     }
 }
 
