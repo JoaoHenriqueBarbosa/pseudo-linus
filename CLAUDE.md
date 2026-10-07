@@ -39,7 +39,7 @@ gravar requisições com esse contexto.
 Duas regras, conferidas à mão com `scripts/dry-check.sh` e `scripts/dry-forwarders.py`.
 
 - **Código parecido não se repete.** O `similarity-rs` compara os corpos de função; par acima de
-  0,90 que toque um arquivo do commit recusa o commit.
+  0,90 que toque um arquivo alterado é dívida nova.
 - **Função de repasse não existe.** Função cujo corpo é só a chamada de outra com os próprios
   argumentos é intermediária inútil: o chamador chama o alvo direto, ou o nome vira reexportação
   (`pub use sysabi::sys::current as sys;`). Acessor de campo privado (`len`, `is_empty`) não é
@@ -59,7 +59,7 @@ resolveu. Entrada nova não se acrescenta à mão; `scripts/dry-check.sh --rebui
 inteira e só se usa depois de zerar o que ela acusa de novo.
 
 ```sh
-scripts/dry-check.sh              # o que o pre-commit roda: os .rs do índice
+scripts/dry-check.sh              # os .rs do índice
 scripts/dry-check.sh ARQ...       # arquivos escolhidos
 scripts/dry-check.sh --rebuild    # refaz a lista de dívida (varre tudo, leva minutos)
 ```
