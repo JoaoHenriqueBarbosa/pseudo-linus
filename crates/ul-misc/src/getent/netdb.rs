@@ -5,7 +5,7 @@
 
 use sysabi::{Errno, sys};
 
-use super::db::{Cursor, is_colon, read_db_lines};
+use super::db::{Cursor, is_colon, read_records, useful_line};
 use super::inet::{ether_ntoa, inet_network, is_space, ntop4, ntop6, pton4, pton6};
 
 fn is_slash(b: u8) -> bool {
@@ -43,24 +43,13 @@ pub fn parse_service(line: &[u8]) -> Option<Service> {
 }
 
 pub fn read_services() -> Result<Vec<Service>, Errno> {
-    Ok(read_db_lines(b"/etc/services", b"#")?
-        .iter()
-        .filter_map(|l| parse_service(l))
-        .collect())
+    read_records(b"/etc/services", b"#", parse_service)
 }
 
 pub fn format_service(s: &Service) -> Vec<u8> {
-    let mut out = s.name.clone();
-    pad_to(&mut out, 21);
-    out.push(b' ');
-    out.extend_from_slice(format!("{}/", s.port).as_bytes());
-    out.extend_from_slice(&s.proto);
-    for a in &s.aliases {
-        out.push(b' ');
-        out.extend_from_slice(a);
-    }
-    out.push(b'\n');
-    out
+    let mut middle = format!(" {}/", s.port).into_bytes();
+    middle.extend_from_slice(&s.proto);
+    entry_line(&s.name, 21, &middle, &s.aliases)
 }
 
 /// `%-Ns`: completa com espaços até a largura (sem cortar o que passar).
@@ -70,40 +59,13 @@ pub fn pad_to(out: &mut Vec<u8>, width: usize) {
     }
 }
 
-// ---- protocols ----
-
-#[derive(Clone, Debug)]
-pub struct Protocol {
-    pub name: Vec<u8>,
-    pub number: i32,
-    pub aliases: Vec<Vec<u8>>,
-}
-
-/// `parse_line` de `files-proto.c`: `nome número alias...`.
-pub fn parse_protocol(line: &[u8]) -> Option<Protocol> {
-    let mut c = Cursor::new(line);
-    let name = c.string_field(is_space, true).to_vec();
-    let number = c.int_field(is_space, true, 10)?;
-    let aliases = c.parse_list(0, is_space);
-    Some(Protocol {
-        name,
-        number: number as u32 as i32,
-        aliases,
-    })
-}
-
-pub fn read_protocols() -> Result<Vec<Protocol>, Errno> {
-    Ok(read_db_lines(b"/etc/protocols", b"#")?
-        .iter()
-        .filter_map(|l| parse_protocol(l))
-        .collect())
-}
-
-pub fn format_protocol(p: &Protocol) -> Vec<u8> {
-    let mut out = p.name.clone();
-    pad_to(&mut out, 21);
-    out.extend_from_slice(format!(" {}", p.number).as_bytes());
-    for a in &p.aliases {
+/// A linha que todo `print_*` de rede monta: `%-Ns`, o meio já com o seu espaço inicial, e cada
+/// alias precedido de um espaço.
+fn entry_line(head: &[u8], width: usize, middle: &[u8], aliases: &[Vec<u8>]) -> Vec<u8> {
+    let mut out = head.to_vec();
+    pad_to(&mut out, width);
+    out.extend_from_slice(middle);
+    for a in aliases {
         out.push(b' ');
         out.extend_from_slice(a);
     }
@@ -111,49 +73,66 @@ pub fn format_protocol(p: &Protocol) -> Vec<u8> {
     out
 }
 
-// ---- rpc ----
+/// O nome é a chave, ou um dos aliases.
+pub fn named(name: &[u8], aliases: &[Vec<u8>], key: &[u8]) -> bool {
+    name == key || aliases.iter().any(|a| a == key)
+}
 
+// ---- protocols e rpc ----
+
+/// Um registro `nome número alias...`: o formato de `/etc/protocols` e de `/etc/rpc`, que o
+/// `files-proto.c` e o `files-rpc.c` interpretam com o mesmo `LINE_PARSER`.
 #[derive(Clone, Debug)]
-pub struct Rpc {
+pub struct Numbered {
     pub name: Vec<u8>,
     pub number: i32,
     pub aliases: Vec<Vec<u8>>,
 }
 
-/// `parse_line` de `files-rpc.c`.
-pub fn parse_rpc(line: &[u8]) -> Option<Rpc> {
+/// O banco de um registro numerado: o arquivo e o formato do `print_*` do getent.
+#[derive(Copy, Clone, Debug)]
+pub enum NumberedDb {
+    Protocols,
+    Rpc,
+}
+
+pub fn parse_numbered(line: &[u8]) -> Option<Numbered> {
     let mut c = Cursor::new(line);
     let name = c.string_field(is_space, true).to_vec();
     let number = c.int_field(is_space, true, 10)?;
     let aliases = c.parse_list(0, is_space);
-    Some(Rpc {
+    Some(Numbered {
         name,
         number: number as u32 as i32,
         aliases,
     })
 }
 
-pub fn read_rpc() -> Result<Vec<Rpc>, Errno> {
-    Ok(read_db_lines(b"/etc/rpc", b"#")?
-        .iter()
-        .filter_map(|l| parse_rpc(l))
-        .collect())
-}
+impl NumberedDb {
+    pub fn name(self) -> &'static str {
+        match self {
+            NumberedDb::Protocols => "protocols",
+            NumberedDb::Rpc => "rpc",
+        }
+    }
 
-/// `print_rpc`: o número é seguido de um espaço extra antes do primeiro alias (como no getent).
-pub fn format_rpc(r: &Rpc) -> Vec<u8> {
-    let mut out = r.name.clone();
-    pad_to(&mut out, 15);
-    out.extend_from_slice(format!(" {}", r.number).as_bytes());
-    if !r.aliases.is_empty() {
-        out.push(b' ');
+    pub fn read(self) -> Result<Vec<Numbered>, Errno> {
+        let path = match self {
+            NumberedDb::Protocols => b"/etc/protocols" as &[u8],
+            NumberedDb::Rpc => b"/etc/rpc",
+        };
+        read_records(path, b"#", parse_numbered)
     }
-    for a in &r.aliases {
-        out.push(b' ');
-        out.extend_from_slice(a);
+
+    /// `print_protocols` usa `%-21s`; `print_rpc` usa `%-15s` e põe um espaço extra entre o número
+    /// e o primeiro alias.
+    pub fn format(self, n: &Numbered) -> Vec<u8> {
+        let (width, gap) = match self {
+            NumberedDb::Protocols => (21, ""),
+            NumberedDb::Rpc => (15, if n.aliases.is_empty() { "" } else { " " }),
+        };
+        entry_line(&n.name, width, format!(" {}{gap}", n.number).as_bytes(), &n.aliases)
     }
-    out.push(b'\n');
-    out
 }
 
 // ---- networks ----
@@ -193,23 +172,12 @@ pub fn parse_network(line: &[u8]) -> Option<Network> {
 }
 
 pub fn read_networks() -> Result<Vec<Network>, Errno> {
-    Ok(read_db_lines(b"/etc/networks", b"#")?
-        .iter()
-        .filter_map(|l| parse_network(l))
-        .collect())
+    read_records(b"/etc/networks", b"#", parse_network)
 }
 
 pub fn format_network(n: &Network) -> Vec<u8> {
-    let mut out = n.name.clone();
-    pad_to(&mut out, 21);
-    out.push(b' ');
-    out.extend_from_slice(ntop4(&n.net.to_be_bytes()).as_bytes());
-    for a in &n.aliases {
-        out.push(b' ');
-        out.extend_from_slice(a);
-    }
-    out.push(b'\n');
-    out
+    let middle = format!(" {}", ntop4(&n.net.to_be_bytes()));
+    entry_line(&n.name, 21, middle.as_bytes(), &n.aliases)
 }
 
 // ---- ethers ----
@@ -240,10 +208,7 @@ pub fn parse_ether(line: &[u8]) -> Option<Ether> {
 }
 
 pub fn read_ethers() -> Result<Vec<Ether>, Errno> {
-    Ok(read_db_lines(b"/etc/ethers", b"#")?
-        .iter()
-        .filter_map(|l| parse_ether(l))
-        .collect())
+    read_records(b"/etc/ethers", b"#", parse_ether)
 }
 
 /// `printf ("%s %s\n", ether_ntoa (ethp), name)`.
@@ -334,10 +299,7 @@ fn parse_addr(af: Af, text: &[u8]) -> Option<Vec<u8>> {
 
 /// As linhas legíveis de `/etc/hosts` no formato pedido.
 pub fn read_hosts(af: Af, v4mapped: bool) -> Result<Vec<HostLine>, Errno> {
-    Ok(read_db_lines(b"/etc/hosts", b"#")?
-        .iter()
-        .filter_map(|l| parse_host(l, af, v4mapped))
-        .collect())
+    read_records(b"/etc/hosts", b"#", |l| parse_host(l, af, v4mapped))
 }
 
 /// O `HostLine` casa o nome (principal ou alias), sem diferenciar maiúsculas.
@@ -354,23 +316,24 @@ pub struct Host {
     pub addrs: Vec<Vec<u8>>,
 }
 
+impl From<HostLine> for Host {
+    fn from(h: HostLine) -> Host {
+        Host {
+            name: h.name,
+            aliases: h.aliases,
+            addrs: vec![h.addr],
+        }
+    }
+}
+
 /// `print_hosts`: uma linha por endereço, `%-15s nome alias...`.
 pub fn format_host(h: &Host) -> Vec<u8> {
-    let mut out = Vec::new();
-    for a in &h.addrs {
-        let ip = format_ip(a);
-        let mut line = ip.into_bytes();
-        pad_to(&mut line, 15);
-        line.push(b' ');
-        line.extend_from_slice(&h.name);
-        for al in &h.aliases {
-            line.push(b' ');
-            line.extend_from_slice(al);
-        }
-        line.push(b'\n');
-        out.extend_from_slice(&line);
-    }
-    out
+    let mut middle = vec![b' '];
+    middle.extend_from_slice(&h.name);
+    h.addrs
+        .iter()
+        .flat_map(|a| entry_line(format_ip(a).as_bytes(), 15, &middle, &h.aliases))
+        .collect()
 }
 
 /// `inet_ntop` pelo tamanho do endereço.
@@ -391,14 +354,9 @@ pub fn host_conf_multi() -> bool {
     let mut multi = false;
     if let Ok(data) = sys::read_file(&name) {
         for raw in data.split(|b| *b == b'\n') {
-            let mut i = 0;
-            while i < raw.len() && is_space(raw[i]) {
-                i += 1;
-            }
-            let line = &raw[i..];
-            if line.is_empty() || line[0] == b'#' {
+            let Some(line) = useful_line(raw) else {
                 continue;
-            }
+            };
             let mut j = 0;
             while j < line.len() && !is_space(line[j]) && line[j] != b'#' && line[j] != b',' {
                 j += 1;
@@ -406,51 +364,54 @@ pub fn host_conf_multi() -> bool {
             if !line[..j].eq_ignore_ascii_case(b"multi") {
                 continue;
             }
-            let mut k = j;
-            while k < line.len() && is_space(line[k]) {
-                k += 1;
-            }
-            let arg = &line[k..];
-            if arg.len() >= 2 && arg[..2].eq_ignore_ascii_case(b"on") {
-                multi = true;
-            } else if arg.len() >= 3 && arg[..3].eq_ignore_ascii_case(b"off") {
-                multi = false;
-            }
+            let arg = &line[j..];
+            let start = arg.iter().position(|b| !is_space(*b)).unwrap_or(arg.len());
+            multi = on_off(&arg[start..]).unwrap_or(multi);
         }
     }
-    if let Some(v) = sys::getenv("RESOLV_MULTI") {
-        if v.len() >= 2 && v[..2].eq_ignore_ascii_case(b"on") {
-            multi = true;
-        } else if v.len() >= 3 && v[..3].eq_ignore_ascii_case(b"off") {
-            multi = false;
-        }
+    match sys::getenv("RESOLV_MULTI") {
+        Some(v) => on_off(&v).unwrap_or(multi),
+        None => multi,
     }
-    multi
+}
+
+/// O argumento booleano do `host.conf` e do `RESOLV_MULTI`: começa com `on` ou com `off`, sem
+/// diferenciar maiúsculas; o resto não muda nada.
+fn on_off(arg: &[u8]) -> Option<bool> {
+    let starts = |word: &[u8]| arg.len() >= word.len() && arg[..word.len()].eq_ignore_ascii_case(word);
+    if starts(b"on") {
+        Some(true)
+    } else if starts(b"off") {
+        Some(false)
+    } else {
+        None
+    }
+}
+
+/// As linhas de `/etc/hosts` da família, ou a fonte indisponível.
+fn hosts_or_unavail(af: Af, v4mapped: bool) -> Result<Vec<HostLine>, (super::nss::Status, Option<Host>)> {
+    read_hosts(af, v4mapped).map_err(|_| (super::nss::Status::Unavail, None))
 }
 
 /// `_nss_files_gethostbyname3_r`: o primeiro registro que casa e, com `multi`, os endereços e
 /// aliases dos demais (`gethostbyname3_multi`).
 pub fn files_host_by_name(name: &[u8], af: Af, multi: bool) -> (super::nss::Status, Option<Host>) {
     use super::nss::Status;
-    let lines = match read_hosts(af, false) {
+    let lines = match hosts_or_unavail(af, false) {
         Ok(l) => l,
-        Err(_) => return (Status::Unavail, None),
+        Err(e) => return e,
     };
     let mut iter = lines.into_iter().filter(|h| host_matches(h, name));
     let Some(first) = iter.next() else {
         return (Status::NotFound, None);
     };
-    let mut host = Host {
-        name: first.name.clone(),
-        aliases: first.aliases.clone(),
-        addrs: vec![first.addr.clone()],
-    };
+    let mut host = Host::from(first);
     if multi {
         for other in iter {
-            host.addrs.push(other.addr.clone());
-            host.aliases.extend(other.aliases.iter().cloned());
+            host.addrs.push(other.addr);
+            host.aliases.extend(other.aliases);
             if other.name != host.name {
-                host.aliases.push(other.name.clone());
+                host.aliases.push(other.name);
             }
         }
     }
@@ -466,23 +427,14 @@ pub fn files_host_by_addr(addr: &[u8]) -> (super::nss::Status, Option<Host>) {
     } else {
         (Af::Inet, false)
     };
-    let lines = match read_hosts(af, mapped) {
+    let lines = match hosts_or_unavail(af, mapped) {
         Ok(l) => l,
-        Err(_) => return (Status::Unavail, None),
+        Err(e) => return e,
     };
-    for h in lines {
-        if h.addr.len() == addr.len() && h.addr == addr {
-            return (
-                Status::Success,
-                Some(Host {
-                    name: h.name,
-                    aliases: h.aliases,
-                    addrs: vec![h.addr],
-                }),
-            );
-        }
+    match lines.into_iter().find(|h| h.addr == addr) {
+        Some(h) => (Status::Success, Some(Host::from(h))),
+        None => (Status::NotFound, None),
     }
-    (Status::NotFound, None)
 }
 
 // ---- aliases ----
@@ -852,14 +804,14 @@ mod tests {
         let s = parse_service(b"x 0x50//udp a b").unwrap();
         assert_eq!((s.port, s.proto.as_slice()), (0x50, &b"udp"[..]));
         assert!(parse_service(b"ssh").is_none());
-        let p = parse_protocol(b"tcp 6 TCP").unwrap();
+        let p = parse_numbered(b"tcp 6 TCP").unwrap();
         assert_eq!(
-            format_protocol(&p),
+            NumberedDb::Protocols.format(&p),
             b"tcp                   6 TCP\n".to_vec()
         );
-        let r = parse_rpc(b"portmapper 100000 portmap sunrpc").unwrap();
+        let r = parse_numbered(b"portmapper 100000 portmap sunrpc").unwrap();
         assert_eq!(
-            format_rpc(&r),
+            NumberedDb::Rpc.format(&r),
             b"portmapper      100000  portmap sunrpc\n".to_vec()
         );
     }

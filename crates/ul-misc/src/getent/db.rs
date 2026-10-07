@@ -217,14 +217,9 @@ pub fn read_db_lines(path: &[u8], eol_set: &[u8]) -> Result<Vec<Vec<u8>>, Errno>
             Some(p) => &raw[..p],
             None => raw,
         };
-        let mut i = 0;
-        while i < line.len() && is_space(line[i]) {
-            i += 1;
-        }
-        let line = &line[i..];
-        if line.is_empty() || line[0] == b'#' {
+        let Some(line) = useful_line(line) else {
             continue;
-        }
+        };
         let cut = line
             .iter()
             .position(|b| eol_set.contains(b))
@@ -232,6 +227,29 @@ pub fn read_db_lines(path: &[u8], eol_set: &[u8]) -> Result<Vec<Vec<u8>>, Errno>
         out.push(line[..cut].to_vec());
     }
     Ok(out)
+}
+
+/// A linha sem os brancos iniciais, ou `None` se o que sobra é vazio ou comentário.
+pub fn useful_line(line: &[u8]) -> Option<&[u8]> {
+    let start = line
+        .iter()
+        .position(|b| !is_space(*b))
+        .unwrap_or(line.len());
+    let line = &line[start..];
+    (!line.is_empty() && line[0] != b'#').then_some(line)
+}
+
+/// Lê e interpreta um arquivo de banco: cada linha útil passa por `parse`, e a que ele recusa é
+/// pulada em silêncio. Arquivo ilegível = fonte indisponível.
+pub fn read_records<T>(
+    path: &[u8],
+    eol_set: &[u8],
+    parse: impl Fn(&[u8]) -> Option<T>,
+) -> Result<Vec<T>, Errno> {
+    Ok(read_db_lines(path, eol_set)?
+        .iter()
+        .filter_map(|l| parse(l))
+        .collect())
 }
 
 /// `struct passwd`; os campos `None` são os ponteiros NULL das entradas especiais `+`/`-`.

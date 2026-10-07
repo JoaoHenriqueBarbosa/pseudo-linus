@@ -27,16 +27,15 @@ use crate::util::io;
 use crate::util::{Getopt, HasArg, LongOpt};
 
 use self::db::{
-    GShadow, Group, Passwd, Shadow, format_group, format_gshadow, format_passwd, format_shadow,
-    parse_group, parse_gshadow, parse_passwd, parse_shadow, read_db_lines, strtoull,
+    format_group, format_gshadow, format_passwd, format_shadow, parse_group, parse_gshadow,
+    parse_passwd, parse_shadow, read_records, strtoull,
 };
-use self::inet::{inet_aton, ntop4, ntop6, pton4, pton6};
+use self::inet::{inet_aton, pton4, pton6};
 use self::netdb::{
-    Af, Alias, Host, NetItem, Network, Protocol, Rpc, Service, alias_by_name, files_host_by_addr,
-    files_host_by_name, format_alias, format_ether, format_host, format_network, format_protocol,
-    format_rpc, format_service, host_conf_multi, load_netgroup, map_v4, pad_to,
-    parse_netgroup_items, read_aliases, read_ethers, read_hosts, read_networks, read_protocols,
-    read_rpc, read_services,
+    Af, Host, NetItem, NumberedDb, alias_by_name, files_host_by_addr, files_host_by_name,
+    format_alias, format_ether, format_host, format_network, format_service, host_conf_multi,
+    load_netgroup, map_v4, named, pad_to, format_ip, parse_netgroup_items, read_aliases, read_ethers,
+    read_hosts, read_networks, read_services,
 };
 use self::nss::{NssConf, Status};
 
@@ -178,17 +177,25 @@ fn run(args: &[OsString]) -> i32 {
         b"ahostsv6" => ahosts_keys(&env, out, Af::Inet6, keys),
         b"aliases" => aliases_keys(&env, out, keys),
         b"ethers" => ethers_keys(&env, out, keys),
-        b"group" => group_keys(&env, out, keys),
-        b"gshadow" => gshadow_keys(&env, out, keys),
+        b"group" => accounts(&env, "group", out, keys, parse_group, format_group, |g| {
+            (&g.name, Some(g.gid))
+        }),
+        b"gshadow" => accounts(&env, "gshadow", out, keys, parse_gshadow, format_gshadow, |g| {
+            (&g.name, None)
+        }),
         b"hosts" => hosts_keys(&env, out, keys),
         b"initgroups" => initgroups_keys(&env, out, keys),
         b"netgroup" => netgroup_keys(&env, out, keys),
         b"networks" => networks_keys(&env, out, keys),
-        b"passwd" => passwd_keys(&env, out, keys),
-        b"protocols" => protocols_keys(&env, out, keys),
-        b"rpc" => rpc_keys(&env, out, keys),
+        b"passwd" => accounts(&env, "passwd", out, keys, parse_passwd, format_passwd, |p| {
+            (&p.name, Some(p.uid))
+        }),
+        b"protocols" => numbered_keys(&env, out, keys, NumberedDb::Protocols),
+        b"rpc" => numbered_keys(&env, out, keys, NumberedDb::Rpc),
         b"services" => services_keys(&env, out, keys),
-        b"shadow" => shadow_keys(&env, out, keys),
+        b"shadow" => accounts(&env, "shadow", out, keys, parse_shadow, format_shadow, |s| {
+            (&s.name, None)
+        }),
         other => {
             io::eprint(format!("Unknown database: {}\n", io::lossy(other)));
             let _ = out.write_all(see.as_bytes());
@@ -222,18 +229,6 @@ fn configure_service(conf: &mut NssConf, arg: &[u8], argv0: &str) -> Result<(), 
 }
 
 // ---- utilitários comuns ----
-
-/// Lê e interpreta um arquivo de banco. Arquivo ilegível = fonte indisponível.
-fn read_records<T>(
-    path: &[u8],
-    eol: &[u8],
-    parse: fn(&[u8]) -> Option<T>,
-) -> Result<Vec<T>, Errno> {
-    Ok(read_db_lines(path, eol)?
-        .iter()
-        .filter_map(|l| parse(l))
-        .collect())
-}
 
 /// Consulta pontual num arquivo: o primeiro registro que satisfaz `pred`.
 fn find_in<T>(records: Result<Vec<T>, Errno>, pred: impl Fn(&T) -> bool) -> (Status, Option<T>) {
@@ -296,124 +291,103 @@ fn first_digit(key: &[u8]) -> bool {
     key.first().is_some_and(|b| b.is_ascii_digit())
 }
 
-// ---- passwd ----
+// ---- o laço de todos os bancos ----
 
-fn passwd_keys(env: &Env, out: &mut dyn Write, keys: &[Vec<u8>]) -> i32 {
+/// O laço de todo banco do getent: sem chave, `list` imprime a enumeração ou devolve `false` quando
+/// o banco não a suporta (e o getent sai com 3); com chaves, cada uma passa por `find`, o achado sai
+/// por `show` e a chave sem resposta faz o código de saída ser 2.
+fn run_db<T>(
+    db: &str,
+    out: &mut dyn Write,
+    keys: &[Vec<u8>],
+    list: impl FnOnce(&mut dyn Write) -> bool,
+    mut find: impl FnMut(&[u8]) -> Option<T>,
+    show: impl Fn(&mut dyn Write, &T),
+) -> i32 {
     if keys.is_empty() {
-        let all: Vec<Passwd> = env.conf.enumerate("passwd", |_| {
-            all_in(read_records(b"/etc/passwd", b"", parse_passwd))
-        });
-        for p in &all {
-            print_entry(out, format_passwd(p), "passwd");
+        if list(out) {
+            return 0;
         }
-        return 0;
+        io::eprint(format!("Enumeration not supported on {db}\n"));
+        return 3;
     }
     let mut result = 0;
     for key in keys {
-        let found = match numeric_id(key) {
-            Some(uid) => env.conf.lookup("passwd", |_| {
-                find_in(read_records(b"/etc/passwd", b"", parse_passwd), |p| {
-                    p.uid == uid && !is_nis_name(&p.name)
-                })
-            }),
-            None => env.conf.lookup("passwd", |_| {
-                find_in(read_records(b"/etc/passwd", b"", parse_passwd), |p| {
-                    !is_nis_name(key) && p.name == *key
-                })
-            }),
-        };
-        match found {
-            Some(p) => print_entry(out, format_passwd(&p), "passwd"),
+        match find(key) {
+            Some(found) => show(out, &found),
             None => result = 2,
         }
     }
     result
 }
 
-// ---- group ----
-
-fn group_keys(env: &Env, out: &mut dyn Write, keys: &[Vec<u8>]) -> i32 {
-    if keys.is_empty() {
-        let all: Vec<Group> = env.conf.enumerate("group", |_| {
-            all_in(read_records(b"/etc/group", b"", parse_group))
-        });
-        for g in &all {
-            print_entry(out, format_group(g), "group");
-        }
-        return 0;
-    }
-    let mut result = 0;
-    for key in keys {
-        let found = match numeric_id(key) {
-            Some(gid) => env.conf.lookup("group", |_| {
-                find_in(read_records(b"/etc/group", b"", parse_group), |g| {
-                    g.gid == gid && !is_nis_name(&g.name)
-                })
-            }),
-            None => env.conf.lookup("group", |_| {
-                find_in(read_records(b"/etc/group", b"", parse_group), |g| {
-                    !is_nis_name(key) && g.name == *key
-                })
-            }),
-        };
-        match found {
-            Some(g) => print_entry(out, format_group(&g), "group"),
-            None => result = 2,
-        }
-    }
-    result
+/// A enumeração dos bancos que o getent não sabe percorrer.
+fn no_listing(_: &mut dyn Write) -> bool {
+    false
 }
 
-// ---- shadow e gshadow ----
-
-fn shadow_keys(env: &Env, out: &mut dyn Write, keys: &[Vec<u8>]) -> i32 {
-    if keys.is_empty() {
-        let all: Vec<Shadow> = env.conf.enumerate("shadow", |_| {
-            all_in(read_records(b"/etc/shadow", b"", parse_shadow))
-        });
-        for s in &all {
-            print_entry(out, format_shadow(s), "shadow");
+/// A enumeração de um banco de arquivo pelas fontes do NSS, impressa por `show`.
+fn listing<'a, T>(
+    env: &'a Env,
+    db: &'a str,
+    read: impl Fn() -> Result<Vec<T>, Errno> + 'a,
+    show: impl Fn(&mut dyn Write, &T) + 'a,
+) -> impl FnOnce(&mut dyn Write) -> bool + 'a {
+    move |out| {
+        for record in &env.conf.enumerate(db, |_| all_in(read())) {
+            show(out, record);
         }
-        return 0;
+        true
     }
-    let mut result = 0;
-    for key in keys {
-        let found = env.conf.lookup("shadow", |_| {
-            find_in(read_records(b"/etc/shadow", b"", parse_shadow), |s| {
-                !is_nis_name(key) && s.name == *key
-            })
-        });
-        match found {
-            Some(s) => print_entry(out, format_shadow(&s), "shadow"),
-            None => result = 2,
-        }
-    }
-    result
 }
 
-fn gshadow_keys(env: &Env, out: &mut dyn Write, keys: &[Vec<u8>]) -> i32 {
-    if keys.is_empty() {
-        let all: Vec<GShadow> = env.conf.enumerate("gshadow", |_| {
-            all_in(read_records(b"/etc/gshadow", b"", parse_gshadow))
-        });
-        for g in &all {
-            print_entry(out, format_gshadow(g), "gshadow");
-        }
-        return 0;
-    }
-    let mut result = 0;
-    for key in keys {
-        let found = env.conf.lookup("gshadow", |_| {
-            find_in(read_records(b"/etc/gshadow", b"", parse_gshadow), |g| {
-                !is_nis_name(key) && g.name == *key
-            })
-        });
-        match found {
-            Some(g) => print_entry(out, format_gshadow(&g), "gshadow"),
-            None => result = 2,
-        }
-    }
-    result
+/// Um banco de arquivo que se enumera inteiro pelas fontes do NSS: `read` lê os registros,
+/// `matches` decide se um registro responde à chave e `show` o imprime.
+fn files_db<T>(
+    env: &Env,
+    db: &str,
+    out: &mut dyn Write,
+    keys: &[Vec<u8>],
+    read: impl Fn() -> Result<Vec<T>, Errno>,
+    matches: impl Fn(&[u8], &T) -> bool,
+    show: impl Fn(&mut dyn Write, &T),
+) -> i32 {
+    let find = |key: &[u8]| env.conf.lookup(db, |_| find_in(read(), |r| matches(key, r)));
+    run_db(db, out, keys, listing(env, db, &read, &show), find, &show)
+}
+
+// ---- passwd, group, shadow e gshadow ----
+
+/// O nome de uma conta e, em passwd e group, o número que a chave numérica procura.
+type AccountKey<T> = for<'a> fn(&'a T) -> (&'a [u8], Option<u32>);
+
+/// Um banco de contas (`/etc/<db>`): chave numérica procura o uid/gid, as demais o nome, e entradas
+/// NIS (`+`/`-`) nunca respondem; a entrada que o `putXXent` recusa vira aviso, como no getent.
+fn accounts<T>(
+    env: &Env,
+    db: &str,
+    out: &mut dyn Write,
+    keys: &[Vec<u8>],
+    parse: fn(&[u8]) -> Option<T>,
+    format: fn(&T) -> Result<Vec<u8>, ()>,
+    account_key: AccountKey<T>,
+) -> i32 {
+    let path = format!("/etc/{db}");
+    files_db(
+        env,
+        db,
+        out,
+        keys,
+        || read_records(path.as_bytes(), b"", parse),
+        |key, record| {
+            let (name, id) = account_key(record);
+            match (numeric_id(key), id) {
+                (Some(wanted), Some(id)) => id == wanted && !is_nis_name(name),
+                _ => !is_nis_name(key) && name == key,
+            }
+        },
+        |out, record| print_entry(out, format(record), db),
+    )
 }
 
 // ---- initgroups ----
@@ -468,12 +442,8 @@ fn get_group_list(env: &Env, user: &[u8]) -> Vec<u32> {
 }
 
 fn initgroups_keys(env: &Env, out: &mut dyn Write, keys: &[Vec<u8>]) -> i32 {
-    if keys.is_empty() {
-        io::eprint("Enumeration not supported on initgroups\n");
-        return 3;
-    }
-    for key in keys {
-        let mut line = key.clone();
+    let find = |key: &[u8]| {
+        let mut line = key.to_vec();
         pad_to(&mut line, 21);
         for gid in get_group_list(env, key) {
             if gid != u32::MAX {
@@ -481,195 +451,96 @@ fn initgroups_keys(env: &Env, out: &mut dyn Write, keys: &[Vec<u8>]) -> i32 {
             }
         }
         line.push(b'\n');
-        write_bytes(out, &line);
-    }
-    0
+        Some(line)
+    };
+    run_db("initgroups", out, keys, no_listing, find, show_line)
+}
+
+/// O `show` dos bancos que já entregam a linha pronta.
+fn show_line(out: &mut dyn Write, line: &Vec<u8>) {
+    write_bytes(out, line);
 }
 
 // ---- services ----
 
 fn services_keys(env: &Env, out: &mut dyn Write, keys: &[Vec<u8>]) -> i32 {
-    if keys.is_empty() {
-        let all: Vec<Service> = env.conf.enumerate("services", |_| all_in(read_services()));
-        for s in &all {
-            write_bytes(out, &format_service(s));
-        }
-        return 0;
-    }
-    let mut result = 0;
-    for key in keys {
+    let matches = |key: &[u8], s: &netdb::Service| {
         let (name, proto): (&[u8], Option<&[u8]>) = match key.iter().position(|b| *b == b'/') {
             Some(p) => (&key[..p], Some(&key[p + 1..])),
-            None => (&key[..], None),
+            None => (key, None),
         };
-        let (port, end) = strtoull(name, 0, 10);
-        let by_port = first_digit(name) && end == name.len() && port <= 65535;
-        let found = env.conf.lookup("services", |_| {
-            find_in(read_services(), |s| {
-                if proto.is_some_and(|p| s.proto != p) {
-                    return false;
-                }
-                if by_port {
-                    s.port == port as u16
-                } else {
-                    s.name == name || s.aliases.iter().any(|a| a == name)
-                }
-            })
-        });
-        match found {
-            Some(s) => write_bytes(out, &format_service(&s)),
-            None => result = 2,
+        if proto.is_some_and(|p| s.proto != p) {
+            return false;
         }
-    }
-    result
+        let (port, end) = strtoull(name, 0, 10);
+        if first_digit(name) && end == name.len() && port <= 65535 {
+            s.port == port as u16
+        } else {
+            named(&s.name, &s.aliases, name)
+        }
+    };
+    let show = |out: &mut dyn Write, s: &netdb::Service| write_bytes(out, &format_service(s));
+    files_db(env, "services", out, keys, read_services, matches, show)
 }
 
 // ---- protocols e rpc ----
 
-fn protocols_keys(env: &Env, out: &mut dyn Write, keys: &[Vec<u8>]) -> i32 {
-    if keys.is_empty() {
-        let all: Vec<Protocol> = env
-            .conf
-            .enumerate("protocols", |_| all_in(read_protocols()));
-        for p in &all {
-            write_bytes(out, &format_protocol(p));
-        }
-        return 0;
-    }
-    let mut result = 0;
-    for key in keys {
-        let found = if first_digit(key) {
-            let n = atol_int(key);
-            env.conf.lookup("protocols", |_| {
-                find_in(read_protocols(), |p| p.number == n)
-            })
+/// Chave que começa com dígito procura o número (`atol` guardado em `int`); as demais, o nome ou
+/// um alias.
+fn numbered_keys(env: &Env, out: &mut dyn Write, keys: &[Vec<u8>], db: NumberedDb) -> i32 {
+    let matches = |key: &[u8], n: &netdb::Numbered| {
+        if first_digit(key) {
+            n.number == atol_int(key)
         } else {
-            env.conf.lookup("protocols", |_| {
-                find_in(read_protocols(), |p| {
-                    p.name == *key || p.aliases.iter().any(|a| a == key)
-                })
-            })
-        };
-        match found {
-            Some(p) => write_bytes(out, &format_protocol(&p)),
-            None => result = 2,
+            named(&n.name, &n.aliases, key)
         }
-    }
-    result
-}
-
-fn rpc_keys(env: &Env, out: &mut dyn Write, keys: &[Vec<u8>]) -> i32 {
-    if keys.is_empty() {
-        let all: Vec<Rpc> = env.conf.enumerate("rpc", |_| all_in(read_rpc()));
-        for r in &all {
-            write_bytes(out, &format_rpc(r));
-        }
-        return 0;
-    }
-    let mut result = 0;
-    for key in keys {
-        let found = if first_digit(key) {
-            let n = atol_int(key);
-            env.conf
-                .lookup("rpc", |_| find_in(read_rpc(), |r| r.number == n))
-        } else {
-            env.conf.lookup("rpc", |_| {
-                find_in(read_rpc(), |r| {
-                    r.name == *key || r.aliases.iter().any(|a| a == key)
-                })
-            })
-        };
-        match found {
-            Some(r) => write_bytes(out, &format_rpc(&r)),
-            None => result = 2,
-        }
-    }
-    result
+    };
+    let show = |out: &mut dyn Write, n: &netdb::Numbered| write_bytes(out, &db.format(n));
+    files_db(env, db.name(), out, keys, || db.read(), matches, show)
 }
 
 // ---- networks ----
 
 fn networks_keys(env: &Env, out: &mut dyn Write, keys: &[Vec<u8>]) -> i32 {
-    if keys.is_empty() {
-        let all: Vec<Network> = env.conf.enumerate("networks", |_| all_in(read_networks()));
-        for n in &all {
-            write_bytes(out, &format_network(n));
-        }
-        return 0;
-    }
-    let mut result = 0;
-    for key in keys {
-        let found = if first_digit(key) {
+    let matches = |key: &[u8], n: &netdb::Network| {
+        if first_digit(key) {
             // `getnetbyaddr (ntohl (inet_addr (key)), AF_UNSPEC)`; inet_addr falha com 0xffffffff.
-            let net = inet_aton(key, false).unwrap_or(0xffff_ffff);
-            env.conf
-                .lookup("networks", |_| find_in(read_networks(), |n| n.net == net))
+            n.net == inet_aton(key, false).unwrap_or(0xffff_ffff)
         } else {
-            env.conf.lookup("networks", |_| {
-                find_in(read_networks(), |n| {
-                    n.name.eq_ignore_ascii_case(key)
-                        || n.aliases.iter().any(|a| a.eq_ignore_ascii_case(key))
-                })
-            })
-        };
-        match found {
-            Some(n) => write_bytes(out, &format_network(&n)),
-            None => result = 2,
+            n.name.eq_ignore_ascii_case(key) || n.aliases.iter().any(|a| a.eq_ignore_ascii_case(key))
         }
-    }
-    result
+    };
+    let show = |out: &mut dyn Write, n: &netdb::Network| write_bytes(out, &format_network(n));
+    files_db(env, "networks", out, keys, read_networks, matches, show)
 }
 
 // ---- ethers ----
 
 fn ethers_keys(env: &Env, out: &mut dyn Write, keys: &[Vec<u8>]) -> i32 {
-    if keys.is_empty() {
-        io::eprint("Enumeration not supported on ethers\n");
-        return 3;
-    }
-    let mut result = 0;
-    for key in keys {
-        if let Some(addr) = inet::ether_aton(key) {
-            // `ether_ntohost`: o nome vem do arquivo.
-            let found = env
-                .conf
-                .lookup("ethers", |_| find_in(read_ethers(), |e| e.addr == addr));
-            match found {
-                Some(e) => write_bytes(out, &format_ether(&addr, &e.name)),
-                None => result = 2,
-            }
-        } else {
-            // `ether_hostton`: o nome impresso é a própria chave.
-            let found = env.conf.lookup("ethers", |_| {
-                find_in(read_ethers(), |e| e.name.eq_ignore_ascii_case(key))
-            });
-            match found {
-                Some(e) => write_bytes(out, &format_ether(&e.addr, key)),
-                None => result = 2,
-            }
-        }
-    }
-    result
+    let find = |key: &[u8]| match inet::ether_aton(key) {
+        // `ether_ntohost`: o nome vem do arquivo.
+        Some(addr) => env
+            .conf
+            .lookup("ethers", |_| find_in(read_ethers(), |e| e.addr == addr)),
+        // `ether_hostton`: o nome impresso é a própria chave.
+        None => env
+            .conf
+            .lookup("ethers", |_| find_in(read_ethers(), |e| e.name.eq_ignore_ascii_case(key)))
+            .map(|e| netdb::Ether {
+                name: key.to_vec(),
+                ..e
+            }),
+    };
+    let show = |out: &mut dyn Write, e: &netdb::Ether| write_bytes(out, &format_ether(&e.addr, &e.name));
+    run_db("ethers", out, keys, no_listing, find, show)
 }
 
 // ---- aliases ----
 
 fn aliases_keys(env: &Env, out: &mut dyn Write, keys: &[Vec<u8>]) -> i32 {
-    if keys.is_empty() {
-        let all: Vec<Alias> = env.conf.enumerate("aliases", |_| all_in(read_aliases()));
-        for a in &all {
-            write_bytes(out, &format_alias(a));
-        }
-        return 0;
-    }
-    let mut result = 0;
-    for key in keys {
-        match env.conf.lookup("aliases", |_| alias_by_name(key)) {
-            Some(a) => write_bytes(out, &format_alias(&a)),
-            None => result = 2,
-        }
-    }
-    result
+    let show = |out: &mut dyn Write, a: &netdb::Alias| write_bytes(out, &format_alias(a));
+    let find = |key: &[u8]| env.conf.lookup("aliases", |_| alias_by_name(key));
+    run_db("aliases", out, keys, listing(env, "aliases", read_aliases, show), find, show)
 }
 
 // ---- netgroup ----
@@ -722,27 +593,20 @@ fn netgroup_keys(env: &Env, out: &mut dyn Write, keys: &[Vec<u8>]) -> i32 {
         let (host, user, domain) = (wild(&keys[1]), wild(&keys[2]), wild(&keys[3]));
         let matched = match netgroup_triples(env, &keys[0]) {
             Some(ts) => ts.iter().any(|(h, u, d)| {
-                let ci = |a: &Option<Vec<u8>>, b: &Option<Vec<u8>>| match (a, b) {
-                    (Some(x), Some(y)) => x.eq_ignore_ascii_case(y),
-                    _ => true,
-                };
-                let cs = |a: &Option<Vec<u8>>, b: &Option<Vec<u8>>| match (a, b) {
+                // Campo que falta casa com tudo; host e domínio sem diferenciar maiúsculas.
+                let same = |a: &Option<Vec<u8>>, b: &Option<Vec<u8>>, fold: bool| match (a, b) {
+                    (Some(x), Some(y)) if fold => x.eq_ignore_ascii_case(y),
                     (Some(x), Some(y)) => x == y,
                     _ => true,
                 };
-                ci(h, &host) && cs(u, &user) && ci(d, &domain)
+                same(h, &host, true) && same(u, &user, false) && same(d, &domain, true)
             }),
             None => false,
         };
         let mut line = keys[0].clone();
         pad_to(&mut line, 21);
-        line.extend_from_slice(b" (");
-        line.extend_from_slice(host.as_deref().unwrap_or(b""));
-        line.push(b',');
-        line.extend_from_slice(user.as_deref().unwrap_or(b""));
-        line.push(b',');
-        line.extend_from_slice(domain.as_deref().unwrap_or(b""));
-        line.extend_from_slice(format!(") = {}\n", i32::from(matched)).as_bytes());
+        push_triple(&mut line, &host, &user, &domain, b"");
+        line.extend_from_slice(format!(" = {}\n", i32::from(matched)).as_bytes());
         write_bytes(out, &line);
     } else if keys.len() == 1 {
         match netgroup_triples(env, &keys[0]) {
@@ -751,13 +615,7 @@ fn netgroup_keys(env: &Env, out: &mut dyn Write, keys: &[Vec<u8>]) -> i32 {
                 let mut line = keys[0].clone();
                 pad_to(&mut line, 21);
                 for (h, u, d) in ts {
-                    line.extend_from_slice(b" (");
-                    line.extend_from_slice(h.as_deref().unwrap_or(b" "));
-                    line.push(b',');
-                    line.extend_from_slice(u.as_deref().unwrap_or(b""));
-                    line.push(b',');
-                    line.extend_from_slice(d.as_deref().unwrap_or(b""));
-                    line.push(b')');
+                    push_triple(&mut line, &h, &u, &d, b" ");
                 }
                 line.push(b'\n');
                 write_bytes(out, &line);
@@ -765,6 +623,23 @@ fn netgroup_keys(env: &Env, out: &mut dyn Write, keys: &[Vec<u8>]) -> i32 {
         }
     }
     result
+}
+
+/// ` (host,usuário,domínio)`, com `no_host` no lugar do host que falta.
+fn push_triple(
+    line: &mut Vec<u8>,
+    host: &Option<Vec<u8>>,
+    user: &Option<Vec<u8>>,
+    domain: &Option<Vec<u8>>,
+    no_host: &[u8],
+) {
+    line.extend_from_slice(b" (");
+    line.extend_from_slice(host.as_deref().unwrap_or(no_host));
+    line.push(b',');
+    line.extend_from_slice(user.as_deref().unwrap_or(b""));
+    line.push(b',');
+    line.extend_from_slice(domain.as_deref().unwrap_or(b""));
+    line.push(b')');
 }
 
 // ---- hosts ----
@@ -833,47 +708,28 @@ fn gethostbyaddr(env: &Env, addr: &[u8]) -> Option<Host> {
     env.conf.lookup("hosts", |_| files_host_by_addr(addr))
 }
 
-/// As linhas de `/etc/hosts` como o `gethostent` as entrega (família IPv4).
-fn hosts_enumeration(env: &Env) -> Vec<Host> {
-    env.conf
-        .enumerate("hosts", |_| match read_hosts(Af::Inet, false) {
-            Ok(lines) => (
-                Status::Success,
-                lines
-                    .into_iter()
-                    .map(|h| Host {
-                        name: h.name,
-                        aliases: h.aliases,
-                        addrs: vec![h.addr],
-                    })
-                    .collect(),
-            ),
-            Err(_) => (Status::Unavail, Vec::new()),
-        })
+/// As linhas de `/etc/hosts` como o `gethostent` as entrega (família IPv4), impressas como o
+/// `print_hosts`: a enumeração de `hosts` e de `ahosts*`.
+fn list_hosts(env: &Env) -> impl FnOnce(&mut dyn Write) -> bool + '_ {
+    let read = || Ok(read_hosts(Af::Inet, false)?.into_iter().map(Host::from).collect());
+    listing(env, "hosts", read, show_host)
+}
+
+fn show_host(out: &mut dyn Write, h: &Host) {
+    write_bytes(out, &format_host(h));
 }
 
 fn hosts_keys(env: &Env, out: &mut dyn Write, keys: &[Vec<u8>]) -> i32 {
-    if keys.is_empty() {
-        for h in hosts_enumeration(env) {
-            write_bytes(out, &format_host(&h));
-        }
-        return 0;
-    }
-    let mut result = 0;
-    for key in keys {
-        let host = if let Some(a) = pton6(key) {
+    let find = |key: &[u8]| {
+        if let Some(a) = pton6(key) {
             gethostbyaddr(env, &a)
         } else if let Some(a) = pton4(key) {
             gethostbyaddr(env, &a)
         } else {
             gethostbyname2(env, key, Af::Inet6).or_else(|| gethostbyname2(env, key, Af::Inet))
-        };
-        match host {
-            Some(h) => write_bytes(out, &format_host(&h)),
-            None => result = 2,
         }
-    }
-    result
+    };
+    run_db("hosts", out, keys, list_hosts(env), find, show_host)
 }
 
 // ---- ahosts (getaddrinfo) ----
@@ -884,6 +740,36 @@ struct AddrInfo {
     addr: Vec<u8>,
     scope: u32,
     canon: Option<Vec<u8>>,
+}
+
+impl AddrInfo {
+    fn plain(v6: bool, addr: Vec<u8>) -> AddrInfo {
+        AddrInfo {
+            v6,
+            addr,
+            scope: 0,
+            canon: None,
+        }
+    }
+
+    /// Um endereço numérico: a família sai do tamanho, e o nome canônico é a própria chave.
+    fn numeric(addr: Vec<u8>, scope: u32, key: &[u8]) -> AddrInfo {
+        AddrInfo {
+            scope,
+            canon: Some(key.to_vec()),
+            ..AddrInfo::plain(addr.len() == 16, addr)
+        }
+    }
+
+    /// Os endereços de um host, cada um passado por `convert`, com o nome do host como canônico do
+    /// primeiro.
+    fn of_host(h: &Host, v6: bool, convert: impl Fn(&Vec<u8>) -> Vec<u8>) -> Vec<AddrInfo> {
+        let mut list: Vec<AddrInfo> = h.addrs.iter().map(|a| AddrInfo::plain(v6, convert(a))).collect();
+        if let Some(first) = list.first_mut() {
+            first.canon = Some(h.name.clone());
+        }
+        list
+    }
 }
 
 /// A precedência de destino da tabela padrão do `getaddrinfo` (RFC 6724), para a ordenação.
@@ -953,20 +839,9 @@ fn getaddrinfo(env: &Env, key: &[u8], af: Af) -> Option<Vec<AddrInfo>> {
     }
     // IPv4 numérico (inclusive "10.1" e "0x7f.1"); com família IPv6 vira endereço IPv4 mapeado.
     if let Some(v) = inet_aton(key, true) {
-        if af == Af::Inet6 {
-            return Some(vec![AddrInfo {
-                v6: true,
-                addr: map_v4(&v.to_be_bytes()),
-                scope: 0,
-                canon: Some(key.to_vec()),
-            }]);
-        }
-        return Some(vec![AddrInfo {
-            v6: false,
-            addr: v.to_be_bytes().to_vec(),
-            scope: 0,
-            canon: Some(key.to_vec()),
-        }]);
+        let v4 = v.to_be_bytes();
+        let addr = if af == Af::Inet6 { map_v4(&v4) } else { v4.to_vec() };
+        return Some(vec![AddrInfo::numeric(addr, 0, key)]);
     }
     // IPv6 numérico, com `%escopo` opcional.
     if key.contains(&b':') {
@@ -992,12 +867,7 @@ fn getaddrinfo(env: &Env, key: &[u8], af: Af) -> Option<Vec<AddrInfo>> {
                     idx
                 }
             };
-            return Some(vec![AddrInfo {
-                v6: true,
-                addr: a.to_vec(),
-                scope: scope_id,
-                canon: Some(key.to_vec()),
-            }]);
+            return Some(vec![AddrInfo::numeric(a.to_vec(), scope_id, key)]);
         }
     }
     // Nome: /etc/hosts pelas fontes de `hosts`.
@@ -1007,81 +877,40 @@ fn getaddrinfo(env: &Env, key: &[u8], af: Af) -> Option<Vec<AddrInfo>> {
             Ok(l) => l,
             Err(_) => return (Status::Unavail, None),
         };
-        match af {
+        let list = match af {
             Af::Unspec => {
                 let mut matches = lines.iter().filter(|h| netdb::host_matches(h, key));
-                let Some(first) = matches.next() else {
-                    return (Status::NotFound, None);
-                };
-                let mut list = vec![AddrInfo {
-                    v6: first.af == Af::Inet6,
-                    addr: first.addr.clone(),
-                    scope: 0,
-                    canon: Some(first.name.clone()),
-                }];
-                if multi {
-                    for h in matches {
-                        list.push(AddrInfo {
-                            v6: h.af == Af::Inet6,
-                            addr: h.addr.clone(),
-                            scope: 0,
-                            canon: None,
-                        });
-                    }
-                }
-                (Status::Success, Some(list))
+                matches.next().map(|first| {
+                    let rest = if multi { matches.collect() } else { Vec::new() };
+                    let mut list: Vec<AddrInfo> = std::iter::once(first)
+                        .chain(rest)
+                        .map(|h| AddrInfo::plain(h.af == Af::Inet6, h.addr.clone()))
+                        .collect();
+                    list[0].canon = Some(first.name.clone());
+                    list
+                })
             }
             Af::Inet => match files_host_by_name(key, Af::Inet, multi) {
-                (Status::Success, Some(h)) => {
-                    let mut list: Vec<AddrInfo> = h
-                        .addrs
-                        .iter()
-                        .map(|a| AddrInfo {
-                            v6: false,
-                            addr: a.clone(),
-                            scope: 0,
-                            canon: None,
-                        })
-                        .collect();
-                    list[0].canon = Some(h.name.clone());
-                    (Status::Success, Some(list))
-                }
-                (st, _) => (st, None),
+                (Status::Success, Some(h)) => Some(AddrInfo::of_host(&h, false, |a| a.clone())),
+                (st, _) => return (st, None),
             },
-            Af::Inet6 => {
-                let (host, mapped) = match files_host_by_name(key, Af::Inet6, multi) {
-                    (Status::Success, Some(mut h)) => {
-                        // Com AI_V4MAPPED sem AI_ALL, os endereços mapeados que já vieram como IPv6 são
-                        // descartados (e então a busca IPv4 nem é tentada).
-                        h.addrs.retain(|a| !netdb::is_v4_mapped(a));
-                        (Some(h), false)
-                    }
-                    _ => match files_host_by_name(key, Af::Inet, multi) {
-                        (Status::Success, Some(h)) => (Some(h), true),
-                        _ => (None, false),
-                    },
-                };
-                match host {
-                    Some(h) if !h.addrs.is_empty() => {
-                        let mut list: Vec<AddrInfo> = h
-                            .addrs
-                            .iter()
-                            .map(|a| {
-                                let addr = if mapped { map_v4(a) } else { a.clone() };
-                                AddrInfo {
-                                    v6: true,
-                                    addr,
-                                    scope: 0,
-                                    canon: None,
-                                }
-                            })
-                            .collect();
-                        list[0].canon = Some(h.name.clone());
-                        (Status::Success, Some(list))
-                    }
-                    _ => (Status::NotFound, None),
+            Af::Inet6 => match files_host_by_name(key, Af::Inet6, multi) {
+                (Status::Success, Some(mut h)) => {
+                    // Com AI_V4MAPPED sem AI_ALL, os endereços mapeados que já vieram como IPv6 são
+                    // descartados (e então a busca IPv4 nem é tentada).
+                    h.addrs.retain(|a| !netdb::is_v4_mapped(a));
+                    Some(AddrInfo::of_host(&h, true, |a| a.clone()))
                 }
+                _ => match files_host_by_name(key, Af::Inet, multi) {
+                    (Status::Success, Some(h)) => Some(AddrInfo::of_host(&h, true, |a| map_v4(a))),
+                    _ => None,
+                },
             }
+            .filter(|list| !list.is_empty()),
+        };
+        match list {
+            Some(list) => (Status::Success, Some(list)),
+            None => (Status::NotFound, None),
         }
     });
     let mut list = found?;
@@ -1113,52 +942,47 @@ fn getaddrinfo(env: &Env, key: &[u8], af: Af) -> Option<Vec<AddrInfo>> {
 }
 
 fn ahosts_keys(env: &Env, out: &mut dyn Write, af: Af, keys: &[Vec<u8>]) -> i32 {
-    if keys.is_empty() {
-        for h in hosts_enumeration(env) {
-            write_bytes(out, &format_host(&h));
-        }
-        return 0;
-    }
-    let mut result = 0;
-    for key in keys {
-        match getaddrinfo(env, key, af) {
-            None => result = 2,
-            Some(list) => {
-                for ai in list {
-                    for (i, sock) in ["STREAM", "DGRAM", "RAW"].iter().enumerate() {
-                        let buf = if ai.v6 {
-                            let mut b = [0u8; 16];
-                            b.copy_from_slice(&ai.addr[..16]);
-                            ntop6(&b)
-                        } else {
-                            ntop4(&[ai.addr[0], ai.addr[1], ai.addr[2], ai.addr[3]])
-                        };
-                        let scope = if ai.v6 && ai.scope != 0 {
-                            format!("%{}", ai.scope)
-                        } else {
-                            String::new()
-                        };
-                        // `printf ("%s%-*s %-6s %s\n", buf, pad, scope, ...)` com pad = 15 - |buf| - |scope|.
-                        let pad = 15usize.saturating_sub(buf.len() + scope.len());
-                        let mut line = buf.into_bytes();
-                        line.extend_from_slice(scope.as_bytes());
-                        line.extend(std::iter::repeat_n(b' ', pad.saturating_sub(scope.len())));
-                        line.push(b' ');
-                        line.extend_from_slice(format!("{sock:<6}").as_bytes());
-                        line.push(b' ');
-                        if i == 0
-                            && let Some(c) = &ai.canon
-                        {
-                            line.extend_from_slice(c);
-                        }
-                        line.push(b'\n');
-                        write_bytes(out, &line);
-                    }
-                }
+    let find = |key: &[u8]| getaddrinfo(env, key, af);
+    run_db(
+        "ahosts",
+        out,
+        keys,
+        list_hosts(env),
+        find,
+        |out, list: &Vec<AddrInfo>| {
+            for ai in list {
+                show_addrinfo(out, ai);
             }
+        },
+    )
+}
+
+/// As três linhas de um resultado do `getaddrinfo`, uma por tipo de socket, com o nome canônico
+/// só na primeira.
+fn show_addrinfo(out: &mut dyn Write, ai: &AddrInfo) {
+    for (i, sock) in ["STREAM", "DGRAM", "RAW"].iter().enumerate() {
+        let buf = format_ip(&ai.addr);
+        let scope = if ai.v6 && ai.scope != 0 {
+            format!("%{}", ai.scope)
+        } else {
+            String::new()
+        };
+        // `printf ("%s%-*s %-6s %s\n", buf, pad, scope, ...)` com pad = 15 - |buf| - |scope|.
+        let pad = 15usize.saturating_sub(buf.len() + scope.len());
+        let mut line = buf.into_bytes();
+        line.extend_from_slice(scope.as_bytes());
+        line.extend(std::iter::repeat_n(b' ', pad.saturating_sub(scope.len())));
+        line.push(b' ');
+        line.extend_from_slice(format!("{sock:<6}").as_bytes());
+        line.push(b' ');
+        if i == 0
+            && let Some(c) = &ai.canon
+        {
+            line.extend_from_slice(c);
         }
+        line.push(b'\n');
+        write_bytes(out, &line);
     }
-    result
 }
 
 #[cfg(test)]
