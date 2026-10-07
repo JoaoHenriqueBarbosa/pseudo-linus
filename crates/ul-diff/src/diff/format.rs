@@ -295,10 +295,6 @@ pub fn analyze(hunk: &[Change]) -> (isize, isize, isize, isize, bool, bool) {
     (first0, last0, first1, last1, old, new)
 }
 
-/// Texto de função do `-p`/`-F` pra um hunk que começa na linha `first0` (0-based) do primeiro
-/// arquivo: a última linha anterior que casa com o padrão.
-pub type FunctionFinder<'f> = Option<&'f mut dyn FnMut(usize) -> Option<Vec<u8>>>;
-
 fn letter(ch: &Change) -> Option<char> {
     match (ch.deleted > 0, ch.inserted > 0) {
         (true, true) => Some('c'),
@@ -337,30 +333,12 @@ fn hunk_bounds(hunk: &[Change], na: usize, nb: usize, context: usize) -> (isize,
     (first0c, last0c, first1c, last1c)
 }
 
-fn with_function(head: String, func: Option<Vec<u8>>) -> Vec<u8> {
-    let mut v = head.into_bytes();
-    if let Some(f) = func {
-        v.push(b' ');
-        v.extend_from_slice(&f);
-    }
-    v
-}
-
 /// Corpo do formato unificado (sem as duas linhas de cabeçalho).
-pub fn format_unified(
-    p: &mut Printer<'_>,
-    changes: &[Change],
-    a: &[&[u8]],
-    b: &[&[u8]],
-    context: usize,
-    mut func: FunctionFinder<'_>,
-) {
+pub fn format_unified(p: &mut Printer<'_>, changes: &[Change], a: &[&[u8]], b: &[&[u8]], context: usize) {
     for range in group_hunks(changes, context) {
         let hunk = &changes[range];
         let (first0c, last0c, first1c, last1c) = hunk_bounds(hunk, a.len(), b.len(), context);
-        let head = format!("@@ -{} +{} @@", unified_range(first0c, last0c), unified_range(first1c, last1c));
-        let f = func.as_mut().and_then(|f| f(first0c as usize));
-        p.control_bytes(&with_function(head, f), Paint::Line);
+        p.control(&format!("@@ -{} +{} @@", unified_range(first0c, last0c), unified_range(first1c, last1c)), Paint::Line);
         let mut next = 0usize;
         let (mut i, mut j) = (first0c, first1c);
         while i <= last0c || j <= last1c {
@@ -386,20 +364,12 @@ pub fn format_unified(
 }
 
 /// Corpo do formato de contexto (sem as duas linhas de cabeçalho).
-pub fn format_context(
-    p: &mut Printer<'_>,
-    changes: &[Change],
-    a: &[&[u8]],
-    b: &[&[u8]],
-    context: usize,
-    mut func: FunctionFinder<'_>,
-) {
+pub fn format_context(p: &mut Printer<'_>, changes: &[Change], a: &[&[u8]], b: &[&[u8]], context: usize) {
     for range in group_hunks(changes, context) {
         let hunk = &changes[range];
         let (_, _, _, _, old, new) = analyze(hunk);
         let (first0c, last0c, first1c, last1c) = hunk_bounds(hunk, a.len(), b.len(), context);
-        let f = func.as_mut().and_then(|f| f(first0c as usize));
-        p.control_bytes(&with_function("***************".to_string(), f), Paint::None);
+        p.control("***************", Paint::None);
         p.control(&format!("*** {} ****", context_range(first0c, last0c)), Paint::Line);
         if old {
             context_side(p, hunk, a, first0c..=last0c, Side::Old);
@@ -567,7 +537,7 @@ mod tests {
         format_normal(&mut Printer { out: &mut out, look: &look }, &s, &a, &b);
         assert_eq!(String::from_utf8(out).unwrap(), "2c2\n< two\n---\n> TWO\n");
         let mut out = Vec::new();
-        format_unified(&mut Printer { out: &mut out, look: &look }, &s, &a, &b, 3, None);
+        format_unified(&mut Printer { out: &mut out, look: &look }, &s, &a, &b, 3);
         assert_eq!(String::from_utf8(out).unwrap(), "@@ -1,3 +1,3 @@\n one\n-two\n+TWO\n three\n");
     }
 
@@ -578,7 +548,7 @@ mod tests {
         let s = build_script(&[false, true], &[false, true]);
         let look = Look::default();
         let mut out = Vec::new();
-        format_unified(&mut Printer { out: &mut out, look: &look }, &s, &a, &b, 3, None);
+        format_unified(&mut Printer { out: &mut out, look: &look }, &s, &a, &b, 3);
         assert_eq!(
             String::from_utf8(out).unwrap(),
             "@@ -1,2 +1,2 @@\n a\n-b\n\\ No newline at end of file\n+b\n"

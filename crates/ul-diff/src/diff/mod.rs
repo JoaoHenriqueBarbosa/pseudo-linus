@@ -645,21 +645,16 @@ impl Differ {
         let look = self.look();
         match self.opts.style {
             Style::Normal => format::format_normal(&mut Printer { out: body, look: &look }, script, la, lb),
-            Style::Unified => {
-                let h0 = self.header_label(0, &sides[0]);
-                let h1 = self.header_label(1, &sides[1]);
+            Style::Unified | Style::Context => {
+                let unified = self.opts.style == Style::Unified;
+                let marks: [&[u8]; 2] = if unified { [b"--- ", b"+++ "] } else { [b"*** ", b"--- "] };
                 let mut p = Printer { out: body, look: &look };
-                p.control_bytes(&[b"--- ".as_slice(), &h0].concat(), Paint::Header);
-                p.control_bytes(&[b"+++ ".as_slice(), &h1].concat(), Paint::Header);
-                format::format_unified(&mut p, script, la, lb, self.opts.context, None);
-            }
-            Style::Context => {
-                let h0 = self.header_label(0, &sides[0]);
-                let h1 = self.header_label(1, &sides[1]);
-                let mut p = Printer { out: body, look: &look };
-                p.control_bytes(&[b"*** ".as_slice(), &h0].concat(), Paint::Header);
-                p.control_bytes(&[b"--- ".as_slice(), &h1].concat(), Paint::Header);
-                format::format_context(&mut p, script, la, lb, self.opts.context, None);
+                for (i, mark) in marks.into_iter().enumerate() {
+                    let h = self.header_label(i, &sides[i]);
+                    p.control_bytes(&[mark, &h].concat(), Paint::Header);
+                }
+                let format = if unified { format::format_unified } else { format::format_context };
+                format(&mut p, script, la, lb, self.opts.context);
             }
             Style::Ed | Style::ForwardEd => {
                 if self.opts.style == Style::Ed {
