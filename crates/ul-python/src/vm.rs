@@ -303,6 +303,14 @@ pub fn exc(kind: &'static str, msg: impl Into<String>) -> PyException {
 }
 
 /// Dá ao `AttributeError` de um `obj.nome` o `name` e o `obj` que o CPython guarda (e que as sugestões usam).
+/// Auxiliar escondido de módulo embutido (`_socket._fds`), visível só para código embutido.
+fn internal_private_attr(internal: bool, obj: &Value, name: &str) -> Option<Value> {
+    match obj {
+        Value::Module(m) if internal => crate::modules::pysrc::private_attr(m.name, name),
+        _ => None,
+    }
+}
+
 fn tag_attribute_error(mut e: PyException, obj: &Value, name: &str) -> PyException {
     if e.kind == "AttributeError" && e.value.is_none() {
         e.value = Some(crate::suggest::attribute_error(e.msg.clone(), obj, name));
@@ -2384,6 +2392,9 @@ impl Vm {
                 let name = &code.names[i as usize];
                 match self.load_attr(&obj, name) {
                     Ok(v) => stack.push(Slot::Val(v)),
+                    Err(_) if internal_private_attr(code.internal, &obj, name).is_some() => {
+                        stack.push(Slot::Val(internal_private_attr(code.internal, &obj, name).unwrap_or(Value::None)));
+                    }
                     Err(_) => {
                         let module = match &obj {
                             Value::Module(m) => m.name,
@@ -2448,7 +2459,13 @@ impl Vm {
             Op::LoadAttr(i) => {
                 let obj = pop(stack)?;
                 let name = &code.names[i as usize];
-                let v = self.load_attr(&obj, name).map_err(|e| tag_attribute_error(e, &obj, name))?;
+                let v = match self.load_attr(&obj, name) {
+                    Err(e) => match internal_private_attr(code.internal, &obj, name) {
+                        Some(v) => v,
+                        None => Err(tag_attribute_error(e, &obj, name))?,
+                    },
+                    Ok(v) => v,
+                };
                 stack.push(Slot::Val(v));
             }
             Op::LoadMethod(i) => {
@@ -2458,7 +2475,13 @@ impl Vm {
                     stack.push(Slot::Val(Value::Function(f)));
                     stack.push(Slot::Val(obj));
                 } else {
-                    let v = self.load_attr(&obj, name).map_err(|e| tag_attribute_error(e, &obj, name))?;
+                    let v = match self.load_attr(&obj, name) {
+                        Err(e) => match internal_private_attr(code.internal, &obj, name) {
+                            Some(v) => v,
+                            None => Err(tag_attribute_error(e, &obj, name))?,
+                        },
+                        Ok(v) => v,
+                    };
                     stack.push(Slot::Val(v));
                     stack.push(Slot::Val(Value::Builtin(NO_SELF)));
                 }
@@ -3384,7 +3407,22 @@ impl Vm {
     /// `__spec__`/`__loader__` de um módulo carregado de arquivo: construídos na primeira leitura
     /// por `importlib.machinery` e guardados nas globais do módulo.
     fn module_spec(&mut self, m: &Rc<crate::object::ModuleObj>, name: &str) -> PyResult<Option<Value>> {
-        let Some(globals) = self.module_globals.borrow().get(m.name).cloned() else { return Ok(None) };
+        let Some(globals) = self.module_globals.borrow().get(m.name).cloned() else {
+            // Módulo nativo em Rust: os embutidos do executável do CPython ganham o spec do
+            // `BuiltinImporter`, guardado nos atributos do próprio módulo.
+            if !crate::object::BUILTIN_MODULES.contains(&m.name) {
+                return Ok(None);
+            }
+            let Some(machinery) = crate::modules::import(self, "importlib.machinery") else { return Ok(None) };
+            let make = machinery.attrs.borrow().get("_spec_for_module").cloned();
+            let Some(make) = make else { return Ok(None) };
+            let spec = self.call(&make, vec![Value::str(m.name), Value::str(""), Value::Bool(false)], Vec::new())?;
+            let loader = self.getattr(&spec, "loader")?;
+            let mut attrs = m.attrs.borrow_mut();
+            attrs.insert("__spec__".into(), spec.clone());
+            attrs.insert("__loader__".into(), loader.clone());
+            return Ok(Some(if name == "__spec__" { spec } else { loader }));
+        };
         let (file, is_package) = {
             let g = globals.borrow();
             match g.get("__file__") {

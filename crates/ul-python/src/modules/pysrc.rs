@@ -520,8 +520,22 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         IMPORT_ERROR.with(|c| *c.borrow_mut() = Some(e.exc));
         return None;
     }
+    // Módulo que no Debian é C embutido: o programa só enxerga os nomes que o `dir()` do CPython
+    // lista. As funções do shim seguem com as globais completas, como o C, que não consulta o
+    // dicionário do módulo (trocar `time.time` de fora não muda o que o `time` usa por dentro).
+    if let Some(visible) = builtin_dir(real) {
+        let public: crate::object::VarMap = globals
+            .borrow()
+            .iter()
+            .filter(|(k, _)| visible.contains(&k.to_string().as_str()))
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
+        vm.module_globals.borrow_mut().insert(module.name, Rc::new(RefCell::new(public)));
+        PRIVATE.with(|p| p.borrow_mut().insert(module.name, globals.clone()));
+    }
     let mut attrs = module.attrs.borrow_mut();
-    for (k, v) in globals.borrow().iter() {
+    let shown = vm.module_globals.borrow().get(module.name).cloned().unwrap_or_else(|| globals.clone());
+    for (k, v) in shown.borrow().iter() {
         attrs.insert(k.to_string(), v.clone());
     }
     drop(attrs);
@@ -535,6 +549,32 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         }
     }
     Some(module)
+}
+
+thread_local! {
+    /// As globais completas dos módulos embutidos cujo lado visível foi filtrado por `builtin_dir`.
+    static PRIVATE: RefCell<std::collections::HashMap<&'static str, Rc<RefCell<crate::object::VarMap>>>> =
+        RefCell::new(std::collections::HashMap::new());
+}
+
+/// Atributo escondido de um módulo embutido, para o código embutido que lê os auxiliares de outro
+/// shim (`_socket._fds` no `select`); o programa nunca chega aqui.
+pub fn private_attr(module: &str, name: &str) -> Option<Value> {
+    PRIVATE.with(|p| p.borrow().get(module).and_then(|g| g.borrow().get(name).cloned()))
+}
+
+/// Os nomes do `dir()` do módulo embutido `name` no CPython 3.13 do Debian (`builtin-dir.tsv`,
+/// gerado no oráculo). `sys` e `builtins` ficam de fora: o programa religa nomes públicos deles
+/// (`sys.stdout = ...`) e o interpretador precisa ver a troca.
+fn builtin_dir(name: &str) -> Option<Vec<&'static str>> {
+    const TABLE: &str = include_str!("../../data/cpython-docs/builtin-dir.tsv");
+    if matches!(name, "sys" | "builtins") {
+        return None;
+    }
+    TABLE.lines().find_map(|line| {
+        let (module, names) = line.split_once('\t')?;
+        (module == name).then(|| names.split(' ').collect())
+    })
 }
 
 /// O texto-fonte do módulo embutido `name`.

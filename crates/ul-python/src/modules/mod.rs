@@ -108,6 +108,15 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         "_prof" => lsprof::build(vm),
         _ => return pysrc::import(vm, name),
     };
+    // Os nativos que no Debian são C embutido no executável têm `__doc__` e `__package__` vazio.
+    if crate::object::BUILTIN_MODULES.contains(&name) {
+        let mut attrs = m.attrs.borrow_mut();
+        if !attrs.contains_key("__doc__") {
+            let doc = cpydocs::runtime_module_doc(name).map_or(Value::None, Value::str);
+            attrs.insert("__doc__".to_string(), doc);
+        }
+        attrs.entry("__package__".to_string()).or_insert_with(|| Value::str(""));
+    }
     vm.modules.borrow_mut().insert(name.to_string(), m.clone());
     Some(m)
 }

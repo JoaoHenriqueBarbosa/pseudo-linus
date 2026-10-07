@@ -132,6 +132,13 @@ fn runtime_docs(name: &str, docs: &mut Docs) {
     }
 }
 
+/// A docstring de módulo que a tabela dá para `name` (`None` se ela não tem ou se é `None` no CPython).
+pub fn runtime_module_doc(name: &str) -> Option<String> {
+    let mut docs = Docs::new();
+    runtime_docs(name, &mut docs);
+    docs.get("").cloned().flatten().map(|(d, _)| d)
+}
+
 /// Uma string JSON (`"..."`, com escapes e pares substitutos) ou `null`.
 fn json_string(text: &str) -> Option<String> {
     let inner = text.strip_prefix('"')?.strip_suffix('"')?;
@@ -174,6 +181,11 @@ fn json_string(text: &str) -> Option<String> {
 fn rewrite_functions(body: &mut [Stmt], prefix: &str, docs: &Docs) {
     for stmt in body.iter_mut() {
         match &mut stmt.kind {
+            // `_build` de módulo embutido: monta a API pública num escopo fechado, e os nomes de
+            // dentro dele são os do módulo (o `__qualname__` é reatribuído no fim).
+            S::FunctionDef { name, body, .. } if prefix.is_empty() && name == "_build" => {
+                rewrite_functions(body, "", docs);
+            }
             S::FunctionDef { name, body, .. } | S::AsyncFunctionDef { name, body, .. } => {
                 let qual = join(prefix, name);
                 replace_doc(body, &qual, docs);

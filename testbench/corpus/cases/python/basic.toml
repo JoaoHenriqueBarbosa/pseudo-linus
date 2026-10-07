@@ -186,3 +186,23 @@ python3 -c 'import _json_native'
 echo '{"b": [1, 2], "a": "é"}' | python3 -m json.tool
 '''
 tags = ["error"]
+
+[[case]]
+id = "builtin-c-module-metadata"
+script = '''
+python3 - <<'PYEOF'
+import marshal, time, select, zlib, gc, atexit, errno, _struct, math, binascii, unicodedata, _json
+for m in (marshal, select, gc, errno, _json):
+    print(m.__name__, [n for n in dir(m) if n.startswith('_') and not n.startswith('__')])
+for m in (marshal, time, select, zlib, gc, atexit, _struct, math, binascii, unicodedata, _json):
+    print(m, repr(m.__doc__)[:50], repr(m.__package__), m.__spec__, m.__loader__, hasattr(m, '__file__'))
+leaks = [(marshal, '_Reader'), (marshal, 'struct'), (time, '_os'), (time, '_sys'), (zlib, '_zlib'),
+         (select, '_socket'), (gc, '_enabled'), (atexit, '_exithandlers')]
+print([hasattr(m, n) for m, n in leaks])
+print(marshal.dumps.__doc__.splitlines()[0], marshal.loads.__qualname__, marshal.loads(marshal.dumps([1, "é", (2.5, None), {3: b"x"}])))
+for stmt in ("from time import _os", "from select import _socket"):
+    try: exec(stmt)
+    except ImportError as e: print(e)
+PYEOF
+'''
+tags = ["error"]
