@@ -181,6 +181,8 @@ fn instance_of(v: &Value, cname: &str) -> bool {
         "bytes" => matches!(v, Value::Bytes(_)),
         "bytearray" => matches!(v, Value::ByteArray(_)),
         other if PSEUDO_TYPES.contains(&other) => v.type_name() == other,
+        // Tipo de objeto nativo (`weakref.ReferenceType`, ...): o `type()` dele é o nome registrado.
+        other if matches!(v, Value::Ext(_)) && crate::object::is_native_type(other) => v.type_name() == other,
         other => matches!(v, Value::Exception(e) if exc_is_subclass(e.kind, other)),
     }
 }
@@ -225,6 +227,8 @@ fn isinstance_check(v: &Value, cls: &Value) -> PyResult<bool> {
     // `property`, `classmethod` e `staticmethod` são descritores nativos (objetos `Ext`).
     if let Value::Builtin(n @ ("property" | "classmethod" | "staticmethod")) = cls {
         return Ok(match v {
+            // Instância de subclasse de `property` (o descritor vive no payload).
+            Value::Instance(i) => *n == "property" && crate::classes::is_property_instance(i),
             Value::Ext(e) => matches!(
                 (e.descriptor(), *n),
                 (Some(crate::object::Descriptor::Property { .. }), "property")
@@ -291,6 +295,13 @@ fn issubclass_check(a: &Value, cls: &Value) -> PyResult<bool> {
             }
         }
         return Ok(matches!(a, Value::Class(c) if c.mro().iter().any(|x| Rc::ptr_eq(x, b))));
+    }
+    // `property` é descritor nativo e não entra em `class_name`; só a própria e as subclasses casam.
+    if matches!(cls, Value::Builtin("property")) {
+        return Ok(match a {
+            Value::Class(c) => c.mro().iter().any(|x| x.data_base == Some("property")),
+            other => matches!(other, Value::Builtin("property")),
+        });
     }
     if let Some(b) = class_name(cls) {
         return Ok(match a {

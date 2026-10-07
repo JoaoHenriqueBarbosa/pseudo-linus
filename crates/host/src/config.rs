@@ -2,7 +2,7 @@
 //!
 //! Arquivo TOML (todas as chaves são opcionais; os padrões cabem na VPS de 2 vCPUs e ~3 GiB livres), com
 //! sobrescrita por variáveis de ambiente pras chaves que mudam por implantação: `PL_LISTEN`,
-//! `PL_DATA_DIR`, `PL_WORKERS`, `PL_CPUS_PER_WORKER`.
+//! `PL_DATA_DIR`, `PL_WORKERS`, `PL_CPUS_PER_WORKER`, `PL_BACKEND`, `PL_PYPI_MIRROR`.
 
 use std::fmt;
 use std::net::SocketAddr;
@@ -390,6 +390,10 @@ pub struct Config {
     pub sandbox: SandboxDefaults,
     pub worker: WorkerTuning,
     pub isolation: IsolationConfig,
+    /// Diretório de wheels que o host serve como espelho do PyPI em `pypi.sandbox` (127.0.0.80:443 do
+    /// loopback de cada sandbox). Sem ele não há espelho: a conexão ao endereço é recusada. Só vale
+    /// com o backend `kernel` (`PL_PYPI_MIRROR`).
+    pub pypi_mirror: Option<PathBuf>,
 }
 
 impl Default for Config {
@@ -405,6 +409,7 @@ impl Default for Config {
             sandbox: SandboxDefaults::default(),
             worker: WorkerTuning::default(),
             isolation: IsolationConfig::default(),
+            pypi_mirror: None,
         }
     }
 }
@@ -439,6 +444,9 @@ impl Config {
         }
         if let Some(v) = get("PL_BACKEND") {
             self.backend = v;
+        }
+        if let Some(v) = get("PL_PYPI_MIRROR") {
+            self.pypi_mirror = Some(PathBuf::from(v));
         }
         Ok(())
     }
@@ -528,6 +536,14 @@ mod tests {
         assert_eq!(cfg.workers, 1);
         cfg.validate().unwrap();
         assert!(toml::from_str::<Config>("nope = 1").is_err(), "chave desconhecida é erro");
+    }
+
+    #[test]
+    fn pypi_mirror_comes_from_env() {
+        let mut cfg = Config::default();
+        assert_eq!(cfg.pypi_mirror, None);
+        cfg.apply_env(|k| (k == "PL_PYPI_MIRROR").then(|| "/srv/wheels".to_string())).unwrap();
+        assert_eq!(cfg.pypi_mirror, Some(PathBuf::from("/srv/wheels")));
     }
 
     #[test]

@@ -43,9 +43,12 @@ def spec_from_file_location(name, location=None, *, loader=None, submodule_searc
         if not os.path.isabs(location):
             location = os.path.abspath(location)
     if loader is None:
-        if not location.endswith('.py'):
+        if location.endswith(tuple(machinery.EXTENSION_SUFFIXES)):
+            loader = machinery.ExtensionFileLoader(name, location)
+        elif location.endswith('.py'):
+            loader = SourceFileLoader(name, location)
+        else:
             return None
-        loader = SourceFileLoader(name, location)
     spec = ModuleSpec(name, loader, origin=location)
     spec._set_fileattr = True
     if submodule_search_locations is _POPULATE:
@@ -92,6 +95,20 @@ def _zip_spec(entry, fullname):
     return importer.find_spec(fullname)
 
 
+def _extension_file(stem):
+    """O `<stem><sufixo>.so` que o sandbox consegue carregar, na ordem de `EXTENSION_SUFFIXES`, ou `None`.
+
+    O sandbox nunca executa código de máquina: uma extensão só é carregável se o `.py` irmão (o
+    fonte que o mypyc compilou) existe e roda no lugar dela. Sem ele o `.so` conta como ausente."""
+    import os
+    if not os.path.isfile(stem + '.py'):
+        return None
+    for suffix in machinery.EXTENSION_SUFFIXES:
+        if os.path.isfile(stem + suffix):
+            return stem + suffix
+    return None
+
+
 def find_spec(name, package=None):
     """O `ModuleSpec` de `name` sem importá-lo, ou `None` se não existir."""
     import os
@@ -119,10 +136,10 @@ def find_spec(name, package=None):
             if spec is not None:
                 return spec
             continue
-        init = os.path.join(base, leaf, '__init__.py')
+        init = _extension_file(os.path.join(base, leaf, '__init__')) or os.path.join(base, leaf, '__init__.py')
         if os.path.isfile(init):
             return spec_from_file_location(fullname, init, submodule_search_locations=[os.path.join(base, leaf)])
-        path = os.path.join(base, leaf + '.py')
+        path = _extension_file(os.path.join(base, leaf)) or os.path.join(base, leaf + '.py')
         if os.path.isfile(path):
             return spec_from_file_location(fullname, path)
     return machinery.BuiltinImporter.find_spec(fullname)

@@ -46,7 +46,13 @@ fn main() -> Result<()> {
 fn build() -> Result<()> {
     let tag = Oracle::image_tag()?;
     let dir = Oracle::dockerfile_dir();
-    let status = Command::new("docker").args(["build", "-t", &tag]).arg(&dir).status()?;
+    // A CA do espelho do PyPI vem da crate `mirror`, como contexto nomeado (ver o Dockerfile).
+    let certs = paths::repo_root().join("crates/mirror/certs");
+    let status = Command::new("docker")
+        .args(["build", "-t", &tag, "--build-context"])
+        .arg(format!("mirror-certs={}", certs.display()))
+        .arg(&dir)
+        .status()?;
     if !status.success() {
         bail!("docker build falhou");
     }

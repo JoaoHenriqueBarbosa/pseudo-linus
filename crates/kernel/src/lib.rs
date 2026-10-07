@@ -35,4 +35,5 @@ pub mod kernel;
 pub use config::{BASE_ENV, ClockMode, CpuTopology, KernelConfig, SandboxConfig, SandboxLimits, SpawnerHook, SpawnerInfo};
 pub use hostio::{HostReader, HostStdio, HostWriter, ReadOutcome, RunOutput, RunRequest, Spawned, StdioSpec};
 pub use kernel::{Kernel, UserGroup, UserGroupSpec};
+pub use net::HostStream;
 pub use sandbox::{CreateError, FsEntry, HostProcInfo, Sandbox, SandboxFs, Snapshot, TreeEntry, Usage, WriteMode};

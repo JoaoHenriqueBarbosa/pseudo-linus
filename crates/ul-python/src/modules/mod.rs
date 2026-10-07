@@ -17,6 +17,7 @@ pub mod hashlib;
 pub mod html;
 pub mod imaging;
 pub mod json;
+pub mod markupsafe_speedups;
 pub mod math;
 pub mod operator;
 pub mod osnative;

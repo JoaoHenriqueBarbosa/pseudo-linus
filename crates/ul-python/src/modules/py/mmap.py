@@ -131,6 +131,12 @@ class mmap:
         self._check()
         return len(self._data)
 
+    def __buffer__(self, flags):
+        # A visão olha a memória do mapeamento; no ACCESS_READ ela é somente leitura. Escrita por
+        # ela não passa pelo write-through do _store.
+        self._check()
+        return memoryview(self._data if self._writable else bytes(self._data))
+
     def size(self):
         self._check()
         if self._fd is None:

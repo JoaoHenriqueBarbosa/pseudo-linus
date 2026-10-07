@@ -185,11 +185,23 @@ impl ExtObject for Property {
     fn descriptor(&self) -> Option<Descriptor> {
         Some(Descriptor::Property { get: self.get.clone(), set: self.set.clone(), del: self.del.clone() })
     }
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
     fn methods(&self) -> &'static [&'static str] {
         &["setter", "getter", "deleter", "__get__", "__set__", "__delete__"]
     }
     fn getattr(&self, vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
         match name {
+            "__isabstractmethod__" => {
+                let abstract_fn = |vm: &mut Vm, f: &Value| {
+                    vm.load_attr(f, "__isabstractmethod__").is_ok_and(|v| v.is_true())
+                };
+                let any = abstract_fn(vm, &self.get)
+                    || self.set.as_ref().is_some_and(|f| abstract_fn(vm, f))
+                    || self.del.as_ref().is_some_and(|f| abstract_fn(vm, f));
+                Some(Ok(Value::Bool(any)))
+            }
             "__doc__" => {
                 // Sem `doc=`, o docstring vem do getter, como no CPython.
                 let own = self.doc.borrow().clone();
@@ -259,6 +271,80 @@ impl ExtObject for Property {
             _ => get = f,
         }
         Ok(Value::Ext(Rc::new(Property::new(get, set, del))))
+    }
+}
+
+/// `fget`, `fset` e `fdel` de um `property` ou de uma instância de subclasse dele (o valor embutido
+/// da subclasse é um `Property` guardado no payload). `None` para qualquer outro valor.
+pub(crate) fn property_parts(v: &Value) -> Option<(Value, Option<Value>, Option<Value>)> {
+    let inner = match v {
+        Value::Instance(i) if i.class.data_base == Some("property") => i.payload.borrow().clone()?,
+        Value::Instance(_) => return None,
+        other => other.clone(),
+    };
+    let Value::Ext(e) = inner else { return None };
+    match e.descriptor() {
+        Some(Descriptor::Property { get, set, del }) => Some((get, set, del)),
+        _ => None,
+    }
+}
+
+/// Instância de uma subclasse de `property` (o descritor vive no payload).
+pub(crate) fn is_property_instance(i: &InstanceObj) -> bool {
+    i.class.data_base == Some("property")
+}
+
+/// O nome com que o atributo aparece na classe (ou numa das bases), para as mensagens do `property`.
+fn attr_name_in(cls: &Rc<ClassObj>, attr: &Value) -> Option<String> {
+    cls.mro().iter().find_map(|c| {
+        c.dict.borrow().iter().find(|(_, v)| crate::object::is(v, attr)).map(|(k, _)| k.clone())
+    })
+}
+
+/// `property 'x' of 'A' object has no setter` (o 3.13 omite o nome quando não o conhece).
+fn property_missing(cls: &Rc<ClassObj>, attr: &Value, what: &str) -> PyException {
+    let owner = &cls.name;
+    match attr_name_in(cls, attr) {
+        Some(n) => exc("AttributeError", format!("property '{n}' of '{owner}' object has no {what}")),
+        None => exc("AttributeError", format!("property of '{owner}' object has no {what}")),
+    }
+}
+
+/// `getter`/`setter`/`deleter` de uma subclasse de `property`: o `property_copy` do CPython chama
+/// `type(self)(fget, fset, fdel, doc)`, então o resultado é da subclasse.
+struct PropertyCopy {
+    obj: Value,
+    which: &'static str,
+}
+
+impl ExtObject for PropertyCopy {
+    fn type_name(&self) -> &'static str {
+        "builtin_function_or_method"
+    }
+    fn methods(&self) -> &'static [&'static str] {
+        &["__call__"]
+    }
+    fn call_method(&self, vm: &mut Vm, _name: &str, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+        let [f] = <[Value; 1]>::try_from(args)
+            .map_err(|a| type_error(format!("{}() takes exactly one argument ({} given)", self.which, a.len())))?;
+        if !kw.is_empty() {
+            return Err(type_error(format!("{}() takes no keyword arguments", self.which)));
+        }
+        let Value::Instance(inst) = &self.obj else { return Err(type_error("not a property")) };
+        let (mut get, mut set, mut del) = property_parts(&self.obj).unwrap_or((Value::None, None, None));
+        match self.which {
+            "setter" => set = Some(f),
+            "deleter" => del = Some(f),
+            _ => get = f,
+        }
+        let doc = match inst.payload.borrow().as_ref() {
+            Some(Value::Ext(e)) => {
+                e.as_any().and_then(|a| a.downcast_ref::<Property>()).map_or(Value::None, |p| p.doc.borrow().clone())
+            }
+            _ => Value::None,
+        };
+        let args = vec![get, set.unwrap_or(Value::None), del.unwrap_or(Value::None), doc];
+        vm.call(&Value::Class(inst.class.clone()), args, Vec::new())
     }
 }
 
@@ -640,6 +726,15 @@ impl ExtObject for BuiltinSuperMethod {
                     init_module_fields(inst, &args, &kw)?;
                     return Ok(Value::None);
                 }
+                // `super().__init__(fget, doc=doc)` de subclasse de `property`: refaz o descritor
+                // guardado e, como o `property_init`, fixa o `__doc__` na instância.
+                if is_property_instance(inst) {
+                    let fresh = vm.call(&Value::Builtin("property"), args, kw)?;
+                    let doc = vm.load_attr(&fresh, "__doc__")?;
+                    *inst.payload.borrow_mut() = Some(fresh);
+                    inst.dict.borrow_mut().insert("__doc__".to_string(), doc);
+                    return Ok(Value::None);
+                }
                 // `super().__init__(...)` de subclasse de `dict`/`list`/`set`: preenche o valor embutido.
                 let payload = inst.payload.borrow().clone();
                 if let Some(p @ (Value::Dict(_) | Value::List(_) | Value::Set(_))) = payload {
@@ -676,6 +771,34 @@ impl ExtObject for BuiltinSuperMethod {
             // `object` não define `__getattr__`: quem chama via `super()` recebe `AttributeError`.
             "__getattr__" => Err(exc("AttributeError", "'super' object has no attribute '__getattr__'")),
             "__new__" => Ok(self.obj.clone()),
+            // `property.__get__(None, tipo)` devolve o próprio descritor, que aqui é a instância da subclasse.
+            "__get__" if is_property_instance(inst) && matches!(args.first(), Some(Value::None)) => Ok(self.obj.clone()),
+            "__get__" if is_property_instance(inst) => {
+                let (get, ..) = property_parts(&self.obj).unwrap_or((Value::None, None, None));
+                let Some(target) = args.into_iter().next() else {
+                    return Err(type_error("expected 1 or 2 arguments, got 0"));
+                };
+                if matches!(get, Value::None) {
+                    return Err(property_missing(&inst.class, &self.obj, "getter"));
+                }
+                vm.call(&get, vec![target], kw)
+            }
+            "__set__" if is_property_instance(inst) => {
+                let [target, value] = <[Value; 2]>::try_from(args)
+                    .map_err(|a| type_error(format!("expected 2 arguments, got {}", a.len())))?;
+                let (_, set, _) = property_parts(&self.obj).unwrap_or((Value::None, None, None));
+                let Some(f) = set else { return Err(property_missing(&inst.class, &self.obj, "setter")) };
+                vm.call(&f, vec![target, value], kw)?;
+                Ok(Value::None)
+            }
+            "__delete__" if is_property_instance(inst) => {
+                let [target] = <[Value; 1]>::try_from(args)
+                    .map_err(|a| type_error(format!("expected 1 argument, got {}", a.len())))?;
+                let (_, _, del) = property_parts(&self.obj).unwrap_or((Value::None, None, None));
+                let Some(f) = del else { return Err(property_missing(&inst.class, &self.obj, "deleter")) };
+                vm.call(&f, vec![target], kw)?;
+                Ok(Value::None)
+            }
             other => {
                 // Método herdado de `dict`/`list`/`str`...: age sobre o valor embutido.
                 let payload = inst.payload.borrow().clone();
@@ -1141,7 +1264,16 @@ impl Vm {
                     };
                     self.call_function(&f, vec![attr.clone(), instance, Value::Class(cls.clone())], Vec::new())
                 }
-                _ => Ok(attr.clone()),
+                // Subclasse de `property` sem `__get__` próprio: o `property.__get__` herdado.
+                _ => match (property_parts(attr), recv) {
+                    (Some((get, ..)), recv) if !matches!(recv, Value::Class(_)) => {
+                        if matches!(get, Value::None) {
+                            return Err(property_missing(cls, attr, "getter"));
+                        }
+                        self.call(&get, vec![recv], Vec::new())
+                    }
+                    _ => Ok(attr.clone()),
+                },
             },
             other => Ok(other.clone()),
         }
@@ -1188,7 +1320,7 @@ impl Vm {
         }
         // Descritor de dados escrito em Python (tem `__set__`) também vence o dicionário da instância.
         if let Some(Value::Instance(d)) = &class_attr {
-            if d.class.lookup("__set__").is_some() {
+            if d.class.lookup("__set__").is_some() || is_property_instance(d) {
                 return self.bind_class_attr(class_attr.as_ref().unwrap_or(&Value::None), obj.clone(), &inst.class);
             }
         }
@@ -1204,6 +1336,11 @@ impl Vm {
                 }
             }
             return self.bind_class_attr(&attr, obj.clone(), &inst.class);
+        }
+        // Os ganchos de atributo de `object` estão na MRO antes do `__getattr__`: um wrapper que chama
+        // `self.__getattribute__(...)` dentro do próprio `__getattr__` não recursa.
+        if matches!(name, "__getattribute__" | "__setattr__" | "__delattr__") {
+            return Ok(Value::Ext(Rc::new(BuiltinSuperMethod { obj: obj.clone(), name: intern(name) })));
         }
         if hook {
             if let Some(Value::Function(f)) = inst.class.lookup("__getattr__") {
@@ -1224,6 +1361,14 @@ impl Vm {
         }
         let payload = inst.payload.borrow().clone();
         if let Some(p) = payload {
+            if is_property_instance(inst) && matches!(name, "getter" | "setter" | "deleter") {
+                let which = match name {
+                    "getter" => "getter",
+                    "setter" => "setter",
+                    _ => "deleter",
+                };
+                return Ok(Value::Ext(Rc::new(PropertyCopy { obj: obj.clone(), which })));
+            }
             // `d.__getitem__` de subclasse de `dict` com `__missing__`: a chave ausente chama o gancho.
             if name == "__getitem__" && matches!(p, Value::Dict(_)) && inst.class.lookup("__missing__").is_some() {
                 return Ok(Value::Ext(Rc::new(InstanceDunder { obj: obj.clone(), name: "__getitem__" })));
@@ -1398,6 +1543,13 @@ impl Vm {
                         self.call_function(&f, vec![Value::Instance(d.clone()), obj.clone(), value], Vec::new())?;
                         return Ok(());
                     }
+                    // Subclasse de `property` sem `__set__` próprio: o `property.__set__` herdado.
+                    if let Some((_, set, _)) = property_parts(&Value::Instance(d.clone())) {
+                        let Some(f) = set else {
+                            return Err(property_missing(&inst.class, &Value::Instance(d.clone()), "setter"));
+                        };
+                        return self.call(&f, vec![obj.clone(), value], Vec::new()).map(|_| ());
+                    }
                 }
                 if name == "__dict__" && inst.class.slots_allow("__dict__") {
                     // `obj.__dict__ = d`: o próprio `d` passa a ser o espaço de atributos (vivo).
@@ -1470,6 +1622,15 @@ impl Vm {
                         return Ok(());
                     }
                 }
+                // `del obj.x` sobre `property` (ou subclasse sem `__delete__` próprio): chama o `fdel`.
+                if let Some(attr @ (Value::Ext(_) | Value::Instance(_))) = inst.class.lookup(name) {
+                    if let Some((_, _, del)) = property_parts(&attr) {
+                        let Some(f) = del else {
+                            return Err(property_missing(&inst.class, &attr, "deleter"));
+                        };
+                        return self.call(&f, vec![obj.clone()], Vec::new()).map(|_| ());
+                    }
+                }
                 if inst.remove_own(name).is_none() {
                     return Err(crate::object::no_attribute(&inst.class.name, name));
                 }
@@ -1490,6 +1651,13 @@ impl Vm {
                 let from_attrs = m.attrs.borrow_mut().remove(name).is_some();
                 if !from_globals && !from_attrs {
                     return Err(crate::object::no_attribute("module", name));
+                }
+                Ok(())
+            }
+            // Atributo de usuário de função (`f.__click_params__`, `f.cache`): vive no `__dict__` dela.
+            Value::Function(f) => {
+                if f.attrs.borrow_mut().remove(name).is_none() {
+                    return Err(crate::object::no_attribute("function", name));
                 }
                 Ok(())
             }
@@ -1651,7 +1819,7 @@ impl Vm {
         let Value::Instance(i) = v else { return to_str(v) };
         // Subclasse de `str`/`int`/`list`...: o texto padrão é o do valor guardado.
         let payload = i.payload.borrow().clone();
-        if let Some(p) = payload {
+        if let Some(p) = payload.filter(|_| !is_property_instance(i)) {
             return if is_str { to_str(&p) } else { crate::object::repr(&p) };
         }
         if i.class.builtin_base.is_some() {
@@ -1947,7 +2115,7 @@ pub fn instance_text(v: &Value, is_str: bool) -> Option<String> {
             };
         }
     }
-    if i.class.builtin_base.is_some() {
+    if i.class.builtin_base.is_some() || is_property_instance(i) {
         return Some(vm.default_text(v, is_str));
     }
     let payload = i.payload.borrow().clone()?;
@@ -2017,7 +2185,7 @@ struct BaseInfo {
 
 /// Tipos de dados embutidos que uma classe de usuário pode estender (a instância guarda o valor).
 fn data_type(name: &str) -> Option<&'static str> {
-    ["int", "float", "str", "list", "tuple", "dict", "set", "bool", "module"].into_iter().find(|n| *n == name)
+    ["int", "float", "str", "list", "tuple", "dict", "set", "bool", "module", "property"].into_iter().find(|n| *n == name)
 }
 
 /// `types.ModuleType(name, doc=None)`: a subclasse de módulo não tem valor embutido, só os
@@ -2041,6 +2209,9 @@ fn init_module_fields(inst: &InstanceObj, args: &[Value], kw: &[(String, Value)]
 
 /// O construtor embutido (`dict`, `list`...) de um tipo de dados.
 fn data_ctor(name: &str) -> Value {
+    if name == "property" {
+        return Value::Builtin("property");
+    }
     crate::builtins::get(name).unwrap_or(Value::Builtin("object"))
 }
 

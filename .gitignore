@@ -20,5 +20,6 @@
 /testbench/scratch/gzsrc/
 /testbench/scratch/infozip/
 /testbench/scratch/gtar/
+/testbench/mirror/wheels/
 *.profraw
 perf.data*

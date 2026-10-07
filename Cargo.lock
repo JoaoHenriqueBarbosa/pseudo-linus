@@ -1387,6 +1387,7 @@ dependencies = [
  "landlock",
  "libc",
  "mimalloc",
+ "mirror",
  "parking_lot",
  "rustix",
  "rustyline",
@@ -2249,6 +2250,17 @@ dependencies = [
  "log",
  "wasi",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "mirror"
+version = "0.1.0"
+dependencies = [
+ "flate2",
+ "httparse",
+ "rustls",
+ "rustls-pki-types",
+ "ul-common",
 ]
 
 [[package]]

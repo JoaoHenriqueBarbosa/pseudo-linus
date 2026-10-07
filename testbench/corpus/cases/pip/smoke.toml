@@ -1,0 +1,1224 @@
+tool = "pip"
+source = "manual"
+
+# Fumaça de pacotes reais do PyPI: cada caso cria um venv, instala o pacote pelo espelho
+# (https://pypi.sandbox/simple/) e roda um script curto de uso real e determinístico do pacote.
+# Nada de rede externa, tempo atual ou caminho aleatório: os servidores HTTP são locais (porta 8765),
+# os arquivos ficam em /tmp e as datas são fixas. A tag "mirror" faz o oráculo subir o espelho antes
+# do caso; "pip-smoke" agrupa esta leva. As wheels (com dependências) vêm de testbench/mirror/packages.txt.
+
+[[case]]
+id = "pip-smoke-requests"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q requests; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import json
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+import requests
+
+
+class H(BaseHTTPRequestHandler):
+    def do_GET(self):
+        body = json.dumps({"path": self.path, "ok": True}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *a):
+        pass
+
+
+srv = ThreadingHTTPServer(("127.0.0.1", 8765), H)
+threading.Thread(target=srv.serve_forever, daemon=True).start()
+s = requests.Session()
+s.trust_env = False
+r = s.get("http://127.0.0.1:8765/ola", params={"a": "1", "b": "x y"})
+print(r.status_code, r.url)
+print(r.headers["Content-Type"])
+print(r.json())
+print(r.ok, r.reason, r.encoding)
+srv.shutdown()
+srv.server_close()
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-urllib3"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q urllib3; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import json
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+import urllib3
+
+
+class H(BaseHTTPRequestHandler):
+    def do_GET(self):
+        body = json.dumps({"path": self.path}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *a):
+        pass
+
+
+srv = ThreadingHTTPServer(("127.0.0.1", 8765), H)
+threading.Thread(target=srv.serve_forever, daemon=True).start()
+http = urllib3.PoolManager()
+r = http.request("GET", "http://127.0.0.1:8765/x", fields={"q": "1"})
+print(r.status, r.headers["Content-Type"])
+print(json.loads(r.data))
+u = urllib3.util.parse_url("http://user@example.com:8080/a/b?c=1#f")
+print(u.scheme, u.auth, u.host, u.port, u.path, u.query, u.fragment)
+print(urllib3.util.Retry(total=3).total)
+srv.shutdown()
+srv.server_close()
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-idna"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q idna; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import idna
+
+enc = idna.encode("bücher.example")
+print(enc)
+print(idna.decode(enc))
+print(idna.encode("日本語.jp"))
+try:
+    idna.encode("a..b")
+except idna.IDNAError as e:
+    print(type(e).__name__, e)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-certifi"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q certifi; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import os
+
+import certifi
+
+p = certifi.where()
+print(os.path.basename(p), os.path.isfile(p))
+data = certifi.contents()
+print(data.count("-----BEGIN CERTIFICATE-----") > 100)
+print(data == open(p, encoding="ascii").read())
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-charset-normalizer"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q charset-normalizer; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from charset_normalizer import from_bytes
+
+text = "Olá, mundo! Este é um texto em português com acentuação: coração, ação, pão."
+best = from_bytes(text.encode("utf_8")).best()
+print(best.encoding)
+print(str(best) == text)
+print(from_bytes(b"plain ascii text").best().encoding)
+print(len(from_bytes(b"")))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-six"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q six; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import six
+from six.moves import urllib
+
+print(six.PY3, six.text_type.__name__, six.string_types)
+print(urllib.parse.quote("a b/c"))
+print(sorted(six.iteritems({"b": 2, "a": 1})))
+print(six.ensure_str(b"bytes"), six.ensure_binary("txt"))
+print(six.moves.range(3))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-python-dateutil"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q python-dateutil; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from datetime import datetime
+
+from dateutil import parser, rrule
+from dateutil.relativedelta import relativedelta
+
+d = parser.parse("2024-01-31T10:30:00")
+print(d.isoformat())
+print((d + relativedelta(months=+1)).isoformat())
+print(parser.parse("March 5, 2023 4:15pm").isoformat())
+print(relativedelta(datetime(2024, 3, 15), datetime(2020, 1, 1)))
+for x in rrule.rrule(rrule.WEEKLY, count=3, dtstart=datetime(2024, 1, 1), byweekday=rrule.MO):
+    print(x.date())
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-pytz"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q pytz; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from datetime import datetime
+
+import pytz
+
+sp = pytz.timezone("America/Sao_Paulo")
+d = sp.localize(datetime(2024, 1, 15, 12, 0))
+print(d.isoformat(), d.tzname(), d.utcoffset())
+print(d.astimezone(pytz.utc).isoformat())
+ny = pytz.timezone("America/New_York")
+print(ny.localize(datetime(2024, 7, 4, 9, 0)).isoformat())
+print(len(pytz.all_timezones) > 400, "Europe/Lisbon" in pytz.common_timezones)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-packaging"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q packaging; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from packaging.requirements import Requirement
+from packaging.specifiers import SpecifierSet
+from packaging.utils import canonicalize_name
+from packaging.version import Version
+
+print(Version("1.2.3") < Version("1.10"), Version("2.0rc1").is_prerelease)
+print(sorted(["1.0", "1.0.post1", "1.0a1", "0.9"], key=Version))
+print(Version("1.4.2") in SpecifierSet(">=1.0,<2.0"))
+r = Requirement("requests[security]>=2.0; python_version >= '3.8'")
+print(r.name, r.extras, r.specifier, r.marker)
+print(canonicalize_name("Friendly_Bard.Pkg"))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-pyyaml"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q pyyaml; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import yaml
+
+data = {"nome": "ana", "idade": 30, "tags": ["a", "b"], "aninhado": {"x": 1.5, "y": None, "z": True}}
+out = yaml.safe_dump(data, sort_keys=True, allow_unicode=True)
+print(out, end="")
+print(yaml.safe_load(out) == data)
+print(yaml.safe_load("- 1\n- two\n- {a: [3, 4]}\n"))
+try:
+    yaml.safe_load("a: [1, 2")
+except yaml.YAMLError as e:
+    print(type(e).__name__)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-jinja2"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q jinja2; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from jinja2 import DictLoader, Environment, Template
+
+print(Template("Olá, {{ nome|upper }}! {% for i in items %}[{{ i }}]{% endfor %}").render(nome="mundo", items=[1, 2, 3]))
+env = Environment(loader=DictLoader({"base": "<{% block c %}base{% endblock %}>", "child": "{% extends 'base' %}{% block c %}filho {{ x|default('d') }}{% endblock %}"}), autoescape=True)
+print(env.get_template("child").render())
+print(Template("{{ s }}", autoescape=True).render(s="<b>&</b>"))
+print(Template("{{ v|round(1) }} {{ l|join(',') }} {{ 'a b'|title }}").render(v=3.14159, l=["x", "y"]))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-markupsafe"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q markupsafe; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from markupsafe import Markup, escape, soft_str
+
+print(escape("<a href='x'>&\"</a>"))
+m = Markup("<b>%s</b>") % "<i>"
+print(m, type(m).__name__)
+print(Markup("<p>a</p>").striptags(), Markup.escape("x & y"))
+print(repr(soft_str(Markup("<z>"))))
+print(Markup(" ").join(["<a>", Markup("<b>")]))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-click"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q click; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import click
+from click.testing import CliRunner
+
+
+@click.group()
+def cli():
+    """Grupo de teste."""
+
+
+@cli.command()
+@click.option("--nome", default="mundo", help="Quem cumprimentar.")
+@click.option("--vezes", type=int, default=1)
+def ola(nome, vezes):
+    for _ in range(vezes):
+        click.echo(f"Olá, {nome}!")
+
+
+r = CliRunner()
+res = r.invoke(cli, ["ola", "--nome", "ana", "--vezes", "2"])
+print(res.exit_code, repr(res.output))
+res = r.invoke(cli, ["ola", "--vezes", "x"])
+print(res.exit_code)
+print(res.output)
+res = r.invoke(cli, ["--help"])
+print(res.output)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-flask"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q flask; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from flask import Flask, jsonify, request
+
+app = Flask("smoke")
+
+
+@app.route("/")
+def index():
+    return "ola"
+
+
+@app.route("/soma/<int:a>/<int:b>")
+def soma(a, b):
+    return jsonify(total=a + b)
+
+
+@app.post("/eco")
+def eco():
+    return jsonify(request.get_json())
+
+
+c = app.test_client()
+r = c.get("/")
+print(r.status_code, r.data, r.content_type)
+r = c.get("/soma/2/40")
+print(r.status_code, r.get_json())
+r = c.post("/eco", json={"k": [1, 2]})
+print(r.status_code, r.get_json())
+r = c.get("/nada")
+print(r.status_code)
+r = c.post("/")
+print(r.status_code, r.headers["Allow"])
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-werkzeug"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q werkzeug; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from werkzeug.routing import Map, Rule
+from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.test import EnvironBuilder
+from werkzeug.utils import secure_filename
+from werkzeug.wrappers import Request, Response
+
+m = Map([Rule("/u/<int:id>", endpoint="user"), Rule("/", endpoint="home")])
+ad = m.bind("localhost")
+print(ad.match("/u/7"))
+print(ad.build("user", {"id": 9}))
+print(secure_filename("../../etc/pass wd é.txt"))
+h = generate_password_hash("segredo")
+print(check_password_hash(h, "segredo"), check_password_hash(h, "outro"))
+req = Request(EnvironBuilder(path="/p", query_string="a=1&b=2", method="POST", data={"f": "v"}).get_environ())
+print(req.method, req.path, dict(req.args), dict(req.form))
+resp = Response("corpo", status=201, headers={"X-A": "1"})
+print(resp.status, resp.get_data(), resp.headers["X-A"])
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-itsdangerous"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q itsdangerous; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from itsdangerous import BadSignature, URLSafeSerializer
+
+s = URLSafeSerializer("chave-secreta", salt="sal")
+tok = s.dumps({"id": 42, "nome": "ana"})
+print(tok)
+print(s.loads(tok))
+try:
+    s.loads(tok[:-2] + "xx")
+except BadSignature as e:
+    print(type(e).__name__)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-rich"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q rich; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import io
+
+from rich.console import Console
+from rich.table import Table
+
+buf = io.StringIO()
+c = Console(file=buf, force_terminal=False, width=40, color_system=None, legacy_windows=False)
+t = Table(title="Frutas")
+t.add_column("Nome")
+t.add_column("Qtd", justify="right")
+t.add_row("maçã", "3")
+t.add_row("pera", "12")
+c.print(t)
+c.print("[bold]negrito[/bold] e [red]vermelho[/red]")
+print(buf.getvalue(), end="")
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-pygments"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q pygments; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from pygments import highlight
+from pygments.formatters import HtmlFormatter
+from pygments.lexers import PythonLexer, get_lexer_by_name, guess_lexer_for_filename
+
+print(highlight("def f(x):\n    return x + 1\n", PythonLexer(), HtmlFormatter(nowrap=True)), end="")
+print(get_lexer_by_name("json").name)
+print(guess_lexer_for_filename("a.rs", "fn main() {}").name)
+print([t for t, v in PythonLexer().get_tokens("x = 1")][:3])
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-tabulate"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q tabulate; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from tabulate import tabulate
+
+rows = [["maçã", 3, 1.5], ["pera", 12, 22.25], ["uva", 100, 0.333]]
+hdr = ["nome", "qtd", "preço"]
+for fmt in ("simple", "grid", "github", "plain"):
+    print(tabulate(rows, headers=hdr, tablefmt=fmt))
+    print()
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-beautifulsoup4"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q beautifulsoup4; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from bs4 import BeautifulSoup
+
+html = '<html><body><p class="a">Oi <b>mundo</b></p><ul><li id="1">x</li><li id="2">y</li></ul><a href="/z">link</a></body></html>'
+soup = BeautifulSoup(html, "html.parser")
+print(soup.p.get_text(), soup.p["class"])
+print([li.text for li in soup.find_all("li")])
+print(soup.find("a")["href"])
+print(soup.select("p.a > b")[0].string)
+soup.p.b.string = "terra"
+print(soup.p)
+print(soup.prettify())
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-soupsieve"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q soupsieve beautifulsoup4; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import soupsieve as sv
+from bs4 import BeautifulSoup
+
+soup = BeautifulSoup('<div><p class="x">1</p><p>2</p><p class="x y">3</p></div>', "html.parser")
+print([e.text for e in sv.select("p.x", soup)])
+print([e.text for e in sv.select("p:nth-of-type(2)", soup)])
+print(sv.match("p.y", soup.find_all("p")[2]))
+print(sv.compile("div > p:not(.x)").pattern)
+try:
+    sv.compile("p[")
+except Exception as e:
+    print(type(e).__name__)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-attrs"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q attrs; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import attrs
+
+
+@attrs.define
+class P:
+    x: int
+    y: int = attrs.field(default=2, validator=attrs.validators.instance_of(int))
+    tags: list = attrs.field(factory=list)
+
+
+p = P(1)
+print(p)
+print(attrs.asdict(p))
+print(attrs.evolve(p, y=9))
+print(p == P(1), attrs.fields(P)[0].name)
+try:
+    P(1, y="a")
+except TypeError as e:
+    print(type(e).__name__)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-toml"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q toml; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import toml
+
+d = toml.loads('titulo = "x"\n[a]\nn = 1\nlista = [1, 2, 3]\n[a.b]\nok = true\n')
+print(d)
+print(toml.dumps({"s": "v", "n": 3, "t": {"k": [1, 2]}}), end="")
+try:
+    toml.loads("a = = 1")
+except toml.TomlDecodeError as e:
+    print(type(e).__name__)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-tomli"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q tomli; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import tomli
+
+d = tomli.loads('titulo = "x"\n[a]\nn = 1\nlista = [1, 2, 3]\n[a.b]\nok = true\nd = 2024-01-02\n')
+print(d)
+try:
+    tomli.loads("a = = 1")
+except tomli.TOMLDecodeError as e:
+    print(type(e).__name__, e)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-typing-extensions"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q typing-extensions; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from typing import Optional
+
+from typing_extensions import Annotated, Literal, Protocol, TypedDict, get_args, get_type_hints, runtime_checkable
+
+
+class M(TypedDict):
+    nome: str
+    idade: Optional[int]
+
+
+@runtime_checkable
+class HasLen(Protocol):
+    def __len__(self) -> int: ...
+
+
+print(get_type_hints(M))
+print(get_args(Annotated[int, "meta"]), get_args(Literal["a", "b"]))
+print(isinstance([1], HasLen), isinstance(3, HasLen))
+print(M(nome="a", idade=None))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-filelock"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v /tmp/fl.lock
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q filelock; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from filelock import FileLock, Timeout
+
+a = FileLock("/tmp/fl.lock")
+b = FileLock("/tmp/fl.lock")
+with a:
+    print("a preso", a.is_locked)
+    try:
+        b.acquire(timeout=0.1)
+    except Timeout as e:
+        print("b falhou", type(e).__name__)
+print("a solto", a.is_locked)
+with b:
+    print("b preso", b.is_locked)
+print(b.lock_file)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-platformdirs"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q platformdirs; echo "pip rc=$?"
+env -u XDG_CACHE_HOME -u XDG_CONFIG_HOME -u XDG_DATA_HOME -u XDG_STATE_HOME -u XDG_RUNTIME_DIR HOME=/tmp/pdhome /tmp/v/bin/python - <<'PY'
+import platformdirs
+
+print(platformdirs.user_cache_dir("app", "me"))
+print(platformdirs.user_config_dir("app"))
+print(platformdirs.user_data_dir("app", version="1.0"))
+print(platformdirs.user_state_dir("app"))
+print(platformdirs.user_log_dir("app"))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-httpx"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q httpx; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import json
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+import httpx
+
+
+class H(BaseHTTPRequestHandler):
+    def do_GET(self):
+        body = json.dumps({"path": self.path}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *a):
+        pass
+
+
+srv = ThreadingHTTPServer(("127.0.0.1", 8765), H)
+threading.Thread(target=srv.serve_forever, daemon=True).start()
+with httpx.Client(trust_env=False, base_url="http://127.0.0.1:8765") as c:
+    r = c.get("/ola", params={"a": "1"})
+    print(r.status_code, r.http_version, r.headers["content-type"])
+    print(r.json(), r.url)
+print(httpx.URL("https://u:p@example.com:8443/a?b=1").port)
+srv.shutdown()
+srv.server_close()
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-httpcore"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q httpcore; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import json
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+import httpcore
+
+
+class H(BaseHTTPRequestHandler):
+    def do_GET(self):
+        body = json.dumps({"path": self.path}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *a):
+        pass
+
+
+srv = ThreadingHTTPServer(("127.0.0.1", 8765), H)
+threading.Thread(target=srv.serve_forever, daemon=True).start()
+with httpcore.ConnectionPool() as pool:
+    r = pool.request("GET", "http://127.0.0.1:8765/x")
+    print(r.status, dict((k.decode(), v.decode()) for k, v in r.headers if k.lower() == b"content-type"))
+    print(r.content)
+srv.shutdown()
+srv.server_close()
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-h11"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q h11; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import h11
+
+cli = h11.Connection(h11.CLIENT)
+data = cli.send(h11.Request(method="POST", target="/a", headers=[("Host", "x"), ("Content-Length", "5")]))
+data += cli.send(h11.Data(data=b"abcde"))
+data += cli.send(h11.EndOfMessage())
+print(data)
+srv = h11.Connection(h11.SERVER)
+srv.receive_data(data)
+while True:
+    ev = srv.next_event()
+    print(type(ev).__name__, ev if not isinstance(ev, h11.Request) else (ev.method, ev.target, ev.headers))
+    if isinstance(ev, h11.EndOfMessage):
+        break
+print(srv.send(h11.Response(status_code=200, headers=[("Content-Length", "2")])))
+print(srv.send(h11.Data(data=b"ok")), srv.send(h11.EndOfMessage()))
+print(cli.our_state, srv.our_state)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-anyio"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q anyio; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import anyio
+
+
+async def worker(n, out):
+    await anyio.sleep(0)
+    out.append(n * n)
+
+
+async def main():
+    out = []
+    async with anyio.create_task_group() as tg:
+        for i in range(4):
+            tg.start_soon(worker, i, out)
+    print(sorted(out))
+    send, recv = anyio.create_memory_object_stream(2)
+    async with send, recv:
+        await send.send("msg")
+        print(await recv.receive())
+    with anyio.move_on_after(0.05) as scope:
+        await anyio.sleep(5)
+    print(scope.cancelled_caught)
+    return "fim"
+
+
+print(anyio.run(main))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-sniffio"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q sniffio; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import asyncio
+
+import sniffio
+
+try:
+    sniffio.current_async_library()
+except sniffio.AsyncLibraryNotFoundError as e:
+    print("fora:", type(e).__name__)
+
+
+async def main():
+    return sniffio.current_async_library()
+
+
+print(asyncio.run(main()))
+tok = sniffio.current_async_library_cvar.set("trio")
+print(sniffio.current_async_library())
+sniffio.current_async_library_cvar.reset(tok)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-openpyxl"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v /tmp/x.xlsx
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q openpyxl; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from openpyxl import Workbook, load_workbook
+
+wb = Workbook()
+ws = wb.active
+ws.title = "dados"
+ws.append(["nome", "qtd"])
+ws.append(["maçã", 3])
+ws.append(["pera", 12])
+ws["D1"] = "=SUM(B2:B3)"
+wb.save("/tmp/x.xlsx")
+
+wb2 = load_workbook("/tmp/x.xlsx")
+w = wb2["dados"]
+print(wb2.sheetnames, w.max_row, w.max_column, w.dimensions)
+for row in w.iter_rows(values_only=True):
+    print(row)
+print(w["D1"].value)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-et-xmlfile"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q et-xmlfile; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import io
+from xml.etree.ElementTree import Element
+
+from et_xmlfile import xmlfile
+
+buf = io.BytesIO()
+with xmlfile(buf) as xf:
+    with xf.element("raiz", {"v": "1"}):
+        xf.write(Element("filho", {"a": "x"}))
+        with xf.element("grupo"):
+            xf.write(Element("n"))
+print(buf.getvalue())
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-markdown"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q markdown; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import markdown
+
+src = """# Título
+
+Texto com *ênfase*, **negrito** e `código`.
+
+* um
+* dois
+
+1. a
+2. b
+
+[link](http://x.test/ "t")
+
+    bloco
+"""
+print(markdown.markdown(src))
+print(markdown.markdown("| a | b |\n|---|---|\n| 1 | 2 |", extensions=["tables"]))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-docutils"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q docutils; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from docutils.core import publish_parts
+
+src = """Título
+======
+
+Um parágrafo com *ênfase*, **negrito** e ``código``.
+
+- item um
+- item dois
+
+.. code-block:: python
+
+   x = 1
+"""
+parts = publish_parts(src, writer_name="html", settings_overrides={"report_level": 5, "halt_level": 5})
+print(parts["body"])
+print(parts["title"])
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-tqdm"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q tqdm; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import sys
+
+from tqdm import tqdm
+
+total = 0
+for i in tqdm(range(3), file=sys.stdout, bar_format="{n}/{total}", mininterval=0):
+    total += i
+print()
+print(total)
+with tqdm(total=4, file=sys.stdout, bar_format="{n}/{total}", mininterval=0) as bar:
+    bar.update(2)
+    bar.update(2)
+print()
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-colorama"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q colorama; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from colorama import Back, Fore, Style
+
+print(repr(Fore.RED), repr(Back.GREEN), repr(Style.BRIGHT), repr(Style.RESET_ALL))
+print(repr(Fore.RED + "x" + Style.RESET_ALL))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-pytest"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v /tmp/pt
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q pytest; echo "pip rc=$?"
+mkdir -p /tmp/pt
+cat > /tmp/pt/test_amostra.py <<'EOT'
+import pytest
+
+
+def soma(a, b):
+    return a + b
+
+
+def test_soma():
+    assert soma(1, 2) == 3
+
+
+@pytest.mark.parametrize("a,b,r", [(1, 1, 2), (2, 3, 5), (0, 0, 0)])
+def test_param(a, b, r):
+    assert soma(a, b) == r
+
+
+@pytest.fixture
+def lista():
+    return [1, 2, 3]
+
+
+def test_fixture(lista):
+    assert len(lista) == 3
+
+
+def test_falha():
+    assert soma(2, 2) == 5
+EOT
+cd /tmp/pt
+/tmp/v/bin/python -m pytest -q -p no:cacheprovider test_amostra.py 2>&1 | sed -E 's/in [0-9.]+s/in <t>s/'
+echo "pytest rc=${PIPESTATUS[0]}"
+/tmp/v/bin/python -m pytest -q -p no:cacheprovider -k "soma or param" test_amostra.py 2>&1 | sed -E 's/in [0-9.]+s/in <t>s/'
+echo "pytest rc=${PIPESTATUS[0]}"
+'''
+
+[[case]]
+id = "pip-smoke-pluggy"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q pluggy; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import pluggy
+
+hookspec = pluggy.HookspecMarker("demo")
+hookimpl = pluggy.HookimplMarker("demo")
+
+
+class Spec:
+    @hookspec
+    def calcula(self, x):
+        """Calcula algo a partir de x."""
+
+
+class A:
+    @hookimpl
+    def calcula(self, x):
+        return x + 1
+
+
+class B:
+    @hookimpl
+    def calcula(self, x):
+        return x * 10
+
+
+pm = pluggy.PluginManager("demo")
+pm.add_hookspecs(Spec)
+pm.register(A(), name="a")
+pm.register(B(), name="b")
+print(pm.hook.calcula(x=5))
+print(sorted(n for n, _ in pm.list_name_plugin()))
+pm.unregister(name="a")
+print(pm.hook.calcula(x=5))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-iniconfig"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q iniconfig; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import iniconfig
+
+data = "[geral]\nnome = demo\nvalor = 3\n\n[extra]\nk = v\n"
+ini = iniconfig.IniConfig("x.ini", data=data)
+print([s.name for s in ini], ini["geral"]["nome"], ini.get("geral", "valor", convert=int))
+print(dict(ini["extra"].items()))
+print(ini.get("geral", "nada", "padrao"))
+try:
+    iniconfig.IniConfig("y.ini", data="solto = 1\n")
+except iniconfig.ParseError as e:
+    print(type(e).__name__, e)
+PY
+echo "py rc=$?"
+'''

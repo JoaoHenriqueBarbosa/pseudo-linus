@@ -7,7 +7,7 @@ import sys
 SOURCE_SUFFIXES = ['.py']
 BYTECODE_SUFFIXES = ['.pyc']
 DEBUG_BYTECODE_SUFFIXES = OPTIMIZED_BYTECODE_SUFFIXES = BYTECODE_SUFFIXES
-EXTENSION_SUFFIXES = ['.cpython-313-x86_64-linux-gnu.so', '.abi3.so', '.abi3-x86_64-linux-gnu.so', '.so']
+EXTENSION_SUFFIXES = ['.cpython-313-x86_64-linux-gnu.so', '.abi3.so', '.so']
 
 MAGIC_NUMBER = (3571).to_bytes(2, 'little') + b'\r\n'
 
@@ -584,7 +584,9 @@ def _spec_for_module(name, file, is_package, frozen=False):
         spec = ModuleSpec(name, FrozenImporter, origin='frozen', is_package=is_package)
         spec.loader_state = types.SimpleNamespace(filename=file, origname=name)
         return spec
-    spec = ModuleSpec(name, SourceFileLoader(name, file), origin=file, is_package=is_package)
+    # Extensão (nativa em Rust ou mypyc executado pelo `.py` irmão): o `__file__` é o `.so`, como no CPython.
+    loader = ExtensionFileLoader(name, file) if file.endswith(tuple(EXTENSION_SUFFIXES)) else SourceFileLoader(name, file)
+    spec = ModuleSpec(name, loader, origin=file, is_package=is_package)
     spec._set_fileattr = True
     if is_package:
         import os.path

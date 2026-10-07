@@ -454,18 +454,23 @@ pub fn spawn_request(
 /// Monta o backend escolhido na configuração.
 pub fn backend_from_config(cfg: &crate::config::Config, index: usize) -> Result<Arc<dyn Backend>, String> {
     let _ = index;
-    make_backend(&cfg.backend, &cfg.isolation, cfg.cpus_per_worker)
+    let opts = KernelOptions { isolation: &cfg.isolation, cpus: cfg.cpus_per_worker, pypi_mirror: cfg.pypi_mirror.as_deref() };
+    make_backend(&cfg.backend, &opts)
+}
+
+/// O que o backend `kernel` precisa para subir: isolamento, CPUs simuladas e o diretório de wheels
+/// do espelho do PyPI (ausente, o sandbox não tem espelho).
+pub struct KernelOptions<'a> {
+    pub isolation: &'a crate::config::IsolationConfig,
+    pub cpus: usize,
+    pub pypi_mirror: Option<&'a std::path::Path>,
 }
 
 /// Monta um backend pelo nome (`kernel` ou `fake`).
-pub fn make_backend(
-    kind: &str,
-    isolation: &crate::config::IsolationConfig,
-    cpus: usize,
-) -> Result<Arc<dyn Backend>, String> {
+pub fn make_backend(kind: &str, opts: &KernelOptions) -> Result<Arc<dyn Backend>, String> {
     match kind {
         "fake" => fake_backend(),
-        "kernel" => kernel_backend(isolation, cpus),
+        "kernel" => kernel_backend(opts),
         other => Err(format!("backend desconhecido: {other}")),
     }
 }
@@ -481,13 +486,17 @@ pub fn programs() -> Vec<sysabi::Program> {
 }
 
 #[cfg(feature = "kernel")]
-fn kernel_backend(isolation: &crate::config::IsolationConfig, cpus: usize) -> Result<Arc<dyn Backend>, String> {
-    let profile = crate::isolation::IsolationProfile::new(isolation)?;
-    Ok(Arc::new(crate::kernel_backend::KernelBackend::new(cpus, profile, programs())))
+fn kernel_backend(opts: &KernelOptions) -> Result<Arc<dyn Backend>, String> {
+    let profile = crate::isolation::IsolationProfile::new(opts.isolation)?;
+    let mut backend = crate::kernel_backend::KernelBackend::new(opts.cpus, profile, programs());
+    if let Some(dir) = opts.pypi_mirror {
+        backend = backend.with_pypi_mirror(dir).map_err(|e| format!("espelho do PyPI {}: {}", dir.display(), crate::config::io_msg(&e)))?;
+    }
+    Ok(Arc::new(backend))
 }
 
 #[cfg(not(feature = "kernel"))]
-fn kernel_backend(_isolation: &crate::config::IsolationConfig, _cpus: usize) -> Result<Arc<dyn Backend>, String> {
+fn kernel_backend(_opts: &KernelOptions) -> Result<Arc<dyn Backend>, String> {
     Err("este build não tem o backend do kernel (feature kernel)".into())
 }
 

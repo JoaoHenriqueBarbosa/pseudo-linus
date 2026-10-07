@@ -2699,16 +2699,23 @@ impl Syscalls for Task {
 
     fn net_connect(&self, host: &[u8], port: u16, _timeout: Option<Duration>) -> SysResult<NetConn> {
         self.enter();
-        // O loopback é sempre alcançável: fala com quem escuta no sandbox. Fora dele, a política padrão é a
-        // allowlist vazia (nenhum destino liberado); a allowlist configurável entra no marco 3.
-        let ip: std::net::IpAddr = match host {
-            b"localhost" | b"127.0.0.1" | b"localhost.localdomain" => std::net::Ipv4Addr::LOCALHOST.into(),
-            b"::1" | b"ip6-localhost" | b"ip6-loopback" => std::net::Ipv6Addr::LOCALHOST.into(),
-            h if h.starts_with(b"127.") && std::str::from_utf8(h).is_ok_and(|s| s.parse::<std::net::Ipv4Addr>().is_ok()) => {
-                std::str::from_utf8(h).unwrap_or("127.0.0.1").parse::<std::net::Ipv4Addr>().unwrap_or(std::net::Ipv4Addr::LOCALHOST).into()
+        // O nome resolve como no glibc (`hosts: files`): um endereço literal vale como está; senão vale a
+        // primeira linha do /etc/hosts do sandbox que tem o nome. O loopback é sempre alcançável: fala com
+        // quem escuta no sandbox. Fora dele, a política padrão é a allowlist vazia (nenhum destino
+        // liberado); a allowlist configurável entra no marco 3.
+        let literal = std::str::from_utf8(host).ok().and_then(|h| h.parse::<std::net::IpAddr>().ok());
+        let ip = match literal {
+            Some(ip) => ip,
+            None => {
+                let hosts = crate::sandbox::SandboxFs { sb: &self.sb }.read_file(b"/etc/hosts").unwrap_or_default();
+                crate::net::lookup_hosts(&hosts, host)
+                    .or_else(|| host.eq_ignore_ascii_case(b"localhost.localdomain").then_some(std::net::Ipv4Addr::LOCALHOST.into()))
+                    .ok_or(Errno::EACCES)?
             }
-            _ => return Err(Errno::EACCES),
         };
+        if !ip.is_loopback() {
+            return Err(Errno::EACCES);
+        }
         let conn = self.sb.ports.connect(ip, port, || self.sock_pipe())?;
         let local = conn.local;
         let fd = self.install_sock(FileObj::Stream(conn), false, true)?;

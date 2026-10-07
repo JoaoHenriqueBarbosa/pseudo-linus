@@ -11,6 +11,7 @@ description = "Roda casos da bancada dentro do container do oráculo"
 anyhow.workspace = true
 harness.workspace = true
 serde_json.workspace = true
+mirror = { path = "../../../crates/mirror" }
 
 [lints]
 workspace = true

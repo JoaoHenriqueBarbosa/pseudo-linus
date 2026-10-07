@@ -309,6 +309,42 @@ fn p_scenario(ctx: &mut Ctx, args: &[OsString]) -> i32 {
             ));
             0
         }
+        "host-service" => {
+            let ip: std::net::IpAddr = "127.0.0.80".parse().unwrap();
+            let exchange = |fd: Fd, msg: &[u8]| {
+                write_all(fd, msg).unwrap();
+                s.tcp_shutdown(fd, false, true).unwrap();
+                String::from_utf8_lossy(&sys::read_to_end(fd).unwrap()).into_owned()
+            };
+            let (c, _) = s.tcp_connect_at(ip, 4443, false, true).unwrap();
+            let direct = exchange(c, b"ping");
+            // Pelo nome do /etc/hosts, como o curl e o wget chegam.
+            let named = exchange(s.net_connect(b"pypi.sandbox", 4443, None).unwrap().fd, b"named");
+            let other_ip = s.tcp_connect_at("127.0.0.1".parse().unwrap(), 4443, false, true).map(|_| ());
+            let busy = s.tcp_listen_at(ip, 4443, 4, false, true).map(|_| ());
+            let busy_any = s.tcp_listen(4443, 4, false, true).map(|_| ());
+            let free_other = s.tcp_listen_at("127.0.0.1".parse().unwrap(), 4443, 4, false, true).is_ok();
+            let tcp = String::from_utf8_lossy(&sys::read_file(b"/proc/net/tcp").unwrap()).into_owned();
+            let listed = tcp.lines().any(|l| l.contains("5000007F:115B 00000000:0000 0A"));
+            out(format!("{direct} {named} {other_ip:?} {busy:?} {busy_any:?} {free_other} {listed}\n"));
+            0
+        }
+        "net-names" => {
+            let show = |host: &[u8]| s.net_connect(host, 9, None).map(|_| ());
+            // Nenhum escuta na porta 9: o nome resolveu e o loopback respondeu recusando.
+            out(format!(
+                "{:?} {:?} {:?} {:?} {:?} {:?} {:?} {:?}\n",
+                show(b"localhost"),
+                show(b"LOCALHOST"),
+                show(b"ip6-loopback"),
+                show(b"::1"),
+                show(b"127.0.0.7"),
+                show(b"10.0.0.1"),
+                show(b"example.org"),
+                show(b"alias.test")
+            ));
+            0
+        }
         "threads" => {
             let (r, w) = s.pipe2(OFlags::empty()).unwrap();
             let mut tids = Vec::new();
@@ -552,6 +588,60 @@ fn tcp_loopback_listen_connect_shutdown() {
     let sb = sandbox();
     let r = run(&sb, &["scenario", "tcp"]);
     assert_eq!(text(&r.stdout), "HELLO TCP Err(EADDRINUSE) Err(ECONNREFUSED) true true true\n", "stderr: {}", text(&r.stderr));
+}
+
+#[test]
+fn host_service_serves_connections_from_the_sandbox() {
+    use std::io::{Read, Write};
+    let sb = sandbox();
+    // Eco em maiúsculas: lê até o FIN do convidado e responde; soltar o stream manda o FIN de volta.
+    sb.host_service(
+        "127.0.0.80".parse().unwrap(),
+        4443,
+        std::sync::Arc::new(|mut st: kernel::HostStream| {
+            let mut data = Vec::new();
+            st.read_to_end(&mut data).unwrap();
+            st.write_all(&data.to_ascii_uppercase()).unwrap();
+        }),
+    )
+    .unwrap();
+    // A porta é do serviço: o mesmo endereço não registra duas vezes.
+    let again = sb.host_service("127.0.0.80".parse().unwrap(), 4443, std::sync::Arc::new(|_s: kernel::HostStream| {}));
+    assert_eq!(again, Err(Errno::EADDRINUSE));
+    let r = run(&sb, &["scenario", "host-service"]);
+    assert_eq!(
+        text(&r.stdout),
+        "PING NAMED Err(ECONNREFUSED) Err(EADDRINUSE) Err(EADDRINUSE) true true\n",
+        "stderr: {}",
+        text(&r.stderr)
+    );
+}
+
+#[test]
+fn net_connect_resolves_names_by_etc_hosts() {
+    let sb = sandbox();
+    sb.fs().write_file(b"/etc/hosts", b"127.0.0.1\tlocalhost\n::1\tlocalhost ip6-localhost ip6-loopback\n# 10.9.9.9 commented\n127.0.0.9 other alias.test # c\n10.1.1.1 remote.test\n", 0o644).unwrap();
+    let r = run(&sb, &["scenario", "net-names"]);
+    assert_eq!(
+        text(&r.stdout),
+        "Err(ECONNREFUSED) Err(ECONNREFUSED) Err(ECONNREFUSED) Err(ECONNREFUSED) Err(ECONNREFUSED) Err(EACCES) Err(EACCES) Err(ECONNREFUSED)\n",
+        "stderr: {}",
+        text(&r.stderr)
+    );
+}
+
+#[test]
+fn image_has_the_pypi_mirror_client_files() {
+    let sb = sandbox();
+    let fs = sb.fs();
+    let ca: &[u8] = include_bytes!("../../mirror/certs/ca.crt");
+    assert!(text(&fs.read_file(b"/etc/hosts").unwrap()).ends_with("\n127.0.0.80\tpypi.sandbox\n"));
+    assert_eq!(fs.read_file(b"/etc/pip.conf").unwrap(), b"[global]\nindex-url = https://pypi.sandbox/simple/\n");
+    assert_eq!(fs.stat(b"/etc/pip.conf").unwrap().mode & 0o7777, 0o644);
+    assert_eq!(fs.read_file(b"/usr/local/share/ca-certificates/pypi-sandbox.crt").unwrap(), ca);
+    assert_eq!(fs.readlink(b"/etc/ssl/certs/pypi-sandbox.pem").unwrap(), b"/usr/local/share/ca-certificates/pypi-sandbox.crt");
+    assert_eq!(fs.readlink(b"/etc/ssl/certs/f1de26c0.0").unwrap(), b"pypi-sandbox.pem");
+    assert!(fs.read_file(b"/etc/ssl/certs/ca-certificates.crt").unwrap().ends_with(ca));
 }
 
 #[test]

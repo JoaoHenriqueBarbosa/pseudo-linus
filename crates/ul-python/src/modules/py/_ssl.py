@@ -1,14 +1,15 @@
 """_ssl: a parte em C do módulo `ssl` do CPython 3.13 (OpenSSL 3.5.7 do Debian 13).
 
 O `ssl.py` do CPython roda por cima deste módulo. Contextos, certificados, MemoryBIO e exceções
-seguem o `_ssl.c`; o handshake manda pela conexão TCP um ClientHello com a forma do OpenSSL 3.5
-(TLS 1.3, key share X25519MLKEM768 + X25519) e trata a resposta do par como ele: um par que não fala
-TLS recebe `WRONG_VERSION_NUMBER`, um par que fecha recebe `UNEXPECTED_EOF_WHILE_READING`. A troca
-de chaves e a cifragem do TLS ainda não existem aqui: um par que responde TLS de verdade recebe a
-recusa de quem não negociou cifra.
+seguem o `_ssl.c`. O cliente fala TLS 1.3 de verdade, em Python puro: troca de chaves X25519, AEAD
+ChaCha20-Poly1305 ou AES-128-GCM, validação da cadeia contra as CAs carregadas no contexto (ECDSA P-256 e
+P-384, RSA PKCS#1 e PSS) e conferência do nome por SAN. Um par que não fala TLS recebe
+`WRONG_VERSION_NUMBER`, um par que fecha recebe `UNEXPECTED_EOF_WHILE_READING`, e um alerta do par vira o
+erro que o OpenSSL dá a ele. O lado servidor ainda não negocia: recusa como quem não achou cifra.
 """
 
 import os as _os
+import hashlib as _hashlib
 import _socket
 
 OPENSSL_VERSION = 'OpenSSL 3.5.7 9 Jun 2026'
@@ -622,26 +623,22 @@ def _cipher_dict(entry):
 
 # --- ClientHello ----------------------------------------------------------------------------------
 
-_CIPHER_SUITES = bytes.fromhex(
-    '130213031301c02cc030009fcca9cca8ccaac02bc02f009ec024c028006bc023c0270067c00ac0140039c009c013'
-    '0033009d009c003d003c0035002f')
-_SIGALGS = bytes.fromhex(
-    '003409050906090404030503060308070808081a081b081c0809080a080b080408050806040105010601030303010302040205020602')
+# Os conjuntos de cifras do TLS 1.3 que o cliente sabe negociar: (nome, hash, tamanho da chave, AEAD, bits).
+_SUITES = {
+    0x1303: ('TLS_CHACHA20_POLY1305_SHA256', 'sha256', 32, 'chacha', 256),
+    0x1301: ('TLS_AES_128_GCM_SHA256', 'sha256', 16, 'aes', 128),
+}
+# Ordem de preferência na oferta: o ChaCha20 primeiro, porque em Python puro ele custa bem menos que o AES.
+_CIPHER_SUITES = b'\x13\x03\x13\x01'
+# ecdsa_secp256r1_sha256, ecdsa_secp384r1_sha384, rsa_pss_rsae_sha256/384/512.
+_SIGALGS = bytes.fromhex('000a04030503080408050806')
+_CERT_VERIFY_ALGS = {0x0403: ('ecdsa', 'sha256'), 0x0503: ('ecdsa', 'sha384'), 0x0804: ('pss', 'sha256'),
+                     0x0805: ('pss', 'sha384'), 0x0806: ('pss', 'sha512')}
+_HELLO_RETRY_RANDOM = bytes.fromhex('cf21ad74e59a6111be1d8c021e65b891c2a211167abb8c5e079e09e2c8a8339c')
 
 
 def _ext(kind, body):
     return kind.to_bytes(2, 'big') + len(body).to_bytes(2, 'big') + body
-
-
-def _mlkem768_public():
-    """Chave pública ML-KEM-768 bem formada: 768 coeficientes de 12 bits menores que q, mais rho."""
-    out = bytearray()
-    raw = _os.urandom(768 * 2)
-    coeffs = [int.from_bytes(raw[i:i + 2], 'little') % 3329 for i in range(0, len(raw), 2)]
-    for i in range(0, 768, 2):
-        a, b = coeffs[i], coeffs[i + 1]
-        out += bytes((a & 0xff, (a >> 8) | ((b & 0xf) << 4), b >> 4))
-    return bytes(out) + _os.urandom(32)
 
 
 def _is_ip(host):
@@ -652,29 +649,746 @@ def _is_ip(host):
 
 
 def _client_hello(server_hostname, alpn, options):
-    x25519 = bytearray(_os.urandom(32))
-    x25519[31] &= 0x7f
-    shares =b'\x11\xec\x04\xc0' + _mlkem768_public() + bytes(x25519) + b'\x00\x1d\x00\x20' + _os.urandom(32)
-    extensions = _ext(0xff01, b'\x00')
+    """O ClientHello do TLS 1.3 (registro inteiro, mensagem de handshake e a chave privada X25519 do key share)."""
+    priv = _os.urandom(32)
+    share = b'\x00\x1d\x00\x20' + _x25519(priv, _X25519_BASE)
+    extensions = b''
     if server_hostname and not _is_ip(server_hostname):
         host = server_hostname.encode('ascii')
         entry = b'\x00' + len(host).to_bytes(2, 'big') + host
         extensions += _ext(0, len(entry).to_bytes(2, 'big') + entry)
-    extensions += _ext(11, b'\x03\x00\x01\x02')
-    extensions += _ext(10, bytes.fromhex('001011ec001d0017001e0018001901000101'))
-    if not options & OP_NO_TICKET:
-        extensions += _ext(35, b'')
+    extensions += _ext(10, b'\x00\x02\x00\x1d')
+    extensions += _ext(13, _SIGALGS)
     if alpn:
         extensions += _ext(16, len(alpn).to_bytes(2, 'big') + alpn)
-    extensions += _ext(22, b'') + _ext(23, b'') + _ext(13, _SIGALGS)
-    extensions += _ext(43, b'\x04\x03\x04\x03\x03') + _ext(45, b'\x01\x01')
-    extensions += _ext(51, len(shares).to_bytes(2, 'big') + shares)
-    extensions += _ext(27, b'\x04\x00\x01\x00\x03')
+    extensions += _ext(43, b'\x02\x03\x04') + _ext(45, b'\x01\x01')
+    extensions += _ext(51, len(share).to_bytes(2, 'big') + share)
     body = (b'\x03\x03' + _os.urandom(32) + b'\x20' + _os.urandom(32)
             + len(_CIPHER_SUITES).to_bytes(2, 'big') + _CIPHER_SUITES + b'\x01\x00'
             + len(extensions).to_bytes(2, 'big') + extensions)
     handshake = b'\x01' + len(body).to_bytes(3, 'big') + body
-    return b'\x16\x03\x01' + len(handshake).to_bytes(2, 'big') + handshake
+    return b'\x16\x03\x01' + len(handshake).to_bytes(2, 'big') + handshake, handshake, priv
+
+
+# --- criptografia do TLS 1.3 (Python puro) --------------------------------------------------------
+
+def _hash(name, data):
+    return getattr(_hashlib, name)(data).digest()
+
+
+def _hmac(name, key, data):
+    block = 128 if name in ('sha384', 'sha512') else 64
+    if len(key) > block:
+        key = _hash(name, key)
+    key = key + bytes(block - len(key))
+    inner = _hash(name, bytes(b ^ 0x36 for b in key) + data)
+    return _hash(name, bytes(b ^ 0x5c for b in key) + inner)
+
+
+def _expand_label(name, secret, label, context, length):
+    """HKDF-Expand-Label do RFC 8446, seção 7.1."""
+    full = b'tls13 ' + label
+    info = length.to_bytes(2, 'big') + bytes([len(full)]) + full + bytes([len(context)]) + context
+    out = b''
+    block = b''
+    counter = 1
+    while len(out) < length:
+        block = _hmac(name, secret, block + info + bytes([counter]))
+        out += block
+        counter += 1
+    return out[:length]
+
+
+def _xor_bytes(a, b):
+    n = len(a)
+    return (int.from_bytes(a, 'big') ^ int.from_bytes(b[:n], 'big')).to_bytes(n, 'big')
+
+
+# X25519 (RFC 7748).
+_P25519 = (1 << 255) - 19
+_X25519_BASE = b'\x09' + bytes(31)
+
+
+def _x25519(k, u):
+    p = _P25519
+    k = bytearray(k)
+    k[0] &= 248
+    k[31] &= 127
+    k[31] |= 64
+    k = int.from_bytes(k, 'little')
+    x1 = int.from_bytes(u, 'little') & ((1 << 255) - 1)
+    x2, z2, x3, z3, swap = 1, 0, x1, 1, 0
+    for t in range(254, -1, -1):
+        kt = (k >> t) & 1
+        swap ^= kt
+        if swap:
+            x2, x3 = x3, x2
+            z2, z3 = z3, z2
+        swap = kt
+        a = (x2 + z2) % p
+        aa = a * a % p
+        b = (x2 - z2) % p
+        bb = b * b % p
+        e = (aa - bb) % p
+        c = (x3 + z3) % p
+        d = (x3 - z3) % p
+        da = d * a % p
+        cb = c * b % p
+        x3 = (da + cb) % p
+        x3 = x3 * x3 % p
+        z3 = (da - cb) % p
+        z3 = x1 * (z3 * z3 % p) % p
+        x2 = aa * bb % p
+        z2 = e * (aa + 121665 * e) % p
+    if swap:
+        x2, x3 = x3, x2
+        z2, z3 = z3, z2
+    return (x2 * pow(z2, p - 2, p) % p).to_bytes(32, 'little')
+
+
+# ChaCha20-Poly1305 (RFC 8439).
+_CHACHA_ROUNDS = ((0, 4, 8, 12), (1, 5, 9, 13), (2, 6, 10, 14), (3, 7, 11, 15),
+                  (0, 5, 10, 15), (1, 6, 11, 12), (2, 7, 8, 13), (3, 4, 9, 14))
+
+
+def _chacha_block(kw, counter, nw):
+    state = [0x61707865, 0x3320646e, 0x79622d32, 0x6b206574] + list(kw) + [counter & 0xffffffff] + list(nw)
+    x = list(state)
+    for _ in range(10):
+        for a, b, c, d in _CHACHA_ROUNDS:
+            x[a] = (x[a] + x[b]) & 0xffffffff
+            x[d] ^= x[a]
+            x[d] = ((x[d] << 16) | (x[d] >> 16)) & 0xffffffff
+            x[c] = (x[c] + x[d]) & 0xffffffff
+            x[b] ^= x[c]
+            x[b] = ((x[b] << 12) | (x[b] >> 20)) & 0xffffffff
+            x[a] = (x[a] + x[b]) & 0xffffffff
+            x[d] ^= x[a]
+            x[d] = ((x[d] << 8) | (x[d] >> 24)) & 0xffffffff
+            x[c] = (x[c] + x[d]) & 0xffffffff
+            x[b] ^= x[c]
+            x[b] = ((x[b] << 7) | (x[b] >> 25)) & 0xffffffff
+    return b''.join(((x[i] + state[i]) & 0xffffffff).to_bytes(4, 'little') for i in range(16))
+
+
+def _chacha_xor(kw, counter, nw, data):
+    out = bytearray()
+    for i in range(0, len(data), 64):
+        stream = _chacha_block(kw, counter + i // 64, nw)
+        chunk = data[i:i + 64]
+        out += (int.from_bytes(chunk, 'little') ^ int.from_bytes(stream[:len(chunk)], 'little')).to_bytes(
+            len(chunk), 'little')
+    return bytes(out)
+
+
+def _poly1305(key, msg):
+    r = int.from_bytes(key[:16], 'little') & 0x0ffffffc0ffffffc0ffffffc0fffffff
+    s = int.from_bytes(key[16:32], 'little')
+    p = (1 << 130) - 5
+    acc = 0
+    for i in range(0, len(msg), 16):
+        acc = (acc + int.from_bytes(msg[i:i + 16] + b'\x01', 'little')) * r % p
+    return ((acc + s) & ((1 << 128) - 1)).to_bytes(16, 'little')
+
+
+def _chacha_tag(kw, nw, aad, ct):
+    otk = _chacha_block(kw, 0, nw)[:32]
+    pad_a = bytes((-len(aad)) % 16)
+    pad_c = bytes((-len(ct)) % 16)
+    return _poly1305(otk, aad + pad_a + ct + pad_c + len(aad).to_bytes(8, 'little') + len(ct).to_bytes(8, 'little'))
+
+
+def _chacha_seal(kw, nonce, aad, plain):
+    nw = [int.from_bytes(nonce[i:i + 4], 'little') for i in (0, 4, 8)]
+    ct = _chacha_xor(kw, 1, nw, plain)
+    return ct + _chacha_tag(kw, nw, aad, ct)
+
+
+def _chacha_open(kw, nonce, aad, data):
+    if len(data) < 16:
+        return None
+    nw = [int.from_bytes(nonce[i:i + 4], 'little') for i in (0, 4, 8)]
+    ct, tag = data[:-16], data[-16:]
+    if _chacha_tag(kw, nw, aad, ct) != tag:
+        return None
+    return _chacha_xor(kw, 1, nw, ct)
+
+
+# AES e GCM (FIPS 197, SP 800-38D).
+_AES_TABLES = []
+
+
+def _aes_tables():
+    if _AES_TABLES:
+        return _AES_TABLES
+    sbox = [0] * 256
+    p = q = 1
+    while True:
+        p = (p ^ ((p << 1) & 0xff) ^ (0x1b if p & 0x80 else 0)) & 0xff
+        q = (q ^ (q << 1)) & 0xff
+        q = (q ^ (q << 2)) & 0xff
+        q = (q ^ (q << 4)) & 0xff
+        if q & 0x80:
+            q ^= 0x09
+        x = q
+        for shift in (1, 2, 3, 4):
+            x ^= ((q << shift) | (q >> (8 - shift))) & 0xff
+        sbox[p] = (x ^ 0x63) & 0xff
+        if p == 1:
+            break
+    sbox[0] = 0x63
+    mul2 = [(((b << 1) ^ 0x1b) & 0xff) if b & 0x80 else b << 1 for b in range(256)]
+    mul3 = [mul2[b] ^ b for b in range(256)]
+    _AES_TABLES.extend((sbox, mul2, mul3))
+    return _AES_TABLES
+
+
+def _aes_expand(key):
+    sbox, mul2, _ = _aes_tables()
+    nk = len(key) // 4
+    rounds = nk + 6
+    words = [list(key[4 * i:4 * i + 4]) for i in range(nk)]
+    rcon = 1
+    for i in range(nk, 4 * (rounds + 1)):
+        t = list(words[i - 1])
+        if i % nk == 0:
+            t = [sbox[b] for b in t[1:] + t[:1]]
+            t[0] ^= rcon
+            rcon = mul2[rcon]
+        elif nk > 6 and i % nk == 4:
+            t = [sbox[b] for b in t]
+        words.append([words[i - nk][j] ^ t[j] for j in range(4)])
+    keys = []
+    for r in range(rounds + 1):
+        flat = []
+        for w in words[4 * r:4 * r + 4]:
+            flat += w
+        keys.append(flat)
+    return keys
+
+
+def _aes_encrypt_block(round_keys, block):
+    sbox, mul2, mul3 = _aes_tables()
+    state = [b ^ k for b, k in zip(block, round_keys[0])]
+    last = len(round_keys) - 1
+    for rnd in range(1, last + 1):
+        state = [sbox[b] for b in state]
+        state = [state[(i % 4) + 4 * (((i // 4) + (i % 4)) % 4)] for i in range(16)]
+        if rnd < last:
+            mixed = []
+            for c in range(0, 16, 4):
+                a0, a1, a2, a3 = state[c:c + 4]
+                mixed += [mul2[a0] ^ mul3[a1] ^ a2 ^ a3, a0 ^ mul2[a1] ^ mul3[a2] ^ a3,
+                          a0 ^ a1 ^ mul2[a2] ^ mul3[a3], mul3[a0] ^ a1 ^ a2 ^ mul2[a3]]
+            state = mixed
+        state = [b ^ k for b, k in zip(state, round_keys[rnd])]
+    return bytes(state)
+
+
+_GCM_R = 0xe1 << 120
+
+
+def _gcm_shift(v):
+    return (v >> 1) ^ (_GCM_R if v & 1 else 0)
+
+
+def _gcm_reduction():
+    out = []
+    for r in range(16):
+        t = r
+        for _ in range(4):
+            t = _gcm_shift(t)
+        out.append(t)
+    return out
+
+
+_GCM_RED = _gcm_reduction()
+
+
+def _ghash_table(h):
+    """Tabela de 4 bits do método de Shoup: `m[n]` é `n * h` no corpo do GCM."""
+    base = {8: h}
+    base[4] = _gcm_shift(h)
+    base[2] = _gcm_shift(base[4])
+    base[1] = _gcm_shift(base[2])
+    table = []
+    for n in range(16):
+        v = 0
+        for bit in (8, 4, 2, 1):
+            if n & bit:
+                v ^= base[bit]
+        table.append(v)
+    return table
+
+
+def _ghash_mul(table, x):
+    z = 0
+    for shift in range(0, 128, 4):
+        z = (z >> 4) ^ _GCM_RED[z & 0xf] ^ table[(x >> shift) & 0xf]
+    return z
+
+
+def _ghash(table, aad, ct):
+    y = 0
+    for part in (aad, ct):
+        for i in range(0, len(part), 16):
+            block = part[i:i + 16]
+            if len(block) < 16:
+                block = block + bytes(16 - len(block))
+            y = _ghash_mul(table, y ^ int.from_bytes(block, 'big'))
+    return _ghash_mul(table, y ^ (((len(aad) * 8) << 64) | (len(ct) * 8)))
+
+
+def _gcm_ctr(round_keys, nonce, data):
+    out = bytearray()
+    for i in range(0, len(data), 16):
+        stream = _aes_encrypt_block(round_keys, nonce + (2 + i // 16).to_bytes(4, 'big'))
+        chunk = data[i:i + 16]
+        out += (int.from_bytes(chunk, 'big') ^ int.from_bytes(stream[:len(chunk)], 'big')).to_bytes(
+            len(chunk), 'big')
+    return bytes(out)
+
+
+def _gcm_tag(round_keys, table, nonce, aad, ct):
+    mask = _aes_encrypt_block(round_keys, nonce + b'\x00\x00\x00\x01')
+    return _xor_bytes(mask, _ghash(table, aad, ct).to_bytes(16, 'big'))
+
+
+class _Keys:
+    """Chaves de tráfego de um sentido (RFC 8446, seção 7.3) e o número de sequência dos registros."""
+
+    def __init__(self, suite, secret):
+        _, hash_name, key_len, kind, _ = _SUITES[suite]
+        self.suite = suite
+        self.secret = secret
+        self.hash_name = hash_name
+        self.kind = kind
+        key = _expand_label(hash_name, secret, b'key', b'', key_len)
+        self.iv = _expand_label(hash_name, secret, b'iv', b'', 12)
+        self.seq = 0
+        if kind == 'chacha':
+            self.chacha_words = [int.from_bytes(key[i:i + 4], 'little') for i in range(0, 32, 4)]
+        else:
+            self.round_keys = _aes_expand(key)
+            self.table = _ghash_table(int.from_bytes(_aes_encrypt_block(self.round_keys, bytes(16)), 'big'))
+
+    def _nonce(self):
+        nonce = (int.from_bytes(self.iv, 'big') ^ self.seq).to_bytes(12, 'big')
+        self.seq += 1
+        return nonce
+
+    def seal(self, plain, aad):
+        nonce = self._nonce()
+        if self.kind == 'chacha':
+            return _chacha_seal(self.chacha_words, nonce, aad, plain)
+        ct = _gcm_ctr(self.round_keys, nonce, plain)
+        return ct + _gcm_tag(self.round_keys, self.table, nonce, aad, ct)
+
+    def open(self, data, aad):
+        """O texto claro, ou `None` quando a etiqueta de autenticação não confere."""
+        nonce = self._nonce()
+        if self.kind == 'chacha':
+            return _chacha_open(self.chacha_words, nonce, aad, data)
+        if len(data) < 16:
+            return None
+        ct, tag = data[:-16], data[-16:]
+        if _gcm_tag(self.round_keys, self.table, nonce, aad, ct) != tag:
+            return None
+        return _gcm_ctr(self.round_keys, nonce, ct)
+
+    def update(self):
+        """As chaves do KeyUpdate (RFC 8446, seção 7.2)."""
+        return _Keys(self.suite, _expand_label(self.hash_name, self.secret, b'traffic upd', b'', len(self.secret)))
+
+
+# --- curvas elípticas e RSA (verificação de assinatura) -------------------------------------------
+
+class _Curve:
+    """Curva de Weierstrass `y^2 = x^3 - 3x + b` sobre o corpo primo `p`, em coordenadas jacobianas."""
+
+    def __init__(self, p, n, b, gx, gy):
+        self.p = p
+        self.n = n
+        self.b = b
+        self.g = (gx, gy)
+        self.valid = (gy * gy - (gx * gx * gx - 3 * gx + b)) % p == 0
+
+    def _double(self, point):
+        x, y, z = point
+        p = self.p
+        if z == 0 or y == 0:
+            return (1, 1, 0)
+        delta = z * z % p
+        gamma = y * y % p
+        beta = x * gamma % p
+        alpha = 3 * (x - delta) * (x + delta) % p
+        x3 = (alpha * alpha - 8 * beta) % p
+        z3 = ((y + z) * (y + z) - gamma - delta) % p
+        y3 = (alpha * (4 * beta - x3) - 8 * gamma * gamma) % p
+        return (x3, y3, z3)
+
+    def _add(self, a, b):
+        x1, y1, z1 = a
+        x2, y2, z2 = b
+        p = self.p
+        if z1 == 0:
+            return b
+        if z2 == 0:
+            return a
+        z1z1 = z1 * z1 % p
+        z2z2 = z2 * z2 % p
+        u1 = x1 * z2z2 % p
+        u2 = x2 * z1z1 % p
+        s1 = y1 * z2 * z2z2 % p
+        s2 = y2 * z1 * z1z1 % p
+        if u1 == u2:
+            if s1 == s2:
+                return self._double(a)
+            return (1, 1, 0)
+        h = (u2 - u1) % p
+        i = (2 * h) * (2 * h) % p
+        j = h * i % p
+        r = 2 * (s2 - s1) % p
+        v = u1 * i % p
+        x3 = (r * r - j - 2 * v) % p
+        y3 = (r * (v - x3) - 2 * s1 * j) % p
+        z3 = (((z1 + z2) * (z1 + z2) - z1z1 - z2z2) * h) % p
+        return (x3, y3, z3)
+
+    def _mul(self, k, point):
+        result = (1, 1, 0)
+        for i in range(k.bit_length() - 1, -1, -1):
+            result = self._double(result)
+            if (k >> i) & 1:
+                result = self._add(result, point)
+        return result
+
+    def verify(self, q, digest, r, s):
+        """ECDSA (FIPS 186-4): `q` é a chave pública `(x, y)`, `digest` o resumo da mensagem."""
+        n, p = self.n, self.p
+        if not (0 < r < n and 0 < s < n):
+            return False
+        qx, qy = q
+        if not (0 <= qx < p and 0 <= qy < p) or (qy * qy - (qx * qx * qx - 3 * qx + self.b)) % p != 0:
+            return False
+        e = int.from_bytes(digest, 'big')
+        extra = len(digest) * 8 - n.bit_length()
+        if extra > 0:
+            e >>= extra
+        w = pow(s, n - 2, n)
+        u1 = e * w % n
+        u2 = r * w % n
+        point = self._add(self._mul(u1, (self.g[0], self.g[1], 1)), self._mul(u2, (qx, qy, 1)))
+        if point[2] == 0:
+            return False
+        zinv = pow(point[2], p - 2, p)
+        return point[0] * zinv * zinv % p % n == r
+
+
+_CURVES = {}
+
+
+def _curve(oid):
+    """A curva de um OID de `namedCurve` (P-256 ou P-384), ou `None` se não for suportada."""
+    if not _CURVES:
+        _CURVES['1.2.840.10045.3.1.7'] = _Curve(
+            0xffffffff00000001000000000000000000000000ffffffffffffffffffffffff,
+            0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551,
+            0x5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604b,
+            0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296,
+            0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5)
+        _CURVES['1.3.132.0.34'] = _Curve(
+            (1 << 384) - (1 << 128) - (1 << 96) + (1 << 32) - 1,
+            0xffffffffffffffffffffffffffffffffffffffffffffffffc7634d81f4372ddf581a0db248b0a77aecec196accc52973,
+            0xb3312fa7e23ee7e4988e056be3f82d19181d9c6efe8141120314088f5013875ac656398d8a2ed19d2a85c8edd3ec2aef,
+            0xaa87ca22be8b05378eb1c71ef320ad746e1d3b628ba79b9859f741e082542a385502f25dbf55296c3a545e3872760ab7,
+            0x3617de4a96262c6f5d9e98bf9292dc29f8f41dbd289a147ce9da3113b5f0b8c00a60b1ce1d7e819d7a431d7c90ea0e5f)
+    found = _CURVES.get(oid)
+    if found is not None and not found.valid:
+        return None
+    return found
+
+
+_DIGEST_INFO = {
+    'sha1': bytes.fromhex('3021300906052b0e03021a05000414'),
+    'sha256': bytes.fromhex('3031300d060960864801650304020105000420'),
+    'sha384': bytes.fromhex('3041300d060960864801650304020205000430'),
+    'sha512': bytes.fromhex('3051300d060960864801650304020305000440'),
+}
+
+
+def _mgf1(name, seed, length):
+    out = b''
+    counter = 0
+    while len(out) < length:
+        out += _hash(name, seed + counter.to_bytes(4, 'big'))
+        counter += 1
+    return out[:length]
+
+
+def _rsa_public(bits):
+    """`(n, e)` de uma chave `RSAPublicKey` em DER."""
+    _, start, end = _der_read(bits, 0)
+    (_, ns, ne), (_, es, ee) = _der_children(bits, start, end)[:2]
+    return int.from_bytes(bits[ns:ne], 'big'), int.from_bytes(bits[es:ee], 'big')
+
+
+def _rsa_pkcs1_verify(n, e, name, msg, sig):
+    size = (n.bit_length() + 7) // 8
+    value = int.from_bytes(sig, 'big')
+    if len(sig) != size or value >= n or name not in _DIGEST_INFO:
+        return False
+    block = pow(value, e, n).to_bytes(size, 'big')
+    tail = _DIGEST_INFO[name] + _hash(name, msg)
+    return block == b'\x00\x01' + b'\xff' * (size - len(tail) - 3) + b'\x00' + tail
+
+
+def _rsa_pss_verify(n, e, name, msg, sig):
+    """RSASSA-PSS com MGF1 do mesmo hash e sal do tamanho do hash, como o TLS 1.3 exige."""
+    hlen = len(_hash(name, b''))
+    mod_bits = n.bit_length()
+    value = int.from_bytes(sig, 'big')
+    if len(sig) != (mod_bits + 7) // 8 or value >= n:
+        return False
+    em_bits = mod_bits - 1
+    em_len = (em_bits + 7) // 8
+    em_value = pow(value, e, n)
+    if em_value.bit_length() > em_bits or em_len < 2 * hlen + 2:
+        return False
+    em = em_value.to_bytes(em_len, 'big')
+    if em[-1] != 0xbc:
+        return False
+    masked, digest = em[:em_len - hlen - 1], em[em_len - hlen - 1:-1]
+    top = 8 * em_len - em_bits
+    if top and masked[0] >> (8 - top):
+        return False
+    block = bytearray(a ^ b for a, b in zip(masked, _mgf1(name, digest, len(masked))))
+    if top:
+        block[0] &= 0xff >> top
+    pad = em_len - 2 * hlen - 2
+    if any(block[:pad]) or block[pad] != 1:
+        return False
+    salt = bytes(block[pad + 1:])
+    return _hash(name, bytes(8) + _hash(name, msg) + salt) == digest
+
+
+def _asn1_epoch(tag, raw):
+    """UTCTime ou GeneralizedTime em segundos desde 1970."""
+    text = raw.decode('ascii')
+    if tag == 0x17:
+        year = int(text[0:2])
+        year += 1900 if year >= 50 else 2000
+        rest = text[2:]
+    else:
+        year = int(text[0:4])
+        rest = text[4:]
+    month, day, hour, minute = int(rest[0:2]), int(rest[2:4]), int(rest[4:6]), int(rest[6:8])
+    second = int(rest[8:10]) if rest[8:10].isdigit() else 0
+    if month <= 2:
+        year -= 1
+    era = year // 400
+    yoe = year - era * 400
+    doy = (153 * (month + (-3 if month > 2 else 9)) + 2) // 5 + day - 1
+    days = era * 146097 + yoe * 365 + yoe // 4 - yoe // 100 + doy - 719468
+    return days * 86400 + hour * 3600 + minute * 60 + second
+
+
+# Algoritmos de assinatura de certificado: OID -> (tipo, hash).
+_CERT_SIG_OIDS = {
+    '1.2.840.10045.4.3.2': ('ecdsa', 'sha256'), '1.2.840.10045.4.3.3': ('ecdsa', 'sha384'),
+    '1.2.840.10045.4.3.4': ('ecdsa', 'sha512'), '1.2.840.113549.1.1.5': ('rsa', 'sha1'),
+    '1.2.840.113549.1.1.11': ('rsa', 'sha256'), '1.2.840.113549.1.1.12': ('rsa', 'sha384'),
+    '1.2.840.113549.1.1.13': ('rsa', 'sha512'),
+}
+
+
+class _X509:
+    """O que a validação da cadeia precisa de um certificado DER."""
+
+    def __init__(self, der):
+        d = self.der = bytes(der)
+        _, cs, _ = _der_read(d, 0)
+        _, tcs, tce = _der_read(d, cs)
+        self.tbs = d[cs:tce]
+        _, acs, ace = _der_read(d, tce)
+        alg = _der_children(d, acs, ace)
+        self.sig_oid = _oid_text(d[alg[0][1]:alg[0][2]])
+        _, bcs, bce = _der_read(d, ace)
+        self.sig = d[bcs + 1:bce]
+        fields = []
+        pos = tcs
+        while pos < tce:
+            tag, start, end = _der_read(d, pos)
+            fields.append((tag, pos, start, end))
+            pos = end
+        i = 1 if fields[0][0] == 0xa0 else 0
+        self.issuer = d[fields[i + 2][1]:fields[i + 2][3]]
+        self.subject = d[fields[i + 4][1]:fields[i + 4][3]]
+        validity = _der_children(d, fields[i + 3][2], fields[i + 3][3])
+        self.not_before = _asn1_epoch(validity[0][0], d[validity[0][1]:validity[0][2]])
+        self.not_after = _asn1_epoch(validity[1][0], d[validity[1][1]:validity[1][2]])
+        spki = _der_children(d, fields[i + 5][2], fields[i + 5][3])
+        key_alg = _der_children(d, spki[0][1], spki[0][2])
+        self.key_oid = _oid_text(d[key_alg[0][1]:key_alg[0][2]])
+        self.key_param = None
+        if len(key_alg) > 1 and key_alg[1][0] == 0x06:
+            self.key_param = _oid_text(d[key_alg[1][1]:key_alg[1][2]])
+        self.key_bits = d[spki[1][1] + 1:spki[1][2]]
+        self.is_ca = None
+        self.names = []
+        self.common_name = None
+        for rdn in _name_tuple(d, fields[i + 4][2], fields[i + 4][3]):
+            for key, value in rdn:
+                if key == 'commonName' and self.common_name is None:
+                    self.common_name = value
+        for tag, _, start, end in fields[i + 6:]:
+            if tag != 0xa3:
+                continue
+            (_, sstart, send), = _der_children(d, start, end)[:1]
+            for _, xstart, xend in _der_children(d, sstart, send):
+                parts = _der_children(d, xstart, xend)
+                oid = _oid_text(d[parts[0][1]:parts[0][2]])
+                value_start = parts[-1][1]
+                if oid == '2.5.29.17':
+                    _, gstart, gend = _der_read(d, value_start)
+                    self.names = _general_names(d, gstart, gend)
+                elif oid == '2.5.29.19':
+                    _, bstart, bend = _der_read(d, value_start)
+                    kids = _der_children(d, bstart, bend)
+                    self.is_ca = bool(kids and kids[0][0] == 1 and d[kids[0][1]] != 0)
+
+    def verify(self, kind, name, msg, sig):
+        """Confere `sig` sobre `msg` com a chave pública deste certificado."""
+        if kind == 'ecdsa':
+            curve = _curve(self.key_param) if self.key_oid == '1.2.840.10045.2.1' else None
+            if curve is None:
+                return False
+            size = (curve.n.bit_length() + 7) // 8
+            bits = self.key_bits
+            if len(bits) != 1 + 2 * size or bits[0] != 4:
+                return False
+            try:
+                _, start, end = _der_read(sig, 0)
+                (_, rs, re_), (_, ss, se) = _der_children(sig, start, end)[:2]
+            except (IndexError, ValueError):
+                return False
+            point = (int.from_bytes(bits[1:1 + size], 'big'), int.from_bytes(bits[1 + size:], 'big'))
+            return curve.verify(point, _hash(name, msg), int.from_bytes(sig[rs:re_], 'big'),
+                                int.from_bytes(sig[ss:se], 'big'))
+        if self.key_oid != '1.2.840.113549.1.1.1':
+            return False
+        try:
+            n, e = _rsa_public(self.key_bits)
+        except (IndexError, ValueError):
+            return False
+        if kind == 'pss':
+            return _rsa_pss_verify(n, e, name, msg, sig)
+        return _rsa_pkcs1_verify(n, e, name, msg, sig)
+
+    def signed_by(self, issuer):
+        spec = _CERT_SIG_OIDS.get(self.sig_oid)
+        return spec is not None and issuer.verify(spec[0], spec[1], self.tbs, self.sig)
+
+
+def _dns_match(pattern, host):
+    pattern = pattern.rstrip('.').lower()
+    if '*' not in pattern:
+        return pattern == host
+    # Só `*` como o rótulo inteiro à esquerda (HOSTFLAG_NO_PARTIAL_WILDCARDS), com ao menos dois rótulos depois.
+    if not pattern.startswith('*.') or pattern.count('*') != 1 or '.' not in pattern[2:]:
+        return False
+    first, _, rest = host.partition('.')
+    return bool(first) and rest == pattern[2:]
+
+
+def _same_ip(a, b):
+    try:
+        fam_a = _socket.AF_INET6 if ':' in a else _socket.AF_INET
+        fam_b = _socket.AF_INET6 if ':' in b else _socket.AF_INET
+        return fam_a == fam_b and _socket.inet_pton(fam_a, a) == _socket.inet_pton(fam_b, b)
+    except OSError:
+        return False
+
+
+def _cert_matches_host(cert, host):
+    """Os nomes do certificado cobrem `host` (SAN; o CN só vale sem nenhum SAN DNS)."""
+    if _is_ip(host):
+        return any(kind == 'IP Address' and _same_ip(value, host) for kind, value in cert.names)
+    host = host.rstrip('.').lower()
+    dns = [value for kind, value in cert.names if kind == 'DNS']
+    if not dns and cert.common_name:
+        dns = [cert.common_name]
+    return any(_dns_match(pattern, host) for pattern in dns)
+
+
+def _verify_failure(code, message):
+    """O `SSLCertVerificationError` do `_ssl.c`, com `verify_code` e `verify_message`."""
+    err = SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: %s (_ssl.c:1029)'
+                                   % message)
+    err.library = 'SSL'
+    err.reason = 'CERTIFICATE_VERIFY_FAILED'
+    err.verify_code = code
+    err.verify_message = message
+    return err
+
+
+# Código de erro do X509 -> alerta TLS que o OpenSSL manda ao par.
+_VERIFY_ALERTS = {20: 48, 18: 48, 19: 48, 2: 48, 10: 45, 9: 45, 7: 42, 24: 42, 22: 42, 62: 42, 64: 42}
+
+
+def _verify_chain(context, certs, host):
+    """Valida a cadeia que o servidor mandou contra as CAs do contexto; levanta `SSLCertVerificationError`."""
+    import time
+    now = time.time()
+    chain = [_X509(der) for der in certs]
+    anchors = context._trust_index()
+    pool = chain[1:]
+    current = chain[0]
+    path = [current]
+    depth = 0
+    while True:
+        if current.not_after < now:
+            raise _verify_failure(10, 'certificate has expired')
+        if current.not_before > now:
+            raise _verify_failure(9, 'certificate is not yet valid')
+        if any(a.der == current.der for a in anchors.get(current.subject, ())):
+            break
+        issuer = None
+        for candidate in context._trusted_issuers(current.issuer):
+            if current.signed_by(candidate):
+                issuer = candidate
+                break
+        if issuer is not None:
+            if issuer.is_ca is False:
+                raise _verify_failure(24, 'invalid CA certificate')
+            if issuer.not_after < now:
+                raise _verify_failure(10, 'certificate has expired')
+            if issuer.not_before > now:
+                raise _verify_failure(9, 'certificate is not yet valid')
+            break
+        following = None
+        for candidate in pool:
+            if candidate.subject == current.issuer and candidate not in path and current.signed_by(candidate):
+                following = candidate
+                break
+        if following is None:
+            if current.subject == current.issuer:
+                raise _verify_failure(18 if depth == 0 else 19, 'self-signed certificate' if depth == 0
+                                      else 'self-signed certificate in certificate chain')
+            raise _verify_failure(20, 'unable to get local issuer certificate')
+        if following.is_ca is False:
+            raise _verify_failure(24, 'invalid CA certificate')
+        path.append(following)
+        current = following
+        depth += 1
+        if depth > 9:
+            raise _verify_failure(22, 'certificate chain too long')
+    if host:
+        if not _cert_matches_host(chain[0], host):
+            if _is_ip(host):
+                raise _verify_failure(64, "IP address mismatch, certificate is not valid for '%s'." % host)
+            raise _verify_failure(62, "Hostname mismatch, certificate is not valid for '%s'." % host)
+    return path
 
 
 # --- contexto -------------------------------------------------------------------------------------
@@ -708,6 +1422,9 @@ class _SSLContext:
         self._msg_cb = None
         self._alpn = b''
         self._ca = []
+        self._capaths = []
+        self._trust = None
+        self._capath_loaded = False
         self._certs = 0
         self._cert_chain = False
         self._ciphers = _DEFAULT_CIPHERS
@@ -858,6 +1575,39 @@ class _SSLContext:
         for der in ders:
             if der not in self._ca:
                 self._ca.append(der)
+        self._trust = None
+
+    def _trust_index(self):
+        """As CAs confiáveis do contexto, indexadas pelo nome do titular (DER)."""
+        if self._trust is None:
+            index = {}
+            for der in self._ca:
+                try:
+                    cert = _X509(der)
+                except (IndexError, ValueError):
+                    continue
+                index.setdefault(cert.subject, []).append(cert)
+            self._trust = index
+        return self._trust
+
+    def _trusted_issuers(self, subject):
+        """As CAs de nome `subject`; sem nenhuma, procura também nos diretórios de `capath`."""
+        found = self._trust_index().get(subject, ())
+        if not found and self._capaths and not self._capath_loaded:
+            self._capath_loaded = True
+            for path in self._capaths:
+                try:
+                    names = sorted(_os.listdir(path))
+                except OSError:
+                    continue
+                for name in names:
+                    try:
+                        text = self._load_pem_file(_os.path.join(path, name))
+                        self._add_certificates(_pem_certificates(text))
+                    except (OSError, ValueError):
+                        continue
+            found = self._trust_index().get(subject, ())
+        return found
 
     def load_verify_locations(self, cafile=None, capath=None, cadata=None):
         if cafile is None and capath is None and cadata is None:
@@ -885,6 +1635,9 @@ class _SSLContext:
             self._add_certificates(ders)
         if capath is not None and not _os.path.isdir(capath):
             raise FileNotFoundError(2, 'No such file or directory')
+        if capath is not None and capath not in self._capaths:
+            self._capaths.append(capath)
+            self._capath_loaded = False
 
     def set_default_verify_paths(self):
         cafile = _os.environ.get('SSL_CERT_FILE', _OPENSSLDIR + '/cert.pem')
@@ -892,6 +1645,11 @@ class _SSLContext:
             self._add_certificates(_pem_certificates(self._load_pem_file(cafile)))
         except OSError:
             pass
+        # No Debian o cafile padrão não existe: as CAs vêm do diretório de hash (`certs`), lido sob demanda.
+        capath = _os.environ.get('SSL_CERT_DIR', _OPENSSLDIR + '/certs')
+        if _os.path.isdir(capath) and capath not in self._capaths:
+            self._capaths.append(capath)
+            self._capath_loaded = False
 
     def load_cert_chain(self, certfile, keyfile=None, password=None):
         certfile = _os.fspath(certfile)
@@ -1019,6 +1777,21 @@ class _SSLSocket:
         self._session = session
         self._sent_hello = False
         self._failed = None
+        # Estado do TLS do cliente: bytes crus recebidos, texto claro ainda não lido, mensagens de handshake
+        # em remontagem, as chaves de cada sentido e o que o handshake aprendeu do par.
+        self._rbuf = bytearray()
+        self._plain = bytearray()
+        self._hsbuf = bytearray()
+        self._stage = 'server_hello'
+        self._rkeys = None
+        self._wkeys = None
+        self._suite = None
+        self._transcript = bytearray()
+        self._shutdown_seen = False
+        self._peer_certs = None
+        self._peer_chain = None
+        self._alpn_selected = None
+        self._cert_requested = False
         return self
 
     @property
@@ -1088,54 +1861,382 @@ class _SSLSocket:
             if head[0] == 0x16 and head[1] == 3:
                 self._fail(_ssl_error(SSLError, 1, 'SSL', 'NO_SHARED_CIPHER', 'no shared cipher', 1029))
             self._fail(_ssl_error(SSLError, 1, 'SSL', 'WRONG_VERSION_NUMBER', 'wrong version number', 1029))
-        if not self._sent_hello:
-            alpn = self._context._alpn
-            self._send(_client_hello(self.server_hostname, alpn, self._context._options))
-            self._sent_hello = True
-        if self._sock is None and not self._incoming._eof_written:
-            # Pelo MemoryBIO, o registro (e o alerta inteiro) precisa estar lá antes de ser consumido.
-            buf = self._incoming._buf
-            if len(buf) < 5 or (buf[0] == 0x15 and len(buf) < 7):
-                raise _want_read()
-        head = self._recv_exact(5)
-        if len(head) < 5:
-            self._fail(_ssl_error(SSLEOFError, 8, 'SSL', 'UNEXPECTED_EOF_WHILE_READING',
-                                  'EOF occurred in violation of protocol', 1029))
-        if head[0] not in (0x14, 0x15, 0x16, 0x17) or head[1] != 3:
+        if self._stage != 'done':
+            self._handshake_client()
+
+    # -- TLS 1.3 do cliente ----------------------------------------------------------------------
+    def _eof_error(self):
+        return _ssl_error(SSLEOFError, 8, 'SSL', 'UNEXPECTED_EOF_WHILE_READING',
+                          'EOF occurred in violation of protocol', 1029)
+
+    def _fill(self, count, what):
+        """Garante `count` bytes crus em `_rbuf` sem consumir nada: sem eles, `WantRead` (ou o prazo vencido)."""
+        buf = self._rbuf
+        if self._sock is None:
+            incoming = self._incoming
+            while len(buf) < count:
+                chunk = incoming.read(count - len(buf))
+                if chunk:
+                    buf += chunk
+                elif incoming._eof_written:
+                    self._fail(self._eof_error())
+                else:
+                    raise _want_read()
+            return
+        while len(buf) < count:
+            try:
+                chunk = _socket.socket.recv(self._sock, 16384)
+            except TimeoutError:
+                prefix = '_ssl.c:1012: ' if what == 'handshake' else ''
+                raise TimeoutError('%sThe %s operation timed out' % (prefix, what)) from None
+            except BlockingIOError:
+                raise _want_read() from None
+            if not chunk:
+                self._fail(self._eof_error())
+            buf += chunk
+
+    def _read_record(self, what):
+        """Lê um registro TLS e devolve `(tipo, conteúdo)`, já decifrado quando há chaves de leitura."""
+        self._fill(5, what)
+        buf = self._rbuf
+        if buf[0] not in (0x14, 0x15, 0x16, 0x17) or buf[1] != 3:
             self._fail(_ssl_error(SSLError, 1, 'SSL', 'WRONG_VERSION_NUMBER', 'wrong version number', 1029))
-        if head[0] == 0x15:
-            alert = self._recv_exact(2)
-            if len(alert) == 2:
-                known = _ALERTS.get(alert[1])
-                if known is None:
-                    self._fail(_ssl_error(SSLError, 1, None, 'SSL', 'unknown error', 1029))
-                self._fail(_ssl_error(SSLError, 1, 'SSL', known[0], known[1], 1029))
-        # O par fala TLS: sem a troca de chaves, a conexão termina como uma negociação recusada.
-        self._fail(_ssl_error(SSLError, 1, 'SSL', 'SSLV3_ALERT_HANDSHAKE_FAILURE', 'ssl/tls alert handshake failure', 1029))
+        length = (buf[3] << 8) | buf[4]
+        if length > 16384 + 256:
+            self._fail(_ssl_error(SSLError, 1, 'SSL', 'PACKET_LENGTH_TOO_LONG', 'packet length too long', 1029))
+        self._fill(5 + length, what)
+        header = bytes(buf[:5])
+        body = bytes(buf[5:5 + length])
+        del buf[:5 + length]
+        kind = header[0]
+        if kind == 0x17 and self._rkeys is not None:
+            inner = self._rkeys.open(body, header)
+            if inner is None:
+                self._fail(_ssl_error(SSLError, 1, 'SSL', 'DECRYPTION_FAILED_OR_BAD_RECORD_MAC',
+                                      'decryption failed or bad record mac', 1029))
+            end = len(inner)
+            while end > 0 and inner[end - 1] == 0:
+                end -= 1
+            if end == 0:
+                self._fail(_ssl_error(SSLError, 1, 'SSL', 'SSLV3_ALERT_UNEXPECTED_MESSAGE',
+                                      'ssl/tls alert unexpected message', 1029))
+            return inner[end - 1], inner[:end - 1]
+        return kind, body
+
+    def _send_record(self, kind, data):
+        if self._wkeys is None:
+            self._send(bytes((kind, 3, 3)) + len(data).to_bytes(2, 'big') + data)
+            return
+        inner = data + bytes((kind,))
+        header = b'\x17\x03\x03' + (len(inner) + 16).to_bytes(2, 'big')
+        self._send(header + self._wkeys.seal(inner, header))
+
+    def _send_alert(self, description):
+        try:
+            self._send_record(0x15, bytes((2, description)))
+        except OSError:
+            pass
+
+    def _on_alert(self, body):
+        if len(body) < 2:
+            self._fail(_ssl_error(SSLError, 1, 'SSL', 'SSLV3_ALERT_UNEXPECTED_MESSAGE',
+                                  'ssl/tls alert unexpected message', 1029))
+        if body[1] == 0:
+            self._shutdown_seen = True
+            return
+        known = _ALERTS.get(body[1])
+        if known is None:
+            self._fail(_ssl_error(SSLError, 1, None, 'SSL', 'unknown error', 1029))
+        self._fail(_ssl_error(SSLError, 1, 'SSL', known[0], known[1], 1029))
+
+    def _unexpected(self):
+        self._send_alert(10)
+        self._fail(_ssl_error(SSLError, 1, 'SSL', 'SSLV3_ALERT_UNEXPECTED_MESSAGE',
+                              'ssl/tls alert unexpected message', 1029))
+
+    def _next_handshake_message(self):
+        """A próxima mensagem de handshake inteira como `(tipo, corpo, bytes crus)`."""
+        buf = self._hsbuf
+        while True:
+            if len(buf) >= 4:
+                size = 4 + int.from_bytes(buf[1:4], 'big')
+                if len(buf) >= size:
+                    raw = bytes(buf[:size])
+                    del buf[:size]
+                    return raw[0], raw[4:], raw
+            kind, body = self._read_record('handshake')
+            if kind == 0x14:
+                continue
+            if kind == 0x16:
+                buf += body
+            elif kind == 0x15:
+                self._on_alert(body)
+                self._fail(self._eof_error())
+            else:
+                self._unexpected()
+
+    def _transcript_hash(self):
+        return _hash(_SUITES[self._suite][1], bytes(self._transcript))
+
+    def _handshake_client(self):
+        if not self._sent_hello:
+            record, hello, self._private = _client_hello(self.server_hostname, self._context._alpn,
+                                                         self._context._options)
+            self._transcript = bytearray(hello)
+            self._send(record)
+            self._sent_hello = True
+        try:
+            while self._stage != 'done':
+                self._handshake_step()
+        except SSLError:
+            raise
+        except (IndexError, ValueError, KeyError, OverflowError, TypeError, AttributeError):
+            self._fail(_ssl_error(SSLError, 1, 'SSL', 'SSLV3_ALERT_HANDSHAKE_FAILURE',
+                                  'ssl/tls alert handshake failure', 1029))
+
+    def _handshake_step(self):
+        kind, body, raw = self._next_handshake_message()
+        stage = self._stage
+        if stage == 'server_hello':
+            if kind != 2:
+                self._unexpected()
+            self._on_server_hello(body, raw)
+        elif stage == 'encrypted_extensions':
+            if kind != 8:
+                self._unexpected()
+            self._transcript += raw
+            self._on_encrypted_extensions(body)
+            self._stage = 'certificate'
+        elif stage == 'certificate':
+            if kind == 13 and not self._cert_requested:
+                self._transcript += raw
+                self._cert_requested = True
+            elif kind == 11:
+                self._on_certificate(body)
+                self._transcript += raw
+                self._stage = 'certificate_verify'
+            else:
+                self._unexpected()
+        elif stage == 'certificate_verify':
+            if kind != 15:
+                self._unexpected()
+            self._on_certificate_verify(body)
+            self._transcript += raw
+            self._stage = 'finished'
+        elif stage == 'finished':
+            if kind != 20:
+                self._unexpected()
+            self._on_finished(body, raw)
+
+    def _on_server_hello(self, body, raw):
+        if body[2:34] == _HELLO_RETRY_RANDOM:
+            self._send_alert(40)
+            self._fail(_ssl_error(SSLError, 1, 'SSL', 'SSLV3_ALERT_HANDSHAKE_FAILURE',
+                                  'ssl/tls alert handshake failure', 1029))
+        pos = 34
+        pos += 1 + body[pos]
+        suite = int.from_bytes(body[pos:pos + 2], 'big')
+        pos += 3
+        end = pos + 2 + int.from_bytes(body[pos:pos + 2], 'big')
+        pos += 2
+        version = share = group = None
+        while pos < end:
+            kind = int.from_bytes(body[pos:pos + 2], 'big')
+            size = int.from_bytes(body[pos + 2:pos + 4], 'big')
+            data = body[pos + 4:pos + 4 + size]
+            pos += 4 + size
+            if kind == 43:
+                version = int.from_bytes(data, 'big')
+            elif kind == 51:
+                group = int.from_bytes(data[:2], 'big')
+                share = data[4:4 + int.from_bytes(data[2:4], 'big')]
+        if version != 0x0304:
+            self._send_alert(70)
+            self._fail(_ssl_error(SSLError, 1, 'SSL', 'TLSV1_ALERT_PROTOCOL_VERSION',
+                                  'tlsv1 alert protocol version', 1029))
+        if suite not in _SUITES or group != 0x001d or share is None or len(share) != 32:
+            self._send_alert(40)
+            self._fail(_ssl_error(SSLError, 1, 'SSL', 'SSLV3_ALERT_HANDSHAKE_FAILURE',
+                                  'ssl/tls alert handshake failure', 1029))
+        shared = _x25519(self._private, share)
+        if not any(shared):
+            self._send_alert(47)
+            self._fail(_ssl_error(SSLError, 1, 'SSL', 'SSLV3_ALERT_ILLEGAL_PARAMETER',
+                                  'ssl/tls alert illegal parameter', 1029))
+        self._suite = suite
+        self._transcript += raw
+        name = _SUITES[suite][1]
+        zeros = bytes(len(_hash(name, b'')))
+        empty = _hash(name, b'')
+        early = _hmac(name, zeros, zeros)
+        handshake = _hmac(name, _expand_label(name, early, b'derived', empty, len(empty)), shared)
+        digest = self._transcript_hash()
+        self._client_hs_secret = _expand_label(name, handshake, b'c hs traffic', digest, len(empty))
+        self._server_hs_secret = _expand_label(name, handshake, b's hs traffic', digest, len(empty))
+        self._master = _hmac(name, _expand_label(name, handshake, b'derived', empty, len(empty)), zeros)
+        self._rkeys = _Keys(suite, self._server_hs_secret)
+        self._wkeys = _Keys(suite, self._client_hs_secret)
+        self._stage = 'encrypted_extensions'
+
+    def _on_encrypted_extensions(self, body):
+        pos = 2
+        end = 2 + int.from_bytes(body[:2], 'big')
+        while pos < end:
+            kind = int.from_bytes(body[pos:pos + 2], 'big')
+            size = int.from_bytes(body[pos + 2:pos + 4], 'big')
+            data = body[pos + 4:pos + 4 + size]
+            pos += 4 + size
+            if kind == 16 and len(data) >= 3:
+                self._alpn_selected = data[3:3 + data[2]].decode('ascii')
+
+    def _on_certificate(self, body):
+        pos = 1 + body[0]
+        end = pos + 3 + int.from_bytes(body[pos:pos + 3], 'big')
+        pos += 3
+        certs = []
+        while pos < end:
+            size = int.from_bytes(body[pos:pos + 3], 'big')
+            certs.append(bytes(body[pos + 3:pos + 3 + size]))
+            pos += 3 + size
+            pos += 2 + int.from_bytes(body[pos:pos + 2], 'big')
+        self._peer_certs = certs
+        context = self._context
+        if context._verify_mode == CERT_NONE:
+            return
+        if not certs:
+            self._send_alert(42)
+            self._fail(_verify_failure(21, 'unable to verify the first certificate'))
+        host = self.server_hostname if context._check_hostname else None
+        try:
+            path = _verify_chain(context, certs, host)
+        except SSLCertVerificationError as err:
+            self._send_alert(_VERIFY_ALERTS.get(err.verify_code, 42))
+            self._fail(err)
+        except (IndexError, ValueError):
+            self._send_alert(42)
+            self._fail(_ssl_error(SSLError, 1, 'SSL', 'SSLV3_ALERT_BAD_CERTIFICATE',
+                                  'ssl/tls alert bad certificate', 1029))
+        self._peer_chain = [cert.der for cert in path]
+
+    def _on_certificate_verify(self, body):
+        context = self._context
+        if context._verify_mode == CERT_NONE or not self._peer_certs:
+            return
+        spec = _CERT_VERIFY_ALGS.get(int.from_bytes(body[:2], 'big'))
+        size = int.from_bytes(body[2:4], 'big')
+        signature = body[4:4 + size]
+        signed = b' ' * 64 + b'TLS 1.3, server CertificateVerify\x00' + self._transcript_hash()
+        if spec is None or not _X509(self._peer_certs[0]).verify(spec[0], spec[1], signed, signature):
+            self._send_alert(51)
+            self._fail(_ssl_error(SSLError, 1, 'SSL', 'TLSV1_ALERT_DECRYPT_ERROR', 'tlsv1 alert decrypt error', 1029))
+
+    def _on_finished(self, body, raw):
+        name = _SUITES[self._suite][1]
+        size = len(_hash(name, b''))
+        key = _expand_label(name, self._server_hs_secret, b'finished', b'', size)
+        if _hmac(name, key, self._transcript_hash()) != body:
+            self._send_alert(51)
+            self._fail(_ssl_error(SSLError, 1, 'SSL', 'DIGEST_CHECK_FAILED', 'digest check failed', 1029))
+        self._transcript += raw
+        digest = self._transcript_hash()
+        client_app = _expand_label(name, self._master, b'c ap traffic', digest, size)
+        server_app = _expand_label(name, self._master, b's ap traffic', digest, size)
+        # O CCS de compatibilidade e, se o servidor pediu certificado, a lista vazia (não há certificado de cliente).
+        self._send(b'\x14\x03\x03\x00\x01\x01')
+        if self._cert_requested:
+            empty = b'\x0b\x00\x00\x04\x00\x00\x00\x00'
+            self._send_record(0x16, empty)
+            self._transcript += empty
+        key = _expand_label(name, self._client_hs_secret, b'finished', b'', size)
+        verify_data = _hmac(name, key, self._transcript_hash())
+        self._send_record(0x16, b'\x14' + len(verify_data).to_bytes(3, 'big') + verify_data)
+        self._rkeys = _Keys(self._suite, server_app)
+        self._wkeys = _Keys(self._suite, client_app)
+        self._hsbuf = bytearray()
+        self._stage = 'done'
+
+    def _post_handshake(self, body):
+        buf = self._hsbuf
+        buf += body
+        while len(buf) >= 4:
+            size = 4 + int.from_bytes(buf[1:4], 'big')
+            if len(buf) < size:
+                break
+            raw = bytes(buf[:size])
+            del buf[:size]
+            if raw[0] == 24:
+                self._rkeys = self._rkeys.update()
+                if raw[4:5] == b'\x01':
+                    self._send_record(0x16, b'\x18\x00\x00\x01\x00')
+                    self._wkeys = self._wkeys.update()
 
     def read(self, size=1024, buffer=None):
+        if buffer is not None:
+            size = len(buffer) if size is None else min(size, len(buffer))
         self.do_handshake()
+        if size == 0:
+            return 0 if buffer is not None else b''
+        while not self._plain:
+            if self._shutdown_seen:
+                return 0 if buffer is not None else b''
+            kind, body = self._read_record('read')
+            if kind == 0x17:
+                self._plain += body
+            elif kind == 0x16:
+                self._post_handshake(body)
+            elif kind == 0x15:
+                self._on_alert(body)
+        count = min(size, len(self._plain))
+        data = bytes(self._plain[:count])
+        del self._plain[:count]
+        if buffer is not None:
+            buffer[:count] = data
+            return count
+        return data
 
     def write(self, data):
         self.do_handshake()
+        payload = memoryview(data).tobytes()
+        for start in range(0, len(payload), 16384):
+            self._send_record(0x17, payload[start:start + 16384])
+        return len(payload)
 
     def pending(self):
-        return 0
+        return len(self._plain)
 
     def getpeercert(self, binary_form=False):
-        raise ValueError('handshake not done yet')
+        if self._stage != 'done':
+            raise ValueError('handshake not done yet')
+        if not self._peer_certs:
+            return None
+        if binary_form:
+            return self._peer_certs[0]
+        if self._context._verify_mode == CERT_NONE:
+            return {}
+        return _decode_der(self._peer_certs[0])
+
+    def _certificates(self, chain):
+        out = []
+        for der in chain or ():
+            cert = object.__new__(Certificate)
+            cert._der = der
+            out.append(cert)
+        return out
 
     def get_verified_chain(self):
-        return None
+        return self._certificates(self._peer_chain) if self._peer_chain else None
 
     def get_unverified_chain(self):
-        return None
+        return self._certificates(self._peer_certs) if self._peer_certs else None
 
     def selected_alpn_protocol(self):
-        return None
+        return self._alpn_selected
 
     def cipher(self):
-        return None
+        if self._stage != 'done':
+            return None
+        name, _, _, _, bits = _SUITES[self._suite]
+        return (name, 'TLSv1.3', bits)
 
     def shared_ciphers(self):
         return None
@@ -1144,12 +2245,20 @@ class _SSLSocket:
         return None
 
     def version(self):
-        return None
+        return 'TLSv1.3' if self._stage == 'done' else None
 
     def shutdown(self):
+        if self._stage == 'done' and not self._shutdown_seen:
+            self._send_alert_close()
         if self._sock is not None:
             return self._sock
         return None
+
+    def _send_alert_close(self):
+        try:
+            self._send_record(0x15, b'\x01\x00')
+        except OSError:
+            pass
 
     def get_channel_binding(self, cb_type='tls-unique'):
         if cb_type != 'tls-unique':

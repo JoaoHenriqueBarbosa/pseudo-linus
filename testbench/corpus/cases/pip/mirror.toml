@@ -1,0 +1,156 @@
+tool = "pip"
+source = "manual"
+
+# pip instalando de verdade a partir do espelho do PyPI (https://pypi.sandbox/simple/, com a CA do
+# espelho no armazém do sistema e o /etc/pip.conf apontando pra ele). Os casos levam a tag "mirror":
+# é ela que faz o oráculo subir o espelho em 127.0.0.80:443 antes de rodar o caso. O cache do pip é
+# desligado pra a saída não depender da ordem dos casos, e as velocidades e tempos da barra de
+# progresso passam por um normalizador.
+
+[[case]]
+id = "mirror-install-requests"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+dump() {
+  sp=$(/tmp/v/bin/python -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')
+  cd "$sp" || exit 1
+  find . -name __pycache__ -prune -o -type f ! -name '*.pyc' -print | LC_ALL=C sort
+  find . -name __pycache__ -prune -o -type f ! -name '*.pyc' -print | LC_ALL=C sort | xargs sha256sum
+  for d in *.dist-info; do
+    echo "== $d"
+    cat "$d/RECORD"
+    cat "$d/INSTALLER"; echo
+    [ -f "$d/direct_url.json" ] && cat "$d/direct_url.json"
+    [ -f "$d/REQUESTED" ] && echo "REQUESTED: $(stat -c %s "$d/REQUESTED") bytes"
+  done
+}
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off requests 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+dump
+echo "== bin"
+stat -c '%A %s %n' /tmp/v/bin/* | LC_ALL=C sort -k4
+/tmp/v/bin/python -c 'import requests; print(requests.__version__, requests.__file__)'
+'''
+
+[[case]]
+id = "mirror-install-flask"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off flask 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+sp=$(/tmp/v/bin/python -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')
+cd "$sp" || exit 1
+find . -name __pycache__ -prune -o -type f ! -name '*.pyc' -print | LC_ALL=C sort | xargs sha256sum
+for d in *.dist-info; do
+  echo "== $d"
+  cat "$d/RECORD"
+  cat "$d/INSTALLER"; echo
+done
+echo "== bin"
+stat -c '%A %s %n' /tmp/v/bin/* | LC_ALL=C sort -k4
+echo "== bin/flask"
+cat /tmp/v/bin/flask
+/tmp/v/bin/flask --version; echo "rc=$?"
+/tmp/v/bin/pip list; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-rich"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q rich; echo "pip rc=$?"
+sp=$(/tmp/v/bin/python -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')
+cd "$sp" || exit 1
+find . -name __pycache__ -prune -o -type f ! -name '*.pyc' -print | LC_ALL=C sort | xargs sha256sum
+for d in *.dist-info; do
+  echo "== $d"
+  cat "$d/RECORD"
+  cat "$d/INSTALLER"; echo
+done
+/tmp/v/bin/python -c 'import rich, importlib.metadata as m; print(m.version("rich"), m.requires("rich"))'
+'''
+
+[[case]]
+id = "mirror-download-requests"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/d
+pip download --progress-bar off requests -d /tmp/d --no-deps 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+stat -c '%A %s %n' /tmp/d/* | LC_ALL=C sort -k4
+sha256sum /tmp/d/*
+'''
+
+[[case]]
+id = "mirror-uninstall-freeze-requirements"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q flask; echo "install rc=$?"
+echo "== freeze"
+/tmp/v/bin/pip freeze; echo "rc=$?"
+echo "== uninstall"
+/tmp/v/bin/pip uninstall -y flask blinker; echo "rc=$?"
+echo "== freeze depois"
+/tmp/v/bin/pip freeze; echo "rc=$?"
+echo "== uninstall de ausente"
+/tmp/v/bin/pip uninstall -y flask; echo "rc=$?"
+echo "== install -r"
+cat requirements.txt
+/tmp/v/bin/pip install --progress-bar off -r requirements.txt | sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'
+echo "rc=${PIPESTATUS[0]}"
+echo "== freeze final"
+/tmp/v/bin/pip freeze; echo "rc=$?"
+echo "== reinstall (já satisfeito)"
+/tmp/v/bin/pip install -r requirements.txt; echo "rc=$?"
+'''
+
+[case.files]
+"requirements.txt" = "requests==2.34.2\nclick>=8.0\n"
+
+[[case]]
+id = "mirror-curl-simple-index"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+echo "== html"
+curl -sS https://pypi.sandbox/simple/requests/; echo "rc=$?"
+echo "== json"
+curl -sS -H 'Accept: application/vnd.pypi.simple.v1+json' https://pypi.sandbox/simple/requests/; echo "rc=$?"
+echo "== cabeçalhos"
+curl -sS -D - -o /dev/null https://pypi.sandbox/simple/requests/ | LC_ALL=C sed -E '/^[Dd]ate:/d'
+echo "== raiz"
+curl -sS https://pypi.sandbox/simple/; echo "rc=$?"
+echo "== ausente"
+curl -sS -o /dev/null -w '%{http_code}\n' https://pypi.sandbox/simple/nao-existe/
+'''
+
+[[case]]
+id = "mirror-install-missing-package"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install nao-existe; echo "rc=$?"
+/tmp/v/bin/pip install requests==0.0.1; echo "rc=$?"
+/tmp/v/bin/pip download nao-existe -d /tmp/d2; echo "rc=$?"
+'''

@@ -13,6 +13,12 @@ class memoryview:
             self._base = obj
             self._idx = list(range(len(obj)))
             self.obj = obj
+        elif hasattr(type(obj), '__buffer__'):
+            # PEP 688: o objeto entrega a própria visão (mmap, classes de usuário).
+            view = type(obj).__buffer__(obj, 0)
+            self._base = view._base
+            self._idx = list(view._idx)
+            self.obj = obj
         else:
             raise TypeError("memoryview: a bytes-like object is required, not '%s'" % type(obj).__name__)
         self._released = False

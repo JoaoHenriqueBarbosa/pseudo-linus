@@ -276,7 +276,10 @@ fn connect(cli: &Cli, url: &str, timeout_ms: u64) -> Result<Box<dyn Target>, Str
 }
 
 fn local(cli: &Cli, timeout: Duration) -> Result<Box<dyn Target>, String> {
-    let backend = host::worker::make_backend(&cli.backend, &IsolationConfig::default(), 2)
+    let mirror_dir = std::env::var_os("PL_PYPI_MIRROR").map(std::path::PathBuf::from);
+    let isolation = IsolationConfig::default();
+    let opts = host::worker::KernelOptions { isolation: &isolation, cpus: 2, pypi_mirror: mirror_dir.as_deref() };
+    let backend = host::worker::make_backend(&cli.backend, &opts)
         .map_err(|e| format!("modo local indisponível: {e}; use --remote"))?;
     let limits = host::api::SandboxLimits {
         mem_bytes: 1 << 30,

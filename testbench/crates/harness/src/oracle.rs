@@ -34,6 +34,11 @@ impl Oracle {
         paths::root().join("target").join("release").join("oracle-agent")
     }
 
+    /// Wheels que o espelho do PyPI serve (`testbench/mirror/wheels`), montadas em `/agent/wheels`.
+    pub fn wheels_path() -> PathBuf {
+        paths::root().join("mirror").join("wheels")
+    }
+
     /// Localiza imagem e agente já prontos. Não compila nada (evita cargo aninhado dentro de `cargo test`).
     pub fn locate() -> Result<Oracle> {
         let image = Self::image_tag()?;
@@ -58,10 +63,14 @@ impl Oracle {
     pub fn run(&self, cases: &[Case]) -> Result<Vec<Outcome>> {
         let input = serde_json::to_vec(cases)?;
         let mount = format!("{}:/agent/oracle-agent:ro", self.agent.display());
+        let wheels = format!("{}:/agent/wheels:ro", Self::wheels_path().display());
         // Os casos rodam num tmpfs, que é o sistema de arquivos que o sandbox apresenta (tamanho de
-        // diretório, blocos, ordem do readdir).
+        // diretório, blocos, ordem do readdir). O espelho do PyPI mora em 127.0.0.80 e o /etc/hosts
+        // aponta `pypi.sandbox` pra lá, como no sandbox.
+        let host_line = "pypi.sandbox:127.0.0.80";
         let mut child = Command::new("docker")
-            .args(["run", "--rm", "-i", "--network", "none", "--tmpfs", "/work:exec", "-v", &mount])
+            .args(["run", "--rm", "-i", "--network", "none", "--add-host", host_line])
+            .args(["--tmpfs", "/work:exec", "-v", &mount, "-v", &wheels])
             .args([&self.image, "/agent/oracle-agent"])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())

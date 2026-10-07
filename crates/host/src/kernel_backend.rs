@@ -250,6 +250,8 @@ pub struct KernelBackend {
     cpus: usize,
     isolation: Arc<Mutex<Option<IsolationReport>>>,
     users: Mutex<HashMap<String, UserSched>>,
+    /// O espelho do PyPI que cada sandbox novo ganha em `mirror::ADDR:mirror::PORT`.
+    pypi_mirror: Option<Arc<mirror::Mirror>>,
 }
 
 impl KernelBackend {
@@ -270,7 +272,14 @@ impl KernelBackend {
             spawner_hook: Some(hook),
             ..kernel::KernelConfig::default()
         });
-        KernelBackend { kernel, programs, cpus, isolation: report, users: Mutex::new(HashMap::new()) }
+        KernelBackend { kernel, programs, cpus, isolation: report, users: Mutex::new(HashMap::new()), pypi_mirror: None }
+    }
+
+    /// Liga o espelho do PyPI com as wheels de `dir`: todo sandbox criado depois dele escuta o
+    /// `pypi.sandbox` (`mirror::ADDR:mirror::PORT`) com o host do outro lado.
+    pub fn with_pypi_mirror(mut self, dir: &std::path::Path) -> std::io::Result<KernelBackend> {
+        self.pypi_mirror = Some(Arc::new(mirror::Mirror::from_dir(dir)?));
+        Ok(self)
     }
 }
 
@@ -317,6 +326,15 @@ impl Backend for KernelBackend {
             kernel::CreateError::Spawner(m) => BackendError::Isolation(format!("isolamento da sandbox {sandbox_id}: {m}")),
             kernel::CreateError::Errno(e) => BackendError::os(e, format!("criando a sandbox {sandbox_id}")),
         })?;
+        if let Some(m) = &self.pypi_mirror {
+            let m = m.clone();
+            // Erro de conexão (cliente que some no meio do TLS, certificado recusado) é ruído esperado.
+            let serve: Arc<dyn Fn(kernel::HostStream) + Send + Sync> = Arc::new(move |s| {
+                let _ = m.serve_tls(s);
+            });
+            sb.host_service(std::net::IpAddr::V4(mirror::ADDR), mirror::PORT, serve)
+                .map_err(|e| BackendError::os(e, format!("espelho do PyPI na sandbox {sandbox_id}")))?;
+        }
         let k = Arc::new(KSandbox { inner: RwLock::new(Some(sb)), me: Mutex::new(std::sync::Weak::new()) });
         *k.me.lock() = Arc::downgrade(&k);
         Ok(k)

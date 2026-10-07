@@ -766,15 +766,74 @@ def sethostname(name):
     raise PermissionError(_errno.EPERM, 'Operation not permitted')
 
 
+def _hosts_entries():
+    """O /etc/hosts como o glibc (`hosts: files`) o lê: relido a cada consulta, `#` começa comentário, e cada
+    linha vale `(endereço, [nome canônico, aliases...])`."""
+    try:
+        with open('/etc/hosts', 'rb') as f:
+            data = f.read().decode('utf-8', 'replace')
+    except OSError:
+        return []
+    entries = []
+    for line in data.splitlines():
+        fields = line.split('#', 1)[0].split()
+        if len(fields) >= 2 and _is_numeric(fields[0]):
+            entries.append((fields[0], fields[1:]))
+    return entries
+
+
+def _hosts_family(ip):
+    return AF_INET6 if ':' in ip else AF_INET
+
+
+def _hosts_lookup(name, family=AF_UNSPEC):
+    """As linhas do /etc/hosts que citam `name` (sem diferenciar maiúsculas) para a família pedida, na ordem do
+    arquivo."""
+    wanted = name.rstrip('.').lower()
+    if not wanted:
+        return []
+    return [(ip, names) for ip, names in _hosts_entries()
+            if family in (0, AF_UNSPEC, _hosts_family(ip)) and wanted in [n.lower() for n in names]]
+
+
+def _same_address(a, b):
+    if a == b:
+        return True
+    fam = _hosts_family(a)
+    if fam != _hosts_family(b):
+        return False
+    try:
+        return inet_pton(fam, a) == inet_pton(fam, b)
+    except OSError:
+        return False
+
+
 def gethostbyname(name):
-    return getaddrinfo(name, None, AF_INET)[0][4][0]
+    if isinstance(name, bytes):
+        name = name.decode()
+    return gethostbyname_ex(name)[2][0]
 
 
 def gethostbyname_ex(name):
-    return (name, [], [gethostbyname(name)])
+    if isinstance(name, bytes):
+        name = name.decode()
+    if _is_numeric(name, AF_INET):
+        return (name, [], [name])
+    found = _hosts_lookup(name, AF_INET)
+    if found:
+        canonical, aliases = found[0][1][0], found[0][1][1:]
+        return (canonical, aliases, [found[0][0]])
+    return (name, [], [getaddrinfo(name, None, AF_INET)[0][4][0]])
 
 
 def gethostbyaddr(ip):
+    if isinstance(ip, bytes):
+        ip = ip.decode()
+    if not _is_numeric(ip):
+        ip = gethostbyname(ip)
+    for address, names in _hosts_entries():
+        if _same_address(address, ip):
+            return (names[0], names[1:], [ip])
     if ip in ('127.0.0.1', '::1') or ip.startswith('127.'):
         return ('localhost', [], [ip])
     raise herror(1, 'Unknown host')
@@ -819,6 +878,7 @@ def getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
         port = int(port)
     if port is None:
         port = 0
+    canonical = 'localhost'
     if isinstance(host, bytes):
         host = host.decode()
     if host is None:
@@ -830,6 +890,10 @@ def getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
         addresses = ['127.0.0.1']
     elif flags & AI_NUMERICHOST:
         raise gaierror(EAI_NONAME, 'Name or service not known')
+    elif _hosts_lookup(host, family or AF_UNSPEC):
+        hosted = _hosts_lookup(host, family or AF_UNSPEC)
+        addresses = [ip for ip, _ in hosted]
+        canonical = hosted[0][1][0]
     elif host == 'localhost' or host == _net.hostname():
         addresses = ['::1', '127.0.0.1'] if family in (0, AF_UNSPEC) else \
             (['::1'] if family == AF_INET6 else ['127.0.0.1'])
@@ -848,7 +912,7 @@ def getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
         for t in types:
             p = proto or (IPPROTO_TCP if t == SOCK_STREAM else IPPROTO_UDP)
             sockaddr = (ip, port, 0, 0) if fam == AF_INET6 else (ip, port)
-            result.append((fam, t, p, 'localhost' if flags & AI_CANONNAME else '', sockaddr))
+            result.append((fam, t, p, canonical if flags & AI_CANONNAME else '', sockaddr))
     if not result:
         raise gaierror(EAI_FAMILY, 'ai_family not supported')
     return result

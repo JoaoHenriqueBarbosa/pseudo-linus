@@ -4950,8 +4950,7 @@ pub(crate) fn contains(container: &Value, item: &Value) -> PyResult<bool> {
         if let Some(r) = vm.call_dunder(container, "__contains__", vec![item.clone()]) {
             return Ok(r?.is_true());
         }
-        let items = iterate(container)?;
-        return Ok(items.iter().any(|x| is(x, item) || py_eq(x, item)));
+        return contains_by_iteration(container, item);
     }
     let member = |items: &[Value]| items.iter().any(|x| is(x, item) || py_eq(x, item));
     match container {
@@ -4986,8 +4985,26 @@ pub(crate) fn contains(container: &Value, item: &Value) -> PyResult<bool> {
                 ))),
             },
         },
-        _ => Err(type_error(format!("argument of type '{}' is not iterable", container.type_name()))),
+        _ => contains_by_iteration(container, item),
     }
+}
+
+/// O `PySequence_Contains` sem `__contains__`: consome o iterador só até achar o item, como o
+/// CPython faz com um gerador.
+fn contains_by_iteration(container: &Value, item: &Value) -> PyResult<bool> {
+    let mut it = get_iter(container).map_err(|e| {
+        if e.kind == "TypeError" {
+            type_error(format!("argument of type '{}' is not iterable", container.type_name()))
+        } else {
+            e
+        }
+    })?;
+    while let Some(x) = it.next()? {
+        if is(&x, item) || py_eq(&x, item) {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
 /// Resultado de `a op b` dado o `Ordering` entre eles.

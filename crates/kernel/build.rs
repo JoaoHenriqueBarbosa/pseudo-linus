@@ -44,14 +44,30 @@ const TREES: &[&str] = &[
     "usr/share/ca-certificates",
     "etc/ca-certificates",
     "etc/ca-certificates.conf",
+    // O `init-d-script` e o `vars.sh` do init-system-helpers; o script mantém o 0o755 pelo bit da cópia.
+    "usr/lib/init",
+    // As funções de erro que o `dpkg-maintscript-helper` carrega com `.` (fatal no dash se faltar).
+    "usr/share/dpkg",
 ];
 
 /// Árvores cujos arquivos são scripts executáveis do oráculo (`/usr/bin/zgrep`, `/usr/sbin/service`...),
-/// instalados com modo 0o755. Os links simbólicos (`bzcmp -> bzdiff`) vêm junto.
-const EXEC_TREES: &[&str] = &["usr/bin", "usr/sbin"];
+/// instalados com modo 0o755. Os links simbólicos (`bzcmp -> bzdiff`) vêm junto. Os scripts de
+/// `/etc/init.d` (do procps e do x11-common) e os links de `/etc/rcS.d` que o `update-rc.d` cria são o
+/// que o `service --status-all` lista.
+const EXEC_TREES: &[&str] = &["usr/bin", "usr/sbin", "etc/init.d", "etc/rcS.d"];
 
 /// Diretórios vazios das árvores acima, que o git não guarda, com o modo do oráculo.
-const EMPTY_DIRS: &[(&str, u32)] = &[("/etc/ssl/private", 0o700), ("/etc/ca-certificates/update.d", 0o755)];
+const EMPTY_DIRS: &[(&str, u32)] = &[
+    ("/etc/ssl/private", 0o700),
+    ("/etc/ca-certificates/update.d", 0o755),
+    ("/etc/rc0.d", 0o755),
+    ("/etc/rc1.d", 0o755),
+    ("/etc/rc2.d", 0o755),
+    ("/etc/rc3.d", 0o755),
+    ("/etc/rc4.d", 0o755),
+    ("/etc/rc5.d", 0o755),
+    ("/etc/rc6.d", 0o755),
+];
 
 fn walk(root: &Path, rel: &Path, out: &mut Vec<(PathBuf, fs::Metadata)>) {
     let dir = root.join(rel);

@@ -562,6 +562,18 @@ impl Sandbox {
         self.inner.id
     }
 
+    /// Registra um serviço do host: um socket em escuta em `ip:port` no loopback do sandbox (aparece no
+    /// `/proc/net/tcp` como um LISTEN de root e recusa a porta a quem tenta escutar nela) cujas conexões,
+    /// vindas de qualquer processo (`connect` ou `curl`), chegam a `handler` numa thread do host por
+    /// conexão. O `HostStream` lê e escreve com bloqueio; soltá-lo fecha a conexão. As threads do serviço
+    /// não são processos do sandbox (não aparecem no `ps`) e nascem da thread de quem chamou esta função,
+    /// que deve ser uma thread do host, sem o isolamento das threads dos processos. EADDRINUSE se a porta
+    /// já tem quem escute num endereço que se encontra com `ip`.
+    pub fn host_service(&self, ip: std::net::IpAddr, port: u16, handler: Arc<dyn Fn(crate::net::HostStream) + Send + Sync>) -> Result<(), Errno> {
+        let ident = Pipe::new(self.inner.kernel.pipe_ino(), 0, 0, self.inner.now());
+        self.inner.ports.host_service(ip, port, ident, handler)
+    }
+
     /// Troca o relógio de parede (o `faketime` de um caso).
     pub fn set_clock(&self, mode: ClockMode) {
         *self.inner.clock.lock() = ClockState { mode, set_at: Instant::now() };
@@ -693,7 +705,7 @@ pub struct HostProcInfo {
 /// Operações diretas no sistema de arquivos do sandbox, como root, com cwd em `/`. Caminhos relativos
 /// resolvem a partir de `/`. Os erros são os do Linux.
 pub struct SandboxFs<'a> {
-    sb: &'a Arc<SbInner>,
+    pub(crate) sb: &'a Arc<SbInner>,
 }
 
 impl SandboxFs<'_> {

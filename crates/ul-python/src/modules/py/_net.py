@@ -353,6 +353,17 @@ class KernelEndpoint(Endpoint):
         self._notify()
 
 
+def _destination_ip(family, host):
+    """O IP numérico de um destino local: nomes e endereços de bind genéricos viram o loopback, e um
+    `127.x.y.z` (o kernel aceita qualquer um deles) segue como está."""
+    if host in ('', 'localhost', '0.0.0.0', '::'):
+        return loopback_ip(family)
+    # Endereço numérico não passa pelo nome da máquina (o glibc também não consulta nada para ele).
+    if not (host[:1].isdigit() or ':' in host) and host == hostname():
+        return loopback_ip(family)
+    return host
+
+
 def connect(family, addr):
     """Abre uma conexão com um `Listener` local e devolve a ponta do cliente."""
     if family == AF_UNIX:
@@ -370,18 +381,22 @@ def connect(family, addr):
         if listener is None or listener.closed or listener.kfd is not None:
             # A conexão passa pelo kernel sempre que ele conhece quem escuta (outro processo ou este
             # mesmo): é lá que ela aparece no /proc/net/tcp.
+            dst = _destination_ip(family, host)
             try:
-                kfd, cport = _os.tcp_connect(port, loopback_ip(family) if host in ('', 'localhost') else host)
+                kfd, cport = _os.tcp_connect(port, dst)
             except OSError as e:
                 if e.errno == errno.ENOSYS:
                     raise ConnectionRefusedError(errno.ECONNREFUSED, 'Connection refused') from None
                 raise
+            # O endereço local de quem conecta a qualquer 127.x é o 127.0.0.1 (o `src` da rota local); o do
+            # par é o IP de destino.
             ip = loopback_ip(family)
-            return KernelEndpoint(family, kfd, address(family, ip, cport), address(family, ip, port))
+            return KernelEndpoint(family, kfd, address(family, ip, cport), address(family, dst, port))
         ip = loopback_ip(family)
+        dst = _destination_ip(family, host)
         cport = alloc_port()
-        client = Endpoint(family, address(family, ip, cport), address(family, ip, port))
-        server = Endpoint(family, address(family, ip, port), address(family, ip, cport))
+        client = Endpoint(family, address(family, ip, cport), address(family, dst, port))
+        server = Endpoint(family, address(family, dst, port), address(family, ip, cport))
         server.port = None
     client.peer_ep = server
     server.peer_ep = client

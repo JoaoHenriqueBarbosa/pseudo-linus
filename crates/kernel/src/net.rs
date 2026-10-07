@@ -10,7 +10,8 @@
 //! Cada conexão fica registrada como um par de pontas até as duas saírem do TIME_WAIT: é dessa tabela,
 //! com as portas em escuta, que saem o `/proc/net/tcp`, o `tcp6` e as contagens do `sockstat`.
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
+use std::io;
 use std::net::IpAddr;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::{Arc, Weak};
@@ -21,7 +22,7 @@ use sysabi::{Errno, PollEvents, Stat};
 use vfs::procfs::{TcpSock, tcp_state};
 
 use crate::park::{Parker, WaitList};
-use crate::pipe::{Pipe, PipeEnd, Try};
+use crate::pipe::{Pipe, PipeEnd, Try, WriteError};
 
 const EPHEMERAL_LOW: u16 = 32768;
 const EPHEMERAL_HIGH: u16 = 60999;
@@ -68,22 +69,45 @@ pub(crate) fn sock_stat(ident: &Pipe) -> Stat {
     st
 }
 
+/// Dois endereços se encontram: o curinga (`0.0.0.0`, `::`) casa com qualquer um e dois específicos só
+/// se são o mesmo (um IPv4 dentro de IPv6 conta como o IPv4). Serve ao `bind` (o que escuta disputa a
+/// porta com quem já escuta nela) e ao `connect` (quem escuta atende o destino).
+fn addr_meets(a: IpAddr, b: IpAddr) -> bool {
+    a.is_unspecified() || b.is_unspecified() || a.to_canonical() == b.to_canonical()
+}
+
 /// As portas em escuta de um sandbox.
 #[derive(Debug)]
 pub(crate) struct Ports {
     st: Mutex<PortsState>,
 }
 
+/// Um socket em escuta registrado na tabela; a fraca não segura o socket vivo.
+#[derive(Debug)]
+struct Bound {
+    ip: IpAddr,
+    port: u16,
+    listener: Weak<Listener>,
+}
+
+impl Bound {
+    fn live(&self) -> bool {
+        self.listener.strong_count() > 0
+    }
+}
+
 #[derive(Debug)]
 struct PortsState {
-    listeners: HashMap<u16, Weak<Listener>>,
+    listeners: Vec<Bound>,
+    /// Os sockets dos serviços do host: ninguém no sandbox os segura, então a tabela segura.
+    services: Vec<Arc<Listener>>,
     /// As conexões, da mais antiga à mais nova, até as duas pontas saírem do TIME_WAIT.
     pairs: Vec<Arc<Pair>>,
 }
 
 impl Default for Ports {
     fn default() -> Self {
-        Ports { st: Mutex::new(PortsState { listeners: HashMap::new(), pairs: Vec::new() }) }
+        Ports { st: Mutex::new(PortsState { listeners: Vec::new(), services: Vec::new(), pairs: Vec::new() }) }
     }
 }
 
@@ -94,9 +118,7 @@ impl Ports {
     fn ephemeral(st: &mut PortsState, odd: bool) -> Result<u16, Errno> {
         let range = u32::from(EPHEMERAL_HIGH - EPHEMERAL_LOW) + 1;
         let start = (hashed_ptr() % range) & !1;
-        let used = |st: &PortsState, port: u16| {
-            st.listeners.get(&port).is_some_and(|w| w.strong_count() > 0) || st.pairs.iter().any(|p| p.uses(port))
-        };
+        let used = |st: &PortsState, port: u16| st.listeners.iter().any(|b| b.port == port && b.live()) || st.pairs.iter().any(|p| p.uses(port));
         for i in 0..range.div_ceil(2) {
             let off = (start + 2 * i) % (range & !1) + u32::from(odd);
             let port = EPHEMERAL_LOW + off as u16;
@@ -107,11 +129,12 @@ impl Ports {
         Err(Errno::EADDRINUSE)
     }
 
-    /// `bind` em `ip` mais `listen`: porta 0 escolhe uma efêmera. EADDRINUSE se já há alguém escutando nela.
+    /// `bind` em `ip` mais `listen`: porta 0 escolhe uma efêmera. EADDRINUSE se já há alguém escutando nela
+    /// num endereço que se encontra com `ip`.
     pub(crate) fn listen(self: &Arc<Self>, ip: IpAddr, port: u16, backlog: u32, ident: Arc<Pipe>) -> Result<Arc<Listener>, Errno> {
         let mut st = self.st.lock();
         let port = if port == 0 { Self::ephemeral(&mut st, true)? } else { port };
-        if st.listeners.get(&port).is_some_and(|w| w.strong_count() > 0) {
+        if st.listeners.iter().any(|b| b.port == port && b.live() && addr_meets(b.ip, ip)) {
             return Err(Errno::EADDRINUSE);
         }
         let l = Arc::new(Listener {
@@ -124,18 +147,40 @@ impl Ports {
             ports: Arc::downgrade(self),
             st: Mutex::new(ListenState::default()),
         });
-        st.listeners.insert(port, Arc::downgrade(&l));
+        st.listeners.push(Bound { ip, port, listener: Arc::downgrade(&l) });
         Ok(l)
     }
 
+    /// Um serviço do host em `ip:port`: um socket em escuta como qualquer outro (aparece no
+    /// `/proc/net/tcp`, recusa a porta a quem tenta escutar nela), mas as conexões aceitas vão para
+    /// `handler`, que roda numa thread do host por conexão. O aceitador é uma thread do host criada
+    /// aqui, de quem chama, e não de uma thread do sandbox: assim as threads dos serviços não herdam o
+    /// isolamento (landlock, seccomp) que as dos processos carregam.
+    pub(crate) fn host_service(self: &Arc<Self>, ip: IpAddr, port: u16, ident: Arc<Pipe>, handler: Arc<HostHandler>) -> Result<(), Errno> {
+        let listener = self.listen(ip, port, 128, ident)?;
+        let weak = Arc::downgrade(&listener);
+        self.st.lock().services.push(listener);
+        std::thread::Builder::new().name("host-service".into()).spawn(move || accept_loop(&weak, &handler)).map_err(|_| Errno::EAGAIN)?;
+        Ok(())
+    }
+
     /// `connect` a `dst:port` (um endereço de loopback). As duas pontas nascem prontas: a do servidor
-    /// vai pra fila do socket que escuta. ECONNREFUSED sem ninguém escutando ou com a fila cheia.
+    /// vai pra fila do socket que escuta (o mais específico que atende `dst`). ECONNREFUSED sem ninguém
+    /// escutando ou com a fila cheia.
     pub(crate) fn connect(&self, dst: IpAddr, port: u16, mk_pipe: impl Fn() -> Arc<Pipe>) -> Result<Conn, Errno> {
         let (listener, local) = {
             let mut st = self.st.lock();
-            let l = st.listeners.get(&port).and_then(Weak::upgrade).ok_or(Errno::ECONNREFUSED)?;
-            (l, Self::ephemeral(&mut st, false)?)
+            let l = st
+                .listeners
+                .iter()
+                .filter(|b| b.port == port && addr_meets(b.ip, dst))
+                .min_by_key(|b| b.ip.is_unspecified())
+                .and_then(|b| b.listener.upgrade());
+            let local = if l.is_some() { Self::ephemeral(&mut st, false) } else { Err(Errno::ECONNREFUSED) };
+            (l, local)
         };
+        let listener = listener.ok_or(Errno::ECONNREFUSED)?;
+        let local = local?;
         let up = mk_pipe();
         let down = mk_pipe();
         // O servidor vê o par na família do socket que escuta: IPv4 num socket IPv6 vira `::ffff:`.
@@ -166,7 +211,7 @@ impl Ports {
         let (mut listeners, pairs) = {
             let mut st = self.st.lock();
             st.pairs.retain(|p| !p.gone(now));
-            let ls: Vec<Arc<Listener>> = st.listeners.values().filter_map(Weak::upgrade).collect();
+            let ls: Vec<Arc<Listener>> = st.listeners.iter().filter_map(|b| b.listener.upgrade()).collect();
             (ls, st.pairs.clone())
         };
         listeners.sort_by_key(|l| l.port);
@@ -386,10 +431,7 @@ impl Drop for Listener {
         };
         wake.run();
         if let Some(ports) = self.ports.upgrade() {
-            let mut st = ports.st.lock();
-            if st.listeners.get(&self.port).is_some_and(|w| w.strong_count() == 0) {
-                st.listeners.remove(&self.port);
-            }
+            ports.st.lock().listeners.retain(Bound::live);
         }
     }
 }
@@ -531,4 +573,111 @@ impl Conn {
             p.unregister(waiter);
         }
     }
+}
+
+/// O que um serviço do host faz com cada conexão aceita.
+pub(crate) type HostHandler = dyn Fn(HostStream) + Send + Sync;
+
+/// De quanto em quanto o aceitador de um serviço confere se o socket ainda existe.
+const ACCEPT_RECHECK: Duration = Duration::from_millis(500);
+
+/// O laço do aceitador de um serviço do host: tira as conexões da fila do socket em escuta e entrega
+/// cada uma ao `handler` numa thread própria. Sai quando o socket deixa de existir (o sandbox acabou).
+fn accept_loop(listener: &Weak<Listener>, handler: &Arc<HostHandler>) {
+    let parker = Parker::new();
+    loop {
+        let Some(l) = listener.upgrade() else { return };
+        let r = l.try_accept(false, &parker);
+        drop(l);
+        match r {
+            Try::Ready(Ok(conn)) => {
+                let handler = handler.clone();
+                let _ = std::thread::Builder::new().name("host-service-conn".into()).spawn(move || handler(HostStream::new(conn)));
+            }
+            Try::Ready(Err(_)) => return,
+            Try::Pending => {
+                parker.park_until(Instant::now() + ACCEPT_RECHECK);
+            }
+        }
+    }
+}
+
+/// O lado do servidor de uma conexão aceita por um serviço do host, com leitura e escrita bloqueantes
+/// sobre os pipes dela. Soltar o valor fecha a conexão: o convidado vê o FIN (e o RST, se sobrou dado
+/// que ele mandou e ninguém leu), como no fechamento de um socket.
+#[derive(Debug)]
+pub struct HostStream {
+    conn: Conn,
+    parker: Arc<Parker>,
+}
+
+impl HostStream {
+    fn new(conn: Conn) -> HostStream {
+        HostStream { conn, parker: Parker::new() }
+    }
+}
+
+impl io::Read for HostStream {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        match self.conn.take_reset() {
+            ResetState::Pending => return Err(io::ErrorKind::ConnectionReset.into()),
+            ResetState::Done => return Ok(0),
+            ResetState::None => {}
+        }
+        let Some(pipe) = self.conn.rx() else { return Ok(0) };
+        loop {
+            match pipe.try_read(buf, false, &self.parker) {
+                // EOF vindo de um fechamento com RST: o erro vem antes do EOF.
+                Try::Ready(Ok(0)) if matches!(self.conn.take_reset(), ResetState::Pending) => return Err(io::ErrorKind::ConnectionReset.into()),
+                Try::Ready(Ok(n)) => return Ok(n),
+                Try::Ready(Err(e)) => return Err(e.into()),
+                Try::Pending => self.parker.park(),
+            }
+        }
+    }
+}
+
+impl io::Write for HostStream {
+    /// Como a escrita de um processo: o primeiro `write` para um par que já fechou conta como feito e o
+    /// seguinte dá ECONNRESET.
+    fn write(&mut self, data: &[u8]) -> io::Result<usize> {
+        let reset = self.conn.take_reset();
+        if matches!(reset, ResetState::Pending) {
+            return Err(io::ErrorKind::ConnectionReset.into());
+        }
+        let none = matches!(reset, ResetState::None);
+        if none && self.conn.write_to_closed_peer() {
+            return Ok(data.len());
+        }
+        let Some(pipe) = self.conn.tx().filter(|_| none) else { return Err(io::ErrorKind::BrokenPipe.into()) };
+        if data.is_empty() {
+            return Ok(0);
+        }
+        let mut done = 0usize;
+        loop {
+            match pipe.try_write(data, &mut done, false, &self.parker) {
+                Try::Ready(Ok(n)) => return Ok(n),
+                Try::Ready(Err(WriteError::BrokenPipe { written: 0 })) => return Err(io::ErrorKind::BrokenPipe.into()),
+                Try::Ready(Err(WriteError::BrokenPipe { written })) => return Ok(written),
+                // Sem `nonblock` o `Again` não sai; esperar é o que resta se algum dia sair.
+                Try::Ready(Err(WriteError::Again)) | Try::Pending => self.parker.park(),
+            }
+        }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+/// O endereço de `name` no texto de um `/etc/hosts`, como o `files` do `nsswitch` do glibc: a primeira
+/// linha cujo nome ou alias é `name` (sem diferenciar maiúsculas), ignorando comentários e linhas cujo
+/// endereço não é válido. Vale IPv4 e IPv6.
+pub(crate) fn lookup_hosts(hosts: &[u8], name: &[u8]) -> Option<IpAddr> {
+    hosts.split(|b| *b == b'\n').find_map(|line| {
+        let line = line.split(|b| *b == b'#').next().unwrap_or_default();
+        let mut words = line.split(u8::is_ascii_whitespace).filter(|w| !w.is_empty());
+        let ip = std::str::from_utf8(words.next()?).ok()?.parse::<IpAddr>().ok()?;
+        words.any(|w| w.eq_ignore_ascii_case(name)).then_some(ip)
+    })
 }

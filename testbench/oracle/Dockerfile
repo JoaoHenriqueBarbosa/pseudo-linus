@@ -27,5 +27,14 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends python3-pip python3-venv \
  && rm -rf /var/lib/apt/lists/*
 
+# Espelho do PyPI: o sandbox serve https://pypi.sandbox (127.0.0.80:443) e confia na CA do espelho
+# instalada como o Debian faz, em /usr/local/share/ca-certificates + update-ca-certificates. O oráculo
+# precisa da mesma CA e do mesmo pip.conf pra `pip install` ser comparável byte a byte. O ca.crt vem
+# do contexto nomeado `mirror-certs` (crates/mirror/certs), passado por `oracle build` com
+# `--build-context`, pra o certificado ter uma única cópia no repositório.
+COPY --from=mirror-certs ca.crt /usr/local/share/ca-certificates/pypi-sandbox.crt
+RUN update-ca-certificates \
+ && printf '[global]\nindex-url = https://pypi.sandbox/simple/\n' > /etc/pip.conf
+
 ENV LC_ALL=C.UTF-8 TZ=UTC HOME=/root
 WORKDIR /work

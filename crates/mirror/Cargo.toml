@@ -1,0 +1,22 @@
+[package]
+name = "mirror"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Espelho do PyPI (Simple API, PEP 503, 658 e 691) servido pelo host ao sandbox sobre HTTP/1.1 e TLS"
+
+[dependencies]
+# sha256 e hex compartilhados com o resto do projeto.
+ul-common = { workspace = true }
+# TLS servidor. Provedor de cripto: ring (o mesmo do ul-net).
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+rustls-pki-types = { version = "1.12", features = ["std"] }
+# Leitura das requisições HTTP/1.1.
+httparse = "1.9"
+# Descompressão deflate das entradas do zip (METADATA das wheels).
+flate2 = { version = "1.1", default-features = false, features = ["zlib-rs"] }
+
+[lints]
+workspace = true

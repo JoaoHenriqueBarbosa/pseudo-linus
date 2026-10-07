@@ -454,3 +454,142 @@ print(type(5).__name__, type('a').__name__, type([]).__name__)
     // `import os.path` precisa do módulo `os`, que chega com a stdlib da rodada 2.
     assert!(o.stderr.contains("No module named 'os.path'") || o.stderr.is_empty(), "{}", o.stderr);
 }
+
+#[test]
+fn property_subclass_cached_property() {
+    let src = "\
+_missing = object()
+class cached_property(property):
+    def __init__(self, fget, name=None, doc=None):
+        super().__init__(fget, doc=doc)
+        self.__name__ = name or fget.__name__
+        self.slot_name = f'_cache_{self.__name__}'
+        self.__module__ = fget.__module__
+    def __set__(self, obj, value):
+        if hasattr(obj, '__dict__'):
+            obj.__dict__[self.__name__] = value
+        else:
+            setattr(obj, self.slot_name, value)
+    def __delete__(self, obj):
+        if hasattr(obj, '__dict__'):
+            obj.__dict__.pop(self.__name__, None)
+        else:
+            setattr(obj, self.slot_name, _missing)
+    def __get__(self, obj, type=None):
+        if obj is None:
+            return self
+        obj_dict = getattr(obj, '__dict__', None)
+        if obj_dict is not None:
+            value = obj_dict.get(self.__name__, _missing)
+        else:
+            value = getattr(obj, self.slot_name, _missing)
+        if value is _missing:
+            value = self.fget(obj)
+            if obj_dict is not None:
+                obj.__dict__[self.__name__] = value
+            else:
+                setattr(obj, self.slot_name, value)
+        return value
+calls = []
+class A:
+    @cached_property
+    def x(self):
+        'o docstring'
+        calls.append(1)
+        return 42
+a = A()
+print(a.x, a.x, len(calls))
+print(isinstance(A.__dict__['x'], property), isinstance(A.__dict__['x'], cached_property))
+print(A.x is A.__dict__['x'], A.x.__name__, A.x.__doc__)
+a.x = 7
+print(a.x, a.__dict__)
+del a.x
+print(a.x, len(calls))
+b = A()
+print(b.x, len(calls))
+";
+    assert_eq!(out(src), "42 42 1\nTrue True\nTrue x o docstring\n7 {'x': 7}\n42 2\n42 3\n");
+}
+
+#[test]
+fn property_subclass_get_override_and_super() {
+    let src = "\
+class loud(property):
+    def __get__(self, obj, cls=None):
+        if obj is None:
+            return self
+        return super().__get__(obj, cls) * 2
+class A:
+    def __init__(self):
+        self._v = 5
+    @loud
+    def v(self):
+        'doc de v'
+        return self._v
+    @v.setter
+    def v(self, value):
+        self._v = value
+a = A()
+print(a.v)
+a.v = 10
+print(a.v, type(A.__dict__['v']).__name__)
+print(A.v.fget.__name__, A.v.fset.__name__, A.v.fdel, A.v.__doc__)
+print(isinstance(A.v, property), issubclass(loud, property))
+print(A.v.__isabstractmethod__)
+";
+    assert_eq!(out(src), "10\n20 loud\nv v None doc de v\nTrue True\nFalse\n");
+}
+
+#[test]
+fn property_subclass_decorators_return_subclass() {
+    let src = "\
+class P(property):
+    pass
+class A:
+    def __init__(self):
+        self._x = 1
+    @P
+    def x(self):
+        return self._x
+    @x.setter
+    def x(self, value):
+        self._x = value
+    @x.deleter
+    def x(self):
+        self._x = 0
+print(type(A.__dict__['x']).__name__)
+a = A()
+a.x = 9
+print(a.x)
+del a.x
+print(a.x)
+p = P(lambda self: 1)
+print(type(p.getter(lambda self: 2)).__name__, type(p.setter(len)).__name__, type(p.deleter(len)).__name__)
+print(repr(p).startswith('<__main__.P object at 0x'))
+print(p.fset, p.fdel, p.fget(None))
+";
+    assert_eq!(out(src), "P\n9\n0\nP P P\nTrue\nNone None 1\n");
+}
+
+#[test]
+fn property_subclass_errors_like_cpython() {
+    let src = "\
+class P(property):
+    pass
+class A:
+    @P
+    def x(self):
+        return 1
+    y = P(None)
+a = A()
+for stmt in ('a.x = 1', 'del a.x', 'a.y'):
+    try:
+        exec(stmt)
+    except AttributeError as e:
+        print(e)
+";
+    assert_eq!(
+        out(src),
+        "property 'x' of 'A' object has no setter\nproperty 'x' of 'A' object has no deleter\nproperty 'y' of 'A' object has no getter\n"
+    );
+}

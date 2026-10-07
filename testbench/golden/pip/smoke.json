@@ -1,0 +1,248 @@
+{
+  "pip-smoke-anyio": {
+    "stdout": "venv rc=0\npip rc=0\n[0, 1, 4, 9]\nmsg\nTrue\nfim\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-attrs": {
+    "stdout": "venv rc=0\npip rc=0\nP(x=1, y=2, tags=[])\n{'x': 1, 'y': 2, 'tags': []}\nP(x=1, y=9, tags=[])\nTrue x\nTypeError\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-beautifulsoup4": {
+    "stdout": "venv rc=0\npip rc=0\nOi mundo ['a']\n['x', 'y']\n/z\nmundo\n<p class=\"a\">Oi <b>terra</b></p>\n<html>\n <body>\n  <p class=\"a\">\n   Oi\n   <b>\n    terra\n   </b>\n  </p>\n  <ul>\n   <li id=\"1\">\n    x\n   </li>\n   <li id=\"2\">\n    y\n   </li>\n  </ul>\n  <a href=\"/z\">\n   link\n  </a>\n </body>\n</html>\n\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-certifi": {
+    "stdout": "venv rc=0\npip rc=0\ncacert.pem True\nTrue\nTrue\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-charset-normalizer": {
+    "stdout": "venv rc=0\npip rc=0\nutf_8\nTrue\nascii\n1\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-click": {
+    "stdout": "venv rc=0\npip rc=0\n0 'Olá, ana!\\nOlá, ana!\\n'\n2\nUsage: cli ola [OPTIONS]\nTry 'cli ola --help' for help.\n\nError: Invalid value for '--vezes': 'x' is not a valid integer.\n\nUsage: cli [OPTIONS] COMMAND [ARGS]...\n\n  Grupo de teste.\n\nOptions:\n  --help  Show this message and exit.\n\nCommands:\n  ola\n\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-colorama": {
+    "stdout": "venv rc=0\npip rc=0\n'\\x1b[31m' '\\x1b[42m' '\\x1b[1m' '\\x1b[0m'\n'\\x1b[31mx\\x1b[0m'\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-docutils": {
+    "stdout": "venv rc=0\npip rc=0\n<p>Um parágrafo com <em>ênfase</em>, <strong>negrito</strong> e <tt class=\"docutils literal\">código</tt>.</p>\n<ul class=\"simple\">\n<li>item um</li>\n<li>item dois</li>\n</ul>\n<pre class=\"code python literal-block\">\nx = 1\n</pre>\n\nTítulo\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-et-xmlfile": {
+    "stdout": "venv rc=0\npip rc=0\nb'<raiz v=\"1\"><filho a=\"x\" /><grupo><n /></grupo></raiz>'\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-filelock": {
+    "stdout": "venv rc=0\npip rc=0\na preso True\nb falhou Timeout\na solto False\nb preso True\n/tmp/fl.lock\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-flask": {
+    "stdout": "venv rc=0\npip rc=0\n200 b'ola' text/html; charset=utf-8\n200 {'total': 42}\n200 {'k': [1, 2]}\n404\n405 GET, OPTIONS, HEAD\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-h11": {
+    "stdout": "venv rc=0\npip rc=0\nb'POST /a HTTP/1.1\\r\\nHost: x\\r\\nContent-Length: 5\\r\\n\\r\\nabcde'\nRequest (b'POST', b'/a', <Headers([(b'host', b'x'), (b'content-length', b'5')])>)\nData Data(data=bytearray(b'abcde'), chunk_start=False, chunk_end=False)\nEndOfMessage EndOfMessage(headers=<Headers([])>)\nb'HTTP/1.1 200 \\r\\nContent-Length: 2\\r\\n\\r\\n'\nb'ok' b''\nDONE DONE\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-httpcore": {
+    "stdout": "venv rc=0\npip rc=0\n200 {'Content-Type': 'application/json'}\nb'{\"path\": \"/x\"}'\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-httpx": {
+    "stdout": "venv rc=0\npip rc=0\n200 HTTP/1.0 application/json\n{'path': '/ola?a=1'} http://127.0.0.1:8765/ola?a=1\n8443\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-idna": {
+    "stdout": "venv rc=0\npip rc=0\nb'xn--bcher-kva.example'\nbücher.example\nb'xn--wgv71a119e.jp'\nIDNAError Empty Label\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-iniconfig": {
+    "stdout": "venv rc=0\npip rc=0\n['geral', 'extra'] demo 3\n{'k': 'v'}\npadrao\nParseError y.ini:1: no section header defined\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-itsdangerous": {
+    "stdout": "venv rc=0\npip rc=0\neyJpZCI6NDIsIm5vbWUiOiJhbmEifQ.YIMajkytr3p3nlwbAQUYerrCCQA\n{'id': 42, 'nome': 'ana'}\nBadSignature\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-jinja2": {
+    "stdout": "venv rc=0\npip rc=0\nOlá, MUNDO! [1][2][3]\n<filho d>\n&lt;b&gt;&amp;&lt;/b&gt;\n3.1 x,y A B\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-markdown": {
+    "stdout": "venv rc=0\npip rc=0\n<h1>Título</h1>\n<p>Texto com <em>ênfase</em>, <strong>negrito</strong> e <code>código</code>.</p>\n<ul>\n<li>um</li>\n<li>\n<p>dois</p>\n</li>\n<li>\n<p>a</p>\n</li>\n<li>b</li>\n</ul>\n<p><a href=\"http://x.test/\" title=\"t\">link</a></p>\n<pre><code>bloco\n</code></pre>\n<table>\n<thead>\n<tr>\n<th>a</th>\n<th>b</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>1</td>\n<td>2</td>\n</tr>\n</tbody>\n</table>\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-markupsafe": {
+    "stdout": "venv rc=0\npip rc=0\n&lt;a href=&#39;x&#39;&gt;&amp;&#34;&lt;/a&gt;\n<b>&lt;i&gt;</b> Markup\na x &amp; y\nMarkup('<z>')\n&lt;a&gt; <b>\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-openpyxl": {
+    "stdout": "venv rc=0\npip rc=0\n['dados'] 3 4 A1:D3\n('nome', 'qtd', None, '=SUM(B2:B3)')\n('maçã', 3, None, None)\n('pera', 12, None, None)\n=SUM(B2:B3)\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-packaging": {
+    "stdout": "venv rc=0\npip rc=0\nTrue True\n['0.9', '1.0a1', '1.0', '1.0.post1']\nTrue\nrequests {'security'} >=2.0 python_version >= \"3.8\"\nfriendly-bard-pkg\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-platformdirs": {
+    "stdout": "venv rc=0\npip rc=0\n/tmp/pdhome/.cache/app\n/tmp/pdhome/.config/app\n/tmp/pdhome/.local/share/app/1.0\n/tmp/pdhome/.local/state/app\n/tmp/pdhome/.local/state/app/log\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-pluggy": {
+    "stdout": "venv rc=0\npip rc=0\n[50, 6]\n['a', 'b']\n[50]\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-pygments": {
+    "stdout": "venv rc=0\npip rc=0\n<span class=\"k\">def</span><span class=\"w\"> </span><span class=\"nf\">f</span><span class=\"p\">(</span><span class=\"n\">x</span><span class=\"p\">):</span>\n    <span class=\"k\">return</span> <span class=\"n\">x</span> <span class=\"o\">+</span> <span class=\"mi\">1</span>\nJSON\nRust\n[Token.Name, Token.Text, Token.Operator]\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-pytest": {
+    "stdout": "venv rc=0\npip rc=0\n.....F                                                                   [100%]\n=================================== FAILURES ===================================\n__________________________________ test_falha __________________________________\n\n    def test_falha():\n>       assert soma(2, 2) == 5\nE       assert 4 == 5\nE        +  where 4 = soma(2, 2)\n\ntest_amostra.py:27: AssertionError\n=========================== short test summary info ============================\nFAILED test_amostra.py::test_falha - assert 4 == 5\n1 failed, 5 passed in <t>s\npytest rc=1\n....                                                                     [100%]\n4 passed, 2 deselected in <t>s\npytest rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-python-dateutil": {
+    "stdout": "venv rc=0\npip rc=0\n2024-01-31T10:30:00\n2024-02-29T10:30:00\n2023-03-05T16:15:00\nrelativedelta(years=+4, months=+2, days=+14)\n2024-01-01\n2024-01-08\n2024-01-15\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-pytz": {
+    "stdout": "venv rc=0\npip rc=0\n2024-01-15T12:00:00-03:00 -03 -1 day, 21:00:00\n2024-01-15T15:00:00+00:00\n2024-07-04T09:00:00-04:00\nTrue True\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-pyyaml": {
+    "stdout": "venv rc=0\npip rc=0\naninhado:\n  x: 1.5\n  y: null\n  z: true\nidade: 30\nnome: ana\ntags:\n- a\n- b\nTrue\n[1, 'two', {'a': [3, 4]}]\nParserError\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-requests": {
+    "stdout": "venv rc=0\npip rc=0\n200 http://127.0.0.1:8765/ola?a=1&b=x+y\napplication/json\n{'path': '/ola?a=1&b=x+y', 'ok': True}\nTrue OK utf-8\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-rich": {
+    "stdout": "venv rc=0\npip rc=0\n    Frutas    \n┏━━━━━━┳━━━━━┓\n┃ Nome ┃ Qtd ┃\n┡━━━━━━╇━━━━━┩\n│ maçã │   3 │\n│ pera │  12 │\n└──────┴─────┘\nnegrito e vermelho\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-six": {
+    "stdout": "venv rc=0\npip rc=0\nTrue str (<class 'str'>,)\na%20b/c\n[('a', 1), ('b', 2)]\nbytes b'txt'\nrange(0, 3)\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-sniffio": {
+    "stdout": "venv rc=0\npip rc=0\nfora: AsyncLibraryNotFoundError\nasyncio\ntrio\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-soupsieve": {
+    "stdout": "venv rc=0\npip rc=0\n['1', '3']\n['2']\nTrue\ndiv > p:not(.x)\nSelectorSyntaxError\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-tabulate": {
+    "stdout": "venv rc=0\npip rc=0\nnome      qtd    preço\n------  -----  -------\nmaçã        3    1.5\npera       12   22.25\nuva       100    0.333\n\n+--------+-------+---------+\n| nome   |   qtd |   preço |\n+========+=======+=========+\n| maçã   |     3 |   1.5   |\n+--------+-------+---------+\n| pera   |    12 |  22.25  |\n+--------+-------+---------+\n| uva    |   100 |   0.333 |\n+--------+-------+---------+\n\n| nome   |   qtd |   preço |\n|--------|-------|---------|\n| maçã   |     3 |   1.5   |\n| pera   |    12 |  22.25  |\n| uva    |   100 |   0.333 |\n\nnome      qtd    preço\nmaçã        3    1.5\npera       12   22.25\nuva       100    0.333\n\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-toml": {
+    "stdout": "venv rc=0\npip rc=0\n{'titulo': 'x', 'a': {'n': 1, 'lista': [1, 2, 3], 'b': {'ok': True}}}\ns = \"v\"\nn = 3\n\n[t]\nk = [ 1, 2,]\nTomlDecodeError\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-tomli": {
+    "stdout": "venv rc=0\npip rc=0\n{'titulo': 'x', 'a': {'n': 1, 'lista': [1, 2, 3], 'b': {'ok': True, 'd': datetime.date(2024, 1, 2)}}}\nTOMLDecodeError Invalid value (at line 1, column 5)\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-tqdm": {
+    "stdout": "venv rc=0\npip rc=0\n\r0/3\r1/3\r2/3\r3/3\r3/3\n\n3\n\r0/4\r2/4\r4/4\r4/4\n\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-typing-extensions": {
+    "stdout": "venv rc=0\npip rc=0\n{'nome': <class 'str'>, 'idade': typing.Optional[int]}\n(<class 'int'>, 'meta') ('a', 'b')\nTrue False\n{'nome': 'a', 'idade': None}\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-urllib3": {
+    "stdout": "venv rc=0\npip rc=0\n200 application/json\n{'path': '/x?q=1'}\nhttp user example.com 8080 /a/b c=1 f\n3\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-werkzeug": {
+    "stdout": "venv rc=0\npip rc=0\n('user', {'id': 7})\n/u/9\netc_pass_wd_e.txt\nTrue False\nPOST /p {'a': '1', 'b': '2'} {'f': 'v'}\n201 CREATED b'corpo' 1\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

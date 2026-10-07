@@ -29,7 +29,7 @@ required-features = ["kernel", "test-programs"]
 [features]
 default = ["kernel"]
 # O backend de produção: o kernel do pseudo-linus com a tabela completa de programas.
-kernel = ["dep:kernel", "dep:userland"]
+kernel = ["dep:kernel", "dep:userland", "dep:mirror"]
 # O shell (`bash`/`sh`) na tabela de programas, quando o crate shell exportar `programs()`.
 shell = ["userland/shell"]
 # Programas de teste do host (`/usr/local/bin/pl-*`): laço com checkpoint, saída grande, filho em
@@ -44,6 +44,8 @@ sysabi = { workspace = true }
 ul-common = { workspace = true }
 kernel = { workspace = true, optional = true }
 userland = { workspace = true, optional = true }
+# O espelho do PyPI que o host serve ao sandbox em pypi.sandbox (127.0.0.80:443).
+mirror = { workspace = true, optional = true }
 # Só o parser, pro osh saber quando o comando digitado ainda não fechou (here-document, aspas, blocos).
 shell-parser = { package = "shell", path = "../shell" }
 

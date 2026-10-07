@@ -140,7 +140,7 @@
     "files": {}
   },
   "service-status-all": {
-    "stdout": " [ - ]  procps\nrc=0\n",
+    "stdout": " [ - ]  procps\n [ - ]  x11-common\nrc=0\n",
     "stderr": "",
     "exit": 0,
     "files": {}

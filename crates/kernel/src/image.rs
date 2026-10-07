@@ -219,6 +219,43 @@ fn stamp(ns: &Namespace, cx: &Caller, path: &[u8]) -> Result<(), Errno> {
     ns.utimens(cx, &Start::Cwd, path, SetTime::At(IMAGE_TIME), SetTime::At(IMAGE_TIME), AtFlags::SYMLINK_NOFOLLOW)
 }
 
+/// O nome e o endereço do espelho do PyPI (`mirror::HOST` e `mirror::ADDR`): o oráculo roda com
+/// `--add-host pypi.sandbox:127.0.0.80`, e o sandbox escuta nesse endereço do loopback.
+const MIRROR_HOST: &str = "pypi.sandbox";
+const MIRROR_ADDR: &str = "127.0.0.80";
+/// A CA do espelho (a mesma de `mirror::CA_PEM`), que o `update-ca-certificates` instala a partir de
+/// `/usr/local/share/ca-certificates`.
+const MIRROR_CA: &[u8] = include_bytes!("../../mirror/certs/ca.crt");
+
+/// Acrescenta `data` ao fim de um arquivo que existe.
+fn append_file(ns: &Namespace, cx: &Caller, path: &[u8], data: &[u8]) -> Result<(), Errno> {
+    match ns.open(cx, &Start::Cwd, path, OFlags::WRONLY | OFlags::APPEND, 0)? {
+        Opened::File { handle, .. } => {
+            let mut off = 0usize;
+            while off < data.len() {
+                let (n, _) = handle.write(cx, WritePos::Append, &data[off..])?;
+                off += n;
+            }
+            Ok(())
+        }
+        _ => Err(Errno::EISDIR),
+    }
+}
+
+/// O que o oráculo tem para o espelho do PyPI: o `/etc/pip.conf` que aponta o índice para ele e a CA
+/// dele instalada como o `update-ca-certificates` do Debian faz com um `.crt` local (o arquivo, o
+/// link `.pem`, o link por hash e o PEM no fim do `ca-certificates.crt`). Devolve os caminhos criados,
+/// para o carimbo de tempo.
+fn install_mirror_client(ns: &Namespace, cx: &Caller) -> Result<Vec<Vec<u8>>, Errno> {
+    let crt: &[u8] = b"/usr/local/share/ca-certificates/pypi-sandbox.crt";
+    put_file(ns, cx, b"/etc/pip.conf", format!("[global]\nindex-url = https://{MIRROR_HOST}/simple/\n").as_bytes(), 0o644)?;
+    put_file(ns, cx, crt, MIRROR_CA, 0o644)?;
+    ns.symlink(cx, crt, &Start::Cwd, b"/etc/ssl/certs/pypi-sandbox.pem")?;
+    ns.symlink(cx, b"pypi-sandbox.pem", &Start::Cwd, b"/etc/ssl/certs/f1de26c0.0")?;
+    append_file(ns, cx, b"/etc/ssl/certs/ca-certificates.crt", MIRROR_CA)?;
+    Ok([&b"/etc/pip.conf"[..], crt, b"/etc/ssl/certs/pypi-sandbox.pem", b"/etc/ssl/certs/f1de26c0.0"].iter().map(|p| p.to_vec()).collect())
+}
+
 /// Chave de criação de um caminho da imagem. O tmpfs lista o mais novo primeiro, então a ordem em
 /// que cada diretório recebe os filhos é a ordem que o `ls -f` mostra. Criar em ordem alfabética
 /// daria ordem alfabética invertida, que nenhum sistema real tem: um tmpfs populado por um arquivo
@@ -307,10 +344,12 @@ pub(crate) fn build_root(ns: &Namespace, cx: &Caller, programs: &[Program], host
     put_file(ns, cx, b"/etc/hostname", format!("{hostname}\n").as_bytes(), 0o644)?;
     // O /etc/hosts do contêiner do oráculo (`--network none`): sem linha pro nome da máquina, então
     // `hostid` dá 00000000 e `hostname -f`/`-i` falham com "Temporary failure in name resolution".
+    // O `--add-host pypi.sandbox:127.0.0.80` do docker põe a linha do espelho do PyPI no fim.
     let hosts = "127.0.0.1\tlocalhost\n::1\tlocalhost ip6-localhost ip6-loopback\nfe00::0\tip6-localnet\nff00::0\tip6-mcastprefix\nff02::1\tip6-allnodes\nff02::2\tip6-allrouters\n";
-    put_file(ns, cx, b"/etc/hosts", hosts.as_bytes(), 0o644)?;
+    put_file(ns, cx, b"/etc/hosts", format!("{hosts}{MIRROR_ADDR}\t{MIRROR_HOST}\n").as_bytes(), 0o644)?;
     stamped.push(b"/etc/hostname".to_vec());
     stamped.push(b"/etc/hosts".to_vec());
+    stamped.extend(install_mirror_client(ns, cx)?);
     // Poda os que ficaram pendurados (alvo ausente), até estabilizar: um link pode apontar para outro.
     // Os de `/etc/alternatives` ficam como no Debian slim, onde os das manpages já são pendurados.
     loop {

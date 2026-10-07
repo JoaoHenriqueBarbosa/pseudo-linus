@@ -28,6 +28,7 @@ sysabi = { path = "crates/sysabi" }
 sysio = { path = "crates/sysio" }
 vfs = { path = "crates/vfs" }
 kernel = { path = "crates/kernel" }
+mirror = { path = "crates/mirror" }
 shell = { path = "crates/shell" }
 regex-posix = { path = "crates/regex-posix" }
 ul-common = { path = "crates/ul-common" }

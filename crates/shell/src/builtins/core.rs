@@ -315,8 +315,18 @@ pub fn source(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
         let _ = write_fd(Fd::STDERR, format!("{name_s}: usage: {name_s} filename [arguments]\n").as_bytes());
         return Ok(2);
     };
+    // O `dotcmd` do dash: a falha ao achar ou abrir o arquivo é `sh_error`, que encerra o shell não
+    // interativo com status 2; o `errmsg` dele diz "No such file" para ENOENT.
+    let dash_fatal = |sh: &mut Shell, msg: String| -> Exec {
+        sh.builtin_error(&name_s, msg);
+        if sh.interactive { Ok(2) } else { Err(Flow::Exit(2)) }
+    };
     let path = match find_source(sh, file) {
         Some(p) => p,
+        None if sh.dash_style() && !file.contains(&b'/') => {
+            return dash_fatal(sh, format!("{}: not found", String::from_utf8_lossy(file)));
+        }
+        None if sh.dash_style() => file.clone(),
         None => {
             sh.error_bytes(&[file.as_slice(), b": file not found"].concat());
             return Ok(1);
@@ -324,6 +334,10 @@ pub fn source(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
     };
     let data = match sysabi::sys::read_file(&path) {
         Ok(d) => d,
+        Err(e) if sh.dash_style() => {
+            let why = if e == sysabi::Errno::ENOENT { "No such file".to_string() } else { e.message() };
+            return dash_fatal(sh, format!("cannot open {}: {why}", String::from_utf8_lossy(file)));
+        }
         Err(e) => {
             sh.error_bytes(&[file.as_slice(), b": ", e.message().as_bytes()].concat());
             return Ok(1);

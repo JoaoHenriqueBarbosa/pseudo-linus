@@ -18,7 +18,7 @@
     "files": {}
   },
   "getent-ahosts-enumeration": {
-    "stdout": "127.0.0.1       localhost\n127.0.0.1       localhost ip6-localhost ip6-loopback\n",
+    "stdout": "127.0.0.1       localhost\n127.0.0.1       localhost ip6-localhost ip6-loopback\n127.0.0.80      pypi.sandbox\n",
     "stderr": "",
     "exit": 0,
     "files": {}
@@ -330,7 +330,7 @@
     "files": {}
   },
   "getent-hosts-enumeration": {
-    "stdout": "127.0.0.1       localhost\n127.0.0.1       localhost ip6-localhost ip6-loopback\n",
+    "stdout": "127.0.0.1       localhost\n127.0.0.1       localhost ip6-localhost ip6-loopback\n127.0.0.80      pypi.sandbox\n",
     "stderr": "",
     "exit": 0,
     "files": {}
