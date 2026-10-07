@@ -527,17 +527,17 @@ fn output_edscript(out: &mut Output, blocks: &[Block3], files: &[Input], sel: Se
             let mut leading = false;
             if b.kind == Kind::All {
                 if sel.show_2nd {
-                    out.write(&[b"||||||| ".as_slice(), &marks[1], b"\n"].concat());
+                    marker(out, b"||||||| ", &marks[1]);
                     leading = dot_lines(out, old);
                 }
                 out.write(b"=======\n");
                 leading |= dot_lines(out, yours);
             }
-            out.write(&[b">>>>>>> ".as_slice(), &marks[2], b"\n"].concat());
+            marker(out, b">>>>>>> ", &marks[2]);
             undot(out, leading, high0 + 2, b.count(1) as i64 + b.count(2) as i64 + 1);
             let who = if b.kind == Kind::All { &marks[0] } else { &marks[1] };
             out.write_str(&format!("{}a\n", low0 - 1));
-            out.write(&[b"<<<<<<< ".as_slice(), who, b"\n"].concat());
+            marker(out, b"<<<<<<< ", who);
             let mut leading = false;
             if b.kind == Kind::Old {
                 leading = dot_lines(out, old);
@@ -563,6 +563,19 @@ fn output_edscript(out: &mut Output, blocks: &[Block3], files: &[Input], sel: Se
     conflicts
 }
 
+/// A linha de marcador de um conflito: `<<<<<<< nome`, `||||||| nome` ou `>>>>>>> nome`.
+fn marker(out: &mut Output, head: &[u8], mark: &[u8]) {
+    out.write(head);
+    out.write(mark);
+    out.write(b"\n");
+}
+
+fn write_lines(out: &mut Output, lines: &[Vec<u8>]) {
+    for l in lines {
+        out.write(l);
+    }
+}
+
 fn output_merge(out: &mut Output, blocks: &[Block3], files: &[Input], sel: Selection, marks: &[Vec<u8>; 3]) -> bool {
     let mut conflicts = false;
     let mine = &files[0].lines;
@@ -571,37 +584,27 @@ fn output_merge(out: &mut Output, blocks: &[Block3], files: &[Input], sel: Selec
         let Some(conflict) = selected(b, sel) else { continue };
         let (low0, _) = b.range[0];
         let upto = ((low0 - 1).max(0) as usize).min(mine.len());
-        for l in &mine[read.min(upto)..upto] {
-            out.write(l);
-        }
+        write_lines(out, &mine[read.min(upto)..upto]);
         read = read.max(upto);
         if conflict {
             conflicts = true;
             if b.kind == Kind::All {
-                out.write(&[b"<<<<<<< ".as_slice(), &marks[0], b"\n"].concat());
-                for l in slice(&files[0], b.range[0]) {
-                    out.write(l);
-                }
+                marker(out, b"<<<<<<< ", &marks[0]);
+                write_lines(out, slice(&files[0], b.range[0]));
             }
             if sel.show_2nd {
                 let head: &[u8] = if b.kind == Kind::All { b"||||||| " } else { b"<<<<<<< " };
-                out.write(&[head, &marks[1], b"\n"].concat());
-                for l in slice(&files[1], b.range[1]) {
-                    out.write(l);
-                }
+                marker(out, head, &marks[1]);
+                write_lines(out, slice(&files[1], b.range[1]));
             }
             out.write(b"=======\n");
         }
-        for l in slice(&files[2], b.range[2]) {
-            out.write(l);
-        }
+        write_lines(out, slice(&files[2], b.range[2]));
         if conflict {
-            out.write(&[b">>>>>>> ".as_slice(), &marks[2], b"\n"].concat());
+            marker(out, b">>>>>>> ", &marks[2]);
         }
         read += b.count(0);
     }
-    for l in &mine[read.min(mine.len())..] {
-        out.write(l);
-    }
+    write_lines(out, &mine[read.min(mine.len())..]);
     conflicts
 }

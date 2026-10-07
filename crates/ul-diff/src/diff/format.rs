@@ -5,7 +5,7 @@
 //!
 //! Escrito a partir do comportamento documentado e observado no oráculo, sem copiar código do GNU.
 
-use std::ops::Range;
+use std::ops::{Range, RangeInclusive};
 
 /// Um bloco de mudança: `deleted` linhas a partir de `line0` no primeiro arquivo viram `inserted` linhas a
 /// partir de `line1` no segundo (índices a partir de 0).
@@ -402,44 +402,58 @@ pub fn format_context(
         p.control_bytes(&with_function("***************".to_string(), f), Paint::None);
         p.control(&format!("*** {} ****", context_range(first0c, last0c)), Paint::Line);
         if old {
-            let mut next = 0usize;
-            for i in first0c..=last0c {
-                while next < hunk.len() && (hunk[next].line0 + hunk[next].deleted) as isize <= i {
-                    next += 1;
-                }
-                let prefix = match hunk.get(next) {
-                    Some(c) if c.line0 as isize <= i => {
-                        if c.inserted > 0 {
-                            CTX_CHANGED
-                        } else {
-                            CTX_OLD
-                        }
-                    }
-                    _ => CTX_CONTEXT,
-                };
-                p.line(prefix, a[i as usize], Paint::Delete);
-            }
+            context_side(p, hunk, a, first0c..=last0c, Side::Old);
         }
         p.control(&format!("--- {} ----", context_range(first1c, last1c)), Paint::Line);
         if new {
-            let mut next = 0usize;
-            for j in first1c..=last1c {
-                while next < hunk.len() && (hunk[next].line1 + hunk[next].inserted) as isize <= j {
-                    next += 1;
-                }
-                let prefix = match hunk.get(next) {
-                    Some(c) if c.line1 as isize <= j => {
-                        if c.deleted > 0 {
-                            CTX_CHANGED
-                        } else {
-                            CTX_NEW
-                        }
-                    }
-                    _ => CTX_CONTEXT,
-                };
-                p.line(prefix, b[j as usize], Paint::Add);
-            }
+            context_side(p, hunk, b, first1c..=last1c, Side::New);
         }
+    }
+}
+
+/// Um dos dois arquivos de um diff de contexto.
+#[derive(Clone, Copy)]
+enum Side {
+    Old,
+    New,
+}
+
+impl Side {
+    /// Onde a mudança começa neste arquivo, quantas linhas ela tem aqui e quantas no outro.
+    fn span(self, c: &Change) -> (usize, usize, usize) {
+        match self {
+            Side::Old => (c.line0, c.deleted, c.inserted),
+            Side::New => (c.line1, c.inserted, c.deleted),
+        }
+    }
+}
+
+/// As linhas `range` de um dos lados de um bloco de contexto: `!` na mudança com os dois lados,
+/// `-` ou `+` na que só tem este, e o contexto com dois espaços.
+fn context_side(p: &mut Printer<'_>, hunk: &[Change], lines: &[&[u8]], range: RangeInclusive<isize>, side: Side) {
+    let (own, paint) = match side {
+        Side::Old => (CTX_OLD, Paint::Delete),
+        Side::New => (CTX_NEW, Paint::Add),
+    };
+    let mut next = 0usize;
+    for i in range {
+        while hunk.get(next).is_some_and(|c| {
+            let (start, here, _) = side.span(c);
+            (start + here) as isize <= i
+        }) {
+            next += 1;
+        }
+        let prefix = match hunk.get(next).map(|c| side.span(c)) {
+            Some((start, _, other)) if start as isize <= i => {
+                if other > 0 {
+                    CTX_CHANGED
+                } else {
+                    own
+                }
+            }
+            _ => CTX_CONTEXT,
+        };
+        p.line(prefix, lines[i as usize], paint);
     }
 }
 
