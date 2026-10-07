@@ -618,6 +618,40 @@ def cpu_count():
     return 1
 
 
+# `confstr(3)` da glibc 2.41 do Debian 13 em x86-64.
+confstr_names = {
+    'CS_GNU_LIBC_VERSION': 2, 'CS_GNU_LIBPTHREAD_VERSION': 3, 'CS_LFS64_CFLAGS': 1004, 'CS_LFS64_LDFLAGS': 1005,
+    'CS_LFS64_LIBS': 1006, 'CS_LFS64_LINTFLAGS': 1007, 'CS_LFS_CFLAGS': 1000, 'CS_LFS_LDFLAGS': 1001,
+    'CS_LFS_LIBS': 1002, 'CS_LFS_LINTFLAGS': 1003, 'CS_PATH': 0, 'CS_XBS5_ILP32_OFF32_CFLAGS': 1100,
+    'CS_XBS5_ILP32_OFF32_LDFLAGS': 1101, 'CS_XBS5_ILP32_OFF32_LIBS': 1102, 'CS_XBS5_ILP32_OFF32_LINTFLAGS': 1103,
+    'CS_XBS5_ILP32_OFFBIG_CFLAGS': 1104, 'CS_XBS5_ILP32_OFFBIG_LDFLAGS': 1105, 'CS_XBS5_ILP32_OFFBIG_LIBS': 1106,
+    'CS_XBS5_ILP32_OFFBIG_LINTFLAGS': 1107, 'CS_XBS5_LP64_OFF64_CFLAGS': 1108, 'CS_XBS5_LP64_OFF64_LDFLAGS': 1109,
+    'CS_XBS5_LP64_OFF64_LIBS': 1110, 'CS_XBS5_LP64_OFF64_LINTFLAGS': 1111, 'CS_XBS5_LPBIG_OFFBIG_CFLAGS': 1112,
+    'CS_XBS5_LPBIG_OFFBIG_LDFLAGS': 1113, 'CS_XBS5_LPBIG_OFFBIG_LIBS': 1114,
+    'CS_XBS5_LPBIG_OFFBIG_LINTFLAGS': 1115,
+}
+_CONFSTR_VALUES = {
+    0: '/bin:/usr/bin', 2: 'glibc 2.41', 3: 'NPTL 2.41', 1004: '-D_LARGEFILE64_SOURCE',
+    1007: '-D_LARGEFILE64_SOURCE', 1108: '-m64', 1109: '-m64',
+}
+
+
+def confstr(name, /):
+    """Return a string-valued system configuration variable."""
+    if isinstance(name, str):
+        if name not in confstr_names:
+            raise ValueError('unrecognized configuration name')
+        name = confstr_names[name]
+    elif not isinstance(name, int):
+        raise TypeError('configuration names must be strings or integers')
+    if name not in confstr_names.values():
+        raise OSError(22, 'Invalid argument')
+    return _CONFSTR_VALUES.get(name, '')
+
+
+confstr.__module__ = 'posix'
+
+
 def get_terminal_size(fd=1):
     return terminal_size((80, 24))
 

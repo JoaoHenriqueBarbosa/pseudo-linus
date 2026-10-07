@@ -11,6 +11,18 @@
     "exit": 0,
     "files": {}
   },
+  "new-init-through-instance": {
+    "stdout": "A True A __new__\nS True S __new__\nN True N __new__\nint True int __new__\nstr True str __new__\n__init__ None 0 7 (1,)\nTrue int.__new__ <class 'int'>\nE('p: m') ('p: m',) p\nTrue\n(1, 2) W\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "object-address-shape": {
+    "stdout": "A 0x7f 14 0 14 0 True\nobject 0x7f 14 0 14 0 True\nfunction 0x7f 14 0 14 0 True\ngenerator 0x7f 14 0 14 0 True\nmap 0x7f 14 0 14 0 True\nzip 0x7f 14 0 14 0 True\nlist_iterator 0x7f 14 0 14 0 True\nReferenceType 0x7f 14 0 14 0 False\nHASH 0x7f 14 0 14 0 True\ntype  0 -  0 True\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "ssl-surface": {
     "stdout": "(3, 5) True 16\n2 True -2\nTrue\nssl SSLError\nThe operation did not complete (read) (_ssl.c:1029)\nTrue\n/usr/lib/ssl/cert.pem\n",
     "stderr": "",

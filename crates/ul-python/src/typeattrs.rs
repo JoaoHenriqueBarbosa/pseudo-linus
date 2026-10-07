@@ -67,6 +67,23 @@ struct NewFn {
     tname: &'static str,
 }
 
+thread_local! {
+    static NEW_FNS: std::cell::RefCell<Vec<(&'static str, Value)>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// O `__new__` de um tipo embutido: o mesmo objeto a cada leitura, como o `tp_new` do CPython.
+fn new_fn(tname: &'static str) -> Value {
+    NEW_FNS.with(|m| {
+        let mut m = m.borrow_mut();
+        if let Some((_, v)) = m.iter().find(|(n, _)| *n == tname) {
+            return v.clone();
+        }
+        let v = Value::Ext(Rc::new(NewFn { tname }));
+        m.push((tname, v.clone()));
+        v
+    })
+}
+
 impl ExtObject for NewFn {
     fn type_name(&self) -> &'static str {
         "builtin_function_or_method"
@@ -74,7 +91,22 @@ impl ExtObject for NewFn {
     fn methods(&self) -> &'static [&'static str] {
         &["__call__"]
     }
+    fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
+        match name {
+            "__name__" => Some(Ok(Value::str("__new__"))),
+            "__qualname__" => Some(Ok(Value::str(format!("{}.__new__", self.tname)))),
+            "__self__" => crate::builtins::get(self.tname).map(Ok),
+            _ => None,
+        }
+    }
     fn call_method(&self, vm: &mut Vm, _name: &str, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+        // `int.__new__(int, ...)`: o próprio tipo embutido, sem subclasse, é a chamada do construtor.
+        if let Some(first) = args.first() {
+            if crate::builtins::class_name(first).is_some_and(|n| n == self.tname) {
+                let ctor = crate::builtins::get(self.tname).unwrap_or(Value::Builtin("object"));
+                return vm.call_value(&ctor, args[1..].to_vec(), kw);
+            }
+        }
         let Some(Value::Class(c)) = args.first() else {
             return Err(type_error(format!("{}.__new__(X): X is not a type object", self.tname)));
         };
@@ -372,7 +404,7 @@ pub fn type_attr(tname: &str, name: &str) -> Option<Value> {
     match (tname, name) {
         (_, "__name__" | "__qualname__") => return Some(Value::str(tname)),
         (_, "__module__") => return Some(Value::str("builtins")),
-        (t, "__new__") if t != "bool" => return Some(Value::Ext(Rc::new(NewFn { tname }))),
+        (t, "__new__") if t != "bool" => return Some(new_fn(tname)),
         ("dict", "fromkeys") => return Some(native("fromkeys", fromkeys)),
         ("int", "from_bytes") => return Some(native("from_bytes", int_from_bytes)),
         ("bytes", "fromhex") => return Some(native("fromhex", bytes_fromhex)),

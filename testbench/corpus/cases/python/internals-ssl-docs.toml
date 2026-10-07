@@ -55,3 +55,55 @@ print(pdb.__doc__.splitlines()[1])
 print(os.makedirs.__doc__.splitlines()[0])
 PYEOF
 '''
+
+# Endereços com a forma dos do CPython no Debian (arenas em 0x7f..., heap types no heap do brk,
+# alinhados a 16) e `hash` padrão igual a `id >> 4`; os valores mudam a cada execução, a forma não.
+[[case]]
+id = "object-address-shape"
+script = '''
+python3 - <<'PYEOF'
+import weakref, hashlib
+class A: pass
+a = A()
+def f(): yield 1
+objs = [a, object(), f, f(), map(str, []), zip(), iter([]), weakref.ref(a), hashlib.sha256(), A]
+for o in objs:
+    r = repr(o)
+    i = r.rfind(' at 0x'); j = r.rfind('@ 0x')
+    k = max(i + 4, j + 2) if max(i, j) >= 0 else -1
+    addr = r[k:].split('>')[0].split(';')[0].split(',')[0] if k > 0 else ''
+    try: h = hash(o) == id(o) >> 4
+    except TypeError: h = 'unhashable'
+    # O heap do brk muda com o ASLR: a largura do id de uma classe varia entre execuções.
+    width = '' if isinstance(o, type) else len(hex(id(o)))
+    print(type(o).__name__, addr[:4], len(addr), int(addr, 16) % 16 if addr else '-', width, id(o) % 16, h)
+PYEOF
+'''
+
+# `__new__` e `__init__` lidos pela instância, e o `__init__`/`__new__` herdados de exceção (o
+# `rich` do `pip inspect` e o `urllib3` do pip dependem disso).
+[[case]]
+id = "new-init-through-instance"
+script = '''
+python3 - <<'PYEOF'
+class A: pass
+class S:
+    __slots__ = ('a',)
+class N:
+    def __new__(cls, *a): return super().__new__(cls)
+for C in (A, S, N, int, str):
+    o = C()
+    print(C.__name__, o.__new__ is C.__new__, type(o.__new__(C)).__name__, o.__new__.__name__)
+print(A().__init__.__name__, A().__init__(), int.__new__(int), int.__new__(int, 7), tuple.__new__(tuple, [1]))
+print((5).__new__ is int.__new__, int.__new__.__qualname__, int.__new__.__self__)
+class H(Exception): pass
+class W(Warning, H): pass
+class E(H):
+    def __init__(self, pool, message):
+        self.pool = pool
+        H.__init__(self, "%s: %s" % (pool, message))
+e = E("p", "m"); print(repr(e), e.args, e.pool)
+print(H.__new__ is Exception.__new__)
+w = W.__new__(W); W.__init__(w, 1, 2); print(w.args, type(w).__name__)
+PYEOF
+'''

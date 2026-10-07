@@ -57,7 +57,7 @@ impl ExtObject for Capsule {
             Payload::Image(im) => Rc::as_ptr(im) as usize,
             Payload::Unop(n) | Payload::Binop(n) => n.as_ptr() as usize,
         };
-        format!("<capsule object \"{}\" at 0x{:x}>", self.magic(), addr)
+        format!("<capsule object \"{}\" at 0x{:x}>", self.magic(), crate::object::py_addr(addr))
     }
 
     fn call_method(&self, _vm: &mut Vm, name: &str, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {

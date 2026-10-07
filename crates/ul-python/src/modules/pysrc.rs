@@ -146,7 +146,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("inspect", include_str!("py/inspect.py")),
     ("linecache", include_str!("py/linecache.py")),
     ("_excgroup", include_str!("py/_excgroup.py")),
-    ("pkgutil", include_str!("py/pkgutil.py")),
+    ("_imp", include_str!("py/_imp.py")),
     ("errno", include_str!("py/errno.py")),
     ("tarfile", include_str!("py/tarfile.py")),
     ("_archivefile", include_str!("py/_archivefile.py")),

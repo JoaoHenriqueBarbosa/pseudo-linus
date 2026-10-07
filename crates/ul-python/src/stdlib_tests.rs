@@ -20,9 +20,9 @@ fn every_embedded_module_imports() {
     // `tkinter` precisa do Tk nativo (`_tkinter`), que o sandbox não tem: o oráculo instala o
     // `python3-tk` e importa, então este é um buraco conhecido do nosso lado, não do oráculo.
     const MISSING_DEPS: &[&str] = &["PIL._tkinter_finder"];
-    // Importam o `sysconfig` real, que vive no disco da imagem e não existe no teste unitário: a
-    // bancada (`python/stdlib-disk.toml` e os casos de datas) cobre esses.
-    const NEEDS_DISK: &[&str] = &["trace", "pydoc", "zoneinfo", "zoneinfo._tzpath", "zoneinfo._common", "zoneinfo._zoneinfo"];
+    // Importam o `sysconfig` ou o `pkgutil` reais, que vivem no disco da imagem e não existem no
+    // teste unitário: a bancada (`python/stdlib-disk.toml` e os casos de datas) cobre esses.
+    const NEEDS_DISK: &[&str] = &["trace", "pydoc", "zoneinfo", "zoneinfo._tzpath", "zoneinfo._common", "zoneinfo._zoneinfo", "unittest.mock"];
     for name in crate::modules::pysrc::names() {
         if NEEDS_PROCESS.contains(&name) || MISSING_DEPS.contains(&name) || NEEDS_DISK.contains(&name) {
             continue;
@@ -2035,55 +2035,6 @@ left ExceptionGroup('g', [OSError(2)])
 ExceptionGroup (ValueError('naked'),)
 ExceptionGroup('m', [ValueError(1), ExceptionGroup('n', [ValueError(3)])]) ExceptionGroup('m', [ExceptionGroup('n', [TypeError(2)])]) m (2 sub-exceptions) m
 True False ExceptionGroup
-"##
-    );
-}
-
-#[test]
-fn live_dict_and_mock() {
-    let src = r##"
-from unittest import mock
-
-
-class A:
-    def __init__(self):
-        self.x = 1
-
-
-a = A()
-d = a.__dict__
-d['y'] = 2
-print(a.y, sorted(a.__dict__))
-a.z = 3
-print(sorted(d))
-del d['x']
-print(hasattr(a, 'x'), sorted(vars(a)))
-del a.y
-print(sorted(d))
-
-m = mock.Mock(return_value=3)
-print(m(1, k=2), m.call_count, m.call_args)
-m.foo.bar.return_value = 'ok'
-print(m.foo.bar())
-with mock.patch('os.getcwd', return_value='/x'):
-    import os
-    print(os.getcwd())
-mm = mock.MagicMock()
-mm.__len__.return_value = 5
-print(len(mm))
-"##;
-    let o = crate::run_source(src);
-    assert_eq!(o.status, 0, "{}", o.stderr);
-    assert_eq!(
-        String::from_utf8(o.stdout).unwrap(),
-        r##"2 ['x', 'y']
-['x', 'y', 'z']
-False ['y', 'z']
-['z']
-3 1 call(1, k=2)
-ok
-/x
-5
 "##
     );
 }
@@ -5336,32 +5287,6 @@ except M as e: print(''.join(traceback.format_exception_only(e)).strip())
 ['n1', 'dois\nlinhas'] ['M: y\n', 'n1\n', 'dois\n', 'linhas\n']
 TracebackException KeyError False True
 M: fim
-"##
-    );
-}
-
-#[test]
-fn mock_side_effect_function_and_autospec() {
-    let src = r##"
-from unittest import mock
-class Svc:
-    def greet(self): return 'x'
-m = mock.Mock(side_effect=lambda k: k * 2); print(m(4))
-mm = mock.MagicMock(); mm.__getitem__.side_effect = lambda k: k + 1; print(mm[1])
-a = mock.create_autospec(Svc, instance=True); a.greet.return_value = 'ok'; print(a.greet())
-try: a.nope
-except AttributeError: print('sem nope')
-f = lambda: 3; print(f.__call__(), issubclass(type(Svc), object), issubclass(type, (int, type)), issubclass(type(Svc), Svc))
-"##;
-    let o = crate::run_source(src);
-    assert_eq!(o.status, 0, "{}", o.stderr);
-    assert_eq!(
-        String::from_utf8(o.stdout).unwrap(),
-        r##"8
-2
-ok
-sem nope
-3 True True False
 "##
     );
 }

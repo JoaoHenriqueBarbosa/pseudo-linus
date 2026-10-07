@@ -641,7 +641,7 @@ impl ExtObject for HashObj {
     }
 
     fn repr(&self) -> String {
-        format!("<{} _hashlib.HASH object @ {:p}>", self.algo.name(), self)
+        format!("<{} _hashlib.HASH object @ {:#x}>", self.algo.name(), crate::object::py_addr(self as *const Self as usize))
     }
 
     fn methods(&self) -> &'static [&'static str] {

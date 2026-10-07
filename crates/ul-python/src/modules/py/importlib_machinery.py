@@ -124,8 +124,106 @@ class SourceFileLoader:
 
 SOURCE_SUFFIXES = ['.py']
 BYTECODE_SUFFIXES = ['.pyc']
-EXTENSION_SUFFIXES = []
+EXTENSION_SUFFIXES = ['.cpython-313-x86_64-linux-gnu.so', '.abi3.so', '.abi3-x86_64-linux-gnu.so', '.so']
 all_suffixes = lambda: SOURCE_SUFFIXES + BYTECODE_SUFFIXES + EXTENSION_SUFFIXES
+
+
+class FileFinder:
+    """File-based finder.
+
+    Interactions with the file system are cached for performance, being
+    refreshed when the directory the finder is handling has been modified.
+
+    """
+
+    def __init__(self, path, *loader_details):
+        import os
+        loaders = []
+        for loader, suffixes in loader_details:
+            loaders.extend((suffix, loader) for suffix in suffixes)
+        self._loaders = loaders
+        if not path or path == '.':
+            self.path = os.getcwd()
+        else:
+            self.path = os.path.abspath(path)
+        self._path_mtime = -1
+        self._path_cache = set()
+        self._relaxed_path_cache = set()
+
+    def invalidate_caches(self):
+        """Invalidate the directory mtime."""
+        self._path_mtime = -1
+
+    def _get_spec(self, loader_class, fullname, path, smsl, target):
+        from importlib.util import spec_from_file_location
+        loader = loader_class(fullname, path)
+        return spec_from_file_location(fullname, path, loader=loader, submodule_search_locations=smsl)
+
+    def find_spec(self, fullname, target=None):
+        """Try to find a spec for the specified module.
+
+        Returns the matching spec, or None if not found.
+        """
+        import os
+        is_namespace = False
+        tail_module = fullname.rpartition('.')[2]
+        try:
+            mtime = os.stat(self.path or os.getcwd()).st_mtime
+        except OSError:
+            mtime = -1
+        if mtime != self._path_mtime:
+            self._fill_cache()
+            self._path_mtime = mtime
+        cache = self._path_cache
+        cache_module = tail_module
+        base_path = os.path.join(self.path, tail_module)
+        if cache_module in cache:
+            for suffix, loader_class in self._loaders:
+                full_path = os.path.join(base_path, '__init__' + suffix)
+                if os.path.isfile(full_path):
+                    return self._get_spec(loader_class, fullname, full_path, [base_path], target)
+            else:
+                is_namespace = os.path.isdir(base_path)
+        for suffix, loader_class in self._loaders:
+            full_path = os.path.join(self.path, tail_module + suffix)
+            if cache_module + suffix in cache and os.path.isfile(full_path):
+                return self._get_spec(loader_class, fullname, full_path, None, target)
+        if is_namespace:
+            spec = ModuleSpec(fullname, None)
+            spec.submodule_search_locations = [base_path]
+            return spec
+        return None
+
+    def _fill_cache(self):
+        """Fill the cache of potential modules and packages for this directory."""
+        import os
+        try:
+            contents = os.listdir(self.path or os.getcwd())
+        except (FileNotFoundError, PermissionError, NotADirectoryError):
+            contents = []
+        self._path_cache = set(contents)
+
+    @classmethod
+    def path_hook(cls, *loader_details):
+        """A class method which returns a closure to use on sys.path_hook
+        which will return an instance using the specified loaders and the path
+        called on the closure.
+
+        If the path called on the closure is not a directory, ImportError is
+        raised.
+
+        """
+        def path_hook_for_FileFinder(path):
+            """Path hook for importlib.machinery.FileFinder."""
+            import os
+            if not os.path.isdir(path):
+                raise ImportError('only directories are supported', path=path)
+            return cls(path, *loader_details)
+
+        return path_hook_for_FileFinder
+
+    def __repr__(self):
+        return f'FileFinder({self.path!r})'
 
 
 def _spec_for_module(name, file, is_package):

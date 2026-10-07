@@ -225,7 +225,12 @@ impl ExtObject for GenObj {
         self.type_str()
     }
     fn repr(&self) -> String {
-        format!("<{} object {} at {:#x}>", self.type_str().replace('_', " "), self.core.code.name, self as *const GenObj as usize)
+        format!(
+            "<{} object {} at {:#x}>",
+            self.type_str().replace('_', " "),
+            self.core.code.name,
+            crate::object::py_addr(self as *const GenObj as usize)
+        )
     }
     fn methods(&self) -> &'static [&'static str] {
         match self.core.kind {

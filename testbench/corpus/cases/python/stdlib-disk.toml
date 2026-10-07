@@ -95,3 +95,70 @@ for m in (json, os, math, posixpath, encodings.idna, yaml):
     print(m)
 PYEOF
 '''
+
+# `unittest.mock` importa o `pkgutil` real do disco (que usa o `FileFinder` e o `sys.path_hooks`).
+[[case]]
+id = "unittest-mock-live-dict"
+script = '''
+python3 - <<'PYEOF'
+from unittest import mock
+
+
+class A:
+    def __init__(self):
+        self.x = 1
+
+
+a = A()
+d = a.__dict__
+d['y'] = 2
+print(a.y, sorted(a.__dict__))
+a.z = 3
+print(sorted(d))
+del d['x']
+print(hasattr(a, 'x'), sorted(vars(a)))
+del a.y
+print(sorted(d))
+
+m = mock.Mock(return_value=3)
+print(m(1, k=2), m.call_count, m.call_args)
+m.foo.bar.return_value = 'ok'
+print(m.foo.bar())
+with mock.patch('os.getcwd', return_value='/x'):
+    import os
+    print(os.getcwd())
+mm = mock.MagicMock()
+mm.__len__.return_value = 5
+print(len(mm))
+class Svc:
+    def greet(self): return 'x'
+m = mock.Mock(side_effect=lambda k: k * 2); print(m(4))
+mm = mock.MagicMock(); mm.__getitem__.side_effect = lambda k: k + 1; print(mm[1])
+a = mock.create_autospec(Svc, instance=True); a.greet.return_value = 'ok'; print(a.greet())
+try: a.nope
+except AttributeError: print('sem nope')
+f = lambda: 3; print(f.__call__(), issubclass(type(Svc), object), issubclass(type, (int, type)), issubclass(type(Svc), Svc))
+PYEOF
+'''
+
+# O `pkgutil` real: `FileFinder` por `sys.path_hooks`, módulos de um pacote, dados e nomes.
+[[case]]
+id = "pkgutil-file-finder"
+script = '''
+python3 - <<'PYEOF'
+import sys, pkgutil, json, email, importlib.machinery, inspect, _imp
+print(sys.path_hooks[0], sys.path_hooks[1].__qualname__)
+print(pkgutil.get_importer('/usr/lib/python3.13'), pkgutil.get_importer('/etc/hostname'))
+print(sorted(m.name for m in pkgutil.iter_modules(json.__path__)))
+print(pkgutil.get_data('email', 'architecture.rst')[:40])
+print(pkgutil.resolve_name('os.path:join').__name__)
+print([m.name for m in pkgutil.walk_packages(email.__path__, 'email.')][:6])
+f = importlib.machinery.FileFinder('/usr/lib/python3.13', (importlib.machinery.SourceFileLoader, ['.py']))
+print(f.find_spec('json').submodule_search_locations, f.find_spec('glob').origin, f.find_spec('nope'))
+print(inspect.getmodulename('/a/b/x.cpython-313-x86_64-linux-gnu.so'), inspect.getmodulename('y.py'), inspect.getmodulename('z.txt'))
+print(_imp.is_builtin('sys'), _imp.is_builtin('_imp'), _imp.is_frozen('os'), _imp.lock_held(), _imp.extension_suffixes())
+e = ImportError('m', name='n', path='p'); print(e.name, e.path, repr(e))
+try: ImportError(foo=1)
+except TypeError as e: print(e)
+PYEOF
+'''

@@ -33,7 +33,7 @@ impl ExtObject for MapIter {
         "map"
     }
     fn repr(&self) -> String {
-        format!("<map object at {:#x}>", self as *const MapIter as usize)
+        format!("<map object at {:#x}>", crate::object::py_addr(self as *const MapIter as usize))
     }
     fn methods(&self) -> &'static [&'static str] {
         &["__next__"]
@@ -81,7 +81,7 @@ impl ExtObject for CallIter {
         "callable_iterator"
     }
     fn repr(&self) -> String {
-        format!("<callable_iterator object at {:#x}>", self as *const CallIter as usize)
+        format!("<callable_iterator object at {:#x}>", crate::object::py_addr(self as *const CallIter as usize))
     }
     fn methods(&self) -> &'static [&'static str] {
         &["__next__"]
@@ -128,7 +128,7 @@ impl ExtObject for FilterIter {
         "filter"
     }
     fn repr(&self) -> String {
-        format!("<filter object at {:#x}>", self as *const FilterIter as usize)
+        format!("<filter object at {:#x}>", crate::object::py_addr(self as *const FilterIter as usize))
     }
     fn methods(&self) -> &'static [&'static str] {
         &["__next__"]
@@ -178,7 +178,7 @@ impl ExtObject for ZipIter {
         "zip"
     }
     fn repr(&self) -> String {
-        format!("<zip object at {:#x}>", self as *const ZipIter as usize)
+        format!("<zip object at {:#x}>", crate::object::py_addr(self as *const ZipIter as usize))
     }
     fn methods(&self) -> &'static [&'static str] {
         &["__next__"]
@@ -265,7 +265,7 @@ impl ExtObject for EnumerateIter {
         "enumerate"
     }
     fn repr(&self) -> String {
-        format!("<enumerate object at {:#x}>", self as *const EnumerateIter as usize)
+        format!("<enumerate object at {:#x}>", crate::object::py_addr(self as *const EnumerateIter as usize))
     }
     fn methods(&self) -> &'static [&'static str] {
         &["__next__"]

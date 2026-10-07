@@ -1065,9 +1065,30 @@ pub fn intern(name: &str) -> &'static str {
     })
 }
 
+/// O endereço que o programa vê de um objeto. O ponteiro do hospedeiro não serve: cai numa faixa
+/// que nenhum processo do Debian usa. Aqui ele vai para a faixa das arenas do pymalloc do CPython no
+/// Linux x86-64 (`0x7f` no byte de cima e 40 bits livres), alinhado a 16 bytes como os objetos de
+/// lá. O índice são 36 bits de `ptr >> 3` (os ponteiros são alinhados a 8): só colidem dois
+/// ponteiros a um múltiplo exato de 2^39 bytes de distância, o que não acontece dentro de um heap.
+pub fn py_addr(ptr: usize) -> usize {
+    0x7f00_0000_0000 + (((ptr >> 3) & 0xf_ffff_ffff) << 4)
+}
+
+/// `_Py_HashPointer`: o endereço girado 4 bits, que com o alinhamento de 16 bytes é `id >> 4`.
+pub fn py_addr_hash(ptr: usize) -> i64 {
+    (py_addr(ptr) >> 4) as i64
+}
+
+/// O endereço de uma classe criada pelo programa. No CPython ela é um heap type alocado com
+/// `malloc`, que cai no heap do `brk`, logo depois do binário (o `python3.13` do Debian não é PIE):
+/// `0x1...` a `0x3...`, com 8 dígitos. O índice são 25 bits de `ptr >> 3`.
+pub fn py_type_addr(ptr: usize) -> usize {
+    0x1000_0000 + (((ptr >> 3) & 0x1ff_ffff) << 4)
+}
+
 /// Endereço de um objeto compartilhado, para identidade e para a pilha do `repr`.
 fn addr<T: ?Sized>(rc: &Rc<T>) -> usize {
-    Rc::as_ptr(rc) as *const () as usize
+    py_addr(Rc::as_ptr(rc) as *const () as usize)
 }
 
 /// Pilha de contêineres em impressão (`Py_ReprEnter`/`Py_ReprLeave`), que corta a recursão de um
@@ -1324,24 +1345,24 @@ pub fn hash(v: &Value) -> Result<i64, ObjError> {
         }
         // O CPython usa o endereço; aqui basta um valor estável por função.
         Value::Builtin(name) => Ok(PyStr::new(*name).hash()),
-        Value::Exception(e) => Ok((Rc::as_ptr(e) as usize >> 4) as i64),
-        Value::Function(f) => Ok((Rc::as_ptr(f) as usize >> 4) as i64),
-        Value::Module(m) => Ok((Rc::as_ptr(m) as usize >> 4) as i64),
+        Value::Exception(e) => Ok(py_addr_hash(Rc::as_ptr(e) as usize)),
+        Value::Function(f) => Ok(py_addr_hash(Rc::as_ptr(f) as usize)),
+        Value::Module(m) => Ok(py_addr_hash(Rc::as_ptr(m) as usize)),
         Value::NativeFn(n) => Ok(PyStr::new(n.name).hash()),
-        Value::Ext(e) => Ok(e.hash_value().unwrap_or((Rc::as_ptr(e) as *const () as usize >> 4) as i64)),
-        Value::Native(n) => Ok((Rc::as_ptr(n) as usize >> 4) as i64),
-        Value::Bound(b) => Ok((Rc::as_ptr(b) as usize >> 4) as i64),
-        Value::Class(c) => Ok((Rc::as_ptr(c) as usize >> 4) as i64),
+        Value::Ext(e) => Ok(e.hash_value().unwrap_or(py_addr_hash(Rc::as_ptr(e) as *const () as usize))),
+        Value::Native(n) => Ok(py_addr_hash(Rc::as_ptr(n) as usize)),
+        Value::Bound(b) => Ok(py_addr_hash(Rc::as_ptr(b) as usize)),
+        Value::Class(c) => Ok((py_type_addr(Rc::as_ptr(c) as usize) >> 4) as i64),
         Value::Instance(i) => match crate::vm::instance_hash(v) {
             Some(h) => Ok(h),
             // `__hash__ = None` na classe: instâncias não são hasheáveis.
             None if matches!(i.class.lookup("__hash__"), Some(Value::None)) => {
                 Err(ObjError::TypeError(format!("unhashable type: '{}'", i.class.name)))
             }
-            None => Ok((Rc::as_ptr(i) as usize >> 4) as i64),
+            None => Ok(py_addr_hash(Rc::as_ptr(i) as usize)),
         },
-        Value::BoundFn(b) => Ok((Rc::as_ptr(b) as usize >> 4) as i64),
-        Value::Slice(s) => Ok((Rc::as_ptr(s) as usize >> 4) as i64),
+        Value::BoundFn(b) => Ok(py_addr_hash(Rc::as_ptr(b) as usize)),
+        Value::Slice(s) => Ok(py_addr_hash(Rc::as_ptr(s) as usize)),
         Value::Set(s) if s.borrow().is_frozen() => Ok(s.borrow().frozen_hash()),
         Value::List(_) | Value::Dict(_) | Value::Set(_) | Value::ByteArray(_) => {
             Err(ObjError::TypeError(format!("unhashable type: '{}'", v.type_name())))

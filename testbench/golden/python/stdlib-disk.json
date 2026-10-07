@@ -1,4 +1,10 @@
 {
+  "pkgutil-file-finder": {
+    "stdout": "<class 'zipimport.zipimporter'> FileFinder.path_hook.<locals>.path_hook_for_FileFinder\nFileFinder('/usr/lib/python3.13') None\n['decoder', 'encoder', 'scanner', 'tool']\nb':mod:`email` Package Architecture\\n======'\njoin\n['email._encoded_words', 'email._header_value_parser', 'email._parseaddr', 'email._policybase', 'email.base64mime', 'email.charset']\n['/usr/lib/python3.13/json'] /usr/lib/python3.13/glob.py None\nx y None\n-1 1 True False ['.cpython-313-x86_64-linux-gnu.so', '.abi3.so', '.abi3-x86_64-linux-gnu.so', '.so']\nn p ImportError('m')\nImportError() got an unexpected keyword argument 'foo'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "pydoc-help-user-functions-classes": {
     "stdout": "Help on function f in module __main__:\n\nf(a, b=2, *c, d=1, **e)\n    Soma a e b.\n\nHelp on class Animal in module __main__:\n\nclass Animal(builtins.object)\n |  Animal(name)\n |\n |  Um bicho.\n |\n |  Methods defined here:\n |\n |  __init__(self, name)\n |      Cria.\n |\n |  speak(self, loud=False)\n |      Fala.\n |\n |  ----------------------------------------------------------------------\n |  Class methods defined here:\n |\n |  make()\n |      Fábrica.\n |\n |  ----------------------------------------------------------------------\n |  Readonly properties defined here:\n |\n |  upper\n |      Nome em caixa alta.\n |\n |  ----------------------------------------------------------------------\n |  Data descriptors defined here:\n |\n |  __dict__\n |      dictionary for instance variables\n |\n |  __weakref__\n |      list of weak references to the object\n |\n |  ----------------------------------------------------------------------\n |  Data and other attributes defined here:\n |\n |  kind = 'x'\n\nHelp on class Dog in module __main__:\n\nclass Dog(Animal)\n |  Dog(name)\n |\n |  Cachorro.\n |\n |  Method resolution order:\n |      Dog\n |      Animal\n |      builtins.object\n |\n |  Methods defined here:\n |\n |  speak(self, loud=True)\n |      Fala.\n |\n |  ----------------------------------------------------------------------\n |  Methods inherited from Animal:\n |\n |  __init__(self, name)\n |      Cria.\n |\n |  ----------------------------------------------------------------------\n |  Class methods inherited from Animal:\n |\n |  make()\n |      Fábrica.\n |\n |  ----------------------------------------------------------------------\n |  Readonly properties inherited from Animal:\n |\n |  upper\n |      Nome em caixa alta.\n |\n |  ----------------------------------------------------------------------\n |  Data descriptors inherited from Animal:\n |\n |  __dict__\n |      dictionary for instance variables\n |\n |  __weakref__\n |      list of weak references to the object\n |\n |  ----------------------------------------------------------------------\n |  Data and other attributes inherited from Animal:\n |\n |  kind = 'x'\n\nHelp on function speak in module __main__:\n\nspeak(self, loud=True)\n    Fala.\n\nHelp on method speak in module __main__:\n\nspeak(loud=True) method of __main__.Dog instance\n    Fala.\n\n",
     "stderr": "",
@@ -19,6 +25,12 @@
   },
   "trace-counts-lines": {
     "stdout": "[(2, 2), (3, 7), (4, 5), (5, 2), (7, 1)]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "unittest-mock-live-dict": {
+    "stdout": "2 ['x', 'y']\n['x', 'y', 'z']\nFalse ['y', 'z']\n['z']\n3 1 call(1, k=2)\nok\n/x\n5\n8\n2\nok\nsem nope\n3 True True False\n",
     "stderr": "",
     "exit": 0,
     "files": {}

@@ -416,7 +416,11 @@ impl crate::object::ExtObject for CodeSource {
         "code"
     }
     fn repr(&self) -> String {
-        format!("<code object <module> at 0x7f0000000000, file \"{}\", line 1>", self.filename)
+        format!(
+            "<code object <module> at {:#x}, file \"{}\", line 1>",
+            crate::object::py_addr(self as *const Self as usize),
+            self.filename
+        )
     }
     fn getattr(&self, vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
         Some(Ok(match name {

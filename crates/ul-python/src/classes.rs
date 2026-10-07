@@ -252,7 +252,7 @@ impl ExtObject for PlainObject {
         "object"
     }
     fn repr(&self) -> String {
-        format!("<object object at 0x{:x}>", self as *const PlainObject as usize)
+        format!("<object object at 0x{:x}>", crate::object::py_addr(self as *const PlainObject as usize))
     }
     fn methods(&self) -> &'static [&'static str] {
         &["__eq__", "__ne__", "__hash__", "__repr__", "__str__", "__format__", "__sizeof__", "__getstate__", "__init__"]
@@ -269,7 +269,7 @@ impl ExtObject for PlainObject {
         match (name, args.as_slice()) {
             ("__eq__", [other]) => Ok(if same(other) { Value::Bool(true) } else { Value::Builtin("NotImplemented") }),
             ("__ne__", [other]) => Ok(if same(other) { Value::Bool(false) } else { Value::Builtin("NotImplemented") }),
-            ("__hash__", []) => Ok(Value::Int((me >> 4) as i64)),
+            ("__hash__", []) => Ok(Value::Int(crate::object::py_addr_hash(me))),
             ("__repr__" | "__str__", []) => Ok(Value::str(self.repr())),
             ("__format__", [Value::Str(spec)]) if spec.as_str().is_empty() => Ok(Value::str(self.repr())),
             ("__format__", [_]) => Err(type_error("unsupported format string passed to object.__format__")),
@@ -280,7 +280,7 @@ impl ExtObject for PlainObject {
         }
     }
     fn hash_value(&self) -> Option<i64> {
-        Some(((self as *const PlainObject as usize) >> 4) as i64)
+        Some(crate::object::py_addr_hash(self as *const PlainObject as usize))
     }
 }
 
@@ -297,8 +297,12 @@ impl ExtObject for ClassCell {
     }
     fn repr(&self) -> String {
         match self.0.vars.borrow().get("__class__") {
-            Some(Value::Class(c)) => format!("<cell at 0x{:x}: type object at 0x{:x}>", Rc::as_ptr(&self.0) as usize, Rc::as_ptr(c) as usize),
-            _ => format!("<cell at 0x{:x}: empty>", Rc::as_ptr(&self.0) as usize),
+            Some(Value::Class(c)) => format!(
+                "<cell at 0x{:x}: type object at 0x{:x}>",
+                crate::object::py_addr(Rc::as_ptr(&self.0) as usize),
+                crate::object::py_type_addr(Rc::as_ptr(c) as usize)
+            ),
+            _ => format!("<cell at 0x{:x}: empty>", crate::object::py_addr(Rc::as_ptr(&self.0) as usize)),
         }
     }
     fn call_method(&self, _vm: &mut Vm, name: &str, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
@@ -1077,6 +1081,12 @@ impl Vm {
             return Ok(v);
         }
         if let Some(attr) = class_attr {
+            // `__new__` é estático implicitamente: pela instância vem a função sem ligar.
+            if name == "__new__" {
+                if let Value::Function(_) = &attr {
+                    return Ok(attr);
+                }
+            }
             return self.bind_class_attr(&attr, obj.clone(), &inst.class);
         }
         if hook {
@@ -1106,6 +1116,17 @@ impl Vm {
         }
         if name == "__doc__" {
             return Ok(inst.class.lookup("__doc__").unwrap_or(Value::None));
+        }
+        // `object.__new__` é um método estático: pela instância vale o mesmo objeto que pela classe.
+        if name == "__new__" {
+            let cls = inst.class.clone();
+            return self.class_getattr(&cls, "__new__");
+        }
+        // `object.__init__` herdado: ligado à instância, como qualquer método.
+        if name == "__init__" {
+            let cls = inst.class.clone();
+            let attr = self.class_getattr(&cls, "__init__")?;
+            return self.bind_class_attr(&attr, obj.clone(), &cls);
         }
         if inst.class.builtin_base.is_some() && matches!(name, "__cause__" | "__context__" | "__suppress_context__") {
             return Ok(if name == "__suppress_context__" { Value::Bool(false) } else { Value::None });
@@ -1207,6 +1228,15 @@ impl Vm {
         if cls.data_base.is_none() && cls.builtin_base.is_none() && name != "__name__" {
             if let Some(v) = crate::typeattrs::object_attr(name) {
                 return Ok(v);
+            }
+        }
+        // Subclasse de exceção embutida: `H.__init__(self, msg)` é o `BaseException.__init__`.
+        if let Some(base) = cls.builtin_base {
+            if matches!(
+                name,
+                "__new__" | "__init__" | "__str__" | "__repr__" | "__reduce__" | "__setstate__" | "with_traceback" | "add_note"
+            ) {
+                return self.load_attr(&Value::Builtin(base), name);
             }
         }
         Err(exc("AttributeError", format!("type object '{}' has no attribute '{name}'", cls.name)))
@@ -1513,7 +1543,7 @@ impl Vm {
             let inner: Vec<String> = args.iter().map(crate::object::repr).collect();
             return format!("{}({})", i.class.name, inner.join(", "));
         }
-        format!("<{}.{} object at {:#x}>", i.class.module(), i.class.name, Rc::as_ptr(i) as usize)
+        format!("<{}.{} object at {:#x}>", i.class.module(), i.class.name, crate::object::py_addr(Rc::as_ptr(i) as usize))
     }
 
     /// `str(v)`, chamando `__str__` (ou `__repr__`) de usuário.

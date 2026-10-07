@@ -48,7 +48,7 @@ impl ExtObject for WeakRef {
     }
 
     fn repr(&self) -> String {
-        let at = self.me.as_ptr() as usize;
+        let at = crate::object::py_addr(self.me.as_ptr() as usize);
         match self.upgrade() {
             Some(v) => format!("<weakref at {at:#x}; to '{}' at {:#x}>", v.type_name(), referent_addr(&v)),
             None => format!("<weakref at {at:#x}; dead>"),
@@ -106,14 +106,15 @@ impl ExtObject for WeakRef {
 }
 
 fn referent_addr(v: &Value) -> usize {
-    match v {
+    let ptr = match v {
         Value::Instance(i) => Rc::as_ptr(i) as usize,
         Value::Class(c) => Rc::as_ptr(c) as usize,
         Value::Function(f) => Rc::as_ptr(f) as usize,
         Value::Module(m) => Rc::as_ptr(m) as usize,
         Value::Ext(e) => Rc::as_ptr(e) as *const () as usize,
-        _ => 0,
-    }
+        _ => return 0,
+    };
+    crate::object::py_addr(ptr)
 }
 
 fn make_ref(obj: &Value, callback: Option<Value>) -> PyResult<Value> {

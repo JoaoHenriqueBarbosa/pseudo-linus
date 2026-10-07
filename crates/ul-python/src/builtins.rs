@@ -387,7 +387,7 @@ impl ExtObject for SeqIter {
     }
 
     fn repr(&self) -> String {
-        format!("<{} object at {:#x}>", self.kind, self as *const SeqIter as usize)
+        format!("<{} object at {:#x}>", self.kind, crate::object::py_addr(self as *const SeqIter as usize))
     }
 
     fn methods(&self) -> &'static [&'static str] {
@@ -1061,7 +1061,7 @@ fn b_ord(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 // ---------------------------------------------------------------------------------------------
 
 fn addr<T: ?Sized>(rc: &Rc<T>) -> i64 {
-    Rc::as_ptr(rc) as *const () as usize as i64
+    crate::object::py_addr(Rc::as_ptr(rc) as *const () as usize) as i64
 }
 
 fn b_id(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -1071,7 +1071,7 @@ fn b_id(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         Value::Bool(b) => 0x7f00_0000_2000 + i64::from(*b) * 32,
         Value::Int(i) => 0x7f00_1000_0000_i64.wrapping_add(i.wrapping_mul(32)),
         Value::Float(x) => (x.to_bits() >> 4) as i64,
-        Value::Big(b) => (Rc::as_ptr(b) as usize >> 4) as i64,
+        Value::Big(b) => addr(b),
         Value::Range(r) => r.start.wrapping_mul(31).wrapping_add(r.stop).wrapping_mul(31).wrapping_add(r.step),
         Value::Builtin(name) => crate::object::PyStr::new(*name).hash() >> 4,
         Value::Str(s) => addr(s),
@@ -1088,7 +1088,7 @@ fn b_id(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         Value::Ext(e) => addr(e),
         Value::Native(n) => addr(n),
         Value::Bound(b) => addr(b),
-        Value::Class(c) => addr(c),
+        Value::Class(c) => crate::object::py_type_addr(Rc::as_ptr(c) as usize) as i64,
         Value::Instance(i) => addr(i),
         Value::BoundFn(b) => addr(b),
         Value::Slice(s) => addr(s),

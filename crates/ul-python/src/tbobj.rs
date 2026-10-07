@@ -56,7 +56,7 @@ impl ExtObject for TracebackObj {
     }
 
     fn repr(&self) -> String {
-        format!("<traceback object at {:p}>", self)
+        format!("<traceback object at {:#x}>", crate::object::py_addr(self as *const Self as usize))
     }
 
     fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
@@ -142,7 +142,13 @@ impl ExtObject for FrameObj {
 
     fn repr(&self) -> String {
         let (line, name, filename) = &self.chain[self.idx];
-        format!("<frame at {:p}, file '{}', line {}, code {}>", self, filename, line, name)
+        format!(
+            "<frame at {:#x}, file '{}', line {}, code {}>",
+            crate::object::py_addr(self as *const Self as usize),
+            filename,
+            line,
+            name
+        )
     }
 
     fn getattr(&self, vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
@@ -191,7 +197,12 @@ impl ExtObject for CodeObject {
     }
 
     fn repr(&self) -> String {
-        format!("<code object {} at {:p}, file \"{}\">", self.name, self, self.filename)
+        format!(
+            "<code object {} at {:#x}, file \"{}\">",
+            self.name,
+            crate::object::py_addr(self as *const Self as usize),
+            self.filename
+        )
     }
 
     fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {

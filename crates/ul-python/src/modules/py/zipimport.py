@@ -3,7 +3,6 @@
 
 import sys
 import os
-import zipfile
 
 __all__ = ['ZipImportError', 'zipimporter']
 
@@ -55,6 +54,7 @@ class zipimporter:
                 prefix.append(basename)
                 continue
             raise ZipImportError('not a Zip file', path=path)
+        import zipfile
         try:
             with zipfile.ZipFile(path) as z:
                 names = z.namelist()
@@ -127,6 +127,7 @@ class zipimporter:
             key = key[len(self.archive + path_sep):]
         if key not in self._files:
             raise OSError(0, '', key)
+        import zipfile
         with zipfile.ZipFile(self.archive) as z:
             return z.read(key)
 
@@ -188,6 +189,7 @@ class zipimporter:
 
     def invalidate_caches(self):
         """Invalidates the cache of file data of the archive path."""
+        import zipfile
         try:
             with zipfile.ZipFile(self.archive) as z:
                 self._files = set(z.namelist())

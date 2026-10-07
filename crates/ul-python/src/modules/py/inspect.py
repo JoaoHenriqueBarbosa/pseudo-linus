@@ -111,6 +111,21 @@ def ismethodwrapper(obj):
     return type(obj).__name__ == 'method-wrapper'
 
 
+def getmodulename(path):
+    """Return the module name for a given file, or None."""
+    import os
+    import importlib.machinery
+    fname = os.path.basename(path)
+    # Check for paths that look like an actual module file
+    suffixes = [(-len(suffix), suffix)
+                    for suffix in importlib.machinery.all_suffixes()]
+    suffixes.sort() # try longest suffixes first, in case they overlap
+    for neglen, suffix in suffixes:
+        if fname.endswith(suffix):
+            return fname[:neglen]
+    return None
+
+
 def getmodule(obj, _filename=None):
     if ismodule(obj):
         return obj

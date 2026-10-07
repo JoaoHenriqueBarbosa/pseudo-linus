@@ -705,3 +705,14 @@ def _build():
 globals().update(_build())
 del _build, __file__
 __spec__ = __loader__.find_spec('sys')
+
+
+def _install_path_hooks():
+    # Depois do `sys` montado: o `zipimport` puxa o `os`, que lê `sys.platform`.
+    from importlib.machinery import FileFinder, SourceFileLoader, SOURCE_SUFFIXES
+    from zipimport import zipimporter
+    path_hooks.extend([zipimporter, FileFinder.path_hook((SourceFileLoader, SOURCE_SUFFIXES))])
+
+
+_install_path_hooks()
+del _install_path_hooks

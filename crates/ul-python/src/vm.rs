@@ -75,6 +75,7 @@ fn native_in_cpython(filename: &str, qual: &str) -> bool {
             | "bisect.py"
             | "_socket.py"
             | "_ssl.py"
+            | "_imp.py"
             | "_net.py"
             | "_csv.py"
             | "_random.py"
@@ -407,6 +408,33 @@ thread_local! {
 }
 
 /// Guarda o primeiro erro de conversão para texto, para o laço de instruções levantá-lo.
+/// `BaseException.__new__(cls, *args)`: a exceção com `args`, sem passar pelo `__init__`.
+fn base_exception_new(_vm: &mut Vm, args: Vec<Value>, _kw: crate::object::Kw) -> PyResult<Value> {
+    let Some(cls) = args.first() else {
+        return Err(type_error("BaseException.__new__(): not enough arguments"));
+    };
+    let rest = args[1..].to_vec();
+    match cls {
+        Value::Builtin(n) if EXC_CLASSES.iter().any(|(k, _)| k == n) => {
+            Ok(Value::Exception(Rc::new(ExcObj::new(n, rest))))
+        }
+        Value::Class(c) if c.builtin_base.is_some() => {
+            let inst = crate::object::InstanceObj {
+                class: c.clone(),
+                view: Default::default(),
+                dict: RefCell::new(Default::default()),
+                payload: RefCell::new(None),
+            };
+            inst.dict.borrow_mut().insert("args".to_string(), Value::tuple(rest));
+            Ok(Value::Instance(Rc::new(inst)))
+        }
+        other => Err(type_error(format!(
+            "BaseException.__new__(X): X is not a type object ({})",
+            other.type_name()
+        ))),
+    }
+}
+
 pub(crate) fn note_text_error(e: PyException, depth: usize) {
     TEXT_ERROR.with(|t| {
         let mut t = t.borrow_mut();
@@ -2528,6 +2556,24 @@ impl Vm {
         };
         let name = *name;
         if let Some((kind, _)) = EXC_CLASSES.iter().find(|(n, _)| *n == name) {
+            // `ImportError(msg, name=..., path=...)`: o `kwlist` do `ImportError_init` do CPython.
+            let mut import_extra: Vec<(&'static str, Value)> = Vec::new();
+            if exc_is_subclass(kind, "ImportError") {
+                for (k, v) in &kwargs {
+                    let key = match k.as_str() {
+                        "name" => "name",
+                        "path" => "path",
+                        "name_from" => "name_from",
+                        _ => {
+                            return Err(type_error(format!("ImportError() got an unexpected keyword argument '{k}'")))
+                        }
+                    };
+                    import_extra.push((key, v.clone()));
+                }
+                let e = ExcObj::new(kind, args);
+                *e.extra.borrow_mut() = import_extra;
+                return Ok(Value::Exception(Rc::new(e)));
+            }
             if let Some((kw, _)) = kwargs.first() {
                 return Err(type_error(format!("{name}() takes no keyword arguments ('{kw}' given)")));
             }
@@ -2820,6 +2866,14 @@ impl Vm {
         match obj {
             Value::Instance(inst) => return self.instance_getattr(obj, inst, name),
             Value::Class(c) => return self.class_getattr(c, name),
+            // `(1).__new__` é o `int.__new__`: o método estático do tipo, lido pela instância.
+            Value::Int(_) | Value::Big(_) | Value::Float(_) | Value::Bool(_) | Value::Str(_) | Value::Bytes(_)
+            | Value::List(_) | Value::Tuple(_) | Value::Dict(_)
+                if name == "__new__" =>
+            {
+                let ty = self.type_of(obj);
+                return self.load_attr(&ty, "__new__");
+            }
             Value::Builtin(_) | Value::NativeFn(_) if name == "__dict__" && crate::builtins::class_name(obj).is_some() => {
                 let mut d = crate::object::Dict::new();
                 for (k, v) in crate::builtins_ext::probe_type_attrs(self, obj) {
@@ -2845,6 +2899,9 @@ impl Vm {
             }
             Value::Builtin(n) if name == "__init__" && EXC_CLASSES.iter().any(|(k, _)| k == n) => {
                 return Ok(Value::Builtin("BaseException.__init__"));
+            }
+            Value::Builtin(n) if name == "__new__" && EXC_CLASSES.iter().any(|(k, _)| k == n) => {
+                return Ok(Value::NativeFn(Rc::new(crate::object::NativeFn { name: "__new__", f: base_exception_new })));
             }
             Value::Builtin(n) if name == "__name__" || name == "__qualname__" => {
                 return Ok(Value::str(n.rsplit('.').next().unwrap_or(n)))
@@ -2992,6 +3049,9 @@ impl Vm {
             }
             // `ImportError.name`/`.path`: o nome vem da mensagem que o import monta.
             Value::Exception(e) if matches!(name, "name" | "path") && exc_is_subclass(&e.kind, "ImportError") => {
+                if let Some(v) = e.extra_get(name) {
+                    return Ok(v);
+                }
                 let msg = exc_str(e);
                 let quoted = |after: &str| msg.split_once(after).and_then(|(_, r)| r.split('\'').next()).map(str::to_string);
                 Ok(match name {
