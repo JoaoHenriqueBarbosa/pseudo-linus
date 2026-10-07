@@ -11,6 +11,8 @@ pub mod font;
 pub mod gpos;
 pub mod gsub;
 pub mod gsubgpos;
+pub mod lang;
+mod lang_table;
 pub mod map;
 pub mod normalize;
 pub mod ot;

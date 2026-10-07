@@ -46,3 +46,22 @@ print(basic.layout_engine, basic.getlength("office AV"), font.getlength("office 
 PYEOF
 '''
 tags = ["agent", "pil"]
+
+[[case]]
+id = "pil-raqm-language"
+script = '''
+python3 - <<'PYEOF'
+import hashlib
+from PIL import Image, ImageDraw, ImageFont
+
+base = "/usr/share/fonts/truetype/dejavu/"
+for name in ["DejaVuSans.ttf", "DejaVuSerif.ttf", "DejaVuSansMono.ttf"]:
+    font = ImageFont.truetype(base + name, 30)
+    for lang in [None, "sr", "mk", "tr", "ro", "ca", "x-hbotSRB", "sr-Latn", "ur", "foo-bar", "", "en-US"]:
+        t = "бгдпт şţ İi l·l fi ی"
+        im = Image.new("L", (500, 60), 0)
+        ImageDraw.Draw(im).text((5, 5), t, font=font, fill=255, language=lang)
+        print(name, lang, font.getlength(t, language=lang), hashlib.md5(im.tobytes()).hexdigest())
+PYEOF
+'''
+tags = ["agent", "pil"]

@@ -228,10 +228,9 @@ impl<'f, 'a> MapBuilder<'f, 'a> {
     }
 
     pub fn new(font: &'f Font<'a>, props: &SegmentProperties) -> MapBuilder<'f, 'a> {
-        let script_tags = tags_from_script(props.script);
-        // Os tags de idioma do `hb-ot-tag.cc` dependem de `props.language`; sem idioma (o
-        // locale C do Pillow) a lista é vazia e vale o langsys padrão.
-        let language_tags: Vec<u32> = Vec::new();
+        // `hb_ot_tags_from_script_and_language`: o subtag privado `-hbsc` troca as escritas.
+        let (script_override, language_tags) = crate::lang::tags_from_language_string(props.language.as_deref());
+        let script_tags = script_override.unwrap_or_else(|| tags_from_script(props.script));
         let mut b = MapBuilder {
             font,
             props: props.clone(),

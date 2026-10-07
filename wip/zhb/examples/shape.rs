@@ -31,7 +31,12 @@ fn main() {
         "ttb" => ParDirection::Ttb,
         _ => ParDirection::Default,
     };
-    let out = layout(&font, &text, dir, None, &features);
+    // `LANGTAG` faz o papel do `raqm_set_language` do `raqmref`; sem ele vale o locale C ("c").
+    let language = match std::env::var("LANGTAG") {
+        Ok(l) if l != "0" => zhb::common::language_from_string(l.as_bytes()),
+        _ => Some("c".to_string()),
+    };
+    let out = layout(&font, &text, dir, language.as_deref(), &features);
     // O raqm com texto UTF-8 devolve o cluster como offset em bytes.
     let byte_at: Vec<usize> = args[4].char_indices().map(|(b, _)| b).collect();
     for g in &out.glyphs {

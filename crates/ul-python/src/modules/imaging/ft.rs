@@ -161,6 +161,9 @@ impl FontObj {
             return Err(exc("ValueError", "raqm_get_glyphs() failed."));
         }
         let font = zhb::font::Font::new(&self.face, &self.tables);
+        // Sem `language=`, o raqm usa o `hb_language_get_default`, que vem do LC_CTYPE do
+        // processo; o Python do sandbox só tem a localidade C, que vira "c".
+        let language = language.or_else(|| Some("c".to_string()));
         let out = zhb::raqm::layout(&font, &text, dir, language.as_deref(), &features);
         Ok(out
             .glyphs
