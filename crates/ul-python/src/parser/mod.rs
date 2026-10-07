@@ -17,7 +17,7 @@
 use std::collections::HashMap;
 use std::fmt;
 
-use crate::ast::{Constant, Expr, ExprContext, ExprKind, Pos};
+use crate::ast::{Constant, Expr, ExprContext, ExprContext::Load, ExprKind, Pos};
 use crate::token::TokenType;
 use crate::tokenizer::{self, Mode, Token, TokenizeError, Tokenizer};
 
@@ -202,12 +202,8 @@ impl Parser {
         Ok(tok.kind == TokenType::Name && tok.text == kw)
     }
 
-    fn at_kw(&mut self, kw: &str) -> Result<bool, ParseError> {
-        self.kw_at(0, kw)
-    }
-
     fn eat_kw(&mut self, kw: &str) -> Result<bool, ParseError> {
-        let found = self.at_kw(kw)?;
+        let found = self.kw_at(0, kw)?;
         if found {
             self.mark += 1;
         }
@@ -261,7 +257,7 @@ impl Parser {
     }
 
     /// Regra memoizada: o resultado (e a marca final) fica guardado por (regra, posição).
-    fn memo(&mut self, rule: Rule, f: fn(&mut Parser) -> PResult<Expr>) -> PResult<Expr> {
+    fn memo(&mut self, rule: Rule) -> PResult<Expr> {
         let start = self.mark;
         if let Some(entry) = self.memo.get(&(rule, start)) {
             return Ok(match entry {
@@ -273,7 +269,13 @@ impl Parser {
                 None => None,
             });
         }
-        let result = f(self)?;
+        let result = match rule {
+            Rule::Expression => self.expression_raw(),
+            Rule::NamedExpression => self.named_expression_raw(),
+            Rule::Disjunction => self.disjunction_raw(),
+            Rule::BitwiseOr => self.binary_chain(0),
+            Rule::Primary => self.primary_raw(),
+        }?;
         if result.is_none() {
             self.mark = start;
         }
@@ -283,7 +285,7 @@ impl Parser {
 
     /// `eval: expressions NEWLINE* ENDMARKER`.
     fn eval_input(&mut self) -> PResult<Expr> {
-        let expr = req!(self.expressions());
+        let expr = req!(self.tuple_of(|p| p.memo(Rule::Expression), Load));
         while self.eat_op(TokenType::Newline)? {}
         need!(self.at_op(TokenType::Endmarker));
         Ok(Some(expr))

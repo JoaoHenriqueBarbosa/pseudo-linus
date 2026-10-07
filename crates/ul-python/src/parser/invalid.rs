@@ -26,8 +26,8 @@
 //! mensagens `f-string: ...` do tokenizer já saem pelo caminho do erro de tokenizer.
 
 use super::stmt::aug_operator;
-use super::{error_at, token_pos, ErrorKind, PResult, ParseError, Parser};
-use crate::ast::{CmpOp, Constant, Expr, ExprKind as E, Pos};
+use super::{error_at, token_pos, ErrorKind, PResult, ParseError, Parser, Rule};
+use crate::ast::{CmpOp, Constant, Expr, ExprContext::{Load, Store}, ExprKind as E, Pos};
 use crate::token::TokenType as T;
 
 /// Palavras-chave suaves do 3.13 (`keyword.softkwlist`).
@@ -245,15 +245,10 @@ impl Parser {
         }
     }
 
-    /// `RAISE_SYNTAX_ERROR_KNOWN_LOCATION(a, ...)`.
-    fn raise_at(&self, a: &Pos, msg: impl Into<String>) -> ParseError {
-        self.raise_range(a, a, msg)
-    }
-
     /// `RAISE_SYNTAX_ERROR_INVALID_TARGET`.
     fn raise_invalid_target(&self, targets: Targets, e: &Expr) -> ParseError {
         match invalid_target(e, targets) {
-            Some(t) => self.raise_at(&t.pos, format!("cannot assign to {}", expr_name(t))),
+            Some(t) => self.raise_range(&t.pos, &t.pos, format!("cannot assign to {}", expr_name(t))),
             None => self.raise_no_location(ErrorKind::Syntax, "invalid syntax"),
         }
     }
@@ -320,7 +315,7 @@ impl Parser {
         // !(NAME STRING | SOFT_KEYWORD) a=disjunction b=expression_without_invalid
         let blocked = (self.is_name_at(0)? && self.peek_kind(1)? == T::String) || self.is_soft_keyword_at(0)?;
         if !blocked {
-            if let Some(a) = self.disjunction()? {
+            if let Some(a) = self.memo(Rule::Disjunction)? {
                 let saved = self.call_invalid_rules;
                 self.call_invalid_rules = false;
                 let b = self.expression_raw();
@@ -335,10 +330,10 @@ impl Parser {
             self.mark = start;
         }
         // a=disjunction 'if' b=disjunction !('else'|':')
-        if let Some(a) = self.disjunction()?
+        if let Some(a) = self.memo(Rule::Disjunction)?
             && self.eat_kw("if")?
-            && let Some(b) = self.disjunction()?
-            && !self.at_kw("else")?
+            && let Some(b) = self.memo(Rule::Disjunction)?
+            && !self.kw_at(0, "else")?
             && !self.at_op(T::Colon)?
         {
             return Err(self.raise_range(&a.pos, &b.pos, "expected 'else' after 'if' expression"));
@@ -352,7 +347,7 @@ impl Parser {
         let start = self.mark;
         if self.is_name_at(0)? && self.peek_kind(1)? != T::Lpar {
             let a = self.advance();
-            if let Some(b) = self.star_expressions()?
+            if let Some(b) = self.tuple_of(Parser::star_expression, Load)?
                 && (a.text == "print" || a.text == "exec")
             {
                 let msg = format!("Missing parentheses in call to '{0}'. Did you mean {0}(...)?", a.text);
@@ -367,18 +362,18 @@ impl Parser {
     pub(super) fn invalid_named_expression(&mut self) -> Result<(), ParseError> {
         let start = self.mark;
         // a=expression ':=' expression
-        if let Some(a) = self.expression()?
+        if let Some(a) = self.memo(Rule::Expression)?
             && self.eat_op(T::ColonEqual)?
-            && self.expression()?.is_some()
+            && self.memo(Rule::Expression)?.is_some()
         {
-            return Err(self.raise_at(&a.pos, format!("cannot use assignment expressions with {}", expr_name(&a))));
+            return Err(self.raise_range(&a.pos, &a.pos, format!("cannot use assignment expressions with {}", expr_name(&a))));
         }
         self.mark = start;
         // a=NAME '=' b=bitwise_or !('='|':=')
         if self.is_name_at(0)? && self.peek_kind(1)? == T::Equal {
             let a = self.advance();
             self.mark += 1;
-            if let Some(b) = self.bitwise_or()?
+            if let Some(b) = self.binary(0)?
                 && !matches!(self.peek_kind(0)?, T::Equal | T::ColonEqual)
             {
                 return Err(self.raise_range(
@@ -394,18 +389,18 @@ impl Parser {
             T::Lsqb => self.list()?.is_some(),
             T::Lpar => self.tuple()?.is_some() || self.genexp()?.is_some(),
             _ => false,
-        } || self.at_kw("True")?
-            || self.at_kw("None")?
-            || self.at_kw("False")?;
+        } || self.kw_at(0, "True")?
+            || self.kw_at(0, "None")?
+            || self.kw_at(0, "False")?;
         self.mark = start;
         if !blocked
-            && let Some(a) = self.bitwise_or()?
+            && let Some(a) = self.binary(0)?
             && self.eat_op(T::Equal)?
-            && self.bitwise_or()?.is_some()
+            && self.binary(0)?.is_some()
             && !matches!(self.peek_kind(0)?, T::Equal | T::ColonEqual)
         {
             let msg = format!("cannot assign to {} here. Maybe you meant '==' instead of '='?", expr_name(&a));
-            return Err(self.raise_at(&a.pos, msg));
+            return Err(self.raise_range(&a.pos, &a.pos, msg));
         }
         self.mark = start;
         Ok(())
@@ -423,18 +418,18 @@ impl Parser {
                 if matches!(self.peek_kind(0)?, T::Comma | T::Rpar) {
                     return Err(self.raise_range(&token_pos(&a), &token_pos(&eq), "expected argument value expression"));
                 }
-                if self.expression()?.is_none() {
+                if self.memo(Rule::Expression)?.is_none() {
                     break;
                 }
                 keyword = true;
             } else if self.eat_op(T::DoubleStar)? {
-                if self.expression()?.is_none() {
+                if self.memo(Rule::Expression)?.is_none() {
                     break;
                 }
                 keyword = true;
                 unpacking = true;
             } else if self.at_op(T::Star)? {
-                if self.starred_expression()?.is_none() {
+                if self.starred_with(|p| p.memo(Rule::Expression))?.is_none() {
                     break;
                 }
             } else {
@@ -484,7 +479,7 @@ impl Parser {
     fn star_targets_eq_loop(&mut self) -> Result<(), ParseError> {
         loop {
             let save = self.mark;
-            if self.star_targets()?.is_some() && self.eat_op(T::Equal)? {
+            if self.tuple_of(Parser::star_target, Store)?.is_some() && self.eat_op(T::Equal)? {
                 continue;
             }
             self.mark = save;
@@ -498,33 +493,33 @@ impl Parser {
         // a=invalid_ann_assign_target ':' expression
         if let Some(a) = self.invalid_ann_assign_target()?
             && self.eat_op(T::Colon)?
-            && self.expression()?.is_some()
+            && self.memo(Rule::Expression)?.is_some()
         {
             let msg = format!("only single target (not {}) can be annotated", expr_name(&a));
-            return Err(self.raise_at(&a.pos, msg));
+            return Err(self.raise_range(&a.pos, &a.pos, msg));
         }
         self.mark = start;
         // a=star_named_expression ',' star_named_expressions* ':' expression
         if let Some(a) = self.star_named_expression()?
             && self.eat_op(T::Comma)?
         {
-            while self.comma_list(Parser::star_named_expression)?.is_some() {}
-            if self.eat_op(T::Colon)? && self.expression()?.is_some() {
-                return Err(self.raise_at(&a.pos, "only single target (not tuple) can be annotated"));
+            while self.separated(true, Parser::star_named_expression)?.is_some() {}
+            if self.eat_op(T::Colon)? && self.memo(Rule::Expression)?.is_some() {
+                return Err(self.raise_range(&a.pos, &a.pos, "only single target (not tuple) can be annotated"));
             }
         }
         self.mark = start;
         // a=expression ':' expression
-        if let Some(a) = self.expression()?
+        if let Some(a) = self.memo(Rule::Expression)?
             && self.eat_op(T::Colon)?
-            && self.expression()?.is_some()
+            && self.memo(Rule::Expression)?.is_some()
         {
-            return Err(self.raise_at(&a.pos, "illegal target for annotation"));
+            return Err(self.raise_range(&a.pos, &a.pos, "illegal target for annotation"));
         }
         self.mark = start;
         // (star_targets '=')* a=star_expressions '='
         self.star_targets_eq_loop()?;
-        if let Some(a) = self.star_expressions()?
+        if let Some(a) = self.tuple_of(Parser::star_expression, Load)?
             && self.eat_op(T::Equal)?
         {
             return Err(self.raise_invalid_target(Targets::Star, &a));
@@ -535,17 +530,17 @@ impl Parser {
         if let Some(a) = self.yield_expr()?
             && self.eat_op(T::Equal)?
         {
-            return Err(self.raise_at(&a.pos, "assignment to yield expression not possible"));
+            return Err(self.raise_range(&a.pos, &a.pos, "assignment to yield expression not possible"));
         }
         self.mark = start;
         // a=star_expressions augassign annotated_rhs
-        if let Some(a) = self.star_expressions()?
+        if let Some(a) = self.tuple_of(Parser::star_expression, Load)?
             && aug_operator(self.peek_kind(0)?).is_some()
         {
             self.mark += 1;
             if self.annotated_rhs()?.is_some() {
                 let msg = format!("'{}' is an illegal expression for augmented assignment", expr_name(&a));
-                return Err(self.raise_at(&a.pos, msg));
+                return Err(self.raise_range(&a.pos, &a.pos, msg));
             }
         }
         self.mark = start;
@@ -557,7 +552,7 @@ impl Parser {
         let start = self.mark;
         self.eat_kw("async")?;
         if self.eat_kw("for")?
-            && let Some(a) = self.star_expressions()?
+            && let Some(a) = self.tuple_of(Parser::star_expression, Load)?
         {
             return Err(self.raise_invalid_target(Targets::For, &a));
         }

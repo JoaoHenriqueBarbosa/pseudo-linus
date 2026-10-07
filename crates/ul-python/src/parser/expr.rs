@@ -12,6 +12,22 @@ use crate::token::TokenType as T;
 
 use ExprContext::{Load, Store};
 
+/// Os operadores de cada nível binário, do `|` (`bitwise_or`) ao `*` (`term`).
+const BINARY_LEVELS: [&[(T, Operator)]; 6] = [
+    &[(T::Vbar, Operator::BitOr)],
+    &[(T::Circumflex, Operator::BitXor)],
+    &[(T::Amper, Operator::BitAnd)],
+    &[(T::LeftShift, Operator::LShift), (T::RightShift, Operator::RShift)],
+    &[(T::Plus, Operator::Add), (T::Minus, Operator::Sub)],
+    &[
+        (T::Star, Operator::Mult),
+        (T::Slash, Operator::Div),
+        (T::DoubleSlash, Operator::FloorDiv),
+        (T::Percent, Operator::Mod),
+        (T::At, Operator::MatMult),
+    ],
+];
+
 type RuleFn = fn(&mut Parser) -> PResult<Expr>;
 /// Posicionais e nomeados de uma chamada.
 type CallArgs = (Vec<Expr>, Vec<Keyword>);
@@ -21,47 +37,44 @@ impl Parser {
     // Sequências
 
     /// `item (',' item)+ [','] | item ',' | item`: tupla sem parênteses (`expressions`,
-    /// `star_expressions`).
-    fn tuple_of(&mut self, item: RuleFn) -> PResult<Expr> {
+    /// `star_expressions`, e `star_targets` com `Store`).
+    pub(super) fn tuple_of(&mut self, item: RuleFn, ctx: ExprContext) -> PResult<Expr> {
         self.attempt(|p| {
             let start = p.mark;
             let first = req!(item(p));
-            if !p.at_op(T::Comma)? {
+            if !p.eat_op(T::Comma)? {
                 return Ok(Some(first));
             }
-            let mut elts = vec![first];
-            while p.eat_op(T::Comma)? {
-                match item(p)? {
-                    Some(e) => elts.push(e),
-                    None => break,
-                }
-            }
-            Ok(Some(p.node(E::Tuple { elts, ctx: Load }, start)))
+            let elts = p.after_comma(first, item)?;
+            Ok(Some(p.node(E::Tuple { elts, ctx }, start)))
         })
     }
 
-    /// `','.item+ [',']`.
-    pub(super) fn comma_list(&mut self, item: RuleFn) -> PResult<Vec<Expr>> {
+    /// `first ',' [','.item+ [',']]`, com o primeiro item e a vírgula já lidos.
+    pub(super) fn after_comma(&mut self, first: Expr, item: RuleFn) -> Result<Vec<Expr>, ParseError> {
+        let mut elts = vec![first];
+        elts.extend(self.separated(true, item)?.unwrap_or_default());
+        Ok(elts)
+    }
+
+    /// `','.item+`, e com `trailing` também a vírgula final (`','.item+ [',']`): aí um item que
+    /// falha depois da vírgula encerra a lista em vez de derrubar a regra.
+    pub(super) fn separated<X>(
+        &mut self,
+        trailing: bool,
+        mut item: impl FnMut(&mut Parser) -> PResult<X>,
+    ) -> PResult<Vec<X>> {
         self.attempt(|p| {
             let mut out = vec![req!(item(p))];
             while p.eat_op(T::Comma)? {
                 match item(p)? {
                     Some(e) => out.push(e),
-                    None => break,
+                    None if trailing => break,
+                    None => return Ok(None),
                 }
             }
             Ok(Some(out))
         })
-    }
-
-    /// `expressions`.
-    pub(super) fn expressions(&mut self) -> PResult<Expr> {
-        self.tuple_of(Parser::expression)
-    }
-
-    /// `star_expressions`.
-    pub(super) fn star_expressions(&mut self) -> PResult<Expr> {
-        self.tuple_of(Parser::star_expression)
     }
 
     // -----------------------------------------------------------------------------------------
@@ -69,10 +82,6 @@ impl Parser {
 
     /// `expression (memo): invalid_expression | invalid_legacy_expression | disjunction 'if'
     /// disjunction 'else' expression | disjunction | lambdef`.
-    pub(super) fn expression(&mut self) -> PResult<Expr> {
-        self.memo(Rule::Expression, Parser::expression_raw)
-    }
-
     /// Corpo de `expression`; com `call_invalid_rules` desligado é o `expression_without_invalid`.
     pub(super) fn expression_raw(&mut self) -> PResult<Expr> {
         if self.call_invalid_rules {
@@ -80,12 +89,12 @@ impl Parser {
             self.invalid_legacy_expression()?;
         }
         let start = self.mark;
-        if let Some(body) = self.disjunction()? {
+        if let Some(body) = self.memo(Rule::Disjunction)? {
             let after = self.mark;
             if self.eat_kw("if")?
-                && let Some(test) = self.disjunction()?
+                && let Some(test) = self.memo(Rule::Disjunction)?
                     && self.eat_kw("else")?
-                        && let Some(orelse) = self.expression()? {
+                        && let Some(orelse) = self.memo(Rule::Expression)? {
                             let kind = E::IfExp { test: Box::new(test), body: Box::new(body), orelse: Box::new(orelse) };
                             return Ok(Some(self.node(kind, start)));
                         }
@@ -102,18 +111,18 @@ impl Parser {
             need!(p.eat_kw("yield"));
             let after = p.mark;
             if p.eat_kw("from")? {
-                if let Some(value) = p.expression()? {
+                if let Some(value) = p.memo(Rule::Expression)? {
                     return Ok(Some(p.node(E::YieldFrom { value: Box::new(value) }, start)));
                 }
                 p.mark = after;
             }
-            let value = p.star_expressions()?.map(Box::new);
+            let value = p.tuple_of(Parser::star_expression, Load)?.map(Box::new);
             Ok(Some(p.node(E::Yield { value }, start)))
         })
     }
 
     /// `'*' inner` como `Starred` de leitura.
-    fn starred_with(&mut self, inner: RuleFn) -> PResult<Expr> {
+    pub(super) fn starred_with(&mut self, inner: RuleFn) -> PResult<Expr> {
         self.attempt(|p| {
             let start = p.mark;
             need!(p.eat_op(T::Star));
@@ -124,23 +133,18 @@ impl Parser {
 
     /// `star_expression: '*' bitwise_or | expression`.
     pub(super) fn star_expression(&mut self) -> PResult<Expr> {
-        if let Some(e) = self.starred_with(Parser::bitwise_or)? {
+        if let Some(e) = self.starred_with(|p| p.binary(0))? {
             return Ok(Some(e));
         }
-        self.expression()
+        self.memo(Rule::Expression)
     }
 
     /// `star_named_expression: '*' bitwise_or | named_expression`.
     pub(super) fn star_named_expression(&mut self) -> PResult<Expr> {
-        if let Some(e) = self.starred_with(Parser::bitwise_or)? {
+        if let Some(e) = self.starred_with(|p| p.binary(0))? {
             return Ok(Some(e));
         }
-        self.named_expression()
-    }
-
-    /// `starred_expression: '*' expression`.
-    pub(super) fn starred_expression(&mut self) -> PResult<Expr> {
-        self.starred_with(Parser::expression)
+        self.memo(Rule::NamedExpression)
     }
 
     /// `assignment_expression: NAME ':=' ~ expression`.
@@ -152,7 +156,7 @@ impl Parser {
             }
             let name = p.advance();
             p.mark += 1;
-            let value = req!(p.expression());
+            let value = req!(p.memo(Rule::Expression));
             let target = Parser::name_expr(&name, Store);
             Ok(Some(p.node(E::NamedExpr { target: Box::new(target), value: Box::new(value) }, start)))
         })
@@ -161,7 +165,7 @@ impl Parser {
     /// `expression !':='`.
     fn expression_not_walrus(&mut self) -> PResult<Expr> {
         self.attempt(|p| {
-            let e = req!(p.expression());
+            let e = req!(p.memo(Rule::Expression));
             if p.at_op(T::ColonEqual)? {
                 return Ok(None);
             }
@@ -178,11 +182,7 @@ impl Parser {
     }
 
     /// `named_expression: assignment_expression | invalid_named_expression | expression !':='`.
-    pub(super) fn named_expression(&mut self) -> PResult<Expr> {
-        self.memo(Rule::NamedExpression, Parser::named_expression_raw)
-    }
-
-    fn named_expression_raw(&mut self) -> PResult<Expr> {
+    pub(super) fn named_expression_raw(&mut self) -> PResult<Expr> {
         if let Some(e) = self.assignment_expression()? {
             return Ok(Some(e));
         }
@@ -219,14 +219,10 @@ impl Parser {
         Ok(Some(self.node(E::BoolOp { op, values }, start)))
     }
 
-    /// `disjunction (memo): conjunction ('or' conjunction)+ | conjunction`.
-    pub(super) fn disjunction(&mut self) -> PResult<Expr> {
-        self.memo(Rule::Disjunction, |p| p.bool_chain("or", BoolOp::Or, Parser::conjunction))
-    }
-
-    /// `conjunction (memo): inversion ('and' inversion)+ | inversion`.
-    fn conjunction(&mut self) -> PResult<Expr> {
-        self.bool_chain("and", BoolOp::And, Parser::inversion)
+    /// `disjunction (memo): conjunction ('or' conjunction)+ | conjunction`, com `conjunction:
+    /// inversion ('and' inversion)+ | inversion`.
+    pub(super) fn disjunction_raw(&mut self) -> PResult<Expr> {
+        self.bool_chain("or", BoolOp::Or, |p| p.bool_chain("and", BoolOp::And, Parser::inversion))
     }
 
     /// `inversion: 'not' inversion | comparison`.
@@ -245,12 +241,12 @@ impl Parser {
     /// `comparison: bitwise_or compare_op_bitwise_or_pair+ | bitwise_or`.
     fn comparison(&mut self) -> PResult<Expr> {
         let start = self.mark;
-        let left = req!(self.bitwise_or());
+        let left = req!(self.binary(0));
         let (mut ops, mut comparators) = (Vec::new(), Vec::new());
         loop {
             let save = self.mark;
             let Some(op) = self.compare_op()? else { break };
-            match self.bitwise_or()? {
+            match self.binary(0)? {
                 Some(right) => {
                     ops.push(op);
                     comparators.push(right);
@@ -282,7 +278,7 @@ impl Parser {
             self.mark += 1;
             return Ok(op);
         }
-        if self.at_kw("not")? && self.kw_at(1, "in")? {
+        if self.kw_at(0, "not")? && self.kw_at(1, "in")? {
             self.mark += 2;
             return Ok(Some(CmpOp::NotIn));
         }
@@ -295,8 +291,22 @@ impl Parser {
         Ok(None)
     }
 
-    /// Regra binária recursiva à esquerda (`rule: rule op sub | sub`) como laço.
-    fn binary_chain(&mut self, sub: RuleFn, ops: &[(T, Operator)]) -> PResult<Expr> {
+    /// `bitwise_or` (memo), `bitwise_xor`, `bitwise_and`, `shift_expr`, `sum` e `term`: o nível
+    /// `level` de `BINARY_LEVELS`. Só o primeiro é memoizado, como na gramática.
+    pub(super) fn binary(&mut self, level: usize) -> PResult<Expr> {
+        if level == 0 {
+            return self.memo(Rule::BitwiseOr);
+        }
+        self.binary_chain(level)
+    }
+
+    /// Regra binária recursiva à esquerda (`rule: rule op sub | sub`) como laço; o `sub` é o nível
+    /// seguinte, e abaixo do último vem `factor`.
+    pub(super) fn binary_chain(&mut self, level: usize) -> PResult<Expr> {
+        let ops = BINARY_LEVELS.get(level).copied().unwrap_or_default();
+        let sub = |p: &mut Parser| {
+            if level + 1 < BINARY_LEVELS.len() { p.binary_chain(level + 1) } else { p.factor() }
+        };
         let start = self.mark;
         let mut left = req!(sub(self));
         loop {
@@ -315,45 +325,6 @@ impl Parser {
             }
         }
         Ok(Some(left))
-    }
-
-    /// `bitwise_or: bitwise_or '|' bitwise_xor | bitwise_xor`.
-    pub(super) fn bitwise_or(&mut self) -> PResult<Expr> {
-        self.memo(Rule::BitwiseOr, |p| p.binary_chain(Parser::bitwise_xor, &[(T::Vbar, Operator::BitOr)]))
-    }
-
-    /// `bitwise_xor: bitwise_xor '^' bitwise_and | bitwise_and`.
-    fn bitwise_xor(&mut self) -> PResult<Expr> {
-        self.binary_chain(Parser::bitwise_and, &[(T::Circumflex, Operator::BitXor)])
-    }
-
-    /// `bitwise_and: bitwise_and '&' shift_expr | shift_expr`.
-    fn bitwise_and(&mut self) -> PResult<Expr> {
-        self.binary_chain(Parser::shift_expr, &[(T::Amper, Operator::BitAnd)])
-    }
-
-    /// `shift_expr: shift_expr ('<<' | '>>') sum | sum`.
-    fn shift_expr(&mut self) -> PResult<Expr> {
-        self.binary_chain(Parser::sum, &[(T::LeftShift, Operator::LShift), (T::RightShift, Operator::RShift)])
-    }
-
-    /// `sum: sum ('+' | '-') term | term`.
-    fn sum(&mut self) -> PResult<Expr> {
-        self.binary_chain(Parser::term, &[(T::Plus, Operator::Add), (T::Minus, Operator::Sub)])
-    }
-
-    /// `term: term ('*' | '/' | '//' | '%' | '@') factor | factor`.
-    fn term(&mut self) -> PResult<Expr> {
-        self.binary_chain(
-            Parser::factor,
-            &[
-                (T::Star, Operator::Mult),
-                (T::Slash, Operator::Div),
-                (T::DoubleSlash, Operator::FloorDiv),
-                (T::Percent, Operator::Mod),
-                (T::At, Operator::MatMult),
-            ],
-        )
     }
 
     /// `factor (memo): '+' factor | '-' factor | '~' factor | power`.
@@ -395,22 +366,18 @@ impl Parser {
     fn await_primary(&mut self) -> PResult<Expr> {
         let start = self.mark;
         if self.eat_kw("await")? {
-            if let Some(value) = self.primary()? {
+            if let Some(value) = self.memo(Rule::Primary)? {
                 return Ok(Some(self.node(E::Await { value: Box::new(value) }, start)));
             }
             self.mark = start;
             return Ok(None);
         }
-        self.primary()
+        self.memo(Rule::Primary)
     }
 
     /// `primary: primary '.' NAME | primary genexp | primary '(' [arguments] ')' |
     /// primary '[' slices ']' | atom`.
-    pub(super) fn primary(&mut self) -> PResult<Expr> {
-        self.memo(Rule::Primary, Parser::primary_raw)
-    }
-
-    fn primary_raw(&mut self) -> PResult<Expr> {
+    pub(super) fn primary_raw(&mut self) -> PResult<Expr> {
         let start = self.mark;
         let mut value = req!(self.atom());
         loop {
@@ -467,7 +434,7 @@ impl Parser {
                 return Ok(Some(s));
             }
         self.mark = start;
-        let elts = req!(self.comma_list(Parser::slice_or_starred));
+        let elts = req!(self.separated(true, Parser::slice_or_starred));
         Ok(Some(self.node(E::Tuple { elts, ctx: Load }, start)))
     }
 
@@ -475,21 +442,21 @@ impl Parser {
         if let Some(s) = self.slice()? {
             return Ok(Some(s));
         }
-        self.starred_expression()
+        self.starred_with(|p| p.memo(Rule::Expression))
     }
 
     /// `slice: [expression] ':' [expression] [':' [expression]] | named_expression`.
     fn slice(&mut self) -> PResult<Expr> {
         let start = self.mark;
-        let lower = self.expression()?;
+        let lower = self.memo(Rule::Expression)?;
         if self.eat_op(T::Colon)? {
-            let upper = self.expression()?;
-            let step = if self.eat_op(T::Colon)? { self.expression()? } else { None };
+            let upper = self.memo(Rule::Expression)?;
+            let step = if self.eat_op(T::Colon)? { self.memo(Rule::Expression)? } else { None };
             let kind = E::Slice { lower: lower.map(Box::new), upper: upper.map(Box::new), step: step.map(Box::new) };
             return Ok(Some(self.node(kind, start)));
         }
         self.mark = start;
-        self.named_expression()
+        self.memo(Rule::NamedExpression)
     }
 
     // -----------------------------------------------------------------------------------------
@@ -653,7 +620,7 @@ impl Parser {
         let expr_start = self.mark;
         let value = match self.yield_expr()? {
             Some(e) => e,
-            None => match self.star_expressions()? {
+            None => match self.tuple_of(Parser::star_expression, Load)? {
                 Some(e) => e,
                 None => return Err(error_at(&open, "f-string: valid expression required before '}'")),
             },
@@ -734,11 +701,9 @@ impl Parser {
             need!(p.eat_op(T::Lpar));
             let mut elts = Vec::new();
             if !p.at_op(T::Rpar)? {
-                elts.push(req!(p.star_named_expression()));
+                let first = req!(p.star_named_expression());
                 need!(p.eat_op(T::Comma));
-                if let Some(rest) = p.comma_list(Parser::star_named_expression)? {
-                    elts.extend(rest);
-                }
+                elts = p.after_comma(first, Parser::star_named_expression)?;
             }
             need!(p.eat_op(T::Rpar));
             Ok(Some(p.node(E::Tuple { elts, ctx: Load }, start)))
@@ -751,7 +716,7 @@ impl Parser {
             need!(p.eat_op(T::Lpar));
             let inner = match p.yield_expr()? {
                 Some(e) => e,
-                None => req!(p.named_expression()),
+                None => req!(p.memo(Rule::NamedExpression)),
             };
             need!(p.eat_op(T::Rpar));
             Ok(Some(inner))
@@ -775,7 +740,7 @@ impl Parser {
         self.attempt(|p| {
             let start = p.mark;
             need!(p.eat_op(T::Lsqb));
-            let elts = p.comma_list(Parser::star_named_expression)?.unwrap_or_default();
+            let elts = p.separated(true, Parser::star_named_expression)?.unwrap_or_default();
             need!(p.eat_op(T::Rsqb));
             Ok(Some(p.node(E::List { elts, ctx: Load }, start)))
         })
@@ -786,7 +751,7 @@ impl Parser {
         self.attempt(|p| {
             let start = p.mark;
             need!(p.eat_op(T::Lsqb));
-            let elt = req!(p.named_expression());
+            let elt = req!(p.memo(Rule::NamedExpression));
             let generators = req!(p.for_if_clauses());
             need!(p.eat_op(T::Rsqb));
             Ok(Some(p.node(E::ListComp { elt: Box::new(elt), generators }, start)))
@@ -798,7 +763,7 @@ impl Parser {
         self.attempt(|p| {
             let start = p.mark;
             need!(p.eat_op(T::Lbrace));
-            let elts = req!(p.comma_list(Parser::star_named_expression));
+            let elts = req!(p.separated(true, Parser::star_named_expression));
             need!(p.eat_op(T::Rbrace));
             Ok(Some(p.node(E::Set { elts }, start)))
         })
@@ -809,7 +774,7 @@ impl Parser {
         self.attempt(|p| {
             let start = p.mark;
             need!(p.eat_op(T::Lbrace));
-            let elt = req!(p.named_expression());
+            let elt = req!(p.memo(Rule::NamedExpression));
             let generators = req!(p.for_if_clauses());
             need!(p.eat_op(T::Rbrace));
             Ok(Some(p.node(E::SetComp { elt: Box::new(elt), generators }, start)))
@@ -850,7 +815,7 @@ impl Parser {
     fn double_starred_kvpair(&mut self) -> PResult<(Option<Expr>, Expr)> {
         self.attempt(|p| {
             if p.eat_op(T::DoubleStar)? {
-                let value = req!(p.bitwise_or());
+                let value = req!(p.binary(0));
                 return Ok(Some((None, value)));
             }
             let (key, value) = req!(p.kvpair());
@@ -861,9 +826,9 @@ impl Parser {
     /// `kvpair: expression ':' expression`.
     fn kvpair(&mut self) -> PResult<(Expr, Expr)> {
         self.attempt(|p| {
-            let key = req!(p.expression());
+            let key = req!(p.memo(Rule::Expression));
             need!(p.eat_op(T::Colon));
-            let value = req!(p.expression());
+            let value = req!(p.memo(Rule::Expression));
             Ok(Some((key, value)))
         })
     }
@@ -882,16 +847,16 @@ impl Parser {
         self.attempt(|p| {
             let is_async = i64::from(p.eat_kw("async")?);
             need!(p.eat_kw("for"));
-            let target = req!(p.star_targets());
+            let target = req!(p.tuple_of(Parser::star_target, Store));
             need!(p.eat_kw("in"));
-            let iter = req!(p.disjunction());
+            let iter = req!(p.memo(Rule::Disjunction));
             let mut ifs = Vec::new();
             loop {
                 let save = p.mark;
                 if !p.eat_kw("if")? {
                     break;
                 }
-                match p.disjunction()? {
+                match p.memo(Rule::Disjunction)? {
                     Some(e) => ifs.push(e),
                     None => {
                         p.mark = save;
@@ -919,18 +884,18 @@ impl Parser {
                 if p.is_name_at(0)? && p.peek_kind(1)? == T::Equal {
                     let name = p.advance();
                     p.mark += 1;
-                    let value = req!(p.expression());
+                    let value = req!(p.memo(Rule::Expression));
                     keywords.push(Keyword { arg: Some(name.text), value, pos: p.pos_from(item_start) });
                     phase = phase.max(1);
                 } else if p.eat_op(T::DoubleStar)? {
-                    let value = req!(p.expression());
+                    let value = req!(p.memo(Rule::Expression));
                     keywords.push(Keyword { arg: None, value, pos: p.pos_from(item_start) });
                     phase = 2;
                 } else if p.at_op(T::Star)? {
                     if phase == 2 {
                         return Ok(None);
                     }
-                    args.push(req!(p.starred_expression()));
+                    args.push(req!(p.starred_with(|p| p.memo(Rule::Expression))));
                 } else {
                     let Some(e) = p.walrus_or_expression()? else { break };
                     if phase > 0 || p.at_op(T::Equal)? {
@@ -954,25 +919,6 @@ impl Parser {
     // -----------------------------------------------------------------------------------------
     // Alvos (comprehensions)
 
-    /// `star_targets: star_target !',' | star_target (',' star_target)* [',']`.
-    pub(super) fn star_targets(&mut self) -> PResult<Expr> {
-        self.attempt(|p| {
-            let start = p.mark;
-            let first = req!(p.star_target());
-            if !p.at_op(T::Comma)? {
-                return Ok(Some(first));
-            }
-            let mut elts = vec![first];
-            while p.eat_op(T::Comma)? {
-                match p.star_target()? {
-                    Some(e) => elts.push(e),
-                    None => break,
-                }
-            }
-            Ok(Some(p.node(E::Tuple { elts, ctx: Store }, start)))
-        })
-    }
-
     /// `star_target: '*' (!'*' star_target) | target_with_star_atom`.
     pub(super) fn star_target(&mut self) -> PResult<Expr> {
         self.attempt(|p| {
@@ -993,7 +939,7 @@ impl Parser {
     /// atributo ou subscrição final já satisfaz o `!t_lookahead`.
     fn target_with_star_atom(&mut self) -> PResult<Expr> {
         let start = self.mark;
-        if let Some(mut e) = self.primary()?
+        if let Some(mut e) = self.memo(Rule::Primary)?
             && let E::Attribute { ctx, .. } | E::Subscript { ctx, .. } = &mut e.kind {
                 *ctx = Store;
                 return Ok(Some(e));
@@ -1056,7 +1002,7 @@ impl Parser {
             need!(p.eat_kw("lambda"));
             let args = req!(p.lambda_params());
             need!(p.eat_op(T::Colon));
-            let body = req!(p.expression());
+            let body = req!(p.memo(Rule::Expression));
             Ok(Some(p.node(E::Lambda { args: Box::new(args), body: Box::new(body) }, start)))
         })
     }
@@ -1073,7 +1019,7 @@ impl Parser {
     fn lambda_param(&mut self) -> PResult<(Arg, Option<Expr>)> {
         self.attempt(|p| {
             let Some(tok) = p.eat_name()? else { return Ok(None) };
-            let default = if p.eat_op(T::Equal)? { Some(req!(p.expression())) } else { None };
+            let default = if p.eat_op(T::Equal)? { Some(req!(p.memo(Rule::Expression))) } else { None };
             need!(p.lambda_param_end());
             let arg = Arg { arg: tok.text.clone(), annotation: None, type_comment: None, pos: super::token_pos(&tok) };
             Ok(Some((arg, default)))

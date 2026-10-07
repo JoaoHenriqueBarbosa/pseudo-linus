@@ -7,7 +7,7 @@
 //! ENDMARKER (`_PyPegen_get_last_nonnwhitespace_token`), de modo que um bloco termina no fim do
 //! último comando dele. Funções e classes decoradas começam no `def`/`async`/`class`, não no `@`.
 
-use super::{error_at, number_constant, token_pos, PResult, ParseError, Parser};
+use super::{error_at, number_constant, token_pos, PResult, ParseError, Parser, Rule};
 use crate::ast::{
     Alias, Arg, Arguments, Constant, ExceptHandler, Expr, ExprContext, ExprKind as E, FullPos, MatchCase,
     Mod, Operator, Pattern, PatternKind as P, Pos, Stmt, StmtKind as S, TypeParam, TypeParamKind,
@@ -150,10 +150,21 @@ impl Parser {
         self.attempt(|p| {
             let line = p.peek(0)?.start.line;
             need!(p.eat_kw(kw));
-            p.invalid_block_header(&format!("'{kw}' statement"), line, false)?;
-            p.expect_forced(T::Colon, ":")?;
-            p.block()
+            p.header_block(&format!("'{kw}' statement"), line, true)
         })
+    }
+
+    /// O fim do cabeçalho de um comando composto e o corpo: `invalid_block_header`, o `':'` e o
+    /// `block`. Com `forced` o `':'` é o `&&':'` da gramática (a falta vira erro, não retrocesso), e
+    /// o cabeçalho não tem a alternativa do NEWLINE no lugar dele.
+    fn header_block(&mut self, what: &str, line: usize, forced: bool) -> PResult<Vec<Stmt>> {
+        self.invalid_block_header(what, line, !forced)?;
+        if forced {
+            self.expect_forced(T::Colon, ":")?;
+        } else {
+            need!(self.eat_op(T::Colon));
+        }
+        self.block()
     }
 
     /// `[else_block]`.
@@ -170,12 +181,12 @@ impl Parser {
         if let Some(s) = self.assignment()? {
             return Ok(Some(s));
         }
-        if self.at_kw("type")?
+        if self.kw_at(0, "type")?
             && let Some(s) = self.type_alias()?
         {
             return Ok(Some(s));
         }
-        if let Some(value) = self.star_expressions()? {
+        if let Some(value) = self.tuple_of(Parser::star_expression, Load)? {
             return Ok(Some(self.snode(S::Expr { value: Box::new(value) }, start)));
         }
         let tok = self.peek(0)?;
@@ -245,7 +256,7 @@ impl Parser {
             let mut targets = Vec::new();
             loop {
                 let save = p.mark;
-                if let Some(t) = p.star_targets()?
+                if let Some(t) = p.tuple_of(Parser::star_target, Store)?
                     && p.eat_op(T::Equal)?
                 {
                     targets.push(t);
@@ -283,7 +294,7 @@ impl Parser {
     /// `':' expression ['=' annotated_rhs]` depois do alvo de um `AnnAssign`.
     fn annotated_assign_rest(&mut self, target: Expr, simple: i64, start: usize) -> PResult<Stmt> {
         need!(self.eat_op(T::Colon));
-        let annotation = req!(self.expression());
+        let annotation = req!(self.memo(Rule::Expression));
         let value = if self.eat_op(T::Equal)? { Some(Box::new(req!(self.annotated_rhs()))) } else { None };
         let kind = S::AnnAssign { target: Box::new(target), annotation: Box::new(annotation), value, simple };
         Ok(Some(self.snode(kind, start)))
@@ -294,14 +305,14 @@ impl Parser {
         if let Some(e) = self.yield_expr()? {
             return Ok(Some(e));
         }
-        self.star_expressions()
+        self.tuple_of(Parser::star_expression, Load)
     }
 
     /// `single_subscript_attribute_target` (e o `del_target` equivalente): `t_primary '.' NAME
     /// !t_lookahead | t_primary '[' slices ']' !t_lookahead`, com o contexto pedido.
     fn subscript_attribute_target(&mut self, ctx: ExprContext) -> PResult<Expr> {
         let start = self.mark;
-        if let Some(mut e) = self.primary()?
+        if let Some(mut e) = self.memo(Rule::Primary)?
             && let E::Attribute { ctx: c, .. } | E::Subscript { ctx: c, .. } = &mut e.kind
         {
             *c = ctx;
@@ -335,7 +346,7 @@ impl Parser {
             let tok = req!(p.eat_name());
             let type_params = if p.at_op(T::Lsqb)? { req!(p.type_params()) } else { Vec::new() };
             need!(p.eat_op(T::Equal));
-            let value = req!(p.expression());
+            let value = req!(p.memo(Rule::Expression));
             let name = Box::new(Parser::name_expr(&tok, Store));
             Ok(Some(p.snode(S::TypeAlias { name, type_params, value: Box::new(value) }, start)))
         })
@@ -345,7 +356,7 @@ impl Parser {
     fn return_stmt(&mut self) -> PResult<Stmt> {
         let start = self.mark;
         need!(self.eat_kw("return"));
-        let value = self.star_expressions()?.map(Box::new);
+        let value = self.tuple_of(Parser::star_expression, Load)?.map(Box::new);
         Ok(Some(self.snode(S::Return { value }, start)))
     }
 
@@ -354,19 +365,28 @@ impl Parser {
         self.attempt(|p| {
             let start = p.mark;
             need!(p.eat_kw("raise"));
-            let Some(exc) = p.expression()? else {
+            let Some(exc) = p.memo(Rule::Expression)? else {
                 return Ok(Some(p.snode(S::Raise { exc: None, cause: None }, start)));
             };
-            let after = p.mark;
-            let mut cause = None;
-            if p.eat_kw("from")? {
-                match p.expression()? {
-                    Some(c) => cause = Some(Box::new(c)),
-                    None => p.mark = after,
-                }
-            }
+            let cause = p.opt_tail(|p| p.eat_kw("from"))?;
             Ok(Some(p.snode(S::Raise { exc: Some(Box::new(exc)), cause }, start)))
         })
+    }
+
+    /// `[sep expression]` no fim de um comando: se a expressão não vem, o separador volta a ser o
+    /// próximo token.
+    fn opt_tail(
+        &mut self,
+        sep: impl FnOnce(&mut Parser) -> Result<bool, ParseError>,
+    ) -> Result<Option<Box<Expr>>, ParseError> {
+        let after = self.mark;
+        if sep(self)? {
+            if let Some(e) = self.memo(Rule::Expression)? {
+                return Ok(Some(Box::new(e)));
+            }
+            self.mark = after;
+        }
+        Ok(None)
     }
 
     /// `global_stmt: 'global' ','.NAME+` e `nonlocal_stmt: 'nonlocal' ','.NAME+`.
@@ -374,10 +394,7 @@ impl Parser {
         self.attempt(|p| {
             let start = p.mark;
             p.mark += 1;
-            let mut names = vec![req!(p.eat_name()).text];
-            while p.eat_op(T::Comma)? {
-                names.push(req!(p.eat_name()).text);
-            }
+            let names = req!(p.separated(false, |p| Ok(p.eat_name()?.map(|t| t.text))));
             let kind = if global { S::Global { names } } else { S::Nonlocal { names } };
             Ok(Some(p.snode(kind, start)))
         })
@@ -388,24 +405,12 @@ impl Parser {
         self.attempt(|p| {
             let start = p.mark;
             need!(p.eat_kw("del"));
-            let targets = req!(p.del_targets());
+            let targets = req!(p.separated(true, Parser::del_target));
             if !matches!(p.peek_kind(0)?, T::Semi | T::Newline) {
                 return Ok(None);
             }
             Ok(Some(p.snode(S::Delete { targets }, start)))
         })
-    }
-
-    /// `del_targets: ','.del_target+ [',']`.
-    fn del_targets(&mut self) -> PResult<Vec<Expr>> {
-        let mut out = vec![req!(self.del_target())];
-        while self.eat_op(T::Comma)? {
-            match self.del_target()? {
-                Some(e) => out.push(e),
-                None => break,
-            }
-        }
-        Ok(Some(out))
     }
 
     /// `del_target` e `del_t_atom: NAME | '(' del_target ')' | '(' [del_targets] ')' |
@@ -427,12 +432,12 @@ impl Parser {
                     return Ok(Some(e));
                 }
                 p.mark = inner;
-                let elts = p.del_targets()?.unwrap_or_default();
+                let elts = p.separated(true, Parser::del_target)?.unwrap_or_default();
                 need!(p.eat_op(T::Rpar));
                 return Ok(Some(p.node(E::Tuple { elts, ctx: Del }, start)));
             }
             need!(p.eat_op(T::Lsqb));
-            let elts = p.del_targets()?.unwrap_or_default();
+            let elts = p.separated(true, Parser::del_target)?.unwrap_or_default();
             need!(p.eat_op(T::Rsqb));
             Ok(Some(p.node(E::List { elts, ctx: Del }, start)))
         })
@@ -450,15 +455,8 @@ impl Parser {
         self.attempt(|p| {
             let start = p.mark;
             need!(p.eat_kw("assert"));
-            let test = req!(p.expression());
-            let after = p.mark;
-            let mut msg = None;
-            if p.eat_op(T::Comma)? {
-                match p.expression()? {
-                    Some(m) => msg = Some(Box::new(m)),
-                    None => p.mark = after,
-                }
-            }
+            let test = req!(p.memo(Rule::Expression));
+            let msg = p.opt_tail(|p| p.eat_op(T::Comma))?;
             Ok(Some(p.snode(S::Assert { test: Box::new(test), msg }, start)))
         })
     }
@@ -471,17 +469,14 @@ impl Parser {
         self.attempt(|p| {
             let start = p.mark;
             need!(p.eat_kw("import"));
-            let mut names = vec![req!(p.dotted_as_name())];
-            while p.eat_op(T::Comma)? {
-                names.push(req!(p.dotted_as_name()));
-            }
+            let names = req!(p.separated(false, Parser::dotted_as_name));
             Ok(Some(p.snode(S::Import { names }, start)))
         })
     }
 
     /// `['as' NAME]`.
     fn as_name(&mut self) -> Result<Option<String>, ParseError> {
-        if self.at_kw("as")? && self.is_name_at(1)? {
+        if self.kw_at(0, "as")? && self.is_name_at(1)? {
             self.mark += 1;
             return Ok(Some(self.advance().text));
         }
@@ -541,14 +536,7 @@ impl Parser {
                 return Ok(Some(vec![Alias { name: "*".to_string(), asname: None, pos: token_pos(&tok) }]));
             }
             let paren = p.eat_op(T::Lpar)?;
-            let mut names = vec![req!(p.import_from_as_name())];
-            while p.eat_op(T::Comma)? {
-                match p.import_from_as_name()? {
-                    Some(a) => names.push(a),
-                    None if paren => break,
-                    None => return Ok(None),
-                }
-            }
+            let names = req!(p.separated(paren, Parser::import_from_as_name));
             if paren {
                 need!(p.eat_op(T::Rpar));
             }
@@ -608,10 +596,10 @@ impl Parser {
         self.attempt(|p| {
             let mut decorators = Vec::new();
             while p.eat_op(T::At)? {
-                decorators.push(req!(p.named_expression()));
+                decorators.push(req!(p.memo(Rule::NamedExpression)));
                 need!(p.eat_op(T::Newline));
             }
-            if p.at_kw("class")? { p.class_def(decorators) } else { p.function_def(decorators) }
+            if p.kw_at(0, "class")? { p.class_def(decorators) } else { p.function_def(decorators) }
         })
     }
 
@@ -621,11 +609,9 @@ impl Parser {
             let start = p.mark;
             need!(p.eat_kw(kw));
             let line = p.tokens[start].start.line;
-            let test = req!(p.named_expression());
-            p.invalid_block_header(&format!("'{kw}' statement"), line, true)?;
-            need!(p.eat_op(T::Colon));
-            let body = req!(p.block());
-            let orelse = if p.at_kw("elif")? { vec![req!(p.if_stmt("elif"))] } else { p.opt_else()? };
+            let test = req!(p.memo(Rule::NamedExpression));
+            let body = req!(p.header_block(&format!("'{kw}' statement"), line, false));
+            let orelse = if p.kw_at(0, "elif")? { vec![req!(p.if_stmt("elif"))] } else { p.opt_else()? };
             Ok(Some(p.snode(S::If { test: Box::new(test), body, orelse }, start)))
         })
     }
@@ -636,10 +622,8 @@ impl Parser {
             let start = p.mark;
             need!(p.eat_kw("while"));
             let line = p.tokens[start].start.line;
-            let test = req!(p.named_expression());
-            p.invalid_block_header("'while' statement", line, true)?;
-            need!(p.eat_op(T::Colon));
-            let body = req!(p.block());
+            let test = req!(p.memo(Rule::NamedExpression));
+            let body = req!(p.header_block("'while' statement", line, false));
             let orelse = p.opt_else()?;
             Ok(Some(p.snode(S::While { test: Box::new(test), body, orelse }, start)))
         })
@@ -653,12 +637,10 @@ impl Parser {
             let is_async = p.eat_kw("async")?;
             need!(p.eat_kw("for"));
             let line = p.tokens[p.mark - 1].start.line;
-            let target = Box::new(req!(p.star_targets()));
+            let target = Box::new(req!(p.tuple_of(Parser::star_target, Store)));
             need!(p.eat_kw("in"));
-            let iter = Box::new(req!(p.star_expressions()));
-            p.invalid_block_header("'for' statement", line, true)?;
-            need!(p.eat_op(T::Colon));
-            let body = req!(p.block());
+            let iter = Box::new(req!(p.tuple_of(Parser::star_expression, Load)));
+            let body = req!(p.header_block("'for' statement", line, false));
             let orelse = p.opt_else()?;
             let kind = if is_async {
                 S::AsyncFor { target, iter, body, orelse, type_comment: None }
@@ -683,11 +665,9 @@ impl Parser {
             let line = p.tokens[p.mark - 1].start.line;
             let items = match p.paren_with_items()? {
                 Some(items) => items,
-                None => req!(p.with_items()),
+                None => req!(p.separated(false, Parser::with_item)),
             };
-            p.invalid_block_header("'with' statement", line, true)?;
-            need!(p.eat_op(T::Colon));
-            let body = req!(p.block());
+            let body = req!(p.header_block("'with' statement", line, false));
             let kind = if is_async {
                 S::AsyncWith { items, body, type_comment: None }
             } else {
@@ -701,33 +681,16 @@ impl Parser {
     fn paren_with_items(&mut self) -> PResult<Vec<WithItem>> {
         self.attempt(|p| {
             need!(p.eat_op(T::Lpar));
-            let mut items = vec![req!(p.with_item())];
-            while p.eat_op(T::Comma)? {
-                match p.with_item()? {
-                    Some(i) => items.push(i),
-                    None => break,
-                }
-            }
+            let items = req!(p.separated(true, Parser::with_item));
             need!(p.eat_op(T::Rpar));
             need!(p.at_op(T::Colon));
             Ok(Some(items))
         })
     }
 
-    /// `','.with_item+`.
-    fn with_items(&mut self) -> PResult<Vec<WithItem>> {
-        self.attempt(|p| {
-            let mut items = vec![req!(p.with_item())];
-            while p.eat_op(T::Comma)? {
-                items.push(req!(p.with_item()));
-            }
-            Ok(Some(items))
-        })
-    }
-
     /// `with_item: expression 'as' star_target &(',' | ')' | ':') | expression`.
     fn with_item(&mut self) -> PResult<WithItem> {
-        let context_expr = req!(self.expression());
+        let context_expr = req!(self.memo(Rule::Expression));
         let after = self.mark;
         if self.eat_kw("as")? {
             if let Some(t) = self.star_target()?
@@ -747,10 +710,8 @@ impl Parser {
             let start = p.mark;
             need!(p.eat_kw("try"));
             let line = p.tokens[start].start.line;
-            p.invalid_block_header("'try' statement", line, false)?;
-            p.expect_forced(T::Colon, ":")?;
-            let body = req!(p.block());
-            let star = p.at_kw("except")? && p.peek_kind(1)? == T::Star;
+            let body = req!(p.header_block("'try' statement", line, true));
+            let star = p.kw_at(0, "except")? && p.peek_kind(1)? == T::Star;
             let mut handlers = Vec::new();
             while let Some(h) = p.except_block(star)? {
                 handlers.push(h);
@@ -784,17 +745,13 @@ impl Parser {
             }
             let what = if star { "'except*' statement" } else { "'except' statement" };
             let (ty, name) = if !star && (p.at_op(T::Colon)? || p.at_op(T::Newline)?) {
-                p.invalid_block_header(what, line, true)?;
-                need!(p.eat_op(T::Colon));
                 (None, None)
             } else {
-                let ty = req!(p.expression());
+                let ty = req!(p.memo(Rule::Expression));
                 let name = if p.eat_kw("as")? { Some(req!(p.eat_name()).text) } else { None };
-                p.invalid_block_header(what, line, true)?;
-                need!(p.eat_op(T::Colon));
                 (Some(Box::new(ty)), name)
             };
-            let body = req!(p.block());
+            let body = req!(p.header_block(what, line, false));
             Ok(Some(ExceptHandler { r#type: ty, name, body, pos: p.spos(start) }))
         })
     }
@@ -815,10 +772,8 @@ impl Parser {
             p.expect_forced(T::Lpar, "(")?;
             let args = if p.at_op(T::Rpar)? { Arguments::default() } else { req!(p.params()) };
             need!(p.eat_op(T::Rpar));
-            let returns = if p.eat_op(T::Rarrow)? { Some(Box::new(req!(p.expression()))) } else { None };
-            p.invalid_block_header("function definition", line, false)?;
-            p.expect_forced(T::Colon, ":")?;
-            let body = req!(p.block());
+            let returns = if p.eat_op(T::Rarrow)? { Some(Box::new(req!(p.memo(Rule::Expression)))) } else { None };
+            let body = req!(p.header_block("function definition", line, true));
             let args = Box::new(args);
             let kind = if is_async {
                 S::AsyncFunctionDef { name, args, body, decorator_list, returns, type_comment: None, type_params }
@@ -844,9 +799,7 @@ impl Parser {
             } else {
                 (Vec::new(), Vec::new())
             };
-            p.invalid_block_header("class definition", line, true)?;
-            need!(p.eat_op(T::Colon));
-            let body = req!(p.block());
+            let body = req!(p.header_block("class definition", line, false));
             Ok(Some(p.snode(S::ClassDef { name, bases, keywords, body, decorator_list, type_params }, start)))
         })
     }
@@ -865,7 +818,7 @@ impl Parser {
             let start = p.mark;
             let tok = req!(p.eat_name());
             let annotation = if p.eat_op(T::Colon)? {
-                let ann = if star_annotation { req!(p.star_expression()) } else { req!(p.expression()) };
+                let ann = if star_annotation { req!(p.star_expression()) } else { req!(p.memo(Rule::Expression)) };
                 Some(Box::new(ann))
             } else {
                 None
@@ -878,7 +831,7 @@ impl Parser {
     fn param_maybe_default(&mut self) -> PResult<(Arg, Option<Expr>)> {
         self.attempt(|p| {
             let arg = req!(p.param(false));
-            let default = if p.eat_op(T::Equal)? { Some(req!(p.expression())) } else { None };
+            let default = if p.eat_op(T::Equal)? { Some(req!(p.memo(Rule::Expression))) } else { None };
             need!(p.param_end());
             Ok(Some((arg, default)))
         })
@@ -944,13 +897,7 @@ impl Parser {
     fn type_params(&mut self) -> PResult<Vec<TypeParam>> {
         self.attempt(|p| {
             need!(p.eat_op(T::Lsqb));
-            let mut out = vec![req!(p.type_param())];
-            while p.eat_op(T::Comma)? {
-                match p.type_param()? {
-                    Some(t) => out.push(t),
-                    None => break,
-                }
-            }
+            let out = req!(p.separated(true, Parser::type_param));
             need!(p.eat_op(T::Rsqb));
             Ok(Some(out))
         })
@@ -968,12 +915,12 @@ impl Parser {
                 TypeParamKind::TypeVarTuple { name, default_value }
             } else if p.eat_op(T::DoubleStar)? {
                 let name = req!(p.eat_name()).text;
-                let default_value = if p.eat_op(T::Equal)? { Some(Box::new(req!(p.expression()))) } else { None };
+                let default_value = if p.eat_op(T::Equal)? { Some(Box::new(req!(p.memo(Rule::Expression)))) } else { None };
                 TypeParamKind::ParamSpec { name, default_value }
             } else {
                 let name = req!(p.eat_name()).text;
-                let bound = if p.eat_op(T::Colon)? { Some(Box::new(req!(p.expression()))) } else { None };
-                let default_value = if p.eat_op(T::Equal)? { Some(Box::new(req!(p.expression()))) } else { None };
+                let bound = if p.eat_op(T::Colon)? { Some(Box::new(req!(p.memo(Rule::Expression)))) } else { None };
+                let default_value = if p.eat_op(T::Equal)? { Some(Box::new(req!(p.memo(Rule::Expression)))) } else { None };
                 TypeParamKind::TypeVar { name, bound, default_value }
             };
             Ok(Some(TypeParam { kind, pos: full(p.pos_from(start)) }))
@@ -1010,16 +957,13 @@ impl Parser {
             let start = p.mark;
             let first = req!(p.star_named_expression());
             need!(p.eat_op(T::Comma));
-            let mut elts = vec![first];
-            if let Some(rest) = p.comma_list(Parser::star_named_expression)? {
-                elts.extend(rest);
-            }
+            let elts = p.after_comma(first, Parser::star_named_expression)?;
             Ok(Some(p.node(E::Tuple { elts, ctx: Load }, start)))
         })?;
         if tuple.is_some() {
             return Ok(tuple);
         }
-        self.named_expression()
+        self.memo(Rule::NamedExpression)
     }
 
     /// `case_block: "case" patterns guard? ':' block`.
@@ -1027,7 +971,7 @@ impl Parser {
         self.attempt(|p| {
             need!(p.eat_kw("case"));
             let pattern = req!(p.patterns());
-            let guard = if p.eat_kw("if")? { Some(Box::new(req!(p.named_expression()))) } else { None };
+            let guard = if p.eat_kw("if")? { Some(Box::new(req!(p.memo(Rule::NamedExpression)))) } else { None };
             need!(p.eat_op(T::Colon));
             let body = req!(p.block());
             Ok(Some(MatchCase { pattern, guard, body }))
@@ -1053,23 +997,11 @@ impl Parser {
             let first = req!(p.maybe_star_pattern());
             need!(p.eat_op(T::Comma));
             let mut out = vec![first];
-            if let Some(rest) = p.maybe_sequence_pattern()? {
+            if let Some(rest) = p.separated(true, Parser::maybe_star_pattern)? {
                 out.extend(rest);
             }
             Ok(Some(out))
         })
-    }
-
-    /// `maybe_sequence_pattern: ','.maybe_star_pattern+ ','?`.
-    fn maybe_sequence_pattern(&mut self) -> PResult<Vec<Pattern>> {
-        let mut out = vec![req!(self.maybe_star_pattern())];
-        while self.eat_op(T::Comma)? {
-            match self.maybe_star_pattern()? {
-                Some(p) => out.push(p),
-                None => break,
-            }
-        }
-        Ok(Some(out))
     }
 
     /// `maybe_star_pattern: star_pattern | pattern`, com `star_pattern: '*' pattern_capture_target
@@ -1298,7 +1230,7 @@ impl Parser {
         self.attempt(|p| {
             let start = p.mark;
             let patterns = if p.eat_op(T::Lsqb)? {
-                let pats = p.maybe_sequence_pattern()?.unwrap_or_default();
+                let pats = p.separated(true, Parser::maybe_star_pattern)?.unwrap_or_default();
                 need!(p.eat_op(T::Rsqb));
                 pats
             } else {
