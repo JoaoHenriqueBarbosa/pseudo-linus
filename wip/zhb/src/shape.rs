@@ -54,6 +54,7 @@ pub enum ShaperKind {
     Hebrew,
     Thai,
     Use,
+    Indic,
 }
 
 /// `hb_ot_shaper_t`: as propriedades que o pipeline consulta.
@@ -93,16 +94,31 @@ pub const SHAPER_USE: Shaper = Shaper {
     gpos_tag: 0,
 };
 
-/// `hb_ot_shaper_categorize`. Dos scripts complexos, o árabe, o tailandês, o laosiano, o hebraico
-/// e os do USE foram traduzidos; os índicos com tag `*3` também vão para o USE.
+/// `_hb_ot_shaper_indic`.
+pub const SHAPER_INDIC: Shaper = Shaper {
+    kind: ShaperKind::Indic,
+    normalization: Mode::ComposedDiacriticsNoShortCircuit,
+    zero_width_marks: ZeroWidthMarks::None,
+    fallback_position: false,
+    gpos_tag: 0,
+};
+
+/// `hb_ot_shaper_categorize`. Dos scripts complexos, o árabe, o tailandês, o laosiano, o hebraico,
+/// os índicos e os do USE foram traduzidos; os índicos com tag `*3` vão para o USE.
 fn categorize(script: u32, direction: Direction, gsub_script: u32) -> Shaper {
     let dflt_or_latn = gsub_script == tag(b"DFLT") || gsub_script == tag(b"latn");
     if crate::universal::is_use_script(script) {
         return if dflt_or_latn { SHAPER_DEFAULT } else { SHAPER_USE };
     }
     let indic = [b"Beng", b"Deva", b"Gujr", b"Guru", b"Knda", b"Mlym", b"Orya", b"Taml", b"Telu"];
-    if indic.iter().any(|s| tag(s) == script) && !dflt_or_latn && gsub_script & 0xFF == u32::from(b'3') {
-        return SHAPER_USE;
+    if indic.iter().any(|s| tag(s) == script) {
+        return if dflt_or_latn {
+            SHAPER_DEFAULT
+        } else if gsub_script & 0xFF == u32::from(b'3') {
+            SHAPER_USE
+        } else {
+            SHAPER_INDIC
+        };
     }
     if script == tag(b"Thai") || script == tag(b"Laoo") {
         return SHAPER_THAI;
@@ -128,6 +144,8 @@ pub struct Plan {
     pub arabic: Option<ArabicPlan>,
     /// Os dados do USE.
     pub use_plan: Option<crate::universal::UsePlan>,
+    /// Os dados do shaper índico.
+    pub indic: Option<crate::indic::IndicPlan>,
     pub frac_mask: u32,
     pub numr_mask: u32,
     pub dnom_mask: u32,
@@ -224,6 +242,10 @@ impl Plan {
             map.is_simple = false;
             crate::universal::collect_features(&mut map);
         }
+        if shaper.kind == ShaperKind::Indic {
+            map.is_simple = false;
+            crate::indic::collect_features(&mut map);
+        }
         map.enable_feature(tag(b"Buzz"), F_NONE, 1);
         map.enable_feature(tag(b"BUZZ"), F_NONE, 1);
         for (t, f) in COMMON_FEATURES {
@@ -241,6 +263,9 @@ impl Plan {
         }
         for f in user_features {
             map.add_feature(f.tag, if f.is_global() { F_GLOBAL } else { F_NONE }, f.value);
+        }
+        if shaper.kind == ShaperKind::Indic {
+            crate::indic::override_features(&mut map);
         }
 
         // `hb_ot_shape_planner_t::compile`.
@@ -270,12 +295,14 @@ impl Plan {
         let fallback_mark_positioning = adjust_mark_positioning_when_zeroing && script_fallback_mark_positioning;
         let arabic = (shaper.kind == ShaperKind::Arabic).then(|| ArabicPlan::new(&map, props, font));
         let use_plan = (shaper.kind == ShaperKind::Use).then(|| crate::universal::UsePlan::new(&map, props, font));
+        let indic = (shaper.kind == ShaperKind::Indic).then(|| crate::indic::IndicPlan::new(&map, props, font));
         Plan {
             props: props.clone(),
             shaper,
             map,
             arabic,
             use_plan,
+            indic,
             frac_mask,
             numr_mask,
             dnom_mask,
@@ -318,6 +345,9 @@ impl Plan {
             }
             if let (Some(p), Some(u)) = (stage.pause, &self.use_plan) {
                 crate::universal::pause(p, u, font, &mut *c.buffer);
+            }
+            if let (Some(p), Some(indic)) = (stage.pause, &self.indic) {
+                crate::indic::pause(p, indic, font, &mut *c.buffer);
             }
         }
     }
@@ -569,6 +599,9 @@ fn setup_masks(plan: &Plan, buffer: &mut Buffer) {
     if let Some(u) = &plan.use_plan {
         crate::universal::setup_masks(u, buffer, plan.props.script);
     }
+    if plan.indic.is_some() {
+        crate::indic::setup_masks(buffer);
+    }
     for f in &plan.user_features {
         if !f.is_global() {
             let (mask, shift) = plan.map.mask(f.tag);
@@ -669,9 +702,12 @@ fn substitute_pre(plan: &Plan, font: &Font, buffer: &mut Buffer, target_directio
             ShaperKind::Arabic => (Some(&arabic_reorder), None),
             ShaperKind::Hebrew => (Some(&hebrew_reorder), Some(&hebrew_compose)),
             ShaperKind::Use => (None, Some(&crate::universal::compose)),
+            ShaperKind::Indic => (None, Some(&crate::indic::compose)),
             ShaperKind::Default | ShaperKind::Thai => (None, None),
         };
-    let hooks = Hooks { decompose: None, compose, reorder_marks };
+    let decompose: Option<&dyn Fn(u32) -> Option<(u32, u32)>> =
+        if plan.shaper.kind == ShaperKind::Indic { Some(&crate::indic::decompose) } else { None };
+    let hooks = Hooks { decompose, compose, reorder_marks };
     normalize::normalize(buffer, font, plan.shaper.normalization, &hooks);
     setup_masks(plan, buffer);
     if plan.fallback_mark_positioning {
@@ -781,7 +817,7 @@ pub fn shape(plan: &Plan, font: &Font, buffer: &mut Buffer) {
     if plan.shaper.kind == ShaperKind::Thai {
         crate::thai::preprocess_text(plan, buffer, font);
     }
-    if plan.shaper.kind == ShaperKind::Use {
+    if plan.shaper.kind == ShaperKind::Use || plan.shaper.kind == ShaperKind::Indic {
         crate::universal::preprocess_text(buffer);
     }
     substitute_pre(plan, font, buffer, target_direction);

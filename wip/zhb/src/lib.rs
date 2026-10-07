@@ -12,9 +12,16 @@ pub mod gpos;
 pub mod gsub;
 pub mod gsubgpos;
 pub mod hebrew;
+pub mod indic;
+mod indic_machine;
+mod indic_table;
+#[allow(dead_code)]
+mod khmer_machine;
 pub mod lang;
 mod lang_table;
 pub mod map;
+#[allow(dead_code)]
+mod myanmar_machine;
 pub mod normalize;
 pub mod ot;
 pub mod props;
@@ -26,3 +33,5 @@ mod use_machine;
 mod use_table;
 mod ucd_table;
 pub mod unicode;
+mod vowel_table;
+mod would;

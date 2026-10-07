@@ -590,40 +590,50 @@ fn reorder(font: &Font, buffer: &mut Buffer) {
     }
 }
 
-/// `_hb_preprocess_text_vowel_constraints` para os scripts do USE: um círculo pontilhado entre
-/// sequências de vogais que imitam outra vogal.
+/// `_hb_preprocess_text_vowel_constraints`: um círculo pontilhado entre sequências de vogais que
+/// imitam outra vogal (regras geradas do HarfBuzz em `vowel_table.rs`), mais o Ra, virama e I do
+/// devanágari, que é a única regra de três códigos.
 pub fn preprocess_text(buffer: &mut Buffer) {
     if buffer.flags & FLAG_DO_NOT_INSERT_DOTTED_CIRCLE != 0 {
         return;
     }
     let script = buffer.props.script;
-    let rules: &[(&[u32], &[u32])] = if script == tag(b"Brah") {
-        &[(&[0x11005], &[0x11038]), (&[0x1100B], &[0x1103E]), (&[0x1100F], &[0x11042])]
-    } else if script == tag(b"Khoj") {
-        &[
-            (&[0x11200], &[0x1122C, 0x11231, 0x11233]),
-            (&[0x11206], &[0x1122C]),
-            (&[0x1122C], &[0x11230, 0x11231]),
-            (&[0x11240], &[0x1122E]),
-        ]
-    } else if script == tag(b"Sind") {
-        &[(&[0x112B0], &[0x112E0, 0x112E5, 0x112E6, 0x112E7, 0x112E8])]
-    } else if script == tag(b"Tirh") {
-        &[(&[0x11481], &[0x114B0]), (&[0x1148B, 0x1148D], &[0x114BA]), (&[0x114AA], &[0x114B5, 0x114B6])]
-    } else if script == tag(b"Modi") {
-        &[(&[0x11600, 0x11601], &[0x11639, 0x1163A])]
-    } else if script == tag(b"Takr") {
-        &[(&[0x11680], &[0x116AD, 0x116B4, 0x116B5]), (&[0x11686], &[0x116B2])]
-    } else {
-        &[]
-    };
+    let name = [
+        (b"Deva", "DEVANAGARI"),
+        (b"Beng", "BENGALI"),
+        (b"Guru", "GURMUKHI"),
+        (b"Gujr", "GUJARATI"),
+        (b"Orya", "ORIYA"),
+        (b"Taml", "TAMIL"),
+        (b"Telu", "TELUGU"),
+        (b"Knda", "KANNADA"),
+        (b"Mlym", "MALAYALAM"),
+        (b"Sinh", "SINHALA"),
+        (b"Brah", "BRAHMI"),
+        (b"Khoj", "KHOJKI"),
+        (b"Sind", "KHUDAWADI"),
+        (b"Tirh", "TIRHUTA"),
+        (b"Modi", "MODI"),
+        (b"Takr", "TAKRI"),
+    ]
+    .iter()
+    .find(|(t, _)| tag(t) == script)
+    .map(|(_, n)| *n);
+    let rules: &[(&[u32], &[u32])] = name
+        .and_then(|n| crate::vowel_table::RULES.iter().find(|(r, _)| *r == n))
+        .map_or(&[], |(_, r)| *r);
+    let devanagari = script == tag(b"Deva");
     buffer.clear_output();
-    if !rules.is_empty() {
+    if name.is_some() {
         let count = buffer.len();
         buffer.idx = 0;
         while buffer.idx + 1 < count {
             let (a, b) = (buffer.cur(0).codepoint, buffer.cur(1).codepoint);
-            let matched = rules.iter().any(|(first, second)| first.contains(&a) && second.contains(&b));
+            let mut matched = rules.iter().any(|(first, second)| first.contains(&a) && second.contains(&b));
+            if devanagari && a == 0x0930 && b == 0x094D && buffer.idx + 2 < count && buffer.cur(2).codepoint == 0x0907 {
+                buffer.next_glyph();
+                matched = true;
+            }
             buffer.next_glyph();
             if matched {
                 buffer.output_glyph(0x25CC);

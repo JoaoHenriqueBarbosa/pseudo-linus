@@ -47,6 +47,12 @@ pub enum Pause {
     UseReorder,
     /// `hb_syllabic_clear_var`.
     SyllabicClearVar,
+    /// `setup_syllables_indic`.
+    IndicSetupSyllables,
+    /// `initial_reordering_indic`.
+    IndicInitialReordering,
+    /// `final_reordering_indic`.
+    IndicFinalReordering,
 }
 
 #[derive(Clone, Copy, Debug)]
