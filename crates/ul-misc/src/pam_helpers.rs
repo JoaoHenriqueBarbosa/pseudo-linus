@@ -38,17 +38,31 @@ fn stdin_is_tty() -> bool {
 }
 
 /// A recusa dos helpers chamados fora do módulo PAM.
-fn inappropriate() -> i32 {
-    io::eprint(
-        "This binary is not designed for running in this way\n-- the system administrator has been informed\n",
-    );
+const INAPPROPRIATE: &str =
+    "This binary is not designed for running in this way\n-- the system administrator has been informed\n";
+
+/// A recusa do `pwhistory_helper` chamado fora do módulo PAM (sem a linha do administrador).
+const PWHISTORY_INAPPROPRIATE: &str = "This binary is not designed for running in this way.\n";
+
+/// O helper foi chamado fora do módulo PAM: stdin num terminal ou argv com outro tamanho.
+fn outside_pam(argv: &[Vec<u8>], argc: usize) -> bool {
+    stdin_is_tty() || argv.len() != argc
+}
+
+fn refuse(msg: &str) -> i32 {
+    io::eprint(msg);
     PAM_SYSTEM_ERR
 }
 
-/// A recusa do `pwhistory_helper` chamado fora do módulo PAM (sem a linha do administrador).
-fn pwhistory_inappropriate() -> i32 {
-    io::eprint("This binary is not designed for running in this way.\n");
-    PAM_SYSTEM_ERR
+/// O `main` de cada helper, com o argv em bytes.
+fn with_argv(args: &[OsString], main: impl FnOnce(&[Vec<u8>]) -> i32) -> i32 {
+    io::run(|| main(&io::args_bytes(args)))
+}
+
+/// Os helpers que precisariam de `crypt(3)`: recusam fora do módulo PAM e, dentro, a senha nunca
+/// confere.
+fn crypt_helper(args: &[OsString], argc: usize, refusal: &str) -> i32 {
+    with_argv(args, |argv| if outside_pam(argv, argc) { refuse(refusal) } else { PAM_AUTH_ERR })
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -56,8 +70,7 @@ fn pwhistory_inappropriate() -> i32 {
 // ---------------------------------------------------------------------------------------------
 
 pub fn mkhomedir_helper_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
-    io::run(|| {
-        let argv = io::args_bytes(args);
+    with_argv(args, |argv| {
         if argv.len() < 2 {
             io::eprint(format!(
                 "Usage: {} <username> [<umask> [<skeldir> [<home_mode>]]]\n",
@@ -87,8 +100,7 @@ pub fn mkhomedir_helper_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
 // ---------------------------------------------------------------------------------------------
 
 pub fn pam_timestamp_check_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
-    io::run(|| {
-        let argv = io::args_bytes(args);
+    with_argv(args, |argv| {
         let prog = io::argv0(args);
         let mut done_opts = false;
         for a in &argv[1..] {
@@ -115,10 +127,9 @@ pub fn pam_timestamp_check_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i3
 // ---------------------------------------------------------------------------------------------
 
 pub fn unix_chkpwd_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
-    io::run(|| {
-        let argv = io::args_bytes(args);
-        if stdin_is_tty() || argv.len() != 3 {
-            return inappropriate();
+    with_argv(args, |argv| {
+        if outside_pam(argv, 3) {
+            return refuse(INAPPROPRIATE);
         }
         let user = &argv[1];
         let nullok = argv[2].as_slice() == b"nullok";
@@ -143,23 +154,11 @@ pub fn unix_chkpwd_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
 }
 
 pub fn unix_update_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
-    io::run(|| {
-        let argv = io::args_bytes(args);
-        if stdin_is_tty() || argv.len() != 5 {
-            return inappropriate();
-        }
-        PAM_AUTH_ERR
-    })
+    crypt_helper(args, 5, INAPPROPRIATE)
 }
 
 pub fn pwhistory_helper_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
-    io::run(|| {
-        let argv = io::args_bytes(args);
-        if stdin_is_tty() || argv.len() != 4 {
-            return pwhistory_inappropriate();
-        }
-        PAM_AUTH_ERR
-    })
+    crypt_helper(args, 4, PWHISTORY_INAPPROPRIATE)
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -169,11 +168,15 @@ pub fn pwhistory_helper_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
 const FAILLOCK_USAGE: &str = "Usage: faillock [--dir /path/to/tally-directory] [--user username] [--reset] [--legacy-output]\n";
 
 pub fn faillock_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
-    io::run(|| {
-        let argv = io::args_bytes(args);
+    with_argv(args, |argv| {
         let mut dir: Vec<u8> = b"/var/run/faillock".to_vec();
         let mut user: Option<Vec<u8>> = None;
         let mut reset = false;
+        let usage = |msg: String| {
+            io::eprint(format!("faillock: {msg}\n"));
+            io::eprint(FAILLOCK_USAGE);
+            1
+        };
         let mut i = 1;
         while i < argv.len() {
             match argv[i].as_slice() {
@@ -186,9 +189,7 @@ pub fn faillock_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
                             b"--user" => "user name",
                             _ => "configuration file name",
                         };
-                        io::eprint(format!("faillock: No {what} supplied.\n"));
-                        io::eprint(FAILLOCK_USAGE);
-                        return 1;
+                        return usage(format!("No {what} supplied."));
                     }
                     match which.as_slice() {
                         b"--dir" => dir = argv[i].clone(),
@@ -198,11 +199,7 @@ pub fn faillock_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
                 }
                 b"--reset" => reset = true,
                 b"--legacy-output" => {}
-                other => {
-                    io::eprint(format!("faillock: Unknown option: {}\n", io::lossy(other)));
-                    io::eprint(FAILLOCK_USAGE);
-                    return 1;
-                }
+                other => return usage(format!("Unknown option: {}", io::lossy(other))),
             }
             i += 1;
         }
@@ -241,21 +238,17 @@ pub fn faillock_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
 const GETENV_USAGE: &str = "Usage: pam_getenv [-l] [-s] env_var\n";
 
 pub fn pam_getenv_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
-    io::run(|| {
-        let argv = io::args_bytes(args);
+    with_argv(args, |argv| {
         let mut vars = 0;
+        let mut bad_option = false;
         for a in &argv[1..] {
-            let opt = a.len() > 1 && a[0] == b'-';
-            if opt && a.iter().skip(1).all(|c| *c == b'l' || *c == b's') {
-                continue;
+            if a.len() > 1 && a[0] == b'-' {
+                bad_option |= !a.iter().skip(1).all(|c| *c == b'l' || *c == b's');
+            } else {
+                vars += 1;
             }
-            if opt {
-                io::eprint(GETENV_USAGE);
-                return 255;
-            }
-            vars += 1;
         }
-        if vars == 0 {
+        if bad_option || vars == 0 {
             io::eprint(GETENV_USAGE);
             return 255;
         }
