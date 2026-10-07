@@ -22,5 +22,10 @@ RUN apt-get update \
 # awk alvo é o gawk (decisão do design v2).
 RUN update-alternatives --set awk /usr/bin/gawk
 
+# Fase 1 do roadmap: o pip do Debian (python3-pip, com as bibliotecas vendorizadas).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends python3-pip python3-venv \
+ && rm -rf /var/lib/apt/lists/*
+
 ENV LC_ALL=C.UTF-8 TZ=UTC HOME=/root
 WORKDIR /work

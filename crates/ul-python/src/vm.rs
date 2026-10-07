@@ -48,11 +48,31 @@ pub type TbEntry = (usize, String, Rc<str>, crate::compile::Span);
 /// o traceback mostra a linha de dentro com o nome da função que as contém. (`<genexpr>` mantém o seu.)
 /// Módulos da biblioteca embutida que no CPython são código C (`_io`, `_socket`, `_csv`...) ou que só
 /// existem aqui: os quadros deles não entram no traceback, como não entrariam no do CPython.
-fn native_in_cpython(filename: &str) -> bool {
+fn native_in_cpython(filename: &str, qual: &str) -> bool {
     let Some(name) = filename.strip_prefix("/usr/lib/python3.13/") else { return false };
+    // Funções que no CPython vêm de módulos em C (`_functools`, `_collections`, `_heapq`...): o
+    // módulo `.py` existe lá, mas estes nomes nunca aparecem como quadro num traceback.
+    let top = qual.split('.').next().unwrap_or(qual);
+    match name {
+        "functools.py" => {
+            return matches!(top, "reduce" | "partial" | "cmp_to_key" | "_lru_wrapper" | "_make_key" | "_CacheInfo")
+        }
+        "collections/__init__.py" => return matches!(top, "deque" | "defaultdict" | "OrderedDict" | "_count_elements"),
+        "heapq.py" => {
+            return matches!(
+                top,
+                "heappush" | "heappop" | "heapify" | "heapreplace" | "heappushpop" | "_siftdown" | "_siftup"
+                    | "_heappop_max" | "_heapify_max" | "_heapreplace_max" | "_siftdown_max" | "_siftup_max"
+            )
+        }
+        _ => {}
+    }
     matches!(
         name,
         "io.py"
+            | "itertools.py"
+            | "operator.py"
+            | "bisect.py"
             | "_socket.py"
             | "_net.py"
             | "_csv.py"
@@ -1251,6 +1271,7 @@ impl Vm {
                         if !reraised {
                             match entries.first_mut() {
                                 Some(first) if is_inlined_comp(&first.1) => first.1 = code.name.clone(),
+                                _ if native_in_cpython(&code.filename, &code.qual()) => {}
                                 _ => entries.insert(0, (code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str()), code.spans[*pc])),
                             }
                         }
@@ -1270,7 +1291,7 @@ impl Vm {
                         if !e.take_reraise_mark() {
                             match e.tb.last_mut() {
                                 Some(last) if is_inlined_comp(&last.1) => last.1 = code.name.clone(),
-                                _ if native_in_cpython(&code.filename) => {}
+                                _ if native_in_cpython(&code.filename, &code.qual()) => {}
                                 _ => e.tb.push((code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str()), code.spans[*pc])),
                             }
                         }
@@ -2445,9 +2466,14 @@ impl Vm {
                 return e.call_method(self, "__call__", args, kwargs);
             }
             Value::Builtin("method") => {
+                // `types.MethodType(função, instância)`, na ordem do CPython.
                 return match args.as_slice() {
-                    [recv, Value::Function(f)] => Ok(Value::BoundFn(Rc::new((recv.clone(), f.clone())))),
-                    _ => Err(type_error("method expected 2 arguments, got a different shape")),
+                    [Value::Function(f), recv] if !matches!(recv, Value::None) => {
+                        Ok(Value::BoundFn(Rc::new((recv.clone(), f.clone()))))
+                    }
+                    [_, Value::None] => Err(type_error("instance must not be None")),
+                    [func, _] => Err(type_error(format!("first argument must be callable, not {}", func.type_name()))),
+                    _ => Err(type_error(format!("method expected 2 arguments, got {}", args.len()))),
                 };
             }
             Value::Builtin(name @ ("staticmethod" | "classmethod" | "property" | "super" | "type" | "object")) => {
@@ -2826,6 +2852,9 @@ impl Vm {
                     return Ok(Value::tuple(bases));
                 }
                 return Ok(Value::tuple(chain));
+            }
+            Value::Builtin("type") if name == "__new__" => {
+                return Ok(Value::NativeFn(Rc::new(crate::object::NativeFn { name: "__new__", f: crate::classes::type_new })));
             }
             Value::Builtin(_) if name == "__module__" => return Ok(Value::str("builtins")),
             Value::Builtin(_) | Value::NativeFn(_) if name == "__doc__" => return Ok(Value::None),

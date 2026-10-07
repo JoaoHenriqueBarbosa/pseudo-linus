@@ -37,7 +37,11 @@ maxunicode = 1114111
 path = ['', '/usr/lib/python313.zip', '/usr/lib/python3.13', '/usr/lib/python3.13/lib-dynload',
         '/usr/local/lib/python3.13/dist-packages', '/usr/lib/python3/dist-packages']
 path_hooks = []
-meta_path = []
+path_importer_cache = {}
+from _frozen_importlib import BuiltinImporter as _BuiltinImporter, FrozenImporter as _FrozenImporter
+from _frozen_importlib_external import PathFinder as _PathFinder
+meta_path = [_BuiltinImporter, _FrozenImporter, _PathFinder]
+del _BuiltinImporter, _FrozenImporter, _PathFinder
 warnoptions = _sys.warnoptions
 dont_write_bytecode = True
 platlibdir = 'lib'

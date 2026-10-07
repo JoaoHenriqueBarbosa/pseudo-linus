@@ -16,6 +16,10 @@ use std::path::{Path, PathBuf};
 ///
 /// `usr/share/fonts`, `usr/share/fontconfig` e `etc/fonts` vêm do fonts-dejavu-core, do
 /// fonts-dejavu-mono e do fontconfig-config, que o Pillow do Debian puxa.
+///
+/// `usr/lib/python3.13`, `etc/python3.13` e `usr/lib/python3/dist-packages` são a stdlib do
+/// libpython3.13-stdlib e os pacotes Python do oráculo (Pillow, PyYAML, pip, packaging, wheel...),
+/// com os `__pycache__` que o py3compile gera na instalação.
 const TREES: &[&str] = &[
     "usr/share/zoneinfo",
     "usr/lib/locale",
@@ -25,6 +29,9 @@ const TREES: &[&str] = &[
     "usr/share/fonts",
     "usr/share/fontconfig",
     "etc/fonts",
+    "usr/lib/python3.13",
+    "etc/python3.13",
+    "usr/lib/python3",
 ];
 
 /// Árvores cujos arquivos são scripts executáveis do oráculo (`/usr/bin/zgrep`, `/usr/sbin/service`...),
@@ -65,7 +72,10 @@ fn main() {
                     let _ = writeln!(code, "    Dir({path:?}, 0o755),");
                 } else {
                     let abs = image.join(&rel);
-                    let _ = writeln!(code, "    File({path:?}, include_bytes!({:?}), {file_mode}),", abs.display().to_string());
+                    // Os scripts executáveis da stdlib (`base64.py`, `pdb.py`...) mantêm o 0o755.
+                    use std::os::unix::fs::PermissionsExt as _;
+                    let mode = if md.permissions().mode() & 0o100 != 0 { "0o755" } else { file_mode };
+                    let _ = writeln!(code, "    File({path:?}, include_bytes!({:?}), {mode}),", abs.display().to_string());
                 }
             }
         }

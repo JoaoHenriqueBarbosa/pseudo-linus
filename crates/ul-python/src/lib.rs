@@ -376,26 +376,36 @@ fn run_module(name: &str, rest: &[Vec<u8>], program: &str) -> i32 {
     let cwd = String::from_utf8_lossy(&sys::current().getcwd().unwrap_or_default()).into_owned();
     let cwd = cwd.trim_end_matches('/').to_string();
     let parts: Vec<&str> = name.split('.').collect();
-    let mut dir = cwd.clone();
-    let mut found: Option<(String, String)> = None;
-    for (i, part) in parts.iter().enumerate() {
-        let last = i + 1 == parts.len();
-        let pkg_dir = format!("{dir}/{part}");
-        if last {
-            let main = format!("{pkg_dir}/__main__.py");
-            if is_dir(&pkg_dir) && is_regular(&main) {
-                found = Some((main, name.to_string()));
-            } else if is_regular(&format!("{dir}/{part}.py")) {
-                let package = parts[..i].join(".");
-                found = Some((format!("{dir}/{part}.py"), package));
+    let search = |base: &str| -> Option<(String, String)> {
+        let mut dir = base.to_string();
+        for (i, part) in parts.iter().enumerate() {
+            let last = i + 1 == parts.len();
+            let pkg_dir = format!("{dir}/{part}");
+            if last {
+                let main = format!("{pkg_dir}/__main__.py");
+                if is_dir(&pkg_dir) && is_regular(&main) {
+                    return Some((main, name.to_string()));
+                } else if is_regular(&format!("{dir}/{part}.py")) {
+                    let package = parts[..i].join(".");
+                    return Some((format!("{dir}/{part}.py"), package));
+                }
+            } else if is_dir(&pkg_dir) {
+                // com ou sem `__init__.py` (pacote de namespace, PEP 420)
+                dir = pkg_dir;
+            } else {
+                break;
             }
-        } else if is_dir(&pkg_dir) {
-            // com ou sem `__init__.py` (pacote de namespace, PEP 420)
-            dir = pkg_dir;
-        } else {
-            break;
         }
-    }
+        None
+    };
+    let embedded = modules::pysrc::source(&format!("{name}.__main__")).is_some() || modules::pysrc::source(name).is_some();
+    // A ordem do `sys.path`: o diretório atual, a stdlib (embutida) e os dist-packages.
+    let found = search(&cwd).or_else(|| {
+        if embedded {
+            return None;
+        }
+        ["/usr/local/lib/python3.13/dist-packages", "/usr/lib/python3/dist-packages"].iter().find_map(|d| search(d))
+    });
     let (path, text, package) = match found {
         Some((path, package)) => {
             let text = sys::read_file(path.as_bytes()).unwrap_or_default();

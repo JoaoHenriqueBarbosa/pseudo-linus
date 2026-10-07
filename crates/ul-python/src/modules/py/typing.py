@@ -20,15 +20,55 @@ def _type_repr(obj):
     return repr(obj)
 
 
-class _SpecialForm:
-    def __init__(self, name):
-        self._name = name
-        self.__name__ = name
+class _Final:
+    """Base das classes internas do typing que não aceitam subclasse fora dele (`_root=True`)."""
+
+    __slots__ = ('__weakref__',)
+
+    def __init_subclass__(cls, /, *args, **kwds):
+        if '_root' not in kwds:
+            raise TypeError("Cannot subclass special typing classes")
+
+
+class _SpecialForm(_Final, _root=True):
+    def __init__(self, getitem):
+        # Como no CPython, a forma especial embrulha a função que trata `[...]`; as formas
+        # embutidas deste módulo passam só o nome e usam o tratamento de `_builtin_getitem`.
+        if isinstance(getitem, str):
+            self._getitem = None
+            self._name = getitem
+        else:
+            self._getitem = getitem
+            self._name = getitem.__name__
+            self.__doc__ = getitem.__doc__
+        self.__name__ = self._name
+
+    def __getattr__(self, item):
+        if item in {'__name__', '__qualname__'}:
+            return self._name
+        raise AttributeError(item)
+
+    def __mro_entries__(self, bases):
+        raise TypeError(f"Cannot subclass {self!r}")
 
     def __repr__(self):
         return 'typing.' + self._name
 
+    def __reduce__(self):
+        return self._name
+
+    def __instancecheck__(self, obj):
+        raise TypeError(f"{self} cannot be used with isinstance()")
+
+    def __subclasscheck__(self, cls):
+        raise TypeError(f"{self} cannot be used with issubclass()")
+
     def __getitem__(self, params):
+        if self._getitem is not None:
+            return self._getitem(self, params)
+        return self._builtin_getitem(params)
+
+    def _builtin_getitem(self, params):
         if self._name == 'Optional':
             return _GenericAlias(Union, (params, type(None)), name='Optional', display=(params,))
         if self._name == 'Union':
@@ -234,7 +274,13 @@ class TypeVar:
 
 
 class ParamSpec(TypeVar):
-    pass
+    @property
+    def args(self):
+        return ParamSpecArgs(self)
+
+    @property
+    def kwargs(self):
+        return ParamSpecKwargs(self)
 
 
 class TypeVarTuple(TypeVar):
@@ -569,9 +615,221 @@ class SupportsAbs(Protocol):
     pass
 
 
-class Pattern:
+import re as _re
+Pattern = _BuiltinAlias(_re.Pattern, 'Pattern')
+Match = _BuiltinAlias(_re.Match, 'Match')
+
+
+class ForwardRef:
+    """Referência adiantada: a anotação em texto, avaliada sob demanda."""
+
+    __slots__ = ('__forward_arg__', '__forward_code__',
+                 '__forward_evaluated__', '__forward_value__',
+                 '__forward_is_argument__', '__forward_is_class__',
+                 '__forward_module__')
+
+    def __init__(self, arg, is_argument=True, module=None, *, is_class=False):
+        if not isinstance(arg, str):
+            raise TypeError(f"Forward reference must be a string -- got {arg!r}")
+        arg_to_compile = f'({arg},)[0]' if arg.startswith('*') else arg
+        try:
+            code = compile(arg_to_compile, '<string>', 'eval')
+        except SyntaxError:
+            raise SyntaxError(f"Forward reference must be an expression -- got {arg!r}")
+        self.__forward_arg__ = arg
+        self.__forward_code__ = code
+        self.__forward_evaluated__ = False
+        self.__forward_value__ = None
+        self.__forward_is_argument__ = is_argument
+        self.__forward_is_class__ = is_class
+        self.__forward_module__ = module
+
+    def __eq__(self, other):
+        if not isinstance(other, ForwardRef):
+            return NotImplemented
+        return (self.__forward_arg__ == other.__forward_arg__
+                and self.__forward_module__ == other.__forward_module__)
+
+    def __hash__(self):
+        return hash((self.__forward_arg__, self.__forward_module__))
+
+    def __or__(self, other):
+        return Union[self, other]
+
+    def __ror__(self, other):
+        return Union[other, self]
+
+    def __repr__(self):
+        module = '' if self.__forward_module__ is None else f', module={self.__forward_module__!r}'
+        return f'ForwardRef({self.__forward_arg__!r}{module})'
+
+
+# Internos que bibliotecas como o `typing_extensions` leem do módulo (CPython 3.13).
+import functools as _functools
+
+ReadOnly = _SpecialForm('ReadOnly')
+TypeIs = _SpecialForm('TypeIs')
+NoDefault = _SpecialForm('NoDefault')
+_ASSERT_NEVER_REPR_MAX_LENGTH = 100
+_caches = {}
+_cleanups = []
+EXCLUDED_ATTRIBUTES = frozenset({
+    '__parameters__', '__orig_bases__', '__orig_class__', '_is_protocol', '_is_runtime_protocol',
+    '__protocol_attrs__', '__non_callable_proto_members__', '__type_params__', '__abstractmethods__',
+    '__annotations__', '__dict__', '__doc__', '__init__', '__module__', '__new__', '__slots__',
+    '__subclasshook__', '__weakref__', '__class_getitem__', '__match_args__', '__static_attributes__',
+    '__firstlineno__', '_MutableMapping__marker',
+})
+_SpecialGenericAlias = _BuiltinAlias
+_AnnotatedAlias = _GenericAlias
+
+
+class _ConcatenateGenericAlias(_GenericAlias):
     pass
 
 
-class Match:
+class _Sentinel:
+    __slots__ = ()
+
+    def __repr__(self):
+        return '<sentinel>'
+
+
+_sentinel = _Sentinel()
+
+
+def _overload_dummy(*args, **kwds):
+    """Helper for @overload to raise when called."""
+    raise NotImplementedError(
+        "You should not call an overloaded function. "
+        "A series of @overload-decorated functions "
+        "outside a stub module should always be followed "
+        "by an implementation that is not @overload-ed.")
+
+
+def _type_convert(arg, module=None, *, allow_special_forms=False):
+    if arg is None:
+        return type(None)
+    if isinstance(arg, str):
+        return ForwardRef(arg, module=module, is_class=allow_special_forms)
+    return arg
+
+
+def _type_check(arg, msg, is_argument=True, module=None, *, allow_special_forms=False):
+    invalid_generic_forms = (Generic, Protocol)
+    if not allow_special_forms:
+        invalid_generic_forms += (ClassVar,)
+        if is_argument:
+            invalid_generic_forms += (Final,)
+    arg = _type_convert(arg, module=module, allow_special_forms=allow_special_forms)
+    if isinstance(arg, _GenericAlias) and arg.__origin__ in invalid_generic_forms:
+        raise TypeError(f"{arg} is not valid as type argument")
+    if arg in (Any, LiteralString, NoReturn, Never, Self, TypeAlias):
+        return arg
+    if allow_special_forms and arg in (ClassVar, Final):
+        return arg
+    if isinstance(arg, _SpecialForm) or arg in (Generic, Protocol):
+        raise TypeError(f"Plain {arg} is not valid as type argument")
+    if type(arg) is tuple:
+        raise TypeError(f"{msg} Got {arg!r:.100}.")
+    return arg
+
+
+def _is_param_expr(arg):
+    return arg is ... or isinstance(arg, (tuple, list, ParamSpec, _ConcatenateGenericAlias))
+
+
+def _tp_cache(func=None, /, *, typed=False):
+    def decorator(func):
+        cache = _functools.lru_cache(typed=typed)(func)
+        _caches[func] = cache
+        _cleanups.append(cache.cache_clear)
+        del cache
+
+        @_functools.wraps(func)
+        def inner(*args, **kwds):
+            try:
+                return _caches[func](*args, **kwds)
+            except TypeError:
+                pass
+            return func(*args, **kwds)
+        return inner
+
+    if func is not None:
+        return decorator(func)
+    return decorator
+
+
+def _eval_type(t, globalns, localns, type_params=_sentinel, *, recursive_guard=frozenset()):
+    if isinstance(t, ForwardRef):
+        return eval(t.__forward_code__, globalns, localns)
+    if isinstance(t, str):
+        return eval(t, globalns, localns)
+    return t
+
+
+def _get_defaults(func):
+    code = func.__code__
+    pos_count = code.co_argcount
+    arg_names = code.co_varnames[:pos_count]
+    defaults = func.__defaults__ or ()
+    kwdefaults = func.__kwdefaults__
+    res = dict(kwdefaults) if kwdefaults else {}
+    pos_offset = pos_count - len(defaults)
+    for name, value in zip(arg_names[pos_offset:], defaults):
+        res[name] = value
+    return res
+
+
+def is_protocol(tp, /):
+    return isinstance(tp, type) and getattr(tp, '_is_protocol', False) and tp != Protocol
+
+
+def get_protocol_members(tp, /):
+    if not is_protocol(tp):
+        raise TypeError(f'{tp!r} is not a Protocol')
+    return frozenset(_protocol_attrs(tp))
+
+
+class ParamSpecArgs:
+    def __init__(self, origin):
+        self.__origin__ = origin
+
+    def __repr__(self):
+        return f"{self.__origin__.__name__}.args"
+
+
+class ParamSpecKwargs:
+    def __init__(self, origin):
+        self.__origin__ = origin
+
+    def __repr__(self):
+        return f"{self.__origin__.__name__}.kwargs"
+
+
+class SupportsBytes(Protocol):
     pass
+
+
+class SupportsComplex(Protocol):
+    pass
+
+
+class SupportsRound(Protocol):
+    pass
+
+
+ItemsView = _BuiltinAlias(collections.abc.ItemsView, 'ItemsView')
+KeysView = _BuiltinAlias(collections.abc.KeysView, 'KeysView')
+ValuesView = _BuiltinAlias(collections.abc.ValuesView, 'ValuesView')
+MappingView = _BuiltinAlias(collections.abc.MappingView, 'MappingView')
+
+
+def no_type_check_decorator(decorator):
+    return decorator
+
+
+import contextlib as _contextlib
+AsyncGenerator = _BuiltinAlias(collections.abc.AsyncGenerator, 'AsyncGenerator')
+ContextManager = _BuiltinAlias(_contextlib.AbstractContextManager, 'ContextManager')
+AsyncContextManager = _BuiltinAlias(_contextlib.AbstractAsyncContextManager, 'AsyncContextManager')

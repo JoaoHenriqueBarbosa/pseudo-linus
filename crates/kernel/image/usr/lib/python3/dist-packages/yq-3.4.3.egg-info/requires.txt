@@ -1,0 +1,7 @@
+
+[tests]
+build
+coverage
+mypy
+ruff
+wheel

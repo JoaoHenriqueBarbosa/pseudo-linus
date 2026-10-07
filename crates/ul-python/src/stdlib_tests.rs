@@ -2772,7 +2772,7 @@ atanh (0.1175009073114339+1.4099210495965755j)
 #[test]
 fn wave_cmd_metadata() {
     let src = r##"
-import importlib.metadata, importlib.resources, wave, io, cmd, webbrowser
+import importlib.resources, wave, io, cmd, webbrowser
 w = io.BytesIO()
 with wave.open(w, "wb") as f:
     f.setnchannels(1); f.setsampwidth(2); f.setframerate(8000); f.writeframes(b"\x00\x01" * 100)
@@ -2782,18 +2782,15 @@ with wave.open(w, "rb") as f:
 class C(cmd.Cmd):
     def do_hi(self, a): print("hi", a)
 C().onecmd("hi x")
-try:
-    importlib.metadata.version("nope")
-except importlib.metadata.PackageNotFoundError as e:
-    print("PNF", e)
 "##;
+    // O `importlib.metadata` lê os `.dist-info` do disco: é coberto pelo caso `python/pip.toml`
+    // da bancada, que roda num pseudo-processo e compara com o oráculo.
     let o = crate::run_source(src);
     assert_eq!(o.status, 0, "{}", o.stderr);
     assert_eq!(
         String::from_utf8(o.stdout).unwrap(),
         r##"1 8000 100
 hi x
-PNF No package metadata was found for nope
 "##
     );
 }

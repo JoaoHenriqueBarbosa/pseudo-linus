@@ -146,6 +146,9 @@ fn find(vm: &mut Vm, name: &str) -> Option<Found> {
     let mut namespace: Vec<String> = Vec::new();
     for dir in dirs {
         let pkg = join(&dir, leaf);
+        if is_embedded_location(&pkg) {
+            continue;
+        }
         let init = join(&pkg, "__init__.py");
         if is_file(&init) {
             return Some(Found { file: init, package_dir: Some(pkg), namespace: Vec::new() });
@@ -162,6 +165,19 @@ fn find(vm: &mut Vm, name: &str) -> Option<Found> {
         return None;
     }
     Some(Found { file: String::new(), package_dir: None, namespace })
+}
+
+/// A stdlib (`/usr/lib/python3.13`) e o Pillow do Debian estão no disco como no oráculo, mas o
+/// interpretador usa as versões embutidas deles; só o resto de `sys.path` é lido do disco.
+fn is_embedded_location(path: &str) -> bool {
+    const DIST: &str = "/usr/lib/python3/dist-packages/";
+    path.starts_with("/usr/lib/python3.13/")
+        || path.starts_with("/usr/lib/python313.zip")
+        || path.strip_prefix(DIST).is_some_and(|rest| {
+            let top = rest.split('/').next().unwrap_or(rest);
+            let top = top.strip_suffix(".py").unwrap_or(top);
+            matches!(top, "PIL" | "olefile")
+        })
 }
 
 fn is_dir(path: &str) -> bool {

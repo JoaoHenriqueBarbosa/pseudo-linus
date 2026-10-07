@@ -102,6 +102,11 @@ class AsyncIterator(AsyncIterable):
     _methods_ = ('__aiter__', '__anext__')
 
 
+class AsyncGenerator(AsyncIterator):
+    _builtins_ = ()
+    _methods_ = ('__aiter__', '__anext__', 'asend', 'athrow', 'aclose')
+
+
 class Iterable(metaclass=_Builtins):
     _builtins_ = (list, tuple, str, dict, set, frozenset, bytes, bytearray, range)
     _methods_ = ('__iter__',)

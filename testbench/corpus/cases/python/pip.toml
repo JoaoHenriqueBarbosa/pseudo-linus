@@ -1,0 +1,71 @@
+tool = "python3"
+source = "manual"
+
+# O pip do Debian (python3-pip 25.1.1) rodando no interpretador: versão, ajuda, lista de pacotes
+# instalados e o `importlib.metadata` real lendo os `.dist-info` de dist-packages.
+
+[[case]]
+id = "pip-version-help-list"
+script = '''
+cd /root
+python3 -m pip --version; echo rc=$?
+pip --version; echo rc=$?
+pip3 --version; echo rc=$?
+python3 -m pip --help; echo rc=$?
+pip list; echo rc=$?
+'''
+
+[[case]]
+id = "importlib-metadata-dist-info"
+script = '''
+python3 - <<'PYEOF'
+import sys
+import importlib.metadata as m
+print(sys.meta_path)
+print(m.__file__)
+dists = list(m.distributions())
+print(len(dists), sorted(d.metadata['Name'] for d in dists))
+print(m.version('pip'), m.version('PyYAML'), m.version('pillow'))
+print(m.distribution('pillow').requires)
+print(sorted(e.name for e in m.entry_points(group='console_scripts')))
+print(sorted(m.packages_distributions().items())[:5])
+try:
+    m.version('nope')
+except m.PackageNotFoundError as e:
+    print('PNF', e)
+PYEOF
+'''
+
+[[case]]
+id = "python-c-frames-hidden"
+script = '''
+python3 - <<'PYEOF'
+import itertools, functools, collections, traceback
+def bad():
+    raise ValueError('x')
+def gen():
+    yield bad()
+for f in [lambda: list(itertools.chain(gen())),
+          lambda: functools.reduce(lambda a, b: bad(), [1, 2, 3]),
+          lambda: collections.defaultdict(bad)['k'],
+          lambda: list(itertools.starmap(lambda a: bad(), [(1,)]))]:
+    try:
+        f()
+    except ValueError:
+        traceback.print_exc()
+class A:
+    pass
+a = A(); a.x = 1
+b = A.__new__(A)
+b.__dict__ = a.__dict__.copy()
+b.__dict__['y'] = 2
+print(b.x, b.y, b.__dict__)
+import types
+class M(types.ModuleType):
+    def __getattr__(self, name):
+        return name.upper()
+mod = M('mm', 'doc')
+print(mod.__name__, mod.__doc__, mod.zz, isinstance(mod, types.ModuleType))
+print(types.MethodType(lambda self: self.x, a)())
+PYEOF
+'''

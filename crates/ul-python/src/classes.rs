@@ -374,6 +374,7 @@ impl ExtObject for BuiltinSuperMethod {
                     }
                     [Value::Class(c), rest @ ..] => {
                         let payload = match c.data_base {
+                            Some("module") => None,
                             Some(t) => Some(vm.call(&data_ctor(t), rest.iter().map(crate::vm::unwrap_payload).collect(), kw)?),
                             None => None,
                         };
@@ -406,6 +407,10 @@ impl ExtObject for BuiltinSuperMethod {
             "__init__" => {
                 if inst.class.builtin_base.is_some() {
                     inst.dict.borrow_mut().insert("args".to_string(), Value::tuple(args));
+                    return Ok(Value::None);
+                }
+                if inst.class.data_base == Some("module") {
+                    init_module_fields(inst, &args, &kw)?;
                     return Ok(Value::None);
                 }
                 // `super().__init__(...)` de subclasse de `dict`/`list`/`set`: preenche o valor embutido.
@@ -787,7 +792,9 @@ impl Vm {
             dict: RefCell::new(Default::default()),
             payload: RefCell::new(None),
         });
-        if let Some(t) = cls.data_base {
+        if cls.data_base == Some("module") {
+            init_module_fields(&fresh, &args, &kw)?;
+        } else if let Some(t) = cls.data_base {
             // Sem `__init__`/`__new__` de usuário os argumentos vão direto para o tipo embutido.
             let own = user_new.is_some() || matches!(cls.lookup("__init__"), Some(Value::Function(_)));
             let (a, k) = if own { (Vec::new(), Vec::new()) } else { (args.clone(), kw.clone()) };
@@ -1087,6 +1094,18 @@ impl Vm {
                         self.call_function(&f, vec![Value::Instance(d.clone()), obj.clone(), value], Vec::new())?;
                         return Ok(());
                     }
+                }
+                if name == "__dict__" && inst.class.slots_allow("__dict__") {
+                    // `obj.__dict__ = d`: o próprio `d` passa a ser o espaço de atributos (vivo).
+                    let Value::Dict(d) = value else {
+                        return Err(type_error(format!(
+                            "__dict__ must be set to a dictionary, not a '{}'",
+                            value.type_name()
+                        )));
+                    };
+                    *inst.view.borrow_mut() = Some(d);
+                    inst.sync_from_view();
+                    return Ok(());
                 }
                 if !inst.class.slots_allow(name) {
                     return Err(exc(
@@ -1720,7 +1739,26 @@ struct BaseInfo {
 
 /// Tipos de dados embutidos que uma classe de usuário pode estender (a instância guarda o valor).
 fn data_type(name: &str) -> Option<&'static str> {
-    ["int", "float", "str", "list", "tuple", "dict", "set", "bool"].into_iter().find(|n| *n == name)
+    ["int", "float", "str", "list", "tuple", "dict", "set", "bool", "module"].into_iter().find(|n| *n == name)
+}
+
+/// `types.ModuleType(name, doc=None)`: a subclasse de módulo não tem valor embutido, só os
+/// atributos `__name__` e `__doc__` no próprio `__dict__`.
+fn init_module_fields(inst: &InstanceObj, args: &[Value], kw: &[(String, Value)]) -> PyResult<()> {
+    let arg = |i: usize, key: &str| args.get(i).cloned().or_else(|| kw.iter().find(|(k, _)| k == key).map(|(_, v)| v.clone()));
+    let Some(name) = arg(0, "name") else {
+        return Err(type_error("module.__init__() missing required argument 'name' (pos 1)"));
+    };
+    if !matches!(name, Value::Str(_)) {
+        return Err(type_error(format!("module.__init__() argument 'name' must be str, not {}", name.type_name())));
+    }
+    let mut d = inst.dict.borrow_mut();
+    d.insert("__name__".to_string(), name);
+    d.insert("__doc__".to_string(), arg(1, "doc").unwrap_or(Value::None));
+    d.insert("__package__".to_string(), Value::None);
+    d.insert("__loader__".to_string(), Value::None);
+    d.insert("__spec__".to_string(), Value::None);
+    Ok(())
 }
 
 /// O construtor embutido (`dict`, `list`...) de um tipo de dados.
@@ -1779,6 +1817,27 @@ fn resolve_bases(bases: &[Value]) -> PyResult<BaseInfo> {
 fn namespace_of(env: &Rc<Env>) -> Vec<(String, Value)> {
     let vars = env.vars.borrow();
     env.order.borrow().iter().filter_map(|k| vars.get(k.as_str()).map(|v| (k.clone(), v.clone()))).collect()
+}
+
+/// `type.__new__(mcs, nome, bases, ns)` lido direto do tipo (`return type.__new__(mcs, ...)` numa
+/// metaclasse), igual ao `super().__new__` de metaclasse.
+pub(crate) fn type_new(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    match args.as_slice() {
+        [meta, Value::Str(n), Value::Tuple(bases), ns] => {
+            let meta = match meta {
+                Value::Class(m) if m.is_meta => Some(m.clone()),
+                Value::Builtin("type") => None,
+                other => {
+                    return Err(type_error(format!("type.__new__(X): X is not a type object ({})", other.type_name())));
+                }
+            };
+            let ns = dict_to_ns(ns)?;
+            Ok(Value::Class(vm.create_class(n.as_str().to_string(), bases, ns, meta, kw)?))
+        }
+        [_, obj] => Ok(vm.type_of(obj)),
+        [] => Err(type_error("type.__new__(): not enough arguments")),
+        _ => Err(type_error("type.__new__() takes exactly 3 arguments")),
+    }
 }
 
 fn dict_to_ns(ns: &Value) -> PyResult<Vec<(String, Value)>> {

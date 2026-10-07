@@ -32,7 +32,7 @@ class WeakMethod:
         func = self._func_ref()
         if obj is None or func is None:
             return None
-        return self._meth_type(obj, func)
+        return self._meth_type(func, obj)
 
     def __eq__(self, other):
         if isinstance(other, WeakMethod):
