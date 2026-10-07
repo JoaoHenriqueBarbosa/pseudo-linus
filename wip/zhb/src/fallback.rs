@@ -4,7 +4,7 @@
 use crate::buffer::{scratch, Buffer, Direction};
 use crate::font::{Font, GlyphExtents};
 use crate::gsubgpos::ApplyContext;
-use crate::ot::{i16at, u16at, u8at};
+use crate::ot::{i16at, u16at, u32at, u8at};
 use crate::unicode::{gc, space};
 
 pub const CC_ATTACHED_BELOW_LEFT: u8 = 200;
@@ -376,15 +376,16 @@ fn obsolete_class(st: &[u8], table: usize, glyph: u32) -> usize {
     usize::from(u16at(st, table + 4 + 2 * i as usize))
 }
 
-/// `KerxSubTableFormat2::get_kerning` do `kern` OpenType: os valores das classes são deslocamentos
-/// em bytes desde o início do subtable, somados e convertidos em índice no array de `FWORD`.
-fn kern_format2(st: &[u8], left: u32, right: u32) -> i32 {
-    if st.len() < 14 {
+/// `KerxSubTableFormat2::get_kerning` do `kern`: os valores das classes são deslocamentos em bytes
+/// desde o início do subtable, somados e convertidos em índice no array de `FWORD`. Os campos vêm
+/// depois do cabeçalho de `h` bytes (6 no OpenType, 8 na Apple).
+fn kern_format2(st: &[u8], h: usize, left: u32, right: u32) -> i32 {
+    if st.len() < h + 8 {
         return 0;
     }
-    let left_table = usize::from(u16at(st, 8));
-    let right_table = usize::from(u16at(st, 10));
-    let array = usize::from(u16at(st, 12));
+    let left_table = usize::from(u16at(st, h + 2));
+    let right_table = usize::from(u16at(st, h + 4));
+    let array = usize::from(u16at(st, h + 6));
     let offset = obsolete_class(st, left_table, left) + obsolete_class(st, right_table, right);
     // `ObsoleteTypes::offsetToIndex`: (deslocamento menos a posição do array) / 2.
     let Some(rel) = offset.checked_sub(array) else { return 0 };
@@ -396,18 +397,18 @@ fn kern_format2(st: &[u8], left: u32, right: u32) -> i32 {
 }
 
 /// `KerxSubTableFormat3::get_kerning`: classes de um byte por glifo e índice na matriz de valores.
-fn kern_format3(st: &[u8], left: u32, right: u32) -> i32 {
-    if st.len() < 12 {
+fn kern_format3(st: &[u8], h: usize, left: u32, right: u32) -> i32 {
+    if st.len() < h + 6 {
         return 0;
     }
-    let glyph_count = u32::from(u16at(st, 6));
-    let value_count = usize::from(u8at(st, 8));
-    let left_count = usize::from(u8at(st, 9));
-    let right_count = usize::from(u8at(st, 10));
+    let glyph_count = u32::from(u16at(st, h));
+    let value_count = usize::from(u8at(st, h + 2));
+    let left_count = usize::from(u8at(st, h + 3));
+    let right_count = usize::from(u8at(st, h + 4));
     if left >= glyph_count || right >= glyph_count {
         return 0;
     }
-    let values = 12;
+    let values = h + 6;
     let left_class = values + 2 * value_count;
     let right_class = left_class + glyph_count as usize;
     let index = right_class + glyph_count as usize;
@@ -423,32 +424,83 @@ fn kern_format3(st: &[u8], left: u32, right: u32) -> i32 {
     i32::from(i16at(st, values + 2 * i))
 }
 
-/// `hb_ot_layout_has_kerning`: uma tabela `kern` OpenType (versão 0) com subtables.
+/// `hb_ot_layout_has_kerning`: `kern::has_data`, os primeiros 32 bits não nulos (versão 0 do
+/// OpenType com subtables, ou a 1.0 da Apple).
 pub fn has_kern_table(font: &Font) -> bool {
-    font.kern.is_some_and(|k| k.len() >= 4 && u16at(k, 0) == 0 && u16at(k, 2) > 0)
+    font.kern.is_some_and(|k| k.len() >= 4 && u32at(k, 0) != 0)
 }
 
-/// `hb_ot_layout_kern` com a tabela `kern` OpenType (`KernOT`): cabeçalho de 6 bytes por
-/// subtable (versão, tamanho, formato, cobertura).
+/// Um subtable do `kern`, com os bits de cobertura já lidos conforme a variante.
+pub struct KernSubtable<'a> {
+    pub format: u8,
+    pub horizontal: bool,
+    pub cross_stream: bool,
+    /// `Variation` da Apple: subtable de variação, que o HarfBuzz pula.
+    pub variation: bool,
+    /// Tamanho do cabeçalho: 6 no `KernOT`, 8 no `KernAAT`.
+    pub header: usize,
+    pub data: &'a [u8],
+}
+
+/// Os subtables de `KernOT` (versão de 16 bits igual a 0) ou de `KernAAT` (versão 1.0 de 32
+/// bits); outras versões não têm subtables para o HarfBuzz.
+pub fn kern_subtables(k: &[u8]) -> Vec<KernSubtable<'_>> {
+    let mut out = Vec::new();
+    if k.len() < 4 {
+        return out;
+    }
+    let aat = match u16at(k, 0) {
+        0 => false,
+        1 if k.len() >= 8 => true,
+        _ => return out,
+    };
+    let (count, mut off, header) = if aat { (u32at(k, 4) as usize, 8, 8) } else { (usize::from(u16at(k, 2)), 4, 6) };
+    for _ in 0..count {
+        if k.len() < off + header {
+            break;
+        }
+        let (length, format, coverage) = if aat {
+            (u32at(k, off) as usize, u8at(k, off + 5), u8at(k, off + 4))
+        } else {
+            (usize::from(u16at(k, off + 2)), u8at(k, off + 4), u8at(k, off + 5))
+        };
+        // O último subtable vai até o fim da tabela, como o `sanitize` do HarfBuzz admite.
+        let end = if length < header { k.len() } else { off.saturating_add(length).min(k.len()) };
+        out.push(if aat {
+            KernSubtable {
+                format,
+                horizontal: coverage & 0x80 == 0,
+                cross_stream: coverage & 0x40 != 0,
+                variation: coverage & 0x20 != 0,
+                header,
+                data: &k[off..end],
+            }
+        } else {
+            KernSubtable {
+                format,
+                horizontal: coverage & 0x01 != 0,
+                cross_stream: coverage & 0x04 != 0,
+                variation: false,
+                header,
+                data: &k[off..end],
+            }
+        });
+        off = off.saturating_add(length.max(header));
+    }
+    out
+}
+
+/// `hb_ot_layout_kern`: o `KerxTable::apply` com o `kern` OpenType ou o da Apple.
 pub fn apply_kern_table(font: &Font, buffer: &mut Buffer, kern_mask: u32) {
     let Some(k) = font.kern.filter(|_| has_kern_table(font)) else { return };
     buffer.unsafe_to_concat(0, buffer.len());
-    let count = usize::from(u16at(k, 2));
-    let mut off = 4;
     let mut seen_cross_stream = false;
-    for _ in 0..count {
-        if k.len() < off + 6 {
-            break;
+    for st in kern_subtables(k) {
+        if st.variation {
+            continue;
         }
-        let length = usize::from(u16at(k, off + 2));
-        let format = u8at(k, off + 4);
-        let coverage = u8at(k, off + 5);
-        // O último subtable vai até o fim da tabela, como o `sanitize` do HarfBuzz admite.
-        let end = if length < 6 { k.len() } else { (off + length).min(k.len()) };
-        let st = &k[off..end];
-        let horizontal = coverage & 0x01 != 0;
-        let cross = coverage & 0x04 != 0;
-        if buffer.props.direction.is_horizontal() == horizontal {
+        let (h, cross, data) = (st.header, st.cross_stream, st.data);
+        if buffer.props.direction.is_horizontal() == st.horizontal {
             if !seen_cross_stream && cross {
                 seen_cross_stream = true;
                 let fwd = buffer.props.direction.is_forward();
@@ -462,13 +514,13 @@ pub fn apply_kern_table(font: &Font, buffer: &mut Buffer, kern_mask: u32) {
                 buffer.reverse();
             }
             if kern_mask != 0 {
-                match format {
+                match st.format {
                     0 => {
-                        let body = &st[6.min(st.len())..];
+                        let body = &data[h.min(data.len())..];
                         kern_machine(font, buffer, kern_mask, true, cross, &|a, b| kern_format0(body, a, b));
                     }
-                    2 if horizontal => kern_machine(font, buffer, kern_mask, true, cross, &|a, b| kern_format2(st, a, b)),
-                    3 => kern_machine(font, buffer, kern_mask, true, cross, &|a, b| kern_format3(st, a, b)),
+                    2 if st.horizontal => kern_machine(font, buffer, kern_mask, true, cross, &|a, b| kern_format2(data, h, a, b)),
+                    3 => kern_machine(font, buffer, kern_mask, true, cross, &|a, b| kern_format3(data, h, a, b)),
                     _ => {}
                 }
             }
@@ -476,7 +528,6 @@ pub fn apply_kern_table(font: &Font, buffer: &mut Buffer, kern_mask: u32) {
                 buffer.reverse();
             }
         }
-        off += length.max(6);
     }
 }
 

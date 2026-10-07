@@ -204,21 +204,8 @@ const HORIZONTAL_FEATURES: [(&[u8; 4], u32); 7] = [
 /// `hb_ot_layout_has_machine_kerning` e `hb_ot_layout_has_cross_kerning` da tabela `kern`.
 fn kern_table_traits(font: &Font) -> (bool, bool) {
     let Some(k) = font.kern.filter(|_| fallback::has_kern_table(font)) else { return (false, false) };
-    let count = usize::from(crate::ot::u16at(k, 2));
-    let (mut machine, mut cross) = (false, false);
-    let mut off = 4;
-    for _ in 0..count {
-        if k.len() < off + 6 {
-            break;
-        }
-        let length = usize::from(crate::ot::u16at(k, off + 2));
-        let format = k[off + 4];
-        let coverage = k[off + 5];
-        machine |= format == 1;
-        cross |= coverage & 0x04 != 0;
-        off += length.max(6);
-    }
-    (machine, cross)
+    let subtables = fallback::kern_subtables(k);
+    (subtables.iter().any(|st| st.format == 1), subtables.iter().any(|st| st.cross_stream))
 }
 
 impl Plan {
