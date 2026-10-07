@@ -34,5 +34,11 @@
     "stderr": "",
     "exit": 0,
     "files": {}
+  },
+  "stdout-broken-pipe": {
+    "stdout": "1\nrc=120\n1\nrc=120\nName: pip\nVersion: 25.1.1\n",
+    "stderr": "BPE BrokenPipeError(32, 'Broken pipe')\nException ignored on flushing sys.stdout:\nBrokenPipeError: [Errno 32] Broken pipe\nException ignored on flushing sys.stdout:\nBrokenPipeError: [Errno 32] Broken pipe\n",
+    "exit": 0,
+    "files": {}
   }
 }

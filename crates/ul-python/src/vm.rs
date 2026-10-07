@@ -2706,9 +2706,9 @@ impl Vm {
 
     /// Acrescenta ao buffer do stdout com a política do CPython: num terminal, descarrega a cada
     /// quebra de linha; num pipe ou arquivo, em blocos de 8 KiB. O resto sai no `flush` ou no fim.
-    pub(crate) fn push_stdout(&self, data: &[u8]) {
+    pub(crate) fn push_stdout(&self, data: &[u8]) -> PyResult<()> {
         self.stdout.borrow_mut().extend_from_slice(data);
-        let Some(sys) = sysabi::sys::try_current() else { return };
+        let Some(sys) = sysabi::sys::try_current() else { return Ok(()) };
         thread_local! {
             static STDOUT_TTY: std::cell::Cell<Option<bool>> = const { std::cell::Cell::new(None) };
         }
@@ -2722,30 +2722,33 @@ impl Vm {
         });
         if tty {
             if data.contains(&b'\n') {
-                self.flush_stdout();
+                self.flush_stdout()?;
             }
-            return;
+            return Ok(());
         }
         const BLOCK: usize = 8192;
         let mut buf = self.stdout.borrow_mut();
         if buf.len() >= BLOCK {
             let n = buf.len() - buf.len() % BLOCK;
-            let _ = sysabi::sys::write_all(sysabi::Fd::STDOUT, &buf[..n]);
+            sysabi::sys::write_all(sysabi::Fd::STDOUT, &buf[..n]).map_err(|e| crate::modules::osnative::os_error(e, None))?;
             buf.drain(..n);
         }
+        Ok(())
     }
 
     /// Descarrega o stdout pendente (`print(flush=True)`, `sys.stdout.flush()`). Sem pseudo-processo
-    /// (os testes de unidade), o buffer fica como está para o chamador ler.
-    pub(crate) fn flush_stdout(&self) {
+    /// (os testes de unidade), o buffer fica como está para o chamador ler. Como o `BufferedWriter`,
+    /// uma escrita que falha (`EPIPE` com o leitor já fechado) levanta o `OSError` e deixa o buffer.
+    pub(crate) fn flush_stdout(&self) -> PyResult<()> {
         if sysabi::sys::try_current().is_none() {
-            return;
+            return Ok(());
         }
         let mut buf = self.stdout.borrow_mut();
         if !buf.is_empty() {
-            let _ = sysabi::sys::write_all(sysabi::Fd::STDOUT, &buf);
+            sysabi::sys::write_all(sysabi::Fd::STDOUT, &buf).map_err(|e| crate::modules::osnative::os_error(e, None))?;
             buf.clear();
         }
+        Ok(())
     }
 
     fn print(&mut self, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
@@ -2813,9 +2816,9 @@ impl Vm {
                     self.write_to(&f, &text)?;
                 }
                 None => {
-                    self.push_stdout(text.as_bytes());
+                    self.push_stdout(text.as_bytes())?;
                     if flush {
-                        self.flush_stdout();
+                        self.flush_stdout()?;
                     }
                 }
             },
@@ -2844,7 +2847,7 @@ impl Vm {
             _ => return Err(exc("AttributeError", format!("'{}' object has no attribute 'write'", target.type_name()))),
         };
         match kind {
-            FileKind::Stdout => self.push_stdout(text.as_bytes()),
+            FileKind::Stdout => self.push_stdout(text.as_bytes())?,
             FileKind::Stderr => {
                 // O stderr do CPython é sem buffer e independe do stdout: com stdout em pipe, o que está
                 // pendente só sai no fim (ou a cada 8 KiB), depois do que o stderr já escreveu.
@@ -3302,7 +3305,7 @@ impl Vm {
             }
             "flush" => {
                 if matches!(&*n.borrow(), Native::File(f) if matches!(f.kind, FileKind::Stdout)) {
-                    self.flush_stdout();
+                    self.flush_stdout()?;
                 }
                 Ok(Value::None)
             }

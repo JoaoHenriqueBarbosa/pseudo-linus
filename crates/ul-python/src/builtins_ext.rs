@@ -171,10 +171,10 @@ fn b_input(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     crate::native_util::no_kwargs("input", &kw)?;
     if let Some(p) = args.first() {
         let text = crate::object::to_str(p);
-        vm.push_stdout(text.as_bytes());
+        vm.push_stdout(text.as_bytes())?;
     }
     // O CPython descarrega stdout (e stderr) em todo `input()`, com ou sem prompt.
-    vm.flush_stdout();
+    vm.flush_stdout()?;
     let stdin = vm.std_files[0].clone();
     let line = match &mut *stdin.borrow_mut() {
         crate::object::Native::File(f) => crate::stdin::text_line(f),

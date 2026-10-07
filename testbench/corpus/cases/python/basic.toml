@@ -32,3 +32,20 @@ tags = ["cli", "error"]
 id = "python-c-missing-argument"
 argv = ["python3", "-c"]
 tags = ["cli", "error"]
+
+# Leitor do pipe já fechado: `flush` levanta `BrokenPipeError`, o fim avisa e sai com 120.
+[[case]]
+id = "stdout-broken-pipe"
+script = '''
+python3 -c 'import time, sys
+print(1); sys.stdout.flush(); time.sleep(0.5)
+try:
+    print(2); sys.stdout.flush()
+except BrokenPipeError as e:
+    sys.stderr.write("BPE %r\n" % (e,))
+' | head -1
+echo "rc=${PIPESTATUS[0]}"
+python3 -c 'import time; print(1, flush=True); time.sleep(0.5); print(2)' | head -1; echo "rc=${PIPESTATUS[0]}"
+python3 -m pip show pip 2>&1 | head -2
+'''
+tags = ["io", "error"]

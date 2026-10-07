@@ -525,16 +525,28 @@ fn run_module(name: &str, rest: &[Vec<u8>], program: &str) -> i32 {
 /// Escreve o resultado de uma execução e devolve o código de saída. Com `error_first`, o texto do erro
 /// sai antes do stdout que ainda estava no buffer, como no CPython com `-c` e `-m`.
 fn finish(outcome: Outcome, error_first: bool) -> i32 {
+    let mut status = outcome.status;
+    // O `flush_std_files` do `Py_FinalizeEx`: o stdout que não sai (leitor do pipe já fechado) vira
+    // aviso no stderr e, se o programa ia sair com 0, o código passa a 120.
+    let mut flush = || {
+        if let Err(e) = sys::write_all(Fd::STDOUT, &outcome.stdout) {
+            let e = crate::modules::osnative::os_error(e, None);
+            write_stderr(&format!("Exception ignored on flushing sys.stdout:\n{}: {}\n", e.kind, e.msg));
+            if status == 0 {
+                status = 120;
+            }
+        }
+    };
     if error_first && !outcome.stderr.is_empty() {
         write_stderr(&outcome.stderr);
-        let _ = sys::write_all(Fd::STDOUT, &outcome.stdout);
+        flush();
     } else {
-        let _ = sys::write_all(Fd::STDOUT, &outcome.stdout);
+        flush();
         if !outcome.stderr.is_empty() {
             write_stderr(&outcome.stderr);
         }
     }
-    outcome.status
+    status
 }
 
 /// `python3 arquivo.py args...`, `python3 - args...` ou o programa lido do stdin.

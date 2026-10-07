@@ -12,7 +12,7 @@ use crate::object::{Kw, ModuleObj, Value};
 use crate::vm::{exc, type_error, PyException, PyResult, Vm};
 
 /// `OSError` (ou a subclasse certa) para um `errno`, com a mensagem do `strerror`.
-fn os_error(e: Errno, path: Option<&str>) -> PyException {
+pub(crate) fn os_error(e: Errno, path: Option<&str>) -> PyException {
     let kind = match e {
         Errno::ENOENT => "FileNotFoundError",
         Errno::EEXIST => "FileExistsError",

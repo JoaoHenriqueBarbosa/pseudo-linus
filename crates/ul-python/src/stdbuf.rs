@@ -21,7 +21,7 @@ impl StdBuffer {
 
     fn write_bytes(&self, vm: &mut Vm, data: &[u8]) -> PyResult<()> {
         match self.kind {
-            FileKind::Stdout => vm.push_stdout(data),
+            FileKind::Stdout => vm.push_stdout(data)?,
             FileKind::Stderr => {
                 let _ = sysabi::sys::write_all(sysabi::Fd::STDERR, data);
             }
@@ -106,7 +106,7 @@ impl ExtObject for StdBuffer {
             }
             "flush" => {
                 if matches!(self.kind, FileKind::Stdout) {
-                    vm.flush_stdout();
+                    vm.flush_stdout()?;
                 }
                 Ok(Value::None)
             }
