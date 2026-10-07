@@ -193,9 +193,9 @@ struct World {
     locks: BTreeMap<Ino, Vec<OfdLock>>,
     ncpus: usize,
     next_tid: Tid,
-    /// Threads terminadas ainda não juntadas (síncrono: toda thread termina antes de `spawn_thread`
-    /// voltar).
-    finished_threads: std::collections::BTreeSet<Tid>,
+    /// Threads ainda não juntadas. Cada uma roda numa thread do hospedeiro, com o processo instalado,
+    /// e devolve o desenrolar de processo (`exit`, sinal fatal, `execve`) que saiu dela, se saiu.
+    threads: BTreeMap<Tid, std::thread::JoinHandle<Option<Box<dyn std::any::Any + Send>>>>,
 }
 
 /// Trava OFD: a open file description dona (fraca) e a trava em si.
@@ -238,7 +238,7 @@ impl World {
             locks: BTreeMap::new(),
             ncpus: 1,
             next_tid: 1_000_000,
-            finished_threads: std::collections::BTreeSet::new(),
+            threads: BTreeMap::new(),
         };
         let root = w.alloc(Kind::Dir(BTreeMap::new()), 0o755);
         debug_assert_eq!(root, ROOT);
@@ -1902,10 +1902,21 @@ impl Syscalls for ProcHandle {
             w.next_tid += 1;
             t
         };
-        // Síncrono: a thread roda até o fim agora. Um `exit` dentro dela desenrola até o processo, que é
-        // o que o `exit_group` faria.
-        body();
-        self.w().finished_threads.insert(tid);
+        // Concorrente, numa thread do hospedeiro com o mesmo processo instalado: threads que conversam
+        // por canal (o leitor e o ordenador do `sort`) travariam se uma rodasse até o fim antes da
+        // outra começar. Um `exit` dentro dela volta no `join_thread` e desenrola o chamador, que é o
+        // mais perto do `exit_group` que o kit consegue sem kernel.
+        let handle: Arc<dyn Syscalls> = Arc::new(ProcHandle { world: Arc::clone(&self.world), pid: self.pid });
+        let h = std::thread::Builder::new()
+            .name(format!("testkit-{tid}"))
+            .spawn(move || {
+                sys::install(handle);
+                let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(body));
+                sys::uninstall();
+                r.err().filter(|p| p.is::<ExitUnwind>() || p.is::<KillUnwind>() || p.is::<ExecUnwind>())
+            })
+            .map_err(|_| Errno::EAGAIN)?;
+        self.w().threads.insert(tid, h);
         Ok(tid)
     }
 
@@ -1913,14 +1924,18 @@ impl Syscalls for ProcHandle {
         if tid == self.pid {
             return Err(Errno::EDEADLK);
         }
-        let mut w = self.w();
-        if w.finished_threads.remove(&tid) {
-            Ok(())
-        } else if tid < w.next_tid && tid >= 1_000_000 {
-            Err(Errno::EINVAL)
-        } else {
-            Err(Errno::ESRCH)
+        let h = {
+            let mut w = self.w();
+            match w.threads.remove(&tid) {
+                Some(h) => h,
+                None if tid < w.next_tid && tid >= 1_000_000 => return Err(Errno::EINVAL),
+                None => return Err(Errno::ESRCH),
+            }
+        };
+        if let Ok(Some(unwind)) = h.join() {
+            std::panic::resume_unwind(unwind);
         }
+        Ok(())
     }
 
     fn gettid(&self) -> Tid {
@@ -2791,6 +2806,37 @@ mod tests {
         );
     }
 
+    // Threads que conversam por canal: o `sort` lê numa e ordena na outra. Com thread síncrona, a
+    // primeira esperava pra sempre pela segunda, que só começaria depois dela.
+    fn channel_probe(ctx: &mut Ctx, _args: &[OsString]) -> i32 {
+        let sys = ctx.sys().clone();
+        let (to_worker, from_main) = std::sync::mpsc::sync_channel::<u32>(1);
+        let (to_main, from_worker) = std::sync::mpsc::sync_channel::<u32>(1);
+        let worker = sys
+            .spawn_thread(Box::new(move || {
+                while let Ok(n) = from_main.recv() {
+                    let pid = sys::current().getpid();
+                    to_main.send(n * 10 + u32::from(pid > 0)).unwrap();
+                }
+            }))
+            .unwrap();
+        let mut out = String::new();
+        for n in 1..=3 {
+            to_worker.send(n).unwrap();
+            out.push_str(&format!("{}\n", from_worker.recv().unwrap()));
+        }
+        drop(to_worker);
+        out.push_str(&format!("{:?} {:?}\n", sys.join_thread(worker), sys.join_thread(worker)));
+        ctx.stdout().write_all(out.as_bytes()).ok();
+        0
+    }
+
+    #[test]
+    fn threads_run_concurrently_with_the_spawner() {
+        let r = kit().programs([Program::bin("chan", channel_probe)]).run(&["chan"], b"");
+        assert_eq!(r.stdout_str(), "11\n21\n31\nOk(()) Err(EINVAL)\n");
+    }
+
     fn sched_probe(ctx: &mut Ctx, _args: &[OsString]) -> i32 {
         let sys = ctx.sys().clone();
         let mut o = String::new();
@@ -2848,7 +2894,7 @@ mod tests {
             "Ok(3)",
             "Err(ESRCH) Err(EINVAL)",
             "Ok(SchedParam { priority: 0 }) Err(EINVAL)",
-            "56 3 0 0 750000 1024",
+            "56 3 0 0 700000 1024",
             "Some(EINVAL) Some(EINVAL)",
             "Ok(1) Ok(99) Ok(0) Err(EINVAL)",
             "Ok(()) Ok(5)",
