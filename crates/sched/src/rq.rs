@@ -6,18 +6,18 @@
 //! | Aqui | Kernel |
 //! |---|---|
 //! | [`RunQueue::create_task`] | `sched_fork` + `set_load_weight` |
-//! | [`RunQueue::wake_up_new_task`] | `wake_up_new_task` (`activate_task(ENQUEUE_INITIAL)` + `wakeup_preempt(WF_FORK)`) |
-//! | [`RunQueue::try_to_wake_up`] | `try_to_wake_up` (`ttwu_runnable` ou `ttwu_do_activate`) |
+//! | [`Sched::wake_up_new_task`] | `wake_up_new_task` (`activate_task(ENQUEUE_INITIAL)` + `wakeup_preempt(WF_FORK)`) |
+//! | [`Sched::try_to_wake_up`] | `try_to_wake_up` (`ttwu_runnable` ou `ttwu_do_activate`) |
 //! | [`RunQueue::schedule`] | `__schedule` (`try_to_block_task` + `pick_next_task` + troca) |
 //! | [`RunQueue::tick`] | `sched_tick` + `task_tick_fair` + `entity_tick` |
-//! | [`RunQueue::set_user_nice`] | `set_user_nice` + `reweight_task_fair` + `prio_changed_fair` |
-//! | [`RunQueue::set_custom_slice`] | `sched_setattr` com `sched_runtime` (`__sched_setscheduler`) |
+//! | [`Sched::set_user_nice`] | `set_user_nice` + `reweight_task_fair` + `prio_changed_fair` |
+//! | [`Sched::set_custom_slice`] | `sched_setattr` com `sched_runtime` (`__sched_setscheduler`) |
 //! | [`RunQueue::yield_current`] | `do_sched_yield` (`yield_task_fair` + `schedule`) |
 //! | [`RunQueue::exit_current`] | `do_task_dead` (bloqueio com `DEQUEUE_SPECIAL`) |
 
 use crate::clock::Clock;
 use crate::features::{Features, Tunables};
-use crate::sched::{RqStats, Sched, SchedConfig, TaskInfo};
+use crate::sched::{RqStats, Sched, SchedConfig};
 use crate::timeline::{CurrView, Timeline};
 use crate::{EntityId, GroupId, TaskId};
 
@@ -25,6 +25,22 @@ use crate::{EntityId, GroupId, TaskId};
 #[derive(Debug)]
 pub struct RunQueue<C: Clock> {
     pub(crate) s: Sched<C>,
+}
+
+/// As operações que não dependem da CPU (relógio, tarefas, despertar, nice, fatia) são as do
+/// [`Sched`] direto; as de baixo fixam a CPU 0.
+impl<C: Clock> std::ops::Deref for RunQueue<C> {
+    type Target = Sched<C>;
+
+    fn deref(&self) -> &Sched<C> {
+        &self.s
+    }
+}
+
+impl<C: Clock> std::ops::DerefMut for RunQueue<C> {
+    fn deref_mut(&mut self) -> &mut Sched<C> {
+        &mut self.s
+    }
 }
 
 impl<C: Clock> RunQueue<C> {
@@ -38,11 +54,6 @@ impl<C: Clock> RunQueue<C> {
         &self.s
     }
 
-    /// O relógio.
-    pub fn clock(&self) -> &C {
-        self.s.clock()
-    }
-
     /// Features em uso.
     pub fn features(&self) -> Features {
         self.s.config().features
@@ -51,16 +62,6 @@ impl<C: Clock> RunQueue<C> {
     /// Parâmetros em uso.
     pub fn tunables(&self) -> Tunables {
         self.s.config().tunables
-    }
-
-    /// `sysctl_sched_base_slice` em ns.
-    pub fn base_slice_ns(&self) -> u64 {
-        self.s.base_slice_ns()
-    }
-
-    /// `rq_clock_task` da última atualização.
-    pub fn clock_task(&self) -> u64 {
-        self.s.clock_task()
     }
 
     /// Tarefa rodando; `None` é idle.
@@ -103,26 +104,6 @@ impl<C: Clock> RunQueue<C> {
         self.s.root_timeline(0)
     }
 
-    /// Diz se o id é de uma tarefa viva.
-    pub fn contains(&self, t: TaskId) -> bool {
-        self.s.contains(t)
-    }
-
-    /// Estado de uma tarefa.
-    pub fn task(&self, t: TaskId) -> TaskInfo {
-        self.s.task(t)
-    }
-
-    /// Ids das tarefas vivas.
-    pub fn task_ids(&self) -> impl Iterator<Item = TaskId> + '_ {
-        self.s.task_ids()
-    }
-
-    /// Tempo de CPU da tarefa até o relógio atual.
-    pub fn task_runtime_now(&self, t: TaskId) -> u64 {
-        self.s.task_runtime_now(t)
-    }
-
     /// V atual, sem mexer no estado.
     pub fn avg_vruntime_peek(&self) -> u64 {
         self.s.avg_vruntime_peek(0)
@@ -148,24 +129,9 @@ impl<C: Clock> RunQueue<C> {
         self.s.queued_entities(0)
     }
 
-    /// Coerência interna.
-    pub fn check_invariants(&self) -> Result<(), String> {
-        self.s.check_invariants()
-    }
-
     /// `sched_fork` no grupo raiz.
     pub fn create_task(&mut self, nice: i32) -> TaskId {
         self.s.create_task(nice, GroupId::ROOT, 0)
-    }
-
-    /// `wake_up_new_task`.
-    pub fn wake_up_new_task(&mut self, p: TaskId) {
-        self.s.wake_up_new_task(p);
-    }
-
-    /// `try_to_wake_up`.
-    pub fn try_to_wake_up(&mut self, p: TaskId) -> bool {
-        self.s.try_to_wake_up(p)
     }
 
     /// `__schedule`.
@@ -181,16 +147,6 @@ impl<C: Clock> RunQueue<C> {
     /// `sched_tick`.
     pub fn tick(&mut self) {
         self.s.tick(0);
-    }
-
-    /// `set_user_nice`.
-    pub fn set_user_nice(&mut self, p: TaskId, nice: i32) {
-        self.s.set_user_nice(p, nice);
-    }
-
-    /// `sched_setattr` com `sched_runtime`.
-    pub fn set_custom_slice(&mut self, p: TaskId, runtime_ns: Option<u64>) {
-        self.s.set_custom_slice(p, runtime_ns);
     }
 
     /// `sched_yield`.

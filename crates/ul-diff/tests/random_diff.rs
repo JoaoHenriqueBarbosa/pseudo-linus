@@ -159,7 +159,7 @@ fn imara_baseline() {
                 if label == "u" {
                     p.control("--- a\t2026-01-15 12:00:00.000000000 +0000", Paint::None);
                     p.control("+++ b\t2026-01-15 12:00:00.000000000 +0000", Paint::None);
-                    format_unified(&mut p, &s, &la, &lb, 3, None);
+                    format_unified(&mut p, &s, &la, &lb, 3);
                 } else {
                     format_normal(&mut p, &s, &la, &lb);
                 }

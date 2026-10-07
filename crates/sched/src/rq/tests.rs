@@ -339,7 +339,8 @@ fn renice_of_current() {
     rq.schedule(false);
     ok(&rq);
     let c = rq.current().expect("alguém roda");
-    rq.set_user_nice(c, rq.task(c).nice - 1);
+    let nice = rq.task(c).nice;
+    rq.set_user_nice(c, nice - 1);
     assert!(!rq.need_resched());
     ok(&rq);
 }
