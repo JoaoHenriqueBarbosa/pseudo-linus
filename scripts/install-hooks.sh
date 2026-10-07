@@ -12,7 +12,7 @@ set -euo pipefail
 root=$(git rev-parse --show-toplevel)
 cd "$root"
 
-chmod +x .githooks/* scripts/*.sh
+chmod +x .githooks/* scripts/dry-check.sh scripts/install-hooks.sh
 git config core.hooksPath .githooks
 
 echo "core.hooksPath = $(git config core.hooksPath)"
