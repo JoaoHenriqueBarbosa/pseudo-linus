@@ -628,10 +628,6 @@ fn suggest_conflicts(repo: &Repo) -> R<i32> {
     Ok(1)
 }
 
-/// O que o `git commit` pede pra assinar: o `Signed-off-by` no fim da mensagem.
-fn signoff(msg: &mut Vec<u8>, who: &object::Ident) {
-    super::commit::append_signoff(msg, who);
-}
 
 /// `prepare_to_commit`: grava `MERGE_HEAD`/`MERGE_MSG`, roda os hooks, abre o editor se pedido e
 /// devolve a mensagem final. Mensagem vazia ou editor que falha deixam a mesclagem em andamento.
@@ -653,7 +649,7 @@ fn prepare_to_commit(repo: &Repo, mo: &Mo, heads: &[Oid], edit: bool, cleanup: C
     }
     if mo.signoff {
         let who = ident::ident(&repo.config, Who::Committer, true)?;
-        signoff(&mut msg, &who);
+        super::commit::append_signoff(&mut msg, &who);
     }
     write_merge_heads(repo, heads, mo.ff)?;
     let mfile = repo.path("MERGE_MSG");

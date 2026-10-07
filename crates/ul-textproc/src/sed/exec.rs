@@ -1061,7 +1061,7 @@ fn append_replacement(out: &mut Vec<u8>, parts: &[Repl], caps: &regex_posix::Cap
             let how = if first && *one != Case::None { *one } else { mode };
             first = false;
             match (std::str::from_utf8(c).ok().and_then(|s| s.chars().next()), how) {
-                (Some(ch), Case::Upper) => push_char(out, upper(ch)),
+                (Some(ch), Case::Upper) => push_char(out, regex_posix::parse::to_upper(ch)),
                 (Some(ch), Case::Lower) => push_char(out, lower(ch)),
                 _ => out.extend_from_slice(c),
             }
@@ -1102,9 +1102,6 @@ fn push_char(out: &mut Vec<u8>, c: char) {
     out.extend_from_slice(c.encode_utf8(&mut b).as_bytes());
 }
 
-fn upper(c: char) -> char {
-    regex_posix::parse::to_upper(c)
-}
 
 fn lower(c: char) -> char {
     let mut it = c.to_lowercase();

@@ -12,17 +12,11 @@ pub mod io;
 pub mod syntax;
 pub mod time;
 
-use std::ffi::OsString;
-
-use sysabi::{Ctx, Program, Signal};
+use sysabi::{Program, Signal};
 
 /// Programas deste crate.
 pub fn programs() -> Vec<Program> {
-    vec![Program::bin("jq", jq_main)]
-}
-
-fn jq_main(ctx: &mut Ctx, argv: &[OsString]) -> i32 {
-    cli::jq_main(ctx, argv)
+    vec![Program::bin("jq", cli::jq_main)]
 }
 
 /// Escreve `msg` no stderr e termina com SIGABRT, como o `abort()` do jq (o stdout com buffer não

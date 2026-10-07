@@ -123,12 +123,9 @@ impl LoginDefs {
     }
 }
 
-fn gid_field(l: &[u8]) -> Option<u64> {
+/// Terceiro campo: o uid no `passwd`, o gid no `group`.
+fn id_field(l: &[u8]) -> Option<u64> {
     fields(l).get(2).and_then(|f| parse_id(f))
-}
-
-fn uid_field(l: &[u8]) -> Option<u64> {
-    gid_field(l)
 }
 
 fn find_group<'a>(group: &'a [Vec<u8>], key: &[u8]) -> Option<&'a Vec<u8>> {
@@ -137,7 +134,7 @@ fn find_group<'a>(group: &'a [Vec<u8>], key: &[u8]) -> Option<&'a Vec<u8>> {
         .find(|l| is_data(l) && name_eq(l, key))
         .or_else(|| {
             let g = parse_id(key)?;
-            group.iter().find(|l| is_data(l) && gid_field(l) == Some(g))
+            group.iter().find(|l| is_data(l) && id_field(l) == Some(g))
         })
 }
 
@@ -384,7 +381,7 @@ fn useradd(args: &[OsString]) -> i32 {
                     io::eprint(format!("{P}: cannot open {}\n", io::lossy(&gpath)));
                     return 10;
                 }
-                match find_group(&groups_ref, &v).and_then(|l| gid_field(l)) {
+                match find_group(&groups_ref, &v).and_then(|l| id_field(l)) {
                     Some(g) => {
                         gid_opt = Some(g);
                         changed_defaults = true;
@@ -540,7 +537,7 @@ fn useradd(args: &[OsString]) -> i32 {
         return 9;
     }
 
-    let used_uids: Vec<u64> = passwd.iter().filter(|l| is_data(l)).filter_map(|l| uid_field(l)).collect();
+    let used_uids: Vec<u64> = passwd.iter().filter(|l| is_data(l)).filter_map(|l| id_field(l)).collect();
     let uid = match uid_opt {
         Some(u) => {
             if !o.has(b'o') && used_uids.contains(&u) {
@@ -562,7 +559,7 @@ fn useradd(args: &[OsString]) -> i32 {
     let gid = if let Some(g) = gid_opt {
         g
     } else if usergroup {
-        let used: Vec<u64> = group.iter().filter(|l| is_data(l)).filter_map(|l| gid_field(l)).collect();
+        let used: Vec<u64> = group.iter().filter(|l| is_data(l)).filter_map(|l| id_field(l)).collect();
         match pick_id(&used, Some(uid), system, gid_min, gid_max, sgid_min, sgid_max) {
             Some(g) => {
                 new_group_line =

@@ -14,14 +14,10 @@
 //!   (`jiff-tzdb`), depois texto POSIX; o que não resolver vira UTC com o próprio texto como
 //!   abreviação, como a glibc faz.
 
-use jaq_json::{Rc, Val};
+use jaq_json::{Rc, Val, err};
 use sysabi::{Clock, Syscalls};
 
 type ValR = jaq_json::ValR;
-
-fn err(msg: impl Into<String>) -> jaq_json::Error {
-    jaq_json::err(msg)
-}
 
 /// Fuso horário local do processo.
 pub struct TimeZone {

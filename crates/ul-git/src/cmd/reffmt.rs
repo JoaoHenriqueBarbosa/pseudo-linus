@@ -416,7 +416,7 @@ impl<'a> Ctx<'a> {
                     let mut body = Vec::new();
                     self.render_depth(if ok { then_ } else { else_ }, row, &mut body, depth + 1)?;
                     if depth == 0 {
-                        out.extend_from_slice(&quote_value_if_quoting(self.quote, &body));
+                        out.extend_from_slice(&quote_value(self.quote, &body));
                     } else {
                         out.extend_from_slice(&body);
                     }
@@ -435,7 +435,7 @@ impl<'a> Ctx<'a> {
                     padded.extend_from_slice(&b);
                     padded.extend(std::iter::repeat_n(b' ', right));
                     if depth == 0 {
-                        out.extend_from_slice(&quote_value_if_quoting(self.quote, &padded));
+                        out.extend_from_slice(&quote_value(self.quote, &padded));
                     } else {
                         out.extend_from_slice(&padded);
                     }
@@ -743,9 +743,6 @@ pub fn quote_value(q: Quote, v: &[u8]) -> Vec<u8> {
     out
 }
 
-fn quote_value_if_quoting(q: Quote, v: &[u8]) -> Vec<u8> {
-    quote_value(q, v)
-}
 
 /// Sequência ANSI de `%(color:...)`.
 fn color_code(spec: &str) -> R<Vec<u8>> {

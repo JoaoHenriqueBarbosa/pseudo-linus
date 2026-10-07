@@ -36,7 +36,7 @@ use std::cmp::Ordering;
 
 use super::cutil::{
     at, cstr, is_alnum, is_alpha, is_digit, is_print, is_space, is_upper, strtod, strtof, strtol,
-    strtoul, strtoull,
+    strtoull,
 };
 use super::encoding::looks_utf8;
 use super::regex;
@@ -1397,7 +1397,7 @@ impl Loader {
                             self.magwarn("multiple ranges".into());
                         }
                         have_range = true;
-                        let conv = strtoul(tail(s, *l), 0);
+                        let conv = strtoull(tail(s, *l), 0);
                         m.set_str_range(conv.value as u32);
                         if m.str_range() == 0 {
                             self.magwarn("zero range".into());
@@ -1770,7 +1770,7 @@ impl Loader {
         }
         let m = &mut entry.mp[0];
         eatab!(arg, l);
-        let conv = strtoul(tail(arg, l), 0);
+        let conv = strtoull(tail(arg, l), 0);
         let el = l + conv.used;
         let factor = conv.value;
         let fail = |this: &mut Loader, m: &mut Magic, msg: String| {

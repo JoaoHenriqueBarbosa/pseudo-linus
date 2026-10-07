@@ -7,6 +7,7 @@ use std::os::unix::ffi::OsStrExt;
 
 use jaq_core::{Ctx as JaqCtx, Vars};
 use jaq_json::jqfmt::{self, DumpOpts};
+use jaq_json::jqparse::utf8_lossy as lossy;
 use jaq_json::{Map, Rc, Val};
 use sysabi::Ctx;
 
@@ -179,10 +180,6 @@ impl Dump {
 fn die(progname: &str, msg: &str) -> i32 {
     io::stderr(format!("{msg}Use {progname} --help for help with command-line options,\nor see the jq manpage, or online docs  at https://jqlang.github.io/jq\n").as_bytes());
     2
-}
-
-fn lossy(b: &[u8]) -> String {
-    jaq_json::jqparse::utf8_lossy(b)
 }
 
 /// Entrada do programa `jq`.

@@ -130,10 +130,6 @@ pub fn strtoull(s: &[u8], base: u32) -> Conv<u64> {
     }
 }
 
-/// `strtoul` (unsigned long de 64 bits no x86-64).
-pub fn strtoul(s: &[u8], base: u32) -> Conv<u64> {
-    strtoull(s, base)
-}
 
 /// `strtol` (long de 64 bits), com saturação em `i64::MIN`/`i64::MAX`.
 pub fn strtol(s: &[u8], base: u32) -> Conv<i64> {

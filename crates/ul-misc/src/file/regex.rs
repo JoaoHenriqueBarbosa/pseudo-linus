@@ -160,7 +160,7 @@ pub fn check_regex(pat: &[u8]) -> Result<(), String> {
         }
         if c == b'{' {
             let rest = &pat[i + 1..];
-            let c1 = super::cutil::strtoul(rest, 10);
+            let c1 = super::cutil::strtoull(rest, 10);
             if c1.used > 0 && c1.value > 1000 {
                 return Err(format!(
                     "bounds too large {} in regex `{}'",
@@ -169,7 +169,7 @@ pub fn check_regex(pat: &[u8]) -> Result<(), String> {
                 ));
             }
             if rest.get(c1.used) == Some(&b',') {
-                let c2 = super::cutil::strtoul(&rest[c1.used + 1..], 10);
+                let c2 = super::cutil::strtoull(&rest[c1.used + 1..], 10);
                 if c2.used > 0 && c2.value > 1000 {
                     return Err(format!(
                         "bounds too large {} in regex `{}'",

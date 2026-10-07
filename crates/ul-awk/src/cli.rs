@@ -220,7 +220,7 @@ pub fn run(sys: Arc<dyn Syscalls>, prog: &str, argv: Vec<Vec<u8>>) -> i32 {
                     }
                     cfg.assigns.push(v);
                 }
-                "field-separator" => cfg.fs = Some(fs_arg(&value.unwrap_or_default())),
+                "field-separator" => cfg.fs = Some(process_escapes(&value.unwrap_or_default())),
                 "file" => sources.push(SrcSpec::File(String::from_utf8_lossy(&value.unwrap_or_default()).into_owned())),
                 "exec" => {
                     sources.push(SrcSpec::File(String::from_utf8_lossy(&value.unwrap_or_default()).into_owned()));
@@ -281,7 +281,7 @@ pub fn run(sys: Arc<dyn Syscalls>, prog: &str, argv: Vec<Vec<u8>>) -> i32 {
                     }
                 };
                 match c {
-                    b'F' => cfg.fs = Some(fs_arg(&val)),
+                    b'F' => cfg.fs = Some(process_escapes(&val)),
                     b'v' => {
                         if let Some(code) = check_assign(&sys, prog, &val) {
                             return code;
@@ -498,10 +498,6 @@ fn mawk_syntax_error(gawk: &str) -> (String, i32) {
     (format!("mawk: {origin}line {lineno}: {what}\n"), 2)
 }
 
-/// `-F`: escapes processados; `t` sozinho não é tab no gawk fora do modo de compatibilidade.
-fn fs_arg(v: &[u8]) -> Vec<u8> {
-    process_escapes(v)
-}
 
 /// Confere `-v nome=valor`; devolve o código de saída em erro.
 fn check_assign(sys: &Arc<dyn Syscalls>, prog: &str, v: &[u8]) -> Option<i32> {

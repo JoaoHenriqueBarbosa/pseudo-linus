@@ -503,7 +503,7 @@ fn translate_for_display(z: &[u8], mx_width: i32, word_wrap: bool) -> (Vec<u8>, 
     if n >= mx && word_wrap {
         let mut kk = i;
         while kk > i / 2 {
-            if text_is_space(at(kk - 1)) {
+            if is_space(at(kk - 1)) {
                 break;
             }
             kk -= 1;
@@ -568,9 +568,6 @@ fn translate_for_display(z: &[u8], mx_width: i32, word_wrap: bool) -> (Vec<u8>, 
     (out, tail)
 }
 
-fn text_is_space(c: u8) -> bool {
-    is_space(c)
-}
 
 /// `quoted_column`.
 fn quoted_cell(c: &Cell) -> Vec<u8> {

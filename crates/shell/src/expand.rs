@@ -1560,7 +1560,7 @@ pub fn brace_expand(parts: &[Part]) -> Vec<Vec<Part>> {
     let alternatives: Vec<Vec<Part>> = match &parts[pos] {
         Part::Brace(alts) => alts.clone(),
         Part::BraceSeq(seq) => seq_items(seq).into_iter().map(|t| vec![Part::Lit(t)]).collect(),
-        _ => unreachable_alts(),
+        _ => Vec::new(),
     };
     let mut out = Vec::new();
     for alt in alternatives {
@@ -1577,9 +1577,6 @@ pub fn brace_expand(parts: &[Part]) -> Vec<Vec<Part>> {
     out
 }
 
-fn unreachable_alts() -> Vec<Vec<Part>> {
-    Vec::new()
-}
 
 fn seq_items(seq: &BraceSeq) -> Vec<Vec<u8>> {
     let mut out = Vec::new();
@@ -1638,11 +1635,6 @@ fn seq_items(seq: &BraceSeq) -> Vec<Vec<u8>> {
         }
     }
     out
-}
-
-/// Um pedido de leitura de fd sem bloquear o resto (helper pros builtins que leem).
-pub fn read_all_fd(fd: Fd) -> Result<Vec<u8>, Errno> {
-    sysabi::sys::read_to_end(fd)
 }
 
 /// Usado pelos testes de unidade de expansão.
