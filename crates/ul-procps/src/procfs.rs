@@ -220,14 +220,15 @@ pub fn parse_statm(data: &[u8]) -> Option<Statm> {
     Some(Statm { size: v[0], resident: v[1], shared: v[2], text: v[3], lib: v[4], data: v[5], dt: v[6] })
 }
 
-/// Separa um bloco `a\0b\0c\0` (cmdline, environ) em argumentos. Um bloco sem o NUL final (o
-/// processo reescreveu a área) conta o resto como último argumento.
+/// Separa um bloco `a\0b\0c\0` (cmdline, environ) em argumentos. Os NUL do fim saem todos, como no
+/// `read_unvectored` da libproc2: o nginx reescreve o argv e deixa a área antiga cheia de NUL. Um
+/// bloco sem o NUL final (o processo reescreveu a área) conta o resto como último argumento.
 pub fn split_nul(data: &[u8]) -> Vec<Vec<u8>> {
-    if data.is_empty() {
+    let end = data.iter().rposition(|&b| b != 0).map_or(0, |i| i + 1);
+    if end == 0 {
         return Vec::new();
     }
-    let body = data.strip_suffix(b"\0").unwrap_or(data);
-    body.split(|b| *b == 0).map(<[u8]>::to_vec).collect()
+    data[..end].split(|b| *b == 0).map(<[u8]>::to_vec).collect()
 }
 
 /// Um processo (ou uma thread) como os programas enxergam.

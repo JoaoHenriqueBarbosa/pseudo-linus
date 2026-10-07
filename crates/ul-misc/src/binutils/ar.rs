@@ -381,7 +381,6 @@ fn load(prog: &str, path: &[u8]) -> Result<Option<(Vec<Member>, bool)>, i32> {
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 enum Pos {
-    End,
     After,
     Before,
 }

@@ -1691,39 +1691,51 @@ mod tests {
         assert_eq!(tt.sv("bell"), Some(&b"\x07"[..]));
     }
 
+    /// Roda `body` dentro de um pseudo-processo: o diagnóstico do scanner escreve no stderr dele.
+    fn in_process(body: sysabi::program::Main) {
+        let r = sysabi::testkit::TestKit::new().programs([sysabi::Program::bin("tic-test", body)]).run(&["tic-test"], b"");
+        assert_eq!(r.status.shell_status(), 0, "{}", r.stderr_str());
+    }
+
     #[test]
     fn wide_and_extended_roundtrip() {
-        let e = parse_one(b"w|wide,\n\tcols#40000, XT, Ms=abc, Nx#3,\n", true);
-        let bytes = compile(&e);
-        assert_eq!(&bytes[..2], &[0x1e, 0x02]);
-        let tt = read_termtype(&bytes, true).unwrap();
-        assert_eq!(tt.n("columns"), 40000);
-        assert_eq!(tt.ext_bools, 1);
-        assert_eq!(tt.ext_nums, 1);
-        assert_eq!(tt.ext_strs, 1);
-        assert_eq!(tt.ext_names, vec![b"XT".to_vec(), b"Nx".to_vec(), b"Ms".to_vec()]);
+        in_process(|_, _| {
+            let e = parse_one(b"w|wide,\n\tcols#40000, XT, Ms=abc, Nx#3,\n", true);
+            let bytes = compile(&e);
+            assert_eq!(&bytes[..2], &[0x1e, 0x02]);
+            let tt = read_termtype(&bytes, true).unwrap();
+            assert_eq!(tt.n("columns"), 40000);
+            assert_eq!(tt.ext_bools, 1);
+            assert_eq!(tt.ext_nums, 1);
+            assert_eq!(tt.ext_strs, 1);
+            assert_eq!(tt.ext_names, vec![b"XT".to_vec(), b"Nx".to_vec(), b"Ms".to_vec()]);
+            0
+        });
     }
 
     #[test]
     fn use_in_same_file_merges() {
-        let src = b"base|b,\n\tcols#80, am,\nchild|c,\n\tcols#100, use=base,\n";
-        let diag = Diag {
-            file: "t".to_string(),
-            failed: std::cell::Cell::new(false),
-        };
-        let (raws, _) = split_entries(src);
-        let mut entries: Vec<Entry> = raws
-            .iter()
-            .map(|r| parse_entry(r, false, false, &diag).unwrap())
-            .collect();
-        let mut done = vec![false; 2];
-        for i in 0..2 {
-            resolve(&mut entries, &mut done, i, &mut Vec::new())
-                .map_err(|e| e.msgs)
-                .unwrap();
-        }
-        assert_eq!(entries[1].nums[find_type_entry(b"cols", Kind::Num).unwrap()], 100);
-        assert_eq!(entries[1].bools[find_type_entry(b"am", Kind::Bool).unwrap()], 1);
+        in_process(|_, _| {
+            let src = b"base|b,\n\tcols#80, am,\nchild|c,\n\tcols#100, use=base,\n";
+            let diag = Diag {
+                file: "t".to_string(),
+                failed: std::cell::Cell::new(false),
+            };
+            let (raws, _) = split_entries(src);
+            let mut entries: Vec<Entry> = raws
+                .iter()
+                .map(|r| parse_entry(r, false, false, &diag).unwrap())
+                .collect();
+            let mut done = vec![false; 2];
+            for i in 0..2 {
+                resolve(&mut entries, &mut done, i, &mut Vec::new())
+                    .map_err(|e| e.msgs)
+                    .unwrap();
+            }
+            assert_eq!(entries[1].nums[find_type_entry(b"cols", Kind::Num).unwrap()], 100);
+            assert_eq!(entries[1].bools[find_type_entry(b"am", Kind::Bool).unwrap()], 1);
+            0
+        });
     }
 
     #[test]

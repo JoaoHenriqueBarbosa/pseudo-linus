@@ -713,7 +713,8 @@ mod tests {
         let lines: Vec<&str> = h.lines().collect();
         assert_eq!(lines[0], "procs -----------memory---------- ---swap-- -----io---- -system-- -------cpu-------");
         assert_eq!(lines[1], " r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st gu");
-        let row = line(&opts(), 1, 0, [0, 7_913_284, 62_228, 100], [0; 6], [3, 1, 96, 0, 0, 0]);
+        // Valores que cabem nas colunas (o procps deixa número largo estourar, sem realinhar).
+        let row = line(&opts(), 1, 0, [0, 913_284, 62_228, 100], [0; 6], [3, 1, 96, 0, 0, 0]);
         assert_eq!(row.len(), lines[1].len() + 1);
     }
 

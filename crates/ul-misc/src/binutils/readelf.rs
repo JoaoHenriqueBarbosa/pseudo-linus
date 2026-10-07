@@ -1344,7 +1344,7 @@ mod tests {
     fn clip_marks_truncation() {
         assert_eq!(clip(".note.gnu.property", 17, false), ".note.gnu.pr[...]");
         assert_eq!(clip(".text", 17, false), ".text");
-        assert_eq!(clip(".note.gnu.property", 17, true), ".note.gnu.proper");
+        assert_eq!(clip(".note.gnu.property", 17, true), ".note.gnu.propert");
     }
 
     #[test]

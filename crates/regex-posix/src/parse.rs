@@ -667,18 +667,27 @@ impl Parser<'_> {
             }
         };
         let (lo, hi) = (point(&start)?, point(&end)?);
-        // Caractere multibyte não tem sequência de colação em C.UTF-8.
+        // Caractere multibyte não tem sequência de colação em C.UTF-8, e byte fora do UTF-8 vira WEOF
+        // no `btowc` do `parse_byte`: os dois dão REG_ECOLLATE.
         let seq = |u: Unit| -> Result<u32, ErrorCode> {
             match u {
                 Unit::Char(c) if c.is_ascii() => Ok(c as u32),
-                Unit::Char(_) => Err(ErrorCode::Collate),
-                Unit::Byte(b) => Ok(b as u32),
+                Unit::Byte(b) if b.is_ascii() => Ok(b as u32),
+                Unit::Char(_) | Unit::Byte(_) => Err(ErrorCode::Collate),
             }
         };
         let (a, b) = (seq(lo)?, seq(hi)?);
-        if self.syntax.contains(Syntax::NO_EMPTY_RANGES) && a > b {
+        // A visão do `dfa.c` não traduz o padrão, mas a validade da faixa é a do `regcomp`, que com
+        // RE_ICASE a vê em maiúsculas: `[a-Z]` passa (vira `[A-Z]`) e `[Z-a]` não.
+        let (ca, cb) = if self.view == View::Dfa && self.syntax.contains(Syntax::ICASE) {
+            (seq(upper_unit(lo))?, seq(upper_unit(hi))?)
+        } else {
+            (a, b)
+        };
+        if self.syntax.contains(Syntax::NO_EMPTY_RANGES) && ca > cb {
             return Err(ErrorCode::Range);
         }
+        let (lo, hi, a, b) = if (ca, cb) != (a, b) && a > b { (upper_unit(lo), upper_unit(hi), ca, cb) } else { (lo, hi, a, b) };
         if a > b {
             // Faixa vazia sem NO_EMPTY_RANGES: não casa nada.
             return Ok(SetItem::ByteRange(1, 0));
@@ -901,8 +910,11 @@ mod tests {
         assert_eq!(e("[a-b-c]", g), ErrorCode::Range);
         assert_eq!(e("[à-ú]", g), ErrorCode::Collate);
         assert_eq!(e("[[=é=]]", g), ErrorCode::Collate);
+        assert_eq!(parse(&decode(b"[\xe9-z]"), g, View::Glibc).expect_err("[\\351-z]"), ErrorCode::Collate);
         // -i: o padrão vai pra maiúsculas antes da análise.
         assert_eq!(e("[Z-a]", g | Syntax::ICASE), ErrorCode::Range);
+        assert!(parse(&decode(b"[a-Z]"), g | Syntax::ICASE, View::Dfa).is_ok());
+        assert_eq!(parse(&decode(b"[Z-a]"), g | Syntax::ICASE, View::Dfa).expect_err("[Z-a]"), ErrorCode::Range);
         assert!(parse(&decode(b"[Z-a]"), g, View::Glibc).is_ok());
         // awk: barra escapa dentro de colchetes.
         assert_eq!(set_of("[\\]a]", Syntax::GNU_AWK).items, vec![u(']'), u('a')]);

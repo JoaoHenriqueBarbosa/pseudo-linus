@@ -58,7 +58,7 @@ fn put(sys: &Arc<dyn Syscalls>, fd: Fd, s: &str) {
 enum Wopt {
     Version,
     Help,
-    Exec(Option<Vec<u8>>),
+    Exec,
     Ignored,
     Dump,
     Unknown,
@@ -76,7 +76,7 @@ fn classify_w(word: &[u8]) -> Wopt {
         (b"help", Wopt::Help),
         (b"usage", Wopt::Help),
         (b"dump", Wopt::Dump),
-        (b"exec", Wopt::Exec(None)),
+        (b"exec", Wopt::Exec),
         (b"interactive", Wopt::Ignored),
         (b"random", Wopt::Ignored),
         (b"sprintf", Wopt::Ignored),
@@ -173,7 +173,7 @@ pub fn run(sys: Arc<dyn Syscalls>, argv: Vec<Vec<u8>>) -> i32 {
                         // O listador de código do mawk não existe aqui: aceita e sai sem rodar.
                         return 0;
                     }
-                    Wopt::Exec(_) => {
+                    Wopt::Exec => {
                         i += 1;
                         let Some(f) = argv.get(i).cloned() else {
                             put(&sys, Fd::STDERR, "mawk: option requires an argument -- W exec\n");

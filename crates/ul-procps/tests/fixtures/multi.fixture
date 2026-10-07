@@ -22,6 +22,11 @@ users:x:100:
 alice:x:1000:
 nogroup:x:65534:
 
+# O pidof com caminho só procura se o arquivo existe; no Debian onde o esperado foi gravado existe
+# (/bin é link pra usr/bin).
+@file /usr/bin/bash
+#!ELF
+
 @link /proc/self 101
 @link /proc/thread-self 101/task/101
 @file /proc/sys/kernel/pid_max

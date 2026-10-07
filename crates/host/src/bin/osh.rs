@@ -69,7 +69,6 @@ trait Target {
     fn run(&mut self, command: Option<&str>, argv: Option<&[String]>, stdin: StdinFeed) -> Result<ExecResult, String>;
     /// Roda uma linha na sessão persistente.
     fn session(&mut self, line: &str) -> Result<ExecResult, String>;
-    fn write_file(&mut self, path: &str, data: &[u8]) -> Result<(), String>;
     fn close(&mut self);
 }
 
@@ -169,16 +168,6 @@ impl Target for Remote {
         Ok(r)
     }
 
-    fn write_file(&mut self, path: &str, data: &[u8]) -> Result<(), String> {
-        self.client
-            .call(
-                "fs.write",
-                json!({ "sandbox_id": self.sandbox, "path": path, "data_base64": base64::Engine::encode(&host::api::b64::STANDARD, data), "create_parents": true, "mode": 0o700 }),
-            )
-            .map(|_| ())
-            .map_err(client_err)
-    }
-
     fn close(&mut self) {
         if let Some(s) = self.session.take() {
             let _ = self.client.call("session.close", json!({ "session_id": s }));
@@ -249,11 +238,6 @@ impl Target for Local {
             self.session = None;
         }
         Ok(r)
-    }
-
-    fn write_file(&mut self, path: &str, data: &[u8]) -> Result<(), String> {
-        let opts = host::backend::WriteOpts { append: false, exclusive: false, mode: 0o700 };
-        host::fsops::write(&*self.sb, path.as_bytes(), data, opts, true).map_err(|e| e.to_string())
     }
 
     fn close(&mut self) {

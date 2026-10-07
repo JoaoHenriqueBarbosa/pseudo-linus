@@ -266,8 +266,8 @@ fn fail(message: &str) -> i32 {
     1
 }
 
-/// O nome com que o programa foi chamado, sem diretório: é o prefixo das mensagens de erro. Por
-/// thread, porque todos os programas dividem o mesmo processo hospedeiro.
+// O nome com que o programa foi chamado, sem diretório: é o prefixo das mensagens de erro. Por
+// thread, porque todos os programas dividem o mesmo processo hospedeiro.
 thread_local! {
     static PROG: std::cell::RefCell<String> = std::cell::RefCell::new("hostname".to_string());
 }

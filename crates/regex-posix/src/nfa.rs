@@ -393,7 +393,7 @@ impl Prog {
     /// (necessário com referências).
     pub fn longest_end_backref(&self, hay: &[u8], s: usize, limit: usize, f: ExecFlags) -> Option<usize> {
         let mut best: Option<usize> = None;
-        self.dfs(hay, s, limit, f, Mode::Longest, &mut |pos, _| {
+        self.dfs(hay, s, limit, f, Mode::Longest, None, &mut |pos, _| {
             if best.is_none_or(|b| pos > b) {
                 best = Some(pos);
             }
@@ -410,9 +410,10 @@ impl Prog {
         // índice que vale ali: o original, se algum caminho chega ao fim sem âncora na última
         // sequência de épsilons. É por isso que `(^)*` deixa o grupo de fora. Primeiro tenta só
         // esses caminhos; se não há, qualquer um.
+        let viable = self.viable(hay, s, e, f);
         for mode in [Mode::GroupsPlainHalt, Mode::Groups] {
             let mut out = None;
-            self.dfs(hay, s, e, f, mode, &mut |_, regs| {
+            self.dfs(hay, s, e, f, mode, viable.as_ref(), &mut |_, regs| {
                 out = Some(regs.to_vec());
                 true
             });
@@ -423,10 +424,61 @@ impl Prog {
         None
     }
 
+    /// Os pares (instrução, posição) de onde ainda dá pra terminar em `limit`: o `state_log`
+    /// peneirado do glibc (`sift_states_backward`). O `proceed_next_node` só escolhe destino que
+    /// esteja nele, então uma bifurcação com um lado só viável segue esse lado sem empilhar falha,
+    /// e os registros não voltam. Referência conta como viável: o percurso a confere. `None` quando
+    /// a tabela passaria do teto de memória (aí vale a busca sem o filtro).
+    fn viable(&self, hay: &[u8], s: usize, limit: usize, f: ExecFlags) -> Option<Viable> {
+        let width = self.insts.len();
+        let span = limit.saturating_sub(s) + 1;
+        let total = width.checked_mul(span).filter(|&t| t <= 1 << 26)?;
+        let mut v = Viable { width, bits: vec![0u64; total.div_ceil(64)] };
+        for pos in (s..=limit).rev() {
+            let rel = pos - s;
+            loop {
+                let mut changed = false;
+                for pc in (0..width).rev() {
+                    if v.get(pc as Pc, rel) {
+                        continue;
+                    }
+                    let ok = match self.insts[pc] {
+                        Inst::Match => pos == limit,
+                        Inst::Char { set, next } => match self.test(set, hay, pos) {
+                            Some(len) if pos + len <= limit => v.get(next, rel + len),
+                            _ => false,
+                        },
+                        Inst::Assert { look, next } => self.look(look, hay, pos, f) && v.get(next, rel),
+                        Inst::Open { next, .. } | Inst::Close { next, .. } => v.get(next, rel),
+                        Inst::Split { first, second } => v.get(first, rel) || v.get(second, rel),
+                        Inst::Backref { .. } => true,
+                    };
+                    if ok {
+                        v.set(pc as Pc, rel);
+                        changed = true;
+                    }
+                }
+                if !changed {
+                    break;
+                }
+            }
+        }
+        Some(v)
+    }
+
     /// Busca em profundidade com pilha de falhas (`re_fail_stack` do glibc). Em `Mode::Groups` só
     /// aceita terminar em `limit` e para na primeira; em `Mode::Longest` visita todas as casadas.
     /// `on_match` devolve `true` pra parar.
-    fn dfs(&self, hay: &[u8], s: usize, limit: usize, f: ExecFlags, mode: Mode, on_match: &mut dyn FnMut(usize, &[Reg]) -> bool) {
+    fn dfs(
+        &self,
+        hay: &[u8],
+        s: usize,
+        limit: usize,
+        f: ExecFlags,
+        mode: Mode,
+        viable: Option<&Viable>,
+        on_match: &mut dyn FnMut(usize, &[Reg]) -> bool,
+    ) {
         let n = self.nsub + 1;
         let mut regs: Vec<Reg> = vec![(-1, -1); n];
         regs[0] = (s as isize, limit as isize);
@@ -509,13 +561,18 @@ impl Prog {
                 }
                 Inst::Split { first, second } => {
                     mark(&mut eps, pc);
-                    if eps.contains(&first) {
-                        pc = second;
-                    } else {
-                        stack.push(Frame { pc: second, pos, regs: regs.clone(), prev: prev.clone(), eps: eps.clone() });
-                        pc = first;
+                    let ok = |p: Pc| viable.is_none_or(|v| v.get(p, pos - s));
+                    match (ok(first), ok(second)) {
+                        (true, true) if eps.contains(&first) => pc = second,
+                        (true, true) => {
+                            stack.push(Frame { pc: second, pos, regs: regs.clone(), prev: prev.clone(), eps: eps.clone() });
+                            pc = first;
+                        }
+                        (true, false) => pc = first,
+                        (false, true) => pc = second,
+                        (false, false) => {}
                     }
-                    true
+                    ok(first) || ok(second)
                 }
                 Inst::Backref { group, next } => {
                     let (gs, ge) = regs.get(group).copied().unwrap_or((-1, -1));
@@ -738,6 +795,23 @@ impl Threads {
 
 /// Estados (instrução, posição) já explorados sem sucesso logo depois de consumir um caractere.
 /// Sem referências, o sucesso a partir daí não depende do caminho, então basta visitar uma vez.
+struct Viable {
+    width: usize,
+    bits: Vec<u64>,
+}
+
+impl Viable {
+    fn get(&self, pc: Pc, rel: usize) -> bool {
+        let i = rel * self.width + pc as usize;
+        self.bits[i / 64] & (1 << (i % 64)) != 0
+    }
+
+    fn set(&mut self, pc: Pc, rel: usize) {
+        let i = rel * self.width + pc as usize;
+        self.bits[i / 64] |= 1 << (i % 64);
+    }
+}
+
 struct Memo {
     width: usize,
     bits: Option<Vec<u64>>,
