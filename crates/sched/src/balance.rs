@@ -382,7 +382,10 @@ impl<C: Clock> Sched<C> {
                 {
                     balanced = true;
                 } else {
-                    imbalance = ((busiest_load - avg).min(avg - local_load)) as i64;
+                    // O busiest é escolhido pelo tipo antes da carga, então outra CPU mais carregada
+                    // pode pôr a média acima dele. No kernel as cargas são unsigned long e a subtração
+                    // dá a volta, deixando o min com o outro termo.
+                    imbalance = (busiest_load.wrapping_sub(avg).min(avg - local_load)) as i64;
                     balanced = imbalance <= 0;
                 }
             }
