@@ -51,6 +51,7 @@ pub enum ZeroWidthMarks {
 pub enum ShaperKind {
     Default,
     Arabic,
+    Hebrew,
 }
 
 /// `hb_ot_shaper_t`: as propriedades que o pipeline consulta.
@@ -75,8 +76,14 @@ pub const SHAPER_DEFAULT: Shaper = Shaper {
 /// `_hb_ot_shaper_arabic`.
 pub const SHAPER_ARABIC: Shaper = Shaper { kind: ShaperKind::Arabic, ..SHAPER_DEFAULT };
 
-/// `hb_ot_shaper_categorize`. Dos scripts complexos, só o árabe foi traduzido até aqui.
+/// `_hb_ot_shaper_hebrew`.
+pub const SHAPER_HEBREW: Shaper = Shaper { kind: ShaperKind::Hebrew, gpos_tag: tag(b"hebr"), ..SHAPER_DEFAULT };
+
+/// `hb_ot_shaper_categorize`. Dos scripts complexos, o árabe e o hebraico foram traduzidos.
 fn categorize(script: u32, direction: Direction, gsub_script: u32) -> Shaper {
+    if script == tag(b"Hebr") {
+        return SHAPER_HEBREW;
+    }
     if (script == tag(b"Arab") || script == tag(b"Syrc"))
         && (gsub_script != tag(b"DFLT") || script == tag(b"Arab"))
         && direction.is_horizontal()
@@ -614,9 +621,16 @@ fn substitute_pre(plan: &Plan, font: &Font, buffer: &mut Buffer, target_directio
     // `hb_ot_substitute_default`.
     rotate_chars(plan, font, buffer, target_direction);
     let arabic_reorder = |b: &mut Buffer, s: usize, e: usize| crate::arabic::reorder_marks(b, s, e);
-    let reorder_marks: Option<&dyn Fn(&mut Buffer, usize, usize)> =
-        if plan.shaper.kind == ShaperKind::Arabic { Some(&arabic_reorder) } else { None };
-    let hooks = Hooks { decompose: None, compose: None, reorder_marks };
+    let hebrew_reorder = |b: &mut Buffer, s: usize, e: usize| crate::hebrew::reorder_marks(b, s, e);
+    let has_gpos_mark = plan.has_gpos_mark;
+    let hebrew_compose = move |a: u32, b: u32| crate::hebrew::compose(a, b, has_gpos_mark);
+    let (reorder_marks, compose): (Option<&dyn Fn(&mut Buffer, usize, usize)>, Option<&dyn Fn(u32, u32) -> Option<u32>>) =
+        match plan.shaper.kind {
+            ShaperKind::Arabic => (Some(&arabic_reorder), None),
+            ShaperKind::Hebrew => (Some(&hebrew_reorder), Some(&hebrew_compose)),
+            ShaperKind::Default => (None, None),
+        };
+    let hooks = Hooks { decompose: None, compose, reorder_marks };
     normalize::normalize(buffer, font, plan.shaper.normalization, &hooks);
     setup_masks(plan, buffer);
     if plan.fallback_mark_positioning {

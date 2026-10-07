@@ -11,6 +11,7 @@ pub mod font;
 pub mod gpos;
 pub mod gsub;
 pub mod gsubgpos;
+pub mod hebrew;
 pub mod lang;
 mod lang_table;
 pub mod map;

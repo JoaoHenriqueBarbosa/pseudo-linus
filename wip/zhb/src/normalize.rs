@@ -31,7 +31,7 @@ fn decompose_unicode(ab: u32) -> Option<(u32, u32)> {
 }
 
 /// `hb_unicode_funcs_t::compose`: falha com qualquer um dos dois nulo.
-fn compose_unicode(a: u32, b: u32) -> Option<u32> {
+pub(crate) fn compose_unicode(a: u32, b: u32) -> Option<u32> {
     if a == 0 || b == 0 {
         return None;
     }
