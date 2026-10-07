@@ -152,6 +152,12 @@ The next step turns Plinus from a reimplemented Debian into a Debian that inheri
 
 Each phase ends where the rest of the project ends: on the scoreboard, against the oracle.
 
+## About the name
+
+*Pseudo-Linus* already existed, about sixteen centuries before this repository. It is what scholars call the anonymous author of two Latin texts on the martyrdoms of the apostles, the *Passio sancti Petri* and the *Martyrium beati Pauli apostoli*, attributed to Linus, whom tradition counts as Peter's first successor as bishop of Rome. Both are reworkings of the apocryphal Acts of Peter and Acts of Paul, and Linus's name was put on them for authority: an account of the martyrdom written by the man who would have lived alongside both apostles in Rome carried far more weight. The *Martyrium Pauli* is the source of the scene of Plautilla, the Roman matron who lends Paul her veil to cover his eyes before the beheading and receives it back, bloodied, from the apostle himself after his death.
+
+The *pseudo* means the same thing in both cases: a work that presents itself as Linus's without being his. The ancient text imitates Linus's voice to seem authentic; this one imitates Linus Torvalds's kernel. The ancient one was eventually unmasked by philology. This one runs every case against the oracle so that it never is.
+
 ## Documents
 
 - [`docs/design.md`](docs/design.md): architecture and decisions.
