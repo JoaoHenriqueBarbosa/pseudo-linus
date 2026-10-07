@@ -2,6 +2,8 @@
 
 
 class memoryview:
+    __module__ = 'builtins'
+
     def __init__(self, obj):
         if isinstance(obj, memoryview):
             self._base = obj._base

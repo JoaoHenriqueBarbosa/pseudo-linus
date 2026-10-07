@@ -240,3 +240,26 @@ for f in (math.fma, math.ulp, math.sqrt, math.gcd, binascii.crc32, unicodedata.n
 PYEOF
 '''
 tags = ["error"]
+
+[[case]]
+id = "builtin-iterator-types-and-docs"
+script = '''
+python3 - <<'PYEOF'
+for t in (map, filter, zip, enumerate, reversed, property, staticmethod, classmethod, super):
+    print(t, type(t), isinstance(t, type), t.__name__)
+print(type(map(len, [])), type(zip()), type(enumerate([])), type(reversed([])), isinstance(zip(), zip), isinstance(map(len, []), map))
+r = reversed([1, 2, 3]); print(type(r).__name__, next(r), r.__length_hint__(), list(r), next(reversed("ab")))
+print([type(reversed(x)).__name__ for x in ([1], (1,), "a", b"a", range(2), {1: 2}, bytearray(b"a"))])
+class S:
+    def __len__(self): return 3
+    def __getitem__(self, i): return i * 10
+print(type(reversed(S())).__name__, list(reversed(S())))
+try: reversed(5)
+except TypeError as e: print(e)
+for t in (str, int, list, dict, object, type, float, bytes, tuple, set, frozenset, bool, range, slice, map, zip, property, super, memoryview, bytearray, complex):
+    print(t.__name__, repr(t.__doc__)[:40])
+m = memoryview(b"ab")
+print(memoryview, memoryview.__module__, type(m), m.__class__.__module__, m.__class__.__mro__)
+PYEOF
+'''
+tags = ["error"]

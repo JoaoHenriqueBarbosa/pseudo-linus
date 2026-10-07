@@ -2934,7 +2934,7 @@ impl Vm {
                 }
             }
             Value::Builtin("object")
-                if !matches!(name, "__name__" | "__qualname__" | "__mro__" | "__bases__" | "__module__") =>
+                if !matches!(name, "__name__" | "__qualname__" | "__mro__" | "__bases__" | "__module__" | "__doc__") =>
             {
                 if let Some(v) = crate::typeattrs::object_attr(name) {
                     return Ok(v);
@@ -2980,12 +2980,16 @@ impl Vm {
                 return Ok(Value::NativeFn(Rc::new(crate::object::NativeFn { name: "__new__", f: crate::classes::type_new })));
             }
             Value::Builtin(_) if name == "__module__" => return Ok(Value::str("builtins")),
-            Value::Builtin(b) if name == "__doc__" && !crate::object::is_builtin_type(b) => {
+            // Funções e tipos embutidos: a docstring do CPython (`builtins` na tabela).
+            Value::Builtin(b) if name == "__doc__" => {
                 return Ok(crate::modules::cpydocs::builtin_doc(b).map_or(Value::None, Value::str));
             }
-            Value::Builtin(_) if name == "__doc__" => return Ok(Value::None),
             Value::NativeFn(f) if name == "__doc__" => {
-                return Ok(crate::modules::cpydocs::native_doc(f).map_or(Value::None, Value::str));
+                let doc = crate::modules::cpydocs::native_doc(f).or_else(|| {
+                    let is_type = crate::typeattrs::is_type_name(f.name) || crate::object::is_builtin_type(f.name);
+                    is_type.then(|| crate::modules::cpydocs::builtin_doc(f.name)).flatten()
+                });
+                return Ok(doc.map_or(Value::None, Value::str));
             }
             Value::NativeFn(f) => {
                 if let Some(v) = crate::typeattrs::type_attr(f.name, name) {

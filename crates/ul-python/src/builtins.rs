@@ -134,8 +134,10 @@ pub(crate) const TYPE_NAMES: &[&str] = &[
 ];
 
 /// Tipos que só existem como o resultado de `type(valor)` (`type(f)`, `type(sys)`...).
-const PSEUDO_TYPES: &[&str] =
-    &["function", "module", "generator", "builtin_function_or_method", "method", "dict_keys", "dict_values", "dict_items", "coroutine", "async_generator", "coroutine_wrapper"];
+const PSEUDO_TYPES: &[&str] = &[
+    "function", "module", "generator", "builtin_function_or_method", "method", "dict_keys", "dict_values", "dict_items", "coroutine",
+    "async_generator", "coroutine_wrapper", "map", "filter", "zip", "enumerate", "reversed",
+];
 
 /// Nome da classe embutida representada por `v` (`Builtin` ou `NativeFn` de tipo), se for uma.
 pub(crate) fn class_name(v: &Value) -> Option<&'static str> {
@@ -148,7 +150,7 @@ pub(crate) fn class_name(v: &Value) -> Option<&'static str> {
             }
         }
         Value::NativeFn(f) => {
-            if TYPE_NAMES.contains(&f.name) {
+            if TYPE_NAMES.contains(&f.name) || PSEUDO_TYPES.contains(&f.name) {
                 Some(f.name)
             } else {
                 None
@@ -204,7 +206,7 @@ fn isinstance_check(v: &Value, cls: &Value) -> PyResult<bool> {
         return Ok(match v {
             Value::Class(_) => true,
             Value::Builtin(n) => crate::object::is_builtin_type(n) || *n == "object" || *n == "type",
-            Value::NativeFn(f) => crate::typeattrs::is_type_name(f.name),
+            Value::NativeFn(f) => crate::typeattrs::is_type_name(f.name) || crate::object::is_builtin_type(f.name),
             _ => false,
         });
     }
@@ -542,9 +544,8 @@ fn b_reversed(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         // Subclasse de `list`/`tuple`/`str`: inverte o conteúdo guardado.
         let payload = inst.payload.borrow().clone();
         if let Some(p @ (Value::List(_) | Value::Tuple(_) | Value::Str(_) | Value::Bytes(_) | Value::ByteArray(_))) = payload {
-            let mut items = iterate(&p)?;
-            items.reverse();
-            return Ok(Value::list(items));
+            let kind = if matches!(p, Value::List(_)) { "list_reverseiterator" } else { "reversed" };
+            return Ok(crate::lazy::ReversedIter::new(kind, iterate(&p)?));
         }
         // Protocolo de sequência: `__len__` e `__getitem__`.
         if inst.class.lookup("__len__").is_some() && inst.class.lookup("__getitem__").is_some() {
@@ -552,18 +553,22 @@ fn b_reversed(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
             let getitem = vm.getattr(&v, "__getitem__")?;
             let mut out = Vec::new();
             if let Value::Int(n) = n {
-                for i in (0..n).rev() {
+                for i in 0..n {
                     out.push(vm.call_value(&getitem, vec![Value::Int(i)], Vec::new())?);
                 }
             }
-            return Ok(Value::list(out));
+            return Ok(crate::lazy::ReversedIter::new("reversed", out));
         }
     }
     match &v {
         Value::List(_) | Value::Tuple(_) | Value::Str(_) | Value::Range(_) | Value::Bytes(_) | Value::ByteArray(_) | Value::Dict(_) => {
-            let mut items = iterate(&v)?;
-            items.reverse();
-            Ok(Value::list(items))
+            let kind = match &v {
+                Value::List(_) => "list_reverseiterator",
+                Value::Range(_) => "range_iterator",
+                Value::Dict(_) => "dict_reversekeyiterator",
+                _ => "reversed",
+            };
+            Ok(crate::lazy::ReversedIter::new(kind, iterate(&v)?))
         }
         other => Err(type_error(format!("'{}' object is not reversible", other.type_name()))),
     }

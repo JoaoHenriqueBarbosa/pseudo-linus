@@ -289,3 +289,49 @@ impl ExtObject for EnumerateIter {
         }
     }
 }
+
+/// `reversed(seq)`: os itens de trás para a frente. O tipo é o que o CPython dá para cada origem
+/// (`list_reverseiterator`, `range_iterator`, `dict_reversekeyiterator` ou o `reversed` genérico).
+pub struct ReversedIter {
+    kind: &'static str,
+    items: Vec<Value>,
+    next: Cell<usize>,
+}
+
+impl ReversedIter {
+    pub fn new(kind: &'static str, mut items: Vec<Value>) -> Value {
+        items.reverse();
+        Value::Ext(std::rc::Rc::new(ReversedIter { kind, items, next: Cell::new(0) }))
+    }
+}
+
+impl ExtObject for ReversedIter {
+    fn type_name(&self) -> &'static str {
+        self.kind
+    }
+    fn repr(&self) -> String {
+        format!("<{} object at {:#x}>", self.kind, crate::object::py_addr(self as *const ReversedIter as usize))
+    }
+    fn methods(&self) -> &'static [&'static str] {
+        &["__length_hint__", "__next__"]
+    }
+    fn is_iterable(&self) -> bool {
+        true
+    }
+    fn iter_next(&self) -> PyResult<Option<Value>> {
+        let i = self.next.get();
+        let Some(v) = self.items.get(i) else { return Ok(None) };
+        self.next.set(i + 1);
+        Ok(Some(v.clone()))
+    }
+    fn call_method(&self, _vm: &mut Vm, name: &str, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+        match name {
+            "__next__" => match self.iter_next()? {
+                Some(v) => Ok(v),
+                None => stop(self.kind, name),
+            },
+            "__length_hint__" => Ok(Value::Int((self.items.len() - self.next.get().min(self.items.len())) as i64)),
+            _ => Err(attr_error(self.kind, name)),
+        }
+    }
+}
