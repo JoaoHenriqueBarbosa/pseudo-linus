@@ -37,6 +37,12 @@ pub struct CodecState {
 }
 
 impl CodecState {
+    /// Erro do codec: guarda o código e devolve o -1 que o chamador retorna.
+    fn fail(&mut self, code: i32) -> i32 {
+        self.errcode = code;
+        -1
+    }
+
     pub fn new(shuffle: Shuffle, bits: i32) -> CodecState {
         CodecState {
             count: 0,
@@ -103,8 +109,7 @@ impl RawDecoder {
             if self.stride != 0 {
                 self.skip = self.stride - st.bytes;
                 if self.skip < 0 {
-                    st.errcode = CODEC_CONFIG;
-                    return -1;
+                    return st.fail(CODEC_CONFIG);
                 }
             } else {
                 self.skip = 0;
@@ -150,8 +155,7 @@ pub fn raw_encode(im: &Image, st: &mut CodecState, buf: &mut [u8]) -> i32 {
         if st.count > 0 {
             let bytes = st.count;
             if st.count < st.bytes {
-                st.errcode = CODEC_CONFIG;
-                return -1;
+                return st.fail(CODEC_CONFIG);
             }
             st.count = st.bytes;
             st.bytes = bytes;
@@ -285,14 +289,12 @@ impl ZipDecoder {
                 Ok(Status::StreamEnd) => true,
                 Ok(Status::Ok) => false,
                 Ok(Status::BufError) => {
-                    st.errcode = CODEC_CONFIG;
                     self.z = None;
-                    return -1;
+                    return st.fail(CODEC_CONFIG);
                 }
                 Err(_) => {
-                    st.errcode = CODEC_BROKEN;
                     self.z = None;
-                    return -1;
+                    return st.fail(CODEC_BROKEN);
                 }
             };
             let n = self.last_output + produced;
@@ -306,9 +308,8 @@ impl ZipDecoder {
                 break;
             }
             if !self.unfilter(st, row_len) {
-                st.errcode = CODEC_UNKNOWN;
                 self.z = None;
-                return -1;
+                return st.fail(CODEC_UNKNOWN);
             }
             if self.interlaced {
                 let pass = self.pass;
@@ -491,30 +492,26 @@ impl ZipEncoder {
                 3 => Strategy::Rle,
                 4 => Strategy::Fixed,
                 _ => {
-                    st.errcode = CODEC_CONFIG;
-                    return -1;
+                    return st.fail(CODEC_CONFIG);
                 }
             };
             match Deflate::new(level, 15, 9, strategy) {
                 Ok(z) => self.z = Some(z),
                 Err(_) => {
-                    st.errcode = CODEC_CONFIG;
-                    return -1;
+                    return st.fail(CODEC_CONFIG);
                 }
             }
             if self.dictionary.as_ref().is_some_and(|d| !d.is_empty()) {
                 // O zdeflate não implementa `deflateSetDictionary`; nenhum plugin embutido passa dicionário.
-                st.errcode = CODEC_CONFIG;
-                return -1;
+                return st.fail(CODEC_CONFIG);
             }
             st.state = 1;
         }
         let mut w = 0usize;
         if self.pending_pos < self.pending.len() {
             if let Err(e) = self.feed(out, &mut w) {
-                st.errcode = e;
                 self.z = None;
-                return -1;
+                return st.fail(e);
             }
         }
         if st.state == 1 {
@@ -531,9 +528,8 @@ impl ZipEncoder {
                 self.pending = line;
                 self.pending_pos = 0;
                 if let Err(e) = self.feed(out, &mut w) {
-                    st.errcode = e;
                     self.z = None;
-                    return -1;
+                    return st.fail(e);
                 }
                 std::mem::swap(&mut self.buffer, &mut self.previous);
             }
@@ -588,8 +584,7 @@ impl JpegEncoder {
                 32 if self.rawmode == "RGBX" => zjpeg::InputSpace::Rgb,
                 32 => zjpeg::InputSpace::Cmyk,
                 _ => {
-                    st.errcode = CODEC_CONFIG;
-                    return -1;
+                    return st.fail(CODEC_CONFIG);
                 }
             };
             let rgbx = self.rawmode == "RGBX";
@@ -611,12 +606,10 @@ impl JpegEncoder {
             match zjpeg::encode(&o, &pixels) {
                 Ok(b) => self.out = b,
                 Err(zjpeg::EncodeError::Config) => {
-                    st.errcode = CODEC_CONFIG;
-                    return -1;
+                    return st.fail(CODEC_CONFIG);
                 }
                 Err(_) => {
-                    st.errcode = CODEC_BROKEN;
-                    return -1;
+                    return st.fail(CODEC_BROKEN);
                 }
             }
         }
@@ -689,8 +682,7 @@ impl JpegDecoder {
             Ok(d) => d,
             Err(zjpeg::Error::Truncated) => return buf.len() as i32,
             Err(_) => {
-                st.errcode = CODEC_BROKEN;
-                return -1;
+                return st.fail(CODEC_BROKEN);
             }
         };
         // O `RGBX` das extensões do libjpeg-turbo: quatro bytes por pixel com o quarto em 255.
