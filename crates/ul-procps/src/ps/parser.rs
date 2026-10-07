@@ -232,42 +232,25 @@ impl Ps {
         Ok(Sel::Num(num))
     }
 
-    fn parse_uid(&mut self, s: &[u8]) -> Result<Sel, String> {
+    /// Um usuário (`GROUP` falso) ou grupo da lista, por número ou nome.
+    fn parse_id<const GROUP: bool>(&mut self, s: &[u8]) -> Result<Sel, String> {
+        let what = if GROUP { "group" } else { "user" };
         let (mut num, used) = strtoul0(s);
         if used != s.len() {
             let name = String::from_utf8_lossy(s).into_owned();
-            match self.names.uid_of(&name) {
-                Some(u) => num = u64::from(u),
+            let id = if GROUP { self.names.gid_of(&name) } else { self.names.uid_of(&name) };
+            match id {
+                Some(id) => num = u64::from(id),
                 None => {
                     if !self.negate_selection {
-                        return Err("user name does not exist".into());
+                        return Err(format!("{what} name does not exist"));
                     }
                     num = u64::MAX;
                 }
             }
         }
         if !self.negate_selection && num > 0xffff_fffe {
-            return Err("user ID out of range".into());
-        }
-        Ok(Sel::Num(u64::from(num as u32)))
-    }
-
-    fn parse_gid(&mut self, s: &[u8]) -> Result<Sel, String> {
-        let (mut num, used) = strtoul0(s);
-        if used != s.len() {
-            let name = String::from_utf8_lossy(s).into_owned();
-            match self.names.gid_of(&name) {
-                Some(g) => num = u64::from(g),
-                None => {
-                    if !self.negate_selection {
-                        return Err("group name does not exist".into());
-                    }
-                    num = u64::MAX;
-                }
-            }
-        }
-        if !self.negate_selection && num > 0xffff_fffe {
-            return Err("group ID out of range".into());
+            return Err(format!("{what} ID out of range"));
         }
         Ok(Sel::Num(u64::from(num as u32)))
     }
@@ -438,7 +421,7 @@ impl Ps {
                     self.format_flags |= FF_UF;
                     self.unix_f_option = true;
                 }
-                b'G' => return self.opt_list(&a, Short(i), "list of real groups must follow -G", Ps::parse_gid, SEL_RGID),
+                b'G' => return self.opt_list(&a, Short(i), "list of real groups must follow -G", Ps::parse_id::<true>, SEL_RGID),
                 b'H' => self.forest_type = b'u',
                 b'L' => self.thread_flags |= TF_U_L,
                 b'M' => self.format_modifiers |= FM_M,
@@ -446,7 +429,7 @@ impl Ps {
                 b'O' => return self.opt_format(&a, Short(i), "format or sort specification must follow -O", SF_U_O_UP),
                 b'P' => self.format_modifiers |= FM_P,
                 b'T' => self.thread_flags |= TF_U_T,
-                b'U' => return self.opt_list(&a, Short(i), "list of real users must follow -U", Ps::parse_uid, SEL_RUID),
+                b'U' => return self.opt_list(&a, Short(i), "list of real users must follow -U", Ps::parse_id::<false>, SEL_RUID),
                 b'V' => return self.version_exit("-V"),
                 b'Z' => self.format_modifiers |= FM_M,
                 b'a' => self.simple_select |= SS_U_A,
@@ -463,7 +446,7 @@ impl Ps {
                         self.selection_list[0].typecode = SEL_SESS;
                         return Ok(());
                     }
-                    if self.parse_list(&arg, Ps::parse_gid).is_ok() {
+                    if self.parse_list(&arg, Ps::parse_id::<true>).is_ok() {
                         self.selection_list[0].typecode = SEL_EGID;
                         return Ok(());
                     }
@@ -483,7 +466,7 @@ impl Ps {
                 b'q' => return self.opt_list(&a, Short(i), "List of process IDs must follow -q.", Ps::parse_pid, SEL_PID_QUICK),
                 b's' => return self.opt_list(&a, Short(i), "list of session IDs must follow -s", Ps::parse_pid, SEL_SESS),
                 b't' => return self.opt_list(&a, Short(i), "list of terminals (pty, tty...) must follow -t", Ps::parse_tty, SEL_TTY),
-                b'u' => return self.opt_list(&a, Short(i), "list of users must follow -u", Ps::parse_uid, SEL_EUID),
+                b'u' => return self.opt_list(&a, Short(i), "list of users must follow -u", Ps::parse_id::<false>, SEL_EUID),
                 b'w' => self.w_count += 1,
                 b'x' => {
                     if self.personality & PER_SVR4_X != 0 {
@@ -538,7 +521,7 @@ impl Ps {
                 b'O' => return self.opt_format(&a, Short(i), "format or sort specification must follow O", SF_B_O_UP),
                 b'S' => self.include_dead_children = true,
                 b'T' => self.own_tty(),
-                b'U' => return self.opt_list(&a, Short(i), "list of users must follow U", Ps::parse_uid, SEL_EUID),
+                b'U' => return self.opt_list(&a, Short(i), "list of users must follow U", Ps::parse_id::<false>, SEL_EUID),
                 b'V' => return self.version_exit("V"),
                 b'W' => return Err(msg("obsolete W option not supported (you have a /dev/drum?)")),
                 b'X' => self.format_flags |= FF_LX,
@@ -642,8 +625,8 @@ impl Ps {
             return Err(msg("unknown gnu long option"));
         }
         match name.as_str() {
-            "Group" => self.opt_list(&a, Gnu(pos), "list of real groups must follow --Group", Ps::parse_gid, SEL_RGID),
-            "User" => self.opt_list(&a, Gnu(pos), "list of real users must follow --User", Ps::parse_uid, SEL_RUID),
+            "Group" => self.opt_list(&a, Gnu(pos), "list of real groups must follow --Group", Ps::parse_id::<true>, SEL_RGID),
+            "User" => self.opt_list(&a, Gnu(pos), "list of real users must follow --User", Ps::parse_id::<false>, SEL_RUID),
             "cols" | "width" | "columns" | "rows" | "lines" => {
                 let rows = name == "rows" || name == "lines";
                 if let Some(arg) = self.grab_gnu_arg(&a, pos)
@@ -688,7 +671,7 @@ impl Ps {
                 Ok(())
             }
             "format" => self.opt_format(&a, Gnu(pos), "format specification must follow --format", SF_G_FORMAT),
-            "group" => self.opt_list(&a, Gnu(pos), "list of effective groups must follow --group", Ps::parse_gid, SEL_EGID),
+            "group" => self.opt_list(&a, Gnu(pos), "list of effective groups must follow --group", Ps::parse_id::<true>, SEL_EGID),
             "info" => {
                 self.exclusive("--info")?;
                 self.self_info();
@@ -704,7 +687,7 @@ impl Ps {
             }
             "sort" => self.opt_format(&a, Gnu(pos), "long sort specification must follow --sort", SF_G_SORT),
             "tty" => self.opt_list(&a, Gnu(pos), "list of ttys must follow --tty", Ps::parse_tty, SEL_TTY),
-            "user" => self.opt_list(&a, Gnu(pos), "list of effective users must follow --user", Ps::parse_uid, SEL_EUID),
+            "user" => self.opt_list(&a, Gnu(pos), "list of effective users must follow --user", Ps::parse_id::<false>, SEL_EUID),
             "version" => self.version_exit("--version"),
             "context" => {
                 self.format_flags |= FF_FC;
