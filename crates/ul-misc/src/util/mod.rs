@@ -2,14 +2,16 @@
 //! largura de exibição.
 
 pub mod fnmatch;
-pub mod getopt;
 pub mod io;
 pub mod md5;
 pub mod time;
 pub mod tzif;
 pub mod ul;
 
-pub use getopt::{Getopt, GetoptError, HasArg, LongOpt, Opt};
+// O `getopt_long` mora no `ul-common`; o caminho `util::getopt` segue valendo pros programas daqui e
+// do `ul-procps`.
+pub use ul_common::getopt;
+pub use ul_common::getopt::{Getopt, GetoptError, HasArg, LongOpt, Opt};
 
 /// Largura de exibição de um texto UTF-8 em C.UTF-8 (o `wcswidth` da glibc): caractere de controle
 /// conta 0 aqui, quem precisa de outra regra trata antes.

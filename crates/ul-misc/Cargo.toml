@@ -9,6 +9,7 @@ description = "Ferramentas diversas do pseudo-linus: bc, dc, file, column, tree,
 
 [dependencies]
 sysabi.workspace = true
+ul-common = { workspace = true }
 # Fachada com a forma do std: stdout com a bufferização da glibc, /etc/passwd do sandbox, Command.
 sysio.workspace = true
 # run-parts: as ERE dos filtros de nome (regcomp do glibc).

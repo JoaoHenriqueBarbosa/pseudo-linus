@@ -10,8 +10,9 @@
 use std::ffi::OsString;
 
 use sysabi::{AtFlags, Ctx, Errno, Fd, FileType, Whence};
+use ul_common::getopt::{Getopt, HasArg, Item, LongOpt};
+use ul_common::quote::cat_v;
 
-use crate::getopt::{Getopt, HasArg, Item, LongOpt};
 use crate::sysutil::{self, Output};
 
 const HELP: &str = r#"Usage: cmp [OPTION]... FILE1 [FILE2 [SKIP1 [SKIP2]]]
@@ -52,18 +53,18 @@ There is NO WARRANTY, to the extent permitted by law.
 Written by Torbjörn Granlund and David MacKenzie.
 ";
 
-const HELP_ID: u32 = 1000;
+const HELP_ID: i32 = 1000;
 
 const LONGS: &[LongOpt] = &[
-    LongOpt::new("bytes", HasArg::Required, b'n' as u32),
+    LongOpt::new("bytes", HasArg::Required, b'n' as i32),
     LongOpt::new("help", HasArg::No, HELP_ID),
-    LongOpt::new("ignore-initial", HasArg::Required, b'i' as u32),
-    LongOpt::new("print-bytes", HasArg::No, b'b' as u32),
-    LongOpt::new("print-chars", HasArg::No, b'c' as u32),
-    LongOpt::new("quiet", HasArg::No, b's' as u32),
-    LongOpt::new("silent", HasArg::No, b's' as u32),
-    LongOpt::new("verbose", HasArg::No, b'l' as u32),
-    LongOpt::new("version", HasArg::No, b'v' as u32),
+    LongOpt::new("ignore-initial", HasArg::Required, b'i' as i32),
+    LongOpt::new("print-bytes", HasArg::No, b'b' as i32),
+    LongOpt::new("print-chars", HasArg::No, b'c' as i32),
+    LongOpt::new("quiet", HasArg::No, b's' as i32),
+    LongOpt::new("silent", HasArg::No, b's' as i32),
+    LongOpt::new("verbose", HasArg::No, b'l' as i32),
+    LongOpt::new("version", HasArg::No, b'v' as i32),
 ];
 
 /// Número com base do C e sufixos multiplicativos (`kB` 1000, `K`/`KiB` 1024, `MB`, `M`...). `None`
@@ -120,25 +121,6 @@ pub fn parse_number(s: &[u8]) -> Option<u64> {
         }
     }
     Some(v as u64)
-}
-
-/// Caractere no estilo `cat -v`: `^A`, `^?`, `M-^@`, `M-a`.
-fn printable(c: u8) -> String {
-    let mut s = String::new();
-    let mut c = c;
-    if c >= 0x80 {
-        s.push_str("M-");
-        c -= 0x80;
-    }
-    if c < 0x20 {
-        s.push('^');
-        s.push((c + 0x40) as char);
-    } else if c == 0x7f {
-        s.push_str("^?");
-    } else {
-        s.push(c as char);
-    }
-    s
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -201,7 +183,7 @@ pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     let mut limit: Option<u64> = None;
     let mut skip: [Option<u64>; 2] = [None, None];
     let mut operands: Vec<Vec<u8>> = Vec::new();
-    for item in Getopt::from_env(&argv, "bci:ln:sv", LONGS) {
+    for item in Getopt::from_env(&argv, "bci:ln:sv", LONGS).after_argv0() {
         let opt = match item {
             Ok(Item::Operand(v)) => {
                 operands.push(v);
@@ -209,15 +191,15 @@ pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
             }
             Ok(Item::Opt(o)) => o,
             Err(e) => {
-                sysutil::eprint(e.message_bytes(&argv0));
+                sysutil::eprint(e.message_line(&argv0));
                 sysutil::eprint(format!("{argv0}: Try '{argv0} --help' for more information.\n"));
                 return 2;
             }
         };
         let arg = opt.arg.clone().unwrap_or_default();
         match opt.id {
-            x if x == b'b' as u32 || x == b'c' as u32 => print_bytes = true,
-            x if x == b'i' as u32 => {
+            x if x == b'b' as i32 || x == b'c' as i32 => print_bytes = true,
+            x if x == b'i' as i32 => {
                 let bad = || format!("invalid --ignore-initial value '{}'", String::from_utf8_lossy(&arg));
                 let (s1, s2) = match arg.iter().position(|&b| b == b':') {
                     Some(p) => (parse_number(&arg[..p]), Some(parse_number(&arg[p + 1..]))),
@@ -229,13 +211,13 @@ pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
                     _ => return try_help(&bad()),
                 }
             }
-            x if x == b'l' as u32 => verbose = true,
-            x if x == b'n' as u32 => match parse_number(&arg) {
+            x if x == b'l' as i32 => verbose = true,
+            x if x == b'n' as i32 => match parse_number(&arg) {
                 Some(n) => limit = Some(n),
                 None => return try_help(&format!("invalid --bytes value '{}'", String::from_utf8_lossy(&arg))),
             },
-            x if x == b's' as u32 => silent = true,
-            x if x == b'v' as u32 => {
+            x if x == b's' as i32 => silent = true,
+            x if x == b'v' as i32 => {
                 let mut out = Output::stdout();
                 out.write_str(VERSION);
                 return if out.finish().is_ok() { 0 } else { 2 };
@@ -439,9 +421,9 @@ fn run(argv0: &str, kind: Kind, print_bytes: bool, limit: Option<u64>, names: &[
                             format!(
                                 "{pos:>width$} {:>3o} {:<4} {:>3o} {}\n",
                                 a[i],
-                                printable(a[i]),
+                                cat_v(a[i]),
                                 b[i],
-                                printable(b[i])
+                                cat_v(b[i])
                             )
                         } else {
                             format!("{pos:>width$} {:>3o} {:>3o}\n", a[i], b[i])
@@ -467,7 +449,7 @@ fn run(argv0: &str, kind: Kind, print_bytes: bool, limit: Option<u64>, names: &[
                     String::from_utf8_lossy(&names[1])
                 );
                 if print_bytes {
-                    msg.push_str(&format!(" is {:>3o} {} {:>3o} {}", a[i], printable(a[i]), b[i], printable(b[i])));
+                    msg.push_str(&format!(" is {:>3o} {} {:>3o} {}", a[i], cat_v(a[i]), b[i], cat_v(b[i])));
                 }
                 msg.push('\n');
                 out.write_str(&msg);
@@ -515,14 +497,5 @@ mod tests {
         assert_eq!(parse_number(b"1E"), Some(1 << 60));
         assert_eq!(parse_number(b"-1"), None);
         assert_eq!(parse_number(b"0x"), None);
-    }
-
-    #[test]
-    fn cat_v_style() {
-        assert_eq!(printable(1), "^A");
-        assert_eq!(printable(0x7f), "^?");
-        assert_eq!(printable(0x80), "M-^@");
-        assert_eq!(printable(0xff), "M-^?");
-        assert_eq!(printable(b'x'), "x");
     }
 }

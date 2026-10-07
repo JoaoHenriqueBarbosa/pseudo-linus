@@ -14,6 +14,7 @@ use rusqlite::Connection;
 use rusqlite::functions::{Context, FunctionFlags};
 use rusqlite::types::{Value, ValueRef};
 use sysabi::{Clock, sys};
+use ul_common::time::Civil;
 
 use super::{fmt_real, sqlite_printf};
 use crate::unwind;
@@ -459,29 +460,12 @@ fn compute_ymd_hms(p: &mut DateTime) {
     compute_hms(p);
 }
 
-/// Dias desde 1970-01-01 pra uma data civil (proleptic gregorian).
-fn civil_from_days(z: i64) -> (i64, u32, u32) {
-    let z = z + 719_468;
-    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
-    let doe = z - era * 146_097;
-    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146_096) / 365;
-    let y = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
-    (if m <= 2 { y + 1 } else { y }, m, d)
-}
-
 /// `localtime_r` com o fuso do sandbox: (ano, mês, dia, hora, minuto, segundo).
 fn os_localtime(t: i64) -> Option<(i64, u32, u32, u32, u32, u32)> {
     let ts = jiff::Timestamp::from_second(t).ok()?;
     let off = i64::from(sandbox_tz().to_offset(ts).seconds());
-    let local = t + off;
-    let days = local.div_euclid(86400);
-    let secs = local.rem_euclid(86400);
-    let (y, m, d) = civil_from_days(days);
-    Some((y, m, d, (secs / 3600) as u32, ((secs % 3600) / 60) as u32, (secs % 60) as u32))
+    let c = Civil::from_secs(t + off);
+    Some((c.year, c.mon as u32, c.mday as u32, c.hour as u32, c.min as u32, c.sec as u32))
 }
 
 /// `toLocaltime`. `Err` com a mensagem de erro da função.

@@ -1,14 +1,12 @@
 //! Opções: `envargs` (envargs.c), `uz_opts` (unzip.c) e `zi_opts` (zipinfo.c).
 
+use ul_common::ctype::is_space;
+
 use super::{MSG_STDERR, PK_OK, PK_PARAM, Uz, text};
 
 /// Resultado do parsing: `Ok(Some(resto))` com o arquivo zip e o que vem depois, `Ok(None)` quando a
 /// ação já foi feita (ajuda, versão) e `Err(código)` pra sair.
 pub type OptsResult = Result<Option<Vec<Vec<u8>>>, i32>;
-
-fn is_space(c: u8) -> bool {
-    matches!(c, b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r')
-}
 
 /// Põe as opções de `UNZIP` (ou `UNZIPOPT`; `ZIPINFO`/`ZIPINFOOPT` no zipinfo) logo depois do nome
 /// do programa.

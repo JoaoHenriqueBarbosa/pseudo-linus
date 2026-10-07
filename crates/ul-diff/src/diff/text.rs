@@ -68,7 +68,7 @@ impl Normalize {
 
 /// `isspace` do locale C, sem o `\n` (que é o terminador).
 pub fn is_space(b: u8) -> bool {
-    matches!(b, b' ' | b'\t' | b'\x0b' | b'\x0c' | b'\r')
+    b != b'\n' && ul_common::ctype::is_space(b)
 }
 
 fn expand_tabs(body: &[u8], tabsize: usize) -> Vec<u8> {

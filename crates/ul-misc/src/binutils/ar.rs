@@ -18,6 +18,8 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{Errno, OFlags, SetTime, TimeSpec, sys};
+use ul_common::fsutil::{after_last_slash, perm_string};
+use ul_common::time::Civil;
 
 use crate::strings::{TARGETS, expand_response_files};
 use crate::util::io::{self, File};
@@ -344,13 +346,6 @@ fn write_file(path: &[u8], data: &[u8]) -> Result<(), Errno> {
     f.write_all(data).map_err(|e| sysabi::Errno::from_io(&e))
 }
 
-fn basename(p: &[u8]) -> &[u8] {
-    match p.iter().rposition(|&b| b == b'/') {
-        Some(i) => &p[i + 1..],
-        None => p,
-    }
-}
-
 fn msg(prog: &str, parts: &[&[u8]]) {
     let mut m = format!("{prog}: ").into_bytes();
     for p in parts {
@@ -536,7 +531,7 @@ struct Ctx<'a> {
 
 impl Ctx<'_> {
     fn key<'b>(&self, name: &'b [u8]) -> &'b [u8] {
-        if self.f.full_path { name } else { basename(name) }
+        if self.f.full_path { name } else { after_last_slash(name) }
     }
 
     /// Índice do membro que casa com `name` (a n-ésima instância com `N`).
@@ -790,7 +785,7 @@ impl Ctx<'_> {
                     if self.f.verbose {
                         let line = format!(
                             "{} {}/{} {:>6} {} ",
-                            mode_string(m.mode),
+                            perm_string(m.mode as u32),
                             m.uid,
                             m.gid,
                             m.data.len(),
@@ -831,7 +826,7 @@ impl Ctx<'_> {
             path.extend_from_slice(d);
             path.push(b'/');
         }
-        path.extend_from_slice(basename(&m.name));
+        path.extend_from_slice(after_last_slash(&m.name));
         let mut f = File::open_with(
             &path,
             OFlags::WRONLY | OFlags::CREAT | OFlags::TRUNC,
@@ -916,49 +911,19 @@ pub fn ranlib_main(_ctx: &mut sysabi::Ctx, args: &[OsString]) -> i32 {
     })
 }
 
-fn mode_string(mode: u64) -> String {
-    let bits = [
-        (0o400, 'r'),
-        (0o200, 'w'),
-        (0o100, 'x'),
-        (0o040, 'r'),
-        (0o020, 'w'),
-        (0o010, 'x'),
-        (0o004, 'r'),
-        (0o002, 'w'),
-        (0o001, 'x'),
-    ];
-    bits.iter()
-        .map(|&(b, c)| if mode & b != 0 { c } else { '-' })
-        .collect()
-}
-
 /// `%b %e %H:%M %Y` em UTC.
 fn format_date(secs: u64) -> String {
     const MONTHS: [&str; 12] = [
         "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
     ];
-    let days = (secs / 86400) as i64;
-    let rem = secs % 86400;
-    let z = days + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z.rem_euclid(146_097);
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let mut year = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let day = doy - (153 * mp + 2) / 5 + 1;
-    let month = if mp < 10 { mp + 3 } else { mp - 9 };
-    if month <= 2 {
-        year += 1;
-    }
+    let c = Civil::from_days((secs / 86400) as i64, (secs % 86400) as i64);
     format!(
         "{} {:>2} {:02}:{:02} {}",
-        MONTHS[(month - 1) as usize],
-        day,
-        rem / 3600,
-        (rem % 3600) / 60,
-        year
+        MONTHS[(c.mon - 1) as usize],
+        c.mday,
+        c.hour,
+        c.min,
+        c.year
     )
 }
 
@@ -1006,6 +971,5 @@ mod tests {
     fn dates() {
         assert_eq!(format_date(0), "Jan  1 00:00 1970");
         assert_eq!(format_date(951_782_400), "Feb 29 00:00 2000");
-        assert_eq!(mode_string(0o644), "rw-r--r--");
     }
 }

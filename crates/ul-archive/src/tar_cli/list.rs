@@ -3,6 +3,7 @@
 //! crescendo conforme aparecem valores maiores (começa em 19 colunas).
 
 use jiff::tz::TimeZone;
+use ul_common::fsutil::mode_string;
 
 use super::member::{Kind, Member, Time};
 use super::quote::{self, Quoting};
@@ -119,31 +120,5 @@ impl Lister {
             _ => {}
         }
         out
-    }
-}
-
-/// `drwxr-xr-x` com setuid/setgid/sticky (`s`/`S`/`t`/`T`).
-pub fn mode_string(t: char, mode: u32) -> String {
-    let mut s: Vec<char> = vec![t];
-    for (bit, ch) in [(0o400, 'r'), (0o200, 'w'), (0o100, 'x'), (0o40, 'r'), (0o20, 'w'), (0o10, 'x'), (0o4, 'r'), (0o2, 'w'), (0o1, 'x')] {
-        s.push(if mode & bit != 0 { ch } else { '-' });
-    }
-    for (bit, idx, set, unset) in [(0o4000, 3, 's', 'S'), (0o2000, 6, 's', 'S'), (0o1000, 9, 't', 'T')] {
-        if mode & bit != 0 {
-            s[idx] = if s[idx] == 'x' { set } else { unset };
-        }
-    }
-    s.into_iter().collect()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn mode_strings() {
-        assert_eq!(mode_string('-', 0o4755), "-rwsr-xr-x");
-        assert_eq!(mode_string('d', 0o1777), "drwxrwxrwt");
-        assert_eq!(mode_string('-', 0o4644), "-rwSr--r--");
     }
 }

@@ -16,6 +16,7 @@
 //! o `posixrules` do `__tzfile_default`.
 
 use sysabi::{Errno, sys};
+use ul_common::time::{Civil, is_leap};
 
 use crate::util::io;
 
@@ -35,58 +36,19 @@ pub struct Tm {
     pub zone: Vec<u8>,
 }
 
-const SECS_PER_DAY: i128 = 86_400;
-
-/// Dias desde 1970-01-01 para uma data civil (calendário gregoriano proléptico).
-pub fn days_from_civil(y: i128, m: u32, d: u32) -> i128 {
-    let y = if m <= 2 { y - 1 } else { y };
-    let era = y.div_euclid(400);
-    let yoe = y - era * 400;
-    let m = i128::from(m);
-    let mp = (m + 9) % 12;
-    let doy = (153 * mp + 2) / 5 + i128::from(d) - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    era * 146_097 + doe - 719_468
-}
-
-fn civil_from_days(z: i128) -> (i128, u32, u32) {
-    let z = z + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z - era * 146_097;
-    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146_096) / 365;
-    let y = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = (if mp < 10 { mp + 3 } else { mp - 9 }) as u32;
-    (if m <= 2 { y + 1 } else { y }, m, d)
-}
-
-pub fn is_leap(y: i64) -> bool {
-    y % 4 == 0 && (y % 100 != 0 || y % 400 == 0)
-}
-
 /// O `__offtime` da glibc: `t + off` em hora civil; `None` quando o ano menos 1900 não cabe num
 /// `int` (o `EOVERFLOW` do original).
 pub fn offtime(t: i64, off: i64) -> Option<Tm> {
-    let total = i128::from(t) + i128::from(off);
-    let days = total.div_euclid(SECS_PER_DAY);
-    let rem = total.rem_euclid(SECS_PER_DAY) as u32;
-    let (y, m, d) = civil_from_days(days);
-    let tm_year = y - 1900;
-    if tm_year < i128::from(i32::MIN) || tm_year > i128::from(i32::MAX) {
-        return None;
-    }
-    let yday = (days - days_from_civil(y, 1, 1)) as u32;
+    let c = Civil::offtime(t, off)?;
     Some(Tm {
-        year: y as i64,
-        mon: m - 1,
-        mday: d,
-        hour: rem / 3600,
-        min: rem / 60 % 60,
-        sec: rem % 60,
-        wday: (days + 4).rem_euclid(7) as u32,
-        yday,
+        year: c.year,
+        mon: (c.mon - 1) as u32,
+        mday: c.mday as u32,
+        hour: c.hour as u32,
+        min: c.min as u32,
+        sec: c.sec as u32,
+        wday: c.wday as u32,
+        yday: c.yday as u32,
         isdst: 0,
         gmtoff: off,
         zone: Vec::new(),

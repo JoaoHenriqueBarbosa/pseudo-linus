@@ -9,6 +9,7 @@ description = "Coreutils 9.7 do pseudo-linus: fork por utilitário do uutils 0.1
 
 [dependencies]
 sysabi = { workspace = true }
+ul-common = { workspace = true }
 sysio = { workspace = true }
 uucore = { path = "vendor/src/uucore", package = "pl-uucore", features = [
     "backup-control", "buf-copy", "checksum", "colors", "encoding", "entries", "extendedbigdecimal",

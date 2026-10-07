@@ -12,6 +12,7 @@ use std::io::Write;
 
 use sysabi::sys;
 use sysabi::{Fd, OFlags};
+use ul_common::time::Civil;
 
 use crate::util::io;
 use crate::util::ul;
@@ -288,29 +289,15 @@ enum TimeFmt {
     Iso,
 }
 
-fn civil(days: i64) -> (i64, u32, u32) {
-    let z = days + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z.rem_euclid(146_097);
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let y = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
-    (if m <= 2 { y + 1 } else { y }, m, d)
-}
-
 fn fmt_time(secs: i64, fmt: TimeFmt) -> String {
     const WD: [&str; 7] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const MN: [&str; 12] = [
         "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
     ];
-    let days = secs.div_euclid(86_400);
-    let rem = secs.rem_euclid(86_400);
-    let (y, m, d) = civil(days);
-    let (hh, mm, ss) = (rem / 3600, rem % 3600 / 60, rem % 60);
-    let wd = WD[(days + 4).rem_euclid(7) as usize];
+    let c = Civil::from_secs(secs);
+    let (y, m, d) = (c.year, c.mon, c.mday);
+    let (hh, mm, ss) = (c.hour, c.min, c.sec);
+    let wd = WD[c.wday as usize];
     let mon = MN[(m - 1) as usize];
     match fmt {
         TimeFmt::Iso => format!("{y:04}-{m:02}-{d:02}T{hh:02}:{mm:02}:{ss:02}+0000"),
@@ -320,7 +307,7 @@ fn fmt_time(secs: i64, fmt: TimeFmt) -> String {
 }
 
 fn fmt_day(days: i64) -> String {
-    let (y, m, d) = civil(days);
+    let (y, m, d) = ul_common::time::civil_from_days(days);
     format!("{y:04}-{m:02}-{d:02}")
 }
 

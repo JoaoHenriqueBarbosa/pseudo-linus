@@ -51,6 +51,8 @@ use std::borrow::Cow;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 
+use ul_common::time::{Civil, SECS_PER_DAY, days_from_civil, is_leap};
+
 /// Fuso horário resolvido.
 #[derive(Clone, Debug)]
 pub struct TimeZone {
@@ -121,38 +123,6 @@ pub fn time_from_number(value: f64) -> Option<i64> {
 // Calendário
 // ---------------------------------------------------------------------------------------------
 
-const SECS_PER_DAY: i64 = 86_400;
-
-/// Dias desde 1970-01-01 do dia `d` do mês `m` (1 a 12) do ano `y` (gregoriano proléptico).
-fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
-    let y = if m <= 2 { y - 1 } else { y };
-    let era = y.div_euclid(400);
-    let yoe = y - era * 400;
-    let mp = (m + 9) % 12;
-    let doy = (153 * mp + 2) / 5 + d - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    era * 146_097 + doe - 719_468
-}
-
-/// Inverso de [`days_from_civil`]: (ano, mês 1 a 12, dia).
-fn civil_from_days(z: i64) -> (i64, i64, i64) {
-    let z = z + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z - era * 146_097;
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = doy - (153 * mp + 2) / 5 + 1;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 };
-    let y = yoe + era * 400;
-    (if m <= 2 { y + 1 } else { y }, m, d)
-}
-
-/// Ano bissexto com a aritmética do `int` em C (o resto pode ser negativo, só o zero importa).
-fn is_leap(y: i64) -> bool {
-    y % 4 == 0 && (y % 100 != 0 || y % 400 == 0)
-}
-
 /// Hora decomposta, como a `struct tm` que o glibc preenche.
 #[derive(Clone, Debug)]
 struct Tm {
@@ -174,20 +144,16 @@ struct Tm {
 impl Tm {
     /// O `__offtime` do glibc: decompõe `t + offset`; falha se o ano não cabe no `int` da `tm`.
     fn decompose(t: i64, offset: i64) -> Option<Tm> {
-        let total = i128::from(t) + i128::from(offset);
-        let days = i64::try_from(total.div_euclid(i128::from(SECS_PER_DAY))).ok()?;
-        let rem = i64::try_from(total.rem_euclid(i128::from(SECS_PER_DAY))).ok()?;
-        let (y, m, d) = civil_from_days(days);
-        let tm_year = i32::try_from(y - 1900).ok()?;
+        let c = Civil::offtime(t, offset)?;
         Some(Tm {
-            tm_year,
-            mon: m - 1,
-            mday: d,
-            hour: rem / 3600,
-            min: rem % 3600 / 60,
-            sec: rem % 60,
-            wday: (days + 4).rem_euclid(7),
-            yday: days - days_from_civil(y, 1, 1),
+            tm_year: (c.year - 1900) as i32,
+            mon: c.mon - 1,
+            mday: c.mday,
+            hour: c.hour,
+            min: c.min,
+            sec: c.sec,
+            wday: c.wday,
+            yday: c.yday,
             isdst: false,
             gmtoff: offset,
             zone: Vec::new(),

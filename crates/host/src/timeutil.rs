@@ -1,9 +1,11 @@
 //! Datas em UTC e durações legíveis, sem depender do fuso do host.
 //!
-//! Tudo é segundo desde a época Unix (`u64`). As conversões de calendário são as de Howard Hinnant
-//! (`days_from_civil` e `civil_from_days`), exatas no calendário gregoriano proléptico.
+//! Tudo é segundo desde a época Unix (`u64`). As conversões de calendário vêm de
+//! [`ul_common::time`], exatas no calendário gregoriano proléptico.
 
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+use ul_common::time::{Civil, days_from_civil, days_in_month};
 
 /// Agora, em segundos desde a época.
 pub fn now_unix() -> u64 {
@@ -15,35 +17,10 @@ pub fn now_unix_ms() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
 }
 
-fn days_from_civil(y: i64, m: u32, d: u32) -> i64 {
-    let y = if m <= 2 { y - 1 } else { y };
-    let era = if y >= 0 { y } else { y - 399 } / 400;
-    let yoe = (y - era * 400) as u64;
-    let mp = u64::from(if m > 2 { m - 3 } else { m + 9 });
-    let doy = (153 * mp + 2) / 5 + u64::from(d) - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    era * 146_097 + doe as i64 - 719_468
-}
-
-fn civil_from_days(z: i64) -> (i64, u32, u32) {
-    let z = z + 719_468;
-    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
-    let doe = (z - era * 146_097) as u64;
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let y = yoe as i64 + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
-    (if m <= 2 { y + 1 } else { y }, m, d)
-}
-
 /// `2026-10-02T23:39:00Z`.
 pub fn fmt_utc(secs: u64) -> String {
-    let days = (secs / 86_400) as i64;
-    let rem = secs % 86_400;
-    let (y, m, d) = civil_from_days(days);
-    format!("{y:04}-{m:02}-{d:02}T{:02}:{:02}:{:02}Z", rem / 3600, rem % 3600 / 60, rem % 60)
+    let c = Civil::from_days((secs / 86_400) as i64, (secs % 86_400) as i64);
+    format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z", c.year, c.mon, c.mday, c.hour, c.min, c.sec)
 }
 
 /// Duração no formato `90s`, `45m`, `12h`, `30d` ou `2w` (um número e uma unidade).
@@ -78,10 +55,15 @@ pub fn parse_utc(s: &str) -> Result<u64, String> {
     let y: i64 = parts.next().and_then(|p| p.parse().ok()).ok_or_else(bad)?;
     let m: u32 = parts.next().and_then(|p| p.parse().ok()).ok_or_else(bad)?;
     let d: u32 = parts.next().and_then(|p| p.parse().ok()).ok_or_else(bad)?;
-    if parts.next().is_some() || !(1..=12).contains(&m) || d == 0 || d > days_in_month(y, m) || y < 1970 {
+    if parts.next().is_some()
+        || !(1..=12).contains(&m)
+        || d == 0
+        || i64::from(d) > days_in_month(y, i64::from(m))
+        || y < 1970
+    {
         return Err(bad());
     }
-    let mut secs = days_from_civil(y, m, d) as u64 * 86_400;
+    let mut secs = days_from_civil(y, i64::from(m), i64::from(d)) as u64 * 86_400;
     if let Some(t) = time {
         let hms: Vec<&str> = t.split(':').collect();
         if hms.len() != 3 {
@@ -96,15 +78,6 @@ pub fn parse_utc(s: &str) -> Result<u64, String> {
         secs += h * 3600 + mi * 60 + se;
     }
     Ok(secs)
-}
-
-fn days_in_month(y: i64, m: u32) -> u32 {
-    match m {
-        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
-        4 | 6 | 9 | 11 => 30,
-        _ if (y % 4 == 0 && y % 100 != 0) || y % 400 == 0 => 29,
-        _ => 28,
-    }
 }
 
 /// Expiração de uma chave: `never`, uma duração a partir de `now` ou uma data absoluta.

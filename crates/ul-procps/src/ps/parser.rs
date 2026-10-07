@@ -891,13 +891,6 @@ impl Ps {
 
 /// `strtol(arg, &end, 0)` para `--cols`/`--rows`: valor e bytes consumidos.
 fn strtol_arg(arg: &[u8]) -> (i64, usize) {
-    let (neg, body) = match arg.first() {
-        Some(b'-') => (true, &arg[1..]),
-        Some(b'+') => (false, &arg[1..]),
-        _ => (false, arg),
-    };
-    let (v, used) = strtoul0(body);
-    let skipped = arg.len() - body.len();
-    let v = v.min(i64::MAX as u64) as i64;
-    (if neg { -v } else { v }, if used == 0 { 0 } else { used + skipped })
+    let c = ul_common::ctype::strtol(arg, 0);
+    (c.value, c.used)
 }

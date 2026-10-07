@@ -4,6 +4,7 @@
 //! Caminho relativo é resolvido a partir do diretório de trabalho da sandbox, como se um processo
 //! estivesse nele.
 
+use sysabi::util::basename;
 use sysabi::{Errno, FileType, Mode, Stat};
 
 use crate::api::FileInfo;
@@ -44,11 +45,6 @@ pub fn file_info(sb: &dyn Sandbox, name: &[u8], full: &[u8], st: &Stat) -> FileI
         mtime_nsec: st.mtime.nsec,
         symlink_target,
     }
-}
-
-fn basename(p: &[u8]) -> &[u8] {
-    let t = p.strip_suffix(b"/").unwrap_or(p);
-    t.rsplit(|b| *b == b'/').next().filter(|s| !s.is_empty()).unwrap_or(b"/")
 }
 
 pub fn stat(sb: &dyn Sandbox, path: &[u8], follow: bool) -> BResult<FileInfo> {

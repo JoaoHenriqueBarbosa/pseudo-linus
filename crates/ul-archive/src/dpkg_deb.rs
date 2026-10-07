@@ -15,6 +15,8 @@ use std::collections::HashMap;
 use std::ffi::OsString;
 
 use sysabi::{AtFlags, Clock, Ctx, Errno, Fd, FileType, OFlags, SetTime, Stat, TimeSpec, sys};
+use ul_common::fsutil;
+use ul_common::time::Civil;
 
 use crate::codec::{self, Format, GzipHeader};
 use crate::sysutil::{self, Output};
@@ -385,24 +387,6 @@ fn write_tar(entries: &[TarEntry]) -> Vec<u8> {
     out
 }
 
-fn civil(secs: i64) -> (i64, i64, i64, i64, i64) {
-    let days = secs.div_euclid(86400);
-    let rem = secs.rem_euclid(86400);
-    let z = days + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z.rem_euclid(146_097);
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let mut year = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let day = doy - (153 * mp + 2) / 5 + 1;
-    let month = if mp < 10 { mp + 3 } else { mp - 9 };
-    if month <= 2 {
-        year += 1;
-    }
-    (year, month, day, rem / 3600, (rem % 3600) / 60)
-}
-
 fn mode_string(e: &TarEntry) -> String {
     let t = match e.kind {
         b'5' => 'd',
@@ -413,23 +397,7 @@ fn mode_string(e: &TarEntry) -> String {
         b'6' => 'p',
         _ => '-',
     };
-    let m = e.mode;
-    let mut s = String::new();
-    s.push(t);
-    let triple = |r: u32, w: u32, x: u32, special: u32, lower: char, upper: char| -> [char; 3] {
-        let xc = if m & special != 0 {
-            if m & x != 0 { lower } else { upper }
-        } else if m & x != 0 {
-            'x'
-        } else {
-            '-'
-        };
-        [if m & r != 0 { 'r' } else { '-' }, if m & w != 0 { 'w' } else { '-' }, xc]
-    };
-    s.extend(triple(0o400, 0o200, 0o100, 0o4000, 's', 'S'));
-    s.extend(triple(0o040, 0o020, 0o010, 0o2000, 's', 'S'));
-    s.extend(triple(0o004, 0o002, 0o001, 0o1000, 't', 'T'));
-    s
+    fsutil::mode_string(t, e.mode)
 }
 
 fn escape_name(n: &[u8]) -> String {
@@ -477,17 +445,17 @@ fn tv_line(e: &TarEntry, ugw: &mut usize) -> String {
     if ug.len() + 1 + size.len() > *ugw {
         *ugw = ug.len() + 1 + size.len();
     }
-    let (y, mo, d, h, mi) = civil(e.mtime);
+    let c = Civil::from_secs(e.mtime);
     let mut s = format!(
         "{} {}{:>w$} {:04}-{:02}-{:02} {:02}:{:02} {}",
         mode_string(e),
         ug,
         size,
-        y,
-        mo,
-        d,
-        h,
-        mi,
+        c.year,
+        c.mon,
+        c.mday,
+        c.hour,
+        c.min,
         escape_name(&e.name),
         w = *ugw - ug.len()
     );
@@ -1167,18 +1135,6 @@ fn join_path(dir: &[u8], name: &[u8]) -> Vec<u8> {
     sysutil::join(dir, name)
 }
 
-fn mkdir_p(path: &[u8]) {
-    if sys::lstat(path).is_ok() {
-        return;
-    }
-    if let Some(i) = path.iter().rposition(|&b| b == b'/') {
-        if i > 0 {
-            mkdir_p(&path[..i]);
-        }
-    }
-    let _ = sys::current().mkdirat(Fd::CWD, path, 0o777);
-}
-
 fn apply_meta(e: &TarEntry, path: &[u8], root: bool, symlink: bool) {
     let s = sys::current();
     if root {
@@ -1227,7 +1183,7 @@ fn extract_entries(out: &mut Output, entries: &[TarEntry], dir: &[u8], verbose: 
         let path = join_path(dir, &name);
         if let Some(i) = path.iter().rposition(|&b| b == b'/') {
             if i > 0 && !name.is_empty() {
-                mkdir_p(&path[..i]);
+                let _ = fsutil::mkdir_p(&path[..i], 0o777);
             }
         }
         match e.kind {

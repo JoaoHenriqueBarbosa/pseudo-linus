@@ -20,17 +20,17 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::Ctx;
+use ul_common::time::{SECS_PER_DAY, days_from_civil};
 
 use crate::util::getopt::Getopt;
 use crate::util::io;
 use crate::util::time;
-use crate::util::tzif::{Tm, Zone, days_from_civil, gmtime};
+use crate::util::tzif::{Tm, Zone, gmtime};
 
 const VERSION: &str = "zdump (Debian GLIBC 2.41-12+deb13u4) 2.41\n";
 
 const ABS_MIN: i64 = i64::MIN;
 const ABS_MAX: i64 = i64::MAX;
-const SECS_PER_DAY: i64 = 86_400;
 
 const WDAY: [&str; 7] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MON: [&str; 12] = [
@@ -95,7 +95,12 @@ fn scan_range(s: &[u8]) -> Option<(Option<i64>, i64)> {
 
 /// `yeartot`: o `time_t` de 1º de janeiro do ano, saturado nos extremos.
 fn yeartot(y: i64) -> i64 {
-    let t = days_from_civil(i128::from(y), 1, 1) * i128::from(SECS_PER_DAY);
+    // Passando de 3e11 anos o `time_t` já saturou (são mais de 9,4e18 segundos) e a conta de dias
+    // do ano não caberia num `i64`.
+    if y.unsigned_abs() > 300_000_000_000 {
+        return if y < 0 { ABS_MIN } else { ABS_MAX };
+    }
+    let t = i128::from(days_from_civil(y, 1, 1)) * i128::from(SECS_PER_DAY);
     t.clamp(i128::from(ABS_MIN), i128::from(ABS_MAX)) as i64
 }
 

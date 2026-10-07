@@ -8,9 +8,8 @@
 
 pub mod codec;
 pub mod gailly;
-pub mod getopt;
 pub use sysabi::util as sysutil;
-pub mod tz;
+pub use ul_common::time::zone as tz;
 
 // Os módulos dos CLIs não se chamam `tar` e `zip` pra não esconder as crates de mesmo nome.
 pub mod compress;

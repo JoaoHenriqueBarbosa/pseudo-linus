@@ -17,8 +17,9 @@ use std::os::unix::ffi::{OsStrExt, OsStringExt};
 
 use sysabi::{Ctx, Errno, Fd, OFlags, WaitStatus, sys};
 use sysio::process::{Child, Command, Stdio};
-
-use crate::getopt::{Getopt, HasArg, LongOpt, long};
+use ul_common::ctype::{WholeLong, strtol_whole};
+use ul_common::getopt::{Getopt, HasArg, LongOpt};
+use ul_common::quote;
 
 const USAGE: &str = include_str!("xargs_usage.txt");
 
@@ -50,24 +51,24 @@ const fn c(ch: u8) -> i32 {
 }
 
 const LONG_OPTIONS: &[LongOpt] = &[
-    long("null", HasArg::No, c(b'0')),
-    long("arg-file", HasArg::Required, c(b'a')),
-    long("delimiter", HasArg::Required, c(b'd')),
-    long("eof", HasArg::Optional, c(b'e')),
-    long("replace", HasArg::Optional, c(b'i')),
-    long("max-lines", HasArg::Optional, c(b'l')),
-    long("max-args", HasArg::Required, c(b'n')),
-    long("open-tty", HasArg::No, c(b'o')),
-    long("interactive", HasArg::No, c(b'p')),
-    long("no-run-if-empty", HasArg::No, c(b'r')),
-    long("max-chars", HasArg::Required, c(b's')),
-    long("verbose", HasArg::No, c(b't')),
-    long("show-limits", HasArg::No, SHOW_LIMITS),
-    long("exit", HasArg::No, c(b'x')),
-    long("max-procs", HasArg::Required, c(b'P')),
-    long("process-slot-var", HasArg::Required, PROCESS_SLOT_VAR),
-    long("version", HasArg::No, VERSION_OPT),
-    long("help", HasArg::No, HELP),
+    LongOpt::new("null", HasArg::No, c(b'0')),
+    LongOpt::new("arg-file", HasArg::Required, c(b'a')),
+    LongOpt::new("delimiter", HasArg::Required, c(b'd')),
+    LongOpt::new("eof", HasArg::Optional, c(b'e')),
+    LongOpt::new("replace", HasArg::Optional, c(b'i')),
+    LongOpt::new("max-lines", HasArg::Optional, c(b'l')),
+    LongOpt::new("max-args", HasArg::Required, c(b'n')),
+    LongOpt::new("open-tty", HasArg::No, c(b'o')),
+    LongOpt::new("interactive", HasArg::No, c(b'p')),
+    LongOpt::new("no-run-if-empty", HasArg::No, c(b'r')),
+    LongOpt::new("max-chars", HasArg::Required, c(b's')),
+    LongOpt::new("verbose", HasArg::No, c(b't')),
+    LongOpt::new("show-limits", HasArg::No, SHOW_LIMITS),
+    LongOpt::new("exit", HasArg::No, c(b'x')),
+    LongOpt::new("max-procs", HasArg::Required, c(b'P')),
+    LongOpt::new("process-slot-var", HasArg::Required, PROCESS_SLOT_VAR),
+    LongOpt::new("version", HasArg::No, VERSION_OPT),
+    LongOpt::new("help", HasArg::No, HELP),
 ];
 
 const SHORT_OPTIONS: &str = "+0a:E:e::i::I:l::L:n:prs:txP:d:o";
@@ -118,13 +119,13 @@ struct Options {
 
 /// `strtol` estrito do xargs: o número inteiro, com sinal opcional.
 fn parse_num(arg: &[u8], opt: char) -> Result<i64, Exit> {
-    let text = String::from_utf8_lossy(arg);
-    let t = text.trim_start();
-    let digits = t.strip_prefix(['+', '-']).unwrap_or(t);
-    if digits.is_empty() || !digits.chars().all(|c| c.is_ascii_digit()) {
-        return Err(usage_fail(&format!("invalid number \"{text}\" for -{opt} option")));
+    match strtol_whole(arg, 10) {
+        WholeLong::Ok(v) | WholeLong::Range(v) => Ok(v),
+        WholeLong::Invalid => {
+            let text = String::from_utf8_lossy(arg);
+            Err(usage_fail(&format!("invalid number \"{text}\" for -{opt} option")))
+        }
     }
-    Ok(t.parse::<i64>().unwrap_or(if t.starts_with('-') { i64::MIN } else { i64::MAX }))
 }
 
 fn at_least(arg: &[u8], opt: char, min: i64) -> Result<usize, Exit> {
@@ -199,14 +200,14 @@ fn parse_options(argv: &[Vec<u8>]) -> Result<Parsed, Exit> {
         exit_on_size: false,
     };
     let mut eof_given = false;
-    let mut g = Getopt::new(argv, SHORT_OPTIONS, LONG_OPTIONS);
-    while let Some(opt) = g.next() {
+    let mut g = Getopt::new(argv, SHORT_OPTIONS, LONG_OPTIONS, false);
+    while let Some(opt) = g.next_opt() {
         let opt = match opt {
             Ok(o) => o,
-            Err(msg) => return Err(usage_fail(&msg)),
+            Err(e) => return Err(usage_fail(&String::from_utf8_lossy(&e.detail()))),
         };
         let arg = opt.arg;
-        match opt.val {
+        match opt.id {
             x if x == c(b'0') => o.delim = Some(0),
             x if x == c(b'a') => o.arg_file = arg,
             x if x == c(b'd') => o.delim = Some(parse_delim(&arg.unwrap_or_default())?),
@@ -283,7 +284,7 @@ fn parse_options(argv: &[Vec<u8>]) -> Result<Parsed, Exit> {
         // `-I` implica `-x`.
         o.exit_on_size = true;
     }
-    Ok(Ok((o, g.operands)))
+    Ok(Ok((o, g.operands())))
 }
 
 /// Tamanho do ambiente como o xargs conta (cada `NOME=valor` mais o terminador).
@@ -643,24 +644,6 @@ impl Reader {
     }
 }
 
-/// Citação do `-t`/`-p`: como o shell, só quando precisa.
-fn shell_quote(arg: &[u8]) -> Vec<u8> {
-    let safe = |b: u8| b.is_ascii_alphanumeric() || b"_%+,-./:=@^".contains(&b);
-    if !arg.is_empty() && arg.iter().all(|&b| safe(b) || b >= 0x80) {
-        return arg.to_vec();
-    }
-    let mut out = vec![b'\''];
-    for &b in arg {
-        if b == b'\'' {
-            out.extend_from_slice(b"'\\''");
-        } else {
-            out.push(b);
-        }
-    }
-    out.push(b'\'');
-    out
-}
-
 /// Um filho em execução.
 struct Running {
     child: Child,
@@ -688,7 +671,7 @@ impl<'o> Executor<'o> {
 
     fn run(&mut self, args: Vec<Vec<u8>>) -> Result<(), Exit> {
         if self.opts.verbose {
-            let line: Vec<Vec<u8>> = args.iter().map(|a| shell_quote(a)).collect();
+            let line: Vec<Vec<u8>> = args.iter().map(|a| quote::shell(a, &quote::Rules::GNULIB)).collect();
             let mut text = line.join(&b' ');
             if !self.opts.interactive {
                 text.push(b'\n');

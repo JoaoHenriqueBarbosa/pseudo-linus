@@ -6,33 +6,33 @@
 use std::io::Write;
 
 use sysabi::{Errno, Fd, Stat};
+use ul_common::getopt::{Getopt, GetoptError, HasArg, Item, LongOpt};
 
 use super::common::{self, Input, Sink};
-use crate::getopt::{Error as OptError, Getopt, HasArg, Item, LongOpt};
 
-const OPT_LOOSE: u32 = 0x100;
+const OPT_LOOSE: i32 = 0x100;
 
 const LONGS: &[LongOpt] = &[
-    LongOpt::new("trailing-error", HasArg::No, b'a' as u32),
-    LongOpt::new("member-size", HasArg::Required, b'b' as u32),
-    LongOpt::new("stdout", HasArg::No, b'c' as u32),
-    LongOpt::new("decompress", HasArg::No, b'd' as u32),
-    LongOpt::new("fast", HasArg::No, b'0' as u32),
-    LongOpt::new("best", HasArg::No, b'9' as u32),
-    LongOpt::new("force", HasArg::No, b'f' as u32),
-    LongOpt::new("recompress", HasArg::No, b'F' as u32),
-    LongOpt::new("help", HasArg::No, b'h' as u32),
-    LongOpt::new("keep", HasArg::No, b'k' as u32),
-    LongOpt::new("list", HasArg::No, b'l' as u32),
+    LongOpt::new("trailing-error", HasArg::No, b'a' as i32),
+    LongOpt::new("member-size", HasArg::Required, b'b' as i32),
+    LongOpt::new("stdout", HasArg::No, b'c' as i32),
+    LongOpt::new("decompress", HasArg::No, b'd' as i32),
+    LongOpt::new("fast", HasArg::No, b'0' as i32),
+    LongOpt::new("best", HasArg::No, b'9' as i32),
+    LongOpt::new("force", HasArg::No, b'f' as i32),
+    LongOpt::new("recompress", HasArg::No, b'F' as i32),
+    LongOpt::new("help", HasArg::No, b'h' as i32),
+    LongOpt::new("keep", HasArg::No, b'k' as i32),
+    LongOpt::new("list", HasArg::No, b'l' as i32),
     LongOpt::new("loose-trailing", HasArg::No, OPT_LOOSE),
-    LongOpt::new("match-length", HasArg::Required, b'm' as u32),
-    LongOpt::new("dictionary-size", HasArg::Required, b's' as u32),
-    LongOpt::new("volume-size", HasArg::Required, b'S' as u32),
-    LongOpt::new("output", HasArg::Required, b'o' as u32),
-    LongOpt::new("quiet", HasArg::No, b'q' as u32),
-    LongOpt::new("test", HasArg::No, b't' as u32),
-    LongOpt::new("verbose", HasArg::No, b'v' as u32),
-    LongOpt::new("version", HasArg::No, b'V' as u32),
+    LongOpt::new("match-length", HasArg::Required, b'm' as i32),
+    LongOpt::new("dictionary-size", HasArg::Required, b's' as i32),
+    LongOpt::new("volume-size", HasArg::Required, b'S' as i32),
+    LongOpt::new("output", HasArg::Required, b'o' as i32),
+    LongOpt::new("quiet", HasArg::No, b'q' as i32),
+    LongOpt::new("test", HasArg::No, b't' as i32),
+    LongOpt::new("verbose", HasArg::No, b'v' as i32),
+    LongOpt::new("version", HasArg::No, b'V' as i32),
 ];
 
 const SHORTS: &str = "0123456789ab:cdfFhklm:o:qs:S:tvV";
@@ -190,7 +190,7 @@ impl Lzip {
     fn run(&mut self, args: &[Vec<u8>]) -> i32 {
         self.prog = common::show(common::base_name(args.first().map(Vec::as_slice).unwrap_or(b"lzip")));
         let mut files: Vec<Vec<u8>> = Vec::new();
-        for item in Getopt::from_env(args, SHORTS, LONGS) {
+        for item in Getopt::from_env(args, SHORTS, LONGS).after_argv0() {
             let o = match item {
                 Ok(Item::Operand(op)) => {
                     files.push(op);
@@ -198,24 +198,25 @@ impl Lzip {
                 }
                 Ok(Item::Opt(o)) => o,
                 Err(e) => {
-                    let msg = match &e {
+                    let mut msg = match &e {
                         // O analisador do lzip não lista as possibilidades.
-                        OptError::Ambiguous { given, .. } => {
-                            format!("{}: option '--{}' is ambiguous\n", self.prog, common::show(given))
+                        GetoptError::Ambiguous { given, .. } => {
+                            format!("{}: option '{}' is ambiguous\n", self.prog, common::show(given)).into_bytes()
                         }
-                        other => other.message(&self.prog),
+                        other => other.message_line(&self.prog),
                     };
-                    common::eprint(format!("{msg}Try '{} --help' for more information.\n", self.prog));
+                    msg.extend_from_slice(format!("Try '{} --help' for more information.\n", self.prog).as_bytes());
+                    common::eprint(msg);
                     return 1;
                 }
             };
             let arg = o.arg.clone().unwrap_or_default();
             match o.id {
-                c @ 0x30..=0x39 => self.level = c - 0x30,
+                c @ 0x30..=0x39 => self.level = (c - 0x30) as _,
                 0x61 => self.trailing_error = true,
                 0x62 | 0x6d | 0x53 => {
                     if parse_num(&arg).is_none() {
-                        common::eprint(format!("{}: Bad or missing numerical argument in option '{}'.\n", self.prog, opt_text(&o)));
+                        common::eprint(format!("{}: Bad or missing numerical argument in option '{}'.\n", self.prog, o.spelled()));
                         return 1;
                     }
                 }
@@ -225,7 +226,7 @@ impl Lzip {
                         self.dict = Some(n.clamp(4096, 512 << 20) as u32);
                     }
                     None => {
-                        common::eprint(format!("{}: Bad or missing numerical argument in option '{}'.\n", self.prog, opt_text(&o)));
+                        common::eprint(format!("{}: Bad or missing numerical argument in option '{}'.\n", self.prog, o.spelled()));
                         return 1;
                     }
                 },
@@ -748,13 +749,6 @@ fn parse_num(s: &[u8]) -> Option<u64> {
         _ => return None,
     };
     n.checked_mul(mult)
-}
-
-fn opt_text(o: &crate::getopt::Opt) -> String {
-    match o.long {
-        Some(l) => format!("--{l}"),
-        None => format!("-{}", char::from_u32(o.id).unwrap_or('?')),
-    }
 }
 
 fn print(s: &str) -> i32 {

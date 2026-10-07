@@ -10,6 +10,7 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::sys;
+use ul_common::fsutil::size_to_human_string;
 
 use crate::util::io;
 use crate::util::ul;
@@ -123,24 +124,7 @@ For more details see {short}(1).
 
 /// `size_to_human_string(SIZE_SUFFIX_1LETTER)`.
 pub fn human_size(bytes: u64) -> String {
-    const UNITS: [char; 7] = ['B', 'K', 'M', 'G', 'T', 'P', 'E'];
-    let mut exp = 0usize;
-    let mut div: u64 = 1;
-    while exp + 1 < UNITS.len() && bytes / div >= 1024 {
-        div = div.saturating_mul(1024);
-        exp += 1;
-    }
-    if exp == 0 {
-        return format!("{bytes}B");
-    }
-    let whole = bytes / div;
-    let rem = bytes % div;
-    let tenth = (rem as u128 * 10 / div as u128) as u64;
-    if tenth == 0 {
-        format!("{whole}{}", UNITS[exp])
-    } else {
-        format!("{whole}.{tenth}{}", UNITS[exp])
-    }
+    size_to_human_string(bytes, false, true)
 }
 
 fn read_text(path: &str) -> Option<String> {

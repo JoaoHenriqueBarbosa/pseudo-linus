@@ -10,12 +10,12 @@
 use std::ffi::OsString;
 
 use sysabi::{Ctx, Errno, Fd, FileType, OFlags, ProcAttrs, SpawnSpec, WaitOptions, WaitStatus, WaitTarget};
+use ul_common::getopt::{Getopt, HasArg, Item, LongOpt};
 
 use crate::diff::format::Change;
 use crate::diff::options::{self, Parsed};
 use crate::diff::side::Geometry;
 use crate::diff::{self, text};
-use crate::getopt::{Getopt, HasArg, Item, LongOpt};
 use crate::sysutil::{self, Output};
 
 const HELP: &str = r#"Usage: sdiff [OPTION]... FILE1 FILE2
@@ -78,32 +78,32 @@ v:\tVerbosely include common lines.
 q:\tQuit.
 ";
 
-const DIFF_PROGRAM: u32 = 1000;
-const HELP_ID: u32 = 1001;
-const STRIP_TRAILING_CR: u32 = 1002;
-const TABSIZE: u32 = 1003;
+const DIFF_PROGRAM: i32 = 1000;
+const HELP_ID: i32 = 1001;
+const STRIP_TRAILING_CR: i32 = 1002;
+const TABSIZE: i32 = 1003;
 
 const LONGS: &[LongOpt] = &[
     LongOpt::new("diff-program", HasArg::Required, DIFF_PROGRAM),
-    LongOpt::new("expand-tabs", HasArg::No, b't' as u32),
+    LongOpt::new("expand-tabs", HasArg::No, b't' as i32),
     LongOpt::new("help", HasArg::No, HELP_ID),
-    LongOpt::new("ignore-all-space", HasArg::No, b'W' as u32),
-    LongOpt::new("ignore-blank-lines", HasArg::No, b'B' as u32),
-    LongOpt::new("ignore-case", HasArg::No, b'i' as u32),
-    LongOpt::new("ignore-matching-lines", HasArg::Required, b'I' as u32),
-    LongOpt::new("ignore-space-change", HasArg::No, b'b' as u32),
-    LongOpt::new("ignore-tab-expansion", HasArg::No, b'E' as u32),
-    LongOpt::new("ignore-trailing-space", HasArg::No, b'Z' as u32),
-    LongOpt::new("left-column", HasArg::No, b'l' as u32),
-    LongOpt::new("minimal", HasArg::No, b'd' as u32),
-    LongOpt::new("output", HasArg::Required, b'o' as u32),
-    LongOpt::new("speed-large-files", HasArg::No, b'H' as u32),
+    LongOpt::new("ignore-all-space", HasArg::No, b'W' as i32),
+    LongOpt::new("ignore-blank-lines", HasArg::No, b'B' as i32),
+    LongOpt::new("ignore-case", HasArg::No, b'i' as i32),
+    LongOpt::new("ignore-matching-lines", HasArg::Required, b'I' as i32),
+    LongOpt::new("ignore-space-change", HasArg::No, b'b' as i32),
+    LongOpt::new("ignore-tab-expansion", HasArg::No, b'E' as i32),
+    LongOpt::new("ignore-trailing-space", HasArg::No, b'Z' as i32),
+    LongOpt::new("left-column", HasArg::No, b'l' as i32),
+    LongOpt::new("minimal", HasArg::No, b'd' as i32),
+    LongOpt::new("output", HasArg::Required, b'o' as i32),
+    LongOpt::new("speed-large-files", HasArg::No, b'H' as i32),
     LongOpt::new("strip-trailing-cr", HasArg::No, STRIP_TRAILING_CR),
-    LongOpt::new("suppress-common-lines", HasArg::No, b's' as u32),
+    LongOpt::new("suppress-common-lines", HasArg::No, b's' as i32),
     LongOpt::new("tabsize", HasArg::Required, TABSIZE),
-    LongOpt::new("text", HasArg::No, b'a' as u32),
-    LongOpt::new("version", HasArg::No, b'v' as u32),
-    LongOpt::new("width", HasArg::Required, b'w' as u32),
+    LongOpt::new("text", HasArg::No, b'a' as i32),
+    LongOpt::new("version", HasArg::No, b'v' as i32),
+    LongOpt::new("width", HasArg::Required, b'w' as i32),
 ];
 
 pub fn main(ctx: &mut Ctx, args: &[OsString]) -> i32 {
@@ -117,7 +117,7 @@ pub fn main(ctx: &mut Ctx, args: &[OsString]) -> i32 {
     let mut suppress = false;
     let mut output: Option<Vec<u8>> = None;
     let mut operands = Vec::new();
-    for item in Getopt::from_env(&argv, "abBdEHiI:lo:stvw:WZ", LONGS) {
+    for item in Getopt::from_env(&argv, "abBdEHiI:lo:stvw:WZ", LONGS).after_argv0() {
         let opt = match item {
             Ok(Item::Operand(v)) => {
                 operands.push(v);
@@ -125,35 +125,35 @@ pub fn main(ctx: &mut Ctx, args: &[OsString]) -> i32 {
             }
             Ok(Item::Opt(o)) => o,
             Err(e) => {
-                sysutil::eprint(e.message_bytes(&argv0));
+                sysutil::eprint(e.message_line(&argv0));
                 sysutil::eprint(format!("{argv0}: Try '{argv0} --help' for more information.\n"));
                 return 2;
             }
         };
         let arg = opt.arg.clone().unwrap_or_default();
         match opt.id {
-            x if x == b'a' as u32 => dargs.push(b"-a".to_vec()),
-            x if x == b'b' as u32 => dargs.push(b"-b".to_vec()),
-            x if x == b'B' as u32 => dargs.push(b"-B".to_vec()),
-            x if x == b'd' as u32 => dargs.push(b"-d".to_vec()),
-            x if x == b'E' as u32 => dargs.push(b"-E".to_vec()),
-            x if x == b'H' as u32 => dargs.push(b"-H".to_vec()),
-            x if x == b'i' as u32 => dargs.push(b"-i".to_vec()),
-            x if x == b'I' as u32 => {
+            x if x == b'a' as i32 => dargs.push(b"-a".to_vec()),
+            x if x == b'b' as i32 => dargs.push(b"-b".to_vec()),
+            x if x == b'B' as i32 => dargs.push(b"-B".to_vec()),
+            x if x == b'd' as i32 => dargs.push(b"-d".to_vec()),
+            x if x == b'E' as i32 => dargs.push(b"-E".to_vec()),
+            x if x == b'H' as i32 => dargs.push(b"-H".to_vec()),
+            x if x == b'i' as i32 => dargs.push(b"-i".to_vec()),
+            x if x == b'I' as i32 => {
                 dargs.push(b"-I".to_vec());
                 dargs.push(arg);
             }
-            x if x == b'l' as u32 => dargs.push(b"--left-column".to_vec()),
-            x if x == b'o' as u32 => output = Some(arg),
-            x if x == b's' as u32 => suppress = true,
-            x if x == b't' as u32 => dargs.push(b"-t".to_vec()),
-            x if x == b'w' as u32 => {
+            x if x == b'l' as i32 => dargs.push(b"--left-column".to_vec()),
+            x if x == b'o' as i32 => output = Some(arg),
+            x if x == b's' as i32 => suppress = true,
+            x if x == b't' as i32 => dargs.push(b"-t".to_vec()),
+            x if x == b'w' as i32 => {
                 dargs.push(b"-W".to_vec());
                 dargs.push(arg);
             }
-            x if x == b'W' as u32 => dargs.push(b"-w".to_vec()),
-            x if x == b'Z' as u32 => dargs.push(b"-Z".to_vec()),
-            x if x == b'v' as u32 => {
+            x if x == b'W' as i32 => dargs.push(b"-w".to_vec()),
+            x if x == b'Z' as i32 => dargs.push(b"-Z".to_vec()),
+            x if x == b'v' as i32 => {
                 let mut out = Output::stdout();
                 out.write_str(VERSION);
                 return if out.finish().is_ok() { 0 } else { 2 };

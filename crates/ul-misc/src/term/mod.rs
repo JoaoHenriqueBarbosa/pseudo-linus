@@ -96,70 +96,14 @@ pub fn bool_index(var: &str) -> usize {
         .unwrap_or(usize::MAX)
 }
 
-/// `isspace` do locale C.
-pub fn c_isspace(b: u8) -> bool {
-    matches!(b, b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r')
-}
-
-/// `isprint` do locale C (ASCII).
-pub fn c_isprint(b: u8) -> bool {
-    (0x20..0x7f).contains(&b)
-}
+/// `isspace` e `isprint` do locale C.
+pub use ul_common::ctype::{is_print as c_isprint, is_space as c_isspace};
 
 /// `strtol(s, &end, 0)` da glibc: devolve o valor e quantos bytes consumiu (0 quando não há dígito,
 /// como `end == s`). Estouro satura em `LONG_MAX`/`LONG_MIN`.
 pub fn strtol(s: &[u8]) -> (i64, usize) {
-    let mut i = 0;
-    while i < s.len() && c_isspace(s[i]) {
-        i += 1;
-    }
-    let mut neg = false;
-    if i < s.len() && (s[i] == b'+' || s[i] == b'-') {
-        neg = s[i] == b'-';
-        i += 1;
-    }
-    let mut base = 10u32;
-    if i + 2 < s.len()
-        && s[i] == b'0'
-        && (s[i + 1] == b'x' || s[i + 1] == b'X')
-        && s[i + 2].is_ascii_hexdigit()
-    {
-        base = 16;
-        i += 2;
-    } else if i < s.len() && s[i] == b'0' {
-        base = 8;
-    }
-    let digits_start = i;
-    let mut acc: u128 = 0;
-    let mut overflow = false;
-    while i < s.len() {
-        let d = match (s[i] as char).to_digit(base) {
-            Some(d) => d,
-            None => break,
-        };
-        if !overflow {
-            acc = acc * u128::from(base) + u128::from(d);
-            if acc > u128::from(u64::MAX) {
-                overflow = true;
-            }
-        }
-        i += 1;
-    }
-    if i == digits_start {
-        return (0, 0);
-    }
-    let value = if neg {
-        if overflow || acc > (i64::MAX as u128) + 1 {
-            i64::MIN
-        } else {
-            (acc as i128).wrapping_neg() as i64
-        }
-    } else if overflow || acc > i64::MAX as u128 {
-        i64::MAX
-    } else {
-        acc as i64
-    };
-    (value, i)
+    let c = ul_common::ctype::strtol(s, 0);
+    (c.value, c.used)
 }
 
 /// O primeiro nome de uma lista `a|b|c` (`_nc_first_name`), no máximo `MAX_NAME_SIZE` bytes.

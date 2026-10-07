@@ -242,7 +242,7 @@ fn run(args: &[OsString]) -> i32 {
                 let _ = out.write_all(USAGE.as_bytes());
                 return 0;
             }
-            _ => return getopt_failure(&GetoptError::Invalid(c), &argv0),
+            _ => return getopt_failure(&GetoptError::Invalid(c as u8), &argv0),
         }
     }
     let files = getopt.operands();

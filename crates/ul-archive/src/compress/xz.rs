@@ -9,10 +9,10 @@
 use std::io::Write;
 
 use sysabi::{Errno, Fd, Stat};
+use ul_common::getopt::{Getopt, HasArg, Item, LongOpt};
 
 use super::common::{self, Input, Sink};
 use super::xzlist::{self, Info, ListError};
-use crate::getopt::{Getopt, HasArg, Item, LongOpt};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Mode {
@@ -31,69 +31,69 @@ enum Format {
     Raw,
 }
 
-const OPT_INFO_MEMORY: u32 = 0x100;
-const OPT_NO_SYNC: u32 = 0x101;
-const OPT_SINGLE_STREAM: u32 = 0x102;
-const OPT_NO_SPARSE: u32 = 0x103;
-const OPT_FILES: u32 = 0x104;
-const OPT_FILES0: u32 = 0x105;
-const OPT_IGNORE_CHECK: u32 = 0x106;
-const OPT_BLOCK_SIZE: u32 = 0x107;
-const OPT_BLOCK_LIST: u32 = 0x108;
-const OPT_MEM_COMPRESS: u32 = 0x109;
-const OPT_MEM_DECOMPRESS: u32 = 0x10a;
-const OPT_MEM_MT: u32 = 0x10b;
-const OPT_NO_ADJUST: u32 = 0x10c;
-const OPT_FLUSH_TIMEOUT: u32 = 0x10d;
-const OPT_FILTERS: u32 = 0x10e;
-const OPT_FILTERS_N: u32 = 0x110; // até 0x118
-const OPT_FILTERS_HELP: u32 = 0x120;
-const OPT_LZMA1: u32 = 0x121;
-const OPT_LZMA2: u32 = 0x122;
-const OPT_X86: u32 = 0x123;
-const OPT_POWERPC: u32 = 0x124;
-const OPT_IA64: u32 = 0x125;
-const OPT_ARM: u32 = 0x126;
-const OPT_ARMTHUMB: u32 = 0x127;
-const OPT_ARM64: u32 = 0x128;
-const OPT_SPARC: u32 = 0x129;
-const OPT_RISCV: u32 = 0x12a;
-const OPT_DELTA: u32 = 0x12b;
-const OPT_ROBOT: u32 = 0x12c;
+const OPT_INFO_MEMORY: i32 = 0x100;
+const OPT_NO_SYNC: i32 = 0x101;
+const OPT_SINGLE_STREAM: i32 = 0x102;
+const OPT_NO_SPARSE: i32 = 0x103;
+const OPT_FILES: i32 = 0x104;
+const OPT_FILES0: i32 = 0x105;
+const OPT_IGNORE_CHECK: i32 = 0x106;
+const OPT_BLOCK_SIZE: i32 = 0x107;
+const OPT_BLOCK_LIST: i32 = 0x108;
+const OPT_MEM_COMPRESS: i32 = 0x109;
+const OPT_MEM_DECOMPRESS: i32 = 0x10a;
+const OPT_MEM_MT: i32 = 0x10b;
+const OPT_NO_ADJUST: i32 = 0x10c;
+const OPT_FLUSH_TIMEOUT: i32 = 0x10d;
+const OPT_FILTERS: i32 = 0x10e;
+const OPT_FILTERS_N: i32 = 0x110; // até 0x118
+const OPT_FILTERS_HELP: i32 = 0x120;
+const OPT_LZMA1: i32 = 0x121;
+const OPT_LZMA2: i32 = 0x122;
+const OPT_X86: i32 = 0x123;
+const OPT_POWERPC: i32 = 0x124;
+const OPT_IA64: i32 = 0x125;
+const OPT_ARM: i32 = 0x126;
+const OPT_ARMTHUMB: i32 = 0x127;
+const OPT_ARM64: i32 = 0x128;
+const OPT_SPARC: i32 = 0x129;
+const OPT_RISCV: i32 = 0x12a;
+const OPT_DELTA: i32 = 0x12b;
+const OPT_ROBOT: i32 = 0x12c;
 
 /// Tabela de opções longas na ordem do xz 5.8.1 (a ordem aparece nas mensagens de ambiguidade).
 const LONGS: &[LongOpt] = &[
-    LongOpt::new("compress", HasArg::No, b'z' as u32),
-    LongOpt::new("decompress", HasArg::No, b'd' as u32),
-    LongOpt::new("uncompress", HasArg::No, b'd' as u32),
-    LongOpt::new("test", HasArg::No, b't' as u32),
-    LongOpt::new("list", HasArg::No, b'l' as u32),
-    LongOpt::new("keep", HasArg::No, b'k' as u32),
-    LongOpt::new("force", HasArg::No, b'f' as u32),
-    LongOpt::new("stdout", HasArg::No, b'c' as u32),
-    LongOpt::new("to-stdout", HasArg::No, b'c' as u32),
+    LongOpt::new("compress", HasArg::No, b'z' as i32),
+    LongOpt::new("decompress", HasArg::No, b'd' as i32),
+    LongOpt::new("uncompress", HasArg::No, b'd' as i32),
+    LongOpt::new("test", HasArg::No, b't' as i32),
+    LongOpt::new("list", HasArg::No, b'l' as i32),
+    LongOpt::new("keep", HasArg::No, b'k' as i32),
+    LongOpt::new("force", HasArg::No, b'f' as i32),
+    LongOpt::new("stdout", HasArg::No, b'c' as i32),
+    LongOpt::new("to-stdout", HasArg::No, b'c' as i32),
     LongOpt::new("no-sync", HasArg::No, OPT_NO_SYNC),
     LongOpt::new("single-stream", HasArg::No, OPT_SINGLE_STREAM),
     LongOpt::new("no-sparse", HasArg::No, OPT_NO_SPARSE),
-    LongOpt::new("suffix", HasArg::Required, b'S' as u32),
+    LongOpt::new("suffix", HasArg::Required, b'S' as i32),
     LongOpt::new("files", HasArg::Optional, OPT_FILES),
     LongOpt::new("files0", HasArg::Optional, OPT_FILES0),
-    LongOpt::new("format", HasArg::Required, b'F' as u32),
-    LongOpt::new("check", HasArg::Required, b'C' as u32),
+    LongOpt::new("format", HasArg::Required, b'F' as i32),
+    LongOpt::new("check", HasArg::Required, b'C' as i32),
     LongOpt::new("ignore-check", HasArg::No, OPT_IGNORE_CHECK),
     LongOpt::new("block-size", HasArg::Required, OPT_BLOCK_SIZE),
     LongOpt::new("block-list", HasArg::Required, OPT_BLOCK_LIST),
     LongOpt::new("memlimit-compress", HasArg::Required, OPT_MEM_COMPRESS),
     LongOpt::new("memlimit-decompress", HasArg::Required, OPT_MEM_DECOMPRESS),
     LongOpt::new("memlimit-mt-decompress", HasArg::Required, OPT_MEM_MT),
-    LongOpt::new("memlimit", HasArg::Required, b'M' as u32),
-    LongOpt::new("memory", HasArg::Required, b'M' as u32),
+    LongOpt::new("memlimit", HasArg::Required, b'M' as i32),
+    LongOpt::new("memory", HasArg::Required, b'M' as i32),
     LongOpt::new("no-adjust", HasArg::No, OPT_NO_ADJUST),
-    LongOpt::new("threads", HasArg::Required, b'T' as u32),
+    LongOpt::new("threads", HasArg::Required, b'T' as i32),
     LongOpt::new("flush-timeout", HasArg::Required, OPT_FLUSH_TIMEOUT),
-    LongOpt::new("extreme", HasArg::No, b'e' as u32),
-    LongOpt::new("fast", HasArg::No, b'0' as u32),
-    LongOpt::new("best", HasArg::No, b'9' as u32),
+    LongOpt::new("extreme", HasArg::No, b'e' as i32),
+    LongOpt::new("fast", HasArg::No, b'0' as i32),
+    LongOpt::new("best", HasArg::No, b'9' as i32),
     LongOpt::new("filters", HasArg::Required, OPT_FILTERS),
     LongOpt::new("filters1", HasArg::Required, OPT_FILTERS_N + 1),
     LongOpt::new("filters2", HasArg::Required, OPT_FILTERS_N + 2),
@@ -116,14 +116,14 @@ const LONGS: &[LongOpt] = &[
     LongOpt::new("sparc", HasArg::Optional, OPT_SPARC),
     LongOpt::new("riscv", HasArg::Optional, OPT_RISCV),
     LongOpt::new("delta", HasArg::Optional, OPT_DELTA),
-    LongOpt::new("quiet", HasArg::No, b'q' as u32),
-    LongOpt::new("verbose", HasArg::No, b'v' as u32),
-    LongOpt::new("no-warn", HasArg::No, b'Q' as u32),
+    LongOpt::new("quiet", HasArg::No, b'q' as i32),
+    LongOpt::new("verbose", HasArg::No, b'v' as i32),
+    LongOpt::new("no-warn", HasArg::No, b'Q' as i32),
     LongOpt::new("robot", HasArg::No, OPT_ROBOT),
     LongOpt::new("info-memory", HasArg::No, OPT_INFO_MEMORY),
-    LongOpt::new("help", HasArg::No, b'h' as u32),
-    LongOpt::new("long-help", HasArg::No, b'H' as u32),
-    LongOpt::new("version", HasArg::No, b'V' as u32),
+    LongOpt::new("help", HasArg::No, b'h' as i32),
+    LongOpt::new("long-help", HasArg::No, b'H' as i32),
+    LongOpt::new("version", HasArg::No, b'V' as i32),
 ];
 
 const SHORTS: &str = "cC:defF:hHlkM:qQS:tT:vVz0123456789";
@@ -377,7 +377,7 @@ impl Xz {
         }
         let mut files: Vec<Vec<u8>> = Vec::new();
         let mut files_from: Vec<(Option<Vec<u8>>, u8)> = Vec::new();
-        for item in Getopt::from_env(args, SHORTS, LONGS) {
+        for item in Getopt::from_env(args, SHORTS, LONGS).after_argv0() {
             let o = match item {
                 Ok(Item::Operand(op)) => {
                     files.push(op);
@@ -385,14 +385,14 @@ impl Xz {
                 }
                 Ok(Item::Opt(o)) => o,
                 Err(e) => {
-                    common::eprint(e.message_bytes(&self.prog));
+                    common::eprint(e.message_line(&self.prog));
                     common::eprint(format!("{}: Try '{} --help' for more information.\n", self.prog, self.prog));
                     return ERROR;
                 }
             };
             let arg = o.arg.clone().unwrap_or_default();
             match o.id {
-                c @ 0x30..=0x39 => self.preset = c - 0x30,
+                c @ 0x30..=0x39 => self.preset = (c - 0x30) as u32,
                 0x7a => self.mode = Mode::Compress,
                 0x64 => self.mode = Mode::Decompress,
                 0x74 => self.mode = Mode::Test,

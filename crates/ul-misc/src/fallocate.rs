@@ -12,6 +12,7 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{Errno, FallocFlags, Fd, FileType, OFlags, Whence, sys};
+use ul_common::fsutil::size_to_human_string;
 
 use crate::util::io;
 use crate::util::ul;
@@ -73,56 +74,6 @@ For more details see fallocate(1).
 
 /// Falha fatal: o texto já formatado vai pro stderr e o código de saída é 1 (`EXIT_FAILURE`).
 struct Fatal;
-
-/// `size_to_human_string(SIZE_SUFFIX_3LETTER | SIZE_SUFFIX_SPACE, bytes)`: `1 MiB`, `1.5 KiB`, `512 B`.
-fn size_to_human(bytes: u64) -> String {
-    // get_exp: o expoente da maior potência de 1024 que não passa de `bytes` (no máximo 60)
-    let mut shft = 10u32;
-    while shft <= 60 {
-        if bytes < (1u64 << shft) {
-            break;
-        }
-        shft += 10;
-    }
-    let exp = shft - 10;
-    let letters = b"BKMGTPE";
-    let c = letters[if exp != 0 { (exp / 10) as usize } else { 0 }] as char;
-    let mut dec = if exp != 0 {
-        bytes / (1u64 << exp)
-    } else {
-        bytes
-    };
-    let mut frac = if exp != 0 { bytes % (1u64 << exp) } else { 0 };
-    let suffix = if c == 'B' {
-        "B".to_string()
-    } else {
-        format!("{c}iB")
-    };
-    if frac != 0 {
-        if frac >= u64::MAX / 1000 {
-            frac = ((frac / 1024) * 1000) / (1u64 << (exp - 10));
-        } else {
-            frac = (frac * 1000) / (1u64 << exp);
-        }
-        // arredonda e fica com um dígito depois do ponto
-        frac = ((frac + 50) / 100) * 10;
-        if frac == 100 {
-            dec += 1;
-            frac = 0;
-        }
-    }
-    if frac != 0 {
-        let mut s = format!("{}.{:02}", dec as i32, frac);
-        if s.ends_with('0') {
-            s.pop();
-        }
-        s.push(' ');
-        s.push_str(&suffix);
-        s
-    } else {
-        format!("{} {}", dec as i32, suffix)
-    }
-}
 
 /// `cvtnum`: `strtosize`, com -1 pra qualquer erro; acima de `i64::MAX` vira negativo (o `loff_t`).
 fn cvtnum(s: &[u8]) -> i64 {
@@ -302,7 +253,7 @@ fn dig_holes(
         line.extend_from_slice(
             format!(
                 ": {} ({ct} bytes) converted to sparse holes.\n",
-                size_to_human(ct)
+                size_to_human_string(ct, false, false)
             )
             .as_bytes(),
         );
@@ -468,7 +419,7 @@ fn real_main(args: &[OsString]) -> Result<i32, Fatal> {
             line.extend_from_slice(
                 format!(
                     ": {} ({} bytes) {what}.\n",
-                    size_to_human(length as u64),
+                    size_to_human_string(length as u64, false, false),
                     length as u64
                 )
                 .as_bytes(),
@@ -489,16 +440,6 @@ fn real_main(args: &[OsString]) -> Result<i32, Fatal> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn human_sizes() {
-        assert_eq!(size_to_human(0), "0 B");
-        assert_eq!(size_to_human(1000), "1000 B");
-        assert_eq!(size_to_human(4096), "4 KiB");
-        assert_eq!(size_to_human(1536), "1.5 KiB");
-        assert_eq!(size_to_human(1048576), "1 MiB");
-        assert_eq!(size_to_human(10 * 1024 * 1024 + 1), "10 MiB");
-    }
 
     #[test]
     fn cvtnum_values() {

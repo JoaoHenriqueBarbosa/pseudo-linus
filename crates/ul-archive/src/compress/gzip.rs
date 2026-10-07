@@ -8,44 +8,44 @@
 use std::io::Write;
 
 use sysabi::{Errno, Fd, Stat, TimeSpec};
+use ul_common::getopt::{Getopt, HasArg, Item, LongOpt};
 
 use super::common::{self, Input, Sink};
 use crate::codec::{self, GzipHeader, GzipHeaderInfo};
 use crate::gailly::gzip::GzDeflate;
-use crate::getopt::{Getopt, HasArg, Item, LongOpt};
 use crate::sysutil::Output;
 
-const RSYNCABLE: u32 = 0x100;
-const SYNCHRONOUS: u32 = 0x101;
-const PRESUME_TTY: u32 = 0x102;
+const RSYNCABLE: i32 = 0x100;
+const SYNCHRONOUS: i32 = 0x101;
+const PRESUME_TTY: i32 = 0x102;
 
 /// Tabela de opções longas na ordem do gzip 1.13 (a ordem aparece nas mensagens de ambiguidade).
 const LONGS: &[LongOpt] = &[
-    LongOpt::new("ascii", HasArg::No, b'a' as u32),
-    LongOpt::new("to-stdout", HasArg::No, b'c' as u32),
-    LongOpt::new("stdout", HasArg::No, b'c' as u32),
-    LongOpt::new("decompress", HasArg::No, b'd' as u32),
-    LongOpt::new("uncompress", HasArg::No, b'd' as u32),
-    LongOpt::new("force", HasArg::No, b'f' as u32),
-    LongOpt::new("help", HasArg::No, b'h' as u32),
-    LongOpt::new("keep", HasArg::No, b'k' as u32),
-    LongOpt::new("list", HasArg::No, b'l' as u32),
-    LongOpt::new("license", HasArg::No, b'L' as u32),
-    LongOpt::new("no-name", HasArg::No, b'n' as u32),
-    LongOpt::new("name", HasArg::No, b'N' as u32),
+    LongOpt::new("ascii", HasArg::No, b'a' as i32),
+    LongOpt::new("to-stdout", HasArg::No, b'c' as i32),
+    LongOpt::new("stdout", HasArg::No, b'c' as i32),
+    LongOpt::new("decompress", HasArg::No, b'd' as i32),
+    LongOpt::new("uncompress", HasArg::No, b'd' as i32),
+    LongOpt::new("force", HasArg::No, b'f' as i32),
+    LongOpt::new("help", HasArg::No, b'h' as i32),
+    LongOpt::new("keep", HasArg::No, b'k' as i32),
+    LongOpt::new("list", HasArg::No, b'l' as i32),
+    LongOpt::new("license", HasArg::No, b'L' as i32),
+    LongOpt::new("no-name", HasArg::No, b'n' as i32),
+    LongOpt::new("name", HasArg::No, b'N' as i32),
     LongOpt::new("-presume-input-tty", HasArg::No, PRESUME_TTY),
-    LongOpt::new("quiet", HasArg::No, b'q' as u32),
-    LongOpt::new("silent", HasArg::No, b'q' as u32),
+    LongOpt::new("quiet", HasArg::No, b'q' as i32),
+    LongOpt::new("silent", HasArg::No, b'q' as i32),
     LongOpt::new("synchronous", HasArg::No, SYNCHRONOUS),
-    LongOpt::new("recursive", HasArg::No, b'r' as u32),
-    LongOpt::new("suffix", HasArg::Required, b'S' as u32),
-    LongOpt::new("test", HasArg::No, b't' as u32),
-    LongOpt::new("verbose", HasArg::No, b'v' as u32),
-    LongOpt::new("version", HasArg::No, b'V' as u32),
-    LongOpt::new("fast", HasArg::No, b'1' as u32),
-    LongOpt::new("best", HasArg::No, b'9' as u32),
-    LongOpt::new("lzw", HasArg::No, b'Z' as u32),
-    LongOpt::new("bits", HasArg::Required, b'b' as u32),
+    LongOpt::new("recursive", HasArg::No, b'r' as i32),
+    LongOpt::new("suffix", HasArg::Required, b'S' as i32),
+    LongOpt::new("test", HasArg::No, b't' as i32),
+    LongOpt::new("verbose", HasArg::No, b'v' as i32),
+    LongOpt::new("version", HasArg::No, b'V' as i32),
+    LongOpt::new("fast", HasArg::No, b'1' as i32),
+    LongOpt::new("best", HasArg::No, b'9' as i32),
+    LongOpt::new("lzw", HasArg::No, b'Z' as i32),
+    LongOpt::new("bits", HasArg::Required, b'b' as i32),
     LongOpt::new("rsyncable", HasArg::No, RSYNCABLE),
 ];
 
@@ -248,7 +248,7 @@ impl Gzip {
         self.prog = String::from_utf8_lossy(common::base_name(args.first().map(Vec::as_slice).unwrap_or(b"gzip")))
             .into_owned();
         let mut files: Vec<Vec<u8>> = Vec::new();
-        for item in Getopt::from_env(args, SHORTS, LONGS) {
+        for item in Getopt::from_env(args, SHORTS, LONGS).after_argv0() {
             let o = match item {
                 Ok(Item::Operand(op)) => {
                     files.push(op);
@@ -256,12 +256,12 @@ impl Gzip {
                 }
                 Ok(Item::Opt(o)) => o,
                 Err(e) => {
-                    common::eprint(e.message_bytes(&self.prog));
+                    common::eprint(e.message_line(&self.prog));
                     return self.try_help();
                 }
             };
             match o.id {
-                c @ 0x31..=0x39 => self.level = c - 0x30,
+                c @ 0x31..=0x39 => self.level = (c - 0x30) as u32,
                 0x61 => common::eprint(format!("{}: option --ascii ignored on this system\n", self.prog)),
                 0x62 => {
                     if common::parse_u64(&o.arg.unwrap_or_default()).is_none() {

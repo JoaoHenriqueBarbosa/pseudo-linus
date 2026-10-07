@@ -4,6 +4,8 @@
 use std::cmp::Ordering;
 use std::rc::Rc;
 
+use ul_common::ctype::is_space;
+
 pub type Str = Rc<[u8]>;
 
 #[derive(Clone, Debug)]
@@ -26,10 +28,6 @@ pub enum Value {
 
 pub fn empty_str() -> Str {
     Rc::from(&b""[..])
-}
-
-fn is_space(c: u8) -> bool {
-    matches!(c, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c)
 }
 
 /// NaN com o sinal pedido (o gawk escreve `-nan`/`+nan` conforme o bit de sinal).

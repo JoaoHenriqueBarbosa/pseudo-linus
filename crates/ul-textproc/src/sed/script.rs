@@ -8,6 +8,7 @@
 use std::sync::Arc;
 
 use regex_posix::{Regex, RegexBuilder, Syntax};
+use ul_common::ctype::is_space;
 
 use super::escape::{Context, convert};
 
@@ -257,10 +258,6 @@ impl Reader<'_> {
         self.unget(c);
         n
     }
-}
-
-fn is_space(c: u8) -> bool {
-    matches!(c, b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r')
 }
 
 /// Estado da análise entre pedaços.

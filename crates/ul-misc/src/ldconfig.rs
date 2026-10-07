@@ -15,6 +15,7 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{Errno, FileType, Fd, OFlags, RenameFlags, sys};
+use ul_common::fsutil;
 
 use crate::binutils::elf::{Elf, cstr, rd32};
 use crate::util::io;
@@ -220,10 +221,9 @@ fn has_wild(s: &[u8]) -> bool {
 }
 
 fn dirname(p: &[u8]) -> Vec<u8> {
-    match p.iter().rposition(|b| *b == b'/') {
-        Some(0) => b"/".to_vec(),
-        Some(i) => p[..i].to_vec(),
-        None => b".".to_vec(),
+    match fsutil::dirname(p) {
+        b"" => b".".to_vec(),
+        d => d.to_vec(),
     }
 }
 

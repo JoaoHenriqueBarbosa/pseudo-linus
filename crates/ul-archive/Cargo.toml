@@ -9,6 +9,7 @@ description = "tar, gzip, bzip2, xz/lzma, lzip, zstd, zip e unzip do pseudo-linu
 
 [dependencies]
 sysabi = { workspace = true }
+ul-common = { workspace = true, features = ["zone"] }
 # Codecs, todos em Rust puro (F08/H31): deflate pelo zlib-rs, bzip2 pelo libbz2-rs-sys, xz/lzma/lzip
 # pelo lzma-rust2, zstd pelo structured-zstd.
 flate2 = { version = "1.1", default-features = false, features = ["zlib-rs"] }

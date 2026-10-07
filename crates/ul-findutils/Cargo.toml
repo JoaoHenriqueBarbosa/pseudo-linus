@@ -9,6 +9,7 @@ description = "find e xargs do pseudo-linus (GNU findutils 4.10): fork do uutils
 
 [dependencies]
 sysabi = { workspace = true }
+ul-common = { workspace = true }
 sysio = { workspace = true }
 findutils = { path = "vendor/findutils", package = "pl-findutils" }
 

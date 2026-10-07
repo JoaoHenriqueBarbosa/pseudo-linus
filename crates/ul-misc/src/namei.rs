@@ -12,6 +12,7 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{Ctx, Errno, FileType, Stat, mode, sys};
+use ul_common::fsutil;
 
 use crate::util::io;
 use crate::util::ul;
@@ -131,39 +132,16 @@ struct Namei {
 
 /// `xstrmode`.
 fn xstrmode(m: u32) -> Vec<u8> {
-    let mut s = Vec::with_capacity(10);
-    s.push(match FileType::from_mode(m) {
-        FileType::Directory => b'd',
-        FileType::Symlink => b'l',
-        FileType::CharDevice => b'c',
-        FileType::BlockDevice => b'b',
-        FileType::Socket => b's',
-        FileType::Fifo => b'p',
-        FileType::Regular => b'-',
-    });
-    let bit = |mask: u32, ch: u8| if m & mask != 0 { ch } else { b'-' };
-    s.push(bit(0o400, b'r'));
-    s.push(bit(0o200, b'w'));
-    s.push(if m & mode::S_ISUID != 0 {
-        if m & 0o100 != 0 { b's' } else { b'S' }
-    } else {
-        bit(0o100, b'x')
-    });
-    s.push(bit(0o040, b'r'));
-    s.push(bit(0o020, b'w'));
-    s.push(if m & mode::S_ISGID != 0 {
-        if m & 0o010 != 0 { b's' } else { b'S' }
-    } else {
-        bit(0o010, b'x')
-    });
-    s.push(bit(0o004, b'r'));
-    s.push(bit(0o002, b'w'));
-    s.push(if m & mode::S_ISVTX != 0 {
-        if m & 0o001 != 0 { b't' } else { b'T' }
-    } else {
-        bit(0o001, b'x')
-    });
-    s
+    let kind = match FileType::from_mode(m) {
+        FileType::Directory => 'd',
+        FileType::Symlink => 'l',
+        FileType::CharDevice => 'c',
+        FileType::BlockDevice => 'b',
+        FileType::Socket => 's',
+        FileType::Fifo => 'p',
+        FileType::Regular => '-',
+    };
+    fsutil::mode_string(kind, m).into_bytes()
 }
 
 impl Namei {

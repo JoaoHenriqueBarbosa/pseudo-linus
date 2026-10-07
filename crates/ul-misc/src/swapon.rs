@@ -7,6 +7,7 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{Ctx, Errno, sys};
+use ul_common::fsutil::size_to_human_string;
 
 use crate::util::io;
 use crate::util::ul;
@@ -94,7 +95,7 @@ fn show(noheadings: bool, raw: bool, bytes: bool) {
             continue;
         }
         let kb = |s: &str| s.parse::<u64>().unwrap_or(0) * 1024;
-        let fmt = |n: u64| if bytes { n.to_string() } else { human(n) };
+        let fmt = |n: u64| if bytes { n.to_string() } else { size_to_human_string(n, false, true) };
         rows.push([
             f[0].to_string(),
             f[1].to_string(),
@@ -145,23 +146,6 @@ fn show(noheadings: bool, raw: bool, bytes: bool) {
     }
     for r in &rows {
         let _ = out.write_all(line(r.iter().map(String::as_str).collect()).as_bytes());
-    }
-}
-
-fn human(n: u64) -> String {
-    const U: [&str; 7] = ["B", "K", "M", "G", "T", "P", "E"];
-    let mut u = 0;
-    let mut div = 1u64;
-    while u + 1 < U.len() && n / div >= 1024 {
-        div *= 1024;
-        u += 1;
-    }
-    let rem = n % div;
-    let tenth = if div > 1 { rem * 10 / div } else { 0 };
-    if tenth == 0 {
-        format!("{}{}", n / div, U[u])
-    } else {
-        format!("{}.{}{}", n / div, tenth, U[u])
     }
 }
 

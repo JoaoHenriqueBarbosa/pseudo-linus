@@ -15,6 +15,7 @@ use std::io::Write;
 use std::time::Duration;
 
 use sysabi::{Ctx, Errno, Fd, FileType, KillTarget, Signal, sys};
+use ul_common::ctype::strtol;
 use ul_misc::util::io;
 
 use crate::common::out;
@@ -102,22 +103,7 @@ fn list_signals() {
 
 /// `atoi`: dígitos iniciais (com espaço e sinal), saturando.
 fn atoi(s: &[u8]) -> i32 {
-    let mut i = 0;
-    while i < s.len() && matches!(s[i], b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r') {
-        i += 1;
-    }
-    let mut neg = false;
-    if i < s.len() && (s[i] == b'-' || s[i] == b'+') {
-        neg = s[i] == b'-';
-        i += 1;
-    }
-    let mut v: i64 = 0;
-    while i < s.len() && s[i].is_ascii_digit() {
-        v = (v * 10 + i64::from(s[i] - b'0')).min(i64::from(i32::MAX) + 1);
-        i += 1;
-    }
-    let v = if neg { -v } else { v };
-    v.clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32
+    strtol(s, 10).value.clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32
 }
 
 /// `get_signal`: número ou nome (com ou sem `SIG`); nome desconhecido sai com 1.
@@ -525,25 +511,8 @@ fn run(args: &[OsString]) -> Result<i32, i32> {
 
 /// `strtol(arg, &end, 10)` com a checagem do `-n`: erro se não leu dígito algum.
 fn strtol_checked(s: &[u8]) -> (i64, bool) {
-    let mut i = 0;
-    while i < s.len() && matches!(s[i], b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r') {
-        i += 1;
-    }
-    let mut j = i;
-    if j < s.len() && (s[j] == b'-' || s[j] == b'+') {
-        j += 1;
-    }
-    let d = j;
-    while j < s.len() && s[j].is_ascii_digit() {
-        j += 1;
-    }
-    if j == d {
-        return (0, false);
-    }
-    match String::from_utf8_lossy(&s[i..j]).parse::<i64>() {
-        Ok(v) => (v, true),
-        Err(_) => (0, false),
-    }
+    let c = strtol(s, 10);
+    if c.used == 0 || c.overflow { (0, false) } else { (c.value, true) }
 }
 
 /// Um nome da linha de comando: com `/` (compara o executável) ou simples.

@@ -1,7 +1,6 @@
 //! ul-textproc: `grep`, `egrep`, `fgrep`, `rgrep` (GNU grep 3.11) e `sed` (GNU sed 4.9) do
 //! pseudo-linus, sobre o motor `regex-posix`. Toda E/S passa pelo `sysabi`.
 
-pub mod getopt;
 pub mod grep;
 pub mod io;
 pub mod sed;

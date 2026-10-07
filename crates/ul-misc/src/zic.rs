@@ -18,6 +18,7 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{AtFlags, Ctx, Errno, Fd, OFlags, RenameFlags, sys};
+use ul_common::ctype::is_space;
 
 use crate::util::getopt::Getopt;
 use crate::util::io;
@@ -89,10 +90,6 @@ fn usage_text(progname: &str) -> String {
 \n\
 Report bugs to <http://www.debian.org/Bugs/>.\n"
     )
-}
-
-fn is_space(c: u8) -> bool {
-    matches!(c, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c)
 }
 
 fn isleap(y: i64) -> bool {

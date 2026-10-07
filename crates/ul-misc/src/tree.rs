@@ -14,6 +14,7 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{AtFlags, Ctx, Errno, Fd, FileType, Mode, OFlags, Stat, mode, sys};
+use ul_common::fsutil::after_last_slash;
 
 use crate::util::io::{self, File};
 use crate::util::time;
@@ -1148,7 +1149,7 @@ fn version_cmp(a: &[u8], b: &[u8]) -> std::cmp::Ordering {
 }
 
 fn base_name(n: &Node) -> &[u8] {
-    n.path.rsplit(|b| *b == b'/').next().unwrap_or(&n.path)
+    after_last_slash(&n.path)
 }
 
 fn sort_nodes(nodes: &mut [Node], o: &Opts) {

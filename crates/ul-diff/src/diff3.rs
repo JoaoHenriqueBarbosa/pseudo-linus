@@ -11,11 +11,11 @@
 use std::ffi::OsString;
 
 use sysabi::{Ctx, Errno, Fd};
+use ul_common::getopt::{Getopt, HasArg, Item, LongOpt};
 
 use crate::diff::engine;
 use crate::diff::format::build_script;
 use crate::diff::text::{self, Normalize};
-use crate::getopt::{Getopt, HasArg, Item, LongOpt};
 use crate::sysutil::{self, Output};
 
 const HELP: &str = r#"Usage: diff3 [OPTION]... MYFILE OLDFILE YOURFILE
@@ -72,24 +72,24 @@ There is NO WARRANTY, to the extent permitted by law.
 Written by Randy Smith.
 ";
 
-const DIFF_PROGRAM: u32 = 1000;
-const HELP_ID: u32 = 1001;
-const STRIP_TRAILING_CR: u32 = 1002;
+const DIFF_PROGRAM: i32 = 1000;
+const HELP_ID: i32 = 1001;
+const STRIP_TRAILING_CR: i32 = 1002;
 
 const LONGS: &[LongOpt] = &[
     LongOpt::new("diff-program", HasArg::Required, DIFF_PROGRAM),
-    LongOpt::new("easy-only", HasArg::No, b'3' as u32),
-    LongOpt::new("ed", HasArg::No, b'e' as u32),
+    LongOpt::new("easy-only", HasArg::No, b'3' as i32),
+    LongOpt::new("ed", HasArg::No, b'e' as i32),
     LongOpt::new("help", HasArg::No, HELP_ID),
-    LongOpt::new("initial-tab", HasArg::No, b'T' as u32),
-    LongOpt::new("label", HasArg::Required, b'L' as u32),
-    LongOpt::new("merge", HasArg::No, b'm' as u32),
-    LongOpt::new("overlap-only", HasArg::No, b'x' as u32),
-    LongOpt::new("show-all", HasArg::No, b'A' as u32),
-    LongOpt::new("show-overlap", HasArg::No, b'E' as u32),
+    LongOpt::new("initial-tab", HasArg::No, b'T' as i32),
+    LongOpt::new("label", HasArg::Required, b'L' as i32),
+    LongOpt::new("merge", HasArg::No, b'm' as i32),
+    LongOpt::new("overlap-only", HasArg::No, b'x' as i32),
+    LongOpt::new("show-all", HasArg::No, b'A' as i32),
+    LongOpt::new("show-overlap", HasArg::No, b'E' as i32),
     LongOpt::new("strip-trailing-cr", HasArg::No, STRIP_TRAILING_CR),
-    LongOpt::new("text", HasArg::No, b'a' as u32),
-    LongOpt::new("version", HasArg::No, b'v' as u32),
+    LongOpt::new("text", HasArg::No, b'a' as i32),
+    LongOpt::new("version", HasArg::No, b'v' as i32),
 ];
 
 /// Quais blocos o script de ed (ou a fusão) inclui e como.
@@ -161,7 +161,7 @@ pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     let mut kinds: Vec<u8> = Vec::new();
     let mut diff_program: Option<Vec<u8>> = None;
     let mut operands = Vec::new();
-    for item in Getopt::from_env(&argv, "aeimvx3AEL:TX", LONGS) {
+    for item in Getopt::from_env(&argv, "aeimvx3AEL:TX", LONGS).after_argv0() {
         let opt = match item {
             Ok(Item::Operand(v)) => {
                 operands.push(v);
@@ -169,29 +169,29 @@ pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
             }
             Ok(Item::Opt(o)) => o,
             Err(e) => {
-                sysutil::eprint(e.message_bytes(&argv0));
+                sysutil::eprint(e.message_line(&argv0));
                 sysutil::eprint(format!("{argv0}: Try '{argv0} --help' for more information.\n"));
                 return 2;
             }
         };
         match opt.id {
-            x if x == b'a' as u32 => text_mode = true,
-            x if x == b'i' as u32 => finalwrite = true,
-            x if x == b'm' as u32 => merge = true,
-            x if x == b'T' as u32 => initial_tab = true,
-            x if b"eExX3A".iter().any(|c| *c as u32 == x) => {
+            x if x == b'a' as i32 => text_mode = true,
+            x if x == b'i' as i32 => finalwrite = true,
+            x if x == b'm' as i32 => merge = true,
+            x if x == b'T' as i32 => initial_tab = true,
+            x if b"eExX3A".iter().any(|c| *c as i32 == x) => {
                 let k = x as u8;
                 if !kinds.contains(&k) {
                     kinds.push(k);
                 }
             }
-            x if x == b'L' as u32 => {
+            x if x == b'L' as i32 => {
                 if labels.len() >= 3 {
                     return try_help("too many file label options");
                 }
                 labels.push(opt.arg.clone().unwrap_or_default());
             }
-            x if x == b'v' as u32 => {
+            x if x == b'v' as i32 => {
                 let mut out = Output::stdout();
                 out.write_str(VERSION);
                 return if out.finish().is_ok() { 0 } else { 2 };

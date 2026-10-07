@@ -9,7 +9,8 @@
 use std::ffi::OsString;
 use std::io::Write;
 
-use sysabi::{AtFlags, Errno, Fd, FileType, OFlags, sys};
+use sysabi::{AtFlags, Fd, FileType, OFlags, sys};
+use ul_common::fsutil;
 
 use crate::groupmgmt::{
     Spec, fields, is_data, join, name_eq, parse, parse_id, read_lines, usage, valid_name,
@@ -155,25 +156,6 @@ fn pick_id(used: &[u64], preferred: Option<u64>, system: bool, min: u64, max: u6
             None => Some(min),
         }
     }
-}
-
-fn mkdir_p(path: &[u8]) -> bool {
-    let mut i = 1;
-    while i <= path.len() {
-        if i == path.len() || path[i] == b'/' {
-            let part = &path[..i];
-            if !part.is_empty() && part.last() != Some(&b'/') {
-                let r = sys::current().mkdirat(Fd::CWD, part, 0o755);
-                if let Err(e) = r {
-                    if e != Errno::EEXIST {
-                        return false;
-                    }
-                }
-            }
-        }
-        i += 1;
-    }
-    true
 }
 
 fn chown(path: &[u8], uid: u64, gid: u64) {
@@ -661,7 +643,7 @@ fn useradd(args: &[OsString]) -> i32 {
                 io::lossy(&home_dir)
             ));
         } else {
-            if !mkdir_p(&hpath) {
+            if fsutil::mkdir_p(&hpath, 0o755).is_err() {
                 io::eprint(format!("{P}: cannot create directory {}\n", io::lossy(&hpath)));
                 return 12;
             }

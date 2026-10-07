@@ -4,9 +4,8 @@
 //! saída). Escrito a partir de especificação, documentação e comportamento observado no oráculo, nunca
 //! do código GPL. Todo I/O passa pelo `sysabi`.
 
-pub mod getopt;
 pub use sysabi::util as sysutil;
-pub mod tz;
+pub use ul_common::time::zone as tz;
 
 pub mod cmp;
 pub mod diff;

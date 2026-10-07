@@ -2,7 +2,8 @@
 //! possibilidades nas mensagens de abreviação ambígua), conflitos de estilo, validação de números e as
 //! mensagens de erro com "Try 'diff --help' for more information.".
 
-use crate::getopt::{Getopt, HasArg, Item, LongOpt};
+use ul_common::getopt::{Getopt, HasArg, Item, LongOpt};
+
 use crate::sysutil;
 
 use super::format::Palette;
@@ -71,35 +72,35 @@ pub struct Opts {
     pub operands: Vec<Vec<u8>>,
 }
 
-const BINARY: u32 = 1000;
-const CHANGED_GROUP_FORMAT: u32 = 1001;
-const COLOR: u32 = 1002;
-const FROM_FILE: u32 = 1003;
-const HELP: u32 = 1004;
-const HORIZON_LINES: u32 = 1005;
-const IGNORE_FILE_NAME_CASE: u32 = 1006;
-const INHIBIT_HUNK_MERGE: u32 = 1007;
-const LEFT_COLUMN: u32 = 1008;
-const LINE_FORMAT: u32 = 1009;
-const NEW_GROUP_FORMAT: u32 = 1010;
-const NEW_LINE_FORMAT: u32 = 1011;
-const NO_DEREFERENCE: u32 = 1012;
-const NO_IGNORE_FILE_NAME_CASE: u32 = 1013;
-const NORMAL: u32 = 1014;
-const OLD_GROUP_FORMAT: u32 = 1015;
-const OLD_LINE_FORMAT: u32 = 1016;
-const PALETTE: u32 = 1017;
-const SDIFF_MERGE_ASSIST: u32 = 1018;
-const STRIP_TRAILING_CR: u32 = 1019;
-const SUPPRESS_BLANK_EMPTY: u32 = 1020;
-const SUPPRESS_COMMON_LINES: u32 = 1021;
-const TABSIZE: u32 = 1022;
-const TO_FILE: u32 = 1023;
-const UNCHANGED_GROUP_FORMAT: u32 = 1024;
-const UNCHANGED_LINE_FORMAT: u32 = 1025;
+const BINARY: i32 = 1000;
+const CHANGED_GROUP_FORMAT: i32 = 1001;
+const COLOR: i32 = 1002;
+const FROM_FILE: i32 = 1003;
+const HELP: i32 = 1004;
+const HORIZON_LINES: i32 = 1005;
+const IGNORE_FILE_NAME_CASE: i32 = 1006;
+const INHIBIT_HUNK_MERGE: i32 = 1007;
+const LEFT_COLUMN: i32 = 1008;
+const LINE_FORMAT: i32 = 1009;
+const NEW_GROUP_FORMAT: i32 = 1010;
+const NEW_LINE_FORMAT: i32 = 1011;
+const NO_DEREFERENCE: i32 = 1012;
+const NO_IGNORE_FILE_NAME_CASE: i32 = 1013;
+const NORMAL: i32 = 1014;
+const OLD_GROUP_FORMAT: i32 = 1015;
+const OLD_LINE_FORMAT: i32 = 1016;
+const PALETTE: i32 = 1017;
+const SDIFF_MERGE_ASSIST: i32 = 1018;
+const STRIP_TRAILING_CR: i32 = 1019;
+const SUPPRESS_BLANK_EMPTY: i32 = 1020;
+const SUPPRESS_COMMON_LINES: i32 = 1021;
+const TABSIZE: i32 = 1022;
+const TO_FILE: i32 = 1023;
+const UNCHANGED_GROUP_FORMAT: i32 = 1024;
+const UNCHANGED_LINE_FORMAT: i32 = 1025;
 
-const fn c(ch: u8) -> u32 {
-    ch as u32
+const fn c(ch: u8) -> i32 {
+    ch as i32
 }
 
 /// Tabela de opções longas, em ordem alfabética como a do GNU.
@@ -172,33 +173,6 @@ pub enum Parsed {
     Run(Box<Opts>),
     /// Já imprimiu o que tinha que imprimir (ajuda, versão ou erro); sai com o código.
     Exit(i32),
-}
-
-/// Aspas do shell como o gnulib (`shell_quoting_style`): sem aspas quando todos os bytes são seguros;
-/// senão entre aspas simples, com `'` virando `'\''`.
-pub fn shell_quote(arg: &[u8]) -> Vec<u8> {
-    if arg.is_empty() {
-        return b"''".to_vec();
-    }
-    let safe = |(i, &b): (usize, &u8)| -> bool {
-        b.is_ascii_alphanumeric()
-            || matches!(b, b'%' | b'+' | b',' | b'-' | b'.' | b'/' | b':' | b'@' | b']' | b'_')
-            || (i > 0 && matches!(b, b'#' | b'~'))
-            || b >= 0x80
-    };
-    if arg.iter().enumerate().all(safe) {
-        return arg.to_vec();
-    }
-    let mut out = vec![b'\''];
-    for &b in arg {
-        if b == b'\'' {
-            out.extend_from_slice(b"'\\''");
-        } else {
-            out.push(b);
-        }
-    }
-    out.push(b'\'');
-    out
 }
 
 fn try_help(argv0: &str, msg: &str) -> Parsed {
@@ -278,7 +252,7 @@ pub fn parse(argv: &[Vec<u8>]) -> Parsed {
         }
     };
 
-    let mut g = Getopt::from_env(argv, SHORTS, LONGS);
+    let mut g = Getopt::from_env(argv, SHORTS, LONGS).after_argv0();
     while let Some(item) = g.next() {
         let opt = match item {
             Ok(Item::Operand(v)) => {
@@ -287,18 +261,18 @@ pub fn parse(argv: &[Vec<u8>]) -> Parsed {
             }
             Ok(Item::Opt(opt)) => opt,
             Err(e) => {
-                sysutil::eprint(e.message_bytes(&argv0));
+                sysutil::eprint(e.message_line(&argv0));
                 sysutil::eprint(format!("{argv0}: Try '{argv0} --help' for more information.\n"));
                 return Parsed::Exit(2);
             }
         };
         // O elemento da opção e, quando o valor veio separado, o seguinte.
-        used.extend(opt.index..g.optind().max(opt.index + 1));
+        used.extend(opt.index..g.index().max(opt.index + 1));
         let arg = opt.arg.clone().unwrap_or_default();
         let id = opt.id;
         match id {
-            x if (b'0' as u32..=b'9' as u32).contains(&x) => {
-                let d = (x - b'0' as u32) as isize;
+            x if (b'0' as i32..=b'9' as i32).contains(&x) => {
+                let d = (x - b'0' as i32) as isize;
                 let continues = matches!(prev_digit_index, Some((idx, true)) if idx == opt.index);
                 if continues {
                     ocontext = ocontext.saturating_mul(10).saturating_add(d);
@@ -474,7 +448,7 @@ pub fn parse(argv: &[Vec<u8>]) -> Parsed {
     for i in idx.iter().copied().filter(|i| Some(*i) != dashdash && dashdash.is_none_or(|d| *i < d)) {
         if let Some(a) = argv.get(i) {
             sw.push(b' ');
-            sw.extend_from_slice(&shell_quote(a));
+            sw.extend_from_slice(&ul_common::quote::shell(a, &ul_common::quote::Rules::GNULIB));
         }
     }
     if dashdash.is_some() {
@@ -500,18 +474,4 @@ pub fn parse(argv: &[Vec<u8>]) -> Parsed {
     o.horizon = horizon.unwrap_or(0).max(base_horizon);
     o.norm.tabsize = o.tabsize;
     Parsed::Run(Box::new(o))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn quoting_like_gnulib() {
-        assert_eq!(shell_quote(b"-r"), b"-r");
-        assert_eq!(shell_quote(b"--unified=1"), b"'--unified=1'");
-        assert_eq!(shell_quote(b"a b"), b"'a b'");
-        assert_eq!(shell_quote(b"it's"), b"'it'\\''s'");
-        assert_eq!(shell_quote(b""), b"''");
-    }
 }

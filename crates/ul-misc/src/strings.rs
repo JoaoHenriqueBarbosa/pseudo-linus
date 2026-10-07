@@ -198,7 +198,7 @@ fn run(args: &[OsString]) -> i32 {
             }
         };
         let idx = g.index();
-        let is_short = o.spelled.len() == 2 && !o.spelled.starts_with("--");
+        let is_short = o.long.is_none();
         let pos = match (is_short, cluster) {
             (true, Some((ci, p))) if ci == idx => p + 1,
             _ => 1,
@@ -496,7 +496,7 @@ pub(crate) fn expand_response_files(prog: &str, mut argv: Vec<Vec<u8>>) -> Resul
 /// protegem tudo; aspas duplas protegem tudo menos `\"` e `\\`; fora de aspas a barra invertida
 /// protege o próximo caractere. Aspas sem fechamento vão até o fim.
 fn build_argv(text: &[u8]) -> Vec<Vec<u8>> {
-    let is_space = |b: u8| matches!(b, b' ' | b'\t' | b'\n' | b'\x0b' | b'\x0c' | b'\r');
+    use ul_common::ctype::is_space;
     let mut out = Vec::new();
     let mut i = 0;
     loop {

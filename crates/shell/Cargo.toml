@@ -9,6 +9,7 @@ description = "O bash do pseudo-linus (programas bash e sh): interpretador nosso
 
 [dependencies]
 sysabi = { workspace = true }
+ul-common = { workspace = true }
 brush-parser = { path = "vendor/brush-parser" }
 regex-posix = { workspace = true }
 stacker = "0.1.17"

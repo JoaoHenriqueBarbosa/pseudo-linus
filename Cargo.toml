@@ -30,6 +30,7 @@ vfs = { path = "crates/vfs" }
 kernel = { path = "crates/kernel" }
 shell = { path = "crates/shell" }
 regex-posix = { path = "crates/regex-posix" }
+ul-common = { path = "crates/ul-common" }
 userland = { path = "crates/userland" }
 
 [profile.dev]

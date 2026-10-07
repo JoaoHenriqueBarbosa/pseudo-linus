@@ -15,7 +15,8 @@ use std::sync::Arc;
 
 use sysabi::{Ctx, Errno, Fd, OFlags, sys};
 
-use crate::getopt::{Getopt, HasArg, LongOpt, long};
+use ul_common::getopt::{Getopt, HasArg, LongOpt};
+
 use crate::io::{error, errno_msg, read_all};
 use exec::{Exec, RunOptions};
 use script::{Origin, ParseOptions, Parser};
@@ -57,24 +58,24 @@ const fn c(ch: u8) -> i32 {
 }
 
 const LONG_OPTIONS: &[LongOpt] = &[
-    long("binary", HasArg::No, c(b'b')),
-    long("regexp-extended", HasArg::No, c(b'r')),
-    long("debug", HasArg::No, DEBUG_OPTION),
-    long("expression", HasArg::Required, c(b'e')),
-    long("file", HasArg::Required, c(b'f')),
-    long("in-place", HasArg::Optional, c(b'i')),
-    long("line-length", HasArg::Required, c(b'l')),
-    long("null-data", HasArg::No, c(b'z')),
-    long("zero-terminated", HasArg::No, c(b'z')),
-    long("quiet", HasArg::No, c(b'n')),
-    long("posix", HasArg::No, POSIX_OPTION),
-    long("silent", HasArg::No, c(b'n')),
-    long("sandbox", HasArg::No, SANDBOX_OPTION),
-    long("separate", HasArg::No, c(b's')),
-    long("unbuffered", HasArg::No, c(b'u')),
-    long("version", HasArg::No, VERSION_OPTION),
-    long("help", HasArg::No, HELP_OPTION),
-    long("follow-symlinks", HasArg::No, FOLLOW_SYMLINKS_OPTION),
+    LongOpt::new("binary", HasArg::No, c(b'b')),
+    LongOpt::new("regexp-extended", HasArg::No, c(b'r')),
+    LongOpt::new("debug", HasArg::No, DEBUG_OPTION),
+    LongOpt::new("expression", HasArg::Required, c(b'e')),
+    LongOpt::new("file", HasArg::Required, c(b'f')),
+    LongOpt::new("in-place", HasArg::Optional, c(b'i')),
+    LongOpt::new("line-length", HasArg::Required, c(b'l')),
+    LongOpt::new("null-data", HasArg::No, c(b'z')),
+    LongOpt::new("zero-terminated", HasArg::No, c(b'z')),
+    LongOpt::new("quiet", HasArg::No, c(b'n')),
+    LongOpt::new("posix", HasArg::No, POSIX_OPTION),
+    LongOpt::new("silent", HasArg::No, c(b'n')),
+    LongOpt::new("sandbox", HasArg::No, SANDBOX_OPTION),
+    LongOpt::new("separate", HasArg::No, c(b's')),
+    LongOpt::new("unbuffered", HasArg::No, c(b'u')),
+    LongOpt::new("version", HasArg::No, VERSION_OPTION),
+    LongOpt::new("help", HasArg::No, HELP_OPTION),
+    LongOpt::new("follow-symlinks", HasArg::No, FOLLOW_SYMLINKS_OPTION),
 ];
 
 const SHORT_OPTIONS: &str = "bsnrzuEe:f:l:i::";
@@ -98,7 +99,7 @@ fn usage_error() -> i32 {
 fn run(args: &[Vec<u8>]) -> i32 {
     let prog: &[u8] = b"sed";
     let posixly_correct = sys::getenv("POSIXLY_CORRECT").is_some();
-    let mut g = Getopt::new(args, SHORT_OPTIONS, LONG_OPTIONS).posixly_correct(posixly_correct);
+    let mut g = Getopt::new(args, SHORT_OPTIONS, LONG_OPTIONS, posixly_correct);
 
     let mut parse = ParseOptions { posixly_correct, ..ParseOptions::default() };
     let mut run = RunOptions { line_len: 70, ..RunOptions::default() };
@@ -111,16 +112,16 @@ fn run(args: &[Vec<u8>]) -> i32 {
     }
     let mut pieces: Vec<Piece> = Vec::new();
 
-    while let Some(opt) = g.next() {
+    while let Some(opt) = g.next_opt() {
         let opt = match opt {
             Ok(o) => o,
-            Err(msg) => {
-                error(prog, msg.as_bytes());
+            Err(e) => {
+                error(prog, &e.detail());
                 return usage_error();
             }
         };
         let arg = opt.arg.unwrap_or_default();
-        match opt.val {
+        match opt.id {
             x if x == c(b'b') => {}
             x if x == c(b'n') => run.quiet = true,
             x if x == c(b'e') => pieces.push(Piece::Expr(arg)),
@@ -152,7 +153,7 @@ fn run(args: &[Vec<u8>]) -> i32 {
             _ => return usage_error(),
         }
     }
-    let mut operands = g.operands;
+    let mut operands = g.operands();
     if pieces.is_empty() {
         if operands.is_empty() {
             return usage_error();

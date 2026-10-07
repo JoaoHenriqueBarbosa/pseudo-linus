@@ -41,6 +41,7 @@ fake-backend = []
 
 [dependencies]
 sysabi = { workspace = true }
+ul-common = { workspace = true }
 kernel = { workspace = true, optional = true }
 userland = { workspace = true, optional = true }
 # Só o parser, pro osh saber quando o comando digitado ainda não fechou (here-document, aspas, blocos).

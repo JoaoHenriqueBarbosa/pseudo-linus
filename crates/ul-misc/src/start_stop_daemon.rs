@@ -17,6 +17,7 @@ use std::io::Write;
 use std::time::Duration;
 
 use sysabi::{Ctx, Errno, KillTarget, ProcAttrs, Signal, sys};
+use ul_common::ctype::parse_i64 as parse_num;
 
 use crate::setsid::execvp;
 use crate::util::io;
@@ -168,13 +169,6 @@ fn write_pidfile(path: &[u8], text: &str) -> Result<(), String> {
 
 fn lossy(b: &[u8]) -> String {
     String::from_utf8_lossy(b).into_owned()
-}
-
-fn parse_num(s: &[u8]) -> Option<i64> {
-    if s.is_empty() {
-        return None;
-    }
-    lossy(s).parse::<i64>().ok()
 }
 
 /// Sinal por número ou nome (com ou sem `SIG`).

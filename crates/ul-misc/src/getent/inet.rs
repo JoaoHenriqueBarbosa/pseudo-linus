@@ -4,18 +4,8 @@
 //! arquivos e de argv sem garantia de UTF-8).
 
 /// `isspace` do locale C.
-pub fn is_space(b: u8) -> bool {
-    matches!(b, b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r')
-}
-
-fn hex_val(b: u8) -> Option<u32> {
-    match b {
-        b'0'..=b'9' => Some(u32::from(b - b'0')),
-        b'a'..=b'f' => Some(u32::from(b - b'a') + 10),
-        b'A'..=b'F' => Some(u32::from(b - b'A') + 10),
-        _ => None,
-    }
-}
+pub use ul_common::ctype::is_space;
+use ul_common::ctype::{hex_value, strtoull};
 
 /// `inet_pton (AF_INET, ...)`: quatro decimais sem zero à esquerda, cada um até 255.
 pub fn pton4(src: &[u8]) -> Option<[u8; 4]> {
@@ -73,7 +63,7 @@ pub fn pton6(src: &[u8]) -> Option<[u8; 16]> {
     while i < src.len() {
         let ch = src[i];
         i += 1;
-        if let Some(d) = hex_val(ch) {
+        if let Some(d) = hex_value(ch) {
             if xdigits_seen == 4 {
                 return None;
             }
@@ -224,33 +214,10 @@ pub fn inet_aton(s: &[u8], exact: bool) -> Option<u32> {
         }
         // `strtoul(cp, &endp, 0)`: o `0x` só vale com um dígito hexa depois; estouro (`ERANGE`) ou
         // valor acima de 32 bits invalidam.
-        let base: u64 =
-            if c == b'0' && (get(i + 1) | 0x20) == b'x' && get(i + 2).is_ascii_hexdigit() {
-                i += 2;
-                16
-            } else if c == b'0' {
-                8
-            } else {
-                10
-            };
-        let mut ul: u64 = 0;
-        let mut overflow = false;
-        loop {
-            let d = match get(i) {
-                d @ b'0'..=b'9' => u64::from(d - b'0'),
-                d @ (b'a'..=b'f' | b'A'..=b'F') => u64::from((d | 0x20) - b'a' + 10),
-                _ => break,
-            };
-            if d >= base {
-                break;
-            }
-            match ul.checked_mul(base).and_then(|v| v.checked_add(d)) {
-                Some(v) => ul = v,
-                None => overflow = true,
-            }
-            i += 1;
-        }
-        if overflow || ul > 0xffff_ffff {
+        let conv = strtoull(&s[i.min(s.len())..], 0);
+        i += conv.used;
+        let ul = conv.value;
+        if conv.overflow || ul > 0xffff_ffff {
             return None;
         }
         val = ul as u32;
@@ -312,7 +279,7 @@ pub fn inet_network(s: &[u8]) -> u32 {
                 i += 1;
                 digit = true;
             } else if base == 16 && c.is_ascii_hexdigit() {
-                val = (val << 4).wrapping_add(hex_val(c).unwrap_or(0));
+                val = (val << 4).wrapping_add(hex_value(c).unwrap_or(0));
                 i += 1;
                 digit = true;
             } else {

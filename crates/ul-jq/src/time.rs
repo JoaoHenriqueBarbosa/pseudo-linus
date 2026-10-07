@@ -16,6 +16,7 @@
 
 use jaq_json::{Rc, Val, err};
 use sysabi::{Clock, Syscalls};
+use ul_common::time::{Civil, civil_from_days, days_from_civil, is_leap, weekday};
 
 type ValR = jaq_json::ValR;
 
@@ -133,53 +134,18 @@ pub struct Tm {
     pub zone: Option<String>,
 }
 
-/// Dias desde 1970-01-01 (algoritmo de Howard Hinnant).
-fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
-    let y = if m <= 2 { y - 1 } else { y };
-    let era = if y >= 0 { y } else { y - 399 } / 400;
-    let yoe = y - era * 400;
-    let mp = (m + 9) % 12;
-    let doy = (153 * mp + 2) / 5 + d - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    era * 146_097 + doe - 719_468
-}
-
-fn civil_from_days(z: i64) -> (i64, i64, i64) {
-    let z = z + 719_468;
-    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
-    let doe = z - era * 146_097;
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let y = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = doy - (153 * mp + 2) / 5 + 1;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 };
-    (if m <= 2 { y + 1 } else { y }, m, d)
-}
-
-fn is_leap(y: i64) -> bool {
-    (y % 4 == 0 && y % 100 != 0) || y % 400 == 0
-}
-
 /// `gmtime_r`: `None` quando o ano não cabe num `int`.
 pub fn gmtime_r(t: i64) -> Option<Tm> {
-    let days = t.div_euclid(86_400);
-    let secs = t.rem_euclid(86_400);
-    let (y, m, d) = civil_from_days(days);
-    let year = y - 1900;
-    if year < i32::MIN as i64 || year > i32::MAX as i64 {
-        return None;
-    }
-    let yday = days - days_from_civil(y, 1, 1);
+    let c = Civil::offtime(t, 0)?;
     Some(Tm {
-        sec: secs % 60,
-        min: (secs / 60) % 60,
-        hour: secs / 3600,
-        mday: d,
-        mon: m - 1,
-        year,
-        wday: (days + 4).rem_euclid(7),
-        yday,
+        sec: c.sec,
+        min: c.min,
+        hour: c.hour,
+        mday: c.mday,
+        mon: c.mon - 1,
+        year: c.year - 1900,
+        wday: c.wday,
+        yday: c.yday,
         isdst: 0,
         gmtoff: 0,
         zone: Some("GMT".into()),
@@ -518,7 +484,7 @@ pub fn strptime(v: &Val, fmt: &Val) -> ValR {
         _ => return Err(err(format!("date \"{input}\" does not match format \"{f}\""))),
     };
     if tm.wday == 8 && tm.mday != 0 && (0..=11).contains(&tm.mon) {
-        tm.wday = (days_from_civil(tm.year + 1900, tm.mon + 1, tm.mday) + 4).rem_euclid(7);
+        tm.wday = weekday(days_from_civil(tm.year + 1900, tm.mon + 1, tm.mday));
     }
     if tm.yday == 367 && tm.mday != 0 && (0..=11).contains(&tm.mon) {
         tm.yday = days_from_civil(tm.year + 1900, tm.mon + 1, tm.mday) - days_from_civil(tm.year + 1900, 1, 1);
@@ -596,7 +562,7 @@ fn parse_tm<'a>(input: &'a str, fmt: &str, tm: &mut Tm, tz: &TimeZone) -> Option
         }
         if tm.year >= -1900 {
             let y = tm.year + 1900;
-            tm.wday = (days_from_civil(y, tm.mon + 1, 1) + tm.mday - 1 + 4).rem_euclid(7);
+            tm.wday = weekday(days_from_civil(y, tm.mon + 1, 1) + tm.mday - 1);
         }
     }
     if st.want_xday && !st.have_yday && (st.have_mon || (tm.year as u64) <= 199) {
@@ -856,11 +822,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn civil_round_trip() {
-        for d in [-1_000_000i64, -1, 0, 1, 19_000, 2_932_896] {
-            let (y, m, dd) = civil_from_days(d);
-            assert_eq!(days_from_civil(y, m, dd), d);
-        }
+    fn gmtime_round_trip() {
         let tm = gmtime_r(1_700_000_000).unwrap();
         assert_eq!((tm.year + 1900, tm.mon, tm.mday, tm.hour, tm.min, tm.sec, tm.wday, tm.yday), (2023, 10, 14, 22, 13, 20, 2, 317));
         assert_eq!(timegm(&tm), 1_700_000_000);

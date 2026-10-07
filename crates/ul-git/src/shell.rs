@@ -51,7 +51,7 @@ fn is_valid_cmd_name(cmd: &[u8]) -> bool {
 
 /// `split_cmdline` do git: aspas simples e duplas e barra invertida. `Err` traz a mensagem do erro.
 fn split_cmdline(line: &[u8]) -> Result<Vec<Vec<u8>>, &'static str> {
-    let is_space = |c: u8| matches!(c, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c);
+    use ul_common::ctype::is_space;
     let mut out: Vec<Vec<u8>> = Vec::new();
     let mut cur: Vec<u8> = Vec::new();
     let mut in_word = false;

@@ -1,4 +1,4 @@
-//! Fuso horário local do sandbox e formatação de datas, sem tocar o host.
+//! Fuso horário local do sandbox e formatação de datas pelo `jiff`, sem tocar o host.
 //!
 //! Resolve como o glibc: `TZ` do ambiente (ou, sem `TZ`, o fuso do sandbox via `local_timezone`);
 //! vazio ou `UTC` é UTC; `:` inicial é ignorado; caminho absoluto lê o TZif do sistema de arquivos do
@@ -9,6 +9,8 @@
 use jiff::Timestamp;
 use jiff::tz::{TimeZone, TimeZoneDatabase};
 use sysabi::sys;
+
+use super::days_from_civil;
 
 /// Fuso local do processo corrente.
 pub fn local() -> TimeZone {
@@ -68,17 +70,6 @@ pub fn offset_seconds(sec: i64, tz: &TimeZone) -> i32 {
     tz.to_offset(ts).seconds()
 }
 
-/// Dias desde 1970-01-01 da data civil (algoritmo de Howard Hinnant; `month` de 1 a 12).
-fn days_from_civil(year: i64, month: i64, day: i64) -> i64 {
-    let y = if month <= 2 { year - 1 } else { year };
-    let era = y.div_euclid(400);
-    let yoe = y - era * 400;
-    let mp = (month + 9) % 12;
-    let doy = (153 * mp + 2) / 5 + day - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    era * 146_097 + doe - 719_468
-}
-
 /// `mktime` da glibc com `tm_isdst = -1`: os campos podem sair da faixa (mês 13, dia 0, segundo 62)
 /// e são normalizados; a hora local vira instante no fuso dado. Numa lacuna de horário de verão vale
 /// o deslocamento de antes, e numa sobreposição, o primeiro dos dois instantes.
@@ -110,5 +101,13 @@ mod tests {
         assert_eq!(mktime(2026, 0, 15, 12, 0, 0, &utc), 1_768_478_400);
         assert_eq!(mktime(2025, 12, 15, 12, 0, 0, &utc), 1_768_478_400);
         assert_eq!(mktime(2026, 0, 15, 9, 0, 0, &sp), 1_768_478_400);
+    }
+
+    #[test]
+    fn unresolvable_specs_become_utc() {
+        assert_eq!(offset_seconds(0, &from_spec(b"")), 0);
+        assert_eq!(offset_seconds(0, &from_spec(b":UTC")), 0);
+        assert_eq!(offset_seconds(0, &from_spec(b"../etc/passwd")), 0);
+        assert_eq!(offset_seconds(0, &from_spec(&[0xff, 0xfe])), 0);
     }
 }

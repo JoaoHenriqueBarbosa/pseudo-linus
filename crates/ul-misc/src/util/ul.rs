@@ -6,6 +6,7 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::Errno;
+use ul_common::ctype::strtoull;
 
 use super::display_width;
 use super::io;
@@ -75,47 +76,13 @@ pub fn strtou32_or_err(arg: &[u8], what: &str) -> Result<u32, String> {
 }
 
 /// `isspace` do locale C.
-pub fn is_space(b: u8) -> bool {
-    matches!(b, b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r')
-}
+pub use ul_common::ctype::is_space;
 
 /// `strtoumax(s, &end, 0)`: o valor e o índice onde a leitura parou (0 quando não leu nada).
 /// Overflow é ERANGE.
 fn strtoumax0(s: &[u8]) -> Result<(u64, usize), Errno> {
-    let at = |i: usize| s.get(i).copied().unwrap_or(0);
-    let mut i = 0;
-    while is_space(at(i)) {
-        i += 1;
-    }
-    if at(i) == b'+' {
-        i += 1;
-    }
-    let (base, mut j): (u64, usize) =
-        if at(i) == b'0' && matches!(at(i + 1), b'x' | b'X') && at(i + 2).is_ascii_hexdigit() {
-            (16, i + 2)
-        } else if at(i) == b'0' {
-            (8, i)
-        } else {
-            (10, i)
-        };
-    let digit = |b: u8| -> Option<u64> { char::from(b).to_digit(base as u32).map(u64::from) };
-    let start = j;
-    let mut value: u64 = 0;
-    let mut overflow = false;
-    while let Some(d) = digit(at(j)) {
-        match value.checked_mul(base).and_then(|v| v.checked_add(d)) {
-            Some(v) => value = v,
-            None => overflow = true,
-        }
-        j += 1;
-    }
-    if j == start {
-        return Ok((0, 0));
-    }
-    if overflow {
-        return Err(Errno::ERANGE);
-    }
-    Ok((value, j))
+    let c = strtoull(s, 0);
+    if c.overflow { Err(Errno::ERANGE) } else { Ok((c.value, c.used)) }
 }
 
 /// `do_scale_by_power`: multiplica `x` por `base` `power` vezes; `false` no overflow.

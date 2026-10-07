@@ -9,6 +9,7 @@
 use std::ffi::OsString;
 
 use sysabi::{AtFlags, Clock, Fd, FileType, RenameFlags, sys};
+use ul_common::time::days_from_civil;
 
 use crate::groupmgmt::{
     Spec, fields, is_data, join, name_eq, parse, parse_id, read_lines, usage, valid_name,
@@ -63,16 +64,6 @@ fn rm_rf(path: &[u8]) -> bool {
     } else {
         sys::current().unlinkat(Fd::CWD, path, AtFlags::empty()).is_ok()
     }
-}
-
-fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
-    let y = if m <= 2 { y - 1 } else { y };
-    let era = if y >= 0 { y } else { y - 399 } / 400;
-    let yoe = y - era * 400;
-    let mp = (m + 9) % 12;
-    let doy = (153 * mp + 2) / 5 + d - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    era * 146_097 + doe - 719_468
 }
 
 /// `YYYY-MM-DD` ou número de dias desde a época; vazio e `-1` viram "sem expiração" (`Some(None)`).

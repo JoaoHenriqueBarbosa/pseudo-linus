@@ -56,6 +56,7 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{Ctx, Errno, Fd};
+use ul_common::fsutil::after_last_slash;
 
 use crate::util::io;
 use crate::util::{Getopt, HasArg, LongOpt};
@@ -266,8 +267,7 @@ fn run(args: &[OsString]) -> i32 {
     let argv0 = io::argv0(args);
     let prog = {
         let a = argv.first().cloned().unwrap_or_default();
-        let base = a.rsplit(|&b| b == b'/').next().unwrap_or(&a).to_vec();
-        io::lossy(&base)
+        io::lossy(after_last_slash(&a))
     };
     let mut hex = Hexdump {
         prog: prog.clone(),
@@ -308,7 +308,7 @@ fn run(args: &[OsString]) -> i32 {
                 return 1;
             }
         };
-        consumed.push(opt.spelled.clone().into_bytes());
+        consumed.push(opt.spelled().into_bytes());
         if let Some(a) = &opt.arg {
             consumed.push(a.clone());
         }

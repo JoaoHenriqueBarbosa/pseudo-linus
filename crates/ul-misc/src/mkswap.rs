@@ -8,6 +8,7 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{Ctx, Errno, OFlags, sys};
+use ul_common::fsutil::size_to_human_string;
 
 use crate::util::io;
 use crate::util::ul;
@@ -57,28 +58,6 @@ For more details see mkswap(8).
 
 pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     io::run(|| run(args))
-}
-
-/// `size_to_human_string(SIZE_SUFFIX_3LETTER | SIZE_SUFFIX_SPACE)`: `4 KiB`, `1020 KiB`, `1.5 MiB`.
-fn human(bytes: u64) -> String {
-    const UNITS: [&str; 7] = ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"];
-    let mut unit = 0;
-    let mut div: u64 = 1;
-    while unit + 1 < UNITS.len() && bytes / div >= 1024 {
-        div *= 1024;
-        unit += 1;
-    }
-    let whole = bytes / div;
-    let rem = bytes % div;
-    if rem == 0 || unit == 0 {
-        return format!("{whole} {}", UNITS[unit]);
-    }
-    let tenth = rem * 10 / div;
-    if tenth == 0 {
-        format!("{whole} {}", UNITS[unit])
-    } else {
-        format!("{whole}.{tenth} {}", UNITS[unit])
-    }
 }
 
 fn valid_uuid(s: &[u8]) -> Option<[u8; 16]> {
@@ -294,7 +273,7 @@ fn run(args: &[OsString]) -> i32 {
         let _ = out.write_all(
             format!(
                 "Setting up swapspace version 1, size = {} ({} bytes)\n",
-                human((pages - 1) * pagesize),
+                size_to_human_string((pages - 1) * pagesize, false, false),
                 (pages - 1) * pagesize
             )
             .as_bytes(),

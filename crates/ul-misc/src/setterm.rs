@@ -160,10 +160,8 @@ fn run(args: &[OsString]) -> i32 {
             Ok(o) => o,
             Err(e) => {
                 let e = match e {
-                    GetoptError::Unrecognized(s)
-                        if argv[1..].iter().any(|a| a.as_slice() == s[1..].as_bytes()) =>
-                    {
-                        GetoptError::Unrecognized(s[1..].to_string())
+                    GetoptError::Unrecognized(s) if argv[1..].iter().any(|a| a.as_slice() == &s[1..]) => {
+                        GetoptError::Unrecognized(s[1..].to_vec())
                     }
                     other => other,
                 };
@@ -173,7 +171,7 @@ fn run(args: &[OsString]) -> i32 {
             }
         };
         let arg = o.arg.clone().unwrap_or_default();
-        let name = o.spelled.clone();
+        let name = o.spelled();
         let seq: String = match o.id {
             262 | 263 | 264 | 265 | 266 => {
                 let Ok(on) = onoff(&short, &name, &arg) else {

@@ -2,9 +2,7 @@
 //! separação de um buffer em comandos e o reconhecimento dos terminadores `go` e `/`.
 
 /// `isspace` da libc no locale C: espaço, \t, \n, \v, \f, \r.
-pub fn is_space(c: u8) -> bool {
-    matches!(c, b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r')
-}
+pub use ul_common::ctype::is_space;
 
 /// `IdChar` do tokenizador do SQLite: letra, dígito, `_`, `$` e todo byte >= 0x80.
 pub fn id_char(c: u8) -> bool {

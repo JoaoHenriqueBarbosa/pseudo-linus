@@ -9,6 +9,7 @@ description = "jq 1.7.1 (jaq com fork localizado do núcleo e camada nossa) e yq
 
 [dependencies]
 sysabi = { workspace = true }
+ul-common = { workspace = true }
 # Fork localizado do jaq (ver vendor/*/Cargo.toml e as marcas "Porte pseudo-linus" no código).
 jaq-core = { path = "vendor/jaq-core" }
 jaq-std = { path = "vendor/jaq-std" }

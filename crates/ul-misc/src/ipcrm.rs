@@ -8,6 +8,7 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{Ctx, sys};
+use ul_common::ctype::{is_space, strtoull};
 
 use crate::util::io;
 use crate::util::ul;
@@ -59,16 +60,14 @@ pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     io::run(|| run(args))
 }
 
-/// `strtoul(arg, 0)` do original: o texto precisa ser um inteiro inteiro, em base 0.
+/// `strtoul(arg, 0)` do original: o texto precisa ser um inteiro inteiro, em base 0, sem espaço à
+/// frente nem sinal negativo.
 fn parse_num(arg: &[u8]) -> Option<u64> {
-    let s = std::str::from_utf8(arg).ok()?;
-    if let Some(h) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")) {
-        u64::from_str_radix(h, 16).ok()
-    } else if s.len() > 1 && s.starts_with('0') {
-        u64::from_str_radix(&s[1..], 8).ok()
-    } else {
-        s.parse().ok()
+    if arg.first().is_some_and(|&c| c == b'-' || is_space(c)) {
+        return None;
     }
+    let c = strtoull(arg, 0);
+    (c.used > 0 && c.used == arg.len() && !c.overflow).then_some(c.value)
 }
 
 fn posix_remove(short: &str, dir: &str, name: &str) -> bool {

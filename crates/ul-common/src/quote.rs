@@ -1,7 +1,10 @@
-//! Citação de nomes como o quotearg do gnulib faz no GNU tar, escrita a partir da documentação dos
-//! estilos (`--quoting-style`) e do comportamento observado: o padrão do tar é `escape` (barra invertida,
+//! Citação de nomes como o quotearg do gnulib faz, escrita a partir da documentação dos estilos
+//! (`--quoting-style`) e do comportamento observado: o estilo padrão do tar é `escape` (barra invertida,
 //! escapes do C pra controles, octal de três dígitos pro resto que não é imprimível; UTF-8 imprimível
 //! passa como está); as mensagens de erro usam o mesmo estilo com `:` também escapado.
+//!
+//! O motor é um só. O que cada programa faz de diferente (conjunto de caracteres seguros no estilo
+//! `shell`, aspas duplas quando o nome tem `'`, bytes altos crus) é parâmetro: o [`Rules`].
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Style {
@@ -54,6 +57,22 @@ impl Default for Quoting {
     }
 }
 
+/// As variações de comportamento que cada programa tem em cima do motor.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Rules {
+    /// Nome com `'` e sem `$`, crase, `"`, `\` e `!` sai entre aspas duplas em vez de `'\''`.
+    pub prefer_double_quotes: bool,
+    /// Nos estilos de barra invertida, bytes >= 0x80 passam crus (sem olhar UTF-8 nem octal).
+    pub raw_high_bytes: bool,
+}
+
+impl Rules {
+    /// O quotearg do gnulib, como o tar, o xargs e o diff usam.
+    pub const GNULIB: Rules = Rules { prefer_double_quotes: false, raw_high_bytes: false };
+    /// GNU patch.
+    pub const PATCH: Rules = Rules { prefer_double_quotes: true, raw_high_bytes: true };
+}
+
 /// Decodifica o próximo caractere UTF-8 válido em `s`; `None` se o byte não começa um caractere válido.
 fn next_char(s: &[u8]) -> Option<(char, usize)> {
     let n = match s.first()? {
@@ -98,13 +117,18 @@ fn push_octal(out: &mut Vec<u8>, b: u8) {
 }
 
 /// Estilos de barra invertida (`escape`, `c`, `c-maybe`, `locale`, `clocale`): corpo citado.
-fn backslash_body(s: &[u8], q: &Quoting, quote_char: Option<u8>, colon: bool) -> (Vec<u8>, bool) {
+fn backslash_body(s: &[u8], q: &Quoting, rules: &Rules, quote_char: Option<u8>, colon: bool) -> (Vec<u8>, bool) {
     let mut out = Vec::with_capacity(s.len());
     let mut changed = false;
     let mut i = 0;
     while i < s.len() {
         let b = s[i];
         if b >= 0x80 {
+            if rules.raw_high_bytes {
+                out.push(b);
+                i += 1;
+                continue;
+            }
             match next_char(&s[i..]) {
                 Some((c, n)) if printable(c) => {
                     out.extend_from_slice(&s[i..i + n]);
@@ -147,20 +171,16 @@ fn backslash_body(s: &[u8], q: &Quoting, quote_char: Option<u8>, colon: bool) ->
     (out, changed)
 }
 
-/// Precisa de aspas no estilo `shell`.
+/// Precisa de aspas no estilo `shell`: a pontuação segura é a do quotearg do gnulib, e `#` e `~` só
+/// pedem aspas na primeira posição (conferido no tar, xargs, diff e patch do Debian 13).
 fn shell_needs_quotes(s: &[u8]) -> bool {
-    if s.is_empty() {
-        return true;
-    }
-    if s[0] == b'~' || s[0] == b'#' {
-        return true;
-    }
-    s.iter().any(|&b| {
-        !(b.is_ascii_alphanumeric() || b"%+,-./:=@_^".contains(&b) || b >= 0x80)
-    })
+    s.is_empty()
+        || s.iter().enumerate().any(|(i, &b)| {
+            !(b.is_ascii_alphanumeric() || b"%+,-./:@]_".contains(&b) || b >= 0x80 || (i > 0 && matches!(b, b'#' | b'~')))
+        })
 }
 
-fn shell_quote(s: &[u8], always: bool, escape: bool) -> Vec<u8> {
+fn shell_quote(s: &[u8], always: bool, escape: bool, rules: &Rules) -> Vec<u8> {
     let has_unprintable = s.iter().any(|&b| b < 0x20 || b == 0x7f);
     if escape && has_unprintable {
         // $'...' com escapes do C.
@@ -195,6 +215,15 @@ fn shell_quote(s: &[u8], always: bool, escape: bool) -> Vec<u8> {
     if !always && !shell_needs_quotes(s) {
         return s.to_vec();
     }
+    if rules.prefer_double_quotes
+        && s.contains(&b'\'')
+        && !s.iter().any(|c| matches!(c, b'$' | b'`' | b'"' | b'\\' | b'!'))
+    {
+        let mut out = b"\"".to_vec();
+        out.extend_from_slice(s);
+        out.push(b'"');
+        return out;
+    }
     let mut out = b"'".to_vec();
     for &b in s {
         if b == b'\'' {
@@ -207,20 +236,21 @@ fn shell_quote(s: &[u8], always: bool, escape: bool) -> Vec<u8> {
     out
 }
 
-/// Cita `s` no estilo configurado. `colon` também escapa `:` (o `quotearg_colon` das mensagens).
-pub fn quote_with(s: &[u8], q: &Quoting, colon: bool) -> Vec<u8> {
+/// Cita `s` no estilo configurado, com as regras de um programa. `colon` também escapa `:` (o
+/// `quotearg_colon` das mensagens).
+pub fn quote_rules(s: &[u8], q: &Quoting, rules: &Rules, colon: bool) -> Vec<u8> {
     match q.style {
         Style::Literal => s.to_vec(),
-        Style::Escape => backslash_body(s, q, None, colon).0,
+        Style::Escape => backslash_body(s, q, rules, None, colon).0,
         Style::C => {
-            let (body, _) = backslash_body(s, q, Some(b'"'), colon);
+            let (body, _) = backslash_body(s, q, rules, Some(b'"'), colon);
             let mut out = b"\"".to_vec();
             out.extend_from_slice(&body);
             out.push(b'"');
             out
         }
         Style::CMaybe => {
-            let (body, changed) = backslash_body(s, q, Some(b'"'), colon);
+            let (body, changed) = backslash_body(s, q, rules, Some(b'"'), colon);
             if changed {
                 let mut out = b"\"".to_vec();
                 out.extend_from_slice(&body);
@@ -231,17 +261,22 @@ pub fn quote_with(s: &[u8], q: &Quoting, colon: bool) -> Vec<u8> {
             }
         }
         Style::Locale | Style::CLocale => {
-            let (body, _) = backslash_body(s, q, None, colon);
+            let (body, _) = backslash_body(s, q, rules, None, colon);
             let mut out = "\u{2018}".as_bytes().to_vec();
             out.extend_from_slice(&body);
             out.extend_from_slice("\u{2019}".as_bytes());
             out
         }
-        Style::Shell => shell_quote(s, false, false),
-        Style::ShellAlways => shell_quote(s, true, false),
-        Style::ShellEscape => shell_quote(s, false, true),
-        Style::ShellEscapeAlways => shell_quote(s, true, true),
+        Style::Shell => shell_quote(s, false, false, rules),
+        Style::ShellAlways => shell_quote(s, true, false, rules),
+        Style::ShellEscape => shell_quote(s, false, true, rules),
+        Style::ShellEscapeAlways => shell_quote(s, true, true, rules),
     }
+}
+
+/// Cita `s` no estilo configurado, com as regras do GNU tar.
+pub fn quote_with(s: &[u8], q: &Quoting, colon: bool) -> Vec<u8> {
+    quote_rules(s, q, &Rules::GNULIB, colon)
 }
 
 /// Estilo padrão do tar (`escape`).
@@ -257,6 +292,30 @@ pub fn colon(s: &[u8]) -> Vec<u8> {
 /// Aspas do locale (‘x’), usadas em mensagens como "invalid argument ‘foo’ for ‘--sort’".
 pub fn locale(s: &[u8]) -> Vec<u8> {
     quote_with(s, &Quoting { style: Style::Locale, ..Quoting::default() }, false)
+}
+
+/// Aspas do shell só quando precisam (estilo `shell`), com as regras de um programa.
+pub fn shell(s: &[u8], rules: &Rules) -> Vec<u8> {
+    shell_quote(s, false, false, rules)
+}
+
+/// Byte no estilo `cat -v`: `^A`, `^?`, `M-^@`, `M-a`.
+pub fn cat_v(c: u8) -> String {
+    let mut s = String::new();
+    let mut c = c;
+    if c >= 0x80 {
+        s.push_str("M-");
+        c -= 0x80;
+    }
+    if c < 0x20 {
+        s.push('^');
+        s.push((c + 0x40) as char);
+    } else if c == 0x7f {
+        s.push_str("^?");
+    } else {
+        s.push(c as char);
+    }
+    s
 }
 
 #[cfg(test)]
@@ -280,5 +339,59 @@ mod tests {
         let q = Quoting { style: Style::C, ..Quoting::default() };
         assert_eq!(quote_with(b"d/q\"x", &q, false), b"\"d/q\\\"x\"");
         assert_eq!(quote_with(b"a", &q, false), b"\"a\"");
+    }
+
+    #[test]
+    fn locale_style() {
+        assert_eq!(locale(b"foo"), "\u{2018}foo\u{2019}".as_bytes());
+    }
+
+    #[test]
+    fn shell_with_diff_rules() {
+        assert_eq!(shell(b"-r", &Rules::GNULIB), b"-r");
+        assert_eq!(shell(b"--unified=1", &Rules::GNULIB), b"'--unified=1'");
+        assert_eq!(shell(b"a b", &Rules::GNULIB), b"'a b'");
+        assert_eq!(shell(b"it's", &Rules::GNULIB), b"'it'\\''s'");
+        assert_eq!(shell(b"", &Rules::GNULIB), b"''");
+    }
+
+    #[test]
+    fn shell_like_debian_tar_and_xargs() {
+        // `tar --quoting-style=shell -t` e `xargs -t` no Debian 13.
+        assert_eq!(shell(b"a=b", &Rules::GNULIB), b"'a=b'");
+        assert_eq!(shell(b"x^y", &Rules::GNULIB), b"'x^y'");
+        assert_eq!(shell(b"#h", &Rules::GNULIB), b"'#h'");
+        assert_eq!(shell(b"a#b", &Rules::GNULIB), b"a#b");
+        assert_eq!(shell(b"~u", &Rules::GNULIB), b"'~u'");
+        assert_eq!(shell(b"q]r", &Rules::GNULIB), b"q]r");
+    }
+
+    #[test]
+    fn shell_with_patch_rules() {
+        // `patching file ...` no Debian 13.
+        assert_eq!(shell(b"q]r", &Rules::PATCH), b"q]r");
+        assert_eq!(shell(b"a=b", &Rules::PATCH), b"'a=b'");
+        assert_eq!(shell(b"a#b", &Rules::PATCH), b"a#b");
+        assert_eq!(shell(b"a.txt", &Rules::PATCH), b"a.txt");
+        assert_eq!(shell(b"a b.txt", &Rules::PATCH), b"'a b.txt'");
+        assert_eq!(shell(b"it's.txt", &Rules::PATCH), b"\"it's.txt\"");
+        assert_eq!(shell(b"it's$x", &Rules::PATCH), b"'it'\\''s$x'");
+    }
+
+    #[test]
+    fn patch_backslash_styles() {
+        let esc = Quoting { style: Style::Escape, extra: vec![b' '], except: Vec::new() };
+        assert_eq!(quote_rules(b"a b\xc3\xa9\x01", &esc, &Rules::PATCH, false), b"a\\ b\xc3\xa9\\001");
+        let c = Quoting { style: Style::C, ..Quoting::default() };
+        assert_eq!(quote_rules(b"a \"b\"\xff", &c, &Rules::PATCH, false), b"\"a \\\"b\\\"\xff\"");
+    }
+
+    #[test]
+    fn cat_v_notation() {
+        assert_eq!(cat_v(1), "^A");
+        assert_eq!(cat_v(0x7f), "^?");
+        assert_eq!(cat_v(0x80), "M-^@");
+        assert_eq!(cat_v(0xff), "M-^?");
+        assert_eq!(cat_v(b'x'), "x");
     }
 }

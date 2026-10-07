@@ -22,6 +22,7 @@ use std::os::unix::ffi::OsStrExt;
 
 use regex_posix::{Regex, Syntax};
 use sysabi::{AtFlags, Clock, Ctx, Errno, Fd, FileType, RenameFlags, Stat, sys};
+use ul_common::fsutil::size_to_human_string;
 
 use crate::util::io::{self, File};
 use crate::util::ul;
@@ -200,54 +201,6 @@ fn cmp<T: Ord>(a: T, b: T) -> i32 {
     }
 }
 
-/// `size_to_human_string` com `SIZE_SUFFIX_3LETTER | SIZE_SUFFIX_SPACE | SIZE_DECIMAL_2DIGITS`.
-fn human_size(bytes: u64) -> String {
-    let mut shft = 10;
-    while shft <= 60 {
-        if bytes < (1u64 << shft) {
-            break;
-        }
-        shft += 10;
-    }
-    let exp = shft - 10;
-    let letters = b"BKMGTPE";
-    let c = letters[if exp != 0 { (exp / 10) as usize } else { 0 }] as char;
-    let mut dec = if exp != 0 {
-        bytes / (1u64 << exp)
-    } else {
-        bytes
-    };
-    let mut frac = if exp != 0 { bytes % (1u64 << exp) } else { 0 };
-    let suffix = if c == 'B' {
-        " B".to_string()
-    } else {
-        format!(" {c}iB")
-    };
-    if frac != 0 {
-        // três dígitos depois do ponto
-        if frac >= u64::MAX / 1000 {
-            frac = ((frac / 1024) * 1000) / (1u64 << (exp - 10));
-        } else {
-            frac = (frac * 1000) / (1u64 << exp);
-        }
-        // arredonda e guarda dois dígitos
-        frac = (frac + 5) / 10;
-        if frac == 100 {
-            dec += 1;
-            frac = 0;
-        }
-    }
-    if frac != 0 {
-        let mut s = format!("{dec}.{frac:02}");
-        if s.ends_with('0') {
-            s.pop();
-        }
-        s + &suffix
-    } else {
-        format!("{dec}{suffix}")
-    }
-}
-
 impl Hl {
     fn enabled(&self, level: i32) -> bool {
         !self.o.quiet && level <= self.o.verbosity
@@ -311,7 +264,7 @@ impl Hl {
         }
         self.jlog(
             JLOG_SUMMARY,
-            format!("{:<25} {}", "Saved:", human_size(self.stats.saved)),
+            format!("{:<25} {}", "Saved:", size_to_human_string(self.stats.saved, true, false)),
         );
         self.jlog(
             JLOG_SUMMARY,
@@ -400,7 +353,7 @@ impl Hl {
             let a_path = self.files[a].links[0].path.clone();
             let b_path = self.files[b].links[0].path.clone();
             if self.enabled(JLOG_INFO) {
-                let ssz = human_size(self.files[a].size);
+                let ssz = size_to_human_string(self.files[a].size, true, false);
                 let dry = if self.o.dry_run { "[DryRun] " } else { "" };
                 self.jlog(
                     JLOG_INFO,
@@ -972,21 +925,4 @@ fn run(args: &[OsString]) -> i32 {
         return 1;
     }
     0
-}
-
-#[cfg(test)]
-mod tests {
-    use super::human_size;
-
-    #[test]
-    fn sizes_like_size_to_human_string() {
-        assert_eq!(human_size(0), "0 B");
-        assert_eq!(human_size(12), "12 B");
-        assert_eq!(human_size(1023), "1023 B");
-        assert_eq!(human_size(1024), "1 KiB");
-        assert_eq!(human_size(1536), "1.5 KiB");
-        assert_eq!(human_size(1025), "1 KiB");
-        assert_eq!(human_size(10 * 1024 * 1024), "10 MiB");
-        assert_eq!(human_size(1024 * 1024 + 1024 * 100), "1.1 MiB");
-    }
 }

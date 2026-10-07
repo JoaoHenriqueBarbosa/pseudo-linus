@@ -12,6 +12,7 @@ use sysabi::sched::{
     IOPRIO_WHO_USER, ioprio_class, ioprio_level, ioprio_value,
 };
 use sysabi::sys;
+use ul_common::ctype::parse_decimal as parse_num;
 
 use crate::util::io;
 use crate::util::ul;
@@ -58,13 +59,6 @@ fn parse_class(s: &[u8]) -> Option<i32> {
         }
     }
     parse_num(s).and_then(|v| i32::try_from(v).ok())
-}
-
-fn parse_num(s: &[u8]) -> Option<u64> {
-    if s.is_empty() || !s.iter().all(u8::is_ascii_digit) {
-        return None;
-    }
-    std::str::from_utf8(s).ok()?.parse().ok()
 }
 
 fn run(args: &[OsString]) -> i32 {

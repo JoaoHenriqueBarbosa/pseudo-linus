@@ -9,6 +9,7 @@
 use std::ffi::OsString;
 
 use sysabi::{Errno, sys};
+use ul_common::fsutil::after_last_slash;
 
 use crate::groupmgmt::{fields, gid_of, is_data, name_eq, parse_id, read_lines};
 use crate::setsid::execvp;
@@ -61,7 +62,7 @@ pub(crate) fn exec_or_fail(short: &str, msg: String, file: &[u8], argv: &[Vec<u8
 }
 
 fn base(path: &[u8]) -> Vec<u8> {
-    path.rsplit(|b| *b == b'/').next().unwrap_or(path).to_vec()
+    after_last_slash(path).to_vec()
 }
 
 /// Primeiro caractere de uma opção desconhecida (`-x`), se o argumento for uma opção.

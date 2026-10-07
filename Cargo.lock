@@ -1407,6 +1407,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "tracking-allocator",
+ "ul-common",
  "ureq",
  "userland",
 ]
@@ -4606,6 +4607,7 @@ dependencies = [
  "regex-posix",
  "stacker",
  "sysabi",
+ "ul-common",
 ]
 
 [[package]]
@@ -5151,6 +5153,7 @@ dependencies = [
  "structured-zstd",
  "sysabi",
  "tar",
+ "ul-common",
  "zip",
 ]
 
@@ -5166,7 +5169,16 @@ dependencies = [
  "serde_json",
  "stacker",
  "sysabi",
+ "ul-common",
  "userland",
+]
+
+[[package]]
+name = "ul-common"
+version = "0.1.0"
+dependencies = [
+ "jiff",
+ "sysabi",
 ]
 
 [[package]]
@@ -5280,6 +5292,7 @@ dependencies = [
  "pl-uucore",
  "sysabi",
  "sysio",
+ "ul-common",
 ]
 
 [[package]]
@@ -5293,6 +5306,7 @@ dependencies = [
  "pl-testing",
  "serde_json",
  "sysabi",
+ "ul-common",
  "unicode-width 0.2.2",
 ]
 
@@ -5303,6 +5317,7 @@ dependencies = [
  "pl-findutils",
  "sysabi",
  "sysio",
+ "ul-common",
 ]
 
 [[package]]
@@ -5318,6 +5333,7 @@ dependencies = [
  "sha1 0.10.7",
  "sysabi",
  "sysio",
+ "ul-common",
 ]
 
 [[package]]
@@ -5333,6 +5349,7 @@ dependencies = [
  "pl-testing",
  "serde_json",
  "sysabi",
+ "ul-common",
 ]
 
 [[package]]
@@ -5350,6 +5367,7 @@ dependencies = [
  "regex-posix",
  "sysabi",
  "sysio",
+ "ul-common",
  "unicode-width 0.2.2",
 ]
 
@@ -5366,6 +5384,7 @@ dependencies = [
  "rustls-pki-types",
  "ruzstd",
  "sysabi",
+ "ul-common",
 ]
 
 [[package]]
@@ -5378,6 +5397,7 @@ dependencies = [
  "serde_json",
  "sysabi",
  "sysio",
+ "ul-common",
  "ul-misc",
 ]
 
@@ -5396,6 +5416,7 @@ dependencies = [
  "rusqlite",
  "sysabi",
  "ul-archive",
+ "ul-common",
  "ul-sqlite",
  "unicode_names2",
  "zdeflate",
@@ -5414,6 +5435,7 @@ dependencies = [
  "rusqlite",
  "sqlite-plugin",
  "sysabi",
+ "ul-common",
 ]
 
 [[package]]
@@ -5425,6 +5447,7 @@ dependencies = [
  "pl-testing",
  "regex-posix",
  "sysabi",
+ "ul-common",
 ]
 
 [[package]]
@@ -5436,6 +5459,7 @@ dependencies = [
  "sha2 0.10.9",
  "sysabi",
  "sysio",
+ "ul-common",
 ]
 
 [[package]]

@@ -10,7 +10,7 @@ use std::io::Write;
 
 use sysabi::sys;
 
-use crate::lsmem::human_size;
+use ul_common::fsutil::size_to_human_string;
 use crate::util::io;
 use crate::util::ul;
 
@@ -160,24 +160,6 @@ fn parse_cache_size(s: &str) -> u64 {
         _ => (s, 1),
     };
     num.parse::<u64>().unwrap_or(0) * mult
-}
-
-/// `size_to_human_string(SIZE_SUFFIX_3LETTER | SIZE_SUFFIX_SPACE)`.
-fn human_3(bytes: u64) -> String {
-    const UNITS: [&str; 7] = ["B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB"];
-    let mut exp = 0usize;
-    let mut div: u64 = 1;
-    while exp + 1 < UNITS.len() && bytes / div >= 1024 {
-        div *= 1024;
-        exp += 1;
-    }
-    let whole = bytes / div;
-    let tenth = (bytes % div) as u128 * 10 / div as u128;
-    if tenth == 0 {
-        format!("{whole} {}", UNITS[exp])
-    } else {
-        format!("{whole}.{tenth} {}", UNITS[exp])
-    }
 }
 
 fn json_escape(s: &str) -> String {
@@ -668,8 +650,7 @@ fn run(args: &[OsString]) -> i32 {
                     continue;
                 }
                 let total = one * seen.len() as u64;
-                let sz = if bytes { total.to_string() } else { human_3(total) };
-                let _ = human_size;
+                let sz = if bytes { total.to_string() } else { size_to_human_string(total, false, false) };
                 items.push((
                     format!("{label} cache:"),
                     format!(

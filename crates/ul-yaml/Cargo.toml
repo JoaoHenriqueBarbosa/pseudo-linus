@@ -9,6 +9,7 @@ description = "yq 3.4.3 (kislyuk) do pseudo-linus: YAML do PyYAML 6.0.2 com o pa
 
 [dependencies]
 sysabi = { workspace = true }
+ul-common = { workspace = true }
 # Fachada com a forma do std: stdout com a bufferização da glibc, Command pro jq, threads.
 sysio = { workspace = true }
 # Inteiros do Python (o YAML aceita inteiros de qualquer tamanho e o json do Python também).

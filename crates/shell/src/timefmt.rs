@@ -1,47 +1,22 @@
 //! Conversão de tempo Unix em data civil (pro `%(fmt)T` do printf). Fuso: UTC, ou deslocamento
 //! fixo de uma string POSIX de TZ sem horário de verão (`BRT3`, `<-03>3`, `UTC0`).
 
+use ul_common::time::Civil;
+
 use crate::printf::Tm;
-
-/// Dias desde 1970-01-01 -> (ano, mês 1-12, dia 1-31) (algoritmo civil de Howard Hinnant).
-fn civil_from_days(z: i64) -> (i64, u32, u32) {
-    let z = z + 719_468;
-    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
-    let doe = z - era * 146_097;
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let y = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
-    (if m <= 2 { y + 1 } else { y }, m, d)
-}
-
-fn is_leap(y: i64) -> bool {
-    (y % 4 == 0 && y % 100 != 0) || y % 400 == 0
-}
 
 /// Campos de `t + gmtoff`.
 pub fn tm_with_offset(t: i64, gmtoff: i64, zone: &[u8]) -> Tm {
-    let local = t + gmtoff;
-    let days = local.div_euclid(86_400);
-    let secs = local.rem_euclid(86_400);
-    let (year, mon, mday) = civil_from_days(days);
-    let wday = ((days % 7 + 11) % 7) as u32; // 1970-01-01 foi quinta (4).
-    let cum = [0u32, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-    let mut yday = cum[(mon - 1) as usize] + mday - 1;
-    if mon > 2 && is_leap(year) {
-        yday += 1;
-    }
+    let c = Civil::from_secs(t + gmtoff);
     Tm {
-        year,
-        mon,
-        mday,
-        hour: (secs / 3600) as u32,
-        min: ((secs % 3600) / 60) as u32,
-        sec: (secs % 60) as u32,
-        wday,
-        yday,
+        year: c.year,
+        mon: c.mon as u32,
+        mday: c.mday as u32,
+        hour: c.hour as u32,
+        min: c.min as u32,
+        sec: c.sec as u32,
+        wday: c.wday as u32,
+        yday: c.yday as u32,
         gmtoff,
         zone: zone.to_vec(),
         isdst: false,

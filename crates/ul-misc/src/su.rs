@@ -12,6 +12,7 @@ use std::io::Write;
 use std::time::Duration;
 
 use sysabi::{Errno, ProcAttrs, WaitOptions, WaitStatus, WaitTarget, sys};
+use ul_common::fsutil::after_last_slash;
 
 use crate::groupmgmt::{Spec, fields, is_data, name_eq, parse, parse_id, read_lines};
 use crate::sg::lookup_group;
@@ -295,7 +296,7 @@ pub(crate) fn run(args: &[OsString], runuser: bool) -> i32 {
     let (prog, exec_argv) = match &shell {
         None => (rest[0].clone(), rest.clone()),
         Some(sh) => {
-            let mut name = sh.rsplit(|b| *b == b'/').next().unwrap_or(sh).to_vec();
+            let mut name = after_last_slash(sh).to_vec();
             if login {
                 name.insert(0, b'-');
             }

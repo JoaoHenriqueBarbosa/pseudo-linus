@@ -9,6 +9,7 @@ description = "git do pseudo-linus: repositório, índice, refs e worktree sobre
 
 [dependencies]
 sysabi = { workspace = true }
+ul-common = { workspace = true }
 # Fachada com a forma do std: `process::Command` (editor e hooks, PATH como o execvp) e `/etc/passwd`.
 sysio = { workspace = true }
 # wildmatch (`.gitignore` e pathspec).

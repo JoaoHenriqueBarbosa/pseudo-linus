@@ -2,6 +2,8 @@
 //! de linhas `Set-Cookie:`, `Set-Cookie` das respostas, escolha dos que vão no `Cookie:` e o arquivo
 //! escrito no fim.
 
+use ul_common::time::days_from_civil;
+
 /// Um cookie.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Cookie {
@@ -27,17 +29,6 @@ pub struct Jar {
 }
 
 const MONTHS: [&str; 12] = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-
-/// Dias desde 1970-01-01.
-fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
-    let y = if m <= 2 { y - 1 } else { y };
-    let era = if y >= 0 { y } else { y - 399 } / 400;
-    let yoe = y - era * 400;
-    let mp = (m + 9) % 12;
-    let doy = (153 * mp + 2) / 5 + d - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    era * 146_097 + doe - 719_468
-}
 
 /// Data HTTP (RFC 1123, RFC 850 ou asctime, com as variações que os servidores mandam).
 pub fn parse_http_date(s: &str) -> Option<i64> {

@@ -816,21 +816,7 @@ fn visible(ch: u8) -> String {
     if ch == 0 {
         return "<undef>".to_string();
     }
-    let mut out = String::new();
-    let mut c = ch;
-    if c >= 128 {
-        out.push_str("M-");
-        c -= 128;
-    }
-    if c < 32 {
-        out.push('^');
-        out.push(char::from(c + 64));
-    } else if c < 127 {
-        out.push(char::from(c));
-    } else {
-        out.push_str("^?");
-    }
-    out
+    ul_common::quote::cat_v(ch)
 }
 
 fn display_speed(app: &mut App, mode: &Termios, fancy: bool) {

@@ -6,131 +6,131 @@
 //!
 //! A ordem da tabela de opções longas é a do tar (observada nas mensagens de abreviação ambígua).
 
-use crate::getopt::{Error as GetoptError, Getopt, HasArg, Item, LongOpt};
+use ul_common::getopt::{Getopt, HasArg, Item, LongOpt};
 
 use super::header::Format;
 use super::quote::{self, Quoting, Style};
 
 /// Identificadores das opções longas sem letra (as com letra usam o próprio caractere).
 pub mod id {
-    pub const ATIME_PRESERVE: u32 = 0x100;
-    pub const ACLS: u32 = 0x101;
-    pub const ADD_FILE: u32 = 0x102;
-    pub const ANCHORED: u32 = 0x103;
-    pub const BACKUP: u32 = 0x104;
-    pub const CHECK_DEVICE: u32 = 0x105;
-    pub const CLAMP_MTIME: u32 = 0x106;
-    pub const CHECKPOINT: u32 = 0x107;
-    pub const CHECKPOINT_ACTION: u32 = 0x108;
-    pub const DELETE: u32 = 0x109;
-    pub const DELAY_DIR_RESTORE: u32 = 0x10a;
-    pub const EXCLUDE: u32 = 0x10b;
-    pub const EXCLUDE_CACHES: u32 = 0x10c;
-    pub const EXCLUDE_CACHES_UNDER: u32 = 0x10d;
-    pub const EXCLUDE_CACHES_ALL: u32 = 0x10e;
-    pub const EXCLUDE_TAG: u32 = 0x10f;
-    pub const EXCLUDE_IGNORE: u32 = 0x110;
-    pub const EXCLUDE_IGNORE_RECURSIVE: u32 = 0x111;
-    pub const EXCLUDE_TAG_UNDER: u32 = 0x112;
-    pub const EXCLUDE_TAG_ALL: u32 = 0x113;
-    pub const EXCLUDE_VCS: u32 = 0x114;
-    pub const EXCLUDE_VCS_IGNORES: u32 = 0x115;
-    pub const EXCLUDE_BACKUPS: u32 = 0x116;
-    pub const FORCE_LOCAL: u32 = 0x117;
-    pub const FULL_TIME: u32 = 0x118;
-    pub const GROUP: u32 = 0x119;
-    pub const GROUP_MAP: u32 = 0x11a;
-    pub const HOLE_DETECTION: u32 = 0x11b;
-    pub const HARD_DEREFERENCE: u32 = 0x11c;
-    pub const IGNORE_FAILED_READ: u32 = 0x11d;
-    pub const IGNORE_COMMAND_ERROR: u32 = 0x11e;
-    pub const INDEX_FILE: u32 = 0x11f;
-    pub const IGNORE_CASE: u32 = 0x120;
-    pub const KEEP_NEWER_FILES: u32 = 0x121;
-    pub const KEEP_DIRECTORY_SYMLINK: u32 = 0x122;
-    pub const LEVEL: u32 = 0x123;
-    pub const LZIP: u32 = 0x124;
-    pub const LZMA: u32 = 0x125;
-    pub const LZOP: u32 = 0x126;
-    pub const MTIME: u32 = 0x127;
-    pub const MODE: u32 = 0x128;
-    pub const NO_SEEK: u32 = 0x129;
-    pub const NO_CHECK_DEVICE: u32 = 0x12a;
-    pub const NO_OVERWRITE_DIR: u32 = 0x12b;
-    pub const NO_IGNORE_COMMAND_ERROR: u32 = 0x12c;
-    pub const NO_SAME_OWNER: u32 = 0x12d;
-    pub const NUMERIC_OWNER: u32 = 0x12e;
-    pub const NO_SAME_PERMISSIONS: u32 = 0x12f;
-    pub const NO_DELAY_DIR_RESTORE: u32 = 0x130;
-    pub const NO_XATTRS: u32 = 0x131;
-    pub const NO_SELINUX: u32 = 0x132;
-    pub const NO_ACLS: u32 = 0x133;
-    pub const NO_AUTO_COMPRESS: u32 = 0x134;
-    pub const NEWER_MTIME: u32 = 0x135;
-    pub const NO_QUOTE_CHARS: u32 = 0x136;
-    pub const NULL: u32 = 0x137;
-    pub const NO_NULL: u32 = 0x138;
-    pub const NO_UNQUOTE: u32 = 0x139;
-    pub const NO_VERBATIM_FILES_FROM: u32 = 0x13a;
-    pub const NO_RECURSION: u32 = 0x13b;
-    pub const NO_ANCHORED: u32 = 0x13c;
-    pub const NO_IGNORE_CASE: u32 = 0x13d;
-    pub const NO_WILDCARDS: u32 = 0x13e;
-    pub const NO_WILDCARDS_MATCH_SLASH: u32 = 0x13f;
-    pub const OCCURRENCE: u32 = 0x140;
-    pub const OVERWRITE: u32 = 0x141;
-    pub const OVERWRITE_DIR: u32 = 0x142;
-    pub const ONE_TOP_LEVEL: u32 = 0x143;
-    pub const OWNER: u32 = 0x144;
-    pub const OWNER_MAP: u32 = 0x145;
-    pub const OLD_ARCHIVE: u32 = 0x146;
-    pub const ONE_FILE_SYSTEM: u32 = 0x147;
-    pub const POSIX: u32 = 0x148;
-    pub const PAX_OPTION: u32 = 0x149;
-    pub const PROGRAM_NAME: u32 = 0x14a;
-    pub const QUOTING_STYLE: u32 = 0x14b;
-    pub const QUOTE_CHARS: u32 = 0x14c;
-    pub const REMOVE_FILES: u32 = 0x14d;
-    pub const RECURSIVE_UNLINK: u32 = 0x14e;
-    pub const RMT_COMMAND: u32 = 0x14f;
-    pub const RSH_COMMAND: u32 = 0x150;
-    pub const RECORD_SIZE: u32 = 0x151;
-    pub const RESTRICT: u32 = 0x152;
-    pub const RECURSION: u32 = 0x153;
-    pub const SPARSE_VERSION: u32 = 0x154;
-    pub const SKIP_OLD_FILES: u32 = 0x155;
-    pub const SAME_OWNER: u32 = 0x156;
-    pub const SORT: u32 = 0x157;
-    pub const SELINUX: u32 = 0x158;
-    pub const SUFFIX: u32 = 0x159;
-    pub const STRIP_COMPONENTS: u32 = 0x15a;
-    pub const SHOW_DEFAULTS: u32 = 0x15b;
-    pub const SHOW_SNAPSHOT_FIELD_RANGES: u32 = 0x15c;
-    pub const SHOW_OMITTED_DIRS: u32 = 0x15d;
-    pub const SHOW_TRANSFORMED_NAMES: u32 = 0x15e;
-    pub const SHOW_STORED_NAMES: u32 = 0x15f;
-    pub const TEST_LABEL: u32 = 0x160;
-    pub const TO_COMMAND: u32 = 0x161;
-    pub const TRANSFORM: u32 = 0x162;
-    pub const TOTALS: u32 = 0x163;
-    pub const UTC: u32 = 0x164;
-    pub const UNQUOTE: u32 = 0x165;
-    pub const USAGE: u32 = 0x166;
-    pub const VOLNO_FILE: u32 = 0x167;
-    pub const VERBATIM_FILES_FROM: u32 = 0x168;
-    pub const VERSION: u32 = 0x169;
-    pub const WARNING: u32 = 0x16a;
-    pub const WILDCARDS: u32 = 0x16b;
-    pub const WILDCARDS_MATCH_SLASH: u32 = 0x16c;
-    pub const XATTRS: u32 = 0x16d;
-    pub const XATTRS_INCLUDE: u32 = 0x16e;
-    pub const XATTRS_EXCLUDE: u32 = 0x16f;
-    pub const ZSTD: u32 = 0x170;
-    pub const HELP: u32 = b'?' as u32;
+    pub const ATIME_PRESERVE: i32 = 0x100;
+    pub const ACLS: i32 = 0x101;
+    pub const ADD_FILE: i32 = 0x102;
+    pub const ANCHORED: i32 = 0x103;
+    pub const BACKUP: i32 = 0x104;
+    pub const CHECK_DEVICE: i32 = 0x105;
+    pub const CLAMP_MTIME: i32 = 0x106;
+    pub const CHECKPOINT: i32 = 0x107;
+    pub const CHECKPOINT_ACTION: i32 = 0x108;
+    pub const DELETE: i32 = 0x109;
+    pub const DELAY_DIR_RESTORE: i32 = 0x10a;
+    pub const EXCLUDE: i32 = 0x10b;
+    pub const EXCLUDE_CACHES: i32 = 0x10c;
+    pub const EXCLUDE_CACHES_UNDER: i32 = 0x10d;
+    pub const EXCLUDE_CACHES_ALL: i32 = 0x10e;
+    pub const EXCLUDE_TAG: i32 = 0x10f;
+    pub const EXCLUDE_IGNORE: i32 = 0x110;
+    pub const EXCLUDE_IGNORE_RECURSIVE: i32 = 0x111;
+    pub const EXCLUDE_TAG_UNDER: i32 = 0x112;
+    pub const EXCLUDE_TAG_ALL: i32 = 0x113;
+    pub const EXCLUDE_VCS: i32 = 0x114;
+    pub const EXCLUDE_VCS_IGNORES: i32 = 0x115;
+    pub const EXCLUDE_BACKUPS: i32 = 0x116;
+    pub const FORCE_LOCAL: i32 = 0x117;
+    pub const FULL_TIME: i32 = 0x118;
+    pub const GROUP: i32 = 0x119;
+    pub const GROUP_MAP: i32 = 0x11a;
+    pub const HOLE_DETECTION: i32 = 0x11b;
+    pub const HARD_DEREFERENCE: i32 = 0x11c;
+    pub const IGNORE_FAILED_READ: i32 = 0x11d;
+    pub const IGNORE_COMMAND_ERROR: i32 = 0x11e;
+    pub const INDEX_FILE: i32 = 0x11f;
+    pub const IGNORE_CASE: i32 = 0x120;
+    pub const KEEP_NEWER_FILES: i32 = 0x121;
+    pub const KEEP_DIRECTORY_SYMLINK: i32 = 0x122;
+    pub const LEVEL: i32 = 0x123;
+    pub const LZIP: i32 = 0x124;
+    pub const LZMA: i32 = 0x125;
+    pub const LZOP: i32 = 0x126;
+    pub const MTIME: i32 = 0x127;
+    pub const MODE: i32 = 0x128;
+    pub const NO_SEEK: i32 = 0x129;
+    pub const NO_CHECK_DEVICE: i32 = 0x12a;
+    pub const NO_OVERWRITE_DIR: i32 = 0x12b;
+    pub const NO_IGNORE_COMMAND_ERROR: i32 = 0x12c;
+    pub const NO_SAME_OWNER: i32 = 0x12d;
+    pub const NUMERIC_OWNER: i32 = 0x12e;
+    pub const NO_SAME_PERMISSIONS: i32 = 0x12f;
+    pub const NO_DELAY_DIR_RESTORE: i32 = 0x130;
+    pub const NO_XATTRS: i32 = 0x131;
+    pub const NO_SELINUX: i32 = 0x132;
+    pub const NO_ACLS: i32 = 0x133;
+    pub const NO_AUTO_COMPRESS: i32 = 0x134;
+    pub const NEWER_MTIME: i32 = 0x135;
+    pub const NO_QUOTE_CHARS: i32 = 0x136;
+    pub const NULL: i32 = 0x137;
+    pub const NO_NULL: i32 = 0x138;
+    pub const NO_UNQUOTE: i32 = 0x139;
+    pub const NO_VERBATIM_FILES_FROM: i32 = 0x13a;
+    pub const NO_RECURSION: i32 = 0x13b;
+    pub const NO_ANCHORED: i32 = 0x13c;
+    pub const NO_IGNORE_CASE: i32 = 0x13d;
+    pub const NO_WILDCARDS: i32 = 0x13e;
+    pub const NO_WILDCARDS_MATCH_SLASH: i32 = 0x13f;
+    pub const OCCURRENCE: i32 = 0x140;
+    pub const OVERWRITE: i32 = 0x141;
+    pub const OVERWRITE_DIR: i32 = 0x142;
+    pub const ONE_TOP_LEVEL: i32 = 0x143;
+    pub const OWNER: i32 = 0x144;
+    pub const OWNER_MAP: i32 = 0x145;
+    pub const OLD_ARCHIVE: i32 = 0x146;
+    pub const ONE_FILE_SYSTEM: i32 = 0x147;
+    pub const POSIX: i32 = 0x148;
+    pub const PAX_OPTION: i32 = 0x149;
+    pub const PROGRAM_NAME: i32 = 0x14a;
+    pub const QUOTING_STYLE: i32 = 0x14b;
+    pub const QUOTE_CHARS: i32 = 0x14c;
+    pub const REMOVE_FILES: i32 = 0x14d;
+    pub const RECURSIVE_UNLINK: i32 = 0x14e;
+    pub const RMT_COMMAND: i32 = 0x14f;
+    pub const RSH_COMMAND: i32 = 0x150;
+    pub const RECORD_SIZE: i32 = 0x151;
+    pub const RESTRICT: i32 = 0x152;
+    pub const RECURSION: i32 = 0x153;
+    pub const SPARSE_VERSION: i32 = 0x154;
+    pub const SKIP_OLD_FILES: i32 = 0x155;
+    pub const SAME_OWNER: i32 = 0x156;
+    pub const SORT: i32 = 0x157;
+    pub const SELINUX: i32 = 0x158;
+    pub const SUFFIX: i32 = 0x159;
+    pub const STRIP_COMPONENTS: i32 = 0x15a;
+    pub const SHOW_DEFAULTS: i32 = 0x15b;
+    pub const SHOW_SNAPSHOT_FIELD_RANGES: i32 = 0x15c;
+    pub const SHOW_OMITTED_DIRS: i32 = 0x15d;
+    pub const SHOW_TRANSFORMED_NAMES: i32 = 0x15e;
+    pub const SHOW_STORED_NAMES: i32 = 0x15f;
+    pub const TEST_LABEL: i32 = 0x160;
+    pub const TO_COMMAND: i32 = 0x161;
+    pub const TRANSFORM: i32 = 0x162;
+    pub const TOTALS: i32 = 0x163;
+    pub const UTC: i32 = 0x164;
+    pub const UNQUOTE: i32 = 0x165;
+    pub const USAGE: i32 = 0x166;
+    pub const VOLNO_FILE: i32 = 0x167;
+    pub const VERBATIM_FILES_FROM: i32 = 0x168;
+    pub const VERSION: i32 = 0x169;
+    pub const WARNING: i32 = 0x16a;
+    pub const WILDCARDS: i32 = 0x16b;
+    pub const WILDCARDS_MATCH_SLASH: i32 = 0x16c;
+    pub const XATTRS: i32 = 0x16d;
+    pub const XATTRS_INCLUDE: i32 = 0x16e;
+    pub const XATTRS_EXCLUDE: i32 = 0x16f;
+    pub const ZSTD: i32 = 0x170;
+    pub const HELP: i32 = b'?' as i32;
 }
 
-const fn c(ch: u8) -> u32 {
-    ch as u32
+const fn c(ch: u8) -> i32 {
+    ch as i32
 }
 
 use HasArg::{No, Optional as Opt, Required as Req};
@@ -330,7 +330,7 @@ pub enum Mode {
 }
 
 impl Mode {
-    fn from_id(i: u32) -> Option<Mode> {
+    fn from_id(i: i32) -> Option<Mode> {
         Some(match i {
             x if x == c(b'c') => Mode::Create,
             x if x == c(b'r') => Mode::Append,
@@ -714,7 +714,7 @@ struct State {
     chdir: Vec<Vec<u8>>,
     flags: MatchFlags,
     recursion: bool,
-    help: Option<u32>,
+    help: Option<i32>,
     exclude_flags_last: MatchFlags,
 }
 
@@ -752,7 +752,7 @@ impl State {
         });
     }
 
-    fn apply(&mut self, oid: u32, arg: Option<Vec<u8>>) -> Result<(), ArgError> {
+    fn apply(&mut self, oid: i32, arg: Option<Vec<u8>>) -> Result<(), ArgError> {
         let a = || arg.clone().unwrap_or_default();
         if let Some(m) = Mode::from_id(oid) {
             return self.set_mode(m);
@@ -1101,7 +1101,7 @@ pub fn parse(args: &[Vec<u8>], argv0: &str) -> Result<Parsed, ArgError> {
         help: None,
         exclude_flags_last: MatchFlags::default(),
     };
-    for item in Getopt::from_env(&args, SHORT, LONG) {
+    for item in Getopt::from_env(&args, SHORT, LONG).after_argv0() {
         match item {
             Ok(Item::Opt(o)) => {
                 st.apply(o.id, o.arg)?;
@@ -1114,7 +1114,7 @@ pub fn parse(args: &[Vec<u8>], argv0: &str) -> Result<Parsed, ArgError> {
                 }
             }
             Ok(Item::Operand(name)) => st.operand(name),
-            Err(e) => return Err(ArgError::Getopt(getopt_message(&e, argv0))),
+            Err(e) => return Err(ArgError::Getopt(e.message_line(argv0))),
         }
     }
     if st.opts.show_defaults {
@@ -1122,10 +1122,6 @@ pub fn parse(args: &[Vec<u8>], argv0: &str) -> Result<Parsed, ArgError> {
     }
     st.opts.final_chdir = st.chdir.clone();
     Ok(Parsed::Run(Box::new(st.opts)))
-}
-
-fn getopt_message(e: &GetoptError, argv0: &str) -> Vec<u8> {
-    e.message_bytes(argv0)
 }
 
 /// Aplica a uma linha de `-T` que começa com `-` (opção, como o tar 1.35 faz sem

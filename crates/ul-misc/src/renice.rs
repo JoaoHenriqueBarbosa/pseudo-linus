@@ -15,6 +15,7 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{Errno, Pid, sys};
+use ul_common::ctype::{WholeLong, strtol_whole};
 
 use crate::util::io;
 use crate::util::ul;
@@ -72,36 +73,11 @@ For more details see renice(1).
 /// `strtol(s, &end, 10)` com o teste `*end` do original: espaço à frente e sinal valem, lixo depois
 /// não. Estouro satura como o `strtol` (o valor sai em `LONG_MIN`/`LONG_MAX`).
 fn strtol(s: &[u8]) -> Option<i64> {
-    let mut i = 0;
-    while i < s.len() && ul::is_space(s[i]) {
-        i += 1;
-    }
-    let neg = match s.get(i) {
-        Some(b'-') => {
-            i += 1;
-            true
-        }
-        Some(b'+') => {
-            i += 1;
-            false
-        }
-        _ => false,
-    };
-    let start = i;
-    let mut v: i64 = 0;
-    while i < s.len() && s[i].is_ascii_digit() {
-        let d = i64::from(s[i] - b'0');
-        v = v.saturating_mul(10).saturating_add(d);
-        i += 1;
-    }
-    if i == start {
+    match strtol_whole(s, 10) {
+        WholeLong::Ok(v) | WholeLong::Range(v) => Some(v),
         // Sem dígito, o strtol não consome nada: `*end` é o primeiro byte (vazio só se a cadeia for).
-        return if s.is_empty() { Some(0) } else { None };
+        WholeLong::Invalid => s.is_empty().then_some(0),
     }
-    if i != s.len() {
-        return None;
-    }
-    Some(if neg { v.saturating_neg() } else { v })
 }
 
 /// Uid de um nome em `/etc/passwd` (o `getpwnam`).

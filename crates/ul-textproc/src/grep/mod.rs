@@ -14,8 +14,8 @@ use std::os::unix::ffi::OsStrExt;
 
 use regex_posix::{RegexBuilder, Syntax};
 use sysabi::{AtFlags, Ctx, Errno, Fd, FileType, OFlags, Stat, sys};
+use ul_common::getopt::{Getopt, HasArg, LongOpt};
 
-use crate::getopt::{Getopt, HasArg, LongOpt, long};
 use crate::io::{Out, errno_msg, error, read_all};
 use glob::Excludes;
 use matcher::{LineMatcher, MatcherSpec, Mode};
@@ -134,56 +134,56 @@ const fn c(ch: u8) -> i32 {
 }
 
 const LONG_OPTIONS: &[LongOpt] = &[
-    long("basic-regexp", HasArg::No, c(b'G')),
-    long("extended-regexp", HasArg::No, c(b'E')),
-    long("fixed-regexp", HasArg::No, c(b'F')),
-    long("fixed-strings", HasArg::No, c(b'F')),
-    long("perl-regexp", HasArg::No, c(b'P')),
-    long("after-context", HasArg::Required, c(b'A')),
-    long("before-context", HasArg::Required, c(b'B')),
-    long("binary-files", HasArg::Required, BINARY_FILES_OPTION),
-    long("byte-offset", HasArg::No, c(b'b')),
-    long("context", HasArg::Required, c(b'C')),
-    long("color", HasArg::Optional, COLOR_OPTION),
-    long("colour", HasArg::Optional, COLOR_OPTION),
-    long("count", HasArg::No, c(b'c')),
-    long("devices", HasArg::Required, c(b'D')),
-    long("directories", HasArg::Required, c(b'd')),
-    long("exclude", HasArg::Required, EXCLUDE_OPTION),
-    long("exclude-from", HasArg::Required, EXCLUDE_FROM_OPTION),
-    long("exclude-dir", HasArg::Required, EXCLUDE_DIRECTORY_OPTION),
-    long("file", HasArg::Required, c(b'f')),
-    long("files-with-matches", HasArg::No, c(b'l')),
-    long("files-without-match", HasArg::No, c(b'L')),
-    long("group-separator", HasArg::Required, GROUP_SEPARATOR_OPTION),
-    long("help", HasArg::No, HELP_OPTION),
-    long("include", HasArg::Required, INCLUDE_OPTION),
-    long("ignore-case", HasArg::No, c(b'i')),
-    long("no-ignore-case", HasArg::No, NO_IGNORE_CASE_OPTION),
-    long("initial-tab", HasArg::No, c(b'T')),
-    long("label", HasArg::Required, LABEL_OPTION),
-    long("line-buffered", HasArg::No, LINE_BUFFERED_OPTION),
-    long("line-number", HasArg::No, c(b'n')),
-    long("line-regexp", HasArg::No, c(b'x')),
-    long("max-count", HasArg::Required, c(b'm')),
-    long("no-filename", HasArg::No, c(b'h')),
-    long("no-group-separator", HasArg::No, NO_GROUP_SEPARATOR_OPTION),
-    long("no-messages", HasArg::No, c(b's')),
-    long("null", HasArg::No, c(b'Z')),
-    long("null-data", HasArg::No, c(b'z')),
-    long("only-matching", HasArg::No, c(b'o')),
-    long("quiet", HasArg::No, c(b'q')),
-    long("recursive", HasArg::No, c(b'r')),
-    long("dereference-recursive", HasArg::No, c(b'R')),
-    long("regexp", HasArg::Required, c(b'e')),
-    long("invert-match", HasArg::No, c(b'v')),
-    long("silent", HasArg::No, c(b'q')),
-    long("text", HasArg::No, c(b'a')),
-    long("binary", HasArg::No, c(b'U')),
-    long("unix-byte-offsets", HasArg::No, c(b'u')),
-    long("version", HasArg::No, c(b'V')),
-    long("with-filename", HasArg::No, c(b'H')),
-    long("word-regexp", HasArg::No, c(b'w')),
+    LongOpt::new("basic-regexp", HasArg::No, c(b'G')),
+    LongOpt::new("extended-regexp", HasArg::No, c(b'E')),
+    LongOpt::new("fixed-regexp", HasArg::No, c(b'F')),
+    LongOpt::new("fixed-strings", HasArg::No, c(b'F')),
+    LongOpt::new("perl-regexp", HasArg::No, c(b'P')),
+    LongOpt::new("after-context", HasArg::Required, c(b'A')),
+    LongOpt::new("before-context", HasArg::Required, c(b'B')),
+    LongOpt::new("binary-files", HasArg::Required, BINARY_FILES_OPTION),
+    LongOpt::new("byte-offset", HasArg::No, c(b'b')),
+    LongOpt::new("context", HasArg::Required, c(b'C')),
+    LongOpt::new("color", HasArg::Optional, COLOR_OPTION),
+    LongOpt::new("colour", HasArg::Optional, COLOR_OPTION),
+    LongOpt::new("count", HasArg::No, c(b'c')),
+    LongOpt::new("devices", HasArg::Required, c(b'D')),
+    LongOpt::new("directories", HasArg::Required, c(b'd')),
+    LongOpt::new("exclude", HasArg::Required, EXCLUDE_OPTION),
+    LongOpt::new("exclude-from", HasArg::Required, EXCLUDE_FROM_OPTION),
+    LongOpt::new("exclude-dir", HasArg::Required, EXCLUDE_DIRECTORY_OPTION),
+    LongOpt::new("file", HasArg::Required, c(b'f')),
+    LongOpt::new("files-with-matches", HasArg::No, c(b'l')),
+    LongOpt::new("files-without-match", HasArg::No, c(b'L')),
+    LongOpt::new("group-separator", HasArg::Required, GROUP_SEPARATOR_OPTION),
+    LongOpt::new("help", HasArg::No, HELP_OPTION),
+    LongOpt::new("include", HasArg::Required, INCLUDE_OPTION),
+    LongOpt::new("ignore-case", HasArg::No, c(b'i')),
+    LongOpt::new("no-ignore-case", HasArg::No, NO_IGNORE_CASE_OPTION),
+    LongOpt::new("initial-tab", HasArg::No, c(b'T')),
+    LongOpt::new("label", HasArg::Required, LABEL_OPTION),
+    LongOpt::new("line-buffered", HasArg::No, LINE_BUFFERED_OPTION),
+    LongOpt::new("line-number", HasArg::No, c(b'n')),
+    LongOpt::new("line-regexp", HasArg::No, c(b'x')),
+    LongOpt::new("max-count", HasArg::Required, c(b'm')),
+    LongOpt::new("no-filename", HasArg::No, c(b'h')),
+    LongOpt::new("no-group-separator", HasArg::No, NO_GROUP_SEPARATOR_OPTION),
+    LongOpt::new("no-messages", HasArg::No, c(b's')),
+    LongOpt::new("null", HasArg::No, c(b'Z')),
+    LongOpt::new("null-data", HasArg::No, c(b'z')),
+    LongOpt::new("only-matching", HasArg::No, c(b'o')),
+    LongOpt::new("quiet", HasArg::No, c(b'q')),
+    LongOpt::new("recursive", HasArg::No, c(b'r')),
+    LongOpt::new("dereference-recursive", HasArg::No, c(b'R')),
+    LongOpt::new("regexp", HasArg::Required, c(b'e')),
+    LongOpt::new("invert-match", HasArg::No, c(b'v')),
+    LongOpt::new("silent", HasArg::No, c(b'q')),
+    LongOpt::new("text", HasArg::No, c(b'a')),
+    LongOpt::new("binary", HasArg::No, c(b'U')),
+    LongOpt::new("unix-byte-offsets", HasArg::No, c(b'u')),
+    LongOpt::new("version", HasArg::No, c(b'V')),
+    LongOpt::new("with-filename", HasArg::No, c(b'H')),
+    LongOpt::new("word-regexp", HasArg::No, c(b'w')),
 ];
 
 const SHORT_OPTIONS: &str = "0123456789A:B:C:D:EFGHIPTUVX:abcd:e:f:hiLlm:noqRrsuvwxyZz";
@@ -255,7 +255,7 @@ fn main_bytes(_ctx: &mut Ctx, argv: &[Vec<u8>], prepend: Option<&[u8]>) -> i32 {
 
 fn run(prog: &[u8], args: &[Vec<u8>], out: &mut Out) -> Result<i32, Die> {
     let posixly = sys::getenv("POSIXLY_CORRECT").is_some();
-    let mut g = Getopt::new(args, SHORT_OPTIONS, LONG_OPTIONS).posixly_correct(posixly);
+    let mut g = Getopt::new(args, SHORT_OPTIONS, LONG_OPTIONS, posixly);
 
     let mut mode: Option<Mode> = None;
     let mut filename_option = 0i32;
@@ -307,16 +307,16 @@ fn run(prog: &[u8], args: &[Vec<u8>], out: &mut Out) -> Result<i32, Die> {
         Ok(())
     };
 
-    while let Some(item) = g.next() {
+    while let Some(item) = g.next_opt() {
         let opt = match item {
             Ok(o) => o,
-            Err(msg) => {
-                error(prog, msg.as_bytes());
+            Err(e) => {
+                error(prog, &e.detail());
                 return Err(usage_error(prog));
             }
         };
         let arg = opt.arg.clone().unwrap_or_default();
-        let ch = opt.val;
+        let ch = opt.id;
         if (c(b'0')..=c(b'9')).contains(&ch) {
             // Novo grupo de dígitos, ou zero à esquerda trivial (`p -= buf[0] == '0'`).
             if !(was_digit && digit_index == Some(opt.index)) || digits == "0" {
@@ -471,7 +471,7 @@ fn run(prog: &[u8], args: &[Vec<u8>], out: &mut Out) -> Result<i32, Die> {
     if was_digit {
         default_context = context_length(prog, digits.as_bytes())?;
     }
-    let mut operands = std::mem::take(&mut g.operands);
+    let mut operands = g.operands();
 
     if show_version {
         out.write(VERSION.as_bytes());

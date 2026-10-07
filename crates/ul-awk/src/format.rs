@@ -1182,7 +1182,7 @@ fn byte_count(s: &[u8], chars: usize) -> usize {
 /// espaços iniciais, prefixo decimal com sinal, ponto e expoente; `+inf`, `-inf`, `+nan` e `-nan`
 /// exatos; o resto vale 0 (inclusive hexadecimal e `inf`/`nan` sem sinal). Só o `*0$` usa isto.
 fn awk_str_to_num(s: &[u8]) -> f64 {
-    let is_space = |b: u8| matches!(b, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c);
+    use ul_common::ctype::is_space;
     let mut i = 0;
     while i < s.len() && is_space(s[i]) {
         i += 1;

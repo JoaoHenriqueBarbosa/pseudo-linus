@@ -10,6 +10,7 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{Errno, Pid, sys};
+use ul_common::ctype::parse_decimal_usize as parse_num;
 
 use crate::util::io;
 use crate::util::ul;
@@ -102,13 +103,6 @@ fn parse_mask(s: &[u8]) -> Option<Vec<usize>> {
         }
     }
     Some(cpus)
-}
-
-fn parse_num(s: &[u8]) -> Option<usize> {
-    if s.is_empty() || !s.iter().all(u8::is_ascii_digit) {
-        return None;
-    }
-    std::str::from_utf8(s).ok()?.parse().ok()
 }
 
 /// Lista `0,2-5,8-31:2` (o `cpulist_parse`).

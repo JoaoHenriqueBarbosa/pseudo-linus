@@ -6,6 +6,8 @@
 //! oráculo aceita e rejeita como referência (hora obrigatória, anos de 1970 a 2099). O fuso local
 //! vem do `TZ` do sandbox (string POSIX ou zona de `/usr/share/zoneinfo` no FS do sandbox).
 
+use ul_common::time::{Civil, days_from_civil, is_leap};
+
 use crate::os;
 
 pub const WEEKDAYS: [&str; 7] = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -28,55 +30,27 @@ pub struct Tm {
     pub yday: u32,
 }
 
-// Conversões de calendário (algoritmos de domínio público de Howard Hinnant).
-fn days_from_civil(y: i64, m: u32, d: i64) -> i64 {
-    let y = if m <= 2 { y - 1 } else { y };
-    let era = if y >= 0 { y } else { y - 399 } / 400;
-    let yoe = y - era * 400;
-    let mp = (m as i64 + 9) % 12;
-    let doy = (153 * mp + 2) / 5 + d - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    era * 146_097 + doe - 719_468
-}
-
-fn civil_from_days(days: i64) -> (i64, u32, u32) {
-    let z = days + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z.rem_euclid(146_097);
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let y = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
-    (if m <= 2 { y + 1 } else { y }, m, d)
-}
-
-fn is_leap(y: i64) -> bool {
-    (y % 4 == 0 && y % 100 != 0) || y % 400 == 0
-}
-
 /// Campos de `t + offset_secs` lidos como UTC.
 pub fn tm_of(t: i64, offset_secs: i64) -> Tm {
-    let local = t + offset_secs;
-    let days = local.div_euclid(86_400);
-    let secs = local.rem_euclid(86_400);
-    let (y, m, d) = civil_from_days(days);
+    let c = Civil::from_secs(t + offset_secs);
     Tm {
-        year: y,
-        mon: m - 1,
-        mday: d,
-        hour: (secs / 3600) as u32,
-        min: (secs % 3600 / 60) as u32,
-        sec: (secs % 60) as u32,
-        wday: (days + 4).rem_euclid(7) as u32,
-        yday: (days - days_from_civil(y, 1, 1)) as u32,
+        year: c.year,
+        mon: (c.mon - 1) as u32,
+        mday: c.mday as u32,
+        hour: c.hour as u32,
+        min: c.min as u32,
+        sec: c.sec as u32,
+        wday: c.wday as u32,
+        yday: c.yday as u32,
     }
 }
 
 /// Segundos desde a época de uma data lida como UTC (dia fora do mês transborda pro seguinte).
 pub fn timegm(year: i64, mon0: u32, mday: u32, hour: u32, min: u32, sec: u32) -> i64 {
-    days_from_civil(year, mon0 + 1, mday as i64) * 86_400 + hour as i64 * 3600 + min as i64 * 60 + sec as i64
+    days_from_civil(year, i64::from(mon0) + 1, i64::from(mday)) * 86_400
+        + i64::from(hour) * 3600
+        + i64::from(min) * 60
+        + i64::from(sec)
 }
 
 /// Fuso `+hhmm` (inteiro decimal) a partir de segundos.

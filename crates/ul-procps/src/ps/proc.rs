@@ -145,25 +145,8 @@ pub fn scan_i(t: Option<&&[u8]>) -> Option<i32> {
 
 /// `strtol(s, &s, 10)` sobre um pedaço de linha: pula espaço, lê o número e devolve o resto.
 fn strtol_prefix(s: &[u8]) -> (i64, &[u8]) {
-    let mut i = 0;
-    while i < s.len() && matches!(s[i], b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r') {
-        i += 1;
-    }
-    let mut neg = false;
-    if i < s.len() && (s[i] == b'-' || s[i] == b'+') {
-        neg = s[i] == b'-';
-        i += 1;
-    }
-    let start = i;
-    let mut v: i64 = 0;
-    while i < s.len() && s[i].is_ascii_digit() {
-        v = v.saturating_mul(10).saturating_add(i64::from(s[i] - b'0'));
-        i += 1;
-    }
-    if i == start {
-        return (0, s);
-    }
-    (if neg { -v } else { v }, &s[i..])
+    let c = ul_common::ctype::strtol(s, 10);
+    if c.used == 0 { (0, s) } else { (c.value, &s[c.used..]) }
 }
 
 // ---------------------------------------------------------------------------------------------

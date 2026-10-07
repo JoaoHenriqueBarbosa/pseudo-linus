@@ -9,6 +9,7 @@ description = "procps do pseudo-linus: ps, top, free, uptime, pgrep, pkill, pido
 
 [dependencies]
 sysabi.workspace = true
+ul-common = { workspace = true }
 # Fachada com a forma do std: stdout com a bufferização da glibc, /etc/passwd do sandbox, Command.
 sysio.workspace = true
 # getopt_long da glibc, E/S sobre sysabi e hora local (módulo util do ul-misc).

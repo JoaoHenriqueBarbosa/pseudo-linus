@@ -1,7 +1,7 @@
 //! Opções de linha de comando do `patch`, com a tabela de opções longas na ordem do GNU patch 2.8
 //! (a ordem aparece nas mensagens de abreviação ambígua) e as mensagens de erro de cada opção.
 
-use crate::getopt::{Getopt, HasArg, Item, LongOpt};
+use ul_common::getopt::{Getopt, HasArg, Item, LongOpt};
 
 /// Formato forçado com -c, -e, -n, -u.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -129,51 +129,51 @@ impl Default for Opts {
     }
 }
 
-const BACKUP_IF_MISMATCH: u32 = 300;
-const NO_BACKUP_IF_MISMATCH: u32 = 301;
-const POSIX: u32 = 302;
-const QUOTING_STYLE: u32 = 303;
-const REJECT_FORMAT: u32 = 304;
-const READ_ONLY: u32 = 305;
-const FOLLOW_SYMLINKS: u32 = 306;
-const DRY_RUN: u32 = 307;
-const VERBOSE: u32 = 308;
-const BINARY: u32 = 309;
-const MERGE: u32 = 310;
-const HELP: u32 = 311;
-const DEBUG: u32 = 312;
+const BACKUP_IF_MISMATCH: i32 = 300;
+const NO_BACKUP_IF_MISMATCH: i32 = 301;
+const POSIX: i32 = 302;
+const QUOTING_STYLE: i32 = 303;
+const REJECT_FORMAT: i32 = 304;
+const READ_ONLY: i32 = 305;
+const FOLLOW_SYMLINKS: i32 = 306;
+const DRY_RUN: i32 = 307;
+const VERBOSE: i32 = 308;
+const BINARY: i32 = 309;
+const MERGE: i32 = 310;
+const HELP: i32 = 311;
+const DEBUG: i32 = 312;
 
 /// Ordem do GNU patch 2.8, deduzida das mensagens de ambiguidade do oráculo.
 const LONGS: &[LongOpt] = &[
-    LongOpt::new("backup", HasArg::No, b'b' as u32),
-    LongOpt::new("prefix", HasArg::Required, b'B' as u32),
-    LongOpt::new("context", HasArg::No, b'c' as u32),
-    LongOpt::new("directory", HasArg::Required, b'd' as u32),
-    LongOpt::new("ifdef", HasArg::Required, b'D' as u32),
-    LongOpt::new("ed", HasArg::No, b'e' as u32),
-    LongOpt::new("remove-empty-files", HasArg::No, b'E' as u32),
-    LongOpt::new("force", HasArg::No, b'f' as u32),
-    LongOpt::new("fuzz", HasArg::Required, b'F' as u32),
-    LongOpt::new("get", HasArg::Required, b'g' as u32),
-    LongOpt::new("input", HasArg::Required, b'i' as u32),
-    LongOpt::new("ignore-whitespace", HasArg::No, b'l' as u32),
-    LongOpt::new("normal", HasArg::No, b'n' as u32),
-    LongOpt::new("forward", HasArg::No, b'N' as u32),
-    LongOpt::new("output", HasArg::Required, b'o' as u32),
-    LongOpt::new("strip", HasArg::Required, b'p' as u32),
-    LongOpt::new("reject-file", HasArg::Required, b'r' as u32),
-    LongOpt::new("reverse", HasArg::No, b'R' as u32),
-    LongOpt::new("quiet", HasArg::No, b's' as u32),
-    LongOpt::new("silent", HasArg::No, b's' as u32),
-    LongOpt::new("batch", HasArg::No, b't' as u32),
-    LongOpt::new("set-time", HasArg::No, b'T' as u32),
-    LongOpt::new("unified", HasArg::No, b'u' as u32),
-    LongOpt::new("version", HasArg::No, b'v' as u32),
-    LongOpt::new("version-control", HasArg::Required, b'V' as u32),
+    LongOpt::new("backup", HasArg::No, b'b' as i32),
+    LongOpt::new("prefix", HasArg::Required, b'B' as i32),
+    LongOpt::new("context", HasArg::No, b'c' as i32),
+    LongOpt::new("directory", HasArg::Required, b'd' as i32),
+    LongOpt::new("ifdef", HasArg::Required, b'D' as i32),
+    LongOpt::new("ed", HasArg::No, b'e' as i32),
+    LongOpt::new("remove-empty-files", HasArg::No, b'E' as i32),
+    LongOpt::new("force", HasArg::No, b'f' as i32),
+    LongOpt::new("fuzz", HasArg::Required, b'F' as i32),
+    LongOpt::new("get", HasArg::Required, b'g' as i32),
+    LongOpt::new("input", HasArg::Required, b'i' as i32),
+    LongOpt::new("ignore-whitespace", HasArg::No, b'l' as i32),
+    LongOpt::new("normal", HasArg::No, b'n' as i32),
+    LongOpt::new("forward", HasArg::No, b'N' as i32),
+    LongOpt::new("output", HasArg::Required, b'o' as i32),
+    LongOpt::new("strip", HasArg::Required, b'p' as i32),
+    LongOpt::new("reject-file", HasArg::Required, b'r' as i32),
+    LongOpt::new("reverse", HasArg::No, b'R' as i32),
+    LongOpt::new("quiet", HasArg::No, b's' as i32),
+    LongOpt::new("silent", HasArg::No, b's' as i32),
+    LongOpt::new("batch", HasArg::No, b't' as i32),
+    LongOpt::new("set-time", HasArg::No, b'T' as i32),
+    LongOpt::new("unified", HasArg::No, b'u' as i32),
+    LongOpt::new("version", HasArg::No, b'v' as i32),
+    LongOpt::new("version-control", HasArg::Required, b'V' as i32),
     LongOpt::new("debug", HasArg::Required, DEBUG),
-    LongOpt::new("basename-prefix", HasArg::Required, b'Y' as u32),
-    LongOpt::new("suffix", HasArg::Required, b'z' as u32),
-    LongOpt::new("set-utc", HasArg::No, b'Z' as u32),
+    LongOpt::new("basename-prefix", HasArg::Required, b'Y' as i32),
+    LongOpt::new("suffix", HasArg::Required, b'z' as i32),
+    LongOpt::new("set-utc", HasArg::No, b'Z' as i32),
     LongOpt::new("dry-run", HasArg::No, DRY_RUN),
     LongOpt::new("verbose", HasArg::No, VERBOSE),
     LongOpt::new("binary", HasArg::No, BINARY),
@@ -377,11 +377,11 @@ pub fn parse(argv: &[Vec<u8>], env: &dyn Fn(&str) -> Option<Vec<u8>>) -> Parsed 
         o.quoting = style;
     }
     let mut vc_arg: Option<Vec<u8>> = None;
-    let getopt = Getopt::new(argv, SHORTS, LONGS, o.posix);
+    let getopt = Getopt::new(argv, SHORTS, LONGS, o.posix).after_argv0();
     for item in getopt {
         let item = match item {
             Ok(i) => i,
-            Err(e) => return Parsed::Exit { code: 2, stdout: Vec::new(), stderr: [e.message_bytes(&argv0), try_help(&argv0).into_bytes()].concat() },
+            Err(e) => return Parsed::Exit { code: 2, stdout: Vec::new(), stderr: [e.message_line(&argv0), try_help(&argv0).into_bytes()].concat() },
         };
         let opt = match item {
             Item::Operand(a) => {
@@ -392,24 +392,24 @@ pub fn parse(argv: &[Vec<u8>], env: &dyn Fn(&str) -> Option<Vec<u8>>) -> Parsed 
         };
         let arg = opt.arg.clone().unwrap_or_default();
         match opt.id {
-            x if x == b'b' as u32 => o.backup = true,
-            x if x == b'B' as u32 => {
+            x if x == b'b' as i32 => o.backup = true,
+            x if x == b'B' as i32 => {
                 if arg.is_empty() {
                     return fatal(&argv0, "backup prefix is empty");
                 }
                 o.prefix = Some(arg);
             }
-            x if x == b'c' as u32 => o.forced = Some(ForcedFormat::Context),
-            x if x == b'd' as u32 => o.directory = Some(arg),
-            x if x == b'D' as u32 => o.ifdef = Some(arg),
-            x if x == b'e' as u32 => o.forced = Some(ForcedFormat::Ed),
-            x if x == b'E' as u32 => o.remove_empty = true,
-            x if x == b'f' as u32 => o.force = true,
-            x if x == b'F' as u32 => match number(&arg, "fuzz factor") {
+            x if x == b'c' as i32 => o.forced = Some(ForcedFormat::Context),
+            x if x == b'd' as i32 => o.directory = Some(arg),
+            x if x == b'D' as i32 => o.ifdef = Some(arg),
+            x if x == b'e' as i32 => o.forced = Some(ForcedFormat::Ed),
+            x if x == b'E' as i32 => o.remove_empty = true,
+            x if x == b'f' as i32 => o.force = true,
+            x if x == b'F' as i32 => match number(&arg, "fuzz factor") {
                 Ok(n) => o.fuzz = n,
                 Err(m) => return fatal(&argv0, &m),
             },
-            x if x == b'g' as u32 => {
+            x if x == b'g' as i32 => {
                 if let Err(m) = number(&arg, "get option value").or_else(|_| {
                     let s = String::from_utf8_lossy(&arg);
                     s.parse::<i64>().map(|_| 0).map_err(|_| format!("get option value {s} is not a number"))
@@ -417,38 +417,38 @@ pub fn parse(argv: &[Vec<u8>], env: &dyn Fn(&str) -> Option<Vec<u8>>) -> Parsed 
                     return fatal(&argv0, &m);
                 }
             }
-            x if x == b'i' as u32 => o.input = Some(arg),
-            x if x == b'l' as u32 => o.ignore_whitespace = true,
-            x if x == b'n' as u32 => o.forced = Some(ForcedFormat::Normal),
-            x if x == b'N' as u32 => o.forward = true,
-            x if x == b'o' as u32 => o.output = Some(arg),
-            x if x == b'p' as u32 => match number(&arg, "strip count") {
+            x if x == b'i' as i32 => o.input = Some(arg),
+            x if x == b'l' as i32 => o.ignore_whitespace = true,
+            x if x == b'n' as i32 => o.forced = Some(ForcedFormat::Normal),
+            x if x == b'N' as i32 => o.forward = true,
+            x if x == b'o' as i32 => o.output = Some(arg),
+            x if x == b'p' as i32 => match number(&arg, "strip count") {
                 Ok(n) => o.strip = Some(n),
                 Err(m) => return fatal(&argv0, &m),
             },
-            x if x == b'r' as u32 => o.reject_file = Some(arg),
-            x if x == b'R' as u32 => o.reverse = true,
-            x if x == b's' as u32 => o.silent = true,
-            x if x == b't' as u32 => o.batch = true,
-            x if x == b'T' as u32 => o.set_time = true,
-            x if x == b'u' as u32 => o.forced = Some(ForcedFormat::Unified),
-            x if x == b'v' as u32 => {
+            x if x == b'r' as i32 => o.reject_file = Some(arg),
+            x if x == b'R' as i32 => o.reverse = true,
+            x if x == b's' as i32 => o.silent = true,
+            x if x == b't' as i32 => o.batch = true,
+            x if x == b'T' as i32 => o.set_time = true,
+            x if x == b'u' as i32 => o.forced = Some(ForcedFormat::Unified),
+            x if x == b'v' as i32 => {
                 return Parsed::Exit { code: 0, stdout: VERSION_TEXT.as_bytes().to_vec(), stderr: Vec::new() };
             }
-            x if x == b'V' as u32 => vc_arg = Some(arg),
-            x if x == b'Y' as u32 => {
+            x if x == b'V' as i32 => vc_arg = Some(arg),
+            x if x == b'Y' as i32 => {
                 if arg.is_empty() {
                     return fatal(&argv0, "backup basename prefix is empty");
                 }
                 o.basename_prefix = Some(arg);
             }
-            x if x == b'z' as u32 => {
+            x if x == b'z' as i32 => {
                 if arg.is_empty() {
                     return fatal(&argv0, "backup suffix is empty");
                 }
                 o.suffix = Some(arg);
             }
-            x if x == b'Z' as u32 => o.set_utc = true,
+            x if x == b'Z' as i32 => o.set_utc = true,
             DRY_RUN => o.dry_run = true,
             VERBOSE => o.verbose = true,
             BINARY => o.binary = true,

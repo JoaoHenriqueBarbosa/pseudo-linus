@@ -2,6 +2,8 @@
 //! estilo C, como o git escreve), datas na época que marcam arquivo inexistente, `-p`, nomes
 //! perigosos, escolha do melhor nome e citação na saída (estilos do `quotearg` do gnulib).
 
+use ul_common::time::days_from_civil;
+
 use super::opts::Quoting;
 
 /// Um nome lido de um cabeçalho, com o carimbo de tempo que veio depois dele.
@@ -188,17 +190,6 @@ fn parse_zone(z: &str) -> Option<i64> {
     }
 }
 
-/// Dias desde 1970-01-01 (algoritmo de Howard Hinnant).
-pub fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
-    let y = if m <= 2 { y - 1 } else { y };
-    let era = if y >= 0 { y } else { y - 399 } / 400;
-    let yoe = y - era * 400;
-    let mp = (m + 9) % 12;
-    let doy = (153 * mp + 2) / 5 + d - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    era * 146_097 + doe - 719_468
-}
-
 /// O carimbo diz "época" (o diff marca assim o lado inexistente).
 pub fn stamp_is_epoch(stamp: &[u8]) -> bool {
     matches!(parse_stamp(stamp, Some(0)), Some((0, 0)))
@@ -267,74 +258,18 @@ pub fn best_index(names: &[&[u8]]) -> Option<usize> {
     best
 }
 
-fn shell_safe(c: u8, first: bool) -> bool {
-    c.is_ascii_alphanumeric()
-        || matches!(c, b'%' | b'+' | b',' | b'-' | b'.' | b'/' | b':' | b'@' | b'_')
-        || (!first && matches!(c, b'#' | b'~'))
-        || c >= 0x80
-}
-
 /// Nome citado como o `quotearg` do gnulib no estilo pedido (o padrão do patch é `shell`).
 pub fn quote(name: &[u8], style: Quoting) -> Vec<u8> {
-    match style {
-        Quoting::Literal => name.to_vec(),
-        Quoting::Shell | Quoting::ShellAlways => {
-            let needs = style == Quoting::ShellAlways
-                || name.is_empty()
-                || name.iter().enumerate().any(|(i, &c)| !shell_safe(c, i == 0));
-            if !needs {
-                return name.to_vec();
-            }
-            if !name.contains(&b'\'') {
-                let mut v = b"'".to_vec();
-                v.extend_from_slice(name);
-                v.push(b'\'');
-                return v;
-            }
-            if !name.iter().any(|c| matches!(c, b'$' | b'`' | b'"' | b'\\' | b'!')) {
-                let mut v = b"\"".to_vec();
-                v.extend_from_slice(name);
-                v.push(b'"');
-                return v;
-            }
-            let mut v = b"'".to_vec();
-            for &c in name {
-                if c == b'\'' {
-                    v.extend_from_slice(b"'\\''");
-                } else {
-                    v.push(c);
-                }
-            }
-            v.push(b'\'');
-            v
-        }
-        Quoting::C | Quoting::Escape => {
-            let mut v = Vec::new();
-            if style == Quoting::C {
-                v.push(b'"');
-            }
-            for &c in name {
-                match c {
-                    b'\\' => v.extend_from_slice(b"\\\\"),
-                    b'"' if style == Quoting::C => v.extend_from_slice(b"\\\""),
-                    b'\n' => v.extend_from_slice(b"\\n"),
-                    b'\t' => v.extend_from_slice(b"\\t"),
-                    b'\r' => v.extend_from_slice(b"\\r"),
-                    7 => v.extend_from_slice(b"\\a"),
-                    8 => v.extend_from_slice(b"\\b"),
-                    12 => v.extend_from_slice(b"\\f"),
-                    11 => v.extend_from_slice(b"\\v"),
-                    b' ' if style == Quoting::Escape => v.extend_from_slice(b"\\ "),
-                    c if c < 0x20 || c == 0x7f => v.extend_from_slice(format!("\\{c:03o}").as_bytes()),
-                    c => v.push(c),
-                }
-            }
-            if style == Quoting::C {
-                v.push(b'"');
-            }
-            v
-        }
-    }
+    use ul_common::quote::{self as q, Style};
+    let (style, extra) = match style {
+        Quoting::Literal => (Style::Literal, Vec::new()),
+        Quoting::Shell => (Style::Shell, Vec::new()),
+        Quoting::ShellAlways => (Style::ShellAlways, Vec::new()),
+        Quoting::C => (Style::C, Vec::new()),
+        // O estilo `escape` do patch também escapa o espaço.
+        Quoting::Escape => (Style::Escape, vec![b' ']),
+    };
+    q::quote_rules(name, &q::Quoting { style, extra, except: Vec::new() }, &q::Rules::PATCH, false)
 }
 
 #[cfg(test)]

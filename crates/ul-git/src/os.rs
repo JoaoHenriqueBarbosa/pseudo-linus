@@ -158,22 +158,8 @@ pub fn chdir(path: &[u8]) -> Result<(), Errno> {
     sysc().chdir(path)
 }
 
-/// Diretório pai (`/a/b` -> `/a`, `/a` -> `/`, `a` -> ``).
-pub fn dirname(p: &[u8]) -> &[u8] {
-    match p.iter().rposition(|b| *b == b'/') {
-        Some(0) => b"/",
-        Some(i) => &p[..i],
-        None => b"",
-    }
-}
-
-pub fn basename(p: &[u8]) -> &[u8] {
-    let p = p.strip_suffix(b"/").unwrap_or(p);
-    match p.iter().rposition(|b| *b == b'/') {
-        Some(i) => &p[i + 1..],
-        None => p,
-    }
-}
+pub use sysabi::util::basename;
+pub use ul_common::fsutil::dirname;
 
 /// Normaliza um caminho absoluto sem tocar no FS: tira `.`, resolve `..` e barras repetidas.
 pub fn normalize_abs(p: &[u8]) -> Vec<u8> {
@@ -329,25 +315,7 @@ pub fn mkdir(p: &[u8], mode: Mode) -> Result<(), Errno> {
     sysc().mkdirat(Fd::CWD, p, mode)
 }
 
-/// `mkdir -p`.
-pub fn mkdir_p(p: &[u8], mode: Mode) -> Result<(), Errno> {
-    match mkdir(p, mode) {
-        Ok(()) => return Ok(()),
-        Err(Errno::EEXIST) => {
-            return if is_dir(p) { Ok(()) } else { Err(Errno::EEXIST) };
-        }
-        Err(Errno::ENOENT) => {}
-        Err(e) => return Err(e),
-    }
-    let parent = dirname(p);
-    if !parent.is_empty() && parent != p {
-        mkdir_p(parent, mode)?;
-    }
-    match mkdir(p, mode) {
-        Ok(()) | Err(Errno::EEXIST) => Ok(()),
-        Err(e) => Err(e),
-    }
-}
+pub use ul_common::fsutil::mkdir_p;
 
 /// Garante os diretórios que levam até o arquivo `p`.
 pub fn mkdir_parents(p: &[u8]) -> Result<(), Errno> {

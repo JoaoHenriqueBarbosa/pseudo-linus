@@ -179,21 +179,11 @@ pub(crate) fn terminfo_exists(term: &[u8]) -> bool {
 
 /// `strtol(s, &end, 0)` para `COLUMNS`/`LINES`: valor e se consumiu tudo.
 fn env_long(s: &[u8]) -> (i64, bool) {
-    let mut i = 0;
-    while i < s.len() && s[i].is_ascii_whitespace() {
-        i += 1;
-    }
-    let mut neg = false;
-    if i < s.len() && (s[i] == b'-' || s[i] == b'+') {
-        neg = s[i] == b'-';
-        i += 1;
-    }
-    let (v, used) = crate::ps::util::strtoul0(&s[i..]);
-    if used == 0 {
+    let c = ul_common::ctype::strtol(s, 0);
+    if c.used == 0 {
         return (0, false);
     }
-    let v = i64::try_from(v).unwrap_or(i64::MAX);
-    (if neg { -v } else { v }, i + used == s.len())
+    (c.value, c.used == s.len())
 }
 
 /// Célula da tela.

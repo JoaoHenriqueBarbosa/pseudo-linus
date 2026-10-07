@@ -10,6 +10,7 @@ description = "grep, egrep, fgrep, rgrep e sed do pseudo-linus (GNU grep 3.11 e 
 
 [dependencies]
 sysabi = { workspace = true }
+ul-common = { workspace = true }
 regex-posix = { workspace = true }
 # `grep -P`: Perl com lookaround e referências, Rust puro, sem unsafe e sem E/S de host.
 fancy-regex = "0.19.2"

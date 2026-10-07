@@ -9,6 +9,7 @@ description = "curl e wget do pseudo-linus: HTTP/1.1 e HTTPS (rustls) sobre o ne
 
 [dependencies]
 sysabi = { workspace = true }
+ul-common = { workspace = true, features = ["zone"] }
 # TLS sobre o fd do net_connect. Provedor de cripto: ring (o mesmo medido no F12).
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 rustls-pki-types = { version = "1.12", features = ["std"] }

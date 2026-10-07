@@ -8,9 +8,6 @@
 use sysabi::Program;
 
 mod find;
-// Cópia do getopt_long do ul-textproc; o xargs não usa todas as funções.
-#[allow(dead_code)]
-mod getopt;
 mod xargs;
 
 /// Tabela de programas deste crate.

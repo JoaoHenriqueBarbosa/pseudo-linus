@@ -13,6 +13,7 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{Ctx, sys};
+use ul_common::fsutil::after_last_slash;
 
 use crate::util::io;
 use engine::{Engine, LongDef};
@@ -68,11 +69,6 @@ fn usage_text(short: &str) -> String {
 
 pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     io::run(|| run(args))
-}
-
-fn basename(p: &[u8]) -> String {
-    let b = p.rsplit(|c| *c == b'/').next().unwrap_or(p);
-    io::lossy(b)
 }
 
 /// `parse_error`: o `warnx` opcional e a dica `Try 'getopt --help'`, saída 2.
@@ -263,7 +259,7 @@ fn own_long_options() -> Vec<LongDef> {
 
 fn run(args: &[OsString]) -> i32 {
     let argv = io::args_bytes(args);
-    let short = basename(&argv[0]);
+    let short = io::lossy(after_last_slash(&argv[0]));
     let compatible = env_is_set("GETOPT_COMPATIBLE");
     let posix_env = env_is_set("POSIXLY_CORRECT");
 

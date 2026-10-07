@@ -4,6 +4,8 @@
 //! começando com tab como contexto, "\ No newline at end of file", linhas de contexto em branco
 //! completadas no fim da entrada (até três), hunk só de contexto é malformado.
 
+use ul_common::ctype::parse_decimal_usize as parse_num;
+
 use super::hunk::{Format, Hunk, PLine, sections_from_unified};
 use super::names::{HeaderName, fetch_name};
 use super::opts::ForcedFormat;
@@ -128,21 +130,6 @@ pub struct Scanner<'a> {
     has_target: bool,
     /// Sobrou texto depois do último pedaço.
     trailing: bool,
-}
-
-fn is_digits(s: &[u8]) -> bool {
-    !s.is_empty() && s.iter().all(|c| c.is_ascii_digit())
-}
-
-fn parse_num(s: &[u8]) -> Option<usize> {
-    if !is_digits(s) {
-        return None;
-    }
-    let mut n: usize = 0;
-    for &c in s {
-        n = n.checked_mul(10)?.checked_add((c - b'0') as usize)?;
-    }
-    Some(n)
 }
 
 /// `a` ou `a,b`.

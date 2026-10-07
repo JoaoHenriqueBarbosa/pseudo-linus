@@ -19,7 +19,7 @@ pub mod member;
 pub mod modespec;
 pub mod names;
 pub mod owner;
-pub mod quote;
+pub use ul_common::quote;
 pub mod reader;
 pub mod transform;
 pub mod writer;

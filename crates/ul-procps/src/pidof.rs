@@ -17,6 +17,7 @@
 use std::ffi::OsString;
 
 use sysabi::{Ctx, Pid, sys};
+use ul_common::fsutil::after_last_slash;
 use ul_misc::util::getopt::Getopt;
 use ul_misc::util::io;
 
@@ -27,10 +28,6 @@ const USAGE: &str = "pidof usage: [options] <program-name>\n\n -c           Retu
 
 pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     io::run(|| run(args))
-}
-
-fn basename(s: &[u8]) -> &[u8] {
-    s.rsplit(|b| *b == b'/').next().unwrap_or(s)
 }
 
 /// Dispositivo e inode de um caminho, seguindo links.
@@ -131,14 +128,14 @@ fn run(args: &[OsString]) -> i32 {
                 if c.state == 'Z' && !zombies {
                     continue;
                 }
-                let base = basename(&c.argv0);
+                let base = after_last_slash(&c.argv0);
                 let mut hit = base == name.as_slice() || c.argv0 == *name;
                 if !hit && c.argv0.contains(&b' ') && c.statname == *name {
                     hit = true;
                 }
                 if !hit && scripts
                     && let Some(a1) = &c.argv1 {
-                        let b1 = basename(a1);
+                        let b1 = after_last_slash(a1);
                         let short: Vec<u8> = b1.iter().take(15).copied().collect();
                         hit = b1 == name.as_slice() && c.statname == short;
                     }

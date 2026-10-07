@@ -228,54 +228,8 @@ pub fn escape_str_out(out: &mut Vec<u8>, src: &[u8], bufsize: i32, maxcells: &mu
 /// `strtoul(s, &end, 0)`: espaço inicial, sinal, prefixo `0x` ou `0` (octal). Devolve o valor e
 /// quantos bytes consumiu (0 se não leu número, como o glibc deixando `end == s`).
 pub fn strtoul0(s: &[u8]) -> (u64, usize) {
-    let mut i = 0;
-    while i < s.len() && matches!(s[i], b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r') {
-        i += 1;
-    }
-    let mut neg = false;
-    if i < s.len() && (s[i] == b'+' || s[i] == b'-') {
-        neg = s[i] == b'-';
-        i += 1;
-    }
-    let mut base = 10u64;
-    let start_digits;
-    if i + 1 < s.len() && s[i] == b'0' && (s[i + 1] == b'x' || s[i + 1] == b'X') && s.get(i + 2).is_some_and(u8::is_ascii_hexdigit) {
-        base = 16;
-        i += 2;
-        start_digits = i;
-    } else if i < s.len() && s[i] == b'0' {
-        base = 8;
-        start_digits = i;
-    } else {
-        start_digits = i;
-    }
-    let mut v: u64 = 0;
-    let mut overflow = false;
-    let mut j = start_digits;
-    while j < s.len() {
-        let d = match s[j] {
-            c @ b'0'..=b'9' => u64::from(c - b'0'),
-            c @ b'a'..=b'f' => u64::from(c - b'a' + 10),
-            c @ b'A'..=b'F' => u64::from(c - b'A' + 10),
-            _ => break,
-        };
-        if d >= base {
-            break;
-        }
-        match v.checked_mul(base).and_then(|x| x.checked_add(d)) {
-            Some(x) => v = x,
-            None => overflow = true,
-        }
-        j += 1;
-    }
-    if j == start_digits {
-        // Sem dígitos: "0" sozinho já foi contado como octal acima; senão, nada foi lido.
-        return (0, 0);
-    }
-    if overflow {
-        return (u64::MAX, j);
-    }
-    (if neg { v.wrapping_neg() } else { v }, j)
+    let c = ul_common::ctype::strtoull(s, 0);
+    (c.value, c.used)
 }
 
 fn is_digit(c: u8) -> bool {

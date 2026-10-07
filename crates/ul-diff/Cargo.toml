@@ -9,6 +9,7 @@ description = "diff, cmp, diff3, sdiff e patch do pseudo-linus, fiéis ao GNU di
 
 [dependencies]
 sysabi = { workspace = true }
+ul-common = { workspace = true, features = ["zone"] }
 # Parser de patch unificado e git (o localizador e o aplicador são nossos).
 diffy = { version = "0.5", default-features = false, features = ["std"] }
 # Datas dos cabeçalhos no fuso do sandbox; sem `tz-system` nem `tzdb-zoneinfo`, que leem o host.

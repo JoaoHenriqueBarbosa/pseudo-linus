@@ -7,18 +7,11 @@
 //! do original ficam: o `fmt` de cada `Pr` é a cadeia que o C passaria ao `printf`, com `ll` antes
 //! das conversões inteiras, e as mensagens de erro saem com os mesmos pedaços que o C imprime.
 
+use ul_common::ctype::{at, is_space, strtoull_fixed_base, strtol};
+
 use super::{Clr, Fs, Fu, Hexdump, Kind, Pr};
 
 pub(super) const SPEC: &[u8] = b".#-+ 0123456789";
-
-/// Byte na posição `i`, ou NUL depois do fim (as cadeias do C terminam em NUL).
-fn at(s: &[u8], i: usize) -> u8 {
-    s.get(i).copied().unwrap_or(0)
-}
-
-fn is_space(b: u8) -> bool {
-    matches!(b, b' ' | b'\t' | b'\n' | b'\x0b' | b'\x0c' | b'\r')
-}
 
 /// `strchr(list, c) != NULL`: o NUL também "acha" (o terminador da lista), como no C.
 fn first_letter(c: u8, list: &[u8]) -> bool {
@@ -34,37 +27,12 @@ fn skip_space(s: &[u8], mut i: usize) -> usize {
 
 /// `strtol(str, &end, 10)` guardado num `int`: `None` sem dígitos ou com estouro do `long`.
 fn next_number(s: &[u8], i: usize) -> Option<(i32, usize)> {
-    let mut j = skip_space(s, i);
-    let neg = match at(s, j) {
-        b'-' => {
-            j += 1;
-            true
-        }
-        b'+' => {
-            j += 1;
-            false
-        }
-        _ => false,
-    };
-    let digits_start = j;
-    let mut v: i64 = 0;
-    let mut overflow = false;
-    while at(s, j).is_ascii_digit() {
-        match v
-            .checked_mul(10)
-            .and_then(|x| x.checked_add(i64::from(at(s, j) - b'0')))
-        {
-            Some(x) => v = x,
-            None => overflow = true,
-        }
-        j += 1;
-    }
-    if j == digits_start || overflow {
+    let c = strtol(&s[i.min(s.len())..], 10);
+    if c.used == 0 || c.overflow {
         return None;
     }
-    let v = if neg { -v } else { v };
     // O C guarda o `long` num `int`: trunca.
-    Some((v as i32, j))
+    Some((c.value as i32, i + c.used))
 }
 
 fn badfmt(fmt: &[u8]) -> String {
@@ -501,39 +469,11 @@ pub(super) fn color_sequence(name: &[u8]) -> Option<&'static str> {
 /// `strtoul` de um prefixo: valor (truncado pra `int`, como o C guarda) e onde parou; `None` com
 /// estouro (ERANGE).
 fn strtoul(s: &[u8], i: usize, base: u32) -> (Option<i64>, usize) {
-    let mut j = skip_space(s, i);
-    let neg = match at(s, j) {
-        b'-' => {
-            j += 1;
-            true
-        }
-        b'+' => {
-            j += 1;
-            false
-        }
-        _ => false,
-    };
-    let start = j;
-    let mut v: u64 = 0;
-    let mut overflow = false;
-    while let Some(d) = (at(s, j) as char).to_digit(base) {
-        match v
-            .checked_mul(u64::from(base))
-            .and_then(|x| x.checked_add(u64::from(d)))
-        {
-            Some(x) => v = x,
-            None => overflow = true,
-        }
-        j += 1;
+    let c = strtoull_fixed_base(&s[i.min(s.len())..], base);
+    if c.overflow {
+        return (None, i + c.used);
     }
-    if j == start {
-        return (Some(0), i);
-    }
-    if overflow {
-        return (None, j);
-    }
-    let v = if neg { v.wrapping_neg() } else { v };
-    (Some(v as i64), j)
+    (Some(c.value as i64), i + c.used)
 }
 
 /// `color_fmt`: `[!]cor[:valor|:'texto'][@início[-fim]],...`. `Ok(None)` quando um nome de cor não

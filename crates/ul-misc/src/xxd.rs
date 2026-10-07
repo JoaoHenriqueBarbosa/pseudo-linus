@@ -32,6 +32,8 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{Ctx, Errno, Fd, Mode, OFlags, Whence, sys};
+use ul_common::fsutil::after_last_slash;
+use ul_common::ctype;
 
 use crate::util::io::{self, File};
 
@@ -160,8 +162,7 @@ fn run(args: &[OsString]) -> i32 {
 
 /// O nome do programa nas mensagens: o basename do `argv[0]`.
 fn prog_name(argv0: &[u8]) -> String {
-    let base = argv0.rsplit(|b| *b == b'/').next().unwrap_or(argv0);
-    io::lossy(base)
+    io::lossy(after_last_slash(argv0))
 }
 
 fn usage(pname: &str) -> i32 {
@@ -327,81 +328,14 @@ fn parse_seek(v: &[u8]) -> Seek {
     }
 }
 
-fn c_isspace(b: u8) -> bool {
-    matches!(b, b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r')
-}
-
-/// Prefixo numérico como o `strtoul`/`strtol` da glibc com base 0: espaços, sinal, `0x` (só se
-/// vier dígito hexa depois), `0` inicial octal. Devolve (magnitude saturada, negativo, estourou).
-fn strto_parts(s: &[u8]) -> (u64, bool, bool) {
-    let mut i = 0;
-    while i < s.len() && c_isspace(s[i]) {
-        i += 1;
-    }
-    let mut neg = false;
-    if i < s.len() && (s[i] == b'+' || s[i] == b'-') {
-        neg = s[i] == b'-';
-        i += 1;
-    }
-    let base: u64 = if s.get(i) == Some(&b'0') {
-        if matches!(s.get(i + 1), Some(b'x' | b'X'))
-            && s.get(i + 2).is_some_and(u8::is_ascii_hexdigit)
-        {
-            i += 2;
-            16
-        } else {
-            8
-        }
-    } else {
-        10
-    };
-    let mut val: u64 = 0;
-    let mut overflow = false;
-    while let Some(&b) = s.get(i) {
-        let d = match b {
-            b'0'..=b'9' => u64::from(b - b'0'),
-            b'a'..=b'f' => u64::from(b - b'a' + 10),
-            b'A'..=b'F' => u64::from(b - b'A' + 10),
-            _ => break,
-        };
-        if d >= base {
-            break;
-        }
-        match val.checked_mul(base).and_then(|v| v.checked_add(d)) {
-            Some(v) => val = v,
-            None => overflow = true,
-        }
-        i += 1;
-    }
-    (val, neg, overflow)
-}
-
 /// `strtol(s, NULL, 0)`: satura em `LONG_MAX`/`LONG_MIN`.
 fn strtol(s: &[u8]) -> i64 {
-    let (val, neg, overflow) = strto_parts(s);
-    if neg {
-        if overflow || val > (i64::MAX as u64) + 1 {
-            i64::MIN
-        } else {
-            (val as i64).wrapping_neg()
-        }
-    } else if overflow || val > i64::MAX as u64 {
-        i64::MAX
-    } else {
-        val as i64
-    }
+    ctype::strtol(s, 0).value
 }
 
 /// `strtoul(s, NULL, 0)`: negativo dá a volta, estouro satura em `ULONG_MAX`.
 fn strtoul(s: &[u8]) -> u64 {
-    let (val, neg, overflow) = strto_parts(s);
-    if overflow {
-        u64::MAX
-    } else if neg {
-        val.wrapping_neg()
-    } else {
-        val
-    }
+    ctype::strtoull(s, 0).value
 }
 
 /// Mensagem `xxd: ...` no stderr.

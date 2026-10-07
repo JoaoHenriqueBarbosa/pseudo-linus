@@ -9,6 +9,7 @@ description = "awk e gawk do pseudo-linus: interpretador próprio com o gawk 5.2
 
 [dependencies]
 sysabi = { workspace = true }
+ul-common = { workspace = true }
 regex-posix = { workspace = true }
 stacker = "0.1"
 jiff = { version = "0.2", default-features = false, features = ["std", "tzdb-bundle-always"] }

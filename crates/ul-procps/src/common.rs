@@ -6,6 +6,7 @@ use std::collections::HashMap;
 
 use sysabi::{Fd, FileType, Pid, sys};
 use sysio::users::{self, Group, Passwd};
+use ul_common::ctype::strtol_whole;
 
 /// `prog: msg` no stderr, numa escrita só.
 pub fn warn(prog: &str, msg: &str) {
@@ -219,45 +220,11 @@ pub fn signal_rt(s: &str) -> Option<i32> {
 }
 
 /// Resultado de [`strtol`].
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Strtol {
-    Ok(i64),
-    /// Estourou (o strtol satura e marca ERANGE).
-    Range(i64),
-    /// Não é número inteiro do começo ao fim.
-    Invalid,
-}
+pub use ul_common::ctype::WholeLong as Strtol;
 
 /// `strtol(s, &end, 10)` exigindo que tudo seja consumido (espaço à esquerda e sinal aceitos).
 pub fn strtol(s: &str) -> Strtol {
-    let t = s.trim_start_matches([' ', '\t', '\n', '\x0b', '\x0c', '\r']);
-    if t.is_empty() {
-        return Strtol::Invalid;
-    }
-    let (neg, digits) = match t.as_bytes()[0] {
-        b'-' => (true, &t[1..]),
-        b'+' => (false, &t[1..]),
-        _ => (false, t),
-    };
-    if digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_digit()) {
-        return Strtol::Invalid;
-    }
-    // Acumula em negativo pra caber o LONG_MIN.
-    let mut v: i64 = 0;
-    for b in digits.bytes() {
-        match v.checked_mul(10).and_then(|x| x.checked_sub(i64::from(b - b'0'))) {
-            Some(x) => v = x,
-            None => return Strtol::Range(if neg { i64::MIN } else { i64::MAX }),
-        }
-    }
-    if neg {
-        Strtol::Ok(v)
-    } else {
-        match v.checked_neg() {
-            Some(x) => Strtol::Ok(x),
-            None => Strtol::Range(i64::MAX),
-        }
-    }
+    strtol_whole(s.as_bytes(), 10)
 }
 
 /// [`strtol`] que aceita o valor saturado do estouro, como quem não olha o errno.
