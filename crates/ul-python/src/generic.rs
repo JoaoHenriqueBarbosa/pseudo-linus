@@ -24,14 +24,19 @@ fn type_repr(v: &Value) -> String {
         Value::Builtin(n) => (*n).to_string(),
         Value::NativeFn(f) => f.name.to_string(),
         Value::Class(c) => match c.lookup("__module__") {
-            Some(Value::Str(m)) if m.as_str() != "builtins" => format!("{}.{}", m.as_str(), c.name),
-            Some(Value::Str(_)) => c.name.to_string(),
-            _ => format!("__main__.{}", c.name),
+            Some(Value::Str(m)) if m.as_str() != "builtins" => format!("{}.{}", m.as_str(), c.qualname),
+            Some(Value::Str(_)) => c.qualname.to_string(),
+            _ => format!("__main__.{}", c.qualname),
         },
         Value::List(items) => {
             let parts: Vec<String> = items.borrow().iter().map(type_repr).collect();
             format!("[{}]", parts.join(", "))
         }
+        // `~T`, `+T`, `-T` e `*Ts`: o `__repr__` do `typing`.
+        v if is_type_param(v) => match crate::vm::current() {
+            Some(mut vm) => vm.repr_of(v).unwrap_or_else(|_| crate::object::repr(v)),
+            None => crate::object::repr(v),
+        },
         other => crate::object::repr(other),
     }
 }
@@ -50,6 +55,57 @@ impl GenericAlias {
         };
         Value::Ext(Rc::new(GenericAlias { origin, args }))
     }
+
+    /// `__parameters__`: as variáveis de tipo livres dos argumentos, na ordem, sem repetição.
+    fn parameters(&self) -> Vec<Value> {
+        let mut out: Vec<Value> = Vec::new();
+        for a in &self.args {
+            let found = if is_type_param(a) { vec![a.clone()] } else { alias_parameters(a) };
+            for p in found {
+                if !out.iter().any(|x| same_object(x, &p)) {
+                    out.push(p);
+                }
+            }
+        }
+        out
+    }
+}
+
+/// `TypeVar`, `ParamSpec` ou `TypeVarTuple` (do `typing` em Python).
+fn is_type_param(v: &Value) -> bool {
+    matches!(v, Value::Instance(i) if matches!(i.class.name.as_str(), "TypeVar" | "ParamSpec" | "TypeVarTuple"))
+}
+
+fn same_object(a: &Value, b: &Value) -> bool {
+    match (a, b) {
+        (Value::Instance(x), Value::Instance(y)) => Rc::ptr_eq(x, y),
+        _ => false,
+    }
+}
+
+/// Os parâmetros de um alias aninhado (`list[_T]` dentro de `dict[str, list[_T]]`).
+fn alias_parameters(v: &Value) -> Vec<Value> {
+    match v {
+        Value::Ext(e) => e.as_any().and_then(|a| a.downcast_ref::<GenericAlias>()).map(|g| g.parameters()).unwrap_or_default(),
+        _ => Vec::new(),
+    }
+}
+
+/// Troca cada parâmetro de `params` pelo argumento correspondente, descendo em aliases aninhados.
+fn substitute(v: &Value, params: &[Value], subs: &[Value]) -> Value {
+    if is_type_param(v) {
+        if let Some(i) = params.iter().position(|p| same_object(p, v)) {
+            return subs[i].clone();
+        }
+        return v.clone();
+    }
+    if let Value::Ext(e) = v {
+        if let Some(g) = e.as_any().and_then(|a| a.downcast_ref::<GenericAlias>()) {
+            let args = g.args.iter().map(|a| substitute(a, params, subs)).collect();
+            return Value::Ext(Rc::new(GenericAlias { origin: g.origin.clone(), args }));
+        }
+    }
+    v.clone()
 }
 
 impl ExtObject for GenericAlias {
@@ -61,7 +117,7 @@ impl ExtObject for GenericAlias {
     }
     fn repr(&self) -> String {
         let parts: Vec<String> = self.args.iter().map(type_repr).collect();
-        format!("{}[{}]", type_repr(&self.origin).trim_start_matches("__main__."), parts.join(", "))
+        format!("{}[{}]", type_repr(&self.origin), parts.join(", "))
     }
     fn methods(&self) -> &'static [&'static str] {
         &["__call__"]
@@ -70,8 +126,31 @@ impl ExtObject for GenericAlias {
         match name {
             "__origin__" => Some(Ok(self.origin.clone())),
             "__args__" => Some(Ok(Value::tuple(self.args.clone()))),
+            "__parameters__" => Some(Ok(Value::tuple(self.parameters()))),
             _ => None,
         }
+    }
+    /// `dict[_T, None][int]`: substitui os parâmetros livres, como o `_Py_subs_parameters`.
+    fn getitem(&self, key: &Value) -> Option<PyResult<Value>> {
+        let params = self.parameters();
+        if params.is_empty() {
+            return Some(Err(type_error(format!("{} is not a generic class", self.repr()))));
+        }
+        let subs = match key {
+            Value::Tuple(t) => t.to_vec(),
+            other => vec![other.clone()],
+        };
+        if subs.len() != params.len() {
+            let (which, least) = if subs.len() > params.len() { ("many", "") } else { ("few", "at least ") };
+            return Some(Err(type_error(format!(
+                "Too {which} arguments for {}; actual {}, expected {least}{}",
+                self.repr(),
+                subs.len(),
+                params.len()
+            ))));
+        }
+        let args = self.args.iter().map(|a| substitute(a, &params, &subs)).collect();
+        Some(Ok(Value::Ext(Rc::new(GenericAlias { origin: self.origin.clone(), args }))))
     }
     fn call_method(&self, vm: &mut Vm, _name: &str, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         vm.call_value(&self.origin, args, kw)
@@ -174,6 +253,10 @@ pub fn class_getitem(vm: &mut Vm, container: &Value, key: &Value) -> Option<PyRe
                     }
                     _ => None,
                 },
+                // Herdado de uma base embutida que o define (`class Counter(dict)`).
+                None if matches!(c.data_base, Some("dict" | "list" | "tuple" | "set" | "frozenset")) => {
+                    Some(Ok(GenericAlias::make(container.clone(), key)))
+                }
                 _ => Some(Err(type_error(format!("type '{}' is not subscriptable", c.name)))),
             }
         }

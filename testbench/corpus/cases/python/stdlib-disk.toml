@@ -226,3 +226,27 @@ PYTHONPATH=bt python3 d/s.py
 python3 -P d/s.py
 cd d; python3 -c 'import sys; print(sys.path[0]=="")'; echo 'import sys; print(sys.path[0])' > m.py; python3 -m m; python3 -P -m m
 '''
+
+# `posix` (o `sys.modules[os.name]` do `setuptools.sandbox`), `os.environ` como o `_Environ` do
+# CPython sobre o `posix.environ` em bytes, `environb`/`getenvb` e os erros de `putenv`/`unsetenv`.
+[[case]]
+id = "posix-module-environ-bytes"
+script = '''
+python3 - <<'PYEOF'
+import os, sys
+for a in (("", "x"), ("a=b", "x"), ("a", "x\0"), (b"k", 1)):
+    try: os.putenv(*a)
+    except Exception as e: print(type(e).__name__, e)
+try: os.unsetenv("a=b")
+except Exception as e: print(type(e).__name__, e)
+os.environ["Q"] = "1"; print(os.environb[b"Q"], os.getenvb(b"Q"), repr(os.environ)[:9], type(os.environ).__mro__)
+try: os.environ["Q"] = 1
+except Exception as e: print(type(e).__name__, e)
+import posix
+print(sys.modules[os.name] is posix, posix.getpid is os.getpid, posix.stat is os.stat, os.environ._data is posix.environ)
+print(posix.__spec__, posix.__loader__, "__file__" in dir(posix), [n for n in dir(os) if "apping" in n or "envb" in n])
+print(posix._path_normpath("//a/./b/../c"), posix._path_splitroot_ex(b"//x"), os.path.normpath(""), os.path.splitroot("///y"))
+PYEOF
+FOO=bar python3 -c 'import os; print(os.environ["FOO"], os.environb[b"FOO"]); os.environ["X"] = "y"; os.system("echo $X"); del os.environ["X"]; os.system("echo [$X]")'
+python3 -S -c 'import posix, os; print(posix.getcwd is os.getcwd, type(posix.environ))'
+'''

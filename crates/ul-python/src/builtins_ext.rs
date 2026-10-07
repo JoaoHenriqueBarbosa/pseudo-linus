@@ -443,7 +443,15 @@ fn write_back(target: &Value, map: &crate::object::VarMap, was: &[String]) -> Py
 /// Roda `src` (`exec`) ou avalia a expressão (`eval`) nos espaços de nomes dados; sem eles, nas
 /// globais atuais. `globals`/`locals` são dicts: o conteúdo entra numa tabela de globais, o código
 /// roda nela, e o resultado volta para o dict (um dict de módulo roda direto nas globais do módulo).
-fn run_ns(vm: &mut Vm, src: &str, globals: Option<Value>, locals: Option<Value>, eval: bool, who: &str) -> PyResult<Value> {
+fn run_ns(
+    vm: &mut Vm,
+    src: &str,
+    filename: Option<&str>,
+    globals: Option<Value>,
+    locals: Option<Value>,
+    eval: bool,
+    who: &str,
+) -> PyResult<Value> {
     let mut text = if eval { format!("__eval_value__ = ({})", src.trim()) } else { src.to_string() };
     if !text.ends_with('\n') {
         text.push('\n');
@@ -457,10 +465,14 @@ fn run_ns(vm: &mut Vm, src: &str, globals: Option<Value>, locals: Option<Value>,
             };
             exc(kind, e.msg)
         } else {
-            crate::vm::syntax_exc(e, "<string>", src)
+            crate::vm::syntax_exc(e, filename.unwrap_or("<string>"), src)
         }
     })?;
-    let code = Rc::new(crate::compile::compile_module(&module).map_err(|e| exc("SyntaxError", e.msg))?);
+    let mut code = crate::compile::compile_module(&module).map_err(|e| exc("SyntaxError", e.msg))?;
+    if let Some(f) = filename {
+        code.set_filename(f);
+    }
+    let code = Rc::new(code);
     let globals = globals.filter(|g| !matches!(g, Value::None));
     let locals = locals.filter(|l| !matches!(l, Value::None));
     let Some(gdict) = globals else {
@@ -535,27 +547,32 @@ fn run_ns(vm: &mut Vm, src: &str, globals: Option<Value>, locals: Option<Value>,
 
 fn b_eval(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let a = bind("eval", args, kw, &["source", "globals", "locals"], 1)?;
-    let src = source_text(vm, "eval", a[0].as_ref().unwrap_or(&Value::None))?;
-    run_ns(vm, &src, a[1].clone(), a[2].clone(), true, "eval")
+    let (src, filename) = source_text(vm, "eval", a[0].as_ref().unwrap_or(&Value::None))?;
+    run_ns(vm, &src, filename.as_deref(), a[1].clone(), a[2].clone(), true, "eval")
 }
 
 fn b_exec(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let a = bind("exec", args, kw, &["source", "globals", "locals"], 1)?;
-    let src = source_text(vm, "exec", a[0].as_ref().unwrap_or(&Value::None))?;
-    run_ns(vm, &src, a[1].clone(), a[2].clone(), false, "exec")?;
+    let (src, filename) = source_text(vm, "exec", a[0].as_ref().unwrap_or(&Value::None))?;
+    run_ns(vm, &src, filename.as_deref(), a[1].clone(), a[2].clone(), false, "exec")?;
     Ok(Value::None)
 }
 
-/// O texto de um argumento de `exec`/`eval`: uma string ou o resultado de `compile`.
-fn source_text(vm: &mut Vm, who: &str, v: &Value) -> PyResult<String> {
+/// O texto de um argumento de `exec`/`eval`: uma string ou o resultado de `compile` (que traz
+/// também o nome de arquivo dos quadros).
+fn source_text(vm: &mut Vm, who: &str, v: &Value) -> PyResult<(String, Option<String>)> {
     if let Value::Ext(e) = v {
         if e.type_name() == "code" {
             if let Some(Ok(Value::Str(s))) = e.getattr(vm, "_source") {
-                return Ok(s.as_str().to_string());
+                let filename = match e.getattr(vm, "co_filename") {
+                    Some(Ok(Value::Str(f))) => Some(f.as_str().to_string()),
+                    _ => None,
+                };
+                return Ok((s.as_str().to_string(), filename));
             }
         }
     }
-    Ok(want_str(who, v)?.to_string())
+    Ok((want_str(who, v)?.to_string(), None))
 }
 
 /// Resultado de `compile()`: o fonte já validado, que `exec`/`eval` executam depois.
@@ -652,7 +669,10 @@ fn b_compile(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
             crate::vm::syntax_exc(e, &filename, &src)
         }
     })?;
-    let code = Rc::new(crate::compile::compile_module(&module).map_err(|e| exc("SyntaxError", e.msg))?);
+    let mut code = crate::compile::compile_module(&module).map_err(|e| exc("SyntaxError", e.msg))?;
+    // Os quadros do código compilado levam o nome de arquivo dado (o `setup.py` do setuptools).
+    code.set_filename(&filename);
+    let code = Rc::new(code);
     // Modo `single`: uma expressão solta passa pelo `sys.displayhook` (é o que o doctest espera).
     let src = if mode == "single" && crate::parser::parse_module(&format!("__eval_value__ = ({})\n", src.trim())).is_ok() {
         format!("import sys as __single_sys__\n__single_sys__.displayhook({})\n", src.trim())

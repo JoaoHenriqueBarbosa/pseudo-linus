@@ -314,3 +314,47 @@ print([n for n in dir(mv) if n.startswith("_") and not n.startswith("__")])
 PYEOF
 '''
 tags = ["error"]
+
+# Substituição de `TypeVar` em aliases genéricos (`dict[_T, None][X]`, como no `_requirestxt` do
+# setuptools), `__class_getitem__` herdado de base embutida e o `repr` com `__qualname__`.
+[[case]]
+id = "generic-alias-typevar-substitution"
+script = '''
+python3 - <<'PYEOF'
+from typing import TypeVar
+import collections as c
+T = TypeVar('T'); K = TypeVar('K')
+O = dict[T, None]
+print(O, O.__parameters__, O[int], O[int].__parameters__)
+D = c.defaultdict[str, O[int]](dict); print(type(D), D)
+N = dict[K, list[T]]
+print(N.__parameters__, N[str, int], list[int].__parameters__)
+for bad in (lambda: N[int], lambda: N[int, int, int], lambda: list[int][str]):
+    try: bad()
+    except TypeError as e: print(e)
+print(c.deque[int], c.Counter[str], c.OrderedDict[int, str], c.defaultdict[str, int])
+class A(list): pass
+def f():
+    class L(dict): pass
+    return L
+print(A[int], f()[int], dict[str, list[A]] | None)
+class B: pass
+try: B[int]
+except TypeError as e: print(e)
+PYEOF
+'''
+tags = ["error"]
+
+# Os quadros de `exec`/`eval` de um `compile(src, nome, ...)` levam o nome dado (o `setup.py` que o
+# `setuptools.build_meta` compila), inclusive nas funções definidas ali.
+[[case]]
+id = "compile-filename-in-traceback"
+script = '''
+cd /tmp; printf 'def run():\n    code = compile("import sys\\n\\n1/0", "setup.py", "exec")\n    exec(code, locals())\nrun()\n' > e.py
+python3 e.py
+python3 -c 'exec(compile("x = 1\ny = x/0", "fake.py", "exec"))'
+python3 -c 'eval(compile("1/0", "ev.py", "eval"))'
+python3 -c 'exec(compile("def f():\n    return 1/0\n", "fn.py", "exec")); f()'
+python3 -c 'exec("1/0")'
+'''
+tags = ["error"]

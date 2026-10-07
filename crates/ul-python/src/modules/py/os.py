@@ -460,90 +460,158 @@ def walk(top, topdown=True, onerror=None, followlinks=False):
         yield top, dirs, nondirs
 
 
-class _Environ:
-    """`os.environ`: leitura e escrita refletidas no ambiente do pseudo-processo."""
+# Change environ to automatically call putenv() and unsetenv()
+from _collections_abc import MutableMapping, Mapping
 
-    def __init__(self):
-        self._data = dict(_os.environ())
+class _Environ(MutableMapping):
+    def __init__(self, data, encodekey, decodekey, encodevalue, decodevalue):
+        self.encodekey = encodekey
+        self.decodekey = decodekey
+        self.encodevalue = encodevalue
+        self.decodevalue = decodevalue
+        self._data = data
 
     def __getitem__(self, key):
         try:
-            return self._data[key]
+            value = self._data[self.encodekey(key)]
         except KeyError:
+            # raise KeyError with the original key value
             raise KeyError(key) from None
+        return self.decodevalue(value)
 
     def __setitem__(self, key, value):
-        if not isinstance(key, str) or not isinstance(value, str):
-            raise TypeError('str expected, not ' + type(value if isinstance(key, str) else key).__name__)
-        _os.putenv(key, value)
+        key = self.encodekey(key)
+        value = self.encodevalue(value)
+        putenv(key, value)
         self._data[key] = value
 
     def __delitem__(self, key):
-        if key not in self._data:
-            raise KeyError(key)
-        _os.unsetenv(key)
-        del self._data[key]
-
-    def __contains__(self, key):
-        return key in self._data
+        encodedkey = self.encodekey(key)
+        unsetenv(encodedkey)
+        try:
+            del self._data[encodedkey]
+        except KeyError:
+            # raise KeyError with the original key value
+            raise KeyError(key) from None
 
     def __iter__(self):
-        return iter(self._data)
+        # list() from dict object is an atomic operation
+        keys = list(self._data)
+        for key in keys:
+            yield self.decodekey(key)
 
     def __len__(self):
         return len(self._data)
 
-    def get(self, key, default=None):
-        return self._data.get(key, default)
-
-    def keys(self):
-        return self._data.keys()
-
-    def values(self):
-        return self._data.values()
-
-    def items(self):
-        return self._data.items()
-
-    def setdefault(self, key, default=''):
-        if key not in self._data:
-            self[key] = default
-        return self._data[key]
-
-    def pop(self, key, *default):
-        if key in self._data:
-            value = self._data[key]
-            del self[key]
-            return value
-        if default:
-            return default[0]
-        raise KeyError(key)
-
-    def update(self, other=(), **kwargs):
-        for k, v in dict(other, **kwargs).items():
-            self[k] = v
+    def __repr__(self):
+        formatted_items = ", ".join(
+            f"{self.decodekey(key)!r}: {self.decodevalue(value)!r}"
+            for key, value in self._data.items()
+        )
+        return f"environ({{{formatted_items}}})"
 
     def copy(self):
-        return dict(self._data)
+        return dict(self)
 
-    def __repr__(self):
-        return 'environ(' + repr(self._data) + ')'
+    def setdefault(self, key, value):
+        if key not in self:
+            self[key] = value
+        return self[key]
 
+    def __ior__(self, other):
+        self.update(other)
+        return self
 
-environ = _Environ()
+    def __or__(self, other):
+        if not isinstance(other, Mapping):
+            return NotImplemented
+        new = dict(self)
+        new.update(other)
+        return new
+
+    def __ror__(self, other):
+        if not isinstance(other, Mapping):
+            return NotImplemented
+        new = dict(other)
+        new.update(self)
+        return new
+
+def _createenviron():
+    # Where Env Var Names Can Be Mixed Case
+    encoding = 'utf-8'
+    def encode(value):
+        if not isinstance(value, str):
+            raise TypeError("str expected, not %s" % type(value).__name__)
+        return value.encode(encoding, 'surrogateescape')
+    def decode(value):
+        return value.decode(encoding, 'surrogateescape')
+    encodekey = encode
+    # O `posix.environ`: o ambiente da partida, em bytes.
+    data = {encode(k): encode(v) for k, v in _os.environ()}
+    return _Environ(data,
+        encodekey, decode,
+        encode, decode)
+
+# unicode environ
+environ = _createenviron()
+del _createenviron
 
 
 def getenv(key, default=None):
+    """Get an environment variable, return None if it doesn't exist.
+    The optional second argument can specify an alternate default.
+    key, default and the result are str."""
     return environ.get(key, default)
 
-
-def putenv(key, value):
-    environ[key] = value
+supports_bytes_environ = (name != 'nt')
 
 
-def unsetenv(key):
-    if key in environ:
-        del environ[key]
+def _check_bytes(value):
+    if not isinstance(value, bytes):
+        raise TypeError("bytes expected, not %s" % type(value).__name__)
+    return value
+
+# bytes environ
+environb = _Environ(environ._data,
+    _check_bytes, bytes,
+    _check_bytes, bytes)
+del _check_bytes
+
+
+def getenvb(key, default=None):
+    """Get an environment variable, return None if it doesn't exist.
+    The optional second argument can specify an alternate default.
+    key, default and the result are bytes."""
+    return environb.get(key, default)
+
+
+def _env_arg(value):
+    # O `PyUnicode_FSConverter` do `posix`: str, bytes ou PathLike, sem byte nulo.
+    value = fspath(value)
+    if isinstance(value, str):
+        value = value.encode('utf-8', 'surrogateescape')
+    if b'\0' in value:
+        raise ValueError('embedded null byte')
+    return value
+
+
+def putenv(name, value, /):
+    """Change or add an environment variable."""
+    name = _env_arg(name)
+    value = _env_arg(value)
+    if not name:
+        raise OSError(22, 'Invalid argument')
+    if b'=' in name:
+        raise ValueError('illegal environment variable name')
+    _os.putenv(name.decode('utf-8', 'surrogateescape'), value.decode('utf-8', 'surrogateescape'))
+
+
+def unsetenv(name, /):
+    """Delete an environment variable."""
+    name = _env_arg(name)
+    if not name or b'=' in name:
+        raise OSError(22, 'Invalid argument')
+    _os.unsetenv(name.decode('utf-8', 'surrogateescape'))
 
 
 def getpid():
@@ -801,3 +869,13 @@ def popen(cmd, mode='r', buffering=-1):
         proc = subprocess.Popen(cmd, shell=True, text=True, stdin=subprocess.PIPE, bufsize=buffering)
         return _wrap_close(proc.stdin, proc)
     raise ValueError('invalid mode %r' % mode)
+
+
+# O módulo `posix` (de onde o CPython tira estas funções) recebe-as quando o `os` termina de carregar.
+def _init_posix():
+    init = globals().pop('_posix_init', None)
+    if init is not None:
+        init()
+
+_init_posix()
+del _init_posix

@@ -151,6 +151,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("_excgroup", include_str!("py/_excgroup.py")),
     ("_imp", include_str!("py/_imp.py")),
     ("errno", include_str!("py/errno.py")),
+    ("posix", include_str!("py/posix.py")),
     ("tarfile", include_str!("../../../kernel/image/usr/lib/python3.13/tarfile.py")),
     ("_archivefile", include_str!("py/_archivefile.py")),
     ("sqlite3", include_str!("py/sqlite3.py")),

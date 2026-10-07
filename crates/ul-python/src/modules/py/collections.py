@@ -1,6 +1,7 @@
 """collections do sandbox (Python embutido)."""
 
 from itertools import chain, repeat
+from types import GenericAlias as _GenericAlias
 
 
 def namedtuple(typename, field_names, *, rename=False, defaults=None, module=None):
@@ -129,6 +130,8 @@ def namedtuple(typename, field_names, *, rename=False, defaults=None, module=Non
 
 
 class deque:
+    __class_getitem__ = classmethod(_GenericAlias)
+
     def __init__(self, iterable=(), maxlen=None):
         if maxlen is not None and maxlen < 0:
             raise ValueError('maxlen must be non-negative')
@@ -274,6 +277,8 @@ class deque:
 
 
 class defaultdict(dict):
+    __class_getitem__ = classmethod(_GenericAlias)
+
     def __init__(self, default_factory=None, /, *args, **kwargs):
         if default_factory is not None and not callable(default_factory):
             raise TypeError('first argument must be callable or None')
@@ -926,3 +931,6 @@ class UserString(_Sequence):
 
     def zfill(self, width):
         return self.__class__(self.data.zfill(width))
+
+
+del _GenericAlias
