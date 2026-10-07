@@ -217,7 +217,6 @@ fn gzip_decode(input: &[u8]) -> Result<Decoded, DecodeError> {
     let mut out = Vec::new();
     let mut pos = 0usize;
     let mut streams = 0usize;
-    let mut chunk = vec![0u8; 64 * 1024];
     loop {
         if streams > 0 {
             if pos >= input.len() {
@@ -234,26 +233,13 @@ fn gzip_decode(input: &[u8]) -> Result<Decoded, DecodeError> {
         pos += h.len;
         let start = out.len();
         let mut inf = flate2::Decompress::new(false);
-        loop {
-            sysabi::sys::checkpoint();
+        drain_stream(input, &mut pos, &mut out, |inp, buf| {
             let (in0, out0) = (inf.total_in(), inf.total_out());
             let st = inf
-                .decompress(&input[pos..], &mut chunk, flate2::FlushDecompress::None)
+                .decompress(inp, buf, flate2::FlushDecompress::None)
                 .map_err(|e| DecodeError::Corrupt(e.to_string()))?;
-            let consumed = (inf.total_in() - in0) as usize;
-            let produced = (inf.total_out() - out0) as usize;
-            pos += consumed;
-            if out.try_reserve(produced).is_err() {
-                return Err(DecodeError::Corrupt("out of memory".into()));
-            }
-            out.extend_from_slice(&chunk[..produced]);
-            if st == flate2::Status::StreamEnd {
-                break;
-            }
-            if consumed == 0 && produced == 0 {
-                return Err(DecodeError::Truncated);
-            }
-        }
+            Ok(((inf.total_in() - in0) as usize, (inf.total_out() - out0) as usize, st == flate2::Status::StreamEnd))
+        })?;
         let t = input.get(pos..pos + 8).ok_or(DecodeError::Truncated)?;
         let crc = u32::from_le_bytes([t[0], t[1], t[2], t[3]]);
         let isize = u32::from_le_bytes([t[4], t[5], t[6], t[7]]);
@@ -273,7 +259,6 @@ fn bzip2_decode(input: &[u8]) -> Result<Decoded, DecodeError> {
     let mut out = Vec::new();
     let mut pos = 0usize;
     let mut streams = 0usize;
-    let mut chunk = vec![0u8; 64 * 1024];
     loop {
         if streams > 0 {
             if pos >= input.len() {
@@ -286,31 +271,45 @@ fn bzip2_decode(input: &[u8]) -> Result<Decoded, DecodeError> {
             return Err(DecodeError::NotFormat);
         }
         let mut dec = bzip2::Decompress::new(false);
-        loop {
-            sysabi::sys::checkpoint();
+        drain_stream(input, &mut pos, &mut out, |inp, buf| {
             let (in0, out0) = (dec.total_in(), dec.total_out());
-            let st = dec.decompress(&input[pos..], &mut chunk).map_err(|e| match e {
+            let st = dec.decompress(inp, buf).map_err(|e| match e {
                 bzip2::Error::DataMagic => DecodeError::NotFormat,
                 bzip2::Error::Data => DecodeError::Checksum,
                 other => DecodeError::Corrupt(format!("{other:?}")),
             })?;
-            let consumed = (dec.total_in() - in0) as usize;
-            let produced = (dec.total_out() - out0) as usize;
-            pos += consumed;
-            if out.try_reserve(produced).is_err() {
-                return Err(DecodeError::Corrupt("out of memory".into()));
-            }
-            out.extend_from_slice(&chunk[..produced]);
-            if st == bzip2::Status::StreamEnd {
-                break;
-            }
-            if consumed == 0 && produced == 0 {
-                return Err(DecodeError::Truncated);
-            }
-        }
+            Ok(((dec.total_in() - in0) as usize, (dec.total_out() - out0) as usize, st == bzip2::Status::StreamEnd))
+        })?;
         streams += 1;
     }
     Ok(Decoded { data: out, streams, trailing: Trailing::None })
+}
+
+/// Descomprime um fluxo a partir de `pos` até o fim dele. `step` recebe a entrada restante e um
+/// bloco de saída, e diz quanto consumiu, quanto produziu e se o fluxo acabou; sem progresso
+/// antes do fim, a entrada está truncada.
+fn drain_stream(
+    input: &[u8],
+    pos: &mut usize,
+    out: &mut Vec<u8>,
+    mut step: impl FnMut(&[u8], &mut [u8]) -> Result<(usize, usize, bool), DecodeError>,
+) -> Result<(), DecodeError> {
+    let mut chunk = vec![0u8; 64 * 1024];
+    loop {
+        sysabi::sys::checkpoint();
+        let (consumed, produced, end) = step(&input[*pos..], &mut chunk)?;
+        *pos += consumed;
+        if out.try_reserve(produced).is_err() {
+            return Err(DecodeError::Corrupt("out of memory".into()));
+        }
+        out.extend_from_slice(&chunk[..produced]);
+        if end {
+            return Ok(());
+        }
+        if consumed == 0 && produced == 0 {
+            return Err(DecodeError::Truncated);
+        }
+    }
 }
 
 /// Classifica um erro de leitor de crate pelo `ErrorKind` e, na falta, pelo texto.
