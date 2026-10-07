@@ -155,7 +155,8 @@ fn setrecursionlimit(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value>
     match args.first() {
         Some(Value::Int(n)) if *n >= 1 => crate::vm::RECURSION_LIMIT.with(|c| c.set(*n as usize)),
         Some(Value::Int(_)) => return Err(crate::vm::exc("ValueError", "recursion limit must be greater or equal than 1")),
-        _ => return Err(crate::vm::type_error("setrecursionlimit() argument must be an int")),
+        Some(other) => return Err(crate::vm::type_error(format!("'{}' object cannot be interpreted as an integer", other.type_name()))),
+        None => return Err(crate::vm::type_error("setrecursionlimit() takes exactly one argument (0 given)")),
     }
     Ok(Value::None)
 }

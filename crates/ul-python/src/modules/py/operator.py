@@ -276,7 +276,10 @@ class itemgetter:
     """
     __slots__ = ('_items', '_call')
 
-    def __init__(self, item, /, *items):
+    def __init__(self, *items):
+        if not items:
+            raise TypeError('itemgetter expected 1 argument, got 0')
+        item, items = items[0], items[1:]
         if not items:
             self._items = (item,)
             def func(obj):

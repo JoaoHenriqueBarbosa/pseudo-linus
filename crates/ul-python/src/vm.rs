@@ -67,6 +67,11 @@ fn native_in_cpython(filename: &str, qual: &str) -> bool {
         }
         _ => {}
     }
+    // Shim embutido de um módulo que no CPython é C (`marshal`, `sys`, `_socket`...): não há `.py`
+    // dele no disco do Debian, e um quadro de C nunca aparece no traceback.
+    if sysabi::sys::try_current().is_some() && !stdlib_file_exists(filename) {
+        return true;
+    }
     matches!(
         name,
         "io.py"
@@ -91,6 +96,18 @@ fn native_in_cpython(filename: &str, qual: &str) -> bool {
             | "_match.py"
             | "_excgroup.py"
     )
+}
+
+/// Se o arquivo da stdlib existe no disco (com cache: a imagem do Debian não muda durante o processo).
+fn stdlib_file_exists(path: &str) -> bool {
+    thread_local! {
+        static SEEN: RefCell<std::collections::HashMap<String, bool>> = RefCell::new(Default::default());
+    }
+    SEEN.with(|s| {
+        *s.borrow_mut()
+            .entry(path.to_string())
+            .or_insert_with(|| sysabi::sys::stat(path.as_bytes()).is_ok_and(|st| st.mode & 0o170_000 == 0o100_000))
+    })
 }
 
 fn is_inlined_comp(name: &str) -> bool {

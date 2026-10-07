@@ -132,30 +132,92 @@ def groupby(iterable, key=None):
         yield group_key, iter(group)
 
 
-def islice(iterable, *args):
-    s = slice(*args)
-    start = 0 if s.start is None else s.start
-    stop = 9223372036854775807 if s.stop is None else s.stop
-    step = 1 if s.step is None else s.step
-    if start < 0 or stop < 0 or step <= 0:
-        raise ValueError('Indices for islice() must be None or an integer: 0 <= x <= sys.maxsize.')
-    it = iter(range(start, stop, step))
-    try:
-        nexti = next(it)
-    except StopIteration:
-        # Consome o iterável só até `start`.
-        for i, element in zip(range(start), iterable):
-            pass
-        return
-    try:
-        for i, element in enumerate(iterable):
-            if i == nexti:
-                yield element
-                nexti = next(it)
-    except StopIteration:
-        # Consome o iterável até `stop`, sem passar dele.
-        for i, element in zip(range(i + 1, stop), iterable):
-            pass
+class islice:
+    """islice(iterable, stop) --> islice object
+islice(iterable, start, stop[, step]) --> islice object
+
+Return an iterator whose next() method returns selected values from an
+iterable.  If start is specified, will skip all preceding elements;
+otherwise, start defaults to zero.  Step defaults to one.  If
+specified as another value, step determines how many values are
+skipped between successive calls.  Works like a slice() on a list
+but returns an iterator."""
+
+    def __new__(cls, *args, **kwargs):
+        # Validação na criação, como o `islice_new`: a mensagem de cada argumento é a do C.
+        if cls is islice and kwargs:
+            raise TypeError('islice() takes no keyword arguments')
+        if len(args) < 2:
+            raise TypeError(f'islice expected at least 2 arguments, got {len(args)}')
+        if len(args) > 4:
+            raise TypeError(f'islice expected at most 4 arguments, got {len(args)}')
+        stop_msg = 'Stop argument for islice() must be None or an integer: 0 <= x <= sys.maxsize.'
+
+        def as_index(v):
+            from operator import index
+            try:
+                n = index(v)
+            except TypeError:
+                return -1
+            return n if n <= 9223372036854775807 else -1
+
+        start, stop, step = 0, -1, 1
+        if len(args) == 2:
+            if args[1] is not None:
+                stop = as_index(args[1])
+                if stop == -1:
+                    raise ValueError(stop_msg)
+        else:
+            if args[1] is not None:
+                start = as_index(args[1])
+            if args[2] is not None:
+                stop = as_index(args[2])
+                if stop == -1:
+                    raise ValueError(stop_msg)
+        if start < 0 or stop < -1:
+            raise ValueError('Indices for islice() must be None or an integer: 0 <= x <= sys.maxsize.')
+        if len(args) == 4 and args[3] is not None:
+            step = as_index(args[3])
+        if step < 1:
+            raise ValueError('Step for islice() must be a positive integer or None.')
+        self = object.__new__(cls)
+        self._it = iter(args[0])
+        self._next = start
+        self._stop = stop
+        self._step = step
+        self._cnt = 0
+        return self
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        # Como o `islice_next`: pula até o próximo índice, e no fim solta o iterável.
+        it = self._it
+        if it is None:
+            raise StopIteration
+        stop = self._stop
+        while self._cnt < self._next:
+            try:
+                next(it)
+            except StopIteration:
+                self._it = None
+                raise
+            self._cnt += 1
+        if stop != -1 and self._cnt >= stop:
+            self._it = None
+            raise StopIteration
+        try:
+            item = next(it)
+        except StopIteration:
+            self._it = None
+            raise
+        self._cnt += 1
+        oldnext = self._next
+        self._next += self._step
+        if self._next < oldnext or (stop != -1 and self._next > stop):
+            self._next = stop
+        return item
 
 
 def pairwise(iterable):

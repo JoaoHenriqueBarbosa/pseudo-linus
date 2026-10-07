@@ -64,6 +64,8 @@ _sleep_hooks = []
 def sleep(secs):
     for hook in _sleep_hooks:
         secs = hook(secs)
+    if secs < 0:
+        raise ValueError('sleep length must be non-negative')
     if secs > 0:
         _os.sleep(secs)
 

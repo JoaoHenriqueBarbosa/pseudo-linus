@@ -43,7 +43,10 @@ def _readable(fd):
 
 
 def select(rlist, wlist, xlist, timeout=None):
-    rlist, wlist, xlist = list(rlist), list(wlist), list(xlist)
+    try:
+        rlist, wlist, xlist = list(rlist), list(wlist), list(xlist)
+    except TypeError:
+        raise TypeError('arguments 1-3 must be sequences') from None
     rfds = [_fileno(o) for o in rlist]
     wfds = [_fileno(o) for o in wlist]
     for o in xlist:

@@ -49,3 +49,31 @@ python3 -c 'import time; print(1, flush=True); time.sleep(0.5); print(2)' | head
 python3 -m pip show pip 2>&1 | head -2
 '''
 tags = ["io", "error"]
+
+# Erro dentro de módulo que no CPython é C: sem quadro do shim no traceback, mensagens do C,
+# e `islice` como classe que valida na criação.
+[[case]]
+id = "c-module-errors-and-islice"
+script = '''
+python3 -c 'import marshal; marshal.loads(b"\x00")'
+python3 -c 'import sys; sys.setrecursionlimit("a")'
+python3 -c 'import select; select.select(1, [], [])'
+python3 -c 'import itertools; itertools.islice([], -1)'
+python3 -c 'import time; time.sleep(-1)'
+python3 -c 'import operator; operator.itemgetter()'
+python3 - <<'PYEOF'
+from itertools import islice, count
+s = islice(range(10), 2, 8, 3)
+print(type(s), list(s), list(s))
+it = iter(range(10)); print(list(islice(it, 3)), next(it))
+it = iter(range(10)); print(list(islice(it, 5, 3)), next(it))
+print(list(islice(count(), 1, 30, 4)), list(islice(count(), 0, 20, 7)))
+for a in [(1,), ([], 'x'), ([], 1, 2, 0), ([], None, None, None), ([], 1, 2, 3, 4)]:
+    try: print(list(islice(*a)))
+    except Exception as e: print(type(e).__name__, e)
+try: islice([], 1, stop=2)
+except TypeError as e: print(e)
+print(islice.__name__, islice.__module__, isinstance(islice([], 1), islice))
+PYEOF
+'''
+tags = ["error"]
