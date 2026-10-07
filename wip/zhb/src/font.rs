@@ -81,8 +81,11 @@ impl<'a> Font<'a> {
             y_mult: mult(y_scale),
             x_multf: x_scale as f32 / upem as f32,
             y_multf: y_scale as f32 / upem as f32,
-            x_ppem: u32::from(m.x_ppem),
-            y_ppem: u32::from(m.y_ppem),
+            // O `hb_ft_font_changed` deixa o `hb_font_set_ppem` num `#if 0` ("hb-ft works in
+            // no-hinting model"): o ppem fica zero, sem pontos de contorno nas âncoras, sem deltas
+            // de dispositivo e com o kerning UNFITTED.
+            x_ppem: 0,
+            y_ppem: 0,
             face_x_scale: m.x_scale,
             face_y_scale: m.y_scale,
         }

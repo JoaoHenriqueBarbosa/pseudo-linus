@@ -3,24 +3,14 @@
 
 use std::cell::RefCell;
 
-use zhb::buffer::tag;
+use zhb::common::feature_from_string;
 use zhb::font::{Font, Tables};
 use zhb::raqm::{layout, ParDirection};
 use zhb::shape::Feature;
 
+/// Como o `raqm_add_font_feature`: o que o `hb_feature_from_string` recusa fica de fora.
 fn parse_feature(s: &str) -> Option<Feature> {
-    let (name, value) = match s.split_once('=') {
-        Some((n, v)) => (n, v.parse().ok()?),
-        None => match s.strip_prefix('-') {
-            Some(n) => (n, 0),
-            None => (s.strip_prefix('+').unwrap_or(s), 1),
-        },
-    };
-    let mut t = [b' '; 4];
-    for (d, b) in t.iter_mut().zip(name.bytes()) {
-        *d = b;
-    }
-    Some(Feature { tag: tag(&t), value, start: Feature::GLOBAL_START, end: Feature::GLOBAL_END })
+    feature_from_string(s.as_bytes())
 }
 
 fn main() {
