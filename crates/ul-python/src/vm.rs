@@ -3389,6 +3389,7 @@ impl Vm {
             let g = globals.borrow();
             match g.get("__file__") {
                 Some(Value::Str(f)) => (f.as_str().to_string(), g.contains_key("__path__")),
+                _ if crate::object::BUILTIN_MODULES.contains(&m.name) => (String::new(), false),
                 _ => return Ok(None),
             }
         };

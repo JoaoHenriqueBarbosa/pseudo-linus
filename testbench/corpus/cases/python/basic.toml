@@ -122,3 +122,67 @@ except ZeroDivisionError as e:
 PYEOF
 '''
 tags = ["error"]
+
+[[case]]
+id = "json-c-speedups"
+script = '''
+python3 - <<'PYEOF'
+import json, _json, sys
+from collections import OrderedDict
+print(_json, repr(_json.__doc__), sorted(dir(_json)))
+print(_json.make_encoder, _json.make_scanner, _json.scanstring, _json.encode_basestring)
+print(_json.make_scanner.__doc__, '|', _json.make_encoder.__doc__)
+print(sorted(set(dir(_json.make_scanner)) - set(dir(object))), sorted(set(dir(_json.make_encoder)) - set(dir(object))))
+e = _json.make_encoder(None, str, json.encoder.encode_basestring, "  ", ":", ",", False, False, True)
+print(e({"a": [1, {"b": 2}], "c": []}, 0), e({"x": {}}, 2), e.indent, e.markers, e.sort_keys)
+s = _json.make_scanner(json.decoder.JSONDecoder())
+print(type(s), s("[1, 2.5, \"x\", null, true, false, -3e2, 0.5E-1]", 0), s.strict, s.parse_int)
+for bad in [lambda: s("x", 0), lambda: s(1, 0), lambda: s("x", -1), lambda: s("x"),
+            lambda: _json.make_encoder([], None, None, None, ":", ",", 0, 0, 0),
+            lambda: _json.make_encoder(None, None, None, None, 1, ",", 0, 0, 0),
+            lambda: _json.scanstring("abc", 5), lambda: _json.scanstring("abc"), lambda: _json.encode_basestring(1)]:
+    try: print(bad())
+    except StopIteration as x: print('SI', x.value)
+    except Exception as x: print(type(x).__name__, x)
+for n in ('strict', 'foo'):
+    try: setattr(s, n, 1)
+    except AttributeError as x: print(x)
+print(_json.scanstring("ab\\u00e9\\ud83d\\ude00\\ud800x\"zz", 0), _json.encode_basestring_ascii("é\n\"x\U0001f600"), _json.encode_basestring("é\n\x01"))
+for bad in ["[1,]", "{\"a\" 1}", "[", "{", "\"abc", "\"\\x\"", "\"\\u12\"", "[1 2]", "{\"a\":1,}", "-", "1e", "\"\x01\"", "[1,", "{\"a\":", "nul", "[-]", "\"\\u12345\"", "\"\\u", "  "]:
+    try: print(repr(bad), json.loads(bad))
+    except json.JSONDecodeError as x: print(repr(bad), x)
+print(json.loads("[1e5, 1E+2, -0, 10e-1, 123456789012345678901234567890, 1.5e1]"))
+print(json.loads('{"a": NaN, "b": Infinity, "c": -Infinity}'))
+print(json.loads('{"b": 1, "a": 2, "b": 3}'), json.loads('{"b": 1, "a": 2}', object_pairs_hook=OrderedDict))
+print(json.loads('[1.5, 2]', parse_float=str, parse_int=lambda t: int(t) * 10), json.loads('{"k": 1}', object_hook=lambda d: sorted(d)))
+print(json.loads('"\\ud800"').encode('utf-8', 'surrogatepass'), json.loads('"a\tb"', strict=False))
+print(json.dumps({"a": [1, 2.5, None, True], "é": "x\ny"}), json.dumps({"é": 1}, ensure_ascii=False))
+print(json.dumps({3: 1, 1.5: 2, True: 3, None: 4, "s": 5}), json.dumps({"b": 1, "a": {"d": 1, "c": 2}}, sort_keys=True, indent=2))
+print(json.dumps([1, [2, [3]]], indent="\t"), json.dumps({"a": 1}, separators=(",", ":")))
+print(json.dumps(OrderedDict([("z", 1), ("a", 2)])), json.dumps((1, 2)), json.dumps({(1,): 2}, skipkeys=True))
+try: json.dumps({(1,): 2})
+except TypeError as x: print(x)
+try: json.dumps(float('nan'), allow_nan=False)
+except ValueError as x: print(x)
+try: json.dumps({1, 2})
+except TypeError as x: print(x)
+print(json.dumps({1, 2}, default=sorted))
+a = []; a.append(a)
+try: json.dumps(a)
+except ValueError as x: print(x)
+for n in (9998, 9999):
+    try: json.loads("[" * n + "]" * n); print(n, "ok")
+    except RecursionError as x: print(n, x)
+for n in (9997, 9998):
+    d = []
+    for _ in range(n): d = [d]
+    try: json.dumps(d); print(n, "ok")
+    except RecursionError as x: print(n, x)
+PYEOF
+python3 -c 'import json; json.loads("[1, 2")'
+python3 -c 'import json; json.loads("{\"a\": x}")'
+python3 -c 'import json; json.dumps(object())'
+python3 -c 'import _json_native'
+echo '{"b": [1, 2], "a": "é"}' | python3 -m json.tool
+'''
+tags = ["error"]

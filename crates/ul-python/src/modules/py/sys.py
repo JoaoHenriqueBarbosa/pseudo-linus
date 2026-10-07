@@ -703,7 +703,7 @@ def _build():
 
 
 globals().update(_build())
-del _build, __file__
+del _build
 __spec__ = __loader__.find_spec('sys')
 
 

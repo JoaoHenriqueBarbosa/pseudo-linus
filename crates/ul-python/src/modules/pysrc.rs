@@ -93,11 +93,12 @@ const SOURCES: &[(&str, &str)] = &[
     ("_match", include_str!("py/_match.py")),
     ("_memoryview", include_str!("py/_memoryview.py")),
     ("operator", include_str!("py/operator.py")),
-    ("json", include_str!("py/json.py")),
-    ("json.decoder", include_str!("py/json_decoder.py")),
+    ("_json", include_str!("py/_json.py")),
+    ("json", include_str!("../../../kernel/image/usr/lib/python3.13/json/__init__.py")),
+    ("json.decoder", include_str!("../../../kernel/image/usr/lib/python3.13/json/decoder.py")),
     ("json.encoder", include_str!("../../../kernel/image/usr/lib/python3.13/json/encoder.py")),
     ("json.tool", include_str!("../../../kernel/image/usr/lib/python3.13/json/tool.py")),
-    ("json.scanner", include_str!("py/json_scanner.py")),
+    ("json.scanner", include_str!("../../../kernel/image/usr/lib/python3.13/json/scanner.py")),
     ("configparser", include_str!("../../../kernel/image/usr/lib/python3.13/configparser.py")),
     ("queue", include_str!("py/queue.py")),
     ("calendar", include_str!("py/calendar.py")),
@@ -480,7 +481,10 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         } else {
             format!("{base}/{as_path}.py")
         };
-        g.insert("__file__".into(), Value::str(file));
+        // Módulo que no Debian é C embutido no executável não tem `__file__`.
+        if !crate::object::BUILTIN_MODULES.contains(&real) {
+            g.insert("__file__".into(), Value::str(file));
+        }
         // Pacote: `__package__` é ele mesmo e `__path__` aponta o diretório dele; módulo: o pacote pai.
         if crate::modules::is_embedded_package(real) {
             g.insert("__package__".into(), Value::str(real));

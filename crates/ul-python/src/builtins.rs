@@ -1064,7 +1064,7 @@ fn addr<T: ?Sized>(rc: &Rc<T>) -> i64 {
     crate::object::py_addr(Rc::as_ptr(rc) as *const () as usize) as i64
 }
 
-fn b_id(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(crate) fn b_id(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let v = one("id", args, &kw)?;
     let id = match &v {
         Value::None => 0x7f00_0000_1000,

@@ -142,6 +142,9 @@ pub(crate) fn dir_names(vm: &mut Vm, obj: Option<&Value>) -> Vec<String> {
             }
         }
         Some(Value::Module(m)) => {
+            // `__spec__` e `__loader__` são criados sob demanda; o `dir()` os lista como no CPython.
+            let module = Value::Module(m.clone());
+            let _ = vm.getattr(&module, "__spec__");
             names.extend(m.attrs.borrow().keys().cloned());
             if let Some(g) = vm.module_globals.borrow().get(m.name) {
                 names.extend(g.borrow().keys().map(|k| k.to_string()));

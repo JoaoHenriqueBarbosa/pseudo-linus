@@ -228,6 +228,9 @@ class FileFinder:
 
 def _spec_for_module(name, file, is_package, frozen=False):
     """O `__spec__` de um módulo carregado de arquivo (criado sob demanda pelo interpretador)."""
+    if not file:
+        from _frozen_importlib import BuiltinImporter
+        return ModuleSpec(name, BuiltinImporter, origin='built-in')
     if frozen:
         from _frozen_importlib import FrozenImporter
         import types
