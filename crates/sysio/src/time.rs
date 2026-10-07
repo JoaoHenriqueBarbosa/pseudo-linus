@@ -100,7 +100,7 @@ pub fn sleep_interruptible(d: Duration, stop_on_signal: bool) -> std::io::Result
     loop {
         match sys.nanosleep(left) {
             Ok(()) => return Ok(()),
-            Err(sysabi::Errno::EINTR) if stop_on_signal => return Err(crate::errno::err(crate::errno::EINTR)),
+            Err(sysabi::Errno::EINTR) if stop_on_signal => return Err(crate::errno::from_errno(sysabi::Errno::EINTR)),
             Err(sysabi::Errno::EINTR) => {
                 let now = Instant::now();
                 if now >= deadline {

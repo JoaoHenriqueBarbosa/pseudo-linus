@@ -25,9 +25,7 @@ fn ts(t: Time) -> SetTime {
     SetTime::At(TimeSpec { sec: t.sec, nsec: t.nsec })
 }
 
-fn sys() -> std::sync::Arc<dyn sysabi::Syscalls> {
-    sysabi::sys::current()
-}
+use sysabi::sys::current as sys;
 
 /// `‘x’` com as aspas do locale, como o tar cita alvos nas mensagens de link.
 fn lq(s: &[u8]) -> Vec<u8> {

@@ -8,7 +8,6 @@
 
 use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
 
 // O resto de `std::thread` (`Result`, `current`, `panicking`...) passa direto; os itens abaixo
 // sombreiam os do std.
@@ -78,9 +77,7 @@ where
 }
 
 /// `std::thread::sleep` com o relógio do pseudo-kernel.
-pub fn sleep(d: Duration) {
-    crate::time::sleep(d);
-}
+pub use crate::time::sleep;
 
 /// `sched_yield(2)` do pseudo-kernel.
 pub fn yield_now() {

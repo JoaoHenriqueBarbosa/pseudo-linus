@@ -6,9 +6,8 @@
 //! mesmo lugar (`2>&1`).
 
 use std::cell::RefCell;
-use std::sync::Arc;
 
-use sysabi::{AtFlags, Clock, DirEntry, Errno, Fd, FileType, Mode, OFlags, RenameFlags, SetTime, Stat, Syscalls, sys};
+use sysabi::{AtFlags, Clock, Errno, Fd, FileType, Mode, OFlags, RenameFlags, SetTime, Stat, Syscalls, sys};
 
 /// Tamanho do buffer do stdout (o `st_blksize` de um pipe).
 const STDOUT_BUF: usize = 4096;
@@ -17,9 +16,7 @@ thread_local! {
     static OUT: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
 }
 
-pub fn sysc() -> Arc<dyn Syscalls> {
-    sys::current()
-}
+pub use sys::current as sysc;
 
 // ---- fluxos padrão ----------------------------------------------------------------------------
 
@@ -249,9 +246,7 @@ pub fn is_file(p: &[u8]) -> bool {
     stat(p).map(|s| s.file_type() == FileType::Regular).unwrap_or(false)
 }
 
-pub fn read(p: &[u8]) -> Result<Vec<u8>, Errno> {
-    sys::read_file(p)
-}
+pub use sys::read_file as read;
 
 /// Lê um arquivo; `None` se ele não existe (ENOENT/ENOTDIR).
 pub fn read_opt(p: &[u8]) -> Result<Option<Vec<u8>>, Errno> {
@@ -364,9 +359,7 @@ pub fn mkdir_parents(p: &[u8]) -> Result<(), Errno> {
 }
 
 /// Lista um diretório (sem `.` e `..`), na ordem do FS.
-pub fn read_dir(p: &[u8]) -> Result<Vec<DirEntry>, Errno> {
-    sys::read_dir(p)
-}
+pub use sys::read_dir;
 
 /// Remove diretórios vazios subindo a partir de `dir` até (sem incluir) `stop`.
 pub fn remove_empty_parents(dir: &[u8], stop: &[u8]) {

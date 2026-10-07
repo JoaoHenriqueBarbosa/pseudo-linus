@@ -21,9 +21,7 @@ use super::{Fatal, R, Tar, compress, date, quote};
 const MAX_DEPTH: usize = 4096;
 const CACHEDIR_SIGNATURE: &[u8] = b"Signature: 8a477f597d28d172789f06886806bc55";
 
-fn sys() -> std::sync::Arc<dyn sysabi::Syscalls> {
-    sysabi::sys::current()
-}
+use sysabi::sys::current as sys;
 
 /// Desfaz os escapes de um nome lido do `-T` (`\\`, `\n`, `\t`, octal).
 fn unquote(s: &[u8]) -> Vec<u8> {

@@ -57,11 +57,6 @@ pub const ETIMEDOUT: i32 = Errno::ETIMEDOUT.0;
 /// Bits de tipo do `st_mode` (mantidos aqui pelos portes que já os importavam deste módulo).
 pub use sysabi::mode::{S_IFBLK, S_IFCHR, S_IFDIR, S_IFIFO, S_IFLNK, S_IFMT, S_IFREG, S_IFSOCK};
 
-/// `io::Error` com o errno do Linux.
-pub fn err(code: i32) -> io::Error {
-    io::Error::from_raw_os_error(code)
-}
-
 /// `sysabi::Errno` vira `io::Error` preservando o número.
 pub fn from_errno(e: Errno) -> io::Error {
     io::Error::from_raw_os_error(e.0)
@@ -70,11 +65,6 @@ pub fn from_errno(e: Errno) -> io::Error {
 /// Converte o resultado de uma syscall.
 pub fn cvt<T>(r: sysabi::SysResult<T>) -> io::Result<T> {
     r.map_err(from_errno)
-}
-
-/// Errno de um `io::Error` (erros sem número viram o errno equivalente ao `ErrorKind`).
-pub fn errno_of(e: &io::Error) -> Errno {
-    Errno::from_io(e)
 }
 
 /// Mensagem do erro como a glibc escreveria (`strerror`), sem o " (os error N)" do std. Erros sem

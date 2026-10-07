@@ -4,7 +4,7 @@ use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::Arc;
 
-use sysabi::{Clock, Errno, Fd, Pid, Syscalls};
+use sysabi::{Clock, Errno, Fd, Pid};
 
 use crate::arith::{ArithEnv, ArithError};
 use crate::ast::{FunctionDef, Line};
@@ -156,9 +156,7 @@ pub struct Shell {
     pub getopts_state: (usize, usize),
 }
 
-pub fn sys() -> Arc<dyn Syscalls> {
-    sysabi::sys::current()
-}
+pub use sysabi::sys::current as sys;
 
 /// Escreve tudo num fd, repetindo em escrita parcial e EINTR.
 pub fn write_fd(fd: Fd, mut buf: &[u8]) -> Result<(), Errno> {

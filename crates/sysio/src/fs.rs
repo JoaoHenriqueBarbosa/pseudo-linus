@@ -18,7 +18,7 @@ use sysabi::{AccessMode, AtFlags, Errno, Fd, OFlags, RenameFlags, SetTime, Whenc
 
 pub use sysabi::{Stat, StatFs, TimeSpec};
 
-use crate::errno::{cvt, err, from_errno};
+use crate::errno::{cvt, from_errno};
 pub use crate::fd::AsFd as Fstat;
 use crate::fd::{AsFd, AsRawFd, BorrowedFd, FromRawFd, IntoRawFd, OwnedFd, RawFd};
 use crate::proc;
@@ -278,7 +278,7 @@ impl File {
 
     fn do_seek(&self, pos: SeekFrom) -> io::Result<u64> {
         let (off, whence) = match pos {
-            SeekFrom::Start(n) => (i64::try_from(n).map_err(|_| err(crate::errno::EINVAL))?, Whence::Set),
+            SeekFrom::Start(n) => (i64::try_from(n).map_err(|_| from_errno(sysabi::Errno::EINVAL))?, Whence::Set),
             SeekFrom::End(n) => (n, Whence::End),
             SeekFrom::Current(n) => (n, Whence::Cur),
         };
@@ -435,7 +435,7 @@ impl OpenOptions {
             (true, true, false) => OFlags::RDWR,
             (false, _, true) => OFlags::WRONLY | OFlags::APPEND,
             (true, _, true) => OFlags::RDWR | OFlags::APPEND,
-            (false, false, false) => return Err(err(crate::errno::EINVAL)),
+            (false, false, false) => return Err(from_errno(sysabi::Errno::EINVAL)),
         };
         let writable = self.write || self.append;
         let creation = match (self.create, self.truncate, self.create_new) {
@@ -446,10 +446,10 @@ impl OpenOptions {
             (_, _, true) => OFlags::CREAT | OFlags::EXCL,
         };
         if !writable && (self.create || self.truncate || self.create_new) {
-            return Err(err(crate::errno::EINVAL));
+            return Err(from_errno(sysabi::Errno::EINVAL));
         }
         if self.append && self.truncate && !self.create_new {
-            return Err(err(crate::errno::EINVAL));
+            return Err(from_errno(sysabi::Errno::EINVAL));
         }
         let custom = OFlags::from_bits_retain(self.custom_flags & !OFlags::ACCMODE);
         Ok(access | creation | custom | OFlags::CLOEXEC)
@@ -879,9 +879,9 @@ pub fn fchown<F: AsFd>(fd: F, uid: Option<u32>, gid: Option<u32>) -> io::Result<
 pub fn chroot<P: AsRef<Path>>(path: P) -> io::Result<()> {
     let st = cvt(proc::sys().fstatat(Fd::CWD, pb(&path), AtFlags::empty()))?;
     if st.file_type() != sysabi::FileType::Directory {
-        return Err(err(crate::errno::ENOTDIR));
+        return Err(from_errno(sysabi::Errno::ENOTDIR));
     }
-    Err(err(crate::errno::EPERM))
+    Err(from_errno(sysabi::Errno::EPERM))
 }
 
 /// `mkfifo(3)`.

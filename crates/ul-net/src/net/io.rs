@@ -180,8 +180,3 @@ impl Drop for Tcp {
         }
     }
 }
-
-/// Errno de um `io::Error` (EIO quando não tem).
-pub fn io_errno(e: &io::Error) -> Errno {
-    Errno::from_io(e)
-}

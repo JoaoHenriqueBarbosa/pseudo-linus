@@ -78,9 +78,7 @@ pub fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
 }
 
 /// O processo corrente (o objeto de syscalls que o kernel instalou na thread).
-pub fn sys() -> Arc<dyn Syscalls> {
-    sysabi::sys::current()
-}
+pub use sysabi::sys::current as sys;
 
 /// Frame do processo corrente, criado (implícito, sem buffer) se ainda não existe.
 pub fn frame() -> Arc<Frame> {

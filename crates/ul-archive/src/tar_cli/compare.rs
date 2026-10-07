@@ -9,9 +9,7 @@ use super::reader::{ReadError, Reader, Source, Status};
 use super::writer::{Sink, Writer};
 use super::{Flow, R, Tar, compress, names, quote};
 
-fn sys() -> std::sync::Arc<dyn sysabi::Syscalls> {
-    sysabi::sys::current()
-}
+use sysabi::sys::current as sys;
 
 fn report(t: &mut Tar, name: &[u8], what: &[u8]) {
     let mut line = quote::colon(name);

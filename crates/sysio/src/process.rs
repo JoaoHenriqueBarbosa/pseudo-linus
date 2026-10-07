@@ -12,7 +12,7 @@ use std::collections::BTreeMap;
 use std::ffi::{OsStr, OsString};
 use std::fmt;
 use std::io::{self, Read, Write};
-use std::os::unix::ffi::{OsStrExt, OsStringExt};
+use std::os::unix::ffi::OsStrExt;
 use std::path::Path;
 
 pub use std::process::ExitCode;
@@ -852,9 +852,4 @@ pub fn set_umask(mask: u32) -> u32 {
 /// Bytes de um `OsString` (atalho pros portes).
 pub fn os_bytes(s: &OsStr) -> Vec<u8> {
     s.as_bytes().to_vec()
-}
-
-/// Constrói um `OsString` a partir de bytes.
-pub fn os_from_bytes(b: Vec<u8>) -> OsString {
-    OsString::from_vec(b)
 }

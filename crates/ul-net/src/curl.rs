@@ -849,7 +849,7 @@ impl Transfer<'_> {
             let after = ms(io::now().saturating_sub(self.started));
             return fail(28, format!("Operation timed out after {after} milliseconds with {} bytes received", info.size_download));
         }
-        match io::io_errno(e) {
+        match sysabi::Errno::from_io(e) {
             Errno::ECONNRESET => fail(56, "Recv failure: Connection reset by peer"),
             Errno::EPIPE => fail(55, "Send failure: Broken pipe"),
             _ => fail(56, format!("Recv failure: {e}")),

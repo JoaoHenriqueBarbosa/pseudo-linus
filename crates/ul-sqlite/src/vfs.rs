@@ -86,9 +86,7 @@ fn abandoned() -> bool {
     ABANDONED.with(|a| a.get())
 }
 
-fn proc_sys() -> std::sync::Arc<dyn Syscalls> {
-    sys::current()
-}
+use sys::current as proc_sys;
 
 /// Roda `f` com as syscalls do processo corrente e converte o unwind em `err`.
 fn with_sys<T>(err: i32, f: impl FnOnce(&dyn Syscalls) -> VfsResult<T>) -> VfsResult<T> {

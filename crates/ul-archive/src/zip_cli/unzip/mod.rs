@@ -26,9 +26,7 @@ mod zipinfo;
 
 use sysabi::Fd;
 
-pub fn sys() -> std::sync::Arc<dyn sysabi::Syscalls> {
-    sysabi::sys::current()
-}
+pub use sysabi::sys::current as sys;
 
 /// Códigos de saída (`PK_*` e `IZ_*` do unzip.h).
 pub const PK_OK: i32 = 0;

@@ -58,7 +58,7 @@ pub fn isatty(fd: i32) -> bool {
 /// `ttyname(3)`: o alvo do link `/proc/self/fd/N` quando o fd é terminal; ENOTTY se não é.
 pub fn ttyname(fd: i32) -> io::Result<Vec<u8>> {
     if !isatty(fd) {
-        return Err(crate::errno::err(crate::errno::ENOTTY));
+        return Err(crate::errno::from_errno(sysabi::Errno::ENOTTY));
     }
     let link = format!("/proc/self/fd/{fd}");
     crate::fs::read_link_bytes(std::ffi::OsStr::new(&link))
