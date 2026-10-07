@@ -20,5 +20,6 @@ pub mod ot;
 pub mod props;
 pub mod raqm;
 pub mod shape;
+pub mod thai;
 mod ucd_table;
 pub mod unicode;
