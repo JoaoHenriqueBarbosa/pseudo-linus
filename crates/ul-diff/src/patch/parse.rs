@@ -199,9 +199,12 @@ fn ctx_text(line: &[u8]) -> &[u8] {
     if line.len() >= 2 { &line[2..] } else { b"\n" }
 }
 
-fn strip_newline(v: &mut Vec<u8>) {
-    if v.ends_with(b"\n") {
-        v.pop();
+/// `\ No newline at end of file`: a última linha lida perde o fim de linha.
+fn no_newline_at_end(lines: &mut [PLine]) {
+    if let Some(last) = lines.last_mut()
+        && last.text.ends_with(b"\n")
+    {
+        last.text.pop();
     }
 }
 
@@ -492,7 +495,7 @@ impl<'a> Scanner<'a> {
                 return (hunks, Some(Fatal::Malformed { line: j + 1, text: header.to_vec() }), j);
             };
             j += 1;
-            let mut lines: Vec<(u8, Vec<u8>)> = Vec::new();
+            let mut lines: Vec<PLine> = Vec::new();
             let (mut old_left, mut new_left) = (old_len, new_len);
             let mut last_text: Vec<u8> = header.to_vec();
             let mut last_line = j;
@@ -510,9 +513,7 @@ impl<'a> Scanner<'a> {
                         Some(b'-') => (b'-', l[1..].to_vec(), false),
                         Some(b'+') => (b'+', l[1..].to_vec(), false),
                         Some(b'\\') => {
-                            if let Some(last) = lines.last_mut() {
-                                strip_newline(&mut last.1);
-                            }
+                            no_newline_at_end(&mut lines);
                             continue;
                         }
                         _ => return (hunks, Some(Fatal::Malformed { line: j, text: l.to_vec() }), j),
@@ -540,15 +541,13 @@ impl<'a> Scanner<'a> {
                     b'-' => old_left -= 1,
                     _ => new_left -= 1,
                 }
-                lines.push((kind, text));
+                lines.push(PLine { mark: kind, text });
             }
             if j < n && self.lines[j].starts_with(b"\\") {
-                if let Some(last) = lines.last_mut() {
-                    strip_newline(&mut last.1);
-                }
+                no_newline_at_end(&mut lines);
                 j += 1;
             }
-            if lines.iter().all(|l| l.0 == b' ') {
+            if lines.iter().all(|l| l.mark == b' ') {
                 return (hunks, Some(Fatal::Malformed { line: last_line.max(1), text: last_text }), j);
             }
             let (old, new) = sections_from_unified(&lines);
@@ -583,9 +582,7 @@ impl<'a> Scanner<'a> {
             while j < n && !is_context_separator(self.lines[j]) {
                 let l = self.lines[j];
                 if l.starts_with(b"\\") {
-                    if let Some(last) = old.last_mut() {
-                        strip_newline(&mut last.text);
-                    }
+                    no_newline_at_end(&mut old);
                 } else if is_context_line(l) {
                     old.push(PLine::new(if l == b"\n" { b' ' } else { l[0] }, ctx_text(l)));
                 } else {
@@ -604,9 +601,7 @@ impl<'a> Scanner<'a> {
             while j < n && !self.lines[j].starts_with(b"***************") && is_context_line(self.lines[j]) {
                 let l = self.lines[j];
                 if l.starts_with(b"\\") {
-                    if let Some(last) = new.last_mut() {
-                        strip_newline(&mut last.text);
-                    }
+                    no_newline_at_end(&mut new);
                 } else {
                     new.push(PLine::new(if l == b"\n" { b' ' } else { l[0] }, ctx_text(l)));
                 }
@@ -643,28 +638,8 @@ impl<'a> Scanner<'a> {
             let mut old: Vec<PLine> = Vec::new();
             let mut new: Vec<PLine> = Vec::new();
             if cmd != b'a' {
-                let count = l2.saturating_sub(l1) + 1;
-                while old.len() < count {
-                    if j >= n {
-                        return (hunks, Some(Fatal::UnexpectedEof), j);
-                    }
-                    let l = self.lines[j];
-                    if l.starts_with(b"\\") {
-                        if let Some(last) = old.last_mut() {
-                            strip_newline(&mut last.text);
-                        }
-                    } else if let Some(t) = l.strip_prefix(b"< ") {
-                        old.push(PLine::new(b'-', t));
-                    } else {
-                        return (hunks, Some(Fatal::Malformed { line: j + 1, text: l.to_vec() }), j);
-                    }
-                    j += 1;
-                }
-                if j < n && self.lines[j].starts_with(b"\\") {
-                    if let Some(last) = old.last_mut() {
-                        strip_newline(&mut last.text);
-                    }
-                    j += 1;
+                if let Err(fatal) = self.normal_section(&mut j, &mut old, l2.saturating_sub(l1) + 1, b"< ", b'-') {
+                    return (hunks, Some(fatal), j);
                 }
             }
             if cmd == b'c' {
@@ -677,28 +652,8 @@ impl<'a> Scanner<'a> {
                 j += 1;
             }
             if cmd != b'd' {
-                let count = r2.saturating_sub(r1) + 1;
-                while new.len() < count {
-                    if j >= n {
-                        return (hunks, Some(Fatal::UnexpectedEof), j);
-                    }
-                    let l = self.lines[j];
-                    if l.starts_with(b"\\") {
-                        if let Some(last) = new.last_mut() {
-                            strip_newline(&mut last.text);
-                        }
-                    } else if let Some(t) = l.strip_prefix(b"> ") {
-                        new.push(PLine::new(b'+', t));
-                    } else {
-                        return (hunks, Some(Fatal::Malformed { line: j + 1, text: l.to_vec() }), j);
-                    }
-                    j += 1;
-                }
-                if j < n && self.lines[j].starts_with(b"\\") {
-                    if let Some(last) = new.last_mut() {
-                        strip_newline(&mut last.text);
-                    }
-                    j += 1;
+                if let Err(fatal) = self.normal_section(&mut j, &mut new, r2.saturating_sub(r1) + 1, b"> ", b'+') {
+                    return (hunks, Some(fatal), j);
                 }
             }
             hunks.push(Hunk {
@@ -712,6 +667,28 @@ impl<'a> Scanner<'a> {
             });
         }
         (hunks, None, j)
+    }
+
+    /// Uma seção do diff normal a partir da linha `*j`: `count` linhas com `prefix` (`< ` ou `> `),
+    /// guardadas com `mark`, e os `\ No newline` no meio ou logo depois.
+    fn normal_section(&self, j: &mut usize, out: &mut Vec<PLine>, count: usize, prefix: &[u8], mark: u8) -> Result<(), Fatal> {
+        let n = self.lines.len();
+        while out.len() < count {
+            let Some(&l) = self.lines.get(*j) else { return Err(Fatal::UnexpectedEof) };
+            if l.starts_with(b"\\") {
+                no_newline_at_end(out);
+            } else if let Some(t) = l.strip_prefix(prefix) {
+                out.push(PLine::new(mark, t));
+            } else {
+                return Err(Fatal::Malformed { line: *j + 1, text: l.to_vec() });
+            }
+            *j += 1;
+        }
+        if *j < n && self.lines[*j].starts_with(b"\\") {
+            no_newline_at_end(out);
+            *j += 1;
+        }
+        Ok(())
     }
 }
 

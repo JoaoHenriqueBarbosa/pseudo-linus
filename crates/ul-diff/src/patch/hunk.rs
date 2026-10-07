@@ -214,29 +214,29 @@ pub fn context_range(first: usize, len: usize) -> String {
 
 /// Converte as linhas de um hunk unificado (marca e texto) nas duas seções. Um bloco de mudanças
 /// entre linhas de contexto que tem apagadas e inseridas vira `!` dos dois lados, como o GNU guarda.
-pub fn sections_from_unified(lines: &[(u8, Vec<u8>)]) -> (Vec<PLine>, Vec<PLine>) {
+pub fn sections_from_unified(lines: &[PLine]) -> (Vec<PLine>, Vec<PLine>) {
     let mut old = Vec::new();
     let mut new = Vec::new();
     let mut i = 0;
     while i < lines.len() {
-        if lines[i].0 == b' ' {
-            old.push(PLine::new(b' ', &lines[i].1));
-            new.push(PLine::new(b' ', &lines[i].1));
+        if lines[i].mark == b' ' {
+            old.push(PLine::new(b' ', &lines[i].text));
+            new.push(PLine::new(b' ', &lines[i].text));
             i += 1;
             continue;
         }
         let start = i;
-        while i < lines.len() && lines[i].0 != b' ' {
+        while i < lines.len() && lines[i].mark != b' ' {
             i += 1;
         }
         let block = &lines[start..i];
-        let mixed = block.iter().any(|l| l.0 == b'-') && block.iter().any(|l| l.0 == b'+');
-        for (m, t) in block {
-            let mark = if mixed { b'!' } else { *m };
-            if *m == b'-' {
-                old.push(PLine::new(mark, t));
+        let mixed = block.iter().any(|l| l.mark == b'-') && block.iter().any(|l| l.mark == b'+');
+        for l in block {
+            let mark = if mixed { b'!' } else { l.mark };
+            if l.mark == b'-' {
+                old.push(PLine::new(mark, &l.text));
             } else {
-                new.push(PLine::new(mark, t));
+                new.push(PLine::new(mark, &l.text));
             }
         }
     }
@@ -247,8 +247,8 @@ pub fn sections_from_unified(lines: &[(u8, Vec<u8>)]) -> (Vec<PLine>, Vec<PLine>
 mod tests {
     use super::*;
 
-    fn lines(v: &[(u8, &str)]) -> Vec<(u8, Vec<u8>)> {
-        v.iter().map(|(m, t)| (*m, t.as_bytes().to_vec())).collect()
+    fn lines(v: &[(u8, &str)]) -> Vec<PLine> {
+        v.iter().map(|(m, t)| PLine::new(*m, t.as_bytes())).collect()
     }
 
     #[test]

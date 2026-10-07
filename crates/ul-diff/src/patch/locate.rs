@@ -134,7 +134,7 @@ mod tests {
     use super::*;
 
     fn hunk(old_first: usize, lines: &[(u8, &str)]) -> Hunk {
-        let l: Vec<(u8, Vec<u8>)> = lines.iter().map(|(k, t)| (*k, t.as_bytes().to_vec())).collect();
+        let l: Vec<PLine> = lines.iter().map(|(k, t)| PLine::new(*k, t.as_bytes())).collect();
         let (old, new) = super::super::hunk::sections_from_unified(&l);
         Hunk { format: Format::Unified, old_first, old, new_first: old_first, new, func: Vec::new(), normal_cmd: 0 }
     }
