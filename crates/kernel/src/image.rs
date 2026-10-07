@@ -160,6 +160,11 @@ const ROOT_TREE: &[Item] = &[
     // Como no container: UTC, e o glibc lê o tzfile por este link.
     Link("/etc/localtime", "/usr/share/zoneinfo/Etc/UTC"),
     Link("/etc/mtab", "/proc/mounts"),
+    // Do openssl 3.5 do Debian. Ficam aqui e não como symlink em `image/usr/lib/ssl`: no sistema de
+    // quem compila, eles apontam para diretórios de verdade (o `/etc/ssl/private` é 0700 do root), e
+    // o cargo entra neles ao listar os arquivos do pacote.
+    Link("/usr/lib/ssl/certs", "/etc/ssl/certs"),
+    Link("/usr/lib/ssl/private", "/etc/ssl/private"),
     File("/etc/skel/.bashrc", include_bytes!("../image/etc/skel/.bashrc"), 0o644),
     File("/etc/skel/.profile", include_bytes!("../image/etc/skel/.profile"), 0o644),
     File("/etc/skel/.bash_logout", include_bytes!("../image/etc/skel/.bash_logout"), 0o644),
@@ -205,19 +210,87 @@ fn stamp(ns: &Namespace, cx: &Caller, path: &[u8]) -> Result<(), Errno> {
     ns.utimens(cx, &Start::Cwd, path, SetTime::At(IMAGE_TIME), SetTime::At(IMAGE_TIME), AtFlags::SYMLINK_NOFOLLOW)
 }
 
+/// Chave de criação de um caminho da imagem. O tmpfs lista o mais novo primeiro, então a ordem em
+/// que cada diretório recebe os filhos é a ordem que o `ls -f` mostra. Criar em ordem alfabética
+/// daria ordem alfabética invertida, que nenhum sistema real tem: um tmpfs populado por um arquivo
+/// tem a ordem do arquivo, que veio do `readdir` de um ext4 (a ordem do hash dos nomes). Aqui os pais
+/// vêm antes dos filhos (profundidade) e, dentro de cada diretório, a ordem é a de um hash do nome.
+fn creation_key(path: &str) -> (usize, &str, u64) {
+    let (parent, name) = path.rsplit_once('/').unwrap_or(("", path));
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    for b in name.bytes() {
+        h = (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3);
+    }
+    // Finalizador do splitmix64: espalha os bits para nomes parecidos não ficarem vizinhos.
+    h = (h ^ (h >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+    h = (h ^ (h >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+    (path.matches('/').count(), parent, h ^ (h >> 31))
+}
+
+/// Uma criação da raiz, na ordem de [`creation_key`].
+enum Creation<'a> {
+    Tree(&'a Item),
+    Program(&'a Program, String),
+    Link(&'static str, &'static str),
+}
+
+impl Creation<'_> {
+    fn path(&self) -> &str {
+        match self {
+            Creation::Tree(Dir(p, _) | File(p, _, _) | Link(p, _)) => p,
+            Creation::Program(_, p) => p,
+            Creation::Link(l, _) => l,
+        }
+    }
+}
+
 /// Monta a raiz: árvore, `/etc` e um executável por programa.
 pub(crate) fn build_root(ns: &Namespace, cx: &Caller, programs: &[Program], hostname: &str) -> Result<(), Errno> {
     let mut stamped: Vec<Vec<u8>> = Vec::new();
-    for item in ROOT_TREE.iter().chain(COPIED_TREES) {
-        match item {
-            Dir(p, m) => mkdir(ns, cx, p.as_bytes(), *m)?,
-            File(p, data, m) => put_file(ns, cx, p.as_bytes(), data, *m)?,
-            Link(p, t) => ns.symlink(cx, t.as_bytes(), &Start::Cwd, p.as_bytes())?,
+    let program_paths: Vec<String> = programs.iter().map(Program::path).collect();
+    let mut plan: Vec<Creation> = ROOT_TREE.iter().chain(COPIED_TREES).map(Creation::Tree).collect();
+    for p in programs {
+        let path = p.path();
+        // No Debian, este nome é um symlink para outro programa: vira o link.
+        if real_links().any(|(l, _)| l == path) && link_reaches_program(&path, &program_paths, 0) {
+            continue;
         }
-        let p = match item {
-            Dir(p, _) | File(p, _, _) | Link(p, _) => p,
-        };
-        stamped.push(p.as_bytes().to_vec());
+        plan.push(Creation::Program(p, path));
+    }
+    plan.extend(real_links().map(|(l, t)| Creation::Link(l, t)));
+    plan.sort_by(|a, b| creation_key(a.path()).cmp(&creation_key(b.path())));
+    // Os symlinks do Debian que chegam a algo da imagem (programa, diretório ou arquivo copiado).
+    let mut links: Vec<&str> = Vec::new();
+    for c in &plan {
+        match c {
+            Creation::Tree(item) => {
+                match item {
+                    Dir(p, m) => mkdir(ns, cx, p.as_bytes(), *m)?,
+                    File(p, data, m) => put_file(ns, cx, p.as_bytes(), data, *m)?,
+                    Link(p, t) => ns.symlink(cx, t.as_bytes(), &Start::Cwd, p.as_bytes())?,
+                }
+                stamped.push(c.path().as_bytes().to_vec());
+            }
+            Creation::Program(p, path) => {
+                // Diretório fora da árvore padrão: cria os pais.
+                let mut acc = Vec::new();
+                for comp in p.dir.split('/').filter(|c| !c.is_empty()) {
+                    acc.push(b'/');
+                    acc.extend_from_slice(comp.as_bytes());
+                    match ns.mkdir(cx, &Start::Cwd, &acc, 0o755) {
+                        Ok(()) | Err(Errno::EEXIST) => {}
+                        Err(e) => return Err(e),
+                    }
+                }
+                put_file_sized(ns, cx, path.as_bytes(), &builtin_file(path), 0o755, real_size(path))?;
+                stamped.push(path.as_bytes().to_vec());
+            }
+            Creation::Link(link, target) => match ns.symlink(cx, target.as_bytes(), &Start::Cwd, link.as_bytes()) {
+                Ok(()) => links.push(link),
+                Err(Errno::EEXIST | Errno::ENOENT) => {}
+                Err(e) => return Err(e),
+            },
+        }
     }
     ns.chown(cx, &Start::Cwd, b"/etc/shadow", None, Some(GID_SHADOW), AtFlags::empty())?;
     ns.chown(cx, &Start::Cwd, b"/etc/gshadow", None, Some(GID_SHADOW), AtFlags::empty())?;
@@ -229,35 +302,6 @@ pub(crate) fn build_root(ns: &Namespace, cx: &Caller, programs: &[Program], host
     put_file(ns, cx, b"/etc/hosts", hosts.as_bytes(), 0o644)?;
     stamped.push(b"/etc/hostname".to_vec());
     stamped.push(b"/etc/hosts".to_vec());
-    let program_paths: Vec<String> = programs.iter().map(Program::path).collect();
-    for p in programs {
-        let path = p.path();
-        // Diretório fora da árvore padrão: cria os pais.
-        let mut acc = Vec::new();
-        for comp in p.dir.split('/').filter(|c| !c.is_empty()) {
-            acc.push(b'/');
-            acc.extend_from_slice(comp.as_bytes());
-            match ns.mkdir(cx, &Start::Cwd, &acc, 0o755) {
-                Ok(()) | Err(Errno::EEXIST) => {}
-                Err(e) => return Err(e),
-            }
-        }
-        // No Debian, este nome é um symlink para outro programa: vira o link, mais abaixo.
-        if real_links().any(|(l, _)| l == path) && link_reaches_program(&path, &program_paths, 0) {
-            continue;
-        }
-        put_file_sized(ns, cx, path.as_bytes(), &builtin_file(&path), 0o755, real_size(&path))?;
-        stamped.push(path.into_bytes());
-    }
-    // Os symlinks do Debian que chegam a algo da imagem (programa, diretório ou arquivo copiado).
-    let mut links: Vec<&str> = Vec::new();
-    for (link, target) in real_links() {
-        match ns.symlink(cx, target.as_bytes(), &Start::Cwd, link.as_bytes()) {
-            Ok(()) => links.push(link),
-            Err(Errno::EEXIST | Errno::ENOENT) => {}
-            Err(e) => return Err(e),
-        }
-    }
     // Poda os que ficaram pendurados (alvo ausente), até estabilizar: um link pode apontar para outro.
     // Os de `/etc/alternatives` ficam como no Debian slim, onde os das manpages já são pendurados.
     loop {

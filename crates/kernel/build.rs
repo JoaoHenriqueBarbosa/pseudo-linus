@@ -74,10 +74,10 @@ fn main() {
     let mut code = String::from("/// Itens gerados pelo build.rs a partir das árvores copiadas do oráculo.\nconst COPIED_TREES: &[Item] = &[\n");
     for (trees, file_mode) in [(TREES, "0o644"), (EXEC_TREES, "0o755")] {
         for tree in trees {
-            println!("cargo:rerun-if-changed=image/{tree}");
             use std::os::unix::fs::PermissionsExt as _;
             let top = fs::symlink_metadata(image.join(tree)).expect("árvore da imagem");
             if top.is_file() {
+                println!("cargo:rerun-if-changed=image/{tree}");
                 let abs = image.join(tree);
                 let _ = writeln!(code, "    File(\"/{tree}\", include_bytes!({:?}), {file_mode}),", abs.display().to_string());
                 continue;
@@ -85,6 +85,19 @@ fn main() {
             let _ = writeln!(code, "    Dir(\"/{tree}\", 0o755),");
             let mut items = Vec::new();
             walk(&image, Path::new(tree), &mut items);
+            // O `rerun-if-changed` de um diretório faz o cargo varrer a árvore seguindo os symlinks, e os
+            // absolutos da imagem (`/usr/lib/ssl/private -> /etc/ssl/private`) apontam para o sistema de
+            // quem compila. Com symlink na árvore, a declaração vai por arquivo; sem, pelo diretório,
+            // que também pega arquivo novo.
+            if items.iter().any(|(_, md)| md.file_type().is_symlink()) {
+                for (rel, md) in &items {
+                    if md.is_file() {
+                        println!("cargo:rerun-if-changed=image/{}", rel.display());
+                    }
+                }
+            } else {
+                println!("cargo:rerun-if-changed=image/{tree}");
+            }
             for (rel, md) in items {
                 let path = format!("/{}", rel.display());
                 if md.file_type().is_symlink() {
