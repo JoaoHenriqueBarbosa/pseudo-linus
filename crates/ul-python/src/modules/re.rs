@@ -692,22 +692,16 @@ impl ExtObject for PatternObj {
 
     fn call_method(&self, vm: &mut Vm, name: &str, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         match name {
-            "match" | "search" | "fullmatch" => {
+            "match" | "search" | "fullmatch" | "findall" | "finditer" => {
                 let a = bind(name, args, kw, &["string", "pos", "endpos"], 1)?;
-                let mode = match name {
-                    "match" => Mode::Match,
-                    "search" => Mode::Search,
-                    _ => Mode::Fullmatch,
-                };
-                self.exec_value(&arg(&a, 0), a[1].as_ref(), a[2].as_ref(), mode)
-            }
-            "findall" => {
-                let a = bind(name, args, kw, &["string", "pos", "endpos"], 1)?;
-                self.findall_value(&arg(&a, 0), a[1].as_ref(), a[2].as_ref())
-            }
-            "finditer" => {
-                let a = bind(name, args, kw, &["string", "pos", "endpos"], 1)?;
-                self.finditer_value(&arg(&a, 0), a[1].as_ref(), a[2].as_ref())
+                let (s, pos, endpos) = (&arg(&a, 0), a[1].as_ref(), a[2].as_ref());
+                match name {
+                    "findall" => self.findall_value(s, pos, endpos),
+                    "finditer" => self.finditer_value(s, pos, endpos),
+                    "match" => self.exec_value(s, pos, endpos, Mode::Match),
+                    "search" => self.exec_value(s, pos, endpos, Mode::Search),
+                    _ => self.exec_value(s, pos, endpos, Mode::Fullmatch),
+                }
             }
             "sub" | "subn" => {
                 let a = bind(name, args, kw, &["repl", "string", "count"], 2)?;
@@ -767,6 +761,14 @@ struct MatchObj {
 }
 
 impl MatchObj {
+    /// O texto do grupo `k`, ou `default` quando ele não participou.
+    fn group_or(&self, k: usize, default: &Value) -> Value {
+        match self.caps.spans[k] {
+            Some(_) => self.group_value(k),
+            None => default.clone(),
+        }
+    }
+
     fn group_value(&self, k: usize) -> Value {
         match self.caps.spans.get(k).copied().flatten() {
             Some((a, b)) => out_text(self.pattern.bytes, slice_string(&self.chars, a, b)),
@@ -872,24 +874,14 @@ impl ExtObject for MatchObj {
             "groups" => {
                 let a = bind("groups", args, kw, &["default"], 0)?;
                 let default = arg(&a, 0);
-                let items = (1..=ngroups)
-                    .map(|k| match self.caps.spans[k] {
-                        Some(_) => self.group_value(k),
-                        None => default.clone(),
-                    })
-                    .collect();
-                Ok(Value::tuple(items))
+                Ok(Value::tuple((1..=ngroups).map(|k| self.group_or(k, &default)).collect()))
             }
             "groupdict" => {
                 let a = bind("groupdict", args, kw, &["default"], 0)?;
                 let default = arg(&a, 0);
                 let mut d = Dict::new();
                 for (n, k) in &self.pattern.regex.group_names {
-                    let v = match self.caps.spans[*k] {
-                        Some(_) => self.group_value(*k),
-                        None => default.clone(),
-                    };
-                    d.set(Value::str(n.clone()), v)?;
+                    d.set(Value::str(n.clone()), self.group_or(*k, &default))?;
                 }
                 Ok(Value::dict(d))
             }
