@@ -210,7 +210,21 @@ fn script_dir(vm: &Vm) -> String {
 pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
     let argv = vm.argv.iter().map(|a| Value::str(a.clone())).collect();
     let layout = crate::layout();
-    let path: Vec<Value> = crate::STDLIB_PATH.iter().map(|p| Value::str(*p)).chain(layout.site.iter().map(|p| Value::str(p.clone()))).collect();
+    // As entradas do `PYTHONPATH` vêm antes do stdlib, a não ser com -E ou -I (`ignore_environment`).
+    let ignore_env = crate::CLI_FLAGS.lock().unwrap()[7] != 0;
+    let env_path = if ignore_env { None } else { sysabi::sys::try_current().and_then(|s| s.getenv(b"PYTHONPATH")) };
+    let env_entries: Vec<Value> = match env_path {
+        Some(p) if !p.is_empty() => String::from_utf8_lossy(&p)
+            .split(':')
+            .map(|e| Value::str(if e.is_empty() { String::new() } else { crate::absolute_path(e) }))
+            .collect(),
+        _ => Vec::new(),
+    };
+    let path: Vec<Value> = env_entries
+        .into_iter()
+        .chain(crate::STDLIB_PATH.iter().map(|p| Value::str(*p)))
+        .chain(layout.site.iter().map(|p| Value::str(p.clone())))
+        .collect();
     ModuleBuilder::new("_sys")
         .value("argv", Value::list(argv))
         .value("script_dir", Value::str(script_dir(vm)))

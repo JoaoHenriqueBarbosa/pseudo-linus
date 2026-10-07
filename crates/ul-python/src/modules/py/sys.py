@@ -504,10 +504,9 @@ def _build():
     version_info = structseq('version_info', ('major', 'minor', 'micro', 'releaselevel', 'serial'),
                              (3, 13, 5, 'final', 0))
     hexversion = 51185136
-    # `sys.path[0]`: o diretório do script, ou '' para -c e -m; fora no modo isolado e com -P.
+    # `sys.path[0]` (o diretório do script, ou '' para -c e -m) só entra depois do `site`, como no
+    # `pymain_run_python` do CPython: o interpretador o insere antes de rodar o programa.
     path = list(_sys.path)
-    if not _sys.cli_flags[16]:
-        path.insert(0, _sys.script_dir)
     from _frozen_importlib import BuiltinImporter, FrozenImporter
     from _frozen_importlib_external import PathFinder
 

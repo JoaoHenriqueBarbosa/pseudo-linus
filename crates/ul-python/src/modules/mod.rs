@@ -227,7 +227,28 @@ fn load_with_finder(vm: &mut Vm, finder: &Value, name: &str, path: &Value) -> Py
     if matches!(module, Value::None) {
         module = vm.call_value(&Value::Builtin("module"), vec![Value::str(name)], Vec::new())?;
     }
-    for (attr, value) in [("__spec__", spec.clone()), ("__loader__", loader.clone())] {
+    // Os atributos que o `_init_module_attrs` do CPython copia da spec (sem sobrescrever os que o
+    // `create_module` já preencheu).
+    let mut attrs = vec![("__spec__", spec.clone()), ("__loader__", loader.clone())];
+    if let Ok(parent) = vm.load_attr(&spec, "parent") {
+        attrs.push(("__package__", parent));
+    }
+    if let Ok(smsl) = vm.load_attr(&spec, "submodule_search_locations") {
+        if !matches!(smsl, Value::None) {
+            attrs.push(("__path__", smsl));
+        }
+    }
+    if matches!(vm.load_attr(&spec, "has_location"), Ok(Value::Bool(true))) {
+        if let Ok(origin) = vm.load_attr(&spec, "origin") {
+            attrs.push(("__file__", origin));
+        }
+        if let Ok(cached) = vm.load_attr(&spec, "cached") {
+            if !matches!(cached, Value::None) {
+                attrs.push(("__cached__", cached));
+            }
+        }
+    }
+    for (attr, value) in attrs {
         if !matches!(vm.load_attr(&module, attr), Ok(ref v) if !matches!(v, Value::None)) {
             let _ = vm.store_attr(&module, attr, value);
         }

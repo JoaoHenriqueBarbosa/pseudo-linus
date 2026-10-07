@@ -703,9 +703,18 @@ fn run_source_inner(
             prelude = Err(vm::RuntimeError { exc: e, lineno: 0 });
         }
     }
+    // `sys.path[0]`: o diretório do script, ou '' para -c e -m; fora no modo isolado e com -P.
+    if CLI_FLAGS.lock().unwrap()[16] == 0 {
+        if let Some(sysmod) = modules::import(&mut machine, "sys") {
+            let script_dir = modules::import(&mut machine, "_sys").and_then(|m| m.attrs.borrow().get("script_dir").cloned());
+            if let (Some(object::Value::List(path)), Some(dir)) = (sysmod.attrs.borrow().get("path"), script_dir) {
+                path.borrow_mut().insert(0, dir);
+            }
+        }
+    }
     if let Some((package, cwd)) = &main_module {
         machine.globals.borrow_mut().insert("__package__".into(), object::Value::str(package.clone()));
-        if let Some(sysmod) = modules::import(&mut machine, "sys") {
+        if let Some(sysmod) = modules::import(&mut machine, "sys").filter(|_| CLI_FLAGS.lock().unwrap()[16] == 0) {
             if let Some(object::Value::List(path)) = sysmod.attrs.borrow().get("path") {
                 path.borrow_mut()[0] = object::Value::str(cwd.clone());
             }

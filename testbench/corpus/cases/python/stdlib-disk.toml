@@ -185,3 +185,44 @@ print(importlib.import_module("magic1").x, __import__("magic2").x)
 import magic3; print(magic3.x)
 PYEOF
 '''
+
+# `importlib.machinery` só reexporta o `_frozen_importlib` e o `_frozen_importlib_external`, e um
+# pacote achado pelo `PathFinder` dentro de um finder do programa ganha `__path__`, `__file__` e
+# `__cached__` (o caminho do `__pip-runner__.py` do pip).
+[[case]]
+id = "importlib-machinery-reexports-meta-path-package"
+script = '''
+mkdir -p /tmp/r/pk && echo 'X = 1' > /tmp/r/pk/__init__.py && echo 'print("main", __name__, __package__)' > /tmp/r/pk/__main__.py
+python3 - <<'PYEOF'
+import sys, runpy, importlib.machinery as m
+print([n for n in dir(m) if not n.startswith('__')])
+for n in ('ModuleSpec', 'FrozenImporter', 'PathFinder', 'SourceFileLoader', 'NamespaceLoader', 'WindowsRegistryFinder'):
+    print(n, getattr(m, n).__module__)
+print(m.all_suffixes(), m.all_suffixes.__doc__)
+class F:
+    @classmethod
+    def find_spec(cls, fullname, path=None, target=None):
+        if fullname == 'pk':
+            return m.PathFinder.find_spec(fullname, ['/tmp/r'], target)
+sys.meta_path.insert(0, F)
+import pk
+print(pk.__path__, pk.__file__, pk.__cached__, pk.__package__, pk.__spec__.parent, pk.__spec__.has_location)
+runpy.run_module('pk', run_name='__main__')
+PYEOF
+'''
+
+# `sys.path`: entradas do `PYTHONPATH` (absolutizadas, a vazia vira o cwd) antes do stdlib, fora com
+# -E e -I; o `path[0]` entra depois do `site` (o '' do -c não vira o cwd) e some com -P.
+[[case]]
+id = "sys-path-pythonpath-path0"
+script = '''
+cd /tmp; mkdir -p d bt; echo 'Z=3' > bt/sy.py; echo 'import sys; print(sys.path[:3])' > d/s.py
+python3 -c 'import sys; print(sys.path)'
+PYTHONPATH=/tmp/bt:rel::/x python3 -c 'import sys, sy; print(sys.path[:6], sy.Z)'
+PYTHONPATH=/tmp/bt python3 -E -c 'import sys; print(sys.path[:2])'
+PYTHONPATH=/tmp/bt python3 -I -c 'import sys; print(sys.path[:2])'
+PYTHONPATH=/tmp/bt python3 -P -c 'import sys; print(sys.path[:2])'
+PYTHONPATH=bt python3 d/s.py
+python3 -P d/s.py
+cd d; python3 -c 'import sys; print(sys.path[0]=="")'; echo 'import sys; print(sys.path[0])' > m.py; python3 -m m; python3 -P -m m
+'''

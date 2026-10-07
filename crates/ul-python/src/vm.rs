@@ -3437,7 +3437,7 @@ impl Vm {
     }
 
     /// `__spec__`/`__loader__` de um módulo carregado de arquivo: construídos na primeira leitura
-    /// por `importlib.machinery` e guardados nas globais do módulo.
+    /// por `_frozen_importlib_external` e guardados nas globais do módulo.
     fn module_spec(&mut self, m: &Rc<crate::object::ModuleObj>, name: &str) -> PyResult<Option<Value>> {
         let Some(globals) = self.module_globals.borrow().get(m.name).cloned() else {
             // Módulo nativo em Rust: os embutidos do executável do CPython ganham o spec do
@@ -3445,7 +3445,7 @@ impl Vm {
             if !crate::object::BUILTIN_MODULES.contains(&m.name) {
                 return Ok(None);
             }
-            let Some(machinery) = crate::modules::import(self, "importlib.machinery") else { return Ok(None) };
+            let Some(machinery) = crate::modules::import(self, "_frozen_importlib_external") else { return Ok(None) };
             let make = machinery.attrs.borrow().get("_spec_for_module").cloned();
             let Some(make) = make else { return Ok(None) };
             let spec = self.call(&make, vec![Value::str(m.name), Value::str(""), Value::Bool(false)], Vec::new())?;
@@ -3463,7 +3463,7 @@ impl Vm {
                 _ => return Ok(None),
             }
         };
-        let Some(machinery) = crate::modules::import(self, "importlib.machinery") else { return Ok(None) };
+        let Some(machinery) = crate::modules::import(self, "_frozen_importlib_external") else { return Ok(None) };
         let make = machinery.attrs.borrow().get("_spec_for_module").cloned();
         let Some(make) = make else { return Ok(None) };
         // O `site` e os demais congelados rodam do texto do disco, mas o spec é o do `FrozenImporter`.
