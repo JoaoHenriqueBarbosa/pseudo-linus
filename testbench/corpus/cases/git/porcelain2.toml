@@ -299,3 +299,21 @@ git diff --no-index --stat /dev/null x; echo rc=$?
 cd /tmp && rm -rf /tmp/dni
 '''
 tags = ["diff"]
+
+# O reset --hard do stash deixa "reset: moving to HEAD" no reflog do HEAD (com e sem -u, e no
+# --keep-index); o push com pathspec não passa pelo reset.
+[[case]]
+id = "git-stash-reflog"
+script = '''
+exec 2>&1
+export GIT_AUTHOR_DATE='2026-01-01T10:00:00Z' GIT_COMMITTER_DATE='2026-01-01T10:00:00Z'
+mkdir /tmp/str && cd /tmp/str && git init -q && git config user.email a@b.c && git config user.name A
+echo a > f && git add f && git commit -qm one
+echo b > f && git stash -q && git reflog
+echo c > f && echo n > n && git stash -u -q && git reflog
+git stash pop -q && git reflog && git stash list
+echo d > f && git stash push -q -m msg -- f && git reflog | wc -l
+git stash -q --keep-index; echo rc=$?; git reflog | wc -l
+cd /tmp && rm -rf /tmp/str
+'''
+tags = ["stash"]

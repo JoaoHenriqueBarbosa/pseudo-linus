@@ -533,6 +533,10 @@ fn do_push_stash(git: &Git, ps: &Pathspec, a: &PushArgs) -> R<i32> {
         let ni = unpack::switch_tree(repo, &idx, Some(&head_tree), &head_tree, &uo)?;
         ni.write(&ipath)?;
         super::revert::remove_branch_state(repo, false);
+        // O `reset --hard -q` que o stash roda deixa a linha dele no reflog do HEAD.
+        if let Some(h) = head {
+            repo.update_ref("HEAD", h, None, "reset: moving to HEAD", false)?;
+        }
     } else {
         restore_to_head(repo, &mut idx, &head_files, ps)?;
         idx.write(&ipath)?;

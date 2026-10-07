@@ -148,5 +148,11 @@
     "stderr": "",
     "exit": 0,
     "files": {}
+  },
+  "git-stash-reflog": {
+    "stdout": "eec44f2 HEAD@{0}: reset: moving to HEAD\neec44f2 HEAD@{1}: commit (initial): one\neec44f2 HEAD@{0}: reset: moving to HEAD\neec44f2 HEAD@{1}: reset: moving to HEAD\neec44f2 HEAD@{2}: commit (initial): one\neec44f2 HEAD@{0}: reset: moving to HEAD\neec44f2 HEAD@{1}: reset: moving to HEAD\neec44f2 HEAD@{2}: commit (initial): one\nstash@{0}: WIP on master: eec44f2 one\n3\nrc=0\n3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
   }
 }
