@@ -21,6 +21,7 @@ use crate::types::*;
 
 mod data;
 mod maps;
+mod net;
 mod render;
 mod sysctl;
 
@@ -36,6 +37,8 @@ const KIND_PID: u64 = 1;
 const KIND_FD: u64 = 2;
 const KIND_TASK: u64 = 3;
 const KIND_FDINFO: u64 = 4;
+/// `/proc/<pid>/net/...`: o número é o índice na tabela de `net.rs`.
+const KIND_NET: u64 = 5;
 
 fn ino(kind: u64, pid: Pid, n: u32) -> Ino {
     (kind << 56) | ((pid as u64 & 0xff_ffff) << 32) | n as u64
@@ -106,6 +109,7 @@ const S_SOMAXCONN: u32 = 28;
 const S_VMSTAT: u32 = 29;
 const S_DISKSTATS: u32 = 30;
 const S_SLABINFO: u32 = 31;
+const S_NET: u32 = 32;
 
 const STATICS: &[Static] = &[
     Static { n: S_SELF, name: "self", parent: 1, shape: Shape::Link, mode: 0o777 },
@@ -138,6 +142,7 @@ const STATICS: &[Static] = &[
     Static { n: S_VMSTAT, name: "vmstat", parent: 1, shape: Shape::File, mode: 0o444 },
     Static { n: S_DISKSTATS, name: "diskstats", parent: 1, shape: Shape::File, mode: 0o444 },
     Static { n: S_SLABINFO, name: "slabinfo", parent: 1, shape: Shape::File, mode: 0o400 },
+    Static { n: S_NET, name: "net", parent: 1, shape: Shape::Link, mode: 0o777 },
 ];
 
 fn static_ent(n: u32) -> Option<&'static Static> {
@@ -193,6 +198,7 @@ enum Ent {
     OomScore = 23,
     OomScoreAdj = 24,
     Mountinfo = 25,
+    Net = 26,
 }
 
 impl Ent {
@@ -224,6 +230,7 @@ impl Ent {
             23 => Ent::OomScore,
             24 => Ent::OomScoreAdj,
             25 => Ent::Mountinfo,
+            26 => Ent::Net,
             _ => return None,
         })
     }
@@ -234,6 +241,7 @@ const PID_ENTRIES: &[(&str, Ent)] = &[
     ("task", Ent::Task),
     ("fd", Ent::Fd),
     ("fdinfo", Ent::Fdinfo),
+    ("net", Ent::Net),
     ("environ", Ent::Environ),
     ("status", Ent::Status),
     ("limits", Ent::Limits),
@@ -261,6 +269,7 @@ const PID_ENTRIES: &[(&str, Ent)] = &[
 const TASK_ENTRIES: &[(&str, Ent)] = &[
     ("fd", Ent::Fd),
     ("fdinfo", Ent::Fdinfo),
+    ("net", Ent::Net),
     ("environ", Ent::Environ),
     ("status", Ent::Status),
     ("limits", Ent::Limits),
@@ -288,7 +297,7 @@ const TASK_ENTRIES: &[(&str, Ent)] = &[
 /// Forma e permissão de uma entrada de processo.
 fn ent_shape(e: Ent) -> (Shape, Mode) {
     match e {
-        Ent::Dir | Ent::Task | Ent::Fdinfo => (Shape::Dir, 0o555),
+        Ent::Dir | Ent::Task | Ent::Fdinfo | Ent::Net => (Shape::Dir, 0o555),
         Ent::Fd => (Shape::Dir, 0o500),
         Ent::Cwd | Ent::Root | Ent::Exe => (Shape::Link, 0o777),
         Ent::Environ => (Shape::File, 0o400),
@@ -385,6 +394,11 @@ impl Procfs {
                 }
                 Ok(NodeInfo { shape: Shape::File, mode: 0o444, uid, gid })
             }
+            KIND_NET => {
+                self.provider.owner(pid).ok_or(Errno::ENOENT)?;
+                let e = net::ent(n).ok_or(Errno::ENOENT)?;
+                Ok(NodeInfo { shape: if e.dir { Shape::Dir } else { Shape::File }, mode: e.mode, uid: 0, gid: 0 })
+            }
             _ => Err(Errno::ENOENT),
         }
     }
@@ -400,6 +414,9 @@ impl Procfs {
                 2 + PID_ENTRIES.iter().filter(|(_, e)| ent_shape(*e).0 == Shape::Dir).count() as u64
             }
             KIND_PID if n == Ent::Task as u32 => 2 + self.provider.tids(pid).map_or(0, |t| t.len() as u64),
+            KIND_PID | KIND_TASK if (if kind == KIND_PID { n } else { n & 0xff }) == Ent::Net as u32 => {
+                2 + net::children(0).into_iter().filter(|&c| net::ent(c).is_some_and(|e| e.dir)).count() as u64
+            }
             KIND_TASK if n & 0xff == 0 => {
                 2 + TASK_ENTRIES.iter().filter(|(_, e)| ent_shape(*e).0 == Shape::Dir).count() as u64
             }
@@ -634,6 +651,7 @@ impl Procfs {
                 let info = self.provider.fdinfo(cx, pid, n as i32).ok_or(Errno::ENOENT)?;
                 Ok(render::fdinfo(&info))
             }
+            KIND_NET => net::content(n, self.provider.ncpus()).ok_or(Errno::EINVAL),
             _ => Err(Errno::EINVAL),
         }
     }
@@ -738,6 +756,7 @@ impl FileSystem for Procfs {
                 }
                 Some(Ent::Fd) => self.fd_child(pid, name, KIND_FD),
                 Some(Ent::Fdinfo) => self.fd_child(pid, name, KIND_FDINFO),
+                Some(Ent::Net) => net::child(0, name).map(|c| ino(KIND_NET, pid, c)).ok_or(Errno::ENOENT),
                 _ => Err(Errno::ENOENT),
             },
             KIND_TASK => {
@@ -752,8 +771,15 @@ impl FileSystem for Procfs {
                     }
                     Some(Ent::Fd) => self.fd_child(pid, name, KIND_FD),
                     Some(Ent::Fdinfo) => self.fd_child(pid, name, KIND_FDINFO),
+                    Some(Ent::Net) => net::child(0, name).map(|c| ino(KIND_NET, pid, c)).ok_or(Errno::ENOENT),
                     _ => Err(Errno::ENOENT),
                 }
+            }
+            KIND_NET => {
+                if !net::ent(n).is_some_and(|e| e.dir) {
+                    return Err(Errno::ENOTDIR);
+                }
+                net::child(n, name).map(|c| ino(KIND_NET, pid, c)).ok_or(Errno::ENOENT)
             }
             _ => Err(Errno::ENOENT),
         }
@@ -769,6 +795,10 @@ impl FileSystem for Procfs {
             KIND_TASK => ino(KIND_TASK, pid, n & !0xff),
             KIND_FD => ino(KIND_PID, pid, Ent::Fd as u32),
             KIND_FDINFO => ino(KIND_PID, pid, Ent::Fdinfo as u32),
+            KIND_NET => match net::ent(n).map(|e| e.parent) {
+                Some(p) if p != 0 => ino(KIND_NET, pid, p),
+                _ => ino(KIND_PID, pid, Ent::Net as u32),
+            },
             _ => ROOT,
         })
     }
@@ -792,6 +822,11 @@ impl FileSystem for Procfs {
             }
             KIND_FD => Some((ino(KIND_PID, pid, Ent::Fd as u32), n.to_string().into_bytes())),
             KIND_FDINFO => Some((ino(KIND_PID, pid, Ent::Fdinfo as u32), n.to_string().into_bytes())),
+            KIND_NET => {
+                let e = net::ent(n)?;
+                let dir = if e.parent == 0 { ino(KIND_PID, pid, Ent::Net as u32) } else { ino(KIND_NET, pid, e.parent) };
+                Some((dir, e.name.as_bytes().to_vec()))
+            }
             _ => None,
         }
     }
@@ -813,6 +848,7 @@ impl FileSystem for Procfs {
                     Ok(format!("{}/task/{}", cx.pid, cx.tid).into_bytes())
                 }
                 S_MOUNTS => Ok(b"self/mounts".to_vec()),
+                S_NET => Ok(b"self/net".to_vec()),
                 _ => Err(Errno::EINVAL),
             },
             KIND_PID | KIND_TASK => {
@@ -859,11 +895,11 @@ impl FileSystem for Procfs {
         Err(Errno::EPERM)
     }
 
-    fn setattr(&self, _cx: &Caller, i: Ino, a: &SetAttr) -> SysResult<()> {
-        // `proc_sys_setattr`: dono e modo não mudam (EPERM); o tamanho do `O_TRUNC` e os carimbos
-        // passam sem efeito, senão o `sysctl -w` (que abre com `O_TRUNC`) nem chegaria a escrever.
-        let (kind, _, n) = split(i);
-        if kind == KIND_STATIC && is_sysctl(n) && a.mode.is_none() && a.uid.is_none() && a.gid.is_none() {
+    fn setattr(&self, _cx: &Caller, _i: Ino, a: &SetAttr) -> SysResult<()> {
+        // `proc_setattr`/`proc_sys_setattr`: modo (e dono, que aqui não muda) dão EPERM; o tamanho do
+        // `O_TRUNC` e os carimbos passam sem efeito, senão o `sysctl -w` (que abre com `O_TRUNC`) nem
+        // chegaria a escrever, e um `> /proc/self/stat` não chegaria ao EINVAL da escrita.
+        if a.mode.is_none() && a.uid.is_none() && a.gid.is_none() {
             return Ok(());
         }
         Err(Errno::EPERM)
@@ -906,6 +942,10 @@ impl FileSystem for Procfs {
                         let data = self.content(cx, i)?;
                         return Ok(Box::new(OomAdjFile { fs: self, pid, data: Arc::from(data) }));
                     }
+                }
+                // Os do `/proc/net` não têm escrita: o open pra escrever dá EACCES até pro root.
+                if kind == KIND_NET && flags.writable() {
+                    return Err(Errno::EACCES);
                 }
                 // Os de processo abrem e a escrita dá EINVAL.
                 let data = self.content(cx, i)?;
@@ -1086,6 +1126,18 @@ impl ProcDir {
             KIND_PID | KIND_TASK if (if kind == KIND_PID { n } else { n & 0xff }) == Ent::Fdinfo as u32 => {
                 for fd in prov.fds(pid).ok_or(Errno::ENOENT)? {
                     out.push(dirent(ino(KIND_FDINFO, pid, fd as u32), Shape::File, fd.to_string().as_bytes()));
+                }
+            }
+            KIND_PID | KIND_TASK if (if kind == KIND_PID { n } else { n & 0xff }) == Ent::Net as u32 => {
+                for c in net::children(0) {
+                    let e = net::ent(c).expect("índice da tabela");
+                    out.push(dirent(ino(KIND_NET, pid, c), if e.dir { Shape::Dir } else { Shape::File }, e.name.as_bytes()));
+                }
+            }
+            KIND_NET if net::ent(n).is_some_and(|e| e.dir) => {
+                for c in net::children(n) {
+                    let e = net::ent(c).expect("índice da tabela");
+                    out.push(dirent(ino(KIND_NET, pid, c), if e.dir { Shape::Dir } else { Shape::File }, e.name.as_bytes()));
                 }
             }
             _ => return Err(Errno::ENOTDIR),

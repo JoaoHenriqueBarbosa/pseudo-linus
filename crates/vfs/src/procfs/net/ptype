@@ -1,0 +1,6 @@
+Type Device      Function
+0800          ip_rcv
+0004          llc_rcv [llc]
+88f5          mrp_rcv [mrp]
+0806          arp_rcv
+86dd          ipv6_rcv

@@ -331,14 +331,18 @@ impl Namespace {
         }
         if !created {
             self.may_open(cx, &loc, &st, acc_mode, flags)?;
-            if flags.contains(OFlags::TRUNC) && is_reg(st.mode) {
-                self.truncate_loc(cx, &loc, 0, true)?;
-            }
         }
-        let st = if created || flags.contains(OFlags::TRUNC) { loc.fs().getattr(cx, loc.ino)? } else { st };
+        // `do_open`: o `vfs_open` vem antes do `handle_truncate`, então quem recusa o open (um arquivo
+        // do /proc que não aceita escrita dá EACCES) responde antes do truncamento.
+        let trunc = !created && flags.contains(OFlags::TRUNC) && is_reg(st.mode);
+        let st = if created { loc.fs().getattr(cx, loc.ino)? } else { st };
         match st.mode & S_IFMT {
             S_IFREG | S_IFDIR => {
                 let handle = loc.fs().clone().open(cx, loc.ino, flags)?;
+                if trunc {
+                    self.truncate_loc(cx, &loc, 0, true)?;
+                }
+                let st = if trunc { loc.fs().getattr(cx, loc.ino)? } else { st };
                 Ok(Opened::File { loc, stat: st, handle })
             }
             S_IFIFO => Ok(Opened::Fifo { loc, stat: st }),

@@ -1,0 +1,20 @@
+{
+  "procfs-net-lo-only": {
+    "stdout": "Inter-|   Receive                                                |  Transmit\n face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed\n    lo:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0\n00000000000000000000000000000001 01 80 10 80       lo\nIface\tDestination\tGateway \tFlags\tRefCnt\tUse\tMetric\tMask\t\tMTU\tWindow\tIRTT                                                       \n  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode                                                     \n  sl  local_address                         remote_address                        st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode\n   sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode ref pointer drops            \nNum       RefCount Protocol Flags    Type St Inode Path\nMain:\n  +-- 127.0.0.0/8 2 0 2\n     +-- 127.0.0.0/31 1 0 0\n        |-- 127.0.0.0\n           /8 host LOCAL\n        |-- 127.0.0.1\n           /32 host LOCAL\n     |-- 127.255.255.255\n        /32 link BROADCAST\nLocal:\n  +-- 127.0.0.0/8 2 0 2\n     +-- 127.0.0.0/31 1 0 0\n        |-- 127.0.0.0\n           /8 host LOCAL\n        |-- 127.0.0.1\n           /32 host LOCAL\n     |-- 127.255.255.255\n        /32 link BROADCAST\n00000000000000000000000000000000 00 00000000000000000000000000000000 00 00000000000000000000000000000000 ffffffff 00000001 00000000 00200200       lo\n00000000000000000000000000000001 80 00000000000000000000000000000000 00 00000000000000000000000000000000 00000000 00000002 00000000 80200001       lo\n00000000000000000000000000000000 00 00000000000000000000000000000000 00 00000000000000000000000000000000 ffffffff 00000001 00000000 00200200       lo\nIP address       HW type     Flags       HW address            Mask     Device\nTCP6: inuse 0\nUDP6: inuse 0\nUDPLITE6: inuse 0\nRAW6: inuse 0\nFRAG6: inuse 0 memory 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "procfs-net-tree": {
+    "stdout": "self/net\n/proc/self/net directory 555 6 root\n/proc/net/stat directory 555 2 root\n/proc/net/vlan directory 555 2 root\n/proc/net/vlan/config regular empty file 600 1 root\n/proc/net/dev regular empty file 444 1 root\n/proc/net/nf_conntrack regular empty file 440 1 root\n/proc/net:\n.\n..\narp\ndev\nraw\ntcp\nudp\nicmp\nigmp\nraw6\nsnmp\nstat\ntcp6\nudp6\nunix\nvlan\nicmp6\nigmp6\nptype\nroute\nsnmp6\npacket\npsched\nnetlink\nnetstat\nrt_acct\nudplite\nanycast6\nfib_trie\nif_inet6\nmcfilter\nrt_cache\nsockstat\nudplite6\nwireless\ndev_mcast\ndev_snmp6\nip_mr_vif\nmcfilter6\nnetfilter\nprotocols\nrt6_stats\nsockstat6\nxfrm_stat\nip6_mr_vif\nipv6_route\nip_mr_cache\nfib_triestat\nip6_mr_cache\nnf_conntrack\nsoftnet_stat\nip6_flowlabel\nip_tables_names\nip_tables_matches\nip_tables_targets\nnf_conntrack_expect\n\n/proc/net/stat:\n.\n..\nrt_cache\nnf_conntrack\n\n/proc/net/netfilter:\n.\n..\nnf_log\n\n/proc/net/dev_snmp6:\n.\n..\nlo\n",
+    "stderr": "ls: cannot access '/proc/self/task/7/net': No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "procfs-write-errors": {
+    "stdout": "exit=1\nexit=1\nexit=1\nexit=0\nexit=1\n",
+    "stderr": "bash: line 1: /proc/net/dev: Permission denied\nbash: line 2: /proc/version: Permission denied\nbash: line 3: echo: write error: Invalid argument\nchmod: changing permissions of '/proc/version': Permission denied\n",
+    "exit": 0,
+    "files": {}
+  }
+}

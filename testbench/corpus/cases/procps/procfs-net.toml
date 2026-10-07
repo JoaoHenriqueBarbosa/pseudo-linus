@@ -1,0 +1,34 @@
+tool = "procps"
+source = "manual"
+
+# /proc/net de um container sem rede (o oráculo roda com --network none): só o lo. E a escrita em
+# arquivos do /proc, que recusa no open (EACCES) ou na escrita (EINVAL) depois do O_TRUNC.
+
+[[case]]
+id = "procfs-net-tree"
+script = """
+readlink /proc/net
+stat -c '%n %F %a %h %U' /proc/self/net /proc/net/stat /proc/net/vlan /proc/net/vlan/config /proc/net/dev /proc/net/nf_conntrack
+ls -f /proc/net /proc/net/stat /proc/net/netfilter /proc/net/dev_snmp6
+ls /proc/self/task/$$/net | head -3
+"""
+tags = ["proc", "net"]
+
+[[case]]
+id = "procfs-net-lo-only"
+script = """
+cat /proc/net/dev /proc/net/if_inet6 /proc/net/route /proc/net/tcp /proc/net/tcp6 /proc/net/udp /proc/net/unix
+cat /proc/net/fib_trie /proc/net/ipv6_route /proc/net/arp /proc/net/sockstat6
+"""
+tags = ["proc", "net"]
+
+[[case]]
+id = "procfs-write-errors"
+script = """
+echo x > /proc/net/dev; echo "exit=$?"
+echo x > /proc/version; echo "exit=$?"
+echo x > /proc/self/stat; echo "exit=$?"
+touch /proc/version; echo "exit=$?"
+chmod 600 /proc/version; echo "exit=$?"
+"""
+tags = ["proc", "error"]
