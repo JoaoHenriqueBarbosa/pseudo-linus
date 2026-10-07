@@ -322,6 +322,15 @@ enum Elem {
     Class(ClassKind),
 }
 
+impl From<Elem> for SetItem {
+    fn from(e: Elem) -> SetItem {
+        match e {
+            Elem::Ch(c) => SetItem::Ch(c),
+            Elem::Class(k) => SetItem::Class(k),
+        }
+    }
+}
+
 fn is_identifier(s: &str) -> bool {
     let mut it = s.chars();
     match it.next() {
@@ -803,31 +812,65 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_escape(&mut self, start: usize) -> Result<Node, ReError> {
-        let c = match self.peek() {
-            Some(c) => c,
-            None => return Err(ReError::at("bad escape (end of pattern)", start)),
-        };
+    /// A letra depois da barra; sem ela, "bad escape (end of pattern)".
+    fn escaped(&mut self, start: usize) -> Result<char, ReError> {
+        let c = self.peek().ok_or_else(|| ReError::at("bad escape (end of pattern)", start))?;
         self.i += 1;
+        Ok(c)
+    }
+
+    /// Os escapes que valem igual dentro e fora de `[...]`: classes, controles e hexadecimais.
+    fn simple_escape(&mut self, c: char, start: usize) -> Result<Option<Elem>, ReError> {
+        let class = match c {
+            'd' => ClassKind::Digit,
+            'D' => ClassKind::NotDigit,
+            'w' => ClassKind::Word,
+            'W' => ClassKind::NotWord,
+            's' => ClassKind::Space,
+            'S' => ClassKind::NotSpace,
+            _ => {
+                let ch = match c {
+                    'a' => '\u{7}',
+                    'f' => '\u{c}',
+                    'n' => '\n',
+                    'r' => '\r',
+                    't' => '\t',
+                    'v' => '\u{b}',
+                    'x' => self.hex_esc(start, 2)?,
+                    'u' => self.hex_esc(start, 4)?,
+                    'U' => self.hex_esc(start, 8)?,
+                    _ => return Ok(None),
+                };
+                return Ok(Some(Elem::Ch(ch)));
+            }
+        };
+        Ok(Some(Elem::Class(class)))
+    }
+
+    /// Até dois dígitos octais a mais depois de `v`.
+    fn octal_tail(&mut self, mut v: u32) -> u32 {
+        for _ in 0..2 {
+            let Some(d) = self.peek().and_then(|d| d.to_digit(8)) else { break };
+            v = v * 8 + d;
+            self.i += 1;
+        }
+        v
+    }
+
+    fn parse_escape(&mut self, start: usize) -> Result<Node, ReError> {
+        let c = self.escaped(start)?;
         let fl = self.fl;
-        let class = |k: ClassKind| Node::Set(CharSet { negate: false, items: vec![SetItem::Class(k)], fl });
+        if let Some(e) = self.simple_escape(c, start)? {
+            return Ok(match e {
+                Elem::Ch(ch) => Node::Char(ch, fl),
+                Elem::Class(k) => Node::Set(CharSet { negate: false, items: vec![SetItem::Class(k)], fl }),
+            });
+        }
         match c {
             'A' => Ok(Node::Assert(AssertKind::StartText, fl)),
             'Z' => Ok(Node::Assert(AssertKind::EndText, fl)),
             'b' => Ok(Node::Assert(AssertKind::WordB, fl)),
             'B' => Ok(Node::Assert(AssertKind::NotWordB, fl)),
-            'd' => Ok(class(ClassKind::Digit)),
-            'D' => Ok(class(ClassKind::NotDigit)),
-            'w' => Ok(class(ClassKind::Word)),
-            'W' => Ok(class(ClassKind::NotWord)),
-            's' => Ok(class(ClassKind::Space)),
-            'S' => Ok(class(ClassKind::NotSpace)),
-            'a' => Ok(Node::Char('\u{7}', fl)),
-            'f' => Ok(Node::Char('\u{c}', fl)),
-            'n' => Ok(Node::Char('\n', fl)),
-            'r' => Ok(Node::Char('\r', fl)),
-            't' => Ok(Node::Char('\t', fl)),
-            'v' => Ok(Node::Char('\u{b}', fl)),
             'N' => {
                 if self.peek() != Some('{') {
                     return Err(ReError::at("missing {", self.i));
@@ -846,24 +889,7 @@ impl<'a> Parser<'a> {
                     None => Err(ReError::at(format!("undefined character name '{name}'"), start)),
                 }
             }
-            'x' => Ok(Node::Char(self.hex_esc(start, 2)?, fl)),
-            'u' => Ok(Node::Char(self.hex_esc(start, 4)?, fl)),
-            'U' => Ok(Node::Char(self.hex_esc(start, 8)?, fl)),
-            '0' => {
-                let mut v = 0u32;
-                let mut n = 0;
-                while n < 2 {
-                    match self.peek().and_then(|d| d.to_digit(8)) {
-                        Some(d) => {
-                            v = v * 8 + d;
-                            self.i += 1;
-                            n += 1;
-                        }
-                        None => break,
-                    }
-                }
-                Ok(Node::Char(char::from_u32(v).unwrap_or('\0'), fl))
-            }
+            '0' => Ok(Node::Char(char::from_u32(self.octal_tail(0)).unwrap_or('\0'), fl)),
             '1'..='9' => {
                 let mut g = c.to_digit(10).unwrap_or(0) as usize;
                 if let Some(d2) = self.peek() {
@@ -897,41 +923,14 @@ impl<'a> Parser<'a> {
     }
 
     fn class_escape(&mut self, start: usize) -> Result<Elem, ReError> {
-        let c = match self.peek() {
-            Some(c) => c,
-            None => return Err(ReError::at("bad escape (end of pattern)", start)),
-        };
-        self.i += 1;
+        let c = self.escaped(start)?;
+        if let Some(e) = self.simple_escape(c, start)? {
+            return Ok(e);
+        }
         match c {
-            'd' => Ok(Elem::Class(ClassKind::Digit)),
-            'D' => Ok(Elem::Class(ClassKind::NotDigit)),
-            'w' => Ok(Elem::Class(ClassKind::Word)),
-            'W' => Ok(Elem::Class(ClassKind::NotWord)),
-            's' => Ok(Elem::Class(ClassKind::Space)),
-            'S' => Ok(Elem::Class(ClassKind::NotSpace)),
-            'a' => Ok(Elem::Ch('\u{7}')),
             'b' => Ok(Elem::Ch('\u{8}')),
-            'f' => Ok(Elem::Ch('\u{c}')),
-            'n' => Ok(Elem::Ch('\n')),
-            'r' => Ok(Elem::Ch('\r')),
-            't' => Ok(Elem::Ch('\t')),
-            'v' => Ok(Elem::Ch('\u{b}')),
-            'x' => Ok(Elem::Ch(self.hex_esc(start, 2)?)),
-            'u' => Ok(Elem::Ch(self.hex_esc(start, 4)?)),
-            'U' => Ok(Elem::Ch(self.hex_esc(start, 8)?)),
             '0'..='7' => {
-                let mut v = c.to_digit(8).unwrap_or(0);
-                let mut n = 0;
-                while n < 2 {
-                    match self.peek().and_then(|d| d.to_digit(8)) {
-                        Some(d) => {
-                            v = v * 8 + d;
-                            self.i += 1;
-                            n += 1;
-                        }
-                        None => break,
-                    }
-                }
+                let v = self.octal_tail(c.to_digit(8).unwrap_or(0));
                 if v > 0o377 {
                     let esc: String = self.p[start..self.i].iter().collect();
                     return Err(ReError::at(format!("octal escape value {esc} outside of range 0-0o377"), start));
@@ -971,10 +970,7 @@ impl<'a> Parser<'a> {
                     return Err(ReError::at("unterminated character set", start));
                 }
                 if self.p[self.i + 1] == ']' {
-                    match lo {
-                        Elem::Ch(a) => items.push(SetItem::Ch(a)),
-                        Elem::Class(k) => items.push(SetItem::Class(k)),
-                    }
+                    items.push(lo.into());
                     items.push(SetItem::Ch('-'));
                     self.i += 1;
                     continue;
@@ -984,24 +980,16 @@ impl<'a> Parser<'a> {
                 let hc = self.p[self.i];
                 self.i += 1;
                 let hi = if hc == '\\' { self.class_escape(hs)? } else { Elem::Ch(hc) };
-                let lo_txt: String = self.p[es..lo_end].iter().collect();
-                let hi_txt: String = self.p[hs..self.i].iter().collect();
                 match (lo, hi) {
-                    (Elem::Ch(a), Elem::Ch(b)) => {
-                        if a > b {
-                            return Err(ReError::at(format!("bad character range {lo_txt}-{hi_txt}"), es));
-                        }
-                        items.push(SetItem::Range(a, b));
-                    }
+                    (Elem::Ch(a), Elem::Ch(b)) if a <= b => items.push(SetItem::Range(a, b)),
                     _ => {
+                        let lo_txt: String = self.p[es..lo_end].iter().collect();
+                        let hi_txt: String = self.p[hs..self.i].iter().collect();
                         return Err(ReError::at(format!("bad character range {lo_txt}-{hi_txt}"), es));
                     }
                 }
             } else {
-                match lo {
-                    Elem::Ch(a) => items.push(SetItem::Ch(a)),
-                    Elem::Class(k) => items.push(SetItem::Class(k)),
-                }
+                items.push(lo.into());
             }
         }
         Ok(Node::Set(CharSet { negate, items, fl }))
