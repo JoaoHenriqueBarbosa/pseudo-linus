@@ -1,0 +1,42 @@
+tool = "git"
+source = "agent-style"
+
+# git grep: árvore de trabalho, índice, trees e não rastreados; contexto, função, cabeçalho, contagem,
+# listas, binário, expressões com --and/--or/--not e os erros de opção e de padrão. Cada caso usa o
+# próprio diretório porque os casos dividem o container do oráculo.
+
+[[case]]
+id = "git-grep-modes"
+script = '''
+exec 2>&1
+mkdir /tmp/gg1 && cd /tmp/gg1 && git init -q && git config user.email a@b.c && git config user.name A
+mkdir -p src/sub docs
+printf 'def add(a, b):\n    return a + b\n\ndef Sub(a, b):\n    return a - b\n' > src/calc.py
+printf 'import calc\nprint(calc.add(1, 2))  # TODO\n' > src/sub/main.py
+printf 'Calc\n====\nTODO: docs\nreturn values\n' > docs/README.md
+printf 'bin\0ary return\n' > blob.bin
+git add . && git commit -qm init
+echo 'untracked return' > new.txt
+printf '# return changed\n' >> src/calc.py
+for a in "return" "-n return" "-c return" "-l return" "-L TODO" "-i sub" "-w calc" "-v -c return" "-h add" "-o -n 'a [+-] b'" "-E 'add|Sub'" "-F a+b" "--cached -n return" "return HEAD" "-n return HEAD -- src" "-e TODO -e add" "--untracked untracked" "-q return; echo q=\$?" "nomatch; echo rc=\$?" "-n -A1 add" "-C1 -n Calc" "--heading --break -n return" "-p add" "--count -i TODO" "-I return" "-a return" "-e add --or -e Sub" "--max-count 1 return" "-z -l return" "--column -n return" "--full-name return" "return -- '*.md'" "-n '^def' src/calc.py"; do echo "== git grep $a"; eval git grep $a; done
+cd src && echo "== in src" && git grep -n return && git grep -n return .. && git grep --full-name -l return
+cd /tmp && rm -rf /tmp/gg1
+'''
+tags = ["git", "grep"]
+
+[[case]]
+id = "git-grep-expr-context-errors"
+script = '''
+exec 2>&1
+mkdir /tmp/gg2 && cd /tmp/gg2 && git init -q && git config user.email a@b.c && git config user.name A
+mkdir -p src docs
+printf 'def add(a, b):\n    return a + b\n\nclass K:\n    def m(self):\n        x = 1\n        return x\n' > src/calc.py
+printf 'TODO: docs\n' > docs/README.md
+printf 'a\nb\nc\nd\ne\nf\ng\nh\n' > letters
+git add . && git commit -qm init
+for a in "-L TODO; echo rc=\$?" "-L -e docs -e a; echo rc=\$?" "; echo rc=\$?" "-e; echo rc=\$?" "--bogus x; echo rc=\$?" "x nope; echo rc=\$?" "x -- nope; echo rc=\$?" "'a\\(' ; echo rc=\$?" "-E 'a(' ; echo rc=\$?" "-p 'x = 1'" "-W 'x = 1'" "-n -2 d letters" "-B1 -A1 -n -e b -e f letters" "-c -e a -e b letters" "-e a --and -e b letters; echo rc=\$?" "--not -e a letters | head -2" "-n --show-function return" "-In -e return --and --not -e x" "--name-only TODO" "-ni todo" "--threads 2 TODO" "-F -x d letters" "-m1 -c a letters" "--files-with-matches TODO" "--line-number --ignore-case todo"; do echo "== git grep $a"; eval git grep $a; done
+cd src && echo "== sub" && git grep -n TODO HEAD; git grep -n return HEAD; git grep -l return HEAD -- ..; git grep TODO HEAD:docs; git grep return HEAD~0
+echo x > /tmp/gg2/src/new.py; git grep -n x --no-index . | head -3
+cd /tmp && rm -rf /tmp/gg2
+'''
+tags = ["git", "grep"]

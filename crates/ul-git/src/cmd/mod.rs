@@ -11,6 +11,7 @@ pub mod config_cmd;
 pub mod describe;
 pub mod diff_cmd;
 pub mod for_each_ref;
+pub mod grep;
 pub mod init;
 pub mod log;
 pub mod ls;
@@ -144,6 +145,7 @@ fn lookup(name: &str) -> Option<(Setup, CmdFn)> {
         "var" => (Setup::Gently, misc::var),
         "help" => (Setup::None, misc::help),
         "reflog" => (Setup::Repo, misc::reflog),
+        "grep" => (Setup::Gently, grep::run),
         _ => return None,
     })
 }

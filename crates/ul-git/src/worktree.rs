@@ -47,7 +47,7 @@ pub struct Scanner<'a> {
     pub show_empty_dirs: bool,
 }
 
-fn sorted_dir(path: &[u8]) -> Vec<(Vec<u8>, FileType)> {
+pub(crate) fn sorted_dir(path: &[u8]) -> Vec<(Vec<u8>, FileType)> {
     let p = if path.is_empty() { b".".as_slice() } else { path };
     let mut v: Vec<(Vec<u8>, FileType)> = match os::read_dir(p) {
         Ok(e) => e.into_iter().map(|d| (d.name, d.kind)).collect(),
@@ -57,7 +57,7 @@ fn sorted_dir(path: &[u8]) -> Vec<(Vec<u8>, FileType)> {
     v
 }
 
-fn join_rel(dir: &[u8], name: &[u8]) -> Vec<u8> {
+pub(crate) fn join_rel(dir: &[u8], name: &[u8]) -> Vec<u8> {
     if dir.is_empty() {
         name.to_vec()
     } else {
@@ -235,7 +235,12 @@ impl Scanner<'_> {
 
 /// Arquivos não rastreados (com `dir/` colapsado no modo normal), respeitando ignorados.
 pub fn untracked(repo: &Repo, idx: &Index, ps: &Pathspec, mode: UntrackedMode) -> Vec<Vec<u8>> {
-    let mut sc = Scanner { idx, ign: Ignores::standard(repo), ps, untracked: mode, ignored: IgnoredMode::No, show_empty_dirs: false };
+    untracked_using(Ignores::standard(repo), idx, ps, mode)
+}
+
+/// Os não rastreados com as regras de ignorar dadas (`Ignores::none()` traz os ignorados também).
+pub fn untracked_using(ign: Ignores, idx: &Index, ps: &Pathspec, mode: UntrackedMode) -> Vec<Vec<u8>> {
+    let mut sc = Scanner { idx, ign, ps, untracked: mode, ignored: IgnoredMode::No, show_empty_dirs: false };
     sc.run().untracked
 }
 
