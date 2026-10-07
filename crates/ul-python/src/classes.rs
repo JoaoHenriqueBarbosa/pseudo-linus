@@ -164,9 +164,6 @@ impl ExtObject for ClassMethod {
     fn descriptor(&self) -> Option<Descriptor> {
         Some(Descriptor::Class(self.0.clone()))
     }
-    fn call_method(&self, _vm: &mut Vm, name: &str, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
-        Err(exc("AttributeError", format!("'classmethod' object has no attribute '{name}'")))
-    }
 }
 
 struct Property {
@@ -430,9 +427,6 @@ impl ExtObject for ClassCell {
             _ => format!("<cell at 0x{:x}: empty>", crate::object::py_addr(Rc::as_ptr(&self.0) as usize)),
         }
     }
-    fn call_method(&self, _vm: &mut Vm, name: &str, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
-        Err(exc("AttributeError", format!("'cell' object has no attribute '{name}'")))
-    }
 }
 
 /// Resultado de `super()`: procura o atributo nas classes depois de `cls` na ordem de herança.
@@ -491,9 +485,6 @@ impl ExtObject for SuperProxy {
         }
         // Métodos herdados das classes embutidas (`object`, `Exception`).
         Some(Ok(Value::Ext(Rc::new(BuiltinSuperMethod { obj: self.obj.clone(), name: intern(name) }))))
-    }
-    fn call_method(&self, _vm: &mut Vm, name: &str, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
-        Err(exc("AttributeError", format!("'super' object has no attribute '{name}'")))
     }
 }
 

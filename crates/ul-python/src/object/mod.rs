@@ -136,14 +136,16 @@ pub trait ExtObject {
     fn setattr(&self, _name: &str, _value: Value) -> Option<Result<(), crate::vm::PyException>> {
         None
     }
-    /// Chama o método `name` (um dos de [`methods`]).
+    /// Chama o método `name` (um dos de [`methods`]); sem métodos, todo nome é `AttributeError`.
     fn call_method(
         &self,
-        vm: &mut crate::vm::Vm,
+        _vm: &mut crate::vm::Vm,
         name: &str,
-        args: Vec<Value>,
-        kw: Kw,
-    ) -> Result<Value, crate::vm::PyException>;
+        _args: Vec<Value>,
+        _kw: Kw,
+    ) -> Result<Value, crate::vm::PyException> {
+        Err(crate::vm::exc("AttributeError", format!("'{}' object has no attribute '{name}'", self.type_name())))
+    }
     /// Torna o objeto iterável: `Ok(None)` encerra o laço.
     fn is_iterable(&self) -> bool {
         false

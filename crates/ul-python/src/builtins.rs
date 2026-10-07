@@ -389,7 +389,7 @@ impl ExtObject for SeqIter {
     }
 
     fn repr(&self) -> String {
-        format!("<{} object at {:#x}>", self.kind, crate::object::py_addr(self as *const SeqIter as usize))
+        crate::lazy::object_repr(self.kind, self)
     }
 
     fn methods(&self) -> &'static [&'static str] {

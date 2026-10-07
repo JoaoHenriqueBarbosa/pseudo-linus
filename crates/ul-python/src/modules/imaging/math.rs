@@ -59,10 +59,6 @@ impl ExtObject for Capsule {
         };
         format!("<capsule object \"{}\" at 0x{:x}>", self.magic(), crate::object::py_addr(addr))
     }
-
-    fn call_method(&self, _vm: &mut Vm, name: &str, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
-        Err(exc("AttributeError", format!("'PyCapsule' object has no attribute '{name}'")))
-    }
 }
 
 /// A cápsula do `ImagingCore.ptr`.

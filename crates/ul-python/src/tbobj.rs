@@ -4,8 +4,8 @@
 
 use std::rc::Rc;
 
-use crate::object::{ExtObject, Kw, Value};
-use crate::vm::{exc, PyException, PyResult, Vm};
+use crate::object::{ExtObject, Value};
+use crate::vm::{PyException, PyResult, Vm};
 
 /// Uma entrada: linha e nome do código, do quadro mais externo para o mais interno.
 pub type Entries = Rc<Vec<crate::vm::TbEntry>>;
@@ -56,7 +56,7 @@ impl ExtObject for TracebackObj {
     }
 
     fn repr(&self) -> String {
-        format!("<traceback object at {:#x}>", crate::object::py_addr(self as *const Self as usize))
+        crate::lazy::object_repr("traceback", self)
     }
 
     fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
@@ -102,10 +102,6 @@ impl ExtObject for TracebackObj {
             return Some(Ok(()));
         }
         None
-    }
-
-    fn call_method(&self, _vm: &mut Vm, name: &str, _args: Vec<Value>, _kw: Kw) -> Result<Value, PyException> {
-        Err(exc("AttributeError", format!("'traceback' object has no attribute '{name}'")))
     }
 }
 
@@ -177,10 +173,6 @@ impl ExtObject for FrameObj {
             "f_locals" | "f_builtins" => Value::dict(crate::object::Dict::new()),
             _ => return None,
         }))
-    }
-
-    fn call_method(&self, _vm: &mut Vm, name: &str, _args: Vec<Value>, _kw: Kw) -> Result<Value, PyException> {
-        Err(exc("AttributeError", format!("'frame' object has no attribute '{name}'")))
     }
 }
 
@@ -263,9 +255,5 @@ impl ExtObject for CodeObject {
                 }
             }
         }))
-    }
-
-    fn call_method(&self, _vm: &mut Vm, name: &str, _args: Vec<Value>, _kw: Kw) -> Result<Value, PyException> {
-        Err(exc("AttributeError", format!("'code' object has no attribute '{name}'")))
     }
 }

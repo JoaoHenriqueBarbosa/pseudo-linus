@@ -740,10 +740,6 @@ impl ExtObject for FinditerObj {
         "callable_iterator"
     }
 
-    fn call_method(&self, _vm: &mut Vm, name: &str, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
-        Err(exc("AttributeError", format!("'callable_iterator' object has no attribute '{name}'")))
-    }
-
     fn is_iterable(&self) -> bool {
         true
     }

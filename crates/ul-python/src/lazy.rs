@@ -16,7 +16,7 @@ fn next_method(it: &dyn ExtObject, name: &str) -> PyResult<Value> {
 }
 
 /// O `repr` padrão de um objeto: `<tipo object at 0x...>`.
-fn object_repr<T>(kind: &str, obj: &T) -> String {
+pub(crate) fn object_repr<T>(kind: &str, obj: &T) -> String {
     format!("<{kind} object at {:#x}>", crate::object::py_addr(obj as *const T as usize))
 }
 
