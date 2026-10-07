@@ -786,6 +786,19 @@ impl Vm {
             _ => None,
         };
         let user_new_defined = user_new.is_some();
+        // Metaclasse sem `__new__` próprio: `Meta(nome, bases, ns)` é o `type.__new__` com a
+        // metaclasse, seguido do `__init__` dela, se houver.
+        if cls.is_meta && !user_new_defined && args.len() == 3 {
+            let mut full = vec![Value::Class(cls.clone())];
+            full.extend(args.iter().cloned());
+            let made = type_new(self, full, kw.clone())?;
+            if let Some(Value::Function(f)) = cls.lookup("__init__") {
+                let mut init = vec![made.clone()];
+                init.extend(args);
+                self.call_function(&f, init, kw)?;
+            }
+            return Ok(made);
+        }
         let fresh = Rc::new(InstanceObj {
             class: cls.clone(),
             view: Default::default(),

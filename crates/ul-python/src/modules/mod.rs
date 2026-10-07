@@ -31,6 +31,7 @@ pub mod weakrefmod;
 pub mod lsprof;
 pub mod mtrandom;
 pub mod textwrap;
+pub mod ucd;
 pub mod unicodedata;
 pub mod userimport;
 pub mod zlibnative;
@@ -110,6 +111,123 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     Some(m)
 }
 
+/// `import nome` como o `importlib._bootstrap._find_and_load`: devolve o que estiver em `sys.modules`
+/// (módulo ou objeto qualquer) e, se o nome não existir no disco nem embutido, pergunta aos finders
+/// que o programa pôs em `sys.meta_path` (o `_SixMetaPathImporter` do `six`, por exemplo). Finders
+/// postos antes do `PathFinder` são consultados antes da busca em `sys.path`.
+pub fn import_value(vm: &mut Vm, name: &str) -> PyResult<Value> {
+    if let Some(m) = vm.modules.borrow().get(name) {
+        return Ok(Value::Module(m.clone()));
+    }
+    if let Some(v) = vm.foreign_modules.borrow().get(name).cloned() {
+        return Ok(v);
+    }
+    let mut parent_path = Value::None;
+    if let Some((parent, _)) = name.rsplit_once('.') {
+        let p = import_value(vm, parent)?;
+        if let Some(m) = vm.modules.borrow().get(name) {
+            return Ok(Value::Module(m.clone()));
+        }
+        if let Some(v) = vm.foreign_modules.borrow().get(name).cloned() {
+            return Ok(v);
+        }
+        if let Ok(path) = vm.load_attr(&p, "__path__") {
+            parent_path = path;
+        }
+    }
+    let (before, after) = meta_path_finders(vm);
+    for finder in &before {
+        if let Some(v) = load_with_finder(vm, finder, name, &parent_path)? {
+            return Ok(v);
+        }
+    }
+    match import_checked(vm, name) {
+        Ok(m) => return Ok(Value::Module(m)),
+        Err(e) if e.kind == "ModuleNotFoundError" && !after.is_empty() => {
+            for finder in &after {
+                if let Some(v) = load_with_finder(vm, finder, name, &parent_path)? {
+                    return Ok(v);
+                }
+            }
+            Err(e)
+        }
+        Err(e) => Err(e),
+    }
+}
+
+/// Os finders do programa em `sys.meta_path`, separados em antes e depois do `PathFinder` (os três
+/// importadores padrão ficam de fora: o interpretador já faz o trabalho deles).
+fn meta_path_finders(vm: &mut Vm) -> (Vec<Value>, Vec<Value>) {
+    let Some(sys) = vm.modules.borrow().get("sys").cloned() else { return (Vec::new(), Vec::new()) };
+    let Ok(Value::List(list)) = vm.load_attr(&Value::Module(sys), "meta_path") else {
+        return (Vec::new(), Vec::new());
+    };
+    let entries = list.borrow().clone();
+    let (mut before, mut after, mut seen_path) = (Vec::new(), Vec::new(), false);
+    for entry in entries {
+        if let Value::Class(c) = &entry {
+            let standard = matches!(c.name.as_str(), "BuiltinImporter" | "FrozenImporter" | "PathFinder")
+                && matches!(
+                    vm.load_attr(&entry, "__module__"),
+                    Ok(Value::Str(m)) if m.as_str().starts_with("_frozen_importlib")
+                );
+            if standard {
+                seen_path |= c.name.as_str() == "PathFinder";
+                continue;
+            }
+        }
+        if seen_path { after.push(entry) } else { before.push(entry) }
+    }
+    (before, after)
+}
+
+/// `finder.find_spec(nome, path)` e, se achou, cria o módulo pelo loader, registra em `sys.modules`
+/// e roda `exec_module`, como o `_load_unlocked` do CPython.
+fn load_with_finder(vm: &mut Vm, finder: &Value, name: &str, path: &Value) -> PyResult<Option<Value>> {
+    let Ok(find_spec) = vm.load_attr(finder, "find_spec") else { return Ok(None) };
+    let spec = vm.call_value(&find_spec, vec![Value::str(name), path.clone(), Value::None], Vec::new())?;
+    if matches!(spec, Value::None) {
+        return Ok(None);
+    }
+    let loader = vm.load_attr(&spec, "loader")?;
+    let mut module = Value::None;
+    if let Ok(create) = vm.load_attr(&loader, "create_module") {
+        module = vm.call_value(&create, vec![spec.clone()], Vec::new())?;
+    }
+    if matches!(module, Value::None) {
+        module = vm.call_value(&Value::Builtin("module"), vec![Value::str(name)], Vec::new())?;
+    }
+    for (attr, value) in [("__spec__", spec.clone()), ("__loader__", loader.clone())] {
+        if !matches!(vm.load_attr(&module, attr), Ok(ref v) if !matches!(v, Value::None)) {
+            let _ = vm.store_attr(&module, attr, value);
+        }
+    }
+    register(vm, name, &module);
+    if let Ok(exec) = vm.load_attr(&loader, "exec_module") {
+        if let Err(e) = vm.call_value(&exec, vec![module.clone()], Vec::new()) {
+            vm.modules.borrow_mut().remove(name);
+            vm.foreign_modules.borrow_mut().remove(name);
+            return Err(e);
+        }
+    }
+    // O loader pode ter trocado a entrada de `sys.modules` durante a execução.
+    if let Some(m) = vm.modules.borrow().get(name) {
+        return Ok(Some(Value::Module(m.clone())));
+    }
+    Ok(Some(vm.foreign_modules.borrow().get(name).cloned().unwrap_or(module)))
+}
+
+fn register(vm: &mut Vm, name: &str, value: &Value) {
+    match value {
+        Value::Module(m) => {
+            vm.modules.borrow_mut().insert(name.to_string(), m.clone());
+        }
+        other => {
+            vm.foreign_modules.borrow_mut().insert(name.to_string(), other.clone());
+        }
+    }
+}
+
 /// `import nome` vindo do programa: arquivos do usuário em `sys.path` primeiro (como o CPython), depois
 /// os módulos embutidos. Importa os pais de `a.b.c` antes.
 pub fn import_checked(vm: &mut Vm, name: &str) -> PyResult<Rc<ModuleObj>> {
@@ -123,7 +241,9 @@ pub fn import_checked(vm: &mut Vm, name: &str) -> PyResult<Rc<ModuleObj>> {
         return Ok(m);
     }
     if let Some((parent, _)) = name.rsplit_once('.') {
-        import_checked(vm, parent)?;
+        if !vm.foreign_modules.borrow().contains_key(parent) {
+            import_checked(vm, parent)?;
+        }
         if let Some(m) = vm.modules.borrow().get(name) {
             return Ok(m.clone());
         }
@@ -133,7 +253,15 @@ pub fn import_checked(vm: &mut Vm, name: &str) -> PyResult<Rc<ModuleObj>> {
     }
     match import(vm, name) {
         Some(m) => Ok(m),
-        None => Err(pysrc::take_error().unwrap_or_else(|| exc("ModuleNotFoundError", format!("No module named '{name}'")))),
+        None => {
+            if let Some(e) = pysrc::take_error() {
+                return Err(e);
+            }
+            match userimport::load_stdlib(vm, name)? {
+                Some(m) => Ok(m),
+                None => Err(exc("ModuleNotFoundError", format!("No module named '{name}'"))),
+            }
+        }
     }
 }
 

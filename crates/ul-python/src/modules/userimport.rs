@@ -132,8 +132,9 @@ fn join(dir: &str, leaf: &str) -> String {
     format!("{}/{leaf}", base.trim_end_matches('/'))
 }
 
-/// Procura o módulo `name` no disco.
-fn find(vm: &mut Vm, name: &str) -> Option<Found> {
+/// Procura o módulo `name` no disco. Com `stdlib`, só vale o que mora nos diretórios da stdlib
+/// (lidos depois dos módulos embutidos); sem, esses diretórios são pulados.
+fn find(vm: &mut Vm, name: &str, stdlib: bool) -> Option<Found> {
     let (parent, leaf) = match name.rsplit_once('.') {
         Some((p, l)) => (Some(p), l),
         None => (None, name),
@@ -146,7 +147,7 @@ fn find(vm: &mut Vm, name: &str) -> Option<Found> {
     let mut namespace: Vec<String> = Vec::new();
     for dir in dirs {
         let pkg = join(&dir, leaf);
-        if is_embedded_location(&pkg) {
+        if is_embedded_location(&pkg) != stdlib {
             continue;
         }
         let init = join(&pkg, "__init__.py");
@@ -192,7 +193,19 @@ fn is_dir(path: &str) -> bool {
 
 /// Importa `name` de um arquivo, se existir. `Ok(None)`: não está no disco.
 pub fn load(vm: &mut Vm, name: &str) -> PyResult<Option<Rc<ModuleObj>>> {
-    let Some(found) = find(vm, name) else { return Ok(None) };
+    let found = find(vm, name, false);
+    load_found(vm, name, found)
+}
+
+/// Módulo da stdlib que o interpretador não traz embutido (o pacote `encodings`, por exemplo):
+/// roda o `.py` do CPython que está em `/usr/lib/python3.13`.
+pub fn load_stdlib(vm: &mut Vm, name: &str) -> PyResult<Option<Rc<ModuleObj>>> {
+    let found = find(vm, name, true);
+    load_found(vm, name, found)
+}
+
+fn load_found(vm: &mut Vm, name: &str, found: Option<Found>) -> PyResult<Option<Rc<ModuleObj>>> {
+    let Some(found) = found else { return Ok(None) };
     if !found.namespace.is_empty() {
         return Ok(Some(make_namespace(vm, name, found.namespace)));
     }

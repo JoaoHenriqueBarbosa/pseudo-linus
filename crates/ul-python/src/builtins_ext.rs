@@ -15,6 +15,8 @@ pub const TABLE: &[(&str, NativeFnPtr)] = &[
     ("vars", b_vars),
     ("dir", b_dir),
     ("globals", b_globals),
+    // Fora de função `locals()` é o mesmo dicionário das globais; dentro, o compilador emite `Op::Locals`.
+    ("locals", b_globals),
     ("format", b_format),
     ("input", b_input),
     ("exit", b_exit),

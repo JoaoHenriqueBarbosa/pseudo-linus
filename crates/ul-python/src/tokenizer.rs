@@ -282,34 +282,7 @@ fn is_xid_continue(c: char) -> bool {
     c.is_numeric() && !in_ranges(c, OTHER_NUMBER_RANGES)
 }
 
-/// `Py_UNICODE_ISPRINTABLE`, aproximado: exclui controles, separadores que não são o espaço,
-/// caracteres de formatação conhecidos e uso privado.
-fn is_printable(c: char) -> bool {
-    if c.is_ascii() {
-        return !(c < ' ' || c == '\x7f');
-    }
-    if c.is_control() || c.is_whitespace() {
-        return false;
-    }
-    let n = c as u32;
-    let format = matches!(
-        n,
-        0x00AD
-            | 0x0600..=0x0605
-            | 0x061C
-            | 0x06DD
-            | 0x070F
-            | 0x180E
-            | 0x200B..=0x200F
-            | 0x202A..=0x202E
-            | 0x2060..=0x2064
-            | 0x2066..=0x206F
-            | 0xFEFF
-            | 0xFFF9..=0xFFFB
-    );
-    let private = matches!(n, 0xE000..=0xF8FF | 0xF0000..=0x10FFFF);
-    !format && !private
-}
+use crate::object::is_printable;
 
 impl Tokenizer {
     /// Tokenizer sobre `source`. Como o `_PyTokenizer_translate_newlines`, `\r\n` e `\r` viram `\n` e

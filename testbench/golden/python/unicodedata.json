@@ -1,0 +1,20 @@
+{
+  "str-plane16-private-use": {
+    "stdout": "['0x10d800', '0x10dfff'] '\\U0010d800\\U0010dfff' 8 b'\\xf4\\x8d\\xa0\\x80\\xf4\\x8d\\xbf\\xbf'\nFalse False\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "unicodedata-digest": {
+    "stdout": "cur 15.1.0\ncur category bd6eecad47631810c792f669de880a96\ncur bidirectional eb7998fe4ce15e3221bea900b26a6f27\ncur east_asian_width 0a08f413ca11cb78ea09c9b25ce49990\ncur combining 7155e94b0c74da889683de8274fc539e\ncur mirrored 098c7027bad02229e37740510848dfe8\ncur decomposition 7368f8d8631df8d1309d9d680e6e125a\ncur decimal 69a8bb4c72640663e07f91fadc711fce\ncur digit a1f3922979ec8ae07e5906474af5c071\ncur numeric a9cfec123618bcf7211a7c26fd7c207f\ncur name fd9ec3166c2374fa97594ea92da3359a\ncur NFC 3f08bdc423945e19494b236a761a734e\ncur NFD a405cfe6a2f792a8cc2471222df0ac17\ncur NFKC 9e65712ba0b0921719f65f4610cbba7e\ncur NFKD a997d5ced6c22392de0b6ffbcc0f821a\nold 3.2.0\nold category 54aed6f017cab55a9f32f7f95ba5fb88\nold bidirectional 68c384f43dd7d3af0327c6b3d8d4f47c\nold east_asian_width 3fee4b4faac2d58c58c414dff563208b\nold combining 552650407878b3407e6eeeb48f55d482\nold mirrored 371a547d999c919b091923373f20d518\nold decomposition a16a811c29d093a0414df97831aeae1b\nold decimal f9093bc28ef79fff003bd20dca6a07c7\nold digit a1f3922979ec8ae07e5906474af5c071\nold numeric 745e0db39c11d03b2e55bc8e286ce82e\nold name 968f15054426a976b8f0db1a35207fe2\nold NFC ce9b3f19d327035b1389192247c82f46\nold NFD 3ac5e1977e6fe885298ffb6fabcd9d78\nold NFKC c7cb593fce60fb9bfdc5524421d80fd5\nold NFKD e0454427fe5f21d42d3d48be307fb9f9\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "unicodedata-samples": {
+    "stdout": "['0x327', '0x350', '0x301'] ['0x327', '0x350', '0x301']\n['0x1e9b', '0x323'] ['0x73', '0x323', '0x307']\n['0xac01'] ['0x1100', '0x1161', '0x11a8']\n['0xc5'] ['0x41', '0x30a']\na 각 ﻿\nKeyError \"undefined character name 'hangul syllable gag'\"\nKeyError \"undefined character name 'CJK UNIFIED IDEOGRAPH-4e00'\"\nKeyError \"undefined character name 'cjk unified ideograph-4E00'\"\n一 a\nCJK UNIFIED IDEOGRAPH-20000 1000000.0 0 Cn\nW W 36FC\nKeyError \"undefined character name 'BYTE ORDER MARK'\"\n'\\u0378́\\U0010fffd' False True\nb'xn--bcher-kva.example'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

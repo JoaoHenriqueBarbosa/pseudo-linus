@@ -853,6 +853,9 @@ pub struct Vm {
     pub(crate) std_files: [Rc<RefCell<Native>>; 3],
     /// Módulos já importados, por nome.
     pub(crate) modules: Rc<RefCell<HashMap<String, Rc<crate::object::ModuleObj>>>>,
+    /// Entradas de `sys.modules` que não são módulos (a instância de uma subclasse de
+    /// `types.ModuleType`, o importador do `six`...): `import nome` devolve o próprio objeto.
+    pub(crate) foreign_modules: Rc<RefCell<HashMap<String, Value>>>,
     /// Globais vivas dos módulos carregados de arquivo (por nome): `mod.x` lê e grava aqui, então
     /// o módulo e quem o importou enxergam o mesmo estado.
     pub(crate) module_globals: Rc<RefCell<HashMap<&'static str, Rc<RefCell<crate::object::VarMap>>>>>,
@@ -957,6 +960,7 @@ impl Vm {
             frames: Rc::new(RefCell::new(Vec::new())),
             argv: Rc::new(argv),
             modules: Rc::new(RefCell::new(HashMap::new())),
+            foreign_modules: Rc::new(RefCell::new(HashMap::new())),
             module_globals: Rc::new(RefCell::new(HashMap::new())),
             std_files: [file(FileKind::Stdin, "<stdin>"), file(FileKind::Stdout, "<stdout>"), file(FileKind::Stderr, "<stderr>")],
         };
@@ -2285,14 +2289,14 @@ impl Vm {
             }
             Op::Import(i) => {
                 let name = &code.names[i as usize];
-                let m = crate::modules::import_checked(self, name)?;
-                stack.push(Slot::Val(Value::Module(m)));
+                let m = crate::modules::import_value(self, name)?;
+                stack.push(Slot::Val(m));
             }
             Op::ImportRel { name, level } => {
                 let rel = &code.names[name as usize];
                 let abs = crate::modules::resolve_relative(self, rel, level as usize)?;
-                let m = crate::modules::import_checked(self, &abs)?;
-                stack.push(Slot::Val(Value::Module(m)));
+                let m = crate::modules::import_value(self, &abs)?;
+                stack.push(Slot::Val(m));
             }
             Op::ImportStar => {
                 let Value::Module(m) = pop(stack)? else {
@@ -2340,15 +2344,33 @@ impl Vm {
                             _ => "?",
                         };
                         // `from pacote import submodulo`: importa o submódulo.
+                        let foreign_name = match &obj {
+                            Value::Module(_) => None,
+                            other => match self.load_attr(other, "__name__") {
+                                Ok(Value::Str(s)) => Some(s.as_str().to_string()),
+                                _ => None,
+                            },
+                        };
+                        if let Some(parent) = foreign_name {
+                            let full = format!("{parent}.{name}");
+                            match crate::modules::import_value(self, &full) {
+                                Ok(sub) => {
+                                    stack.push(Slot::Val(sub));
+                                    return Ok(None);
+                                }
+                                Err(e) if !(e.kind == "ModuleNotFoundError") => return Err(e),
+                                Err(_) => {}
+                            }
+                        }
                         if let Value::Module(m) = &obj {
                             if m.attrs.borrow().contains_key("__path__")
                                 || self.module_globals.borrow().get(m.name).is_some_and(|g| g.borrow().contains_key("__path__"))
                                 || crate::modules::is_embedded_package(m.name)
                             {
                                 let full = format!("{module}.{name}");
-                                match crate::modules::import_checked(self, &full) {
+                                match crate::modules::import_value(self, &full) {
                                     Ok(sub) => {
-                                        stack.push(Slot::Val(Value::Module(sub)));
+                                        stack.push(Slot::Val(sub));
                                         return Ok(None);
                                     }
                                     // O submódulo existe mas falhou ao rodar: a exceção dele sobe.
@@ -2790,7 +2812,7 @@ impl Vm {
         Ok(text.chars().count())
     }
 
-    fn load_attr(&mut self, obj: &Value, name: &str) -> PyResult<Value> {
+    pub(crate) fn load_attr(&mut self, obj: &Value, name: &str) -> PyResult<Value> {
         let missing = || {
             exc("AttributeError", format!("'{}' object has no attribute '{name}'", obj.type_name()))
         };

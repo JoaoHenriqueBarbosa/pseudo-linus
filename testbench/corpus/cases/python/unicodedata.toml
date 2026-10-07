@@ -1,0 +1,71 @@
+tool = "python3"
+source = "manual"
+
+# O `unicodedata` do CPython 3.13 (Unicode 15.1.0) e o `ucd_3_2_0` que o `stringprep` e o codec
+# `idna` usam: propriedades, nomes, normalização e `repr()` de caracteres não atribuídos. Os
+# resumos cobrem um a cada cinco código-pontos, fora os surrogates e o trecho U+10D800..U+10DFFF,
+# que tem caso próprio (`str-plane16-private-use`).
+
+[[case]]
+id = "unicodedata-digest"
+script = '''
+python3 - <<'PYEOF'
+import hashlib, unicodedata
+FUNCS = ['category', 'bidirectional', 'east_asian_width', 'combining', 'mirrored', 'decomposition']
+DEF = ['decimal', 'digit', 'numeric', 'name']
+FORMS = ['NFC', 'NFD', 'NFKC', 'NFKD']
+for label, db in [('cur', unicodedata), ('old', unicodedata.ucd_3_2_0)]:
+    print(label, db.unidata_version)
+    for f in FUNCS + DEF + FORMS:
+        h = hashlib.md5()
+        for cp in range(0, 0x110000, 5):
+            if 0xD800 <= cp <= 0xDFFF or 0x10D800 <= cp <= 0x10DFFF:
+                continue
+            c = chr(cp)
+            if f in FUNCS:
+                v = getattr(db, f)(c)
+            elif f in DEF:
+                v = getattr(db, f)(c, None)
+            else:
+                v = db.normalize(f, c + '̧́')
+            h.update(repr(v).encode())
+        print(label, f, h.hexdigest())
+PYEOF
+'''
+
+[[case]]
+id = "unicodedata-samples"
+script = '''
+python3 - <<'PYEOF'
+import unicodedata as u, stringprep
+o = u.ucd_3_2_0
+for s in ['̧͐́', 'ẛ̣', '각', 'Å']:
+    print([hex(ord(c)) for c in u.normalize('NFC', s)], [hex(ord(c)) for c in o.normalize('NFKD', s)])
+print(u.lookup('LATIN SMALL LETTER A'), u.lookup('HANGUL SYLLABLE GAG'), u.lookup('BYTE ORDER MARK'))
+for n in ['hangul syllable gag', 'CJK UNIFIED IDEOGRAPH-4e00', 'cjk unified ideograph-4E00']:
+    try:
+        u.lookup(n)
+    except KeyError as e:
+        print('KeyError', e)
+print(u.lookup('CJK UNIFIED IDEOGRAPH-4E00'), u.lookup('latin small letter a'))
+print(u.name('\U00020000'), u.numeric('兆'), o.digit('߀', None), o.category('͸'))
+print(o.east_asian_width('﩮'), u.east_asian_width('﩮'), o.decomposition('\U0002f868'))
+try:
+    o.lookup('BYTE ORDER MARK')
+except KeyError as e:
+    print('KeyError', e)
+print(repr('͸́\U0010fffd'), '͸'.isprintable(), stringprep.in_table_b1('­'))
+print('bücher.example'.encode('idna'))
+PYEOF
+'''
+
+# U+10D800..U+10DFFF são caracteres de uso privado comuns, distintos dos surrogates U+D800..U+DFFF.
+[[case]]
+id = "str-plane16-private-use"
+script = '''
+python3 - <<'PYEOF'
+s = chr(0x10D800) + chr(0x10DFFF)
+print([hex(ord(c)) for c in s], ascii(s), len(s.encode()), s.encode())
+print(chr(0x10D800) == chr(0xD800), s.isprintable())
+PYEOF
+'''

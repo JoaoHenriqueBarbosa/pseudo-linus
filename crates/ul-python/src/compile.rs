@@ -2157,7 +2157,8 @@ impl Compiler {
                     self.emit(Op::Call { argc: 2, kwnames: None });
                     return Ok(());
                 }
-                if let (E::Name { id, .. }, true, true, true) = (&func.kind, args.is_empty(), keywords.is_empty(), self.code.is_function)
+                if let (E::Name { id, .. }, true, true, true) =
+                    (&func.kind, args.is_empty(), keywords.is_empty(), self.code.is_function || self.in_class_body)
                     && id == "locals"
                 {
                     self.at(&expr.pos);

@@ -910,59 +910,7 @@ pub fn str_repr(s: &str) -> String {
     out
 }
 
-/// `str.isprintable` para código-pontos fora do ASCII imprimível: falso nas categorias Cc, Cf, Co,
-/// Zl, Zp e Zs (exceto o espaço, já tratado), nos não-caracteres e nos planos sem atribuição.
-/// Código-pontos Cn espalhados dentro de blocos atribuídos dependem da tabela do `unicodedata`.
-fn is_printable(c: char) -> bool {
-    let v = c as u32;
-    const NOT_PRINTABLE: &[(u32, u32)] = &[
-        // Cc
-        (0x00, 0x1f),
-        (0x7f, 0x9f),
-        // Zs
-        (0xa0, 0xa0),
-        (0x1680, 0x1680),
-        (0x2000, 0x200a),
-        (0x202f, 0x202f),
-        (0x205f, 0x205f),
-        (0x3000, 0x3000),
-        // Zl, Zp
-        (0x2028, 0x2029),
-        // Cf
-        (0xad, 0xad),
-        (0x600, 0x605),
-        (0x61c, 0x61c),
-        (0x6dd, 0x6dd),
-        (0x70f, 0x70f),
-        (0x890, 0x891),
-        (0x8e2, 0x8e2),
-        (0x180e, 0x180e),
-        (0x200b, 0x200f),
-        (0x202a, 0x202e),
-        (0x2060, 0x2064),
-        (0x2066, 0x206f),
-        (0xfeff, 0xfeff),
-        (0xfff9, 0xfffb),
-        (0x110bd, 0x110bd),
-        (0x110cd, 0x110cd),
-        (0x13430, 0x1343f),
-        (0x1bca0, 0x1bca3),
-        (0x1d173, 0x1d17a),
-        (0xe0001, 0xe0001),
-        (0xe0020, 0xe007f),
-        // Co
-        (0xe000, 0xf8ff),
-        (0xf0000, 0x10ffff),
-        // Cn: não-caracteres do BMP e planos sem atribuição
-        (0xfdd0, 0xfdef),
-        (0x40000, 0xdffff),
-        (0xe0080, 0xeffff),
-    ];
-    if v & 0xfffe == 0xfffe {
-        return false;
-    }
-    !NOT_PRINTABLE.iter().any(|&(lo, hi)| v >= lo && v <= hi)
-}
+use crate::object::is_printable;
 
 /// `repr()` de `bytes` (`bytes_repr` do `Objects/bytesobject.c`).
 pub fn bytes_repr(b: &[u8]) -> String {

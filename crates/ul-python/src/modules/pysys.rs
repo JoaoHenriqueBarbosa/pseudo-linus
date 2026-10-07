@@ -121,17 +121,30 @@ fn is_builtin_module(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value>
 
 /// `sys.modules[nome] = módulo`: o `import nome` seguinte enxerga o módulo.
 fn set_module(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
-    let (Some(Value::Str(name)), Some(Value::Module(m))) = (args.first(), args.get(1)) else {
+    let (Some(Value::Str(name)), Some(value)) = (args.first(), args.get(1)) else {
         return Ok(Value::Bool(false));
     };
-    vm.modules.borrow_mut().insert(name.as_str().to_string(), m.clone());
+    let name = name.as_str().to_string();
+    match value {
+        Value::Module(m) => {
+            vm.foreign_modules.borrow_mut().remove(&name);
+            vm.modules.borrow_mut().insert(name, m.clone());
+        }
+        other => {
+            // Um objeto qualquer no lugar do módulo: o `import` seguinte o devolve.
+            vm.modules.borrow_mut().remove(&name);
+            vm.foreign_modules.borrow_mut().insert(name, other.clone());
+        }
+    }
     Ok(Value::Bool(true))
 }
 
 /// `del sys.modules[nome]`: `True` se o módulo estava carregado.
 fn pop_module(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     let Some(Value::Str(name)) = args.first() else { return Ok(Value::Bool(false)) };
-    Ok(Value::Bool(vm.modules.borrow_mut().remove(name.as_str()).is_some()))
+    let module = vm.modules.borrow_mut().remove(name.as_str()).is_some();
+    let foreign = vm.foreign_modules.borrow_mut().remove(name.as_str()).is_some();
+    Ok(Value::Bool(module || foreign))
 }
 
 fn getrecursionlimit(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
@@ -166,11 +179,12 @@ fn modules_snapshot(vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> 
     // O `__main__` vivo (globais do script), o mesmo que `import __main__` devolve.
     super::import_checked(vm, "__main__")?;
     let mut d = crate::object::Dict::new();
-    let mut names: Vec<(String, Rc<ModuleObj>)> =
-        vm.modules.borrow().iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+    let mut names: Vec<(String, Value)> =
+        vm.modules.borrow().iter().map(|(k, v)| (k.clone(), Value::Module(v.clone()))).collect();
+    names.extend(vm.foreign_modules.borrow().iter().map(|(k, v)| (k.clone(), v.clone())));
     names.sort_by(|a, b| a.0.cmp(&b.0));
     for (name, m) in names {
-        d.set(Value::str(name), Value::Module(m))?;
+        d.set(Value::str(name), m)?;
     }
     Ok(Value::dict(d))
 }
