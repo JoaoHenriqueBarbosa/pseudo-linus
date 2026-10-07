@@ -138,6 +138,23 @@ pub const STRING_IGNORE_CASE: u32 = STRING_IGNORE_LOWERCASE | STRING_IGNORE_UPPE
 pub const STRING_DEFAULT_RANGE: u32 = 100;
 pub const INDIRECT_RELATIVE: u32 = 1 << 0;
 
+/// Os modificadores de string (`/W`, `/c`...) que só ligam um bit, em qualquer tipo de string.
+const STRING_FLAGS: &[(u8, u32)] = &[
+    (b'W', STRING_COMPACT_WHITESPACE),
+    (b'w', STRING_COMPACT_OPTIONAL_WHITESPACE),
+    (b'c', STRING_IGNORE_LOWERCASE),
+    (b'C', STRING_IGNORE_UPPERCASE),
+    (b's', REGEX_OFFSET_START),
+    (b'b', STRING_BINTEST),
+    (b't', STRING_TEXTTEST),
+    (b'T', STRING_TRIM),
+    (b'f', STRING_FULL_WORD),
+];
+
+/// Os modificadores do tamanho do prefixo de uma pstring; um só vale por vez.
+const PSTRING_LENS: &[(u8, u32)] =
+    &[(b'B', PSTRING_1_LE), (b'H', PSTRING_2_BE), (b'h', PSTRING_2_LE), (b'L', PSTRING_4_BE), (b'l', PSTRING_4_LE)];
+
 // ---- operadores de máscara e de indireção ----
 pub const FILE_OPAND: u8 = 0;
 pub const FILE_OPOR: u8 = 1;
@@ -1340,16 +1357,18 @@ impl Loader {
         m.mask_op |= op;
         let c = strtoull(tail(s, *l), 0);
         *l += c.used;
-        m.u = match signextend(m, c.value) {
-            Some(v) => v,
-            None => {
-                if self.check {
-                    self.magwarn(format!("cannot happen: m->type={}\n", m.typ));
-                }
-                FILE_BADSIZE
-            }
-        };
+        m.u = self.signextend_checked(m, c.value);
         eatsize(s, l);
+    }
+
+    /// `file_signextend`, com o aviso do C quando o tipo não tem tamanho.
+    fn signextend_checked(&mut self, m: &Magic, v: u64) -> u64 {
+        signextend(m, v).unwrap_or_else(|| {
+            if self.check {
+                self.magwarn(format!("cannot happen: m->type={}\n", m.typ));
+            }
+            FILE_BADSIZE
+        })
     }
 
     fn parse_string_modifier(&mut self, m: &mut Magic, s: &[u8], l: &mut usize) -> bool {
@@ -1360,73 +1379,39 @@ impl Loader {
             if is_space(c) {
                 break;
             }
-            let mut bad = false;
-            match c {
-                b'0'..=b'9' => {
-                    if have_range && self.check {
-                        self.magwarn("multiple ranges".into());
-                    }
-                    have_range = true;
-                    let conv = strtoul(tail(s, *l), 0);
-                    m.set_str_range(conv.value as u32);
-                    if m.str_range() == 0 {
-                        self.magwarn("zero range".into());
-                    }
-                    *l += conv.used - 1;
+            let flag = |table: &[(u8, u32)]| table.iter().find(|&&(k, _)| k == c).map(|&(_, f)| f);
+            let bad = if let Some(f) = flag(STRING_FLAGS) {
+                m.set_str_flags(m.str_flags() | f);
+                false
+            } else if let Some(len) = flag(PSTRING_LENS) {
+                // `/l` também serve à regex: conta linhas em vez de bytes.
+                let ok = m.typ == FILE_PSTRING || (c == b'l' && m.typ == FILE_REGEX);
+                if ok {
+                    m.set_str_flags((m.str_flags() & !PSTRING_LEN) | len);
                 }
-                b'W' => m.set_str_flags(m.str_flags() | STRING_COMPACT_WHITESPACE),
-                b'w' => m.set_str_flags(m.str_flags() | STRING_COMPACT_OPTIONAL_WHITESPACE),
-                b'c' => m.set_str_flags(m.str_flags() | STRING_IGNORE_LOWERCASE),
-                b'C' => m.set_str_flags(m.str_flags() | STRING_IGNORE_UPPERCASE),
-                b's' => m.set_str_flags(m.str_flags() | REGEX_OFFSET_START),
-                b'b' => m.set_str_flags(m.str_flags() | STRING_BINTEST),
-                b't' => m.set_str_flags(m.str_flags() | STRING_TEXTTEST),
-                b'T' => m.set_str_flags(m.str_flags() | STRING_TRIM),
-                b'f' => m.set_str_flags(m.str_flags() | STRING_FULL_WORD),
-                b'B' => {
-                    if m.typ != FILE_PSTRING {
-                        bad = true;
-                    } else {
-                        m.set_str_flags((m.str_flags() & !PSTRING_LEN) | PSTRING_1_LE);
+                !ok
+            } else {
+                match c {
+                    b'0'..=b'9' => {
+                        if have_range && self.check {
+                            self.magwarn("multiple ranges".into());
+                        }
+                        have_range = true;
+                        let conv = strtoul(tail(s, *l), 0);
+                        m.set_str_range(conv.value as u32);
+                        if m.str_range() == 0 {
+                            self.magwarn("zero range".into());
+                        }
+                        *l += conv.used - 1;
+                        false
                     }
-                }
-                b'H' => {
-                    if m.typ != FILE_PSTRING {
-                        bad = true;
-                    } else {
-                        m.set_str_flags((m.str_flags() & !PSTRING_LEN) | PSTRING_2_BE);
-                    }
-                }
-                b'h' => {
-                    if m.typ != FILE_PSTRING {
-                        bad = true;
-                    } else {
-                        m.set_str_flags((m.str_flags() & !PSTRING_LEN) | PSTRING_2_LE);
-                    }
-                }
-                b'L' => {
-                    if m.typ != FILE_PSTRING {
-                        bad = true;
-                    } else {
-                        m.set_str_flags((m.str_flags() & !PSTRING_LEN) | PSTRING_4_BE);
-                    }
-                }
-                b'l' => {
-                    if m.typ != FILE_PSTRING && m.typ != FILE_REGEX {
-                        bad = true;
-                    } else {
-                        m.set_str_flags((m.str_flags() & !PSTRING_LEN) | PSTRING_4_LE);
-                    }
-                }
-                b'J' => {
-                    if m.typ != FILE_PSTRING {
-                        bad = true;
-                    } else {
+                    b'J' if m.typ == FILE_PSTRING => {
                         m.set_str_flags(m.str_flags() | PSTRING_LENGTH_INCLUDES_ITSELF);
+                        false
                     }
+                    _ => true,
                 }
-                _ => bad = true,
-            }
+            };
             if bad {
                 if self.check {
                     self.magwarn(format!("string modifier `{}' invalid", c as char));
@@ -1525,18 +1510,12 @@ impl Loader {
         match m.typ {
             FILE_FLOAT | FILE_BEFLOAT | FILE_LEFLOAT => {
                 let c = strtof(tail(s, *l));
-                m.value[..4].copy_from_slice(&c.value.to_le_bytes());
-                if !c.overflow {
-                    *l += c.used;
-                }
+                store_float(m, &c.value.to_le_bytes(), c.used, c.overflow, l);
                 true
             }
             FILE_DOUBLE | FILE_BEDOUBLE | FILE_LEDOUBLE => {
                 let c = strtod(tail(s, *l));
-                m.value[..8].copy_from_slice(&c.value.to_le_bytes());
-                if !c.overflow {
-                    *l += c.used;
-                }
+                store_float(m, &c.value.to_le_bytes(), c.used, c.overflow, l);
                 true
             }
             FILE_GUID => {
@@ -1550,15 +1529,8 @@ impl Loader {
             _ => {
                 let c = strtoull(tail(s, *l), 0);
                 let mut ull = c.value;
-                m.set_value_q(match signextend(m, ull) {
-                    Some(v) => v,
-                    None => {
-                        if self.check {
-                            self.magwarn(format!("cannot happen: m->type={}\n", m.typ));
-                        }
-                        FILE_BADSIZE
-                    }
-                });
+                let v = self.signextend_checked(m, ull);
+                m.set_value_q(v);
                 if c.used == 0 {
                     let rest = String::from_utf8_lossy(cstr(tail(s, *l))).into_owned();
                     self.magwarn(format!("Unparsable number `{rest}'"));
@@ -1566,10 +1538,7 @@ impl Loader {
                 }
                 let ts = typesize(m.typ);
                 if ts == FILE_BADSIZE {
-                    self.magwarn(format!(
-                        "Expected numeric type got `{}'",
-                        TYPE_TBL.get(usize::from(m.typ)).map(|t| t.0).unwrap_or("?")
-                    ));
+                    self.magwarn(format!("Expected numeric type got `{}'", type_name(m.typ)));
                     return false;
                 }
                 let mut q = *l;
@@ -1579,25 +1548,19 @@ impl Loader {
                 if at(s, q) == b'-' && ull != u64::MAX {
                     ull = (ull as i64).wrapping_neg() as u64;
                 }
+                // O que sobra acima da largura do tipo, e se isso não é só a extensão de sinal.
                 let (x, y) = match ts {
-                    1 => {
-                        let x = ull & !0xff;
-                        (x, (x & !0xff) != !0xff)
-                    }
-                    2 => {
-                        let x = ull & !0xffff;
-                        (x, (x & !0xffff) != !0xffff)
-                    }
-                    4 => {
-                        let x = ull & !0xffff_ffff;
-                        (x, (x & !0xffff_ffff) != !0xffff_ffff)
+                    1 | 2 | 4 => {
+                        let high = !((1u64 << (8 * ts)) - 1);
+                        let x = ull & high;
+                        (x, x != high)
                     }
                     _ => (0, false),
                 };
                 if x != 0 && y {
                     self.magwarn(format!(
                         "Overflow for numeric type `{}' value {:#x}",
-                        TYPE_TBL.get(usize::from(m.typ)).map(|t| t.0).unwrap_or("?"),
+                        type_name(m.typ),
                         ull
                     ));
                     return false;
@@ -2027,6 +1990,14 @@ fn get_cond(s: &[u8], l: &mut usize) -> u8 {
         }
     }
     COND_NONE
+}
+
+/// O valor de um `float`/`double` da regra; com overflow, o cursor não anda (como o `strtof` do C).
+fn store_float(m: &mut Magic, bytes: &[u8], used: usize, overflow: bool, l: &mut usize) {
+    m.value[..bytes.len()].copy_from_slice(bytes);
+    if !overflow {
+        *l += used;
+    }
 }
 
 /// `eatsize()`: sufixo de tamanho de um número (`10UL`).
