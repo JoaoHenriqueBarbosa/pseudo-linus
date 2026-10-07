@@ -5,8 +5,6 @@ _completer = None
 _delims = ' \t\n`~!@#$%^&*()-=+[{]}\\|;:\'",<>/?'
 _history_length = -1
 
-__doc__ = 'readline sem terminal: histórico em memória, sem edição de linha.'
-
 
 def parse_and_bind(string):
     pass

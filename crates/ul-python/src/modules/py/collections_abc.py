@@ -46,6 +46,32 @@ _INSTANCE_CHECKS = {
     'Hashable': _is_hashable,
 }
 
+_CALLABLE_TYPES = frozenset({
+    'function', 'builtin_function_or_method', 'method', 'method-wrapper', 'wrapper_descriptor',
+    'method_descriptor', 'classmethod_descriptor', 'type',
+})
+_ITERATOR_TYPES = frozenset({
+    'generator', 'enumerate', 'zip', 'map', 'filter', 'reversed', 'callable_iterator',
+})
+
+
+def _native_abcs(subclass):
+    """As ABCs que um tipo nativo do CPython (iterador, gerador, função) satisfaz pelos seus slots."""
+    if getattr(subclass, '__module__', None) != 'builtins':
+        return ()
+    name = getattr(subclass, '__name__', '')
+    if name in _CALLABLE_TYPES:
+        return ('Callable',)
+    if name == 'generator':
+        return ('Generator', 'Iterator', 'Iterable')
+    if name.endswith('iterator') or name in _ITERATOR_TYPES:
+        return ('Iterator', 'Iterable')
+    if name == 'coroutine':
+        return ('Coroutine', 'Awaitable')
+    if name == 'async_generator':
+        return ('AsyncGenerator', 'AsyncIterator', 'AsyncIterable')
+    return ()
+
 
 class _Builtins(ABCMeta):
     """Metaclasse que conhece quais tipos embutidos satisfazem a interface."""
@@ -63,6 +89,8 @@ class _Builtins(ABCMeta):
 
     def __subclasscheck__(cls, subclass):
         if subclass in cls._builtins_:
+            return True
+        if cls.__module__ == __name__ and cls.__name__ in _native_abcs(subclass):
             return True
         return ABCMeta.__subclasscheck__(cls, subclass)
 

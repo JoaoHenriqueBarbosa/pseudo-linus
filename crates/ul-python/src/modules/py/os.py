@@ -539,6 +539,42 @@ def getppid():
     return _os.getppid()
 
 
+def umask(mask, /):
+    """Set the current numeric umask and return the previous umask."""
+    return _os.umask(mask)
+
+
+def _as_fd(fd):
+    if isinstance(fd, int):
+        return fd
+    fileno = getattr(fd, 'fileno', None)
+    if fileno is None:
+        raise TypeError('argument must be an int, or have a fileno() method.')
+    fd = fileno()
+    if not isinstance(fd, int):
+        raise TypeError('fileno() returned a non-integer')
+    if fd < 0:
+        raise ValueError('file descriptor cannot be a negative integer (%d)' % fd)
+    return fd
+
+
+def fsync(fd):
+    """Force write of fd to disk.
+
+    fd
+      Either an integer file descriptor, or an object with a fileno() method."""
+    _os.fsync(_as_fd(fd))
+
+
+def fdatasync(fd):
+    """Force write of fd to disk without forcing update of metadata."""
+    _os.fsync(_as_fd(fd))
+
+
+def sync():
+    """Force write of everything to disk."""
+
+
 def _exit(status):
     """Sai na hora: descarrega os fluxos, mas não roda as funções do `atexit`."""
     import sys

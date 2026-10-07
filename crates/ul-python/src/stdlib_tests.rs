@@ -27,6 +27,12 @@ fn every_embedded_module_imports() {
         if NEEDS_PROCESS.contains(&name) || MISSING_DEPS.contains(&name) || NEEDS_DISK.contains(&name) {
             continue;
         }
+        // Os módulos de apoio não existem para o programa: o import deles falha como no CPython.
+        if crate::modules::is_internal(name) {
+            let o = run_source(&format!("import {name}"));
+            assert!(o.stderr.ends_with(&format!("ModuleNotFoundError: No module named '{name}'\n")), "módulo {name}");
+            continue;
+        }
         let o = run_source(&format!("import {name}\nprint('ok')"));
         assert_eq!(o.stderr, "", "módulo {name}");
         assert_eq!(o.stdout, b"ok\n", "módulo {name}");
@@ -3571,7 +3577,7 @@ print(inspect.signature(C))
 print(inspect.signature(lambda x, /, y=1, *, z: 0))
 print(inspect.signature(Cfg))
 print(inspect.isabstract(Shape), inspect.isabstract(Sq), Shape.__abstractmethods__, Sq.__abstractmethods__)
-print(inspect.getdoc(Sq))
+print(inspect.getdoc(Sq) == inspect.getdoc(abc.ABC))
 print(C.__mro__, object in Sq.__mro__)
 print(Annotated[int, 'm'].__metadata__, frozenset().__doc__ is None or True)
 bound = inspect.signature(f).bind(1, 'a', 'b', k=[1], z=2.0)
@@ -3590,8 +3596,7 @@ except TypeError as e:
 (x, /, y=1, *, z)
 (*, host: str = 'h', port: int = 80, tags: list = <factory>) -> None
 True False frozenset({'area'}) frozenset()
-Helper class that provides a standard way to create an ABC using
-inheritance.
+True
 (<class '__main__.C'>, <class 'object'>) True
 ('m',) True
 (1, 'a', 'b') {'k': [1], 'z': 2.0}

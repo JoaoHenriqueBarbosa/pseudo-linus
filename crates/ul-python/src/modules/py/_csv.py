@@ -3,7 +3,6 @@
 import _csvimpl
 
 __version__ = "1.0"
-__doc__ = "CSV parsing and writing."
 
 QUOTE_MINIMAL = _csvimpl.QUOTE_MINIMAL
 QUOTE_ALL = _csvimpl.QUOTE_ALL

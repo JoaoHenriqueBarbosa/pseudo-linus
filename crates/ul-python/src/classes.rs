@@ -65,7 +65,7 @@ impl ExtObject for Property {
         Some(Descriptor::Property { get: self.get.clone(), set: self.set.clone(), del: self.del.clone() })
     }
     fn methods(&self) -> &'static [&'static str] {
-        &["setter", "getter", "deleter"]
+        &["setter", "getter", "deleter", "__get__", "__set__", "__delete__"]
     }
     fn getattr(&self, vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
         match name {
@@ -90,7 +90,44 @@ impl ExtObject for Property {
         }
         None
     }
-    fn call_method(&self, _vm: &mut Vm, name: &str, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    fn call_method(&self, vm: &mut Vm, name: &str, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+        // Chamadas diretas ao protocolo de descritor (`prop.__set__(obj, v)`), como o `ssl.py` faz.
+        match name {
+            "__get__" => {
+                let (obj, rest) = match args.split_first() {
+                    Some((o, r)) if r.len() <= 1 => (o.clone(), r.len()),
+                    _ => return Err(type_error(format!("expected 1 or 2 arguments, got {}", args.len()))),
+                };
+                let _ = rest;
+                if matches!(obj, Value::None) {
+                    return Ok(Value::Ext(Rc::new(Property {
+                        get: self.get.clone(),
+                        set: self.set.clone(),
+                        del: self.del.clone(),
+                        doc: RefCell::new(self.doc.borrow().clone()),
+                    })));
+                }
+                if matches!(self.get, Value::None) {
+                    return Err(exc("AttributeError", "property has no getter"));
+                }
+                return vm.call_value(&self.get, vec![obj], kw);
+            }
+            "__set__" => {
+                let [obj, value] = <[Value; 2]>::try_from(args)
+                    .map_err(|a| type_error(format!("expected 2 arguments, got {}", a.len())))?;
+                let Some(set) = &self.set else { return Err(exc("AttributeError", "property has no setter")) };
+                vm.call_value(set, vec![obj, value], kw)?;
+                return Ok(Value::None);
+            }
+            "__delete__" => {
+                let [obj] = <[Value; 1]>::try_from(args)
+                    .map_err(|a| type_error(format!("expected 1 argument, got {}", a.len())))?;
+                let Some(del) = &self.del else { return Err(exc("AttributeError", "property has no deleter")) };
+                vm.call_value(del, vec![obj], kw)?;
+                return Ok(Value::None);
+            }
+            _ => {}
+        }
         let [f] = <[Value; 1]>::try_from(args).map_err(|a| {
             type_error(format!("{name}() takes exactly one argument ({} given)", a.len()))
         })?;
@@ -207,6 +244,68 @@ impl ExtObject for FileExit {
     }
 }
 
+/// `object()`: a instância do tipo `object` em si, sem `__dict__` e com igualdade e hash por identidade.
+struct PlainObject;
+
+impl ExtObject for PlainObject {
+    fn type_name(&self) -> &'static str {
+        "object"
+    }
+    fn repr(&self) -> String {
+        format!("<object object at 0x{:x}>", self as *const PlainObject as usize)
+    }
+    fn methods(&self) -> &'static [&'static str] {
+        &["__eq__", "__ne__", "__hash__", "__repr__", "__str__", "__format__", "__sizeof__", "__getstate__", "__init__"]
+    }
+    fn setattr(&self, name: &str, _value: Value) -> Option<PyResult<()>> {
+        Some(Err(exc(
+            "AttributeError",
+            format!("'object' object has no attribute '{name}' and no __dict__ for setting new attributes"),
+        )))
+    }
+    fn call_method(&self, vm: &mut Vm, name: &str, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+        let me = self as *const PlainObject as usize;
+        let same = |v: &Value| matches!(v, Value::Ext(e) if Rc::as_ptr(e) as *const () as usize == me);
+        match (name, args.as_slice()) {
+            ("__eq__", [other]) => Ok(if same(other) { Value::Bool(true) } else { Value::Builtin("NotImplemented") }),
+            ("__ne__", [other]) => Ok(if same(other) { Value::Bool(false) } else { Value::Builtin("NotImplemented") }),
+            ("__hash__", []) => Ok(Value::Int((me >> 4) as i64)),
+            ("__repr__" | "__str__", []) => Ok(Value::str(self.repr())),
+            ("__format__", [Value::Str(spec)]) if spec.as_str().is_empty() => Ok(Value::str(self.repr())),
+            ("__format__", [_]) => Err(type_error("unsupported format string passed to object.__format__")),
+            ("__sizeof__", []) => Ok(Value::Int(16)),
+            ("__init__", []) => Ok(Value::None),
+            ("__getstate__", []) => Ok(Value::None),
+            _ => Err(exc("AttributeError", format!("'object' object has no attribute '{name}'"))),
+        }
+    }
+    fn hash_value(&self) -> Option<i64> {
+        Some(((self as *const PlainObject as usize) >> 4) as i64)
+    }
+}
+
+/// A célula `__class__` que o corpo de uma classe passa em `__classcell__`: o escopo que os métodos
+/// capturam, onde `type.__new__` grava a classe criada.
+struct ClassCell(Rc<Env>);
+
+impl ExtObject for ClassCell {
+    fn type_name(&self) -> &'static str {
+        "cell"
+    }
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
+    fn repr(&self) -> String {
+        match self.0.vars.borrow().get("__class__") {
+            Some(Value::Class(c)) => format!("<cell at 0x{:x}: type object at 0x{:x}>", Rc::as_ptr(&self.0) as usize, Rc::as_ptr(c) as usize),
+            _ => format!("<cell at 0x{:x}: empty>", Rc::as_ptr(&self.0) as usize),
+        }
+    }
+    fn call_method(&self, _vm: &mut Vm, name: &str, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+        Err(exc("AttributeError", format!("'cell' object has no attribute '{name}'")))
+    }
+}
+
 /// Resultado de `super()`: procura o atributo nas classes depois de `cls` na ordem de herança.
 struct SuperProxy {
     obj: Value,
@@ -216,6 +315,15 @@ struct SuperProxy {
 impl ExtObject for SuperProxy {
     fn type_name(&self) -> &'static str {
         "super"
+    }
+    fn repr(&self) -> String {
+        // Como o `super_repr` do CPython: a classe e o nome do tipo do receptor.
+        let recv = match &self.obj {
+            Value::Instance(i) => i.class.name.clone(),
+            Value::Class(c) => c.meta.as_ref().map_or_else(|| "type".to_string(), |m| m.name.clone()),
+            other => other.type_name().to_string(),
+        };
+        format!("<super: <class '{}'>, <{recv} object>>", self.cls.name)
     }
     fn getattr(&self, vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
         if let Value::Class(recv) = &self.obj {
@@ -596,9 +704,16 @@ impl Vm {
         }
         let orig_bases = (expanded.len() != bases.len() || any_entries).then(|| Value::tuple(bases.clone()));
         let bases = expanded;
-        let class_env = Env::new(env.capture(), true, false);
+        // Como no CPython, os métodos enxergam a classe pela variável livre `__class__` (é dela que o
+        // `super()` sem argumentos tira a classe): um escopo só com ela fica entre o corpo e o de fora,
+        // e `type.__new__` a preenche ao receber `__classcell__`.
+        let cell_env = Env::new(env.capture(), false, false);
+        let class_env = Env::new(Some(cell_env.clone()), true, false);
         self.exec(body, &class_env)?;
         let mut ns = namespace_of(&class_env);
+        if body.uses_class_cell {
+            ns.push(("__classcell__".to_string(), Value::Ext(Rc::new(ClassCell(cell_env)))));
+        }
         if let Some(orig) = orig_bases {
             ns.push(("__orig_bases__".to_string(), orig));
         }
@@ -655,6 +770,8 @@ impl Vm {
         let named: Vec<(String, Value)> =
             ns.iter().filter(|(_, v)| matches!(v, Value::Instance(_))).cloned().collect();
         let mut ns = ns;
+        // `__classcell__` não vira atributo: a célula recebe a classe criada.
+        let cell = ns.iter().position(|(k, _)| k == "__classcell__").map(|i| ns.remove(i).1);
         // Como `type.__new__`: o `__qualname__` do corpo sai do espaço de nomes e vira atributo do tipo.
         let qualname = match ns.iter().position(|(k, _)| k == "__qualname__") {
             Some(i) => match ns.remove(i).1 {
@@ -678,6 +795,19 @@ impl Vm {
             base.subclasses.borrow_mut().push(Rc::downgrade(&cls));
         }
         let owner = Value::Class(cls.clone());
+        if let Some(cell) = cell {
+            let target = match &cell {
+                Value::Ext(e) => e.as_any().and_then(|a| a.downcast_ref::<ClassCell>()).map(|c| c.0.clone()),
+                _ => None,
+            };
+            match target {
+                Some(env) => env.set("__class__", owner.clone()),
+                None => {
+                    let ty = crate::object::repr(&self.type_of(&cell));
+                    return Err(type_error(format!("__classcell__ must be a nonlocal cell, not {ty}")));
+                }
+            }
+        }
         for (k, v) in named {
             if let Value::Instance(i) = &v {
                 if i.class.lookup("__set_name__").is_some() {
@@ -1343,7 +1473,11 @@ impl Vm {
             other => {
                 // Os tipos de dados são os mesmos valores que os nomes globais `int`, `dict`...
                 let n = other.type_name();
-                crate::builtins::get(n).unwrap_or_else(|| Value::Builtin(intern(n)))
+                crate::builtins::get(n).unwrap_or_else(|| {
+                    let n = intern(n);
+                    crate::object::register_native_type(n);
+                    Value::Builtin(n)
+                })
             }
         }
     }
@@ -1579,26 +1713,7 @@ impl Vm {
                 Ok(Value::Ext(Rc::new(Property::new(get, set, del))))
             }
             "super" => match args.as_slice() {
-                // `super()` sem argumentos vira `super(self, "Classe")` no compilador.
-                [obj, Value::Str(cname)] => {
-                    let mro = match obj {
-                        Value::Instance(inst) => inst.class.mro(),
-                        // `super()` num método de metaclasse (`__call__`): a busca segue o MRO da metaclasse.
-                        Value::Class(c) => {
-                            let own = c.mro();
-                            match &c.meta {
-                                Some(m) if !own.iter().any(|x| x.name == cname.as_str()) => m.mro(),
-                                _ => own,
-                            }
-                        }
-                        _ => return Err(type_error("super(): __self__ is not an instance")),
-                    };
-                    let cls = mro
-                        .into_iter()
-                        .find(|c| c.name == cname.as_str())
-                        .ok_or_else(|| exc("RuntimeError", "super(): __class__ cell not found"))?;
-                    Ok(Value::Ext(Rc::new(SuperProxy { obj: obj.clone(), cls })))
-                }
+                // `super()` sem argumentos vira `super(__class__, primeiro_parâmetro)` no compilador.
                 [Value::Class(cls), obj] => Ok(Value::Ext(Rc::new(SuperProxy { obj: obj.clone(), cls: cls.clone() }))),
                 _ => Err(exc("RuntimeError", "super(): no arguments")),
             },
@@ -1611,26 +1726,10 @@ impl Vm {
                 _ => Err(type_error("type() takes 1 or 3 arguments")),
             },
             "object" => {
-                if !args.is_empty() {
+                if !args.is_empty() || !kw.is_empty() {
                     return Err(type_error("object() takes no arguments"));
                 }
-                let base = Rc::new(ClassObj {
-                    qualname: "object".to_string(),
-                    name: "object".to_string(),
-                    bases: Vec::new(),
-                    builtin_base: None,
-                    data_base: None,
-                    meta: None,
-                    is_meta: false,
-                    dict: RefCell::new(Default::default()),
-                    subclasses: RefCell::new(Vec::new()),
-                });
-                Ok(Value::Instance(Rc::new(InstanceObj {
-                    class: base,
-                    view: Default::default(),
-                    dict: RefCell::new(Default::default()),
-                    payload: RefCell::new(None),
-                })))
+                Ok(Value::Ext(Rc::new(PlainObject)))
             }
             _ => Err(type_error(format!("'{name}' object is not callable"))),
         }

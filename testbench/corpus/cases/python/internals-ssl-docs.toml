@@ -1,0 +1,57 @@
+tool = "python3"
+source = "manual"
+
+# Módulos que não existem no CPython não podem ser importados nem aparecer em `sys.modules`; o
+# `_ssl` responde como o C do CPython; as docstrings dos módulos são as do CPython.
+
+[[case]]
+id = "internal-modules-absent"
+script = '''
+python3 - <<'PYEOF'
+import sys, asyncio, random, csv, re, zlib, base64
+for n in ['_os', '_sys', '_mt', '_net', '_archive', '_archivefile', '_prof', '_csvimpl', '_re',
+          '_base64', '_zlib', '_ast_native', '_match', '_memoryview', '_complex', '_excgroup',
+          'asyncio.loopback']:
+    try:
+        __import__(n)
+        print(n, 'importado')
+    except ImportError as e:
+        print(n, type(e).__name__, e)
+    print(n, n in sys.modules)
+PYEOF
+'''
+
+[[case]]
+id = "ssl-surface"
+script = '''
+python3 - <<'PYEOF'
+import ssl, _ssl
+print(ssl.OPENSSL_VERSION_INFO[:2], ssl.HAS_TLSv1_3, ssl.PROTOCOL_TLS_CLIENT)
+ctx = ssl.create_default_context()
+print(ctx.verify_mode, ctx.check_hostname, ctx.minimum_version)
+print(ctx.cert_store_stats()['x509_ca'] > 0)
+print(ssl.SSLError.__module__, ssl.SSLWantReadError.__mro__[1].__name__)
+i, o = ssl.MemoryBIO(), ssl.MemoryBIO()
+s = ctx.wrap_bio(i, o, server_hostname='example.com')
+try:
+    s.do_handshake()
+except ssl.SSLWantReadError as e:
+    print(e)
+print(o.pending > 0)
+print(ssl.get_default_verify_paths().openssl_cafile)
+PYEOF
+'''
+
+[[case]]
+id = "module-docstrings"
+script = '''
+python3 - <<'PYEOF'
+import os, abc, json, random, csv, pdb
+print(abc.ABC.__doc__)
+print(json.dumps.__doc__.splitlines()[0])
+print(random.Random.__doc__.splitlines()[0])
+print(csv.reader.__doc__.splitlines()[0])
+print(pdb.__doc__.splitlines()[1])
+print(os.makedirs.__doc__.splitlines()[0])
+PYEOF
+'''

@@ -112,11 +112,21 @@ fn b_dir(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::list(names.into_iter().map(Value::str).collect()))
 }
 
+/// Os atributos do tipo `object` no CPython 3.13.
+const OBJECT_ATTRS: &[&str] = &[
+    "__class__", "__delattr__", "__dir__", "__doc__", "__eq__", "__format__", "__ge__", "__getattribute__", "__getstate__",
+    "__gt__", "__hash__", "__init__", "__init_subclass__", "__le__", "__lt__", "__ne__", "__new__", "__reduce__",
+    "__reduce_ex__", "__repr__", "__setattr__", "__sizeof__", "__str__", "__subclasshook__",
+];
+
 /// Nomes de atributos de `obj` (ou das globais, sem argumento), na ordem em que o `dir()` os junta.
 pub(crate) fn dir_names(vm: &mut Vm, obj: Option<&Value>) -> Vec<String> {
     let mut names: Vec<String> = Vec::new();
     match obj {
         None => names.extend(vm.globals.borrow().keys().map(|k| k.to_string())),
+        // `dir(object)` e `dir(object())`: os slots do tipo `object` do CPython.
+        Some(Value::Builtin("object")) => names.extend(OBJECT_ATTRS.iter().map(|s| (*s).to_string())),
+        Some(Value::Ext(e)) if e.type_name() == "object" => names.extend(OBJECT_ATTRS.iter().map(|s| (*s).to_string())),
         Some(t @ (Value::Builtin(_) | Value::NativeFn(_))) if crate::builtins::class_name(t).is_some() => {
             names.extend(probe_type_attrs(vm, t).into_iter().map(|(n, _)| n));
         }
@@ -199,6 +209,12 @@ fn b_import(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     };
     let wants_leaf = a[3].as_ref().is_some_and(Value::is_true);
     let full = if level > 0 { crate::modules::resolve_relative(vm, &name, level)? } else { name };
+    // Só código embutido importa os módulos de apoio; o `importlib.import_module` repassa o nome
+    // que o programa pediu, então não conta como embutido.
+    let trusted = vm.frames.borrow().last().is_some_and(|(c, _)| c.internal && c.name != "import_module");
+    if !trusted && crate::modules::is_internal(&full) {
+        return Err(crate::vm::exc("ModuleNotFoundError", format!("No module named '{full}'")));
+    }
     // Importa a cadeia inteira (`a.b.c` carrega `a`, `a.b`, `a.b.c`); sem `fromlist` devolve a raiz.
     let leaf = crate::modules::import_checked(vm, &full)?;
     if wants_leaf || level > 0 {

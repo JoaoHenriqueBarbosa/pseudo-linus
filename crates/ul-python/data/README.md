@@ -27,3 +27,15 @@ e1254413a6d686eb473c85b0d14b1f7350eaa30858238b51ea01c7bc87afc472  unicode-15.1.0
 ce19f35ffca911bf492aab6c0d3f6af3d1932f35d2064cf2fe14e10be29534cb  unicode-3.2.0/EastAsianWidth-3.2.0.txt
 1d3a450d0f39902710df4972ac4a60ec31fbcb54ffd4d53cd812fc1200c732cb  unicode-3.2.0/CompositionExclusions-3.2.0.txt
 ```
+
+# Docstrings dos módulos em C do CPython
+
+`cpython-docs/runtime.tsv` tem as docstrings que o CPython 3.13 do Debian 13 expõe em tempo de
+execução e que o fonte em Python do disco não dá: tudo dos módulos escritos em C (`sys`,
+`itertools`, `_socket`, `_ssl`...) e, nos módulos com `.py`, o que vem de um acelerador em C
+(`bisect.bisect` é do `_bisect`, `heapq.heappush` do `_heapq`). O `src/modules/cpydocs.rs` monta as
+docstrings dos módulos embutidos a partir do `.py` do CPython na imagem e desta tabela, nunca do
+fonte embutido.
+
+A tabela é gerada no oráculo da bancada por `cpython-docs/extract.py` (o comando está no cabeçalho
+do script); para atualizar, rode de novo com a lista de módulos e confira o diff.

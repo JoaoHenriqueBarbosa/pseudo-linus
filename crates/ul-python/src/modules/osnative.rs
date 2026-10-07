@@ -325,6 +325,24 @@ fn getppid(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::Int(i64::from(sys::current().getppid())))
 }
 
+/// `os.fsync(fd)` (e `fdatasync`): grava no disco o que o descritor tem pendente.
+fn fsync(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("fsync", &kw)?;
+    let fd = Fd(want_int(arg("fsync", &args, 0)?)? as i32);
+    sys::current().fsync(fd).map_err(|e| os_error(e, None))?;
+    Ok(Value::None)
+}
+
+/// `os.umask(mask)`: troca a máscara de criação do processo e devolve a anterior.
+fn umask(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("umask", &kw)?;
+    if args.len() != 1 {
+        return Err(type_error(format!("umask() takes exactly one argument ({} given)", args.len())));
+    }
+    let mask = want_int(&args[0])?;
+    Ok(Value::Int(i64::from(sys::current().umask((mask as u32) & 0o777))))
+}
+
 fn ftruncate(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("ftruncate", &kw)?;
     let fd = Fd(want_int(arg("ftruncate", &args, 0)?)? as i32);
@@ -724,6 +742,8 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
         .func("isatty", isatty)
         .func("getpid", getpid)
         .func("getppid", getppid)
+        .func("umask", umask)
+        .func("fsync", fsync)
         .func("ftruncate", ftruncate)
         .func("clock", clock)
         .func("sleep", sleep)

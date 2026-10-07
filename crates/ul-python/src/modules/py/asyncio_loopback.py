@@ -14,15 +14,23 @@ from . import tasks
 from . import transports
 from . import trsock
 from . import futures
+from . import protocols
 from .log import logger
 
 __all__ = ()
+
+
+def _check_ssl_socket(sock):
+    import ssl
+    if isinstance(sock, ssl.SSLSocket):
+        raise TypeError("Socket cannot be of type SSLSocket")
 
 
 class _SelectorSocketTransport(transports.Transport):
     """`_SelectorSocketTransport` sem buffer de escrita: a escrita na ponta do par é imediata."""
 
     max_size = 256 * 1024
+    _start_tls_compatible = True
 
     def __init__(self, loop, sock, protocol, waiter=None, extra=None, server=None):
         super().__init__(extra)
@@ -106,11 +114,17 @@ class _SelectorSocketTransport(transports.Transport):
                 if ep.rx or ep.reset or (ep.rx_eof and not self._eof_received):
                     self._wake()
                 try:
-                    self._protocol.data_received(data)
+                    if isinstance(self._protocol, protocols.BufferedProtocol):
+                        self._deliver_buffered(data)
+                    else:
+                        self._protocol.data_received(data)
                 except (SystemExit, KeyboardInterrupt):
                     raise
                 except BaseException as exc:
-                    self._fatal_error(exc, 'Fatal error: protocol.data_received() call failed.')
+                    if isinstance(self._protocol, protocols.BufferedProtocol):
+                        self._fatal_error(exc, 'Fatal error: protocol.buffer_updated() call failed.')
+                    else:
+                        self._fatal_error(exc, 'Fatal error: protocol.data_received() call failed.')
                     return
             return
         if ep.rx_eof and not self._eof_received:
@@ -124,6 +138,18 @@ class _SelectorSocketTransport(transports.Transport):
                 return
             if not keep_open:
                 self.close()
+
+    def _deliver_buffered(self, data):
+        """`_read_ready__get_buffer` do CPython: os dados vão para o buffer que o protocolo empresta."""
+        view = memoryview(data)
+        while view:
+            buf = self._protocol.get_buffer(-1)
+            if not len(buf):
+                raise RuntimeError('get_buffer() returned an empty buffer')
+            n = min(len(buf), len(view))
+            buf[:n] = view[:n]
+            view = view[n:]
+            self._protocol.buffer_updated(n)
 
     def pause_reading(self):
         if self._closing or self._paused:
@@ -273,8 +299,8 @@ class NetworkMixin:
             raise ValueError('ssl_handshake_timeout is only meaningful with ssl')
         if ssl_shutdown_timeout is not None and not ssl:
             raise ValueError('ssl_shutdown_timeout is only meaningful with ssl')
-        if ssl:
-            raise NotImplementedError('TLS não é suportado pelo laço de eventos do sandbox')
+        if sock is not None:
+            _check_ssl_socket(sock)
         if happy_eyeballs_delay is not None and interleave is None:
             interleave = 1
         if host is not None or port is not None:
@@ -320,7 +346,9 @@ class NetworkMixin:
                 raise ValueError('host and port was not specified and no sock specified')
             if sock.type != socket.SOCK_STREAM:
                 raise ValueError(f'A Stream Socket was expected, got {sock!r}')
-        return await self._create_connection_transport(sock, protocol_factory)
+        return await self._create_connection_transport(
+            sock, protocol_factory, ssl, server_hostname, ssl_handshake_timeout=ssl_handshake_timeout,
+            ssl_shutdown_timeout=ssl_shutdown_timeout)
 
     async def _connect_hops(self):
         # `sock_connect` do CPython: EINPROGRESS e, na iteração seguinte, o callback do escritor (um evento de
@@ -329,11 +357,19 @@ class NetworkMixin:
         self._add_io(futures._set_result_unless_cancelled, fut, None)
         await fut
 
-    async def _create_connection_transport(self, sock, protocol_factory):
+    async def _create_connection_transport(self, sock, protocol_factory, ssl=None, server_hostname=None,
+                                           server_side=False, ssl_handshake_timeout=None,
+                                           ssl_shutdown_timeout=None):
         sock.setblocking(False)
         protocol = protocol_factory()
         waiter = self.create_future()
-        transport = self._make_socket_transport(sock, protocol, waiter)
+        if ssl:
+            sslcontext = None if isinstance(ssl, bool) else ssl
+            transport = self._make_ssl_transport(
+                sock, protocol, sslcontext, waiter, server_side=server_side, server_hostname=server_hostname,
+                ssl_handshake_timeout=ssl_handshake_timeout, ssl_shutdown_timeout=ssl_shutdown_timeout)
+        else:
+            transport = self._make_socket_transport(sock, protocol, waiter)
         try:
             await waiter
         except:
@@ -341,13 +377,65 @@ class NetworkMixin:
             raise
         return transport, protocol
 
+    def _make_ssl_transport(self, rawsock, protocol, sslcontext, waiter=None, *, server_side=False,
+                            server_hostname=None, extra=None, server=None,
+                            ssl_handshake_timeout=constants.SSL_HANDSHAKE_TIMEOUT,
+                            ssl_shutdown_timeout=constants.SSL_SHUTDOWN_TIMEOUT):
+        # O `SSLProtocol` do CPython fica entre o transporte do socket e o protocolo da aplicação.
+        from . import sslproto
+        ssl_protocol = sslproto.SSLProtocol(
+            self, protocol, sslcontext, waiter, server_side, server_hostname,
+            ssl_handshake_timeout=ssl_handshake_timeout, ssl_shutdown_timeout=ssl_shutdown_timeout)
+        _SelectorSocketTransport(self, rawsock, ssl_protocol, extra=extra, server=server)
+        return ssl_protocol._app_transport
+
+    async def start_tls(self, transport, protocol, sslcontext, *, server_side=False, server_hostname=None,
+                        ssl_handshake_timeout=None, ssl_shutdown_timeout=None):
+        """Upgrade transport to TLS.
+
+        Return a new transport that *protocol* should start using
+        immediately.
+        """
+        import ssl
+        from . import sslproto
+        if not isinstance(sslcontext, ssl.SSLContext):
+            raise TypeError(
+                f'sslcontext is expected to be an instance of ssl.SSLContext, '
+                f'got {sslcontext!r}')
+        if not getattr(transport, '_start_tls_compatible', False):
+            raise TypeError(
+                f'transport {transport!r} is not supported by start_tls()')
+        waiter = self.create_future()
+        ssl_protocol = sslproto.SSLProtocol(
+            self, protocol, sslcontext, waiter, server_side, server_hostname,
+            ssl_handshake_timeout=ssl_handshake_timeout, ssl_shutdown_timeout=ssl_shutdown_timeout,
+            call_connection_made=False)
+        transport.pause_reading()
+        transport.set_protocol(ssl_protocol)
+        conmade_cb = self.call_soon(ssl_protocol.connection_made, transport)
+        resume_cb = self.call_soon(transport.resume_reading)
+        try:
+            await waiter
+        except BaseException:
+            transport.close()
+            conmade_cb.cancel()
+            resume_cb.cancel()
+            raise
+        return ssl_protocol._app_transport
+
     async def create_unix_connection(
             self, protocol_factory, path=None, *, ssl=None, sock=None, server_hostname=None,
             ssl_handshake_timeout=None, ssl_shutdown_timeout=None):
         if ssl:
-            raise NotImplementedError('TLS não é suportado pelo laço de eventos do sandbox')
-        if server_hostname is not None:
-            raise ValueError('server_hostname is only meaningful with ssl')
+            if server_hostname is None:
+                raise ValueError('you have to pass server_hostname when using ssl')
+        else:
+            if server_hostname is not None:
+                raise ValueError('server_hostname is only meaningful with ssl')
+            if ssl_handshake_timeout is not None:
+                raise ValueError('ssl_handshake_timeout is only meaningful with ssl')
+            if ssl_shutdown_timeout is not None:
+                raise ValueError('ssl_shutdown_timeout is only meaningful with ssl')
         if path is not None:
             if sock is not None:
                 raise ValueError('path and sock can not be specified at the same time')
@@ -365,7 +453,9 @@ class NetworkMixin:
                 raise ValueError('no path and sock were specified')
             if sock.family != socket.AF_UNIX or sock.type != socket.SOCK_STREAM:
                 raise ValueError(f'A UNIX Domain Stream Socket was expected, got {sock!r}')
-        return await self._create_connection_transport(sock, protocol_factory)
+        return await self._create_connection_transport(
+            sock, protocol_factory, ssl, server_hostname, ssl_handshake_timeout=ssl_handshake_timeout,
+            ssl_shutdown_timeout=ssl_shutdown_timeout)
 
     async def create_server(
             self, protocol_factory, host=None, port=None, *, family=socket.AF_UNSPEC, flags=socket.AI_PASSIVE,
@@ -374,8 +464,6 @@ class NetworkMixin:
         from . import base_events
         if isinstance(ssl, bool):
             raise TypeError('ssl argument must be an SSLContext or None')
-        if ssl is not None:
-            raise NotImplementedError('TLS não é suportado pelo laço de eventos do sandbox')
         if ssl_handshake_timeout is not None and ssl is None:
             raise ValueError('ssl_handshake_timeout is only meaningful with ssl')
         if ssl_shutdown_timeout is not None and ssl is None:
@@ -448,8 +536,12 @@ class NetworkMixin:
             self, protocol_factory, path=None, *, sock=None, backlog=100, ssl=None,
             ssl_handshake_timeout=None, ssl_shutdown_timeout=None, start_serving=True, cleanup_socket=True):
         from . import base_events
-        if ssl is not None:
-            raise NotImplementedError('TLS não é suportado pelo laço de eventos do sandbox')
+        if isinstance(ssl, bool):
+            raise TypeError('ssl argument must be an SSLContext or None')
+        if ssl_handshake_timeout is not None and not ssl:
+            raise ValueError('ssl_handshake_timeout is only meaningful with ssl')
+        if ssl_shutdown_timeout is not None and not ssl:
+            raise ValueError('ssl_shutdown_timeout is only meaningful with ssl')
         if path is not None:
             if sock is not None:
                 raise ValueError('path and sock can not be specified at the same time')
@@ -485,7 +577,8 @@ class NetworkMixin:
 
         def on_pending():
             if not self.is_closed():
-                self._add_io(self._accept_connection, protocol_factory, sock, server, backlog)
+                self._add_io(self._accept_connection, protocol_factory, sock, sslcontext, server, backlog,
+                             ssl_handshake_timeout, ssl_shutdown_timeout)
 
         hooks = self.__dict__.setdefault('_listener_hooks', {})
         hooks[sock.fileno()] = (listener, on_pending)
@@ -502,7 +595,9 @@ class NetworkMixin:
                 listener.hooks.remove(hook)
         sock.close()
 
-    def _accept_connection(self, protocol_factory, sock, server, backlog):
+    def _accept_connection(self, protocol_factory, sock, sslcontext=None, server=None, backlog=100,
+                           ssl_handshake_timeout=constants.SSL_HANDSHAKE_TIMEOUT,
+                           ssl_shutdown_timeout=constants.SSL_SHUTDOWN_TIMEOUT):
         for _ in range(backlog):
             try:
                 conn, addr = sock.accept()
@@ -516,24 +611,40 @@ class NetworkMixin:
                     'socket': trsock.TransportSocket(sock),
                 })
                 return
-            self.create_task(self._accept_connection2(protocol_factory, conn, {'peername': addr}, server))
+            self.create_task(self._accept_connection2(
+                protocol_factory, conn, {'peername': addr}, sslcontext, server, ssl_handshake_timeout,
+                ssl_shutdown_timeout))
 
-    async def _accept_connection2(self, protocol_factory, conn, extra, server):
+    async def _accept_connection2(self, protocol_factory, conn, extra, sslcontext=None, server=None,
+                                  ssl_handshake_timeout=constants.SSL_HANDSHAKE_TIMEOUT,
+                                  ssl_shutdown_timeout=constants.SSL_SHUTDOWN_TIMEOUT):
         protocol = None
         transport = None
         try:
             protocol = protocol_factory()
             waiter = self.create_future()
-            transport = self._make_socket_transport(conn, protocol, waiter=waiter, extra=extra, server=server)
+            if sslcontext:
+                transport = self._make_ssl_transport(
+                    conn, protocol, sslcontext, waiter=waiter, server_side=True, extra=extra, server=server,
+                    ssl_handshake_timeout=ssl_handshake_timeout, ssl_shutdown_timeout=ssl_shutdown_timeout)
+            else:
+                transport = self._make_socket_transport(conn, protocol, waiter=waiter, extra=extra, server=server)
             try:
                 await waiter
             except BaseException:
                 transport.close()
+                waiter = None
                 raise
         except (SystemExit, KeyboardInterrupt):
             raise
         except BaseException as exc:
-            self.call_exception_handler({
-                'message': 'Error on transport creation for incoming connection',
-                'exception': exc,
-            })
+            if self._debug:
+                context = {
+                    'message': 'Error on transport creation for incoming connection',
+                    'exception': exc,
+                }
+                if protocol is not None:
+                    context['protocol'] = protocol
+                if transport is not None:
+                    context['transport'] = transport
+                self.call_exception_handler(context)

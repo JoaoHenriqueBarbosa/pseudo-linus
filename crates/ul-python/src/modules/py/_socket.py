@@ -238,7 +238,7 @@ class socket:
 
     def __repr__(self):
         return '<_socket.socket fd=%d, family=%d, type=%d, proto=%d>' % (
-            self.fileno(), self._st.family, self._st.type, self._st.proto)
+            socket.fileno(self), self._st.family, self._st.type, self._st.proto)
 
     def fileno(self):
         st = self._st
@@ -252,7 +252,7 @@ class socket:
 
     def detach(self):
         st = self._st
-        fd = self.fileno()
+        fd = socket.fileno(self)
         self._st = None
         if st is not None:
             st.refs -= 1
@@ -403,7 +403,7 @@ class socket:
         if st.addr is None:
             if st.family == AF_UNIX:
                 raise OSError(_errno.EINVAL, 'Invalid argument')
-            self.bind(('', 0))
+            socket.bind(self, ('', 0))
         st.listener = _net.listen(st.family, st.addr, backlog, ephemeral=st.ephemeral)
         if st.family != AF_UNIX:
             st.addr = st.listener.addr
@@ -463,7 +463,7 @@ class socket:
             raise ValueError('negative buffersize in recv')
         st = self._live()
         if st.type == SOCK_DGRAM:
-            return self.recvfrom(bufsize, flags)[0]
+            return socket.recvfrom(self, bufsize, flags)[0]
         st, ep = self._stream()
         if not _wait(ep.readable, 0.0 if flags & MSG_DONTWAIT else st.timeout, 'socket.recv()'):
             if st.timeout == 0.0 or flags & MSG_DONTWAIT:
@@ -476,17 +476,17 @@ class socket:
     def recv_into(self, buffer, nbytes=0, flags=0):
         view = memoryview(buffer)
         want = nbytes or len(view)
-        data = self.recv(want, flags)
+        data = socket.recv(self, want, flags)
         view[:len(data)] = data
         return len(data)
 
     def recvfrom(self, bufsize, flags=0):
         st = self._live()
         if st.type == SOCK_STREAM:
-            data = self.recv(bufsize, flags)
+            data = socket.recv(self, bufsize, flags)
             return data, (st.endpoint.peer if st.endpoint is not None else None)
         if st.dgram is None:
-            self.bind(('', 0))
+            socket.bind(self, ('', 0))
         dg = st.dgram
         if not _wait(dg.readable, 0.0 if flags & MSG_DONTWAIT else st.timeout, 'socket.recvfrom()'):
             if st.timeout == 0.0 or flags & MSG_DONTWAIT:
@@ -497,7 +497,7 @@ class socket:
 
     def recvfrom_into(self, buffer, nbytes=0, flags=0):
         view = memoryview(buffer)
-        data, source = self.recvfrom(nbytes or len(view), flags)
+        data, source = socket.recvfrom(self, nbytes or len(view), flags)
         view[:len(data)] = data
         return len(data), source
 
@@ -507,12 +507,12 @@ class socket:
         if st.type == SOCK_DGRAM:
             if st.peer is None:
                 raise OSError(_errno.EDESTADDRREQ, 'Destination address required')
-            return self.sendto(data, st.peer)
+            return socket.sendto(self, data, st.peer)
         st, ep = self._stream()
         return ep.write(data)
 
     def sendall(self, data, flags=0):
-        self.send(data, flags)
+        socket.send(self, data, flags)
 
     def sendto(self, data, *args):
         st = self._live()
@@ -525,7 +525,7 @@ class socket:
         address = self._norm(address)
         if st.dgram is None:
             st.dgram = _net.Datagram(st.family)
-            self.bind((_net.loopback_ip(st.family), 0))
+            socket.bind(self, (_net.loopback_ip(st.family), 0))
         return st.dgram.sendto(data, address)
 
     def shutdown(self, how):

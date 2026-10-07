@@ -182,6 +182,7 @@ fn modules_snapshot(vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> 
     let mut names: Vec<(String, Value)> =
         vm.modules.borrow().iter().map(|(k, v)| (k.clone(), Value::Module(v.clone()))).collect();
     names.extend(vm.foreign_modules.borrow().iter().map(|(k, v)| (k.clone(), v.clone())));
+    names.retain(|(k, _)| !super::is_internal(k));
     names.sort_by(|a, b| a.0.cmp(&b.0));
     for (name, m) in names {
         d.set(Value::str(name), m)?;

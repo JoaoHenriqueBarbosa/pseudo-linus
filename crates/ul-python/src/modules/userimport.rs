@@ -261,8 +261,14 @@ pub fn exec_file(vm: &mut Vm, name: &str, file: &str, package_dir: Option<&str>)
         exc(kind, format!("{} ({file}, line {})", e.msg, e.lineno))
     })?;
     let mut code = crate::compile::compile_module(&module).map_err(|e| exc(e.kind, e.msg))?;
-    code.set_filename(file);
-    crate::vm::register_source(file, &text);
+    // Módulo que o CPython congela (o `runpy`, por exemplo): o código leva o nome `<frozen runpy>`,
+    // e o traceback mostra o quadro sem a linha do fonte, mesmo com o `.py` no disco.
+    if file.starts_with("/usr/lib/python3.13/") && crate::object::FROZEN_MODULES.contains(&name) {
+        code.set_filename(&format!("<frozen {name}>"));
+    } else {
+        code.set_filename(file);
+        crate::vm::register_source(file, &text);
+    }
     let key: &'static str = intern(name);
     let package = match package_dir {
         Some(_) => name.to_string(),

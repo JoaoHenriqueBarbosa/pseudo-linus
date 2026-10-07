@@ -33,6 +33,11 @@ def spec_from_file_location(name, location=None, *, loader=None, submodule_searc
     import os
     if location is None:
         location = '<unknown>'
+        if hasattr(loader, 'get_filename'):
+            try:
+                location = loader.get_filename(name)
+            except ImportError:
+                pass
     else:
         location = os.fspath(location)
         if not os.path.isabs(location):
@@ -50,6 +55,8 @@ def spec_from_file_location(name, location=None, *, loader=None, submodule_searc
             submodule_search_locations = None
     if submodule_search_locations is not None:
         spec.submodule_search_locations = list(submodule_search_locations)
+        if spec.submodule_search_locations == [] and location:
+            spec.submodule_search_locations.append(location.rpartition('/')[0])
     return spec
 
 
@@ -68,6 +75,21 @@ def module_from_spec(spec):
     if spec.has_location:
         module.__file__ = spec.origin
     return module
+
+
+def _zip_spec(entry, fullname):
+    """O spec de `fullname` numa entrada de `sys.path` que é um zip (ou um diretório dentro dele)."""
+    import zipimport
+    importer = sys.path_importer_cache.get(entry)
+    if importer is None:
+        try:
+            importer = zipimport.zipimporter(entry)
+        except zipimport.ZipImportError:
+            return None
+        sys.path_importer_cache[entry] = importer
+    if not isinstance(importer, zipimport.zipimporter):
+        return None
+    return importer.find_spec(fullname)
 
 
 def find_spec(name, package=None):
@@ -92,6 +114,11 @@ def find_spec(name, package=None):
         search = sys.path
     for entry in search:
         base = entry or os.getcwd()
+        if not os.path.isdir(base):
+            spec = _zip_spec(base, fullname)
+            if spec is not None:
+                return spec
+            continue
         init = os.path.join(base, leaf, '__init__.py')
         if os.path.isfile(init):
             return spec_from_file_location(fullname, init, submodule_search_locations=[os.path.join(base, leaf)])

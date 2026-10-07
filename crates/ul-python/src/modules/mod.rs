@@ -11,6 +11,7 @@ pub mod archivenative;
 pub mod base64;
 pub mod binascii;
 pub mod builtinsmod;
+pub mod cpydocs;
 pub mod csv;
 pub mod hashlib;
 pub mod html;
@@ -109,6 +110,25 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     };
     vm.modules.borrow_mut().insert(name.to_string(), m.clone());
     Some(m)
+}
+
+/// Módulos de apoio dos embutidos, que não existem no CPython: só código embutido os importa, e o
+/// programa os vê como ausentes (`No module named`), inclusive em `sys.modules`.
+const INTERNAL: &[&str] = &[
+    "_os", "_sys", "_mt", "_net", "_archive", "_archivefile", "_prof", "_csvimpl", "_re", "_base64",
+    "_zlib", "_ast_native", "_match", "_memoryview", "_complex", "_excgroup", "asyncio.loopback",
+];
+
+pub fn is_internal(name: &str) -> bool {
+    INTERNAL.contains(&name)
+}
+
+/// `import nome` vindo de código do programa: os módulos de apoio não existem para ele.
+pub fn import_visible(vm: &mut Vm, name: &str, internal_caller: bool) -> PyResult<Value> {
+    if !internal_caller && is_internal(name) {
+        return Err(exc("ModuleNotFoundError", format!("No module named '{name}'")));
+    }
+    import_value(vm, name)
 }
 
 /// `import nome` como o `importlib._bootstrap._find_and_load`: devolve o que estiver em `sys.modules`

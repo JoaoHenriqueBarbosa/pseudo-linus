@@ -976,7 +976,7 @@ impl fmt::Debug for Value {
 }
 
 /// Módulos que o CPython 3.13 do Debian traz congelados (`_imp._frozen_module_names()`).
-const FROZEN_MODULES: &[&str] = &[
+pub(crate) const FROZEN_MODULES: &[&str] = &[
     "_collections_abc", "_frozen_importlib", "_frozen_importlib_external", "_sitebuiltins", "abc", "codecs",
     "genericpath", "importlib.machinery", "importlib.util", "io", "ntpath", "os", "os.path", "posixpath", "runpy",
     "site", "stat", "zipimport",
@@ -1028,6 +1028,22 @@ pub fn is_builtin_type(name: &str) -> bool {
             | "frozenset" | "bytes" | "bytearray" | "generator" | "module" | "slice" | "builtin_function_or_method"
             | "dict_keys" | "dict_values" | "dict_items" | "coroutine" | "async_generator" | "coroutine_wrapper"
     ) || EXC_CLASSES.iter().any(|(n, _)| *n == name)
+        || is_native_type(name)
+}
+
+/// Tipos dos objetos nativos (`list_iterator`, `Pattern`...) que `type()` já devolveu: o nome passa
+/// a ser uma classe para o `repr`, o `isinstance` e o `issubclass`.
+static NATIVE_TYPES: std::sync::Mutex<Vec<&'static str>> = std::sync::Mutex::new(Vec::new());
+
+pub fn register_native_type(name: &'static str) {
+    let mut types = NATIVE_TYPES.lock().unwrap_or_else(|e| e.into_inner());
+    if !types.contains(&name) {
+        types.push(name);
+    }
+}
+
+pub fn is_native_type(name: &str) -> bool {
+    NATIVE_TYPES.lock().unwrap_or_else(|e| e.into_inner()).contains(&name)
 }
 
 thread_local! {

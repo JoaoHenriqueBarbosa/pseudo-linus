@@ -185,6 +185,16 @@ class _BuiltinAlias:
     def __ror__(self, other):
         return Union[other, self]
 
+    def __instancecheck__(self, obj):
+        return self.__subclasscheck__(type(obj))
+
+    def __subclasscheck__(self, cls):
+        if isinstance(cls, _BuiltinAlias):
+            return issubclass(cls.__origin__, self.__origin__)
+        if not isinstance(cls, _GenericAlias):
+            return issubclass(cls, self.__origin__)
+        raise TypeError("Subscripted generics cannot be used with class and instance checks")
+
 
 Any = _SpecialForm('Any')
 NoReturn = _SpecialForm('NoReturn')

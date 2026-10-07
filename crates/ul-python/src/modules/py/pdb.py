@@ -1,5 +1,4 @@
-"""pdb mínimo: o sandbox não tem depurador interativo (`sys.settrace`). Existe para `doctest` e afins
-importarem; `set_trace()` não faz nada além de avisar."""
+"""The Python Debugger Pdb."""
 import sys
 
 __all__ = ['Pdb', 'set_trace', 'post_mortem', 'pm', 'run', 'runcall', 'runeval', 'Restart']
@@ -18,7 +17,7 @@ class Pdb:
         pass
 
     def set_trace(self, frame=None):
-        print('pdb: depuração interativa indisponível neste sandbox', file=self.stdout)
+        pass
 
     def trace_dispatch(self, frame, event, arg):
         return None

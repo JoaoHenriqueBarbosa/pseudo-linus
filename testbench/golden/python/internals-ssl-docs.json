@@ -1,0 +1,20 @@
+{
+  "internal-modules-absent": {
+    "stdout": "_os ModuleNotFoundError No module named '_os'\n_os False\n_sys ModuleNotFoundError No module named '_sys'\n_sys False\n_mt ModuleNotFoundError No module named '_mt'\n_mt False\n_net ModuleNotFoundError No module named '_net'\n_net False\n_archive ModuleNotFoundError No module named '_archive'\n_archive False\n_archivefile ModuleNotFoundError No module named '_archivefile'\n_archivefile False\n_prof ModuleNotFoundError No module named '_prof'\n_prof False\n_csvimpl ModuleNotFoundError No module named '_csvimpl'\n_csvimpl False\n_re ModuleNotFoundError No module named '_re'\n_re False\n_base64 ModuleNotFoundError No module named '_base64'\n_base64 False\n_zlib ModuleNotFoundError No module named '_zlib'\n_zlib False\n_ast_native ModuleNotFoundError No module named '_ast_native'\n_ast_native False\n_match ModuleNotFoundError No module named '_match'\n_match False\n_memoryview ModuleNotFoundError No module named '_memoryview'\n_memoryview False\n_complex ModuleNotFoundError No module named '_complex'\n_complex False\n_excgroup ModuleNotFoundError No module named '_excgroup'\n_excgroup False\nasyncio.loopback ModuleNotFoundError No module named 'asyncio.loopback'\nasyncio.loopback False\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "module-docstrings": {
+    "stdout": "Helper class that provides a standard way to create an ABC using\ninheritance.\n\nSerialize ``obj`` to a JSON formatted ``str``.\nRandom number generator base class used by bound module functions.\n    csv_reader = reader(iterable [, dialect='excel']\nThe Python Debugger Pdb\nmakedirs(name [, mode=0o777][, exist_ok=False])\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "ssl-surface": {
+    "stdout": "(3, 5) True 16\n2 True -2\nTrue\nssl SSLError\nThe operation did not complete (read) (_ssl.c:1029)\nTrue\n/usr/lib/ssl/cert.pem\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

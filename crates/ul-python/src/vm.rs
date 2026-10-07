@@ -74,6 +74,7 @@ fn native_in_cpython(filename: &str, qual: &str) -> bool {
             | "operator.py"
             | "bisect.py"
             | "_socket.py"
+            | "_ssl.py"
             | "_net.py"
             | "_csv.py"
             | "_random.py"
@@ -2289,13 +2290,13 @@ impl Vm {
             }
             Op::Import(i) => {
                 let name = &code.names[i as usize];
-                let m = crate::modules::import_value(self, name)?;
+                let m = crate::modules::import_visible(self, name, code.internal)?;
                 stack.push(Slot::Val(m));
             }
             Op::ImportRel { name, level } => {
                 let rel = &code.names[name as usize];
                 let abs = crate::modules::resolve_relative(self, rel, level as usize)?;
-                let m = crate::modules::import_value(self, &abs)?;
+                let m = crate::modules::import_visible(self, &abs, code.internal)?;
                 stack.push(Slot::Val(m));
             }
             Op::ImportStar => {

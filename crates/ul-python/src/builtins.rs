@@ -141,7 +141,7 @@ const PSEUDO_TYPES: &[&str] =
 pub(crate) fn class_name(v: &Value) -> Option<&'static str> {
     match v {
         Value::Builtin(n) => {
-            if TYPE_NAMES.contains(n) || PSEUDO_TYPES.contains(n) || *n == "NoneType" || matches!(*n, "ellipsis" | "NotImplementedType") || EXC_CLASSES.iter().any(|(e, _)| e == n) {
+            if TYPE_NAMES.contains(n) || PSEUDO_TYPES.contains(n) || *n == "NoneType" || matches!(*n, "ellipsis" | "NotImplementedType") || EXC_CLASSES.iter().any(|(e, _)| e == n) || crate::object::is_native_type(n) {
                 Some(*n)
             } else {
                 None
@@ -247,6 +247,14 @@ fn isinstance_check(v: &Value, cls: &Value) -> PyResult<bool> {
         }
         return Ok(false);
     }
+    // Objeto comum cujo tipo define `__instancecheck__` (os apelidos do `typing`, como `Sequence`).
+    if let Value::Instance(_) = cls {
+        if let Some(mut vm) = crate::vm::current() {
+            if let Some(r) = vm.call_dunder(cls, "__instancecheck__", vec![v.clone()]) {
+                return Ok(r?.is_true());
+            }
+        }
+    }
     Err(type_error("isinstance() arg 2 must be a type, a tuple of types, or a union"))
 }
 
@@ -299,6 +307,13 @@ fn issubclass_check(a: &Value, cls: &Value) -> PyResult<bool> {
             }
         }
         return Ok(false);
+    }
+    if let Value::Instance(_) = cls {
+        if let Some(mut vm) = crate::vm::current() {
+            if let Some(r) = vm.call_dunder(cls, "__subclasscheck__", vec![a.clone()]) {
+                return Ok(r?.is_true());
+            }
+        }
     }
     Err(type_error("issubclass() arg 2 must be a class, a tuple of classes, or a union"))
 }

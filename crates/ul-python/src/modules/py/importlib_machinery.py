@@ -101,12 +101,17 @@ class SourceFileLoader:
         import os.path
         return os.path.basename(self.path).rsplit('.', 1)[0] == '__init__'
 
+    def source_to_code(self, data, path, *, _optimize=-1):
+        return compile(data, path, 'exec', dont_inherit=True, optimize=_optimize)
+
+    def get_code(self, fullname=None):
+        return self.source_to_code(self.get_data(self.path), self.path)
+
     def create_module(self, spec):
         return None
 
     def exec_module(self, module):
-        source = self.get_source(module.__name__)
-        exec(source, module.__dict__)
+        exec(self.get_code(module.__name__), module.__dict__)
 
     def load_module(self, fullname=None):
         import importlib.util

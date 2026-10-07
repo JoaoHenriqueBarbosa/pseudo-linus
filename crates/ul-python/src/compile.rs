@@ -259,6 +259,11 @@ pub struct Code {
     pub doc: Option<String>,
     /// Linha do `def` (`co_firstlineno`); 0 quando não se aplica.
     pub first_line: usize,
+    /// Corpo de classe com algum método que usa `super()` ou `__class__`: passa `__classcell__`.
+    pub uses_class_cell: bool,
+    /// Código de módulo embutido do interpretador: só ele enxerga os módulos internos (`_os`, `_net`...),
+    /// que o CPython não tem. Nenhum caminho do usuário (`compile`, `exec`) liga isto.
+    pub internal: bool,
 }
 
 impl Code {
@@ -274,6 +279,16 @@ impl Code {
         for f in &mut self.functions {
             if let Some(inner) = Rc::get_mut(f) {
                 inner.set_filename(filename);
+            }
+        }
+    }
+
+    /// Marca este código e todo o aninhado como de módulo embutido (ver [`Code::internal`]).
+    pub fn mark_internal(&mut self) {
+        self.internal = true;
+        for f in &mut self.functions {
+            if let Some(inner) = Rc::get_mut(f) {
+                inner.mark_internal();
             }
         }
     }
@@ -404,6 +419,9 @@ fn clean_doc(doc: &str) -> String {
 fn docstring(body: &[Stmt]) -> Option<String> {
     match body.first().map(|s| &s.kind) {
         Some(S::Expr { value }) => match &value.kind {
+            E::Constant { value: Constant::Str(s), kind: Some(k) } if k == crate::modules::cpydocs::CLEANED_DOC => {
+                Some(s.clone())
+            }
             E::Constant { value: Constant::Str(s), .. } => Some(clean_doc(s)),
             _ => None,
         },
@@ -743,6 +761,8 @@ struct Compiler {
     qual_prefix: String,
     /// Classe em cujo corpo a função sendo compilada foi definida (para o `super()` sem argumentos).
     enclosing_class: Option<String>,
+    /// A função sendo compilada (ou uma aninhada nela) lê a célula `__class__` da classe em volta.
+    needs_class_cell: bool,
     /// `from __future__ import annotations`: anotações viram texto em vez de serem avaliadas.
     future_annotations: bool,
 }
@@ -764,6 +784,7 @@ impl Compiler {
             class_name: None,
             qual_prefix: String::new(),
             enclosing_class: None,
+            needs_class_cell: false,
             future_annotations: false,
         }
     }
@@ -1372,6 +1393,14 @@ impl Compiler {
             FnBody::Expr(e) => inner.expr(e)?,
         }
         inner.emit(Op::Return);
+        // A célula `__class__` sobe até o corpo da classe que a fornece.
+        if inner.needs_class_cell {
+            if self.in_class_body {
+                self.code.uses_class_cell = true;
+            } else {
+                self.needs_class_cell = true;
+            }
+        }
         let code = Rc::new(inner.code);
         self.line = line;
         for d in &args.defaults {
@@ -2104,6 +2133,9 @@ impl Compiler {
                 self.emit(Op::LoadConst(i));
             }
             E::Name { id, .. } => {
+                if id == "__class__" && self.enclosing_class.is_some() && !self.in_class_body {
+                    self.needs_class_cell = true;
+                }
                 self.emit_load(id);
             }
             E::BinOp { left, op, right } => {
@@ -2144,15 +2176,16 @@ impl Compiler {
             }
             E::Compare { left, ops, comparators } => self.compare(left, ops, comparators)?,
             E::Call { func, args, keywords } => {
-                // `super()` sem argumentos dentro de um método: `super(self, "Classe")`.
-                if let (E::Name { id, .. }, true, true, Some(class), Some(first)) =
+                // `super()` sem argumentos dentro de um método: `super(__class__, primeiro_parâmetro)`,
+                // com `__class__` lido da célula que o corpo da classe preenche.
+                if let (E::Name { id, .. }, true, true, Some(_), Some(first)) =
                     (&func.kind, args.is_empty(), keywords.is_empty(), self.enclosing_class.clone(), self.code.params.first().cloned())
                     && id == "super"
                 {
+                    self.needs_class_cell = true;
                     self.emit_load("super");
+                    self.emit_load("__class__");
                     self.emit_load(&first);
-                    let c = self.constant(Value::str(class));
-                    self.emit(Op::LoadConst(c));
                     self.at(&expr.pos);
                     self.emit(Op::Call { argc: 2, kwnames: None });
                     return Ok(());

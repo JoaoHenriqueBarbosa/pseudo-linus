@@ -220,7 +220,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("_frozen_importlib", include_str!("py/_frozen_importlib.py")),
     ("_frozen_importlib_external", include_str!("py/_frozen_importlib_external.py")),
     ("importlib.resources", include_str!("py/importlib_resources.py")),
-    ("ssl", include_str!("py/ssl.py")),
+    ("_ssl", include_str!("py/_ssl.py")),
     ("marshal", include_str!("py/marshal.py")),
     ("resource", include_str!("py/resource.py")),
     ("fcntl", include_str!("py/fcntl.py")),
@@ -270,7 +270,6 @@ const SOURCES: &[(&str, &str)] = &[
     ("_tokenize", include_str!("py/_tokenize.py")),
     ("token", include_str!("py/token.py")),
     ("tokenize", include_str!("py/tokenize.py")),
-    ("runpy", include_str!("py/runpy.py")),
     ("dbm.sqlite3", include_str!("py/dbm_sqlite3.py")),
     ("dbm.dumb", include_str!("py/dbm_dumb.py")),
     ("dbm", include_str!("py/dbm.py")),
@@ -493,15 +492,22 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     vm.module_globals.borrow_mut().insert(module.name, globals.clone());
     let mut inner = vm.clone();
     inner.globals = globals.clone();
-    let parsed = crate::parser::parse_module(src).unwrap_or_else(|e| panic!("módulo embutido {real}: {e:?}"));
-    let mut code = crate::compile::compile_module(&parsed)
-        .unwrap_or_else(|e| panic!("módulo embutido {real}: {}: {}", e.kind, e.msg));
+    let mut parsed = crate::parser::parse_module(src).unwrap_or_else(|e| panic!("módulo embutido {real}: {e:?}"));
     let filename = if crate::modules::is_embedded_package(real) {
         format!("{}/__init__.py", embedded_dir(real))
     } else {
         format!("{}.py", embedded_dir(real))
     };
+    // As docstrings são as do CPython que está no disco, nunca as do fonte embutido (sem processo,
+    // como nos testes de unidade, valem só as da tabela).
+    let cpython = sysabi::sys::try_current()
+        .and_then(|_| sysabi::sys::read_file(filename.as_bytes()).ok())
+        .and_then(|b| crate::parser::parse_module(&String::from_utf8_lossy(&b)).ok());
+    crate::modules::cpydocs::align(&mut parsed, real, cpython.as_ref());
+    let mut code = crate::compile::compile_module(&parsed)
+        .unwrap_or_else(|e| panic!("módulo embutido {real}: {}: {}", e.kind, e.msg));
     code.set_filename(&filename);
+    code.mark_internal();
     crate::vm::register_source(&filename, src);
     if let Err(e) = inner.run(&Rc::new(code)) {
         // Como no CPython, o módulo que falhou ao rodar sai de `sys.modules` e a exceção sobe para

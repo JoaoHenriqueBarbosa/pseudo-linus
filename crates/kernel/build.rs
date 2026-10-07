@@ -32,13 +32,26 @@ const TREES: &[&str] = &[
     "usr/lib/python3.13",
     "etc/python3.13",
     "usr/lib/python3",
+    // Os wheels do python3-pip-whl e do python3-setuptools-whl, que o `ensurepip` do Debian instala
+    // no venv.
+    "usr/share/python-wheels",
     // O `README` do dpkg; os links de `/etc/alternatives` saem de `real/links.txt`.
     "etc/alternatives",
+    // OpenSSL e ca-certificates: `openssl.cnf`, os links de `/usr/lib/ssl` e os certificados da Mozilla com
+    // o `ca-certificates.crt` e os links por hash que o `update-ca-certificates` gera.
+    "etc/ssl",
+    "usr/lib/ssl",
+    "usr/share/ca-certificates",
+    "etc/ca-certificates",
+    "etc/ca-certificates.conf",
 ];
 
 /// Árvores cujos arquivos são scripts executáveis do oráculo (`/usr/bin/zgrep`, `/usr/sbin/service`...),
 /// instalados com modo 0o755. Os links simbólicos (`bzcmp -> bzdiff`) vêm junto.
 const EXEC_TREES: &[&str] = &["usr/bin", "usr/sbin"];
+
+/// Diretórios vazios das árvores acima, que o git não guarda, com o modo do oráculo.
+const EMPTY_DIRS: &[(&str, u32)] = &[("/etc/ssl/private", 0o700), ("/etc/ca-certificates/update.d", 0o755)];
 
 fn walk(root: &Path, rel: &Path, out: &mut Vec<(PathBuf, fs::Metadata)>) {
     let dir = root.join(rel);
@@ -62,6 +75,13 @@ fn main() {
     for (trees, file_mode) in [(TREES, "0o644"), (EXEC_TREES, "0o755")] {
         for tree in trees {
             println!("cargo:rerun-if-changed=image/{tree}");
+            use std::os::unix::fs::PermissionsExt as _;
+            let top = fs::symlink_metadata(image.join(tree)).expect("árvore da imagem");
+            if top.is_file() {
+                let abs = image.join(tree);
+                let _ = writeln!(code, "    File(\"/{tree}\", include_bytes!({:?}), {file_mode}),", abs.display().to_string());
+                continue;
+            }
             let _ = writeln!(code, "    Dir(\"/{tree}\", 0o755),");
             let mut items = Vec::new();
             walk(&image, Path::new(tree), &mut items);
@@ -75,12 +95,14 @@ fn main() {
                 } else {
                     let abs = image.join(&rel);
                     // Os scripts executáveis da stdlib (`base64.py`, `pdb.py`...) mantêm o 0o755.
-                    use std::os::unix::fs::PermissionsExt as _;
                     let mode = if md.permissions().mode() & 0o100 != 0 { "0o755" } else { file_mode };
                     let _ = writeln!(code, "    File({path:?}, include_bytes!({:?}), {mode}),", abs.display().to_string());
                 }
             }
         }
+    }
+    for (dir, mode) in EMPTY_DIRS {
+        let _ = writeln!(code, "    Dir({dir:?}, 0o{mode:o}),");
     }
     code.push_str("];\n");
     let out = PathBuf::from(std::env::var("OUT_DIR").expect("OUT_DIR")).join("copied_trees.rs");
