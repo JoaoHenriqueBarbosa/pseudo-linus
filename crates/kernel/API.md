@@ -113,7 +113,7 @@ let sb2 = k.create_sandbox_from(&snap, cfg)?;   // sandbox nova com o FS do retr
 
 ## Destruir
 
-`drop(sb)` (ou `sb.destroy()`): SIGKILL em tudo, espera as threads saírem (até 2 s; uma thread presa num
+`drop(sb)`: SIGKILL em tudo, espera as threads saírem (até 2 s; uma thread presa num
 laço sem checkpoint fica pra trás, como medido no H07), solta a tabela e para a spawner.
 
 ## O que muda nos próximos marcos (assinaturas já fixadas)

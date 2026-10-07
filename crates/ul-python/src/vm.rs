@@ -362,7 +362,7 @@ impl Vm {
                 push(k);
             }
             if let Some(obj) = en.vars.borrow().get("self").cloned() {
-                self_has |= self.clone().getattr(&obj, &name).is_ok();
+                self_has |= self.clone().load_attr(&obj, &name).is_ok();
             }
             cur = en.parent.clone();
         }
@@ -890,7 +890,7 @@ pub struct Vm {
     /// Exceções sendo tratadas (a mais recente por último), para `raise` sem argumento.
     handled: Rc<RefCell<Vec<Value>>>,
     /// Profundidade de chamadas de função em andamento.
-    depth: Rc<std::cell::Cell<usize>>,
+    pub(crate) depth: Rc<std::cell::Cell<usize>>,
     /// Linha da instrução em execução (para `sys._getframe` e `warnings`).
     pub(crate) cur_line: Rc<std::cell::Cell<usize>>,
     /// Funções em andamento (a mais interna por último), cada uma com a linha do chamador.
@@ -1018,21 +1018,6 @@ impl Vm {
         vm
     }
 
-    /// `obj.nome` (atributo ou método preso), como o bytecode `LoadAttr`.
-    pub fn getattr(&mut self, obj: &Value, name: &str) -> PyResult<Value> {
-        self.load_attr(obj, name)
-    }
-
-    /// Chama qualquer valor chamável (função de usuário, builtin, método). É o que as funções
-    /// nativas usam para devolver a chamada ao Python (`key=` de `sorted`, `map`, callbacks).
-    pub fn call_value(&mut self, f: &Value, args: Vec<Value>, kw: crate::object::Kw) -> PyResult<Value> {
-        self.call(f, args, kw)
-    }
-
-    /// Profundidade atual de chamadas de função (para quem precisa saber em que quadro está).
-    pub(crate) fn depth_now(&self) -> usize {
-        self.depth.get()
-    }
 
     /// Executa o código de um módulo.
     pub fn run(&mut self, code: &Rc<Code>) -> Result<(), RuntimeError> {
@@ -1465,7 +1450,7 @@ impl Vm {
             let env = Env::new(f.closure.clone(), false, false);
             {
                 let mut vars = env.vars.borrow_mut();
-                vars.reserve(args.len() + 4);
+                vars.items.reserve(args.len() + 4);
                 for (p, v) in code.params.iter().zip(args) {
                     vars.insert(p.clone(), v);
                 }
@@ -1484,7 +1469,7 @@ impl Vm {
             let env = Env::new(f.closure.clone(), false, false);
             {
                 let mut vars = env.vars.borrow_mut();
-                vars.reserve(code.params.len() + code.kwonly.len() + 4);
+                vars.items.reserve(code.params.len() + code.kwonly.len() + 4);
                 let given = args.len();
                 let first_default = code.params.len() - f.defaults.len();
                 for (p, v) in code.params.iter().zip(args) {
@@ -1608,7 +1593,7 @@ impl Vm {
         let env = Env::new(f.closure.clone(), false, false);
         {
             let mut vars = env.vars.borrow_mut();
-            vars.reserve(n + code.kwonly.len() + 6);
+            vars.items.reserve(n + code.kwonly.len() + 6);
             for (p, v) in params.iter().zip(slots) {
                 if let Some(v) = v {
                     vars.insert(p.clone(), v);
@@ -1621,7 +1606,7 @@ impl Vm {
                 vars.insert(k, v);
             }
             if let Some(kw) = &code.kwarg {
-                let mut d = Dict::new();
+                let mut d = Dict::default();
                 for (k, v) in extra_kw {
                     d.set(Value::str(k), v)?;
                 }
@@ -1762,8 +1747,8 @@ impl Vm {
                     let text = crate::format::percent_format_with(fmt.as_str(), &b, &mut |conv, v| match conv {
                         's' => self.str_of(v).map(Value::str),
                         'r' | 'a' => self.repr_of(v).map(Value::str),
-                        'e' | 'E' | 'f' | 'F' | 'g' | 'G' => self.call_value(&crate::builtins::get("float").unwrap_or(Value::Builtin("float")), vec![v.clone()], Vec::new()),
-                        _ => self.call_value(&crate::builtins::get("int").unwrap_or(Value::Builtin("int")), vec![v.clone()], Vec::new()),
+                        'e' | 'E' | 'f' | 'F' | 'g' | 'G' => self.call(&crate::builtins::get("float").unwrap_or(Value::Builtin("float")), vec![v.clone()], Vec::new()),
+                        _ => self.call(&crate::builtins::get("int").unwrap_or(Value::Builtin("int")), vec![v.clone()], Vec::new()),
                     })?;
                     stack.push(Slot::Val(Value::str(text)));
                 } else {
@@ -1850,7 +1835,7 @@ impl Vm {
             }
             Op::BuildDict(n) => {
                 let items = pop_n(stack, 2 * n as usize)?;
-                let mut d = Dict::new();
+                let mut d = Dict::default();
                 for pair in items.chunks(2) {
                     d.set(pair[0].clone(), pair[1].clone())?;
                 }
@@ -1870,7 +1855,7 @@ impl Vm {
             Op::SetupTry(_) | Op::PopBlock | Op::Return => {}
             Op::Locals => {
                 let vars = locals.vars.borrow();
-                let mut d = Dict::new();
+                let mut d = Dict::default();
                 for p in code.params.iter().chain(code.vararg.iter()).chain(code.kwonly.iter()).chain(code.kwarg.iter()) {
                     if let Some(v) = vars.get(p) {
                         d.set(Value::str(&**p), v.clone())?;
@@ -1932,7 +1917,7 @@ impl Vm {
                 let dict = match existing {
                     Some(Value::Dict(d)) => d,
                     _ => {
-                        let d = Value::dict(crate::object::Dict::new());
+                        let d = Value::dict(Dict::default());
                         if locals.is_module {
                             self.globals.borrow_mut().insert("__annotations__".into(), d.clone());
                         } else {
@@ -1976,7 +1961,7 @@ impl Vm {
                     _ => Vec::new(),
                 };
                 let values = pop_n(stack, names.len())?;
-                let mut d = crate::object::Dict::new();
+                let mut d = Dict::default();
                 for (k, v) in names.into_iter().zip(values) {
                     d.set(Value::str(k), v)?;
                 }
@@ -2324,7 +2309,7 @@ impl Vm {
                 let (Some(enter), Some(exit)) = (self.attr_of_type(&mgr, "__aenter__"), self.attr_of_type(&mgr, "__aexit__")) else {
                     return Err(missing(""));
                 };
-                let entered = self.call_value(&enter, Vec::new(), Vec::new())?;
+                let entered = self.call(&enter, Vec::new(), Vec::new())?;
                 stack.push(Slot::Val(exit));
                 stack.push(Slot::Val(entered));
             }
@@ -2850,8 +2835,8 @@ impl Vm {
             Some(f) => {
                 self.write_to(&f, &text)?;
                 if flush {
-                    let m = self.getattr(&f, "flush")?;
-                    self.call_value(&m, Vec::new(), Vec::new())?;
+                    let m = self.load_attr(&f, "flush")?;
+                    self.call(&m, Vec::new(), Vec::new())?;
                 }
             }
             None => match self.redirected_stdout() {
@@ -2925,7 +2910,7 @@ impl Vm {
                 return Ok(Value::Ext(Rc::new(crate::classes::NativeTypeMethod { owner: n, name: method })));
             }
             Value::Builtin(_) | Value::NativeFn(_) if name == "__dict__" && crate::builtins::class_name(obj).is_some() => {
-                let mut d = crate::object::Dict::new();
+                let mut d = Dict::default();
                 if matches!(obj, Value::Builtin("object")) {
                     // O dicionário de `object` é o `dir(object)` inteiro (tabela do oráculo).
                     for k in crate::builtins_ext::type_dir("object").unwrap_or_default() {
@@ -3002,7 +2987,7 @@ impl Vm {
             }
             Value::NativeFn(f) if name == "__doc__" => {
                 let doc = crate::modules::cpydocs::native_doc(f).or_else(|| {
-                    let is_type = crate::typeattrs::is_type_name(f.name) || crate::object::is_builtin_type(f.name);
+                    let is_type = crate::typeattrs::TYPES.contains(&f.name) || crate::object::is_builtin_type(f.name);
                     is_type.then(|| crate::modules::cpydocs::builtin_doc(f.name)).flatten()
                 });
                 return Ok(doc.map_or(Value::None, Value::str));
@@ -3032,7 +3017,7 @@ impl Vm {
                         if f.kwdefaults.is_empty() {
                             return Ok(Value::None);
                         }
-                        let mut d = crate::object::Dict::new();
+                        let mut d = Dict::default();
                         for (k, v) in &f.kwdefaults {
                             d.set(Value::str(k.clone()), v.clone())?;
                         }
@@ -3040,7 +3025,7 @@ impl Vm {
                     }
                     "__doc__" => return Ok(f.code.doc.clone().map_or(Value::None, Value::str)),
                     "__annotations__" => {
-                        let d = Value::dict(crate::object::Dict::new());
+                        let d = Value::dict(Dict::default());
                         f.attrs.borrow_mut().insert("__annotations__".to_string(), d.clone());
                         return Ok(d);
                     }
@@ -3057,7 +3042,7 @@ impl Vm {
                         return Ok(name.unwrap_or_else(|| Value::str("__main__")));
                     }
                     "__dict__" => {
-                        let mut d = crate::object::Dict::new();
+                        let mut d = Dict::default();
                         for (k, v) in f.attrs.borrow().iter() {
                             d.set(Value::str(k.clone()), v.clone())?;
                         }
@@ -3079,7 +3064,7 @@ impl Vm {
             },
             Value::BoundFn(b) => match name {
                 "__doc__" | "__module__" | "__qualname__" | "__code__" | "__dict__" => {
-                    return self.getattr(&Value::Function(b.1.clone()), name)
+                    return self.load_attr(&Value::Function(b.1.clone()), name)
                 }
                 "__name__" => return Ok(Value::str(b.1.code.name.clone())),
                 "__self__" => return Ok(b.0.clone()),
@@ -3197,7 +3182,7 @@ impl Vm {
             }
             Value::Range(_) | Value::Builtin("Ellipsis") if matches!(name, "__reduce_ex__" | "__reduce__") => {
                 let m = crate::modules::import_checked(self, "copyreg")?;
-                match self.getattr(&Value::Module(m), "_builtin_reduce_ex")? {
+                match self.load_attr(&Value::Module(m), "_builtin_reduce_ex")? {
                     Value::Function(f) => return Ok(Value::BoundFn(Rc::new((obj.clone(), f)))),
                     _ => return Err(missing()),
                 }
@@ -3253,7 +3238,7 @@ impl Vm {
                     }
                     // Instantâneo dos atributos de um módulo só nativo.
                     let all: std::collections::BTreeMap<String, Value> = m.attrs.borrow().clone();
-                    let mut d = crate::object::Dict::new();
+                    let mut d = Dict::default();
                     for (k, v) in all {
                         d.set(Value::str(k), v)?;
                     }
@@ -3446,7 +3431,7 @@ impl Vm {
             let make = machinery.attrs.borrow().get("_spec_for_module").cloned();
             let Some(make) = make else { return Ok(None) };
             let spec = self.call(&make, vec![Value::str(m.name), Value::str(""), Value::Bool(false)], Vec::new())?;
-            let loader = self.getattr(&spec, "loader")?;
+            let loader = self.load_attr(&spec, "loader")?;
             let mut attrs = m.attrs.borrow_mut();
             attrs.insert("__spec__".into(), spec.clone());
             attrs.insert("__loader__".into(), loader.clone());
@@ -3466,7 +3451,7 @@ impl Vm {
         // O `site` e os demais congelados rodam do texto do disco, mas o spec é o do `FrozenImporter`.
         let frozen = file.starts_with("/usr/lib/python3.13/") && crate::object::FROZEN_MODULES.contains(&m.name);
         let spec = self.call(&make, vec![Value::str(m.name), Value::str(file), Value::Bool(is_package), Value::Bool(frozen)], Vec::new())?;
-        let loader = self.getattr(&spec, "loader")?;
+        let loader = self.load_attr(&spec, "loader")?;
         let mut g = globals.borrow_mut();
         g.insert("__spec__".into(), spec.clone());
         g.insert("__loader__".into(), loader.clone());
@@ -4119,7 +4104,7 @@ pub(crate) fn subscript(container: &Value, index: &Value) -> PyResult<Value> {
         // `__builtins__['compile']`: nos módulos importados do CPython ele é o dicionário de `builtins`;
         // aqui é sempre o módulo, que aceita a mesma consulta por nome.
         Value::Module(m) if m.name == "builtins" => match index {
-            Value::Str(s) => match current().map(|mut vm| vm.getattr(container, s.as_str())) {
+            Value::Str(s) => match current().map(|mut vm| vm.load_attr(container, s.as_str())) {
                 Some(Ok(v)) => Ok(v),
                 _ => Err(PyException {
                     kind: "KeyError",
@@ -4930,7 +4915,7 @@ pub(crate) fn mapping_pairs(v: &Value) -> PyResult<Option<Vec<(Value, Value)>>> 
         Value::Dict(d) => Ok(Some(d.borrow().iter().map(|(k, x)| (k.clone(), x.clone())).collect())),
         Value::Instance(i) if i.class.lookup("keys").is_some() => {
             let mut vm = current().ok_or_else(|| internal("no vm"))?;
-            let keys_fn = vm.getattr(v, "keys")?;
+            let keys_fn = vm.load_attr(v, "keys")?;
             let keys = vm.call(&keys_fn, Vec::new(), Vec::new())?;
             let mut out = Vec::new();
             for k in iterate(&keys)? {
@@ -5163,7 +5148,7 @@ impl Vm {
                         None => Err(type_error(format!("'{}' object is not an iterator", v.type_name()))),
                     }
                 } else {
-                    let send = self.getattr(&v, "send")?;
+                    let send = self.load_attr(&v, "send")?;
                     into_step(self.call(&send, vec![sent], Vec::new()))
                 }
             }
@@ -5184,12 +5169,12 @@ impl Vm {
         };
         let Some(target) = target else { return Err(e) };
         if e.kind == "GeneratorExit" {
-            if let Ok(close) = self.getattr(&target, "close") {
+            if let Ok(close) = self.load_attr(&target, "close") {
                 self.call(&close, Vec::new(), Vec::new())?;
             }
             return Err(e);
         }
-        let Ok(throw) = self.getattr(&target, "throw") else { return Err(e) };
+        let Ok(throw) = self.load_attr(&target, "throw") else { return Err(e) };
         match self.call(&throw, vec![e.to_value()], Vec::new()) {
             Ok(v) => Ok(Step::Yield(v)),
             Err(x) if x.kind == "StopIteration" => Ok(Step::Done(crate::generator::stop_value(&x))),
@@ -5204,7 +5189,7 @@ impl Vm {
                 let attr = i.class.lookup(name)?;
                 self.bind_class_attr(&attr, obj.clone(), &i.class).ok()
             }
-            Value::Ext(e) if e.methods().contains(&name) => self.getattr(obj, name).ok(),
+            Value::Ext(e) if e.methods().contains(&name) => self.load_attr(obj, name).ok(),
             _ => None,
         }
     }

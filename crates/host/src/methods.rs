@@ -4,6 +4,8 @@
 //! `not_found`, sem revelar que existem); admin enxerga tudo. Caminho relativo nos `fs.*` resolve a
 //! partir do `workdir` da sandbox.
 
+use base64::Engine as _;
+use crate::api::b64::STANDARD;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -84,7 +86,7 @@ fn spawn_forwarder(n: Notifier, enc: Encoding) -> (mpsc::UnboundedSender<(Stream
         };
         while let Some((stream, data)) = rx.recv().await {
             let text = match enc {
-                Encoding::Base64 => b64::encode(&data),
+                Encoding::Base64 => STANDARD.encode(&data),
                 Encoding::Utf8 => {
                     if stream == Stream::Stdout {
                         carry_out.push(&data)
@@ -420,7 +422,7 @@ impl Supervisor {
                 let max = self.cfg.service.max_request_bytes.0;
                 match self.call(sb.worker, Call::Export { sandbox_id: sb.id, path, max_bytes: max }, None).await? {
                     Reply::Export { data, report } => {
-                        Ok(json!({ "data_base64": b64::encode(&data), "bytes": data.len(), "report": report }))
+                        Ok(json!({ "data_base64": STANDARD.encode(&data), "bytes": data.len(), "report": report }))
                     }
                     other => Err(unexpected(&other)),
                 }
@@ -445,7 +447,7 @@ impl Supervisor {
     }
 
     fn whoami(&self, p: &Principal) -> Result<Value, RpcError> {
-        let quota = p.effective_quota(&self.cfg.quota);
+        let quota = p.quota.apply(&self.cfg.quota);
         let usage = self.state.lock().usage(&p.user);
         Ok(json!({ "user": p.user, "role": p.role.as_str(), "key_id": p.key_id, "quota": quota, "usage": usage }))
     }
@@ -489,7 +491,7 @@ impl Supervisor {
     }
 
     async fn sandbox_create(self: &Arc<Self>, p: &Principal, r: SandboxCreateParams) -> Result<Value, RpcError> {
-        let quota = p.effective_quota(&self.cfg.quota);
+        let quota = p.quota.apply(&self.cfg.quota);
         let d = &self.cfg.sandbox;
         let image = r.image.unwrap_or_else(|| "default".into());
         if image != "default" {
@@ -625,7 +627,7 @@ impl Supervisor {
     }
 
     fn limits_for(&self, p: &Principal, timeout_ms: Option<u64>, output: Option<u64>) -> Result<WireLimits, RpcError> {
-        let q = p.effective_quota(&self.cfg.quota);
+        let q = p.quota.apply(&self.cfg.quota);
         let d = &self.cfg.sandbox;
         let timeout_ms = timeout_ms.unwrap_or(d.exec_timeout_ms.min(q.max_timeout_ms));
         if timeout_ms == 0 || timeout_ms > q.max_timeout_ms {
@@ -1109,7 +1111,7 @@ impl Supervisor {
             tokio::task::spawn_blocking(f).await.map_err(|e| RpcError::internal(format!("tarefa de admin: {e}")))?
         };
         match method {
-            "admin.workers" => Ok(json!({ "workers": self.workers(), "uptime_secs": self.uptime().as_secs() })),
+            "admin.workers" => Ok(json!({ "workers": self.workers(), "uptime_secs": self.started.elapsed().as_secs() })),
             "admin.users.list" => {
                 let data = self.auth.snapshot().map_err(auth_err)?;
                 let st = self.state.lock();

@@ -142,8 +142,3 @@ pub fn dup2(old: i32, new: i32) -> io::Result<i32> {
     }
     cvt(proc::sys().dup3(Fd(old), Fd(new), false)).map(|f| f.0)
 }
-
-/// Ponto de preempção pra laços longos sem syscall.
-pub fn checkpoint() {
-    sysabi::sys::checkpoint();
-}

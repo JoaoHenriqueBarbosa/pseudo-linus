@@ -90,7 +90,12 @@ pub struct Kernel {
 
 impl std::fmt::Debug for Kernel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Kernel({:?})", self.inner.config)
+        write!(f, "Kernel({:?})", self.inner.config)?;
+        // `{:#?}` acrescenta o estado das CPUs e das tarefas, para diagnóstico de travamento.
+        if f.alternate() {
+            write!(f, "\n{}", self.inner.cpus.debug_state())?;
+        }
+        Ok(())
     }
 }
 
@@ -138,11 +143,6 @@ impl Kernel {
     /// Muda peso e limite de um grupo de usuário (vale na hora pros sandboxes dele).
     pub fn set_user_group_limits(&self, g: &UserGroup, cpu_weight: u64, cpu_max: Option<(u64, u64)>) -> Result<(), Errno> {
         self.inner.cpus.set_group(g.id(), GroupLimits { weight: cpu_weight, max: cpu_max })
-    }
-
-    /// Estado das CPUs virtuais e das tarefas no escalonador, em texto (diagnóstico).
-    pub fn debug_scheduler_state(&self) -> String {
-        self.inner.cpus.debug_state()
     }
 
     /// CPU consumida por um grupo de usuário (todos os sandboxes dele), em ns.

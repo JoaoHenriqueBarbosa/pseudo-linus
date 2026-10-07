@@ -68,7 +68,7 @@ const INVALID_REGEXP: &str = "invalid regexp: ";
 /// Uma regex compilada.
 #[derive(Debug)]
 pub struct Regex {
-    re: regex_posix::Regex,
+    pub(crate) re: regex_posix::Regex,
 }
 
 /// Grupos de uma casada: o índice 0 é a casada inteira; `None` é grupo que não participou.
@@ -111,15 +111,6 @@ impl Regex {
         Some(caps.iter().map(|m| m.map(|m| (m.start, m.end))).collect())
     }
 
-    /// Existe casada em algum lugar?
-    pub fn is_match(&self, hay: &[u8]) -> bool {
-        self.re.is_match(hay)
-    }
-
-    /// Número de grupos `( )` (sem contar a casada inteira).
-    pub fn group_count(&self) -> usize {
-        self.re.group_count()
-    }
 }
 
 fn flags(not_bol: bool) -> ExecFlags {
@@ -441,7 +432,7 @@ mod tests {
         assert_eq!(caps(r"(^)*", b"a"), Some(vec![s(0, 0), None]));
         assert_eq!(caps(r"(^)*a", b"a"), Some(vec![s(0, 1), s(0, 0)]));
         assert_eq!(caps(r"(()|a)*", b"aab"), Some(vec![s(0, 2), s(1, 2), s(0, 0)]));
-        assert_eq!(re(r"(a)(b(c))").group_count(), 3);
+        assert_eq!(re(r"(a)(b(c))").re.group_count(), 3);
     }
 
     #[test]

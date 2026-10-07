@@ -27,7 +27,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use subtle::ConstantTimeEq;
 
-use crate::config::{Quota, QuotaOverride, io_msg};
+use crate::config::{QuotaOverride, io_msg};
 
 pub const TOKEN_PREFIX: &str = "plk_";
 const KEY_ID_HEX: usize = 16;
@@ -141,9 +141,6 @@ impl Principal {
         self.role == Role::Admin
     }
 
-    pub fn effective_quota(&self, defaults: &Quota) -> Quota {
-        self.quota.apply(defaults)
-    }
 }
 
 #[derive(Debug, thiserror::Error)]

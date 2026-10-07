@@ -444,7 +444,7 @@ fn run(args: &[OsString], mode: Mode) -> i32 {
     let prog = mode.name();
     let argv = io::args_bytes(args);
     let argv0 = io::argv0(args);
-    let mut names = Names::new();
+    let mut names = Names::default();
     let (o, pattern) = match parse_opts(mode, &argv, &argv0, &mut names) {
         Ok(v) => v,
         Err(Fail::Try(msg, code)) => {
@@ -570,7 +570,7 @@ fn run(args: &[OsString], mode: Mode) -> i32 {
         }
         if let Some(m) = &re {
             let target = if o.full { p.cmdline_string() } else { p.comm().to_vec() };
-            ok &= m.is_match(&target);
+            ok &= m.re.is_match(&target);
         }
         if mode == Mode::Pkill && o.require_handler {
             let cgt = p.status.as_ref().and_then(|s| s.hex("SigCgt")).unwrap_or(0);

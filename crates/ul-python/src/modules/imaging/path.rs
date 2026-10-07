@@ -246,7 +246,7 @@ impl ExtObject for PathObj {
                         let xy = self.xy.borrow();
                         (xy[2 * i], xy[2 * i + 1])
                     };
-                    let r = vm.call_value(&function, vec![Value::Float(x), Value::Float(y)], Vec::new()).and_then(|item| parse_dd(&item));
+                    let r = vm.call(&function, vec![Value::Float(x), Value::Float(y)], Vec::new()).and_then(|item| parse_dd(&item));
                     match r {
                         Ok((x, y)) => {
                             let mut xy = self.xy.borrow_mut();

@@ -41,7 +41,7 @@ pub fn run(t: &mut Tar) -> R<()> {
     }
     let mut names = names::NameList::new(&t.o.names);
     let res = t.read_and(&mut r, &mut |t, r, m| {
-        if !names.is_empty() {
+        if !names.items.is_empty() {
             match names.find(&m.name) {
                 Some(i) => names.items[i].found += 1,
                 None => {
@@ -115,7 +115,7 @@ fn compare_member(t: &mut Tar, r: &mut Reader, m: &Member) -> R<()> {
             if st.mtime.sec != m.mtime.sec {
                 report(t, &path, b"Mod time differs");
             }
-            let size = if m.is_sparse() { m.real_size } else { m.size };
+            let size = if m.sparse.is_some() { m.real_size } else { m.size };
             if st.size != size {
                 report(t, &path, b"Size differs");
                 return t.skip_member(r, m);

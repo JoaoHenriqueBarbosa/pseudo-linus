@@ -68,7 +68,7 @@ pub fn view_for(map: &Rc<RefCell<VarMap>>, extras: Option<BTreeMap<String, Value
     if let Some(v) = found {
         return v;
     }
-    let dict = Rc::new(RefCell::new(Dict::new()));
+    let dict = Rc::new(RefCell::new(Dict::default()));
     let mut view = View { map: map.clone(), dict: dict.clone(), generation: 0, keys: HashSet::new() };
     refresh(&mut view, &extras);
     VIEWS.with(|views| views.borrow_mut().push(view));

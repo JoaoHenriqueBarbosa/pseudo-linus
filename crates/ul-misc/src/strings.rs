@@ -284,7 +284,7 @@ fn run(args: &[OsString]) -> i32 {
         let mut out = Output::new(&cfg);
         let mut src = Source::fd(Fd::STDIN);
         scan(&mut src, 0, b"{standard input}", &cfg, &mut out);
-        out.flush();
+        out.flush_partial();
     } else {
         for op in &operands {
             if op == b"-" {
@@ -624,7 +624,7 @@ fn process_file(prog: &str, path: &[u8], cfg: &Config) -> bool {
             }
         }
     }
-    out.flush();
+    out.flush_partial();
     true
 }
 
@@ -1131,9 +1131,6 @@ impl Output {
         }
     }
 
-    fn flush(&mut self) {
-        self.flush_partial();
-    }
 }
 
 /// `\uXXXX` com as contas do original: em quatro bytes os bits do líder vão pra posição 22 e os do
@@ -1236,7 +1233,7 @@ mod tests {
         let mut argv = vec!["strings"];
         argv.extend_from_slice(args);
         let r = k.run(&argv, stdin);
-        let code = r.code();
+        let code = r.status.shell_status();
         (r.stdout.clone(), r.stderr_str(), code)
     }
 
@@ -1442,7 +1439,7 @@ mod tests {
             r.stderr_str(),
             "strings: Warning: 'd' is a directory\nstrings: Warning: could not locate 'a/b'.  reason: Not a directory\n"
         );
-        assert_eq!((r.stdout_str().as_str(), r.code()), ("hello\n", 1));
+        assert_eq!((r.stdout_str().as_str(), r.status.shell_status()), ("hello\n", 1));
         let (o, e, c) = run_with(&[("empty", b"")], &["empty"], b"");
         assert_eq!((o.len(), e.as_str(), c), (0, "", 0));
     }
@@ -1708,12 +1705,12 @@ mod tests {
         assert_eq!(k.run(&["strings", "@q4"], b"").stdout_str(), "helloa b");
         let r = k.run(&["strings", "@loop"], b"");
         assert_eq!(
-            (r.stderr_str().as_str(), r.code()),
+            (r.stderr_str().as_str(), r.status.shell_status()),
             ("strings: error: too many @-files encountered\n", 1)
         );
         let r = k.run(&["strings", "@d"], b"");
         assert_eq!(
-            (r.stderr_str().as_str(), r.code()),
+            (r.stderr_str().as_str(), r.status.shell_status()),
             ("strings: error: @-file refers to a directory\n", 1)
         );
         let r = k.run(&["strings", "@nonexist"], b"");

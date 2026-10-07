@@ -1032,17 +1032,13 @@ impl Emitter {
 
     // ---- escrita ----
 
-    fn write(&mut self, s: &str) {
-        self.out.push_str(s);
-    }
-
     fn write_indicator(&mut self, indicator: &str, need_whitespace: bool, whitespace: bool, indention: bool) {
         let data = if self.whitespace || !need_whitespace { indicator.to_string() } else { format!(" {indicator}") };
         self.whitespace = whitespace;
         self.indention = self.indention && indention;
         self.column += data.chars().count();
         self.open_ended = false;
-        self.write(&data);
+        self.out.push_str(&data);
     }
 
     fn write_indent(&mut self) {
@@ -1054,7 +1050,7 @@ impl Emitter {
             self.whitespace = true;
             let data = " ".repeat(indent - self.column);
             self.column = indent;
-            self.write(&data);
+            self.out.push_str(&data);
         }
     }
 
@@ -1071,7 +1067,7 @@ impl Emitter {
     fn write_chunk(&mut self, text: &[char]) {
         self.column += text.len();
         let s: String = text.iter().collect();
-        self.write(&s);
+        self.out.push_str(&s);
     }
 
     fn write_single_quoted(&mut self, text: &[char], split: bool) {
@@ -1111,7 +1107,7 @@ impl Emitter {
             }
             if ch == Some('\'') {
                 self.column += 2;
-                self.write("''");
+                self.out.push_str("''");
                 start = end + 1;
             }
             if let Some(c) = ch {
@@ -1166,7 +1162,7 @@ impl Emitter {
                         None => format!("\\U{:08X}", c as u32),
                     };
                     self.column += data.chars().count();
-                    self.write(&data);
+                    self.out.push_str(&data);
                     start = end + 1;
                 }
             }
@@ -1182,13 +1178,13 @@ impl Emitter {
                     start = end;
                 }
                 self.column += data.chars().count();
-                self.write(&data);
+                self.out.push_str(&data);
                 self.write_indent();
                 self.whitespace = false;
                 self.indention = false;
                 if text.get(start) == Some(&' ') {
                     self.column += 1;
-                    self.write("\\");
+                    self.out.push_str("\\");
                 }
             }
             end += 1;
@@ -1293,7 +1289,7 @@ impl Emitter {
                 }
             } else if ch.is_none_or(is_brk) {
                 let s: String = text[start..end].iter().collect();
-                self.write(&s);
+                self.out.push_str(&s);
                 if ch.is_none() {
                     self.write_line_break(None);
                 }
@@ -1315,7 +1311,7 @@ impl Emitter {
         }
         if !self.whitespace {
             self.column += 1;
-            self.write(" ");
+            self.out.push_str(" ");
         }
         self.whitespace = false;
         self.indention = false;

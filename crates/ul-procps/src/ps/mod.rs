@@ -451,7 +451,7 @@ impl Ps {
             task_format_list: Vec::new(),
             hertz: 100,
             boot_tics: 0,
-            names: Names::new(),
+            names: Names::default(),
             pid_length_cache: None,
             boot_time_cache: None,
             mem_total_cache: None,

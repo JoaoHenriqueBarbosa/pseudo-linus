@@ -118,7 +118,7 @@ impl ExtObject for GetSetDescriptor {
                 name: self.name,
                 owner: self.owner.clone(),
             }))),
-            ("__get__", [obj, ..]) if self.name == "__dict__" => vm.getattr(obj, "__dict__"),
+            ("__get__", [obj, ..]) if self.name == "__dict__" => vm.load_attr(obj, "__dict__"),
             ("__get__", [_, ..]) => Ok(Value::None),
             ("__set__", [obj, value]) if self.name == "__dict__" => {
                 vm.store_attr(obj, "__dict__", value.clone())?;
@@ -148,7 +148,7 @@ impl ExtObject for StaticMethod {
     fn call_method(&self, vm: &mut Vm, name: &str, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         // Desde o 3.10 o `staticmethod` é chamável e repassa a chamada à função envolvida.
         if name == "__call__" {
-            return vm.call_value(&self.0, args, kw);
+            return vm.call(&self.0, args, kw);
         }
         Err(crate::object::no_attribute("staticmethod", name))
     }
@@ -194,7 +194,7 @@ impl ExtObject for Property {
                 // Sem `doc=`, o docstring vem do getter, como no CPython.
                 let own = self.doc.borrow().clone();
                 if matches!(own, Value::None) {
-                    return Some(Ok(vm.getattr(&self.get, "__doc__").unwrap_or(Value::None)));
+                    return Some(Ok(vm.load_attr(&self.get, "__doc__").unwrap_or(Value::None)));
                 }
                 Some(Ok(own))
             }
@@ -231,20 +231,20 @@ impl ExtObject for Property {
                 if matches!(self.get, Value::None) {
                     return Err(exc("AttributeError", "property has no getter"));
                 }
-                return vm.call_value(&self.get, vec![obj], kw);
+                return vm.call(&self.get, vec![obj], kw);
             }
             "__set__" => {
                 let [obj, value] = <[Value; 2]>::try_from(args)
                     .map_err(|a| type_error(format!("expected 2 arguments, got {}", a.len())))?;
                 let Some(set) = &self.set else { return Err(exc("AttributeError", "property has no setter")) };
-                vm.call_value(set, vec![obj, value], kw)?;
+                vm.call(set, vec![obj, value], kw)?;
                 return Ok(Value::None);
             }
             "__delete__" => {
                 let [obj] = <[Value; 1]>::try_from(args)
                     .map_err(|a| type_error(format!("expected 1 argument, got {}", a.len())))?;
                 let Some(del) = &self.del else { return Err(exc("AttributeError", "property has no deleter")) };
-                vm.call_value(del, vec![obj], kw)?;
+                vm.call(del, vec![obj], kw)?;
                 return Ok(Value::None);
             }
             _ => {}
@@ -343,8 +343,8 @@ impl ExtObject for AltCtor {
         &["__call__"]
     }
     fn call_method(&self, vm: &mut Vm, _name: &str, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-        let base = vm.call_value(&self.inner, args, kw)?;
-        vm.call_value(&self.cls, vec![base], Vec::new())
+        let base = vm.call(&self.inner, args, kw)?;
+        vm.call(&self.cls, vec![base], Vec::new())
     }
 }
 
@@ -359,8 +359,8 @@ impl ExtObject for FileExit {
         &["__call__"]
     }
     fn call_method(&self, vm: &mut Vm, _name: &str, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
-        let close = vm.getattr(&self.0, "close")?;
-        vm.call_value(&close, Vec::new(), Vec::new())?;
+        let close = vm.load_attr(&self.0, "close")?;
+        vm.call(&close, Vec::new(), Vec::new())?;
         Ok(Value::Bool(false))
     }
 }
@@ -531,7 +531,7 @@ impl ExtObject for ExcAddNote {
         if !matches!(note, Value::Str(_)) {
             return Err(type_error(format!("note must be a str, not '{}'", note.type_name())));
         }
-        let notes = match vm.getattr(&self.obj, "__notes__") {
+        let notes = match vm.load_attr(&self.obj, "__notes__") {
             Ok(Value::List(l)) => l,
             Ok(_) => return Err(type_error("Cannot add note: __notes__ is not a list")),
             Err(_) => {
@@ -683,7 +683,7 @@ impl ExtObject for BuiltinSuperMethod {
                     if let Some(r) = crate::vm::payload_dunder(&p, other, args.clone()) {
                         return r;
                     }
-                    let method = vm.getattr(&p, other)?;
+                    let method = vm.load_attr(&p, other)?;
                     return vm.call(&method, args, kw);
                 }
                 Err(exc("AttributeError", format!("'super' object has no attribute '{}'", self.name)))
@@ -1128,7 +1128,7 @@ impl Vm {
                 Some(Descriptor::Class(other)) => Ok(other),
                 Some(Descriptor::Property { get, .. }) => match recv {
                     Value::Class(_) => Ok(attr.clone()),
-                    _ => self.call_value(&get, vec![recv], Vec::new()),
+                    _ => self.call(&get, vec![recv], Vec::new()),
                 },
                 None => Ok(attr.clone()),
             },
@@ -1218,7 +1218,7 @@ impl Vm {
             _ => None,
         } {
             let m = crate::modules::import_checked(self, "copyreg")?;
-            if let Value::Function(f) = self.getattr(&Value::Module(m), fname)? {
+            if let Value::Function(f) = self.load_attr(&Value::Module(m), fname)? {
                 return Ok(Value::BoundFn(Rc::new((obj.clone(), f))));
             }
         }
@@ -1228,7 +1228,7 @@ impl Vm {
             if name == "__getitem__" && matches!(p, Value::Dict(_)) && inst.class.lookup("__missing__").is_some() {
                 return Ok(Value::Ext(Rc::new(InstanceDunder { obj: obj.clone(), name: "__getitem__" })));
             }
-            return self.getattr(&p, name);
+            return self.load_attr(&p, name);
         }
         if name == "__doc__" {
             return Ok(inst.class.lookup("__doc__").unwrap_or(Value::None));
@@ -1274,7 +1274,7 @@ impl Vm {
                 return Ok(Value::tuple(mro));
             }
             "__dict__" => {
-                let mut d = crate::object::Dict::new();
+                let mut d = crate::object::Dict::default();
                 for (k, v) in cls.dict.borrow().iter() {
                     d.set(Value::str(k.clone()), v.clone())?;
                 }
@@ -1301,7 +1301,7 @@ impl Vm {
         }
         if name == "mro" && cls.lookup("mro").is_none() {
             let m = crate::modules::import_checked(self, "copyreg")?;
-            if let Value::Function(f) = self.getattr(&Value::Module(m), "_type_mro")? {
+            if let Value::Function(f) = self.load_attr(&Value::Module(m), "_type_mro")? {
                 return Ok(Value::BoundFn(Rc::new((Value::Class(cls.clone()), f))));
             }
         }
@@ -1326,7 +1326,7 @@ impl Vm {
                 return match &attr {
                     Value::Function(f) => Ok(Value::BoundFn(Rc::new((me, f.clone())))),
                     Value::Ext(e) => match e.descriptor() {
-                        Some(Descriptor::Property { get, .. }) => self.call_value(&get, vec![me], Vec::new()),
+                        Some(Descriptor::Property { get, .. }) => self.call(&get, vec![me], Vec::new()),
                         _ => Ok(attr.clone()),
                     },
                     other => Ok(other.clone()),
@@ -1381,7 +1381,7 @@ impl Vm {
                 if let Some(Value::Ext(e)) = &class_attr {
                     if let Some(Descriptor::Property { set, .. }) = e.descriptor() {
                         return match set {
-                            Some(f) => self.call_value(&f, vec![obj.clone(), value], Vec::new()).map(|_| ()),
+                            Some(f) => self.call(&f, vec![obj.clone(), value], Vec::new()).map(|_| ()),
                             None => Err(exc(
                                 "AttributeError",
                                 format!("property '{name}' of '{}' object has no setter", inst.class.name),
@@ -1594,7 +1594,7 @@ impl Vm {
                 };
                 let entered = match &enter {
                     Value::Function(f) => self.call_function(f, vec![mgr.clone()], Vec::new())?,
-                    other => self.call_value(other, vec![mgr.clone()], Vec::new())?,
+                    other => self.call(other, vec![mgr.clone()], Vec::new())?,
                 };
                 let exit = self.bind_class_attr(&exit, mgr.clone(), &i.class)?;
                 Ok((exit, entered))
@@ -1803,7 +1803,7 @@ impl Vm {
             Some(Value::Function(f)) => Some(f),
             // Atributo de classe que já é um chamável preso (`__next__ = gerador.__next__`): chama direto.
             Some(bound @ (Value::Bound(_) | Value::BoundFn(_) | Value::Ext(_) | Value::NativeFn(_))) => {
-                return Some(self.call_value(&bound, args, Vec::new()));
+                return Some(self.call(&bound, args, Vec::new()));
             }
             // Descritor de usuário (`__get__` em Python, como o `MagicProxy` do mock): resolve e chama.
             Some(attr @ Value::Instance(_)) if matches!(&attr, Value::Instance(d) if d.class.lookup("__get__").is_some()) => {
@@ -1811,12 +1811,12 @@ impl Vm {
                     Ok(b) => b,
                     Err(e) => return Some(Err(e)),
                 };
-                return Some(self.call_value(&bound, args, Vec::new()));
+                return Some(self.call(&bound, args, Vec::new()));
             }
             // Objeto chamável sem `__get__` na classe (um `MagicMock` posto como `__len__`): o CPython o
             // chama só com os argumentos, sem o `self`.
             Some(attr @ Value::Instance(_)) if matches!(&attr, Value::Instance(d) if d.class.lookup("__call__").is_some()) => {
-                return Some(self.call_value(&attr, args, Vec::new()));
+                return Some(self.call(&attr, args, Vec::new()));
             }
             _ => None,
         };
@@ -1936,12 +1936,12 @@ pub fn instance_text(v: &Value, is_str: bool) -> Option<String> {
                 Ok(other) => {
                     crate::vm::note_text_error(
                         type_error(format!("{name} returned non-string (type {})", other.type_name())),
-                        vm.depth_now(),
+                        vm.depth.get(),
                     );
                     None
                 }
                 Err(e) => {
-                    crate::vm::note_text_error(e, vm.depth_now());
+                    crate::vm::note_text_error(e, vm.depth.get());
                     None
                 }
             };
@@ -2126,7 +2126,7 @@ fn dict_to_ns(ns: &Value) -> PyResult<Vec<(String, Value)>> {
 }
 
 fn ns_to_dict(ns: &[(String, Value)]) -> PyResult<Value> {
-    let mut d = crate::object::Dict::new();
+    let mut d = crate::object::Dict::default();
     for (k, v) in ns {
         d.set(Value::str(k.clone()), v.clone()).map_err(|_| type_error("unhashable type"))?;
     }

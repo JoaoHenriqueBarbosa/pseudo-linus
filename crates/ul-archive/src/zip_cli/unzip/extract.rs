@@ -70,9 +70,6 @@ impl Cover {
         0
     }
 
-    pub fn clear(&mut self) {
-        self.span.clear();
-    }
 }
 
 /// O que sobrescrever quando o arquivo de saída já existe (`G.overwrite_mode`).
@@ -393,7 +390,7 @@ impl Uz {
         let xb = self.zin.extra_bytes;
         let (off, size) = (self.ecrec.offset_start_central_directory as i64, self.ecrec.size_central_directory as i64);
         let c = &mut self.x.cover;
-        c.clear();
+        c.span.clear();
         if c.add(xb + off, xb + off + size) != 0 {
             self.info(MSG_STDERR, "error: not enough memory for bomb detection\n");
             return Some(super::PK_MEM);

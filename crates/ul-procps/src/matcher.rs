@@ -11,14 +11,10 @@
 /// Uma ERE compilada.
 #[derive(Debug)]
 pub struct Matcher {
-    re: regex::bytes::Regex,
+    pub(crate) re: regex::bytes::Regex,
 }
 
 impl Matcher {
-    /// Há casamento em algum lugar de `s` (o `regexec` com `REG_NOSUB`)?
-    pub fn is_match(&self, s: &[u8]) -> bool {
-        self.re.is_match(s)
-    }
 }
 
 /// Compila uma ERE. O erro é o texto do `regerror` do glibc.
@@ -279,7 +275,7 @@ mod tests {
     }
 
     fn m(p: &str, s: &str) -> bool {
-        compile(p.as_bytes(), false).unwrap().is_match(s.as_bytes())
+        compile(p.as_bytes(), false).unwrap().re.is_match(s.as_bytes())
     }
 
     #[test]
@@ -311,6 +307,6 @@ mod tests {
         assert!(m("[\\d]", "\\"));
         assert!(m("x\\) \\(y", "x) (y"));
         assert!(m("a{1,2}{3}", "aaa"));
-        assert!(compile(b"WORKER", true).unwrap().is_match(b"kworker"));
+        assert!(compile(b"WORKER", true).unwrap().re.is_match(b"kworker"));
     }
 }

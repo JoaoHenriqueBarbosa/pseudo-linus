@@ -123,14 +123,14 @@ fn leftmost_cache_follows_removals() {
 fn free_slots_are_reused() {
     let mut tree: RbTree<u32, u32> = RbTree::new();
     let ids: Vec<NodeId> = (0..64u32).map(|k| tree.insert(k, k)).collect();
-    assert_eq!(tree.arena_len(), 64);
+    assert_eq!(tree.nodes.len(), 64);
     for id in &ids[..32] {
         tree.remove(*id);
     }
     for k in 100..132u32 {
         tree.insert(k, k);
     }
-    assert_eq!(tree.arena_len(), 64);
+    assert_eq!(tree.nodes.len(), 64);
     assert_eq!(tree.len(), 64);
     assert_ok(&tree);
 }

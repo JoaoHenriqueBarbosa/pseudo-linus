@@ -9,7 +9,7 @@ fn setup() -> (Arc<Namespace>, Caller) {
     let now = TimeSpec { sec: 1_768_478_400, nsec: 0 };
     let fs = Tmpfs::new(makedev(0, 30), 0o755, now, TmpfsLimits::default());
     let ns = Namespace::new(fs, MountFlags::RELATIME, "tmpfs", "");
-    let mut cx = ops::kernel_caller(ns.root());
+    let mut cx = ops::kernel_caller(ns.root.root());
     cx.now = now;
     cx.umask = 0o022;
     cx.pid = 1;
@@ -130,7 +130,7 @@ fn symlinks_follow_limits_and_dangling_creation() {
 fn snapshot_restore_and_orphans() {
     let fs = Tmpfs::new(makedev(0, 31), 0o755, TimeSpec::default(), TmpfsLimits::default());
     let ns = Namespace::new(fs.clone(), MountFlags::empty(), "tmpfs", "");
-    let cx = ops::kernel_caller(ns.root());
+    let cx = ops::kernel_caller(ns.root.root());
     write_file(&ns, &cx, "/a", b"one");
     let snap = fs.snapshot();
     write_file(&ns, &cx, "/a", b"two");

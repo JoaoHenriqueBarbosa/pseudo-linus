@@ -112,10 +112,10 @@ fn run_test(t: &JqTest) -> Result<(), String> {
     let r = kit.run(&["jq", "-c", &program], &stdin);
     let stderr = r.stderr_str();
     if let Some(fail) = &t.fail {
-        let failed_compile = r.code() != 0 && r.stdout.is_empty();
+        let failed_compile = r.status.shell_status() != 0 && r.stdout.is_empty();
         let first_line = stderr.lines().next().unwrap_or("").to_string();
         if !failed_compile {
-            return Err(format!("compilou (exit {}, stdout {:?})", r.code(), r.stdout_str()));
+            return Err(format!("compilou (exit {}, stdout {:?})", r.status.shell_status(), r.stdout_str()));
         }
         if let Some(msg) = fail {
             if first_line != *msg {
@@ -146,7 +146,7 @@ fn run_test(t: &JqTest) -> Result<(), String> {
         Ok(())
     } else {
         let got: Vec<String> = actual.iter().take(6).map(|v| v.to_json()).collect();
-        Err(format!("esperado {:?}, obtido {:?} (exit {}, stderr {:?})", t.expected, got, r.code(), stderr.chars().take(200).collect::<String>()))
+        Err(format!("esperado {:?}, obtido {:?} (exit {}, stderr {:?})", t.expected, got, r.status.shell_status(), stderr.chars().take(200).collect::<String>()))
     }
 }
 

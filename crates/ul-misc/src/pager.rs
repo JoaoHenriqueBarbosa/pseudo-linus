@@ -549,7 +549,7 @@ mod tests {
             r.stdout_str(),
             "l1\nl2\nnope: No such file or directory\nd is a directory\nx\n"
         );
-        assert_eq!(r.code(), 0);
+        assert_eq!(r.status.shell_status(), 0);
         let r = kit().run(&["less", "-Z", "-N", "--bogus", "a"], b"");
         assert_eq!(r.stdout_str(), "l1\nl2\n");
         assert_eq!(
@@ -583,6 +583,6 @@ mod tests {
             r.stderr_str(),
             "more: invalid option -- 'Z'\nTry 'more --help' for more information.\n"
         );
-        assert_eq!(r.code(), 1);
+        assert_eq!(r.status.shell_status(), 1);
     }
 }

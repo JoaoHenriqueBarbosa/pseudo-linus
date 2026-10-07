@@ -135,9 +135,9 @@ impl Tput {
                 r.columns = i32::from(ws.cols);
             }
             if r.send_init_strings() {
-                r.flush();
+                r.out.finish();
             }
-            r.flush();
+            r.out.finish();
             return (0, used);
         }
         if name == b"longname" {

@@ -258,7 +258,7 @@ impl Compiler {
     fn run_code(&mut self) {
         let code = std::mem::take(&mut self.main);
         if !self.had_error
-            && !code.is_empty()
+            && !code.ins.is_empty()
             && let Some(c) = self.vm.run(Rc::new(code))
         {
             self.exit = Some(c);

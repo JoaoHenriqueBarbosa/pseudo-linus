@@ -20,7 +20,7 @@ pub struct InputState {
     files: Vec<String>,
     curr_file: usize,
     current: Option<Source>,
-    current_filename: Option<String>,
+    pub(crate) current_filename: Option<String>,
     current_line: u64,
     pub failures: u32,
     parser: Option<Parser>,
@@ -45,10 +45,6 @@ impl InputState {
             buf: Vec::new(),
             stream: stream.then(StreamState::default),
         }
-    }
-
-    pub fn current_filename(&self) -> Option<String> {
-        self.current_filename.clone()
     }
 
     pub fn current_line(&self) -> u64 {

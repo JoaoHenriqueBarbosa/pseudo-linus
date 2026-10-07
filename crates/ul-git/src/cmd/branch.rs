@@ -734,7 +734,7 @@ fn list_branches(repo: &Repo, p: &opts::Parsed, usage: &str, colopts: u32) -> R<
     }
     for row in &rows {
         let (current, shown) = if let Some(b) = row.name.strip_prefix("refs/heads/") {
-            (ctx.head_ref() == Some(row.name.as_str()), b.to_string())
+            (ctx.head_ref.as_deref() == Some(row.name.as_str()), b.to_string())
         } else if let Some(r) = row.name.strip_prefix("refs/remotes/") {
             (false, if all { format!("remotes/{r}") } else { r.to_string() })
         } else {

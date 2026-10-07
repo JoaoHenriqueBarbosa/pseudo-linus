@@ -146,7 +146,7 @@ impl Worker {
     }
 
     fn dispatch(self: &Arc<Worker>, id: u64, call: Call) {
-        let cancel = Cancel::new();
+        let cancel = Cancel::default();
         self.cancels.lock().insert(id, cancel.clone());
         self.in_flight.fetch_add(1, Ordering::AcqRel);
         let me = self.clone();

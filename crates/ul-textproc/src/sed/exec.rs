@@ -746,7 +746,7 @@ impl<'p> Exec<'p> {
             } else {
                 re.re.find_at(&ps, start).map(|m| {
                     let _ = m;
-                    regex_posix::Captures::clone(&dummy_caps(m.start, m.end))
+                    regex_posix::Captures::clone(&regex_posix::Captures::whole_only(m.start, m.end))
                 })
             };
             let Some(caps) = caps else { break };
@@ -1029,10 +1029,6 @@ impl<'a> Input<'a> {
 
 fn char_len(s: &[u8], i: usize) -> usize {
     regex_posix::nfa::decode_at(s, i).map(|(_, l)| l).unwrap_or(1)
-}
-
-fn dummy_caps(s: usize, e: usize) -> regex_posix::Captures {
-    regex_posix::Captures::whole_only(s, e)
 }
 
 /// Monta a substituição com as conversões de caixa (`\U`, `\L`, `\E`, `\u`, `\l`).

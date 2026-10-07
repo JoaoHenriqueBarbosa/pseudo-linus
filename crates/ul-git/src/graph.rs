@@ -34,13 +34,6 @@ impl DateQueue {
         self.heap.pop().map(|(d, _, id)| (d, id))
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.heap.is_empty()
-    }
-
-    pub fn len(&self) -> usize {
-        self.heap.len()
-    }
 }
 
 /// Cache de datas e pais dos commits.

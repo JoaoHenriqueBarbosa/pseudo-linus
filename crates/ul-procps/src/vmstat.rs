@@ -114,7 +114,7 @@ fn read_mem() -> Mem {
     let Some(m) = procfs::meminfo() else { return Mem::default() };
     let total = m.get("MemTotal");
     let free = m.get("MemFree");
-    let available = if m.has("MemAvailable") { m.get("MemAvailable") } else { free };
+    let available = if m.map.contains_key("MemAvailable") { m.get("MemAvailable") } else { free };
     let used = if available <= total { total - available } else { total.saturating_sub(free) };
     Mem {
         total,

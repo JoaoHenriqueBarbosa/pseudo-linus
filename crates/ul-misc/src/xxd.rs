@@ -1400,7 +1400,7 @@ mod tests {
             r.stderr_str(),
             "xxd: number of octets per group must be a power of 2 with -e.\n"
         );
-        assert_eq!(r.code(), 1);
+        assert_eq!(r.status.shell_status(), 1);
     }
 
     #[test]
@@ -1604,13 +1604,13 @@ mod tests {
         );
         let r = xxd(&["-col", "3", "small"], b"", f);
         assert_eq!(r.stderr_str(), "xxd: 3: No such file or directory\n");
-        assert_eq!(r.code(), 2);
+        assert_eq!(r.status.shell_status(), 2);
     }
 
     #[test]
     fn usage_and_version() {
         let r = xxd(&["-h"], b"", &[]);
-        assert_eq!(r.code(), 1);
+        assert_eq!(r.status.shell_status(), 1);
         assert!(
             r.stderr_str()
                 .starts_with("Usage:\n       xxd [options] [infile [outfile]]\n    or\n")
@@ -1621,7 +1621,7 @@ mod tests {
         assert_eq!(r.stdout, b"");
         let r = xxd(&["--version"], b"", &[]);
         assert_eq!(
-            (r.code(), r.stderr_str().as_str()),
+            (r.status.shell_status(), r.stderr_str().as_str()),
             (0, "xxd 2024-12-07 by Juergen Weigert et al.\n")
         );
         for bad in [
@@ -1632,7 +1632,7 @@ mod tests {
             &["---p"],
         ] {
             let r = xxd(bad, b"", &[]);
-            assert_eq!(r.code(), 1, "{bad:?}");
+            assert_eq!(r.status.shell_status(), 1, "{bad:?}");
             assert!(r.stderr_str().starts_with("Usage:"), "{bad:?}");
         }
     }
@@ -1652,15 +1652,15 @@ mod tests {
                 "xxd: only one of -b, -e, -u, -p, -i can be used\n",
                 "{args:?}"
             );
-            assert_eq!(r.code(), 1);
+            assert_eq!(r.status.shell_status(), 1);
         }
-        assert_eq!(xxd(&["-i", "-b", "small"], b"", f).code(), 0);
+        assert_eq!(xxd(&["-i", "-b", "small"], b"", f).status.shell_status(), 0);
         let r = xxd(&["-c", "257", "small"], b"", f);
         assert_eq!(
-            (r.code(), r.stderr_str().as_str()),
+            (r.status.shell_status(), r.stderr_str().as_str()),
             (1, "xxd: invalid number of columns (max. 256).\n")
         );
-        assert_eq!(xxd(&["-p", "-c", "300", "small"], b"", f).code(), 0);
+        assert_eq!(xxd(&["-p", "-c", "300", "small"], b"", f).status.shell_status(), 0);
         assert_eq!(
             xxd(&["-c", "0", "small"], b"", f).stdout_str(),
             "00000000: 6162 63                                  abc\n"
@@ -1676,7 +1676,7 @@ mod tests {
         assert_eq!(out(&["-s", "100", "txt"]), "");
         let r = xxd(&["-s", "-100", "txt"], b"", &[("txt", TXT)]);
         assert_eq!(
-            (r.code(), r.stderr_str().as_str()),
+            (r.status.shell_status(), r.stderr_str().as_str()),
             (4, "xxd: Sorry, cannot seek.\n")
         );
         assert_eq!(
@@ -1689,38 +1689,38 @@ mod tests {
         );
         let r = xxd(&["-s", "13"], b"hello world\n", &[]);
         assert_eq!(
-            (r.code(), r.stderr_str().as_str()),
+            (r.status.shell_status(), r.stderr_str().as_str()),
             (4, "xxd: Sorry, cannot seek.\n")
         );
         let r = xxd(&["-s", "-1"], b"hello world\n", &[]);
-        assert_eq!(r.code(), 4);
-        assert_eq!(xxd(&["-s", "12"], b"hello world\n", &[]).code(), 0);
+        assert_eq!(r.status.shell_status(), 4);
+        assert_eq!(xxd(&["-s", "12"], b"hello world\n", &[]).status.shell_status(), 0);
     }
 
     #[test]
     fn file_errors() {
         let r = xxd(&["nofile"], b"", &[]);
         assert_eq!(
-            (r.code(), r.stderr_str().as_str()),
+            (r.status.shell_status(), r.stderr_str().as_str()),
             (2, "xxd: nofile: No such file or directory\n")
         );
         let k = kit(&[("in1", b"6162")]);
         k.put_dir(b"/work/dd", 0o755);
         let r = k.run(&["xxd", "in1", "dd"], b"");
         assert_eq!(
-            (r.code(), r.stderr_str().as_str()),
+            (r.status.shell_status(), r.stderr_str().as_str()),
             (3, "xxd: dd: Is a directory\n")
         );
         let r = k.run(&["xxd", "dd"], b"");
         assert_eq!(
-            (r.code(), r.stderr_str().as_str()),
+            (r.status.shell_status(), r.stderr_str().as_str()),
             (2, "xxd: Is a directory\n")
         );
         let r = k.run(&["xxd", "-r", "dd"], b"");
-        assert_eq!((r.code(), r.stderr_str().as_str()), (0, ""));
+        assert_eq!((r.status.shell_status(), r.stderr_str().as_str()), (0, ""));
         let r = k.run(&["xxd", "-i", "dd"], b"");
         assert_eq!(r.stdout_str(), "unsigned char dd[] = {\n");
-        assert_eq!(r.code(), 2);
+        assert_eq!(r.status.shell_status(), 2);
     }
 
     #[test]
@@ -1733,7 +1733,7 @@ mod tests {
             ),
         ]);
         let r = k.run(&["xxd", "in1", "f3"], b"");
-        assert_eq!(r.code(), 0);
+        assert_eq!(r.status.shell_status(), 0);
         assert_eq!(
             k.read_file("/work/f3").unwrap(),
             b"00000000: 6162                                     ab\n"
@@ -1783,18 +1783,18 @@ mod tests {
         let r = xxd(&["-r"], b"3: 41\n1: 42\n", &[]);
         assert_eq!(r.stdout, b"\0\0\0A");
         assert_eq!(
-            (r.code(), r.stderr_str().as_str()),
+            (r.status.shell_status(), r.stderr_str().as_str()),
             (5, "xxd: Sorry, cannot seek backwards.\n")
         );
         let r = xxd(&["-r", "-s", "-4"], b"0: 4142\n", &[]);
-        assert_eq!(r.code(), 5);
+        assert_eq!(r.status.shell_status(), 5);
     }
 
     #[test]
     fn revert_patches_file_without_truncating() {
         let k = kit(&[("f1", b"XXXXXXXXXX")]);
         let r = k.run(&["xxd", "-r", "-", "f1"], b"3: 41\n1: 42\n");
-        assert_eq!(r.code(), 0);
+        assert_eq!(r.status.shell_status(), 0);
         assert_eq!(k.read_file("/work/f1").unwrap(), b"XBXAXXXXXX");
         let k = kit(&[("f4", b"XX")]);
         k.run(&["xxd", "-r", "-", "f4"], b"5: 41\n");
@@ -1842,11 +1842,11 @@ mod tests {
     fn revert_rejects_little_endian_and_include() {
         let r = xxd(&["-r", "-e", "small"], b"", &[("small", b"abc")]);
         assert_eq!(
-            (r.code(), r.stderr_str().as_str()),
+            (r.status.shell_status(), r.stderr_str().as_str()),
             (255, "xxd: Sorry, cannot revert this type of hexdump\n")
         );
         let r = xxd(&["-r", "-i", "nofile"], b"", &[]);
-        assert_eq!(r.code(), 2);
+        assert_eq!(r.status.shell_status(), 2);
     }
 
     #[test]

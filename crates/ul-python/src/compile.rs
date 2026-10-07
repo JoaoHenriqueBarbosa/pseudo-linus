@@ -859,10 +859,6 @@ impl Compiler {
         self.span = Span::of(pos);
     }
 
-    fn here(&self) -> usize {
-        self.code.ops.len()
-    }
-
     /// Aponta o salto em `at` para `target`.
     fn patch(&mut self, at: usize, target: usize) {
         let t = target as u32;
@@ -931,19 +927,19 @@ impl Compiler {
                 let to_else = self.emit(Op::PopJumpIfFalse(0));
                 self.block(body)?;
                 if orelse.is_empty() {
-                    let end = self.here();
+                    let end = self.code.ops.len();
                     self.patch(to_else, end);
                 } else {
                     let to_end = self.emit(Op::Jump(0));
-                    let else_start = self.here();
+                    let else_start = self.code.ops.len();
                     self.patch(to_else, else_start);
                     self.block(orelse)?;
-                    let end = self.here();
+                    let end = self.code.ops.len();
                     self.patch(to_end, end);
                 }
             }
             S::While { test, body, orelse } => {
-                let top = self.here();
+                let top = self.code.ops.len();
                 self.at(&stmt.pos);
                 self.expr(test)?;
                 let to_else = self.emit(Op::PopJumpIfFalse(0));
@@ -952,10 +948,10 @@ impl Compiler {
                 self.at(&stmt.pos);
                 self.emit(Op::Jump(top as u32));
                 let ctx = self.loops.pop().unwrap_or(LoopCtx { continue_target: top, breaks: Vec::new(), is_for: false, try_depth: 0 });
-                let else_start = self.here();
+                let else_start = self.code.ops.len();
                 self.patch(to_else, else_start);
                 self.block(orelse)?;
-                let end = self.here();
+                let end = self.code.ops.len();
                 for b in ctx.breaks {
                     self.patch(b, end);
                 }
@@ -971,10 +967,10 @@ impl Compiler {
                 self.at(&stmt.pos);
                 self.emit(Op::Jump(top as u32));
                 let ctx = self.loops.pop().unwrap_or(LoopCtx { continue_target: top, breaks: Vec::new(), is_for: true, try_depth: 0 });
-                let else_start = self.here();
+                let else_start = self.code.ops.len();
                 self.patch(top, else_start);
                 self.block(orelse)?;
-                let end = self.here();
+                let end = self.code.ops.len();
                 for b in ctx.breaks {
                     self.patch(b, end);
                 }
@@ -1041,7 +1037,7 @@ impl Compiler {
                 self.at(&test.pos);
                 self.emit(Op::Call { argc, kwnames: None });
                 self.emit(Op::Raise);
-                let end = self.here();
+                let end = self.code.ops.len();
                 self.patch(ok, end);
             }
             S::FunctionDef { name, args, body, decorator_list, returns, .. }
@@ -1192,13 +1188,13 @@ impl Compiler {
                 self.at(&stmt.pos);
                 self.emit(Op::Jump(top as u32));
                 let ctx = self.loops.pop().unwrap_or(LoopCtx { continue_target: top, breaks: Vec::new(), is_for: true, try_depth: 0 });
-                let handler = self.here();
+                let handler = self.code.ops.len();
                 self.patch(top, handler);
                 let stop = self.emit(Op::AsyncForExcept(0));
-                let else_start = self.here();
+                let else_start = self.code.ops.len();
                 self.patch(stop, else_start);
                 self.block(orelse)?;
-                let end = self.here();
+                let end = self.code.ops.len();
                 for b in ctx.breaks {
                     self.patch(b, end);
                 }
@@ -1231,12 +1227,12 @@ impl Compiler {
         self.emit(Op::PopBlock);
         self.block(finalbody)?;
         let to_end = self.emit(Op::Jump(0));
-        let handler = self.here();
+        let handler = self.code.ops.len();
         self.patch(setup, handler);
         self.emit(Op::PushExc);
         self.block(finalbody)?;
         self.emit(Op::Reraise);
-        let end = self.here();
+        let end = self.code.ops.len();
         self.patch(to_end, end);
         Ok(())
     }
@@ -1249,13 +1245,13 @@ impl Compiler {
         self.emit(Op::PopBlock);
         self.block(orelse)?;
         let mut ends = vec![self.emit(Op::Jump(0))];
-        let handler = self.here();
+        let handler = self.code.ops.len();
         self.patch(setup, handler);
         self.emit(Op::PushExc);
         let mut pending: Option<usize> = None;
         for h in handlers {
             if let Some(at) = pending.take() {
-                let here = self.here();
+                let here = self.code.ops.len();
                 self.patch(at, here);
             }
             self.at(&h.pos);
@@ -1285,11 +1281,11 @@ impl Compiler {
             ends.push(self.emit(Op::Jump(0)));
         }
         if let Some(at) = pending.take() {
-            let here = self.here();
+            let here = self.code.ops.len();
             self.patch(at, here);
             self.emit(Op::Reraise);
         }
-        let end = self.here();
+        let end = self.code.ops.len();
         for e in ends {
             self.patch(e, end);
         }
@@ -1305,7 +1301,7 @@ impl Compiler {
         let delegate = self.emit(Op::Delegate(0));
         self.emit(Op::Yield);
         self.emit(Op::DelegateNext(delegate as u32));
-        let end = self.here();
+        let end = self.code.ops.len();
         self.patch(delegate, end);
     }
 
@@ -1632,12 +1628,12 @@ impl Compiler {
             }
             self.block(&case.body)?;
             ends.push(self.emit(Op::Jump(0)));
-            let next = self.here();
+            let next = self.code.ops.len();
             for f in fails {
                 self.patch(f, next);
             }
         }
-        let end = self.here();
+        let end = self.code.ops.len();
         for e in ends {
             self.patch(e, end);
         }
@@ -1682,13 +1678,13 @@ impl Compiler {
                         fails.extend(f);
                     } else {
                         ends.push(self.emit(Op::Jump(0)));
-                        let next = self.here();
+                        let next = self.code.ops.len();
                         for x in f {
                             self.patch(x, next);
                         }
                     }
                 }
-                let end = self.here();
+                let end = self.code.ops.len();
                 for e in ends {
                     self.patch(e, end);
                 }
@@ -1844,7 +1840,7 @@ impl Compiler {
         }
         self.emit(Op::Pop);
         let to_end = self.emit(Op::Jump(0));
-        let handler = self.here();
+        let handler = self.code.ops.len();
         self.patch(setup, handler);
         self.emit(Op::PushExc);
         self.emit_load(&hidden);
@@ -1857,11 +1853,11 @@ impl Compiler {
         }
         let suppressed = self.emit(Op::PopJumpIfTrue(0));
         self.emit(Op::Reraise);
-        let ok = self.here();
+        let ok = self.code.ops.len();
         self.patch(suppressed, ok);
         self.emit(Op::Pop);
         self.emit(Op::PopExc);
-        let end = self.here();
+        let end = self.code.ops.len();
         self.patch(to_end, end);
         Ok(())
     }
@@ -2048,16 +2044,16 @@ impl Compiler {
                 }
             }
         }
-        let next = self.here();
+        let next = self.code.ops.len();
         for s in skips {
             self.patch(s, next);
         }
         self.emit(Op::Jump(top as u32));
-        let end = self.here();
+        let end = self.code.ops.len();
         self.patch(top, end);
         if is_async_loop {
             let stop = self.emit(Op::AsyncForExcept(0));
-            let after = self.here();
+            let after = self.code.ops.len();
             self.patch(stop, after);
         }
         Ok(())
@@ -2235,7 +2231,7 @@ impl Compiler {
                         }));
                     }
                 }
-                let end = self.here();
+                let end = self.code.ops.len();
                 for j in jumps {
                     self.patch(j, end);
                 }
@@ -2245,10 +2241,10 @@ impl Compiler {
                 let to_else = self.emit(Op::PopJumpIfFalse(0));
                 self.expr(body)?;
                 let to_end = self.emit(Op::Jump(0));
-                let else_start = self.here();
+                let else_start = self.code.ops.len();
                 self.patch(to_else, else_start);
                 self.expr(orelse)?;
-                let end = self.here();
+                let end = self.code.ops.len();
                 self.patch(to_end, end);
             }
             E::Compare { left, ops, comparators } => self.compare(left, ops, comparators)?,
@@ -2483,13 +2479,13 @@ impl Compiler {
             }
         }
         let to_end = self.emit(Op::Jump(0));
-        let cleanup = self.here();
+        let cleanup = self.code.ops.len();
         for c in cleanups {
             self.patch(c, cleanup);
         }
         self.emit(Op::Rot2);
         self.emit(Op::Pop);
-        let end = self.here();
+        let end = self.code.ops.len();
         self.patch(to_end, end);
         Ok(())
     }

@@ -212,10 +212,6 @@ impl FdSink {
         }
     }
 
-    pub fn write_all(&mut self, data: &[u8]) {
-        self.buf.extend_from_slice(data);
-    }
-
     pub fn finish(&mut self) {
         if self.buf.is_empty() {
             return;

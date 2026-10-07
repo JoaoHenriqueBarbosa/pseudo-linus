@@ -36,8 +36,7 @@ gravar requisições com esse contexto.
 
 ## DRY
 
-Duas regras, impostas por hook do git (`.githooks/pre-commit`), não por disciplina. Instale uma vez
-por clone com `scripts/install-hooks.sh`.
+Duas regras, conferidas à mão com `scripts/dry-check.sh` e `scripts/dry-forwarders.py`.
 
 - **Código parecido não se repete.** O `similarity-rs` compara os corpos de função; par acima de
   0,90 que toque um arquivo do commit recusa o commit.

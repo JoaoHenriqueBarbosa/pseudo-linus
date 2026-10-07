@@ -2328,10 +2328,6 @@ pub struct RunResult {
 }
 
 impl RunResult {
-    /// `$?` como o shell veria.
-    pub fn code(&self) -> i32 {
-        self.status.shell_status()
-    }
 
     pub fn stdout_str(&self) -> String {
         String::from_utf8_lossy(&self.stdout).into_owned()
@@ -2680,11 +2676,11 @@ mod tests {
         let r = k.run(&["cat", "in.txt", "missing"], b"");
         assert_eq!(r.stdout, b"abc\n");
         assert_eq!(r.stderr_str(), "cat: missing: No such file or directory\n");
-        assert_eq!(r.code(), 1);
+        assert_eq!(r.status.shell_status(), 1);
         let r = k.run(&["cat"], b"from stdin");
         assert_eq!(r.stdout, b"from stdin");
         let r = k.run(&["nope"], b"");
-        assert_eq!(r.code(), 127);
+        assert_eq!(r.status.shell_status(), 127);
     }
 
     fn read_past_end(ctx: &mut Ctx, _args: &[OsString]) -> i32 {
@@ -2854,10 +2850,10 @@ mod tests {
         line(format!("{:?} {:?}", sys.sched_getattr(0, 47, 0).err(), sys.sched_getattr(0, 56, 1).err()));
         line(format!(
             "{:?} {:?} {:?} {:?}",
-            sys.sched_get_priority_min(1),
-            sys.sched_get_priority_max(2),
-            sys.sched_get_priority_max(5),
-            sys.sched_get_priority_max(4)
+            crate::sched::priority_min(1),
+            crate::sched::priority_max(2),
+            crate::sched::priority_max(5),
+            crate::sched::priority_max(4)
         ));
         let set = SchedAttr { size: 56, policy: 0, nice: 5, ..SchedAttr::default() };
         line(format!("{:?} {:?}", sys.sched_setattr(0, &set, 0), sys.getpriority(0)));

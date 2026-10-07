@@ -486,12 +486,12 @@ mod tests {
         assert_eq!(r.stdout_str(), "xy z");
         let r = k.run(&["gettext"], b"");
         assert_eq!(
-            (r.stderr_str().as_str(), r.code()),
+            (r.stderr_str().as_str(), r.status.shell_status()),
             ("gettext: missing arguments\n", 1)
         );
         let r = k.run(&["gettext", "a", "b", "c"], b"");
         assert_eq!(
-            (r.stderr_str().as_str(), r.code()),
+            (r.stderr_str().as_str(), r.status.shell_status()),
             ("gettext: too many arguments\n", 1)
         );
     }
@@ -504,7 +504,7 @@ mod tests {
         assert_eq!(k.run(&["ngettext", "a", "b", "x"], b"").stdout_str(), "b");
         let r = k.run(&["ngettext", "a", "b"], b"");
         assert_eq!(
-            (r.stderr_str().as_str(), r.code()),
+            (r.stderr_str().as_str(), r.status.shell_status()),
             ("ngettext: missing arguments\n", 1)
         );
     }

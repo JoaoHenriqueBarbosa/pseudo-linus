@@ -83,9 +83,6 @@ impl Ctx {
         self.sys.getenv(name.as_bytes())
     }
 
-    pub fn checkpoint(&self) {
-        self.sys.checkpoint();
-    }
 }
 
 /// Converte o argv de bytes pro formato do `main` dos builtins.

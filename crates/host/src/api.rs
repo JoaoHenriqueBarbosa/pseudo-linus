@@ -12,19 +12,15 @@ use crate::config::CpuMax;
 /// Bytes como texto base64 nos frames do IPC e nas respostas binárias.
 pub mod b64 {
     use base64::Engine;
-    use base64::engine::general_purpose::STANDARD;
+    pub use base64::engine::general_purpose::STANDARD;
     use serde::{Deserialize, Deserializer, Serializer};
-
-    pub fn encode(b: &[u8]) -> String {
-        STANDARD.encode(b)
-    }
 
     pub fn decode(s: &str) -> Result<Vec<u8>, String> {
         STANDARD.decode(s.as_bytes()).map_err(|e| format!("base64 inválido: {e}"))
     }
 
     pub fn serialize<S: Serializer>(v: &[u8], s: S) -> Result<S::Ok, S::Error> {
-        s.serialize_str(&encode(v))
+        s.serialize_str(&STANDARD.encode(v))
     }
 
     pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<u8>, D::Error> {
@@ -46,7 +42,7 @@ pub enum Encoding {
 /// Bytes codificados como pedido.
 pub fn encode_bytes(b: &[u8], enc: Encoding) -> (String, bool) {
     match enc {
-        Encoding::Base64 => (b64::encode(b), false),
+        Encoding::Base64 => (base64::Engine::encode(&b64::STANDARD, b), false),
         Encoding::Utf8 => match std::str::from_utf8(b) {
             Ok(s) => (s.to_string(), false),
             Err(_) => (String::from_utf8_lossy(b).into_owned(), true),

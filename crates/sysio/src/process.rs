@@ -302,6 +302,7 @@ impl Command {
         &self.program
     }
 
+    /// API do std: o código dos utilitários importados chama este nome.
     pub fn get_args(&self) -> std::slice::Iter<'_, OsString> {
         self.args.iter()
     }
@@ -742,9 +743,6 @@ impl Child {
 pub struct ExitStatus(WaitStatus);
 
 impl ExitStatus {
-    pub fn from_wait_status(st: WaitStatus) -> ExitStatus {
-        ExitStatus(st)
-    }
     pub fn wait_status(&self) -> WaitStatus {
         self.0
     }

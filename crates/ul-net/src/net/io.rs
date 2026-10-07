@@ -53,10 +53,6 @@ impl Deadline {
         self.0.map(|at| at.saturating_sub(now()))
     }
 
-    pub fn is_set(&self) -> bool {
-        self.0.is_some()
-    }
-
     pub fn expired(&self) -> bool {
         self.remaining().is_some_and(|r| r.is_zero())
     }
@@ -140,7 +136,7 @@ impl Read for Tcp {
                 Err(Errno::EINTR) => continue,
                 Err(Errno::EAGAIN) => {
                     // O testkit devolve EAGAIN quando o prazo de leitura do socket vence.
-                    if self.deadline.is_set() {
+                    if self.deadline.0.is_some() {
                         return Err(io::Error::new(io::ErrorKind::TimedOut, "timeout"));
                     }
                     wait_ready(self.fd, PollEvents::IN, self.deadline)?;

@@ -223,7 +223,7 @@ fn run(args: &[OsString]) -> i32 {
     let records = read_utmp();
     if records.iter().any(|u| u.kind == 7) {
         let snap = procfs::scan(Want { cmdline: true, ..Want::default() });
-        let mut names = common::Names::new();
+        let mut names = crate::common::Names::default();
         for u in &records {
             if u.kind != 7 {
                 continue;

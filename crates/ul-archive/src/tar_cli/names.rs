@@ -94,10 +94,6 @@ impl NameList {
         }
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.items.is_empty()
-    }
-
     /// Índice do operando que casa o membro (o primeiro), ou `None`.
     pub fn find(&self, member: &[u8]) -> Option<usize> {
         let member = trim_trailing_slashes(member);

@@ -105,7 +105,7 @@ fn ours(files: &MemTree, steps: &[Vec<String>], hardlink: bool) -> (sysabi::test
     for s in steps {
         let argv: Vec<&str> = s.iter().map(String::as_str).collect();
         let r = kit.run(&argv, b"");
-        let code = r.code();
+        let code = r.status.shell_status();
         outs.push((r.stdout, r.stderr, code));
     }
     (kit, outs)

@@ -180,25 +180,25 @@ mod tests {
             .env("PATH", "/usr/local/bin:/usr/bin:/bin");
         let r = kit.run(&["which", "ls"], b"");
         assert_eq!(
-            (r.stdout_str().as_str(), r.code()),
+            (r.stdout_str().as_str(), r.status.shell_status()),
             ("/usr/local/bin/ls\n", 0)
         );
         let r = kit.run(&["which", "-a", "ls", "nope"], b"");
         assert_eq!(r.stdout_str(), "/usr/local/bin/ls\n/usr/bin/ls\n/bin/ls\n");
-        assert_eq!(r.code(), 1);
+        assert_eq!(r.status.shell_status(), 1);
         let r = kit.run(&["which", "./x", "./notexec", "/usr/bin"], b"");
-        assert_eq!((r.stdout_str().as_str(), r.code()), ("./x\n", 1));
+        assert_eq!((r.stdout_str().as_str(), r.status.shell_status()), ("./x\n", 1));
         let r = kit.run(&["which", "-x", "ls"], b"");
         assert_eq!(r.stderr_str(), "Illegal option -x\n");
         assert_eq!(r.stdout_str(), "Usage: /usr/bin/which [-as] args\n");
-        assert_eq!(r.code(), 2);
+        assert_eq!(r.status.shell_status(), 2);
         let r = kit.run(&["which", "-s", "-x"], b"");
-        assert_eq!((r.stdout_str().as_str(), r.code()), ("", 2));
+        assert_eq!((r.stdout_str().as_str(), r.status.shell_status()), ("", 2));
         let r = kit.run(&["which"], b"");
-        assert_eq!(r.code(), 1);
+        assert_eq!(r.status.shell_status(), 1);
         let r = kit.run(&["which", "ls", "-a"], b"");
         assert_eq!(
-            (r.stdout_str().as_str(), r.code()),
+            (r.stdout_str().as_str(), r.status.shell_status()),
             ("/usr/local/bin/ls\n", 1)
         );
         let kit = kit.env("PATH", "/usr/bin:");

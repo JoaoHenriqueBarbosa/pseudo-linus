@@ -43,9 +43,6 @@ pub enum Stream {
 pub struct Cancel(Arc<AtomicBool>);
 
 impl Cancel {
-    pub fn new() -> Cancel {
-        Cancel::default()
-    }
     pub fn cancel(&self) {
         self.0.store(true, Ordering::Release);
     }
@@ -462,19 +459,19 @@ mod tests {
     #[test]
     fn stdout_stderr_exit_and_stdin() {
         let sb = test_sandbox();
-        let o = run(&*sb, req(&["echo", "oi", "mundo"]), vec![], limits(), None, &Cancel::new()).unwrap();
+        let o = run(&*sb, req(&["echo", "oi", "mundo"]), vec![], limits(), None, &Cancel::default()).unwrap();
         assert_eq!(o.stdout.data, b"oi mundo\n");
         assert_eq!(o.exit_code, Some(0));
         assert_eq!(o.status(), 0);
-        let o = run(&*sb, req(&["cat"]), b"entrada\n".to_vec(), limits(), None, &Cancel::new()).unwrap();
+        let o = run(&*sb, req(&["cat"]), b"entrada\n".to_vec(), limits(), None, &Cancel::default()).unwrap();
         assert_eq!(o.stdout.data, b"entrada\n");
-        let o = run(&*sb, req(&["exit", "3"]), vec![], limits(), None, &Cancel::new()).unwrap();
+        let o = run(&*sb, req(&["exit", "3"]), vec![], limits(), None, &Cancel::default()).unwrap();
         assert_eq!((o.exit_code, o.status()), (Some(3), 3));
-        let o = run(&*sb, req(&["errout", "falhou"]), vec![], limits(), None, &Cancel::new()).unwrap();
+        let o = run(&*sb, req(&["errout", "falhou"]), vec![], limits(), None, &Cancel::default()).unwrap();
         assert_eq!(o.stderr.data, b"falhou\n");
         assert!(o.stdout.data.is_empty());
         // stdin grande que o programa não lê: o escritor para quando o processo sai.
-        let o = run(&*sb, req(&["true"]), vec![b'z'; 1 << 20], limits(), None, &Cancel::new()).unwrap();
+        let o = run(&*sb, req(&["true"]), vec![b'z'; 1 << 20], limits(), None, &Cancel::default()).unwrap();
         assert_eq!(o.exit_code, Some(0));
     }
 
@@ -484,7 +481,7 @@ mod tests {
         let mut l = limits();
         l.timeout = Duration::from_millis(300);
         let t = Instant::now();
-        let o = run(&*sb, req(&["spin"]), vec![], l, None, &Cancel::new()).unwrap();
+        let o = run(&*sb, req(&["spin"]), vec![], l, None, &Cancel::default()).unwrap();
         assert!(o.timed_out);
         assert_eq!(o.signal, Some(9));
         assert_eq!(o.status(), 137);
@@ -492,7 +489,7 @@ mod tests {
         // Um shell com filho em segundo plano: o timeout mata os dois.
         let mut r = req(&["sh", "-c", "sleep 30 &\nspin"]);
         r.path = b"/bin/sh".to_vec();
-        let o = run(&*sb, r, vec![], l, None, &Cancel::new()).unwrap();
+        let o = run(&*sb, r, vec![], l, None, &Cancel::default()).unwrap();
         assert!(o.timed_out);
         std::thread::sleep(Duration::from_millis(100));
         let alive: Vec<_> = sb.processes().into_iter().filter(|p| p.state != 'Z').collect();
@@ -505,14 +502,14 @@ mod tests {
         let mut l = limits();
         l.output_limit = 1000;
         l.max_discard = 1 << 20;
-        let o = run(&*sb, req(&["bigout", "500000"]), vec![], l, None, &Cancel::new()).unwrap();
+        let o = run(&*sb, req(&["bigout", "500000"]), vec![], l, None, &Cancel::default()).unwrap();
         assert_eq!(o.stdout.data.len(), 1000);
         assert!(o.stdout.truncated);
         assert_eq!(o.stdout.total, 500_000);
         assert!(!o.stdout.closed);
         assert_eq!(o.exit_code, Some(0));
         // `yes` nunca acaba: passou do teto de descarte, o host fecha e ele leva SIGPIPE.
-        let o = run(&*sb, req(&["yes"]), vec![], l, None, &Cancel::new()).unwrap();
+        let o = run(&*sb, req(&["yes"]), vec![], l, None, &Cancel::default()).unwrap();
         assert!(o.stdout.closed);
         assert_eq!(o.signal, Some(Signal::SIGPIPE.0));
         assert!(!o.timed_out);
@@ -522,7 +519,7 @@ mod tests {
     fn background_holder_is_detached_after_grace() {
         let sb = test_sandbox();
         let t = Instant::now();
-        let o = run(&*sb, req(&["bgsleep", "30"]), vec![], limits(), None, &Cancel::new()).unwrap();
+        let o = run(&*sb, req(&["bgsleep", "30"]), vec![], limits(), None, &Cancel::default()).unwrap();
         assert_eq!(o.exit_code, Some(0));
         assert!(o.background_detached);
         assert!(t.elapsed() < Duration::from_secs(2), "{:?}", t.elapsed());
@@ -538,10 +535,10 @@ mod tests {
         }
         let sb = test_sandbox();
         let sink = Sink(parking_lot::Mutex::new(Vec::new()));
-        let o = run(&*sb, req(&["echo", "x"]), vec![], limits(), Some(&sink), &Cancel::new()).unwrap();
+        let o = run(&*sb, req(&["echo", "x"]), vec![], limits(), Some(&sink), &Cancel::default()).unwrap();
         assert_eq!(o.stdout.data, b"x\n");
         assert_eq!(sink.0.lock().concat_stream(Stream::Stdout), b"x\n");
-        let cancel = Cancel::new();
+        let cancel = Cancel::default();
         let c2 = cancel.clone();
         std::thread::spawn(move || {
             std::thread::sleep(Duration::from_millis(150));
@@ -566,11 +563,11 @@ mod tests {
         let sb = test_sandbox();
         let mut r = req(&["nope"]);
         r.path = b"/bin/nope".to_vec();
-        let e = run(&*sb, r, vec![], limits(), None, &Cancel::new()).unwrap_err();
+        let e = run(&*sb, r, vec![], limits(), None, &Cancel::default()).unwrap_err();
         assert!(matches!(e, BackendError::Os { errno: sysabi::Errno::ENOENT, .. }), "{e:?}");
         let mut r = req(&["echo"]);
         r.cwd = b"/nao/existe".to_vec();
-        let e = run(&*sb, r, vec![], limits(), None, &Cancel::new()).unwrap_err();
+        let e = run(&*sb, r, vec![], limits(), None, &Cancel::default()).unwrap_err();
         assert_eq!(e.to_string(), "/nao/existe: No such file or directory");
     }
 }

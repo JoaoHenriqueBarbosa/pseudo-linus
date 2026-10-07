@@ -387,7 +387,7 @@ fn scan_name(name: &str, o: &Opts) -> bool {
         }
         return used;
     }
-    let mut names = common::Names::new();
+    let mut names = crate::common::Names::default();
     if o.verbose {
         if !used && o.all {
             io::eprint(format!("{name}:\n"));

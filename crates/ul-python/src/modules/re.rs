@@ -599,7 +599,7 @@ impl PatternObj {
             Some(p) => Ok(expand_parts(p, chars.as_slice(), caps)),
             None => {
                 let m = pat.new_match(&sv, &chars, caps.clone(), 0, chars.len());
-                match vm.call_value(repl, vec![m], Vec::new())? {
+                match vm.call(repl, vec![m], Vec::new())? {
                     Value::Str(s) if !pat.bytes => Ok(s.as_str().to_string()),
                     Value::Bytes(b) if pat.bytes => Ok(b.iter().map(|&c| c as char).collect()),
                     other => Err(type_error(format!("expected str instance, {} found", other.type_name()))),
@@ -678,7 +678,7 @@ impl ExtObject for PatternObj {
             "flags" => Some(Ok(Value::Int(i64::from(if self.bytes { self.regex.flags & !eng::A } else { self.regex.flags })))),
             "groups" => Some(Ok(Value::Int(self.regex.ngroups as i64))),
             "groupindex" => {
-                let mut d = Dict::new();
+                let mut d = Dict::default();
                 for (n, k) in &self.regex.group_names {
                     if let Err(e) = d.set(Value::str(n.clone()), Value::Int(*k as i64)) {
                         return Some(Err(e.into()));
@@ -879,7 +879,7 @@ impl ExtObject for MatchObj {
             "groupdict" => {
                 let a = bind("groupdict", args, kw, &["default"], 0)?;
                 let default = arg(&a, 0);
-                let mut d = Dict::new();
+                let mut d = Dict::default();
                 for (n, k) in &self.pattern.regex.group_names {
                     d.set(Value::str(n.clone()), self.group_or(*k, &default))?;
                 }

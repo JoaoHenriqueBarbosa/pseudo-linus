@@ -82,7 +82,7 @@ impl Lister {
         let size = match m.kind() {
             Kind::CharDev | Kind::BlockDev => format!("{},{}", m.devmajor, m.devminor),
             _ => {
-                let s = if m.is_sparse() { m.real_size } else { m.size };
+                let s = if m.sparse.is_some() { m.real_size } else { m.size };
                 s.to_string()
             }
         };

@@ -338,7 +338,7 @@ impl FontObj {
         let (mut width, mut height, x_offset, y_offset) = self.bbox(anchor.as_deref(), a.horizontal(), &glyphs, load_flags)?;
         width += f64::from(stroke_width * 2.0 + x_start).ceil() as i64;
         height += f64::from(stroke_width * 2.0 + y_start).ceil() as i64;
-        let image = vm.call_value(fill, vec![Value::Int(width), Value::Int(height)], Kw::default())?;
+        let image = vm.call(fill, vec![Value::Int(width), Value::Int(height)], Kw::default())?;
         let shared = core_of(&image)?;
         let x_offset = (x_offset as f32 - stroke_width).round() as i64;
         let y_offset = (y_offset as f32 - stroke_width).round() as i64;

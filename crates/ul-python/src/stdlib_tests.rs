@@ -28,7 +28,7 @@ fn every_embedded_module_imports() {
             continue;
         }
         // Os módulos de apoio não existem para o programa: o import deles falha como no CPython.
-        if crate::modules::is_internal(name) {
+        if crate::modules::INTERNAL.contains(&name) {
             let o = run_source(&format!("import {name}"));
             assert!(o.stderr.ends_with(&format!("ModuleNotFoundError: No module named '{name}'\n")), "módulo {name}");
             continue;

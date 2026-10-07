@@ -558,11 +558,6 @@ fn find(h: &[u8], n: &[u8]) -> Option<usize> {
     h.windows(n.len()).position(|w| w == n)
 }
 
-/// `F(ms, desc, def)`.
-fn fmt<'a>(desc: &'a [u8], def: &'a [u8]) -> &'a [u8] {
-    cfmt::fmtcheck(desc, def)
-}
-
 fn mprint(ms: &mut MagicSet, m: &Magic, s: &[u8]) -> Result<(), magic::Fail> {
     let desc_owned = varexpand(ms, &m.desc, 512).unwrap_or_else(|| m.desc_bytes().to_vec());
     let desc = desc_owned.as_slice();
@@ -582,7 +577,7 @@ fn mprint(ms: &mut MagicSet, m: &Magic, s: &[u8]) -> Result<(), magic::Fail> {
                 (_, true) => v.to_string(),
                 (_, false) => (v as i64).to_string(),
             };
-            ms.printf(fmt(desc, b"%s"), Arg::Str(text.as_bytes()))
+            ms.printf(cfmt::fmtcheck(desc, b"%s"), Arg::Str(text.as_bytes()))
         } else {
             let (def, arg): (&[u8], Arg<'_>) = match (bits, unsigned) {
                 (8, true) => (b"%u", Arg::Int(u32::from(v as u8))),
@@ -594,7 +589,7 @@ fn mprint(ms: &mut MagicSet, m: &Magic, s: &[u8]) -> Result<(), magic::Fail> {
                 (_, true) => (b"%llu", Arg::Long(v)),
                 (_, false) => (b"%lld", Arg::Long(v)),
             };
-            ms.printf(fmt(desc, def), arg)
+            ms.printf(cfmt::fmtcheck(desc, def), arg)
         }
     };
     match m.typ {
@@ -605,7 +600,7 @@ fn mprint(ms: &mut MagicSet, m: &Magic, s: &[u8]) -> Result<(), magic::Fail> {
         FILE_STRING | FILE_PSTRING | FILE_BESTRING16 | FILE_LESTRING16 => {
             if m.reln == b'=' || m.reln == b'!' {
                 let p = magic::printable(raw, 512, &m.value);
-                ms.printf(fmt(desc, b"%s"), Arg::Str(&p))
+                ms.printf(cfmt::fmtcheck(desc, b"%s"), Arg::Str(&p))
             } else {
                 let mut sv = ms.ms_value.to_vec();
                 if m.value[0] == 0 {
@@ -621,7 +616,7 @@ fn mprint(ms: &mut MagicSet, m: &Magic, s: &[u8]) -> Result<(), magic::Fail> {
                     cstr(&sv)
                 };
                 let p = magic::printable(raw, 512, str_);
-                ms.printf(fmt(desc, b"%s"), Arg::Str(&p))?;
+                ms.printf(cfmt::fmtcheck(desc, b"%s"), Arg::Str(&p))?;
                 if m.typ == FILE_PSTRING && pstring_length_size(m).is_none() {
                     return Err(magic::Fail);
                 }
@@ -630,40 +625,40 @@ fn mprint(ms: &mut MagicSet, m: &Magic, s: &[u8]) -> Result<(), magic::Fail> {
         }
         FILE_DATE | FILE_BEDATE | FILE_LEDATE | FILE_MEDATE => {
             let t = magic::fmtdatetime(u64::from(vl(ms)), false, false, &ms.tz);
-            ms.printf(fmt(desc, b"%s"), Arg::Str(t.as_bytes()))
+            ms.printf(cfmt::fmtcheck(desc, b"%s"), Arg::Str(t.as_bytes()))
         }
         FILE_LDATE | FILE_BELDATE | FILE_LELDATE | FILE_MELDATE => {
             let t = magic::fmtdatetime(u64::from(vl(ms)), true, false, &ms.tz);
-            ms.printf(fmt(desc, b"%s"), Arg::Str(t.as_bytes()))
+            ms.printf(cfmt::fmtcheck(desc, b"%s"), Arg::Str(t.as_bytes()))
         }
         FILE_QDATE | FILE_BEQDATE | FILE_LEQDATE => {
             let t = magic::fmtdatetime(vq(ms), false, false, &ms.tz);
-            ms.printf(fmt(desc, b"%s"), Arg::Str(t.as_bytes()))
+            ms.printf(cfmt::fmtcheck(desc, b"%s"), Arg::Str(t.as_bytes()))
         }
         FILE_QLDATE | FILE_BEQLDATE | FILE_LEQLDATE => {
             let t = magic::fmtdatetime(vq(ms), true, false, &ms.tz);
-            ms.printf(fmt(desc, b"%s"), Arg::Str(t.as_bytes()))
+            ms.printf(cfmt::fmtcheck(desc, b"%s"), Arg::Str(t.as_bytes()))
         }
         FILE_QWDATE | FILE_BEQWDATE | FILE_LEQWDATE => {
             let t = magic::fmtdatetime(vq(ms), false, true, &ms.tz);
-            ms.printf(fmt(desc, b"%s"), Arg::Str(t.as_bytes()))
+            ms.printf(cfmt::fmtcheck(desc, b"%s"), Arg::Str(t.as_bytes()))
         }
         FILE_FLOAT | FILE_BEFLOAT | FILE_LEFLOAT => {
             let vf = f32::from_le_bytes(ms.ms_value[..4].try_into().unwrap_or([0; 4]));
             if check_fmt(desc) {
                 let t = cfmt::format(b"%g", Arg::Double(f64::from(vf)));
-                ms.printf(fmt(desc, b"%s"), Arg::Str(&t))
+                ms.printf(cfmt::fmtcheck(desc, b"%s"), Arg::Str(&t))
             } else {
-                ms.printf(fmt(desc, b"%g"), Arg::Double(f64::from(vf)))
+                ms.printf(cfmt::fmtcheck(desc, b"%g"), Arg::Double(f64::from(vf)))
             }
         }
         FILE_DOUBLE | FILE_BEDOUBLE | FILE_LEDOUBLE => {
             let vd = f64::from_le_bytes(ms.ms_value[..8].try_into().unwrap_or([0; 8]));
             if check_fmt(desc) {
                 let t = cfmt::format(b"%g", Arg::Double(vd));
-                ms.printf(fmt(desc, b"%s"), Arg::Str(&t))
+                ms.printf(cfmt::fmtcheck(desc, b"%s"), Arg::Str(&t))
             } else {
-                ms.printf(fmt(desc, b"%g"), Arg::Double(vd))
+                ms.printf(cfmt::fmtcheck(desc, b"%g"), Arg::Double(vd))
             }
         }
         FILE_SEARCH | FILE_REGEX => {
@@ -676,13 +671,13 @@ fn mprint(ms: &mut MagicSet, m: &Magic, s: &[u8]) -> Result<(), magic::Fail> {
                 &cp
             };
             let p = magic::printable(raw, 512, scp);
-            ms.printf(fmt(desc, b"%s"), Arg::Str(&p))
+            ms.printf(cfmt::fmtcheck(desc, b"%s"), Arg::Str(&p))
         }
         FILE_DEFAULT | FILE_CLEAR => ms.print(m.desc_bytes()),
         FILE_INDIRECT | FILE_USE | FILE_NAME => Ok(()),
         FILE_DER => {
             let p = magic::printable(raw, 512, &ms.ms_value.clone());
-            ms.printf(fmt(desc, b"%s"), Arg::Str(&p))
+            ms.printf(cfmt::fmtcheck(desc, b"%s"), Arg::Str(&p))
         }
         FILE_GUID => {
             let g = ms.ms_value;
@@ -700,15 +695,15 @@ fn mprint(ms: &mut MagicSet, m: &Magic, s: &[u8]) -> Result<(), magic::Fail> {
                 g[14],
                 g[15]
             );
-            ms.printf(fmt(desc, b"%s"), Arg::Str(t.as_bytes()))
+            ms.printf(cfmt::fmtcheck(desc, b"%s"), Arg::Str(t.as_bytes()))
         }
         FILE_MSDOSDATE | FILE_BEMSDOSDATE | FILE_LEMSDOSDATE => {
             let t = magic::fmtdate(vh(ms));
-            ms.printf(fmt(desc, b"%s"), Arg::Str(t.as_bytes()))
+            ms.printf(cfmt::fmtcheck(desc, b"%s"), Arg::Str(t.as_bytes()))
         }
         FILE_MSDOSTIME | FILE_BEMSDOSTIME | FILE_LEMSDOSTIME => {
             let t = magic::fmttime(vh(ms));
-            ms.printf(fmt(desc, b"%s"), Arg::Str(t.as_bytes()))
+            ms.printf(cfmt::fmtcheck(desc, b"%s"), Arg::Str(t.as_bytes()))
         }
         FILE_OCTAL => {
             let us = cstr(&m.value);
@@ -719,7 +714,7 @@ fn mprint(ms: &mut MagicSet, m: &Magic, s: &[u8]) -> Result<(), magic::Fail> {
             } else {
                 c.value.to_string()
             };
-            ms.printf(fmt(desc, b"%s"), Arg::Str(t.as_bytes()))
+            ms.printf(cfmt::fmtcheck(desc, b"%s"), Arg::Str(t.as_bytes()))
         }
         t => {
             ms.magerror(&format!("invalid m->type ({t}) in mprint()"));
@@ -1545,7 +1540,7 @@ fn mget(
             if rv == 1 {
                 if ms.flags & MAGIC_NODESC == 0
                     && ms
-                        .printf(fmt(m.desc_bytes(), b"%u"), Arg::Int(offset))
+                        .printf(cfmt::fmtcheck(m.desc_bytes(), b"%u"), Arg::Int(offset))
                         .is_err()
                 {
                     return -1;

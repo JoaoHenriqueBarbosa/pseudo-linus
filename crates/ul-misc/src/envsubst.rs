@@ -227,12 +227,12 @@ mod tests {
     fn argument_errors() {
         let r = kit().run(&["envsubst", "-v"], b"");
         assert_eq!(
-            (r.stderr_str().as_str(), r.code()),
+            (r.stderr_str().as_str(), r.status.shell_status()),
             ("envsubst: missing arguments\n", 1)
         );
         let r = kit().run(&["envsubst", "a", "b"], b"");
         assert_eq!(
-            (r.stderr_str().as_str(), r.code()),
+            (r.stderr_str().as_str(), r.status.shell_status()),
             ("envsubst: too many arguments\n", 1)
         );
         let r = kit().run(&["envsubst", "-Z"], b"");

@@ -11,7 +11,7 @@ pub fn is_type_like(v: &Value) -> bool {
     match v {
         Value::None | Value::Class(_) => true,
         Value::Builtin(n) => crate::object::is_builtin_type(n) || *n == "object" || *n == "type",
-        Value::NativeFn(f) => crate::typeattrs::is_type_name(f.name),
+        Value::NativeFn(f) => crate::typeattrs::TYPES.contains(&f.name),
         Value::Ext(e) => matches!(e.type_name(), "GenericAlias" | "UnionType"),
         _ => false,
     }
@@ -153,7 +153,7 @@ impl ExtObject for GenericAlias {
         Some(Ok(Value::Ext(Rc::new(GenericAlias { origin: self.origin.clone(), args }))))
     }
     fn call_method(&self, vm: &mut Vm, _name: &str, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-        vm.call_value(&self.origin, args, kw)
+        vm.call(&self.origin, args, kw)
     }
     fn binop(&self, op: &str, other: &Value, reflected: bool) -> Option<PyResult<Value>> {
         if op == "|" && is_type_like(other) {
@@ -260,7 +260,7 @@ pub fn class_getitem(vm: &mut Vm, container: &Value, key: &Value) -> Option<PyRe
                 _ => Some(Err(type_error(format!("type '{}' is not subscriptable", c.name)))),
             }
         }
-        Value::NativeFn(f) if crate::typeattrs::is_type_name(f.name) => Some(Ok(GenericAlias::make(container.clone(), key))),
+        Value::NativeFn(f) if crate::typeattrs::TYPES.contains(&f.name) => Some(Ok(GenericAlias::make(container.clone(), key))),
         Value::Builtin(n) if crate::object::is_builtin_type(n) => Some(Ok(GenericAlias::make(container.clone(), key))),
         _ => None,
     }

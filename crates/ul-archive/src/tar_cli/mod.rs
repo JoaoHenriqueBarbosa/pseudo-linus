@@ -547,7 +547,7 @@ fn list_mode(t: &mut Tar) -> R<()> {
                 return Ok(Flow::Continue);
             }
         }
-        if !names.is_empty() {
+        if !names.items.is_empty() {
             match names.find(&m.name) {
                 Some(i) => {
                     names.items[i].found += 1;
@@ -576,7 +576,7 @@ fn list_mode(t: &mut Tar) -> R<()> {
         print_member(t, &m, m.main_block);
         t.skip_member(r, &m)?;
         if let Some(occ) = t.o.occurrence
-            && !names.is_empty()
+            && !names.items.is_empty()
             && names.items.iter().all(|n| n.found >= occ)
         {
             return Ok(Flow::Stop);

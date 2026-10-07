@@ -55,7 +55,7 @@ fn fs_roundtrip() {
         r.stdout_str(),
         "um\ndois\ntres\na.txt,e\n/work/d/a.txt\ntrue\nfalse\n13 644\nNo such file or directory\nNot a directory\nfalse\n"
     );
-    assert_eq!(r.code(), 0);
+    assert_eq!(r.status.shell_status(), 0);
 }
 
 /// `order`: stdout com buffer em bloco e stderr sem buffer, como o stdio da glibc num pipe.
@@ -74,7 +74,7 @@ fn stdout_is_block_buffered_and_flushed_at_end() {
     let r = kit.run(&["order"], b"");
     assert_eq!(r.stdout_str(), "primeiro no stdout\nfim sem quebra");
     assert_eq!(r.stderr_str(), "erro no meio\n");
-    assert_eq!(r.code(), 3);
+    assert_eq!(r.status.shell_status(), 3);
 }
 
 /// `exiter`: `process::exit` no meio descarrega o stdout.
@@ -90,7 +90,7 @@ fn exit_flushes_stdout() {
     let kit = TestKit::new().programs([Program::bin("exiter", exiter)]);
     let r = kit.run(&["exiter"], b"");
     assert_eq!(r.stdout_str(), "antes do exit");
-    assert_eq!(r.code(), 7);
+    assert_eq!(r.status.shell_status(), 7);
 }
 
 /// `echoargs`: imprime argv[1..] e o ambiente pedido.

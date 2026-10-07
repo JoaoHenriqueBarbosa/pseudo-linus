@@ -170,11 +170,6 @@ impl<K, V, A: Augment<K, V>> RbTree<K, V, A> {
         self.len == 0
     }
 
-    /// Número de posições da arena (ocupadas mais livres).
-    pub fn arena_len(&self) -> usize {
-        self.nodes.len()
-    }
-
     /// Remove tudo e libera a arena.
     pub fn clear(&mut self) {
         self.nodes.clear();

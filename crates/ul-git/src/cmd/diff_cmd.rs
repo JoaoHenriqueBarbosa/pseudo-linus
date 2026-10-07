@@ -565,7 +565,7 @@ pub fn run_diff_tree(git: &mut Git, args: &[Vec<u8>]) -> R<i32> {
     let recursive = p.has("recursive") || o.patch || o.stat || o.numstat || o.shortstat || o.name_only || o.name_status || o.summary;
     let mut path_args: Vec<Vec<u8>> = p.args[1..].to_vec();
     let walk = |a: Option<&Oid>, b: Option<&Oid>, ps: &Pathspec| -> R<Vec<Pair>> {
-        if recursive || !ps.is_empty() { diff::diff_trees(repo, a, b, ps) } else { shallow_pairs(repo, a, b) }
+        if recursive || !ps.items.is_empty() { diff::diff_trees(repo, a, b, ps) } else { shallow_pairs(repo, a, b) }
     };
     if let Some(other) = second {
         path_args.remove(0);

@@ -76,7 +76,7 @@ fn many_short_pipelines_never_stall() {
             Some(_) => {}
             None => {
                 let procs = sb.processes();
-                panic!("rodada {i} travou\nprocessos: {procs:#?}\n{}", k.debug_scheduler_state());
+                panic!("rodada {i} travou\nprocessos: {procs:#?}\n{k:#?}");
             }
         }
     }

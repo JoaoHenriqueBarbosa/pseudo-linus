@@ -23,9 +23,6 @@ pub struct Names {
 }
 
 impl Names {
-    pub fn new() -> Names {
-        Names::default()
-    }
 
     fn passwd(&mut self) -> &[Passwd] {
         self.passwd.get_or_insert_with(users::all_passwd)

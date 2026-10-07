@@ -618,10 +618,6 @@ impl<'a> Demangler<'a> {
         Some(res)
     }
 
-    fn push_sub(&mut self, n: &Node) {
-        self.subs.push(n.clone());
-    }
-
     fn parse_type(&mut self) -> Option<Node> {
         self.depth += 1;
         if self.depth > 256 {
@@ -662,7 +658,7 @@ impl<'a> Demangler<'a> {
                     s.push_str(" restrict");
                 }
                 let n = Node::Qual(Box::new(inner), s);
-                self.push_sub(&n);
+                self.subs.push(n.clone());
                 Some(n)
             }
             b'P' | b'R' | b'O' => {
@@ -673,7 +669,7 @@ impl<'a> Demangler<'a> {
                     b'R' => Node::LRef(inner),
                     _ => Node::RRef(inner),
                 };
-                self.push_sub(&n);
+                self.subs.push(n.clone());
                 Some(n)
             }
             b'F' => {
@@ -689,7 +685,7 @@ impl<'a> Demangler<'a> {
                     ret: Some(Box::new(ret)),
                     params,
                 };
-                self.push_sub(&n);
+                self.subs.push(n.clone());
                 Some(n)
             }
             b'A' => {
@@ -703,7 +699,7 @@ impl<'a> Demangler<'a> {
                 }
                 let inner = self.parse_type()?;
                 let n = Node::Array(Box::new(inner), dim);
-                self.push_sub(&n);
+                self.subs.push(n.clone());
                 Some(n)
             }
             b'M' => {
@@ -711,16 +707,16 @@ impl<'a> Demangler<'a> {
                 let class = self.parse_type()?;
                 let mem = self.parse_type()?;
                 let n = Node::Ptm(Box::new(class), Box::new(mem));
-                self.push_sub(&n);
+                self.subs.push(n.clone());
                 Some(n)
             }
             b'T' => {
                 let mut n = self.parse_tparam()?;
-                self.push_sub(&n);
+                self.subs.push(n.clone());
                 if self.peek() == Some(b'I') {
                     let args = self.parse_template_args()?;
                     n = Node::Name(with_args(to_string(&n), &args));
-                    self.push_sub(&n);
+                    self.subs.push(n.clone());
                 }
                 Some(n)
             }
@@ -729,7 +725,7 @@ impl<'a> Demangler<'a> {
                 if self.peek() == Some(b'I') {
                     let args = self.parse_template_args()?;
                     n = Node::Name(with_args(to_string(&n), &args));
-                    self.push_sub(&n);
+                    self.subs.push(n.clone());
                 }
                 Some(n)
             }
@@ -770,13 +766,13 @@ impl<'a> Demangler<'a> {
             b'u' => {
                 self.p += 1;
                 let n = Node::Name(self.source_name()?);
-                self.push_sub(&n);
+                self.subs.push(n.clone());
                 Some(n)
             }
             b'N' | b'Z' | b'0'..=b'9' | b'S' => {
                 let r = self.parse_name()?;
                 let n = Node::Name(r.text);
-                self.push_sub(&n);
+                self.subs.push(n.clone());
                 Some(n)
             }
             _ => None,

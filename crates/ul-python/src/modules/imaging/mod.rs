@@ -1258,7 +1258,7 @@ impl ExtObject for EncoderObj {
                 int_arg(&fh)?;
                 let mut buf = out_buffer(args.get(1))?;
                 let os = crate::modules::import_checked(vm, "os")?;
-                let write = vm.getattr(&Value::Module(os), "write")?;
+                let write = vm.load_attr(&Value::Module(os), "write")?;
                 loop {
                     let (status, errcode) = {
                         let mut e = self.inner.borrow_mut();
@@ -1268,7 +1268,7 @@ impl ExtObject for EncoderObj {
                     if status > 0 {
                         let mut chunk = &buf[..status as usize];
                         while !chunk.is_empty() {
-                            let n = vm.call_value(&write, vec![fh.clone(), Value::bytes(chunk.to_vec())], Vec::new())?;
+                            let n = vm.call(&write, vec![fh.clone(), Value::bytes(chunk.to_vec())], Vec::new())?;
                             let n = int_arg(&n)?.max(0) as usize;
                             chunk = &chunk[n.min(chunk.len())..];
                         }
@@ -1592,7 +1592,7 @@ fn get_blocks_max(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
 /// `get_stats()`: as imagens daqui não passam por blocos reaproveitáveis, então os contadores
 /// ficam zerados.
 fn get_stats(vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
-    let d = vm.call_value(&Value::Builtin("dict"), Vec::new(), Vec::new())?;
+    let d = vm.call(&Value::Builtin("dict"), Vec::new(), Vec::new())?;
     for k in ["new_count", "allocated_blocks", "reused_blocks", "reallocated_blocks", "freed_blocks", "blocks_cached"] {
         crate::vm::store_subscript(&d, &Value::str(k), Value::Int(0))?;
     }

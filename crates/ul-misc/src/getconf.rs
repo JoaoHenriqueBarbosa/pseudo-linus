@@ -897,7 +897,7 @@ mod tests {
         );
         let r = k.run(&["getconf", "POSIX_V7_LP64_OFF64"], b"");
         assert_eq!(
-            (r.stderr_str().as_str(), r.code()),
+            (r.stderr_str().as_str(), r.status.shell_status()),
             ("getconf: Unrecognized variable `POSIX_V7_LP64_OFF64'\n", 2)
         );
         assert_eq!(
@@ -906,12 +906,12 @@ mod tests {
         );
         let r = k.run(&["getconf", "FOO"], b"");
         assert_eq!(
-            (r.stderr_str().as_str(), r.code()),
+            (r.stderr_str().as_str(), r.status.shell_status()),
             ("getconf: Unrecognized variable `FOO'\n", 2)
         );
         let r = k.run(&["getconf"], b"");
-        assert_eq!(r.code(), 2);
+        assert_eq!(r.status.shell_status(), 2);
         let r = k.run(&["getconf", "PATH_MAX"], b"");
-        assert_eq!(r.code(), 2);
+        assert_eq!(r.status.shell_status(), 2);
     }
 }

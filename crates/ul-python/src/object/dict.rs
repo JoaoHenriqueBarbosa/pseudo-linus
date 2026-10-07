@@ -26,9 +26,6 @@ pub struct Dict {
 }
 
 impl Dict {
-    pub fn new() -> Dict {
-        Dict::default()
-    }
 
     pub fn len(&self) -> usize {
         self.len

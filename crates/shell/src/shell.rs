@@ -652,13 +652,13 @@ impl Shell {
         let is_assoc = attrs.has(Attrs::ASSOC) || matches!(self.vars.get(&name).map(|v| &v.value), Some(Value::Assoc(_)));
         if is_assoc {
             let old = match self.vars.get(&name).map(|v| &v.value) {
-                Some(Value::Assoc(a)) => a.get(key).cloned(),
+                Some(Value::Assoc(a)) => a.map.get(key).cloned(),
                 _ => None,
             };
             let v = self.convert_value(&name, attrs, old.as_deref(), value, append)?;
             let var = self.vars.entry(&name);
             if !matches!(var.value, Value::Assoc(_)) {
-                var.value = Value::Assoc(Assoc::new());
+                var.value = Value::Assoc(Assoc::default());
             }
             if let Value::Assoc(a) = &mut var.value {
                 a.insert(key.to_vec(), v);
@@ -786,10 +786,6 @@ impl Shell {
         }
     }
 
-    pub fn function_scope_depth(&self) -> usize {
-        self.vars.function_depth()
-    }
-
     pub fn in_function(&self) -> bool {
         !self.frames.is_empty()
     }
@@ -848,7 +844,7 @@ impl ArithEnv for ShellArith<'_> {
                     || self.sh.vars.get(&real).is_some_and(|v| v.attrs.has(Attrs::ASSOC));
                 let r = if assoc {
                     match self.sh.vars.get(&real).map(|v| &v.value) {
-                        Some(Value::Assoc(a)) => a.get(sub).cloned(),
+                        Some(Value::Assoc(a)) => a.map.get(sub).cloned(),
                         _ => None,
                     }
                 } else {

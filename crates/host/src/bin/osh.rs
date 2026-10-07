@@ -111,7 +111,7 @@ fn pump_stdin(client: Client, sandbox: String, id: String, mut src: Box<dyn Read
             Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
             Err(_) => 0,
         };
-        let p = json!({ "sandbox_id": sandbox, "stdin_id": id, "data_base64": host::api::b64::encode(&buf[..n]), "eof": n == 0 });
+        let p = json!({ "sandbox_id": sandbox, "stdin_id": id, "data_base64": base64::Engine::encode(&host::api::b64::STANDARD, &buf[..n]), "eof": n == 0 });
         if client.call("exec.stdin", p).is_err() || n == 0 {
             return;
         }
@@ -128,7 +128,7 @@ impl Target for Remote {
     fn run(&mut self, command: Option<&str>, argv: Option<&[String]>, stdin: StdinFeed) -> Result<ExecResult, String> {
         let mut p = json!({ "sandbox_id": self.sandbox, "timeout_ms": self.timeout_ms });
         match stdin {
-            StdinFeed::Bytes(v) => p["stdin_base64"] = json!(host::api::b64::encode(&v)),
+            StdinFeed::Bytes(v) => p["stdin_base64"] = json!(base64::Engine::encode(&host::api::b64::STANDARD, &v)),
             // Stdin em fluxo: uma thread manda os pedaços por `exec.stdin` (noutra conexão) à medida que
             // chegam; o comando não espera o EOF. A thread fica solta: pode estar presa num `read`.
             StdinFeed::Stream(r) => {
@@ -173,7 +173,7 @@ impl Target for Remote {
         self.client
             .call(
                 "fs.write",
-                json!({ "sandbox_id": self.sandbox, "path": path, "data_base64": host::api::b64::encode(data), "create_parents": true, "mode": 0o700 }),
+                json!({ "sandbox_id": self.sandbox, "path": path, "data_base64": base64::Engine::encode(&host::api::b64::STANDARD, data), "create_parents": true, "mode": 0o700 }),
             )
             .map(|_| ())
             .map_err(client_err)
@@ -225,7 +225,7 @@ fn outcome_to_result(o: &host::exec::ExecOutcome) -> ExecResult {
 impl Target for Local {
     fn run(&mut self, command: Option<&str>, argv: Option<&[String]>, stdin: StdinFeed) -> Result<ExecResult, String> {
         let req = host::worker::spawn_request(&*self.sb, command, argv, &self.workdir, &self.env).map_err(|e| e.message)?;
-        let o = host::exec::run_feed(&*self.sb, req, stdin, self.limits, Some(&TermSink), &Cancel::new()).map_err(|e| e.to_string())?;
+        let o = host::exec::run_feed(&*self.sb, req, stdin, self.limits, Some(&TermSink), &Cancel::default()).map_err(|e| e.to_string())?;
         Ok(outcome_to_result(&o))
     }
 
@@ -240,7 +240,7 @@ impl Target for Local {
             self.session = Some(Session::open(self.sb.clone(), &id, state, self.workdir.as_bytes()).map_err(|e| e.to_string())?);
         }
         let s = self.session.as_ref().expect("aberta acima");
-        let o = s.exec(line, b"", self.limits, Some(&TermSink), &Cancel::new()).map_err(|e| e.to_string())?;
+        let o = s.exec(line, b"", self.limits, Some(&TermSink), &Cancel::default()).map_err(|e| e.to_string())?;
         let mut r = outcome_to_result(&o.exec);
         r.cwd = o.cwd;
         r.session_reset = o.reset;

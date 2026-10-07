@@ -99,14 +99,11 @@ fn decimal_digits(m: &BigUint) -> u64 {
 #[derive(Clone, Debug, Default)]
 pub struct Num {
     neg: bool,
-    mag: BigUint,
+    pub(crate) mag: BigUint,
     scale: u32,
 }
 
 impl Num {
-    pub fn zero() -> Num {
-        Num::default()
-    }
 
     pub fn one() -> Num {
         Num {
@@ -148,11 +145,6 @@ impl Num {
     /// O bit de sinal (verdadeiro também no "-0").
     pub fn is_neg(&self) -> bool {
         self.neg
-    }
-
-    /// Zero pela magnitude (o `bc_is_zero` do GNU, que ignora o sinal).
-    pub fn is_zero(&self) -> bool {
-        self.mag.is_zero()
     }
 
     /// A magnitude reescalada pra `s` dígitos fracionários (truncando se `s` for menor).
@@ -437,9 +429,9 @@ impl Num {
 
     /// `bc_sqrt`: `None` pra negativo (inclusive -0).
     pub fn sqrt(&self, scale: u32) -> NumResult<Option<Num>> {
-        match self.compare(&Num::zero()) {
+        match self.compare(&Num::default()) {
             Ordering::Less => return Ok(None),
-            Ordering::Equal => return Ok(Some(Num::zero())),
+            Ordering::Equal => return Ok(Some(Num::default())),
             Ordering::Greater => {}
         }
         if self.compare(&Num::one()) == Ordering::Equal {

@@ -48,7 +48,7 @@ macro_rules! lazy_iterator {
 /// Chama `func` com `args` na VM corrente.
 fn call(func: &Value, args: Vec<Value>) -> PyResult<Value> {
     let mut vm = current().ok_or_else(|| internal("no vm"))?;
-    vm.call_value(func, args, Vec::new())
+    vm.call(func, args, Vec::new())
 }
 
 /// O próximo item de cada iterador, ou `None` (e a posição do que acabou) se um deles acabou.

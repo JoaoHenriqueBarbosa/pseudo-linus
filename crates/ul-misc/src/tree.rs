@@ -936,9 +936,6 @@ impl Node {
             .is_some_and(|s| s.file_type() == FileType::Directory)
     }
 
-    fn sort_stat(&self) -> Option<&Stat> {
-        self.lst.as_ref()
-    }
 }
 
 struct Walker<'a> {
@@ -1182,22 +1179,22 @@ fn sort_nodes(nodes: &mut [Node], o: &Opts) {
             SortKey::Version => version_cmp(na, nb),
             SortKey::Size => {
                 let (sa, sb) = (
-                    a.sort_stat().map_or(0, |s| s.size),
-                    b.sort_stat().map_or(0, |s| s.size),
+                    a.lst.as_ref().map_or(0, |s| s.size),
+                    b.lst.as_ref().map_or(0, |s| s.size),
                 );
                 sb.cmp(&sa).then(by_name)
             }
             SortKey::Mtime => {
                 let (ta, tb) = (
-                    a.sort_stat().map(|s| s.mtime),
-                    b.sort_stat().map(|s| s.mtime),
+                    a.lst.as_ref().map(|s| s.mtime),
+                    b.lst.as_ref().map(|s| s.mtime),
                 );
                 ta.cmp(&tb).then(by_name)
             }
             SortKey::Ctime => {
                 let (ta, tb) = (
-                    a.sort_stat().map(|s| s.ctime),
-                    b.sort_stat().map(|s| s.ctime),
+                    a.lst.as_ref().map(|s| s.ctime),
+                    b.lst.as_ref().map(|s| s.ctime),
                 );
                 ta.cmp(&tb).then(by_name)
             }
@@ -2379,7 +2376,7 @@ mod tests {
             ".\n├── a.txt\n├── broken -> nowhere\n├── docs\n{V}└── readme.md\n├── empty\n├── link -> a.txt\n├── src\n{V}└── sub\n{V}    └── z.c\n└── srcl -> src\n\n6 directories, 5 files\n"
         );
         assert_eq!(r.stdout_str(), expected);
-        assert_eq!(r.code(), 0);
+        assert_eq!(r.status.shell_status(), 0);
     }
 
     #[test]
@@ -2412,7 +2409,7 @@ mod tests {
         );
         let r = kit().run(&["tree", "nope"], b"");
         assert_eq!(
-            (r.stdout_str().as_str(), r.code()),
+            (r.stdout_str().as_str(), r.status.shell_status()),
             ("nope  [error opening dir]\n\n0 directories, 0 files\n", 2)
         );
         let r = kit().run(&["tree", "-Z"], b"");
@@ -2420,7 +2417,7 @@ mod tests {
             r.stderr_str()
                 .starts_with("tree: Invalid argument -`Z'.\nusage: tree ")
         );
-        assert_eq!(r.code(), 1);
+        assert_eq!(r.status.shell_status(), 1);
         let r = kit().run(&["tree", "-L", "0"], b"");
         assert_eq!(
             r.stderr_str(),

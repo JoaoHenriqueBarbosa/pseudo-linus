@@ -158,6 +158,7 @@ pub struct FileTimes {
 }
 
 impl FileTimes {
+    /// API do std: o código dos utilitários importados chama este nome.
     pub fn new() -> FileTimes {
         FileTimes::default()
     }
@@ -220,28 +221,25 @@ impl File {
         OpenOptions::new().read(true).write(true).create_new(true).open(path)
     }
 
+    /// API do std: o código dos utilitários importados chama este nome.
     pub fn options() -> OpenOptions {
         OpenOptions::new()
     }
 
-    fn raw(&self) -> Fd {
-        self.fd.raw()
-    }
-
     pub fn metadata(&self) -> io::Result<Metadata> {
-        cvt(proc::sys().fstat(self.raw())).map(Metadata::from_stat)
+        cvt(proc::sys().fstat(self.fd.raw())).map(Metadata::from_stat)
     }
 
     pub fn set_len(&self, size: u64) -> io::Result<()> {
-        cvt(proc::sys().ftruncate(self.raw(), size))
+        cvt(proc::sys().ftruncate(self.fd.raw(), size))
     }
 
     pub fn sync_all(&self) -> io::Result<()> {
-        cvt(proc::sys().fsync(self.raw()))
+        cvt(proc::sys().fsync(self.fd.raw()))
     }
 
     pub fn sync_data(&self) -> io::Result<()> {
-        cvt(proc::sys().fsync(self.raw()))
+        cvt(proc::sys().fsync(self.fd.raw()))
     }
 
     /// `dup(2)`: o clone compartilha a posição (mesma open file description).
@@ -250,11 +248,11 @@ impl File {
     }
 
     pub fn set_permissions(&self, perm: Permissions) -> io::Result<()> {
-        cvt(proc::sys().fchmod(self.raw(), perm.mode))
+        cvt(proc::sys().fchmod(self.fd.raw(), perm.mode))
     }
 
     pub fn set_times(&self, times: FileTimes) -> io::Result<()> {
-        cvt(proc::sys().futimens(self.raw(), set_time(times.accessed), set_time(times.modified)))
+        cvt(proc::sys().futimens(self.fd.raw(), set_time(times.accessed), set_time(times.modified)))
     }
 
     pub fn set_modified(&self, t: SystemTime) -> io::Result<()> {
@@ -268,12 +266,12 @@ impl File {
 
     /// `pread(2)`.
     pub fn read_at(&self, buf: &mut [u8], offset: u64) -> io::Result<usize> {
-        cvt(proc::sys().pread(self.raw(), buf, offset))
+        cvt(proc::sys().pread(self.fd.raw(), buf, offset))
     }
 
     /// `pwrite(2)`.
     pub fn write_at(&self, buf: &[u8], offset: u64) -> io::Result<usize> {
-        cvt(proc::sys().pwrite(self.raw(), buf, offset))
+        cvt(proc::sys().pwrite(self.fd.raw(), buf, offset))
     }
 
     fn do_seek(&self, pos: SeekFrom) -> io::Result<u64> {
@@ -282,25 +280,25 @@ impl File {
             SeekFrom::End(n) => (n, Whence::End),
             SeekFrom::Current(n) => (n, Whence::Cur),
         };
-        cvt(proc::sys().lseek(self.raw(), off, whence))
+        cvt(proc::sys().lseek(self.fd.raw(), off, whence))
     }
 }
 
 impl Read for File {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        read_raw(self.raw(), buf)
+        read_raw(self.fd.raw(), buf)
     }
 }
 
 impl Read for &File {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        read_raw(self.raw(), buf)
+        read_raw(self.fd.raw(), buf)
     }
 }
 
 impl Write for File {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        write_raw(self.raw(), buf)
+        write_raw(self.fd.raw(), buf)
     }
     fn flush(&mut self) -> io::Result<()> {
         Ok(())
@@ -309,7 +307,7 @@ impl Write for File {
 
 impl Write for &File {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        write_raw(self.raw(), buf)
+        write_raw(self.fd.raw(), buf)
     }
     fn flush(&mut self) -> io::Result<()> {
         Ok(())
@@ -484,6 +482,7 @@ impl DirEntry {
     pub fn path(&self) -> PathBuf {
         self.root.join(&self.name)
     }
+    /// API do std: o código dos utilitários importados chama este nome.
     pub fn file_name(&self) -> OsString {
         self.name.clone()
     }
@@ -497,10 +496,6 @@ impl DirEntry {
     }
     pub fn ino(&self) -> u64 {
         self.ino
-    }
-    /// fd do diretório que contém a entrada (pras syscalls `*at`).
-    pub fn dir_fd(&self) -> BorrowedFd<'_> {
-        self.dir.fd.as_fd()
     }
 }
 

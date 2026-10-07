@@ -17,7 +17,7 @@ use std::time::Duration;
 use sysabi::{Ctx, Errno, Fd, FileType, KillTarget, Signal, sys};
 use ul_misc::util::io;
 
-use crate::common::{self, out};
+use crate::common::out;
 use crate::matcher::{self, Matcher};
 use crate::procfs;
 
@@ -403,7 +403,7 @@ fn run(args: &[OsString]) -> Result<i32, i32> {
     let mut scontext: Option<Matcher> = None;
     let mut have_scontext = false;
     let mut skip_error = 0usize;
-    let mut names = common::Names::new();
+    let mut names = crate::common::Names::default();
     let mut g = Getopt::new(argv.clone());
     while let Some(c) = g.next() {
         let optarg = g.optarg.clone().unwrap_or_default();
@@ -669,7 +669,7 @@ fn match_process_context(pid: i32, ctx: &Matcher) -> bool {
     if let Some(d) = procfs::read(&format!("/proc/{pid}/attr/current")) {
         let line_end = d.iter().position(|b| *b == b'\n').map_or(d.len(), |p| p + 1);
         if line_end > 0 {
-            return ctx.is_match(&d[..line_end]);
+            return ctx.re.is_match(&d[..line_end]);
         }
     }
     true
@@ -847,7 +847,7 @@ fn kill_all(o: &Opts, signal: i32, names: &[Vec<u8>], pwent_uid: Option<u32>, sc
         for j in 0..name_count {
             if o.reg {
                 let target: &[u8] = if got_long { cmdline } else { &comm };
-                if !reglist[j].is_match(target) {
+                if !reglist[j].re.is_match(target) {
                     continue;
                 }
             } else {

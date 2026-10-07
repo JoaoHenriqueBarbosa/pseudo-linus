@@ -79,7 +79,7 @@ fn var_is_set(sh: &mut Shell, arg: &[u8]) -> bool {
         if key == "@" || key == "*" {
             return match &var.value {
                 Value::Indexed(m) => !m.is_empty(),
-                Value::Assoc(a) => !a.is_empty(),
+                Value::Assoc(a) => !a.map.is_empty(),
                 Value::Scalar(_) => true,
                 Value::Unset => false,
             };
@@ -90,7 +90,7 @@ fn var_is_set(sh: &mut Shell, arg: &[u8]) -> bool {
                     .ok()
                     .and_then(|w| sh.expand_word_string(&w).ok())
                     .unwrap_or_default();
-                a.contains(&k)
+                a.map.contains_key(&k)
             }
             Value::Indexed(m) => match sh.arith_eval(key.as_bytes()) {
                 Ok(i) => sh.resolve_index(&real, i).is_some_and(|i| m.contains_key(&i)),
@@ -103,7 +103,7 @@ fn var_is_set(sh: &mut Shell, arg: &[u8]) -> bool {
     match sh.lookup(&s) {
         Some(v) => match &v.value {
             Value::Indexed(m) => m.contains_key(&0),
-            Value::Assoc(a) => a.contains(b"0"),
+            Value::Assoc(a) => a.map.contains_key(b"0".as_slice()),
             Value::Scalar(_) => true,
             Value::Unset => false,
         },

@@ -130,7 +130,7 @@ impl Mem {
         let free = g("MemFree");
         let buffers = g("Buffers");
         let cached = g("Cached") + g("SReclaimable");
-        let available = if m.has("MemAvailable") { g("MemAvailable") } else { free };
+        let available = if m.map.contains_key("MemAvailable") { g("MemAvailable") } else { free };
         let mut used = total - available;
         if used < 0 {
             used = total - free;
@@ -143,8 +143,8 @@ impl Mem {
             buffers,
             cached,
             available,
-            low_total: if m.has("LowTotal") { g("LowTotal") } else { total },
-            low_free: if m.has("LowFree") { g("LowFree") } else { free },
+            low_total: if m.map.contains_key("LowTotal") { g("LowTotal") } else { total },
+            low_free: if m.map.contains_key("LowFree") { g("LowFree") } else { free },
             high_total: g("HighTotal"),
             high_free: g("HighFree"),
             swap_total: g("SwapTotal"),

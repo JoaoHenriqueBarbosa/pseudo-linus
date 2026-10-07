@@ -269,7 +269,7 @@ pub struct Ctx<'a> {
     pub color: bool,
     pub quote: Quote,
     objs: HashMap<Oid, Option<Rc<Loaded>>>,
-    head_ref: Option<String>,
+    pub(crate) head_ref: Option<String>,
 }
 
 /// Estado de um ramo frente ao seu upstream.
@@ -310,10 +310,6 @@ impl<'a> Ctx<'a> {
             _ => None,
         };
         Ok(Ctx { repo, graph: Graph::new(repo), color: false, quote: Quote::None, objs: HashMap::new(), head_ref })
-    }
-
-    pub fn head_ref(&self) -> Option<&str> {
-        self.head_ref.as_deref()
     }
 
     pub fn load(&mut self, oid: &Oid) -> R<Option<Rc<Loaded>>> {

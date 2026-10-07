@@ -162,7 +162,7 @@ struct NsInner {
 
 /// O namespace de montagens de um sandbox.
 pub struct Namespace {
-    root: Arc<Mount>,
+    pub root: Arc<Mount>,
     inner: RwLock<NsInner>,
     next_id: AtomicU32,
 }
@@ -189,11 +189,6 @@ impl Namespace {
             inner: RwLock::new(NsInner { mounts: vec![root], children: HashMap::new() }),
             next_id: AtomicU32::new(2),
         })
-    }
-
-    /// Raiz do namespace.
-    pub fn root(&self) -> Loc {
-        self.root.root()
     }
 
     pub fn root_mount(&self) -> &Arc<Mount> {

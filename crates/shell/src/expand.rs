@@ -40,10 +40,6 @@ impl Field {
         self.flags.push(Q | NULLMARK);
     }
 
-    fn is_empty(&self) -> bool {
-        self.bytes.is_empty()
-    }
-
     /// Bytes finais (sem marcadores).
     fn text(&self) -> Vec<u8> {
         self.bytes.iter().zip(&self.flags).filter(|(_, f)| **f & NULLMARK == 0).map(|(b, _)| *b).collect()
@@ -218,7 +214,7 @@ fn split_field(f: Field, ifs: &[u8], max_fields: usize) -> Vec<Field> {
     let delim = |i: usize| f.flags[i] & SPLIT != 0 && f.flags[i] & Q == 0 && ifs.contains(&f.bytes[i]);
     let ws = |i: usize| delim(i) && is_ifs_ws(f.bytes[i]);
     if !(0..n).any(delim) {
-        return if f.is_empty() { Vec::new() } else { vec![f] };
+        return if f.bytes.is_empty() { Vec::new() } else { vec![f] };
     }
     let mut out: Vec<Field> = Vec::new();
     let mut i = 0;
@@ -405,7 +401,7 @@ impl Shell {
         let mut out = Vec::new();
         for f in fields {
             if ifs.is_empty() {
-                if !f.is_empty() {
+                if !f.bytes.is_empty() {
                     out.push(f);
                 }
                 continue;
@@ -640,7 +636,7 @@ impl Shell {
         let assoc = var.is_some_and(|v| matches!(v.value, Value::Assoc(_)) || v.attrs.has(Attrs::ASSOC));
         if assoc {
             return Ok(match var.map(|v| &v.value) {
-                Some(Value::Assoc(a)) => a.get(key).cloned(),
+                Some(Value::Assoc(a)) => a.map.get(key).cloned(),
                 _ => None,
             });
         }

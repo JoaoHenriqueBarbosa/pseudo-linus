@@ -103,7 +103,7 @@ fn user_err(msg: impl Into<String>) -> rusqlite::Error {
 
 fn call_py(f: &Value, args: Vec<Value>) -> Result<Value, rusqlite::Error> {
     let mut vm = crate::vm::current().ok_or_else(|| user_err("no vm"))?;
-    vm.call_value(f, args, Vec::new()).map_err(|e: PyException| user_err(e.msg))
+    vm.call(f, args, Vec::new()).map_err(|e: PyException| user_err(e.msg))
 }
 
 fn ctx_args(ctx: &Context<'_>) -> Vec<Value> {
@@ -127,7 +127,7 @@ impl Aggregate<usize, Sql> for PyAggregate {
     fn step(&self, ctx: &mut Context<'_>, acc: &mut usize) -> rusqlite::Result<()> {
         let inst = AGGREGATES.with(|a| a.borrow()[*acc].clone()).ok_or_else(|| user_err("aggregate finished"))?;
         let mut vm = crate::vm::current().ok_or_else(|| user_err("no vm"))?;
-        let step = vm.getattr(&inst, "step").map_err(|e| user_err(e.msg))?;
+        let step = vm.load_attr(&inst, "step").map_err(|e| user_err(e.msg))?;
         call_py(&step, ctx_args(ctx))?;
         Ok(())
     }
@@ -136,7 +136,7 @@ impl Aggregate<usize, Sql> for PyAggregate {
         let Some(idx) = acc else { return Ok(Sql::Null) };
         let inst = AGGREGATES.with(|a| a.borrow_mut()[idx].take()).ok_or_else(|| user_err("aggregate finished"))?;
         let mut vm = crate::vm::current().ok_or_else(|| user_err("no vm"))?;
-        let fin = vm.getattr(&inst, "finalize").map_err(|e| user_err(e.msg))?;
+        let fin = vm.load_attr(&inst, "finalize").map_err(|e| user_err(e.msg))?;
         let out = call_py(&fin, Vec::new())?;
         to_sql(&out).map_err(user_err)
     }

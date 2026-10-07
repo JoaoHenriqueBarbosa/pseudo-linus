@@ -375,7 +375,7 @@ mod tests {
         assert_eq!(err(op_getitem, vec![l.clone(), i(3)]), "IndexError: list index out of range");
         assert_eq!(r(op_getitem, vec![Value::str("abc"), i(1)]), "'b'");
         assert_eq!(r(op_getitem, vec![Value::tuple(vec![i(9)]), i(0)]), "9");
-        let mut d = Dict::new();
+        let mut d = Dict::default();
         d.set(Value::str("a"), i(1)).unwrap();
         let d = Value::dict(d);
         assert_eq!(r(op_getitem, vec![d.clone(), Value::str("a")]), "1");

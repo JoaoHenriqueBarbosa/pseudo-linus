@@ -18,7 +18,7 @@ fn check(script: &str, stdout: &str, stderr: &str, code: i32) {
     let r = sh(&k, script);
     assert_eq!(r.stdout_str(), stdout, "stdout de {script:?} (stderr: {:?})", r.stderr_str());
     assert_eq!(r.stderr_str(), stderr, "stderr de {script:?}");
-    assert_eq!(r.code(), code, "status de {script:?}");
+    assert_eq!(r.status.shell_status(), code, "status de {script:?}");
 }
 
 #[test]
@@ -124,6 +124,6 @@ fn file_utilities() {
 fn syntax_error() {
     let k = kit();
     let r = sh(&k, "echo (");
-    assert_eq!(r.code(), 2);
+    assert_eq!(r.status.shell_status(), 2);
     assert!(r.stderr_str().contains("syntax error"), "{}", r.stderr_str());
 }

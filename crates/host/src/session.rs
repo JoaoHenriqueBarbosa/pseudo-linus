@@ -207,13 +207,9 @@ impl Scanner {
         Scanner { marker: format!("\x1eOSH-END {id}").into_bytes(), pending: Vec::new(), payload: None }
     }
 
-    fn found(&self) -> bool {
-        self.payload.is_some()
-    }
-
     /// Acrescenta bytes; devolve o que já é saída do comando com certeza.
     fn push(&mut self, data: &[u8]) -> Vec<u8> {
-        if self.found() {
+        if self.payload.is_some() {
             return Vec::new();
         }
         self.pending.extend_from_slice(data);
@@ -420,7 +416,7 @@ impl Session {
         if sent {
             let rx = inner.shell.as_ref().expect("shell presente").rx.clone();
             loop {
-                if out_scan.found() && err_scan.found() {
+                if out_scan.payload.is_some() && err_scan.payload.is_some() {
                     break;
                 }
                 let now = Instant::now();
@@ -465,7 +461,7 @@ impl Session {
         }
 
         // O shell saiu durante o comando (`exit N`, ou morreu): a sessão acaba.
-        if !sent || (exited.is_some() && !(out_scan.found() && err_scan.found())) {
+        if !sent || (exited.is_some() && !(out_scan.payload.is_some() && err_scan.payload.is_some())) {
             let tail_out = out_scan.flush();
             let tail_err = err_scan.flush();
             emit(Stream::Stdout, &tail_out, &mut out, &mut err);
@@ -643,32 +639,32 @@ mod tests {
     fn cd_and_export_survive() {
         let sb = test_sandbox();
         let s = Session::open(sb.clone(), "ss_t1", state(), b"/root").unwrap();
-        let o = s.exec("cd /work\nexport FOO=bar", b"", limits(), None, &Cancel::new()).unwrap();
+        let o = s.exec("cd /work\nexport FOO=bar", b"", limits(), None, &Cancel::default()).unwrap();
         assert_eq!(o.exec.exit_code, Some(0));
         assert_eq!(o.cwd.as_deref(), Some("/work"));
-        let o = s.exec("pwd; printenv FOO", b"", limits(), None, &Cancel::new()).unwrap();
+        let o = s.exec("pwd; printenv FOO", b"", limits(), None, &Cancel::default()).unwrap();
         assert_eq!(o.exec.stdout.data, b"/work\nbar\n");
-        let o = s.exec("cat", b"do stdin\n", limits(), None, &Cancel::new()).unwrap();
+        let o = s.exec("cat", b"do stdin\n", limits(), None, &Cancel::default()).unwrap();
         assert_eq!(o.exec.stdout.data, b"do stdin\n");
-        let o = s.exec("errout ops; exit 0", b"", limits(), None, &Cancel::new()).unwrap();
+        let o = s.exec("errout ops; exit 0", b"", limits(), None, &Cancel::default()).unwrap();
         assert!(o.closed);
         assert_eq!(o.exec.stderr.data, b"ops\n");
-        assert!(matches!(s.exec("pwd", b"", limits(), None, &Cancel::new()), Err(SessionError::Closed(_))));
+        assert!(matches!(s.exec("pwd", b"", limits(), None, &Cancel::default()), Err(SessionError::Closed(_))));
     }
 
     #[test]
     fn status_and_output_limit() {
         let sb = test_sandbox();
         let s = Session::open(sb, "ss_t2", state(), b"/root").unwrap();
-        let o = s.exec("false", b"", limits(), None, &Cancel::new()).unwrap();
+        let o = s.exec("false", b"", limits(), None, &Cancel::default()).unwrap();
         assert_eq!(o.exec.exit_code, Some(1));
         let mut l = limits();
         l.output_limit = 10;
-        let o = s.exec("bigout 100000", b"", l, None, &Cancel::new()).unwrap();
+        let o = s.exec("bigout 100000", b"", l, None, &Cancel::default()).unwrap();
         assert_eq!(o.exec.stdout.data.len(), 10);
         assert!(o.exec.stdout.truncated);
         assert_eq!(o.exec.stdout.total, 100_000);
-        let o = s.exec("echo depois", b"", limits(), None, &Cancel::new()).unwrap();
+        let o = s.exec("echo depois", b"", limits(), None, &Cancel::default()).unwrap();
         assert_eq!(o.exec.stdout.data, b"depois\n");
     }
 
@@ -676,12 +672,12 @@ mod tests {
     fn timeout_resets_with_exported_state() {
         let sb = test_sandbox();
         let s = Session::open(sb.clone(), "ss_t3", state(), b"/root").unwrap();
-        s.exec("cd /tmp; export KEEP=1", b"", limits(), None, &Cancel::new()).unwrap();
+        s.exec("cd /tmp; export KEEP=1", b"", limits(), None, &Cancel::default()).unwrap();
         let mut l = limits();
         l.timeout = Duration::from_millis(300);
-        let o = s.exec("spin", b"", l, None, &Cancel::new()).unwrap();
+        let o = s.exec("spin", b"", l, None, &Cancel::default()).unwrap();
         assert!(o.exec.timed_out && o.reset && !o.closed);
-        let o = s.exec("pwd; printenv KEEP", b"", limits(), None, &Cancel::new()).unwrap();
+        let o = s.exec("pwd; printenv KEEP", b"", limits(), None, &Cancel::default()).unwrap();
         assert_eq!(o.exec.stdout.data, b"/tmp\n1\n");
         s.close();
         let alive = sb.processes().into_iter().filter(|p| p.state != 'Z').count();
@@ -694,10 +690,10 @@ mod tests {
         let sb = test_sandbox();
         let snap = sb.snapshot().unwrap();
         let s = Session::open(sb.clone(), "ss_t5", state(), b"/root").unwrap();
-        s.exec("cd /tmp", b"", limits(), None, &Cancel::new()).unwrap();
+        s.exec("cd /tmp", b"", limits(), None, &Cancel::default()).unwrap();
         sb.restore(&snap).unwrap();
         assert!(sb.stat(b"/run/osh/ss_t5", false).is_err(), "o restore deveria ter levado o diretório");
-        let o = s.exec("pwd", b"", limits(), None, &Cancel::new()).unwrap();
+        let o = s.exec("pwd", b"", limits(), None, &Cancel::default()).unwrap();
         assert_eq!(o.exec.exit_code, Some(0));
         assert_eq!(o.exec.stdout.data, b"/tmp\n");
     }
@@ -707,9 +703,9 @@ mod tests {
         let sb = test_sandbox();
         let s = Arc::new(Session::open(sb, "ss_t4", state(), b"/root").unwrap());
         let s2 = s.clone();
-        let h = thread::spawn(move || s2.exec("sleep 0.5", b"", limits(), None, &Cancel::new()).unwrap());
+        let h = thread::spawn(move || s2.exec("sleep 0.5", b"", limits(), None, &Cancel::default()).unwrap());
         thread::sleep(Duration::from_millis(100));
-        assert!(matches!(s.exec("pwd", b"", limits(), None, &Cancel::new()), Err(SessionError::Busy)));
+        assert!(matches!(s.exec("pwd", b"", limits(), None, &Cancel::default()), Err(SessionError::Busy)));
         assert_eq!(h.join().unwrap().exec.exit_code, Some(0));
     }
 }

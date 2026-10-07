@@ -103,7 +103,4 @@ impl Member {
         self.data_size().div_ceil(512)
     }
 
-    pub fn is_sparse(&self) -> bool {
-        self.sparse.is_some()
-    }
 }

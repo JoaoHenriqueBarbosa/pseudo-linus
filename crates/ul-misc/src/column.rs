@@ -1172,7 +1172,7 @@ mod tests {
         let mut argv = vec!["column"];
         argv.extend_from_slice(args);
         let r = kit().run(&argv, stdin.as_bytes());
-        (r.stdout_str(), r.stderr_str(), r.code())
+        (r.stdout_str(), r.stderr_str(), r.status.shell_status())
     }
 
     #[test]

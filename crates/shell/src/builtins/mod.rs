@@ -253,9 +253,6 @@ impl Opts {
         self.flags.iter().rev().find(|(f, _)| *f == c).and_then(|(_, v)| v.as_deref())
     }
 
-    pub fn has_plus(&self, c: u8) -> bool {
-        self.plus.contains(&c)
-    }
 }
 
 /// Mensagem padrão de opção inválida mais o uso.

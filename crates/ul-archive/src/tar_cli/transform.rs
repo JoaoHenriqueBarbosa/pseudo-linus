@@ -152,7 +152,7 @@ impl Expr {
                 i += 1;
             }
             let syntax = if extended { Syntax::POSIX_EXTENDED } else { Syntax::POSIX_BASIC };
-            let re = Regex::builder(syntax).icase(icase).build(&parts[0]).map_err(|e| {
+            let re = regex_posix::RegexBuilder::new(syntax).icase(icase).build(&parts[0]).map_err(|e| {
                 let mut m = b"Invalid transform expression: ".to_vec();
                 m.extend_from_slice(e.message().as_bytes());
                 m

@@ -170,7 +170,7 @@ impl ExtObject for FrameObj {
                 });
                 crate::globalsview::view_for(&found.unwrap_or_else(|| vm.globals.clone()), None)
             }
-            "f_locals" | "f_builtins" => Value::dict(crate::object::Dict::new()),
+            "f_locals" | "f_builtins" => Value::dict(crate::object::Dict::default()),
             _ => return None,
         }))
     }

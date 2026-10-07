@@ -975,7 +975,7 @@ fn render_field(vm: &mut Vm, ctx: &mut Ctx, field: &str, depth: u32) -> PyResult
             if attr.is_empty() {
                 return Err(value_error("Empty attribute in format string"));
             }
-            obj = vm.getattr(&obj, &attr)?;
+            obj = vm.load_attr(&obj, &attr)?;
         } else if name[p] == '[' {
             p += 1;
             let st = p;
@@ -1219,7 +1219,7 @@ mod tests {
 
     #[test]
     fn percent_dict() {
-        let mut d = Dict::new();
+        let mut d = Dict::default();
         d.set(s("a"), s("x")).unwrap();
         d.set(s("b"), Value::Int(3)).unwrap();
         assert_eq!(pf("%(a)s-%(b)d", Value::dict(d.clone())), "x-3");
@@ -1262,7 +1262,7 @@ mod tests {
         assert_eq!(sf("{1} {0}", &[s("a"), s("b")], &[]), "b a");
         assert_eq!(sf("{name}", &[], &[("name", s("x"))]), "x");
         assert_eq!(sf("{0[1]}", &[Value::list(vec![Value::Int(1), Value::Int(2)])], &[]), "2");
-        let mut d = Dict::new();
+        let mut d = Dict::default();
         d.set(s("k"), s("v")).unwrap();
         assert_eq!(sf("{a[k]}", &[], &[("a", Value::dict(d))]), "v");
         assert_eq!(sf("{!r}", &[s("a")], &[]), "'a'");

@@ -62,9 +62,6 @@ pub struct Opts {
 }
 
 impl Pathspec {
-    pub fn is_empty(&self) -> bool {
-        self.items.is_empty()
-    }
 
     /// Lê os argumentos (`prefix` é o diretório atual relativo ao topo, com `/`).
     pub fn parse(args: &[Vec<u8>], prefix: &[u8], top: &[u8], opts: &Opts) -> R<Pathspec> {

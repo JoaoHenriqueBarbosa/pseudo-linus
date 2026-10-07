@@ -1014,7 +1014,7 @@ mod tests {
             r.stdout_str(),
             "root:x:0:0:root:/root:/bin/bash\nbin:x:2:2:bin:/bin:/usr/sbin/nologin\n"
         );
-        assert_eq!(r.code(), 2);
+        assert_eq!(r.status.shell_status(), 2);
         let r = k.run(&["getent", "group", "50"], b"");
         assert_eq!(r.stdout_str(), "staff:x:50:bin,ana\n");
         let r = k.run(&["getent", "initgroups", "ana"], b"");
@@ -1038,7 +1038,7 @@ mod tests {
         );
         let r = k.run(&["getent"], b"");
         assert_eq!(
-            (r.stderr_str().as_str(), r.code()),
+            (r.stderr_str().as_str(), r.status.shell_status()),
             ("getent: wrong number of arguments\n", 1)
         );
         assert_eq!(
@@ -1046,6 +1046,6 @@ mod tests {
             "Try `getent --help' or `getent --usage' for more information.\n"
         );
         let r = k.run(&["getent", "-Z", "passwd"], b"");
-        assert_eq!(r.code(), 64);
+        assert_eq!(r.status.shell_status(), 64);
     }
 }

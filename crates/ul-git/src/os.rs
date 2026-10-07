@@ -443,11 +443,6 @@ impl LockFile {
         r
     }
 
-    /// Fecha e apaga o lock sem mexer no arquivo.
-    pub fn rollback(mut self) {
-        self.release();
-    }
-
     fn release(&mut self) {
         if let Some(fd) = self.fd.take() {
             let _ = sysc().close(fd);

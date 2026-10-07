@@ -59,14 +59,7 @@ struct Src {
 }
 
 impl Src {
-    /// `fgetwc_or_err`: `Ok(None)` no fim, `Err` com o errno que o `err()` imprimiria.
-    fn getwc(&mut self) -> Result<Option<char>, Errno> {
-        self.r.getwc()
-    }
 
-    fn at_eof(&self) -> bool {
-        self.r.at_eof()
-    }
 }
 
 /// `iswprint` em C.UTF-8: tudo menos controles e separadores de linha e parágrafo.
@@ -161,11 +154,11 @@ impl<W: Write> Ctl<W> {
                 // Descarta o resto da linha. Em pipe o ftell falha e o fseek também: a leitura
                 // para no primeiro caractere que não seja a quebra de linha.
                 loop {
-                    let c = src.getwc()?;
+                    let c = src.r.getwc()?;
                     if c == Some('\n') {
                         break;
                     }
-                    if src.at_eof() {
+                    if src.r.at_eof() {
                         return Ok(());
                     }
                     if !src.seekable {
@@ -175,10 +168,10 @@ impl<W: Write> Ctl<W> {
                 col = 0;
                 continue;
             }
-            let c = src.getwc()?;
+            let c = src.r.getwc()?;
             match c {
                 Some('\u{1b}') => {
-                    let c2 = src.getwc()?;
+                    let c2 = src.r.getwc()?;
                     if c2 == Some('8') {
                         col = self.rubchars(col, 1);
                     } else if c2 == Some('7') {

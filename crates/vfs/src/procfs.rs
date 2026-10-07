@@ -361,7 +361,7 @@ impl Procfs {
     }
 
     fn ns_root(&self) -> Option<Loc> {
-        self.ns().map(|n| n.root())
+        self.ns().map(|n| n.root.root())
     }
 
     fn node(&self, i: Ino) -> SysResult<NodeInfo> {

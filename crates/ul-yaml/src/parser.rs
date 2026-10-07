@@ -118,10 +118,6 @@ impl Parser {
         Ok(self.scanner.get_token()?.unwrap_or(Token { tok: Tok::StreamEnd, start: m, end: m }))
     }
 
-    fn pop_state(&mut self) -> Option<State> {
-        self.states.pop()
-    }
-
     fn run(&mut self, s: State) -> R<Event> {
         match s {
             State::StreamStart => {
@@ -159,7 +155,7 @@ impl Parser {
                 let t = self.tok()?;
                 if matches!(t, Tok::Directive { .. } | Tok::DocumentStart | Tok::DocumentEnd | Tok::StreamEnd) {
                     let m = self.peek_token()?.start;
-                    self.state = self.pop_state();
+                    self.state = self.states.pop();
                     Ok(empty_scalar(m))
                 } else {
                     self.parse_node(true, false)
@@ -183,7 +179,7 @@ impl Parser {
                     return Ok(empty_scalar(t.end));
                 }
                 let t = self.peek_token()?;
-                self.state = self.pop_state();
+                self.state = self.states.pop();
                 Ok(Event { ev: Ev::SequenceEnd, start: t.start, end: t.start })
             }
             State::BlockMappingFirstKey => {
@@ -321,7 +317,7 @@ impl Parser {
     fn parse_node(&mut self, block: bool, indentless_sequence: bool) -> R<Event> {
         if let Tok::Alias(name) = self.tok()? {
             let t = self.get_token()?;
-            self.state = self.pop_state();
+            self.state = self.states.pop();
             return Ok(Event { ev: Ev::Alias { anchor: name }, start: t.start, end: t.end });
         }
         let mut anchor = None;
@@ -387,7 +383,7 @@ impl Parser {
                 } else {
                     (false, false)
                 };
-                self.state = self.pop_state();
+                self.state = self.states.pop();
                 Ok(Event { ev: Ev::Scalar { anchor, tag, implicit: imp, value, style }, start, end })
             }
             Tok::FlowSequenceStart => {
@@ -411,7 +407,7 @@ impl Parser {
                 Ok(Event { ev: Ev::MappingStart { anchor, tag, implicit, flow_style: false }, start, end })
             }
             _ if anchor.is_some() || tag.is_some() => {
-                self.state = self.pop_state();
+                self.state = self.states.pop();
                 Ok(Event {
                     ev: Ev::Scalar { anchor, tag, implicit: (implicit, false), value: String::new(), style: None },
                     start,
@@ -441,7 +437,7 @@ impl Parser {
             return Err(perr(Some("while parsing a block collection"), self.marks.last().copied(), "did not find expected '-' indicator", t.start));
         }
         let t = self.get_token()?;
-        self.state = self.pop_state();
+        self.state = self.states.pop();
         self.marks.pop();
         Ok(Event { ev: Ev::SequenceEnd, start: t.start, end: t.end })
     }
@@ -461,7 +457,7 @@ impl Parser {
             return Err(perr(Some("while parsing a block mapping"), self.marks.last().copied(), "did not find expected key", t.start));
         }
         let t = self.get_token()?;
-        self.state = self.pop_state();
+        self.state = self.states.pop();
         self.marks.pop();
         Ok(Event { ev: Ev::MappingEnd, start: t.start, end: t.end })
     }
@@ -490,7 +486,7 @@ impl Parser {
             }
         }
         let t = self.get_token()?;
-        self.state = self.pop_state();
+        self.state = self.states.pop();
         self.marks.pop();
         Ok(Event { ev: Ev::SequenceEnd, start: t.start, end: t.end })
     }
@@ -519,7 +515,7 @@ impl Parser {
             }
         }
         let t = self.get_token()?;
-        self.state = self.pop_state();
+        self.state = self.states.pop();
         self.marks.pop();
         Ok(Event { ev: Ev::MappingEnd, start: t.start, end: t.end })
     }

@@ -871,7 +871,7 @@ impl<'p> Interp<'p> {
                 CaseLabel::Regex(id) => {
                     let re = self.const_regex(*id)?;
                     let s = self.to_str(&v);
-                    re.is_match(&s)
+                    re.re.is_match(&s)
                 }
             };
             if hit {
@@ -2148,7 +2148,7 @@ impl<'p> Interp<'p> {
             Expr::Regex(id) => {
                 let re = self.const_regex(*id)?;
                 let rec = self.get_record_value();
-                Ok(Value::Num(re.is_match(&rec) as i32 as f64))
+                Ok(Value::Num(re.re.is_match(&rec) as i32 as f64))
             }
             Expr::TypedRegex(id) => Ok(Value::Regex(*id, self.p.regexes[*id as usize].clone())),
             Expr::Var(v) => self.read_var(*v),
@@ -2225,7 +2225,7 @@ impl<'p> Interp<'p> {
                 let s = self.eval(lhs)?;
                 let s = self.to_str(&s);
                 let re = self.regex_of(re)?;
-                let m = re.is_match(&s);
+                let m = re.re.is_match(&s);
                 Ok(Value::Num((m != *neg) as i32 as f64))
             }
             Expr::Concat(a, b) => {

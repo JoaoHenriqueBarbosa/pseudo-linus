@@ -8,7 +8,7 @@ use std::rc::Rc;
 use crate::object::{Dict, ExtObject, Kw, NativeFn, Value};
 use crate::vm::{type_error, PyResult, Vm};
 
-const TYPES: &[&str] = &["int", "float", "str", "list", "tuple", "dict", "set", "frozenset", "bool", "bytes", "bytearray"];
+pub(crate) const TYPES: &[&str] = &["int", "float", "str", "list", "tuple", "dict", "set", "frozenset", "bool", "bytes", "bytearray"];
 
 /// Um valor de exemplo do tipo, só para consultar a tabela de métodos.
 fn sample(tname: &str) -> Option<Value> {
@@ -18,7 +18,7 @@ fn sample(tname: &str) -> Option<Value> {
         "str" => Value::str(""),
         "list" => Value::list(Vec::new()),
         "tuple" => Value::tuple(Vec::new()),
-        "dict" => Value::dict(Dict::new()),
+        "dict" => Value::dict(Dict::default()),
         "set" | "frozenset" => Value::set(crate::object::Set::new()),
         "bytes" => Value::bytes(Vec::new()),
         "bytearray" => Value::bytearray(Vec::new()),
@@ -57,8 +57,8 @@ impl ExtObject for Unbound {
         // `dict.__getitem__(self, k)` numa subclasse que sobrescreve `__getitem__`: vale o método do tipo
         // embutido sobre o dado de dentro da instância, não a sobrescrita (senão recursa).
         let target = crate::vm::unwrap_payload(&recv);
-        let bound = vm.getattr(&target, self.name)?;
-        vm.call_value(&bound, args, kw)
+        let bound = vm.load_attr(&target, self.name)?;
+        vm.call(&bound, args, kw)
     }
 }
 
@@ -104,7 +104,7 @@ impl ExtObject for NewFn {
         if let Some(first) = args.first() {
             if crate::builtins::class_name(first).is_some_and(|n| n == self.tname) {
                 let ctor = crate::builtins::get(self.tname).unwrap_or(Value::Builtin("object"));
-                return vm.call_value(&ctor, args[1..].to_vec(), kw);
+                return vm.call(&ctor, args[1..].to_vec(), kw);
             }
         }
         let Some(Value::Class(c)) = args.first() else {
@@ -112,7 +112,7 @@ impl ExtObject for NewFn {
         };
         let rest: Vec<Value> = args[1..].iter().map(crate::vm::unwrap_payload).collect();
         let ctor = crate::builtins::get(self.tname).unwrap_or(Value::Builtin("object"));
-        let payload = vm.call_value(&ctor, rest, kw)?;
+        let payload = vm.call(&ctor, rest, kw)?;
         Ok(Value::Instance(Rc::new(crate::object::InstanceObj {
             class: c.clone(),
             view: Default::default(),
@@ -135,7 +135,7 @@ fn fromkeys(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
         [k, v] => (k, v.clone()),
         _ => return Err(type_error(format!("fromkeys expected at least 1 argument, got {}", args.len()))),
     };
-    let mut d = Dict::new();
+    let mut d = Dict::default();
     for k in crate::vm::iterate(keys)? {
         d.set(k, value.clone())?;
     }
@@ -184,7 +184,7 @@ fn int_from_bytes(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 }
 
 fn str_maketrans(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
-    let mut d = Dict::new();
+    let mut d = Dict::default();
     match args.as_slice() {
         [Value::Dict(src)] => {
             for (k, v) in src.borrow().iter() {
@@ -299,7 +299,7 @@ fn object_getattribute(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value
                 }
             }
         }
-        [other, Value::Str(n)] => vm.getattr(other, n.as_str()),
+        [other, Value::Str(n)] => vm.load_attr(other, n.as_str()),
         _ => Err(type_error("expected 2 arguments")),
     }
 }
@@ -377,7 +377,7 @@ fn object_format(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
         [a, Value::Str(spec)] if spec.as_str().is_empty() => Ok(Value::str(vm.str_of(a)?)),
         [a, Value::Str(_)] => {
             let ty = vm.type_of(a);
-            let name = vm.getattr(&ty, "__name__").ok().and_then(|n| match n {
+            let name = vm.load_attr(&ty, "__name__").ok().and_then(|n| match n {
                 Value::Str(s) => Some(s.as_str().to_string()),
                 _ => None,
             });
@@ -402,7 +402,7 @@ fn object_dir(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     match args.as_slice() {
         [a] => {
             let dir = Value::Builtin("dir");
-            vm.call_value(&dir, vec![a.clone()], Vec::new())
+            vm.call(&dir, vec![a.clone()], Vec::new())
         }
         _ => Err(type_error(format!("object.__dir__() takes no arguments ({} given)", args.len().saturating_sub(1)))),
     }
@@ -426,8 +426,8 @@ fn object_init_subclass(_vm: &mut Vm, _args: Vec<Value>, kw: Kw) -> PyResult<Val
 /// `object.__reduce_ex__`, `__reduce__` e `__getstate__`: as funções de `copyreg`.
 fn copyreg_call(vm: &mut Vm, fname: &str, args: Vec<Value>) -> PyResult<Value> {
     let m = crate::modules::import_checked(vm, "copyreg")?;
-    let f = vm.getattr(&Value::Module(m), fname)?;
-    vm.call_value(&f, args, Vec::new())
+    let f = vm.load_attr(&Value::Module(m), fname)?;
+    vm.call(&f, args, Vec::new())
 }
 
 fn object_reduce_ex(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
@@ -470,11 +470,6 @@ pub fn object_attr(name: &str) -> Option<Value> {
         "__name__" => Value::str("object"),
         _ => return None,
     })
-}
-
-/// O nome é o de um tipo embutido de dados (`int`, `dict`...)?
-pub fn is_type_name(name: &str) -> bool {
-    TYPES.contains(&name)
 }
 
 /// `object.__new__`, para classes de usuário que não definem `__new__`.

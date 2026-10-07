@@ -3,7 +3,7 @@
 //! `disjunction` ao `primary`, `slices`, `atom`, os displays e comprehensions, os argumentos de
 //! chamada, os alvos de `for` e o `lambdef`. Cada função cita a regra que implementa.
 
-use super::{decode_string, error_at, is_keyword, number_constant, PResult, ParseError, Parser, Rule, StrValue};
+use super::{decode_string, error_at, number_constant, PResult, ParseError, Parser, Rule, StrValue};
 use crate::ast::{
     Arg, Arguments, BoolOp, CmpOp, Comprehension, Constant, Expr, ExprContext, ExprKind as E, Keyword,
     Operator, UnaryOp,
@@ -473,7 +473,7 @@ impl Parser {
                     "True" => Constant::Bool(true),
                     "False" => Constant::Bool(false),
                     "None" => Constant::None,
-                    text if is_keyword(text) => return Ok(None),
+                    text if super::KEYWORDS.contains(&text) => return Ok(None),
                     _ => {
                         self.mark += 1;
                         return Ok(Some(Parser::name_expr(&tok, Load)));

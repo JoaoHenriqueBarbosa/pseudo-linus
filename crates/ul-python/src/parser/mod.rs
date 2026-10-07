@@ -53,16 +53,12 @@ pub use stmt::parse_module;
 
 /// Palavras-chave rígidas do 3.13 (`keyword.kwlist`); as suaves (`match`, `case`, `type`, `_`)
 /// continuam sendo nomes.
-const KEYWORDS: [&str; 35] = [
+pub(crate) const KEYWORDS: [&str; 35] = [
     "False", "None", "True", "and", "as", "assert", "async", "await", "break", "class", "continue",
     "def", "del", "elif", "else", "except", "finally", "for", "from", "global", "if", "import", "in",
     "is", "lambda", "nonlocal", "not", "or", "pass", "raise", "return", "try", "while", "with",
     "yield",
 ];
-
-fn is_keyword(text: &str) -> bool {
-    KEYWORDS.contains(&text)
-}
 
 /// Classe da exceção do erro de sintaxe.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -213,7 +209,7 @@ impl Parser {
     /// `NAME` que não é palavra-chave.
     fn is_name_at(&mut self, offset: usize) -> Result<bool, ParseError> {
         let tok = self.peek(offset)?;
-        Ok(tok.kind == TokenType::Name && !is_keyword(&tok.text))
+        Ok(tok.kind == TokenType::Name && !KEYWORDS.contains(&tok.text.as_str()))
     }
 
     fn eat_name(&mut self) -> Result<Option<Token>, ParseError> {

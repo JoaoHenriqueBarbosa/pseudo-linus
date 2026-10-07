@@ -1292,9 +1292,6 @@ pub struct FakeBackend {
 }
 
 impl FakeBackend {
-    pub fn new() -> FakeBackend {
-        FakeBackend::default()
-    }
 
     pub fn user(&self, name: &str) -> Option<UserSched> {
         self.users.lock().get(name).cloned()
@@ -1332,7 +1329,7 @@ impl Backend for FakeBackend {
 #[cfg(test)]
 pub(crate) fn test_sandbox() -> Arc<dyn Sandbox> {
     use crate::api::SandboxLimits;
-    FakeBackend::new()
+    FakeBackend::default()
         .create_sandbox(
             "sb_test",
             "tester",

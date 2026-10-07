@@ -280,7 +280,7 @@ pub(crate) fn host_spawn(sb: &Arc<SbInner>, spec: SpawnSpec, stdio: HostStdio, l
     let mut child = ChildSpec {
         cred,
         cwd,
-        root: sb.ns.root(),
+        root: sb.ns.root.root(),
         umask: 0o022,
         argv: spec.argv.clone(),
         env: env.clone(),

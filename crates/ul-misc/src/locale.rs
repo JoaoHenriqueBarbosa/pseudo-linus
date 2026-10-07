@@ -953,7 +953,7 @@ mod tests {
         );
         let r = k.run(&["locale", "bogus"], b"");
         assert_eq!(
-            (r.stderr_str().as_str(), r.code()),
+            (r.stderr_str().as_str(), r.status.shell_status()),
             ("locale: unknown name \"bogus\"\n", 1)
         );
         let r = k.run(&["locale", "-k", "ctype-class-names"], b"");

@@ -686,7 +686,7 @@ impl Ours {
         let t = now();
         let fs = Tmpfs::new(makedev(0, 77), 0o755, t, TmpfsLimits::default());
         let ns = Namespace::new(fs, MountFlags::RELATIME, "tmpfs", "");
-        let mut root_cx = ops::kernel_caller(ns.root());
+        let mut root_cx = ops::kernel_caller(ns.root.root());
         root_cx.now = t;
         let s = &Start::Cwd;
         ns.mkdir(&root_cx, s, b"/dev", 0o755).expect("mkdir /dev");
@@ -703,7 +703,7 @@ impl Ours {
         };
         let cx = Caller {
             cred: Arc::new(Cred::new(uid, gid, groups)),
-            root: ns.root(),
+            root: ns.root.root(),
             cwd: base.clone(),
             umask: 0o022,
             now: t,

@@ -430,8 +430,8 @@ fn run(args: &[OsString]) -> i32 {
             r.columns = i32::from(ws.cols);
         }
         if opt_c && !noinit && r.send_init_strings() {
-            r.out.write_all(b"\r");
-            r.flush();
+            r.out.buf.extend_from_slice(b"\r");
+            r.out.finish();
             if isatty(fd)
                 && let Some(s) = sys::try_current()
             {
@@ -443,10 +443,10 @@ fn run(args: &[OsString]) -> i32 {
         let mut out = io::stdout();
         let _ = writeln!(out, "{}", io::lossy(&ttype));
     } else if showterm {
-        r.flush();
+        r.out.finish();
         io::eprint(format!("Terminal type is {}.\n", io::lossy(&ttype)));
     }
-    r.flush();
+    r.out.finish();
     if s_flag_big {
         err(&progname, "The -S option is not supported under terminfo.");
     }

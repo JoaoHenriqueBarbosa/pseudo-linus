@@ -636,7 +636,7 @@ impl Shell {
         if is_assoc {
             if !append {
                 let v = self.vars.entry(&name);
-                v.value = Value::Assoc(crate::vars::Assoc::new());
+                v.value = Value::Assoc(crate::vars::Assoc::default());
             }
             // Associativo: `[k]=v` (ou, no bash 5.1+, pares k v sem colchete).
             let mut pending_key: Option<Vec<u8>> = None;

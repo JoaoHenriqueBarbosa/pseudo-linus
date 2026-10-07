@@ -43,7 +43,7 @@ pub fn active() -> bool {
 fn invoke(vm: &mut Vm, f: &Value, event: &str, arg: Value) -> PyResult<Value> {
     let frame = crate::modules::pysys::current_frame(vm)?;
     INSIDE.with(|i| i.set(true));
-    let r = vm.call_value(f, vec![frame, Value::str(event), arg], Vec::new());
+    let r = vm.call(f, vec![frame, Value::str(event), arg], Vec::new());
     INSIDE.with(|i| i.set(false));
     if r.is_err() {
         // Como o CPython: rastreador que levanta é desligado.
@@ -107,8 +107,8 @@ pub fn exception(vm: &mut Vm, code: &Rc<Code>, e: &crate::vm::PyException) -> Py
     });
     let Some(t) = tracer else { return Ok(()) };
     let exc = e.to_value();
-    let kind = vm.getattr(&exc, "__class__").unwrap_or(Value::None);
-    let tb = vm.getattr(&exc, "__traceback__").unwrap_or(Value::None);
+    let kind = vm.load_attr(&exc, "__class__").unwrap_or(Value::None);
+    let tb = vm.load_attr(&exc, "__traceback__").unwrap_or(Value::None);
     let next = invoke(vm, &t, "exception", Value::tuple(vec![kind, exc, tb]))?;
     FRAMES.with(|f| {
         if let Some(top) = f.borrow_mut().last_mut() {

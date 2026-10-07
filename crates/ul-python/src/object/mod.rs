@@ -306,7 +306,7 @@ pub type AttrMap = indexmap::IndexMap<String, Value, std::hash::BuildHasherDefau
 /// ganha um índice por hash para não virar quadrático. As globais ficam num [`VarMap`].
 #[derive(Default, Clone)]
 pub struct LocalMap {
-    items: Vec<(Rc<str>, Value)>,
+    pub(crate) items: Vec<(Rc<str>, Value)>,
     index: Option<std::collections::HashMap<Rc<str>, usize, std::hash::BuildHasherDefault<NameHasher>>>,
 }
 
@@ -370,17 +370,6 @@ impl LocalMap {
         Some(v)
     }
 
-    pub fn reserve(&mut self, n: usize) {
-        self.items.reserve(n);
-    }
-
-    pub fn len(&self) -> usize {
-        self.items.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.items.is_empty()
-    }
 
     pub fn iter(&self) -> impl Iterator<Item = (&Rc<str>, &Value)> {
         self.items.iter().map(|(k, v)| (k, v))
@@ -636,7 +625,7 @@ impl InstanceObj {
 
     /// Os atributos próprios como um `dict` do Python.
     fn attrs_dict(&self) -> Dict {
-        let mut d = Dict::new();
+        let mut d = Dict::default();
         for (k, val) in self.dict.borrow().iter() {
             let _ = d.set(Value::str(k.clone()), val.clone());
         }
@@ -1447,7 +1436,7 @@ mod tests {
     }
 
     fn dict_of(pairs: Vec<(Value, Value)>) -> Value {
-        let mut d = Dict::new();
+        let mut d = Dict::default();
         for (k, v) in pairs {
             d.set(k, v).unwrap();
         }
@@ -1531,7 +1520,7 @@ mod tests {
 
     #[test]
     fn dict_keeps_insertion_order_and_first_key() {
-        let mut d = Dict::new();
+        let mut d = Dict::default();
         d.set(s("b"), Value::Int(1)).unwrap();
         d.set(s("a"), Value::Int(2)).unwrap();
         d.set(Value::Int(1), s("x")).unwrap();
@@ -1592,7 +1581,7 @@ mod tests {
         assert_eq!(hash(&s("a")), hash(&Value::bytes(b"a".to_vec())));
         assert_eq!(hash(&Value::tuple(vec![])), Ok(5_740_354_900_026_072_187));
         assert_eq!(
-            hash(&Value::dict(Dict::new())),
+            hash(&Value::dict(Dict::default())),
             Err(ObjError::TypeError("unhashable type: 'dict'".to_string()))
         );
     }

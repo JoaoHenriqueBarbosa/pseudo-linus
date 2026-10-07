@@ -344,7 +344,7 @@ pub struct Supervisor {
     worker_cmd: WorkerCommand,
     shutting_down: AtomicBool,
     shutdown: Notify,
-    started: Instant,
+    pub(crate) started: Instant,
 }
 
 impl std::fmt::Debug for Supervisor {
@@ -404,10 +404,6 @@ impl Supervisor {
         }
         tokio::spawn(sup.clone().housekeeping());
         sup
-    }
-
-    pub fn uptime(&self) -> Duration {
-        self.started.elapsed()
     }
 
     /// Espera todos os workers ficarem prontos (ou o prazo acabar). Devolve quantos estão prontos.

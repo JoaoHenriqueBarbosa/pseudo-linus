@@ -2,9 +2,11 @@
 
 Uso: python3 scripts/dry-forwarders.py <raiz>... ; imprime `arquivo:linha nome -> alvo`.
 
-Pula `impl Trait for` (a assinatura é imposta pela trait), o módulo de testes de cada arquivo e o
-código de terceiros (`vendor/`, `staging/`). Repasse que só renomeia vira reexportação
-(`pub use x::y as z;`), e repasse que só muda o caminho vira chamada direta.
+Pula `impl Trait for` e os métodos default de uma `trait` (a assinatura é a interface, que a
+implementação sobrescreve), a função que converte (`.into()` num argumento, construtor `::from`),
+a marcada com `/// API do std` (nome que o código importado dos utilitários chama), o módulo de
+testes de cada arquivo e o código de terceiros (`vendor/`, `staging/`). Repasse que só renomeia
+vira reexportação (`pub use x::y as z;`), e repasse que só muda o caminho vira chamada direta.
 """
 import os
 import re
@@ -16,6 +18,8 @@ FN = re.compile(
 )
 IMPL = re.compile(r'^\s*impl\b')
 IMPL_TRAIT = re.compile(r'^\s*impl\b.*\bfor\b')
+TRAIT = re.compile(r'^\s*(?:pub(?:\([^)]*\))?\s+)?(?:unsafe\s+)?trait\b')
+STD_API = '/// API do std'
 CALL = re.compile(r'^(?:return\s+)?(?:Ok\()?([\w:.]+?)(?:::<[^>]*>)?\((.*)\)\)?;?$')
 SKIP_DIRS = {'target', 'wip', '.git', 'tests', 'node_modules', 'vendor', 'staging', 'benches'}
 
@@ -52,7 +56,7 @@ def params(sig):
 
 def plain_arg(a, ps):
     a = re.sub(r'^&(mut\s+)?', '', a.strip())
-    a = re.sub(r'\.(clone|as_ref|as_slice|as_str|into|to_vec|to_owned)\(\)$', '', a)
+    a = re.sub(r'\.(clone|as_ref|as_slice|as_str|to_vec|to_owned)\(\)$', '', a)
     return a.lstrip('*') in ps
 
 
@@ -62,8 +66,9 @@ def scan(path):
     for i, line in enumerate(lines):
         if re.match(r'^\s*#\[cfg\(test\)\]', line):
             return
-        if IMPL.match(line):
-            trait_impl = (bool(IMPL_TRAIT.match(line)), len(line) - len(line.lstrip()))
+        if IMPL.match(line) or TRAIT.match(line):
+            interface = bool(IMPL_TRAIT.match(line) or TRAIT.match(line))
+            trait_impl = (interface, len(line) - len(line.lstrip()))
         m = FN.match(line)
         if not m or i + 2 >= len(lines):
             continue
@@ -74,7 +79,9 @@ def scan(path):
             continue
         body = lines[i + 1].strip()
         c = CALL.match(body)
-        if body.startswith('//') or not c:
+        if body.startswith('//') or not c or c.group(1).endswith('::from'):
+            continue
+        if i > 0 and lines[i - 1].strip().startswith(STD_API):
             continue
         ps = params(m.group(4))
         args = split_top(c.group(2), '([{<', ')]}>')

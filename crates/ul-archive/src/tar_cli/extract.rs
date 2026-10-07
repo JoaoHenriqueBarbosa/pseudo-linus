@@ -27,11 +27,6 @@ fn ts(t: Time) -> SetTime {
 
 use sysabi::sys::current as sys;
 
-/// `‘x’` com as aspas do locale, como o tar cita alvos nas mensagens de link.
-fn lq(s: &[u8]) -> Vec<u8> {
-    quote::locale(s)
-}
-
 struct Extractor {
     delayed: Vec<DelayedDir>,
     umask: Mode,
@@ -135,7 +130,7 @@ pub fn run(t: &mut Tar) -> R<()> {
                 return Ok(Flow::Continue);
             }
         }
-        if !names.is_empty() {
+        if !names.items.is_empty() {
             match names.find(&m.name) {
                 Some(i) => {
                     names.items[i].found += 1;
@@ -313,7 +308,7 @@ fn handle_existing(t: &mut Tar, name: &[u8], m: &Member, is_dir: bool) -> R<bool
         let cur = Time::new(st.mtime.sec, st.mtime.nsec);
         if cur >= m.mtime {
             let mut msg = b"Current ".to_vec();
-            msg.extend_from_slice(&lq(name));
+            msg.extend_from_slice(&quote::locale(name));
             msg.extend_from_slice(b" is newer or same age");
             t.msg(msg);
             return Ok(false);
@@ -485,7 +480,7 @@ fn extract_member(t: &mut Tar, x: &mut Extractor, r: &mut Reader, m: Member) -> 
                 Err(e) => {
                     let mut msg = quote::colon(&fname);
                     msg.extend_from_slice(b": Cannot create symlink to ");
-                    msg.extend_from_slice(&lq(&target));
+                    msg.extend_from_slice(&quote::locale(&target));
                     msg.extend_from_slice(format!(": {}", e.message()).as_bytes());
                     t.error(msg);
                 }
@@ -515,7 +510,7 @@ fn extract_member(t: &mut Tar, x: &mut Extractor, r: &mut Reader, m: Member) -> 
             if let Err(e) = res {
                 let mut msg = quote::colon(&fname);
                 msg.extend_from_slice(b": Cannot hard link to ");
-                msg.extend_from_slice(&lq(&target));
+                msg.extend_from_slice(&quote::locale(&target));
                 msg.extend_from_slice(format!(": {}", e.message()).as_bytes());
                 t.error(msg);
             }

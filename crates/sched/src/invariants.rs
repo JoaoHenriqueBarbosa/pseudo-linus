@@ -147,7 +147,7 @@ impl<C: Clock> Sched<C> {
                 let in_tree = e.on_rq && !running;
                 match (e.node, in_tree) {
                     (Some(n), true) => {
-                        let q = c.timeline.entity(n);
+                        let q = c.timeline.tree.value(n);
                         if q.entity != id || q.vruntime != e.vruntime || q.slice != e.slice || q.weight != e.load.weight {
                             return Err(format!("{id:?}: cópia na árvore diverge da entidade"));
                         }

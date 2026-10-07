@@ -524,7 +524,7 @@ impl<'p> Interp<'p> {
             None => false,
         };
         let tz = if utc { crate::time::TimeZone::utc() } else { self.local_tz() };
-        Ok(Value::Str(Rc::from(crate::time::strftime(&fmt, t, &tz))))
+        Ok(Value::Str(Rc::from(crate::time::format_time(&fmt, t, &tz, &tz))))
     }
 
     fn var_cell(&self, v: Var) -> Cell {

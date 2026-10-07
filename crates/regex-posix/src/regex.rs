@@ -302,14 +302,6 @@ impl Captures {
         self.spans.get(i).copied().flatten().map(|(start, end)| Match { start, end })
     }
 
-    /// Número de entradas (grupos + 1).
-    pub fn len(&self) -> usize {
-        self.spans.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.spans.is_empty()
-    }
 
     pub fn whole(&self) -> Match {
         self.get(0).unwrap_or(Match { start: 0, end: 0 })
@@ -415,10 +407,6 @@ impl Regex {
     /// `re_set_syntax`, mas com `newline_anchor` desligado; ver [`RegexBuilder::newline_anchor`]).
     pub fn new(pattern: &[u8], syntax: Syntax) -> Result<Regex, Error> {
         RegexBuilder::new(syntax).build(pattern)
-    }
-
-    pub fn builder(syntax: Syntax) -> RegexBuilder {
-        RegexBuilder::new(syntax)
     }
 
     /// `re_nsub`: número de grupos.

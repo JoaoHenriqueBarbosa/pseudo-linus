@@ -326,10 +326,6 @@ impl Dc {
         line
     }
 
-    fn push(&mut self, v: Value) {
-        self.stack.push(v);
-    }
-
     fn push_num(&mut self, n: Num) {
         self.stack.push(Value::Num(n));
     }
@@ -345,7 +341,7 @@ impl Dc {
     /// `dc_num2int`: a parte inteira como `long`, com o aviso do original quando não cabe.
     fn num2int(&self, n: &Num) -> i64 {
         let r = n.num2long();
-        if r == 0 && !n.is_zero() {
+        if r == 0 && !n.mag.is_zero() {
             self.err("value overflows simple integer; punting...");
             return -1;
         }
@@ -548,11 +544,11 @@ impl Dc {
                 return;
             }
         };
-        if m.is_zero() {
+        if m.mag.is_zero() {
             self.err("remainder by zero");
             return;
         }
-        if expo.is_neg() && !expo.is_zero() {
+        if expo.is_neg() && !expo.mag.is_zero() {
             self.err("negative exponent");
             return;
         }
@@ -668,7 +664,7 @@ impl Dc {
             }
             Some(Value::Str(s)) => self.call_macro(s, depth),
             Some(v) => {
-                self.push(v);
+                self.stack.push(v);
                 Flow::Next
             }
         }
@@ -730,7 +726,7 @@ impl Dc {
                 }
                 b'[' => {
                     let s = self.read_string(src);
-                    self.push(Value::Str(s));
+                    self.stack.push(Value::Str(s));
                 }
                 b'#' => {
                     while let Some(c) = self.getc(src) {
@@ -767,7 +763,7 @@ impl Dc {
                 b'v' => self.sqrt(),
                 b'c' => self.stack.clear(),
                 b'd' => match self.stack.last().cloned() {
-                    Some(v) => self.push(v),
+                    Some(v) => self.stack.push(v),
                     None => self.stack_empty(),
                 },
                 b'r' => {
@@ -797,7 +793,7 @@ impl Dc {
                 },
                 b'X' => match self.pop() {
                     Some(Value::Num(n)) => self.push_num(Num::from_u64(u64::from(n.scale()))),
-                    Some(Value::Str(_)) => self.push_num(Num::zero()),
+                    Some(Value::Str(_)) => self.push_num(Num::default()),
                     None => {}
                 },
                 b'k' => {
@@ -854,9 +850,9 @@ impl Dc {
                         return Flow::Next;
                     };
                     match self.regs[r].last().and_then(|e| e.value.clone()) {
-                        Some(v) => self.push(v),
+                        Some(v) => self.stack.push(v),
                         // Registrador vazio vale zero, sem mensagem.
-                        None => self.push_num(Num::zero()),
+                        None => self.push_num(Num::default()),
                     }
                 }
                 b'S' => {
@@ -875,7 +871,7 @@ impl Dc {
                         return Flow::Next;
                     };
                     match self.regs[r].pop() {
-                        Some(RegEntry { value: Some(v), .. }) => self.push(v),
+                        Some(RegEntry { value: Some(v), .. }) => self.stack.push(v),
                         _ => self.err(format!("stack register {} is empty", show_id(r as u8))),
                     }
                 }
@@ -908,7 +904,7 @@ impl Dc {
                         self.err("array index must be a nonnegative integer");
                     } else {
                         let v = self.regs[r].last().and_then(|e| e.array.get(&idx).cloned());
-                        self.push(v.unwrap_or(Value::Num(Num::zero())));
+                        self.stack.push(v.unwrap_or(Value::Num(Num::default())));
                     }
                 }
                 b'x' => match self.pop() {
@@ -916,7 +912,7 @@ impl Dc {
                         Flow::Next => {}
                         f => return f,
                     },
-                    Some(v) => self.push(v),
+                    Some(v) => self.stack.push(v),
                     None => {}
                 },
                 b'<' => match self.compare(src, depth, |o| o == Ordering::Less) {
@@ -967,11 +963,11 @@ impl Dc {
                 b'a' => match self.pop() {
                     Some(Value::Num(n)) => {
                         let t = self.num2int(&n);
-                        self.push(Value::Str(Rc::from(vec![(t & 0xff) as u8])));
+                        self.stack.push(Value::Str(Rc::from(vec![(t & 0xff) as u8])));
                     }
                     Some(Value::Str(s)) => {
                         let first: Vec<u8> = s.iter().take(1).copied().collect();
-                        self.push(Value::Str(Rc::from(first)));
+                        self.stack.push(Value::Str(Rc::from(first)));
                     }
                     None => {}
                 },

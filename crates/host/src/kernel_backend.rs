@@ -238,7 +238,7 @@ impl Sandbox for KSandbox {
     fn destroy(&self) {
         let taken = self.inner.write().take();
         if let Some(sb) = taken {
-            sb.destroy();
+            drop(sb);
         }
     }
 }

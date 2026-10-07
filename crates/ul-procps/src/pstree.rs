@@ -337,7 +337,7 @@ impl Dumper<'_> {
         if o.user_change && prev_uid != node.uid {
             self.out.char(if info { b',' } else { b'(' });
             info = true;
-            let mut names = common::Names::new();
+            let mut names = crate::common::Names::default();
             match names.user(node.uid) {
                 Some(name) => self.out.string(name.as_bytes()),
                 None => {
@@ -522,7 +522,7 @@ fn run(args: &[OsString]) -> i32 {
             }
             pid_set = true;
         } else {
-            let mut names = common::Names::new();
+            let mut names = crate::common::Names::default();
             match names.uid_of(&s) {
                 Some(u) => by_user = Some(u),
                 None => {

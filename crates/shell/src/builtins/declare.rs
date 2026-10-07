@@ -299,11 +299,11 @@ pub fn run(sh: &mut Shell, name: &str, args: &[Arg]) -> Exec {
                 match &entry.value {
                     Value::Scalar(s) => {
                         let s = s.clone();
-                        let mut a = Assoc::new();
+                        let mut a = Assoc::default();
                         a.insert(b"0".to_vec(), s);
                         entry.value = Value::Assoc(a);
                     }
-                    Value::Unset if !has_value => entry.value = Value::Assoc(Assoc::new()),
+                    Value::Unset if !has_value => entry.value = Value::Assoc(Assoc::default()),
                     _ => {}
                 }
             }

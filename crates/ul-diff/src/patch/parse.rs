@@ -272,10 +272,6 @@ impl<'a> Scanner<'a> {
         self.trailing
     }
 
-    pub fn total_lines(&self) -> usize {
-        self.lines.len()
-    }
-
     fn line(&self, i: usize) -> &'a [u8] {
         self.lines.get(i).copied().unwrap_or(b"")
     }

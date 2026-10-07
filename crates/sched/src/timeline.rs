@@ -135,7 +135,7 @@ pub struct CurrView {
 /// A linha do tempo de uma runqueue.
 #[derive(Clone, Debug)]
 pub struct Timeline {
-    tree: EevdfTree,
+    pub(crate) tree: EevdfTree,
     zero_vruntime: u64,
     avg_vruntime: i64,
     avg_load: u64,
@@ -158,15 +158,6 @@ impl Timeline {
         Timeline { tree: RbTree::new(), zero_vruntime, avg_vruntime: 0, avg_load: 0 }
     }
 
-    /// Número de entidades na árvore (sem contar as que estão rodando).
-    pub fn len(&self) -> usize {
-        self.tree.len()
-    }
-
-    /// Diz se a árvore está vazia.
-    pub fn is_empty(&self) -> bool {
-        self.tree.is_empty()
-    }
 
     /// A árvore, pra navegação.
     pub fn tree(&self) -> &EevdfTree {
@@ -222,11 +213,6 @@ impl Timeline {
     /// Deadline da entidade no nó.
     pub fn deadline(&self, node: NodeId) -> u64 {
         self.tree.key(node).0
-    }
-
-    /// Entidade no nó.
-    pub fn entity(&self, node: NodeId) -> &QueuedEntity {
-        self.tree.value(node)
     }
 
     /// `update_zero_vruntime`: move `v0` de `delta` e corrige a soma (`avg_vruntime -= avg_load * delta`).
@@ -555,7 +541,7 @@ mod tests {
         tl.enqueue(ent(0, u64::MAX - 50, NICE_0_LOAD), 10); // deadline depois da volta
         tl.enqueue(ent(1, u64::MAX - 60, NICE_0_LOAD), u64::MAX - 5); // antes da volta
         let first = tl.tree().first().expect("não vazia");
-        assert_eq!(tl.entity(first).entity, EntityId::from_index(1));
+        assert_eq!(tl.tree.value(first).entity, EntityId::from_index(1));
         tl.check_invariants().expect("invariantes");
         // min_vruntime circular: u64::MAX - 60 é menor que u64::MAX - 50.
         let root = tl.tree().root().expect("não vazia");

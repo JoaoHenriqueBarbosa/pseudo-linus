@@ -38,11 +38,11 @@ fn b_aiter(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         return Err(type_error(format!("aiter() takes exactly one argument ({} given)", args.len())));
     }
     let obj = &args[0];
-    let Ok(method) = vm.getattr(obj, "__aiter__") else {
+    let Ok(method) = vm.load_attr(obj, "__aiter__") else {
         return Err(type_error(format!("'{}' object is not an async iterable", obj.type_name())));
     };
-    let it = vm.call_value(&method, Vec::new(), Vec::new())?;
-    if vm.getattr(&it, "__anext__").is_err() {
+    let it = vm.call(&method, Vec::new(), Vec::new())?;
+    if vm.load_attr(&it, "__anext__").is_err() {
         return Err(type_error(format!("aiter() returned not an async iterator of type '{}'", it.type_name())));
     }
     Ok(it)
@@ -56,23 +56,23 @@ fn b_anext(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         return Err(type_error(format!("anext expected at least 1 argument, got {}", args.len())));
     }
     let it = &args[0];
-    let Ok(method) = vm.getattr(it, "__anext__") else {
+    let Ok(method) = vm.load_attr(it, "__anext__") else {
         return Err(type_error(format!("'{}' object is not an async iterator", it.type_name())));
     };
-    let awaitable = vm.call_value(&method, Vec::new(), Vec::new())?;
+    let awaitable = vm.call(&method, Vec::new(), Vec::new())?;
     let Some(default) = args.get(1) else { return Ok(awaitable) };
     let module = crate::modules::import_value(vm, "_anext")?;
-    let cls = vm.getattr(&module, "anext_awaitable")?;
-    vm.call_value(&cls, vec![awaitable, default.clone()], Vec::new())
+    let cls = vm.load_attr(&module, "anext_awaitable")?;
+    vm.call(&cls, vec![awaitable, default.clone()], Vec::new())
 }
 
 /// `breakpoint(*args, **kws)`: chama `sys.breakpointhook`.
 fn b_breakpoint(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let sys = crate::modules::import_value(vm, "sys")?;
-    let Ok(hook) = vm.getattr(&sys, "breakpointhook") else {
+    let Ok(hook) = vm.load_attr(&sys, "breakpointhook") else {
         return Err(exc("RuntimeError", "lost sys.breakpointhook"));
     };
-    vm.call_value(&hook, args, kw)
+    vm.call(&hook, args, kw)
 }
 
 fn attr_name(v: &Value) -> PyResult<String> {
@@ -117,7 +117,7 @@ fn b_vars(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     match args.first() {
         None => b_globals(vm, Vec::new(), Vec::new()),
         Some(obj) => vm
-            .getattr(obj, "__dict__")
+            .load_attr(obj, "__dict__")
             .map_err(|_| type_error("vars() argument must have __dict__ attribute")),
     }
 }
@@ -128,8 +128,8 @@ fn b_globals(vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
 
 /// `locals()` no nível do módulo: as globais, como no CPython. É uma função à parte de `globals`
 /// porque cada uma tem a sua docstring (registrada pelo endereço da função).
-fn b_locals(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    b_globals(vm, args, kw)
+fn b_locals(vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    Ok(crate::globalsview::view_for(&vm.globals, None))
 }
 
 /// Nomes que os protocolos (`collections.abc`, `numbers`, `io`) e os tipos embutidos costumam expor: o
@@ -153,7 +153,7 @@ const PROBE_NAMES: &[&str] = &[
 
 /// Atributos de um tipo embutido que o interpretador resolve, na ordem de `PROBE_NAMES`.
 pub(crate) fn probe_type_attrs(vm: &mut Vm, ty: &Value) -> Vec<(String, Value)> {
-    PROBE_NAMES.iter().filter_map(|n| vm.getattr(ty, n).ok().map(|v| ((*n).to_string(), v))).collect()
+    PROBE_NAMES.iter().filter_map(|n| vm.load_attr(ty, n).ok().map(|v| ((*n).to_string(), v))).collect()
 }
 
 /// `dir(obj)`: nomes de atributo ordenados (instância, classe e módulo; o resto sai vazio).
@@ -162,9 +162,9 @@ fn b_dir(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     // Objeto cuja classe define `__dir__` (o `Enum`, por exemplo): o resultado é o dele, ordenado.
     if let Some(Value::Instance(i)) = args.first() {
         if i.class.lookup("__dir__").is_some() {
-            let f = vm.getattr(&args[0], "__dir__")?;
-            let listed = vm.call_value(&f, Vec::new(), Vec::new())?;
-            return vm.call_value(&Value::Builtin("sorted"), vec![listed], Vec::new());
+            let f = vm.load_attr(&args[0], "__dir__")?;
+            let listed = vm.call(&f, Vec::new(), Vec::new())?;
+            return vm.call(&Value::Builtin("sorted"), vec![listed], Vec::new());
         }
     }
     let mut names = dir_names(vm, args.first());
@@ -206,7 +206,7 @@ pub(crate) fn dir_names(vm: &mut Vm, obj: Option<&Value>) -> Vec<String> {
         Some(Value::Module(m)) => {
             // `__spec__` e `__loader__` são criados sob demanda; o `dir()` os lista como no CPython.
             let module = Value::Module(m.clone());
-            let _ = vm.getattr(&module, "__spec__");
+            let _ = vm.load_attr(&module, "__spec__");
             names.extend(m.attrs.borrow().keys().cloned());
             if let Some(g) = vm.module_globals.borrow().get(m.name) {
                 names.extend(g.borrow().keys().map(|k| k.to_string()));
@@ -345,8 +345,8 @@ fn b_input(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 fn b_help(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     crate::native_util::no_kwargs("help", &kw)?;
     let m = crate::modules::import_checked(vm, "pydoc")?;
-    let helper = vm.getattr(&Value::Module(m), "help")?;
-    vm.call_value(&helper, args, Vec::new())
+    let helper = vm.load_attr(&Value::Module(m), "help")?;
+    vm.call(&helper, args, Vec::new())
 }
 
 fn b_exit(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
@@ -365,7 +365,7 @@ fn b_import(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     // Só código embutido importa os módulos de apoio; o `importlib.import_module` repassa o nome
     // que o programa pediu, então não conta como embutido.
     let trusted = vm.frames.borrow().last().is_some_and(|(c, _)| c.internal && c.name != "import_module");
-    if !trusted && crate::modules::is_internal(&full) {
+    if !trusted && crate::modules::INTERNAL.contains(&full.as_str()) {
         return Err(crate::vm::exc("ModuleNotFoundError", format!("No module named '{full}'")));
     }
     // Importa a cadeia inteira (`a.b.c` carrega `a`, `a.b`, `a.b.c`); sem `fromlist` devolve a raiz. O
@@ -419,7 +419,7 @@ pub(crate) fn module_dict_register(name: &'static str, dict: &Value) {
 /// novos em ordem alfabética (o mapa de globais não guarda a ordem de inserção).
 fn write_back(target: &Value, map: &crate::object::VarMap, was: &[String]) -> PyResult<()> {
     let Value::Dict(d) = target else { return Ok(()) };
-    let mut fresh = Dict::new();
+    let mut fresh = Dict::default();
     let old: Vec<(Value, Value)> = d.borrow().iter().map(|(k, v)| (k.clone(), v.clone())).collect();
     for (k, v) in old {
         match &k {
@@ -640,8 +640,8 @@ fn b_compile(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     }
     if let Value::Instance(_) = &source {
         let ast = crate::modules::import_checked(vm, "ast")?;
-        let unparse = vm.getattr(&Value::Module(ast), "unparse")?;
-        source = vm.call_value(&unparse, vec![source], Vec::new())?;
+        let unparse = vm.load_attr(&Value::Module(ast), "unparse")?;
+        source = vm.call(&unparse, vec![source], Vec::new())?;
         if flags & 1024 != 0 {
             return Ok(a[0].clone().unwrap_or(Value::None));
         }
@@ -649,9 +649,9 @@ fn b_compile(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     // `PyCF_ONLY_AST`: devolve a árvore em vez do código.
     if flags & 1024 != 0 {
         let m = crate::modules::import_checked(vm, "_ast")?;
-        let parse = vm.getattr(&Value::Module(m), "_parse")?;
+        let parse = vm.load_attr(&Value::Module(m), "_parse")?;
         let rest = vec![source, a[1].clone().unwrap_or(Value::None), a[2].clone().unwrap_or(Value::None)];
-        return vm.call_value(&parse, rest, Vec::new());
+        return vm.call(&parse, rest, Vec::new());
     }
     let src = want_str("compile", &source)?.to_string();
     let filename = a[1].as_ref().map(|f| crate::object::to_str(f)).unwrap_or_default();

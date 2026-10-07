@@ -271,11 +271,6 @@ impl Simulator {
         sim
     }
 
-    /// Instante atual.
-    pub fn now(&self) -> u64 {
-        self.clock.now_ns()
-    }
-
     /// O escalonador, pra inspeção.
     pub fn sched(&self) -> &Sched<ManualClock> {
         &self.sched
@@ -324,7 +319,7 @@ impl Simulator {
             if let Some(i) = self.running_index(cpu)
                 && let Workload::Periodic { .. } = self.tasks[i].spec.workload
             {
-                t = t.min(self.now() + self.tasks[i].remaining_run_ns);
+                t = t.min(self.clock.now_ns() + self.tasks[i].remaining_run_ns);
             }
         }
         for s in &self.tasks {
@@ -363,14 +358,14 @@ impl Simulator {
 
     /// Avança o tempo até `t`, gastando a rajada de quem roda.
     fn advance_to(&mut self, t: u64) {
-        let now = self.now();
+        let now = self.clock.now_ns();
         if t <= now {
             return;
         }
         if !self.window_started && self.cfg.measure_from_ns > now && self.cfg.measure_from_ns < t {
             self.advance_to(self.cfg.measure_from_ns);
         }
-        let now = self.now();
+        let now = self.clock.now_ns();
         let dt = t - now;
         for cpu in 0..self.sched.nr_cpus() {
             if let Some(i) = self.running_index(cpu)
@@ -380,7 +375,7 @@ impl Simulator {
             }
         }
         self.clock.set(t);
-        if !self.window_started && self.now() >= self.cfg.measure_from_ns {
+        if !self.window_started && self.clock.now_ns() >= self.cfg.measure_from_ns {
             self.open_window();
         }
     }
@@ -403,7 +398,7 @@ impl Simulator {
             && self.window_started
             && req >= self.cfg.measure_from_ns
         {
-            let lat = self.now() - req;
+            let lat = self.clock.now_ns() - req;
             self.tasks[i].latencies_ns.push(lat);
         }
     }
@@ -551,7 +546,7 @@ impl Simulator {
 
     /// Relatório da janela de medição.
     pub fn report(&self) -> SimReport {
-        let window_ns = self.now().saturating_sub(self.cfg.measure_from_ns);
+        let window_ns = self.clock.now_ns().saturating_sub(self.cfg.measure_from_ns);
         let cpu: Vec<u64> = self
             .tasks
             .iter()

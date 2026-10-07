@@ -512,7 +512,7 @@ fn indent(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     for line in splitlines_keepends(text) {
         let wanted = match &predicate {
             None => !line.trim().is_empty(),
-            Some(f) => vm.call_value(f, vec![Value::str(line.clone())], Vec::new())?.is_true(),
+            Some(f) => vm.call(f, vec![Value::str(line.clone())], Vec::new())?.is_true(),
         };
         if wanted {
             out.push_str(prefix);

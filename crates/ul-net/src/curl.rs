@@ -23,10 +23,6 @@ const MAX_REDIRS: u32 = 50;
 /// Erro com o código de saída do curl e a mensagem (sem o prefixo `curl: (N) `).
 struct Fail(i32, String);
 
-fn fail(code: i32, msg: impl Into<String>) -> Fail {
-    Fail(code, msg.into())
-}
-
 #[derive(Default)]
 struct Opts {
     urls: Vec<String>,
@@ -83,7 +79,7 @@ impl Args<'_> {
 }
 
 fn need(args: &mut Args, name: &str) -> Result<String, Fail> {
-    args.next().ok_or_else(|| fail(2, format!("option {name}: requires parameter")))
+    args.next().ok_or_else(|| Fail(2, (format!("option {name}: requires parameter")).into()))
 }
 
 fn seconds(v: &str, name: &str) -> Result<Duration, Fail> {
@@ -91,7 +87,7 @@ fn seconds(v: &str, name: &str) -> Result<Duration, Fail> {
         .ok()
         .filter(|s| s.is_finite() && *s >= 0.0)
         .map(Duration::from_secs_f64)
-        .ok_or_else(|| fail(2, format!("option {name}: expected a proper numerical parameter")))
+        .ok_or_else(|| Fail(2, (format!("option {name}: expected a proper numerical parameter")).into()))
 }
 
 /// Conteúdo de `-d @arquivo`/`@-`. `strip` tira CR e LF (o `-d` faz isso, o `--data-binary` não).
@@ -113,7 +109,7 @@ fn read_source(ctx: &mut Ctx, path: &str) -> Result<Vec<u8>, Fail> {
         let _ = std::io::Read::read_to_end(&mut ctx.stdin(), &mut out);
         return Ok(out);
     }
-    sys::read_file(path.as_bytes()).map_err(|_| fail(26, format!("Failed to open {path}")))
+    sys::read_file(path.as_bytes()).map_err(|_| Fail(26, (format!("Failed to open {path}")).into()))
 }
 
 /// `application/x-www-form-urlencoded` como o curl codifica no `--data-urlencode`.
@@ -243,7 +239,7 @@ fn parse(ctx: &mut Ctx, argv: &[OsString]) -> Result<Opts, Fail> {
                     let _ = ctx.stdout().write_all(version_text().as_bytes());
                     return Err(Fail(0, String::new()));
                 }
-                _ => return Err(fail(2, format!("option {opt}: is unknown"))),
+                _ => return Err(Fail(2, (format!("option {opt}: is unknown")).into())),
             }
             continue;
         }
@@ -303,7 +299,7 @@ fn parse(ctx: &mut Ctx, argv: &[OsString]) -> Result<Opts, Fail> {
                         let _ = ctx.stdout().write_all(version_text().as_bytes());
                         return Err(Fail(0, String::new()));
                     }
-                    _ => return Err(fail(2, format!("option -{c}: is unknown"))),
+                    _ => return Err(Fail(2, (format!("option -{c}: is unknown")).into())),
                 }
             }
             continue;
@@ -468,15 +464,15 @@ enum Sink {
 impl Sink {
     fn write(&mut self, ctx: &mut Ctx, data: &[u8]) -> Result<(), Fail> {
         match self {
-            Sink::Stdout => ctx.stdout().write_all(data).map_err(|_| fail(23, format!("Failure writing output to destination, passed {} returned 0", data.len()))),
+            Sink::Stdout => ctx.stdout().write_all(data).map_err(|_| Fail(23, (format!("Failure writing output to destination, passed {} returned 0", data.len())).into())),
             Sink::Null => Ok(()),
             Sink::File { path, fd } => {
                 if fd.is_none() {
                     let f = sys::open(path.as_bytes(), OFlags::WRONLY | OFlags::CREAT | OFlags::TRUNC, Mode::from(0o666u32))
-                        .map_err(|e| fail(23, format!("Failed writing body: {path}: {}", e.message())))?;
+                        .map_err(|e| Fail(23, (format!("Failed writing body: {path}: {}", e.message())).into()))?;
                     *fd = Some(f);
                 }
-                sys::write_all(fd.unwrap_or(Fd::STDOUT), data).map_err(|_| fail(23, "Failure writing output to destination"))
+                sys::write_all(fd.unwrap_or(Fd::STDOUT), data).map_err(|_| Fail(23, ("Failure writing output to destination").into()))
             }
         }
     }
@@ -514,7 +510,7 @@ fn mkdirs(path: &str) {
 fn remote_name(u: &Url) -> Result<String, Fail> {
     let name = u.path.rsplit('/').next().unwrap_or("");
     if name.is_empty() {
-        return Err(fail(23, "Remote filename has no length"));
+        return Err(Fail(23, ("Remote filename has no length").into()));
     }
     Ok(String::from_utf8_lossy(&url::percent_decode(name)).into_owned())
 }
@@ -524,7 +520,7 @@ fn multipart(ctx: &mut Ctx, fields: &[String]) -> Result<(Vec<u8>, String), Fail
     let boundary = format!("------------------------{:016x}", io::wall().1 as u64 ^ 0x5eed_c0ff_ee00_1234);
     let mut body = Vec::new();
     for f in fields {
-        let (name, value) = f.split_once('=').ok_or_else(|| fail(26, "Failed to read form data"))?;
+        let (name, value) = f.split_once('=').ok_or_else(|| Fail(26, ("Failed to read form data").into()))?;
         body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
         if let Some(path) = value.strip_prefix('@') {
             let path = path.split(';').next().unwrap_or(path);
@@ -597,9 +593,9 @@ fn url_fail(raw: &str, e: UrlError) -> Fail {
     if e == UrlError::BadScheme
         && let Some(scheme) = raw.split_once("://").map(|(s, _)| s)
     {
-        return fail(1, format!("Protocol \"{scheme}\" not supported"));
+        return Fail(1, (format!("Protocol \"{scheme}\" not supported")).into());
     }
-    fail(3, format!("URL rejected: {}", e.message()))
+    Fail(3, (format!("URL rejected: {}", e.message())).into())
 }
 
 fn ms(d: Duration) -> u128 {
@@ -640,7 +636,7 @@ impl Transfer<'_> {
     /// `file://`: lê o arquivo local.
     fn file(&mut self, u: &Url, sink: &mut Sink, info: &mut Info) -> Result<(), Fail> {
         let path = String::from_utf8_lossy(&url::percent_decode(&u.path)).into_owned();
-        let data = sys::read_file(path.as_bytes()).map_err(|_| fail(37, format!("Couldn't open file {path}")))?;
+        let data = sys::read_file(path.as_bytes()).map_err(|_| Fail(37, (format!("Couldn't open file {path}")).into()))?;
         info.size_download = data.len() as u64;
         if !self.o.head {
             sink.write(self.ctx, &data)?;
@@ -664,7 +660,7 @@ impl Transfer<'_> {
             return self.file(&u, sink, info);
         }
         if u.scheme != "http" && u.scheme != "https" {
-            return Err(fail(1, format!("Protocol \"{}\" not supported", u.scheme)));
+            return Err(Fail(1, (format!("Protocol \"{}\" not supported", u.scheme)).into()));
         }
         let mut req = build_request(self.ctx, self.o)?;
         info.method = req.method.clone();
@@ -682,7 +678,7 @@ impl Transfer<'_> {
                     return Ok(());
                 }
                 if info.num_redirects >= max {
-                    return Err(fail(47, format!("Maximum ({max}) redirects followed")));
+                    return Err(Fail(47, (format!("Maximum ({max}) redirects followed")).into()));
                 }
                 info.num_redirects += 1;
                 // Como o curl: 301/302/303 trocam POST por GET (303 troca qualquer método que não seja HEAD).
@@ -712,14 +708,14 @@ impl Transfer<'_> {
             Ok(t) => t,
             Err(Errno::ECONNREFUSED) => {
                 let after = ms(io::now().saturating_sub(self.started));
-                return Err(fail(7, format!("Failed to connect to {host} port {port} after {after} ms: Could not connect to server")));
+                return Err(Fail(7, (format!("Failed to connect to {host} port {port} after {after} ms: Could not connect to server")).into()));
             }
             Err(Errno::ETIMEDOUT) => {
                 let after = ms(io::now().saturating_sub(self.started));
-                return Err(fail(28, format!("Failed to connect to {host} port {port} after {after} ms: Timeout was reached")));
+                return Err(Fail(28, (format!("Failed to connect to {host} port {port} after {after} ms: Timeout was reached")).into()));
             }
             // Sem rede fora do loopback: o nome não resolve.
-            Err(_) => return Err(fail(6, format!("Could not resolve host: {host}"))),
+            Err(_) => return Err(Fail(6, (format!("Could not resolve host: {host}")).into())),
         };
         info.remote_ip = tcp.peer.ip().to_string();
         info.remote_port = tcp.peer.port();
@@ -733,8 +729,8 @@ impl Transfer<'_> {
                 let pem = sys::read_file(crate::net::tls::DEFAULT_CA_BUNDLE.as_bytes()).unwrap_or_default();
                 crate::net::tls::Verify::Roots(pem)
             };
-            let cfg = crate::net::tls::client_config(&verify, &[b"http/1.1"]).map_err(|e| fail(35, e))?;
-            let t = crate::net::tls::TlsStream::handshake(cfg, &host, tcp).map_err(|e| fail(60, format!("{e:?}")))?;
+            let cfg = crate::net::tls::client_config(&verify, &[b"http/1.1"]).map_err(|e| Fail(35, e.into()))?;
+            let t = crate::net::tls::TlsStream::handshake(cfg, &host, tcp).map_err(|e| Fail(60, (format!("{e:?}")).into()))?;
             Stream::Tls(Box::new(t))
         } else {
             Stream::Plain(tcp)
@@ -749,9 +745,9 @@ impl Transfer<'_> {
         info.size_upload += req.body.len() as u64;
         let head = loop {
             let h = conn.read_head().map_err(|e| match e {
-                HttpError::Empty => fail(52, "Empty reply from server"),
-                HttpError::WeirdReply => fail(1, "Received HTTP/0.9 when not allowed"),
-                HttpError::TooLarge => fail(56, "Too large response headers"),
+                HttpError::Empty => Fail(52, ("Empty reply from server").into()),
+                HttpError::WeirdReply => Fail(1, ("Received HTTP/0.9 when not allowed").into()),
+                HttpError::TooLarge => Fail(56, ("Too large response headers").into()),
                 HttpError::Io(e) => self.io_fail(&e, info),
             })?;
             info.size_header += h.raw.len() as u64;
@@ -787,12 +783,12 @@ impl Transfer<'_> {
         };
         let deliver = !following && !(failing && !self.o.fail_with_body);
         let mut decoder = match (self.o.compressed, head.get_str("Content-Encoding")) {
-            (true, Some(enc)) => Some(Decoder::for_encoding(&enc).map_err(|e| fail(61, format!("Unrecognized content encoding type: {e}")))?),
+            (true, Some(enc)) => Some(Decoder::for_encoding(&enc).map_err(|e| Fail(61, (format!("Unrecognized content encoding type: {e}")).into()))?),
             _ => None,
         };
         // `-f` desiste na cabeça, sem ler o corpo (fechar com ele por ler manda RST ao servidor).
         if failing && !self.o.fail_with_body {
-            return Err(fail(22, format!("The requested URL returned error: {}", head.status)));
+            return Err(Fail(22, (format!("The requested URL returned error: {}", head.status)).into()));
         }
         let mut down = 0u64;
         {
@@ -803,10 +799,10 @@ impl Transfer<'_> {
                     Ok(None) => break,
                     Err(BodyError::Partial(Some(left))) => {
                         info.size_download = down;
-                        return Err(fail(18, format!("end of response with {left} bytes missing")));
+                        return Err(Fail(18, (format!("end of response with {left} bytes missing")).into()));
                     }
-                    Err(BodyError::Partial(None)) => return Err(fail(18, "transfer closed with outstanding read data remaining")),
-                    Err(BodyError::BadChunk) => return Err(fail(56, "invalid chunk encoding")),
+                    Err(BodyError::Partial(None)) => return Err(Fail(18, ("transfer closed with outstanding read data remaining").into())),
+                    Err(BodyError::BadChunk) => return Err(Fail(56, ("invalid chunk encoding").into())),
                     Err(BodyError::Io(e)) => {
                         info.size_download = down;
                         return Err(self.io_fail(&e, info));
@@ -815,7 +811,7 @@ impl Transfer<'_> {
                 down += piece.len() as u64;
                 if deliver {
                     let out = match decoder.as_mut() {
-                        Some(d) => d.feed(&piece).map_err(|e| fail(61, format!("Error while processing content unencoding: {}", e.0)))?,
+                        Some(d) => d.feed(&piece).map_err(|e| Fail(61, (format!("Error while processing content unencoding: {}", e.0)).into()))?,
                         None => piece,
                     };
                     sink.write(self.ctx, &out)?;
@@ -823,7 +819,7 @@ impl Transfer<'_> {
             }
         }
         if deliver && let Some(d) = decoder.as_mut() {
-            let rest = d.finish().map_err(|e| fail(61, format!("Error while processing content unencoding: {}", e.0)))?;
+            let rest = d.finish().map_err(|e| Fail(61, (format!("Error while processing content unencoding: {}", e.0)).into()))?;
             sink.write(self.ctx, &rest)?;
         }
         info.size_download += down;
@@ -836,7 +832,7 @@ impl Transfer<'_> {
         if failing {
             let elapsed = self.elapsed();
             self.meter.finish(self.ctx, total, down, info.size_upload, elapsed);
-            return Err(fail(22, format!("The requested URL returned error: {}", head.status)));
+            return Err(Fail(22, (format!("The requested URL returned error: {}", head.status)).into()));
         }
         if matches!(head.status, 301 | 302 | 303 | 307 | 308) && head.get("Location").is_some() {
             return Ok(Some(head));
@@ -847,12 +843,12 @@ impl Transfer<'_> {
     fn io_fail(&self, e: &std::io::Error, info: &Info) -> Fail {
         if e.kind() == std::io::ErrorKind::TimedOut {
             let after = ms(io::now().saturating_sub(self.started));
-            return fail(28, format!("Operation timed out after {after} milliseconds with {} bytes received", info.size_download));
+            return Fail(28, (format!("Operation timed out after {after} milliseconds with {} bytes received", info.size_download)).into());
         }
         match sysabi::Errno::from_io(e) {
-            Errno::ECONNRESET => fail(56, "Recv failure: Connection reset by peer"),
-            Errno::EPIPE => fail(55, "Send failure: Broken pipe"),
-            _ => fail(56, format!("Recv failure: {e}")),
+            Errno::ECONNRESET => Fail(56, ("Recv failure: Connection reset by peer").into()),
+            Errno::EPIPE => Fail(55, ("Send failure: Broken pipe").into()),
+            _ => Fail(56, (format!("Recv failure: {e}")).into()),
         }
     }
 

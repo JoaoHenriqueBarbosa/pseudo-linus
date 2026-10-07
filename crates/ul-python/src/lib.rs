@@ -668,19 +668,19 @@ fn main_globals(machine: &mut vm::Vm, name: &str, file_mode: bool, package: Opti
         let frozen_mod = name.starts_with("/usr/lib/python3.13/") && object::FROZEN_MODULES.contains(&modname.as_str());
         if let Some(make) = attr(&external, "_spec_for_module") {
             let args = vec![Value::str(modname), Value::str(name), Value::Bool(false), Value::Bool(frozen_mod)];
-            if let Ok(s) = machine.call_value(&make, args, Vec::new()) {
-                loader = machine.getattr(&s, "loader").unwrap_or(Value::None);
-                cached = machine.getattr(&s, "cached").unwrap_or(Value::None);
+            if let Ok(s) = machine.call(&make, args, Vec::new()) {
+                loader = machine.load_attr(&s, "loader").unwrap_or(Value::None);
+                cached = machine.load_attr(&s, "cached").unwrap_or(Value::None);
                 spec = s;
             }
         }
     } else if file_mode && name != "<stdin>" {
         if let Some(cls) = attr(&external, "SourceFileLoader") {
             let path = Value::str(absolute_path(name));
-            loader = machine.call_value(&cls, vec![Value::str("__main__"), path], Vec::new()).unwrap_or(Value::None);
+            loader = machine.call(&cls, vec![Value::str("__main__"), path], Vec::new()).unwrap_or(Value::None);
         }
     }
-    let annotations = Value::dict(object::Dict::new());
+    let annotations = Value::dict(crate::object::Dict::default());
     let mut g = machine.globals.borrow_mut();
     g.insert("__package__".into(), match package {
         Some(p) => Value::str(p),

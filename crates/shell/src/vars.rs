@@ -39,7 +39,7 @@ impl Attrs {
 #[derive(Clone, Debug)]
 #[derive(Default)]
 pub struct Assoc {
-    map: HashMap<Vec<u8>, Vec<u8>>,
+    pub(crate) map: HashMap<Vec<u8>, Vec<u8>>,
     buckets: Vec<Vec<Vec<u8>>>,
 }
 
@@ -56,29 +56,12 @@ pub fn bash_hash(s: &[u8]) -> u32 {
 
 
 impl Assoc {
-    pub fn new() -> Assoc {
-        Assoc::default()
-    }
 
     fn nbuckets(&self) -> usize {
         if self.buckets.is_empty() { ASSOC_BUCKETS } else { self.buckets.len() }
     }
 
-    pub fn len(&self) -> usize {
-        self.map.len()
-    }
 
-    pub fn is_empty(&self) -> bool {
-        self.map.is_empty()
-    }
-
-    pub fn get(&self, k: &[u8]) -> Option<&Vec<u8>> {
-        self.map.get(k)
-    }
-
-    pub fn contains(&self, k: &[u8]) -> bool {
-        self.map.contains_key(k)
-    }
 
     pub fn insert(&mut self, k: Vec<u8>, v: Vec<u8>) {
         if let Some(slot) = self.map.get_mut(&k) {
@@ -163,7 +146,7 @@ impl Var {
             Value::Unset => None,
             Value::Scalar(v) => Some(v),
             Value::Indexed(m) => m.get(&0).map(|v| v.as_slice()),
-            Value::Assoc(a) => a.get(b"0").map(|v| v.as_slice()),
+            Value::Assoc(a) => a.map.get(b"0".as_slice()).map(|v| v.as_slice()),
         }
     }
 }
@@ -205,10 +188,6 @@ impl Vars {
 
     pub fn pop(&mut self) -> Option<Scope> {
         if self.scopes.len() > 1 { self.scopes.pop() } else { None }
-    }
-
-    pub fn depth(&self) -> usize {
-        self.scopes.len()
     }
 
     /// Profundidade de funções (quantos escopos de função estão abertos).
@@ -318,7 +297,7 @@ mod tests {
     #[test]
     fn assoc_order_matches_bash() {
         // Golden do caso array-assoc-iteration-order (bash 5.2.37).
-        let mut a = Assoc::new();
+        let mut a = Assoc::default();
         for k in ["alfa", "beta", "gama", "delta", "epsilon", "zeta", "eta", "teta"] {
             a.insert(k.as_bytes().to_vec(), b"1".to_vec());
         }

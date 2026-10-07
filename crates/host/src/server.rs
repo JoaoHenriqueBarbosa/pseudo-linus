@@ -168,7 +168,7 @@ fn health(sup: &Supervisor) -> Response<Body> {
         &json!({
             "status": status,
             "workers": w,
-            "uptime_secs": sup.uptime().as_secs(),
+            "uptime_secs": sup.started.elapsed().as_secs(),
             "version": env!("CARGO_PKG_VERSION"),
         }),
     )

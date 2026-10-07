@@ -341,7 +341,7 @@ fn ops_scenarios() {
             let g_out = gnu.files.read(&format!(".out{i}")).unwrap_or_default();
             let g_err = gnu.files.read(&format!(".err{i}")).unwrap_or_default();
             let g_rc = String::from_utf8_lossy(gnu.files.read(&format!(".rc{i}")).unwrap_or_default()).to_string();
-            let ok = g_out == r.stdout.as_slice() && g_err == r.stderr.as_slice() && g_rc == r.code().to_string();
+            let ok = g_out == r.stdout.as_slice() && g_err == r.stderr.as_slice() && g_rc == r.status.shell_status().to_string();
             if ok {
                 steps_ok += 1;
             } else {
@@ -349,7 +349,7 @@ fn ops_scenarios() {
                     "{} passo {i} {:?}:\n  exit GNU {g_rc} nosso {}\n  GNU stdout {:?}\n  nosso      {:?}\n  GNU stderr {:?}\n  nosso      {:?}",
                     sc.id,
                     st.argv,
-                    r.code(),
+                    r.status.shell_status(),
                     String::from_utf8_lossy(g_out),
                     String::from_utf8_lossy(&r.stdout),
                     String::from_utf8_lossy(g_err),

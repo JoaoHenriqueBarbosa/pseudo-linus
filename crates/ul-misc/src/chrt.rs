@@ -131,7 +131,7 @@ fn bad_number(short: &str, what: &str, s: &[u8], e: Option<Errno>) -> i32 {
 }
 
 fn show_min_max(out: &mut impl Write) {
-    let sys = sys::current();
+    let _sys = sys::current();
     for p in [
         sched::SCHED_OTHER,
         sched::SCHED_FIFO,
@@ -140,8 +140,8 @@ fn show_min_max(out: &mut impl Write) {
         sched::SCHED_IDLE,
         sched::SCHED_DEADLINE,
     ] {
-        let min = sys.sched_get_priority_min(p);
-        let max = sys.sched_get_priority_max(p);
+        let min = sysabi::sched::priority_min(p);
+        let max = sysabi::sched::priority_max(p);
         match (min, max) {
             (Ok(a), Ok(b)) => {
                 let _ = out.write_all(format!("{} min/max priority\t: {a}/{b}\n", policy_name(p)).as_bytes());
@@ -358,8 +358,8 @@ fn run(args: &[OsString]) -> i32 {
 
     let sys = sys::current();
     if !is_dl {
-        let min = sys.sched_get_priority_min(policy).unwrap_or(0);
-        let max = sys.sched_get_priority_max(policy).unwrap_or(0);
+        let min = sysabi::sched::priority_min(policy).unwrap_or(0);
+        let max = sysabi::sched::priority_max(policy).unwrap_or(0);
         if priority < min || priority > max {
             ul::warnx(&short, format!("unsupported priority value for the policy: {priority}: see --max for valid range"));
             return 1;

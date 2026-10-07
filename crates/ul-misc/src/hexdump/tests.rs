@@ -12,7 +12,7 @@ fn kit() -> TestKit {
 
 fn run(k: &TestKit, argv: &[&str], stdin: &[u8]) -> (String, String, i32) {
     let r = k.run(argv, stdin);
-    (r.stdout_str(), r.stderr_str(), r.code())
+    (r.stdout_str(), r.stderr_str(), r.status.shell_status())
 }
 
 const DIGITS: &[u8] = b"0123456789abcdefghij";

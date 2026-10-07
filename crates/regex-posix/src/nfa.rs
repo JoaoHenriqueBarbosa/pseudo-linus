@@ -290,12 +290,12 @@ impl Prog {
             if clist.pcs().any(|pc| matches!(self.insts[pc as usize], Inst::Match)) {
                 best = Some(pos);
             }
-            if pos >= hay.len() || clist.is_empty() {
+            if pos >= hay.len() || clist.dense.is_empty() {
                 break;
             }
             let Some((_, len)) = decode_at(hay, pos) else { break };
-            nlist.clear();
-            for i in 0..clist.len() {
+            nlist.dense.clear();
+            for i in 0..clist.dense.len() {
                 let pc = clist.at(i);
                 if let Inst::Char { set, next } = self.insts[pc as usize]
                     && self.test(set, hay, pos).is_some()
@@ -325,7 +325,7 @@ impl Prog {
             if best.is_none() {
                 self.closure(&mut clist, (self.start, pos), hay, pos, f, &mut stack);
             }
-            for i in 0..clist.len() {
+            for i in 0..clist.dense.len() {
                 let pc = clist.at(i);
                 if matches!(self.insts[pc as usize], Inst::Match) {
                     let s = clist.start_of(pc);
@@ -346,8 +346,8 @@ impl Prog {
                 break;
             }
             let Some((_, len)) = decode_at(hay, pos) else { break };
-            nlist.clear();
-            for i in 0..clist.len() {
+            nlist.dense.clear();
+            for i in 0..clist.dense.len() {
                 let pc = clist.at(i);
                 let s = clist.start_of(pc);
                 if best.is_some_and(|(bs, _)| s > bs) {
@@ -722,17 +722,6 @@ impl Threads {
         true
     }
 
-    fn clear(&mut self) {
-        self.dense.clear();
-    }
-
-    fn len(&self) -> usize {
-        self.dense.len()
-    }
-
-    fn is_empty(&self) -> bool {
-        self.dense.is_empty()
-    }
 
     fn at(&self, i: usize) -> Pc {
         self.dense[i]

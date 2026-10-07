@@ -117,10 +117,6 @@ impl Run {
         }
     }
 
-    fn say_always(&mut self, msg: impl AsRef<[u8]>) {
-        self.out.write(msg.as_ref());
-    }
-
     fn verbose(&mut self, msg: impl AsRef<[u8]>) {
         if self.o.verbose && !self.o.silent {
             self.out.write(msg.as_ref());
@@ -239,7 +235,7 @@ impl Run {
                     let mut m = b"Ignoring potentially dangerous file name ".to_vec();
                     m.extend_from_slice(&self.q(&s));
                     m.push(b'\n');
-                    self.say_always(m);
+                    self.out.write(m.as_ref());
                     warned.push(s);
                 }
                 None
@@ -298,7 +294,7 @@ impl Run {
         let (git_src, git_dst) = if reverse { (new_s.clone(), old_s.clone()) } else { (old_s.clone(), new_s.clone()) };
         if (is_rename || is_copy) && explicit.is_none() && !git_src.as_ref().is_some_and(|s| sysutil::exists(s)) {
             let what = if is_rename { "rename" } else { "copy" };
-            self.say_always(format!("Cannot {what} file without two valid file names\n"));
+            self.out.write((format!("Cannot {what} file without two valid file names\n")).as_ref());
             self.status = self.status.max(1);
             if let Some(e) = deferred_error {
                 return Err(e.message());
@@ -370,15 +366,15 @@ impl Run {
             m.extend_from_slice(format!(",\n{why}  ").as_bytes());
             if self.o.forward {
                 m.extend_from_slice(b"Skipping patch.\n");
-                self.say_always(m);
+                self.out.write(m.as_ref());
                 return self.skip_hunks(&hunks, None, deferred_error, &target);
             } else if self.o.batch {
                 m.extend_from_slice(if reverse { b"Ignoring -R.\n".as_slice() } else { b"Assuming -R.\n".as_slice() });
-                self.say_always(m);
+                self.out.write(m.as_ref());
                 reverse = !reverse;
             } else if self.o.force {
                 m.extend_from_slice(b"Applying it anyway.\n");
-                self.say_always(m);
+                self.out.write(m.as_ref());
                 apply_anyway = true;
             } else {
                 self.out.write(&m);
@@ -398,7 +394,7 @@ impl Run {
                 let mut m = b"File ".to_vec();
                 m.extend_from_slice(&self.q(&target));
                 m.extend_from_slice(b" is not a regular file -- refusing to patch\n");
-                self.say_always(m);
+                self.out.write(m.as_ref());
                 let rej_hunks: Vec<Hunk> = hunks.iter().map(|h| if reverse { h.reversed() } else { h.clone() }).collect();
                 return self.skip_hunks(&hunks, Some((&rej_hunks, &old_h, &new_h, reverse)), deferred_error, &target);
             }
@@ -409,7 +405,7 @@ impl Run {
                 let mut m = b"File ".to_vec();
                 m.extend_from_slice(&self.q(&target));
                 m.extend_from_slice(b": git binary diffs are not supported.\n");
-                self.say_always(m);
+                self.out.write(m.as_ref());
                 self.status = self.status.max(1);
                 return Ok(());
             }
@@ -518,11 +514,11 @@ impl Run {
                 if found == Some(true) {
                     let what = if reverse { "Unreversed patch detected!  " } else { "Reversed (or previously applied) patch detected!  " };
                     if self.o.forward {
-                        self.say_always(format!("{what}Skipping patch.\n"));
+                        self.out.write((format!("{what}Skipping patch.\n")).as_ref());
                         skipped_all = true;
                     } else if self.o.batch {
                         let assume = if reverse { "Ignoring -R." } else { "Assuming -R." };
-                        self.say_always(format!("{what}{assume}\n"));
+                        self.out.write((format!("{what}{assume}\n")).as_ref());
                         reverse = !reverse;
                         mismatch = true;
                         h = h.reversed();
@@ -579,11 +575,11 @@ impl Run {
                             parts.push(format!("{} at {}", kind.text(), list.join(",")));
                         }
                         if !parts.is_empty() {
-                            self.say_always(format!("Hunk #{n} {}.\n", parts.join(", ")));
+                            self.out.write((format!("Hunk #{n} {}.\n", parts.join(", "))).as_ref());
                         }
                     }
                     Err(apply::Misordered) => {
-                        self.say_always("misordered hunks! output would be garbled\n");
+                        self.out.write(("misordered hunks! output would be garbled\n").as_ref());
                         let at = (h.old_first as isize + net).max(1);
                         self.say(format!("Hunk #{n} FAILED at {at}.\n"));
                         failed.push(h.shifted(net));
@@ -627,7 +623,7 @@ impl Run {
                         net += h.new.len() as isize - h.old.len() as isize;
                     }
                     Err(apply::Misordered) => {
-                        self.say_always("misordered hunks! output would be garbled\n");
+                        self.out.write(("misordered hunks! output would be garbled\n").as_ref());
                     }
                 }
             }
@@ -650,7 +646,7 @@ impl Run {
         if self.o.dry_run {
             if failed_count > 0 {
                 self.status = self.status.max(1);
-                self.say_always(format!("{failed_count} out of {total} hunk{} FAILED\n", plural(total)));
+                self.out.write((format!("{failed_count} out of {total} hunk{} FAILED\n", plural(total))).as_ref());
             }
             return Ok(());
         }
@@ -696,7 +692,7 @@ impl Run {
                 let mut m = b"Not deleting file ".to_vec();
                 m.extend_from_slice(&self.q(&dest));
                 m.extend_from_slice(b" as content differs from patch\n");
-                self.say_always(m);
+                self.out.write(m.as_ref());
                 self.status = self.status.max(1);
             } else if remove {
                 if exists && !moved {
@@ -738,7 +734,7 @@ impl Run {
                 m.extend_from_slice(&self.q(rp));
             }
             m.push(b'\n');
-            self.say_always(m);
+            self.out.write(m.as_ref());
         }
         Ok(())
     }
@@ -753,7 +749,7 @@ impl Run {
                 self.say("Perhaps you should have used the -p or --strip option?\n");
             }
             let block = leading_block(&chunk.leading);
-            self.say_always(block);
+            self.out.write(block.as_ref());
         }
         if self.o.batch || self.o.force {
             self.say("No file to patch.  Skipping patch.\n");
@@ -805,7 +801,7 @@ impl Run {
             }
         }
         m.push(b'\n');
-        self.say_always(m);
+        self.out.write(m.as_ref());
         Ok(())
     }
 
@@ -972,7 +968,7 @@ impl Run {
                 let mut m = b"Not setting time of file ".to_vec();
                 m.extend_from_slice(&self.q(dest));
                 m.extend_from_slice(b" (time mismatch)\n");
-                self.say_always(m);
+                self.out.write(m.as_ref());
                 return;
             }
         }

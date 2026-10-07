@@ -25,6 +25,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::rc::Rc;
 
 use num_bigint::BigUint;
+use num_traits::Zero;
 
 use super::lexer::StdinShare;
 use super::number::{self, Num, RaiseError};
@@ -141,9 +142,6 @@ impl Code {
         self.addr.get(pc + 1).copied().unwrap_or(self.size)
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.ins.is_empty()
-    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -243,10 +241,6 @@ fn k(s: &str) -> Num {
     Num::parse_constant(s.as_bytes(), 10).unwrap_or_default()
 }
 
-fn int(v: u64) -> Num {
-    Num::from_u64(v)
-}
-
 impl Vm {
     pub fn new(line_size: i64) -> Vm {
         let main = Func {
@@ -260,7 +254,7 @@ impl Vm {
             obase: 10,
             scale: 0,
             history: Num::from_i64(-1),
-            last: Num::zero(),
+            last: Num::default(),
             vars: Vec::new(),
             arrays: Vec::new(),
             funcs: vec![main],
@@ -368,7 +362,7 @@ impl Vm {
         }
         let s = &mut self.vars[i];
         if s.is_empty() {
-            s.push(Num::zero());
+            s.push(Num::default());
         }
         s
     }
@@ -391,9 +385,9 @@ impl Vm {
 
     fn load(&mut self, i: u32) -> Num {
         match i {
-            VAR_IBASE => int(u64::from(self.ibase)),
-            VAR_OBASE => int(self.obase),
-            VAR_SCALE => int(u64::from(self.scale)),
+            VAR_IBASE => Num::from_u64(u64::from(self.ibase)),
+            VAR_OBASE => Num::from_u64(self.obase),
+            VAR_SCALE => Num::from_u64(u64::from(self.scale)),
             VAR_HISTORY => self.history.clone(),
             VAR_LAST => self.last.clone(),
             _ => self.var_stack(i).last().cloned().unwrap_or_default(),
@@ -571,7 +565,7 @@ impl Vm {
                 if frames.len() == 1 {
                     return Ok(());
                 }
-                stack.push(Num::zero());
+                stack.push(Num::default());
                 self.do_return(frames, stack);
                 continue;
             }
@@ -650,7 +644,7 @@ impl Vm {
                 }
                 Ins::Not => {
                     let a = stack.pop().unwrap_or_default();
-                    stack.push(int(u64::from(a.is_zero())));
+                    stack.push(Num::from_u64(u64::from(a.mag.is_zero())));
                 }
                 Ins::Rel(r) => {
                     let b = stack.pop().unwrap_or_default();
@@ -664,30 +658,30 @@ impl Vm {
                         Rel::Gt => o == Ordering::Greater,
                         Rel::Ge => o != Ordering::Less,
                     };
-                    stack.push(int(u64::from(t)));
+                    stack.push(Num::from_u64(u64::from(t)));
                 }
                 Ins::AndCheck(l) => {
                     let a = stack.pop().unwrap_or_default();
-                    if a.is_zero() {
-                        stack.push(Num::zero());
+                    if a.mag.is_zero() {
+                        stack.push(Num::default());
                         next = code.target(*l);
                     }
                 }
                 Ins::OrCheck(l) => {
                     let a = stack.pop().unwrap_or_default();
-                    if !a.is_zero() {
+                    if !a.mag.is_zero() {
                         stack.push(Num::one());
                         next = code.target(*l);
                     }
                 }
                 Ins::AndEnd | Ins::OrEnd => {
                     let a = stack.pop().unwrap_or_default();
-                    stack.push(int(u64::from(!a.is_zero())));
+                    stack.push(Num::from_u64(u64::from(!a.mag.is_zero())));
                 }
                 Ins::Jump(l) => next = code.target(*l),
                 Ins::JumpZero(l) => {
                     let a = stack.pop().unwrap_or_default();
-                    if a.is_zero() {
+                    if a.mag.is_zero() {
                         next = code.target(*l);
                     }
                 }
@@ -713,7 +707,7 @@ impl Vm {
                     let s = s.clone();
                     self.out.put_bytes(&s);
                 }
-                Ins::PushArray(a) => stack.push(int(u64::from(*a))),
+                Ins::PushArray(a) => stack.push(Num::from_u64(u64::from(*a))),
                 Ins::Call(fi, kinds) => {
                     frames.last_mut().expect("quadro").pc = next;
                     self.call(frames, stack, *fi, kinds, func, start)?;
@@ -739,11 +733,11 @@ impl Vm {
                 }
                 Ins::Length => {
                     let a = stack.pop().unwrap_or_default();
-                    stack.push(int(a.length()));
+                    stack.push(Num::from_u64(a.length()));
                 }
                 Ins::ScaleOf => {
                     let a = stack.pop().unwrap_or_default();
-                    stack.push(int(u64::from(a.scale())));
+                    stack.push(Num::from_u64(u64::from(a.scale())));
                 }
                 Ins::Read => {
                     let v = self.read_number();
@@ -754,7 +748,7 @@ impl Vm {
                     if let Some(s) = sysabi::sys::try_current() {
                         let _ = s.getrandom(&mut b);
                     }
-                    stack.push(int(u64::from(u32::from_le_bytes(b) & 0x7fff_ffff)));
+                    stack.push(Num::from_u64(u64::from(u32::from_le_bytes(b) & 0x7fff_ffff)));
                 }
                 Ins::Halt => return Err(Stop::Exit(0)),
             }
@@ -802,7 +796,7 @@ impl Vm {
         };
         match r {
             Ok(Some(v)) => Ok(v),
-            Ok(None) => Ok(Num::zero()),
+            Ok(None) => Ok(Num::default()),
             Err(_) => Err(self.out_of_memory()),
         }
     }
@@ -933,7 +927,7 @@ impl Vm {
                     .push(Rc::new(RefCell::new(BTreeMap::new())));
                 frame.pushed_arrays.push(a.idx);
             } else {
-                self.var_stack(a.idx).push(Num::zero());
+                self.var_stack(a.idx).push(Num::default());
                 frame.pushed_vars.push(a.idx);
             }
         }
@@ -974,11 +968,11 @@ impl Vm {
     }
 
     fn sc(&self) -> Num {
-        int(u64::from(self.scale))
+        Num::from_u64(u64::from(self.scale))
     }
 
     fn lib_e(&mut self, x: Num) -> Result<Num, number::OutOfMemory> {
-        let zero = Num::zero();
+        let zero = Num::default();
         let one = Num::one();
         let mut x = x;
         let mut m = false;
@@ -988,12 +982,12 @@ impl Vm {
         }
         let z = self.scale;
         let zn = self.sc();
-        let n = int(6).add(&zn, 0)?.add(&k(".44").mul(&x, self.scale)?, 0)?;
-        self.set_scale(&int(u64::from(x.scale())).add(&one, 0)?);
-        let mut f = Num::zero();
+        let n = Num::from_u64(6).add(&zn, 0)?.add(&k(".44").mul(&x, self.scale)?, 0)?;
+        self.set_scale(&Num::from_u64(u64::from(x.scale())).add(&one, 0)?);
+        let mut f = Num::default();
         while x.compare(&one) == Ordering::Greater {
             f = f.add(&one, 0)?;
-            x = x.div(&int(2), self.scale)?.unwrap_or_default();
+            x = x.div(&Num::from_u64(2), self.scale)?.unwrap_or_default();
             let s = self.sc().add(&one, 0)?;
             self.set_scale(&s);
         }
@@ -1005,14 +999,14 @@ impl Vm {
         loop {
             sysabi::sys::checkpoint();
             a = a.mul(&x, self.scale)?;
-            d = d.mul(&int(i), self.scale)?;
+            d = d.mul(&Num::from_u64(i), self.scale)?;
             let e = a.div(&d, self.scale)?.unwrap_or_default();
             if e.compare(&zero) == Ordering::Equal {
                 if f.compare(&zero) == Ordering::Greater {
                     loop {
                         let old = f.clone();
                         f = f.sub(&one, 0)?;
-                        if old.is_zero() {
+                        if old.mag.is_zero() {
                             break;
                         }
                         v = v.mul(&v, self.scale)?;
@@ -1031,21 +1025,21 @@ impl Vm {
     }
 
     fn lib_l(&mut self, x: Num) -> Result<Num, number::OutOfMemory> {
-        let zero = Num::zero();
+        let zero = Num::default();
         let one = Num::one();
         let mut x = x;
         if x.compare(&zero) != Ordering::Greater {
-            let p = int(10)
+            let p = Num::from_u64(10)
                 .raise(&self.sc(), self.scale)
                 .map(|r| r.0)
                 .unwrap_or_default();
             return Ok(one.sub(&p, 0)?.div(&one, self.scale)?.unwrap_or_default());
         }
         let z = self.scale;
-        let s = int(6).add(&self.sc(), 0)?;
+        let s = Num::from_u64(6).add(&self.sc(), 0)?;
         self.set_scale(&s);
-        let mut f = int(2);
-        let two = int(2);
+        let mut f = Num::from_u64(2);
+        let two = Num::from_u64(2);
         let half = k(".5");
         while x.compare(&two) != Ordering::Less {
             f = f.mul(&two, self.scale)?;
@@ -1065,7 +1059,7 @@ impl Vm {
         loop {
             sysabi::sys::checkpoint();
             n = n.mul(&m, self.scale)?;
-            let e = n.div(&int(i), self.scale)?.unwrap_or_default();
+            let e = n.div(&Num::from_u64(i), self.scale)?.unwrap_or_default();
             if e.compare(&zero) == Ordering::Equal {
                 v = f.mul(&v, self.scale)?;
                 self.scale = z;
@@ -1077,12 +1071,12 @@ impl Vm {
     }
 
     fn lib_s(&mut self, x: Num) -> Result<Num, number::OutOfMemory> {
-        let zero = Num::zero();
+        let zero = Num::default();
         let one = Num::one();
         let mut x = x;
         let z = self.scale;
         let zn = self.sc();
-        let s = k("1.1").mul(&zn, self.scale)?.add(&int(2), 0)?;
+        let s = k("1.1").mul(&zn, self.scale)?.add(&Num::from_u64(2), 0)?;
         self.set_scale(&s);
         let mut v = self.lib_a(one.clone())?;
         let mut m = false;
@@ -1094,11 +1088,11 @@ impl Vm {
         let n = x
             .div(&v, 0)?
             .unwrap_or_default()
-            .add(&int(2), 0)?
-            .div(&int(4), 0)?
+            .add(&Num::from_u64(2), 0)?
+            .div(&Num::from_u64(4), 0)?
             .unwrap_or_default();
-        x = x.sub(&int(4).mul(&n, 0)?.mul(&v, 0)?, 0)?;
-        if !n.modulo(&int(2), 0)?.unwrap_or_default().is_zero() {
+        x = x.sub(&Num::from_u64(4).mul(&n, 0)?.mul(&v, 0)?, 0)?;
+        if !n.modulo(&Num::from_u64(2), 0)?.unwrap_or_default().mag.is_zero() {
             x = x.negate();
         }
         self.scale = z + 2;
@@ -1108,7 +1102,7 @@ impl Vm {
         let mut i = 3u64;
         loop {
             sysabi::sys::checkpoint();
-            let den = int(i).mul(&int(i - 1), self.scale)?;
+            let den = Num::from_u64(i).mul(&Num::from_u64(i - 1), self.scale)?;
             e = e.mul(&s.div(&den, self.scale)?.unwrap_or_default(), self.scale)?;
             if e.compare(&zero) == Ordering::Equal {
                 self.scale = z;
@@ -1129,14 +1123,14 @@ impl Vm {
         let s = self.sc().mul(&k("1.2"), self.scale)?;
         self.set_scale(&s);
         let a1 = self.lib_a(one.clone())?;
-        let arg = x.add(&a1.mul(&int(2), self.scale)?, 0)?;
+        let arg = x.add(&a1.mul(&Num::from_u64(2), self.scale)?, 0)?;
         let v = self.lib_s(arg)?;
         self.scale = z;
         Ok(v.div(&one, z)?.unwrap_or_default())
     }
 
     fn lib_a(&mut self, x: Num) -> Result<Num, number::OutOfMemory> {
-        let zero = Num::zero();
+        let zero = Num::default();
         let one = Num::one();
         let fifth = k(".2");
         let mut x = x;
@@ -1173,13 +1167,13 @@ impl Vm {
             }
         }
         let z = self.scale;
-        let mut a = Num::zero();
+        let mut a = Num::default();
         if x.compare(&fifth) == Ordering::Greater {
             self.scale = z + 5;
             a = self.lib_a(fifth.clone())?;
         }
         self.scale = z + 3;
-        let mut f = Num::zero();
+        let mut f = Num::default();
         while x.compare(&fifth) == Ordering::Greater {
             f = f.add(&one, 0)?;
             let num = x.sub(&fifth, 0)?;
@@ -1193,7 +1187,7 @@ impl Vm {
         loop {
             sysabi::sys::checkpoint();
             n = n.mul(&s, self.scale)?;
-            let e = n.div(&int(i), self.scale)?.unwrap_or_default();
+            let e = n.div(&Num::from_u64(i), self.scale)?.unwrap_or_default();
             if e.compare(&zero) == Ordering::Equal {
                 self.scale = z;
                 let t = f.mul(&a, z)?.add(&v, 0)?;
@@ -1205,7 +1199,7 @@ impl Vm {
     }
 
     fn lib_j(&mut self, n: Num, x: Num) -> Result<Num, number::OutOfMemory> {
-        let zero = Num::zero();
+        let zero = Num::default();
         let one = Num::one();
         let z = self.scale;
         let zn = self.sc();
@@ -1214,14 +1208,14 @@ impl Vm {
         let mut m = false;
         if n.compare(&zero) == Ordering::Less {
             n = n.negate();
-            if n.modulo(&int(2), 0)?.unwrap_or_default().compare(&one) == Ordering::Equal {
+            if n.modulo(&Num::from_u64(2), 0)?.unwrap_or_default().compare(&one) == Ordering::Equal {
                 m = true;
             }
         }
         let s15 = k("1.5").mul(&zn, self.scale)?;
         self.set_scale(&s15);
         let mut f = Num::one();
-        let mut i = int(2);
+        let mut i = Num::from_u64(2);
         while i.compare(&n) != Ordering::Greater {
             f = f.mul(&i, self.scale)?;
             i = i.add(&one, 0)?;
@@ -1229,7 +1223,7 @@ impl Vm {
         let s15 = k("1.5").mul(&zn, self.scale)?;
         self.set_scale(&s15);
         let xn = x.raise(&n, self.scale).map(|r| r.0).unwrap_or_default();
-        let tn = int(2)
+        let tn = Num::from_u64(2)
             .raise(&n, self.scale)
             .map(|r| r.0)
             .unwrap_or_default();
@@ -1243,12 +1237,12 @@ impl Vm {
         let s = x
             .negate()
             .mul(&x, self.scale)?
-            .div(&int(4), self.scale)?
+            .div(&Num::from_u64(4), self.scale)?
             .unwrap_or_default();
         let sc = k("1.5")
             .mul(&zn, self.scale)?
-            .add(&int(f.length()), 0)?
-            .sub(&int(u64::from(f.scale())), 0)?;
+            .add(&Num::from_u64(f.length()), 0)?
+            .sub(&Num::from_u64(u64::from(f.scale())), 0)?;
         self.set_scale(&sc);
         let mut i = Num::one();
         loop {

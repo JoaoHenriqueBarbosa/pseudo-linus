@@ -50,7 +50,7 @@ impl<'a> Reset<'a> {
             io::lossy(msg),
             errno.message()
         ));
-        self.out.write_all(b"\n");
+        self.out.buf.extend_from_slice(b"\n");
         self.out.finish();
         sys::exit(err_system(errno.0));
     }
@@ -65,7 +65,7 @@ impl<'a> Reset<'a> {
                 self.failed(file, e)
             }
         };
-        self.out.write_all(&data);
+        self.out.buf.extend_from_slice(&data);
         !data.is_empty()
     }
 
@@ -79,17 +79,13 @@ impl<'a> Reset<'a> {
         }
     }
 
-    fn out_char(&mut self, c: u8) {
-        self.out.put(c);
-    }
-
     fn move_to_left_margin(&mut self) -> bool {
         match self.term.tt.sv("carriage_return") {
             Some(cr) => {
                 let cr = cr.to_vec();
                 self.sent_string(Some(&cr));
             }
-            None => self.out_char(b'\r'),
+            None => self.out.put(b'\r'),
         }
         true
     }
@@ -111,7 +107,7 @@ impl<'a> Reset<'a> {
                 }
                 let mut c = init_tabs;
                 while c < wide {
-                    self.out.write_all(&vec![b' '; init_tabs as usize]);
+                    self.out.buf.extend_from_slice(&vec![b' '; init_tabs as usize]);
                     self.sent_string(Some(&set_tab));
                     c += init_tabs;
                 }
@@ -195,7 +191,7 @@ impl<'a> Reset<'a> {
                 need_flush |= self.sent_string(s.as_deref());
             } else {
                 for _ in 0..(columns - 1).max(0) {
-                    self.out_char(b' ');
+                    self.out.put(b' ');
                     need_flush = true;
                 }
             }
@@ -208,7 +204,4 @@ impl<'a> Reset<'a> {
         need_flush
     }
 
-    pub fn flush(&mut self) {
-        self.out.finish();
-    }
 }

@@ -392,7 +392,7 @@ mod tests {
             r.stdout_str(),
             " -a -b 'x' -c 'y' --gamma '' -- 'foo' 'it'\\''s'\n"
         );
-        assert_eq!(r.code(), 0);
+        assert_eq!(r.status.shell_status(), 0);
     }
 
     #[test]
@@ -405,7 +405,7 @@ mod tests {
     fn invalid_option_exits_one() {
         let r = kit().run(&["getopt", "-o", "a", "--", "-z"], b"");
         assert_eq!(
-            (r.stdout_str().as_str(), r.stderr_str().as_str(), r.code()),
+            (r.stdout_str().as_str(), r.stderr_str().as_str(), r.status.shell_status()),
             (" --\n", "getopt: invalid option -- 'z'\n", 1)
         );
     }

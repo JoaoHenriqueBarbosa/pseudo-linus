@@ -147,7 +147,7 @@ fn run(args: &[OsString]) -> i32 {
 
     let rest_bytes: Vec<Vec<u8>> = rest.iter().map(|s| s.as_bytes().to_vec()).collect();
     let mut g = Getopt::from_env(&rest_bytes, "c:p:t:u:filLnvwhV", LONGS);
-    let mut names = Names::new();
+    let mut names = Names::default();
     let mut e = Expr::default();
     let (mut interactive, mut no_action, mut verbose) = (false, false, false);
     while let Some(r) = g.next_opt() {

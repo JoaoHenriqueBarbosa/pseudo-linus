@@ -98,7 +98,7 @@ fn process_funs() -> Vec<Fun<JqKind>> {
             })
         })),
         run(("input_filename", v(0), |cv| {
-            let name = rt(&cv).input.borrow().current_filename();
+            let name = rt(&cv).input.borrow().current_filename.clone();
             box_once(Ok(name.map(Val::from).unwrap_or(Val::Null)))
         })),
         run(("input_line_number", v(0), |cv| {

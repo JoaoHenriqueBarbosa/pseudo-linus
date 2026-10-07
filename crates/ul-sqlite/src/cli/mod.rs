@@ -367,10 +367,6 @@ impl Shell {
         self.out().put(s.as_bytes());
     }
 
-    pub fn eput(&mut self, data: &[u8]) {
-        self.stderr.put(data);
-    }
-
     pub fn eputs(&mut self, s: &str) {
         self.stderr.put(s.as_bytes());
     }

@@ -334,12 +334,6 @@ pub trait Syscalls: Send + Sync {
         let _ = (pid, param);
         Err(Errno::ENOSYS)
     }
-    fn sched_get_priority_min(&self, policy: i32) -> SysResult<i32> {
-        crate::sched::priority_min(policy)
-    }
-    fn sched_get_priority_max(&self, policy: i32) -> SysResult<i32> {
-        crate::sched::priority_max(policy)
-    }
     /// `sched_rr_get_interval`: a fatia (100 ms em RR, 0 em FIFO).
     fn sched_rr_get_interval(&self, pid: Pid) -> SysResult<Duration> {
         let _ = pid;
@@ -573,13 +567,7 @@ pub fn sched_setparam(pid: Pid, param: SchedParam) -> SysResult<()> {
     current().sched_setparam(pid, param)
 }
 
-pub fn sched_get_priority_min(policy: i32) -> SysResult<i32> {
-    current().sched_get_priority_min(policy)
-}
-
-pub fn sched_get_priority_max(policy: i32) -> SysResult<i32> {
-    current().sched_get_priority_max(policy)
-}
+pub use crate::sched::{priority_max as sched_get_priority_max, priority_min as sched_get_priority_min};
 
 pub fn sched_rr_get_interval(pid: Pid) -> SysResult<Duration> {
     current().sched_rr_get_interval(pid)

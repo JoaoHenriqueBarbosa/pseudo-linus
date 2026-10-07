@@ -124,18 +124,14 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
 
 /// Módulos de apoio dos embutidos, que não existem no CPython: só código embutido os importa, e o
 /// programa os vê como ausentes (`No module named`), inclusive em `sys.modules`.
-const INTERNAL: &[&str] = &[
+pub(crate) const INTERNAL: &[&str] = &[
     "_os", "_sys", "_mt", "_net", "_archive", "_archivefile", "_prof", "_csvimpl", "_re", "_base64",
     "_zlib", "_ast_native", "_match", "_memoryview", "_complex", "_excgroup", "asyncio.loopback", "_json_native", "_anext",
 ];
 
-pub fn is_internal(name: &str) -> bool {
-    INTERNAL.contains(&name)
-}
-
 /// `import nome` vindo de código do programa: os módulos de apoio não existem para ele.
 pub fn import_visible(vm: &mut Vm, name: &str, internal_caller: bool) -> PyResult<Value> {
-    if !internal_caller && is_internal(name) {
+    if !internal_caller && INTERNAL.contains(&name) {
         return Err(exc("ModuleNotFoundError", format!("No module named '{name}'")));
     }
     import_value(vm, name)
@@ -229,17 +225,17 @@ fn meta_path_finders(vm: &mut Vm) -> (Vec<Value>, Vec<Value>) {
 /// e roda `exec_module`, como o `_load_unlocked` do CPython.
 fn load_with_finder(vm: &mut Vm, finder: &Value, name: &str, path: &Value) -> PyResult<Option<Value>> {
     let Ok(find_spec) = vm.load_attr(finder, "find_spec") else { return Ok(None) };
-    let spec = vm.call_value(&find_spec, vec![Value::str(name), path.clone(), Value::None], Vec::new())?;
+    let spec = vm.call(&find_spec, vec![Value::str(name), path.clone(), Value::None], Vec::new())?;
     if matches!(spec, Value::None) {
         return Ok(None);
     }
     let loader = vm.load_attr(&spec, "loader")?;
     let mut module = Value::None;
     if let Ok(create) = vm.load_attr(&loader, "create_module") {
-        module = vm.call_value(&create, vec![spec.clone()], Vec::new())?;
+        module = vm.call(&create, vec![spec.clone()], Vec::new())?;
     }
     if matches!(module, Value::None) {
-        module = vm.call_value(&Value::Builtin("module"), vec![Value::str(name)], Vec::new())?;
+        module = vm.call(&Value::Builtin("module"), vec![Value::str(name)], Vec::new())?;
     }
     // Os atributos que o `_init_module_attrs` do CPython copia da spec (sem sobrescrever os que o
     // `create_module` já preencheu).
@@ -269,7 +265,7 @@ fn load_with_finder(vm: &mut Vm, finder: &Value, name: &str, path: &Value) -> Py
     }
     register(vm, name, &module);
     if let Ok(exec) = vm.load_attr(&loader, "exec_module") {
-        if let Err(e) = vm.call_value(&exec, vec![module.clone()], Vec::new()) {
+        if let Err(e) = vm.call(&exec, vec![module.clone()], Vec::new()) {
             vm.modules.borrow_mut().remove(name);
             vm.foreign_modules.borrow_mut().remove(name);
             return Err(e);

@@ -59,9 +59,6 @@ impl Out {
         self.buf.clear();
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.buf.is_empty()
-    }
 }
 
 impl Drop for Out {

@@ -218,7 +218,7 @@ impl NssConf {
     /// `-s CONFIG`: troca a lista de um banco (`__nss_configure_lookup`, que ignora nomes que o NSS
     /// não conhece).
     pub fn configure(&mut self, db: &str, service_line: &[u8]) {
-        if is_nss_database(db)
+        if DATABASES.contains(&db)
             && let Some(list) = parse_actions(service_line)
         {
             self.overrides.insert(db.to_string(), list);
@@ -309,12 +309,6 @@ impl NssConf {
         }
         out
     }
-}
-
-/// Nomes de banco do NSS (`databases.def`); os do `getent` que não estão aqui (`ahosts`...) não têm
-/// configuração própria e o `-s` os ignora.
-pub fn is_nss_database(name: &str) -> bool {
-    DATABASES.contains(&name)
 }
 
 #[cfg(test)]

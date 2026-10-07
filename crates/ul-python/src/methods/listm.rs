@@ -223,7 +223,7 @@ fn sort(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let items = l.borrow().clone();
     let mut pairs: Vec<Pair> = Vec::with_capacity(items.len());
     for it in items {
-        let k = if matches!(key, Value::None) { it.clone() } else { vm.call_value(&key, vec![it.clone()], Vec::new())? };
+        let k = if matches!(key, Value::None) { it.clone() } else { vm.call(&key, vec![it.clone()], Vec::new())? };
         pairs.push((k, it));
     }
     if rev {

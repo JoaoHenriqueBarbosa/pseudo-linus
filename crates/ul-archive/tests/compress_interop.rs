@@ -101,7 +101,7 @@ fn compress_matrix_against_oracle() {
             let mut argv: Vec<&str> = v.ours.to_vec();
             argv.push(n);
             let r = k.run(&argv, b"");
-            assert_eq!(r.code(), 0, "{} {n}: {}", v.id, r.stderr_str());
+            assert_eq!(r.status.shell_status(), 0, "{} {n}: {}", v.id, r.stderr_str());
             total += 1;
             if r.stdout == gdata {
                 equal += 1;
@@ -116,7 +116,7 @@ fn compress_matrix_against_oracle() {
             let decv: Vec<&str> = dec.iter().map(String::as_str).collect();
             let r = k.run(&decv, b"");
             read_total += 1;
-            if r.code() == 0 && &r.stdout == data {
+            if r.status.shell_status() == 0 && &r.stdout == data {
                 read_ok += 1;
             } else {
                 eprintln!("não lemos o GNU: {} {n}: {}", v.id, r.stderr_str());

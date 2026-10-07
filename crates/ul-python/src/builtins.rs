@@ -202,7 +202,7 @@ fn isinstance_check(v: &Value, cls: &Value) -> PyResult<bool> {
         return Ok(match v {
             Value::Class(_) => true,
             Value::Builtin(n) => crate::object::is_builtin_type(n) || *n == "object" || *n == "type",
-            Value::NativeFn(f) => crate::typeattrs::is_type_name(f.name) || crate::object::is_builtin_type(f.name),
+            Value::NativeFn(f) => crate::typeattrs::TYPES.contains(&f.name) || crate::object::is_builtin_type(f.name),
             _ => false,
         });
     }
@@ -350,7 +350,7 @@ fn b_getattr(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("getattr", &kw)?;
     expect("getattr", &args, 2, 3)?;
     let name = attr_name(&args[1])?;
-    match vm.getattr(&args[0], &name) {
+    match vm.load_attr(&args[0], &name) {
         Err(e) if e.kind == "AttributeError" && args.len() == 3 => Ok(args[2].clone()),
         other => other,
     }
@@ -360,7 +360,7 @@ fn b_hasattr(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("hasattr", &kw)?;
     expect("hasattr", &args, 2, 2)?;
     let name = attr_name(&args[1])?;
-    match vm.getattr(&args[0], &name) {
+    match vm.load_attr(&args[0], &name) {
         Ok(_) => Ok(Value::Bool(true)),
         Err(e) if e.kind == "AttributeError" => Ok(Value::Bool(false)),
         Err(e) => Err(e),
@@ -480,8 +480,8 @@ fn b_next(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
             None => stop_or(default),
         },
         Value::Native(n) if matches!(&*n.borrow(), Native::File(_)) => {
-            let f = vm.getattr(&args[0], "readline")?;
-            let line = vm.call_value(&f, Vec::new(), Vec::new())?;
+            let f = vm.load_attr(&args[0], "readline")?;
+            let line = vm.call(&f, Vec::new(), Vec::new())?;
             match &line {
                 Value::Str(s) if s.as_str().is_empty() => stop_or(default),
                 _ => Ok(line),
@@ -535,8 +535,8 @@ fn b_reversed(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let v = one("reversed", args, &kw)?;
     if let Value::Instance(inst) = &v {
         if inst.class.lookup("__reversed__").is_some() {
-            let f = vm.getattr(&v, "__reversed__")?;
-            return vm.call_value(&f, Vec::new(), Vec::new());
+            let f = vm.load_attr(&v, "__reversed__")?;
+            return vm.call(&f, Vec::new(), Vec::new());
         }
         // Subclasse de `list`/`tuple`/`str`: inverte o conteúdo guardado.
         let payload = inst.payload.borrow().clone();
@@ -546,12 +546,12 @@ fn b_reversed(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         }
         // Protocolo de sequência: `__len__` e `__getitem__`.
         if inst.class.lookup("__len__").is_some() && inst.class.lookup("__getitem__").is_some() {
-            let n = vm.getattr(&v, "__len__").and_then(|f| vm.call_value(&f, Vec::new(), Vec::new()))?;
-            let getitem = vm.getattr(&v, "__getitem__")?;
+            let n = vm.load_attr(&v, "__len__").and_then(|f| vm.call(&f, Vec::new(), Vec::new()))?;
+            let getitem = vm.load_attr(&v, "__getitem__")?;
             let mut out = Vec::new();
             if let Value::Int(n) = n {
                 for i in 0..n {
-                    out.push(vm.call_value(&getitem, vec![Value::Int(i)], Vec::new())?);
+                    out.push(vm.call(&getitem, vec![Value::Int(i)], Vec::new())?);
                 }
             }
             return Ok(crate::lazy::ReversedIter::new("reversed", out));
@@ -611,7 +611,7 @@ pub fn sort_items(vm: &mut Vm, mut items: Vec<Value>, key: Option<Value>, revers
     let mut pairs = Vec::with_capacity(items.len());
     for x in items {
         let k = match &key {
-            Some(f) => vm.call_value(f, vec![x.clone()], Vec::new())?,
+            Some(f) => vm.call(f, vec![x.clone()], Vec::new())?,
             None => x.clone(),
         };
         pairs.push((k, x));
@@ -772,7 +772,7 @@ fn minmax(vm: &mut Vm, name: &'static str, args: Vec<Value>, kw: Kw, is_max: boo
     };
     let keyof = |vm: &mut Vm, x: &Value| -> PyResult<Value> {
         match &key {
-            Some(f) => vm.call_value(f, vec![x.clone()], Vec::new()),
+            Some(f) => vm.call(f, vec![x.clone()], Vec::new()),
             None => Ok(x.clone()),
         }
     };
@@ -1176,7 +1176,7 @@ fn b_dict(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     if args.len() > 1 {
         return Err(type_error(format!("dict expected at most 1 argument, got {}", args.len())));
     }
-    let mut d = Dict::new();
+    let mut d = Dict::default();
     if let Some(src) = args.first() {
         fill_dict(&mut d, src)?;
     }

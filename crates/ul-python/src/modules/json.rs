@@ -360,7 +360,7 @@ impl Parser {
     }
 
     fn object(&self, mut i: usize, depth: usize) -> Result<(Value, usize), JsonError> {
-        let mut dict = Dict::new();
+        let mut dict = Dict::default();
         i = self.skip_ws(i);
         if self.s.get(i) == Some(&'}') {
             return Ok((Value::dict(dict), i + 1));
@@ -479,8 +479,8 @@ fn payload(v: &Value) -> Value {
 fn raise_errmsg(vm: &mut Vm, msg: &str, s: &Value, end: usize) -> PyException {
     let made = (|| -> PyResult<Value> {
         let module = crate::modules::import_value(vm, "json.decoder")?;
-        let cls = vm.getattr(&module, "JSONDecodeError")?;
-        vm.call_value(&cls, vec![Value::str(msg), s.clone(), Value::Int(end as i64)], Vec::new())
+        let cls = vm.load_attr(&module, "JSONDecodeError")?;
+        vm.call(&cls, vec![Value::str(msg), s.clone(), Value::Int(end as i64)], Vec::new())
     })();
     match made {
         Ok(e) => PyException::from_value(&e),
@@ -678,7 +678,7 @@ fn skip_ws(buf: &[char], mut idx: usize) -> usize {
 fn parse_object(vm: &mut Vm, sc: &mut Scanner, s: &Value, buf: &[char], mut idx: usize) -> PyResult<(Value, usize)> {
     let has_pairs_hook = !matches!(sc.object_pairs_hook, Value::None);
     let mut pairs: Vec<Value> = Vec::new();
-    let mut dict = Dict::new();
+    let mut dict = Dict::default();
     idx = skip_ws(buf, idx);
     if idx >= buf.len() || buf[idx] != '}' {
         loop {
@@ -715,12 +715,12 @@ fn parse_object(vm: &mut Vm, sc: &mut Scanner, s: &Value, buf: &[char], mut idx:
     let next = idx + 1;
     if has_pairs_hook {
         let hook = sc.object_pairs_hook.clone();
-        return Ok((vm.call_value(&hook, vec![Value::list(pairs)], Vec::new())?, next));
+        return Ok((vm.call(&hook, vec![Value::list(pairs)], Vec::new())?, next));
     }
     let dict = Value::dict(dict);
     if !matches!(sc.object_hook, Value::None) {
         let hook = sc.object_hook.clone();
-        return Ok((vm.call_value(&hook, vec![dict], Vec::new())?, next));
+        return Ok((vm.call(&hook, vec![dict], Vec::new())?, next));
     }
     Ok((dict, next))
 }
@@ -803,11 +803,11 @@ fn match_number(vm: &mut Vm, sc: &mut Scanner, buf: &[char], start: usize) -> Py
         None
     };
     let value = match custom {
-        Some(f) => vm.call_value(&f, vec![Value::str(text)], Vec::new())?,
+        Some(f) => vm.call(&f, vec![Value::str(text)], Vec::new())?,
         None if is_float => {
             Value::Float(text.parse().map_err(|_| exc("ValueError", format!("could not convert string to float: '{text}'")))?)
         }
-        None => vm.call_value(&Value::Builtin("int"), vec![Value::str(text)], Vec::new())?,
+        None => vm.call(&Value::Builtin("int"), vec![Value::str(text)], Vec::new())?,
     };
     Ok((value, idx as usize))
 }
@@ -854,7 +854,7 @@ fn scan_once(vm: &mut Vm, sc: &mut Scanner, s: &Value, buf: &[char], idx: i64) -
 /// `_parse_constant`: `parse_constant("NaN")` e afins.
 fn parse_constant(vm: &mut Vm, sc: &mut Scanner, constant: &str, idx: usize) -> PyResult<(Value, usize)> {
     let f = sc.parse_constant.clone();
-    let v = vm.call_value(&f, vec![Value::str(constant)], Vec::new())?;
+    let v = vm.call(&f, vec![Value::str(constant)], Vec::new())?;
     Ok((v, idx + constant.chars().count()))
 }
 
@@ -867,12 +867,12 @@ fn native_scan_once(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let idx = crate::native_util::want_int(&idx)?;
     let Some(text) = str_payload(&s) else { return Err(first_arg_not_string(&s)) };
     let mut sc = Scanner {
-        strict: vm.getattr(&scanner, "strict")?.is_true(),
-        object_hook: vm.getattr(&scanner, "object_hook")?,
-        object_pairs_hook: vm.getattr(&scanner, "object_pairs_hook")?,
-        parse_float: vm.getattr(&scanner, "parse_float")?,
-        parse_int: vm.getattr(&scanner, "parse_int")?,
-        parse_constant: vm.getattr(&scanner, "parse_constant")?,
+        strict: vm.load_attr(&scanner, "strict")?.is_true(),
+        object_hook: vm.load_attr(&scanner, "object_hook")?,
+        object_pairs_hook: vm.load_attr(&scanner, "object_pairs_hook")?,
+        parse_float: vm.load_attr(&scanner, "parse_float")?,
+        parse_int: vm.load_attr(&scanner, "parse_int")?,
+        parse_constant: vm.load_attr(&scanner, "parse_constant")?,
         memo: Default::default(),
     };
     let buf: Vec<char> = text.as_str().chars().collect();
@@ -997,7 +997,7 @@ impl Encoder {
         if let (Some(ascii), Some(s)) = (self.fast, str_payload(obj)) {
             return Ok(if ascii { ascii_escape(s.as_str()) } else { escape(s.as_str()) });
         }
-        let encoded = vm.call_value(&self.encoder, vec![obj.clone()], Vec::new())?;
+        let encoded = vm.call(&self.encoder, vec![obj.clone()], Vec::new())?;
         match str_payload(&encoded) {
             Some(s) => Ok(s.as_str().to_string()),
             None => Err(type_error(format!("encoder() must return a string, not {}", encoded.type_name()))),
@@ -1028,7 +1028,7 @@ impl Encoder {
                 }
                 _ => {
                     let ident = self.ident(vm, obj)?;
-                    let newobj = vm.call_value(&self.default, vec![obj.clone()], Vec::new())?;
+                    let newobj = vm.call(&self.default, vec![obj.clone()], Vec::new())?;
                     enter_recursive(ENCODE_DEPTH, " while encoding a JSON object")?;
                     let r = self.obj(vm, out, &newobj, newline_indent);
                     leave_recursive();
@@ -1102,12 +1102,12 @@ impl Encoder {
         let exact = matches!(dct, Value::Dict(_));
         if self.sort_keys || !exact {
             // `PyMapping_Items` e, com `sort_keys`, o `list.sort` dos pares.
-            let items_fn = vm.getattr(dct, "items")?;
-            let items = vm.call_value(&items_fn, Vec::new(), Vec::new())?;
-            let items = vm.call_value(&Value::Builtin("list"), vec![items], Vec::new())?;
+            let items_fn = vm.load_attr(dct, "items")?;
+            let items = vm.call(&items_fn, Vec::new(), Vec::new())?;
+            let items = vm.call(&Value::Builtin("list"), vec![items], Vec::new())?;
             if self.sort_keys {
-                let sort = vm.getattr(&items, "sort")?;
-                vm.call_value(&sort, Vec::new(), Vec::new())?;
+                let sort = vm.load_attr(&items, "sort")?;
+                vm.call(&sort, Vec::new(), Vec::new())?;
             }
             let Value::List(list) = &items else { return Ok(()) };
             let list = list.borrow().clone();
@@ -1178,7 +1178,7 @@ fn native_encode(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let bound = crate::native_util::bind("_iterencode", args.collect(), kw, &["obj", "_current_indent_level"], 2)?;
     let obj = bound[0].clone().unwrap_or(Value::None);
     let level = crate::native_util::want_int(&bound[1].clone().unwrap_or(Value::None))?;
-    let get = |vm: &mut Vm, n: &str| vm.getattr(&this, n);
+    let get = |vm: &mut Vm, n: &str| vm.load_attr(&this, n);
     let encoder = get(vm, "encoder")?;
     let fast = match &encoder {
         Value::NativeFn(f) if f.f as usize == native_encode_basestring_ascii as *const () as usize => Some(true),
@@ -1263,20 +1263,20 @@ mod tests {
         let l = Value::list(vec![Value::Int(1), Value::tuple(vec![Value::None, Value::str("x")])]);
         assert_eq!(d(&l), r#"[1, [null, "x"]]"#);
         assert_eq!(d(&Value::list(vec![])), "[]");
-        let mut dict = Dict::new();
+        let mut dict = Dict::default();
         dict.set(Value::str("a"), Value::Int(1)).unwrap();
         dict.set(Value::Int(2), Value::Bool(true)).unwrap();
         dict.set(Value::Float(1.5), Value::None).unwrap();
         dict.set(Value::None, Value::Int(0)).unwrap();
         assert_eq!(d(&Value::dict(dict)), r#"{"a": 1, "2": true, "1.5": null, "null": 0}"#);
-        assert_eq!(d(&Value::dict(Dict::new())), "{}");
+        assert_eq!(d(&Value::dict(Dict::default())), "{}");
     }
 
     #[test]
     fn dumps_errors() {
         assert_eq!(dumps(&Value::bytes(vec![1u8]), true).unwrap_err(), "Object of type bytes is not JSON serializable");
         assert_eq!(dumps(&Value::set(Set::new()), true).unwrap_err(), "Object of type set is not JSON serializable");
-        let mut dict = Dict::new();
+        let mut dict = Dict::default();
         dict.set(Value::tuple(vec![]), Value::Int(1)).unwrap();
         assert_eq!(dumps(&Value::dict(dict), true).unwrap_err(), "keys must be str, int, float, bool or None, not tuple");
         let l = Value::list(vec![]);

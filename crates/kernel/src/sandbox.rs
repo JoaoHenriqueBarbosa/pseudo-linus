@@ -285,7 +285,7 @@ impl SbInner {
 
     /// Caller de root com cwd em `/` (operações diretas do host e montagem da imagem).
     pub(crate) fn root_caller(&self) -> Caller {
-        let mut cx = vfs::ops::kernel_caller(self.ns.root());
+        let mut cx = vfs::ops::kernel_caller(self.ns.root.root());
         cx.now = self.now();
         cx
     }
@@ -473,13 +473,13 @@ impl Sandbox {
         root_opts.push_str("inode64");
         let ns = Namespace::new(rootfs.clone(), MountFlags::RELATIME, "tmpfs", &root_opts);
         let programs: HashMap<Vec<u8>, Program> = cfg.programs.iter().map(|p| (p.path().into_bytes(), *p)).collect();
-        let mut cx = vfs::ops::kernel_caller(ns.root());
+        let mut cx = vfs::ops::kernel_caller(ns.root.root());
         cx.now = now;
         if from.is_none() {
             image::build_root(&ns, &cx, &cfg.programs, &cfg.hostname)?;
         }
         let w = vfs::namei::Walker::new(&ns, &cx);
-        let root = ns.root();
+        let root = ns.root.root();
         let dev_dir = w.lookup_child(&root, b"dev")?;
         ns.mount(&dev_dir, devfs.clone(), MountFlags::NOSUID, "tmpfs", "size=65536k,mode=755,inode64")?;
         if from.is_none() {
@@ -506,8 +506,8 @@ impl Sandbox {
             INIT_PID,
             PState {
                 cred: Arc::new(Cred::root()),
-                cwd: PinnedLoc::new(ns.root()),
-                root: PinnedLoc::new(ns.root()),
+                cwd: PinnedLoc::new(ns.root.root()),
+                root: PinnedLoc::new(ns.root.root()),
                 umask: 0o022,
                 argv: vec![b"/sbin/init".to_vec()],
                 env: Vec::new(),
@@ -567,11 +567,6 @@ impl Sandbox {
         *self.inner.clock.lock() = ClockState { mode, set_at: Instant::now() };
     }
 
-    /// Hora atual do sandbox.
-    pub fn now(&self) -> TimeSpec {
-        self.inner.now()
-    }
-
     /// Acesso direto ao sistema de arquivos, como root.
     pub fn fs(&self) -> SandboxFs<'_> {
         SandboxFs { sb: &self.inner }
@@ -629,12 +624,6 @@ impl Sandbox {
     /// Espera um processo criado pelo host terminar e colhe o zumbi. `None` se o prazo venceu.
     pub fn wait(&self, pid: Pid, deadline: Option<Instant>) -> Result<Option<(WaitStatus, Rusage)>, Errno> {
         crate::hostio::host_wait(&self.inner, pid, deadline)
-    }
-
-    /// Destrói o sandbox: SIGKILL em tudo, espera as threads saírem (até 2 s) e para a spawner. O `Drop`
-    /// faz o mesmo.
-    pub fn destroy(self) {
-        drop(self);
     }
 
     fn shutdown(&self) {
@@ -708,25 +697,22 @@ pub struct SandboxFs<'a> {
 }
 
 impl SandboxFs<'_> {
-    fn cx(&self) -> Caller {
-        self.sb.root_caller()
-    }
 
     fn ns(&self) -> &Namespace {
         &self.sb.ns
     }
 
     pub fn stat(&self, path: &[u8]) -> Result<Stat, Errno> {
-        Ok(self.ns().stat(&self.cx(), &Start::Cwd, path, AtFlags::empty())?.stat())
+        Ok(self.ns().stat(&self.sb.root_caller(), &Start::Cwd, path, AtFlags::empty())?.stat())
     }
 
     pub fn lstat(&self, path: &[u8]) -> Result<Stat, Errno> {
-        Ok(self.ns().stat(&self.cx(), &Start::Cwd, path, AtFlags::SYMLINK_NOFOLLOW)?.stat())
+        Ok(self.ns().stat(&self.sb.root_caller(), &Start::Cwd, path, AtFlags::SYMLINK_NOFOLLOW)?.stat())
     }
 
     /// Lê `len` bytes a partir de `offset` (menos no fim do arquivo).
     pub fn read(&self, path: &[u8], offset: u64, len: usize) -> Result<Vec<u8>, Errno> {
-        let cx = self.cx();
+        let cx = self.sb.root_caller();
         match self.ns().open(&cx, &Start::Cwd, path, OFlags::RDONLY, 0)? {
             Opened::File { handle, stat, .. } => {
                 if vfs::is_dir(stat.mode) {
@@ -758,7 +744,7 @@ impl SandboxFs<'_> {
     /// Escreve com o modo de abertura dado; `mode` vale na criação (sem umask) e é aplicado com chmod
     /// quando o arquivo é criado.
     pub fn write(&self, path: &[u8], data: &[u8], how: WriteMode, mode: Mode) -> Result<(), Errno> {
-        let cx = self.cx();
+        let cx = self.sb.root_caller();
         let flags = match how {
             WriteMode::Truncate => OFlags::WRONLY | OFlags::CREAT | OFlags::TRUNC,
             WriteMode::Append => OFlags::WRONLY | OFlags::CREAT | OFlags::APPEND,
@@ -790,11 +776,11 @@ impl SandboxFs<'_> {
     /// Cria ou substitui um arquivo com o conteúdo e o modo exatos.
     pub fn write_file(&self, path: &[u8], data: &[u8], mode: Mode) -> Result<(), Errno> {
         self.write(path, data, WriteMode::Truncate, mode)?;
-        self.ns().chmod(&self.cx(), &Start::Cwd, path, mode & 0o7777, AtFlags::empty())
+        self.ns().chmod(&self.sb.root_caller(), &Start::Cwd, path, mode & 0o7777, AtFlags::empty())
     }
 
     pub fn readdir(&self, path: &[u8]) -> Result<Vec<FsEntry>, Errno> {
-        let cx = self.cx();
+        let cx = self.sb.root_caller();
         match self.ns().open(&cx, &Start::Cwd, path, OFlags::RDONLY | OFlags::DIRECTORY, 0)? {
             Opened::File { handle, .. } => {
                 let mut out = Vec::new();
@@ -818,12 +804,12 @@ impl SandboxFs<'_> {
     }
 
     pub fn readlink(&self, path: &[u8]) -> Result<Vec<u8>, Errno> {
-        self.ns().readlink(&self.cx(), &Start::Cwd, path)
+        self.ns().readlink(&self.sb.root_caller(), &Start::Cwd, path)
     }
 
     /// `mkdir` com o modo exato (sem umask).
     pub fn mkdir(&self, path: &[u8], mode: Mode) -> Result<(), Errno> {
-        let cx = self.cx();
+        let cx = self.sb.root_caller();
         self.ns().mkdir(&cx, &Start::Cwd, path, mode)?;
         self.ns().chmod(&cx, &Start::Cwd, path, mode & 0o7777, AtFlags::empty())
     }
@@ -850,11 +836,11 @@ impl SandboxFs<'_> {
     }
 
     pub fn unlink(&self, path: &[u8]) -> Result<(), Errno> {
-        self.ns().unlink(&self.cx(), &Start::Cwd, path, AtFlags::empty())
+        self.ns().unlink(&self.sb.root_caller(), &Start::Cwd, path, AtFlags::empty())
     }
 
     pub fn rmdir(&self, path: &[u8]) -> Result<(), Errno> {
-        self.ns().unlink(&self.cx(), &Start::Cwd, path, AtFlags::REMOVEDIR)
+        self.ns().unlink(&self.sb.root_caller(), &Start::Cwd, path, AtFlags::REMOVEDIR)
     }
 
     /// `rm -rf` (não segue symlinks; ENOENT se não existe).
@@ -876,31 +862,31 @@ impl SandboxFs<'_> {
     }
 
     pub fn symlink(&self, target: &[u8], path: &[u8]) -> Result<(), Errno> {
-        self.ns().symlink(&self.cx(), target, &Start::Cwd, path)
+        self.ns().symlink(&self.sb.root_caller(), target, &Start::Cwd, path)
     }
 
     /// `link(2)`: hardlink de `existing` em `new` (sem seguir symlink, como o `link` do Linux).
     pub fn link(&self, existing: &[u8], new: &[u8]) -> Result<(), Errno> {
-        self.ns().link(&self.cx(), &Start::Cwd, existing, &Start::Cwd, new, AtFlags::empty())
+        self.ns().link(&self.sb.root_caller(), &Start::Cwd, existing, &Start::Cwd, new, AtFlags::empty())
     }
 
     pub fn rename(&self, from: &[u8], to: &[u8]) -> Result<(), Errno> {
-        self.ns().rename(&self.cx(), &Start::Cwd, from, &Start::Cwd, to, RenameFlags::empty())
+        self.ns().rename(&self.sb.root_caller(), &Start::Cwd, from, &Start::Cwd, to, RenameFlags::empty())
     }
 
     pub fn chmod(&self, path: &[u8], mode: Mode) -> Result<(), Errno> {
-        self.ns().chmod(&self.cx(), &Start::Cwd, path, mode, AtFlags::empty())
+        self.ns().chmod(&self.sb.root_caller(), &Start::Cwd, path, mode, AtFlags::empty())
     }
 
     pub fn chown(&self, path: &[u8], uid: Option<u32>, gid: Option<u32>, nofollow: bool) -> Result<(), Errno> {
         let f = if nofollow { AtFlags::SYMLINK_NOFOLLOW } else { AtFlags::empty() };
-        self.ns().chown(&self.cx(), &Start::Cwd, path, uid, gid, f)
+        self.ns().chown(&self.sb.root_caller(), &Start::Cwd, path, uid, gid, f)
     }
 
     /// `utimensat` (com `nofollow`, no próprio symlink).
     pub fn utimens(&self, path: &[u8], atime: SetTime, mtime: SetTime, nofollow: bool) -> Result<(), Errno> {
         let f = if nofollow { AtFlags::SYMLINK_NOFOLLOW } else { AtFlags::empty() };
-        self.ns().utimens(&self.cx(), &Start::Cwd, path, atime, mtime, f)
+        self.ns().utimens(&self.sb.root_caller(), &Start::Cwd, path, atime, mtime, f)
     }
 
     /// Atalho: atime e mtime no mesmo instante, sem seguir symlink.

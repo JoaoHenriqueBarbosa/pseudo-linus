@@ -18,9 +18,6 @@ pub struct Undo {
 }
 
 impl Undo {
-    pub fn is_empty(&self) -> bool {
-        self.saved.is_empty()
-    }
 }
 
 /// Erro de redireção: a mensagem já foi impressa.

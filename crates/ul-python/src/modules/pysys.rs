@@ -179,11 +179,11 @@ fn exc_hint(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
 fn modules_snapshot(vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     // O `__main__` vivo (globais do script), o mesmo que `import __main__` devolve.
     super::import_checked(vm, "__main__")?;
-    let mut d = crate::object::Dict::new();
+    let mut d = crate::object::Dict::default();
     let mut names: Vec<(String, Value)> =
         vm.modules.borrow().iter().map(|(k, v)| (k.clone(), Value::Module(v.clone()))).collect();
     names.extend(vm.foreign_modules.borrow().iter().map(|(k, v)| (k.clone(), v.clone())));
-    names.retain(|(k, _)| !super::is_internal(k));
+    names.retain(|(k, _)| !crate::modules::INTERNAL.contains(&k.as_str()));
     names.sort_by(|a, b| a.0.cmp(&b.0));
     for (name, m) in names {
         d.set(Value::str(name), m)?;

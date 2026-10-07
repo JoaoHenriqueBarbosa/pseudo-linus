@@ -86,11 +86,6 @@ impl TimeZone {
     }
 }
 
-/// `strftime(fmt, t)` no fuso `tz` (quem chama passa [`TimeZone::utc`] quando o gawk pede UTC).
-pub fn strftime(fmt: &[u8], t: i64, tz: &TimeZone) -> Vec<u8> {
-    format_time(fmt, t, tz, tz)
-}
-
 /// `strftime(fmt, t, 1)` do gawk: hora em UTC (`%Z` é `GMT`), com o `%s` calculado pelo `mktime`
 /// do fuso `local`, como o glibc faz.
 pub fn strftime_utc(fmt: &[u8], t: i64, local: &TimeZone) -> Vec<u8> {
@@ -1376,7 +1371,7 @@ const MONTHS: [&[u8]; 12] = [
     b"November", b"December",
 ];
 
-fn format_time(fmt: &[u8], t: i64, display: &TimeZone, local: &TimeZone) -> Vec<u8> {
+pub(crate) fn format_time(fmt: &[u8], t: i64, display: &TimeZone, local: &TimeZone) -> Vec<u8> {
     // O gawk dobra o buffer até 1024 vezes o tamanho do formato; se não couber, devolve "".
     if fmt.is_empty() {
         return Vec::new();
@@ -1679,7 +1674,7 @@ mod tests {
     }
 
     fn fmt(f: &str, t: i64, tz: &TimeZone) -> String {
-        String::from_utf8(strftime(f.as_bytes(), t, tz)).unwrap()
+        String::from_utf8(format_time(f.as_bytes(), t, tz, tz)).unwrap()
     }
 
     #[test]
@@ -1729,11 +1724,11 @@ mod tests {
         assert_eq!(fmt("[%05s|%5s]", -1, &utc), "[000-1|   -1]");
         assert_eq!(fmt("[%012R|%^c]", t, &utc), "[000000008:04|WED APR  8 08:04:05 2026]");
         assert_eq!(fmt("%", t, &utc), "%");
-        assert_eq!(strftime(b"a\0b%Y", t, &utc), b"a");
-        assert_eq!(strftime(b"", t, &utc), b"");
+        assert_eq!(format_time(b"a\0b%Y", t, &utc, &utc), b"a");
+        assert_eq!(format_time(b"", t, &utc, &utc), b"");
         // Saída maior que 1024 vezes o formato (arredondado para potência de dois) vira "".
-        assert_eq!(strftime(b"%8191d", 0, &utc).len(), 8191);
-        assert!(strftime(b"%8192d", 0, &utc).is_empty());
+        assert_eq!(format_time(b"%8191d", 0, &utc, &utc).len(), 8191);
+        assert!(format_time(b"%8192d", 0, &utc, &utc).is_empty());
     }
 
     #[test]

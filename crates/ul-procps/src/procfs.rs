@@ -665,9 +665,6 @@ impl MemInfo {
         self.map.get(key).copied().unwrap_or(0)
     }
 
-    pub fn has(&self, key: &str) -> bool {
-        self.map.contains_key(key)
-    }
 }
 
 pub fn meminfo() -> Option<MemInfo> {
@@ -715,6 +712,6 @@ mod tests {
         assert_eq!(s.btime, Some(1_768_477_400));
         let m = MemInfo::parse(b"MemTotal:        8161656 kB\nHugePages_Total:       0\n");
         assert_eq!(m.get("MemTotal"), 8_161_656);
-        assert!(m.has("HugePages_Total"));
+        assert!(m.map.contains_key("HugePages_Total"));
     }
 }

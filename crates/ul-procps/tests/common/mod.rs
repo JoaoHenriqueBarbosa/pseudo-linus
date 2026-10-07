@@ -283,8 +283,8 @@ pub fn check(fixture: &str, list: &str, filter: impl Fn(&str) -> bool, known: &[
         if r.stderr != exp.stderr {
             problems.push(format!("stderr\n--- esperado\n{}--- obtido\n{}", show(&exp.stderr), show(&r.stderr)));
         }
-        if r.code() != exp.exit {
-            problems.push(format!("status esperado {} obtido {}", exp.exit, r.code()));
+        if r.status.shell_status() != exp.exit {
+            problems.push(format!("status esperado {} obtido {}", exp.exit, r.status.shell_status()));
         }
         if !problems.is_empty() {
             failures.push(format!("==== {}\n{}", exp.cmd, problems.join("\n")));
