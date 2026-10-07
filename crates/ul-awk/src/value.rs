@@ -28,10 +28,6 @@ pub fn empty_str() -> Str {
     Rc::from(&b""[..])
 }
 
-pub fn str_from(s: &[u8]) -> Str {
-    Rc::from(s)
-}
-
 fn is_space(c: u8) -> bool {
     matches!(c, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c)
 }
@@ -151,9 +147,6 @@ pub fn pow(x: f64, y: f64) -> f64 {
 }
 
 impl Value {
-    pub fn num(n: f64) -> Value {
-        Value::Num(n)
-    }
 
     pub fn from_bytes(s: &[u8]) -> Value {
         Value::Str(Rc::from(s))

@@ -434,9 +434,7 @@ fn print_assignment(out: &mut dyn Write, name: &str, val: &[u8], dquote: bool) {
     let _ = out.write_all(&buf);
 }
 
-fn env(name: &str) -> Option<Vec<u8>> {
-    sys::getenv(name)
-}
+use sys::getenv as env;
 
 /// O nome de locale que o `setlocale (cat, "")` usa: `LC_ALL`, a variável da categoria, `LANG` ou `C`.
 fn env_locale_name(category: &str) -> Vec<u8> {

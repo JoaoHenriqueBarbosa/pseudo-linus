@@ -472,6 +472,4 @@ pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
 }
 
 /// Variável de ambiente como bytes.
-pub(crate) fn getenv(name: &str) -> Option<Vec<u8>> {
-    sys::getenv(name)
-}
+pub(crate) use sys::getenv;
