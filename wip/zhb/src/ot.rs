@@ -50,6 +50,49 @@ pub fn sub32(d: &[u8], base: usize, at: usize) -> Option<&[u8]> {
     d.get(base.checked_add(off)?..)
 }
 
+/// Os `lookupIndex` de uma tabela `Feature`.
+fn feature_table_lookups(f: &[u8]) -> Vec<u32> {
+    let n = usize::from(u16at(f, 2));
+    if f.len() < 4 + n * 2 {
+        return Vec::new();
+    }
+    (0..n).map(|k| u32::from(u16at(f, 4 + k * 2))).collect()
+}
+
+/// `ConditionSet::evaluate`: todas as condições valem (conjunto vazio vale). Só o formato 1
+/// (`ConditionFormat1`, faixa de um eixo) é avaliado; os demais valem falso, como no HarfBuzz.
+fn condition_set_evaluate(set: &[u8], coords: &[i32]) -> bool {
+    let n = usize::from(u16at(set, 0));
+    (0..n).all(|k| {
+        let Some(c) = sub32(set, 0, 2 + k * 4) else { return false };
+        if u16at(c, 0) != 1 {
+            return false;
+        }
+        let axis = usize::from(u16at(c, 2));
+        let coord = coords.get(axis).copied().unwrap_or(0);
+        i32::from(i16at(c, 4)) <= coord && coord <= i32::from(i16at(c, 6))
+    })
+}
+
+/// `FeatureTableSubstitution::find_substitute`: busca binária pelo índice do feature.
+fn find_substitute(subst: &[u8], feature_index: u32) -> Option<&[u8]> {
+    if u16at(subst, 0) != 1 {
+        return None;
+    }
+    let n = usize::from(u16at(subst, 4)).min(subst.len().saturating_sub(6) / 6);
+    let (mut lo, mut hi) = (0usize, n);
+    while lo < hi {
+        let mid = (lo + hi) / 2;
+        let idx = u32::from(u16at(subst, 6 + mid * 6));
+        match idx.cmp(&feature_index) {
+            std::cmp::Ordering::Less => lo = mid + 1,
+            std::cmp::Ordering::Greater => hi = mid,
+            std::cmp::Ordering::Equal => return sub32(subst, 0, 6 + mid * 6 + 2),
+        }
+    }
+    None
+}
+
 /// `Coverage::get_coverage`.
 pub fn coverage(d: Option<&[u8]>, g: u32) -> u32 {
     let Some(d) = d else { return NOT_COVERED };
@@ -292,11 +335,45 @@ impl<'a> GsubGpos<'a> {
         }
         let l = self.feature_list();
         let Some(f) = sub(l, 0, 2 + i as usize * 6 + 4) else { return Vec::new() };
-        let n = usize::from(u16at(f, 2));
-        if f.len() < 4 + n * 2 {
-            return Vec::new();
+        feature_table_lookups(f)
+    }
+    /// `FeatureVariations` da tabela 1.1; vazio nas demais.
+    fn feature_variations(&self) -> &'a [u8] {
+        if u16at(self.d, 2) < 1 {
+            return &[];
         }
-        (0..n).map(|k| u32::from(u16at(f, 4 + k * 2))).collect()
+        match sub32(self.d, 0, 10) {
+            Some(fv) if u16at(fv, 0) == 1 => fv,
+            _ => &[],
+        }
+    }
+    /// `FeatureVariations::find_index`: o primeiro registro cujo `ConditionSet` vale nas
+    /// coordenadas normalizadas (F2DOT14); eixo sem coordenada vale 0, como no `hb_font_t` sem
+    /// variações. `NOT_FOUND_INDEX` se nenhum vale.
+    pub fn find_variations_index(&self, coords: &[i32]) -> u32 {
+        let fv = self.feature_variations();
+        let count = u32at(fv, 4) as usize;
+        for i in 0..count.min(fv.len().saturating_sub(8) / 8) {
+            let set = sub32(fv, 0, 8 + i * 8).unwrap_or(&[]);
+            if condition_set_evaluate(set, coords) {
+                return i as u32;
+            }
+        }
+        NOT_FOUND_INDEX
+    }
+    /// `hb_ot_layout_feature_with_variations_get_lookups`: a tabela do feature trocada pela do
+    /// `FeatureTableSubstitution` do registro de variações, se ele substitui este feature.
+    pub fn feature_lookups_with_variations(&self, i: u32, variations_index: u32) -> Vec<u32> {
+        if variations_index != NOT_FOUND_INDEX && i != NOT_FOUND_INDEX {
+            let fv = self.feature_variations();
+            if (variations_index as usize) < u32at(fv, 4) as usize {
+                let subst = sub32(fv, 0, 8 + variations_index as usize * 8 + 4).unwrap_or(&[]);
+                if let Some(f) = find_substitute(subst, i) {
+                    return feature_table_lookups(f);
+                }
+            }
+        }
+        self.feature_lookups(i)
     }
     pub fn lookup_count(&self) -> usize {
         usize::from(u16at(self.lookup_list(), 0))

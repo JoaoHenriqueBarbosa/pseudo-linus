@@ -330,8 +330,10 @@ impl<'f, 'a> MapBuilder<'f, 'a> {
     ) {
         let g = self.table(ti);
         let count = g.lookup_count() as u32;
-        // `FeatureVariations` sem coordenadas: vale a lista do próprio feature.
-        for li in g.feature_lookups(feature_index) {
+        // `FeatureVariations`: o registro que vale nas coordenadas da fonte (o `hb_ft_font_t` de
+        // uma face estática ou na instância padrão não tem coordenadas, e os eixos valem 0).
+        let variations_index = g.find_variations_index(&[]);
+        for li in g.feature_lookups_with_variations(feature_index, variations_index) {
             if li >= count {
                 continue;
             }
