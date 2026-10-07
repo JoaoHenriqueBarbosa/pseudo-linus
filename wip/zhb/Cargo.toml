@@ -1,0 +1,18 @@
+[package]
+name = "zhb"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.98"
+# Tradução de partes do HarfBuzz 10.2.0 (licença MIT antiga do HarfBuzz).
+license = "MIT-Modern-Variant"
+publish = false
+description = "Shaping OpenType do HarfBuzz 10.2.0 traduzido sem unsafe, com posições idênticas às do Debian 13"
+
+# Fora do workspace principal enquanto amadurece (o Cargo.toml raiz exclui wip/).
+[workspace]
+
+[dependencies]
+zft = { path = "../zft" }
+
+[lints.rust]
+unsafe_code = "forbid"

@@ -15,6 +15,13 @@ pub(crate) fn u32_at(d: &[u8], o: usize) -> Option<u32> {
     Some(u32::from_be_bytes([*d.get(o)?, *d.get(o + 1)?, *d.get(o + 2)?, *d.get(o + 3)?]))
 }
 
+fn u24_at(d: &[u8], o: usize) -> u32 {
+    match d.get(o..o + 3) {
+        Some(b) => u32::from_be_bytes([0, b[0], b[1], b[2]]),
+        None => 0,
+    }
+}
+
 /// Um subtipo de cmap que o FreeType expõe como charmap.
 #[derive(Clone, Debug)]
 pub(crate) struct CharMap {
@@ -56,6 +63,10 @@ pub(crate) struct Sfnt {
     pub is_fixed_pitch: bool,
     pub charmaps: Vec<CharMap>,
     pub unicode_cmap: Option<usize>,
+    /// O subtable de formato 14 (seletores de variação), onde ele está no arquivo.
+    pub cmap14: Option<usize>,
+    /// `numberOfVMetrics` do `vhea`, quando há `vhea` e `vmtx` (`face->vertical_info`).
+    pub num_vmetrics: Option<u16>,
 }
 
 impl Sfnt {
@@ -119,6 +130,8 @@ impl Sfnt {
             is_fixed_pitch: false,
             charmaps: Vec::new(),
             unicode_cmap: None,
+            cmap14: None,
+            num_vmetrics: None,
         };
         let head = s.table(data, b"head").ok_or(Error::TableMissing)?;
         if head.len() < 54 {
@@ -157,6 +170,11 @@ impl Sfnt {
                 });
             }
         }
+        if let Some(t) = s.table(data, b"vhea") {
+            if t.len() >= 36 && s.has(b"vmtx") {
+                s.num_vmetrics = u16_at(t, 34);
+            }
+        }
         if let Some(t) = s.table(data, b"post") {
             s.is_fixed_pitch = u32_at(t, 12).unwrap_or(0) != 0;
         }
@@ -175,6 +193,10 @@ impl Sfnt {
             };
             let o = o as usize;
             let Some(f) = u16_at(cmap, o) else { continue };
+            if f == 14 && p == 0 && e == 5 && self.cmap14.is_none() {
+                self.cmap14 = Some(coff + o);
+                continue;
+            }
             if !matches!(f, 0 | 4 | 6 | 12 | 13) {
                 continue;
             }
@@ -249,8 +271,14 @@ impl Sfnt {
 
     /// `tt_face_get_metrics`: avanço e bearing horizontais em unidades da fonte.
     pub fn hmetrics(&self, data: &[u8], gid: u32) -> (u16, i16) {
-        let Some(t) = self.table(data, b"hmtx") else { return (0, 0) };
-        let nh = u32::from(self.num_hmetrics);
+        self.metrics(data, false, gid)
+    }
+
+    /// `tt_face_get_metrics` com `vertical`: avanço e bearing do `hmtx` ou do `vmtx`.
+    pub fn metrics(&self, data: &[u8], vertical: bool, gid: u32) -> (u16, i16) {
+        let (tag, n) = if vertical { (b"vmtx", self.num_vmetrics.unwrap_or(0)) } else { (b"hmtx", self.num_hmetrics) };
+        let Some(t) = self.table(data, tag) else { return (0, 0) };
+        let nh = u32::from(n);
         if nh == 0 {
             return (0, 0);
         }
@@ -278,6 +306,65 @@ impl Sfnt {
         let b = b.min(glyf.2);
         if b <= a { return Some((glyf.1 + a.min(glyf.2), 0)) }
         Some((glyf.1 + a, b - a))
+    }
+
+    /// `FT_Face_GetCharVariantIndex` (`tt_cmap14_char_var_index`).
+    pub fn char_variant_index(&self, data: &[u8], code: u32, selector: u32) -> u32 {
+        let (Some(o), Some(_)) = (self.cmap14, self.unicode_cmap) else { return 0 };
+        let n = u32_at(data, o + 6).unwrap_or(0) as usize;
+        let (mut lo, mut hi) = (0usize, n);
+        let mut rec = None;
+        while lo < hi {
+            let mid = (lo + hi) / 2;
+            let r = o + 10 + 11 * mid;
+            let vs = u24_at(data, r);
+            if selector < vs {
+                hi = mid;
+            } else if selector > vs {
+                lo = mid + 1;
+            } else {
+                rec = Some(r);
+                break;
+            }
+        }
+        let Some(r) = rec else { return 0 };
+        let def_off = u32_at(data, r + 3).unwrap_or(0) as usize;
+        let non_def_off = u32_at(data, r + 7).unwrap_or(0) as usize;
+        if def_off != 0 {
+            let d = o + def_off;
+            let nr = u32_at(data, d).unwrap_or(0) as usize;
+            let (mut lo, mut hi) = (0usize, nr);
+            while lo < hi {
+                let mid = (lo + hi) / 2;
+                let start = u24_at(data, d + 4 + 4 * mid);
+                let cnt = u32::from(*data.get(d + 7 + 4 * mid).unwrap_or(&0));
+                if code < start {
+                    hi = mid;
+                } else if code > start + cnt {
+                    lo = mid + 1;
+                } else {
+                    return self.char_index(data, code);
+                }
+            }
+        }
+        if non_def_off != 0 {
+            let d = o + non_def_off;
+            let nm = u32_at(data, d).unwrap_or(0) as usize;
+            let (mut lo, mut hi) = (0usize, nm);
+            while lo < hi {
+                let mid = (lo + hi) / 2;
+                let m = d + 4 + 5 * mid;
+                let u = u24_at(data, m);
+                if code < u {
+                    hi = mid;
+                } else if code > u {
+                    lo = mid + 1;
+                } else {
+                    return u32::from(u16_at(data, m + 3).unwrap_or(0));
+                }
+            }
+        }
+        0
     }
 
     /// `tt_face_get_kerning` (formato 0 da tabela `kern`).

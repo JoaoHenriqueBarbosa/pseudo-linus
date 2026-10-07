@@ -320,6 +320,10 @@ impl Face {
             lsb_delta,
             rsb_delta,
             linear_hori_advance: crate::calc::mul_div(l.linear, self.size.x_scale, 64),
+            // `vvector`: a distância das origens vertical e horizontal, escalada.
+            vert_bearing_x: pix_floor(x_min + mul_fix(l.vert_bearing_x - l.hori_bearing_x, metrics_scaler.x_scale)),
+            vert_bearing_y: pix_floor(y_max + mul_fix(l.vert_bearing_y - l.hori_bearing_y, metrics_scaler.y_scale)),
+            vert_advance: pix_round(mul_fix(l.vert_advance, metrics_scaler.y_scale)),
         })
     }
 }

@@ -164,6 +164,9 @@ pub struct Slot {
     pub lsb_delta: i64,
     pub rsb_delta: i64,
     pub linear_hori_advance: i64,
+    pub vert_bearing_x: i64,
+    pub vert_bearing_y: i64,
+    pub vert_advance: i64,
 }
 
 impl Slot {
@@ -339,6 +342,22 @@ impl Face {
         i64::from(self.sfnt.hmetrics(&self.data, gid).0)
     }
 
+    /// `FT_Get_Advance` com `FT_LOAD_VERTICAL_LAYOUT` no caminho rápido (`TT_Get_VMetrics`): o
+    /// `vmtx`, ou a altura tipográfica do OS/2, ou a do `hhea`. `None` para glifo inexistente.
+    pub fn advance_vertical_unscaled(&self, gid: u32) -> Option<i64> {
+        if gid >= self.num_glyphs() {
+            return None;
+        }
+        let ah = if self.sfnt.num_vmetrics.is_some() {
+            self.sfnt.metrics(&self.data, true, gid).0
+        } else if let Some(o) = self.sfnt.os2 {
+            (i32::from(o.typo_ascender) - i32::from(o.typo_descender)).unsigned_abs() as u16
+        } else {
+            (i32::from(self.sfnt.hhea_ascender) - i32::from(self.sfnt.hhea_descender)).unsigned_abs() as u16
+        };
+        Some(i64::from(ah))
+    }
+
     /// O `ft_glyphslot_load` escolhe o autohinter quando a fonte não traz bytecode.
     fn wants_autohint(&self, flags: u32) -> bool {
         if flags & (LOAD_NO_HINTING | LOAD_NO_SCALE) != 0 {
@@ -363,9 +382,25 @@ impl Face {
         self.sfnt.has(b"kern")
     }
 
+    /// `FT_Load_Sfnt_Table`: os bytes crus de uma tabela, se ela existe e cabe no arquivo.
+    pub fn table(&self, tag: &[u8; 4]) -> Option<&[u8]> {
+        self.sfnt.table(&self.data, tag)
+    }
+
     /// `FT_Get_Char_Index`.
     pub fn char_index(&self, code: u32) -> u32 {
         self.sfnt.char_index(&self.data, code)
+    }
+
+    /// `FT_Face_GetCharVariantIndex`.
+    pub fn char_variant_index(&self, code: u32, selector: u32) -> u32 {
+        self.sfnt.char_variant_index(&self.data, code, selector)
+    }
+
+    /// `FT_Get_Kerning` com `FT_KERNING_UNFITTED`.
+    pub fn kerning_unfitted(&self, left: u32, right: u32) -> (i64, i64) {
+        let k = i64::from(self.sfnt.kerning(&self.data, left, right));
+        (mul_fix(k, self.size.x_scale), 0)
     }
 
     /// `FT_Get_Kerning` com `FT_KERNING_DEFAULT`.
@@ -482,9 +517,15 @@ impl Face {
             lsb_delta: 0,
             rsb_delta: 0,
             linear_hori_advance: linear,
+            vert_bearing_x: l.vert_bearing_x,
+            vert_bearing_y: l.vert_bearing_y,
+            vert_advance: l.vert_advance,
         };
         // `ft_glyphslot_grid_fit_metrics` do `FT_Load_Glyph`, na horizontal.
         if flags & LOAD_NO_HINTING == 0 {
+            slot.vert_bearing_x = pix_floor(slot.vert_bearing_x);
+            slot.vert_bearing_y = pix_floor(slot.vert_bearing_y);
+            slot.vert_advance = pix_round(slot.vert_advance);
             let right = pix_ceil(slot.hori_bearing_x.wrapping_add(slot.width));
             let bottom = pix_floor(slot.hori_bearing_y.wrapping_sub(slot.height));
             slot.hori_bearing_x = pix_floor(slot.hori_bearing_x);

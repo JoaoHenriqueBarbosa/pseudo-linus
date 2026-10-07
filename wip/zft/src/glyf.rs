@@ -76,13 +76,17 @@ impl Loader<'_> {
     /// `tt_get_metrics` + `tt_loader_set_pp`.
     fn set_metrics(&mut self, gid: u32) {
         let (aw, lsb) = self.sfnt.hmetrics(self.data, gid);
-        // Sem `vmtx`: o `tt_face_get_metrics` vertical emula com o OS/2 ou o hhea.
-        let (ascender, descender) = match &self.sfnt.os2 {
-            Some(o) => (i64::from(o.typo_ascender), i64::from(o.typo_descender)),
-            None => (i64::from(self.sfnt.hhea_ascender), i64::from(self.sfnt.hhea_descender)),
+        // `TT_Get_VMetrics`: o `vmtx` quando existe; sem ele, emula com o OS/2 ou o hhea.
+        let (tsb, ah) = if self.sfnt.num_vmetrics.is_some() {
+            let (ah, tsb) = self.sfnt.metrics(self.data, true, gid);
+            (i64::from(tsb), i64::from(ah))
+        } else {
+            let (ascender, descender) = match &self.sfnt.os2 {
+                Some(o) => (i64::from(o.typo_ascender), i64::from(o.typo_descender)),
+                None => (i64::from(self.sfnt.hhea_ascender), i64::from(self.sfnt.hhea_descender)),
+            };
+            (i64::from((ascender - self.bbox[3]) as i16), i64::from((ascender - descender).unsigned_abs() as u16))
         };
-        let ah = ascender - descender;
-        let tsb = ascender - self.bbox[3];
         self.linear = i64::from(aw);
         self.vadvance = ah;
         self.pp1 = Vector { x: self.bbox[0] - i64::from(lsb), y: 0 };
@@ -457,15 +461,20 @@ pub(crate) fn load(
     // `compute_glyph_metrics`.
     let b = out.cbox();
     let y_scale = l.ys();
-    let height_fu = i64::from(crate::calc::div_fix(b.y_max - b.y_min, y_scale) as i16);
-    let (ascender, descender) = match &sfnt.os2 {
-        Some(o) => (i64::from(o.typo_ascender), i64::from(o.typo_descender)),
-        None => (i64::from(sfnt.hhea_ascender), i64::from(sfnt.hhea_descender)),
+    let (top, adv_fu) = if sfnt.num_vmetrics.is_some_and(|n| n > 0) {
+        let top = i64::from(crate::calc::div_fix(l.pp3.y - b.y_max, y_scale) as i16);
+        let adv = if l.pp3.y <= l.pp4.y { 0 } else { i64::from(crate::calc::div_fix(l.pp3.y - l.pp4.y, y_scale) as u16) };
+        (top, adv)
+    } else {
+        let height_fu = i64::from(crate::calc::div_fix(b.y_max - b.y_min, y_scale) as i16);
+        let (ascender, descender) = match &sfnt.os2 {
+            Some(o) => (i64::from(o.typo_ascender), i64::from(o.typo_descender)),
+            None => (i64::from(sfnt.hhea_ascender), i64::from(sfnt.hhea_descender)),
+        };
+        let adv_fu = ascender - descender;
+        ((adv_fu - height_fu) / 2, adv_fu)
     };
-    let adv_fu = ascender - descender;
-    let top = (adv_fu - height_fu) / 2;
-    let top = mul_fix(top, y_scale);
-    let vadv = mul_fix(adv_fu, y_scale);
+    let (top, vadv) = if l.scale.is_some() { (mul_fix(top, y_scale), mul_fix(adv_fu, y_scale)) } else { (top, adv_fu) };
     let advance = match widthp {
         Some(w) => i64::from(data[w + gid as usize]) * 64,
         None => l.pp2.x - l.pp1.x,
