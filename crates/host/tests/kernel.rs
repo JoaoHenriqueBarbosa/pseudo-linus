@@ -257,6 +257,30 @@ fn builtin_executables_carry_no_simulation_evidence() {
     assert_eq!(r["stdout"], "/tmp\n", "{r}");
 }
 
+/// Sem hostname pedido, cada sandbox ganha 12 dígitos hexadecimais aleatórios, como um container do
+/// Docker; um nome fixo (era `pseudo-linus`) aparecia no `uname`, no `hostname` e no `/etc/hostname`.
+#[test]
+fn default_hostname_is_random_container_id() {
+    let d = Daemon::kernel("");
+    let t = d.user("rui", json!({}));
+    let c = d.client(&t);
+    let (a, b) = (sandbox(&c), sandbox(&c));
+    let names: Vec<String> = [&a, &b]
+        .iter()
+        .map(|sb| {
+            let r = run(&c, sb, &["bash", "-c", "uname -n; hostname; cat /etc/hostname; grep -c -i -e pseudo -e linus /etc/hosts"], json!({}));
+            r["stdout"].as_str().unwrap_or_default().to_string()
+        })
+        .collect();
+    for out in &names {
+        let lines: Vec<&str> = out.lines().collect();
+        assert_eq!(lines.len(), 4, "{out}");
+        assert!(lines[0].len() == 12 && lines[0].bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase()), "{out}");
+        assert_eq!((lines[1], lines[2], lines[3]), (lines[0], lines[0], "0"), "{out}");
+    }
+    assert_ne!(names[0], names[1]);
+}
+
 /// Um snapshot de antes da sessão existir, restaurado com a sessão aberta, não a quebra.
 #[test]
 fn session_survives_restoring_a_snapshot_older_than_it() {

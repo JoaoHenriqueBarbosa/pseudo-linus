@@ -273,7 +273,7 @@ fn local(cli: &Cli, timeout: Duration) -> Result<Box<dyn Target>, String> {
     };
     let user = host::backend::UserSched { user: "local".into(), cpu_weight: 100, cpu_max: None };
     backend.ensure_user(&user).map_err(|e| e.to_string())?;
-    let spec = host::backend::SandboxSpec { image: "default".into(), hostname: "pseudo-linus".into(), limits };
+    let spec = host::backend::SandboxSpec { image: "default".into(), hostname: host::ids::random_hostname(), limits };
     let sb = backend.create_sandbox(&host::ids::random_id("sb"), "local", &spec).map_err(|e| e.to_string())?;
     let mut env: BTreeMap<String, String> =
         host::methods::DEFAULT_ENV.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();

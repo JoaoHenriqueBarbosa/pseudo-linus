@@ -8,6 +8,14 @@ pub fn random_id(prefix: &str) -> String {
     format!("{prefix}_{}", hex::encode(b))
 }
 
+/// Hostname padrão de um sandbox: 12 dígitos hexadecimais, como o Docker dá a um container (o
+/// prefixo do id). Um nome fixo seria o mesmo em todo sandbox e denunciaria o projeto.
+pub fn random_hostname() -> String {
+    let mut b = [0u8; 6];
+    getrandom::fill(&mut b).expect("getrandom sem entropia");
+    hex::encode(b)
+}
+
 /// Confere o formato de um id recebido do cliente (evita caminho arbitrário em nomes de arquivo).
 pub fn valid_id(prefix: &str, id: &str) -> bool {
     id.strip_prefix(prefix)

@@ -477,7 +477,7 @@ impl Supervisor {
         if image != "default" {
             return Err(RpcError::invalid_params(format!("imagem desconhecida: {image} (só existe default)")));
         }
-        let hostname = r.hostname.unwrap_or_else(|| "pseudo-linus".into());
+        let hostname = r.hostname.unwrap_or_else(crate::ids::random_hostname);
         if hostname.is_empty()
             || hostname.len() > 64
             || !hostname.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'.')
