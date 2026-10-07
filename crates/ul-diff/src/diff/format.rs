@@ -257,8 +257,9 @@ impl Printer<'_> {
     }
 }
 
-/// Faixa no formato normal e ed: "a,b" ou só "b" (linha anterior, quando a faixa é vazia).
-pub fn normal_range(first: isize, last: isize) -> String {
+/// Faixa nos formatos normal, ed e de contexto: "a,b" ou só "b" (a linha anterior, quando a faixa
+/// é vazia).
+pub fn line_range(first: isize, last: isize) -> String {
     let (ta, tb) = (first + 1, last + 1);
     if tb > ta { format!("{ta},{tb}") } else { format!("{tb}") }
 }
@@ -273,12 +274,6 @@ pub fn unified_range(first: isize, last: isize) -> String {
     } else {
         format!("{ta},{}", tb - ta + 1)
     }
-}
-
-/// Faixa do formato de contexto: "a,b" ou só "b".
-pub fn context_range(first: isize, last: isize) -> String {
-    let (ta, tb) = (first + 1, last + 1);
-    if tb <= ta { format!("{tb}") } else { format!("{ta},{tb}") }
 }
 
 /// Primeira e última linha de cada arquivo cobertas pelas mudanças do hunk, e se há linhas apagadas e
@@ -309,7 +304,7 @@ pub fn format_normal(p: &mut Printer<'_>, changes: &[Change], a: &[&[u8]], b: &[
         let Some(letter) = letter(ch) else { continue };
         let (f0, l0) = (ch.line0 as isize, (ch.line0 + ch.deleted) as isize - 1);
         let (f1, l1) = (ch.line1 as isize, (ch.line1 + ch.inserted) as isize - 1);
-        p.control(&format!("{}{letter}{}", normal_range(f0, l0), normal_range(f1, l1)), Paint::Line);
+        p.control(&format!("{}{letter}{}", line_range(f0, l0), line_range(f1, l1)), Paint::Line);
         for line in &a[ch.line0..ch.line0 + ch.deleted] {
             p.line(NORMAL_OLD, line, Paint::Delete);
         }
@@ -370,11 +365,11 @@ pub fn format_context(p: &mut Printer<'_>, changes: &[Change], a: &[&[u8]], b: &
         let (_, _, _, _, old, new) = analyze(hunk);
         let (first0c, last0c, first1c, last1c) = hunk_bounds(hunk, a.len(), b.len(), context);
         p.control("***************", Paint::None);
-        p.control(&format!("*** {} ****", context_range(first0c, last0c)), Paint::Line);
+        p.control(&format!("*** {} ****", line_range(first0c, last0c)), Paint::Line);
         if old {
             context_side(p, hunk, a, first0c..=last0c, Side::Old);
         }
-        p.control(&format!("--- {} ----", context_range(first1c, last1c)), Paint::Line);
+        p.control(&format!("--- {} ----", line_range(first1c, last1c)), Paint::Line);
         if new {
             context_side(p, hunk, b, first1c..=last1c, Side::New);
         }
@@ -433,11 +428,22 @@ pub fn format_ed(out: &mut Vec<u8>, changes: &[Change], b: &[&[u8]]) {
     for ch in changes.iter().rev().filter(|c| !c.ignore) {
         let Some(letter) = letter(ch) else { continue };
         let (f0, l0) = (ch.line0 as isize, (ch.line0 + ch.deleted) as isize - 1);
-        out.extend_from_slice(format!("{}{letter}\n", normal_range(f0, l0)).as_bytes());
+        out.extend_from_slice(format!("{}{letter}\n", line_range(f0, l0)).as_bytes());
         if ch.inserted > 0 {
-            ed_lines(out, &b[ch.line1..ch.line1 + ch.inserted]);
+            ed_lines(out, inserted(ch, b));
         }
     }
+}
+
+/// As linhas que a mudança insere, do segundo arquivo.
+fn inserted<'a>(ch: &Change, b: &'a [&'a [u8]]) -> &'a [&'a [u8]] {
+    &b[ch.line1..ch.line1 + ch.inserted]
+}
+
+/// A linha com um `\n` só no fim, tenha ela vindo com ou sem.
+fn push_line(out: &mut Vec<u8>, line: &[u8]) {
+    out.extend_from_slice(line.strip_suffix(b"\n").unwrap_or(line));
+    out.push(b'\n');
 }
 
 /// Linhas de um comando a/c do ed. Uma linha que é só "." sairia como fim da entrada: vira "..",
@@ -446,19 +452,16 @@ pub fn ed_lines(out: &mut Vec<u8>, lines: &[&[u8]]) {
     let mut reopen = false;
     let mut last_dot = false;
     for line in lines {
-        let body = line.strip_suffix(b"\n").unwrap_or(line);
         if reopen {
             out.extend_from_slice(b"a\n");
             reopen = false;
         }
-        if body == b"." {
+        last_dot = line.strip_suffix(b"\n").unwrap_or(line) == b".";
+        if last_dot {
             out.extend_from_slice(b"..\n.\ns/.//\n");
             reopen = true;
-            last_dot = true;
         } else {
-            out.extend_from_slice(body);
-            out.push(b'\n');
-            last_dot = false;
+            push_line(out, line);
         }
     }
     if !last_dot {
@@ -480,10 +483,8 @@ pub fn format_forward_ed(out: &mut Vec<u8>, changes: &[Change], b: &[&[u8]]) {
         };
         out.extend_from_slice(format!("{letter}{range}\n").as_bytes());
         if ch.inserted > 0 {
-            for line in &b[ch.line1..ch.line1 + ch.inserted] {
-                let body = line.strip_suffix(b"\n").unwrap_or(line);
-                out.extend_from_slice(body);
-                out.push(b'\n');
+            for line in inserted(ch, b) {
+                push_line(out, line);
             }
             out.extend_from_slice(b".\n");
         }
@@ -499,9 +500,7 @@ pub fn format_rcs(out: &mut Vec<u8>, changes: &[Change], b: &[&[u8]]) {
         }
         if ch.inserted > 0 {
             out.extend_from_slice(format!("a{} {}\n", ch.line0 + ch.deleted, ch.inserted).as_bytes());
-            for line in &b[ch.line1..ch.line1 + ch.inserted] {
-                out.extend_from_slice(line);
-            }
+            out.extend(inserted(ch, b).concat());
         }
     }
 }
@@ -523,8 +522,8 @@ mod tests {
         assert_eq!(unified_range(0, -1), "0,0");
         assert_eq!(unified_range(0, 0), "1");
         assert_eq!(unified_range(0, 2), "1,3");
-        assert_eq!(normal_range(3, 2), "3");
-        assert_eq!(context_range(0, -1), "0");
+        assert_eq!(line_range(3, 2), "3");
+        assert_eq!(line_range(0, -1), "0");
     }
 
     #[test]
