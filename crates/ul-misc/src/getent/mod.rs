@@ -453,12 +453,9 @@ fn initgroups_keys(env: &Env, out: &mut dyn Write, keys: &[Vec<u8>]) -> i32 {
         line.push(b'\n');
         Some(line)
     };
-    run_db("initgroups", out, keys, no_listing, find, show_line)
-}
-
-/// O `show` dos bancos que já entregam a linha pronta.
-fn show_line(out: &mut dyn Write, line: &Vec<u8>) {
-    write_bytes(out, line);
+    run_db("initgroups", out, keys, no_listing, find, |out, line: &Vec<u8>| {
+        write_bytes(out, line)
+    })
 }
 
 // ---- services ----
