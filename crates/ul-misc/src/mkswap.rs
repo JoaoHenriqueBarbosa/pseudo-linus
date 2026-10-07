@@ -286,7 +286,7 @@ fn run(args: &[OsString]) -> i32 {
         return 1;
     }
     if let Err(e) = f.write_all(&page) {
-        ul::warn(&short, format!("{dev_s}: failed to write signature page"), io::io_errno(&e));
+        ul::warn(&short, format!("{dev_s}: failed to write signature page"), sysabi::Errno::from_io(&e));
         return 1;
     }
     if !quiet {

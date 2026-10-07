@@ -341,7 +341,7 @@ fn write_file(path: &[u8], data: &[u8]) -> Result<(), Errno> {
         OFlags::WRONLY | OFlags::CREAT | OFlags::TRUNC,
         0o666,
     )?;
-    f.write_all(data).map_err(|e| io::io_errno(&e))
+    f.write_all(data).map_err(|e| sysabi::Errno::from_io(&e))
 }
 
 fn basename(p: &[u8]) -> &[u8] {
@@ -838,7 +838,7 @@ impl Ctx<'_> {
             OFlags::WRONLY | OFlags::CREAT | OFlags::TRUNC,
             0o666,
         )?;
-        f.write_all(&m.data).map_err(|e| io::io_errno(&e))?;
+        f.write_all(&m.data).map_err(|e| sysabi::Errno::from_io(&e))?;
         let sysc = sys::current();
         let _ = sysc.fchmod(f.fd(), (m.mode & 0o7777) as u32);
         if self.f.preserve_dates {

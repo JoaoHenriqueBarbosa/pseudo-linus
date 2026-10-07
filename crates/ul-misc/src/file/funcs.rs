@@ -995,7 +995,7 @@ fn filter_error(stderr: &[u8], stdout: &[u8]) -> String {
 fn uncompress_external(argv: &[&str], old: &[u8], bytes_max: usize) -> Uncompressed {
     use std::io::{Read, Write};
     use sysio::process::{Command, Stdio};
-    let _ = io_flush();
+    let _ = crate::util::io::flush_stdout();
     let mut cmd = Command::new(argv[0]);
     cmd.args(&argv[1..])
         .stdin(Stdio::piped())
@@ -1031,10 +1031,6 @@ fn uncompress_external(argv: &[&str], old: &[u8], bytes_max: usize) -> Uncompres
         return Uncompressed::Err(filter_error(&err, &out));
     }
     Uncompressed::Ok(out)
-}
-
-fn io_flush() -> std::io::Result<()> {
-    crate::util::io::flush_stdout()
 }
 
 #[derive(Clone, Copy)]

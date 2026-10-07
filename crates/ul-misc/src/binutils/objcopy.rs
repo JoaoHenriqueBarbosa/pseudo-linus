@@ -572,7 +572,7 @@ fn convert(prog: &str, in_name: &[u8], d: &[u8], c: &Config) -> Result<Vec<u8>, 
         };
         let bytes = section_bytes(&data, h);
         let r = File::open_with(path, OFlags::WRONLY | OFlags::CREAT | OFlags::TRUNC, 0o666)
-            .and_then(|mut f| f.write_all(bytes).map_err(|e| io::io_errno(&e)));
+            .and_then(|mut f| f.write_all(bytes).map_err(|e| sysabi::Errno::from_io(&e)));
         if let Err(e) = r {
             return Err(format!(
                 "{prog}: {}: {}\n",
@@ -750,7 +750,7 @@ fn run(args: &[OsString]) -> i32 {
             OFlags::WRONLY | OFlags::CREAT | OFlags::TRUNC,
             st.mode & 0o777,
         )?;
-        f.write_all(&result).map_err(|e| io::io_errno(&e))
+        f.write_all(&result).map_err(|e| sysabi::Errno::from_io(&e))
     };
     if let Err(e) = write() {
         say(&[&outfile, b": ", e.message().as_bytes()]);

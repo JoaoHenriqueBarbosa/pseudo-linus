@@ -542,7 +542,7 @@ fn process(
             OFlags::WRONLY | OFlags::CREAT | OFlags::TRUNC,
             st.mode & 0o777,
         )?;
-        f.write_all(&result).map_err(|e| io::io_errno(&e))
+        f.write_all(&result).map_err(|e| sysabi::Errno::from_io(&e))
     };
     if let Err(e) = write() {
         say(&[dest, b": ", e.message().as_bytes()]);

@@ -207,7 +207,7 @@ fn serve() -> i32 {
                     None => reply_error(Errno::EBADF),
                     Some(f) => match f.write_all(&buf) {
                         Ok(()) => reply(format!("A{}\n", buf.len()).as_bytes()),
-                        Err(e) => reply_error(io::io_errno(&e)),
+                        Err(e) => reply_error(sysabi::Errno::from_io(&e)),
                     },
                 }
             }
@@ -223,7 +223,7 @@ fn serve() -> i32 {
                                 out.extend_from_slice(&buf[..got]);
                                 reply(&out);
                             }
-                            Err(e) => reply_error(io::io_errno(&e)),
+                            Err(e) => reply_error(sysabi::Errno::from_io(&e)),
                         }
                     }
                 }

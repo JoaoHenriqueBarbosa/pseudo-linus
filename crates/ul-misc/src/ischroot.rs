@@ -8,7 +8,7 @@
 use std::ffi::OsString;
 use std::io::Write;
 
-use sysabi::{Ctx, Errno, Fd, OFlags, sys};
+use sysabi::{Ctx, Fd, OFlags, sys};
 
 use crate::util::io;
 use crate::util::{Getopt, HasArg, LongOpt};
@@ -33,11 +33,6 @@ fn isfakechroot() -> bool {
         })
 }
 
-/// Lê até `buf.len()` bytes (um `read`).
-fn read_chunk(fd: Fd, buf: &mut [u8]) -> Result<usize, Errno> {
-    sys::read(fd, buf)
-}
-
 /// `ischroot_mountinfo`: negativo em falha, 0 se detectou chroot, 1 se não.
 fn ischroot_mountinfo() -> i32 {
     let fd1 = sys::open(b"/proc/1/mountinfo", OFlags::RDONLY, 0);
@@ -56,7 +51,7 @@ fn compare_fds(fd1: Fd, fd2: Fd) -> i32 {
     let mut buf1 = [0u8; 1024];
     let mut buf2 = [0u8; 1024];
     loop {
-        let (Ok(r1), Ok(r2)) = (read_chunk(fd1, &mut buf1), read_chunk(fd2, &mut buf2)) else {
+        let (Ok(r1), Ok(r2)) = (sys::read(fd1, &mut buf1), sys::read(fd2, &mut buf2)) else {
             return -1;
         };
         if r1 != r2 || buf1[..r1] != buf2[..r2] {

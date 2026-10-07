@@ -113,17 +113,10 @@ pub fn read_stdin() -> SysResult<Vec<u8>> {
     File::stdin().read_to_end_sys()
 }
 
-/// Saída padrão do processo com a bufferização do stdio da glibc (por linha em terminal, bloco de
-/// 4096 bytes em pipe ou arquivo), via `sysio`. O programa tem que rodar dentro de [`run`], que
-/// descarrega no fim (e no `exit`) e avisa `write error` como o `close_stdout` do gnulib.
-pub fn stdout() -> sysio::io::Stdout {
-    sysio::io::stdout()
-}
-
-/// Descarrega o stdout agora (antes de escrever direto num fd, de dormir no `watch`...).
-pub fn flush_stdout() -> io::Result<()> {
-    sysio::io::flush_stdout()
-}
+// `stdout` tem a bufferização do stdio da glibc e `run` é a entrada de todo `main` do crate, que
+// descarrega no fim e avisa `write error` como o `close_stdout` do gnulib.
+pub use sysio::io::{flush_stdout, stdout};
+pub use sysio::run;
 
 /// Escritor direto no fd 1, sem buffer nenhum, pra programa que no original escreve com `write(2)`.
 pub fn raw_stdout() -> BufWriter<FdWriter> {
@@ -133,12 +126,6 @@ pub fn raw_stdout() -> BufWriter<FdWriter> {
 /// Escreve no stderr sem buffer, numa escrita só (como `fprintf(stderr, ...)` da glibc).
 pub fn eprint(s: impl AsRef<[u8]>) {
     let _ = sys::write_all(Fd::STDERR, s.as_ref());
-}
-
-/// Entrada de todo `main` do crate: abre o estado de userland do processo (buffer do stdout da glibc)
-/// e descarrega no fim. É o `sysio::run`.
-pub fn run(main: impl FnOnce() -> i32) -> i32 {
-    sysio::run(main)
 }
 
 /// O argv do `main` em bytes.
@@ -156,11 +143,6 @@ pub fn argv0(args: &[OsString]) -> String {
 /// Bytes como texto pra mensagens (UTF-8 inválido vira U+FFFD, como faria um terminal).
 pub fn lossy(b: &[u8]) -> String {
     String::from_utf8_lossy(b).into_owned()
-}
-
-/// Converte erro de escrita do `std::io` de volta pra errno.
-pub fn io_errno(e: &io::Error) -> Errno {
-    Errno::from_io(e)
 }
 
 /// `true` se o stdout é terminal.

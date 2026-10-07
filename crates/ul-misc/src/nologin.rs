@@ -6,7 +6,7 @@
 use std::ffi::OsString;
 use std::io::Write;
 
-use sysabi::{Ctx, Fd, OFlags, sys};
+use sysabi::{Ctx, OFlags, sys};
 
 use crate::util::io;
 use crate::util::ul;
@@ -50,7 +50,7 @@ fn copy_file(path: &[u8]) -> bool {
     let mut out = io::stdout();
     let mut buf = [0u8; 4096];
     loop {
-        match read_chunk(fd, &mut buf) {
+        match sys::read(fd, &mut buf) {
             Ok(0) | Err(_) => break,
             Ok(n) => {
                 let _ = out.write_all(&buf[..n]);
@@ -59,10 +59,6 @@ fn copy_file(path: &[u8]) -> bool {
     }
     let _ = sys::close(fd);
     true
-}
-
-fn read_chunk(fd: Fd, buf: &mut [u8]) -> Result<usize, sysabi::Errno> {
-    sys::read(fd, buf)
 }
 
 fn run(args: &[OsString]) -> i32 {

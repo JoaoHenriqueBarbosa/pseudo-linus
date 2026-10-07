@@ -897,7 +897,7 @@ fn run(args: &[OsString]) -> i32 {
         let s = sys::current();
         if let Err(e) = written {
             let _ = s.unlinkat(Fd::CWD, &tmp, sysabi::AtFlags::empty());
-            ld.warn("Writing of cache data failed", Some(io::io_errno(&e)));
+            ld.warn("Writing of cache data failed", Some(sysabi::Errno::from_io(&e)));
             let _ = io::flush_stdout();
             return 1;
         }

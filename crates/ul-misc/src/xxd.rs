@@ -467,13 +467,13 @@ enum Output {
 impl Output {
     fn put(&mut self, data: &[u8]) -> Result<(), Errno> {
         match self {
-            Output::Stdout(s) => s.write_all(data).map_err(|e| io::io_errno(&e)),
+            Output::Stdout(s) => s.write_all(data).map_err(|e| sysabi::Errno::from_io(&e)),
             Output::File { file, buf } => {
                 if buf.len() + data.len() > 4096 {
                     Self::drain(file, buf)?;
                 }
                 if data.len() >= 4096 {
-                    write_fd(file.fd(), data)
+                    sys::write_all(file.fd(), data)
                 } else {
                     buf.extend_from_slice(data);
                     Ok(())
@@ -483,14 +483,14 @@ impl Output {
     }
 
     fn drain(file: &File, buf: &mut Vec<u8>) -> Result<(), Errno> {
-        let r = write_fd(file.fd(), buf);
+        let r = sys::write_all(file.fd(), buf);
         buf.clear();
         r
     }
 
     fn flush(&mut self) -> Result<(), Errno> {
         match self {
-            Output::Stdout(_) => io::flush_stdout().map_err(|e| io::io_errno(&e)),
+            Output::Stdout(_) => io::flush_stdout().map_err(|e| sysabi::Errno::from_io(&e)),
             Output::File { file, buf } => Self::drain(file, buf),
         }
     }
@@ -501,10 +501,6 @@ impl Output {
             Output::File { file, .. } => file.fd(),
         }
     }
-}
-
-fn write_fd(fd: Fd, data: &[u8]) -> Result<(), Errno> {
-    sys::write_all(fd, data)
 }
 
 /// Erro de escrita: `xxd: <strerror>` e código 3.

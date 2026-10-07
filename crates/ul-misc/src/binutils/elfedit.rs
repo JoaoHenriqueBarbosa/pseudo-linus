@@ -296,7 +296,7 @@ fn process(prog: &str, path: &[u8], o: &Opts) -> Result<(), ()> {
     }
     let write = || -> Result<(), Errno> {
         let mut f = File::open_with(path, OFlags::WRONLY, st.mode & 0o777)?;
-        f.write_all(&data).map_err(|e| io::io_errno(&e))
+        f.write_all(&data).map_err(|e| sysabi::Errno::from_io(&e))
     };
     if let Err(e) = write() {
         say(&[path, b": ", e.message().as_bytes()]);
