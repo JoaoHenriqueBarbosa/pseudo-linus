@@ -5,7 +5,7 @@
 
 use std::rc::Rc;
 
-use crate::native_util::{bind, want_int};
+use crate::native_util::{bind, want_int, int_or};
 use crate::object::{Kw, NativeFnPtr, Value};
 use crate::vm::{exc, iterate, type_error, PyResult, Vm};
 
@@ -862,7 +862,7 @@ pub(super) fn title(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 pub(super) fn expandtabs(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let data = this(&args)?;
     let slots = bind("expandtabs", args[1..].to_vec(), kw, &["tabsize"], 0)?;
-    let tab = slots[0].as_ref().map(want_int).transpose()?.unwrap_or(8).max(0) as usize;
+    let tab = int_or(slots[0].as_ref(), 8)?.max(0) as usize;
     let mut out = Vec::new();
     let mut col = 0usize;
     for &b in data.iter() {

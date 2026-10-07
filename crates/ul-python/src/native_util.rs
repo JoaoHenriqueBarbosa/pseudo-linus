@@ -66,6 +66,11 @@ pub fn want_str<'a>(fname: &str, v: &'a Value) -> PyResult<&'a str> {
     }
 }
 
+/// Argumento inteiro opcional: `default` quando ausente.
+pub fn int_or(v: Option<&Value>, default: i64) -> PyResult<i64> {
+    v.map(want_int).transpose().map(|i| i.unwrap_or(default))
+}
+
 /// `int` do argumento (aceita `bool`) ou `TypeError` com o texto do CPython.
 pub fn want_int(v: &Value) -> PyResult<i64> {
     match v {

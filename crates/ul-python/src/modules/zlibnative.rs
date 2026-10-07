@@ -13,7 +13,7 @@ use flate2::{Decompress, FlushDecompress, Status};
 use zdeflate::{Deflate, Flush, Status as ZStatus, Strategy};
 
 use crate::modules::ModuleBuilder;
-use crate::native_util::{bind, no_kwargs, want_int};
+use crate::native_util::{bind, no_kwargs, want_int, int_or};
 use crate::object::{ExtObject, Kw, ModuleObj, Value};
 use crate::vm::{exc, type_error, PyResult, Vm};
 
@@ -113,8 +113,8 @@ fn run_compress(c: &mut Deflate, input: &[u8], flush: Flush) -> PyResult<Vec<u8>
 fn compress(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let s = bind("compress", args, kw, &["data", "level", "wbits"], 1)?;
     let data = want_data(s[0].as_ref().unwrap())?;
-    let level = level_of(s[1].as_ref().map(want_int).transpose()?.unwrap_or(-1))?;
-    let wrap = wrap_of(s[2].as_ref().map(want_int).transpose()?.unwrap_or(15))?;
+    let level = level_of(int_or(s[1].as_ref(), -1)?)?;
+    let wrap = wrap_of(int_or(s[2].as_ref(), 15)?)?;
     let mut c = new_compress(level, wrap, 8, Strategy::Default)?;
     Ok(Value::bytes(run_compress(&mut c, &data, Flush::Finish)?))
 }
@@ -167,7 +167,7 @@ fn run_decompress(d: &mut Decompress, input: &[u8], max_out: usize) -> PyResult<
 fn decompress(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let s = bind("decompress", args, kw, &["data", "wbits", "bufsize"], 1)?;
     let data = want_data(s[0].as_ref().unwrap())?;
-    let wrap = wrap_of(s[1].as_ref().map(want_int).transpose()?.unwrap_or(15))?;
+    let wrap = wrap_of(int_or(s[1].as_ref(), 15)?)?;
     let mut d = new_decompress(wrap, &data);
     let (out, _, ended) = run_decompress(&mut d, &data, 0)?;
     if !ended {
@@ -204,7 +204,7 @@ impl ExtObject for CompObj {
                 Ok(Value::bytes(run_compress(c, &data, Flush::None)?))
             }
             _ => {
-                let mode = args.first().map(want_int).transpose()?.unwrap_or(4);
+                let mode = int_or(args.first(), 4)?;
                 let flush = match mode {
                     0 => return Ok(Value::bytes(Vec::new())),
                     1 => Flush::Partial,
@@ -224,10 +224,10 @@ impl ExtObject for CompObj {
 
 fn compressobj(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let s = bind("compressobj", args, kw, &["level", "method", "wbits", "memLevel", "strategy", "zdict"], 0)?;
-    let level = level_of(s[0].as_ref().map(want_int).transpose()?.unwrap_or(-1))?;
-    let wrap = wrap_of(s[2].as_ref().map(want_int).transpose()?.unwrap_or(15))?;
-    let mem = s[3].as_ref().map(want_int).transpose()?.unwrap_or(8) as i32;
-    let strategy = strategy_of(s[4].as_ref().map(want_int).transpose()?.unwrap_or(0));
+    let level = level_of(int_or(s[0].as_ref(), -1)?)?;
+    let wrap = wrap_of(int_or(s[2].as_ref(), 15)?)?;
+    let mem = int_or(s[3].as_ref(), 8)? as i32;
+    let strategy = strategy_of(int_or(s[4].as_ref(), 0)?);
     Ok(Value::Ext(Rc::new(CompObj { state: RefCell::new(Some(new_compress(level, wrap, mem, strategy)?)) })))
 }
 
@@ -262,7 +262,7 @@ impl ExtObject for DecompObj {
             "decompress" => {
                 let s = bind("decompress", args, kw, &["data", "max_length"], 1)?;
                 let data = want_data(s[0].as_ref().unwrap())?;
-                let max = s[1].as_ref().map(want_int).transpose()?.unwrap_or(0);
+                let max = int_or(s[1].as_ref(), 0)?;
                 if max < 0 {
                     return Err(exc("ValueError", "max_length must be non-negative"));
                 }
@@ -283,8 +283,7 @@ impl ExtObject for DecompObj {
                 let (out, consumed, ended) = run_decompress(d, &input, max as usize)?;
                 let rest = input[consumed..].to_vec();
                 if ended {
-                    *self.eof.borrow_mut() = true;
-                    *self.unused.borrow_mut() = rest;
+                    self.end_stream(rest);
                 } else {
                     *self.tail.borrow_mut() = rest;
                 }
@@ -296,8 +295,7 @@ impl ExtObject for DecompObj {
                 let input = std::mem::take(&mut *self.tail.borrow_mut());
                 let (out, consumed, ended) = run_decompress(d, &input, 0)?;
                 if ended {
-                    *self.eof.borrow_mut() = true;
-                    *self.unused.borrow_mut() = input[consumed..].to_vec();
+                    self.end_stream(input[consumed..].to_vec());
                 }
                 Ok(Value::bytes(out))
             }
@@ -305,9 +303,17 @@ impl ExtObject for DecompObj {
     }
 }
 
+impl DecompObj {
+    /// O fluxo comprimido acabou: o que sobrou da entrada vira `unused_data`.
+    fn end_stream(&self, rest: Vec<u8>) {
+        *self.eof.borrow_mut() = true;
+        *self.unused.borrow_mut() = rest;
+    }
+}
+
 fn decompressobj(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let s = bind("decompressobj", args, kw, &["wbits", "zdict"], 0)?;
-    let wrap = wrap_of(s[0].as_ref().map(want_int).transpose()?.unwrap_or(15))?;
+    let wrap = wrap_of(int_or(s[0].as_ref(), 15)?)?;
     let state = match wrap {
         Wrap::Auto(_) => None,
         other => Some(new_decompress(other, &[])),
@@ -324,7 +330,7 @@ fn decompressobj(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 fn adler32(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let s = bind("adler32", args, kw, &["data", "value"], 1)?;
     let data = want_data(s[0].as_ref().unwrap())?;
-    let init = s[1].as_ref().map(want_int).transpose()?.unwrap_or(1) as u32;
+    let init = int_or(s[1].as_ref(), 1)? as u32;
     let (mut a, mut b) = (init & 0xffff, init >> 16);
     for chunk in data.chunks(5552) {
         for &x in chunk {
