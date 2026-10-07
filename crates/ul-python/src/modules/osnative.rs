@@ -34,28 +34,42 @@ pub(crate) fn os_error(e: Errno, path: Option<&str>) -> PyException {
         Some(p) => format!("[Errno {}] {}: '{p}'", e.0, e.message()),
         None => format!("[Errno {}] {}", e.0, e.message()),
     };
-    os_error_msg(e, msg)
-}
-
-/// A subclasse de `OSError` do `errno`, com a mensagem pronta.
-fn os_error_msg(e: Errno, msg: String) -> PyException {
     exc(error_kind(e), msg)
 }
 
-fn path_bytes(fname: &str, v: &Value) -> PyResult<Vec<u8>> {
-    match v {
-        Value::Str(s) => Ok(s.as_str().as_bytes().to_vec()),
-        Value::Bytes(b) => Ok(b.to_vec()),
-        other => Err(type_error(format!("{fname}: path should be string, bytes or os.PathLike, not {}", other.type_name()))),
+/// O erro de uma chamada ao sistema como `OSError`, com o caminho envolvido quando há um.
+trait OrOs<T> {
+    fn or_os(self, path: Option<&[u8]>) -> PyResult<T>;
+}
+
+impl<T> OrOs<T> for Result<T, Errno> {
+    fn or_os(self, path: Option<&[u8]>) -> PyResult<T> {
+        self.map_err(|e| os_error(e, path.map(String::from_utf8_lossy).as_deref()))
     }
 }
 
-fn shown(p: &[u8]) -> String {
-    String::from_utf8_lossy(p).into_owned()
+/// O caminho do argumento `v` (o posicional `i` de `fname`, que falta como `TypeError`): `str` ou
+/// `bytes`.
+fn path_bytes(fname: &str, v: Option<&Value>, i: usize) -> PyResult<Vec<u8>> {
+    match v {
+        Some(Value::Str(s)) => Ok(s.as_str().as_bytes().to_vec()),
+        Some(Value::Bytes(b)) => Ok(b.to_vec()),
+        Some(other) => Err(type_error(format!("{fname}: path should be string, bytes or os.PathLike, not {}", other.type_name()))),
+        None => Err(missing(fname, i)),
+    }
+}
+
+fn missing(fname: &str, i: usize) -> PyException {
+    type_error(format!("{fname}() missing required argument (pos {})", i + 1))
+}
+
+/// Bytes do sistema (nome, caminho, ambiente) como `str` do Python, com substituição do inválido.
+fn os_str(p: &[u8]) -> Value {
+    Value::str(String::from_utf8_lossy(p).into_owned())
 }
 
 fn arg<'a>(fname: &str, args: &'a [Value], i: usize) -> PyResult<&'a Value> {
-    args.get(i).ok_or_else(|| type_error(format!("{fname}() missing required argument (pos {})", i + 1)))
+    args.get(i).ok_or_else(|| missing(fname, i))
 }
 
 /// Só as palavras-chave em `names`, na ordem delas; qualquer outra é `TypeError`.
@@ -102,33 +116,33 @@ fn read_dir_fd(fd: Fd) -> Result<Vec<sysabi::DirEntry>, Errno> {
 /// O caminho de `listdir`/`scandir`: `str`, `bytes` ou um descritor de diretório.
 fn dir_entries(fname: &str, v: Option<&Value>) -> PyResult<Vec<sysabi::DirEntry>> {
     match v {
-        Some(Value::Int(fd)) => read_dir_fd(Fd(*fd as i32)).map_err(|e| os_error(e, None)),
+        Some(Value::Int(fd)) => read_dir_fd(Fd(*fd as i32)).or_os(None),
         Some(v) => {
-            let p = path_bytes(fname, v)?;
-            sys::read_dir(&p).map_err(|e| os_error(e, Some(&shown(&p))))
+            let p = path_bytes(fname, Some(v), 0)?;
+            sys::read_dir(&p).or_os(Some(&p))
         }
-        None => sys::read_dir(b".").map_err(|e| os_error(e, Some("."))),
+        None => sys::read_dir(b".").or_os(Some(b".")),
     }
 }
 
 fn getcwd(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("getcwd", &kw)?;
     let _ = args;
-    let cwd = sys::current().getcwd().map_err(|e| os_error(e, None))?;
-    Ok(Value::str(shown(&cwd)))
+    let cwd = sys::current().getcwd().or_os(None)?;
+    Ok(os_str(&cwd))
 }
 
 fn chdir(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("chdir", &kw)?;
-    let p = path_bytes("chdir", arg("chdir", &args, 0)?)?;
-    sys::current().chdir(&p).map_err(|e| os_error(e, Some(&shown(&p))))?;
+    let p = path_bytes("chdir", args.get(0), 0)?;
+    sys::current().chdir(&p).or_os(Some(&p))?;
     Ok(Value::None)
 }
 
 fn listdir(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("listdir", &kw)?;
     let entries = dir_entries("listdir", args.first())?;
-    Ok(Value::list(entries.into_iter().map(|e| Value::str(shown(&e.name))).collect()))
+    Ok(Value::list(entries.into_iter().map(|e| os_str(&e.name)).collect()))
 }
 
 /// `scandir`: lista de `(nome, tipo)` onde tipo é `"f"`, `"d"`, `"l"` ou `"o"`.
@@ -145,7 +159,7 @@ fn scandir(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
                     FileType::Symlink => "l",
                     _ => "o",
                 };
-                Value::tuple(vec![Value::str(shown(&e.name)), Value::str(kind)])
+                Value::tuple(vec![os_str(&e.name), Value::str(kind)])
             })
             .collect(),
     ))
@@ -171,52 +185,52 @@ fn stat_tuple(st: &sysabi::Stat) -> Value {
 fn stat(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let dir_fd = kw_dir_fd("stat", &kw)?;
     if let Value::Int(fd) = arg("stat", &args, 0)? {
-        return sys::current().fstat(Fd(*fd as i32)).map(|s| stat_tuple(&s)).map_err(|e| os_error(e, None));
+        return sys::current().fstat(Fd(*fd as i32)).map(|s| stat_tuple(&s)).or_os(None);
     }
-    let p = path_bytes("stat", arg("stat", &args, 0)?)?;
+    let p = path_bytes("stat", args.get(0), 0)?;
     let follow = args.get(1).is_none_or(Value::is_true);
     let flags = if follow { AtFlags::empty() } else { AtFlags::SYMLINK_NOFOLLOW };
     let st = sys::current().fstatat(dir_fd, &p, flags);
-    st.map(|s| stat_tuple(&s)).map_err(|e| os_error(e, Some(&shown(&p))))
+    st.map(|s| stat_tuple(&s)).or_os(Some(&p))
 }
 
 fn fstat(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("fstat", &kw)?;
     let fd = want_int(arg("fstat", &args, 0)?)? as i32;
-    sys::current().fstat(Fd(fd)).map(|s| stat_tuple(&s)).map_err(|e| os_error(e, None))
+    sys::current().fstat(Fd(fd)).map(|s| stat_tuple(&s)).or_os(None)
 }
 
 fn mkdir(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let dir_fd = kw_dir_fd("mkdir", &kw)?;
-    let p = path_bytes("mkdir", arg("mkdir", &args, 0)?)?;
+    let p = path_bytes("mkdir", args.get(0), 0)?;
     let mode = args.get(1).map_or(Ok(0o777), want_int)? as u32;
-    sys::current().mkdirat(dir_fd, &p, mode).map_err(|e| os_error(e, Some(&shown(&p))))?;
+    sys::current().mkdirat(dir_fd, &p, mode).or_os(Some(&p))?;
     Ok(Value::None)
 }
 
 fn unlink(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let dir_fd = kw_dir_fd("unlink", &kw)?;
-    let p = path_bytes("unlink", arg("unlink", &args, 0)?)?;
+    let p = path_bytes("unlink", args.get(0), 0)?;
     sys::current()
         .unlinkat(dir_fd, &p, AtFlags::empty())
-        .map_err(|e| os_error(e, Some(&shown(&p))))?;
+        .or_os(Some(&p))?;
     Ok(Value::None)
 }
 
 fn rmdir(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let dir_fd = kw_dir_fd("rmdir", &kw)?;
-    let p = path_bytes("rmdir", arg("rmdir", &args, 0)?)?;
+    let p = path_bytes("rmdir", args.get(0), 0)?;
     sys::current()
         .unlinkat(dir_fd, &p, AtFlags::REMOVEDIR)
-        .map_err(|e| os_error(e, Some(&shown(&p))))?;
+        .or_os(Some(&p))?;
     Ok(Value::None)
 }
 
 fn rename(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let o = kwopts("rename", &kw, &["src_dir_fd", "dst_dir_fd"])?;
     let (sd, dd) = (dir_fd_of(&o[0])?, dir_fd_of(&o[1])?);
-    let a = path_bytes("rename", arg("rename", &args, 0)?)?;
-    let b = path_bytes("rename", arg("rename", &args, 1)?)?;
+    let a = path_bytes("rename", args.get(0), 0)?;
+    let b = path_bytes("rename", args.get(1), 1)?;
     sys::current()
         .renameat2(sd, &a, dd, &b, sysabi::RenameFlags::empty())
         .map_err(|e| os_error2(e, &a, &b))?;
@@ -228,8 +242,8 @@ fn link(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let o = kwopts("link", &kw, &["src_dir_fd", "dst_dir_fd", "follow_symlinks"])?;
     let (sd, dd) = (dir_fd_of(&o[0])?, dir_fd_of(&o[1])?);
     let flags = if o[2].as_ref().is_some_and(Value::is_true) { AtFlags::SYMLINK_FOLLOW } else { AtFlags::empty() };
-    let a = path_bytes("link", arg("link", &args, 0)?)?;
-    let b = path_bytes("link", arg("link", &args, 1)?)?;
+    let a = path_bytes("link", args.get(0), 0)?;
+    let b = path_bytes("link", args.get(1), 1)?;
     sys::current().linkat(sd, &a, dd, &b, flags).map_err(|e| os_error2(e, &a, &b))?;
     Ok(Value::None)
 }
@@ -237,51 +251,51 @@ fn link(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 /// `mknod(path, mode, device, dir_fd=)`; o `mkfifo` do `os` passa `S_IFIFO` no modo.
 fn mknod(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let dir_fd = kw_dir_fd("mknod", &kw)?;
-    let p = path_bytes("mknod", arg("mknod", &args, 0)?)?;
+    let p = path_bytes("mknod", args.get(0), 0)?;
     let mode = args.get(1).map_or(Ok(0o600), want_int)? as u32;
     let dev = args.get(2).map_or(Ok(0), want_int)? as u64;
-    sys::current().mknodat(dir_fd, &p, mode, dev).map_err(|e| os_error(e, Some(&shown(&p))))?;
+    sys::current().mknodat(dir_fd, &p, mode, dev).or_os(Some(&p))?;
     Ok(Value::None)
 }
 
 /// Erro de função com dois caminhos (`link`, `rename`): `[Errno N] msg: 'a' -> 'b'`.
 fn os_error2(e: Errno, a: &[u8], b: &[u8]) -> PyException {
-    os_error_msg(e, format!("[Errno {}] {}: '{}' -> '{}'", e.0, e.message(), shown(a), shown(b)))
+    exc(error_kind(e), format!("[Errno {}] {}: '{}' -> '{}'", e.0, e.message(), String::from_utf8_lossy(a), String::from_utf8_lossy(b)))
 }
 
 fn readlink(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let dir_fd = kw_dir_fd("readlink", &kw)?;
-    let p = path_bytes("readlink", arg("readlink", &args, 0)?)?;
-    let t = sys::current().readlinkat(dir_fd, &p).map_err(|e| os_error(e, Some(&shown(&p))))?;
-    Ok(Value::str(shown(&t)))
+    let p = path_bytes("readlink", args.get(0), 0)?;
+    let t = sys::current().readlinkat(dir_fd, &p).or_os(Some(&p))?;
+    Ok(os_str(&t))
 }
 
 fn symlink(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let dir_fd = kw_dir_fd("symlink", &kw)?;
-    let target = path_bytes("symlink", arg("symlink", &args, 0)?)?;
-    let p = path_bytes("symlink", arg("symlink", &args, 1)?)?;
-    sys::current().symlinkat(&target, dir_fd, &p).map_err(|e| os_error(e, Some(&shown(&p))))?;
+    let target = path_bytes("symlink", args.get(0), 0)?;
+    let p = path_bytes("symlink", args.get(1), 1)?;
+    sys::current().symlinkat(&target, dir_fd, &p).or_os(Some(&p))?;
     Ok(Value::None)
 }
 
 fn chmod(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let dir_fd = kw_dir_fd("chmod", &kw)?;
-    let p = path_bytes("chmod", arg("chmod", &args, 0)?)?;
+    let p = path_bytes("chmod", args.get(0), 0)?;
     let mode = want_int(arg("chmod", &args, 1)?)? as u32;
-    sys::current().fchmodat(dir_fd, &p, mode, AtFlags::empty()).map_err(|e| os_error(e, Some(&shown(&p))))?;
+    sys::current().fchmodat(dir_fd, &p, mode, AtFlags::empty()).or_os(Some(&p))?;
     Ok(Value::None)
 }
 
 /// `chown(path, uid, gid)` e `lchown`: `-1` deixa o dono ou o grupo como está.
 fn chown_at(fname: &'static str, args: Vec<Value>, kw: Kw, flags: AtFlags) -> PyResult<Value> {
     let dir_fd = kw_dir_fd(fname, &kw)?;
-    let p = path_bytes(fname, arg(fname, &args, 0)?)?;
+    let p = path_bytes(fname, args.get(0), 0)?;
     let id = |i: usize| -> PyResult<Option<u32>> {
         let n = want_int(arg(fname, &args, i)?)?;
         Ok(if n < 0 { None } else { Some(n as u32) })
     };
     let (uid, gid) = (id(1)?, id(2)?);
-    sys::current().fchownat(dir_fd, &p, uid, gid, flags).map_err(|e| os_error(e, Some(&shown(&p))))?;
+    sys::current().fchownat(dir_fd, &p, uid, gid, flags).or_os(Some(&p))?;
     Ok(Value::None)
 }
 
@@ -296,7 +310,7 @@ fn lchown(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 /// `access(path, mode)` como booleano.
 fn access(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let dir_fd = kw_dir_fd("access", &kw)?;
-    let p = path_bytes("access", arg("access", &args, 0)?)?;
+    let p = path_bytes("access", args.get(0), 0)?;
     let mode = args.get(1).map_or(Ok(0), want_int)? as u32;
     let m = sysabi::AccessMode::from_bits_truncate(mode);
     Ok(Value::Bool(sys::current().faccessat(dir_fd, &p, m, AtFlags::empty()).is_ok()))
@@ -304,9 +318,9 @@ fn access(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 
 fn getenv(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("getenv", &kw)?;
-    let name = path_bytes("getenv", arg("getenv", &args, 0)?)?;
+    let name = path_bytes("getenv", args.get(0), 0)?;
     Ok(match sys::current().getenv(&name) {
-        Some(v) => Value::str(shown(&v)),
+        Some(v) => os_str(&v),
         None => Value::None,
     })
 }
@@ -319,7 +333,7 @@ fn environ(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
         .into_iter()
         .filter_map(|kv| {
             let at = kv.iter().position(|&b| b == b'=')?;
-            Some(Value::tuple(vec![Value::str(shown(&kv[..at])), Value::str(shown(&kv[at + 1..]))]))
+            Some(Value::tuple(vec![os_str(&kv[..at]), os_str(&kv[at + 1..])]))
         })
         .collect();
     Ok(Value::list(items))
@@ -327,34 +341,34 @@ fn environ(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
 
 fn setenv(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("putenv", &kw)?;
-    let k = path_bytes("putenv", arg("putenv", &args, 0)?)?;
-    let v = path_bytes("putenv", arg("putenv", &args, 1)?)?;
-    sys::current().setenv(&k, &v).map_err(|e| os_error(e, None))?;
+    let k = path_bytes("putenv", args.get(0), 0)?;
+    let v = path_bytes("putenv", args.get(1), 1)?;
+    sys::current().setenv(&k, &v).or_os(None)?;
     Ok(Value::None)
 }
 
 fn unsetenv(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("unsetenv", &kw)?;
-    let k = path_bytes("unsetenv", arg("unsetenv", &args, 0)?)?;
-    sys::current().unsetenv(&k).map_err(|e| os_error(e, None))?;
+    let k = path_bytes("unsetenv", args.get(0), 0)?;
+    sys::current().unsetenv(&k).or_os(None)?;
     Ok(Value::None)
 }
 
 /// `open(path, flags, mode)` cru: devolve o descritor.
 fn open(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let dir_fd = kw_dir_fd("open", &kw)?;
-    let p = path_bytes("open", arg("open", &args, 0)?)?;
+    let p = path_bytes("open", args.get(0), 0)?;
     let flags = want_int(arg("open", &args, 1)?)? as u32;
     let mode = args.get(2).map_or(Ok(0o666), want_int)? as u32;
     let fd = sys::current().openat(dir_fd, &p, OFlags::from_bits_truncate(flags) | OFlags::CLOEXEC, mode)
-        .map_err(|e| os_error(e, Some(&shown(&p))))?;
+        .or_os(Some(&p))?;
     Ok(Value::Int(i64::from(fd.0)))
 }
 
 fn close(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("close", &kw)?;
     let fd = want_int(arg("close", &args, 0)?)? as i32;
-    sys::close(Fd(fd)).map_err(|e| os_error(e, None))?;
+    sys::close(Fd(fd)).or_os(None)?;
     Ok(Value::None)
 }
 
@@ -364,10 +378,10 @@ fn read(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let fd = Fd(want_int(arg("read", &args, 0)?)? as i32);
     let n = want_int(arg("read", &args, 1)?)?;
     if n < 0 {
-        return sys::read_to_end(fd).map(Value::bytes).map_err(|e| os_error(e, None));
+        return sys::read_to_end(fd).map(Value::bytes).or_os(None);
     }
     let mut buf = vec![0u8; n as usize];
-    let got = sys::read(fd, &mut buf).map_err(|e| os_error(e, None))?;
+    let got = sys::read(fd, &mut buf).or_os(None)?;
     buf.truncate(got);
     Ok(Value::bytes(buf))
 }
@@ -382,7 +396,7 @@ fn write(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         Value::Str(s) => s.as_str().as_bytes().to_vec(),
         other => return Err(type_error(format!("a bytes-like object is required, not '{}'", other.type_name()))),
     };
-    sys::write_all(fd, &data).map_err(|e| os_error(e, None))?;
+    sys::write_all(fd, &data).or_os(None)?;
     Ok(Value::Int(data.len() as i64))
 }
 
@@ -395,7 +409,7 @@ fn lseek(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         1 => Whence::Cur,
         _ => Whence::End,
     };
-    let pos = sys::current().lseek(fd, off, whence).map_err(|e| os_error(e, None))?;
+    let pos = sys::current().lseek(fd, off, whence).or_os(None)?;
     Ok(Value::Int(pos as i64))
 }
 
@@ -410,7 +424,7 @@ fn uname(_vm: &mut Vm, _args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("uname", &kw)?;
     let u = sys::current().uname();
     Ok(Value::tuple(
-        [&u.sysname, &u.nodename, &u.release, &u.version, &u.machine].iter().map(|f| Value::str(shown(f))).collect(),
+        [&u.sysname, &u.nodename, &u.release, &u.version, &u.machine].iter().map(|f| os_str(f)).collect(),
     ))
 }
 
@@ -418,10 +432,10 @@ fn uname(_vm: &mut Vm, _args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 fn statvfs(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("statvfs", &kw)?;
     let st = match arg("statvfs", &args, 0)? {
-        Value::Int(fd) => sys::current().fstatfs(Fd(*fd as i32)).map_err(|e| os_error(e, None))?,
+        Value::Int(fd) => sys::current().fstatfs(Fd(*fd as i32)).or_os(None)?,
         v => {
-            let p = path_bytes("statvfs", v)?;
-            sys::current().statfs(&p).map_err(|e| os_error(e, Some(&shown(&p))))?
+            let p = path_bytes("statvfs", Some(v), 0)?;
+            sys::current().statfs(&p).or_os(Some(&p))?
         }
     };
     let n = |v: u64| Value::Int(v as i64);
@@ -518,7 +532,7 @@ fn setids(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         }
         _ => return Err(type_error("_setids: unknown name")),
     };
-    r.map_err(|e| os_error(e, None))?;
+    r.or_os(None)?;
     Ok(Value::None)
 }
 
@@ -526,7 +540,7 @@ fn setids(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 fn fsync(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("fsync", &kw)?;
     let fd = Fd(want_int(arg("fsync", &args, 0)?)? as i32);
-    sys::current().fsync(fd).map_err(|e| os_error(e, None))?;
+    sys::current().fsync(fd).or_os(None)?;
     Ok(Value::None)
 }
 
@@ -544,7 +558,7 @@ fn ftruncate(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("ftruncate", &kw)?;
     let fd = Fd(want_int(arg("ftruncate", &args, 0)?)? as i32);
     let n = want_int(arg("ftruncate", &args, 1)?)?;
-    sys::current().ftruncate(fd, n as u64).map_err(|e| os_error(e, None))?;
+    sys::current().ftruncate(fd, n as u64).or_os(None)?;
     Ok(Value::None)
 }
 
@@ -567,7 +581,7 @@ fn clock(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         };
         return Ok(Value::tuple(vec![Value::Int(d.as_secs() as i64), Value::Int(i64::from(d.subsec_nanos()))]));
     };
-    let t = process.clock_gettime(which).map_err(|e| os_error(e, None))?;
+    let t = process.clock_gettime(which).or_os(None)?;
     Ok(Value::tuple(vec![Value::Int(t.sec), Value::Int(i64::from(t.nsec))]))
 }
 
@@ -597,7 +611,7 @@ fn sleep(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         }
         vm.deliver_signals()?;
     }
-    sys::current().nanosleep(std::time::Duration::from_secs_f64(secs)).map_err(|e| os_error(e, None))?;
+    sys::current().nanosleep(std::time::Duration::from_secs_f64(secs)).or_os(None)?;
     vm.deliver_signals()?;
     Ok(Value::None)
 }
@@ -627,7 +641,7 @@ fn urandom(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let mut buf = vec![0u8; n as usize];
     let mut filled = 0;
     while filled < buf.len() {
-        let got = sys::current().getrandom(&mut buf[filled..]).map_err(|e| os_error(e, None))?;
+        let got = sys::current().getrandom(&mut buf[filled..]).or_os(None)?;
         if got == 0 {
             break;
         }
@@ -639,7 +653,7 @@ fn urandom(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 /// `utime(path, atime, mtime)`, com segundos (float ou int); `None` nos dois significa agora.
 fn utime(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let dir_fd = kw_dir_fd("utime", &kw)?;
-    let path = path_bytes("utime", arg("utime", &args, 0)?)?;
+    let path = path_bytes("utime", args.get(0), 0)?;
     let at = |v: Option<&Value>| -> PyResult<sysabi::SetTime> {
         Ok(match v {
             None | Some(Value::None) => sysabi::SetTime::Now,
@@ -653,7 +667,7 @@ fn utime(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let (a, m) = (at(args.get(1))?, at(args.get(2))?);
     sys::current()
         .utimensat(dir_fd, &path, a, m, AtFlags::empty())
-        .map_err(|e| os_error(e, Some(&shown(&path))))?;
+        .or_os(Some(&path))?;
     Ok(Value::None)
 }
 
@@ -663,7 +677,7 @@ fn execve(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("execve", &kw)?;
     let path = match arg("execve", &args, 0)? {
         Value::Int(fd) => format!("/proc/self/fd/{fd}").into_bytes(),
-        v => path_bytes("execve", v)?,
+        v => path_bytes("execve", Some(v), 0)?,
     };
     let argv = want_bytes_list("execve", arg("execve", &args, 1)?)?;
     let env = match args.get(2) {
@@ -679,14 +693,14 @@ fn want_bytes_list(fname: &str, v: &Value) -> PyResult<Vec<Vec<u8>>> {
         Value::Tuple(t) => t.to_vec(),
         other => return Err(type_error(format!("{fname}: expected a list, not {}", other.type_name()))),
     };
-    items.iter().map(|i| path_bytes(fname, i)).collect()
+    items.iter().map(|i| path_bytes(fname, Some(i), 0)).collect()
 }
 
 /// `spawn(path, argv, env, cwd, dups, closes)` devolve o pid. `env` e `cwd` podem ser `None` (herda);
 /// `dups` é lista de `(de, para)` aplicada na ordem e `closes` a lista de fds fechados no filho.
 fn spawn(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("spawn", &kw)?;
-    let path = path_bytes("spawn", arg("spawn", &args, 0)?)?;
+    let path = path_bytes("spawn", args.get(0), 0)?;
     let argv = want_bytes_list("spawn", arg("spawn", &args, 1)?)?;
     let env = match arg("spawn", &args, 2)? {
         Value::None => None,
@@ -694,7 +708,7 @@ fn spawn(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     };
     let cwd = match arg("spawn", &args, 3)? {
         Value::None => None,
-        v => Some(path_bytes("spawn", v)?),
+        v => Some(path_bytes("spawn", Some(v), 0)?),
     };
     let mut fd_actions = Vec::new();
     if let Value::List(l) = arg("spawn", &args, 4)? {
@@ -720,7 +734,7 @@ fn spawn(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         argv,
         attrs: sysabi::ProcAttrs { env, cwd, fd_actions, reset_signals, ..sysabi::ProcAttrs::default() },
     };
-    let pid = sys::current().spawn(spec).map_err(|e| os_error(e, Some(&shown(&path))))?;
+    let pid = sys::current().spawn(spec).or_os(Some(&path))?;
     Ok(Value::Int(i64::from(pid)))
 }
 
@@ -751,7 +765,7 @@ fn wait(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 }
 
 fn pipe(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
-    let (r, w) = sys::current().pipe2(OFlags::CLOEXEC).map_err(|e| os_error(e, None))?;
+    let (r, w) = sys::current().pipe2(OFlags::CLOEXEC).or_os(None)?;
     Ok(Value::tuple(vec![Value::Int(i64::from(r.0)), Value::Int(i64::from(w.0))]))
 }
 
@@ -761,7 +775,7 @@ fn set_blocking(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let fd = want_int(arg("set_blocking", &args, 0)?)? as i32;
     let blocking = arg("set_blocking", &args, 1)?.is_true();
     let flags = if blocking { OFlags::empty() } else { OFlags::NONBLOCK };
-    sys::current().set_status_flags(Fd(fd), flags).map_err(|e| os_error(e, None))?;
+    sys::current().set_status_flags(Fd(fd), flags).or_os(None)?;
     Ok(Value::None)
 }
 
@@ -789,7 +803,7 @@ fn sigaction(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         1 => sysabi::SigDisposition::Ignore,
         _ => sysabi::SigDisposition::Catch,
     };
-    sys::current().sigaction(sysabi::Signal(sig), disposition).map_err(|e| os_error(e, None))?;
+    sys::current().sigaction(sysabi::Signal(sig), disposition).or_os(None)?;
     if disposition == sysabi::SigDisposition::Catch {
         let _ = crate::vm::SIGNAL_THREAD.set(std::thread::current().id());
         crate::vm::SIGNALS_ARMED.store(true, std::sync::atomic::Ordering::Relaxed);
@@ -827,7 +841,7 @@ fn tcp_listen(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let port = want_port("tcp_listen", &args, 0)?;
     let backlog = want_int(arg("tcp_listen", &args, 1)?)?.clamp(0, i64::from(u32::MAX)) as u32;
     let ip = want_ip(&args, 2, std::net::Ipv4Addr::UNSPECIFIED.into());
-    let (fd, port) = sys::tcp_listen_at(ip, port, backlog, true, true).map_err(|e| os_error(e, None))?;
+    let (fd, port) = sys::tcp_listen_at(ip, port, backlog, true, true).or_os(None)?;
     Ok(Value::tuple(vec![Value::Int(i64::from(fd.0)), Value::Int(i64::from(port))]))
 }
 
@@ -856,7 +870,7 @@ fn tcp_connect(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("tcp_connect", &kw)?;
     let port = want_port("tcp_connect", &args, 0)?;
     let ip = want_ip(&args, 1, std::net::Ipv4Addr::LOCALHOST.into());
-    let (fd, local) = sys::tcp_connect_at(ip, port, true, true).map_err(|e| os_error(e, None))?;
+    let (fd, local) = sys::tcp_connect_at(ip, port, true, true).or_os(None)?;
     Ok(Value::tuple(vec![Value::Int(i64::from(fd.0)), Value::Int(i64::from(local))]))
 }
 
@@ -866,7 +880,7 @@ fn tcp_shutdown(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let fd = Fd(want_int(arg("tcp_shutdown", &args, 0)?)? as i32);
     let read = arg("tcp_shutdown", &args, 1)?.is_true();
     let write = arg("tcp_shutdown", &args, 2)?.is_true();
-    sys::tcp_shutdown(fd, read, write).map_err(|e| os_error(e, None))?;
+    sys::tcp_shutdown(fd, read, write).or_os(None)?;
     Ok(Value::None)
 }
 
@@ -897,7 +911,7 @@ fn tcp_send(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
             Ok(n) => off += n,
             Err(Errno::EAGAIN) => {
                 let mut pfd = [sysabi::PollFd { fd, events: sysabi::PollEvents::OUT, revents: sysabi::PollEvents::empty() }];
-                sys::current().poll(&mut pfd, None).map_err(|e| os_error(e, None))?;
+                sys::current().poll(&mut pfd, None).or_os(None)?;
             }
             Err(e) => return Err(os_error(e, None)),
         }
@@ -923,7 +937,7 @@ fn tcp_poll(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     for v in &list {
         pfds.push(sysabi::PollFd { fd: Fd(want_int(v)? as i32), events: sysabi::PollEvents::IN, revents: sysabi::PollEvents::empty() });
     }
-    sys::current().poll(&mut pfds, timeout).map_err(|e| os_error(e, None))?;
+    sys::current().poll(&mut pfds, timeout).or_os(None)?;
     let ready = pfds.iter().filter(|p| !p.revents.is_empty()).map(|p| Value::Int(i64::from(p.fd.0))).collect();
     Ok(Value::list(ready))
 }
@@ -950,7 +964,7 @@ fn unix_socket(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("unix_socket", &kw)?;
     need_kernel()?;
     let ty = want_int(arg("unix_socket", &args, 0)?)? as u8;
-    let fd = sys::unix_socket(ty, true, true).map_err(|e| os_error(e, None))?;
+    let fd = sys::unix_socket(ty, true, true).or_os(None)?;
     Ok(Value::Int(i64::from(fd.0)))
 }
 
@@ -959,7 +973,7 @@ fn unix_socketpair(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("unix_socketpair", &kw)?;
     need_kernel()?;
     let ty = want_int(arg("unix_socketpair", &args, 0)?)? as u8;
-    let (a, b) = sys::unix_socketpair(ty, true, true).map_err(|e| os_error(e, None))?;
+    let (a, b) = sys::unix_socketpair(ty, true, true).or_os(None)?;
     Ok(Value::tuple(vec![Value::Int(i64::from(a.0)), Value::Int(i64::from(b.0))]))
 }
 
@@ -968,7 +982,7 @@ fn unix_bind(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("unix_bind", &kw)?;
     let fd = want_fd("unix_bind", &args, 0)?;
     let name = want_name("unix_bind", &args, 1)?;
-    sys::unix_bind(fd, &name).map_err(|e| os_error(e, None))?;
+    sys::unix_bind(fd, &name).or_os(None)?;
     Ok(Value::None)
 }
 
@@ -977,7 +991,7 @@ fn unix_listen(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("unix_listen", &kw)?;
     let fd = want_fd("unix_listen", &args, 0)?;
     let backlog = want_int(arg("unix_listen", &args, 1)?)?.clamp(0, i64::from(u32::MAX)) as u32;
-    sys::unix_listen(fd, backlog).map_err(|e| os_error(e, None))?;
+    sys::unix_listen(fd, backlog).or_os(None)?;
     Ok(Value::None)
 }
 
@@ -1008,7 +1022,7 @@ fn unix_connect(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 fn unix_names(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("unix_names", &kw)?;
     let fd = want_fd("unix_names", &args, 0)?;
-    let (me, peer, connected) = sys::unix_names(fd).map_err(|e| os_error(e, None))?;
+    let (me, peer, connected) = sys::unix_names(fd).or_os(None)?;
     Ok(Value::tuple(vec![opt_bytes(me), opt_bytes(peer), Value::Bool(connected)]))
 }
 
@@ -1077,7 +1091,7 @@ impl crate::object::ExtObject for FdGuard {
         match name {
             "close" => {
                 if fd >= 0 {
-                    sys::close(Fd(fd)).map_err(|e| os_error(e, None))?;
+                    sys::close(Fd(fd)).or_os(None)?;
                 }
                 Ok(Value::None)
             }
@@ -1109,7 +1123,7 @@ fn udp_socket(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("udp_socket", &kw)?;
     need_kernel()?;
     let v6 = arg("udp_socket", &args, 0)?.is_true();
-    let fd = sys::udp_socket(v6, true, true).map_err(|e| os_error(e, None))?;
+    let fd = sys::udp_socket(v6, true, true).or_os(None)?;
     Ok(Value::Int(i64::from(fd.0)))
 }
 
@@ -1120,7 +1134,7 @@ fn udp_bind(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let ip = want_ip_arg("udp_bind", &args, 1)?;
     let port = want_port("udp_bind", &args, 2)?;
     let reuse = args.get(3).is_some_and(Value::is_true);
-    let port = sys::udp_bind(fd, ip, port, reuse).map_err(|e| os_error(e, None))?;
+    let port = sys::udp_bind(fd, ip, port, reuse).or_os(None)?;
     Ok(Value::Int(i64::from(port)))
 }
 
@@ -1130,7 +1144,7 @@ fn udp_connect(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let fd = want_fd("udp_connect", &args, 0)?;
     let ip = want_ip_arg("udp_connect", &args, 1)?;
     let port = want_port("udp_connect", &args, 2)?;
-    sys::udp_connect(fd, ip, port).map_err(|e| os_error(e, None))?;
+    sys::udp_connect(fd, ip, port).or_os(None)?;
     Ok(Value::None)
 }
 
@@ -1143,7 +1157,7 @@ fn udp_sendto(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         None | Some(Value::None) => None,
         Some(_) => Some((want_ip_arg("udp_sendto", &args, 2)?, want_port("udp_sendto", &args, 3)?)),
     };
-    let n = sys::udp_sendto(fd, &data, dst).map_err(|e| os_error(e, None))?;
+    let n = sys::udp_sendto(fd, &data, dst).or_os(None)?;
     Ok(Value::Int(n as i64))
 }
 
@@ -1164,7 +1178,7 @@ fn udp_recvfrom(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 fn udp_names(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("udp_names", &kw)?;
     let fd = want_fd("udp_names", &args, 0)?;
-    let (me, peer) = sys::udp_names(fd).map_err(|e| os_error(e, None))?;
+    let (me, peer) = sys::udp_names(fd).or_os(None)?;
     Ok(Value::tuple(vec![addr_value(me), peer.map_or(Value::None, addr_value)]))
 }
 
