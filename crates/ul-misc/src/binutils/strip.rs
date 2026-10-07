@@ -23,6 +23,8 @@ use crate::strings::{TARGETS, expand_response_files};
 use crate::util::io::{self, File};
 use crate::util::{Getopt, HasArg, LongOpt};
 
+use super::elf::{cstr, is_elf64_le, rd16, rd32, rd64};
+
 const SHORTOPTS: &str = "I:O:F:K:N:R:o:sSgdxXpVvhHwDUM";
 
 const ID_KEEP_SECTION: i32 = 256;
@@ -142,30 +144,8 @@ struct Parsed {
     segs: Vec<(u64, u64)>,
 }
 
-fn rd16(d: &[u8], at: usize) -> Option<u16> {
-    let b = d.get(at..at.checked_add(2)?)?;
-    Some(u16::from_le_bytes([b[0], b[1]]))
-}
-
-fn rd32(d: &[u8], at: usize) -> Option<u32> {
-    let b = d.get(at..at.checked_add(4)?)?;
-    Some(u32::from_le_bytes([b[0], b[1], b[2], b[3]]))
-}
-
-fn rd64(d: &[u8], at: usize) -> Option<u64> {
-    let b = d.get(at..at.checked_add(8)?)?;
-    let mut v = [0u8; 8];
-    v.copy_from_slice(b);
-    Some(u64::from_le_bytes(v))
-}
-
-fn cstr(table: &[u8], off: usize) -> Vec<u8> {
-    let tail = table.get(off..).unwrap_or(&[]);
-    tail[..tail.iter().position(|&b| b == 0).unwrap_or(tail.len())].to_vec()
-}
-
 fn parse(d: &[u8]) -> Option<Parsed> {
-    if d.len() < 64 || &d[..4] != b"\x7fELF" || d[4] != 2 || d[5] != 1 {
+    if !is_elf64_le(d) {
         return None;
     }
     let etype = rd16(d, 16)?;

@@ -28,6 +28,7 @@ use crate::strings::{TARGETS, expand_response_files};
 use crate::util::io::{self, File};
 use crate::util::{Getopt, HasArg, LongOpt};
 
+use super::elf::{is_elf64_le, rd32, rd64};
 use super::strip::{Mode, strip_bytes};
 
 const SHORTOPTS: &str = "I:O:B:F:K:N:R:L:G:W:j:b:i:pDUSgxXwMvVhH";
@@ -337,37 +338,21 @@ struct Table {
     hdrs: Vec<Shdr>,
 }
 
-fn is_elf64_le(d: &[u8]) -> bool {
-    d.len() >= 64 && &d[..4] == b"\x7fELF" && d[4] == 2 && d[5] == 1
-}
-
-fn le64(d: &[u8], at: usize) -> Option<u64> {
-    let b = d.get(at..at.checked_add(8)?)?;
-    let mut v = [0u8; 8];
-    v.copy_from_slice(b);
-    Some(u64::from_le_bytes(v))
-}
-
-fn le32(d: &[u8], at: usize) -> Option<u32> {
-    let b = d.get(at..at.checked_add(4)?)?;
-    Some(u32::from_le_bytes([b[0], b[1], b[2], b[3]]))
-}
-
 fn read_table(d: &[u8]) -> Option<Table> {
     if !is_elf64_le(d) {
         return None;
     }
-    let shoff = usize::try_from(le64(d, 40)?).ok()?;
+    let shoff = usize::try_from(rd64(d, 40)?).ok()?;
     if shoff == 0 {
         return None;
     }
     let mut shnum = usize::from(u16::from_le_bytes([d[60], d[61]]));
     let mut shstrndx = usize::from(u16::from_le_bytes([d[62], d[63]]));
     if shnum == 0 {
-        shnum = usize::try_from(le64(d, shoff.checked_add(32)?)?).ok()?;
+        shnum = usize::try_from(rd64(d, shoff.checked_add(32)?)?).ok()?;
     }
     if shstrndx == 0xffff {
-        shstrndx = le32(d, shoff.checked_add(40)?)? as usize;
+        shstrndx = rd32(d, shoff.checked_add(40)?)? as usize;
     }
     let end = shoff.checked_add(shnum.checked_mul(64)?)?;
     if end > d.len() {

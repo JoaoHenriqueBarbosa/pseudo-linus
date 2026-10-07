@@ -22,6 +22,8 @@ use crate::strings::expand_response_files;
 use crate::util::io;
 use crate::util::{Getopt, HasArg, LongOpt};
 
+use super::elf::{SHT_VERDEF, SHT_VERNEED, Versions, cstr, cstr_lossy, is_elf64_le, rd16, rd32, rd64, slice_at, walk_chain};
+
 const SHORTOPTS: &str = "pP:ib:m:M:VvCdDlfFaHhrRtTxsSj:wzZgeGWLI:E:";
 
 const ID_IGNORE_FLAG: i32 = 300;
@@ -125,9 +127,6 @@ const SHT_REL: u32 = 9;
 const SHT_DYNSYM: u32 = 11;
 const SHT_GROUP: u32 = 17;
 const SHT_SYMTAB_SHNDX: u32 = 18;
-const SHT_VERDEF: u32 = 0x6fff_fffd;
-const SHT_VERNEED: u32 = 0x6fff_fffe;
-const SHT_VERSYM: u32 = 0x6fff_ffff;
 
 const STT_SECTION: u8 = 3;
 const STT_FILE: u8 = 4;
@@ -184,43 +183,10 @@ struct Elf<'a> {
     ph: Vec<Phdr>,
 }
 
-fn rd16(d: &[u8], at: usize) -> Option<u16> {
-    let b = d.get(at..at.checked_add(2)?)?;
-    Some(u16::from_le_bytes([b[0], b[1]]))
-}
-
-fn rd32(d: &[u8], at: usize) -> Option<u32> {
-    let b = d.get(at..at.checked_add(4)?)?;
-    Some(u32::from_le_bytes([b[0], b[1], b[2], b[3]]))
-}
-
-fn rd64(d: &[u8], at: usize) -> Option<u64> {
-    let b = d.get(at..at.checked_add(8)?)?;
-    let mut v = [0u8; 8];
-    v.copy_from_slice(b);
-    Some(u64::from_le_bytes(v))
-}
-
-fn cstr(table: &[u8], off: usize) -> Vec<u8> {
-    let tail = table.get(off..).unwrap_or(&[]);
-    tail[..tail.iter().position(|&b| b == 0).unwrap_or(tail.len())].to_vec()
-}
-
-fn cstr_lossy(table: &[u8], off: usize) -> String {
-    String::from_utf8_lossy(&cstr(table, off)).into_owned()
-}
-
-fn slice_at(d: &[u8], off: u64, size: u64) -> &[u8] {
-    let (Ok(o), Ok(n)) = (usize::try_from(off), usize::try_from(size)) else {
-        return &[];
-    };
-    o.checked_add(n).and_then(|end| d.get(o..end)).unwrap_or(&[])
-}
-
 impl<'a> Elf<'a> {
     /// Interpreta cabeçalho, tabela de seções e program headers. `None` se não for ELF64 LE íntegro.
     fn parse(d: &'a [u8]) -> Option<Elf<'a>> {
-        if d.len() < 64 || &d[..4] != b"\x7fELF" || d[4] != 2 || d[5] != 1 {
+        if !is_elf64_le(d) {
             return None;
         }
         let etype = rd16(d, 16)?;
@@ -322,6 +288,11 @@ impl<'a> Elf<'a> {
             Some(s) if s.kind != SHT_NOBITS => slice_at(self.d, s.offset, s.size),
             _ => &[],
         }
+    }
+
+    /// As versões dos símbolos dinâmicos, lidas das seções `.gnu.version*`.
+    fn versions(&self) -> Versions {
+        Versions::load(self.sh.iter().enumerate().map(|(i, s)| (s.kind, s.info, self.data(i), self.data(s.link as usize))))
     }
 
     fn symtab_index(&self) -> Option<usize> {
@@ -986,195 +957,52 @@ fn print_private(e: &Elf<'_>, out: &mut String) {
     print_version_refs(e, out);
 }
 
+/// A seção de versões do tipo `kind`, depois do título: (conteúdo, tabela de strings, registros).
+fn version_section<'a>(e: &Elf<'a>, kind: u32, title: &str, out: &mut String) -> Option<(&'a [u8], &'a [u8], usize)> {
+    let si = e.sh.iter().position(|s| s.kind == kind)?;
+    let s = &e.sh[si];
+    ensure_blank(out);
+    out.push_str(title);
+    Some((e.data(si), e.data(s.link as usize), s.info as usize))
+}
+
 fn print_version_defs(e: &Elf<'_>, out: &mut String) {
-    let Some(si) = e.sh.iter().position(|s| s.kind == SHT_VERDEF) else {
+    let Some((data, strtab, count)) = version_section(e, SHT_VERDEF, "Version definitions:\n", out) else {
         return;
     };
-    let s = &e.sh[si];
-    let data = e.data(si);
-    let strtab = e.data(s.link as usize);
-    ensure_blank(out);
-    out.push_str("Version definitions:\n");
-    let mut off = 0usize;
-    for _ in 0..s.info {
-        let (Some(flags), Some(ndx), Some(cnt), Some(hash), Some(aux), Some(next)) = (
-            rd16(data, off + 2),
-            rd16(data, off + 4),
-            rd16(data, off + 6),
-            rd32(data, off + 8),
-            rd32(data, off + 12),
-            rd32(data, off + 16),
-        ) else {
-            break;
-        };
+    walk_chain(data, 0, count, 16, |off| {
+        let (flags, ndx, cnt, hash, aux) =
+            (rd16(data, off + 2)?, rd16(data, off + 4)?, rd16(data, off + 6)?, rd32(data, off + 8)?, rd32(data, off + 12)?);
         let mut line = format!("{ndx} 0x{flags:02x} 0x{hash:08x} ");
-        let mut a = off + aux as usize;
-        for k in 0..cnt {
-            let (Some(name), Some(anext)) = (rd32(data, a), rd32(data, a + 4)) else {
-                break;
-            };
-            if k > 0 {
+        let mut first = true;
+        walk_chain(data, off + aux as usize, usize::from(cnt), 4, |a| {
+            let name = rd32(data, a)?;
+            if !std::mem::take(&mut first) {
                 line.push_str("\n\t");
             }
             line.push_str(&cstr_lossy(strtab, name as usize));
-            if anext == 0 {
-                break;
-            }
-            a += anext as usize;
-        }
+            Some(())
+        });
         out.push_str(&line);
         out.push('\n');
-        if next == 0 {
-            break;
-        }
-        off += next as usize;
-    }
+        Some(())
+    });
 }
 
 fn print_version_refs(e: &Elf<'_>, out: &mut String) {
-    let Some(si) = e.sh.iter().position(|s| s.kind == SHT_VERNEED) else {
+    let Some((data, strtab, count)) = version_section(e, SHT_VERNEED, "Version References:\n", out) else {
         return;
     };
-    let s = &e.sh[si];
-    let data = e.data(si);
-    let strtab = e.data(s.link as usize);
-    ensure_blank(out);
-    out.push_str("Version References:\n");
-    let mut off = 0usize;
-    for _ in 0..s.info {
-        let (Some(cnt), Some(file), Some(aux), Some(next)) = (
-            rd16(data, off + 2),
-            rd32(data, off + 4),
-            rd32(data, off + 8),
-            rd32(data, off + 12),
-        ) else {
-            break;
-        };
-        out.push_str(&format!(
-            "  required from {}:\n",
-            cstr_lossy(strtab, file as usize)
-        ));
-        let mut a = off + aux as usize;
-        for _ in 0..cnt {
-            let (Some(hash), Some(flags), Some(other), Some(name), Some(anext)) = (
-                rd32(data, a),
-                rd16(data, a + 4),
-                rd16(data, a + 6),
-                rd32(data, a + 8),
-                rd32(data, a + 12),
-            ) else {
-                break;
-            };
-            out.push_str(&format!(
-                "    0x{hash:08x} 0x{flags:02x} {other:02} {}\n",
-                cstr_lossy(strtab, name as usize)
-            ));
-            if anext == 0 {
-                break;
-            }
-            a += anext as usize;
-        }
-        if next == 0 {
-            break;
-        }
-        off += next as usize;
-    }
-}
-
-/// Informação de versão por símbolo dinâmico (`.gnu.version`, `.gnu.version_r`, `.gnu.version_d`).
-struct Versions {
-    versym: Vec<u16>,
-    /// (índice, nome, vem de verneed)
-    names: Vec<(u16, String, bool)>,
-    has_verdef: bool,
-}
-
-fn load_versions(e: &Elf<'_>) -> Versions {
-    let mut v = Versions {
-        versym: Vec::new(),
-        names: Vec::new(),
-        has_verdef: false,
-    };
-    for (i, s) in e.sh.iter().enumerate() {
-        let data = e.data(i);
-        let strtab = e.data(s.link as usize);
-        match s.kind {
-            SHT_VERSYM => {
-                v.versym = data
-                    .chunks_exact(2)
-                    .map(|c| u16::from_le_bytes([c[0], c[1]]))
-                    .collect();
-            }
-            SHT_VERNEED => {
-                let mut off = 0usize;
-                for _ in 0..s.info {
-                    let (Some(cnt), Some(aux), Some(next)) = (
-                        rd16(data, off + 2),
-                        rd32(data, off + 8),
-                        rd32(data, off + 12),
-                    ) else {
-                        break;
-                    };
-                    let mut a = off + aux as usize;
-                    for _ in 0..cnt {
-                        let (Some(other), Some(name), Some(anext)) = (
-                            rd16(data, a + 6),
-                            rd32(data, a + 8),
-                            rd32(data, a + 12),
-                        ) else {
-                            break;
-                        };
-                        v.names
-                            .push((other, cstr_lossy(strtab, name as usize), true));
-                        if anext == 0 {
-                            break;
-                        }
-                        a += anext as usize;
-                    }
-                    if next == 0 {
-                        break;
-                    }
-                    off += next as usize;
-                }
-            }
-            SHT_VERDEF => {
-                v.has_verdef = true;
-                let mut off = 0usize;
-                for _ in 0..s.info {
-                    let (Some(ndx), Some(aux), Some(next)) = (
-                        rd16(data, off + 4),
-                        rd32(data, off + 12),
-                        rd32(data, off + 16),
-                    ) else {
-                        break;
-                    };
-                    if let Some(name) = rd32(data, off + aux as usize) {
-                        v.names
-                            .push((ndx, cstr_lossy(strtab, name as usize), false));
-                    }
-                    if next == 0 {
-                        break;
-                    }
-                    off += next as usize;
-                }
-            }
-            _ => {}
-        }
-    }
-    v
-}
-
-impl Versions {
-    /// Versão do símbolo `n`: (nome, oculta). `None` se não houver versão a mostrar.
-    fn of(&self, n: usize) -> Option<(String, bool)> {
-        let vs = *self.versym.get(n)?;
-        let idx = vs & 0x7fff;
-        if idx < 2 {
-            return None;
-        }
-        let (_, name, need) = self.names.iter().find(|(k, _, _)| *k == idx)?;
-        Some((name.clone(), *need || vs & 0x8000 != 0))
-    }
+    walk_chain(data, 0, count, 12, |off| {
+        let (cnt, file, aux) = (rd16(data, off + 2)?, rd32(data, off + 4)?, rd32(data, off + 8)?);
+        out.push_str(&format!("  required from {}:\n", cstr_lossy(strtab, file as usize)));
+        walk_chain(data, off + aux as usize, usize::from(cnt), 12, |a| {
+            let (hash, flags, other, name) = (rd32(data, a)?, rd16(data, a + 4)?, rd16(data, a + 6)?, rd32(data, a + 8)?);
+            out.push_str(&format!("    0x{hash:08x} 0x{flags:02x} {other:02} {}\n", cstr_lossy(strtab, name as usize)));
+            Some(())
+        });
+        Some(())
+    });
 }
 
 fn section_label(e: &Elf<'_>, shndx: u16) -> String {
@@ -1234,7 +1062,7 @@ fn print_symbols(e: &Elf<'_>, dynamic: bool, out: &mut String) {
         out.push_str("no symbols\n\n");
         return;
     };
-    let versions = if dynamic { Some(load_versions(e)) } else { None };
+    let versions = if dynamic { Some(e.versions()) } else { None };
     for (n, s) in e.read_syms(idx).iter().enumerate().skip(1) {
         let typ = s.info & 0xf;
         let name = if typ == STT_SECTION {
@@ -1244,8 +1072,8 @@ fn print_symbols(e: &Elf<'_>, dynamic: bool, out: &mut String) {
         };
         let mut field = String::new();
         if let Some(v) = &versions {
-            if let Some((vn, hidden)) = v.of(n) {
-                field = if hidden { format!("({vn})") } else { vn };
+            if let Some((_, vn, need, hidden)) = v.of(n) {
+                field = if need || hidden { format!("({vn})") } else { vn.to_string() };
             } else if v.has_verdef && v.versym.get(n).is_some_and(|&x| x & 0x7fff == 1) {
                 field = "Base".to_string();
             }
@@ -1336,9 +1164,9 @@ fn reloc_value(
                 } else {
                     name = String::from_utf8_lossy(&s.name).into_owned();
                     if let Some(v) = versions {
-                        if let Some((vn, hidden)) = v.of(r.sym) {
-                            name.push_str(if hidden { "@" } else { "@@" });
-                            name.push_str(&vn);
+                        if let Some((_, vn, need, hidden)) = v.of(r.sym) {
+                            name.push_str(if need || hidden { "@" } else { "@@" });
+                            name.push_str(vn);
                         }
                     }
                 }
@@ -1403,7 +1231,7 @@ fn print_relocs(e: &Elf<'_>, o: &Opts, out: &mut String) {
 fn print_dynamic_relocs(e: &Elf<'_>, out: &mut String) {
     ensure_blank(out);
     out.push_str("DYNAMIC RELOCATION RECORDS");
-    let versions = load_versions(e);
+    let versions = e.versions();
     let mut body = String::new();
     let mut count = 0usize;
     for (ri, r) in e.sh.iter().enumerate() {

@@ -16,6 +16,8 @@ use crate::strings::expand_response_files;
 use crate::util::io;
 use crate::util::{Getopt, HasArg, LongOpt};
 
+use super::elf::{Versions, cstr, cstr_lossy, rd16, rd32, rd64, slice_at};
+
 const SHORTOPTS: &str = "ahlSegtsnrudVAcDLCvHWTzIx:p:R:j:";
 
 const ID_SEGMENTS: i32 = 256;
@@ -149,9 +151,6 @@ const SHT_SYMTAB: u32 = 2;
 const SHT_DYNAMIC: u32 = 6;
 const SHT_NOTE: u32 = 7;
 const SHT_DYNSYM: u32 = 11;
-const SHT_VERNEED: u32 = 0x6fff_fffe;
-const SHT_VERDEF: u32 = 0x6fff_fffd;
-const SHT_VERSYM: u32 = 0x6fff_ffff;
 
 const PT_DYNAMIC: u32 = 2;
 const PT_INTERP: u32 = 3;
@@ -202,32 +201,6 @@ struct Elf<'a> {
     shstrndx: usize,
     sh: Vec<Shdr>,
     ph: Vec<Phdr>,
-}
-
-fn rd16(d: &[u8], at: usize) -> Option<u16> {
-    let b = d.get(at..at.checked_add(2)?)?;
-    Some(u16::from_le_bytes([b[0], b[1]]))
-}
-
-fn rd32(d: &[u8], at: usize) -> Option<u32> {
-    let b = d.get(at..at.checked_add(4)?)?;
-    Some(u32::from_le_bytes([b[0], b[1], b[2], b[3]]))
-}
-
-fn rd64(d: &[u8], at: usize) -> Option<u64> {
-    let b = d.get(at..at.checked_add(8)?)?;
-    let mut v = [0u8; 8];
-    v.copy_from_slice(b);
-    Some(u64::from_le_bytes(v))
-}
-
-fn cstr(table: &[u8], off: usize) -> Vec<u8> {
-    let tail = table.get(off..).unwrap_or(&[]);
-    tail[..tail.iter().position(|&b| b == 0).unwrap_or(tail.len())].to_vec()
-}
-
-fn cstr_lossy(table: &[u8], off: usize) -> String {
-    String::from_utf8_lossy(&cstr(table, off)).into_owned()
 }
 
 impl<'a> Elf<'a> {
@@ -336,18 +309,15 @@ impl<'a> Elf<'a> {
     }
 
     fn section_data(&self, i: usize) -> &'a [u8] {
-        let Some(s) = self.sh.get(i) else {
-            return &[];
-        };
-        if s.kind == SHT_NOBITS {
-            return &[];
+        match self.sh.get(i) {
+            Some(s) if s.kind != SHT_NOBITS => slice_at(self.d, s.offset, s.size),
+            _ => &[],
         }
-        let (Ok(o), Ok(n)) = (usize::try_from(s.offset), usize::try_from(s.size)) else {
-            return &[];
-        };
-        o.checked_add(n)
-            .and_then(|end| self.d.get(o..end))
-            .unwrap_or(&[])
+    }
+
+    /// As versões dos símbolos dinâmicos, lidas das seções `.gnu.version*`.
+    fn versions(&self) -> Versions {
+        Versions::load(self.sh.iter().enumerate().map(|(i, s)| (s.kind, s.info, self.section_data(i), self.section_data(s.link as usize))))
     }
 
     fn is_pie(&self) -> bool {
@@ -926,82 +896,6 @@ fn print_dynamic(e: &Elf<'_>, out: &mut String) {
     }
 }
 
-struct Versions {
-    versym: Vec<u16>,
-    names: Vec<(u16, String, bool)>,
-}
-
-fn load_versions(e: &Elf<'_>) -> Versions {
-    let mut v = Versions {
-        versym: Vec::new(),
-        names: Vec::new(),
-    };
-    for (i, s) in e.sh.iter().enumerate() {
-        let data = e.section_data(i);
-        let strtab = e.section_data(s.link as usize);
-        match s.kind {
-            SHT_VERSYM => {
-                v.versym = data
-                    .chunks_exact(2)
-                    .map(|c| u16::from_le_bytes([c[0], c[1]]))
-                    .collect();
-            }
-            SHT_VERNEED => {
-                let mut off = 0usize;
-                for _ in 0..s.info {
-                    let (Some(cnt), Some(aux), Some(next)) = (
-                        rd16(data, off + 2),
-                        rd32(data, off + 8),
-                        rd32(data, off + 12),
-                    ) else {
-                        break;
-                    };
-                    let mut a = off + aux as usize;
-                    for _ in 0..cnt {
-                        let (Some(other), Some(name), Some(anext)) = (
-                            rd16(data, a + 6),
-                            rd32(data, a + 8),
-                            rd32(data, a + 12),
-                        ) else {
-                            break;
-                        };
-                        v.names.push((other, cstr_lossy(strtab, name as usize), true));
-                        if anext == 0 {
-                            break;
-                        }
-                        a += anext as usize;
-                    }
-                    if next == 0 {
-                        break;
-                    }
-                    off += next as usize;
-                }
-            }
-            SHT_VERDEF => {
-                let mut off = 0usize;
-                for _ in 0..s.info {
-                    let (Some(ndx), Some(aux), Some(next)) = (
-                        rd16(data, off + 4),
-                        rd32(data, off + 12),
-                        rd32(data, off + 16),
-                    ) else {
-                        break;
-                    };
-                    if let Some(name) = rd32(data, off + aux as usize) {
-                        v.names.push((ndx, cstr_lossy(strtab, name as usize), false));
-                    }
-                    if next == 0 {
-                        break;
-                    }
-                    off += next as usize;
-                }
-            }
-            _ => {}
-        }
-    }
-    v
-}
-
 fn ndx_text(shndx: u16) -> String {
     match shndx {
         0 => "UND".to_string(),
@@ -1040,7 +934,7 @@ fn sym_bind_text(b: u8) -> String {
 }
 
 fn print_symbols(e: &Elf<'_>, want_dyn: bool, want_sym: bool, wide: bool, silent: bool, out: &mut String) {
-    let versions = load_versions(e);
+    let versions = e.versions();
     for (i, s) in e.sh.iter().enumerate() {
         let is_dyn = s.kind == SHT_DYNSYM;
         if !((is_dyn && want_dyn) || (s.kind == SHT_SYMTAB && want_sym)) {
@@ -1074,21 +968,14 @@ fn print_symbols(e: &Elf<'_>, want_dyn: bool, want_sym: bool, wide: bool, silent
                 }
             }
             let mut ver = String::new();
-            if is_dyn {
-                if let Some(&vs) = versions.versym.get(n) {
-                    let idx = vs & 0x7fff;
-                    if idx >= 2 {
-                        if let Some((_, vn, need)) = versions.names.iter().find(|(k, _, _)| *k == idx) {
-                            if *need {
-                                ver = format!("@{vn} ({idx})");
-                            } else if vs & 0x8000 != 0 {
-                                ver = format!("@{vn}");
-                            } else {
-                                ver = format!("@@{vn}");
-                            }
-                        }
-                    }
-                }
+            if is_dyn && let Some((idx, vn, need, hidden)) = versions.of(n) {
+                ver = if need {
+                    format!("@{vn} ({idx})")
+                } else if hidden {
+                    format!("@{vn}")
+                } else {
+                    format!("@@{vn}")
+                };
             }
             // No modo estreito o nome divide 21 colunas com o sufixo de versão.
             let name = if wide {

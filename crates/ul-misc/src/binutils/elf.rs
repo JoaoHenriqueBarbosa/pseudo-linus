@@ -60,32 +60,50 @@ pub struct Elf<'a> {
     pub sections: Vec<Section>,
 }
 
-fn rd16(d: &[u8], at: usize) -> Option<u16> {
+pub(crate) fn rd16(d: &[u8], at: usize) -> Option<u16> {
     let b = d.get(at..at.checked_add(2)?)?;
     Some(u16::from_le_bytes([b[0], b[1]]))
 }
 
-fn rd32(d: &[u8], at: usize) -> Option<u32> {
+pub(crate) fn rd32(d: &[u8], at: usize) -> Option<u32> {
     let b = d.get(at..at.checked_add(4)?)?;
     Some(u32::from_le_bytes([b[0], b[1], b[2], b[3]]))
 }
 
-fn rd64(d: &[u8], at: usize) -> Option<u64> {
+pub(crate) fn rd64(d: &[u8], at: usize) -> Option<u64> {
     let b = d.get(at..at.checked_add(8)?)?;
     let mut v = [0u8; 8];
     v.copy_from_slice(b);
     Some(u64::from_le_bytes(v))
 }
 
-fn cstr(table: &[u8], off: usize) -> Vec<u8> {
+/// O nome que começa em `off` numa tabela de strings, até o NUL.
+pub(crate) fn cstr(table: &[u8], off: usize) -> Vec<u8> {
     let tail = table.get(off..).unwrap_or(&[]);
     tail[..tail.iter().position(|&b| b == 0).unwrap_or(tail.len())].to_vec()
+}
+
+pub(crate) fn cstr_lossy(table: &[u8], off: usize) -> String {
+    String::from_utf8_lossy(&cstr(table, off)).into_owned()
+}
+
+/// `size` bytes a partir de `off`; fora do arquivo, vazio.
+pub(crate) fn slice_at(d: &[u8], off: u64, size: u64) -> &[u8] {
+    let (Ok(o), Ok(n)) = (usize::try_from(off), usize::try_from(size)) else {
+        return &[];
+    };
+    o.checked_add(n).and_then(|end| d.get(o..end)).unwrap_or(&[])
+}
+
+/// Um cabeçalho de ELF64 little-endian, o único formato que estes programas leem.
+pub(crate) fn is_elf64_le(d: &[u8]) -> bool {
+    d.len() >= 64 && &d[..4] == b"\x7fELF" && d[4] == 2 && d[5] == 1
 }
 
 impl<'a> Elf<'a> {
     /// Interpreta cabeçalho e tabela de seções. `None` se não for ELF64 little-endian íntegro.
     pub fn parse(data: &'a [u8]) -> Option<Elf<'a>> {
-        if data.len() < 64 || &data[..4] != b"\x7fELF" || data[4] != 2 || data[5] != 1 {
+        if !is_elf64_le(data) {
             return None;
         }
         let shoff = usize::try_from(rd64(data, 40)?).ok()?;
@@ -197,5 +215,78 @@ impl<'a> Elf<'a> {
             })
             .map(|s| s.name)
             .collect()
+    }
+}
+
+pub(crate) const SHT_VERDEF: u32 = 0x6fff_fffd;
+pub(crate) const SHT_VERNEED: u32 = 0x6fff_fffe;
+pub(crate) const SHT_VERSYM: u32 = 0x6fff_ffff;
+
+/// Percorre `count` registros encadeados (verdef, verneed e os auxiliares deles): cada um diz,
+/// na posição `next_at`, quanto pular até o próximo, e zero encerra. `each` recebe o deslocamento
+/// do registro; `None` (registro truncado) para a caminhada.
+pub(crate) fn walk_chain(data: &[u8], start: usize, count: usize, next_at: usize, mut each: impl FnMut(usize) -> Option<()>) {
+    let mut off = start;
+    for _ in 0..count {
+        let Some(next) = rd32(data, off + next_at) else { break };
+        if each(off).is_none() || next == 0 {
+            break;
+        }
+        off += next as usize;
+    }
+}
+
+/// As versões dos símbolos dinâmicos (`.gnu.version`, `.gnu.version_r`, `.gnu.version_d`).
+pub(crate) struct Versions {
+    pub versym: Vec<u16>,
+    /// (índice, nome, vem de verneed)
+    pub names: Vec<(u16, String, bool)>,
+    pub has_verdef: bool,
+}
+
+impl Versions {
+    /// Lê as seções de versão; cada item é (tipo, `sh_info`, conteúdo, tabela de strings ligada).
+    pub fn load<'a>(sections: impl IntoIterator<Item = (u32, u32, &'a [u8], &'a [u8])>) -> Versions {
+        let mut v = Versions { versym: Vec::new(), names: Vec::new(), has_verdef: false };
+        for (kind, info, data, strtab) in sections {
+            match kind {
+                SHT_VERSYM => v.versym = data.chunks_exact(2).map(|c| u16::from_le_bytes([c[0], c[1]])).collect(),
+                SHT_VERNEED => walk_chain(data, 0, info as usize, 12, |off| {
+                    let cnt = rd16(data, off + 2)?;
+                    let aux = rd32(data, off + 8)?;
+                    walk_chain(data, off + aux as usize, usize::from(cnt), 12, |a| {
+                        let other = rd16(data, a + 6)?;
+                        let name = rd32(data, a + 8)?;
+                        v.names.push((other, cstr_lossy(strtab, name as usize), true));
+                        Some(())
+                    });
+                    Some(())
+                }),
+                SHT_VERDEF => {
+                    v.has_verdef = true;
+                    walk_chain(data, 0, info as usize, 16, |off| {
+                        let ndx = rd16(data, off + 4)?;
+                        let aux = rd32(data, off + 12)?;
+                        if let Some(name) = rd32(data, off + aux as usize) {
+                            v.names.push((ndx, cstr_lossy(strtab, name as usize), false));
+                        }
+                        Some(())
+                    });
+                }
+                _ => {}
+            }
+        }
+        v
+    }
+
+    /// Versão do símbolo `n`: (índice, nome, vem de verneed, oculta). `None` se não houver versão.
+    pub fn of(&self, n: usize) -> Option<(u16, &str, bool, bool)> {
+        let vs = *self.versym.get(n)?;
+        let idx = vs & 0x7fff;
+        if idx < 2 {
+            return None;
+        }
+        let (_, name, need) = self.names.iter().find(|(k, _, _)| *k == idx)?;
+        Some((idx, name, *need, vs & 0x8000 != 0))
     }
 }
