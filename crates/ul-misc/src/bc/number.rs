@@ -283,34 +283,11 @@ impl Num {
         })
     }
 
-    /// `bc_sub` com `scale_min`.
+    /// `bc_sub` com `scale_min`: soma com o sinal do segundo operando trocado, sem normalizar o
+    /// -0 (o GNU guarda o sinal do zero que entra na conta).
     pub fn sub(&self, other: &Num, scale_min: u32) -> NumResult<Num> {
-        let s = scale_min.max(self.scale).max(other.scale);
-        check_digits(u64::from(s) + self.int_digits_est().max(other.int_digits_est()) + 1)?;
-        if self.neg != other.neg {
-            return Ok(Num {
-                neg: self.neg,
-                mag: Num::mag_sum(self, other, s)?,
-                scale: s,
-            });
-        }
-        Ok(match self.cmp_mag(other) {
-            Ordering::Less => Num {
-                neg: !other.neg,
-                mag: Num::mag_diff(other, self, s)?,
-                scale: s,
-            },
-            Ordering::Equal => Num {
-                neg: false,
-                mag: BigUint::zero(),
-                scale: s,
-            },
-            Ordering::Greater => Num {
-                neg: self.neg,
-                mag: Num::mag_diff(self, other, s)?,
-                scale: s,
-            },
-        })
+        let opposite = Num { neg: !other.neg, mag: other.mag.clone(), scale: other.scale };
+        self.add(&opposite, scale_min)
     }
 
     /// Negação: o GNU faz `0 - x`, então -0 vira 0 e 0 continua 0.
