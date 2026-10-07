@@ -299,7 +299,8 @@ impl<'a, 'b> ApplyContext<'a, 'b> {
     }
 
     pub fn random_number(&mut self) -> u32 {
-        self.buffer.random_state = ((u64::from(self.buffer.random_state) * 48271) % 2147483647) as u32;
+        // Em `uint32_t` como no C: o produto estoura antes do módulo, então não é o minstd exato.
+        self.buffer.random_state = self.buffer.random_state.wrapping_mul(48271) % 2147483647;
         self.buffer.random_state
     }
 
