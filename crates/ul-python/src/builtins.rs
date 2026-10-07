@@ -423,6 +423,7 @@ pub(crate) fn make_iter(v: &Value) -> PyResult<Value> {
     let kind = match v {
         Value::List(_) => "list_iterator",
         Value::Tuple(_) => "tuple_iterator",
+        Value::Str(s) if s.as_str().is_ascii() => "str_ascii_iterator",
         Value::Str(_) => "str_iterator",
         Value::Range(_) => "range_iterator",
         Value::Dict(_) => "dict_keyiterator",

@@ -263,3 +263,54 @@ print(memoryview, memoryview.__module__, type(m), m.__class__.__module__, m.__cl
 PYEOF
 '''
 tags = ["error"]
+
+[[case]]
+id = "aiter-anext-breakpoint-dir-class-meta"
+script = '''
+python3 - <<'PYEOF'
+import asyncio, os, sys
+async def gen():
+    yield 1
+    yield 2
+async def main():
+    it = aiter(gen())
+    print(type(it).__name__, await anext(it), await anext(it), await anext(it, "fim"))
+    try: await anext(it)
+    except StopAsyncIteration: print("SAI")
+    a = anext(gen(), 0); print(type(a).__name__, repr(a)[:16])
+    print(await a)
+asyncio.run(main())
+for f, a in ((aiter, (1,)), (anext, (1,)), (anext, ()), (aiter, ())):
+    try: f(*a)
+    except TypeError as e: print(e)
+os.environ["PYTHONBREAKPOINT"] = "0"; print(breakpoint())
+sys.breakpointhook = lambda *a, **k: ("hook", a, k); print(breakpoint(1, x=2))
+del sys.breakpointhook
+try: breakpoint()
+except RuntimeError as e: print(e)
+try: del sys.nope
+except AttributeError as e: print(e)
+print(aiter.__doc__[:20], anext.__doc__[:20], breakpoint.__doc__[:20], locals.__doc__[:20])
+@staticmethod
+def deco(c): return c
+@deco
+class P:
+    __slots__ = ("u",)
+class Q(P):
+    def __init__(self):
+        self.a = 1
+    def g(self):
+        self.b.c = 2
+        del self.z
+    def f(self): self.d = 3
+print(Q.__firstlineno__, Q.__static_attributes__, P.__static_attributes__)
+print(dir(Q()))
+print(dir(Q))
+print(dir(5)[:6], len(dir(None)), dir(len)[-4:])
+mv = memoryview(b"x")
+try: mv.__dict__
+except AttributeError as e: print(e)
+print([n for n in dir(mv) if n.startswith("_") and not n.startswith("__")])
+PYEOF
+'''
+tags = ["error"]

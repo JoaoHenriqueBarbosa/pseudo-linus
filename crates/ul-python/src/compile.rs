@@ -478,6 +478,36 @@ pub fn compile_module(module: &Mod) -> Result<Code, CompileError> {
     Ok(c.code)
 }
 
+/// Os `self.x` atribuídos nos métodos definidos no corpo de uma classe (inclusive dentro de `if`,
+/// `try` e afins no nível da classe), onde `self` é o primeiro parâmetro de cada método.
+fn static_attributes(body: &[Stmt], out: &mut std::collections::BTreeSet<String>) {
+    for s in body {
+        match &s.kind {
+            S::FunctionDef { args, body, .. } | S::AsyncFunctionDef { args, body, .. } => {
+                let Some(first) = args.posonlyargs.first().or(args.args.first()) else { continue };
+                let mut scope = Scope { self_name: Some(first.arg.clone()), ..Scope::default() };
+                scope.block(body);
+                out.extend(scope.self_attrs);
+            }
+            S::ClassDef { .. } => {}
+            S::If { body, orelse, .. } | S::While { body, orelse, .. } | S::For { body, orelse, .. } | S::AsyncFor { body, orelse, .. } => {
+                static_attributes(body, out);
+                static_attributes(orelse, out);
+            }
+            S::With { body, .. } | S::AsyncWith { body, .. } => static_attributes(body, out),
+            S::Try { body, handlers, orelse, finalbody } | S::TryStar { body, handlers, orelse, finalbody } => {
+                static_attributes(body, out);
+                for h in handlers {
+                    static_attributes(&h.body, out);
+                }
+                static_attributes(orelse, out);
+                static_attributes(finalbody, out);
+            }
+            _ => {}
+        }
+    }
+}
+
 /// Nomes de um escopo de função: os ligados no corpo (alvos de atribuição, `for`, `with`, `except
 /// as`, `import`, `def`, `class`, `del`, walrus) e os declarados `global` e `nonlocal`.
 #[derive(Default)]
@@ -487,6 +517,10 @@ struct Scope {
     nonlocals: HashSet<String>,
     /// Há um `await` no que o escopo percorreu (uma compreensão assim é assíncrona).
     has_await: bool,
+    /// Primeiro parâmetro do método (`self`), para coletar os `self.x = ...` do corpo.
+    self_name: Option<String>,
+    /// Os `x` de `self.x` atribuídos no corpo (`__static_attributes__` da classe).
+    self_attrs: std::collections::BTreeSet<String>,
 }
 
 impl Scope {
@@ -497,6 +531,13 @@ impl Scope {
             }
             E::Tuple { elts, .. } | E::List { elts, .. } => elts.iter().for_each(|x| self.target(x)),
             E::Starred { value, .. } => self.target(value),
+            E::Attribute { value, attr, .. } => {
+                if let (E::Name { id, .. }, Some(s)) = (&value.kind, &self.self_name) {
+                    if id == s {
+                        self.self_attrs.insert(attr.clone());
+                    }
+                }
+            }
             _ => {}
         }
     }
@@ -646,7 +687,12 @@ impl Scope {
                     self.expr(m);
                 }
             }
-            S::Delete { targets } => targets.iter().for_each(|t| self.target(t)),
+            S::Delete { targets } => {
+                // `del self.x` não conta para `__static_attributes__`.
+                let saved = self.self_name.take();
+                targets.iter().for_each(|t| self.target(t));
+                self.self_name = saved;
+            }
             S::FunctionDef { name, .. } | S::AsyncFunctionDef { name, .. } | S::ClassDef { name, .. } => {
                 self.bound.insert(name.clone());
             }
@@ -1039,7 +1085,9 @@ impl Compiler {
                 for d in decorator_list {
                     self.expr(d)?;
                 }
-                self.class_def(name, bases, keywords, body, stmt.pos.lineno)?;
+                // `__firstlineno__` conta a partir do primeiro decorador.
+                let first_line = decorator_list.iter().map(|d| d.pos.lineno).chain([stmt.pos.lineno]).min().unwrap_or(stmt.pos.lineno);
+                self.class_def(name, bases, keywords, body, stmt.pos.lineno, first_line)?;
                 for _ in decorator_list {
                     self.at(&stmt.pos);
                     self.emit(Op::Call { argc: 1, kwnames: None });
@@ -1467,6 +1515,7 @@ impl Compiler {
         keywords: &[Keyword],
         body: &[Stmt],
         line: usize,
+        first_line: usize,
     ) -> Result<(), CompileError> {
         // O nome ligado pode vir mutilado pela classe de fora (`class __Inner` em `A` liga `_A__Inner`), mas o
         // `__name__` e o `__qualname__` mostram o original; o corpo é mutilado com o nome desta classe.
@@ -1492,6 +1541,15 @@ impl Compiler {
             l.insert("__qualname__".to_string());
         }
         inner.emit_store("__qualname__");
+        // Como o compilador do 3.13: a primeira linha da classe e, no fim do corpo, os atributos
+        // que os métodos gravam em `self`.
+        let k = inner.constant(Value::Int(first_line as i64));
+        inner.emit(Op::LoadConst(k));
+        if let Some(l) = &mut inner.locals {
+            l.insert("__firstlineno__".to_string());
+            l.insert("__static_attributes__".to_string());
+        }
+        inner.emit_store("__firstlineno__");
         if let Some(doc) = docstring(body) {
             let k = inner.constant(Value::str(doc));
             inner.emit(Op::LoadConst(k));
@@ -1501,6 +1559,11 @@ impl Compiler {
             inner.emit_store("__doc__");
         }
         inner.block(body)?;
+        let mut attrs = std::collections::BTreeSet::new();
+        static_attributes(body, &mut attrs);
+        let k = inner.constant(Value::tuple(attrs.into_iter().map(Value::str).collect()));
+        inner.emit(Op::LoadConst(k));
+        inner.emit_store("__static_attributes__");
         let c = inner.constant_none();
         inner.emit(Op::LoadConst(c));
         inner.emit(Op::Return);

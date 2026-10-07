@@ -16,7 +16,7 @@ pub const TABLE: &[(&str, NativeFnPtr)] = &[
     ("dir", b_dir),
     ("globals", b_globals),
     // Fora de função `locals()` é o mesmo dicionário das globais; dentro, o compilador emite `Op::Locals`.
-    ("locals", b_globals),
+    ("locals", b_locals),
     ("format", b_format),
     ("input", b_input),
     ("exit", b_exit),
@@ -26,7 +26,54 @@ pub const TABLE: &[(&str, NativeFnPtr)] = &[
     ("eval", b_eval),
     ("exec", b_exec),
     ("compile", b_compile),
+    ("aiter", b_aiter),
+    ("anext", b_anext),
+    ("breakpoint", b_breakpoint),
 ];
+
+/// `aiter(obj)`: o `__aiter__` do objeto, que precisa devolver um iterador assíncrono.
+fn b_aiter(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    crate::native_util::no_kwargs("aiter", &kw)?;
+    if args.len() != 1 {
+        return Err(type_error(format!("aiter() takes exactly one argument ({} given)", args.len())));
+    }
+    let obj = &args[0];
+    let Ok(method) = vm.getattr(obj, "__aiter__") else {
+        return Err(type_error(format!("'{}' object is not an async iterable", obj.type_name())));
+    };
+    let it = vm.call_value(&method, Vec::new(), Vec::new())?;
+    if vm.getattr(&it, "__anext__").is_err() {
+        return Err(type_error(format!("aiter() returned not an async iterator of type '{}'", it.type_name())));
+    }
+    Ok(it)
+}
+
+/// `anext(iterador[, padrão])`: o aguardável do `__anext__`; com padrão, um `anext_awaitable`
+/// que troca o `StopAsyncIteration` pelo padrão.
+fn b_anext(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    crate::native_util::no_kwargs("anext", &kw)?;
+    if args.is_empty() || args.len() > 2 {
+        return Err(type_error(format!("anext expected at least 1 argument, got {}", args.len())));
+    }
+    let it = &args[0];
+    let Ok(method) = vm.getattr(it, "__anext__") else {
+        return Err(type_error(format!("'{}' object is not an async iterator", it.type_name())));
+    };
+    let awaitable = vm.call_value(&method, Vec::new(), Vec::new())?;
+    let Some(default) = args.get(1) else { return Ok(awaitable) };
+    let module = crate::modules::import_value(vm, "_anext")?;
+    let cls = vm.getattr(&module, "anext_awaitable")?;
+    vm.call_value(&cls, vec![awaitable, default.clone()], Vec::new())
+}
+
+/// `breakpoint(*args, **kws)`: chama `sys.breakpointhook`.
+fn b_breakpoint(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    let sys = crate::modules::import_value(vm, "sys")?;
+    let Ok(hook) = vm.getattr(&sys, "breakpointhook") else {
+        return Err(exc("RuntimeError", "lost sys.breakpointhook"));
+    };
+    vm.call_value(&hook, args, kw)
+}
 
 fn attr_name(v: &Value) -> PyResult<String> {
     match v {
@@ -79,6 +126,12 @@ fn b_globals(vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(crate::globalsview::view_for(&vm.globals, None))
 }
 
+/// `locals()` no nível do módulo: as globais, como no CPython. É uma função à parte de `globals`
+/// porque cada uma tem a sua docstring (registrada pelo endereço da função).
+fn b_locals(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    b_globals(vm, args, kw)
+}
+
 /// Nomes que os protocolos (`collections.abc`, `numbers`, `io`) e os tipos embutidos costumam expor: o
 /// interpretador não enumera os métodos de um tipo embutido, então `dir`/`__dict__` sondam esta lista.
 const PROBE_NAMES: &[&str] = &[
@@ -106,6 +159,14 @@ pub(crate) fn probe_type_attrs(vm: &mut Vm, ty: &Value) -> Vec<(String, Value)> 
 /// `dir(obj)`: nomes de atributo ordenados (instância, classe e módulo; o resto sai vazio).
 fn b_dir(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     crate::native_util::no_kwargs("dir", &kw)?;
+    // Objeto cuja classe define `__dir__` (o `Enum`, por exemplo): o resultado é o dele, ordenado.
+    if let Some(Value::Instance(i)) = args.first() {
+        if i.class.lookup("__dir__").is_some() {
+            let f = vm.getattr(&args[0], "__dir__")?;
+            let listed = vm.call_value(&f, Vec::new(), Vec::new())?;
+            return vm.call_value(&Value::Builtin("sorted"), vec![listed], Vec::new());
+        }
+    }
     let mut names = dir_names(vm, args.first());
     names.sort();
     names.dedup();
@@ -128,19 +189,20 @@ pub(crate) fn dir_names(vm: &mut Vm, obj: Option<&Value>) -> Vec<String> {
         Some(Value::Builtin("object")) => names.extend(OBJECT_ATTRS.iter().map(|s| (*s).to_string())),
         Some(Value::Ext(e)) if e.type_name() == "object" => names.extend(OBJECT_ATTRS.iter().map(|s| (*s).to_string())),
         Some(t @ (Value::Builtin(_) | Value::NativeFn(_))) if crate::builtins::class_name(t).is_some() => {
-            names.extend(probe_type_attrs(vm, t).into_iter().map(|(n, _)| n));
+            match crate::builtins::class_name(t).and_then(type_dir) {
+                Some(listed) => names.extend(listed.iter().map(|s| (*s).to_string())),
+                None => names.extend(probe_type_attrs(vm, t).into_iter().map(|(n, _)| n)),
+            }
         }
         Some(Value::Instance(i)) => {
-            names.extend(i.dict.borrow().keys().cloned());
-            for c in i.class.mro() {
-                names.extend(c.dict.borrow().keys().cloned());
+            // Classe que emula um tipo embutido (`memoryview`, `complex`): no CPython a instância
+            // não tem dicionário, e o estado interno do shim não aparece.
+            if !emulates_builtin(&i.class) {
+                names.extend(i.dict.borrow().keys().cloned());
             }
+            class_dir_names(vm, &i.class, &mut names);
         }
-        Some(Value::Class(c)) => {
-            for k in c.mro() {
-                names.extend(k.dict.borrow().keys().cloned());
-            }
-        }
+        Some(Value::Class(c)) => class_dir_names(vm, c, &mut names),
         Some(Value::Module(m)) => {
             // `__spec__` e `__loader__` são criados sob demanda; o `dir()` os lista como no CPython.
             let module = Value::Module(m.clone());
@@ -150,10 +212,98 @@ pub(crate) fn dir_names(vm: &mut Vm, obj: Option<&Value>) -> Vec<String> {
                 names.extend(g.borrow().keys().map(|k| k.to_string()));
             }
         }
-        Some(Value::Ext(e)) => names.extend(e.methods().iter().map(|s| (*s).to_string())),
-        Some(v) => names.extend(crate::suggest::builtin_methods(v.type_name()).iter().map(|s| (*s).to_string())),
+        Some(Value::Ext(e)) => match type_dir(e.type_name()) {
+            Some(listed) => names.extend(listed.iter().map(|s| (*s).to_string())),
+            None => names.extend(e.methods().iter().map(|s| (*s).to_string())),
+        },
+        // `NotImplemented` e `...`: valores únicos dos seus tipos, não funções.
+        Some(Value::Builtin(n @ ("NotImplemented" | "Ellipsis"))) => {
+            let t = if *n == "Ellipsis" { "ellipsis" } else { "NotImplementedType" };
+            names.extend(type_dir(t).unwrap_or_default().iter().map(|s| (*s).to_string()));
+        }
+        Some(Value::Function(f)) => {
+            names.extend(type_dir("function").unwrap_or_default().iter().map(|s| (*s).to_string()));
+            names.extend(f.attrs.borrow().keys().map(|k| k.to_string()));
+        }
+        Some(v) => match type_dir(v.type_name()) {
+            Some(listed) => names.extend(listed.iter().map(|s| (*s).to_string())),
+            None => names.extend(crate::suggest::builtin_methods(v.type_name()).iter().map(|s| (*s).to_string())),
+        },
     }
     names
+}
+
+/// O `dir()` do tipo embutido `name` no CPython 3.13 do Debian (`builtin-type-dir.tsv`, gerado
+/// no oráculo): `dict`, `list`, as exceções...
+pub(crate) fn type_dir(name: &str) -> Option<Vec<&'static str>> {
+    const TABLE: &str = include_str!("../data/cpython-docs/builtin-type-dir.tsv");
+    TABLE.lines().find_map(|line| {
+        let (t, names) = line.split_once('\t')?;
+        (t == name).then(|| names.split(' ').collect())
+    })
+}
+
+/// A classe é um shim de tipo embutido (`__module__` igual a `builtins`, como `memoryview`).
+/// A classe é o shim de um tipo escrito em C: de `builtins` ou de um módulo que no Debian é C
+/// embutido no executável (o `Scanner` do `_json`, por exemplo).
+fn emulates_builtin(c: &Rc<crate::object::ClassObj>) -> bool {
+    matches!(c.dict.borrow().get("__module__"), Some(Value::Str(m))
+        if m.as_str() == "builtins" || crate::object::BUILTIN_MODULES.contains(&m.as_str()))
+}
+
+/// Os nomes que o `dir()` do CPython junta de uma classe: o dicionário de cada classe do MRO, o que
+/// o `type` põe em toda classe (`__doc__`, `__module__` e, sem `__slots__`, `__dict__` e
+/// `__weakref__`), os métodos do tipo embutido de base e os de `object`.
+fn class_dir_names(vm: &mut Vm, cls: &Rc<crate::object::ClassObj>, names: &mut Vec<String>) {
+    for c in cls.mro() {
+        if emulates_builtin(&c) {
+            // O shim de um tipo embutido mostra a API do tipo real (tabela do oráculo), nunca os
+            // auxiliares dele (`_check`) nem o que o `class` acrescenta.
+            if let Some(listed) = type_dir(c.name.as_str()) {
+                names.extend(listed.iter().map(|s| (*s).to_string()));
+                continue;
+            }
+            let in_builtins = matches!(c.dict.borrow().get("__module__"), Some(Value::Str(m)) if m.as_str() == "builtins");
+            names.extend(
+                c.dict
+                    .borrow()
+                    .keys()
+                    .filter(|k| (!k.starts_with('_') || is_dunder(k)))
+                    .filter(|k| !matches!(k.as_str(), "__slots__" | "__firstlineno__" | "__static_attributes__"))
+                    .filter(|k| !(in_builtins && k.as_str() == "__module__"))
+                    .cloned(),
+            );
+            continue;
+        }
+        names.extend(c.dict.borrow().keys().cloned());
+        names.extend(["__doc__", "__module__"].map(String::from));
+        let slots = c.dict.borrow().get("__slots__").cloned();
+        match &slots {
+            None => names.extend(["__dict__", "__weakref__"].map(String::from)),
+            // Cada nome de `__slots__` vira um descritor na classe.
+            Some(Value::Str(s)) => names.push(s.as_str().to_string()),
+            Some(other) => {
+                if let Ok(items) = crate::vm::iterate(other) {
+                    names.extend(items.iter().filter_map(|v| match v {
+                        Value::Str(s) => Some(s.as_str().to_string()),
+                        _ => None,
+                    }));
+                }
+            }
+        }
+        if let Some(base) = c.data_base.or(c.builtin_base) {
+            if let Some(listed) = type_dir(base) {
+                names.extend(listed.iter().map(|s| (*s).to_string()));
+            } else if let Some(t) = crate::builtins::get(base) {
+                names.extend(probe_type_attrs(vm, &t).into_iter().map(|(n, _)| n));
+            }
+        }
+    }
+    names.extend(OBJECT_ATTRS.iter().map(|s| (*s).to_string()));
+}
+
+fn is_dunder(name: &str) -> bool {
+    name.len() > 4 && name.starts_with("__") && name.ends_with("__")
 }
 
 fn b_format(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {

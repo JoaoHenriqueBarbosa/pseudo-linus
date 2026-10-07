@@ -1043,6 +1043,28 @@ pub fn register_native_type(name: &'static str) {
     }
 }
 
+/// Os métodos dos tipos de objetos nativos ([`ExtObject::methods`]), para `type(obj).__get__` e o
+/// `hasattr(type(obj), '__set__')` do `inspect` acharem o que a instância oferece.
+static NATIVE_TYPE_METHODS: std::sync::Mutex<Vec<(&'static str, &'static [&'static str])>> =
+    std::sync::Mutex::new(Vec::new());
+
+pub fn register_native_type_methods(name: &'static str, methods: &'static [&'static str]) {
+    register_native_type(name);
+    if methods.is_empty() {
+        return;
+    }
+    let mut table = NATIVE_TYPE_METHODS.lock().unwrap_or_else(|e| e.into_inner());
+    if !table.iter().any(|(n, _)| *n == name) {
+        table.push((name, methods));
+    }
+}
+
+/// O tipo nativo `type_name` tem o método `method`: devolve o nome com tempo de vida `'static`.
+pub fn native_type_method(type_name: &str, method: &str) -> Option<&'static str> {
+    let table = NATIVE_TYPE_METHODS.lock().unwrap_or_else(|e| e.into_inner());
+    table.iter().find(|(n, _)| *n == type_name).and_then(|(_, ms)| ms.iter().find(|m| **m == method).copied())
+}
+
 pub fn is_native_type(name: &str) -> bool {
     NATIVE_TYPES.lock().unwrap_or_else(|e| e.into_inner()).contains(&name)
 }

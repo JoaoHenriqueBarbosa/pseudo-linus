@@ -126,7 +126,7 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
 /// programa os vê como ausentes (`No module named`), inclusive em `sys.modules`.
 const INTERNAL: &[&str] = &[
     "_os", "_sys", "_mt", "_net", "_archive", "_archivefile", "_prof", "_csvimpl", "_re", "_base64",
-    "_zlib", "_ast_native", "_match", "_memoryview", "_complex", "_excgroup", "asyncio.loopback", "_json_native",
+    "_zlib", "_ast_native", "_match", "_memoryview", "_complex", "_excgroup", "asyncio.loopback", "_json_native", "_anext",
 ];
 
 pub fn is_internal(name: &str) -> bool {

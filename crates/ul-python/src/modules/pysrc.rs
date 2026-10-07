@@ -94,6 +94,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("_memoryview", include_str!("py/_memoryview.py")),
     ("operator", include_str!("py/operator.py")),
     ("_json", include_str!("py/_json.py")),
+    ("_anext", include_str!("py/_anext.py")),
     ("json", include_str!("../../../kernel/image/usr/lib/python3.13/json/__init__.py")),
     ("json.decoder", include_str!("../../../kernel/image/usr/lib/python3.13/json/decoder.py")),
     ("json.encoder", include_str!("../../../kernel/image/usr/lib/python3.13/json/encoder.py")),

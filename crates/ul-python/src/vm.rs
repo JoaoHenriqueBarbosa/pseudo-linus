@@ -2574,6 +2574,15 @@ impl Vm {
         }
         if let Value::Bound(b) = func {
             if let Value::Ext(e) = &b.recv {
+                // `__aiter__` de um iterador assíncrono nativo e `__await__` do aguardável de um
+                // gerador assíncrono devolvem o próprio objeto.
+                if matches!(b.name, "__aiter__" | "__await__") && args.is_empty() {
+                    let probe = e.clone().call_method(self, b.name, Vec::new(), Vec::new());
+                    if matches!(&probe, Err(x) if x.msg.ends_with("returns self")) {
+                        return Ok(b.recv.clone());
+                    }
+                    return probe;
+                }
                 let e = e.clone();
                 return e.call_method(self, b.name, args, kwargs);
             }
@@ -2917,8 +2926,21 @@ impl Vm {
                 let ty = self.type_of(obj);
                 return self.load_attr(&ty, "__new__");
             }
+            Value::Builtin(n) if crate::object::native_type_method(n, name).is_some() => {
+                let method = crate::object::native_type_method(n, name).unwrap_or_default();
+                return Ok(Value::Ext(Rc::new(crate::classes::NativeTypeMethod { owner: n, name: method })));
+            }
             Value::Builtin(_) | Value::NativeFn(_) if name == "__dict__" && crate::builtins::class_name(obj).is_some() => {
                 let mut d = crate::object::Dict::new();
+                if matches!(obj, Value::Builtin("object")) {
+                    // O dicionário de `object` é o `dir(object)` inteiro (tabela do oráculo).
+                    for k in crate::builtins_ext::type_dir("object").unwrap_or_default() {
+                        if let Ok(v) = self.load_attr(obj, k) {
+                            d.set(Value::str(k), v)?;
+                        }
+                    }
+                    return Ok(Value::dict(d));
+                }
                 for (k, v) in crate::builtins_ext::probe_type_attrs(self, obj) {
                     d.set(Value::str(k), v)?;
                 }

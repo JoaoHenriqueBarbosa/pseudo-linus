@@ -13,6 +13,124 @@ use crate::object::{
 };
 use crate::vm::{current, exc, type_error, PyException, PyResult, Vm};
 
+/// O `type_new` acrescenta `__dict__` e `__weakref__` à classe: ela não declara `__slots__`, não é
+/// shim de tipo em C e nenhuma base já dá um dicionário às instâncias. As exceções já têm
+/// dicionário, então as subclasses delas só ganham `__weakref__`.
+fn instance_slots_added(cls: &Rc<ClassObj>) -> &'static [&'static str] {
+    if cls.dict.borrow().contains_key("__slots__") {
+        return &[];
+    }
+    if matches!(cls.dict.borrow().get("__module__"), Some(Value::Str(m))
+        if m.as_str() == "builtins" || crate::object::BUILTIN_MODULES.contains(&m.as_str()))
+    {
+        return &[];
+    }
+    for base in cls.mro().into_iter().skip(1) {
+        if !base.dict.borrow().contains_key("__slots__") {
+            return &[];
+        }
+    }
+    if cls.mro().iter().any(|c| c.builtin_base.is_some_and(|b| EXC_CLASSES.iter().any(|(n, _)| *n == b))) {
+        return &["__weakref__"];
+    }
+    &["__dict__", "__weakref__"]
+}
+
+/// `type(obj).nome` de um objeto nativo: o método sem receptor (`method_descriptor`), que chamado
+/// com o objeto na frente repassa a chamada a ele.
+pub(crate) struct NativeTypeMethod {
+    pub(crate) owner: &'static str,
+    pub(crate) name: &'static str,
+}
+
+impl ExtObject for NativeTypeMethod {
+    fn type_name(&self) -> &'static str {
+        "method_descriptor"
+    }
+    fn repr(&self) -> String {
+        format!("<method '{}' of '{}' objects>", self.name, self.owner)
+    }
+    fn methods(&self) -> &'static [&'static str] {
+        &["__call__"]
+    }
+    fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
+        match name {
+            "__name__" => Some(Ok(Value::str(self.name))),
+            "__qualname__" => Some(Ok(Value::str(format!("{}.{}", self.owner, self.name)))),
+            "__objclass__" => Some(Ok(Value::Builtin(self.owner))),
+            _ => None,
+        }
+    }
+    fn call_method(&self, vm: &mut Vm, name: &str, mut args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+        if name != "__call__" {
+            return Err(exc("AttributeError", format!("'method_descriptor' object has no attribute '{name}'")));
+        }
+        if args.is_empty() {
+            return Err(type_error(format!("unbound method {}.{}() needs an argument", self.owner, self.name)));
+        }
+        let recv = args.remove(0);
+        match &recv {
+            Value::Ext(e) if e.type_name() == self.owner => e.clone().call_method(vm, self.name, args, kw),
+            other => Err(type_error(format!(
+                "descriptor '{}' for '{}' objects doesn't apply to a '{}' object",
+                self.name,
+                self.owner,
+                other.type_name()
+            ))),
+        }
+    }
+}
+
+/// `getset_descriptor` dos atributos `__dict__` e `__weakref__` que o `type` põe na classe.
+struct GetSetDescriptor {
+    name: &'static str,
+    owner: Rc<ClassObj>,
+}
+
+impl ExtObject for GetSetDescriptor {
+    fn type_name(&self) -> &'static str {
+        "getset_descriptor"
+    }
+    fn repr(&self) -> String {
+        format!("<attribute '{}' of '{}' objects>", self.name, self.owner.name)
+    }
+    fn methods(&self) -> &'static [&'static str] {
+        &["__get__", "__set__", "__delete__"]
+    }
+    fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
+        match name {
+            "__name__" | "__qualname__" => Some(Ok(Value::str(if name == "__name__" {
+                self.name.to_string()
+            } else {
+                format!("{}.{}", self.owner.name, self.name)
+            }))),
+            "__objclass__" => Some(Ok(Value::Class(self.owner.clone()))),
+            "__doc__" => Some(Ok(Value::str(if self.name == "__dict__" {
+                "dictionary for instance variables"
+            } else {
+                "list of weak references to the object"
+            }))),
+            _ => None,
+        }
+    }
+    fn call_method(&self, vm: &mut Vm, name: &str, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+        match (name, args.as_slice()) {
+            ("__get__", [Value::None, ..]) => Ok(Value::Ext(Rc::new(GetSetDescriptor {
+                name: self.name,
+                owner: self.owner.clone(),
+            }))),
+            ("__get__", [obj, ..]) if self.name == "__dict__" => vm.getattr(obj, "__dict__"),
+            ("__get__", [_, ..]) => Ok(Value::None),
+            ("__set__", [obj, value]) if self.name == "__dict__" => {
+                vm.store_attr(obj, "__dict__", value.clone())?;
+                Ok(Value::None)
+            }
+            ("__set__" | "__delete__", _) => Err(exc("AttributeError", format!("attribute '{}' of '{}' objects is not writable", self.name, self.owner.name))),
+            _ => Err(type_error(format!("expected at least 1 argument, got {}", args.len()))),
+        }
+    }
+}
+
 // ------------------------------------------------------------------------------------------------
 // Descritores
 
@@ -25,7 +143,14 @@ impl ExtObject for StaticMethod {
     fn descriptor(&self) -> Option<Descriptor> {
         Some(Descriptor::Static(self.0.clone()))
     }
-    fn call_method(&self, _vm: &mut Vm, name: &str, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    fn methods(&self) -> &'static [&'static str] {
+        &["__call__"]
+    }
+    fn call_method(&self, vm: &mut Vm, name: &str, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+        // Desde o 3.10 o `staticmethod` é chamável e repassa a chamada à função envolvida.
+        if name == "__call__" {
+            return vm.call_value(&self.0, args, kw);
+        }
         Err(exc("AttributeError", format!("'staticmethod' object has no attribute '{name}'")))
     }
 }
@@ -1047,6 +1172,10 @@ impl Vm {
     fn instance_getattr_with(&mut self, obj: &Value, inst: &Rc<InstanceObj>, name: &str, hook: bool) -> PyResult<Value> {
         match name {
             "__class__" => return Ok(Value::Class(inst.class.clone())),
+            // O shim de um tipo embutido (`memoryview`) não tem `__dict__`, como o tipo em C.
+            "__dict__" if matches!(inst.class.dict.borrow().get("__module__"), Some(Value::Str(m)) if m.as_str() == "builtins") => {
+                return Err(exc("AttributeError", format!("'{}' object has no attribute '__dict__'", inst.class.name)));
+            }
             "__dict__" if inst.class.slots_allow("__dict__") => return Ok(inst.live_dict()),
             _ => {}
         }
@@ -1162,6 +1291,15 @@ impl Vm {
                 for (k, v) in cls.dict.borrow().iter() {
                     d.set(Value::str(k.clone()), v.clone())?;
                 }
+                // O `type` sempre grava `__doc__` e, se nenhuma base já dá um `__dict__` às
+                // instâncias, acrescenta os descritores `__dict__` e `__weakref__`.
+                if !cls.dict.borrow().contains_key("__doc__") {
+                    d.set(Value::str("__doc__"), Value::None)?;
+                }
+                for slot in instance_slots_added(cls) {
+                    let desc = GetSetDescriptor { name: slot, owner: cls.clone() };
+                    d.set(Value::str(*slot), Value::Ext(Rc::new(desc)))?;
+                }
                 return Ok(Value::dict(d));
             }
             "__class__" => return Ok(Value::Builtin("type")),
@@ -1186,6 +1324,12 @@ impl Vm {
                 return Ok(Value::BoundFn(Rc::new((Value::Class(cls.clone()), f.clone()))));
             }
             return self.bind_class_attr(&attr, Value::Class(cls.clone()), cls);
+        }
+        // `Classe.__weakref__`: o descritor que o `type` pôs na primeira classe do MRO que o tem.
+        if name == "__weakref__" {
+            if let Some(owner) = cls.mro().into_iter().find(|c| instance_slots_added(c).contains(&"__weakref__")) {
+                return Ok(Value::Ext(Rc::new(GetSetDescriptor { name: "__weakref__", owner })));
+            }
         }
         // Atributos da metaclasse (`Color.__members__`, métodos de `EnumMeta`).
         // `__new__` e `__init__` existem em `object`, que vem antes da metaclasse na busca de atributos da classe.
@@ -1362,6 +1506,18 @@ impl Vm {
                 }
                 Ok(())
             }
+            Value::Module(m) => {
+                let from_globals = self
+                    .module_globals
+                    .borrow()
+                    .get(m.name)
+                    .is_some_and(|g| g.borrow_mut().remove(name).is_some());
+                let from_attrs = m.attrs.borrow_mut().remove(name).is_some();
+                if !from_globals && !from_attrs {
+                    return Err(exc("AttributeError", format!("'module' object has no attribute '{name}'")));
+                }
+                Ok(())
+            }
             _ => Err(exc("AttributeError", format!("'{}' object has no attribute '{name}'", obj.type_name()))),
         }
     }
@@ -1505,7 +1661,10 @@ impl Vm {
                 let n = other.type_name();
                 crate::builtins::get(n).unwrap_or_else(|| {
                     let n = intern(n);
-                    crate::object::register_native_type(n);
+                    match other {
+                        Value::Ext(e) => crate::object::register_native_type_methods(n, e.methods()),
+                        _ => crate::object::register_native_type(n),
+                    }
                     Value::Builtin(n)
                 })
             }

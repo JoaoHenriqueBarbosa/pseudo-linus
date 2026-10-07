@@ -247,10 +247,13 @@ def _object_reduce(self):
 def _object_reduce_ex(self, proto=0):
     """`object.__reduce_ex__`: o `(callable, args, estado, ...)` que o `pickle` e o `copy` usam."""
     cls = type(self)
-    custom = getattr(cls, '__reduce__', None)
+    # O `__reduce__` próprio de alguma classe do MRO; o de `object` é este mesmo protocolo.
+    custom = next((k.__dict__['__reduce__'] for k in cls.__mro__
+                   if k is not object and '__reduce__' in k.__dict__), None)
     if custom is not None and getattr(custom, '__module__', None) != 'copyreg':
         return custom(self)
-    if proto < 2 and getattr(cls, '__slots__', None) and getattr(cls, '__getstate__', None) in (None, getattr(object, '__getstate__', None)):
+    own_getstate = any(k is not object and '__getstate__' in k.__dict__ for k in cls.__mro__)
+    if proto < 2 and getattr(cls, '__slots__', None) and not own_getstate:
         raise TypeError("a class that defines __slots__ without defining __getstate__ cannot be pickled")
     getstate = getattr(self, '__getstate__', None)
     state = getstate() if getstate is not None else _object_getstate(self)

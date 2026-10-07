@@ -370,9 +370,100 @@ fn object_init(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::None)
 }
 
+/// `object.__lt__`, `__le__`, `__gt__` e `__ge__`: sempre `NotImplemented`.
+fn object_order(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    match args.len() {
+        2 => Ok(crate::classes::not_implemented()),
+        n => Err(type_error(format!("expected 1 argument, got {}", n.saturating_sub(1)))),
+    }
+}
+
+/// `object.__format__(self, spec)`: `str(self)`, e só com especificação vazia.
+fn object_format(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    match args.as_slice() {
+        [a, Value::Str(spec)] if spec.as_str().is_empty() => Ok(Value::str(vm.str_of(a)?)),
+        [a, Value::Str(_)] => {
+            let ty = vm.type_of(a);
+            let name = vm.getattr(&ty, "__name__").ok().and_then(|n| match n {
+                Value::Str(s) => Some(s.as_str().to_string()),
+                _ => None,
+            });
+            Err(type_error(format!(
+                "unsupported format string passed to {}.__format__",
+                name.unwrap_or_else(|| a.type_name().to_string())
+            )))
+        }
+        [_, other] => Err(type_error(format!("__format__() argument must be str, not {}", other.type_name()))),
+        _ => Err(type_error(format!("__format__() takes exactly one argument ({} given)", args.len().saturating_sub(1)))),
+    }
+}
+
+fn object_sizeof(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    match args.len() {
+        1 => Ok(Value::Int(16)),
+        n => Err(type_error(format!("object.__sizeof__() takes no arguments ({} given)", n.saturating_sub(1)))),
+    }
+}
+
+fn object_dir(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    match args.as_slice() {
+        [a] => {
+            let dir = Value::Builtin("dir");
+            vm.call_value(&dir, vec![a.clone()], Vec::new())
+        }
+        _ => Err(type_error(format!("object.__dir__() takes no arguments ({} given)", args.len().saturating_sub(1)))),
+    }
+}
+
+/// `object.__subclasshook__(cls)`: `NotImplemented`, a decisão fica com o mecanismo normal.
+fn object_subclasshook(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    match args.len() {
+        1 => Ok(crate::classes::not_implemented()),
+        n => Err(type_error(format!("object.__subclasshook__() takes exactly one argument ({n} given)"))),
+    }
+}
+
+fn object_init_subclass(_vm: &mut Vm, _args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    match kw.first() {
+        Some((k, _)) => Err(type_error(format!("object.__init_subclass__() takes no keyword arguments ({k})"))),
+        None => Ok(Value::None),
+    }
+}
+
+/// `object.__reduce_ex__`, `__reduce__` e `__getstate__`: as funções de `copyreg`.
+fn copyreg_call(vm: &mut Vm, fname: &str, args: Vec<Value>) -> PyResult<Value> {
+    let m = crate::modules::import_checked(vm, "copyreg")?;
+    let f = vm.getattr(&Value::Module(m), fname)?;
+    vm.call_value(&f, args, Vec::new())
+}
+
+fn object_reduce_ex(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    copyreg_call(vm, "_object_reduce_ex", args)
+}
+
+fn object_reduce(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    copyreg_call(vm, "_object_reduce", args)
+}
+
+fn object_getstate(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    copyreg_call(vm, "_object_getstate", args)
+}
+
 /// Atributos de `object`: `object.__setattr__(self, nome, valor)` e companhia.
 pub fn object_attr(name: &str) -> Option<Value> {
     Some(match name {
+        "__lt__" => native("__lt__", object_order),
+        "__le__" => native("__le__", object_order),
+        "__gt__" => native("__gt__", object_order),
+        "__ge__" => native("__ge__", object_order),
+        "__format__" => native("__format__", object_format),
+        "__sizeof__" => native("__sizeof__", object_sizeof),
+        "__dir__" => native("__dir__", object_dir),
+        "__subclasshook__" => native("__subclasshook__", object_subclasshook),
+        "__init_subclass__" => native("__init_subclass__", object_init_subclass),
+        "__reduce_ex__" => native("__reduce_ex__", object_reduce_ex),
+        "__reduce__" => native("__reduce__", object_reduce),
+        "__getstate__" => native("__getstate__", object_getstate),
         "__setattr__" => native("__setattr__", object_setattr),
         "__delattr__" => native("__delattr__", object_delattr),
         "__getattribute__" => native("__getattribute__", object_getattribute),
