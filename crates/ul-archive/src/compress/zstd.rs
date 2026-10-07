@@ -302,65 +302,22 @@ fn ljust(s: &[u8], width: usize) -> Vec<u8> {
     v
 }
 
-/// `readU32FromCharChecked`: dígitos com sufixo K/M (e `i`, `B` opcionais). `None` no estouro.
-fn read_u32(s: &[u8], pos: &mut usize) -> Option<u32> {
-    let mut result: u32 = 0;
-    while let Some(&c) = s.get(*pos) {
-        if !c.is_ascii_digit() {
-            break;
-        }
-        let last = result;
-        if result > u32::MAX / 10 {
-            return None;
-        }
-        result = result.wrapping_mul(10).wrapping_add(u32::from(c - b'0'));
-        if result < last {
-            return None;
-        }
-        *pos += 1;
-    }
-    if let Some(&c @ (b'K' | b'M')) = s.get(*pos) {
-        let max_k = u32::MAX >> 10;
-        if result > max_k {
-            return None;
-        }
-        result <<= 10;
-        if c == b'M' {
-            if result > max_k {
-                return None;
-            }
-            result <<= 10;
-        }
-        *pos += 1;
-        if s.get(*pos) == Some(&b'i') {
-            *pos += 1;
-        }
-        if s.get(*pos) == Some(&b'B') {
-            *pos += 1;
-        }
-    }
-    Some(result)
-}
-
-/// `readSizeTFromCharChecked`.
-fn read_size(s: &[u8], pos: &mut usize) -> Option<u64> {
+/// `readU32FromCharChecked` (`max` = `u32::MAX`) e `readSizeTFromCharChecked` (`u64::MAX`):
+/// dígitos com sufixo K/M (e `i`, `B` opcionais). `None` quando o valor passa de `max`.
+fn read_size(s: &[u8], pos: &mut usize, max: u64) -> Option<u64> {
     let mut result: u64 = 0;
     while let Some(&c) = s.get(*pos) {
         if !c.is_ascii_digit() {
             break;
         }
-        let last = result;
-        if result > u64::MAX / 10 {
-            return None;
-        }
-        result = result.wrapping_mul(10).wrapping_add(u64::from(c - b'0'));
-        if result < last {
+        result = result.checked_mul(10)?.checked_add(u64::from(c - b'0'))?;
+        if result > max {
             return None;
         }
         *pos += 1;
     }
     if let Some(&c @ (b'K' | b'M')) = s.get(*pos) {
-        let max_k = u64::MAX >> 10;
+        let max_k = max >> 10;
         if result > max_k {
             return None;
         }
@@ -990,6 +947,16 @@ fn sink_failed(sink: &Sink) -> bool {
     sink.error.is_some()
 }
 
+/// O desfecho do `finish` de um codificador: erro de escrita quando foi o sink que falhou, senão o
+/// erro do próprio codificador.
+fn finished<E>(r: Result<(), E>, sink: &Sink, codec_error: impl FnOnce(E) -> EncError) -> Result<(), EncError> {
+    match r {
+        Ok(()) => Ok(()),
+        Err(_) if sink_failed(sink) => Err(EncError::Write),
+        Err(e) => Err(codec_error(e)),
+    }
+}
+
 /// O formato gzip, com o cabeçalho que o `deflateInit2(..., 15 + 16, ...)` do zlib grava.
 fn encode_gzip(job: &Job, sink: &mut Sink, rp: &mut ReadPool, read: &mut u64) -> Result<(), EncError> {
     let level = match job.level {
@@ -1021,11 +988,7 @@ fn encode_lzma(job: &Job, xz: bool, sink: &mut Sink, rp: &mut ReadPool, read: &m
         codec::Encoder::new(fmt, level, &codec::GzipHeader::default(), &mut *sink).map_err(|_| EncError::Lzma)?;
     pump(&mut enc, rp, read)?;
     let r = enc.finish().map(|_| ());
-    match r {
-        Ok(()) => Ok(()),
-        Err(_) if sink_failed(sink) => Err(EncError::Write),
-        Err(_) => Err(EncError::Lzma),
-    }
+    finished(r, sink, |_| EncError::Lzma)
 }
 
 /// O formato lz4: blocos ligados de 64 KiB, checksum de conteúdo e tamanho quando conhecido.
@@ -1039,11 +1002,7 @@ fn encode_lz4(job: &Job, sink: &mut Sink, rp: &mut ReadPool, read: &mut u64) -> 
     let mut enc = FrameEncoder::with_frame_info(info, &mut *sink);
     pump(&mut enc, rp, read)?;
     let r = enc.finish().map(|_| ());
-    match r {
-        Ok(()) => Ok(()),
-        Err(_) if sink_failed(sink) => Err(EncError::Write),
-        Err(e) => Err(EncError::Lz4(lz4_error_name(&e))),
-    }
+    finished(r, sink, |e| EncError::Lz4(lz4_error_name(&e)))
 }
 
 /// Nome do `LZ4F_getErrorName` pro erro equivalente do `lz4_flex`.
@@ -2822,7 +2781,7 @@ impl Zstd {
     }
 
     fn u32_of(&self, s: &[u8], pos: &mut usize) -> R<u32> {
-        read_u32(s, pos).ok_or_else(|| self.error_out(OVERFLOW_U32))
+        read_size(s, pos, u32::MAX.into()).map(|v| v as u32).ok_or_else(|| self.error_out(OVERFLOW_U32))
     }
 
     /// `readIntFromChar`.
@@ -2831,7 +2790,7 @@ impl Zstd {
         if neg {
             *pos += 1;
         }
-        let v = read_u32(s, pos).ok_or_else(|| self.error_out(OVERFLOW_I32))? as i32;
+        let v = read_size(s, pos, u32::MAX.into()).ok_or_else(|| self.error_out(OVERFLOW_I32))? as i32;
         Ok(if neg { v.wrapping_neg() } else { v })
     }
 
@@ -2868,7 +2827,7 @@ impl Zstd {
     fn next_size(&self, args: &[Vec<u8>], idx: &mut usize, rest: &[u8]) -> R<u64> {
         let (v, _) = self.next_field(args, idx, rest)?;
         let mut p = 0;
-        let n = read_size(&v, &mut p).ok_or_else(|| self.error_out(OVERFLOW_SIZE))?;
+        let n = read_size(&v, &mut p, u64::MAX).ok_or_else(|| self.error_out(OVERFLOW_SIZE))?;
         if p != v.len() {
             return Err(self.error_out(ONLY_NUMERIC));
         }
@@ -3034,7 +2993,7 @@ impl Zstd {
             _ => {}
         }
         if env.get(i).is_some_and(u8::is_ascii_digit) {
-            match read_u32(&env, &mut i) {
+            match read_size(&env, &mut i, u32::MAX.into()) {
                 None => {
                     self.disp(
                         2,
@@ -3058,7 +3017,7 @@ impl Zstd {
         let Some(env) = common::getenv("ZSTD_NBTHREADS") else { return fallback };
         if env.first().is_some_and(u8::is_ascii_digit) {
             let mut i = 0;
-            match read_u32(&env, &mut i) {
+            match read_size(&env, &mut i, u32::MAX.into()) {
                 None => {
                     self.disp(
                         2,
@@ -3066,7 +3025,7 @@ impl Zstd {
                     );
                     return fallback;
                 }
-                Some(v) if i == env.len() => return i64::from(v),
+                Some(v) if i == env.len() => return v as i64,
                 Some(_) => {}
             }
         }
