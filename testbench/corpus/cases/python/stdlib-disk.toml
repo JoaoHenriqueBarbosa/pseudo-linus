@@ -1,0 +1,97 @@
+tool = "python3"
+source = "manual"
+
+# Módulos da stdlib que dependem de outros lidos do disco (o `sysconfig` real do CPython): o
+# `help()` do pydoc e a contagem de linhas do `trace`.
+
+[[case]]
+id = "pydoc-help-user-functions-classes"
+script = '''
+python3 - <<'PYEOF'
+import collections
+def f(a, b=2, *c, d=1, **e):
+    """Soma a e b."""
+    return a + b
+
+class Animal:
+    """Um bicho."""
+    kind = 'x'
+    def __init__(self, name):
+        """Cria."""
+        self.name = name
+    def speak(self, loud=False):
+        """Fala."""
+        return self.name
+    @property
+    def upper(self):
+        """Nome em caixa alta."""
+        return self.name.upper()
+    @classmethod
+    def make(cls):
+        """Fábrica."""
+        return cls('a')
+
+class Dog(Animal):
+    """Cachorro."""
+    def speak(self, loud=True):
+        return 'au'
+
+help(f)
+help(Animal)
+help(Dog)
+help(Dog.speak)
+help(Dog('r').speak)
+PYEOF
+'''
+
+[[case]]
+id = "trace-counts-lines"
+script = '''
+python3 - <<'PYEOF'
+import trace
+import sys
+BASE = sys._getframe().f_lineno
+def f(n):
+    s = 0
+    for i in range(n):
+        s += i
+    return s
+def g():
+    return f(3) + f(2)
+t = trace.Trace(count=1, trace=0)
+t.runfunc(g)
+counts = {(k[1] - BASE): v for k, v in t.results().counts.items()}
+print(sorted(counts.items()))
+PYEOF
+'''
+
+[[case]]
+id = "sysconfig-paths-venv-scheme"
+script = '''
+python3 - <<'PYEOF'
+import sysconfig, sys
+print(sysconfig.__file__, sysconfig.get_default_scheme(), sysconfig.get_preferred_scheme('prefix'))
+print(sysconfig.get_paths(scheme='venv', vars={'base': '/tmp/x', 'platbase': '/tmp/x'}))
+print(sysconfig.get_paths())
+print(sysconfig.get_config_var('BINDIR'), repr(sysconfig.get_config_var('EXE')), sysconfig.get_platform())
+print(sysconfig.get_python_version(), sysconfig.get_config_var('EXT_SUFFIX'), sysconfig.get_config_var('SOABI'))
+PYEOF
+'''
+
+[[case]]
+id = "sys-namespace"
+script = '''
+python3 - <<'PYEOF'
+import sys
+print(sorted(dir(sys)))
+print(sys.monitoring, sorted(dir(sys.monitoring)), sys.monitoring.events.CALL, sys.monitoring.get_tool(0))
+print(sys.__interactivehook__.__name__, sys.__interactivehook__.__module__)
+print(sys, sys.__spec__, type(sys.flags), type(sys.modules), type(sys.implementation))
+print(sys.implementation, sys.thread_info, sys.flags.isolated, sys.abiflags == '')
+print(sys.hash_info, sys.float_info, sys.int_info, sep='\n')
+print(sys.builtin_module_names, sys.copyright, sep='\n')
+import json, os, math, posixpath, encodings.idna, yaml
+for m in (json, os, math, posixpath, encodings.idna, yaml):
+    print(m)
+PYEOF
+'''

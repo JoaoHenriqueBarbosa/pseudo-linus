@@ -207,9 +207,15 @@ fn script_dir(vm: &Vm) -> String {
 
 pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
     let argv = vm.argv.iter().map(|a| Value::str(a.clone())).collect();
+    let layout = crate::layout();
+    let path: Vec<Value> = crate::STDLIB_PATH.iter().map(|p| Value::str(*p)).chain(layout.site.iter().map(|p| Value::str(p.clone()))).collect();
     ModuleBuilder::new("_sys")
         .value("argv", Value::list(argv))
         .value("script_dir", Value::str(script_dir(vm)))
+        .value("executable", Value::str(layout.executable))
+        .value("base_executable", Value::str(layout.base_executable))
+        .value("prefix", Value::str(layout.prefix))
+        .value("path", Value::list(path))
         .value(
             "warnoptions",
             Value::list(crate::WARN_OPTIONS.lock().unwrap().iter().map(|s| Value::str(s.clone())).collect()),

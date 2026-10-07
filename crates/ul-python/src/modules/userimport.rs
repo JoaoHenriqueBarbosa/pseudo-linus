@@ -280,6 +280,10 @@ pub fn exec_file(vm: &mut Vm, name: &str, file: &str, package_dir: Option<&str>)
         }
     }
     let module = Rc::new(ModuleObj { name: key, attrs: RefCell::new(BTreeMap::new()) });
+    // As globais vivas são a fonte; o `repr` do módulo lê o arquivo daqui.
+    if let Some(f) = globals.borrow().get("__file__") {
+        module.attrs.borrow_mut().insert("__file__".to_string(), f.clone());
+    }
     // Registrado antes de rodar, para que importações circulares enxerguem o módulo.
     vm.modules.borrow_mut().insert(name.to_string(), module.clone());
     vm.module_globals.borrow_mut().insert(key, globals.clone());

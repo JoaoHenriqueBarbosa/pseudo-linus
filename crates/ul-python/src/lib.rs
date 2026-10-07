@@ -321,6 +321,9 @@ fn python3_main(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
             }
         }
     }
+    let no_site = CLI_FLAGS.lock().unwrap()[6] != 0;
+    let located = locate(&program, no_site);
+    *LAYOUT.lock().unwrap() = Some(located);
     if print_version > 0 {
         if print_version > 1 {
             write_stdout(&format!("Python {VERSION_LONG}\n"));
@@ -371,6 +374,84 @@ pub(crate) fn absolute_path(path: &str) -> String {
     format!("/{}", parts.join("/"))
 }
 
+/// Onde o interpretador se encontra, como o `Modules/getpath.py` do CPython: o executável é o
+/// caminho pelo qual ele foi chamado (procurado no `PATH`, sem seguir symlinks), e um `pyvenv.cfg`
+/// ao lado dele ou um diretório acima faz do diretório do arquivo o `sys.prefix` de um venv.
+#[derive(Clone)]
+pub(crate) struct Layout {
+    pub executable: String,
+    pub base_executable: String,
+    pub prefix: String,
+    /// Os diretórios de pacotes de terceiros, na ordem do `sys.path`.
+    pub site: Vec<String>,
+}
+
+const SYSTEM_SITE: [&str; 2] = ["/usr/local/lib/python3.13/dist-packages", "/usr/lib/python3/dist-packages"];
+
+/// As entradas da stdlib no `sys.path`, antes dos pacotes de terceiros.
+pub(crate) const STDLIB_PATH: [&str; 3] = ["/usr/lib/python313.zip", "/usr/lib/python3.13", "/usr/lib/python3.13/lib-dynload"];
+
+static LAYOUT: std::sync::Mutex<Option<Layout>> = std::sync::Mutex::new(None);
+
+/// O [`Layout`] do `python3` em execução (o do sistema, se nenhum foi calculado).
+pub(crate) fn layout() -> Layout {
+    LAYOUT.lock().unwrap().clone().unwrap_or_else(|| Layout {
+        executable: "/usr/bin/python3".to_string(),
+        base_executable: "/usr/bin/python3".to_string(),
+        prefix: "/usr".to_string(),
+        site: SYSTEM_SITE.iter().map(|s| s.to_string()).collect(),
+    })
+}
+
+fn locate(program: &str, no_site: bool) -> Layout {
+    let executable = if program.contains('/') {
+        absolute_path(program)
+    } else {
+        let path = sys::try_current().and_then(|s| s.getenv(b"PATH")).unwrap_or_default();
+        String::from_utf8_lossy(&path)
+            .split(':')
+            .map(|dir| if dir.is_empty() { "." } else { dir })
+            .map(|dir| absolute_path(&format!("{dir}/{program}")))
+            .find(|p| is_regular(p))
+            .unwrap_or_else(|| "/usr/bin/python3".to_string())
+    };
+    let bin_dir = executable.rsplit_once('/').map_or("/", |(d, _)| if d.is_empty() { "/" } else { d }).to_string();
+    let parent = bin_dir.rsplit_once('/').map_or("/", |(d, _)| if d.is_empty() { "/" } else { d }).to_string();
+    let venv = [bin_dir, parent].into_iter().find_map(|dir| {
+        let cfg = sys::read_file(format!("{}/pyvenv.cfg", dir.trim_end_matches('/')).as_bytes()).ok()?;
+        Some((dir, String::from_utf8_lossy(&cfg).into_owned()))
+    });
+    let mut layout = Layout {
+        executable: executable.clone(),
+        base_executable: executable,
+        prefix: "/usr".to_string(),
+        site: SYSTEM_SITE.iter().map(|s| s.to_string()).collect(),
+    };
+    if let Some((dir, cfg)) = venv {
+        let value = |key: &str| {
+            cfg.lines().find_map(|line| {
+                let (k, v) = line.split_once('=')?;
+                (k.trim() == key).then(|| v.trim().to_string())
+            })
+        };
+        let base_name = layout.executable.rsplit('/').next().unwrap_or("python3").to_string();
+        layout.base_executable = value("executable")
+            .or_else(|| value("home").map(|h| format!("{}/{base_name}", h.trim_end_matches('/'))))
+            .unwrap_or_else(|| layout.base_executable.clone());
+        let system = value("include-system-site-packages").is_some_and(|v| v.eq_ignore_ascii_case("true"));
+        let mut site = vec![format!("{}/lib/python3.13/site-packages", dir.trim_end_matches('/'))];
+        if system {
+            site.extend(SYSTEM_SITE.iter().map(|s| s.to_string()));
+        }
+        layout.site = site;
+        layout.prefix = dir;
+    }
+    if no_site {
+        layout.site.clear();
+    }
+    layout
+}
+
 /// `python3 -m pacote.modulo args...`: procura no diretório atual (e em `sys.path`), roda como `__main__`.
 fn run_module(name: &str, rest: &[Vec<u8>], program: &str) -> i32 {
     let cwd = String::from_utf8_lossy(&sys::current().getcwd().unwrap_or_default()).into_owned();
@@ -399,12 +480,15 @@ fn run_module(name: &str, rest: &[Vec<u8>], program: &str) -> i32 {
         None
     };
     let embedded = modules::pysrc::source(&format!("{name}.__main__")).is_some() || modules::pysrc::source(name).is_some();
-    // A ordem do `sys.path`: o diretório atual, a stdlib (embutida) e os dist-packages.
-    let found = search(&cwd).or_else(|| {
+    // A ordem do `sys.path`: o diretório atual (fora no modo isolado ou com -P), a stdlib (embutida
+    // ou no disco) e os pacotes de terceiros.
+    let safe_path = CLI_FLAGS.lock().unwrap()[16] != 0;
+    let found = (!safe_path).then(|| search(&cwd)).flatten().or_else(|| {
         if embedded {
             return None;
         }
-        ["/usr/local/lib/python3.13/dist-packages", "/usr/lib/python3/dist-packages"].iter().find_map(|d| search(d))
+        let site = layout().site;
+        std::iter::once("/usr/lib/python3.13").chain(site.iter().map(String::as_str)).find_map(|d| search(d))
     });
     let (path, text, package) = match found {
         Some((path, package)) => {

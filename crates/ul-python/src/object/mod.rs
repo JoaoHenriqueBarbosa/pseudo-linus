@@ -489,9 +489,13 @@ impl fmt::Debug for ClassObj {
 }
 
 impl ClassObj {
-    /// `__qualname__`: `Outer.Inner` ou `f.<locals>.C`; o corpo da classe o grava no espaço de nomes.
+    /// `__qualname__`: `Outer.Inner` ou `f.<locals>.C`; o corpo da classe o grava no espaço de nomes,
+    /// e uma atribuição posterior a `C.__qualname__` vale.
     pub fn qualname(&self) -> String {
-        self.qualname.clone()
+        match self.dict.borrow().get("__qualname__") {
+            Some(Value::Str(s)) => s.as_str().to_string(),
+            _ => self.qualname.clone(),
+        }
     }
 
     /// O módulo onde a classe foi definida (`__module__`), `__main__` por padrão.
@@ -971,6 +975,42 @@ impl fmt::Debug for Value {
     }
 }
 
+/// Módulos que o CPython 3.13 do Debian traz congelados (`_imp._frozen_module_names()`).
+const FROZEN_MODULES: &[&str] = &[
+    "_collections_abc", "_frozen_importlib", "_frozen_importlib_external", "_sitebuiltins", "abc", "codecs",
+    "genericpath", "importlib.machinery", "importlib.util", "io", "ntpath", "os", "os.path", "posixpath", "runpy",
+    "site", "stat", "zipimport",
+];
+
+/// Módulos embutidos no executável do CPython 3.13 do Debian (`sys.builtin_module_names`).
+pub(crate) const BUILTIN_MODULES: &[&str] = &[
+    "_abc", "_ast", "_bisect", "_blake2", "_codecs", "_collections", "_csv", "_datetime", "_elementtree",
+    "_functools", "_heapq", "_imp", "_io", "_json", "_locale", "_md5", "_opcode", "_operator", "_pickle",
+    "_posixsubprocess", "_random", "_sha1", "_sha2", "_sha3", "_signal", "_socket", "_sre", "_stat",
+    "_statistics", "_string", "_struct", "_suggestions", "_symtable", "_sysconfig", "_thread", "_tokenize",
+    "_tracemalloc", "_typing", "_warnings", "_weakref", "array", "atexit", "binascii", "builtins", "cmath",
+    "errno", "faulthandler", "fcntl", "gc", "grp", "itertools", "marshal", "math", "posix", "pwd", "pyexpat",
+    "select", "sys", "syslog", "time", "unicodedata", "zlib",
+];
+
+/// `repr()` de um módulo como o `module_repr` do CPython: congelado, embutido, com arquivo ou só o nome.
+fn module_repr(m: &ModuleObj) -> String {
+    let name = match m.attrs.borrow().get("__name__") {
+        Some(Value::Str(s)) => s.as_str().to_string(),
+        _ => m.name.to_string(),
+    };
+    if FROZEN_MODULES.contains(&m.name) {
+        return format!("<module {} (frozen)>", str_repr(&name));
+    }
+    if BUILTIN_MODULES.contains(&m.name) {
+        return format!("<module {} (built-in)>", str_repr(&name));
+    }
+    match m.attrs.borrow().get("__file__") {
+        Some(Value::Str(f)) => format!("<module {} from {}>", str_repr(&name), str_repr(f.as_str())),
+        _ => format!("<module {}>", str_repr(&name)),
+    }
+}
+
 /// `módulo.` para o `repr` de uma classe (vazio para `builtins`).
 fn module_prefix(c: &ClassObj) -> String {
     match c.module().as_str() {
@@ -1091,7 +1131,7 @@ pub(crate) fn repr_into(v: &Value, out: &mut String, stack: &mut ReprStack) {
         Value::Builtin(name) => out.push_str(&format!("<built-in function {name}>")),
         Value::Exception(e) => out.push_str(&exc_repr(e)),
         Value::Function(f) => out.push_str(&format!("<function {} at {:#x}>", f.code.qual(), addr(f))),
-        Value::Module(m) => out.push_str(&format!("<module '{}'>", m.name)),
+        Value::Module(m) => out.push_str(&module_repr(m)),
         Value::NativeFn(n) if is_builtin_type(n.name) => out.push_str(&format!("<class '{}'>", n.name)),
         Value::NativeFn(n) => out.push_str(&format!("<built-in function {}>", n.name)),
         Value::Ext(e) => out.push_str(&e.repr()),

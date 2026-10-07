@@ -20,8 +20,11 @@ fn every_embedded_module_imports() {
     // `tkinter` precisa do Tk nativo (`_tkinter`), que o sandbox não tem: o oráculo instala o
     // `python3-tk` e importa, então este é um buraco conhecido do nosso lado, não do oráculo.
     const MISSING_DEPS: &[&str] = &["PIL._tkinter_finder"];
+    // Importam o `sysconfig` real, que vive no disco da imagem e não existe no teste unitário: a
+    // bancada (`python/stdlib-disk.toml` e os casos de datas) cobre esses.
+    const NEEDS_DISK: &[&str] = &["trace", "pydoc", "zoneinfo", "zoneinfo._tzpath", "zoneinfo._common", "zoneinfo._zoneinfo"];
     for name in crate::modules::pysrc::names() {
-        if NEEDS_PROCESS.contains(&name) || MISSING_DEPS.contains(&name) {
+        if NEEDS_PROCESS.contains(&name) || MISSING_DEPS.contains(&name) || NEEDS_DISK.contains(&name) {
             continue;
         }
         let o = run_source(&format!("import {name}\nprint('ok')"));
@@ -4839,156 +4842,6 @@ ValueError Circular reference detected
 }
 
 #[test]
-fn pydoc_help_on_user_functions_and_classes() {
-    let src = r##"
-import collections
-def f(a, b=2, *c, d=1, **e):
-    """Soma a e b."""
-    return a + b
-
-class Animal:
-    """Um bicho."""
-    kind = 'x'
-    def __init__(self, name):
-        """Cria."""
-        self.name = name
-    def speak(self, loud=False):
-        """Fala."""
-        return self.name
-    @property
-    def upper(self):
-        """Nome em caixa alta."""
-        return self.name.upper()
-    @classmethod
-    def make(cls):
-        """Fábrica."""
-        return cls('a')
-
-class Dog(Animal):
-    """Cachorro."""
-    def speak(self, loud=True):
-        return 'au'
-
-help(f)
-help(Animal)
-help(Dog)
-help(Dog.speak)
-help(Dog('r').speak)
-"##;
-    let o = crate::run_source(src);
-    assert_eq!(o.status, 0, "{}", o.stderr);
-    assert_eq!(
-        String::from_utf8(o.stdout).unwrap(),
-        r##"Help on function f in module __main__:
-
-f(a, b=2, *c, d=1, **e)
-    Soma a e b.
-
-Help on class Animal in module __main__:
-
-class Animal(builtins.object)
- |  Animal(name)
- |
- |  Um bicho.
- |
- |  Methods defined here:
- |
- |  __init__(self, name)
- |      Cria.
- |
- |  speak(self, loud=False)
- |      Fala.
- |
- |  ----------------------------------------------------------------------
- |  Class methods defined here:
- |
- |  make()
- |      Fábrica.
- |
- |  ----------------------------------------------------------------------
- |  Readonly properties defined here:
- |
- |  upper
- |      Nome em caixa alta.
- |
- |  ----------------------------------------------------------------------
- |  Data descriptors defined here:
- |
- |  __dict__
- |      dictionary for instance variables
- |
- |  __weakref__
- |      list of weak references to the object
- |
- |  ----------------------------------------------------------------------
- |  Data and other attributes defined here:
- |
- |  kind = 'x'
-
-Help on class Dog in module __main__:
-
-class Dog(Animal)
- |  Dog(name)
- |
- |  Cachorro.
- |
- |  Method resolution order:
- |      Dog
- |      Animal
- |      builtins.object
- |
- |  Methods defined here:
- |
- |  speak(self, loud=True)
- |      Fala.
- |
- |  ----------------------------------------------------------------------
- |  Methods inherited from Animal:
- |
- |  __init__(self, name)
- |      Cria.
- |
- |  ----------------------------------------------------------------------
- |  Class methods inherited from Animal:
- |
- |  make()
- |      Fábrica.
- |
- |  ----------------------------------------------------------------------
- |  Readonly properties inherited from Animal:
- |
- |  upper
- |      Nome em caixa alta.
- |
- |  ----------------------------------------------------------------------
- |  Data descriptors inherited from Animal:
- |
- |  __dict__
- |      dictionary for instance variables
- |
- |  __weakref__
- |      list of weak references to the object
- |
- |  ----------------------------------------------------------------------
- |  Data and other attributes inherited from Animal:
- |
- |  kind = 'x'
-
-Help on function speak in module __main__:
-
-speak(self, loud=True)
-    Fala.
-
-Help on method speak in module __main__:
-
-speak(loud=True) method of __main__.Dog instance
-    Fala.
-
-"##
-    );
-}
-
-#[test]
 fn class_subclasses_registry() {
     let src = r##"
 class Base:
@@ -5381,34 +5234,6 @@ None
 "##
     );
 }
-
-#[test]
-fn trace_module_counts_lines() {
-    let src = r##"
-import trace
-import sys
-BASE = sys._getframe().f_lineno
-def f(n):
-    s = 0
-    for i in range(n):
-        s += i
-    return s
-def g():
-    return f(3) + f(2)
-t = trace.Trace(count=1, trace=0)
-t.runfunc(g)
-counts = {(k[1] - BASE): v for k, v in t.results().counts.items()}
-print(sorted(counts.items()))
-"##;
-    let o = crate::run_source(src);
-    assert_eq!(o.status, 0, "{}", o.stderr);
-    assert_eq!(
-        String::from_utf8(o.stdout).unwrap(),
-        r##"[(2, 2), (3, 7), (4, 5), (5, 2), (7, 1)]
-"##
-    );
-}
-
 #[test]
 fn dataclass_slots_and_get_overloads() {
     let src = r##"

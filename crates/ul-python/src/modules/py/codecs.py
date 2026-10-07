@@ -246,6 +246,37 @@ class IncrementalEncoder:
     def reset(self):
         pass
 
+    def getstate(self):
+        return 0
+
+    def setstate(self, state):
+        pass
+
+
+class BufferedIncrementalEncoder(IncrementalEncoder):
+    def __init__(self, errors='strict'):
+        IncrementalEncoder.__init__(self, errors)
+        self.buffer = ''
+
+    def _buffer_encode(self, input, errors, final):
+        raise NotImplementedError
+
+    def encode(self, input, final=False):
+        data = self.buffer + input
+        (result, consumed) = self._buffer_encode(data, self.errors, final)
+        self.buffer = data[consumed:]
+        return result
+
+    def reset(self):
+        IncrementalEncoder.reset(self)
+        self.buffer = ''
+
+    def getstate(self):
+        return self.buffer or 0
+
+    def setstate(self, state):
+        self.buffer = state or ''
+
 
 class IncrementalDecoder:
     def __init__(self, errors='strict'):
@@ -255,6 +286,12 @@ class IncrementalDecoder:
         raise NotImplementedError
 
     def reset(self):
+        pass
+
+    def getstate(self):
+        return (b'', 0)
+
+    def setstate(self, state):
         pass
 
 
@@ -271,6 +308,16 @@ class BufferedIncrementalDecoder(IncrementalDecoder):
         result, consumed = self._buffer_decode(data, self.errors, final)
         self.buffer = data[consumed:]
         return result
+
+    def reset(self):
+        IncrementalDecoder.reset(self)
+        self.buffer = b''
+
+    def getstate(self):
+        return (self.buffer, 0)
+
+    def setstate(self, state):
+        self.buffer = state[0]
 
 
 def _inc_encoder(name):
