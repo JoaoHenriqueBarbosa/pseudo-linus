@@ -105,7 +105,7 @@ mod tests {
 
     #[test]
     fn owner_triad_wins_even_if_others_have_more() {
-        let user = Cred { uid: 1000, gid: 1000, groups: vec![1000] };
+        let user = Cred::new(1000, 1000, vec![1000]);
         let f = st(S_IFREG | 0o077, 1000, 1000);
         assert_eq!(permission(&user, &f, MAY_READ), Err(Errno::EACCES));
         let g = st(S_IFREG | 0o040, 0, 1000);

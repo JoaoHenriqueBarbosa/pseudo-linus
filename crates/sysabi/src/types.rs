@@ -24,6 +24,8 @@ pub type Tid = i32;
 /// Corpo de uma thread criada por [`crate::Syscalls::spawn_thread`].
 pub type ThreadFn = Box<dyn FnOnce() + Send + 'static>;
 pub type Uid = u32;
+/// O `-1` de `setresuid`/`setreuid`/`chown`: não muda aquele id.
+pub const ID_UNCHANGED: u32 = u32::MAX;
 pub type Gid = u32;
 /// Bits de permissão e tipo (`st_mode`).
 pub type Mode = u32;

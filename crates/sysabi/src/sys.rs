@@ -285,6 +285,49 @@ pub trait Syscalls: Send + Sync {
     fn getgid(&self) -> Gid;
     fn getegid(&self) -> Gid;
     fn getgroups(&self) -> Vec<Gid>;
+    /// `getresuid`: (real, efetivo, salvo).
+    fn getresuid(&self) -> (Uid, Uid, Uid) {
+        let (r, e) = (self.getuid(), self.geteuid());
+        (r, e, e)
+    }
+    /// `getresgid`: (real, efetivo, salvo).
+    fn getresgid(&self) -> (Gid, Gid, Gid) {
+        let (r, e) = (self.getgid(), self.getegid());
+        (r, e, e)
+    }
+    /// `setresuid(r, e, s)`; [`ID_UNCHANGED`] (o `-1` do C) mantém o valor.
+    fn setresuid(&self, r: Uid, e: Uid, s: Uid) -> SysResult<()> {
+        let _ = (r, e, s);
+        Err(Errno::EPERM)
+    }
+    fn setresgid(&self, r: Gid, e: Gid, s: Gid) -> SysResult<()> {
+        let _ = (r, e, s);
+        Err(Errno::EPERM)
+    }
+    /// `setreuid(r, e)` com a regra do salvo do Linux.
+    fn setreuid(&self, r: Uid, e: Uid) -> SysResult<()> {
+        let _ = (r, e);
+        Err(Errno::EPERM)
+    }
+    fn setregid(&self, r: Gid, e: Gid) -> SysResult<()> {
+        let _ = (r, e);
+        Err(Errno::EPERM)
+    }
+    /// `setuid(uid)`: com `CAP_SETUID` troca real, efetivo e salvo; sem, só o efetivo (para o real ou
+    /// o salvo).
+    fn setuid(&self, uid: Uid) -> SysResult<()> {
+        let _ = uid;
+        Err(Errno::EPERM)
+    }
+    fn setgid(&self, gid: Gid) -> SysResult<()> {
+        let _ = gid;
+        Err(Errno::EPERM)
+    }
+    /// `setgroups`: exige `CAP_SETGID`; mais de `NGROUPS_MAX` (65536) dá EINVAL.
+    fn setgroups(&self, groups: &[Gid]) -> SysResult<()> {
+        let _ = groups;
+        Err(Errno::EPERM)
+    }
     /// argv do processo (o mesmo passado ao `main`).
     fn argv(&self) -> Vec<Vec<u8>>;
     /// Ambiente do processo, `NAME=valor`.

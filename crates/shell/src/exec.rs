@@ -116,13 +116,14 @@ impl Shell {
                 if self.opts.get("noexec") && !self.interactive {
                     continue;
                 }
-                // `bash -c`: o último comando do texto, se for simples e sozinho, sofre exec no
-                // próprio processo do shell (o `CMD_NO_FORK` do `parse_and_execute`).
+                // `bash -c`: o último comando simples do texto (o fim da lista ou do `&&`/`||`)
+                // sofre exec no próprio processo do shell (o `CMD_NO_FORK` do `parse_and_execute`
+                // e o `optimize_connection_fork` do bash 5.2).
                 if self.dash_c && kind == TextKind::Main && !self.is_subshell && i + 1 == n && reader.at_end() {
-                    self.exec_last = single_simple(list);
+                    self.exec_target = last_simple(list).map_or(0, |s| s as *const Simple as usize);
                 }
                 let r = self.exec_list(list);
-                self.exec_last = false;
+                self.exec_target = 0;
                 self.cleanup_procsubs();
                 match r {
                     Ok(st) => {
@@ -323,6 +324,7 @@ impl Shell {
             let mut child = self.subshell_clone();
             // Como no `&`: elemento que é comando simples sofre exec no próprio processo do pipeline.
             child.exec_last = matches!(cmd, Command::Simple(_));
+            child.in_pipe = true;
             let attrs = ProcAttrs { fd_actions: actions, reset_signals: self.trapped_signals(), ..ProcAttrs::default() };
             let spawned = s.spawn_fn(attrs, b"bash".to_vec(), Box::new(move || child.run_subshell_command(&child_cmd)));
             if let Some(r) = prev_read.take() {
@@ -481,6 +483,8 @@ impl Shell {
     /// Corpo de um subshell que roda uma lista (`( ... )`, `<(...)`).
     pub fn run_subshell_list(&mut self, list: &List) -> i32 {
         self.enter_child();
+        // O último comando simples do subshell sofre exec no próprio processo, como no `bash -c`.
+        self.exec_target = last_simple(list).map_or(0, |s| s as *const Simple as usize);
         let r = self.exec_list(list);
         self.finish_subshell(r)
     }
@@ -488,6 +492,8 @@ impl Shell {
     /// Corpo de `$(...)`.
     pub fn run_subshell_program(&mut self, program: &Program) -> i32 {
         self.enter_child();
+        // O `command_substitute` liga o `startup_state = 2`: o último comando simples sofre exec.
+        self.exec_target = program.commands.last().and_then(last_simple).map_or(0, |s| s as *const Simple as usize);
         let mut status = 0;
         for list in &program.commands {
             match self.exec_list(list) {
@@ -703,7 +709,11 @@ impl Shell {
 
     pub fn exec_simple(&mut self, s: &Simple) -> Exec {
         // Só este comando: as substituições dentro dele e os seguintes não herdam.
-        let exec_last = std::mem::take(&mut self.exec_last);
+        let target = self.exec_target != 0 && self.exec_target == s as *const Simple as usize;
+        if target {
+            self.exec_target = 0;
+        }
+        let exec_last = std::mem::take(&mut self.exec_last) || target;
         self.lineno = s.line;
         self.last_cmdsub_status = None;
         // Durante um trap o `BASH_COMMAND` continua sendo o comando que disparou o trap.
@@ -968,6 +978,9 @@ impl Shell {
     /// Último comando do subshell de um `&`: o programa substitui o processo. Se o `execve` falhar,
     /// os erros são os de sempre e o subshell termina com o status deles.
     fn exec_external_in_place(&mut self, path: &[u8], argv: &[Vec<u8>], env_extra: Vec<Vec<u8>>) -> Exec {
+        if !self.in_pipe {
+            self.lower_shlvl_for_exec();
+        }
         let env = self.external_env(env_extra);
         let e = sys().execve(path, argv, Some(&env));
         self.exec_failed(path, argv, &env, e)
@@ -1592,16 +1605,18 @@ fn is_executable_file(p: &[u8]) -> bool {
 }
 
 /// Lista que é um único comando simples em primeiro plano, sem `!`, `time`, `&&` ou `||`.
-fn single_simple(list: &List) -> bool {
-    match list.items.as_slice() {
-        [item] => {
-            let ao = &item.and_or;
-            !item.background
-                && ao.rest.is_empty()
-                && !ao.first.negated
-                && ao.first.time.is_none()
-                && matches!(ao.first.commands.as_slice(), [Command::Simple(_)])
-        }
-        _ => false,
+fn last_simple(list: &List) -> Option<&Simple> {
+    let item = list.items.last()?;
+    if item.background {
+        return None;
+    }
+    let p = item.and_or.rest.last().map_or(&item.and_or.first, |(_, p)| p);
+    if p.negated || p.time.is_some() {
+        return None;
+    }
+    match p.commands.as_slice() {
+        // Com redireção o bash não otimiza (`should_optimize_fork`).
+        [Command::Simple(s)] if s.redirects.is_empty() => Some(s),
+        _ => None,
     }
 }

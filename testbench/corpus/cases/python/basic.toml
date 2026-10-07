@@ -358,3 +358,36 @@ python3 -c 'exec(compile("def f():\n    return 1/0\n", "fn.py", "exec")); f()'
 python3 -c 'exec("1/0")'
 '''
 tags = ["error"]
+
+[[case]]
+id = "os-credentials"
+script = '''
+python3 -c '
+import os
+print(os.getuid(), os.geteuid(), os.getgid(), os.getegid())
+print(os.getresuid(), os.getresgid(), os.getgroups())
+print(os.getgrouplist("nobody", 65534), os.getgrouplist("root", 0))
+os.setgroups([5, 3, 4])
+print(os.getgroups())
+os.setresgid(65534, 65534, 0)
+os.setresuid(65534, 65534, 0)
+print(os.getresuid(), os.getresgid(), os.getuid(), os.geteuid())
+try:
+    os.setgroups([1])
+except OSError as e:
+    print("setgroups", e)
+os.seteuid(0)
+print(os.getresuid())
+os.setuid(0)
+print(os.getresuid())
+os.setuid(65534)
+print(os.getresuid())
+for f, a in ((os.setuid, (0,)), (os.setreuid, (-1, 0)), (os.setegid, (0,))):
+    try:
+        f(*a)
+    except OSError as e:
+        print(f.__name__, e)
+'
+su nobody -s /bin/sh -c "python3 -c \"import os; print(os.getuid(), os.getgid(), os.getgroups())\""
+'''
+tags = ["os", "credentials"]

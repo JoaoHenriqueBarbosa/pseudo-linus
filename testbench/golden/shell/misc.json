@@ -11,6 +11,18 @@
     "exit": 0,
     "files": {}
   },
+  "dash-kill-messages": {
+    "stdout": "sh: 1: kill: Usage: kill [-s sigspec | -signum | -sigspec] [pid | job]... or\nkill -l [exitstatus]\nrc=2\n0\nHUP\nINT\nINT\nKILL\nsh: 4: kill: Illegal number: KILL\nrc=2\nsh: 5: kill: Illegal option -L\nrc=2\nsh: 6: kill: Usage: kill [-s sigspec | -signum | -sigspec] [pid | job]... or\nkill -l [exitstatus]\nrc=2\nsh: 7: kill: No arg for -s option\nrc=2\nsh: 8: kill: Illegal option -n\nrc=2\nsh: 9: kill: No such process\n\nrc=1\nrc=0\nsh: 11: kill: Illegal option -S\nrc=2\nsh: 12: kill: invalid signal number or name: igterm\nrc=2\nsh: 13: kill: No such process\n\nsh: 13: kill: No such process\n\nrc=1\nsh: 14: kill: Illegal number: 1.5\nrc=2\nsh: 15: kill: No such job: %3\nrc=2\n0 HUP INT QUIT ILL TRAP ABRT BUS FPE KILL USR1 SEGV USR2 PIPE ALRM TERM 16 CHLD CONT STOP TSTP TTIN TTOU URG XCPU XFSZ VTALRM PROF WINCH IO PWR SYS 32 33 RTMIN RTMIN+1 RTMIN+2 RTMIN+3 RTMIN+4 RTMIN+5 RTMIN+6 RTMIN+7 RTMIN+8 RTMIN+9 RTMIN+10 RTMIN+11 RTMIN+12 RTMIN+13 RTMIN+14 RTMIN+15 RTMAX-14 RTMAX-13 RTMAX-12 RTMAX-11 RTMAX-10 RTMAX-9 RTMAX-8 RTMAX-7 RTMAX-6 RTMAX-5 RTMAX-4 RTMAX-3 RTMAX-2 RTMAX-1 RTMAX \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "dash-shift-fatal": {
+    "stdout": "sh: 1: shift: can't shift that many\nexit=2\nsh: 1: shift: Illegal number: x\nexit=2\nrc=0 0\nexit=0\nsh: 1: shift: can't shift that many\nexit=2\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "exec-redirect-whole-script": {
     "stdout": "",
     "stderr": "",
@@ -108,6 +120,12 @@
         "data": "nome=ana\nidade=31\n"
       }
     }
+  },
+  "shlvl-implicit-exec": {
+    "stdout": "1\n2\n1\n1\n1\n2\nr\n1\n1\n2\n1\n2\n1\nsh:unset\nlrwxrwxrwx '/bin/sh' -> 'dash'\nlrwxrwxrwx '/usr/bin/sh' -> 'dash'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
   },
   "shopt-and-set-o-listing": {
     "stdout": "extglob        \toff\nnullglob       \toff\nglobstar       \toff\nerrexit        \toff\nnoclobber      \toff\nnounset        \toff\npipefail       \toff\nextglob q=1\n",

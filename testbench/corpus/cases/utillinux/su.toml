@@ -30,3 +30,58 @@ script = "su -g nosuchgroup_x root -c true 2>&1; echo \"rc=$?\""
 [[case]]
 id = "su-root-command"
 script = "su root -c 'echo hello' 2>&1; echo \"rc=$?\""
+
+# Troca de identidade de verdade: credenciais, grupos do /etc/group, -g/-G, o /proc/self/status do
+# shell novo, o login (cd para o home, PATH do /etc/login.defs) e o non-root que cai no PAM.
+
+[[case]]
+id = "su-switch-identity"
+script = '''
+cd /tmp
+su nobody -s /bin/sh -c 'id; pwd; echo "h=$HOME s=$SHELL u=$USER l=$LOGNAME m=$MAIL"' 2>&1; echo "rc=$?"
+su daemon -s /bin/bash -c 'id -u; id -g; id -G' 2>&1; echo "rc=$?"
+'''
+tags = ["su", "credentials"]
+
+[[case]]
+id = "su-groups-options"
+script = '''
+su -g daemon -G sys nobody -s /bin/sh -c id 2>&1
+su -G sys nobody -s /bin/sh -c id 2>&1
+su -g nogroup -s /bin/sh daemon -c id 2>&1
+su -s /bin/sh -c 'grep -E "^(Uid|Gid|Groups)" /proc/self/status' nobody 2>&1
+'''
+tags = ["su", "credentials", "groups"]
+
+[[case]]
+id = "su-login-path"
+script = '''
+cd /tmp
+su - nobody -s /bin/sh -c 'pwd; echo "h=$HOME p=$PATH"' 2>&1; echo "rc=$?"
+su - -c 'pwd; echo "p=$PATH"' 2>&1; echo "rc=$?"
+su -l daemon -s /bin/sh -c 'echo "p=$PATH"' 2>&1; echo "rc=$?"
+'''
+tags = ["su", "login", "environment"]
+
+[[case]]
+id = "su-nologin-shell"
+script = "su nobody -c id 2>&1; echo \"rc=$?\"; su daemon -c 'echo hi' 2>&1; echo \"rc=$?\""
+tags = ["su", "error"]
+
+[[case]]
+id = "su-nonroot-auth-failure"
+script = '''
+su nobody -s /bin/sh -c 'su root -c id </dev/null; echo "rc=$?"' 2>&1
+su nobody -s /bin/sh -c 'runuser -u root -- id; echo "rc=$?"' 2>&1
+'''
+tags = ["su", "pam", "error"]
+
+[[case]]
+id = "su-kill-permissions"
+script = '''
+sleep 30 &
+pid=$!
+su nobody -s /bin/sh -c "kill $pid; echo rc=\$?" 2>&1 | sed "s/$pid/PID/"
+kill $pid
+'''
+tags = ["su", "credentials", "kill"]

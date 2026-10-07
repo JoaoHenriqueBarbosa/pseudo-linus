@@ -79,8 +79,14 @@ pub struct ProcData {
     pub cmdline: Vec<u8>,
     /// Ambiente com um NUL depois de cada `NAME=valor`.
     pub environ: Vec<u8>,
+    /// Uid e gid efetivos (os de dono de `/proc/<pid>`).
     pub uid: Uid,
     pub gid: Gid,
+    /// Reais e salvos, pras linhas `Uid:`/`Gid:` do `status`.
+    pub ruid: Uid,
+    pub suid: Uid,
+    pub rgid: Gid,
+    pub sgid: Gid,
     /// Grupos suplementares.
     pub groups: Vec<Gid>,
     pub umask: Mode,

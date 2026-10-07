@@ -1166,15 +1166,119 @@ def lseek(fd, pos, how):
 
 
 def getuid():
-    return 0
+    """Return the current process's user id."""
+    return _os._creds('uid')
 
 
 def getgid():
-    return 0
+    """Return the current process's group id."""
+    return _os._creds('gid')
 
 
 def geteuid():
-    return 0
+    """Return the current process's effective user id."""
+    return _os._creds('euid')
+
+
+def getegid():
+    """Return the current process's effective group id."""
+    return _os._creds('egid')
+
+
+def getgroups():
+    """Return list of supplemental group IDs for the process."""
+    return _os._creds('groups')
+
+
+def getresuid():
+    """Return a tuple of the current process's real, effective, and saved user ids."""
+    return _os._creds('resuid')
+
+
+def getresgid():
+    """Return a tuple of the current process's real, effective, and saved group ids."""
+    return _os._creds('resgid')
+
+
+def setuid(uid, /):
+    """Set the current process's user id."""
+    _os._setids('setuid', uid)
+
+
+def seteuid(euid, /):
+    """Set the current process's effective user id."""
+    _os._setids('seteuid', euid)
+
+
+def setgid(gid, /):
+    """Set the current process's group id."""
+    _os._setids('setgid', gid)
+
+
+def setegid(egid, /):
+    """Set the current process's effective group id."""
+    _os._setids('setegid', egid)
+
+
+def setreuid(ruid, euid, /):
+    """Set the current process's real and effective user ids."""
+    _os._setids('setreuid', ruid, euid)
+
+
+def setregid(rgid, egid, /):
+    """Set the current process's real and effective group ids."""
+    _os._setids('setregid', rgid, egid)
+
+
+def setresuid(ruid, euid, suid, /):
+    """Set the current process's real, effective, and saved user ids."""
+    _os._setids('setresuid', ruid, euid, suid)
+
+
+def setresgid(rgid, egid, sgid, /):
+    """Set the current process's real, effective, and saved group ids."""
+    _os._setids('setresgid', rgid, egid, sgid)
+
+
+def setgroups(groups, /):
+    """Set the groups of the current process to list."""
+    _os._setids('setgroups', list(groups))
+
+
+def getgrouplist(user, group, /):
+    """Returns a list of groups to which a user belongs.
+
+  user
+    username to lookup
+  group
+    base group id of the user"""
+    # O `getgrouplist` da glibc pelo NSS `files`: o grupo base primeiro, depois os grupos do
+    # `/etc/group` que listam o usuário, na ordem do arquivo e sem repetir.
+    if not isinstance(user, str):
+        raise TypeError('getgrouplist() argument 1 must be str, not ' + type(user).__name__)
+    result = [group]
+    import builtins
+    try:
+        with builtins.open('/etc/group', encoding='utf-8', errors='surrogateescape') as f:
+            for line in f:
+                fields = line.rstrip('\n').split(':')
+                if len(fields) < 4 or not fields[2].isdigit():
+                    continue
+                gid = int(fields[2])
+                if user in fields[3].split(',') and gid not in result:
+                    result.append(gid)
+    except OSError:
+        pass
+    return result
+
+
+def initgroups(username, gid, /):
+    """Initialize the group access list.
+
+Call the system initgroups() to initialize the group access list with all of
+the groups of which the specified username is a member, plus the specified
+group id."""
+    setgroups(getgrouplist(username, gid))
 
 
 def getlogin():

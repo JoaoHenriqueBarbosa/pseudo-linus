@@ -159,12 +159,12 @@ fn finish(sh: &mut Shell, r: Result<i32, Flow>) -> i32 {
 fn shell_main(args: &[OsString], posix: bool) -> i32 {
     let argv: Vec<Vec<u8>> = args.iter().map(|a| a.as_bytes().to_vec()).collect();
     let mut sh = Shell::new();
-    sh.init_from_process();
     if posix {
         sh.posix = true;
         sh.invoked_as_sh = true;
         sh.opts.set("posix", true);
     }
+    sh.init_from_process();
     let inv = match parse_invocation(&mut sh, &argv) {
         Ok(i) => i,
         Err(code) => return code,

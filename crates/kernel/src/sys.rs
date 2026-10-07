@@ -30,6 +30,8 @@ pub(crate) const UNAME_RELEASE: &[u8] = b"6.12.101+deb13-amd64";
 pub(crate) const UNAME_VERSION: &[u8] = b"#1 SMP PREEMPT_DYNAMIC Debian 6.12.101-1 (2026-08-05)";
 /// `f_type` do pipefs.
 const PIPEFS_MAGIC: u64 = 0x5049_5045;
+/// `NGROUPS_MAX` do Linux.
+const NGROUPS_MAX: usize = 65536;
 
 /// Gera um sinal num processo (sem checar permissão). SIGCONT retoma um processo parado.
 pub(crate) fn generate_signal(target: &Arc<Proc>, sig: Signal) {
@@ -811,6 +813,18 @@ impl Task {
             return Try::Ready(Ok(None));
         }
         Try::Pending
+    }
+
+    /// `prepare_creds` + `commit_creds`: `f` muda uma cópia, que só entra se ele não falhar. Vale para
+    /// o processo inteiro (a glibc propaga o `set*id` a todas as threads).
+    fn change_cred(&self, f: impl FnOnce(&mut vfs::Cred) -> SysResult<()>) -> SysResult<()> {
+        let mut st = self.proc.st.lock();
+        let mut c = (*st.cred).clone();
+        f(&mut c)?;
+        if c != *st.cred {
+            st.cred = Arc::new(c);
+        }
+        Ok(())
     }
 
     fn proc_attr_caller_check(&self, pid: Pid) -> SysResult<Arc<Proc>> {
@@ -1756,11 +1770,8 @@ impl Syscalls for Task {
         let mut sent = 0;
         let mut denied = 0;
         for p in &procs {
-            let (uid, gid) = {
-                let st = p.st.lock();
-                (st.cred.uid, st.cred.gid)
-            };
-            if !may_signal(&cred, uid, gid) {
+            let target = p.st.lock().cred.clone();
+            if !may_signal(&cred, &target) {
                 denied += 1;
                 continue;
             }
@@ -2049,7 +2060,7 @@ impl Syscalls for Task {
 
     fn getuid(&self) -> Uid {
         self.enter();
-        self.proc.st.lock().cred.uid
+        self.proc.st.lock().cred.ruid
     }
 
     fn geteuid(&self) -> Uid {
@@ -2059,7 +2070,7 @@ impl Syscalls for Task {
 
     fn getgid(&self) -> Gid {
         self.enter();
-        self.proc.st.lock().cred.gid
+        self.proc.st.lock().cred.rgid
     }
 
     fn getegid(&self) -> Gid {
@@ -2070,6 +2081,141 @@ impl Syscalls for Task {
     fn getgroups(&self) -> Vec<Gid> {
         self.enter();
         self.proc.st.lock().cred.groups.clone()
+    }
+
+    fn getresuid(&self) -> (Uid, Uid, Uid) {
+        self.enter();
+        let st = self.proc.st.lock();
+        (st.cred.ruid, st.cred.uid, st.cred.suid)
+    }
+
+    fn getresgid(&self) -> (Gid, Gid, Gid) {
+        self.enter();
+        let st = self.proc.st.lock();
+        (st.cred.rgid, st.cred.gid, st.cred.sgid)
+    }
+
+    fn setuid(&self, uid: Uid) -> SysResult<()> {
+        self.enter();
+        self.change_cred(|c| {
+            if c.is_root() {
+                (c.ruid, c.uid, c.suid) = (uid, uid, uid);
+            } else if uid == c.ruid || uid == c.suid {
+                c.uid = uid;
+            } else {
+                return Err(Errno::EPERM);
+            }
+            Ok(())
+        })
+    }
+
+    fn setgid(&self, gid: Gid) -> SysResult<()> {
+        self.enter();
+        self.change_cred(|c| {
+            if c.is_root() {
+                (c.rgid, c.gid, c.sgid) = (gid, gid, gid);
+            } else if gid == c.rgid || gid == c.sgid {
+                c.gid = gid;
+            } else {
+                return Err(Errno::EPERM);
+            }
+            Ok(())
+        })
+    }
+
+    fn setreuid(&self, r: Uid, e: Uid) -> SysResult<()> {
+        self.enter();
+        self.change_cred(|c| {
+            let (old, cap) = (c.clone(), c.is_root());
+            if r != ID_UNCHANGED {
+                if old.ruid != r && old.uid != r && !cap {
+                    return Err(Errno::EPERM);
+                }
+                c.ruid = r;
+            }
+            if e != ID_UNCHANGED {
+                if old.ruid != e && old.uid != e && old.suid != e && !cap {
+                    return Err(Errno::EPERM);
+                }
+                c.uid = e;
+            }
+            if r != ID_UNCHANGED || (e != ID_UNCHANGED && e != old.ruid) {
+                c.suid = c.uid;
+            }
+            Ok(())
+        })
+    }
+
+    fn setregid(&self, r: Gid, e: Gid) -> SysResult<()> {
+        self.enter();
+        self.change_cred(|c| {
+            let (old, cap) = (c.clone(), c.is_root());
+            if r != ID_UNCHANGED {
+                if old.rgid != r && old.gid != r && !cap {
+                    return Err(Errno::EPERM);
+                }
+                c.rgid = r;
+            }
+            if e != ID_UNCHANGED {
+                if old.rgid != e && old.gid != e && old.sgid != e && !cap {
+                    return Err(Errno::EPERM);
+                }
+                c.gid = e;
+            }
+            if r != ID_UNCHANGED || (e != ID_UNCHANGED && e != old.rgid) {
+                c.sgid = c.gid;
+            }
+            Ok(())
+        })
+    }
+
+    fn setresuid(&self, r: Uid, e: Uid, s: Uid) -> SysResult<()> {
+        self.enter();
+        self.change_cred(|c| {
+            let ok = |v: Uid| v == ID_UNCHANGED || v == c.ruid || v == c.uid || v == c.suid;
+            if !c.is_root() && !(ok(r) && ok(e) && ok(s)) {
+                return Err(Errno::EPERM);
+            }
+            for (slot, v) in [(&mut c.ruid, r), (&mut c.uid, e), (&mut c.suid, s)] {
+                if v != ID_UNCHANGED {
+                    *slot = v;
+                }
+            }
+            Ok(())
+        })
+    }
+
+    fn setresgid(&self, r: Gid, e: Gid, s: Gid) -> SysResult<()> {
+        self.enter();
+        self.change_cred(|c| {
+            let ok = |v: Gid| v == ID_UNCHANGED || v == c.rgid || v == c.gid || v == c.sgid;
+            if !c.is_root() && !(ok(r) && ok(e) && ok(s)) {
+                return Err(Errno::EPERM);
+            }
+            for (slot, v) in [(&mut c.rgid, r), (&mut c.gid, e), (&mut c.sgid, s)] {
+                if v != ID_UNCHANGED {
+                    *slot = v;
+                }
+            }
+            Ok(())
+        })
+    }
+
+    fn setgroups(&self, groups: &[Gid]) -> SysResult<()> {
+        self.enter();
+        if groups.len() > NGROUPS_MAX {
+            return Err(Errno::EINVAL);
+        }
+        self.change_cred(|c| {
+            if !c.is_root() {
+                return Err(Errno::EPERM);
+            }
+            // `groups_sort`: o kernel guarda (e o getgroups devolve) a lista em ordem.
+            let mut g = groups.to_vec();
+            g.sort_unstable();
+            c.groups = g;
+            Ok(())
+        })
     }
 
     fn argv(&self) -> Vec<Vec<u8>> {

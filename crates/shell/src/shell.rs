@@ -139,6 +139,12 @@ pub struct Shell {
     /// O próximo comando simples é o último do subshell de um `&`: um programa externo substitui
     /// o processo (`execve`) em vez de virar neto, como no bash, e o `$!` é o próprio programa.
     pub exec_last: bool,
+    /// `bash -c`: endereço do comando simples que fecha o texto (o último da lista ou do `&&`/`||`),
+    /// que sofre exec no próprio processo do shell; 0 quando não há.
+    pub exec_target: usize,
+    /// Este processo é elemento de um pipeline: o exec implícito não desce o SHLVL (o
+    /// `SUBSHELL_PIPE` do `execute_disk_command`).
+    pub in_pipe: bool,
     /// O processo é o binário `sh` (não o `bash`).
     pub invoked_as_sh: bool,
     /// Status da última substituição de comando do comando simples corrente (vira o `$?` de um
@@ -221,6 +227,8 @@ impl Shell {
             func_depth: 0,
             exit_trap_done: false,
             exec_last: false,
+            exec_target: 0,
+            in_pipe: false,
             invoked_as_sh: false,
             last_cmdsub_status: None,
             disabled_builtins: BTreeSet::new(),
@@ -247,14 +255,17 @@ impl Shell {
             v.value = Value::Scalar(kv[eq + 1..].to_vec());
             v.attrs.set(Attrs::EXPORT);
         }
-        let shlvl = self
-            .vars
-            .get("SHLVL")
-            .and_then(|v| v.scalar_value())
-            .and_then(|v| std::str::from_utf8(v).ok())
-            .and_then(|v| v.trim().parse::<i64>().ok())
-            .unwrap_or(0);
-        self.set_exported("SHLVL", (shlvl + 1).to_string().into_bytes());
+        // O bash sobe o SHLVL; o dash não mexe nele (`env -i sh -c env` só mostra o PWD).
+        if !self.dash_style() {
+            let shlvl = self
+                .vars
+                .get("SHLVL")
+                .and_then(|v| v.scalar_value())
+                .and_then(|v| std::str::from_utf8(v).ok())
+                .and_then(|v| v.trim().parse::<i64>().ok())
+                .unwrap_or(0);
+            self.set_exported("SHLVL", (shlvl + 1).to_string().into_bytes());
+        }
         let cwd = s.getcwd().unwrap_or_else(|_| b"/".to_vec());
         // PWD herdado vale se apontar pro mesmo diretório (como o bash); senão o real.
         let pwd_ok = self
@@ -316,6 +327,22 @@ impl Shell {
         let v = self.vars.global_entry("PIPESTATUS");
         v.value = Value::Indexed(BTreeMap::from([(0, b"0".to_vec())]));
         v.attrs = Attrs::INDEXED;
+    }
+
+    /// `adjust_shell_level(-1)` antes de um exec (o `exec` e o exec implícito): o programa novo
+    /// ocupa o lugar do shell, então o nível desce, nunca abaixo de 0. O dash não mexe no SHLVL.
+    pub fn lower_shlvl_for_exec(&mut self) {
+        if self.dash_style() {
+            return;
+        }
+        let shlvl = self
+            .vars
+            .get("SHLVL")
+            .and_then(|v| v.scalar_value())
+            .and_then(|v| std::str::from_utf8(v).ok())
+            .and_then(|v| v.trim().parse::<i64>().ok())
+            .unwrap_or(0);
+        self.set_exported("SHLVL", (shlvl - 1).max(0).to_string().into_bytes());
     }
 
     fn set_exported(&mut self, name: &str, value: Vec<u8>) {

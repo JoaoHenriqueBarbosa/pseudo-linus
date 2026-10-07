@@ -188,7 +188,7 @@ fn permissions_for_non_root() {
     ns.chmod(&root, s, b"/zero", 0, AtFlags::empty()).unwrap();
     assert_eq!(read_file(&ns, &root, "/zero").unwrap(), b"z", "root lê modo 000");
     let mut user = root.clone();
-    user.cred = Arc::new(Cred { uid: 1000, gid: 1000, groups: vec![1000] });
+    user.cred = Arc::new(Cred::new(1000, 1000, vec![1000]));
     assert_eq!(read_file(&ns, &user, "/locked/f").unwrap_err(), Errno::EACCES);
     assert_eq!(read_file(&ns, &user, "/zero").unwrap_err(), Errno::EACCES);
     assert_eq!(ns.chmod(&user, s, b"/zero", 0o777, AtFlags::empty()), Err(Errno::EPERM));

@@ -223,6 +223,26 @@ pub fn break_continue(sh: &mut Shell, name: &str, argv: &[Vec<u8>]) -> Exec {
 }
 
 pub fn shift(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
+    if sh.dash_style() {
+        // O `shiftcmd` do dash: `number` só aceita dígitos e o excesso é `sh_error`, que encerra o
+        // shell não interativo com status 2.
+        let fatal = |sh: &mut Shell, msg: String| {
+            sh.builtin_error("shift", msg);
+            if sh.interactive { Ok(2) } else { Err(Flow::Exit(2)) }
+        };
+        let n = match argv.get(1) {
+            None => 1,
+            Some(a) => match std::str::from_utf8(a).ok().filter(|t| !t.is_empty() && t.bytes().all(|c| c.is_ascii_digit())).and_then(|t| t.parse::<usize>().ok()) {
+                Some(n) => n,
+                None => return fatal(sh, format!("Illegal number: {}", String::from_utf8_lossy(a))),
+            },
+        };
+        if n > sh.params.len() {
+            return fatal(sh, "can't shift that many".to_string());
+        }
+        sh.params.drain(..n);
+        return Ok(0);
+    }
     let n = match argv.get(1) {
         None => 1,
         Some(a) => match parse_int(a) {
@@ -356,6 +376,7 @@ pub fn exec(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
         a0.extend_from_slice(&new_argv[0]);
         new_argv[0] = a0;
     }
+    sh.lower_shlvl_for_exec();
     let env = if opts.has(b'c') { Vec::new() } else { sh.export_env() };
     // Fds de cópia do shell não vão pro programa novo (são CLOEXEC); traps capturadas voltam ao
     // padrão no execve.

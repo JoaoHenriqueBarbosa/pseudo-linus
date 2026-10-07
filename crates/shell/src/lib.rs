@@ -38,5 +38,7 @@ use sysabi::Program;
 
 /// Programas deste crate: `bash` e `sh` em `/usr/bin` (com `/bin -> usr/bin` como no Debian).
 pub fn programs() -> Vec<Program> {
-    vec![Program::bin("bash", entry::bash_main), Program::bin("sh", entry::sh_main)]
+    // No Debian o `sh` é um symlink para o `dash` (`/usr/bin/sh -> dash`): o programa de verdade é o
+    // `dash`, e o link sai da tabela de links do Debian.
+    vec![Program::bin("bash", entry::bash_main), Program::bin("sh", entry::sh_main), Program::bin("dash", entry::sh_main)]
 }

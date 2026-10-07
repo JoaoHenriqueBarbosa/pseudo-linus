@@ -204,7 +204,160 @@ fn job_pids(sh: &Shell, spec: &[u8]) -> Option<Vec<Pid>> {
     job.map(|j| j.pids.clone())
 }
 
+/// Nome do sinal `n` na tabela do dash (`signames.c`): sem o prefixo `SIG`, os números sem nome
+/// (16, 32, 33) como o próprio número, e os de tempo real contados a partir de `RTMIN`/`RTMAX`.
+fn dash_signal_name(n: i32) -> String {
+    const NAMES: [&str; 32] = [
+        "0", "HUP", "INT", "QUIT", "ILL", "TRAP", "ABRT", "BUS", "FPE", "KILL", "USR1", "SEGV", "USR2", "PIPE", "ALRM",
+        "TERM", "16", "CHLD", "CONT", "STOP", "TSTP", "TTIN", "TTOU", "URG", "XCPU", "XFSZ", "VTALRM", "PROF", "WINCH",
+        "IO", "PWR", "SYS",
+    ];
+    match n {
+        0..=31 => NAMES[n as usize].to_string(),
+        34 => "RTMIN".to_string(),
+        35..=49 => format!("RTMIN+{}", n - 34),
+        50..=63 => format!("RTMAX-{}", 64 - n),
+        64 => "RTMAX".to_string(),
+        _ => n.to_string(),
+    }
+}
+
+/// `get_signum` do dash: número menor que `NSIG` ou nome sem `SIG`, sem diferenciar maiúsculas.
+fn dash_signum(s: &[u8]) -> Option<i32> {
+    if !s.is_empty() && s.iter().all(u8::is_ascii_digit) {
+        return std::str::from_utf8(s).ok()?.parse::<i32>().ok().filter(|n| *n < 65);
+    }
+    (1..65).find(|n| dash_signal_name(*n).as_bytes().eq_ignore_ascii_case(s))
+}
+
+/// `number` do dash: só dígitos, senão `Illegal number` (status 2).
+fn dash_number(sh: &Shell, s: &[u8]) -> Result<i64, i32> {
+    match std::str::from_utf8(s).ok().filter(|t| !t.is_empty() && t.bytes().all(|c| c.is_ascii_digit())).and_then(|t| t.parse().ok()) {
+        Some(n) => Ok(n),
+        None => {
+            sh.builtin_error("kill", format!("Illegal number: {}", String::from_utf8_lossy(s)));
+            Err(2)
+        }
+    }
+}
+
+/// O `killcmd` do dash (o `kill` do `sh` do Debian).
+fn dash_kill(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
+    const USAGE: &str = "Usage: kill [-s sigspec | -signum | -sigspec] [pid | job]... or\nkill -l [exitstatus]";
+    let mut sig = 15;
+    let mut list = false;
+    let mut i = 1;
+    if argv.get(1).is_some_and(|a| a.first() == Some(&b'-')) {
+        match dash_signum(&argv[1][1..]) {
+            Some(n) => {
+                sig = n;
+                i = 2;
+            }
+            None => {
+                // `nextopt("ls:")`.
+                'opts: while let Some(a) = argv.get(i) {
+                    if a.first() != Some(&b'-') || a.len() < 2 {
+                        break;
+                    }
+                    i += 1;
+                    if a == b"--" {
+                        break;
+                    }
+                    let mut j = 1;
+                    while j < a.len() {
+                        match a[j] {
+                            b'l' => list = true,
+                            b's' => {
+                                let arg = if j + 1 < a.len() {
+                                    a[j + 1..].to_vec()
+                                } else if let Some(n) = argv.get(i) {
+                                    i += 1;
+                                    n.clone()
+                                } else {
+                                    sh.builtin_error("kill", "No arg for -s option");
+                                    return Ok(2);
+                                };
+                                match dash_signum(&arg) {
+                                    Some(n) => sig = n,
+                                    None => {
+                                        sh.builtin_error("kill", format!("invalid signal number or name: {}", String::from_utf8_lossy(&arg)));
+                                        return Ok(2);
+                                    }
+                                }
+                                continue 'opts;
+                            }
+                            c => {
+                                sh.builtin_error("kill", format!("Illegal option -{}", c as char));
+                                return Ok(2);
+                            }
+                        }
+                        j += 1;
+                    }
+                }
+            }
+        }
+    }
+    let rest = &argv[i.min(argv.len())..];
+    if list {
+        let Some(first) = rest.first() else {
+            let text: String = (0..65).map(|n| format!("{}\n", dash_signal_name(n))).collect();
+            out(sh, "kill", text.as_bytes());
+            return Ok(0);
+        };
+        let mut n = match dash_number(sh, first) {
+            Ok(n) => n,
+            Err(st) => return Ok(st),
+        };
+        if n > 128 {
+            n -= 128;
+        }
+        if 0 < n && n < 65 {
+            out(sh, "kill", format!("{}\n", dash_signal_name(n as i32)).as_bytes());
+            return Ok(0);
+        }
+        sh.builtin_error("kill", format!("invalid signal number or exit status: {}", String::from_utf8_lossy(first)));
+        return Ok(2);
+    }
+    if rest.is_empty() {
+        sh.builtin_error("kill", USAGE);
+        return Ok(2);
+    }
+    let s = sys();
+    let mut status = 0;
+    for t in rest {
+        let target = if t.first() == Some(&b'%') {
+            match job_pids(sh, t).and_then(|p| p.first().copied()) {
+                Some(p) => KillTarget::Group(p),
+                None => {
+                    sh.builtin_error("kill", format!("No such job: {}", String::from_utf8_lossy(t)));
+                    return Ok(2);
+                }
+            }
+        } else if let Some(num) = t.strip_prefix(b"-") {
+            match dash_number(sh, num) {
+                Ok(1) => KillTarget::All,
+                Ok(0) => KillTarget::Pid(0),
+                Ok(n) => KillTarget::Group(n as Pid),
+                Err(st) => return Ok(st),
+            }
+        } else {
+            match dash_number(sh, t) {
+                Ok(n) => KillTarget::Pid(n as Pid),
+                Err(st) => return Ok(st),
+            }
+        };
+        if let Err(e) = s.kill(target, Signal(sig)) {
+            sh.builtin_error("kill", format!("{}\n", e.message()));
+            status = 1;
+        }
+    }
+    Ok(status)
+}
+
 pub fn kill(sh: &mut Shell, argv: &[Vec<u8>]) -> Exec {
+    if sh.dash_style() {
+        return dash_kill(sh, argv);
+    }
     let mut sig = Signal::SIGTERM;
     let mut i = 1;
     if argv.len() < 2 {

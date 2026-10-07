@@ -377,9 +377,14 @@ impl Table {
     }
 }
 
-/// Uid e gid de quem manda um sinal, pra checar permissão (`kill_ok_by_cred`).
-pub(crate) fn may_signal(sender: &Cred, target_uid: Uid, _target_gid: Gid) -> bool {
-    sender.is_root() || sender.uid == target_uid
+/// `kill_ok_by_cred`: o efetivo ou o real de quem manda bate com o real ou o salvo do alvo, ou quem
+/// manda tem `CAP_KILL`.
+pub(crate) fn may_signal(sender: &Cred, target: &Cred) -> bool {
+    sender.is_root()
+        || sender.uid == target.suid
+        || sender.uid == target.ruid
+        || sender.ruid == target.suid
+        || sender.ruid == target.ruid
 }
 
 /// Termina o processo depois que a última thread saiu: fecha fds, vira zumbi, reparenta os filhos pro

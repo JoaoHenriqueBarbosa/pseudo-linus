@@ -702,7 +702,7 @@ impl Ours {
             _ => unreachable!(),
         };
         let cx = Caller {
-            cred: Arc::new(Cred { uid, gid, groups }),
+            cred: Arc::new(Cred::new(uid, gid, groups)),
             root: ns.root(),
             cwd: base.clone(),
             umask: 0o022,

@@ -38,6 +38,7 @@ os-release (pedido do dono):
 | `etc/passwd`, `etc/group`, `etc/shadow`, `etc/gshadow` (gerados do `passwd.master`/`group.master`) | base-passwd | GPL-2 / domínio público |
 | `etc/bash.bashrc`, `etc/skel/.bashrc`, `etc/skel/.profile`, `etc/skel/.bash_logout` | bash | GPL-3+ |
 | `etc/nsswitch.conf`, `etc/environment` | gerados na instalação (libc-bin, pam) | LGPL-2.1+ (libc-bin) |
+| `etc/login.defs` (o `ENV_PATH`/`ENV_SUPATH` que o `su -` usa) | login (1:4.16.0-2+really2.41.5, arquivo vindo do shadow) | BSD-3-Clause |
 
 Os arquivos do bash (GPL-3+) são texto embutido no binário via `include_bytes!`; se a licença final do
 binário não puder conter GPL-3, eles saem da imagem (ou viram conteúdo nosso equivalente).

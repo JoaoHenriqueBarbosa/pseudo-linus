@@ -31,19 +31,30 @@ pub const MAY_EXEC: u32 = 1;
 pub const MAY_WRITE: u32 = 2;
 pub const MAY_READ: u32 = 4;
 
-/// Credenciais de um processo. O pseudo-linus não separa uid real, efetivo e de FS (não há setuid), então
-/// um só uid e um só gid valem pra tudo. uid 0 tem todas as capabilities, como o root do Linux.
+/// Credenciais de um processo, como o `struct cred` do Linux. `uid` e `gid` são os efetivos, que
+/// também valem como os de sistema de arquivos (o pseudo-linus não tem `setfsuid`); `ruid`/`rgid` são
+/// os reais e `suid`/`sgid` os salvos. As capabilities seguem o uid efetivo: efetivo 0 tem todas, como
+/// o root do Linux sem `SECBIT_NO_SETUID_FIXUP`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Cred {
     pub uid: Uid,
     pub gid: Gid,
     /// Grupos suplementares.
     pub groups: Vec<Gid>,
+    pub ruid: Uid,
+    pub suid: Uid,
+    pub rgid: Gid,
+    pub sgid: Gid,
 }
 
 impl Cred {
+    /// Real, efetivo e salvo iguais.
+    pub fn new(uid: Uid, gid: Gid, groups: Vec<Gid>) -> Cred {
+        Cred { uid, gid, groups, ruid: uid, suid: uid, rgid: gid, sgid: gid }
+    }
+
     pub fn root() -> Cred {
-        Cred { uid: 0, gid: 0, groups: vec![0] }
+        Cred::new(0, 0, vec![0])
     }
 
     /// Tem as capabilities do root (CAP_DAC_OVERRIDE, CAP_FOWNER, CAP_CHOWN, CAP_MKNOD...).

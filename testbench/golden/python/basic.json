@@ -47,6 +47,12 @@
     "exit": 0,
     "files": {}
   },
+  "os-credentials": {
+    "stdout": "0 0 0 0\n(0, 0, 0) (0, 0, 0) [0]\n[65534] [0]\n[3, 4, 5]\n(65534, 65534, 0) (65534, 65534, 0) 65534 65534\nsetgroups [Errno 1] Operation not permitted\n(65534, 0, 0)\n(0, 0, 0)\n(65534, 65534, 65534)\nsetuid [Errno 1] Operation not permitted\nsetreuid [Errno 1] Operation not permitted\n65534 65534 [65534]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "python-c-missing-argument": {
     "stdout": "",
     "stderr": "Argument expected for the -c option\nusage: python3 [option] ... [-c cmd | -m mod | file | -] [arg] ...\nTry `python -h' for more information.\n",

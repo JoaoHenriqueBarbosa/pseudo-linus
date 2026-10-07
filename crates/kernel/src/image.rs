@@ -158,6 +158,8 @@ const ROOT_TREE: &[Item] = &[
     File("/etc/environment", include_bytes!("../image/etc/environment"), 0o644),
     File("/etc/motd", include_bytes!("../image/etc/motd"), 0o644),
     File("/etc/host.conf", include_bytes!("../image/etc/host.conf"), 0o644),
+    // Do pacote login: o `ENV_PATH`/`ENV_SUPATH` que o `su -` e o `runuser -l` põem no PATH.
+    File("/etc/login.defs", include_bytes!("../image/etc/login.defs"), 0o644),
     // Do netbase 6.5; o /etc/networks é o do contêiner do oráculo (fora de pacote).
     File("/etc/services", include_bytes!("../image/etc/services"), 0o644),
     File("/etc/protocols", include_bytes!("../image/etc/protocols"), 0o644),

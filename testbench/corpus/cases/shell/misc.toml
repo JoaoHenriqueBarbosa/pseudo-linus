@@ -195,3 +195,56 @@ time true
 time { sleep 0; }
 '''
 tags = ["time"]
+
+# O `sh` é o dash: `kill` e `shift` com as mensagens e os códigos dele, e o SHLVL que ele não toca.
+
+[[case]]
+id = "dash-kill-messages"
+script = '''
+sh -c 'kill; echo "rc=$?"
+kill -l | head -3
+kill -l 130; kill -l 9 15
+kill -l KILL; echo "rc=$?"
+kill -L; echo "rc=$?"
+kill -9; echo "rc=$?"
+kill -s; echo "rc=$?"
+kill -n 9 99999; echo "rc=$?"
+kill -- 99999; echo "rc=$?"
+kill -0 $$; echo "rc=$?"
+kill -SIGTERM 99999; echo "rc=$?"
+kill -sigterm 99999; echo "rc=$?"
+kill -term 99999 99998; echo "rc=$?"
+kill 1.5; echo "rc=$?"
+kill %3; echo "rc=$?"' 2>&1
+sh -c 'kill -l' | tr '\n' ' '; echo
+'''
+tags = ["dash", "kill", "error"]
+
+[[case]]
+id = "dash-shift-fatal"
+script = '''
+sh -c 'shift; echo "rc=$?"' 2>&1; echo "exit=$?"
+sh -c 'shift x; echo "rc=$?"' 2>&1; echo "exit=$?"
+sh -c 'set a b; shift 2; echo "rc=$? $#"' 2>&1; echo "exit=$?"
+sh -c 'f(){ shift 3; echo in; }; f a; echo "rc=$?"' 2>&1; echo "exit=$?"
+'''
+tags = ["dash", "shift", "error"]
+
+[[case]]
+id = "shlvl-implicit-exec"
+script = '''
+unset SHLVL
+bash -c 'bash -c "echo \$SHLVL"'
+bash -c 'bash -c "echo \$SHLVL"; true'
+bash -c 'true && bash -c "echo \$SHLVL"'
+bash -c 'false || bash -c "echo \$SHLVL"'
+bash -c 'echo $SHLVL; bash -c "bash -c \"echo \\\$SHLVL\"; true"'
+bash -c 'bash -c "echo \$SHLVL" >/dev/null; echo r'
+bash -c 'x=$(bash -c "echo \$SHLVL"); echo $x; (bash -c "echo \$SHLVL"); { bash -c "echo \$SHLVL"; }'
+bash -c 'exec bash -c "echo \$SHLVL"'
+bash -c 'bash -c "echo \$SHLVL" | cat'
+sh -c 'bash -c "echo \$SHLVL"'
+sh -c 'echo "sh:${SHLVL-unset}"'
+stat -c '%A %N' /bin/sh /usr/bin/sh
+'''
+tags = ["shlvl", "exec", "dash"]

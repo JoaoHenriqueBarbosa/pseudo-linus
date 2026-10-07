@@ -449,6 +449,79 @@ fn getppid(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::Int(i64::from(sys::current().getppid())))
 }
 
+/// `-1` do Python é o "não muda" das chamadas `setre*`/`setres*` (`(uid_t) -1`).
+fn want_id(fname: &str, args: &[Value], i: usize) -> PyResult<u32> {
+    let n = want_int(arg(fname, args, i)?)?;
+    match n {
+        -1 => Ok(sysabi::ID_UNCHANGED),
+        0..=0xffff_fffe => Ok(n as u32),
+        n if n < 0 => Err(exc("OverflowError", format!("{} is less than minimum", if fname.contains("gid") || fname.ends_with("groups") { "gid" } else { "uid" }))),
+        _ => Err(exc("OverflowError", format!("{} is greater than maximum", if fname.contains("gid") || fname.ends_with("groups") { "gid" } else { "uid" }))),
+    }
+}
+
+fn ids3(t: (u32, u32, u32)) -> Value {
+    Value::tuple(vec![Value::Int(i64::from(t.0)), Value::Int(i64::from(t.1)), Value::Int(i64::from(t.2))])
+}
+
+/// `getuid`, `geteuid`, `getgid`, `getegid`, `getresuid`, `getresgid`, `getgroups`: as credenciais do
+/// processo, como o kernel as tem.
+fn creds(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let s = sys::current();
+    let which = match args.first() {
+        Some(Value::Str(w)) => w.as_str().to_string(),
+        _ => return Err(type_error("_creds: expected a name")),
+    };
+    Ok(match which.as_str() {
+        "uid" => Value::Int(i64::from(s.getuid())),
+        "euid" => Value::Int(i64::from(s.geteuid())),
+        "gid" => Value::Int(i64::from(s.getgid())),
+        "egid" => Value::Int(i64::from(s.getegid())),
+        "resuid" => ids3(s.getresuid()),
+        "resgid" => ids3(s.getresgid()),
+        "groups" => Value::list(s.getgroups().into_iter().map(|g| Value::Int(i64::from(g))).collect()),
+        _ => return Err(type_error("_creds: unknown name")),
+    })
+}
+
+/// `setuid`, `setgid`, `setreuid`, `setregid`, `setresuid`, `setresgid` (e `seteuid`/`setegid`, que
+/// a glibc faz com `setresuid(-1, e, -1)`).
+fn setids(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("_setids", &kw)?;
+    let which = match args.first() {
+        Some(Value::Str(w)) => w.as_str().to_string(),
+        _ => return Err(type_error("_setids: expected a name")),
+    };
+    let rest = &args[1..];
+    let s = sys::current();
+    let u = sysabi::ID_UNCHANGED;
+    let r = match which.as_str() {
+        "setuid" => s.setuid(want_id("setuid", rest, 0)?),
+        "setgid" => s.setgid(want_id("setgid", rest, 0)?),
+        "seteuid" => s.setresuid(u, want_id("seteuid", rest, 0)?, u),
+        "setegid" => s.setresgid(u, want_id("setegid", rest, 0)?, u),
+        "setreuid" => s.setreuid(want_id("setreuid", rest, 0)?, want_id("setreuid", rest, 1)?),
+        "setregid" => s.setregid(want_id("setregid", rest, 0)?, want_id("setregid", rest, 1)?),
+        "setresuid" => s.setresuid(want_id("setresuid", rest, 0)?, want_id("setresuid", rest, 1)?, want_id("setresuid", rest, 2)?),
+        "setresgid" => s.setresgid(want_id("setresgid", rest, 0)?, want_id("setresgid", rest, 1)?, want_id("setresgid", rest, 2)?),
+        "setgroups" => {
+            let items = match arg("setgroups", rest, 0)? {
+                Value::List(l) => l.borrow().clone(),
+                Value::Tuple(t) => t.to_vec(),
+                other => return Err(type_error(format!("setgroups argument must be a sequence, not {}", other.type_name()))),
+            };
+            let mut gids = Vec::with_capacity(items.len());
+            for (i, _) in items.iter().enumerate() {
+                gids.push(want_id("setgroups", &items, i)?);
+            }
+            s.setgroups(&gids)
+        }
+        _ => return Err(type_error("_setids: unknown name")),
+    };
+    r.map_err(|e| os_error(e, None))?;
+    Ok(Value::None)
+}
+
 /// `os.fsync(fd)` (e `fdatasync`): grava no disco o que o descritor tem pendente.
 fn fsync(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("fsync", &kw)?;
@@ -886,6 +959,8 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
         .func("uname", uname)
         .func("statvfs", statvfs)
         .func("getppid", getppid)
+        .func("_creds", creds)
+        .func("_setids", setids)
         .func("umask", umask)
         .func("fsync", fsync)
         .func("ftruncate", ftruncate)

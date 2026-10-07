@@ -240,7 +240,7 @@ fn which(sb: &SbInner, cx: &Caller, name: &[u8], env: &[Vec<u8>]) -> Result<Vec<
 /// util-linux, por exemplo, só faz fork quando é líder).
 pub(crate) fn host_spawn(sb: &Arc<SbInner>, spec: SpawnSpec, stdio: HostStdio, leader: bool) -> Result<Spawned, Errno> {
     let cfg = &sb.cfg;
-    let cred = Arc::new(Cred { uid: cfg.uid, gid: cfg.gid, groups: vec![cfg.gid] });
+    let cred = Arc::new(Cred::new(cfg.uid, cfg.gid, vec![cfg.gid]));
     let mut cx = sb.root_caller();
     cx.cred = cred.clone();
     cx.umask = 0o022;

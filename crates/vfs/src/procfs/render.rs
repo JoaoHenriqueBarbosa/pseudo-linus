@@ -211,7 +211,9 @@ pub(super) fn status(p: &ProcData) -> Vec<u8> {
     }
     let _ = writeln!(o, "State:\t{}", state_text(p.state));
     let _ = writeln!(o, "Tgid:\t{}\nNgid:\t0\nPid:\t{}\nPPid:\t{}\nTracerPid:\t0", p.pid, p.tid, p.ppid);
-    let _ = writeln!(o, "Uid:\t{0}\t{0}\t{0}\t{0}\nGid:\t{1}\t{1}\t{1}\t{1}", p.uid, p.gid);
+    // Real, efetivo, salvo e de sistema de arquivos (este é o efetivo).
+    let _ = writeln!(o, "Uid:\t{}\t{}\t{}\t{}", p.ruid, p.uid, p.suid, p.uid);
+    let _ = writeln!(o, "Gid:\t{}\t{}\t{}\t{}", p.rgid, p.gid, p.sgid, p.gid);
     let _ = writeln!(o, "FDSize:\t{}", p.fdsize);
     o.extend_from_slice(b"Groups:\t");
     for g in &p.groups {
