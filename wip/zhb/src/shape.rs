@@ -56,6 +56,7 @@ pub enum ShaperKind {
     Use,
     Indic,
     Khmer,
+    Myanmar,
 }
 
 /// `hb_ot_shaper_t`: as propriedades que o pipeline consulta.
@@ -107,6 +108,10 @@ pub const SHAPER_INDIC: Shaper = Shaper {
 /// `_hb_ot_shaper_khmer`.
 pub const SHAPER_KHMER: Shaper = Shaper { kind: ShaperKind::Khmer, ..SHAPER_INDIC };
 
+/// `_hb_ot_shaper_myanmar`.
+pub const SHAPER_MYANMAR: Shaper =
+    Shaper { kind: ShaperKind::Myanmar, zero_width_marks: ZeroWidthMarks::ByGdefEarly, ..SHAPER_INDIC };
+
 /// `hb_ot_shaper_categorize`. Dos scripts complexos, o árabe, o tailandês, o laosiano, o hebraico,
 /// os índicos e os do USE foram traduzidos; os índicos com tag `*3` vão para o USE.
 fn categorize(script: u32, direction: Direction, gsub_script: u32) -> Shaper {
@@ -126,6 +131,9 @@ fn categorize(script: u32, direction: Direction, gsub_script: u32) -> Shaper {
     }
     if script == tag(b"Khmr") {
         return SHAPER_KHMER;
+    }
+    if script == tag(b"Mymr") {
+        return if dflt_or_latn || gsub_script == tag(b"mymr") { SHAPER_DEFAULT } else { SHAPER_MYANMAR };
     }
     if script == tag(b"Thai") || script == tag(b"Laoo") {
         return SHAPER_THAI;
@@ -259,6 +267,10 @@ impl Plan {
             map.is_simple = false;
             crate::khmer::collect_features(&mut map);
         }
+        if shaper.kind == ShaperKind::Myanmar {
+            map.is_simple = false;
+            crate::myanmar::collect_features(&mut map);
+        }
         map.enable_feature(tag(b"Buzz"), F_NONE, 1);
         map.enable_feature(tag(b"BUZZ"), F_NONE, 1);
         for (t, f) in COMMON_FEATURES {
@@ -369,6 +381,9 @@ impl Plan {
             }
             if let (Some(p), Some(khmer)) = (stage.pause, &self.khmer) {
                 crate::khmer::pause(p, khmer, font, &mut *c.buffer);
+            }
+            if let (Some(p), ShaperKind::Myanmar) = (stage.pause, self.shaper.kind) {
+                crate::myanmar::pause(p, font, &mut *c.buffer);
             }
         }
     }
@@ -626,6 +641,9 @@ fn setup_masks(plan: &Plan, buffer: &mut Buffer) {
     if plan.khmer.is_some() {
         crate::khmer::setup_masks(buffer);
     }
+    if plan.shaper.kind == ShaperKind::Myanmar {
+        crate::myanmar::setup_masks(buffer);
+    }
     for f in &plan.user_features {
         if !f.is_global() {
             let (mask, shift) = plan.map.mask(f.tag);
@@ -727,7 +745,7 @@ fn substitute_pre(plan: &Plan, font: &Font, buffer: &mut Buffer, target_directio
             ShaperKind::Hebrew => (Some(&hebrew_reorder), Some(&hebrew_compose)),
             ShaperKind::Use | ShaperKind::Khmer => (None, Some(&crate::universal::compose)),
             ShaperKind::Indic => (None, Some(&crate::indic::compose)),
-            ShaperKind::Default | ShaperKind::Thai => (None, None),
+            ShaperKind::Default | ShaperKind::Thai | ShaperKind::Myanmar => (None, None),
         };
     let decompose: Option<&dyn Fn(u32) -> Option<(u32, u32)>> = match plan.shaper.kind {
         ShaperKind::Indic => Some(&crate::indic::decompose),

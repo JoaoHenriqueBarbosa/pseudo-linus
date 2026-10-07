@@ -21,6 +21,7 @@ mod khmer_machine;
 pub mod lang;
 mod lang_table;
 pub mod map;
+pub mod myanmar;
 #[allow(dead_code)]
 mod myanmar_machine;
 pub mod normalize;

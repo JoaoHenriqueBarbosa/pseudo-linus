@@ -57,6 +57,10 @@ pub enum Pause {
     KhmerSetupSyllables,
     /// `reorder_khmer`.
     KhmerReorder,
+    /// `setup_syllables_myanmar`.
+    MyanmarSetupSyllables,
+    /// `reorder_myanmar`.
+    MyanmarReorder,
 }
 
 #[derive(Clone, Copy, Debug)]
