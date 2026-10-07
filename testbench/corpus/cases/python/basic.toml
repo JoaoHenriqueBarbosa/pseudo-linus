@@ -77,3 +77,48 @@ print(islice.__name__, islice.__module__, isinstance(islice([], 1), islice))
 PYEOF
 '''
 tags = ["error"]
+
+# Traceback dentro de módulos da stdlib que rodam o fonte do disco, e `break`/`continue`/`return`
+# saindo de um `except` sem deixar a exceção presa no `sys.exc_info()` nem no `__context__`.
+[[case]]
+id = "stdlib-disk-tracebacks-handler-exit"
+script = '''
+python3 -c 'import base64; base64.b64decode("a")'
+python3 -c 'import ipaddress; ipaddress.ip_address("x")'
+python3 -c 'import shlex; shlex.split("\"")'
+python3 -c 'import string; string.Template("$").substitute()'
+python3 -c 'import getopt; getopt.getopt(["-x"], "a")'
+python3 -c 'import uuid; uuid.UUID("z")'
+python3 -c 'import configparser; c = configparser.ConfigParser(); c.read_string("x")'
+python3 -c 'import tarfile; tarfile.open("/etc/hostname")'
+python3 -c 'import urllib.parse; urllib.parse.urlsplit("http://[::1")'
+python3 -c 'import tempfile, os; f = tempfile.NamedTemporaryFile(delete=False, dir="/tmp", prefix="R", suffix=".t"); print(os.path.dirname(f.name), len(os.path.basename(f.name)), os.O_CLOEXEC, os.O_DIRECTORY)'
+python3 - <<'PYEOF'
+import sys
+for i in range(2):
+    try:
+        raise KeyError(i)
+    except KeyError:
+        continue
+print(sys.exc_info())
+def f():
+    for i in range(2):
+        try:
+            raise KeyError(i)
+        except KeyError as e:
+            break
+    return sys.exc_info(), 'e' in dir()
+print(f())
+def g():
+    try:
+        raise KeyError(1)
+    except KeyError:
+        return sys.exc_info()[0]
+print(g(), sys.exc_info())
+try:
+    1/0
+except ZeroDivisionError as e:
+    print(repr(e.__context__))
+PYEOF
+'''
+tags = ["error"]

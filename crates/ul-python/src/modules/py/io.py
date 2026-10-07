@@ -885,7 +885,15 @@ def open(file, mode='r', buffering=-1, encoding=None, errors=None, newline=None,
     elif appending:
         flags |= _os.O_CREAT | _os.O_APPEND
     if fd is None:
-        fd = _os.open(name, flags, 0o666)
+        if opener is None:
+            fd = _os.open(name, flags, 0o666)
+        else:
+            # Como o `_io_FileIO___init___impl`: o opener recebe nome e flags e devolve o descritor.
+            fd = opener(name, flags | 0o2000000)
+            if not isinstance(fd, int):
+                raise TypeError('expected integer from opener')
+            if fd < 0:
+                raise ValueError(f'opener returned {fd}')
     raw_mode = ('r' if reading else 'w' if writing else 'a' if appending else 'x') + ('+' if updating else '')
     raw = FileIO(name, raw_mode + ('b' if binary else ''), fd, closefd)
     if binary:

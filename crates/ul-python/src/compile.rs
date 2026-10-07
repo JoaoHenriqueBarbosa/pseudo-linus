@@ -736,6 +736,9 @@ struct TryCtx {
     with_exit: Option<String>,
     /// `async with`: a saída é um aguardável, que `break`/`return` precisam aguardar.
     with_async: bool,
+    /// Corpo de um `except` (com o nome do `as`, se houver): `break`, `continue` e `return` saem
+    /// dele pela limpeza do handler, que apaga o nome e restaura a exceção em tratamento anterior.
+    handler: Option<Option<String>>,
 }
 
 struct Compiler {
@@ -1169,7 +1172,7 @@ impl Compiler {
             return self.try_except(body, handlers, orelse);
         }
         let setup = self.emit(Op::SetupTry(0));
-        self.tries.push(TryCtx { finalbody: finalbody.to_vec(), with_exit: None, with_async: false });
+        self.tries.push(TryCtx { finalbody: finalbody.to_vec(), with_exit: None, with_async: false, handler: None });
         if handlers.is_empty() {
             self.block(body)?;
             self.block(orelse)?;
@@ -1192,7 +1195,7 @@ impl Compiler {
 
     fn try_except(&mut self, body: &[Stmt], handlers: &[ExceptHandler], orelse: &[Stmt]) -> Result<(), CompileError> {
         let setup = self.emit(Op::SetupTry(0));
-        self.tries.push(TryCtx { finalbody: Vec::new(), with_exit: None, with_async: false });
+        self.tries.push(TryCtx { finalbody: Vec::new(), with_exit: None, with_async: false, handler: None });
         self.block(body)?;
         self.tries.pop();
         self.emit(Op::PopBlock);
@@ -1222,7 +1225,10 @@ impl Compiler {
                     self.emit(Op::Pop);
                 }
             }
-            self.block(&h.body)?;
+            self.tries.push(TryCtx { finalbody: Vec::new(), with_exit: None, with_async: false, handler: Some(h.name.clone()) });
+            let body = self.block(&h.body);
+            self.tries.pop();
+            body?;
             if let Some(name) = &h.name {
                 let n = self.name(name);
                 self.emit(Op::DeleteName(n));
@@ -1259,6 +1265,14 @@ impl Compiler {
         let all = std::mem::take(&mut self.tries);
         let mut result = Ok(());
         for i in (depth..all.len()).rev() {
+            if let Some(name) = &all[i].handler {
+                if let Some(name) = name {
+                    let n = self.name(name);
+                    self.emit(Op::DeleteName(n));
+                }
+                self.emit(Op::PopExc);
+                continue;
+            }
             self.emit(Op::PopBlock);
             if let Some(name) = all[i].with_exit.clone() {
                 self.emit_load(&name);
@@ -1751,7 +1765,7 @@ impl Compiler {
             }
         }
         let setup = self.emit(Op::SetupTry(0));
-        self.tries.push(TryCtx { finalbody: Vec::new(), with_exit: Some(hidden.clone()), with_async: is_async });
+        self.tries.push(TryCtx { finalbody: Vec::new(), with_exit: Some(hidden.clone()), with_async: is_async, handler: None });
         self.with_stmt(rest, body, is_async)?;
         self.tries.pop();
         self.emit(Op::PopBlock);
