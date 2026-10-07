@@ -20,7 +20,7 @@ use host::api::ExecResult;
 use host::backend::Sandbox;
 use host::client::{Client, ClientError};
 use host::config::IsolationConfig;
-use host::exec::{Cancel, ExecLimits, OutputSink, Stream};
+use host::exec::{Cancel, ExecLimits, OutputSink, StdinFeed, Stream};
 use host::session::{Session, ShellState};
 use serde_json::{Value, json};
 
@@ -66,7 +66,7 @@ struct Cli {
 /// O que o osh precisa de uma sandbox, local ou remota.
 trait Target {
     /// Roda um comando avulso; a saída sai direto no terminal. Devolve o `$?`.
-    fn run(&mut self, command: Option<&str>, argv: Option<&[String]>, stdin: Vec<u8>) -> Result<ExecResult, String>;
+    fn run(&mut self, command: Option<&str>, argv: Option<&[String]>, stdin: StdinFeed) -> Result<ExecResult, String>;
     /// Roda uma linha na sessão persistente.
     fn session(&mut self, line: &str) -> Result<ExecResult, String>;
     fn write_file(&mut self, path: &str, data: &[u8]) -> Result<(), String>;
@@ -107,7 +107,16 @@ impl Remote {
 }
 
 impl Target for Remote {
-    fn run(&mut self, command: Option<&str>, argv: Option<&[String]>, stdin: Vec<u8>) -> Result<ExecResult, String> {
+    fn run(&mut self, command: Option<&str>, argv: Option<&[String]>, stdin: StdinFeed) -> Result<ExecResult, String> {
+        // O protocolo do daemon leva o stdin inteiro na chamada: aqui ainda se lê até o EOF.
+        let stdin = match stdin {
+            StdinFeed::Bytes(v) => v,
+            StdinFeed::Stream(mut r) => {
+                let mut v = Vec::new();
+                let _ = r.read_to_end(&mut v);
+                v
+            }
+        };
         let mut p = json!({ "sandbox_id": self.sandbox, "timeout_ms": self.timeout_ms, "stdin_base64": host::api::b64::encode(&stdin) });
         if let Some(cwd) = &self.cwd {
             p["cwd"] = json!(cwd);
@@ -193,9 +202,9 @@ fn outcome_to_result(o: &host::exec::ExecOutcome) -> ExecResult {
 }
 
 impl Target for Local {
-    fn run(&mut self, command: Option<&str>, argv: Option<&[String]>, stdin: Vec<u8>) -> Result<ExecResult, String> {
+    fn run(&mut self, command: Option<&str>, argv: Option<&[String]>, stdin: StdinFeed) -> Result<ExecResult, String> {
         let req = host::worker::spawn_request(&*self.sb, command, argv, &self.workdir, &self.env).map_err(|e| e.message)?;
-        let o = host::exec::run(&*self.sb, req, stdin, self.limits, Some(&TermSink), &Cancel::new()).map_err(|e| e.to_string())?;
+        let o = host::exec::run_feed(&*self.sb, req, stdin, self.limits, Some(&TermSink), &Cancel::new()).map_err(|e| e.to_string())?;
         Ok(outcome_to_result(&o))
     }
 
@@ -294,12 +303,14 @@ fn local(cli: &Cli, timeout: Duration) -> Result<Box<dyn Target>, String> {
     }))
 }
 
-fn stdin_if_piped() -> Vec<u8> {
-    let mut v = Vec::new();
-    if !std::io::stdin().is_terminal() {
-        let _ = std::io::stdin().lock().read_to_end(&mut v);
+/// O stdin do osh vira o fd 0 do comando, lido sob demanda: um pipe aberto e sem dados não segura o
+/// comando (como no `bash -c`), e um terminal fica de fora.
+fn stdin_if_piped() -> StdinFeed {
+    if std::io::stdin().is_terminal() {
+        StdinFeed::Bytes(Vec::new())
+    } else {
+        StdinFeed::Stream(Box::new(std::io::stdin()))
     }
-    v
 }
 
 fn report(r: &ExecResult) -> u8 {

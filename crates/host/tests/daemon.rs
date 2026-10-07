@@ -380,6 +380,35 @@ fn osh(args: &[&str], stdin: &str, envs: &[(&str, &str)]) -> (i32, String, Strin
 }
 
 #[test]
+fn osh_local_does_not_wait_for_stdin_eof() {
+    // Stdin em pipe aberto e sem dados: o `bash -c` roda na hora, o osh também (antes lia até o EOF
+    // e travava para sempre).
+    let mut child = Command::new(env!("CARGO_BIN_EXE_osh"))
+        .args(["--backend", "fake", "-c", "echo oi"])
+        .env_remove("OSH_KEY")
+        .env_remove("OSH_REMOTE")
+        .env("PL_ALLOW_FAKE_BACKEND", "1")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .unwrap();
+    let held = child.stdin.take().unwrap();
+    let start = Instant::now();
+    while child.try_wait().unwrap().is_none() {
+        assert!(start.elapsed() < Duration::from_secs(20), "osh esperou o EOF do stdin");
+        thread::sleep(Duration::from_millis(20));
+    }
+    drop(held);
+    let mut out = String::new();
+    child.stdout.take().unwrap().read_to_string(&mut out).unwrap();
+    assert_eq!(out, "oi\n");
+    // O que chega no pipe continua indo para o fd 0 do comando.
+    let (rc, out, _) = osh(&["--backend", "fake", "-c", "cat"], "linha\n", &[("PL_ALLOW_FAKE_BACKEND", "1")]);
+    assert_eq!((rc, out.as_str()), (0, "linha\n"));
+}
+
+#[test]
 fn osh_remote_and_local() {
     let d = Daemon::fake("");
     let t = d.user("ivo", json!({}));

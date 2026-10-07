@@ -178,6 +178,59 @@ fn writer_thread(mut w: Box<dyn HostWriter>, data: Vec<u8>, stop: Arc<AtomicBool
     }
 }
 
+/// O stdin de um exec: tudo de uma vez, ou um fluxo lido sob demanda (o stdin do `osh`, que pode
+/// ser um pipe que nunca fecha: o comando roda sem esperar EOF, como o `bash -c`).
+pub enum StdinFeed {
+    Bytes(Vec<u8>),
+    Stream(Box<dyn std::io::Read + Send>),
+}
+
+/// Bombeia um fluxo para o processo à medida que chega. A leitura do fluxo fica numa thread solta:
+/// ela pode estar bloqueada num `read` do host quando o processo termina, e ninguém espera por ela.
+fn stream_writer_thread(mut w: Box<dyn HostWriter>, mut src: Box<dyn std::io::Read + Send>, stop: Arc<AtomicBool>) {
+    let (tx, rx) = crossbeam_channel::bounded::<Vec<u8>>(4);
+    let reader = thread::Builder::new().name("exec-stdin-src".into()).spawn(move || {
+        let mut buf = vec![0u8; 64 << 10];
+        loop {
+            match src.read(&mut buf) {
+                Ok(0) => return,
+                Ok(n) => {
+                    if tx.send(buf[..n].to_vec()).is_err() {
+                        return;
+                    }
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
+                Err(_) => return,
+            }
+        }
+    });
+    if reader.is_err() {
+        return;
+    }
+    loop {
+        if stop.load(Ordering::Acquire) {
+            return;
+        }
+        let chunk = match rx.recv_timeout(POLL) {
+            Ok(c) => c,
+            Err(crossbeam_channel::RecvTimeoutError::Timeout) => continue,
+            // EOF do fluxo: soltar a ponta de escrita fecha o stdin do processo.
+            Err(crossbeam_channel::RecvTimeoutError::Disconnected) => return,
+        };
+        let mut off = 0;
+        while off < chunk.len() {
+            if stop.load(Ordering::Acquire) {
+                return;
+            }
+            match w.write_timeout(&chunk[off..], POLL) {
+                WriteOutcome::Wrote(n) => off += n,
+                WriteOutcome::Closed => return,
+                WriteOutcome::TimedOut => {}
+            }
+        }
+    }
+}
+
 struct StreamState {
     cap: Captured,
     open: bool,
@@ -229,6 +282,18 @@ pub fn run(
     sink: Option<&dyn OutputSink>,
     cancel: &Cancel,
 ) -> BResult<ExecOutcome> {
+    run_feed(sb, req, StdinFeed::Bytes(stdin), limits, sink, cancel)
+}
+
+/// Como `run`, com o stdin dado como `StdinFeed`.
+pub fn run_feed(
+    sb: &dyn Sandbox,
+    req: SpawnRequest,
+    stdin: StdinFeed,
+    limits: ExecLimits,
+    sink: Option<&dyn OutputSink>,
+    cancel: &Cancel,
+) -> BResult<ExecOutcome> {
     let start = Instant::now();
     let spawned = sb.spawn(req)?;
     let pid = spawned.pid;
@@ -255,7 +320,11 @@ pub fn run(
     }
     {
         let (w, s) = (spawned.stdin, stdin_stop.clone());
-        handles.push(spawn_aux("in", Box::new(move || writer_thread(w, stdin, s)))?);
+        let f: Box<dyn FnOnce() + Send> = match stdin {
+            StdinFeed::Bytes(data) => Box::new(move || writer_thread(w, data, s)),
+            StdinFeed::Stream(src) => Box::new(move || stream_writer_thread(w, src, s)),
+        };
+        handles.push(spawn_aux("in", f)?);
     }
     {
         let (waiter, t, s) = (spawned.exit, tx.clone(), wait_stop.clone());
