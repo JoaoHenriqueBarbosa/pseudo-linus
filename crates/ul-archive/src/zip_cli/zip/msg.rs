@@ -75,32 +75,15 @@ impl Zip {
         }
     }
 
-    /// `zipmessage(a, b)`: as duas partes juntas numa linha, quebrando a linha corrente antes.
-    pub fn zipmessage(&mut self, a: impl AsRef<[u8]>, b: impl AsRef<[u8]>) {
-        let mut line = a.as_ref().to_vec();
-        line.extend_from_slice(b.as_ref());
-        line.push(b'\n');
-        if self.noisy {
-            if self.mesg_line_started {
-                self.mesg_raw(b"\n");
-            }
-            self.mesg_raw(&line);
-            self.mesg_line_started = false;
-        }
-        if self.logfile.is_some() {
-            if self.logfile_line_started {
-                self.log_raw(b"\n");
-            }
-            self.log_raw(&line);
-            self.logfile_line_started = false;
-        }
-    }
-
     /// `zipwarn`: "\tzip warning: a b".
     pub fn zipwarn(&mut self, a: impl AsRef<[u8]>, b: impl AsRef<[u8]>) {
-        let mut line = b"\tzip warning: ".to_vec();
-        line.extend_from_slice(a.as_ref());
-        line.extend_from_slice(b.as_ref());
+        self.zipmessage(&[b"\tzip warning: ", a.as_ref(), b.as_ref()]);
+    }
+
+    /// `zipmessage`: as partes juntas numa linha inteira na tela (se `noisy`) e no log, quebrando
+    /// antes a linha que estiver aberta.
+    pub fn zipmessage(&mut self, parts: &[&[u8]]) {
+        let mut line = parts.concat();
         line.push(b'\n');
         if self.noisy {
             if self.mesg_line_started {

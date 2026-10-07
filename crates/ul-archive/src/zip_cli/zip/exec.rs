@@ -445,7 +445,7 @@ impl Zip {
             }
         }
         if self.filesync && all_current && self.found.is_empty() {
-            self.zipmessage("Archive is current", "");
+            self.zipmessage(&[b"Archive is current"]);
             return self.finish(ZE_OK);
         }
         self.grow = self.grow && k == 0 && (self.zipbeg != 0 || !self.zfiles.is_empty());

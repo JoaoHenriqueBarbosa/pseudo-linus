@@ -285,7 +285,7 @@ impl Zip {
                 } else {
                     "Zip entry offsets do not need adjusting".to_string()
                 };
-                self.zipmessage(m, "");
+                self.zipmessage(&[m.as_bytes()]);
             }
         }
 
