@@ -664,61 +664,36 @@ fn replace(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 // split
 // ---------------------------------------------------------------------------------------------
 
-fn split_ws(s: &str, max: i64) -> Vec<String> {
-    let b: Vec<(usize, char)> = s.char_indices().collect();
-    let n = b.len();
-    let mut out = Vec::new();
-    let mut i = 0usize;
-    let mut splits = 0i64;
-    loop {
-        while i < n && is_py_space(b[i].1) {
-            i += 1;
+/// `split()`/`rsplit()` sem separador: no máximo `max` cortes (negativo = sem limite), contados
+/// do começo ou, com `reverse`, do fim; o resto fica inteiro (com o espaço de dentro) no último
+/// pedaço do lado onde os cortes acabaram.
+fn split_ws(s: &str, max: i64, reverse: bool) -> Vec<String> {
+    let mut words: Vec<(usize, usize)> = Vec::new();
+    let mut start = None;
+    for (i, c) in s.char_indices() {
+        match (is_py_space(c), start) {
+            (true, Some(st)) => {
+                words.push((st, i));
+                start = None;
+            }
+            (false, None) => start = Some(i),
+            _ => {}
         }
-        if i >= n {
-            break;
-        }
-        if max >= 0 && splits >= max {
-            out.push(s[b[i].0..].to_string());
-            break;
-        }
-        let st = i;
-        while i < n && !is_py_space(b[i].1) {
-            i += 1;
-        }
-        let end = if i < n { b[i].0 } else { s.len() };
-        out.push(s[b[st].0..end].to_string());
-        splits += 1;
     }
-    out
-}
-
-fn rsplit_ws(s: &str, max: i64) -> Vec<String> {
-    let b: Vec<(usize, char)> = s.char_indices().collect();
-    let mut i = b.len();
-    let mut out = Vec::new();
-    let mut splits = 0i64;
-    loop {
-        while i > 0 && is_py_space(b[i - 1].1) {
-            i -= 1;
-        }
-        if i == 0 {
-            break;
-        }
-        if max >= 0 && splits >= max {
-            let end = b[i - 1].0 + b[i - 1].1.len_utf8();
-            out.push(s[..end].to_string());
-            break;
-        }
-        let end = b[i - 1].0 + b[i - 1].1.len_utf8();
-        while i > 0 && !is_py_space(b[i - 1].1) {
-            i -= 1;
-        }
-        let st = if i < b.len() { b[i].0 } else { s.len() };
-        out.push(s[st..end].to_string());
-        splits += 1;
+    if let Some(st) = start {
+        words.push((st, s.len()));
     }
-    out.reverse();
-    out
+    let word = |&(a, b): &(usize, usize)| s[a..b].to_string();
+    let max = usize::try_from(max).unwrap_or(usize::MAX);
+    if words.len() <= max {
+        return words.iter().map(word).collect();
+    }
+    if reverse {
+        let k = words.len() - max;
+        std::iter::once(s[..words[k - 1].1].to_string()).chain(words[k..].iter().map(word)).collect()
+    } else {
+        words[..max].iter().map(word).chain(std::iter::once(s[words[max].0..].to_string())).collect()
+    }
 }
 
 fn split_impl(args: Vec<Value>, kw: Kw, name: &str, reverse: bool) -> PyResult<Value> {
@@ -730,13 +705,7 @@ fn split_impl(args: Vec<Value>, kw: Kw, name: &str, reverse: bool) -> PyResult<V
     };
     let t = s.as_str();
     let parts: Vec<String> = match &b[0] {
-        None | Some(Value::None) => {
-            if reverse {
-                rsplit_ws(t, max)
-            } else {
-                split_ws(t, max)
-            }
-        }
+        None | Some(Value::None) => split_ws(t, max, reverse),
         Some(Value::Str(sep)) => {
             let sep = sep.as_str();
             if sep.is_empty() {
@@ -1052,6 +1021,23 @@ mod tests {
         let o = crate::run_source(src);
         assert!(o.stderr.is_empty(), "stderr: {}", o.stderr);
         String::from_utf8(o.stdout).unwrap()
+    }
+
+    #[test]
+    fn split_whitespace_both_ways() {
+        // Saídas do CPython 3.13.
+        let src = "s = '  a\\tbé  c \\n'\n\
+                   for m in (-1, 0, 1, 2, 5):\n    print(s.split(None, m), s.rsplit(None, m))\n\
+                   print(''.split(), '   '.rsplit(), 'x'.rsplit(maxsplit=0))\n";
+        assert_eq!(
+            run(src),
+            "['a', 'bé', 'c'] ['a', 'bé', 'c']\n\
+             ['a\\tbé  c \\n'] ['  a\\tbé  c']\n\
+             ['a', 'bé  c \\n'] ['  a\\tbé', 'c']\n\
+             ['a', 'bé', 'c \\n'] ['  a', 'bé', 'c']\n\
+             ['a', 'bé', 'c'] ['a', 'bé', 'c']\n\
+             [] [] ['x']\n"
+        );
     }
 
     #[test]
