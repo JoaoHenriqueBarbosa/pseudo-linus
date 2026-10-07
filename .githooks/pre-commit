@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+#
+# Recusa o commit que traz duplicação nova: par de funções acima do limiar ou função de repasse
+# (scripts/dry-check.sh), nos .rs do commit comparados com o resto do crate de cada um.
+#
+# Vale para qualquer pessoa ou agente que commite neste repositório. Para o hook valer, o clone
+# precisa de core.hooksPath apontando para .githooks, que é o que scripts/install-hooks.sh faz.
+
+set -o pipefail
+
+root=$(git rev-parse --show-toplevel) || exit 1
+
+if ! "${root}/scripts/dry-check.sh"; then
+	echo >&2
+	echo 'Commit recusado pelo lint de DRY (.githooks/pre-commit).' >&2
+	exit 1
+fi

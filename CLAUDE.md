@@ -33,3 +33,38 @@ antes; nunca exclua caso de teste por limitação dele.
 O repositório é público. Nada da máquina de quem desenvolve (`CLAUDE.md`, caminhos do home, nome
 de usuário, chaves) entra em fita, golden ou fixture versionada. O harness em `example/` recusa
 gravar requisições com esse contexto.
+
+## DRY
+
+Duas regras, impostas por hook do git (`.githooks/pre-commit`), não por disciplina. Instale uma vez
+por clone com `scripts/install-hooks.sh`.
+
+- **Código parecido não se repete.** O `similarity-rs` compara os corpos de função; par acima de
+  0,90 que toque um arquivo do commit recusa o commit.
+- **Função de repasse não existe.** Função cujo corpo é só a chamada de outra com os próprios
+  argumentos é intermediária inútil: o chamador chama o alvo direto, ou o nome vira reexportação
+  (`pub use sysabi::sys::current as sys;`). Acessor de campo privado (`len`, `is_empty`) não é
+  repasse; método que acrescenta argumento, prefixo ou conversão também não.
+
+Quando a checagem reclamar, os caminhos que funcionam, em ordem: dar nome ao conceito e extrair a
+função que faltava; fundir as duas numa só, com a diferença virando parâmetro (um `const` genérico
+serve quando a diferença é de tipo, como em `parse_id::<GROUP>`); escrever a macro; mudar o tipo
+para a repetição deixar de ser possível (um `Deref` no newtype, uma tabela no lugar de `match`).
+
+Ajustar o código para a medida cair sem desfazer a repetição (renomear, reordenar, quebrar em dois
+para passar raspando) é burlar a régua.
+
+`scripts/dry-baseline.txt` é a dívida que já existia quando a régua chegou, sem números de linha.
+Ela só encolhe: a checagem avisa a entrada que deixou de acontecer, e ela sai no mesmo commit que a
+resolveu. Entrada nova não se acrescenta à mão; `scripts/dry-check.sh --rebuild` refaz a lista
+inteira e só se usa depois de zerar o que ela acusa de novo.
+
+```sh
+scripts/dry-check.sh              # o que o pre-commit roda: os .rs do índice
+scripts/dry-check.sh ARQ...       # arquivos escolhidos
+scripts/dry-check.sh --rebuild    # refaz a lista de dívida (varre tudo, leva minutos)
+```
+
+O limiar é mais frouxo que o 0,20 de outros projetos porque, a 0,20, este repositório tem mais de
+255 mil pares e a varredura completa leva 2,5 minutos (medido em 2026-10-07, 732 arquivos).
+`vendor/`, `staging/`, `tests/` e `benches/` ficam fora.
