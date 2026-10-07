@@ -554,46 +554,40 @@ impl<'p> Interp<'p> {
     }
 
     fn bi_length(&mut self, args: &[Expr]) -> R<Value> {
+        let count = |n: usize| Ok(Value::Num(n as f64));
         let Some(arg) = args.first() else {
             let rec = self.get_record_value();
-            return Ok(Value::Num(char_count(&rec) as f64));
+            return count(char_count(&rec));
         };
-        match arg {
+        // O que não é array conta os caracteres do valor como texto.
+        let x = match arg {
             Expr::Var(v) => {
-                if let Var::Global(i) = v
-                    && *i < sv::COUNT && !matches!(*i, sv::ENVIRON | sv::ARGV | sv::PROCINFO | sv::SYMTAB | sv::FUNCTAB) {
-                        let x = self.read_var(*v)?;
-                        let s = self.to_str(&x);
-                        return Ok(Value::Num(char_count(&s) as f64));
+                let scalar_special = matches!(v, Var::Global(i)
+                    if *i < sv::COUNT && !matches!(*i, sv::ENVIRON | sv::ARGV | sv::PROCINFO | sv::SYMTAB | sv::FUNCTAB));
+                if scalar_special {
+                    self.read_var(*v)?
+                } else {
+                    match self.var_cell(*v) {
+                        Cell::Arr(a) => return count(a.borrow().len()),
+                        Cell::Uninit => {
+                            // O gawk trata a variável não tipada como escalar daqui em diante.
+                            self.write_var(*v, Value::Uninit)?;
+                            return count(0);
+                        }
+                        Cell::Val(x) => x,
+                        Cell::Ref(_) => return count(0),
                     }
-                match self.var_cell(*v) {
-                    Cell::Arr(a) => Ok(Value::Num(a.borrow().len() as f64)),
-                    Cell::Uninit => {
-                        // O gawk trata a variável não tipada como escalar daqui em diante.
-                        self.write_var(*v, Value::Uninit)?;
-                        Ok(Value::Num(0.0))
-                    }
-                    Cell::Val(x) => {
-                        let s = self.to_str(&x);
-                        Ok(Value::Num(char_count(&s) as f64))
-                    }
-                    Cell::Ref(_) => Ok(Value::Num(0.0)),
                 }
             }
             Expr::Index(v, groups) => {
                 if let Some(Cell::Arr(a)) = self.elem_cell(*v, groups)? {
-                    return Ok(Value::Num(a.borrow().len() as f64));
+                    return count(a.borrow().len());
                 }
-                let x = self.eval(arg)?;
-                let s = self.to_str(&x);
-                Ok(Value::Num(char_count(&s) as f64))
+                self.eval(arg)?
             }
-            e => {
-                let x = self.eval(e)?;
-                let s = self.to_str(&x);
-                Ok(Value::Num(char_count(&s) as f64))
-            }
-        }
+            e => self.eval(e)?,
+        };
+        count(char_count(&self.to_str(&x)))
     }
 
     /// `index` com IGNORECASE, em caracteres.
@@ -823,17 +817,8 @@ impl<'p> Interp<'p> {
             }
         }
         let t: &str = match &args[0] {
-            Expr::Var(v) => {
-                if let Var::Global(i) = v {
-                    if matches!(*i, sv::NF | sv::NR | sv::FNR) {
-                        "number"
-                    } else {
-                        self.type_of_cell(self.var_cell(*v))
-                    }
-                } else {
-                    self.type_of_cell(self.var_cell(*v))
-                }
-            }
+            Expr::Var(Var::Global(i)) if matches!(*i, sv::NF | sv::NR | sv::FNR) => "number",
+            Expr::Var(v) => self.type_of_cell(self.var_cell(*v)),
             Expr::Index(v, groups) => match self.elem_cell(*v, groups)? {
                 Some(c) => self.type_of_cell(c),
                 None => "untyped",
