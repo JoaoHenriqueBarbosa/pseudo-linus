@@ -274,3 +274,19 @@ d = {}; exec("x = 1", d); print(sorted(d), d["__builtins__"] is vars(builtins))
 d = {"__builtins__": {}}; exec("y = 2", d); print(sorted(d), d["__builtins__"])
 PYEOF
 '''
+
+# Constantes do `posix` (CLD_*, CLONE_*, EX_*, P_*, SCHED_*, W*...) e as macros de status de espera
+# (`WIFEXITED`, `WTERMSIG`...) com `waitstatus_to_exitcode` e os erros dele.
+[[case]]
+id = "os-posix-constants-wait-status"
+script = '''
+python3 - <<'PYEOF'
+import os
+print(os.SEEK_DATA, os.SEEK_HOLE, os.EX_USAGE, os.P_PIDFD, os.WNOHANG, os.WUNTRACED, os.CLONE_NEWUSER, os.SCHED_IDLE, os.RTLD_NOW, os.ST_RDONLY, os.TMP_MAX, os.XATTR_SIZE_MAX)
+for f in (os.WCOREDUMP, os.WIFCONTINUED, os.WIFSTOPPED, os.WIFSIGNALED, os.WIFEXITED, os.WEXITSTATUS, os.WTERMSIG, os.WSTOPSIG):
+    print(f.__name__, f.__doc__.splitlines()[0], [f(s) for s in (0, 0x100, 0x7f, 0xff, 0x9, 0x89, 0xffff, 0x137f, 0x7fff)])
+for s in (0, 0x300, 9, 0x89, 0x137f, -1, 1.5):
+    try: print(os.waitstatus_to_exitcode(s))
+    except Exception as e: print(type(e).__name__, e)
+PYEOF
+'''

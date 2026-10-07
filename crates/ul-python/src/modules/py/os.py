@@ -38,6 +38,119 @@ O_TMPFILE = 0o20200000
 SEEK_SET = 0
 SEEK_CUR = 1
 SEEK_END = 2
+SEEK_DATA = 3
+SEEK_HOLE = 4
+
+# Constantes do posix na glibc 2.41 / Linux x86_64 (os mesmos valores do Debian 13).
+CLD_EXITED, CLD_KILLED, CLD_DUMPED, CLD_TRAPPED, CLD_STOPPED, CLD_CONTINUED = 1, 2, 3, 4, 5, 6
+CLONE_VM, CLONE_FS, CLONE_FILES, CLONE_SIGHAND = 256, 512, 1024, 2048
+CLONE_THREAD, CLONE_NEWNS, CLONE_SYSVSEM, CLONE_NEWTIME = 65536, 131072, 262144, 128
+CLONE_NEWCGROUP, CLONE_NEWUTS, CLONE_NEWIPC = 33554432, 67108864, 134217728
+CLONE_NEWUSER, CLONE_NEWPID, CLONE_NEWNET = 268435456, 536870912, 1073741824
+EFD_SEMAPHORE, EFD_NONBLOCK, EFD_CLOEXEC = 1, 2048, 524288
+EX_OK, EX_USAGE, EX_DATAERR, EX_NOINPUT, EX_NOUSER, EX_NOHOST = 0, 64, 65, 66, 67, 68
+EX_UNAVAILABLE, EX_SOFTWARE, EX_OSERR, EX_OSFILE, EX_CANTCREAT = 69, 70, 71, 72, 73
+EX_IOERR, EX_TEMPFAIL, EX_PROTOCOL, EX_NOPERM, EX_CONFIG = 74, 75, 76, 77, 78
+F_ULOCK, F_LOCK, F_TLOCK, F_TEST = 0, 1, 2, 3
+GRND_NONBLOCK, GRND_RANDOM = 1, 2
+MFD_CLOEXEC, MFD_ALLOW_SEALING, MFD_HUGETLB = 1, 2, 4
+MFD_HUGE_SHIFT, MFD_HUGE_MASK = 26, 63
+MFD_HUGE_64KB, MFD_HUGE_512KB, MFD_HUGE_1MB, MFD_HUGE_2MB = 1073741824, 1275068416, 1342177280, 1409286144
+MFD_HUGE_8MB, MFD_HUGE_16MB, MFD_HUGE_32MB, MFD_HUGE_256MB = 1543503872, 1610612736, 1677721600, 1879048192
+MFD_HUGE_512MB, MFD_HUGE_1GB, MFD_HUGE_2GB, MFD_HUGE_16GB = 1946157056, 2013265920, 2080374784, 2281701376
+NGROUPS_MAX = 65536
+PIDFD_NONBLOCK = 2048
+POSIX_FADV_NORMAL, POSIX_FADV_RANDOM, POSIX_FADV_SEQUENTIAL = 0, 1, 2
+POSIX_FADV_WILLNEED, POSIX_FADV_DONTNEED, POSIX_FADV_NOREUSE = 3, 4, 5
+POSIX_SPAWN_OPEN, POSIX_SPAWN_CLOSE, POSIX_SPAWN_DUP2, POSIX_SPAWN_CLOSEFROM = 0, 1, 2, 3
+PRIO_PROCESS, PRIO_PGRP, PRIO_USER = 0, 1, 2
+P_ALL, P_PID, P_PGID, P_PIDFD = 0, 1, 2, 3
+P_WAIT, P_NOWAIT, P_NOWAITO = 0, 1, 1
+RTLD_LOCAL, RTLD_LAZY, RTLD_NOW, RTLD_NOLOAD = 0, 1, 2, 4
+RTLD_DEEPBIND, RTLD_GLOBAL, RTLD_NODELETE = 8, 256, 4096
+RWF_HIPRI, RWF_DSYNC, RWF_SYNC, RWF_NOWAIT, RWF_APPEND = 1, 2, 4, 8, 16
+SCHED_OTHER, SCHED_FIFO, SCHED_RR, SCHED_BATCH, SCHED_IDLE = 0, 1, 2, 3, 5
+SCHED_RESET_ON_FORK = 1073741824
+SPLICE_F_MOVE, SPLICE_F_NONBLOCK, SPLICE_F_MORE = 1, 2, 4
+ST_RDONLY, ST_NOSUID, ST_NODEV, ST_NOEXEC, ST_SYNCHRONOUS = 1, 2, 4, 8, 16
+ST_MANDLOCK, ST_WRITE, ST_APPEND, ST_NOATIME, ST_NODIRATIME, ST_RELATIME = 64, 128, 256, 1024, 2048, 4096
+TFD_TIMER_ABSTIME, TFD_TIMER_CANCEL_ON_SET, TFD_NONBLOCK, TFD_CLOEXEC = 1, 2, 2048, 524288
+TMP_MAX = 238328
+WNOHANG, WUNTRACED, WSTOPPED, WEXITED, WCONTINUED, WNOWAIT = 1, 2, 2, 4, 8, 16777216
+XATTR_CREATE, XATTR_REPLACE, XATTR_SIZE_MAX = 1, 2, 65536
+
+
+def WCOREDUMP(status, /):
+    """Return True if the process returning status was dumped to a core file."""
+    return bool(status & 0x80)
+
+
+def WIFCONTINUED(status, /):
+    """Return True if a particular process was continued from a job control stop.
+
+Return True if the process returning status was continued from a
+job control stop."""
+    return status == 0xffff
+
+
+def WIFSTOPPED(status, /):
+    """Return True if the process returning status was stopped."""
+    return (status & 0xff) == 0x7f
+
+
+def WIFSIGNALED(status, /):
+    """Return True if the process returning status was terminated by a signal."""
+    sig = (status & 0x7f) + 1
+    if sig >= 0x80:
+        sig -= 0x100
+    return (sig >> 1) > 0
+
+
+def WIFEXITED(status, /):
+    """Return True if the process returning status exited via the exit() system call."""
+    return (status & 0x7f) == 0
+
+
+def WEXITSTATUS(status, /):
+    """Return the process return code from status."""
+    return (status >> 8) & 0xff
+
+
+def WTERMSIG(status, /):
+    """Return the signal that terminated the process that provided the status value."""
+    return status & 0x7f
+
+
+def WSTOPSIG(status, /):
+    """Return the signal that stopped the process that provided the status value."""
+    return (status >> 8) & 0xff
+
+
+def waitstatus_to_exitcode(status):
+    """Convert a wait status to an exit code.
+
+On Unix:
+
+* If WIFEXITED(status) is true, return WEXITSTATUS(status).
+* If WIFSIGNALED(status) is true, return -WTERMSIG(status).
+* Otherwise, raise a ValueError.
+
+On Windows, return status shifted right by 8 bits.
+
+On Unix, if the process is being traced or if waitpid() was called with
+WUNTRACED option, the caller must first check if WIFSTOPPED(status) is true.
+This function must not be called if WIFSTOPPED(status) is true."""
+    if not isinstance(status, int):
+        if not hasattr(type(status), '__index__'):
+            raise TypeError(f"'{type(status).__name__}' object cannot be interpreted as an integer")
+        status = type(status).__index__(status)
+    if WIFEXITED(status):
+        return WEXITSTATUS(status)
+    if WIFSIGNALED(status):
+        return -WTERMSIG(status)
+    if WIFSTOPPED(status):
+        raise ValueError(f'process stopped by delivery of signal {WSTOPSIG(status)}')
+    raise ValueError(f'invalid wait status: {status}')
 
 error = OSError
 
