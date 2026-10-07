@@ -35,6 +35,12 @@
     "exit": 0,
     "files": {}
   },
+  "server-thread-subprocess-client": {
+    "stdout": "404\n0 b'ol\\xc3\\xa1\\n 200'\n'olá\\n'\nwait 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "tcp-two-processes": {
     "stdout": "33 b'HELLO WORLD' True\n300000 b'XXXXXXXXXXX' True\nrecusada 111\nfim\n",
     "stderr": "srv ok 127.0.0.1\n",

@@ -168,17 +168,22 @@ class Popen:
     def wait(self, timeout=None):
         if self.returncode is not None:
             return self.returncode
-        if timeout is None:
+        threading = _scheduler()
+        if timeout is None and threading is None:
             r = _os.wait(self.pid, False)
             self.returncode = r[1]
             return self.returncode
-        end = _time.monotonic() + timeout
+        end = None if timeout is None else _time.monotonic() + timeout
         delay = 0.0005
         while self.poll() is None:
-            left = end - _time.monotonic()
-            if left <= 0:
+            left = None if end is None else end - _time.monotonic()
+            if left is not None and left <= 0:
                 raise TimeoutExpired(self.args, timeout)
-            _time.sleep(min(delay, left))
+            step = delay if left is None else min(delay, left)
+            if threading is not None:
+                threading._wait_for(lambda: self.poll() is not None, step, 'wait()')
+            else:
+                _time.sleep(step)
             delay = min(delay * 2, 0.05)
         return self.returncode
 
@@ -189,6 +194,35 @@ class Popen:
                     f.close()
                 except (OSError, ValueError):
                     pass
+
+    def _drain(self, threading):
+        """Lê `stdout` e `stderr` até o EOF sem travar o interpretador: enquanto nenhum pipe tem dado, as
+        outras threads (um servidor que o filho consulta, por exemplo) seguem rodando."""
+        files = [f for f in (self.stdout, self.stderr) if f is not None]
+        chunks = {f: [] for f in files}
+        open_fds = {f.fileno(): f for f in files}
+        while open_fds:
+            ready = _os.tcp_poll(list(open_fds), 0)
+            if not ready:
+                threading._wait_for(lambda: bool(_os.tcp_poll(list(open_fds), 0)), 0.002, 'communicate()')
+                continue
+            for fd in ready:
+                data = os.read(fd, 65536)
+                if data:
+                    chunks[open_fds[fd]].append(data)
+                else:
+                    del open_fds[fd]
+        out = []
+        for f in (self.stdout, self.stderr):
+            if f is None:
+                out.append(None)
+                continue
+            data = b''.join(chunks[f])
+            if self.text_mode:
+                data = io.TextIOWrapper(io.BytesIO(data), encoding=self.encoding, errors=self.errors).read()
+            out.append(data)
+            f.close()
+        return out
 
     def communicate(self, input=None, timeout=None):
         if timeout is not None and self.returncode is None and self.stdin is None:
@@ -205,6 +239,11 @@ class Popen:
                 self.stdin.close()
             except BrokenPipeError:
                 pass
+        threading = _scheduler()
+        if threading is not None:
+            out, err = self._drain(threading)
+            self.wait(timeout)
+            return out, err
         out = err = None
         if self.stdout is not None:
             out = self.stdout.read()
@@ -233,6 +272,16 @@ class Popen:
         self._close_pipes()
         if self.returncode is None:
             self.wait()
+
+
+def _scheduler():
+    """O `threading` quando há outra coisa que precisa rodar enquanto o filho trabalha (threads pendentes,
+    serviços, sockets ligados a outros processos); `None` quando esperar bloqueado não atrasa ninguém."""
+    import sys
+    threading = sys.modules.get('threading')
+    if threading is not None and (threading._pending or threading._services or threading._pollers):
+        return threading
+    return None
 
 
 def _os_exists(path):

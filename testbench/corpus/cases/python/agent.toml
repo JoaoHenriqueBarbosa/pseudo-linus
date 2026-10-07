@@ -357,3 +357,26 @@ python3 -m venv /tmp/venv; echo "rc=$?"
 kill %1; wait
 '''
 tags = ["agent", "net"]
+
+# Servidor numa thread e o cliente num subprocess do mesmo programa: o subprocess.run, o check_output
+# em texto e o Popen.wait deixam a thread do servidor atender enquanto esperam o filho.
+[[case]]
+id = "server-thread-subprocess-client"
+script = '''
+cd /tmp
+mkdir -p site && echo "olá" > site/a.txt
+python3 - <<'PY'
+import http.server, threading, subprocess, functools
+H = functools.partial(http.server.SimpleHTTPRequestHandler, directory='/tmp/site')
+http.server.SimpleHTTPRequestHandler.log_message = lambda *a: None
+s = http.server.ThreadingHTTPServer(('127.0.0.1', 8095), H)
+threading.Thread(target=s.serve_forever, daemon=True).start()
+r = subprocess.run(['curl', '-s', '-w', ' %{http_code}', 'http://127.0.0.1:8095/a.txt'], capture_output=True)
+print(r.returncode, r.stdout)
+print(repr(subprocess.check_output(['curl', '-s', 'http://127.0.0.1:8095/a.txt'], text=True)))
+p = subprocess.Popen(['curl', '-s', '-o', '/dev/null', '-w', '%{http_code}\n', 'http://127.0.0.1:8095/nope'])
+print('wait', p.wait())
+s.shutdown()
+PY
+'''
+tags = ["agent", "net", "subprocess"]
