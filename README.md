@@ -116,7 +116,7 @@ target/release/osh scripts/v1-tour.sh       # short tour: text, git, tar/zip, jq
 target/release/osh -c 'python3 -c "import sys; print(sys.version)"'
 ```
 
-The working directory is `/work`, a private tmpfs (like the oracle's `--tmpfs /work:exec`). The sandbox disappears on exit, unless `osh` points at a `pseudo-linusd` daemon with `--remote` and `--keep`. The daemon serves many users and sandboxes at once, with sessions, snapshots, per-user CPU weights and memory budgets.
+Commands start in `/root` (root's home, `HOME=/root`); `--workdir` picks another directory. `/work` is a private tmpfs for scratch files (like the oracle's `--tmpfs /work:exec`). The sandbox disappears on exit, unless `osh` points at a `pseudo-linusd` daemon with `--remote` and `--keep`. The daemon serves many users and sandboxes at once, with sessions, snapshots, per-user CPU weights and memory budgets.
 
 ### The test bench
 
