@@ -53,6 +53,10 @@ pub enum Pause {
     IndicInitialReordering,
     /// `final_reordering_indic`.
     IndicFinalReordering,
+    /// `setup_syllables_khmer`.
+    KhmerSetupSyllables,
+    /// `reorder_khmer`.
+    KhmerReorder,
 }
 
 #[derive(Clone, Copy, Debug)]

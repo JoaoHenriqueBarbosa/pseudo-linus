@@ -199,7 +199,7 @@ pub fn setup_masks(buffer: &mut Buffer) {
 }
 
 /// `hb_indic_get_categories`.
-fn categories(u: u32) -> u16 {
+pub(crate) fn categories(u: u32) -> u16 {
     use crate::indic_table::{DEFAULT, RANGES, SINGLES, TABLE};
     if let Some(&(_, v)) = SINGLES.iter().find(|&&(c, _)| c == u) {
         return v;

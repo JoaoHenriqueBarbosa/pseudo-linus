@@ -15,6 +15,7 @@ pub mod hebrew;
 pub mod indic;
 mod indic_machine;
 mod indic_table;
+pub mod khmer;
 #[allow(dead_code)]
 mod khmer_machine;
 pub mod lang;
