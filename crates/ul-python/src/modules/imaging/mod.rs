@@ -1167,11 +1167,7 @@ impl ExtObject for DecoderObj {
         let d = &mut *d;
         match name {
             "setimage" => {
-                let im = core_of(args.first().unwrap_or(&Value::None))?;
-                let ext = match args.get(1) {
-                    Some(v) => box4_i(v)?,
-                    None => (0, 0, 0, 0),
-                };
+                let (im, ext) = image_arg(&args)?;
                 d.st.setimage(&im.borrow(), ext, false).map_err(value_error)?;
                 d.im = Some(im);
                 none()
@@ -1189,8 +1185,7 @@ impl ExtObject for DecoderObj {
                 };
                 Ok(Value::tuple(vec![Value::Int(i64::from(status)), Value::Int(i64::from(d.st.errcode))]))
             }
-            "cleanup" => none(),
-            "setfd" => none(),
+            "cleanup" | "setfd" => none(),
             _ => Err(crate::object::no_attribute("ImagingDecoder", name)),
         }
     }
@@ -1246,18 +1241,13 @@ impl ExtObject for EncoderObj {
         match name {
             "setimage" => {
                 let mut e = self.inner.borrow_mut();
-                let im = core_of(args.first().unwrap_or(&Value::None))?;
-                let ext = match args.get(1) {
-                    Some(v) => box4_i(v)?,
-                    None => (0, 0, 0, 0),
-                };
+                let (im, ext) = image_arg(&args)?;
                 e.st.setimage(&im.borrow(), ext, true).map_err(|m| exc("SystemError", m))?;
                 e.im = Some(im);
                 none()
             }
             "encode" => {
-                let bufsize = args.first().map(int_arg).transpose()?.unwrap_or(16384).max(0) as usize;
-                let mut buf = vec![0u8; bufsize];
+                let mut buf = out_buffer(args.first())?;
                 let mut e = self.inner.borrow_mut();
                 let status = e.step(&mut buf)?;
                 buf.truncate(status.max(0) as usize);
@@ -1266,10 +1256,9 @@ impl ExtObject for EncoderObj {
             "encode_to_file" => {
                 let fh = args.first().cloned().unwrap_or(Value::None);
                 int_arg(&fh)?;
-                let bufsize = args.get(1).map(int_arg).transpose()?.unwrap_or(16384).max(0) as usize;
+                let mut buf = out_buffer(args.get(1))?;
                 let os = crate::modules::import_checked(vm, "os")?;
                 let write = vm.getattr(&Value::Module(os), "write")?;
-                let mut buf = vec![0u8; bufsize];
                 loop {
                     let (status, errcode) = {
                         let mut e = self.inner.borrow_mut();
@@ -1307,6 +1296,19 @@ fn mode_and_raw(args: &[Value]) -> PyResult<(String, String)> {
     let mode = str_arg(args.first().unwrap_or(&Value::None))?;
     let rawmode = str_arg(args.get(1).unwrap_or(&Value::None))?;
     Ok((mode, rawmode))
+}
+
+/// Os argumentos de `setimage`: a imagem e a extensão (a imagem inteira quando omitida).
+fn image_arg(args: &[Value]) -> PyResult<(Shared, (i32, i32, i32, i32))> {
+    let im = core_of(args.first().unwrap_or(&Value::None))?;
+    let ext = args.get(1).map(box4_i).transpose()?.unwrap_or((0, 0, 0, 0));
+    Ok((im, ext))
+}
+
+/// O buffer de saída do encoder, do tamanho pedido (16 KiB por padrão, como o `ImageFile.MAXBLOCK`).
+fn out_buffer(size: Option<&Value>) -> PyResult<Vec<u8>> {
+    let n = size.map(int_arg).transpose()?.unwrap_or(16384).max(0);
+    Ok(vec![0u8; n as usize])
 }
 
 fn raw_decoder(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
