@@ -132,6 +132,43 @@ fn runtime_docs(name: &str, docs: &mut Docs) {
     }
 }
 
+thread_local! {
+    /// Docstrings das funções nativas em Rust, pelo endereço da função (`register_native`).
+    static NATIVE_DOCS: std::cell::RefCell<std::collections::HashMap<usize, String>> =
+        std::cell::RefCell::new(std::collections::HashMap::new());
+}
+
+/// Liga as funções nativas do módulo `module` às docstrings que o CPython dá a elas na tabela.
+pub fn register_native(module: &str, attrs: &std::collections::BTreeMap<String, crate::object::Value>) {
+    let mut docs = Docs::new();
+    runtime_docs(module, &mut docs);
+    NATIVE_DOCS.with(|m| {
+        let mut m = m.borrow_mut();
+        for (name, value) in attrs {
+            if let (crate::object::Value::NativeFn(f), Some(Some((doc, _)))) = (value, docs.get(name.as_str())) {
+                m.entry(f.f as *const () as usize).or_insert_with(|| doc.clone());
+            }
+        }
+    });
+}
+
+/// A docstring de uma função nativa registrada por `register_native`.
+pub fn native_doc(f: &crate::object::NativeFn) -> Option<String> {
+    NATIVE_DOCS.with(|m| m.borrow().get(&(f.f as *const () as usize)).cloned())
+}
+
+/// A docstring da função embutida `name` (`len`, `abs`...), da tabela do módulo `builtins`.
+pub fn builtin_doc(name: &str) -> Option<String> {
+    thread_local! {
+        static BUILTINS: Docs = {
+            let mut docs = Docs::new();
+            runtime_docs("builtins", &mut docs);
+            docs
+        };
+    }
+    BUILTINS.with(|d| d.get(name).cloned().flatten().map(|(doc, _)| doc))
+}
+
 /// A docstring de módulo que a tabela dá para `name` (`None` se ela não tem ou se é `None` no CPython).
 pub fn runtime_module_doc(name: &str) -> Option<String> {
     let mut docs = Docs::new();

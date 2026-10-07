@@ -7,9 +7,10 @@
 
 use std::rc::Rc;
 
+use crate::ast::UnaryOp;
 use crate::modules::ModuleBuilder;
 use crate::native_util::{exactly, no_kwargs, want_int};
-use crate::object::{int_neg, is, py_eq, repr, Kw, ModuleObj, Value};
+use crate::object::{is, py_eq, repr, Kw, ModuleObj, Value};
 use crate::vm::{exc, py_binary, py_lt, type_error, PyException, PyResult, Vm};
 
 fn pair<'a>(fname: &str, args: &'a [Value], kw: &Kw) -> PyResult<(&'a Value, &'a Value)> {
@@ -45,42 +46,23 @@ fn unary_type_error(what: &str, v: &Value) -> PyException {
     type_error(format!("bad operand type for {what}: '{}'", v.type_name()))
 }
 
+// As unárias são as do interpretador (`PyNumber_Negative` e afins): inteiro grande, métodos
+// especiais de classe do usuário e as mesmas mensagens de erro.
 fn op_neg(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    match single("neg", &args, &kw)? {
-        Value::Int(i) => Ok(Value::Int(int_neg(*i)?)),
-        Value::Bool(b) => Ok(Value::Int(-i64::from(*b))),
-        Value::Float(x) => Ok(Value::Float(-*x)),
-        other => Err(unary_type_error("unary -", other)),
-    }
+    crate::vm::unary(UnaryOp::USub, single("neg", &args, &kw)?)
 }
 
 fn op_pos(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    match single("pos", &args, &kw)? {
-        Value::Int(i) => Ok(Value::Int(*i)),
-        Value::Bool(b) => Ok(Value::Int(i64::from(*b))),
-        Value::Float(x) => Ok(Value::Float(*x)),
-        other => Err(unary_type_error("unary +", other)),
-    }
+    crate::vm::unary(UnaryOp::UAdd, single("pos", &args, &kw)?)
 }
 
-fn op_abs(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    match single("abs", &args, &kw)? {
-        Value::Int(i) => match i.checked_abs() {
-            Some(a) => Ok(Value::Int(a)),
-            None => Err(exc("OverflowError", "integer result outside the 64-bit range (arbitrary int is pending)")),
-        },
-        Value::Bool(b) => Ok(Value::Int(i64::from(*b))),
-        Value::Float(x) => Ok(Value::Float(x.abs())),
-        other => Err(unary_type_error("abs()", other)),
-    }
+fn op_abs(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    let v = single("abs", &args, &kw)?.clone();
+    crate::builtins::b_abs(vm, vec![v], Vec::new())
 }
 
 fn op_invert(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    match single("invert", &args, &kw)? {
-        Value::Int(i) => Ok(Value::Int(!*i)),
-        Value::Bool(b) => Ok(Value::Int(!i64::from(*b))),
-        other => Err(unary_type_error("unary ~", other)),
-    }
+    crate::vm::unary(UnaryOp::Invert, single("invert", &args, &kw)?)
 }
 
 fn op_not(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -191,28 +173,12 @@ fn op_xor(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 
 fn op_lshift(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let (a, b) = pair("lshift", &args, &kw)?;
-    let (x, y, _) = int_operands("<<", a, b)?;
-    if y < 0 {
-        return Err(exc("ValueError", "negative shift count"));
-    }
-    let overflow = || exc("OverflowError", "integer result outside the 64-bit range (arbitrary int is pending)");
-    if x == 0 {
-        return Ok(Value::Int(0));
-    }
-    if y >= 64 {
-        return Err(overflow());
-    }
-    let r = i128::from(x) << y;
-    i64::try_from(r).map(Value::Int).map_err(|_| overflow())
+    py_binary("<<", a, b)
 }
 
 fn op_rshift(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let (a, b) = pair("rshift", &args, &kw)?;
-    let (x, y, _) = int_operands(">>", a, b)?;
-    if y < 0 {
-        return Err(exc("ValueError", "negative shift count"));
-    }
-    Ok(Value::Int(if y >= 64 { if x < 0 { -1 } else { 0 } } else { x >> y }))
+    py_binary(">>", a, b)
 }
 
 // ---------------------------------------------------------------------------

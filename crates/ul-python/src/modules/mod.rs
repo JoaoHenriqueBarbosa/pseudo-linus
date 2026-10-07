@@ -117,6 +117,7 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         }
         attrs.entry("__package__".to_string()).or_insert_with(|| Value::str(""));
     }
+    cpydocs::register_native(name, &m.attrs.borrow());
     vm.modules.borrow_mut().insert(name.to_string(), m.clone());
     Some(m)
 }

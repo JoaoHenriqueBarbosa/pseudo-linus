@@ -17,6 +17,12 @@
     "exit": 0,
     "files": {}
   },
+  "operator-bigint-math-ieee-native-docs": {
+    "stdout": "9223372036854775808 1267650600228229401496703205376 9223372036854775808\n(18446744073709551615,) (-9223372036854775808,) (18446744073709551615, 18446744073709551615)\n['N', 'P', 'A', 'I', 'I', 'N'] L R\n-1180591620717411303424 1 -1180591620717411303425 147573952589676412928 1180591620717411303424 1180591620717411303424\nTypeError bad operand type for unary -: 'str'\nTypeError bad operand type for abs(): 'str'\nTypeError bad operand type for unary ~: 'float'\nValueError negative shift count\nTypeError unsupported operand type(s) for <<: 'float' and 'int'\n[1.0, -1.0, -1.0, 1.0, -1.0, -1.0, nan, 1.0, 0.5, 9.626317689605992e-301]\n[10.0, 5.551115123125783e-17, -inf, nan]\n[1.0000000000000002, 0.9999999999999999, -5e-324, 5e-324, 0.0, 1.7976931348623157e+308, 1.5] 1.0000000000000007 1.0 -8.636168555094445e-78\n[2.220446049250313e-16, 5e-324, 4.440892098500626e-16, 1.99584030953472e+292, inf, 5e-324, 1.99584030953472e+292]\nValueError math domain error\nValueError math domain error\nValueError invalid operation in fma\nOverflowError overflow in fma\nValueError steps must be a non-negative integer\nTypeError 'float' object cannot be interpreted as an integer\nTypeError nextafter() got an unexpected keyword argument 'x'\nTypeError fma expected 3 arguments, got 2\nTypeError must be real number, not str\n'Fused multiply-add operation.\\n\\nCompute (x * y) + z with a single ro\n'Return the value of the least significant bit of the float x.'\n'Return the square root of x.'\n'Greatest Common Divisor.'\n'Compute CRC-32 incrementally.'\n'Returns the name assigned to the character chr as a string.\\n\\nIf no \n'pack(format, v1, v2, ...) -> bytes\\n\\nReturn a bytes object containin\n'Same as a + b.'\n'Return a callable object that fetches the given item(s) from its oper\n\"Return a tuple containing values unpacked according to the format str\n'Return the absolute value of the argument.'\n'Return the number of items in a container.'\n'Prints the values to a stream, or to sys.stdout by default.\\n\\n  sep\\\n'Return a new list containing all items from the iterable in ascending\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "python-c-missing-argument": {
     "stdout": "",
     "stderr": "Argument expected for the -c option\nusage: python3 [option] ... [-c cmd | -m mod | file | -] [arg] ...\nTry `python -h' for more information.\n",

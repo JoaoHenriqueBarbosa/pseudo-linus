@@ -389,15 +389,7 @@ fn unpack_items(mode: Mode, items: &[Item], data: &[u8]) -> PyResult<Vec<Value>>
                             } else {
                                 raw as i128
                             };
-                            match i64::try_from(n) {
-                                Ok(i) => Value::Int(i),
-                                Err(_) => {
-                                    return Err(exc(
-                                        "OverflowError",
-                                        "integer result outside the 64-bit range (arbitrary int is pending)",
-                                    ))
-                                }
-                            }
+                            crate::bigint::norm(num_bigint::BigInt::from(n))
                         }
                     };
                     out.push(v);

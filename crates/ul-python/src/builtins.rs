@@ -809,7 +809,7 @@ fn b_all(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 // Números
 // ---------------------------------------------------------------------------------------------
 
-fn b_abs(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+pub(crate) fn b_abs(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let v = one("abs", args, &kw)?;
     match v {
         Value::Int(i) => Ok(i.checked_abs().map_or_else(

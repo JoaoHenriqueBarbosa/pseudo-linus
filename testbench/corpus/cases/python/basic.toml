@@ -206,3 +206,37 @@ for stmt in ("from time import _os", "from select import _socket"):
 PYEOF
 '''
 tags = ["error"]
+
+[[case]]
+id = "operator-bigint-math-ieee-native-docs"
+script = '''
+python3 - <<'PYEOF'
+import operator, struct, math, binascii, unicodedata, _struct
+print(operator.abs(-9223372036854775808), operator.lshift(1, 100), operator.neg(-9223372036854775808))
+print(struct.unpack("<Q", b"\xff"*8), struct.unpack(">q", b"\x80"+b"\0"*7), struct.unpack("<QQ", b"\xff"*16))
+class C:
+    def __neg__(s): return "N"
+    def __pos__(s): return "P"
+    def __abs__(s): return "A"
+    def __invert__(s): return "I"
+    def __lshift__(s, o): return "L"
+    def __rshift__(s, o): return "R"
+c = C()
+print([f(c) for f in (operator.neg, operator.pos, operator.abs, operator.invert, operator.inv, operator.__neg__)], operator.lshift(c, 1), operator.rshift(c, 1))
+print(operator.neg(2**70), operator.pos(True), operator.invert(2**70), operator.rshift(2**70, 3), operator.abs(-2**70), operator.lshift(True, 70))
+for f, a in ((operator.neg, "x"), (operator.abs, "x"), (operator.invert, 1.5), (operator.lshift, (1, -1)), (operator.lshift, (1.0, 1))):
+    try: f(*a) if isinstance(a, tuple) else f(a)
+    except Exception as e: print(type(e).__name__, e)
+inf, nan = math.inf, math.nan
+print([math.remainder(a, b) for a, b in ((10, 3), (11, 3), (-10, 3), (5, 2), (7, 2), (-5, 2), (inf, nan), (1, inf), (6.5, 1), (1e300, 3e-300))])
+print([math.fma(a, b, c) for a, b, c in ((2, 3, 4), (0.1, 10, -1), (1e308, 10, -inf), (nan, 1, 1))])
+print([math.nextafter(a, b) for a, b in ((1, 2), (1, 0), (0.0, -1), (-0.0, 1), (5e-324, 0), (math.inf, 0), (1.5, 1.5))], math.nextafter(1.0, 2.0, steps=3), math.nextafter(0.0, 1.0, steps=10**30), math.nextafter(-1.0, 1.0, steps=2**60))
+print([math.ulp(v) for v in (1.0, 0.0, -2.5, 1e308, math.inf, 5e-324, 1.7976931348623157e308)])
+for f, a, k in ((math.remainder, (inf, 1), {}), (math.remainder, (1, 0), {}), (math.fma, (inf, 0, 1), {}), (math.fma, (1e308, 10, 0), {}), (math.nextafter, (1, 2), {"steps": -1}), (math.nextafter, (1, 2), {"steps": 1.5}), (math.nextafter, (1, 2), {"x": 1}), (math.fma, (1, 2), {}), (math.ulp, ("a",), {})):
+    try: print(f(*a, **k))
+    except Exception as e: print(type(e).__name__, e)
+for f in (math.fma, math.ulp, math.sqrt, math.gcd, binascii.crc32, unicodedata.name, _struct.pack, operator.add, operator.itemgetter, struct.unpack, abs, len, print, sorted):
+    print(repr(f.__doc__)[:70])
+PYEOF
+'''
+tags = ["error"]

@@ -2980,7 +2980,13 @@ impl Vm {
                 return Ok(Value::NativeFn(Rc::new(crate::object::NativeFn { name: "__new__", f: crate::classes::type_new })));
             }
             Value::Builtin(_) if name == "__module__" => return Ok(Value::str("builtins")),
-            Value::Builtin(_) | Value::NativeFn(_) if name == "__doc__" => return Ok(Value::None),
+            Value::Builtin(b) if name == "__doc__" && !crate::object::is_builtin_type(b) => {
+                return Ok(crate::modules::cpydocs::builtin_doc(b).map_or(Value::None, Value::str));
+            }
+            Value::Builtin(_) if name == "__doc__" => return Ok(Value::None),
+            Value::NativeFn(f) if name == "__doc__" => {
+                return Ok(crate::modules::cpydocs::native_doc(f).map_or(Value::None, Value::str));
+            }
             Value::NativeFn(f) => {
                 if let Some(v) = crate::typeattrs::type_attr(f.name, name) {
                     return Ok(v);
@@ -4795,7 +4801,7 @@ fn instance_binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> Option<
     None
 }
 
-fn unary(op: UnaryOp, a: &Value) -> PyResult<Value> {
+pub(crate) fn unary(op: UnaryOp, a: &Value) -> PyResult<Value> {
     if let Value::Instance(_) = a {
         let name = match op {
             UnaryOp::USub => Some("__neg__"),

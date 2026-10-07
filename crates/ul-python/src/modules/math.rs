@@ -271,6 +271,135 @@ fn fmod(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::Float(r))
 }
 
+/// `math.remainder(x, y)`: o resto do IEEE 754 (`m_remainder`), com o quociente arredondado para
+/// o par mais próximo.
+fn remainder(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    let (x, y) = two("remainder", &args, &kw)?;
+    if x.is_finite() && y.is_finite() {
+        if y == 0.0 {
+            return Err(domain());
+        }
+        let (absx, absy) = (x.abs(), y.abs());
+        let m = absx % absy;
+        let c = absy - m;
+        let r = if m < c {
+            m
+        } else if m > c {
+            -c
+        } else {
+            m - 2.0 * ((0.5 * (absx - m)) % absy)
+        };
+        return Ok(Value::Float(1.0f64.copysign(x) * r));
+    }
+    if x.is_nan() {
+        return Ok(Value::Float(x));
+    }
+    if y.is_nan() {
+        return Ok(Value::Float(y));
+    }
+    if x.is_infinite() {
+        return Err(domain());
+    }
+    Ok(Value::Float(x))
+}
+
+/// `math.fma(x, y, z)`: `x * y + z` com um arredondamento só.
+fn fma(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("fma", &kw)?;
+    if args.len() != 3 {
+        return Err(type_error(format!("fma expected 3 arguments, got {}", args.len())));
+    }
+    let (x, y, z) = (to_f(&args[0])?, to_f(&args[1])?, to_f(&args[2])?);
+    let r = x.mul_add(y, z);
+    if !r.is_finite() {
+        if r.is_nan() {
+            if !x.is_nan() && !y.is_nan() && !z.is_nan() {
+                return Err(exc("ValueError", "invalid operation in fma"));
+            }
+        } else if x.is_finite() && y.is_finite() && z.is_finite() {
+            return Err(exc("OverflowError", "overflow in fma"));
+        }
+    }
+    Ok(Value::Float(r))
+}
+
+/// A posição de `x` na reta dos `double` ordenados (`-0.0` e `0.0` no mesmo ponto).
+fn float_order(x: f64) -> i64 {
+    let bits = x.to_bits() as i64;
+    if bits < 0 { -(bits & i64::MAX) } else { bits }
+}
+
+fn float_from_order(o: i64) -> f64 {
+    if o < 0 { f64::from_bits((-o) as u64 | 1 << 63) } else { f64::from_bits(o as u64) }
+}
+
+/// O `double` seguinte a `x` na direção de `y` (`nextafter` do C).
+fn next_toward(x: f64, y: f64) -> f64 {
+    if x.is_nan() || y.is_nan() {
+        return x + y;
+    }
+    if x == y {
+        return y;
+    }
+    if x == 0.0 {
+        return f64::from_bits(1).copysign(y);
+    }
+    let o = float_order(x);
+    float_from_order(if y > x { o + 1 } else { o - 1 })
+}
+
+/// `math.nextafter(x, y, /, *, steps=None)`.
+fn nextafter(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    exactly("nextafter", &args, 2)?;
+    let mut steps = Value::None;
+    for (k, v) in kw {
+        if k != "steps" {
+            return Err(type_error(format!("nextafter() got an unexpected keyword argument '{k}'")));
+        }
+        steps = v;
+    }
+    let (x, y) = (to_f(&args[0])?, to_f(&args[1])?);
+    if matches!(steps, Value::None) {
+        return Ok(Value::Float(next_toward(x, y)));
+    }
+    let n = crate::bigint::as_big(&steps)
+        .ok_or_else(|| type_error(format!("'{}' object cannot be interpreted as an integer", steps.type_name())))?;
+    if n.is_negative() {
+        return Err(exc("ValueError", "steps must be a non-negative integer"));
+    }
+    if n.is_zero() {
+        return Ok(Value::Float(x));
+    }
+    if x.is_nan() {
+        return Ok(Value::Float(x));
+    }
+    if y.is_nan() {
+        return Ok(Value::Float(y));
+    }
+    // Como o C: anda `steps` posições na reta ordenada, sem passar de `y`.
+    let (ox, oy) = (i128::from(float_order(x)), i128::from(float_order(y)));
+    let dist = (oy - ox).unsigned_abs();
+    let n = n.to_u128().unwrap_or(u128::MAX);
+    if n >= dist {
+        return Ok(Value::Float(y));
+    }
+    let o = if oy > ox { ox + n as i128 } else { ox - n as i128 };
+    Ok(Value::Float(float_from_order(o as i64)))
+}
+
+/// `math.ulp(x)`: o valor do bit menos significativo de `x`.
+fn ulp(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    let x = one("ulp", &args, &kw)?.abs();
+    if x.is_nan() || x.is_infinite() {
+        return Ok(Value::Float(x));
+    }
+    let up = next_toward(x, f64::INFINITY);
+    if up.is_infinite() {
+        return Ok(Value::Float(x - next_toward(x, -f64::INFINITY)));
+    }
+    Ok(Value::Float(up - x))
+}
+
 fn hypot_of(xs: &[f64]) -> f64 {
     if xs.iter().any(|x| x.is_infinite()) {
         return f64::INFINITY;
@@ -692,6 +821,10 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
         .func("trunc", trunc)
         .func("fabs", fabs)
         .func("fmod", fmod)
+        .func("remainder", remainder)
+        .func("fma", fma)
+        .func("nextafter", nextafter)
+        .func("ulp", ulp)
         .func("copysign", copysign)
         .func("hypot", hypot)
         .func("degrees", degrees)
