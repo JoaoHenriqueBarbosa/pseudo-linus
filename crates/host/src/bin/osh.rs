@@ -431,19 +431,12 @@ fn main() -> ExitCode {
     } else if let Some(script) = cli.script.first() {
         match std::fs::read(script) {
             Ok(data) => {
-                let path = "/tmp/.osh-script";
-                match t.write_file(path, &data) {
-                    Ok(()) => {
-                        let mut argv = vec!["bash".to_string(), path.to_string()];
-                        argv.extend(cli.script[1..].iter().cloned());
-                        match t.run(None, Some(&argv), stdin_if_piped()) {
-                            Ok(r) => report(&r),
-                            Err(e) => {
-                                eprintln!("osh: {e}");
-                                1
-                            }
-                        }
-                    }
+                // `bash -c` com o texto do script, sem arquivo no sandbox: um `ls -a /tmp` do script
+                // não pode ver nada que a bancada pôs lá.
+                let mut argv = vec!["bash".to_string(), "-c".to_string(), String::from_utf8_lossy(&data).into_owned(), "bash".to_string()];
+                argv.extend(cli.script[1..].iter().cloned());
+                match t.run(None, Some(&argv), stdin_if_piped()) {
+                    Ok(r) => report(&r),
                     Err(e) => {
                         eprintln!("osh: {e}");
                         1
