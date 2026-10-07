@@ -69,3 +69,63 @@ print(mod.__name__, mod.__doc__, mod.zz, isinstance(mod, types.ModuleType))
 print(types.MethodType(lambda self: self.x, a)())
 PYEOF
 '''
+
+# Projeto do agente com `pyproject.toml` (setuptools) instalado num venv sem rede: build isolation
+# com o setuptools do /usr/share/python-wheels, entry point em bin/, `-e`, `-r`, freeze e uninstall.
+# O sha256 e o diretório temporário do wheel mudam a cada execução (carimbo de hora no zip).
+[[case]]
+id = "pip-install-local-project"
+script = '''
+cd /tmp
+python3 -m venv v >/dev/null; echo venv=$?
+mkdir -p proj/src/hello
+cat > proj/pyproject.toml <<'EOT'
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hello-agent"
+version = "0.1.0"
+description = "Projeto de teste"
+requires-python = ">=3.9"
+
+[project.scripts]
+hello = "hello.cli:main"
+EOT
+echo 'VALUE = 42' > proj/src/hello/__init__.py
+printf 'import hello\ndef main():\n    print("ola", hello.VALUE)\n' > proj/src/hello/cli.py
+W="--no-index --find-links /usr/share/python-wheels"
+v/bin/pip install $W ./proj 2>&1 | sed -E 's/ in [0-9.]+s$//; s/sha256=[0-9a-f]+/sha256=X/; s/pip-ephem-wheel-cache-[^/]+/pip-ephem-wheel-cache-X/'; echo rc=$?
+v/bin/hello; echo rc=$?
+v/bin/pip freeze
+v/bin/pip show -f hello-agent | sed -n '1,3p;/^Files/,$p'
+head -1 v/bin/hello
+v/bin/pip uninstall -y hello-agent; echo rc=$?
+v/bin/pip install $W -e ./proj 2>&1 | sed -E 's/ in [0-9.]+s$//; s/sha256=[0-9a-f]+/sha256=X/; s/pip-ephem-wheel-cache-[^/]+/pip-ephem-wheel-cache-X/'; echo rc=$?
+echo 'VALUE = 7' > proj/src/hello/__init__.py
+v/bin/hello
+ls v/lib/python3.13/site-packages | grep -i hello | sort
+v/bin/pip list 2>&1
+printf 'wheel\n' > req.txt
+v/bin/pip install $W -r req.txt 2>&1; echo rc=$?
+v/bin/pip freeze --all
+'''
+
+# PEP 668 no Python do sistema: recusa sem flag e com --user, --break-system-packages e
+# PIP_BREAK_SYSTEM_PACKAGES, e o dist-packages local que o postinst do python3.13-minimal cria.
+[[case]]
+id = "pip-pep668-break-system-packages"
+script = '''
+cd /tmp
+W="--no-index --find-links /usr/share/python-wheels"
+pip install $W wheel 2>&1 | head -3; echo rc=$?
+pip install --user $W wheel 2>&1 | head -3; echo rc=$?
+pip install --break-system-packages $W wheel 2>&1 | tail -4; echo rc=$?
+python3 -c 'import wheel; print(wheel.__file__)'
+ls -A /usr/local/lib/python3.13/dist-packages; ls -A /usr/local/bin
+pip uninstall -y --break-system-packages wheel 2>&1 | tail -3
+PIP_BREAK_SYSTEM_PACKAGES=1 pip install --user $W wheel 2>&1 | tail -3; echo rc=$?
+python3 -m site --user-site
+python3 -c 'import site; print(site.getsitepackages(), site.ENABLE_USER_SITE)'
+'''
