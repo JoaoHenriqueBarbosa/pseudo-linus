@@ -65,3 +65,51 @@ for name in ["DejaVuSans.ttf", "DejaVuSerif.ttf", "DejaVuSansMono.ttf"]:
 PYEOF
 '''
 tags = ["agent", "pil"]
+
+# Tabela `kern` OpenType com subtables de formato 2 (classes por deslocamento) e 3 (índices de
+# classe), que o HarfBuzz aplica quando a fonte não tem GPOS: a DejaVuSans da imagem é remontada
+# sem GPOS e com o `kern` abaixo.
+[[case]]
+id = "pil-kern-formats-2-3"
+script = '''
+python3 - <<'PYEOF'
+import struct
+from PIL import ImageFont
+
+KERN = {
+    2: "00000001000001800201000a000e00ae014e000f004e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e0158014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e0162014e0158016c014e0176014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e014e000f004e00080000000800000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000600000000000000060000000000000000000000000000000000000004000000000000000000000000000000000000000600000000000000000000000000000000000000000000ff4cffc4ff74ff380000ffa6ff88ffbaffd80000ffceff60ff920000",
+    3: "00000001000000f70301005d0c050500ff38ff4cff60ff74ff88ff92ffa6ffbaffc4ffceffd800000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000002000103000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400040000000000000000000000000000000000000100000000000000000000000000000000000000000100000000000000000000030000000300000000000000000002000000000000000000030000000000000b0b0b0b0001080300000604070a000902050b",
+}
+
+def rebuild(src, kern):
+    version, n = struct.unpack(">IH", src[:6])
+    tables = {}
+    for i in range(n):
+        tag, _, off, length = struct.unpack(">4sIII", src[12 + 16 * i:28 + 16 * i])
+        tables[tag] = src[off:off + length]
+    del tables[b"GPOS"]
+    tables[b"kern"] = kern
+    tags = sorted(tables)
+    out = struct.pack(">IHHHH", version, len(tags), 0, 0, 0)
+    offset = 12 + 16 * len(tags)
+    body = b""
+    for tag in tags:
+        data = tables[tag]
+        padded = data + b"\0" * (-len(data) % 4)
+        checksum = sum(struct.unpack(f">{len(padded) // 4}I", padded)) & 0xFFFFFFFF
+        out += struct.pack(">4sIII", tag, checksum, offset + len(body), len(data))
+        body += padded
+    return out + body
+
+dejavu = open("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "rb").read()
+for fmt, hexdata in KERN.items():
+    path = f"/tmp/kern{fmt}.ttf"
+    open(path, "wb").write(rebuild(dejavu, bytes.fromhex(hexdata)))
+    for size in [13, 40]:
+        font = ImageFont.truetype(path, size)
+        for t in ["AVATo Ta We Yo, Ty. VAWAY", "TTTT oTo"]:
+            print(fmt, size, t, font.getlength(t), font.getlength(t, features=["-kern"]), font.getbbox(t))
+            print(" ", font.getbbox(t, direction="rtl"), font.getlength(t, direction="ttb"))
+PYEOF
+'''
+tags = ["agent", "pil"]

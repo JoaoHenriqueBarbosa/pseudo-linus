@@ -361,6 +361,68 @@ fn kern_format0(d: &[u8], left: u32, right: u32) -> i32 {
     0
 }
 
+/// `ClassTable<HBUINT16>` dos `ObsoleteTypes`: primeiro glifo, quantidade e um valor por glifo;
+/// fora da faixa vale 0.
+fn obsolete_class(st: &[u8], table: usize, glyph: u32) -> usize {
+    if st.len() < table + 4 {
+        return 0;
+    }
+    let first = u32::from(u16at(st, table));
+    let n = u32::from(u16at(st, table + 2));
+    let i = glyph.wrapping_sub(first);
+    if glyph < first || i >= n || st.len() < table + 4 + 2 * i as usize + 2 {
+        return 0;
+    }
+    usize::from(u16at(st, table + 4 + 2 * i as usize))
+}
+
+/// `KerxSubTableFormat2::get_kerning` do `kern` OpenType: os valores das classes são deslocamentos
+/// em bytes desde o início do subtable, somados e convertidos em índice no array de `FWORD`.
+fn kern_format2(st: &[u8], left: u32, right: u32) -> i32 {
+    if st.len() < 14 {
+        return 0;
+    }
+    let left_table = usize::from(u16at(st, 8));
+    let right_table = usize::from(u16at(st, 10));
+    let array = usize::from(u16at(st, 12));
+    let offset = obsolete_class(st, left_table, left) + obsolete_class(st, right_table, right);
+    // `ObsoleteTypes::offsetToIndex`: (deslocamento menos a posição do array) / 2.
+    let Some(rel) = offset.checked_sub(array) else { return 0 };
+    let at = array + (rel / 2) * 2;
+    if st.len() < at + 2 {
+        return 0;
+    }
+    i32::from(i16at(st, at))
+}
+
+/// `KerxSubTableFormat3::get_kerning`: classes de um byte por glifo e índice na matriz de valores.
+fn kern_format3(st: &[u8], left: u32, right: u32) -> i32 {
+    if st.len() < 12 {
+        return 0;
+    }
+    let glyph_count = u32::from(u16at(st, 6));
+    let value_count = usize::from(u8at(st, 8));
+    let left_count = usize::from(u8at(st, 9));
+    let right_count = usize::from(u8at(st, 10));
+    if left >= glyph_count || right >= glyph_count {
+        return 0;
+    }
+    let values = 12;
+    let left_class = values + 2 * value_count;
+    let right_class = left_class + glyph_count as usize;
+    let index = right_class + glyph_count as usize;
+    let get = |p: usize| if p < st.len() { usize::from(st[p]) } else { 0 };
+    let (l, r) = (get(left_class + left as usize), get(right_class + right as usize));
+    if l >= left_count || r >= right_count {
+        return 0;
+    }
+    let i = get(index + l * right_count + r);
+    if i >= value_count || st.len() < values + 2 * i + 2 {
+        return 0;
+    }
+    i32::from(i16at(st, values + 2 * i))
+}
+
 /// `hb_ot_layout_has_kerning`: uma tabela `kern` OpenType (versão 0) com subtables.
 pub fn has_kern_table(font: &Font) -> bool {
     font.kern.is_some_and(|k| k.len() >= 4 && u16at(k, 0) == 0 && u16at(k, 2) > 0)
@@ -399,9 +461,16 @@ pub fn apply_kern_table(font: &Font, buffer: &mut Buffer, kern_mask: u32) {
             if reverse {
                 buffer.reverse();
             }
-            if format == 0 && kern_mask != 0 {
-                let body = &st[6.min(st.len())..];
-                kern_machine(font, buffer, kern_mask, true, cross, &|a, b| kern_format0(body, a, b));
+            if kern_mask != 0 {
+                match format {
+                    0 => {
+                        let body = &st[6.min(st.len())..];
+                        kern_machine(font, buffer, kern_mask, true, cross, &|a, b| kern_format0(body, a, b));
+                    }
+                    2 if horizontal => kern_machine(font, buffer, kern_mask, true, cross, &|a, b| kern_format2(st, a, b)),
+                    3 => kern_machine(font, buffer, kern_mask, true, cross, &|a, b| kern_format3(st, a, b)),
+                    _ => {}
+                }
             }
             if reverse {
                 buffer.reverse();
