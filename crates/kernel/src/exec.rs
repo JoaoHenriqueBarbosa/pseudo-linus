@@ -168,8 +168,15 @@ pub(crate) fn load(sb: &SbInner, cx: &Caller, path: &[u8], argv: Vec<Vec<u8>>, e
     let filename = path.to_vec();
     let mut cur = path.to_vec();
     let mut argv = argv;
-    for _depth in 0..=5 {
+    for depth in 0..=5 {
         let f = sb.ns.exec_open(cx, &Start::Cwd, &cur)?;
+        // Nome de programa que no Debian é symlink (para um binário ou um script): roda o programa.
+        if depth == 0 {
+            if let Some(program) = alias_program(sb, cx, &cur) {
+                check_args(&argv, &env)?;
+                return Ok(Image { program, argv, env, filename, exe: f.loc });
+            }
+        }
         if let Some(id) = parse_builtin(&f.head) {
             let name = sb.builtin_path(&id).ok_or(Errno::ENOEXEC)?;
             let program = sb.program(&name).ok_or(Errno::ENOEXEC)?;
@@ -192,6 +199,21 @@ pub(crate) fn load(sb: &SbInner, cx: &Caller, path: &[u8], argv: Vec<Vec<u8>>, e
         return Err(Errno::ENOEXEC);
     }
     Err(Errno::ELOOP)
+}
+
+/// No Debian, `bunzip2`, `awk` ou `which` são symlinks (para um binário que escolhe o papel pelo
+/// `argv[0]`, ou para um script). Aqui cada nome tem o seu `main`: se o caminho executado é um
+/// symlink registrado como programa, roda o programa do nome do link.
+fn alias_program(sb: &SbInner, cx: &Caller, path: &[u8]) -> Option<Program> {
+    let parent = sb.ns.resolve_parent(cx, &Start::Cwd, path).ok()?;
+    let mut link = vfs::namei::d_path(&parent.dir, &cx.root).ok()?;
+    if link != b"/" {
+        link.push(b'/');
+    }
+    link.extend_from_slice(&parent.last);
+    let program = sb.program(&link)?;
+    let content = sb.ns.readlink(cx, &Start::Cwd, &link).ok()?;
+    (crate::image::debian_link(&String::from_utf8_lossy(&link))? == content.as_slice()).then_some(program)
 }
 
 /// `comm` de um caminho: basename, até 15 bytes.

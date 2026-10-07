@@ -1,0 +1,41 @@
+tool = "smoke"
+source = "manual"
+
+# A árvore de programas como o Debian 13 a instala: os symlinks de /usr/bin e /usr/sbin (bunzip2 para
+# bzip2, python3 para python3.13, awk por /etc/alternatives), o diretório de cada programa e os
+# nomes que o Debian mínimo não tem. Um programa como arquivo onde o Debian tem um link denuncia a
+# simulação.
+
+[[case]]
+id = "image-program-links"
+script = '''
+cd /usr/bin
+for f in python3 awk nawk bunzip2 bzcat xzcat unxz lzma pidof which lzip pkill reset hd rbash ld strip; do
+  if [ -L "$f" ]; then echo "$f -> $(readlink "$f") -> $(readlink -f "$f")"; else echo "$f: arquivo"; fi
+done
+ls -l /etc/alternatives | awk '{print $1, $9, $10, $11}'
+'''
+
+[[case]]
+id = "image-program-dirs"
+script = '''
+for n in killall5 sysctl findfs fstab-decode isosize pam_getenv wdctl partx rmt vigr; do
+  ls -d /usr/bin/$n /usr/sbin/$n 2>/dev/null || echo "$n: ausente"
+done
+for n in dpkg-architecture dpkg-vendor uname26; do
+  command -v $n || echo "$n: ausente"
+done
+'''
+
+[[case]]
+id = "image-program-aliases-run"
+script = '''
+echo abc | bzip2 | bunzip2
+echo abc | xz | xzcat
+echo abc | lzip | lzip -d
+echo x | awk '{print "awk", $1}'
+python3 -c 'import sys; print(sys.executable)'
+/usr/bin/python3.13 -c 'import sys; print(sys.executable)'
+which -a ls
+pidof nada; echo "pidof=$?"
+'''

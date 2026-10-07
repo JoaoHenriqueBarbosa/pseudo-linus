@@ -25,6 +25,46 @@ fn real_size(path: &str) -> Option<u64> {
 /// mtime dos arquivos da imagem: 2026-09-18 00:00:00 UTC (a data da imagem do oráculo).
 pub(crate) const IMAGE_TIME: TimeSpec = TimeSpec { sec: 1_789_689_600, nsec: 0 };
 
+/// Os symlinks de programas do Debian 13 (`real/links.txt`).
+const REAL_LINKS: &str = include_str!("../real/links.txt");
+
+fn real_links() -> impl Iterator<Item = (&'static str, &'static str)> {
+    REAL_LINKS.lines().filter(|l| !l.starts_with('#')).filter_map(|l| l.split_once(' '))
+}
+
+/// O conteúdo do symlink `path` no Debian, se ele é um dos links de programa da tabela.
+pub(crate) fn debian_link(path: &str) -> Option<&'static [u8]> {
+    real_links().find(|(l, _)| *l == path).map(|(_, t)| t.as_bytes())
+}
+
+/// O caminho absoluto que o link `link` com conteúdo `target` aponta.
+fn link_dest(link: &str, target: &str) -> String {
+    if target.starts_with('/') {
+        return target.to_string();
+    }
+    let dir = link.rsplit_once('/').map_or("", |(d, _)| d);
+    let mut parts: Vec<&str> = dir.split('/').filter(|c| !c.is_empty()).collect();
+    for comp in target.split('/') {
+        match comp {
+            "" | "." => {}
+            ".." => {
+                parts.pop();
+            }
+            c => parts.push(c),
+        }
+    }
+    format!("/{}", parts.join("/"))
+}
+
+/// Se o link `path` da tabela chega, seguindo a tabela, a um dos `programs` ou a um arquivo
+/// copiado do oráculo.
+fn link_reaches_program(path: &str, programs: &[String], depth: usize) -> bool {
+    let Some((_, target)) = real_links().find(|(l, _)| *l == path) else {
+        return programs.iter().any(|p| p == path) || COPIED_TREES.iter().any(|i| matches!(i, File(p, _, _) if *p == path));
+    };
+    depth < 8 && link_reaches_program(&link_dest(path, target), programs, depth + 1)
+}
+
 /// Grupo `shadow` e grupo `mail` do Debian.
 const GID_SHADOW: u32 = 42;
 const GID_MAIL: u32 = 8;
@@ -189,6 +229,7 @@ pub(crate) fn build_root(ns: &Namespace, cx: &Caller, programs: &[Program], host
     put_file(ns, cx, b"/etc/hosts", hosts.as_bytes(), 0o644)?;
     stamped.push(b"/etc/hostname".to_vec());
     stamped.push(b"/etc/hosts".to_vec());
+    let program_paths: Vec<String> = programs.iter().map(Program::path).collect();
     for p in programs {
         let path = p.path();
         // Diretório fora da árvore padrão: cria os pais.
@@ -201,9 +242,40 @@ pub(crate) fn build_root(ns: &Namespace, cx: &Caller, programs: &[Program], host
                 Err(e) => return Err(e),
             }
         }
+        // No Debian, este nome é um symlink para outro programa: vira o link, mais abaixo.
+        if real_links().any(|(l, _)| l == path) && link_reaches_program(&path, &program_paths, 0) {
+            continue;
+        }
         put_file_sized(ns, cx, path.as_bytes(), &builtin_file(&path), 0o755, real_size(&path))?;
         stamped.push(path.into_bytes());
     }
+    // Os symlinks do Debian que chegam a algo da imagem (programa, diretório ou arquivo copiado).
+    let mut links: Vec<&str> = Vec::new();
+    for (link, target) in real_links() {
+        match ns.symlink(cx, target.as_bytes(), &Start::Cwd, link.as_bytes()) {
+            Ok(()) => links.push(link),
+            Err(Errno::EEXIST | Errno::ENOENT) => {}
+            Err(e) => return Err(e),
+        }
+    }
+    // Poda os que ficaram pendurados (alvo ausente), até estabilizar: um link pode apontar para outro.
+    // Os de `/etc/alternatives` ficam como no Debian slim, onde os das manpages já são pendurados.
+    loop {
+        let dangling: Vec<&str> = links
+            .iter()
+            .copied()
+            .filter(|l| !l.starts_with("/etc/alternatives/"))
+            .filter(|l| ns.stat(cx, &Start::Cwd, l.as_bytes(), AtFlags::empty()).is_err())
+            .collect();
+        if dangling.is_empty() {
+            break;
+        }
+        for l in &dangling {
+            ns.unlink(cx, &Start::Cwd, l.as_bytes(), AtFlags::empty())?;
+        }
+        links.retain(|l| !dangling.contains(l));
+    }
+    stamped.extend(links.iter().map(|l| l.as_bytes().to_vec()));
     // Carimbos por último (criar filhos mexe no mtime dos diretórios).
     for p in stamped.iter().rev() {
         stamp(ns, cx, p)?;

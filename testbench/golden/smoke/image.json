@@ -1,0 +1,20 @@
+{
+  "image-program-aliases-run": {
+    "stdout": "abc\nabc\nabc\nawk x\n/usr/bin/python3\n/usr/bin/python3.13\n/usr/bin/ls\n/bin/ls\npidof=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "image-program-dirs": {
+    "stdout": "/usr/sbin/killall5\nkillall5: ausente\n/usr/sbin/sysctl\nsysctl: ausente\n/usr/sbin/findfs\nfindfs: ausente\n/usr/sbin/fstab-decode\nfstab-decode: ausente\n/usr/sbin/isosize\nisosize: ausente\n/usr/sbin/pam_getenv\npam_getenv: ausente\n/usr/bin/wdctl\nwdctl: ausente\n/usr/bin/partx\npartx: ausente\n/usr/sbin/rmt\nrmt: ausente\n/usr/sbin/vigr\nvigr: ausente\ndpkg-architecture: ausente\ndpkg-vendor: ausente\nuname26: ausente\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "image-program-links": {
+    "stdout": "python3 -> python3.13 -> /usr/bin/python3.13\nawk -> /etc/alternatives/awk -> /usr/bin/gawk\nnawk -> /etc/alternatives/nawk -> /usr/bin/gawk\nbunzip2 -> bzip2 -> /usr/bin/bzip2\nbzcat -> bzip2 -> /usr/bin/bzip2\nxzcat -> xz -> /usr/bin/xz\nunxz -> xz -> /usr/bin/xz\nlzma -> /etc/alternatives/lzma -> /usr/bin/xz\npidof -> ../sbin/killall5 -> /usr/sbin/killall5\nwhich -> /etc/alternatives/which -> /usr/bin/which.debianutils\nlzip -> /etc/alternatives/lzip -> /usr/bin/lzip.lzip\npkill -> pgrep -> /usr/bin/pgrep\nreset -> tset -> /usr/bin/tset\nhd -> hexdump -> /usr/bin/hexdump\nrbash -> bash -> /usr/bin/bash\nld -> x86_64-linux-gnu-ld -> /usr/bin/x86_64-linux-gnu-ld.bfd\nstrip -> x86_64-linux-gnu-strip -> /usr/bin/x86_64-linux-gnu-strip\ntotal   \n-rw-r--r-- README  \nlrwxrwxrwx awk -> /usr/bin/gawk\nlrwxrwxrwx builtins.7.gz -> /usr/share/man/man7/bash-builtins.7.gz\nlrwxrwxrwx lzcat -> /usr/bin/xzcat\nlrwxrwxrwx lzcmp -> /usr/bin/xzcmp\nlrwxrwxrwx lzdiff -> /usr/bin/xzdiff\nlrwxrwxrwx lzegrep -> /usr/bin/xzegrep\nlrwxrwxrwx lzfgrep -> /usr/bin/xzfgrep\nlrwxrwxrwx lzgrep -> /usr/bin/xzgrep\nlrwxrwxrwx lzip -> /usr/bin/lzip.lzip\nlrwxrwxrwx lzip-compressor -> /usr/bin/lzip.lzip\nlrwxrwxrwx lzip-decompressor -> /usr/bin/lzip.lzip\nlrwxrwxrwx lzless -> /usr/bin/xzless\nlrwxrwxrwx lzma -> /usr/bin/xz\nlrwxrwxrwx lzmore -> /usr/bin/xzmore\nlrwxrwxrwx nawk -> /usr/bin/gawk\nlrwxrwxrwx pager -> /usr/bin/less\nlrwxrwxrwx rmt -> /usr/sbin/rmt-tar\nlrwxrwxrwx rmt.8.gz -> /usr/share/man/man8/rmt-tar.8.gz\nlrwxrwxrwx unlzma -> /usr/bin/unxz\nlrwxrwxrwx which -> /usr/bin/which.debianutils\nlrwxrwxrwx which.1.gz -> /usr/share/man/man1/which.debianutils.1.gz\nlrwxrwxrwx which.de1.gz -> /usr/share/man/de/man1/which.debianutils.1.gz\nlrwxrwxrwx which.es1.gz -> /usr/share/man/es/man1/which.debianutils.1.gz\nlrwxrwxrwx which.fr1.gz -> /usr/share/man/fr/man1/which.debianutils.1.gz\nlrwxrwxrwx which.it1.gz -> /usr/share/man/it/man1/which.debianutils.1.gz\nlrwxrwxrwx which.ja1.gz -> /usr/share/man/ja/man1/which.debianutils.1.gz\nlrwxrwxrwx which.pl1.gz -> /usr/share/man/pl/man1/which.debianutils.1.gz\nlrwxrwxrwx which.sl1.gz -> /usr/share/man/sl/man1/which.debianutils.1.gz\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

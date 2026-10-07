@@ -45,6 +45,8 @@ pub fn programs() -> Vec<Program> {
         Program::bin("zstdmt", compress::zstd_main),
         Program::bin("pzstd", compress::pzstd_main),
         Program::bin("lzip", compress::lzip_main),
+        // O binário do pacote lzip; `lzip` chega a ele por `/etc/alternatives/lzip`.
+        Program::bin("lzip.lzip", compress::lzip_main),
         Program::bin("zip", zip_cli::zip_main),
         Program::bin("unzip", zip_cli::unzip_main),
         Program::bin("zipinfo", zip_cli::unzip_main),

@@ -32,6 +32,8 @@ const TREES: &[&str] = &[
     "usr/lib/python3.13",
     "etc/python3.13",
     "usr/lib/python3",
+    // O `README` do dpkg; os links de `/etc/alternatives` saem de `real/links.txt`.
+    "etc/alternatives",
 ];
 
 /// Árvores cujos arquivos são scripts executáveis do oráculo (`/usr/bin/zgrep`, `/usr/sbin/service`...),
