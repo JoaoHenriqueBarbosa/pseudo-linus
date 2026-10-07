@@ -23,10 +23,6 @@ fn opt_s(x: &Option<String>) -> Value {
     x.as_deref().map_or(Value::None, s)
 }
 
-fn lst(v: Vec<Value>) -> Value {
-    Value::list(v)
-}
-
 fn pos_tuple(p: &Pos) -> Value {
     let opt = |x: Option<usize>| x.map_or(Value::None, |n| Value::Int(n as i64));
     Value::tuple(vec![Value::Int(p.lineno as i64), Value::Int(p.col_offset as i64), opt(p.end_lineno), opt(p.end_col_offset)])
@@ -51,11 +47,11 @@ fn unit(name: &str) -> Value {
 }
 
 fn exprs(v: &[Expr]) -> Value {
-    lst(v.iter().map(expr).collect())
+    Value::list(v.iter().map(expr).collect())
 }
 
 fn stmts(v: &[Stmt]) -> Value {
-    lst(v.iter().map(stmt).collect())
+    Value::list(v.iter().map(stmt).collect())
 }
 
 fn opt_expr(e: &Option<Box<Expr>>) -> Value {
@@ -148,11 +144,11 @@ fn arguments(a: &Arguments) -> Value {
     node(
         "arguments",
         vec![
-            ("posonlyargs", lst(a.posonlyargs.iter().map(arg).collect())),
-            ("args", lst(a.args.iter().map(arg).collect())),
+            ("posonlyargs", Value::list(a.posonlyargs.iter().map(arg).collect())),
+            ("args", Value::list(a.args.iter().map(arg).collect())),
             ("vararg", a.vararg.as_ref().map_or(Value::None, |x| arg(x))),
-            ("kwonlyargs", lst(a.kwonlyargs.iter().map(arg).collect())),
-            ("kw_defaults", lst(a.kw_defaults.iter().map(|d| d.as_ref().map_or(Value::None, expr)).collect())),
+            ("kwonlyargs", Value::list(a.kwonlyargs.iter().map(arg).collect())),
+            ("kw_defaults", Value::list(a.kw_defaults.iter().map(|d| d.as_ref().map_or(Value::None, expr)).collect())),
             ("kwarg", a.kwarg.as_ref().map_or(Value::None, |x| arg(x))),
             ("defaults", exprs(&a.defaults)),
         ],
@@ -198,11 +194,11 @@ fn type_param(t: &TypeParam) -> Value {
 }
 
 fn type_params(v: &[TypeParam]) -> Value {
-    lst(v.iter().map(type_param).collect())
+    Value::list(v.iter().map(type_param).collect())
 }
 
 fn patterns(v: &[Pattern]) -> Value {
-    lst(v.iter().map(pattern).collect())
+    Value::list(v.iter().map(pattern).collect())
 }
 
 fn pattern(p: &Pattern) -> Value {
@@ -221,7 +217,7 @@ fn pattern(p: &Pattern) -> Value {
             vec![
                 ("cls", expr(cls)),
                 ("patterns", patterns(ps)),
-                ("kwd_attrs", lst(kwd_attrs.iter().map(|a| s(a)).collect())),
+                ("kwd_attrs", Value::list(kwd_attrs.iter().map(|a| s(a)).collect())),
                 ("kwd_patterns", patterns(kwd_patterns)),
             ],
             pos,
@@ -264,7 +260,7 @@ fn expr(e: &Expr) -> Value {
         ExprKind::Dict { keys, values } => node(
             "Dict",
             vec![
-                ("keys", lst(keys.iter().map(|k| k.as_ref().map_or(Value::None, expr)).collect())),
+                ("keys", Value::list(keys.iter().map(|k| k.as_ref().map_or(Value::None, expr)).collect())),
                 ("values", exprs(values)),
             ],
             pos,
@@ -272,22 +268,22 @@ fn expr(e: &Expr) -> Value {
         ExprKind::Set { elts } => node("Set", vec![("elts", exprs(elts))], pos),
         ExprKind::ListComp { elt, generators } => node(
             "ListComp",
-            vec![("elt", expr(elt)), ("generators", lst(generators.iter().map(comprehension).collect()))],
+            vec![("elt", expr(elt)), ("generators", Value::list(generators.iter().map(comprehension).collect()))],
             pos,
         ),
         ExprKind::SetComp { elt, generators } => node(
             "SetComp",
-            vec![("elt", expr(elt)), ("generators", lst(generators.iter().map(comprehension).collect()))],
+            vec![("elt", expr(elt)), ("generators", Value::list(generators.iter().map(comprehension).collect()))],
             pos,
         ),
         ExprKind::DictComp { key, value, generators } => node(
             "DictComp",
-            vec![("key", expr(key)), ("value", expr(value)), ("generators", lst(generators.iter().map(comprehension).collect()))],
+            vec![("key", expr(key)), ("value", expr(value)), ("generators", Value::list(generators.iter().map(comprehension).collect()))],
             pos,
         ),
         ExprKind::GeneratorExp { elt, generators } => node(
             "GeneratorExp",
-            vec![("elt", expr(elt)), ("generators", lst(generators.iter().map(comprehension).collect()))],
+            vec![("elt", expr(elt)), ("generators", Value::list(generators.iter().map(comprehension).collect()))],
             pos,
         ),
         ExprKind::Await { value } => node("Await", vec![("value", expr(value))], pos),
@@ -297,14 +293,14 @@ fn expr(e: &Expr) -> Value {
             "Compare",
             vec![
                 ("left", expr(left)),
-                ("ops", lst(ops.iter().map(|o| cmpop(*o)).collect())),
+                ("ops", Value::list(ops.iter().map(|o| cmpop(*o)).collect())),
                 ("comparators", exprs(comparators)),
             ],
             pos,
         ),
         ExprKind::Call { func, args, keywords } => node(
             "Call",
-            vec![("func", expr(func)), ("args", exprs(args)), ("keywords", lst(keywords.iter().map(keyword).collect()))],
+            vec![("func", expr(func)), ("args", exprs(args)), ("keywords", Value::list(keywords.iter().map(keyword).collect()))],
             pos,
         ),
         ExprKind::FormattedValue { value, conversion, format_spec } => node(
@@ -362,7 +358,7 @@ fn stmt(st: &Stmt) -> Value {
             vec![
                 ("name", s(name)),
                 ("bases", exprs(bases)),
-                ("keywords", lst(keywords.iter().map(keyword).collect())),
+                ("keywords", Value::list(keywords.iter().map(keyword).collect())),
                 ("body", stmts(body)),
                 ("decorator_list", exprs(decorator_list)),
                 ("type_params", type_params(tp)),
@@ -422,23 +418,23 @@ fn stmt(st: &Stmt) -> Value {
         }
         StmtKind::With { items, body, type_comment } => node(
             "With",
-            vec![("items", lst(items.iter().map(withitem).collect())), ("body", stmts(body)), ("type_comment", opt_s(type_comment))],
+            vec![("items", Value::list(items.iter().map(withitem).collect())), ("body", stmts(body)), ("type_comment", opt_s(type_comment))],
             pos,
         ),
         StmtKind::AsyncWith { items, body, type_comment } => node(
             "AsyncWith",
-            vec![("items", lst(items.iter().map(withitem).collect())), ("body", stmts(body)), ("type_comment", opt_s(type_comment))],
+            vec![("items", Value::list(items.iter().map(withitem).collect())), ("body", stmts(body)), ("type_comment", opt_s(type_comment))],
             pos,
         ),
         StmtKind::Match { subject, cases } => {
-            node("Match", vec![("subject", expr(subject)), ("cases", lst(cases.iter().map(match_case).collect()))], pos)
+            node("Match", vec![("subject", expr(subject)), ("cases", Value::list(cases.iter().map(match_case).collect()))], pos)
         }
         StmtKind::Raise { exc, cause } => node("Raise", vec![("exc", opt_expr(exc)), ("cause", opt_expr(cause))], pos),
         StmtKind::Try { body, handlers, orelse, finalbody } => node(
             "Try",
             vec![
                 ("body", stmts(body)),
-                ("handlers", lst(handlers.iter().map(handler).collect())),
+                ("handlers", Value::list(handlers.iter().map(handler).collect())),
                 ("orelse", stmts(orelse)),
                 ("finalbody", stmts(finalbody)),
             ],
@@ -448,25 +444,25 @@ fn stmt(st: &Stmt) -> Value {
             "TryStar",
             vec![
                 ("body", stmts(body)),
-                ("handlers", lst(handlers.iter().map(handler).collect())),
+                ("handlers", Value::list(handlers.iter().map(handler).collect())),
                 ("orelse", stmts(orelse)),
                 ("finalbody", stmts(finalbody)),
             ],
             pos,
         ),
         StmtKind::Assert { test, msg } => node("Assert", vec![("test", expr(test)), ("msg", opt_expr(msg))], pos),
-        StmtKind::Import { names } => node("Import", vec![("names", lst(names.iter().map(alias).collect()))], pos),
+        StmtKind::Import { names } => node("Import", vec![("names", Value::list(names.iter().map(alias).collect()))], pos),
         StmtKind::ImportFrom { module, names, level } => node(
             "ImportFrom",
             vec![
                 ("module", opt_s(module)),
-                ("names", lst(names.iter().map(alias).collect())),
+                ("names", Value::list(names.iter().map(alias).collect())),
                 ("level", level.map_or(Value::None, Value::Int)),
             ],
             pos,
         ),
-        StmtKind::Global { names } => node("Global", vec![("names", lst(names.iter().map(|n| s(n)).collect()))], pos),
-        StmtKind::Nonlocal { names } => node("Nonlocal", vec![("names", lst(names.iter().map(|n| s(n)).collect()))], pos),
+        StmtKind::Global { names } => node("Global", vec![("names", Value::list(names.iter().map(|n| s(n)).collect()))], pos),
+        StmtKind::Nonlocal { names } => node("Nonlocal", vec![("names", Value::list(names.iter().map(|n| s(n)).collect()))], pos),
         StmtKind::Expr { value } => node("Expr", vec![("value", expr(value))], pos),
         StmtKind::Pass => node("Pass", Vec::new(), pos),
         StmtKind::Break => node("Break", Vec::new(), pos),
@@ -482,7 +478,7 @@ fn module(m: &Mod) -> Value {
                 ("body", stmts(body)),
                 (
                     "type_ignores",
-                    lst(type_ignores
+                    Value::list(type_ignores
                         .iter()
                         .map(|t| node("TypeIgnore", vec![("lineno", Value::Int(t.lineno)), ("tag", s(&t.tag))], None))
                         .collect()),
@@ -496,10 +492,6 @@ fn module(m: &Mod) -> Value {
             node("FunctionType", vec![("argtypes", exprs(argtypes)), ("returns", expr(returns))], None)
         }
     }
-}
-
-fn syntax_error(e: crate::parser::ParseError, filename: &str, src: &str) -> crate::vm::PyException {
-    crate::vm::syntax_exc(e, filename, src)
 }
 
 /// `parse(source, filename, mode)`: `mode` é `exec`, `eval` ou `single`.
@@ -522,11 +514,11 @@ fn parse(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     }
     match mode.as_str() {
         "eval" => {
-            let e = crate::parser::parse_expression(src.as_str().trim()).map_err(|e| syntax_error(e, &fname, src.as_str()))?;
+            let e = crate::parser::parse_expression(src.as_str().trim()).map_err(|e| crate::vm::syntax_exc(e, &fname, src.as_str()))?;
             Ok(module(&Mod::Expression { body: Box::new(e) }))
         }
-        "exec" => Ok(module(&crate::parser::parse_module(&text).map_err(|e| syntax_error(e, &fname, src.as_str()))?)),
-        "single" => match crate::parser::parse_module(&text).map_err(|e| syntax_error(e, &fname, src.as_str()))? {
+        "exec" => Ok(module(&crate::parser::parse_module(&text).map_err(|e| crate::vm::syntax_exc(e, &fname, src.as_str()))?)),
+        "single" => match crate::parser::parse_module(&text).map_err(|e| crate::vm::syntax_exc(e, &fname, src.as_str()))? {
             Mod::Module { body, .. } => Ok(module(&Mod::Interactive { body })),
             other => Ok(module(&other)),
         },

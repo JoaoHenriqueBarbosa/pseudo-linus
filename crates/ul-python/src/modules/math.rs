@@ -23,10 +23,6 @@ fn range_err() -> PyException {
     exc("OverflowError", "math range error")
 }
 
-fn overflow64() -> PyException {
-    exc("OverflowError", "integer result outside the 64-bit range (arbitrary int is pending)")
-}
-
 fn to_f(v: &Value) -> PyResult<f64> {
     match v {
         Value::Float(x) => Ok(*x),
@@ -555,14 +551,6 @@ fn product_range(lo: u64, hi: u64) -> BigInt {
     }
     let mid = lo + (hi - lo) / 2;
     product_range(lo, mid) * product_range(mid + 1, hi)
-}
-
-fn count_arg(v: &Value, what: &str) -> PyResult<u64> {
-    let n = want_big(v)?;
-    if n.is_negative() {
-        return Err(exc("ValueError", what));
-    }
-    n.to_u64().ok_or_else(|| exc("OverflowError", format!("factorial() argument should not exceed {}", i64::MAX)))
 }
 
 fn factorial(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {

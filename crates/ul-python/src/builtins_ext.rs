@@ -268,7 +268,7 @@ fn class_dir_names(vm: &mut Vm, cls: &Rc<crate::object::ClassObj>, names: &mut V
                 c.dict
                     .borrow()
                     .keys()
-                    .filter(|k| (!k.starts_with('_') || is_dunder(k)))
+                    .filter(|k| !k.starts_with('_') || is_dunder(k))
                     .filter(|k| !matches!(k.as_str(), "__slots__" | "__firstlineno__" | "__static_attributes__"))
                     .filter(|k| !(in_builtins && k.as_str() == "__module__"))
                     .cloned(),

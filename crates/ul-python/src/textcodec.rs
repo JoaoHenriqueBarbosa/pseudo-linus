@@ -131,7 +131,7 @@ pub fn encode(codec: &Codec, s: &str, errors: &str) -> PyResult<Vec<u8>> {
                     false
                 }
             };
-            let mut push = |u: u16, out: &mut Vec<u8>| {
+            let push = |u: u16, out: &mut Vec<u8>| {
                 out.extend_from_slice(&if big { u.to_be_bytes() } else { u.to_le_bytes() })
             };
             for (pos, c) in s.chars().enumerate() {
@@ -229,7 +229,7 @@ pub fn decode(codec: &Codec, data: &[u8], errors: &str) -> PyResult<String> {
         Codec::Utf8Sig => {
             let body = data.strip_prefix(&[0xEF, 0xBB, 0xBF][..]).unwrap_or(data);
             let skipped = data.len() - body.len();
-            crate::methods::bytesm::decode_utf8_text(body, errors).map_err(|mut e| {
+            crate::methods::bytesm::decode_utf8(body, errors).map_err(|mut e| {
                 shift_positions(&mut e, skipped);
                 e
             })

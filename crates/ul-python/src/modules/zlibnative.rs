@@ -13,7 +13,7 @@ use flate2::{Decompress, FlushDecompress, Status};
 use zdeflate::{Deflate, Flush, Status as ZStatus, Strategy};
 
 use crate::modules::ModuleBuilder;
-use crate::native_util::{bind, no_kwargs, want_int, int_or};
+use crate::native_util::{bind, no_kwargs, int_or};
 use crate::object::{ExtObject, Kw, ModuleObj, Value};
 use crate::vm::{exc, type_error, PyResult, Vm};
 

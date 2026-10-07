@@ -5,7 +5,7 @@
 //! com `__init__.py` é um pacote; vale antes do arquivo `nome.py`, como no CPython.
 
 use std::cell::RefCell;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use crate::object::{intern, ModuleObj, Value};

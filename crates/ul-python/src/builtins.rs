@@ -10,10 +10,10 @@
 
 use crate::native_util::{bind, value_error, want_int};
 use crate::object::{
-    exc_is_subclass, repr, to_str, Dict, ExtObject, Kw, Native, NativeFn, NativeFnPtr, ObjError, Set, Value,
+    exc_is_subclass, repr, to_str, Dict, ExtObject, Kw, Native, NativeFn, NativeFnPtr, Set, Value,
     EXC_CLASSES,
 };
-use crate::vm::{exc, iterate, py_binary, py_lt, type_error, PyException, PyResult, Vm};
+use crate::vm::{exc, iterate, py_binary, py_lt, type_error, PyResult, Vm};
 use std::cell::Cell;
 use std::rc::Rc;
 
@@ -117,10 +117,6 @@ fn as_i64(v: &Value) -> Option<i64> {
         Value::Bool(b) => Some(i64::from(*b)),
         _ => None,
     }
-}
-
-fn overflow() -> PyException {
-    ObjError::IntOverflow.into()
 }
 
 // ---------------------------------------------------------------------------------------------

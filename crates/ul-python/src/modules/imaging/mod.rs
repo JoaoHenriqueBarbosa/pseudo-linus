@@ -226,7 +226,7 @@ fn getink(color: &Value, im: &Image) -> PyResult<[u8; 4]> {
                 }
                 Ok([clip(r), 0, 0, 0])
             } else {
-                let (mut g, mut b, mut a): (i64, i64, i64);
+                let (g, b, mut a): (i64, i64, i64);
                 if r_is_int {
                     a = (r >> 24) & 0xff;
                     b = (r >> 16) & 0xff;

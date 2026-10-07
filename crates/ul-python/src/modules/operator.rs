@@ -42,10 +42,6 @@ arith!(op_floordiv, "floordiv", "//");
 arith!(op_mod, "mod", "%");
 arith!(op_pow, "pow", "**");
 
-fn unary_type_error(what: &str, v: &Value) -> PyException {
-    type_error(format!("bad operand type for {what}: '{}'", v.type_name()))
-}
-
 // As unárias são as do interpretador (`PyNumber_Negative` e afins): inteiro grande, métodos
 // especiais de classe do usuário e as mesmas mensagens de erro.
 fn op_neg(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -138,23 +134,6 @@ fn op_ge(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 // ---------------------------------------------------------------------------
 // bits
 // ---------------------------------------------------------------------------
-
-fn int_operands(sym: &str, a: &Value, b: &Value) -> PyResult<(i64, i64, bool)> {
-    let both_bool = matches!((a, b), (Value::Bool(_), Value::Bool(_)));
-    let get = |v: &Value| match v {
-        Value::Int(i) => Some(*i),
-        Value::Bool(x) => Some(i64::from(*x)),
-        _ => None,
-    };
-    match (get(a), get(b)) {
-        (Some(x), Some(y)) => Ok((x, y, both_bool)),
-        _ => Err(type_error(format!(
-            "unsupported operand type(s) for {sym}: '{}' and '{}'",
-            a.type_name(),
-            b.type_name()
-        ))),
-    }
-}
 
 fn op_and(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let (a, b) = pair("and_", &args, &kw)?;

@@ -140,11 +140,7 @@ fn decode_error(codec: &str, bad_start: usize, bad_len: usize, byte: u8, reason:
     exc("UnicodeDecodeError", msg)
 }
 
-pub(crate) fn decode_utf8_text(data: &[u8], errors: &str) -> PyResult<String> {
-    decode_utf8(data, errors)
-}
-
-fn decode_utf8(data: &[u8], errors: &str) -> PyResult<String> {
+pub(crate) fn decode_utf8(data: &[u8], errors: &str) -> PyResult<String> {
     let mut out = String::new();
     let mut pos = 0usize;
     while pos < data.len() {

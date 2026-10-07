@@ -606,7 +606,7 @@ impl Ellipse {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn ellipse_new(im: &mut Image, x0: i32, y0: i32, x1: i32, y1: i32, ink: i32, fill: bool, mut width: i32, op: bool) {
+pub fn ellipse(im: &mut Image, x0: i32, y0: i32, x1: i32, y1: i32, ink: i32, fill: bool, mut width: i32, op: bool) {
     let d = drawinit(im, ink, op);
     let a = x1 - x0;
     let b = y1 - y0;
@@ -620,11 +620,6 @@ fn ellipse_new(im: &mut Image, x0: i32, y0: i32, x1: i32, y1: i32, ink: i32, fil
     while let Some((xl, y, xr)) = st.next() {
         d.hline(im, x0 + (xl + a) / 2, y0 + (y + b) / 2, x0 + (xr + a) / 2);
     }
-}
-
-#[allow(clippy::too_many_arguments)]
-pub fn ellipse(im: &mut Image, x0: i32, y0: i32, x1: i32, y1: i32, ink: i32, fill: bool, width: i32, op: bool) {
-    ellipse_new(im, x0, y0, x1, y1, ink, fill, width, op);
 }
 
 // ---- recortes (arco, corda, fatia) ----
@@ -946,7 +941,7 @@ pub fn chord(im: &mut Image, x0: i32, y0: i32, x1: i32, y1: i32, mut start: f32,
 pub fn pieslice(im: &mut Image, x0: i32, y0: i32, x1: i32, y1: i32, mut start: f32, mut end: f32, ink: i32, fill: bool, width: i32, op: bool) {
     normalize_angles(&mut start, &mut end);
     if start + 360.0 == end {
-        return ellipse_new(im, x0, y0, x1, y1, ink, fill, width, op);
+        return ellipse(im, x0, y0, x1, y1, ink, fill, width, op);
     }
     if start == end {
         return;
@@ -958,7 +953,7 @@ pub fn pieslice(im: &mut Image, x0: i32, y0: i32, x1: i32, y1: i32, mut start: f
         clip_ellipse_new(im, x0, y0, x1, y1, end, 0.0, ink, width, op, pie_side_init);
         let xc = (f64::from(x0 + x1 - width) / 2.0).round() as i32;
         let yc = (f64::from(y0 + y1 - width) / 2.0).round() as i32;
-        ellipse_new(im, xc, yc, xc + width - 1, yc + width - 1, ink, true, 0, op);
+        ellipse(im, xc, yc, xc + width - 1, yc + width - 1, ink, true, 0, op);
         clip_ellipse_new(im, x0, y0, x1, y1, start, end, ink, width, op, pie_init);
     }
 }

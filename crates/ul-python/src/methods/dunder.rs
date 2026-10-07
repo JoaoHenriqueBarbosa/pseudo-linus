@@ -19,7 +19,7 @@ fn via_builtin(vm: &mut Vm, name: &str, args: Vec<Value>) -> PyResult<Value> {
 
 fn contains(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     let a = recv_and(&args, "__contains__", 1)?;
-    Ok(Value::Bool(crate::vm::py_contains(&a[0], &a[1])?))
+    Ok(Value::Bool(crate::vm::contains(&a[0], &a[1])?))
 }
 
 fn len(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
@@ -29,7 +29,7 @@ fn len(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
 
 fn getitem(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     let a = recv_and(&args, "__getitem__", 1)?;
-    crate::vm::py_subscript(&a[0], &a[1])
+    crate::vm::subscript(&a[0], &a[1])
 }
 
 fn setitem(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {

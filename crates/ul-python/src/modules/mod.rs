@@ -399,16 +399,6 @@ pub fn is_embedded_package(name: &str) -> bool {
 mod builtin {
     use super::*;
 
-    pub fn sys(vm: &mut Vm) -> Rc<ModuleObj> {
-        let argv = vm.argv.iter().map(|a| Value::str(a.clone())).collect();
-        ModuleBuilder::new("sys")
-            .value("argv", Value::list(argv))
-            .value("stdin", Value::Native(vm.std_files[0].clone()))
-            .value("stdout", Value::Native(vm.std_files[1].clone()))
-            .value("stderr", Value::Native(vm.std_files[2].clone()))
-            .build()
-    }
-
     pub fn csv() -> Rc<ModuleObj> {
         use crate::modules::csv as c;
         ModuleBuilder::new("_csvimpl")
@@ -424,11 +414,4 @@ mod builtin {
             .build()
     }
 
-    pub fn json() -> Rc<ModuleObj> {
-        ModuleBuilder::new("json")
-            .value("dumps", Value::Builtin("json.dumps"))
-            .value("loads", Value::Builtin("json.loads"))
-            .value("JSONDecodeError", Value::Builtin("json.decoder.JSONDecodeError"))
-            .build()
-    }
 }

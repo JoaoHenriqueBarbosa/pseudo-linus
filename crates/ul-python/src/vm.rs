@@ -430,8 +430,6 @@ pub fn format_traceback(err: &RuntimeError) -> String {
     format_traceback_in(err, "<string>", None)
 }
 
-/// Traceback com o nome do arquivo; com `src` (execução de arquivo) cada quadro mostra a linha fonte
-/// sem a indentação, como o CPython faz fora do `-c`.
 thread_local! {
     /// Erro de um `__repr__`/`__str__` de usuário, que o `repr()` interno (sem `Result`) não consegue devolver:
     /// a instrução em andamento o levanta assim que termina.
@@ -616,6 +614,8 @@ fn exc_section(v: &Value, file: &str, src: Option<&str>) -> String {
     out
 }
 
+/// Traceback com o nome do arquivo; com `src` (execução de arquivo) cada quadro mostra a linha fonte
+/// sem a indentação, como o CPython faz fora do `-c`.
 pub fn format_traceback_in(err: &RuntimeError, file: &str, src: Option<&str>) -> String {
     let mut out = match &err.exc.value {
         Some(v) => chain_prefix(v, file, src, &mut Vec::new()),
@@ -821,16 +821,6 @@ pub(crate) fn py_compare(sym: &str, a: &Value, b: &Value) -> PyResult<bool> {
     compare(op, a, b)
 }
 
-/// `item in container`.
-pub(crate) fn py_contains(container: &Value, item: &Value) -> PyResult<bool> {
-    contains(container, item)
-}
-
-/// `container[index]`.
-pub(crate) fn py_subscript(container: &Value, index: &Value) -> PyResult<Value> {
-    subscript(container, index)
-}
-
 /// Operador binário `a <op> b` (`op` pelo símbolo: `"+"`, `"-"`, `"*"`, `"/"`, `"//"`, `"%"`, `"**"`).
 pub fn py_binary(sym: &str, a: &Value, b: &Value) -> PyResult<Value> {
     let op = match sym {
@@ -852,13 +842,8 @@ pub fn py_binary(sym: &str, a: &Value, b: &Value) -> PyResult<Value> {
     binary(op, a, b, false)
 }
 
-/// Todos os itens de um iterável (para funções nativas que consomem uma sequência inteira).
+/// Todos os itens de um iterável (também para funções nativas que consomem uma sequência inteira).
 pub fn iterate(v: &Value) -> PyResult<Vec<Value>> {
-    collect(v)
-}
-
-/// Todos os itens de um iterável.
-fn collect(v: &Value) -> PyResult<Vec<Value>> {
     let mut it = get_iter(v)?;
     let mut out = Vec::new();
     while let Some(x) = it.next()? {
@@ -2083,7 +2068,7 @@ impl Vm {
                 let kw = if kwargs { Some(pop(stack)?) } else { None };
                 let args = pop(stack)?;
                 let func = pop(stack)?;
-                let positional = collect(&args)?;
+                let positional = iterate(&args)?;
                 let mut named: Vec<(String, Value)> = Vec::new();
                 if let Some(Value::Dict(d)) = kw {
                     for (k, v) in d.borrow().iter() {
@@ -2105,7 +2090,7 @@ impl Vm {
             }
             Op::ListExtend => {
                 let it = pop(stack)?;
-                let items = collect(&it)?;
+                let items = iterate(&it)?;
                 match top(stack)? {
                     Value::List(l) => l.borrow_mut().extend(items),
                     _ => return Err(internal("ListExtend without list")),
@@ -2121,7 +2106,7 @@ impl Vm {
             Op::ListToSet => {
                 let v = pop(stack)?;
                 let mut set = Set::new();
-                for item in collect(&v)? {
+                for item in iterate(&v)? {
                     set.add(item)?;
                 }
                 stack.push(Slot::Val(Value::set(set)));
@@ -2211,7 +2196,7 @@ impl Vm {
             }
             Op::UnpackEx { before, after } => {
                 let v = pop(stack)?;
-                let items = collect(&v)?;
+                let items = iterate(&v)?;
                 let (b, a) = (before as usize, after as usize);
                 if items.len() < b + a {
                     return Err(exc(
@@ -2514,7 +2499,7 @@ impl Vm {
             Op::UnpackSequence(n) => {
                 let v = pop(stack)?;
                 let n = n as usize;
-                let items = collect(&v)?;
+                let items = iterate(&v)?;
                 let known_len = matches!(v, Value::List(_) | Value::Tuple(_));
                 if items.len() < n {
                     return Err(exc(
@@ -3372,7 +3357,7 @@ impl Vm {
             },
             "writelines" => {
                 let [lines] = one_arg(name, args)?;
-                for l in collect(&lines)? {
+                for l in iterate(&lines)? {
                     let Value::Str(s) = &l else {
                         return Err(type_error(format!("write() argument must be str, not {}", l.type_name())));
                     };
@@ -3430,14 +3415,14 @@ impl Vm {
                     Native::CsvWriter { dialect, target } => (dialect.clone(), target.clone()),
                     _ => return Err(internal("writerow on non-writer")),
                 };
-                let rows = if name == "writerow" { vec![row] } else { collect(&row)? };
+                let rows = if name == "writerow" { vec![row] } else { iterate(&row)? };
                 let mut last = Value::None;
                 for r in rows {
                     let fields = match &r {
                         Value::Str(_) | Value::Int(_) | Value::Float(_) | Value::Bool(_) | Value::None => {
                             return Err(exc("_csv.Error", format!("iterable expected, not {}", r.type_name())))
                         }
-                        _ => collect(&r)?,
+                        _ => iterate(&r)?,
                     };
                     let line = csv::writerow(&dialect, &fields).map_err(|e| exc("_csv.Error", e.msg))?;
                     last = Value::Int(self.write_to(&target, &line)? as i64);
@@ -3550,46 +3535,6 @@ fn collect_check_iter(v: &Value) -> PyResult<()> {
     get_iter(v).map(|_| ())
 }
 
-/// Divide o texto em linhas com o terminador. Com `keep` (`newline=''`) o terminador original
-/// fica; sem ele (`newline=None`) `\r\n` e `\r` viram `\n`.
-fn split_lines(text: &str, keep: bool) -> Vec<String> {
-    let mut out = Vec::new();
-    let mut cur = String::new();
-    let mut it = text.chars().peekable();
-    while let Some(c) = it.next() {
-        match c {
-            '\n' => {
-                cur.push('\n');
-                out.push(std::mem::take(&mut cur));
-            }
-            '\r' => {
-                let crlf = it.peek() == Some(&'\n');
-                if crlf {
-                    it.next();
-                }
-                if keep {
-                    cur.push('\r');
-                    if crlf {
-                        cur.push('\n');
-                    }
-                } else {
-                    cur.push('\n');
-                }
-                out.push(std::mem::take(&mut cur));
-            }
-            c => cur.push(c),
-        }
-    }
-    if !cur.is_empty() {
-        out.push(cur);
-    }
-    out
-}
-
-/// Próxima linha de um arquivo de texto (o stdin carrega no primeiro uso).
-pub(crate) fn file_readline_native(n: &Rc<RefCell<Native>>) -> PyResult<Option<String>> {
-    file_readline(n)
-}
 
 fn file_readline(n: &Rc<RefCell<Native>>) -> PyResult<Option<String>> {
     let mut b = n.borrow_mut();
@@ -3647,22 +3592,6 @@ pub(crate) fn native_next(n: &Rc<RefCell<Native>>) -> PyResult<Option<Value>> {
     }
 }
 
-/// `except cls`: `cls` é uma classe de exceção ou uma tupla delas.
-fn exc_matches(kind: &str, cls: &Value) -> PyResult<bool> {
-    match cls {
-        Value::Builtin(name) if EXC_CLASSES.iter().any(|(n, _)| n == name) => Ok(exc_is_subclass(kind, name)),
-        Value::Tuple(items) => {
-            for item in items.iter() {
-                if exc_matches(kind, item)? {
-                    return Ok(true);
-                }
-            }
-            Ok(false)
-        }
-        _ => Err(type_error("catching classes that do not inherit from BaseException is not allowed")),
-    }
-}
-
 /// Valor do `raise X`: uma classe vira instância sem argumentos.
 pub(crate) fn raise_value(v: Value) -> PyResult<PyException> {
     match &v {
@@ -3717,7 +3646,7 @@ fn builtin_seq(name: &'static str, args: Vec<Value>, kwargs: Vec<(String, Value)
         "list" | "tuple" => {
             at_most(1)?;
             let items = match args.first() {
-                Some(v) => collect(v)?,
+                Some(v) => iterate(v)?,
                 None => Vec::new(),
             };
             Ok(if name == "list" { list_of(items) } else { Value::Tuple(items.into()) })
@@ -3767,7 +3696,7 @@ fn builtin_seq(name: &'static str, args: Vec<Value>, kwargs: Vec<(String, Value)
             }
         }
         "min" | "max" => {
-            let items = if args.len() == 1 { collect(&args[0])? } else { args.clone() };
+            let items = if args.len() == 1 { iterate(&args[0])? } else { args.clone() };
             if args.is_empty() {
                 return Err(type_error(format!("{name} expected at least 1 argument, got 0")));
             }
@@ -3787,14 +3716,14 @@ fn builtin_seq(name: &'static str, args: Vec<Value>, kwargs: Vec<(String, Value)
                 return Err(type_error("sum() takes at least 1 positional argument (0 given)"));
             };
             let mut acc = args.get(1).cloned().unwrap_or(Value::Int(0));
-            for x in collect(first)? {
+            for x in iterate(first)? {
                 acc = binary(Operator::Add, &acc, &x, false)?;
             }
             Ok(acc)
         }
         "sorted" => {
             let [v] = one_arg(name, args)?;
-            let mut items = collect(&v)?;
+            let mut items = iterate(&v)?;
             sort_values(&mut items)?;
             for (k, val) in &kwargs {
                 match k.as_str() {
@@ -3810,7 +3739,7 @@ fn builtin_seq(name: &'static str, args: Vec<Value>, kwargs: Vec<(String, Value)
         }
         "reversed" => {
             let [v] = one_arg(name, args)?;
-            let mut items = collect(&v)?;
+            let mut items = iterate(&v)?;
             items.reverse();
             Ok(list_of(items))
         }
@@ -3823,7 +3752,7 @@ fn builtin_seq(name: &'static str, args: Vec<Value>, kwargs: Vec<(String, Value)
                 }
             }
             let [v] = one_arg(name, args)?;
-            let out = collect(&v)?
+            let out = iterate(&v)?
                 .into_iter()
                 .enumerate()
                 .map(|(i, x)| Value::Tuple(vec![Value::Int(start + i as i64), x].into()))
@@ -3831,14 +3760,14 @@ fn builtin_seq(name: &'static str, args: Vec<Value>, kwargs: Vec<(String, Value)
             Ok(list_of(out))
         }
         "zip" => {
-            let cols: Vec<Vec<Value>> = args.iter().map(collect).collect::<PyResult<_>>()?;
+            let cols: Vec<Vec<Value>> = args.iter().map(iterate).collect::<PyResult<_>>()?;
             let n = cols.iter().map(Vec::len).min().unwrap_or(0);
             let out = (0..n).map(|i| Value::Tuple(cols.iter().map(|c| c[i].clone()).collect::<Vec<_>>().into())).collect();
             Ok(list_of(out))
         }
         "any" | "all" => {
             let [v] = one_arg(name, args)?;
-            let items = collect(&v)?;
+            let items = iterate(&v)?;
             Ok(Value::Bool(if name == "any" { items.iter().any(Value::is_true) } else { items.iter().all(Value::is_true) }))
         }
         "ord" => {
@@ -4103,7 +4032,7 @@ fn slice_of(container: &Value, s: &(Value, Value, Value)) -> PyResult<Value> {
     })
 }
 
-fn subscript(container: &Value, index: &Value) -> PyResult<Value> {
+pub(crate) fn subscript(container: &Value, index: &Value) -> PyResult<Value> {
     if let Value::Slice(s) = index {
         if matches!(container, Value::List(_) | Value::Tuple(_) | Value::Str(_) | Value::Bytes(_) | Value::ByteArray(_) | Value::Range(_)) {
             return slice_of(container, s);
@@ -4222,7 +4151,7 @@ pub(crate) fn store_subscript(container: &Value, index: &Value, value: Value) ->
         }
     }
     if let (Value::List(l), Value::Slice(s)) = (container, index) {
-        let new_items = collect(&value)?;
+        let new_items = iterate(&value)?;
         let len = l.borrow().len();
         let (start, stop, step) = slice_bounds(len as i64, s)?;
         if step == 1 {
@@ -4430,7 +4359,7 @@ fn binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyResult<Value> 
         && let Value::List(l) = a {
             match op {
                 Operator::Add => {
-                    let items = collect(b)?;
+                    let items = iterate(b)?;
                     l.borrow_mut().extend(items);
                     return Ok(a.clone());
                 }
@@ -5004,7 +4933,7 @@ pub(crate) fn mapping_pairs(v: &Value) -> PyResult<Option<Vec<(Value, Value)>>> 
             let keys_fn = vm.getattr(v, "keys")?;
             let keys = vm.call(&keys_fn, Vec::new(), Vec::new())?;
             let mut out = Vec::new();
-            for k in collect(&keys)? {
+            for k in iterate(&keys)? {
                 let value = subscript(v, &k)?;
                 out.push((k, value));
             }
@@ -5015,7 +4944,7 @@ pub(crate) fn mapping_pairs(v: &Value) -> PyResult<Option<Vec<(Value, Value)>>> 
 }
 
 /// `item in container`.
-fn contains(container: &Value, item: &Value) -> PyResult<bool> {
+pub(crate) fn contains(container: &Value, item: &Value) -> PyResult<bool> {
     if let Value::Ext(e) = container {
         if let Some(r) = e.contains_item(item) {
             return r;
@@ -5036,7 +4965,7 @@ fn contains(container: &Value, item: &Value) -> PyResult<bool> {
         if let Some(r) = vm.call_dunder(container, "__contains__", vec![item.clone()]) {
             return Ok(r?.is_true());
         }
-        let items = collect(container)?;
+        let items = iterate(container)?;
         return Ok(items.iter().any(|x| is(x, item) || py_eq(x, item)));
     }
     let member = |items: &[Value]| items.iter().any(|x| is(x, item) || py_eq(x, item));
@@ -5055,7 +4984,7 @@ fn contains(container: &Value, item: &Value) -> PyResult<bool> {
         Value::Range(r) => match item {
             Value::Int(i) => Ok(r.contains_int(*i)),
             Value::Bool(b) => Ok(r.contains_int(i64::from(*b))),
-            _ => Ok(member(&collect(container)?)),
+            _ => Ok(member(&iterate(container)?)),
         },
         Value::Bytes(_) | Value::ByteArray(_) => match as_index(item) {
             Some(i) if (0..256).contains(&i) => Ok(container.bytes_like().is_some_and(|b| b.contains(&(i as u8)))),

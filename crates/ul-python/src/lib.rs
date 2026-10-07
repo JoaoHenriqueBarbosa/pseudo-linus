@@ -453,7 +453,7 @@ fn locate(program: &str, no_site: bool) -> Layout {
 }
 
 /// `python3 -m pacote.modulo args...`: procura no diretório atual (e em `sys.path`), roda como `__main__`.
-fn run_module(name: &str, rest: &[Vec<u8>], program: &str) -> i32 {
+fn run_module(name: &str, rest: &[Vec<u8>], _program: &str) -> i32 {
     let cwd = String::from_utf8_lossy(&sys::current().getcwd().unwrap_or_default()).into_owned();
     let cwd = cwd.trim_end_matches('/').to_string();
     let parts: Vec<&str> = name.split('.').collect();

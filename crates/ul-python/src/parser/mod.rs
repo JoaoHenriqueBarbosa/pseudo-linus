@@ -509,7 +509,6 @@ fn decode_str_escapes(body: &str) -> Result<String, String> {
                 }
                 let name = &body[start..i];
                 i += 1;
-                use crate::modules::ucd::Props as _;
                 match crate::modules::ucd::current().lookup(name).as_deref() {
                     Some(&[cp]) => match char::from_u32(cp) {
                         Some(ch) => out.push(ch),

@@ -3,12 +3,11 @@
 //! (`__init__`, `__str__`, `__eq__`, `__add__`...) para o restante da VM.
 
 use std::cell::RefCell;
-use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use crate::compile::Code;
 use crate::object::{
-    exc_is_subclass, intern, is_builtin_type, to_str, BoundMethod, ClassObj, Descriptor, Env, ExtObject, InstanceObj,
+    exc_is_subclass, intern, to_str, BoundMethod, ClassObj, Descriptor, Env, ExtObject, InstanceObj,
     Kw, Value, EXC_CLASSES,
 };
 use crate::vm::{current, exc, type_error, PyException, PyResult, Vm};
@@ -385,7 +384,7 @@ impl ExtObject for PlainObject {
             format!("'object' object has no attribute '{name}' and no __dict__ for setting new attributes"),
         )))
     }
-    fn call_method(&self, vm: &mut Vm, name: &str, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    fn call_method(&self, _vm: &mut Vm, name: &str, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
         let me = self as *const PlainObject as usize;
         let same = |v: &Value| matches!(v, Value::Ext(e) if Rc::as_ptr(e) as *const () as usize == me);
         match (name, args.as_slice()) {
@@ -949,15 +948,11 @@ impl Vm {
                 }
             }
             _ => {
-                if let Some((k, _)) = kw.first() {
+                if !kw.is_empty() {
                     return Err(type_error(format!(
                         "{}.__init_subclass__() takes no keyword arguments",
                         cls.name
                     )));
-                    #[allow(unreachable_code)]
-                    {
-                        let _ = k;
-                    }
                 }
             }
         }
