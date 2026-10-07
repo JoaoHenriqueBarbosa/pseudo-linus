@@ -15,7 +15,7 @@ use parking_lot::Mutex;
 use sysabi::{Errno, Gid, PollEvents, Stat, TimeSpec, Uid};
 use vfs::MagicObject;
 
-use crate::park::{Parker, Wake, WaitList};
+use crate::park::{Parker, Wake, WaitList, locked};
 
 pub(crate) const PIPE_BUF: usize = 4096;
 pub(crate) const PIPE_CAPACITY: usize = 65536;
@@ -108,10 +108,9 @@ impl Pipe {
 
     /// Leitura: dados, EOF (0) sem escritores, EAGAIN não bloqueante, ou espera.
     pub(crate) fn try_read(&self, buf: &mut [u8], nonblock: bool, waiter: &Arc<Parker>) -> Try<Result<usize, Errno>> {
-        let (r, wake) = {
-            let mut s = self.st.lock();
+        locked(&self.st, |s| {
             if buf.is_empty() {
-                return Try::Ready(Ok(0));
+                return (Try::Ready(Ok(0)), Wake::none());
             }
             if !s.buf.is_empty() {
                 let n = buf.len().min(s.buf.len());
@@ -136,9 +135,7 @@ impl Pipe {
                 s.rwait.register(waiter);
                 (Try::Pending, Wake::none())
             }
-        };
-        wake.run();
-        r
+        })
     }
 
     /// Escrita, retomável: `done` conta o que já foi escrito em tentativas anteriores da mesma
@@ -150,11 +147,10 @@ impl Pipe {
         nonblock: bool,
         waiter: &Arc<Parker>,
     ) -> Try<Result<usize, WriteError>> {
-        let (r, wake) = {
-            let mut s = self.st.lock();
+        locked(&self.st, |s| {
             if s.readers == 0 {
                 s.wwait.unregister(waiter);
-                return Try::Ready(Err(WriteError::BrokenPipe { written: *done }));
+                return (Try::Ready(Err(WriteError::BrokenPipe { written: *done })), Wake::none());
             }
             let free = PIPE_CAPACITY.saturating_sub(s.buf.len());
             let rest = &data[*done..];
@@ -173,19 +169,8 @@ impl Pipe {
             if *done > 0 && !s.buf.is_empty() {
                 wake.merge(s.rwait.take());
             }
-            if *done == data.len() {
-                s.wwait.unregister(waiter);
-                (Try::Ready(Ok(*done)), wake)
-            } else if nonblock {
-                let r = if *done > 0 { Ok(*done) } else { Err(WriteError::Again) };
-                (Try::Ready(r), wake)
-            } else {
-                s.wwait.register(waiter);
-                (Try::Pending, wake)
-            }
-        };
-        wake.run();
-        r
+            (s.wwait.write_outcome(*done, data.len(), nonblock, WriteError::Again, waiter), wake)
+        })
     }
 
     /// Prontidão pro `poll`, registrando o parker nas duas filas quando pedido.

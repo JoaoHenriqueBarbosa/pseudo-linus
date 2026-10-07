@@ -22,7 +22,7 @@ use sysabi::termios::*;
 use sysabi::{AtFlags, Errno, Pid, PollEvents, SetAttrWhen, Signal, Termios, Winsize};
 use vfs::Start;
 
-use crate::park::{Parker, Wake, WaitList};
+use crate::park::{Parker, Wake, WaitList, locked};
 use crate::pipe::Try;
 use crate::sandbox::SbInner;
 
@@ -681,11 +681,10 @@ impl Pty {
     /// Leitura do escravo. No modo canônico lê até uma linha; no outro, espera `need` bytes (0 = não
     /// espera nada). Desligado (sem mestre) é EOF.
     pub(crate) fn try_slave_read(&self, buf: &mut [u8], nonblock: bool, need: usize, waiter: &Arc<Parker>) -> Try<Result<usize, Errno>> {
-        let (r, w) = {
-            let mut s = self.st.lock();
+        locked(&self.st, |s| {
             if s.masters == 0 || buf.is_empty() {
                 s.in_wait.unregister(waiter);
-                return Try::Ready(Ok(0));
+                return (Try::Ready(Ok(0)), Wake::none());
             }
             let got = if s.ld.canon() {
                 s.ld.read_canon(buf)
@@ -704,17 +703,14 @@ impl Pty {
                     (Try::Pending, Wake::none())
                 }
             }
-        };
-        w.run();
-        r
+        })
     }
 
     /// Leitura do mestre: a saída do escravo e o eco; sem escravo (depois de ter havido um) é EIO.
     pub(crate) fn try_master_read(&self, buf: &mut [u8], nonblock: bool, waiter: &Arc<Parker>) -> Try<Result<usize, Errno>> {
-        let (r, w) = {
-            let mut s = self.st.lock();
+        locked(&self.st, |s| {
             if buf.is_empty() {
-                return Try::Ready(Ok(0));
+                return (Try::Ready(Ok(0)), Wake::none());
             }
             if !s.ld.out.is_empty() {
                 let n = s.ld.read_out(buf);
@@ -729,9 +725,7 @@ impl Pty {
                 s.out_wait.register(waiter);
                 (Try::Pending, Wake::none())
             }
-        };
-        w.run();
-        r
+        })
     }
 
     /// Escrita do mestre: vira entrada do escravo pela disciplina de linha. Retomável (`done`). Os
@@ -744,8 +738,7 @@ impl Pty {
         sigs: &mut Vec<(Pid, Signal)>,
         waiter: &Arc<Parker>,
     ) -> Try<Result<usize, Errno>> {
-        let (r, w) = {
-            let mut s = self.st.lock();
+        locked(&self.st, |s| {
             let mut w = Wake::none();
             let rest = &data[*done..];
             // No modo canônico a entrada nunca espera: o que não cabe na linha se perde.
@@ -759,27 +752,16 @@ impl Pty {
                 w.merge(s.in_wait.take());
                 w.merge(s.out_wait.take());
             }
-            if *done == data.len() {
-                s.in_wait.unregister(waiter);
-                (Try::Ready(Ok(*done)), w)
-            } else if nonblock {
-                (Try::Ready(if *done > 0 { Ok(*done) } else { Err(Errno::EAGAIN) }), w)
-            } else {
-                s.in_wait.register(waiter);
-                (Try::Pending, w)
-            }
-        };
-        w.run();
-        r
+            (s.in_wait.write_outcome(*done, data.len(), nonblock, Errno::EAGAIN, waiter), w)
+        })
     }
 
     /// Escrita do escravo: OPOST e pro mestre. Desligado é EIO.
     pub(crate) fn try_slave_write(&self, data: &[u8], done: &mut usize, nonblock: bool, waiter: &Arc<Parker>) -> Try<Result<usize, Errno>> {
-        let (r, w) = {
-            let mut s = self.st.lock();
+        locked(&self.st, |s| {
             if s.masters == 0 {
                 s.out_wait.unregister(waiter);
-                return Try::Ready(if *done > 0 { Ok(*done) } else { Err(Errno::EIO) });
+                return (Try::Ready(if *done > 0 { Ok(*done) } else { Err(Errno::EIO) }), Wake::none());
             }
             let before = *done;
             while *done < data.len() && s.ld.out.len() < PTY_OUT_LIMIT {
@@ -788,18 +770,8 @@ impl Pty {
                 *done += 1;
             }
             let w = if *done > before { s.out_wait.take() } else { Wake::none() };
-            if *done == data.len() {
-                s.out_wait.unregister(waiter);
-                (Try::Ready(Ok(*done)), w)
-            } else if nonblock {
-                (Try::Ready(if *done > 0 { Ok(*done) } else { Err(Errno::EAGAIN) }), w)
-            } else {
-                s.out_wait.register(waiter);
-                (Try::Pending, w)
-            }
-        };
-        w.run();
-        r
+            (s.out_wait.write_outcome(*done, data.len(), nonblock, Errno::EAGAIN, waiter), w)
+        })
     }
 
     /// Prontidão pro `poll` (`n_tty_poll` e `hung_up_tty_poll`).

@@ -77,12 +77,41 @@ impl WaitList {
     pub(crate) fn take(&mut self) -> Wake {
         Wake(std::mem::take(&mut self.waiters))
     }
+
+    /// Desfecho de uma escrita retomável que já pôs `done` de `len` bytes: completa, parcial (ou
+    /// `again` se nada foi) quando não bloqueia, ou espera registrada nesta lista.
+    pub(crate) fn write_outcome<E>(
+        &mut self,
+        done: usize,
+        len: usize,
+        nonblock: bool,
+        again: E,
+        waiter: &Arc<Parker>,
+    ) -> crate::pipe::Try<Result<usize, E>> {
+        use crate::pipe::Try;
+        if done == len {
+            self.unregister(waiter);
+            Try::Ready(Ok(done))
+        } else if nonblock {
+            Try::Ready(if done > 0 { Ok(done) } else { Err(again) })
+        } else {
+            self.register(waiter);
+            Try::Pending
+        }
+    }
 }
 
 /// Parkers a acordar depois de soltar a trava.
 #[must_use]
 #[derive(Debug, Default)]
 pub(crate) struct Wake(Vec<Arc<Parker>>);
+
+/// Roda `f` com o estado travado e acorda quem ele devolver só depois de soltar a trava.
+pub(crate) fn locked<S, T>(m: &Mutex<S>, f: impl FnOnce(&mut S) -> (T, Wake)) -> T {
+    let (r, w) = f(&mut m.lock());
+    w.run();
+    r
+}
 
 impl Wake {
     pub(crate) fn none() -> Wake {
