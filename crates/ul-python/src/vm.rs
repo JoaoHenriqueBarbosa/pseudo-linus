@@ -3003,6 +3003,9 @@ impl Vm {
             Value::Bound(b) => match name {
                 "__self__" => return Ok(b.recv.clone()),
                 "__name__" | "__qualname__" => return Ok(Value::str(b.name)),
+                // Os métodos das extensões em C do Pillow (`Font.render`, `ImagingCore.getpixel`...)
+                // têm `ml_doc` NULL.
+                "__doc__" if matches!(b.recv, Value::Ext(_)) => return Ok(Value::None),
                 _ => {}
             },
             Value::BoundFn(b) => match name {

@@ -489,7 +489,7 @@ impl ExtObject for FontObj {
     }
 
     fn methods(&self) -> &'static [&'static str] {
-        &["render", "getsize", "getlength"]
+        &["render", "getsize", "getlength", "getvarnames", "getvaraxes", "setvarname", "setvaraxes"]
     }
 
     fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
@@ -514,6 +514,40 @@ impl ExtObject for FontObj {
             "render" => self.render(vm, &args),
             "getsize" => self.getsize(&args),
             "getlength" => self.getlength(&args),
+            // `font_getvarnames`, `font_getvaraxes`, `font_setvarname` e `font_setvaraxes`: o porte não
+            // carrega o 'fvar' (o `FT_FACE_FLAG_MULTIPLE_MASTERS` nunca é ligado), então o
+            // `FT_Get_MM_Var`, o `FT_Set_Named_Instance` e o `FT_Set_Var_Design_Coordinates` respondem
+            // `FT_Err_Invalid_Argument`, como o FreeType faz com uma fonte estática.
+            "getvarnames" | "getvaraxes" => {
+                if !args.is_empty() {
+                    return Err(type_error(format!("Font.{name}() takes no arguments ({} given)", args.len())));
+                }
+                Err(ft_error(zft::Error::InvalidArgument))
+            }
+            "setvarname" => {
+                match args.as_slice() {
+                    [v] => {
+                        int_arg(v)?;
+                    }
+                    _ => return Err(type_error(format!("function takes exactly 1 argument ({} given)", args.len()))),
+                }
+                Err(ft_error(zft::Error::InvalidArgument))
+            }
+            "setvaraxes" => {
+                let [axes] = args.as_slice() else {
+                    return Err(type_error(format!("function takes exactly 1 argument ({} given)", args.len())));
+                };
+                let items = match axes {
+                    Value::List(l) => l.borrow().clone(),
+                    _ => return Err(type_error("argument must be a list")),
+                };
+                for item in &items {
+                    if !matches!(item, Value::Int(_) | Value::Float(_) | Value::Big(_) | Value::Bool(_)) {
+                        return Err(type_error("list must contain numbers"));
+                    }
+                }
+                Err(ft_error(zft::Error::InvalidArgument))
+            }
             _ => Err(exc("AttributeError", format!("'Font' object has no attribute '{name}'"))),
         }
     }

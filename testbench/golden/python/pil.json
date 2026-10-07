@@ -16,5 +16,11 @@
     "stderr": "",
     "exit": 0,
     "files": {}
+  },
+  "pil-variation-methods-static-font": {
+    "stdout": "['getvaraxes', 'getvarnames', 'setvaraxes', 'setvarname']\nget_variation_names OSError invalid argument\nget_variation_axes OSError invalid argument\nset_variation_by_axes OSError invalid argument\ngetvarnames () OSError invalid argument\ngetvarnames (1,) TypeError Font.getvarnames() takes no arguments (1 given)\ngetvaraxes (1, 2) TypeError Font.getvaraxes() takes no arguments (2 given)\nsetvarname () TypeError function takes exactly 1 argument (0 given)\nsetvarname (1,) OSError invalid argument\nsetvarname ('a',) TypeError 'str' object cannot be interpreted as an integer\nsetvarname (1.5,) TypeError 'float' object cannot be interpreted as an integer\nsetvaraxes ([1, 2.5],) OSError invalid argument\nsetvaraxes ((1,),) TypeError argument must be a list\nsetvaraxes (['x'],) TypeError list must contain numbers\nsetvaraxes ([1], 2) TypeError function takes exactly 1 argument (2 given)\nNone None builtin_function_or_method\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
   }
 }

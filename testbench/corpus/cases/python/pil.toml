@@ -113,3 +113,33 @@ for fmt, hexdata in KERN.items():
 PYEOF
 '''
 tags = ["agent", "pil"]
+
+# Os métodos de fonte variável do `_imagingft` existem e, numa fonte estática, respondem como o
+# FreeType 2.13.3 (`FT_Err_Invalid_Argument`), não como um Pillow compilado sem suporte.
+[[case]]
+id = "pil-variation-methods-static-font"
+script = '''
+python3 - <<'PYEOF'
+from PIL import ImageFont
+font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 20)
+f = font.font
+print(sorted(n for n in dir(f) if "var" in n))
+for m, a in [("get_variation_names", ()), ("get_variation_axes", ()), ("set_variation_by_axes", ([100],))]:
+    try:
+        print(m, getattr(font, m)(*a))
+    except Exception as e:
+        print(m, type(e).__name__, e)
+calls = [
+    ("getvarnames", ()), ("getvarnames", (1,)), ("getvaraxes", (1, 2)),
+    ("setvarname", ()), ("setvarname", (1,)), ("setvarname", ("a",)), ("setvarname", (1.5,)),
+    ("setvaraxes", ([1, 2.5],)), ("setvaraxes", ((1,),)), ("setvaraxes", (["x"],)), ("setvaraxes", ([1], 2)),
+]
+for name, a in calls:
+    try:
+        print(name, a, getattr(f, name)(*a))
+    except Exception as e:
+        print(name, a, type(e).__name__, e)
+print(f.getvarnames.__doc__, f.render.__doc__, type(f.setvaraxes).__name__)
+PYEOF
+'''
+tags = ["agent", "pil"]
