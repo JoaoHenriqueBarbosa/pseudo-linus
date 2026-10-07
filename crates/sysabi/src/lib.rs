@@ -16,6 +16,7 @@ pub mod program;
 pub mod sched;
 pub mod sys;
 pub mod types;
+pub mod util;
 
 #[cfg(feature = "testkit")]
 pub mod testkit;

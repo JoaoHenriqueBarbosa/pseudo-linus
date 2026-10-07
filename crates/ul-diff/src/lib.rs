@@ -5,7 +5,7 @@
 //! do código GPL. Todo I/O passa pelo `sysabi`.
 
 pub mod getopt;
-pub mod sysutil;
+pub use sysabi::util as sysutil;
 pub mod tz;
 
 pub mod cmp;

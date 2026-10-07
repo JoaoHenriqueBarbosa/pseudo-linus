@@ -387,29 +387,15 @@ fn exe_name_match(name: &[u8], test: &str) -> bool {
     name.starts_with(test.as_bytes()) && matches!(name.get(test.len()), None | Some(b'.'))
 }
 
-fn stat_path(path: &[u8]) -> SysResult<Stat> {
-    common::stat(path)
-}
-
-fn is_regular(path: &[u8]) -> bool {
-    stat_path(path).is_ok_and(|st| st.file_type() == FileType::Regular)
-}
-
-fn is_directory(path: &[u8]) -> bool {
-    stat_path(path).is_ok_and(|st| st.file_type() == FileType::Directory)
-}
-
-fn is_link(path: &[u8]) -> bool {
-    common::lstat(path).is_ok_and(|st| st.file_type() == FileType::Symlink)
-}
-
-fn is_fifo(path: &[u8]) -> bool {
-    stat_path(path).is_ok_and(|st| st.file_type() == FileType::Fifo)
+/// O caminho existe e é do tipo `ft` (seguindo links, menos para `Symlink`).
+fn is_type(path: &[u8], ft: FileType) -> bool {
+    let st = if ft == FileType::Symlink { common::lstat(path) } else { common::stat(path) };
+    st.is_ok_and(|st| st.file_type() == ft)
 }
 
 /// `UTIL_getFileSize`: tamanho de arquivo regular, ou desconhecido.
 fn file_size(path: &[u8]) -> u64 {
-    match stat_path(path) {
+    match common::stat(path) {
         Ok(st) => file_size_stat(&st),
         Err(_) => FILESIZE_UNKNOWN,
     }
@@ -421,10 +407,6 @@ fn file_size_stat(st: &Stat) -> u64 {
 
 fn same_file(a: &Stat, b: &Stat) -> bool {
     a.dev == b.dev && a.ino == b.ino
-}
-
-fn isatty(fd: Fd) -> bool {
-    common::isatty(fd)
 }
 
 /// O programa: estado do `zstdcli.c` e do `fileio.c`.
@@ -474,15 +456,15 @@ impl Zstd {
     }
 
     fn console_stdin(&self) -> bool {
-        self.fake_stdin_console || isatty(Fd::STDIN)
+        self.fake_stdin_console || common::isatty(Fd::STDIN)
     }
 
     fn console_stdout(&self) -> bool {
-        self.fake_stdout_console || isatty(Fd::STDOUT)
+        self.fake_stdout_console || common::isatty(Fd::STDOUT)
     }
 
     fn console_stderr(&self) -> bool {
-        self.fake_stderr_console || isatty(Fd::STDERR)
+        self.fake_stderr_console || common::isatty(Fd::STDERR)
     }
 
     /// `UTIL_makeHumanReadableSize`.
@@ -585,7 +567,7 @@ impl Zstd {
 
     /// `FIO_removeFile`: `Ok` quando removeu ou recusou com aviso; `Err` com o errno do `remove`.
     fn remove_file(&self, path: &[u8]) -> Result<(), Errno> {
-        let Ok(st) = stat_path(path) else {
+        let Ok(st) = common::stat(path) else {
             self.disp(2, msg!("zstd: Failed to stat ", path, " while trying to remove it\n"));
             return Ok(());
         };
@@ -602,7 +584,7 @@ impl Zstd {
             self.disp(4, "Using stdin for input \n");
             return Some((Fd::STDIN, None));
         }
-        let st = match stat_path(name) {
+        let st = match common::stat(name) {
             Ok(st) => st,
             Err(e) => {
                 self.disp(1, msg!("zstd: can't stat ", name, " : ", e.message(), " -- ignored \n"));
@@ -638,13 +620,13 @@ impl Zstd {
             return Ok(true);
         }
         if let Some(src) = src
-            && let (Ok(a), Ok(b)) = (stat_path(src), stat_path(dst))
+            && let (Ok(a), Ok(b)) = (common::stat(src), common::stat(dst))
             && same_file(&a, &b)
         {
             self.disp(1, "zstd: Refusing to open an output file which will overwrite the input file \n");
             return Ok(false);
         }
-        let dst_is_reg = is_regular(dst);
+        let dst_is_reg = is_type(dst, FileType::Regular);
         if self.prefs.sparse == 1 && !dst_is_reg {
             self.prefs.sparse = 0;
             self.disp(4, "Sparse File Support is disabled when output is not a file \n");
@@ -757,7 +739,7 @@ impl Zstd {
     /// Carrega o dicionário (`FIO_initDict` com o `FIO_getDictFileStat`).
     fn load_dict(&self, name: Option<&[u8]>) -> R<Option<(Vec<u8>, Stat)>> {
         let Some(name) = name else { return Ok(None) };
-        let st = match stat_path(name) {
+        let st = match common::stat(name) {
             Ok(st) => st,
             Err(e) => {
                 return Err(self.throw(31, msg!("Stat failed on dictionary file ", name, ": ", e.message())));
@@ -1151,7 +1133,7 @@ fn mirror_source_dirs(names: &[Vec<u8>], root: &[u8]) {
         ends.push(dir.len());
         for e in ends {
             let part = &dir[..e];
-            let mode = stat_path(part).map(|st| st.mode & 0o7777).unwrap_or(0o755);
+            let mode = common::stat(part).map(|st| st.mode & 0o7777).unwrap_or(0o755);
             let _ = cur.mkdirat(Fd::CWD, &join_dirs(root, trim_path(part)), mode);
         }
     }
@@ -1364,7 +1346,7 @@ impl Zstd {
     fn compress_src_file(&mut self, ress: &CRess, dst: &[u8], src: &[u8], level: i32) -> R<i32> {
         self.disp(6, msg!("FIO_compressFilename_srcFile: ", src, " \n"));
         if src != STDIN_MARK
-            && let Ok(st) = stat_path(src)
+            && let Ok(st) = common::stat(src)
         {
             if st.file_type() == FileType::Directory {
                 self.disp(1, msg!("zstd: ", src, " is a directory -- ignored \n"));
@@ -1894,7 +1876,7 @@ impl Zstd {
 
     /// `FIO_decompressSrcFile`.
     fn decompress_src_file(&mut self, dst: &[u8], src: &[u8]) -> R<i32> {
-        if is_directory(src) {
+        if is_type(src, FileType::Directory) {
             self.disp(1, msg!("zstd: ", src, " is a directory -- ignored \n"));
             return Ok(1);
         }
@@ -2154,7 +2136,7 @@ impl Zstd {
 
     /// `getFileInfo`.
     fn get_file_info(&self, info: &mut FileInfo, name: &[u8]) -> InfoError {
-        if !is_regular(name) {
+        if !is_type(name, FileType::Regular) {
             return self.info_error(msg!("Error : ", name, " is not a file"), InfoError::File);
         }
         let Some((fd, st)) = self.open_src(name, false) else {
@@ -3578,7 +3560,7 @@ impl Cli {
 
 /// `readLinesFromFile`: uma entrada por linha, sem o `\n`; linha vazia conta.
 fn read_file_list(name: &[u8]) -> Option<Vec<Vec<u8>>> {
-    let st = stat_path(name).ok()?;
+    let st = common::stat(name).ok()?;
     if st.file_type() != FileType::Regular || st.size > MAX_FILE_OF_FILE_NAMES_SIZE {
         return None;
     }
@@ -3617,13 +3599,13 @@ impl Zstd {
             let mut path = dir.to_vec();
             path.push(b'/');
             path.extend_from_slice(&name);
-            if !follow_links && is_link(&path) {
+            if !follow_links && is_type(&path, FileType::Symlink) {
                 if self.util_level >= 2 {
                     common::eprint(msg!("Warning : ", path, " is a symbolic link, ignoring\n"));
                 }
                 continue;
             }
-            if is_directory(&path) {
+            if is_type(&path, FileType::Directory) {
                 self.prepare_file_list(&path, follow_links, out);
             } else {
                 out.push(path);
@@ -3635,7 +3617,7 @@ impl Zstd {
     fn expand_file_names(&self, names: &[Vec<u8>], follow_links: bool) -> Vec<Vec<u8>> {
         let mut out = Vec::new();
         for n in names {
-            if is_directory(n) {
+            if is_type(n, FileType::Directory) {
                 self.prepare_file_list(n, follow_links, &mut out);
             } else {
                 out.push(n.clone());
@@ -3668,7 +3650,7 @@ impl Zstd {
             let total = c.filenames.len();
             let mut kept = Vec::new();
             for n in std::mem::take(&mut c.filenames) {
-                if is_link(&n) && !is_fifo(&n) {
+                if is_type(&n, FileType::Symlink) && !is_type(&n, FileType::Fifo) {
                     self.disp(2, msg!("Warning : ", n, " is a symbolic link, ignoring \n"));
                 } else {
                     kept.push(n);
@@ -4453,7 +4435,7 @@ impl Zstd {
         let mut sizes = Vec::new();
         for n in names {
             let mut size = file_size(n);
-            if is_directory(n) {
+            if is_type(n, FileType::Directory) {
                 self.disp(2, msg!("Ignoring ", n, " directory...       \n"));
                 sizes.push(0);
                 continue;
@@ -4513,7 +4495,7 @@ impl Zstd {
         if let Some(d) = dict {
             let size = file_size(d);
             if size == FILESIZE_UNKNOWN {
-                let e = stat_path(d).err().unwrap_or(Errno::EINVAL);
+                let e = common::stat(d).err().unwrap_or(Errno::EINVAL);
                 self.disp(1, msg!("error loading ", d, " : ", e.message(), " \n"));
                 self.disp(1, "benchmark aborted");
                 return Ok(17);

@@ -9,7 +9,7 @@
 pub mod codec;
 pub mod gailly;
 pub mod getopt;
-pub mod sysutil;
+pub use sysabi::util as sysutil;
 pub mod tz;
 
 // Os módulos dos CLIs não se chamam `tar` e `zip` pra não esconder as crates de mesmo nome.

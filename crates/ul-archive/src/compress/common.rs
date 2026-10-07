@@ -197,13 +197,7 @@ pub fn fstat(fd: Fd) -> SysResult<Stat> {
     sys::current().fstat(fd)
 }
 
-pub fn lstat(path: &[u8]) -> SysResult<Stat> {
-    sys::current().fstatat(Fd::CWD, path, AtFlags::SYMLINK_NOFOLLOW)
-}
-
-pub fn stat(path: &[u8]) -> SysResult<Stat> {
-    sys::current().fstatat(Fd::CWD, path, AtFlags::empty())
-}
+pub use sysabi::sys::{lstat, stat};
 
 pub fn unlink(path: &[u8]) -> SysResult<()> {
     sys::current().unlinkat(Fd::CWD, path, AtFlags::empty())
@@ -242,10 +236,7 @@ pub fn read_dir(path: &[u8]) -> SysResult<Vec<Vec<u8>>> {
     Ok(sys::read_dir(path)?.into_iter().map(|e| e.name).collect())
 }
 
-/// Junta diretório e nome.
-pub fn join(dir: &[u8], name: &[u8]) -> Vec<u8> {
-    crate::sysutil::join(dir, name)
-}
+pub use crate::sysutil::{eprint, join, read_fd as read_all};
 
 /// Último componente do caminho.
 pub fn base_name(path: &[u8]) -> &[u8] {
@@ -253,11 +244,6 @@ pub fn base_name(path: &[u8]) -> &[u8] {
         Some(i) => &path[i + 1..],
         None => path,
     }
-}
-
-/// Escreve no stderr.
-pub fn eprint(s: impl AsRef<[u8]>) {
-    crate::sysutil::eprint(s);
 }
 
 /// Escreve no stdout (as listagens são linha a linha, sem buffer próprio).
@@ -277,11 +263,6 @@ pub fn cat(parts: &[&[u8]]) -> Vec<u8> {
         v.extend_from_slice(p);
     }
     v
-}
-
-/// Lê um fd inteiro (pra quem precisa do arquivo todo, como `-l`).
-pub fn read_all(fd: Fd) -> SysResult<Vec<u8>> {
-    sys::read_to_end(fd)
 }
 
 /// `pread` completo de `len` bytes a partir de `off` (menos no fim do arquivo).

@@ -1,13 +1,13 @@
 //! Utilitários de E/S dos programas sobre o `sysabi`: argv em bytes, mensagens de erro no formato do
 //! `error(3)`, saída com buffer, leitura de arquivo inteiro (com `-` = entrada padrão) e `stat`.
 //!
-//! Nada aqui toca o host: tudo passa por `sysabi::sys`.
+//! Nada aqui toca o host: tudo passa por `sys`.
 
 use std::ffi::OsString;
 use std::os::unix::ffi::OsStrExt;
 
-use sysabi::sys::{self, SysResult};
-use sysabi::{AtFlags, Errno, Fd, Mode, OFlags, Stat};
+use crate::sys::{self, SysResult};
+use crate::{AtFlags, Errno, Fd, Mode, OFlags, Stat};
 
 /// argv do `main` em bytes.
 pub fn args_bytes(args: &[OsString]) -> Vec<Vec<u8>> {
@@ -15,7 +15,7 @@ pub fn args_bytes(args: &[OsString]) -> Vec<Vec<u8>> {
 }
 
 /// argv[0] como foi chamado (os programas GNU usam o caminho completo nas mensagens:
-/// `/usr/bin/tar: ...`).
+/// `/usr/bin/diff: invalid option -- 'k'`).
 pub fn argv0(args: &[Vec<u8>]) -> String {
     args.first().map(|a| String::from_utf8_lossy(a).into_owned()).unwrap_or_default()
 }
@@ -46,9 +46,9 @@ pub fn error_path(argv0: &str, path: &[u8], e: Errno) {
 /// Saída com buffer sobre um fd, com os pontos de descarga do stdio da glibc: em bloco de
 /// `st_blksize` (4096 em pipe, tmpfs e ext4) quando o fd não é terminal, por linha quando é. Isso
 /// importa quando stdout e stderr vão pro mesmo lugar (`2>&1`): a ordem das linhas fica igual à do
-/// programa GNU. Quem imita o `error(3)` do gnulib (o tar usa) deve chamar [`Output::flush`] antes de
-/// escrever no stderr, como ele faz com o `fflush(stdout)`. Guarda o primeiro erro de escrita;
-/// `finish` devolve ele.
+/// programa GNU. Quem imita o `error(3)` do gnulib deve chamar [`Output::flush`] antes de escrever no
+/// stderr, como ele faz com o `fflush(stdout)`. Guarda o primeiro erro de escrita; `finish` devolve
+/// ele.
 pub struct Output {
     fd: Fd,
     buf: Vec<u8>,
@@ -157,10 +157,7 @@ impl Drop for Output {
     }
 }
 
-/// Lê um fd até o fim (cada `read` já é ponto de preempção).
-pub fn read_fd(fd: Fd) -> SysResult<Vec<u8>> {
-    sys::read_to_end(fd)
-}
+pub use crate::sys::{lstat, read_to_end as read_fd, stat};
 
 /// Lê um arquivo inteiro; `-` é a entrada padrão.
 pub fn read_path(path: &[u8]) -> SysResult<Vec<u8>> {
@@ -189,14 +186,6 @@ pub fn write_file(path: &[u8], data: &[u8], mode: Mode) -> SysResult<()> {
     let r = sys::write_all(fd, data);
     let c = sys::close(fd);
     r.and(c)
-}
-
-pub fn stat(path: &[u8]) -> SysResult<Stat> {
-    sys::stat(path)
-}
-
-pub fn lstat(path: &[u8]) -> SysResult<Stat> {
-    sys::lstat(path)
 }
 
 pub fn fstat(fd: Fd) -> SysResult<Stat> {
