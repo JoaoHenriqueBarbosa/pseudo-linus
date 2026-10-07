@@ -4,6 +4,7 @@ Cada socket tem um descritor inteiro numa tabela própria, para o `socket.py` of
 `fromfd`, `socketpair`, `makefile`) funcionar por cima sem mudança."""
 
 import errno as _errno
+import weakref as _weakref_mod
 
 import _net
 import _os
@@ -123,7 +124,11 @@ class gaierror(OSError):
 timeout = TimeoutError
 
 _default_timeout = [None]
-_fds = {}
+# A tabela de descritores não mantém o socket vivo: como no CPython, o socket que ninguém mais
+# referencia fecha (o fd do kernel vai junto, pelo `fdguard`). Só o descritor solto por `detach` ou
+# `dup` fica em `_held` até ser reaberto.
+_fds = _weakref_mod.WeakValueDictionary()
+_held = {}
 _next_fd = [100]
 
 
@@ -169,6 +174,26 @@ class _State:
         # O socket do kernel de um `AF_UNIX` ainda sem conexão, escuta nem fila de datagramas (que, quando
         # nascem, passam a ser donos dele).
         self.kfd = None
+        self.kguard = None
+
+    def set_kfd(self, fd):
+        """O socket do kernel deste estado; ele fecha quando o estado deixa de existir."""
+        self.kfd = fd
+        self.kguard = _os.fdguard(fd)
+
+    def take_kfd(self):
+        """Passa o fd do kernel ao novo dono (conexão, escuta ou fila de datagramas), sem fechar."""
+        fd, self.kfd = self.kfd, None
+        if self.kguard is not None:
+            self.kguard.detach()
+            self.kguard = None
+        return fd
+
+    def close_kfd(self):
+        self.kfd = None
+        if self.kguard is not None:
+            guard, self.kguard = self.kguard, None
+            guard.close()
 
     def unix_kfd(self):
         """O fd do kernel deste socket Unix, com quem quer que seja o dono agora."""
@@ -206,6 +231,7 @@ class socket:
             state = _fds.get(fileno)
             if state is None:
                 raise OSError(_errno.EBADF, 'Bad file descriptor')
+            _held.pop(fileno, None)
             if family != -1 and family != state.family:
                 state.family = family
             self._st = state
@@ -228,7 +254,13 @@ class socket:
             state.timeout = 0.0
         if family == AF_UNIX:
             try:
-                state.kfd = _os.unix_socket(type)
+                state.set_kfd(_os.unix_socket(type))
+            except OSError as e:
+                if e.errno != _errno.ENOSYS:
+                    raise
+        elif type == SOCK_DGRAM:
+            try:
+                state.set_kfd(_os.udp_socket(family == AF_INET6))
             except OSError as e:
                 if e.errno != _errno.ENOSYS:
                     raise
@@ -273,6 +305,8 @@ class socket:
         self._st = None
         if st is not None:
             st.refs -= 1
+            # O descritor solto fica aberto até alguém o reabrir com `socket(fileno=)`.
+            _held[st.fd] = st
         return fd
 
     def close(self):
@@ -285,15 +319,14 @@ class socket:
             return
         st.closed = True
         _fds.pop(st.fd, None)
+        _held.pop(st.fd, None)
         if st.endpoint is not None:
             st.endpoint.close()
         if st.listener is not None:
             st.listener.close()
         if st.dgram is not None:
             st.dgram.close()
-        if st.kfd is not None:
-            kfd, st.kfd = st.kfd, None
-            _os.close(kfd)
+        st.close_kfd()
         if st.port is not None and st.dgram is None and st.endpoint is None:
             _net.release_port(st.port)
 
@@ -376,6 +409,9 @@ class socket:
         st = self._live()
         if st.family == AF_UNIX and st.unix_kfd() is not None:
             return _net.unix_name(_os.unix_names(st.unix_kfd())[0])
+        if st.type == SOCK_DGRAM and st.unix_kfd() is not None:
+            ip, port = _os.udp_names(st.unix_kfd())[0]
+            return _net.address(st.family, ip, port)
         if st.endpoint is not None:
             return st.endpoint.local
         if st.dgram is not None and st.dgram.addr is not None:
@@ -393,6 +429,11 @@ class socket:
             if not connected:
                 raise OSError(_errno.ENOTCONN, 'Transport endpoint is not connected')
             return _net.unix_name(peer)
+        if st.type == SOCK_DGRAM and st.unix_kfd() is not None:
+            peer = _os.udp_names(st.unix_kfd())[1]
+            if peer is None:
+                raise OSError(_errno.ENOTCONN, 'Transport endpoint is not connected')
+            return _net.address(st.family, peer[0], peer[1])
         if st.endpoint is not None:
             return st.endpoint.peer
         if st.peer is not None:
@@ -409,13 +450,20 @@ class socket:
             if kfd is not None:
                 _os.unix_bind(kfd, _net.unix_encode(address))
                 if st.type == SOCK_DGRAM and st.dgram is None:
-                    st.dgram, st.kfd = _net.KernelDatagram(kfd), None
+                    st.dgram = _net.KernelDatagram(st.take_kfd())
             st.addr = address
             return
         host, port = address[0], address[1]
         if not _net.is_local(host):
             raise OSError(_errno.EADDRNOTAVAIL, 'Cannot assign requested address')
         reuse = bool(st.options.get((SOL_SOCKET, SO_REUSEADDR)) or st.options.get((SOL_SOCKET, SO_REUSEPORT)))
+        if st.type == SOCK_DGRAM and st.unix_kfd() is not None:
+            kfd = st.unix_kfd()
+            port = _os.udp_bind(kfd, host, port, reuse)
+            st.addr = _net.address(st.family, host, port)
+            if st.dgram is None:
+                st.dgram = _net.KernelUdp(st.family, st.take_kfd())
+            return
         if port == 0:
             port = _net.alloc_port()
             st.ephemeral = True
@@ -435,7 +483,7 @@ class socket:
             kfd = st.unix_kfd()
             _os.unix_listen(kfd, max(backlog, 0))
             if st.listener is None:
-                st.listener, st.kfd = _net.unix_listener(kfd, st.addr, backlog), None
+                st.listener = _net.unix_listener(st.take_kfd(), st.addr, backlog)
             return
         if st.type != SOCK_STREAM or st.endpoint is not None:
             raise OSError(_errno.EOPNOTSUPP if st.type != SOCK_STREAM else _errno.EINVAL, 'Operation not supported')
@@ -469,6 +517,8 @@ class socket:
         new.endpoint = endpoint
         new.timeout = _default_timeout[0]
         fd = _new_fd(new)
+        # Só o número sai daqui: o `socket.accept` do socket.py o reabre com `socket(fileno=fd)`.
+        _held[fd] = new
         return fd, endpoint.peer
 
     def connect(self, address):
@@ -494,10 +544,25 @@ class socket:
                 return e.errno
             if st.type == SOCK_DGRAM:
                 if st.dgram is None:
-                    st.dgram, st.kfd = _net.KernelDatagram(kfd), None
+                    st.dgram = _net.KernelDatagram(st.take_kfd())
                 st.peer = address
             elif st.endpoint is None:
-                st.endpoint, st.kfd = _net.unix_endpoint(kfd), None
+                st.endpoint = _net.unix_endpoint(st.take_kfd())
+            return 0
+        if st.type == SOCK_DGRAM and st.unix_kfd() is not None:
+            kfd = st.unix_kfd()
+            host = address[0]
+            if not _net.is_local(host):
+                return _errno.ENETUNREACH
+            if host == '<broadcast>' or host == _net.hostname():
+                host = _net.loopback_ip(st.family)
+            try:
+                _os.udp_connect(kfd, host, address[1])
+            except OSError as e:
+                return e.errno
+            if st.dgram is None:
+                st.dgram = _net.KernelUdp(st.family, st.take_kfd())
+            st.peer = address
             return 0
         if st.type == SOCK_DGRAM:
             if not _net.is_local(address[0]) if st.family != AF_UNIX else False:
@@ -549,16 +614,27 @@ class socket:
             return data, (st.endpoint.peer if st.endpoint is not None else None)
         if st.dgram is None:
             if st.family == AF_UNIX and st.kfd is not None:
-                st.dgram, st.kfd = _net.KernelDatagram(st.kfd), None
+                st.dgram = _net.KernelDatagram(st.take_kfd())
+            elif st.kfd is not None:
+                # Sem `bind`, o socket UDP espera sem porta, como no Linux.
+                st.dgram = _net.KernelUdp(st.family, st.take_kfd())
             else:
                 socket.bind(self, ('', 0))
         dg = st.dgram
-        if not _wait(dg.readable, 0.0 if flags & MSG_DONTWAIT else st.timeout, 'socket.recvfrom()'):
-            if st.timeout == 0.0 or flags & MSG_DONTWAIT:
-                raise _would_block()
-            raise TimeoutError('timed out')
-        data, source = dg.rx.popleft() if not flags & MSG_PEEK else dg.rx[0]
-        return data[:bufsize], source
+        peek = bool(flags & MSG_PEEK)
+        while True:
+            if not _wait(dg.readable, 0.0 if flags & MSG_DONTWAIT else st.timeout, 'socket.recvfrom()'):
+                if st.timeout == 0.0 or flags & MSG_DONTWAIT:
+                    raise _would_block()
+                raise TimeoutError('timed out')
+            if not hasattr(dg, 'recv'):
+                data, source = dg.rx.popleft() if not peek else dg.rx[0]
+                return data[:bufsize], source
+            got = dg.recv(bufsize, peek)
+            if got is not None:
+                return got
+            if dg.closed:
+                raise OSError(_errno.EBADF, 'Bad file descriptor')
 
     def recvfrom_into(self, buffer, nbytes=0, flags=0):
         view = memoryview(buffer)
@@ -570,7 +646,7 @@ class socket:
         st = self._live()
         data = bytes(data)
         if st.type == SOCK_DGRAM:
-            if isinstance(st.dgram, _net.KernelDatagram) and st.peer is not None:
+            if isinstance(st.dgram, (_net.KernelDatagram, _net.KernelUdp)) and st.peer is not None:
                 # O kernel manda para o par do `connect` (e recusa se ele fechou).
                 return st.dgram.sendto(data)
             if st.peer is None:
@@ -593,7 +669,12 @@ class socket:
         address = self._norm(address)
         if st.dgram is None and st.family == AF_UNIX and st.kfd is not None:
             # Um socket Unix sem nome envia sem nome: o kernel não faz autobind.
-            st.dgram, st.kfd = _net.KernelDatagram(st.kfd), None
+            st.dgram = _net.KernelDatagram(st.take_kfd())
+        elif st.dgram is None and st.kfd is not None:
+            # O UDP ganha porta efêmera no kernel, no primeiro envio.
+            if not _net.is_local(address[0]):
+                raise OSError(_errno.ENETUNREACH, 'Network is unreachable')
+            st.dgram = _net.KernelUdp(st.family, st.take_kfd())
         if st.dgram is None:
             st.dgram = _net.Datagram(st.family)
             socket.bind(self, (_net.loopback_ip(st.family), 0))
@@ -629,8 +710,7 @@ def socketpair(family=AF_UNIX, type=SOCK_STREAM, proto=0):
             for kfd in (ka, kb):
                 s = socket(AF_UNIX, type, proto)
                 st = s._st
-                _os.close(st.kfd)
-                st.kfd = None
+                st.close_kfd()
                 if st.type == SOCK_DGRAM:
                     st.dgram = _net.KernelDatagram(kfd)
                     st.peer = ''
@@ -662,6 +742,7 @@ def dup(fd):
     if st is None:
         raise OSError(_errno.EBADF, 'Bad file descriptor')
     st.refs += 1
+    _held[fd] = st
     return fd
 
 

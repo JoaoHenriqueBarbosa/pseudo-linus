@@ -228,6 +228,10 @@ impl ProcProvider for SbProcProvider {
                 let text = format!("socket:[{}]", u.ident.ino).into_bytes();
                 (text.clone(), Link::Path(text))
             }
+            FileObj::Udp(u) => {
+                let text = format!("socket:[{}]", u.ident.ino).into_bytes();
+                (text.clone(), Link::Path(text))
+            }
         };
         Some(FdLink { text, target, perm })
     }
@@ -289,6 +293,17 @@ impl ProcProvider for SbProcProvider {
 
     fn unix_socks(&self) -> Vec<vfs::procfs::UnixSockRow> {
         self.sb().map_or_else(Vec::new, |sb| sb.unix.rows())
+    }
+
+    fn udp_socks(&self) -> Vec<vfs::procfs::UdpSockRow> {
+        self.sb().map_or_else(Vec::new, |sb| sb.udp.rows())
+    }
+
+    fn socket_count(&self) -> usize {
+        self.sb().map_or(0, |sb| {
+            let tcp = sb.ports.tcp_socks().iter().filter(|s| s.tail.is_some()).count();
+            tcp + sb.unix.rows().len() + sb.udp.count()
+        })
     }
 
     fn version(&self) -> Vec<u8> {
@@ -355,6 +370,7 @@ fn describe_fd(sb: &SbInner, ofd: &Ofd, cloexec: bool) -> FdInfo {
         FileObj::Listener(l) => (SOCKFS_MNT_ID, l.ident.ino),
         FileObj::Stream(c) => (SOCKFS_MNT_ID, c.ident.ino),
         FileObj::Unix(u) => (SOCKFS_MNT_ID, u.ident.ino),
+        FileObj::Udp(u) => (SOCKFS_MNT_ID, u.ident.ino),
         FileObj::Dev { loc: Some(loc), .. } => {
             flags |= O_LARGEFILE;
             (loc.mnt.id, loc.ino)

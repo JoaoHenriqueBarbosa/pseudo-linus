@@ -216,8 +216,8 @@ struct Side {
     accepted: bool,
     /// Quando esta ponta fechou (o `close` do último fd, ou o descarte sem `accept`).
     closed: Option<Instant>,
-    /// A leitura desta ponta chegou ao EOF antes do `close`.
-    saw_eof: bool,
+    /// Quando esta ponta mandou o FIN: o `shutdown(SHUT_WR)` ou o `close`, o que vier antes.
+    fin: Option<Instant>,
     ptr: u32,
     /// O socket de time-wait que o kernel cria no lugar do órfão tem outro endereço.
     tw_ptr: u32,
@@ -225,7 +225,7 @@ struct Side {
 
 impl Side {
     fn new(local: (IpAddr, u16), remote: (IpAddr, u16), ino: u64, uid: u32, rx: &Arc<Pipe>, accepted: bool) -> Side {
-        Side { local, remote, ino, uid, rx: Arc::downgrade(rx), accepted, closed: None, saw_eof: false, ptr: hashed_ptr(), tw_ptr: hashed_ptr() }
+        Side { local, remote, ino, uid, rx: Arc::downgrade(rx), accepted, closed: None, fin: None, ptr: hashed_ptr(), tw_ptr: hashed_ptr() }
     }
 
     fn base(&self, state: u8) -> TcpSock {
@@ -259,37 +259,47 @@ impl Side {
         Some(s)
     }
 
-    /// A linha desta ponta, ou nada se ela já saiu da tabela. Quem fecha primeiro fica órfão no
-    /// FIN_WAIT2 enquanto o outro lado está no CLOSE_WAIT; quando o outro fecha, o primeiro passa ao
-    /// TIME_WAIT e o segundo sai (LAST_ACK e CLOSED no loopback são instantâneos).
+    /// A linha desta ponta, ou nada se ela já saiu da tabela. Quem manda o FIN primeiro fica no
+    /// FIN_WAIT2 (órfão, no formato de time-wait, se já fechou) enquanto o outro lado está no
+    /// CLOSE_WAIT; quando o FIN do outro chega, o primeiro passa ao TIME_WAIT e o segundo sai (LAST_ACK
+    /// e CLOSED no loopback são instantâneos). Um socket aberto que entra no TIME_WAIT também sai da
+    /// tabela: no lugar dele fica o de time-wait.
     fn row(&self, other: &Side, now: Instant) -> Option<TcpSock> {
         let unread = self.rx.upgrade().map_or(0, |p| p.pending()) as u32;
-        match (self.closed, other.closed) {
-            (None, peer) => {
-                let mut s = self.base(if peer.is_some() { tcp_state::CLOSE_WAIT } else { tcp_state::ESTABLISHED });
-                // O FIN do outro lado conta como um byte na fila de recepção.
-                s.rx_queue = unread + u32::from(peer.is_some());
-                s.uid = self.uid;
-                s.inode = if self.accepted { self.ino } else { 0 };
-                let got = s.rx_queue > 0;
-                s.tail = Some((20, if got { 4 } else { 0 }, if unread > 0 { 30 } else { 0 }, 10, -1));
-                Some(s)
-            }
-            (Some(mine), None) => self.timewait(tcp_state::FIN_WAIT2, mine, now),
+        match (self.fin, other.fin) {
             (Some(mine), Some(theirs)) => {
-                // O primeiro a fechar passa pelo TIME_WAIT, se o FIN_WAIT2 dele não venceu antes. O
-                // segundo sai pelo LAST_ACK, a menos que tenha fechado sem ler o EOF: aí os dois FIN
-                // se cruzaram (fechamento simultâneo, CLOSING) e ele também fica no TIME_WAIT.
-                let first = mine <= theirs && theirs.saturating_duration_since(mine) < TIMEWAIT_LEN;
-                if first {
+                // O segundo FIN fecha a conexão: o primeiro a mandar passa pelo TIME_WAIT, se o
+                // FIN_WAIT2 dele não venceu antes.
+                if mine <= theirs && theirs.saturating_duration_since(mine) < TIMEWAIT_LEN {
                     self.timewait(tcp_state::TIME_WAIT, theirs, now)
-                } else if mine > theirs && !self.saw_eof && mine.saturating_duration_since(theirs) < TIMEWAIT_LEN {
-                    self.timewait(tcp_state::TIME_WAIT, mine, now)
                 } else {
                     None
                 }
             }
+            (Some(mine), None) => match self.closed {
+                Some(closed) => self.timewait(tcp_state::FIN_WAIT2, closed, now),
+                None => {
+                    let _ = mine;
+                    Some(self.full(tcp_state::FIN_WAIT2, unread, false))
+                }
+            },
+            (None, peer) => {
+                let state = if peer.is_some() { tcp_state::CLOSE_WAIT } else { tcp_state::ESTABLISHED };
+                Some(self.full(state, unread, peer.is_some()))
+            }
         }
+    }
+
+    /// A linha de um socket completo (com inode e as colunas do fim).
+    fn full(&self, state: u8, unread: u32, peer_fin: bool) -> TcpSock {
+        let mut s = self.base(state);
+        // O FIN do outro lado conta como um byte na fila de recepção.
+        s.rx_queue = unread + u32::from(peer_fin);
+        s.uid = self.uid;
+        s.inode = if self.accepted { self.ino } else { 0 };
+        let got = s.rx_queue > 0;
+        s.tail = Some((20, if got { 4 } else { 0 }, if unread > 0 { 30 } else { 0 }, 10, -1));
+        s
     }
 }
 
@@ -423,7 +433,10 @@ impl Drop for Conn {
             let _ = self.reset_peer.compare_exchange(RESET_NONE, RESET_PENDING, Ordering::SeqCst, Ordering::SeqCst);
         }
         if let Some((pair, i)) = &self.pair {
-            pair.sides.lock()[*i].closed.get_or_insert_with(Instant::now);
+            let mut sides = pair.sides.lock();
+            let now = Instant::now();
+            sides[*i].closed.get_or_insert(now);
+            sides[*i].fin.get_or_insert(now);
         }
         // As pontas caem depois daqui: o outro lado acorda com a flag já posta.
     }
@@ -447,13 +460,6 @@ impl Conn {
     /// A outra ponta ainda existe (não foi fechada nem descartada).
     pub(crate) fn peer_open(&self) -> bool {
         Arc::strong_count(&self.reset_me) > 1
-    }
-
-    /// A leitura desta ponta já devolveu o EOF: o FIN do outro lado foi consumido.
-    pub(crate) fn saw_eof(&self) {
-        if let Some((pair, i)) = &self.pair {
-            pair.sides.lock()[*i].saw_eof = true;
-        }
     }
 
     /// Escrita para um par que já fechou: o Linux aceita a primeira e o outro lado responde com RST,
@@ -491,6 +497,9 @@ impl Conn {
     pub(crate) fn shutdown(&self, read: bool, write: bool) {
         let (r, w) = (read.then(|| self.rx.lock().take()), write.then(|| self.tx.lock().take()));
         drop((r, w));
+        if write && let Some((pair, i)) = &self.pair {
+            pair.sides.lock()[*i].fin.get_or_insert_with(Instant::now);
+        }
     }
 
     pub(crate) fn poll(&self, waiter: Option<&Arc<Parker>>) -> PollEvents {

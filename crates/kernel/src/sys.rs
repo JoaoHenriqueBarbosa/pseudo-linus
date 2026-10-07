@@ -540,6 +540,7 @@ impl Task {
             FileObj::Listener(l) => Ok(crate::net::sock_stat(&l.ident)),
             FileObj::Stream(c) => Ok(crate::net::sock_stat(&c.ident)),
             FileObj::Unix(u) => Ok(crate::net::sock_stat(&u.ident)),
+            FileObj::Udp(u) => Ok(crate::net::sock_stat(&u.ident)),
         }
     }
 
@@ -608,7 +609,26 @@ impl Task {
                     None => Err(Errno::EINVAL),
                 }
             }
+            FileObj::Udp(u) => {
+                if at.is_some() {
+                    return Err(Errno::ESPIPE);
+                }
+                let (data, _) = self.udp_recv(ofd, u, false)?;
+                let n = data.len().min(buf.len());
+                buf[..n].copy_from_slice(&data[..n]);
+                Ok(n)
+            }
         }
+    }
+
+    /// O próximo datagrama de um socket UDP, esperando se o fd é bloqueante.
+    fn udp_recv(&self, ofd: &Arc<Ofd>, u: &Arc<crate::udp::UdpSock>, peek: bool) -> SysResult<(Vec<u8>, (std::net::IpAddr, u16))> {
+        let nonblock = ofd.nonblock();
+        let r = self.wait_event(None, |p| u.try_recv(peek, nonblock, p));
+        if r.is_err() {
+            u.unregister(&self.parker);
+        }
+        r
     }
 
     /// Leitura de uma conexão (TCP de loopback ou socket Unix de fluxo).
@@ -627,9 +647,6 @@ impl Task {
         // Acordou com EOF porque o outro lado fechou com RST: o erro vem antes do EOF.
         if r == Ok(0) && matches!(c.take_reset(), crate::net::ResetState::Pending) {
             return Err(Errno::ECONNRESET);
-        }
-        if r == Ok(0) && !buf.is_empty() {
-            c.saw_eof();
         }
         r
     }
@@ -671,6 +688,14 @@ impl Task {
             u.unregister(&self.parker);
         }
         r
+    }
+
+    /// O socket UDP de `fd`; ENOTSOCK se não é um.
+    fn udp_of(&self, fd: Fd) -> SysResult<Arc<crate::udp::UdpSock>> {
+        match &self.ofd(fd)?.obj {
+            FileObj::Udp(u) => Ok(u.clone()),
+            _ => Err(Errno::ENOTSOCK),
+        }
     }
 
     /// O socket Unix de `fd`; ENOTSOCK se não é um.
@@ -810,6 +835,12 @@ impl Task {
                     Some(c) => self.stream_write(ofd, &c, buf),
                     None => Err(Errno::ENOTCONN),
                 }
+            }
+            FileObj::Udp(u) => {
+                if at.is_some() {
+                    return Err(Errno::ESPIPE);
+                }
+                self.sb.udp.send(u, buf, None)
             }
             FileObj::Dev { dev: Device::Pty(end), .. } => {
                 if at.is_some() {
@@ -994,6 +1025,7 @@ impl Task {
             FileObj::Listener(l) => l.poll(w),
             FileObj::Stream(c) => c.poll(w),
             FileObj::Unix(u) => u.poll(w),
+            FileObj::Udp(u) => u.poll(w),
         };
         ready & (pfd.events | PollEvents::ERR | PollEvents::HUP | PollEvents::NVAL)
     }
@@ -1068,7 +1100,7 @@ impl Syscalls for Task {
         self.enter();
         let ofd = self.ofd(fd)?;
         match &ofd.obj {
-            FileObj::Pipe { .. } | FileObj::Listener(_) | FileObj::Stream(_) | FileObj::Unix(_) => Err(Errno::ESPIPE),
+            FileObj::Pipe { .. } | FileObj::Listener(_) | FileObj::Stream(_) | FileObj::Unix(_) | FileObj::Udp(_) => Err(Errno::ESPIPE),
             FileObj::Path { .. } => Err(Errno::EBADF),
             FileObj::Dev { dev, .. } => dev.lseek(),
             FileObj::Vfs { kind: FileType::Directory, .. } => {
@@ -1567,6 +1599,44 @@ impl Syscalls for Task {
             FileObj::Listener(l) => Ok((l.port, None)),
             _ => Err(Errno::ENOTSOCK),
         }
+    }
+
+    fn udp_socket(&self, v6: bool, nonblock: bool, cloexec: bool) -> SysResult<Fd> {
+        self.enter();
+        let sock = self.sb.udp.socket(v6, self.sock_pipe());
+        self.install_sock(FileObj::Udp(sock), nonblock, cloexec)
+    }
+
+    fn udp_bind(&self, fd: Fd, ip: std::net::IpAddr, port: u16, reuse: bool) -> SysResult<u16> {
+        self.enter();
+        let u = self.udp_of(fd)?;
+        self.sb.udp.bind(&u, ip, port, reuse)
+    }
+
+    fn udp_connect(&self, fd: Fd, ip: std::net::IpAddr, port: u16) -> SysResult<()> {
+        self.enter();
+        let u = self.udp_of(fd)?;
+        self.sb.udp.connect(&u, ip, port)
+    }
+
+    fn udp_sendto(&self, fd: Fd, data: &[u8], dst: Option<(std::net::IpAddr, u16)>) -> SysResult<usize> {
+        self.enter();
+        let u = self.udp_of(fd)?;
+        self.sb.udp.send(&u, data, dst)
+    }
+
+    fn udp_recvfrom(&self, fd: Fd, max: usize, peek: bool) -> SysResult<(Vec<u8>, std::net::IpAddr, u16)> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        let FileObj::Udp(u) = &ofd.obj else { return Err(Errno::ENOTSOCK) };
+        let (mut data, (ip, port)) = self.udp_recv(&ofd, u, peek)?;
+        data.truncate(max);
+        Ok((data, ip, port))
+    }
+
+    fn udp_names(&self, fd: Fd) -> SysResult<((std::net::IpAddr, u16), Option<(std::net::IpAddr, u16)>)> {
+        self.enter();
+        Ok(self.udp_of(fd)?.names())
     }
 
     fn unix_socket(&self, ty: u8, nonblock: bool, cloexec: bool) -> SysResult<Fd> {
@@ -2606,6 +2676,7 @@ impl Syscalls for Task {
                     FileObj::Listener(l) => l.unregister(&self.parker),
                     FileObj::Stream(c) => c.unregister(&self.parker),
                     FileObj::Unix(u) => u.unregister(&self.parker),
+                    FileObj::Udp(u) => u.unregister(&self.parker),
                     FileObj::Dev { dev: Device::Pty(end), .. } => end.pty.unregister(&self.parker),
                     _ => {}
                 }

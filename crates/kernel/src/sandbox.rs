@@ -243,6 +243,8 @@ pub(crate) struct SbInner {
     pub ports: Arc<crate::net::Ports>,
     /// Sockets do domínio Unix e os nomes ligados a eles.
     pub unix: Arc<crate::unix::UnixTable>,
+    /// Sockets UDP de loopback.
+    pub udp: Arc<crate::udp::UdpTable>,
 }
 
 impl SbInner {
@@ -548,6 +550,7 @@ impl Sandbox {
             ptys: Mutex::new(BTreeMap::new()),
             ports: Arc::default(),
             unix: Arc::default(),
+            udp: Arc::default(),
         });
         let _ = provider.sb.set(Arc::downgrade(&inner));
         inner.load.bind(&inner);

@@ -254,6 +254,36 @@ pub trait ProcProvider: Send + Sync {
     fn unix_socks(&self) -> Vec<UnixSockRow> {
         Vec::new()
     }
+    /// Os sockets UDP com porta (os sem `bind` não entram na tabela), na ordem dos baldes do hash.
+    fn udp_socks(&self) -> Vec<UdpSockRow> {
+        Vec::new()
+    }
+    /// Quantos sockets existem no namespace (o `sockets: used` do `sockstat`): os completos de cada
+    /// protocolo, sem os de time-wait, e os UDP também sem porta.
+    fn socket_count(&self) -> usize {
+        0
+    }
+}
+
+/// Uma linha do `/proc/net/udp` ou `udp6` (`udp4_format_sock`/`udp6_sock_seq_show`).
+#[derive(Clone, Debug)]
+pub struct UdpSockRow {
+    pub v6: bool,
+    /// O balde do hash da porta (`udp_hashfn`).
+    pub sl: u32,
+    pub local_ip: [u8; 16],
+    pub local_port: u16,
+    pub remote_ip: [u8; 16],
+    pub remote_port: u16,
+    /// `TCP_ESTABLISHED` (1) conectado, `TCP_CLOSE` (7) sem par.
+    pub state: u8,
+    /// `sk_rmem_alloc`: a soma do `truesize` dos datagramas na fila.
+    pub rx_queue: u32,
+    pub uid: Uid,
+    pub inode: u64,
+    pub refcnt: u32,
+    pub ptr: u32,
+    pub drops: u32,
 }
 
 /// Uma linha do `/proc/net/unix` (`unix_seq_show`).

@@ -1041,8 +1041,142 @@ fn unix_recvfrom(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     }
 }
 
+// ---- UDP de loopback (o `_socket` usa para todo `SOCK_DGRAM` de `AF_INET`/`AF_INET6`) ----
+
+/// Dono de um fd de socket do kernel: quando o último objeto Python que o segura morre, o fd fecha,
+/// como o `sock_dealloc` do CPython fecha o socket que ninguém mais referencia. `close()` fecha antes;
+/// `detach()` solta o fd sem fechar (para passar a outro dono).
+struct FdGuard {
+    fd: std::cell::Cell<i32>,
+}
+
+impl Drop for FdGuard {
+    fn drop(&mut self) {
+        let fd = self.fd.replace(-1);
+        if fd >= 0 && sys::try_current().is_some() {
+            let _ = sys::close(Fd(fd));
+        }
+    }
+}
+
+impl crate::object::ExtObject for FdGuard {
+    fn type_name(&self) -> &'static str {
+        "fdguard"
+    }
+
+    fn methods(&self) -> &'static [&'static str] {
+        &["close", "detach"]
+    }
+
+    fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<Result<Value, PyException>> {
+        (name == "fd").then(|| Ok(Value::Int(i64::from(self.fd.get()))))
+    }
+
+    fn call_method(&self, _vm: &mut Vm, name: &str, _args: Vec<Value>, _kw: Kw) -> Result<Value, PyException> {
+        let fd = self.fd.replace(-1);
+        match name {
+            "close" => {
+                if fd >= 0 {
+                    sys::close(Fd(fd)).map_err(|e| os_error(e, None))?;
+                }
+                Ok(Value::None)
+            }
+            _ => Ok(Value::Int(i64::from(fd))),
+        }
+    }
+}
+
+/// `fdguard(fd)`: o dono do fd.
+fn fdguard(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("fdguard", &kw)?;
+    let fd = want_int(arg("fdguard", &args, 0)?)? as i32;
+    Ok(Value::Ext(Rc::new(FdGuard { fd: std::cell::Cell::new(fd) })))
+}
+
+fn want_ip_arg(fname: &str, args: &[Value], i: usize) -> PyResult<std::net::IpAddr> {
+    match arg(fname, args, i)? {
+        Value::Str(s) => s.as_str().split('%').next().unwrap_or("").parse().map_err(|_| os_error(Errno::EINVAL, None)),
+        other => Err(type_error(format!("{fname}: expected str, not {}", other.type_name()))),
+    }
+}
+
+fn addr_value((ip, port): (std::net::IpAddr, u16)) -> Value {
+    Value::tuple(vec![Value::str(ip.to_string()), Value::Int(i64::from(port))])
+}
+
+/// `udp_socket(v6)`: o fd.
+fn udp_socket(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("udp_socket", &kw)?;
+    need_kernel()?;
+    let v6 = arg("udp_socket", &args, 0)?.is_true();
+    let fd = sys::udp_socket(v6, true, true).map_err(|e| os_error(e, None))?;
+    Ok(Value::Int(i64::from(fd.0)))
+}
+
+/// `udp_bind(fd, ip, port, reuse)`: a porta.
+fn udp_bind(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("udp_bind", &kw)?;
+    let fd = want_fd("udp_bind", &args, 0)?;
+    let ip = want_ip_arg("udp_bind", &args, 1)?;
+    let port = want_port("udp_bind", &args, 2)?;
+    let reuse = args.get(3).is_some_and(Value::is_true);
+    let port = sys::udp_bind(fd, ip, port, reuse).map_err(|e| os_error(e, None))?;
+    Ok(Value::Int(i64::from(port)))
+}
+
+/// `udp_connect(fd, ip, port)`.
+fn udp_connect(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("udp_connect", &kw)?;
+    let fd = want_fd("udp_connect", &args, 0)?;
+    let ip = want_ip_arg("udp_connect", &args, 1)?;
+    let port = want_port("udp_connect", &args, 2)?;
+    sys::udp_connect(fd, ip, port).map_err(|e| os_error(e, None))?;
+    Ok(Value::None)
+}
+
+/// `udp_sendto(fd, data, ip, port)`: sem `ip` (`None`), para o par do `connect`.
+fn udp_sendto(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("udp_sendto", &kw)?;
+    let fd = want_fd("udp_sendto", &args, 0)?;
+    let data = want_name("udp_sendto", &args, 1)?;
+    let dst = match args.get(2) {
+        None | Some(Value::None) => None,
+        Some(_) => Some((want_ip_arg("udp_sendto", &args, 2)?, want_port("udp_sendto", &args, 3)?)),
+    };
+    let n = sys::udp_sendto(fd, &data, dst).map_err(|e| os_error(e, None))?;
+    Ok(Value::Int(n as i64))
+}
+
+/// `udp_recvfrom(fd, n, peek)`: `(dados, (ip, porta))`, ou `None` se não chegou nada.
+fn udp_recvfrom(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("udp_recvfrom", &kw)?;
+    let fd = want_fd("udp_recvfrom", &args, 0)?;
+    let n = want_int(arg("udp_recvfrom", &args, 1)?)?.max(0) as usize;
+    let peek = args.get(2).is_some_and(Value::is_true);
+    match sys::udp_recvfrom(fd, n, peek) {
+        Ok((data, ip, port)) => Ok(Value::tuple(vec![Value::bytes(data), addr_value((ip, port))])),
+        Err(Errno::EAGAIN) => Ok(Value::None),
+        Err(e) => Err(os_error(e, None)),
+    }
+}
+
+/// `udp_names(fd)`: `((ip, porta), (ip, porta) ou None)`.
+fn udp_names(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("udp_names", &kw)?;
+    let fd = want_fd("udp_names", &args, 0)?;
+    let (me, peer) = sys::udp_names(fd).map_err(|e| os_error(e, None))?;
+    Ok(Value::tuple(vec![addr_value(me), peer.map_or(Value::None, addr_value)]))
+}
+
 pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
     ModuleBuilder::new("_os")
+        .func("fdguard", fdguard)
+        .func("udp_socket", udp_socket)
+        .func("udp_bind", udp_bind)
+        .func("udp_connect", udp_connect)
+        .func("udp_sendto", udp_sendto)
+        .func("udp_recvfrom", udp_recvfrom)
+        .func("udp_names", udp_names)
         .func("unix_socket", unix_socket)
         .func("unix_socketpair", unix_socketpair)
         .func("unix_bind", unix_bind)

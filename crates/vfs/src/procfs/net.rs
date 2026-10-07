@@ -2,7 +2,7 @@
 //! sem rede, só com o `lo`. O conteúdo foi capturado do oráculo (`docker run --network none`); o
 //! `softnet_stat` tem uma linha por CPU e é cortado no número de CPUs da máquina.
 
-use super::data::{ProcProvider, TcpSock, UnixSockRow};
+use super::data::{ProcProvider, TcpSock, UdpSockRow, UnixSockRow};
 
 /// Uma entrada da árvore. `parent` 0 é o próprio `net`; os outros são o índice (1 em diante) do
 /// diretório que a contém.
@@ -135,7 +135,9 @@ pub(super) fn content(i: u32, p: &dyn ProcProvider) -> Option<Vec<u8>> {
         match e.name {
             "tcp" => return Some(tcp_table(&socks(), false)),
             "tcp6" => return Some(tcp_table(&socks(), true)),
-            "sockstat" | "sockstat6" => return Some(sockstat(e.data, &socks(), e.name == "sockstat6")),
+            "sockstat" | "sockstat6" => return Some(sockstat(e.data, &socks(), &p.udp_socks(), p.socket_count(), e.name == "sockstat6")),
+            "udp" => return Some(udp_table(&p.udp_socks(), false)),
+            "udp6" => return Some(udp_table(&p.udp_socks(), true)),
             "unix" => return Some(unix_table(&p.unix_socks())),
             _ => {}
         }
@@ -191,30 +193,85 @@ fn tcp_table(socks: &[TcpSock], v6: bool) -> Vec<u8> {
     out.into_bytes()
 }
 
-/// O `sockstat` capturado com as contagens de TCP da tabela: `inuse` conta os sockets completos (em
-/// escuta e conectados) de cada família, `orphan` os já fechados que ainda estão no FIN_WAIT2 e `tw`
-/// os de time-wait.
-fn sockstat(base: &[u8], socks: &[TcpSock], v6: bool) -> Vec<u8> {
+/// O `sockstat` capturado com as contagens de TCP e UDP das tabelas: `inuse` conta os sockets
+/// completos (em escuta e conectados) de cada família, `orphan` os já fechados que ainda estão no
+/// FIN_WAIT2 e `tw` os de time-wait; no UDP, os sockets com porta, e `mem` soma as páginas das filas
+/// ao contador capturado (que no Linux é global, do host inteiro). `sockets: used` soma os sockets do
+/// sandbox ao valor capturado.
+fn sockstat(base: &[u8], socks: &[TcpSock], udp: &[UdpSockRow], used: usize, v6: bool) -> Vec<u8> {
     let inuse = |fam: bool| socks.iter().filter(|s| s.v6 == fam && s.tail.is_some()).count();
     let tw = socks.iter().filter(|s| s.tail.is_none()).count();
+    let udp_inuse = |fam: bool| udp.iter().filter(|s| s.v6 == fam).count();
+    let udp_pages: u64 = udp.iter().map(|s| u64::from(s.rx_queue).div_ceil(4096)).sum();
+    let field = |line: &[u8], name: &str| {
+        std::str::from_utf8(line)
+            .ok()
+            .and_then(|l| l.split_whitespace().skip_while(|w| *w != name).nth(1))
+            .and_then(|n| n.parse::<u64>().ok())
+            .unwrap_or(0)
+    };
     let mut out = Vec::new();
     for line in base.split_inclusive(|&b| b == b'\n') {
-        if !v6 && line.starts_with(b"TCP: ") {
-            let alloc = std::str::from_utf8(line)
-                .ok()
-                .and_then(|l| l.split_whitespace().skip_while(|w| *w != "alloc").nth(1))
-                .and_then(|n| n.parse::<usize>().ok())
-                .unwrap_or(0);
+        if !v6 && line.starts_with(b"sockets: ") {
+            out.extend_from_slice(format!("sockets: used {}\n", field(line, "used") + used as u64).as_bytes());
+        } else if !v6 && line.starts_with(b"TCP: ") {
+            let alloc = field(line, "alloc") as usize;
             out.extend_from_slice(
                 format!("TCP: inuse {} orphan 0 tw {tw} alloc {} mem 0\n", inuse(false), alloc + inuse(false) + inuse(true)).as_bytes(),
             );
+        } else if !v6 && line.starts_with(b"UDP: ") {
+            out.extend_from_slice(format!("UDP: inuse {} mem {}\n", udp_inuse(false), field(line, "mem") + udp_pages).as_bytes());
         } else if v6 && line.starts_with(b"TCP6: ") {
             out.extend_from_slice(format!("TCP6: inuse {}\n", inuse(true)).as_bytes());
+        } else if v6 && line.starts_with(b"UDP6: ") {
+            out.extend_from_slice(format!("UDP6: inuse {}\n", udp_inuse(true)).as_bytes());
         } else {
             out.extend_from_slice(line);
         }
     }
     out
+}
+
+/// `udp4_seq_show`/`udp6_seq_show`. No IPv4 o cabeçalho e cada linha vão até 127 colunas
+/// (`seq_setwidth(seq, 127)`); o IPv6 não preenche.
+fn udp_table(socks: &[UdpSockRow], v6: bool) -> Vec<u8> {
+    const WIDTH: usize = 127;
+    let mut out = String::new();
+    if v6 {
+        out.push_str("  sl  local_address                         remote_address                        st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode ref pointer drops\n");
+    } else {
+        out.push_str(&format!("{:<WIDTH$}\n", "   sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode ref pointer drops"));
+    }
+    let words = if v6 { 4 } else { 1 };
+    for s in socks.iter().filter(|s| s.v6 == v6) {
+        let line = format!(
+            "{:5}: {}:{:04X} {}:{:04X} {:02X} {:08X}:{:08X} {:02X}:{:08X} {:08X} {:5} {:8} {} {} {:016x} {}",
+            s.sl,
+            addr_hex(&s.local_ip, words),
+            s.local_port,
+            addr_hex(&s.remote_ip, words),
+            s.remote_port,
+            s.state,
+            0,
+            s.rx_queue,
+            0,
+            0,
+            0,
+            s.uid,
+            0,
+            s.inode,
+            s.refcnt,
+            s.ptr,
+            s.drops,
+        );
+        if v6 {
+            out.push_str(&line);
+            out.push('\n');
+        } else {
+            out.push_str(&format!("{line:<WIDTH$}\n"));
+        }
+    }
+    out.into_bytes()
 }
 
 /// `unix_seq_show`: no espaço abstrato o nulo inicial (e qualquer outro) sai como `@`.

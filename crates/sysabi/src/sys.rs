@@ -127,6 +127,38 @@ pub trait Syscalls: Send + Sync {
         Err(Errno::ENOSYS)
     }
 
+    // ---- UDP de loopback ----
+    /// `socket(AF_INET ou AF_INET6, SOCK_DGRAM)`.
+    fn udp_socket(&self, v6: bool, nonblock: bool, cloexec: bool) -> SysResult<Fd> {
+        let _ = (v6, nonblock, cloexec);
+        Err(Errno::ENOSYS)
+    }
+    /// `bind`: porta 0 sorteia uma. `reuse` é o `SO_REUSEADDR`. Devolve a porta.
+    fn udp_bind(&self, fd: Fd, ip: std::net::IpAddr, port: u16, reuse: bool) -> SysResult<u16> {
+        let _ = (fd, ip, port, reuse);
+        Err(Errno::ENOSYS)
+    }
+    fn udp_connect(&self, fd: Fd, ip: std::net::IpAddr, port: u16) -> SysResult<()> {
+        let _ = (fd, ip, port);
+        Err(Errno::ENOSYS)
+    }
+    /// `sendto`; sem destino, para o par do `connect`.
+    fn udp_sendto(&self, fd: Fd, data: &[u8], dst: Option<(std::net::IpAddr, u16)>) -> SysResult<usize> {
+        let _ = (fd, data, dst);
+        Err(Errno::ENOSYS)
+    }
+    /// `recvfrom`: até `max` bytes do próximo datagrama e quem enviou.
+    fn udp_recvfrom(&self, fd: Fd, max: usize, peek: bool) -> SysResult<(Vec<u8>, std::net::IpAddr, u16)> {
+        let _ = (fd, max, peek);
+        Err(Errno::ENOSYS)
+    }
+    /// `getsockname` e `getpeername` juntos.
+    #[allow(clippy::type_complexity)]
+    fn udp_names(&self, fd: Fd) -> SysResult<((std::net::IpAddr, u16), Option<(std::net::IpAddr, u16)>)> {
+        let _ = fd;
+        Err(Errno::ENOSYS)
+    }
+
     // ---- sockets do domínio Unix (`AF_UNIX`) ----
     // Os tipos são os do Linux: 1 (`SOCK_STREAM`), 2 (`SOCK_DGRAM`) e 5 (`SOCK_SEQPACKET`). Nomes vêm
     // como o `sun_path` (no espaço abstrato, com o byte nulo na frente).
@@ -628,6 +660,31 @@ pub fn tcp_ports(fd: Fd) -> SysResult<(u16, Option<u16>)> {
 
 pub fn unix_socket(ty: u8, nonblock: bool, cloexec: bool) -> SysResult<Fd> {
     current().unix_socket(ty, nonblock, cloexec)
+}
+
+pub fn udp_socket(v6: bool, nonblock: bool, cloexec: bool) -> SysResult<Fd> {
+    current().udp_socket(v6, nonblock, cloexec)
+}
+
+pub fn udp_bind(fd: Fd, ip: std::net::IpAddr, port: u16, reuse: bool) -> SysResult<u16> {
+    current().udp_bind(fd, ip, port, reuse)
+}
+
+pub fn udp_connect(fd: Fd, ip: std::net::IpAddr, port: u16) -> SysResult<()> {
+    current().udp_connect(fd, ip, port)
+}
+
+pub fn udp_sendto(fd: Fd, data: &[u8], dst: Option<(std::net::IpAddr, u16)>) -> SysResult<usize> {
+    current().udp_sendto(fd, data, dst)
+}
+
+pub fn udp_recvfrom(fd: Fd, max: usize, peek: bool) -> SysResult<(Vec<u8>, std::net::IpAddr, u16)> {
+    current().udp_recvfrom(fd, max, peek)
+}
+
+#[allow(clippy::type_complexity)]
+pub fn udp_names(fd: Fd) -> SysResult<((std::net::IpAddr, u16), Option<(std::net::IpAddr, u16)>)> {
+    current().udp_names(fd)
 }
 
 pub fn unix_socketpair(ty: u8, nonblock: bool, cloexec: bool) -> SysResult<(Fd, Fd)> {

@@ -35,7 +35,8 @@ tags = ["proc", "error"]
 
 # /proc/net/tcp e tcp6 a partir dos sockets vivos: escuta em 0.0.0.0, 127.0.0.1 e ::, conexão com
 # dados não lidos, conexão ainda na fila do accept, CLOSE_WAIT com o FIN, FIN_WAIT2 órfão e TIME_WAIT
-# do curl. Portas efêmeras, inodes, ponteiros e o tempo restante dos timers variam no próprio Debian:
+# do servidor HTTP (o cliente lê até o EOF, então o FIN do servidor sempre vem primeiro; um cliente
+# que fecha ao fim do Content-Length disputa a corrida com o servidor, também no Debian). Portas efêmeras, inodes, ponteiros e o tempo restante dos timers variam no próprio Debian:
 # o awk troca cada um pela forma (EPH, inode zero ou não, timer ligado ou não) e ordena as linhas.
 [[case]]
 id = "procfs-net-tcp-live"
@@ -53,7 +54,10 @@ c.sendall(b"x"*10)
 d=socket.socket(); d.connect(("127.0.0.1",9000)); b,_=s.accept(); b.close()
 time.sleep(30)' &
 sleep 1
-curl -s -o /dev/null http://127.0.0.1:8080/
+python3 -c '
+import socket
+c = socket.create_connection(("127.0.0.1", 8080)); c.sendall(b"GET / HTTP/1.0\r\n\r\n")
+while c.recv(4096): pass'
 sleep 0.5
 norm() {
   awk 'NR == 1 { print; next } {
@@ -154,3 +158,98 @@ try: socket.socket(socket.AF_UNIX).connect("/tmp/srv2.sock")
 except OSError as e: print(e)'
 '''
 tags = ["net", "unix"]
+
+# /proc/net/udp e udp6 a partir dos sockets vivos: o rx_queue soma o truesize de cada datagrama na
+# fila (cabeça pequena de 704, balde do kmalloc ou páginas acima de 16 KB), descarte contado em drops
+# quando a fila passa do rmem_default, conectado em 01 com o endereço de origem da rota, autobind no
+# curinga, ECONNREFUSED do ICMP só no conectado. O balde (sl) e a porta efêmera variam: o awk tira o
+# balde, troca a porta efêmera por EPH e o inode pela forma, e ordena.
+[[case]]
+id = "procfs-net-udp-live"
+script = '''
+python3 -c '
+import socket, time
+def rxq(port):
+    for l in open("/proc/net/udp").read().splitlines()[1:]:
+        f = l.split()
+        if int(f[1].split(":")[1], 16) == port:
+            return int(f[4].split(":")[1], 16), (int(f[0][:-1]) - port) % 16384
+sl = set()
+for n in [0, 200, 500, 1000, 2000, 4000, 8000, 16004, 16005, 30000, 65000, 65507]:
+    r = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); r.bind(("127.0.0.1", 0))
+    p = r.getsockname()[1]
+    socket.socket(socket.AF_INET, socket.SOCK_DGRAM).sendto(b"x" * n, ("127.0.0.1", p))
+    q, off = rxq(p); sl.add(off)
+    print(n, q, 32768 <= p <= 60999)
+    r.close()
+print("same slot offset", len(sl) == 1)
+try: socket.socket(socket.AF_INET, socket.SOCK_DGRAM).sendto(b"x" * 65508, ("127.0.0.1", 9))
+except OSError as e: print("big", e)
+r = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); r.bind(("0.0.0.0", 7000))
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.bind(("127.0.0.1", 7001)); s.connect(("127.0.0.1", 7000))
+for i in range(3): s.send(b"a" * 10)
+c = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); c.connect(("127.0.0.1", 7999))
+c.send(b"q")
+try: c.send(b"q")
+except OSError as e: print("refused", e)
+c.send(b"q"); print("again ok")
+n = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); n.sendto(b"q", ("127.0.0.1", 7999)); n.sendto(b"q", ("127.0.0.1", 7999)); print("unconnected no error")
+u6 = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM); u6.bind(("::", 7002))
+socket.socket(socket.AF_INET, socket.SOCK_DGRAM).sendto(b"v4", ("127.0.0.1", 7002)); print(u6.recvfrom(10)[0], u6.recvfrom.__name__)
+u = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+print("unbound", u.getsockname())
+u.sendto(b"z", ("127.0.0.1", 7000)); print("autobound", u.getsockname()[0], u.getsockname()[1] > 32767)
+big = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); big.bind(("127.0.0.1", 7003))
+for i in range(300): s.sendto(b"b" * 1000, ("127.0.0.1", 7003))
+print(r.recvfrom(100), r.recvfrom(100, socket.MSG_PEEK), r.recv(3))
+try: socket.socket(socket.AF_INET, socket.SOCK_DGRAM).bind(("0.0.0.0", 7000))
+except OSError as e: print("inuse", e)
+try: socket.socket(socket.AF_INET6, socket.SOCK_DGRAM).bind(("::", 7000))
+except OSError as e: print("inuse6", e)
+a = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); a.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1); a.bind(("0.0.0.0", 7010))
+b = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); b.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1); b.bind(("0.0.0.0", 7010)); print("reuse ok", flush=True)
+time.sleep(5)
+'  > /tmp/out.txt 2>&1 &
+sleep 2
+cat /tmp/out.txt
+norm() {
+  awk 'NR == 1 { print; next } {
+    split($2, l, ":"); split($3, r, ":")
+    lp = strtonum("0x" l[2]); rp = strtonum("0x" r[2])
+    if (lp >= 32768) l[2] = "EPH"; if (rp >= 32768) r[2] = "EPH"
+    print l[1] ":" l[2], r[1] ":" r[2], $4, $5, $6, $7, $8, $9, ($10 == 0 ? "ino0" : "ino"), $11, $13, NF
+  }' "$1" | sort
+}
+norm /proc/net/udp
+norm /proc/net/udp6
+head -1 /proc/net/udp | wc -c
+awk 'NR > 1 { print length($0) }' /proc/net/udp | sort -u
+grep -E "^UDP" /proc/net/sockstat | cut -d" " -f1-3
+grep -E "^UDP6" /proc/net/sockstat6
+'''
+tags = ["proc", "net", "udp"]
+
+# sockets: used do sockstat conta todo socket vivo (inclusive o embrião do Unix e o UDP sem porta), e
+# os de time-wait não. Os casos dividem o container do oráculo: a contagem sai relativa ao início.
+[[case]]
+id = "procfs-sockstat-used"
+script = '''
+python3 -c '
+import socket, time
+def count():
+    return int(open("/proc/net/sockstat").readline().split()[2])
+base = count()
+def used():
+    return count() - base
+u = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); print("udp unbound", used())
+l = socket.socket(); l.bind(("127.0.0.1", 9100)); l.listen(5); print("listen", used())
+c = socket.socket(); c.connect(("127.0.0.1", 9100)); time.sleep(0.1); print("tcp conn unaccepted", used())
+a, _ = l.accept(); print("accepted", used())
+c.close(); a.close(); time.sleep(0.1); print("tcp closed", used())
+x = socket.socket(socket.AF_UNIX); x.bind("/tmp/used.sock"); x.listen(1); print("unix listen", used())
+y = socket.socket(socket.AF_UNIX); y.connect("/tmp/used.sock"); print("unix embryo", used())
+z, _ = x.accept(); print("unix accepted", used())
+p, q = socket.socketpair(); print("pair", used())
+'
+'''
+tags = ["proc", "net"]

@@ -7,12 +7,14 @@ destino falha com `ENETUNREACH`, como num host sem rota. `socket`, `select` e `a
 
 import collections
 import errno
+import weakref
 
 AF_UNIX = 1
 AF_INET = 2
 AF_INET6 = 10
 
-_listeners = {}
+# Nenhuma tabela daqui mantém um socket vivo: o que o programa solta fecha, como no CPython.
+_listeners = weakref.WeakValueDictionary()
 _datagrams = {}
 _ports = set()
 _next_port = [32768]
@@ -72,6 +74,18 @@ class _Notifier:
     def _notify(self):
         for hook in list(self.hooks):
             hook()
+
+    def _own(self, kfd):
+        """Passa a ser o dono do fd do kernel `kfd`: ele fecha com este objeto, ou no `_drop_kfd`."""
+        self.kfd = kfd
+        self._guard = _os.fdguard(kfd)
+        _kregister(kfd, self)
+
+    def _drop_kfd(self):
+        kfd, self.kfd = self.kfd, None
+        if kfd is not None:
+            _kunregister(kfd)
+            self._guard.close()
 
 
 class Listener(_Notifier):
@@ -139,9 +153,7 @@ class Listener(_Notifier):
             return
         self.closed = True
         if self.kfd is not None:
-            kfd, self.kfd = self.kfd, None
-            _kunregister(kfd)
-            _os.close(kfd)
+            self._drop_kfd()
         if _listeners.get(self.key) is self:
             del _listeners[self.key]
         for endpoint in self.pending:
@@ -178,8 +190,7 @@ def listen(family, addr, backlog, reuse=False, ephemeral=False):
         key = ('t', kport)
     listener = Listener(family, key, addr, backlog)
     if kfd is not None:
-        listener.kfd = kfd
-        _kregister(kfd, listener)
+        listener._own(kfd)
     _listeners[key] = listener
     return listener
 
@@ -198,7 +209,7 @@ def _kregister(kfd, obj):
     import threading
     if not _kfds and _kpoll not in threading._pollers:
         threading._pollers.append(_kpoll)
-    _kfds[kfd] = obj
+    _kfds[kfd] = weakref.ref(obj)
 
 
 def _kunregister(kfd):
@@ -211,10 +222,15 @@ def _kunregister(kfd):
 
 def _kpoll(timeout):
     """Espera até `timeout` por dado, conexão ou EOF em algum fd do kernel e os entrega."""
+    for kfd, ref in list(_kfds.items()):
+        if ref() is None:
+            # O dono morreu sem `close` e o fd já fechou com ele.
+            _kunregister(kfd)
     if not _kfds:
         return
     for kfd in _os.tcp_poll(list(_kfds), timeout):
-        obj = _kfds.get(kfd)
+        ref = _kfds.get(kfd)
+        obj = ref() if ref is not None else None
         if obj is not None:
             obj._pump()
 
@@ -292,9 +308,8 @@ class KernelEndpoint(Endpoint):
 
     def __init__(self, family, kfd, local, peer):
         Endpoint.__init__(self, family, local, peer)
-        self.kfd = kfd
         self.port = None
-        _kregister(kfd, self)
+        self._own(kfd)
 
     def _pump(self):
         while self.kfd is not None and not self.rx_eof:
@@ -334,10 +349,7 @@ class KernelEndpoint(Endpoint):
             return
         self.closed = True
         self.wr_shut = True
-        if self.kfd is not None:
-            kfd, self.kfd = self.kfd, None
-            _kunregister(kfd)
-            _os.close(kfd)
+        self._drop_kfd()
         self._notify()
 
 
@@ -412,8 +424,7 @@ def unix_encode(addr):
 def unix_listener(kfd, addr, backlog):
     """Um `Listener` sobre o socket do kernel que já escuta em `addr`."""
     listener = Listener(AF_UNIX, ('u', addr), addr, backlog)
-    listener.kfd = kfd
-    _kregister(kfd, listener)
+    listener._own(kfd)
     return listener
 
 
@@ -423,35 +434,72 @@ def unix_endpoint(kfd):
     return KernelEndpoint(AF_UNIX, kfd, unix_name(me), unix_name(peer))
 
 
-class KernelDatagram(_Notifier):
-    """Socket Unix de datagrama: as mensagens chegam pelo fd do kernel e esperam em `rx` com o endereço de
-    quem enviou (`None` se o remetente não tem nome)."""
+class _KernelDgram(_Notifier):
+    """Socket de datagrama no kernel. Os datagramas ficam na fila do kernel até o `recv` (é ela que o
+    `/proc/net` mostra); `readable` só pergunta se há algum."""
+
+    def __init__(self, family, kfd):
+        _Notifier.__init__(self)
+        self.family = family
+        self.closed = False
+        self._own(kfd)
+
+    def _pump(self):
+        self._notify()
+
+    def readable(self):
+        return self.closed or self.kfd is None or bool(_os.tcp_poll([self.kfd], 0))
+
+    def close(self):
+        if self.closed:
+            return
+        self.closed = True
+        self._drop_kfd()
+        self._notify()
+
+
+class KernelUdp(_KernelDgram):
+    """Socket UDP no kernel; o endereço de quem enviou vem na família do socket."""
+
+    def _addr(self, pair):
+        return address(self.family, pair[0], pair[1])
+
+    @property
+    def addr(self):
+        return self._addr(_os.udp_names(self.kfd)[0])
+
+    def recv(self, n, peek=False):
+        """O próximo datagrama (cortado em `n`) e quem enviou, ou None se a fila está vazia."""
+        got = _os.udp_recvfrom(self.kfd, n, peek)
+        if got is None:
+            return None
+        return got[0], self._addr(got[1])
+
+    def sendto(self, data, addr=None):
+        if addr is None:
+            return _os.udp_sendto(self.kfd, data, None, 0)
+        host = addr[0]
+        if host in ('', '<broadcast>', 'localhost') or host == hostname():
+            host = loopback_ip(self.family)
+        return _os.udp_sendto(self.kfd, data, host, addr[1])
+
+
+class KernelDatagram(_KernelDgram):
+    """Socket Unix de datagrama; quem enviou sem nome aparece como `None`."""
 
     def __init__(self, kfd):
-        _Notifier.__init__(self)
-        self.family = AF_UNIX
-        self.kfd = kfd
-        self.rx = collections.deque()
-        self.closed = False
-        _kregister(kfd, self)
+        _KernelDgram.__init__(self, AF_UNIX, kfd)
 
     @property
     def addr(self):
         return unix_name(_os.unix_names(self.kfd)[0]) if self.kfd is not None else ''
 
-    def _pump(self):
-        while self.kfd is not None:
-            got = _os.unix_recvfrom(self.kfd, 1 << 20)
-            if got is None:
-                break
-            data, source = got
-            self.rx.append((data, None if source is None else unix_name(source)))
-        self._notify()
-
-    def readable(self):
-        if not self.rx:
-            self._pump()
-        return bool(self.rx) or self.closed
+    def recv(self, n, peek=False):
+        got = _os.unix_recvfrom(self.kfd, n, peek)
+        if got is None:
+            return None
+        data, source = got
+        return data, None if source is None else unix_name(source)
 
     def sendto(self, data, addr=None):
         """Envia para `addr` (ou para o par do `connect`); com a fila do destino cheia, espera."""
@@ -462,16 +510,6 @@ class KernelDatagram(_Notifier):
                 return n
             import time
             time.sleep(0.001)
-
-    def close(self):
-        if self.closed:
-            return
-        self.closed = True
-        if self.kfd is not None:
-            kfd, self.kfd = self.kfd, None
-            _kunregister(kfd)
-            _os.close(kfd)
-        self._notify()
 
 
 class Datagram(_Notifier):

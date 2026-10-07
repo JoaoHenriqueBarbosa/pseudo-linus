@@ -6,7 +6,7 @@
     "files": {}
   },
   "procfs-net-tcp-live": {
-    "stdout": "  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode                                                     \n00000000:1F90 00000000:0000 0A 00000000:00000000 00 0 ino 1 17\n0100007F:1F90 0100007F:EPH 06 00000000:00000000 03 0 ino0 3 12\n0100007F:2328 00000000:0000 0A 00000000:00000001 00 0 ino 2 17\n0100007F:2328 0100007F:EPH 01 00000000:00000000 00 0 ino0 1 17\n0100007F:2328 0100007F:EPH 01 00000000:0000000A 00 0 ino 1 17\n0100007F:2328 0100007F:EPH 05 00000000:00000000 03 0 ino0 3 12\n0100007F:EPH 0100007F:1F90 06 00000000:00000000 03 0 ino0 3 12\n0100007F:EPH 0100007F:2328 01 00000000:00000000 00 0 ino 1 17\n0100007F:EPH 0100007F:2328 01 00000000:00000000 00 0 ino 1 17\n0100007F:EPH 0100007F:2328 08 00000000:00000001 00 0 ino 1 17\n  sl  local_address                         remote_address                        st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode\n00000000000000000000000000000000:2329 00000000000000000000000000000000:0000 0A 00000000:00000000 00 0 ino 1 17\n150\n149\nTCP: inuse 7 orphan 0 tw 3\nTCP6: inuse 1\n",
+    "stdout": "  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode                                                     \n00000000:1F90 00000000:0000 0A 00000000:00000000 00 0 ino 1 17\n0100007F:1F90 0100007F:EPH 06 00000000:00000000 03 0 ino0 3 12\n0100007F:2328 00000000:0000 0A 00000000:00000001 00 0 ino 2 17\n0100007F:2328 0100007F:EPH 01 00000000:00000000 00 0 ino0 1 17\n0100007F:2328 0100007F:EPH 01 00000000:0000000A 00 0 ino 1 17\n0100007F:2328 0100007F:EPH 05 00000000:00000000 03 0 ino0 3 12\n0100007F:EPH 0100007F:2328 01 00000000:00000000 00 0 ino 1 17\n0100007F:EPH 0100007F:2328 01 00000000:00000000 00 0 ino 1 17\n0100007F:EPH 0100007F:2328 08 00000000:00000001 00 0 ino 1 17\n  sl  local_address                         remote_address                        st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode\n00000000000000000000000000000000:2329 00000000000000000000000000000000:0000 0A 00000000:00000000 00 0 ino 1 17\n150\n149\nTCP: inuse 7 orphan 0 tw 2\nTCP6: inuse 1\n",
     "stderr": "",
     "exit": 0,
     "files": {}
@@ -25,8 +25,20 @@
     "exit": 0,
     "files": {}
   },
+  "procfs-net-udp-live": {
+    "stdout": "0 960 True\n200 960 True\n500 1280 True\n1000 2304 True\n2000 4352 True\n4000 8448 True\n8000 16640 True\n16004 16640 True\n16005 16965 True\n30000 30960 True\n65000 65960 True\n65507 66467 True\nsame slot offset True\nbig [Errno 90] Message too long\nrefused [Errno 111] Connection refused\nagain ok\nunconnected no error\nb'v4' recvfrom\nunbound ('0.0.0.0', 0)\nautobound 0.0.0.0 True\n(b'aaaaaaaaaa', ('127.0.0.1', 7001)) (b'aaaaaaaaaa', ('127.0.0.1', 7001)) b'aaa'\ninuse [Errno 98] Address already in use\ninuse6 [Errno 98] Address already in use\nreuse ok\n   sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode ref pointer drops            \n00000000:1B58 00000000:0000 07 00000000:00000780 00:00000000 00000000 0 0 ino 2 0 13\n00000000:1B62 00000000:0000 07 00000000:00000000 00:00000000 00000000 0 0 ino 2 0 13\n00000000:1B62 00000000:0000 07 00000000:00000000 00:00000000 00000000 0 0 ino 2 0 13\n00000000:EPH 00000000:0000 07 00000000:00000000 00:00000000 00000000 0 0 ino 2 0 13\n00000000:EPH 00000000:0000 07 00000000:00000000 00:00000000 00000000 0 0 ino 2 0 13\n0100007F:1B59 0100007F:1B58 01 00000000:00000000 00:00000000 00000000 0 0 ino 2 0 13\n0100007F:1B5B 00000000:0000 07 00000000:00034500 00:00000000 00000000 0 0 ino 2 207 13\n0100007F:EPH 0100007F:1F3F 01 00000000:00000000 00:00000000 00000000 0 0 ino 2 0 13\n  sl  local_address                         remote_address                        st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode ref pointer drops\n00000000000000000000000000000000:1B5A 00000000000000000000000000000000:0000 07 00000000:00000000 00:00000000 00000000 0 0 ino 2 0 13\n128\n127\nUDP: inuse 8\nUDPLITE: inuse 0\nUDP6: inuse 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "procfs-net-unix-live": {
     "stdout": "00000002 00000000 00000000 0001 01 ino \n00000002 00000000 00000000 0001 03 ino @abs\n00000002 00000000 00000000 0002 03 ino \n00000002 00000000 00010000 0001 01 ino /tmp/a.sock\n00000002 00000000 00010000 0001 01 ino @abs\n00000003 00000000 00000000 0001 02 ino0 /tmp/a.sock\n00000003 00000000 00000000 0001 03 ino \n00000003 00000000 00000000 0001 03 ino \n00000003 00000000 00000000 0001 03 ino \n00000003 00000000 00000000 0001 03 ino \n00000003 00000000 00000000 0001 03 ino /tmp/a.sock\n00000003 00000000 00000000 0002 03 ino r.sock\nNum       RefCount Protocol Flags    Type St Inode Path\n'' '' '/tmp/a.sock' '/tmp/a.sock' b'\\x00abs'\n0o140700\nsrwx------\nsrwx------\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "procfs-sockstat-used": {
+    "stdout": "udp unbound 1\nlisten 2\ntcp conn unaccepted 4\naccepted 4\ntcp closed 2\nunix listen 3\nunix embryo 5\nunix accepted 5\npair 7\n",
     "stderr": "",
     "exit": 0,
     "files": {}
