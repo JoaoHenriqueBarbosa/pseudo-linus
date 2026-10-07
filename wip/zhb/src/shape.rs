@@ -57,6 +57,7 @@ pub enum ShaperKind {
     Indic,
     Khmer,
     Myanmar,
+    Hangul,
 }
 
 /// `hb_ot_shaper_t`: as propriedades que o pipeline consulta.
@@ -112,6 +113,9 @@ pub const SHAPER_KHMER: Shaper = Shaper { kind: ShaperKind::Khmer, ..SHAPER_INDI
 pub const SHAPER_MYANMAR: Shaper =
     Shaper { kind: ShaperKind::Myanmar, zero_width_marks: ZeroWidthMarks::ByGdefEarly, ..SHAPER_INDIC };
 
+/// `_hb_ot_shaper_hangul`.
+pub const SHAPER_HANGUL: Shaper = Shaper { kind: ShaperKind::Hangul, normalization: Mode::None, ..SHAPER_INDIC };
+
 /// `hb_ot_shaper_categorize`. Dos scripts complexos, o árabe, o tailandês, o laosiano, o hebraico,
 /// os índicos e os do USE foram traduzidos; os índicos com tag `*3` vão para o USE.
 fn categorize(script: u32, direction: Direction, gsub_script: u32) -> Shaper {
@@ -131,6 +135,9 @@ fn categorize(script: u32, direction: Direction, gsub_script: u32) -> Shaper {
     }
     if script == tag(b"Khmr") {
         return SHAPER_KHMER;
+    }
+    if script == tag(b"Hang") {
+        return SHAPER_HANGUL;
     }
     if script == tag(b"Mymr") {
         return if dflt_or_latn || gsub_script == tag(b"mymr") { SHAPER_DEFAULT } else { SHAPER_MYANMAR };
@@ -163,6 +170,8 @@ pub struct Plan {
     pub indic: Option<crate::indic::IndicPlan>,
     /// Os dados do shaper khmer.
     pub khmer: Option<crate::khmer::KhmerPlan>,
+    /// Os dados do shaper hangul.
+    pub hangul: Option<crate::hangul::HangulPlan>,
     pub frac_mask: u32,
     pub numr_mask: u32,
     pub dnom_mask: u32,
@@ -258,6 +267,10 @@ impl Plan {
             map.is_simple = false;
             crate::myanmar::collect_features(&mut map);
         }
+        if shaper.kind == ShaperKind::Hangul {
+            map.is_simple = false;
+            crate::hangul::collect_features(&mut map);
+        }
         map.enable_feature(tag(b"Buzz"), F_NONE, 1);
         map.enable_feature(tag(b"BUZZ"), F_NONE, 1);
         for (t, f) in COMMON_FEATURES {
@@ -281,6 +294,9 @@ impl Plan {
         }
         if shaper.kind == ShaperKind::Khmer {
             crate::khmer::override_features(&mut map);
+        }
+        if shaper.kind == ShaperKind::Hangul {
+            crate::hangul::override_features(&mut map);
         }
 
         // `hb_ot_shape_planner_t::compile`.
@@ -312,6 +328,7 @@ impl Plan {
         let use_plan = (shaper.kind == ShaperKind::Use).then(|| crate::universal::UsePlan::new(&map, props, font));
         let indic = (shaper.kind == ShaperKind::Indic).then(|| crate::indic::IndicPlan::new(&map, props, font));
         let khmer = (shaper.kind == ShaperKind::Khmer).then(|| crate::khmer::KhmerPlan::new(&map));
+        let hangul = (shaper.kind == ShaperKind::Hangul).then(|| crate::hangul::HangulPlan::new(&map));
         Plan {
             props: props.clone(),
             shaper,
@@ -320,6 +337,7 @@ impl Plan {
             use_plan,
             indic,
             khmer,
+            hangul,
             frac_mask,
             numr_mask,
             dnom_mask,
@@ -631,6 +649,9 @@ fn setup_masks(plan: &Plan, buffer: &mut Buffer) {
     if plan.shaper.kind == ShaperKind::Myanmar {
         crate::myanmar::setup_masks(buffer);
     }
+    if let Some(h) = &plan.hangul {
+        crate::hangul::setup_masks(h, buffer);
+    }
     for f in &plan.user_features {
         if !f.is_global() {
             let (mask, shift) = plan.map.mask(f.tag);
@@ -732,7 +753,7 @@ fn substitute_pre(plan: &Plan, font: &Font, buffer: &mut Buffer, target_directio
             ShaperKind::Hebrew => (Some(&hebrew_reorder), Some(&hebrew_compose)),
             ShaperKind::Use | ShaperKind::Khmer => (None, Some(&crate::universal::compose)),
             ShaperKind::Indic => (None, Some(&crate::indic::compose)),
-            ShaperKind::Default | ShaperKind::Thai | ShaperKind::Myanmar => (None, None),
+            ShaperKind::Default | ShaperKind::Thai | ShaperKind::Myanmar | ShaperKind::Hangul => (None, None),
         };
     let decompose: Option<&dyn Fn(u32) -> Option<(u32, u32)>> = match plan.shaper.kind {
         ShaperKind::Indic => Some(&crate::indic::decompose),
@@ -851,6 +872,9 @@ pub fn shape(plan: &Plan, font: &Font, buffer: &mut Buffer) {
     }
     if plan.shaper.kind == ShaperKind::Use || plan.shaper.kind == ShaperKind::Indic {
         crate::universal::preprocess_text(buffer);
+    }
+    if plan.shaper.kind == ShaperKind::Hangul {
+        crate::hangul::preprocess_text(buffer, font);
     }
     substitute_pre(plan, font, buffer, target_direction);
     position(plan, font, buffer);

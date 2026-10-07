@@ -11,6 +11,7 @@ pub mod font;
 pub mod gpos;
 pub mod gsub;
 pub mod gsubgpos;
+pub mod hangul;
 pub mod hebrew;
 pub mod indic;
 mod indic_machine;
