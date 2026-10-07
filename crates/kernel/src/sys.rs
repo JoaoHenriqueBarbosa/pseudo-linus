@@ -129,6 +129,21 @@ fn env_name(kv: &[u8]) -> &[u8] {
     }
 }
 
+/// Os objetos sem deslocamento: `pread`/`pwrite` neles dão ESPIPE.
+fn unseekable(obj: &FileObj) -> bool {
+    matches!(
+        obj,
+        FileObj::Pipe { .. } | FileObj::Dev { dev: Device::Pty(_), .. } | FileObj::Stream(_) | FileObj::Unix(_) | FileObj::Udp(_)
+    )
+}
+
+/// Um datagrama lido num buffer: o que não cabe se perde, como no `read` do Linux.
+fn truncated_copy(data: &[u8], buf: &mut [u8]) -> usize {
+    let n = data.len().min(buf.len());
+    buf[..n].copy_from_slice(&data[..n]);
+    n
+}
+
 impl Task {
     // ------------------------------------------------------------------------------------------
     // Contexto
@@ -552,6 +567,9 @@ impl Task {
         if matches!(ofd.obj, FileObj::Path { .. }) || !ofd.readable {
             return Err(Errno::EBADF);
         }
+        if at.is_some() && unseekable(&ofd.obj) {
+            return Err(Errno::ESPIPE);
+        }
         match &ofd.obj {
             FileObj::Vfs { kind: FileType::Directory, .. } => Err(Errno::EISDIR),
             FileObj::Vfs { handle, .. } => {
@@ -567,9 +585,6 @@ impl Task {
                 }
             }
             FileObj::Pipe { end, .. } => {
-                if at.is_some() {
-                    return Err(Errno::ESPIPE);
-                }
                 let nonblock = ofd.nonblock();
                 let r = self.wait_event(None, |p| end.pipe.try_read(buf, nonblock, p));
                 if r.is_err() {
@@ -577,31 +592,15 @@ impl Task {
                 }
                 r
             }
-            FileObj::Dev { dev: Device::Pty(end), .. } => {
-                if at.is_some() {
-                    return Err(Errno::ESPIPE);
-                }
-                self.tty_read(ofd, end, buf)
-            }
+            FileObj::Dev { dev: Device::Pty(end), .. } => self.tty_read(ofd, end, buf),
             FileObj::Dev { dev, .. } => dev.read(buf),
             FileObj::Path { .. } => Err(Errno::EBADF),
             // `read` num socket em escuta: ENOTCONN, como no Linux.
             FileObj::Listener(_) => Err(Errno::ENOTCONN),
-            FileObj::Stream(c) => {
-                if at.is_some() {
-                    return Err(Errno::ESPIPE);
-                }
-                self.stream_read(ofd, c, buf)
-            }
+            FileObj::Stream(c) => self.stream_read(ofd, c, buf),
             FileObj::Unix(u) => {
-                if at.is_some() {
-                    return Err(Errno::ESPIPE);
-                }
                 if u.ty == crate::unix::SOCK_DGRAM {
-                    let (data, _) = self.unix_recv(ofd, u, false)?;
-                    let n = data.len().min(buf.len());
-                    buf[..n].copy_from_slice(&data[..n]);
-                    return Ok(n);
+                    return Ok(truncated_copy(&self.unix_recv(ofd, u, false)?.0, buf));
                 }
                 // `unix_stream_read_generic`: fora de uma conexão, EINVAL.
                 match u.conn() {
@@ -609,15 +608,7 @@ impl Task {
                     None => Err(Errno::EINVAL),
                 }
             }
-            FileObj::Udp(u) => {
-                if at.is_some() {
-                    return Err(Errno::ESPIPE);
-                }
-                let (data, _) = self.udp_recv(ofd, u, false)?;
-                let n = data.len().min(buf.len());
-                buf[..n].copy_from_slice(&data[..n]);
-                Ok(n)
-            }
+            FileObj::Udp(u) => Ok(truncated_copy(&self.udp_recv(ofd, u, false)?.0, buf)),
         }
     }
 
@@ -769,6 +760,9 @@ impl Task {
         if matches!(ofd.obj, FileObj::Path { .. }) || !ofd.writable {
             return Err(Errno::EBADF);
         }
+        if at.is_some() && unseekable(&ofd.obj) {
+            return Err(Errno::ESPIPE);
+        }
         match &ofd.obj {
             FileObj::Vfs { kind: FileType::Directory, .. } => Err(Errno::EISDIR),
             FileObj::Vfs { handle, .. } => {
@@ -811,23 +805,10 @@ impl Task {
                 }
                 r
             }
-            FileObj::Pipe { end, .. } => {
-                if at.is_some() {
-                    return Err(Errno::ESPIPE);
-                }
-                self.pipe_write(ofd, &end.pipe, buf)
-            }
+            FileObj::Pipe { end, .. } => self.pipe_write(ofd, &end.pipe, buf),
             FileObj::Listener(_) => Err(Errno::ENOTCONN),
-            FileObj::Stream(c) => {
-                if at.is_some() {
-                    return Err(Errno::ESPIPE);
-                }
-                self.stream_write(ofd, c, buf)
-            }
+            FileObj::Stream(c) => self.stream_write(ofd, c, buf),
             FileObj::Unix(u) => {
-                if at.is_some() {
-                    return Err(Errno::ESPIPE);
-                }
                 if u.ty == crate::unix::SOCK_DGRAM {
                     return self.unix_send(ofd, u, buf, None);
                 }
@@ -836,18 +817,8 @@ impl Task {
                     None => Err(Errno::ENOTCONN),
                 }
             }
-            FileObj::Udp(u) => {
-                if at.is_some() {
-                    return Err(Errno::ESPIPE);
-                }
-                self.sb.udp.send(u, buf, None)
-            }
-            FileObj::Dev { dev: Device::Pty(end), .. } => {
-                if at.is_some() {
-                    return Err(Errno::ESPIPE);
-                }
-                self.tty_write(ofd, end, buf)
-            }
+            FileObj::Udp(u) => self.sb.udp.send(u, buf, None),
+            FileObj::Dev { dev: Device::Pty(end), .. } => self.tty_write(ofd, end, buf),
             FileObj::Dev { dev, .. } => dev.write(buf),
             FileObj::Path { .. } => Err(Errno::EBADF),
         }
