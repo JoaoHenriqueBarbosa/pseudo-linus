@@ -290,3 +290,22 @@ for s in (0, 0x300, 9, 0x89, 0x137f, -1, 1.5):
     except Exception as e: print(type(e).__name__, e)
 PYEOF
 '''
+
+# `os.renames`, `get_exec_path` (PATH em str ou bytes, os dois juntos é erro), `fdopen` e `pipe`.
+[[case]]
+id = "os-renames-exec-path-fdopen-pipe"
+script = '''
+cd /tmp; mkdir -p a/b/c; echo x > a/b/c/f
+python3 - <<'P'
+import os
+os.renames('a/b/c/f', 'n/m/g'); print(os.path.exists('a'), open('n/m/g').read())
+print(os.get_exec_path(), os.get_exec_path({}), os.get_exec_path({b'PATH': b'/q:/r'}), os.get_exec_path({'PATH': '/z'}))
+try: os.get_exec_path({'PATH': 'a', b'PATH': b'b'})
+except ValueError as e: print(e)
+r, w = os.pipe(); f = os.fdopen(w, 'w'); f.write('hi'); f.close(); g = os.fdopen(r); print(g.read(), g.mode, type(g).__name__)
+try: os.fdopen('x')
+except TypeError as e: print(e)
+print(os.renames.__doc__.split('\n')[0], os.fdopen.__doc__)
+P
+python3 -c "import os; r,w=os.pipe(); print(type(os.pipe()).__name__, os.write(w, b\"ab\"), os.read(r, 5)); print(os.pipe.__doc__)"
+'''

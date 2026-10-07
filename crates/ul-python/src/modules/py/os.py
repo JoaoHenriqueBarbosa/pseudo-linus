@@ -516,6 +516,81 @@ def replace(src, dst):
     _os.rename(fspath(src), fspath(dst))
 
 
+def renames(old, new):
+    """renames(old, new)
+
+    Super-rename; create directories as necessary and delete any left
+    empty.  Works like rename, except creation of any intermediate
+    directories needed to make the new pathname good is attempted
+    first.  After the rename, directories corresponding to rightmost
+    path segments of the old name will be pruned until either the
+    whole path is consumed or a nonempty directory is found.
+
+    Note: this function can fail with the new directory structure made
+    if you lack permissions needed to unlink the leaf directory or
+    file.
+
+    """
+    head, tail = path.split(new)
+    if head and tail and not path.exists(head):
+        makedirs(head)
+    rename(old, new)
+    head, tail = path.split(old)
+    if head and tail:
+        try:
+            removedirs(head)
+        except OSError:
+            pass
+
+
+def get_exec_path(env=None):
+    """Returns the sequence of directories that will be searched for the
+    named executable (similar to a shell) when launching a process.
+
+    *env* must be an environment variable dict or None.  If *env* is None,
+    os.environ will be used.
+    """
+    import warnings
+
+    if env is None:
+        env = environ
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", BytesWarning)
+
+        try:
+            path_list = env.get('PATH')
+        except TypeError:
+            path_list = None
+
+        if supports_bytes_environ:
+            try:
+                path_listb = env[b'PATH']
+            except (KeyError, TypeError):
+                pass
+            else:
+                if path_list is not None:
+                    raise ValueError(
+                        "env cannot contain 'PATH' and b'PATH' keys")
+                path_list = path_listb
+
+            if path_list is not None and isinstance(path_list, bytes):
+                path_list = fsdecode(path_list)
+
+    if path_list is None:
+        path_list = defpath
+    return path_list.split(pathsep)
+
+
+def fdopen(fd, mode="r", buffering=-1, encoding=None, *args, **kwargs):
+    if not isinstance(fd, int):
+        raise TypeError("invalid fd type (%s, expected integer)" % type(fd))
+    import io
+    if "b" not in mode:
+        encoding = io.text_encoding(encoding)
+    return io.open(fd, mode, buffering, encoding, *args, **kwargs)
+
+
 def readlink(p):
     return _os.readlink(fspath(p))
 
@@ -883,6 +958,14 @@ def close(fd):
 
 def read(fd, n):
     return _os.read(fd, n)
+
+
+def pipe():
+    """Create a pipe.
+
+Returns a tuple of two file descriptors:
+  (read_fd, write_fd)"""
+    return tuple(_os.pipe())
 
 
 def set_blocking(fd, blocking):
