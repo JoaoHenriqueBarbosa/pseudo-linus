@@ -279,7 +279,7 @@ impl Buffer {
         self.len() - self.idx
     }
 
-    fn ensure(&mut self, size: usize) -> bool {
+    pub fn ensure(&mut self, size: usize) -> bool {
         if size >= self.max_len {
             self.successful = false;
         }

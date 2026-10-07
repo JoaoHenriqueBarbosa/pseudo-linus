@@ -1,8 +1,11 @@
 //! Shaping OpenType do HarfBuzz 10.2.0, traduzido para Rust sem `unsafe`.
 
+pub mod arabic;
+mod arabic_table;
 pub mod bidi;
 mod bidi_table;
 pub mod buffer;
+pub mod common;
 pub mod fallback;
 pub mod font;
 pub mod gpos;

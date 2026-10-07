@@ -7,6 +7,7 @@ use crate::buffer::{
     FLAG_PRODUCE_UNSAFE_TO_CONCAT, FLAG_REMOVE_DEFAULT_IGNORABLES, GLYPH_FLAG_DEFINED, GLYPH_FLAG_SAFE_TO_INSERT_TATWEEL,
     GLYPH_FLAG_UNSAFE_TO_BREAK, GLYPH_FLAG_UNSAFE_TO_CONCAT,
 };
+use crate::arabic::ArabicPlan;
 use crate::fallback;
 use crate::font::Font;
 use crate::gsubgpos::{apply_string, ApplyContext};
@@ -45,9 +46,17 @@ pub enum ZeroWidthMarks {
     ByGdefLate,
 }
 
+/// Qual `hb_ot_shaper_t` o plano usa.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ShaperKind {
+    Default,
+    Arabic,
+}
+
 /// `hb_ot_shaper_t`: as propriedades que o pipeline consulta.
 #[derive(Clone, Copy, Debug)]
 pub struct Shaper {
+    pub kind: ShaperKind,
     pub normalization: Mode,
     pub zero_width_marks: ZeroWidthMarks,
     pub fallback_position: bool,
@@ -55,11 +64,25 @@ pub struct Shaper {
 }
 
 /// `_hb_ot_shaper_default`.
-pub const SHAPER_DEFAULT: Shaper =
-    Shaper { normalization: Mode::Auto, zero_width_marks: ZeroWidthMarks::ByGdefLate, fallback_position: true, gpos_tag: 0 };
+pub const SHAPER_DEFAULT: Shaper = Shaper {
+    kind: ShaperKind::Default,
+    normalization: Mode::Auto,
+    zero_width_marks: ZeroWidthMarks::ByGdefLate,
+    fallback_position: true,
+    gpos_tag: 0,
+};
 
-/// `hb_ot_shaper_categorize`. Os shapers dos scripts complexos ainda não foram traduzidos.
-fn categorize(_script: u32, _direction: Direction, _gsub_script: u32) -> Shaper {
+/// `_hb_ot_shaper_arabic`.
+pub const SHAPER_ARABIC: Shaper = Shaper { kind: ShaperKind::Arabic, ..SHAPER_DEFAULT };
+
+/// `hb_ot_shaper_categorize`. Dos scripts complexos, só o árabe foi traduzido até aqui.
+fn categorize(script: u32, direction: Direction, gsub_script: u32) -> Shaper {
+    if (script == tag(b"Arab") || script == tag(b"Syrc"))
+        && (gsub_script != tag(b"DFLT") || script == tag(b"Arab"))
+        && direction.is_horizontal()
+    {
+        return SHAPER_ARABIC;
+    }
     SHAPER_DEFAULT
 }
 
@@ -68,6 +91,8 @@ pub struct Plan {
     pub props: SegmentProperties,
     pub shaper: Shaper,
     pub map: Map,
+    /// Os dados do shaper árabe (`plan->data`).
+    pub arabic: Option<ArabicPlan>,
     pub frac_mask: u32,
     pub numr_mask: u32,
     pub dnom_mask: u32,
@@ -156,6 +181,10 @@ impl Plan {
         map.enable_feature(tag(b"trak"), F_HAS_FALLBACK, 1);
         map.enable_feature(tag(b"Harf"), F_NONE, 1);
         map.enable_feature(tag(b"HARF"), F_NONE, 1);
+        if shaper.kind == ShaperKind::Arabic {
+            map.is_simple = false;
+            crate::arabic::collect_features(&mut map, props);
+        }
         map.enable_feature(tag(b"Buzz"), F_NONE, 1);
         map.enable_feature(tag(b"BUZZ"), F_NONE, 1);
         for (t, f) in COMMON_FEATURES {
@@ -200,10 +229,12 @@ impl Plan {
         let has_gpos_mark = map.one_mask(tag(b"mark")) != 0;
         let adjust_mark_positioning_when_zeroing = !apply_gpos && (!apply_kern || !cross_kerning);
         let fallback_mark_positioning = adjust_mark_positioning_when_zeroing && script_fallback_mark_positioning;
+        let arabic = (shaper.kind == ShaperKind::Arabic).then(|| ArabicPlan::new(&map, props, font));
         Plan {
             props: props.clone(),
             shaper,
             map,
+            arabic,
             frac_mask,
             numr_mask,
             dnom_mask,
@@ -241,9 +272,8 @@ impl Plan {
                 c.per_syllable = lookup.per_syllable;
                 apply_string(&mut c, l);
             }
-            // As pausas só existem nos shapers complexos.
-            if let Some(p) = stage.pause {
-                match p {}
+            if let (Some(p), Some(arabic)) = (stage.pause, &self.arabic) {
+                crate::arabic::pause(p, arabic, font, &mut *c.buffer);
             }
         }
     }
@@ -489,6 +519,9 @@ fn setup_masks_fraction(plan: &Plan, buffer: &mut Buffer) {
 /// `hb_ot_shape_setup_masks`.
 fn setup_masks(plan: &Plan, buffer: &mut Buffer) {
     setup_masks_fraction(plan, buffer);
+    if let Some(arabic) = &plan.arabic {
+        crate::arabic::setup_masks(arabic, buffer, plan.props.script);
+    }
     for f in &plan.user_features {
         if !f.is_global() {
             let (mask, shift) = plan.map.mask(f.tag);
@@ -580,7 +613,10 @@ fn zero_mark_widths_by_gdef(buffer: &mut Buffer, adjust_offsets: bool) {
 fn substitute_pre(plan: &Plan, font: &Font, buffer: &mut Buffer, target_direction: Direction) {
     // `hb_ot_substitute_default`.
     rotate_chars(plan, font, buffer, target_direction);
-    let hooks = Hooks { decompose: None, compose: None, reorder_marks: None };
+    let arabic_reorder = |b: &mut Buffer, s: usize, e: usize| crate::arabic::reorder_marks(b, s, e);
+    let reorder_marks: Option<&dyn Fn(&mut Buffer, usize, usize)> =
+        if plan.shaper.kind == ShaperKind::Arabic { Some(&arabic_reorder) } else { None };
+    let hooks = Hooks { decompose: None, compose: None, reorder_marks };
     normalize::normalize(buffer, font, plan.shaper.normalization, &hooks);
     setup_masks(plan, buffer);
     if plan.fallback_mark_positioning {
@@ -691,6 +727,9 @@ pub fn shape(plan: &Plan, font: &Font, buffer: &mut Buffer) {
     position(plan, font, buffer);
     deal_with_variation_selectors(buffer);
     hide_default_ignorables(buffer, font);
+    if plan.shaper.kind == ShaperKind::Arabic {
+        crate::arabic::postprocess_glyphs(buffer, font);
+    }
     propagate_flags(buffer);
     buffer.props.direction = target_direction;
     buffer.leave();

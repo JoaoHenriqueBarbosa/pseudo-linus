@@ -16,6 +16,8 @@ zdeflate = { path = "../../wip/zdeflate" }
 # JPEG do libjpeg-turbo 2.1.5 traduzido sem unsafe, com os pixels do Pillow do Debian (fora do workspace).
 zjpeg = { path = "../../wip/zjpeg" }
 zft = { path = "../../wip/zft" }
+# HarfBuzz 10.2.0, fribidi 1.0.16 e raqm 0.10.2 traduzidos sem unsafe: o layout Raqm do Pillow.
+zhb = { path = "../../wip/zhb" }
 # `__dict__` de instâncias e classes na ordem de inserção, como no CPython.
 indexmap = "2"
 # `int` de precisão arbitrária (o que não cabe em `i64`).

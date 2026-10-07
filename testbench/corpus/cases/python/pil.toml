@@ -1,0 +1,48 @@
+tool = "python3"
+source = "manual"
+
+# Pillow com o layout Raqm (HarfBuzz, fribidi e raqm): medidas, caixas, direções, features, texto
+# vertical e os erros de validação, com as fontes DejaVu do Debian.
+
+[[case]]
+id = "pil-raqm-layout"
+script = '''
+python3 - <<'PYEOF'
+import hashlib
+from PIL import Image, ImageDraw, ImageFont, features, _imagingft
+
+print(features.check("raqm"), features.version("raqm"), features.version("fribidi"), features.version("harfbuzz"))
+print(_imagingft.HAVE_RAQM, _imagingft.raqm_version, _imagingft.fribidi_version, _imagingft.harfbuzz_version)
+
+base = "/usr/share/fonts/truetype/"
+fonts = ["dejavu/DejaVuSans.ttf", "dejavu/DejaVuSerif-Bold.ttf", "dejavu/DejaVuSansMono-BoldOblique.ttf"]
+texts = ["Hello, World!", "office ffi AV Ta", "مرحبا بالعالم 123", "abc שלום (def) עולם", "x̃́ ǭ̃ é", "Привет, мир! Ελληνικά"]
+for name in fonts:
+    for size in [13, 40]:
+        font = ImageFont.truetype(base + name, size)
+        print(name, size, font.layout_engine)
+        for t in texts:
+            print(" ", font.getlength(t), font.getbbox(t), font.getbbox(t, direction="rtl"), font.getlength(t, features=["-liga", "-kern"]))
+            im = Image.new("L", (600, 80), 0)
+            ImageDraw.Draw(im).text((5, 10), t, font=font, fill=255)
+            print("  ", im.getbbox(), hashlib.md5(im.tobytes()).hexdigest())
+        im = Image.new("RGB", (200, 300), "white")
+        ImageDraw.Draw(im).text((90, 5), "Vert", font=font, fill="black", direction="ttb")
+        print("  ttb", hashlib.md5(im.tobytes()).hexdigest())
+
+font = ImageFont.truetype(base + "dejavu/DejaVuSans.ttf", 20)
+for bad in [dict(direction="up"), dict(features="liga"), dict(features=[1]), dict(features=["li ga"]), dict(features=5), dict(language="pt-BR")]:
+    try:
+        print(bad, font.getlength("Hello", **bad))
+    except Exception as e:
+        print(bad, type(e).__name__, e)
+for s in [b"Hello", b"\x00abc", b"caf\xc3\xa9", ""]:
+    try:
+        print(repr(s), font.getlength(s), font.getbbox(s))
+    except Exception as e:
+        print(repr(s), type(e).__name__, e)
+basic = ImageFont.truetype(base + "dejavu/DejaVuSans.ttf", 20, layout_engine=ImageFont.Layout.BASIC)
+print(basic.layout_engine, basic.getlength("office AV"), font.getlength("office AV"))
+PYEOF
+'''
+tags = ["agent", "pil"]

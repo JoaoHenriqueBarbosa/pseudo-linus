@@ -5402,6 +5402,7 @@ dependencies = [
  "unicode_names2",
  "zdeflate",
  "zft",
+ "zhb",
  "zjpeg",
 ]
 
@@ -6183,6 +6184,13 @@ dependencies = [
 [[package]]
 name = "zft"
 version = "0.1.0"
+
+[[package]]
+name = "zhb"
+version = "0.1.0"
+dependencies = [
+ "zft",
+]
 
 [[package]]
 name = "zip"

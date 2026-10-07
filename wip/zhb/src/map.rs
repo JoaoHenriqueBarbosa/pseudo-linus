@@ -28,7 +28,14 @@ const TAG_LATIN_SCRIPT: u32 = tag(b"latn");
 
 /// As pausas entre estágios que os shapers complexos registram.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Pause {}
+pub enum Pause {
+    /// `record_stch` do shaper árabe.
+    ArabicRecordStch,
+    /// `deallocate_buffer_var` do shaper árabe: só libera a variável no C.
+    ArabicDeallocate,
+    /// `arabic_fallback_shape`.
+    ArabicFallback,
+}
 
 #[derive(Clone, Copy, Debug)]
 pub struct FeatureMap {

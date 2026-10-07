@@ -1,11 +1,13 @@
 //! `PIL._imagingft`: o `_imagingft.c` do Pillow 11.1.0 sobre o porte do FreeType 2.13.3 (`zft`),
-//! com o layout básico (sem Raqm): um glifo por caractere, kerning da tabela `kern`.
+//! com os dois layouts: o básico (um glifo por caractere, kerning da tabela `kern`) e o Raqm
+//! (raqm 0.10.2, fribidi 1.0.16 e HarfBuzz 10.2.0 portados no `zhb`), que é o padrão.
 
 use std::cell::RefCell;
 use std::rc::Rc;
 
 use sysabi::{sys, OFlags};
 use zft::{Face, LOAD_TARGET_MONO};
+use zhb::raqm::ParDirection;
 
 use super::{core_of, float_arg, int_arg};
 use crate::modules::ModuleBuilder;
@@ -34,7 +36,14 @@ struct GlyphInfo {
 
 pub struct FontObj {
     face: RefCell<Face>,
+    /// As tabelas de layout copiadas da face, para o `hb_font_t` do raqm.
+    tables: zhb::font::Tables,
+    /// `LAYOUT_BASIC` (0) ou `LAYOUT_RAQM` (1).
+    layout_engine: i64,
 }
+
+/// `LAYOUT_RAQM`.
+const LAYOUT_RAQM: i64 = 1;
 
 /// Um argumento `z` do `PyArg_ParseTuple`: `str` ou `None`.
 fn opt_str(v: Option<&Value>) -> PyResult<Option<String>> {
@@ -84,8 +93,90 @@ impl LayoutArgs {
 }
 
 impl FontObj {
-    /// `text_layout_fallback`.
+    /// `text_layout`: o Raqm quando a fonte foi aberta com ele.
     fn layout(&self, string: &Value, a: &LayoutArgs) -> PyResult<Vec<GlyphInfo>> {
+        if self.layout_engine == LAYOUT_RAQM {
+            self.layout_raqm(string, a)
+        } else {
+            self.layout_fallback(string, a)
+        }
+    }
+
+    /// `text_layout_raqm`.
+    fn layout_raqm(&self, string: &Value, a: &LayoutArgs) -> PyResult<Vec<GlyphInfo>> {
+        // O texto em bytes vai como UTF-8, e as faixas de feature e língua se convertem de
+        // offset em bytes para índice de codepoint.
+        let (text, utf8): (Vec<u32>, Option<&[u8]>) = match string {
+            Value::Str(s) => (s.as_str().chars().map(u32::from).collect(), None),
+            Value::Bytes(b) => (zhb::common::raqm_utf8_to_u32(b), Some(&b[..])),
+            _ => return Err(type_error("expected string or bytes")),
+        };
+        let size = utf8.map_or(text.len(), <[u8]>::len);
+        if size == 0 {
+            return Ok(Vec::new());
+        }
+        let to_u32_index = |index: usize| -> usize { utf8.map_or(index, |b| raqm_u8_to_u32_index(b, index)) };
+        let mut language = None;
+        if let Some(lang) = &a.lang {
+            if !text.is_empty() {
+                let (start, end) = (to_u32_index(0), to_u32_index(size));
+                if start >= text.len() || end > text.len() {
+                    return Err(exc("ValueError", "raqm_set_language() failed"));
+                }
+                language = zhb::common::language_from_string(lang.as_bytes());
+            }
+        }
+        let dir = match a.dir.as_deref() {
+            None => ParDirection::Default,
+            Some("rtl") => ParDirection::Rtl,
+            Some("ltr") => ParDirection::Ltr,
+            Some("ttb") => ParDirection::Ttb,
+            Some(_) => return Err(exc("ValueError", "direction must be either 'rtl', 'ltr' or 'ttb'")),
+        };
+        let mut features = Vec::new();
+        if !matches!(a.features, Value::None) {
+            // `PySequence_Fast`.
+            let mut it = crate::vm::get_iter(&a.features).map_err(|_| type_error("expected a sequence"))?;
+            let mut items = Vec::new();
+            while let Some(x) = it.next()? {
+                items.push(x);
+            }
+            for item in &items {
+                let Value::Str(s) = item else { return Err(type_error("expected a string")) };
+                let Some(mut f) = zhb::common::feature_from_string(s.as_str().as_bytes()) else {
+                    return Err(exc("ValueError", "raqm_add_font_feature() failed"));
+                };
+                if f.start != zhb::shape::Feature::GLOBAL_START {
+                    f.start = to_u32_index(f.start as usize) as u32;
+                }
+                if f.end != zhb::shape::Feature::GLOBAL_END {
+                    f.end = to_u32_index(f.end as usize) as u32;
+                }
+                features.push(f);
+            }
+        }
+        // Texto que o decodificador do raqm zerou (um NUL logo no início) não gera runs, e o
+        // `raqm_get_glyphs` devolve NULL.
+        if text.is_empty() {
+            return Err(exc("ValueError", "raqm_get_glyphs() failed."));
+        }
+        let font = zhb::font::Font::new(&self.face, &self.tables);
+        let out = zhb::raqm::layout(&font, &text, dir, language.as_deref(), &features);
+        Ok(out
+            .glyphs
+            .iter()
+            .map(|g| GlyphInfo {
+                index: g.index,
+                x_offset: i64::from(g.x_offset),
+                y_offset: i64::from(g.y_offset),
+                x_advance: i64::from(g.x_advance),
+                y_advance: i64::from(g.y_advance),
+            })
+            .collect())
+    }
+
+    /// `text_layout_fallback`.
+    fn layout_fallback(&self, string: &Value, a: &LayoutArgs) -> PyResult<Vec<GlyphInfo>> {
         let unsupported = !matches!(a.features, Value::None) || a.dir.is_some() || a.lang.is_some();
         let chars: Vec<u32> = match string {
             Value::Str(s) => s.as_str().chars().map(u32::from).collect(),
@@ -349,6 +440,29 @@ fn not_supported() -> PyException {
     exc("KeyError", "setting text direction, language or font features is not supported without libraqm")
 }
 
+/// `_raqm_u8_to_u32_index`: quantos codepoints começam antes do offset `index` em bytes.
+fn raqm_u8_to_u32_index(text: &[u8], index: usize) -> usize {
+    let mut s = 0usize;
+    let mut length = 0usize;
+    while s < index && text.get(s).is_some_and(|&b| b != 0) {
+        let c = text[s];
+        s += if c & 0xf8 == 0xf0 {
+            4
+        } else if c & 0xf0 == 0xe0 {
+            3
+        } else if c & 0xe0 == 0xc0 {
+            2
+        } else {
+            1
+        };
+        length += 1;
+    }
+    if s > index {
+        length = length.wrapping_sub(1);
+    }
+    length
+}
+
 fn muldiv255(a: u32, b: u32) -> u32 {
     let t = a * b + 128;
     ((t >> 8) + t) >> 8
@@ -428,9 +542,10 @@ fn getfont(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         Some(v) => Some(v.bytes_like().ok_or_else(|| type_error(format!("argument 5 must be bytes, not {}", v.type_name())))?.to_vec()),
         None => None,
     };
-    if let Some(v) = s[5].as_ref() {
-        int_arg(v)?;
-    }
+    let layout_engine = match s[5].as_ref() {
+        Some(v) => int_arg(v)?,
+        None => 0,
+    };
     let data = match font_bytes.filter(|b| !b.is_empty()) {
         Some(b) => b,
         None => read_font(&filename).ok_or_else(|| exc("OSError", "cannot open resource"))?,
@@ -444,15 +559,20 @@ fn getfont(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
             return Err(exc("OSError", "invalid argument"));
         }
     }
-    Ok(Value::Ext(Rc::new(FontObj { face: RefCell::new(face) })))
+    let tables = zhb::font::Tables::load(&face);
+    Ok(Value::Ext(Rc::new(FontObj { face: RefCell::new(face), tables, layout_engine })))
 }
 
 pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
+    // O Pillow do Debian liga o raqm do sistema, que não expõe as versões do fribidi e do HarfBuzz.
     ModuleBuilder::new("PIL._imagingft")
         .func("getfont", getfont)
         .value("freetype2_version", Value::str("2.13.3"))
-        .value("HAVE_RAQM", Value::Bool(false))
-        .value("HAVE_FRIBIDI", Value::Bool(false))
-        .value("HAVE_HARFBUZZ", Value::Bool(false))
+        .value("HAVE_RAQM", Value::Bool(true))
+        .value("HAVE_FRIBIDI", Value::Bool(true))
+        .value("HAVE_HARFBUZZ", Value::Bool(true))
+        .value("raqm_version", Value::str("0.10.2"))
+        .value("fribidi_version", Value::None)
+        .value("harfbuzz_version", Value::None)
         .build()
 }
