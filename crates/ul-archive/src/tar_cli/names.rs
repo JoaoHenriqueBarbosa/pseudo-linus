@@ -2,7 +2,7 @@
 //! com os membros (`-x`, `-t`, `-d`, `--delete`) e exclusão (`--exclude`, `-X`, `--exclude-vcs`).
 
 use super::args::{Exclude, MatchFlags, NameArg};
-use super::fnmatch::{self, Flags};
+use ul_common::fnmatch::{self, Bytes, Flags};
 
 /// Separa o prefixo inseguro de um nome: barras iniciais e tudo até o último componente `..`.
 /// Devolve (prefixo removido, resto). O resto vazio vira `.`.
@@ -113,15 +113,15 @@ pub fn name_matches(pattern: &[u8], member: &[u8], flags: MatchFlags, recursion:
     let anchored = flags.anchored.unwrap_or(inclusion);
     let match_slash = flags.match_slash.unwrap_or(true);
     if wildcards && fnmatch::has_wildcards(pattern) {
-        let f = Flags { pathname: !match_slash, leading_dir: recursion, casefold: flags.ignore_case, noescape: false };
-        if fnmatch::fnmatch(pattern, member, f) {
+        let f = Flags::TRAILING_BACKSLASH_LITERAL.with(Flags::PATHNAME, !match_slash).with(Flags::LEADING_DIR, recursion).with(Flags::CASEFOLD, flags.ignore_case);
+        if fnmatch::fnmatch::<Bytes>(pattern, member, f) {
             return true;
         }
         if !anchored {
             let mut i = 0;
             while let Some(p) = member[i..].iter().position(|&c| c == b'/') {
                 i += p + 1;
-                if fnmatch::fnmatch(pattern, &member[i..], f) {
+                if fnmatch::fnmatch::<Bytes>(pattern, &member[i..], f) {
                     return true;
                 }
             }

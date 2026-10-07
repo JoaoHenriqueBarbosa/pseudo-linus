@@ -6,9 +6,12 @@
 //! - [`Civil`] decompõe um instante UTC (ou um instante já deslocado pelo fuso) em ano, mês, dia,
 //!   hora, minuto, segundo, dia da semana e dia do ano; quem precisa de uma `struct tm` própria (com
 //!   `isdst`, `gmtoff`, abreviação, ano menos 1900) monta a sua em cima dele.
+//! - `strftime` formata uma data civil como o glibc em `C.UTF-8` (flags, largura, `E`/`O`), a partir
+//!   de um [`strftime::StrfTime`] neutro.
 //! - `zone` (feature `zone`) resolve o fuso do sandbox como a glibc e converte com o banco de fusos
 //!   embutido do jiff.
 
+pub mod strftime;
 #[cfg(feature = "zone")]
 pub mod zone;
 

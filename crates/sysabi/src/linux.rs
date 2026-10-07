@@ -131,7 +131,8 @@ impl Signal {
             return (0..=SIGRTMAX).contains(&n).then_some(Signal(n));
         }
         let upper = s.to_ascii_uppercase();
-        let bare = upper.trim_start_matches("SIG");
+        // um `SIG` só: o bash recusa `SIGSIGHUP`
+        let bare = upper.strip_prefix("SIG").unwrap_or(&upper);
         for n in 1..=SIGRTMAX {
             if Signal(n).name().as_deref() == Some(bare) {
                 return Some(Signal(n));

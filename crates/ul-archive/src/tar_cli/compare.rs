@@ -354,7 +354,7 @@ pub fn test_label(t: &mut Tar) -> R<()> {
             if names.is_empty() {
                 let line = quote::quote_with(&l, &t.o.quoting, false);
                 t.stdlis(&line);
-            } else if !names.iter().any(|n| super::fnmatch::fnmatch(n, &l, Default::default())) {
+            } else if !names.iter().any(|n| ul_common::fnmatch::fnmatch::<ul_common::fnmatch::Bytes>(n, &l, ul_common::fnmatch::Flags::TRAILING_BACKSLASH_LITERAL)) {
                 t.exit = 1;
             }
         }

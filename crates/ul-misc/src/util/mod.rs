@@ -1,9 +1,7 @@
 //! Peças comuns dos programas do crate: `getopt_long` da glibc, E/S sobre `sysabi`, hora local e
 //! largura de exibição.
 
-pub mod fnmatch;
 pub mod io;
-pub mod md5;
 pub mod time;
 pub mod tzif;
 pub mod ul;
@@ -13,23 +11,9 @@ pub mod ul;
 pub use ul_common::getopt;
 pub use ul_common::getopt::{Getopt, GetoptError, HasArg, LongOpt, Opt};
 
-/// Largura de exibição de um texto UTF-8 em C.UTF-8 (o `wcswidth` da glibc): caractere de controle
-/// conta 0 aqui, quem precisa de outra regra trata antes.
-pub fn display_width(s: &str) -> usize {
-    use unicode_width::UnicodeWidthChar;
-    s.chars().map(|c| c.width().unwrap_or(0)).sum()
-}
-
-/// Largura de exibição de bytes: sequência UTF-8 inválida conta um por byte, como o `mbsnwidth` do
-/// gnulib com `MBSW_ACCEPT_INVALID`.
-pub fn display_width_bytes(b: &[u8]) -> usize {
-    let mut total = 0;
-    for chunk in b.utf8_chunks() {
-        total += display_width(chunk.valid());
-        total += chunk.invalid().len();
-    }
-    total
-}
+// Largura de exibição em C.UTF-8 (o `wcswidth` da glibc, e o `mbsnwidth` do gnulib pros bytes): mora
+// no `ul-common`; o caminho `util::display_width` segue valendo pros programas daqui.
+pub use ul_common::width::{display_width, display_width_bytes};
 
 #[cfg(test)]
 mod tests {

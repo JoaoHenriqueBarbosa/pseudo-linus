@@ -16,7 +16,8 @@
 
 use jaq_json::{Rc, Val, err};
 use sysabi::{Clock, Syscalls};
-use ul_common::time::{Civil, civil_from_days, days_from_civil, is_leap, weekday};
+use ul_common::time::strftime::{StrfTime, strftime_lazy};
+use ul_common::time::{Civil, civil_from_days, days_from_civil, weekday};
 
 type ValR = jaq_json::ValR;
 
@@ -289,174 +290,34 @@ pub fn strftime(v: &Val, fmt: &Val, tz: Option<&TimeZone>) -> ValR {
         // asserção do `jv_string_value`.
         crate::abort_with("jq: src/jv.c:1450: jv_string_value: Assertion `JVP_HAS_KIND(j, JV_KIND_STRING)' failed.\n");
     };
-    let out = format_tm(&tm, f, zone);
+    // O `tm` do jq não tem `tm_zone` (o `%Z` sai como o `tzname[0]` do fuso) nem `tm_gmtoff`.
+    let zone_name = tm.zone.clone().unwrap_or_else(|| zone.std_name());
+    let when = StrfTime {
+        civil: Civil {
+            year: tm.year + 1900,
+            mon: tm.mon + 1,
+            mday: tm.mday,
+            hour: tm.hour,
+            min: tm.min,
+            sec: tm.sec,
+            wday: tm.wday,
+            yday: tm.yday,
+        },
+        gmtoff: tm.gmtoff,
+        zone: zone_name.as_bytes(),
+    };
+    // O `%s` é o `mktime` local do `tm`, só quando o formato o pede. Sem limite de saída, o
+    // `strftime_lazy` não devolve `None`.
+    let out = strftime_lazy(f.as_bytes(), &when, &mut || mktime_local(&tm, zone), usize::MAX).unwrap_or_default();
     if out.is_empty() {
         return Err(err(format!("{name}: unknown system failure")));
     }
-    Ok(Val::from(out))
+    Ok(Val::from(String::from_utf8_lossy(&out).into_owned()))
 }
 
 const DAYS: [&str; 7] = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MONTHS: [&str; 12] =
     ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
-fn iso_week(tm: &Tm) -> (i64, i64) {
-    // Semana ISO 8601 (glibc `iso_week_days`).
-    let year = tm.year + 1900;
-    let iso_week_days = |yday: i64, wday: i64| -> i64 {
-        let big_enough_multiple_of_7 = (-366 / 7 + 2) * 7;
-        yday - (yday - wday + 4 + big_enough_multiple_of_7) % 7 + 3
-    };
-    let mut y = year;
-    let mut days = iso_week_days(tm.yday, tm.wday);
-    if days < 0 {
-        y -= 1;
-        days = iso_week_days(tm.yday + if is_leap(y) { 366 } else { 365 }, tm.wday);
-    } else {
-        let d = iso_week_days(tm.yday - if is_leap(year) { 366 } else { 365 }, tm.wday);
-        if d >= 0 {
-            y += 1;
-            days = d;
-        }
-    }
-    (y, days / 7 + 1)
-}
-
-/// `strftime` da glibc no locale C, com flags (`_ - 0 ^ #`), largura e modificadores `E`/`O`.
-pub fn format_tm(tm: &Tm, fmt: &str, tz: &TimeZone) -> String {
-    let mut out = String::new();
-    let b = fmt.as_bytes();
-    let mut i = 0;
-    while i < b.len() {
-        if b[i] != b'%' {
-            let ch = fmt[i..].chars().next().unwrap_or(' ');
-            out.push(ch);
-            i += ch.len_utf8();
-            continue;
-        }
-        let start = i;
-        i += 1;
-        let mut pad: Option<u8> = None;
-        let mut upcase = false;
-        let mut swapcase = false;
-        while i < b.len() && matches!(b[i], b'_' | b'-' | b'0' | b'^' | b'#') {
-            match b[i] {
-                b'^' => upcase = true,
-                b'#' => swapcase = true,
-                c => pad = Some(c),
-            }
-            i += 1;
-        }
-        let mut width: Option<usize> = None;
-        while i < b.len() && b[i].is_ascii_digit() {
-            width = Some(width.unwrap_or(0) * 10 + (b[i] - b'0') as usize);
-            i += 1;
-        }
-        while i < b.len() && matches!(b[i], b'E' | b'O') {
-            i += 1;
-        }
-        if i >= b.len() {
-            out.push_str(&fmt[start..]);
-            break;
-        }
-        let conv = b[i];
-        i += 1;
-        // Número com preenchimento padrão `defpad` e dígitos mínimos `digits`.
-        let num = |v: i64, digits: usize, defpad: u8| -> String {
-            let p = pad.unwrap_or(defpad);
-            let w = width.unwrap_or(digits);
-            let neg = v < 0;
-            let s = v.unsigned_abs().to_string();
-            let body_len = s.len() + neg as usize;
-            match p {
-                b'-' => format!("{}{s}", if neg { "-" } else { "" }),
-                b'_' => format!("{}{}{s}", " ".repeat(w.saturating_sub(body_len)), if neg { "-" } else { "" }),
-                _ => format!("{}{}{s}", if neg { "-" } else { "" }, "0".repeat(w.saturating_sub(body_len))),
-            }
-        };
-        let text = |s: &str, upper_default: bool| -> String {
-            let mut s = s.to_string();
-            if upcase || (swapcase && upper_default) {
-                s = s.to_uppercase();
-            } else if swapcase {
-                s = s.to_lowercase();
-            }
-            match (pad, width) {
-                (Some(b'-'), _) | (_, None) => s,
-                (Some(b'0'), Some(w)) => format!("{}{s}", "0".repeat(w.saturating_sub(s.len()))),
-                (_, Some(w)) => format!("{}{s}", " ".repeat(w.saturating_sub(s.len()))),
-            }
-        };
-        let hour12 = if tm.hour % 12 == 0 { 12 } else { tm.hour % 12 };
-        let year = tm.year + 1900;
-        let piece = match conv {
-            b'%' => text("%", false),
-            b'a' => text(DAYS.get(tm.wday as usize).map_or("?", |d| &d[..3]), true),
-            b'A' => text(DAYS.get(tm.wday as usize).copied().unwrap_or("?"), true),
-            b'b' | b'h' => text(MONTHS.get(tm.mon as usize).map_or("?", |m| &m[..3]), true),
-            b'B' => text(MONTHS.get(tm.mon as usize).copied().unwrap_or("?"), true),
-            b'c' => text(&format_tm(tm, "%a %b %e %H:%M:%S %Y", tz), false),
-            b'C' => num(year.div_euclid(100), 2, b'0'),
-            b'd' => num(tm.mday, 2, b'0'),
-            b'D' => text(&format_tm(tm, "%m/%d/%y", tz), false),
-            b'e' => num(tm.mday, 2, b'_'),
-            b'F' => {
-                let w = width.map(|w| w.saturating_sub(6)).unwrap_or(0);
-                let y = if w > 0 { format!("{:0>w$}", year) } else { year.to_string() };
-                format!("{y}-{:02}-{:02}", tm.mon + 1, tm.mday)
-            }
-            b'g' => num(iso_week(tm).0.rem_euclid(100), 2, b'0'),
-            b'G' => num(iso_week(tm).0, 1, b'0'),
-            b'H' => num(tm.hour, 2, b'0'),
-            b'I' => num(hour12, 2, b'0'),
-            b'j' => num(tm.yday + 1, 3, b'0'),
-            b'k' => num(tm.hour, 2, b'_'),
-            b'l' => num(hour12, 2, b'_'),
-            b'm' => num(tm.mon + 1, 2, b'0'),
-            b'M' => num(tm.min, 2, b'0'),
-            b'n' => text("\n", false),
-            b'p' => {
-                let s = if tm.hour >= 12 { "PM" } else { "AM" };
-                if swapcase { text(&s.to_lowercase(), false) } else { text(s, false) }
-            }
-            b'P' => text(if tm.hour >= 12 { "pm" } else { "am" }, false),
-            b'r' => text(&format_tm(tm, "%I:%M:%S %p", tz), false),
-            b'R' => text(&format_tm(tm, "%H:%M", tz), false),
-            b's' => num(mktime_local(tm, tz), 1, b'0'),
-            b'S' => num(tm.sec, 2, b'0'),
-            b't' => text("\t", false),
-            b'T' => text(&format_tm(tm, "%H:%M:%S", tz), false),
-            b'u' => num(if tm.wday == 0 { 7 } else { tm.wday }, 1, b'0'),
-            b'U' => num((tm.yday - tm.wday + 7) / 7, 2, b'0'),
-            b'V' => num(iso_week(tm).1, 2, b'0'),
-            b'w' => num(tm.wday, 1, b'0'),
-            b'W' => num((tm.yday - (tm.wday - 1 + 7) % 7 + 7) / 7, 2, b'0'),
-            b'x' => text(&format_tm(tm, "%m/%d/%y", tz), false),
-            b'X' => text(&format_tm(tm, "%H:%M:%S", tz), false),
-            b'y' => num(year.rem_euclid(100), 2, b'0'),
-            b'Y' => {
-                if width.is_some() {
-                    num(year, 1, b'0')
-                } else {
-                    year.to_string()
-                }
-            }
-            b'z' => {
-                let off = tm.gmtoff;
-                let sign = if off < 0 { '-' } else { '+' };
-                let a = off.abs();
-                format!("{sign}{:02}{:02}", a / 3600, (a / 60) % 60)
-            }
-            b'Z' => {
-                let z = tm.zone.clone().unwrap_or_else(|| tz.std_name());
-                if swapcase { text(&z.to_lowercase(), false) } else { text(&z, false) }
-            }
-            _ => fmt[start..i].to_string(),
-        };
-        out.push_str(&piece);
-    }
-    out
-}
 
 /// Estado do `strptime` da glibc.
 #[derive(Default)]
@@ -829,12 +690,11 @@ mod tests {
     }
 
     #[test]
-    fn strftime_c_locale() {
-        let tm = gmtime_r(0).unwrap();
-        let utc = TimeZone::utc();
-        assert_eq!(
-            format_tm(&Tm { zone: None, ..tm }, "%c|%x|%r|%e|%j|%G|%V|%U|%W|%u|%C|%5Y|%-d|%_d|%^a|%#b", &utc),
-            "Thu Jan  1 00:00:00 1970|01/01/70|12:00:00 AM| 1|001|1970|01|00|00|4|19|01970|1| 1|THU|JAN"
-        );
+    fn strftime_builds_the_tm_without_zone_or_offset() {
+        // O `strftime` do jq parte do array: `%Z` é o `tzname[0]` do fuso, `%z` é zero e `%s` é o
+        // `mktime` local. A formatação em si é testada no `ul-common`.
+        let out = strftime(&Val::num(1_700_000_000.0), &Val::from("%c|%s|%Z|%z|%G-%V".to_string()), None);
+        let Ok(v) = out else { panic!("strftime falhou") };
+        assert_eq!(v.as_str(), Some("Tue Nov 14 22:13:20 2023|1700000000|UTC|+0000|2023-46"));
     }
 }

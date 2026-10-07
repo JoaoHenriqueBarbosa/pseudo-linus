@@ -66,7 +66,7 @@ fn skill_option(arg: &str) -> Option<i32> {
     if body.as_bytes()[0].is_ascii_digit() {
         return common::parse_long(body).filter(|n| (0..=64).contains(n)).map(|n| n as i32);
     }
-    common::signal_by_table_name(body).or_else(|| common::signal_rt(body))
+    common::signal_by_name(body)
 }
 
 /// `-n` ou `+n` do snice: prioridade numérica.
@@ -178,7 +178,7 @@ fn run(args: &[OsString]) -> i32 {
             x if x == 'n' as i32 => no_action = true,
             x if x == 'v' as i32 => verbose = true,
             x if x == 'l' as i32 => {
-                out("HUP INT QUIT ILL TRAP ABRT BUS FPE KILL USR1 SEGV USR2 PIPE ALRM TERM STKFLT\nCHLD CONT STOP TSTP TTIN TTOU URG XCPU XFSZ VTALRM PROF WINCH POLL PWR SYS\n");
+                out(common::signal_list());
                 return 0;
             }
             x if x == 'L' as i32 => {

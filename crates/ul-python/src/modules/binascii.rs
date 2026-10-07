@@ -10,7 +10,9 @@ use crate::native_util::bind;
 use crate::object::{Kw, ModuleObj, Value};
 use crate::vm::{exc, type_error, PyException, PyResult, Vm};
 
-pub const B64_ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+/// O núcleo base64 e CRC-32 mora no `ul-common`; os outros módulos continuam importando daqui.
+pub use ul_common::codec::{base64_decode as decode_base64, base64_encode as encode_base64, crc32_update};
+pub use ul_common::codec::BASE64_STANDARD as B64_ALPHABET;
 
 pub fn binascii_error(msg: impl Into<String>) -> PyException {
     exc("binascii.Error", msg)
@@ -38,109 +40,6 @@ pub fn want_ascii_or_bytes(v: &Value) -> PyResult<Vec<u8>> {
         }
         other => want_bytes(other),
     }
-}
-
-/// Codifica em base64 com o alfabeto dado (preenchimento `=` se `pad`).
-pub fn encode_base64(data: &[u8], alphabet: &[u8; 64], pad: bool) -> Vec<u8> {
-    let mut out = Vec::with_capacity(data.len().div_ceil(3) * 4);
-    for chunk in data.chunks(3) {
-        let b0 = u32::from(chunk[0]);
-        let b1 = u32::from(*chunk.get(1).unwrap_or(&0));
-        let b2 = u32::from(*chunk.get(2).unwrap_or(&0));
-        let n = (b0 << 16) | (b1 << 8) | b2;
-        out.push(alphabet[((n >> 18) & 63) as usize]);
-        out.push(alphabet[((n >> 12) & 63) as usize]);
-        if chunk.len() > 1 {
-            out.push(alphabet[((n >> 6) & 63) as usize]);
-        } else if pad {
-            out.push(b'=');
-        }
-        if chunk.len() > 2 {
-            out.push(alphabet[(n & 63) as usize]);
-        } else if pad {
-            out.push(b'=');
-        }
-    }
-    out
-}
-
-fn b64_value(c: u8) -> Option<u8> {
-    match c {
-        b'A'..=b'Z' => Some(c - b'A'),
-        b'a'..=b'z' => Some(c - b'a' + 26),
-        b'0'..=b'9' => Some(c - b'0' + 52),
-        b'+' => Some(62),
-        b'/' => Some(63),
-        _ => None,
-    }
-}
-
-/// `binascii.a2b_base64`: o erro é a mensagem do `binascii.Error`.
-pub fn decode_base64(data: &[u8], strict: bool) -> Result<Vec<u8>, String> {
-    let mut out: Vec<u8> = Vec::new();
-    let mut quad: usize = 0;
-    let mut left: u8 = 0;
-    let mut pads: usize = 0;
-    let mut padding_started = false;
-    for (idx, &c) in data.iter().enumerate() {
-        if c == b'=' {
-            padding_started = true;
-            if quad >= 2 {
-                pads += 1;
-                if quad + pads >= 4 {
-                    if strict && idx + 1 < data.len() {
-                        return Err("Excess data after padding".to_string());
-                    }
-                    quad = 0;
-                    break;
-                }
-            } else if strict && quad == 0 {
-                return Err("Leading padding not allowed".to_string());
-            }
-            continue;
-        }
-        let Some(v) = b64_value(c) else {
-            if strict {
-                return Err("Only base64 data is allowed".to_string());
-            }
-            continue;
-        };
-        if strict && padding_started {
-            return Err("Excess data after padding".to_string());
-        }
-        pads = 0;
-        match quad {
-            0 => {
-                quad = 1;
-                left = v;
-            }
-            1 => {
-                quad = 2;
-                out.push((left << 2) | (v >> 4));
-                left = v & 0xf;
-            }
-            2 => {
-                quad = 3;
-                out.push((left << 4) | (v >> 2));
-                left = v & 0x3;
-            }
-            _ => {
-                quad = 0;
-                out.push((left << 6) | v);
-                left = 0;
-            }
-        }
-    }
-    if quad != 0 {
-        if quad == 1 {
-            return Err(format!(
-                "Invalid base64-encoded string: number of data characters ({}) cannot be 1 more than a multiple of 4",
-                (out.len() / 3) * 4 + 1
-            ));
-        }
-        return Err("Incorrect padding".to_string());
-    }
-    Ok(out)
 }
 
 fn hex_digit(c: u8) -> Option<u8> {
@@ -185,18 +84,6 @@ pub fn from_hex(data: &[u8]) -> Result<Vec<u8>, String> {
         }
     }
     Ok(out)
-}
-
-/// CRC-32 (polinômio 0xEDB88320) com valor inicial `value`.
-pub fn crc32_update(value: u32, data: &[u8]) -> u32 {
-    let mut crc = !value;
-    for &b in data {
-        crc ^= u32::from(b);
-        for _ in 0..8 {
-            crc = if crc & 1 != 0 { (crc >> 1) ^ 0xEDB8_8320 } else { crc >> 1 };
-        }
-    }
-    !crc
 }
 
 fn hexlify(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -309,11 +196,5 @@ mod tests {
         assert_eq!(repr(&call(a2b_base64, vec![b(b"aGVsbG8=\n")]).unwrap()), "b'hello'");
         let e = call(a2b_base64, vec![b(b"aGVsbG8")]).unwrap_err();
         assert_eq!((e.kind, e.msg.as_str()), ("binascii.Error", "Incorrect padding"));
-        assert_eq!(decode_base64(b"", false).unwrap(), Vec::<u8>::new());
-        assert_eq!(encode_base64(b"f", B64_ALPHABET, true), b"Zg==".to_vec());
-        assert_eq!(encode_base64(b"fo", B64_ALPHABET, true), b"Zm8=".to_vec());
-        assert_eq!(encode_base64(b"foo", B64_ALPHABET, true), b"Zm9v".to_vec());
-        assert_eq!(decode_base64(b"Zm9v", true).unwrap(), b"foo".to_vec());
-        assert_eq!(decode_base64(b"Zm9v!", true).unwrap_err(), "Only base64 data is allowed");
     }
 }

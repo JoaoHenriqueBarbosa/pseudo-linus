@@ -1,9 +1,6 @@
-//! Peças de baixo nível do ps: locale, escapes de texto, `strtoul`, `strverscmp`, `wcwidth` e um
-//! `strftime` para o `-D`/`lstart`.
+//! Peças de baixo nível do ps: locale, escapes de texto, `strtoul`, `strverscmp` e `wcwidth`.
 
 use std::cmp::Ordering;
-
-use jiff::civil::DateTime;
 
 /// O locale do processo usa UTF-8? (o `nl_langinfo(CODESET)` depois do `setlocale(LC_ALL, "")`).
 pub fn is_utf8() -> bool {
@@ -113,50 +110,8 @@ fn wc_printable(cp: u32) -> bool {
     !(cp < 0xa0 || (0xd800..=0xdfff).contains(&cp) || cp == 0x2028 || cp == 0x2029 || cp == 0xfffe || cp == 0xffff)
 }
 
-/// `wcwidth` aproximado: 0 para combinantes e formatadores, 2 para ideogramas e emoji largos.
-pub fn wcwidth(cp: u32) -> i32 {
-    const ZERO: &[(u32, u32)] = &[
-        (0x0300, 0x036f),
-        (0x0483, 0x0489),
-        (0x0591, 0x05bd),
-        (0x0610, 0x061a),
-        (0x064b, 0x065f),
-        (0x200b, 0x200f),
-        (0x202a, 0x202e),
-        (0x2060, 0x2064),
-        (0x20d0, 0x20ff),
-        (0x1ab0, 0x1aff),
-        (0x1dc0, 0x1dff),
-        (0xfe00, 0xfe0f),
-        (0xfe20, 0xfe2f),
-        (0xfeff, 0xfeff),
-        (0xe0100, 0xe01ef),
-    ];
-    const WIDE: &[(u32, u32)] = &[
-        (0x1100, 0x115f),
-        (0x2e80, 0x303e),
-        (0x3041, 0x33ff),
-        (0x3400, 0x4dbf),
-        (0x4e00, 0x9fff),
-        (0xa000, 0xa4cf),
-        (0xac00, 0xd7a3),
-        (0xf900, 0xfaff),
-        (0xfe30, 0xfe6f),
-        (0xff00, 0xff60),
-        (0xffe0, 0xffe6),
-        (0x1f300, 0x1f64f),
-        (0x1f900, 0x1f9ff),
-        (0x20000, 0x2fffd),
-        (0x30000, 0x3fffd),
-    ];
-    if ZERO.iter().any(|(a, b)| cp >= *a && cp <= *b) {
-        return 0;
-    }
-    if WIDE.iter().any(|(a, b)| cp >= *a && cp <= *b) {
-        return 2;
-    }
-    1
-}
+/// `wcwidth` do C.UTF-8 sobre o ponto de código decodificado do UTF-8.
+pub use ul_common::width::wcwidth_cp as wcwidth;
 
 /// `escape_str` do output.c do ps: copia `src` (até o NUL) para `out` respeitando `bufsize` bytes e
 /// `*maxcells` células de tela; controles e inválidos viram `?`. Devolve os bytes escritos e
@@ -295,87 +250,4 @@ pub fn strverscmp(a: &[u8], b: &[u8]) -> Ordering {
         i2 += 1;
         state += usize::from(c1 == b'0') + usize::from(is_digit(c1));
     }
-}
-
-/// `strftime` com as conversões comuns (o suficiente para `-D` e `lstart`). `tz_abbr` e `offset`
-/// alimentam `%Z` e `%z`.
-pub fn strftime(fmt: &[u8], dt: &DateTime, tz_abbr: &str, offset_secs: i32, epoch: i64) -> Vec<u8> {
-    use ul_misc::util::time::{MONTHS, WEEKDAYS, wday};
-    const FULL_DAYS: [&str; 7] = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    const FULL_MONTHS: [&str; 12] = [
-        "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December",
-    ];
-    let mut out: Vec<u8> = Vec::new();
-    let mut i = 0;
-    let wd = wday(dt);
-    let mon = dt.month() as usize;
-    let yday = i64::from(dt.date().day_of_year());
-    let h12 = if dt.hour() % 12 == 0 { 12 } else { dt.hour() % 12 };
-    while i < fmt.len() {
-        let c = fmt[i];
-        i += 1;
-        if c != b'%' || i >= fmt.len() {
-            out.push(c);
-            continue;
-        }
-        let mut f = fmt[i];
-        i += 1;
-        // Modificadores de preenchimento do glibc: `-`, `_`, `0`, `^`, `#`.
-        let mut pad: Option<u8> = None;
-        while matches!(f, b'-' | b'_' | b'0' | b'^' | b'#') && i < fmt.len() {
-            pad = Some(f);
-            f = fmt[i];
-            i += 1;
-        }
-        let num = |v: i64, width: usize, def: u8| -> String {
-            match pad.unwrap_or(def) {
-                b'-' => v.to_string(),
-                b'_' => format!("{v:>width$}"),
-                _ => format!("{v:0width$}"),
-            }
-        };
-        let s: String = match f {
-            b'a' => WEEKDAYS[wd].to_string(),
-            b'A' => FULL_DAYS[wd].to_string(),
-            b'b' | b'h' => MONTHS[mon - 1].to_string(),
-            b'B' => FULL_MONTHS[mon - 1].to_string(),
-            b'c' => format!("{} {} {:2} {:02}:{:02}:{:02} {}", WEEKDAYS[wd], MONTHS[mon - 1], dt.day(), dt.hour(), dt.minute(), dt.second(), dt.year()),
-            b'C' => num(i64::from(dt.year()) / 100, 2, b'0'),
-            b'd' => num(i64::from(dt.day()), 2, b'0'),
-            b'D' => format!("{:02}/{:02}/{:02}", mon, dt.day(), dt.year() % 100),
-            b'e' => num(i64::from(dt.day()), 2, b'_'),
-            b'F' => format!("{}-{:02}-{:02}", dt.year(), mon, dt.day()),
-            b'H' => num(i64::from(dt.hour()), 2, b'0'),
-            b'I' => num(i64::from(h12), 2, b'0'),
-            b'j' => num(yday, 3, b'0'),
-            b'k' => num(i64::from(dt.hour()), 2, b'_'),
-            b'l' => num(i64::from(h12), 2, b'_'),
-            b'm' => num(mon as i64, 2, b'0'),
-            b'M' => num(i64::from(dt.minute()), 2, b'0'),
-            b'n' => "\n".to_string(),
-            b'p' => (if dt.hour() < 12 { "AM" } else { "PM" }).to_string(),
-            b'P' => (if dt.hour() < 12 { "am" } else { "pm" }).to_string(),
-            b'r' => format!("{:02}:{:02}:{:02} {}", h12, dt.minute(), dt.second(), if dt.hour() < 12 { "AM" } else { "PM" }),
-            b'R' => format!("{:02}:{:02}", dt.hour(), dt.minute()),
-            b's' => epoch.to_string(),
-            b'S' => num(i64::from(dt.second()), 2, b'0'),
-            b't' => "\t".to_string(),
-            b'T' | b'X' => format!("{:02}:{:02}:{:02}", dt.hour(), dt.minute(), dt.second()),
-            b'u' => (if wd == 0 { 7 } else { wd }).to_string(),
-            b'w' => wd.to_string(),
-            b'x' => format!("{:02}/{:02}/{:02}", mon, dt.day(), dt.year() % 100),
-            b'y' => num(i64::from(dt.year() % 100), 2, b'0'),
-            b'Y' => dt.year().to_string(),
-            b'z' => {
-                let sign = if offset_secs < 0 { '-' } else { '+' };
-                let a = offset_secs.abs();
-                format!("{sign}{:02}{:02}", a / 3600, (a % 3600) / 60)
-            }
-            b'Z' => tz_abbr.to_string(),
-            b'%' => "%".to_string(),
-            other => format!("%{}", other as char),
-        };
-        out.extend_from_slice(s.as_bytes());
-    }
-    out
 }

@@ -18,6 +18,7 @@ use std::time::Duration;
 
 use sysabi::{Ctx, Errno, KillTarget, ProcAttrs, Signal, sys};
 use ul_common::ctype::parse_i64 as parse_num;
+use ul_common::signal;
 
 use crate::setsid::execvp;
 use crate::util::io;
@@ -96,14 +97,6 @@ Exit status with --status:
 
 const VERSION: &str = "start-stop-daemon 1.22.22 for Debian\n\nWritten by Marek Michalkiewicz, public domain.\n";
 
-const SIGNAMES: [(&str, i32); 31] = [
-    ("HUP", 1), ("INT", 2), ("QUIT", 3), ("ILL", 4), ("TRAP", 5), ("ABRT", 6), ("BUS", 7),
-    ("FPE", 8), ("KILL", 9), ("USR1", 10), ("SEGV", 11), ("USR2", 12), ("PIPE", 13), ("ALRM", 14),
-    ("TERM", 15), ("STKFLT", 16), ("CHLD", 17), ("CONT", 18), ("STOP", 19), ("TSTP", 20),
-    ("TTIN", 21), ("TTOU", 22), ("URG", 23), ("XCPU", 24), ("XFSZ", 25), ("VTALRM", 26),
-    ("PROF", 27), ("WINCH", 28), ("POLL", 29), ("PWR", 30), ("SYS", 31),
-];
-
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Cmd {
     None,
@@ -176,8 +169,7 @@ fn parse_signal(s: &[u8]) -> Option<i32> {
     if let Some(n) = parse_num(s) {
         return i32::try_from(n).ok();
     }
-    let bare = s.strip_prefix(b"SIG").unwrap_or(s);
-    SIGNAMES.iter().find(|(n, _)| n.as_bytes() == bare).map(|(_, v)| *v)
+    signal::parse_name(s, &signal::EXACT_POLL)
 }
 
 /// Usuário por nome (via `/etc/passwd`) ou uid numérico.

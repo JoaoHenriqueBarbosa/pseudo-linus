@@ -51,6 +51,7 @@ use std::borrow::Cow;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 
+use ul_common::time::strftime::{StrfTime, strftime_lazy};
 use ul_common::time::{Civil, SECS_PER_DAY, days_from_civil, is_leap};
 
 /// Fuso horário resolvido.
@@ -1331,12 +1332,6 @@ fn mktime_tm(tm: &TmFields, zone: &Zone, guess: &AtomicI64) -> Option<i64> {
 // strftime
 // ---------------------------------------------------------------------------------------------
 
-const WEEKDAYS: [&[u8]; 7] = [b"Sunday", b"Monday", b"Tuesday", b"Wednesday", b"Thursday", b"Friday", b"Saturday"];
-const MONTHS: [&[u8]; 12] = [
-    b"January", b"February", b"March", b"April", b"May", b"June", b"July", b"August", b"September", b"October",
-    b"November", b"December",
-];
-
 pub(crate) fn format_time(fmt: &[u8], t: i64, display: &TimeZone, local: &TimeZone) -> Vec<u8> {
     // O gawk dobra o buffer até 1024 vezes o tamanho do formato; se não couber, devolve "".
     if fmt.is_empty() {
@@ -1360,271 +1355,21 @@ pub(crate) fn format_time(fmt: &[u8], t: i64, display: &TimeZone, local: &TimeZo
         };
         mktime_tm(&fields, &local.zone, &local.mktime_guess).unwrap_or(-1)
     };
-    let mut out = Output { buf: Vec::new(), max: budget - 1, overflow: false };
-    format_into(&mut out, until_nul(fmt), &tm, &mut seconds);
-    if out.overflow { Vec::new() } else { out.buf }
-}
-
-struct Output {
-    buf: Vec<u8>,
-    max: usize,
-    overflow: bool,
-}
-
-impl Output {
-    fn room(&mut self, n: usize) -> bool {
-        if self.overflow || self.buf.len().saturating_add(n) > self.max {
-            self.overflow = true;
-            return false;
-        }
-        true
-    }
-
-    fn push(&mut self, bytes: &[u8]) {
-        if self.room(bytes.len()) {
-            self.buf.extend_from_slice(bytes);
-        }
-    }
-
-    fn fill(&mut self, c: u8, n: usize) {
-        if self.room(n) {
-            self.buf.resize(self.buf.len() + n, c);
-        }
-    }
-}
-
-/// Preenchimento pedido pelas flags `_` (espaço), `-` (nenhum) e `0` (zeros).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Pad {
-    Default,
-    Space,
-    None,
-    Zero,
-}
-
-#[derive(Clone, Copy, Debug)]
-struct Spec {
-    pad: Pad,
-    width: Option<usize>,
-    upcase: bool,
-    swap_case: bool,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum Case {
-    Keep,
-    Upper,
-    Lower,
-}
-
-/// Texto com largura: completa à esquerda com zeros se a flag for `0`, senão com espaços.
-fn put_text(out: &mut Output, text: &[u8], spec: &Spec, case: Case) {
-    if let Some(width) = spec.width
-        && width > text.len()
-    {
-        out.fill(if spec.pad == Pad::Zero { b'0' } else { b' ' }, width - text.len());
-    }
-    match case {
-        Case::Keep => out.push(text),
-        Case::Upper => out.push(&text.to_ascii_uppercase()),
-        Case::Lower => out.push(&text.to_ascii_lowercase()),
-    }
-}
-
-/// Número com `digits` dígitos mínimos. Com zeros (o padrão), a largura vira o mínimo de dígitos,
-/// depois do sinal; com `_`, espaços até `digits` e depois até a largura; com `-`, só a largura.
-fn put_number(out: &mut Output, value: i64, digits: usize, spec: &Spec, default_pad: Pad) {
-    let pad = if spec.pad == Pad::Default { default_pad } else { spec.pad };
-    let sign: &[u8] = if value < 0 { b"-" } else { b"" };
-    let magnitude = value.unsigned_abs().to_string();
-    let len = sign.len() + magnitude.len();
-    let mut text = Vec::with_capacity(len.max(digits));
-    match pad {
-        Pad::Space => {
-            text.resize(digits.saturating_sub(len), b' ');
-            text.extend_from_slice(sign);
-            text.extend_from_slice(magnitude.as_bytes());
-        }
-        Pad::None => {
-            text.extend_from_slice(sign);
-            text.extend_from_slice(magnitude.as_bytes());
-        }
-        Pad::Zero | Pad::Default => {
-            let total = digits.max(spec.width.unwrap_or(0));
-            if !out.room(total.max(len)) {
-                return;
-            }
-            text.extend_from_slice(sign);
-            text.resize(sign.len() + total.saturating_sub(len), b'0');
-            text.extend_from_slice(magnitude.as_bytes());
-            out.push(&text);
-            return;
-        }
-    }
-    put_text(out, &text, &Spec { pad, ..*spec }, Case::Keep);
-}
-
-/// Conversões aceitas com cada modificador (`E`, `O`) no glibc 2.41, medidas uma a uma.
-fn conversion_allowed(conv: u8, modifier: u8) -> bool {
-    let plain = b"ABCDFGHIMPRSTUVWXYZabcdeghjklmnprstuwxyz%".contains(&conv);
-    match modifier {
-        0 => plain,
-        b'E' => b"CPRTXYZcnprstuxyz%".contains(&conv),
-        _ => b"BCGHIMPRSTUVWZbdeghjklmnprstuwyz%".contains(&conv),
-    }
-}
-
-fn iso_week_days(yday: i64, wday: i64) -> i64 {
-    // Dias desde a segunda-feira da semana 1 do ISO 8601 (a semana que contém a quinta-feira).
-    yday - (yday - wday + 4 + 378) % 7 + 3
-}
-
-/// Ano e semana ISO com a aritmética de `int` do glibc sobre o ano já estourado.
-fn iso_week(tm: &Tm) -> (i32, i64) {
-    let mut year = tm.wrapped_year();
-    let mut days = iso_week_days(tm.yday, tm.wday);
-    if days < 0 {
-        year = year.wrapping_sub(1);
-        days = iso_week_days(tm.yday + 365 + i64::from(is_leap(i64::from(year))), tm.wday);
-    } else {
-        let next = iso_week_days(tm.yday - (365 + i64::from(is_leap(i64::from(year)))), tm.wday);
-        if next >= 0 {
-            year = year.wrapping_add(1);
-            days = next;
-        }
-    }
-    (year, days / 7 + 1)
-}
-
-fn format_into(out: &mut Output, fmt: &[u8], tm: &Tm, seconds: &mut dyn FnMut() -> i64) {
-    let mut i = 0;
-    while i < fmt.len() && !out.overflow {
-        if fmt[i] != b'%' {
-            let next = fmt[i..].iter().position(|&c| c == b'%').map_or(fmt.len(), |n| i + n);
-            out.push(&fmt[i..next]);
-            i = next;
-            continue;
-        }
-        let start = i;
-        i += 1;
-        let mut spec = Spec { pad: Pad::Default, width: None, upcase: false, swap_case: false };
-        while let Some(&c) = fmt.get(i) {
-            match c {
-                b'_' => spec.pad = Pad::Space,
-                b'-' => spec.pad = Pad::None,
-                b'0' => spec.pad = Pad::Zero,
-                b'^' => spec.upcase = true,
-                b'#' => spec.swap_case = true,
-                _ => break,
-            }
-            i += 1;
-        }
-        if fmt.get(i).is_some_and(u8::is_ascii_digit) {
-            let mut width: usize = 0;
-            while let Some(&c) = fmt.get(i).filter(|c| c.is_ascii_digit()) {
-                width = width.saturating_mul(10).saturating_add(usize::from(c - b'0')).min(i32::MAX as usize);
-                i += 1;
-            }
-            spec.width = Some(width);
-        }
-        let mut modifier = 0;
-        if let Some(&c @ (b'E' | b'O')) = fmt.get(i) {
-            modifier = c;
-            i += 1;
-        }
-        let Some(&conv) = fmt.get(i) else {
-            // `%` incompleto no fim: sai literal.
-            let case = if spec.upcase { Case::Upper } else { Case::Keep };
-            put_text(out, &fmt[start..], &spec, case);
-            break;
-        };
-        i += 1;
-        if !conversion_allowed(conv, modifier) {
-            // Conversão desconhecida ou modificador recusado: o trecho sai literal, mas a caixa
-            // já decidida vale (`^` em qualquer uma; `#` em nome de mês, que o glibc trata antes
-            // de recusar o modificador, ao contrário do nome do dia).
-            let names = b"bBh".contains(&conv);
-            let case = if spec.upcase || (names && spec.swap_case) { Case::Upper } else { Case::Keep };
-            put_text(out, &fmt[start..i], &spec, case);
-            continue;
-        }
-        format_one(out, conv, &spec, tm, seconds);
-    }
-}
-
-fn format_one(out: &mut Output, conv: u8, spec: &Spec, tm: &Tm, seconds: &mut dyn FnMut() -> i64) {
-    let name_case = if spec.upcase || spec.swap_case { Case::Upper } else { Case::Keep };
-    let hour12 = if tm.hour % 12 == 0 { 12 } else { tm.hour % 12 };
-    match conv {
-        b'a' => put_text(out, &WEEKDAYS[tm.wday as usize][..3], spec, name_case),
-        b'A' => put_text(out, WEEKDAYS[tm.wday as usize], spec, name_case),
-        b'b' | b'h' => put_text(out, &MONTHS[tm.mon as usize][..3], spec, name_case),
-        b'B' => put_text(out, MONTHS[tm.mon as usize], spec, name_case),
-        b'c' => put_compound(out, b"%a %b %e %H:%M:%S %Y", spec, tm, seconds),
-        b'C' => put_number(out, i64::from(tm.wrapped_year()).div_euclid(100), 1, spec, Pad::Zero),
-        b'd' => put_number(out, tm.mday, 2, spec, Pad::Zero),
-        b'D' | b'x' => put_compound(out, b"%m/%d/%y", spec, tm, seconds),
-        b'e' => put_number(out, tm.mday, 2, spec, Pad::Space),
-        b'F' => put_compound(out, b"%Y-%m-%d", spec, tm, seconds),
-        b'g' => put_number(out, i64::from(iso_week(tm).0).rem_euclid(100), 2, spec, Pad::Zero),
-        b'G' => put_number(out, i64::from(iso_week(tm).0), 1, spec, Pad::Zero),
-        b'H' => put_number(out, tm.hour, 2, spec, Pad::Zero),
-        b'I' => put_number(out, hour12, 2, spec, Pad::Zero),
-        b'j' => put_number(out, tm.yday + 1, 3, spec, Pad::Zero),
-        b'k' => put_number(out, tm.hour, 2, spec, Pad::Space),
-        b'l' => put_number(out, hour12, 2, spec, Pad::Space),
-        b'm' => put_number(out, tm.mon + 1, 2, spec, Pad::Zero),
-        b'M' => put_number(out, tm.min, 2, spec, Pad::Zero),
-        b'n' => put_text(out, b"\n", spec, Case::Keep),
-        b'p' | b'P' => {
-            let text: &[u8] = if tm.hour < 12 { b"AM" } else { b"PM" };
-            let case = if conv == b'P' || spec.swap_case { Case::Lower } else { Case::Keep };
-            put_text(out, text, spec, case);
-        }
-        b'r' => put_compound(out, b"%I:%M:%S %p", spec, tm, seconds),
-        b'R' => put_compound(out, b"%H:%M", spec, tm, seconds),
-        b's' => put_text(out, seconds().to_string().as_bytes(), spec, Case::Keep),
-        b'S' => put_number(out, tm.sec, 2, spec, Pad::Zero),
-        b't' => put_text(out, b"\t", spec, Case::Keep),
-        b'T' | b'X' => put_compound(out, b"%H:%M:%S", spec, tm, seconds),
-        b'u' => put_number(out, (tm.wday + 6) % 7 + 1, 1, spec, Pad::Zero),
-        b'U' => put_number(out, (tm.yday - tm.wday + 7) / 7, 2, spec, Pad::Zero),
-        b'V' => put_number(out, iso_week(tm).1, 2, spec, Pad::Zero),
-        b'w' => put_number(out, tm.wday, 1, spec, Pad::Zero),
-        b'W' => put_number(out, (tm.yday - (tm.wday + 6) % 7 + 7) / 7, 2, spec, Pad::Zero),
-        b'y' => put_number(out, i64::from(tm.tm_year).rem_euclid(100), 2, spec, Pad::Zero),
-        b'Y' => put_number(out, i64::from(tm.wrapped_year()), 1, spec, Pad::Zero),
-        b'z' => {
-            let (sign, diff): (&[u8], i64) = if tm.gmtoff < 0 { (b"-", -tm.gmtoff) } else { (b"+", tm.gmtoff) };
-            put_text(out, sign, spec, Case::Keep);
-            let minutes = diff / 60;
-            put_number(out, minutes / 60 * 100 + minutes % 60, 4, spec, Pad::Zero);
-        }
-        b'Z' => {
-            let case = if spec.swap_case {
-                Case::Lower
-            } else if spec.upcase {
-                Case::Upper
-            } else {
-                Case::Keep
-            };
-            put_text(out, &tm.zone, spec, case);
-        }
-        _ => put_text(out, b"%", spec, Case::Keep),
-    }
-}
-
-/// Conversões compostas (`%c`, `%D`, `%F`, `%r`, `%R`, `%T`, `%x`, `%X`): formata o subformato e
-/// aplica a largura ao resultado inteiro; só a flag `^` passa adiante.
-fn put_compound(out: &mut Output, sub: &[u8], spec: &Spec, tm: &Tm, seconds: &mut dyn FnMut() -> i64) {
-    let mut inner = Output { buf: Vec::new(), max: out.max, overflow: false };
-    format_into(&mut inner, sub, tm, seconds);
-    if inner.overflow {
-        out.overflow = true;
-        return;
-    }
-    let case = if spec.upcase { Case::Upper } else { Case::Keep };
-    put_text(out, &inner.buf, spec, case);
+    let when = StrfTime {
+        civil: Civil {
+            year: i64::from(tm.tm_year) + 1900,
+            mon: tm.mon + 1,
+            mday: tm.mday,
+            hour: tm.hour,
+            min: tm.min,
+            sec: tm.sec,
+            wday: tm.wday,
+            yday: tm.yday,
+        },
+        gmtoff: tm.gmtoff,
+        zone: &tm.zone,
+    };
+    strftime_lazy(until_nul(fmt), &when, &mut seconds, budget - 1).unwrap_or_default()
 }
 
 #[cfg(test)]

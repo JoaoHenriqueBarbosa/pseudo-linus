@@ -16,7 +16,7 @@ use std::os::unix::ffi::OsStrExt;
 
 use sysabi::{AccessMode, AtFlags, Ctx, Fd, FileType, OFlags, sys};
 
-use crate::util::fnmatch::fnmatch;
+use ul_common::fnmatch::{Flags, fnmatch_utf8};
 use crate::util::io;
 use crate::util::ul;
 
@@ -170,7 +170,7 @@ fn canonicalize_path(p: &[u8]) -> Vec<u8> {
 /// de fonte incluídos).
 fn filename_equal(cp: &[u8], dp: &[u8], typ: u32, use_glob: bool) -> bool {
     if use_glob {
-        return fnmatch(cp, dp);
+        return fnmatch_utf8(cp, dp, Flags::NONE);
     }
     if typ & SRC_DIR != 0
         && dp.len() >= 2

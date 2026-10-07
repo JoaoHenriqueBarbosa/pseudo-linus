@@ -3,6 +3,7 @@
 //! decifração dos bytes à medida que entram no buffer.
 
 use sysabi::{Fd, OFlags};
+use ul_common::codec::crc32_step;
 
 use super::fileio::fnfilter;
 use super::{sys, Uz, PK_ERR, PK_OK, PK_WARN};
@@ -19,27 +20,6 @@ enum Pw {
     Entered,
     CancelAll,
     Error,
-}
-
-/// A tabela do CRC-32 que as chaves usam.
-fn crc_table() -> &'static [u32; 256] {
-    static TABLE: std::sync::OnceLock<[u32; 256]> = std::sync::OnceLock::new();
-    TABLE.get_or_init(|| {
-        let mut t = [0u32; 256];
-        for (n, slot) in t.iter_mut().enumerate() {
-            let mut c = n as u32;
-            for _ in 0..8 {
-                c = if c & 1 != 0 { 0xedb8_8320 ^ (c >> 1) } else { c >> 1 };
-            }
-            *slot = c;
-        }
-        t
-    })
-}
-
-/// `CRC32(c, b)`: um passo do CRC.
-fn crc32_step(c: u32, b: u32) -> u32 {
-    crc_table()[((c ^ b) & 0xff) as usize] ^ (c >> 8)
 }
 
 /// As três chaves da cifra.
@@ -64,9 +44,9 @@ impl Keys {
 
     /// `update_keys` com o byte já decifrado.
     fn update(&mut self, c: u8) {
-        self.0[0] = crc32_step(self.0[0], u32::from(c));
+        self.0[0] = crc32_step(self.0[0], c);
         self.0[1] = self.0[1].wrapping_add(self.0[0] & 0xff).wrapping_mul(134_775_813).wrapping_add(1);
-        self.0[2] = crc32_step(self.0[2], self.0[1] >> 24);
+        self.0[2] = crc32_step(self.0[2], (self.0[1] >> 24) as u8);
     }
 
     /// `zdecode`: decifra um byte e avança as chaves.

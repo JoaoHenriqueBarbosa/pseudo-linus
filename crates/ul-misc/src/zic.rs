@@ -18,7 +18,7 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{AtFlags, Ctx, Errno, Fd, OFlags, RenameFlags, sys};
-use ul_common::ctype::is_space;
+use ul_common::ctype::{cstr_at, is_space};
 
 use crate::util::getopt::Getopt;
 use crate::util::io;
@@ -287,12 +287,6 @@ fn limitrange(mut r: Range, lo: i64, hi: i64, ats: &[i64], types: &[usize], tran
         }
     }
     r
-}
-
-fn cstr_at(buf: &[u8], j: usize) -> Vec<u8> {
-    let s = &buf[j..];
-    let end = s.iter().position(|&c| c == 0).unwrap_or(s.len());
-    s[..end].to_vec()
 }
 
 fn rule_cmp(a: Option<&Rule>, b: &Rule) -> i32 {
@@ -1768,7 +1762,7 @@ impl Z {
                 {
                     let m = mrudst as usize;
                     self.tz.isdsts[m] = -1;
-                    let ab = String::from_utf8_lossy(&cstr_at(&self.tz.chars, self.tz.desigidx[m])).into_owned();
+                    let ab = String::from_utf8_lossy(cstr_at(&self.tz.chars, self.tz.desigidx[m])).into_owned();
                     let (uo, s, u) = (self.tz.utoffs[m], self.tz.ttisstds[m], self.tz.ttisuts[m]);
                     let ty = self.addtype(uo, &ab, true, s, u);
                     self.tz.isdsts[m] = 1;
@@ -1782,7 +1776,7 @@ impl Z {
                 {
                     let m = mrustd as usize;
                     self.tz.isdsts[m] = -1;
-                    let ab = String::from_utf8_lossy(&cstr_at(&self.tz.chars, self.tz.desigidx[m])).into_owned();
+                    let ab = String::from_utf8_lossy(cstr_at(&self.tz.chars, self.tz.desigidx[m])).into_owned();
                     let (uo, s, u) = (self.tz.utoffs[m], self.tz.ttisstds[m], self.tz.ttisuts[m]);
                     let ty = self.addtype(uo, &ab, false, s, u);
                     self.tz.isdsts[m] = 0;

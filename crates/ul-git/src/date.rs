@@ -6,7 +6,8 @@
 //! oráculo aceita e rejeita como referência (hora obrigatória, anos de 1970 a 2099). O fuso local
 //! vem do `TZ` do sandbox (string POSIX ou zona de `/usr/share/zoneinfo` no FS do sandbox).
 
-use ul_common::time::{Civil, days_from_civil, is_leap};
+use ul_common::time::strftime::{StrfTime, strftime};
+use ul_common::time::{Civil, days_from_civil};
 
 use crate::os;
 
@@ -734,7 +735,21 @@ pub fn show_date(t: i64, tz: i32, mode: &DateMode) -> String {
         }
         DateMode::Rfc => format!("{wd}, {} {mo} {} {:02}:{:02}:{:02} {}", tm.mday, tm.year, tm.hour, tm.min, tm.sec, tz_str(tz)),
         DateMode::Short => format!("{:04}-{:02}-{:02}", tm.year, tm.mon + 1, tm.mday),
-        DateMode::Strftime(f, _) => strftime(f, &tm, tz, t),
+        DateMode::Strftime(f, _) => {
+            let civil = Civil {
+                year: tm.year,
+                mon: i64::from(tm.mon) + 1,
+                mday: i64::from(tm.mday),
+                hour: i64::from(tm.hour),
+                min: i64::from(tm.min),
+                sec: i64::from(tm.sec),
+                wday: i64::from(tm.wday),
+                yday: i64::from(tm.yday),
+            };
+            // O git não tem o nome do fuso de uma data com deslocamento explícito: `%Z` sai vazio.
+            let when = StrfTime { civil, gmtoff: crate::object::tz_offset_secs(tz), zone: b"" };
+            String::from_utf8_lossy(&strftime(f.as_bytes(), &when, t)).into_owned()
+        }
         DateMode::Human => human(t, tz),
         _ => {
             let mut s = format!("{wd} {mo} {} {:02}:{:02}:{:02} {}", tm.mday, tm.hour, tm.min, tm.sec, tm.year);
@@ -813,92 +828,6 @@ fn human(t: i64, tz: i32) -> String {
     format!("{mo} {} {}", tm.mday, tm.year)
 }
 
-/// `strftime` (as conversões da glibc mais usadas em `--date=format:`).
-pub fn strftime(fmt: &str, tm: &Tm, tz: i32, t: i64) -> String {
-    let mut out = String::new();
-    let mut chars = fmt.chars();
-    while let Some(c) = chars.next() {
-        if c != '%' {
-            out.push(c);
-            continue;
-        }
-        let Some(mut k) = chars.next() else {
-            out.push('%');
-            break;
-        };
-        let mut nopad = false;
-        if k == '-' {
-            nopad = true;
-            k = chars.next().unwrap_or('-');
-        }
-        let pad2 = |n: u32| if nopad { n.to_string() } else { format!("{n:02}") };
-        let wd = WEEKDAYS[tm.wday as usize];
-        let mo = MONTHS[tm.mon as usize];
-        let h12 = if tm.hour.is_multiple_of(12) { 12 } else { tm.hour % 12 };
-        match k {
-            'Y' => out.push_str(&tm.year.to_string()),
-            'C' => out.push_str(&format!("{:02}", tm.year / 100)),
-            'y' => out.push_str(&pad2((tm.year % 100) as u32)),
-            'm' => out.push_str(&pad2(tm.mon + 1)),
-            'd' => out.push_str(&pad2(tm.mday)),
-            'e' => out.push_str(&if nopad { tm.mday.to_string() } else { format!("{:2}", tm.mday) }),
-            'H' => out.push_str(&pad2(tm.hour)),
-            'k' => out.push_str(&format!("{:2}", tm.hour)),
-            'I' => out.push_str(&pad2(h12)),
-            'l' => out.push_str(&format!("{h12:2}")),
-            'M' => out.push_str(&pad2(tm.min)),
-            'S' => out.push_str(&pad2(tm.sec)),
-            'p' => out.push_str(if tm.hour < 12 { "AM" } else { "PM" }),
-            'P' => out.push_str(if tm.hour < 12 { "am" } else { "pm" }),
-            'a' => out.push_str(&wd[..3]),
-            'A' => out.push_str(wd),
-            'b' | 'h' => out.push_str(&mo[..3]),
-            'B' => out.push_str(mo),
-            'j' => out.push_str(&if nopad { (tm.yday + 1).to_string() } else { format!("{:03}", tm.yday + 1) }),
-            'u' => out.push_str(&(if tm.wday == 0 { 7 } else { tm.wday }).to_string()),
-            'w' => out.push_str(&tm.wday.to_string()),
-            'z' => out.push_str(&tz_str(tz)),
-            'Z' => {}
-            's' => out.push_str(&t.to_string()),
-            'n' => out.push('\n'),
-            't' => out.push('\t'),
-            '%' => out.push('%'),
-            'F' => out.push_str(&format!("{:04}-{:02}-{:02}", tm.year, tm.mon + 1, tm.mday)),
-            'T' => out.push_str(&format!("{:02}:{:02}:{:02}", tm.hour, tm.min, tm.sec)),
-            'R' => out.push_str(&format!("{:02}:{:02}", tm.hour, tm.min)),
-            'D' | 'x' => out.push_str(&format!("{:02}/{:02}/{:02}", tm.mon + 1, tm.mday, tm.year % 100)),
-            'X' => out.push_str(&format!("{:02}:{:02}:{:02}", tm.hour, tm.min, tm.sec)),
-            'c' => out.push_str(&format!("{} {} {:2} {:02}:{:02}:{:02} {}", &wd[..3], &mo[..3], tm.mday, tm.hour, tm.min, tm.sec, tm.year)),
-            'G' => out.push_str(&tm.year.to_string()),
-            'U' => out.push_str(&format!("{:02}", (tm.yday + 7 - tm.wday) / 7)),
-            'W' => out.push_str(&format!("{:02}", (tm.yday + 7 - (tm.wday + 6) % 7) / 7)),
-            'V' => out.push_str(&format!("{:02}", iso_week(tm))),
-            other => {
-                out.push('%');
-                out.push(other);
-            }
-        }
-    }
-    out
-}
-
-/// Semana ISO 8601 (segunda é o primeiro dia; a semana 1 contém a primeira quinta-feira).
-fn iso_week(tm: &Tm) -> u32 {
-    let wday_mon0 = ((tm.wday + 6) % 7) as i64;
-    let yday = tm.yday as i64;
-    // Quinta-feira desta semana.
-    let thursday = yday - wday_mon0 + 3;
-    let len = |y: i64| if is_leap(y) { 366 } else { 365 };
-    if thursday < 0 {
-        let py = tm.year - 1;
-        return ((thursday + len(py)) / 7 + 1) as u32;
-    }
-    if thursday >= len(tm.year) {
-        return 1;
-    }
-    (thursday / 7 + 1) as u32
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -911,6 +840,8 @@ mod tests {
         assert_eq!(show_date(t, 0, &DateMode::Iso), "2026-01-15 12:00:00 +0000");
         assert_eq!(show_date(t, 0, &DateMode::Rfc), "Thu, 15 Jan 2026 12:00:00 +0000");
         assert_eq!(show_date(t, 0, &DateMode::Short), "2026-01-15");
+        let fmt = DateMode::Strftime("%Y-%m-%d %H:%M:%S %z|%Z|%s|%G-%V|%-d|%e|%a|%^b".into(), false);
+        assert_eq!(show_date(t, -300, &fmt), "2026-01-15 09:00:00 -0300||1768478400|2026-03|15|15|Thu|JAN");
     }
 
     #[test]

@@ -9,9 +9,10 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{Ctx, Errno, Fd, OFlags, sys};
+use ul_common::codec::hex_lower;
+use ul_common::hash::Md5;
 
 use crate::util::io;
-use crate::util::md5::Md5;
 use crate::util::ul;
 use crate::util::{Getopt, HasArg, LongOpt};
 
@@ -173,11 +174,7 @@ fn run(args: &[OsString]) -> i32 {
         ));
     }
 
-    let digest = ctx.finish();
-    let mut line = String::with_capacity(33);
-    for b in digest {
-        line.push_str(&format!("{b:02x}"));
-    }
+    let mut line = hex_lower(&ctx.finalize());
     line.push('\n');
     let mut out = io::stdout();
     let _ = out.write_all(line.as_bytes());

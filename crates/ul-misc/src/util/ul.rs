@@ -8,7 +8,6 @@ use std::io::Write;
 use sysabi::Errno;
 use ul_common::ctype::strtoull;
 
-use super::display_width;
 use super::io;
 
 /// `program_invocation_short_name`: o `argv[0]` sem o diretório.
@@ -221,13 +220,7 @@ pub fn strtosize_or_err(arg: &[u8], what: &str) -> Result<u64, String> {
 }
 
 /// `wcwidth` do C.UTF-8: -1 pra controle, 0 pra combinante, 1 ou 2 pro resto.
-pub fn wcwidth(c: char) -> i32 {
-    let u = c as u32;
-    if u < 0x20 || (0x7f..0xa0).contains(&u) {
-        return -1;
-    }
-    display_width(c.encode_utf8(&mut [0; 4])) as i32
-}
+pub use ul_common::width::wcwidth;
 
 /// `iswspace` da glibc em C.UTF-8: os espaços Unicode, exceto os sem quebra.
 pub fn is_wspace(c: char) -> bool {

@@ -1,0 +1,226 @@
+//! Codificações que os programas repetiam: base64, CRC-32 e hexadecimal minúsculo.
+//!
+//! O base64 aqui é o do `binascii.a2b_base64` do CPython (a decodificação tolera lixo e quebra de
+//! linha fora do modo estrito); os chamadores que só codificam não enxergam a diferença.
+
+/// Alfabeto base64 padrão (RFC 4648, seção 4).
+pub const BASE64_STANDARD: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+/// Alfabeto base64 seguro para URL (RFC 4648, seção 5): `-` e `_` no lugar de `+` e `/`.
+pub const BASE64_URL: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+/// Codifica em base64 com o alfabeto dado, com preenchimento `=` se `pad`.
+pub fn base64_encode(data: &[u8], alphabet: &[u8; 64], pad: bool) -> Vec<u8> {
+    let mut out = Vec::with_capacity(data.len().div_ceil(3) * 4);
+    for chunk in data.chunks(3) {
+        let b0 = u32::from(chunk[0]);
+        let b1 = u32::from(*chunk.get(1).unwrap_or(&0));
+        let b2 = u32::from(*chunk.get(2).unwrap_or(&0));
+        let n = (b0 << 16) | (b1 << 8) | b2;
+        out.push(alphabet[((n >> 18) & 63) as usize]);
+        out.push(alphabet[((n >> 12) & 63) as usize]);
+        if chunk.len() > 1 {
+            out.push(alphabet[((n >> 6) & 63) as usize]);
+        } else if pad {
+            out.push(b'=');
+        }
+        if chunk.len() > 2 {
+            out.push(alphabet[(n & 63) as usize]);
+        } else if pad {
+            out.push(b'=');
+        }
+    }
+    out
+}
+
+/// Base64 padrão com preenchimento, como texto (o `Authorization: Basic`, as chaves do yaml).
+pub fn base64_string(data: &[u8]) -> String {
+    base64_encode(data, BASE64_STANDARD, true).into_iter().map(char::from).collect()
+}
+
+fn base64_value(c: u8) -> Option<u8> {
+    match c {
+        b'A'..=b'Z' => Some(c - b'A'),
+        b'a'..=b'z' => Some(c - b'a' + 26),
+        b'0'..=b'9' => Some(c - b'0' + 52),
+        b'+' => Some(62),
+        b'/' => Some(63),
+        _ => None,
+    }
+}
+
+/// Decodifica base64 (alfabeto padrão) como o `binascii.a2b_base64`. Fora do modo `strict` os
+/// caracteres fora do alfabeto são descartados; no modo estrito viram erro. O erro é a mensagem do
+/// `binascii.Error` do CPython 3.13.
+pub fn base64_decode(data: &[u8], strict: bool) -> Result<Vec<u8>, String> {
+    let mut out: Vec<u8> = Vec::new();
+    let mut quad: usize = 0;
+    let mut left: u8 = 0;
+    let mut pads: usize = 0;
+    let mut padding_started = false;
+    for (idx, &c) in data.iter().enumerate() {
+        if c == b'=' {
+            padding_started = true;
+            if quad >= 2 {
+                pads += 1;
+                if quad + pads >= 4 {
+                    if strict && idx + 1 < data.len() {
+                        return Err("Excess data after padding".to_string());
+                    }
+                    quad = 0;
+                    break;
+                }
+            } else if strict && quad == 0 {
+                return Err("Leading padding not allowed".to_string());
+            }
+            continue;
+        }
+        let Some(v) = base64_value(c) else {
+            if strict {
+                return Err("Only base64 data is allowed".to_string());
+            }
+            continue;
+        };
+        if strict && padding_started {
+            return Err("Excess data after padding".to_string());
+        }
+        pads = 0;
+        match quad {
+            0 => {
+                quad = 1;
+                left = v;
+            }
+            1 => {
+                quad = 2;
+                out.push((left << 2) | (v >> 4));
+                left = v & 0xf;
+            }
+            2 => {
+                quad = 3;
+                out.push((left << 4) | (v >> 2));
+                left = v & 0x3;
+            }
+            _ => {
+                quad = 0;
+                out.push((left << 6) | v);
+                left = 0;
+            }
+        }
+    }
+    if quad != 0 {
+        if quad == 1 {
+            return Err(format!(
+                "Invalid base64-encoded string: number of data characters ({}) cannot be 1 more than a multiple of 4",
+                (out.len() / 3) * 4 + 1
+            ));
+        }
+        return Err("Incorrect padding".to_string());
+    }
+    Ok(out)
+}
+
+/// Hexadecimal em minúsculas, dois dígitos por byte.
+pub fn hex_lower(data: &[u8]) -> String {
+    const DIGITS: &[u8; 16] = b"0123456789abcdef";
+    let mut s = String::with_capacity(data.len() * 2);
+    for b in data {
+        s.push(DIGITS[(b >> 4) as usize] as char);
+        s.push(DIGITS[(b & 15) as usize] as char);
+    }
+    s
+}
+
+const fn build_crc32_table() -> [u32; 256] {
+    let mut table = [0u32; 256];
+    let mut n = 0;
+    while n < 256 {
+        let mut c = n as u32;
+        let mut k = 0;
+        while k < 8 {
+            c = if c & 1 != 0 { 0xEDB8_8320 ^ (c >> 1) } else { c >> 1 };
+            k += 1;
+        }
+        table[n] = c;
+        n += 1;
+    }
+    table
+}
+
+/// A tabela do CRC-32 (polinômio refletido 0xEDB88320), a de zlib, gzip, zip e PNG.
+pub static CRC32_TABLE: [u32; 256] = build_crc32_table();
+
+/// Um passo do CRC-32 sobre o registrador cru (sem a inversão inicial e final): é o `CRC32(c, b)` do
+/// `crypt.c` do zip, que a cifra tradicional do PKZIP usa nas chaves.
+pub fn crc32_step(crc: u32, byte: u8) -> u32 {
+    CRC32_TABLE[((crc ^ u32::from(byte)) & 0xff) as usize] ^ (crc >> 8)
+}
+
+/// Continua um CRC-32 a partir de `value` (o CRC já finalizado dos bytes anteriores, 0 no começo).
+pub fn crc32_update(value: u32, data: &[u8]) -> u32 {
+    !data.iter().fold(!value, |crc, &b| crc32_step(crc, b))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn base64_encode_vectors() {
+        assert_eq!(base64_encode(b"", BASE64_STANDARD, true), b"");
+        assert_eq!(base64_encode(b"f", BASE64_STANDARD, true), b"Zg==");
+        assert_eq!(base64_encode(b"fo", BASE64_STANDARD, true), b"Zm8=");
+        assert_eq!(base64_encode(b"foo", BASE64_STANDARD, true), b"Zm9v");
+        assert_eq!(base64_encode(b"foobar", BASE64_STANDARD, true), b"Zm9vYmFy");
+        assert_eq!(base64_encode(b"f", BASE64_STANDARD, false), b"Zg");
+        assert_eq!(base64_encode(b"\xfb\xff", BASE64_STANDARD, true), b"+/8=");
+        assert_eq!(base64_encode(b"\xfb\xff", BASE64_URL, true), b"-_8=");
+        assert_eq!(base64_string(b"user:pass"), "dXNlcjpwYXNz");
+    }
+
+    #[test]
+    fn base64_decode_modes() {
+        assert_eq!(base64_decode(b"", false).unwrap(), Vec::<u8>::new());
+        assert_eq!(base64_decode(b"Zm9v", true).unwrap(), b"foo".to_vec());
+        assert_eq!(base64_decode(b"aGVsbG8=\n", false).unwrap(), b"hello".to_vec());
+        // Sem o modo estrito, o que está fora do alfabeto é descartado.
+        assert_eq!(base64_decode(b"aGVs\nbG8=", false).unwrap(), b"hello".to_vec());
+        assert_eq!(base64_decode(b"Zm9v!", true).unwrap_err(), "Only base64 data is allowed");
+        assert_eq!(base64_decode(b"aGVsbG8", false).unwrap_err(), "Incorrect padding");
+        assert_eq!(base64_decode(b"=Zm9v", true).unwrap_err(), "Leading padding not allowed");
+        assert_eq!(base64_decode(b"Zg==Zg==", true).unwrap_err(), "Excess data after padding");
+        assert!(base64_decode(b"Z", false).unwrap_err().starts_with("Invalid base64-encoded string"));
+    }
+
+    #[test]
+    fn base64_roundtrip_all_lengths() {
+        let data: Vec<u8> = (0..=255u8).collect();
+        for n in 0..data.len() {
+            let enc = base64_encode(&data[..n], BASE64_STANDARD, true);
+            assert_eq!(base64_decode(&enc, true).unwrap(), data[..n].to_vec());
+        }
+    }
+
+    #[test]
+    fn hex_lower_digits() {
+        assert_eq!(hex_lower(b"\x00\xffAb"), "00ff4162");
+        assert_eq!(hex_lower(b""), "");
+    }
+
+    #[test]
+    fn crc32_known_values() {
+        assert_eq!(crc32_update(0, b"123456789"), 0xcbf4_3926);
+        assert_eq!(crc32_update(0, b""), 0);
+        assert_eq!(crc32_update(0, b"a"), 0xe8b7_be43);
+        let (a, b) = b"123456789".split_at(4);
+        assert_eq!(crc32_update(crc32_update(0, a), b), 0xcbf4_3926);
+    }
+
+    #[test]
+    fn crc32_table_and_step() {
+        assert_eq!(CRC32_TABLE[0], 0);
+        assert_eq!(CRC32_TABLE[1], 0x7707_3096);
+        assert_eq!(CRC32_TABLE[255], 0x2d02_ef8d);
+        // O passo cru, encadeado com as inversões, é o crc32_update.
+        assert_eq!(!crc32_step(crc32_step(!0, b'a'), b'b'), crc32_update(0, b"ab"));
+    }
+}

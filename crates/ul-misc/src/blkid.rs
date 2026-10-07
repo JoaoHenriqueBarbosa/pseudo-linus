@@ -9,6 +9,7 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{Ctx, OFlags, sys};
+use ul_common::ctype::cstr;
 
 use crate::util::io;
 use crate::util::ul;
@@ -107,9 +108,9 @@ fn fmt_uuid(b: &[u8]) -> Option<String> {
     Some(format!("{}-{}-{}-{}-{}", &h[0..8], &h[8..12], &h[12..16], &h[16..20], &h[20..32]))
 }
 
-fn cstr(b: &[u8]) -> Option<Vec<u8>> {
-    let end = b.iter().position(|&x| x == 0).unwrap_or(b.len());
-    if end == 0 { None } else { Some(b[..end].to_vec()) }
+/// O rótulo gravado num campo de tamanho fixo: o texto até o primeiro NUL, ou `None` se vazio.
+fn label_of(b: &[u8]) -> Option<Vec<u8>> {
+    Some(cstr(b)).filter(|l| !l.is_empty()).map(<[u8]>::to_vec)
 }
 
 fn le32(d: &[u8], o: usize) -> u32 {
@@ -126,7 +127,7 @@ pub fn probe(d: &[u8]) -> Option<Signature> {
             return Some(Signature {
                 ty: "swap",
                 usage: "other",
-                label: if v2 && d.len() >= 1068 { cstr(&d[1052..1068]) } else { None },
+                label: if v2 && d.len() >= 1068 { label_of(&d[1052..1068]) } else { None },
                 uuid: if v2 && d.len() >= 1052 { fmt_uuid(&d[1036..1052]) } else { None },
                 magic_offset: 4086,
                 magic: if v2 { b"SWAPSPACE2" } else { b"SWAP-SPACE" },
@@ -138,7 +139,7 @@ pub fn probe(d: &[u8]) -> Option<Signature> {
         return Some(Signature {
             ty: "xfs",
             usage: "filesystem",
-            label: cstr(&d[108..120]),
+            label: label_of(&d[108..120]),
             uuid: fmt_uuid(&d[32..48]),
             magic_offset: 0,
             magic: b"XFSB",
@@ -162,7 +163,7 @@ pub fn probe(d: &[u8]) -> Option<Signature> {
         return Some(Signature {
             ty,
             usage: "filesystem",
-            label: cstr(&sb[120..136]),
+            label: label_of(&sb[120..136]),
             uuid: fmt_uuid(&sb[104..120]),
             magic_offset: 0x438,
             magic: &[0x53, 0xEF],

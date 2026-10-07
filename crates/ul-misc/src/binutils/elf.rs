@@ -3,6 +3,8 @@
 //! Tudo com acesso verificado a fatias, sem `unsafe`. Arquivo que não é um ELF64 LE reconhecível
 //! devolve `None` (os programas respondem `file format not recognized`).
 
+use ul_common::ctype::cstr_at;
+
 pub const SHT_SYMTAB: u32 = 2;
 pub const SHT_NOBITS: u32 = 8;
 
@@ -77,14 +79,8 @@ pub(crate) fn rd64(d: &[u8], at: usize) -> Option<u64> {
     Some(u64::from_le_bytes(v))
 }
 
-/// O nome que começa em `off` numa tabela de strings, até o NUL.
-pub(crate) fn cstr(table: &[u8], off: usize) -> Vec<u8> {
-    let tail = table.get(off..).unwrap_or(&[]);
-    tail[..tail.iter().position(|&b| b == 0).unwrap_or(tail.len())].to_vec()
-}
-
 pub(crate) fn cstr_lossy(table: &[u8], off: usize) -> String {
-    String::from_utf8_lossy(&cstr(table, off)).into_owned()
+    String::from_utf8_lossy(cstr_at(table, off)).into_owned()
 }
 
 /// `size` bytes a partir de `off`; fora do arquivo, vazio.
@@ -160,7 +156,7 @@ impl<'a> Elf<'a> {
             })
             .unwrap_or_default();
         for (name_off, mut s) in raw {
-            s.name = cstr(&strtab, name_off);
+            s.name = cstr_at(&strtab, name_off).to_vec();
             elf.sections.push(s);
         }
         Some(elf)
@@ -190,7 +186,7 @@ impl<'a> Elf<'a> {
         let mut out = Vec::new();
         for ent in tab.chunks_exact(24).skip(1) {
             out.push(Sym {
-                name: cstr(strtab, rd32(ent, 0)? as usize),
+                name: cstr_at(strtab, rd32(ent, 0)? as usize).to_vec(),
                 info: ent[4],
                 shndx: rd16(ent, 6)?,
                 value: rd64(ent, 8)?,

@@ -27,15 +27,7 @@ fn parse_trap_spec(s: &[u8]) -> Option<TrapSpec> {
 }
 
 /// Nome, `SIGnome` ou número (sem caixa), como o bash aceita.
-pub fn parse_signal(s: &[u8]) -> Option<Signal> {
-    let t = String::from_utf8_lossy(s);
-    if !t.is_empty() && t.bytes().all(|c| c.is_ascii_digit()) {
-        let n: i32 = t.parse().ok()?;
-        return (1..=64).contains(&n).then_some(Signal(n)).filter(|s| s.name().is_some());
-    }
-    let sig = Signal::parse(&t)?;
-    (sig.0 > 0).then_some(sig)
-}
+pub use ul_common::signal::parse_shell as parse_signal;
 
 fn signal_display(n: i32) -> String {
     if n == TRAP_EXIT {
@@ -207,18 +199,9 @@ fn job_pids(sh: &Shell, spec: &[u8]) -> Option<Vec<Pid>> {
 /// Nome do sinal `n` na tabela do dash (`signames.c`): sem o prefixo `SIG`, os números sem nome
 /// (16, 32, 33) como o próprio número, e os de tempo real contados a partir de `RTMIN`/`RTMAX`.
 fn dash_signal_name(n: i32) -> String {
-    const NAMES: [&str; 32] = [
-        "0", "HUP", "INT", "QUIT", "ILL", "TRAP", "ABRT", "BUS", "FPE", "KILL", "USR1", "SEGV", "USR2", "PIPE", "ALRM",
-        "TERM", "16", "CHLD", "CONT", "STOP", "TSTP", "TTIN", "TTOU", "URG", "XCPU", "XFSZ", "VTALRM", "PROF", "WINCH",
-        "IO", "PWR", "SYS",
-    ];
     match n {
-        0..=31 => NAMES[n as usize].to_string(),
-        34 => "RTMIN".to_string(),
-        35..=49 => format!("RTMIN+{}", n - 34),
-        50..=63 => format!("RTMAX-{}", 64 - n),
-        64 => "RTMAX".to_string(),
-        _ => n.to_string(),
+        0 | 16 => n.to_string(),
+        _ => Signal(n).name().unwrap_or_else(|| n.to_string()),
     }
 }
 

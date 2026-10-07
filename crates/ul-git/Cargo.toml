@@ -19,8 +19,6 @@ gix-glob = "=0.28.0"
 regex = "1"
 # Diff de linhas com a heurística de indentação do git (cópia mantida pelo gitoxide do imara-diff).
 gix-imara-diff = "=0.3.0"
-# SHA-1 dos objetos e do índice.
-sha1 = "0.10"
 # zlib dos objetos soltos e dos packs (Rust puro, forbid(unsafe_code)).
 miniz_oxide = "0.8"
 

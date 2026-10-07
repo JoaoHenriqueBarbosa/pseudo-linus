@@ -11,12 +11,13 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{Errno, FileType, sys};
+use ul_common::ctype::{cstr, cstr_at};
 
 use crate::strings::expand_response_files;
 use crate::util::io;
 use crate::util::{Getopt, HasArg, LongOpt};
 
-use super::elf::{Versions, cstr, cstr_lossy, rd16, rd32, rd64, segment_type_name, slice_at};
+use super::elf::{Versions, cstr_lossy, rd16, rd32, rd64, segment_type_name, slice_at};
 
 const SHORTOPTS: &str = "ahlSegtsnrudVAcDLCvHWTzIx:p:R:j:";
 
@@ -274,7 +275,7 @@ impl<'a> Elf<'a> {
             let strtab = e.section_data(e.shstrndx).to_vec();
             for s in &mut e.sh {
                 let off = u32::from_le_bytes([s.name[0], s.name[1], s.name[2], s.name[3]]);
-                s.name = cstr(&strtab, off as usize);
+                s.name = cstr_at(&strtab, off as usize).to_vec();
             }
         }
         if e.phnum == 0xffff {
@@ -1102,7 +1103,7 @@ fn print_notes(e: &Elf<'_>, wide: bool, out: &mut String) {
             if doff + descsz > data.len() {
                 break;
             }
-            let name = cstr(&data[noff..noff + namesz], 0);
+            let name = cstr(&data[noff..noff + namesz]).to_vec();
             let desc = &data[doff..doff + descsz];
             let owner = String::from_utf8_lossy(&name).into_owned();
             let gnu = name == b"GNU";
@@ -1131,7 +1132,7 @@ fn print_notes(e: &Elf<'_>, wide: bool, out: &mut String) {
                         out.push_str(&format!("    OS: {os}, ABI: {}.{}.{}\n", w(1), w(2), w(3)));
                     }
                     4 => {
-                        out.push_str(&format!("    Version: {}\n", String::from_utf8_lossy(&cstr(desc, 0))));
+                        out.push_str(&format!("    Version: {}\n", String::from_utf8_lossy(cstr(desc))));
                     }
                     5 => out.push_str(&gnu_properties(desc)),
                     _ => {}

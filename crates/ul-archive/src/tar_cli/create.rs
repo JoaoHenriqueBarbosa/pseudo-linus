@@ -940,7 +940,7 @@ fn newer_than(disk: Time, member: Time, posix: bool) -> bool {
 }
 
 fn is_wildcard(a: &NameArg) -> bool {
-    a.flags.wildcards.unwrap_or(false) && super::fnmatch::has_wildcards(&a.name)
+    a.flags.wildcards.unwrap_or(false) && ul_common::fnmatch::has_wildcards(&a.name)
 }
 
 fn update_match(n: &UpdateName, member: &[u8]) -> bool {

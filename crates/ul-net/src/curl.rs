@@ -341,21 +341,7 @@ Use \"--help [option]\" to view documentation for a given option
 ";
 
 /// Base64 do `-u`.
-fn base64(data: &[u8]) -> String {
-    const T: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let mut out = String::new();
-    for ch in data.chunks(3) {
-        let n = (u32::from(ch[0]) << 16) | (u32::from(*ch.get(1).unwrap_or(&0)) << 8) | u32::from(*ch.get(2).unwrap_or(&0));
-        for i in 0..4 {
-            if i <= ch.len() {
-                out.push(T[((n >> (18 - 6 * i)) & 63) as usize] as char);
-            } else {
-                out.push('=');
-            }
-        }
-    }
-    out
-}
+use ul_common::codec::base64_string as base64;
 
 /// O que se sabe de uma transferência, pro `-w`.
 #[derive(Default, Clone)]

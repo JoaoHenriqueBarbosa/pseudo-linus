@@ -251,7 +251,7 @@ fn take_signal_option(args: &mut Vec<String>) -> Option<i32> {
                 let sig = if body.as_bytes()[0].is_ascii_digit() {
                     common::parse_long(body).filter(|n| (0..=64).contains(n)).map(|n| n as i32)
                 } else {
-                    common::signal_by_table_name(body).or_else(|| common::signal_rt(body))
+                    common::signal_by_name(body)
                 };
                 if let Some(s) = sig {
                     args.remove(i);
@@ -265,10 +265,7 @@ fn take_signal_option(args: &mut Vec<String>) -> Option<i32> {
 
 /// Sinal do `--signal`: nome da tabela, tempo real ou número.
 fn parse_signal(s: &str) -> Option<i32> {
-    if let Some(n) = common::signal_by_table_name(s).or_else(|| common::signal_rt(s)) {
-        return Some(n);
-    }
-    common::parse_long(s).filter(|n| (0..=64).contains(n)).map(|n| n as i32)
+    common::signal_by_name(s).or_else(|| common::parse_long(s).filter(|n| (0..=64).contains(n)).map(|n| n as i32))
 }
 
 fn parse_opts(mode: Mode, argv: &[Vec<u8>], argv0: &str, names: &mut Names) -> Result<(Opts, Option<Vec<u8>>), Fail> {

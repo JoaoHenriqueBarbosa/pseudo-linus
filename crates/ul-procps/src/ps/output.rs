@@ -362,12 +362,9 @@ pub fn pr_bsdstart(ps: &mut Ps, p: &Pt, out: &mut Vec<u8>) -> usize {
 pub fn pr_lstart(ps: &mut Ps, p: &Pt, out: &mut Vec<u8>) -> usize {
     let t = ps.start_epoch(p);
     let tz = ps.local_tz();
-    let dt = ul_misc::util::time::civil(t, &tz);
-    let abbr = ul_misc::util::time::abbreviation(t, &tz);
-    let off = tz.to_offset(jiff::Timestamp::from_second(t).unwrap_or(jiff::Timestamp::UNIX_EPOCH)).seconds();
     let default_fmt: &[u8] = b"%a %b %e %H:%M:%S %Y";
     let fmt = ps.lstart_format.clone();
-    let s = util::strftime(fmt.as_deref().unwrap_or(default_fmt), &dt, &abbr, off, t);
+    let s = ul_common::time::zone::strftime(fmt.as_deref().unwrap_or(default_fmt), t, &tz);
     if s.is_empty() || s.len() >= COLWID {
         return 0;
     }
@@ -387,8 +384,7 @@ pub fn pr_stime(ps: &mut Ps, p: &Pt, out: &mut Vec<u8>) -> usize {
     if now.year() != proc_time.year() {
         fmt = b"%Y";
     }
-    let abbr = ul_misc::util::time::abbreviation(t, &tz);
-    let s = util::strftime(fmt, &proc_time, &abbr, 0, t);
+    let s = ul_common::time::zone::strftime(fmt, t, &tz);
     if s.is_empty() || s.len() >= COLWID {
         return 0;
     }
@@ -691,11 +687,8 @@ fn signal_abbrev(sig: i32) -> String {
         return format!("BOGUS_{:02}", sig - 65);
     }
     if sig < RTMIN - 2
-        && let Some(n) = crate::common::signal_name(sig) {
-            return match n {
-                "POLL" => "IO".to_string(),
-                other => other.to_string(),
-            };
+        && let Some(n) = ul_common::signal::standard_name(sig, ul_common::signal::Sig29::Io) {
+            return n;
         }
     if sig >= 34 {
         if sig == 34 {

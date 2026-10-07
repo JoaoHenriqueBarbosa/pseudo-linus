@@ -7,6 +7,7 @@
 //! A ordem da tabela de opções longas é a do tar (observada nas mensagens de abreviação ambígua).
 
 use ul_common::getopt::{Getopt, HasArg, Item, LongOpt};
+use ul_common::signal;
 
 use super::header::Format;
 use super::quote::{self, Quoting, Style};
@@ -707,7 +708,8 @@ const WARNINGS: &[&str] = &[
     "verbose",
 ];
 
-const SIGNALS: &[&str] = &["SIGHUP", "SIGQUIT", "SIGINT", "SIGUSR1", "SIGUSR2", "HUP", "QUIT", "INT", "USR1", "USR2"];
+/// Os sinais que `--totals=SIGNAL` aceita (HUP, QUIT, INT, USR1, USR2), pelo número.
+const TOTALS_SIGNALS: [i32; 5] = [1, 3, 2, 10, 12];
 
 struct State {
     opts: Opts,
@@ -1023,7 +1025,7 @@ impl State {
             id::SHOW_STORED_NAMES => o.show_stored = true,
             id::TOTALS => {
                 if let Some(v) = &arg
-                    && !SIGNALS.contains(&String::from_utf8_lossy(v).as_ref())
+                    && !signal::parse_name(v, &signal::EXACT_POLL).is_some_and(|n| TOTALS_SIGNALS.contains(&n))
                 {
                     let mut m = b"Unknown signal name: ".to_vec();
                     m.extend_from_slice(v);
@@ -1167,6 +1169,21 @@ mod tests {
             String::from_utf8(m).unwrap(),
             "tar: option '--c' is ambiguous; possibilities: '--create' '--compare' '--catenate' '--concatenate' '--check-device' '--clamp-mtime' '--compress' '--checkpoint' '--checkpoint-action' '--check-links' '--confirmation'\n"
         );
+    }
+
+    #[test]
+    fn totals_signal_is_one_of_the_five_uppercase_names() {
+        for ok in ["SIGHUP", "SIGQUIT", "SIGINT", "SIGUSR1", "SIGUSR2", "HUP", "QUIT", "INT", "USR1", "USR2"] {
+            let flag = format!("--totals={ok}");
+            let a = argv(&["tar", flag.as_str(), "-cf", "x.tar"]);
+            assert!(matches!(parse(&a, "tar"), Ok(Parsed::Run(_))), "{ok}");
+        }
+        for bad in ["sighup", "hup", "TERM", "SIGTERM", "SIGSIGHUP", "IO", "9"] {
+            let flag = format!("--totals={bad}");
+            let a = argv(&["tar", flag.as_str(), "-cf", "x.tar"]);
+            let Err(ArgError::Fatal(m)) = parse(&a, "tar") else { panic!("{bad}") };
+            assert_eq!(m, format!("Unknown signal name: {bad}").into_bytes());
+        }
     }
 
     #[test]

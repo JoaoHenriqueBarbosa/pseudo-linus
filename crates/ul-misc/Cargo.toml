@@ -9,7 +9,7 @@ description = "Ferramentas diversas do pseudo-linus: bc, dc, file, column, tree,
 
 [dependencies]
 sysabi.workspace = true
-ul-common = { workspace = true }
+ul-common = { workspace = true, features = ["zone"] }
 # Fachada com a forma do std: stdout com a bufferização da glibc, /etc/passwd do sandbox, Command.
 sysio.workspace = true
 # run-parts: as ERE dos filtros de nome (regcomp do glibc).
@@ -18,8 +18,6 @@ regex-posix = { workspace = true }
 jiff = { version = "0.2", default-features = false, features = ["std", "tzdb-bundle-always"] }
 # zdump: os TZif crus do mesmo tzdata embutido, quando o sandbox não tem /usr/share/zoneinfo.
 jiff-tzdb = "0.1"
-# Largura de exibição (wcwidth) pro column.
-unicode-width = "0.2"
 # Motor numérico do bc (fork do posixutils-rs).
 bigdecimal = "0.4"
 num-bigint = "0.4"

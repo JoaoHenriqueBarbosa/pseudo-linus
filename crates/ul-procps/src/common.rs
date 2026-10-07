@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use sysabi::{Fd, FileType, Pid, sys};
 use sysio::users::{self, Group, Passwd};
 use ul_common::ctype::strtol_whole;
+use ul_common::signal;
 
 /// `prog: msg` no stderr, numa escrita só.
 pub fn warn(prog: &str, msg: &str) {
@@ -176,47 +177,21 @@ pub fn tty_dev_by_name(name: &str) -> Option<u64> {
     None
 }
 
-/// Nomes dos sinais 1 a 31 na tabela do procps (o 29 é `POLL`, não `IO`).
-pub const SIGNAL_NAMES: [&str; 31] = [
-    "HUP", "INT", "QUIT", "ILL", "TRAP", "ABRT", "BUS", "FPE", "KILL", "USR1", "SEGV", "USR2", "PIPE", "ALRM",
-    "TERM", "STKFLT", "CHLD", "CONT", "STOP", "TSTP", "TTIN", "TTOU", "URG", "XCPU", "XFSZ", "VTALRM", "PROF",
-    "WINCH", "POLL", "PWR", "SYS",
-];
+/// Como o procps lê o nome de um sinal: qualquer caixa, `SIG` opcional, o 29 é `POLL` e `IO`, `IOT`
+/// e `CLD` também valem.
+pub const SIGNALS: signal::Table =
+    signal::Table { sig29: signal::Sig29::Poll, case: signal::Case::Any, aliases: &[("IO", 29), ("IOT", 6), ("CLD", 17)] };
 
-/// Apelidos que a tabela do procps também aceita como nome de sinal.
-const SIGNAL_ALIASES: [(&str, i32); 3] = [("IO", 29), ("IOT", 6), ("CLD", 17)];
-
-/// Nome de sinal sem o prefixo `SIG`, maiúsculo, pra um número de 1 a 31.
-pub fn signal_name(n: i32) -> Option<&'static str> {
-    usize::try_from(n).ok().and_then(|i| i.checked_sub(1)).and_then(|i| SIGNAL_NAMES.get(i)).copied()
+/// Nome de sinal do procps (tabela de 1 a 31 com os apelidos, ou tempo real em qualquer caixa).
+pub fn signal_by_name(s: &str) -> Option<i32> {
+    signal::parse_name(s.as_bytes(), &SIGNALS).or_else(|| signal::parse_realtime(s.as_bytes(), signal::Case::Any))
 }
 
-/// Nome (com ou sem `SIG`, qualquer caixa) pro número, só com a tabela de 1 a 31 e os apelidos.
-pub fn signal_by_table_name(s: &str) -> Option<i32> {
-    let up = s.to_ascii_uppercase();
-    let bare = up.strip_prefix("SIG").unwrap_or(&up);
-    if let Some(i) = SIGNAL_NAMES.iter().position(|n| *n == bare) {
-        return Some(i as i32 + 1);
-    }
-    SIGNAL_ALIASES.iter().find(|(n, _)| *n == bare).map(|(_, v)| *v)
-}
-
-/// Sinal de tempo real `RTMIN`, `RTMIN+n`, `RTMAX`, `RTMAX-n` (com ou sem `SIG`).
-pub fn signal_rt(s: &str) -> Option<i32> {
-    let up = s.to_ascii_uppercase();
-    let bare = up.strip_prefix("SIG").unwrap_or(&up);
-    let (base, rest) = if let Some(r) = bare.strip_prefix("RTMIN") {
-        (sysabi::linux::SIGRTMIN, r)
-    } else {
-        let r = bare.strip_prefix("RTMAX")?;
-        (sysabi::linux::SIGRTMAX, r)
-    };
-    if rest.is_empty() {
-        return Some(base);
-    }
-    let off: i32 = rest.parse().ok()?;
-    let v = base + off;
-    (sysabi::linux::SIGRTMIN..=sysabi::linux::SIGRTMAX).contains(&v).then_some(v)
+/// `kill -l` sem argumento: os nomes de 1 a 16 numa linha e os de 17 a 31 na outra.
+pub fn signal_list() -> String {
+    let names = signal::standard_names(signal::Sig29::Poll);
+    let (first, second) = names.split_at(16);
+    format!("{}\n{}\n", first.join(" "), second.join(" "))
 }
 
 /// Resultado de [`strtol`].
@@ -265,12 +240,14 @@ mod tests {
 
     #[test]
     fn signal_names() {
-        assert_eq!(signal_by_table_name("sigkill"), Some(9));
-        assert_eq!(signal_by_table_name("POLL"), Some(29));
-        assert_eq!(signal_by_table_name("IO"), Some(29));
-        assert_eq!(signal_name(29), Some("POLL"));
-        assert_eq!(signal_rt("RTMIN+2"), Some(36));
-        assert_eq!(signal_rt("rtmax-1"), Some(63));
+        assert_eq!(signal_by_name("sigkill"), Some(9));
+        assert_eq!(signal_by_name("POLL"), Some(29));
+        assert_eq!(signal_by_name("IO"), Some(29));
+        assert_eq!(signal_by_name("RTMIN+2"), Some(36));
+        assert_eq!(signal_by_name("rtmax-1"), Some(63));
+        assert_eq!(signal_by_name("9"), None);
+        assert!(signal_list().starts_with("HUP INT QUIT ILL TRAP ABRT BUS FPE KILL USR1 SEGV USR2 PIPE ALRM TERM STKFLT\nCHLD CONT"));
+        assert!(signal_list().ends_with(" WINCH POLL PWR SYS\n"));
         assert_eq!(parse_long(" -12"), Some(-12));
         assert_eq!(parse_long("+5"), Some(5));
         assert_eq!(parse_long("5x"), None);

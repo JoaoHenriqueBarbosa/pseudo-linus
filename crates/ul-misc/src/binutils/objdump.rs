@@ -17,12 +17,13 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{Errno, FileType, sys};
+use ul_common::ctype::cstr_at;
 
 use crate::strings::expand_response_files;
 use crate::util::io;
 use crate::util::{Getopt, HasArg, LongOpt};
 
-use super::elf::{SHT_VERDEF, SHT_VERNEED, Versions, cstr, cstr_lossy, is_elf64_le, rd16, rd32, rd64, segment_type_name, slice_at, walk_chain};
+use super::elf::{SHT_VERDEF, SHT_VERNEED, Versions, cstr_lossy, is_elf64_le, rd16, rd32, rd64, segment_type_name, slice_at, walk_chain};
 
 const SHORTOPTS: &str = "pP:ib:m:M:VvCdDlfFaHhrRtTxsSj:wzZgeGWLI:E:";
 
@@ -239,7 +240,7 @@ impl<'a> Elf<'a> {
                 .map(|s| slice_at(d, s.offset, s.size).to_vec())
                 .unwrap_or_default();
             for (s, off) in sh.iter_mut().zip(name_offs) {
-                s.name = cstr(&strtab, off);
+                s.name = cstr_at(&strtab, off).to_vec();
             }
         }
 
@@ -397,7 +398,7 @@ impl<'a> Elf<'a> {
         self.data(idx)
             .chunks_exact(24)
             .map(|ent| Sym {
-                name: cstr(strtab, rd32(ent, 0).unwrap_or(0) as usize),
+                name: cstr_at(strtab, rd32(ent, 0).unwrap_or(0) as usize).to_vec(),
                 info: ent[4],
                 other: ent[5],
                 shndx: rd16(ent, 6).unwrap_or(0),

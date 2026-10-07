@@ -19,9 +19,10 @@
 use std::ffi::OsString;
 
 use sysabi::{Ctx, Errno, KillTarget, Signal, sys};
+use ul_common::signal::{self, Case, Sig29, Table};
 use ul_misc::util::io;
 
-use crate::common::{self, SIGNAL_NAMES, out};
+use crate::common::{self, SIGNALS, out, signal_list};
 
 const USAGE: &str = "\nUsage:\n kill [options] <pid> [...]\n\nOptions:\n <pid> [...]            send signal to every <pid> listed\n -<signal>, -s, --signal <signal>\n                        specify the <signal> to be sent\n -q, --queue <value>    integer value to be sent with the signal\n -l, --list=[<signal>]  list all signal names, or convert one to a name\n -L, --table            list all signal names in a nice table\n\n -h, --help     display this help and exit\n -V, --version  output version information and exit\n\nFor more details see kill(1).\n";
 
@@ -34,28 +35,22 @@ fn usage_err() -> i32 {
     1
 }
 
-/// `signal_name_to_number` do procps: nome da tabela (com ou sem `SIG`, qualquer caixa), `RTMIN+n`
-/// / `RTMAX-n` ou número. -1 quando não reconhece (o kill então dá EINVAL no kernel).
+/// Nome da tabela (com ou sem `SIG`, qualquer caixa, com os apelidos) ou `RTMIN+n` / `RTMAX-n`; o
+/// tempo real só em maiúsculas (o original não aceita `rtmax-3` como opção).
+fn named(s: &str) -> Option<i32> {
+    signal::parse_name(s.as_bytes(), &SIGNALS).or_else(|| signal::parse_realtime(s.as_bytes(), Case::Exact))
+}
+
+/// `signal_name_to_number` do procps: [`named`] ou número. -1 quando não reconhece (o kill então dá
+/// EINVAL no kernel).
 pub fn signal_name_to_number(s: &str) -> i32 {
-    if let Some(n) = common::signal_by_table_name(s) {
-        return n;
-    }
-    if let Some(n) = rt_upper(s) {
+    if let Some(n) = named(s) {
         return n;
     }
     match common::parse_long(s) {
         Some(n) if (0..=i64::from(i32::MAX)).contains(&n) => n as i32,
         _ => -1,
     }
-}
-
-/// `RTMIN`/`RTMAX` só em maiúsculas (o original não aceita `rtmax-3` como opção).
-fn rt_upper(s: &str) -> Option<i32> {
-    let bare = s.strip_prefix("SIG").unwrap_or(s);
-    if !(bare.starts_with("RTMIN") || bare.starts_with("RTMAX")) {
-        return None;
-    }
-    common::signal_rt(bare)
 }
 
 /// O argumento é um `-<sinal>`? Devolve o número.
@@ -68,10 +63,7 @@ fn sig_option(arg: &str) -> Option<i32> {
         let n = common::parse_long(body)?;
         return (0..=93).contains(&n).then_some(n as i32);
     }
-    if let Some(n) = common::signal_by_table_name(body) {
-        return Some(n);
-    }
-    rt_upper(body)
+    named(body)
 }
 
 /// `strtol_or_err`: número inteiro ou a mensagem do `error(3)` (com o errno que sobrou: ENOENT pra
@@ -91,14 +83,11 @@ fn strtol_or_err(argv0: &str, s: &str, what: &str) -> Result<i64, i32> {
     }
 }
 
-fn print_list() {
-    out("HUP INT QUIT ILL TRAP ABRT BUS FPE KILL USR1 SEGV USR2 PIPE ALRM TERM STKFLT\nCHLD CONT STOP TSTP TTIN TTOU URG XCPU XFSZ VTALRM PROF WINCH POLL PWR SYS\n");
-}
-
 /// Tabela do `-L`: sete por linha, `%2d %-8s`, a sétima sem preenchimento.
 pub fn signal_table() -> String {
+    let names = signal::standard_names(Sig29::Poll);
     let mut s = String::new();
-    for (i, name) in SIGNAL_NAMES.iter().enumerate() {
+    for (i, name) in names.iter().enumerate() {
         let n = i + 1;
         if n % 7 == 0 {
             s.push_str(&format!("{n:2} {name}\n"));
@@ -106,27 +95,25 @@ pub fn signal_table() -> String {
             s.push_str(&format!("{n:2} {name:<8}"));
         }
     }
-    if !SIGNAL_NAMES.len().is_multiple_of(7) {
+    if !names.len().is_multiple_of(7) {
         s.push('\n');
     }
     s
 }
 
+/// Só os nomes da tabela, sem os apelidos (`IO`, `IOT`, `CLD` não convertem no `-l`, só como sinal).
+const LISTED: Table = Table { aliases: &[], ..SIGNALS };
+
 /// `kill -l <sinal>`: número vira nome, nome vira número.
 fn list_one(argv0: &str, arg: &str) {
     if arg.as_bytes().first().is_some_and(u8::is_ascii_digit) {
-        if let Some(name) = common::parse_long(arg).and_then(|n| i32::try_from(n).ok()).and_then(common::signal_name) {
+        if let Some(name) = common::parse_long(arg).and_then(|n| i32::try_from(n).ok()).and_then(|n| signal::standard_name(n, Sig29::Poll)) {
             out(format!("{name}\n"));
             return;
         }
-    } else if let Some(n) = common::signal_by_table_name(arg).filter(|n| common::signal_name(*n).is_some()) {
-        // Os apelidos (IO, IOT, CLD) não convertem no -l, só como sinal.
-        let up = arg.to_ascii_uppercase();
-        let bare = up.strip_prefix("SIG").unwrap_or(&up);
-        if SIGNAL_NAMES.contains(&bare) {
-            out(format!("{n}\n"));
-            return;
-        }
+    } else if let Some(n) = signal::parse_name(arg.as_bytes(), &LISTED) {
+        out(format!("{n}\n"));
+        return;
     }
     io::eprint(format!("{argv0}: unknown signal name {arg}\n"));
 }
@@ -197,7 +184,7 @@ fn run(args: &[OsString]) -> i32 {
                     let v = val.or_else(|| rest.get(idx).filter(|n| !n.starts_with('-')).cloned());
                     match v {
                         Some(s) => list_one(&argv0, &s),
-                        None => print_list(),
+                        None => out(signal_list()),
                     }
                     return 0;
                 }
@@ -257,7 +244,7 @@ fn run(args: &[OsString]) -> i32 {
                     };
                     match v {
                         Some(s) => list_one(&argv0, &s),
-                        None => print_list(),
+                        None => out(signal_list()),
                     }
                     return 0;
                 }

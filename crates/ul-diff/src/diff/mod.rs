@@ -5,7 +5,6 @@
 //! e `diff3`.
 
 pub mod engine;
-pub mod fnmatch;
 pub mod format;
 pub mod help;
 pub mod ifdef;
@@ -263,7 +262,8 @@ impl Differ {
     }
 
     fn excluded(&self, name: &[u8]) -> bool {
-        self.excludes.iter().any(|p| fnmatch::fnmatch(p, name, false))
+        use ul_common::fnmatch::{Bytes, Flags, fnmatch};
+        self.excludes.iter().any(|p| fnmatch::<Bytes>(p, name, Flags::TRAILING_BACKSLASH_LITERAL))
     }
 
     fn stat_of(&self, path: &[u8]) -> Result<Stat, Errno> {

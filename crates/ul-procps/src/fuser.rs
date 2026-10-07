@@ -13,6 +13,7 @@ use std::collections::BTreeMap;
 use std::ffi::OsString;
 
 use sysabi::{Ctx, Errno, Fd, FileType, KillTarget, Signal, sys};
+use ul_common::signal;
 use ul_misc::util::io;
 
 use crate::common::{self, out};
@@ -50,16 +51,13 @@ pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
 }
 
 fn parse_signal(s: &str) -> Option<i32> {
-    if !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit()) {
-        return s.parse().ok().filter(|v| (1..=64).contains(v));
-    }
-    common::signal_by_table_name(s).or_else(|| common::signal_rt(s))
+    signal::parse_decimal(s.as_bytes()).filter(|v| (1..=64).contains(v)).or_else(|| common::signal_by_name(s))
 }
 
 fn list_signals() {
     let mut s = String::new();
     let mut col = 0usize;
-    for name in common::SIGNAL_NAMES.iter() {
+    for name in signal::standard_names(signal::Sig29::Poll) {
         if col + name.len() + 1 > 80 {
             s.push('\n');
             col = 0;
@@ -67,7 +65,7 @@ fn list_signals() {
         if col != 0 {
             s.push(' ');
         }
-        s.push_str(name);
+        s.push_str(&name);
         col += name.len() + 1;
     }
     s.push('\n');

@@ -70,12 +70,7 @@ pub fn quote_ident_if_needed(z: &[u8]) -> Vec<u8> {
 }
 
 /// Corta no primeiro NUL, como as funções que recebem `char*`.
-pub fn cstr(z: &[u8]) -> &[u8] {
-    match z.iter().position(|&b| b == 0) {
-        Some(p) => &z[..p],
-        None => z,
-    }
-}
+pub use ul_common::ctype::cstr;
 
 /// `output_quoted_string`.
 pub fn quoted_string(z: &[u8]) -> Vec<u8> {

@@ -8,30 +8,19 @@
 use std::ffi::OsString;
 
 use sysabi::{Ctx, KillTarget, Signal, sys};
+use ul_common::signal;
 use ul_misc::util::io;
 
 use crate::procfs;
 
 const USAGE: &str = "Usage: killall5 -signalnumber [-o omitpid[,omitpid...]]\n";
 
-const NAMES: [(&str, i32); 31] = [
-    ("HUP", 1), ("INT", 2), ("QUIT", 3), ("ILL", 4), ("TRAP", 5), ("ABRT", 6), ("BUS", 7), ("FPE", 8),
-    ("KILL", 9), ("USR1", 10), ("SEGV", 11), ("USR2", 12), ("PIPE", 13), ("ALRM", 14), ("TERM", 15),
-    ("STKFLT", 16), ("CHLD", 17), ("CONT", 18), ("STOP", 19), ("TSTP", 20), ("TTIN", 21), ("TTOU", 22),
-    ("URG", 23), ("XCPU", 24), ("XFSZ", 25), ("VTALRM", 26), ("PROF", 27), ("WINCH", 28), ("POLL", 29),
-    ("PWR", 30), ("SYS", 31),
-];
-
 pub fn main(_ctx: &mut Ctx, args: &[OsString]) -> i32 {
     io::run(|| run(args))
 }
 
 fn parse_signal(s: &[u8]) -> Option<i32> {
-    if !s.is_empty() && s.iter().all(u8::is_ascii_digit) {
-        return String::from_utf8_lossy(s).parse().ok();
-    }
-    let bare = s.strip_prefix(b"SIG").unwrap_or(s);
-    NAMES.iter().find(|(n, _)| n.as_bytes() == bare).map(|(_, v)| *v)
+    signal::parse_decimal(s).or_else(|| signal::parse_name(s, &signal::EXACT_POLL))
 }
 
 fn run(args: &[OsString]) -> i32 {

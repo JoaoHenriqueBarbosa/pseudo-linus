@@ -2,7 +2,8 @@
 
 use std::fmt;
 
-use sha1::{Digest, Sha1};
+use ul_common::codec::hex_lower;
+use ul_common::hash::Sha1;
 
 /// Id de objeto SHA-1.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
@@ -17,13 +18,7 @@ impl Oid {
     }
 
     pub fn hex(&self) -> String {
-        const DIGITS: &[u8; 16] = b"0123456789abcdef";
-        let mut s = String::with_capacity(40);
-        for b in self.0 {
-            s.push(DIGITS[(b >> 4) as usize] as char);
-            s.push(DIGITS[(b & 15) as usize] as char);
-        }
-        s
+        hex_lower(&self.0)
     }
 
     /// Os primeiros `n` dígitos hexadecimais.
@@ -140,17 +135,13 @@ pub fn header(kind: Kind, len: usize) -> Vec<u8> {
 /// Id do objeto com esses dados.
 pub fn hash_object(kind: Kind, data: &[u8]) -> Oid {
     let mut h = Sha1::new();
-    h.update(header(kind, data.len()));
+    h.update(&header(kind, data.len()));
     h.update(data);
-    Oid(h.finalize().into())
+    Oid(h.finalize())
 }
 
 /// SHA-1 cru de um buffer (checksum do índice e do pack).
-pub fn sha1(data: &[u8]) -> [u8; 20] {
-    let mut h = Sha1::new();
-    h.update(data);
-    h.finalize().into()
-}
+pub use ul_common::hash::sha1;
 
 /// Id do blob vazio e da tree vazia, que o git conhece mesmo sem estarem no repositório.
 pub const EMPTY_BLOB: Oid = Oid([

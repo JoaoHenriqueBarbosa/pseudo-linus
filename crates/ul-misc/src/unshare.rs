@@ -9,6 +9,7 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{Ctx, Errno, sys};
+use ul_common::signal;
 
 use crate::setsid::execvp;
 use crate::util::io;
@@ -132,49 +133,17 @@ const CLONE_NEWPID: u32 = 0x2000_0000;
 const CLONE_NEWNET: u32 = 0x4000_0000;
 const CLONE_NEWTIME: u32 = 0x0000_0080;
 
+/// Nomes de sinal do `signame_to_signum`: qualquer caixa, `SIG` opcional, `IO` e `POLL` valem pro 29
+/// e `IOT` pro 6.
+const SIGNALS: signal::Table =
+    signal::Table { sig29: signal::Sig29::Io, case: signal::Case::Any, aliases: &[("IOT", 6), ("POLL", 29)] };
+
 /// `signame_to_signum`: aceita `SIGTERM`, `term` (qualquer caixa) e números.
 fn signame_to_signum(name: &str) -> Option<i32> {
     if let Ok(n) = name.parse::<i32>() {
         return Some(n);
     }
-    const SIGS: &[(&str, i32)] = &[
-        ("HUP", 1),
-        ("INT", 2),
-        ("QUIT", 3),
-        ("ILL", 4),
-        ("TRAP", 5),
-        ("ABRT", 6),
-        ("IOT", 6),
-        ("BUS", 7),
-        ("FPE", 8),
-        ("KILL", 9),
-        ("USR1", 10),
-        ("SEGV", 11),
-        ("USR2", 12),
-        ("PIPE", 13),
-        ("ALRM", 14),
-        ("TERM", 15),
-        ("STKFLT", 16),
-        ("CHLD", 17),
-        ("CONT", 18),
-        ("STOP", 19),
-        ("TSTP", 20),
-        ("TTIN", 21),
-        ("TTOU", 22),
-        ("URG", 23),
-        ("XCPU", 24),
-        ("XFSZ", 25),
-        ("VTALRM", 26),
-        ("PROF", 27),
-        ("WINCH", 28),
-        ("IO", 29),
-        ("POLL", 29),
-        ("PWR", 30),
-        ("SYS", 31),
-    ];
-    let up = name.to_ascii_uppercase();
-    let base = up.strip_prefix("SIG").unwrap_or(&up);
-    SIGS.iter().find(|(n, _)| *n == base).map(|(_, v)| *v)
+    signal::parse_name(name.as_bytes(), &SIGNALS)
 }
 
 /// `get_user`/`get_group`: nome no `/etc/passwd` (ou `/etc/group`) ou número.

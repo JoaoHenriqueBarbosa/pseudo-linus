@@ -15,6 +15,7 @@ use std::collections::HashMap;
 use std::ffi::OsString;
 
 use sysabi::{AtFlags, Clock, Ctx, Errno, Fd, FileType, OFlags, SetTime, Stat, TimeSpec, sys};
+use ul_common::ctype::cstr;
 use ul_common::fsutil;
 use ul_common::time::Civil;
 
@@ -134,13 +135,6 @@ pub(crate) struct TarEntry {
     major: u32,
     minor: u32,
     data: Vec<u8>,
-}
-
-fn cstr(b: &[u8]) -> &[u8] {
-    match b.iter().position(|&c| c == 0) {
-        Some(i) => &b[..i],
-        None => b,
-    }
 }
 
 fn parse_octal(b: &[u8]) -> u64 {

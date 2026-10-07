@@ -12,6 +12,7 @@ use std::io::Write;
 
 use sysabi::sys;
 use sysabi::{Fd, OFlags};
+use ul_common::ctype::cstr;
 use ul_common::time::Civil;
 
 use crate::util::io;
@@ -255,21 +256,17 @@ struct Utmp {
     sec: i64,
 }
 
-fn cstr(b: &[u8]) -> String {
-    let end = b.iter().position(|c| *c == 0).unwrap_or(b.len());
-    String::from_utf8_lossy(&b[..end]).to_string()
-}
-
 fn read_utmp(path: &str) -> Vec<Utmp> {
     let Ok(data) = sys::read_file(path.as_bytes()) else {
         return Vec::new();
     };
+    let text = |b: &[u8]| String::from_utf8_lossy(cstr(b)).into_owned();
     data.chunks_exact(UTMP_RECORD)
         .map(|r| Utmp {
             kind: i16::from_le_bytes([r[0], r[1]]),
-            line: cstr(&r[8..40]),
-            user: cstr(&r[44..76]),
-            host: cstr(&r[76..332]),
+            line: text(&r[8..40]),
+            user: text(&r[44..76]),
+            host: text(&r[76..332]),
             sec: i64::from(i32::from_le_bytes([r[340], r[341], r[342], r[343]])),
         })
         .collect()

@@ -10,11 +10,15 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{Ctx, Errno, sys};
+use ul_common::signal;
 
 use crate::setsid::execvp;
 use crate::util::io;
 use crate::util::ul;
 use crate::util::{Getopt, HasArg, LongOpt};
+
+/// Nomes de sinal que o `--pdeathsig` reconhece: qualquer caixa, `SIG` opcional, o 29 é `IO`, sem apelidos.
+const SIGNALS: signal::Table = signal::Table { sig29: signal::Sig29::Io, case: signal::Case::Any, aliases: &[] };
 
 const EX_EXEC_FAILED: i32 = 126;
 const EX_EXEC_ENOENT: i32 = 127;
@@ -382,14 +386,8 @@ fn run(args: &[OsString]) -> i32 {
             O_PDEATHSIG => {
                 if text != "keep" && text != "clear" {
                     let n = text.to_ascii_uppercase();
-                    let n = n.strip_prefix("SIG").unwrap_or(&n).to_string();
-                    let known = n.parse::<i32>().is_ok()
-                        || ["HUP", "INT", "QUIT", "ILL", "TRAP", "ABRT", "BUS", "FPE", "KILL", "USR1",
-                            "SEGV", "USR2", "PIPE", "ALRM", "TERM", "STKFLT", "CHLD", "CONT", "STOP",
-                            "TSTP", "TTIN", "TTOU", "URG", "XCPU", "XFSZ", "VTALRM", "PROF", "WINCH",
-                            "IO", "PWR", "SYS"]
-                            .contains(&n.as_str());
-                    if !known {
+                    let n = n.strip_prefix("SIG").unwrap_or(&n);
+                    if n.parse::<i32>().is_err() && signal::parse_name(text.as_bytes(), &SIGNALS).is_none() {
                         return die(&short, format!("unknown signal: {text}"));
                     }
                 }

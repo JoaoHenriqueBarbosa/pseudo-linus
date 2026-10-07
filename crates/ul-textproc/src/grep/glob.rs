@@ -4,6 +4,31 @@
 
 use regex_posix::ast::{PosixClass, Unit, decode};
 use regex_posix::charclass::{class_contains, posix_class};
+use ul_common::fnmatch::{Alphabet, Flags, fnmatch};
+
+/// As unidades do regex-posix (caractere UTF-8 ou byte inválido) como texto do `fnmatch`: classes
+/// pelo `charclass` do regex-posix, faixa só entre caracteres, byte inválido só casa com ele mesmo.
+struct Units;
+
+impl Alphabet for Units {
+    type Unit = Unit;
+
+    fn is(unit: Unit, ascii: u8) -> bool {
+        unit.is(char::from(ascii))
+    }
+
+    fn in_range(lo: Unit, hi: Unit, c: Unit) -> bool {
+        matches!((lo, hi, c), (Unit::Char(a), Unit::Char(b), Unit::Char(x)) if a <= x && x <= b)
+    }
+
+    fn in_class(name: &[Unit], c: Unit) -> Option<bool> {
+        let name: String = name.iter().filter_map(|u| u.as_char()).collect();
+        Some(match (PosixClass::from_name(&name), c) {
+            (Some(k), Unit::Char(ch)) => class_contains(posix_class(k), ch),
+            _ => false,
+        })
+    }
+}
 
 #[derive(Default)]
 pub struct Excludes {
@@ -22,12 +47,15 @@ impl Excludes {
         let Some(first) = self.pats.first() else { return false };
         let name = decode(name);
         let matches = |pat: &[Unit]| -> bool {
-            if fnmatch(pat, &name) {
+            if fnmatch::<Units>(pat, &name, Flags::TRAILING_BACKSLASH_LITERAL) {
                 return true;
             }
             if !anchored {
                 for i in 0..name.len() {
-                    if name[i] == Unit::Char('/') && name.get(i + 1) != Some(&Unit::Char('/')) && fnmatch(pat, &name[i + 1..]) {
+                    if name[i] == Unit::Char('/')
+                        && name.get(i + 1) != Some(&Unit::Char('/'))
+                        && fnmatch::<Units>(pat, &name[i + 1..], Flags::TRAILING_BACKSLASH_LITERAL)
+                    {
                         return true;
                     }
                 }
@@ -41,126 +69,12 @@ impl Excludes {
     }
 }
 
-/// `fnmatch(pattern, string, 0)`.
-pub fn fnmatch(p: &[Unit], s: &[Unit]) -> bool {
-    let (mut pi, mut si) = (0usize, 0usize);
-    let mut star: Option<(usize, usize)> = None;
-    loop {
-        if pi < p.len() {
-            match p[pi] {
-                Unit::Char('*') => {
-                    while pi < p.len() && p[pi] == Unit::Char('*') {
-                        pi += 1;
-                    }
-                    star = Some((pi, si));
-                    continue;
-                }
-                Unit::Char('?') if si < s.len() => {
-                    pi += 1;
-                    si += 1;
-                    continue;
-                }
-                Unit::Char('[') if si < s.len() => {
-                    if let Some((matched, next)) = bracket(p, pi, s[si]) {
-                        if matched {
-                            pi = next;
-                            si += 1;
-                            continue;
-                        }
-                    } else if s[si] == Unit::Char('[') {
-                        pi += 1;
-                        si += 1;
-                        continue;
-                    }
-                }
-                Unit::Char('\\') if pi + 1 < p.len() => {
-                    if si < s.len() && s[si] == p[pi + 1] {
-                        pi += 2;
-                        si += 1;
-                        continue;
-                    }
-                }
-                u => {
-                    if si < s.len() && s[si] == u && !matches!(u, Unit::Char('?' | '[')) {
-                        pi += 1;
-                        si += 1;
-                        continue;
-                    }
-                }
-            }
-        } else if si == s.len() {
-            return true;
-        }
-        match star {
-            Some((sp, ss)) if ss < s.len() => {
-                star = Some((sp, ss + 1));
-                pi = sp;
-                si = ss + 1;
-            }
-            _ => return false,
-        }
-    }
-}
-
-/// Expressão de colchetes em `p[pi]` (`[`); devolve (casou, índice depois do `]`), ou `None` se
-/// não fecha (aí o `[` é literal).
-fn bracket(p: &[Unit], pi: usize, c: Unit) -> Option<(bool, usize)> {
-    let mut i = pi + 1;
-    let negate = matches!(p.get(i), Some(Unit::Char('!' | '^')));
-    if negate {
-        i += 1;
-    }
-    let mut matched = false;
-    let mut first = true;
-    loop {
-        let u = *p.get(i)?;
-        if u == Unit::Char(']') && !first {
-            i += 1;
-            break;
-        }
-        first = false;
-        // Classe [:nome:].
-        if u == Unit::Char('[')
-            && p.get(i + 1) == Some(&Unit::Char(':'))
-            && let Some(end) = (i + 2..p.len().saturating_sub(1)).find(|&k| p[k] == Unit::Char(':') && p[k + 1] == Unit::Char(']'))
-        {
-            let name: String = p[i + 2..end].iter().filter_map(|u| u.as_char()).collect();
-            if let (Some(k), Unit::Char(ch)) = (PosixClass::from_name(&name), c) {
-                matched |= class_contains(posix_class(k), ch);
-            }
-            i = end + 2;
-            continue;
-        }
-        let lo = if u == Unit::Char('\\') {
-            i += 1;
-            *p.get(i)?
-        } else {
-            u
-        };
-        i += 1;
-        if p.get(i) == Some(&Unit::Char('-')) && p.get(i + 1).is_some_and(|x| *x != Unit::Char(']')) {
-            let mut hi = p[i + 1];
-            i += 2;
-            if hi == Unit::Char('\\') {
-                hi = *p.get(i)?;
-                i += 1;
-            }
-            if let (Unit::Char(a), Unit::Char(b), Unit::Char(x)) = (lo, hi, c) {
-                matched |= a <= x && x <= b;
-            }
-        } else {
-            matched |= lo == c;
-        }
-    }
-    Some((matched != negate, i))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn m(p: &str, s: &str) -> bool {
-        fnmatch(&decode(p.as_bytes()), &decode(s.as_bytes()))
+        fnmatch::<Units>(&decode(p.as_bytes()), &decode(s.as_bytes()), Flags::TRAILING_BACKSLASH_LITERAL)
     }
 
     #[test]

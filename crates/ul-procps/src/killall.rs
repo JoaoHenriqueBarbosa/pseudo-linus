@@ -16,6 +16,7 @@ use std::time::Duration;
 
 use sysabi::{Ctx, Errno, Fd, FileType, KillTarget, Signal, sys};
 use ul_common::ctype::strtol;
+use ul_common::signal;
 use ul_misc::util::io;
 
 use crate::common::out;
@@ -25,41 +26,6 @@ use crate::procfs;
 const USAGE: &str = "Usage: killall [OPTION]... [--] NAME...\n       killall -l, --list\n       killall -V, --version\n\n  -e,--exact          require exact match for very long names\n  -I,--ignore-case    case insensitive process name match\n  -g,--process-group  kill process group instead of process\n  -y,--younger-than   kill processes younger than TIME\n  -o,--older-than     kill processes older than TIME\n  -i,--interactive    ask for confirmation before killing\n  -l,--list           list all known signal names\n  -q,--quiet          don't print complaints\n  -r,--regexp         interpret NAME as an extended regular expression\n  -s,--signal SIGNAL  send this signal instead of SIGTERM\n  -u,--user USER      kill only process(es) running as USER\n  -v,--verbose        report if the signal was successfully sent\n  -V,--version        display version information\n  -w,--wait           wait for processes to die\n  -n,--ns PID         match processes that belong to the same namespaces\n                      as PID\n  -Z,--context REGEXP kill only process(es) having context\n                      (must precede other arguments)\n\n";
 
 const VERSION: &str = "killall (PSmisc) 23.7\nCopyright (C) 1993-2024 Werner Almesberger and Craig Small\n\nPSmisc comes with ABSOLUTELY NO WARRANTY.\nThis is free software, and you are welcome to redistribute it under\nthe terms of the GNU General Public License.\nFor more information about these matters, see the files named COPYING.\n";
-
-/// Nomes de sinal da tabela do psmisc (a mesma do `killall -l`).
-const SIGNAMES: [(&str, i32); 31] = [
-    ("HUP", 1),
-    ("INT", 2),
-    ("QUIT", 3),
-    ("ILL", 4),
-    ("TRAP", 5),
-    ("ABRT", 6),
-    ("BUS", 7),
-    ("FPE", 8),
-    ("KILL", 9),
-    ("USR1", 10),
-    ("SEGV", 11),
-    ("USR2", 12),
-    ("PIPE", 13),
-    ("ALRM", 14),
-    ("TERM", 15),
-    ("STKFLT", 16),
-    ("CHLD", 17),
-    ("CONT", 18),
-    ("STOP", 19),
-    ("TSTP", 20),
-    ("TTIN", 21),
-    ("TTOU", 22),
-    ("URG", 23),
-    ("XCPU", 24),
-    ("XFSZ", 25),
-    ("VTALRM", 26),
-    ("PROF", 27),
-    ("WINCH", 28),
-    ("POLL", 29),
-    ("PWR", 30),
-    ("SYS", 31),
-];
 
 const COMM_LEN: usize = 64;
 const OLD_COMM_LEN: usize = 16;
@@ -86,7 +52,7 @@ fn usage(msg: Option<&str>) -> i32 {
 fn list_signals() {
     let mut s = String::new();
     let mut col = 0usize;
-    for (name, _) in SIGNAMES.iter() {
+    for name in signal::standard_names(signal::Sig29::Poll) {
         if col + name.len() + 1 > 80 {
             s.push('\n');
             col = 0;
@@ -94,7 +60,7 @@ fn list_signals() {
         if col != 0 {
             s.push(' ');
         }
-        s.push_str(name);
+        s.push_str(&name);
         col += name.len() + 1;
     }
     s.push('\n');
@@ -112,8 +78,8 @@ fn get_signal(name: &[u8]) -> Result<i32, i32> {
         return Ok(atoi(name));
     }
     let bare = name.strip_prefix(b"SIG").unwrap_or(name);
-    if let Some((_, n)) = SIGNAMES.iter().find(|(s, _)| s.as_bytes() == bare) {
-        return Ok(*n);
+    if let Some(n) = signal::parse_name(name, &signal::EXACT_POLL) {
+        return Ok(n);
     }
     let mut m = bare.to_vec();
     m.extend_from_slice(b": unknown signal; killall -l lists signals.\n");

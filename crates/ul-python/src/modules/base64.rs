@@ -5,6 +5,8 @@
 
 use std::rc::Rc;
 
+use ul_common::codec::BASE64_URL;
+
 use crate::modules::binascii::{
     binascii_error, decode_base64, encode_base64, from_hex, want_ascii_or_bytes, want_bytes, B64_ALPHABET,
 };
@@ -73,10 +75,7 @@ fn standard_b64decode(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value>
 fn urlsafe_b64encode(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("urlsafe_b64encode", &kw)?;
     exactly("urlsafe_b64encode", &args, 1)?;
-    let mut a = *B64_ALPHABET;
-    a[62] = b'-';
-    a[63] = b'_';
-    Ok(Value::bytes(encode_base64(&want_bytes(&args[0])?, &a, true)))
+    Ok(Value::bytes(encode_base64(&want_bytes(&args[0])?, BASE64_URL, true)))
 }
 
 fn urlsafe_b64decode(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {

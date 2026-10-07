@@ -14,6 +14,7 @@
 use std::ffi::OsString;
 
 use sysabi::{Ctx, Pid, sys};
+use ul_common::ctype::cstr;
 use ul_misc::util::getopt::{Getopt, HasArg, LongOpt};
 use ul_misc::util::{io, time};
 
@@ -54,11 +55,6 @@ struct Utmp {
     addr_v6: [u32; 4],
 }
 
-fn cstr(b: &[u8]) -> Vec<u8> {
-    let end = b.iter().position(|c| *c == 0).unwrap_or(b.len());
-    b[..end].to_vec()
-}
-
 fn read_utmp() -> Vec<Utmp> {
     const RECORD: usize = 384;
     let Ok(data) = sys::read_file(b"/var/run/utmp") else { return Vec::new() };
@@ -70,7 +66,7 @@ fn read_utmp() -> Vec<Utmp> {
             kind: i16::from_le_bytes([r[0], r[1]]),
             pid: le32(r, 4) as i32,
             line: r[8..40].to_vec(),
-            user: cstr(&r[44..76]),
+            user: cstr(&r[44..76]).to_vec(),
             host: r[76..332].to_vec(),
             tv_sec: i64::from(le32(r, 340) as i32),
             addr_v6: [le32(r, 348), le32(r, 352), le32(r, 356), le32(r, 360)],

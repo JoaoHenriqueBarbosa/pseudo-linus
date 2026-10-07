@@ -12,6 +12,7 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{AtFlags, Ctx, Fd, FileType, OFlags, RenameFlags, sys};
+use ul_common::fnmatch::{Bytes, Flags, fnmatch};
 
 use crate::util::io;
 
@@ -106,46 +107,6 @@ fn describe_div(d: &Diversion) -> String {
         Some(n) => Pkg::Name(n.as_str()),
     };
     describe(&d.original, Some(&d.to), p)
-}
-
-/// `fnmatch(3)` sem flags: `*`, `?`, classes `[...]` (com `!`/`^` e intervalos) e `\`.
-fn glob(p: &[u8], s: &[u8]) -> bool {
-    match p.first() {
-        None => s.is_empty(),
-        Some(b'*') => (0..=s.len()).any(|i| glob(&p[1..], &s[i..])),
-        Some(b'?') => !s.is_empty() && glob(&p[1..], &s[1..]),
-        Some(b'[') => {
-            let Some(&c) = s.first() else { return false };
-            let mut i = 1;
-            let neg = matches!(p.get(i), Some(b'!') | Some(b'^'));
-            if neg {
-                i += 1;
-            }
-            let mut hit = false;
-            let mut first = true;
-            while i < p.len() && (p[i] != b']' || first) {
-                first = false;
-                if i + 2 < p.len() && p[i + 1] == b'-' && p[i + 2] != b']' {
-                    if p[i] <= c && c <= p[i + 2] {
-                        hit = true;
-                    }
-                    i += 3;
-                } else {
-                    if p[i] == c {
-                        hit = true;
-                    }
-                    i += 1;
-                }
-            }
-            if i >= p.len() {
-                // Sem `]` de fechamento: o `[` é literal.
-                return c == b'[' && glob(&p[1..], &s[1..]);
-            }
-            hit != neg && glob(&p[i + 1..], &s[1..])
-        }
-        Some(b'\\') if p.len() > 1 => !s.is_empty() && s[0] == p[1] && glob(&p[2..], &s[1..]),
-        Some(&c) => !s.is_empty() && s[0] == c && glob(&p[1..], &s[1..]),
-    }
 }
 
 struct State {
@@ -358,9 +319,9 @@ fn run(args: &[OsString]) -> R<()> {
         let mut s = String::new();
         for d in st.load()? {
             let pk = d.pkg.clone().unwrap_or_else(|| "LOCAL".to_string());
-            let hit = glob(pat.as_bytes(), d.original.as_bytes())
-                || glob(pat.as_bytes(), d.to.as_bytes())
-                || glob(pat.as_bytes(), pk.as_bytes());
+            let hit = [d.original.as_bytes(), d.to.as_bytes(), pk.as_bytes()]
+                .iter()
+                .any(|name| fnmatch::<Bytes>(pat.as_bytes(), name, Flags::NONE));
             if hit {
                 s.push_str(&describe_div(&d));
                 s.push('\n');
@@ -499,6 +460,7 @@ mod tests {
 
     #[test]
     fn globbing() {
+        let glob = |p: &[u8], s: &[u8]| fnmatch::<Bytes>(p, s, Flags::NONE);
         assert!(glob(b"*", b"/bin/x"));
         assert!(glob(b"/bin/*", b"/bin/x"));
         assert!(glob(b"/bin/?", b"/bin/x"));

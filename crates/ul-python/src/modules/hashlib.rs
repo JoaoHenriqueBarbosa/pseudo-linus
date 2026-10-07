@@ -14,6 +14,9 @@ use std::cmp::Ordering;
 use std::rc::Rc;
 use std::sync::OnceLock;
 
+use ul_common::codec::hex_lower as hex_of;
+use ul_common::hash;
+
 use crate::modules::ModuleBuilder;
 use crate::native_util::{bind, want_int, want_str};
 use crate::object::{ExtObject, Kw, ModuleObj, Value};
@@ -150,140 +153,6 @@ fn pad_message(data: &[u8], block: usize, len_bytes: usize, big_endian: bool) ->
         m.extend_from_slice(&b[..len_bytes]);
     }
     m
-}
-
-pub fn md5(data: &[u8]) -> Vec<u8> {
-    const S: [u32; 64] = [
-        7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14,
-        20, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6,
-        10, 15, 21,
-    ];
-    let k: Vec<u32> = (0..64).map(|i| (((i as f64) + 1.0).sin().abs() * 4_294_967_296.0) as u32).collect();
-    let (mut a0, mut b0, mut c0, mut d0) = (0x6745_2301u32, 0xefcd_ab89u32, 0x98ba_dcfeu32, 0x1032_5476u32);
-    let msg = pad_message(data, 64, 8, false);
-    for chunk in msg.chunks(64) {
-        let mut m = [0u32; 16];
-        for (i, w) in m.iter_mut().enumerate() {
-            *w = u32::from_le_bytes([chunk[4 * i], chunk[4 * i + 1], chunk[4 * i + 2], chunk[4 * i + 3]]);
-        }
-        let (mut a, mut b, mut c, mut d) = (a0, b0, c0, d0);
-        for i in 0..64usize {
-            let (f, g) = match i / 16 {
-                0 => ((b & c) | (!b & d), i),
-                1 => ((d & b) | (!d & c), (5 * i + 1) % 16),
-                2 => (b ^ c ^ d, (3 * i + 5) % 16),
-                _ => (c ^ (b | !d), (7 * i) % 16),
-            };
-            let f = f.wrapping_add(a).wrapping_add(k[i]).wrapping_add(m[g]);
-            a = d;
-            d = c;
-            c = b;
-            b = b.wrapping_add(f.rotate_left(S[i]));
-        }
-        a0 = a0.wrapping_add(a);
-        b0 = b0.wrapping_add(b);
-        c0 = c0.wrapping_add(c);
-        d0 = d0.wrapping_add(d);
-    }
-    let mut out = Vec::with_capacity(16);
-    for w in [a0, b0, c0, d0] {
-        out.extend_from_slice(&w.to_le_bytes());
-    }
-    out
-}
-
-pub fn sha1(data: &[u8]) -> Vec<u8> {
-    let mut h: [u32; 5] = [0x6745_2301, 0xEFCD_AB89, 0x98BA_DCFE, 0x1032_5476, 0xC3D2_E1F0];
-    let msg = pad_message(data, 64, 8, true);
-    for chunk in msg.chunks(64) {
-        let mut w = [0u32; 80];
-        for i in 0..16 {
-            w[i] = u32::from_be_bytes([chunk[4 * i], chunk[4 * i + 1], chunk[4 * i + 2], chunk[4 * i + 3]]);
-        }
-        for i in 16..80 {
-            w[i] = (w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16]).rotate_left(1);
-        }
-        let (mut a, mut b, mut c, mut d, mut e) = (h[0], h[1], h[2], h[3], h[4]);
-        for (i, wi) in w.iter().enumerate() {
-            let (f, k) = match i / 20 {
-                0 => ((b & c) | (!b & d), 0x5A82_7999u32),
-                1 => (b ^ c ^ d, 0x6ED9_EBA1u32),
-                2 => ((b & c) | (b & d) | (c & d), 0x8F1B_BCDCu32),
-                _ => (b ^ c ^ d, 0xCA62_C1D6u32),
-            };
-            let temp = a.rotate_left(5).wrapping_add(f).wrapping_add(e).wrapping_add(k).wrapping_add(*wi);
-            e = d;
-            d = c;
-            c = b.rotate_left(30);
-            b = a;
-            a = temp;
-        }
-        h[0] = h[0].wrapping_add(a);
-        h[1] = h[1].wrapping_add(b);
-        h[2] = h[2].wrapping_add(c);
-        h[3] = h[3].wrapping_add(d);
-        h[4] = h[4].wrapping_add(e);
-    }
-    h.iter().flat_map(|w| w.to_be_bytes()).collect()
-}
-
-fn sha256_core(data: &[u8], init: [u32; 8], out_len: usize) -> Vec<u8> {
-    let kc = cbrt_consts();
-    let mut h = init;
-    let msg = pad_message(data, 64, 8, true);
-    for chunk in msg.chunks(64) {
-        let mut w = [0u32; 64];
-        for i in 0..16 {
-            w[i] = u32::from_be_bytes([chunk[4 * i], chunk[4 * i + 1], chunk[4 * i + 2], chunk[4 * i + 3]]);
-        }
-        for i in 16..64 {
-            let s0 = w[i - 15].rotate_right(7) ^ w[i - 15].rotate_right(18) ^ (w[i - 15] >> 3);
-            let s1 = w[i - 2].rotate_right(17) ^ w[i - 2].rotate_right(19) ^ (w[i - 2] >> 10);
-            w[i] = w[i - 16].wrapping_add(s0).wrapping_add(w[i - 7]).wrapping_add(s1);
-        }
-        let mut v = h;
-        for i in 0..64 {
-            let s1 = v[4].rotate_right(6) ^ v[4].rotate_right(11) ^ v[4].rotate_right(25);
-            let ch = (v[4] & v[5]) ^ (!v[4] & v[6]);
-            let k = (kc[i] >> 32) as u32;
-            let t1 = v[7].wrapping_add(s1).wrapping_add(ch).wrapping_add(k).wrapping_add(w[i]);
-            let s0 = v[0].rotate_right(2) ^ v[0].rotate_right(13) ^ v[0].rotate_right(22);
-            let maj = (v[0] & v[1]) ^ (v[0] & v[2]) ^ (v[1] & v[2]);
-            let t2 = s0.wrapping_add(maj);
-            v[7] = v[6];
-            v[6] = v[5];
-            v[5] = v[4];
-            v[4] = v[3].wrapping_add(t1);
-            v[3] = v[2];
-            v[2] = v[1];
-            v[1] = v[0];
-            v[0] = t1.wrapping_add(t2);
-        }
-        for i in 0..8 {
-            h[i] = h[i].wrapping_add(v[i]);
-        }
-    }
-    let mut out: Vec<u8> = h.iter().flat_map(|w| w.to_be_bytes()).collect();
-    out.truncate(out_len);
-    out
-}
-
-pub fn sha256(data: &[u8]) -> Vec<u8> {
-    let s = sqrt_consts();
-    let mut init = [0u32; 8];
-    for i in 0..8 {
-        init[i] = (s[i] >> 32) as u32;
-    }
-    sha256_core(data, init, 32)
-}
-
-pub fn sha224(data: &[u8]) -> Vec<u8> {
-    let s = sqrt_consts();
-    let mut init = [0u32; 8];
-    for i in 0..8 {
-        init[i] = (s[8 + i] & 0xffff_ffff) as u32;
-    }
-    sha256_core(data, init, 28)
 }
 
 fn sha512_core(data: &[u8], init: [u64; 8], out_len: usize) -> Vec<u8> {
@@ -559,10 +428,10 @@ impl Algo {
 
     pub fn digest(&self, data: &[u8]) -> Vec<u8> {
         match self {
-            Algo::Md5 => md5(data),
-            Algo::Sha1 => sha1(data),
-            Algo::Sha224 => sha224(data),
-            Algo::Sha256 => sha256(data),
+            Algo::Md5 => hash::md5(data).to_vec(),
+            Algo::Sha1 => hash::sha1(data).to_vec(),
+            Algo::Sha224 => hash::sha224(data).to_vec(),
+            Algo::Sha256 => hash::sha256(data).to_vec(),
             Algo::Sha384 => sha384(data),
             Algo::Sha512 => sha512(data),
             Algo::Blake2b(n) => blake2b(data, *n),
@@ -609,16 +478,6 @@ pub fn pbkdf2(algo: Algo, password: &[u8], salt: &[u8], iterations: u64, dklen: 
 // ---------------------------------------------------------------------------
 // Objeto Python
 // ---------------------------------------------------------------------------
-
-fn hex_of(bytes: &[u8]) -> String {
-    const DIGITS: &[u8; 16] = b"0123456789abcdef";
-    let mut s = String::with_capacity(bytes.len() * 2);
-    for b in bytes {
-        s.push(DIGITS[(b >> 4) as usize] as char);
-        s.push(DIGITS[(b & 15) as usize] as char);
-    }
-    s
-}
 
 fn want_hash_input(v: &Value) -> PyResult<Vec<u8>> {
     match v {
@@ -806,22 +665,7 @@ mod tests {
     }
 
     #[test]
-    fn md5_vectors() {
-        assert_eq!(hx(md5(b"")), "d41d8cd98f00b204e9800998ecf8427e");
-        assert_eq!(hx(md5(b"abc")), "900150983cd24fb0d6963f7d28e17f72");
-    }
-
-    #[test]
-    fn sha1_vectors() {
-        assert_eq!(hx(sha1(b"abc")), "a9993e364706816aba3e25717850c26c9cd0d89d");
-        assert_eq!(hx(sha1(b"")), "da39a3ee5e6b4b0d3255bfef95601890afd80709");
-    }
-
-    #[test]
     fn sha2_vectors() {
-        assert_eq!(hx(sha256(b"abc")), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
-        assert_eq!(hx(sha256(b"")), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
-        assert_eq!(hx(sha224(b"abc")), "23097d223405d8228642a477bda255b32aadbce4bda0b3f7e36c9da7");
         assert_eq!(
             hx(sha384(b"abc")),
             "cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7"

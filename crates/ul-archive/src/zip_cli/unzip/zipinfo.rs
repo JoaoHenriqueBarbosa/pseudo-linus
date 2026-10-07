@@ -1,6 +1,8 @@
 //! O modo zipinfo (zipinfo.c): o registro de fim, os cabeçalhos do diretório central em vários
 //! formatos e os totais.
 
+use ul_common::ctype::cstr;
+
 use super::{Uz, PK_ERR, PK_OK, PK_WARN};
 
 const MONTHS: [&str; 12] = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -84,10 +86,6 @@ fn put(buf: &mut [u8; 16], at: usize, s: &str) {
     if at + s.len() < buf.len() {
         buf[at + s.len()] = 0;
     }
-}
-
-fn cstr(buf: &[u8; 16]) -> String {
-    String::from_utf8_lossy(&buf[..buf.iter().position(|&c| c == 0).unwrap_or(buf.len())]).into_owned()
 }
 
 /// O nome de um tipo de bloco do campo extra, como o zipinfo o chama.
@@ -282,7 +280,7 @@ impl Uz {
                 put(&mut a, 11, &format!("{:2}.{}", hostver / 10, hostver % 10));
             }
         }
-        cstr(&a)
+        String::from_utf8_lossy(cstr(&a)).into_owned()
     }
 
     /// Uma linha do formato curto (`-s`, `-m`, `-l`): atributos, sistema, tamanho, texto ou
@@ -666,7 +664,6 @@ impl Uz {
     /// Os blocos de Macintosh, BeOS, QDOS, AOS/VS, Tandem e MD5.
     fn ef_known_rare(&mut self, id: u16, d: &[u8], endprev: &mut u64) -> bool {
         let n = d.len();
-        let cstr_of = |b: &[u8]| b[..b.iter().position(|&c| c == 0).unwrap_or(b.len())].to_vec();
         match id {
             0x334d if n >= 14 => {
                 let uc = le32(d);
@@ -689,7 +686,7 @@ impl Uz {
                 let fnlen = usize::from(d[4]);
                 if n >= fnlen + 13 {
                     let mut msg = b".\n    The Mac long filename is ".to_vec();
-                    msg.extend(cstr_of(&d[5..5 + fnlen]));
+                    msg.extend_from_slice(cstr(&d[5..5 + fnlen]));
                     self.info(0, msg);
                     self.mac_type_creator(&d[fnlen + 5..]);
                 }
@@ -703,7 +700,7 @@ impl Uz {
                 self.mac_type_creator(&d[4..]);
                 let len = usize::from(d[32]).min(31);
                 let mut msg = b".\n    The Mac long filename is ".to_vec();
-                msg.extend(cstr_of(&d[33..33 + len]));
+                msg.extend_from_slice(cstr(&d[33..33 + len]));
                 self.info(0, msg);
             }
             0x7441 | 0x6542 if n >= 5 => {

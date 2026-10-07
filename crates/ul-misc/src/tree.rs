@@ -14,6 +14,7 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{AtFlags, Ctx, Errno, Fd, FileType, Mode, OFlags, Stat, mode, sys};
+use ul_common::fnmatch::{Bytes, Flags, fnmatch};
 use ul_common::fsutil::after_last_slash;
 
 use crate::util::io::{self, File};
@@ -637,7 +638,7 @@ fn parse_args(argv: &[Vec<u8>]) -> Parsed {
 fn pattern_match(pattern: &[u8], text: &[u8], icase: bool) -> bool {
     split_alternatives(pattern)
         .iter()
-        .any(|alt| glob(alt, text, icase))
+        .any(|alt| fnmatch::<Bytes>(alt, text, tree_flags(icase)))
 }
 
 fn split_alternatives(p: &[u8]) -> Vec<Vec<u8>> {
@@ -660,103 +661,10 @@ fn split_alternatives(p: &[u8]) -> Vec<Vec<u8>> {
     out
 }
 
-fn fold(c: u8, icase: bool) -> u8 {
-    if icase { c.to_ascii_lowercase() } else { c }
-}
-
-fn glob(p: &[u8], t: &[u8], icase: bool) -> bool {
-    // Backtracking clássico com um ponto de retomada pro último `*`.
-    let (mut pi, mut ti) = (0usize, 0usize);
-    let mut star: Option<(usize, usize)> = None;
-    while ti < t.len() {
-        if pi < p.len() {
-            match p[pi] {
-                b'*' => {
-                    while pi < p.len() && p[pi] == b'*' {
-                        pi += 1;
-                    }
-                    star = Some((pi, ti));
-                    continue;
-                }
-                b'?' => {
-                    pi += 1;
-                    ti += 1;
-                    continue;
-                }
-                b'[' => {
-                    if let Some((matched, next)) = bracket(p, pi, t[ti], icase) {
-                        if matched {
-                            pi = next;
-                            ti += 1;
-                            continue;
-                        }
-                    } else if fold(t[ti], icase) == b'[' {
-                        pi += 1;
-                        ti += 1;
-                        continue;
-                    }
-                }
-                b'\\' if pi + 1 < p.len() => {
-                    if fold(p[pi + 1], icase) == fold(t[ti], icase) {
-                        pi += 2;
-                        ti += 1;
-                        continue;
-                    }
-                }
-                c => {
-                    if fold(c, icase) == fold(t[ti], icase) {
-                        pi += 1;
-                        ti += 1;
-                        continue;
-                    }
-                }
-            }
-        }
-        match star {
-            Some((sp, st)) => {
-                pi = sp;
-                ti = st + 1;
-                star = Some((sp, st + 1));
-            }
-            None => return false,
-        }
-    }
-    while pi < p.len() && p[pi] == b'*' {
-        pi += 1;
-    }
-    pi == p.len()
-}
-
-/// Avalia `[...]` em `p[start]`; devolve (casou, índice depois do `]`), ou `None` se não fecha.
-fn bracket(p: &[u8], start: usize, c: u8, icase: bool) -> Option<(bool, usize)> {
-    let mut i = start + 1;
-    let negate = matches!(p.get(i), Some(b'^') | Some(b'!'));
-    if negate {
-        i += 1;
-    }
-    let c = fold(c, icase);
-    let mut matched = false;
-    let mut first = true;
-    while i < p.len() {
-        if p[i] == b']' && !first {
-            return Some((matched != negate, i + 1));
-        }
-        first = false;
-        let lo = fold(p[i], icase);
-        if i + 2 < p.len() && p[i + 1] == b'-' && p[i + 2] != b']' {
-            let hi = fold(p[i + 2], icase);
-            if lo <= c && c <= hi {
-                matched = true;
-            }
-            i += 3;
-        } else {
-            if lo == c {
-                matched = true;
-            }
-            i += 1;
-        }
-    }
-    None
+/// Flags do matcher próprio do tree: lista `[...]` simples (sem classes nem `\` dentro) e `\` final
+/// literal; `icase` liga a comparação sem distinguir maiúsculas.
+const fn tree_flags(icase: bool) -> Flags {
+    Flags::PLAIN_BRACKET.with(Flags::TRAILING_BACKSLASH_LITERAL, true).with(Flags::CASEFOLD, icase)
 }
 
 /// Uma regra de `.gitignore`.
@@ -865,7 +773,7 @@ fn find_sub(h: &[u8], n: &[u8]) -> Option<usize> {
 fn glob_path(p: &[u8], t: &[u8]) -> bool {
     let ps: Vec<&[u8]> = p.split(|b| *b == b'/').collect();
     let ts: Vec<&[u8]> = t.split(|b| *b == b'/').collect();
-    ps.len() == ts.len() && ps.iter().zip(&ts).all(|(a, b)| glob(a, b, false))
+    ps.len() == ts.len() && ps.iter().zip(&ts).all(|(a, b)| fnmatch::<Bytes>(a, b, tree_flags(false)))
 }
 
 fn git_ignored(rules: &[GitRule], path: &[u8], name: &[u8], is_dir: bool) -> bool {
@@ -880,7 +788,7 @@ fn git_ignored(rules: &[GitRule], path: &[u8], name: &[u8], is_dir: bool) -> boo
         let hit = if r.anchored {
             git_glob(&r.pattern, rel)
         } else {
-            glob(&r.pattern, name, false)
+            fnmatch::<Bytes>(&r.pattern, name, tree_flags(false))
         };
         if hit {
             ignored = !r.negate;
@@ -1363,7 +1271,7 @@ fn size_field(n: u64, o: &Opts) -> String {
 fn date_field(st: &Stat, o: &Opts, tz: &jiff::tz::TimeZone, now: i64) -> String {
     let t = if o.ctime { st.ctime.sec } else { st.mtime.sec };
     if let Some(fmt) = &o.timefmt {
-        return strftime(fmt, t, tz);
+        return String::from_utf8_lossy(&ul_common::time::zone::strftime(fmt, t, tz)).into_owned();
     }
     let dt = time::civil(t, tz);
     let mon = time::MONTHS[dt.month() as usize - 1];
@@ -1372,119 +1280,6 @@ fn date_field(st: &Stat, o: &Opts, tz: &jiff::tz::TimeZone, now: i64) -> String 
     } else {
         format!("{mon} {:2} {:02}:{:02}", dt.day(), dt.hour(), dt.minute())
     }
-}
-
-/// `strftime` em C.UTF-8 com as conversões comuns.
-fn strftime(fmt: &[u8], t: i64, tz: &jiff::tz::TimeZone) -> String {
-    let dt = time::civil(t, tz);
-    let wday = time::wday(&dt);
-    let full_days = [
-        "Sunday",
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-    ];
-    let full_months = [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
-    ];
-    let mut out = String::new();
-    let f = String::from_utf8_lossy(fmt);
-    let mut it = f.chars().peekable();
-    while let Some(c) = it.next() {
-        if c != '%' {
-            out.push(c);
-            continue;
-        }
-        let Some(k) = it.next() else {
-            out.push('%');
-            break;
-        };
-        let h12 = if dt.hour() % 12 == 0 {
-            12
-        } else {
-            dt.hour() % 12
-        };
-        let piece = match k {
-            'Y' => dt.year().to_string(),
-            'y' => format!("{:02}", dt.year().rem_euclid(100)),
-            'C' => format!("{:02}", dt.year().div_euclid(100)),
-            'm' => format!("{:02}", dt.month()),
-            'd' => format!("{:02}", dt.day()),
-            'e' => format!("{:2}", dt.day()),
-            'H' => format!("{:02}", dt.hour()),
-            'I' => format!("{h12:02}"),
-            'k' => format!("{:2}", dt.hour()),
-            'l' => format!("{h12:2}"),
-            'M' => format!("{:02}", dt.minute()),
-            'S' => format!("{:02}", dt.second()),
-            'b' | 'h' => time::MONTHS[dt.month() as usize - 1].to_string(),
-            'B' => full_months[dt.month() as usize - 1].to_string(),
-            'a' => time::WEEKDAYS[wday].to_string(),
-            'A' => full_days[wday].to_string(),
-            'j' => format!("{:03}", dt.day_of_year()),
-            'p' => (if dt.hour() < 12 { "AM" } else { "PM" }).to_string(),
-            'P' => (if dt.hour() < 12 { "am" } else { "pm" }).to_string(),
-            'Z' => time::abbreviation(t, tz),
-            'z' => {
-                let off = tz
-                    .to_offset(
-                        jiff::Timestamp::from_second(t).unwrap_or(jiff::Timestamp::UNIX_EPOCH),
-                    )
-                    .seconds();
-                let sign = if off < 0 { '-' } else { '+' };
-                let a = off.abs();
-                format!("{sign}{:02}{:02}", a / 3600, (a % 3600) / 60)
-            }
-            's' => t.to_string(),
-            'u' => (if wday == 0 { 7 } else { wday }).to_string(),
-            'w' => wday.to_string(),
-            'n' => "\n".into(),
-            't' => "\t".into(),
-            '%' => "%".into(),
-            'c' => format!(
-                "{} {} {:2} {:02}:{:02}:{:02} {}",
-                time::WEEKDAYS[wday],
-                time::MONTHS[dt.month() as usize - 1],
-                dt.day(),
-                dt.hour(),
-                dt.minute(),
-                dt.second(),
-                dt.year()
-            ),
-            'x' | 'D' => format!(
-                "{:02}/{:02}/{:02}",
-                dt.month(),
-                dt.day(),
-                dt.year().rem_euclid(100)
-            ),
-            'X' | 'T' => format!("{:02}:{:02}:{:02}", dt.hour(), dt.minute(), dt.second()),
-            'F' => format!("{}-{:02}-{:02}", dt.year(), dt.month(), dt.day()),
-            'R' => format!("{:02}:{:02}", dt.hour(), dt.minute()),
-            'r' => format!(
-                "{h12:02}:{:02}:{:02} {}",
-                dt.minute(),
-                dt.second(),
-                if dt.hour() < 12 { "AM" } else { "PM" }
-            ),
-            other => format!("%{other}"),
-        };
-        out.push_str(&piece);
-    }
-    out
 }
 
 /// Cores do `LS_COLORS`/`TREE_COLORS`.

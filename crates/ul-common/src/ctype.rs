@@ -28,6 +28,12 @@ pub fn cstr(s: &[u8]) -> &[u8] {
     }
 }
 
+/// A cadeia C que começa em `off` dentro de uma tabela de strings (ELF, por exemplo): até o
+/// primeiro NUL. Deslocamento fora da tabela dá a cadeia vazia.
+pub fn cstr_at(table: &[u8], off: usize) -> &[u8] {
+    cstr(table.get(off..).unwrap_or(&[]))
+}
+
 /// Byte na posição `i`, ou NUL depois do fim (o terminador implícito das cadeias C).
 pub fn at(s: &[u8], i: usize) -> u8 {
     s.get(i).copied().unwrap_or(0)
@@ -344,6 +350,12 @@ mod tests {
     fn cstrings() {
         assert_eq!(cstr(b"ab\0cd"), b"ab");
         assert_eq!(cstr(b"abc"), b"abc");
+        assert_eq!(cstr(b""), b"");
+        assert_eq!(cstr(b"\0x"), b"");
+        assert_eq!(cstr_at(b"\0ab\0cd", 1), b"ab");
+        assert_eq!(cstr_at(b"\0ab\0cd", 4), b"cd");
+        assert_eq!(cstr_at(b"ab", 2), b"");
+        assert_eq!(cstr_at(b"ab", 9), b"");
         assert_eq!(at(b"ab", 1), b'b');
         assert_eq!(at(b"ab", 2), 0);
     }

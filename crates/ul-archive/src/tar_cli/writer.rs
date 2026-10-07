@@ -269,7 +269,7 @@ impl PaxConfig {
     }
 
     fn deleted(&self, key: &[u8]) -> bool {
-        self.delete.iter().any(|p| super::fnmatch::fnmatch(p, key, Default::default()))
+        self.delete.iter().any(|p| ul_common::fnmatch::fnmatch::<ul_common::fnmatch::Bytes>(p, key, ul_common::fnmatch::Flags::TRAILING_BACKSLASH_LITERAL))
     }
 }
 

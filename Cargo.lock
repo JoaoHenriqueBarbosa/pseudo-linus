@@ -5330,7 +5330,6 @@ dependencies = [
  "miniz_oxide 0.8.9",
  "pl-testing",
  "regex",
- "sha1 0.10.7",
  "sysabi",
  "sysio",
  "ul-common",
@@ -5368,7 +5367,6 @@ dependencies = [
  "sysabi",
  "sysio",
  "ul-common",
- "unicode-width 0.2.2",
 ]
 
 [[package]]
@@ -5456,7 +5454,6 @@ version = "0.1.0"
 dependencies = [
  "num-bigint",
  "num-traits",
- "sha2 0.10.9",
  "sysabi",
  "sysio",
  "ul-common",

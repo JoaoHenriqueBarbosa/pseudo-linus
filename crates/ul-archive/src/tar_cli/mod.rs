@@ -11,7 +11,6 @@ pub mod compress;
 pub mod create;
 pub mod date;
 pub mod extract;
-pub mod fnmatch;
 pub mod header;
 pub mod help;
 pub mod list;

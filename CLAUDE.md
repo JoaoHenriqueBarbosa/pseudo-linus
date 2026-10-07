@@ -58,6 +58,50 @@ Ela só encolhe: a checagem avisa a entrada que deixou de acontecer, e ela sai n
 resolveu. Entrada nova não se acrescenta à mão; `scripts/dry-check.sh --rebuild` refaz a lista
 inteira e só se usa depois de zerar o que ela acusa de novo.
 
+### `ul-common`: o lugar do que mais de um programa usa
+
+`crates/ul-common` é a crate compartilhada de todos os `ul-*`, do `shell` e do `host`. Antes de
+escrever qualquer função utilitária, procure nela; existindo, use; faltando, ela nasce lá e não no
+programa. DRY aqui é absoluto: a segunda cópia de uma lógica não chega a existir.
+
+| Módulo | O que tem |
+|---|---|
+| `ctype` | classificação de bytes, `strtol`/`strtoull`/`strtod` com a semântica do glibc, parsers estritos, `cstr`/`cstr_at` |
+| `getopt` | o `getopt_long` do glibc |
+| `quote` | quotearg do gnulib (dez estilos); as diferenças por programa são `Rules`; `cat_v` |
+| `fnmatch` | `fnmatch(3)` genérico no `Alphabet` (byte, `char`, o `Unit` do grep); diferenças por programa são `Flags` |
+| `time` | calendário civil (`Civil`), `strftime` com as flags do glibc; `time::zone` (fusos via `jiff`) atrás da feature `zone` |
+| `signal` | nomes e parse de sinais; o que cada programa aceita é uma `Table` |
+| `codec`, `hash` | base64, crc32, hex; md5, sha1, sha224, sha256 (uma passada e incremental) |
+| `width` | `wcwidth` do glibc 2.41 e largura de exibição |
+| `fsutil` | caminhos, `mkdir -p`, strings de modo, `size_to_human_string` do util-linux |
+
+Como prosseguir:
+
+1. **Procure antes de escrever.** `grep -rn 'fn NOME' crates/ul-common/src` e, para achar irmãos
+   espalhados, `grep -rnE 'fn (NOME|SINÔNIMO)' crates/*/src`. Achou a mesma lógica em outro programa?
+   Ela sobe para o `ul-common` no mesmo commit, e as duas cópias passam a usá-la.
+2. **A diferença entre programas vira parâmetro, nunca cópia.** Um tipo de opções (`Rules`, `Flags`,
+   `Table`), um genérico, uma feature de Cargo para dependência pesada. A função comum reproduz cada
+   variação que o Debian tem; a escolha de qual variação fica no chamador.
+3. **Variação nova se confere no oráculo.** Quando duas cópias divergem, o Debian real decide qual está
+   certa (às vezes as duas, em programas diferentes: o `\` no fim do padrão falha no `fnmatch` do glibc e
+   casa literal no gnulib de tar, diff e grep). Um teste no `ul-common` fixa cada variação com o
+   programa que a usa no comentário.
+4. **Sem repasse.** O chamador importa do `ul-common` direto, ou reexporta com
+   `pub use ul_common::x as y;`. Nada de função local de uma linha que só encaminha.
+5. **O `ul-common` só depende do `sysabi`** (e de crate externa atrás de feature). Não importa nenhum
+   `ul-*`; o que depende de um programa fica no programa. `vfs` e `kernel` não usam o `ul-common`.
+6. **Utilitário que só um programa usa** fica no programa, até o segundo aparecer. No dia em que
+   aparecer, sobe.
+
+Para caçar duplicação que já existe, os nomes de função repetidos entre crates são um bom ponto de
+partida:
+
+```sh
+grep -rhoE 'fn [a-z_0-9]+' crates/*/src | sort | uniq -c | sort -rn | head -60
+```
+
 ```sh
 scripts/dry-check.sh              # os .rs do índice
 scripts/dry-check.sh ARQ...       # arquivos escolhidos

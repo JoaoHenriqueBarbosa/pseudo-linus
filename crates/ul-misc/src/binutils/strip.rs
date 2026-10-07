@@ -18,12 +18,13 @@ use std::ffi::OsString;
 use std::io::Write;
 
 use sysabi::{Errno, FileType, OFlags, sys};
+use ul_common::ctype::cstr_at;
 
 use crate::strings::{TARGETS, expand_response_files};
 use crate::util::io::{self, File};
 use crate::util::{Getopt, HasArg, LongOpt};
 
-use super::elf::{cstr, is_elf64_le, rd16, rd32, rd64};
+use super::elf::{is_elf64_le, rd16, rd32, rd64};
 
 const SHORTOPTS: &str = "I:O:F:K:N:R:o:sSgdxXpVvhHwDUM";
 
@@ -198,7 +199,7 @@ fn parse(d: &[u8]) -> Option<Parsed> {
             .unwrap_or(&[])
             .to_vec();
         for (name_off, mut s) in raw {
-            s.name = cstr(&strtab, name_off);
+            s.name = cstr_at(&strtab, name_off).to_vec();
             secs.push(s);
         }
     }

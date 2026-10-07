@@ -15,8 +15,6 @@ sysio = { workspace = true }
 # Inteiros do Python (o YAML aceita inteiros de qualquer tamanho e o json do Python também).
 num-bigint = "0.4"
 num-traits = "0.2"
-# O `-Y` guarda o estilo de cada chave sob o sha224 do nome, como o yq.
-sha2 = "0.10"
 
 [dev-dependencies]
 sysabi = { workspace = true, features = ["testkit"] }

@@ -27,36 +27,6 @@ pub struct PrintfOutput {
     pub status: i32,
 }
 
-pub fn strftime(fmt: &[u8], tm: &Tm) -> Vec<u8> {
-    let mut out = Vec::new();
-    let mut i = 0;
-    while i < fmt.len() {
-        if fmt[i] != b'%' || i + 1 >= fmt.len() {
-            out.push(fmt[i]);
-            i += 1;
-            continue;
-        }
-        let c = fmt[i + 1];
-        i += 2;
-        let s = match c {
-            b'Y' => tm.year.to_string(),
-            b'm' => format!("{:02}", tm.mon),
-            b'd' => format!("{:02}", tm.mday),
-            b'H' => format!("{:02}", tm.hour),
-            b'M' => format!("{:02}", tm.min),
-            b'S' => format!("{:02}", tm.sec),
-            b'F' => format!("{}-{:02}-{:02}", tm.year, tm.mon, tm.mday),
-            b'T' => format!("{:02}:{:02}:{:02}", tm.hour, tm.min, tm.sec),
-            b'Z' => String::from_utf8_lossy(&tm.zone).into_owned(),
-            b's' => String::new(),
-            b'%' => "%".into(),
-            other => format!("%{}", other as char),
-        };
-        out.extend_from_slice(s.as_bytes());
-    }
-    out
-}
-
 fn num_arg(a: &[u8], errors: &mut Vec<Vec<u8>>, status: &mut i32) -> i64 {
     if a.is_empty() {
         return 0;
