@@ -29,6 +29,12 @@
     "exit": 0,
     "files": {}
   },
+  "git-diff-no-index-dev-null": {
+    "stdout": "diff --git a/x b/x\nnew file mode 100644\nindex 0000000..422c2b7\n--- /dev/null\n+++ b/x\n@@ -0,0 +1,2 @@\n+a\n+b\nrc=1\ndiff --git a/x b/x\ndeleted file mode 100644\nindex 422c2b7..0000000\n--- a/x\n+++ /dev/null\n@@ -1,2 +0,0 @@\n-a\n-b\nrc=1\ndiff --git a/x b/y\nindex 422c2b7..0f7bc76 100644\n--- a/x\n+++ b/y\n@@ -1,2 +1,2 @@\n a\n-b\n+c\nrc=1\ndiff --git a/e b/x\nindex e69de29..422c2b7 100644\n--- a/e\n+++ b/x\n@@ -0,0 +1,2 @@\n+a\n+b\nrc=1\n /dev/null => x | 2 ++\n 1 file changed, 2 insertions(+)\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "git-log-graph-linear": {
     "stdout": "* 7bf5bb6 three\n* 8d8f20b two\n* acc56ec one\n* three\n* two\n* one\n* 7bf5bb6\n| three\n* 8d8f20b\n| two\n",
     "stderr": "",

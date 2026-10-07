@@ -582,7 +582,13 @@ pub struct FileStat {
 
 pub fn file_stat(repo: &Repo, p: &Pair, o: &DiffOpts) -> R<FileStat> {
     let renamed = matches!(p.status, b'R' | b'C');
-    let name = if renamed { pprint_rename(&p.one.path, &p.two.path, o.quote_fully) } else { quote::quote_c(p.path(), o.quote_fully) };
+    // O diffstat do git mostra `a => b` sempre que os dois lados têm nomes diferentes (o `/dev/null`
+    // de um `diff --no-index` também), não só na renomeação.
+    let name = if renamed || p.one.path != p.two.path {
+        pprint_rename(&p.one.path, &p.two.path, o.quote_fully)
+    } else {
+        quote::quote_c(p.path(), o.quote_fully)
+    };
     if p.status == b'U' {
         return Ok(FileStat { name, added: 0, deleted: 0, binary: false, unmerged: true, renamed });
     }

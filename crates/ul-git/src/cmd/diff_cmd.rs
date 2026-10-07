@@ -442,7 +442,9 @@ fn no_index(git: &Git, p: &Parsed, mut o: DiffOpts) -> R<i32> {
     } else if os::is_dir(a) || os::is_dir(b) {
         return Err(Fail::Fatal(format!("cannot compare a directory with a file: '{}' and '{}'", os::lossy(a), os::lossy(b))));
     } else {
-        pairs.push(Pair::new(disk_side(a)?, disk_side(b)?));
+        // `/dev/null` de um lado é o arquivo ausente (o diff de criação ou de remoção).
+        let side = |p: &[u8]| if p == b"/dev/null" { Ok(Side::absent(p)) } else { disk_side(p) };
+        pairs.push(Pair::new(side(a)?, side(b)?));
     }
     pairs.retain(|p| !(p.one.valid() && p.two.valid() && p.one.oid == p.two.oid && p.one.mode == p.two.mode));
     let pairs = diff::postprocess(&repo, pairs, &o)?;

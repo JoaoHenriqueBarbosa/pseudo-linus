@@ -284,3 +284,18 @@ GIT_COMMITTER_DATE = "1768478400 +0000"
 id = "git-column"
 script = '''seq 1 30 | git column --mode=column --width=40; seq 1 12 | git column --mode=row --width=20; printf 'a\nbb\nccc\n' | git column --mode=column,dense --width=10 --padding=3'''
 tags = ["column"]
+
+# diff --no-index com /dev/null de um lado: criação e remoção, e o stat com `/dev/null => x`.
+[[case]]
+id = "git-diff-no-index-dev-null"
+script = '''
+exec 2>&1
+mkdir /tmp/dni && cd /tmp/dni && printf 'a\nb\n' > x && printf 'a\nc\n' > y && : > e
+git diff --no-index /dev/null x; echo rc=$?
+git diff --no-index x /dev/null; echo rc=$?
+git diff --no-index x y; echo rc=$?
+git diff --no-index e x; echo rc=$?
+git diff --no-index --stat /dev/null x; echo rc=$?
+cd /tmp && rm -rf /tmp/dni
+'''
+tags = ["diff"]
