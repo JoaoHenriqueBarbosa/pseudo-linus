@@ -438,14 +438,13 @@ fn put16(v: &mut Vec<u8>, x: u16) {
     v.extend_from_slice(&x.to_be_bytes());
 }
 
-/// Um `Lookup` de GSUB com uma subtabela.
+/// Um `Lookup` de GSUB com uma subtabela (sem `markFilteringSet`, que só existe com a flag).
 fn lookup_bytes(kind: u16, flag: u16, subtable: &[u8]) -> Vec<u8> {
     let mut v = Vec::new();
     put16(&mut v, kind);
     put16(&mut v, flag);
     put16(&mut v, 1);
     put16(&mut v, 8);
-    put16(&mut v, 0);
     v.extend_from_slice(subtable);
     v
 }
