@@ -21,6 +21,15 @@ fn msg(s: &str) -> PErr {
 
 type PR = Result<(), PErr>;
 
+/// Onde está o argumento de uma opção: depois da letra `i` de um grupo curto, ou depois do nome
+/// longo que acaba em `pos`.
+#[derive(Clone, Copy)]
+enum ArgAt {
+    Short(usize),
+    Gnu(usize),
+}
+use ArgAt::{Gnu, Short};
+
 /// Um valor de lista já interpretado.
 enum Sel {
     Num(u64),
@@ -357,6 +366,49 @@ impl Ps {
         Some(self.argv[self.thisarg].clone())
     }
 
+    /// O argumento obrigatório de uma opção, curta ou longa; sem ele, a mensagem `missing`.
+    fn opt_arg(&mut self, a: &[u8], at: ArgAt, missing: &str) -> Result<Vec<u8>, PErr> {
+        let arg = match at {
+            ArgAt::Short(i) => self.get_opt_arg(a, i),
+            ArgAt::Gnu(pos) => self.grab_gnu_arg(a, pos),
+        };
+        arg.ok_or_else(|| msg(missing))
+    }
+
+    /// Opção cujo argumento é uma lista de seleção do tipo `typecode`.
+    fn opt_list(&mut self, a: &[u8], at: ArgAt, missing: &str, f: fn(&mut Ps, &[u8]) -> Result<Sel, String>, typecode: u8) -> PR {
+        let arg = self.opt_arg(a, at, missing)?;
+        self.list_as(&arg, f, typecode)
+    }
+
+    /// Opção cujo argumento é uma especificação de formato ou ordenação.
+    fn opt_format(&mut self, a: &[u8], at: ArgAt, missing: &str, sf: i32) -> PR {
+        let arg = self.opt_arg(a, at, missing)?;
+        self.defer_sf_option(&arg, sf);
+        Ok(())
+    }
+
+    /// Opção longa sem argumento: `--name=x` é erro.
+    fn no_arg(no_arg: bool, name: &str) -> PR {
+        if no_arg { Ok(()) } else { Err(PErr::Msg(format!("option --{name} does not take an argument"))) }
+    }
+
+    /// `--heading`/`--no-heading`: só um tipo de cabeçalho por vez.
+    fn heading(&mut self, no_arg: bool, name: &str, header_type: i32) -> PR {
+        Ps::no_arg(no_arg, name)?;
+        if self.header_type != 0 {
+            return Err(msg("only one heading option may be specified"));
+        }
+        self.header_type = header_type;
+        Ok(())
+    }
+
+    /// Seleciona o terminal do próprio `ps` (`T`, e `t` sem argumento).
+    fn own_tty(&mut self) {
+        let node = SelNode { typecode: SEL_TTY, nums: vec![self.cached_tty as i64 as u64], cmds: Vec::new() };
+        self.selection_list.insert(0, node);
+    }
+
     fn exclusive(&self, opt: &str) -> PR {
         if self.argv.len() != 2 || self.argv[1] != opt.as_bytes() {
             return Err(PErr::Msg(format!("the option is exclusive: {opt}")));
@@ -379,38 +431,22 @@ impl Ps {
         while i < a.len() {
             match a[i] {
                 b'A' => self.all_processes = true,
-                b'C' => {
-                    let Some(arg) = self.get_opt_arg(&a, i) else { return Err(msg("list of command names must follow -C")) };
-                    return self.list_as(&arg, Ps::parse_cmd, SEL_COMM);
-                }
-                b'D' => {
-                    let Some(arg) = self.get_opt_arg(&a, i) else { return Err(msg("date format must follow -D")) };
-                    self.lstart_format = Some(arg);
-                }
+                b'C' => return self.opt_list(&a, Short(i), "list of command names must follow -C", Ps::parse_cmd, SEL_COMM),
+                b'D' => self.lstart_format = Some(self.opt_arg(&a, Short(i), "date format must follow -D")?),
                 b'F' => {
                     self.format_modifiers |= FM_F;
                     self.format_flags |= FF_UF;
                     self.unix_f_option = true;
                 }
-                b'G' => {
-                    let Some(arg) = self.get_opt_arg(&a, i) else { return Err(msg("list of real groups must follow -G")) };
-                    return self.list_as(&arg, Ps::parse_gid, SEL_RGID);
-                }
+                b'G' => return self.opt_list(&a, Short(i), "list of real groups must follow -G", Ps::parse_gid, SEL_RGID),
                 b'H' => self.forest_type = b'u',
                 b'L' => self.thread_flags |= TF_U_L,
                 b'M' => self.format_modifiers |= FM_M,
                 b'N' => self.negate_selection = true,
-                b'O' => {
-                    let Some(arg) = self.get_opt_arg(&a, i) else { return Err(msg("format or sort specification must follow -O")) };
-                    self.defer_sf_option(&arg, SF_U_O_UP);
-                    return Ok(());
-                }
+                b'O' => return self.opt_format(&a, Short(i), "format or sort specification must follow -O", SF_U_O_UP),
                 b'P' => self.format_modifiers |= FM_P,
                 b'T' => self.thread_flags |= TF_U_T,
-                b'U' => {
-                    let Some(arg) = self.get_opt_arg(&a, i) else { return Err(msg("list of real users must follow -U")) };
-                    return self.list_as(&arg, Ps::parse_uid, SEL_RUID);
-                }
+                b'U' => return self.opt_list(&a, Short(i), "list of real users must follow -U", Ps::parse_uid, SEL_RUID),
                 b'V' => return self.version_exit("-V"),
                 b'Z' => self.format_modifiers |= FM_M,
                 b'a' => self.simple_select |= SS_U_A,
@@ -422,9 +458,7 @@ impl Ps {
                     self.unix_f_option = true;
                 }
                 b'g' => {
-                    let Some(arg) = self.get_opt_arg(&a, i) else {
-                        return Err(msg("list of session leaders OR effective group names must follow -g"));
-                    };
+                    let arg = self.opt_arg(&a, Short(i), "list of session leaders OR effective group names must follow -g")?;
                     if self.parse_list(&arg, Ps::parse_pid).is_ok() {
                         self.selection_list[0].typecode = SEL_SESS;
                         return Ok(());
@@ -444,31 +478,12 @@ impl Ps {
                 }
                 b'l' => self.format_flags |= FF_UL,
                 b'm' => self.thread_flags |= TF_U_M,
-                b'o' => {
-                    let Some(arg) = self.get_opt_arg(&a, i) else { return Err(msg("format specification must follow -o")) };
-                    self.defer_sf_option(&arg, SF_U_O);
-                    return Ok(());
-                }
-                b'p' => {
-                    let Some(arg) = self.get_opt_arg(&a, i) else { return Err(msg("list of process IDs must follow -p")) };
-                    return self.list_as(&arg, Ps::parse_pid, SEL_PID);
-                }
-                b'q' => {
-                    let Some(arg) = self.get_opt_arg(&a, i) else { return Err(msg("List of process IDs must follow -q.")) };
-                    return self.list_as(&arg, Ps::parse_pid, SEL_PID_QUICK);
-                }
-                b's' => {
-                    let Some(arg) = self.get_opt_arg(&a, i) else { return Err(msg("list of session IDs must follow -s")) };
-                    return self.list_as(&arg, Ps::parse_pid, SEL_SESS);
-                }
-                b't' => {
-                    let Some(arg) = self.get_opt_arg(&a, i) else { return Err(msg("list of terminals (pty, tty...) must follow -t")) };
-                    return self.list_as(&arg, Ps::parse_tty, SEL_TTY);
-                }
-                b'u' => {
-                    let Some(arg) = self.get_opt_arg(&a, i) else { return Err(msg("list of users must follow -u")) };
-                    return self.list_as(&arg, Ps::parse_uid, SEL_EUID);
-                }
+                b'o' => return self.opt_format(&a, Short(i), "format specification must follow -o", SF_U_O),
+                b'p' => return self.opt_list(&a, Short(i), "list of process IDs must follow -p", Ps::parse_pid, SEL_PID),
+                b'q' => return self.opt_list(&a, Short(i), "List of process IDs must follow -q.", Ps::parse_pid, SEL_PID_QUICK),
+                b's' => return self.opt_list(&a, Short(i), "list of session IDs must follow -s", Ps::parse_pid, SEL_SESS),
+                b't' => return self.opt_list(&a, Short(i), "list of terminals (pty, tty...) must follow -t", Ps::parse_tty, SEL_TTY),
+                b'u' => return self.opt_list(&a, Short(i), "list of users must follow -u", Ps::parse_uid, SEL_EUID),
                 b'w' => self.w_count += 1,
                 b'x' => {
                     if self.personality & PER_SVR4_X != 0 {
@@ -520,22 +535,10 @@ impl Ps {
                     return Err(PErr::Exit(0));
                 }
                 b'M' => self.thread_flags |= TF_B_M,
-                b'O' => {
-                    let Some(arg) = self.get_opt_arg(&a, i) else { return Err(msg("format or sort specification must follow O")) };
-                    self.defer_sf_option(&arg, SF_B_O_UP);
-                    return Ok(());
-                }
+                b'O' => return self.opt_format(&a, Short(i), "format or sort specification must follow O", SF_B_O_UP),
                 b'S' => self.include_dead_children = true,
-                b'T' => {
-                    self.selection_list.insert(
-                        0,
-                        SelNode { typecode: SEL_TTY, nums: vec![self.cached_tty as i64 as u64], cmds: Vec::new() },
-                    );
-                }
-                b'U' => {
-                    let Some(arg) = self.get_opt_arg(&a, i) else { return Err(msg("list of users must follow U")) };
-                    return self.list_as(&arg, Ps::parse_uid, SEL_EUID);
-                }
+                b'T' => self.own_tty(),
+                b'U' => return self.opt_list(&a, Short(i), "list of users must follow U", Ps::parse_uid, SEL_EUID),
                 b'V' => return self.version_exit("V"),
                 b'W' => return Err(msg("obsolete W option not supported (you have a /dev/drum?)")),
                 b'X' => self.format_flags |= FF_LX,
@@ -545,18 +548,9 @@ impl Ps {
                 b'e' => self.bsd_e_option = true,
                 b'f' => self.forest_type = b'b',
                 b'g' => self.simple_select |= SS_B_G,
-                b'h' => {
-                    if self.header_type != 0 {
-                        return Err(msg("only one heading option may be specified"));
-                    }
-                    self.header_type = if self.personality & PER_BSD_H != 0 { HEAD_MULTI } else { HEAD_NONE };
-                }
+                b'h' => self.heading(true, "", if self.personality & PER_BSD_H != 0 { HEAD_MULTI } else { HEAD_NONE })?,
                 b'j' => self.format_flags |= FF_BJ,
-                b'k' => {
-                    let Some(arg) = self.get_opt_arg(&a, i) else { return Err(msg("long sort specification must follow 'k'")) };
-                    self.defer_sf_option(&arg, SF_G_SORT);
-                    return Ok(());
-                }
+                b'k' => return self.opt_format(&a, Short(i), "long sort specification must follow 'k'", SF_G_SORT),
                 b'l' => self.format_flags |= FF_BL,
                 b'm' => {
                     if self.personality & PER_OLD_M != 0 {
@@ -571,27 +565,14 @@ impl Ps {
                     self.wchan_is_number = true;
                     self.user_is_number = true;
                 }
-                b'o' => {
-                    let Some(arg) = self.get_opt_arg(&a, i) else { return Err(msg("format specification must follow o")) };
-                    self.defer_sf_option(&arg, SF_B_O);
-                    return Ok(());
-                }
-                b'p' => {
-                    let Some(arg) = self.get_opt_arg(&a, i) else { return Err(msg("list of process IDs must follow p")) };
-                    return self.list_as(&arg, Ps::parse_pid, SEL_PID);
-                }
-                b'q' => {
-                    let Some(arg) = self.get_opt_arg(&a, i) else { return Err(msg("List of process IDs must follow q.")) };
-                    return self.list_as(&arg, Ps::parse_pid, SEL_PID_QUICK);
-                }
+                b'o' => return self.opt_format(&a, Short(i), "format specification must follow o", SF_B_O),
+                b'p' => return self.opt_list(&a, Short(i), "list of process IDs must follow p", Ps::parse_pid, SEL_PID),
+                b'q' => return self.opt_list(&a, Short(i), "List of process IDs must follow q.", Ps::parse_pid, SEL_PID_QUICK),
                 b'r' => self.running_only = true,
                 b's' => self.format_flags |= FF_BS,
                 b't' => match self.get_opt_arg(&a, i) {
                     None => {
-                        self.selection_list.insert(
-                            0,
-                            SelNode { typecode: SEL_TTY, nums: vec![self.cached_tty as i64 as u64], cmds: Vec::new() },
-                        );
+                        self.own_tty();
                         return Ok(());
                     }
                     Some(arg) => return self.list_as(&arg, Ps::parse_tty, SEL_TTY),
@@ -661,14 +642,8 @@ impl Ps {
             return Err(msg("unknown gnu long option"));
         }
         match name.as_str() {
-            "Group" => {
-                let Some(arg) = self.grab_gnu_arg(&a, pos) else { return Err(msg("list of real groups must follow --Group")) };
-                self.list_as(&arg, Ps::parse_gid, SEL_RGID)
-            }
-            "User" => {
-                let Some(arg) = self.grab_gnu_arg(&a, pos) else { return Err(msg("list of real users must follow --User")) };
-                self.list_as(&arg, Ps::parse_uid, SEL_RUID)
-            }
+            "Group" => self.opt_list(&a, Gnu(pos), "list of real groups must follow --Group", Ps::parse_gid, SEL_RGID),
+            "User" => self.opt_list(&a, Gnu(pos), "list of real users must follow --User", Ps::parse_uid, SEL_RUID),
             "cols" | "width" | "columns" | "rows" | "lines" => {
                 let rows = name == "rows" || name == "lines";
                 if let Some(arg) = self.grab_gnu_arg(&a, pos)
@@ -690,98 +665,46 @@ impl Ps {
                 }))
             }
             "cumulative" => {
-                if !no_arg {
-                    return Err(msg("option --cumulative does not take an argument"));
-                }
+                Ps::no_arg(no_arg, "cumulative")?;
                 self.include_dead_children = true;
                 Ok(())
             }
             "date-format" => {
-                let Some(arg) = self.grab_gnu_arg(&a, pos) else { return Err(msg("date format must follow --date-format")) };
-                self.lstart_format = Some(arg);
+                self.lstart_format = Some(self.opt_arg(&a, Gnu(pos), "date format must follow --date-format")?);
                 Ok(())
             }
             "deselect" => {
-                if !no_arg {
-                    return Err(msg("option --deselect does not take an argument"));
-                }
+                Ps::no_arg(no_arg, "deselect")?;
                 self.negate_selection = true;
                 Ok(())
             }
             "no-header" | "no-headers" | "no-heading" | "no-headings" | "noheader" | "noheaders" | "noheading" | "noheadings" => {
-                if !no_arg {
-                    return Err(msg("option --no-heading does not take an argument"));
-                }
-                if self.header_type != 0 {
-                    return Err(msg("only one heading option may be specified"));
-                }
-                self.header_type = HEAD_NONE;
-                Ok(())
+                self.heading(no_arg, "no-heading", HEAD_NONE)
             }
-            "header" | "headers" | "heading" | "headings" => {
-                if !no_arg {
-                    return Err(msg("option --heading does not take an argument"));
-                }
-                if self.header_type != 0 {
-                    return Err(msg("only one heading option may be specified"));
-                }
-                self.header_type = HEAD_MULTI;
-                Ok(())
-            }
+            "header" | "headers" | "heading" | "headings" => self.heading(no_arg, "heading", HEAD_MULTI),
             "forest" => {
-                if !no_arg {
-                    return Err(msg("option --forest does not take an argument"));
-                }
+                Ps::no_arg(no_arg, "forest")?;
                 self.forest_type = b'g';
                 Ok(())
             }
-            "format" => {
-                let Some(arg) = self.grab_gnu_arg(&a, pos) else { return Err(msg("format specification must follow --format")) };
-                self.defer_sf_option(&arg, SF_G_FORMAT);
-                Ok(())
-            }
-            "group" => {
-                let Some(arg) = self.grab_gnu_arg(&a, pos) else { return Err(msg("list of effective groups must follow --group")) };
-                self.list_as(&arg, Ps::parse_gid, SEL_EGID)
-            }
+            "format" => self.opt_format(&a, Gnu(pos), "format specification must follow --format", SF_G_FORMAT),
+            "group" => self.opt_list(&a, Gnu(pos), "list of effective groups must follow --group", Ps::parse_gid, SEL_EGID),
             "info" => {
                 self.exclusive("--info")?;
                 self.self_info();
                 Err(PErr::Exit(0))
             }
-            "pid" => {
-                let Some(arg) = self.grab_gnu_arg(&a, pos) else { return Err(msg("list of process IDs must follow --pid")) };
-                self.list_as(&arg, Ps::parse_pid, SEL_PID)
-            }
-            "quick-pid" => {
-                let Some(arg) = self.grab_gnu_arg(&a, pos) else { return Err(msg("List of process IDs must follow --quick-pid.")) };
-                self.list_as(&arg, Ps::parse_pid, SEL_PID_QUICK)
-            }
-            "ppid" => {
-                let Some(arg) = self.grab_gnu_arg(&a, pos) else { return Err(msg("list of process IDs must follow --ppid")) };
-                self.list_as(&arg, Ps::parse_pid, SEL_PPID)
-            }
-            "sid" => {
-                let Some(arg) = self.grab_gnu_arg(&a, pos) else { return Err(msg("some sid thing(s) must follow --sid")) };
-                self.list_as(&arg, Ps::parse_pid, SEL_SESS)
-            }
+            "pid" => self.opt_list(&a, Gnu(pos), "list of process IDs must follow --pid", Ps::parse_pid, SEL_PID),
+            "quick-pid" => self.opt_list(&a, Gnu(pos), "List of process IDs must follow --quick-pid.", Ps::parse_pid, SEL_PID_QUICK),
+            "ppid" => self.opt_list(&a, Gnu(pos), "list of process IDs must follow --ppid", Ps::parse_pid, SEL_PPID),
+            "sid" => self.opt_list(&a, Gnu(pos), "some sid thing(s) must follow --sid", Ps::parse_pid, SEL_SESS),
             "signames" => {
                 self.signal_names = true;
                 Ok(())
             }
-            "sort" => {
-                let Some(arg) = self.grab_gnu_arg(&a, pos) else { return Err(msg("long sort specification must follow --sort")) };
-                self.defer_sf_option(&arg, SF_G_SORT);
-                Ok(())
-            }
-            "tty" => {
-                let Some(arg) = self.grab_gnu_arg(&a, pos) else { return Err(msg("list of ttys must follow --tty")) };
-                self.list_as(&arg, Ps::parse_tty, SEL_TTY)
-            }
-            "user" => {
-                let Some(arg) = self.grab_gnu_arg(&a, pos) else { return Err(msg("list of effective users must follow --user")) };
-                self.list_as(&arg, Ps::parse_uid, SEL_EUID)
-            }
+            "sort" => self.opt_format(&a, Gnu(pos), "long sort specification must follow --sort", SF_G_SORT),
+            "tty" => self.opt_list(&a, Gnu(pos), "list of ttys must follow --tty", Ps::parse_tty, SEL_TTY),
+            "user" => self.opt_list(&a, Gnu(pos), "list of effective users must follow --user", Ps::parse_uid, SEL_EUID),
             "version" => self.version_exit("--version"),
             "context" => {
                 self.format_flags |= FF_FC;
