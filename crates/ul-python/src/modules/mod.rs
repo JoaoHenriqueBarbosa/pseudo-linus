@@ -145,6 +145,20 @@ pub fn import_visible(vm: &mut Vm, name: &str, internal_caller: bool) -> PyResul
 /// (módulo ou objeto qualquer) e, se o nome não existir no disco nem embutido, pergunta aos finders
 /// que o programa pôs em `sys.meta_path` (o `_SixMetaPathImporter` do `six`, por exemplo). Finders
 /// postos antes do `PathFinder` são consultados antes da busca em `sys.path`.
+/// O `__dict__` do módulo `builtins`, que o CPython põe em `__builtins__` de todo módulo importado.
+pub fn builtins_dict(vm: &mut Vm) -> Option<Value> {
+    let module = import(vm, "builtins")?;
+    vm.load_attr(&Value::Module(module), "__dict__").ok()
+}
+
+/// O `__cached__` de um módulo em `file`: o `.pyc` do `__pycache__` ao lado, como o
+/// `importlib.util.cache_from_source`.
+pub fn cached_path(file: &str) -> Option<String> {
+    let (head, tail) = file.rsplit_once('/')?;
+    let stem = tail.strip_suffix(".py")?;
+    Some(format!("{head}/__pycache__/{stem}.cpython-313.pyc"))
+}
+
 pub fn import_value(vm: &mut Vm, name: &str) -> PyResult<Value> {
     if let Some(m) = vm.modules.borrow().get(name) {
         return Ok(Value::Module(m.clone()));

@@ -250,3 +250,27 @@ PYEOF
 FOO=bar python3 -c 'import os; print(os.environ["FOO"], os.environb[b"FOO"]); os.environ["X"] = "y"; os.system("echo $X"); del os.environ["X"]; os.system("echo [$X]")'
 python3 -S -c 'import posix, os; print(posix.getcwd is os.getcwd, type(posix.environ))'
 '''
+
+# Globais do `__main__` em cada modo (-c, stdin, script, -m, diretório, zipapp) e dos módulos
+# importados: `__builtins__` (módulo no main, o dict do `builtins` nos demais), `__cached__`
+# (ausente nos congelados), `__loader__`, `__spec__`, `__annotations__`; `exec` com dict sem
+# `__builtins__`.
+[[case]]
+id = "module-and-main-globals"
+script = '''
+cd /tmp; S='import sys; g=globals(); print({k: (v if k != "__builtins__" else type(v).__name__) for k, v in sorted(g.items()) if k not in ("sys", "g")})'
+python3 -c "$S" | sed 's/0x[0-9a-f]*/X/g'
+echo "$S" | python3 - | sed 's/0x[0-9a-f]*/X/g'
+echo "$S" > g.py; python3 g.py | sed 's/0x[0-9a-f]*/X/g'; python3 -m g | sed 's/0x[0-9a-f]*/X/g'
+mkdir -p pk; echo "$S" > pk/__main__.py; touch pk/__init__.py; python3 -m pk | sed 's/0x[0-9a-f]*/X/g'
+echo 'import sys; print(__file__, sys.path[0], __spec__.origin, __cached__)' > pk/__main__.py; python3 pk; python3 -m zipapp pk -o app.pyz; python3 app.pyz; cd pk; python3 .; cd ..
+mkdir -p q; echo 'X = 1' > q/__init__.py; echo 'Y = 2' > q/m.py
+python3 - <<'PYEOF'
+import os, site, json, codecs, stat, posixpath, collections, importlib.util, q, q.m, builtins
+for m in (os, site, json, codecs, stat, posixpath, collections, importlib.util, q, q.m):
+    print(m.__name__, getattr(m, "__cached__", "-"), vars(m).get("__builtins__") is vars(builtins))
+print(sorted(n for n in dir(q.m) if n.startswith("__")))
+d = {}; exec("x = 1", d); print(sorted(d), d["__builtins__"] is vars(builtins))
+d = {"__builtins__": {}}; exec("y = 2", d); print(sorted(d), d["__builtins__"])
+PYEOF
+'''

@@ -553,8 +553,9 @@ fn finish(outcome: Outcome, error_first: bool) -> i32 {
 fn run_script(rest: &[Vec<u8>], program: &str) -> i32 {
     let to_s = |b: &[u8]| String::from_utf8_lossy(b).into_owned();
     if let Some(path) = rest.first().filter(|p| p.as_slice() != b"-") {
-        // `python3 app.pyz` e `python3 diretório`: roda o `__main__.py` de dentro, com o arquivo em `sys.path[0]`.
-        let shown = to_s(path);
+        // `python3 app.pyz` e `python3 diretório`: roda o `__main__.py` de dentro, com o arquivo em
+        // `sys.path[0]`; o caminho vira absoluto, como no `config_run_filename_abspath` do CPython.
+        let shown = absolute_path(&to_s(path));
         if let Some((main, text)) = modules::userimport::main_of_archive(&shown) {
             let argv = rest.iter().map(|a| to_s(a)).collect();
             let outcome = run_main(&text, argv, &main, true, Some((String::new(), shown)));
@@ -641,6 +642,57 @@ fn run_main(src: &str, argv: Vec<String>, name: &str, file_mode: bool, module: O
     }
 }
 
+/// As globais que o `pymain` do CPython dá ao `__main__`: `__package__`, `__loader__`, `__spec__`,
+/// `__annotations__`, `__builtins__` e, quando há arquivo, `__cached__`. Com `-m`, a spec é a do
+/// módulo achado (e o `__cached__` aponta o `__pycache__`); no `-c` e no stdin o loader é o
+/// `BuiltinImporter`.
+fn main_globals(machine: &mut vm::Vm, name: &str, file_mode: bool, package: Option<&str>) {
+    use object::Value;
+    let builtins = modules::import(machine, "builtins").map(Value::Module);
+    let frozen = modules::import(machine, "_frozen_importlib");
+    let external = modules::import(machine, "_frozen_importlib_external");
+    let attr = |m: &Option<std::rc::Rc<object::ModuleObj>>, n: &str| m.as_ref().and_then(|m| m.attrs.borrow().get(n).cloned());
+    let mut spec = Value::None;
+    let mut loader = attr(&frozen, "BuiltinImporter").unwrap_or(Value::None);
+    let mut cached = Value::None;
+    if let Some(package) = package {
+        let stem = name.rsplit('/').next().unwrap_or(name).trim_end_matches(".py");
+        let modname = match (package.is_empty(), stem) {
+            (true, _) => stem.to_string(),
+            (false, _) => format!("{package}.{stem}"),
+        };
+        let frozen_mod = name.starts_with("/usr/lib/python3.13/") && object::FROZEN_MODULES.contains(&modname.as_str());
+        if let Some(make) = attr(&external, "_spec_for_module") {
+            let args = vec![Value::str(modname), Value::str(name), Value::Bool(false), Value::Bool(frozen_mod)];
+            if let Ok(s) = machine.call_value(&make, args, Vec::new()) {
+                loader = machine.getattr(&s, "loader").unwrap_or(Value::None);
+                cached = machine.getattr(&s, "cached").unwrap_or(Value::None);
+                spec = s;
+            }
+        }
+    } else if file_mode && name != "<stdin>" {
+        if let Some(cls) = attr(&external, "SourceFileLoader") {
+            let path = Value::str(absolute_path(name));
+            loader = machine.call_value(&cls, vec![Value::str("__main__"), path], Vec::new()).unwrap_or(Value::None);
+        }
+    }
+    let annotations = Value::dict(object::Dict::new());
+    let mut g = machine.globals.borrow_mut();
+    g.insert("__package__".into(), match package {
+        Some(p) => Value::str(p),
+        None => Value::None,
+    });
+    g.insert("__loader__".into(), loader);
+    g.insert("__spec__".into(), spec);
+    g.entry("__annotations__".into()).or_insert(annotations);
+    if let Some(b) = builtins {
+        g.insert("__builtins__".into(), b);
+    }
+    if file_mode {
+        g.insert("__cached__".into(), cached);
+    }
+}
+
 fn run_source_inner(
     src: &str,
     argv: Vec<String>,
@@ -712,6 +764,7 @@ fn run_source_inner(
             }
         }
     }
+    main_globals(&mut machine, name, file_mode, main_module.as_ref().map(|(p, _)| p.as_str()));
     if let Some((package, cwd)) = &main_module {
         machine.globals.borrow_mut().insert("__package__".into(), object::Value::str(package.clone()));
         if let Some(sysmod) = modules::import(&mut machine, "sys").filter(|_| CLI_FLAGS.lock().unwrap()[16] == 0) {

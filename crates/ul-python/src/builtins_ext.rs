@@ -483,6 +483,12 @@ fn run_ns(
     let Value::Dict(g) = &gdict else {
         return Err(type_error(format!("{who}() globals must be a dict, not {}", gdict.type_name())));
     };
+    // Como o CPython, globais sem `__builtins__` ganham o dict do módulo `builtins`.
+    if !g.borrow().contains(&Value::str("__builtins__")).unwrap_or(true) {
+        if let Some(b) = crate::modules::builtins_dict(vm) {
+            g.borrow_mut().set(Value::str("__builtins__"), b)?;
+        }
+    }
     if let Some(l) = &locals {
         if !matches!(l, Value::Dict(_)) {
             return Err(type_error("locals must be a mapping"));

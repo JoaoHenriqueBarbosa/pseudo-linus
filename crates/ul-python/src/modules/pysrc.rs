@@ -471,9 +471,14 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     let module = Rc::new(ModuleObj { name: intern(real), attrs: RefCell::new(BTreeMap::new()) });
     // Registrado antes de rodar, para que importações circulares enxerguem o módulo.
     vm.modules.borrow_mut().insert(real.to_string(), module.clone());
+    // Só os módulos de arquivo têm `__builtins__` nas globais (os de C do CPython não).
+    let builtins = if crate::object::BUILTIN_MODULES.contains(&real) { None } else { crate::modules::builtins_dict(vm) };
     let globals: Rc<RefCell<crate::object::VarMap>> = Rc::new(RefCell::new(Default::default()));
     {
         let mut g = globals.borrow_mut();
+        if let Some(b) = builtins {
+            g.insert("__builtins__".into(), b);
+        }
         g.insert("__name__".into(), Value::str(real));
         g.insert("__doc__".into(), Value::None);
         let as_path = real.replace('.', "/");
@@ -485,6 +490,11 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         };
         // Módulo que no Debian é C embutido no executável não tem `__file__`.
         if !crate::object::BUILTIN_MODULES.contains(&real) {
+            if !crate::object::FROZEN_MODULES.contains(&real) {
+                if let Some(cached) = crate::modules::cached_path(&file) {
+                    g.insert("__cached__".into(), Value::str(cached));
+                }
+            }
             g.insert("__file__".into(), Value::str(file));
         }
         // Pacote: `__package__` é ele mesmo e `__path__` aponta o diretório dele; módulo: o pacote pai.

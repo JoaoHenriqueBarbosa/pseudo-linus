@@ -288,6 +288,8 @@ pub fn exec_file(vm: &mut Vm, name: &str, file: &str, package_dir: Option<&str>)
         Some(_) => name.to_string(),
         None => name.rsplit_once('.').map(|(p, _)| p.to_string()).unwrap_or_default(),
     };
+    let frozen = file.starts_with("/usr/lib/python3.13/") && crate::object::FROZEN_MODULES.contains(&name);
+    let builtins = crate::modules::builtins_dict(vm);
     let globals: Rc<RefCell<crate::object::VarMap>> = Rc::new(RefCell::new(Default::default()));
     {
         let mut g = globals.borrow_mut();
@@ -297,6 +299,15 @@ pub fn exec_file(vm: &mut Vm, name: &str, file: &str, package_dir: Option<&str>)
         g.insert("__doc__".into(), Value::None);
         if let Some(dir) = package_dir {
             g.insert("__path__".into(), Value::list(vec![Value::str(dir)]));
+        }
+        // Módulo congelado não tem `__cached__`; os outros apontam o `.pyc` do `__pycache__`.
+        if !frozen {
+            if let Some(cached) = crate::modules::cached_path(file) {
+                g.insert("__cached__".into(), Value::str(cached));
+            }
+        }
+        if let Some(b) = builtins {
+            g.insert("__builtins__".into(), b);
         }
     }
     let module = Rc::new(ModuleObj { name: key, attrs: RefCell::new(BTreeMap::new()) });
