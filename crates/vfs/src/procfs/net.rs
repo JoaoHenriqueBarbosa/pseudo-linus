@@ -2,6 +2,8 @@
 //! sem rede, só com o `lo`. O conteúdo foi capturado do oráculo (`docker run --network none`); o
 //! `softnet_stat` tem uma linha por CPU e é cortado no número de CPUs da máquina.
 
+use super::data::TcpSock;
+
 /// Uma entrada da árvore. `parent` 0 é o próprio `net`; os outros são o índice (1 em diante) do
 /// diretório que a contém.
 pub(super) struct NetEnt {
@@ -117,8 +119,8 @@ pub(super) fn children(parent: u32) -> Vec<u32> {
     v
 }
 
-/// Conteúdo de um arquivo.
-pub(super) fn content(i: u32, ncpus: u32) -> Option<Vec<u8>> {
+/// Conteúdo de um arquivo. `tcp`, `tcp6` e o `sockstat` saem da tabela de sockets do kernel.
+pub(super) fn content(i: u32, ncpus: u32, socks: impl FnOnce() -> Vec<TcpSock>) -> Option<Vec<u8>> {
     let e = ent(i).filter(|e| !e.dir)?;
     if e.parent == 0 && e.name == SOFTNET_STAT {
         let mut out = Vec::new();
@@ -127,5 +129,87 @@ pub(super) fn content(i: u32, ncpus: u32) -> Option<Vec<u8>> {
         }
         return Some(out);
     }
+    if e.parent == 0 {
+        match e.name {
+            "tcp" => return Some(tcp_table(&socks(), false)),
+            "tcp6" => return Some(tcp_table(&socks(), true)),
+            "sockstat" | "sockstat6" => return Some(sockstat(e.data, &socks(), e.name == "sockstat6")),
+            _ => {}
+        }
+    }
     Some(e.data.to_vec())
+}
+
+/// Endereço como o `%08X` do kernel imprime: cada palavra de 32 bits lida na ordem do host.
+fn addr_hex(ip: &[u8; 16], words: usize) -> String {
+    ip.chunks(4).take(words).map(|w| format!("{:08X}", u32::from_le_bytes([w[0], w[1], w[2], w[3]]))).collect()
+}
+
+/// `tcp4_seq_show`/`tcp6_seq_show`. No IPv4 o cabeçalho e cada linha vão até 149 colunas
+/// (`seq_setwidth(seq, TMPSZ - 1)` com `seq_pad`); o IPv6 não preenche.
+fn tcp_table(socks: &[TcpSock], v6: bool) -> Vec<u8> {
+    const WIDTH: usize = 149;
+    let mut out = String::new();
+    if v6 {
+        out.push_str("  sl  local_address                         remote_address                        st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode\n");
+    } else {
+        out.push_str(&format!("{:<WIDTH$}\n", "  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode"));
+    }
+    let words = if v6 { 4 } else { 1 };
+    for (sl, s) in socks.iter().filter(|s| s.v6 == v6).enumerate() {
+        let mut line = format!(
+            "{sl:4}: {}:{:04X} {}:{:04X} {:02X} {:08X}:{:08X} {:02X}:{:08X} {:08X} {:5} {:8} {} {} {:016x}",
+            addr_hex(&s.local_ip, words),
+            s.local_port,
+            addr_hex(&s.remote_ip, words),
+            s.remote_port,
+            s.state,
+            s.tx_queue,
+            s.rx_queue,
+            s.timer,
+            s.when,
+            0,
+            s.uid,
+            0,
+            s.inode,
+            s.refcnt,
+            s.ptr,
+        );
+        if let Some((rto, ato, qack, cwnd, ssthresh)) = s.tail {
+            line.push_str(&format!(" {rto} {ato} {qack} {cwnd} {ssthresh}"));
+        }
+        if v6 {
+            out.push_str(&line);
+            out.push('\n');
+        } else {
+            out.push_str(&format!("{line:<WIDTH$}\n"));
+        }
+    }
+    out.into_bytes()
+}
+
+/// O `sockstat` capturado com as contagens de TCP da tabela: `inuse` conta os sockets completos (em
+/// escuta e conectados) de cada família, `orphan` os já fechados que ainda estão no FIN_WAIT2 e `tw`
+/// os de time-wait.
+fn sockstat(base: &[u8], socks: &[TcpSock], v6: bool) -> Vec<u8> {
+    let inuse = |fam: bool| socks.iter().filter(|s| s.v6 == fam && s.tail.is_some()).count();
+    let tw = socks.iter().filter(|s| s.tail.is_none()).count();
+    let mut out = Vec::new();
+    for line in base.split_inclusive(|&b| b == b'\n') {
+        if !v6 && line.starts_with(b"TCP: ") {
+            let alloc = std::str::from_utf8(line)
+                .ok()
+                .and_then(|l| l.split_whitespace().skip_while(|w| *w != "alloc").nth(1))
+                .and_then(|n| n.parse::<usize>().ok())
+                .unwrap_or(0);
+            out.extend_from_slice(
+                format!("TCP: inuse {} orphan 0 tw {tw} alloc {} mem 0\n", inuse(false), alloc + inuse(false) + inuse(true)).as_bytes(),
+            );
+        } else if v6 && line.starts_with(b"TCP6: ") {
+            out.extend_from_slice(format!("TCP6: inuse {}\n", inuse(true)).as_bytes());
+        } else {
+            out.extend_from_slice(line);
+        }
+    }
+    out
 }

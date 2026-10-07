@@ -32,3 +32,58 @@ touch /proc/version; echo "exit=$?"
 chmod 600 /proc/version; echo "exit=$?"
 """
 tags = ["proc", "error"]
+
+# /proc/net/tcp e tcp6 a partir dos sockets vivos: escuta em 0.0.0.0, 127.0.0.1 e ::, conexão com
+# dados não lidos, conexão ainda na fila do accept, CLOSE_WAIT com o FIN, FIN_WAIT2 órfão e TIME_WAIT
+# do curl. Portas efêmeras, inodes, ponteiros e o tempo restante dos timers variam no próprio Debian:
+# o awk troca cada um pela forma (EPH, inode zero ou não, timer ligado ou não) e ordena as linhas.
+[[case]]
+id = "procfs-net-tcp-live"
+script = '''
+cd /tmp
+python3 -m http.server 8080 >/dev/null 2>&1 &
+python3 -c '
+import socket,time
+s=socket.socket(); s.bind(("127.0.0.1",9000)); s.listen(5)
+s6=socket.socket(socket.AF_INET6); s6.bind(("::",9001)); s6.listen(1)
+c=socket.create_connection(("127.0.0.1",9000))
+a,_=s.accept()
+c2=socket.create_connection(("127.0.0.1",9000))
+c.sendall(b"x"*10)
+d=socket.socket(); d.connect(("127.0.0.1",9000)); b,_=s.accept(); b.close()
+time.sleep(30)' &
+sleep 1
+curl -s -o /dev/null http://127.0.0.1:8080/
+sleep 0.5
+norm() {
+  awk 'NR == 1 { print; next } {
+    split($2, l, ":"); split($3, r, ":")
+    lp = strtonum("0x" l[2]); rp = strtonum("0x" r[2])
+    if (lp >= 32768) l[2] = "EPH"; if (rp >= 32768) r[2] = "EPH"
+    print l[1] ":" l[2], r[1] ":" r[2], $4, $5, substr($6, 1, 2), $8, ($10 == 0 ? "ino0" : "ino"), $11, NF
+  }' "$1" | sort
+}
+norm /proc/net/tcp
+norm /proc/net/tcp6
+head -1 /proc/net/tcp | wc -c
+awk 'NR > 1 { print length($0) }' /proc/net/tcp | sort -u
+grep -E "^TCP" /proc/net/sockstat | cut -d" " -f1-7
+grep -E "^TCP6" /proc/net/sockstat6
+'''
+tags = ["proc", "net", "tcp"]
+
+[[case]]
+id = "procfs-net-tcp-ports"
+script = '''
+python3 -c '
+import socket
+s = socket.socket(); s.bind(("127.0.0.1", 0)); s.listen(1)
+p = s.getsockname()[1]
+cs = [socket.create_connection(("127.0.0.1", p)) for _ in range(20)]
+eph = [c.getsockname()[1] for c in cs]
+print("bind0 odd", p % 2 == 1, 32768 <= p <= 60999)
+print("connect even", all(x % 2 == 0 for x in eph), all(32768 <= x <= 60999 for x in eph))
+print("sequential", eph == list(range(eph[0], eph[0] + 20)))
+'
+'''
+tags = ["proc", "net", "tcp", "ports"]

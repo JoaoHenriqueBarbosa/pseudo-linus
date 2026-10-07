@@ -246,4 +246,42 @@ pub trait ProcProvider: Send + Sync {
     fn set_domainname(&self, _name: &[u8]) -> SysResult<()> {
         Err(Errno::EPERM)
     }
+    /// Os sockets TCP do namespace de rede, na ordem em que o `/proc/net/tcp` os lista.
+    fn tcp_socks(&self) -> Vec<TcpSock> {
+        Vec::new()
+    }
+}
+
+/// Estados do TCP no formato do `/proc/net/tcp` (`include/net/tcp_states.h`).
+pub mod tcp_state {
+    pub const ESTABLISHED: u8 = 0x01;
+    pub const FIN_WAIT2: u8 = 0x05;
+    pub const TIME_WAIT: u8 = 0x06;
+    pub const CLOSE_WAIT: u8 = 0x08;
+    pub const LISTEN: u8 = 0x0A;
+}
+
+/// Um socket TCP como o `tcp4_seq_show`/`tcp6_seq_show` o vê. Endereços IPv4 ocupam os 4 primeiros
+/// bytes de `local_ip`/`remote_ip`, na ordem da rede.
+#[derive(Clone, Debug)]
+pub struct TcpSock {
+    pub v6: bool,
+    pub local_ip: [u8; 16],
+    pub local_port: u16,
+    pub remote_ip: [u8; 16],
+    pub remote_port: u16,
+    pub state: u8,
+    pub tx_queue: u32,
+    pub rx_queue: u32,
+    /// Timer ativo (`tr`) e o tempo até ele disparar em ticks de 1/100 s (`tm->when`).
+    pub timer: u8,
+    pub when: u64,
+    pub uid: Uid,
+    pub inode: u64,
+    pub refcnt: u32,
+    /// O `%pK` do socket: o ponteiro com hash, que no x86_64 sai com 32 bits significativos.
+    pub ptr: u32,
+    /// `rto ato qack snd_cwnd ssthresh` de um socket completo; `None` num socket de time-wait
+    /// (inclusive o FIN_WAIT2 órfão), que não tem essas colunas.
+    pub tail: Option<(u32, u32, u32, u32, i32)>,
 }

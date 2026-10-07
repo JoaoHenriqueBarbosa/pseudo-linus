@@ -94,21 +94,40 @@ class Listener(_Notifier):
             self.pending.append(endpoint)
             self._notify()
 
+    def _accept_kernel(self):
+        """Tira uma conexão da fila do kernel, ou None se não há nenhuma pronta."""
+        if self.kfd is None:
+            return None
+        got = _os.tcp_accept(self.kfd)
+        if got is None:
+            return None
+        fd, peer_port = got
+        ip = loopback_ip(self.family)
+        return KernelEndpoint(self.family, fd, address(self.family, ip, self.addr[1]),
+                              address(self.family, ip, peer_port))
+
     def _pump(self):
-        """Traz as conexões que chegaram pelo kernel."""
-        while self.kfd is not None:
-            got = _os.tcp_accept(self.kfd)
-            if got is None:
-                return
-            fd, peer_port = got
-            ip = loopback_ip(self.family)
-            self.push(KernelEndpoint(self.family, fd, address(self.family, ip, self.addr[1]),
-                                     address(self.family, ip, peer_port)))
+        """Uma conexão chegou pelo kernel. Ela fica na fila de lá até o programa chamar `accept()`,
+        como num socket de verdade (o /proc/net/tcp a mostra sem inode e conta na fila da escuta);
+        só quem registrou `on_connection` recebe as conexões na hora."""
+        if self.on_connection is not None:
+            while True:
+                endpoint = self._accept_kernel()
+                if endpoint is None:
+                    return
+                self.on_connection(endpoint)
+        self._notify()
 
     def readable(self):
-        if not self.pending and self.kfd is not None:
-            self._pump()
-        return bool(self.pending) or self.closed
+        if self.pending or self.closed:
+            return True
+        return self.kfd is not None and bool(_os.tcp_poll([self.kfd], 0))
+
+    def take(self):
+        """A próxima conexão: primeiro as deste interpretador, depois a fila do kernel."""
+        if self.pending:
+            return self.pending.popleft()
+        return self._accept_kernel()
 
     def close(self):
         if self.closed:
@@ -139,7 +158,10 @@ def listen(family, addr, backlog, reuse=False, ephemeral=False):
             raise OSError(errno.EADDRINUSE, 'Address already in use')
         # A mesma porta escuta também no kernel, para os outros processos do sandbox.
         try:
-            kfd, kport = _os.tcp_listen(0 if ephemeral else addr[1], backlog)
+            bind_ip = addr[0] or ('::' if family == AF_INET6 else '0.0.0.0')
+            if bind_ip == 'localhost':
+                bind_ip = loopback_ip(family)
+            kfd, kport = _os.tcp_listen(0 if ephemeral else addr[1], backlog, bind_ip)
         except OSError as e:
             if e.errno != errno.ENOSYS:
                 raise
@@ -328,10 +350,11 @@ def connect(family, addr):
         if not is_local(host):
             raise OSError(errno.ENETUNREACH, 'Network is unreachable')
         listener = _listeners.get(('t', port))
-        if listener is None or listener.closed:
-            # Ninguém escuta neste interpretador: talvez outro processo do sandbox.
+        if listener is None or listener.closed or listener.kfd is not None:
+            # A conexão passa pelo kernel sempre que ele conhece quem escuta (outro processo ou este
+            # mesmo): é lá que ela aparece no /proc/net/tcp.
             try:
-                kfd, cport = _os.tcp_connect(port)
+                kfd, cport = _os.tcp_connect(port, loopback_ip(family) if host in ('', 'localhost') else host)
             except OSError as e:
                 if e.errno == errno.ENOSYS:
                     raise ConnectionRefusedError(errno.ECONNREFUSED, 'Connection refused') from None

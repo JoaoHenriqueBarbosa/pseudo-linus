@@ -821,12 +821,13 @@ fn want_port(fname: &str, args: &[Value], i: usize) -> PyResult<u16> {
     u16::try_from(want_int(arg(fname, args, i)?)?).map_err(|_| exc("OverflowError", format!("{fname}(): port must be 0-65535.")))
 }
 
-/// `tcp_listen(port, backlog)`: `(fd, porta)`.
+/// `tcp_listen(port, backlog, ip='0.0.0.0')`: `(fd, porta)`.
 fn tcp_listen(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("tcp_listen", &kw)?;
     let port = want_port("tcp_listen", &args, 0)?;
     let backlog = want_int(arg("tcp_listen", &args, 1)?)?.clamp(0, i64::from(u32::MAX)) as u32;
-    let (fd, port) = sys::tcp_listen(port, backlog, true, true).map_err(|e| os_error(e, None))?;
+    let ip = want_ip(&args, 2, std::net::Ipv4Addr::UNSPECIFIED.into());
+    let (fd, port) = sys::tcp_listen_at(ip, port, backlog, true, true).map_err(|e| os_error(e, None))?;
     Ok(Value::tuple(vec![Value::Int(i64::from(fd.0)), Value::Int(i64::from(port))]))
 }
 
@@ -841,11 +842,21 @@ fn tcp_accept(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     }
 }
 
-/// `tcp_connect(port)`: `(fd, porta local)`.
+/// Endereço opcional (str) na posição `i`; sem ele, `default`. Um nome que não é IP literal cai no
+/// padrão, porque só o loopback chega aqui.
+fn want_ip(args: &[Value], i: usize, default: std::net::IpAddr) -> std::net::IpAddr {
+    match args.get(i) {
+        Some(Value::Str(s)) => s.as_str().split('%').next().unwrap_or("").parse().unwrap_or(default),
+        _ => default,
+    }
+}
+
+/// `tcp_connect(port, ip='127.0.0.1')`: `(fd, porta local)`.
 fn tcp_connect(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("tcp_connect", &kw)?;
     let port = want_port("tcp_connect", &args, 0)?;
-    let (fd, local) = sys::tcp_connect(port, true, true).map_err(|e| os_error(e, None))?;
+    let ip = want_ip(&args, 1, std::net::Ipv4Addr::LOCALHOST.into());
+    let (fd, local) = sys::tcp_connect_at(ip, port, true, true).map_err(|e| os_error(e, None))?;
     Ok(Value::tuple(vec![Value::Int(i64::from(fd.0)), Value::Int(i64::from(local))]))
 }
 

@@ -651,7 +651,7 @@ impl Procfs {
                 let info = self.provider.fdinfo(cx, pid, n as i32).ok_or(Errno::ENOENT)?;
                 Ok(render::fdinfo(&info))
             }
-            KIND_NET => net::content(n, self.provider.ncpus()).ok_or(Errno::EINVAL),
+            KIND_NET => net::content(n, self.provider.ncpus(), || self.provider.tcp_socks()).ok_or(Errno::EINVAL),
             _ => Err(Errno::EINVAL),
         }
     }

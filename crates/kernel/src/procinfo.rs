@@ -279,6 +279,10 @@ impl ProcProvider for SbProcProvider {
         self.sb().map_or(1, |sb| sb.kernel.cpus.ncpus() as u32)
     }
 
+    fn tcp_socks(&self) -> Vec<vfs::procfs::TcpSock> {
+        self.sb().map_or_else(Vec::new, |sb| sb.ports.tcp_socks())
+    }
+
     fn version(&self) -> Vec<u8> {
         let mut v = b"Linux version ".to_vec();
         v.extend_from_slice(UNAME_RELEASE);

@@ -5,6 +5,20 @@
     "exit": 0,
     "files": {}
   },
+  "procfs-net-tcp-live": {
+    "stdout": "  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode                                                     \n00000000:1F90 00000000:0000 0A 00000000:00000000 00 0 ino 1 17\n0100007F:1F90 0100007F:EPH 06 00000000:00000000 03 0 ino0 3 12\n0100007F:2328 00000000:0000 0A 00000000:00000001 00 0 ino 2 17\n0100007F:2328 0100007F:EPH 01 00000000:00000000 00 0 ino0 1 17\n0100007F:2328 0100007F:EPH 01 00000000:0000000A 00 0 ino 1 17\n0100007F:2328 0100007F:EPH 05 00000000:00000000 03 0 ino0 3 12\n0100007F:EPH 0100007F:1F90 06 00000000:00000000 03 0 ino0 3 12\n0100007F:EPH 0100007F:2328 01 00000000:00000000 00 0 ino 1 17\n0100007F:EPH 0100007F:2328 01 00000000:00000000 00 0 ino 1 17\n0100007F:EPH 0100007F:2328 08 00000000:00000001 00 0 ino 1 17\n  sl  local_address                         remote_address                        st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode\n00000000000000000000000000000000:2329 00000000000000000000000000000000:0000 0A 00000000:00000000 00 0 ino 1 17\n150\n149\nTCP: inuse 7 orphan 0 tw 3\nTCP6: inuse 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "procfs-net-tcp-ports": {
+    "stdout": "",
+    "stderr": "",
+    "exit": null,
+    "signal": 9,
+    "timed_out": true,
+    "files": {}
+  },
   "procfs-net-tree": {
     "stdout": "self/net\n/proc/self/net directory 555 6 root\n/proc/net/stat directory 555 2 root\n/proc/net/vlan directory 555 2 root\n/proc/net/vlan/config regular empty file 600 1 root\n/proc/net/dev regular empty file 444 1 root\n/proc/net/nf_conntrack regular empty file 440 1 root\n/proc/net:\n.\n..\narp\ndev\nraw\ntcp\nudp\nicmp\nigmp\nraw6\nsnmp\nstat\ntcp6\nudp6\nunix\nvlan\nicmp6\nigmp6\nptype\nroute\nsnmp6\npacket\npsched\nnetlink\nnetstat\nrt_acct\nudplite\nanycast6\nfib_trie\nif_inet6\nmcfilter\nrt_cache\nsockstat\nudplite6\nwireless\ndev_mcast\ndev_snmp6\nip_mr_vif\nmcfilter6\nnetfilter\nprotocols\nrt6_stats\nsockstat6\nxfrm_stat\nip6_mr_vif\nipv6_route\nip_mr_cache\nfib_triestat\nip6_mr_cache\nnf_conntrack\nsoftnet_stat\nip6_flowlabel\nip_tables_names\nip_tables_matches\nip_tables_targets\nnf_conntrack_expect\n\n/proc/net/stat:\n.\n..\nrt_cache\nnf_conntrack\n\n/proc/net/netfilter:\n.\n..\nnf_log\n\n/proc/net/dev_snmp6:\n.\n..\nlo\n",
     "stderr": "ls: cannot access '/proc/self/task/7/net': No such file or directory\n",

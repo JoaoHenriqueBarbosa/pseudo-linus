@@ -604,6 +604,9 @@ impl Task {
                 if r == Ok(0) && matches!(c.take_reset(), crate::net::ResetState::Pending) {
                     return Err(Errno::ECONNRESET);
                 }
+                if r == Ok(0) && !buf.is_empty() {
+                    c.saw_eof();
+                }
                 r
             }
         }
@@ -1407,8 +1410,12 @@ impl Syscalls for Task {
     }
 
     fn tcp_listen(&self, port: u16, backlog: u32, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
+        self.tcp_listen_at(std::net::Ipv4Addr::UNSPECIFIED.into(), port, backlog, nonblock, cloexec)
+    }
+
+    fn tcp_listen_at(&self, ip: std::net::IpAddr, port: u16, backlog: u32, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
         self.enter();
-        let listener = self.sb.ports.listen(port, backlog, self.sock_pipe())?;
+        let listener = self.sb.ports.listen(ip, port, backlog, self.sock_pipe())?;
         let port = listener.port;
         let fd = self.install_sock(FileObj::Listener(listener), nonblock, cloexec)?;
         Ok((fd, port))
@@ -1435,8 +1442,12 @@ impl Syscalls for Task {
     }
 
     fn tcp_connect(&self, port: u16, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
+        self.tcp_connect_at(std::net::Ipv4Addr::LOCALHOST.into(), port, nonblock, cloexec)
+    }
+
+    fn tcp_connect_at(&self, ip: std::net::IpAddr, port: u16, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
         self.enter();
-        let conn = self.sb.ports.connect(port, || self.sock_pipe())?;
+        let conn = self.sb.ports.connect(ip, port, || self.sock_pipe())?;
         let local = conn.local;
         let fd = self.install_sock(FileObj::Stream(conn), nonblock, cloexec)?;
         Ok((fd, local))
@@ -2428,7 +2439,7 @@ impl Syscalls for Task {
             }
             _ => return Err(Errno::EACCES),
         };
-        let conn = self.sb.ports.connect(port, || self.sock_pipe())?;
+        let conn = self.sb.ports.connect(ip, port, || self.sock_pipe())?;
         let local = conn.local;
         let fd = self.install_sock(FileObj::Stream(conn), false, true)?;
         let local_ip: std::net::IpAddr = if ip.is_ipv6() { std::net::Ipv6Addr::LOCALHOST.into() } else { std::net::Ipv4Addr::LOCALHOST.into() };

@@ -105,6 +105,17 @@ pub trait Syscalls: Send + Sync {
         let _ = (port, nonblock, cloexec);
         Err(Errno::ENOSYS)
     }
+    /// `tcp_listen` com o endereço do `bind` (`0.0.0.0`, `127.0.0.1`, `::`), que o `/proc/net/tcp`
+    /// mostra e que decide a família do socket.
+    fn tcp_listen_at(&self, ip: std::net::IpAddr, port: u16, backlog: u32, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
+        let _ = ip;
+        self.tcp_listen(port, backlog, nonblock, cloexec)
+    }
+    /// `tcp_connect` a um endereço de loopback (`127.0.0.1`, `::1`): a família do socket é a dele.
+    fn tcp_connect_at(&self, ip: std::net::IpAddr, port: u16, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
+        let _ = ip;
+        self.tcp_connect(port, nonblock, cloexec)
+    }
     /// `shutdown(2)`: fecha a leitura, a escrita ou as duas.
     fn tcp_shutdown(&self, fd: Fd, read: bool, write: bool) -> SysResult<()> {
         let _ = (fd, read, write);
@@ -549,6 +560,14 @@ pub fn tcp_accept(fd: Fd, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)>
 
 pub fn tcp_connect(port: u16, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
     current().tcp_connect(port, nonblock, cloexec)
+}
+
+pub fn tcp_listen_at(ip: std::net::IpAddr, port: u16, backlog: u32, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
+    current().tcp_listen_at(ip, port, backlog, nonblock, cloexec)
+}
+
+pub fn tcp_connect_at(ip: std::net::IpAddr, port: u16, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
+    current().tcp_connect_at(ip, port, nonblock, cloexec)
 }
 
 pub fn tcp_shutdown(fd: Fd, read: bool, write: bool) -> SysResult<()> {

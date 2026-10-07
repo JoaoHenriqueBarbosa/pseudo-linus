@@ -418,9 +418,11 @@ class socket:
             if st.timeout == 0.0:
                 raise _would_block()
             raise TimeoutError('timed out')
-        if not listener.pending:
-            raise OSError(_errno.EINVAL, 'Invalid argument')
-        endpoint = listener.pending.popleft()
+        endpoint = listener.take()
+        if endpoint is None:
+            if listener.closed:
+                raise OSError(_errno.EINVAL, 'Invalid argument')
+            raise _would_block()
         new = _State(st.family, st.type, st.proto)
         new.endpoint = endpoint
         new.timeout = _default_timeout[0]

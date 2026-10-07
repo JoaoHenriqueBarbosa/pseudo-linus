@@ -16,7 +16,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU64, Ordering};
 
 use parking_lot::Mutex;
-use sysabi::{Gid, Mode, Pid, Resource, Rlimit, Rusage, SchedState, SigDisposition, Signal, Tid, Uid, WaitStatus, RLIM_INFINITY};
+use sysabi::{Mode, Pid, Resource, Rlimit, Rusage, SchedState, SigDisposition, Signal, Tid, WaitStatus, RLIM_INFINITY};
 use vfs::{Cred, PinnedLoc};
 
 use crate::cpu::CpuTask;
