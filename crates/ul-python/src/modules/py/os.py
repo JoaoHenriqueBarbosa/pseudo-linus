@@ -347,8 +347,10 @@ def chdir(p):
     _os.chdir(fspath(p))
 
 
-def listdir(p='.'):
-    return _os.listdir(fspath(p))
+def listdir(path=None):
+    if path is None:
+        path = '.'
+    return _os.listdir(_path_or_fd(path))
 
 
 class stat_result:
@@ -388,12 +390,30 @@ class stat_result:
                     self.st_size, int(self.st_atime), int(self.st_mtime), int(self.st_ctime)))
 
 
-def stat(p, *, follow_symlinks=True):
-    return stat_result(_os.stat(fspath(p), follow_symlinks))
+def _path_or_fd(p):
+    return p if isinstance(p, int) else fspath(p)
 
 
-def lstat(p):
-    return stat_result(_os.stat(fspath(p), False))
+def _isdir_at(p, dir_fd):
+    try:
+        return (stat(p, dir_fd=dir_fd).st_mode & 0o170000) == 0o040000
+    except (OSError, ValueError):
+        return False
+
+
+def _isreg_at(p, dir_fd):
+    try:
+        return (stat(p, dir_fd=dir_fd).st_mode & 0o170000) == 0o100000
+    except (OSError, ValueError):
+        return False
+
+
+def stat(path, *, dir_fd=None, follow_symlinks=True):
+    return stat_result(_os.stat(_path_or_fd(path), follow_symlinks, dir_fd=dir_fd))
+
+
+def lstat(path, *, dir_fd=None):
+    return stat_result(_os.stat(fspath(path), False, dir_fd=dir_fd))
 
 
 def fstat(fd):
@@ -403,26 +423,27 @@ def fstat(fd):
 class DirEntry:
     """Entrada devolvida por `os.scandir`."""
 
-    def __init__(self, dirpath, name, kind):
+    def __init__(self, dirpath, name, kind, dir_fd=None):
         self.name = name
-        self.path = path.join(dirpath, name)
+        self.path = name if dir_fd is not None else path.join(dirpath, name)
         self._kind = kind
+        self._dir_fd = dir_fd
 
     def is_dir(self, *, follow_symlinks=True):
         if self._kind == 'l' and follow_symlinks:
-            return path.isdir(self.path)
+            return _isdir_at(self.path, self._dir_fd)
         return self._kind == 'd'
 
     def is_file(self, *, follow_symlinks=True):
         if self._kind == 'l' and follow_symlinks:
-            return path.isfile(self.path)
+            return _isreg_at(self.path, self._dir_fd)
         return self._kind == 'f'
 
     def is_symlink(self):
         return self._kind == 'l'
 
     def stat(self, *, follow_symlinks=True):
-        return stat(self.path, follow_symlinks=follow_symlinks)
+        return stat(self.path, dir_fd=self._dir_fd, follow_symlinks=follow_symlinks)
 
     def inode(self):
         return _os.stat(self.path, False)[1]
@@ -455,13 +476,17 @@ class _ScandirIterator:
         pass
 
 
-def scandir(p='.'):
-    p = fspath(p)
+def scandir(path=None):
+    if path is None:
+        path = '.'
+    if isinstance(path, int):
+        return _ScandirIterator([DirEntry(None, n, k, path) for n, k in _os.scandir(path)])
+    p = fspath(path)
     return _ScandirIterator([DirEntry(p, n, k) for n, k in _os.scandir(p)])
 
 
-def mkdir(p, mode=0o777):
-    _os.mkdir(fspath(p), mode)
+def mkdir(path, mode=0o777, *, dir_fd=None):
+    _os.mkdir(fspath(path), mode, dir_fd=dir_fd)
 
 
 def makedirs(name, mode=0o777, exist_ok=False):
@@ -484,15 +509,16 @@ def makedirs(name, mode=0o777, exist_ok=False):
             raise
 
 
-def remove(p):
-    _os.unlink(fspath(p))
+def remove(path, *, dir_fd=None):
+    _os.unlink(fspath(path), dir_fd=dir_fd)
 
 
-unlink = remove
+def unlink(path, *, dir_fd=None):
+    _os.unlink(fspath(path), dir_fd=dir_fd)
 
 
-def rmdir(p):
-    _os.rmdir(fspath(p))
+def rmdir(path, *, dir_fd=None):
+    _os.rmdir(fspath(path), dir_fd=dir_fd)
 
 
 def removedirs(name):
@@ -508,12 +534,12 @@ def removedirs(name):
         head, tail = path.split(head)
 
 
-def rename(src, dst):
-    _os.rename(fspath(src), fspath(dst))
+def rename(src, dst, *, src_dir_fd=None, dst_dir_fd=None):
+    _os.rename(fspath(src), fspath(dst), src_dir_fd=src_dir_fd, dst_dir_fd=dst_dir_fd)
 
 
-def replace(src, dst):
-    _os.rename(fspath(src), fspath(dst))
+def replace(src, dst, *, src_dir_fd=None, dst_dir_fd=None):
+    _os.rename(fspath(src), fspath(dst), src_dir_fd=src_dir_fd, dst_dir_fd=dst_dir_fd)
 
 
 def renames(old, new):
@@ -591,31 +617,58 @@ def fdopen(fd, mode="r", buffering=-1, encoding=None, *args, **kwargs):
     return io.open(fd, mode, buffering, encoding, *args, **kwargs)
 
 
-def readlink(p):
-    return _os.readlink(fspath(p))
+def link(src, dst, *, src_dir_fd=None, dst_dir_fd=None, follow_symlinks=True):
+    _os.link(fspath(src), fspath(dst), src_dir_fd=src_dir_fd, dst_dir_fd=dst_dir_fd, follow_symlinks=follow_symlinks)
 
 
-def symlink(src, dst, target_is_directory=False):
-    _os.symlink(fspath(src), fspath(dst))
+def mkfifo(path, mode=0o666, *, dir_fd=None):
+    _os.mknod(fspath(path), 0o010000 | (mode & 0o7777), 0, dir_fd=dir_fd)
 
 
-def chmod(p, mode):
-    _os.chmod(fspath(p), mode)
+def mknod(path, mode=0o600, device=0, *, dir_fd=None):
+    _os.mknod(fspath(path), mode, device, dir_fd=dir_fd)
+
+
+def major(device, /):
+    """Extracts a device major number from a raw device number."""
+    return ((device >> 8) & 0xfff) | ((device >> 32) & ~0xfff)
+
+
+def minor(device, /):
+    """Extracts a device minor number from a raw device number."""
+    return (device & 0xff) | ((device >> 12) & ~0xff)
+
+
+def makedev(major, minor, /):
+    """Composes a raw device number from the major and minor device numbers."""
+    return ((major & 0xfff) << 8) | ((major & ~0xfff) << 32) | (minor & 0xff) | ((minor & ~0xff) << 12)
+
+
+def readlink(path, *, dir_fd=None):
+    return _os.readlink(fspath(path), dir_fd=dir_fd)
+
+
+def symlink(src, dst, target_is_directory=False, *, dir_fd=None):
+    _os.symlink(fspath(src), fspath(dst), dir_fd=dir_fd)
+
+
+def chmod(path, mode, *, dir_fd=None, follow_symlinks=True):
+    _os.chmod(fspath(path), mode, dir_fd=dir_fd)
 
 
 def chown(path, uid, gid, *, dir_fd=None, follow_symlinks=True):
     if follow_symlinks:
-        _os.chown(fspath(path), uid, gid)
+        _os.chown(fspath(path), uid, gid, dir_fd=dir_fd)
     else:
-        _os.lchown(fspath(path), uid, gid)
+        _os.lchown(fspath(path), uid, gid, dir_fd=dir_fd)
 
 
 def lchown(path, uid, gid):
     _os.lchown(fspath(path), uid, gid)
 
 
-def access(p, mode):
-    return _os.access(fspath(p), mode)
+def access(path, mode, *, dir_fd=None, effective_ids=False, follow_symlinks=True):
+    return _os.access(fspath(path), mode, dir_fd=dir_fd)
 
 
 _walk_symlinks_as_files = object()
@@ -863,14 +916,14 @@ def urandom(n):
     return _os.urandom(n)
 
 
-def utime(p, times=None, *, ns=None, dir_fd=None, follow_symlinks=True):
-    p = fspath(p)
+def utime(path, times=None, *, ns=None, dir_fd=None, follow_symlinks=True):
+    p = fspath(path)
     if ns is not None:
-        _os.utime(p, ns[0] / 1e9, ns[1] / 1e9)
+        _os.utime(p, ns[0] / 1e9, ns[1] / 1e9, dir_fd=dir_fd)
     elif times is None:
-        _os.utime(p, None, None)
+        _os.utime(p, None, None, dir_fd=dir_fd)
     else:
-        _os.utime(p, times[0], times[1])
+        _os.utime(p, times[0], times[1], dir_fd=dir_fd)
 
 
 def truncate(p, length):
@@ -948,8 +1001,8 @@ def isatty(fd):
     return _os.isatty(fd)
 
 
-def open(p, flags, mode=0o777):
-    return _os.open(fspath(p), flags, mode)
+def open(path, flags, mode=0o777, *, dir_fd=None):
+    return _os.open(fspath(path), flags, mode, dir_fd=dir_fd)
 
 
 def close(fd):
@@ -1075,3 +1128,80 @@ def _init_posix():
 
 _init_posix()
 del _init_posix
+
+
+def _build_supports():
+    import posix
+    _globals = globals()
+
+    def _add(str, fn):
+        if (fn in _globals) and (str in _have_functions):
+            _set.add(_globals[fn])
+
+    _have_functions = posix._have_functions
+    global supports_dir_fd, supports_effective_ids, supports_fd, supports_follow_symlinks
+
+    _set = set()
+    _add("HAVE_FACCESSAT",  "access")
+    _add("HAVE_FCHMODAT",   "chmod")
+    _add("HAVE_FCHOWNAT",   "chown")
+    _add("HAVE_FSTATAT",    "stat")
+    _add("HAVE_LSTAT",      "lstat")
+    _add("HAVE_FUTIMESAT",  "utime")
+    _add("HAVE_LINKAT",     "link")
+    _add("HAVE_MKDIRAT",    "mkdir")
+    _add("HAVE_MKFIFOAT",   "mkfifo")
+    _add("HAVE_MKNODAT",    "mknod")
+    _add("HAVE_OPENAT",     "open")
+    _add("HAVE_READLINKAT", "readlink")
+    _add("HAVE_RENAMEAT",   "rename")
+    _add("HAVE_SYMLINKAT",  "symlink")
+    _add("HAVE_UNLINKAT",   "unlink")
+    _add("HAVE_UNLINKAT",   "rmdir")
+    _add("HAVE_UTIMENSAT",  "utime")
+    supports_dir_fd = _set
+
+    _set = set()
+    _add("HAVE_FACCESSAT",  "access")
+    supports_effective_ids = _set
+
+    _set = set()
+    _add("HAVE_FCHDIR",     "chdir")
+    _add("HAVE_FCHMOD",     "chmod")
+    _add("MS_WINDOWS",      "chmod")
+    _add("HAVE_FCHOWN",     "chown")
+    _add("HAVE_FDOPENDIR",  "listdir")
+    _add("HAVE_FDOPENDIR",  "scandir")
+    _add("HAVE_FEXECVE",    "execve")
+    _set.add(stat)
+    _add("HAVE_FTRUNCATE",  "truncate")
+    _add("HAVE_FUTIMENS",   "utime")
+    _add("HAVE_FUTIMES",    "utime")
+    _add("HAVE_FPATHCONF",  "pathconf")
+    if _exists("statvfs") and _exists("fstatvfs"):
+        _add("HAVE_FSTATVFS", "statvfs")
+    supports_fd = _set
+
+    _set = set()
+    _add("HAVE_FACCESSAT",  "access")
+    _add("HAVE_FCHOWNAT",   "chown")
+    _add("HAVE_FSTATAT",    "stat")
+    _add("HAVE_LCHFLAGS",   "chflags")
+    _add("HAVE_LCHMOD",     "chmod")
+    if _exists("lchown"):
+        _add("HAVE_LCHOWN", "chown")
+    _add("HAVE_LINKAT",     "link")
+    _add("HAVE_LUTIMES",    "utime")
+    _add("HAVE_LSTAT",      "stat")
+    _add("HAVE_FSTATAT",    "stat")
+    _add("HAVE_UTIMENSAT",  "utime")
+    _add("MS_WINDOWS",      "stat")
+    supports_follow_symlinks = _set
+
+
+def _exists(name):
+    return name in globals()
+
+
+_build_supports()
+del _build_supports

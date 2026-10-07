@@ -11,6 +11,18 @@
     "exit": 0,
     "files": {}
   },
+  "os-dir-fd-supports": {
+    "stdout": "['f', 'l', 'sub'] ['f', 'l', 'sub'] ['f']\n3 True True\nf True\n0o100600 2.0\n['g', 'l', 'new', 'sub']\n[Errno 2] No such file or directory: 'nope'\n[Errno 9] Bad file descriptor: 'q'\nsupports_dir_fd ['access', 'chmod', 'chown', 'link', 'lstat', 'mkdir', 'mkfifo', 'mknod', 'open', 'readlink', 'rename', 'rmdir', 'stat', 'symlink', 'unlink', 'utime']\nsupports_fd ['chdir', 'chmod', 'chown', 'execve', 'listdir', 'pathconf', 'scandir', 'stat', 'statvfs', 'truncate', 'utime']\nsupports_effective_ids ['access']\nsupports_follow_symlinks ['access', 'chown', 'link', 'stat', 'utime']\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "os-link-mkfifo-mknod-filename2": {
+    "stdout": "2 True\nFileExistsError [Errno 17] File exists: 'la' -> 'lb'\nFileNotFoundError [Errno 2] No such file or directory: 'nope' -> 'x'\nTrue 0o10644\n0o100600\n1050668 8 300 5000\nExtracts a device major number from a raw device number.\nnope x 2\n[Errno 2] m: 'a' -> 'b' b\nNone\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "os-posix-constants-wait-status": {
     "stdout": "3 4 64 3 1 2 268435456 5 2 1 238328 65536\nWCOREDUMP Return True if the process returning status was dumped to a core file. [False, False, False, True, False, True, True, False, True]\nWIFCONTINUED Return True if a particular process was continued from a job control stop. [False, False, False, False, False, False, True, False, False]\nWIFSTOPPED Return True if the process returning status was stopped. [False, False, True, False, False, False, False, True, False]\nWIFSIGNALED Return True if the process returning status was terminated by a signal. [False, False, False, False, True, True, False, False, False]\nWIFEXITED Return True if the process returning status exited via the exit() system call. [True, True, False, False, False, False, False, False, False]\nWEXITSTATUS Return the process return code from status. [0, 1, 0, 0, 0, 0, 255, 19, 127]\nWTERMSIG Return the signal that terminated the process that provided the status value. [0, 0, 127, 127, 9, 9, 127, 127, 127]\nWSTOPSIG Return the signal that stopped the process that provided the status value. [0, 1, 0, 0, 0, 0, 255, 19, 127]\n0\n3\n-9\n-9\nValueError process stopped by delivery of signal 19\nValueError invalid wait status: -1\nTypeError 'float' object cannot be interpreted as an integer\n",
     "stderr": "",

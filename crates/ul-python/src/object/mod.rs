@@ -789,6 +789,9 @@ pub fn exc_str(e: &ExcObj) -> String {
                 (None, None) => msg.as_str().to_string(),
             }
         }
+        [Value::Int(errno), msg, a, _, b] if !matches!(b, Value::None) && exc_is_subclass(&e.kind, "OSError") => {
+            format!("[Errno {errno}] {}: {} -> {}", to_str(msg), repr(a), repr(b))
+        }
         [Value::Int(errno), msg, rest @ ..] if rest.len() <= 1 && exc_is_subclass(&e.kind, "OSError") => match rest {
             [file] => format!("[Errno {errno}] {}: {}", to_str(msg), repr(file)),
             _ => format!("[Errno {errno}] {}", to_str(msg)),

@@ -75,7 +75,13 @@ fn main() {
     for (trees, file_mode) in [(TREES, "0o644"), (EXEC_TREES, "0o755")] {
         for tree in trees {
             use std::os::unix::fs::PermissionsExt as _;
-            let top = fs::symlink_metadata(image.join(tree)).expect("árvore da imagem");
+            // Árvore que só tem diretórios vazios (`etc/ca-certificates`) não existe num clone novo.
+            let Ok(top) = fs::symlink_metadata(image.join(tree)) else {
+                let prefix = format!("/{tree}/");
+                assert!(EMPTY_DIRS.iter().any(|(d, _)| d.starts_with(&prefix)), "árvore da imagem ausente: {tree}");
+                let _ = writeln!(code, "    Dir(\"/{tree}\", 0o755),");
+                continue;
+            };
             if top.is_file() {
                 println!("cargo:rerun-if-changed=image/{tree}");
                 let abs = image.join(tree);
@@ -100,6 +106,10 @@ fn main() {
             }
             for (rel, md) in items {
                 let path = format!("/{}", rel.display());
+                // Os vazios saem de `EMPTY_DIRS`, com o modo do oráculo, exista ou não a cópia local.
+                if EMPTY_DIRS.iter().any(|(d, _)| *d == path) {
+                    continue;
+                }
                 if md.file_type().is_symlink() {
                     let target = fs::read_link(image.join(&rel)).expect("link");
                     let _ = writeln!(code, "    Link({path:?}, {:?}),", target.display().to_string());

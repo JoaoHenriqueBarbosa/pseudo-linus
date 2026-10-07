@@ -11,9 +11,9 @@ use crate::native_util::{no_kwargs, want_int};
 use crate::object::{Kw, ModuleObj, Value};
 use crate::vm::{exc, type_error, PyException, PyResult, Vm};
 
-/// `OSError` (ou a subclasse certa) para um `errno`, com a mensagem do `strerror`.
-pub(crate) fn os_error(e: Errno, path: Option<&str>) -> PyException {
-    let kind = match e {
+/// O nome da subclasse de `OSError` para um `errno`.
+fn error_kind(e: Errno) -> &'static str {
+    match e {
         Errno::ENOENT => "FileNotFoundError",
         Errno::EEXIST => "FileExistsError",
         Errno::EISDIR => "IsADirectoryError",
@@ -25,12 +25,21 @@ pub(crate) fn os_error(e: Errno, path: Option<&str>) -> PyException {
         Errno::ECONNREFUSED => "ConnectionRefusedError",
         Errno::ECONNRESET => "ConnectionResetError",
         _ => "OSError",
-    };
+    }
+}
+
+/// `OSError` (ou a subclasse certa) para um `errno`, com a mensagem do `strerror`.
+pub(crate) fn os_error(e: Errno, path: Option<&str>) -> PyException {
     let msg = match path {
         Some(p) => format!("[Errno {}] {}: '{p}'", e.0, e.message()),
         None => format!("[Errno {}] {}", e.0, e.message()),
     };
-    exc(kind, msg)
+    os_error_msg(e, msg)
+}
+
+/// A subclasse de `OSError` do `errno`, com a mensagem pronta.
+fn os_error_msg(e: Errno, msg: String) -> PyException {
+    exc(error_kind(e), msg)
 }
 
 fn path_bytes(fname: &str, v: &Value) -> PyResult<Vec<u8>> {
@@ -49,6 +58,59 @@ fn arg<'a>(fname: &str, args: &'a [Value], i: usize) -> PyResult<&'a Value> {
     args.get(i).ok_or_else(|| type_error(format!("{fname}() missing required argument (pos {})", i + 1)))
 }
 
+/// Só as palavras-chave em `names`, na ordem delas; qualquer outra é `TypeError`.
+fn kwopts(fname: &str, kw: &Kw, names: &[&str]) -> PyResult<Vec<Option<Value>>> {
+    let mut out = vec![None; names.len()];
+    for (k, v) in kw {
+        match names.iter().position(|n| n == k) {
+            Some(i) => out[i] = Some(v.clone()),
+            None => return Err(type_error(format!("{fname}() got an unexpected keyword argument '{k}'"))),
+        }
+    }
+    Ok(out)
+}
+
+/// O `dir_fd` das funções `*at`: ausente ou `None` é o diretório corrente.
+fn dir_fd_of(v: &Option<Value>) -> PyResult<Fd> {
+    match v {
+        None | Some(Value::None) => Ok(Fd::CWD),
+        Some(v) => Ok(Fd(want_int(v)? as i32)),
+    }
+}
+
+/// Para as funções cuja única palavra-chave é `dir_fd`.
+fn kw_dir_fd(fname: &str, kw: &Kw) -> PyResult<Fd> {
+    dir_fd_of(&kwopts(fname, kw, &["dir_fd"])?[0])
+}
+
+/// Lista o diretório aberto em `fd` (o `getdents` de um `opendir(fd)`), sem `.` e `..`.
+fn read_dir_fd(fd: Fd) -> Result<Vec<sysabi::DirEntry>, Errno> {
+    let sys = sys::current();
+    let dup = sys.openat(fd, b".", OFlags::RDONLY | OFlags::DIRECTORY | OFlags::CLOEXEC, 0)?;
+    let mut out = Vec::new();
+    let res = loop {
+        match sys.getdents(dup) {
+            Ok(batch) if batch.is_empty() => break Ok(()),
+            Ok(batch) => out.extend(batch.into_iter().filter(|e| e.name != b"." && e.name != b"..")),
+            Err(e) => break Err(e),
+        }
+    };
+    let _ = sys.close(dup);
+    res.map(|()| out)
+}
+
+/// O caminho de `listdir`/`scandir`: `str`, `bytes` ou um descritor de diretório.
+fn dir_entries(fname: &str, v: Option<&Value>) -> PyResult<Vec<sysabi::DirEntry>> {
+    match v {
+        Some(Value::Int(fd)) => read_dir_fd(Fd(*fd as i32)).map_err(|e| os_error(e, None)),
+        Some(v) => {
+            let p = path_bytes(fname, v)?;
+            sys::read_dir(&p).map_err(|e| os_error(e, Some(&shown(&p))))
+        }
+        None => sys::read_dir(b".").map_err(|e| os_error(e, Some("."))),
+    }
+}
+
 fn getcwd(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("getcwd", &kw)?;
     let _ = args;
@@ -65,22 +127,14 @@ fn chdir(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 
 fn listdir(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("listdir", &kw)?;
-    let p = match args.first() {
-        Some(v) => path_bytes("listdir", v)?,
-        None => b".".to_vec(),
-    };
-    let entries = sys::read_dir(&p).map_err(|e| os_error(e, Some(&shown(&p))))?;
+    let entries = dir_entries("listdir", args.first())?;
     Ok(Value::list(entries.into_iter().map(|e| Value::str(shown(&e.name))).collect()))
 }
 
 /// `scandir`: lista de `(nome, tipo)` onde tipo é `"f"`, `"d"`, `"l"` ou `"o"`.
 fn scandir(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("scandir", &kw)?;
-    let p = match args.first() {
-        Some(v) => path_bytes("scandir", v)?,
-        None => b".".to_vec(),
-    };
-    let entries = sys::read_dir(&p).map_err(|e| os_error(e, Some(&shown(&p))))?;
+    let entries = dir_entries("scandir", args.first())?;
     Ok(Value::list(
         entries
             .into_iter()
@@ -115,10 +169,14 @@ fn stat_tuple(st: &sysabi::Stat) -> Value {
 
 /// `stat(path)` como tupla `(mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime)`.
 fn stat(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    no_kwargs("stat", &kw)?;
+    let dir_fd = kw_dir_fd("stat", &kw)?;
+    if let Value::Int(fd) = arg("stat", &args, 0)? {
+        return sys::current().fstat(Fd(*fd as i32)).map(|s| stat_tuple(&s)).map_err(|e| os_error(e, None));
+    }
     let p = path_bytes("stat", arg("stat", &args, 0)?)?;
     let follow = args.get(1).is_none_or(Value::is_true);
-    let st = if follow { sys::stat(&p) } else { sys::lstat(&p) };
+    let flags = if follow { AtFlags::empty() } else { AtFlags::SYMLINK_NOFOLLOW };
+    let st = sys::current().fstatat(dir_fd, &p, flags);
     st.map(|s| stat_tuple(&s)).map_err(|e| os_error(e, Some(&shown(&p))))
 }
 
@@ -129,70 +187,101 @@ fn fstat(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 }
 
 fn mkdir(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    no_kwargs("mkdir", &kw)?;
+    let dir_fd = kw_dir_fd("mkdir", &kw)?;
     let p = path_bytes("mkdir", arg("mkdir", &args, 0)?)?;
     let mode = args.get(1).map_or(Ok(0o777), want_int)? as u32;
-    sys::current().mkdirat(Fd::CWD, &p, mode).map_err(|e| os_error(e, Some(&shown(&p))))?;
+    sys::current().mkdirat(dir_fd, &p, mode).map_err(|e| os_error(e, Some(&shown(&p))))?;
     Ok(Value::None)
 }
 
 fn unlink(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    no_kwargs("unlink", &kw)?;
+    let dir_fd = kw_dir_fd("unlink", &kw)?;
     let p = path_bytes("unlink", arg("unlink", &args, 0)?)?;
-    sys::current().unlinkat(Fd::CWD, &p, AtFlags::empty()).map_err(|e| os_error(e, Some(&shown(&p))))?;
+    sys::current()
+        .unlinkat(dir_fd, &p, AtFlags::empty())
+        .map_err(|e| os_error(e, Some(&shown(&p))))?;
     Ok(Value::None)
 }
 
 fn rmdir(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    no_kwargs("rmdir", &kw)?;
+    let dir_fd = kw_dir_fd("rmdir", &kw)?;
     let p = path_bytes("rmdir", arg("rmdir", &args, 0)?)?;
-    sys::current().unlinkat(Fd::CWD, &p, AtFlags::REMOVEDIR).map_err(|e| os_error(e, Some(&shown(&p))))?;
+    sys::current()
+        .unlinkat(dir_fd, &p, AtFlags::REMOVEDIR)
+        .map_err(|e| os_error(e, Some(&shown(&p))))?;
     Ok(Value::None)
 }
 
 fn rename(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    no_kwargs("rename", &kw)?;
+    let o = kwopts("rename", &kw, &["src_dir_fd", "dst_dir_fd"])?;
+    let (sd, dd) = (dir_fd_of(&o[0])?, dir_fd_of(&o[1])?);
     let a = path_bytes("rename", arg("rename", &args, 0)?)?;
     let b = path_bytes("rename", arg("rename", &args, 1)?)?;
     sys::current()
-        .renameat2(Fd::CWD, &a, Fd::CWD, &b, sysabi::RenameFlags::empty())
-        .map_err(|e| os_error(e, Some(&shown(&a))))?;
+        .renameat2(sd, &a, dd, &b, sysabi::RenameFlags::empty())
+        .map_err(|e| os_error2(e, &a, &b))?;
     Ok(Value::None)
 }
 
+/// `link(src, dst, src_dir_fd=, dst_dir_fd=, follow_symlinks=)`.
+fn link(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    let o = kwopts("link", &kw, &["src_dir_fd", "dst_dir_fd", "follow_symlinks"])?;
+    let (sd, dd) = (dir_fd_of(&o[0])?, dir_fd_of(&o[1])?);
+    let flags = if o[2].as_ref().is_some_and(Value::is_true) { AtFlags::SYMLINK_FOLLOW } else { AtFlags::empty() };
+    let a = path_bytes("link", arg("link", &args, 0)?)?;
+    let b = path_bytes("link", arg("link", &args, 1)?)?;
+    sys::current().linkat(sd, &a, dd, &b, flags).map_err(|e| os_error2(e, &a, &b))?;
+    Ok(Value::None)
+}
+
+/// `mknod(path, mode, device, dir_fd=)`; o `mkfifo` do `os` passa `S_IFIFO` no modo.
+fn mknod(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    let dir_fd = kw_dir_fd("mknod", &kw)?;
+    let p = path_bytes("mknod", arg("mknod", &args, 0)?)?;
+    let mode = args.get(1).map_or(Ok(0o600), want_int)? as u32;
+    let dev = args.get(2).map_or(Ok(0), want_int)? as u64;
+    sys::current().mknodat(dir_fd, &p, mode, dev).map_err(|e| os_error(e, Some(&shown(&p))))?;
+    Ok(Value::None)
+}
+
+/// Erro de função com dois caminhos (`link`, `rename`): `[Errno N] msg: 'a' -> 'b'`.
+fn os_error2(e: Errno, a: &[u8], b: &[u8]) -> PyException {
+    os_error_msg(e, format!("[Errno {}] {}: '{}' -> '{}'", e.0, e.message(), shown(a), shown(b)))
+}
+
 fn readlink(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    no_kwargs("readlink", &kw)?;
+    let dir_fd = kw_dir_fd("readlink", &kw)?;
     let p = path_bytes("readlink", arg("readlink", &args, 0)?)?;
-    let t = sys::current().readlinkat(Fd::CWD, &p).map_err(|e| os_error(e, Some(&shown(&p))))?;
+    let t = sys::current().readlinkat(dir_fd, &p).map_err(|e| os_error(e, Some(&shown(&p))))?;
     Ok(Value::str(shown(&t)))
 }
 
 fn symlink(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    no_kwargs("symlink", &kw)?;
+    let dir_fd = kw_dir_fd("symlink", &kw)?;
     let target = path_bytes("symlink", arg("symlink", &args, 0)?)?;
     let p = path_bytes("symlink", arg("symlink", &args, 1)?)?;
-    sys::current().symlinkat(&target, Fd::CWD, &p).map_err(|e| os_error(e, Some(&shown(&p))))?;
+    sys::current().symlinkat(&target, dir_fd, &p).map_err(|e| os_error(e, Some(&shown(&p))))?;
     Ok(Value::None)
 }
 
 fn chmod(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    no_kwargs("chmod", &kw)?;
+    let dir_fd = kw_dir_fd("chmod", &kw)?;
     let p = path_bytes("chmod", arg("chmod", &args, 0)?)?;
     let mode = want_int(arg("chmod", &args, 1)?)? as u32;
-    sys::current().fchmodat(Fd::CWD, &p, mode, AtFlags::empty()).map_err(|e| os_error(e, Some(&shown(&p))))?;
+    sys::current().fchmodat(dir_fd, &p, mode, AtFlags::empty()).map_err(|e| os_error(e, Some(&shown(&p))))?;
     Ok(Value::None)
 }
 
 /// `chown(path, uid, gid)` e `lchown`: `-1` deixa o dono ou o grupo como está.
 fn chown_at(fname: &'static str, args: Vec<Value>, kw: Kw, flags: AtFlags) -> PyResult<Value> {
-    no_kwargs(fname, &kw)?;
+    let dir_fd = kw_dir_fd(fname, &kw)?;
     let p = path_bytes(fname, arg(fname, &args, 0)?)?;
     let id = |i: usize| -> PyResult<Option<u32>> {
         let n = want_int(arg(fname, &args, i)?)?;
         Ok(if n < 0 { None } else { Some(n as u32) })
     };
     let (uid, gid) = (id(1)?, id(2)?);
-    sys::current().fchownat(Fd::CWD, &p, uid, gid, flags).map_err(|e| os_error(e, Some(&shown(&p))))?;
+    sys::current().fchownat(dir_fd, &p, uid, gid, flags).map_err(|e| os_error(e, Some(&shown(&p))))?;
     Ok(Value::None)
 }
 
@@ -206,11 +295,11 @@ fn lchown(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 
 /// `access(path, mode)` como booleano.
 fn access(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    no_kwargs("access", &kw)?;
+    let dir_fd = kw_dir_fd("access", &kw)?;
     let p = path_bytes("access", arg("access", &args, 0)?)?;
     let mode = args.get(1).map_or(Ok(0), want_int)? as u32;
     let m = sysabi::AccessMode::from_bits_truncate(mode);
-    Ok(Value::Bool(sys::current().faccessat(Fd::CWD, &p, m, AtFlags::empty()).is_ok()))
+    Ok(Value::Bool(sys::current().faccessat(dir_fd, &p, m, AtFlags::empty()).is_ok()))
 }
 
 fn getenv(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -253,11 +342,11 @@ fn unsetenv(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 
 /// `open(path, flags, mode)` cru: devolve o descritor.
 fn open(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    no_kwargs("open", &kw)?;
+    let dir_fd = kw_dir_fd("open", &kw)?;
     let p = path_bytes("open", arg("open", &args, 0)?)?;
     let flags = want_int(arg("open", &args, 1)?)? as u32;
     let mode = args.get(2).map_or(Ok(0o666), want_int)? as u32;
-    let fd = sys::open(&p, OFlags::from_bits_truncate(flags) | OFlags::CLOEXEC, mode)
+    let fd = sys::current().openat(dir_fd, &p, OFlags::from_bits_truncate(flags) | OFlags::CLOEXEC, mode)
         .map_err(|e| os_error(e, Some(&shown(&p))))?;
     Ok(Value::Int(i64::from(fd.0)))
 }
@@ -441,7 +530,7 @@ fn urandom(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 
 /// `utime(path, atime, mtime)`, com segundos (float ou int); `None` nos dois significa agora.
 fn utime(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    no_kwargs("utime", &kw)?;
+    let dir_fd = kw_dir_fd("utime", &kw)?;
     let path = path_bytes("utime", arg("utime", &args, 0)?)?;
     let at = |v: Option<&Value>| -> PyResult<sysabi::SetTime> {
         Ok(match v {
@@ -455,7 +544,7 @@ fn utime(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     };
     let (a, m) = (at(args.get(1))?, at(args.get(2))?);
     sys::current()
-        .utimensat(Fd::CWD, &path, a, m, AtFlags::empty())
+        .utimensat(dir_fd, &path, a, m, AtFlags::empty())
         .map_err(|e| os_error(e, Some(&shown(&path))))?;
     Ok(Value::None)
 }
@@ -723,6 +812,8 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
         .func("unlink", unlink)
         .func("rmdir", rmdir)
         .func("rename", rename)
+        .func("link", link)
+        .func("mknod", mknod)
         .func("readlink", readlink)
         .func("symlink", symlink)
         .func("chmod", chmod)

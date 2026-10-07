@@ -1095,6 +1095,7 @@ impl Vm {
                     d.insert("errno".to_string(), errno.clone());
                     d.insert("strerror".to_string(), msg.clone());
                     d.insert("filename".to_string(), rest.first().cloned().unwrap_or(Value::None));
+                    d.insert("filename2".to_string(), rest.get(2).cloned().unwrap_or(Value::None));
                 }
             }
         }

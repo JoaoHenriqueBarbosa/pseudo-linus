@@ -258,6 +258,15 @@ fn os_error_args(kind: &str, msg: &str) -> Option<Vec<Value>> {
     let errno: i64 = num.parse().ok()?;
     let mut args = vec![Value::Int(errno)];
     match rest.rsplit_once(": '") {
+        // Dois caminhos (`link`, `rename`): `texto: 'a' -> 'b'` vira `(errno, texto, a, None, b)`.
+        Some(_) if rest.contains("' -> '") && rest.ends_with('\'') => {
+            let (text, files) = rest.split_once(": '")?;
+            let (a, b) = files[..files.len() - 1].split_once("' -> '")?;
+            args.push(Value::str(text.to_string()));
+            args.push(Value::str(a.to_string()));
+            args.push(Value::None);
+            args.push(Value::str(b.to_string()));
+        }
         Some((text, file)) if file.ends_with('\'') => {
             args.push(Value::str(text.to_string()));
             args.push(Value::str(file[..file.len() - 1].to_string()));
@@ -3185,6 +3194,9 @@ impl Vm {
                     }
                     _ => Value::None,
                 })
+            }
+            Value::Exception(e) if name == "filename2" && exc_is_subclass(&e.kind, "OSError") => {
+                Ok(e.args.get(4).cloned().unwrap_or(Value::None))
             }
             Value::Exception(e) if matches!(name, "errno" | "strerror" | "filename") && exc_is_subclass(&e.kind, "OSError") => {
                 let (errno, msg, file) = match e.args.as_slice() {
