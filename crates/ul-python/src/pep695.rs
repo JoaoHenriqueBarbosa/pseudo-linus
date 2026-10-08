@@ -135,9 +135,14 @@ fn make_param(p: &TypeParam, pos: Pos, lambdas: &mut Vec<(String, bool)>) -> (St
             (id.clone(), "TypeVarTuple", vec![text(id, pos)], keywords)
         }
     };
-    keywords.push(kw("infer_variance", ex(E::Constant { value: Constant::Bool(true), kind: None }, pos), pos));
+    // O `TypeVarTuple` não tem variância.
+    if ctor != "TypeVarTuple" {
+        keywords.push(kw("infer_variance", ex(E::Constant { value: Constant::Bool(true), kind: None }, pos), pos));
+    }
+    // `_typing._intrinsic_param(_typing.TypeVar, ...)`: o parâmetro da sintaxe sai sem `__module__` próprio.
+    args.insert(0, typing_attr(ctor, pos));
     args.shrink_to_fit();
-    let call = ex(E::Call { func: Box::new(typing_attr(ctor, pos)), args, keywords }, pos);
+    let call = ex(E::Call { func: Box::new(typing_attr("_intrinsic_param", pos)), args, keywords }, pos);
     (id.clone(), assign(name(&id, ExprContext::Store, pos), call, pos))
 }
 

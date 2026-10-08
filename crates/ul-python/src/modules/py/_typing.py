@@ -39,10 +39,13 @@ def _call_typing(name, *args, **kwargs):
     return getattr(typing, name)(*args, **kwargs)
 
 
-def _caller_module(depth):
-    """O `__name__` das globais do quadro `depth` acima do dono (o `caller()` do C), ou `None`."""
+def _caller_module():
+    """O `__name__` das globais de quem chamou o construtor (o `caller()` do C), ou `None`.
+
+    Os quadros deste módulo são de código C para o `sys._getframe`: o quadro 0 já é o do chamador.
+    """
     try:
-        return sys._getframe(depth + 1).f_globals.get('__name__')
+        return sys._getframe(0).f_globals.get('__name__')
     except ValueError:
         return None
 
@@ -73,23 +76,28 @@ def _unsubclassable(cls):
     return cls
 
 
-def _new_param(cls, name, depth):
-    """Um `cls` novo com `__name__` e `__module__`, a base de todo parâmetro de tipo.
-
-    `depth` conta os quadros entre este e o chamador do construtor (o `__new__` é 1, e cada auxiliar que o
-    chama soma um): o `__module__` é o do chamador, como o `caller()` do C.
-    """
+def _new_param(cls, name):
+    """Um `cls` novo com `__name__` e `__module__` (o do chamador do construtor), a base de todo parâmetro
+    de tipo."""
     if not isinstance(name, str):
         raise TypeError(f"{cls.__name__}() argument 'name' must be str, not {type(name).__name__}")
     self = object.__new__(cls)
     self.__name__ = name
-    self.__module__ = _caller_module(depth + 1)
+    self.__module__ = _caller_module()
+    return self
+
+
+def _intrinsic_param(cls, *args, **kwargs):
+    """O parâmetro que a sintaxe `def f[T]()` cria (o `_Py_make_typevar` do C): sem `__module__` próprio, a
+    leitura cai no da classe, `typing`."""
+    self = cls(*args, **kwargs)
+    del self.__module__
     return self
 
 
 def _new_variable(cls, name, bound, covariant, contravariant, infer_variance, default):
     """O que `TypeVar` e `ParamSpec` têm em comum: variância, limite e padrão."""
-    self = _new_param(cls, name, 2)
+    self = _new_param(cls, name)
     if covariant and contravariant:
         raise ValueError("Bivariant type variables are not supported.")
     if infer_variance and (covariant or contravariant):
@@ -222,7 +230,7 @@ class TypeVarTuple:
     __module__ = 'typing'
 
     def __new__(cls, name, *, default=NoDefault):
-        self = _new_param(cls, name, 1)
+        self = _new_param(cls, name)
         self._default = default
         return self
 
@@ -327,7 +335,7 @@ class TypeAliasType:
     __module__ = 'typing'
 
     def __new__(cls, name, value, *, type_params=()):
-        self = _new_param(cls, name, 1)
+        self = _new_param(cls, name)
         if not isinstance(type_params, tuple):
             raise TypeError("type_params must be a tuple")
         for param in type_params:

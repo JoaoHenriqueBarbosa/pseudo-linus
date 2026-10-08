@@ -6426,3 +6426,38 @@ False True\n\
 True False\n"
     );
 }
+
+/// O parâmetro de tipo da sintaxe da PEP 695 não tem `__module__` próprio (lê o da classe, `typing`); o criado
+/// pelo construtor leva o módulo de quem o chamou (conferido no oráculo).
+#[test]
+fn type_param_module_matches_cpython() {
+    let src = r#"
+def g[Q, *Ts, **P](): return Q, Ts, P
+print([x.__module__ for x in g()])
+class C[T]: pass
+print(C.__type_params__[0].__module__, C.__type_params__)
+type A[U] = list[U]
+print(A.__module__, A.__type_params__[0].__module__)
+import typing
+from typing import TypeVar
+T = TypeVar("T")
+print(typing.AnyStr.__module__, typing.T.__module__, T.__module__)
+def f():
+    return TypeVar("U")
+print(f().__module__)
+from typing import ParamSpec, TypeVarTuple, TypeAliasType
+print(ParamSpec("P").__module__, TypeVarTuple("Ts").__module__, TypeAliasType("A", int).__module__)
+type X = int
+print(X.__module__)
+"#;
+    let kit = with_debian_stdlib(sysabi::testkit::TestKit::new().programs(crate::programs()))
+        .file("/tmp/t.py", src, 0o644)
+        .cwd("/tmp");
+    let o = kit.run(&["python3", "t.py"], b"");
+    assert_eq!(o.status, sysabi::WaitStatus::Exited(0), "{}", o.stderr_str());
+    assert_eq!(
+        o.stdout_str(),
+        "['typing', 'typing', 'typing']\ntyping (T,)\n__main__ typing\ntyping typing __main__\n__main__\n\
+         __main__ __main__ __main__\n__main__\n"
+    );
+}
