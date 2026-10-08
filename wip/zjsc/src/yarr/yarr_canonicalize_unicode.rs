@@ -1,113 +1,94 @@
-//! Porte de `yarr/YarrCanonicalize.h` e `YarrCanonicalizeUCS2.cpp`.
-//!
-//! Estes dados dão, para cada ponto de código UCS2, o conjunto de pontos de código que ele deve
-//! casar sob as regras de casamento de RegExp sem diferenciar maiúsculas de minúsculas do ES6,
-//! especificadas em 21.2.2.8.2. As tabelas não Unicode são geradas por `YarrCanonicalizeUCS2.js`.
-//! As tabelas do modo Unicode (`YarrCanonicalizeUnicode.cpp`, gerado por
-//! `generateYarrCanonicalizeUnicode`) estão em `yarr_canonicalize_unicode`, geradas por
-//! `scripts/gen-yarr-canonicalize-unicode.py`.
+//! Gerado por `scripts/gen-yarr-canonicalize-unicode.py` a partir de
+//! `derived/JavaScriptCore/yarr/YarrCanonicalizeUnicode.cpp`. Não editar à mão.
 
-use super::yarr_canonicalize_unicode::{UNICODE_CHARACTER_SET_INFO, UNICODE_RANGE_INFO};
-use self::UCS2CanonicalizationType::{
-    CanonicalizeAlternatingAligned, CanonicalizeAlternatingUnaligned, CanonicalizeRangeHi,
-    CanonicalizeRangeLo, CanonicalizeSet, CanonicalizeUnique,
-};
+use super::yarr_canonicalize::UCS2CanonicalizationType::*;
+use super::yarr_canonicalize::{r, CanonicalizationRange};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum UCS2CanonicalizationType {
-    CanonicalizeUnique,               // Sem valores canonicamente iguais, p.ex. 0x0.
-    CanonicalizeSet,                  // O valor indica um conjunto em characterSetInfo.
-    CanonicalizeRangeLo,              // O valor é o delta positivo até o par, p.ex. 0x41 tem valor 0x20, -> 0x61.
-    CanonicalizeRangeHi,              // O valor é o delta positivo até o par, p.ex. 0x61 tem valor 0x20, -> 0x41.
-    CanonicalizeAlternatingAligned,   // Par consecutivo alinhado, p.ex. 0x1f4,0x1f5.
-    CanonicalizeAlternatingUnaligned, // Par consecutivo não alinhado, p.ex. 0x241,0x242.
-}
+const UNICODE_CHARACTER_SET0: &[u32] = &[0x004b, 0x006b, 0x212a, 0];
+const UNICODE_CHARACTER_SET1: &[u32] = &[0x0053, 0x0073, 0x017f, 0];
+const UNICODE_CHARACTER_SET2: &[u32] = &[0x00c5, 0x00e5, 0x212b, 0];
+const UNICODE_CHARACTER_SET3: &[u32] = &[0x01c4, 0x01c5, 0x01c6, 0];
+const UNICODE_CHARACTER_SET4: &[u32] = &[0x01c7, 0x01c8, 0x01c9, 0];
+const UNICODE_CHARACTER_SET5: &[u32] = &[0x01ca, 0x01cb, 0x01cc, 0];
+const UNICODE_CHARACTER_SET6: &[u32] = &[0x01f1, 0x01f2, 0x01f3, 0];
+const UNICODE_CHARACTER_SET7: &[u32] = &[0x0392, 0x03b2, 0x03d0, 0];
+const UNICODE_CHARACTER_SET8: &[u32] = &[0x0395, 0x03b5, 0x03f5, 0];
+const UNICODE_CHARACTER_SET9: &[u32] = &[0x0398, 0x03b8, 0x03d1, 0x03f4, 0];
+const UNICODE_CHARACTER_SET10: &[u32] = &[0x0345, 0x0399, 0x03b9, 0x1fbe, 0];
+const UNICODE_CHARACTER_SET11: &[u32] = &[0x039a, 0x03ba, 0x03f0, 0];
+const UNICODE_CHARACTER_SET12: &[u32] = &[0x00b5, 0x039c, 0x03bc, 0];
+const UNICODE_CHARACTER_SET13: &[u32] = &[0x03a0, 0x03c0, 0x03d6, 0];
+const UNICODE_CHARACTER_SET14: &[u32] = &[0x03a1, 0x03c1, 0x03f1, 0];
+const UNICODE_CHARACTER_SET15: &[u32] = &[0x03a3, 0x03c2, 0x03c3, 0];
+const UNICODE_CHARACTER_SET16: &[u32] = &[0x03a6, 0x03c6, 0x03d5, 0];
+const UNICODE_CHARACTER_SET17: &[u32] = &[0x03a9, 0x03c9, 0x2126, 0];
+const UNICODE_CHARACTER_SET18: &[u32] = &[0x0412, 0x0432, 0x1c80, 0];
+const UNICODE_CHARACTER_SET19: &[u32] = &[0x0414, 0x0434, 0x1c81, 0];
+const UNICODE_CHARACTER_SET20: &[u32] = &[0x041e, 0x043e, 0x1c82, 0];
+const UNICODE_CHARACTER_SET21: &[u32] = &[0x0421, 0x0441, 0x1c83, 0];
+const UNICODE_CHARACTER_SET22: &[u32] = &[0x0422, 0x0442, 0x1c84, 0x1c85, 0];
+const UNICODE_CHARACTER_SET23: &[u32] = &[0x042a, 0x044a, 0x1c86, 0];
+const UNICODE_CHARACTER_SET24: &[u32] = &[0x0462, 0x0463, 0x1c87, 0];
+const UNICODE_CHARACTER_SET25: &[u32] = &[0x1e60, 0x1e61, 0x1e9b, 0];
+const UNICODE_CHARACTER_SET26: &[u32] = &[0x1c88, 0xa64a, 0xa64b, 0];
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct CanonicalizationRange {
-    pub begin: u32,
-    pub end: u32,
-    pub value: u32,
-    pub type_: UCS2CanonicalizationType,
-}
-
-/// `enum class CanonicalMode { UCS2, Unicode }`.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum CanonicalMode {
-    UCS2,
-    Unicode,
-}
-
-pub(super) const fn r(begin: u32, end: u32, value: u32, type_: UCS2CanonicalizationType) -> CanonicalizationRange {
-    CanonicalizationRange { begin, end, value, type_ }
-}
-
-// Cada conjunto termina com o terminador 0, como no C++.
-const UCS2_CHARACTER_SET0: &[u32] = &[0x01c4, 0x01c5, 0x01c6, 0];
-const UCS2_CHARACTER_SET1: &[u32] = &[0x01c7, 0x01c8, 0x01c9, 0];
-const UCS2_CHARACTER_SET2: &[u32] = &[0x01ca, 0x01cb, 0x01cc, 0];
-const UCS2_CHARACTER_SET3: &[u32] = &[0x01f1, 0x01f2, 0x01f3, 0];
-const UCS2_CHARACTER_SET4: &[u32] = &[0x0392, 0x03b2, 0x03d0, 0];
-const UCS2_CHARACTER_SET5: &[u32] = &[0x0395, 0x03b5, 0x03f5, 0];
-const UCS2_CHARACTER_SET6: &[u32] = &[0x0398, 0x03b8, 0x03d1, 0];
-const UCS2_CHARACTER_SET7: &[u32] = &[0x0345, 0x0399, 0x03b9, 0x1fbe, 0];
-const UCS2_CHARACTER_SET8: &[u32] = &[0x039a, 0x03ba, 0x03f0, 0];
-const UCS2_CHARACTER_SET9: &[u32] = &[0x00b5, 0x039c, 0x03bc, 0];
-const UCS2_CHARACTER_SET10: &[u32] = &[0x03a0, 0x03c0, 0x03d6, 0];
-const UCS2_CHARACTER_SET11: &[u32] = &[0x03a1, 0x03c1, 0x03f1, 0];
-const UCS2_CHARACTER_SET12: &[u32] = &[0x03a3, 0x03c2, 0x03c3, 0];
-const UCS2_CHARACTER_SET13: &[u32] = &[0x03a6, 0x03c6, 0x03d5, 0];
-const UCS2_CHARACTER_SET14: &[u32] = &[0x0412, 0x0432, 0x1c80, 0];
-const UCS2_CHARACTER_SET15: &[u32] = &[0x0414, 0x0434, 0x1c81, 0];
-const UCS2_CHARACTER_SET16: &[u32] = &[0x041e, 0x043e, 0x1c82, 0];
-const UCS2_CHARACTER_SET17: &[u32] = &[0x0421, 0x0441, 0x1c83, 0];
-const UCS2_CHARACTER_SET18: &[u32] = &[0x0422, 0x0442, 0x1c84, 0x1c85, 0];
-const UCS2_CHARACTER_SET19: &[u32] = &[0x042a, 0x044a, 0x1c86, 0];
-const UCS2_CHARACTER_SET20: &[u32] = &[0x0462, 0x0463, 0x1c87, 0];
-const UCS2_CHARACTER_SET21: &[u32] = &[0x1e60, 0x1e61, 0x1e9b, 0];
-const UCS2_CHARACTER_SET22: &[u32] = &[0x1c88, 0xa64a, 0xa64b, 0];
-
-pub const UCS2_CANONICALIZATION_SETS: usize = 23;
-pub static UCS2_CHARACTER_SET_INFO: [&[u32]; UCS2_CANONICALIZATION_SETS] = [
-    UCS2_CHARACTER_SET0,
-    UCS2_CHARACTER_SET1,
-    UCS2_CHARACTER_SET2,
-    UCS2_CHARACTER_SET3,
-    UCS2_CHARACTER_SET4,
-    UCS2_CHARACTER_SET5,
-    UCS2_CHARACTER_SET6,
-    UCS2_CHARACTER_SET7,
-    UCS2_CHARACTER_SET8,
-    UCS2_CHARACTER_SET9,
-    UCS2_CHARACTER_SET10,
-    UCS2_CHARACTER_SET11,
-    UCS2_CHARACTER_SET12,
-    UCS2_CHARACTER_SET13,
-    UCS2_CHARACTER_SET14,
-    UCS2_CHARACTER_SET15,
-    UCS2_CHARACTER_SET16,
-    UCS2_CHARACTER_SET17,
-    UCS2_CHARACTER_SET18,
-    UCS2_CHARACTER_SET19,
-    UCS2_CHARACTER_SET20,
-    UCS2_CHARACTER_SET21,
-    UCS2_CHARACTER_SET22,
+pub const UNICODE_CANONICALIZATION_SETS: usize = 27;
+pub static UNICODE_CHARACTER_SET_INFO: [&[u32]; UNICODE_CANONICALIZATION_SETS] = [
+    UNICODE_CHARACTER_SET0,
+    UNICODE_CHARACTER_SET1,
+    UNICODE_CHARACTER_SET2,
+    UNICODE_CHARACTER_SET3,
+    UNICODE_CHARACTER_SET4,
+    UNICODE_CHARACTER_SET5,
+    UNICODE_CHARACTER_SET6,
+    UNICODE_CHARACTER_SET7,
+    UNICODE_CHARACTER_SET8,
+    UNICODE_CHARACTER_SET9,
+    UNICODE_CHARACTER_SET10,
+    UNICODE_CHARACTER_SET11,
+    UNICODE_CHARACTER_SET12,
+    UNICODE_CHARACTER_SET13,
+    UNICODE_CHARACTER_SET14,
+    UNICODE_CHARACTER_SET15,
+    UNICODE_CHARACTER_SET16,
+    UNICODE_CHARACTER_SET17,
+    UNICODE_CHARACTER_SET18,
+    UNICODE_CHARACTER_SET19,
+    UNICODE_CHARACTER_SET20,
+    UNICODE_CHARACTER_SET21,
+    UNICODE_CHARACTER_SET22,
+    UNICODE_CHARACTER_SET23,
+    UNICODE_CHARACTER_SET24,
+    UNICODE_CHARACTER_SET25,
+    UNICODE_CHARACTER_SET26,
 ];
 
-pub const UCS2_CANONICALIZATION_RANGES: usize = 460;
-pub static UCS2_RANGE_INFO: [CanonicalizationRange; UCS2_CANONICALIZATION_RANGES] = [
+pub const UNICODE_CANONICALIZATION_RANGES: usize = 548;
+pub static UNICODE_RANGE_INFO: [CanonicalizationRange; UNICODE_CANONICALIZATION_RANGES] = [
     r(0x0000, 0x0040, 0x0000, CanonicalizeUnique),
-    r(0x0041, 0x005a, 0x0020, CanonicalizeRangeLo),
+    r(0x0041, 0x004a, 0x0020, CanonicalizeRangeLo),
+    r(0x004b, 0x004b, 0x0000, CanonicalizeSet),
+    r(0x004c, 0x0052, 0x0020, CanonicalizeRangeLo),
+    r(0x0053, 0x0053, 0x0001, CanonicalizeSet),
+    r(0x0054, 0x005a, 0x0020, CanonicalizeRangeLo),
     r(0x005b, 0x0060, 0x0000, CanonicalizeUnique),
-    r(0x0061, 0x007a, 0x0020, CanonicalizeRangeHi),
+    r(0x0061, 0x006a, 0x0020, CanonicalizeRangeHi),
+    r(0x006b, 0x006b, 0x0000, CanonicalizeSet),
+    r(0x006c, 0x0072, 0x0020, CanonicalizeRangeHi),
+    r(0x0073, 0x0073, 0x0001, CanonicalizeSet),
+    r(0x0074, 0x007a, 0x0020, CanonicalizeRangeHi),
     r(0x007b, 0x00b4, 0x0000, CanonicalizeUnique),
-    r(0x00b5, 0x00b5, 0x0009, CanonicalizeSet),
+    r(0x00b5, 0x00b5, 0x000c, CanonicalizeSet),
     r(0x00b6, 0x00bf, 0x0000, CanonicalizeUnique),
-    r(0x00c0, 0x00d6, 0x0020, CanonicalizeRangeLo),
+    r(0x00c0, 0x00c4, 0x0020, CanonicalizeRangeLo),
+    r(0x00c5, 0x00c5, 0x0002, CanonicalizeSet),
+    r(0x00c6, 0x00d6, 0x0020, CanonicalizeRangeLo),
     r(0x00d7, 0x00d7, 0x0000, CanonicalizeUnique),
     r(0x00d8, 0x00de, 0x0020, CanonicalizeRangeLo),
-    r(0x00df, 0x00df, 0x0000, CanonicalizeUnique),
-    r(0x00e0, 0x00f6, 0x0020, CanonicalizeRangeHi),
+    r(0x00df, 0x00df, 0x1dbf, CanonicalizeRangeLo),
+    r(0x00e0, 0x00e4, 0x0020, CanonicalizeRangeHi),
+    r(0x00e5, 0x00e5, 0x0002, CanonicalizeSet),
+    r(0x00e6, 0x00f6, 0x0020, CanonicalizeRangeHi),
     r(0x00f7, 0x00f7, 0x0000, CanonicalizeUnique),
     r(0x00f8, 0x00fe, 0x0020, CanonicalizeRangeHi),
     r(0x00ff, 0x00ff, 0x0079, CanonicalizeRangeLo),
@@ -120,7 +101,7 @@ pub static UCS2_RANGE_INFO: [CanonicalizationRange; UCS2_CANONICALIZATION_RANGES
     r(0x014a, 0x0177, 0x0000, CanonicalizeAlternatingAligned),
     r(0x0178, 0x0178, 0x0079, CanonicalizeRangeHi),
     r(0x0179, 0x017e, 0x0000, CanonicalizeAlternatingUnaligned),
-    r(0x017f, 0x017f, 0x0000, CanonicalizeUnique),
+    r(0x017f, 0x017f, 0x0001, CanonicalizeSet),
     r(0x0180, 0x0180, 0x00c3, CanonicalizeRangeLo),
     r(0x0181, 0x0181, 0x00d2, CanonicalizeRangeLo),
     r(0x0182, 0x0185, 0x0000, CanonicalizeAlternatingAligned),
@@ -140,7 +121,7 @@ pub static UCS2_RANGE_INFO: [CanonicalizationRange; UCS2_CANONICALIZATION_RANGES
     r(0x0197, 0x0197, 0x00d1, CanonicalizeRangeLo),
     r(0x0198, 0x0199, 0x0000, CanonicalizeAlternatingAligned),
     r(0x019a, 0x019a, 0x00a3, CanonicalizeRangeLo),
-    r(0x019b, 0x019b, 0x0000, CanonicalizeUnique),
+    r(0x019b, 0x019b, 0xa641, CanonicalizeRangeLo),
     r(0x019c, 0x019c, 0x00d3, CanonicalizeRangeLo),
     r(0x019d, 0x019d, 0x00d5, CanonicalizeRangeLo),
     r(0x019e, 0x019e, 0x0082, CanonicalizeRangeLo),
@@ -162,14 +143,14 @@ pub static UCS2_RANGE_INFO: [CanonicalizationRange; UCS2_CANONICALIZATION_RANGES
     r(0x01be, 0x01be, 0x0000, CanonicalizeUnique),
     r(0x01bf, 0x01bf, 0x0038, CanonicalizeRangeLo),
     r(0x01c0, 0x01c3, 0x0000, CanonicalizeUnique),
-    r(0x01c4, 0x01c6, 0x0000, CanonicalizeSet),
-    r(0x01c7, 0x01c9, 0x0001, CanonicalizeSet),
-    r(0x01ca, 0x01cc, 0x0002, CanonicalizeSet),
+    r(0x01c4, 0x01c6, 0x0003, CanonicalizeSet),
+    r(0x01c7, 0x01c9, 0x0004, CanonicalizeSet),
+    r(0x01ca, 0x01cc, 0x0005, CanonicalizeSet),
     r(0x01cd, 0x01dc, 0x0000, CanonicalizeAlternatingUnaligned),
     r(0x01dd, 0x01dd, 0x004f, CanonicalizeRangeHi),
     r(0x01de, 0x01ef, 0x0000, CanonicalizeAlternatingAligned),
     r(0x01f0, 0x01f0, 0x0000, CanonicalizeUnique),
-    r(0x01f1, 0x01f3, 0x0003, CanonicalizeSet),
+    r(0x01f1, 0x01f3, 0x0006, CanonicalizeSet),
     r(0x01f4, 0x01f5, 0x0000, CanonicalizeAlternatingAligned),
     r(0x01f6, 0x01f6, 0x0061, CanonicalizeRangeHi),
     r(0x01f7, 0x01f7, 0x0038, CanonicalizeRangeHi),
@@ -205,7 +186,7 @@ pub static UCS2_RANGE_INFO: [CanonicalizationRange; UCS2_CANONICALIZATION_RANGES
     r(0x0261, 0x0261, 0xa54b, CanonicalizeRangeLo),
     r(0x0262, 0x0262, 0x0000, CanonicalizeUnique),
     r(0x0263, 0x0263, 0x00cf, CanonicalizeRangeHi),
-    r(0x0264, 0x0264, 0x0000, CanonicalizeUnique),
+    r(0x0264, 0x0264, 0xa567, CanonicalizeRangeLo),
     r(0x0265, 0x0265, 0xa528, CanonicalizeRangeLo),
     r(0x0266, 0x0266, 0xa544, CanonicalizeRangeLo),
     r(0x0267, 0x0267, 0x0000, CanonicalizeUnique),
@@ -240,7 +221,7 @@ pub static UCS2_RANGE_INFO: [CanonicalizationRange; UCS2_CANONICALIZATION_RANGES
     r(0x029d, 0x029d, 0xa515, CanonicalizeRangeLo),
     r(0x029e, 0x029e, 0xa512, CanonicalizeRangeLo),
     r(0x029f, 0x0344, 0x0000, CanonicalizeUnique),
-    r(0x0345, 0x0345, 0x0007, CanonicalizeSet),
+    r(0x0345, 0x0345, 0x000a, CanonicalizeSet),
     r(0x0346, 0x036f, 0x0000, CanonicalizeUnique),
     r(0x0370, 0x0373, 0x0000, CanonicalizeAlternatingAligned),
     r(0x0374, 0x0375, 0x0000, CanonicalizeUnique),
@@ -257,61 +238,65 @@ pub static UCS2_RANGE_INFO: [CanonicalizationRange; UCS2_CANONICALIZATION_RANGES
     r(0x038c, 0x038c, 0x0040, CanonicalizeRangeLo),
     r(0x038d, 0x038d, 0x0000, CanonicalizeUnique),
     r(0x038e, 0x038f, 0x003f, CanonicalizeRangeLo),
-    r(0x0390, 0x0390, 0x0000, CanonicalizeUnique),
+    r(0x0390, 0x0390, 0x1c43, CanonicalizeRangeLo),
     r(0x0391, 0x0391, 0x0020, CanonicalizeRangeLo),
-    r(0x0392, 0x0392, 0x0004, CanonicalizeSet),
+    r(0x0392, 0x0392, 0x0007, CanonicalizeSet),
     r(0x0393, 0x0394, 0x0020, CanonicalizeRangeLo),
-    r(0x0395, 0x0395, 0x0005, CanonicalizeSet),
+    r(0x0395, 0x0395, 0x0008, CanonicalizeSet),
     r(0x0396, 0x0397, 0x0020, CanonicalizeRangeLo),
-    r(0x0398, 0x0398, 0x0006, CanonicalizeSet),
-    r(0x0399, 0x0399, 0x0007, CanonicalizeSet),
-    r(0x039a, 0x039a, 0x0008, CanonicalizeSet),
+    r(0x0398, 0x0398, 0x0009, CanonicalizeSet),
+    r(0x0399, 0x0399, 0x000a, CanonicalizeSet),
+    r(0x039a, 0x039a, 0x000b, CanonicalizeSet),
     r(0x039b, 0x039b, 0x0020, CanonicalizeRangeLo),
-    r(0x039c, 0x039c, 0x0009, CanonicalizeSet),
+    r(0x039c, 0x039c, 0x000c, CanonicalizeSet),
     r(0x039d, 0x039f, 0x0020, CanonicalizeRangeLo),
-    r(0x03a0, 0x03a0, 0x000a, CanonicalizeSet),
-    r(0x03a1, 0x03a1, 0x000b, CanonicalizeSet),
+    r(0x03a0, 0x03a0, 0x000d, CanonicalizeSet),
+    r(0x03a1, 0x03a1, 0x000e, CanonicalizeSet),
     r(0x03a2, 0x03a2, 0x0000, CanonicalizeUnique),
-    r(0x03a3, 0x03a3, 0x000c, CanonicalizeSet),
+    r(0x03a3, 0x03a3, 0x000f, CanonicalizeSet),
     r(0x03a4, 0x03a5, 0x0020, CanonicalizeRangeLo),
-    r(0x03a6, 0x03a6, 0x000d, CanonicalizeSet),
-    r(0x03a7, 0x03ab, 0x0020, CanonicalizeRangeLo),
+    r(0x03a6, 0x03a6, 0x0010, CanonicalizeSet),
+    r(0x03a7, 0x03a8, 0x0020, CanonicalizeRangeLo),
+    r(0x03a9, 0x03a9, 0x0011, CanonicalizeSet),
+    r(0x03aa, 0x03ab, 0x0020, CanonicalizeRangeLo),
     r(0x03ac, 0x03ac, 0x0026, CanonicalizeRangeHi),
     r(0x03ad, 0x03af, 0x0025, CanonicalizeRangeHi),
-    r(0x03b0, 0x03b0, 0x0000, CanonicalizeUnique),
+    r(0x03b0, 0x03b0, 0x1c33, CanonicalizeRangeLo),
     r(0x03b1, 0x03b1, 0x0020, CanonicalizeRangeHi),
-    r(0x03b2, 0x03b2, 0x0004, CanonicalizeSet),
+    r(0x03b2, 0x03b2, 0x0007, CanonicalizeSet),
     r(0x03b3, 0x03b4, 0x0020, CanonicalizeRangeHi),
-    r(0x03b5, 0x03b5, 0x0005, CanonicalizeSet),
+    r(0x03b5, 0x03b5, 0x0008, CanonicalizeSet),
     r(0x03b6, 0x03b7, 0x0020, CanonicalizeRangeHi),
-    r(0x03b8, 0x03b8, 0x0006, CanonicalizeSet),
-    r(0x03b9, 0x03b9, 0x0007, CanonicalizeSet),
-    r(0x03ba, 0x03ba, 0x0008, CanonicalizeSet),
+    r(0x03b8, 0x03b8, 0x0009, CanonicalizeSet),
+    r(0x03b9, 0x03b9, 0x000a, CanonicalizeSet),
+    r(0x03ba, 0x03ba, 0x000b, CanonicalizeSet),
     r(0x03bb, 0x03bb, 0x0020, CanonicalizeRangeHi),
-    r(0x03bc, 0x03bc, 0x0009, CanonicalizeSet),
+    r(0x03bc, 0x03bc, 0x000c, CanonicalizeSet),
     r(0x03bd, 0x03bf, 0x0020, CanonicalizeRangeHi),
-    r(0x03c0, 0x03c0, 0x000a, CanonicalizeSet),
-    r(0x03c1, 0x03c1, 0x000b, CanonicalizeSet),
-    r(0x03c2, 0x03c3, 0x000c, CanonicalizeSet),
+    r(0x03c0, 0x03c0, 0x000d, CanonicalizeSet),
+    r(0x03c1, 0x03c1, 0x000e, CanonicalizeSet),
+    r(0x03c2, 0x03c3, 0x000f, CanonicalizeSet),
     r(0x03c4, 0x03c5, 0x0020, CanonicalizeRangeHi),
-    r(0x03c6, 0x03c6, 0x000d, CanonicalizeSet),
-    r(0x03c7, 0x03cb, 0x0020, CanonicalizeRangeHi),
+    r(0x03c6, 0x03c6, 0x0010, CanonicalizeSet),
+    r(0x03c7, 0x03c8, 0x0020, CanonicalizeRangeHi),
+    r(0x03c9, 0x03c9, 0x0011, CanonicalizeSet),
+    r(0x03ca, 0x03cb, 0x0020, CanonicalizeRangeHi),
     r(0x03cc, 0x03cc, 0x0040, CanonicalizeRangeHi),
     r(0x03cd, 0x03ce, 0x003f, CanonicalizeRangeHi),
     r(0x03cf, 0x03cf, 0x0008, CanonicalizeRangeLo),
-    r(0x03d0, 0x03d0, 0x0004, CanonicalizeSet),
-    r(0x03d1, 0x03d1, 0x0006, CanonicalizeSet),
+    r(0x03d0, 0x03d0, 0x0007, CanonicalizeSet),
+    r(0x03d1, 0x03d1, 0x0009, CanonicalizeSet),
     r(0x03d2, 0x03d4, 0x0000, CanonicalizeUnique),
-    r(0x03d5, 0x03d5, 0x000d, CanonicalizeSet),
-    r(0x03d6, 0x03d6, 0x000a, CanonicalizeSet),
+    r(0x03d5, 0x03d5, 0x0010, CanonicalizeSet),
+    r(0x03d6, 0x03d6, 0x000d, CanonicalizeSet),
     r(0x03d7, 0x03d7, 0x0008, CanonicalizeRangeHi),
     r(0x03d8, 0x03ef, 0x0000, CanonicalizeAlternatingAligned),
-    r(0x03f0, 0x03f0, 0x0008, CanonicalizeSet),
-    r(0x03f1, 0x03f1, 0x000b, CanonicalizeSet),
+    r(0x03f0, 0x03f0, 0x000b, CanonicalizeSet),
+    r(0x03f1, 0x03f1, 0x000e, CanonicalizeSet),
     r(0x03f2, 0x03f2, 0x0007, CanonicalizeRangeLo),
     r(0x03f3, 0x03f3, 0x0074, CanonicalizeRangeHi),
-    r(0x03f4, 0x03f4, 0x0000, CanonicalizeUnique),
-    r(0x03f5, 0x03f5, 0x0005, CanonicalizeSet),
+    r(0x03f4, 0x03f4, 0x0009, CanonicalizeSet),
+    r(0x03f5, 0x03f5, 0x0008, CanonicalizeSet),
     r(0x03f6, 0x03f6, 0x0000, CanonicalizeUnique),
     r(0x03f7, 0x03f8, 0x0000, CanonicalizeAlternatingUnaligned),
     r(0x03f9, 0x03f9, 0x0007, CanonicalizeRangeHi),
@@ -320,32 +305,32 @@ pub static UCS2_RANGE_INFO: [CanonicalizationRange; UCS2_CANONICALIZATION_RANGES
     r(0x03fd, 0x03ff, 0x0082, CanonicalizeRangeHi),
     r(0x0400, 0x040f, 0x0050, CanonicalizeRangeLo),
     r(0x0410, 0x0411, 0x0020, CanonicalizeRangeLo),
-    r(0x0412, 0x0412, 0x000e, CanonicalizeSet),
+    r(0x0412, 0x0412, 0x0012, CanonicalizeSet),
     r(0x0413, 0x0413, 0x0020, CanonicalizeRangeLo),
-    r(0x0414, 0x0414, 0x000f, CanonicalizeSet),
+    r(0x0414, 0x0414, 0x0013, CanonicalizeSet),
     r(0x0415, 0x041d, 0x0020, CanonicalizeRangeLo),
-    r(0x041e, 0x041e, 0x0010, CanonicalizeSet),
+    r(0x041e, 0x041e, 0x0014, CanonicalizeSet),
     r(0x041f, 0x0420, 0x0020, CanonicalizeRangeLo),
-    r(0x0421, 0x0421, 0x0011, CanonicalizeSet),
-    r(0x0422, 0x0422, 0x0012, CanonicalizeSet),
+    r(0x0421, 0x0421, 0x0015, CanonicalizeSet),
+    r(0x0422, 0x0422, 0x0016, CanonicalizeSet),
     r(0x0423, 0x0429, 0x0020, CanonicalizeRangeLo),
-    r(0x042a, 0x042a, 0x0013, CanonicalizeSet),
+    r(0x042a, 0x042a, 0x0017, CanonicalizeSet),
     r(0x042b, 0x042f, 0x0020, CanonicalizeRangeLo),
     r(0x0430, 0x0431, 0x0020, CanonicalizeRangeHi),
-    r(0x0432, 0x0432, 0x000e, CanonicalizeSet),
+    r(0x0432, 0x0432, 0x0012, CanonicalizeSet),
     r(0x0433, 0x0433, 0x0020, CanonicalizeRangeHi),
-    r(0x0434, 0x0434, 0x000f, CanonicalizeSet),
+    r(0x0434, 0x0434, 0x0013, CanonicalizeSet),
     r(0x0435, 0x043d, 0x0020, CanonicalizeRangeHi),
-    r(0x043e, 0x043e, 0x0010, CanonicalizeSet),
+    r(0x043e, 0x043e, 0x0014, CanonicalizeSet),
     r(0x043f, 0x0440, 0x0020, CanonicalizeRangeHi),
-    r(0x0441, 0x0441, 0x0011, CanonicalizeSet),
-    r(0x0442, 0x0442, 0x0012, CanonicalizeSet),
+    r(0x0441, 0x0441, 0x0015, CanonicalizeSet),
+    r(0x0442, 0x0442, 0x0016, CanonicalizeSet),
     r(0x0443, 0x0449, 0x0020, CanonicalizeRangeHi),
-    r(0x044a, 0x044a, 0x0013, CanonicalizeSet),
+    r(0x044a, 0x044a, 0x0017, CanonicalizeSet),
     r(0x044b, 0x044f, 0x0020, CanonicalizeRangeHi),
     r(0x0450, 0x045f, 0x0050, CanonicalizeRangeHi),
     r(0x0460, 0x0461, 0x0000, CanonicalizeAlternatingAligned),
-    r(0x0462, 0x0463, 0x0014, CanonicalizeSet),
+    r(0x0462, 0x0463, 0x0018, CanonicalizeSet),
     r(0x0464, 0x0481, 0x0000, CanonicalizeAlternatingAligned),
     r(0x0482, 0x0489, 0x0000, CanonicalizeUnique),
     r(0x048a, 0x04bf, 0x0000, CanonicalizeAlternatingAligned),
@@ -373,15 +358,16 @@ pub static UCS2_RANGE_INFO: [CanonicalizationRange; UCS2_CANONICALIZATION_RANGES
     r(0x13f6, 0x13f7, 0x0000, CanonicalizeUnique),
     r(0x13f8, 0x13fd, 0x0008, CanonicalizeRangeHi),
     r(0x13fe, 0x1c7f, 0x0000, CanonicalizeUnique),
-    r(0x1c80, 0x1c80, 0x000e, CanonicalizeSet),
-    r(0x1c81, 0x1c81, 0x000f, CanonicalizeSet),
-    r(0x1c82, 0x1c82, 0x0010, CanonicalizeSet),
-    r(0x1c83, 0x1c83, 0x0011, CanonicalizeSet),
-    r(0x1c84, 0x1c85, 0x0012, CanonicalizeSet),
-    r(0x1c86, 0x1c86, 0x0013, CanonicalizeSet),
-    r(0x1c87, 0x1c87, 0x0014, CanonicalizeSet),
-    r(0x1c88, 0x1c88, 0x0016, CanonicalizeSet),
-    r(0x1c89, 0x1c8f, 0x0000, CanonicalizeUnique),
+    r(0x1c80, 0x1c80, 0x0012, CanonicalizeSet),
+    r(0x1c81, 0x1c81, 0x0013, CanonicalizeSet),
+    r(0x1c82, 0x1c82, 0x0014, CanonicalizeSet),
+    r(0x1c83, 0x1c83, 0x0015, CanonicalizeSet),
+    r(0x1c84, 0x1c85, 0x0016, CanonicalizeSet),
+    r(0x1c86, 0x1c86, 0x0017, CanonicalizeSet),
+    r(0x1c87, 0x1c87, 0x0018, CanonicalizeSet),
+    r(0x1c88, 0x1c88, 0x001a, CanonicalizeSet),
+    r(0x1c89, 0x1c8a, 0x0000, CanonicalizeAlternatingUnaligned),
+    r(0x1c8b, 0x1c8f, 0x0000, CanonicalizeUnique),
     r(0x1c90, 0x1cba, 0x0bc0, CanonicalizeRangeHi),
     r(0x1cbb, 0x1cbc, 0x0000, CanonicalizeUnique),
     r(0x1cbd, 0x1cbf, 0x0bc0, CanonicalizeRangeHi),
@@ -393,11 +379,13 @@ pub static UCS2_RANGE_INFO: [CanonicalizationRange; UCS2_CANONICALIZATION_RANGES
     r(0x1d8e, 0x1d8e, 0x8a38, CanonicalizeRangeLo),
     r(0x1d8f, 0x1dff, 0x0000, CanonicalizeUnique),
     r(0x1e00, 0x1e5f, 0x0000, CanonicalizeAlternatingAligned),
-    r(0x1e60, 0x1e61, 0x0015, CanonicalizeSet),
+    r(0x1e60, 0x1e61, 0x0019, CanonicalizeSet),
     r(0x1e62, 0x1e95, 0x0000, CanonicalizeAlternatingAligned),
     r(0x1e96, 0x1e9a, 0x0000, CanonicalizeUnique),
-    r(0x1e9b, 0x1e9b, 0x0015, CanonicalizeSet),
-    r(0x1e9c, 0x1e9f, 0x0000, CanonicalizeUnique),
+    r(0x1e9b, 0x1e9b, 0x0019, CanonicalizeSet),
+    r(0x1e9c, 0x1e9d, 0x0000, CanonicalizeUnique),
+    r(0x1e9e, 0x1e9e, 0x1dbf, CanonicalizeRangeHi),
+    r(0x1e9f, 0x1e9f, 0x0000, CanonicalizeUnique),
     r(0x1ea0, 0x1eff, 0x0000, CanonicalizeAlternatingAligned),
     r(0x1f00, 0x1f07, 0x0008, CanonicalizeRangeLo),
     r(0x1f08, 0x1f0f, 0x0008, CanonicalizeRangeHi),
@@ -436,32 +424,56 @@ pub static UCS2_RANGE_INFO: [CanonicalizationRange; UCS2_CANONICALIZATION_RANGES
     r(0x1f78, 0x1f79, 0x0080, CanonicalizeRangeLo),
     r(0x1f7a, 0x1f7b, 0x0070, CanonicalizeRangeLo),
     r(0x1f7c, 0x1f7d, 0x007e, CanonicalizeRangeLo),
-    r(0x1f7e, 0x1faf, 0x0000, CanonicalizeUnique),
+    r(0x1f7e, 0x1f7f, 0x0000, CanonicalizeUnique),
+    r(0x1f80, 0x1f87, 0x0008, CanonicalizeRangeLo),
+    r(0x1f88, 0x1f8f, 0x0008, CanonicalizeRangeHi),
+    r(0x1f90, 0x1f97, 0x0008, CanonicalizeRangeLo),
+    r(0x1f98, 0x1f9f, 0x0008, CanonicalizeRangeHi),
+    r(0x1fa0, 0x1fa7, 0x0008, CanonicalizeRangeLo),
+    r(0x1fa8, 0x1faf, 0x0008, CanonicalizeRangeHi),
     r(0x1fb0, 0x1fb1, 0x0008, CanonicalizeRangeLo),
-    r(0x1fb2, 0x1fb7, 0x0000, CanonicalizeUnique),
+    r(0x1fb2, 0x1fb2, 0x0000, CanonicalizeUnique),
+    r(0x1fb3, 0x1fb3, 0x0009, CanonicalizeRangeLo),
+    r(0x1fb4, 0x1fb7, 0x0000, CanonicalizeUnique),
     r(0x1fb8, 0x1fb9, 0x0008, CanonicalizeRangeHi),
     r(0x1fba, 0x1fbb, 0x004a, CanonicalizeRangeHi),
-    r(0x1fbc, 0x1fbd, 0x0000, CanonicalizeUnique),
-    r(0x1fbe, 0x1fbe, 0x0007, CanonicalizeSet),
-    r(0x1fbf, 0x1fc7, 0x0000, CanonicalizeUnique),
+    r(0x1fbc, 0x1fbc, 0x0009, CanonicalizeRangeHi),
+    r(0x1fbd, 0x1fbd, 0x0000, CanonicalizeUnique),
+    r(0x1fbe, 0x1fbe, 0x000a, CanonicalizeSet),
+    r(0x1fbf, 0x1fc2, 0x0000, CanonicalizeUnique),
+    r(0x1fc3, 0x1fc3, 0x0009, CanonicalizeRangeLo),
+    r(0x1fc4, 0x1fc7, 0x0000, CanonicalizeUnique),
     r(0x1fc8, 0x1fcb, 0x0056, CanonicalizeRangeHi),
-    r(0x1fcc, 0x1fcf, 0x0000, CanonicalizeUnique),
+    r(0x1fcc, 0x1fcc, 0x0009, CanonicalizeRangeHi),
+    r(0x1fcd, 0x1fcf, 0x0000, CanonicalizeUnique),
     r(0x1fd0, 0x1fd1, 0x0008, CanonicalizeRangeLo),
-    r(0x1fd2, 0x1fd7, 0x0000, CanonicalizeUnique),
+    r(0x1fd2, 0x1fd2, 0x0000, CanonicalizeUnique),
+    r(0x1fd3, 0x1fd3, 0x1c43, CanonicalizeRangeHi),
+    r(0x1fd4, 0x1fd7, 0x0000, CanonicalizeUnique),
     r(0x1fd8, 0x1fd9, 0x0008, CanonicalizeRangeHi),
     r(0x1fda, 0x1fdb, 0x0064, CanonicalizeRangeHi),
     r(0x1fdc, 0x1fdf, 0x0000, CanonicalizeUnique),
     r(0x1fe0, 0x1fe1, 0x0008, CanonicalizeRangeLo),
-    r(0x1fe2, 0x1fe4, 0x0000, CanonicalizeUnique),
+    r(0x1fe2, 0x1fe2, 0x0000, CanonicalizeUnique),
+    r(0x1fe3, 0x1fe3, 0x1c33, CanonicalizeRangeHi),
+    r(0x1fe4, 0x1fe4, 0x0000, CanonicalizeUnique),
     r(0x1fe5, 0x1fe5, 0x0007, CanonicalizeRangeLo),
     r(0x1fe6, 0x1fe7, 0x0000, CanonicalizeUnique),
     r(0x1fe8, 0x1fe9, 0x0008, CanonicalizeRangeHi),
     r(0x1fea, 0x1feb, 0x0070, CanonicalizeRangeHi),
     r(0x1fec, 0x1fec, 0x0007, CanonicalizeRangeHi),
-    r(0x1fed, 0x1ff7, 0x0000, CanonicalizeUnique),
+    r(0x1fed, 0x1ff2, 0x0000, CanonicalizeUnique),
+    r(0x1ff3, 0x1ff3, 0x0009, CanonicalizeRangeLo),
+    r(0x1ff4, 0x1ff7, 0x0000, CanonicalizeUnique),
     r(0x1ff8, 0x1ff9, 0x0080, CanonicalizeRangeHi),
     r(0x1ffa, 0x1ffb, 0x007e, CanonicalizeRangeHi),
-    r(0x1ffc, 0x2131, 0x0000, CanonicalizeUnique),
+    r(0x1ffc, 0x1ffc, 0x0009, CanonicalizeRangeHi),
+    r(0x1ffd, 0x2125, 0x0000, CanonicalizeUnique),
+    r(0x2126, 0x2126, 0x0011, CanonicalizeSet),
+    r(0x2127, 0x2129, 0x0000, CanonicalizeUnique),
+    r(0x212a, 0x212a, 0x0000, CanonicalizeSet),
+    r(0x212b, 0x212b, 0x0002, CanonicalizeSet),
+    r(0x212c, 0x2131, 0x0000, CanonicalizeUnique),
     r(0x2132, 0x2132, 0x001c, CanonicalizeRangeLo),
     r(0x2133, 0x214d, 0x0000, CanonicalizeUnique),
     r(0x214e, 0x214e, 0x001c, CanonicalizeRangeHi),
@@ -506,7 +518,7 @@ pub static UCS2_RANGE_INFO: [CanonicalizationRange; UCS2_CANONICALIZATION_RANGES
     r(0x2d2d, 0x2d2d, 0x1c60, CanonicalizeRangeHi),
     r(0x2d2e, 0xa63f, 0x0000, CanonicalizeUnique),
     r(0xa640, 0xa649, 0x0000, CanonicalizeAlternatingAligned),
-    r(0xa64a, 0xa64b, 0x0016, CanonicalizeSet),
+    r(0xa64a, 0xa64b, 0x001a, CanonicalizeSet),
     r(0xa64c, 0xa66d, 0x0000, CanonicalizeAlternatingAligned),
     r(0xa66e, 0xa67f, 0x0000, CanonicalizeUnique),
     r(0xa680, 0xa69b, 0x0000, CanonicalizeAlternatingAligned),
@@ -541,173 +553,64 @@ pub static UCS2_RANGE_INFO: [CanonicalizationRange; UCS2_CANONICALIZATION_RANGES
     r(0xa7c5, 0xa7c5, 0xa543, CanonicalizeRangeHi),
     r(0xa7c6, 0xa7c6, 0x8a38, CanonicalizeRangeHi),
     r(0xa7c7, 0xa7ca, 0x0000, CanonicalizeAlternatingUnaligned),
-    r(0xa7cb, 0xa7cf, 0x0000, CanonicalizeUnique),
-    r(0xa7d0, 0xa7d1, 0x0000, CanonicalizeAlternatingAligned),
-    r(0xa7d2, 0xa7d5, 0x0000, CanonicalizeUnique),
-    r(0xa7d6, 0xa7d9, 0x0000, CanonicalizeAlternatingAligned),
-    r(0xa7da, 0xa7f4, 0x0000, CanonicalizeUnique),
+    r(0xa7cb, 0xa7cb, 0xa567, CanonicalizeRangeHi),
+    r(0xa7cc, 0xa7db, 0x0000, CanonicalizeAlternatingAligned),
+    r(0xa7dc, 0xa7dc, 0xa641, CanonicalizeRangeHi),
+    r(0xa7dd, 0xa7f4, 0x0000, CanonicalizeUnique),
     r(0xa7f5, 0xa7f6, 0x0000, CanonicalizeAlternatingUnaligned),
     r(0xa7f7, 0xab52, 0x0000, CanonicalizeUnique),
     r(0xab53, 0xab53, 0x03a0, CanonicalizeRangeHi),
     r(0xab54, 0xab6f, 0x0000, CanonicalizeUnique),
     r(0xab70, 0xabbf, 0x97d0, CanonicalizeRangeHi),
-    r(0xabc0, 0xff20, 0x0000, CanonicalizeUnique),
+    r(0xabc0, 0xfb04, 0x0000, CanonicalizeUnique),
+    r(0xfb05, 0xfb06, 0x0000, CanonicalizeAlternatingUnaligned),
+    r(0xfb07, 0xff20, 0x0000, CanonicalizeUnique),
     r(0xff21, 0xff3a, 0x0020, CanonicalizeRangeLo),
     r(0xff3b, 0xff40, 0x0000, CanonicalizeUnique),
     r(0xff41, 0xff5a, 0x0020, CanonicalizeRangeHi),
-    r(0xff5b, 0xffff, 0x0000, CanonicalizeUnique),
+    r(0xff5b, 0x103ff, 0x0000, CanonicalizeUnique),
+    r(0x10400, 0x10427, 0x0028, CanonicalizeRangeLo),
+    r(0x10428, 0x1044f, 0x0028, CanonicalizeRangeHi),
+    r(0x10450, 0x104af, 0x0000, CanonicalizeUnique),
+    r(0x104b0, 0x104d3, 0x0028, CanonicalizeRangeLo),
+    r(0x104d4, 0x104d7, 0x0000, CanonicalizeUnique),
+    r(0x104d8, 0x104fb, 0x0028, CanonicalizeRangeHi),
+    r(0x104fc, 0x1056f, 0x0000, CanonicalizeUnique),
+    r(0x10570, 0x1057a, 0x0027, CanonicalizeRangeLo),
+    r(0x1057b, 0x1057b, 0x0000, CanonicalizeUnique),
+    r(0x1057c, 0x1058a, 0x0027, CanonicalizeRangeLo),
+    r(0x1058b, 0x1058b, 0x0000, CanonicalizeUnique),
+    r(0x1058c, 0x10592, 0x0027, CanonicalizeRangeLo),
+    r(0x10593, 0x10593, 0x0000, CanonicalizeUnique),
+    r(0x10594, 0x10595, 0x0027, CanonicalizeRangeLo),
+    r(0x10596, 0x10596, 0x0000, CanonicalizeUnique),
+    r(0x10597, 0x105a1, 0x0027, CanonicalizeRangeHi),
+    r(0x105a2, 0x105a2, 0x0000, CanonicalizeUnique),
+    r(0x105a3, 0x105b1, 0x0027, CanonicalizeRangeHi),
+    r(0x105b2, 0x105b2, 0x0000, CanonicalizeUnique),
+    r(0x105b3, 0x105b9, 0x0027, CanonicalizeRangeHi),
+    r(0x105ba, 0x105ba, 0x0000, CanonicalizeUnique),
+    r(0x105bb, 0x105bc, 0x0027, CanonicalizeRangeHi),
+    r(0x105bd, 0x10c7f, 0x0000, CanonicalizeUnique),
+    r(0x10c80, 0x10cb2, 0x0040, CanonicalizeRangeLo),
+    r(0x10cb3, 0x10cbf, 0x0000, CanonicalizeUnique),
+    r(0x10cc0, 0x10cf2, 0x0040, CanonicalizeRangeHi),
+    r(0x10cf3, 0x10d4f, 0x0000, CanonicalizeUnique),
+    r(0x10d50, 0x10d65, 0x0020, CanonicalizeRangeLo),
+    r(0x10d66, 0x10d6f, 0x0000, CanonicalizeUnique),
+    r(0x10d70, 0x10d85, 0x0020, CanonicalizeRangeHi),
+    r(0x10d86, 0x1189f, 0x0000, CanonicalizeUnique),
+    r(0x118a0, 0x118bf, 0x0020, CanonicalizeRangeLo),
+    r(0x118c0, 0x118df, 0x0020, CanonicalizeRangeHi),
+    r(0x118e0, 0x16e3f, 0x0000, CanonicalizeUnique),
+    r(0x16e40, 0x16e5f, 0x0020, CanonicalizeRangeLo),
+    r(0x16e60, 0x16e7f, 0x0020, CanonicalizeRangeHi),
+    r(0x16e80, 0x16e9f, 0x0000, CanonicalizeUnique),
+    r(0x16ea0, 0x16eb8, 0x001b, CanonicalizeRangeLo),
+    r(0x16eb9, 0x16eba, 0x0000, CanonicalizeUnique),
+    r(0x16ebb, 0x16ed3, 0x001b, CanonicalizeRangeHi),
+    r(0x16ed4, 0x1e8ff, 0x0000, CanonicalizeUnique),
+    r(0x1e900, 0x1e921, 0x0022, CanonicalizeRangeLo),
+    r(0x1e922, 0x1e943, 0x0022, CanonicalizeRangeHi),
+    r(0x1e944, 0x10ffff, 0x0000, CanonicalizeUnique),
 ];
-
-pub static LATIN1_CANONICALIZATION_TABLE: [u16; 256] = [
-    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
-    0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
-    0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
-    0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f,
-    0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f,
-    0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5a, 0x5b, 0x5c, 0x5d, 0x5e, 0x5f,
-    0x60, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f,
-    0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5a, 0x7b, 0x7c, 0x7d, 0x7e, 0x7f,
-    0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f,
-    0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9a, 0x9b, 0x9c, 0x9d, 0x9e, 0x9f,
-    0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7, 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xae, 0xaf,
-    0xb0, 0xb1, 0xb2, 0xb3, 0xb4, 0x39c, 0xb6, 0xb7, 0xb8, 0xb9, 0xba, 0xbb, 0xbc, 0xbd, 0xbe, 0xbf,
-    0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf,
-    0xd0, 0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda, 0xdb, 0xdc, 0xdd, 0xde, 0xdf,
-    0xc0, 0xc1, 0xc2, 0xc3, 0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xcb, 0xcc, 0xcd, 0xce, 0xcf,
-    0xd0, 0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xf7, 0xd8, 0xd9, 0xda, 0xdb, 0xdc, 0xdd, 0xde, 0x178,
-];
-
-/// `canonicalCharacterSetInfo(index, canonicalMode)`: o conjunto terminado em 0.
-pub fn canonical_character_set_info(index: u32, canonical_mode: CanonicalMode) -> &'static [u32] {
-    match canonical_mode {
-        CanonicalMode::UCS2 => UCS2_CHARACTER_SET_INFO[index as usize],
-        CanonicalMode::Unicode => UNICODE_CHARACTER_SET_INFO[index as usize],
-    }
-}
-
-/// Busca binária em log2 sobre ~400-600 entradas, tipicamente 9 comparações.
-/// `canonicalRangeInfoFor(ch, canonicalMode)`.
-pub fn canonical_range_info_for(ch: u32, canonical_mode: CanonicalMode) -> &'static CanonicalizationRange {
-    let mut info: &'static [CanonicalizationRange] = match canonical_mode {
-        CanonicalMode::UCS2 => &UCS2_RANGE_INFO,
-        CanonicalMode::Unicode => &UNICODE_RANGE_INFO,
-    };
-
-    loop {
-        let candidate = info.len() >> 1;
-        let candidate_info = &info[candidate];
-        if ch < candidate_info.begin {
-            info = &info[..candidate];
-        } else if ch <= candidate_info.end {
-            return candidate_info;
-        } else {
-            info = &info[candidate + 1..];
-        }
-    }
-}
-
-/// Só deve ser chamada para caracteres que têm um valor canonicamente correspondente.
-/// `getCanonicalPair(info, ch)`.
-pub fn get_canonical_pair(info: &CanonicalizationRange, ch: u32) -> u32 {
-    assert!(ch >= info.begin && ch <= info.end);
-    match info.type_ {
-        CanonicalizeRangeLo => ch.wrapping_add(info.value),
-        CanonicalizeRangeHi => ch.wrapping_sub(info.value),
-        CanonicalizeAlternatingAligned => ch ^ 1,
-        CanonicalizeAlternatingUnaligned => (ch.wrapping_sub(1) ^ 1).wrapping_add(1),
-        // RELEASE_ASSERT_NOT_REACHED()
-        _ => unreachable!("getCanonicalPair chamado para tipo sem par único"),
-    }
-}
-
-/// Verdadeiro se nenhum outro ponto de código UCS2 pode casar com este valor.
-/// `isCanonicallyUnique(ch, canonicalMode)`.
-pub fn is_canonically_unique(ch: u32, canonical_mode: CanonicalMode) -> bool {
-    canonical_range_info_for(ch, canonical_mode).type_ == CanonicalizeUnique
-}
-
-/// Verdadeiro se os valores são iguais, sob as regras de canonicalização.
-/// `areCanonicallyEquivalent(a, b, canonicalMode)`.
-pub fn are_canonically_equivalent(a: u32, b: u32, canonical_mode: CanonicalMode) -> bool {
-    let info = canonical_range_info_for(a, canonical_mode);
-    match info.type_ {
-        CanonicalizeUnique => a == b,
-        CanonicalizeSet => {
-            for &member in canonical_character_set_info(info.value, canonical_mode) {
-                if member == 0 {
-                    break;
-                }
-                if member == b {
-                    return true;
-                }
-            }
-            false
-        }
-        CanonicalizeRangeLo => (a == b) || (a.wrapping_add(info.value) == b),
-        CanonicalizeRangeHi => (a == b) || (a.wrapping_sub(info.value) == b),
-        CanonicalizeAlternatingAligned => (a | 1) == (b | 1),
-        CanonicalizeAlternatingUnaligned => (a.wrapping_sub(1) | 1) == (b.wrapping_sub(1) | 1),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    const UCS2: CanonicalMode = CanonicalMode::UCS2;
-
-    /// Oráculo (bun 1.4.2): `/K/i.test("k")` é false e com `u` é true; o mesmo para `ſ`
-    /// contra `s`. O sinal de Kelvin e o s longo só se equivalem às letras ASCII no modo Unicode.
-    #[test]
-    fn unicode_mode_folds_kelvin_and_long_s() {
-        assert!(!are_canonically_equivalent(0x212a, 'k' as u32, UCS2));
-        assert!(are_canonically_equivalent(0x212a, 'k' as u32, CanonicalMode::Unicode));
-        assert!(!are_canonically_equivalent(0x017f, 's' as u32, UCS2));
-        assert!(are_canonically_equivalent(0x017f, 's' as u32, CanonicalMode::Unicode));
-        let last = &UNICODE_RANGE_INFO[UNICODE_RANGE_INFO.len() - 1];
-        assert_eq!(last.end, 0x10ffff);
-    }
-
-    #[test]
-    fn table_is_contiguous_and_covers_ucs2() {
-        assert_eq!(UCS2_RANGE_INFO.len(), 460);
-        assert_eq!(UCS2_RANGE_INFO[0].begin, 0);
-        assert_eq!(UCS2_RANGE_INFO[459].end, 0xffff);
-        for pair in UCS2_RANGE_INFO.windows(2) {
-            assert_eq!(pair[0].end + 1, pair[1].begin);
-        }
-        for set in UCS2_CHARACTER_SET_INFO.iter() {
-            assert_eq!(*set.last().unwrap(), 0);
-        }
-    }
-
-    #[test]
-    fn lookup_finds_every_range() {
-        for entry in UCS2_RANGE_INFO.iter() {
-            assert_eq!(canonical_range_info_for(entry.begin, UCS2), entry);
-            assert_eq!(canonical_range_info_for(entry.end, UCS2), entry);
-        }
-    }
-
-    #[test]
-    fn equivalence() {
-        assert!(are_canonically_equivalent(0x41, 0x61, UCS2));
-        assert!(are_canonically_equivalent(0x61, 0x41, UCS2));
-        assert!(!are_canonically_equivalent(0x41, 0x42, UCS2));
-        assert!(are_canonically_equivalent(0x3a3, 0x3c2, UCS2));
-        assert!(are_canonically_equivalent(0x1f4, 0x1f5, UCS2));
-        assert!(are_canonically_equivalent(0x241, 0x242, UCS2));
-        assert!(is_canonically_unique(0x30, UCS2));
-        assert!(!is_canonically_unique(0x41, UCS2));
-        assert_eq!(get_canonical_pair(canonical_range_info_for(0x41, UCS2), 0x41), 0x61);
-        assert_eq!(get_canonical_pair(canonical_range_info_for(0x61, UCS2), 0x61), 0x41);
-        assert_eq!(get_canonical_pair(canonical_range_info_for(0x241, UCS2), 0x242), 0x241);
-    }
-
-    #[test]
-    fn latin1_table() {
-        assert_eq!(LATIN1_CANONICALIZATION_TABLE[0x61], 0x41);
-        assert_eq!(LATIN1_CANONICALIZATION_TABLE[0xb5], 0x39c);
-        assert_eq!(LATIN1_CANONICALIZATION_TABLE[0xff], 0x178);
-    }
-}

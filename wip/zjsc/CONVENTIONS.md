@@ -58,10 +58,15 @@ propriedades se conferem nele.
    por `CellId(u32)`. `JSValue` é `enum JSValue { Empty, Undefined, Null, Bool(bool), Int32(i32),
    Double(f64), Cell(CellId) }`, com a semântica do `JSCJSValue.h`. Coleta por marcação e varredura,
    raízes explícitas (pilha do interpretador, handles, `MarkedArgumentBuffer`). Sem `Rc` para células.
-3. **Árvore sintática por posse**: os `Node` do `parser/Nodes.h` são `Box`/`Vec`; a herança vira
-   `enum` por família (`ExpressionNode`, `StatementNode`) com a mesma hierarquia nos nomes das
-   variantes. O `TreeBuilder` do `Parser` (template sobre `ASTBuilder`/`SyntaxChecker`) vira trait
-   com tipos associados.
+3. **Árvore sintática compartilhada**: no C++ os `Node` do `parser/Nodes.h` vivem na arena do
+   parser e o `Parser`/`ASTBuilder` guardam ponteiros para nós que já estão na árvore e os alteram
+   depois (`setIsOptionalChainBase`, `setEcmaName`, `m_next`). Por isso todo ponteiro de nó é
+   `NodeRef<T> = Rc<RefCell<T>>` (em `crate::parser::nodes`, com `node(x)` para criar), nunca `Box`;
+   igualdade de ponteiro é `Rc::ptr_eq`. A herança vira `enum` por família (`Expression`,
+   `Statement`) com uma variante `NodeRef<Struct>` por classe concreta; o acesso à base comum é
+   por `expr.base() -> Ref<ExpressionNode>` e `base_mut()`, não `Deref`. Ponteiro nulo é `Option`.
+   O `TreeBuilder` do `Parser` (template sobre `ASTBuilder`/`SyntaxChecker`) vira trait com tipos
+   associados; no `ASTBuilder` eles são os próprios `Expression`, `Statement`, `NodeRef<..>`.
 4. **Interpretador**: o bytecode é o mesmo do `derived/JavaScriptCore/Bytecodes.h` e
    `bytecode/BytecodeList.rb` (mesmos opcodes, mesmos operandos, mesma geração pelo
    `bytecompiler/`). A execução segue o `llint/LowLevelInterpreter*.asm` e os slow paths do

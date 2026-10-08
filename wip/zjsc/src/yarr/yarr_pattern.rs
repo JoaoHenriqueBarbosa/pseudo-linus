@@ -37,7 +37,9 @@ use std::collections::HashMap;
 use std::ops::{BitAnd, BitOr, BitOrAssign, Deref, DerefMut};
 
 use crate::wtf::text::wtf_string::String;
-use crate::yarr::yarr::{ExecutionMode, SpecificPattern};
+use crate::yarr::reg_exp_jit_tables;
+use crate::yarr::yarr::{BuiltInCharacterClassID, ExecutionMode, SpecificPattern};
+use crate::yarr::yarr_unicode_properties::create_unicode_character_class_for;
 use crate::yarr::yarr_flags::{FlagSet, Flags};
 
 /// `UCHAR_MAX_VALUE` do ICU: o maior ponto de código Unicode.
@@ -61,6 +63,48 @@ pub struct DisjunctionId(pub u32);
 pub struct AlternativeId {
     pub disjunction: DisjunctionId,
     pub index: u32,
+}
+
+/// `anycharCreate` (YarrPattern.cpp).
+fn anychar_create() -> CharacterClass {
+    let mut class = CharacterClass::new();
+    class.ranges8.push(CharacterRange::new(0x00, 0xff));
+    class.ranges32.push(CharacterRange::new(0x0100, UCHAR_MAX_VALUE));
+    class.character_widths = CharacterClassWidths::HasBothBMPAndNonBMP;
+    class.any_character = true;
+    class
+}
+
+/// Os acessores preguiçosos de classes embutidas de `YarrPattern`: criam a classe na primeira
+/// chamada (`m_userCharacterClasses.append(xxxCreate())`) e guardam o ponteiro no campo `xxxCached`.
+macro_rules! lazy_character_class {
+    ($($method:ident, $field:ident, $create:path;)*) => {
+        impl YarrPattern {
+            $(
+                pub fn $method(&mut self) -> CharacterClassId {
+                    if let Some(cached) = self.$field {
+                        return cached;
+                    }
+                    let id = self.append_character_class($create());
+                    self.$field = Some(id);
+                    id
+                }
+            )*
+        }
+    };
+}
+
+lazy_character_class! {
+    any_character_class, anychar_cached, anychar_create;
+    newline_character_class, newline_cached, reg_exp_jit_tables::newline_create;
+    digits_character_class, digits_cached, reg_exp_jit_tables::digits_create;
+    spaces_character_class, spaces_cached, reg_exp_jit_tables::spaces_create;
+    wordchar_character_class, wordchar_cached, reg_exp_jit_tables::wordchar_create;
+    word_unicode_ignore_case_char_character_class, word_unicode_ignore_case_char_cached, reg_exp_jit_tables::word_unicode_ignore_case_char_create;
+    nondigits_character_class, nondigits_cached, reg_exp_jit_tables::nondigits_create;
+    nonspaces_character_class, nonspaces_cached, reg_exp_jit_tables::nonspaces_create;
+    nonwordchar_character_class, nonwordchar_cached, reg_exp_jit_tables::nonwordchar_create;
+    nonword_unicode_ignore_case_char_character_class, nonword_unicode_ignore_case_char_cached, reg_exp_jit_tables::nonword_unicode_ignore_case_char_create;
 }
 
 /// Índice de uma `CharacterClass` em `YarrPattern::character_classes` (o `CharacterClass*` do C++).
@@ -979,6 +1023,18 @@ impl YarrPattern {
 
     pub fn contains_unsigned_length_pattern(&self) -> bool {
         self.contains_unsigned_length_pattern
+    }
+
+    /// `unicodeCharacterClassFor`: cria a classe na primeira chamada e guarda o ponteiro por id.
+    pub fn unicode_character_class_for(&mut self, unicode_class_id: BuiltInCharacterClassID) -> CharacterClassId {
+        debug_assert!(unicode_class_id.0 >= BuiltInCharacterClassID::BaseUnicodePropertyID.0);
+        let class_id = unicode_class_id.0;
+        if let Some(cached) = self.unicode_properties_cached.get(&class_id) {
+            return *cached;
+        }
+        let id = self.append_character_class(*create_unicode_character_class_for(unicode_class_id));
+        self.unicode_properties_cached.insert(class_id, id);
+        id
     }
 
     /// Os dois slots de frame do `DotStarEnclosure` (`YarrStackSpaceForDotStarEnclosure`): o

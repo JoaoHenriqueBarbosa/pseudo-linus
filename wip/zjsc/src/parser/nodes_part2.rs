@@ -687,7 +687,7 @@ impl AssignErrorNode {
 pub struct CommaNode {
     pub base: ExpressionNode,
     pub expr: Expression,
-    pub next: Option<Box<CommaNode>>,
+    pub next: Option<NodeRef<CommaNode>>,
 }
 
 inherit!(CommaNode => ExpressionNode);
@@ -700,18 +700,17 @@ impl CommaNode {
 
 /// `SourceElements`: a lista de statements de um bloco ou escopo.
 ///
-/// O C++ encadeia os statements pelo `m_next` de cada `StatementNode`, com ponteiros `m_head`/`m_tail`.
-/// Com posse por `Box` o rabo não pode ser guardado sem `unsafe`, e andar até ele a cada `append` tornaria
-/// a construção quadrática. A lista vira um `Vec<Statement>` na mesma ordem; o `next` do `StatementNode`
-/// só era lido pelos laços desta classe (Nodes.cpp, NodesAnalyzeModule.cpp), que iteram o `Vec`.
+/// Como no C++: os statements se encadeiam pelo `m_next` de cada `StatementNode`, e `head`/`tail` são alças
+/// para os mesmos nós, de modo que o `append` é em tempo constante.
 #[derive(Default)]
 pub struct SourceElements {
-    pub statements: Vec<Statement>,
+    head: Option<Statement>,
+    tail: Option<Statement>,
 }
 
 impl SourceElements {
     pub fn new() -> Self {
-        SourceElements { statements: Vec::new() }
+        SourceElements { head: None, tail: None }
     }
 
     pub fn append(&mut self, statement: Statement) {
@@ -719,32 +718,39 @@ impl SourceElements {
             return;
         }
 
-        self.statements.push(statement);
-    }
-
-    /// `m_head == m_tail ? m_head : nullptr`: com a lista vazia os dois são nulos e o resultado é nulo.
-    pub fn single_statement(&self) -> Option<&Statement> {
-        if self.statements.len() == 1 {
-            self.statements.first()
-        } else {
-            None
+        match self.tail.replace(statement.clone()) {
+            Some(tail) => tail.base_mut().set_next(Some(statement)),
+            None => self.head = Some(statement),
         }
     }
 
-    pub fn first_statement(&self) -> Option<&Statement> {
-        self.statements.first()
+    /// Os statements na ordem do `m_next`, a partir do `m_head`.
+    fn iter(&self) -> impl Iterator<Item = Statement> {
+        std::iter::successors(self.head.clone(), |statement| statement.base().next())
     }
 
-    pub fn last_statement(&self) -> Option<&Statement> {
-        self.statements.last()
+    /// `m_head == m_tail ? m_head : nullptr`: com a lista vazia os dois são nulos e o resultado é nulo.
+    pub fn single_statement(&self) -> Option<Statement> {
+        match (&self.head, &self.tail) {
+            (Some(head), Some(tail)) if head == tail => Some(head.clone()),
+            _ => None,
+        }
+    }
+
+    pub fn first_statement(&self) -> Option<Statement> {
+        self.head.clone()
+    }
+
+    pub fn last_statement(&self) -> Option<Statement> {
+        self.tail.clone()
     }
 
     pub fn has_completion_value(&self) -> bool {
-        self.statements.iter().any(|statement| statement.has_completion_value())
+        self.iter().any(|statement| statement.has_completion_value())
     }
 
     pub fn has_early_break_or_continue(&self) -> bool {
-        for statement in &self.statements {
+        for statement in self.iter() {
             if statement.has_early_break_or_continue() {
                 return true;
             }
@@ -760,7 +766,7 @@ impl SourceElements {
 pub struct BlockNode {
     pub base: StatementNode,
     pub variable_environment: VariableEnvironmentNode,
-    pub statements: Option<Box<SourceElements>>,
+    pub statements: Option<NodeRef<SourceElements>>,
 }
 
 inherit!(BlockNode => StatementNode);
@@ -768,7 +774,7 @@ inherit!(BlockNode => StatementNode);
 impl BlockNode {
     pub fn new(
         location: &JSTokenLocation,
-        statements: Option<Box<SourceElements>>,
+        statements: Option<NodeRef<SourceElements>>,
         lexical_variables: VariableEnvironment,
         function_stack: FunctionStack,
     ) -> Self {
@@ -779,20 +785,20 @@ impl BlockNode {
         }
     }
 
-    pub fn last_statement(&self) -> Option<&Statement> {
-        self.statements.as_ref().and_then(|statements| statements.last_statement())
+    pub fn last_statement(&self) -> Option<Statement> {
+        self.statements.as_ref().and_then(|statements| statements.borrow().last_statement())
     }
 
-    pub fn single_statement(&self) -> Option<&Statement> {
-        self.statements.as_ref().and_then(|statements| statements.single_statement())
+    pub fn single_statement(&self) -> Option<Statement> {
+        self.statements.as_ref().and_then(|statements| statements.borrow().single_statement())
     }
 
     pub fn has_completion_value(&self) -> bool {
-        self.statements.as_ref().is_some_and(|statements| statements.has_completion_value())
+        self.statements.as_ref().is_some_and(|statements| statements.borrow().has_completion_value())
     }
 
     pub fn has_early_break_or_continue(&self) -> bool {
-        self.statements.as_ref().is_some_and(|statements| statements.has_early_break_or_continue())
+        self.statements.as_ref().is_some_and(|statements| statements.borrow().has_early_break_or_continue())
     }
 }
 
@@ -1124,7 +1130,7 @@ pub struct TryNode {
     pub base: StatementNode,
     pub variable_environment: VariableEnvironmentNode,
     pub try_block: Statement,
-    pub catch_pattern: Option<Box<DestructuringPatternNode>>,
+    pub catch_pattern: Option<DestructuringPatternNode>,
     pub catch_block: Option<Statement>,
     pub finally_block: Option<Statement>,
 }
@@ -1135,7 +1141,7 @@ impl TryNode {
     pub fn new(
         location: &JSTokenLocation,
         try_block: Statement,
-        catch_pattern: Option<Box<DestructuringPatternNode>>,
+        catch_pattern: Option<DestructuringPatternNode>,
         catch_block: Option<Statement>,
         catch_environment: VariableEnvironment,
         finally_block: Option<Statement>,
@@ -1166,7 +1172,7 @@ pub struct ScopeNode {
     pub source: SourceCode,
     pub var_declarations: VariableEnvironment,
     pub num_constants: i32,
-    pub statements: Option<Box<SourceElements>>,
+    pub statements: Option<NodeRef<SourceElements>>,
 }
 
 inherit!(ScopeNode => StatementNode);
@@ -1202,7 +1208,7 @@ impl ScopeNode {
         start_location: &JSTokenLocation,
         end_location: &JSTokenLocation,
         source: &SourceCode,
-        children: Option<Box<SourceElements>>,
+        children: Option<NodeRef<SourceElements>>,
         var_environment: VariableEnvironment,
         func_stack: FunctionStack,
         lexical_variables: VariableEnvironment,
@@ -1314,8 +1320,8 @@ impl ScopeNode {
         self.num_constants + 2
     }
 
-    pub fn single_statement(&self) -> Option<&Statement> {
-        self.statements.as_ref().and_then(|statements| statements.single_statement())
+    pub fn single_statement(&self) -> Option<Statement> {
+        self.statements.as_ref().and_then(|statements| statements.borrow().single_statement())
     }
 
     pub fn is_empty_body(&self) -> bool {
@@ -1323,10 +1329,10 @@ impl ScopeNode {
     }
 
     pub fn has_completion_value(&self) -> bool {
-        self.statements.as_ref().is_some_and(|statements| statements.has_completion_value())
+        self.statements.as_ref().is_some_and(|statements| statements.borrow().has_completion_value())
     }
 
     pub fn has_early_break_or_continue(&self) -> bool {
-        self.statements.as_ref().is_some_and(|statements| statements.has_early_break_or_continue())
+        self.statements.as_ref().is_some_and(|statements| statements.borrow().has_early_break_or_continue())
     }
 }
