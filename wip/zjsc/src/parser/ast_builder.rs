@@ -306,13 +306,6 @@ impl ASTBuilder {
         self.scope.num_constants
     }
 
-    /// `classElements->setHasPrivateAccessors(...)` (`Parser.cpp`): o `classElements` do C++ é a cabeça.
-    pub fn set_has_private_accessors(&self, class_elements: &Link<PropertyListNode>, has_private_accessors: bool) {
-        if let Some(head) = class_elements.opt() {
-            head.borrow_mut().has_private_accessors = has_private_accessors;
-        }
-    }
-
     /// `ASTBuilder::checkArgumentsLengthModification`.
     fn check_arguments_length_modification(&mut self, node: &Option<Expression>) {
         // Since we exclude pattern `arguments.length` to enable ArgumentsFeature,
@@ -462,6 +455,13 @@ impl ASTBuilder {
     }
 }
 
+/// `TemplateLiteralNode*` para `ExpressionNode*` (o `TemplateLiteralNode` é uma expressão).
+impl From<Link<TemplateLiteralNode>> for Option<Expression> {
+    fn from(literal: Link<TemplateLiteralNode>) -> Option<Expression> {
+        literal.opt().map(Expression::TemplateLiteral)
+    }
+}
+
 impl TreeBuilder for ASTBuilder {
     type Expression = Option<Expression>;
     type SourceElements = Link<SourceElements>;
@@ -510,6 +510,29 @@ impl TreeBuilder for ASTBuilder {
         UnaryExprContext
     }
     fn end_unary_expr_context(&mut self, _saved: UnaryExprContext) {}
+
+    fn dot_accessor_identifier(&self, expression: &Option<Expression>) -> Option<Identifier> {
+        match expression {
+            Some(Expression::DotAccessor(dot)) => Some(dot.borrow().ident.clone()),
+            _ => None,
+        }
+    }
+
+    /// `classElements->setHasPrivateAccessors(...)` (`Parser.cpp`): o `classElements` do C++ é a cabeça.
+    fn set_has_private_accessors(&self, class_elements: &Link<PropertyListNode>, has_private_accessors: bool) {
+        if let Some(head) = class_elements.opt() {
+            head.borrow_mut().has_private_accessors = has_private_accessors;
+        }
+    }
+
+    fn set_function_body_ecma_name(body: &Option<Rc<FunctionMetadataNode>>, name: &Identifier) {
+        Self::set_metadata_ecma_name(body.as_ref().expect("RELEASE_ASSERT: FunctionMetadataNode nulo"), name);
+    }
+
+    /// `static FunctionMetadataNode* getMetadata(ParserFunctionInfo<ASTBuilder>& info)`.
+    fn get_metadata(function_info: &ParserFunctionInfo<ASTBuilder>) -> Rc<FunctionMetadataNode> {
+        Self::body_of(function_info).clone()
+    }
 
     fn create_source_elements(&mut self) -> Link<SourceElements> {
         Link::new(SourceElements::new())

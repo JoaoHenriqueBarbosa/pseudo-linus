@@ -51,6 +51,8 @@ pub struct VM {
     executing_reg_exp: Cell<usize>,
     /// `m_bytecodeIntrinsicRegistry`: criado no primeiro uso, porque precisa dos `BuiltinNames`.
     bytecode_intrinsic_registry: std::cell::OnceCell<BytecodeIntrinsicRegistry>,
+    /// `sourceProviderCacheMap`: a chave é a identidade do `SourceProvider` (o `RefPtr` guarda o objeto vivo).
+    source_provider_cache_map: RefCell<std::collections::HashMap<usize, (Rc<dyn crate::parser::source_provider::SourceProvider>, Rc<RefCell<crate::parser::source_provider_cache::SourceProviderCache>>)>>,
 }
 
 impl Default for VM {
@@ -72,6 +74,7 @@ impl VM {
             soft_stack_limit: Cell::new(0),
             executing_reg_exp: Cell::new(0),
             bytecode_intrinsic_registry: std::cell::OnceCell::new(),
+            source_provider_cache_map: RefCell::new(std::collections::HashMap::new()),
         };
         let property_names = Box::new(CommonIdentifiers::new(&vm));
         assert!(vm.property_names.0.set(property_names).is_ok());
@@ -84,6 +87,34 @@ impl VM {
             let builtin_names = self.property_names.builtin_names();
             BytecodeIntrinsicRegistry::new(|name| builtin_names.look_up_private_name(name.as_bytes())?.impl_())
         })
+    }
+
+    /// `addSourceProviderCache(SourceProvider*)`.
+    pub fn add_source_provider_cache(
+        &self,
+        source_provider: &Rc<dyn crate::parser::source_provider::SourceProvider>,
+    ) -> Rc<RefCell<crate::parser::source_provider_cache::SourceProviderCache>> {
+        let key = Rc::as_ptr(source_provider) as *const () as usize;
+        let mut map = self.source_provider_cache_map.borrow_mut();
+        let entry = map.entry(key).or_insert_with(|| {
+            let length = source_provider.source().length();
+            (
+                source_provider.clone(),
+                Rc::new(RefCell::new(crate::parser::source_provider_cache::SourceProviderCache::create(length))),
+            )
+        });
+        entry.1.clone()
+    }
+
+    /// `clearSourceProviderCaches()`.
+    pub fn clear_source_provider_caches(&self) {
+        self.source_provider_cache_map.borrow_mut().clear();
+    }
+
+    /// `isSafeToRecurse()`: o endereço de uma local aproxima o ponteiro de pilha (`currentStackPointer()`).
+    pub fn is_safe_to_recurse(&self) -> bool {
+        let marker = 0u8;
+        (&marker as *const u8 as usize) >= self.soft_stack_limit.get()
     }
 
     /// `softStackLimit()`.

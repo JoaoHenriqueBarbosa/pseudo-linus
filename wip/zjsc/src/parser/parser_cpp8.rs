@@ -78,7 +78,7 @@ impl<T: CharType> Parser<T> {
             FUNCTION => return self.parse_function_expression(context),
             CLASSTOKEN => {
                 let class_expression = self.parse_class_expression(context);
-                return class_expression.map(|class_expression| context.class_expression_as_expression(class_expression));
+                return class_expression.map(|class_expression| class_expression.into());
             }
             OPENBRACE => return self.parse_object_literal(context),
             OPENBRACKET => return self.parse_array_literal(context),
@@ -192,14 +192,14 @@ impl<T: CharType> Parser<T> {
                 self.next(LexerFlagSet::empty());
                 let re = context.create_reg_exp(&location, &pattern, &flags, start, self.lexer.is_reparsing_function());
                 if re == B::Expression::default() {
-                    let error_code = crate::yarr::yarr_syntax_checker::check_syntax(pattern.string().string(), flags.string().string());
+                    let error_code = crate::yarr::yarr_syntax_checker::check_syntax(pattern.string(), flags.string());
                     regex_fail!(self, &WtfString::from_latin1(crate::yarr::yarr_error_code::error_message(error_code).as_bytes()));
                 }
                 return Some(re);
             }
             BACKQUOTE => {
                 let template_literal = self.parse_template_literal(context, RawStringsBuildMode::DontBuildRawStrings);
-                return template_literal.map(|template_literal| context.template_literal_as_expression(template_literal));
+                return template_literal.map(|template_literal| template_literal.into());
             }
             YIELD => {
                 if self.can_use_identifier_yield() {

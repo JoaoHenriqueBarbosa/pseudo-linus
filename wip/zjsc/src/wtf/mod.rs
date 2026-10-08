@@ -7,3 +7,8 @@ pub mod unicode;
 pub mod text;
 pub mod url;
 pub mod math_extras;
+pub mod seconds;
+pub mod monotonic_time;
+pub mod fixed_vector;
+pub mod sha1;
+pub mod six_character_hash;

@@ -75,3 +75,10 @@ mod tests {
         assert!(a != SourceOrigin::default());
     }
 }
+
+impl std::fmt::Debug for SourceOrigin {
+    /// O `ScriptFetcher` é opaco; só a URL e a presença dele são observáveis.
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SourceOrigin").field("url", &self.url).field("has_fetcher", &self.fetcher.is_some()).finish()
+    }
+}

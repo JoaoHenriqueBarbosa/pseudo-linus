@@ -380,7 +380,7 @@ impl<T: CharType> Parser<T> {
         debugger_parse_data: Option<Rc<RefCell<DebuggerParseData>>>,
         is_inside_ordinary_function: bool,
     ) -> Parser<T> {
-        let function_cache = vm.add_source_provider_cache(source.provider());
+        let function_cache = source.provider().map(|provider| vm.add_source_provider_cache(provider));
         let mut parser = Parser {
             vm: vm.clone(),
             token: JSToken::default(),
@@ -455,7 +455,7 @@ impl<T: CharType> Parser<T> {
         callee_name: &Identifier,
         parsing_context: ParsingContext,
         function_constructor_parameters_end_position: Option<i32>,
-        class_element_definitions: Option<&Vec<ClassElementDefinition>>,
+        class_element_definitions: Option<&FixedVector<ClassElementDefinition>>,
         parent_scope_private_names: Option<&PrivateNameEnvironment>,
     ) -> Result<ParseInnerResult, WtfString> {
         let mut context = ASTBuilder::new(self.vm.clone(), &mut self.parser_arena, &self.source);
@@ -480,14 +480,14 @@ impl<T: CharType> Parser<T> {
             };
         }
 
-        let mut parameters = None;
+        let mut parameters = Link::<FunctionParameters>::default();
         let mut is_arrow_function_body_expression = parse_mode == SourceParseMode::AsyncArrowFunctionBodyMode && !self.match_(OPENBRACE);
         if self.lexer.is_reparsing_function() {
             let mut function_info = ParserFunctionInfo::<ASTBuilder>::default();
             if is_generator_or_async_function_body_parse_mode(parse_mode) {
                 parameters = self.create_generator_parameters(&mut context, &mut function_info.parameter_count);
             } else if parse_mode == SourceParseMode::ClassFieldInitializerMode {
-                parameters = Some(context.create_formal_parameter_list());
+                parameters = context.create_formal_parameter_list();
             } else {
                 parameters = self.parse_function_parameters(&mut context, &mut function_info);
             }
@@ -596,7 +596,7 @@ impl<T: CharType> Parser<T> {
             }
         }
 
-        let mut features = context.features();
+        let mut features = context.features() as CodeFeatures;
         if self.scope_stack[scope].shadows_arguments() {
             features |= SHADOWS_ARGUMENTS_FEATURE;
         }
@@ -627,7 +627,7 @@ impl<T: CharType> Parser<T> {
         restore_function_parse_phase!();
         Ok(ParseInnerResult {
             parameters,
-            source_elements: Some(source_elements),
+            source_elements,
             function_declarations,
             var_declarations,
             lexical_variables,
@@ -645,7 +645,8 @@ impl<T: CharType> Parser<T> {
             if self.consume(CLOSEPAREN) {
                 is_arrow_function = self.match_(ARROWFUNCTION);
             } else {
-                let mut syntax_checker = SyntaxChecker::new(self.vm.clone());
+                let vm = self.vm.clone();
+                let mut syntax_checker = SyntaxChecker::new(&vm);
                 // We make fake scope, otherwise parseFormalParameters will add variable to current scope that lead to errors
                 let pushed = self.push_scope();
                 let mut fake_scope = AutoPopScope::new(pushed);
@@ -654,10 +655,10 @@ impl<T: CharType> Parser<T> {
                 self.reset_implementation_visibility_if_needed();
 
                 let mut parameters_count: u32 = 0;
-                let mut is_arrow_function_parameter_list = true;
-                let mut is_method = false;
+                let is_arrow_function_parameter_list = true;
+                let is_method = false;
                 let parameter_list = syntax_checker.create_formal_parameter_list();
-                is_arrow_function = self.parse_formal_parameters(&mut syntax_checker, parameter_list, &mut is_arrow_function_parameter_list, &mut is_method, &mut parameters_count)
+                is_arrow_function = self.parse_formal_parameters(&mut syntax_checker, &parameter_list, is_arrow_function_parameter_list, is_method, &mut parameters_count)
                     && self.consume(CLOSEPAREN)
                     && self.match_(ARROWFUNCTION);
                 propagate_error!(self, @hook { fake_scope.cleanup(self); });
@@ -745,7 +746,8 @@ impl<T: CharType> Parser<T> {
     /// `template <class TreeBuilder> TreeSourceElements parseModuleSourceElements(TreeBuilder&)`.
     pub(crate) fn parse_module_source_elements<B: TreeBuilder>(&mut self, context: &mut B) -> Option<B::SourceElements> {
         let mut source_elements = context.create_source_elements();
-        let mut syntax_checker = SyntaxChecker::new(self.vm.clone());
+        let vm = self.vm.clone();
+        let mut syntax_checker = SyntaxChecker::new(&vm);
 
         // `goto end` vira `break`: o rótulo `end:` fica logo depois do laço.
         loop {
@@ -801,7 +803,7 @@ impl<T: CharType> Parser<T> {
         propagate_error!(self);
 
         let exported_bindings: Vec<Option<UniquedKey>> = match &self.module_scope_data {
-            Some(data) => data.borrow().exported_bindings().keys().cloned().collect(),
+            Some(data) => data.exported_bindings().keys().cloned().collect(),
             None => Vec::new(),
         };
         for uid in exported_bindings {
@@ -832,8 +834,8 @@ impl<T: CharType> Parser<T> {
 
         let function_start = self.token_start();
         let start_location = self.token_location();
-        let start = self.token_start_position();
-        let start_column = self.token_column();
+        let start = *self.token_start_position();
+        let start_column = self.token_column() as u32;
         let function_name_start = self.token.start_position.offset;
         let parameters_start = function_name_start;
 
@@ -854,17 +856,18 @@ impl<T: CharType> Parser<T> {
             let super_binding = self.super_binding;
             self.scope_stack[generator_body_scope.scope()].set_expected_super_binding(super_binding);
 
-            let mut generator_function_context = SyntaxChecker::new(self.vm.clone());
+            let vm = self.vm.clone();
+            let mut generator_function_context = SyntaxChecker::new(&vm);
             let parsed = self.parse_source_elements(&mut generator_function_context, mode);
             fail_if_false!(self, @hook { generator_body_scope.cleanup(self); }, parsed.is_some(), "Cannot parse the body of a generator");
             self.pop_scope_auto(&mut generator_body_scope, B::NEEDS_FREE_VARIABLE_INFO, false, &[]);
             generator_body_scope.cleanup(self);
         }
         info.body = context.create_function_metadata(
-            start_location,
-            self.token_location(),
+            &start_location,
+            &self.token_location(),
             start_column,
-            self.token_column(),
+            self.token_column() as u32,
             function_start,
             function_name_start,
             parameters_start,
@@ -878,11 +881,11 @@ impl<T: CharType> Parser<T> {
         );
 
         info.end_line = self.token_line();
-        info.end_offset = self.token.data.offset;
+        info.end_offset = self.token.data.offset as u32;
         info.parameters_start_column = start_column;
 
-        let function_expr = context.create_generator_function_body(start_location, &mut info, name);
-        let statement = context.create_expr_statement(start_location, function_expr, start, self.last_token_location.line);
+        let function_expr = context.create_generator_function_body(&start_location, &info, name);
+        let statement = context.create_expr_statement(&start_location, function_expr, start, self.last_token_location.line);
         context.append_statement(&mut source_elements, statement);
 
         Some(source_elements)
@@ -894,8 +897,8 @@ impl<T: CharType> Parser<T> {
 
         let function_start = self.token_start();
         let start_location = self.token_location();
-        let start = self.token_start_position();
-        let start_column = self.token_column();
+        let start = *self.token_start_position();
+        let start_column = self.token_column() as u32;
         let function_name_start = self.token.start_position.offset;
         let parameters_start = function_name_start;
         let start_line = self.token_line();
@@ -915,7 +918,8 @@ impl<T: CharType> Parser<T> {
             self.scope_stack[async_function_body_scope.scope()].set_source_parse_mode(source_parse_mode);
             self.reset_implementation_visibility_if_needed();
 
-            let mut syntax_checker = SyntaxChecker::new(self.vm.clone());
+            let vm = self.vm.clone();
+            let mut syntax_checker = SyntaxChecker::new(&vm);
             if is_arrow_function_body_expression {
                 if self.debugger_parse_data.is_some() {
                     let parsed = self.parse_arrow_function_single_expression_body_source_elements(context);
@@ -979,10 +983,10 @@ impl<T: CharType> Parser<T> {
         }
 
         info.body = context.create_function_metadata(
-            start_location,
-            self.token_location(),
+            &start_location,
+            &self.token_location(),
             start_column,
-            self.token_column(),
+            self.token_column() as u32,
             function_start,
             function_name_start,
             parameters_start,
@@ -996,14 +1000,14 @@ impl<T: CharType> Parser<T> {
         );
 
         if !callee_name.is_empty() && !callee_name.is_symbol() {
-            info.body.set_ecma_name(callee_name);
+            B::set_function_body_ecma_name(&info.body, callee_name);
         }
         info.end_line = self.token_line();
         info.end_offset = if is_arrow_function_body_expression { self.token_location().end_offset } else { self.token.data.offset as u32 };
         info.parameters_start_column = start_column;
 
-        let function_expr = context.create_async_function_body(start_location, &mut info, body_parse_mode, callee_name);
-        let statement = context.create_expr_statement(start_location, function_expr, start, self.last_token_location.line);
+        let function_expr = context.create_async_function_body(&start_location, &info, body_parse_mode, callee_name);
+        let statement = context.create_expr_statement(&start_location, function_expr, start, self.last_token_location.line);
         context.append_statement(&mut source_elements, statement);
 
         self.parse_mode = old_parse_mode;
@@ -1017,8 +1021,8 @@ impl<T: CharType> Parser<T> {
 
         let function_start = self.token_start();
         let start_location = self.token_location();
-        let start = self.token_start_position();
-        let start_column = self.token_column();
+        let start = *self.token_start_position();
+        let start_column = self.token_column() as u32;
         let function_name_start = self.token.start_position.offset;
         let parameters_start = function_name_start;
 
@@ -1040,7 +1044,8 @@ impl<T: CharType> Parser<T> {
             self.scope_stack[async_function_body_scope.scope()].set_source_parse_mode(source_parse_mode);
             self.reset_implementation_visibility_if_needed();
 
-            let mut syntax_checker = SyntaxChecker::new(self.vm.clone());
+            let vm = self.vm.clone();
+            let mut syntax_checker = SyntaxChecker::new(&vm);
             if is_arrow_function_body_expression {
                 if self.debugger_parse_data.is_some() {
                     let parsed = self.parse_arrow_function_single_expression_body_source_elements(context);
@@ -1060,10 +1065,10 @@ impl<T: CharType> Parser<T> {
             async_function_body_scope.cleanup(self);
         }
         info.body = context.create_function_metadata(
-            start_location,
-            self.token_location(),
+            &start_location,
+            &self.token_location(),
             start_column,
-            self.token_column(),
+            self.token_column() as u32,
             function_start,
             function_name_start,
             parameters_start,
@@ -1077,14 +1082,14 @@ impl<T: CharType> Parser<T> {
         );
 
         if !callee_name.is_empty() && !callee_name.is_symbol() {
-            info.body.set_ecma_name(callee_name);
+            B::set_function_body_ecma_name(&info.body, callee_name);
         }
         info.end_line = self.token_line();
         info.end_offset = if is_arrow_function_body_expression { self.token_location().end_offset } else { self.token.data.offset as u32 };
         info.parameters_start_column = start_column;
 
-        let function_expr = context.create_async_function_body(start_location, &mut info, parse_mode, callee_name);
-        let statement = context.create_expr_statement(start_location, function_expr, start, self.last_token_location.line);
+        let function_expr = context.create_async_function_body(&start_location, &info, parse_mode, callee_name);
+        let statement = context.create_expr_statement(&start_location, function_expr, start, self.last_token_location.line);
         context.append_statement(&mut source_elements, statement);
 
         self.parse_mode = old_parse_mode;

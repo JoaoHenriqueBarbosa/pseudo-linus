@@ -54,6 +54,7 @@ pub enum SourceProviderSourceType {
 pub const NULL_ID: SourceID = 1;
 
 /// O estado da classe base `SourceProvider`.
+#[derive(Debug)]
 pub struct SourceProviderBase {
     locking_count: Cell<u32>,
     source_type: SourceProviderSourceType,
@@ -101,7 +102,7 @@ impl SourceProviderBase {
 static NEXT_PROVIDER_ID: AtomicIsize = AtomicIsize::new(NULL_ID);
 
 /// `class SourceProvider`.
-pub trait SourceProvider {
+pub trait SourceProvider: std::fmt::Debug {
     /// O estado da classe base.
     fn base(&self) -> &SourceProviderBase;
 
@@ -329,6 +330,7 @@ fn open_temporary_file(prefix: &str, suffix: &str) -> Option<(PathBuf, fs::File)
 }
 
 /// `class StringSourceProvider`.
+#[derive(Debug)]
 pub struct StringSourceProvider {
     base: SourceProviderBase,
     source: Rc<StringImpl>,
@@ -400,6 +402,7 @@ pub fn base_web_assembly_source_provider_base(source_origin: &SourceOrigin, sour
 }
 
 /// `class WebAssemblySourceProvider`.
+#[derive(Debug)]
 pub struct WebAssemblySourceProvider {
     base: SourceProviderBase,
     source: WtfString,

@@ -139,13 +139,13 @@ impl<T: CharType> Parser<T> {
             debug_assert!(declaration_default_context != DeclarationDefaultContext::ExportDefault, "Export default case will export the name and binding in the caller.");
             semantic_fail_if_false_hooked!(self, @hook { self.parse_mode = old_parse_mode; }, self.export_name(&name), "Cannot export a duplicate function name: '", name, "'");
             if let Some(data) = &self.module_scope_data {
-                data.borrow_mut().export_binding_same_name(&name);
+                data.export_binding_same_name(&name);
             }
         }
 
         let result = context.create_func_decl_statement(&location, &function_info);
         if B::CREATES_AST {
-            let metadata = get_metadata(&function_info);
+            let metadata = B::get_metadata(&function_info);
             self.scope_stack[declaration_scope].append_function(metadata.clone());
             let is_sloppy_mode_hoisting_candidate = self.statement_depth != 1 && !self.strict_mode() && self.parse_mode == SourceParseMode::NormalFunctionMode;
             if is_sloppy_mode_hoisting_candidate {
@@ -221,13 +221,13 @@ impl<T: CharType> Parser<T> {
         if export_type == ExportType::Exported {
             semantic_fail_if_false_hooked!(self, @hook { self.parse_mode = old_parse_mode; }, self.export_name(&name), "Cannot export a duplicate function name: '", name, "'");
             if let Some(data) = &self.module_scope_data {
-                data.borrow_mut().export_binding_same_name(&name);
+                data.export_binding_same_name(&name);
             }
         }
 
         let result = context.create_func_decl_statement(&location, &function_info);
         if B::CREATES_AST {
-            let metadata = get_metadata(&function_info);
+            let metadata = B::get_metadata(&function_info);
             self.scope_stack[declaration_scope].append_function(metadata);
         }
         self.parse_mode = old_parse_mode;
@@ -277,7 +277,7 @@ impl<T: CharType> Parser<T> {
             debug_assert!(declaration_default_context != DeclarationDefaultContext::ExportDefault, "Export default case will export the name and binding in the caller.");
             semantic_fail_if_false!(self, self.export_name(&class_name), "Cannot export a duplicate class name: '", class_name, "'");
             if let Some(data) = &self.module_scope_data {
-                data.borrow_mut().export_binding_same_name(&class_name);
+                data.export_binding_same_name(&class_name);
             }
         }
 
@@ -779,7 +779,7 @@ impl<T: CharType> Parser<T> {
                 }
 
                 let define_field = context.create_define_field(&location, &definition.ident, initializer, type_);
-                statement = context.define_field_statement(define_field);
+                statement = define_field.into();
             }
 
             context.append_statement(&source_elements, statement);

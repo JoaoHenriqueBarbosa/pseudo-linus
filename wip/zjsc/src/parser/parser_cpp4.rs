@@ -31,24 +31,7 @@ impl<T: TreeBuilder> HasParameterCount for ParserFunctionInfo<T> {
     }
 }
 
-/// `getMetadata(ParserFunctionInfo<...>&)`: sobrecarga por tipo de construtor.
-pub trait GetMetadata {
-    fn get_metadata(&self) -> Rc<FunctionMetadataNode>;
-}
-
-/// `static NO_RETURN_DUE_TO_CRASH FunctionMetadataNode* getMetadata(ParserFunctionInfo<SyntaxChecker>&)`.
-impl<'a> GetMetadata for ParserFunctionInfo<SyntaxChecker<'a>> {
-    fn get_metadata(&self) -> Rc<FunctionMetadataNode> {
-        panic!("RELEASE_ASSERT_NOT_REACHED");
-    }
-}
-
-/// `static FunctionMetadataNode* getMetadata(ParserFunctionInfo<ASTBuilder>& info)`.
-impl GetMetadata for ParserFunctionInfo<ASTBuilder> {
-    fn get_metadata(&self) -> Rc<FunctionMetadataNode> {
-        self.body.clone()
-    }
-}
+// `getMetadata(ParserFunctionInfo<...>&)` (sobrecarga por tipo de construtor) é `TreeBuilder::get_metadata`.
 
 /// `static ALWAYS_INLINE SuperBinding adjustSuperBindingForBaseConstructor(...)`, a sobrecarga de seis
 /// argumentos.
@@ -330,7 +313,7 @@ impl<T: CharType> Parser<T> {
                 let destructuring_pattern = self.parse_destructuring_pattern(context, DestructuringKind::DestructureToParameters, ExportType::NotExported, Some(&mut duplicate_parameter), Some(&mut has_destructuring_pattern), AssignmentContext::DeclarationStatement, 0);
                 propagate_error!(self);
                 let rest_parameter = context.create_rest_parameter(destructuring_pattern.unwrap_or_default(), rest_parameter_start);
-                parameter = context.rest_pattern_to_destructuring_pattern(rest_parameter);
+                parameter = rest_parameter.into();
                 fail_if_true!(self, self.match_(COMMA), "Rest parameter should be the last parameter in a function declaration"); // Let's have a good error message for this common case.
                 is_rest_parameter = true;
             } else {

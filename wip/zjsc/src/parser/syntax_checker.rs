@@ -210,6 +210,11 @@ impl<'a> TreeBuilder for SyntaxChecker<'a> {
     const DONT_BUILD_KEYWORDS: LexerFlagSet = LexerFlagSet::new(&[LexerFlags::DontBuildKeywords]);
     const DONT_BUILD_STRINGS: LexerFlagSet = LexerFlagSet::new(&[LexerFlags::DontBuildStrings]);
 
+    /// `static NO_RETURN_DUE_TO_CRASH FunctionMetadataNode* getMetadata(ParserFunctionInfo<SyntaxChecker>&)`.
+    fn get_metadata(_function_info: &ParserFunctionInfo<SyntaxChecker<'a>>) -> std::rc::Rc<crate::parser::nodes::FunctionMetadataNode> {
+        panic!("RELEASE_ASSERT_NOT_REACHED");
+    }
+
     fn begin_binary_expr_context(&mut self) -> BinaryExprContext {
         let token = self.top_binary_expr;
         self.top_binary_expr = 0;
