@@ -89,3 +89,21 @@ BytecodeGenerator reexportado do part2, `new_label_scope_impl`.
 Lições: `include!` não divide um `impl` de trait (usar `macro_rules!` expandida dentro do impl);
 `continue` dentro de macro em `for` interno pega o laço errado (rótulo + macros definidas dentro do
 laço); subtração `unsigned` do C++ pede `wrapping_*`.
+
+## Estado em 2026-10-09 (após o parser fechar)
+
+Parser fechado e medido contra o bun 1.4.2: `tests/golden/syntax-errors.tsv` (1127 mensagens de
+SyntaxError, `parser_syntax_golden`) e `syntax-error-positions.tsv` (211 linhas de erro; o bun não
+expõe a coluna, sempre 0). `lib.rs` trava `non_snake_case` e `unreachable_patterns`: constante de
+token não importada vira padrão que casa tudo num `match`.
+
+NodesCodegen.cpp inteiro portado em fatias (`nodes_codegen_cpp1..7`, 5c e 5d), fora da compilação.
+Módulos novos que o bytecompiler cita: get_put_info, ecma_mode, error_type, error_info, js_value,
+js_string, js_type, var_offset, symbol_table (forma fina), property_attribute, handler_info,
+call_frame, instruction_stream, opcode_size, bytecode_ops (todos os Op, sem emit ainda),
+speculated_type, js_generator e afins, bit_vector, ref_counted, string_concatenate.
+
+Próximo: com a roda terminada, reabrir `static_property_*` no `bytecompiler/mod.rs`, registrar
+`bytecode_generator*` e `nodes_codegen*` e ler a lista de erros (`cargo build --message-format short`).
+Pendentes: emit e decode dos Op, UnlinkedCodeBlockGenerator, JSCell/heap (js_cell_butterfly, reg_exp),
+SymbolTable como célula, CallFrame real. Lista de nomes: `wip-notes/`.
