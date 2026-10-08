@@ -125,6 +125,13 @@ pub(super) fn parse_ulong(buf: &[u8], min: u64, max: u64) -> SysResult<u64> {
     Ok(v)
 }
 
+/// `proc_dopipe_max_size`: o número escrito arredondado como o `round_pipe_size` (no mínimo uma página,
+/// potência de 2); o que estoura 2^31 é EINVAL.
+pub(super) fn pipe_max_value(buf: &[u8]) -> SysResult<u32> {
+    let v = parse_ulong(buf, 0, u64::from(u32::MAX))?;
+    sysabi::round_pipe_size(v as u32).ok_or(Errno::EINVAL)
+}
+
 /// `proc_dostring`: até a primeira quebra de linha ou NUL, cortado em `UTS_LEN` bytes.
 pub(super) fn uts_value(buf: &[u8]) -> Vec<u8> {
     let end = buf.iter().position(|b| *b == b'\n' || *b == 0).unwrap_or(buf.len()).min(UTS_LEN);

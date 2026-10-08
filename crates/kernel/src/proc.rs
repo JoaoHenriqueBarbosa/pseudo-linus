@@ -22,6 +22,7 @@ use vfs::{Cred, PinnedLoc};
 use crate::cpu::CpuTask;
 use crate::exec::Image;
 use crate::fd::FdTable;
+use crate::itimer::Itimers;
 use crate::park::{Parker, Wake, WaitList};
 use crate::sandbox::SbInner;
 use crate::signal::SigState;
@@ -104,6 +105,31 @@ pub(crate) struct Threads {
     pub joiners: WaitList,
 }
 
+/// O fim do processo como os pidfds o enxergam (`pid->wait_pidfd`): `exited` quando a última thread saiu
+/// (zumbi), `reaped` quando o pai já o colheu. Os dois e a fila ficam sob a mesma trava, então quem registra
+/// e confere não perde o despertar.
+#[derive(Default)]
+pub(crate) struct Death {
+    pub exited: bool,
+    pub reaped: bool,
+    pub wait: WaitList,
+}
+
+impl Death {
+    /// O processo virou zumbi (`do_notify_pidfd`: chave `EPOLLIN | EPOLLRDNORM`).
+    pub(crate) fn exit(&mut self) -> Wake {
+        self.exited = true;
+        self.wait.take_key(crate::park::key::PIPE_READ)
+    }
+
+    /// O pai colheu o zumbi (o `pid` sai da tabela e a fila acorda sem chave).
+    pub(crate) fn reap(&mut self) -> Wake {
+        self.exited = true;
+        self.reaped = true;
+        self.wait.take()
+    }
+}
+
 /// Um processo.
 pub(crate) struct Proc {
     pub pid: Pid,
@@ -117,6 +143,8 @@ pub(crate) struct Proc {
     pub stopped: AtomicBool,
     /// Threads do host esperando este processo terminar.
     pub host_waiters: Mutex<WaitList>,
+    /// Quem observa o fim do processo por um pidfd.
+    pub death: Mutex<Death>,
     /// Instante de criação, em ns do relógio monotônico do sandbox.
     pub start_ns: u64,
     /// CPU das threads que já terminaram, em ns.
@@ -126,6 +154,8 @@ pub(crate) struct Proc {
     /// Pico do espaço de endereçamento e do residente, em kB (`VmPeak` e `VmHWM`).
     pub peak_size_kb: AtomicU64,
     pub peak_rss_kb: AtomicU64,
+    /// `ITIMER_REAL`, `ITIMER_VIRTUAL` e `ITIMER_PROF` (o fork não os herda, o exec os mantém).
+    pub itimers: Mutex<Itimers>,
 }
 
 impl Proc {
@@ -140,11 +170,13 @@ impl Proc {
             exit: Mutex::new(ExitState::default()),
             stopped: AtomicBool::new(false),
             host_waiters: Mutex::new(WaitList::default()),
+            death: Mutex::new(Death::default()),
             start_ns,
             cpu_done_ns: AtomicU64::new(0),
             fork_noexec: AtomicBool::new(false),
             peak_size_kb: AtomicU64::new(0),
             peak_rss_kb: AtomicU64::new(0),
+            itimers: Mutex::new(Itimers::default()),
         })
     }
 
@@ -360,6 +392,7 @@ impl Table {
     /// Remove um zumbi (colhido).
     pub(crate) fn reap(&mut self, pid: Pid) -> Option<(WaitStatus, Rusage)> {
         let e = self.map.remove(&pid)?;
+        e.proc.death.lock().reap().run();
         if let Some(parent) = self.map.get_mut(&e.rel.ppid) {
             parent.rel.children.remove(&pid);
             if let Some((_, ru)) = &e.rel.zombie {
@@ -393,6 +426,8 @@ pub(crate) fn finish_process(sb: &Arc<SbInner>, proc: &Arc<Proc>, status: WaitSt
     // Fecha os fds fora de qualquer trava (fechar pode acordar outros processos).
     let fds = proc.fds.lock().take_all();
     drop(fds);
+    sb.locks.release_posix_all(proc.pid);
+    proc.itimers.lock().cancel_all();
     let exe = proc.st.lock().exe.take();
     drop(exe);
     let mut wake = Wake::none();
@@ -420,7 +455,7 @@ pub(crate) fn finish_process(sb: &Arc<SbInner>, proc: &Arc<Proc>, status: WaitSt
         t.live = t.live.saturating_sub(1);
         let (ppid, host_tracked) = match t.rel_mut(pid) {
             Some(r) => {
-                r.zombie = Some((status, rusage.clone()));
+                r.zombie = Some((status, rusage));
                 r.stop_report = None;
                 r.cont_report = false;
                 (r.ppid, r.host_tracked)
@@ -441,6 +476,7 @@ pub(crate) fn finish_process(sb: &Arc<SbInner>, proc: &Arc<Proc>, status: WaitSt
         }
     }
     wake.merge(proc.host_waiters.lock().take());
+    wake.merge(proc.death.lock().exit());
     wake.run();
     if let Some(parent) = sigchld_to {
         crate::sys::generate_signal(&parent, Signal::SIGCHLD);

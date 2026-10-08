@@ -16,6 +16,7 @@ use std::cell::RefCell;
 use std::sync::Arc;
 use std::time::Duration;
 
+use crate::itimer::{Itimer, Itimerval};
 use crate::linux::{Errno, Signal};
 use crate::sched::{SchedAttr, SchedParam};
 use crate::types::*;
@@ -83,6 +84,12 @@ pub trait Syscalls: Send + Sync {
     fn tcsetattr(&self, fd: Fd, when: SetAttrWhen, termios: &Termios) -> SysResult<()>;
     /// `TIOCSWINSZ`. Mudar o tamanho manda SIGWINCH pro grupo em primeiro plano.
     fn tcsetwinsize(&self, fd: Fd, ws: Winsize) -> SysResult<()>;
+    /// `TCFLSH`: descarta a entrada (`TCIFLUSH`), a saída (`TCOFLUSH`) ou as duas (`TCIOFLUSH`) do
+    /// terminal. EINVAL pra fila desconhecida; mesmos erros de fd do [`Syscalls::tcgetattr`].
+    fn tcflush(&self, fd: Fd, queue: i32) -> SysResult<()>;
+    /// `TCXONC`: suspende (`TCOOFF`) ou retoma (`TCOON`) a saída, ou manda o caractere STOP (`TCIOFF`)
+    /// ou START (`TCION`) pelo terminal. EINVAL pra ação desconhecida.
+    fn tcflow(&self, fd: Fd, action: i32) -> SysResult<()>;
     /// `TIOCGPTN`: número do pty de um mestre (`/dev/pts/N`). ENOTTY pra fd que não é mestre.
     fn pty_number(&self, fd: Fd) -> SysResult<u32> {
         self.fstat(fd)?;
@@ -111,10 +118,94 @@ pub trait Syscalls: Send + Sync {
         let _ = ip;
         self.tcp_listen(port, backlog, nonblock, cloexec)
     }
+    /// `socket` + `bind` sem `listen`: reserva `ip:port` (porta 0 sorteia uma efêmera ímpar) e devolve o
+    /// fd e a porta. EADDRINUSE se outro socket, ligado ou em escuta, já tem a porta num endereço que se
+    /// encontra com `ip`. A reserva some no `close`; não aparece no `/proc/net/tcp` e não atende `connect`.
+    /// `reuse_addr` é o `SO_REUSEADDR` do socket: com ele, uma conexão em TIME_WAIT ou aberta na porta não
+    /// impede o `bind` (só um socket em escuta ou ligado sem `SO_REUSEADDR` impede); sem ele, impede.
+    fn tcp_bind(&self, ip: std::net::IpAddr, port: u16, reuse_addr: bool, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
+        let _ = (ip, port, reuse_addr, nonblock, cloexec);
+        Err(Errno::ENOSYS)
+    }
+    /// `connect` num fd que veio do `tcp_bind` e ainda não escuta: o mesmo número de fd passa a ser a
+    /// conexão, e a ponta local dela é a reserva do `bind` (a porta, o endereço se não era o curinga, o
+    /// inode do socket); devolve a porta local. EISCONN se o socket já escuta ou já conectou, ENOTSOCK se
+    /// não for socket TCP, ECONNREFUSED sem ninguém escutando (o fd segue ligado, como no Linux).
+    fn tcp_connect_bound(&self, fd: Fd, ip: std::net::IpAddr, port: u16) -> SysResult<u16> {
+        let _ = (fd, ip, port);
+        Err(Errno::ENOSYS)
+    }
+    /// `listen` num fd que veio do `tcp_bind`: o socket passa a escutar na mesma reserva (chamar de novo
+    /// só muda o backlog). EINVAL num socket já conectado, ENOTSOCK se não for socket TCP.
+    fn tcp_listen_bound(&self, fd: Fd, backlog: u32) -> SysResult<()> {
+        let _ = (fd, backlog);
+        Err(Errno::ENOSYS)
+    }
     /// `tcp_connect` a um endereço de loopback (`127.0.0.1`, `::1`): a família do socket é a dele.
     fn tcp_connect_at(&self, ip: std::net::IpAddr, port: u16, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
         let _ = ip;
         self.tcp_connect(port, nonblock, cloexec)
+    }
+    /// `socket(AF_INET ou AF_INET6, SOCK_STREAM)`: sem endereço nem porta até o `bind` ou o `connect`.
+    fn tcp_socket(&self, v6: bool, nonblock: bool, cloexec: bool) -> SysResult<Fd> {
+        let _ = (v6, nonblock, cloexec);
+        Err(Errno::ENOSYS)
+    }
+    /// `bind` num fd do `tcp_socket`: devolve a porta (0 sorteia uma efêmera ímpar). EINVAL se o socket já
+    /// tem endereço, EADDRINUSE como o `tcp_bind`.
+    fn tcp_bind_fd(&self, fd: Fd, ip: std::net::IpAddr, port: u16, reuse_addr: bool) -> SysResult<u16> {
+        let _ = (fd, ip, port, reuse_addr);
+        Err(Errno::ENOSYS)
+    }
+    /// `connect` num fd do `tcp_socket` (ligado ou não; sem `bind` a porta local é uma efêmera par). Com o
+    /// fd não bloqueante o loopback devolve EINPROGRESS (a conexão já vale; a recusa fica em `sock_error`, no
+    /// poll e no `connect` seguinte); o `connect` seguinte conclui com 0 e o terceiro dá EISCONN. Com a fila de
+    /// aceite do ouvinte cheia (mais de `backlog` conexões completas) o SYN é descartado: o bloqueante espera as
+    /// retransmissões (1, 3, 7... s, `ETIMEDOUT` em 127 s) e o não bloqueante dá EINPROGRESS, depois EALREADY
+    /// até a conexão sair (`POLLOUT`) ou falhar.
+    fn tcp_connect_fd(&self, fd: Fd, ip: std::net::IpAddr, port: u16) -> SysResult<()> {
+        let _ = (fd, ip, port);
+        Err(Errno::ENOSYS)
+    }
+    /// `getsockname` e `getpeername` de um socket TCP; o par é `None` sem conexão.
+    #[allow(clippy::type_complexity)]
+    fn tcp_names(&self, fd: Fd) -> SysResult<((std::net::IpAddr, u16), Option<(std::net::IpAddr, u16)>)> {
+        let _ = fd;
+        Err(Errno::ENOSYS)
+    }
+    /// `(domínio, tipo, protocolo, em escuta)` de um socket: `SO_DOMAIN`, `SO_TYPE`, `SO_PROTOCOL` e
+    /// `SO_ACCEPTCONN`. ENOTSOCK se o fd não é socket.
+    fn sock_info(&self, fd: Fd) -> SysResult<(i32, i32, i32, bool)> {
+        let _ = fd;
+        Err(Errno::ENOSYS)
+    }
+    /// `SO_ERROR`: o erro pendente do socket, que a leitura zera.
+    fn sock_error(&self, fd: Fd) -> SysResult<i32> {
+        let _ = fd;
+        Err(Errno::ENOSYS)
+    }
+    /// Guarda o valor de uma opção de socket (`setsockopt`); o Python valida e normaliza antes.
+    fn sock_setopt(&self, fd: Fd, level: i32, name: i32, value: &[u8]) -> SysResult<()> {
+        let _ = (fd, level, name, value);
+        Err(Errno::ENOSYS)
+    }
+    /// O valor guardado de uma opção de socket, ou `None` se ninguém a definiu.
+    fn sock_getopt(&self, fd: Fd, level: i32, name: i32) -> SysResult<Option<Vec<u8>>> {
+        let _ = (fd, level, name);
+        Err(Errno::ENOSYS)
+    }
+    /// `recv(2)` num socket de fluxo (TCP ou Unix): até `max` bytes, com `MSG_PEEK`, `MSG_DONTWAIT` e
+    /// `MSG_WAITALL`. Fim de fluxo é o vetor vazio; os dados que já chegaram saem antes de qualquer erro.
+    /// Sem conexão: ENOTCONN no TCP (depois de um `connect` recusado, o erro pendente uma vez e então 0).
+    fn sock_recv(&self, fd: Fd, max: usize, flags: MsgFlags) -> SysResult<Vec<u8>> {
+        let _ = (fd, max, flags);
+        Err(Errno::ENOSYS)
+    }
+    /// `send(2)` num socket de fluxo (TCP ou Unix): `MSG_DONTWAIT` e `MSG_NOSIGNAL`. EPIPE (com SIGPIPE, salvo
+    /// `MSG_NOSIGNAL`) sem conexão no TCP, depois de `SHUT_WR` e depois do RST.
+    fn sock_send(&self, fd: Fd, buf: &[u8], flags: MsgFlags) -> SysResult<usize> {
+        let _ = (fd, buf, flags);
+        Err(Errno::ENOSYS)
     }
     /// `shutdown(2)`: fecha a leitura, a escrita ou as duas.
     fn tcp_shutdown(&self, fd: Fd, read: bool, write: bool) -> SysResult<()> {
@@ -206,6 +297,19 @@ pub trait Syscalls: Send + Sync {
         let _ = (fd, max, peek);
         Err(Errno::ENOSYS)
     }
+    /// `sendmsg(2)` num socket `AF_UNIX`: os dados, o nome do destino (datagrama) e o `msg_control` cru
+    /// (`SCM_RIGHTS` e `SCM_CREDENTIALS`, ver [`crate::cmsg`]). Os erros e a ordem são os do `__scm_send` e do
+    /// `unix_*_sendmsg`: o controle malformado é EINVAL, descritor ruim EBADF, controle grande ENOBUFS.
+    fn unix_sendmsg(&self, fd: Fd, data: &[u8], name: Option<&[u8]>, control: &[u8], flags: MsgFlags) -> SysResult<usize> {
+        let _ = (fd, data, name, control, flags);
+        Err(Errno::ENOSYS)
+    }
+    /// `recvmsg(2)` num socket `AF_UNIX`: até `max` bytes e um `msg_control` de até `control_len` bytes. Os
+    /// descritores recebidos entram na tabela de quem chama; o que não coube vira `MSG_CTRUNC`.
+    fn unix_recvmsg(&self, fd: Fd, max: usize, control_len: usize, flags: MsgFlags) -> SysResult<RecvMsg> {
+        let _ = (fd, max, control_len, flags);
+        Err(Errno::ENOSYS)
+    }
     /// `TIOCSPTLCK`: trava (`true`) ou destrava o escravo de um mestre (`unlockpt` destrava).
     fn pty_set_lock(&self, fd: Fd, locked: bool) -> SysResult<()> {
         let _ = locked;
@@ -266,7 +370,17 @@ pub trait Syscalls: Send + Sync {
     /// Substitui o programa do processo corrente (mesmo pid). Só volta em caso de erro.
     fn execve(&self, path: &[u8], argv: &[Vec<u8>], env: Option<&[Vec<u8>]>) -> Errno;
     /// `None` com `NOHANG` e nenhum filho mudou; ECHILD sem filhos.
-    fn wait4(&self, target: WaitTarget, options: WaitOptions) -> SysResult<Option<(Pid, WaitStatus)>>;
+    fn wait4(&self, target: WaitTarget, options: WaitOptions) -> SysResult<Option<(Pid, WaitStatus)>> {
+        Ok(self.wait4_info(target, options)?.map(|i| (i.pid, i.status)))
+    }
+    /// O `wait4(2)` completo: além do pid e do estado, o `rusage` do filho colhido.
+    fn wait4_info(&self, target: WaitTarget, options: WaitOptions) -> SysResult<Option<WaitInfo>>;
+    /// `waitid(2)`: `options` leva `EXITED`, `UNTRACED` (`WSTOPPED`) e `CONTINUED` (ao menos um, senão
+    /// EINVAL), `NOHANG` e `NOWAIT`. `None` com `NOHANG` e nenhum evento; ECHILD sem filhos que casem.
+    fn waitid(&self, target: WaitIdTarget, options: WaitOptions) -> SysResult<Option<WaitInfo>> {
+        let _ = (target, options);
+        Err(Errno::ENOSYS)
+    }
     fn kill(&self, target: KillTarget, sig: Signal) -> SysResult<()>;
     fn sigaction(&self, sig: Signal, disposition: SigDisposition) -> SysResult<SigDisposition>;
     /// Sinais com disposição `Catch` que chegaram desde a última chamada, na ordem de chegada.
@@ -429,6 +543,25 @@ pub trait Syscalls: Send + Sync {
     fn clock_gettime(&self, clock: Clock) -> SysResult<TimeSpec>;
     /// EINTR se um sinal capturado chegar antes do fim.
     fn nanosleep(&self, d: Duration) -> SysResult<()>;
+    /// `setitimer(2)`: rearma o relógio `which` (`ITIMER_REAL` 0, `ITIMER_VIRTUAL` 1, `ITIMER_PROF` 2) e devolve o
+    /// que ele tinha. O timer é do processo: o filho do `fork` nasce sem eles e o `execve` os preserva. Vence com
+    /// `SIGALRM`, `SIGVTALRM` ou `SIGPROF`. EINVAL com `which` desconhecido ou `timeval` inválido (`usec` fora de
+    /// `0..1_000_000`, ou algum campo negativo).
+    fn setitimer(&self, which: i32, new: Itimerval) -> SysResult<Itimerval> {
+        let _ = (which, new);
+        Err(Errno::ENOSYS)
+    }
+    /// `getitimer(2)`: o que falta para o relógio `which` vencer e o intervalo dele.
+    fn getitimer(&self, which: i32) -> SysResult<Itimerval> {
+        let _ = which;
+        Err(Errno::ENOSYS)
+    }
+    /// `alarm(2)`: um `SIGALRM` daqui a `seconds` (0 cancela; o excedente de `INT_MAX` é cortado) e os segundos que
+    /// faltavam do alarme anterior (ver [`Itimerval::alarm_remaining`]). É o `setitimer(ITIMER_REAL)` sem intervalo.
+    fn alarm(&self, seconds: u32) -> SysResult<u32> {
+        let seconds = i64::from(seconds.min(i32::MAX as u32));
+        Ok(self.setitimer(Itimer::Real as i32, Itimerval::oneshot(seconds))?.alarm_remaining())
+    }
     fn getrandom(&self, buf: &mut [u8]) -> SysResult<usize>;
     /// Fuso local do sandbox (conteúdo de `/etc/localtime` ou `TZ`), pra ferramentas de data.
     fn local_timezone(&self) -> Vec<u8>;
@@ -437,12 +570,121 @@ pub trait Syscalls: Send + Sync {
     /// `poll(2)` em qualquer fd (socket, pipe, arquivo). `None` espera sem limite. EINTR com sinal
     /// capturado. Devolve quantas entradas têm `revents` não vazio.
     fn poll(&self, fds: &mut [PollFd], timeout: Option<Duration>) -> SysResult<usize>;
+    /// `epoll_create1(2)`: um fd de epoll (`anon_inode:[eventpoll]`).
+    fn epoll_create1(&self, cloexec: bool) -> SysResult<Fd> {
+        let _ = cloexec;
+        Err(Errno::ENOSYS)
+    }
+    /// `pidfd_open(2)`: um fd (`anon_inode:[pidfd]`) que fica legível quando o processo termina. `flags` aceita
+    /// `O_NONBLOCK` (`PIDFD_NONBLOCK`) e `0o200` (`PIDFD_THREAD`). ESRCH se o pid não existe, ENOENT se é
+    /// de uma thread que não é líder e `PIDFD_THREAD` não veio.
+    fn pidfd_open(&self, pid: Pid, flags: u32) -> SysResult<Fd> {
+        let _ = (pid, flags);
+        Err(Errno::ENOSYS)
+    }
+    /// `chroot(2)`: a raiz do processo passa a ser o diretório `path`. EPERM para quem não é root (o contêiner
+    /// padrão do docker dá `CAP_SYS_CHROOT` ao root).
+    fn chroot(&self, path: &[u8]) -> SysResult<()> {
+        let _ = path;
+        Err(Errno::ENOSYS)
+    }
+    /// `eventfd2(2)`: um contador de 64 bits atrás de um fd (`anon_inode:[eventfd]`). `flags` aceita
+    /// `EFD_SEMAPHORE` (1), `EFD_NONBLOCK` (`O_NONBLOCK`) e `EFD_CLOEXEC` (`O_CLOEXEC`); outro bit é EINVAL.
+    /// `read` e `write` movem 8 bytes (EINVAL com menos).
+    fn eventfd(&self, initval: u32, flags: u32) -> SysResult<Fd> {
+        let _ = (initval, flags);
+        Err(Errno::ENOSYS)
+    }
+    /// `timerfd_create(2)`: `clock` é `CLOCK_REALTIME` (0), `CLOCK_MONOTONIC` (1), `CLOCK_BOOTTIME` (7),
+    /// `CLOCK_REALTIME_ALARM` (8) ou `CLOCK_BOOTTIME_ALARM` (9); `flags` aceita `TFD_NONBLOCK` e `TFD_CLOEXEC`.
+    fn timerfd_create(&self, clock: i32, flags: u32) -> SysResult<Fd> {
+        let _ = (clock, flags);
+        Err(Errno::ENOSYS)
+    }
+    /// `timerfd_settime(2)` em nanossegundos: `value_ns` zero desarma; `flags` leva `TFD_TIMER_ABSTIME` (1) e
+    /// `TFD_TIMER_CANCEL_ON_SET` (2). Devolve o que faltava e o intervalo de antes.
+    fn timerfd_settime(&self, fd: Fd, flags: u32, value_ns: u64, interval_ns: u64) -> SysResult<(u64, u64)> {
+        let _ = (fd, flags, value_ns, interval_ns);
+        Err(Errno::ENOSYS)
+    }
+    /// `timerfd_gettime(2)`: o que falta para vencer e o intervalo, em nanossegundos.
+    fn timerfd_gettime(&self, fd: Fd) -> SysResult<(u64, u64)> {
+        let _ = fd;
+        Err(Errno::ENOSYS)
+    }
+    /// `memfd_create(2)`: um arquivo anônimo na memória, visível em `/proc/<pid>/fd` como `/memfd:NOME (deleted)`.
+    /// `flags` aceita `MFD_CLOEXEC` (1) e `MFD_ALLOW_SEALING` (2); `MFD_HUGETLB` é EINVAL nesta máquina.
+    fn memfd_create(&self, name: &[u8], flags: u32) -> SysResult<Fd> {
+        let _ = (name, flags);
+        Err(Errno::ENOSYS)
+    }
+    /// `getxattr`/`lgetxattr`/`fgetxattr`: o valor do atributo `name`. `AtFlags::EMPTY_PATH` com `path` vazio é
+    /// o `fgetxattr` de `dirfd`; `SYMLINK_NOFOLLOW` é o `lgetxattr`. ENODATA sem o atributo.
+    fn getxattr(&self, dirfd: Fd, path: &[u8], flags: AtFlags, name: &[u8]) -> SysResult<Vec<u8>> {
+        let _ = (dirfd, path, flags, name);
+        Err(Errno::ENOSYS)
+    }
+    /// `setxattr` e variantes; `xflags` é `XATTR_CREATE` (1) ou `XATTR_REPLACE` (2).
+    fn setxattr(&self, dirfd: Fd, path: &[u8], flags: AtFlags, name: &[u8], value: &[u8], xflags: u32) -> SysResult<()> {
+        let _ = (dirfd, path, flags, name, value, xflags);
+        Err(Errno::ENOSYS)
+    }
+    /// `listxattr` e variantes: os nomes, na ordem em que o sistema de arquivos os guarda.
+    fn listxattr(&self, dirfd: Fd, path: &[u8], flags: AtFlags) -> SysResult<Vec<Vec<u8>>> {
+        let _ = (dirfd, path, flags);
+        Err(Errno::ENOSYS)
+    }
+    /// `removexattr` e variantes. ENODATA sem o atributo.
+    fn removexattr(&self, dirfd: Fd, path: &[u8], flags: AtFlags, name: &[u8]) -> SysResult<()> {
+        let _ = (dirfd, path, flags, name);
+        Err(Errno::ENOSYS)
+    }
+    /// `epoll_ctl(2)`: `op` é `epoll::CTL_ADD`, `CTL_DEL` ou `CTL_MOD`; `event` é ignorado em `CTL_DEL`.
+    fn epoll_ctl(&self, epfd: Fd, op: i32, fd: Fd, event: EpollEvent) -> SysResult<()> {
+        let _ = (epfd, op, fd, event);
+        Err(Errno::ENOSYS)
+    }
+    /// `epoll_wait(2)`: até `max` eventos prontos; `None` espera sem limite, e o prazo vencido dá lista vazia.
+    /// EINTR com sinal capturado.
+    fn epoll_wait(&self, epfd: Fd, max: usize, timeout: Option<Duration>) -> SysResult<Vec<EpollEvent>> {
+        let _ = (epfd, max, timeout);
+        Err(Errno::ENOSYS)
+    }
     /// `F_OFD_SETLK`/`F_OFD_SETLKW`: o dono da trava é a open file description, e ela solta quando o
     /// último fd que a referencia fecha. `wait = false` dá EAGAIN em conflito; `wait = true` bloqueia
     /// (EINTR com sinal capturado, EDEADLK em impasse).
     fn ofd_setlk(&self, fd: Fd, lock: FileLock, wait: bool) -> SysResult<()>;
     /// `F_OFD_GETLK`: a primeira trava de outro dono que conflita com `lock`, ou `None`.
     fn ofd_getlk(&self, fd: Fd, lock: FileLock) -> SysResult<Option<FileLock>>;
+    /// `fcntl(F_GETLK | F_SETLK | F_SETLKW | F_OFD_*)` com o `struct flock` do programa: valida e converte
+    /// `whence` e `start`/`len` como o `flock_to_posix_lock` do Linux, e devolve o `struct flock` de volta (o
+    /// que `F_GETLK` preenche com a trava que conflita, ou `F_UNLCK` quando nenhuma).
+    fn fcntl_lock(&self, fd: Fd, cmd: LockCmd, flock: Flock) -> SysResult<Flock> {
+        let _ = (fd, cmd, flock);
+        Err(Errno::ENOSYS)
+    }
+    /// `flock(2)`: `op` é `LOCK_SH`, `LOCK_EX` ou `LOCK_UN`, com `LOCK_NB` somado ([`crate::fcntl`]).
+    fn flock(&self, fd: Fd, op: u32) -> SysResult<()> {
+        let _ = (fd, op);
+        Err(Errno::ENOSYS)
+    }
+    /// `fcntl(F_GETPIPE_SZ)`: a capacidade do pipe em bytes. EBADF se o fd não é um pipe.
+    fn pipe_size(&self, fd: Fd) -> SysResult<usize> {
+        let _ = fd;
+        Err(Errno::ENOSYS)
+    }
+    /// `fcntl(F_SETPIPE_SZ)`: muda a capacidade (arredondada à potência de 2 que cobre o pedido, no mínimo
+    /// uma página) e devolve a nova. EPERM acima de `pipe-max-size` sem privilégio, EBUSY se o pipe tem mais
+    /// dados do que cabe, EINVAL se o tamanho não cabe em 2^31.
+    fn set_pipe_size(&self, fd: Fd, size: u32) -> SysResult<usize> {
+        let _ = (fd, size);
+        Err(Errno::ENOSYS)
+    }
+    /// `ioctl(FIONREAD)`: os bytes que um `read` leria agora sem esperar.
+    fn fionread(&self, fd: Fd) -> SysResult<i64> {
+        let _ = fd;
+        Err(Errno::ENOSYS)
+    }
 
     // ---- rede (resolução, política de allowlist e conexão ficam no kernel) ----
     /// Conexão TCP. `timeout` cobre resolução e conexão. Erros: ENOENT = nome não resolve; EACCES = a
@@ -618,93 +860,56 @@ pub fn tcgetpgrp(fd: Fd) -> SysResult<Pid> {
     current().tcgetpgrp(fd)
 }
 
-pub fn tcp_listen(port: u16, backlog: u32, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
-    current().tcp_listen(port, backlog, nonblock, cloexec)
+/// Gera as funções livres que repassam à syscall homônima do processo corrente: o contrato do socket
+/// é o mesmo para TCP, UDP e Unix, e a única coisa que muda entre elas é a assinatura.
+macro_rules! current_syscalls {
+    ($($(#[$meta:meta])* fn $name:ident($($arg:ident: $ty:ty),*) -> $ret:ty;)*) => {
+        $($(#[$meta])* pub fn $name($($arg: $ty),*) -> $ret {
+            current().$name($($arg),*)
+        })*
+    };
 }
 
-pub fn tcp_accept(fd: Fd, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
-    current().tcp_accept(fd, nonblock, cloexec)
-}
-
-pub fn tcp_connect(port: u16, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
-    current().tcp_connect(port, nonblock, cloexec)
-}
-
-pub fn tcp_listen_at(ip: std::net::IpAddr, port: u16, backlog: u32, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
-    current().tcp_listen_at(ip, port, backlog, nonblock, cloexec)
-}
-
-pub fn tcp_connect_at(ip: std::net::IpAddr, port: u16, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
-    current().tcp_connect_at(ip, port, nonblock, cloexec)
-}
-
-pub fn tcp_shutdown(fd: Fd, read: bool, write: bool) -> SysResult<()> {
-    current().tcp_shutdown(fd, read, write)
-}
-
-pub fn tcp_ports(fd: Fd) -> SysResult<(u16, Option<u16>)> {
-    current().tcp_ports(fd)
-}
-
-pub fn unix_socket(ty: u8, nonblock: bool, cloexec: bool) -> SysResult<Fd> {
-    current().unix_socket(ty, nonblock, cloexec)
-}
-
-pub fn udp_socket(v6: bool, nonblock: bool, cloexec: bool) -> SysResult<Fd> {
-    current().udp_socket(v6, nonblock, cloexec)
-}
-
-pub fn udp_bind(fd: Fd, ip: std::net::IpAddr, port: u16, reuse: bool) -> SysResult<u16> {
-    current().udp_bind(fd, ip, port, reuse)
-}
-
-pub fn udp_connect(fd: Fd, ip: std::net::IpAddr, port: u16) -> SysResult<()> {
-    current().udp_connect(fd, ip, port)
-}
-
-pub fn udp_sendto(fd: Fd, data: &[u8], dst: Option<(std::net::IpAddr, u16)>) -> SysResult<usize> {
-    current().udp_sendto(fd, data, dst)
-}
-
-pub fn udp_recvfrom(fd: Fd, max: usize, peek: bool) -> SysResult<(Vec<u8>, std::net::IpAddr, u16)> {
-    current().udp_recvfrom(fd, max, peek)
-}
-
-#[allow(clippy::type_complexity)]
-pub fn udp_names(fd: Fd) -> SysResult<((std::net::IpAddr, u16), Option<(std::net::IpAddr, u16)>)> {
-    current().udp_names(fd)
-}
-
-pub fn unix_socketpair(ty: u8, nonblock: bool, cloexec: bool) -> SysResult<(Fd, Fd)> {
-    current().unix_socketpair(ty, nonblock, cloexec)
-}
-
-pub fn unix_bind(fd: Fd, name: &[u8]) -> SysResult<()> {
-    current().unix_bind(fd, name)
-}
-
-pub fn unix_listen(fd: Fd, backlog: u32) -> SysResult<()> {
-    current().unix_listen(fd, backlog)
-}
-
-pub fn unix_accept(fd: Fd, nonblock: bool, cloexec: bool) -> SysResult<Fd> {
-    current().unix_accept(fd, nonblock, cloexec)
-}
-
-pub fn unix_connect(fd: Fd, name: &[u8]) -> SysResult<()> {
-    current().unix_connect(fd, name)
-}
-
-pub fn unix_names(fd: Fd) -> SysResult<(Option<Vec<u8>>, Option<Vec<u8>>, bool)> {
-    current().unix_names(fd)
-}
-
-pub fn unix_sendto(fd: Fd, data: &[u8], name: Option<&[u8]>) -> SysResult<usize> {
-    current().unix_sendto(fd, data, name)
-}
-
-pub fn unix_recvfrom(fd: Fd, max: usize, peek: bool) -> SysResult<(Vec<u8>, Option<Vec<u8>>)> {
-    current().unix_recvfrom(fd, max, peek)
+current_syscalls! {
+    fn tcp_listen(port: u16, backlog: u32, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)>;
+    fn tcp_accept(fd: Fd, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)>;
+    fn tcp_connect(port: u16, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)>;
+    fn tcp_listen_at(ip: std::net::IpAddr, port: u16, backlog: u32, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)>;
+    fn tcp_bind(ip: std::net::IpAddr, port: u16, reuse_addr: bool, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)>;
+    fn tcp_connect_bound(fd: Fd, ip: std::net::IpAddr, port: u16) -> SysResult<u16>;
+    fn tcp_listen_bound(fd: Fd, backlog: u32) -> SysResult<()>;
+    fn tcp_connect_at(ip: std::net::IpAddr, port: u16, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)>;
+    fn tcp_shutdown(fd: Fd, read: bool, write: bool) -> SysResult<()>;
+    fn tcp_ports(fd: Fd) -> SysResult<(u16, Option<u16>)>;
+    fn tcp_socket(v6: bool, nonblock: bool, cloexec: bool) -> SysResult<Fd>;
+    fn tcp_bind_fd(fd: Fd, ip: std::net::IpAddr, port: u16, reuse_addr: bool) -> SysResult<u16>;
+    fn tcp_connect_fd(fd: Fd, ip: std::net::IpAddr, port: u16) -> SysResult<()>;
+    #[allow(clippy::type_complexity)]
+    fn tcp_names(fd: Fd) -> SysResult<((std::net::IpAddr, u16), Option<(std::net::IpAddr, u16)>)>;
+    fn sock_info(fd: Fd) -> SysResult<(i32, i32, i32, bool)>;
+    fn sock_error(fd: Fd) -> SysResult<i32>;
+    fn sock_setopt(fd: Fd, level: i32, name: i32, value: &[u8]) -> SysResult<()>;
+    fn sock_getopt(fd: Fd, level: i32, name: i32) -> SysResult<Option<Vec<u8>>>;
+    fn sock_recv(fd: Fd, max: usize, flags: MsgFlags) -> SysResult<Vec<u8>>;
+    fn sock_send(fd: Fd, buf: &[u8], flags: MsgFlags) -> SysResult<usize>;
+    fn unix_socket(ty: u8, nonblock: bool, cloexec: bool) -> SysResult<Fd>;
+    fn udp_socket(v6: bool, nonblock: bool, cloexec: bool) -> SysResult<Fd>;
+    fn udp_bind(fd: Fd, ip: std::net::IpAddr, port: u16, reuse: bool) -> SysResult<u16>;
+    fn udp_connect(fd: Fd, ip: std::net::IpAddr, port: u16) -> SysResult<()>;
+    fn udp_sendto(fd: Fd, data: &[u8], dst: Option<(std::net::IpAddr, u16)>) -> SysResult<usize>;
+    fn udp_recvfrom(fd: Fd, max: usize, peek: bool) -> SysResult<(Vec<u8>, std::net::IpAddr, u16)>;
+    #[allow(clippy::type_complexity)]
+    fn udp_names(fd: Fd) -> SysResult<((std::net::IpAddr, u16), Option<(std::net::IpAddr, u16)>)>;
+    fn unix_socketpair(ty: u8, nonblock: bool, cloexec: bool) -> SysResult<(Fd, Fd)>;
+    fn unix_bind(fd: Fd, name: &[u8]) -> SysResult<()>;
+    fn unix_listen(fd: Fd, backlog: u32) -> SysResult<()>;
+    fn unix_accept(fd: Fd, nonblock: bool, cloexec: bool) -> SysResult<Fd>;
+    fn unix_connect(fd: Fd, name: &[u8]) -> SysResult<()>;
+    fn unix_names(fd: Fd) -> SysResult<(Option<Vec<u8>>, Option<Vec<u8>>, bool)>;
+    fn unix_sendto(fd: Fd, data: &[u8], name: Option<&[u8]>) -> SysResult<usize>;
+    fn unix_recvfrom(fd: Fd, max: usize, peek: bool) -> SysResult<(Vec<u8>, Option<Vec<u8>>)>;
+    fn unix_sendmsg(fd: Fd, data: &[u8], name: Option<&[u8]>, control: &[u8], flags: MsgFlags) -> SysResult<usize>;
+    fn unix_recvmsg(fd: Fd, max: usize, control_len: usize, flags: MsgFlags) -> SysResult<RecvMsg>;
 }
 
 pub fn tcsetpgrp(fd: Fd, pgrp: Pid) -> SysResult<()> {

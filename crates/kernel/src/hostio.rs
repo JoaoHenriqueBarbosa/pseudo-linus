@@ -324,6 +324,13 @@ fn host_apply(sb: &Arc<SbInner>, spec: &mut ChildSpec, attrs: &ProcAttrs) -> Res
                 let old = spec.fds.remove(*fd);
                 drop(old);
             }
+            sysabi::FdAction::CloseFrom(from) => {
+                if from.0 < 0 {
+                    return Err(Errno::EBADF);
+                }
+                let closed: Vec<_> = spec.fds.fds().into_iter().filter(|fd| fd.0 >= from.0).filter_map(|fd| spec.fds.remove(fd)).collect();
+                drop(closed);
+            }
             sysabi::FdAction::Open { fd, path, flags, mode } => {
                 let cx = spec.caller(sb, 0);
                 let locks = Arc::downgrade(&sb.locks);

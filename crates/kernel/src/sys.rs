@@ -19,8 +19,10 @@ use crate::exec;
 use crate::fd::{FileObj, Ofd};
 use crate::park::Parker;
 use crate::pipe::{Pipe, PipeObject, Try, WriteError};
+use crate::scm::{Scm, Ucred};
+use crate::unix::Datagram;
 use crate::proc::{INIT_PID, Proc, Task, may_signal};
-use crate::sandbox::SbInner;
+use crate::sandbox::{FLOCK_OWNER, LockFail, POSIX_OWNER, SbInner, lock_owner_pid};
 use crate::signal::{Action, Generated};
 use crate::spawn::{self, Body, GroupExitUnwind};
 use crate::tty::{self, Pty, PtyEnd};
@@ -32,6 +34,17 @@ pub(crate) const UNAME_VERSION: &[u8] = b"#1 SMP PREEMPT_DYNAMIC Debian 6.12.101
 const PIPEFS_MAGIC: u64 = 0x5049_5045;
 /// `NGROUPS_MAX` do Linux.
 const NGROUPS_MAX: usize = 65536;
+/// `SOL_SOCKET` e `SO_SNDBUF`, as chaves em que o `Ofd.sock` guarda o que o `setsockopt` definiu.
+const SOL_SOCKET: i32 = 1;
+const SO_SNDBUF: i32 = 7;
+/// `SO_PASSCRED` e `SO_PEERCRED`.
+const SO_PASSCRED: i32 = 16;
+const SO_PEERCRED: i32 = 17;
+/// `sk_sndbuf` de um TCP de loopback depois do `tcp_sndbuf_expand` (`tcp_init_buffer_space`), na conexão e no
+/// `accept`: `2 * 10 segmentos * (roundup_pow_of_two(65495 + MAX_TCP_HEADER 256 + 320) + 256) = 2626560`, abaixo do
+/// teto `tcp_wmem[2]` (4194304). O `getsockopt` o devolve sem dividir; `setsockopt` antes disso trava o buffer
+/// (`SOCK_SNDBUF_LOCK`) e nada o amplia.
+const TCP_SNDBUF_EXPANDED: i64 = 2_626_560;
 
 /// Gera um sinal num processo (sem checar permissão). SIGCONT retoma um processo parado.
 pub(crate) fn generate_signal(target: &Arc<Proc>, sig: Signal) {
@@ -133,8 +146,23 @@ fn env_name(kv: &[u8]) -> &[u8] {
 fn unseekable(obj: &FileObj) -> bool {
     matches!(
         obj,
-        FileObj::Pipe { .. } | FileObj::Dev { dev: Device::Pty(_), .. } | FileObj::Stream(_) | FileObj::Unix(_) | FileObj::Udp(_)
+        FileObj::Pipe { .. } | FileObj::Dev { dev: Device::Pty(_), .. } | FileObj::Listener(_) | FileObj::Stream(_) | FileObj::Unix(_) | FileObj::Udp(_) | FileObj::Epoll(_) | FileObj::Pidfd(_) | FileObj::Anon(_)
     )
+}
+
+/// `file_can_poll` do `epoll_ctl`: arquivo regular, diretório e dispositivos sem `poll` dão EPERM, e `O_PATH`
+/// não é um fd de verdade (EBADF).
+fn check_pollable(obj: &FileObj) -> SysResult<()> {
+    match obj {
+        FileObj::Path { .. } => Err(Errno::EBADF),
+        FileObj::Vfs { .. } | FileObj::Dev { dev: Device::Null | Device::Zero | Device::Full, .. } => Err(Errno::EPERM),
+        _ => Ok(()),
+    }
+}
+
+/// Um pipe novo de `cred`: cada sentido de uma conexão TCP de loopback, e a identidade de um socket.
+fn new_sock_pipe(sb: &SbInner, cred: &vfs::Cred) -> Arc<Pipe> {
+    Pipe::new(sb.kernel.pipe_ino(), cred.uid, cred.gid, sb.now())
 }
 
 /// Um datagrama lido num buffer: o que não cabe se perde, como no `read` do Linux.
@@ -538,25 +566,8 @@ impl Task {
         Ok(Ofd::new(FileObj::Pipe { end, fifo: loc }, flags, locks))
     }
 
-    fn pipe_stat(&self, pipe: &Pipe, fifo: &Option<Loc>) -> SysResult<Stat> {
-        match fifo {
-            Some(l) => self.sb.ns.stat_loc(&self.caller(), l),
-            None => Ok(pipe.stat(None)),
-        }
-    }
-
     fn ofd_stat(&self, ofd: &Ofd) -> SysResult<Stat> {
-        let cx = self.caller();
-        match &ofd.obj {
-            FileObj::Vfs { loc, .. } | FileObj::Path { loc, .. } => self.sb.ns.stat_loc(&cx, loc),
-            FileObj::Pipe { end, fifo } => self.pipe_stat(&end.pipe, fifo),
-            FileObj::Dev { loc: Some(l), .. } => self.sb.ns.stat_loc(&cx, l),
-            FileObj::Dev { loc: None, .. } => Err(Errno::EBADF),
-            FileObj::Listener(l) => Ok(crate::net::sock_stat(&l.ident)),
-            FileObj::Stream(c) => Ok(crate::net::sock_stat(&c.ident)),
-            FileObj::Unix(u) => Ok(crate::net::sock_stat(&u.ident)),
-            FileObj::Udp(u) => Ok(crate::net::sock_stat(&u.ident)),
-        }
+        ofd_stat_in(&self.sb, &self.caller(), ofd)
     }
 
     // ------------------------------------------------------------------------------------------
@@ -595,21 +606,68 @@ impl Task {
             FileObj::Dev { dev: Device::Pty(end), .. } => self.tty_read(ofd, end, buf),
             FileObj::Dev { dev, .. } => dev.read(buf),
             FileObj::Path { .. } => Err(Errno::EBADF),
-            // `read` num socket em escuta: ENOTCONN, como no Linux.
-            FileObj::Listener(_) => Err(Errno::ENOTCONN),
-            FileObj::Stream(c) => self.stream_read(ofd, c, buf),
+            FileObj::Listener(_) | FileObj::Stream(_) => self.stream_recv(ofd, buf, MsgFlags::empty()),
             FileObj::Unix(u) => {
                 if u.ty == crate::unix::SOCK_DGRAM {
-                    return Ok(truncated_copy(&self.unix_recv(ofd, u, false)?.0, buf));
+                    return Ok(truncated_copy(&self.unix_recv(ofd, u, MsgFlags::empty())?.data, buf));
                 }
-                // `unix_stream_read_generic`: fora de uma conexão, EINVAL.
-                match u.conn() {
-                    Some(c) => self.stream_read(ofd, &c, buf),
-                    None => Err(Errno::EINVAL),
+                if u.ty == crate::unix::SOCK_SEQPACKET {
+                    return Ok(truncated_copy(&self.seq_recv(ofd, u, MsgFlags::empty())?.0, buf));
                 }
+                self.stream_recv(ofd, buf, MsgFlags::empty())
             }
             FileObj::Udp(u) => Ok(truncated_copy(&self.udp_recv(ofd, u, false)?.0, buf)),
+            // O `eventpoll_fops` e o `pidfd_fops` não têm `read`.
+            FileObj::Epoll(_) | FileObj::Pidfd(_) => Err(Errno::EINVAL),
+            FileObj::Anon(a) => self.anon_read(ofd, a, buf),
         }
+    }
+
+    /// `read` num eventfd ou timerfd: oito bytes com o contador (EINVAL se o buffer é menor), esperando se o fd é
+    /// bloqueante. O timerfd dorme até o prazo do timer e tenta de novo.
+    fn anon_read(&self, ofd: &Arc<Ofd>, anon: &crate::anon::Anon, buf: &mut [u8]) -> SysResult<usize> {
+        if buf.len() < 8 {
+            return Err(Errno::EINVAL);
+        }
+        let nonblock = ofd.nonblock();
+        let value = match anon {
+            crate::anon::Anon::Eventfd(e) => {
+                let r = self.wait_event(None, |p| e.try_read(nonblock, p));
+                if r.is_err() {
+                    e.unregister(&self.parker);
+                }
+                r?
+            }
+            crate::anon::Anon::Timerfd(t) => loop {
+                match self.wait_event(t.deadline(), |p| t.try_read(nonblock, p)) {
+                    Err(Errno::ETIMEDOUT) => continue,
+                    Err(e) => {
+                        t.unregister(&self.parker);
+                        return Err(e);
+                    }
+                    Ok(v) => break v,
+                }
+            },
+        };
+        buf[..8].copy_from_slice(&value.to_ne_bytes());
+        Ok(8)
+    }
+
+    /// `write` num eventfd: soma o valor de oito bytes ao contador (EINVAL com menos bytes ou com `ULLONG_MAX`).
+    /// O timerfd não tem `write`.
+    fn anon_write(&self, ofd: &Arc<Ofd>, anon: &crate::anon::Anon, buf: &[u8]) -> SysResult<usize> {
+        let crate::anon::Anon::Eventfd(e) = anon else { return Err(Errno::EINVAL) };
+        let Some(bytes) = buf.get(..8) else { return Err(Errno::EINVAL) };
+        let value = u64::from_ne_bytes(bytes.try_into().expect("oito bytes"));
+        if value == u64::MAX {
+            return Err(Errno::EINVAL);
+        }
+        let nonblock = ofd.nonblock();
+        let r = self.wait_event(None, |p| e.try_write(value, nonblock, p));
+        if r.is_err() {
+            e.unregister(&self.parker);
+        }
+        r.map(|()| 8)
     }
 
     /// O próximo datagrama de um socket UDP, esperando se o fd é bloqueante.
@@ -622,29 +680,147 @@ impl Task {
         r
     }
 
-    /// Leitura de uma conexão (TCP de loopback ou socket Unix de fluxo).
-    fn stream_read(&self, ofd: &Arc<Ofd>, c: &crate::net::Conn, buf: &mut [u8]) -> SysResult<usize> {
-        match c.take_reset() {
-            crate::net::ResetState::Pending => return Err(Errno::ECONNRESET),
-            crate::net::ResetState::Done => return Ok(0),
-            crate::net::ResetState::None => {}
+    /// A conexão de um socket de fluxo (TCP, ou Unix de fluxo) se ele já tem uma, passada a `f`.
+    fn with_conn<R>(ofd: &Ofd, f: impl FnOnce(&crate::net::Conn) -> R) -> Option<R> {
+        match &ofd.obj {
+            FileObj::Stream(c) => Some(f(c)),
+            FileObj::Listener(l) => l.conn().map(|c| f(&c)),
+            FileObj::Unix(u) => u.conn().map(|c| f(&c)),
+            _ => None,
         }
-        let Some(pipe) = c.rx() else { return Ok(0) };
-        let nonblock = ofd.nonblock();
-        let r = self.wait_event(None, |p| pipe.try_read(buf, nonblock, p));
-        if r.is_err() {
-            pipe.unregister(&self.parker);
-        }
-        // Acordou com EOF porque o outro lado fechou com RST: o erro vem antes do EOF.
-        if r == Ok(0) && matches!(c.take_reset(), crate::net::ResetState::Pending) {
-            return Err(Errno::ECONNRESET);
-        }
-        r
     }
 
-    /// A próxima mensagem de um socket Unix de datagrama, esperando se o fd é bloqueante.
-    fn unix_recv(&self, ofd: &Arc<Ofd>, u: &Arc<crate::unix::UnixSock>, peek: bool) -> SysResult<(Vec<u8>, Option<Vec<u8>>)> {
-        let nonblock = ofd.nonblock();
+    /// `recv` num socket de fluxo. Sem conexão: o Unix dá EINVAL (`unix_stream_read_generic`) e o TCP segue o
+    /// `tcp_recvmsg` com o `sk_state` em CLOSE: em escuta ENOTCONN; com o `sk_err` de um `connect` recusado, ele sai
+    /// uma vez; depois do RST desse `connect` a leitura dá 0 (`RCV_SHUTDOWN`); nunca conectado, ENOTCONN.
+    fn stream_recv(&self, ofd: &Arc<Ofd>, buf: &mut [u8], flags: MsgFlags) -> SysResult<usize> {
+        self.stream_recv_scm(ofd, buf, flags).map(|(n, _)| n)
+    }
+
+    /// [`Task::stream_recv`] com os dados auxiliares do `sk_buff` lido (só um fluxo Unix os tem).
+    fn stream_recv_scm(&self, ofd: &Arc<Ofd>, buf: &mut [u8], flags: MsgFlags) -> SysResult<(usize, Scm)> {
+        let conn = match &ofd.obj {
+            FileObj::Stream(c) => return self.stream_read(ofd, c, buf, flags),
+            FileObj::Listener(l) => match l.conn() {
+                Some(c) => c,
+                None if l.is_listening() => return Err(Errno::ENOTCONN),
+                None => {
+                    Self::settle_syn(ofd);
+                    let mut meta = ofd.sock.lock();
+                    return match std::mem::take(&mut meta.error) {
+                        0 if meta.failed => Ok((0, Scm::default())),
+                        0 => Err(Errno::ENOTCONN),
+                        err => Err(Errno(err)),
+                    };
+                }
+            },
+            FileObj::Unix(u) if u.ty == crate::unix::SOCK_STREAM => u.conn().ok_or(Errno::EINVAL)?,
+            _ => return Err(Errno::ENOTSOCK),
+        };
+        self.stream_read(ofd, &conn, buf, flags)
+    }
+
+    /// `send` num socket de fluxo. Sem conexão: o Unix dá ENOTCONN (`unix_stream_sendmsg`) e o TCP, em CLOSE ou
+    /// LISTEN, dá o `sk_err` pendente (uma vez) ou EPIPE, com SIGPIPE salvo `MSG_NOSIGNAL` (`sk_stream_wait_connect`).
+    fn stream_send(&self, ofd: &Arc<Ofd>, buf: &[u8], flags: MsgFlags) -> SysResult<usize> {
+        let conn = match &ofd.obj {
+            FileObj::Stream(c) => return self.stream_write(ofd, c, buf, flags, None),
+            FileObj::Listener(l) => match l.conn() {
+                Some(c) => c,
+                None => {
+                    let err = std::mem::take(&mut ofd.sock.lock().error);
+                    if err != 0 {
+                        return Err(Errno(err));
+                    }
+                    if !flags.contains(MsgFlags::NOSIGNAL) {
+                        self.sigpipe();
+                    }
+                    return Err(Errno::EPIPE);
+                }
+            },
+            FileObj::Unix(u) if u.ty == crate::unix::SOCK_STREAM => u.conn().ok_or(Errno::ENOTCONN)?,
+            _ => return Err(Errno::ENOTSOCK),
+        };
+        // Um socket Unix leva as credenciais de quem escreve junto com os bytes (`SCM_CREDENTIALS`).
+        let scm = matches!(ofd.obj, FileObj::Unix(_)).then(|| self.plain_scm());
+        self.stream_write(ofd, &conn, buf, flags, scm.as_ref())
+    }
+
+    /// Os dados auxiliares de uma escrita comum: nenhum descritor e as credenciais reais de quem escreve
+    /// (`scm_set_cred` com `task_tgid`, `current_uid` e `current_gid`).
+    fn plain_scm(&self) -> Scm {
+        let cred = self.proc.st.lock().cred.clone();
+        Scm { fds: Vec::new(), cred: Ucred { pid: self.proc.pid, uid: cred.ruid, gid: cred.rgid } }
+    }
+
+    /// As credenciais efetivas de quem chama, o que um `listen`, um `connect` e um `socketpair` deixam como as do
+    /// par (`SO_PEERCRED`).
+    fn peer_ucred(&self) -> Ucred {
+        let cred = self.proc.st.lock().cred.clone();
+        Ucred { pid: self.proc.pid, uid: cred.uid, gid: cred.gid }
+    }
+
+    /// SIGPIPE de uma escrita que deu EPIPE.
+    fn sigpipe(&self) {
+        generate_signal(&self.proc, Signal::SIGPIPE);
+        self.enter();
+    }
+
+    /// Leitura de uma conexão de fluxo (`tcp_recvmsg`, `unix_stream_read_generic`): o que já chegou sai antes
+    /// de qualquer erro; só com a fila vazia o `sk_err` de um RST é entregue, uma vez, e depois vem o fim.
+    /// `MSG_WAITALL` insiste até `buf.len()` bytes e para antes no fim, num erro ou, sem bloqueio (fd
+    /// `O_NONBLOCK` ou `MSG_DONTWAIT`), quando a fila esvazia; `MSG_PEEK` olha a fila sem consumi-la. Um `sk_buff`
+    /// Unix com descritores encerra a leitura (`unix_stream_read_generic`): eles vêm no [`Scm`] devolvido.
+    fn stream_read(&self, ofd: &Arc<Ofd>, c: &crate::net::Conn, buf: &mut [u8], flags: MsgFlags) -> SysResult<(usize, Scm)> {
+        if buf.is_empty() {
+            return Ok((0, Scm::default()));
+        }
+        let nonblock = ofd.nonblock() || flags.contains(MsgFlags::DONTWAIT);
+        let passcred = matches!(&ofd.obj, FileObj::Unix(u) if u.passcred());
+        let target = if flags.contains(MsgFlags::WAITALL) { buf.len() } else { 1 };
+        let mut done = 0usize;
+        let mut scm = Scm::default();
+        let eof = loop {
+            // O `shutdown(SHUT_RD)` marca o pipe: o que já chegou sai e a fila vazia dá 0, sem esperar o par.
+            let Some(pipe) = c.rx() else { break true };
+            let rest = &mut buf[done..];
+            let r = if flags.contains(MsgFlags::PEEK) {
+                self.wait_event(None, |p| pipe.try_peek(rest, target, nonblock, p, passcred))
+            } else {
+                self.wait_event(None, |p| pipe.try_read_scm(rest, nonblock, p, passcred))
+            };
+            match r {
+                Ok((0, _)) => break true,
+                Ok((n, got)) => {
+                    done += n;
+                    let stop = !got.fds.is_empty();
+                    if done == n {
+                        scm.cred = got.cred;
+                    }
+                    scm.fds.extend(got.fds);
+                    if stop || flags.contains(MsgFlags::PEEK) || done >= target {
+                        break false;
+                    }
+                }
+                Err(e) => {
+                    pipe.unregister(&self.parker);
+                    if done > 0 {
+                        break false;
+                    }
+                    return Err(e);
+                }
+            }
+        };
+        if eof && done == 0 && let Some(e) = c.eof_error() {
+            return Err(e);
+        }
+        Ok((done, scm))
+    }
+
+    /// A próxima mensagem de um socket Unix de datagrama, esperando se o fd é bloqueante (e `MSG_DONTWAIT` não está).
+    fn unix_recv(&self, ofd: &Arc<Ofd>, u: &Arc<crate::unix::UnixSock>, flags: MsgFlags) -> SysResult<Datagram> {
+        let nonblock = ofd.nonblock() || flags.contains(MsgFlags::DONTWAIT);
+        let peek = flags.contains(MsgFlags::PEEK);
         let r = self.wait_event(None, |p| u.try_recv(peek, nonblock, p));
         if r.is_err() {
             u.unregister(&self.parker);
@@ -652,33 +828,192 @@ impl Task {
         r
     }
 
-    /// Escrita numa conexão (TCP de loopback ou socket Unix de fluxo).
-    fn stream_write(&self, ofd: &Arc<Ofd>, c: &crate::net::Conn, buf: &[u8]) -> SysResult<usize> {
-        let reset = c.take_reset();
-        if matches!(reset, crate::net::ResetState::Pending) {
-            return Err(Errno::ECONNRESET);
+    /// A próxima mensagem de um socket Unix de seqpacket, esperando se o fd é bloqueante. ENOTCONN sem
+    /// conexão (`unix_seqpacket_recvmsg`).
+    fn seq_recv(&self, ofd: &Arc<Ofd>, u: &Arc<crate::unix::UnixSock>, flags: MsgFlags) -> SysResult<(Vec<u8>, Scm)> {
+        let end = u.seq().ok_or(Errno::ENOTCONN)?;
+        let nonblock = ofd.nonblock() || flags.contains(MsgFlags::DONTWAIT);
+        let peek = flags.contains(MsgFlags::PEEK);
+        let r = self.wait_event(None, |p| end.try_recv(peek, nonblock, p));
+        if r.is_err() {
+            end.unregister(&self.parker);
         }
-        if matches!(reset, crate::net::ResetState::None) && c.write_to_closed_peer() {
-            return Ok(buf.len());
+        r
+    }
+
+    /// Uma mensagem num socket Unix de seqpacket (`unix_seqpacket_sendmsg`): ENOTCONN sem conexão e
+    /// SIGPIPE com EPIPE (salvo `MSG_NOSIGNAL`).
+    fn seq_send(&self, ofd: &Arc<Ofd>, u: &Arc<crate::unix::UnixSock>, buf: &[u8], scm: &Scm, flags: MsgFlags) -> SysResult<usize> {
+        let end = u.seq().ok_or(Errno::ENOTCONN)?;
+        let nonblock = ofd.nonblock() || flags.contains(MsgFlags::DONTWAIT);
+        let r = self.wait_event(None, |p| end.try_send(buf, scm, nonblock, p));
+        if r.is_err() {
+            end.unregister(&self.parker);
         }
-        match c.tx().filter(|_| matches!(reset, crate::net::ResetState::None)) {
-            Some(pipe) => self.pipe_write(ofd, &pipe, buf),
-            None => {
-                generate_signal(&self.proc, Signal::SIGPIPE);
-                self.enter();
+        if r == Err(Errno::EPIPE) && !flags.contains(MsgFlags::NOSIGNAL) {
+            self.sigpipe();
+        }
+        r
+    }
+
+    /// Escrita numa conexão de fluxo (`tcp_sendmsg`, `unix_stream_sendmsg`): a verificação de erro e de
+    /// `shutdown` de [`crate::net::Conn::tx_for_write`] vem antes dos dados, e o EPIPE gera SIGPIPE, salvo
+    /// `MSG_NOSIGNAL` (o `sk_stream_error` só o gera quando o erro que sobra é EPIPE, não o `ECONNRESET` pendente).
+    fn stream_write(&self, ofd: &Arc<Ofd>, c: &crate::net::Conn, buf: &[u8], flags: MsgFlags, send: Option<&Scm>) -> SysResult<usize> {
+        let sigpipe = !flags.contains(MsgFlags::NOSIGNAL);
+        match c.tx_for_write() {
+            Ok(Some(pipe)) => self.pipe_write(&pipe, buf, ofd.nonblock() || flags.contains(MsgFlags::DONTWAIT), sigpipe, send),
+            Ok(None) => Ok(buf.len()),
+            Err(Errno::EPIPE) => {
+                if sigpipe {
+                    self.sigpipe();
+                }
                 Err(Errno::EPIPE)
             }
+            Err(e) => Err(e),
         }
     }
 
     /// Um datagrama de um socket Unix para `target` (ou para o par do `connect`).
-    fn unix_send(&self, ofd: &Arc<Ofd>, u: &Arc<crate::unix::UnixSock>, buf: &[u8], target: Option<&Arc<crate::unix::UnixSock>>) -> SysResult<usize> {
-        let nonblock = ofd.nonblock();
-        let r = self.wait_event(None, |p| u.try_send(buf, target, nonblock, p));
+    fn unix_send(&self, ofd: &Arc<Ofd>, u: &Arc<crate::unix::UnixSock>, buf: &[u8], target: Option<&Arc<crate::unix::UnixSock>>, scm: &Scm, flags: MsgFlags) -> SysResult<usize> {
+        let nonblock = ofd.nonblock() || flags.contains(MsgFlags::DONTWAIT);
+        let r = self.wait_event(None, |p| u.try_send(buf, scm, target, nonblock, p));
         if r.is_err() {
             u.unregister(&self.parker);
         }
         r
+    }
+
+    /// Envia uma mensagem por um socket Unix de qualquer tipo, com os dados auxiliares `scm`. Com endereço, o
+    /// seqpacket conectado dá EISCONN e o sem conexão EOPNOTSUPP (`unix_seqpacket_sendmsg`), e o fluxo o mesmo
+    /// (`unix_stream_sendmsg`); sem conexão o fluxo dá ENOTCONN. Descritores num fluxo sem dados não viajam.
+    fn unix_send_msg(&self, ofd: &Arc<Ofd>, u: &Arc<crate::unix::UnixSock>, data: &[u8], name: Option<&[u8]>, scm: &Scm, flags: MsgFlags) -> SysResult<usize> {
+        if u.ty != crate::unix::SOCK_DGRAM {
+            if name.is_some() {
+                let connected = if u.ty == crate::unix::SOCK_SEQPACKET { u.seq().is_some() } else { u.conn().is_some() };
+                return Err(if connected { Errno::EISCONN } else { Errno::EOPNOTSUPP });
+            }
+            if u.ty == crate::unix::SOCK_SEQPACKET {
+                return self.seq_send(ofd, u, data, scm, flags);
+            }
+            return match u.conn() {
+                Some(c) => self.stream_write(ofd, &c, data, flags, Some(scm)),
+                None => Err(Errno::ENOTCONN),
+            };
+        }
+        let target = match name {
+            Some(n) => Some(self.unix_find(n)?),
+            None => None,
+        };
+        self.unix_send(ofd, u, data, target.as_ref(), scm, flags)
+    }
+
+    /// Recebe de um socket Unix de qualquer tipo: os dados (cortados em `max`), o nome de quem enviou, os dados
+    /// auxiliares e se a mensagem era maior que `max` (só datagrama e seqpacket; o fluxo devolve o que pediram).
+    #[allow(clippy::type_complexity)]
+    fn unix_recv_any(&self, ofd: &Arc<Ofd>, u: &Arc<crate::unix::UnixSock>, max: usize, flags: MsgFlags) -> SysResult<(Vec<u8>, Option<Vec<u8>>, Scm, bool)> {
+        if u.ty == crate::unix::SOCK_SEQPACKET {
+            let (mut data, scm) = self.seq_recv(ofd, u, flags)?;
+            let cut = data.len() > max;
+            data.truncate(max);
+            return Ok((data, None, scm, cut));
+        }
+        if u.ty != crate::unix::SOCK_DGRAM {
+            let mut buf = vec![0u8; max];
+            let (n, scm) = match u.conn() {
+                Some(c) => self.stream_read(ofd, &c, &mut buf, flags)?,
+                None => return Err(Errno::EINVAL),
+            };
+            buf.truncate(n);
+            return Ok((buf, None, scm, false));
+        }
+        let Datagram { mut data, from, scm } = self.unix_recv(ofd, u, flags)?;
+        let cut = data.len() > max;
+        data.truncate(max);
+        Ok((data, from, scm, cut))
+    }
+
+    /// Os dados auxiliares de um `sendmsg` (`__scm_send`): `SCM_RIGHTS` resolve os descritores (EBADF), e
+    /// `SCM_CREDENTIALS` troca as credenciais de quem envia se elas forem as dele (ou se ele é root). Itens de
+    /// outro nível são ignorados; tipo desconhecido em `SOL_SOCKET` é EINVAL.
+    fn scm_from_control(&self, control: &[u8]) -> SysResult<Scm> {
+        use sysabi::cmsg;
+        // O `____sys_sendmsg` copia o controle para a pilha (36 bytes) ou para memória do socket, que o
+        // `optmem_max` limita.
+        if control.len() > 36 && control.len() >= cmsg::OPTMEM_MAX {
+            return Err(Errno::ENOBUFS);
+        }
+        let mut scm = self.plain_scm();
+        for item in cmsg::parse(control)? {
+            if item.level != cmsg::SOL_SOCKET {
+                continue;
+            }
+            match item.kind {
+                cmsg::SCM_RIGHTS => {
+                    let num = item.data.len() / 4;
+                    if num == 0 {
+                        continue;
+                    }
+                    if num > cmsg::SCM_MAX_FD || scm.fds.len() + num > cmsg::SCM_MAX_FD {
+                        return Err(Errno::EINVAL);
+                    }
+                    for raw in item.data.chunks_exact(4) {
+                        let fd = i32::from_le_bytes(raw.try_into().unwrap());
+                        if fd < 0 {
+                            return Err(Errno::EBADF);
+                        }
+                        scm.fds.push(self.ofd(Fd(fd))?);
+                    }
+                }
+                cmsg::SCM_CREDENTIALS => {
+                    let given = Ucred::from_bytes(item.data).ok_or(Errno::EINVAL)?;
+                    self.check_ucred(given)?;
+                    scm.cred = given;
+                }
+                _ => return Err(Errno::EINVAL),
+            }
+        }
+        Ok(scm)
+    }
+
+    /// `scm_check_creds`: o pid é o do processo, o uid e o gid são o real, o efetivo ou o salvo, a menos que
+    /// quem envia seja root (`CAP_SYS_ADMIN`, `CAP_SETUID`, `CAP_SETGID`). uid ou gid -1 é EINVAL.
+    fn check_ucred(&self, given: Ucred) -> SysResult<()> {
+        if given.uid == u32::MAX || given.gid == u32::MAX {
+            return Err(Errno::EINVAL);
+        }
+        let cred = self.proc.st.lock().cred.clone();
+        let root = cred.is_root();
+        let uid_ok = [cred.ruid, cred.uid, cred.suid].contains(&given.uid);
+        let gid_ok = [cred.rgid, cred.gid, cred.sgid].contains(&given.gid);
+        if (given.pid == self.proc.pid || root) && (uid_ok || root) && (gid_ok || root) {
+            Ok(())
+        } else {
+            Err(Errno::EPERM)
+        }
+    }
+
+    /// `scm_detach_fds`: instala em quem recebe os descritores que cabem no `msg_control` (cada um vira o menor fd
+    /// livre) e grava o item `SCM_RIGHTS`; o que não coube, ou não coube instalar, marca o corte. Os arquivos que
+    /// sobram fecham com o `Scm`.
+    fn detach_fds(&self, files: &[Arc<Ofd>], control: &mut sysabi::cmsg::Builder, cloexec: bool) {
+        if files.is_empty() {
+            return;
+        }
+        let limit = self.nofile();
+        let mut installed = Vec::new();
+        for ofd in files.iter().take(control.fd_room()) {
+            match self.proc.fds.lock().install(ofd.clone(), cloexec, 0, limit) {
+                Ok(fd) => installed.push(fd.0),
+                Err(_) => break,
+            }
+        }
+        if !installed.is_empty() {
+            control.put_fds(&installed);
+        }
+        if installed.len() < files.len() {
+            control.truncated = true;
+        }
     }
 
     /// O socket UDP de `fd`; ENOTSOCK se não é um.
@@ -717,8 +1052,58 @@ impl Task {
 
     /// Um pipe novo do processo: cada sentido de uma conexão TCP de loopback, e a identidade de um socket.
     fn sock_pipe(&self) -> Arc<Pipe> {
-        let cred = self.proc.st.lock().cred.clone();
-        Pipe::new(self.sb.kernel.pipe_ino(), cred.uid, cred.gid, self.sb.now())
+        new_sock_pipe(&self.sb, &self.proc.st.lock().cred)
+    }
+
+    /// [`Task::sock_pipe`] sem a tarefa: para a thread das retransmissões de um SYN, que vive além do `connect`.
+    fn sock_pipe_maker(&self) -> crate::net::MkPipe {
+        let (sb, cred) = (self.sb.clone(), self.proc.st.lock().cred.clone());
+        Arc::new(move || new_sock_pipe(&sb, &cred))
+    }
+
+    /// `connect` bloqueante de um socket: o SYN descartado pela fila cheia do ouvinte espera as retransmissões
+    /// (a thread do socket acorda quem espera), até a conexão, o `ECONNREFUSED` ou o `ETIMEDOUT` de 127 s.
+    fn connect_wait(&self, l: &Arc<crate::net::Listener>, ip: std::net::IpAddr, port: u16) -> SysResult<Arc<crate::net::Conn>> {
+        if let Some(conn) = l.connect(&self.sb.ports, ip, port, self.sock_pipe_maker())? {
+            return Ok(conn);
+        }
+        self.wait_syn(l)
+    }
+
+    /// Espera o `connect` pendente de `l` terminar; interrompido por sinal, o SYN segue em SYN_SENT.
+    fn wait_syn(&self, l: &Arc<crate::net::Listener>) -> SysResult<Arc<crate::net::Conn>> {
+        let r = self.wait_event(None, |p| l.try_syn(p));
+        if r.is_err() {
+            l.unregister(&self.parker);
+        }
+        r
+    }
+
+    /// O fim de um `connect` bloqueante com o SYN pendente. Interrompido por sinal, o socket segue em SYN_SENT.
+    fn finish_connect(&self, ofd: &Ofd, l: &Arc<crate::net::Listener>) -> SysResult<()> {
+        let r = self.wait_syn(l);
+        let mut meta = ofd.sock.lock();
+        meta.connecting = l.syn_sent();
+        meta.sndbuf_expanded |= r.is_ok();
+        r.map(|_| ())
+    }
+
+    /// `socket` + `connect` bloqueante para quem recebe só a conexão (sem o fd do socket).
+    fn connect_new(&self, ip: std::net::IpAddr, port: u16) -> SysResult<crate::net::Conn> {
+        let l = self.sb.ports.socket(ip.is_ipv6(), self.sock_pipe());
+        let conn = self.connect_wait(&l, ip, port)?;
+        drop(l);
+        Arc::into_inner(conn).ok_or(Errno::EAGAIN)
+    }
+
+    /// Leva para o `SockMeta` o `connect` que falhou sem ninguém esperando (o `sk_err` do `tcp_write_err`).
+    fn settle_syn(ofd: &Ofd) {
+        if let FileObj::Listener(l) = &ofd.obj && let Some(e) = l.take_syn_failure() {
+            let mut meta = ofd.sock.lock();
+            meta.error = e.0;
+            meta.failed = true;
+            meta.connecting = true;
+        }
     }
 
     /// Instala um socket (sempre `O_RDWR`) no menor fd livre.
@@ -730,13 +1115,12 @@ impl Task {
     }
 
     /// Escrita num pipe (anônimo, FIFO ou o sentido de saída de uma conexão TCP de loopback).
-    fn pipe_write(&self, ofd: &Arc<Ofd>, pipe: &Arc<Pipe>, buf: &[u8]) -> SysResult<usize> {
+    fn pipe_write(&self, pipe: &Arc<Pipe>, buf: &[u8], nonblock: bool, sigpipe: bool, send: Option<&Scm>) -> SysResult<usize> {
         if buf.is_empty() {
             return Ok(0);
         }
-        let nonblock = ofd.nonblock();
         let mut done = 0usize;
-        let r = self.wait_event(None, |p| match pipe.try_write(buf, &mut done, nonblock, p) {
+        let r = self.wait_event(None, |p| match pipe.try_write_with(buf, &mut done, nonblock, p, send) {
             Try::Ready(Ok(n)) => Try::Ready(Ok(Ok(n))),
             Try::Ready(Err(e)) => Try::Ready(Ok(Err(e))),
             Try::Pending => Try::Pending,
@@ -745,8 +1129,9 @@ impl Task {
             Ok(Ok(n)) => Ok(n),
             Ok(Err(WriteError::Again)) => Err(Errno::EAGAIN),
             Ok(Err(WriteError::BrokenPipe { written })) => {
-                generate_signal(&self.proc, Signal::SIGPIPE);
-                self.enter();
+                if sigpipe {
+                    self.sigpipe();
+                }
                 if written > 0 { Ok(written) } else { Err(Errno::EPIPE) }
             }
             Err(e) => {
@@ -805,19 +1190,12 @@ impl Task {
                 }
                 r
             }
-            FileObj::Pipe { end, .. } => self.pipe_write(ofd, &end.pipe, buf),
-            FileObj::Listener(_) => Err(Errno::ENOTCONN),
-            FileObj::Stream(c) => self.stream_write(ofd, c, buf),
-            FileObj::Unix(u) => {
-                if u.ty == crate::unix::SOCK_DGRAM {
-                    return self.unix_send(ofd, u, buf, None);
-                }
-                match u.conn() {
-                    Some(c) => self.stream_write(ofd, &c, buf),
-                    None => Err(Errno::ENOTCONN),
-                }
-            }
+            FileObj::Pipe { end, .. } => self.pipe_write(&end.pipe, buf, ofd.nonblock(), true, None),
+            FileObj::Listener(_) | FileObj::Stream(_) => self.stream_send(ofd, buf, MsgFlags::empty()),
+            FileObj::Unix(u) => self.unix_send_msg(ofd, u, buf, None, &self.plain_scm(), MsgFlags::empty()),
             FileObj::Udp(u) => self.sb.udp.send(u, buf, None),
+            FileObj::Epoll(_) | FileObj::Pidfd(_) => Err(Errno::EINVAL),
+            FileObj::Anon(a) => self.anon_write(ofd, a, buf),
             FileObj::Dev { dev: Device::Pty(end), .. } => self.tty_write(ofd, end, buf),
             FileObj::Dev { dev, .. } => dev.write(buf),
             FileObj::Path { .. } => Err(Errno::EBADF),
@@ -861,7 +1239,10 @@ impl Task {
         Ok(v)
     }
 
-    fn wait_children(&self, target: WaitTarget, options: WaitOptions) -> Try<SysResult<Option<(Pid, WaitStatus)>>> {
+    /// O `do_wait` de `wait4` e `waitid`: o filho e o que aconteceu a ele. `EXITED` liga o relato de
+    /// término, `UNTRACED` o de parada e `CONTINUED` o de continuação; `NOWAIT` deixa o evento esperável.
+    /// Devolve também o dono real do filho (o `si_uid` do `waitid`).
+    fn wait_children(&self, target: WaitTarget, options: WaitOptions) -> Try<SysResult<Option<WaitInfo>>> {
         let mut t = self.sb.table.lock();
         let me = self.proc.pid;
         let Some(my) = t.rel(me) else { return Try::Ready(Err(Errno::ECHILD)) };
@@ -883,21 +1264,39 @@ impl Task {
         if kids.is_empty() {
             return Try::Ready(Err(Errno::ECHILD));
         }
+        let keep = options.contains(WaitOptions::NOWAIT);
+        let mut found = None;
         for k in &kids {
+            let proc = t.proc(*k).expect("filho na tabela");
             let r = t.rel_mut(*k).expect("filho na tabela");
-            if let Some((st, _)) = r.zombie.clone() {
-                t.reap(*k);
-                return Try::Ready(Ok(Some((*k, st))));
+            if options.contains(WaitOptions::EXITED)
+                && let Some((st, ru)) = r.zombie
+            {
+                if !keep {
+                    t.reap(*k);
+                }
+                found = Some((*k, st, ru, proc));
+                break;
+            }
+            if r.zombie.is_some() {
+                continue;
             }
             if options.contains(WaitOptions::UNTRACED)
-                && let Some(sig) = r.stop_report.take()
+                && let Some(sig) = if keep { r.stop_report } else { r.stop_report.take() }
             {
-                return Try::Ready(Ok(Some((*k, WaitStatus::Stopped(sig)))));
+                found = Some((*k, WaitStatus::Stopped(sig), Rusage::default(), proc));
+                break;
             }
             if options.contains(WaitOptions::CONTINUED) && r.cont_report {
-                r.cont_report = false;
-                return Try::Ready(Ok(Some((*k, WaitStatus::Continued))));
+                r.cont_report &= keep;
+                found = Some((*k, WaitStatus::Continued, Rusage::default(), proc));
+                break;
             }
+        }
+        drop(t);
+        if let Some((pid, status, rusage, proc)) = found {
+            let uid = proc.st.lock().cred.ruid;
+            return Try::Ready(Ok(Some(WaitInfo { pid, uid, status, rusage })));
         }
         if options.contains(WaitOptions::NOHANG) {
             return Try::Ready(Ok(None));
@@ -917,6 +1316,21 @@ impl Task {
         Ok(())
     }
 
+    /// Onde começar a resolver o alvo de um `*xattr`: o fd de `EMPTY_PATH` (`fgetxattr`) ou o `dirfd` e o caminho.
+    /// Um fd sem lugar no VFS (pipe, socket, anon_inode) não tem atributos estendidos.
+    fn xattr_start(&self, dirfd: Fd, path: &[u8], flags: AtFlags) -> SysResult<Start> {
+        if !(AtFlags::SYMLINK_NOFOLLOW | AtFlags::EMPTY_PATH).contains(flags) {
+            return Err(Errno::EINVAL);
+        }
+        if path.is_empty() && flags.contains(AtFlags::EMPTY_PATH) {
+            return match self.ofd(dirfd)?.loc() {
+                Some(l) => Ok(Start::Dir(l.clone())),
+                None => Err(Errno::EOPNOTSUPP),
+            };
+        }
+        Ok(self.start_of(dirfd, path))
+    }
+
     fn proc_attr_caller_check(&self, pid: Pid) -> SysResult<Arc<Proc>> {
         if pid == 0 {
             return Ok(self.proc.clone());
@@ -930,21 +1344,8 @@ impl Task {
     fn sched_change(&self, pid: Pid, build: impl FnOnce(i32) -> SysResult<(SchedAttr, bool)>) -> SysResult<()> {
         let p = self.proc_attr_caller_check(pid)?;
         let caller_uid = self.proc.st.lock().cred.uid;
-        let mut st = p.st.lock();
-        let (attr, keep_policy) = build(st.nice)?;
-        let cx = SchedCaller {
-            same_owner: st.cred.uid == caller_uid,
-            rlim_rtprio: st.rlimits[Resource::Rtprio as usize].cur,
-            rlim_nice: st.rlimits[Resource::Nice as usize].cur,
-        };
-        let mut tune = p.tune.lock();
-        let (state, nice) = tune.sched.set(st.nice, &attr, keep_policy, &cx)?;
-        tune.sched = state;
-        drop(tune);
-        let changed = nice != st.nice;
-        st.nice = nice;
-        drop(st);
-        if changed {
+        let same_owner = p.st.lock().cred.uid == caller_uid;
+        if let Some(nice) = sched_apply(&p, same_owner, build)? {
             let tasks: Vec<Arc<Task>> = p.threads.lock().live.values().cloned().collect();
             for t in tasks {
                 self.sb.kernel.cpus.set_nice(&t.ct, nice);
@@ -987,7 +1388,13 @@ impl Task {
             return PollEvents::empty();
         }
         let Ok(ofd) = self.ofd(pfd.fd) else { return PollEvents::NVAL };
-        let w = register.then_some(&self.parker);
+        self.poll_ofd(&ofd, pfd.events, register.then_some(&self.parker))
+    }
+
+    /// A prontidão de uma descrição para os `events` pedidos (mais `ERR`, `HUP` e `NVAL`, que vêm sempre),
+    /// registrando `waiter` nas filas do objeto quando há. Serve ao `poll(2)` e ao epoll.
+    pub(crate) fn poll_ofd(&self, ofd: &Ofd, events: PollEvents, waiter: Option<&Arc<Parker>>) -> PollEvents {
+        let w = waiter;
         let ready = match &ofd.obj {
             FileObj::Path { .. } => return PollEvents::NVAL,
             FileObj::Dev { dev: Device::Pty(end), .. } => end.pty.poll(end.master, w),
@@ -997,16 +1404,245 @@ impl Task {
             FileObj::Stream(c) => c.poll(w),
             FileObj::Unix(u) => u.poll(w),
             FileObj::Udp(u) => u.poll(w),
+            // O `ep_eventpoll_poll`: legível quando há evento pronto.
+            FileObj::Epoll(e) if e.scan(self, 1, false, w).is_empty() => PollEvents::empty(),
+            FileObj::Epoll(_) => PollEvents::IN,
+            FileObj::Pidfd(p) => p.poll(w),
+            FileObj::Anon(a) => a.poll(w),
         };
-        ready & (pfd.events | PollEvents::ERR | PollEvents::HUP | PollEvents::NVAL)
+        // O `connect` recusado deixa o TCP em CLOSE com `SHUTDOWN_MASK`: `tcp_poll` dá `IN|OUT|HUP|RDHUP` até o
+        // `connect` seguinte, e `ERR` enquanto o `SO_ERROR` não leu o erro.
+        let ready = if matches!(ofd.obj, FileObj::Listener(_)) {
+            Self::settle_syn(ofd);
+            let meta = ofd.sock.lock();
+            let mut ready = ready;
+            if meta.failed {
+                ready |= PollEvents::IN | PollEvents::OUT | PollEvents::HUP | PollEvents::RDHUP;
+            }
+            if meta.error != 0 {
+                ready |= PollEvents::ERR;
+            }
+            ready
+        } else {
+            ready
+        };
+        ready & (events | PollEvents::ERR | PollEvents::HUP | PollEvents::NVAL)
     }
 
-    fn lock_key(&self, ofd: &Ofd) -> SysResult<(u64, u64)> {
-        match &ofd.obj {
-            FileObj::Vfs { loc, .. } => Ok((loc.fs().dev(), loc.ino)),
-            FileObj::Path { .. } => Err(Errno::EBADF),
+    /// `epoll_ctl` com a descrição de destino já resolvida, na ordem de validação do `do_epoll_ctl`.
+    fn epoll_ctl_ofd(&self, ep: &Arc<Ofd>, epoll: &Arc<crate::epoll::Epoll>, op: i32, fd: Fd, target: &Arc<Ofd>, event: EpollEvent) -> SysResult<()> {
+        use sysabi::epoll as ev;
+        if Arc::ptr_eq(ep, target) {
+            return Err(Errno::EINVAL);
+        }
+        let mut event = event;
+        if op != ev::CTL_DEL {
+            // `EPOLLWAKEUP` pede `CAP_BLOCK_SUSPEND`, que o contêiner padrão não tem: o kernel só apaga o bit.
+            event.events = (event.events | ev::ERR | ev::HUP) & !ev::WAKEUP;
+        }
+        let target_is_epoll = matches!(target.obj, FileObj::Epoll(_));
+        if event.events & ev::EXCLUSIVE != 0 {
+            let ok_bits = ev::IN | ev::OUT | ev::ERR | ev::HUP | ev::WAKEUP | ev::ET | ev::EXCLUSIVE;
+            if op == ev::CTL_MOD || (op == ev::CTL_ADD && (target_is_epoll || event.events & !ok_bits != 0)) {
+                return Err(Errno::EINVAL);
+            }
+        }
+        match op {
+            ev::CTL_ADD => {
+                if let FileObj::Epoll(inner) = &target.obj {
+                    if inner.reaches(ep.id) {
+                        return Err(Errno::ELOOP);
+                    }
+                    if inner.too_deep(1) || epoll.too_deep(inner.depth()) {
+                        return Err(Errno::EINVAL);
+                    }
+                }
+                epoll.add(fd, target, event)
+            }
+            ev::CTL_DEL => epoll.delete(fd, target),
+            ev::CTL_MOD => {
+                if epoll.events_of(fd, target).is_some_and(|e| e & ev::EXCLUSIVE != 0) {
+                    return Err(Errno::EINVAL);
+                }
+                epoll.modify(fd, target, event)
+            }
             _ => Err(Errno::EINVAL),
         }
+    }
+
+    /// `F_SETLK`, `F_SETLKW` e `F_OFD_SETLK*` com a faixa já resolvida: a trava de leitura pede descrição
+    /// aberta pra leitura e a de escrita, pra escrita (EBADF).
+    fn set_range_lock(&self, ofd: &Ofd, owner: u64, lock: FileLock, wait: bool) -> SysResult<()> {
+        let key = lock_key_of(ofd).ok_or(Errno::EBADF)?;
+        match lock.kind {
+            LockKind::Read if !ofd.readable => return Err(Errno::EBADF),
+            LockKind::Write if !ofd.writable => return Err(Errno::EBADF),
+            _ => {}
+        }
+        if lock.start > i64::MAX as u64 {
+            return Err(Errno::EINVAL);
+        }
+        self.lock_wait(key, owner, lock, wait)
+    }
+
+    /// `F_GETLK` e `F_OFD_GETLK`: a primeira trava de outro dono que conflita, com o dono dela.
+    fn test_range_lock(&self, ofd: &Ofd, owner: u64, lock: FileLock) -> SysResult<Option<(FileLock, u64)>> {
+        let key = lock_key_of(ofd).ok_or(Errno::EBADF)?;
+        if lock.kind == LockKind::Unlock {
+            return Err(Errno::EINVAL);
+        }
+        Ok(self.sb.locks.getlk(key, owner, &lock))
+    }
+
+    /// Toma (ou solta) uma trava de arquivo, esperando se `wait`. Conflito sem espera é EAGAIN; uma espera
+    /// que fecharia um ciclo entre processos é EDEADLK; um sinal capturado é EINTR.
+    fn lock_wait(&self, key: (u64, u64), owner: u64, lock: FileLock, wait: bool) -> SysResult<()> {
+        let locks = self.sb.locks.clone();
+        if !wait {
+            return locks.setlk(key, owner, &lock, None).map_err(|_| Errno::EAGAIN);
+        }
+        let r = self.wait_event(None, |p| match locks.setlk(key, owner, &lock, Some(p)) {
+            Ok(()) => Try::Ready(Ok(())),
+            Err(LockFail::Conflict) => Try::Pending,
+            Err(LockFail::Deadlock) => Try::Ready(Err(Errno::EDEADLK)),
+        });
+        locks.finish_wait(&self.parker, owner);
+        r
+    }
+
+    /// `flock_to_posix_lock`: a faixa `[start, end]` do `struct flock` do programa, com o `whence` resolvido
+    /// (`f_pos` ou o tamanho do arquivo) e os erros do Linux: `whence` ruim e faixa antes do zero são EINVAL, o
+    /// que passa de `OFFSET_MAX` é EOVERFLOW; `l_len` 0 vai até o fim do arquivo e negativo termina antes de `start`.
+    fn posix_lock_of(&self, ofd: &Ofd, f: &Flock) -> SysResult<FileLock> {
+        let base = match f.whence {
+            sysabi::fcntl::SEEK_SET => 0,
+            sysabi::fcntl::SEEK_CUR => i128::from(ofd.st.lock().pos),
+            sysabi::fcntl::SEEK_END => i128::from(ofd_stat_in(&self.sb, &self.caller(), ofd)?.size),
+            _ => return Err(Errno::EINVAL),
+        };
+        let max = i128::from(i64::MAX);
+        if i128::from(f.start) > max - base {
+            return Err(Errno::EOVERFLOW);
+        }
+        let mut start = base + i128::from(f.start);
+        if start < 0 {
+            return Err(Errno::EINVAL);
+        }
+        let len = i128::from(f.len);
+        let end = if len > 0 {
+            if len - 1 > max - start {
+                return Err(Errno::EOVERFLOW);
+            }
+            start + len - 1
+        } else if len < 0 {
+            if start + len < 0 {
+                return Err(Errno::EINVAL);
+            }
+            let end = start - 1;
+            start += len;
+            end
+        } else {
+            max
+        };
+        if end < start {
+            return Err(Errno::EOVERFLOW);
+        }
+        let kind = match f.l_type {
+            sysabi::fcntl::F_RDLCK => LockKind::Read,
+            sysabi::fcntl::F_WRLCK => LockKind::Write,
+            sysabi::fcntl::F_UNLCK => LockKind::Unlock,
+            _ => return Err(Errno::EINVAL),
+        };
+        Ok(FileLock { kind, start: start as u64, len: if end == max { 0 } else { (end - start + 1) as u64 } })
+    }
+
+    /// `locks_remove_posix` de um `close`: fechar qualquer fd de um arquivo solta as travas POSIX que este
+    /// processo tem nele, mesmo que outros fds da mesma descrição sigam abertos.
+    pub(crate) fn flush_posix_locks(&self, ofd: &Ofd) {
+        if let Some(key) = lock_key_of(ofd) {
+            self.sb.locks.release_posix(key, self.proc.pid);
+        }
+    }
+}
+
+/// O núcleo do `__sched_setscheduler` sobre um processo: `build` recebe a nice atual e devolve o `SchedAttr`
+/// e se a política fica (`sched_setparam`). Devolve a nice nova quando ela mudou, pra quem já tem threads
+/// avisar o escalonador.
+pub(crate) fn sched_apply(p: &Proc, same_owner: bool, build: impl FnOnce(i32) -> SysResult<(SchedAttr, bool)>) -> SysResult<Option<i32>> {
+    let mut st = p.st.lock();
+    let (attr, keep_policy) = build(st.nice)?;
+    let cx = SchedCaller {
+        same_owner,
+        rlim_rtprio: st.rlimits[Resource::Rtprio as usize].cur,
+        rlim_nice: st.rlimits[Resource::Nice as usize].cur,
+    };
+    let mut tune = p.tune.lock();
+    let (state, nice) = tune.sched.set(st.nice, &attr, keep_policy, &cx)?;
+    tune.sched = state;
+    drop(tune);
+    let changed = nice != st.nice;
+    st.nice = nice;
+    Ok(changed.then_some(nice))
+}
+
+/// `(st_dev, st_ino)` do arquivo por trás de uma descrição: a chave das travas. Os descritores `O_PATH` não
+/// têm (EBADF).
+fn lock_key_of(ofd: &Ofd) -> Option<(u64, u64)> {
+    let sock = |ident: &Pipe| {
+        let st = crate::net::sock_stat(ident);
+        Some((st.dev, st.ino))
+    };
+    match &ofd.obj {
+        FileObj::Vfs { loc, .. } | FileObj::Pipe { fifo: Some(loc), .. } | FileObj::Dev { loc: Some(loc), .. } => Some((loc.fs().dev(), loc.ino)),
+        FileObj::Path { .. } | FileObj::Dev { loc: None, .. } => None,
+        FileObj::Pipe { end, fifo: None } => Some((crate::pipe::PIPEFS_DEV, end.pipe.ino)),
+        FileObj::Listener(l) => sock(&l.ident),
+        FileObj::Stream(c) => sock(&c.ident),
+        FileObj::Unix(u) => sock(&u.ident),
+        FileObj::Udp(u) => sock(&u.ident),
+        FileObj::Epoll(_) | FileObj::Pidfd(_) | FileObj::Anon(_) => Some((crate::epoll::ANON_DEV, crate::epoll::ANON_INO)),
+    }
+}
+
+/// Solta o registro de `waiter` nas filas dos objetos de uma descrição que o `poll`, o `epoll_wait` ou uma
+/// entrada de epoll observou (o `ep_unregister_pollwait`).
+pub(crate) fn unregister_ofd(ofd: &Ofd, waiter: &Arc<Parker>) {
+    match &ofd.obj {
+        FileObj::Pipe { end, .. } => end.pipe.unregister(waiter),
+        FileObj::Listener(l) => l.unregister(waiter),
+        FileObj::Stream(c) => c.unregister(waiter),
+        FileObj::Unix(u) => u.unregister(waiter),
+        FileObj::Udp(u) => u.unregister(waiter),
+        FileObj::Dev { dev: Device::Pty(end), .. } => end.pty.unregister(waiter),
+        FileObj::Epoll(e) => e.unregister(waiter),
+        FileObj::Pidfd(p) => p.unregister(waiter),
+        FileObj::Anon(a) => a.unregister(waiter),
+        _ => {}
+    }
+}
+
+/// `fstat` de uma descrição, para quem tem só o sandbox e o chamador (o `fdinfo` do epoll mostra o `st_dev`
+/// e o `st_ino` de cada alvo).
+pub(crate) fn ofd_stat_in(sb: &SbInner, cx: &Caller, ofd: &Ofd) -> SysResult<Stat> {
+    match &ofd.obj {
+        FileObj::Vfs { loc, .. } | FileObj::Path { loc, .. } => sb.ns.stat_loc(cx, loc),
+        FileObj::Pipe { fifo: Some(l), .. } => sb.ns.stat_loc(cx, l),
+        FileObj::Pipe { end, fifo: None } => Ok(end.pipe.stat(None)),
+        FileObj::Dev { loc: Some(l), .. } => sb.ns.stat_loc(cx, l),
+        FileObj::Dev { loc: None, .. } => Err(Errno::EBADF),
+        FileObj::Listener(l) => Ok(crate::net::sock_stat(&l.ident)),
+        FileObj::Stream(c) => Ok(crate::net::sock_stat(&c.ident)),
+        FileObj::Unix(u) => Ok(crate::net::sock_stat(&u.ident)),
+        FileObj::Udp(u) => Ok(crate::net::sock_stat(&u.ident)),
+        // `anon_inode_make_secure_inode`: sem bits de tipo, só `0600`, o mesmo inode para todo anon_inode.
+        FileObj::Epoll(_) | FileObj::Pidfd(_) | FileObj::Anon(_) => Ok(Stat {
+            dev: crate::epoll::ANON_DEV,
+            ino: crate::epoll::ANON_INO,
+            mode: 0o600,
+            nlink: 1,
+            blksize: 4096,
+            ..Stat::default()
+        }),
     }
 }
 
@@ -1033,6 +1669,7 @@ impl Syscalls for Task {
     fn close(&self, fd: Fd) -> SysResult<()> {
         self.enter();
         let slot = self.proc.fds.lock().remove(fd).ok_or(Errno::EBADF)?;
+        self.flush_posix_locks(&slot.ofd);
         drop(slot);
         Ok(())
     }
@@ -1071,7 +1708,9 @@ impl Syscalls for Task {
         self.enter();
         let ofd = self.ofd(fd)?;
         match &ofd.obj {
-            FileObj::Pipe { .. } | FileObj::Listener(_) | FileObj::Stream(_) | FileObj::Unix(_) | FileObj::Udp(_) => Err(Errno::ESPIPE),
+            FileObj::Pipe { .. } | FileObj::Listener(_) | FileObj::Stream(_) | FileObj::Unix(_) | FileObj::Udp(_) | FileObj::Epoll(_) | FileObj::Pidfd(_) => Err(Errno::ESPIPE),
+            // `eventfd_fops` e `timerfd_fops` têm `.llseek = noop_llseek`: aceita e devolve `f_pos`, sempre 0.
+            FileObj::Anon(_) => Ok(0),
             FileObj::Path { .. } => Err(Errno::EBADF),
             FileObj::Dev { dev, .. } => dev.lseek(),
             FileObj::Vfs { kind: FileType::Directory, .. } => {
@@ -1238,7 +1877,7 @@ impl Syscalls for Task {
         let cx = self.caller();
         match &ofd.obj {
             FileObj::Path { .. } => Err(Errno::EBADF),
-            FileObj::Pipe { fifo: None, .. } | FileObj::Dev { loc: None, .. } => Ok(()),
+            FileObj::Pipe { fifo: None, .. } | FileObj::Dev { loc: None, .. } | FileObj::Epoll(_) | FileObj::Pidfd(_) | FileObj::Anon(_) => Ok(()),
             _ => {
                 let l = ofd.loc().expect("tem lugar").clone();
                 let st = self.sb.ns.stat_loc(&cx, &l)?;
@@ -1260,6 +1899,34 @@ impl Syscalls for Task {
             self.start_of(dirfd, path)
         };
         self.sb.ns.chown(&cx, &start, path, uid, gid, flags)
+    }
+
+    fn getxattr(&self, dirfd: Fd, path: &[u8], flags: AtFlags, name: &[u8]) -> SysResult<Vec<u8>> {
+        self.enter();
+        let cx = self.caller();
+        let start = self.xattr_start(dirfd, path, flags)?;
+        self.sb.ns.getxattr(&cx, &start, path, name, flags)
+    }
+
+    fn setxattr(&self, dirfd: Fd, path: &[u8], flags: AtFlags, name: &[u8], value: &[u8], xflags: u32) -> SysResult<()> {
+        self.enter();
+        let cx = self.caller();
+        let start = self.xattr_start(dirfd, path, flags)?;
+        self.sb.ns.setxattr(&cx, &start, path, name, value, xflags, flags)
+    }
+
+    fn listxattr(&self, dirfd: Fd, path: &[u8], flags: AtFlags) -> SysResult<Vec<Vec<u8>>> {
+        self.enter();
+        let cx = self.caller();
+        let start = self.xattr_start(dirfd, path, flags)?;
+        self.sb.ns.listxattr(&cx, &start, path, flags)
+    }
+
+    fn removexattr(&self, dirfd: Fd, path: &[u8], flags: AtFlags, name: &[u8]) -> SysResult<()> {
+        self.enter();
+        let cx = self.caller();
+        let start = self.xattr_start(dirfd, path, flags)?;
+        self.sb.ns.removexattr(&cx, &start, path, name, flags)
     }
 
     fn utimensat(&self, dirfd: Fd, path: &[u8], atime: SetTime, mtime: SetTime, flags: AtFlags) -> SysResult<()> {
@@ -1290,7 +1957,7 @@ impl Syscalls for Task {
         }
         match &ofd.obj {
             FileObj::Path { .. } => Err(Errno::EBADF),
-            FileObj::Pipe { fifo: None, .. } | FileObj::Dev { loc: None, .. } => Ok(()),
+            FileObj::Pipe { fifo: None, .. } | FileObj::Dev { loc: None, .. } | FileObj::Epoll(_) | FileObj::Pidfd(_) | FileObj::Anon(_) => Ok(()),
             _ => {
                 let l = ofd.loc().expect("tem lugar").clone();
                 let st = self.sb.ns.stat_loc(&cx, &l)?;
@@ -1424,6 +2091,9 @@ impl Syscalls for Task {
             }
             fds.put(new, ofd, cloexec)
         };
+        if let Some(slot) = &prev {
+            self.flush_posix_locks(&slot.ofd);
+        }
         drop(prev);
         Ok(new)
     }
@@ -1453,7 +2123,7 @@ impl Syscalls for Task {
     fn get_status_flags(&self, fd: Fd) -> SysResult<OFlags> {
         self.enter();
         let ofd = self.ofd(fd)?;
-        Ok(OFlags::from_bits_retain(ofd.accmode) | ofd.status())
+        Ok(OFlags::from_bits_retain(crate::procinfo::f_flags(&ofd)))
     }
 
     fn set_status_flags(&self, fd: Fd, flags: OFlags) -> SysResult<()> {
@@ -1505,9 +2175,48 @@ impl Syscalls for Task {
     fn tcp_listen_at(&self, ip: std::net::IpAddr, port: u16, backlog: u32, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
         self.enter();
         let listener = self.sb.ports.listen(ip, port, backlog, self.sock_pipe())?;
-        let port = listener.port;
+        let port = listener.port();
         let fd = self.install_sock(FileObj::Listener(listener), nonblock, cloexec)?;
         Ok((fd, port))
+    }
+
+    fn tcp_bind(&self, ip: std::net::IpAddr, port: u16, reuse_addr: bool, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
+        self.enter();
+        let sock = self.sb.ports.bind(ip, port, reuse_addr, self.sock_pipe())?;
+        let port = sock.port();
+        let fd = self.install_sock(FileObj::Listener(sock), nonblock, cloexec)?;
+        Ok((fd, port))
+    }
+
+    fn tcp_connect_bound(&self, fd: Fd, ip: std::net::IpAddr, port: u16) -> SysResult<u16> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        // `connect` num socket que já escuta ou já conectou dá EISCONN (`inet_stream_connect`). O
+        // socket é o mesmo objeto para todos os fds duplicados: a conexão fica nele.
+        match &ofd.obj {
+            FileObj::Listener(l) => {
+                let local = self.connect_wait(l, ip, port)?.local;
+                ofd.sock.lock().sndbuf_expanded = true;
+                Ok(local)
+            }
+            FileObj::Stream(_) => Err(Errno::EISCONN),
+            _ => Err(Errno::ENOTSOCK),
+        }
+    }
+
+    fn tcp_listen_bound(&self, fd: Fd, backlog: u32) -> SysResult<()> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        match &ofd.obj {
+            // `listen` num socket já conectado: EINVAL, como no `inet_listen`.
+            FileObj::Listener(l) if l.conn().is_some() || l.syn_sent() => Err(Errno::EINVAL),
+            FileObj::Listener(l) => {
+                l.start_listening(backlog);
+                Ok(())
+            }
+            FileObj::Stream(_) => Err(Errno::EINVAL),
+            _ => Err(Errno::ENOTSOCK),
+        }
     }
 
     fn tcp_accept(&self, fd: Fd, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
@@ -1527,6 +2236,16 @@ impl Syscalls for Task {
         };
         let peer = conn.peer;
         let fd = self.install_sock(FileObj::Stream(conn), nonblock, cloexec)?;
+        // O filho herda o `sk_sndbuf` e as travas do socket que escuta (`sk_clone`): com `SO_SNDBUF` definido ali, o
+        // valor passa ao aceito e nada o amplia; sem ele, o `tcp_init_buffer_space` do estabelecimento o amplia.
+        let inherited = ofd.sock.lock().opts.get(&(SOL_SOCKET, SO_SNDBUF)).cloned();
+        let accepted = self.ofd(fd)?;
+        let mut meta = accepted.sock.lock();
+        match inherited {
+            Some(v) => drop(meta.opts.insert((SOL_SOCKET, SO_SNDBUF), v)),
+            None => meta.sndbuf_expanded = true,
+        }
+        drop(meta);
         Ok((fd, peer))
     }
 
@@ -1536,9 +2255,10 @@ impl Syscalls for Task {
 
     fn tcp_connect_at(&self, ip: std::net::IpAddr, port: u16, nonblock: bool, cloexec: bool) -> SysResult<(Fd, u16)> {
         self.enter();
-        let conn = self.sb.ports.connect(ip, port, || self.sock_pipe())?;
+        let conn = self.connect_new(ip, port)?;
         let local = conn.local;
         let fd = self.install_sock(FileObj::Stream(conn), nonblock, cloexec)?;
+        self.ofd(fd)?.sock.lock().sndbuf_expanded = true;
         Ok((fd, local))
     }
 
@@ -1550,14 +2270,21 @@ impl Syscalls for Task {
                 c.shutdown(read, write);
                 Ok(())
             }
-            FileObj::Listener(_) => Err(Errno::ENOTCONN),
-            FileObj::Unix(u) => match u.conn() {
+            FileObj::Listener(l) => match l.conn() {
                 Some(c) => {
                     c.shutdown(read, write);
                     Ok(())
                 }
+                // `inet_shutdown` em LISTEN: só o `SHUT_RD` desfaz a escuta (`tcp_disconnect`).
+                None if l.is_listening() => {
+                    if read {
+                        l.stop_listening();
+                    }
+                    Ok(())
+                }
                 None => Err(Errno::ENOTCONN),
             },
+            FileObj::Unix(u) => u.shutdown(read, write),
             _ => Err(Errno::ENOTSOCK),
         }
     }
@@ -1567,9 +2294,184 @@ impl Syscalls for Task {
         let ofd = self.ofd(fd)?;
         match &ofd.obj {
             FileObj::Stream(c) => Ok((c.local, Some(c.peer))),
-            FileObj::Listener(l) => Ok((l.port, None)),
+            FileObj::Listener(l) => Ok(match l.conn() {
+                Some(c) => (c.local, Some(c.peer)),
+                None => (l.name().1, None),
+            }),
             _ => Err(Errno::ENOTSOCK),
         }
+    }
+
+    fn tcp_socket(&self, v6: bool, nonblock: bool, cloexec: bool) -> SysResult<Fd> {
+        self.enter();
+        let sock = self.sb.ports.socket(v6, self.sock_pipe());
+        self.install_sock(FileObj::Listener(sock), nonblock, cloexec)
+    }
+
+    fn tcp_bind_fd(&self, fd: Fd, ip: std::net::IpAddr, port: u16, reuse_addr: bool) -> SysResult<u16> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        match &ofd.obj {
+            FileObj::Listener(l) => self.sb.ports.bind_socket(l, ip, port, reuse_addr),
+            FileObj::Stream(_) => Err(Errno::EINVAL),
+            _ => Err(Errno::ENOTSOCK),
+        }
+    }
+
+    fn tcp_connect_fd(&self, fd: Fd, ip: std::net::IpAddr, port: u16) -> SysResult<()> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        let l = match &ofd.obj {
+            FileObj::Listener(l) => l,
+            FileObj::Stream(_) => return Err(Errno::EISCONN),
+            _ => return Err(Errno::ENOTSOCK),
+        };
+        let nonblock = ofd.nonblock();
+        Self::settle_syn(&ofd);
+        let mut meta = ofd.sock.lock();
+        if meta.connecting {
+            // `__inet_stream_connect` em SS_CONNECTING com o SYN ainda sem resposta (a fila do ouvinte estava
+            // cheia): EALREADY no não bloqueante, e o bloqueante volta a esperar.
+            if l.syn_sent() {
+                if nonblock {
+                    return Err(Errno::EALREADY);
+                }
+                drop(meta);
+                return self.finish_connect(&ofd, l);
+            }
+            // O SYN recusado entrega o erro pendente (ou ECONNABORTED, se o `SO_ERROR` já o leu) e o socket
+            // volta a não estar conectado; senão a conexão que o loopback já fechou conclui com 0.
+            meta.connecting = false;
+            if meta.failed {
+                meta.failed = false;
+                let err = std::mem::take(&mut meta.error);
+                return Err(if err == 0 { Errno::ECONNABORTED } else { Errno(err) });
+            }
+            meta.sndbuf_expanded = true;
+            return Ok(());
+        }
+        match l.connect(&self.sb.ports, ip, port, self.sock_pipe_maker()) {
+            // O handshake do loopback termina depois do retorno de um `connect` não bloqueante.
+            Ok(Some(_)) if nonblock => {
+                meta.sndbuf_expanded = true;
+                meta.connecting = true;
+                Err(Errno::EINPROGRESS)
+            }
+            Ok(Some(_)) => {
+                meta.sndbuf_expanded = true;
+                Ok(())
+            }
+            // Fila de aceite cheia: o SYN foi descartado e o cliente retransmite (1, 3, 7... s).
+            Ok(None) => {
+                meta.connecting = true;
+                if nonblock {
+                    return Err(Errno::EINPROGRESS);
+                }
+                drop(meta);
+                self.finish_connect(&ofd, l)
+            }
+            // O loopback recusa só depois: o erro aparece em `SO_ERROR`, no poll e no `connect` seguinte.
+            Err(Errno::ECONNREFUSED) if nonblock => {
+                meta.error = Errno::ECONNREFUSED.0;
+                meta.failed = true;
+                meta.connecting = true;
+                Err(Errno::EINPROGRESS)
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    #[allow(clippy::type_complexity)]
+    fn tcp_names(&self, fd: Fd) -> SysResult<((std::net::IpAddr, u16), Option<(std::net::IpAddr, u16)>)> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        match &ofd.obj {
+            FileObj::Stream(c) => c.addrs().map(|(me, peer)| (me, Some(peer))).ok_or(Errno::ENOTSOCK),
+            FileObj::Listener(l) => Ok(match l.conn().and_then(|c| c.addrs()) {
+                Some((me, peer)) => (me, Some(peer)),
+                None => (l.name(), None),
+            }),
+            _ => Err(Errno::ENOTSOCK),
+        }
+    }
+
+    fn sock_info(&self, fd: Fd) -> SysResult<(i32, i32, i32, bool)> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        let family = |v6: bool| if v6 { 10 } else { 2 };
+        Ok(match &ofd.obj {
+            FileObj::Listener(l) => (family(l.is_v6()), 1, 6, l.is_listening()),
+            FileObj::Stream(c) => (family(c.addrs().is_some_and(|(me, _)| me.0.is_ipv6())), 1, 6, false),
+            FileObj::Unix(u) => (1, i32::from(u.ty), 0, u.listening()),
+            FileObj::Udp(u) => (family(u.v6), 2, 17, false),
+            _ => return Err(Errno::ENOTSOCK),
+        })
+    }
+
+    fn sock_error(&self, fd: Fd) -> SysResult<i32> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        if !ofd.obj.is_socket() {
+            return Err(Errno::ENOTSOCK);
+        }
+        // O `sk_err` de uma conexão que recebeu RST (`ECONNRESET`, ou `EPIPE` de um par que já fechara); sem
+        // conexão, o do `connect` recusado.
+        if let Some(e) = Self::with_conn(&ofd, crate::net::Conn::take_error).flatten() {
+            return Ok(e.0);
+        }
+        Self::settle_syn(&ofd);
+        let err = std::mem::take(&mut ofd.sock.lock().error);
+        Ok(err)
+    }
+
+    fn sock_setopt(&self, fd: Fd, level: i32, name: i32, value: &[u8]) -> SysResult<()> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        if !ofd.obj.is_socket() {
+            return Err(Errno::ENOTSOCK);
+        }
+        ofd.sock.lock().opts.insert((level, name), value.to_vec());
+        if let FileObj::Unix(u) = &ofd.obj && (level, name) == (SOL_SOCKET, SO_PASSCRED) {
+            // O `sk_setsockopt` guarda `SOCK_PASSCRED`; o Python manda o valor já normalizado (0 ou 1).
+            u.set_passcred(value.iter().any(|&b| b != 0));
+        }
+        Ok(())
+    }
+
+    fn sock_getopt(&self, fd: Fd, level: i32, name: i32) -> SysResult<Option<Vec<u8>>> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        if !ofd.obj.is_socket() {
+            return Err(Errno::ENOTSOCK);
+        }
+        if (level, name) == (SOL_SOCKET, SO_PEERCRED) {
+            // `cred_to_ucred`: o par de um socket Unix; sem par (e em qualquer outro socket) pid 0 e uid/gid -1.
+            let cred = match &ofd.obj {
+                FileObj::Unix(u) => u.peer_cred(),
+                _ => Ucred::UNSET,
+            };
+            return Ok(Some(cred.to_bytes()));
+        }
+        let meta = ofd.sock.lock();
+        let value = meta.opts.get(&(level, name)).cloned().or_else(|| {
+            ((level, name) == (SOL_SOCKET, SO_SNDBUF) && meta.sndbuf_expanded).then(|| TCP_SNDBUF_EXPANDED.to_le_bytes().to_vec())
+        });
+        Ok(value)
+    }
+
+    fn sock_recv(&self, fd: Fd, max: usize, flags: MsgFlags) -> SysResult<Vec<u8>> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        let mut buf = vec![0u8; max];
+        let n = self.stream_recv(&ofd, &mut buf, flags)?;
+        buf.truncate(n);
+        Ok(buf)
+    }
+
+    fn sock_send(&self, fd: Fd, buf: &[u8], flags: MsgFlags) -> SysResult<usize> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        self.stream_send(&ofd, buf, flags)
     }
 
     fn udp_socket(&self, v6: bool, nonblock: bool, cloexec: bool) -> SysResult<Fd> {
@@ -1624,7 +2526,7 @@ impl Syscalls for Task {
         if ![crate::unix::SOCK_STREAM, crate::unix::SOCK_DGRAM, crate::unix::SOCK_SEQPACKET].contains(&ty) {
             return Err(Errno::ESOCKTNOSUPPORT);
         }
-        let (a, b) = self.sb.unix.pair(ty, (self.sock_pipe(), self.sock_pipe()), || self.sock_pipe());
+        let (a, b) = self.sb.unix.pair(ty, (self.sock_pipe(), self.sock_pipe()), || self.sock_pipe(), self.peer_ucred());
         let fa = self.install_sock(FileObj::Unix(a), nonblock, cloexec)?;
         match self.install_sock(FileObj::Unix(b), nonblock, cloexec) {
             Ok(fb) => Ok((fa, fb)),
@@ -1662,7 +2564,7 @@ impl Syscalls for Task {
 
     fn unix_listen(&self, fd: Fd, backlog: u32) -> SysResult<()> {
         self.enter();
-        self.unix_of(fd)?.listen(backlog)
+        self.unix_of(fd)?.listen(backlog, self.peer_ucred())
     }
 
     fn unix_accept(&self, fd: Fd, nonblock: bool, cloexec: bool) -> SysResult<Fd> {
@@ -1694,9 +2596,17 @@ impl Syscalls for Task {
         }
         let nonblock = ofd.nonblock();
         let mk = || self.sock_pipe();
-        let r = self.wait_event(None, |p| u.try_connect(&target, nonblock, p, &mk));
-        if r.is_err() {
-            target.unregister(&self.parker);
+        let cred = self.peer_ucred();
+        // Quem espera vaga na fila não segura o socket que escuta: se o último fd dele fecha, o `Drop` acorda a
+        // espera e o `connect` seguinte já não o encontra (ECONNREFUSED, como o `unix_dgram_peer_wake` do Linux).
+        let weak = Arc::downgrade(&target);
+        drop(target);
+        let r = self.wait_event(None, |p| match weak.upgrade() {
+            Some(t) => u.try_connect(&t, nonblock, p, &mk, cred),
+            None => Try::Ready(Err(Errno::ECONNREFUSED)),
+        });
+        if r.is_err() && let Some(t) = weak.upgrade() {
+            t.unregister(&self.parker);
         }
         r
     }
@@ -1710,38 +2620,46 @@ impl Syscalls for Task {
         self.enter();
         let ofd = self.ofd(fd)?;
         let FileObj::Unix(u) = &ofd.obj else { return Err(Errno::ENOTSOCK) };
-        if u.ty != crate::unix::SOCK_DGRAM {
-            // `unix_stream_sendmsg`: com endereço, EOPNOTSUPP (ou EISCONN se conectado).
-            return match (name, u.conn()) {
-                (Some(_), Some(_)) => Err(Errno::EISCONN),
-                (Some(_), None) => Err(Errno::EOPNOTSUPP),
-                (None, Some(c)) => self.stream_write(&ofd, &c, data),
-                (None, None) => Err(Errno::ENOTCONN),
-            };
-        }
-        let target = match name {
-            Some(n) => Some(self.unix_find(n)?),
-            None => None,
-        };
-        self.unix_send(&ofd, u, data, target.as_ref())
+        self.unix_send_msg(&ofd, u, data, name, &self.plain_scm(), MsgFlags::empty())
     }
 
     fn unix_recvfrom(&self, fd: Fd, max: usize, peek: bool) -> SysResult<(Vec<u8>, Option<Vec<u8>>)> {
         self.enter();
         let ofd = self.ofd(fd)?;
         let FileObj::Unix(u) = &ofd.obj else { return Err(Errno::ENOTSOCK) };
-        if u.ty != crate::unix::SOCK_DGRAM {
-            let mut buf = vec![0u8; max];
-            let n = match u.conn() {
-                Some(c) => self.stream_read(&ofd, &c, &mut buf)?,
-                None => return Err(Errno::EINVAL),
-            };
-            buf.truncate(n);
-            return Ok((buf, None));
-        }
-        let (mut data, from) = self.unix_recv(&ofd, u, peek)?;
-        data.truncate(max);
+        let flags = if peek { MsgFlags::PEEK } else { MsgFlags::empty() };
+        let (data, from, _, _) = self.unix_recv_any(&ofd, u, max, flags)?;
         Ok((data, from))
+    }
+
+    fn unix_sendmsg(&self, fd: Fd, data: &[u8], name: Option<&[u8]>, control: &[u8], flags: MsgFlags) -> SysResult<usize> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        let FileObj::Unix(u) = &ofd.obj else { return Err(Errno::ENOTSOCK) };
+        let scm = self.scm_from_control(control)?;
+        self.unix_send_msg(&ofd, u, data, name, &scm, flags)
+    }
+
+    fn unix_recvmsg(&self, fd: Fd, max: usize, control_len: usize, flags: MsgFlags) -> SysResult<RecvMsg> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        let FileObj::Unix(u) = &ofd.obj else { return Err(Errno::ENOTSOCK) };
+        let (data, name, scm, cut) = self.unix_recv_any(&ofd, u, max, flags)?;
+        let mut control = sysabi::cmsg::Builder::new(control_len);
+        if control_len == 0 {
+            // Sem `msg_control` (`__scm_recv_common`): o que seria entregue só marca o corte, e os descritores fecham.
+            control.truncated = u.passcred() || !scm.fds.is_empty();
+        } else {
+            if u.passcred() {
+                control.put(sysabi::cmsg::SOL_SOCKET, sysabi::cmsg::SCM_CREDENTIALS, &scm.cred.to_bytes());
+            }
+            self.detach_fds(&scm.fds, &mut control, flags.contains(MsgFlags::CMSG_CLOEXEC));
+        }
+        let mut out = if cut { MsgFlags::TRUNC } else { MsgFlags::empty() };
+        if control.truncated {
+            out |= MsgFlags::CTRUNC;
+        }
+        Ok(RecvMsg { data, name, control: control.finish(), flags: out })
     }
 
     // Terminais: só os pseudoterminais existem (não há console nem tty virtual). EBADF primeiro, depois
@@ -1772,6 +2690,24 @@ impl Syscalls for Task {
             tty::sigwinch(&self.sb, pgrp);
             self.enter();
         }
+        Ok(())
+    }
+
+    fn tcflush(&self, fd: Fd, queue: i32) -> SysResult<()> {
+        self.enter();
+        let (pty, master) = self.tty_of(fd)?;
+        pty.flush(master, queue)
+    }
+
+    fn tcflow(&self, fd: Fd, action: i32) -> SysResult<()> {
+        self.enter();
+        let (pty, master) = self.tty_of(fd)?;
+        let sigs = pty.flow(master, action)?;
+        for (pgrp, sig) in sigs {
+            tty::signal_pgrp(&self.sb, pgrp, sig);
+        }
+        // Quem escreveu o STOP pode estar no grupo sinalizado.
+        self.enter();
         Ok(())
     }
 
@@ -1995,7 +2931,7 @@ impl Syscalls for Task {
         let img = exec::load(&self.sb, &cx, &spec.path, spec.argv.clone(), child.env.clone())?;
         let task = spawn::insert_child(&self.sb, child)?;
         let pid = task.proc.pid;
-        spawn::inherit_tune(self, &task);
+        spawn::inherit_tune(self, &task, spec.attrs.scheduler.as_ref())?;
         spawn::commit_exec(&task, &img, false);
         spawn::start_process(&self.sb, task, Body::Image(img))?;
         Ok(pid)
@@ -2010,7 +2946,7 @@ impl Syscalls for Task {
         }
         let task = spawn::insert_child(&self.sb, child)?;
         let pid = task.proc.pid;
-        spawn::inherit_tune(self, &task);
+        spawn::inherit_tune(self, &task, attrs.scheduler.as_ref())?;
         spawn::start_process(&self.sb, task, Body::Func(body))?;
         Ok(pid)
     }
@@ -2031,8 +2967,34 @@ impl Syscalls for Task {
         }
     }
 
-    fn wait4(&self, target: WaitTarget, options: WaitOptions) -> SysResult<Option<(Pid, WaitStatus)>> {
+    fn wait4_info(&self, target: WaitTarget, options: WaitOptions) -> SysResult<Option<WaitInfo>> {
         self.enter();
+        // O `wait4` sempre espera o término e nunca deixa o evento pra trás.
+        let options = (options - WaitOptions::NOWAIT) | WaitOptions::EXITED;
+        self.wait_event(None, |_| self.wait_children(target, options))
+    }
+
+    fn waitid(&self, target: WaitIdTarget, options: WaitOptions) -> SysResult<Option<WaitInfo>> {
+        self.enter();
+        let mut options = options;
+        let target = match target {
+            WaitIdTarget::All => WaitTarget::Any,
+            WaitIdTarget::Pid(p) if p > 0 => WaitTarget::Pid(p),
+            WaitIdTarget::Group(g) if g >= 0 => WaitTarget::Group(g),
+            WaitIdTarget::Pidfd(fd) if fd.0 >= 0 => {
+                let ofd = self.ofd(fd)?;
+                let FileObj::Pidfd(p) = &ofd.obj else { return Err(Errno::EBADF) };
+                // O pidfd não bloqueante vale como `WNOHANG`.
+                if ofd.status().contains(OFlags::NONBLOCK) {
+                    options |= WaitOptions::NOHANG;
+                }
+                WaitTarget::Pid(p.pid())
+            }
+            _ => return Err(Errno::EINVAL),
+        };
+        if !options.intersects(WaitOptions::EXITED | WaitOptions::UNTRACED | WaitOptions::CONTINUED) {
+            return Err(Errno::EINVAL);
+        }
         self.wait_event(None, |_| self.wait_children(target, options))
     }
 
@@ -2152,7 +3114,7 @@ impl Syscalls for Task {
                 let ns = self.proc.cpu_ns();
                 Ok(Rusage { utime: Duration::from_nanos(ns), stime: Duration::ZERO, maxrss_kib: 0 })
             }
-            RusageWho::Children => Ok(self.sb.table.lock().rel(self.proc.pid).map(|r| r.children_rusage.clone()).unwrap_or_default()),
+            RusageWho::Children => Ok(self.sb.table.lock().rel(self.proc.pid).map(|r| r.children_rusage).unwrap_or_default()),
         }
     }
 
@@ -2598,6 +3560,20 @@ impl Syscalls for Task {
         }
     }
 
+    fn setitimer(&self, which: i32, new: Itimerval) -> SysResult<Itimerval> {
+        self.enter();
+        let which = Itimer::from_raw(which)?;
+        let (value, interval) = new.to_ns()?;
+        let (old_value, old_interval) = crate::itimer::set(&self.proc, which, value, interval);
+        Ok(Itimerval::from_ns(old_value, old_interval))
+    }
+
+    fn getitimer(&self, which: i32) -> SysResult<Itimerval> {
+        self.enter();
+        let (value, interval) = crate::itimer::get(&self.proc, Itimer::from_raw(which)?);
+        Ok(Itimerval::from_ns(value, interval))
+    }
+
     fn getrandom(&self, buf: &mut [u8]) -> SysResult<usize> {
         self.enter();
         getrandom::fill(buf).map_err(|_| Errno::EIO)?;
@@ -2639,18 +3615,10 @@ impl Syscalls for Task {
             }
             if n > 0 || immediate { Try::Ready(Ok(n)) } else { Try::Pending }
         });
-        // Solta os registros nos pipes e ttys.
+        // Solta os registros nos objetos observados.
         for pfd in fds.iter() {
             if let Ok(ofd) = self.ofd(pfd.fd) {
-                match &ofd.obj {
-                    FileObj::Pipe { end, .. } => end.pipe.unregister(&self.parker),
-                    FileObj::Listener(l) => l.unregister(&self.parker),
-                    FileObj::Stream(c) => c.unregister(&self.parker),
-                    FileObj::Unix(u) => u.unregister(&self.parker),
-                    FileObj::Udp(u) => u.unregister(&self.parker),
-                    FileObj::Dev { dev: Device::Pty(end), .. } => end.pty.unregister(&self.parker),
-                    _ => {}
-                }
+                unregister_ofd(&ofd, &self.parker);
             }
         }
         match r {
@@ -2659,40 +3627,279 @@ impl Syscalls for Task {
         }
     }
 
+    fn epoll_create1(&self, cloexec: bool) -> SysResult<Fd> {
+        self.enter();
+        let ofd = Ofd::new(FileObj::Epoll(Arc::new(crate::epoll::Epoll::new())), OFlags::RDWR, Arc::downgrade(&self.sb.locks));
+        self.install(ofd, cloexec)
+    }
+
+    fn eventfd(&self, initval: u32, flags: u32) -> SysResult<Fd> {
+        self.enter();
+        const EFD_SEMAPHORE: u32 = 1;
+        let (nonblock, cloexec) = (OFlags::NONBLOCK.bits(), OFlags::CLOEXEC.bits());
+        if flags & !(EFD_SEMAPHORE | nonblock | cloexec) != 0 {
+            return Err(Errno::EINVAL);
+        }
+        let event = crate::anon::Eventfd::new(initval, flags & EFD_SEMAPHORE != 0);
+        self.install_sock(FileObj::Anon(crate::anon::Anon::Eventfd(event)), flags & nonblock != 0, flags & cloexec != 0)
+    }
+
+    fn timerfd_create(&self, clock: i32, flags: u32) -> SysResult<Fd> {
+        self.enter();
+        let (nonblock, cloexec) = (OFlags::NONBLOCK.bits(), OFlags::CLOEXEC.bits());
+        if flags & !(nonblock | cloexec) != 0 {
+            return Err(Errno::EINVAL);
+        }
+        match clock {
+            0 | 1 | 7 => {}
+            // `CLOCK_REALTIME_ALARM` e `CLOCK_BOOTTIME_ALARM` pedem `CAP_WAKE_ALARM`, que o contêiner padrão não tem.
+            8 | 9 => return Err(Errno::EPERM),
+            _ => return Err(Errno::EINVAL),
+        }
+        let timer = crate::anon::Timerfd::new(clock);
+        self.install_sock(FileObj::Anon(crate::anon::Anon::Timerfd(timer)), flags & nonblock != 0, flags & cloexec != 0)
+    }
+
+    fn timerfd_settime(&self, fd: Fd, flags: u32, value_ns: u64, interval_ns: u64) -> SysResult<(u64, u64)> {
+        self.enter();
+        const TFD_TIMER_ABSTIME: u32 = 1;
+        const TFD_TIMER_CANCEL_ON_SET: u32 = 2;
+        let ofd = self.ofd(fd)?;
+        let FileObj::Anon(crate::anon::Anon::Timerfd(timer)) = &ofd.obj else { return Err(Errno::EINVAL) };
+        if flags & !(TFD_TIMER_ABSTIME | TFD_TIMER_CANCEL_ON_SET) != 0 || value_ns >= i64::MAX as u64 || interval_ns >= i64::MAX as u64 {
+            return Err(Errno::EINVAL);
+        }
+        // O tempo absoluto vira o que falta no relógio do timer; um prazo no passado vence já.
+        let mut value = Duration::from_nanos(value_ns);
+        if flags & TFD_TIMER_ABSTIME != 0 && value_ns != 0 {
+            let now = if timer.clock() == 0 {
+                let t = self.sb.now();
+                t.sec as u64 * 1_000_000_000 + u64::from(t.nsec)
+            } else {
+                self.sb.mono_ns()
+            };
+            value = Duration::from_nanos(value_ns.saturating_sub(now).max(1));
+        }
+        Ok(timer.settime(flags, value, Duration::from_nanos(interval_ns)))
+    }
+
+    fn timerfd_gettime(&self, fd: Fd) -> SysResult<(u64, u64)> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        let FileObj::Anon(crate::anon::Anon::Timerfd(timer)) = &ofd.obj else { return Err(Errno::EINVAL) };
+        Ok(timer.gettime())
+    }
+
+    fn memfd_create(&self, name: &[u8], flags: u32) -> SysResult<Fd> {
+        self.enter();
+        const MFD_CLOEXEC: u32 = 1;
+        const MFD_ALLOW_SEALING: u32 = 2;
+        const MFD_NOEXEC_SEAL: u32 = 8;
+        const MFD_EXEC: u32 = 0x10;
+        // Sem `hugetlbfs` o `MFD_HUGETLB` (e os bits de tamanho) é recusado; `NOEXEC_SEAL` com `EXEC` não combina.
+        if flags & !(MFD_CLOEXEC | MFD_ALLOW_SEALING | MFD_NOEXEC_SEAL | MFD_EXEC) != 0 || flags & MFD_NOEXEC_SEAL != 0 && flags & MFD_EXEC != 0 {
+            return Err(Errno::EINVAL);
+        }
+        // `NAME_MAX - strlen("memfd:") - 1`.
+        if name.len() > 249 {
+            return Err(Errno::EINVAL);
+        }
+        self.proc.fds.lock().lowest_free(0, self.nofile())?;
+        // O arquivo nasce como `/memfd:NOME` na raiz do sandbox e perde o nome na hora: o link de
+        // `/proc/<pid>/fd` mostra `/memfd:NOME (deleted)`, como no Linux. Quem cria é o kernel (o root).
+        let mut path = b"/memfd:".to_vec();
+        path.extend(name.iter().map(|&b| if b == b'/' { b'_' } else { b }));
+        let ns = &self.sb.ns;
+        let mut cx = vfs::ops::kernel_caller(ns.root.root());
+        cx.now = self.sb.now();
+        let mut tries = 0;
+        let (loc, stat, handle) = loop {
+            match ns.open(&cx, &Start::Cwd, &path, OFlags::RDWR | OFlags::CREAT | OFlags::EXCL, 0o777) {
+                Ok(Opened::File { loc, stat, handle }) => break (loc, stat, handle),
+                Ok(_) => return Err(Errno::EIO),
+                // Outro `memfd_create` com o mesmo nome está entre o `open` e o `unlink`.
+                Err(Errno::EEXIST) if tries < 1000 => {
+                    tries += 1;
+                    std::thread::yield_now();
+                }
+                Err(e) => return Err(e),
+            }
+        };
+        ns.unlink(&cx, &Start::Cwd, &path, AtFlags::empty())?;
+        let (uid, gid) = {
+            let st = self.proc.st.lock();
+            (st.cred.uid, st.cred.gid)
+        };
+        if uid != 0 || gid != 0 {
+            ns.chown_loc(&cx, &loc, &stat, Some(uid), Some(gid))?;
+        }
+        let kind = stat.file_type();
+        let ofd = Ofd::new(FileObj::Vfs { loc, handle, kind }, OFlags::RDWR, Arc::downgrade(&self.sb.locks));
+        self.install(ofd, flags & MFD_CLOEXEC != 0)
+    }
+
+    fn chroot(&self, path: &[u8]) -> SysResult<()> {
+        self.enter();
+        let cx = self.caller();
+        let l = self.sb.ns.chdir_target(&cx, &Start::Cwd, path)?;
+        // `CAP_SYS_CHROOT` está nas capabilities do docker padrão, mas só o root efetivo as tem.
+        if cx.cred.uid != 0 {
+            return Err(Errno::EPERM);
+        }
+        let old = std::mem::replace(&mut self.proc.st.lock().root, PinnedLoc::new(l));
+        drop(old);
+        Ok(())
+    }
+
+    fn pidfd_open(&self, pid: Pid, flags: u32) -> SysResult<Fd> {
+        self.enter();
+        let nonblock = OFlags::NONBLOCK.bits();
+        if flags & !(nonblock | crate::pidfd::PIDFD_THREAD) != 0 || pid <= 0 {
+            return Err(Errno::EINVAL);
+        }
+        let proc = {
+            let t = self.sb.table.lock();
+            match t.proc(pid) {
+                Some(p) => p,
+                None if !t.tids.contains(&pid) => return Err(Errno::ESRCH),
+                // Tid de thread que não é líder: só `PIDFD_THREAD` a aceita (o pidfd observa o processo dela).
+                None if flags & crate::pidfd::PIDFD_THREAD == 0 => return Err(Errno::ENOENT),
+                None => t.map.values().map(|e| e.proc.clone()).find(|p| p.threads.lock().live.contains_key(&pid)).ok_or(Errno::ESRCH)?,
+            }
+        };
+        let status = if flags & nonblock != 0 { OFlags::RDWR | OFlags::NONBLOCK } else { OFlags::RDWR };
+        let ofd = Ofd::new(FileObj::Pidfd(crate::pidfd::Pidfd::new(proc)), status, Arc::downgrade(&self.sb.locks));
+        self.install(ofd, true)
+    }
+
+    fn epoll_ctl(&self, epfd: Fd, op: i32, fd: Fd, event: EpollEvent) -> SysResult<()> {
+        self.enter();
+        let ep = self.ofd(epfd)?;
+        let target = self.ofd(fd)?;
+        check_pollable(&target.obj)?;
+        let FileObj::Epoll(epoll) = &ep.obj else { return Err(Errno::EINVAL) };
+        self.epoll_ctl_ofd(&ep, epoll, op, fd, &target, event)
+    }
+
+    fn epoll_wait(&self, epfd: Fd, max: usize, timeout: Option<Duration>) -> SysResult<Vec<EpollEvent>> {
+        self.enter();
+        if max == 0 || max > crate::epoll::EP_MAX_EVENTS {
+            return Err(Errno::EINVAL);
+        }
+        let ofd = self.ofd(epfd)?;
+        let FileObj::Epoll(epoll) = &ofd.obj else { return Err(Errno::EINVAL) };
+        let deadline = timeout.map(|t| Instant::now() + t);
+        let immediate = timeout == Some(Duration::ZERO);
+        let r = self.wait_event(deadline, |_| {
+            let ready = epoll.scan(self, max, true, (!immediate).then_some(&self.parker));
+            if !ready.is_empty() || immediate { Try::Ready(Ok(ready)) } else { Try::Pending }
+        });
+        epoll.unregister(&self.parker);
+        match r {
+            Err(Errno::ETIMEDOUT) => Ok(Vec::new()),
+            r => r,
+        }
+    }
+
     fn ofd_setlk(&self, fd: Fd, lock: FileLock, wait: bool) -> SysResult<()> {
         self.enter();
         let ofd = self.ofd(fd)?;
-        let key = self.lock_key(&ofd)?;
-        match lock.kind {
-            LockKind::Read if !ofd.readable => return Err(Errno::EBADF),
-            LockKind::Write if !ofd.writable => return Err(Errno::EBADF),
-            _ => {}
-        }
-        if lock.start > i64::MAX as u64 {
-            return Err(Errno::EINVAL);
-        }
-        let locks = self.sb.locks.clone();
-        if !wait {
-            return locks.setlk(key, ofd.id, &lock, None).map_err(|_| Errno::EAGAIN);
-        }
-        let r = self.wait_event(None, |p| match locks.setlk(key, ofd.id, &lock, Some(p)) {
-            Ok(()) => Try::Ready(Ok(())),
-            Err(()) => Try::Pending,
-        });
-        if r.is_err() {
-            locks.unregister(&self.parker);
-        }
-        r
+        self.set_range_lock(&ofd, ofd.id, lock, wait)
     }
 
     fn ofd_getlk(&self, fd: Fd, lock: FileLock) -> SysResult<Option<FileLock>> {
         self.enter();
         let ofd = self.ofd(fd)?;
-        let key = self.lock_key(&ofd)?;
-        if lock.kind == LockKind::Unlock {
+        Ok(self.test_range_lock(&ofd, ofd.id, lock)?.map(|(l, _)| l))
+    }
+
+    fn fcntl_lock(&self, fd: Fd, cmd: LockCmd, mut flock: Flock) -> SysResult<Flock> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        let ofd_owned = matches!(cmd, LockCmd::OfdGet | LockCmd::OfdSet | LockCmd::OfdSetWait);
+        let owner = if ofd_owned { ofd.id } else { POSIX_OWNER | self.proc.pid as u64 };
+        let getting = matches!(cmd, LockCmd::Get | LockCmd::OfdGet);
+        if getting && flock.l_type != sysabi::fcntl::F_RDLCK && flock.l_type != sysabi::fcntl::F_WRLCK {
             return Err(Errno::EINVAL);
         }
-        Ok(self.sb.locks.getlk(key, ofd.id, &lock))
+        let lock = self.posix_lock_of(&ofd, &flock)?;
+        // As travas OFD pedem `l_pid` zero, antes de qualquer outra coisa sobre o arquivo.
+        if ofd_owned && flock.pid != 0 {
+            return Err(Errno::EINVAL);
+        }
+        if getting {
+            if let Some((found, holder)) = self.test_range_lock(&ofd, owner, lock)? {
+                flock = Flock {
+                    l_type: if found.kind == LockKind::Write { sysabi::fcntl::F_WRLCK } else { sysabi::fcntl::F_RDLCK },
+                    whence: sysabi::fcntl::SEEK_SET,
+                    start: found.start as i64,
+                    len: found.len as i64,
+                    pid: lock_owner_pid(holder),
+                };
+            } else {
+                flock.l_type = sysabi::fcntl::F_UNLCK;
+            }
+        } else {
+            self.set_range_lock(&ofd, owner, lock, matches!(cmd, LockCmd::SetWait | LockCmd::OfdSetWait))?;
+        }
+        Ok(flock)
+    }
+
+    fn flock(&self, fd: Fd, op: u32) -> SysResult<()> {
+        use sysabi::fcntl::{LOCK_EX, LOCK_MAND, LOCK_NB, LOCK_SH, LOCK_UN};
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        let cmd = op & !LOCK_NB;
+        if cmd & LOCK_MAND != 0 {
+            // O 6.12 não tem mais a trava obrigatória: ignora o pedido e responde 0.
+            return Ok(());
+        }
+        let kind = match cmd {
+            LOCK_SH => LockKind::Read,
+            LOCK_EX => LockKind::Write,
+            LOCK_UN => LockKind::Unlock,
+            _ => return Err(Errno::EINVAL),
+        };
+        let key = lock_key_of(&ofd).ok_or(Errno::EBADF)?;
+        if kind != LockKind::Unlock && !(ofd.readable || ofd.writable) {
+            return Err(Errno::EBADF);
+        }
+        self.lock_wait(key, ofd.id | FLOCK_OWNER, FileLock { kind, start: 0, len: 0 }, op & LOCK_NB == 0)
+    }
+
+    fn pipe_size(&self, fd: Fd) -> SysResult<usize> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        let FileObj::Pipe { end, .. } = &ofd.obj else { return Err(Errno::EBADF) };
+        Ok(end.pipe.capacity())
+    }
+
+    fn set_pipe_size(&self, fd: Fd, size: u32) -> SysResult<usize> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        let FileObj::Pipe { end, .. } = &ofd.obj else { return Err(Errno::EBADF) };
+        let privileged = self.proc.st.lock().cred.is_root();
+        end.pipe.resize(size, self.sb.pipe_max_size.load(Ordering::Relaxed), privileged)
+    }
+
+    fn fionread(&self, fd: Fd) -> SysResult<i64> {
+        self.enter();
+        let ofd = self.ofd(fd)?;
+        match &ofd.obj {
+            // `ioctl_file_ioctl`: o que falta do arquivo regular, que fica negativo se `lseek` foi além do fim.
+            FileObj::Vfs { loc, kind: FileType::Regular, .. } => {
+                let size = self.sb.ns.stat_loc(&self.caller(), loc)?.size;
+                Ok(size as i64 - ofd.st.lock().pos as i64)
+            }
+            FileObj::Pipe { end, .. } => Ok(end.pipe.pending() as i64),
+            FileObj::Stream(c) => Ok(c.unread() as i64),
+            FileObj::Unix(u) => u.unread().map(|n| n as i64),
+            FileObj::Udp(u) => Ok(u.next_len() as i64),
+            FileObj::Listener(_) => Err(Errno::EINVAL),
+            FileObj::Dev { dev: Device::Pty(e), .. } => Ok(e.pty.fionread(e.master) as i64),
+            FileObj::Path { .. } => Err(Errno::EBADF),
+            FileObj::Vfs { .. } | FileObj::Dev { .. } | FileObj::Epoll(_) | FileObj::Pidfd(_) | FileObj::Anon(_) => Err(Errno::ENOTTY),
+        }
     }
 
     // ---- rede ----
@@ -2716,7 +3923,7 @@ impl Syscalls for Task {
         if !ip.is_loopback() {
             return Err(Errno::EACCES);
         }
-        let conn = self.sb.ports.connect(ip, port, || self.sock_pipe())?;
+        let conn = self.connect_new(ip, port)?;
         let local = conn.local;
         let fd = self.install_sock(FileObj::Stream(conn), false, true)?;
         let local_ip: std::net::IpAddr = if ip.is_ipv6() { std::net::Ipv6Addr::LOCALHOST.into() } else { std::net::Ipv4Addr::LOCALHOST.into() };

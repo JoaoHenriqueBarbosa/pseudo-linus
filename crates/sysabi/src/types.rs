@@ -382,6 +382,15 @@ pub enum SetAttrWhen {
 pub mod termios {
     pub const NCCS: usize = 19;
 
+    // Argumentos do `TCFLSH` (fila a descartar) e do `TCXONC` (ação de controle de fluxo).
+    pub const TCIFLUSH: i32 = 0;
+    pub const TCOFLUSH: i32 = 1;
+    pub const TCIOFLUSH: i32 = 2;
+    pub const TCOOFF: i32 = 0;
+    pub const TCOON: i32 = 1;
+    pub const TCIOFF: i32 = 2;
+    pub const TCION: i32 = 3;
+
     // Índices de c_cc.
     pub const VINTR: usize = 0;
     pub const VQUIT: usize = 1;
@@ -548,7 +557,7 @@ pub enum Clock {
 }
 
 /// `getrusage`.
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub struct Rusage {
     pub utime: Duration,
     pub stime: Duration,
@@ -646,8 +655,35 @@ bitflags! {
     pub struct WaitOptions: u32 {
         const NOHANG = 1;
         const UNTRACED = 2;
+        /// `WEXITED`: só vale no `waitid` (o `wait4` sempre espera o término).
+        const EXITED = 4;
         const CONTINUED = 8;
+        /// `WNOWAIT`: só vale no `waitid`; o filho continua esperável.
+        const NOWAIT = 0x0100_0000;
     }
+}
+
+/// Alvo do `waitid(idtype, id, ...)`.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum WaitIdTarget {
+    /// `P_ALL`.
+    All,
+    /// `P_PID`.
+    Pid(Pid),
+    /// `P_PGID` (`0` = grupo do chamador).
+    Group(Pid),
+    /// `P_PIDFD`.
+    Pidfd(Fd),
+}
+
+/// O `siginfo_t` que o `waitid` preenche: o filho, o dono real dele e o que aconteceu. O `rusage` é o
+/// que o `wait4` entrega: o uso do filho colhido (zerado em parada e continuação).
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct WaitInfo {
+    pub pid: Pid,
+    pub uid: u32,
+    pub status: WaitStatus,
+    pub rusage: Rusage,
 }
 
 /// Alvo de `kill`.
@@ -667,7 +703,17 @@ pub enum FdAction {
     /// `dup2(from, to)`; o fd novo não herda `FD_CLOEXEC`.
     Dup2 { from: Fd, to: Fd },
     Close(Fd),
+    /// `posix_spawn_file_actions_addclosefrom_np`: fecha todo fd `>= fd` (os que ainda estão abertos).
+    CloseFrom(Fd),
     Open { fd: Fd, path: Vec<u8>, flags: OFlags, mode: Mode },
+}
+
+/// `POSIX_SPAWN_SETSCHEDULER` e `POSIX_SPAWN_SETSCHEDPARAM`: o filho chama `sched_setscheduler(0, policy,
+/// param)` quando há política e `sched_setparam(0, param)` quando não há.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct SpawnSched {
+    pub policy: Option<i32>,
+    pub param: crate::sched::SchedParam,
 }
 
 /// Grupo de processos do filho.
@@ -696,6 +742,10 @@ pub struct ProcAttrs {
     pub reset_signals: Vec<Signal>,
     /// Sinais ignorados no filho (`cmd &` em shell não interativo ignora SIGINT e SIGQUIT).
     pub ignore_signals: Vec<Signal>,
+    /// `POSIX_SPAWN_RESETIDS`: o uid e o gid efetivos do filho voltam aos reais.
+    pub reset_ids: bool,
+    /// `POSIX_SPAWN_SETSCHEDULER`/`SETSCHEDPARAM`; um erro (EPERM, EINVAL) aborta a criação.
+    pub scheduler: Option<SpawnSched>,
 }
 
 impl Default for ProcAttrs {
@@ -708,6 +758,8 @@ impl Default for ProcAttrs {
             new_session: false,
             reset_signals: Vec::new(),
             ignore_signals: Vec::new(),
+            reset_ids: false,
+            scheduler: None,
         }
     }
 }
@@ -743,7 +795,40 @@ bitflags! {
         const ERR = 0x8;
         const HUP = 0x10;
         const NVAL = 0x20;
+        /// `POLLRDHUP`: o par encerrou a escrita (o `shutdown` do outro lado ou o `close`).
+        const RDHUP = 0x2000;
     }
+}
+
+bitflags! {
+    /// Flags de `recv(2)` e `send(2)` que um socket de fluxo trata, valores do Linux x86_64.
+    #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+    pub struct MsgFlags: u32 {
+        /// `MSG_PEEK`: olha a fila sem consumi-la.
+        const PEEK = 0x2;
+        /// `MSG_DONTWAIT`: esta chamada não bloqueia, como se o fd fosse `O_NONBLOCK`.
+        const DONTWAIT = 0x40;
+        /// `MSG_WAITALL`: a leitura espera o tanto pedido (até o fim, um erro ou, sem bloqueio, a fila esvaziar).
+        const WAITALL = 0x100;
+        /// `MSG_NOSIGNAL`: a escrita que dá EPIPE não gera SIGPIPE.
+        const NOSIGNAL = 0x4000;
+        /// `MSG_TRUNC` (só na saída do `recvmsg`): a mensagem era maior que o buffer.
+        const TRUNC = 0x20;
+        /// `MSG_CTRUNC` (só na saída do `recvmsg`): os dados auxiliares não couberam.
+        const CTRUNC = 0x8;
+        /// `MSG_CMSG_CLOEXEC`: os descritores recebidos por `SCM_RIGHTS` nascem com `FD_CLOEXEC`.
+        const CMSG_CLOEXEC = 0x4000_0000;
+    }
+}
+
+/// O que um `recvmsg` devolve: os dados, o nome de quem enviou (datagrama), o `msg_control` já montado e
+/// as flags de saída (`MSG_TRUNC`, `MSG_CTRUNC`).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RecvMsg {
+    pub data: Vec<u8>,
+    pub name: Option<Vec<u8>>,
+    pub control: Vec<u8>,
+    pub flags: MsgFlags,
 }
 
 /// Entrada do `poll(2)`.
@@ -752,6 +837,37 @@ pub struct PollFd {
     pub fd: Fd,
     pub events: PollEvents,
     pub revents: PollEvents,
+}
+
+/// Bits de evento do `epoll(7)` (`EPOLL_EVENTS` do glibc). Os oito primeiros coincidem com os do `poll(2)`.
+pub mod epoll {
+    pub const IN: u32 = 0x1;
+    pub const PRI: u32 = 0x2;
+    pub const OUT: u32 = 0x4;
+    pub const ERR: u32 = 0x8;
+    pub const HUP: u32 = 0x10;
+    pub const RDNORM: u32 = 0x40;
+    pub const RDBAND: u32 = 0x80;
+    pub const WRNORM: u32 = 0x100;
+    pub const WRBAND: u32 = 0x200;
+    pub const MSG: u32 = 0x400;
+    pub const RDHUP: u32 = 0x2000;
+    pub const EXCLUSIVE: u32 = 1 << 28;
+    pub const WAKEUP: u32 = 1 << 29;
+    pub const ONESHOT: u32 = 1 << 30;
+    pub const ET: u32 = 1 << 31;
+    /// `EPOLL_CLOEXEC` (`O_CLOEXEC`).
+    pub const CLOEXEC: u32 = 0x80000;
+    pub const CTL_ADD: i32 = 1;
+    pub const CTL_DEL: i32 = 2;
+    pub const CTL_MOD: i32 = 3;
+}
+
+/// `struct epoll_event`: máscara de eventos e o dado do usuário devolvido junto com o evento.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Default)]
+pub struct EpollEvent {
+    pub events: u32,
+    pub data: u64,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -768,6 +884,67 @@ pub struct FileLock {
     pub start: u64,
     /// 0 = até o fim do arquivo (e além).
     pub len: u64,
+}
+
+/// Tamanho padrão de um pipe e o valor inicial de `/proc/sys/fs/pipe-max-size` no Debian 13.
+pub const PIPE_DEFAULT_SIZE: usize = 65536;
+pub const PIPE_MAX_SIZE_DEFAULT: u32 = 1 << 20;
+/// A página do pipe: a menor capacidade possível.
+pub const PIPE_PAGE_SIZE: usize = 4096;
+
+/// `round_pipe_size`: a capacidade que cobre o pedido, no mínimo uma página e sempre potência de 2. `None`
+/// quando o arredondamento estoura 2^31 (o `roundup_pow_of_two` do kernel dá 0 e o chamador responde EINVAL).
+pub fn round_pipe_size(size: u32) -> Option<u32> {
+    if size < PIPE_PAGE_SIZE as u32 {
+        return Some(PIPE_PAGE_SIZE as u32);
+    }
+    size.checked_next_power_of_two().filter(|n| *n <= 1 << 31)
+}
+
+/// `struct flock` do x86-64 (`F_GETLK`, `F_SETLK`, `F_SETLKW` e as `F_OFD_*`), como o programa a preenche.
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+pub struct Flock {
+    /// `F_RDLCK`, `F_WRLCK` ou `F_UNLCK` ([`fcntl`]).
+    pub l_type: i16,
+    /// `SEEK_SET`, `SEEK_CUR` ou `SEEK_END`: de onde `start` conta.
+    pub whence: i16,
+    pub start: i64,
+    /// 0 = até o fim do arquivo (e além); negativo = a faixa termina antes de `start`.
+    pub len: i64,
+    pub pid: i32,
+}
+
+/// O comando do `fcntl(2)` que mexe numa trava de faixa.
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum LockCmd {
+    /// `F_GETLK`: o dono é o processo.
+    Get,
+    /// `F_SETLK`.
+    Set,
+    /// `F_SETLKW`.
+    SetWait,
+    /// `F_OFD_GETLK`: o dono é a descrição de arquivo aberto.
+    OfdGet,
+    /// `F_OFD_SETLK`.
+    OfdSet,
+    /// `F_OFD_SETLKW`.
+    OfdSetWait,
+}
+
+/// Constantes de `fcntl.h` que o `flock(2)` e o `fcntl(2)` de travas usam (valores do x86-64).
+pub mod fcntl {
+    pub const F_RDLCK: i16 = 0;
+    pub const F_WRLCK: i16 = 1;
+    pub const F_UNLCK: i16 = 2;
+    pub const SEEK_SET: i16 = 0;
+    pub const SEEK_CUR: i16 = 1;
+    pub const SEEK_END: i16 = 2;
+    pub const LOCK_SH: u32 = 1;
+    pub const LOCK_EX: u32 = 2;
+    pub const LOCK_NB: u32 = 4;
+    pub const LOCK_UN: u32 = 8;
+    /// `LOCK_MAND`: o Linux 6.12 ignora o pedido e responde 0.
+    pub const LOCK_MAND: u32 = 32;
 }
 
 impl FileLock {

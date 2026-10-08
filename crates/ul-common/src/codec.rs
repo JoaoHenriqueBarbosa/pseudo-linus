@@ -155,9 +155,47 @@ pub fn crc32_step(crc: u32, byte: u8) -> u32 {
     CRC32_TABLE[((crc ^ u32::from(byte)) & 0xff) as usize] ^ (crc >> 8)
 }
 
+/// As oito tabelas do "slicing-by-8": `[0]` é a `CRC32_TABLE`, e `[k][n]` é o CRC do byte `n` seguido
+/// de `k` bytes zero, o que deixa o laço quente consumir oito bytes por passo.
+static CRC32_SLICES: [[u32; 256]; 8] = build_crc32_slices();
+
+const fn build_crc32_slices() -> [[u32; 256]; 8] {
+    let mut tables = [[0u32; 256]; 8];
+    tables[0] = build_crc32_table();
+    let mut k = 1;
+    while k < 8 {
+        let mut n = 0;
+        while n < 256 {
+            let prev = tables[k - 1][n];
+            tables[k][n] = tables[0][(prev & 0xff) as usize] ^ (prev >> 8);
+            n += 1;
+        }
+        k += 1;
+    }
+    tables
+}
+
 /// Continua um CRC-32 a partir de `value` (o CRC já finalizado dos bytes anteriores, 0 no começo).
 pub fn crc32_update(value: u32, data: &[u8]) -> u32 {
-    !data.iter().fold(!value, |crc, &b| crc32_step(crc, b))
+    let t = &CRC32_SLICES;
+    let mut crc = !value;
+    let mut chunks = data.chunks_exact(8);
+    for c in &mut chunks {
+        let lo = u32::from_le_bytes([c[0], c[1], c[2], c[3]]) ^ crc;
+        let hi = u32::from_le_bytes([c[4], c[5], c[6], c[7]]);
+        crc = t[7][(lo & 0xff) as usize]
+            ^ t[6][((lo >> 8) & 0xff) as usize]
+            ^ t[5][((lo >> 16) & 0xff) as usize]
+            ^ t[4][(lo >> 24) as usize]
+            ^ t[3][(hi & 0xff) as usize]
+            ^ t[2][((hi >> 8) & 0xff) as usize]
+            ^ t[1][((hi >> 16) & 0xff) as usize]
+            ^ t[0][(hi >> 24) as usize];
+    }
+    for &b in chunks.remainder() {
+        crc = crc32_step(crc, b);
+    }
+    !crc
 }
 
 #[cfg(test)]
@@ -213,6 +251,15 @@ mod tests {
         assert_eq!(crc32_update(0, b"a"), 0xe8b7_be43);
         let (a, b) = b"123456789".split_at(4);
         assert_eq!(crc32_update(crc32_update(0, a), b), 0xcbf4_3926);
+    }
+
+    #[test]
+    fn crc32_slicing_matches_bytewise() {
+        let data: Vec<u8> = (0..1000u32).map(|i| (i.wrapping_mul(2_654_435_761) >> 13) as u8).collect();
+        for len in [0, 1, 7, 8, 9, 63, 64, 65, 999, 1000] {
+            let slow = !data[..len].iter().fold(!0u32, |crc, &b| crc32_step(crc, b));
+            assert_eq!(crc32_update(0, &data[..len]), slow, "len {len}");
+        }
     }
 
     #[test]

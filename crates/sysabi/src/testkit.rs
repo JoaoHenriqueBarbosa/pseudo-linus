@@ -18,6 +18,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
 use crate::ctx::{Ctx, to_os_args};
+use crate::itimer::{Itimer, ItimerSlot, Itimerval};
 use crate::linux::{DefaultAction, Errno, Signal};
 use crate::program::{Main, Program};
 use crate::sched::{self, SchedAttr, SchedCaller, SchedParam, SchedState};
@@ -174,6 +175,8 @@ struct Proc {
     persona: u32,
     /// Máscara gravada por `sched_setaffinity`; `None` são todas as CPUs.
     cpus: Option<Vec<usize>>,
+    /// Os timers de `setitimer`, pelo relógio virtual (só o de parede vence: não há CPU a contar).
+    itimers: [ItimerSlot; 3],
 }
 
 struct World {
@@ -222,6 +225,15 @@ struct Resolved {
 }
 
 impl World {
+    /// O relógio virtual em nanossegundos desde a época.
+    fn now_ns(&self) -> u64 {
+        self.now.sec as u64 * 1_000_000_000 + u64::from(self.now.nsec)
+    }
+
+    fn set_now_ns(&mut self, ns: u64) {
+        self.now = TimeSpec { sec: (ns / 1_000_000_000) as i64, nsec: (ns % 1_000_000_000) as u32 };
+    }
+
     fn new() -> World {
         let mut w = World {
             nodes: BTreeMap::new(),
@@ -544,6 +556,38 @@ impl ProcHandle {
         lock(&self.world)
     }
 
+    /// O corpo do `wait4` e do `waitid`: o primeiro filho que casa e já terminou (colhido se `reap`).
+    fn wait_scan(&self, target: WaitTarget, reap: bool) -> SysResult<Option<WaitInfo>> {
+        self.check_pending();
+        let mut w = self.w();
+        let my_pgid = w.procs[&self.pid].pgid;
+        let mine: Vec<Pid> = w
+            .procs
+            .values()
+            .filter(|p| p.ppid == self.pid && !p.reaped && p.pid != self.pid)
+            .filter(|p| match target {
+                WaitTarget::Any => true,
+                WaitTarget::Pid(x) => p.pid == x,
+                WaitTarget::Group(0) => p.pgid == my_pgid,
+                WaitTarget::Group(g) => p.pgid == g,
+            })
+            .map(|p| p.pid)
+            .collect();
+        if mine.is_empty() {
+            return Err(Errno::ECHILD);
+        }
+        for pid in mine {
+            let p = w.procs.get_mut(&pid).expect("filho");
+            if let Some(status) = p.status {
+                p.reaped |= reap;
+                // Todo processo do testkit é do uid 0.
+                return Ok(Some(WaitInfo { pid, uid: 0, status, rusage: Rusage::default() }));
+            }
+        }
+        // Síncrono: um filho vivo aqui só pode ser este processo esperando ele mesmo; não bloqueia.
+        Ok(None)
+    }
+
     fn with_proc<R>(&self, f: impl FnOnce(&mut World, Pid) -> R) -> R {
         let mut w = self.w();
         f(&mut w, self.pid)
@@ -662,6 +706,7 @@ impl ProcHandle {
         child.argv = argv;
         child.caught.clear();
         child.pending_fatal = None;
+        child.itimers = [ItimerSlot::default(); 3];
         child.status = None;
         child.reaped = false;
         // `sched_fork`: com reset_on_fork o filho perde tempo real e nice negativa.
@@ -710,6 +755,13 @@ impl ProcHandle {
                 }
                 FdAction::Close(fd) => {
                     let _ = child_handle.close(*fd);
+                    Ok(())
+                }
+                FdAction::CloseFrom(from) => {
+                    let open: Vec<i32> = self.w().procs.get(&pid).map(|p| p.fds.keys().copied().filter(|fd| *fd >= from.0).collect()).unwrap_or_default();
+                    for fd in open {
+                        let _ = child_handle.close(Fd(fd));
+                    }
                     Ok(())
                 }
                 FdAction::Open { fd, path, flags, mode } => child_handle.openat(Fd::CWD, path, *flags, *mode).and_then(|got| {
@@ -1484,6 +1536,16 @@ impl Syscalls for ProcHandle {
         self.fd_entry(fd).map(|_| ())
     }
 
+    /// O kit roda um processo por vez, então nenhuma trava POSIX jamais conflita: `F_SETLK` concede e
+    /// `F_GETLK` responde `F_UNLCK`.
+    fn fcntl_lock(&self, fd: Fd, cmd: LockCmd, mut flock: Flock) -> SysResult<Flock> {
+        self.fd_entry(fd)?;
+        if matches!(cmd, LockCmd::Get | LockCmd::OfdGet) {
+            flock.l_type = crate::fcntl::F_UNLCK;
+        }
+        Ok(flock)
+    }
+
     fn getdents(&self, fd: Fd) -> SysResult<Vec<DirEntry>> {
         let e = self.fd_entry(fd)?;
         let mut f = lock(&e.file);
@@ -1605,6 +1667,16 @@ impl Syscalls for ProcHandle {
     }
 
     fn tcsetwinsize(&self, fd: Fd, _ws: Winsize) -> SysResult<()> {
+        self.fd_entry(fd)?;
+        Err(Errno::ENOTTY)
+    }
+
+    fn tcflush(&self, fd: Fd, _queue: i32) -> SysResult<()> {
+        self.fd_entry(fd)?;
+        Err(Errno::ENOTTY)
+    }
+
+    fn tcflow(&self, fd: Fd, _action: i32) -> SysResult<()> {
         self.fd_entry(fd)?;
         Err(Errno::ENOTTY)
     }
@@ -1745,34 +1817,25 @@ impl Syscalls for ProcHandle {
         std::panic::resume_unwind(Box::new(ExecUnwind { path: path.to_vec(), argv: argv.to_vec(), env: env.map(<[Vec<u8>]>::to_vec) }))
     }
 
-    fn wait4(&self, target: WaitTarget, _options: WaitOptions) -> SysResult<Option<(Pid, WaitStatus)>> {
-        self.check_pending();
-        let mut w = self.w();
-        let my_pgid = w.procs[&self.pid].pgid;
-        let mine: Vec<Pid> = w
-            .procs
-            .values()
-            .filter(|p| p.ppid == self.pid && !p.reaped && p.pid != self.pid)
-            .filter(|p| match target {
-                WaitTarget::Any => true,
-                WaitTarget::Pid(x) => p.pid == x,
-                WaitTarget::Group(0) => p.pgid == my_pgid,
-                WaitTarget::Group(g) => p.pgid == g,
-            })
-            .map(|p| p.pid)
-            .collect();
-        if mine.is_empty() {
-            return Err(Errno::ECHILD);
+    fn wait4_info(&self, target: WaitTarget, _options: WaitOptions) -> SysResult<Option<WaitInfo>> {
+        self.wait_scan(target, true)
+    }
+
+    fn waitid(&self, target: WaitIdTarget, options: WaitOptions) -> SysResult<Option<WaitInfo>> {
+        let target = match target {
+            WaitIdTarget::All => WaitTarget::Any,
+            WaitIdTarget::Pid(p) if p > 0 => WaitTarget::Pid(p),
+            WaitIdTarget::Group(g) if g >= 0 => WaitTarget::Group(g),
+            _ => return Err(Errno::EINVAL),
+        };
+        if !options.intersects(WaitOptions::EXITED | WaitOptions::UNTRACED | WaitOptions::CONTINUED) {
+            return Err(Errno::EINVAL);
         }
-        for pid in mine {
-            let p = w.procs.get_mut(&pid).expect("filho");
-            if let Some(st) = p.status {
-                p.reaped = true;
-                return Ok(Some((pid, st)));
-            }
+        // O testkit só tem término: parada e continuação não existem aqui.
+        if !options.contains(WaitOptions::EXITED) {
+            return Ok(None);
         }
-        // Síncrono: um filho vivo aqui só pode ser este processo esperando ele mesmo; não bloqueia.
-        Ok(None)
+        self.wait_scan(target, !options.contains(WaitOptions::NOWAIT))
     }
 
     fn kill(&self, target: KillTarget, sig: Signal) -> SysResult<()> {
@@ -2166,11 +2229,44 @@ impl Syscalls for ProcHandle {
 
     fn nanosleep(&self, d: Duration) -> SysResult<()> {
         self.check_pending();
-        let mut w = self.w();
-        let total = w.now.nsec as u64 + d.subsec_nanos() as u64;
-        w.now.sec += d.as_secs() as i64 + (total / 1_000_000_000) as i64;
-        w.now.nsec = (total % 1_000_000_000) as u32;
-        Ok(())
+        let target = self.w().now_ns() + d.as_nanos() as u64;
+        loop {
+            // O alarme de parede que vence antes do fim do sono interrompe o sono se o `SIGALRM` é capturado.
+            let due = self.w().procs[&self.pid].itimers[Itimer::Real as usize].expiry().filter(|at| *at <= target);
+            let stop = {
+                let mut w = self.w();
+                let stop = due.unwrap_or(target).max(w.now_ns());
+                w.set_now_ns(stop);
+                stop
+            };
+            let Some(_) = due else { return Ok(()) };
+            let fired = self.with_proc(|w, pid| w.procs.get_mut(&pid).expect("processo").itimers[Itimer::Real as usize].fire(stop));
+            if fired {
+                let catches = self.w().procs[&self.pid].sigs.get(&Signal::SIGALRM.0) == Some(&SigDisposition::Catch);
+                self.deliver(Signal::SIGALRM)?;
+                if catches {
+                    return Err(Errno::EINTR);
+                }
+            }
+        }
+    }
+
+    fn setitimer(&self, which: i32, new: Itimerval) -> SysResult<Itimerval> {
+        let which = Itimer::from_raw(which)?;
+        let (value, interval) = new.to_ns()?;
+        self.with_proc(|w, pid| {
+            let now = w.now_ns();
+            let (old_value, old_interval) = w.procs.get_mut(&pid).expect("processo").itimers[which as usize].set(which, now, value, interval);
+            Ok(Itimerval::from_ns(old_value, old_interval))
+        })
+    }
+
+    fn getitimer(&self, which: i32) -> SysResult<Itimerval> {
+        let which = Itimer::from_raw(which)?;
+        self.with_proc(|w, pid| {
+            let (value, interval) = w.procs[&pid].itimers[which as usize].get(which, w.now_ns());
+            Ok(Itimerval::from_ns(value, interval))
+        })
     }
 
     fn getrandom(&self, buf: &mut [u8]) -> SysResult<usize> {
@@ -2522,6 +2618,7 @@ impl TestKit {
                     ioprio: 0,
                     persona: 0,
                     cpus: None,
+                    itimers: [ItimerSlot::default(); 3],
                 },
             );
             pid

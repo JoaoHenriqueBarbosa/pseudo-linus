@@ -173,7 +173,7 @@ fn tcp_table(socks: &[TcpSock], v6: bool) -> Vec<u8> {
             s.rx_queue,
             s.timer,
             s.when,
-            0,
+            s.retrans,
             s.uid,
             0,
             s.inode,

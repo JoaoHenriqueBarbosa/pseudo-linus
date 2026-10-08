@@ -18,7 +18,7 @@ pub struct FdLink {
 }
 
 /// O que `/proc/<pid>/fdinfo/N` mostra.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct FdInfo {
     /// Deslocamento da descrição de arquivo aberto.
     pub pos: u64,
@@ -28,6 +28,8 @@ pub struct FdInfo {
     pub mnt_id: u32,
     /// Inode do objeto.
     pub ino: u64,
+    /// Linhas que o `show_fdinfo` do objeto acrescenta (as `tfd:` do epoll), já com a quebra de linha.
+    pub extra: String,
 }
 
 /// Máscaras de sinal, um bit por sinal (bit `n - 1` é o sinal `n`), como as linhas `Sig*` do `status`.
@@ -307,6 +309,7 @@ pub struct UnixSockRow {
 /// Estados do TCP no formato do `/proc/net/tcp` (`include/net/tcp_states.h`).
 pub mod tcp_state {
     pub const ESTABLISHED: u8 = 0x01;
+    pub const SYN_SENT: u8 = 0x02;
     pub const FIN_WAIT2: u8 = 0x05;
     pub const TIME_WAIT: u8 = 0x06;
     pub const CLOSE_WAIT: u8 = 0x08;
@@ -328,6 +331,8 @@ pub struct TcpSock {
     /// Timer ativo (`tr`) e o tempo até ele disparar em ticks de 1/100 s (`tm->when`).
     pub timer: u8,
     pub when: u64,
+    /// `icsk_retransmits` (`retrnsmt`): as retransmissões do SYN ou do segmento pendente.
+    pub retrans: u32,
     pub uid: Uid,
     pub inode: u64,
     pub refcnt: u32,

@@ -91,10 +91,29 @@ enum EraseKind {
     Kill,
 }
 
+/// O controle de fluxo da saída de um tty (`tty->flow`): `stopped` vale pra STOP recebido com IXON e pro
+/// `TCOOFF`; `tco_stopped` só pro `TCOOFF`, que o START do teclado não desfaz.
+#[derive(Debug, Default, Clone, Copy)]
+pub(crate) struct Flow {
+    pub(crate) stopped: bool,
+    pub(crate) tco_stopped: bool,
+}
+
+impl Flow {
+    /// `start_tty`: religa a saída, a menos que o `TCOOFF` a mantenha parada.
+    fn start(&mut self) {
+        if self.stopped && !self.tco_stopped {
+            self.stopped = false;
+        }
+    }
+}
+
 /// A N_TTY de um tty: entrada (canônica ou não), eco e processamento de saída.
 #[derive(Debug, Clone)]
 pub(crate) struct Ldisc {
     pub(crate) termios: Termios,
+    /// Saída suspensa pelo STOP (com IXON) ou pelo `TCOOFF`: a escrita do escravo espera.
+    pub(crate) flow: Flow,
     /// Linhas completas do modo canônico. A terminada por EOF não leva o delimitador (e vazia dá a
     /// leitura de 0 bytes).
     lines: VecDeque<Vec<u8>>,
@@ -122,6 +141,7 @@ impl Ldisc {
     pub(crate) fn new(termios: Termios) -> Ldisc {
         Ldisc {
             termios,
+            flow: Flow::default(),
             lines: VecDeque::new(),
             line: Vec::new(),
             raw: VecDeque::new(),
@@ -189,6 +209,21 @@ impl Ldisc {
             }
             self.put_char(c);
             return None;
+        }
+        // Controle de fluxo (`n_tty_receive_char_special`): com IXON, START e STOP são consumidos; com
+        // IXANY, qualquer outro caractere retoma a saída parada pelo STOP.
+        if self.iflag(IXON) {
+            if self.is_cc(c, VSTART) {
+                self.flow.start();
+                return None;
+            }
+            if self.is_cc(c, VSTOP) {
+                self.flow.stopped = true;
+                return None;
+            }
+            if self.iflag(IXANY) {
+                self.flow.start();
+            }
         }
         if self.lflag(ISIG) {
             let sig = if self.is_cc(c, VINTR) {
@@ -505,7 +540,12 @@ impl Ldisc {
     /// entrada crua vira a linha em edição (o `n_tty_set_termios`).
     pub(crate) fn set_termios(&mut self, t: Termios) {
         let was = self.canon();
+        let was_ixon = self.iflag(IXON);
         self.termios = t;
+        // Desligar o IXON religa a saída que um STOP parou (`n_tty_set_termios`).
+        if was_ixon && !self.iflag(IXON) {
+            self.flow.start();
+        }
         let now = self.canon();
         if was && !now {
             let mut v: VecDeque<u8> = self.lines.drain(..).flatten().collect();
@@ -541,6 +581,8 @@ struct PtyState {
     slaves: u32,
     /// O último escravo fechou (`TTY_OTHER_CLOSED` do mestre).
     slave_closed: bool,
+    /// Controle de fluxo da saída do mestre (a do escravo vive na disciplina de linha).
+    master_flow: Flow,
     /// Sessão de que este é o terminal de controle, e o grupo em primeiro plano.
     session: Option<Pid>,
     pgrp: Option<Pid>,
@@ -548,6 +590,45 @@ struct PtyState {
     in_wait: WaitList,
     /// Espera pela saída: leitores do mestre e escritores do escravo.
     out_wait: WaitList,
+    /// O eco do que o mestre escreveu. No kernel a entrada do mestre passa pela disciplina de linha numa
+    /// workqueue (`flush_to_ldisc`), então o eco só nasce depois de a escrita voltar, e `pty_write` do escravo
+    /// o recusa enquanto a saída do escravo está parada: o `n_tty` o retém em `echo_buf`. Aqui ele espera nesta
+    /// fila até o próximo ponto em que o trabalho teria rodado (`settle_echo`).
+    echo_later: VecDeque<u8>,
+    /// O eco já tentou sair e foi recusado pela saída parada (o `process_echoes` da próxima escrita do escravo
+    /// o entrega antes dos dados).
+    echo_held: bool,
+}
+
+impl PtyState {
+    /// O controle de fluxo da saída do mestre ou do escravo.
+    fn flow_mut(&mut self, master: bool) -> &mut Flow {
+        if master { &mut self.master_flow } else { &mut self.ld.flow }
+    }
+
+    /// A entrada do mestre na disciplina de linha: o eco que ela gera fica em `echo_later`.
+    fn master_input(&mut self, data: &[u8]) -> Vec<Signal> {
+        let mark = self.ld.out.len();
+        let sigs = self.ld.receive(data);
+        let echo = self.ld.out.split_off(mark);
+        self.echo_later.extend(echo);
+        sigs
+    }
+
+    /// O trabalho da workqueue rodou: o eco sai para a leitura do mestre, ou fica retido se a saída do escravo
+    /// está parada.
+    fn settle_echo(&mut self) {
+        if self.echo_later.is_empty() {
+            return;
+        }
+        if self.ld.flow.stopped {
+            self.echo_held = true;
+            return;
+        }
+        self.echo_held = false;
+        let echo = std::mem::take(&mut self.echo_later);
+        self.ld.out.extend(echo);
+    }
 }
 
 /// Um pseudoterminal (o par mestre e escravo).
@@ -569,16 +650,20 @@ impl Pty {
             index,
             sb,
             st: Mutex::new(PtyState {
-                ld: Ldisc::default(),
+                // O `init_termios` do `pts_driver`/`ptm_driver` (`pty_init`): o `tty_std_termios` sem o `HUPCL`.
+                ld: Ldisc::new(Termios { c_cflag: B38400 | CS8 | CREAD, ..Termios::default() }),
                 winsize: Winsize::default(),
                 locked: true,
                 masters: 0,
                 slaves: 0,
                 slave_closed: false,
-                session: None,
+                master_flow: Flow::default(),
                 pgrp: None,
+                session: None,
                 in_wait: WaitList::default(),
                 out_wait: WaitList::default(),
+                echo_later: VecDeque::new(),
+                echo_held: false,
             }),
         })
     }
@@ -622,6 +707,7 @@ impl Pty {
     pub(crate) fn set_termios(&self, t: &Termios, when: SetAttrWhen) {
         let w = {
             let mut s = self.st.lock();
+            s.settle_echo();
             if when == SetAttrWhen::Flush {
                 s.ld.flush_input();
             }
@@ -635,6 +721,92 @@ impl Pty {
 
     pub(crate) fn winsize(&self) -> Winsize {
         self.st.lock().winsize
+    }
+
+    /// `TIOCINQ` (`FIONREAD`): no mestre, o que o escravo escreveu e ninguém leu; no escravo, as linhas
+    /// completas no modo canônico ou os bytes da entrada crua no outro (`inq_canon` e `read_cnt`).
+    pub(crate) fn fionread(&self, master: bool) -> usize {
+        let mut s = self.st.lock();
+        s.settle_echo();
+        if master {
+            s.ld.out.len()
+        } else if s.ld.canon() {
+            s.ld.lines.iter().map(Vec::len).sum()
+        } else {
+            s.ld.raw.len()
+        }
+    }
+
+    /// `TCFLSH` (`__tty_perform_flush`). A entrada descartada é a do próprio terminal: no escravo, a
+    /// da disciplina de linha; no mestre, o que o escravo escreveu e ninguém leu. O descarte da saída
+    /// (`pty_flush_buffer`) só alcança o buffer de transferência do par, que aqui é sempre entregue na
+    /// hora, então `TCOFLUSH` só confere o argumento.
+    pub(crate) fn flush(&self, master: bool, queue: i32) -> Result<(), Errno> {
+        if !matches!(queue, TCIFLUSH | TCOFLUSH | TCIOFLUSH) {
+            return Err(Errno::EINVAL);
+        }
+        if queue == TCOFLUSH {
+            return Ok(());
+        }
+        let w = {
+            let mut s = self.st.lock();
+            s.settle_echo();
+            if master {
+                s.ld.out.clear();
+            } else {
+                s.ld.flush_input();
+            }
+            let mut w = s.in_wait.take();
+            w.merge(s.out_wait.take());
+            w
+        };
+        w.run();
+        Ok(())
+    }
+
+    /// `TCXONC` (`n_tty_ioctl_helper`). `TCIOFF` e `TCION` escrevem o STOP ou o START do terminal no par
+    /// (`tty_send_xchar`, sem OPOST): o escravo manda ao que o mestre lê, o mestre manda à entrada do
+    /// escravo, que com IXON o consome. Devolve os sinais de ISIG que isso gerou, pro grupo em primeiro
+    /// plano. O termios do mestre nunca muda (as ioctls de modo agem no escravo), então vale o padrão.
+    pub(crate) fn flow(&self, master: bool, action: i32) -> Result<Vec<(Pid, Signal)>, Errno> {
+        let mut sigs = Vec::new();
+        let w = {
+            let mut s = self.st.lock();
+            match action {
+                TCOOFF => {
+                    let f = s.flow_mut(master);
+                    if !f.tco_stopped {
+                        f.tco_stopped = true;
+                        f.stopped = true;
+                    }
+                }
+                TCOON => {
+                    let f = s.flow_mut(master);
+                    if f.tco_stopped {
+                        f.tco_stopped = false;
+                        f.start();
+                    }
+                }
+                TCIOFF | TCION => {
+                    let idx = if action == TCIOFF { VSTOP } else { VSTART };
+                    let ch = if master { Termios::default().c_cc[idx] } else { s.ld.termios.c_cc[idx] };
+                    if ch != 0 {
+                        if master {
+                            let pgrp = s.pgrp;
+                            sigs = s.master_input(&[ch]).into_iter().filter_map(|g| Some((pgrp?, g))).collect();
+                        } else {
+                            s.ld.out.push_back(ch);
+                        }
+                    }
+                }
+                _ => return Err(Errno::EINVAL),
+            }
+            let mut w = s.in_wait.take();
+            w.merge(s.out_wait.take());
+            w
+        };
+        w.run();
+        Ok(sigs)
     }
 
     /// Troca o tamanho. Devolve o grupo em primeiro plano a avisar com SIGWINCH quando mudou
@@ -678,6 +850,7 @@ impl Pty {
     /// espera nada). Desligado (sem mestre) é EOF.
     pub(crate) fn try_slave_read(&self, buf: &mut [u8], nonblock: bool, need: usize, waiter: &Arc<Parker>) -> Try<Result<usize, Errno>> {
         locked(&self.st, |s| {
+            s.settle_echo();
             if s.masters == 0 || buf.is_empty() {
                 s.in_wait.unregister(waiter);
                 return (Try::Ready(Ok(0)), Wake::none());
@@ -705,6 +878,7 @@ impl Pty {
     /// Leitura do mestre: a saída do escravo e o eco; sem escravo (depois de ter havido um) é EIO.
     pub(crate) fn try_master_read(&self, buf: &mut [u8], nonblock: bool, waiter: &Arc<Parker>) -> Try<Result<usize, Errno>> {
         locked(&self.st, |s| {
+            s.settle_echo();
             if buf.is_empty() {
                 return (Try::Ready(Ok(0)), Wake::none());
             }
@@ -735,12 +909,19 @@ impl Pty {
         waiter: &Arc<Parker>,
     ) -> Try<Result<usize, Errno>> {
         locked(&self.st, |s| {
+            s.settle_echo();
             let mut w = Wake::none();
             let rest = &data[*done..];
             // No modo canônico a entrada nunca espera: o que não cabe na linha se perde.
-            let n = if s.ld.canon() { rest.len() } else { rest.len().min(s.ld.input_room()) };
+            let n = if s.master_flow.stopped {
+                0
+            } else if s.ld.canon() {
+                rest.len()
+            } else {
+                rest.len().min(s.ld.input_room())
+            };
             if n > 0 {
-                let got = s.ld.receive(&rest[..n]);
+                let got = s.master_input(&rest[..n]);
                 *done += n;
                 if let Some(pg) = s.pgrp {
                     sigs.extend(got.into_iter().map(|g| (pg, g)));
@@ -760,7 +941,11 @@ impl Pty {
                 return (Try::Ready(if *done > 0 { Ok(*done) } else { Err(Errno::EIO) }), Wake::none());
             }
             let before = *done;
-            while *done < data.len() && s.ld.out.len() < PTY_OUT_LIMIT {
+            // O `process_echoes` do `n_tty_write`: o eco retido pela saída parada sai antes dos dados.
+            if s.echo_held {
+                s.settle_echo();
+            }
+            while *done < data.len() && s.ld.out.len() < PTY_OUT_LIMIT && !s.ld.flow.stopped {
                 let c = data[*done];
                 s.ld.put_output(c);
                 *done += 1;
@@ -773,6 +958,7 @@ impl Pty {
     /// Prontidão pro `poll` (`n_tty_poll` e `hung_up_tty_poll`).
     pub(crate) fn poll(&self, master: bool, waiter: Option<&Arc<Parker>>) -> PollEvents {
         let mut s = self.st.lock();
+        s.settle_echo();
         let mut ev = PollEvents::empty();
         if master {
             if !s.ld.out.is_empty() {
@@ -781,7 +967,7 @@ impl Pty {
             if s.slave_closed {
                 ev |= PollEvents::HUP;
             }
-            if s.ld.canon() || s.ld.input_room() > 0 {
+            if (s.ld.canon() || s.ld.input_room() > 0) && !s.master_flow.stopped {
                 ev |= PollEvents::OUT;
             }
         } else if s.masters == 0 {
@@ -790,7 +976,7 @@ impl Pty {
             if s.ld.has_input() {
                 ev |= PollEvents::IN;
             }
-            if s.ld.out.len() < PTY_OUT_LIMIT {
+            if s.ld.out.len() < PTY_OUT_LIMIT && !s.ld.flow.stopped {
                 ev |= PollEvents::OUT;
             }
         }

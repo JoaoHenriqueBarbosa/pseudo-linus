@@ -12,6 +12,7 @@
 //! enviou; a fila tem o tamanho do `net.unix.max_dgram_qlen` (10).
 
 use std::collections::{HashMap, VecDeque};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Weak};
 
 use parking_lot::Mutex;
@@ -21,6 +22,8 @@ use vfs::procfs::UnixSockRow;
 use crate::net::{Conn, hashed_ptr};
 use crate::park::{Parker, WaitList, Wake};
 use crate::pipe::{Pipe, Try};
+use crate::scm::{Scm, Ucred};
+use crate::seqpacket::{SeqEnd, seq_pair};
 
 pub(crate) const SOCK_STREAM: u8 = 1;
 pub(crate) const SOCK_DGRAM: u8 = 2;
@@ -64,7 +67,8 @@ impl UnixTable {
             ident,
             ptr: hashed_ptr(),
             table: Arc::downgrade(self),
-            st: Mutex::new(SockState { name, key: None, role, accepted, peer_name }),
+            st: Mutex::new(SockState { name, key: None, role, accepted, peer_name, peer_cred: None }),
+            passcred: AtomicBool::new(false),
         });
         let mut st = self.st.lock();
         st.socks.retain(|w| w.strong_count() > 0);
@@ -72,9 +76,10 @@ impl UnixTable {
         s
     }
 
-    /// `socketpair`: duas pontas já ligadas, sem nome.
-    pub(crate) fn pair(self: &Arc<Self>, ty: u8, idents: (Arc<Pipe>, Arc<Pipe>), mk_pipe: impl Fn() -> Arc<Pipe>) -> (Arc<UnixSock>, Arc<UnixSock>) {
-        if ty == SOCK_DGRAM {
+    /// `socketpair`: duas pontas já ligadas, sem nome. As duas guardam as credenciais de quem criou o par
+    /// (`init_peercred` do `unix_socketpair`).
+    pub(crate) fn pair(self: &Arc<Self>, ty: u8, idents: (Arc<Pipe>, Arc<Pipe>), mk_pipe: impl Fn() -> Arc<Pipe>, cred: Ucred) -> (Arc<UnixSock>, Arc<UnixSock>) {
+        let (a, b) = if ty == SOCK_DGRAM {
             let a = self.add(ty, idents.0, Role::Dgram(Dgram::default()), None, None, true);
             let b = self.add(ty, idents.1, Role::Dgram(Dgram::default()), None, None, true);
             for (x, y) in [(&a, &b), (&b, &a)] {
@@ -83,11 +88,20 @@ impl UnixTable {
                     d.peer = Some(Arc::downgrade(y));
                 }
             }
-            return (a, b);
-        }
-        let (ca, cb) = crate::net::conn_pair(mk_pipe);
-        let a = self.add(ty, idents.0, Role::Stream(Arc::new(ca)), None, None, true);
-        let b = self.add(ty, idents.1, Role::Stream(Arc::new(cb)), None, None, true);
+            (a, b)
+        } else if ty == SOCK_SEQPACKET {
+            let (ea, eb) = seq_pair();
+            let a = self.add(ty, idents.0, Role::Seq(Arc::new(ea)), None, None, true);
+            let b = self.add(ty, idents.1, Role::Seq(Arc::new(eb)), None, None, true);
+            (a, b)
+        } else {
+            let (ca, cb) = crate::net::conn_pair(mk_pipe);
+            let a = self.add(ty, idents.0, Role::Stream(Arc::new(ca)), None, None, true);
+            let b = self.add(ty, idents.1, Role::Stream(Arc::new(cb)), None, None, true);
+            (a, b)
+        };
+        a.st.lock().peer_cred = Some(cred);
+        b.st.lock().peer_cred = Some(cred);
         (a, b)
     }
 
@@ -138,6 +152,7 @@ impl UnixTable {
                 Role::Idle => (0, 1, 2),
                 Role::Listening(_) => (SO_ACCEPTCON, 1, 2),
                 Role::Stream(c) => (0, if st.accepted { 3 } else { 2 }, 2 + u32::from(c.peer_open())),
+                Role::Seq(e) => (0, if st.accepted { 3 } else { 2 }, 2 + u32::from(e.peer_open())),
                 Role::Dgram(d) => (0, if d.peer.is_some() { 3 } else { 1 }, 2),
             };
             let dgram = matches!(st.role, Role::Dgram(_));
@@ -169,9 +184,17 @@ struct Listen {
     space: WaitList,
 }
 
+/// Uma mensagem de datagrama na fila de quem recebe: os dados, o nome de quem enviou e os dados auxiliares.
+#[derive(Clone, Debug)]
+pub(crate) struct Datagram {
+    pub data: Vec<u8>,
+    pub from: Option<Vec<u8>>,
+    pub scm: Scm,
+}
+
 #[derive(Debug, Default)]
 struct Dgram {
-    rx: VecDeque<(Vec<u8>, Option<Vec<u8>>)>,
+    rx: VecDeque<Datagram>,
     /// O par do `connect` (ou do `socketpair`): destino do `send` sem endereço.
     peer: Option<Weak<UnixSock>>,
     wait: WaitList,
@@ -184,6 +207,8 @@ enum Role {
     Listening(Listen),
     /// Conectado (o embrião também, antes do `accept`).
     Stream(Arc<Conn>),
+    /// Conectado em `SOCK_SEQPACKET`: filas de mensagens, não bytes.
+    Seq(Arc<SeqEnd>),
     Dgram(Dgram),
 }
 
@@ -196,6 +221,9 @@ struct SockState {
     /// Falso só no embrião, que ainda não tem inode.
     accepted: bool,
     peer_name: Option<Vec<u8>>,
+    /// `sk_peer_pid` e `sk_peer_cred`: as credenciais do par (`SO_PEERCRED`). O `listen` grava as de quem escuta,
+    /// o `connect` dá ao cliente as do servidor e ao embrião as do cliente, o `socketpair` as de quem o criou.
+    peer_cred: Option<Ucred>,
 }
 
 /// Um socket do domínio Unix.
@@ -207,6 +235,8 @@ pub(crate) struct UnixSock {
     pub ident: Arc<Pipe>,
     ptr: u32,
     table: Weak<UnixTable>,
+    /// `SOCK_PASSCRED` (`SO_PASSCRED`): quem recebe passa a ver as credenciais de quem enviou.
+    passcred: AtomicBool,
     st: Mutex<SockState>,
 }
 
@@ -215,9 +245,16 @@ impl Drop for UnixSock {
         let mut wake = Wake::none();
         let st = self.st.get_mut();
         match &mut st.role {
-            // As conexões que ninguém aceitou fecham: o cliente vê EOF (ou ECONNRESET, se já escreveu).
+            // As conexões que ninguém aceitou fecham: o `unix_release_sock` do embrião marca o cliente com
+            // ECONNRESET (`embrion` verdadeiro), que sai uma vez antes do EOF.
             Role::Listening(l) => {
-                l.queue.clear();
+                for embryo in l.queue.drain(..) {
+                    match &embryo.st.lock().role {
+                        Role::Stream(c) => c.reset_remote(),
+                        Role::Seq(e) => e.reset_remote(),
+                        _ => {}
+                    }
+                }
                 wake.merge(l.wait.take());
                 wake.merge(l.space.take());
             }
@@ -238,11 +275,22 @@ impl Drop for UnixSock {
 }
 
 impl UnixSock {
+    /// `SIOCINQ` (`unix_inq_len`): os bytes de um fluxo ou de um `SOCK_SEQPACKET` que um `recv` leria, ou o
+    /// tamanho do próximo datagrama; EINVAL num socket em escuta.
+    pub(crate) fn unread(&self) -> Result<usize, Errno> {
+        match &self.st.lock().role {
+            Role::Listening(_) => Err(Errno::EINVAL),
+            Role::Idle => Ok(0),
+            Role::Stream(c) => Ok(c.unread()),
+            Role::Seq(e) => Ok(e.unread()),
+            Role::Dgram(d) => Ok(d.rx.front().map_or(0, |m| m.data.len())),
+        }
+    }
     /// O nome deste socket e o do par (`getsockname`/`getpeername`).
     pub(crate) fn names(&self) -> (Option<Vec<u8>>, Option<Vec<u8>>, bool) {
         let st = self.st.lock();
         let connected = match &st.role {
-            Role::Stream(_) => true,
+            Role::Stream(_) | Role::Seq(_) => true,
             Role::Dgram(d) => d.peer.is_some(),
             _ => false,
         };
@@ -253,6 +301,11 @@ impl UnixSock {
         (st.name.clone(), peer, connected)
     }
 
+    /// O socket está em escuta (`SO_ACCEPTCONN`).
+    pub(crate) fn listening(&self) -> bool {
+        matches!(self.st.lock().role, Role::Listening(_))
+    }
+
     /// A conexão de um socket de fluxo conectado.
     pub(crate) fn conn(&self) -> Option<Arc<Conn>> {
         match &self.st.lock().role {
@@ -261,9 +314,29 @@ impl UnixSock {
         }
     }
 
+    /// A ponta de um socket `SOCK_SEQPACKET` conectado.
+    pub(crate) fn seq(&self) -> Option<Arc<SeqEnd>> {
+        match &self.st.lock().role {
+            Role::Seq(e) => Some(e.clone()),
+            _ => None,
+        }
+    }
+
+    /// `shutdown`: num socket conectado, de fluxo ou de seqpacket, encerra os sentidos pedidos. Sem conexão o
+    /// `unix_shutdown` só marca o `sk_shutdown` e devolve 0 (num fluxo, num seqpacket ou num datagrama).
+    pub(crate) fn shutdown(&self, read: bool, write: bool) -> Result<(), Errno> {
+        if let Some(c) = self.conn() {
+            c.shutdown(read, write);
+        } else if let Some(e) = self.seq() {
+            e.shutdown(read, write);
+        }
+        Ok(())
+    }
+
     /// `listen`: o socket precisa ter nome (sem autobind, como o `unix_listen` exige). Num socket já em
-    /// escuta só troca o tamanho da fila.
-    pub(crate) fn listen(&self, backlog: u32) -> Result<(), Errno> {
+    /// escuta só troca o tamanho da fila. As credenciais de quem chama ficam como as do "par" do socket
+    /// (`update_peercred`), que o `connect` copia para o cliente.
+    pub(crate) fn listen(&self, backlog: u32, cred: Ucred) -> Result<(), Errno> {
         if self.ty == SOCK_DGRAM {
             return Err(Errno::EOPNOTSUPP);
         }
@@ -278,21 +351,37 @@ impl UnixSock {
             Role::Listening(l) => l.backlog = backlog,
             _ => return Err(Errno::EINVAL),
         }
+        st.peer_cred = Some(cred);
         Ok(())
     }
 
+    /// `SO_PEERCRED`: as credenciais do par, ou as de um socket sem par (pid 0, uid e gid -1).
+    pub(crate) fn peer_cred(&self) -> Ucred {
+        self.st.lock().peer_cred.unwrap_or(Ucred::UNSET)
+    }
+
+    pub(crate) fn passcred(&self) -> bool {
+        self.passcred.load(Ordering::Relaxed)
+    }
+
+    pub(crate) fn set_passcred(&self, on: bool) {
+        self.passcred.store(on, Ordering::Relaxed);
+    }
+
     /// `connect` de fluxo a `target`. ECONNREFUSED se ele não escuta; com a fila cheia, EAGAIN
-    /// (`nonblock`) ou espera vaga.
+    /// (`nonblock`) ou espera vaga. `cred` é de quem conecta: o embrião do servidor o guarda como o do par, e o
+    /// cliente guarda o de quem escuta (`unix_stream_connect`).
     pub(crate) fn try_connect(
         self: &Arc<Self>,
         target: &Arc<UnixSock>,
         nonblock: bool,
         waiter: &Arc<Parker>,
         mk_pipe: &dyn Fn() -> Arc<Pipe>,
+        cred: Ucred,
     ) -> Try<Result<(), Errno>> {
         match &self.st.lock().role {
             Role::Idle => {}
-            Role::Stream(_) => return Try::Ready(Err(Errno::EISCONN)),
+            Role::Stream(_) | Role::Seq(_) => return Try::Ready(Err(Errno::EISCONN)),
             _ => return Try::Ready(Err(Errno::EINVAL)),
         }
         if target.ty != self.ty {
@@ -300,6 +389,7 @@ impl UnixSock {
         }
         let mut tst = target.st.lock();
         let listener_name = tst.name.clone();
+        let listener_cred = tst.peer_cred;
         let Role::Listening(l) = &mut tst.role else { return Try::Ready(Err(Errno::ECONNREFUSED)) };
         // `unix_recvq_full`: cabe uma conexão além do backlog.
         if l.queue.len() > l.backlog {
@@ -312,16 +402,24 @@ impl UnixSock {
         }
         l.space.unregister(waiter);
         let Some(table) = target.table.upgrade() else { return Try::Ready(Err(Errno::ECONNREFUSED)) };
-        let (client, server) = crate::net::conn_pair(mk_pipe);
         let my_name = self.st.lock().name.clone();
-        let embryo = table.add(self.ty, mk_pipe(), Role::Stream(Arc::new(server)), listener_name.clone(), my_name, false);
+        let (client_role, server_role) = if self.ty == SOCK_SEQPACKET {
+            let (client, server) = seq_pair();
+            (Role::Seq(Arc::new(client)), Role::Seq(Arc::new(server)))
+        } else {
+            let (client, server) = crate::net::conn_pair(mk_pipe);
+            (Role::Stream(Arc::new(client)), Role::Stream(Arc::new(server)))
+        };
+        let embryo = table.add(self.ty, mk_pipe(), server_role, listener_name.clone(), my_name, false);
+        embryo.st.lock().peer_cred = Some(cred);
         l.queue.push_back(embryo);
-        let wake = l.wait.take();
+        let wake = l.wait.take_key(crate::park::key::READ);
         drop(tst);
         {
             let mut st = self.st.lock();
-            st.role = Role::Stream(Arc::new(client));
+            st.role = client_role;
             st.peer_name = listener_name;
+            st.peer_cred = listener_cred;
         }
         wake.run();
         Try::Ready(Ok(()))
@@ -359,8 +457,8 @@ impl UnixSock {
     }
 
     /// `sendto` de datagrama para `target` (ou para o par do `connect`). ENOTCONN sem destino;
-    /// ECONNREFUSED se o par fechou; EPERM se o destino está conectado a outro socket.
-    pub(crate) fn try_send(self: &Arc<Self>, data: &[u8], target: Option<&Arc<UnixSock>>, nonblock: bool, waiter: &Arc<Parker>) -> Try<Result<usize, Errno>> {
+    /// ECONNREFUSED se o par fechou; EPERM se o destino está conectado a outro socket. `scm` viaja com a mensagem.
+    pub(crate) fn try_send(self: &Arc<Self>, data: &[u8], scm: &Scm, target: Option<&Arc<UnixSock>>, nonblock: bool, waiter: &Arc<Parker>) -> Try<Result<usize, Errno>> {
         let (me_name, peer) = {
             let st = self.st.lock();
             let Role::Dgram(d) = &st.role else { return Try::Ready(Err(Errno::EOPNOTSUPP)) };
@@ -395,15 +493,15 @@ impl UnixSock {
             return Try::Pending;
         }
         d.space.unregister(waiter);
-        d.rx.push_back((data.to_vec(), me_name));
-        let wake = d.wait.take();
+        d.rx.push_back(Datagram { data: data.to_vec(), from: me_name, scm: scm.clone() });
+        let wake = d.wait.take_key(crate::park::key::READ);
         drop(dst);
         wake.run();
         Try::Ready(Ok(data.len()))
     }
 
-    /// `recvfrom` de datagrama: a próxima mensagem inteira e o nome de quem enviou.
-    pub(crate) fn try_recv(&self, peek: bool, nonblock: bool, waiter: &Arc<Parker>) -> Try<Result<(Vec<u8>, Option<Vec<u8>>), Errno>> {
+    /// `recvfrom` de datagrama: a próxima mensagem inteira, o nome de quem enviou e os dados auxiliares.
+    pub(crate) fn try_recv(&self, peek: bool, nonblock: bool, waiter: &Arc<Parker>) -> Try<Result<Datagram, Errno>> {
         let mut st = self.st.lock();
         let Role::Dgram(d) = &mut st.role else { return Try::Ready(Err(Errno::EOPNOTSUPP)) };
         let got = if peek { d.rx.front().cloned() } else { d.rx.pop_front() };
@@ -445,12 +543,21 @@ impl UnixSock {
                     return ev;
                 }
                 Role::Stream(c) => c.clone(),
+                Role::Seq(e) => {
+                    let e = e.clone();
+                    drop(st);
+                    return e.poll(waiter);
+                }
             }
         };
         conn.poll(waiter)
     }
 
     pub(crate) fn unregister(&self, waiter: &Arc<Parker>) {
+        let seq = self.seq();
+        if let Some(e) = &seq {
+            e.unregister(waiter);
+        }
         let conn = {
             let mut st = self.st.lock();
             match &mut st.role {
@@ -465,7 +572,7 @@ impl UnixSock {
                     None
                 }
                 Role::Stream(c) => Some(c.clone()),
-                Role::Idle => None,
+                Role::Idle | Role::Seq(_) => None,
             }
         };
         if let Some(c) = conn {

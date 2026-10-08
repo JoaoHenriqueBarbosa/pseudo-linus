@@ -835,6 +835,94 @@ impl Namespace {
         l.fs().setattr(cx, l.ino, &attr)
     }
 
+    /// `xattr_permission` do `fs/xattr.c`. O contêiner do oráculo não tem `CAP_SYS_ADMIN`: nem o root escreve
+    /// em `trusted.*` e `security.*`, e `trusted.*` nem aparece na leitura.
+    fn xattr_permission(&self, cx: &Caller, l: &Loc, st: &Stat, name: &[u8], write: bool) -> SysResult<()> {
+        if name.starts_with(b"security.") {
+            return if write { Err(Errno::EPERM) } else { Ok(()) };
+        }
+        if name.starts_with(b"system.") {
+            return Ok(());
+        }
+        if name.starts_with(b"trusted.") {
+            return Err(if write { Errno::EPERM } else { Errno::ENODATA });
+        }
+        if name.starts_with(b"user.") {
+            if !is_reg(st.mode) && !is_dir(st.mode) {
+                return Err(if write { Errno::EPERM } else { Errno::ENODATA });
+            }
+            if write && is_dir(st.mode) && st.mode & S_ISVTX != 0 && !perm::owner_or_capable(&cx.cred, st) {
+                return Err(Errno::EPERM);
+            }
+        }
+        perm::inode_permission(&cx.cred, st, if write { MAY_WRITE } else { MAY_READ }, l.mnt.read_only())
+    }
+
+    /// O nome de um atributo estendido: de 1 a `XATTR_NAME_MAX` (255) bytes, senão ERANGE.
+    fn xattr_name(name: &[u8]) -> SysResult<()> {
+        if name.is_empty() || name.len() > 255 {
+            return Err(Errno::ERANGE);
+        }
+        Ok(())
+    }
+
+    /// `getxattr(2)`, `lgetxattr(2)` e `fgetxattr(2)` (`EMPTY_PATH`). Só o tmpfs guarda atributos, e só `user.*`.
+    pub fn getxattr(&self, cx: &Caller, start: &Start, path: &[u8], name: &[u8], flags: AtFlags) -> SysResult<Vec<u8>> {
+        Self::xattr_name(name)?;
+        let (l, st) = self.resolve_attr_target(cx, start, path, flags)?;
+        self.xattr_permission(cx, &l, &st, name, false)?;
+        if name.starts_with(b"user.") {
+            l.fs().xattr_get(cx, l.ino, name)
+        } else if name.starts_with(b"security.") {
+            Err(Errno::ENODATA)
+        } else {
+            Err(Errno::EOPNOTSUPP)
+        }
+    }
+
+    /// `setxattr(2)` e variantes.
+    #[allow(clippy::too_many_arguments)]
+    pub fn setxattr(&self, cx: &Caller, start: &Start, path: &[u8], name: &[u8], value: &[u8], xflags: u32, flags: AtFlags) -> SysResult<()> {
+        if xflags & !(crate::fs::XATTR_CREATE | crate::fs::XATTR_REPLACE) != 0 {
+            return Err(Errno::EINVAL);
+        }
+        Self::xattr_name(name)?;
+        if value.len() > 65536 {
+            return Err(Errno::E2BIG);
+        }
+        let (l, st) = self.resolve_attr_target(cx, start, path, flags)?;
+        if l.mnt.read_only() {
+            return Err(Errno::EROFS);
+        }
+        self.xattr_permission(cx, &l, &st, name, true)?;
+        if name.starts_with(b"user.") {
+            l.fs().xattr_set(cx, l.ino, name, value, xflags)
+        } else {
+            Err(Errno::EOPNOTSUPP)
+        }
+    }
+
+    /// `listxattr(2)` e variantes: só os `user.*` (o `trusted.*` pede `CAP_SYS_ADMIN`).
+    pub fn listxattr(&self, cx: &Caller, start: &Start, path: &[u8], flags: AtFlags) -> SysResult<Vec<Vec<u8>>> {
+        let (l, _) = self.resolve_attr_target(cx, start, path, flags)?;
+        l.fs().xattr_list(cx, l.ino)
+    }
+
+    /// `removexattr(2)` e variantes.
+    pub fn removexattr(&self, cx: &Caller, start: &Start, path: &[u8], name: &[u8], flags: AtFlags) -> SysResult<()> {
+        Self::xattr_name(name)?;
+        let (l, st) = self.resolve_attr_target(cx, start, path, flags)?;
+        if l.mnt.read_only() {
+            return Err(Errno::EROFS);
+        }
+        self.xattr_permission(cx, &l, &st, name, true)?;
+        if name.starts_with(b"user.") {
+            l.fs().xattr_remove(cx, l.ino, name)
+        } else {
+            Err(Errno::EOPNOTSUPP)
+        }
+    }
+
     /// `utimensat(2)`. Os dois `UTIME_OMIT` voltam 0 sem nem resolver o caminho, como o kernel.
     pub fn utimens(&self, cx: &Caller, start: &Start, path: &[u8], atime: SetTime, mtime: SetTime, flags: AtFlags) -> SysResult<()> {
         if atime == SetTime::Omit && mtime == SetTime::Omit {
@@ -926,7 +1014,12 @@ impl Namespace {
         if st.nlink == 0 {
             return Err(Errno::ENOENT);
         }
-        namei::d_path(&cx.cwd, &cx.root)
+        // Diretório corrente fora da raiz (`chroot` para outra árvore): o kernel devolve `(unreachable)/...`
+        // e a glibc o troca por ENOENT.
+        match namei::d_path_reach(&cx.cwd, &cx.root)? {
+            (path, true) => Ok(path),
+            (_, false) => Err(Errno::ENOENT),
+        }
     }
 
     /// Caminho de um arquivo aberto como `/proc/self/fd` mostra: com " (deleted)" se ele não tem mais

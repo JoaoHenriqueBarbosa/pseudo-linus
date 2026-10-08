@@ -482,18 +482,25 @@ fn least_loaded(s: &Sched<MonotonicClock>) -> usize {
     (0..s.nr_cpus()).min_by_key(|&c| (s.rq_nr_running(c), c)).unwrap_or(0)
 }
 
-/// Troca o corrente de uma CPU: quem sai perde o token, quem entra ganha e é acordado.
+/// Troca o corrente de uma CPU: quem sai perde o token, quem entra ganha e é acordado. Quem entra vindo de
+/// outra CPU (migração) sai do slot de lá, e quem sai só perde o token se ele ainda é desta CPU: um slot
+/// velho não tira a CPU de uma tarefa que já corre em outra.
 fn switch(g: &mut Inner, cpu: usize, next: Option<TaskId>) {
     let prev = g.running[cpu].take();
     let next_ct = next.and_then(|id| g.tasks.get(&id).cloned());
     if let Some(p) = &prev
         && !next_ct.as_ref().is_some_and(|n| Arc::ptr_eq(n, p))
     {
-        p.granted.store(0, Ordering::Release);
+        let _ = p.granted.compare_exchange(cpu + 1, 0, Ordering::AcqRel, Ordering::Acquire);
     }
     if let Some(n) = &next_ct {
         if !prev.as_ref().is_some_and(|p| Arc::ptr_eq(n, p)) {
             n.acct.switches.fetch_add(1, Ordering::Relaxed);
+        }
+        for (other, slot) in g.running.iter_mut().enumerate() {
+            if other != cpu && slot.as_ref().is_some_and(|s| Arc::ptr_eq(s, n)) {
+                *slot = None;
+            }
         }
         n.resched.store(false, Ordering::Relaxed);
         n.granted.store(cpu + 1, Ordering::Release);
@@ -567,5 +574,30 @@ fn tick_loop(cpus: Weak<Cpus>, tick: Duration) {
             return;
         }
         c.tick();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Uma tarefa que migrou da cpu1 para a cpu0 deixa a cpu1 sem ela: a troca seguinte na cpu1 não pode
+    /// tirar o token de quem já corre na cpu0 (o cliente TCP esperava para sempre no `checkpoint`).
+    #[test]
+    fn switch_on_old_cpu_keeps_the_grant_of_a_migrated_task() {
+        let cpus = Cpus::new(2, Topology::PerCpu);
+        let ct = CpuTask::new(Arc::new(AtomicBool::new(false)), CpuAcct::new(2));
+        let mut g = cpus.inner.lock();
+        let id = g.s.create_task(0, GroupId::ROOT, 1);
+        *ct.id.lock() = Some(id);
+        g.tasks.insert(id, ct.clone());
+        switch(&mut g, 1, Some(id));
+        assert_eq!(ct.cpu(), Some(1));
+        switch(&mut g, 0, Some(id));
+        assert_eq!(ct.cpu(), Some(0));
+        assert!(g.running[1].is_none());
+        switch(&mut g, 1, None);
+        assert_eq!(ct.cpu(), Some(0));
+        assert!(g.running[0].as_ref().is_some_and(|r| Arc::ptr_eq(r, &ct)));
     }
 }

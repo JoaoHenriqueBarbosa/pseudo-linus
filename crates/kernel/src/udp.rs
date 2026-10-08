@@ -18,7 +18,7 @@ use sysabi::{Errno, PollEvents};
 use vfs::procfs::UdpSockRow;
 
 use crate::net::hashed_ptr;
-use crate::park::{Parker, WaitList};
+use crate::park::{Parker, WaitList, key};
 use crate::pipe::{Pipe, Try};
 
 const EPHEMERAL_LOW: u16 = 32768;
@@ -201,7 +201,8 @@ impl UdpTable {
             return Err(Errno::EINVAL);
         }
         match wire(ip) {
-            IpAddr::V4(a) if a.is_unspecified() || a.is_loopback() => {}
+            // O `inet_bind` também aceita o broadcast (`RTN_BROADCAST`): o socket só recebe o que for a ele.
+            IpAddr::V4(a) if a.is_unspecified() || a.is_loopback() || a.is_broadcast() => {}
             IpAddr::V6(a) if a.is_unspecified() || a.is_loopback() => {}
             _ => return Err(Errno::EADDRNOTAVAIL),
         }
@@ -324,7 +325,7 @@ impl UdpTable {
         }
         st.rmem += size;
         st.rx.push_back(Datagram { data: data.to_vec(), from: (as_family(dest.v6, src_ip), lport), truesize: size });
-        let wake = st.wait.take();
+        let wake = st.wait.take_key(key::READ);
         drop(st);
         wake.run();
         Ok(data.len())
@@ -362,6 +363,10 @@ impl UdpTable {
 }
 
 impl UdpSock {
+    /// `SIOCINQ` do UDP (`first_packet_length`): o tamanho do próximo datagrama, 0 sem nenhum.
+    pub(crate) fn next_len(&self) -> usize {
+        self.st.lock().rx.front().map_or(0, |d| d.data.len())
+    }
     /// O endereço local (`0.0.0.0:0` antes do `bind`) e o par.
     pub(crate) fn names(&self) -> ((IpAddr, u16), Option<(IpAddr, u16)>) {
         let st = self.st.lock();

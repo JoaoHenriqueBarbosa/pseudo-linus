@@ -35,6 +35,19 @@ pub(crate) enum FileObj {
     Unix(Arc<crate::unix::UnixSock>),
     /// Socket UDP de loopback.
     Udp(Arc<crate::udp::UdpSock>),
+    /// `epoll_create1`: a lista de interesse (`anon_inode:[eventpoll]`).
+    Epoll(Arc<crate::epoll::Epoll>),
+    /// `pidfd_open`: legível quando o processo termina (`anon_inode:[pidfd]`).
+    Pidfd(crate::pidfd::Pidfd),
+    /// `eventfd2` e `timerfd_create`: o contador ou o relógio atrás de um fd `anon_inode`.
+    Anon(crate::anon::Anon),
+}
+
+impl FileObj {
+    /// TCP, Unix ou UDP: o que o `setsockopt` e o `getsockopt` aceitam.
+    pub(crate) fn is_socket(&self) -> bool {
+        matches!(self, FileObj::Listener(_) | FileObj::Stream(_) | FileObj::Unix(_) | FileObj::Udp(_))
+    }
 }
 
 impl std::fmt::Debug for FileObj {
@@ -44,12 +57,31 @@ impl std::fmt::Debug for FileObj {
             FileObj::Path { loc, .. } => write!(f, "Path({loc:?})"),
             FileObj::Pipe { end, .. } => write!(f, "Pipe(ino {}, r {}, w {})", end.pipe.ino, end.read, end.write),
             FileObj::Dev { dev, .. } => write!(f, "Dev({dev:?})"),
-            FileObj::Listener(l) => write!(f, "Listener({})", l.port),
+            FileObj::Listener(l) => write!(f, "Listener({})", l.port()),
             FileObj::Stream(c) => write!(f, "Stream({} -> {})", c.local, c.peer),
             FileObj::Unix(u) => write!(f, "Unix(ino {})", u.ident.ino),
             FileObj::Udp(u) => write!(f, "Udp(ino {})", u.ident.ino),
+            FileObj::Epoll(_) => write!(f, "Epoll"),
+            FileObj::Pidfd(p) => write!(f, "Pidfd({})", p.pid()),
+            FileObj::Anon(a) => write!(f, "{a:?}"),
         }
     }
+}
+
+/// O que o `struct sock` guarda além do objeto de transporte: o erro pendente (`sk_err`, lido e zerado por
+/// `SO_ERROR`), o `connect` não bloqueante em andamento (`SS_CONNECTING`) ou recusado, e as opções
+/// (`setsockopt`) como `(nível, nome) -> bytes`. É da descrição, então todos os fds de `dup` o veem.
+#[derive(Debug, Default)]
+pub(crate) struct SockMeta {
+    pub error: i32,
+    /// O `connect` devolveu EINPROGRESS e o próximo `connect` o conclui (ou entrega a recusa).
+    pub connecting: bool,
+    /// O SYN foi recusado: o `tcp_poll` dá `IN|OUT|HUP` até o `connect` seguinte.
+    pub failed: bool,
+    /// O TCP já estabeleceu a conexão: `tcp_init_buffer_space` chamou o `tcp_sndbuf_expand`, e o `SO_SNDBUF` que
+    /// ninguém definiu (sem `SOCK_SNDBUF_LOCK`) lê o valor ampliado, não o padrão do `tcp_wmem`.
+    pub sndbuf_expanded: bool,
+    pub opts: BTreeMap<(i32, i32), Vec<u8>>,
 }
 
 /// Estado mutável compartilhado de uma descrição.
@@ -75,8 +107,13 @@ pub(crate) struct Ofd {
     /// `/proc/<pid>/fdinfo` as mostra.
     pub open_extra: u32,
     pub st: Mutex<OfdState>,
+    /// Estado de socket (só tem sentido quando `obj` é um socket).
+    pub sock: Mutex<SockMeta>,
     /// Tabela de travas do sandbox (pra soltar as travas desta descrição no último close).
     pub locks: Weak<crate::sandbox::LockTable>,
+    /// Os epolls que têm esta descrição na lista de interesse (o `f_ep` do `struct file`): o `eventpoll_release`
+    /// do último close tira a entrada de cada um e solta o parker dela das filas deste arquivo.
+    pub(crate) watchers: Mutex<Vec<Weak<crate::epoll::Epoll>>>,
 }
 
 impl std::fmt::Debug for Ofd {
@@ -89,6 +126,10 @@ impl Drop for Ofd {
     fn drop(&mut self) {
         if let Some(t) = self.locks.upgrade() {
             t.release_owner(self.id);
+        }
+        let watchers = std::mem::take(self.watchers.get_mut());
+        for epoll in watchers.iter().filter_map(Weak::upgrade) {
+            epoll.release(self);
         }
     }
 }
@@ -116,7 +157,9 @@ impl Ofd {
             accmode,
             open_extra: flags.bits() & (OFlags::DIRECTORY.bits() | OFlags::NOFOLLOW.bits()),
             st: Mutex::new(OfdState { status: flags & keep, pos: 0, dir_cookie: 0 }),
+            sock: Mutex::new(SockMeta::default()),
             locks,
+            watchers: Mutex::new(Vec::new()),
         })
     }
 
@@ -133,7 +176,7 @@ impl Ofd {
             FileObj::Vfs { loc, .. } | FileObj::Path { loc, .. } => Some(loc),
             FileObj::Pipe { fifo, .. } => fifo.as_ref(),
             FileObj::Dev { loc, .. } => loc.as_ref(),
-            FileObj::Listener(_) | FileObj::Stream(_) | FileObj::Unix(_) | FileObj::Udp(_) => None,
+            FileObj::Listener(_) | FileObj::Stream(_) | FileObj::Unix(_) | FileObj::Udp(_) | FileObj::Epoll(_) | FileObj::Pidfd(_) | FileObj::Anon(_) => None,
         }
     }
 

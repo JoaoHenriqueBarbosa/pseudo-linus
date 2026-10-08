@@ -15,10 +15,12 @@ use parking_lot::Mutex;
 use sysabi::{Errno, Gid, PollEvents, Stat, TimeSpec, Uid};
 use vfs::MagicObject;
 
-use crate::park::{Parker, Wake, WaitList, locked};
+use crate::park::{Parker, Wake, WaitList, key, locked};
+use crate::scm::{Marks, Scm};
 
 pub(crate) const PIPE_BUF: usize = 4096;
-pub(crate) const PIPE_CAPACITY: usize = 65536;
+pub(crate) const PIPE_PAGE: usize = sysabi::PIPE_PAGE_SIZE;
+pub(crate) const PIPE_CAPACITY: usize = sysabi::PIPE_DEFAULT_SIZE;
 /// `st_dev` do pipefs (0:14 no Debian 13, como o `stat` de `/proc/self/fd/N` de um pipe mostra).
 pub(crate) const PIPEFS_DEV: u64 = 0xe;
 
@@ -36,16 +38,43 @@ pub(crate) enum WriteError {
     Again,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct State {
+    /// A capacidade em bytes (`max_usage` páginas): 64 KiB até um `F_SETPIPE_SZ`.
+    cap: usize,
     buf: VecDeque<u8>,
     readers: u32,
     writers: u32,
     /// Quantas vezes um leitor/escritor abriu (FIFO).
     r_counter: u64,
     w_counter: u64,
+    /// `RCV_SHUTDOWN` de um socket: o que já está no buffer sai e depois a leitura dá EOF mesmo com escritores.
+    rcv_shut: bool,
+    /// Escrever aqui é EPIPE mesmo com leitores: `shutdown(SHUT_RD)` de um socket Unix (o par vê `RCV_SHUTDOWN`
+    /// do outro lado e o `unix_stream_sendmsg` recusa) ou `shutdown(SHUT_WR)` de quem escreve.
+    wr_closed: bool,
+    /// Dados auxiliares de um fluxo Unix (`SCM_RIGHTS`, credenciais) ao lado dos bytes.
+    marks: Marks,
     rwait: WaitList,
     wwait: WaitList,
+}
+
+impl Default for State {
+    fn default() -> State {
+        State {
+            cap: PIPE_CAPACITY,
+            buf: VecDeque::new(),
+            readers: 0,
+            writers: 0,
+            r_counter: 0,
+            w_counter: 0,
+            rcv_shut: false,
+            wr_closed: false,
+            marks: Marks::default(),
+            rwait: WaitList::default(),
+            wwait: WaitList::default(),
+        }
+    }
 }
 
 /// Um pipe (anônimo ou o objeto por trás de uma FIFO).
@@ -106,14 +135,25 @@ impl Pipe {
         }
     }
 
-    /// Leitura: dados, EOF (0) sem escritores, EAGAIN não bloqueante, ou espera.
+    /// Leitura: dados, EOF (0) sem escritores, EAGAIN não bloqueante, ou espera. Os descritores de um fluxo
+    /// Unix que a leitura toca fecham (um `read` sem `msg_control` os descarta).
     pub(crate) fn try_read(&self, buf: &mut [u8], nonblock: bool, waiter: &Arc<Parker>) -> Try<Result<usize, Errno>> {
+        match self.try_read_scm(buf, nonblock, waiter, false) {
+            Try::Ready(r) => Try::Ready(r.map(|(n, _)| n)),
+            Try::Pending => Try::Pending,
+        }
+    }
+
+    /// [`Pipe::try_read`] com os dados auxiliares: a leitura para onde o `sk_buff` com descritores acaba e,
+    /// com `passcred`, onde o remetente muda (ver [`Marks::window`]).
+    pub(crate) fn try_read_scm(&self, buf: &mut [u8], nonblock: bool, waiter: &Arc<Parker>, passcred: bool) -> Try<Result<(usize, Scm), Errno>> {
         locked(&self.st, |s| {
             if buf.is_empty() {
-                return (Try::Ready(Ok(0)), Wake::none());
+                return (Try::Ready(Ok((0, Scm::default()))), Wake::none());
             }
             if !s.buf.is_empty() {
-                let n = buf.len().min(s.buf.len());
+                let window = s.marks.window(buf.len(), s.buf.len(), passcred);
+                let n = window.len;
                 let (a, b) = s.buf.as_slices();
                 let na = n.min(a.len());
                 buf[..na].copy_from_slice(&a[..na]);
@@ -124,11 +164,74 @@ impl Pipe {
                 if s.buf.is_empty() {
                     s.buf.shrink_to(PIPE_BUF);
                 }
+                let scm = Scm { fds: s.marks.consume(&window), cred: window.cred };
                 s.rwait.unregister(waiter);
-                (Try::Ready(Ok(n)), s.wwait.take())
-            } else if s.writers == 0 {
+                (Try::Ready(Ok((n, scm))), s.wwait.take_key(key::PIPE_WRITE))
+            } else if s.writers == 0 || s.rcv_shut {
                 s.rwait.unregister(waiter);
-                (Try::Ready(Ok(0)), Wake::none())
+                (Try::Ready(Ok((0, Scm::default()))), Wake::none())
+            } else if nonblock {
+                (Try::Ready(Err(Errno::EAGAIN)), Wake::none())
+            } else {
+                s.rwait.register(waiter);
+                (Try::Pending, Wake::none())
+            }
+        })
+    }
+
+    /// `shutdown(SHUT_RD)` de quem lê este pipe (`RCV_SHUTDOWN`): o que já chegou segue legível e a fila vazia
+    /// dá EOF sem esperar o par. Quem espera para ler acorda na hora, com a marca posta sob a mesma trava em que
+    /// ele se registra. `refuse_writes` (Unix) faz o par ver EPIPE e acorda os escritores bloqueados; no TCP o
+    /// par continua escrevendo.
+    pub(crate) fn shutdown_read(&self, refuse_writes: bool) {
+        locked(&self.st, |s| {
+            s.rcv_shut = true;
+            let mut wake = s.rwait.take();
+            if refuse_writes {
+                s.wr_closed = true;
+                wake.merge(s.wwait.take());
+            }
+            ((), wake)
+        });
+    }
+
+    /// `shutdown(SHUT_WR)` de quem escreve neste pipe (`SEND_SHUTDOWN`): a escrita bloqueada por falta de espaço
+    /// acorda e dá EPIPE (`sk_stream_wait_memory`).
+    pub(crate) fn shutdown_write(&self) {
+        locked(&self.st, |s| {
+            s.wr_closed = true;
+            ((), s.wwait.take())
+        });
+    }
+
+    /// `shutdown(SHUT_RD)` já foi feito por quem lê.
+    pub(crate) fn rcv_shut(&self) -> bool {
+        self.st.lock().rcv_shut
+    }
+
+    /// Ainda há quem aceite escrita: leitor aberto e nenhum `shutdown` fechando o sentido.
+    pub(crate) fn accepts_writes(&self) -> bool {
+        let s = self.st.lock();
+        s.readers > 0 && !s.wr_closed
+    }
+
+    /// `MSG_PEEK` de um socket de fluxo: copia para `buf` o que está na fila, sem consumi-lo, e devolve quantos
+    /// bytes. Com menos de `want` bytes e escritores, a leitura bloqueante espera mais e a não bloqueante leva o
+    /// que tem (`MSG_WAITALL`); fila vazia sem escritores é EOF (0); com escritores, EAGAIN (`nonblock`) ou
+    /// registra o parker. Os descritores do `sk_buff` que a leitura tocaria vêm duplicados e continuam na fila.
+    pub(crate) fn try_peek(&self, buf: &mut [u8], want: usize, nonblock: bool, waiter: &Arc<Parker>, passcred: bool) -> Try<Result<(usize, Scm), Errno>> {
+        locked(&self.st, |s| {
+            let have = s.buf.len();
+            if have > 0 && (have >= want || s.writers == 0 || s.rcv_shut || nonblock) {
+                let window = s.marks.window(buf.len(), have, passcred);
+                for (dst, src) in buf[..window.len].iter_mut().zip(s.buf.iter()) {
+                    *dst = *src;
+                }
+                s.rwait.unregister(waiter);
+                (Try::Ready(Ok((window.len, Scm { fds: s.marks.peek_fds(&window), cred: window.cred }))), Wake::none())
+            } else if have == 0 && (s.writers == 0 || s.rcv_shut) {
+                s.rwait.unregister(waiter);
+                (Try::Ready(Ok((0, Scm::default()))), Wake::none())
             } else if nonblock {
                 (Try::Ready(Err(Errno::EAGAIN)), Wake::none())
             } else {
@@ -147,27 +250,43 @@ impl Pipe {
         nonblock: bool,
         waiter: &Arc<Parker>,
     ) -> Try<Result<usize, WriteError>> {
+        self.try_write_with(data, done, nonblock, waiter, None)
+    }
+
+    /// [`Pipe::try_write`] de um `sendmsg` Unix: `send` leva as credenciais de quem escreve e os descritores
+    /// (que ficam ao lado do primeiro `sk_buff`, o primeiro trecho escrito).
+    pub(crate) fn try_write_with(
+        &self,
+        data: &[u8],
+        done: &mut usize,
+        nonblock: bool,
+        waiter: &Arc<Parker>,
+        send: Option<&Scm>,
+    ) -> Try<Result<usize, WriteError>> {
         locked(&self.st, |s| {
-            if s.readers == 0 {
+            if s.readers == 0 || s.wr_closed {
                 s.wwait.unregister(waiter);
                 return (Try::Ready(Err(WriteError::BrokenPipe { written: *done })), Wake::none());
             }
-            let free = PIPE_CAPACITY.saturating_sub(s.buf.len());
+            let free = s.cap.saturating_sub(s.buf.len());
+            let first = *done == 0;
             let rest = &data[*done..];
             let atomic = data.len() <= PIPE_BUF;
             let mut wake = Wake::none();
             if atomic {
                 if free >= rest.len() {
                     s.buf.extend(rest);
+                    s.marks.wrote(rest.len(), send, first, data.len());
                     *done += rest.len();
                 }
             } else if free > 0 {
                 let n = free.min(rest.len());
                 s.buf.extend(&rest[..n]);
+                s.marks.wrote(n, send, first, data.len());
                 *done += n;
             }
             if *done > 0 && !s.buf.is_empty() {
-                wake.merge(s.rwait.take());
+                wake.merge(s.rwait.take_key(key::PIPE_READ));
             }
             (s.wwait.write_outcome(*done, data.len(), nonblock, WriteError::Again, waiter), wake)
         })
@@ -184,11 +303,14 @@ impl Pipe {
             if s.writers == 0 && s.w_counter > 0 {
                 ev |= PollEvents::HUP;
             }
+            if s.rcv_shut {
+                ev |= PollEvents::IN | PollEvents::RDHUP;
+            }
         }
         if write_end {
-            if s.readers == 0 {
+            if s.readers == 0 || s.wr_closed {
                 ev |= PollEvents::ERR;
-            } else if PIPE_CAPACITY - s.buf.len() >= PIPE_BUF {
+            } else if s.cap.saturating_sub(s.buf.len()) >= PIPE_BUF {
                 ev |= PollEvents::OUT;
             }
         }
@@ -235,6 +357,30 @@ impl Pipe {
     /// Bytes escritos e ainda não lidos.
     pub(crate) fn pending(&self) -> usize {
         self.st.lock().buf.len()
+    }
+
+    /// `F_GETPIPE_SZ`: a capacidade em bytes.
+    pub(crate) fn capacity(&self) -> usize {
+        self.st.lock().cap
+    }
+
+    /// `pipe_set_size`: a capacidade passa a `round_pipe_size(size)` e devolve ela. Subir além de `max_size`
+    /// pede `privileged` (`CAP_SYS_RESOURCE`, EPERM); encolher abaixo das páginas ocupadas é EBUSY; o que
+    /// estoura 2^31 é EINVAL. Mais espaço acorda os escritores que esperavam.
+    pub(crate) fn resize(&self, size: u32, max_size: u32, privileged: bool) -> Result<usize, Errno> {
+        let rounded = sysabi::round_pipe_size(size).ok_or(Errno::EINVAL)? as usize;
+        let mut s = self.st.lock();
+        if rounded > s.cap && rounded > max_size as usize && !privileged {
+            return Err(Errno::EPERM);
+        }
+        if rounded / PIPE_PAGE < s.buf.len().div_ceil(PIPE_PAGE) {
+            return Err(Errno::EBUSY);
+        }
+        s.cap = rounded;
+        let w = s.wwait.take();
+        drop(s);
+        w.run();
+        Ok(rounded)
     }
 }
 

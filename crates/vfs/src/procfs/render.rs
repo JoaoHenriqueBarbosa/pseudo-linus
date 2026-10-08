@@ -313,9 +313,10 @@ pub(super) fn limits(p: &ProcData) -> Vec<u8> {
     o
 }
 
-/// `/proc/<pid>/fdinfo/N`: `pos`, `flags` em octal com um 0 na frente (`0%o`), `mnt_id` e `ino`.
+/// `/proc/<pid>/fdinfo/N`: `pos`, `flags` em octal com um 0 na frente (`0%o`), `mnt_id` e `ino`, e o que o
+/// objeto acrescenta (`show_fdinfo`).
 pub(super) fn fdinfo(i: &FdInfo) -> Vec<u8> {
-    format!("pos:\t{}\nflags:\t0{:o}\nmnt_id:\t{}\nino:\t{}\n", i.pos, i.flags, i.mnt_id, i.ino).into_bytes()
+    format!("pos:\t{}\nflags:\t0{:o}\nmnt_id:\t{}\nino:\t{}\n{}", i.pos, i.flags, i.mnt_id, i.ino, i.extra).into_bytes()
 }
 
 /// `/proc/<pid>/schedstat`: tempo na CPU, tempo esperando na fila (não medido, 0) e trocas de contexto.
@@ -798,10 +799,16 @@ mod tests {
 
     #[test]
     fn fdinfo_flags_are_octal_with_a_leading_zero() {
-        let i = FdInfo { pos: 2, flags: 0o100000, mnt_id: 644, ino: 2 };
+        let i = FdInfo { pos: 2, flags: 0o100000, mnt_id: 644, ino: 2, extra: String::new() };
         assert_eq!(fdinfo(&i), b"pos:\t2\nflags:\t0100000\nmnt_id:\t644\nino:\t2\n".to_vec());
-        let p = FdInfo { pos: 0, flags: 0, mnt_id: 16, ino: 3_072_732 };
+        let p = FdInfo { pos: 0, flags: 0, mnt_id: 16, ino: 3_072_732, extra: String::new() };
         assert!(String::from_utf8(fdinfo(&p)).unwrap().contains("flags:\t00\n"));
+    }
+
+    #[test]
+    fn fdinfo_appends_the_object_lines() {
+        let e = FdInfo { pos: 0, flags: 0o2000002, mnt_id: 17, ino: 58, extra: "tfd: 3\n".to_string() };
+        assert_eq!(fdinfo(&e), b"pos:\t0\nflags:\t02000002\nmnt_id:\t17\nino:\t58\ntfd: 3\n".to_vec());
     }
 
     #[test]

@@ -247,11 +247,20 @@ impl<'a> Walker<'a> {
 /// Caminho absoluto de `loc` visto de `root` (`d_path`), subindo pelos nomes guardados no sistema de
 /// arquivos e pelas montagens. ENOENT se algum ancestral não tem mais nome.
 pub fn d_path(loc: &Loc, root: &Loc) -> SysResult<Vec<u8>> {
+    d_path_reach(loc, root).map(|(path, _)| path)
+}
+
+/// Como [`d_path`], e diz se a subida passou por `root`. Falso quando `loc` está fora da raiz do
+/// processo (o diretório corrente de quem fez `chroot` para dentro de uma árvore que não o contém): o
+/// caminho vem então a partir da raiz real, e o `getcwd` do kernel o entrega como `(unreachable)/...`.
+pub fn d_path_reach(loc: &Loc, root: &Loc) -> SysResult<(Vec<u8>, bool)> {
     let mut parts: Vec<Vec<u8>> = Vec::new();
     let mut cur = loc.clone();
+    let mut reached = false;
     // Limite defensivo contra ciclo (não deve acontecer: diretórios têm um pai só).
     for _ in 0..PATH_MAX {
         if cur == *root {
+            reached = true;
             break;
         }
         if cur.is_mount_root() {
@@ -268,12 +277,12 @@ pub fn d_path(loc: &Loc, root: &Loc) -> SysResult<Vec<u8>> {
         cur = Loc { mnt: cur.mnt.clone(), ino: parent };
     }
     if parts.is_empty() {
-        return Ok(b"/".to_vec());
+        return Ok((b"/".to_vec(), reached));
     }
     let mut out = Vec::new();
     for p in parts.iter().rev() {
         out.push(b'/');
         out.extend_from_slice(p);
     }
-    Ok(out)
+    Ok((out, reached))
 }

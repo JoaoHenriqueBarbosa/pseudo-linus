@@ -232,18 +232,30 @@ impl ProcProvider for SbProcProvider {
                 let text = format!("socket:[{}]", u.ident.ino).into_bytes();
                 (text.clone(), Link::Path(text))
             }
+            FileObj::Epoll(_) => {
+                let text = b"anon_inode:[eventpoll]".to_vec();
+                (text.clone(), Link::Path(text))
+            }
+            FileObj::Pidfd(_) => {
+                let text = b"anon_inode:[pidfd]".to_vec();
+                (text.clone(), Link::Path(text))
+            }
+            FileObj::Anon(a) => {
+                let text = a.link_text().to_vec();
+                (text.clone(), Link::Path(text))
+            }
         };
         Some(FdLink { text, target, perm })
     }
 
-    fn fdinfo(&self, _cx: &Caller, pid: Pid, fd: i32) -> Option<FdInfo> {
+    fn fdinfo(&self, cx: &Caller, pid: Pid, fd: i32) -> Option<FdInfo> {
         let (sb, proc) = self.proc_of(pid)?;
         let (ofd, cloexec) = {
             let fds = proc.fds.lock();
             let slot = fds.get(sysabi::Fd(fd)).ok()?;
             (slot.ofd.clone(), slot.cloexec)
         };
-        Some(describe_fd(&sb, &ofd, cloexec))
+        Some(describe_fd(&sb, cx, &ofd, cloexec))
     }
 
     fn system(&self) -> SysData {
@@ -350,20 +362,22 @@ impl ProcProvider for SbProcProvider {
     }
 }
 
+/// O `f_flags` de uma descrição (o que o `F_GETFL` devolve): modo de acesso, flags de status, as que só o
+/// `open` guarda, e `O_LARGEFILE` nos arquivos do VFS e dispositivos (pipes, sockets e `O_PATH` não têm).
+pub(crate) fn f_flags(ofd: &Ofd) -> u32 {
+    let largefile = matches!(&ofd.obj, FileObj::Vfs { .. } | FileObj::Dev { .. });
+    ofd.accmode | ofd.status().bits() | ofd.open_extra | if largefile { O_LARGEFILE } else { 0 }
+}
+
 /// `pos`, `flags`, `mnt_id` e `ino` de uma descrição de arquivo aberto (`proc_fdinfo` + `seq_show`).
-fn describe_fd(sb: &SbInner, ofd: &Ofd, cloexec: bool) -> FdInfo {
-    let (pos, status) = {
+fn describe_fd(sb: &SbInner, cx: &Caller, ofd: &Ofd, cloexec: bool) -> FdInfo {
+    let pos = {
         let st = ofd.st.lock();
-        (if matches!(&ofd.obj, FileObj::Vfs { kind: sysabi::FileType::Directory, .. }) { st.dir_cookie } else { st.pos }, st.status)
+        if matches!(&ofd.obj, FileObj::Vfs { kind: sysabi::FileType::Directory, .. }) { st.dir_cookie } else { st.pos }
     };
-    // `f_flags`: modo de acesso, flags de status, as que só o `open` guarda, e `O_LARGEFILE` nos arquivos
-    // do VFS e dispositivos (pipes e `O_PATH` não têm).
-    let mut flags = ofd.accmode | status.bits() | ofd.open_extra;
+    let mut flags = f_flags(ofd);
     let (mnt_id, ino) = match &ofd.obj {
-        FileObj::Vfs { loc, .. } => {
-            flags |= O_LARGEFILE;
-            (loc.mnt.id, loc.ino)
-        }
+        FileObj::Vfs { loc, .. } => (loc.mnt.id, loc.ino),
         FileObj::Path { loc, .. } => (loc.mnt.id, loc.ino),
         FileObj::Pipe { fifo: Some(loc), .. } => (loc.mnt.id, loc.ino),
         FileObj::Pipe { end, fifo: None } => (PIPEFS_MNT_ID, end.pipe.ino),
@@ -371,17 +385,19 @@ fn describe_fd(sb: &SbInner, ofd: &Ofd, cloexec: bool) -> FdInfo {
         FileObj::Stream(c) => (SOCKFS_MNT_ID, c.ident.ino),
         FileObj::Unix(u) => (SOCKFS_MNT_ID, u.ident.ino),
         FileObj::Udp(u) => (SOCKFS_MNT_ID, u.ident.ino),
-        FileObj::Dev { loc: Some(loc), .. } => {
-            flags |= O_LARGEFILE;
-            (loc.mnt.id, loc.ino)
-        }
-        FileObj::Dev { loc: None, .. } => {
-            flags |= O_LARGEFILE;
-            (sb.ns.mounts().iter().find(|m| m.fs.dev() == sb.devfs.dev()).map_or(0, |m| m.id), 0)
-        }
+        FileObj::Epoll(_) | FileObj::Pidfd(_) | FileObj::Anon(_) => (crate::epoll::ANON_MNT_ID, crate::epoll::ANON_INO),
+        FileObj::Dev { loc: Some(loc), .. } => (loc.mnt.id, loc.ino),
+        FileObj::Dev { loc: None, .. } => (sb.ns.mounts().iter().find(|m| m.fs.dev() == sb.devfs.dev()).map_or(0, |m| m.id), 0),
     };
     if cloexec {
         flags |= OFlags::CLOEXEC.bits();
     }
-    FdInfo { pos, flags, mnt_id, ino }
+    // O `ep_show_fdinfo` acrescenta uma linha `tfd:` por entrada, com o inode e o dispositivo do alvo.
+    let extra = match &ofd.obj {
+        FileObj::Epoll(e) => e.fdinfo_lines(|target| crate::sys::ofd_stat_in(sb, cx, target).map_or((0, 0), |st| (st.dev, st.ino))),
+        FileObj::Pidfd(p) => p.fdinfo_lines(),
+        FileObj::Anon(a) => a.fdinfo_lines(),
+        _ => String::new(),
+    };
+    FdInfo { pos, flags, mnt_id, ino, extra }
 }

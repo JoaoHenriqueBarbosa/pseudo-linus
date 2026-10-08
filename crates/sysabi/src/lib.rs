@@ -10,7 +10,9 @@
 //! - [`program`]: a tabela de programas embutidos.
 //! - `testkit` (feature): kernel de teste em memória pra testar programas isolados.
 
+pub mod cmsg;
 pub mod ctx;
+pub mod itimer;
 pub mod linux;
 pub mod program;
 pub mod sched;
@@ -22,6 +24,7 @@ pub mod util;
 pub mod testkit;
 
 pub use ctx::{Ctx, FdReader, FdWriter};
+pub use itimer::{Itimer, ItimerSlot, Itimerval};
 pub use linux::{DefaultAction, Errno, Signal};
 pub use program::{Main, Program};
 pub use sched::{SchedAttr, SchedCaller, SchedParam, SchedState};

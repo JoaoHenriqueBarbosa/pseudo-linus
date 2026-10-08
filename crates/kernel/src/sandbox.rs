@@ -23,7 +23,7 @@ use crate::fd::FdTable;
 use crate::image;
 use crate::kernel::KernelInner;
 use crate::loadavg::LoadAvg;
-use crate::park::{Parker, WaitList};
+use crate::park::{Parker, WaitList, Wake};
 use crate::pipe::Pipe;
 use crate::proc::{INIT_PID, PState, Proc, Table, default_rlimits};
 use crate::procinfo::SbProcProvider;
@@ -78,7 +78,9 @@ impl Spawner {
     }
 }
 
-/// Travas OFD (`F_OFD_SETLK`) de um sandbox, por inode.
+/// Travas de arquivo de um sandbox, por inode: as de faixa do POSIX (`F_SETLK`, dono = o processo), as OFD
+/// (`F_OFD_SETLK`, dono = a descrição) e as do `flock(2)` (dono = a descrição, em outro espaço: as duas
+/// famílias não se enxergam, como no Linux).
 #[derive(Default)]
 pub(crate) struct LockTable {
     inner: Mutex<LockInner>,
@@ -88,6 +90,35 @@ pub(crate) struct LockTable {
 struct LockInner {
     map: HashMap<(u64, u64), Vec<LockRec>>,
     waiters: WaitList,
+    /// Quem espera uma trava POSIX bloqueante e de quem (dono -> dono da trava que conflita): o grafo do
+    /// `posix_locks_deadlock`.
+    blocked: HashMap<u64, u64>,
+}
+
+/// Por que uma trava não foi tomada.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum LockFail {
+    Conflict,
+    /// A espera fecharia um ciclo entre processos (`EDEADLK`).
+    Deadlock,
+}
+
+/// Dono de uma trava do `flock(2)`: o id da descrição com este bit, pra não se confundir com a trava de faixa
+/// da mesma descrição.
+pub(crate) const FLOCK_OWNER: u64 = 1 << 62;
+/// Dono de uma trava POSIX: o pid do processo com este bit (o `files_struct` do Linux).
+pub(crate) const POSIX_OWNER: u64 = 1 << 63;
+/// Quantos elos o `posix_locks_deadlock` segue antes de desistir (`MAX_DEADLK_ITERATIONS`).
+const MAX_DEADLK_ITERATIONS: usize = 10;
+
+/// `locks_conflict`: donos diferentes e da mesma família.
+fn owners_clash(a: u64, b: u64) -> bool {
+    a != b && (a & FLOCK_OWNER != 0) == (b & FLOCK_OWNER != 0)
+}
+
+/// O `l_pid` de uma trava de faixa que conflita: o do processo dono, ou -1 se o dono é uma descrição.
+pub(crate) fn lock_owner_pid(owner: u64) -> i32 {
+    if owner & POSIX_OWNER != 0 { (owner & !POSIX_OWNER) as i32 } else { -1 }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -104,37 +135,82 @@ fn lock_range(l: &FileLock) -> (u64, u64) {
     (l.start, end)
 }
 
+impl LockInner {
+    /// A primeira trava de outro dono (da mesma família) que conflita com `[s, e)`.
+    fn blocker(&self, key: (u64, u64), owner: u64, s: u64, e: u64, want_write: bool) -> Option<LockRec> {
+        self.map.get(&key)?.iter().find(|r| owners_clash(r.owner, owner) && r.start < e && s < r.end && (r.write || want_write)).copied()
+    }
+
+    /// `posix_locks_deadlock`: esperar a trava de `blocker` fecha um ciclo de volta a `owner`?
+    fn deadlock(&self, owner: u64, blocker: u64) -> bool {
+        let mut cur = blocker;
+        for _ in 0..=MAX_DEADLK_ITERATIONS {
+            match self.blocked.get(&cur) {
+                Some(&next) if next == owner => return true,
+                Some(&next) => cur = next,
+                None => return false,
+            }
+        }
+        false
+    }
+}
+
 impl LockTable {
-    /// Primeira trava de outro dono que conflita.
-    pub(crate) fn getlk(&self, key: (u64, u64), owner: u64, l: &FileLock) -> Option<FileLock> {
+    /// Primeira trava de outro dono que conflita, com o dono dela.
+    pub(crate) fn getlk(&self, key: (u64, u64), owner: u64, l: &FileLock) -> Option<(FileLock, u64)> {
         let (s, e) = lock_range(l);
-        let want_write = l.kind == LockKind::Write;
-        let g = self.inner.lock();
-        let recs = g.map.get(&key)?;
-        recs.iter().find(|r| r.owner != owner && r.start < e && s < r.end && (r.write || want_write)).map(|r| FileLock {
+        let r = self.inner.lock().blocker(key, owner, s, e, l.kind == LockKind::Write)?;
+        let lock = FileLock {
             kind: if r.write { LockKind::Write } else { LockKind::Read },
             start: r.start,
             len: if r.end == u64::MAX { 0 } else { r.end - r.start },
-        })
+        };
+        Some((lock, r.owner))
     }
 
-    /// Aplica (ou solta) a trava; `Err(())` se conflita. Registra o parker pra esperar quando pedido.
-    pub(crate) fn setlk(&self, key: (u64, u64), owner: u64, l: &FileLock, waiter: Option<&Arc<Parker>>) -> Result<(), ()> {
+    /// Aplica (ou solta) a trava. Em conflito devolve `Conflict` e, quando pedido, registra o parker pra
+    /// esperar; uma espera de trava POSIX que fecharia um ciclo devolve `Deadlock`. No `flock`, a trava que o
+    /// dono já tinha sai antes de o conflito ser visto (a conversão não é atômica, como no Linux).
+    pub(crate) fn setlk(&self, key: (u64, u64), owner: u64, l: &FileLock, waiter: Option<&Arc<Parker>>) -> Result<(), LockFail> {
         let (s, e) = lock_range(l);
         let mut g = self.inner.lock();
-        if l.kind != LockKind::Unlock {
+        let mut wake = Wake::none();
+        if owner & FLOCK_OWNER != 0 && l.kind != LockKind::Unlock {
             let want_write = l.kind == LockKind::Write;
-            let conflict = g
-                .map
-                .get(&key)
-                .is_some_and(|recs| recs.iter().any(|r| r.owner != owner && r.start < e && s < r.end && (r.write || want_write)));
-            if conflict {
-                if let Some(w) = waiter {
-                    g.waiters.register(w);
+            if let Some(recs) = g.map.get_mut(&key) {
+                if recs.iter().any(|r| r.owner == owner && r.write == want_write) {
+                    return Ok(());
                 }
-                return Err(());
+                let before = recs.len();
+                recs.retain(|r| r.owner != owner);
+                let freed = recs.len() != before;
+                if recs.is_empty() {
+                    g.map.remove(&key);
+                }
+                if freed {
+                    wake = g.waiters.take();
+                }
             }
         }
+        if l.kind != LockKind::Unlock
+            && let Some(blocker) = g.blocker(key, owner, s, e, l.kind == LockKind::Write)
+        {
+            let mut result = LockFail::Conflict;
+            if let Some(w) = waiter {
+                if owner & POSIX_OWNER != 0 && g.deadlock(owner, blocker.owner) {
+                    result = LockFail::Deadlock;
+                } else {
+                    if owner & POSIX_OWNER != 0 {
+                        g.blocked.insert(owner, blocker.owner);
+                    }
+                    g.waiters.register(w);
+                }
+            }
+            drop(g);
+            wake.run();
+            return Err(result);
+        }
+        g.blocked.remove(&owner);
         let recs = g.map.entry(key).or_default();
         // Recorta as travas do próprio dono na faixa.
         let mut out = Vec::with_capacity(recs.len() + 2);
@@ -172,23 +248,31 @@ impl LockTable {
         if empty {
             g.map.remove(&key);
         }
-        let w = g.waiters.take();
+        let mut w = g.waiters.take();
+        w.merge(wake);
         drop(g);
         w.run();
         Ok(())
     }
 
-    pub(crate) fn unregister(&self, waiter: &Arc<Parker>) {
-        self.inner.lock().waiters.unregister(waiter);
+    /// O fim de uma espera de `owner` (tomou a trava, deu erro ou foi interrompido): sai das filas e do grafo
+    /// de impasses.
+    pub(crate) fn finish_wait(&self, waiter: &Arc<Parker>, owner: u64) {
+        let mut g = self.inner.lock();
+        g.waiters.unregister(waiter);
+        g.blocked.remove(&owner);
     }
 
-    /// Solta tudo de um dono (último close da descrição).
-    pub(crate) fn release_owner(&self, owner: u64) {
+    /// Solta as travas dos donos que `drop_owner` aceita (num arquivo só, se `key` vier), acordando quem espera.
+    fn release_where(&self, key: Option<(u64, u64)>, drop_owner: impl Fn(u64) -> bool) {
         let mut g = self.inner.lock();
         let mut changed = false;
-        g.map.retain(|_, recs| {
+        g.map.retain(|k, recs| {
+            if key.is_some_and(|only| only != *k) {
+                return true;
+            }
             let before = recs.len();
-            recs.retain(|r| r.owner != owner);
+            recs.retain(|r| !drop_owner(r.owner));
             changed |= recs.len() != before;
             !recs.is_empty()
         });
@@ -197,6 +281,21 @@ impl LockTable {
             drop(g);
             w.run();
         }
+    }
+
+    /// Solta tudo de uma descrição (último close dela): as travas de faixa e a do `flock`.
+    pub(crate) fn release_owner(&self, owner: u64) {
+        self.release_where(None, |o| o == owner || o == owner | FLOCK_OWNER);
+    }
+
+    /// `locks_remove_posix`: fechar qualquer fd de um arquivo solta as travas POSIX que o processo tem nele.
+    pub(crate) fn release_posix(&self, key: (u64, u64), pid: Pid) {
+        self.release_where(Some(key), |o| o == POSIX_OWNER | pid as u64);
+    }
+
+    /// O fim do processo: solta as travas POSIX dele em todo arquivo.
+    pub(crate) fn release_posix_all(&self, pid: Pid) {
+        self.release_where(None, |o| o == POSIX_OWNER | pid as u64);
     }
 }
 
@@ -225,6 +324,8 @@ pub(crate) struct SbInner {
     spawner: Spawner,
     pub fifos: Mutex<HashMap<(u64, u64), Weak<Pipe>>>,
     pub locks: Arc<LockTable>,
+    /// `fs.pipe-max-size`, o mesmo valor que `/proc/sys/fs/pipe-max-size` mostra.
+    pub pipe_max_size: Arc<std::sync::atomic::AtomicU32>,
     pub destroyed: AtomicBool,
     /// Grupo de CPU do sandbox (filho do grupo do usuário).
     pub cpu_group: sched::GroupId,
@@ -541,6 +642,7 @@ impl Sandbox {
             spawner,
             fifos: Mutex::new(HashMap::new()),
             locks: Arc::new(LockTable::default()),
+            pipe_max_size: procfs.pipe_max_size(),
             destroyed: AtomicBool::new(false),
             cpu_group,
             cpu_done_ns: std::sync::atomic::AtomicU64::new(0),

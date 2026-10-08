@@ -22,7 +22,7 @@ use std::sync::Arc;
 use imbl::{OrdMap, Vector};
 use parking_lot::RwLock;
 
-use crate::fs::{FileHandle, FileSystem, NewNode, NodeKind, SetAttr, WritePos};
+use crate::fs::{FileHandle, FileSystem, NewNode, NodeKind, SetAttr, WritePos, XATTR_CREATE, XATTR_REPLACE};
 use crate::types::*;
 
 /// `TMPFS_MAGIC` do `statfs`.
@@ -83,6 +83,8 @@ struct Inode {
     parent: Ino,
     name: Name,
     data: Data,
+    /// Atributos estendidos (`user.*`), na ordem de criação.
+    xattrs: Vec<(Vec<u8>, Vec<u8>)>,
 }
 
 impl Inode {
@@ -170,6 +172,7 @@ impl Tmpfs {
             parent: ROOT_INO,
             name: name(b"/"),
             data: Data::Dir(DirData::default()),
+            xattrs: Vec::new(),
         };
         let mut state = State::default();
         state.inodes.insert(ROOT_INO, Arc::new(root));
@@ -747,6 +750,41 @@ impl FileSystem for Tmpfs {
         }
     }
 
+    fn xattr_get(&self, _cx: &Caller, ino: Ino, name: &[u8]) -> SysResult<Vec<u8>> {
+        let g = self.inner.read();
+        let i = Self::get(&g.state, ino)?;
+        i.xattrs.iter().find(|(n, _)| n == name).map(|(_, v)| v.clone()).ok_or(Errno::ENODATA)
+    }
+
+    fn xattr_set(&self, cx: &Caller, ino: Ino, name: &[u8], value: &[u8], flags: u32) -> SysResult<()> {
+        let mut g = self.inner.write();
+        let i = Self::get_mut(&mut g.state, ino)?;
+        match i.xattrs.iter().position(|(n, _)| n == name) {
+            Some(_) if flags & XATTR_CREATE != 0 => return Err(Errno::EEXIST),
+            Some(at) => i.xattrs[at].1 = value.to_vec(),
+            None if flags & XATTR_REPLACE != 0 => return Err(Errno::ENODATA),
+            // `SHMEM_MAXQUOTA`-like: o tmpfs do 6.12 limita os atributos `user.*` a 128 por inode.
+            None if i.xattrs.len() >= 128 => return Err(Errno::ENOSPC),
+            None => i.xattrs.push((name.to_vec(), value.to_vec())),
+        }
+        i.ctime = cx.now;
+        Ok(())
+    }
+
+    fn xattr_list(&self, _cx: &Caller, ino: Ino) -> SysResult<Vec<Vec<u8>>> {
+        let g = self.inner.read();
+        Ok(Self::get(&g.state, ino)?.xattrs.iter().map(|(n, _)| n.clone()).collect())
+    }
+
+    fn xattr_remove(&self, cx: &Caller, ino: Ino, name: &[u8]) -> SysResult<()> {
+        let mut g = self.inner.write();
+        let i = Self::get_mut(&mut g.state, ino)?;
+        let at = i.xattrs.iter().position(|(n, _)| n == name).ok_or(Errno::ENODATA)?;
+        i.xattrs.remove(at);
+        i.ctime = cx.now;
+        Ok(())
+    }
+
     fn getattr(&self, _cx: &Caller, ino: Ino) -> SysResult<Stat> {
         let g = self.inner.read();
         let i = Self::get(&g.state, ino)?;
@@ -827,6 +865,7 @@ impl FileSystem for Tmpfs {
             parent: dir,
             name: name(nm),
             data,
+            xattrs: Vec::new(),
         };
         let kind = inode.kind();
         let state = &mut g.state;

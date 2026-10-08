@@ -13,7 +13,7 @@ use std::sync::atomic::Ordering;
 
 use sysabi::{
     Errno, ExecUnwind, ExitUnwind, FdAction, KillUnwind, Mode, Pid, ProcAttrs, ProcessFn, ProcessGroup, Resource, Rlimit,
-    Rusage, SigDisposition, Signal, ThreadFn, WaitStatus,
+    Rusage, SigDisposition, Signal, SpawnSched, ThreadFn, WaitStatus,
 };
 use vfs::{Caller, Cred, Loc, PinnedLoc, Start};
 
@@ -103,7 +103,7 @@ pub(crate) fn fork_state(parent: &Task) -> ChildSpec {
 /// (`copy_process`); `sched_fork` aplica o `reset_on_fork`: tempo real volta a `SCHED_OTHER` e nice
 /// negativa vira 0. Chamado entre `insert_child` e `commit_exec`/`start_process`, quando a nice do filho
 /// ainda não foi lida pelo escalonador.
-pub(crate) fn inherit_tune(parent: &Task, child: &Arc<Task>) {
+pub(crate) fn inherit_tune(parent: &Task, child: &Arc<Task>, sched: Option<&SpawnSched>) -> Result<(), Errno> {
     let mut tune = parent.proc.tune.lock().clone();
     {
         let mut st = child.proc.st.lock();
@@ -112,6 +112,20 @@ pub(crate) fn inherit_tune(parent: &Task, child: &Arc<Task>) {
         st.nice = nice;
     }
     *child.proc.tune.lock() = tune;
+    // `POSIX_SPAWN_SETSCHEDULER`/`SETSCHEDPARAM`: o filho muda a própria política antes do `exec`, com os
+    // limites dele; a falha desfaz o processo (o `posix_spawn` devolve o errno).
+    let Some(s) = sched else { return Ok(()) };
+    let result = crate::sys::sched_apply(&child.proc, true, |nice| {
+        Ok(match s.policy {
+            Some(policy) => (sysabi::sched::attr_for_setscheduler(policy, s.param, nice)?, false),
+            None => (sysabi::sched::attr_for_setparam(s.param, nice), true),
+        })
+    });
+    if let Err(e) = result {
+        rollback_child(&child.sb, child);
+        return Err(e);
+    }
+    Ok(())
 }
 
 /// Aplica os atributos de `posix_spawn`/`spawn_fn` no filho: cwd, ações de fd (na ordem), sinais.
@@ -125,6 +139,12 @@ pub(crate) fn apply_attrs(opener: &Task, spec: &mut ChildSpec, attrs: &ProcAttrs
         spec.cwd = sb.ns.chdir_target(&cx, &Start::Cwd, cwd)?;
     }
     let limit = spec.rlimits[Resource::Nofile as usize].cur;
+    if attrs.reset_ids {
+        // `POSIX_SPAWN_RESETIDS`: `seteuid(getuid())` e `setegid(getgid())`; o salvo não muda.
+        let cred = Arc::make_mut(&mut spec.cred);
+        cred.uid = cred.ruid;
+        cred.gid = cred.rgid;
+    }
     for act in &attrs.fd_actions {
         match act {
             FdAction::Dup2 { from, to } => {
@@ -140,8 +160,19 @@ pub(crate) fn apply_attrs(opener: &Task, spec: &mut ChildSpec, attrs: &ProcAttrs
                 }
             }
             FdAction::Close(fd) => {
+                // Um fd fechado que cabe na tabela passa em silêncio; só o que está fora dela é EBADF.
+                if fd.0 < 0 || fd.0 as u64 >= limit {
+                    return Err(Errno::EBADF);
+                }
                 let old = spec.fds.remove(*fd);
                 drop(old);
+            }
+            FdAction::CloseFrom(from) => {
+                if from.0 < 0 {
+                    return Err(Errno::EBADF);
+                }
+                let closed: Vec<_> = spec.fds.fds().into_iter().filter(|fd| fd.0 >= from.0).filter_map(|fd| spec.fds.remove(fd)).collect();
+                drop(closed);
             }
             FdAction::Open { fd, path, flags, mode } => {
                 if fd.0 < 0 || fd.0 as u64 >= limit {
@@ -149,7 +180,8 @@ pub(crate) fn apply_attrs(opener: &Task, spec: &mut ChildSpec, attrs: &ProcAttrs
                 }
                 let cx = spec.caller(sb, 0);
                 let ofd = opener.open_ofd(&cx, &Start::Cwd, path, *flags, *mode)?;
-                let old = spec.fds.put(*fd, ofd, flags.contains(sysabi::OFlags::CLOEXEC));
+                // O fd da ação nunca herda `FD_CLOEXEC`, mesmo com `O_CLOEXEC` (o glibc faz `dup2`, ou limpa a flag).
+                let old = spec.fds.put(*fd, ofd, false);
                 drop(old);
             }
         }
@@ -449,6 +481,9 @@ pub(crate) fn commit_exec(task: &Arc<Task>, img: &Image, live: bool) {
         }
     }
     let closed = proc.fds.lock().take_cloexec();
+    for slot in &closed {
+        task.flush_posix_locks(&slot.ofd);
+    }
     drop(closed);
     proc.sig.lock().exec_reset();
     let mut st = proc.st.lock();

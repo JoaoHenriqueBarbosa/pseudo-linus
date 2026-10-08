@@ -97,6 +97,10 @@ impl std::fmt::Debug for Link {
     }
 }
 
+/// `XATTR_CREATE` e `XATTR_REPLACE` do `setxattr`.
+pub const XATTR_CREATE: u32 = 1;
+pub const XATTR_REPLACE: u32 = 2;
+
 /// Um sistema de arquivos montável.
 pub trait FileSystem: Send + Sync + Any {
     /// Nome do tipo, como em `/proc/mounts` ("tmpfs", "proc").
@@ -129,6 +133,24 @@ pub trait FileSystem: Send + Sync + Any {
     /// O VFS já validou ancestralidade, tipos e permissões; `flags` traz NOREPLACE e EXCHANGE.
     fn rename(&self, cx: &Caller, odir: Ino, oname: &[u8], ndir: Ino, nname: &[u8], flags: RenameFlags) -> SysResult<()>;
     fn setattr(&self, cx: &Caller, ino: Ino, attr: &SetAttr) -> SysResult<()>;
+    /// O valor do atributo estendido `name` (já com o prefixo `user.`, `trusted.` ou `security.`). ENODATA se o
+    /// inode não o tem; EOPNOTSUPP num sistema de arquivos sem atributos estendidos (o padrão).
+    fn xattr_get(&self, _cx: &Caller, _ino: Ino, _name: &[u8]) -> SysResult<Vec<u8>> {
+        Err(Errno::EOPNOTSUPP)
+    }
+    /// Grava o atributo; `flags` é `XATTR_CREATE` (EEXIST se já existe) ou `XATTR_REPLACE` (ENODATA se não).
+    fn xattr_set(&self, _cx: &Caller, _ino: Ino, _name: &[u8], _value: &[u8], _flags: u32) -> SysResult<()> {
+        Err(Errno::EOPNOTSUPP)
+    }
+    /// Os nomes dos atributos do inode, na ordem em que foram criados. Sem atributos estendidos a lista é vazia
+    /// (o `vfs_listxattr` devolve 0 sem `listxattr` no inode).
+    fn xattr_list(&self, _cx: &Caller, _ino: Ino) -> SysResult<Vec<Vec<u8>>> {
+        Ok(Vec::new())
+    }
+    /// Remove o atributo. ENODATA se o inode não o tem.
+    fn xattr_remove(&self, _cx: &Caller, _ino: Ino, _name: &[u8]) -> SysResult<()> {
+        Err(Errno::EOPNOTSUPP)
+    }
     /// Abre um arquivo regular ou diretório (o VFS já checou permissões).
     fn open(self: Arc<Self>, cx: &Caller, ino: Ino, flags: OFlags) -> SysResult<Box<dyn FileHandle>>;
     /// Marca o inode como em uso (fd aberto, cwd): ele não some da tabela enquanto houver uso, mesmo sem

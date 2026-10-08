@@ -8,20 +8,26 @@
 //!
 //! A API pública (host e conformidade) está documentada em `crates/kernel/API.md`.
 
+mod anon;
 mod cpu;
 mod dev;
+mod epoll;
 mod exec;
 mod fd;
 mod hostio;
 mod image;
+mod itimer;
 mod loadavg;
 mod net;
 mod park;
+mod pidfd;
 mod pipe;
 mod proc;
 mod procinfo;
 mod procmem;
 mod sandbox;
+mod scm;
+mod seqpacket;
 mod signal;
 mod spawn;
 mod sys;

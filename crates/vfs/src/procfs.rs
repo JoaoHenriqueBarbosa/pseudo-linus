@@ -110,6 +110,7 @@ const S_VMSTAT: u32 = 29;
 const S_DISKSTATS: u32 = 30;
 const S_SLABINFO: u32 = 31;
 const S_NET: u32 = 32;
+const S_PIPE_MAX: u32 = 33;
 
 const STATICS: &[Static] = &[
     Static { n: S_SELF, name: "self", parent: 1, shape: Shape::Link, mode: 0o777 },
@@ -136,6 +137,7 @@ const STATICS: &[Static] = &[
     Static { n: S_KVERSION, name: "version", parent: S_SYS_KERNEL, shape: Shape::File, mode: 0o444 },
     Static { n: S_THREADS_MAX, name: "threads-max", parent: S_SYS_KERNEL, shape: Shape::File, mode: 0o644 },
     Static { n: S_FILE_MAX, name: "file-max", parent: S_SYS_FS, shape: Shape::File, mode: 0o644 },
+    Static { n: S_PIPE_MAX, name: "pipe-max-size", parent: S_SYS_FS, shape: Shape::File, mode: 0o644 },
     Static { n: S_OVERCOMMIT, name: "overcommit_memory", parent: S_SYS_VM, shape: Shape::File, mode: 0o644 },
     Static { n: S_SWAPPINESS, name: "swappiness", parent: S_SYS_VM, shape: Shape::File, mode: 0o644 },
     Static { n: S_SOMAXCONN, name: "somaxconn", parent: S_SYS_NET_CORE, shape: Shape::File, mode: 0o644 },
@@ -322,6 +324,8 @@ pub struct Procfs {
     boot: TimeSpec,
     /// Os parâmetros graváveis de `/proc/sys` que não moram no kernel.
     tunables: Mutex<sysctl::Tunables>,
+    /// `fs.pipe-max-size`: o kernel lê o mesmo valor pra decidir o `F_SETPIPE_SZ` de quem não é root.
+    pipe_max: Arc<std::sync::atomic::AtomicU32>,
     /// O `oom_score_adj` gravado de cada processo (o padrão é 0).
     oom_adj: Mutex<std::collections::HashMap<Pid, i32>>,
 }
@@ -343,8 +347,14 @@ struct NodeInfo {
 impl Procfs {
     pub fn new(dev: u64, provider: Arc<dyn ProcProvider>, boot: TimeSpec) -> Arc<Procfs> {
         Arc::new(Procfs { dev, provider, ns: OnceLock::new(), boot, tunables: Mutex::new(sysctl::Tunables::default()),
+            pipe_max: Arc::new(std::sync::atomic::AtomicU32::new(sysabi::PIPE_MAX_SIZE_DEFAULT)),
             oom_adj: Mutex::new(std::collections::HashMap::new()),
         })
+    }
+
+    /// O valor vivo de `fs.pipe-max-size`.
+    pub fn pipe_max_size(&self) -> Arc<std::sync::atomic::AtomicU32> {
+        self.pipe_max.clone()
     }
 
     fn oom_adj_of(&self, pid: Pid) -> i32 {
@@ -532,6 +542,7 @@ impl Procfs {
                 Ok(format!("{v}\n").into_bytes())
             }
             S_FILE_MAX => Ok(format!("{}\n", t.file_max).into_bytes()),
+            S_PIPE_MAX => Ok(format!("{}\n", self.pipe_max.load(std::sync::atomic::Ordering::Relaxed)).into_bytes()),
             S_OVERCOMMIT => Ok(format!("{}\n", t.overcommit_memory).into_bytes()),
             S_SWAPPINESS => Ok(format!("{}\n", t.swappiness).into_bytes()),
             S_SOMAXCONN => Ok(format!("{}\n", t.somaxconn).into_bytes()),
@@ -546,6 +557,10 @@ impl Procfs {
         match n {
             S_HOSTNAME => return self.provider.set_hostname(&sysctl::uts_value(buf)),
             S_DOMAINNAME => return self.provider.set_domainname(&sysctl::uts_value(buf)),
+            S_PIPE_MAX => {
+                self.pipe_max.store(sysctl::pipe_max_value(buf)?, std::sync::atomic::Ordering::Relaxed);
+                return Ok(());
+            }
             _ => {}
         }
         let mut t = self.tunables();
@@ -1195,6 +1210,7 @@ mod tests {
             ("sys/kernel/version", 0o444),
             ("sys/kernel/threads-max", 0o644),
             ("sys/fs/file-max", 0o644),
+            ("sys/fs/pipe-max-size", 0o644),
             ("sys/vm/overcommit_memory", 0o644),
             ("sys/vm/swappiness", 0o644),
             ("sys/net/core/somaxconn", 0o644),
