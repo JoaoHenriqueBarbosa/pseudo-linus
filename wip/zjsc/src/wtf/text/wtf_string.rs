@@ -849,6 +849,14 @@ impl PartialEq for String {
 
 impl Eq for String {}
 
+/// `DefaultHash<String>`: o hash da WTF sobre o conteúdo (o da string nula é 0), coerente com a
+/// igualdade por conteúdo acima.
+impl std::hash::Hash for String {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        state.write_u32(self.m_impl.as_ref().map_or(0, |s| s.hash()));
+    }
+}
+
 impl String {
     // ---- construção ----------------------------------------------------------------------
 
