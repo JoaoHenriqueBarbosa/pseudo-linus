@@ -134,7 +134,7 @@ impl<T: CharType> Parser<T> {
         self.next(LexerFlagSet::empty());
 
         let specifier_list = context.create_import_specifier_list();
-        let mut type_ = crate::parser::nodes_part3::ImportType::Normal;
+        let mut type_ = crate::parser::nodes::ImportType::Normal;
 
         if self.match_(STRING) {
             // import ModuleSpecifier ;
@@ -160,7 +160,7 @@ impl<T: CharType> Parser<T> {
             self.next(LexerFlagSet::empty());
             if self.match_(TIMES) {
                 // import defer NameSpaceImport FromClause ;
-                type_ = crate::parser::nodes_part3::ImportType::Deferred;
+                type_ = crate::parser::nodes::ImportType::Deferred;
                 has_import_defer = true;
             } else {
                 // import defer FromClause ;

@@ -68,3 +68,24 @@ UTF8ConversionError e ConversionMode duplicados em string_impl e wtf_string; U16
 - URLParser da WTF (o `wtf/url.rs` atual é parcial, não canoniza).
 - VM: `DeferTermination`, `TopExceptionScope`.
 - FEITO (0fe4fc19): YarrUnicodeProperties, tabelas por `scripts/gen-yarr-unicode-tables.py`. Na roda: StringView, ParseInt+Math, StringBuilder, CommonIdentifiers+BuiltinNames, JSBigInt fatia 1.
+
+## Estado em 2026-10-08, noite
+
+Verde e medido contra o bun: Yarr inteiro (parser, YarrPattern em seis fatias, interpretador em seis
+fatias), com goldens `regexp-syntax` (990 casos) e `regexp-exec` (93 casos); JSBigInt; números;
+canonicalização Unicode. Parser (Parser.h/.cpp, ASTBuilder partes 1 a 4, SyntaxChecker,
+TreeBuilder) registrado em `parser/mod.rs`; falta fechar a compilação (cerca de 100 erros, lista em
+`scripts` não: reproduzir com `cargo build --message-format short`). Faltam, para o parser fechar:
+SourceProviderCache(+Item), ParseHash, DebuggerParseData, ClassElementDefinition (UnlinkedFunctionExecutable),
+ProgramNode/EvalNode/ModuleProgramNode/FunctionNode (Nodes.h de 2035 em diante), Nodes.cpp,
+NodeConstructors.h, FixedVector, MonotonicTime.
+
+Bytecompiler escrito e FORA da compilação (nada registrado): register_id, label, label_scope,
+static_property_*, bytecode_generator (.h inteiro em três arquivos) e .cpp em cpp1..cpp6,
+bytecode_generator_base, nodes_codegen_cpp1/cpp1b/cpp2 (NodesCodegen.cpp: feito 1 a 2200 em curso;
+faltam 2200 a 6473). Duplicatas conhecidas: JSGeneratorTraits (label.rs e bytecode_generator.rs),
+BytecodeGenerator reexportado do part2, `new_label_scope_impl`.
+
+Lições: `include!` não divide um `impl` de trait (usar `macro_rules!` expandida dentro do impl);
+`continue` dentro de macro em `for` interno pega o laço errado (rótulo + macros definidas dentro do
+laço); subtração `unsigned` do C++ pede `wrapping_*`.

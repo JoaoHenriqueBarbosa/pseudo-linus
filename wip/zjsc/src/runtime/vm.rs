@@ -5,6 +5,7 @@
 //! `DeferTermination`. A tabela de átomos é por thread em `crate::wtf::text::atom_string_impl`,
 //! então o `VM` não a carrega.
 
+use crate::bytecode::bytecode_intrinsic_registry::BytecodeIntrinsicRegistry;
 use std::cell::{Cell, OnceCell, RefCell};
 use std::ops::Deref;
 use std::rc::Rc;
@@ -48,6 +49,8 @@ pub struct VM {
     soft_stack_limit: Cell<usize>,
     /// `m_executingRegExp`: identidade do `RegExp*` em execução (0 é o `nullptr`).
     executing_reg_exp: Cell<usize>,
+    /// `m_bytecodeIntrinsicRegistry`: criado no primeiro uso, porque precisa dos `BuiltinNames`.
+    bytecode_intrinsic_registry: std::cell::OnceCell<BytecodeIntrinsicRegistry>,
 }
 
 impl Default for VM {
@@ -68,10 +71,19 @@ impl VM {
             property_names: PropertyNames::default(),
             soft_stack_limit: Cell::new(0),
             executing_reg_exp: Cell::new(0),
+            bytecode_intrinsic_registry: std::cell::OnceCell::new(),
         };
         let property_names = Box::new(CommonIdentifiers::new(&vm));
         assert!(vm.property_names.0.set(property_names).is_ok());
         vm
+    }
+
+    /// `bytecodeIntrinsicRegistry()`.
+    pub fn bytecode_intrinsic_registry(&self) -> &BytecodeIntrinsicRegistry {
+        self.bytecode_intrinsic_registry.get_or_init(|| {
+            let builtin_names = self.property_names.builtin_names();
+            BytecodeIntrinsicRegistry::new(|name| builtin_names.look_up_private_name(name.as_bytes())?.impl_())
+        })
     }
 
     /// `softStackLimit()`.

@@ -26,7 +26,7 @@
 use crate::parser::nodes::{
     AssignmentContext, ClassElementTag, DotType, FunctionStack, Operator, PropertyNodeType,
 };
-use crate::parser::nodes_part3::{DefineFieldType, ImportType};
+use crate::parser::nodes::{DefineFieldType, ImportType};
 use crate::parser::lexer::LexerFlagSet;
 use crate::parser::parser::InferName;
 use crate::parser::parser_arena::ParserArena;
@@ -54,7 +54,7 @@ pub trait TreeNodeHandle {
 }
 
 pub trait TreeBuilder: Sized {
-    type Expression: TreeNode;
+    type Expression: TreeNode + TreeNodeHandle;
     type SourceElements: TreeNode;
     type Arguments: TreeNode;
     type Comma: TreeNode;
@@ -67,7 +67,7 @@ pub trait TreeBuilder: Sized {
     type TemplateStringList: TreeNode;
     type TemplateLiteral: TreeNode;
     type FormalParameterList: TreeNode;
-    type FunctionBody: TreeNode;
+    type FunctionBody: TreeNode + TreeNodeHandle;
     type ClassExpression: TreeNode;
     type ModuleName: TreeNode;
     type ImportSpecifier: TreeNode;
@@ -75,9 +75,9 @@ pub trait TreeBuilder: Sized {
     type ImportAttributesList: TreeNode;
     type ExportSpecifier: TreeNode;
     type ExportSpecifierList: TreeNode;
-    type Statement: TreeNode;
+    type Statement: TreeNode + TreeNodeHandle;
     type ClauseList: TreeNode;
-    type Clause: TreeNode;
+    type Clause: TreeNode + TreeNodeHandle;
     type BinaryOperand: TreeNode;
     type DestructuringPattern: TreeNode;
     type ArrayPattern: TreeNode;

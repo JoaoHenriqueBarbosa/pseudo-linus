@@ -9,7 +9,7 @@ use crate::parser::nodes::{
     AssignmentContext, ClassElementTag, DotType, FunctionStack, Operator, PropertyNode,
     PropertyNodeType,
 };
-use crate::parser::nodes_part3::{DefineFieldType, ImportType};
+use crate::parser::nodes::{DefineFieldType, ImportType};
 use crate::parser::parser::InferName;
 use crate::parser::parser_arena::ParserArena;
 use crate::parser::parser_function_info::{ParserClassInfo, ParserFunctionInfo};

@@ -35,6 +35,11 @@
 //!   `*propertyName`) e ponteiro de nó desreferenciado sem teste são `RELEASE_ASSERT` de que estão
 //!   preenchidos (`non_null`, `non_null_ref`, `Link::get`).
 
+// Fatias do `impl TreeBuilder`: o Rust não divide um impl de trait por `include!`, então cada uma é um
+// `macro_rules!` expandido dentro do impl.
+include!("ast_builder_part2.rs");
+include!("ast_builder_part4.rs");
+
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -1183,5 +1188,9 @@ impl TreeBuilder for ASTBuilder {
 
     // Segunda fatia (`ASTBuilder.h`, do `createExportAllDeclaration` em diante, mais as definições de
     // `ASTBuilder.h` para `makeBinaryNode` e afins): os métodos restantes do trait.
-    include!("ast_builder_part2.rs");
+    ast_builder_part2!();
+    ast_builder_part4!();
 }
+
+include!("ast_builder_part3.rs");
+
