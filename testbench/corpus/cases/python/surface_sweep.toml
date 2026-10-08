@@ -1,0 +1,313 @@
+tool = "python3"
+source = "manual"
+
+# Varredura de superfície: para cada atributo de tipos embutidos, de instâncias simples e de
+# módulos muito usados por agentes, imprime o nome, `type(valor).__name__` e, quando o valor é
+# chamável, descritor ou classe, o `repr` (com os endereços normalizados por `sed`), além de
+# `__qualname__`, `__module__`, `__objclass__` e `__text_signature__` quando existirem.
+#
+# O objetivo é caçar vazamentos de simulação que nenhum caso específico imprime, como um
+# `BaseException.__reduce__` que aparecia como `<function _exception_reduce at 0x...>` (função
+# interna nossa) em vez de `<method '__reduce__' of 'BaseException' objects>`. O script só emite
+# dados; quem decide o que está certo é o diff contra o oráculo. Nas varreduras de módulos, cada
+# valor do tipo `function` também sai numa linha marcada `FUNCTION-IN-MODULE`, porque no CPython
+# vários desses módulos (`posix`, `_io`, `_socket`, `math`, `time`, `_thread`, `itertools`,
+# `operator`) são em C e as funções deveriam ser `builtin_function_or_method`.
+#
+# Não imprime valores de dados (sys.argv, os.environ, sys.path, pids, tempos), só tipos, e `repr`
+# apenas de chamáveis, descritores e classes. Todo getattr/repr é protegido: o nome da exceção
+# levantada é impresso no lugar. O módulo `sqlite3` entra com import protegido: se o oráculo não
+# o tiver, a linha IMPORTFAIL aparece nos dois lados e o diff continua limpo.
+
+[[case]]
+id = "surface-sweep-builtin-types"
+script = '''
+python3 - <<'PYEOF' 2>&1 | sed -E 's/0x[0-9a-f]+/0xADDR/g'
+import builtins
+
+def info(name, v):
+    out = [name]
+    try:
+        out.append(type(v).__name__)
+    except Exception as e:
+        out.append('!' + type(e).__name__)
+    try:
+        show = isinstance(v, type) or callable(v) or hasattr(type(v), '__get__')
+    except Exception as e:
+        show = False
+    if show:
+        try:
+            out.append('repr=' + repr(v))
+        except Exception as e:
+            out.append('repr!' + type(e).__name__)
+    for a in ('__qualname__', '__module__', '__objclass__', '__text_signature__'):
+        try:
+            out.append(a + '=' + repr(getattr(v, a, None)))
+        except Exception as e:
+            out.append(a + '!' + type(e).__name__)
+    return ' | '.join(out)
+
+names = sorted(k for k, v in vars(builtins).items() if isinstance(v, type))
+seen = {}
+for n in names:
+    T = vars(builtins)[n]
+    print('NAME', n, '->', T.__qualname__)
+    seen.setdefault(id(T), T)
+types_ = sorted(seen.values(), key=lambda t: (t.__module__, t.__qualname__))
+for T in types_:
+    print('== TYPE', T.__module__, T.__qualname__)
+    try:
+        print('mro', [c.__qualname__ for c in T.__mro__])
+    except Exception as e:
+        print('mro!', type(e).__name__)
+    try:
+        d = vars(T)
+        keys = sorted(d)
+    except Exception as e:
+        print('vars!', type(e).__name__)
+        continue
+    for k in keys:
+        try:
+            v = d[k]
+        except Exception as e:
+            print(k, '!' + type(e).__name__)
+            continue
+        print('  ' + info(str(k), v))
+PYEOF
+'''
+
+[[case]]
+id = "surface-sweep-builtin-instances"
+script = '''
+python3 - <<'PYEOF' 2>&1 | sed -E 's/0x[0-9a-f]+/0xADDR/g'
+def info(name, v):
+    out = [name]
+    try:
+        out.append(type(v).__name__)
+    except Exception as e:
+        out.append('!' + type(e).__name__)
+    try:
+        show = isinstance(v, type) or callable(v) or hasattr(type(v), '__get__')
+    except Exception as e:
+        show = False
+    if show:
+        try:
+            out.append('repr=' + repr(v))
+        except Exception as e:
+            out.append('repr!' + type(e).__name__)
+    for a in ('__qualname__', '__module__', '__objclass__', '__text_signature__'):
+        try:
+            out.append(a + '=' + repr(getattr(v, a, None)))
+        except Exception as e:
+            out.append(a + '!' + type(e).__name__)
+    return ' | '.join(out)
+
+SOURCES = [
+    "0", "1.5", "'a'", "b'a'", "bytearray()", "[]", "()", "{}", "set()", "frozenset()",
+    "range(1)", "slice(1)", "None", "True", "object()", "ValueError('x')", "OSError(2, 'x')",
+    "KeyError('k')", "StopIteration(1)", "iter([])", "iter(())", "iter('')", "iter({})",
+    "{}.keys()", "{}.values()", "{}.items()", "memoryview(b'')", "(lambda: 0)",
+    "(x for x in ())", "zip()", "map(len, [])", "filter(None, [])", "enumerate([])",
+    "reversed([])", "property()", "classmethod(len)", "staticmethod(len)", "super(int, 1)",
+]
+for src in SOURCES:
+    print('== INSTANCE', src)
+    try:
+        v = eval(src)
+    except Exception as e:
+        print('  eval!', type(e).__name__)
+        continue
+    try:
+        names = sorted(dir(v))
+    except Exception as e:
+        print('  dir!', type(e).__name__)
+        continue
+    for n in names:
+        try:
+            a = getattr(v, n)
+        except Exception as e:
+            print('  ' + n + ' | !' + type(e).__name__)
+            continue
+        print('  ' + info(n, a))
+PYEOF
+'''
+
+[[case]]
+id = "surface-sweep-modules-a"
+script = '''
+python3 - <<'PYEOF' 2>&1 | sed -E 's/0x[0-9a-f]+/0xADDR/g'
+import importlib
+
+def info(name, v):
+    out = [name]
+    try:
+        out.append(type(v).__name__)
+    except Exception as e:
+        out.append('!' + type(e).__name__)
+    try:
+        show = isinstance(v, type) or callable(v) or hasattr(type(v), '__get__')
+    except Exception as e:
+        show = False
+    if show:
+        try:
+            out.append('repr=' + repr(v))
+        except Exception as e:
+            out.append('repr!' + type(e).__name__)
+    for a in ('__qualname__', '__module__', '__objclass__', '__text_signature__'):
+        try:
+            out.append(a + '=' + repr(getattr(v, a, None)))
+        except Exception as e:
+            out.append(a + '!' + type(e).__name__)
+    return ' | '.join(out)
+
+MODS = ['os', 'sys', 'io', 're', 'json', 'time', 'datetime', 'collections', 'itertools',
+        'functools', 'operator', 'math', 'random', 'string', 'struct', 'hashlib', 'base64',
+        'binascii', 'zlib', 'gzip', 'shutil', 'pathlib', 'subprocess', 'socket']
+loaded = {}
+for name in MODS:
+    try:
+        loaded[name] = importlib.import_module(name)
+    except BaseException as e:
+        print('IMPORTFAIL', name, type(e).__name__)
+for name in MODS:
+    m = loaded.get(name)
+    if m is None:
+        continue
+    print('== MODULE', name)
+    try:
+        names = sorted(dir(m))
+    except Exception as e:
+        print('  dir!', type(e).__name__)
+        continue
+    for n in names:
+        try:
+            v = getattr(m, n)
+        except Exception as e:
+            print('  ' + n + ' | !' + type(e).__name__)
+            continue
+        print('  ' + info(n, v))
+        if type(v).__name__ == 'function':
+            print('  FUNCTION-IN-MODULE', name + '.' + n)
+PYEOF
+'''
+
+[[case]]
+id = "surface-sweep-modules-b"
+script = '''
+python3 - <<'PYEOF' 2>&1 | sed -E 's/0x[0-9a-f]+/0xADDR/g'
+import importlib
+
+def info(name, v):
+    out = [name]
+    try:
+        out.append(type(v).__name__)
+    except Exception as e:
+        out.append('!' + type(e).__name__)
+    try:
+        show = isinstance(v, type) or callable(v) or hasattr(type(v), '__get__')
+    except Exception as e:
+        show = False
+    if show:
+        try:
+            out.append('repr=' + repr(v))
+        except Exception as e:
+            out.append('repr!' + type(e).__name__)
+    for a in ('__qualname__', '__module__', '__objclass__', '__text_signature__'):
+        try:
+            out.append(a + '=' + repr(getattr(v, a, None)))
+        except Exception as e:
+            out.append(a + '!' + type(e).__name__)
+    return ' | '.join(out)
+
+MODS = ['select', 'selectors', 'signal', 'threading', 'queue', 'multiprocessing', 'asyncio',
+        'contextlib', 'copy', 'copyreg', 'pickle', 'types', 'typing', 'enum', 'dataclasses',
+        'abc', 'weakref', 'gc', 'inspect', 'traceback', 'logging', 'argparse', 'csv',
+        'tempfile']
+loaded = {}
+for name in MODS:
+    try:
+        loaded[name] = importlib.import_module(name)
+    except BaseException as e:
+        print('IMPORTFAIL', name, type(e).__name__)
+for name in MODS:
+    m = loaded.get(name)
+    if m is None:
+        continue
+    print('== MODULE', name)
+    try:
+        names = sorted(dir(m))
+    except Exception as e:
+        print('  dir!', type(e).__name__)
+        continue
+    for n in names:
+        try:
+            v = getattr(m, n)
+        except Exception as e:
+            print('  ' + n + ' | !' + type(e).__name__)
+            continue
+        print('  ' + info(n, v))
+        if type(v).__name__ == 'function':
+            print('  FUNCTION-IN-MODULE', name + '.' + n)
+PYEOF
+'''
+
+[[case]]
+id = "surface-sweep-modules-c"
+script = '''
+python3 - <<'PYEOF' 2>&1 | sed -E 's/0x[0-9a-f]+/0xADDR/g'
+import importlib
+
+def info(name, v):
+    out = [name]
+    try:
+        out.append(type(v).__name__)
+    except Exception as e:
+        out.append('!' + type(e).__name__)
+    try:
+        show = isinstance(v, type) or callable(v) or hasattr(type(v), '__get__')
+    except Exception as e:
+        show = False
+    if show:
+        try:
+            out.append('repr=' + repr(v))
+        except Exception as e:
+            out.append('repr!' + type(e).__name__)
+    for a in ('__qualname__', '__module__', '__objclass__', '__text_signature__'):
+        try:
+            out.append(a + '=' + repr(getattr(v, a, None)))
+        except Exception as e:
+            out.append(a + '!' + type(e).__name__)
+    return ' | '.join(out)
+
+MODS = ['glob', 'fnmatch', 'errno', 'stat', 'posixpath', 'codecs', 'unicodedata', 'locale',
+        'platform', 'textwrap', 'decimal', 'fractions', 'statistics', 'heapq', 'bisect',
+        'array', 'uuid', 'urllib.parse', 'http.client', 'email', 'html',
+        'xml.etree.ElementTree', 'sqlite3', '_thread', '_io', '_socket', 'posix', 'marshal',
+        'atexit', 'faulthandler', 'resource', 'termios', 'fcntl', 'pwd', 'grp']
+loaded = {}
+for name in MODS:
+    try:
+        loaded[name] = importlib.import_module(name)
+    except BaseException as e:
+        print('IMPORTFAIL', name, type(e).__name__)
+for name in MODS:
+    m = loaded.get(name)
+    if m is None:
+        continue
+    print('== MODULE', name)
+    try:
+        names = sorted(dir(m))
+    except Exception as e:
+        print('  dir!', type(e).__name__)
+        continue
+    for n in names:
+        try:
+            v = getattr(m, n)
+        except Exception as e:
+            print('  ' + n + ' | !' + type(e).__name__)
+            continue
+        print('  ' + info(n, v))
+        if type(v).__name__ == 'function':
+            print('  FUNCTION-IN-MODULE', name + '.' + n)
+PYEOF
+'''

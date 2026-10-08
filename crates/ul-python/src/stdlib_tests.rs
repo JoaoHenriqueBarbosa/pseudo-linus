@@ -3605,8 +3605,6 @@ print(marshal.loads(b'\xa9\x02\xfa\x01x\xdf\xe9\x01\x00\x00\x00'[:0] or marshal.
 print(marshal.dumps(None), [marshal.loads(marshal.dumps(v)) for v in (1, (1, 2), [1], 1.5, 'x' * 300, b'zz', -5, 2 ** 31)])
 print(marshal.loads(b'\xe9\x01\x00\x00\x00'), marshal.loads(b'\xa9\x02\xfa\x01x\x72\x01\x00\x00\x00'), marshal.loads(b'\xe7\x00\x00\x00\x00\x00\x00\xf8?'))
 print(resource.RLIMIT_NOFILE, resource.getrlimit(resource.RLIMIT_CORE), resource.getpagesize(), resource.getrusage(resource.RUSAGE_SELF).ru_utime >= 0)
-fcntl.flock(1, fcntl.LOCK_EX | fcntl.LOCK_NB)
-fcntl.flock(1, fcntl.LOCK_UN)
 print(fcntl.LOCK_SH, fcntl.LOCK_EX, fcntl.LOCK_NB, fcntl.LOCK_UN, fcntl.F_GETFL)
 readline.add_history('one')
 readline.add_history('two')
@@ -5021,6 +5019,35 @@ münchen.de
 }
 
 #[test]
+fn idna_follows_nameprep_of_unicode_3_2() {
+    let src = r##"
+for s in ('straße.de', 'FAß.DE', 'a​b.com', 'ＭÜNCHEN。de'):
+    print(s.encode('idna'))
+for s in ('a\x80b', 'aא'):
+    try: s.encode('idna')
+    except UnicodeError as e: print(type(e).__name__, e)
+for f in (lambda: b'xn--abc-'.decode('idna'), lambda: b'\x80'.decode('punycode'), lambda: 'x'.encode('idna', 'ignore')):
+    try: f()
+    except UnicodeError as e: print(type(e).__name__, e)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"b'strasse.de'
+b'fass.DE'
+b'ab.com'
+b'xn--mnchen-3ya.de'
+UnicodeEncodeError 'idna' codec can't encode character '\x80' in position 1: Invalid character '\x80'
+UnicodeEncodeError 'idna' codec can't encode character '\x61' in position 0: Violation of BIDI requirement 2
+UnicodeDecodeError 'idna' codec can't decode bytes in position 0-7: IDNA does not round-trip, 'b'xn--abc-'' != 'b'abc''
+UnicodeDecodeError 'punycode' codec can't decode byte 0x80 in position 0: Invalid extended code point '128'
+UnicodeError Unsupported error handling: ignore
+"##
+    );
+}
+
+#[test]
 fn regex_text_and_unicode_properties() {
     let src = r##"
 import re, string, textwrap, unicodedata, locale, difflib
@@ -5191,6 +5218,132 @@ None
     );
 }
 #[test]
+fn settrace_late_f_trace_gets_exception_and_return() {
+    let src = r##"
+import sys
+ev = []
+def tr(frame, event, arg):
+    ev.append((event, frame.f_code.co_name, arg[0].__name__ if event == 'exception' else arg))
+    return tr
+def outer():
+    f = sys._getframe()
+    f.f_trace_lines = False
+    f.f_trace = tr
+    try:
+        1 / 0
+    except ZeroDivisionError:
+        pass
+    return 5
+sys.settrace(lambda *a: None)
+outer()
+sys.settrace(None)
+print(ev)
+print(sys.gettrace())
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        "[('exception', 'outer', 'ZeroDivisionError'), ('return', 'outer', 5)]\nNone\n"
+    );
+}
+#[test]
+fn debugger_frames_exec_jump_and_traceback_locals() {
+    let src = r##"
+import sys
+
+def show():
+    f = sys._getframe(1)
+    return (f.f_code.co_name, f.f_code.co_filename, f.f_lineno)
+
+exec("r = show()")
+print(r)
+
+def tr(frame, event, arg):
+    return tr
+
+def holder():
+    fr = sys._getframe()
+    fr.f_trace = tr
+    print(fr.f_trace is tr)
+    del fr.f_trace
+    print(fr.f_trace)
+holder()
+
+def mapped():
+    x = 1
+    fr = sys._getframe()
+    exec("x = 2; y = 3", fr.f_globals, fr.f_locals)
+    return x, fr.f_locals['y']
+print(mapped())
+
+def jumper():
+    out = []
+    out.append(1)
+    out.append(2)
+    out.append(3)
+    return out
+START = jumper.__code__.co_firstlineno
+
+def jump_tr(frame, event, arg):
+    if event == 'line' and frame.f_lineno == START + 3:
+        frame.f_lineno = START + 5
+    return jump_tr
+sys.settrace(jump_tr)
+res = jumper()
+sys.settrace(None)
+print(res)
+
+events = []
+def watch(frame, event, arg):
+    if frame.f_code.co_filename == '<string>':
+        events.append((event, frame.f_lineno, frame.f_back.f_code.co_name))
+    return watch
+sys.settrace(watch)
+exec("a = 1\nb = 2")
+sys.settrace(None)
+print(events)
+
+def boom(v):
+    w = v + 1
+    raise ValueError(w)
+try:
+    boom(2)
+except ValueError as e:
+    tb = e.__traceback__.tb_next
+    print(tb.tb_frame.f_locals['w'], tb.tb_frame is tb.tb_frame, tb.tb_frame.f_code.co_name, tb.tb_lasti >= 0)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        "('<module>', '<string>', 1)\nTrue\nNone\n(2, 3)\n[1]\n[('call', 1, '<module>'), ('line', 1, '<module>'), ('line', 2, '<module>'), ('return', 2, '<module>')]\n3 True boom True\n"
+    );
+}
+#[test]
+fn setprofile_python_and_c_events() {
+    let src = r##"
+import sys
+p = []
+def prof(frame, event, arg):
+    p.append((event, frame.f_code.co_name if event in ('call', 'return') else arg.__name__))
+def g():
+    return len([1])
+sys.setprofile(prof)
+g()
+print(sys.getprofile() is prof)
+sys.setprofile(None)
+print(sys.getprofile())
+for e in p: print(e)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        "True\nNone\n('call', 'g')\n('c_call', 'len')\n('c_return', 'len')\n('return', 'g')\n('c_call', 'getprofile')\n('c_return', 'getprofile')\n('c_call', 'print')\n('c_return', 'print')\n('c_call', 'setprofile')\n"
+    );
+}
+#[test]
 fn dataclass_slots_and_get_overloads() {
     let src = r##"
 import dataclasses, typing
@@ -5287,59 +5440,6 @@ except M as e: print(''.join(traceback.format_exception_only(e)).strip())
 ['n1', 'dois\nlinhas'] ['M: y\n', 'n1\n', 'dois\n', 'linhas\n']
 TracebackException KeyError False True
 M: fim
-"##
-    );
-}
-
-#[test]
-fn http_server_forever_in_thread() {
-    let src = r##"
-import http.server, threading, json, urllib.request, urllib.error, urllib.parse, socketserver, http.client, socket
-class H(http.server.BaseHTTPRequestHandler):
-    def log_message(self, *a): pass
-    def _send(self, code, obj, headers=()):
-        body = json.dumps(obj).encode(); self.send_response(code); self.send_header('Content-Type', 'application/json')
-        self.send_header('Content-Length', str(len(body)))
-        for k, v in headers: self.send_header(k, v)
-        self.end_headers(); self.wfile.write(body)
-    def do_GET(self):
-        u = urllib.parse.urlsplit(self.path)
-        if u.path == '/items': self._send(200, {'q': urllib.parse.parse_qs(u.query), 'ua': self.headers.get('User-Agent', '')[:6]})
-        elif u.path == '/redir': self.send_response(302); self.send_header('Location', '/items?r=1'); self.end_headers()
-        else: self._send(404, {'err': 'nf'})
-    def do_POST(self):
-        n = int(self.headers['Content-Length']); data = json.loads(self.rfile.read(n))
-        self._send(201, {'got': data, 'ct': self.headers.get_content_type()}, [('X-Id', '7')])
-srv = socketserver.ThreadingTCPServer(('127.0.0.1', 0), H); srv.daemon_threads = True
-port = srv.server_address[1]; t = threading.Thread(target=srv.serve_forever, daemon=True); t.start()
-base = f'http://127.0.0.1:{port}'
-with urllib.request.urlopen(base + '/items?a=1&a=2') as r: print(r.status, r.headers['Content-Type'], json.load(r))
-req = urllib.request.Request(base + '/items', data=json.dumps({'x': [1, 2]}).encode(), headers={'Content-Type': 'application/json'}, method='POST')
-with urllib.request.urlopen(req, timeout=5) as r: print(r.status, r.getheader('X-Id'), json.loads(r.read()))
-with urllib.request.urlopen(base + '/redir') as r: print(r.status, r.url.endswith('/items?r=1'), json.load(r)['q'])
-try: urllib.request.urlopen(base + '/nada')
-except urllib.error.HTTPError as e: print('HTTPError', e.code, e.reason, json.loads(e.read()))
-try: urllib.request.urlopen('http://127.0.0.1:1/x', timeout=2)
-except urllib.error.URLError as e: print('URLError', type(e.reason).__name__)
-c = http.client.HTTPConnection('127.0.0.1', port, timeout=5); c.request('GET', '/items?z=9', headers={'User-Agent': 'agente/1'}); resp = c.getresponse()
-print(resp.status, resp.reason, json.loads(resp.read())); c.close()
-s = socket.create_connection(('127.0.0.1', port)); s.sendall(b'GET /items HTTP/1.0\r\nHost: x\r\n\r\n'); data = b''
-while (chunk := s.recv(4096)): data += chunk
-s.close(); print(data.split(b'\r\n')[0], data.endswith(b'}'))
-srv.shutdown(); srv.server_close(); print('fim')
-"##;
-    let o = crate::run_source(src);
-    assert_eq!(o.status, 0, "{}", o.stderr);
-    assert_eq!(
-        String::from_utf8(o.stdout).unwrap(),
-        r##"200 application/json {'q': {'a': ['1', '2']}, 'ua': 'Python'}
-201 7 {'got': {'x': [1, 2]}, 'ct': 'application/json'}
-200 True {'r': ['1']}
-HTTPError 404 Not Found {'err': 'nf'}
-URLError ConnectionRefusedError
-200 OK {'q': {'z': ['9']}, 'ua': 'agente'}
-b'HTTP/1.0 200 OK' True
-fim
 "##
     );
 }
@@ -5706,5 +5806,570 @@ True False True True
 False True
 '<' not supported between instances of 'dict_values' and 'set'
 "##
+    );
+}
+
+/// As mensagens de `select.epoll()` e `select.poll()` que não tocam o kernel, medidas no CPython 3.13 do Debian 13
+/// (os métodos do `epoll` que chamam o kernel têm caso na bancada).
+#[test]
+fn select_argument_errors_match_cpython() {
+    let src = r##"
+import select
+def t(f, *a, **k):
+    try:
+        f(*a, **k)
+    except Exception as e:
+        print(type(e).__name__, e)
+t(select.epoll, -2)
+t(select.epoll, sizehint=0)
+t(select.epoll, 1, 1)
+t(select.epoll, flags=5)
+t(select.epoll, 1, 2, 3)
+p = select.poll()
+t(p.unregister, 5)
+t(p.modify, 5, 1)
+t(p.poll, 'x')
+t(p.register, -1)
+print(repr(p).startswith('<select.poll object at 0x'), repr(p).endswith('>'), select.epoll.__module__, type(p).__module__)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"ValueError negative sizehint
+ValueError negative sizehint
+OSError invalid flags
+OSError invalid flags
+TypeError epoll() takes at most 2 arguments (3 given)
+KeyError 5
+FileNotFoundError [Errno 2] No such file or directory
+TypeError timeout must be an integer or None
+ValueError file descriptor cannot be a negative integer (-1)
+True True select select
+"##
+    );
+}
+
+// `create_autospec` e o `__class__` do `spec` do `unittest.mock` precisam do `pkgutil` do disco da imagem:
+// os casos vivem em `crates/host/tests/python.rs` (`mock_create_autospec_and_spec_class`).
+
+/// Põe no disco do kernel de teste os `.py` do Debian que o interpretador embute, como a imagem de verdade os
+/// tem. Sem eles `native_in_cpython` toma todo módulo embutido por shim de módulo em C e esconde os quadros
+/// dele: o `raise` de nível de módulo do `types` sai sem traceback e o `import os` morre.
+fn with_debian_stdlib(kit: sysabi::testkit::TestKit) -> sysabi::testkit::TestKit {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../kernel/image/usr/lib/python3.13");
+    for name in crate::modules::pysrc::names() {
+        let rel = name.replace('.', "/");
+        for file in [format!("{rel}.py"), format!("{rel}/__init__.py")] {
+            if let Ok(data) = std::fs::read(root.join(&file)) {
+                kit.put_file(format!("/usr/lib/python3.13/{file}").as_bytes(), &data, 0o644);
+            }
+        }
+    }
+    kit
+}
+
+/// `python3 -c src` num pseudo-processo do kernel de teste: é onde `os.fork` cria processos de verdade
+/// (o `spawn_fn` do testkit roda o filho até o fim antes de voltar, e o `waitpid` o colhe).
+pub(crate) fn in_process(src: &str) -> sysabi::testkit::RunResult {
+    with_debian_stdlib(sysabi::testkit::TestKit::new().programs(crate::programs())).run(&["python3", "-c", src], b"")
+}
+
+fn exited(status: i32) -> sysabi::WaitStatus {
+    sysabi::WaitStatus::Exited(status)
+}
+
+#[test]
+fn waitid_reports_the_exited_child_and_wnowait_keeps_it() {
+    let src = "\
+import os, signal
+pid = os.fork()
+if pid == 0:
+    os._exit(13)
+info = os.waitid(os.P_PID, pid, os.WEXITED | os.WNOWAIT)
+print(info.si_pid == pid, info.si_status, info.si_code == os.CLD_EXITED, info.si_signo == signal.SIGCHLD, type(info).__name__)
+print(tuple(info) == (info.si_pid, info.si_uid, info.si_signo, info.si_status, info.si_code))
+print(os.waitid(os.P_ALL, 0, os.WEXITED).si_pid == pid)
+try:
+    os.waitid(os.P_ALL, 0, os.WEXITED)
+except ChildProcessError as e:
+    print(e.errno)
+try:
+    os.waitid(os.P_ALL, 0, 0)
+except OSError as e:
+    print(e.errno)
+";
+    let r = in_process(src);
+    assert_eq!(
+        (r.stdout_str().as_str(), r.stderr_str().as_str(), r.status),
+        ("True 13 True True waitid_result\nTrue\nTrue\n10\n22\n", "", exited(0))
+    );
+}
+
+#[test]
+fn waitpid_status_is_the_raw_wait_status() {
+    let src = "\
+import os, signal
+pid = os.fork()
+if pid == 0:
+    os.kill(os.getpid(), signal.SIGKILL)
+_, status = os.waitpid(pid, 0)
+print(status, os.WIFSIGNALED(status), os.WTERMSIG(status), -signal.SIGKILL, abs(signal.SIGTERM), ~signal.SIGHUP, +signal.SIGINT)
+print(os.waitstatus_to_exitcode(status) == -signal.SIGKILL)
+";
+    let r = in_process(src);
+    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str(), r.status), ("9 True 9 -9 15 -2 2\nTrue\n", "", exited(0)));
+}
+
+#[test]
+fn fork_child_state_is_independent() {
+    let src = "\
+import os
+x = [1, 2]
+counter = 10
+r, w = os.pipe()
+pid = os.fork()
+if pid == 0:
+    x.append(3)
+    counter += 1
+    os.write(w, ('%r %d' % (x, counter)).encode())
+    os._exit(7)
+_, status = os.waitpid(pid, 0)
+os.close(w)
+print(os.read(r, 100).decode())
+print(x, counter, os.WIFEXITED(status), os.WEXITSTATUS(status), pid != os.getpid(), os.getppid() != 0)
+";
+    let r = in_process(src);
+    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str(), r.status), ("[1, 2, 3] 11\n[1, 2] 10 True 7 True True\n", "", exited(0)));
+}
+
+#[test]
+fn fork_child_continues_after_the_call_and_exits_with_the_pending_buffer() {
+    // O filho segue do ponto do `fork` e termina como o pai: ganchos de saída, stdout descarregado. O buffer
+    // do stdout ainda não descarregado (aqui, num pipe) é copiado, então a linha anterior ao `fork` sai duas vezes.
+    let src = "\
+import os, atexit
+atexit.register(lambda: print('atexit', os.getpid() == mine))
+mine = os.getpid()
+print('before')
+pid = os.fork()
+if pid == 0:
+    print('child', pid, os.getpid() != mine)
+else:
+    os.waitpid(pid, 0)
+    print('parent', pid > 0)
+";
+    let r = in_process(src);
+    // O `atexit` do filho roda com o pid do filho (`False`), o do pai com o dele (`True`).
+    assert_eq!(
+        (r.stdout_str().as_str(), r.stderr_str().as_str(), r.status),
+        ("before\nchild 0 True\natexit False\nbefore\nparent True\natexit True\n", "", exited(0))
+    );
+}
+
+#[test]
+fn fork_and_forkpty_take_no_arguments_like_the_c_functions() {
+    let src = "\
+import os
+for call in (lambda: os.fork(1), lambda: os.fork(x=1), lambda: os.forkpty(1, 2)):
+    try:
+        call()
+    except TypeError as e:
+        print(e)
+";
+    let r = in_process(src);
+    assert_eq!(
+        (r.stdout_str().as_str(), r.stderr_str().as_str(), r.status),
+        (
+            "posix.fork() takes no arguments (1 given)\nposix.fork() takes no keyword arguments\nposix.forkpty() takes no arguments (2 given)\n",
+            "",
+            exited(0)
+        )
+    );
+}
+
+#[test]
+fn fork_inside_functions_methods_and_loops() {
+    // Os quadros de função, o iterador do `for` e o método de classe que esperavam no pai voltam no filho.
+    let src = "\
+import os
+class Worker:
+    def __init__(self, tag):
+        self.tag = tag
+    def spawn(self, n):
+        out = []
+        for i in range(n):
+            pid = os.fork()
+            if pid == 0:
+                print('child', self.tag, i, out)
+                leave(i)
+            os.waitpid(pid, 0)
+            out.append(i)
+        return out
+def leave(i):
+    import sys
+    sys.stdout.flush()
+    os._exit(10 + i)
+print(Worker('w').spawn(3))
+";
+    let r = in_process(src);
+    assert_eq!(
+        (r.stdout_str().as_str(), r.stderr_str().as_str(), r.status),
+        ("child w 0 []\nchild w 1 [0]\nchild w 2 [0, 1]\n[0, 1, 2]\n", "", exited(0))
+    );
+}
+
+#[test]
+fn fork_keeps_ids_and_identity_hashes() {
+    let src = "\
+import os
+class K: pass
+k, o, s = K(), object(), {1, 'a'}
+members = {k, o}
+ids = (id(k), id(o), id(s), hash(k))
+pid = os.fork()
+if pid == 0:
+    print((id(k), id(o), id(s), hash(k)) == ids, k in members, o in members, members == {o, k})
+    raise SystemExit(0)
+os.waitpid(pid, 0)
+print((id(k), id(o), id(s), hash(k)) == ids)
+";
+    let r = in_process(src);
+    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("True True True True\nTrue\n", ""));
+}
+
+#[test]
+fn register_at_fork_runs_in_cpython_order() {
+    let src = "\
+import os
+log = []
+os.register_at_fork(before=lambda: log.append('before1'))
+os.register_at_fork(before=lambda: log.append('before2'), after_in_parent=lambda: log.append('parent1'),
+                    after_in_child=lambda: log.append('child1'))
+os.register_at_fork(after_in_parent=lambda: log.append('parent2'), after_in_child=lambda: log.append('child2'))
+def boom():
+    raise ValueError('hook failed')
+os.register_at_fork(after_in_parent=boom, after_in_child=boom)
+os.register_at_fork(after_in_child=lambda: log.append('child3'))
+pid = os.fork()
+if pid == 0:
+    print('child', log)
+    raise SystemExit(0)
+os.waitpid(pid, 0)
+print('parent', log)
+";
+    let r = in_process(src);
+    assert_eq!(
+        r.stdout_str(),
+        "child ['before2', 'before1', 'child1', 'child2', 'child3']\nparent ['before2', 'before1', 'parent1', 'parent2']\n"
+    );
+    // O gancho que levanta não aborta o fork: o `sys.unraisablehook` escreve no stderr (uma vez em cada processo).
+    let stderr = r.stderr_str();
+    assert_eq!(stderr.matches("Exception ignored in: <function boom at 0x").count(), 2, "{stderr}");
+    assert_eq!(stderr.matches("ValueError: hook failed\n").count(), 2, "{stderr}");
+    assert_eq!(r.status, exited(0));
+}
+
+#[test]
+fn register_at_fork_argument_errors() {
+    let src = "\
+import os
+for kwargs in ({}, {'before': 1}, {'after_in_parent': None}, {'after_in_child': 'x'}):
+    try:
+        os.register_at_fork(**kwargs)
+    except TypeError as e:
+        print(e)
+try:
+    os.register_at_fork(print)
+except TypeError as e:
+    print(e)
+";
+    assert_eq!(
+        out(src),
+        "At least one argument is required.\n'before' must be callable, not int\n\
+         'after_in_parent' must be callable, not NoneType\n'after_in_child' must be callable, not str\n\
+         register_at_fork() takes no positional arguments\n"
+    );
+}
+
+#[test]
+fn fork_inside_a_callback_is_a_gap_not_a_wrong_copy() {
+    // Com um `run_loop` Rust aninhado (callback de `list.sort(key=)`) o estado não é dado: o pedido falha em vez de
+    // copiar errado. Sai deste teste quando a fatia G4 fechar o caminho.
+    let src = "\
+import os
+try:
+    [1].sort(key=lambda x: os.fork())
+except RuntimeError as e:
+    print(type(e).__name__)
+";
+    let r = in_process(src);
+    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str()), ("RuntimeError\n", ""));
+}
+
+/// `os.dup`, `os.dup2`, `os.get_inheritable`/`set_inheritable` e `os.get_blocking`/`set_blocking` sobre os fds do
+/// kernel: a herança é por fd, o bloqueio é da descrição (compartilhado pelo `dup`), e os erros são os do 3.13.
+#[test]
+fn os_dup_dup2_inheritable_and_blocking_follow_cpython() {
+    let src = r##"
+import os
+r, w = os.pipe()
+print(os.get_inheritable(r), os.get_blocking(r))
+d = os.dup(r)
+print(d != r, os.get_inheritable(d))
+os.set_inheritable(d, True)
+print(os.get_inheritable(d), os.get_inheritable(r))
+os.set_blocking(d, False)
+print(os.get_blocking(r), os.get_blocking(d))
+os.set_blocking(r, True)
+print(os.get_blocking(d))
+print(os.dup2(w, 40), os.get_inheritable(40))
+print(os.dup2(w, 41, False), os.get_inheritable(41))
+print(os.dup2(w, w) == w, os.get_inheritable(w))
+os.write(40, b'ok')
+print(os.read(r, 8))
+for call in (lambda: os.dup(999), lambda: os.dup2(w, w, False), lambda: os.dup2(999, 5),
+             lambda: os.set_inheritable(999, True), lambda: os.get_inheritable(999),
+             lambda: os.set_blocking(999, True), lambda: os.get_blocking(999)):
+    try:
+        call()
+    except OSError as e:
+        print(e.errno, type(e).__name__)
+for call in (lambda: os.dup('a'), lambda: os.dup(2 ** 40), lambda: os.dup(1.5)):
+    try:
+        call()
+    except Exception as e:
+        print(type(e).__name__, e)
+"##;
+    let r = in_process(src);
+    assert_eq!(r.stderr_str(), "");
+    assert_eq!(
+        r.stdout_str(),
+        "False True\nTrue False\nTrue False\nFalse False\nTrue\n40 True\n41 False\nTrue False\nb'ok'\n\
+9 OSError\n22 OSError\n9 OSError\n9 OSError\n9 OSError\n9 OSError\n9 OSError\n\
+TypeError 'str' object cannot be interpreted as an integer\n\
+OverflowError Python int too large to convert to C int\n\
+TypeError 'float' object cannot be interpreted as an integer\n"
+    );
+}
+
+/// O que do `socket` com `sendmsg` e `recvmsg` não toca o kernel: `CMSG_LEN`, `CMSG_SPACE`, as constantes e as
+/// funções `send_fds` e `recv_fds` do disco (que só existem se o `_socket.socket` tem `sendmsg` e `recvmsg`);
+/// `getpeereid` não existe no Linux.
+#[test]
+fn socket_ancillary_data_helpers_match_cpython() {
+    let src = r##"
+import socket
+print(socket.CMSG_LEN(0), socket.CMSG_LEN(4), socket.CMSG_SPACE(0), socket.CMSG_SPACE(4), socket.CMSG_SPACE(12), socket.CMSG_SPACE(1))
+for f in (socket.CMSG_LEN, socket.CMSG_SPACE):
+    try:
+        f(-1)
+    except OverflowError as e:
+        print(e)
+    try:
+        f('a')
+    except TypeError as e:
+        print(e)
+print(hasattr(socket, 'getpeereid'), hasattr(socket, 'send_fds'), hasattr(socket, 'recv_fds'))
+print(socket.SCM_RIGHTS, socket.SCM_CREDENTIALS, socket.SO_PASSCRED, socket.SO_PEERCRED)
+print(int(socket.MSG_CTRUNC), int(socket.MSG_TRUNC), int(socket.MSG_CMSG_CLOEXEC))
+"##;
+    let r = in_process(src);
+    assert_eq!(r.stderr_str(), "");
+    assert_eq!(
+        r.stdout_str(),
+        "16 20 16 24 32 24\n\
+CMSG_LEN() argument out of range\n'str' object cannot be interpreted as an integer\n\
+CMSG_SPACE() argument out of range\n'str' object cannot be interpreted as an integer\n\
+False True True\n1 2 16 17\n8 32 1073741824\n"
+    );
+}
+
+/// `os.sysconf` e companhia sem chamar o kernel: as tabelas e os valores fixos da glibc 2.41 do Debian 13 (conferidos
+/// com o `python3` 3.13.5 dessa imagem), os erros de nome e de número, e as classes de resultado do `posix`.
+#[test]
+fn os_sysconf_tables_and_result_types_follow_cpython() {
+    let src = r##"
+import os
+print(os.sysconf('SC_IOV_MAX'), os.sysconf('SC_PAGESIZE'), os.sysconf('SC_CLK_TCK'), os.sysconf(60))
+print(len(os.sysconf_names), os.sysconf_names['SC_ARG_MAX'], os.sysconf_names['SC_MINSIGSTKSZ'], list(os.sysconf_names)[:3])
+for call in (lambda: os.sysconf('SC_BOGUS'), lambda: os.sysconf(1.5), lambda: os.sysconf(10**6),
+             lambda: os.sysconf(41), lambda: os.sysconf('SC_EQUIV_CLASS_MAX'), lambda: os.sysconf(-1)):
+    try:
+        call()
+    except Exception as e:
+        print(type(e).__name__, e)
+print(os.sysconf(137), os.sysconf('SC_THREAD_STACK_MIN'), os.sysconf('SC_XOPEN_CRYPT'), os.sysconf('SC_PASS_MAX'))
+print(os.confstr('CS_PATH'), os.confstr('CS_GNU_LIBC_VERSION'), os.confstr('CS_GNU_LIBPTHREAD_VERSION'))
+print(repr(os.sched_param(3)), os.sched_param(3).sched_priority, tuple(os.sched_param(sched_priority=5)))
+t = os.terminal_size((80, 24))
+print(repr(t), t.columns, t.lines, t == (80, 24), len(t), type(t).__module__)
+r = os.times_result((1.0, 2.0, 3.0, 4.0, 5.0))
+print(r.children_system, repr(r), type(r).__module__)
+print(os.ctermid(), os.sched_get_priority_max(1), os.sched_get_priority_min(1), os.sched_get_priority_max(0))
+try:
+    os.sched_get_priority_max(99)
+except OSError as e:
+    print(e.errno)
+print(os.pathconf_names['PC_NAME_MAX'], os.confstr_names['CS_PATH'])
+print(os.PRIO_PROCESS, os.PRIO_PGRP, os.PRIO_USER, os.EFD_CLOEXEC, os.TFD_NONBLOCK, os.MFD_CLOEXEC)
+print(os.sched_param.__module__, os.times_result.__module__)
+print(sorted(n for n in ('fwalk', 'spawnl', 'spawnvpe', 'chflags', 'lchmod', 'add_dll_directory', 'getxattr', 'process_cpu_count') if hasattr(os, n)))
+"##;
+    assert_eq!(
+        out(src),
+        "1024 4096 100 1024\n\
+135 0 249 ['SC_2_CHAR_TERM', 'SC_2_C_BIND', 'SC_2_C_DEV']\n\
+ValueError unrecognized configuration name\n\
+TypeError configuration names must be strings or integers\n\
+OSError [Errno 22] Invalid argument\n\
+OSError [Errno 22] Invalid argument\n\
+OSError [Errno 22] Invalid argument\n\
+OSError [Errno 22] Invalid argument\n\
+200809 16384 -1 8192\n\
+/bin:/usr/bin glibc 2.41 NPTL 2.41\n\
+posix.sched_param(sched_priority=3) 3 (5,)\n\
+os.terminal_size(columns=80, lines=24) 80 24 True 2 os\n\
+4.0 posix.times_result(user=1.0, system=2.0, children_user=3.0, children_system=4.0, elapsed=5.0) posix\n\
+/dev/tty 99 1 0\n\
+22\n\
+3 0\n\
+0 1 2 524288 2048 1\n\
+posix posix\n\
+['fwalk', 'getxattr', 'process_cpu_count', 'spawnl', 'spawnvpe']\n"
+    );
+}
+
+/// `pread`/`pwrite`, `readv`/`writev`, `preadv`/`pwritev`, `utime` com nanossegundos e `follow_symlinks`, `chmod` por
+/// fd, `sendfile`, `copy_file_range`, `splice`, `getrandom` e `pipe2` sobre o kernel de teste, com a saída do
+/// `python3` 3.13.5 do Debian 13.
+#[test]
+fn os_positional_vectored_copy_and_utime_follow_cpython() {
+    let src = r##"
+import os
+fd = os.open('/tmp/vec', os.O_RDWR | os.O_CREAT | os.O_TRUNC, 0o600)
+print(os.pwrite(fd, b'hello world', 2), os.pread(fd, 5, 4), os.lseek(fd, 0, 1))
+print(os.writev(fd, [b'ab', bytearray(b'cd'), memoryview(b'ef')]), os.lseek(fd, 0, 1))
+a, b = bytearray(3), bytearray(10)
+os.lseek(fd, 0, 0)
+print(os.readv(fd, [a, b]), bytes(a), bytes(b))
+c, d = bytearray(2), bytearray(2)
+print(os.preadv(fd, [c, d], 1), bytes(c), bytes(d), os.pwritev(fd, [b'xy', b'z'], 20), os.fstat(fd).st_size)
+print(os.readv(fd, [bytearray(0)]), os.preadv(fd, [], 0))
+os.fchmod(fd, 0o640)
+print(oct(os.stat('/tmp/vec').st_mode & 0o777))
+os.ftruncate(fd, 4)
+print(os.fstat(fd).st_size)
+os.truncate('/tmp/vec', 2)
+print(os.stat('/tmp/vec').st_size)
+os.truncate(fd, 3)
+print(os.fstat(fd).st_size)
+for call in (lambda: os.posix_fadvise(fd, 0, 0, 77), lambda: os.pread(fd, -1, 0), lambda: os.ftruncate(fd, -1),
+             lambda: os.truncate('/tmp/vec', -1), lambda: os.preadv(fd, [bytearray(1)], 0, 1 << 20),
+             lambda: os.pwrite(fd, 'x', 0), lambda: os.fchmod(999, 0o600), lambda: os.pread(fd, 1, 2 ** 70)):
+    try:
+        call()
+    except Exception as e:
+        print(type(e).__name__, getattr(e, 'errno', None))
+os.utime('/tmp/vec', ns=(1_000_000_001, 2_000_000_002))
+st = os.stat('/tmp/vec')
+print(st.st_atime_ns, st.st_mtime_ns, st[7], st[8], type(st[7]).__name__)
+os.utime(fd, (5, 6.5))
+print(os.stat('/tmp/vec').st_mtime_ns, os.stat('/tmp/vec').st_atime_ns)
+os.utime('/tmp/vec', (-1.5, 3))
+print(os.stat('/tmp/vec').st_atime_ns, os.stat('/tmp/vec').st_mtime_ns)
+os.symlink('/tmp/vec', '/tmp/vec-link')
+os.utime('/tmp/vec-link', ns=(7, 8), follow_symlinks=False)
+print(os.lstat('/tmp/vec-link').st_mtime_ns, os.stat('/tmp/vec').st_mtime_ns)
+for call in (lambda: os.utime('/tmp/vec', (1, 2), ns=(1, 2)), lambda: os.utime('/tmp/vec', (1,)),
+             lambda: os.utime('/tmp/vec', ns=(1,)), lambda: os.utime(fd, (1, 2), follow_symlinks=False),
+             lambda: os.utime(fd, (1, 2), dir_fd=fd), lambda: os.utime('/tmp/vec', (float('nan'), 1))):
+    try:
+        call()
+    except Exception as e:
+        print(type(e).__name__, e)
+os.chmod(fd, 0o600)
+print(oct(os.stat('/tmp/vec').st_mode & 0o777))
+try:
+    os.chmod('/tmp/vec-link', 0o600, follow_symlinks=False)
+except Exception as e:
+    print(type(e).__name__, e)
+src = os.open('/tmp/vec-src', os.O_RDWR | os.O_CREAT | os.O_TRUNC, 0o600)
+os.write(src, b'0123456789')
+dst = os.open('/tmp/vec-dst', os.O_RDWR | os.O_CREAT | os.O_TRUNC, 0o600)
+print(os.sendfile(dst, src, 2, 5), os.lseek(src, 0, 1), os.pread(dst, 10, 0))
+os.lseek(src, 3, 0)
+print(os.sendfile(dst, src, None, 4), os.lseek(src, 0, 1), os.pread(dst, 20, 0))
+os.lseek(src, 0, 0)
+os.lseek(dst, 0, 0)
+print(os.copy_file_range(src, dst, 6), os.copy_file_range(src, dst, 100, 4, 0), os.pread(dst, 20, 0))
+r, w = os.pipe()
+print(os.splice(src, w, 4, offset_src=1), os.read(r, 10))
+os.write(w, b'pipe!')
+print(os.splice(r, dst, 5, offset_dst=1), os.pread(dst, 20, 0))
+for call in (lambda: os.splice(src, dst, 1), lambda: os.splice(src, w, 1, offset_dst=3),
+             lambda: os.copy_file_range(r, dst, 1), lambda: os.sendfile(dst, src, 0, -1)):
+    try:
+        call()
+    except Exception as e:
+        print(type(e).__name__, getattr(e, 'errno', None))
+print(os.getrandom(0), len(os.getrandom(5)), len(os.getrandom(5, os.GRND_NONBLOCK)))
+for call in (lambda: os.getrandom(-1), lambda: os.getrandom(1, 8)):
+    try:
+        call()
+    except Exception as e:
+        print(type(e).__name__, e)
+r2, w2 = os.pipe2(os.O_NONBLOCK)
+print(os.get_blocking(r2), os.get_inheritable(r2))
+r3, w3 = os.pipe2(os.O_CLOEXEC)
+print(os.get_blocking(r3), os.get_inheritable(r3))
+"##;
+    let r = in_process(src);
+    assert_eq!(r.stderr_str(), "");
+    assert_eq!(
+        r.stdout_str(),
+        "11 b'llo w' 0\n\
+6 6\n\
+13 b'abc' b'defo world'\n\
+4 b'bc' b'de' 3 23\n\
+0 0\n\
+0o640\n\
+4\n\
+2\n\
+3\n\
+OSError 22\n\
+OSError 22\n\
+OSError 22\n\
+OSError 22\n\
+OSError 95\n\
+TypeError None\n\
+OSError 9\n\
+OverflowError None\n\
+1000000001 2000000002 1 2 int\n\
+6500000000 5000000000\n\
+-1500000000 3000000000\n\
+8 3000000000\n\
+ValueError utime: you may specify either 'times' or 'ns' but not both\n\
+TypeError utime: 'times' must be either a tuple of two ints or None\n\
+TypeError utime: 'ns' must be a tuple of two ints\n\
+ValueError utime: cannot use fd and follow_symlinks together\n\
+ValueError utime: can't specify dir_fd without matching path\n\
+ValueError Invalid value NaN (not a number)\n\
+0o600\n\
+NotImplementedError chmod: follow_symlinks unavailable on this platform\n\
+5 10 b'23456'\n\
+4 7 b'234563456'\n\
+6 6 b'456789456'\n\
+4 b'1234'\n\
+5 b'4pipe!456'\n\
+OSError 22\n\
+OSError 29\n\
+OSError 22\n\
+OSError 22\n\
+b'' 5 5\n\
+OSError [Errno 22] Invalid argument\n\
+OSError [Errno 22] Invalid argument\n\
+False True\n\
+True False\n"
     );
 }

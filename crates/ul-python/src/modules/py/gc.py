@@ -1,5 +1,10 @@
 """Coletor de lixo: a VM usa contagem de referências, então não há ciclos a varrer."""
 
+# Os `__del__` não dependem do coletor: rodam quando a última referência cai. Objetos que só se
+# alcançam em ciclo não têm referência final para cair e ficam sem finalizar até a saída do
+# interpretador, que finaliza tudo o que ainda vive. `collect()` não detecta ciclos: não finaliza nem
+# libera nada e devolve 0.
+
 DEBUG_STATS = 1
 DEBUG_COLLECTABLE = 2
 DEBUG_UNCOLLECTABLE = 4

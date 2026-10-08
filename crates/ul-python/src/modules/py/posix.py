@@ -131,10 +131,15 @@ _have_functions = ['HAVE_EVENTFD', 'HAVE_TIMERFD_CREATE', 'HAVE_FACCESSAT', 'HAV
     'HAVE_MKFIFOAT', 'HAVE_MKNODAT', 'HAVE_OPENAT', 'HAVE_READLINKAT', 'HAVE_RENAMEAT', 'HAVE_SYMLINKAT',
     'HAVE_UNLINKAT', 'HAVE_UTIMENSAT', 'HAVE_PTSNAME_R']
 
-# O `posixpath` importa este módulo no meio da carga do `os`: aí o `os` recebe o `_init` e o chama
-# ao terminar. Importado sozinho, o `os` vem agora e o `_init` roda em seguida.
-if 'os' in __import__('sys').modules:
-    __import__('sys').modules['os']._posix_init = _init
-else:
+# O `posixpath` importa este módulo no meio da carga do `os`: aí o `os` (que guarda o `_posix_init` só
+# enquanto carrega) recebe o `_init` e o chama ao terminar. Importado sozinho, o `os` vem agora e o `_init` roda
+# em seguida; com o `os` já carregado, o `_init` roda direto (e o `os` não ganha nome nenhum).
+_loading_os = __import__('sys').modules.get('os')
+if _loading_os is None:
     __import__('os')
     _init()
+elif hasattr(_loading_os, '_posix_init'):
+    _loading_os._posix_init = _init
+else:
+    _init()
+del _loading_os

@@ -2,11 +2,15 @@
 
 __all__ = ('Context', 'ContextVar', 'Token', 'copy_context')
 
+from types import GenericAlias as _GenericAlias
+
 _MISSING = object()
 
 
 class Token:
     MISSING = _MISSING
+
+    __class_getitem__ = classmethod(_GenericAlias)
 
     def __init__(self, var, old_value):
         self.var = var
@@ -59,8 +63,7 @@ class ContextVar:
     def __hash__(self):
         return id(self)
 
-    def __class_getitem__(cls, item):
-        return cls
+    __class_getitem__ = classmethod(_GenericAlias)
 
 
 class Context:
@@ -73,3 +76,6 @@ class Context:
 
 def copy_context():
     return Context()
+
+
+del _GenericAlias

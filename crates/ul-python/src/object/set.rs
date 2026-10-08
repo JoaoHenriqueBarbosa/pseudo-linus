@@ -19,6 +19,24 @@ enum Slot {
     Active(i64, Value),
 }
 
+/// Uma posição da tabela de um [`Set`] exportada com os elementos já convertidos para `T`.
+#[derive(Clone)]
+pub enum TableSlot<T> {
+    Empty,
+    Dummy,
+    /// Hash do elemento e o elemento.
+    Active(i64, T),
+}
+
+/// A tabela de um [`Set`] por inteiro (ver [`Set::export_table`]).
+#[derive(Clone)]
+pub struct SetTable<T> {
+    pub slots: Vec<TableSlot<T>>,
+    pub fill: usize,
+    pub used: usize,
+    pub frozen: bool,
+}
+
 #[derive(Clone)]
 pub struct Set {
     table: Vec<Slot>,
@@ -51,6 +69,36 @@ impl Set {
 
     pub fn is_frozen(&self) -> bool {
         self.frozen
+    }
+
+    /// A tabela de posições como ela está, com cada elemento passado por `f`: a ordem de iteração do
+    /// CPython depende do histórico de inserções e remoções, então a imagem do heap leva a tabela
+    /// inteira (vazias, removidas, hashes) em vez de reinserir os elementos.
+    pub fn export_table<T>(&self, mut f: impl FnMut(&Value) -> T) -> SetTable<T> {
+        let slots = self
+            .table
+            .iter()
+            .map(|slot| match slot {
+                Slot::Empty => TableSlot::Empty,
+                Slot::Dummy => TableSlot::Dummy,
+                Slot::Active(h, k) => TableSlot::Active(*h, f(k)),
+            })
+            .collect();
+        SetTable { slots, fill: self.fill, used: self.used, frozen: self.frozen }
+    }
+
+    /// O inverso de [`Set::export_table`]: reconstrói o conjunto com a mesma tabela.
+    pub fn import_table<T>(table: SetTable<T>, mut f: impl FnMut(T) -> Value) -> Set {
+        let slots = table
+            .slots
+            .into_iter()
+            .map(|slot| match slot {
+                TableSlot::Empty => Slot::Empty,
+                TableSlot::Dummy => Slot::Dummy,
+                TableSlot::Active(h, k) => Slot::Active(h, f(k)),
+            })
+            .collect();
+        Set { table: slots, fill: table.fill, used: table.used, frozen: table.frozen }
     }
 
     /// O mesmo conteúdo como `frozenset` (ou como `set`, com `false`).
@@ -159,6 +207,14 @@ impl Set {
                 Ok(true)
             }
             Err(_) => Ok(false),
+        }
+    }
+
+    /// `set_update_internal` para `dict` e `set` de origem: uma só ampliação antes de inserir, quando
+    /// `(fill + incoming) * 5 >= mask * 3`, para `(used + incoming) * 2` posições.
+    pub fn presize(&mut self, incoming: usize) {
+        if (self.fill + incoming) * 5 >= self.mask() * 3 {
+            self.resize((self.used + incoming) * 2);
         }
     }
 

@@ -1,6 +1,7 @@
 """Vetores tipados compactos, guardados numa lista e serializados por `struct`."""
 
 import struct
+from types import GenericAlias as _GenericAlias
 
 typecodes = 'bBuwhHiIlLqQfd'
 _FORMATS = {'b': 'b', 'B': 'B', 'h': 'h', 'H': 'H', 'i': 'i', 'I': 'I', 'l': 'q', 'L': 'Q',
@@ -13,17 +14,29 @@ _RANGES = {'b': (-128, 127), 'B': (0, 255), 'h': (-32768, 32767), 'H': (0, 65535
 
 
 class array:
+    __class_getitem__ = classmethod(_GenericAlias)
 
-    def __init__(self, typecode, initializer=None):
+    # Como no `array_new` do CPython, tudo acontece no `__new__` e o `__init__` é o de `object`: uma
+    # subclasse que reescreve `__new__` com outra assinatura (`StyleArray` do openpyxl) funciona.
+    def __new__(cls, *args, **kwargs):
+        if kwargs and cls is array:
+            raise TypeError('array.array() takes no keyword arguments')
+        if not args:
+            raise TypeError('array() takes at least 1 argument (0 given)')
+        if len(args) > 2:
+            raise TypeError('array() takes at most 2 arguments (%d given)' % len(args))
+        typecode = args[0]
+        initializer = args[1] if len(args) > 1 else None
         if not isinstance(typecode, str) or len(typecode) != 1:
             raise TypeError('array() argument 1 must be a unicode character, not %s' % type(typecode).__name__)
         if typecode not in typecodes:
             raise ValueError('bad typecode (must be b, B, u, w, h, H, i, I, l, L, q, Q, f or d)')
+        self = object.__new__(cls)
         self.typecode = typecode
         self.itemsize = _SIZES[typecode]
         self._items = []
         if initializer is None:
-            return
+            return self
         if isinstance(initializer, (bytes, bytearray)):
             self.frombytes(initializer)
         elif isinstance(initializer, str):
@@ -35,6 +48,7 @@ class array:
         else:
             for x in initializer:
                 self.append(x)
+        return self
 
     def _check(self, x):
         t = self.typecode
@@ -227,11 +241,13 @@ class array:
         return (array, (self.typecode, self.tolist()))
 
     def __repr__(self):
+        name = type(self).__name__
         if not self._items:
-            return "array('%s')" % self.typecode
+            return "%s('%s')" % (name, self.typecode)
         if self.typecode in 'uw':
-            return "array('%s', %r)" % (self.typecode, ''.join(self._items))
-        return "array('%s', %r)" % (self.typecode, self._items)
+            return "%s('%s', %r)" % (name, self.typecode, ''.join(self._items))
+        return "%s('%s', %r)" % (name, self.typecode, self._items)
 
 
 ArrayType = array
+del _GenericAlias

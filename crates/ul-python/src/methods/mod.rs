@@ -16,6 +16,7 @@ pub mod dictm;
 pub mod dunder;
 pub mod listm;
 pub mod numm;
+pub mod rangem;
 pub mod setm;
 pub mod strm;
 pub mod tuplem;
@@ -33,15 +34,41 @@ fn table(recv: &Value) -> Option<&'static [(&'static str, NativeFnPtr)]> {
         Value::Tuple(_) => tuplem::TABLE,
         Value::Bytes(_) => bytesm::TABLE,
         Value::Int(_) | Value::Big(_) | Value::Bool(_) | Value::Float(_) => numm::TABLE,
+        Value::Range(_) => rangem::TABLE,
+        // Sem método comum: só os mágicos de `dunder`.
+        Value::Slice(_) | Value::None => &[],
+        // Os objetos de tipo nativo (iteradores, exceções, funções) só herdam os mágicos de `object` e do tipo.
+        Value::Ext(_) | Value::Exception(_) | Value::Function(_) => &[],
         _ => return None,
     })
 }
 
-/// O método `name` do tipo de `recv`, com o nome estático da tabela.
+/// O método `name` do tipo de `recv`, com o nome estático da tabela. O que o `dir()` do tipo no CPython
+/// não lista não existe (`[].__index__`, `(1).__len__`, `(1.5).bit_length`). Os objetos de tipo nativo
+/// (`Ext`, exceção, função) só têm o que a tabela do oráculo lista para o tipo deles; sem linha na tabela
+/// (um tipo de módulo próprio), nada.
 pub fn lookup(recv: &Value, name: &str) -> Option<(&'static str, NativeFnPtr)> {
-    let find = |t: &'static [(&'static str, NativeFnPtr)]| t.iter().find(|(n, _)| *n == name).map(|(n, f)| (*n, *f));
-    if matches!(recv, Value::ByteArray(_)) {
-        return find(bytearraym::TABLE).or_else(|| find(bytesm::TABLE)).or_else(|| find(dunder::TABLE));
+    let listed = if matches!(recv, Value::Ext(_) | Value::Exception(_) | Value::Function(_)) {
+        crate::builtins_ext::type_listed(recv.type_name(), name)
+    } else {
+        crate::builtins_ext::type_has_name(recv.type_name(), name)
+    };
+    if !listed {
+        return None;
     }
-    find(table(recv)?).or_else(|| find(dunder::TABLE))
+    let find = |t: &'static [(&'static str, NativeFnPtr)]| t.iter().find(|(n, _)| *n == name).map(|(n, f)| (*n, *f));
+    let own = if matches!(recv, Value::ByteArray(_)) {
+        find(bytearraym::TABLE).or_else(|| find(bytesm::TABLE))
+    } else {
+        find(table(recv)?)
+    };
+    own.or_else(|| find(dunder::TABLE))
+}
+
+/// Atributo de um tipo que só existe como nome (`NoneType`): o interpretador o lê pelo `typeattrs`.
+pub fn value_attr(obj: &Value, name: &str) -> Option<Value> {
+    match obj {
+        Value::Builtin(t) => crate::typeattrs::type_attr(t, name),
+        _ => None,
+    }
 }

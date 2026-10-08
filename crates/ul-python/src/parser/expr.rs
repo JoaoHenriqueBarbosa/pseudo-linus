@@ -6,7 +6,7 @@
 use super::{decode_string, error_at, number_constant, PResult, ParseError, Parser, Rule, StrValue};
 use crate::ast::{
     Arg, Arguments, BoolOp, CmpOp, Comprehension, Constant, Expr, ExprContext, ExprKind as E, Keyword,
-    Operator, UnaryOp,
+    Operator, Pos, UnaryOp,
 };
 use crate::token::TokenType as T;
 
@@ -469,7 +469,8 @@ impl Parser {
         let tok = self.peek(0)?.clone();
         match tok.kind {
             T::Name => {
-                let value = match tok.text.as_str() {
+                let raw = if tok.normalized { "" } else { tok.text.as_str() };
+                let value = match raw {
                     "True" => Constant::Bool(true),
                     "False" => Constant::Bool(false),
                     "None" => Constant::None,
@@ -522,9 +523,12 @@ impl Parser {
         // Pedaços da f-string em ordem; literais vizinhos se fundem ao final.
         let mut values: Vec<Expr> = Vec::new();
         let mut has_fstring = false;
+        // Primeiro token do trecho de literais simples ainda não convertido em `Constant`.
+        let mut run_start: Option<usize> = None;
         loop {
             let tok_kind = self.peek_kind(0)?;
             if tok_kind == T::String {
+                run_start.get_or_insert(self.mark);
                 let tok = self.advance();
                 match (decode_string(&tok.text).map_err(|msg| error_at(&tok, msg))?, is_bytes) {
                     (StrValue::Str(s), None | Some(false)) => {
@@ -538,25 +542,27 @@ impl Parser {
                     _ => return Err(error_at(&tok, "cannot mix bytes and nonbytes literals")),
                 }
             } else if tok_kind == T::FstringStart {
+                // Os literais simples já lidos viram um `Constant` que vai do primeiro ao último token deles.
+                let pending = run_start.take().filter(|_| !text.is_empty()).map(|from| self.pos_from(from));
                 let tok = self.advance();
                 if is_bytes == Some(true) || tok.text.contains(['b', 'B']) {
                     return Err(error_at(&tok, "cannot mix bytes and nonbytes literals"));
                 }
                 is_bytes = Some(false);
                 has_fstring = true;
-                if !text.is_empty() {
-                    values.push(self.str_constant(std::mem::take(&mut text), start));
+                if let Some(pos) = pending {
+                    values.push(Self::str_constant(std::mem::take(&mut text), pos));
                 }
                 let raw = tok.text.contains(['r', 'R']);
-                let parts = self.fstring_body(raw, false, start)?;
+                let parts = self.fstring_body(raw, false)?;
                 values.extend(parts);
             } else {
                 break;
             }
         }
         if has_fstring {
-            if !text.is_empty() {
-                values.push(self.str_constant(text, start));
+            if let Some(from) = run_start.filter(|_| !text.is_empty()) {
+                values.push(Self::str_constant(text, self.pos_from(from)));
             }
             return Ok(Some(self.node(E::JoinedStr { values: Self::merge_literals(values) }, start)));
         }
@@ -564,11 +570,12 @@ impl Parser {
         Ok(Some(self.node(E::Constant { value, kind }, start)))
     }
 
-    fn str_constant(&self, text: String, start: usize) -> Expr {
-        self.node(E::Constant { value: Constant::Str(text), kind: None }, start)
+    fn str_constant(text: String, pos: Pos) -> Expr {
+        Expr { kind: E::Constant { value: Constant::Str(text), kind: None }, pos }
     }
 
-    /// Funde literais adjacentes e descarta os vazios, como o `_PyPegen_concatenate_strings`.
+    /// Funde literais adjacentes e descarta os vazios, como o `_PyPegen_concatenate_strings`; o `Constant`
+    /// fundido vai do começo do primeiro ao fim do último.
     fn merge_literals(values: Vec<Expr>) -> Vec<Expr> {
         let mut out: Vec<Expr> = Vec::new();
         for v in values {
@@ -576,8 +583,10 @@ impl Parser {
                 if s.is_empty() {
                     continue;
                 }
-                if let Some(Expr { kind: E::Constant { value: Constant::Str(prev), .. }, .. }) = out.last_mut() {
+                if let Some(Expr { kind: E::Constant { value: Constant::Str(prev), .. }, pos }) = out.last_mut() {
                     prev.push_str(s);
+                    pos.end_lineno = v.pos.end_lineno;
+                    pos.end_col_offset = v.pos.end_col_offset;
                     continue;
                 }
             }
@@ -588,8 +597,8 @@ impl Parser {
 
     /// Corpo de uma f-string depois do `FSTRING_START` (ou de um `:` de especificação de formato):
     /// pedaços literais e campos `{...}` até o `FSTRING_END` (consumido) ou, na especificação, até o
-    /// `}` que fecha o campo (não consumido).
-    fn fstring_body(&mut self, raw: bool, in_spec: bool, start: usize) -> Result<Vec<Expr>, ParseError> {
+    /// `}` que fecha o campo (não consumido). Cada pedaço leva a posição do próprio token.
+    fn fstring_body(&mut self, raw: bool, in_spec: bool) -> Result<Vec<Expr>, ParseError> {
         let mut values = Vec::new();
         loop {
             let tok = self.peek(0)?.clone();
@@ -601,9 +610,15 @@ impl Parser {
                     } else {
                         super::decode_str_escapes(&tok.text).map_err(|msg| error_at(&tok, msg))?
                     };
-                    values.push(self.str_constant(text, start));
+                    let mut pos = super::token_pos(&tok);
+                    // `{{` e `}}`: o tokenizador entrega uma chave só e pula a outra, mas o literal do AST cobre as duas.
+                    let next = self.peek(0)?;
+                    if next.start.line == tok.end.line && next.start.byte_col == tok.end.byte_col + 1 {
+                        pos.end_col_offset = pos.end_col_offset.map(|c| c + 1);
+                    }
+                    values.push(Self::str_constant(text, pos));
                 }
-                T::Lbrace => values.extend(self.fstring_field(raw, start)?),
+                T::Lbrace => values.extend(self.fstring_field(raw)?),
                 T::FstringEnd if !in_spec => {
                     self.mark += 1;
                     return Ok(values);
@@ -615,7 +630,8 @@ impl Parser {
     }
 
     /// `fstring_replacement_field: '{' (yield_expr | star_expressions) '='? ['!' NAME] [':' spec] '}'`.
-    fn fstring_field(&mut self, raw: bool, start: usize) -> Result<Vec<Expr>, ParseError> {
+    fn fstring_field(&mut self, raw: bool) -> Result<Vec<Expr>, ParseError> {
+        let open_idx = self.mark;
         let open = self.advance();
         let expr_start = self.mark;
         let value = match self.yield_expr()? {
@@ -628,12 +644,18 @@ impl Parser {
         let expr_end = self.mark;
         let mut prefix = None;
         if self.eat_op(T::Equal)? {
+            // Os tokens são lidos sob demanda: o que vem depois do `=` precisa existir para o espaço final entrar no texto.
+            self.peek(0)?;
             prefix = Some(self.debug_text(expr_start, expr_end));
         }
         let mut conversion: i64 = -1;
+        // O primeiro token depois do texto de depuração (`!` ou `:`), onde ele termina na fonte.
+        let mut delimiter = None;
+        let bang_idx = self.mark;
         if self.eat_op(T::Exclamation)? {
+            delimiter = Some(bang_idx);
             let name = self.peek(0)?.clone();
-            conversion = match (name.kind, name.text.as_str()) {
+            conversion = match (name.kind, if name.normalized { "" } else { name.text.as_str() }) {
                 (T::Name, "s") => 115,
                 (T::Name, "r") => 114,
                 (T::Name, "a") => 97,
@@ -642,10 +664,12 @@ impl Parser {
             self.mark += 1;
         }
         let mut format_spec = None;
+        let colon_idx = self.mark;
         if self.eat_op(T::Colon)? {
-            let parts = self.fstring_body(raw, true, start)?;
+            delimiter.get_or_insert(colon_idx);
+            let parts = self.fstring_body(raw, true)?;
             let values = Self::merge_literals(parts);
-            format_spec = Some(Box::new(self.node(E::JoinedStr { values }, start)));
+            format_spec = Some(Box::new(self.node(E::JoinedStr { values }, colon_idx)));
         }
         if !self.at_op(T::Rbrace)? {
             let tok = self.peek(0)?.clone();
@@ -655,10 +679,26 @@ impl Parser {
         if prefix.is_some() && conversion == -1 && format_spec.is_none() {
             conversion = 114;
         }
-        let field = self.node(E::FormattedValue { value: Box::new(value), conversion, format_spec }, start);
-        // `{x=}` vira o texto `x=` seguido do valor.
+        let field = self.node(E::FormattedValue { value: Box::new(value), conversion, format_spec }, open_idx);
+        // `{x=}` vira o texto `x=` seguido do valor; o texto vai de depois do `{` até o `!`, o `:` ou o `}`.
         Ok(match prefix {
-            Some(text) => vec![self.str_constant(text, start), field],
+            Some(text) => {
+                let from = self.tokens[open_idx].start;
+                let (end_line, end_col) = match delimiter {
+                    Some(i) => (self.tokens[i].start.line, self.tokens[i].start.byte_col),
+                    None => {
+                        let close = self.tokens[self.mark - 1].end;
+                        (close.line, close.byte_col - 1)
+                    }
+                };
+                let pos = Pos {
+                    lineno: from.line,
+                    col_offset: from.byte_col + 1,
+                    end_lineno: Some(end_line),
+                    end_col_offset: Some(end_col),
+                };
+                vec![Self::str_constant(text, pos), field]
+            }
             None => vec![field],
         })
     }

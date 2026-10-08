@@ -118,12 +118,25 @@ fn is_stdlib_module(name: &str) -> bool {
     static NAMES: std::sync::OnceLock<std::collections::HashSet<&'static str>> = std::sync::OnceLock::new();
     NAMES
         .get_or_init(|| {
+            const MARKER: &str = "stdlib_module_names=frozenset('''";
             let src: &'static str = include_str!("modules/py/sys.py");
-            let start = src.find("stdlib_module_names = frozenset('''").map_or(0, |i| i + "stdlib_module_names = frozenset('''".len());
+            let Some(start) = src.find(MARKER).map(|i| i + MARKER.len()) else { return Default::default() };
             let end = src[start..].find("'''").map_or(src.len(), |i| start + i);
             src[start..end].split_whitespace().collect()
         })
         .contains(name)
+}
+
+/// Os candidatos de `AttributeError` e `ImportError`: o `dir()` ordenado e sem repetição, sem os nomes com `_`
+/// quando o nome errado não começa com `_` (o `_compute_suggestion_error` de `traceback.py`). O limite de
+/// candidatos vale depois do filtro.
+fn candidate_names(mut names: Vec<String>, wrong: &str) -> Vec<String> {
+    names.sort();
+    names.dedup();
+    if !wrong.starts_with('_') {
+        names.retain(|n| !n.starts_with('_'));
+    }
+    names
 }
 
 /// Sufixo da mensagem de um `NameError`/`AttributeError`/`ImportError` (`. Did you mean: 'x'?`), vazio
@@ -138,12 +151,12 @@ pub fn hint_for(e: &ExcObj, attr_names: impl FnOnce(&Value) -> Vec<String>) -> S
     let mut hint = String::new();
     let suggestion = match e.kind {
         "AttributeError" => e.extra_get("obj").and_then(|obj| {
-            let names = attr_names(&obj);
+            let names = candidate_names(attr_names(&obj), &name);
             closest(&name, names.iter().map(String::as_str))
         }),
         "ImportError" | "ModuleNotFoundError" => match e.extra_get("module") {
             Some(m) => {
-                let names = attr_names(&m);
+                let names = candidate_names(attr_names(&m), &name);
                 closest(&name, names.iter().map(String::as_str))
             }
             None => None,

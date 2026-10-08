@@ -1,0 +1,237 @@
+tool = "python3"
+source = "manual"
+
+# `codecs` e `_codecs` no CPython 3.13: o `dir()` do módulo `codecs` (puro Python, com os nomes do `_codecs`
+# trazidos por `from _codecs import *`), o `__all__`, o tipo, o módulo e a docstring das funções do `_codecs`,
+# a identidade `codecs.utf_8_decode is _codecs.utf_8_decode`, os erros de argumento, o contrato de `final`
+# (bytes consumidos, `exc.object`/`start`/`end` relativos ao buffer inteiro), `charmap_*`, `escape_*`,
+# `unicode_escape_*`, `readbuffer_encode` e o registro de tratadores de erro. O golden vem do oráculo.
+
+[[case]]
+id = "codecs-dir-all-and-builtin-identity"
+script = '''
+python3 - <<'PYEOF'
+import codecs, _codecs
+
+def t(f):
+    try:
+        print(ascii(f()))
+    except Exception as e:
+        print(type(e).__name__, ascii(str(e)))
+
+print(len(dir(codecs)))
+print(' '.join(dir(codecs)))
+print(sorted(codecs.__all__))
+print(' '.join(dir(_codecs)))
+t(lambda: codecs.utf_8_decode.__doc__)
+t(lambda: codecs.utf_8_decode.__module__)
+t(lambda: type(codecs.utf_8_decode))
+t(lambda: codecs.utf_8_decode)
+t(lambda: codecs.utf_8_decode is _codecs.utf_8_decode)
+t(lambda: all(getattr(codecs, n) is getattr(_codecs, n) for n in dir(_codecs) if not n.startswith('_')))
+t(lambda: [hasattr(codecs, n) for n in ('_buffer', '_text', '_wide_decode', '_make', '_cache', '_search', '_CANON')])
+t(lambda: (codecs.strict_errors, codecs.strict_errors.__module__, codecs.lookup_error('strict') is codecs.strict_errors))
+t(lambda: codecs.surrogateescape if hasattr(codecs, 'surrogateescape') else _codecs.lookup_error('surrogateescape'))
+t(lambda: _codecs.lookup_error('surrogatepass'))
+t(lambda: codecs.lookup('utf-8').encode is codecs.lookup('UTF8').encode)
+PYEOF
+'''
+
+[[case]]
+id = "codecs-stateless-functions-contract"
+script = '''
+python3 - <<'PYEOF'
+import codecs
+
+def t(f):
+    try:
+        print(ascii(f()))
+    except Exception as e:
+        print(type(e).__name__, ascii(str(e)))
+
+t(lambda: codecs.utf_8_decode('abc'))
+t(lambda: codecs.utf_8_decode(5))
+t(lambda: codecs.utf_8_decode(b'abc', 5))
+t(lambda: codecs.utf_8_decode(b'abc', None, 7, 8))
+t(lambda: codecs.utf_8_decode())
+t(lambda: codecs.utf_8_decode(data=b'abc'))
+t(lambda: codecs.utf_8_encode(b'abc'))
+t(lambda: codecs.utf_8_encode('a\xe9', 5))
+t(lambda: codecs.utf_8_decode(bytearray(b'a\xc3\xa9')))
+t(lambda: codecs.utf_8_decode(memoryview(b'a\xc3\xa9b')))
+t(lambda: codecs.utf_8_decode(b'a\xc3'))
+t(lambda: codecs.utf_8_decode(b'a\xc3', None, True))
+t(lambda: codecs.utf_8_decode(b'a\xe2\x82', 'strict', False))
+t(lambda: codecs.utf_8_decode(b'a\xf0\x9f\x98', 'strict', False))
+t(lambda: codecs.utf_8_decode(b'a\xe2\x28\xa1', 'strict', False))
+t(lambda: codecs.utf_8_decode(b'a\xffb', 'replace', False))
+t(lambda: codecs.utf_8_decode(b'', None, True))
+for data, final in ((b'ab\xe2\x82', False), (b'ab\xe2\x82', True), (b'ab\xe2\x28', False), (b'xx\xff', False)):
+    try:
+        codecs.utf_8_decode(data, 'strict', final)
+    except UnicodeDecodeError as e:
+        print(e.encoding, e.object, e.start, e.end, e.reason)
+for fn in ('utf_16_decode', 'utf_16_le_decode', 'utf_16_be_decode', 'utf_32_decode', 'utf_32_le_decode', 'utf_32_be_decode'):
+    f = getattr(codecs, fn)
+    for data in (b'', b'\xff\xfea\x00', b'\xfe\xff\x00a', b'a\x00b', b'a\x00\x3d\xd8', b'\x3d\xd8\x00\xde', b'\x00\xdc', b'a\x00\x00\x00b\x00', b'\x00\x00\x11\x00'):
+        for final in (False, True):
+            t(lambda: f(data, 'strict', final))
+for fn in ('utf_16_ex_decode', 'utf_32_ex_decode'):
+    f = getattr(codecs, fn)
+    for data in (b'\xff\xfea\x00\x00\x00', b'\xfe\xff\x00\x00\x00a', b'a\x00\x00\x00'):
+        for order in (0, -1, 1):
+            t(lambda: f(data, 'strict', order, True))
+t(lambda: codecs.utf_16_encode('a\U0001f600'))
+t(lambda: codecs.utf_16_encode('a', 'strict', -1))
+t(lambda: codecs.utf_16_encode('a', 'strict', 1))
+t(lambda: codecs.utf_16_le_encode('a\xe9'))
+t(lambda: codecs.utf_16_be_encode('a\xe9'))
+t(lambda: codecs.utf_32_encode('a\U0001f600'))
+t(lambda: codecs.utf_32_le_encode('a'))
+t(lambda: codecs.utf_32_be_encode('a'))
+t(lambda: codecs.utf_16_encode('\ud800'))
+t(lambda: codecs.utf_16_encode('\ud800', 'surrogatepass'))
+t(lambda: codecs.utf_16_encode('a', 'strict', 'x'))
+t(lambda: codecs.utf_16_le_encode('a', 'strict', 1))
+t(lambda: codecs.ascii_decode(b'a\xffb', 'replace'))
+t(lambda: codecs.ascii_decode(b'a\xffb'))
+t(lambda: codecs.ascii_encode('a\xe9', 'ignore'))
+t(lambda: codecs.ascii_encode('a\xe9'))
+t(lambda: codecs.latin_1_decode(b'a\xffb'))
+t(lambda: codecs.latin_1_encode('a€'))
+t(lambda: codecs.latin_1_encode('a€', 'xmlcharrefreplace'))
+t(lambda: codecs.readbuffer_encode(b'abc'))
+t(lambda: codecs.readbuffer_encode('a\xe9'))
+t(lambda: codecs.readbuffer_encode(5))
+t(lambda: codecs.readbuffer_encode(bytearray(b'xy'), 'strict'))
+PYEOF
+'''
+
+[[case]]
+id = "codecs-charmap-escape-and-unicode-escape"
+script = '''
+python3 - <<'PYEOF'
+import codecs
+
+def t(f):
+    try:
+        print(ascii(f()))
+    except Exception as e:
+        print(type(e).__name__, ascii(str(e)))
+
+table = ''.join(chr(i) for i in range(256))
+t(lambda: codecs.charmap_decode(b'abc'))
+t(lambda: codecs.charmap_decode(b'abc', 'strict', None))
+t(lambda: codecs.charmap_decode(b'\x00\x01', 'strict', 'AB'))
+t(lambda: codecs.charmap_decode(b'\x00\x05', 'strict', 'AB'))
+t(lambda: codecs.charmap_decode(b'\x00\x05', 'replace', 'AB'))
+t(lambda: codecs.charmap_decode(b'\x00\x01', 'strict', 'A￾'))
+t(lambda: codecs.charmap_decode(b'\x00\x01\x02', 'ignore', {0: 'x', 1: 66, 2: None}))
+t(lambda: codecs.charmap_decode(b'\x00\x01', 'strict', {0: 'x', 1: 0x110000}))
+t(lambda: codecs.charmap_decode(b'\x00', 'strict', {0: 1.5}))
+t(lambda: codecs.charmap_decode(b'\x07', 'strict', {}))
+t(lambda: codecs.charmap_decode('abc'))
+t(lambda: codecs.charmap_encode('abc'))
+t(lambda: codecs.charmap_encode('a€'))
+t(lambda: codecs.charmap_encode('ab', 'strict', {97: 1, 98: b'xy'}))
+t(lambda: codecs.charmap_encode('abc', 'strict', {97: 1, 98: b'xy'}))
+t(lambda: codecs.charmap_encode('abc', 'replace', {97: 1, 98: b'xy', 63: 63}))
+t(lambda: codecs.charmap_encode('abc', 'ignore', {97: 1, 98: 300}))
+t(lambda: codecs.charmap_encode('a', 'strict', {97: 'x'}))
+t(lambda: codecs.charmap_encode('a', 'strict', {97: None}))
+t(lambda: type(codecs.charmap_build('abc')).__name__)
+t(lambda: codecs.charmap_encode('cab', 'strict', codecs.charmap_build('abc')))
+t(lambda: codecs.charmap_encode('cabz', 'strict', codecs.charmap_build('abc')))
+t(lambda: codecs.charmap_build(b'abc'))
+t(lambda: codecs.escape_decode(b'a\\n\\x41\\101\\\\\\\'\\"b'))
+t(lambda: codecs.escape_decode('a\\tb'))
+t(lambda: codecs.escape_decode(b'\\x4'))
+t(lambda: codecs.escape_decode(b'\\x4', 'replace'))
+t(lambda: codecs.escape_decode(b'\\xzz', 'ignore'))
+t(lambda: codecs.escape_decode(b'\\xzz', 'bogus'))
+t(lambda: codecs.escape_decode(b'abc\\'))
+t(lambda: codecs.escape_encode(b'a\n\'"\\\x00\xff'))
+t(lambda: codecs.escape_encode('abc'))
+t(lambda: codecs.escape_encode(bytearray(b'abc')))
+t(lambda: codecs.unicode_escape_decode(b'a\\n\\x41\\u20ac\\U0001f600\\N{BULLET}\\101'))
+t(lambda: codecs.unicode_escape_decode('a\\n'))
+t(lambda: codecs.unicode_escape_decode(b'a\\x4', 'strict', False))
+t(lambda: codecs.unicode_escape_decode(b'a\\x4', 'strict', True))
+t(lambda: codecs.unicode_escape_decode(b'a\\u20', 'strict', False))
+t(lambda: codecs.unicode_escape_decode(b'a\\N{BUL', 'strict', False))
+t(lambda: codecs.unicode_escape_decode(b'a\\', 'strict', False))
+t(lambda: codecs.unicode_escape_decode(b'a\\', 'strict', True))
+t(lambda: codecs.unicode_escape_decode(b'a\\xzz'))
+t(lambda: codecs.unicode_escape_encode('a\n\xe9€\U0001f600\\'))
+t(lambda: codecs.raw_unicode_escape_decode(b'a\\u20ac\\n\\x41'))
+t(lambda: codecs.raw_unicode_escape_decode(b'a\\u20', 'strict', False))
+t(lambda: codecs.raw_unicode_escape_encode('a\n\xe9€\U0001f600\\'))
+PYEOF
+'''
+
+[[case]]
+id = "codecs-registry-and-error-handlers"
+script = '''
+python3 - <<'PYEOF'
+import codecs
+
+def t(f):
+    try:
+        print(ascii(f()))
+    except Exception as e:
+        print(type(e).__name__, ascii(str(e)))
+
+t(lambda: codecs.lookup('no-such-codec-xyz'))
+t(lambda: codecs.lookup(5))
+t(lambda: codecs.lookup())
+t(lambda: codecs.lookup('utf-8').name)
+t(lambda: codecs.lookup('  UTF 8 ').name)
+t(lambda: codecs.lookup('latin_1').name)
+t(lambda: codecs.register(5))
+t(lambda: codecs.register())
+seen = []
+def search(name):
+    seen.append(name)
+    if name == 'my_codec':
+        return codecs.CodecInfo(lambda s, e='strict': (s.encode('ascii', e), len(s)), lambda b, e='strict': (b.decode('ascii', e), len(b)), name='my-codec')
+    return None
+t(lambda: codecs.register(search))
+t(lambda: codecs.lookup('My Codec').name)
+t(lambda: codecs.encode('abc', 'my-codec'))
+t(lambda: codecs.decode(b'abc', 'my-codec'))
+t(lambda: seen)
+t(lambda: codecs.unregister(search))
+t(lambda: codecs.unregister(search))
+t(lambda: codecs.lookup('my_codec'))
+t(lambda: codecs.encode('abc'))
+t(lambda: codecs.encode(b'abc'))
+t(lambda: codecs.decode('abc'))
+t(lambda: codecs.decode(b'a\xffb', 'utf-8', 'replace'))
+t(lambda: codecs.encode('abc', encoding='utf-16-le'))
+t(lambda: codecs.encode('abc', encoding=5))
+t(lambda: codecs.encode('abc', 'hex'))
+t(lambda: codecs.decode('616263', 'hex'))
+t(lambda: codecs.lookup_error('strict'))
+t(lambda: codecs.lookup_error('nope'))
+t(lambda: codecs.lookup_error(5))
+t(lambda: codecs.register_error('x'))
+t(lambda: codecs.register_error('x', 5))
+t(lambda: codecs.register_error(5, print))
+def h(exc):
+    return ('<%s:%d:%d>' % (type(exc).__name__, exc.start, exc.end), exc.end)
+t(lambda: codecs.register_error('my.handler', h))
+t(lambda: codecs.lookup_error('my.handler') is h)
+for name in ('strict', 'ignore', 'replace', 'xmlcharrefreplace', 'backslashreplace', 'namereplace', 'surrogateescape', 'surrogatepass'):
+    t(lambda: codecs.lookup_error(name)(UnicodeEncodeError('utf-8', 'a\udc80b€', 1, 4, 'why')))
+    t(lambda: codecs.lookup_error(name)(UnicodeDecodeError('utf-8', b'a\x80\xedb', 1, 3, 'why')))
+    t(lambda: codecs.lookup_error(name)(UnicodeTranslateError('a€b', 1, 2, 'why')))
+    t(lambda: codecs.lookup_error(name)(ValueError('x')))
+    t(lambda: codecs.lookup_error(name)(5))
+t(lambda: codecs.lookup_error('surrogatepass')(UnicodeDecodeError('utf-8', b'a\xed\xa0\x80b', 1, 3, 'why')))
+t(lambda: codecs.lookup_error('surrogatepass')(UnicodeDecodeError('utf-16-le', b'a\x00\x00\xd8', 2, 4, 'why')))
+t(lambda: codecs.lookup_error('surrogatepass')(UnicodeEncodeError('utf-16-be', '\ud800', 0, 1, 'why')))
+t(lambda: codecs.lookup_error('surrogatepass')(UnicodeEncodeError('ascii', '\ud800', 0, 1, 'why')))
+t(lambda: codecs.lookup_error('surrogateescape')(UnicodeDecodeError('utf-8', b'a\x80\x81\x82\x83\x84', 1, 6, 'why')))
+t(lambda: codecs.lookup_error('surrogateescape')(UnicodeDecodeError('utf-8', b'ab', 1, 2, 'why')))
+PYEOF
+'''

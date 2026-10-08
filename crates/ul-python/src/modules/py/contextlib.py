@@ -1,9 +1,12 @@
 """contextlib do sandbox (Python embutido)."""
 
 import sys
+from types import GenericAlias
 
 
 class AbstractContextManager:
+    __class_getitem__ = classmethod(GenericAlias)
+
     def __enter__(self):
         return self
 
@@ -12,6 +15,8 @@ class AbstractContextManager:
 
 
 class AbstractAsyncContextManager:
+    __class_getitem__ = classmethod(GenericAlias)
+
     async def __aenter__(self):
         return self
 

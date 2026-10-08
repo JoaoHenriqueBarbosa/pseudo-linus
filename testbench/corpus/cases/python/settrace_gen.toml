@@ -1,0 +1,153 @@
+tool = "python3"
+source = "manual"
+
+# sys.settrace e sys.setprofile em geradores: o evento 'line' na retomada após o yield (não repete a
+# linha do yield), no salto para trás de um laço dentro do gerador (dispara de novo no alvo, mesmo na
+# mesma linha) e nos laços de uma linha só. Cada caso imprime a lista de (evento, linha relativa à
+# definição da função), saída determinística.
+
+[[case]]
+id = "python-settrace-gen-for-loop"
+script = '''
+python3 - <<'PYEOF'
+import sys
+
+def gen_for(n):
+    for i in range(n):
+        yield i
+    return 'done'
+
+def gen_for_one_line(n):
+    for i in range(n): yield i
+
+def gen_while(n):
+    i = 0
+    while i < n:
+        yield i
+        i += 1
+
+def gen_continue(n):
+    for i in range(n):
+        if i == 1:
+            continue
+        yield i
+
+def trace(fn, *args):
+    events = []
+    base = fn.__code__.co_firstlineno
+    def local(frame, event, arg):
+        if frame.f_code is fn.__code__:
+            events.append((event, frame.f_lineno - base))
+        return local
+    def glob(frame, event, arg):
+        if frame.f_code is fn.__code__:
+            events.append((event, frame.f_lineno - base))
+            return local
+        return None
+    sys.settrace(glob)
+    try:
+        out = list(fn(*args))
+    finally:
+        sys.settrace(None)
+    print(fn.__name__, out)
+    print(events)
+
+trace(gen_for, 2)
+trace(gen_for_one_line, 2)
+trace(gen_while, 2)
+trace(gen_continue, 3)
+PYEOF
+'''
+
+[[case]]
+id = "python-settrace-gen-manual-resume"
+script = '''
+python3 - <<'PYEOF'
+import sys
+
+def gen_send():
+    x = yield 1
+    y = yield x
+    return y
+
+def gen_yield_from():
+    yield from range(2)
+    yield 9
+
+def gen_loop_send():
+    total = 0
+    while total < 3:
+        total += (yield total)
+
+def trace(fn, driver):
+    events = []
+    base = fn.__code__.co_firstlineno
+    def local(frame, event, arg):
+        if frame.f_code is fn.__code__:
+            events.append((event, frame.f_lineno - base))
+        return local
+    def glob(frame, event, arg):
+        if frame.f_code is fn.__code__:
+            events.append((event, frame.f_lineno - base))
+            return local
+        return None
+    sys.settrace(glob)
+    try:
+        out = driver(fn())
+    finally:
+        sys.settrace(None)
+    print(fn.__name__, out)
+    print(events)
+
+def drive_send(g):
+    out = [next(g)]
+    out.append(g.send(5))
+    try:
+        g.send(7)
+    except StopIteration as e:
+        out.append(e.value)
+    return out
+
+def drive_all(g):
+    return list(g)
+
+def drive_loop(g):
+    out = [next(g)]
+    while True:
+        try:
+            out.append(g.send(2))
+        except StopIteration:
+            return out
+
+trace(gen_send, drive_send)
+trace(gen_yield_from, drive_all)
+trace(gen_loop_send, drive_loop)
+PYEOF
+'''
+
+[[case]]
+id = "python-setprofile-gen"
+script = '''
+python3 - <<'PYEOF'
+import sys
+
+def gen(n):
+    for i in range(n):
+        yield i
+
+def run():
+    return list(gen(2))
+
+events = []
+def prof(frame, event, arg):
+    if event in ('call', 'return') and frame.f_code is gen.__code__:
+        events.append((event, frame.f_lineno - gen.__code__.co_firstlineno, repr(arg)))
+
+sys.setprofile(prof)
+try:
+    run()
+finally:
+    sys.setprofile(None)
+print(events)
+PYEOF
+'''

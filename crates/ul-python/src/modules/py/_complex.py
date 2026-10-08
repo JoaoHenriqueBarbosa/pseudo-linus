@@ -4,6 +4,9 @@ O interpretador resolve o nome `complex` para esta classe e compila literais com
 `complex(0.0, 3.0)`.
 """
 
+# No CPython a classe e os métodos são do módulo `builtins`; o nome deste módulo de apoio não pode vazar
+# em `__module__` das funções.
+__name__ = 'builtins'
 import math as _math
 
 

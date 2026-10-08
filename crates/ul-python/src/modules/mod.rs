@@ -11,6 +11,7 @@ pub mod archivenative;
 pub mod base64;
 pub mod binascii;
 pub mod builtinsmod;
+pub mod codecsnative;
 pub mod cpydocs;
 pub mod csv;
 pub mod hashlib;
@@ -20,6 +21,10 @@ pub mod json;
 pub mod markupsafe_speedups;
 pub mod math;
 pub mod operator;
+pub mod opcodenative;
+pub mod osextra;
+pub mod osfcntl;
+pub mod osspawn;
 pub mod osnative;
 pub mod pystruct;
 pub mod pysrc;
@@ -30,20 +35,25 @@ pub mod astnative;
 pub mod sqlitenative;
 pub mod string;
 pub mod weakrefmod;
+pub mod yaml_native;
 pub mod lsprof;
 pub mod mtrandom;
 pub mod textwrap;
+pub mod tls_crypto;
 pub mod ucd;
 pub mod unicodedata;
 pub mod userimport;
+pub mod utf7native;
+pub mod warningsnative;
 pub mod zlibnative;
 
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::rc::Rc;
 
+use crate::modrun::{Body, ImportPlan, Load};
 use crate::object::{ModuleObj, NativeFn, NativeFnPtr, Value};
-use crate::vm::{exc, PyResult, Vm};
+use crate::vm::{exc, Entered, PyResult, Vm};
 
 /// Monta um [`ModuleObj`] atributo a atributo.
 pub struct ModuleBuilder {
@@ -94,6 +104,7 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         "_struct" => pystruct::build(vm),
         "unicodedata" => unicodedata::build(vm),
         "_operator" => operator::build(vm),
+        "_opcode" => opcodenative::build(vm),
         "_os" => osnative::build(vm),
         "_zlib" => zlibnative::build(vm),
         "PIL._imaging" => imaging::build(vm),
@@ -107,6 +118,12 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         "_mt" => mtrandom::build(vm),
         "_json_native" => json::build(vm),
         "_prof" => lsprof::build(vm),
+        "_yaml_core" => yaml_native::build_core(vm),
+        "_tls_crypto" => tls_crypto::build(vm),
+        "_utf7" => utf7native::build(vm),
+        "_codecs" => codecsnative::build(vm),
+        "_warnings" => warningsnative::build(vm),
+        "_idna" => crate::idna::build(vm),
         _ => return pysrc::import(vm, name),
     };
     // Os nativos que no Debian são C embutido no executável têm `__doc__` e `__package__` vazio.
@@ -127,15 +144,16 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
 /// programa os vê como ausentes (`No module named`), inclusive em `sys.modules`.
 pub(crate) const INTERNAL: &[&str] = &[
     "_os", "_sys", "_mt", "_net", "_archive", "_archivefile", "_prof", "_csvimpl", "_re", "_base64",
-    "_zlib", "_ast_native", "_match", "_memoryview", "_complex", "_excgroup", "asyncio.loopback", "_json_native", "_anext",
+    "_zlib", "_ast_native", "_match", "_memoryview", "_complex", "_excgroup", "_mappingproxy", "_json_native", "_anext",
+    "_yaml_core", "_yaml_impl", "_tls_crypto", "_utf7", "_idna", "_unraisable", "_select", "_gsched",
 ];
 
-/// `import nome` vindo de código do programa: os módulos de apoio não existem para ele.
-pub fn import_visible(vm: &mut Vm, name: &str, internal_caller: bool) -> PyResult<Value> {
+/// Os módulos de apoio não existem para o `import` de código do programa.
+fn hide_internal(name: &str, internal_caller: bool) -> PyResult<()> {
     if !internal_caller && INTERNAL.contains(&name) {
         return Err(exc("ModuleNotFoundError", format!("No module named '{name}'")));
     }
-    import_value(vm, name)
+    Ok(())
 }
 
 /// `import nome` como o `importlib._bootstrap._find_and_load`: devolve o que estiver em `sys.modules`
@@ -291,16 +309,11 @@ fn register(vm: &mut Vm, name: &str, value: &Value) {
 }
 
 /// `import nome` vindo do programa: arquivos do usuário em `sys.path` primeiro (como o CPython), depois
-/// os módulos embutidos. Importa os pais de `a.b.c` antes.
+/// os módulos embutidos. Importa os pais de `a.b.c` antes. O corpo de um módulo de arquivo roda aqui por recursão
+/// (`Vm::run_module_callee`); o `import` do laço de instruções o roda como quadro (`begin_import`).
 pub fn import_checked(vm: &mut Vm, name: &str) -> PyResult<Rc<ModuleObj>> {
     if let Some(m) = vm.modules.borrow().get(name) {
         return Ok(m.clone());
-    }
-    if name == "__main__" {
-        // O script principal como módulo: as globais dele, vivas.
-        let m = Rc::new(ModuleObj { name: "__main__", attrs: RefCell::new(BTreeMap::new()) });
-        vm.modules.borrow_mut().insert("__main__".to_string(), m.clone());
-        return Ok(m);
     }
     if let Some((parent, _)) = name.rsplit_once('.') {
         if !vm.foreign_modules.borrow().contains_key(parent) {
@@ -310,21 +323,79 @@ pub fn import_checked(vm: &mut Vm, name: &str) -> PyResult<Rc<ModuleObj>> {
             return Ok(m.clone());
         }
     }
-    if let Some(m) = userimport::load(vm, name)? {
-        return Ok(m);
+    match load_one(vm, name)? {
+        Load::Ready(m) => Ok(m),
+        Load::Body(body) => {
+            let callee = vm.open_body(body, None);
+            match vm.run_module_callee(callee)? {
+                Value::Module(m) => Ok(m),
+                _ => Err(crate::vm::internal("an import that did not end in a module")),
+            }
+        }
+    }
+}
+
+/// O passo de importar só `name`, com os pais já importados: o módulo pronto (embutido, de pacote de namespace,
+/// extensão nativa ou já carregado), ou o corpo de um arquivo `.py`, com o módulo já registrado em `sys.modules`.
+fn load_one(vm: &mut Vm, name: &str) -> PyResult<Load> {
+    if let Some(m) = vm.modules.borrow().get(name) {
+        return Ok(Load::Ready(m.clone()));
+    }
+    if name == "__main__" {
+        // O script principal como módulo: as globais dele, vivas.
+        let m = Rc::new(ModuleObj { name: "__main__", attrs: RefCell::new(BTreeMap::new()) });
+        vm.modules.borrow_mut().insert("__main__".to_string(), m.clone());
+        return Ok(Load::Ready(m));
+    }
+    if let Some(loaded) = userimport::load(vm, name)? {
+        return Ok(loaded);
     }
     match import(vm, name) {
-        Some(m) => Ok(m),
+        Some(m) => Ok(Load::Ready(m)),
         None => {
             if let Some(e) = pysrc::take_error() {
                 return Err(e);
             }
             match userimport::load_stdlib(vm, name)? {
-                Some(m) => Ok(m),
+                Some(loaded) => Ok(loaded),
                 None => Err(exc("ModuleNotFoundError", format!("No module named '{name}'"))),
             }
         }
     }
+}
+
+/// Um passo do `import` pelo laço de instruções: importa só `name` (os pais já foram) e devolve o corpo a rodar
+/// como quadro, ou `None` quando o módulo já está pronto. Com finders do programa em `sys.meta_path` a busca é a
+/// recursiva de `import_value`, que os consulta.
+pub(crate) fn import_step(vm: &mut Vm, name: &str) -> PyResult<Option<Body>> {
+    if vm.modules.borrow().contains_key(name) || vm.foreign_modules.borrow().contains_key(name) {
+        return Ok(None);
+    }
+    let (before, after) = meta_path_finders(vm);
+    if !before.is_empty() || !after.is_empty() {
+        import_value(vm, name)?;
+        return Ok(None);
+    }
+    Ok(match load_one(vm, name)? {
+        Load::Ready(_) => None,
+        Load::Body(body) => Some(body),
+    })
+}
+
+/// `import name` pelo laço de instruções: o módulo `result` (o próprio `name`, ou a raiz dele) se já está pronto, ou
+/// o quadro do primeiro corpo que falta rodar, com a cadeia dos pais e do resto por vir (`ImportPlan`).
+pub(crate) fn begin_import(vm: &mut Vm, name: &str, result: &str) -> PyResult<Entered> {
+    if vm.modules.borrow().contains_key(name) || vm.foreign_modules.borrow().contains_key(name) {
+        return import_value(vm, result).map(Entered::Done);
+    }
+    let next = vm.continue_import(ImportPlan::new(name, result))?;
+    crate::vm::entered_of(next)
+}
+
+/// `begin_import` do `import nome` de código do programa (os módulos de apoio não existem para ele).
+pub(crate) fn begin_import_visible(vm: &mut Vm, name: &str, internal_caller: bool) -> PyResult<Entered> {
+    hide_internal(name, internal_caller)?;
+    begin_import(vm, name, name)
 }
 
 /// O nome absoluto de `from <level pontos><rel> import ...` a partir do pacote das globais atuais.
@@ -355,6 +426,37 @@ pub fn resolve_relative(vm: &mut Vm, rel: &str, level: usize) -> PyResult<String
     Ok(if rel.is_empty() { base } else { format!("{base}.{rel}") })
 }
 
+thread_local! {
+    /// Os módulos cujo código está rodando agora (o `__spec__._initializing` do CPython).
+    static INITIALIZING: RefCell<Vec<&'static str>> = const { RefCell::new(Vec::new()) };
+}
+
+/// Marca `name` como em importação enquanto vive (o `_initializing` que o `_load_unlocked` liga).
+pub(crate) struct Initializing(&'static str);
+
+impl Initializing {
+    pub(crate) fn enter(name: &'static str) -> Self {
+        INITIALIZING.with(|v| v.borrow_mut().push(name));
+        Initializing(name)
+    }
+}
+
+impl Drop for Initializing {
+    fn drop(&mut self) {
+        INITIALIZING.with(|v| {
+            let mut v = v.borrow_mut();
+            if let Some(at) = v.iter().rposition(|n| *n == self.0) {
+                v.remove(at);
+            }
+        });
+    }
+}
+
+/// O módulo `name` ainda está rodando o próprio código (importação circular).
+pub(crate) fn is_initializing(name: &str) -> bool {
+    INITIALIZING.with(|v| v.borrow().contains(&name))
+}
+
 /// `types.ModuleType(name, doc=None)`: um módulo vazio, com globais vivas e sem entrada em `sys.modules`.
 pub fn new_module(vm: &mut Vm, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
     let a = crate::native_util::bind("module", args, kwargs, &["name", "doc"], 1)?;
@@ -377,7 +479,7 @@ pub fn new_module(vm: &mut Vm, args: Vec<Value>, kwargs: Vec<(String, Value)>) -
 /// Módulos escritos em Rust, além dos que `pysrc` embute em Python.
 const NATIVE_MODULES: &[&str] = &[
     "_sys", "_csvimpl", "_re", "math", "_base64", "binascii", "builtins", "hashlib", "html", "textwrap",
-    "_struct", "unicodedata", "_operator", "_os", "_zlib", "_archive", "_sqlite3", "_ast_native", "_weakref", "_mt", "_json_native", "_prof",
+    "_struct", "unicodedata", "_operator", "_os", "_zlib", "_archive", "_sqlite3", "_ast_native", "_weakref", "_mt", "_json_native", "_prof", "_yaml_core", "_tls_crypto", "_utf7", "_idna",
     "PIL._imaging", "PIL._imagingft", "PIL._imagingmath", "PIL._imagingmorph",
 ];
 

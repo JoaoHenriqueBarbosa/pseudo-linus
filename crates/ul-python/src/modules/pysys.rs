@@ -4,17 +4,18 @@
 
 use std::rc::Rc;
 
+use crate::frameobj::FrameLink;
 use crate::modules::ModuleBuilder;
 use crate::native_util::no_kwargs;
-use crate::object::{ExcObj, Kw, ModuleObj, Value};
-use crate::vm::{exc, PyException, PyResult, Vm};
+use crate::object::{Kw, ModuleObj, Value};
+use crate::vm::{exc, PyResult, Vm};
 
 fn exit(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_kwargs("exit", &kw)?;
     if args.len() > 1 {
         return Err(crate::vm::type_error(format!("exit expected at most 1 argument, got {}", args.len())));
     }
-    Err(PyException::from_value(&Value::Exception(Rc::new(ExcObj::new("SystemExit", args)))))
+    Err(crate::native_util::system_exit(args))
 }
 
 fn exc_info(vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
@@ -37,35 +38,96 @@ fn getframe(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
         Some(v) => crate::native_util::want_int(v)?.max(0) as usize,
         None => 0,
     };
-    frame_at_depth(vm, depth)
+    frame_at_depth(vm, depth, false)
 }
 
-/// O quadro em execução (o `frame` que os rastreadores do `sys.settrace` recebem).
-pub fn current_frame(vm: &mut Vm) -> PyResult<Value> {
-    frame_at_depth(vm, 0)
+/// Gera as funções que devolvem o quadro mais interno em execução, cada uma com o seu `fresh_innermost`.
+macro_rules! innermost_frame {
+    ($($(#[$meta:meta])* $name:ident => $fresh_innermost:expr;)*) => {
+        $($(#[$meta])* pub fn $name(vm: &mut Vm) -> PyResult<Value> {
+            frame_at_depth(vm, 0, $fresh_innermost)
+        })*
+    };
+}
+
+innermost_frame! {
+    /// O quadro em execução (o `frame` que os rastreadores do `sys.settrace` recebem).
+    current_frame => false;
+    /// O quadro que acabou de ser chamado (evento `call`): nenhum estado de um quadro anterior vale nele.
+    new_frame => true;
+}
+
+/// Gera as funções nativas sem argumentos que só devolvem um valor do estado da VM.
+macro_rules! native_getters {
+    ($($name:ident => $value:expr;)*) => {
+        $(fn $name(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+            Ok($value)
+        })*
+    };
+}
+
+native_getters! {
+    gettrace => crate::tracing::get();
+    getprofile => crate::tracing::get_profile();
+    getrecursionlimit => Value::Int(crate::vm::RECURSION_LIMIT.with(|c| c.get()) as i64);
+}
+
+/// O gancho do primeiro argumento de `settrace`/`setprofile`: `None` desliga.
+fn hook_arg(args: Vec<Value>) -> Option<Value> {
+    args.into_iter().next().filter(|v| !matches!(v, Value::None))
 }
 
 fn settrace(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
-    crate::tracing::set(args.into_iter().next().filter(|v| !matches!(v, Value::None)));
+    crate::tracing::set(hook_arg(args));
     Ok(Value::None)
 }
 
-fn gettrace(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
-    Ok(crate::tracing::get())
+fn setprofile(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    // Só a chamada que já rodava instrumentada (havia perfil antes) devolve `c_return` ao novo perfil.
+    let was_profiling = crate::tracing::profiling();
+    crate::tracing::set_profile(hook_arg(args));
+    if was_profiling {
+        let this = Value::NativeFn(std::rc::Rc::new(crate::object::NativeFn { name: "setprofile", f: setprofile }));
+        crate::tracing::profile_started(vm, this)?;
+    }
+    Ok(Value::None)
 }
 
-fn frame_at_depth(vm: &mut Vm, depth: usize) -> PyResult<Value> {
+/// `_sys._swap_hooks(trace, profile)`: instala o rastreador e a função de perfil da thread que
+/// roda e devolve `(trace, profile)` de antes, sem evento no perfil (só o `threading` embutido usa).
+fn swap_hooks(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    let mut args = args.into_iter().map(|v| Some(v).filter(|v| !matches!(v, Value::None)));
+    let (trace, profile) = (args.next().flatten(), args.next().flatten());
+    let (old_trace, old_profile) = crate::tracing::swap_hooks(trace, profile);
+    Ok(Value::tuple(vec![old_trace, old_profile]))
+}
+
+fn frame_at_depth(vm: &mut Vm, depth: usize, fresh_innermost: bool) -> PyResult<Value> {
     // Do quadro mais interno para o `<module>`: cada função guarda a linha do seu chamador.
     let script: std::rc::Rc<str> = vm.script_name().into();
-    let mut chain: Vec<(usize, String, std::rc::Rc<str>)> = Vec::new();
+    let mut chain: Vec<FrameLink> = Vec::new();
     let mut line = vm.cur_line.get();
-    for (code, caller_line) in vm.frames.borrow().iter().rev() {
+    for (code, caller_line, env) in vm.frames.borrow().iter().rev() {
+        // Quadro de código que no CPython seria C: não existe para `_getframe`, `f_back` nem `inspect`.
+        // O chamador dele continua na linha de onde a chamada partiu.
+        if crate::vm::code_is_native(code) {
+            line = *caller_line;
+            continue;
+        }
         let file: std::rc::Rc<str> = if code.filename.is_empty() { script.clone() } else { code.filename.as_str().into() };
-        chain.push((line, code.name.clone(), file));
+        chain.push(FrameLink {
+            line,
+            name: code.name.clone(),
+            file,
+            code: Some(code.clone()),
+            env: Some(env.clone()),
+            caller_line: *caller_line,
+        });
         line = *caller_line;
     }
-    chain.push((line, "<module>".to_string(), script));
-    crate::tbobj::frame_at(chain, depth).ok_or_else(|| exc("ValueError", "call stack is not deep enough"))
+    chain.push(FrameLink { line, name: "<module>".to_string(), file: script, code: None, env: None, caller_line: 0 });
+    crate::frameobj::live_frame_at(chain, depth, fresh_innermost)
+        .ok_or_else(|| exc("ValueError", "call stack is not deep enough"))
 }
 
 /// `_source_line(arquivo, número)`: a linha do fonte de um módulo carregado (embutido ou do usuário).
@@ -147,10 +209,6 @@ fn pop_module(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::Bool(module || foreign))
 }
 
-fn getrecursionlimit(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
-    Ok(Value::Int(crate::vm::RECURSION_LIMIT.with(|c| c.get()) as i64))
-}
-
 fn setrecursionlimit(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     match args.first() {
         Some(Value::Int(n)) if *n >= 1 => crate::vm::RECURSION_LIMIT.with(|c| c.set(*n as usize)),
@@ -225,7 +283,7 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
         .chain(crate::STDLIB_PATH.iter().map(|p| Value::str(*p)))
         .chain(layout.site.iter().map(|p| Value::str(p.clone())))
         .collect();
-    ModuleBuilder::new("_sys")
+    crate::stdin::register(crate::gthread::register(ModuleBuilder::new("_sys")))
         .value("argv", Value::list(argv))
         .value("script_dir", Value::str(script_dir(vm)))
         .value("executable", Value::str(layout.executable))
@@ -246,6 +304,9 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
         .func("_getframe", getframe)
         .func("settrace", settrace)
         .func("gettrace", gettrace)
+        .func("setprofile", setprofile)
+        .func("getprofile", getprofile)
+        .func(crate::tracing::SWAP_HOOKS, swap_hooks)
         .func("_modules", modules_snapshot)
         .func("_exc_hint", exc_hint)
         .func("_builtin", mark_builtin)

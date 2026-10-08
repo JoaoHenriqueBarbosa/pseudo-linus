@@ -37,5 +37,10 @@ ul-archive = { path = "../ul-archive" }
 ul-sqlite = { path = "../ul-sqlite" }
 rusqlite = { version = "=0.40.2", default-features = false, features = ["functions", "hooks", "limits", "series", "collation", "window", "backup", "serialize", "modern_sqlite", "cache", "column_decltype"] }
 
+[dev-dependencies]
+# Os testes de `os.fork` rodam o interpretador dentro de um pseudo-processo do kernel de teste (que cria o
+# filho de `spawn_fn` e o espera de verdade).
+sysabi = { workspace = true, features = ["testkit"] }
+
 [lints]
 workspace = true

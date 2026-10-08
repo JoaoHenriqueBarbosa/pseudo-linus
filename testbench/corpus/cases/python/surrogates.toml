@@ -1,0 +1,516 @@
+tool = "python3"
+source = "manual"
+
+# Surrogates soltos (U+D800..U+DFFF) e o plano 16 (U+10D800.., U+10FFFF) no `str` do CPython 3.13:
+# len, indexação, fatia, repr, ascii, hash, chr/ord, os codecs com todos os tratadores de erro e as
+# mensagens de exceção, fsencode/fsdecode, json, formatação, `re`, `unicodedata`, `isX`, comparação
+# e ordenação. Nenhum script imprime um surrogate cru: a saída passa por `ascii()`, `repr()` ou hex.
+
+[[case]]
+id = "surrogate-str-basics"
+script = '''
+python3 - <<'PYEOF'
+s = '\ud800\udfff\U0010d800\U0010ffff'
+print(len(s), [hex(ord(c)) for c in s])
+for i in range(-4, 4):
+    print(i, ascii(s[i]))
+print(ascii(s[1:3]), ascii(s[::-1]), ascii(s[::2]), ascii(s[3:1:-1]))
+print(repr(s), ascii(s))
+print(repr('\ud800'), repr('\udfff'), repr('\U0010d800'), repr('\U0010ffff'), repr('\U0010fffd'))
+print(ascii('\ud83d\ude00'), len('\ud83d\ude00'), len('\U0001f600'), '\ud83d\ude00' == '\U0001f600')
+print(s.count('\ud800'), s.find('\udfff'), s.index('\U0010d800'), s.rfind('\U0010ffff'), '\udfff' in s)
+print(ascii(s.replace('\udfff', 'x')), ascii(s.split('\U0010d800')), ascii(s.partition('\udfff')))
+print(ascii(s + 'a'), ascii(s * 2), ascii(s.center(8, '\ud800')), ascii(s.ljust(6, '\U0010ffff')))
+print(ascii(s.upper()), ascii(s.lower()), ascii(s.swapcase()), ascii(s.title()), ascii(s.casefold()))
+print(hash(s) == hash('\ud800\udfff\U0010d800\U0010ffff'), hash('\ud800') == hash('\udfff'))
+print(hash('\ud800') == hash('\ud800'), len({'\ud800', '\ud800', '\udfff', '\U0010d800'}))
+print(s.isascii(), s.isprintable(), s.isidentifier(), '%r' % s, '%a' % s, '%s' % ascii(s))
+print(ascii(str(s)), ascii(str(s.encode('utf-16-le', 'surrogatepass'), 'utf-16-le', 'surrogatepass')))
+print(ascii(''.join(reversed(s))), ascii(list(s)), ascii(tuple(s)), ascii({s: 1}))
+PYEOF
+'''
+
+[[case]]
+id = "surrogate-chr-ord-edges"
+script = '''
+python3 - <<'PYEOF'
+for n in [0, 0x7f, 0x80, 0xd7ff, 0xd800, 0xdbff, 0xdc00, 0xdfff, 0xe000, 0xffff, 0x10000, 0x10d7ff, 0x10d800, 0x10dfff, 0x10fffd, 0x10ffff]:
+    c = chr(n)
+    print(hex(n), len(c), ord(c) == n, ascii(c), c.isprintable(), c.isalpha(), c.isspace())
+for bad in [-1, 0x110000, 0x7fffffff, 2**64, 2**100]:
+    try:
+        chr(bad)
+    except Exception as e:
+        print(bad, type(e).__name__, e)
+for bad in ['', 'ab', b'a', None, 1.5]:
+    try:
+        ord(bad)
+    except Exception as e:
+        print(repr(bad), type(e).__name__, e)
+print(ord(b'\xff'), ord(bytearray(b'a')))
+print(chr(0xd800) + chr(0xdc00) == '\ud800\udc00', ascii(chr(0xd800) + chr(0xdc00)))
+print(ascii('\N{LATIN SMALL LETTER A}'), '\x41', '\u0041', '\U00000041', ascii('\U0010ffff\ud800'))
+print(ascii(eval("'\\ud800\\udfff'")), ascii(eval(r"'\U0010ffff'")), len(eval(r"'\ud83d\ude00'")))
+for src in ["'\\U00110000'", "'\\Uffffffff'", "'\\ud800'", "b'\\ud800'"]:
+    try:
+        print(src, ascii(eval(src)))
+    except Exception as e:
+        print(src, type(e).__name__, e)
+print(bytes(range(256)).decode('latin-1').isascii(), [ascii(chr(i)) for i in (0xa0, 0xad, 0xff, 0x100)])
+PYEOF
+'''
+
+[[case]]
+id = "surrogate-utf8-codec"
+script = '''
+python3 - <<'PYEOF'
+def t(f):
+    try:
+        r = f()
+        print(ascii(r))
+    except Exception as e:
+        print(type(e).__name__, e)
+
+s = 'a\ud800b\udfffc\U0010d800d\U0010ffff'
+for enc in ['utf-8', 'UTF8', 'utf_8']:
+    t(lambda: s.encode(enc))
+for err in ['strict', 'surrogateescape', 'surrogatepass', 'replace', 'ignore', 'backslashreplace', 'xmlcharrefreplace', 'namereplace']:
+    print('encode', err)
+    t(lambda: s.encode('utf-8', err))
+    t(lambda: '\udc80\udcff'.encode('utf-8', err))
+    t(lambda: '\ud800'.encode('utf-8', err))
+for err in ['strict', 'surrogateescape', 'surrogatepass', 'replace', 'ignore', 'backslashreplace']:
+    print('decode', err)
+    for b in [b'\xed\xa0\x80', b'\xed\xbf\xbf', b'\xff\xfe', b'a\x80b', b'\xf4\x90\x80\x80', b'\xf4\x8f\xbf\xbf', b'\xc0\x80', b'\xe2\x82', b'\xf0\x9f']:
+        t(lambda: b.decode('utf-8', err))
+t(lambda: b'\xed\xa0\x80\xed\xb0\x80'.decode('utf-8', 'surrogatepass'))
+t(lambda: b'\xed\xa0\x80\xed\xb0\x80'.decode('utf-8', 'surrogateescape'))
+t(lambda: '\ud800\udc00'.encode('utf-8', 'surrogatepass'))
+t(lambda: '\udc80'.encode('utf-8', 'surrogateescape'))
+t(lambda: '\ud800'.encode('utf-8', 'surrogateescape'))
+t(lambda: '\udcff'.encode('ascii', 'surrogateescape'))
+t(lambda: b'\x80'.decode('ascii', 'surrogateescape'))
+t(lambda: str(b'\xed\xa0\x80', 'utf-8', 'nosuchhandler'))
+t(lambda: '\ud800'.encode('utf-8', 'nosuchhandler'))
+t(lambda: '\ud800'.encode('nosuchcodec'))
+PYEOF
+'''
+
+[[case]]
+id = "surrogate-utf16-utf32-codecs"
+script = '''
+python3 - <<'PYEOF'
+def t(f):
+    try:
+        r = f()
+        print(ascii(r))
+    except Exception as e:
+        print(type(e).__name__, e)
+
+for enc in ['utf-16', 'utf-16-le', 'utf-16-be', 'utf-32', 'utf-32-le', 'utf-32-be']:
+    print(enc)
+    for s in ['\ud800', '\udfff', '\ud800\udc00', '\U0010ffff', '\U0010d800', 'a\udc80b']:
+        for err in ['strict', 'surrogatepass', 'replace', 'ignore', 'backslashreplace']:
+            t(lambda: s.encode(enc, err))
+for enc in ['utf-16-le', 'utf-16-be', 'utf-32-le', 'utf-32-be']:
+    print('decode', enc)
+    for hexs in ['00d8', '00dc', '00d800dc', '00dc00d8', '3dd800de', '00d80000', '00', '00d8000000', '0000110000', '0000dc00', '00d80000', 'ffff10000000']:
+        b = bytes.fromhex(hexs)
+        for err in ['strict', 'surrogatepass', 'replace', 'ignore', 'backslashreplace']:
+            t(lambda: b.decode(enc, err))
+t(lambda: b'\xff\xfe\x00\xd8'.decode('utf-16', 'surrogatepass'))
+t(lambda: b'\xfe\xff\xd8\x00'.decode('utf-16', 'surrogatepass'))
+t(lambda: b'\xff\xfe\x00\x00'.decode('utf-32'))
+t(lambda: b'\xff\xfe\x00\x00\x00\xd8\x00\x00'.decode('utf-32', 'surrogatepass'))
+t(lambda: '\ud800'.encode('utf-7'))
+t(lambda: '\ud800\udc00'.encode('utf-7'))
+t(lambda: b'+2AA-'.decode('utf-7'))
+t(lambda: b'+2ADcAA-'.decode('utf-7'))
+PYEOF
+'''
+
+[[case]]
+id = "surrogate-latin1-ascii-handlers"
+script = '''
+python3 - <<'PYEOF'
+def t(f):
+    try:
+        r = f()
+        print(ascii(r))
+    except Exception as e:
+        print(type(e).__name__, e)
+
+s = 'a\ud800b\xe9c\udfffd\u20ac\U0010d800\U0010ffff\U0001f600'
+for enc in ['latin-1', 'ascii', 'iso-8859-15', 'cp1252']:
+    print(enc)
+    for err in ['strict', 'surrogateescape', 'surrogatepass', 'replace', 'ignore', 'backslashreplace', 'xmlcharrefreplace', 'namereplace']:
+        t(lambda: s.encode(enc, err))
+        t(lambda: '\udc80\udcff'.encode(enc, err))
+        t(lambda: 'caf\xe9 \u2603'.encode(enc, err))
+print('namereplace')
+t(lambda: '\xe9\u2603\U0001f600\u0000\x7f\x80'.encode('ascii', 'namereplace'))
+t(lambda: '\ud800'.encode('ascii', 'namereplace'))
+t(lambda: '\U0010ffff'.encode('ascii', 'namereplace'))
+t(lambda: '\U0010d800'.encode('ascii', 'namereplace'))
+t(lambda: '\ue000'.encode('ascii', 'namereplace'))
+t(lambda: '\u4e00'.encode('ascii', 'namereplace'))
+t(lambda: '\uac00'.encode('ascii', 'namereplace'))
+print('decode')
+for err in ['strict', 'surrogateescape', 'replace', 'ignore', 'backslashreplace']:
+    t(lambda: b'a\x80\xff\x7f'.decode('ascii', err))
+    t(lambda: b'a\x80\xff\x7f'.decode('latin-1', err))
+    t(lambda: b'a\x81\x8d\x90\xfd'.decode('cp1252', err))
+t(lambda: bytes(range(0x80, 0x90)).decode('ascii', 'surrogateescape'))
+t(lambda: '\udc80\udc81'.encode('ascii', 'surrogateescape'))
+t(lambda: '\udc7f'.encode('ascii', 'surrogateescape'))
+t(lambda: '\udd00'.encode('ascii', 'surrogateescape'))
+t(lambda: '\udcff'.encode('latin-1', 'surrogateescape'))
+import codecs
+t(lambda: codecs.encode('\ud800x', 'utf-8', 'surrogatepass'))
+t(lambda: codecs.decode(b'\xed\xa0\x80x', 'utf-8', 'surrogatepass'))
+t(lambda: codecs.lookup_error('surrogateescape').__name__)
+t(lambda: codecs.lookup_error('nope'))
+t(lambda: codecs.backslashreplace_errors(UnicodeEncodeError('ascii', '\ud800\U0010ffffx', 0, 2, 'r')))
+t(lambda: codecs.xmlcharrefreplace_errors(UnicodeEncodeError('ascii', '\ud800\U0010ffffx', 0, 2, 'r')))
+t(lambda: codecs.replace_errors(UnicodeEncodeError('ascii', '\ud800\U0010ffffx', 0, 2, 'r')))
+t(lambda: codecs.ignore_errors(UnicodeEncodeError('ascii', '\ud800\U0010ffffx', 0, 2, 'r')))
+t(lambda: codecs.namereplace_errors(UnicodeEncodeError('ascii', '\ud800\U0010ffffx', 0, 2, 'r')))
+PYEOF
+'''
+
+[[case]]
+id = "surrogate-codec-error-messages"
+script = '''
+python3 - <<'PYEOF'
+def t(f):
+    try:
+        r = f()
+        print(ascii(r))
+    except Exception as e:
+        print(type(e).__name__, e)
+        if isinstance(e, UnicodeError):
+            print(' ', e.encoding, e.reason, e.start, e.end, ascii(e.object))
+        print(' ', repr(e)[:200].encode('ascii', 'backslashreplace').decode())
+
+for enc in ['utf-8', 'utf-16', 'utf-16-le', 'utf-32', 'utf-32-be', 'ascii', 'latin-1', 'cp1252', 'iso-8859-2']:
+    for s in ['\ud800', 'x\udfffy', '\U0010d800', '\U0010ffff', '\ud800\udfff\ud800', '\u20ac\u2603\U0001f600']:
+        t(lambda: s.encode(enc))
+for enc, b in [('utf-8', b'\xed\xa0\x80'), ('utf-8', b'a\xffb'), ('utf-8', b'\xf4\x90\x80\x80'), ('utf-8', b'\xe2\x82'),
+               ('utf-8', b'\xc3'), ('utf-8', b'\xf8\x88\x80\x80\x80'), ('utf-16-le', b'\x00\xd8'), ('utf-16-le', b'a'),
+               ('utf-16-be', b'\xdc\x00\xd8\x00'), ('utf-32-le', b'\x00\xd8\x00\x00'), ('utf-32-le', b'\x00\x00\x11\x00'),
+               ('utf-32-le', b'ab'), ('ascii', b'\x80'), ('cp1252', b'\x81'), ('utf-16', b'a')]:
+    t(lambda: b.decode(enc))
+    t(lambda: b.decode(enc, 'surrogatepass'))
+e = UnicodeEncodeError('utf-8', '\ud800', 0, 1, 'surrogates not allowed')
+print(str(e), e.args)
+e = UnicodeEncodeError('ascii', 'a\U0010ffffb', 1, 2, 'ordinal not in range(128)')
+print(str(e))
+e = UnicodeEncodeError('x', '\ud800\ud801', 0, 2, 'why')
+print(str(e))
+e = UnicodeDecodeError('utf-8', b'\xed\xa0', 0, 2, 'bad')
+print(str(e))
+e = UnicodeDecodeError('utf-8', b'\xed\xa0', 0, 1, 'bad')
+print(str(e))
+PYEOF
+'''
+
+[[case]]
+id = "surrogate-fsencode-fsdecode"
+script = '''
+python3 - <<'PYEOF'
+import os, sys
+print(sys.getfilesystemencoding(), sys.getfilesystemencodeerrors())
+def t(f):
+    try:
+        r = f()
+        print(ascii(r))
+    except Exception as e:
+        print(type(e).__name__, e)
+for b in [b'abc', b'\xff', b'a\x80b', b'\xed\xa0\x80', b'\xf4\x90\x80\x80', b'\xc3\xa9', b'\xe2\x82', b'\xf0\x9f\x98\x80', b'\x00', b'a\xffb\xfe']:
+    t(lambda: os.fsdecode(b))
+    t(lambda: os.fsencode(os.fsdecode(b)) == b)
+for s in ['abc', '\udcff', '\udc80\udc81', '\ud800', '\udbff\udfff', 'caf\xe9', '\U0010ffff', '\U0010d800', '\ud83d\ude00', 'a\x00b']:
+    t(lambda: os.fsencode(s))
+t(lambda: os.fsencode(1))
+t(lambda: os.fsdecode(1))
+t(lambda: os.fsencode(b'x'))
+t(lambda: os.fsdecode('x'))
+t(lambda: os.fsdecode(bytearray(b'\xff')))
+t(lambda: os.fspath('\ud800'))
+t(lambda: os.fspath(b'\xff'))
+t(lambda: os.fsencode(os.path.join('\udcff', 'b')))
+t(lambda: os.path.basename('/a/\udcff'))
+t(lambda: os.path.splitext('x\ud800.\udcff'))
+t(lambda: os.path.normpath('a/./\udcff//b/../c'))
+t(lambda: os.fsencode(os.path.abspath('\udcff'))[-3:])
+d = os.path.join('/tmp', 'surrogate-probe-dir')
+os.makedirs(d, exist_ok=True)
+name = os.fsdecode(b'bad\xff\xfe.txt')
+p = os.path.join(d, name)
+open(p, 'w').close()
+print(ascii(sorted(os.listdir(d))), ascii(os.listdir(os.fsencode(d))))
+print(os.path.exists(p), os.path.exists(os.fsencode(p)), os.path.exists('/tmp/surrogate-probe-dir/bad\ud800'))
+t(lambda: open('/tmp/surrogate-probe-dir/bad\ud800'))
+t(lambda: os.stat('/tmp/surrogate-probe-dir/\ud800'))
+t(lambda: os.stat('/tmp/surrogate-probe-dir/\U0010ffff'))
+os.remove(p)
+os.rmdir(d)
+print(ascii(os.environ.get('SURROGATE_PROBE')))
+os.environ['SURROGATE_PROBE'] = 'a\udcffb'
+print(ascii(os.environ['SURROGATE_PROBE']), ascii(os.environb[b'SURROGATE_PROBE']))
+os.environb[b'SURROGATE_PROBE2'] = b'\xff\xfe'
+print(ascii(os.environ['SURROGATE_PROBE2']))
+t(lambda: os.environ.__setitem__('X', 'a\ud800'))
+t(lambda: os.environ.__setitem__('X', 'a\x00'))
+PYEOF
+'''
+
+[[case]]
+id = "surrogate-json"
+script = '''
+python3 - <<'PYEOF'
+import json
+def t(f):
+    try:
+        r = f()
+        print(ascii(r))
+    except Exception as e:
+        print(type(e).__name__, e)
+vals = ['\ud800', '\udfff', '\ud800\udc00', '\udc00\ud800', '\U0010d800', '\U0010ffff', '\ud83d\ude00', 'a\ud800b', '\u2028\u2029\x7f\x00']
+for v in vals:
+    t(lambda: json.dumps(v))
+    t(lambda: json.dumps(v, ensure_ascii=False))
+    t(lambda: json.dumps([v], ensure_ascii=False).encode('utf-8', 'surrogatepass'))
+    t(lambda: json.dumps({v: v}, sort_keys=True))
+    t(lambda: json.loads(json.dumps(v)) == v)
+    t(lambda: json.loads(json.dumps(v, ensure_ascii=False)) == v)
+for src in ['"\\ud800"', '"\\udfff"', '"\\ud83d\\ude00"', '"\\ude00\\ud83d"', '"\\ud83d"', '"\\ud83dx"', '"\\ud83d\\u0041"',
+            '"\\ud83d\\ud83d"', '"\\uD83D\\uDE00"', '"\\U0010ffff"', '"\\u"', '"\\ud8"', '"\\udg00"', '["\\ud800", "\\udc00"]']:
+    t(lambda: json.loads(src))
+t(lambda: json.loads('"\ud800"'))
+t(lambda: json.loads('"\U0010ffff"'))
+t(lambda: json.loads(b'"\xed\xa0\x80"'))
+t(lambda: json.loads(b'"\xf4\x8f\xbf\xbf"'))
+t(lambda: json.loads('{"\\ud800": 1, "\\udc00": 2}'))
+t(lambda: json.loads('"\\ud83d\\ude00"') == '\U0001f600')
+t(lambda: len(json.loads('"\\ud83d\\ude00"')))
+t(lambda: len(json.loads('"\\ud83d"')))
+t(lambda: json.dumps({'k': ['\ud800', {'\udfff': '\U0010ffff'}]}, indent=1, ensure_ascii=True))
+t(lambda: json.dumps('\ud800', ensure_ascii=False).encode('utf-8'))
+t(lambda: json.dumps('\U0010ffff', ensure_ascii=True))
+t(lambda: json.dumps('\U0001f600', ensure_ascii=True))
+t(lambda: json.encoder.encode_basestring_ascii('\ud800\udc00'))
+t(lambda: json.encoder.encode_basestring('\ud800\udc00\x1f"\\'))
+PYEOF
+'''
+
+[[case]]
+id = "surrogate-format-percent-c"
+script = '''
+python3 - <<'PYEOF'
+def t(f):
+    try:
+        r = f()
+        print(ascii(r))
+    except Exception as e:
+        print(type(e).__name__, e)
+for n in [0x41, 0xd7ff, 0xd800, 0xdc00, 0xdfff, 0xe000, 0xffff, 0x10000, 0x10d800, 0x10fffd, 0x10ffff, 0x110000, -1]:
+    t(lambda: '%c' % n)
+    t(lambda: format(n, 'c'))
+    t(lambda: '{:c}'.format(n))
+    t(lambda: '{:5c}|{:<5c}|{:^5c}|{:>5c}|{:*^7c}'.format(n, n, n, n, n))
+t(lambda: '%c' % '\ud800')
+t(lambda: '%c' % '\U0010ffff')
+t(lambda: '%c' % 'ab')
+t(lambda: '%c' % '')
+t(lambda: '%c' % 1.5)
+t(lambda: '%c' % None)
+t(lambda: '%5c|%-5c|%05c' % (0xd800, 0x10ffff, 0xdfff))
+t(lambda: '%s %r %a' % ('\ud800', '\ud800', '\ud800'))
+t(lambda: '%s %r %a' % ('\U0010ffff', '\U0010ffff', '\U0010ffff'))
+t(lambda: '%10s|%-10s|%.1s' % ('\ud800\udfff', '\U0010d800\U0010ffff', '\ud800\udfff'))
+t(lambda: '{!r} {!a} {!s}'.format('\ud800', '\ud800', '\ud800'))
+t(lambda: '{:>6}|{:<6}|{:^6}|{:.1}'.format('\ud800', '\udfff', '\U0010ffff', '\U0010d800x'))
+t(lambda: f'{chr(0xd800)!a}{chr(0x10ffff)!r}')
+t(lambda: f'{chr(0xd800):>4}'.encode('utf-8', 'surrogatepass'))
+t(lambda: format('\ud800', '\U0010ffff>3'))
+t(lambda: format('x', '\ud800>3'))
+t(lambda: format('x', '\ud800^5'))
+t(lambda: format(65, 'c'))
+t(lambda: format(0x110000, 'c'))
+t(lambda: format(-1, 'c'))
+t(lambda: format(65, '#c'))
+t(lambda: format(65, '+c'))
+t(lambda: format(65, ',c'))
+t(lambda: '%d' % '\ud800')
+t(lambda: '%\ud800' % 1)
+t(lambda: '%(\ud800)s' % {'\ud800': 'k'})
+t(lambda: '{\ud800}'.format(**{'\ud800': 'k'}))
+t(lambda: str.format('{0}{1}', '\ud800', '\udfff'))
+t(lambda: bytes('\ud800', 'utf-8', 'surrogatepass'))
+t(lambda: ('%s' % b'\xff'), )
+t(lambda: ('%a' % b'\xff\xed\xa0\x80'))
+PYEOF
+'''
+
+[[case]]
+id = "surrogate-re"
+script = '''
+python3 - <<'PYEOF'
+import re
+def t(f):
+    try:
+        r = f()
+        print(ascii(r))
+    except Exception as e:
+        print(type(e).__name__, e)
+s = 'a\ud800b\udfffc\U0010d800d\U0010ffffe\ud83d\ude00f\udc00\ud800'
+for pat in ['[\ud800-\udfff]', '[\ud800-\udbff]', '[\udc00-\udfff]', '[^\ud800-\udfff]', '[\U0010d800-\U0010ffff]', '[\U00010000-\U0010ffff]',
+            '[\ud800\udfff]', '[\ud800-\U0010ffff]', '\ud800', '\udfff', '\U0010ffff', '.', '\\w', '\\W', '\\S', '\\D', '\\s', '[^a-z]', '(?s).', '[\\u0000-\\uffff]',
+            '[\\ud800-\\udfff]', '\\ud800', '\\U0010ffff', '[\\U0010d800-\\U0010ffff]', '(?i)\ud800', '(?i)[\ud800-\udfff]']:
+    t(lambda: re.findall(pat, s))
+    t(lambda: [(m.start(), m.end()) for m in re.finditer(pat, s)])
+for pat in ['[\udfff-\ud800]', '[\U0010ffff-\U0010d800]', '[z-a]', '\\ud', '\\U0010', '\\U00110000', '\\Uffffffff', '[\\ud800-]', '[\\udfff-\\ud800]', '(?P<\ud800>x)', '(?P<a\udfff>x)', '\\N{LATIN SMALL LETTER A}', '\\N{NOPE}', '\\N{}', '\\N']:
+    t(lambda: re.compile(pat))
+t(lambda: re.sub('[\ud800-\udfff]', lambda m: '<%x>' % ord(m.group()), s))
+t(lambda: re.sub('[\ud800-\udfff]+', lambda m: '<%d>' % len(m.group()), s))
+t(lambda: re.sub('(?P<x>[\U0010d800-\U0010ffff])', lambda m: m.group('x') * 2, s))
+t(lambda: re.sub('[\ud800-\udfff]', '\\\\', s))
+t(lambda: re.sub('[\ud800-\udfff]', '\ud800', s))
+t(lambda: re.sub('x*', '\udfff', 'ab'))
+t(lambda: re.sub('[\ud800-\udfff]', lambda m: m.group(), s) == s)
+t(lambda: re.sub('b', '\\g<0>\ud800\\g<0>', 'abc'))
+t(lambda: re.sub('b', '\\\ud800', 'abc'))
+t(lambda: re.subn('[\ud800-\udfff]', '?', s, count=2))
+t(lambda: re.split('[\ud800-\udfff]', s))
+t(lambda: re.split('([\ud800-\udfff])', s, maxsplit=3))
+t(lambda: re.split('[\U0010d800-\U0010ffff]', s))
+t(lambda: re.fullmatch('[\ud800-\udfff]+', '\ud800\udfff\ud83d\ude00'))
+t(lambda: re.match('\ud800\udc00', '\ud800\udc00'))
+t(lambda: re.search('\ud83d\ude00', 'x\U0001f600'))
+t(lambda: re.search('\U0001f600', 'x\ud83d\ude00'))
+t(lambda: re.escape('\ud800.\udfff\U0010ffff*'))
+t(lambda: re.match('(?P<k>[\ud800-\udfff])', 'x\ud800').group('k') if re.match('x', 'x') else 0)
+t(lambda: re.search('(?P<k>[\ud800-\udfff])', 'x\ud800').groupdict())
+t(lambda: re.search('(?P<k>[\ud800-\udfff])', 'x\ud800').span('k'))
+t(lambda: re.compile('[\ud800-\udfff]').pattern)
+t(lambda: re.compile('[\ud800-\udfff]'))
+t(lambda: repr(re.compile('\ud800\U0010ffff')))
+t(lambda: re.compile('[\ud800-\udfff]', re.I).flags)
+t(lambda: re.findall('(?i)[\U0010d800]', '\U0010d800'))
+t(lambda: re.findall('\\b\\w+\\b', 'a\ud800b c\udfffd'))
+t(lambda: re.findall('[\\w]+', 'a\ud800b c\U0010ffffd'))
+t(lambda: re.findall(b'[\\x80-\\xff]+', '\ud800'.encode('utf-8', 'surrogatepass')))
+t(lambda: re.findall('\\u0041', 'A'))
+t(lambda: re.findall('\\x41', 'A'))
+t(lambda: re.findall('\\ud800', 'A'))
+t(lambda: re.sub('[\ud800-\udfff]', '', s))
+t(lambda: re.sub('(?<=[\ud800-\udfff])[a-z]', '_', s))
+t(lambda: re.sub('(?=[\ud800-\udfff])', '|', s))
+t(lambda: len(re.findall('', s)))
+PYEOF
+'''
+
+[[case]]
+id = "surrogate-unicodedata"
+script = '''
+python3 - <<'PYEOF'
+import unicodedata as u
+def t(f):
+    try:
+        r = f()
+        print(ascii(r))
+    except Exception as e:
+        print(type(e).__name__, e)
+pts = [0xd7ff, 0xd800, 0xdb7f, 0xdb80, 0xdbff, 0xdc00, 0xdfff, 0xe000, 0xf8ff, 0xffff, 0x10000, 0xfffff, 0x100000, 0x10d7ff, 0x10d800, 0x10dfff, 0x10fffd, 0x10fffe, 0x10ffff]
+for cp in pts:
+    c = chr(cp)
+    print(hex(cp), u.category(c), u.bidirectional(c), u.east_asian_width(c), u.combining(c), u.mirrored(c), repr(u.decomposition(c)),
+          u.decimal(c, None), u.digit(c, None), u.numeric(c, None), u.name(c, None), u.is_normalized('NFC', c), u.is_normalized('NFKD', c))
+    for f in ['NFC', 'NFD', 'NFKC', 'NFKD']:
+        t(lambda: u.normalize(f, c + '\u0301' + c) == c + '\u0301' + c)
+    t(lambda: u.normalize('NFC', 'a' + c + '\u0308'))
+    t(lambda: u.normalize('NFD', '\u00e9' + c))
+    t(lambda: u.category(c) in ('Cs', 'Co', 'Cn'))
+    t(lambda: u.name(c))
+    t(lambda: u.decimal(c))
+    t(lambda: u.digit(c))
+    t(lambda: u.numeric(c))
+    t(lambda: u.ucd_3_2_0.category(c))
+    t(lambda: u.ucd_3_2_0.name(c, 'none'))
+    t(lambda: u.ucd_3_2_0.normalize('NFKC', c + '\u0301'))
+    print(ascii(c.upper()), ascii(c.lower()), c.isalpha(), c.isdigit(), c.isalnum(), c.isprintable(), c.isidentifier(), c.isspace())
+t(lambda: u.lookup('PRIVATE USE'))
+t(lambda: u.lookup('<surrogate-D800>'))
+t(lambda: u.lookup('HIGH SURROGATE D800'))
+t(lambda: u.name('\ud800', '<unnamed>'))
+t(lambda: u.normalize('NFC', '\ud800\udc00'))
+t(lambda: u.normalize('NFD', '\ud800\udc00') == '\ud800\udc00')
+t(lambda: u.normalize('NFC', 'e\u0301\ud800\U0010ffff'))
+t(lambda: u.normalize('XYZ', '\ud800'))
+t(lambda: u.normalize('NFC', b'x'))
+t(lambda: u.category('ab'))
+t(lambda: u.category(''))
+t(lambda: u.category('\ud800\ud801'))
+t(lambda: u.east_asian_width('\U0010d800'))
+t(lambda: u.is_normalized('NFC', '\U0010d800\u0301'))
+t(lambda: u.is_normalized('NFC', 'x\u0301\ud800'))
+t(lambda: u.normalize('NFKD', '\ufb01\ud800\U000fffff\u00bd'))
+print(u.unidata_version)
+PYEOF
+'''
+
+[[case]]
+id = "surrogate-isx-methods"
+script = '''
+python3 - <<'PYEOF'
+meths = ['isalpha', 'isalnum', 'isdecimal', 'isdigit', 'isnumeric', 'isspace', 'isprintable', 'isidentifier', 'isascii', 'islower', 'isupper', 'istitle']
+pts = [0x61, 0xd7ff, 0xd800, 0xdbff, 0xdc00, 0xdfff, 0xe000, 0xf8ff, 0xfffe, 0xffff, 0x10000, 0x10d7ff, 0x10d800, 0x10dfff, 0x10fffd, 0x10ffff]
+for cp in pts:
+    c = chr(cp)
+    print(hex(cp), [int(getattr(c, m)()) for m in meths])
+    print('  ', [int(getattr(c + 'a', m)()) for m in meths], [int(getattr('A' + c, m)()) for m in meths])
+    print('  ', ascii(c.upper()), ascii(c.lower()), ascii(c.title()), ascii(c.swapcase()), ascii(c.casefold()), ascii(c.capitalize()))
+    print('  ', ascii(c.strip()), ascii(c.zfill(3)), ascii(c.expandtabs()), ascii(c.encode('utf-8', 'surrogatepass')), ascii(c.splitlines()))
+    print('  ', c.startswith(c), c.endswith('a'), c in 'a' + c, ascii(c.translate({cp: 'x'})), ascii('x'.translate({120: c})))
+    print('  ', ascii(str.maketrans({cp: c + c})), ascii(c.translate(str.maketrans(c, 'y'))))
+print(ascii('\ud800\n\udc00\r\n\U0010ffff\x0b\x0c\x1c\x85\u2028\u2029'.splitlines()), ascii('\ud800 \udc00\t\U0010ffff'.split()))
+print(ascii('a\ud800 '.rstrip()), ascii('\ud800'.strip('\ud800')), ascii('\udfffx'.lstrip('\udfff')), ascii('\U0010ffffx'.lstrip('\U0010ffff')))
+print(ascii('\ud800'.join(['a', 'b'])), ascii(','.join(['\ud800', '\U0010ffff'])), ascii('\ud800\udfff'.removeprefix('\ud800')), ascii('\ud800\udfff'.removesuffix('\udfff')))
+print(sorted(set(chr(c).isprintable() for c in range(0xd800, 0xe000))), sorted(set(chr(c).isalpha() for c in range(0xd800, 0xe000))))
+print(sorted(set(chr(c).isprintable() for c in range(0x10d800, 0x10e000))), sorted(set(chr(c).isidentifier() for c in range(0x10d800, 0x10e000))))
+print(sum(chr(c).isprintable() for c in range(0x10000, 0x110000)), sum(chr(c).isalpha() for c in range(0xd000, 0x110000)), sum(chr(c).isspace() for c in range(0x110000)))
+PYEOF
+'''
+
+[[case]]
+id = "surrogate-compare-sort-hash"
+script = '''
+python3 - <<'PYEOF'
+chars = ['a', '\u00ff', '\u0100', '\ud7ff', '\ud800', '\udbff', '\udc00', '\udfff', '\ue000', '\uf8ff', '\ufb00', '\uffef', '\uffff',
+         '\U00010000', '\U0001f600', '\U0010d7ff', '\U0010d800', '\U0010dfff', '\U0010fffd', '\U0010ffff']
+print([ascii(c) for c in sorted(chars)])
+print([ascii(c) for c in sorted(chars, reverse=True)])
+print([ascii(c) for c in sorted(reversed(chars))])
+print(ascii(min(chars)), ascii(max(chars)), ascii(min(chars[3:12])), ascii(max(chars[3:12])))
+for a in chars:
+    print(hex(ord(a)), ''.join('<' if a < b else '>' if a > b else '=' for b in chars))
+print('\ud800' < '\U00010000', '\uffff' < '\U00010000', '\ud83d\ude00' < '\U0001f600', '\ud83d\ude00' > '\U0001f600', '\ud83d\ude00' == '\U0001f600')
+print('\ud83d' < '\ue000', '\ud83d\ude00' < '\ue000', '\ue000' < '\ud83d\ude00', '\U0001f600' < '\ue000', '\U0001f600' > '\ue000')
+words = ['x\ud800', 'x\U0010ffff', 'x\uffff', 'x\ue000', 'x\U00010000', 'x\ud800\udc00', 'x\udc00', 'x', 'x\U0010d800', '\ud800x', '\U0010d800x']
+print([ascii(w) for w in sorted(words)])
+print([ascii(w) for w in sorted(words, key=lambda w: w.encode('utf-16-be', 'surrogatepass'))])
+print([ascii(w) for w in sorted(words, key=lambda w: w.encode('utf-8', 'surrogatepass'))])
+print([ascii(w) for w in sorted(words, key=lambda w: [ord(c) for c in w])])
+print(sorted(['\ud800', '\U0010d800', '\ud800\udc00', '\udbff\udfff', '\U0010ffff'], key=len))
+print('\ud800' == '\ud800', '\ud800' != '\udfff', '\U0010d800' == '\U0010d800', '\ud800'.__eq__('\ud800'), '\ud800'.__lt__('\ud801'), '\ud800'.__lt__(5))
+print(ascii(sorted({'\ud800': 1, '\U0010ffff': 2, '\udfff': 3, 'a': 4})), sorted(set(map(hash, chars))) == sorted(set(hash(c) for c in chars)), len(set(map(hash, chars))))
+print(hash('\ud800') == hash('\ud800'.encode('utf-8', 'surrogatepass').decode('utf-8', 'surrogatepass')), hash('\U0010d800') == hash(chr(0x10d800)))
+print('\ud800' in {'\ud800': 1}, {'\U0010ffff': 1}['\U0010ffff'], {'\udfff'} & {'\udfff', '\ud800'}, ascii(sorted({'\udfff', '\ud800'} | {'\U0010ffff'})))
+import bisect
+srt = sorted(chars)
+print([bisect.bisect_left(srt, c) for c in ['\ud800', '\ue000', '\U0010d800', '\U00010000']])
+print(ascii(max(['\ud800', '\U0010d800'], key=len)), ascii(max('\ud800\U0010d800', '\U0010d800\ud800')), 'abc\ud800' > 'abc', 'abc\ud800' < 'abc\ud801')
+print(ascii(chars[4] * 3 < chars[5] * 3), ascii('\ud800' * 3 == '\ud800\ud800\ud800'), '\udfff'.__gt__('\ud800'), ('\ud800', 1) < ('\ud800', 2), ['\U0010ffff'] > ['\uffff'])
+PYEOF
+'''

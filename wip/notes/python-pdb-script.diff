@@ -1,0 +1,81 @@
+--- 
++++ 
+@@ -1,258 +1,41 @@
+ --- 1: list, next, step, print, where
+-> /tmp/pdb_target_codecs_trace.py(1)<module>()
+--> import sys
+-(Pdb)   1  ->	import sys
+-  2  	
+-  3  	def add(a, b):
+-  4  	    total = a + b
+-  5  	    return total
+-  6  	
+-  7  	def f(n):
+-  8  	    x = n * 2
+-  9  	    y = add(x, 1)
+- 10  	    z = y + 1
+- 11  	    return z
+-(Pdb) > /tmp/pdb_target_codecs_trace.py(3)<module>()
+--> def add(a, b):
+-(Pdb) > /tmp/pdb_target_codecs_trace.py(7)<module>()
+--> def f(n):
+-(Pdb) > /tmp/pdb_target_codecs_trace.py(13)<module>()
+--> value = f(3)
+-(Pdb) --Call--
+-> /tmp/pdb_target_codecs_trace.py(7)f()
+--> def f(n):
+-(Pdb)   /usr/lib/python3.13/bdb.py(666)run()
+--> exec(cmd, globals, locals)
+-  <string>(1)<module>()
+-  /tmp/pdb_target_codecs_trace.py(13)<module>()
+--> value = f(3)
+-> /tmp/pdb_target_codecs_trace.py(7)f()
+--> def f(n):
+-(Pdb) n = 3
+-(Pdb) *** NameError: name 'a' is not defined
+-(Pdb) *** NameError: name 'b' is not defined
+-(Pdb) > /tmp/pdb_target_codecs_trace.py(8)f()
+--> x = n * 2
+-(Pdb) > /tmp/pdb_target_codecs_trace.py(9)f()
+--> y = add(x, 1)
+-(Pdb) *** NameError: name 'total' is not defined
+-(Pdb) *** Not yet returned!
+-(Pdb) > /tmp/pdb_target_codecs_trace.py(13)<module>()
+--> value = f(3)
+-(Pdb) *** NameError: name 'n' is not defined
+-(Pdb) > /tmp/pdb_target_codecs_trace.py(9)f()
+--> y = add(x, 1)
+-(Pdb) exit=0
++exit=0
+ --- 2: breakpoints, continue, return
+-> /tmp/pdb_target_codecs_trace.py(1)<module>()
+--> import sys
+-(Pdb) Breakpoint 1 at /tmp/pdb_target_codecs_trace.py:5
+-(Pdb) Breakpoint 2 at /tmp/pdb_target_codecs_trace.py:11
+-(Pdb) Num Type         Disp Enb   Where
+-1   breakpoint   keep yes   at /tmp/pdb_target_codecs_trace.py:5
+-2   breakpoint   keep yes   at /tmp/pdb_target_codecs_trace.py:11
+-(Pdb) > /tmp/pdb_target_codecs_trace.py(5)add()
+--> return total
+-(Pdb)   /usr/lib/python3.13/bdb.py(666)run()
+--> exec(cmd, globals, locals)
+-  <string>(1)<module>()
+-  /tmp/pdb_target_codecs_trace.py(13)<module>()
+--> value = f(3)
+-  /tmp/pdb_target_codecs_trace.py(9)f()
+--> y = add(x, 1)
+-> /tmp/pdb_target_codecs_trace.py(5)add()
+--> return total
+-(Pdb) > /tmp/pdb_target_codecs_trace.py(9)f()
+--> y = add(x, 1)
+-(Pdb) 3
+-(Pdb) > /tmp/pdb_target_codecs_trace.py(5)add()
+--> return total
+-(Pdb) a = 6
+-b = 1
+-(Pdb) --Return--
+-> /tmp/pdb_target_codecs_trace.py(5)add()->7
+--> return total
+-(Pdb) 7
+-(Pdb) > /tmp/pdb_target_codecs_trace.py(11)f()
+

@@ -18,6 +18,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 use crate::ast::{Constant, Expr, ExprContext, ExprContext::Load, ExprKind, Pos};
+use crate::modules::ucd::{self, Props};
 use crate::token::TokenType;
 use crate::tokenizer::{self, Mode, Token, TokenizeError, Tokenizer};
 
@@ -161,7 +162,17 @@ impl Parser {
         // Depois do ENDMARKER o tokenizer devolve ENDMARKER de novo, então o laço sempre termina.
         while self.tokens.len() <= idx {
             match self.tokenizer.next_token() {
-                Ok(tok) => self.tokens.push(tok),
+                Ok(mut tok) => {
+                    // `_PyPegen_new_identifier`: o identificador não ASCII vira NFKC.
+                    if tok.kind == TokenType::Name && !tok.text.is_ascii() {
+                        let nfkc = ucd::current().normalize("NFKC", &tok.text);
+                        if let Some(nfkc) = nfkc.filter(|n| *n != tok.text) {
+                            tok.text = nfkc;
+                            tok.normalized = true;
+                        }
+                    }
+                    self.tokens.push(tok);
+                }
                 Err(e) => {
                     self.tok_failed = true;
                     return Err(e.into());
@@ -195,7 +206,7 @@ impl Parser {
 
     fn kw_at(&mut self, offset: usize, kw: &str) -> Result<bool, ParseError> {
         let tok = self.peek(offset)?;
-        Ok(tok.kind == TokenType::Name && tok.text == kw)
+        Ok(tok.is_word(kw))
     }
 
     fn eat_kw(&mut self, kw: &str) -> Result<bool, ParseError> {
@@ -209,7 +220,7 @@ impl Parser {
     /// `NAME` que não é palavra-chave.
     fn is_name_at(&mut self, offset: usize) -> Result<bool, ParseError> {
         let tok = self.peek(offset)?;
-        Ok(tok.kind == TokenType::Name && !KEYWORDS.contains(&tok.text.as_str()))
+        Ok(tok.kind == TokenType::Name && (tok.normalized || !KEYWORDS.contains(&tok.text.as_str())))
     }
 
     fn eat_name(&mut self) -> Result<Option<Token>, ParseError> {
@@ -461,18 +472,15 @@ fn decode_str_escapes(body: &str) -> Result<String, String> {
                         "X".repeat(width)
                     ));
                 }
-                match char::from_u32(value) {
-                    Some(ch) => out.push(ch),
-                    None if value > 0x10ffff => {
-                        return Err(format!(
-                            "(unicode error) 'unicodeescape' codec can't decode bytes in position {}-{}: \
-                             illegal Unicode character",
-                            esc_start,
-                            i - 1
-                        ))
-                    }
-                    None => out.push(crate::object::surrogate_to_char(value)),
+                if value > 0x10ffff {
+                    return Err(format!(
+                        "(unicode error) 'unicodeescape' codec can't decode bytes in position {}-{}: \
+                         illegal Unicode character",
+                        esc_start,
+                        i - 1
+                    ));
                 }
+                out.push_str(&crate::object::cp_to_str(value));
             }
             'N' => {
                 // `_PyUnicode_DecodeUnicodeEscapeInternal`: o nome vai ao `getcode` sem sequências
@@ -506,10 +514,7 @@ fn decode_str_escapes(body: &str) -> Result<String, String> {
                 let name = &body[start..i];
                 i += 1;
                 match crate::modules::ucd::current().lookup(name).as_deref() {
-                    Some(&[cp]) => match char::from_u32(cp) {
-                        Some(ch) => out.push(ch),
-                        None => out.push(crate::object::surrogate_to_char(cp)),
-                    },
+                    Some(&[cp]) => out.push_str(&crate::object::cp_to_str(cp)),
                     _ => return Err(fail(i, "unknown Unicode character name")),
                 }
             }

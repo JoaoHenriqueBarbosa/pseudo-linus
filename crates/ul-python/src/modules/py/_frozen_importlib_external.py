@@ -1,13 +1,14 @@
 """_frozen_importlib_external: a importação a partir de caminhos (`PathFinder` de `sys.meta_path`,
 os carregadores de arquivo e o `FileFinder`)."""
 
+import _imp
 import sys
 
 
 SOURCE_SUFFIXES = ['.py']
 BYTECODE_SUFFIXES = ['.pyc']
 DEBUG_BYTECODE_SUFFIXES = OPTIMIZED_BYTECODE_SUFFIXES = BYTECODE_SUFFIXES
-EXTENSION_SUFFIXES = ['.cpython-313-x86_64-linux-gnu.so', '.abi3.so', '.so']
+EXTENSION_SUFFIXES = _imp.extension_suffixes()
 
 MAGIC_NUMBER = (3571).to_bytes(2, 'little') + b'\r\n'
 

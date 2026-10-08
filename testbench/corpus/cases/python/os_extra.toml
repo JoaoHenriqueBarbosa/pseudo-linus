@@ -1,0 +1,297 @@
+[[case]]
+id = "os-sysconf-fixed-values"
+script = '''
+python3 - <<'PY'
+import os
+print(len(os.sysconf_names), list(os.sysconf_names)[:4], os.sysconf_names['SC_IOV_MAX'], os.sysconf_names['SC_MINSIGSTKSZ'])
+for name in ('SC_IOV_MAX', 'SC_PAGESIZE', 'SC_PAGE_SIZE', 'SC_CLK_TCK', 'SC_NGROUPS_MAX', 'SC_LOGIN_NAME_MAX', 'SC_LINE_MAX',
+             'SC_THREAD_STACK_MIN', 'SC_VERSION', 'SC_XOPEN_VERSION', 'SC_XOPEN_CRYPT', 'SC_PASS_MAX', 'SC_TZNAME_MAX',
+             'SC_STREAM_MAX', 'SC_RE_DUP_MAX', 'SC_NZERO', 'SC_INT_MAX', 'SC_SSIZE_MAX'):
+    print(name, os.sysconf(name))
+print([os.sysconf(code) for code in (132, 155, 180, 235, 141)])
+for call in (lambda: os.sysconf('SC_BOGUS'), lambda: os.sysconf(1.5), lambda: os.sysconf(-1), lambda: os.sysconf(41),
+             lambda: os.sysconf(1000), lambda: os.confstr('CS_BOGUS'), lambda: os.confstr(5000), lambda: os.pathconf('/', 'PC_BOGUS')):
+    try:
+        call()
+    except Exception as e:
+        print(type(e).__name__, e)
+print(os.confstr('CS_PATH'), os.confstr('CS_GNU_LIBC_VERSION'), os.confstr('CS_GNU_LIBPTHREAD_VERSION'))
+for name in ('SC_ARG_MAX', 'SC_CHILD_MAX', 'SC_OPEN_MAX', 'SC_NPROCESSORS_CONF', 'SC_NPROCESSORS_ONLN', 'SC_PHYS_PAGES', 'SC_AVPHYS_PAGES'):
+    print(name, type(os.sysconf(name)).__name__)
+print(os.sysconf('SC_NPROCESSORS_ONLN') == os.cpu_count(), os.process_cpu_count() == len(os.sched_getaffinity(0)))
+print(len(os.getloadavg()), all(isinstance(x, float) for x in os.getloadavg()))
+print(repr(os.sched_param(3)), os.sched_get_priority_max(os.SCHED_FIFO), os.sched_get_priority_min(os.SCHED_RR), os.sched_get_priority_max(os.SCHED_OTHER))
+print(os.sched_getscheduler(0), os.sched_getparam(0))
+t = os.times()
+print(type(t).__name__, t.__class__.__module__, len(t), all(isinstance(x, float) for x in t), t.elapsed > 0)
+print(repr(os.terminal_size((80, 24))), os.ctermid(), os.device_encoding(1))
+try:
+    os.get_terminal_size(1)
+except OSError as e:
+    print(e.errno)
+PY
+'''
+tags = ["agent", "os"]
+
+[[case]]
+id = "os-positional-vectored-and-copy-io"
+script = '''
+python3 - <<'PY'
+import os
+fd = os.open('/tmp/os-extra-vec', os.O_RDWR | os.O_CREAT | os.O_TRUNC, 0o600)
+print(os.pwrite(fd, b'hello world', 2), os.pread(fd, 5, 4), os.lseek(fd, 0, 1))
+print(os.writev(fd, [b'ab', bytearray(b'cd'), memoryview(b'ef')]), os.lseek(fd, 0, 1))
+a, b = bytearray(3), bytearray(10)
+os.lseek(fd, 0, 0)
+print(os.readv(fd, [a, b]), bytes(a), bytes(b))
+c, d = bytearray(2), bytearray(2)
+print(os.preadv(fd, [c, d], 1), bytes(c), bytes(d), os.pwritev(fd, [b'xy', b'z'], 20), os.fstat(fd).st_size)
+print(os.readv(fd, [bytearray(0)]), os.preadv(fd, [], 0))
+os.fchmod(fd, 0o640)
+print(oct(os.stat('/tmp/os-extra-vec').st_mode & 0o777))
+os.ftruncate(fd, 4)
+print(os.fstat(fd).st_size)
+os.truncate('/tmp/os-extra-vec', 2)
+print(os.stat('/tmp/os-extra-vec').st_size)
+os.truncate(fd, 3)
+print(os.fstat(fd).st_size)
+os.posix_fallocate(fd, 0, 100)
+print(os.fstat(fd).st_size, os.posix_fadvise(fd, 0, 0, os.POSIX_FADV_SEQUENTIAL))
+for call in (lambda: os.posix_fadvise(fd, 0, 0, 77), lambda: os.pread(fd, -1, 0), lambda: os.ftruncate(fd, -1),
+             lambda: os.truncate('/tmp/os-extra-vec', -1), lambda: os.preadv(fd, [bytearray(1)], 0, 1 << 20),
+             lambda: os.pwrite(fd, 'x', 0), lambda: os.fchmod(999, 0o600), lambda: os.pread(fd, 1, 2 ** 70)):
+    try:
+        call()
+    except Exception as e:
+        print(type(e).__name__, getattr(e, 'errno', None))
+src = os.open('/tmp/os-extra-src', os.O_RDWR | os.O_CREAT | os.O_TRUNC, 0o600)
+os.write(src, b'0123456789')
+dst = os.open('/tmp/os-extra-dst', os.O_RDWR | os.O_CREAT | os.O_TRUNC, 0o600)
+print(os.sendfile(dst, src, 2, 5), os.lseek(src, 0, 1), os.pread(dst, 10, 0))
+os.lseek(src, 3, 0)
+print(os.sendfile(dst, src, None, 4), os.lseek(src, 0, 1), os.pread(dst, 20, 0))
+os.lseek(src, 0, 0)
+os.lseek(dst, 0, 0)
+print(os.copy_file_range(src, dst, 6), os.copy_file_range(src, dst, 100, 4, 0), os.pread(dst, 20, 0))
+r, w = os.pipe()
+print(os.splice(src, w, 4, offset_src=1), os.read(r, 10))
+os.write(w, b'pipe!')
+print(os.splice(r, dst, 5, offset_dst=1), os.pread(dst, 20, 0))
+for call in (lambda: os.splice(src, dst, 1), lambda: os.splice(src, w, 1, offset_dst=3),
+             lambda: os.copy_file_range(r, dst, 1), lambda: os.sendfile(dst, src, 0, -1)):
+    try:
+        call()
+    except Exception as e:
+        print(type(e).__name__, getattr(e, 'errno', None))
+print(os.fpathconf(fd, 'PC_NAME_MAX'), os.pathconf('/tmp', 'PC_PIPE_BUF'))
+print(os.getrandom(0), len(os.getrandom(5)), len(os.getrandom(5, os.GRND_NONBLOCK)))
+for call in (lambda: os.getrandom(-1), lambda: os.getrandom(1, 8)):
+    try:
+        call()
+    except Exception as e:
+        print(type(e).__name__, e)
+r2, w2 = os.pipe2(os.O_NONBLOCK)
+print(os.get_blocking(r2), os.get_inheritable(r2))
+r3, w3 = os.pipe2(os.O_CLOEXEC)
+print(os.get_blocking(r3), os.get_inheritable(r3))
+os.closerange(r2, w3 + 1)
+try:
+    os.fstat(r2)
+except OSError as e:
+    print(e.errno)
+for p in ('/tmp/os-extra-vec', '/tmp/os-extra-src', '/tmp/os-extra-dst'):
+    os.unlink(p)
+PY
+'''
+tags = ["agent", "os"]
+
+[[case]]
+id = "os-utime-ns-follow-symlinks-and-chmod"
+script = '''
+python3 - <<'PY'
+import os
+fd = os.open('/tmp/os-extra-time', os.O_RDWR | os.O_CREAT | os.O_TRUNC, 0o600)
+os.utime('/tmp/os-extra-time', ns=(1_000_000_001, 2_000_000_002))
+st = os.stat('/tmp/os-extra-time')
+print(st.st_atime_ns, st.st_mtime_ns, st[7], st[8], type(st[7]).__name__, type(st.st_mtime).__name__)
+os.utime(fd, (5, 6.5))
+print(os.stat('/tmp/os-extra-time').st_mtime_ns, os.stat('/tmp/os-extra-time').st_atime_ns)
+os.utime('/tmp/os-extra-time', (-1.5, 3))
+print(os.stat('/tmp/os-extra-time').st_atime_ns, os.stat('/tmp/os-extra-time').st_mtime_ns)
+os.symlink('/tmp/os-extra-time', '/tmp/os-extra-link')
+os.utime('/tmp/os-extra-link', ns=(7, 8), follow_symlinks=False)
+print(os.lstat('/tmp/os-extra-link').st_mtime_ns, os.stat('/tmp/os-extra-time').st_mtime_ns)
+for call in (lambda: os.utime('/tmp/os-extra-time', (1, 2), ns=(1, 2)), lambda: os.utime('/tmp/os-extra-time', (1,)),
+             lambda: os.utime('/tmp/os-extra-time', ns=(1,)), lambda: os.utime(fd, (1, 2), follow_symlinks=False),
+             lambda: os.utime(fd, (1, 2), dir_fd=fd), lambda: os.utime('/tmp/os-extra-time', (float('nan'), 1))):
+    try:
+        call()
+    except Exception as e:
+        print(type(e).__name__, e)
+os.chmod(fd, 0o600, follow_symlinks=False)
+print(oct(os.stat('/tmp/os-extra-time').st_mode & 0o777))
+try:
+    os.chmod('/tmp/os-extra-link', 0o600, follow_symlinks=False)
+except Exception as e:
+    print(type(e).__name__, e)
+for call in (lambda: os.chown(fd, -1, -1, follow_symlinks=False), lambda: os.chown(fd, -1, -1, dir_fd=fd)):
+    try:
+        call()
+    except Exception as e:
+        print(type(e).__name__, e)
+os.chown(fd, -1, -1)
+os.fchown(fd, -1, -1)
+os.unlink('/tmp/os-extra-link')
+os.unlink('/tmp/os-extra-time')
+PY
+'''
+tags = ["agent", "os"]
+
+[[case]]
+id = "os-xattr-memfd-eventfd-timerfd"
+script = '''
+python3 - <<'PY'
+import os
+path = '/tmp/os-extra-xattr'
+fd = os.open(path, os.O_RDWR | os.O_CREAT | os.O_TRUNC, 0o600)
+os.setxattr(fd, 'user.a', b'1')
+os.setxattr(path, 'user.b', b'two', os.XATTR_CREATE)
+print(os.listxattr(path), os.listxattr(fd), os.getxattr(fd, 'user.a'), os.getxattr(path, b'user.b'), os.listxattr(os.fsencode(path)))
+for call in (lambda: os.getxattr(fd, 'user.zz'), lambda: os.setxattr(fd, 'foo', b'1'), lambda: os.setxattr(fd, 'trusted.foo', b'1'),
+             lambda: os.setxattr(path, 'user.a', b'x', os.XATTR_CREATE), lambda: os.setxattr(path, 'user.new', b'x', os.XATTR_REPLACE),
+             lambda: os.setxattr(path, '', b'x'), lambda: os.setxattr(path, 'user.a', b'x', 9), lambda: os.getxattr('/nonexistent', 'user.a'),
+             lambda: os.removexattr(path, 'user.zz'), lambda: os.getxattr(fd, 'user.a', follow_symlinks=False)):
+    try:
+        print(call())
+    except Exception as e:
+        print(type(e).__name__, getattr(e, 'errno', None))
+os.removexattr(path, 'user.a')
+print(os.listxattr(path))
+os.symlink(path, '/tmp/os-extra-xlink')
+print(os.listxattr('/tmp/os-extra-xlink'), os.listxattr('/tmp/os-extra-xlink', follow_symlinks=False))
+try:
+    os.setxattr('/tmp/os-extra-xlink', 'user.l', b'1', follow_symlinks=False)
+except OSError as e:
+    print(e.errno)
+os.unlink('/tmp/os-extra-xlink')
+os.unlink(path)
+
+m = os.memfd_create('os-extra')
+print(os.readlink('/proc/self/fd/%d' % m), os.get_inheritable(m), oct(os.fstat(m).st_mode), os.fstat(m).st_nlink)
+os.write(m, b'memfd data')
+os.lseek(m, 0, 0)
+print(os.read(m, 100))
+try:
+    os.memfd_create('x', 1 << 20)
+except OSError as e:
+    print(e.errno)
+
+e = os.eventfd(2)
+print(os.readlink('/proc/self/fd/%d' % e), os.get_inheritable(e), os.get_blocking(e))
+os.eventfd_write(e, 5)
+print(os.eventfd_read(e))
+s = os.eventfd(3, os.EFD_SEMAPHORE | os.EFD_NONBLOCK)
+print(os.eventfd_read(s), os.eventfd_read(s), os.eventfd_read(s))
+try:
+    os.eventfd_read(s)
+except BlockingIOError as ex:
+    print(type(ex).__name__, ex.errno)
+for call in (lambda: os.write(e, b'123'), lambda: os.read(e, 4), lambda: os.write(e, (2 ** 64 - 1).to_bytes(8, 'little')),
+             lambda: os.lseek(e, 0, 0), lambda: os.eventfd(1, 1 << 20)):
+    try:
+        call()
+    except Exception as ex:
+        print(type(ex).__name__, getattr(ex, 'errno', None))
+print([('eventfd-id: N' if line.startswith('eventfd-id: ') and int(line[12:]) >= 0 else line)
+       for line in open('/proc/self/fdinfo/%d' % s).read().splitlines() if line.startswith('eventfd-')])
+
+t = os.timerfd_create(1, flags=os.TFD_NONBLOCK)
+print(os.readlink('/proc/self/fd/%d' % t), os.timerfd_gettime(t), os.timerfd_gettime_ns(t))
+try:
+    os.read(t, 8)
+except BlockingIOError as ex:
+    print(type(ex).__name__, ex.errno)
+old = os.timerfd_settime(t, initial=1000.0, interval=2.0)
+left, every = os.timerfd_gettime(t)
+print(old, 0 < left <= 1000, every)
+print(os.timerfd_settime_ns(t, initial=1_000_000, interval=0)[1] == 2_000_000_000)
+import time
+time.sleep(0.05)
+print(int.from_bytes(os.read(t, 8), 'little'), os.timerfd_gettime_ns(t))
+for call in (lambda: os.timerfd_settime(t, initial=-1.0), lambda: os.timerfd_settime_ns(t, interval=-1), lambda: os.timerfd_create(1234),
+             lambda: os.timerfd_settime(m), lambda: os.write(t, b'12345678')):
+    try:
+        call()
+    except Exception as ex:
+        print(type(ex).__name__, getattr(ex, 'errno', None))
+PY
+'''
+tags = ["agent", "os"]
+
+[[case]]
+id = "os-process-groups-priority-and-chroot"
+script = '''
+python3 - <<'PY'
+import os
+print(os.getpgrp() == os.getpgid(0), os.getsid(0) > 0, os.getpgid(os.getpid()) == os.getpgrp())
+for call in (lambda: os.getpgid(999999), lambda: os.getsid(2 ** 40), lambda: os.killpg(-1, 0), lambda: os.kill(2 ** 40, 0),
+             lambda: os.getpriority(7, 0), lambda: os.setpriority(os.PRIO_PROCESS, 999999, 0), lambda: os.nice(0) is None,
+             lambda: os.sched_setscheduler(0, os.SCHED_FIFO, os.sched_param(1)), lambda: os.sched_setparam(0, (1,)),
+             lambda: os.unshare(os.CLONE_NEWNS), lambda: os.setns(999), lambda: os.setns(0), lambda: os.tcgetpgrp(0)):
+    try:
+        print(call())
+    except Exception as e:
+        print(type(e).__name__, getattr(e, 'errno', None))
+print(os.getpriority(os.PRIO_PROCESS, 0), os.getpriority(os.PRIO_PGRP, 0), os.getpriority(os.PRIO_USER, 0))
+os.setpriority(os.PRIO_PROCESS, 0, 3)
+print(os.getpriority(os.PRIO_PROCESS, 0), os.nice(2), os.getpriority(os.PRIO_PROCESS, os.getpid()))
+try:
+    os.nice(-4)
+except OSError as e:
+    print(type(e).__name__, e.errno)
+r, w = os.pipe()
+print(os.ttyname(1) if os.isatty(1) else None)
+try:
+    os.ttyname(r)
+except OSError as e:
+    print(e.errno)
+for call in (lambda: os.grantpt(r), lambda: os.unlockpt(r), lambda: os.ptsname(r)):
+    try:
+        call()
+    except OSError as e:
+        print(e.errno)
+master = os.posix_openpt(os.O_RDWR | os.O_NOCTTY)
+os.grantpt(master)
+os.unlockpt(master)
+print(os.ptsname(master).startswith('/dev/pts/'), os.get_inheritable(master))
+pid = os.fork()
+if pid == 0:
+    os.setsid()
+    print(os.getsid(0) == os.getpid(), os.getpgrp() == os.getpid(), flush=True)
+    os.chroot('/usr')
+    print(os.path.exists('/usr'), os.path.exists('/bin/env'), os.getcwd() != '', flush=True)
+    os._exit(0)
+os.waitpid(pid, 0)
+print(os.spawnl(os.P_WAIT, '/bin/true', 'true'), os.spawnvp(os.P_WAIT, 'sh', ['sh', '-c', 'exit 3']))
+PY
+'''
+tags = ["agent", "os"]
+
+[[case]]
+id = "os-posix-functions-are-builtins"
+script = '''
+python3 - <<'PY'
+import os, posix
+for name in ('getcwd', 'getcwdb', 'stat', 'lstat', 'fstat', 'listdir', 'scandir', 'open', 'close', 'read', 'write', 'kill',
+             'waitpid', 'wait', 'fork', 'getpid', 'getppid', 'pipe', 'dup2', 'chdir', 'mkdir', 'rmdir', 'unlink', 'rename',
+             'readlink', 'symlink', 'umask', 'uname', 'urandom', 'isatty', 'fspath', 'strerror', 'access', 'utime', 'system',
+             'execv', 'getuid', 'cpu_count', 'sysconf', 'lseek', 'fsync', 'truncate', 'putenv', 'unsetenv'):
+    f = getattr(os, name)
+    print(name, type(f).__name__, repr(f), f.__module__, f.__qualname__, f.__name__, f.__self__.__name__, f is getattr(posix, name))
+for name in ('makedirs', 'walk', 'getenv', 'fsencode', 'fsdecode', 'popen', 'execvp', 'get_exec_path', 'fdopen', 'removedirs', 'renames'):
+    f = getattr(os, name)
+    print(name, type(f).__name__, f.__module__, f.__qualname__)
+print(os.getcwd.__self__, os.getcwdb.__self__ is posix)
+PY
+'''
+tags = ["agent", "os"]

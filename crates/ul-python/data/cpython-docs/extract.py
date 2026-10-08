@@ -1,15 +1,16 @@
 """Extrai do CPython as docstrings que o fonte em Python do disco não dá, para `runtime.tsv`.
 
-Roda no oráculo da bancada (o Debian 13 em Docker), com os nomes dos módulos embutidos do
-interpretador (os de `src/modules/pysrc.rs`) como argumentos:
+Roda no oráculo da bancada (o Debian 13 em Docker), com os nomes dos módulos como argumentos (sem
+argumentos valem os de `modules.txt`: os módulos embutidos do interpretador, os de
+`src/modules/pysrc.rs`, mais os de C que as funções nativas pedem):
 
     docker run --rm -i -v "$PWD/crates/ul-python/data/cpython-docs:/g:ro" pseudo-linus-oracle:dev \
-        python3 -I /g/extract.py sys itertools ... > crates/ul-python/data/cpython-docs/runtime.tsv
+        python3 -I /g/extract.py > crates/ul-python/data/cpython-docs/runtime.tsv
 
 Cada linha é `módulo<TAB>nome qualificado<TAB>docstring em JSON` (`null` quando não há); o nome
 vazio é o próprio módulo. Entram as funções e classes de topo e os membros das classes (fora os
-métodos especiais). Para módulos
-escritos em C entra tudo; para módulos com `.py`, só o que o objeto em tempo de execução expõe
+métodos especiais, que só os tipos de `builtins` têm: `str.upper`, `int.__add__`, `len`).
+Para módulos escritos em C entra tudo; para módulos com `.py`, só o que o objeto em tempo de execução expõe
 diferente do fonte (o `bisect.py` tem docstrings, mas `bisect.bisect` vem do `_bisect` em C).
 """
 
@@ -17,9 +18,15 @@ import ast
 import importlib
 import inspect
 import json
+import os
 import sys
+import types
 
 MEMBER_TYPES = ('getset_descriptor', 'member_descriptor')
+
+# Tipos embutidos que `builtins` não publica com o próprio nome.
+EXTRA_TYPES = (types.FunctionType, types.MethodType, types.ModuleType, type(None), type(NotImplemented),
+               type(Ellipsis), types.SimpleNamespace, types.MappingProxyType)
 
 
 def cleaned(raw):
@@ -55,6 +62,29 @@ def source_docs(path):
     return docs
 
 
+def computes_module_doc(path):
+    """O fonte atribui `__doc__` no nível do módulo (`__doc__ += ...`), dentro ou fora de um `if`."""
+    with open(path, encoding='utf-8') as f:
+        tree = ast.parse(f.read())
+
+    def assigns(node):
+        targets = [node.target] if isinstance(node, ast.AugAssign) else getattr(node, 'targets', [])
+        return any(isinstance(t, ast.Name) and t.id == '__doc__' for t in targets)
+
+    def scan(body):
+        for node in body:
+            if isinstance(node, (ast.Assign, ast.AugAssign)) and assigns(node):
+                return True
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                inner = [getattr(node, f, None) or [] for f in ('body', 'orelse', 'finalbody')]
+                inner += [h.body for h in getattr(node, 'handlers', []) or []]
+                if any(scan(b) for b in inner):
+                    return True
+        return False
+
+    return scan(tree.body)
+
+
 def main(names):
     out = []
     for name in names:
@@ -71,7 +101,24 @@ def main(names):
             doc = doc if isinstance(doc, str) else None
             if known is not None and qual in known and known[qual] == doc:
                 return
+            # O módulo que monta o próprio `__doc__` ao ser importado (o `pdb` anexa a ajuda dos comandos) o
+            # recalcula quando roda aqui: gravar o resultado faria o anexo repetir.
+            if qual == '' and known is not None and computes_module_doc(path):
+                return
             out.append('%s\t%s\t%s' % (name, qual, json.dumps(doc)))
+
+        def emit_class(key, value):
+            emit(key, value)
+            for attr in sorted(vars(value)):
+                # Os métodos especiais têm as docstrings genéricas dos slots ("Return self+value."), que
+                # são do interpretador e não do módulo; só os tipos de `builtins` as têm na tabela
+                # (`int.__add__`, `list.__getitem__`).
+                if attr.startswith('__') and attr.endswith('__') and name != 'builtins':
+                    continue
+                member = vars(value)[attr]
+                if (callable(member) or isinstance(member, (property, staticmethod, classmethod))
+                        or type(member).__name__ in MEMBER_TYPES):
+                    emit(key + '.' + attr, member)
 
         emit('', module)
         for key in sorted(vars(module)):
@@ -83,20 +130,19 @@ def main(names):
                 if (value.__module__ not in (name, name.rsplit('.', 1)[-1], module.__name__)
                         and (value.__module__ not in sys.builtin_module_names or value.__module__ == 'builtins')):
                     continue
-                emit(key, value)
-                for attr in sorted(vars(value)):
-                    # Os métodos especiais têm as docstrings genéricas dos slots ("Return self+value."),
-                    # que são do interpretador e não do módulo.
-                    if attr.startswith('__') and attr.endswith('__'):
-                        continue
-                    member = vars(value)[attr]
-                    if (callable(member) or isinstance(member, (property, staticmethod, classmethod))
-                            or type(member).__name__ in MEMBER_TYPES):
-                        emit(key + '.' + attr, member)
+                emit_class(key, value)
             elif callable(value) and type(value).__name__ in ('builtin_function_or_method', 'function'):
                 emit(key, value)
+        if name == 'builtins':
+            # Os tipos embutidos que não são nomes de `builtins` (`function`, `NoneType`...), pelo `__name__`.
+            for extra in EXTRA_TYPES:
+                emit_class(extra.__name__, extra)
     print('\n'.join(out))
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    args = sys.argv[1:]
+    if not args:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'modules.txt'), encoding='utf-8') as f:
+            args = f.read().split()
+    main(args)

@@ -1,0 +1,315 @@
+tool = "python3"
+source = "manual"
+
+# Os métodos mágicos dos valores embutidos (`(0).__index__`, `int.__neg__(5)`, `[].__iadd__`...): todo nome do
+# `dir()` do tipo existe, é chamável e responde como no CPython 3.13, com o repr de `method-wrapper`,
+# `wrapper_descriptor` e `method_descriptor` e os erros de receptor e de aridade dos descritores. O
+# `select.epoll.poll` (e portanto o `asyncio.run`) chama `obj.__index__` de um `int`. Os endereços saem
+# normalizados para `0xADDR`.
+
+[[case]]
+id = "builtin-dunders-numeric"
+script = '''
+python3 - <<'PYEOF' 2>&1 | sed -E 's/0x[0-9a-f]+/0xADDR/'
+def err(f, *a):
+    try:
+        return f(*a)
+    except Exception as e:
+        return f"{type(e).__name__}: {e}"
+
+for v in (0, 5, True, 2.5):
+    print(type(v).__name__, [n for n in ('__index__', '__int__', '__float__', '__invert__', '__neg__', '__pos__', '__abs__', '__bool__', '__trunc__') if hasattr(v, n)])
+x = 5
+print(x.__index__(), x.__int__(), x.__float__(), x.__neg__(), x.__pos__(), x.__abs__(), x.__invert__())
+print((-3).__abs__(), True.__index__(), True.__int__(), True.__float__(), False.__neg__())
+print((2.7).__int__(), (2.7).__float__(), (-2.7).__neg__(), (-2.7).__abs__(), (2.7).__pos__())
+print(int.__index__(5), int.__neg__(5), float.__int__(2.5), float.__floor__(2.5), float.__ceil__(2.5), int.__rshift__(16, 2), int.__rdivmod__(5, 17), int.__rlshift__(2, 3))
+print((7).__round__(), (7).__round__(-1), (2.567).__round__(2), (2.5).__round__(), (3.5).__round__())
+print((7).__ceil__(), (7).__floor__(), (7).__trunc__(), (2.5).__trunc__())
+print((2).__pow__(10), (2).__pow__(10, 1000), (2).__rpow__(3), (2).__rpow__(3, 5), (2.0).__pow__(3), (2).__pow__(0.5))
+print((5).__add__(1), (5).__add__(1.5), (1.5).__add__(1), (5).__radd__(1), (5).__rsub__(1), (5).__rtruediv__(10), (5).__rfloordiv__(17), (5).__rmod__(17), (5).__rmul__(3))
+print((12).__and__(10), (12).__or__(10), (12).__xor__(10), (12).__rand__(10), (1).__lshift__(4), (256).__rshift__(4), (2).__rrshift__(1024), True.__and__(False), True.__or__(False), (12).__and__(1.0))
+print((5).__divmod__(2), (5.5).__divmod__(2), (5).__divmod__(2.0), (5.0).__rdivmod__(17))
+print((1).__lt__(2), (1).__eq__(1.0), (1).__eq__('a'), (1.0).__eq__(1), (1.0).__ge__(2), (1).__ne__(2), (2**70).__gt__(1))
+print((5).__hash__(), (2.5).__hash__() == hash(2.5), (5).__bool__(), (0.0).__bool__(), (5).__repr__(), (2.5).__str__())
+print((5).__getnewargs__(), True.__getnewargs__(), (2.5).__getnewargs__(), float.__getformat__('double'), (1.5).__getformat__('float'))
+print((5).__sizeof__(), (0).__sizeof__(), (2**30).__sizeof__(), (2**100).__sizeof__(), (1.5).__sizeof__())
+print((5).__format__('03d'), (2.5).__format__('.2f'), (5).__format__(''), True.__format__(''))
+print(err((5).__format__, 3))
+print(err(float.__getformat__, 'x'))
+print(err(int.__index__, 'a'))
+print(err(int.__index__))
+print(err(str.upper, 5))
+print(err(int.__add__, 1, 2, 3))
+print(err((5).__add__))
+print(err((5).__float__, 1))
+print(err(float.__neg__, 5))
+print(err(list.__len__, (1,)))
+print(err(int.__neg__, True))
+print(err((5).__lshift__, -1))
+print(err((5).__truediv__, 0))
+print(err((5).__getattribute__, 1))
+print(err((5).__setattr__, 'x', 1))
+print(err((5).__delattr__, 'x'))
+print((5).__getattribute__('real'), sorted((5).__dir__()) == dir(5), (5).__init__(), (5).__getstate__())
+PYEOF
+'''
+
+[[case]]
+id = "builtin-dunders-repr"
+script = '''
+python3 - <<'PYEOF' 2>&1 | sed -E 's/0x[0-9a-f]+/0xADDR/; s/0x7f[0-9a-f]+/0xADDR/g'
+print(repr((5).__index__))
+print(repr(int.__index__))
+print(repr(bool.__add__), bool.__add__ is int.__add__)
+print(repr(True.__and__), repr(bool.__and__))
+print(repr((5).__round__), repr(int.__round__))
+print(repr((5).__sizeof__), repr(int.__sizeof__), repr((5).__getnewargs__), repr(int.__getnewargs__))
+print(type((5).__index__).__name__, type(int.__index__).__name__, type(int.__round__).__name__, type((5).__round__).__name__)
+print(repr(None.__repr__), repr(type(None).__repr__))
+print(repr(range(3).__len__), repr(range.__len__), repr(range(3).__reversed__), repr(range.__reversed__))
+print(repr([].__len__), repr(list.__len__), repr([].__reversed__), repr([].__sizeof__))
+print(repr({}.__getitem__), repr(dict.__getitem__), repr({}.__len__), repr(dict.__len__))
+print(repr(int.__setattr__), repr(int.__init__), repr(int.__reduce_ex__), repr(float.__eq__))
+print(repr((1.5).__neg__), repr(float.__neg__), repr(float.__getformat__.__name__))
+print(repr(str.__add__), repr(''.__add__), repr(str.__mod__), repr(bytes.__buffer__))
+print(int.__index__.__name__, int.__index__.__qualname__, bool.__add__.__qualname__, bool.__add__.__objclass__, int.__neg__.__objclass__)
+print(int.__index__.__text_signature__, int.__pow__.__text_signature__, int.__round__.__text_signature__)
+print((5).__index__.__self__, (5).__index__.__name__, (5).__index__.__qualname__)
+print(int.__index__.__doc__)
+print((5).__neg__.__doc__, (5).__radd__.__doc__)
+print(list.__hash__, dict.__hash__, set.__hash__, bytearray.__hash__, [].__hash__, {}.__hash__, set().__hash__)
+print(hash((1, 2)) == (1, 2).__hash__(), frozenset([1]).__hash__() == hash(frozenset([1])), range(3).__hash__() == hash(range(3)))
+PYEOF
+'''
+
+[[case]]
+id = "builtin-dunders-presence"
+script = '''
+python3 - <<'PYEOF' 2>&1 | sed -E 's/0x[0-9a-f]+/0xADDR/'
+for v in (0, True, 0.0, '', b'', [], (), {}, set(), range(1), None):
+    print(type(v).__name__, hasattr(v, '__index__'), hasattr(v, '__int__'), hasattr(v, '__len__'), hasattr(v, '__sub__'), hasattr(v, '__add__'), hasattr(v, '__neg__'))
+print(hasattr([], '__sub__'), hasattr('', '__add__'), hasattr(1, '__len__'), hasattr(set(), '__add__'), hasattr({}, '__or__'), hasattr((), '__rmul__'), hasattr(1.5, 'bit_length'), hasattr(5, 'is_integer'))
+print(hasattr(frozenset(), '__ior__'), hasattr(set(), '__ior__'), hasattr(range(1), '__bool__'), hasattr(slice(1), '__len__'), hasattr(bytearray(), '__iadd__'), hasattr(b'', '__iadd__'))
+for t in (int, bool, float, str, bytes, bytearray, list, tuple, dict, set, frozenset, range, slice, type(None), object):
+    print(t.__name__, [n for n in dir(t) if not hasattr(t, n)])
+for v in (0, True, 1.5, 'a', b'a', bytearray(b'a'), [1], (1,), {1: 2}, {1}, frozenset({1}), range(2), slice(1), None, object()):
+    print(type(v).__name__, [n for n in dir(v) if not hasattr(v, n)], sorted(n for n in dir(v) if not callable(getattr(v, n))))
+PYEOF
+'''
+
+[[case]]
+id = "builtin-dunders-containers"
+script = '''
+python3 - <<'PYEOF' 2>&1 | sed -E 's/0x[0-9a-f]+/0xADDR/'
+def err(f, *a):
+    try:
+        return f(*a)
+    except Exception as e:
+        return f"{type(e).__name__}: {e}"
+
+l = [1, 2]
+print(l.__iadd__([3]) is l, l.__imul__(2) is l, l)
+print(l.__add__([9]), l.__mul__(2)[:2], l.__rmul__(0), l.__len__(), l.__contains__(3), l.__getitem__(0), l.__eq__([1]), l.__lt__([9]))
+print(list(l.__iter__()), list(l.__reversed__()), [].__sizeof__(), l.__class_getitem__(int), list.__class_getitem__(int))
+print(err(l.__add__, (2,)))
+print(err(l.__mul__, 'a'))
+print(err([].__getitem__, 'a'))
+print(l.__setitem__(0, 7), l.__delitem__(1), l)
+print(l.__init__([7, 8]), l)
+print('ab'.__mul__(2), 'ab'.__rmul__(2), 'a%s'.__mod__('x'), 'a'.__add__('b'), 'ab'.__getitem__(1), 'ab'.__len__(), 'ab'.__contains__('b'), 'ab'.__rmod__(1))
+print('é'.__getnewargs__(), 'abc'.__sizeof__(), ''.__sizeof__(), 'ab'.__lt__('b'), 'ab'.__ne__(1))
+print((1, 2).__add__((3,)), (1, 2).__mul__(2), (1, 2).__rmul__(2), (1, 2).__getnewargs__(), ().__sizeof__(), (1, 2).__sizeof__(), (1, 2).__getitem__(slice(1)))
+d = {1: 2}
+print(d.__or__({3: 4}), d.__ror__({5: 6}), d.__ior__({7: 8}), d, d.__len__(), d.__contains__(1), d.__getitem__(1), list(d.__reversed__()), d.__or__([]))
+print(d.__setitem__(9, 9), d.__delitem__(9), d.__eq__({1: 2, 7: 8}), {}.__sizeof__(), d.__init__(a=1), d)
+a, b = {1, 2}, {2, 3}
+print(a.__and__(b), a.__or__(b), a.__xor__(b), a.__sub__(b), a.__rsub__(b), a.__rand__(b), a.__and__([2]), a.__le__(b), a.__lt__({1, 2, 3}), a.__contains__(1))
+c = {1, 2}
+print(c.__ior__({9}) is c, sorted(c), c.__iand__({1, 9}) is c, sorted(c), c.__isub__({1}) is c, sorted(c), c.__ixor__({5}) is c, sorted(c), c.__ior__([1]))
+fs = frozenset({1, 2})
+print(sorted(fs.__or__(frozenset({3}))), sorted(fs.__and__({2})), fs.__sizeof__(), set().__sizeof__(), fs.__contains__(1), sorted(fs.__iter__()))
+print(b'ab'.__add__(b'c'), b'ab'.__mul__(2), b'ab'.__len__(), b'a'.__bytes__(), b'%d'.__mod__(5), b'a'.__getnewargs__(), b'ab'.__sizeof__(), b'ab'.__getitem__(0), b'a'.__rmod__(1))
+ba = bytearray(b'a')
+print(ba.__iadd__(b'b') is ba, ba.__imul__(2) is ba, ba, ba.__alloc__() >= len(ba), ba.__len__(), ba.__getitem__(0), ba.__setitem__(0, 66), ba.__delitem__(0), ba, ba.__init__(b'xyz'), ba)
+print(bytes(ba.__buffer__(0)), ba.__release_buffer__(memoryview(ba)), b'q'.__buffer__(0).tobytes())
+r = range(5)
+print(r.__len__(), r.__contains__(3), r.__getitem__(1), list(r.__reversed__()), list(r.__iter__()), r.__eq__(range(5)), r.__ne__(range(4)), r.__sizeof__(), r.__repr__())
+s = slice(1, 2, 3)
+print(s.__repr__(), s.__reduce__(), s.__sizeof__(), s.__str__())
+print(None.__bool__(), None.__repr__(), None.__str__(), None.__eq__(None), None.__eq__(0), None.__hash__() == hash(None), None.__ne__(None), None.__sizeof__())
+PYEOF
+'''
+
+[[case]]
+id = "builtin-dunders-object"
+script = '''
+python3 - <<'PYEOF' 2>&1 | sed -E 's/0x[0-9a-f]+/0xADDR/g'
+def err(f, *a):
+    try:
+        return f(*a)
+    except Exception as e:
+        return f"{type(e).__name__}: {e}"
+
+print((5).__reduce_ex__(2))
+print([1, 2].__reduce_ex__(2)[1:3], (1, 2).__reduce_ex__(2)[:2], 'a'.__reduce_ex__(2)[:2], (2.5).__reduce_ex__(3)[:2])
+print(err((5).__reduce_ex__, 0))
+print(err((5).__reduce_ex__, 1))
+print(err([].__reduce__))
+print(err((5).__reduce_ex__))
+print(err((5).__reduce__, 1))
+print((5).__subclasshook__(int), (5).__init_subclass__(), [].__getstate__(), {}.__getstate__(), None.__getstate__())
+print(err(int.__reduce_ex__, 5, 0))
+print(err(int.__getstate__, 'a'))
+print(int.__reduce_ex__(5, 2)[1], object.__reduce_ex__(5, 2)[1])
+print(sorted(set(dir(5)) - set((5).__dir__()) | set((5).__dir__()) - set(dir(5))))
+print(err((5).__dir__, 1))
+print(err((5).__sizeof__, 1))
+print(err((5).__getnewargs__, 1))
+print(err('a'.__getattribute__, 'x'))
+print(err(list.__init__, 5))
+print(err([].__init__, 5))
+
+class I(int):
+    pass
+
+i = I(7)
+print(i.__index__(), i.__neg__(), I.__index__(i), int.__add__(i, 1), i.__radd__(1), i.__eq__(7), i.__sizeof__() > 0, i.__getnewargs__())
+print(list(range(I(3))), [10, 20, 30][I(1)], bin(I(5)), hex(I(255)), '%x' % I(255))
+
+class S(str):
+    pass
+
+print(S('ab').__getnewargs__(), S('ab').__len__(), S('ab').__add__('c'), S('ab').__mul__(2), S('ab').__contains__('a'))
+
+class L(list):
+    pass
+
+x = L([1, 2])
+y = x.__iadd__([3])
+print(y is x, y, x.__len__(), x.__getitem__(0), x.__reversed__().__next__(), L.__len__(x))
+PYEOF
+'''
+
+[[case]]
+id = "builtin-dunders-asyncio-epoll"
+script = '''
+python3 - <<'PYEOF' 2>&1 | sed -E 's/0x[0-9a-f]+/0xADDR/'
+import asyncio, select
+
+ep = select.epoll()
+print(ep.poll(0), ep.poll(0.0), ep.poll(0, 1))
+ep.close()
+
+
+async def main():
+    await asyncio.sleep(0)
+    loop = asyncio.get_running_loop()
+    fut = loop.create_future()
+    loop.call_soon(fut.set_result, 42)
+    return await fut
+
+
+print(asyncio.run(main()))
+PYEOF
+'''
+
+[[case]]
+id = "builtin-dunders-classmethod-reprs"
+script = '''
+python3 - <<'PYEOF' 2>&1 | sed -E 's/0x[0-9a-f]+/0xADDR/g'
+class A:
+    pass
+
+
+a = A()
+o = object()
+
+
+def show(label, f):
+    try:
+        print(label, repr(f), type(f).__name__)
+    except Exception as e:
+        print(label, "ERR", type(e).__name__, e)
+
+
+def info(label, f, owner):
+    try:
+        print(label, f.__self__ is owner, f.__name__, f.__qualname__, f.__text_signature__)
+    except Exception as e:
+        print(label, "ERR", type(e).__name__, e)
+
+
+for label, f in [
+    ("object.__init_subclass__", object.__init_subclass__),
+    ("object.__subclasshook__", object.__subclasshook__),
+    ("object.__new__", object.__new__),
+    ("object().__init_subclass__", o.__init_subclass__),
+    ("object().__subclasshook__", o.__subclasshook__),
+    ("object().__new__", o.__new__),
+    ("object().__dir__", o.__dir__),
+    ("object().__reduce__", o.__reduce__),
+    ("object().__reduce_ex__", o.__reduce_ex__),
+    ("object().__sizeof__", o.__sizeof__),
+    ("object().__format__", o.__format__),
+    ("object().__lt__", o.__lt__),
+    ("object().__le__", o.__le__),
+    ("object().__gt__", o.__gt__),
+    ("object().__ge__", o.__ge__),
+    ("object().__eq__", o.__eq__),
+    ("object().__repr__", o.__repr__),
+    ("object().__setattr__", o.__setattr__),
+    ("object().__getattribute__", o.__getattribute__),
+    ("int.from_bytes", int.from_bytes),
+    ("int.__new__", int.__new__),
+    ("dict.fromkeys", dict.fromkeys),
+    ("dict.__new__", dict.__new__),
+    ("bytes.fromhex", bytes.fromhex),
+    ("bytes.maketrans", bytes.maketrans),
+    ("float.fromhex", float.fromhex),
+    ("float.__getformat__", float.__getformat__),
+    ("str.maketrans", str.maketrans),
+    ("str.__new__", str.__new__),
+    ("A.__init_subclass__", A.__init_subclass__),
+    ("A.__subclasshook__", A.__subclasshook__),
+    ("A.__new__", A.__new__),
+    ("A().__init_subclass__", a.__init_subclass__),
+    ("A().__subclasshook__", a.__subclasshook__),
+    ("A().__dir__", a.__dir__),
+    ("A().__lt__", a.__lt__),
+    ("A().__eq__", a.__eq__),
+    ("A().__sizeof__", a.__sizeof__),
+]:
+    show(label, f)
+
+print("--- __self__, __name__, __qualname__, __text_signature__")
+for label, f, owner in [
+    ("object.__init_subclass__", object.__init_subclass__, object),
+    ("object.__subclasshook__", object.__subclasshook__, object),
+    ("object.__new__", object.__new__, object),
+    ("object().__init_subclass__", o.__init_subclass__, object),
+    ("object().__dir__", o.__dir__, o),
+    ("object().__lt__", o.__lt__, o),
+    ("int.from_bytes", int.from_bytes, int),
+    ("int.__new__", int.__new__, int),
+    ("dict.fromkeys", dict.fromkeys, dict),
+    ("bytes.fromhex", bytes.fromhex, bytes),
+    ("float.fromhex", float.fromhex, float),
+    ("str.maketrans", str.maketrans, str),
+    ("A.__init_subclass__", A.__init_subclass__, A),
+    ("A.__subclasshook__", A.__subclasshook__, A),
+    ("A.__new__", A.__new__, object),
+    ("A().__init_subclass__", a.__init_subclass__, A),
+    ("A().__dir__", a.__dir__, a),
+    ("A().__lt__", a.__lt__, a),
+]:
+    info(label, f, owner)
+
+print("--- identidade e ligação")
+print(object.__new__ is object.__new__, A.__new__ is object.__new__)
+print(object.__init_subclass__.__self__ is object, A.__init_subclass__.__self__ is A)
+print(object().__lt__.__objclass__ is object, o.__lt__.__self__ is o)
+print(object.__subclasshook__(int), A.__subclasshook__(int))
+print(type(object.__new__(A)).__name__, o.__dir__() == dir(o))
+PYEOF
+'''

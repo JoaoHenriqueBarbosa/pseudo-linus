@@ -1,0 +1,209 @@
+[[case]]
+id = "os-dup-inheritable-blocking"
+script = '''
+python3 - <<'PY'
+import os
+r, w = os.pipe()
+print(os.get_inheritable(r), os.get_blocking(r))
+d = os.dup(r)
+print(d - r, os.get_inheritable(d))
+os.set_inheritable(d, True)
+print(os.get_inheritable(d), os.get_inheritable(r))
+os.set_blocking(d, False)
+print(os.get_blocking(r), os.get_blocking(d))
+try:
+    os.read(r, 1)
+except BlockingIOError as e:
+    print(type(e).__name__, e.errno)
+os.set_blocking(r, True)
+print(os.get_blocking(d))
+print(os.dup2(w, 40), os.get_inheritable(40))
+print(os.dup2(w, 41, False), os.get_inheritable(41))
+print(os.dup2(w, w) == w, os.get_inheritable(w))
+os.write(40, b'ok')
+print(os.read(r, 8))
+for call in (lambda: os.dup(999), lambda: os.dup2(w, w, False), lambda: os.dup2(999, 5),
+             lambda: os.set_inheritable(999, True), lambda: os.get_inheritable(999),
+             lambda: os.set_blocking(999, True), lambda: os.get_blocking(999)):
+    try:
+        call()
+    except OSError as e:
+        print(e.errno, type(e).__name__, e.strerror)
+for call in (lambda: os.dup('a'), lambda: os.dup(2 ** 40), lambda: os.dup(1.5), lambda: os.dup2(w, 2 ** 40)):
+    try:
+        call()
+    except Exception as e:
+        print(type(e).__name__, e)
+# set_blocking só mexe no O_NONBLOCK: o O_APPEND continua.
+fd = os.open('/tmp/append-flag', os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+os.set_blocking(fd, False)
+flags = int(open(f'/proc/self/fdinfo/{fd}').read().split('flags:')[1].split()[0], 8)
+print(bool(flags & os.O_APPEND), bool(flags & os.O_NONBLOCK))
+os.set_blocking(fd, True)
+flags = int(open(f'/proc/self/fdinfo/{fd}').read().split('flags:')[1].split()[0], 8)
+print(bool(flags & os.O_APPEND), bool(flags & os.O_NONBLOCK))
+PY
+'''
+tags = ["agent", "os"]
+
+[[case]]
+id = "socket-dup-detach-fromfd"
+script = '''
+python3 - <<'PY'
+import os, socket
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+d = s.dup()
+print(type(d).__name__, int(d.family), int(d.type), d.fileno() != s.fileno(), d.gettimeout(), os.get_inheritable(d.fileno()))
+s.settimeout(2)
+d2 = s.dup()
+print(d2.gettimeout(), s.gettimeout())
+fd = d.detach()
+print(d.fileno(), fd > 2)
+e = socket.socket(fileno=fd)
+print(int(e.family), int(e.type), e.proto, e.fileno() == fd)
+f = socket.fromfd(e.fileno(), socket.AF_INET, socket.SOCK_STREAM)
+print(f.fileno() != e.fileno(), os.get_inheritable(f.fileno()))
+try:
+    socket.socket(fileno=os.dup(0))
+except OSError as err:
+    print(err.errno)
+try:
+    socket.socket(fileno=-1)
+except ValueError as err:
+    print(err)
+a, b = socket.socketpair()
+c = a.dup()
+a.close()
+c.sendall(b'por dup')
+print(b.recv(16))
+for x in (s, d2, e, f, b, c):
+    x.close()
+PY
+'''
+tags = ["agent", "net"]
+
+[[case]]
+id = "socket-scm-rights-fork"
+script = '''
+python3 - <<'PY'
+import os, socket
+a, b = socket.socketpair()
+r, w = os.pipe()
+pid = os.fork()
+if pid == 0:
+    a.close()
+    os.close(w)
+    msg, fds, flags, addr = socket.recv_fds(b, 16, 2)
+    print('filho', msg, len(fds), flags, addr, os.read(fds[0], 16))
+    raise SystemExit(0)
+b.close()
+print(socket.send_fds(a, [b'fd'], [r]))
+os.close(r)
+os.write(w, b'segredo')
+os.close(w)
+print(os.waitpid(pid, 0)[1])
+PY
+'''
+tags = ["agent", "net", "fork"]
+
+[[case]]
+id = "socket-ancdata"
+script = '''
+python3 - <<'PY'
+import array, os, socket, struct
+a, b = socket.socketpair()
+r, w = os.pipe()
+print(a.sendmsg([b'ab', b'cd'], [(socket.SOL_SOCKET, socket.SCM_RIGHTS, array.array('i', [r]))]))
+msg, anc, flags, addr = b.recvmsg(16, socket.CMSG_SPACE(4))
+print(msg, [(l, t, len(d)) for l, t, d in anc], flags, addr)
+fd = int.from_bytes(anc[0][2], 'little')
+os.write(w, b'via pipe')
+print(os.read(fd, 16), os.get_inheritable(fd))
+# sem lugar no msg_control o fd se perde e vem MSG_CTRUNC.
+a.sendmsg([b'x'], [(socket.SOL_SOCKET, socket.SCM_RIGHTS, array.array('i', [r]))])
+msg, anc, flags, addr = b.recvmsg(16)
+print(msg, anc, bool(flags & socket.MSG_CTRUNC))
+a.sendmsg([b'y'], [(socket.SOL_SOCKET, socket.SCM_RIGHTS, array.array('i', [r]))])
+msg, anc, flags, addr = b.recvmsg(16, socket.CMSG_LEN(0))
+print(msg, anc, bool(flags & socket.MSG_CTRUNC))
+# um sk_buff com descritores encerra a leitura.
+a.sendmsg([b'ab'])
+a.sendmsg([b'cd'], [(socket.SOL_SOCKET, socket.SCM_RIGHTS, array.array('i', [r]))])
+a.sendmsg([b'ef'])
+msg, anc, flags, addr = b.recvmsg(16, socket.CMSG_SPACE(4))
+print(msg, len(anc), b.recv(16))
+# recvmsg_into e MSG_PEEK.
+buf1, buf2 = bytearray(2), bytearray(8)
+a.send(b'12345')
+n, anc, flags, addr = b.recvmsg_into([buf1, buf2], 0, socket.MSG_PEEK)
+print(n, bytes(buf1), bytes(buf2[:3]), anc, flags)
+n, anc, flags, addr = b.recvmsg_into([buf1, buf2])
+print(n, bytes(buf1), bytes(buf2[:3]), anc, flags)
+# datagrama truncado e CMSG_CLOEXEC.
+x, y = socket.socketpair(socket.AF_UNIX, socket.SOCK_DGRAM)
+x.sendmsg([b'0123456789'], [(socket.SOL_SOCKET, socket.SCM_RIGHTS, array.array('i', [r]))])
+m, anc, flags, addr = y.recvmsg(4, socket.CMSG_SPACE(4), socket.MSG_CMSG_CLOEXEC)
+print(m, bool(flags & socket.MSG_TRUNC), len(anc), os.get_inheritable(int.from_bytes(anc[0][2], 'little')))
+# erros do sendmsg.
+for call in (lambda: a.sendmsg([b'x'], [(socket.SOL_SOCKET, socket.SCM_RIGHTS, array.array('i', [999]))]),
+             lambda: a.sendmsg([b'x'], [(socket.SOL_SOCKET, 77, b'1234')]),
+             lambda: a.sendmsg('x'),
+             lambda: a.sendmsg([b'x'], [(1, 2)]),
+             lambda: a.recvmsg(-1),
+             lambda: a.recvmsg(1, -1)):
+    try:
+        print(call())
+    except Exception as e:
+        print(type(e).__name__, e)
+PY
+'''
+tags = ["agent", "net"]
+
+[[case]]
+id = "socket-credentials"
+script = '''
+python3 - <<'PY'
+import os, socket, struct
+a, b = socket.socketpair()
+size = struct.calcsize('3i')
+cred = a.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, size)
+print(len(cred), struct.unpack('3i', cred) == (os.getpid(), os.geteuid(), os.getegid()))
+print(a.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED) == os.getpid())
+try:
+    a.setsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 1)
+except OSError as e:
+    print(e.errno)
+lone = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+print(struct.unpack('3i', lone.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, size)))
+print(b.getsockopt(socket.SOL_SOCKET, socket.SO_PASSCRED))
+b.setsockopt(socket.SOL_SOCKET, socket.SO_PASSCRED, 1)
+print(b.getsockopt(socket.SOL_SOCKET, socket.SO_PASSCRED))
+a.sendmsg([b'c'])
+msg, anc, flags, addr = b.recvmsg(8, socket.CMSG_SPACE(size))
+level, kind, data = anc[0]
+pid, uid, gid = struct.unpack('3i', data)
+print(msg, len(anc), level, kind, pid == os.getpid(), uid == os.getuid(), gid == os.getgid())
+a.sendmsg([b'd'], [(socket.SOL_SOCKET, socket.SCM_CREDENTIALS, struct.pack('3i', os.getpid(), os.getuid(), os.getgid()))])
+msg, anc, flags, addr = b.recvmsg(8, socket.CMSG_SPACE(size))
+print(msg, len(anc), anc[0][:2])
+# credencial que não é a de quem envia.
+try:
+    a.sendmsg([b'e'], [(socket.SOL_SOCKET, socket.SCM_CREDENTIALS, struct.pack('3i', os.getpid(), -1, 0))])
+except OSError as e:
+    print(e.errno)
+# um listener, um cliente e o aceito.
+path = '/tmp/peercred.sock'
+if os.path.exists(path):
+    os.unlink(path)
+srv = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+srv.bind(path)
+srv.listen()
+cli = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+cli.connect(path)
+conn, _ = srv.accept()
+me = (os.getpid(), os.geteuid(), os.getegid())
+print([struct.unpack('3i', s.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, size)) == me for s in (srv, cli, conn)])
+os.unlink(path)
+PY
+'''
+tags = ["agent", "net"]

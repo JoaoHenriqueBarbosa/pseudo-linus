@@ -1,23 +1,21 @@
-"""_net: a rede em loopback do sandbox, inteira dentro do processo.
+"""_net: apoio do `_socket` e do laço asyncio sobre os sockets do kernel do sandbox.
 
-Não há placa de rede: só se conversa com quem está neste mesmo interpretador (`127.0.0.1`, `::1`, `localhost`,
-o nome do host e sockets Unix). Um `Listener` guarda as conexões ainda não aceitas, um `Endpoint` é uma ponta
-de uma conexão (os bytes que o par escreveu esperam em `rx`) e um `Datagram` é um socket UDP. Qualquer outro
-destino falha com `ENETUNREACH`, como num host sem rota. `socket`, `select` e `asyncio` são camadas sobre isto."""
+Todo socket do Python é um fd do kernel (`_os.tcp_socket`, `_os.unix_socket`, `_os.udp_socket`): o estado dele
+(conexão, erro pendente, opções, fila de datagramas) vive lá, e nada daqui o duplica. Este módulo só guarda o
+que não é estado de socket: os nomes locais (`hostname`, `is_local`), a forma dos endereços, e a espera
+cooperativa por prontidão de fd, que roda as threads do interpretador enquanto o `poll(2)` do kernel não acusa
+nada."""
 
-import collections
-import errno
-import weakref
+import _os
+import _sys
 
 AF_UNIX = 1
 AF_INET = 2
 AF_INET6 = 10
 
-# Nenhuma tabela daqui mantém um socket vivo: o que o programa solta fecha, como no CPython.
-_listeners = weakref.WeakValueDictionary()
-_datagrams = {}
-_ports = set()
-_next_port = [32768]
+POLLIN = 1
+POLLOUT = 4
+
 _hostname = [None]
 
 
@@ -46,378 +44,6 @@ def address(family, host, port):
     return (host, port, 0, 0) if family == AF_INET6 else (host, port)
 
 
-def alloc_port():
-    while True:
-        port = _next_port[0]
-        _next_port[0] += 1
-        if _next_port[0] > 60999:
-            _next_port[0] = 32768
-        if port not in _ports:
-            _ports.add(port)
-            return port
-
-
-def reserve_port(port, reuse=False):
-    if port in _ports and not (reuse and port not in _listeners):
-        raise OSError(errno.EADDRINUSE, 'Address already in use')
-    _ports.add(port)
-
-
-def release_port(port):
-    _ports.discard(port)
-
-
-class _Notifier:
-    def __init__(self):
-        self.hooks = []
-
-    def _notify(self):
-        for hook in list(self.hooks):
-            hook()
-
-    def _own(self, kfd):
-        """Passa a ser o dono do fd do kernel `kfd`: ele fecha com este objeto, ou no `_drop_kfd`."""
-        self.kfd = kfd
-        self._guard = _os.fdguard(kfd)
-        _kregister(kfd, self)
-
-    def _drop_kfd(self):
-        kfd, self.kfd = self.kfd, None
-        if kfd is not None:
-            _kunregister(kfd)
-            self._guard.close()
-
-
-class Listener(_Notifier):
-    def __init__(self, family, key, addr, backlog):
-        _Notifier.__init__(self)
-        self.family = family
-        self.key = key
-        self.addr = addr
-        self.backlog = backlog
-        self.pending = collections.deque()
-        self.closed = False
-        self.on_connection = None
-        # O fd do kernel em que a mesma porta escuta para os outros processos (só TCP).
-        self.kfd = None
-
-    def push(self, endpoint):
-        if self.on_connection is not None:
-            self.on_connection(endpoint)
-        else:
-            self.pending.append(endpoint)
-            self._notify()
-
-    def _accept_kernel(self):
-        """Tira uma conexão da fila do kernel, ou None se não há nenhuma pronta."""
-        if self.kfd is None:
-            return None
-        if self.family == AF_UNIX:
-            fd = _os.unix_accept(self.kfd)
-            if fd is None:
-                return None
-            return KernelEndpoint(AF_UNIX, fd, self.addr, unix_name(_os.unix_names(fd)[1]))
-        got = _os.tcp_accept(self.kfd)
-        if got is None:
-            return None
-        fd, peer_port = got
-        ip = loopback_ip(self.family)
-        return KernelEndpoint(self.family, fd, address(self.family, ip, self.addr[1]),
-                              address(self.family, ip, peer_port))
-
-    def _pump(self):
-        """Uma conexão chegou pelo kernel. Ela fica na fila de lá até o programa chamar `accept()`,
-        como num socket de verdade (o /proc/net/tcp a mostra sem inode e conta na fila da escuta);
-        só quem registrou `on_connection` recebe as conexões na hora."""
-        if self.on_connection is not None:
-            while True:
-                endpoint = self._accept_kernel()
-                if endpoint is None:
-                    return
-                self.on_connection(endpoint)
-        self._notify()
-
-    def readable(self):
-        if self.pending or self.closed:
-            return True
-        return self.kfd is not None and bool(_os.tcp_poll([self.kfd], 0))
-
-    def take(self):
-        """A próxima conexão: primeiro as deste interpretador, depois a fila do kernel."""
-        if self.pending:
-            return self.pending.popleft()
-        return self._accept_kernel()
-
-    def close(self):
-        if self.closed:
-            return
-        self.closed = True
-        if self.kfd is not None:
-            self._drop_kfd()
-        if _listeners.get(self.key) is self:
-            del _listeners[self.key]
-        for endpoint in self.pending:
-            endpoint.close()
-        self.pending.clear()
-        self._notify()
-
-
-def listen(family, addr, backlog, reuse=False, ephemeral=False):
-    """Um `Listener` em `addr`. Com `ephemeral` (o `bind` pediu a porta 0), quem escolhe a porta é o kernel,
-    que conhece as portas em escuta de todos os processos: o endereço do ouvinte sai com a porta dele."""
-    if family == AF_UNIX:
-        key = ('u', addr)
-        if key in _listeners:
-            raise OSError(errno.EADDRINUSE, 'Address already in use')
-        kfd = None
-    else:
-        if not ephemeral and ('t', addr[1]) in _listeners:
-            raise OSError(errno.EADDRINUSE, 'Address already in use')
-        # A mesma porta escuta também no kernel, para os outros processos do sandbox.
-        try:
-            bind_ip = addr[0] or ('::' if family == AF_INET6 else '0.0.0.0')
-            if bind_ip == 'localhost':
-                bind_ip = loopback_ip(family)
-            kfd, kport = _os.tcp_listen(0 if ephemeral else addr[1], backlog, bind_ip)
-        except OSError as e:
-            if e.errno != errno.ENOSYS:
-                raise
-            kfd, kport = None, addr[1]
-        if kport != addr[1]:
-            release_port(addr[1])
-            _ports.add(kport)
-            addr = address(family, addr[0], kport)
-        key = ('t', kport)
-    listener = Listener(family, key, addr, backlog)
-    if kfd is not None:
-        listener._own(kfd)
-    _listeners[key] = listener
-    return listener
-
-
-# ---- conexões com outros processos (kernel) ---------------------------------------------------------
-# Um `Listener` TCP escuta também no kernel; quem conecta a uma porta sem ouvinte neste interpretador vai
-# ao kernel. Os fds do kernel são não bloqueantes: as esperas passam pelo `threading._wait_for`, que chama
-# `_kpoll` quando não há thread cooperativa para rodar.
-
-import _os
-
-_kfds = {}
-
-
-def _kregister(kfd, obj):
-    import threading
-    if not _kfds and _kpoll not in threading._pollers:
-        threading._pollers.append(_kpoll)
-    _kfds[kfd] = weakref.ref(obj)
-
-
-def _kunregister(kfd):
-    _kfds.pop(kfd, None)
-    if not _kfds:
-        import threading
-        if _kpoll in threading._pollers:
-            threading._pollers.remove(_kpoll)
-
-
-def _kpoll(timeout):
-    """Espera até `timeout` por dado, conexão ou EOF em algum fd do kernel e os entrega."""
-    for kfd, ref in list(_kfds.items()):
-        if ref() is None:
-            # O dono morreu sem `close` e o fd já fechou com ele.
-            _kunregister(kfd)
-    if not _kfds:
-        return
-    for kfd in _os.tcp_poll(list(_kfds), timeout):
-        ref = _kfds.get(kfd)
-        obj = ref() if ref is not None else None
-        if obj is not None:
-            obj._pump()
-
-
-class Endpoint(_Notifier):
-    """Uma ponta de conexão: o que o par escreve chega em `rx`; `rx_eof` marca que ele não escreverá mais."""
-
-    def __init__(self, family, local, peer):
-        _Notifier.__init__(self)
-        self.family = family
-        self.local = local
-        self.peer = peer
-        self.peer_ep = None
-        self.rx = bytearray()
-        self.rx_eof = False
-        self.rd_shut = False
-        self.wr_shut = False
-        self.closed = False
-        self.reset = False
-        self.port = local[1] if family != AF_UNIX else None
-
-    def readable(self):
-        return bool(self.rx) or self.rx_eof or self.rd_shut or self.reset or self.closed
-
-    def write(self, data):
-        if self.closed or self.wr_shut:
-            raise BrokenPipeError(errno.EPIPE, 'Broken pipe')
-        if self.reset:
-            raise BrokenPipeError(errno.EPIPE, 'Broken pipe')
-        other = self.peer_ep
-        if other.closed or other.rd_shut:
-            # O primeiro envio a um par que já fechou é aceito; o seguinte encontra o RST.
-            self.reset = True
-            self._notify()
-            return len(data)
-        other.rx += data
-        other._notify()
-        return len(data)
-
-    def read(self, n):
-        if self.reset:
-            self.reset = False
-            raise ConnectionResetError(errno.ECONNRESET, 'Connection reset by peer')
-        if self.rd_shut:
-            return b''
-        data = bytes(self.rx[:n])
-        del self.rx[:n]
-        return data
-
-    def shutdown_write(self):
-        if self.wr_shut:
-            return
-        self.wr_shut = True
-        other = self.peer_ep
-        other.rx_eof = True
-        other._notify()
-
-    def shutdown_read(self):
-        self.rd_shut = True
-        self._notify()
-
-    def close(self):
-        if self.closed:
-            return
-        self.closed = True
-        self.shutdown_write()
-        if self.port is not None:
-            release_port(self.port)
-        self._notify()
-
-
-class KernelEndpoint(Endpoint):
-    """Uma ponta de conexão com outro processo: os bytes chegam pelo fd do kernel e são trazidos para `rx`
-    quando alguém pergunta se há o que ler (`readable`) ou quando o `poll` do escalonador os encontra."""
-
-    def __init__(self, family, kfd, local, peer):
-        Endpoint.__init__(self, family, local, peer)
-        self.port = None
-        self._own(kfd)
-
-    def _pump(self):
-        while self.kfd is not None and not self.rx_eof:
-            try:
-                data = _os.tcp_recv(self.kfd, 65536)
-            except ConnectionResetError:
-                self.reset = True
-                break
-            if data is None:
-                break
-            if not data:
-                self.rx_eof = True
-                _kunregister(self.kfd)
-                break
-            self.rx += data
-        self._notify()
-
-    def readable(self):
-        if not self.rx and not self.rx_eof:
-            self._pump()
-        return Endpoint.readable(self)
-
-    def write(self, data):
-        if self.closed or self.wr_shut or self.kfd is None:
-            raise BrokenPipeError(errno.EPIPE, 'Broken pipe')
-        return _os.tcp_send(self.kfd, data)
-
-    def shutdown_write(self):
-        if self.wr_shut:
-            return
-        self.wr_shut = True
-        if self.kfd is not None:
-            _os.tcp_shutdown(self.kfd, False, True)
-
-    def close(self):
-        if self.closed:
-            return
-        self.closed = True
-        self.wr_shut = True
-        self._drop_kfd()
-        self._notify()
-
-
-def _destination_ip(family, host):
-    """O IP numérico de um destino local: nomes e endereços de bind genéricos viram o loopback, e um
-    `127.x.y.z` (o kernel aceita qualquer um deles) segue como está."""
-    if host in ('', 'localhost', '0.0.0.0', '::'):
-        return loopback_ip(family)
-    # Endereço numérico não passa pelo nome da máquina (o glibc também não consulta nada para ele).
-    if not (host[:1].isdigit() or ':' in host) and host == hostname():
-        return loopback_ip(family)
-    return host
-
-
-def connect(family, addr):
-    """Abre uma conexão com um `Listener` local e devolve a ponta do cliente."""
-    if family == AF_UNIX:
-        key = ('u', addr)
-        listener = _listeners.get(key)
-        if listener is None:
-            raise FileNotFoundError(errno.ENOENT, 'No such file or directory')
-        client = Endpoint(family, '', addr)
-        server = Endpoint(family, addr, '')
-    else:
-        host, port = addr[0], addr[1]
-        if not is_local(host):
-            raise OSError(errno.ENETUNREACH, 'Network is unreachable')
-        listener = _listeners.get(('t', port))
-        if listener is None or listener.closed or listener.kfd is not None:
-            # A conexão passa pelo kernel sempre que ele conhece quem escuta (outro processo ou este
-            # mesmo): é lá que ela aparece no /proc/net/tcp.
-            dst = _destination_ip(family, host)
-            try:
-                kfd, cport = _os.tcp_connect(port, dst)
-            except OSError as e:
-                if e.errno == errno.ENOSYS:
-                    raise ConnectionRefusedError(errno.ECONNREFUSED, 'Connection refused') from None
-                raise
-            # O endereço local de quem conecta a qualquer 127.x é o 127.0.0.1 (o `src` da rota local); o do
-            # par é o IP de destino.
-            ip = loopback_ip(family)
-            return KernelEndpoint(family, kfd, address(family, ip, cport), address(family, dst, port))
-        ip = loopback_ip(family)
-        dst = _destination_ip(family, host)
-        cport = alloc_port()
-        client = Endpoint(family, address(family, ip, cport), address(family, dst, port))
-        server = Endpoint(family, address(family, dst, port), address(family, ip, cport))
-        server.port = None
-    client.peer_ep = server
-    server.peer_ep = client
-    listener.push(server)
-    return client
-
-
-def pair(family=AF_UNIX):
-    """Duas pontas já ligadas entre si (`socketpair`)."""
-    a = Endpoint(family, '' if family == AF_UNIX else address(family, loopback_ip(family), 0), '')
-    b = Endpoint(family, '' if family == AF_UNIX else address(family, loopback_ip(family), 0), '')
-    a.peer_ep = b
-    b.peer_ep = a
-    a.port = b.port = None
-    return a, b
-
-
-# ---- sockets do domínio Unix (kernel) ---------------------------------------------------------------
-# Todo socket `AF_UNIX` é um fd do kernel desde a criação: é lá que o `bind` cria o arquivo do socket, que
-# outro processo consegue conectar e que o `/proc/net/unix` lista. Os nomes vão ao kernel em bytes.
-
 def unix_name(raw):
     """O endereço que o Python mostra para um nome do kernel: str no sistema de arquivos, bytes no espaço
     abstrato, '' sem nome."""
@@ -436,140 +62,158 @@ def unix_encode(addr):
     return bytes(addr)
 
 
-def unix_listener(kfd, addr, backlog):
-    """Um `Listener` sobre o socket do kernel que já escuta em `addr`."""
-    listener = Listener(AF_UNIX, ('u', addr), addr, backlog)
-    listener._own(kfd)
-    return listener
+# ---- espera por prontidão ---------------------------------------------------------------------------
+# `_waits` são os fds em que alguma espera cooperativa está parada. Todos entram num só `poll(2)` do kernel,
+# que a `threading._wait_for` chama quando nenhuma thread pendente tem o que fazer.
+
+_waits = []
 
 
-def unix_endpoint(kfd):
-    """A ponta de uma conexão de fluxo já feita no kernel."""
-    me, peer, _ = _os.unix_names(kfd)
-    return KernelEndpoint(AF_UNIX, kfd, unix_name(me), unix_name(peer))
+def _poller(timeout):
+    """Espera até `timeout` segundos (`None`, sem limite) por prontidão em algum fd esperado."""
+    if _waits:
+        _os.poll(list(_waits), timeout)
 
 
-class _KernelDgram(_Notifier):
-    """Socket de datagrama no kernel. Os datagramas ficam na fila do kernel até o `recv` (é ela que o
-    `/proc/net` mostra); `readable` só pergunta se há algum."""
-
-    def __init__(self, family, kfd):
-        _Notifier.__init__(self)
-        self.family = family
-        self.closed = False
-        self._own(kfd)
-
-    def _pump(self):
-        self._notify()
-
-    def readable(self):
-        return self.closed or self.kfd is None or bool(_os.tcp_poll([self.kfd], 0))
-
-    def close(self):
-        if self.closed:
-            return
-        self.closed = True
-        self._drop_kfd()
-        self._notify()
+def _sync_poller():
+    import threading
+    if _waits:
+        if _poller not in threading._pollers:
+            threading._pollers.append(_poller)
+    elif _poller in threading._pollers:
+        threading._pollers.remove(_poller)
 
 
-class KernelUdp(_KernelDgram):
-    """Socket UDP no kernel; o endereço de quem enviou vem na família do socket."""
-
-    def _addr(self, pair):
-        return address(self.family, pair[0], pair[1])
-
-    @property
-    def addr(self):
-        return self._addr(_os.udp_names(self.kfd)[0])
-
-    def recv(self, n, peek=False):
-        """O próximo datagrama (cortado em `n`) e quem enviou, ou None se a fila está vazia."""
-        got = _os.udp_recvfrom(self.kfd, n, peek)
-        if got is None:
-            return None
-        return got[0], self._addr(got[1])
-
-    def sendto(self, data, addr=None):
-        if addr is None:
-            return _os.udp_sendto(self.kfd, data, None, 0)
-        host = addr[0]
-        if host in ('', '<broadcast>', 'localhost') or host == hostname():
-            host = loopback_ip(self.family)
-        return _os.udp_sendto(self.kfd, data, host, addr[1])
+def wait_fds(entries, cond, timeout, what):
+    """Espera `cond()` valer por até `timeout` segundos (`None`, sem limite), rodando as outras threads, com os
+    pares `(fd, events)` de `entries` entre os que o `poll(2)` do kernel vigia quando ninguém mais pode rodar.
+    Devolve `cond()` ao fim."""
+    import threading
+    entries = list(entries)
+    _waits.extend(entries)
+    _sync_poller()
+    try:
+        return bool(threading._wait_for(cond, timeout, what))
+    finally:
+        for entry in entries:
+            _waits.remove(entry)
+        _sync_poller()
 
 
-class KernelDatagram(_KernelDgram):
-    """Socket Unix de datagrama; quem enviou sem nome aparece como `None`."""
+def wait_fd(fd, events, timeout, what):
+    """Espera `events` em `fd` por até `timeout` segundos (`None`, sem limite; 0, só sonda), rodando as threads
+    pendentes. Devolve verdadeiro se há o que fazer (inclusive `POLLERR`, `POLLHUP` e `POLLNVAL`, que a
+    chamada seguinte transforma em erro)."""
+    def ready():
+        return _os.poll([(fd, events)], 0.0)[0] != 0
 
-    def __init__(self, kfd):
-        _KernelDgram.__init__(self, AF_UNIX, kfd)
-
-    @property
-    def addr(self):
-        return unix_name(_os.unix_names(self.kfd)[0]) if self.kfd is not None else ''
-
-    def recv(self, n, peek=False):
-        got = _os.unix_recvfrom(self.kfd, n, peek)
-        if got is None:
-            return None
-        data, source = got
-        return data, None if source is None else unix_name(source)
-
-    def sendto(self, data, addr=None):
-        """Envia para `addr` (ou para o par do `connect`); com a fila do destino cheia, espera."""
-        name = None if addr is None else unix_encode(addr)
-        while True:
-            n = _os.unix_sendto(self.kfd, data, name)
-            if n is not None:
-                return n
-            import time
-            time.sleep(0.001)
+    if ready():
+        return True
+    if timeout == 0.0:
+        return False
+    return wait_fds([(fd, events)], ready, timeout, what)
 
 
-class Datagram(_Notifier):
-    """Socket UDP: as mensagens recebidas ficam em `rx` com o endereço de quem enviou."""
+def cooperative():
+    """O `threading` quando há outra coisa que precisa rodar enquanto o processo espera um filho ou um
+    descritor (threads pendentes ou verdes vivas, serviços, sockets ligados a outros processos); `None` quando
+    esperar bloqueado no kernel não atrasa ninguém.
+    No CPython o `waitpid` e o `read` soltam a GIL, e as outras threads seguem rodando durante a espera."""
+    import sys
+    threading = sys.modules.get('threading')
+    if threading is not None and (threading._pending or threading._services or threading._pollers
+                                  or threading._gsched.others()):
+        return threading
+    return None
 
-    def __init__(self, family):
-        _Notifier.__init__(self)
-        self.family = family
-        self.addr = None
-        self.rx = collections.deque()
-        self.closed = False
 
-    def readable(self):
-        return bool(self.rx) or self.closed
+def cooperative_fd(fd):
+    """Esperar `fd` bloqueado no kernel atrasaria alguém: há outra coisa a rodar e o fd é bloqueante. Um fd
+    não bloqueante segue direto para o kernel (`EAGAIN` ou `None`, como no Linux)."""
+    return cooperative() is not None and _os.get_blocking(fd)
 
-    def bind(self, addr, reuse=False):
-        port = addr[1]
-        if port == 0:
-            port = alloc_port()
-        else:
-            reserve_port(port, reuse)
-        ip = addr[0] if addr[0] not in ('', None) else ('::' if self.family == AF_INET6 else '0.0.0.0')
-        self.addr = address(self.family, ip, port)
-        _datagrams[port] = self
-        return self.addr
 
-    def sendto(self, data, addr):
-        if self.addr is None:
-            self.bind((loopback_ip(self.family), 0))
-        host, port = addr[0], addr[1]
-        if not is_local(host):
-            raise OSError(errno.ENETUNREACH, 'Network is unreachable')
-        dest = _datagrams.get(port)
-        if dest is not None and not dest.closed:
-            source_ip = loopback_ip(self.family)
-            dest.rx.append((bytes(data), address(self.family, source_ip, self.addr[1])))
-            dest._notify()
-        return len(data)
+def wait_readable(fd):
+    """Espera `POLLIN` em `fd` (que só outra thread satisfaz) rodando as outras threads; sem ninguém para
+    rodar, ou num fd não bloqueante, volta de imediato e a leitura bloqueia (ou dá `EAGAIN`) no kernel. Num
+    terminal em modo canônico o `POLLIN` só acende com a linha inteira, como o `read(2)` que o segue."""
+    if cooperative_fd(fd):
+        wait_fd(fd, POLLIN, None, 'read()')
 
-    def close(self):
-        if self.closed:
-            return
-        self.closed = True
-        if self.addr is not None:
-            if _datagrams.get(self.addr[1]) is self:
-                del _datagrams[self.addr[1]]
-            release_port(self.addr[1])
-        self._notify()
+
+def wait_stdin(fd):
+    """A espera de uma leitura do stdin que saiu da nativa (`SuspendRequest::Wait`): roda as outras threads até
+    `fd` ter o que ler e marca a repetição da instrução que parou, para ela ir direto ao kernel."""
+    wait_readable(fd)
+    _sys._stdin_resume()
+
+
+def wait_then_call(fd, func, args, kwargs):
+    """`wait_stdin` e a repetição da chamada de leitura que parou (o valor é o resultado da instrução)."""
+    wait_stdin(fd)
+    return func(*args, **kwargs)
+
+
+def read(fd, n):
+    """`read(2)` que cede às outras threads: o processo não pode ficar bloqueado no kernel esperando um pipe
+    ou terminal que só uma thread dele satisfaz (o servidor HTTP numa thread, o cliente num filho que o
+    `subprocess` lê). Com `n < 0` lê até o fim do arquivo, esperando a prontidão a cada pedaço. Um fd
+    não bloqueante segue direto para o kernel (`EAGAIN` ou `None`, como no Linux)."""
+    if n == 0 or not cooperative_fd(fd):
+        return _os.read(fd, n)
+    if n > 0:
+        wait_fd(fd, POLLIN, None, 'read()')
+        return _os.read(fd, n)
+    chunks = []
+    while True:
+        wait_fd(fd, POLLIN, None, 'read()')
+        chunk = _os.read(fd, 65536)
+        if not chunk:
+            return b''.join(chunks)
+        chunks.append(chunk)
+
+
+_PIPE_BUF = 4096
+_S_IFMT = 0o170000
+_S_IFIFO = 0o010000
+
+
+def wait_writable(fd):
+    """Espera `POLLOUT` em `fd` (que só outra thread esvazia) rodando as threads pendentes; sem ninguém para
+    rodar, ou num fd não bloqueante, não espera e a chamada seguinte bloqueia (ou dá `EAGAIN`) no kernel."""
+    if cooperative_fd(fd):
+        wait_fd(fd, POLLOUT, None, 'write()')
+
+
+def write(fd, data):
+    """`write(2)` que cede às outras threads num pipe cheio. No Linux a escrita bloqueante num pipe só volta
+    com tudo escrito, e um pipe cujo leitor é outra thread do processo nunca esvazia se o interpretador
+    ficar parado no kernel. A espera é por `POLLOUT` (lugar para `PIPE_BUF` bytes), e cada pedaço escrito
+    cabe, então o kernel não bloqueia (a descrição de arquivo, compartilhada com outros processos, não troca
+    de modo). Até `PIPE_BUF` a escrita segue atômica (um pedaço só). Um fd não bloqueante, fora de um pipe
+    ou sem outra coisa a rodar vai direto ao kernel."""
+    if not isinstance(data, (bytes, bytearray, memoryview)) or not cooperative_fd(fd):
+        return _os.write(fd, data)
+    import os
+    data = bytes(data)
+    if not data or os.fstat(fd).st_mode & _S_IFMT != _S_IFIFO:
+        return _os.write(fd, data)
+    total = 0
+    while True:
+        wait_fd(fd, POLLOUT, None, 'write()')
+        try:
+            total += _os.write(fd, data[total:total + _PIPE_BUF])
+        except BrokenPipeError:
+            # O Linux devolve o que já escreveu; o erro só sobe quando nada foi.
+            if total:
+                return total
+            raise
+        if total >= len(data):
+            return total
+
+
+def wait_retry(attempt, what, step=0.001):
+    """Espera uma trava que pode estar com outra thread ou com outro processo: `attempt()` tenta sem bloquear
+    (verdadeiro quando conseguiu) e, entre as tentativas, as outras threads rodam por até `step` segundos."""
+    while not wait_fds((), attempt, step, what):
+        pass

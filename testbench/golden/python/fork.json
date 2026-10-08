@@ -1,0 +1,206 @@
+{
+  "fork-at-fork-hook-raises": {
+    "stdout": "Exception ignored in: <function bad at 0xADDR>\nTraceback (most recent call last):\n  File \"<string>\", line 3, in bad\nRuntimeError: hook boom\nException ignored in: <function bad at 0xADDR>\nTraceback (most recent call last):\n  File \"<string>\", line 3, in bad\nRuntimeError: hook boom\nException ignored in: <function bad at 0xADDR>\nTraceback (most recent call last):\n  File \"<string>\", line 3, in bad\nRuntimeError: hook boom\nchild ran\nparent ran\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-at-fork-hooks-forkpty-and-errors": {
+    "stdout": "before\nparent\nAt least one argument is required.\n'before' must be callable, not int\n'after_in_parent' must be callable, not NoneType\n'after_in_child' must be callable, not str\nregister_at_fork() takes no positional arguments\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-at-fork-hooks-order": {
+    "stdout": "fork\nbefore x\nbefore 3\nbefore 2\nbefore 1\nafter_in_parent 1\nafter_in_parent 2\nafter_in_parent 3\nparent x\nafter_in_child 1\nafter_in_child 2\nafter_in_child 3\nchild x\nin child\ndone\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-child-killed-by-signal": {
+    "stdout": "SIGKILL True True False True True\nSIGTERM True True False True True\nSIGABRT True True False True True\nSIGUSR1 True True False True True\nTrue 15\n11\n1 []\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-child-sys-exit-and-atexit": {
+    "stdout": "atexit two child\natexit one child\n5\natexit two child\natexit one child\n0\natexit two child\natexit one child\n0\natexit two child\natexit one child\n1\natexit two child\natexit one child\n3\n6\n4\nend of parent\natexit two parent\natexit one parent\nrc=0\n",
+    "stderr": "message\n",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-child-unhandled-exception": {
+    "stdout": "Traceback (most recent call last):\n  File \"DIR/t.py\", line 11, in <module>\n    child()\n    ~~~~~^^\n  File \"DIR/t.py\", line 7, in child\n    inner(0)\n    ~~~~~^^^\n  File \"DIR/t.py\", line 4, in inner\n    return 1 // n\n           ~~^^~~\nZeroDivisionError: integer division or modulo by zero\nparent saw 1\nTraceback (most recent call last):\n  File \"DIR/t.py\", line 18, in <module>\n    raise KeyboardInterrupt\nKeyboardInterrupt\nparent saw -2\nTraceback (most recent call last):\n  File \"DIR/t.py\", line 25, in <module>\n    raise RuntimeError(\"first\")\nRuntimeError: first\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"DIR/t.py\", line 27, in <module>\n    raise ValueError(\"second\")\nValueError: second\nparent saw 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-fd-sharing-and-offset": {
+    "stdout": "child read 234\nparent read b'567' 8\n0123456789CP\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-forkpty-reads-child-output": {
+    "stdout": "b'hello from the pty child\\r\\n' 5\n[\"b'hello from the pty child\\\\r\\\\n' 5\", 'isatty True True True', 'session leader True True']\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-getpid-cache-and-process-state": {
+    "stdout": "child child / 0o77\nparent parent /tmp 0o27\nTrue True\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-in-generator": {
+    "stdout": "[10, 11, 12]\n0 2 6\n[7, 7, 7]\n[7, 7]\n[7]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-in-with-and-try-finally": {
+    "stdout": "enter a\nchild in with\nexit a False\nexit a True\nRes enter\nchild in Res\nRes exit False SystemExit\nparent status 2\nRes exit True None\nchild try\nfinally False\nparent got 6\nfinally True\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-independent-state": {
+    "stdout": "child [1, [2, 3, 'child'], {'a': 1}, 'child'] {'k': [1, 2], 'n': {'x': 1}, 'new': True} [] changed 1 True\nparent [1, [2, 3], {'a': 1}] {'k': [1], 'n': {'x': 1}} [1, 2, 3] orig 0 True\nsecond child [1, [2, 3], {'a': 1}, 'parent'] parent\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-loop-twenty-times": {
+    "stdout": "20\n[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]\nTrue 20\n20\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-multiprocessing-pool": {
+    "stdout": "[0, 1, 4, 9, 16, 25, 36, 49, 64, 81]\n[0, 1, 4, 9, 16, 25]\n49\n64\nTrue\n[8, 9]\nValueError invalid literal for int() with base 10: 'x'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-multiprocessing-process": {
+    "stdout": "[(0, True), (1, True), (4, True), (9, True)] [0, 0, 0, 0] [False, False, False, False]\nexitcode 7\nexitcode 1\nnamed True None None\n(1, True) 0\nNone True\n",
+    "stderr": "Process ForkProcess-6:\nTraceback (most recent call last):\n  File \"/usr/lib/python3.13/multiprocessing/process.py\", line 313, in _bootstrap\n    self.run()\n    ~~~~~~~~^^\n  File \"/usr/lib/python3.13/multiprocessing/process.py\", line 108, in run\n    self._target(*self._args, **self._kwargs)\n    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<stdin>\", line 13, in boom\nValueError: boom in process\n",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-multiprocessing-process-traceback": {
+    "stdout": "Process ForkProcess-N:\nTraceback (most recent call last):\n  File \"/usr/lib/python3.13/multiprocessing/process.py\", line 313, in _bootstrap\n    self.run()\n    ~~~~~~~~^^\n  File \"/usr/lib/python3.13/multiprocessing/process.py\", line 108, in run\n    self._target(*self._args, **self._kwargs)\n    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"DIR/t.py\", line 4, in boom\n    raise ValueError(\"boom in process\")\nValueError: boom in process\nexitcode 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-os-exit-no-flush": {
+    "stdout": "before\nparent 3\nrc=0\nraw write survives\n4\n",
+    "stderr": "child stderr\n",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-os-fork-errors-and-audit": {
+    "stdout": "1 [('os.fork', ())]\nposix.fork() takes no arguments (1 given)\nfork Fork a child process.\nforkpty Fork a new process with a new pseudo-terminal as controlling tty.\nregister_at_fork\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-pipe-parent-child": {
+    "stdout": "b'hello from child\\n'\nb'PING!'\nchild sees eof True\nb'hello from child\\n'\nb'PING!'\nb''\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-pty-fork-echo": {
+    "stdout": "b'from exec in pty\\r\\n' 0\nb\"abc\\r\\nb'from exec in pty\\\\r\\\\n' 0\\r\\ngot ABC\\r\\n\"\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-random-reseeded-in-child": {
+    "stdout": "True\nTrue\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-recursive-function": {
+    "stdout": "92\n3\n5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-return-values": {
+    "stdout": "int True\n0\n9\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-sigchld-handler": {
+    "stdout": "0 0 ['SIGCHLD']\n1 1 ['SIGCHLD', 'SIGCHLD']\n2 2 ['SIGCHLD', 'SIGCHLD', 'SIGCHLD']\nECHILD 10\n8\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-socketserver-forking-mixin": {
+    "stdout": "b'ONE\\nchild\\n'\nb'TWO\\nchild\\n'\nb'THREE\\nchild\\n'\n40 set\nclosed 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-stdout-buffer-duplicated": {
+    "stdout": "before\nchild\nbefore\nparent\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-stdout-flushed-before": {
+    "stdout": "before\nchild\nparent\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-sys-exit-in-child-message": {
+    "stdout": "child says goodbye\nparent 1\nrc=0\n5\nrc=12\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-threads-after-fork-state": {
+    "stdout": "2 ['MainThread', 'worker']\n1 True MainThread False ['ran in child thread'] lock ok\n2 ['MainThread', 'worker']\n1\n",
+    "stderr": "<stdin>:8: DeprecationWarning: This process (pid=N) is multi-threaded, use of fork() may lead to deadlocks in the child.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-waitpid-basic": {
+    "stdout": "child True True\nparent True True\nTrue True 3 False False\n3 768\nagain 10 No child processes\nwait 10\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-waitpid-options-and-stopped": {
+    "stdout": "True True False False\nTrue False\n21\n1\n2\n8\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-with-threads-warning": {
+    "stdout": "child threads 1 MainThread False\n/tmp/fork_threads_case.py:15: DeprecationWarning: This process (pid=N) is multi-threaded, use of fork() may lead to deadlocks in the child.\n  pid = os.fork()\nparent ok\n---\nchild threads 1 MainThread False\nparent ok\n---\nchild threads 1 MainThread False\nSCRIPT:15: DeprecationWarning: This process (pid=N) is multi-threaded, use of fork() may lead to deadlocks in the child.\n  pid = os.fork()\nparent ok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-with-threads-warning-catch": {
+    "stdout": "1 DeprecationWarning <stdin> 8\nThis process (pid=N) is multi-threaded, use of fork() may lead to deadlocks in the child.\nTrue\n2 This process (pid=N) is multi-threaded, use of forkpty() may lead to deadlocks in the child.\nno threads 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "fork-zombie-wait3-wait4-waitid": {
+    "stdout": "True 13 True True waitid_result\nstate Z\nTrue\nreaped\nTrue 14 struct_rusage True True\nrunning 0 0\n(0, 0)\nTrue 15 struct_rusage\nTrue 9\nTrue\n10\n10\n10\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

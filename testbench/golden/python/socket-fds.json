@@ -1,0 +1,32 @@
+{
+  "os-dup-inheritable-blocking": {
+    "stdout": "False True\n2 False\nTrue False\nFalse False\nBlockingIOError 11\nTrue\n40 True\n41 False\nTrue False\nb'ok'\n9 OSError Bad file descriptor\n22 OSError Invalid argument\n9 OSError Bad file descriptor\n9 OSError Bad file descriptor\n9 OSError Bad file descriptor\n9 OSError Bad file descriptor\n9 OSError Bad file descriptor\nTypeError 'str' object cannot be interpreted as an integer\nOverflowError Python int too large to convert to C int\nTypeError 'float' object cannot be interpreted as an integer\nOverflowError Python int too large to convert to C int\nTrue True\nTrue False\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "socket-ancdata": {
+    "stdout": "4\nb'abcd' [(1, 1, 4)] 0 None\nb'via pipe' True\nb'x' [] True\nb'y' [] True\nb'abcd' 1 b'ef'\n5 b'12' b'345' [] 0\n5 b'12' b'345' [] 0\nb'0123' True 1 False\nOSError [Errno 9] Bad file descriptor\nOSError [Errno 22] Invalid argument\nTypeError a bytes-like object is required, not 'str'\nTypeError [sendmsg() ancillary data items]() argument must be sequence of length 3, not 2\nValueError negative buffer size in recvmsg()\nValueError invalid ancillary data buffer length\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "socket-credentials": {
+    "stdout": "12 True\nTrue\n92\n(0, -1, -1)\n0\n1\nb'c' 1 1 2 True True True\nb'd' 1 (1, 2)\n22\n[True, True, True]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "socket-dup-detach-fromfd": {
+    "stdout": "socket 2 1 True None False\n2.0 2.0\n-1 True\n2 1 6 True\nTrue False\n88\nnegative file descriptor\nb'por dup'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "socket-scm-rights-fork": {
+    "stdout": "filho b'fd' 1 0 None b'segredo'\n2\n0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

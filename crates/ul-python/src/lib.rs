@@ -18,16 +18,26 @@ pub mod carets;
 pub mod classes;
 pub mod compile;
 pub mod cp437;
+pub mod cpybc;
+pub mod cpyops;
 pub mod dictview;
+pub mod finalize;
+pub mod fold;
+pub mod fork;
 pub mod format;
+pub mod frameobj;
 pub mod generator;
 pub mod generic;
 pub mod globalsview;
+pub mod gthread;
+pub mod heapimage;
+pub mod idna;
 #[cfg(test)]
 mod lang_tests;
 pub mod lazy;
 mod mangle;
 pub mod methods;
+pub mod modrun;
 pub mod modules;
 pub mod native_util;
 pub mod object;
@@ -130,7 +140,9 @@ fn write_stdout(text: &str) {
 }
 
 fn write_stderr(text: &str) {
-    let _ = sys::write_all(Fd::STDERR, text.as_bytes());
+    // Como o `sys.stderr` do CPython: `backslashreplace`, que nunca falha (o texto cru é só reserva).
+    let data = textcodec::encode_utf8(text, "backslashreplace").unwrap_or_else(|_| text.as_bytes().to_vec());
+    let _ = sys::write_all(Fd::STDERR, &data);
 }
 
 /// Erro de uso (`config_usage(1, program)`) e código 2.
@@ -511,15 +523,34 @@ fn run_module(name: &str, rest: &[Vec<u8>], _program: &str) -> i32 {
         }
     };
     let argv = std::iter::once(path.clone()).chain(rest.iter().map(|a| String::from_utf8_lossy(a).into_owned())).collect();
-    let mut outcome = run_main(&text, argv, &path, true, Some((package, cwd)));
-    // O `runpy` do CPython aparece no traceback do erro que sobe do módulo (o último bloco, se houver cadeia).
-    const HEADER: &str = "Traceback (most recent call last):\n";
-    if let Some(at) = outcome.stderr.rfind(HEADER) {
-        let frames = "  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n";
-        outcome.stderr.insert_str(at + HEADER.len(), frames);
+    let outcome = run_main(&text, argv, &path, true, Some((package, cwd)), Finish::Module);
+    conclude(outcome, Finish::Module)
+}
+
+/// Como o resultado de uma execução vira saída e código de saída: o que difere entre `python3 arquivo`,
+/// `-c` e `-m`. O filho de um `os.fork` termina do mesmo jeito que o pai terminaria.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Finish {
+    /// Arquivo, `-` e o programa lido do stdin: o stdout pendente descarrega antes do erro.
+    File,
+    /// `-c`: o erro sai antes do stdout que ainda estava no buffer.
+    Command,
+    /// `-m`: como `-c`, e o `runpy` do CPython aparece no traceback do erro que sobe do módulo.
+    Module,
+}
+
+/// Escreve o resultado de uma execução e devolve o código de saída.
+pub(crate) fn conclude(mut outcome: Outcome, mode: Finish) -> i32 {
+    if mode == Finish::Module {
+        // O último bloco do traceback (se houver cadeia) mostra o `runpy` que chamou o módulo.
+        const HEADER: &str = "Traceback (most recent call last):\n";
+        if let Some(at) = outcome.stderr.rfind(HEADER) {
+            let frames = "  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n";
+            outcome.stderr.insert_str(at + HEADER.len(), frames);
+        }
     }
     // `-m` e `-c` mostram o erro antes de o stdout pendente descarregar (só os arquivos descarregam antes).
-    finish(outcome, true)
+    finish(outcome, mode != Finish::File)
 }
 
 /// Escreve o resultado de uma execução e devolve o código de saída. Com `error_first`, o texto do erro
@@ -546,7 +577,34 @@ fn finish(outcome: Outcome, error_first: bool) -> i32 {
             write_stderr(&outcome.stderr);
         }
     }
+    if status == UNHANDLED_INTERRUPT {
+        return die_by_sigint();
+    }
     status
+}
+
+/// O `status` de um `Outcome` cujo programa terminou com `KeyboardInterrupt` sem tratamento: o `Py_RunMain`
+/// do CPython não sai com 1, e sim morrendo pelo SIGINT (`exit_sigint`), depois de descarregar tudo.
+pub(crate) const UNHANDLED_INTERRUPT: i32 = -2;
+
+/// O `exit_sigint` do CPython (bpo-1054041): o SIGINT volta à ação padrão e o processo o envia a si mesmo,
+/// para quem espera ver `WIFSIGNALED` (o shell mostra 130). Se o sinal não matar, sai com `128 + SIGINT`.
+fn die_by_sigint() -> i32 {
+    if let Some(process) = sys::try_current() {
+        let _ = process.sigaction(sysabi::Signal::SIGINT, sysabi::SigDisposition::Default);
+        let _ = process.kill(sysabi::KillTarget::Pid(process.getpid()), sysabi::Signal::SIGINT);
+    }
+    128 + sysabi::Signal::SIGINT.0
+}
+
+/// O `PyErr_GivenExceptionMatches(exc, PyExc_KeyboardInterrupt)` do desfecho de um programa: a própria
+/// classe ou uma subclasse (embutida ou de usuário).
+fn is_keyboard_interrupt(e: &vm::PyException) -> bool {
+    let kind = match &e.value {
+        Some(object::Value::Instance(i)) => i.class().builtin_base.unwrap_or(e.kind),
+        _ => e.kind,
+    };
+    object::exc_is_subclass(kind, "KeyboardInterrupt")
 }
 
 /// `python3 arquivo.py args...`, `python3 - args...` ou o programa lido do stdin.
@@ -558,8 +616,8 @@ fn run_script(rest: &[Vec<u8>], program: &str) -> i32 {
         let shown = absolute_path(&to_s(path));
         if let Some((main, text)) = modules::userimport::main_of_archive(&shown) {
             let argv = rest.iter().map(|a| to_s(a)).collect();
-            let outcome = run_main(&text, argv, &main, true, Some((String::new(), shown)));
-            return finish(outcome, false);
+            let outcome = run_main(&text, argv, &main, true, Some((String::new(), shown)), Finish::File);
+            return conclude(outcome, Finish::File);
         }
     }
     let (src, name, argv, file_mode) = match rest.first() {
@@ -587,7 +645,7 @@ fn run_script(rest: &[Vec<u8>], program: &str) -> i32 {
         }
     };
     let outcome = run_with(&src, argv, &name, file_mode);
-    finish(outcome, false)
+    conclude(outcome, Finish::File)
 }
 
 /// Saída de `python3 -c` já pronta: stdout, stderr e código de saída.
@@ -611,38 +669,50 @@ pub fn run_source_args(src: &str, argv: Vec<String>) -> Outcome {
 
 /// Executa o texto com o nome de arquivo mostrado nos tracebacks (`file_mode` mostra a linha fonte).
 pub fn run_with(src: &str, argv: Vec<String>, name: &str, file_mode: bool) -> Outcome {
-    run_main(src, argv, name, file_mode, None)
+    run_main(src, argv, name, file_mode, None, Finish::File)
 }
 
 /// `run_with` de um módulo de `-m`: `(pacote, diretório atual)` define `__package__` e `sys.path[0]`.
-fn run_main(src: &str, argv: Vec<String>, name: &str, file_mode: bool, module: Option<(String, String)>) -> Outcome {
+fn run_main(
+    src: &str,
+    argv: Vec<String>,
+    name: &str,
+    file_mode: bool,
+    module: Option<(String, String)>,
+    finish_mode: Finish,
+) -> Outcome {
     let owned = src.to_string();
     let name = name.to_string();
-    // A thread nova não herda o pseudo-processo: instala o do chamador para `open`, stdin e stderr.
-    let current = sys::try_current();
     // Como o CPython na partida: SIGPIPE e SIGXFSZ ignorados (a escrita num pipe fechado vira
     // BrokenPipeError em vez de matar o processo).
-    if let Some(c) = &current {
+    if let Some(c) = &sys::try_current() {
         let _ = c.sigaction(sysabi::Signal::SIGPIPE, sysabi::SigDisposition::Ignore);
         let _ = c.sigaction(sysabi::Signal::SIGXFSZ, sysabi::SigDisposition::Ignore);
     }
+    on_interpreter_thread(move || run_source_inner(&owned, argv, &name, file_mode, module, finish_mode)).unwrap_or_else(|| Outcome {
+        stdout: Vec::new(),
+        stderr: "Fatal Python error: could not run the interpreter thread\n".into(),
+        status: 1,
+    })
+}
+
+/// Roda `job` na thread do interpretador: pilha de 1 GiB (reservada, não comprometida) para o limite de
+/// recursão de 1000 chamadas caber, e o pseudo-processo de quem chama instalado nela (uma thread nova não
+/// o herda; `open`, stdin e stderr dependem dele). Os desvios de controle do kernel (`execve`, `_exit`,
+/// morte por sinal) desempilham a thread e seguem até o pseudo-processo, que é quem troca o programa ou
+/// termina; um panic de bug (mensagem `&str`/`String`) vira `None`.
+pub(crate) fn on_interpreter_thread<T: Send + 'static>(job: impl FnOnce() -> T + Send + 'static) -> Option<T> {
+    let current = sys::try_current();
     let spawned = std::thread::Builder::new().stack_size(1 << 30).spawn(move || {
         if let Some(c) = current {
             sys::install(c);
         }
-        run_source_inner(&owned, argv, &name, file_mode, module)
+        job()
     });
     match spawned.map(|h| h.join()) {
-        Ok(Ok(outcome)) => outcome,
-        // Os desvios de controle do kernel (`execve`, `_exit`, morte por sinal) desempilham a thread do
-        // interpretador e seguem até o pseudo-processo, que é quem troca o programa ou termina. Panic
-        // de bug (mensagem `&str`/`String`) fica como erro fatal do interpretador.
+        Ok(Ok(value)) => Some(value),
         Ok(Err(payload)) if !payload.is::<&'static str>() && !payload.is::<String>() => std::panic::resume_unwind(payload),
-        _ => Outcome {
-            stdout: Vec::new(),
-            stderr: "Fatal Python error: could not run the interpreter thread\n".into(),
-            status: 1,
-        },
+        _ => None,
     }
 }
 
@@ -652,10 +722,16 @@ fn run_main(src: &str, argv: Vec<String>, name: &str, file_mode: bool, module: O
 /// `BuiltinImporter`.
 fn main_globals(machine: &mut vm::Vm, name: &str, file_mode: bool, package: Option<&str>) {
     use object::Value;
-    let builtins = modules::import(machine, "builtins").map(Value::Module);
+    let builtins_module = modules::import(machine, "builtins");
+    let builtins = builtins_module.clone().map(Value::Module);
     let frozen = modules::import(machine, "_frozen_importlib");
     let external = modules::import(machine, "_frozen_importlib_external");
     let attr = |m: &Option<std::rc::Rc<object::ModuleObj>>, n: &str| m.as_ref().and_then(|m| m.attrs.borrow().get(n).cloned());
+    // O `_frozen_importlib` pede o `builtins` enquanto ainda roda, e o `builtins` construído nessa hora não
+    // acha o `BuiltinImporter`: o `__loader__` dele entra aqui, já com o módulo pronto.
+    if let (Some(module), Some(importer)) = (&builtins_module, attr(&frozen, "BuiltinImporter")) {
+        module.attrs.borrow_mut().entry("__loader__".to_string()).or_insert(importer);
+    }
     let mut spec = Value::None;
     let mut loader = attr(&frozen, "BuiltinImporter").unwrap_or(Value::None);
     let mut cached = Value::None;
@@ -693,6 +769,7 @@ fn main_globals(machine: &mut vm::Vm, name: &str, file_mode: bool, package: Opti
         g.insert("__builtins__".into(), b);
     }
     if file_mode {
+        g.insert("__file__".into(), object::Value::str(name));
         g.insert("__cached__".into(), cached);
     }
 }
@@ -703,6 +780,7 @@ fn run_source_inner(
     name: &str,
     file_mode: bool,
     main_module: Option<(String, String)>,
+    finish_mode: Finish,
 ) -> Outcome {
     // O `-c` do CPython compila o texto como um arquivo que termina em nova linha.
     let mut src = src.to_string();
@@ -740,9 +818,6 @@ fn run_source_inner(
     };
     let mut machine = vm::Vm::with_argv(argv);
     machine.globals.borrow_mut().insert("__doc__".into(), object::Value::None);
-    if file_mode {
-        machine.globals.borrow_mut().insert("__file__".into(), object::Value::str(name));
-    }
     if file_mode && name != "<stdin>" {
         vm::register_source(name, &src);
         vm::register_source(&absolute_path(name), &src);
@@ -783,27 +858,45 @@ fn run_source_inner(
             }
         }
     }
+    // O `os.fork` leva isto ao filho: o que falta para terminar o programa como o pai terminaria.
+    let shown_src = if name == "<stdin>" { None } else { Some(src.clone()) };
+    fork::set_tail(fork::RunTail { name: name.to_string(), shown_src, finish_mode, verdict: None });
     let result = match prelude {
         Ok(()) => machine.run(&std::rc::Rc::new(code)),
         Err(e) => Err(e),
     };
-    machine.run_exit_hooks();
-    let stdout = std::mem::take(&mut *machine.stdout.borrow_mut());
-    let captured = std::mem::take(&mut *machine.stderr_capture.borrow_mut());
-    let outcome = match result {
-        Ok(()) => Outcome { stdout, stderr: String::new(), status: 0 },
+    conclude_run(&mut machine, result, name, src.as_str())
+}
+
+/// O fim de um programa: calcula o desfecho (o erro é impresso antes do `atexit`, como no CPython), roda os
+/// ganchos de saída e monta o `Outcome` (`src` é o texto que o traceback mostra; o programa lido do stdin não
+/// tem como mostrar a linha fonte).
+pub(crate) fn conclude_run(machine: &mut vm::Vm, result: Result<(), vm::RuntimeError>, name: &str, src: &str) -> Outcome {
+    let verdict = match result {
+        Ok(()) => fork::Verdict { status: 0, stderr: String::new() },
         Err(e) if e.exc.kind == "SystemExit" => {
             let (status, stderr) = system_exit(&e.exc);
-            Outcome { stdout, stderr, status }
+            fork::Verdict { status, stderr }
         }
         Err(e) => {
             machine.prepare_error(&e.exc);
-            // Programa lido do stdin: o CPython não tem como mostrar a linha fonte.
-            let shown_src = if name == "<stdin>" { None } else { Some(src.as_str()) };
-            Outcome { stdout, stderr: vm::format_traceback_in(&e, name, shown_src), status: 1 }
+            let shown_src = if name == "<stdin>" { None } else { Some(src) };
+            let status = if is_keyboard_interrupt(&e.exc) { UNHANDLED_INTERRUPT } else { 1 };
+            fork::Verdict { status, stderr: vm::format_traceback_in(&e, name, shown_src) }
         }
     };
-    Outcome { stderr: captured + &outcome.stderr, ..outcome }
+    fork::enter_exit_phase(&verdict);
+    machine.run_exit_hooks();
+    finish_exit(machine, verdict)
+}
+
+/// O resto da saída depois do `atexit`, no pai e no filho de um `fork` feito numa função dele: finaliza os
+/// objetos que ainda vivem e entrega o stdout pendente com o desfecho do programa.
+pub(crate) fn finish_exit(machine: &mut vm::Vm, verdict: fork::Verdict) -> Outcome {
+    machine.finalize_at_exit();
+    let stdout = std::mem::take(&mut *machine.stdout.borrow_mut());
+    let captured = std::mem::take(&mut *machine.stderr_capture.borrow_mut());
+    Outcome { stdout, stderr: captured + &verdict.stderr, status: verdict.status }
 }
 
 /// Código de saída e texto de stderr de um `SystemExit` que chegou ao topo (como o
@@ -850,8 +943,46 @@ fn run_command(command: &[u8], rest: &[Vec<u8>]) -> i32 {
     let src = String::from_utf8_lossy(command);
     let mut argv = vec!["-c".to_string()];
     argv.extend(rest.iter().map(|a| String::from_utf8_lossy(a).into_owned()));
-    let outcome = run_source_args(&src, argv);
-    finish(outcome, true)
+    let outcome = run_main(&src, argv, "<string>", false, None, Finish::Command);
+    conclude(outcome, Finish::Command)
+}
+
+/// `Vm::rust_nest`: 1 no laço mais externo (incluindo chamadas Python simples), 2 dentro de um callback
+/// que uma nativa despacha por `Vm::call`.
+#[cfg(test)]
+mod rust_nest_tests {
+    use super::object::{Kw, NativeFn, Value};
+    use super::vm::{PyException, Vm};
+    use std::rc::Rc;
+
+    fn nest(vm: &mut Vm, _: Vec<Value>, _: Kw) -> Result<Value, PyException> {
+        Ok(Value::Int(vm.rust_nest.get() as i64))
+    }
+
+    fn ints(v: &Value) -> Vec<i64> {
+        let Value::List(l) = v else { panic!("not a list") };
+        l.borrow().iter().map(|x| if let Value::Int(n) = x { *n } else { panic!("not an int") }).collect()
+    }
+
+    #[test]
+    fn counts_active_run_loops() {
+        let src = "seen = []\n\
+                   seen.append(nest())\n\
+                   def f():\n    return nest()\n\
+                   seen.append(f())\n\
+                   l = [1, 2]\n\
+                   l.sort(key=lambda x: seen.append(nest()) or x)\n\
+                   sorted([1, 2], key=lambda x: seen.append(nest()) or x)\n\
+                   seen.append(nest())\n";
+        let module = super::parser::parse_module(src).ok().expect("parse");
+        let code = Rc::new(super::compile::compile_module(&module).ok().expect("compile"));
+        let mut machine = Vm::new();
+        machine.globals.borrow_mut().insert("nest".into(), Value::NativeFn(Rc::new(NativeFn { name: "nest", f: nest })));
+        assert!(machine.run(&code).is_ok());
+        // `list.sort(key=)` recursa (2); o `key=` de `sorted` roda em quadro do laço (1).
+        assert_eq!(ints(machine.globals.borrow().get("seen").expect("seen")), vec![1, 1, 2, 2, 1, 1, 1]);
+        assert_eq!(machine.rust_nest.get(), 0);
+    }
 }
 
 #[cfg(test)]

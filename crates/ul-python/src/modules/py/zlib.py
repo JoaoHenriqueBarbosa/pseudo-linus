@@ -25,6 +25,7 @@ Z_BLOCK = 5
 Z_TREES = 6
 ZLIB_VERSION = '1.3.1'
 ZLIB_RUNTIME_VERSION = '1.3.1'
+__version__ = '1.0'
 
 
 class error(Exception):
@@ -88,6 +89,61 @@ def compressobj(level=-1, method=DEFLATED, wbits=MAX_WBITS, memLevel=DEF_MEM_LEV
 
 def decompressobj(wbits=MAX_WBITS, zdict=b''):
     return _Decompress(_wrap(_zlib.decompressobj, wbits))
+
+
+class _ZlibDecompressor:
+    """Create a decompressor object for decompressing data incrementally.
+
+  wbits
+    The window buffer size and container format.
+  zdict
+    The predefined compression dictionary.  This is a sequence of bytes
+    (such as a bytes object) containing subsequences that are expected
+    to occur frequently in the data that is to be compressed.  Those
+    subsequences that are expected to be most common should come at the
+    end of the dictionary.  This must be the same dictionary as used by the
+    compressor that produced the input data."""
+
+    def __init__(self, wbits=MAX_WBITS, zdict=b''):
+        self._raw = decompressobj(wbits, zdict)
+        self._pending = b''
+        self.eof = False
+        self.unused_data = b''
+        self.needs_input = True
+
+    def decompress(self, data, max_length=-1):
+        """Decompress *data*, returning uncompressed data as bytes.
+
+If *max_length* is nonnegative, returns at most *max_length* bytes of
+decompressed data. If this limit is reached and further output can be
+produced, *self.needs_input* will be set to ``False``. In this case, the next
+call to *decompress()* may provide *data* as b'' to obtain more of the output.
+
+If all of the input data was decompressed and returned (either because this
+was less than *max_length* bytes, or because *max_length* was negative),
+*self.needs_input* will be set to True.
+
+Attempting to decompress data after the end of stream is reached raises an
+EOFError.  Any data found after the end of the stream is ignored and saved in
+the unused_data attribute."""
+        if self.eof:
+            raise EOFError('End of stream already reached')
+        data = self._pending + bytes(data)
+        self._pending = b''
+        if max_length < 0:
+            out = self._raw.decompress(data)
+        elif max_length == 0:
+            self._pending = data
+            out = b''
+        else:
+            out = self._raw.decompress(data, max_length)
+            self._pending = self._raw.unconsumed_tail
+        if self._raw.eof:
+            self.eof = True
+            self.unused_data = self._raw.unused_data
+            self._pending = b''
+        self.needs_input = not self.eof and not self._pending and (max_length < 0 or len(out) < max_length)
+        return out
 
 
 def crc32(data, value=0):

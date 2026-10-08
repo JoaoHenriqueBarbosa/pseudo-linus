@@ -46,6 +46,12 @@ pub fn no_kwargs(fname: &str, kw: &Kw) -> PyResult<()> {
     }
 }
 
+/// A `SystemExit` de `exit()` e `sys.exit()`: os argumentos viram o `args` da exceção.
+pub fn system_exit(args: Vec<Value>) -> crate::vm::PyException {
+    let exit = crate::object::ExcObj::new("SystemExit", args);
+    crate::vm::PyException::from_value(&Value::Exception(std::rc::Rc::new(exit)))
+}
+
 /// Exige exatamente `n` posicionais.
 pub fn exactly(fname: &str, args: &[Value], n: usize) -> PyResult<()> {
     if args.len() == n {
@@ -63,6 +69,17 @@ pub fn want_str<'a>(fname: &str, v: &'a Value) -> PyResult<&'a str> {
     match v {
         Value::Str(s) => Ok(s.as_str()),
         other => Err(type_error(format!("{fname}() argument must be str, not {}", other.type_name()))),
+    }
+}
+
+/// Argumento `str` opcional do Argument Clinic (`encoding`/`errors` de `encode` e `decode`): `default`
+/// quando ausente; outro tipo é `TypeError` com o `None` nomeado como `None`, não `NoneType`.
+pub fn clinic_str_arg(fname: &str, what: &str, slot: &Option<Value>, default: &str) -> PyResult<String> {
+    match slot {
+        None => Ok(default.to_string()),
+        Some(Value::Str(s)) => Ok(s.as_str().to_string()),
+        Some(Value::None) => Err(type_error(format!("{fname}() argument '{what}' must be str, not None"))),
+        Some(other) => Err(type_error(format!("{fname}() argument '{what}' must be str, not {}", other.type_name()))),
     }
 }
 

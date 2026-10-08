@@ -1,0 +1,877 @@
+tool = "python3"
+source = "manual"
+
+# Quatro frentes do CPython 3.13 que costumam divergir: o codec utf-7 (encode, decode, erros,
+# incremental, aliases), a mensagem do ValueError de '%' + caractere (formato não suportado),
+# os eventos de sys.settrace e sys.setprofile, o depurador pdb dirigido por stdin e as
+# transformações de caixa (upper, lower, casefold, title...) com os casos especiais do Unicode.
+# Os scripts capturam exceções e imprimem (type(e).__name__, e) para não abortar no primeiro erro.
+
+[[case]]
+id = "python-utf7"
+script = '''
+python3 - <<'PYEOF'
+import codecs
+
+def t(f):
+    try:
+        r = f()
+        print(ascii(r))
+    except Exception as e:
+        print(type(e).__name__, ascii(str(e)))
+
+samples = ['', 'abc', 'A+B', '+', '++', '~', '~~x', '\\', 'a\\b', 'caf\xe9', '\xe9\xe8\xea', '€',
+           '\U0001f600', '\U00010000', '\U0010ffff', 'x\U0001f600y', '\ud800', '𐀀', '\udc00\ud800',
+           'a \t\r\n b', '!"#$%&()*,-./:;<=>?@[]^_`{|}', '\x00\x01\x7f', '1+1=2', 'a-b', '+-', '+AGE-',
+           '中文 text', 'abc\xe9-def', '\xe9-', '\xe9+', '\xe9a', '\xe9\xe9a']
+for s in samples:
+    print('encode', ascii(s))
+    t(lambda: s.encode('utf-7'))
+    t(lambda: codecs.encode(s, 'utf_7'))
+    for err in ['replace', 'ignore', 'surrogatepass', 'backslashreplace']:
+        t(lambda: s.encode('utf-7', err))
+    t(lambda: s.encode('utf-7').decode('utf-7') == s)
+
+bs = [b'', b'abc', b'+-', b'+AGE-', b'+AGE', b'+2AA-', b'+2ADcAA-', b'+2D3eAA-', b'+2D3eAA', b'+2D0-', b'+2D3-',
+      b'+AOk-', b'+AOk', b'+AOkA-', b'+AOkAOk-', b'+AOk-x', b'+AOk.', b'+AOk!', b'a+AOk-b', b'+IKw-', b'+ACs-', b'+AH4-',
+      b'+AFw-', b'~', b'\\', b'+@', b'+2A', b'+2AA', b'+', b'a+', b'+-+-', b'+++', b'+A', b'+AA', b'+AAA', b'+AAAA',
+      b'+AGEA', b'+AGEAA', b'+AGEAAA', b'+AGF-', b'+AGH-', b'+AGE=', b'+AG E-', b'\xe9', b'a\xe9b', b'+AGE-\xe9',
+      b'+AGE\xe9', b'\x80', b'\xff', b'+\xe9-', b'+/+/-', b'+//8-', b'+AAAA-', b'+AAAAAAAA-', b'+3A3A-', b'+3ADYAA-',
+      b'+2ADYAA-', b'+2AA-+3AA-', b'+2AA+3AA-', b'+2ADcAA', b'+2AA\xe9']
+for b in bs:
+    print('decode', ascii(b))
+    t(lambda: b.decode('utf-7'))
+    for err in ['replace', 'ignore', 'backslashreplace', 'surrogateescape', 'surrogatepass']:
+        t(lambda: b.decode('utf-7', err))
+    t(lambda: codecs.decode(b, 'utf7'))
+
+for b in [b'+@', b'+2A', b'+2AA', b'\xe9', b'+AGEA']:
+    try:
+        b.decode('utf-7')
+    except UnicodeDecodeError as e:
+        print(ascii(e.encoding), ascii(e.reason), e.start, e.end, ascii(e.object))
+
+for name in ['utf-7', 'utf7', 'U7', 'u7', 'unicode-1-1-utf-7', 'UTF_7', 'Utf-7', 'utf-7-imap', 'utf_7']:
+    t(lambda: codecs.lookup(name).name)
+t(lambda: codecs.lookup('utf7').name)
+t(lambda: codecs.lookup('unicode-1-1-utf-7').name)
+t(lambda: codecs.lookup('u7').incrementaldecoder.__name__)
+t(lambda: sorted(a for a in dir(codecs.lookup('utf-7')) if not a.startswith('_')))
+t(lambda: codecs.lookup('utf-7').encode('a\xe9'))
+t(lambda: codecs.lookup('utf-7').decode(b'a+AOk-'))
+t(lambda: codecs.utf_7_encode('a\xe9'))
+t(lambda: codecs.utf_7_decode(b'a+AOk-b'))
+t(lambda: codecs.utf_7_decode(b'a+AOk', 'strict', False))
+t(lambda: codecs.utf_7_decode(b'a+AOk', 'strict', True))
+t(lambda: codecs.utf_7_decode(b'a+AO', 'strict', False))
+t(lambda: codecs.utf_7_decode(b'a+2AA', 'strict', False))
+t(lambda: codecs.utf_7_decode(b'a+2ADc', 'strict', False))
+t(lambda: codecs.utf_7_decode(b'a+2ADcAA', 'strict', False))
+t(lambda: codecs.utf_7_decode(b'+', 'strict', False))
+t(lambda: codecs.utf_7_decode(b'', 'strict', True))
+t(lambda: codecs.utf_7_encode('x', 'strict'))
+t(lambda: codecs.utf_7_encode(b'x'))
+t(lambda: codecs.utf_7_decode('x'))
+
+def incdec(data, errors='strict', final=True):
+    d = codecs.getincrementaldecoder('utf-7')(errors)
+    out = []
+    for i in range(len(data)):
+        out.append(d.decode(data[i:i + 1]))
+    out.append(d.decode(b'', final))
+    return out
+
+for b in [b'abc', b'a+AOk-b', b'+AOk-', b'+AOkAOk-x', b'+2D3eAA-', b'+2D3e', b'+2ADc-', b'+IKw', b'x+IKw.y', b'+-', b'++',
+          b'+2AA-', b'+@', b'a\xe9', b'+2D3eAAA-', b'+AGE', b'+AGEA', b'+AGEA-', b'~\\+-']:
+    print('incdec', ascii(b))
+    t(lambda: incdec(b))
+    t(lambda: ''.join(incdec(b)))
+    t(lambda: incdec(b, 'replace'))
+    t(lambda: incdec(b, 'ignore'))
+    t(lambda: incdec(b, 'strict', False))
+
+d = codecs.getincrementaldecoder('utf-7')()
+print(ascii(d.decode(b'+2D3')), d.getstate())
+print(ascii(d.decode(b'eA')), d.getstate())
+print(ascii(d.decode(b'A-x')), d.getstate())
+d.reset()
+print(d.getstate())
+d.setstate((b'', 0))
+t(lambda: d.decode(b'+AOk-'))
+t(lambda: d.setstate((b'x', 1)))
+t(lambda: d.getstate())
+t(lambda: codecs.getincrementaldecoder('utf-7')().decode(b'+AOk', True))
+
+def incenc(s, final=True):
+    e = codecs.getincrementalencoder('utf-7')()
+    out = []
+    for ch in s:
+        out.append(e.encode(ch))
+    out.append(e.encode('', final))
+    return out
+
+for s in ['abc', 'a\xe9b', '\xe9\xe9', '\xe9.', '\xe9-', '\U0001f600', '\U0001f600x', 'x€€+', '+', '~\\', '\xe9 \xe9', '\xe9a\xe9']:
+    print('incenc', ascii(s))
+    t(lambda: incenc(s))
+    t(lambda: b''.join(incenc(s)))
+    t(lambda: b''.join(incenc(s)) == s.encode('utf-7'))
+    t(lambda: incenc(s, False))
+
+e = codecs.getincrementalencoder('utf-7')()
+print(ascii(e.encode('\xe9')), e.getstate())
+print(ascii(e.encode('a')), e.getstate())
+print(ascii(e.encode('\xe9€')), e.getstate())
+print(ascii(e.encode('', True)), e.getstate())
+e.reset()
+print(e.getstate())
+t(lambda: e.setstate(1))
+t(lambda: e.encode('\xe9', False))
+t(lambda: e.encode('\xe9', False))
+t(lambda: e.getstate())
+t(lambda: e.encode('', True))
+t(lambda: e.getstate())
+
+import io
+t(lambda: io.TextIOWrapper(io.BytesIO(b'a+AOk-b+IKw-'), encoding='utf-7').read())
+t(lambda: (lambda b: (io.TextIOWrapper(b, encoding='utf-7').write('a\xe9€b'), b.getvalue())[1])(io.BytesIO()))
+t(lambda: codecs.getreader('utf-7')(io.BytesIO(b'a+AOk-b')).read())
+t(lambda: codecs.getreader('utf-7')(io.BytesIO(b'a+AOk-b')).read(2))
+w = io.BytesIO()
+wr = codecs.getwriter('utf-7')(w)
+wr.write('a\xe9')
+wr.write('€')
+wr.write('b')
+print(ascii(w.getvalue()))
+t(lambda: str(b'a+AOk-b', 'utf-7'))
+t(lambda: bytes('a\xe9b', 'utf-7'))
+t(lambda: bytearray(b'a+AOk-b').decode('utf-7'))
+t(lambda: memoryview(b'a+AOk-b').tobytes().decode('utf-7'))
+t(lambda: codecs.decode(bytearray(b'a+AOk-'), 'utf-7'))
+t(lambda: b'a+AOk-'.decode('utf-7', None))
+t(lambda: b'a+AOk-'.decode(encoding='utf-7', errors='strict'))
+t(lambda: 'a\xe9'.encode('utf-7', 'nosuchhandler'))
+t(lambda: b'+@'.decode('utf-7', 'nosuchhandler'))
+PYEOF
+'''
+
+[[case]]
+id = "python-percent-unsupported"
+script = '''
+python3 - <<'PYEOF'
+def t(label, f):
+    try:
+        r = f()
+        print(label, 'ok', ascii(r))
+    except Exception as e:
+        print(label, type(e).__name__, ascii(str(e)))
+
+codes = list(range(0, 131)) + [0xa0, 0xad, 0xe9, 0xff, 0x100, 0x20ac, 0x2028, 0xd7ff, 0xd800, 0xdfff, 0xe000, 0xffff,
+                              0x10000, 0x1f600, 0x10ffff]
+for c in codes:
+    fmt = '%' + chr(c)
+    t('str   %#04x ()' % c, lambda: fmt % ())
+    t('str   %#04x (1,)' % c, lambda: fmt % (1,))
+    t('str   %#04x 1' % c, lambda: fmt % 1)
+    t('str   %#04x "s"' % c, lambda: fmt % 's')
+    t('str   %#04x {}' % c, lambda: fmt % {})
+    t('str   %#04x {"a":1}' % c, lambda: fmt % {'a': 1})
+    if c < 256:
+        bfmt = b'%' + bytes([c])
+        t('bytes %#04x ()' % c, lambda: bfmt % ())
+        t('bytes %#04x (1,)' % c, lambda: bfmt % (1,))
+        t('bytes %#04x 1' % c, lambda: bfmt % 1)
+        t('bytes %#04x b"s"' % c, lambda: bfmt % b's')
+        t('bytes %#04x {}' % c, lambda: bfmt % {})
+        t('bytes %#04x {"a":1}' % c, lambda: bfmt % {'a': 1})
+
+for fmt in ['%', 'x%', '%%', '%%%', '%5', '%-5', '%.', '%.3', '%5.3', '%(a', '%(a)', '%(a)z', '%(a)5', '%(a)5z', '%(a)s%',
+            '%(a(b)c)s', '%(', '%*', '%*d', '%.*', '%.*d', '%#', '%0', '%+', '% ', '%ld', '%hd', '%Ld', '%lz', '%\x00', '%5\x00',
+            '%.3é', '%(a)é', '%\ud800', '%5\ud800', '%40d', '%.40f', '%z', '%zd', '%i', '%u', '%F', '%E', '%G']:
+    for args in [(), (1,), (1, 2), {'a': 1}, 1, 'x', (1.5,), ([1],), None]:
+        t('str   %s %s' % (ascii(fmt), ascii(args)), lambda: fmt % args)
+    bfmt = fmt.encode('utf-8', 'surrogatepass') if True else None
+    for args in [(), (1,), (1, 2), {'a': 1}, 1, b'x', (1.5,), None]:
+        t('bytes %s %s' % (ascii(bfmt), ascii(args)), lambda: bfmt % args)
+
+for fmt, args in [('%s %y', ('a', 'b')), ('%s %s %y', ('a', 'b', 'c')), ('%(a)s %(b)y', {'a': 1, 'b': 2}), ('%y %s', ('a',)),
+                  ('%d%y', (1, 2)), ('%s%', ('a',)), ('%s%%%y', ('a',)), ('%s', ('a', 'b')), ('%s', ()), ('%*d', (5,)),
+                  ('%*d', ('a', 5)), ('%.*f', (2, 1.5)), ('%*.*f', (8, 2, 1.5)), ('%-*d|', (6, 7)), ('%*d', (-6, 7))]:
+    t('str   ' + ascii(fmt) + ' ' + ascii(args), lambda: fmt % args)
+    bfmt = fmt.encode()
+    bargs = tuple(a.encode() if isinstance(a, str) else a for a in args) if isinstance(args, tuple) else args
+    t('bytes ' + ascii(bfmt) + ' ' + ascii(bargs), lambda: bfmt % bargs)
+
+t('str.__mod__', lambda: '%y'.__mod__(()))
+t('str.__mod__', lambda: '%y'.__mod__(1))
+t('bytes.__mod__', lambda: b'%y'.__mod__(()))
+t('bytearray', lambda: bytearray(b'%y') % ())
+t('bytearray', lambda: bytearray(b'%y') % (1,))
+t('format char', lambda: '%é' % ())
+t('format char', lambda: '%é' % (1,))
+t('rformat', lambda: '%s' % '%y')
+t('rformat', lambda: '%y' % '%y')
+t('str', lambda: '%c' % 'xy')
+t('str', lambda: '%c' % -1)
+t('bytes', lambda: b'%c' % 256)
+t('bytes', lambda: b'%c' % b'xy')
+t('bytes', lambda: b'%c' % 'x')
+t('bytes', lambda: b'%a' % 'x')
+t('bytes', lambda: b'%r' % 'x')
+t('bytes', lambda: b'%s' % 'x')
+t('bytes', lambda: b'%s' % 1)
+t('bytes', lambda: b'%d' % 'x')
+t('bytes', lambda: b'%b' % b'x')
+t('str', lambda: '%b' % b'x')
+t('str', lambda: '%b' % 5)
+PYEOF
+'''
+
+[[case]]
+id = "python-settrace-events"
+script = '''
+python3 - <<'PYEOF'
+import sys, io
+
+def short(a, n=40):
+    try:
+        r = repr(a)
+    except Exception as e:
+        r = '<repr %s>' % type(e).__name__
+    return r if len(r) <= n else r[:n] + '...'
+
+def fmt_arg(event, arg):
+    if event == 'exception':
+        return '%s(%s)' % (arg[0].__name__, short(arg[1], 30))
+    return short(arg)
+
+def make_tracer(log, names, with_local=True, lines=True):
+    def local(frame, event, arg):
+        if event == 'line' and not lines:
+            return local
+        log.append((event, frame.f_code.co_name, frame.f_lineno, fmt_arg(event, arg)))
+        return local
+    def glob(frame, event, arg):
+        if frame.f_code.co_name not in names:
+            return None
+        log.append((event, frame.f_code.co_name, frame.f_lineno, fmt_arg(event, arg)))
+        return local if with_local else None
+    return glob
+
+def dump(title, log):
+    print('==', title, len(log))
+    for item in log:
+        print('  ', item)
+
+def simple(a, b):
+    c = a + b
+    d = c * 2
+    return d
+
+def caught(x):
+    try:
+        y = 1 // x
+    except ZeroDivisionError as e:
+        y = -1
+    finally:
+        z = 5
+    return y + z
+
+def inner_raise():
+    raise ValueError('boom')
+
+def propagated():
+    v = 1
+    inner_raise()
+    return v
+
+def outer_catch():
+    try:
+        propagated()
+    except ValueError:
+        return 'caught'
+
+def gen(n):
+    for i in range(n):
+        yield i * 2
+    return 'done'
+
+def consume():
+    total = 0
+    for v in gen(3):
+        total += v
+    return total
+
+def gen_send():
+    x = yield 1
+    y = yield x + 1
+    return y
+
+def drive_send():
+    g = gen_send()
+    a = next(g)
+    b = g.send(10)
+    try:
+        g.send(20)
+    except StopIteration as e:
+        return a, b, e.value
+
+def gen_close():
+    try:
+        yield 1
+    finally:
+        pass
+
+def drive_close():
+    g = gen_close()
+    next(g)
+    g.close()
+
+def drive_throw():
+    g = gen_close()
+    next(g)
+    try:
+        g.throw(KeyError('k'))
+    except KeyError:
+        return 'thrown'
+
+def loops():
+    n = 0
+    while n < 2:
+        n += 1
+    for i in (1, 2):
+        pass
+    return n
+
+def with_lambda():
+    f = lambda q: q + 1
+    return f(1), [k for k in range(2)], {k: k for k in range(1)}
+
+def recursive(n):
+    if n == 0:
+        return 0
+    return n + recursive(n - 1)
+
+class C:
+    def __init__(self, v):
+        self.v = v
+    def get(self):
+        return self.v
+    @property
+    def prop(self):
+        return self.v + 1
+
+def use_class():
+    c = C(3)
+    return c.get(), c.prop
+
+def run(title, fn, names, **kw):
+    log = []
+    sys.settrace(make_tracer(log, names, **kw))
+    try:
+        r = fn()
+    except BaseException as e:
+        r = 'raised %s' % type(e).__name__
+    sys.settrace(None)
+    dump(title + ' -> ' + ascii(r), [x for x in log])
+
+run('return', lambda: simple(1, 2), {'simple'})
+run('caught', lambda: caught(0), {'caught'})
+run('caught-ok', lambda: caught(2), {'caught'})
+run('propagated', outer_catch, {'outer_catch', 'propagated', 'inner_raise'})
+run('uncaught', propagated, {'propagated', 'inner_raise'})
+run('generator', consume, {'consume', 'gen'})
+run('send', drive_send, {'drive_send', 'gen_send'})
+run('close', drive_close, {'drive_close', 'gen_close'})
+run('throw', drive_throw, {'drive_throw', 'gen_close'})
+run('loops', loops, {'loops'})
+run('lambda', with_lambda, {'with_lambda', '<lambda>', '<listcomp>', '<dictcomp>', 'q'})
+run('recursive', lambda: recursive(2), {'recursive'})
+run('class', use_class, {'use_class', '__init__', 'get', 'prop'})
+run('no-local', lambda: simple(1, 2), {'simple'}, with_local=False)
+run('no-lines', lambda: simple(1, 2), {'simple'}, lines=False)
+
+# f_trace_lines = False dentro do rastreador global
+log = []
+def glob_nolines(frame, event, arg):
+    if frame.f_code.co_name != 'simple':
+        return None
+    frame.f_trace_lines = False
+    log.append((event, frame.f_lineno, frame.f_trace_lines, frame.f_trace_opcodes))
+    def local(frame, event, arg):
+        log.append((event, frame.f_lineno, short(arg)))
+        return local
+    return local
+sys.settrace(glob_nolines)
+simple(1, 2)
+sys.settrace(None)
+dump('f_trace_lines=False', log)
+
+# f_trace_lines = True mas f_trace_opcodes = True (contagem apenas, sem listar)
+log = []
+def glob_ops(frame, event, arg):
+    if frame.f_code.co_name != 'simple':
+        return None
+    frame.f_trace_opcodes = True
+    def local(frame, event, arg):
+        log.append(event)
+        return local
+    return local
+sys.settrace(glob_ops)
+simple(1, 2)
+sys.settrace(None)
+print('opcodes events:', sorted(set(log)), log.count('opcode') > 0, log.count('line'))
+
+# f_trace atribuído tardiamente via sys._getframe().f_back
+log = []
+def late_local(frame, event, arg):
+    log.append((event, frame.f_code.co_name, frame.f_lineno, fmt_arg(event, arg)))
+    return late_local
+
+def attach():
+    sys._getframe().f_back.f_trace = late_local
+    sys.settrace(lambda *a: None)
+
+def late_target():
+    attach()
+    a = 1
+    b = 2
+    return a + b
+
+late_target()
+sys.settrace(None)
+dump('late f_trace', log)
+
+log = []
+def late2():
+    f = sys._getframe()
+    f.f_trace = late_local
+    x = 1
+    y = 2
+    return x + y
+late2()
+dump('f_trace without settrace', log)
+
+log = []
+def late3():
+    sys.settrace(lambda *a: None)
+    f = sys._getframe()
+    f.f_trace = late_local
+    x = 1
+    y = 2
+    return x + y
+late3()
+sys.settrace(None)
+dump('f_trace after settrace', log)
+
+log = []
+def late4():
+    sys.settrace(lambda *a: None)
+    sys._getframe().f_trace = late_local
+    sys._getframe().f_trace = None
+    x = 1
+    return x
+late4()
+sys.settrace(None)
+dump('f_trace cleared', log)
+
+# gettrace / settrace(None)
+print(sys.gettrace())
+def tr(frame, event, arg):
+    return tr
+sys.settrace(tr)
+print(sys.gettrace() is tr)
+sys.settrace(None)
+print(sys.gettrace())
+for bad in [1, 'x', object()]:
+    try:
+        sys.settrace(bad)
+        print('accepted', type(bad).__name__, sys.gettrace() is bad)
+        sys.settrace(None)
+    except Exception as e:
+        print(type(e).__name__, e)
+print(sys.gettrace())
+
+# retornar None no local desliga as linhas seguintes
+log = []
+def once_global(frame, event, arg):
+    if frame.f_code.co_name != 'simple':
+        return None
+    def local(frame, event, arg):
+        log.append((event, frame.f_lineno))
+        return None
+    return local
+sys.settrace(once_global)
+simple(1, 2)
+sys.settrace(None)
+dump('local returns None', log)
+
+# o rastreador levanta exceção: o trace é removido
+def bad_tracer(frame, event, arg):
+    if frame.f_code.co_name == 'simple':
+        raise RuntimeError('tracer fail')
+    return None
+sys.settrace(bad_tracer)
+try:
+    simple(1, 2)
+except Exception as e:
+    print('tracer raised', type(e).__name__, e)
+print('gettrace after failure:', sys.gettrace())
+sys.settrace(None)
+
+# f_lineno atribuído (salto) dentro do rastreador
+log = []
+def jumper(frame, event, arg):
+    if frame.f_code.co_name != 'jumpme':
+        return None
+    def local(frame, event, arg):
+        log.append((event, frame.f_lineno))
+        return local
+    return local
+def jumpme():
+    a = 1
+    b = 2
+    return a + b
+sys.settrace(jumper)
+jumpme()
+sys.settrace(None)
+dump('jumpme', log)
+
+# frames e atributos vistos pelo rastreador
+log = []
+def inspector(frame, event, arg):
+    if frame.f_code.co_name != 'simple':
+        return None
+    log.append((event, sorted(k for k in frame.f_locals), frame.f_back.f_code.co_name, frame.f_code.co_argcount,
+                frame.f_globals is globals(), frame.f_code.co_filename == __file__ if '__file__' in globals() else frame.f_code.co_filename))
+    return inspector
+sys.settrace(inspector)
+simple(1, 2)
+sys.settrace(None)
+dump('inspector', log)
+
+# setprofile
+def pshort(a):
+    if a is None:
+        return None
+    n = getattr(a, '__name__', None)
+    return n if n is not None else short(a, 30)
+
+def prof_run(title, fn):
+    plog = []
+    def prof(frame, event, arg):
+        if event.startswith('c_'):
+            plog.append((event, frame.f_code.co_name, pshort(arg), getattr(arg, '__qualname__', None)))
+        else:
+            plog.append((event, frame.f_code.co_name, short(arg, 20)))
+    sys.setprofile(prof)
+    try:
+        r = fn()
+    except BaseException as e:
+        r = 'raised %s' % type(e).__name__
+    sys.setprofile(None)
+    dump('profile ' + title + ' -> ' + ascii(r), plog)
+
+def native_calls():
+    a = len([1, 2, 3])
+    b = sorted([3, 1, 2])
+    buf = io.StringIO()
+    print('hello', file=buf)
+    c = buf.getvalue()
+    d = max(1, 2)
+    e = 'abc'.upper()
+    return a, b, c, d, e
+
+def native_error():
+    try:
+        len(5)
+    except TypeError:
+        pass
+    try:
+        int('x')
+    except ValueError:
+        pass
+    return {}.get('a')
+
+def py_calls():
+    return simple(1, 2) + recursive(1)
+
+def native_callback():
+    return sorted([3, 1, 2], key=lambda v: -v)
+
+def native_calls_gen():
+    return list(gen(2))
+
+prof_run('native', native_calls)
+prof_run('native error', native_error)
+prof_run('python', py_calls)
+prof_run('callback', native_callback)
+prof_run('generator', native_calls_gen)
+prof_run('class', use_class)
+prof_run('raise', propagated)
+print(sys.getprofile())
+def p(frame, event, arg):
+    pass
+sys.setprofile(p)
+print(sys.getprofile() is p)
+sys.setprofile(None)
+print(sys.getprofile())
+
+# trace e profile juntos
+tl = []
+pl = []
+def tt(frame, event, arg):
+    if frame.f_code.co_name == 'simple':
+        tl.append(event)
+        return tt
+def pp(frame, event, arg):
+    if frame.f_code.co_name == 'simple':
+        pl.append(event)
+sys.settrace(tt)
+sys.setprofile(pp)
+simple(1, 2)
+sys.settrace(None)
+sys.setprofile(None)
+print('trace', tl)
+print('profile', pl)
+PYEOF
+'''
+
+[[case]]
+id = "python-pdb-script"
+script = '''
+cat > /tmp/pdb_target_codecs_trace.py <<'EOF'
+import sys
+
+def add(a, b):
+    total = a + b
+    return total
+
+def f(n):
+    x = n * 2
+    y = add(x, 1)
+    z = y + 1
+    return z
+
+value = f(3)
+print('value', value)
+EOF
+cat > /tmp/pdb_run_codecs_trace.py <<'EOF'
+import pdb
+
+def add(a, b):
+    total = a + b
+    return total
+
+def f(n):
+    x = n * 2
+    y = add(x, 1)
+    z = y + 1
+    return z
+
+pdb.run('f(3)')
+print('after run')
+EOF
+cat > /tmp/pdb_post_codecs_trace.py <<'EOF'
+import pdb
+
+def boom(v):
+    w = v + 1
+    return 1 // (w - 3)
+
+def main():
+    return boom(2)
+
+try:
+    main()
+except ZeroDivisionError:
+    pdb.post_mortem()
+print('after post_mortem')
+EOF
+cd /tmp
+echo '--- 1: list, next, step, print, where'
+python3 -m pdb /tmp/pdb_target_codecs_trace.py 2>&1 <<'CMDS'
+l
+n
+n
+n
+s
+w
+args
+p a
+p b
+n
+n
+p total
+retval
+u
+p n
+d
+q
+CMDS
+echo "exit=$?"
+echo '--- 2: breakpoints, continue, return'
+python3 -m pdb /tmp/pdb_target_codecs_trace.py 2>&1 <<'CMDS'
+b 5
+b 11
+b
+c
+w
+u
+p n
+d
+args
+n
+retval
+c
+p z
+cl 1
+b
+c
+CMDS
+echo "exit=$?"
+echo '--- 3: break por funcao, tbreak, until, return, errors'
+python3 -m pdb /tmp/pdb_target_codecs_trace.py 2>&1 <<'CMDS'
+b add
+tbreak 12
+c
+bt
+r
+retval
+p undefined_name
+p 1 +
+x = 5
+p x
+pp {'a': [1, 2]}
+whatis x
+l 1,6
+ll
+disable 1
+c
+q
+CMDS
+echo "exit=$?"
+echo '--- 4: help-ish, unknown, empty'
+python3 -m pdb /tmp/pdb_target_codecs_trace.py 2>&1 <<'CMDS'
+foo
+n
+
+b 999
+b nosuchfunc
+w
+whatis add
+p callable(add)
+p add.__name__
+j 14
+n
+c
+CMDS
+echo "exit=$?"
+echo '--- 5: pdb.run via stdin'
+python3 /tmp/pdb_run_codecs_trace.py 2>&1 <<'CMDS'
+s
+n
+s
+args
+p a + b
+r
+n
+retval
+w
+c
+CMDS
+echo "exit=$?"
+echo '--- 6: pdb.run quit'
+python3 /tmp/pdb_run_codecs_trace.py 2>&1 <<'CMDS'
+n
+n
+q
+CMDS
+echo "exit=$?"
+echo '--- 7: post_mortem'
+python3 /tmp/pdb_post_codecs_trace.py 2>&1 <<'CMDS'
+w
+p v
+u
+u
+p w
+d
+l
+q
+CMDS
+echo "exit=$?"
+echo '--- 8: -c e script inexistente'
+python3 -m pdb -c 'b 10' -c c /tmp/pdb_target_codecs_trace.py 2>&1 <<'CMDS'
+p y
+q
+CMDS
+echo "exit=$?"
+python3 -m pdb /tmp/nao_existe_codecs_trace.py 2>&1 </dev/null
+echo "exit=$?"
+python3 -m pdb 2>&1 </dev/null
+echo "exit=$?"
+rm -f /tmp/pdb_target_codecs_trace.py /tmp/pdb_run_codecs_trace.py /tmp/pdb_post_codecs_trace.py
+'''
+
+[[case]]
+id = "python-casing"
+script = '''
+python3 - <<'PYEOF'
+words = ['\xdf', 'ŉ', 'ﬃ', 'İ', 'ΣΑΣ', 'ἈΣ', 'aΣ.', "o'Σ", 'ǅ', 'ᾳ']
+extra = ['', 'a', 'A', 'abc DEF', 'Σ', 'σς', 'ΣΣ', 'aΣ', 'aΣb', 'a Σ', 'Σa', 'abΣ cd',
+         'AΣ́', 'áΣ', 'a.Σ', "a'Σ", 'abΣ­', 'Ǆ', 'ǆ', 'Ǉǈǉ', 'Ǌǋǌ',
+         'Ǳǲǳ', 'ᾀ', 'ᾈ', 'ᾼ', 'ᾲ', 'ᾷ', 'ῤ', 'ῳ', 'ﬀ', 'ﬁ', 'ﬆ', 'ﬓ',
+         'i̇', 'İ', 'ı', 'I', 'i', 'ǰ', 'ẞ', 'ẛ', 'ϐϑϕϖ', 'ὐ', 'ὒ', 'ΐ',
+         'և', 'ẖ', 'ŉx', 'ß-ß', 'straße', 'STRASSE', 'ǆ ǅ Ǆ', 'ﬁnd ﬂow', 'ΌΣΟΣ', 'ὈΣΟΣ ΣΑΣ', "it's", "o'neil", 'a-b c_d', '3rd 4th',
+         'ab́c', 'xͅ', 'ͅ', 'Ιͅ', 'ι', 'Ω', 'K', 'Å', 'Ⅰ', 'ⅰ', 'Ⓐ', 'ⓐ', '\U00010400',
+         '\U00010428', '\U0001e900', '\U0001e922', 'a‍b']
+methods = ['upper', 'lower', 'casefold', 'title', 'swapcase', 'capitalize']
+def show(s):
+    print(ascii(s), len(s))
+    for m in methods:
+        r = getattr(s, m)()
+        print('  ', m, ascii(r), len(r), [hex(ord(c)) for c in r] if len(r) <= 6 else '')
+    print('   flags', int(s.isupper()), int(s.islower()), int(s.istitle()), int(s.isalpha()), int(s.isidentifier()),
+          int(s.isprintable()), int(s.isalnum()))
+    print('   eq', s.casefold() == s.casefold().casefold(), s.lower().upper() == s.upper(), s.upper().lower() == s.lower(),
+          s.swapcase().swapcase() == s, s.title().lower() == s.lower())
+for w in words:
+    show(w)
+for w in extra:
+    show(w)
+
+print('identifiers')
+for s in ['a‍', '·', 'x·', '·x', 'a‌', '‍', '‌', 'a‍b', 'l·l', 'x·', '·', '·x',
+          'á', '́a', '℘', '℮', '゛', '゜', 'a゛', '፩', 'a፩', '٠', 'a٠', '_', '_1', '1_',
+          'a b', 'a\xa0', '\xaa', '\xb5', '\xba', '\xb2', 'a\xb2', 'À', 'İ', 'Σ', 'Ⅰ', 'ﬁ', 'ﬃ', 'ᾳ', 'ǅ',
+          'aͅ', 'ͅ', 'ⸯ', 'aⸯ', '\U00010400', '\U0001d7ce', 'a\U0001d7ce', '︳', 'a︳', '﹍', '＿', '\U000e0100',
+          'a\U000e0100', '۝', 'a۝', '᠎', 'a᠎', '⁠', 'a⁠', '﻿', 'a﻿']:
+    print(ascii(s), s.isidentifier(), s.isalpha(), s.isalnum(), s.isprintable(), s.isupper(), s.islower(), s.istitle())
+import unicodedata
+for s in ['a‍', '·', 'x·', '℘', '℮', '゛', 'ﬃ']:
+    n = unicodedata.normalize('NFKC', s)
+    print(ascii(s), ascii(n), n.isidentifier(), s.isidentifier())
+for src in ['a‍ = 1', '· = 1', 'x· = 1', '·x = 1', '℘ = 1', 'ﬃ = 1', 'a = 1; ẞ = 2']:
+    try:
+        ns = {}
+        exec(src, ns)
+        print(ascii(src), 'ok', sorted(k for k in ns if k != '__builtins__'))
+    except Exception as e:
+        print(ascii(src), type(e).__name__, ascii(str(e)))
+
+print('title edge')
+for s in ['hello world', "they're bill's friends", 'ab1cd', 'a_b', 'áb', 'ǆx', 'ǄX', 'ȯn', 'ﬁre', 'ǆ', 'ǅ', 'ʻokina', 'aʻb',
+          'ͅa', 'aͅ', 'ΑΣ ΑΣ', 'ΑΣ.ΑΣ', 'foo-bar', 'foo\tbar\nbaz', 'ᾳ', 'ᾀ', 'ᾈabc']:
+    print(ascii(s), ascii(s.title()), s.istitle(), ascii(s.capitalize()), ascii(s.title().swapcase()))
+print('casefold vs lower')
+print([c for c in map(chr, range(0x250)) if c.casefold() != c.lower()][:40])
+print(sum(1 for c in map(chr, range(0x110000)) if c.casefold() != c.lower()))
+print(sum(1 for c in map(chr, range(0x110000)) if len(c.upper()) != 1), sum(1 for c in map(chr, range(0x110000)) if len(c.lower()) != 1),
+      sum(1 for c in map(chr, range(0x110000)) if len(c.casefold()) != 1), sum(1 for c in map(chr, range(0x110000)) if len(c.title()) != 1),
+      sum(1 for c in map(chr, range(0x110000)) if len(c.swapcase()) != 1))
+print([hex(ord(c)) for c in map(chr, range(0x110000)) if len(c.upper()) == 3])
+print([hex(ord(c)) for c in map(chr, range(0x110000)) if len(c.lower()) != 1])
+print(sum(c.isupper() for c in map(chr, range(0x110000))), sum(c.islower() for c in map(chr, range(0x110000))),
+      sum(c.istitle() for c in map(chr, range(0x110000))), sum(c.isidentifier() for c in map(chr, range(0x110000))),
+      sum(('a' + c).isidentifier() for c in map(chr, range(0x110000))))
+PYEOF
+'''

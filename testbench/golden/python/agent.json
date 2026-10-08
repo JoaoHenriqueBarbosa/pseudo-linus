@@ -1,4 +1,16 @@
 {
+  "asyncio-selector-loop": {
+    "stdout": "b'eco oi\\n'\n_UnixSelectorEventLoop EpollSelector\nrefused 111\ntimeout\n_asyncio _asyncio <class '_asyncio.Future'>\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "asyncio-signal-and-subprocess": {
+    "stdout": "usr1\nb'ol\\xc3\\xa1\\n' 0\n3\nTrue True\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "asyncio-two-processes": {
     "stdout": "eco: DOIS 0\neco: DOIS 1\neco: DOIS 2\neco: UM 0\neco: UM 1\neco: UM 2\nfim\n",
     "stderr": "",

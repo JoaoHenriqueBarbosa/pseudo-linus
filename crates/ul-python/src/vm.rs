@@ -21,10 +21,11 @@ use std::rc::Rc;
 
 use crate::ast::{CmpOp, Operator, UnaryOp};
 use crate::compile::{Code, Op};
+use crate::generator::{Begun, Callback, CallbackKind, Collect, GenCore, Layer, Pull, ResumeUse, Resumed, Resuming};
 use crate::modules::{csv, json};
 use crate::object::{
     exc_is_subclass, exc_str, int_add, int_mul, int_neg, int_sub, is, py_eq, repr, to_str, BoundMethod, Dict, Env,
-    ExcObj, FileKind, FuncObj, Native, ObjError, PyFile, PyStr, Range, Set, Value, EXC_CLASSES,
+    ExcObj, FileKind, FuncObj, Native, ObjError, PyFile, PyStr, Range, Set, Value, EXC_CLASSES, str_cmp,
 };
 
 /// Exceção Python levantada durante a execução: o nome da classe e a mensagem (`str(exc)`). Quando
@@ -41,8 +42,9 @@ pub struct PyException {
 }
 
 /// Uma entrada de traceback: linha, nome do código, arquivo (vazio: o script principal) e o intervalo de fonte
-/// da instrução que falhou.
-pub type TbEntry = (usize, String, Rc<str>, crate::compile::Span);
+/// da instrução que falhou. O quinto item é o escopo e o código do quadro de uma função, que o
+/// `tb_frame` mostra em `f_locals` e `f_code` (o traceback mantém o quadro vivo, como no CPython).
+pub type TbEntry = (usize, String, Rc<str>, crate::compile::Span, Option<(Rc<Env>, Rc<Code>)>);
 
 /// Desde o 3.12 (PEP 709) as compreensões de lista, conjunto e dicionário não têm quadro próprio:
 /// o traceback mostra a linha de dentro com o nome da função que as contém. (`<genexpr>` mantém o seu.)
@@ -54,23 +56,35 @@ fn native_in_cpython(filename: &str, qual: &str) -> bool {
     // módulo `.py` existe lá, mas estes nomes nunca aparecem como quadro num traceback.
     let top = qual.split('.').next().unwrap_or(qual);
     match name {
-        "functools.py" => {
-            return matches!(top, "reduce" | "partial" | "cmp_to_key" | "_lru_wrapper" | "_make_key" | "_CacheInfo")
-        }
-        "collections/__init__.py" => return matches!(top, "deque" | "defaultdict" | "OrderedDict" | "_count_elements"),
-        "heapq.py" => {
-            return matches!(
+        // Módulos inteiros em C no CPython (`_contextvars`, `_datetime`, `_decimal`, `_struct`):
+        // o `.py` do Debian só reexporta, então tudo o que o embutido define é interior de C.
+        "contextvars.py" | "datetime.py" | "decimal.py" | "struct.py" => return true,
+        // No `os.py` do CPython só estes nomes são Python; o resto vem do `posix` (C).
+        "os.py" => {
+            return !matches!(
                 top,
-                "heappush" | "heappop" | "heapify" | "heapreplace" | "heappushpop" | "_siftdown" | "_siftup"
-                    | "_heappop_max" | "_heapify_max" | "_heapreplace_max" | "_siftdown_max" | "_siftup_max"
+                "PathLike" | "_get_exports_list" | "fsencode" | "fsdecode" | "makedirs" | "removedirs" | "renames"
+                    | "walk" | "execl" | "execle" | "execlp" | "execlpe" | "execvp" | "execvpe" | "_execvpe"
+                    | "get_exec_path" | "_Environ" | "_createenviron" | "getenv" | "getenvb" | "_check_bytes"
+                    | "fdopen" | "popen" | "_wrap_close" | "_exists" | "_init_posix" | "_build_supports"
             )
         }
         _ => {}
     }
-    // Shim embutido de um módulo que no CPython é C (`marshal`, `sys`, `_socket`...): não há `.py`
-    // dele no disco do Debian, e um quadro de C nunca aparece no traceback.
-    if sysabi::sys::try_current().is_some() && !stdlib_file_exists(filename) {
+    if C_ACCELERATED.iter().any(|(file, names)| *file == name && names.contains(&top)) {
         return true;
+    }
+    if sysabi::sys::try_current().is_some() {
+        // Shim embutido de um módulo que no CPython é C (`marshal`, `sys`, `_socket`...): não há `.py`
+        // dele no disco do Debian, e um quadro de C nunca aparece no traceback.
+        if !stdlib_file_exists(filename) {
+            return true;
+        }
+        // Auxiliar que só o embutido tem: o `.py` do Debian não define esse nome, então o CPython
+        // nunca tem um quadro dele (o `<module>` do arquivo conta, ele aparece no import).
+        if !top.starts_with('<') && !python_defines(filename, top) {
+            return true;
+        }
     }
     matches!(
         name,
@@ -79,12 +93,14 @@ fn native_in_cpython(filename: &str, qual: &str) -> bool {
             | "operator.py"
             | "bisect.py"
             | "_socket.py"
+            | "_posixsubprocess.py"
             | "_ssl.py"
             | "_imp.py"
             | "_net.py"
             | "_csv.py"
             | "_random.py"
             | "_thread.py"
+            | "_gsched.py"
             | "_string.py"
             | "_memoryview.py"
             | "_complex.py"
@@ -93,9 +109,99 @@ fn native_in_cpython(filename: &str, qual: &str) -> bool {
             | "_ast.py"
             | "_tokenize.py"
             | "_archivefile.py"
+            | "_asyncio.py"
             | "_match.py"
             | "_excgroup.py"
+            // Módulos que no Debian não têm `.py` (são C): a lista vale também sem o kernel, onde o
+            // teste de existência no disco acima não roda.
+            | "sys.py"
+            | "posix.py"
+            | "time.py"
+            | "marshal.py"
+            | "gc.py"
+            | "atexit.py"
+            | "termios.py"
+            | "fcntl.py"
+            | "pwd.py"
+            | "grp.py"
+            | "resource.py"
+            | "faulthandler.py"
+            | "zlib.py"
+            | "cmath.py"
+            | "_signal.py"
+            | "_stat.py"
+            | "_queue.py"
     )
+}
+
+/// Nomes que o `.py` do Debian define mas que o CPython sobrepõe com o módulo em C (`_functools`,
+/// `_collections`, `_heapq`, `_pickle`, `_asyncio`...): o `.py` existe, mas estes nomes nunca aparecem
+/// como quadro num traceback. Os nomes que o `.py` do Debian nem define saem sozinhos, por
+/// `python_defines`.
+const C_ACCELERATED: &[(&str, &[&str])] = &[
+    ("pickle.py", &["Pickler", "Unpickler", "dump", "dumps", "load", "loads"]),
+    ("bz2.py", &["BZ2Compressor", "BZ2Decompressor"]),
+    ("lzma.py", &["LZMACompressor", "LZMADecompressor", "is_check_supported"]),
+    ("asyncio/futures.py", &["Future"]),
+    (
+        "asyncio/tasks.py",
+        &[
+            "Task", "current_task", "all_tasks", "_register_task", "_register_eager_task", "_unregister_task",
+            "_unregister_eager_task", "_enter_task", "_leave_task", "_swap_current_task",
+        ],
+    ),
+    ("asyncio/events.py", &["get_running_loop", "_get_running_loop", "_set_running_loop", "get_event_loop"]),
+    ("functools.py", &["reduce", "partial", "cmp_to_key", "_lru_cache_wrapper", "_make_key", "_HashedSeq"]),
+    ("collections/__init__.py", &["deque", "defaultdict", "OrderedDict", "_count_elements"]),
+    (
+        "heapq.py",
+        &[
+            "heappush", "heappop", "heapify", "heapreplace", "heappushpop", "_siftdown", "_siftup", "_heappop_max",
+            "_heapify_max", "_heapreplace_max", "_siftdown_max", "_siftup_max",
+        ],
+    ),
+    // `RLock` é o `_thread.RLock`; `excepthook`, `_ExceptHookArgs` e `stack_size` vêm do `_thread`.
+    ("threading.py", &["RLock", "excepthook", "_ExceptHookArgs", "stack_size"]),
+    ("queue.py", &["_PySimpleQueue"]),
+    ("statistics.py", &["_normal_dist_inv_cdf"]),
+];
+
+/// O `.py` da stdlib no disco define `name` (`def`, `async def` ou `class`, em qualquer nível de
+/// indentação: o CPython define muita coisa dentro de `try`/`if`). Com cache por arquivo.
+fn python_defines(path: &str, name: &str) -> bool {
+    thread_local! {
+        static NAMES: RefCell<std::collections::HashMap<String, std::collections::HashSet<String>>> = RefCell::new(Default::default());
+    }
+    NAMES.with(|n| {
+        if let Some(set) = n.borrow().get(path) {
+            return set.contains(name);
+        }
+        let text = sysabi::sys::read_file(path.as_bytes()).map(|b| String::from_utf8_lossy(&b).into_owned()).unwrap_or_default();
+        // Fora os corpos de classe: um `def` dentro de `if`, `try` ou de outra função (o `fsencode` do `_fscodec`)
+        // conta, um método não (o `def close(self)` do `_wrap_close` não faz do `os.close` uma função Python).
+        let mut set = std::collections::HashSet::new();
+        let mut body_indent: Option<usize> = None;
+        for line in text.lines() {
+            let l = line.trim_start();
+            if l.is_empty() || l.starts_with('#') {
+                continue;
+            }
+            let indent = line.len() - l.len();
+            if body_indent.is_some_and(|b| indent > b) {
+                continue;
+            }
+            body_indent = None;
+            let Some(rest) = l.strip_prefix("async def ").or_else(|| l.strip_prefix("def ")).or_else(|| l.strip_prefix("class ")) else {
+                continue;
+            };
+            let end = rest.find(|c: char| !(c.is_alphanumeric() || c == '_')).unwrap_or(rest.len());
+            set.insert(rest[..end].to_string());
+            body_indent = l.starts_with("class ").then_some(indent);
+        }
+        let found = set.contains(name);
+        n.borrow_mut().insert(path.to_string(), set);
+        found
+    })
 }
 
 /// Se o arquivo da stdlib existe no disco (com cache: a imagem do Debian não muda durante o processo).
@@ -104,10 +210,30 @@ fn stdlib_file_exists(path: &str) -> bool {
         static SEEN: RefCell<std::collections::HashMap<String, bool>> = RefCell::new(Default::default());
     }
     SEEN.with(|s| {
-        *s.borrow_mut()
-            .entry(path.to_string())
-            .or_insert_with(|| sysabi::sys::stat(path.as_bytes()).is_ok_and(|st| st.mode & 0o170_000 == 0o100_000))
+        if let Some(&known) = s.borrow().get(path) {
+            return known;
+        }
+        let exists = sysabi::sys::stat(path.as_bytes()).is_ok_and(|st| st.mode & 0o170_000 == 0o100_000);
+        s.borrow_mut().insert(path.to_string(), exists);
+        exists
     })
+}
+
+/// O código é de um módulo embutido que no CPython seria C: o rastreador, o perfil, `sys._getframe`,
+/// `f_back` e o traceback não enxergam quadros dele. Só o código marcado como interno conta (um
+/// `.py` da stdlib lido do disco pelo usuário é Python de verdade).
+pub(crate) fn code_is_native(code: &Code) -> bool {
+    code.internal && native_in_cpython(&code.filename, &code.qual())
+}
+
+/// A função de nível de módulo do `os.py` embutido que no CPython vem do `posix` (C): o `os.py` do Debian não
+/// a define, então `type()`, `repr()` e `__module__` a mostram como `builtin_function_or_method` do `posix`.
+pub(crate) fn code_is_posix_builtin(code: &Code) -> bool {
+    if !code.internal || code.filename != "/usr/lib/python3.13/os.py" || sysabi::sys::try_current().is_none() {
+        return false;
+    }
+    let name = code.qual();
+    !name.starts_with('<') && !python_defines(&code.filename, &name)
 }
 
 fn is_inlined_comp(name: &str) -> bool {
@@ -189,10 +315,10 @@ impl PyException {
             }
             // Instância de exceção de usuário: desde o 3.13 o traceback só qualifica o nome quando a
             // classe não vem de `__main__` (`pkg.mod.Erro: ...`, mas `Erro: ...` no script).
-            Value::Instance(i) if i.class.builtin_base.is_some() => PyException {
-                kind: match i.class.module().as_str() {
-                    "__main__" | "builtins" => crate::object::intern(&i.class.qualname()),
-                    m => crate::object::intern(&format!("{m}.{}", i.class.qualname())),
+            Value::Instance(i) if i.class().builtin_base.is_some() => PyException {
+                kind: match i.class().module().as_str() {
+                    "__main__" | "builtins" => crate::object::intern(&i.class().qualname()),
+                    m => crate::object::intern(&format!("{m}.{}", i.class().qualname())),
                 },
                 msg: instance_text(v, true).unwrap_or_default(),
                 value: Some(v.clone()),
@@ -228,9 +354,15 @@ impl PyException {
         false
     }
 
+    /// A exceção está voltando a subir (`raise` sem argumento, fim de `finally`/`with`)? Isso não
+    /// gera o evento `exception` do `sys.settrace`, que só o `raise` novo e o erro de instrução geram.
+    pub(crate) fn is_reraise(&self) -> bool {
+        self.tb.last().is_some_and(|t| t.0 == usize::MAX)
+    }
+
     /// Tira a marca de re-raise, se houver. `true`: o quadro que está saindo não deve se acrescentar.
     pub(crate) fn take_reraise_mark(&mut self) -> bool {
-        if self.tb.last().is_some_and(|t| t.0 == usize::MAX) {
+        if self.is_reraise() {
             self.tb.pop();
             return true;
         }
@@ -241,10 +373,32 @@ impl PyException {
 /// Entrada sentinela no fim de `tb`: "este quadro já está no traceback" (ver `PyException::reraised`).
 #[allow(non_snake_case)]
 fn RERAISE_MARK() -> TbEntry {
-    (usize::MAX, String::new(), Rc::from(""), crate::compile::Span::default())
+    (usize::MAX, String::new(), Rc::from(""), crate::compile::Span::default(), None)
+}
+
+/// O destino de um `f_lineno = n`: a primeira instrução da linha `line` do código.
+fn jump_index(code: &Code, line: usize) -> Option<usize> {
+    code.lines.iter().position(|l| *l == line)
+}
+
+/// O quadro de função que a entrada de traceback guarda: o escopo e o código (módulos e corpos de
+/// classe ficam de fora, as variáveis deles são as globais).
+fn tb_frame_of(code: &Rc<Code>, env: &Rc<Env>) -> Option<(Rc<Env>, Rc<Code>)> {
+    (!env.is_module && !env.is_class).then(|| (env.clone(), code.clone()))
 }
 
 impl PyException {
+}
+
+/// Grava `tb` como o `__traceback__` da exceção `value` (embutida ou instância de classe de usuário).
+pub(crate) fn attach_traceback(value: &Value, tb: Value) {
+    match value {
+        Value::Exception(x) => *x.traceback.borrow_mut() = Some(tb),
+        Value::Instance(i) => {
+            i.dict.borrow_mut().insert("__traceback__".to_string(), tb);
+        }
+        _ => {}
+    }
 }
 
 /// `OSError` montado pelos módulos nativos como `[Errno N] texto: 'caminho'`: decomposto em
@@ -285,6 +439,15 @@ pub struct RuntimeError {
 
 pub type PyResult<T> = Result<T, PyException>;
 
+/// O desfecho de um programa: `Ok` ou a exceção que subiu ao topo com a linha onde ela nasceu. É o que
+/// `Vm::run` devolve e o que o filho de um `os.fork` calcula ao terminar o quadro retomado.
+pub(crate) fn run_outcome(result: PyResult<Value>) -> Result<(), RuntimeError> {
+    match result {
+        Ok(_) => Ok(()),
+        Err(e) => Err(RuntimeError { lineno: e.tb.last().map_or(0, |t| t.0), exc: e }),
+    }
+}
+
 /// `SyntaxError` (ou `IndentationError`/`TabError`) de um erro do parser, com os args do CPython:
 /// `(msg, (filename, lineno, offset, text, end_lineno, end_offset))`.
 pub fn syntax_exc(e: crate::parser::ParseError, filename: &str, src: &str) -> PyException {
@@ -304,6 +467,23 @@ pub fn syntax_exc(e: crate::parser::ParseError, filename: &str, src: &str) -> Py
     ]);
     let value = Value::Exception(Rc::new(ExcObj::new(kind, vec![Value::str(e.msg.clone()), details])));
     PyException { kind, msg: e.msg, value: Some(value), tb: Vec::new() }
+}
+
+/// Prefixo que o `eval` põe antes da expressão para compilá-la como módulo.
+const EVAL_PREFIX: &str = "__eval_value__ = (";
+
+/// `syntax_exc` de um erro do `eval`/`compile(mode='eval')`: o parser viu `__eval_value__ = (expr)`, então
+/// as colunas da primeira linha descontam o prefixo e o texto é o da expressão como o usuário a escreveu.
+pub fn eval_syntax_exc(mut e: crate::parser::ParseError, filename: &str, src: &str) -> PyException {
+    let src = src.trim();
+    if e.lineno == 1 {
+        let prefix = EVAL_PREFIX.len();
+        e.offset = e.offset.saturating_sub(prefix).max(1);
+    }
+    if e.end_lineno == 1 {
+        e.end_offset = e.end_offset.saturating_sub(EVAL_PREFIX.len()).max(1);
+    }
+    syntax_exc(e, filename, src)
 }
 
 /// Exceção da classe embutida `kind` com a mensagem.
@@ -359,7 +539,7 @@ impl Vm {
         let mut cur = Some(env.clone());
         while let Some(en) = cur {
             for k in en.vars.borrow().keys() {
-                push(k);
+                push(crate::compile::comp_hidden_parts(k).map_or(&**k, |(_, plain)| plain));
             }
             if let Some(obj) = en.vars.borrow().get("self").cloned() {
                 self_has |= self.clone().load_attr(&obj, &name).is_ok();
@@ -451,14 +631,9 @@ fn base_exception_new(_vm: &mut Vm, args: Vec<Value>, _kw: crate::object::Kw) ->
             Ok(Value::Exception(Rc::new(ExcObj::new(n, rest))))
         }
         Value::Class(c) if c.builtin_base.is_some() => {
-            let inst = crate::object::InstanceObj {
-                class: c.clone(),
-                view: Default::default(),
-                dict: RefCell::new(Default::default()),
-                payload: RefCell::new(None),
-            };
+            let inst = crate::object::InstanceObj::new_rc(c, None);
             inst.dict.borrow_mut().insert("args".to_string(), Value::tuple(rest));
-            Ok(Value::Instance(Rc::new(inst)))
+            Ok(Value::Instance(inst))
         }
         other => Err(type_error(format!(
             "BaseException.__new__(X): X is not a type object ({})",
@@ -490,6 +665,11 @@ thread_local! {
 /// Registra o texto de um módulo, para os tracebacks que passam por ele.
 pub fn register_source(file: &str, text: &str) {
     SOURCES.with(|s| s.borrow_mut().insert(file.to_string(), Rc::from(text)));
+}
+
+/// Os textos registrados (arquivo e fonte), para o filho de um `os.fork` refazer o que os tracebacks leem.
+pub(crate) fn sources_snapshot() -> Vec<(String, String)> {
+    SOURCES.with(|s| s.borrow().iter().map(|(file, text)| (file.clone(), text.to_string())).collect())
 }
 
 pub(crate) fn source_line(file: &str, line: usize) -> Option<String> {
@@ -535,10 +715,6 @@ fn push_frames(out: &mut String, file: &str, src: Option<&str>, frames: &[(usize
         }
     };
     for f in frames {
-        // `warnings.warn` é código C no CPython: não aparece nos tracebacks.
-        if f.2.ends_with("/warnings.py") && matches!(f.1, "warn" | "warn_explicit") {
-            continue;
-        }
         if last != Some((f.0, f.1, f.2)) {
             flush(out, count);
             last = Some((f.0, f.1, f.2));
@@ -600,7 +776,7 @@ fn exc_section(v: &Value, file: &str, src: Option<&str>) -> String {
     };
     if let Some((frames, _)) = frames {
         out.push_str("Traceback (most recent call last):\n");
-        let list: Vec<(usize, &str, &str, crate::compile::Span)> = frames.iter().map(|(l, n, o, s)| (*l, n.as_str(), &**o, *s)).collect();
+        let list: Vec<(usize, &str, &str, crate::compile::Span)> = frames.iter().map(|(l, n, o, s, _)| (*l, n.as_str(), &**o, *s)).collect();
         push_frames(&mut out, file, src, &list);
     }
     let pe = PyException::from_value(v);
@@ -625,7 +801,7 @@ pub fn format_traceback_in(err: &RuntimeError, file: &str, src: Option<&str>) ->
     if err.exc.tb.is_empty() {
         push_frame(&mut out, file, src, err.lineno, "<module>", "", crate::compile::Span::default());
     }
-    let list: Vec<(usize, &str, &str, crate::compile::Span)> = err.exc.tb.iter().rev().map(|(l, n, o, s)| (*l, n.as_str(), &**o, *s)).collect();
+    let list: Vec<(usize, &str, &str, crate::compile::Span)> = err.exc.tb.iter().rev().map(|(l, n, o, s, _)| (*l, n.as_str(), &**o, *s)).collect();
     push_frames(&mut out, file, src, &list);
     if err.exc.msg.is_empty() {
         out.push_str(err.exc.kind);
@@ -723,9 +899,9 @@ impl PyIter {
                 Some(v)
             }
             PyIter::Str(s, pos) => {
-                let Some(c) = s.as_str()[*pos..].chars().next() else { return Ok(None) };
-                *pos += c.len_utf8();
-                Some(Value::str(c.to_string()))
+                let Some(c) = crate::object::units(&s.as_str()[*pos..]).next() else { return Ok(None) };
+                *pos += c.len();
+                Some(Value::str(c))
             }
             PyIter::Range { next, step, remaining } => {
                 if *remaining <= 0 {
@@ -775,37 +951,66 @@ pub(crate) fn get_iter(v: &Value) -> PyResult<PyIter> {
                 None => return Err(type_error(format!("'type' object is not iterable"))),
             }
         }
-        Value::Instance(_) => {
+        Value::Instance(i) => {
             let mut vm = current().ok_or_else(|| internal("no vm"))?;
             match vm.call_dunder(v, "__iter__", Vec::new()) {
-                Some(r) => match r? {
-                    it @ Value::Instance(_) => PyIter::Inst(it),
-                    other => get_iter(&other)?,
-                },
-                None => {
-                    // Protocolo antigo de sequência: `__getitem__(0)`, `__getitem__(1)`... até `IndexError`.
-                    let mut items = Vec::new();
-                    let mut i = 0i64;
-                    loop {
-                        match vm.call_dunder(v, "__getitem__", vec![Value::Int(i)]) {
-                            None => return Err(type_error(format!("'{}' object is not iterable", v.type_name()))),
-                            Some(Ok(item)) => items.push(item),
-                            Some(Err(e)) if e.kind == "IndexError" || e.kind == "StopIteration" => break,
-                            Some(Err(e)) => return Err(e),
-                        }
-                        i += 1;
-                    }
-                    PyIter::Items(items, 0)
-                }
+                Some(r) => iterator_from_dunder(r?)?,
+                // Subclasse de tipo embutido (`class ConvertingDict(dict)` com `__getitem__` próprio): sem
+                // `__iter__` de usuário, quem itera é o valor embutido, nunca o protocolo antigo de sequência.
+                None if i.payload.borrow().is_some() => get_iter(&unwrap_payload(v))?,
+                // Protocolo antigo de sequência: `__getitem__(0)`, `__getitem__(1)`... um item por passo, até
+                // `IndexError`.
+                None if i.class().lookup("__getitem__").is_some() => get_iter(&crate::lazy::OldSeqIter::new(v.clone()))?,
+                None => return Err(type_error(format!("'{}' object is not iterable", v.type_name()))),
             }
         }
         _ => return Err(type_error(format!("'{}' object is not iterable", v.type_name()))),
     })
 }
 
+/// O iterador que o `__iter__` de uma instância devolveu: instância com `__next__` (ou valor embutido
+/// guardado) ou um iterador embutido; qualquer outro valor é erro, como em `PyObject_GetIter`.
+fn iterator_from_dunder(returned: Value) -> PyResult<PyIter> {
+    let non_iterator = || type_error(format!("iter() returned non-iterator of type '{}'", returned.type_name()));
+    match &returned {
+        Value::Instance(i) if i.class().lookup("__next__").is_none() && i.payload.borrow().is_none() => Err(non_iterator()),
+        Value::Instance(_) => Ok(PyIter::Inst(returned)),
+        Value::List(_)
+        | Value::Tuple(_)
+        | Value::Str(_)
+        | Value::Range(_)
+        | Value::Dict(_)
+        | Value::Set(_)
+        | Value::Bytes(_)
+        | Value::ByteArray(_)
+        | Value::Int(_)
+        | Value::Big(_)
+        | Value::Float(_)
+        | Value::Bool(_)
+        | Value::None => Err(non_iterator()),
+        other => get_iter(other),
+    }
+}
+
 /// `a < b` com a semântica do Python (usado por `sorted`, `min`, `max`, `list.sort`).
 pub fn py_lt(a: &Value, b: &Value) -> PyResult<bool> {
     compare(CmpOp::Lt, a, b)
+}
+
+/// Se o `__lt__`/`__eq__`... do tipo embutido de `a` aceita `b`; senão o método devolve `NotImplemented`
+/// (`'a'.__lt__(5)`, `(1).__eq__('x')`). `ordering` é falso para `==` e `!=`.
+pub(crate) fn rich_compare_accepts(a: &Value, b: &Value, ordering: bool) -> bool {
+    let (a, b) = (unwrap_payload(a), unwrap_payload(b));
+    match (&a, &b) {
+        (Value::Bool(_) | Value::Int(_) | Value::Big(_) | Value::Float(_), Value::Bool(_) | Value::Int(_) | Value::Big(_) | Value::Float(_))
+        | (Value::Str(_), Value::Str(_))
+        | (Value::Bytes(_) | Value::ByteArray(_), Value::Bytes(_) | Value::ByteArray(_))
+        | (Value::List(_), Value::List(_))
+        | (Value::Tuple(_), Value::Tuple(_))
+        | (Value::Set(_), Value::Set(_)) => true,
+        (Value::Dict(_), Value::Dict(_)) | (Value::Range(_), Value::Range(_)) | (Value::None, Value::None) => !ordering,
+        _ => false,
+    }
 }
 
 /// `a <op> b` pelo símbolo de comparação (`==`, `!=`, `<`, `<=`, `>`, `>=`), para os `__eq__`... dos embutidos.
@@ -823,6 +1028,12 @@ pub(crate) fn py_compare(sym: &str, a: &Value, b: &Value) -> PyResult<bool> {
 
 /// Operador binário `a <op> b` (`op` pelo símbolo: `"+"`, `"-"`, `"*"`, `"/"`, `"//"`, `"%"`, `"**"`).
 pub fn py_binary(sym: &str, a: &Value, b: &Value) -> PyResult<Value> {
+    py_binary_in(sym, a, b, false)
+}
+
+/// `a <op>= b` (ou `a <op> b` com `inplace` falso): o mesmo operador de [`py_binary`], com a variante
+/// que muta o operando esquerdo quando ele é mutável (`list +=`, `set |=`).
+pub fn py_binary_in(sym: &str, a: &Value, b: &Value, inplace: bool) -> PyResult<Value> {
     let op = match sym {
         "+" => Operator::Add,
         "-" => Operator::Sub,
@@ -839,7 +1050,7 @@ pub fn py_binary(sym: &str, a: &Value, b: &Value) -> PyResult<Value> {
         "@" => Operator::MatMult,
         _ => return Err(type_error(format!("unsupported operator {sym}"))),
     };
-    binary(op, a, b, false)
+    binary(op, a, b, inplace)
 }
 
 /// Todos os itens de um iterável (também para funções nativas que consomem uma sequência inteira).
@@ -861,6 +1072,84 @@ pub(crate) enum Slot {
 /// Marcador de [`Op::LoadMethod`] quando o atributo já veio resolvido: não há objeto a passar.
 const NO_SELF: &str = "<no self>";
 
+/// O `__next__` em Python do iterador de usuário que está no topo da pilha de um `for`, com o iterador.
+/// O quadro em execução de `run_frames`: o chamado, ou o próprio quadro mais externo quando não há.
+fn running<'a>(frame: &'a mut Frame, child: &'a mut Option<Callee>) -> &'a mut Frame {
+    match child.as_mut() {
+        Some(c) => &mut c.frame,
+        None => frame,
+    }
+}
+
+/// Aplica no chamador o desfecho de um passo da máquina (`Next`): o valor, o salto e o quadro novo (que o
+/// laço empilha), ou o erro, que chega ao chamador na instrução que abriu o passo (o `pc` já tinha avançado).
+fn land_step(caller: &mut Frame, stepped: PyResult<Next>) -> (Option<Callee>, Option<PyException>) {
+    match stepped {
+        Ok(next) => {
+            let (jump, callee) = next.land(&mut caller.stack);
+            if let Some(target) = jump {
+                caller.pc = target;
+            }
+            (callee, None)
+        }
+        Err(e) => {
+            caller.pc -= 1;
+            (None, Some(e))
+        }
+    }
+}
+
+fn user_next(stack: &[Slot]) -> Option<(Rc<FuncObj>, Value)> {
+    let Some(Slot::Iter(PyIter::Inst(iterator @ Value::Instance(i)))) = stack.last() else { return None };
+    match i.class().lookup("__next__") {
+        Some(Value::Function(f)) => Some((f, iterator.clone())),
+        _ => None,
+    }
+}
+
+/// O valor `depth` posições abaixo do topo da pilha é uma instância (0 é o topo).
+fn instance_at(stack: &[Slot], depth: usize) -> bool {
+    stack.len().checked_sub(depth + 1).is_some_and(|n| matches!(&stack[n], Slot::Val(Value::Instance(_))))
+}
+
+fn value_at(stack: &[Slot], depth: usize) -> Option<Value> {
+    match stack.len().checked_sub(depth + 1).map(|n| &stack[n]) {
+        Some(Slot::Val(v)) => Some(v.clone()),
+        _ => None,
+    }
+}
+
+/// O método `name` da classe de `v` quando `v` é instância e ele é uma função Python.
+pub(crate) fn dunder_function(v: &Value, name: &str) -> Option<Rc<FuncObj>> {
+    let Value::Instance(i) = v else { return None };
+    match i.class().lookup(name) {
+        Some(Value::Function(f)) => Some(f),
+        _ => None,
+    }
+}
+
+/// O método que decide a verdade da instância no topo da pilha, quando é função Python: `__bool__`, e
+/// só sem ele `__len__` (o `bool` do resultado diz qual dos dois).
+fn truth_method(stack: &[Slot]) -> Option<(Rc<FuncObj>, bool)> {
+    let Some(Slot::Val(Value::Instance(i))) = stack.last() else { return None };
+    match i.class().lookup("__bool__") {
+        Some(Value::Function(f)) => Some((f, false)),
+        Some(_) => None,
+        None => match i.class().lookup("__len__") {
+            Some(Value::Function(f)) => Some((f, true)),
+            _ => None,
+        },
+    }
+}
+
+/// A verdade que `__bool__` devolveu: só `bool` vale.
+fn bool_result(returned: &Value) -> PyResult<bool> {
+    match returned {
+        Value::Bool(b) => Ok(*b),
+        other => Err(type_error(format!("__bool__ should return bool, returned {}", other.type_name()))),
+    }
+}
+
 /// A função de classe que `obj.name(...)` chamaria com `obj` na frente, quando a busca é a comum:
 /// instância de classe de usuário, nome ausente do dict da instância, sem `__getattribute__` e sem
 /// `__dict__` vivo pendente. Qualquer outro caso fica com a busca completa (`None`).
@@ -869,8 +1158,9 @@ fn plain_method(obj: &Value, name: &str) -> Option<Rc<FuncObj>> {
     if inst.view.borrow().is_some() || inst.dict.borrow().contains_key(name) {
         return None;
     }
-    let Some(Value::Function(f)) = inst.class.lookup(name) else { return None };
-    if f.attrs.borrow().contains_key("__no_bind__") || inst.class.lookup("__getattribute__").is_some() {
+    let class = inst.class();
+    let Some(Value::Function(f)) = class.lookup(name) else { return None };
+    if f.attrs.borrow().contains_key("__no_bind__") || class.lookup("__getattribute__").is_some() {
         return None;
     }
     Some(f)
@@ -888,13 +1178,21 @@ pub struct Vm {
     /// `Outcome.stderr`, antes do traceback final.
     pub stderr_capture: RefCell<String>,
     /// Exceções sendo tratadas (a mais recente por último), para `raise` sem argumento.
-    handled: Rc<RefCell<Vec<Value>>>,
+    pub(crate) handled: Rc<RefCell<Vec<Value>>>,
     /// Profundidade de chamadas de função em andamento.
     pub(crate) depth: Rc<std::cell::Cell<usize>>,
     /// Linha da instrução em execução (para `sys._getframe` e `warnings`).
     pub(crate) cur_line: Rc<std::cell::Cell<usize>>,
-    /// Funções em andamento (a mais interna por último), cada uma com a linha do chamador.
-    pub(crate) frames: Rc<RefCell<Vec<(Rc<Code>, usize)>>>,
+    /// Funções em andamento (a mais interna por último), cada uma com a linha do chamador e o
+    /// escopo das variáveis locais da chamada.
+    pub(crate) frames: Rc<RefCell<Vec<(Rc<Code>, usize, Rc<Env>)>>>,
+    /// Os quadros de função suspensos esperando o retorno de um chamado (o mais interno por último).
+    /// Cada `run_loop` só mexe do índice em que entrou para cima; o quadro em execução fica com ele.
+    pub(crate) frames_stack: Rc<RefCell<Vec<Callee>>>,
+    /// Quantos `run_loop` estão ativos na pilha Rust desta thread. Vale 1 quando só o laço mais externo
+    /// roda (o estado todo está em dados e o `os.fork` pode copiá-lo); com mais, há recursão Rust viva
+    /// (callback de `sorted(key=)`, retomada de gerador...) que a imagem do heap não alcança.
+    pub(crate) rust_nest: Rc<std::cell::Cell<usize>>,
     /// `sys.argv`.
     pub(crate) argv: Rc<Vec<String>>,
     /// `sys.stdin`, `sys.stdout` e `sys.stderr`, criados uma vez.
@@ -907,6 +1205,22 @@ pub struct Vm {
     /// Globais vivas dos módulos carregados de arquivo (por nome): `mod.x` lê e grava aqui, então
     /// o módulo e quem o importou enxergam o mesmo estado.
     pub(crate) module_globals: Rc<RefCell<HashMap<&'static str, Rc<RefCell<crate::object::VarMap>>>>>,
+}
+
+/// Sobe `Vm::rust_nest` na entrada de um `run_loop` e desce na saída, inclusive por unwind.
+struct NestGuard(Rc<std::cell::Cell<usize>>);
+
+impl NestGuard {
+    fn enter(counter: &Rc<std::cell::Cell<usize>>) -> NestGuard {
+        counter.set(counter.get() + 1);
+        NestGuard(counter.clone())
+    }
+}
+
+impl Drop for NestGuard {
+    fn drop(&mut self) {
+        self.0.set(self.0.get() - 1);
+    }
 }
 
 thread_local! {
@@ -928,17 +1242,48 @@ pub fn current() -> Option<Vm> {
     CURRENT.with(|c| c.borrow().clone())
 }
 
+/// Instala `vm` como a `Vm` desta thread: é o que o filho de um `os.fork` faz ao nascer.
+pub(crate) fn set_current(vm: &Vm) {
+    CURRENT.with(|c| *c.borrow_mut() = Some(vm.clone()));
+}
+
 /// Limite de recursão (`sys.getrecursionlimit()` do CPython).
 const MAX_DEPTH: usize = 1000;
 
-/// Ligada quando o programa registra um tratador de sinal: a VM passa a consultar os sinais capturados.
-pub(crate) static SIGNALS_ARMED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+/// O estado de sinais do processo Python (fatia F2): se o programa registrou um tratador (ou armou um
+/// timer de `signal.alarm`/`setitimer`), a VM passa a consultar os sinais capturados. Cada processo tem a sua
+/// thread do interpretador, então o estado é por thread. Os timers moram no kernel: o `fork(2)` os zera no
+/// filho e o `execve` os mantém.
+pub(crate) struct SignalState {
+    armed: Cell<bool>,
+    /// Uma nativa mandou um sinal ao próprio processo (`os.kill`): a próxima instrução já consulta os
+    /// capturados, sem esperar o intervalo de consulta (o ponto de verificação do CPython logo depois da chamada).
+    now: Cell<bool>,
+}
 
-/// A thread que registrou o primeiro tratador: só ela roda tratadores (no CPython, só a principal).
-pub(crate) static SIGNAL_THREAD: std::sync::OnceLock<std::thread::ThreadId> = std::sync::OnceLock::new();
+thread_local! {
+    static SIGNALS: SignalState = const { SignalState { armed: Cell::new(false), now: Cell::new(false) } };
+}
 
-/// Prazo do `signal.alarm`, em nanossegundos do relógio monotônico (0: sem alarme).
-pub(crate) static ALARM_AT_NS: std::sync::atomic::AtomicI64 = std::sync::atomic::AtomicI64::new(0);
+/// Pede que o laço consulte os sinais capturados na próxima instrução.
+pub(crate) fn request_signal_check() {
+    SIGNALS.with(|s| s.now.set(true));
+}
+
+/// A volta `tick` do laço é a de consultar os sinais capturados (a cada 8192 instruções, ou quando pedido).
+fn signal_check_due(tick: u32) -> bool {
+    tick & 0x1fff == 0 || SIGNALS.with(|s| s.now.replace(false))
+}
+
+/// O programa registrou algum tratador de sinal?
+pub(crate) fn signals_armed() -> bool {
+    SIGNALS.with(|s| s.armed.get())
+}
+
+/// Liga a consulta dos sinais capturados (um tratador foi registrado, ou um timer foi armado).
+pub(crate) fn arm_signals() {
+    SIGNALS.with(|s| s.armed.set(true));
+}
 
 /// O relógio monotônico do pseudo-processo, em nanossegundos (`None` sem pseudo-processo).
 pub(crate) fn monotonic_ns() -> Option<i64> {
@@ -958,8 +1303,298 @@ pub(crate) struct Block {
     pub(crate) handled: usize,
 }
 
+/// O estado de um quadro de execução, tudo o que o `run_loop` lê e escreve: o código, o ambiente,
+/// a pilha de valores, os blocos protegidos e o `pc`. Um gerador o guarda entre um `yield` e o
+/// `next` seguinte.
+pub(crate) struct Frame {
+    pub(crate) code: Rc<Code>,
+    pub(crate) env: Rc<Env>,
+    pub(crate) stack: Vec<Slot>,
+    pub(crate) blocks: Vec<Block>,
+    pub(crate) pc: usize,
+    /// As exceções em tratamento dentro do quadro enquanto ele está suspenso (só os geradores
+    /// suspendem; num quadro em execução elas vivem em `Vm::handled`).
+    pub(crate) handled: Vec<Value>,
+    /// A altura de `Vm::handled` de fora no momento em que o quadro se suspendeu.
+    pub(crate) handled_base: usize,
+}
+
+impl Frame {
+    pub(crate) fn new(code: Rc<Code>, env: Rc<Env>) -> Frame {
+        // A pilha de quase todo quadro cabe em poucas posições: uma alocação só, sem crescer aos poucos.
+        Frame { code, env, stack: Vec::with_capacity(8), blocks: Vec::new(), pc: 0, handled: Vec::new(), handled_base: 0 }
+    }
+}
+
+/// O que a abertura de uma chamada guardou para o fechamento dela (`Vm::end_call`).
+pub(crate) struct CallLink {
+    pub(crate) func: Option<Rc<FuncObj>>,
+    /// A linha do chamador, devolvida a `cur_line` na saída.
+    pub(crate) caller_line: usize,
+    /// A altura de `Vm::handled` na entrada: `return` dentro de um `except` não fecha o tratador.
+    pub(crate) handled_len: usize,
+    pub(crate) profiled: bool,
+    /// As globais do chamador, quando a função é de outro módulo: voltam a `Vm::globals` no fechamento.
+    pub(crate) caller_globals: Option<Rc<RefCell<crate::object::VarMap>>>,
+    /// A instância de `Classe(...)` cujo `__init__` este quadro executa: é ela que a chamada entrega.
+    pub(crate) instance: Option<Value>,
+    /// Quando o quadro executa o `__next__` de um `for`: o destino do `ForIter`, para onde o laço
+    /// salta (descartando o iterador) se o chamado terminar com `StopIteration`.
+    pub(crate) on_stop: Option<usize>,
+    /// Quando o quadro executa o método mágico de um operador, de uma subscrição ou de um teste de
+    /// verdade: o que fazer com o valor que ele devolve (`Vm::finish_dunder`).
+    pub(crate) then: Option<Dunder>,
+    /// Quando o quadro é o de um gerador ou de uma corrente retomado pelo laço (sem `func`): o que fechar
+    /// a retomada e o que fazer com o valor entregue.
+    pub(crate) resuming: Option<crate::generator::Resuming>,
+}
+
+/// Uma tentativa de uma cadeia de operador: o método mágico `name` de `recv`, com `other` de argumento.
+pub(crate) struct Attempt {
+    pub(crate) recv: Value,
+    pub(crate) name: &'static str,
+    pub(crate) other: Value,
+    /// O resultado vale ao contrário (`!=` derivado de um `__eq__`).
+    pub(crate) invert: bool,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) enum ChainKind {
+    Binary { op: Operator, inplace: bool },
+    /// `<`, `<=`, `>`, `>=`.
+    Order(CmpOp),
+    /// `==` e `!=`.
+    Equal(CmpOp),
+}
+
+/// Um operador com método mágico em Python: as tentativas que faltam (a de `NotImplemented` passa à
+/// seguinte) e o que vale quando todas se esgotam.
+pub(crate) struct Chain {
+    pub(crate) kind: ChainKind,
+    pub(crate) a: Value,
+    pub(crate) b: Value,
+    /// As tentativas restantes, a próxima por último.
+    pub(crate) rest: Vec<Attempt>,
+    /// `invert` da tentativa em curso.
+    pub(crate) invert: bool,
+}
+
+/// O que um salto condicional ou um `not` faz com a verdade do operando.
+#[derive(Clone, Copy)]
+pub(crate) enum TruthUse {
+    /// `PopJumpIf*`: o operando já saiu da pilha; salta quando a verdade é `when`.
+    Jump { target: usize, when: bool },
+    /// `JumpIf*OrPop`: o operando continua na pilha; salta quando a verdade é `when`, senão ele sai.
+    JumpKeep { target: usize, when: bool },
+    Not,
+}
+
+/// O que fazer com o valor que o quadro de um método mágico devolve.
+pub(crate) enum Dunder {
+    Chain(Chain),
+    /// `a[i]`: o valor vai para a pilha.
+    Push,
+    /// `a[i] = v`: o valor é descartado.
+    Discard,
+    /// `x in c` / `x not in c`, e o `__exit__` de um `with`: a verdade do valor (negada em `not in`).
+    Boolean { negate: bool },
+    /// `__bool__` (ou `__len__`, quando `len`) de um teste de verdade.
+    Truth { how: TruthUse, len: bool },
+    /// `__iter__` de um `for`: o iterador vai para a pilha.
+    Iter,
+    /// Um callback Python de uma nativa (a função do `map`, o predicado do `filter`, a chave de
+    /// `min`/`max`/`sorted`, o `__next__` ou o `__getitem__` de uma fonte, o `__iter__` de uma coleta): o valor
+    /// que ele devolve volta à máquina de `Vm::drive` (`Vm::resume_callback`).
+    Callback(Box<Callback>),
+    /// O `signal._dispatch` de sinais capturados, empilhado entre duas instruções do chamador: o valor é
+    /// descartado e a instrução interrompida roda quando o quadro volta. Uma exceção do tratador sobe no
+    /// ponto interrompido (o `pc` do chamador não avançou, então não recua).
+    Signal,
+    /// O corpo de um módulo importado: ao fechar, o módulo é concluído (ou removido de `sys.modules`, se o corpo
+    /// levantou) e a cadeia do `import` segue (`Vm::close_import`).
+    Import(Box<crate::modrun::ImportRun>),
+    /// O código de um `exec` ou `eval`: ao fechar, as globais e o `locals` recebem o que ele criou e o valor sai
+    /// (`Vm::close_exec`).
+    Exec(Box<crate::builtins_ext::ExecRun>),
+}
+
+impl Dunder {
+    /// O quadro é um corpo de módulo ou de `exec`/`eval`: o código acaba sem `Return` e devolve `None`.
+    fn is_body(&self) -> bool {
+        matches!(self, Dunder::Import(_) | Dunder::Exec(_))
+    }
+}
+
+/// Como um quadro terminou, para o laço aplicar no quadro do chamador: uma chamada comum (o resultado, o
+/// destino do `for` e o método mágico em curso), a retomada de um gerador (o núcleo, o que fazer com o
+/// desfecho e o desfecho) ou um corpo de módulo (o `Dunder::Import` ou `Dunder::Exec`, o fecho da chamada, o
+/// escopo do quadro e o resultado).
+enum Closed {
+    Call(PyResult<Value>, Option<usize>, Option<Dunder>),
+    Resumed(Rc<GenCore>, ResumeUse, PyResult<Resumed>),
+    Body(Dunder, CallLink, Rc<Env>, PyResult<Value>),
+}
+
+/// O início de uma retomada de gerador no laço: o quadro a executar, ou o desfecho que já saiu pronto
+/// (gerador terminado), com o `ResumeUse` devolvido.
+enum Resumption {
+    Frame(Callee),
+    Ready(Resumed, ResumeUse),
+}
+
+/// O desfecho de `Vm::inject_delegated`: a exceção a levantar no gerador de fora, o desfecho já aplicado à pilha
+/// dele, ou o quadro do sub-gerador a executar (o de fora espera em `frames_stack`).
+enum Injected {
+    Raise(PyException),
+    Applied,
+    Sub(Callee),
+}
+
+/// O que o laço pede para entregar um item a um consumidor (`Vm::fetch`): o quadro de um gerador a executar,
+/// ou o item (`None` é o fim da fonte) que saiu sem rodar quadro, com o consumidor devolvido.
+enum Fetch {
+    Frame(Callee),
+    Ready(Option<Value>, ResumeUse),
+}
+
+/// O que acontece numa cadeia preguiçosa (`Vm::drive`): pedir um item a uma fonte, ou receber um item
+/// ou o fim dela.
+enum Event {
+    Want(Rc<dyn crate::object::ExtObject>),
+    Got(Value),
+    Ended,
+}
+
+/// O que entra na conta de uma coleta (`Vm::collect_run`): o item seguinte, o fim da fonte, ou a chave que um
+/// quadro acabou de devolver para o item.
+enum Input {
+    Item(Value),
+    End,
+    Key(Value, Value),
+}
+
+/// Onde a fonte de uma coleta começa: já é o objeto de que o laço puxa, ou é uma instância cujo `__iter__` em
+/// Python o laço executa antes (`Callback` com `CallbackKind::Start`).
+enum Root {
+    Ready(Value),
+    Iterable(Rc<FuncObj>, Value),
+}
+
+/// O núcleo de gerador ou de corrente que a posição da pilha guarda (iterador de `for`, sub-iterador de
+/// `yield from`, aguardável de `await`).
+fn slot_core(slot: &Slot) -> Option<Rc<GenCore>> {
+    match slot {
+        Slot::Iter(PyIter::Ext(x)) | Slot::Val(Value::Ext(x)) => crate::generator::core_of(x),
+        _ => None,
+    }
+}
+
+/// A cadeia de `enumerate`/`zip`/`map`/`filter` sobre gerador que a posição da pilha guarda como iterador
+/// de `for`: o laço a puxa em quadros, camada por camada (`Vm::drive`).
+fn slot_chain(slot: &Slot) -> Option<Value> {
+    match slot {
+        Slot::Iter(PyIter::Ext(x)) => chain_root(&Value::Ext(x.clone())).then(|| Value::Ext(x.clone())),
+        _ => None,
+    }
+}
+
+/// `v` é uma cadeia ou uma fonte que precisa de quadro para dar o próximo item (gerador no fundo, callback
+/// ou método de usuário em Python), mas não é um gerador (o gerador sozinho não conta).
+fn chain_root(v: &Value) -> bool {
+    matches!(v, Value::Ext(x) if crate::generator::core_of(x).is_none() && crate::lazy::needs_frames(x))
+}
+
+/// `v` é um gerador, ou uma cadeia ou fonte que precisa de quadro: o que o laço de quadros esgota ou puxa
+/// sem recursar.
+fn suspendable(v: &Value) -> bool {
+    matches!(v, Value::Ext(x) if crate::lazy::needs_frames(x))
+}
+
+/// O que sai de `Vm::pull` fora de um laço de instruções: o valor, ou o quadro a executar.
+pub(crate) fn entered_of(next: Next) -> PyResult<Entered> {
+    match next {
+        Next::Value(v) => Ok(Entered::Done(v)),
+        Next::Nothing => Ok(Entered::Done(Value::None)),
+        Next::Spawn(callee) => Ok(Entered::Frame(callee)),
+        _ => Err(internal("a pull outside a loop cannot jump")),
+    }
+}
+
+/// O desfecho de um método mágico, para o laço de instruções aplicar no quadro do chamador.
+pub(crate) enum Next {
+    Value(Value),
+    Iter(PyIter),
+    Nothing,
+    /// Tira o topo da pilha (o operando que um `JumpIf*OrPop` guardou).
+    Drop,
+    Jump(usize),
+    /// O `for` acabou: descarta o iterador (o topo da pilha) e salta para o fim do laço.
+    Exit(usize),
+    Spawn(Callee),
+}
+
+impl Next {
+    /// Aplica na pilha o que ela mesma resolve; o salto e o quadro novo ficam para o chamador.
+    fn land(self, stack: &mut Vec<Slot>) -> (Option<usize>, Option<Callee>) {
+        match self {
+            Next::Value(v) => stack.push(Slot::Val(v)),
+            Next::Iter(it) => stack.push(Slot::Iter(it)),
+            Next::Drop => {
+                stack.pop();
+            }
+            Next::Nothing => {}
+            Next::Jump(t) => return (Some(t), None),
+            Next::Exit(t) => {
+                stack.pop();
+                return (Some(t), None);
+            }
+            Next::Spawn(c) => return (None, Some(c)),
+        }
+        (None, None)
+    }
+}
+
+impl Chain {
+    /// O resultado do operador quando a tentativa em curso devolveu `v` (que não é `NotImplemented`).
+    fn conclude(&self, v: Value) -> Value {
+        match self.kind {
+            ChainKind::Binary { .. } => v,
+            ChainKind::Order(_) | ChainKind::Equal(_) => Value::Bool(v.is_true() != self.invert),
+        }
+    }
+
+    /// Todas as tentativas devolveram `NotImplemented` (ou não existiam): vale o operador embutido.
+    fn fallback(&self) -> PyResult<Value> {
+        match self.kind {
+            ChainKind::Binary { op, inplace } => binary_native(op, &self.a, &self.b, inplace),
+            ChainKind::Order(op) => compare_native(op, &self.a, &self.b).map(Value::Bool),
+            ChainKind::Equal(op) => {
+                let equal = crate::classes::payload_eq(&self.a, &self.b).unwrap_or_else(|| crate::object::py_eq_native(&self.a, &self.b));
+                Ok(Value::Bool(equal != (op == CmpOp::NotEq)))
+            }
+        }
+    }
+}
+
+/// Um quadro de função aberto por uma chamada, com o necessário para fechá-la.
+pub(crate) struct Callee {
+    pub(crate) frame: Frame,
+    pub(crate) link: CallLink,
+}
+
+/// O resultado de iniciar uma chamada: o valor já pronto, ou o quadro a executar.
+pub(crate) enum Entered {
+    Done(Value),
+    Frame(Callee),
+}
+
 pub(crate) fn internal(msg: &str) -> PyException {
     exc("SystemError", msg.to_string())
+}
+
+/// O escopo da célula de alvos de uma compreensão inline, guardado em `locals` sob `key`.
+fn cell_scope(locals: &Env, key: &str) -> PyResult<Rc<Env>> {
+    locals.vars.borrow().get(key).and_then(crate::classes::cell_env).ok_or_else(|| internal("comprehension cell is missing"))
 }
 
 impl Default for Vm {
@@ -973,16 +1608,26 @@ impl Vm {
         Vm::with_argv(Vec::new())
     }
 
-    /// Roda as funções registradas em `atexit` (se o módulo foi importado), como o CPython na saída.
-    pub fn run_exit_hooks(&mut self) {
+    /// A saída do interpretador, até o `atexit`: finaliza o que a última instrução soltou e roda as funções
+    /// registradas em `atexit` (se o módulo foi importado). A chamada é o laço mais externo desta fase
+    /// (`MainGuard`), como `run` é o do programa: um `os.fork` dentro de uma função de `atexit` copia o estado e
+    /// o filho a retoma (`fork::RunTail::verdict`). O resto da saída é `finalize_at_exit`.
+    pub(crate) fn run_exit_hooks(&mut self) {
+        self.run_finalizers();
         let hook = self
             .modules
             .borrow()
             .get("atexit")
             .and_then(|m| m.attrs.borrow().get("_run_exitfuncs").cloned());
         if let Some(f) = hook {
+            let _main = crate::fork::MainGuard::enter(self.fork_entry());
             let _ = self.call(&f, Vec::new(), Vec::new());
         }
+    }
+
+    /// A contabilidade do laço mais externo de uma fase do programa (o que o filho de um `os.fork` restaura).
+    fn fork_entry(&self) -> crate::fork::Entry {
+        crate::fork::Entry { depth: self.depth.get(), frames: self.frames.borrow().len(), line: self.cur_line.get() }
     }
 
     pub fn with_argv(argv: Vec<String>) -> Vm {
@@ -1006,6 +1651,8 @@ impl Vm {
             depth: Rc::new(std::cell::Cell::new(0)),
             cur_line: Rc::new(std::cell::Cell::new(0)),
             frames: Rc::new(RefCell::new(Vec::new())),
+            frames_stack: Rc::new(RefCell::new(Vec::new())),
+            rust_nest: Rc::new(std::cell::Cell::new(0)),
             argv: Rc::new(argv),
             modules: Rc::new(RefCell::new(HashMap::new())),
             foreign_modules: Rc::new(RefCell::new(HashMap::new())),
@@ -1022,39 +1669,85 @@ impl Vm {
     /// Executa o código de um módulo.
     pub fn run(&mut self, code: &Rc<Code>) -> Result<(), RuntimeError> {
         let env = Env::new(None, false, true);
-        match self.exec(code, &env) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(RuntimeError { lineno: e.tb.last().map_or(0, |t| t.0), exc: e }),
-        }
+        // O laço mais externo do programa: é o único onde o `os.fork` copia o estado e o filho retoma.
+        let entry = self.fork_entry();
+        let result = {
+            let _main = crate::fork::MainGuard::enter(entry);
+            self.exec(code, &env)
+        };
+        run_outcome(result)
     }
 
     /// Executa o código de um módulo, de uma função ou de um corpo de classe até o `Return`.
     pub(crate) fn exec(&mut self, code: &Rc<Code>, env: &Rc<Env>) -> PyResult<Value> {
-        // A pilha de quase todo quadro cabe em poucas posições: uma alocação só, sem crescer aos poucos.
-        let mut stack: Vec<Slot> = Vec::with_capacity(8);
-        let mut blocks: Vec<Block> = Vec::new();
-        let mut pc = 0;
-        match self.run_loop(code, env, &mut stack, &mut blocks, &mut pc, None)? {
+        let mut frame = Frame::new(code.clone(), env.clone());
+        self.run_frame(&mut frame)
+    }
+
+    /// Executa um quadro até o `Return`.
+    pub(crate) fn run_frame(&mut self, frame: &mut Frame) -> PyResult<Value> {
+        match self.run_loop(frame, None)? {
             Exit::Return(v) => Ok(v),
             Exit::Yield(_) => Err(internal("yield outside generator")),
         }
     }
 
     /// O laço de instruções, com o estado do quadro (pilha, blocos protegidos, `pc`) vindo de fora:
-    /// um gerador guarda esse estado entre um `yield` e o `next` seguinte.
-    pub(crate) fn run_loop(
+    /// um gerador guarda esse estado entre um `yield` e o `next` seguinte. As chamadas a funções
+    /// Python simples não recursam: o quadro do chamado vira o quadro em execução e o do chamador
+    /// espera em `frames_stack` (o quadro recebido de fora é sempre o mais externo).
+    pub(crate) fn run_loop(&mut self, frame: &mut Frame, inject: Option<PyException>) -> PyResult<Exit> {
+        let mark = self.frames_stack.borrow().len();
+        let (depth0, frames0, line0) = (self.depth.get(), self.frames.borrow().len(), self.cur_line.get());
+        let globals0 = self.globals.clone();
+        // A guarda desce o contador também quando um desvio do kernel (`_exit`) desempilha a thread.
+        let _nest = NestGuard::enter(&self.rust_nest);
+        let result = self.run_frames(frame, inject, mark, None);
+        // Uma saída com erro interno deixa chamados abertos: a contabilidade volta ao que era na entrada.
+        if self.depth.get() != depth0 {
+            self.depth.set(depth0);
+            self.frames.borrow_mut().truncate(frames0);
+            self.cur_line.set(line0);
+        }
+        self.globals = globals0;
+        self.frames_stack.borrow_mut().truncate(mark);
+        result
+    }
+
+    /// O laço mais externo do filho de um `os.fork`: retoma na instrução seguinte à chamada que criou o
+    /// processo, com `0` no lugar do resultado dela. `outer` é o quadro do programa, `suspended` os
+    /// quadros que esperavam em `frames_stack` e `child` o que estava em execução (`None`: o próprio
+    /// `outer`). A contabilidade de saída volta ao que `Vm::run` tinha na entrada (`entry`).
+    pub(crate) fn run_resumed(
         &mut self,
-        code: &Rc<Code>,
-        env: &Rc<Env>,
-        stack: &mut Vec<Slot>,
-        blocks: &mut Vec<Block>,
-        pc: &mut usize,
-        inject: Option<PyException>,
+        outer: &mut Frame,
+        suspended: Vec<Callee>,
+        mut child: Option<Callee>,
+        entry: crate::fork::Entry,
     ) -> PyResult<Exit> {
+        *self.frames_stack.borrow_mut() = suspended;
+        let running = match child.as_mut() {
+            Some(c) => &mut c.frame,
+            None => &mut *outer,
+        };
+        running.stack.push(Slot::Val(Value::Int(0)));
+        let _nest = NestGuard::enter(&self.rust_nest);
+        let result = self.run_frames(outer, None, 0, child);
+        if self.depth.get() != entry.depth {
+            self.depth.set(entry.depth);
+            self.frames.borrow_mut().truncate(entry.frames);
+            self.cur_line.set(entry.line);
+        }
+        self.frames_stack.borrow_mut().clear();
+        result
+    }
+
+    fn run_frames(&mut self, frame: &mut Frame, inject: Option<PyException>, mark: usize, start: Option<Callee>) -> PyResult<Exit> {
         let mut pending = inject;
         let mut signal_tick: u32 = 0;
         // `throw` num gerador parado numa delegação (`await`/`yield from`) vai para o sub-iterador.
         if pending.is_some() {
+            let Frame { code, stack, pc, .. } = &mut *frame;
             if let Some(Op::DelegateNext(l)) = code.ops.get(*pc).copied() {
                 let e = pending.take().unwrap_or_else(|| internal("no exception"));
                 match self.delegate_throw(stack, e) {
@@ -1070,28 +1763,105 @@ impl Vm {
                 }
             }
         }
-        while *pc < code.ops.len() {
-            let op = code.ops[*pc];
-            self.cur_line.set(code.lines[*pc]);
-            if crate::tracing::active() && pending.is_none() {
-                if let Err(e) = crate::tracing::line(self, code, code.lines[*pc]) {
-                    pending = Some(e);
+        // O chamado em execução; `None` é o próprio `frame`. O filho de um `os.fork` entra com o que o pai tinha.
+        let mut child: Option<Callee> = start;
+        loop {
+            // O que a instrução decide e só pode ser aplicado depois de soltar o empréstimo do quadro.
+            let mut spawn: Option<Callee> = None;
+            let mut suspend: Option<crate::fork::SuspendRequest> = None;
+            let mut finish: Option<PyResult<Value>> = None;
+            // `finish` é um `yield` (e não um `return`) de um gerador retomado pelo laço.
+            let mut yielded = false;
+            let is_child = child.is_some();
+            let resuming = child.as_ref().is_some_and(|c| c.link.resuming.is_some());
+            // O quadro de um corpo de módulo ou de `exec`/`eval` acaba sem `Return`, ao fim do código.
+            let body_frame = child.as_ref().is_some_and(|c| c.link.then.as_ref().is_some_and(Dunder::is_body));
+            let cur: &mut Frame = match child.as_mut() {
+                Some(c) => &mut c.frame,
+                None => &mut *frame,
+            };
+            let Frame { code, env, stack, blocks, pc, .. } = cur;
+            let code: &Rc<Code> = code;
+            let env: &Rc<Env> = env;
+            let ended = *pc >= code.ops.len();
+            if ended {
+                if is_child && !body_frame {
+                    return Err(internal("function code without return"));
                 }
+                if !is_child {
+                    // O quadro mais externo de uma thread verde é um marcador: a função da thread acaba
+                    // sempre em `_gt_finish`, nunca devolvendo para ele. Só o laço mais externo (`rust_nest == 1`) tem
+                    // o marcador: o corpo de um módulo importado dentro da thread (`run_loop` aninhado) acaba sem
+                    // `Return`, ao fim do código, e devolve normalmente.
+                    if crate::gthread::in_secondary() && self.rust_nest.get() == 1 {
+                        return Err(internal("thread function returned without finishing"));
+                    }
+                    return Ok(Exit::Return(Value::None));
+                }
+                // Corpo de módulo como quadro do laço: o fim do código devolve `None`, como o `Return` de uma função.
+                stack.push(Slot::Val(Value::None));
             }
-            // Sinais capturados chegam entre instruções, como no CPython (só depois de um `signal.signal`).
-            if crate::globalsview::ARMED.load(std::sync::atomic::Ordering::Relaxed) {
-                crate::globalsview::sync_pull();
+            let op = if ended { Op::Return } else { code.ops[*pc] };
+            if !ended {
+                self.cur_line.set(code.lines[*pc]);
             }
-            if SIGNALS_ARMED.load(std::sync::atomic::Ordering::Relaxed) && pending.is_none() {
+            // Ponto seguro da finalização: logo depois da instrução que soltou a última referência de um
+            // objeto com `__del__`, o `__del__` roda (nunca com uma exceção em voo).
+            if crate::finalize::pending() && pending.is_none() {
+                self.run_finalizers();
+            }
+            // Sinais capturados chegam entre instruções, como no CPython (só depois de um `signal.signal`). O
+            // tratador ganha quadro neste laço (o quadro em execução espera em `frames_stack`), então um `fork`
+            // ou uma troca de thread dentro dele enxergam o estado todo em dados. Vem antes do evento `line`:
+            // a instrução interrompida o dispara uma vez só, quando o tratador voltar.
+            if signals_armed() && pending.is_none() && !ended {
                 signal_tick = signal_tick.wrapping_add(1);
-                if signal_tick & 0x1fff == 0 {
-                    if let Err(e) = self.deliver_signals() {
-                        pending = Some(e);
+                if signal_check_due(signal_tick) {
+                    match self.signal_frame() {
+                        Ok(callee) => spawn = callee,
+                        Err(e) => pending = Some(e),
                     }
                 }
             }
+            // A fatia de tempo da thread verde que roda venceu: o `_gsched.preempt` ganha quadro aqui, como um
+            // tratador de sinal, e passa a vez a outra thread pronta (a troca da GIL no fim do `switchinterval`).
+            if pending.is_none() && spawn.is_none() && !ended && self.rust_nest.get() == 1 && crate::gthread::slice_expired() {
+                match self.preempt_frame() {
+                    Ok(callee) => spawn = callee,
+                    Err(e) => pending = Some(e),
+                }
+            }
+            // A volta de laço (salto para trás para a linha do cabeçalho) herda a linha da última
+            // instrução do corpo no CPython: não abre linha nova, e o `line` do alvo vem do `back_edge`.
+            // O `continue` tem linha própria, que gera `line`.
+            let backward_jump = matches!(op, Op::Jump(t) if (t as usize) < *pc && code.lines[t as usize] == code.lines[*pc]);
+            if crate::tracing::active() && pending.is_none() && spawn.is_none() && !backward_jump && !ended {
+                // O rastreador pode mover o quadro (`frame.f_lineno = n`, o `jump` do pdb): a execução
+                // continua na primeira instrução da linha pedida, sem um novo evento `line` para ela.
+                let at = Rc::as_ptr(env) as usize;
+                crate::frameobj::open_jump(at);
+                let traced = crate::tracing::line(self, code, code.lines[*pc]);
+                let target = crate::frameobj::close_jump(at);
+                match traced {
+                    Err(e) => pending = Some(e),
+                    Ok(()) => {
+                        if let Some(index) = target.and_then(|line| jump_index(code, line)) {
+                            crate::frameobj::line_landed(at, code.lines[index]);
+                            *pc = index;
+                            continue;
+                        }
+                    }
+                }
+            }
+            // As escritas pela visão de `globals()` entram na tabela antes da instrução.
+            if crate::globalsview::ARMED.load(std::sync::atomic::Ordering::Relaxed) {
+                crate::globalsview::sync_pull();
+            }
             let result = if let Some(e) = pending.take() {
                 Err(e)
+            } else if spawn.is_some() {
+                // O tratador de um sinal acabou de ganhar quadro: a instrução interrompida roda quando ele voltar.
+                Ok(Some(*pc))
             } else {
                 match op {
                     Op::SetupTry(h) => {
@@ -1103,10 +1873,21 @@ impl Vm {
                         Ok(None)
                     }
                     Op::Return => match stack.pop() {
+                        Some(Slot::Val(v)) if is_child => {
+                            finish = Some(Ok(v));
+                            Ok(None)
+                        }
                         Some(Slot::Val(v)) => return Ok(Exit::Return(v)),
                         _ => Err(internal("bad value stack")),
                     },
                     Op::Yield => match stack.pop() {
+                        // Gerador retomado pelo laço: o quadro volta ao gerador e o valor ao chamador (o fecho
+                        // fica depois do `match`, onde o quadro já não está emprestado).
+                        Some(Slot::Val(v)) if resuming => {
+                            yielded = true;
+                            finish = Some(Ok(v));
+                            Ok(None)
+                        }
                         Some(Slot::Val(v)) => {
                             *pc += 1;
                             return Ok(Exit::Yield(v));
@@ -1126,7 +1907,12 @@ impl Vm {
                         stack.push(Slot::Val(code.consts[i as usize].clone()));
                         Ok(None)
                     }
-                    Op::Jump(t) => Ok(Some(t as usize)),
+                    Op::Jump(t) => {
+                        if (t as usize) < *pc && crate::tracing::active() {
+                            crate::tracing::back_edge(self, code);
+                        }
+                        Ok(Some(t as usize))
+                    }
                     Op::Pop => {
                         stack.pop();
                         Ok(None)
@@ -1152,20 +1938,117 @@ impl Vm {
                         }
                         _ => Err(internal("bad value stack")),
                     },
-                    Op::ForIter(t) => match stack.last_mut() {
-                        Some(Slot::Iter(it)) => match it.next() {
-                            Ok(Some(v)) => {
+                    Op::ForIter(t) => match user_next(stack) {
+                        // `__next__` escrito em Python: o quadro dele é empilhado, sem recursão.
+                        Some((next_fn, iterator)) => match self.enter_function(&next_fn, vec![iterator], Vec::new()) {
+                            Ok(Entered::Done(v)) => {
                                 stack.push(Slot::Val(v));
                                 Ok(None)
                             }
-                            Ok(None) => {
-                                stack.pop();
-                                Ok(Some(t as usize))
+                            Ok(Entered::Frame(mut c)) => {
+                                c.link.on_stop = Some(t as usize);
+                                spawn = Some(c);
+                                Ok(None)
                             }
                             Err(e) => Err(e),
                         },
-                        _ => Err(internal("FOR_ITER without iterator")),
+                        // Gerador retomado pelo `for`: o quadro dele é empilhado, sem recursão.
+                        None => match stack.last().and_then(slot_core) {
+                            Some(core) => self.resume_op(code, stack, &core, None, ResumeUse::ForIter { exit: t as usize }, &mut spawn),
+                            // `enumerate`/`zip`/`map`/`filter` sobre gerador: as camadas descem em quadros.
+                            None if stack.last().and_then(slot_chain).is_some() => {
+                                let Some(root) = stack.last().and_then(slot_chain) else { return Err(internal("chain vanished")) };
+                                self.pull(&root, ResumeUse::ForIter { exit: t as usize }).map(|next| {
+                                    let (jump, callee) = next.land(stack);
+                                    spawn = callee;
+                                    jump
+                                })
+                            }
+                            None => match stack.last_mut() {
+                                Some(Slot::Iter(it)) => {
+                                    // O `for` sobre o stdin pode parar por falta de entrada: a espera roda em quadros e o
+                                    // `FOR_ITER` se repete (o iterador continua na pilha).
+                                    let reads_stdin = matches!(&*it, PyIter::Native(_));
+                                    if reads_stdin {
+                                        crate::stdin::set_replayable(true);
+                                    }
+                                    let next = it.next();
+                                    if reads_stdin {
+                                        crate::stdin::set_replayable(false);
+                                    }
+                                    match next {
+                                    Ok(Some(v)) => {
+                                        stack.push(Slot::Val(v));
+                                        Ok(None)
+                                    }
+                                    Ok(None) => {
+                                        // Gerador que terminou com `return valor`: o `FOR_ITER` vê o `StopIteration`.
+                                        let stop = crate::generator::take_stop_value(it);
+                                        stack.pop();
+                                        match stop {
+                                            Some(v) => crate::tracing::exception(self, code, &crate::generator::stop_iteration(v))
+                                                .map(|()| Some(t as usize)),
+                                            None => Ok(Some(t as usize)),
+                                        }
+                                    }
+                                    Err(e) if reads_stdin && crate::fork::is_suspend(&e) => match crate::fork::take_request() {
+                                        // O stdin parou o `for`: o quadro de espera roda e o `FOR_ITER` se repete no mesmo `pc`.
+                                        crate::fork::SuspendRequest::Wait(fd) => self.stdin_wait_frame(fd, None).map(|mut callee| {
+                                            callee.link.then = Some(Dunder::Signal);
+                                            spawn = Some(callee);
+                                            Some(*pc)
+                                        }),
+                                        request => {
+                                            suspend = Some(request);
+                                            Ok(None)
+                                        }
+                                    },
+                                    Err(e) => Err(e),
+                                    }
+                                }
+                                _ => Err(internal("FOR_ITER without iterator")),
+                            },
+                        },
                     },
+                    // `yield from` e `await` sobre um gerador ou uma corrente: o sub-quadro é empilhado.
+                    Op::Delegate(end) if stack.len().checked_sub(2).and_then(|i| slot_core(&stack[i])).is_some() => {
+                        let core = stack.len().checked_sub(2).and_then(|i| slot_core(&stack[i]));
+                        match (stack.pop(), core) {
+                            (Some(Slot::Val(sent)), Some(core)) => {
+                                self.resume_op(code, stack, &core, Some(sent), ResumeUse::Delegate { end: end as usize }, &mut spawn)
+                            }
+                            _ => Err(internal("bad value stack")),
+                        }
+                    }
+                    // Métodos mágicos de operador, subscrição e verdade que são funções Python: o quadro
+                    // deles é empilhado, sem recursão.
+                    Op::PopJumpIfFalse(_) | Op::PopJumpIfTrue(_) | Op::JumpIfFalseOrPop(_) | Op::JumpIfTrueOrPop(_) | Op::Unary(UnaryOp::Not)
+                        if truth_method(stack).is_some() =>
+                    {
+                        self.dunder_op(code, op, stack, env, &mut spawn)
+                    }
+                    Op::Binary { .. } | Op::Compare(_) if instance_at(stack, 0) || instance_at(stack, 1) => {
+                        self.dunder_op(code, op, stack, env, &mut spawn)
+                    }
+                    Op::Subscript | Op::StoreSubscript | Op::DeleteSubscript if instance_at(stack, 1) => {
+                        self.dunder_op(code, op, stack, env, &mut spawn)
+                    }
+                    // Unários, `iter()` de um `for`, gravação e remoção de atributo e abertura de `with`
+                    // sobre instância: o método mágico em Python também ganha quadro.
+                    Op::Unary(UnaryOp::USub | UnaryOp::UAdd | UnaryOp::Invert)
+                    | Op::GetIter
+                    | Op::StoreAttr(_)
+                    | Op::DeleteAttr(_)
+                    | Op::WithEnter
+                    | Op::AsyncWithEnter
+                        if instance_at(stack, 0) =>
+                    {
+                        self.dunder_op(code, op, stack, env, &mut spawn)
+                    }
+                    // `__exit__` / `__aexit__` ligados a função Python, chamados com a exceção em curso.
+                    Op::WithExcept | Op::AsyncWithExceptCall if matches!(stack.last(), Some(Slot::Val(Value::BoundFn(_)))) => {
+                        self.dunder_op(code, op, stack, env, &mut spawn)
+                    }
                     Op::PopJumpIfFalse(t) => match stack.pop() {
                         Some(Slot::Val(v)) => Ok(if v.is_true() { None } else { Some(t as usize) }),
                         _ => Err(internal("bad value stack")),
@@ -1213,6 +2096,27 @@ impl Vm {
                             None => self.step(code, op, stack, env),
                         }
                     }
+                    Op::LoadAttr(i) if matches!(stack.last(), Some(Slot::Val(Value::Instance(_)))) => {
+                        let Some(Slot::Val(obj)) = stack.pop() else { return Err(internal("bad value stack")) };
+                        let Value::Instance(inst) = &obj else { return Err(internal("bad value stack")) };
+                        let name = &code.names[i as usize];
+                        // `property`, descritor com `__get__` e `__getattr__` em Python abrem quadro, sem recursar.
+                        let read = self.instance_getattr_call(&obj, inst, name).and_then(|got| match got {
+                            Ok(v) => Ok(Entered::Done(v)),
+                            Err((f, args)) => self.enter_function(&f, args, Vec::new()),
+                        });
+                        match read {
+                            Ok(Entered::Done(v)) => {
+                                stack.push(Slot::Val(v));
+                                Ok(None)
+                            }
+                            Ok(Entered::Frame(c)) => {
+                                spawn = Some(c);
+                                Ok(None)
+                            }
+                            Err(e) => Err(tag_attribute_error(e, &obj, name)),
+                        }
+                    }
                     Op::LoadMethod(i) => match stack.last() {
                         Some(Slot::Val(obj)) => match plain_method(obj, &code.names[i as usize]) {
                             Some(f) => {
@@ -1228,53 +2132,72 @@ impl Vm {
                         },
                         _ => self.step(code, op, stack, env),
                     },
-                    // `obj.m(a, b)` sem nomeados: os argumentos saem da pilha direto para a chamada.
-                    Op::CallMethod { argc, kwnames: None } if stack.len() > argc as usize + 1 => {
-                        let at = stack.len() - argc as usize - 2;
-                        let mut drained = stack.drain(at..);
-                        let func = match drained.next() {
-                            Some(Slot::Val(v)) => v,
-                            _ => return Err(internal("bad value stack")),
-                        };
-                        let mut values = Vec::with_capacity(argc as usize + 1);
-                        for s in drained {
-                            match s {
-                                Slot::Val(Value::Builtin(NO_SELF)) if values.is_empty() => {}
-                                Slot::Val(v) => values.push(v),
-                                _ => return Err(internal("bad value stack")),
-                            }
-                        }
-                        let r = match &func {
-                            Value::Function(f) => self.call_function(f, values, Vec::new()),
-                            _ => self.call(&func, values, Vec::new()),
-                        };
-                        match r {
-                            Ok(v) => {
-                                stack.push(Slot::Val(v));
-                                Ok(None)
-                            }
-                            Err(e) => Err(e),
-                        }
+                    // `*g` com `g` gerador ou cadeia sobre gerador (`[*g]`, `(*g,)`, `f(*g)`): a fonte é esgotada em quadros
+                    // e a lista em construção, que fica na pilha, é estendida no fim (o CPython esgota antes de usar).
+                    Op::ListExtend if extend_source(stack).is_some() => {
+                        let Some(root) = extend_source(stack) else { return Err(internal("generator vanished")) };
+                        stack.pop();
+                        let Some(Slot::Val(target)) = stack.last() else { return Err(internal("ListExtend without list")) };
+                        let collect = Collect { items: Vec::new(), call: target.clone(), kwargs: Vec::new(), fold: None };
+                        self.pull(&root, ResumeUse::Collect(Box::new(collect))).map(|next| {
+                            let (_, callee) = next.land(stack);
+                            spawn = callee;
+                            None
+                        })
                     }
-                    Op::Call { argc, kwnames: None } if stack.len() > argc as usize => {
-                        let at = stack.len() - argc as usize - 1;
-                        let mut drained = stack.drain(at..);
-                        let func = match drained.next() {
-                            Some(Slot::Val(v)) => v,
-                            _ => return Err(internal("bad value stack")),
-                        };
-                        let mut values = Vec::with_capacity(argc as usize);
-                        for s in drained {
-                            match s {
-                                Slot::Val(v) => values.push(v),
-                                _ => return Err(internal("bad value stack")),
-                            }
+                    // `import`: o corpo de um módulo que ainda não foi importado ganha quadro neste laço (e a cadeia de
+                    // pais de `a.b.c` desce um quadro por módulo), então `fork` e troca de thread dentro dele enxergam o
+                    // estado todo em dados.
+                    Op::Import(_) | Op::ImportRel { .. } => match self.import_entered(code, op) {
+                        Ok(Entered::Done(v)) => {
+                            stack.push(Slot::Val(v));
+                            Ok(None)
                         }
-                        match self.call(&func, values, Vec::new()) {
-                            Ok(v) => {
+                        Ok(Entered::Frame(c)) => {
+                            spawn = Some(c);
+                            Ok(None)
+                        }
+                        Err(e) => Err(e),
+                    },
+                    // As chamadas: função Python simples ganha quadro novo neste mesmo laço; o resto roda e devolve o valor.
+                    Op::Call { .. } | Op::CallMethod { .. } | Op::CallEx { .. } => {
+                        // Uma leitura do stdin pode parar por falta de entrada: guarda a chamada para o laço repeti-la
+                        // depois de esperar o descritor (ver `crate::stdin`).
+                        let mut retry: Option<(Value, Vec<Value>, Vec<(String, Value)>)> = None;
+                        let entered = pop_call(code, stack, op).and_then(|(func, args, kwargs)| {
+                            let reader = crate::stdin::is_reader(&func);
+                            if reader {
+                                retry = Some((func.clone(), args.clone(), kwargs.clone()));
+                                crate::stdin::set_replayable(true);
+                            }
+                            let entered = self.call_or_enter(&func, args, kwargs);
+                            if reader {
+                                crate::stdin::set_replayable(false);
+                            }
+                            entered
+                        });
+                        match entered {
+                            Ok(Entered::Done(v)) => {
                                 stack.push(Slot::Val(v));
                                 Ok(None)
                             }
+                            Ok(Entered::Frame(c)) => {
+                                spawn = Some(c);
+                                Ok(None)
+                            }
+                            // A nativa pediu para suspender (`os.fork`): o pedido se completa depois deste
+                            // `match`, quando o empréstimo do quadro em execução já acabou.
+                            Err(e) if crate::fork::is_suspend(&e) => match crate::fork::take_request() {
+                                // O stdin parou a leitura: o quadro de espera repete a chamada e entrega o valor dela.
+                                crate::fork::SuspendRequest::Wait(fd) => self.stdin_wait_frame(fd, retry).map(|callee| {
+                                    spawn = Some(callee);
+                                    None
+                                }),
+                                request => {
+                                    suspend = Some(request);
+                                    Ok(None)
+                                }
+                            },
                             Err(e) => Err(e),
                         }
                     }
@@ -1282,13 +2205,13 @@ impl Vm {
                 }
             };
             let result = match result {
-                Ok(_) if TEXT_ERROR_SET.with(Cell::get) && self.depth.get() <= TEXT_ERROR_DEPTH.with(Cell::get) => {
+                Ok(_) if finish.is_none() && TEXT_ERROR_SET.with(Cell::get) && self.depth.get() <= TEXT_ERROR_DEPTH.with(Cell::get) => {
                     take_text_error().map_or(Ok(None), Err)
                 }
                 other => other,
             };
             let result = match result {
-                Err(e) if crate::tracing::active() => match crate::tracing::exception(self, code, &e) {
+                Err(e) if crate::tracing::active() && !e.is_reraise() => match crate::tracing::exception(self, code, &e) {
                     Ok(()) => Err(e),
                     Err(e2) => Err(e2),
                 },
@@ -1309,18 +2232,12 @@ impl Vm {
                             match entries.first_mut() {
                                 Some(first) if is_inlined_comp(&first.1) => first.1 = code.name.clone(),
                                 _ if native_in_cpython(&code.filename, &code.qual()) => {}
-                                _ => entries.insert(0, (code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str()), code.spans[*pc])),
+                                _ => entries.insert(0, (code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str()), code.spans[*pc], tb_frame_of(code, env))),
                             }
                         }
                         let filename = self.script_name();
                         let tb = crate::tbobj::TracebackObj::make(entries, &filename);
-                        match &value {
-                            Value::Exception(x) => *x.traceback.borrow_mut() = Some(tb),
-                            Value::Instance(i) => {
-                                i.dict.borrow_mut().insert("__traceback__".to_string(), tb);
-                            }
-                            _ => {}
-                        }
+                        attach_traceback(&value, tb);
                         stack.push(Slot::Val(value));
                         *pc = b.handler;
                     }
@@ -1329,15 +2246,206 @@ impl Vm {
                             match e.tb.last_mut() {
                                 Some(last) if is_inlined_comp(&last.1) => last.1 = code.name.clone(),
                                 _ if native_in_cpython(&code.filename, &code.qual()) => {}
-                                _ => e.tb.push((code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str()), code.spans[*pc])),
+                                _ => e.tb.push((code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str()), code.spans[*pc], tb_frame_of(code, env))),
                             }
                         }
-                        return Err(e);
+                        if is_child {
+                            finish = Some(Err(e));
+                        } else {
+                            return Err(e);
+                        }
                     }
                 },
             }
+            if let Some(request) = suspend.take() {
+                if let crate::fork::SuspendRequest::Green(green) = request {
+                    // Troca de thread verde: o quadro em execução passa a ser o da outra thread. Um erro
+                    // (alvo inválido) chega antes de qualquer troca, então nasce na própria chamada.
+                    match self.green_switch(green, &mut *frame, &mut child, mark) {
+                        Ok(crate::gthread::Landing::Exit) => return Ok(Exit::Return(Value::None)),
+                        Ok(crate::gthread::Landing::Resume(v)) => running(&mut *frame, &mut child).stack.push(Slot::Val(v)),
+                        Ok(crate::gthread::Landing::Started) => {}
+                        Err(e) => {
+                            running(&mut *frame, &mut child).pc -= 1;
+                            pending = Some(e);
+                        }
+                    }
+                } else {
+                    // O `pc` já aponta a instrução seguinte à chamada e a nativa já consumiu os argumentos.
+                    let landed = self.complete_suspend(request, &*frame, child.as_ref());
+                    let landing = running(&mut *frame, &mut child);
+                    match landed {
+                        Ok(v) => landing.stack.push(Slot::Val(v)),
+                        Err(e) => {
+                            // O erro nasce na própria chamada: o `pc` volta a ela.
+                            landing.pc -= 1;
+                            pending = Some(e);
+                        }
+                    }
+                }
+            }
+            if let Some(callee) = spawn.take() {
+                if let Some(caller) = child.take() {
+                    self.frames_stack.borrow_mut().push(caller);
+                }
+                child = Some(callee);
+                // `throw`/`close`: a exceção nasce no ponto em que o gerador parou.
+                if let Some(r) = child.as_mut().and_then(|c| c.link.resuming.as_mut()) {
+                    pending = r.inject.take();
+                }
+                // Parado numa delegação, o gerador de fora repassa a exceção ao sub-iterador: o quadro dele é
+                // empilhado (a cadeia de `yield from` desce um quadro por nível) e o desfecho volta ao de fora.
+                while let Some(e) = pending.take() {
+                    let Some(outer) = child.as_mut() else {
+                        pending = Some(e);
+                        break;
+                    };
+                    match self.inject_delegated(outer, e) {
+                        Injected::Raise(e) => {
+                            pending = Some(e);
+                            break;
+                        }
+                        Injected::Applied => break,
+                        Injected::Sub(sub) => {
+                            if let Some(caller) = child.take() {
+                                self.frames_stack.borrow_mut().push(caller);
+                            }
+                            child = Some(sub);
+                            pending = child.as_mut().and_then(|c| c.link.resuming.as_mut()).and_then(|r| r.inject.take());
+                        }
+                    }
+                }
+            } else if let Some(outcome) = finish.take() {
+                let Some(mut done) = child.take() else { return Err(internal("return without a callee frame")) };
+                let on_stop = done.link.on_stop;
+                let then = done.link.then.take();
+                let closed = match done.link.resuming.take() {
+                    // Gerador retomado pelo laço: o quadro volta ao gerador e o desfecho é aplicado ao chamador.
+                    Some(Resuming { tail, use_, .. }) => {
+                        let core = tail.core.clone();
+                        let exit = match outcome {
+                            Ok(v) if yielded => Ok(Exit::Yield(v)),
+                            Ok(v) => Ok(Exit::Return(v)),
+                            Err(e) => Err(e),
+                        };
+                        let mut ended = core.end(self, tail, done.frame, exit);
+                        if use_.closes() {
+                            ended = core.settle_close(ended);
+                        }
+                        Closed::Resumed(core, use_, ended)
+                    }
+                    None => match then {
+                        Some(body) if body.is_body() => Closed::Body(body, done.link, done.frame.env.clone(), outcome),
+                        then => Closed::Call(self.end_call(done.link, outcome), on_stop, then),
+                    },
+                };
+                child = {
+                    let mut suspended = self.frames_stack.borrow_mut();
+                    if suspended.len() > mark { suspended.pop() } else { None }
+                };
+                let caller: &mut Frame = match child.as_mut() {
+                    Some(c) => &mut c.frame,
+                    None => &mut *frame,
+                };
+                let mut next_spawn: Option<Callee> = None;
+                match closed {
+                    // O gerador de uma coleta ou de uma cadeia preguiçosa entregou um item (ou acabou): o item sobe
+                    // pelas camadas e chega ao consumidor, que pede o seguinte ou termina.
+                    Closed::Resumed(_, ResumeUse::Pull(pull), ended) => {
+                        let Pull { root, layers, then } = *pull;
+                        let stepped = match ended {
+                            Ok(resumed) => {
+                                let event = match resumed {
+                                    Resumed::Yield(v) => Event::Got(v),
+                                    Resumed::Return(_) => Event::Ended,
+                                };
+                                self.drive(&root, layers, then, event).and_then(|fetched| self.settle(&root, fetched))
+                            }
+                            Err(e) => Err(e),
+                        };
+                        let (callee, error) = land_step(caller, stepped);
+                        next_spawn = callee;
+                        if error.is_some() {
+                            pending = error;
+                        }
+                    }
+                    // O corpo de um módulo ou o código de um `exec`/`eval` acabou: o módulo é concluído (ou removido de
+                    // `sys.modules`), as globais recebem o que ele criou e a cadeia do `import` segue, no quadro do chamador.
+                    Closed::Body(body, link, env, outcome) => {
+                        let stepped = self.close_body(body, link, &env, outcome);
+                        let (callee, error) = land_step(caller, stepped);
+                        next_spawn = callee;
+                        if error.is_some() {
+                            pending = error;
+                        }
+                    }
+                    Closed::Resumed(core, use_, ended) => {
+                        let applied = ended.and_then(|resumed| self.apply_resumed(&caller.code.clone(), &mut caller.stack, &core, resumed, use_));
+                        match applied {
+                            Ok(Some(target)) => caller.pc = target,
+                            Ok(None) => {}
+                            Err(e) => {
+                                // O erro chega ao chamador na instrução que retomou o gerador.
+                                caller.pc -= 1;
+                                pending = Some(e);
+                            }
+                        }
+                    }
+                    Closed::Call(outcome, on_stop, then) => match (outcome, on_stop, then) {
+                        (Ok(v), _, Some(then)) => {
+                            let stepped = self.finish_dunder(then, v);
+                            let (callee, error) = land_step(caller, stepped);
+                            next_spawn = callee;
+                            if error.is_some() {
+                                pending = error;
+                            }
+                        }
+                        (Ok(v), _, None) => caller.stack.push(Slot::Val(v)),
+                        // O tratador de um sinal levantou: a exceção nasce na instrução interrompida, que ainda não rodou.
+                        (Err(e), _, Some(Dunder::Signal)) => pending = Some(e),
+                        // O `__next__` ou o `__getitem__` de uma fonte folha acabou com o fim dela (`StopIteration`,
+                        // no protocolo antigo também `IndexError`): a máquina da coleta segue com o fim.
+                        (Err(e), _, Some(Dunder::Callback(callback)))
+                            if matches!(&callback.what, CallbackKind::Advance { leaf } if crate::lazy::leaf_stops(&**leaf, &e)) =>
+                        {
+                            let stepped = self.resume_callback(*callback, None);
+                            let (callee, error) = land_step(caller, stepped);
+                            next_spawn = callee;
+                            if error.is_some() {
+                                pending = error;
+                            }
+                        }
+                        // O `__next__` de um `for` acabou: descarta o iterador e salta para o fim do laço.
+                        (Err(e), Some(exit), _) if e.kind == "StopIteration" => {
+                            // O `FOR_ITER` vê o `StopIteration` antes de engoli-lo: é evento `exception` no `for`.
+                            let traced = if crate::tracing::active() { crate::tracing::exception(self, &caller.code, &e) } else { Ok(()) };
+                            match traced {
+                                Ok(()) => {
+                                    caller.stack.pop();
+                                    caller.pc = exit;
+                                }
+                                Err(e2) => {
+                                    caller.pc -= 1;
+                                    pending = Some(e2);
+                                }
+                            }
+                        }
+                        (Err(e), _, _) => {
+                            // O erro chega ao chamador na instrução da chamada (o `pc` já tinha avançado).
+                            caller.pc -= 1;
+                            pending = Some(e);
+                        }
+                    },
+                }
+                // Outra tentativa da cadeia de um operador: o chamador espera de novo em `frames_stack`.
+                if let Some(callee) = next_spawn {
+                    if let Some(caller) = child.take() {
+                        self.frames_stack.borrow_mut().push(caller);
+                    }
+                    child = Some(callee);
+                }
+            }
         }
-        Ok(Exit::Return(Value::None))
     }
 
     /// `__context__` implícito: a exceção em tratamento quando `e` é levantada.
@@ -1348,87 +2456,990 @@ impl Vm {
         exc_set_context(&value, &ctx);
     }
 
-    /// Roda os tratadores de `signal.signal` dos sinais capturados que chegaram. Só faz algo depois que o
-    /// programa registrou um tratador; um tratador que levanta (`KeyboardInterrupt`...) interrompe quem chamou.
-    pub(crate) fn deliver_signals(&mut self) -> PyResult<()> {
-        if !SIGNALS_ARMED.load(std::sync::atomic::Ordering::Relaxed) || sysabi::sys::try_current().is_none() {
-            return Ok(());
+    /// Os sinais capturados que chegaram, entregues ao `signal._dispatch` do programa: a função e a lista de
+    /// números. `None` quando nada chegou, ou o programa não registrou tratador.
+    fn pending_dispatch(&mut self) -> Option<(Value, Value)> {
+        if !signals_armed() || sysabi::sys::try_current().is_none() {
+            return None;
         }
-        if SIGNAL_THREAD.get().is_some_and(|t| *t != std::thread::current().id()) {
-            return Ok(());
+        if crate::globalsview::ARMED.load(std::sync::atomic::Ordering::Relaxed) {
+            crate::globalsview::sync_pull();
         }
         // Alarme vencido: o SIGALRM chega ao processo como qualquer outro sinal (padrão: termina; capturado: tratador).
-        let at = ALARM_AT_NS.load(std::sync::atomic::Ordering::Relaxed);
-        if at != 0 && monotonic_ns().is_some_and(|now| now >= at) {
-            ALARM_AT_NS.store(0, std::sync::atomic::Ordering::Relaxed);
-            let process = sysabi::sys::current();
-            let _ = process.kill(sysabi::KillTarget::Pid(process.getpid()), sysabi::Signal(14));
-        }
         let caught = sysabi::sys::current().take_caught_signals();
         if caught.is_empty() {
-            return Ok(());
+            return None;
         }
-        let Some(module) = crate::modules::import(self, "signal") else { return Ok(()) };
-        let dispatch = module.attrs.borrow().get("_dispatch").cloned();
-        if let Some(f) = dispatch {
-            let list = Value::list(caught.into_iter().map(|s| Value::Int(i64::from(s.0))).collect());
-            self.call(&f, vec![list], Vec::new())?;
+        // O `_dispatch` é auxiliar do `_signal` e não aparece no `dir()` dele: vem das globais completas.
+        crate::modules::import(self, "_signal")?;
+        let dispatch = crate::modules::pysrc::private_attr("_signal", "_dispatch")?;
+        let list = Value::list(caught.into_iter().map(|s| Value::Int(i64::from(s.0))).collect());
+        Some((dispatch, list))
+    }
+
+    /// Roda os tratadores de `signal.signal` dos sinais capturados que chegaram, recursivamente: o caminho das
+    /// nativas que esperam (`time.sleep`, `wait4`, `fcntl`: o tratador roda e a espera recomeça). Um tratador
+    /// que levanta (`KeyboardInterrupt`...) interrompe quem chamou.
+    pub(crate) fn deliver_signals(&mut self) -> PyResult<()> {
+        if let Some((dispatch, list)) = self.pending_dispatch() {
+            self.call(&dispatch, vec![list], Vec::new())?;
         }
         Ok(())
     }
 
+    /// O mesmo entre instruções, para o laço: o quadro do `_dispatch` (com `Dunder::Signal`), que o laço empilha
+    /// sem recursar. `None` quando não há nada a entregar.
+    fn signal_frame(&mut self) -> PyResult<Option<Callee>> {
+        let Some((dispatch, list)) = self.pending_dispatch() else { return Ok(None) };
+        self.discarded_frame(&dispatch, vec![list])
+    }
+
+    /// O quadro do `_gsched.preempt` quando a fatia da thread verde vence (só com o `_gsched` carregado: sem
+    /// ele não há outra thread). O `preempt` mesmo recusa a troca no meio do escalonador (`_gsched._atomic`).
+    fn preempt_frame(&mut self) -> PyResult<Option<Callee>> {
+        let Some(preempt) = self.modules.borrow().get("_gsched").and_then(|m| m.attrs.borrow().get("preempt").cloned()) else {
+            return Ok(None);
+        };
+        self.discarded_frame(&preempt, Vec::new())
+    }
+
+    /// Um quadro que o laço empilha entre instruções e cujo resultado descarta (`Dunder::Signal`): a instrução
+    /// interrompida segue quando ele volta.
+    fn discarded_frame(&mut self, func: &Value, args: Vec<Value>) -> PyResult<Option<Callee>> {
+        Ok(match self.enter_callable(func, args, Vec::new())? {
+            Entered::Frame(mut callee) => {
+                callee.link.then = Some(Dunder::Signal);
+                Some(callee)
+            }
+            Entered::Done(_) => None,
+        })
+    }
+
     pub(crate) fn call_function(&mut self, f: &Rc<FuncObj>, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
-        // Função de outro módulo: roda numa `Vm` que enxerga as globais dela.
-        if !Rc::ptr_eq(&self.globals, &f.globals) {
-            let mut other = self.clone();
-            other.globals = f.globals.clone();
-            return other.call_function(f, args, kwargs);
+        match self.enter_function(f, args, kwargs)? {
+            Entered::Done(v) => Ok(v),
+            Entered::Frame(mut callee) => {
+                let result = self.run_frame(&mut callee.frame);
+                self.end_call(callee.link, result)
+            }
         }
+    }
+
+    /// Chama um valor chamável; a função Python simples (ou o método dela já ligado) e a classe de
+    /// usuário com `__init__` em Python devolvem o quadro pronto para o laço de instruções executar,
+    /// sem recursar.
+    pub(crate) fn call_or_enter(&mut self, func: &Value, mut args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Entered> {
+        // Função Python e método ligado a função: nenhum dos casos especiais abaixo (nativa de coleta, `exec`,
+        // `next`, `__import__`, método de gerador) os reconhece, e sem perfil nenhum evento `c_*` cabe aqui.
+        if matches!(func, Value::Function(_) | Value::BoundFn(_)) && !crate::tracing::profiling() {
+            return self.enter_callable(func, args, kwargs);
+        }
+        // Função de módulo que no CPython é C: um `c_call`/`c_return` por fora e nada por dentro, o
+        // que pede a chamada recursiva, não o quadro entregue ao laço de instruções.
+        if crate::tracing::reports_native_python_call(self, func) {
+            return crate::tracing::c_call(self, func, |vm| vm.call_value(func, args, kwargs)).map(Entered::Done);
+        }
+        // Com o perfil ligado, `sorted`, `min`, `sum`... geram `c_call` antes e `c_return` depois dos quadros do
+        // callback: a coleta em quadros do laço não tem onde pô-los, então a nativa segue pela chamada recursiva.
+        if !crate::tracing::reports_c_call(self, func) {
+            if let Some((root, collect)) = collect_source(func, &args, &kwargs)? {
+                return self.start_pull(root, ResumeUse::Collect(Box::new(collect))).and_then(entered_of);
+            }
+        }
+        match func {
+            // `exec` e `eval`: o código roda como quadro deste laço (o perfil que quer `c_call` fica com a chamada recursiva).
+            _ if (crate::builtins_ext::is_builtin(func, "exec") || crate::builtins_ext::is_builtin(func, "eval"))
+                && !crate::tracing::reports_c_call(self, func) =>
+            {
+                let eval = crate::builtins_ext::is_builtin(func, "eval");
+                crate::builtins_ext::enter_exec(self, eval, args, kwargs)
+            }
+            // `__import__`: o corpo do módulo também ganha quadro.
+            _ if crate::builtins_ext::is_builtin(func, "__import__") && !crate::tracing::reports_c_call(self, func) => {
+                crate::builtins_ext::enter_import(self, args, kwargs)
+            }
+            // `next(g)`, `g.send(v)` e `g.__next__()` sobre gerador ou corrente: o quadro dele é empilhado.
+            _ if crate::fold::builtin_name(func) == Some("next")
+                && kwargs.is_empty()
+                && (1..=2).contains(&args.len())
+                && value_core(&args[0]).is_some() =>
+            {
+                let default = args.get(1).cloned();
+                let Some(core) = value_core(&args[0]) else { return Err(internal("generator vanished")) };
+                self.resume_entered(&core, None, None, ResumeUse::Next { default })
+            }
+            // `next(it)` sobre `enumerate`/`zip`/`map`/`filter` que termina num gerador: as camadas descem em quadros.
+            _ if crate::fold::builtin_name(func) == Some("next")
+                && kwargs.is_empty()
+                && (1..=2).contains(&args.len())
+                && chain_root(&args[0]) =>
+            {
+                let default = args.get(1).cloned();
+                self.pull(&args[0], ResumeUse::Next { default }).and_then(entered_of)
+            }
+            Value::Bound(b) if is_resume_call(b, &args, &kwargs) => {
+                let Some(core) = value_core(&b.recv) else { return Err(internal("generator vanished")) };
+                self.resume_entered(&core, args.pop(), None, ResumeUse::Next { default: None })
+            }
+            // `g.throw(e)` e `g.close()`: a exceção entra no quadro do gerador, sem recursar.
+            // Parado numa delegação, o quadro do sub-iterador é empilhado em `run_frames` (`inject_delegated`).
+            Value::Bound(b) if is_inject_call(b, &args, &kwargs) => {
+                let Some(core) = value_core(&b.recv) else { return Err(internal("generator vanished")) };
+                if b.name == "close" {
+                    if core.close_if_plain() {
+                        return Ok(Entered::Done(Value::None));
+                    }
+                    self.resume_entered(&core, None, Some(exc("GeneratorExit", "")), ResumeUse::Close)
+                } else {
+                    let e = crate::generator::raise_for_throw(self, args.remove(0))?;
+                    self.resume_entered(&core, None, Some(e), ResumeUse::Next { default: None })
+                }
+            }
+            _ => self.enter_callable(func, args, kwargs),
+        }
+    }
+
+    /// Abre a chamada de `func` como quadro para o laço executar, quando ela roda Python: função, método ligado a
+    /// função, classe de usuário com `__init__` em Python (o quadro do `__init__`) e instância com `__call__` em
+    /// Python. O resto (nativas) é chamado na hora.
+    pub(crate) fn enter_callable(&mut self, func: &Value, mut args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Entered> {
+        match func {
+            Value::Function(f) => self.enter_function(f, args, kwargs),
+            Value::BoundFn(b) => {
+                args.insert(0, b.0.clone());
+                self.enter_function(&b.1, args, kwargs)
+            }
+            Value::Class(c) if !matches!(c.meta.as_ref().and_then(|m| m.lookup("__call__")), Some(Value::Function(_))) => {
+                match self.begin_instance(c, args, kwargs)? {
+                    crate::classes::Built::Done(v) => Ok(Entered::Done(v)),
+                    crate::classes::Built::Init { obj, init, args, kw } => match self.enter_function(&init, args, kw)? {
+                        Entered::Frame(mut callee) => {
+                            callee.link.instance = Some(obj);
+                            Ok(Entered::Frame(callee))
+                        }
+                        Entered::Done(v) => crate::classes::init_returned(obj, &v).map(Entered::Done),
+                    },
+                }
+            }
+            Value::Instance(i) => match i.class().lookup("__call__") {
+                Some(Value::Function(f)) => {
+                    args.insert(0, func.clone());
+                    self.enter_function(&f, args, kwargs)
+                }
+                _ => self.call(func, args, kwargs).map(Entered::Done),
+            },
+            _ => self.call(func, args, kwargs).map(Entered::Done),
+        }
+    }
+
+    /// Retoma o gerador `core` e devolve o quadro dele para o laço executar (ou o valor, se não há o que
+    /// rodar). `sent` é o argumento de `send`; `inject`, a exceção de `throw`/`close`; `use_` diz o que o
+    /// laço faz com o desfecho (`Next` ou `Close`).
+    fn resume_entered(&mut self, core: &Rc<GenCore>, sent: Option<Value>, inject: Option<PyException>, use_: ResumeUse) -> PyResult<Entered> {
+        match self.enter_resume(core, sent, inject, use_)? {
+            Resumption::Frame(callee) => Ok(Entered::Frame(callee)),
+            Resumption::Ready(resumed, ResumeUse::Close) => core.settle_close(Ok(resumed)).map(|_| Entered::Done(Value::None)),
+            Resumption::Ready(Resumed::Yield(v), _) => Ok(Entered::Done(v)),
+            Resumption::Ready(Resumed::Return(v), use_) => next_exhausted(v, use_).map(Entered::Done),
+        }
+    }
+
+    /// Entrega o próximo item de `root` (um gerador, ou uma cadeia de `enumerate`/`zip`/`map`/`filter` que termina
+    /// num) ao consumidor `then` (`for`, `next`, coleta ou conta por item), como o laço de instruções aplica:
+    /// o quadro a executar, o valor ou o salto.
+    fn pull(&mut self, root: &Value, then: ResumeUse) -> PyResult<Next> {
+        let fetched = self.fetch(root, then)?;
+        self.settle(root, fetched)
+    }
+
+    /// O que fazer com o que `fetch`/`drive` devolveram: o quadro vira o próximo passo; um item (ou o fim)
+    /// que saiu sem rodar quadro é entregue ao consumidor.
+    fn settle(&mut self, root: &Value, fetched: Fetch) -> PyResult<Next> {
+        match fetched {
+            Fetch::Frame(callee) => Ok(Next::Spawn(callee)),
+            Fetch::Ready(item, then) => self.deliver(root, item, then),
+        }
+    }
+
+    /// Pede o próximo item de `root` a partir da fonte inteira (nenhuma camada descida).
+    fn fetch(&mut self, root: &Value, then: ResumeUse) -> PyResult<Fetch> {
+        let Value::Ext(source) = root else { return Err(internal("pull from a value that is not an object")) };
+        self.drive(root, Vec::new(), then, Event::Want(source.clone()))
+    }
+
+    /// A máquina de uma cadeia preguiçosa, sem recursão no gerador: `Want` desce uma camada (ou empilha o
+    /// quadro do gerador, e então devolve o `Fetch::Frame`, com as camadas e o consumidor guardados no
+    /// `ResumeUse::Pull` do quadro), `Got` e `Ended` sobem pela camada de cima até o consumidor. As camadas
+    /// que não envolvem gerador (uma fonte comum) resolvem na hora, pelo próprio iterador da fonte.
+    fn drive(&mut self, root: &Value, mut layers: Vec<Layer>, then: ResumeUse, mut event: Event) -> PyResult<Fetch> {
+        loop {
+            event = match event {
+                Event::Want(target) => match crate::generator::core_of(&target).filter(|c| c.kind() == crate::generator::Kind::Generator) {
+                    Some(core) => match self.enter_resume(&core, None, None, ResumeUse::ForIter { exit: 0 })? {
+                        Resumption::Frame(mut callee) => {
+                            // Sem camadas, o consumidor de `for`/`next` fica direto no quadro; a coleta sempre
+                            // passa pelo `Pull`, que sabe pedir o item seguinte à mesma fonte.
+                            let use_ = if layers.is_empty() && !matches!(then, ResumeUse::Collect(_)) {
+                                then
+                            } else {
+                                ResumeUse::Pull(Box::new(Pull { root: root.clone(), layers, then }))
+                            };
+                            if let Some(resuming) = callee.link.resuming.as_mut() {
+                                resuming.use_ = use_;
+                            }
+                            return Ok(Fetch::Frame(callee));
+                        }
+                        Resumption::Ready(Resumed::Yield(v), _) => Event::Got(v),
+                        Resumption::Ready(Resumed::Return(_), _) => Event::Ended,
+                    },
+                    None => match crate::lazy::source_count(&*target) {
+                        Some(0) => Event::Ended,
+                        Some(_) => {
+                            let layer = crate::lazy::layer_for(&target).ok_or_else(|| internal("lazy iterator without a layer"))?;
+                            layers.push(layer);
+                            pull_child(&*target, 0)?
+                        }
+                        None => match crate::lazy::leaf(&*target) {
+                            // Fonte folha que roda Python (`__next__` de usuário, `__getitem__` do protocolo antigo
+                            // de sequência): o método ganha quadro, e o desfecho volta por `CallbackKind::Advance`.
+                            Some(crate::lazy::Leaf::Ended) => Event::Ended,
+                            Some(crate::lazy::Leaf::Call(method, args)) => match self.enter_function(&method, args, Vec::new())? {
+                                Entered::Done(v) => leaf_event(&*target, Some(v)),
+                                Entered::Frame(mut callee) => {
+                                    let pull = Pull { root: root.clone(), layers, then };
+                                    callee.link.then = Some(Dunder::Callback(Box::new(Callback { pull, what: CallbackKind::Advance { leaf: target } })));
+                                    return Ok(Fetch::Frame(callee));
+                                }
+                            },
+                            None => match target.iter_next()? {
+                                Some(v) => Event::Got(v),
+                                None => Event::Ended,
+                            },
+                        },
+                    },
+                },
+                Event::Got(item) => match layers.pop() {
+                    None => return Ok(Fetch::Ready(Some(item), then)),
+                    Some(Layer::Enumerate(it)) => Event::Got(crate::lazy::enumerate_item(&*it, item)?),
+                    Some(Layer::Filter(it)) => match crate::lazy::filter_verdict(&*it, &item)? {
+                        crate::lazy::Verdict::Keep(keep) => kept_event(&mut layers, it, item, keep)?,
+                        // O predicado em Python ganha quadro; o desfecho volta por `CallbackKind::Kept`.
+                        crate::lazy::Verdict::Call(func) => match self.enter_callable(&func, vec![item.clone()], Vec::new())? {
+                            Entered::Done(v) => kept_event(&mut layers, it, item, v.is_true())?,
+                            Entered::Frame(mut callee) => {
+                                let pull = Pull { root: root.clone(), layers, then };
+                                callee.link.then = Some(Dunder::Callback(Box::new(Callback { pull, what: CallbackKind::Kept { it, item } })));
+                                return Ok(Fetch::Frame(callee));
+                            }
+                        },
+                    },
+                    Some(Layer::Many { it, at, mut got }) => {
+                        got.push(item);
+                        if at + 1 < crate::lazy::source_count(&*it).unwrap_or(0) {
+                            let next = pull_child(&*it, at + 1)?;
+                            layers.push(Layer::Many { it, at: at + 1, got });
+                            next
+                        } else {
+                            match crate::lazy::join_sources(&*it, got)? {
+                                crate::lazy::Joined::Item(v) => Event::Got(v),
+                                // A função do `map` em Python ganha quadro; o desfecho volta por `CallbackKind::Mapped`.
+                                crate::lazy::Joined::Call(func, args) => match self.enter_callable(&func, args, Vec::new())? {
+                                    Entered::Done(v) => Event::Got(v),
+                                    Entered::Frame(mut callee) => {
+                                        let pull = Pull { root: root.clone(), layers, then };
+                                        callee.link.then = Some(Dunder::Callback(Box::new(Callback { pull, what: CallbackKind::Mapped })));
+                                        return Ok(Fetch::Frame(callee));
+                                    }
+                                },
+                            }
+                        }
+                    }
+                    // `zip(strict=True)` achou mais um item depois de a primeira fonte acabar.
+                    Some(Layer::Check { at, .. }) => return Err(crate::lazy::zip_mismatch(at, "longer")),
+                },
+                Event::Ended => match layers.pop() {
+                    None => return Ok(Fetch::Ready(None, then)),
+                    Some(Layer::Many { it, at, .. }) => match crate::lazy::zip_ended(&*it, at)? {
+                        crate::lazy::ZipEnd::Ends => Event::Ended,
+                        crate::lazy::ZipEnd::Check => {
+                            let next = pull_child(&*it, 1)?;
+                            layers.push(Layer::Check { it, at: 1 });
+                            next
+                        }
+                    },
+                    Some(Layer::Check { it, at }) => {
+                        if at + 1 < crate::lazy::source_count(&*it).unwrap_or(0) {
+                            let next = pull_child(&*it, at + 1)?;
+                            layers.push(Layer::Check { it, at: at + 1 });
+                            next
+                        } else {
+                            Event::Ended
+                        }
+                    }
+                    Some(Layer::Enumerate(_) | Layer::Filter(_)) => Event::Ended,
+                },
+            };
+        }
+    }
+
+    /// Entrega o item (`None` é o fim da fonte) ao consumidor `then`. `for` e `next` recebem o valor ou o
+    /// fim; a coleta o põe na lista ou na conta e pede o seguinte à mesma fonte, até acabar ou a conta decidir.
+    fn deliver(&mut self, root: &Value, item: Option<Value>, then: ResumeUse) -> PyResult<Next> {
+        match then {
+            ResumeUse::ForIter { exit } => Ok(match item {
+                Some(v) => Next::Value(v),
+                None => Next::Exit(exit),
+            }),
+            ResumeUse::Next { default } => match item {
+                Some(v) => Ok(Next::Value(v)),
+                None => next_exhausted(Value::None, ResumeUse::Next { default }).map(Next::Value),
+            },
+            ResumeUse::Collect(collect) => {
+                let input = item.map_or(Input::End, Input::Item);
+                self.collect_run(root, collect, input)
+            }
+            _ => Err(internal("a pull ended in a use it cannot deliver")),
+        }
+    }
+
+    /// A coleta: `input` entra na conta (ou na lista), e a máquina pede o item seguinte à mesma fonte até a
+    /// fonte acabar ou a conta decidir. Uma chave que roda Python (`Flow::Key`) ganha quadro, e a coleta
+    /// espera nele (`CallbackKind::Keyed`); no fim, a função é chamada com a lista (ou a conta dá o resultado).
+    fn collect_run(&mut self, root: &Value, mut collect: Box<Collect>, mut input: Input) -> PyResult<Next> {
+        loop {
+            let flow = match (input, collect.fold.as_mut()) {
+                (Input::Item(v), Some(fold)) => fold.feed(self, v)?,
+                (Input::Item(v), None) => {
+                    collect.items.push(v);
+                    crate::fold::Flow::More
+                }
+                (Input::Key(item, key), Some(fold)) => fold.keyed(self, item, key)?,
+                (Input::End, Some(fold)) => fold.finish(self)?,
+                (Input::End, None) => return self.collect_end(*collect),
+                (Input::Key(..), None) => return Err(internal("a key without a fold")),
+            };
+            match flow {
+                crate::fold::Flow::Done(v) => return Ok(Next::Value(v)),
+                crate::fold::Flow::Key { func, item } => match self.enter_callable(&func, vec![item.clone()], Vec::new())? {
+                    Entered::Done(key) => {
+                        input = Input::Key(item, key);
+                        continue;
+                    }
+                    Entered::Frame(mut callee) => {
+                        let pull = Pull { root: root.clone(), layers: Vec::new(), then: ResumeUse::Collect(collect) };
+                        callee.link.then = Some(Dunder::Callback(Box::new(Callback { pull, what: CallbackKind::Keyed { item } })));
+                        return Ok(Next::Spawn(callee));
+                    }
+                },
+                crate::fold::Flow::More => {}
+            }
+            match self.fetch(root, ResumeUse::Collect(collect))? {
+                Fetch::Frame(callee) => return Ok(Next::Spawn(callee)),
+                Fetch::Ready(next, ResumeUse::Collect(back)) => {
+                    input = next.map_or(Input::End, Input::Item);
+                    collect = back;
+                }
+                Fetch::Ready(..) => return Err(internal("collect lost its state")),
+            }
+        }
+    }
+
+    /// O fim de uma coleta sem conta: a função é chamada com a lista, ou a lista de destino (o `*g` de uma lista
+    /// em construção) é estendida.
+    fn collect_end(&mut self, mut collect: Collect) -> PyResult<Next> {
+        if let Value::List(target) = &collect.call {
+            target.borrow_mut().extend(std::mem::take(&mut collect.items));
+            return Ok(Next::Nothing);
+        }
+        let list = Value::list(std::mem::take(&mut collect.items));
+        self.call(&collect.call, vec![list], std::mem::take(&mut collect.kwargs)).map(Next::Value)
+    }
+
+    /// O callback de `callback` devolveu `returned` (`None`: a fonte folha terminou) e a máquina de `drive` ou a
+    /// coleta segue de onde parou.
+    fn resume_callback(&mut self, callback: Callback, returned: Option<Value>) -> PyResult<Next> {
+        let Callback { pull: Pull { root, mut layers, then }, what } = callback;
+        let missing = || internal("a callback ended without a value");
+        let event = match what {
+            CallbackKind::Mapped => Event::Got(returned.ok_or_else(missing)?),
+            CallbackKind::Kept { it, item } => kept_event(&mut layers, it, item, returned.ok_or_else(missing)?.is_true())?,
+            CallbackKind::Advance { leaf } => leaf_event(&*leaf, returned),
+            CallbackKind::Keyed { item } => {
+                let ResumeUse::Collect(collect) = then else { return Err(internal("a key outside a collection")) };
+                return self.collect_run(&root, collect, Input::Key(item, returned.ok_or_else(missing)?));
+            }
+            CallbackKind::Start => {
+                let source = iterator_root(returned.ok_or_else(missing)?)?;
+                return self.pull(&source, then);
+            }
+        };
+        let fetched = self.drive(&root, layers, then, event)?;
+        self.settle(&root, fetched)
+    }
+
+    /// Abre a coleta de `root`: a fonte já pronta, ou a instância cujo `__iter__` em Python roda antes em quadro.
+    fn start_pull(&mut self, root: Root, then: ResumeUse) -> PyResult<Next> {
+        match root {
+            Root::Ready(source) => self.pull(&source, then),
+            Root::Iterable(iter, instance) => match self.enter_function(&iter, vec![instance.clone()], Vec::new())? {
+                Entered::Done(v) => {
+                    let source = iterator_root(v)?;
+                    self.pull(&source, then)
+                }
+                Entered::Frame(mut callee) => {
+                    let pull = Pull { root: instance, layers: Vec::new(), then };
+                    callee.link.then = Some(Dunder::Callback(Box::new(Callback { pull, what: CallbackKind::Start })));
+                    Ok(Next::Spawn(callee))
+                }
+            },
+        }
+    }
+
+    /// Abre a retomada de `core`: as globais passam a ser as do gerador até o fim (`GenCore::end` as
+    /// devolve) e o quadro dele, saído do gerador, é o chamado que o laço executa. A exceção injetada de
+    /// `throw`/`close` vai no `Resuming` e o laço a levanta ao empilhar o quadro; parado numa delegação
+    /// (`yield from`, `await`) o gerador repassa a exceção ao sub-iterador por `inject_delegated`. A retomada
+    /// recursiva de `GenCore::resume` só atende os chamadores nativos.
+    fn enter_resume(&mut self, core: &Rc<GenCore>, sent: Option<Value>, inject: Option<PyException>, use_: ResumeUse) -> PyResult<Resumption> {
+        let globals = core.globals();
+        let caller_globals = (!Rc::ptr_eq(&self.globals, &globals)).then(|| std::mem::replace(&mut self.globals, globals));
+        match GenCore::begin(core, self, sent, inject, caller_globals)? {
+            Begun::Ready(done) => Ok(Resumption::Ready(done, use_)),
+            Begun::Run(frame, tail, inject) => {
+                let link = CallLink {
+                    func: None,
+                    caller_line: tail.caller_line,
+                    handled_len: 0,
+                    profiled: false,
+                    caller_globals: None,
+                    instance: None,
+                    on_stop: None,
+                    then: None,
+                    resuming: Some(Resuming { tail, use_, inject }),
+                };
+                Ok(Resumption::Frame(Callee { frame, link }))
+            }
+        }
+    }
+
+    /// Retoma `core` a pedido de uma instrução do laço: o quadro do gerador vira o `spawn`, ou o desfecho
+    /// que já saiu pronto é aplicado na hora.
+    fn resume_op(
+        &mut self,
+        code: &Rc<Code>,
+        stack: &mut Vec<Slot>,
+        core: &Rc<GenCore>,
+        sent: Option<Value>,
+        use_: ResumeUse,
+        spawn: &mut Option<Callee>,
+    ) -> PyResult<Option<usize>> {
+        match self.enter_resume(core, sent, None, use_)? {
+            Resumption::Frame(callee) => {
+                *spawn = Some(callee);
+                Ok(None)
+            }
+            Resumption::Ready(resumed, use_) => self.apply_resumed(code, stack, core, resumed, use_),
+        }
+    }
+
+    /// O desfecho de uma retomada, aplicado na pilha do chamador: devolve o salto, se houver (o `pc` do
+    /// chamador já está na instrução seguinte à que retomou).
+    fn apply_resumed(
+        &mut self,
+        code: &Rc<Code>,
+        stack: &mut Vec<Slot>,
+        core: &Rc<GenCore>,
+        resumed: Resumed,
+        use_: ResumeUse,
+    ) -> PyResult<Option<usize>> {
+        match (resumed, use_) {
+            // `close()` sempre devolve `None` (o desfecho já passou por `GenCore::settle_close`).
+            (_, ResumeUse::Close) => {
+                stack.push(Slot::Val(Value::None));
+                Ok(None)
+            }
+            // O fechamento do sub-gerador passou: a exceção original é levantada no de fora (um erro do
+            // fechamento já chegou aqui como `Err`).
+            (_, ResumeUse::DelegateExit(exit)) => Err(exit),
+            (_, ResumeUse::Collect(_) | ResumeUse::Pull(_)) => Err(internal("collect applied as a plain resumption")),
+            // O sub-gerador tratou a exceção e entregou outro valor: o de fora o reentrega, voltando ao `Yield`
+            // da delegação (`end - 2`: `Delegate`, `Yield`, `DelegateNext`).
+            (Resumed::Yield(v), ResumeUse::DelegateThrow { end }) => {
+                stack.push(Slot::Val(v));
+                Ok(Some(end - 2))
+            }
+            (Resumed::Yield(v), _) => {
+                stack.push(Slot::Val(v));
+                Ok(None)
+            }
+            // O `for` acabou: descarta o iterador; um `return valor` do gerador é o `StopIteration` que o
+            // `FOR_ITER` vê antes de engolir.
+            (Resumed::Return(_), ResumeUse::ForIter { exit }) => {
+                stack.pop();
+                if let Some(v) = core.take_returned() {
+                    crate::tracing::exception(self, code, &crate::generator::stop_iteration(v))?;
+                }
+                Ok(Some(exit))
+            }
+            (Resumed::Return(v), use_ @ ResumeUse::Next { .. }) => {
+                stack.push(Slot::Val(next_exhausted(v, use_)?));
+                Ok(None)
+            }
+            (Resumed::Return(v), ResumeUse::Delegate { end } | ResumeUse::DelegateThrow { end }) => {
+                stack.pop();
+                stack.push(Slot::Val(v));
+                Ok(Some(end))
+            }
+        }
+    }
+}
+
+/// O valor de `next(g)` quando `g` terminou: o `default`, ou o `StopIteration(retorno)`.
+fn next_exhausted(returned: Value, use_: ResumeUse) -> PyResult<Value> {
+    match use_ {
+        ResumeUse::Next { default: Some(default) } => Ok(default),
+        _ => Err(crate::generator::stop_iteration(returned)),
+    }
+}
+
+/// O núcleo de gerador ou de corrente que `v` é.
+fn value_core(v: &Value) -> Option<Rc<GenCore>> {
+    match v {
+        Value::Ext(x) => crate::generator::core_of(x),
+        _ => None,
+    }
+}
+
+/// A fonte que `list(g)`, `tuple(g)`, `sorted(g, ...)`, `s.join(g)` esgotam, ou que `sum`, `set`, `dict`, `min`,
+/// `max`, `any`, `all` e `lista.extend` consomem item a item (ver `fold`), com a coleta que o laço faz. A fonte é
+/// qualquer uma que precise de quadro (`frame_root`): gerador, cadeia de `enumerate`/`zip`/`map`/`filter` com
+/// gerador ou callback Python, iterador ou iterável de usuário em Python, ou, com uma `key=` em Python, qualquer
+/// iterável. As que o CPython alimenta com a sequência inteira antes de usar (`PySequence_List`/
+/// `PySequence_Fast`) juntam tudo e então chamam a função; as outras seguem a conta por item, com efeitos no meio.
+fn collect_source(func: &Value, args: &[Value], kwargs: &[(String, Value)]) -> PyResult<Option<(Root, Collect)>> {
+    let (source, collect) = match crate::fold::for_call(func, args, kwargs) {
+        Some((source, fold)) => (source, Collect { items: Vec::new(), call: Value::None, kwargs: Vec::new(), fold: Some(fold) }),
+        None => {
+            let [arg] = args else { return Ok(None) };
+            let fits = match crate::fold::builtin_name(func) {
+                Some("list" | "tuple") => kwargs.is_empty(),
+                Some("sorted") => true,
+                _ => matches!(func, Value::Bound(b) if b.name == "join" && kwargs.is_empty() && matches!(b.recv, Value::Str(_) | Value::Bytes(_) | Value::ByteArray(_))),
+            };
+            if !fits {
+                return Ok(None);
+            }
+            (arg.clone(), Collect { items: Vec::new(), call: func.clone(), kwargs: kwargs.to_vec(), fold: None })
+        }
+    };
+    Ok(frame_root(source, collect.fold.as_ref())?.map(|root| (root, collect)))
+}
+
+/// A fonte que o `*g` de um `ListExtend` vai esgotar: o topo da pilha é um gerador (ou cadeia sobre gerador) e
+/// logo abaixo está a lista em construção.
+fn extend_source(stack: &[Slot]) -> Option<Value> {
+    let [.., Slot::Val(Value::List(_)), Slot::Val(source)] = stack else { return None };
+    suspendable(source).then(|| source.clone())
+}
+
+/// O próximo passo de uma cadeia preguiçosa: pedir a fonte `idx` de `it` quando ela precisa de quadro (gerador,
+/// cadeia com callback Python, fonte folha), ou puxar o item dela direto.
+fn pull_child(it: &dyn crate::object::ExtObject, idx: usize) -> PyResult<Event> {
+    if let Some(source) = crate::lazy::frame_source(it, idx) {
+        return Ok(Event::Want(source));
+    }
+    Ok(match crate::lazy::source_next(it, idx)? {
+        Some(v) => Event::Got(v),
+        None => Event::Ended,
+    })
+}
+
+/// O `filter` `it` recebeu o veredito do predicado sobre `item`: com `keep` o item sobe pelas camadas, senão a
+/// camada volta à pilha e pede o seguinte à fonte.
+fn kept_event(layers: &mut Vec<Layer>, it: Rc<dyn crate::object::ExtObject>, item: Value, keep: bool) -> PyResult<Event> {
+    if keep {
+        return Ok(Event::Got(item));
+    }
+    let next = pull_child(&*it, 0)?;
+    layers.push(Layer::Filter(it));
+    Ok(next)
+}
+
+/// A fonte folha `leaf` entregou `got` (`None`: acabou): o estado dela avança e o evento sobe pelas camadas.
+fn leaf_event(leaf: &dyn crate::object::ExtObject, got: Option<Value>) -> Event {
+    match crate::lazy::leaf_settle(leaf, got) {
+        Some(v) => Event::Got(v),
+        None => Event::Ended,
+    }
+}
+
+/// A fonte que o iterador devolvido por um `__iter__` em Python passa a ser numa coleta: o gerador (ou a cadeia) que
+/// o laço puxa em quadros, ou o iterador vivo dentro de um `IterBox`.
+fn iterator_root(returned: Value) -> PyResult<Value> {
+    if suspendable(&returned) {
+        return Ok(returned);
+    }
+    iterator_from_dunder(returned).map(crate::lazy::IterBox::new)
+}
+
+/// Onde a coleta de `source` começa quando ela precisa de quadro: o gerador, a cadeia ou a fonte folha de
+/// sempre; a instância cujo `__iter__` está em Python; a instância do protocolo antigo de sequência
+/// (`__getitem__` em Python); ou, com uma conta que chama uma chave em Python, o iterador vivo de qualquer
+/// iterável (`get_iter`, na hora, como o `PyObject_GetIter` que o CPython faz antes do primeiro item).
+fn frame_root(source: Value, fold: Option<&crate::fold::Fold>) -> PyResult<Option<Root>> {
+    if suspendable(&source) {
+        return Ok(Some(Root::Ready(source)));
+    }
+    // `dict(x)` trata um mapeamento (`keys`) antes de um iterável de pares: só o caminho comum decide.
+    if matches!(fold, Some(crate::fold::Fold::Dict { .. })) {
+        return Ok(None);
+    }
+    if let Value::Instance(i) = &source {
+        let class = i.class();
+        match (class.lookup("__iter__"), class.lookup("__getitem__")) {
+            (Some(Value::Function(iter)), _) => return Ok(Some(Root::Iterable(iter, source))),
+            // Subclasse de `dict`, `list`... herda o `__iter__` do tipo embutido: o `__getitem__` em Python não
+            // vira protocolo antigo (o `ConvertingDict` do `logging.config`).
+            (None, Some(Value::Function(_))) if class.builtin_base.is_none() && class.data_base.is_none() => {
+                return Ok(Some(Root::Ready(crate::lazy::OldSeqIter::new(source))));
+            }
+            _ => {}
+        }
+    }
+    if fold.is_some_and(crate::fold::Fold::calls_python) {
+        return get_iter(&source).map(|it| Some(Root::Ready(crate::lazy::IterBox::new(it))));
+    }
+    Ok(None)
+}
+
+/// `g.throw(e)` ou `g.close()` sobre um gerador ou uma corrente.
+fn is_inject_call(b: &BoundMethod, args: &[Value], kwargs: &[(String, Value)]) -> bool {
+    kwargs.is_empty()
+        && match b.name {
+            "throw" => !args.is_empty(),
+            "close" => args.is_empty(),
+            _ => false,
+        }
+        && value_core(&b.recv).is_some()
+}
+
+/// `g.send(v)` ou `g.__next__()` sobre um gerador, com os argumentos que o método aceita.
+fn is_resume_call(b: &BoundMethod, args: &[Value], kwargs: &[(String, Value)]) -> bool {
+    kwargs.is_empty()
+        && match b.name {
+            "send" => args.len() == 1,
+            "__next__" => args.is_empty(),
+            _ => false,
+        }
+        && value_core(&b.recv).is_some()
+}
+
+impl Vm {
+    /// Liga os argumentos e abre a chamada. Gerador e corrotina terminam aqui, com o valor. A função
+    /// de outro módulo troca `Vm::globals` pelas dela até o fechamento (`end_call`).
+    fn enter_function(&mut self, f: &Rc<FuncObj>, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Entered> {
+        if Rc::ptr_eq(&self.globals, &f.globals) {
+            return self.open_call(f, args, kwargs);
+        }
+        let caller = std::mem::replace(&mut self.globals, f.globals.clone());
+        match self.open_call(f, args, kwargs) {
+            Ok(Entered::Frame(mut callee)) => {
+                callee.link.caller_globals = Some(caller);
+                Ok(Entered::Frame(callee))
+            }
+            other => {
+                self.globals = caller;
+                other
+            }
+        }
+    }
+
+    fn open_call(&mut self, f: &Rc<FuncObj>, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Entered> {
         let env = self.bind_params(f, args, kwargs)?;
         let code = f.code.clone();
         if code.is_generator || code.is_async {
-            return Ok(crate::generator::new_generator(self.clone(), code, env));
+            return Ok(Entered::Done(crate::generator::new_generator(self.clone(), code, env)));
         }
-        if self.depth.get() + 1 >= RECURSION_LIMIT.with(|c| c.get()) {
+        // O quadro do módulo também gasta uma unidade do limite no CPython (`py_recursion_remaining`),
+        // mas aqui ele não entra em `depth`: os demais podem ir até `limit - 1`.
+        if self.depth.get() >= RECURSION_LIMIT.with(|c| c.get()) {
             return Err(exc("RecursionError", "maximum recursion depth exceeded"));
         }
         self.depth.set(self.depth.get() + 1);
         let caller_line = self.cur_line.get();
-        self.frames.borrow_mut().push((code.clone(), caller_line));
+        self.frames.borrow_mut().push((code.clone(), caller_line, env.clone()));
         // `return` dentro de um `except` sai sem fechar o tratador: a pilha volta ao tamanho de antes.
         let handled_len = self.handled.borrow().len();
         let profiled = crate::modules::lsprof::enter(&code);
-        let traced = match crate::tracing::enter(self, &code) {
-            Ok(t) => t,
-            Err(e) => {
-                self.frames.borrow_mut().pop();
-                self.cur_line.set(caller_line);
-                self.depth.set(self.depth.get() - 1);
-                return Err(e);
-            }
-        };
-        let mut result = self.exec(&code, &env);
-        if traced {
-            if let Err(e) = crate::tracing::leave(self, &result) {
-                result = Err(e);
-            }
+        if let Err(e) = crate::tracing::enter(self, &code) {
+            self.frames.borrow_mut().pop();
+            self.cur_line.set(caller_line);
+            self.depth.set(self.depth.get() - 1);
+            return Err(e);
         }
-        if profiled {
+        let link = CallLink {
+            func: Some(f.clone()),
+            caller_line,
+            handled_len,
+            profiled,
+            caller_globals: None,
+            instance: None,
+            on_stop: None,
+            then: None,
+            resuming: None,
+        };
+        Ok(Entered::Frame(Callee { frame: Frame::new(code, env), link }))
+    }
+
+    /// Fecha uma chamada aberta por `enter_function`, com o resultado do corpo.
+    fn end_call(&mut self, link: CallLink, mut result: PyResult<Value>) -> PyResult<Value> {
+        if let Err(e) = crate::tracing::leave(self, &result) {
+            result = Err(e);
+        }
+        if link.profiled {
             crate::modules::lsprof::leave();
         }
         // Função embutida no CPython (escrita em Python aqui): o traceback não mostra o interior dela.
         if let Err(e) = &mut result {
-            if f.attrs.borrow().contains_key("__no_bind__") {
+            if link.func.as_ref().is_some_and(|f| f.attrs.borrow().contains_key("__no_bind__")) {
                 while e.tb.last().is_some_and(|t| t.2.starts_with("/usr/lib/python3.13/")) {
                     e.tb.pop();
                 }
             }
         }
-        self.handled.borrow_mut().truncate(handled_len);
+        self.handled.borrow_mut().truncate(link.handled_len);
         self.frames.borrow_mut().pop();
-        self.cur_line.set(caller_line);
+        self.cur_line.set(link.caller_line);
         self.depth.set(self.depth.get() - 1);
-        result
+        if let Some(globals) = link.caller_globals {
+            self.globals = globals;
+        }
+        match (result, link.instance) {
+            (Ok(returned), Some(obj)) => crate::classes::init_returned(obj, &returned),
+            (other, _) => other,
+        }
+    }
+
+    /// Abre o método mágico em Python da instrução (operador binário, comparação, subscrição ou
+    /// teste de verdade) como quadro novo; sem esse método, a instrução segue pelo `step`.
+    fn dunder_op(
+        &mut self,
+        code: &Rc<Code>,
+        instr: Op,
+        stack: &mut Vec<Slot>,
+        env: &Rc<Env>,
+        spawn: &mut Option<Callee>,
+    ) -> PyResult<Option<usize>> {
+        match self.begin_dunder(code, instr, stack)? {
+            Some(next) => {
+                let (jump, callee) = next.land(stack);
+                *spawn = callee;
+                Ok(jump)
+            }
+            None => self.step(code, instr, stack, env),
+        }
+    }
+
+    /// Tira os operandos da pilha e começa o método mágico da instrução; `None` (a pilha intacta)
+    /// quando nenhum deles é função Python, e o caminho recursivo cuida do resto.
+    fn begin_dunder(&mut self, code: &Rc<Code>, instr: Op, stack: &mut Vec<Slot>) -> PyResult<Option<Next>> {
+        match instr {
+            Op::Binary { op, inplace } => {
+                let (Some(a), Some(b)) = (value_at(stack, 1), value_at(stack, 0)) else { return Ok(None) };
+                // `"..." % instância` é formatação, resolvida no `step`.
+                if op == Operator::Mod && matches!(a, Value::Str(_)) {
+                    return Ok(None);
+                }
+                let attempts = binary_tries(op, &a, &b, inplace);
+                self.begin_chain(stack, ChainKind::Binary { op, inplace }, a, b, attempts)
+            }
+            Op::Compare(cop) => {
+                let (Some(a), Some(b)) = (value_at(stack, 1), value_at(stack, 0)) else { return Ok(None) };
+                match cop {
+                    CmpOp::Lt | CmpOp::LtE | CmpOp::Gt | CmpOp::GtE => {
+                        let attempts = order_attempts(cop, &a, &b);
+                        self.begin_chain(stack, ChainKind::Order(cop), a, b, attempts)
+                    }
+                    // O `richcmp` de uma extensão decide antes do `__eq__` de usuário.
+                    CmpOp::Eq | CmpOp::NotEq if !matches!(a, Value::Ext(_)) && !matches!(b, Value::Ext(_)) => {
+                        let attempts = equal_attempts(cop, &a, &b);
+                        self.begin_chain(stack, ChainKind::Equal(cop), a, b, attempts)
+                    }
+                    CmpOp::In | CmpOp::NotIn => {
+                        let Some(f) = dunder_function(&b, "__contains__") else { return Ok(None) };
+                        stack.truncate(stack.len() - 2);
+                        self.open_dunder(&f, vec![b, a], Dunder::Boolean { negate: cop == CmpOp::NotIn }).map(Some)
+                    }
+                    _ => Ok(None),
+                }
+            }
+            Op::Subscript => {
+                let (Some(container), Some(index)) = (value_at(stack, 1), value_at(stack, 0)) else { return Ok(None) };
+                let Some(f) = dunder_function(&container, "__getitem__") else { return Ok(None) };
+                stack.truncate(stack.len() - 2);
+                self.open_dunder(&f, vec![container, index], Dunder::Push).map(Some)
+            }
+            Op::StoreSubscript => {
+                let (Some(container), Some(index), Some(value)) = (value_at(stack, 1), value_at(stack, 0), value_at(stack, 2)) else {
+                    return Ok(None);
+                };
+                let Some(f) = dunder_function(&container, "__setitem__") else { return Ok(None) };
+                stack.truncate(stack.len() - 3);
+                self.open_dunder(&f, vec![container, index, value], Dunder::Discard).map(Some)
+            }
+            Op::DeleteSubscript => {
+                let (Some(container), Some(index)) = (value_at(stack, 1), value_at(stack, 0)) else { return Ok(None) };
+                let Some(f) = dunder_function(&container, "__delitem__") else { return Ok(None) };
+                stack.truncate(stack.len() - 2);
+                self.open_dunder(&f, vec![container, index], Dunder::Discard).map(Some)
+            }
+            Op::PopJumpIfFalse(_) | Op::PopJumpIfTrue(_) | Op::JumpIfFalseOrPop(_) | Op::JumpIfTrueOrPop(_) | Op::Unary(UnaryOp::Not) => {
+                let (Some((f, len)), Some(operand)) = (truth_method(stack), value_at(stack, 0)) else { return Ok(None) };
+                let how = match instr {
+                    Op::PopJumpIfFalse(t) => TruthUse::Jump { target: t as usize, when: false },
+                    Op::PopJumpIfTrue(t) => TruthUse::Jump { target: t as usize, when: true },
+                    Op::JumpIfFalseOrPop(t) => TruthUse::JumpKeep { target: t as usize, when: false },
+                    Op::JumpIfTrueOrPop(t) => TruthUse::JumpKeep { target: t as usize, when: true },
+                    _ => TruthUse::Not,
+                };
+                if !matches!(how, TruthUse::JumpKeep { .. }) {
+                    stack.pop();
+                }
+                self.open_dunder(&f, vec![operand], Dunder::Truth { how, len }).map(Some)
+            }
+            Op::Unary(op) => {
+                let Some(operand) = value_at(stack, 0) else { return Ok(None) };
+                let Some(f) = unary_dunder(op).and_then(|name| dunder_function(&operand, name)) else { return Ok(None) };
+                stack.pop();
+                self.open_dunder(&f, vec![operand], Dunder::Push).map(Some)
+            }
+            Op::GetIter => {
+                let Some(operand) = value_at(stack, 0) else { return Ok(None) };
+                let Some(f) = dunder_function(&operand, "__iter__") else { return Ok(None) };
+                stack.pop();
+                self.open_dunder(&f, vec![operand], Dunder::Iter).map(Some)
+            }
+            Op::StoreAttr(i) => {
+                let (Some(obj), Some(value)) = (value_at(stack, 0), value_at(stack, 1)) else { return Ok(None) };
+                stack.truncate(stack.len() - 2);
+                let call = self.store_attr_call(&obj, &code.names[i as usize], value)?;
+                self.open_pending(call).map(Some)
+            }
+            Op::DeleteAttr(i) => {
+                let Some(obj) = value_at(stack, 0) else { return Ok(None) };
+                stack.pop();
+                let call = self.delete_attr_call(&obj, &code.names[i as usize])?;
+                self.open_pending(call).map(Some)
+            }
+            Op::WithEnter => {
+                let Some(manager @ Value::Instance(_)) = value_at(stack, 0) else { return Ok(None) };
+                let Value::Instance(inst) = &manager else { return Ok(None) };
+                let class = inst.class();
+                let (Some(enter), Some(exit)) = (dunder_function(&manager, "__enter__"), class.lookup("__exit__")) else {
+                    return Ok(None);
+                };
+                let exit = self.bind_class_attr(&exit, manager.clone(), &class)?;
+                stack.pop();
+                stack.push(Slot::Val(exit));
+                self.open_dunder(&enter, vec![manager], Dunder::Push).map(Some)
+            }
+            Op::AsyncWithEnter => {
+                let Some(manager) = value_at(stack, 0) else { return Ok(None) };
+                let (Some(enter), Some(exit)) = (dunder_function(&manager, "__aenter__"), dunder_function(&manager, "__aexit__")) else {
+                    return Ok(None);
+                };
+                stack.pop();
+                stack.push(Slot::Val(Value::BoundFn(Rc::new((manager.clone(), exit)))));
+                self.open_dunder(&enter, vec![manager], Dunder::Push).map(Some)
+            }
+            Op::WithExcept | Op::AsyncWithExceptCall => {
+                let (Some(Value::BoundFn(exit)), Some(raised)) = (value_at(stack, 0), value_at(stack, 1)) else { return Ok(None) };
+                stack.pop();
+                let (traceback, then) = match instr {
+                    Op::WithExcept => (exception_traceback(&raised), Dunder::Boolean { negate: false }),
+                    _ => (Value::None, Dunder::Push),
+                };
+                let args = vec![exit.0.clone(), self.type_of(&raised), raised, traceback];
+                self.open_dunder(&exit.1, args, then).map(Some)
+            }
+            _ => Ok(None),
+        }
+    }
+
+    /// Abre o método mágico em Python que a gravação ou a remoção de atributo anotou (ou nada, se ela
+    /// já se resolveu); o valor devolvido é descartado.
+    fn open_pending(&mut self, call: crate::classes::PendingCall) -> PyResult<Next> {
+        match call {
+            Some((f, args)) => self.open_dunder(&f, args, Dunder::Discard),
+            None => Ok(Next::Nothing),
+        }
+    }
+
+    /// Começa a cadeia de tentativas de um operador, se alguma é função Python (senão `None`).
+    fn begin_chain(&mut self, stack: &mut Vec<Slot>, kind: ChainKind, a: Value, b: Value, mut attempts: Vec<Attempt>) -> PyResult<Option<Next>> {
+        if !attempts.iter().any(|at| dunder_function(&at.recv, at.name).is_some()) {
+            return Ok(None);
+        }
+        stack.truncate(stack.len() - 2);
+        attempts.reverse();
+        self.advance_chain(Chain { kind, a, b, rest: attempts, invert: false }, None).map(Some)
+    }
+
+    /// Abre o quadro do método mágico `f`; o que ele devolver será tratado por `finish_dunder`.
+    fn open_dunder(&mut self, f: &Rc<FuncObj>, args: Vec<Value>, then: Dunder) -> PyResult<Next> {
+        match self.enter_function(f, args, Vec::new())? {
+            Entered::Done(v) => self.finish_dunder(then, v),
+            Entered::Frame(mut callee) => {
+                callee.link.then = Some(then);
+                Ok(Next::Spawn(callee))
+            }
+        }
+    }
+
+    /// O método mágico devolveu `v`: o que a instrução faz com ele.
+    fn finish_dunder(&mut self, then: Dunder, v: Value) -> PyResult<Next> {
+        match then {
+            Dunder::Chain(chain) => self.advance_chain(chain, Some(v)),
+            Dunder::Push => Ok(Next::Value(v)),
+            Dunder::Discard | Dunder::Signal => Ok(Next::Nothing),
+            Dunder::Boolean { negate } => Ok(Next::Value(Value::Bool(v.is_true() != negate))),
+            Dunder::Iter => iterator_from_dunder(v).map(Next::Iter),
+            Dunder::Callback(callback) => self.resume_callback(*callback, Some(v)),
+            Dunder::Import(_) | Dunder::Exec(_) => Err(internal("a module body closed as a method")),
+            Dunder::Truth { how, len } => {
+                let truth = if len { len_result(v)? != 0 } else { bool_result(&v)? };
+                Ok(match how {
+                    TruthUse::Jump { target, when } if truth == when => Next::Jump(target),
+                    TruthUse::JumpKeep { target, when } if truth == when => Next::Jump(target),
+                    TruthUse::Jump { .. } => Next::Nothing,
+                    TruthUse::JumpKeep { .. } => Next::Drop,
+                    TruthUse::Not => Next::Value(Value::Bool(!truth)),
+                })
+            }
+        }
+    }
+
+    /// Segue a cadeia de um operador: `returned` é o que a tentativa anterior devolveu (`NotImplemented`
+    /// passa à próxima); esgotadas as tentativas, vale o operador embutido.
+    fn advance_chain(&mut self, mut chain: Chain, returned: Option<Value>) -> PyResult<Next> {
+        if let Some(v) = returned
+            && !crate::classes::is_not_implemented(&v)
+        {
+            return Ok(Next::Value(chain.conclude(v)));
+        }
+        while let Some(at) = chain.rest.pop() {
+            chain.invert = at.invert;
+            if let Some(f) = dunder_function(&at.recv, at.name) {
+                return self.open_dunder(&f, vec![at.recv, at.other], Dunder::Chain(chain));
+            }
+            match self.call_dunder(&at.recv, at.name, vec![at.other]) {
+                None => {}
+                Some(Err(e)) => return Err(e),
+                Some(Ok(v)) if crate::classes::is_not_implemented(&v) => {}
+                Some(Ok(v)) => return Ok(Next::Value(chain.conclude(v))),
+            }
+        }
+        chain.fallback().map(Next::Value)
     }
 
     /// Liga os argumentos aos parâmetros como o CPython (`_PyEval_MakeFrameVector`) e devolve o
@@ -1744,7 +3755,7 @@ impl Vm {
                     _ => false,
                 };
                 if let (true, Value::Str(fmt)) = (has_instance, &a) {
-                    let text = crate::format::percent_format_with(fmt.as_str(), &b, &mut |conv, v| match conv {
+                    let text = crate::format::percent_format_with(fmt.as_str(), &b, crate::format::PercentKind::Str, &mut |conv, v| match conv {
                         's' => self.str_of(v).map(Value::str),
                         'r' | 'a' => self.repr_of(v).map(Value::str),
                         'e' | 'E' | 'f' | 'F' | 'g' | 'G' => self.call(&crate::builtins::get("float").unwrap_or(Value::Builtin("float")), vec![v.clone()], Vec::new()),
@@ -1804,20 +3815,7 @@ impl Vm {
                     }
                 }
             }
-            Op::Call { argc, kwnames } => {
-                let mut values = pop_n(stack, argc as usize)?;
-                let func = pop(stack)?;
-                // Os nomes vêm de uma tupla constante: os pares saem direto dela, sem lista intermediária.
-                let kwargs: Vec<(String, Value)> = match kwnames.map(|i| &code.consts[i as usize]) {
-                    Some(Value::Tuple(t)) => {
-                        let kw_values = values.split_off(values.len() - t.len());
-                        t.iter().map(to_str).zip(kw_values).collect()
-                    }
-                    _ => Vec::new(),
-                };
-                let result = self.call(&func, values, kwargs)?;
-                stack.push(Slot::Val(result));
-            }
+            Op::Call { .. } | Op::CallMethod { .. } | Op::CallEx { .. } => return Err(internal("call outside the instruction loop")),
             Op::BuildList(n) => {
                 let items = pop_n(stack, n as usize)?;
                 stack.push(Slot::Val(Value::list(items)));
@@ -1852,29 +3850,9 @@ impl Vm {
                 let value = pop(stack)?;
                 store_subscript(&container, &index, value)?;
             }
-            Op::SetupTry(_) | Op::PopBlock | Op::Return => {}
+            Op::SetupTry(_) | Op::PopBlock | Op::Nop | Op::Return => {}
             Op::Locals => {
-                let vars = locals.vars.borrow();
-                let mut d = Dict::default();
-                for p in code.params.iter().chain(code.vararg.iter()).chain(code.kwonly.iter()).chain(code.kwarg.iter()) {
-                    if let Some(v) = vars.get(p) {
-                        d.set(Value::str(&**p), v.clone())?;
-                    }
-                }
-                let mut rest: Vec<(&Rc<str>, &Value)> = vars
-                    .iter()
-                    .filter(|(k, _)| {
-                        !code.params.contains(k)
-                            && code.vararg.as_ref() != Some(*k)
-                            && !code.kwonly.contains(k)
-                            && code.kwarg.as_ref() != Some(*k)
-                    })
-                    .collect();
-                rest.sort_by(|a, b| a.0.cmp(b.0));
-                for (k, v) in rest {
-                    d.set(Value::str(&**k), v.clone())?;
-                }
-                stack.push(Slot::Val(Value::dict(d)));
+                stack.push(Slot::Val(Value::dict(crate::frameobj::locals_dict(code, locals)?)));
             }
             Op::LoadLocal(i) => {
                 let name = &code.names[i as usize];
@@ -2023,7 +4001,7 @@ impl Vm {
             Op::DeleteName(i) => {
                 let name = &code.names[i as usize];
                 if locals.is_module {
-                    self.globals.borrow_mut().remove(name);
+                    self.globals.borrow_mut().shift_remove(name);
                     if crate::globalsview::ARMED.load(std::sync::atomic::Ordering::Relaxed) {
                         crate::globalsview::push(&self.globals, name, None);
                     }
@@ -2040,31 +4018,57 @@ impl Vm {
                     ));
                 }
             }
+            Op::ClearLocal(i) => {
+                locals.vars.borrow_mut().remove(&code.names[i as usize]);
+            }
+            Op::EnterCell { key, parent } => {
+                let parent = match parent {
+                    Some(p) => Some(cell_scope(locals, &code.names[p as usize])?),
+                    None => locals.capture(),
+                };
+                locals.set_rc(&code.names[key as usize], crate::classes::cell_value(Env::new(parent, false, false)));
+            }
+            Op::LoadCell { key, name } => {
+                let cell = cell_scope(locals, &code.names[key as usize])?;
+                let name = &code.names[name as usize];
+                let found = cell.vars.borrow().get(name).cloned();
+                match found {
+                    Some(v) => stack.push(Slot::Val(v)),
+                    None => {
+                        return Err(exc(
+                            "UnboundLocalError",
+                            format!("cannot access local variable '{name}' where it is not associated with a value"),
+                        ))
+                    }
+                }
+            }
+            Op::StoreCell { key, name } => {
+                let v = pop(stack)?;
+                cell_scope(locals, &code.names[key as usize])?.set_rc(&code.names[name as usize], v);
+            }
+            Op::BindCell(key) => {
+                let Value::Function(f) = pop(stack)? else {
+                    return Err(internal("BindCell without function"));
+                };
+                let closure = Some(cell_scope(locals, &code.names[key as usize])?);
+                let bound = FuncObj {
+                    code: f.code.clone(),
+                    defaults: f.defaults.clone(),
+                    kwdefaults: f.kwdefaults.clone(),
+                    closure,
+                    globals: f.globals.clone(),
+                    attrs: RefCell::new(f.attrs.borrow().clone()),
+                };
+                stack.push(Slot::Val(Value::Function(Rc::new(bound))));
+            }
             Op::DeleteGlobal(i) => {
                 let name = &code.names[i as usize];
-                if self.globals.borrow_mut().remove(name).is_none() {
+                if self.globals.borrow_mut().shift_remove(name).is_none() {
                     return Err(exc("NameError", format!("name '{name}' is not defined")));
                 }
                 if crate::globalsview::ARMED.load(std::sync::atomic::Ordering::Relaxed) {
                     crate::globalsview::push(&self.globals, name, None);
                 }
-            }
-            Op::CallEx { kwargs } => {
-                let kw = if kwargs { Some(pop(stack)?) } else { None };
-                let args = pop(stack)?;
-                let func = pop(stack)?;
-                let positional = iterate(&args)?;
-                let mut named: Vec<(String, Value)> = Vec::new();
-                if let Some(Value::Dict(d)) = kw {
-                    for (k, v) in d.borrow().iter() {
-                        let Value::Str(s) = k else {
-                            return Err(type_error("keywords must be strings"));
-                        };
-                        named.push((s.as_str().to_string(), v.clone()));
-                    }
-                }
-                let result = self.call(&func, positional, named)?;
-                stack.push(Slot::Val(result));
             }
             Op::ListAppend => {
                 let item = pop(stack)?;
@@ -2116,6 +4120,42 @@ impl Vm {
                         }
                     }
                     _ => return Err(internal("DictUpdate without dict")),
+                }
+            }
+            Op::CallKwSet | Op::CallKwMerge => {
+                let callee = |stack: &[Slot]| match stack.len().checked_sub(3).map(|i| &stack[i]) {
+                    Some(Slot::Val(f)) => Ok(f.clone()),
+                    _ => Err(internal("bad value stack")),
+                };
+                let pairs = if matches!(op, Op::CallKwSet) {
+                    let value = pop(stack)?;
+                    let key = pop(stack)?;
+                    vec![(key, value)]
+                } else {
+                    let m = pop(stack)?;
+                    match mapping_pairs(&m)? {
+                        Some(pairs) => pairs,
+                        None => {
+                            let f = callee(stack)?;
+                            return Err(type_error(format!(
+                                "{} argument after ** must be a mapping, not {}",
+                                self.function_str(&f),
+                                m.type_name()
+                            )));
+                        }
+                    }
+                };
+                let Value::Dict(d) = top(stack)?.clone() else { return Err(internal("CallKw without dict")) };
+                for (k, v) in pairs {
+                    if d.borrow().contains(&k)? {
+                        let f = callee(stack)?;
+                        return Err(type_error(format!(
+                            "{} got multiple values for keyword argument '{}'",
+                            self.function_str(&f),
+                            crate::object::to_str(&k)
+                        )));
+                    }
+                    d.borrow_mut().set(k, v)?;
                 }
             }
             Op::ListAppendAt(d) | Op::SetAddAt(d) => {
@@ -2209,12 +4249,7 @@ impl Vm {
                 let exit = pop(stack)?;
                 let exc_value = top(stack)?.clone();
                 let ty = self.type_of(&exc_value);
-                let tb = match &exc_value {
-                    Value::Exception(x) => x.traceback.borrow().clone(),
-                    Value::Instance(i) => i.dict.borrow().get("__traceback__").cloned(),
-                    _ => None,
-                }
-                .unwrap_or(Value::None);
+                let tb = exception_traceback(&exc_value);
                 let r = self.call(&exit, vec![ty, exc_value, tb], Vec::new())?;
                 stack.push(Slot::Val(Value::Bool(r.is_true())));
             }
@@ -2294,7 +4329,7 @@ impl Vm {
             Op::AsyncForExcept(target) => {
                 let e = pop(stack)?;
                 let is_stop = matches!(&e, Value::Exception(x) if x.kind == "StopAsyncIteration")
-                    || matches!(&e, Value::Instance(i) if i.class.mro().iter().any(|c| c.name == "StopAsyncIteration"));
+                    || matches!(&e, Value::Instance(i) if i.class().mro().iter().any(|c| c.name == "StopAsyncIteration"));
                 if is_stop {
                     stack.pop();
                     return Ok(Some(target as usize));
@@ -2320,25 +4355,20 @@ impl Vm {
                 let r = self.call(&exit, vec![ty, exc_value, Value::None], Vec::new())?;
                 stack.push(Slot::Val(r));
             }
-            Op::Import(i) => {
-                let name = &code.names[i as usize];
-                let m = crate::modules::import_visible(self, name, code.internal)?;
-                stack.push(Slot::Val(m));
-            }
-            Op::ImportRel { name, level } => {
-                let rel = &code.names[name as usize];
-                let abs = crate::modules::resolve_relative(self, rel, level as usize)?;
-                let m = crate::modules::import_visible(self, &abs, code.internal)?;
-                stack.push(Slot::Val(m));
-            }
+            Op::Import(_) | Op::ImportRel { .. } => return Err(internal("import outside the instruction loop")),
             Op::ImportStar => {
                 let Value::Module(m) = pop(stack)? else {
                     return Err(internal("import * from a non-module"));
                 };
-                let mut attrs = m.attrs.borrow().clone();
+                let own = m.attrs.borrow().clone();
+                // Na ordem do dict do módulo (as globais dele); o que só existe nos atributos nativos vem depois.
+                let mut ordered: Vec<(String, Value)> = Vec::new();
                 if let Some(g) = self.module_globals.borrow().get(m.name) {
-                    attrs.extend(g.borrow().iter().map(|(k, v)| (k.to_string(), v.clone())));
+                    ordered.extend(g.borrow().iter().map(|(k, v)| (k.to_string(), v.clone())));
                 }
+                let seen: std::collections::HashSet<String> = ordered.iter().map(|(k, _)| k.clone()).collect();
+                ordered.extend(own.into_iter().filter(|(k, _)| !seen.contains(k)));
+                let attrs: indexmap::IndexMap<String, Value> = ordered.into_iter().collect();
                 let listed: Option<Vec<String>> = match attrs.get("__all__") {
                     Some(Value::List(l)) => Some(l.borrow().iter().map(|v| to_str(v)).collect()),
                     Some(Value::Tuple(t)) => Some(t.iter().map(|v| to_str(v)).collect()),
@@ -2371,6 +4401,9 @@ impl Vm {
                 let name = &code.names[i as usize];
                 match self.load_attr(&obj, name) {
                     Ok(v) => stack.push(Slot::Val(v)),
+                    // `import_from`: só o `AttributeError` cai para o submódulo; o resto (um `__getattr__`
+                    // de módulo que falha de outro jeito) sobe.
+                    Err(e) if e.kind != "AttributeError" && matches!(obj, Value::Module(_)) => return Err(e),
                     Err(_) if internal_private_attr(code.internal, &obj, name).is_some() => {
                         stack.push(Slot::Val(internal_private_attr(code.internal, &obj, name).unwrap_or(Value::None)));
                     }
@@ -2417,8 +4450,17 @@ impl Vm {
                                 }
                             }
                         }
-                        let location = match self.load_attr(&obj, "__file__") {
-                            Ok(Value::Str(p)) => p.as_str().to_string(),
+                        // O `PyModule_GetFilenameObject` lê o `__file__` do dict do módulo, sem passar pelo
+                        // `__getattr__` dele (PEP 562).
+                        let file = match &obj {
+                            Value::Module(m) => {
+                                let live = self.module_globals.borrow().get(m.name).cloned();
+                                live.and_then(|g| g.borrow().get("__file__").cloned()).or_else(|| m.attrs.borrow().get("__file__").cloned())
+                            }
+                            other => self.load_attr(other, "__file__").ok(),
+                        };
+                        let location = match file {
+                            Some(Value::Str(p)) => p.as_str().to_string(),
                             _ => "unknown location".to_string(),
                         };
                         let msg = format!("cannot import name '{name}' from '{module}' ({location})");
@@ -2465,22 +4507,6 @@ impl Vm {
                     stack.push(Slot::Val(Value::Builtin(NO_SELF)));
                 }
             }
-            Op::CallMethod { argc, kwnames } => {
-                let mut values = pop_n(stack, argc as usize + 1)?;
-                let func = pop(stack)?;
-                if matches!(values.first(), Some(Value::Builtin(NO_SELF))) {
-                    values.remove(0);
-                }
-                let kwargs: Vec<(String, Value)> = match kwnames.map(|i| &code.consts[i as usize]) {
-                    Some(Value::Tuple(t)) => {
-                        let kw_values = values.split_off(values.len() - t.len());
-                        t.iter().map(to_str).zip(kw_values).collect()
-                    }
-                    _ => Vec::new(),
-                };
-                let result = self.call(&func, values, kwargs)?;
-                stack.push(Slot::Val(result));
-            }
             Op::UnpackSequence(n) => {
                 let v = pop(stack)?;
                 let n = n as usize;
@@ -2508,7 +4534,15 @@ impl Vm {
         Ok(None)
     }
 
+    /// Chama um valor chamável; com `sys.setprofile` ligado, as nativas geram `c_call`, `c_return` e `c_exception`.
     pub(crate) fn call(&mut self, func: &Value, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
+        if crate::tracing::reports_c_call(self, func) {
+            return crate::tracing::c_call(self, func, |vm| vm.call_value(func, args, kwargs));
+        }
+        self.call_value(func, args, kwargs)
+    }
+
+    fn call_value(&mut self, func: &Value, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
         if let Value::Function(f) = func {
             return self.call_function(f, args, kwargs);
         }
@@ -2521,7 +4555,7 @@ impl Vm {
             }
             Value::Class(c) => return self.instantiate(c, args, kwargs),
             Value::Instance(i) => {
-                return match i.class.lookup("__call__") {
+                return match i.class().lookup("__call__") {
                     Some(Value::Function(f)) => {
                         let mut full = Vec::with_capacity(args.len() + 1);
                         full.push(func.clone());
@@ -2563,7 +4597,28 @@ impl Vm {
                     return probe;
                 }
                 let e = e.clone();
+                // Um mágico que o objeto herda de `object` ou do tipo e não implementa (`iter([]).__eq__`).
+                if !e.methods().contains(&b.name) {
+                    if let Some((_, f)) = crate::methods::lookup(&b.recv, b.name) {
+                        let mut full = Vec::with_capacity(args.len() + 1);
+                        full.push(b.recv.clone());
+                        full.extend(args);
+                        return f(self, full, kwargs);
+                    }
+                }
                 return e.call_method(self, b.name, args, kwargs);
+            }
+            // `f.__call__(...)` de uma função chama a função (o método-wrapper `__call__` do tipo `function`).
+            if b.name == "__call__" && matches!(b.recv, Value::Function(_)) {
+                return self.call(&b.recv, args, kwargs);
+            }
+            // `f.__get__(obj, tipo)`: o método ligado a `obj`, ou a própria função quando `obj` é `None`.
+            if let (Value::Function(f), "__get__") = (&b.recv, b.name) {
+                return match args.as_slice() {
+                    [Value::None, ..] if args.len() <= 2 => Ok(b.recv.clone()),
+                    [obj] | [obj, _] => Ok(Value::BoundFn(Rc::new((obj.clone(), f.clone())))),
+                    _ => Err(type_error(format!("expected 1 or 2 arguments, got {}", args.len()))),
+                };
             }
             if !matches!(b.recv, Value::Native(_)) {
                 let Some((_, f)) = crate::methods::lookup(&b.recv, b.name) else {
@@ -2600,6 +4655,26 @@ impl Vm {
                 }
                 let e = ExcObj::new(kind, args);
                 *e.extra.borrow_mut() = import_extra;
+                return Ok(Value::Exception(Rc::new(e)));
+            }
+            // `AttributeError(msg, name=..., obj=...)` e `NameError(msg, name=...)`: o `kwlist` do `_init` do CPython.
+            let member_keys: &[&'static str] = if exc_is_subclass(kind, "AttributeError") {
+                &["name", "obj"]
+            } else if exc_is_subclass(kind, "NameError") {
+                &["name"]
+            } else {
+                &[]
+            };
+            if !member_keys.is_empty() && !kwargs.is_empty() {
+                let mut members: Vec<(&'static str, Value)> = Vec::new();
+                for (k, v) in &kwargs {
+                    match member_keys.iter().find(|m| **m == k.as_str()) {
+                        Some(key) => members.push((*key, v.clone())),
+                        None => return Err(type_error(format!("'{k}' is an invalid keyword argument for {name}()"))),
+                    }
+                }
+                let e = ExcObj::new(kind, args);
+                *e.extra.borrow_mut() = members;
                 return Ok(Value::Exception(Rc::new(e)));
             }
             if let Some((kw, _)) = kwargs.first() {
@@ -2658,7 +4733,7 @@ impl Vm {
             // `ValueError.__init__(self, ...)` chamado à mão por uma subclasse.
             "BaseException.__init__" => {
                 if let Some(Value::Instance(inst)) = args.first() {
-                    if inst.class.builtin_base.is_some() {
+                    if inst.class().builtin_base.is_some() {
                         inst.dict.borrow_mut().insert("args".to_string(), Value::tuple(args[1..].to_vec()));
                     }
                 }
@@ -2764,6 +4839,13 @@ impl Vm {
         Ok(())
     }
 
+    /// Escreve `text` (codificação interna dos `str`) no stdout em UTF-8, com os erros do
+    /// `sys.stdout` (`surrogateescape`): surrogate solitário fora de U+DC80..U+DCFF levanta
+    /// `UnicodeEncodeError` sem escrever nada do texto.
+    pub(crate) fn write_stdout_text(&self, text: &str) -> PyResult<()> {
+        self.push_stdout(&crate::textcodec::encode_utf8(text, "surrogateescape")?)
+    }
+
     /// Descarrega o stdout pendente (`print(flush=True)`, `sys.stdout.flush()`). Sem pseudo-processo
     /// (os testes de unidade), o buffer fica como está para o chamador ler. Como o `BufferedWriter`,
     /// uma escrita que falha (`EPIPE` com o leitor já fechado) levanta o `OSError` e deixa o buffer.
@@ -2814,13 +4896,15 @@ impl Vm {
         // `print` escreve argumento por argumento: um `__str__` que falha deixa na saída o que veio antes dele.
         let mut parts: Vec<String> = Vec::with_capacity(args.len());
         let mut failure = None;
+        let to_real_stdout = file.is_none() && self.redirected_stdout().is_none();
         for a in &args {
-            parts.push(to_str(a));
-            if let Some(e) = take_text_error() {
-                parts.pop();
+            let part = to_str(a);
+            let encoded = if to_real_stdout { crate::textcodec::encode_utf8(&part, "surrogateescape").err() } else { None };
+            if let Some(e) = take_text_error().or(encoded) {
                 failure = Some(e);
                 break;
             }
+            parts.push(part);
         }
         let text = if failure.is_some() {
             let mut t = parts.join(&sep);
@@ -2844,7 +4928,7 @@ impl Vm {
                     self.write_to(&f, &text)?;
                 }
                 None => {
-                    self.push_stdout(text.as_bytes())?;
+                    self.write_stdout_text(&text)?;
                     if flush {
                         self.flush_stdout()?;
                     }
@@ -2863,7 +4947,7 @@ impl Vm {
             // Objeto de arquivo escrito em Python (`io.TextIOWrapper`, `StringIO`...): chama `write`.
             let write = self.load_attr(target, "write")?;
             self.call(&write, vec![Value::str(text)], Vec::new())?;
-            return Ok(text.chars().count());
+            return Ok(crate::object::code_points(text).count());
         };
         let kind = match &*n.borrow() {
             Native::File(f) => {
@@ -2875,19 +4959,34 @@ impl Vm {
             _ => return Err(exc("AttributeError", format!("'{}' object has no attribute 'write'", target.type_name()))),
         };
         match kind {
-            FileKind::Stdout => self.push_stdout(text.as_bytes())?,
+            FileKind::Stdout => self.write_stdout_text(text)?,
             FileKind::Stderr => {
                 // O stderr do CPython é sem buffer e independe do stdout: com stdout em pipe, o que está
                 // pendente só sai no fim (ou a cada 8 KiB), depois do que o stderr já escreveu.
                 if sysabi::sys::try_current().is_none() {
                     self.stderr_capture.borrow_mut().push_str(text);
                 } else {
-                    let _ = sysabi::sys::write_all(sysabi::Fd::STDERR, text.as_bytes());
+                    // O `sys.stderr` do CPython usa `backslashreplace`: surrogate solitário sai como `\ud800`.
+                    let data = crate::textcodec::encode_utf8(text, "backslashreplace")?;
+                    let _ = sysabi::sys::write_all(sysabi::Fd::STDERR, &data);
                 }
             }
             _ => return Err(exc("UnsupportedOperation", "not writable")),
         }
-        Ok(text.chars().count())
+        Ok(crate::object::code_points(text).count())
+    }
+
+    /// `_PyObject_FunctionStr` do CPython: `modulo.qualname()`, sem o módulo quando é `builtins`.
+    fn function_str(&mut self, f: &Value) -> String {
+        let text = |v: PyResult<Value>| match v {
+            Ok(Value::Str(s)) => Some(s.as_str().to_string()),
+            _ => None,
+        };
+        let Some(qualname) = text(self.load_attr(f, "__qualname__")) else { return crate::object::to_str(f) };
+        match text(self.load_attr(f, "__module__")) {
+            Some(module) if module != "builtins" => format!("{module}.{qualname}()"),
+            _ => format!("{qualname}()"),
+        }
     }
 
     pub(crate) fn load_attr(&mut self, obj: &Value, name: &str) -> PyResult<Value> {
@@ -2896,46 +4995,57 @@ impl Vm {
         };
         match obj {
             Value::Instance(inst) => return self.instance_getattr(obj, inst, name),
-            Value::Class(c) => return self.class_getattr(c, name),
+            Value::Class(c) => {
+                if let Some(descriptor) = crate::builtins_ext::emulated_class_attr(c, name) {
+                    return Ok(descriptor);
+                }
+                return self.class_getattr(c, name);
+            }
             // `(1).__new__` é o `int.__new__`: o método estático do tipo, lido pela instância.
             Value::Int(_) | Value::Big(_) | Value::Float(_) | Value::Bool(_) | Value::Str(_) | Value::Bytes(_)
-            | Value::List(_) | Value::Tuple(_) | Value::Dict(_)
+            | Value::List(_) | Value::Tuple(_) | Value::Dict(_) | Value::Set(_) | Value::ByteArray(_) | Value::Range(_)
+            | Value::Slice(_) | Value::None
                 if name == "__new__" =>
             {
                 let ty = self.type_of(obj);
                 return self.load_attr(&ty, "__new__");
             }
+            // Os construtores alternativos do tipo, lidos pela instância (`(0).from_bytes`, `(1.5).fromhex`).
+            Value::Int(_) | Value::Big(_) | Value::Float(_) | Value::Bool(_) | Value::Str(_) | Value::Bytes(_)
+            | Value::Dict(_) | Value::ByteArray(_)
+                if matches!(name, "from_bytes" | "fromhex" | "maketrans" | "fromkeys")
+                    && crate::typeattrs::type_attr(obj.type_name(), name).is_some() =>
+            {
+                return crate::typeattrs::type_attr(obj.type_name(), name).ok_or_else(|| missing());
+            }
             Value::Builtin(n) if crate::object::native_type_method(n, name).is_some() => {
                 let method = crate::object::native_type_method(n, name).unwrap_or_default();
                 return Ok(Value::Ext(Rc::new(crate::classes::NativeTypeMethod { owner: n, name: method })));
             }
-            Value::Builtin(_) | Value::NativeFn(_) if name == "__dict__" && crate::builtins::class_name(obj).is_some() => {
-                let mut d = Dict::default();
-                if matches!(obj, Value::Builtin("object")) {
-                    // O dicionário de `object` é o `dir(object)` inteiro (tabela do oráculo).
-                    for k in crate::builtins_ext::type_dir("object").unwrap_or_default() {
-                        if let Ok(v) = self.load_attr(obj, k) {
-                            d.set(Value::str(k), v)?;
-                        }
-                    }
-                    return Ok(Value::dict(d));
-                }
-                for (k, v) in crate::builtins_ext::probe_type_attrs(self, obj) {
-                    d.set(Value::str(k), v)?;
-                }
-                return Ok(Value::dict(d));
+            Value::Builtin(_) | Value::NativeFn(_)
+                if name == "__dict__" && (crate::builtins::class_name(obj).is_some() || matches!(obj, Value::Builtin("type"))) =>
+            {
+                return crate::builtins_ext::type_own_dict(self, obj);
             }
             Value::Builtin(_) | Value::NativeFn(_)
                 if matches!(name, "__getattribute__" | "__setattr__" | "__delattr__")
                     && crate::builtins::class_name(obj).is_some() =>
             {
-                // `tuple.__getattribute__(self, nome)` e companhia: os ganchos de atributo vêm de `object`.
-                if let Some(v) = crate::typeattrs::object_attr(name) {
+                // `tuple.__getattribute__(self, nome)` e companhia: os ganchos de atributo vêm de `object`
+                // (o descritor do tipo embutido é o `slot wrapper` de `object`; o próprio `object` fica nativo,
+                // para uma sobrescrita do usuário não recursar).
+                let tname = match obj {
+                    Value::Builtin(n) => *n,
+                    Value::NativeFn(f) => f.name,
+                    _ => "",
+                };
+                let descriptor = Some(tname).filter(|t| *t != "object").and_then(|t| crate::typeattrs::type_attr(t, name));
+                if let Some(v) = descriptor.or_else(|| crate::typeattrs::object_attr(name)) {
                     return Ok(v);
                 }
             }
             Value::Builtin("object")
-                if !matches!(name, "__name__" | "__qualname__" | "__mro__" | "__bases__" | "__module__" | "__doc__") =>
+                if !matches!(name, "__name__" | "__qualname__" | "__mro__" | "__bases__" | "__module__" | "__doc__" | "__text_signature__") =>
             {
                 if let Some(v) = crate::typeattrs::object_attr(name) {
                     return Ok(v);
@@ -2944,6 +5054,24 @@ impl Vm {
             Value::Builtin(n) if name == "__init__" && EXC_CLASSES.iter().any(|(k, _)| k == n) => {
                 return Ok(Value::Builtin("BaseException.__init__"));
             }
+            // `BaseException.__reduce__(e)` e `__setstate__(e, state)`: as funções de `copyreg`; o
+            // `__reduce_ex__` é o de `object` (`copy.copy` o lê pela classe).
+            Value::Builtin(n) if name == "__reduce_ex__" && EXC_CLASSES.iter().any(|(k, _)| k == n) => {
+                if let Some(v) = crate::typeattrs::object_attr(name) {
+                    return Ok(v);
+                }
+            }
+            Value::Builtin(n)
+                if matches!(
+                    name,
+                    "__reduce__" | "__setstate__" | "__repr__" | "__str__" | "add_note" | "with_traceback" | "args"
+                        | "__cause__" | "__context__" | "__suppress_context__" | "__traceback__"
+                ) && EXC_CLASSES.iter().any(|(k, _)| k == n) =>
+            {
+                if let Some(v) = crate::typeattrs::exception_attr(n, name) {
+                    return Ok(v);
+                }
+            }
             Value::Builtin(n) if name == "__new__" && EXC_CLASSES.iter().any(|(k, _)| k == n) => {
                 return Ok(Value::NativeFn(Rc::new(crate::object::NativeFn { name: "__new__", f: base_exception_new })));
             }
@@ -2951,9 +5079,11 @@ impl Vm {
                 return Ok(Value::str(n.rsplit('.').next().unwrap_or(n)))
             }
             Value::Builtin(_) | Value::NativeFn(_)
-                if matches!(name, "__mro__" | "__bases__") && crate::builtins::class_name(obj).is_some() =>
+                if matches!(name, "__mro__" | "__bases__")
+                    && (crate::builtins::class_name(obj).is_some() || matches!(obj, Value::Builtin("type"))) =>
             {
-                let n = &crate::builtins::class_name(obj).unwrap_or("object");
+                // `type` é o metatipo: fora de `class_name`, mas o `__mro__` dele é `(type, object)`.
+                let n = &crate::builtins::class_name(obj).unwrap_or("type");
                 // Cadeia de bases: exceções pelo mapa de pais, `bool` -> `int`, e `object` no fim.
                 let cls_of = |s: &'static str| crate::builtins::get(s).unwrap_or(Value::Builtin(s));
                 let mut chain = vec![obj.clone()];
@@ -2980,10 +5110,29 @@ impl Vm {
             Value::Builtin("type") if name == "__new__" => {
                 return Ok(Value::NativeFn(Rc::new(crate::object::NativeFn { name: "__new__", f: crate::classes::type_new })));
             }
-            Value::Builtin(_) if name == "__module__" => return Ok(Value::str("builtins")),
+            // Classe embutida com módulo próprio (`_csv.Error`, `binascii.Error`): o nome vem qualificado pelo módulo.
+            Value::Builtin(b) if name == "__module__" && b.contains('.') && !b.contains("__") => {
+                return Ok(Value::str(b.rsplit_once('.').map_or("builtins", |(module, _)| module)))
+            }
+            // Tipos embutidos escritos como função nativa (`slice`) têm o mesmo `__module__` dos demais.
+            Value::Builtin(_) | Value::NativeFn(_)
+                if name == "__module__" && (matches!(obj, Value::Builtin(_)) || crate::builtins::class_name(obj).is_some()) =>
+            {
+                return Ok(Value::str("builtins"))
+            }
             // Funções e tipos embutidos: a docstring do CPython (`builtins` na tabela).
             Value::Builtin(b) if name == "__doc__" => {
                 return Ok(crate::modules::cpydocs::builtin_doc(b).map_or(Value::None, Value::str));
+            }
+            // `float.__text_signature__`: a assinatura que o CPython tira do `tp_doc` do tipo.
+            Value::Builtin(_) | Value::NativeFn(_)
+                if name == "__text_signature__"
+                    && crate::builtins::class_name(obj).and_then(crate::typeattrs::type_text_signature).is_some() =>
+            {
+                return Ok(crate::builtins::class_name(obj).and_then(crate::typeattrs::type_text_signature).map_or(Value::None, Value::str));
+            }
+            Value::Builtin(b) if name == "__text_signature__" && crate::builtins::class_name(obj).is_none() => {
+                return Ok(crate::modules::cpydocs::module_function_signature("builtins", b).map_or(Value::None, Value::str));
             }
             Value::NativeFn(f) if name == "__doc__" => {
                 let doc = crate::modules::cpydocs::native_doc(f).or_else(|| {
@@ -2999,15 +5148,56 @@ impl Vm {
                 if matches!(name, "__name__" | "__qualname__") {
                     return Ok(Value::str(f.name.rsplit('.').next().unwrap_or(f.name)));
                 }
+                if name == "__text_signature__" && crate::builtins::class_name(obj).is_none() {
+                    let sig = crate::modules::cpydocs::native_signature(f)
+                        .or_else(|| crate::builtins::get(f.name).and_then(|_| crate::modules::cpydocs::module_function_signature("builtins", f.name)));
+                    return Ok(sig.map_or(Value::None, Value::str));
+                }
+                // Função embutida de módulo (`len`, `math.sqrt`): `__module__` e `__self__` são o módulo
+                // dono; as `builtins` valem para o que a tabela de `builtins` tem.
+                if matches!(name, "__module__" | "__self__") && crate::builtins::class_name(obj).is_none() {
+                    let owner = crate::modules::cpydocs::native_owner(f)
+                        .or_else(|| crate::builtins::get(f.name).map(|_| "builtins".to_string()));
+                    return match (owner, name) {
+                        (Some(owner), "__module__") => Ok(Value::str(owner)),
+                        (Some(owner), _) => crate::modules::import_checked(self, &owner).map(Value::Module),
+                        // Sem módulo dono (os tratadores de erro de codec): `m_module` e `m_self` NULL.
+                        (None, _) => Ok(Value::None),
+                    };
+                }
             }
             Value::Exception(e) if name == "__class__" => return Ok(Value::Builtin(e.kind)),
+            // Função de módulo em C do CPython escrita em Python aqui: `__module__` é o módulo C e `__self__` é ele.
+            Value::Function(f) if matches!(name, "__module__" | "__self__") && f.c_owner().is_some() => {
+                let owner = f.c_owner().unwrap_or_default();
+                return if name == "__module__" { Ok(Value::str(owner)) } else { crate::modules::import_checked(self, &owner).map(Value::Module) };
+            }
+            // A assinatura de texto da função de C vem da tabela gerada no oráculo, pelo módulo C dono.
+            Value::Function(f) if name == "__text_signature__" && f.c_owner().is_some() => {
+                let owner = f.c_owner().unwrap_or_default();
+                return Ok(crate::modules::cpydocs::module_function_signature(&owner, f.plain_qual()).map_or(Value::None, Value::str));
+            }
+            // O `__text_signature__` de uma função de C: a tabela gerada no oráculo, pelo módulo C e pelo nome.
+            Value::Function(f) if name == "__text_signature__" && f.c_owner().is_some() => {
+                let owner = f.c_owner().unwrap_or_default();
+                return Ok(crate::modules::cpydocs::module_function_signature(&owner, f.plain_qual()).map_or(Value::None, Value::str));
+            }
             Value::Function(f) => {
                 if let Some(v) = f.attrs.borrow().get(name) {
                     return Ok(v.clone());
                 }
                 match name {
-                    // `f.__call__(...)` chama `f` (o `unittest.mock` testa `__call__` para saber se é chamável).
-                    "__call__" => return Ok(obj.clone()),
+                    // Uma função de C não tem código, globais, padrões, anotações nem `__dict__`: cai no AttributeError.
+                    "__code__" | "__globals__" | "__defaults__" | "__kwdefaults__" | "__annotations__" | "__dict__" | "__closure__"
+                    | "__builtins__" | "__type_params__"
+                        if f.is_c_function() => {}
+                    // `f.__call__(...)` chama `f` (o `unittest.mock` testa `__call__` para saber se é chamável):
+                    // no CPython é o `method-wrapper` do slot `tp_call` de `function`.
+                    "__call__" => return Ok(Value::Bound(Rc::new(BoundMethod { recv: obj.clone(), name: "__call__" }))),
+                    // `function.__get__`: o `method-wrapper` do descritor, que `singledispatchmethod` chama.
+                    "__get__" if !f.is_c_function() => {
+                        return Ok(Value::Bound(Rc::new(BoundMethod { recv: obj.clone(), name: "__get__" })))
+                    }
                     "__name__" => return Ok(Value::str(f.code.name.clone())),
                     "__qualname__" => return Ok(Value::str(f.code.qual())),
                     "__defaults__" => {
@@ -3024,6 +5214,15 @@ impl Vm {
                         return Ok(Value::dict(d));
                     }
                     "__doc__" => return Ok(f.code.doc.clone().map_or(Value::None, Value::str)),
+                    "__globals__" => return Ok(crate::globalsview::view_for(&f.globals, None)),
+                    "__builtins__" => {
+                        if let Some(builtins) = crate::modules::builtins_dict(self) {
+                            return Ok(builtins);
+                        }
+                    }
+                    // Sem variáveis livres a função não tem células; as que têm seguem sem o atributo.
+                    "__closure__" if f.closure.is_none() => return Ok(Value::None),
+                    "__type_params__" => return Ok(Value::tuple(Vec::new())),
                     "__annotations__" => {
                         let d = Value::dict(Dict::default());
                         f.attrs.borrow_mut().insert("__annotations__".to_string(), d.clone());
@@ -3054,14 +5253,23 @@ impl Vm {
             Value::BoundFn(b) if b.1.attrs.borrow().contains_key(name) => {
                 return Ok(b.1.attrs.borrow().get(name).cloned().unwrap_or(Value::None))
             }
-            Value::Bound(b) => match name {
-                "__self__" => return Ok(b.recv.clone()),
-                "__name__" | "__qualname__" => return Ok(Value::str(b.name)),
-                // Os métodos das extensões em C do Pillow (`Font.render`, `ImagingCore.getpixel`...)
-                // têm `ml_doc` NULL.
-                "__doc__" if matches!(b.recv, Value::Ext(_)) => return Ok(Value::None),
-                _ => {}
-            },
+            Value::Bound(b) => {
+                // `__self__`, `__name__`, `__qualname__`, `__objclass__` (só nos wrappers de slot), `__module__`
+                // e `__text_signature__` do método embutido ligado.
+                if let Some(v) = crate::typeattrs::bound_method_attr(&b.recv, b.name, name) {
+                    return Ok(v);
+                }
+                match name {
+                    // Os métodos das extensões em C do Pillow (`Font.render`, `ImagingCore.getpixel`...)
+                    // têm `ml_doc` NULL.
+                    "__doc__" if matches!(b.recv, Value::Ext(_)) => return Ok(Value::None),
+                    // `[].append.__doc__`, `(0).__add__.__doc__`: o do método do tipo embutido do receptor.
+                    "__doc__" if crate::typeattrs::TYPES.contains(&b.recv.type_name()) => {
+                        return Ok(crate::typeattrs::method_doc(b.recv.type_name(), b.name).map_or(Value::None, Value::str))
+                    }
+                    _ => {}
+                }
+            }
             Value::BoundFn(b) => match name {
                 "__doc__" | "__module__" | "__qualname__" | "__code__" | "__dict__" => {
                     return self.load_attr(&Value::Function(b.1.clone()), name)
@@ -3096,6 +5304,20 @@ impl Vm {
                 Ok(e.extra_get("__notes__").unwrap_or(Value::None))
             }
             Value::Exception(e) if name == "__traceback__" => Ok(e.traceback.borrow().clone().unwrap_or(Value::None)),
+            // Atributo que o programa gravou na exceção (`e.x = 5`), e o `__dict__` com todos eles.
+            Value::Exception(e) if e.dict_get(name).is_some() => Ok(e.dict_get(name).unwrap_or(Value::None)),
+            Value::Exception(e) if name == "__dict__" => {
+                let mut d = Dict::default();
+                for (k, v) in e.dict_items() {
+                    d.set(Value::str(k), v)?;
+                }
+                Ok(Value::dict(d))
+            }
+            // `BaseException.__reduce__`, `__reduce_ex__` (o de `object`) e `__setstate__`: métodos embutidos
+            // ligados (a lógica vive em `copyreg`, chamada por dentro do nativo).
+            Value::Exception(_) if matches!(name, "__reduce__" | "__reduce_ex__" | "__setstate__" | "__getstate__") => {
+                crate::classes::exception_method(obj, name).ok_or_else(|| missing())
+            }
             Value::Exception(e) if name == "code" && e.kind == "SystemExit" => Ok(match e.args.as_slice() {
                 [] => Value::None,
                 [one] => one.clone(),
@@ -3165,6 +5387,25 @@ impl Vm {
                     _ => Value::None,
                 })
             }
+            // `UnicodeEncodeError(encoding, object, start, end, reason)`, o `UnicodeDecodeError` e o
+            // `UnicodeTranslateError(object, start, end, reason)`.
+            Value::Exception(e)
+                if matches!(name, "encoding" | "object" | "start" | "end" | "reason")
+                    && matches!(
+                        (e.kind, e.args.len()),
+                        ("UnicodeEncodeError" | "UnicodeDecodeError", 5) | ("UnicodeTranslateError", 4)
+                    ) =>
+            {
+                let fields: &[&str] = if e.kind == "UnicodeTranslateError" {
+                    &["object", "start", "end", "reason"]
+                } else {
+                    &["encoding", "object", "start", "end", "reason"]
+                };
+                match fields.iter().position(|n| *n == name) {
+                    Some(index) => Ok(e.args[index].clone()),
+                    None => Err(missing()),
+                }
+            }
             Value::Exception(e) if name == "filename2" && exc_is_subclass(&e.kind, "OSError") => {
                 Ok(e.args.get(4).cloned().unwrap_or(Value::None))
             }
@@ -3180,9 +5421,15 @@ impl Vm {
                     _ => file,
                 })
             }
-            Value::Range(_) | Value::Builtin("Ellipsis") if matches!(name, "__reduce_ex__" | "__reduce__") => {
+            // A função embutida de módulo (`codecs.encode`) também: o `__reduce__` devolve o nome, que o
+            // pickle grava como global.
+            Value::Builtin("Ellipsis") | Value::NativeFn(_)
+                if matches!(name, "__reduce_ex__" | "__reduce__")
+                    && (!matches!(obj, Value::NativeFn(_)) || crate::builtins::class_name(obj).is_none()) =>
+            {
                 let m = crate::modules::import_checked(self, "copyreg")?;
-                match self.load_attr(&Value::Module(m), "_builtin_reduce_ex")? {
+                let reducer = if name == "__reduce__" { "_builtin_reduce" } else { "_builtin_reduce_ex" };
+                match self.load_attr(&Value::Module(m), reducer)? {
                     Value::Function(f) => return Ok(Value::BoundFn(Rc::new((obj.clone(), f)))),
                     _ => return Err(missing()),
                 }
@@ -3193,7 +5440,7 @@ impl Vm {
                 _ => r.step,
             })),
             Value::Int(_) | Value::Big(_) | Value::Bool(_) if matches!(name, "real" | "numerator") => {
-                Ok(if let Value::Bool(b) = obj { Value::Int(i64::from(*b)) } else { obj.clone() })
+                Ok(crate::methods::dunder::plain_int(obj))
             }
             Value::Int(_) | Value::Big(_) | Value::Bool(_) if name == "imag" => Ok(Value::Int(0)),
             Value::Int(_) | Value::Big(_) | Value::Bool(_) if name == "denominator" => Ok(Value::Int(1)),
@@ -3209,14 +5456,19 @@ impl Vm {
             }
             Value::Str(_) | Value::Int(_) | Value::Big(_) | Value::Bool(_) | Value::Float(_) | Value::None
                 | Value::Tuple(_) | Value::List(_) | Value::Dict(_) | Value::Bytes(_) | Value::Set(_)
+                | Value::ByteArray(_) | Value::Range(_) | Value::Slice(_)
                 if name == "__doc__" =>
             {
-                Ok(Value::None)
+                // A docstring do tipo, como a que o CPython lê pela instância.
+                Ok(crate::modules::cpydocs::builtin_doc(obj.type_name()).map_or(Value::None, Value::str))
             }
             v if name == "__class__" && !matches!(v, Value::Instance(_) | Value::Class(_) | Value::Exception(_)) => {
                 Ok(self.type_of(v))
             }
             Value::Module(m) => {
+                if let Some(found) = self.module_class_data_attr(m, name) {
+                    return found;
+                }
                 if let Some(g) = self.module_globals.borrow().get(m.name) {
                     if let Some(v) = g.borrow().get(name) {
                         return Ok(v.clone());
@@ -3232,6 +5484,10 @@ impl Vm {
                     // nativo entram como complemento.
                     let live = self.module_globals.borrow().get(m.name).cloned();
                     if let Some(map) = live {
+                        // `__loader__` e `__spec__` fazem parte do dict do módulo desde a criação.
+                        if !map.borrow().contains_key("__spec__") {
+                            let _ = self.module_spec(m, "__spec__");
+                        }
                         let view = crate::globalsview::view_for(&map, Some(m.attrs.borrow().clone()));
                         crate::builtins_ext::module_dict_register(m.name, &view);
                         return Ok(view);
@@ -3244,9 +5500,21 @@ impl Vm {
                     }
                     return Ok(crate::builtins_ext::module_dict_value(m.name, d));
                 }
-                match m.attrs.borrow().get(name) {
-                    Some(v) => Ok(v.clone()),
-                    None => Err(exc("AttributeError", format!("module '{}' has no attribute '{name}'", m.name))),
+                let found = m.attrs.borrow().get(name).cloned();
+                match found {
+                    Some(v) => Ok(v),
+                    // `object.__getstate__` (3.11+) também vale para o módulo: vive em `copyreg`.
+                    None if name == "__getstate__" => {
+                        let copyreg = crate::modules::import_checked(self, "copyreg")?;
+                        match self.load_attr(&Value::Module(copyreg), "_object_getstate")? {
+                            Value::Function(f) => Ok(Value::BoundFn(Rc::new((obj.clone(), f)))),
+                            _ => self.module_missing_attr(m, name),
+                        }
+                    }
+                    None => match self.module_class_attr(m, name) {
+                        Some(attr) => attr,
+                        None => self.module_missing_attr(m, name),
+                    },
                 }
             }
             Value::Native(n) => {
@@ -3257,8 +5525,14 @@ impl Vm {
                                 return Ok(crate::stdbuf::StdBuffer::value(n, f.kind));
                             }
                             "encoding" => return Ok(Value::str("utf-8")),
-                            "errors" => return Ok(Value::str("surrogateescape")),
+                            "errors" => {
+                                // O `sys.stderr` do CPython usa `backslashreplace`; stdin e stdout, `surrogateescape`.
+                                let errors = if f.kind == FileKind::Stderr { "backslashreplace" } else { "surrogateescape" };
+                                return Ok(Value::str(errors));
+                            }
                             "newlines" => return Ok(Value::None),
+                            // O tipo do `sys.stdout` é o `_io.TextIOWrapper` (tipo de heap em C, com `__module__` no dict).
+                            "__module__" => return Ok(Value::str("_io")),
                             "line_buffering" | "write_through" => return Ok(Value::Bool(false)),
                             "mode" => {
                                 return Ok(Value::str(if matches!(f.kind, FileKind::Stdin | FileKind::Read) { "r" } else { "w" }))
@@ -3292,17 +5566,38 @@ impl Vm {
                 }
             }
             Value::Ext(e) => {
+                if e.type_name() == "object" {
+                    if let Some(m) = crate::classes::plain_object_method(obj, name) {
+                        return Ok(m);
+                    }
+                    // Atributos do tipo que não dependem da instância: o `__doc__` de `object` e os métodos de
+                    // classe e estáticos (`__init_subclass__`, `__subclasshook__`, `__new__`).
+                    if matches!(name, "__doc__" | "__init_subclass__" | "__subclasshook__" | "__new__") {
+                        let ty = self.type_of(obj);
+                        return self.load_attr(&ty, name);
+                    }
+                }
                 if let Some(m) = e.methods().iter().find(|m| **m == name) {
                     return Ok(Value::Bound(Rc::new(BoundMethod { recv: obj.clone(), name: m })));
                 }
                 match e.clone().getattr(self, name) {
                     Some(r) => r,
-                    None => Err(missing()),
+                    // O que o `dir()` do tipo lista e o objeto não implementa: os mágicos de `object` e do tipo
+                    // (`iter([]).__eq__`), ligados ao objeto como método embutido, mais `__doc__` e `__new__`.
+                    None => match crate::methods::lookup(obj, name) {
+                        Some((n, _)) => Ok(Value::Bound(Rc::new(BoundMethod { recv: obj.clone(), name: n }))),
+                        None => crate::typeattrs::inherited_type_attr(obj, name).ok_or_else(missing),
+                    },
                 }
             }
+            // Os tipos mutáveis não têm hash: `[].__hash__` é `None`, não um método.
+            Value::List(_) | Value::Dict(_) | Value::ByteArray(_) if name == "__hash__" => Ok(Value::None),
+            Value::Set(s) if name == "__hash__" && !s.borrow().is_frozen() => Ok(Value::None),
             _ => match crate::methods::lookup(obj, name) {
                 Some((n, _)) => Ok(Value::Bound(Rc::new(BoundMethod { recv: obj.clone(), name: n }))),
-                None => Err(missing()),
+                None => crate::methods::value_attr(obj, name)
+                    .or_else(|| crate::typeattrs::inherited_type_attr(obj, name))
+                    .ok_or_else(missing),
             },
         }
     }
@@ -3375,10 +5670,14 @@ impl Vm {
                     Some(Value::Int(k)) if *k >= 0 => Some(*k as usize),
                     _ => None,
                 };
-                if let (Some(k), Native::File(f)) = (limit, &mut *n.borrow_mut()) {
-                    if f.kind == FileKind::Stdin && !f.closed {
-                        return Ok(Value::str(crate::stdin::text_chars(f, k)));
+                if let Some(k) = limit {
+                    if matches!(&*n.borrow(), Native::File(f) if f.kind == FileKind::Stdin && !f.closed) {
+                        return Ok(Value::str(crate::stdin::text_chars(n, k)?));
                     }
+                }
+                if matches!(&*n.borrow(), Native::File(f) if f.kind == FileKind::Stdin && !f.closed) {
+                    // Uma operação só: parar por falta de entrada não deixa linha consumida para trás.
+                    return Ok(Value::str(crate::stdin::text_all(n)?));
                 }
                 let mut out = String::new();
                 while let Some(l) = file_readline(n)? {
@@ -3418,6 +5717,33 @@ impl Vm {
         }
     }
 
+    /// O fim do `module_getattro` do CPython (PEP 562): o atributo ausente consulta o `__getattr__` do dict
+    /// do módulo, chamado com o nome; sem ele, o `AttributeError` distingue o módulo ainda em importação.
+    fn module_missing_attr(&mut self, m: &Rc<crate::object::ModuleObj>, name: &str) -> PyResult<Value> {
+        let live = self.module_globals.borrow().get(m.name).cloned();
+        let hook = live
+            .as_ref()
+            .and_then(|g| g.borrow().get("__getattr__").cloned())
+            .or_else(|| m.attrs.borrow().get("__getattr__").cloned());
+        if let Some(hook) = hook {
+            return self.call(&hook, vec![Value::str(name)], Vec::new());
+        }
+        if let Some(found) = self.module_class_getattr(m, name) {
+            return found;
+        }
+        let dict_name = live.as_ref().and_then(|g| g.borrow().get("__name__").cloned());
+        let msg = match dict_name {
+            Some(Value::Str(n)) if crate::modules::is_initializing(m.name) => format!(
+                "partially initialized module '{}' has no attribute '{name}' (most likely due to a circular import)",
+                n.as_str()
+            ),
+            Some(Value::Str(n)) => format!("module '{}' has no attribute '{name}'", n.as_str()),
+            Some(_) => format!("module has no attribute '{name}'"),
+            None => format!("module '{}' has no attribute '{name}'", m.name),
+        };
+        Err(exc("AttributeError", msg))
+    }
+
     /// `__spec__`/`__loader__` de um módulo carregado de arquivo: construídos na primeira leitura
     /// por `_frozen_importlib_external` e guardados nas globais do módulo.
     fn module_spec(&mut self, m: &Rc<crate::object::ModuleObj>, name: &str) -> PyResult<Option<Value>> {
@@ -3453,8 +5779,18 @@ impl Vm {
         let spec = self.call(&make, vec![Value::str(m.name), Value::str(file), Value::Bool(is_package), Value::Bool(frozen)], Vec::new())?;
         let loader = self.load_attr(&spec, "loader")?;
         let mut g = globals.borrow_mut();
-        g.insert("__spec__".into(), spec.clone());
-        g.insert("__loader__".into(), loader.clone());
+        // No CPython `__loader__` e `__spec__` já estão no dict desde a criação do módulo, logo depois do
+        // `__package__`: inseridos aqui, vão para essa posição.
+        let mut at = g.get_index_of("__package__").map(|p| p + 1);
+        for (key, val) in [("__loader__", loader.clone()), ("__spec__", spec.clone())] {
+            let fresh = !g.contains_key(key);
+            g.insert(key.into(), val);
+            if let (true, Some(pos)) = (fresh, at) {
+                let last = g.len() - 1;
+                g.move_index(last, pos.min(last));
+                at = Some(pos + 1);
+            }
+        }
         Ok(Some(if name == "__spec__" { spec } else { loader }))
     }
 
@@ -3473,11 +5809,11 @@ impl Vm {
             return Err(type_error("expected at least 1 argument, got 0"));
         };
         let mut d = csv::Dialect::default();
-        let one_char = |k: &str, v: &Value| -> PyResult<Option<char>> {
+        let one_char = |k: &str, v: &Value| -> PyResult<Option<u32>> {
             match v {
                 Value::None => Ok(None),
-                Value::Str(s) if s.as_str().chars().count() == 1 => Ok(s.as_str().chars().next()),
-                Value::Str(_) => Err(type_error(format!("\"{k}\" must be a unicode character or None, not a string of length {}", match v { Value::Str(s) => s.as_str().chars().count(), _ => 0 }))),
+                Value::Str(s) if s.len() == 1 => Ok(s.cp_at(0)),
+                Value::Str(s) => Err(type_error(format!("\"{k}\" must be a unicode character or None, not a string of length {}", s.len()))),
                 _ => Err(type_error(format!("\"{k}\" must be string or None, not {}", v.type_name()))),
             }
         };
@@ -3522,14 +5858,14 @@ fn collect_check_iter(v: &Value) -> PyResult<()> {
 
 
 fn file_readline(n: &Rc<RefCell<Native>>) -> PyResult<Option<String>> {
+    if matches!(&*n.borrow(), Native::File(f) if f.kind == FileKind::Stdin && !f.closed) {
+        // Incremental: um pipe vivo entrega as linhas conforme chegam (ver `stdin.rs`).
+        return crate::stdin::text_line(n);
+    }
     let mut b = n.borrow_mut();
     let Native::File(f) = &mut *b else { return Err(type_error("not a file")) };
     if f.closed {
         return Err(exc("ValueError", "I/O operation on closed file."));
-    }
-    if f.kind == FileKind::Stdin {
-        // Incremental: um pipe vivo entrega as linhas conforme chegam (ver `stdin.rs`).
-        return Ok(crate::stdin::text_line(f));
     }
     if f.kind == FileKind::Stdout || f.kind == FileKind::Stderr {
         return Err(exc("UnsupportedOperation", "not readable"));
@@ -3755,35 +6091,8 @@ fn builtin_seq(name: &'static str, args: Vec<Value>, kwargs: Vec<(String, Value)
             let items = iterate(&v)?;
             Ok(Value::Bool(if name == "any" { items.iter().any(Value::is_true) } else { items.iter().all(Value::is_true) }))
         }
-        "ord" => {
-            let [v] = one_arg(name, args)?;
-            match &v {
-                Value::Str(s) if s.as_str().chars().count() == 1 => {
-                    Ok(Value::Int(s.as_str().chars().next().map_or(0, |c| {
-                        i64::from(crate::object::char_surrogate(c).unwrap_or(u32::from(c)))
-                    })))
-                }
-                Value::Str(s) => Err(type_error(format!(
-                    "ord() expected a character, but string of length {} found",
-                    s.as_str().chars().count()
-                ))),
-                other => Err(type_error(format!("ord() expected string of length 1, but {} found", other.type_name()))),
-            }
-        }
-        _ => {
-            let [v] = one_arg(name, args)?;
-            match v {
-                Value::Int(i) if (0xD800..=0xDFFF).contains(&i) => {
-                    Ok(Value::str(crate::object::surrogate_to_char(i as u32).to_string()))
-                }
-                Value::Int(i) => u32::try_from(i)
-                    .ok()
-                    .and_then(char::from_u32)
-                    .map(|c| Value::str(c.to_string()))
-                    .ok_or_else(|| exc("ValueError", "chr() arg not in range(0x110000)")),
-                other => Err(type_error(format!("'{}' object cannot be interpreted as an integer", other.type_name()))),
-            }
-        }
+        "ord" => crate::builtins::ord_of(&one_arg(name, args)?[0]),
+        _ => crate::builtins::chr_of(&one_arg(name, args)?[0]),
     }
 }
 
@@ -3817,16 +6126,7 @@ pub(crate) fn len(v: &Value) -> PyResult<i64> {
         Value::Instance(_) => {
             let mut vm = current().ok_or_else(|| internal("no vm"))?;
             match vm.call_dunder(v, "__len__", Vec::new()) {
-                Some(r) => match r? {
-                    Value::Int(n) if n >= 0 => n,
-                    Value::Int(_) => return Err(exc("ValueError", "__len__() should return >= 0")),
-                    other => {
-                        return Err(type_error(format!(
-                            "'{}' object cannot be interpreted as an integer",
-                            other.type_name()
-                        )))
-                    }
-                },
+                Some(r) => len_result(r?)?,
                 None => return Err(type_error(format!("object of type '{}' has no len()", v.type_name()))),
             }
         }
@@ -3834,11 +6134,25 @@ pub(crate) fn len(v: &Value) -> PyResult<i64> {
     })
 }
 
+/// O valor que `__len__` devolveu como comprimento: inteiro não negativo, como o CPython exige.
+fn len_result(returned: Value) -> PyResult<i64> {
+    match returned {
+        Value::Int(n) if n >= 0 => Ok(n),
+        Value::Int(_) => Err(exc("ValueError", "__len__() should return >= 0")),
+        other => Err(type_error(format!("'{}' object cannot be interpreted as an integer", other.type_name()))),
+    }
+}
+
 /// Inteiro de um índice (`__index__`): `int` e `bool`.
 fn as_index(v: &Value) -> Option<i64> {
     match v {
         Value::Int(i) => Some(*i),
         Value::Bool(b) => Some(i64::from(*b)),
+        // Instância de subclasse de `int`: vale o inteiro que ela carrega.
+        Value::Instance(i) => match &*i.payload.borrow() {
+            Some(inner @ (Value::Int(_) | Value::Bool(_))) => as_index(inner),
+            _ => None,
+        },
         _ => None,
     }
 }
@@ -4000,8 +6314,8 @@ fn slice_of(container: &Value, s: &(Value, Value, Value)) -> PyResult<Value> {
                 }
                 Value::str(out)
             } else {
-                let chars: Vec<char> = text.as_str().chars().collect();
-                Value::str(slice_indices(chars.len(), s)?.into_iter().map(|i| chars[i]).collect::<String>())
+                let units: Vec<&str> = crate::object::units(text.as_str()).collect();
+                Value::str(slice_indices(units.len(), s)?.into_iter().map(|i| units[i]).collect::<String>())
             }
         }
         Value::Bytes(b) => Value::bytes(slice_indices(b.len(), s)?.into_iter().map(|i| b[i]).collect::<Vec<u8>>()),
@@ -4063,8 +6377,8 @@ pub(crate) fn subscript(container: &Value, index: &Value) -> PyResult<Value> {
                 type_error(format!("string indices must be integers, not '{}'", index.type_name()))
             })?;
             normalize(i, s.len())
-                .and_then(|i| s.char_at(i))
-                .map(|c| Value::str(c.to_string()))
+                .and_then(|i| s.unit_at(i))
+                .map(Value::str)
                 .ok_or_else(|| exc("IndexError", "string index out of range"))
         }
         Value::Bytes(b) => {
@@ -4274,6 +6588,64 @@ fn unsupported(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyException
     ))
 }
 
+/// Os valores do topo da pilha como chamada: o chamável, os posicionais e os nomeados de um `Call`,
+/// um `CallMethod` (o espaço do `self` que o `LoadMethod` deixa vazio sai) ou um `CallEx`.
+fn pop_call(code: &Code, stack: &mut Vec<Slot>, op: Op) -> PyResult<(Value, Vec<Value>, Vec<(String, Value)>)> {
+    fn pop(stack: &mut Vec<Slot>) -> PyResult<Value> {
+        match stack.pop() {
+            Some(Slot::Val(v)) => Ok(v),
+            _ => Err(internal("bad value stack")),
+        }
+    }
+    let (count, method, kwnames) = match op {
+        Op::Call { argc, kwnames } => (argc as usize, false, kwnames),
+        Op::CallMethod { argc, kwnames } => (argc as usize + 1, true, kwnames),
+        Op::CallEx { kwargs } => {
+            let kw = if kwargs { Some(pop(stack)?) } else { None };
+            let args = pop(stack)?;
+            let func = pop(stack)?;
+            let positional = iterate(&args)?;
+            let mut named: Vec<(String, Value)> = Vec::new();
+            if let Some(Value::Dict(d)) = kw {
+                for (k, v) in d.borrow().iter() {
+                    let Value::Str(s) = k else {
+                        return Err(type_error("keywords must be strings"));
+                    };
+                    named.push((s.as_str().to_string(), v.clone()));
+                }
+            }
+            return Ok((func, positional, named));
+        }
+        _ => return Err(internal("not a call instruction")),
+    };
+    if stack.len() <= count {
+        return Err(internal("bad value stack"));
+    }
+    let at = stack.len() - count - 1;
+    let mut drained = stack.drain(at..);
+    let func = match drained.next() {
+        Some(Slot::Val(v)) => v,
+        _ => return Err(internal("bad value stack")),
+    };
+    let mut values = Vec::with_capacity(count);
+    for s in drained {
+        match s {
+            Slot::Val(Value::Builtin(NO_SELF)) if method && values.is_empty() => {}
+            Slot::Val(v) => values.push(v),
+            _ => return Err(internal("bad value stack")),
+        }
+    }
+    // Os nomes vêm de uma tupla constante: os pares saem direto dela, sem lista intermediária.
+    let kwargs: Vec<(String, Value)> = match kwnames.map(|i| &code.consts[i as usize]) {
+        Some(Value::Tuple(t)) => {
+            let kw_values = values.split_off(values.len() - t.len());
+            t.iter().map(to_str).zip(kw_values).collect()
+        }
+        _ => Vec::new(),
+    };
+    Ok((func, values, kwargs))
+}
+
 /// Os dois valores do topo da pilha são `int` ou `float` (os operadores correm sem despacho de objetos).
 #[inline]
 fn num_pair(stack: &[Slot]) -> bool {
@@ -4329,6 +6701,11 @@ fn binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyResult<Value> 
     {
         return r;
     }
+    binary_native(op, a, b, inplace)
+}
+
+/// O resto de `binary`, depois dos métodos mágicos de instâncias.
+fn binary_native(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyResult<Value> {
     if let Value::Ext(e) = a
         && let Some(r) = e.binop(op_symbol(op), b, false)
     {
@@ -4428,24 +6805,22 @@ fn binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyResult<Value> 
         (Operator::Add, Value::Tuple(_), _) => {
             Err(type_error(format!("can only concatenate tuple (not \"{}\") to tuple", b.type_name())))
         }
-        (Operator::Add, Value::Bytes(x), Value::Bytes(y)) => Ok(Value::bytes([&x[..], &y[..]].concat())),
-        (Operator::Add, Value::ByteArray(x), Value::ByteArray(_) | Value::Bytes(_)) => {
-            let extra = b.bytes_like().unwrap_or_else(|| Rc::from(&[][..]));
-            if inplace {
+        // Qualquer objeto com buffer (`memoryview`): como o `bytes_concat` e o `bytearray_concat` do CPython,
+        // o resultado tem o tipo da esquerda (`header + m[0:n]` do `multiprocessing.connection`). Cobre
+        // também `bytes + bytes`, `bytes + bytearray` e `bytearray + bytes`.
+        (Operator::Add, Value::Bytes(_) | Value::ByteArray(_), _) => match (a, b.bytes_like()) {
+            (Value::Bytes(x), Some(extra)) => Ok(Value::bytes([&x[..], &extra[..]].concat())),
+            (Value::ByteArray(x), Some(extra)) if inplace => {
                 x.borrow_mut().extend_from_slice(&extra);
                 Ok(a.clone())
-            } else {
+            }
+            (Value::ByteArray(x), Some(extra)) => {
                 let mut out = x.borrow().clone();
                 out.extend_from_slice(&extra);
                 Ok(Value::bytearray(out))
             }
-        }
-        (Operator::Add, Value::Bytes(x), Value::ByteArray(y)) => Ok(Value::bytes([&x[..], &y.borrow()[..]].concat())),
-        (Operator::Add, Value::Bytes(_) | Value::ByteArray(_), _) => Err(type_error(format!(
-            "can't concatenate {} and {}",
-            a.type_name(),
-            b.type_name()
-        ))),
+            _ => Err(type_error(format!("can't concatenate {} and {}", a.type_name(), b.type_name()))),
+        },
         (Operator::Mult, Value::ByteArray(x), n) | (Operator::Mult, n, Value::ByteArray(x)) if as_index(n).is_some() => {
             let count = as_index(n).unwrap_or(0);
             let out = repeat(&x.borrow()[..], count)?;
@@ -4713,8 +7088,9 @@ fn float_divmod(vx: f64, wx: f64) -> (f64, f64) {
     (floordiv, m)
 }
 
-/// Operador binário com instância de classe de usuário: `__add__`, depois `__radd__` do outro lado.
-fn instance_binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> Option<PyResult<Value>> {
+/// As tentativas de `a OP b` com instância, na ordem: o `__iop__` (forma aumentada) e o `__op__` de
+/// `a`, depois o `__rop__` de `b`.
+fn binary_tries(op: Operator, a: &Value, b: &Value, inplace: bool) -> Vec<Attempt> {
     let sym = match op {
         Operator::Add => "+",
         Operator::Sub => "-",
@@ -4730,20 +7106,92 @@ fn instance_binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> Option<
         Operator::RShift => ">>",
         Operator::MatMult => "@",
     };
-    let (fwd, rev, inp) = crate::classes::binop_dunder(sym)?;
-    let mut vm = current()?;
-    let mut tries: Vec<(&Value, &str, &Value)> = Vec::new();
+    let Some((fwd, rev, inp)) = crate::classes::binop_dunder(sym) else { return Vec::new() };
+    let attempt = |recv: &Value, name, other: &Value| Attempt { recv: recv.clone(), name, other: other.clone(), invert: false };
+    let mut tries = Vec::new();
+    if matches!(a, Value::Instance(_)) && inplace {
+        tries.push(attempt(a, inp, b));
+    }
+    // `slot_nb_*` do CPython: o operando direito de subclasse estrita que redefine o refletido o
+    // tenta antes do método direto do esquerdo.
+    if right_overrides(a, b, rev) {
+        tries.push(attempt(b, rev, a));
+        tries.push(attempt(a, fwd, b));
+        return tries;
+    }
     if matches!(a, Value::Instance(_)) {
-        if inplace {
-            tries.push((a, inp, b));
-        }
-        tries.push((a, fwd, b));
+        tries.push(attempt(a, fwd, b));
     }
     if matches!(b, Value::Instance(_)) {
-        tries.push((b, rev, a));
+        tries.push(attempt(b, rev, a));
     }
-    for (recv, name, other) in tries {
-        if let Some(r) = vm.call_dunder(recv, name, vec![other.clone()]) {
+    tries
+}
+
+/// O operando direito é de subclasse estrita do esquerdo e o refletido `name` dele não é o mesmo
+/// que o esquerdo enxerga (`method_is_overloaded` do CPython).
+fn right_overrides(a: &Value, b: &Value, name: &str) -> bool {
+    let (Value::Instance(left), Value::Instance(right)) = (a, b) else { return false };
+    if !crate::classes::right_is_subclass(a, b) {
+        return false;
+    }
+    match (right.class().lookup(name), left.class().lookup(name)) {
+        (None, _) => false,
+        (Some(_), None) => true,
+        (Some(r), Some(l)) => !crate::object::is(&l, &r),
+    }
+}
+
+/// Os métodos de `<`, `<=`, `>`, `>=`: o direto do operando da esquerda e o refletido do da direita.
+fn order_dunders(op: CmpOp) -> (&'static str, &'static str) {
+    match op {
+        CmpOp::Lt => ("__lt__", "__gt__"),
+        CmpOp::LtE => ("__le__", "__ge__"),
+        CmpOp::Gt => ("__gt__", "__lt__"),
+        _ => ("__ge__", "__le__"),
+    }
+}
+
+/// As tentativas de `a < b` e afins, na ordem: o `richcompare` do operando direito vai primeiro
+/// quando ele é de subclasse estrita do esquerdo (`do_richcompare`).
+fn order_attempts(op: CmpOp, a: &Value, b: &Value) -> Vec<Attempt> {
+    let (forward, reflected) = order_dunders(op);
+    let mut attempts = vec![
+        Attempt { recv: a.clone(), name: forward, other: b.clone(), invert: false },
+        Attempt { recv: b.clone(), name: reflected, other: a.clone(), invert: false },
+    ];
+    if crate::classes::right_is_subclass(a, b) {
+        attempts.reverse();
+    }
+    attempts
+}
+
+/// As tentativas de `a == b` e `a != b`: o método de cada lado que é função Python. O `!=` usa o
+/// `__ne__` da classe e, sem ele, o `__eq__` invertido (o `object.__ne__`). O direito de subclasse
+/// estrita do esquerdo vai primeiro.
+fn equal_attempts(op: CmpOp, a: &Value, b: &Value) -> Vec<Attempt> {
+    let not_equal = op == CmpOp::NotEq;
+    let sides = if crate::classes::right_is_subclass(a, b) { [(b, a), (a, b)] } else { [(a, b), (b, a)] };
+    sides
+        .into_iter()
+        .filter_map(|(recv, other)| {
+            let (name, invert) = if not_equal && dunder_function(recv, "__ne__").is_some() {
+                ("__ne__", false)
+            } else if dunder_function(recv, "__eq__").is_some() {
+                ("__eq__", not_equal)
+            } else {
+                return None;
+            };
+            Some(Attempt { recv: recv.clone(), name, other: other.clone(), invert })
+        })
+        .collect()
+}
+
+/// Operador binário com instância de classe de usuário: `__add__`, depois `__radd__` do outro lado.
+fn instance_binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> Option<PyResult<Value>> {
+    let mut vm = current()?;
+    for at in binary_tries(op, a, b, inplace) {
+        if let Some(r) = vm.call_dunder(&at.recv, at.name, vec![at.other]) {
             match r {
                 Ok(v) if crate::classes::is_not_implemented(&v) => {}
                 other => return Some(other),
@@ -4753,15 +7201,29 @@ fn instance_binary(op: Operator, a: &Value, b: &Value, inplace: bool) -> Option<
     None
 }
 
+/// O `__traceback__` da exceção em curso, o terceiro argumento do `__exit__` de um `with`.
+fn exception_traceback(raised: &Value) -> Value {
+    match raised {
+        Value::Exception(x) => x.traceback.borrow().clone(),
+        Value::Instance(i) => i.dict.borrow().get("__traceback__").cloned(),
+        _ => None,
+    }
+    .unwrap_or(Value::None)
+}
+
+/// O método mágico de um operador unário (`not` não tem: é a verdade do operando).
+fn unary_dunder(op: UnaryOp) -> Option<&'static str> {
+    match op {
+        UnaryOp::USub => Some("__neg__"),
+        UnaryOp::UAdd => Some("__pos__"),
+        UnaryOp::Invert => Some("__invert__"),
+        UnaryOp::Not => None,
+    }
+}
+
 pub(crate) fn unary(op: UnaryOp, a: &Value) -> PyResult<Value> {
     if let Value::Instance(_) = a {
-        let name = match op {
-            UnaryOp::USub => Some("__neg__"),
-            UnaryOp::UAdd => Some("__pos__"),
-            UnaryOp::Invert => Some("__invert__"),
-            UnaryOp::Not => None,
-        };
-        if let (Some(name), Some(mut vm)) = (name, current())
+        if let (Some(name), Some(mut vm)) = (unary_dunder(op), current())
             && let Some(r) = vm.call_dunder(a, name, Vec::new())
         {
             return r;
@@ -4816,14 +7278,8 @@ fn compare(op: CmpOp, a: &Value, b: &Value) -> PyResult<bool> {
         && (matches!(a, Value::Instance(_)) || matches!(b, Value::Instance(_)))
         && let Some(mut vm) = current()
     {
-        let (fwd, rev) = match op {
-            CmpOp::Lt => ("__lt__", "__gt__"),
-            CmpOp::LtE => ("__le__", "__ge__"),
-            CmpOp::Gt => ("__gt__", "__lt__"),
-            _ => ("__ge__", "__le__"),
-        };
-        for (recv, name, other) in [(a, fwd, b), (b, rev, a)] {
-            if let Some(r) = vm.call_dunder(recv, name, vec![other.clone()]) {
+        for at in order_attempts(op, a, b) {
+            if let Some(r) = vm.call_dunder(&at.recv, at.name, vec![at.other]) {
                 let v = r?;
                 if !crate::classes::is_not_implemented(&v) {
                     return Ok(v.is_true());
@@ -4831,6 +7287,11 @@ fn compare(op: CmpOp, a: &Value, b: &Value) -> PyResult<bool> {
             }
         }
     }
+    compare_native(op, a, b)
+}
+
+/// O resto de `compare`, depois dos métodos mágicos de ordem de instâncias.
+fn compare_native(op: CmpOp, a: &Value, b: &Value) -> PyResult<bool> {
     if !matches!(op, CmpOp::Is | CmpOp::IsNot | CmpOp::In | CmpOp::NotIn) {
         if let Value::Ext(e) = a
             && let Some(r) = e.richcmp(cmp_symbol(op), b)
@@ -4882,6 +7343,21 @@ pub(crate) fn payload_dunder(payload: &Value, name: &str, args: Vec<Value>) -> O
         }
         "__contains__" => return Some(contains(payload, &args[0]).map(Value::Bool)),
         "__len__" => return Some(len(payload).map(Value::Int)),
+        // Os operadores unários e as funções numéricas de uma subclasse de `int` ou `float` (`IntEnum`,
+        // `IntFlag`): o `-signal.SIGKILL` e o `abs()` agem sobre o valor embutido.
+        "__neg__" => return Some(unary(UnaryOp::USub, payload)),
+        "__pos__" => return Some(unary(UnaryOp::UAdd, payload)),
+        "__invert__" => return Some(unary(UnaryOp::Invert, payload)),
+        "__abs__" => {
+            let mut vm = current()?;
+            return Some(vm.call(&crate::builtins::get("abs")?, vec![payload.clone()], Vec::new()));
+        }
+        "__divmod__" | "__rdivmod__" => {
+            let mut vm = current()?;
+            let other = arg(0)?;
+            let pair = if name == "__divmod__" { vec![payload.clone(), other] } else { vec![other, payload.clone()] };
+            return Some(vm.call(&crate::builtins::get("divmod")?, pair, Vec::new()));
+        }
         "__iter__" => {
             let mut vm = current()?;
             return Some(vm.call(&crate::builtins::get("iter")?, vec![payload.clone()], Vec::new()));
@@ -4900,6 +7376,8 @@ pub(crate) fn payload_dunder(payload: &Value, name: &str, args: Vec<Value>) -> O
         "__and__" | "__rand__" | "__iand__" => Operator::BitAnd,
         "__or__" | "__ror__" | "__ior__" => Operator::BitOr,
         "__xor__" | "__rxor__" | "__ixor__" => Operator::BitXor,
+        "__lshift__" | "__rlshift__" => Operator::LShift,
+        "__rshift__" | "__rrshift__" => Operator::RShift,
         _ => return None,
     };
     let other = arg(0)?;
@@ -4913,7 +7391,7 @@ pub(crate) fn payload_dunder(payload: &Value, name: &str, args: Vec<Value>) -> O
 pub(crate) fn mapping_pairs(v: &Value) -> PyResult<Option<Vec<(Value, Value)>>> {
     match unwrap_payload(v) {
         Value::Dict(d) => Ok(Some(d.borrow().iter().map(|(k, x)| (k.clone(), x.clone())).collect())),
-        Value::Instance(i) if i.class.lookup("keys").is_some() => {
+        Value::Instance(i) if i.class().lookup("keys").is_some() => {
             let mut vm = current().ok_or_else(|| internal("no vm"))?;
             let keys_fn = vm.load_attr(v, "keys")?;
             let keys = vm.call(&keys_fn, Vec::new(), Vec::new())?;
@@ -4957,7 +7435,7 @@ pub(crate) fn contains(container: &Value, item: &Value) -> PyResult<bool> {
         Value::List(l) => Ok(member(&l.borrow()[..])),
         Value::Tuple(t) => Ok(member(&t[..])),
         Value::Str(s) => match item {
-            Value::Str(sub) => Ok(s.as_str().contains(sub.as_str())),
+            Value::Str(sub) => Ok(!crate::object::match_offsets(s.as_str(), sub.as_str(), 1).is_empty()),
             _ => Err(type_error(format!(
                 "'in <string>' requires string as left operand, not {}",
                 item.type_name()
@@ -5064,7 +7542,7 @@ fn order(op: CmpOp, a: &Value, b: &Value) -> PyResult<bool> {
         return Ok(ord.is_some_and(|o| apply(op, o)));
     }
     match (a, b) {
-        (Value::Str(x), Value::Str(y)) => Ok(apply(op, x.as_str().cmp(y.as_str()))),
+        (Value::Str(x), Value::Str(y)) => Ok(apply(op, str_cmp(x.as_str(), y.as_str()))),
         (Value::Bytes(_) | Value::ByteArray(_), Value::Bytes(_) | Value::ByteArray(_)) => {
             let (x, y) = (a.bytes_like().unwrap_or_else(|| Rc::from(&[][..])), b.bytes_like().unwrap_or_else(|| Rc::from(&[][..])));
             Ok(apply(op, x[..].cmp(&y[..])))
@@ -5177,6 +7655,60 @@ impl Vm {
         }
     }
 
+    /// `throw`/`close` num gerador de fora parado numa delegação (`gen_throw` do CPython): a exceção segue ao
+    /// sub-iterador que está no topo da pilha de `outer`. Um sub-gerador ou sub-corrente ganha quadro
+    /// (`Injected::Sub`, com a exceção em `Resuming::inject`; o desfecho volta pelo `ResumeUse::DelegateThrow`
+    /// ou `DelegateExit`); um sub-iterador comum (`yield from` sobre lista, instância com `throw`) responde na
+    /// hora, e um `GeneratorExit` o fecha antes. Sem `throw` no sub-iterador a exceção é levantada no de fora.
+    fn inject_delegated(&mut self, outer: &mut Callee, e: PyException) -> Injected {
+        if outer.link.resuming.is_none() {
+            return Injected::Raise(e);
+        }
+        let Frame { code, stack, pc, .. } = &mut outer.frame;
+        let Some(Op::DelegateNext(l)) = code.ops.get(*pc).copied() else { return Injected::Raise(e) };
+        let Some(Op::Delegate(end)) = code.ops.get(l as usize).copied() else { return Injected::Raise(e) };
+        let end = end as usize;
+        let Some(sub) = stack.last().and_then(slot_core) else {
+            return match self.delegate_throw(stack, e) {
+                Ok(Step::Yield(v)) => {
+                    stack.push(Slot::Val(v));
+                    *pc = l as usize + 1;
+                    Injected::Applied
+                }
+                Ok(Step::Done(v)) => {
+                    stack.pop();
+                    stack.push(Slot::Val(v));
+                    *pc = end;
+                    Injected::Applied
+                }
+                Err(e) => Injected::Raise(e),
+            };
+        };
+        let (inject, use_) = if e.kind == "GeneratorExit" {
+            if sub.close_if_plain() {
+                return Injected::Raise(e);
+            }
+            (exc("GeneratorExit", ""), ResumeUse::DelegateExit(e))
+        } else {
+            (e, ResumeUse::DelegateThrow { end })
+        };
+        match self.enter_resume(&sub, None, Some(inject), use_) {
+            Ok(Resumption::Frame(callee)) => Injected::Sub(callee),
+            Ok(Resumption::Ready(resumed, use_)) => {
+                let settled = if use_.closes() { sub.settle_close(Ok(resumed)) } else { Ok(resumed) };
+                match settled.and_then(|r| self.apply_resumed(code, stack, &sub, r, use_)) {
+                    Ok(Some(target)) => {
+                        *pc = target;
+                        Injected::Applied
+                    }
+                    Ok(None) => Injected::Applied,
+                    Err(x) => Injected::Raise(x),
+                }
+            }
+            Err(x) => Injected::Raise(x),
+        }
+    }
+
     /// Repassa a exceção injetada (`throw`) ao sub-iterador que está no topo da pilha.
     fn delegate_throw(&mut self, stack: &mut [Slot], e: PyException) -> PyResult<Step> {
         let target: Option<Value> = match stack.last() {
@@ -5203,8 +7735,9 @@ impl Vm {
     fn attr_of_type(&mut self, obj: &Value, name: &str) -> Option<Value> {
         match obj {
             Value::Instance(i) => {
-                let attr = i.class.lookup(name)?;
-                self.bind_class_attr(&attr, obj.clone(), &i.class).ok()
+                let class = i.class();
+                let attr = class.lookup(name)?;
+                self.bind_class_attr(&attr, obj.clone(), &class).ok()
             }
             Value::Ext(e) if e.methods().contains(&name) => self.load_attr(obj, name).ok(),
             _ => None,

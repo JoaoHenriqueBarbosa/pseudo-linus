@@ -64,9 +64,17 @@ pub struct Token {
     pub text: String,
     pub start: Pos,
     pub end: Pos,
+    /// O parser trocou o texto do identificador pelo NFKC (PEP 3131); um token assim nunca é
+    /// palavra-chave, porque o CPython compara as palavras-chave com o texto cru.
+    pub normalized: bool,
 }
 
 impl Token {
+    /// O token é o nome `word` escrito exatamente assim no fonte (palavras-chave, `_`, `print`).
+    pub fn is_word(&self, word: &str) -> bool {
+        self.kind == TokenType::Name && !self.normalized && self.text == word
+    }
+
     /// Tipo como o `tokenize` imprime sem `-e`: operadores viram `OP`.
     pub fn generic_kind(&self) -> TokenType {
         if self.kind.exact_text().is_some() || self.text == "<>" {
@@ -187,102 +195,7 @@ fn is_potential_identifier_char(c: char) -> bool {
     c.is_ascii_alphanumeric() || c == '_' || !c.is_ascii()
 }
 
-/// Marcas combinantes (Mn/Mc) dos blocos mais usados: são `XID_Continue` mas não `XID_Start`, e o
-/// `char::is_alphabetic` aceita várias delas por causa de `Other_Alphabetic`.
-const MARK_RANGES: &[(u32, u32)] = &[
-    (0x0300, 0x036F),
-    (0x0483, 0x0489),
-    (0x0591, 0x05BD),
-    (0x05BF, 0x05C7),
-    (0x0610, 0x061A),
-    (0x064B, 0x065F),
-    (0x0670, 0x0670),
-    (0x06D6, 0x06DC),
-    (0x06DF, 0x06E4),
-    (0x06E7, 0x06ED),
-    (0x0900, 0x0903),
-    (0x093A, 0x093C),
-    (0x093E, 0x094F),
-    (0x0951, 0x0957),
-    (0x0962, 0x0963),
-    (0x0981, 0x0983),
-    (0x09BC, 0x09BC),
-    (0x09BE, 0x09CD),
-    (0x0E31, 0x0E31),
-    (0x0E34, 0x0E3A),
-    (0x0E47, 0x0E4E),
-    (0x1AB0, 0x1AFF),
-    (0x1DC0, 0x1DFF),
-    (0x20D0, 0x20FF),
-    (0x302A, 0x302F),
-    (0x3099, 0x309A),
-    (0xFE00, 0xFE0F),
-    (0xFE20, 0xFE2F),
-];
-
-/// Números `No` (sobrescritos, frações, numerais circulados): `is_numeric` aceita, `XID_Continue` não.
-const OTHER_NUMBER_RANGES: &[(u32, u32)] = &[
-    (0x00B2, 0x00B3),
-    (0x00B9, 0x00B9),
-    (0x00BC, 0x00BE),
-    (0x2070, 0x209F),
-    (0x2150, 0x215F),
-    (0x2189, 0x2189),
-    (0x2460, 0x24FF),
-    (0x2776, 0x2793),
-    (0x3192, 0x3195),
-    (0x3220, 0x3229),
-    (0x3248, 0x325F),
-    (0x3280, 0x3289),
-    (0x32B1, 0x32BF),
-];
-
-fn in_ranges(c: char, ranges: &[(u32, u32)]) -> bool {
-    let n = c as u32;
-    ranges.iter().any(|&(a, b)| (a..=b).contains(&n))
-}
-
-/// `XID_Start`, aproximado pelas propriedades que a biblioteca padrão expõe.
-fn is_xid_start(c: char) -> bool {
-    if c.is_ascii() {
-        return c.is_ascii_alphabetic();
-    }
-    // Other_ID_Start.
-    if matches!(c, '\u{2118}' | '\u{212E}' | '\u{309B}' | '\u{309C}') {
-        return true;
-    }
-    c.is_alphabetic() && !in_ranges(c, MARK_RANGES)
-}
-
-/// `XID_Continue`, aproximado como `is_xid_start`.
-fn is_xid_continue(c: char) -> bool {
-    if c.is_ascii() {
-        return c.is_ascii_alphanumeric() || c == '_';
-    }
-    if is_xid_start(c) || in_ranges(c, MARK_RANGES) || c.is_alphabetic() {
-        return true;
-    }
-    // Other_ID_Continue e pontuação conectora.
-    if matches!(
-        c,
-        '\u{00B7}'
-            | '\u{0387}'
-            | '\u{1369}'..='\u{1371}'
-            | '\u{19DA}'
-            | '\u{203F}'
-            | '\u{2040}'
-            | '\u{2054}'
-            | '\u{FE33}'
-            | '\u{FE34}'
-            | '\u{FE4D}'..='\u{FE4F}'
-            | '\u{FF3F}'
-    ) {
-        return true;
-    }
-    c.is_numeric() && !in_ranges(c, OTHER_NUMBER_RANGES)
-}
-
-use crate::object::is_printable;
+use crate::object::{is_printable, is_xid_continue, is_xid_start};
 
 impl Tokenizer {
     /// Tokenizer sobre `source`. Como o `_PyTokenizer_translate_newlines`, `\r\n` e `\r` viram `\n` e
@@ -363,7 +276,7 @@ impl Tokenizer {
     }
 
     fn token(&self, kind: TokenType, start: usize) -> Token {
-        Token { kind, text: self.text(start, self.pos), start: self.here(start), end: self.here(self.pos) }
+        Token { kind, text: self.text(start, self.pos), start: self.here(start), end: self.here(self.pos), normalized: false }
     }
 
     fn error(&self, kind: ErrorKind, msg: String, offset: usize) -> TokenizeError {
@@ -547,7 +460,7 @@ impl Tokenizer {
                 } else {
                     TokenType::Newline
                 };
-                return Ok(Token { kind, text, start: start_pos, end });
+                return Ok(Token { kind, text, start: start_pos, end, normalized: false });
             }
             if ch == '.' {
                 let c = self.nextc();
@@ -663,7 +576,7 @@ impl Tokenizer {
             }
             _ => {}
         }
-        if !is_printable(ch) {
+        if !is_printable(u32::from(ch)) {
             return Err(self.syntax_error(format!("invalid non-printable character U+{:04X}", ch as u32)));
         }
         let one: String = ch.to_string();
@@ -703,14 +616,14 @@ impl Tokenizer {
     fn verify_identifier(&mut self, start: usize) -> Result<(), TokenizeError> {
         let bad = self.src[start..self.pos].iter().enumerate().find(|&(i, &c)| {
             if i == 0 {
-                !(c == '_' || is_xid_start(c))
+                !(c == '_' || is_xid_start(u32::from(c)))
             } else {
-                !is_xid_continue(c)
+                !is_xid_continue(u32::from(c))
             }
         });
         let Some((i, &ch)) = bad else { return Ok(()) };
         self.pos = start + i + 1;
-        let msg = if is_printable(ch) {
+        let msg = if is_printable(u32::from(ch)) {
             format!("invalid character '{ch}' (U+{:04X})", ch as u32)
         } else {
             format!("invalid non-printable character U+{:04X}", ch as u32)
@@ -1012,7 +925,7 @@ impl Tokenizer {
                 self.new_line();
             }
         }
-        Ok(Token { kind: TokenType::String, text: self.text(start, self.pos), start: start_pos, end: self.here(self.pos) })
+        Ok(Token { kind: TokenType::String, text: self.text(start, self.pos), start: start_pos, end: self.here(self.pos), normalized: false })
     }
 
     /// Início de f-string (o rótulo `f_string_quote` do C): `start` aponta para o prefixo e a aspa
@@ -1061,7 +974,7 @@ impl Tokenizer {
 
     /// FSTRING_MIDDLE de `start` (posição já calculada em `start_pos`) até `end`.
     fn middle(&self, start: usize, start_pos: Pos, end: usize) -> Token {
-        Token { kind: TokenType::FstringMiddle, text: self.text(start, end), start: start_pos, end: self.here(end) }
+        Token { kind: TokenType::FstringMiddle, text: self.text(start, end), start: start_pos, end: self.here(end), normalized: false }
     }
 
     /// "unterminated f-string literal", apontando para o início do prefixo como o C.

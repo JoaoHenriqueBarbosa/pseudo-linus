@@ -1,0 +1,1442 @@
+tool = "python3"
+source = "manual"
+
+# `os.fork` e a troca de thread dentro de construções que a VM já resolve sem recursão Rust
+# (wip/notes/python-fork.md, fatias G; wip/notes/python-threads.md): gerador retomado pelo `for`, por
+# `next()`, por `send()` e por `yield from`, e `contextlib.contextmanager` (`__enter__` e `__exit__` sem
+# exceção chamam `next(self.gen)`). Nada não determinístico aparece na saída: pids e tempos nunca são
+# impressos, a ordem é fixada por `waitpid` (fork) e por `Event` (threads).
+
+[[case]]
+id = "nest-fork-generator-for-next"
+script = '''
+python3 - <<'PYEOF'
+import os
+
+def reap(code):
+    pid = os.fork()
+    if pid == 0:
+        os._exit(code)
+    return os.WEXITSTATUS(os.waitpid(pid, 0)[1])
+
+def codes(n):
+    for i in range(n):
+        yield reap(i + 1)
+
+for value in codes(3):
+    print("for", value)
+print([v for v in codes(2)])
+g = codes(2)
+print(next(g), next(g), next(g, "end"))
+try:
+    next(g)
+except StopIteration as e:
+    print("stop", e.value)
+PYEOF
+'''
+tags = ["fork", "generator", "nest"]
+
+[[case]]
+id = "nest-fork-generator-send-yield-from"
+script = '''
+python3 - <<'PYEOF'
+import os
+
+def reap(code):
+    pid = os.fork()
+    if pid == 0:
+        os._exit(code)
+    return os.WEXITSTATUS(os.waitpid(pid, 0)[1])
+
+def echo():
+    got = yield "ready"
+    while True:
+        got = yield reap(got)
+
+g = echo()
+print(next(g))
+print(g.send(4), g.send(5))
+g.close()
+
+def inner():
+    yield reap(1)
+    return reap(2)
+
+def outer():
+    result = yield from inner()
+    yield result
+    yield reap(3)
+
+for v in outer():
+    print("outer", v)
+
+def returns():
+    yield reap(6)
+    return reap(7)
+
+g = returns()
+print(next(g))
+try:
+    next(g)
+except StopIteration as e:
+    print("returned", e.value)
+PYEOF
+'''
+tags = ["fork", "generator", "nest"]
+
+[[case]]
+id = "nest-fork-generator-child-continues"
+script = '''
+python3 - <<'PYEOF'
+import os
+
+def run():
+    pid = os.fork()
+    if pid == 0:
+        yield "child"
+        return
+    os.waitpid(pid, 0)
+    yield "parent"
+
+for tag in run():
+    print(tag, flush=True)
+    if tag == "child":
+        os._exit(0)
+PYEOF
+'''
+tags = ["fork", "generator", "nest"]
+
+[[case]]
+id = "nest-fork-contextmanager-enter-exit"
+script = '''
+python3 - <<'PYEOF'
+import os, contextlib
+
+@contextlib.contextmanager
+def child_runs(code):
+    pid = os.fork()
+    if pid == 0:
+        os._exit(code)
+    try:
+        yield pid > 0
+    finally:
+        _, status = os.waitpid(pid, 0)
+        print("reaped", os.WEXITSTATUS(status), flush=True)
+
+with child_runs(9) as parent:
+    print("inside", parent, flush=True)
+print("after")
+PYEOF
+'''
+tags = ["fork", "generator", "contextlib", "nest"]
+
+[[case]]
+id = "nest-thread-block-in-generator-for"
+script = '''
+python3 - <<'PYEOF'
+import threading
+
+first = threading.Event()
+second = threading.Event()
+log = []
+
+def gen():
+    log.append("g1")
+    first.set()
+    second.wait()
+    log.append("g2")
+    yield 1
+    log.append("g3")
+    yield 2
+
+def worker():
+    for v in gen():
+        log.append(("yield", v))
+
+t = threading.Thread(target=worker)
+t.start()
+first.wait()
+log.append("m1")
+second.set()
+t.join()
+print(log)
+PYEOF
+'''
+tags = ["threading", "generator", "nest"]
+
+[[case]]
+id = "nest-thread-block-in-generator-next-send"
+script = '''
+python3 - <<'PYEOF'
+import threading
+
+first = threading.Event()
+second = threading.Event()
+log = []
+
+def gen():
+    log.append("g1")
+    first.set()
+    second.wait()
+    got = yield "a"
+    log.append(("got", got))
+    second.wait()
+    yield "b"
+
+def worker():
+    g = gen()
+    log.append(next(g))
+    log.append(g.send("x"))
+    log.append(next(g, "end"))
+
+t = threading.Thread(target=worker)
+t.start()
+first.wait()
+log.append("m1")
+second.set()
+t.join()
+print(log)
+PYEOF
+'''
+tags = ["threading", "generator", "nest"]
+
+[[case]]
+id = "nest-thread-block-in-yield-from"
+script = '''
+python3 - <<'PYEOF'
+import threading
+
+ping = threading.Event()
+pong = threading.Event()
+log = []
+
+def inner():
+    log.append("i1")
+    ping.set()
+    pong.wait()
+    log.append("i2")
+    yield "x"
+    return "r"
+
+def outer():
+    got = yield from inner()
+    log.append(("outer", got))
+    yield "y"
+
+def worker():
+    for v in outer():
+        log.append(("v", v))
+
+t = threading.Thread(target=worker)
+t.start()
+ping.wait()
+log.append("m1")
+pong.set()
+t.join()
+print(log)
+PYEOF
+'''
+tags = ["threading", "generator", "nest"]
+
+[[case]]
+id = "nest-thread-block-in-contextmanager"
+script = '''
+python3 - <<'PYEOF'
+import contextlib, threading
+
+enter_gate = threading.Event()
+exit_gate = threading.Event()
+entered = threading.Event()
+inside = threading.Event()
+log = []
+
+@contextlib.contextmanager
+def managed():
+    log.append("enter")
+    entered.set()
+    enter_gate.wait()
+    try:
+        yield "res"
+    finally:
+        log.append("exit-start")
+        inside.set()
+        exit_gate.wait()
+        log.append("exit-end")
+
+def worker():
+    with managed() as r:
+        log.append(("body", r))
+
+t = threading.Thread(target=worker)
+t.start()
+entered.wait()
+log.append("m0")
+enter_gate.set()
+inside.wait()
+log.append("m1")
+exit_gate.set()
+t.join()
+print(log)
+PYEOF
+'''
+tags = ["threading", "generator", "contextlib", "nest"]
+
+[[case]]
+id = "nest-fork-generator-throw-close"
+script = '''
+python3 - <<'PYEOF'
+import os
+
+def reap(code):
+    pid = os.fork()
+    if pid == 0:
+        os._exit(code)
+    return os.WEXITSTATUS(os.waitpid(pid, 0)[1])
+
+def catcher():
+    try:
+        yield "ready"
+    except ValueError as e:
+        yield ("caught", str(e), reap(7))
+    finally:
+        print("catcher finally", reap(9))
+
+g = catcher()
+print(next(g))
+print(g.throw(ValueError("boom")))
+g.close()
+print("closed")
+
+def closer():
+    try:
+        yield 1
+    finally:
+        print("closer finally", reap(3))
+
+c = closer()
+next(c)
+print(c.close())
+try:
+    next(c)
+except StopIteration:
+    print("done")
+
+def stubborn():
+    try:
+        yield 1
+    finally:
+        yield reap(5)
+
+s = stubborn()
+next(s)
+try:
+    s.close()
+except RuntimeError as e:
+    print(e)
+
+def passthrough():
+    yield 1
+    yield 2
+
+p = passthrough()
+next(p)
+try:
+    p.throw(KeyError("k"))
+except KeyError as e:
+    print("raised", e)
+try:
+    next(p)
+except StopIteration:
+    print("finished")
+PYEOF
+'''
+tags = ["fork", "generator", "throw", "close", "nest"]
+
+[[case]]
+id = "nest-fork-contextmanager-exit-with-exception"
+script = '''
+python3 - <<'PYEOF'
+import contextlib, os
+
+def reap(code):
+    pid = os.fork()
+    if pid == 0:
+        os._exit(code)
+    return os.WEXITSTATUS(os.waitpid(pid, 0)[1])
+
+@contextlib.contextmanager
+def swallow():
+    try:
+        yield "res"
+    except ValueError as e:
+        print("swallowed", e, reap(4))
+
+@contextlib.contextmanager
+def cleanup():
+    try:
+        yield
+    finally:
+        print("cleanup", reap(6))
+
+with swallow() as r:
+    print("body", r)
+    raise ValueError("x")
+print("after swallow")
+try:
+    with cleanup():
+        raise KeyError("y")
+except KeyError as e:
+    print("propagated", e)
+PYEOF
+'''
+tags = ["fork", "generator", "contextlib", "nest"]
+
+[[case]]
+id = "nest-fork-generator-native-consumers"
+script = '''
+python3 - <<'PYEOF'
+import os
+
+def reap(code):
+    pid = os.fork()
+    if pid == 0:
+        os._exit(code)
+    return os.WEXITSTATUS(os.waitpid(pid, 0)[1])
+
+def codes(n):
+    for i in range(n):
+        yield reap(n - i)
+
+print(list(codes(3)))
+print(tuple(codes(2)))
+print(sorted(codes(4)))
+print(sorted(codes(3), reverse=True))
+print(sorted(codes(3), key=lambda x: -x))
+print(",".join(str(c) for c in codes(3)))
+print(b"-".join(bytes([64 + c]) for c in codes(2)))
+print(len(list(codes(0))))
+PYEOF
+'''
+tags = ["fork", "generator", "consumers", "nest"]
+
+# Consumidores nativos que puxam o gerador item a item (sum, set, dict, min, max, any, all, extend) e os
+# iteradores preguiçosos (enumerate, zip, map, filter): o `fork` roda dentro do gerador, com a máquina
+# no meio da conta.
+[[case]]
+id = "nest-fork-generator-eager-consumers"
+script = '''
+python3 - <<'PYEOF'
+import os
+
+def reap(code):
+    pid = os.fork()
+    if pid == 0:
+        os._exit(code)
+    return os.WEXITSTATUS(os.waitpid(pid, 0)[1])
+
+def codes(n):
+    for i in range(n):
+        yield reap(n - i)
+
+print(sum(codes(3)))
+print(sum(codes(2), 10))
+print(sorted(set(codes(4))))
+print(sorted(frozenset(codes(3))))
+print(dict(zip("abc", codes(3))))
+print(dict((c, reap(i + 1)) for i, c in enumerate("xy")))
+print(min(codes(4)), max(codes(4)))
+print(min(codes(3), key=lambda v: -v))
+print(any(v == 2 for v in codes(3)))
+print(all(v > 1 for v in codes(3)))
+print(any(codes(2)), all(codes(2)))
+l = [0]
+l.extend(codes(3))
+print(l)
+
+def failing():
+    yield reap(1)
+    yield reap(2)
+    raise ValueError("boom")
+
+l = [0]
+try:
+    l.extend(failing())
+except ValueError as e:
+    print("raised", e, l)
+try:
+    print(sum(failing()))
+except ValueError as e:
+    print("raised", e)
+PYEOF
+'''
+tags = ["fork", "generator", "consumers", "nest"]
+
+[[case]]
+id = "nest-fork-generator-lazy-iterators"
+script = '''
+python3 - <<'PYEOF'
+import os
+
+def reap(code):
+    pid = os.fork()
+    if pid == 0:
+        os._exit(code)
+    return os.WEXITSTATUS(os.waitpid(pid, 0)[1])
+
+def codes(n):
+    for i in range(n):
+        yield reap(n - i)
+
+for i, v in enumerate(codes(3), 1):
+    print("enumerate", i, v)
+print(list(zip(codes(2), codes(3))))
+print(list(map(lambda x: x * 10, codes(3))))
+print(list(map(lambda a, b: a + b, codes(2), codes(2))))
+print(list(filter(lambda x: x % 2, codes(4))))
+print(list(filter(None, codes(2))))
+e = enumerate(codes(2))
+print(next(e), next(e), next(e, "end"))
+z = zip(codes(2), "ab")
+print(next(z), next(z))
+print(next(map(str, codes(2))))
+PYEOF
+'''
+tags = ["fork", "generator", "consumers", "nest"]
+
+[[case]]
+id = "nest-fork-generator-star-unpack"
+script = '''
+python3 - <<'PYEOF'
+import os
+
+def reap(code):
+    pid = os.fork()
+    if pid == 0:
+        os._exit(code)
+    return os.WEXITSTATUS(os.waitpid(pid, 0)[1])
+
+def codes(n):
+    for i in range(n):
+        yield reap(n - i)
+
+def show(*args):
+    print(args)
+
+print([*codes(3)])
+print([0, *codes(2), 9])
+print((*codes(2),))
+print(sorted({*codes(3)}))
+show(*codes(3))
+show(7, *codes(2), 8)
+print(*codes(2), sep="|")
+print([*codes(1), *codes(2)])
+
+def failing():
+    yield reap(1)
+    raise ValueError("boom")
+
+try:
+    print([*failing()])
+except ValueError as e:
+    print("raised", e)
+PYEOF
+'''
+tags = ["fork", "generator", "star", "nest"]
+
+[[case]]
+id = "nest-fork-throw-close-in-yield-from"
+script = '''
+python3 - <<'PYEOF'
+import os
+
+def reap(code):
+    pid = os.fork()
+    if pid == 0:
+        os._exit(code)
+    return os.WEXITSTATUS(os.waitpid(pid, 0)[1])
+
+def inner():
+    try:
+        yield reap(1)
+    except ValueError as e:
+        print("inner caught", e, reap(2))
+        yield "after"
+    finally:
+        print("inner finally", reap(3))
+
+def outer():
+    try:
+        yield from inner()
+    finally:
+        print("outer finally", reap(4))
+    yield "tail"
+
+g = outer()
+print(next(g))
+print(g.throw(ValueError("boom")))
+print(next(g))
+try:
+    next(g)
+except StopIteration:
+    print("finished")
+
+c = outer()
+next(c)
+print(c.close())
+
+d = outer()
+next(d)
+try:
+    d.throw(KeyError("k"))
+except KeyError as e:
+    print("raised", e)
+
+def over_list():
+    try:
+        yield from [reap(5), reap(6)]
+    except ValueError as e:
+        print("outer got", e)
+        yield reap(7)
+
+w = over_list()
+print(next(w))
+print(w.throw(ValueError("v")))
+PYEOF
+'''
+tags = ["fork", "generator", "throw", "close", "yield-from", "nest"]
+
+[[case]]
+id = "nest-thread-block-in-native-consumers"
+script = '''
+python3 - <<'PYEOF'
+import threading
+
+def run(consumer):
+    ready = threading.Event()
+    gate = threading.Event()
+
+    def gen():
+        ready.set()
+        gate.wait()
+        yield 1
+        yield 2
+        yield 3
+
+    out = []
+    t = threading.Thread(target=lambda: out.append(consumer(gen())))
+    t.start()
+    ready.wait()
+    gate.set()
+    t.join()
+    return out[0]
+
+print(run(sum))
+print(run(lambda g: sorted(set(g))))
+print(run(lambda g: dict(zip("abc", g))))
+print(run(min), run(max))
+print(run(any), run(all))
+print(run(lambda g: list(enumerate(g))))
+print(run(lambda g: list(map(str, g))))
+print(run(lambda g: list(filter(lambda v: v > 1, g))))
+print(run(lambda g: [*g]))
+print(run(lambda g: (lambda l: (l.extend(g), l)[1])([0])))
+PYEOF
+'''
+tags = ["threading", "generator", "consumers", "nest"]
+
+[[case]]
+id = "nest-thread-block-in-throw-close-yield-from"
+script = '''
+python3 - <<'PYEOF'
+import threading
+
+def run(action):
+    ready = threading.Event()
+    gate = threading.Event()
+    log = []
+
+    def inner():
+        try:
+            yield 1
+        except ValueError as e:
+            log.append(("inner caught", str(e)))
+            ready.set()
+            gate.wait()
+            yield 2
+        finally:
+            log.append("inner finally")
+
+    def outer():
+        try:
+            yield from inner()
+        finally:
+            log.append("outer finally")
+
+    def worker():
+        g = outer()
+        next(g)
+        log.append(action(g))
+
+    t = threading.Thread(target=worker)
+    t.start()
+    ready.wait()
+    log.append("main")
+    gate.set()
+    t.join()
+    return log
+
+print(run(lambda g: g.throw(ValueError("boom"))))
+PYEOF
+'''
+tags = ["threading", "generator", "throw", "close", "yield-from", "nest"]
+
+# Callbacks Python de consumidores nativos (a função do `map`, o predicado do `filter`, o `key=` de
+# `min`/`max`/`sorted`) e a conferência final do `zip(strict=True)`: o `fork` roda DENTRO do callback, com a
+# máquina no meio da conta. A ordem dos efeitos e das exceções é a do CPython 3.13.
+[[case]]
+id = "nest-fork-callback-map-filter"
+script = '''
+python3 - <<'PYEOF'
+import os
+
+def reap(code):
+    pid = os.fork()
+    if pid == 0:
+        os._exit(code)
+    return os.WEXITSTATUS(os.waitpid(pid, 0)[1])
+
+print(list(map(reap, [1, 2, 3])))
+print(list(map(lambda a, b: reap(a + b), [1, 2], (10, 20))))
+print(list(filter(lambda x: reap(x) % 2, [1, 2, 3, 4])))
+print(sum(map(lambda x: reap(x), range(1, 4))))
+for v in map(lambda x: reap(x * 2), [1, 2]):
+    print("for", v)
+it = map(lambda x: reap(x), [5, 6])
+print(next(it), next(it), next(it, "end"))
+f = filter(lambda x: reap(x) > 1, [1, 2, 3])
+print(next(f), next(f), next(f, "end"))
+print(dict(zip("ab", map(reap, [7, 8]))))
+print(list(enumerate(filter(lambda x: reap(x) != 2, [1, 2, 3]), 1)))
+print(",".join(map(lambda x: str(reap(x)), [4, 5])))
+print([*map(lambda x: reap(x), [6, 7])])
+
+def failing(x):
+    if x == 2:
+        raise ValueError("boom")
+    return reap(x)
+
+try:
+    print(list(map(failing, [1, 2, 3])))
+except ValueError as e:
+    print("raised", e)
+PYEOF
+'''
+tags = ["fork", "callback", "map", "filter", "nest"]
+
+[[case]]
+id = "nest-fork-callback-key"
+script = '''
+python3 - <<'PYEOF'
+import os
+
+def reap(code):
+    pid = os.fork()
+    if pid == 0:
+        os._exit(code)
+    return os.WEXITSTATUS(os.waitpid(pid, 0)[1])
+
+print(sorted([3, 1, 2], key=lambda x: reap(x)))
+print(sorted([3, 1, 2], key=lambda x: reap(x), reverse=True))
+print(sorted(["bb", "a", "ccc"], key=lambda s: reap(len(s))))
+print(min([3, 1, 2], key=lambda x: reap(x + 1)), max([3, 1, 2], key=lambda x: reap(x + 1)))
+print(max(["bb", "a", "ccc"], key=lambda s: reap(len(s))))
+print(min([], key=reap, default="empty"))
+print(min({4: "a", 2: "b"}, key=lambda k: reap(k)))
+
+def codes(n):
+    for i in range(n):
+        yield reap(i + 1)
+
+# O CPython esgota o gerador antes de chamar a primeira chave de `sorted`.
+print(sorted(codes(3), key=lambda x: reap(10 - x)))
+print(max(codes(3), key=lambda x: reap(10 - x)))
+
+class Tie:
+    def __init__(self, tag, weight):
+        self.tag = tag
+        self.weight = weight
+
+items = [Tie("a", 2), Tie("b", 1), Tie("c", 2), Tie("d", 1)]
+print([t.tag for t in sorted(items, key=lambda t: reap(t.weight))])
+print([t.tag for t in sorted(items, key=lambda t: reap(t.weight), reverse=True)])
+print(max(items, key=lambda t: reap(t.weight)).tag, min(items, key=lambda t: reap(t.weight)).tag)
+
+def failing(x):
+    if x == 2:
+        raise ValueError("boom")
+    return reap(x)
+
+try:
+    sorted([3, 2, 1], key=failing)
+except ValueError as e:
+    print("raised", e)
+PYEOF
+'''
+tags = ["fork", "callback", "sorted", "min", "max", "nest"]
+
+[[case]]
+id = "nest-fork-zip-strict-final-check"
+script = '''
+python3 - <<'PYEOF'
+import os
+
+def reap(code):
+    pid = os.fork()
+    if pid == 0:
+        os._exit(code)
+    return os.WEXITSTATUS(os.waitpid(pid, 0)[1])
+
+def codes(n):
+    for i in range(n):
+        yield reap(i + 1)
+
+print(list(zip(codes(2), codes(2), strict=True)))
+for make in (
+    lambda: zip(codes(2), codes(3), strict=True),
+    lambda: zip(codes(3), codes(2), strict=True),
+    lambda: zip(codes(1), codes(1), codes(2), strict=True),
+    lambda: zip(codes(2), "ab", codes(3), strict=True),
+):
+    try:
+        print(list(make()))
+    except ValueError as e:
+        print("ValueError", e)
+z = zip(codes(1), codes(2), strict=True)
+print(next(z))
+try:
+    next(z)
+except ValueError as e:
+    print("ValueError", e)
+PYEOF
+'''
+tags = ["fork", "generator", "zip", "strict", "nest"]
+
+[[case]]
+id = "nest-fork-user-class-dunders"
+script = '''
+python3 - <<'PYEOF'
+import os
+
+def reap(code):
+    pid = os.fork()
+    if pid == 0:
+        os._exit(code)
+    return os.WEXITSTATUS(os.waitpid(pid, 0)[1])
+
+class Counter:
+    def __init__(self, n):
+        self.n = n
+        self.i = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.i >= self.n:
+            raise StopIteration
+        self.i += 1
+        return reap(self.i)
+
+print(sum(Counter(3)))
+print(list(Counter(2)))
+print(max(Counter(3)), min(Counter(3)))
+print(sorted(Counter(3), key=lambda x: reap(10 - x)))
+print(list(map(str, Counter(2))))
+print(dict(zip("ab", Counter(2))))
+print(list(enumerate(Counter(2))))
+print(any(v == 2 for v in Counter(3)), all(Counter(2)))
+
+class Legacy:
+    def __getitem__(self, i):
+        if i >= 3:
+            raise IndexError(i)
+        return reap(i + 1)
+
+print(list(Legacy()))
+print(sum(Legacy()), max(Legacy()))
+print(list(enumerate(Legacy())))
+print(tuple(zip(Legacy(), "xyz")))
+
+class Fresh:
+    def __iter__(self):
+        reap(9)
+        return Counter(2)
+
+print(list(Fresh()))
+print(tuple(Fresh()), sorted(Fresh()))
+print(set(Fresh()) == {1, 2})
+PYEOF
+'''
+tags = ["fork", "dunder", "iterator", "nest"]
+
+[[case]]
+id = "nest-thread-block-in-callbacks"
+script = '''
+python3 - <<'PYEOF'
+import threading
+
+def run(consumer):
+    ready = threading.Event()
+    gate = threading.Event()
+
+    def block(x):
+        ready.set()
+        gate.wait()
+        return x
+
+    out = []
+    t = threading.Thread(target=lambda: out.append(consumer(block)))
+    t.start()
+    ready.wait()
+    gate.set()
+    t.join()
+    return out[0]
+
+print(run(lambda f: list(map(f, [1, 2, 3]))))
+print(run(lambda f: list(filter(lambda x: f(x) > 1, [1, 2, 3]))))
+print(run(lambda f: sum(map(f, range(4)))))
+print(run(lambda f: sorted([3, 1, 2], key=f)))
+print(run(lambda f: sorted([3, 1, 2], key=f, reverse=True)))
+print(run(lambda f: (min([3, 1, 2], key=f), max([3, 1, 2], key=f))))
+print(run(lambda f: list(zip([1, 2], map(f, [3, 4]), strict=True))))
+print(run(lambda f: dict(zip("ab", map(f, [5, 6])))))
+print(run(lambda f: next(map(f, [7, 8]))))
+PYEOF
+'''
+tags = ["threading", "callback", "map", "filter", "sorted", "nest"]
+
+[[case]]
+id = "nest-thread-block-in-user-class-dunders"
+script = '''
+python3 - <<'PYEOF'
+import threading
+
+def run(consumer):
+    ready = threading.Event()
+    gate = threading.Event()
+
+    def block(x):
+        ready.set()
+        gate.wait()
+        return x
+
+    out = []
+    t = threading.Thread(target=lambda: out.append(consumer(block)))
+    t.start()
+    ready.wait()
+    gate.set()
+    t.join()
+    return out[0]
+
+class Slow:
+    def __init__(self, f, n):
+        self.f = f
+        self.n = n
+        self.i = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.i >= self.n:
+            raise StopIteration
+        self.i += 1
+        return self.f(self.i)
+
+class Seq:
+    def __init__(self, f):
+        self.f = f
+
+    def __getitem__(self, i):
+        if i >= 3:
+            raise IndexError(i)
+        return self.f(i)
+
+class Fresh:
+    def __init__(self, f):
+        self.f = f
+
+    def __iter__(self):
+        self.f(0)
+        return iter([1, 2])
+
+print(run(lambda f: sum(Slow(f, 3))))
+print(run(lambda f: list(Slow(f, 2))))
+print(run(lambda f: sorted(Slow(f, 3), key=lambda x: -x)))
+print(run(lambda f: list(enumerate(Slow(f, 2)))))
+print(run(lambda f: list(Seq(f))))
+print(run(lambda f: max(Seq(f))))
+print(run(lambda f: list(Fresh(f))))
+PYEOF
+'''
+tags = ["threading", "dunder", "iterator", "nest"]
+
+# Tratador de `signal.signal` e `atexit` (fatia G1): o tratador roda entre duas instruções, como quadro do laço,
+# e `os.kill` para si mesmo o dispara logo depois da chamada. Nada não determinístico aparece na saída: pids
+# nunca são impressos e a ordem é fixada por `waitpid` e por `Event`.
+
+[[case]]
+id = "nest-fork-in-signal-handler"
+script = '''
+python3 - <<'PYEOF'
+import os, signal
+
+log = []
+
+def handler(signum, frame):
+    log.append(signal.Signals(signum).name)
+    pid = os.fork()
+    if pid == 0:
+        log.append("child in handler")
+        return
+    log.append("parent in handler")
+    log.append(os.WEXITSTATUS(os.waitpid(pid, 0)[1]))
+
+signal.signal(signal.SIGUSR1, handler)
+os.kill(os.getpid(), signal.SIGUSR1)
+if "child in handler" in log:
+    print("child resumed the interrupted code", log, flush=True)
+    os._exit(7)
+print("parent resumed the interrupted code", log, flush=True)
+PYEOF
+'''
+tags = ["fork", "signals", "nest"]
+
+[[case]]
+id = "nest-fork-signal-handler-in-loop-and-function"
+script = '''
+python3 - <<'PYEOF'
+import os, signal
+
+hits = []
+
+def handler(signum, frame):
+    pid = os.fork()
+    if pid == 0:
+        os._exit(len(hits) + 10)
+    hits.append(os.WEXITSTATUS(os.waitpid(pid, 0)[1]))
+
+signal.signal(signal.SIGUSR2, handler)
+
+def work(n):
+    total = 0
+    for i in range(n):
+        total += i
+        if i % 2 == 0:
+            os.kill(os.getpid(), signal.SIGUSR2)
+    return total
+
+print(work(5), hits)
+PYEOF
+'''
+tags = ["fork", "signals", "nest"]
+
+[[case]]
+id = "nest-signal-handler-exception-propagates"
+script = '''
+python3 - <<'PYEOF'
+import os, signal
+
+def boom(signum, frame):
+    raise ValueError("from handler %d" % signum)
+
+signal.signal(signal.SIGUSR1, boom)
+try:
+    for i in range(3):
+        os.kill(os.getpid(), signal.SIGUSR1)
+        print("not reached")
+except ValueError as e:
+    print("caught", e, i)
+
+signal.signal(signal.SIGINT, signal.default_int_handler)
+try:
+    os.kill(os.getpid(), signal.SIGINT)
+    print("not reached")
+except KeyboardInterrupt:
+    print("KeyboardInterrupt")
+    pid = os.fork()
+    if pid == 0:
+        os._exit(3)
+    print("child status", os.WEXITSTATUS(os.waitpid(pid, 0)[1]))
+
+def interrupted():
+    os.kill(os.getpid(), signal.SIGUSR1)
+    return "returned"
+
+try:
+    interrupted()
+except ValueError as e:
+    tb = e.__traceback__
+    names = []
+    while tb is not None:
+        names.append(tb.tb_frame.f_code.co_name)
+        tb = tb.tb_next
+    print(names[:2])
+PYEOF
+'''
+tags = ["signals", "exception", "nest"]
+
+[[case]]
+id = "nest-thread-block-in-signal-handler"
+script = '''
+python3 - <<'PYEOF'
+import os, signal, threading
+
+gate = threading.Event()
+go = threading.Event()
+out = []
+
+def handler(signum, frame):
+    out.append(("handler start", threading.current_thread().name))
+    go.set()
+    gate.wait()
+    out.append("handler end")
+
+def worker():
+    go.wait()
+    out.append("thread ran")
+    gate.set()
+
+signal.signal(signal.SIGUSR1, handler)
+t = threading.Thread(target=worker)
+t.start()
+os.kill(os.getpid(), signal.SIGUSR1)
+t.join()
+print(out)
+PYEOF
+'''
+tags = ["threading", "signals", "nest"]
+
+[[case]]
+id = "nest-fork-in-atexit"
+script = '''
+python3 - <<'PYEOF'
+import atexit, os, sys
+
+def bye(tag):
+    pid = os.fork()
+    if pid == 0:
+        print("child in atexit", tag, flush=True)
+        return
+    print("parent in atexit", tag, "child status", os.WEXITSTATUS(os.waitpid(pid, 0)[1]), flush=True)
+
+atexit.register(bye, "one")
+atexit.register(bye, "two")
+print("main done", flush=True)
+sys.exit(3)
+PYEOF
+echo "exit $?"
+'''
+tags = ["fork", "atexit", "nest"]
+
+[[case]]
+id = "nest-thread-block-in-atexit"
+script = '''
+python3 - <<'PYEOF'
+import atexit, threading
+
+started = threading.Event()
+gate = threading.Event()
+done = threading.Event()
+
+def worker():
+    started.set()
+    gate.wait()
+    print("worker released")
+    done.set()
+
+threading.Thread(target=worker, daemon=True).start()
+started.wait()
+
+def late():
+    gate.set()
+    done.wait()
+    print("atexit after worker")
+
+atexit.register(late)
+print("main done")
+PYEOF
+'''
+tags = ["threading", "atexit", "nest"]
+
+# G3: corpo de módulo importado, `exec`, `eval` e `__import__` como quadro do laço. Os módulos são do usuário,
+# escritos no diretório de trabalho do caso. Goldens vêm do oráculo.
+
+[[case]]
+id = "nest-fork-in-imported-module"
+script = '''
+mkdir -p /tmp/g3a && cd /tmp/g3a
+cat > forker.py <<'EOF'
+import os
+pid = os.fork()
+if pid == 0:
+    print("child in module body", __name__, flush=True)
+    os._exit(7)
+status = os.WEXITSTATUS(os.waitpid(pid, 0)[1])
+print("parent in module body", status, flush=True)
+value = 42
+EOF
+python3 - <<'PYEOF'
+import sys
+import forker
+print(forker.value, "forker" in sys.modules)
+PYEOF
+'''
+tags = ["fork", "import", "nest"]
+
+[[case]]
+id = "nest-fork-in-package-chain"
+script = '''
+mkdir -p /tmp/g3b/pkg && cd /tmp/g3b
+cat > pkg/__init__.py <<'EOF'
+import os
+print("pkg start", flush=True)
+pid = os.fork()
+if pid == 0:
+    os._exit(3)
+print("pkg reaped", os.WEXITSTATUS(os.waitpid(pid, 0)[1]), flush=True)
+EOF
+cat > pkg/leaf.py <<'EOF'
+import os
+pid = os.fork()
+if pid == 0:
+    os._exit(5)
+print("leaf reaped", os.WEXITSTATUS(os.waitpid(pid, 0)[1]), __package__, flush=True)
+EOF
+python3 - <<'PYEOF'
+import pkg.leaf
+print(sorted(m for m in __import__("sys").modules if m.startswith("pkg")))
+PYEOF
+'''
+tags = ["fork", "import", "nest"]
+
+[[case]]
+id = "nest-fork-circular-import-partial-module"
+script = '''
+mkdir -p /tmp/g3c && cd /tmp/g3c
+cat > first.py <<'EOF'
+import os
+x = 1
+import second
+print("first sees second.y", second.y, flush=True)
+EOF
+cat > second.py <<'EOF'
+import os, sys
+import first
+print("second sees partial first", hasattr(first, "x"), hasattr(first, "second"), flush=True)
+pid = os.fork()
+if pid == 0:
+    os._exit(0)
+os.waitpid(pid, 0)
+y = 2
+EOF
+python3 - <<'PYEOF'
+import first
+PYEOF
+'''
+tags = ["fork", "import", "nest"]
+
+[[case]]
+id = "nest-fork-failing-import-removes-module"
+script = '''
+mkdir -p /tmp/g3d && cd /tmp/g3d
+cat > broken.py <<'EOF'
+import os
+pid = os.fork()
+if pid == 0:
+    os._exit(0)
+os.waitpid(pid, 0)
+raise ValueError("boom")
+EOF
+python3 - <<'PYEOF'
+import sys
+for _ in range(2):
+    try:
+        import broken
+    except ValueError as e:
+        print("failed", e, "broken" in sys.modules)
+PYEOF
+'''
+tags = ["fork", "import", "exception", "nest"]
+
+[[case]]
+id = "nest-thread-block-in-imported-module"
+script = '''
+mkdir -p /tmp/g3e && cd /tmp/g3e
+cat > waiter.py <<'EOF'
+import threading
+gate = threading.Event()
+done = threading.Event()
+out = []
+
+def worker():
+    out.append("worker ran")
+    gate.set()
+    done.set()
+
+t = threading.Thread(target=worker)
+t.start()
+gate.wait()
+done.wait()
+t.join()
+out.append("module end")
+EOF
+python3 - <<'PYEOF'
+import waiter
+print(waiter.out)
+PYEOF
+'''
+tags = ["threading", "import", "nest"]
+
+[[case]]
+id = "nest-fork-in-exec-and-eval"
+script = '''
+python3 - <<'PYEOF'
+import os
+
+code = """
+pid = os.fork()
+if pid == 0:
+    os._exit(4)
+status = os.WEXITSTATUS(os.waitpid(pid, 0)[1])
+total = status + 1
+"""
+ns = {"os": os}
+exec(code, ns)
+print(ns["status"], ns["total"])
+
+local = {}
+exec(code, {"os": os}, local)
+print(sorted(k for k in local if not k.startswith("__")))
+
+def reap(n):
+    pid = os.fork()
+    if pid == 0:
+        os._exit(n)
+    return os.WEXITSTATUS(os.waitpid(pid, 0)[1])
+
+print(eval("reap(6) + reap(2)", {"reap": reap}))
+print(eval("[reap(i) for i in range(3)]", {"reap": reap}))
+PYEOF
+'''
+tags = ["fork", "exec", "eval", "nest"]
+
+[[case]]
+id = "nest-fork-in-exec-with-mapping-locals"
+script = '''
+python3 - <<'PYEOF' | sed -E "s/\('pid', [0-9]+\)/('pid', PID)/"
+import os, collections
+
+class Locals(collections.UserDict):
+    pass
+
+loc = Locals(a=1)
+exec("pid = os.fork()\nif pid == 0:\n    os._exit(0)\nos.waitpid(pid, 0)\nb = a + 1", {"os": os}, loc)
+print(sorted(loc.items()))
+PYEOF
+'''
+tags = ["fork", "exec", "nest"]
+
+[[case]]
+id = "nest-thread-block-in-exec-and-eval"
+script = '''
+python3 - <<'PYEOF'
+import threading
+
+gate = threading.Event()
+done = threading.Event()
+out = []
+
+def worker():
+    out.append("worker")
+    gate.set()
+    done.set()
+
+env = {"threading": threading, "gate": gate, "done": done, "worker": worker, "out": out}
+exec("t = threading.Thread(target=worker)\nt.start()\ngate.wait()\ndone.wait()\nt.join()\nout.append('exec end')", env)
+print(out)
+print(eval("(gate.wait(), done.wait(), 5)[2]", env))
+PYEOF
+'''
+tags = ["threading", "exec", "eval", "nest"]
+
+[[case]]
+id = "nest-fork-in-compiled-code-and-dunder-import"
+script = '''
+mkdir -p /tmp/g3f && cd /tmp/g3f
+cat > viaimport.py <<'EOF'
+import os
+pid = os.fork()
+if pid == 0:
+    os._exit(9)
+print("viaimport reaped", os.WEXITSTATUS(os.waitpid(pid, 0)[1]), flush=True)
+EOF
+python3 - <<'PYEOF'
+import os, importlib
+code = compile("pid = os.fork()\nif pid == 0:\n    os._exit(8)\nr = os.WEXITSTATUS(os.waitpid(pid, 0)[1])", "<compiled>", "exec")
+ns = {"os": os}
+exec(code, ns)
+print(ns["r"])
+m = __import__("viaimport")
+print(m.__name__)
+print(importlib.import_module("viaimport") is m)
+PYEOF
+'''
+tags = ["fork", "exec", "import", "nest"]
+
+[[case]]
+id = "nest-thread-block-in-callable-iterator"
+script = '''
+python3 - <<'PYEOF'
+import queue, threading
+
+q = queue.Queue()
+out = []
+
+def consume():
+    for item in iter(q.get, None):
+        out.append(item * 2)
+
+t = threading.Thread(target=consume)
+t.start()
+for n in range(5):
+    q.put(n)
+q.put(None)
+t.join()
+print(out)
+
+class Box:
+    def __init__(self):
+        self.items = [1, 2, 3, 0, 4]
+        self.gate = threading.Event()
+    def pop(self):
+        self.gate.wait()
+        return self.items.pop(0)
+
+b = Box()
+res = []
+
+def drain():
+    for item in iter(b.pop, 0):
+        res.append(item)
+
+t = threading.Thread(target=drain)
+t.start()
+b.gate.set()
+t.join()
+print(res, b.items)
+print(list(iter(iter([1, 2, 3, 4]).__next__, 3)))
+PYEOF
+'''
+tags = ["thread", "nest"]
+

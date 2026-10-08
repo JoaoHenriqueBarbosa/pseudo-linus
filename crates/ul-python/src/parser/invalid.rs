@@ -264,7 +264,7 @@ impl Parser {
 
     fn is_soft_keyword_at(&mut self, offset: usize) -> Result<bool, ParseError> {
         let tok = self.peek(offset)?;
-        Ok(tok.kind == T::Name && SOFT_KEYWORDS.contains(&tok.text.as_str()))
+        Ok(tok.kind == T::Name && !tok.normalized && SOFT_KEYWORDS.contains(&tok.text.as_str()))
     }
 
     // -----------------------------------------------------------------------------------------
@@ -348,7 +348,7 @@ impl Parser {
         if self.is_name_at(0)? && self.peek_kind(1)? != T::Lpar {
             let a = self.advance();
             if let Some(b) = self.tuple_of(Parser::star_expression, Load)?
-                && (a.text == "print" || a.text == "exec")
+                && (a.is_word("print") || a.is_word("exec"))
             {
                 let msg = format!("Missing parentheses in call to '{0}'. Did you mean {0}(...)?", a.text);
                 return Err(self.raise_range(&token_pos(&a), &b.pos, msg));

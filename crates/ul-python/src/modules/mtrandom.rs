@@ -102,6 +102,12 @@ struct Mt {
     state: RefCell<State>,
 }
 
+/// Refaz o gerador a partir da imagem do heap: a tabela de 624 palavras, a posição e se já tem semente.
+pub(crate) fn restore_image(_tag: &str, state: &(dyn std::any::Any + Send + Sync), _refs: Vec<Value>) -> Option<Value> {
+    let (mt, index, seeded) = state.downcast_ref::<(Vec<u32>, usize, bool)>()?;
+    Some(Value::Ext(Rc::new(Mt { state: RefCell::new(State { mt: mt.clone(), index: *index, seeded: *seeded }) })))
+}
+
 fn unseeded() -> PyException {
     exc("RuntimeError", "_mt: o gerador ainda não recebeu semente")
 }
@@ -109,6 +115,11 @@ fn unseeded() -> PyException {
 impl ExtObject for Mt {
     fn type_name(&self) -> &'static str {
         "MersenneTwister"
+    }
+
+    fn image(&self) -> Option<crate::object::ExtImage> {
+        let st = self.state.borrow();
+        crate::object::OpaqueImage::image("mersenne_twister", (st.mt.clone(), st.index, st.seeded), Vec::new())
     }
 
     fn methods(&self) -> &'static [&'static str] {

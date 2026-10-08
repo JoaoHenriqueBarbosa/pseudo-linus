@@ -23,11 +23,11 @@ use std::cell::RefCell;
 use std::fmt;
 use std::rc::Rc;
 
-pub use self::dict::Dict;
+pub use self::dict::{generation_now as dict_generation_now, Dict};
 pub use self::float::{float_hash, float_repr, format_float_short};
 pub use self::int::{HASH_MODULUS, int_add, int_hash, int_mul, int_neg, int_repr, int_sub};
-pub use self::set::Set;
-pub use self::pystr::{bytes_hash, bytes_repr, char_surrogate, is_printable, str_repr, surrogate_to_char, PyStr};
+pub use self::set::{Set, SetTable, TableSlot};
+pub use self::pystr::{bytes_hash, bytes_repr, capitalize_str, casefold_str, char_surrogate, code_points, cp_to_str, ends_with_units, is_alnum, is_alpha, is_case_ignorable, is_cased, is_decimal, is_digit, is_lower, is_numeric, is_printable, is_space, is_title, is_upper, is_xid_continue, is_xid_start, lower_str, match_offsets, push_cp, rmatch_offsets, swapcase_str, title_str, upper_str, ESCAPE, str_cmp, str_repr, surrogate_to_char, units, PyStr};
 
 /// Valor Python.
 #[derive(Clone)]
@@ -105,6 +105,53 @@ pub enum Descriptor {
     Property { get: Value, set: Option<Value>, del: Option<Value> },
 }
 
+/// O estado de um objeto nativo como dado, para a imagem do heap (`heapimage`): descreve o que
+/// [`crate::classes::ext_from_image`] precisa para refazer o objeto num grafo novo.
+pub enum ExtImage {
+    StaticMethod(Value),
+    ClassMethod(Value),
+    /// `property`; `doc` é o `__doc__` próprio (`None` quando vem do getter).
+    Property { get: Value, set: Option<Value>, del: Option<Value>, doc: Value },
+    /// `getter`/`setter`/`deleter` de uma subclasse de `property`.
+    PropertyCopy { obj: Value, which: &'static str },
+    /// `object()`.
+    PlainObject,
+    /// A célula `__class__` de um corpo de classe (o escopo que os métodos capturam).
+    ClassCell(Rc<Env>),
+    /// Iterador preguiçoso embutido (`iter()`, `reversed`, `map`, `filter`, `zip`, `enumerate`, `iter(f, s)`).
+    Lazy(crate::lazy::LazyParts),
+    /// Gerador, corrente ou gerador assíncrono, e os objetos que enxergam o mesmo `GenCore`.
+    Generator { core: Rc<crate::generator::GenCore>, role: crate::generator::GenRole },
+    /// Um valor devolvido por `yield` de gerador assíncrono, para distinguir de um `await` suspenso.
+    AsyncGenWrapped(Value),
+    /// `weakref.ref`: o referente (`None` se já morreu), a função de retorno e o hash fixado.
+    WeakRef { target: Option<Value>, callback: Option<Value>, hash: Option<i64> },
+    /// Objeto com estado `Send` próprio mais referências ao heap (ver [`OpaqueImage`]).
+    Opaque(OpaqueImage),
+    /// O objeto `code` de uma função, de um quadro ou de um traceback; `code` é o código compilado quando há.
+    CodeObject { name: String, filename: Rc<str>, code: Option<Rc<crate::compile::Code>> },
+    /// O resultado de `compile()`: o fonte já validado e o módulo compilado.
+    CodeSource { src: String, filename: String, code: Rc<crate::compile::Code> },
+    /// O objeto `frame` (`sys._getframe`, `tb_frame`, o argumento dos rastreadores).
+    Frame(crate::frameobj::FrameParts),
+}
+
+/// O estado de um objeto nativo que não é dado do heap (o gerador de números aleatórios, o resumo de
+/// um `hashlib`, o fd de um socket) mais os `Value`s que ele aponta. `state` é copiável entre threads
+/// (`Arc`, `Send + Sync`); `refs` entram no percurso do heap e voltam, refeitos, na mesma ordem.
+/// `tag` escolhe quem refaz o objeto (`heapimage::restore_opaque`).
+pub struct OpaqueImage {
+    pub tag: &'static str,
+    pub state: std::sync::Arc<dyn std::any::Any + Send + Sync>,
+    pub refs: Vec<Value>,
+}
+
+impl OpaqueImage {
+    pub fn image<T: std::any::Any + Send + Sync>(tag: &'static str, state: T, refs: Vec<Value>) -> Option<ExtImage> {
+        Some(ExtImage::Opaque(OpaqueImage { tag, state: std::sync::Arc::new(state), refs }))
+    }
+}
+
 /// Objeto definido por um módulo nativo. O estado mutável fica dentro do implementador (`Cell`,
 /// `RefCell`), porque o valor é compartilhado por `Rc` e os métodos recebem `&self`.
 ///
@@ -139,6 +186,10 @@ pub trait ExtObject {
     }
     /// Atribui o atributo `name`; `None` = o objeto não aceita atributos novos.
     fn setattr(&self, _name: &str, _value: Value) -> Option<Result<(), crate::vm::PyException>> {
+        None
+    }
+    /// `del obj.nome`; `None` = o objeto não aceita (vira `AttributeError`).
+    fn delattr(&self, _name: &str) -> Option<Result<(), crate::vm::PyException>> {
         None
     }
     /// Chama o método `name` (um dos de [`methods`]); sem métodos, todo nome é `AttributeError`.
@@ -198,6 +249,11 @@ pub trait ExtObject {
     }
     /// O objeto para o qual uma referência fraca aponta, se for uma e ainda estiver viva.
     fn referent(&self) -> Option<Value> {
+        None
+    }
+    /// O estado como dado, para a imagem do heap; `None` = o tipo ainda não é coberto (a captura
+    /// falha com `ImageError::Unsupported` em vez de copiar errado).
+    fn image(&self) -> Option<ExtImage> {
         None
     }
 }
@@ -292,9 +348,10 @@ impl std::hash::Hasher for NameHasher {
     }
 }
 
-/// Variáveis locais de um escopo. A chave é `Rc<str>`: os nomes vêm compartilhados do código
-/// compilado, e ligar um parâmetro ou criar um local não aloca.
-pub type VarMap = std::collections::HashMap<Rc<str>, Value, std::hash::BuildHasherDefault<NameHasher>>;
+/// Globais de um módulo, na ordem de inserção como o dict do CPython: `globals()`, `vars(modulo)` e
+/// `module.__dict__` listam os nomes na ordem em que foram criados. A chave é `Rc<str>`: os nomes vêm
+/// compartilhados do código compilado. Remover usa `shift_remove` (os demais mantêm a ordem), nunca `remove`.
+pub type VarMap = indexmap::IndexMap<Rc<str>, Value, std::hash::BuildHasherDefault<NameHasher>>;
 
 /// `__dict__` de classe e de instância: ordem de inserção e o mesmo hasher dos nomes, porque cada
 /// `obj.attr` e cada chamada de método passa por aqui.
@@ -458,6 +515,128 @@ pub struct FuncObj {
     pub attrs: RefCell<std::collections::BTreeMap<String, Value>>,
 }
 
+/// Módulos que o CPython 3.13 do Debian escreve em C mas que aqui são Python embutido, como `(módulo daqui,
+/// módulo do CPython)`: as funções de nível de módulo deles são `builtin_function_or_method` e o dono delas
+/// (`__module__`, `__self__`) é o segundo nome (`_select` daqui é o `select` de lá). Só entram módulos sem
+/// `.py` no disco do Debian e sem função que faça o papel de classe; o `os` não está aqui porque só parte do
+/// `os.py` é `posix` (ver `code_is_posix_builtin`).
+const C_EXTENSION_MODULES: &[(&str, &str)] = &[
+    ("termios", "termios"),
+    ("fcntl", "fcntl"),
+    ("_select", "select"),
+    ("time", "time"),
+    ("grp", "grp"),
+    ("pwd", "pwd"),
+    ("resource", "resource"),
+    ("gc", "gc"),
+    ("atexit", "atexit"),
+    ("faulthandler", "faulthandler"),
+    ("marshal", "marshal"),
+    ("zlib", "zlib"),
+    ("cmath", "cmath"),
+    ("_posixsubprocess", "_posixsubprocess"),
+    ("_imp", "_imp"),
+    ("_string", "_string"),
+    ("_thread", "_thread"),
+    ("_socket", "_socket"),
+    ("_signal", "_signal"),
+    ("_io", "_io"),
+    ("_stat", "_stat"),
+    ("posix", "posix"),
+    ("_csv", "_csv"),
+];
+
+/// Funções soltas de módulos que no CPython misturam Python e C, como `(módulo daqui, módulo do CPython,
+/// nomes)`: as listadas são C lá (`builtin_function_or_method`, `__module__` e `__self__` do segundo nome) e
+/// Python aqui; as demais do módulo seguem funções de verdade. Em `sys` as funções vivem em closures de `_build`,
+/// e o nome que vale é o sem o `_build.<locals>.`.
+const C_EXTENSION_FUNCTIONS: &[(&str, &str, &[&str])] = &[
+    (
+        "sys",
+        "sys",
+        &[
+            "breakpointhook", "displayhook", "excepthook", "unraisablehook", "exception", "addaudithook", "audit",
+            "getdefaultencoding", "getfilesystemencoding", "getfilesystemencodeerrors", "intern", "is_finalizing",
+            "getswitchinterval", "setswitchinterval", "getdlopenflags", "setdlopenflags", "get_int_max_str_digits",
+            "set_int_max_str_digits", "get_coroutine_origin_tracking_depth", "set_coroutine_origin_tracking_depth",
+            "get_asyncgen_hooks", "set_asyncgen_hooks", "call_tracing", "getallocatedblocks", "getunicodeinternedsize",
+            "is_stack_trampoline_active", "activate_stack_trampoline", "deactivate_stack_trampoline",
+            "_is_gil_enabled", "_get_cpu_count_config", "_is_interned", "_clear_type_cache", "_clear_internal_caches",
+            "_current_frames", "_current_exceptions", "_getframemodulename", "_debugmallocstats",
+            "_setprofileallthreads", "_settraceallthreads", "_baserepl", "getsizeof",
+        ],
+    ),
+    ("itertools", "itertools", &["tee"]),
+    ("abc", "_abc", &["get_cache_token"]),
+    (
+        "operator",
+        "_operator",
+        &[
+            "call", "countOf", "delitem", "iadd", "iand", "iconcat", "ifloordiv", "ilshift", "imatmul", "imod", "imul",
+            "indexOf", "ior", "ipow", "irshift", "isub", "itruediv", "ixor", "length_hint", "matmul", "setitem",
+        ],
+    ),
+    ("struct", "_struct", &["iter_unpack", "_clearcache"]),
+    ("functools", "_functools", &["reduce", "cmp_to_key"]),
+    ("bisect", "_bisect", &["bisect_left", "bisect_right", "insort_left", "insort_right"]),
+    (
+        "heapq",
+        "_heapq",
+        &["heappush", "heappop", "heapify", "heapreplace", "heappushpop", "_heappop_max", "_heapreplace_max", "_heapify_max"],
+    ),
+    ("asyncio.events", "_asyncio", &["_get_running_loop", "_set_running_loop", "get_running_loop", "get_event_loop"]),
+    (
+        "asyncio.tasks",
+        "_asyncio",
+        &[
+            "_enter_task", "_leave_task", "_register_task", "_unregister_task", "_register_eager_task",
+            "_unregister_eager_task", "_swap_current_task", "current_task",
+        ],
+    ),
+];
+
+impl FuncObj {
+    /// A função de nível de módulo de um módulo que o CPython implementa em C: `type()` e `repr()` a mostram como
+    /// `builtin_function_or_method`, não como `function`.
+    pub fn is_c_function(&self) -> bool {
+        self.c_owner().is_some()
+    }
+
+    /// O método de um tipo de `builtins` que o CPython escreve em C e este interpretador em Python (`memoryview`,
+    /// `complex`, os grupos de exceção: o módulo do shim se chama `builtins`). Ligado a um objeto, no CPython ele é
+    /// um método embutido ou o wrapper de um slot, nunca um `method` de função.
+    pub fn is_builtin_type_method(&self) -> bool {
+        self.code.qual().contains('.')
+            && matches!(self.globals.borrow().get("__name__"), Some(Value::Str(s)) if s.as_str() == "builtins")
+    }
+
+    /// O nome qualificado sem o `_build.<locals>.` dos módulos que montam a API num escopo fechado (`sys`): o
+    /// `__name__` com que o CPython mostra a função de C.
+    pub fn plain_qual(&self) -> &str {
+        let qual = self.code.qual();
+        qual.strip_prefix("_build.<locals>.").unwrap_or(qual)
+    }
+
+    /// O módulo C do CPython a que a função pertence (`__module__` e `__self__` de uma
+    /// `builtin_function_or_method`): `termios`, ou `posix` para o que o `os.py` do Debian não define.
+    pub fn c_owner(&self) -> Option<String> {
+        let name = self.plain_qual();
+        if name.contains('.') {
+            return None;
+        }
+        if let Some(Value::Str(s)) = self.globals.borrow().get("__name__") {
+            if let Some((_, owner)) = C_EXTENSION_MODULES.iter().find(|(shim, _)| *shim == s.as_str()) {
+                return Some((*owner).to_string());
+            }
+            let listed = C_EXTENSION_FUNCTIONS.iter().find(|(shim, _, names)| *shim == s.as_str() && names.contains(&name));
+            if let Some((_, owner, _)) = listed {
+                return Some((*owner).to_string());
+            }
+        }
+        crate::vm::code_is_posix_builtin(&self.code).then(|| "posix".to_string())
+    }
+}
+
 /// Classe definida por `class`: nome, bases (já resolvidas) e o espaço de nomes.
 pub struct ClassObj {
     pub name: String,
@@ -510,22 +689,75 @@ impl ClassObj {
         if self.builtin_base.is_some() || self.data_base.is_some() || !self.dict.borrow().contains_key("__slots__") {
             return true;
         }
-        let mut allowed: Vec<String> = Vec::new();
         for c in self.mro() {
             if c.builtin_base.is_some() || c.data_base.is_some() {
                 return true;
             }
-            let Some(slots) = c.dict.borrow().get("__slots__").cloned() else {
-                return true;
-            };
-            match &slots {
-                Value::Str(s) => allowed.push(s.as_str().to_string()),
-                Value::Tuple(t) => allowed.extend(t.iter().map(to_str)),
-                Value::List(l) => allowed.extend(l.borrow().iter().map(to_str)),
-                _ => return true,
+            match c.declared_slots() {
+                None => return true,
+                Some(slots) if slots.iter().any(|s| s == name || s == "__dict__") => return true,
+                Some(_) => {}
             }
         }
-        allowed.iter().any(|s| s == name || s == "__dict__")
+        false
+    }
+
+    /// Os campos de `__slots__` de toda a herança (shims de tipo em C incluídos): estado da instância que no
+    /// CPython não mora no `__dict__`, embora aqui o `dict` o guarde.
+    pub fn slot_fields(self: &Rc<Self>) -> Vec<String> {
+        let mut fields = Vec::new();
+        for c in self.mro() {
+            // A exceção embutida guarda `args` (e os campos do `OSError`) em membros do tipo em C, fora do `__dict__`.
+            if let Some(base) = c.builtin_base {
+                fields.push("args".to_string());
+                if exc_is_subclass(base, "OSError") {
+                    fields.extend(["errno", "strerror", "filename", "filename2"].map(String::from));
+                }
+            }
+            for name in c.declared_slots().unwrap_or_default() {
+                if name != "__dict__" && name != "__weakref__" {
+                    fields.push(name);
+                }
+            }
+        }
+        fields
+    }
+
+    /// Os nomes do `__slots__` da própria classe, já com a mutilação de nomes privados (`__x` vira
+    /// `_C__x`), como o `type_new` os grava; `None` sem `__slots__` (ou se ele não for iterável).
+    pub fn declared_slots(&self) -> Option<Vec<String>> {
+        let slots = self.dict.borrow().get("__slots__").cloned()?;
+        let items = match &slots {
+            Value::Str(_) => vec![slots.clone()],
+            other => crate::vm::iterate(other).ok()?,
+        };
+        let prefix = crate::mangle::prefix(&self.name);
+        Some(
+            items
+                .iter()
+                .map(|v| {
+                    let name = to_str(v);
+                    prefix.and_then(|p| crate::mangle::mangle(p, &name)).unwrap_or(name)
+                })
+                .collect(),
+        )
+    }
+
+    /// O `tp_name` que as mensagens de erro do CPython mostram: o nome simples, e `modulo.nome` para
+    /// o tipo em C de um módulo embutido (`_socket.socket`), cujo `tp_name` leva o módulo.
+    pub fn tp_name(&self) -> String {
+        match self.dict.borrow().get("__module__") {
+            Some(Value::Str(m)) if m.as_str() != "builtins" && self.emulates_c_type() => format!("{}.{}", m.as_str(), self.name),
+            _ => self.name.clone(),
+        }
+    }
+
+    /// A classe é o shim de um tipo escrito em C: de `builtins` ou de um módulo que no Debian é C
+    /// embutido no executável. Nada do que ela usa para funcionar (`__slots__`, atributos do shim) pode
+    /// aparecer, porque o tipo real não tem `__dict__` nem esses nomes.
+    pub fn emulates_c_type(&self) -> bool {
+        matches!(self.dict.borrow().get("__module__"), Some(Value::Str(m))
+            if m.as_str() == "builtins" || BUILTIN_MODULES.contains(&m.as_str()))
     }
 
     /// Ordem de resolução de métodos (`__mro__`): linearização C3. Herança simples não paga o
@@ -566,6 +798,11 @@ impl ClassObj {
         out
     }
 
+    /// `self` é subtipo estrito de `base` (`PyType_IsSubtype` entre tipos diferentes).
+    pub fn is_strict_subtype_of(self: &Rc<Self>, base: &Rc<ClassObj>) -> bool {
+        !Rc::ptr_eq(self, base) && self.mro().iter().any(|c| Rc::ptr_eq(c, base))
+    }
+
     /// Procura `name` na classe e nas bases, na ordem do MRO.
     pub fn lookup(self: &Rc<Self>, name: &str) -> Option<Value> {
         // Herança simples: anda pela cadeia sem montar o MRO (aloca um `Vec` de `Rc` por busca).
@@ -581,19 +818,95 @@ impl ClassObj {
             }
         }
     }
+
+    /// O `__del__` da classe (o `tp_finalize` do CPython), se houver. Roda no `Drop` de uma instância,
+    /// possivelmente com o `dict` de uma classe emprestado para escrita mais acima na pilha: um
+    /// empréstimo que não abre conta como "sem finalizador" em vez de entrar em pânico.
+    pub fn finalizer(self: &Rc<Self>) -> Option<Value> {
+        let mut cur = self;
+        loop {
+            if let Some(v) = cur.dict.try_borrow().ok().and_then(|d| d.get("__del__").cloned()) {
+                return Some(v);
+            }
+            match cur.bases.as_slice() {
+                [] => return None,
+                [one] => cur = one,
+                _ => {
+                    return self.mro().iter().find_map(|c| c.dict.try_borrow().ok().and_then(|d| d.get("__del__").cloned()))
+                }
+            }
+        }
+    }
 }
 
 /// Instância de uma classe de usuário.
+///
+/// A finalização (`__del__`, PEP 442) acontece no `Drop`: a última referência que cai guarda os dados
+/// numa instância nova, ressuscitada, que a fila de `crate::finalize` entrega à VM no próximo ponto
+/// seguro. O endereço (`id`) da instância ressuscitada difere do original.
 pub struct InstanceObj {
-    pub class: Rc<ClassObj>,
+    /// A classe corrente. `obj.__class__ = X` a troca (`object_set_class`), então o acesso comum é
+    /// `class()`, que devolve o `Rc` clonado.
+    pub class_cell: RefCell<Rc<ClassObj>>,
     pub dict: RefCell<AttrMap>,
     /// Espelho vivo de `__dict__`: o `dict` entregue ao usuário, sincronizado com `dict` em cada acesso.
     pub view: RefCell<Option<Rc<RefCell<Dict>>>>,
     /// O valor embutido de uma instância cuja classe herda de `dict`, `list`, `tuple`, `str`, `int`...
     pub payload: RefCell<Option<Value>>,
+    /// O `__del__` já rodou (ou está rodando) nesta instância: cada objeto é finalizado no máximo uma vez.
+    pub(crate) finalized: std::cell::Cell<bool>,
+}
+
+impl Drop for InstanceObj {
+    fn drop(&mut self) {
+        let class = self.class_cell.get_mut();
+        if self.finalized.get() || class.finalizer().is_none() {
+            return;
+        }
+        let class = class.clone();
+        crate::finalize::enqueue(Rc::new(InstanceObj {
+            class_cell: RefCell::new(class),
+            dict: RefCell::new(std::mem::take(self.dict.get_mut())),
+            view: RefCell::new(self.view.get_mut().take()),
+            payload: RefCell::new(self.payload.get_mut().take()),
+            finalized: std::cell::Cell::new(true),
+        }));
+    }
 }
 
 impl InstanceObj {
+    /// Uma instância vazia de `class`, com o `payload` do tipo embutido que a classe herda (se houver).
+    /// Classes com `__del__` entram no registro que a saída do interpretador finaliza.
+    pub fn new_rc(class: &Rc<ClassObj>, payload: Option<Value>) -> Rc<InstanceObj> {
+        let inst = Rc::new(InstanceObj {
+            class_cell: RefCell::new(class.clone()),
+            dict: RefCell::new(AttrMap::default()),
+            view: RefCell::new(None),
+            payload: RefCell::new(payload),
+            finalized: std::cell::Cell::new(false),
+        });
+        if class.finalizer().is_some() {
+            crate::finalize::register(&inst);
+        }
+        inst
+    }
+
+    /// A classe corrente da instância.
+    pub fn class(&self) -> Rc<ClassObj> {
+        self.class_cell.borrow().clone()
+    }
+
+    /// `obj.__class__ = new`: a instância passa a ser de `new`. Uma classe com `__del__` entra no registro
+    /// que a saída do interpretador finaliza (a finalização pertence à classe corrente no momento do `Drop`).
+    pub fn set_class(self: &Rc<Self>, new: Rc<ClassObj>) {
+        let had_finalizer = self.class().finalizer().is_some();
+        let has_finalizer = new.finalizer().is_some();
+        *self.class_cell.borrow_mut() = new;
+        if has_finalizer && !had_finalizer {
+            crate::finalize::register(self);
+        }
+    }
+
     /// O `__dict__` vivo: criado na primeira leitura e compartilhado nas seguintes.
     pub fn live_dict(&self) -> Value {
         if let Some(v) = self.view.borrow().as_ref() {
@@ -609,6 +922,12 @@ impl InstanceObj {
     pub fn sync_from_view(&self) {
         let Some(v) = self.view.borrow().clone() else { return };
         let mut fresh = AttrMap::default();
+        // Os campos de `__slots__` não moram no `__dict__` visível: passam intactos.
+        for name in self.class().slot_fields() {
+            if let Some(val) = self.dict.borrow().get(&name) {
+                fresh.insert(name, val.clone());
+            }
+        }
         for (k, val) in v.borrow().iter() {
             if let Value::Str(s) = k {
                 fresh.insert(s.as_str().to_string(), val.clone());
@@ -623,10 +942,11 @@ impl InstanceObj {
         *v.borrow_mut() = self.attrs_dict();
     }
 
-    /// Os atributos próprios como um `dict` do Python.
+    /// Os atributos próprios como um `dict` do Python (sem os campos de `__slots__`).
     fn attrs_dict(&self) -> Dict {
+        let hidden = self.class().slot_fields();
         let mut d = Dict::default();
-        for (k, val) in self.dict.borrow().iter() {
+        for (k, val) in self.dict.borrow().iter().filter(|(k, _)| !hidden.contains(*k)) {
             let _ = d.set(Value::str(k.clone()), val.clone());
         }
         d
@@ -650,7 +970,7 @@ impl InstanceObj {
 
 impl fmt::Debug for InstanceObj {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "<{} object>", self.class.name)
+        write!(f, "<{} object>", self.class().name)
     }
 }
 
@@ -684,6 +1004,55 @@ impl ExcObj {
     /// Valor de um atributo extra.
     pub fn extra_get(&self, key: &str) -> Option<Value> {
         self.extra.borrow().iter().find(|(k, _)| *k == key).map(|(_, v)| v.clone())
+    }
+
+    /// Grava (ou troca) um atributo extra.
+    pub fn extra_set(&self, key: &'static str, value: Value) {
+        let mut extra = self.extra.borrow_mut();
+        extra.retain(|(k, _)| *k != key);
+        extra.push((key, value));
+    }
+
+    /// A chave de `extra` é campo do tipo em C (ou maquinaria interna), não entrada do `__dict__`.
+    fn is_member_key(&self, key: &str) -> bool {
+        let is = |base: &str| exc_is_subclass(self.kind, base);
+        match key {
+            "hint" => true,
+            "scope" | "self_has" => is("NameError"),
+            "module" | "path" | "name_from" => is("ImportError"),
+            "name" => is("AttributeError") || is("NameError") || is("ImportError"),
+            "obj" => is("AttributeError"),
+            _ => false,
+        }
+    }
+
+    /// As entradas do `__dict__` da exceção: os atributos que o programa gravou nela, na ordem de
+    /// gravação (`__notes__` inclusive, como no CPython).
+    pub fn dict_items(&self) -> Vec<(&'static str, Value)> {
+        self.extra.borrow().iter().filter(|(k, _)| !self.is_member_key(k)).map(|(k, v)| (*k, v.clone())).collect()
+    }
+
+    /// Valor de uma entrada do `__dict__`.
+    pub fn dict_get(&self, key: &str) -> Option<Value> {
+        self.extra.borrow().iter().find(|(k, _)| *k == key && !self.is_member_key(k)).map(|(_, v)| v.clone())
+    }
+
+    /// O atributo é calculado a partir de `args` (ou é o próprio `args`): gravá-lo não cabe no `__dict__`.
+    pub fn is_computed_attr(&self, name: &str) -> bool {
+        let is = |base: &str| exc_is_subclass(self.kind, base);
+        match name {
+            "args" => true,
+            "code" => self.kind == "SystemExit",
+            "value" => self.kind == "StopIteration",
+            "errno" | "strerror" | "filename" | "filename2" => is("OSError"),
+            "msg" | "lineno" | "offset" | "text" | "end_lineno" | "end_offset" | "print_file_and_line" => {
+                is("SyntaxError")
+            }
+            "encoding" | "object" | "start" | "end" | "reason" => {
+                matches!(self.kind, "UnicodeEncodeError" | "UnicodeDecodeError" | "UnicodeTranslateError")
+            }
+            _ => false,
+        }
     }
 }
 
@@ -750,9 +1119,13 @@ pub const EXC_CLASSES: &[(&str, &str)] = &[
     ("BytesWarning", "Warning"),
     ("ResourceWarning", "Warning"),
     ("EncodingWarning", "Warning"),
+    ("PythonFinalizationError", "RuntimeError"),
+    ("ReferenceError", "Exception"),
+    ("_IncompleteInputError", "SyntaxError"),
     ("re.PatternError", "Exception"),
     ("struct.error", "Exception"),
     ("binascii.Error", "ValueError"),
+    ("binascii.Incomplete", "Exception"),
     ("zlib.error", "Exception"),
     ("zipfile.BadZipFile", "Exception"),
     ("subprocess.CalledProcessError", "Exception"),
@@ -761,6 +1134,7 @@ pub const EXC_CLASSES: &[(&str, &str)] = &[
     ("http.client.HTTPException", "Exception"),
     ("StopIteration", "Exception"),
     ("UnicodeDecodeError", "UnicodeError"),
+    ("UnicodeTranslateError", "UnicodeError"),
     ("_csv.Error", "Exception"),
     ("json.decoder.JSONDecodeError", "ValueError"),
 ];
@@ -809,7 +1183,41 @@ pub fn exc_str(e: &ExcObj) -> String {
             _ => format!("[Errno {errno}] {}", to_str(msg)),
         },
         [Value::Str(msg), Value::Str(_), Value::Str(_), _] if e.kind == "re.PatternError" => msg.as_str().to_string(),
+        [Value::Str(enc), obj, Value::Int(start), Value::Int(end), Value::Str(reason)]
+            if matches!(e.kind, "UnicodeEncodeError" | "UnicodeDecodeError") =>
+        {
+            unicode_error_str(e.kind == "UnicodeEncodeError", enc.as_str(), obj, *start, *end, reason.as_str())
+                .unwrap_or_else(|| repr(&Value::tuple(e.args.clone())))
+        }
+        [Value::Str(obj), Value::Int(start), Value::Int(end), Value::Str(reason)] if e.kind == "UnicodeTranslateError" => {
+            let cps: Vec<u32> = code_points(obj.as_str()).collect();
+            match cps.get(*start as usize).filter(|_| *end == start + 1 && *start >= 0) {
+                Some(&cp) => format!("can't translate character '{}' in position {start}: {}", crate::textcodec::escape_cp(cp), reason.as_str()),
+                None => format!("can't translate characters in position {start}-{}: {}", end - 1, reason.as_str()),
+            }
+        }
         many => repr(&Value::tuple(many.to_vec())),
+    }
+}
+
+/// `str(UnicodeEncodeError)` e `str(UnicodeDecodeError)` (`Objects/exceptions.c`): um caractere ou
+/// byte só quando o intervalo tem tamanho 1 e começa dentro do objeto; senão as posições `a-b`.
+/// `None` quando `object` não é do tipo que o erro espera (o CPython recusa na construção).
+fn unicode_error_str(encode: bool, enc: &str, obj: &Value, start: i64, end: i64, reason: &str) -> Option<String> {
+    let single = end == start + 1 && start >= 0;
+    if encode {
+        let Value::Str(s) = obj else { return None };
+        let cps: Vec<u32> = code_points(s.as_str()).collect();
+        Some(match cps.get(start as usize).filter(|_| single) {
+            Some(&cp) => format!("'{enc}' codec can't encode character '{}' in position {start}: {reason}", crate::textcodec::escape_cp(cp)),
+            None => format!("'{enc}' codec can't encode characters in position {start}-{}: {reason}", end - 1),
+        })
+    } else {
+        let bytes = obj.bytes_like()?;
+        Some(match bytes.get(start as usize).filter(|_| single) {
+            Some(b) => format!("'{enc}' codec can't decode byte 0x{b:02x} in position {start}: {reason}"),
+            None => format!("'{enc}' codec can't decode bytes in position {start}-{}: {reason}", end - 1),
+        })
     }
 }
 
@@ -892,7 +1300,7 @@ impl Value {
             Value::Bytes(b) => Some(b.clone()),
             Value::ByteArray(b) => Some(Rc::from(b.borrow().as_slice())),
             // `memoryview` (classe em Python): os bytes da visão.
-            Value::Instance(i) if i.class.name == "memoryview" => crate::vm::memoryview_bytes(self),
+            Value::Instance(i) if i.class().name == "memoryview" => crate::vm::memoryview_bytes(self),
             _ => None,
         }
     }
@@ -937,6 +1345,7 @@ impl Value {
             Value::Builtin(_) | Value::NativeFn(_) => "builtin_function_or_method",
             Value::Ext(e) => e.type_name(),
             Value::Exception(e) => e.kind,
+            Value::Function(f) if f.is_c_function() => "builtin_function_or_method",
             Value::Function(_) => "function",
             Value::Module(_) => "module",
             Value::Native(n) => match &*n.borrow() {
@@ -944,9 +1353,10 @@ impl Value {
                 Native::CsvReader { .. } => "_csv.reader",
                 Native::CsvWriter { .. } => "_csv.writer",
             },
+            Value::Bound(b) if crate::typeattrs::is_slot_wrapper(b.recv.type_name(), b.name) => "method-wrapper",
             Value::Bound(_) => "builtin_function_or_method",
             Value::Class(_) => "type",
-            Value::Instance(i) => intern(&i.class.name),
+            Value::Instance(i) => intern(&i.class().name),
             Value::BoundFn(_) => "method",
             Value::Slice(_) => "slice",
         }
@@ -1109,7 +1519,7 @@ pub fn intern(name: &str) -> &'static str {
 /// lá. O índice são 36 bits de `ptr >> 3` (os ponteiros são alinhados a 8): só colidem dois
 /// ponteiros a um múltiplo exato de 2^39 bytes de distância, o que não acontece dentro de um heap.
 pub fn py_addr(ptr: usize) -> usize {
-    0x7f00_0000_0000 + (((ptr >> 3) & 0xf_ffff_ffff) << 4)
+    inherited_id(0x7f00_0000_0000 + (((ptr >> 3) & 0xf_ffff_ffff) << 4))
 }
 
 /// `_Py_HashPointer`: o endereço girado 4 bits, que com o alinhamento de 16 bytes é `id >> 4`.
@@ -1121,7 +1531,23 @@ pub fn py_addr_hash(ptr: usize) -> i64 {
 /// `malloc`, que cai no heap do `brk`, logo depois do binário (o `python3.13` do Debian não é PIE):
 /// `0x1...` a `0x3...`, com 8 dígitos. O índice são 25 bits de `ptr >> 3`.
 pub fn py_type_addr(ptr: usize) -> usize {
-    0x1000_0000 + (((ptr >> 3) & 0x1ff_ffff) << 4)
+    inherited_id(0x1000_0000 + (((ptr >> 3) & 0x1ff_ffff) << 4))
+}
+
+thread_local! {
+    /// No filho de um `os.fork`: o `id()` que o objeto tinha no pai, por `id()` do objeto refeito. O
+    /// `fork(2)` do CPython copia a memória, então `id(x)` e o hash por identidade continuam iguais
+    /// no filho; o grafo refeito mora em outros endereços e a tabela devolve os de antes.
+    static INHERITED_IDS: RefCell<Option<std::collections::HashMap<usize, usize>>> = const { RefCell::new(None) };
+}
+
+/// Instala a tabela de ids do filho de um `os.fork` (id refeito para id do pai).
+pub(crate) fn install_inherited_ids(map: std::collections::HashMap<usize, usize>) {
+    INHERITED_IDS.with(|m| *m.borrow_mut() = Some(map));
+}
+
+fn inherited_id(id: usize) -> usize {
+    INHERITED_IDS.with(|m| m.borrow().as_ref().and_then(|map| map.get(&id).copied()).unwrap_or(id))
 }
 
 /// Endereço de um objeto compartilhado, para identidade e para a pilha do `repr`.
@@ -1205,6 +1631,7 @@ pub(crate) fn repr_into(v: &Value, out: &mut String, stack: &mut ReprStack) {
         Value::Builtin(name) if is_builtin_type(name) => out.push_str(&format!("<class '{name}'>")),
         Value::Builtin(name) => out.push_str(&format!("<built-in function {name}>")),
         Value::Exception(e) => out.push_str(&exc_repr(e)),
+        Value::Function(f) if f.is_c_function() => out.push_str(&format!("<built-in function {}>", f.plain_qual())),
         Value::Function(f) => out.push_str(&format!("<function {} at {:#x}>", f.code.qual(), addr(f))),
         Value::Module(m) => out.push_str(&module_repr(m)),
         Value::NativeFn(n) if is_builtin_type(n.name) => out.push_str(&format!("<class '{}'>", n.name)),
@@ -1215,14 +1642,14 @@ pub(crate) fn repr_into(v: &Value, out: &mut String, stack: &mut ReprStack) {
             Native::CsvReader { .. } => out.push_str("<_csv.reader object>"),
             Native::CsvWriter { .. } => out.push_str("<_csv.writer object>"),
         },
-        Value::Bound(b) => out.push_str(&format!("<built-in method {} of {} object at {:#x}>", b.name, b.recv.type_name(), addr(b))),
+        Value::Bound(b) => out.push_str(&crate::typeattrs::bound_method_repr(&b.recv, b.name)),
         Value::Class(c) => match c.meta.is_some().then(|| crate::vm::instance_text(v, false)).flatten() {
             Some(text) => out.push_str(&text),
             None => out.push_str(&format!("<class '{}{}'>", module_prefix(c), c.qualname())),
         },
         Value::Instance(i) => match crate::vm::instance_text(v, false) {
             Some(text) => out.push_str(&text),
-            None => out.push_str(&format!("<{}{} object at {:#x}>", module_prefix(&i.class), i.class.name, addr(i))),
+            None => out.push_str(&format!("<{}{} object at {:#x}>", module_prefix(&i.class()), i.class().name, addr(i))),
         },
         Value::Slice(s) => {
             out.push_str("slice(");
@@ -1315,6 +1742,11 @@ pub fn py_eq(a: &Value, b: &Value) -> bool {
             return r;
         }
     }
+    py_eq_native(a, b)
+}
+
+/// O resto de `py_eq`, depois do `__eq__` de instâncias de usuário.
+pub(crate) fn py_eq_native(a: &Value, b: &Value) -> bool {
     if matches!(a, Value::Big(_)) || matches!(b, Value::Big(_)) {
         return match (a, b) {
             (Value::Float(x), Value::Big(n)) | (Value::Big(n), Value::Float(x)) => {
@@ -1394,8 +1826,8 @@ pub fn hash(v: &Value) -> Result<i64, ObjError> {
         Value::Instance(i) => match crate::vm::instance_hash(v) {
             Some(h) => Ok(h),
             // `__hash__ = None` na classe: instâncias não são hasheáveis.
-            None if matches!(i.class.lookup("__hash__"), Some(Value::None)) => {
-                Err(ObjError::TypeError(format!("unhashable type: '{}'", i.class.name)))
+            None if matches!(i.class().lookup("__hash__"), Some(Value::None)) => {
+                Err(ObjError::TypeError(format!("unhashable type: '{}'", i.class().name)))
             }
             None => Ok(py_addr_hash(Rc::as_ptr(i) as usize)),
         },
@@ -1590,9 +2022,9 @@ mod tests {
     fn str_indexes_by_code_point() {
         let st = PyStr::new("aé😀b");
         assert_eq!(st.len(), 4);
-        assert_eq!(st.char_at(1), Some('é'));
-        assert_eq!(st.char_at(2), Some('😀'));
-        assert_eq!(st.char_at(4), None);
+        assert_eq!(st.unit_at(1), Some("é"));
+        assert_eq!(st.unit_at(2), Some("😀"));
+        assert_eq!(st.unit_at(4), None);
         assert_eq!(st.slice(1, 3), "é😀");
         assert_eq!(st.slice(3, 99), "b");
         assert_eq!(PyStr::new("abc").slice(2, 1), "");

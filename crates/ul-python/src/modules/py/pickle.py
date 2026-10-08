@@ -1177,6 +1177,9 @@ class _Pickler:
 
 # Unpickling machinery
 
+_USER_CODE_OPS = frozenset(('load_reduce', 'load_newobj', 'load_newobj_ex', 'load_inst', 'load_obj', 'load_build'))
+
+
 class _Unpickler:
 
     def __init__(self, file, *, fix_imports=True,
@@ -1253,6 +1256,11 @@ class _Unpickler:
                 if not key:
                     raise EOFError
                 assert isinstance(key, bytes_types)
+                # Os opcodes que chamam código do usuário (o `__init__` de uma classe, um `__setstate__`)
+                # deixam a exceção dele passar crua, como o `_pickle` em C.
+                if getattr(dispatch.get(key[0]), '__name__', None) in _USER_CODE_OPS:
+                    dispatch[key[0]](self)
+                    continue
                 try:
                     dispatch[key[0]](self)
                 except KeyError:

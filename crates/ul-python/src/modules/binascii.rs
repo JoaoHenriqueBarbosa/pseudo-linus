@@ -150,6 +150,7 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
         .func("b2a_base64", b2a_base64)
         .func("a2b_base64", a2b_base64)
         .value("Error", Value::Builtin("binascii.Error"))
+        .value("Incomplete", Value::Builtin("binascii.Incomplete"))
         .build()
 }
 

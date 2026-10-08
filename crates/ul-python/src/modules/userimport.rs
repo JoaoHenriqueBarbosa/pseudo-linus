@@ -8,13 +8,15 @@ use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::rc::Rc;
 
+use crate::modrun::{Body, Load};
 use crate::object::{intern, ModuleObj, Value};
 use crate::vm::{exc, PyException, PyResult, Vm};
 
 /// Sufixos de módulo de extensão, na ordem do `EXTENSION_SUFFIXES` do CPython 3.13 do Debian (a
-/// mesma lista de `_frozen_importlib_external.py`). Num diretório valem antes do `.py`, como no
+/// mesma lista do `_imp.extension_suffixes()`). Num diretório valem antes do `.py`, como no
 /// `FileFinder`, e entre si na ordem daqui.
-const EXTENSION_SUFFIXES: [&str; 3] = [".cpython-313-x86_64-linux-gnu.so", ".abi3.so", ".so"];
+const EXTENSION_SUFFIXES: [&str; 4] =
+    [".cpython-313-x86_64-linux-gnu.so", ".abi3.so", ".abi3-x86_64-linux-gnu.so", ".so"];
 
 /// Monta o módulo nativo (em Rust) que responde por uma extensão do CPython.
 type NativeBuilder = fn(&mut Vm) -> PyResult<Rc<ModuleObj>>;
@@ -25,6 +27,7 @@ type NativeBuilder = fn(&mut Vm) -> PyResult<Rc<ModuleObj>>;
 /// nunca é executado.
 pub const NATIVE_EXTENSIONS: &[(&str, NativeBuilder)] = &[
     ("markupsafe._speedups", crate::modules::markupsafe_speedups::build_markupsafe_speedups),
+    ("yaml._yaml", crate::modules::yaml_native::build_yaml_native),
 ];
 
 fn native_builder(name: &str) -> Option<NativeBuilder> {
@@ -259,22 +262,22 @@ fn is_dir(path: &str) -> bool {
 }
 
 /// Importa `name` de um arquivo, se existir. `Ok(None)`: não está no disco.
-pub fn load(vm: &mut Vm, name: &str) -> PyResult<Option<Rc<ModuleObj>>> {
+pub(crate) fn load(vm: &mut Vm, name: &str) -> PyResult<Option<Load>> {
     let found = find(vm, name, false);
     load_found(vm, name, found)
 }
 
 /// Módulo da stdlib que o interpretador não traz embutido (o pacote `encodings`, por exemplo):
 /// roda o `.py` do CPython que está em `/usr/lib/python3.13`.
-pub fn load_stdlib(vm: &mut Vm, name: &str) -> PyResult<Option<Rc<ModuleObj>>> {
+pub(crate) fn load_stdlib(vm: &mut Vm, name: &str) -> PyResult<Option<Load>> {
     let found = find(vm, name, true);
     load_found(vm, name, found)
 }
 
-fn load_found(vm: &mut Vm, name: &str, found: Option<Found>) -> PyResult<Option<Rc<ModuleObj>>> {
+fn load_found(vm: &mut Vm, name: &str, found: Option<Found>) -> PyResult<Option<Load>> {
     let Some(found) = found else { return Ok(None) };
     if !found.namespace.is_empty() {
-        return Ok(Some(make_namespace(vm, name, found.namespace)));
+        return Ok(Some(Load::Ready(make_namespace(vm, name, found.namespace))));
     }
     if extension_suffix(&found.file).is_some() {
         return load_extension(vm, name, &found.file, found.package_dir.as_deref()).map(Some);
@@ -285,7 +288,7 @@ fn load_found(vm: &mut Vm, name: &str, found: Option<Found>) -> PyResult<Option<
 /// Carrega o `.so` achado como o `ExtensionFileLoader`: o módulo nativo registrado para `name`, ou
 /// o `.py` irmão executado como o módulo (mypyc). Em ambos `__file__`, `__spec__.origin` e o loader
 /// são os do `.so`, e não há `__cached__`, porque o CPython não grava `.pyc` para extensão.
-fn load_extension(vm: &mut Vm, name: &str, file: &str, package_dir: Option<&str>) -> PyResult<Rc<ModuleObj>> {
+fn load_extension(vm: &mut Vm, name: &str, file: &str, package_dir: Option<&str>) -> PyResult<Load> {
     let Some(build) = native_builder(name) else {
         return exec_file(vm, name, &extension_source(file), file, package_dir);
     };
@@ -295,12 +298,12 @@ fn load_extension(vm: &mut Vm, name: &str, file: &str, package_dir: Option<&str>
     {
         let mut g = globals.borrow_mut();
         g.insert("__name__".into(), Value::str(name));
-        g.insert("__file__".into(), Value::str(file));
-        g.insert("__package__".into(), Value::str(package_of(name, package_dir)));
         g.insert("__doc__".into(), Value::None);
+        g.insert("__package__".into(), Value::str(package_of(name, package_dir)));
         if let Some(dir) = package_dir {
             g.insert("__path__".into(), Value::list(vec![Value::str(dir)]));
         }
+        g.insert("__file__".into(), Value::str(file));
     }
     for (k, v) in globals.borrow().iter() {
         module.attrs.borrow_mut().entry(k.to_string()).or_insert_with(|| v.clone());
@@ -308,7 +311,7 @@ fn load_extension(vm: &mut Vm, name: &str, file: &str, package_dir: Option<&str>
     vm.modules.borrow_mut().insert(name.to_string(), module.clone());
     vm.module_globals.borrow_mut().insert(key, globals);
     bind_to_parent(vm, name, &module);
-    Ok(module)
+    Ok(Load::Ready(module))
 }
 
 /// O `__package__` de `name`: ele mesmo se é pacote, senão o pai.
@@ -320,7 +323,7 @@ fn package_of(name: &str, package_dir: Option<&str>) -> String {
 }
 
 /// `import a.b` deixa `b` como atributo de `a`.
-fn bind_to_parent(vm: &Vm, name: &str, module: &Rc<ModuleObj>) {
+pub(crate) fn bind_to_parent(vm: &Vm, name: &str, module: &Rc<ModuleObj>) {
     let Some((parent, child)) = name.rsplit_once('.') else { return };
     let parent_module = vm.modules.borrow().get(parent).cloned();
     if let Some(p) = parent_module {
@@ -339,10 +342,10 @@ fn make_namespace(vm: &mut Vm, name: &str, dirs: Vec<String>) -> Rc<ModuleObj> {
     {
         let mut g = globals.borrow_mut();
         g.insert("__name__".into(), Value::str(name));
-        g.insert("__package__".into(), Value::str(name));
         g.insert("__doc__".into(), Value::None);
-        g.insert("__file__".into(), Value::None);
+        g.insert("__package__".into(), Value::str(name));
         g.insert("__path__".into(), Value::list(dirs.into_iter().map(Value::str).collect()));
+        g.insert("__file__".into(), Value::None);
     }
     let module = Rc::new(ModuleObj { name: key, attrs: RefCell::new(BTreeMap::new()) });
     for (k, v) in globals.borrow().iter() {
@@ -354,10 +357,12 @@ fn make_namespace(vm: &mut Vm, name: &str, dirs: Vec<String>) -> Rc<ModuleObj> {
     module
 }
 
-/// Executa o texto de `source` como o módulo `name`. `shown` é o que o módulo mostra como arquivo
+/// Prepara o texto de `source` como o módulo `name`, que fica registrado em `sys.modules` antes de rodar
+/// (importação circular enxerga o módulo parcial). `shown` é o que o módulo mostra como arquivo
 /// (`__file__`): é o próprio `source`, exceto numa extensão mypyc, onde é o `.so` e `source` é o
-/// `.py` irmão. `package_dir`: é o `__init__` de um pacote.
-pub fn exec_file(vm: &mut Vm, name: &str, source: &str, shown: &str, package_dir: Option<&str>) -> PyResult<Rc<ModuleObj>> {
+/// `.py` irmão. `package_dir`: é o `__init__` de um pacote. O corpo roda como quadro do laço de instruções
+/// (`Vm::open_body`); ao fechar, o módulo é ligado ao pai ou, se levantou, removido.
+fn exec_file(vm: &mut Vm, name: &str, source: &str, shown: &str, package_dir: Option<&str>) -> PyResult<Load> {
     let file = source;
     let Some(src) = read_text(file) else {
         return Err(exc("ModuleNotFoundError", format!("No module named '{name}'")));
@@ -391,12 +396,12 @@ pub fn exec_file(vm: &mut Vm, name: &str, source: &str, shown: &str, package_dir
     {
         let mut g = globals.borrow_mut();
         g.insert("__name__".into(), Value::str(name));
-        g.insert("__file__".into(), Value::str(shown));
-        g.insert("__package__".into(), Value::str(package));
         g.insert("__doc__".into(), Value::None);
+        g.insert("__package__".into(), Value::str(package));
         if let Some(dir) = package_dir {
             g.insert("__path__".into(), Value::list(vec![Value::str(dir)]));
         }
+        g.insert("__file__".into(), Value::str(shown));
         // Módulo congelado não tem `__cached__`; os outros apontam o `.pyc` do `__pycache__`
         // (extensão não tem: `cached_path` só reconhece `.py`).
         if !frozen {
@@ -416,15 +421,7 @@ pub fn exec_file(vm: &mut Vm, name: &str, source: &str, shown: &str, package_dir
     // Registrado antes de rodar, para que importações circulares enxerguem o módulo.
     vm.modules.borrow_mut().insert(name.to_string(), module.clone());
     vm.module_globals.borrow_mut().insert(key, globals.clone());
-    let mut inner = vm.clone();
-    inner.globals = globals;
-    if let Err(e) = inner.run(&Rc::new(code)) {
-        vm.modules.borrow_mut().remove(name);
-        vm.module_globals.borrow_mut().remove(key);
-        return Err(into_exception(e));
-    }
-    bind_to_parent(vm, name, &module);
-    Ok(module)
+    Ok(Load::Body(Body { name: name.to_string(), module, code: Rc::new(code), globals }))
 }
 
 /// A exceção de um módulo que falhou, com os quadros dele no traceback.
@@ -465,5 +462,6 @@ pub fn reload(vm: &mut Vm, module: &Rc<ModuleObj>) -> PyResult<()> {
     crate::vm::register_source(&file, &text);
     let mut inner = vm.clone();
     inner.globals = globals;
+    let _running = crate::modules::Initializing::enter(module.name);
     inner.run(&Rc::new(code)).map_err(into_exception)
 }

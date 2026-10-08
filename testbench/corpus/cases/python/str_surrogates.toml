@@ -1,0 +1,187 @@
+tool = "python3"
+source = "manual"
+
+# Complemento de `surrogates.toml`: o que ainda não tinha caso. `print` de `str` com surrogate no
+# stdout real (`UnicodeEncodeError`, `sys.stdout.errors`), as funções de baixo nível do módulo
+# `codecs` (`utf_8_decode`, `utf_16_decode`, `utf_32_decode`, `*_ex_decode`, `*_encode`) com `final`,
+# BOM e o tamanho consumido, e o plano 16 pelas mesmas portas (`chr`, `len`, `ord`, `encode`,
+# `repr`, `sorted`). O golden vem do oráculo; nenhum script imprime um surrogate cru.
+
+[[case]]
+id = "strsur-print-stdout"
+script = '''
+python3 - <<'PYEOF'
+import sys
+print(sys.stdout.encoding, sys.stdout.errors, sys.stderr.errors, sys.getfilesystemencodeerrors())
+for s in ['\ud800', 'a\udfffb', '\U0010d800', '\U0010ffff'.encode('utf-8', 'surrogatepass').hex()]:
+    try:
+        print(s)
+    except UnicodeEncodeError as e:
+        print(type(e).__name__, e)
+try:
+    print('ok', '\ud800', 'depois')
+except UnicodeEncodeError as e:
+    print(e.reason, e.start, e.end)
+try:
+    sys.stdout.write('x\ud83dy')
+except UnicodeEncodeError as e:
+    print(ascii(e.object), e.start, e.end)
+print(ascii('😀'), len('😀'))
+PYEOF
+'''
+
+[[case]]
+id = "strsur-codecs-utf8-decode"
+script = '''
+python3 - <<'PYEOF'
+import codecs
+def t(f):
+    try:
+        print(ascii(f()))
+    except Exception as e:
+        print(type(e).__name__, e)
+for b in [b'', b'a', b'\xe2', b'\xe2\x82', b'\xe2\x82\xac', b'a\xe2\x82', b'\xf0\x9f\x98', b'\xf0\x9f\x98\x80',
+          b'\xed\xa0\x80', b'\xed\xa0', b'\xf4\x90', b'\xc3', b'\xff', b'a\xffb\xe2']:
+    for final in (False, True):
+        for err in ('strict', 'replace', 'ignore', 'surrogateescape', 'surrogatepass', 'backslashreplace'):
+            t(lambda: codecs.utf_8_decode(b, err, final))
+t(lambda: codecs.utf_8_decode(b'abc'))
+t(lambda: codecs.utf_8_decode(b'abc', None, True))
+t(lambda: codecs.utf_8_decode('abc'))
+t(lambda: codecs.utf_8_decode(bytearray(b'\xc3\xa9'), 'strict', True))
+t(lambda: codecs.utf_8_decode(memoryview(b'\xc3\xa9x'), 'strict', True))
+t(lambda: codecs.utf_8_encode('a\ud800\U0010ffff', 'surrogatepass'))
+t(lambda: codecs.utf_8_encode('a\ud800'))
+t(lambda: codecs.utf_8_encode('a\udc80', 'surrogateescape'))
+t(lambda: codecs.utf_8_encode(b'a'))
+t(lambda: codecs.latin_1_decode(b'\xff\x80', 'strict'))
+t(lambda: codecs.latin_1_encode('\xffĀ', 'replace'))
+t(lambda: codecs.ascii_decode(b'a\x80', 'surrogateescape'))
+t(lambda: codecs.ascii_encode('a\udc80é', 'surrogateescape'))
+PYEOF
+'''
+
+[[case]]
+id = "strsur-codecs-utf16-decode"
+script = '''
+python3 - <<'PYEOF'
+import codecs
+def t(f):
+    try:
+        print(ascii(f()))
+    except Exception as e:
+        print(type(e).__name__, e)
+samples = ['', 'ff', 'fffe', 'feff', 'fffe6100', 'feff0061', 'fffe0000', 'fffe3dd8', 'fffe3dd800de', 'fffe3dd800',
+           'fffe00d8', 'fffe00dc', 'fffe00dc00d8', '6100', '61', '610062', '3dd8', '3dd800de', '00d800d8',
+           'fffefffe', 'feff0061ff', 'fffe3dd8', 'fffe00d86100']
+for h in samples:
+    b = bytes.fromhex(h)
+    for final in (False, True):
+        for err in ('strict', 'surrogatepass', 'replace', 'ignore', 'backslashreplace'):
+            t(lambda: codecs.utf_16_decode(b, err, final))
+            t(lambda: codecs.utf_16_le_decode(b, err, final))
+            t(lambda: codecs.utf_16_be_decode(b, err, final))
+        t(lambda: codecs.utf_16_ex_decode(b, 'surrogatepass', 0, final))
+        t(lambda: codecs.utf_16_ex_decode(b, 'surrogatepass', -1, final))
+        t(lambda: codecs.utf_16_ex_decode(b, 'surrogatepass', 1, final))
+for s in ['a', '\ud800', '𐀀', '\U0010ffff', '\U0010d800', '😀', '\U0001f600']:
+    for err in ('strict', 'surrogatepass', 'replace', 'ignore', 'backslashreplace'):
+        t(lambda: codecs.utf_16_encode(s, err))
+        t(lambda: codecs.utf_16_encode(s, err, -1))
+        t(lambda: codecs.utf_16_encode(s, err, 1))
+        t(lambda: codecs.utf_16_le_encode(s, err))
+        t(lambda: codecs.utf_16_be_encode(s, err))
+t(lambda: codecs.utf_16_ex_decode(b'\xff\xfea\x00', 'strict', 5))
+t(lambda: codecs.utf_16_decode('a'))
+PYEOF
+'''
+
+[[case]]
+id = "strsur-codecs-utf32-decode"
+script = '''
+python3 - <<'PYEOF'
+import codecs
+def t(f):
+    try:
+        print(ascii(f()))
+    except Exception as e:
+        print(type(e).__name__, e)
+samples = ['', 'ff', 'fffe', 'fffe0000', '0000feff', 'fffe000061000000', '0000feff00000061', '61000000', '610000',
+           '00d80000', '00dc0000', '0000110000', '00001100', 'ffff1000', '0000dc00', 'ffffffff', '000011',
+           'fffe000000d80000', 'fffe000000001100', 'fffe00000000100000', '00d8000000dc0000']
+for h in samples:
+    b = bytes.fromhex(h)
+    for final in (False, True):
+        for err in ('strict', 'surrogatepass', 'replace', 'ignore', 'backslashreplace'):
+            t(lambda: codecs.utf_32_decode(b, err, final))
+            t(lambda: codecs.utf_32_le_decode(b, err, final))
+            t(lambda: codecs.utf_32_be_decode(b, err, final))
+        t(lambda: codecs.utf_32_ex_decode(b, 'surrogatepass', 0, final))
+for s in ['a', '\ud800', '𐀀', '\U0010ffff', '\U0010d800', '\U0001f600']:
+    for err in ('strict', 'surrogatepass', 'replace', 'ignore', 'backslashreplace'):
+        t(lambda: codecs.utf_32_encode(s, err))
+        t(lambda: codecs.utf_32_encode(s, err, -1))
+        t(lambda: codecs.utf_32_encode(s, err, 1))
+        t(lambda: codecs.utf_32_le_encode(s, err))
+        t(lambda: codecs.utf_32_be_encode(s, err))
+PYEOF
+'''
+
+[[case]]
+id = "strsur-bytes-decode-utf16-utf32"
+script = '''
+python3 - <<'PYEOF'
+def t(f):
+    try:
+        print(ascii(f()))
+    except Exception as e:
+        print(type(e).__name__, e)
+for enc in ('utf-16', 'utf-16-le', 'utf-16-be', 'utf-32', 'utf-32-le', 'utf-32-be'):
+    for s in ['\ud800', '\udc00', '𐀀', '\udc00\ud800', '😀', '\U0010ffff', '\U0010d800', 'a\udfffb']:
+        t(lambda: s.encode(enc, 'surrogatepass'))
+        t(lambda: s.encode(enc, 'surrogatepass').decode(enc, 'surrogatepass'))
+        t(lambda: s.encode(enc, 'surrogatepass').decode(enc, 'surrogatepass') == s)
+        t(lambda: len(s.encode(enc, 'surrogatepass').decode(enc, 'surrogatepass')))
+        t(lambda: s.encode(enc, 'surrogatepass').decode(enc))
+        t(lambda: s.encode(enc, 'surrogatepass').decode(enc, 'replace'))
+        t(lambda: s.encode(enc, 'surrogatepass').decode(enc, 'ignore'))
+        t(lambda: s.encode(enc, 'surrogatepass').decode(enc, 'backslashreplace'))
+t(lambda: '\U0001f600'.encode('utf-16-le').decode('utf-16-le'))
+t(lambda: len('\U0001f600'.encode('utf-16-le')))
+t(lambda: len('\U0001f600'.encode('utf-32-le')))
+t(lambda: [hex(ord(c)) for c in '\U0001f600\U0010ffff'.encode('utf-16').decode('utf-16')])
+t(lambda: '😀'.encode('utf-16', 'surrogatepass') == '\U0001f600'.encode('utf-16'))
+t(lambda: '😀'.encode('utf-16-le', 'surrogatepass').decode('utf-16-le') == '\U0001f600')
+t(lambda: '😀'.encode('utf-8', 'surrogatepass') == '\U0001f600'.encode('utf-8'))
+PYEOF
+'''
+
+[[case]]
+id = "strsur-plane16-basics"
+script = '''
+python3 - <<'PYEOF'
+top = chr(0x10ffff)
+low = '\U0010d800'
+print(len(top), ord(top), hex(ord(low)), repr(top), ascii(top), repr(low), ascii(low))
+print(top.encode('utf-8'), low.encode('utf-8'), top.encode('utf-16-le'), top.encode('utf-32-be'))
+print(top.isprintable(), top.isalpha(), top.isidentifier(), top.isspace(), top.isdecimal(), top.isnumeric())
+print(len(top * 3), (top * 3)[1] == top, ord((top + low)[1]) == 0x10d800, (top + low).index(low), (top + low).count(top))
+xs = [top, low, '\ud800', '\udfff', '\U0010d7ff', '\U0010e000', 'a', '￿', '\U00010000', '']
+print([hex(ord(c)) for c in sorted(xs)])
+print([hex(ord(c)) for c in sorted(xs, reverse=True)], hex(ord(max(xs))), hex(ord(min(xs))))
+print(top > low > '\udfff' > '\ud800', top == '\U0010ffff', top != low, low < '\U0010e000', low > '\U0010d7ff')
+print(ascii(top + '\ud800' + low), len(top + '\ud800' + low), ascii((top + '\ud800' + low)[::-1]))
+print(ascii(f'{top}{low}'), ascii(format(low, '>3')), ascii('%s|%r|%a' % (top, top, top)), ascii('{:^5}'.format(top)))
+print(top.encode('utf-8').decode('utf-8') == top)
+try:
+    low.encode('utf-8')
+    print('ok')
+except UnicodeEncodeError as e:
+    print('erro', e.reason)
+print(ascii(top.encode('utf-8').decode('utf-8', 'surrogateescape')), ascii('\ud800'.encode('utf-8', 'surrogatepass').decode('utf-8', 'surrogatepass')))
+print(ascii(''.join(map(chr, [0x10ffff, 0xd800, 0x10d800, 0x1f600, 0xdfff]))), ascii(str(bytes([0xf4, 0x8f, 0xbf, 0xbf]), 'utf-8')))
+print(len({top, low, '\ud800', '\udfff', chr(0x10ffff)}), hash(top) == hash(chr(0x10ffff)), hash(low) != hash('\ud800'))
+d = {top: 1, low: 2, '\ud800': 3}
+print(sorted(d.values()), d[chr(0x10ffff)], d['\U0010d800'], d['\ud800'], ascii(sorted(d)))
+PYEOF
+'''

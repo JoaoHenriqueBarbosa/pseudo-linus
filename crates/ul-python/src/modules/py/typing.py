@@ -251,19 +251,49 @@ Text = str
 AnyStr = None
 
 
+class _Lazy:
+    """Valor calculado na primeira leitura (limite, restrições e padrão de `def f[T: int = str]`)."""
+
+    __slots__ = ('thunk',)
+
+    def __init__(self, thunk):
+        self.thunk = thunk
+
+
+def _resolve_lazy(owner, attr):
+    value = getattr(owner, attr)
+    if type(value) is _Lazy:
+        value = value.thunk()
+        setattr(owner, attr, value)
+    return value
+
+
 class TypeVar:
     def __init__(self, name, *constraints, bound=None, covariant=False, contravariant=False, default=None,
                  infer_variance=False):
         self.__name__ = name
-        self.__constraints__ = constraints
-        self.__bound__ = bound
+        # Um único `_Lazy` guarda a tupla de restrições inteira, calculada depois.
+        self._constraints = constraints[0] if len(constraints) == 1 and type(constraints[0]) is _Lazy else constraints
+        self._bound = bound
         self.__covariant__ = covariant
         self.__contravariant__ = contravariant
         self.__infer_variance__ = infer_variance
-        self.__default__ = default
+        self._default = default
+
+    @property
+    def __constraints__(self):
+        return _resolve_lazy(self, '_constraints')
+
+    @property
+    def __bound__(self):
+        return _resolve_lazy(self, '_bound')
+
+    @property
+    def __default__(self):
+        return _resolve_lazy(self, '_default')
 
     def has_default(self):
-        return self.__default__ is not None
+        return self._default is not None
 
     def __repr__(self):
         if self.__infer_variance__:
@@ -494,6 +524,9 @@ def NewType(name, tp):
 def get_origin(tp):
     if isinstance(tp, (_GenericAlias, _BuiltinAlias)):
         return tp.__origin__
+    import types
+    if isinstance(tp, types.UnionType):
+        return types.UnionType
     return getattr(tp, '__origin__', None)
 
 

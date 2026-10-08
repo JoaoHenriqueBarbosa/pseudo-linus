@@ -1,0 +1,155 @@
+tool = "python3"
+source = "manual"
+
+# Descarte de gerador suspenso: quando a última referência cai, o CPython 3.13 chama `close()` na hora, e os
+# `finally`, `with` e `except GeneratorExit` abertos rodam (inclusive os de `yield from` aninhado). Cobre a
+# saída do quadro, a atribuição de outro valor, o `del`, o `for` com `break` e o fim do programa, onde o
+# CPython finaliza os geradores que ainda vivem (wip/notes/python-fork.md). O golden vem do oráculo.
+
+[[case]]
+id = "generator-finalize-frame-exit-yield-from"
+script = '''
+python3 - <<'PYEOF'
+log = []
+def inner():
+    try:
+        yield 1
+    except ValueError:
+        yield 2
+    finally:
+        log.append("inner finally")
+def outer():
+    try:
+        yield from inner()
+    finally:
+        log.append("outer finally")
+def worker():
+    g = outer()
+    next(g)
+    log.append(g.throw(ValueError("x")))
+worker()
+print(log)
+def plain():
+    try:
+        yield 1
+    finally:
+        log.append("plain finally")
+def w2():
+    g = plain()
+    next(g)
+w2()
+print(log)
+PYEOF
+'''
+tags = ["generator", "finalize"]
+
+[[case]]
+id = "generator-finalize-rebind-del-none"
+script = '''
+python3 - <<'PYEOF'
+log = []
+def gen(name):
+    try:
+        yield name
+    finally:
+        log.append("close " + name)
+
+g = gen("a")
+next(g)
+print(log)
+g = gen("b")
+print(log)
+next(g)
+g = None
+print(log)
+g = gen("c")
+next(g)
+del g
+print(log)
+h = gen("d")
+print(log)
+del h
+print(log)
+PYEOF
+'''
+tags = ["generator", "finalize"]
+
+[[case]]
+id = "generator-finalize-for-break"
+script = '''
+python3 - <<'PYEOF'
+log = []
+def gen():
+    try:
+        for i in range(10):
+            yield i
+    finally:
+        log.append("finally")
+for x in gen():
+    if x == 2:
+        break
+print(x, log)
+def first():
+    for x in gen():
+        return x
+print(first(), log)
+print(next(gen()), log)
+print(list(zip(gen(), "ab")), log)
+PYEOF
+'''
+tags = ["generator", "finalize"]
+
+[[case]]
+id = "generator-finalize-with-and-generatorexit"
+script = '''
+python3 - <<'PYEOF'
+import contextlib
+log = []
+@contextlib.contextmanager
+def cm():
+    try:
+        yield
+    finally:
+        log.append("cm exit")
+def a():
+    with cm():
+        yield 1
+def b():
+    try:
+        yield 1
+    except GeneratorExit:
+        log.append("caught GeneratorExit")
+        raise
+def c():
+    try:
+        yield 1
+    except GeneratorExit:
+        log.append("swallowed")
+for f in (a, b, c):
+    it = f()
+    next(it)
+    it = None
+    print(log)
+PYEOF
+'''
+tags = ["generator", "finalize"]
+
+[[case]]
+id = "generator-finalize-at-exit"
+script = '''
+python3 - <<'PYEOF'
+import sys
+def gen(name):
+    try:
+        yield name
+    finally:
+        print("finally", name, file=sys.stdout)
+keep1 = gen("one")
+next(keep1)
+keep2 = gen("two")
+next(keep2)
+unstarted = gen("never")
+print("end of module")
+PYEOF
+'''
+tags = ["generator", "finalize"]

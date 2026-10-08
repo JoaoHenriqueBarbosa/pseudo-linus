@@ -88,11 +88,18 @@ class struct_rusage(tuple):
         return 'resource.struct_rusage(%s)' % ', '.join('%s=%r' % kv for kv in zip(self._fields, self))
 
 
+def _rusage(utime, stime, maxrss):
+    """O `struct_rusage` com o que o sandbox mede (CPU e pico de memória); o resto do `rusage` fica em zero."""
+    return struct_rusage((utime, stime, maxrss) + (0,) * 13)
+
+
 def getrusage(who):
     if who not in (RUSAGE_SELF, RUSAGE_CHILDREN, RUSAGE_THREAD):
         raise ValueError('invalid who parameter')
-    cpu = _time.process_time() if who != RUSAGE_CHILDREN else 0.0
-    return struct_rusage((cpu, 0.0, 16384 if who != RUSAGE_CHILDREN else 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+    if who == RUSAGE_CHILDREN:
+        import _os
+        return _rusage(*_os.child_rusage())
+    return _rusage(_time.process_time(), 0.0, 16384)
 
 
 def getpagesize():

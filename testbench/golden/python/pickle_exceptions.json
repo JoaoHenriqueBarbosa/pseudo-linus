@@ -1,0 +1,38 @@
+{
+  "pickle-exceptions-import-attribute": {
+    "stdout": "(<class 'ImportError'>, ('msg',), {'name': 'mod', 'path': '/p/mod.py'})\n(<class 'ImportError'>, ('msg',), {'name': 'mod', 'path': '/p/mod.py'})\n(<class 'ImportError'>, ('sem campos',))\n(<class 'ImportError'>, ('so nome',), {'name': 'n'})\n(<class 'ModuleNotFoundError'>, ('no mod',), {'name': 'zz'})\n<class 'AttributeError'> ('sem atributo',) {'name': 'foo', 'args': ('sem atributo',)}\n{'name': 'foo', 'args': ('sem atributo',)}\n(<class 'AttributeError'>, ('simples',), {'args': ('simples',)})\n(<class 'AttributeError'>, ('a', 'b'), {'args': ('a', 'b')})\n(<class 'NameError'>, ('nome',))\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pickle-exceptions-oserror": {
+    "stdout": "FileNotFoundError 2 nf f None (2, 'nf')\n(<class 'FileNotFoundError'>, (2, 'nf', 'f'))\n(<class 'FileNotFoundError'>, (2, 'nf', 'f'))\n(<class 'FileNotFoundError'>, (2, 'nf', 'f', None, 'g')) g\n(<class 'OSError'>, (5, 'io'))\n(<class 'OSError'>, ('only',))\n(<class 'OSError'>, ())\n(<class 'FileNotFoundError'>, (2, 'No such file or directory', '/x'))\n(<class 'FileNotFoundError'>, ('plain',))\n(<class 'PermissionError'>, (13, 'denied', 'p'))\n(<class 'FileNotFoundError'>, (2, 'nf', 'f'), {'extra': 'dado'})\n{'extra': 'dado'}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pickle-exceptions-pool": {
+    "stdout": "[0, 1]\nValueError falhou em 2\nFileNotFoundError 2 /nao/existe\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pickle-exceptions-reduce": {
+    "stdout": "(<class 'ValueError'>, ('x', 2))\n(<class 'ValueError'>, ('x', 2))\n(<class 'ValueError'>, ('x', 2)) (<class 'ValueError'>, ('x', 2))\n(<class 'ValueError'>, ())\n(<class 'KeyError'>, ('k',))\n(<class 'KeyError'>, ('k',), {'x': 5}) 5 {'x': 5}\n(<class 'KeyError'>, ('k',), {'x': 5, 'y': [1, 2]})\n(<class 'KeyError'>, ('k',), {'y': [1, 2]}) False\n(<class 'StopIteration'>, (7,)) 7\n(<class 'SystemExit'>, (3,)) 3\n(<class 'SystemExit'>, ()) (<class 'SystemExit'>, ('a', 'b'))\n(<class 'Exception'>, ('a', (1, 2), {'k': None}))\n(<class 'UnicodeDecodeError'>, ('utf-8', b'\\xff', 0, 1, 'invalid start byte'))\n(<class 'SyntaxError'>, ('bad', ('f.py', 1, 2, 'x = (', 1, 3)))\n(<class 'ValueError'>, ('viaclass',))\n(<class 'KeyError'>, ('k',))\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pickle-exceptions-roundtrip": {
+    "stdout": "0 True 0\n1 True 0\n2 True 0\n3 True 0\n4 True 0\n5 True 0\n0 KeyError ('k',) 5 'k'\n1 KeyError ('k',) 5 'k'\n2 KeyError ('k',) 5 'k'\n3 KeyError ('k',) 5 'k'\n4 KeyError ('k',) 5 'k'\n5 KeyError ('k',) 5 'k'\n0 FileNotFoundError 2 nf f None (2, 'nf') [Errno 2] nf: 'f'\n0 FileNotFoundError f g [Errno 2] nf: 'f' -> 'g'\n0 FileNotFoundError 2 f\n0 OSError ('p',)\n1 FileNotFoundError 2 nf f None (2, 'nf') [Errno 2] nf: 'f'\n1 FileNotFoundError f g [Errno 2] nf: 'f' -> 'g'\n1 FileNotFoundError 2 f\n1 OSError ('p',)\n2 FileNotFoundError 2 nf f None (2, 'nf') [Errno 2] nf: 'f'\n2 FileNotFoundError f g [Errno 2] nf: 'f' -> 'g'\n2 FileNotFoundError 2 f\n2 OSError ('p',)\n3 FileNotFoundError 2 nf f None (2, 'nf') [Errno 2] nf: 'f'\n3 FileNotFoundError f g [Errno 2] nf: 'f' -> 'g'\n3 FileNotFoundError 2 f\n3 PermissionError ('p',)\n4 FileNotFoundError 2 nf f None (2, 'nf') [Errno 2] nf: 'f'\n4 FileNotFoundError f g [Errno 2] nf: 'f' -> 'g'\n4 FileNotFoundError 2 f\n4 PermissionError ('p',)\n5 FileNotFoundError 2 nf f None (2, 'nf') [Errno 2] nf: 'f'\n5 FileNotFoundError f g [Errno 2] nf: 'f' -> 'g'\n5 FileNotFoundError 2 f\n5 PermissionError ('p',)\n0 ImportError ('msg',) mod /p\n0 ImportError ('nm',) zz None\n0 AttributeError ('sem',) foo None\n0 AttributeError ('simples',) None None\n1 ImportError ('msg',) mod /p\n1 ImportError ('nm',) zz None\n1 AttributeError ('sem',) foo None\n1 AttributeError ('simples',) None None\n2 ImportError ('msg',) mod /p\n2 ImportError ('nm',) zz None\n2 AttributeError ('sem',) foo None\n2 AttributeError ('simples',) None None\n3 ImportError ('msg',) mod /p\n3 ModuleNotFoundError ('nm',) zz None\n3 AttributeError ('sem',) foo None\n3 AttributeError ('simples',) None None\n4 ImportError ('msg',) mod /p\n4 ModuleNotFoundError ('nm',) zz None\n4 AttributeError ('sem',) foo None\n4 AttributeError ('simples',) None None\n5 ImportError ('msg',) mod /p\n5 ModuleNotFoundError ('nm',) zz None\n5 AttributeError ('sem',) foo None\n5 AttributeError ('simples',) None None\nWithAttr ('m', 5) 5 {'code': 5}\nKeyError ('k',)\nFileNotFoundError 2 f\nWithAttr ('m', 5) 5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pickle-exceptions-user-defined": {
+    "stdout": "(<class '__main__.E'>, ('x',))\n(<class '__main__.E'>, ('x', 1))\n(<class '__main__.E'>, ())\n(<class '__main__.E'>, ('y',), {'extra': {'k': 1}})\n(<class '__main__.E'>, ('y',), {'extra': {'k': 1}}) (<class '__main__.E'>, ('y',), {'extra': {'k': 1}})\n(<class '__main__.WithAttr'>, ('m', 3), {'code': 3, 'tags': ['a', 'b']})\n(<class '__main__.WithAttr'>, ('m', 3), {'code': 3, 'tags': ['a', 'b']})\n(<class '__main__.Bad'>, ('p',), {'b': 9})\nTypeError Bad.__init__() missing 1 required positional argument: 'b'\n(<class '__main__.NoSuper'>, (1, 2), {'a': 1, 'b': 2}) (1, 2)\n(<class '__main__.MyOS'>, (2, 'nf', 'f'))\n(<class '__main__.E'>, ('via classe',))\n1 2 {'a': 1, 'b': 2}\nTypeError state is not a dictionary\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

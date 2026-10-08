@@ -1,0 +1,307 @@
+tool = "python3"
+source = "manual"
+
+# `signal.alarm`, `signal.setitimer` e `signal.getitimer` (CPython 3.13 sobre o `alarm(2)` e o `setitimer(2)` do
+# kernel): constantes, o erro `ItimerError`, os valores devolvidos, a entrega do sinal, o intervalo, o fork, o
+# efeito sobre `time.sleep` e os timers de CPU. Nada não determinístico aparece na saída: tempos nunca são
+# impressos, só comparações largas entre eles.
+
+[[case]]
+id = "signal-itimer-constants-and-error"
+script = '''
+python3 - <<'PYEOF'
+import signal
+print(signal.ITIMER_REAL, signal.ITIMER_VIRTUAL, signal.ITIMER_PROF)
+print(issubclass(signal.ItimerError, OSError), signal.ItimerError.__name__, signal.ItimerError.__module__)
+print(signal.ItimerError is signal.ItimerError, signal.ItimerError.__mro__[1].__name__)
+print(callable(signal.alarm), callable(signal.setitimer), callable(signal.getitimer))
+PYEOF
+'''
+tags = ["signals", "itimer"]
+
+[[case]]
+id = "signal-alarm-remainder-and-cancel"
+script = '''
+python3 - <<'PYEOF'
+import signal
+signal.signal(signal.SIGALRM, lambda s, f: None)
+print(signal.alarm(0))
+print(signal.alarm(100))
+print(signal.getitimer(signal.ITIMER_REAL)[0] > 98, signal.getitimer(signal.ITIMER_REAL)[1])
+print(signal.alarm(50))
+print(signal.alarm(0))
+print(signal.getitimer(signal.ITIMER_REAL))
+print(signal.alarm(0))
+print(signal.alarm(2 ** 31 - 1))
+print(signal.alarm(0) >= 2 ** 31 - 2)
+PYEOF
+'''
+tags = ["signals", "itimer"]
+
+[[case]]
+id = "signal-alarm-argument-errors"
+script = '''
+python3 - <<'PYEOF'
+import signal
+signal.signal(signal.SIGALRM, lambda s, f: None)
+for value in (1.5, "1", None, 2 ** 31, -2 ** 31 - 1):
+    try:
+        signal.alarm(value)
+    except (TypeError, OverflowError) as e:
+        print(type(e).__name__, e)
+print(signal.alarm(-1) == 0)
+print(signal.alarm(0) >= 2 ** 31 - 2)
+PYEOF
+'''
+tags = ["signals", "itimer", "error"]
+
+[[case]]
+id = "signal-setitimer-returns-the-previous-timer"
+script = '''
+python3 - <<'PYEOF'
+import signal
+signal.signal(signal.SIGALRM, lambda s, f: None)
+r = signal.setitimer(signal.ITIMER_REAL, 100, 5)
+print(r, type(r[0]).__name__)
+r = signal.setitimer(signal.ITIMER_REAL, 0)
+print(r[0] > 99, r[1])
+print(signal.getitimer(signal.ITIMER_REAL))
+r = signal.setitimer(signal.ITIMER_REAL, 0, 0)
+print(r)
+print(signal.setitimer(signal.ITIMER_REAL, 2.5, 0.25) == (0.0, 0.0))
+print(signal.getitimer(signal.ITIMER_REAL)[1])
+print(signal.setitimer(signal.ITIMER_REAL, 0)[1])
+PYEOF
+'''
+tags = ["signals", "itimer"]
+
+[[case]]
+id = "signal-setitimer-errors"
+script = '''
+python3 - <<'PYEOF'
+import signal
+def attempt(fn, *args):
+    try:
+        print(fn(*args))
+    except Exception as e:
+        print(type(e).__name__, e.args if isinstance(e, OSError) else str(e))
+attempt(signal.setitimer, 5, 1)
+attempt(signal.setitimer, -1, 1)
+attempt(signal.getitimer, 3)
+attempt(signal.getitimer, -1)
+attempt(signal.setitimer, signal.ITIMER_REAL, -1)
+attempt(signal.setitimer, signal.ITIMER_REAL, 1, -1)
+attempt(signal.setitimer, signal.ITIMER_REAL, -0.5)
+attempt(signal.setitimer, "a", 1)
+attempt(signal.setitimer, signal.ITIMER_REAL, "x")
+attempt(signal.setitimer, signal.ITIMER_REAL, None)
+attempt(signal.setitimer, signal.ITIMER_REAL, float("nan"))
+attempt(signal.setitimer, signal.ITIMER_REAL, 1e30)
+attempt(signal.getitimer, 1.5)
+attempt(signal.getitimer, "0")
+attempt(signal.getitimer, 2 ** 31)
+try:
+    signal.getitimer(9)
+except signal.ItimerError as e:
+    print(e.errno, e.strerror, isinstance(e, OSError), str(e))
+PYEOF
+'''
+tags = ["signals", "itimer", "error"]
+
+[[case]]
+id = "signal-alarm-delivers-to-the-handler"
+script = '''
+python3 - <<'PYEOF'
+import signal, time
+got = []
+signal.signal(signal.SIGALRM, lambda s, f: got.append(s))
+signal.setitimer(signal.ITIMER_REAL, 0.05)
+time.sleep(0.5)
+print(got == [signal.SIGALRM], signal.getitimer(signal.ITIMER_REAL))
+got.clear()
+signal.alarm(1)
+print(signal.alarm(1) in (1, 0))
+time.sleep(2.5)
+print(got)
+PYEOF
+'''
+tags = ["signals", "itimer"]
+
+[[case]]
+id = "signal-alarm-handler-exception-interrupts-sleep"
+script = '''
+python3 - <<'PYEOF'
+import signal, time
+
+class Timeout(Exception):
+    pass
+
+def handler(signum, frame):
+    raise Timeout("tempo esgotado")
+
+signal.signal(signal.SIGALRM, handler)
+signal.setitimer(signal.ITIMER_REAL, 0.05)
+start = time.monotonic()
+try:
+    time.sleep(30)
+except Timeout as e:
+    print("interrompido", e, time.monotonic() - start < 10)
+print(signal.getitimer(signal.ITIMER_REAL))
+PYEOF
+'''
+tags = ["signals", "itimer"]
+
+[[case]]
+id = "signal-alarm-sleep-resumes-after-the-handler"
+script = '''
+python3 - <<'PYEOF'
+import signal, time
+got = []
+signal.signal(signal.SIGALRM, lambda s, f: got.append(s))
+signal.setitimer(signal.ITIMER_REAL, 0.05)
+start = time.monotonic()
+time.sleep(0.4)
+print(len(got), time.monotonic() - start >= 0.39)
+PYEOF
+'''
+tags = ["signals", "itimer"]
+
+[[case]]
+id = "signal-setitimer-interval-repeats-until-cancelled"
+script = '''
+python3 - <<'PYEOF'
+import signal, time
+got = []
+signal.signal(signal.SIGALRM, lambda s, f: got.append(s))
+signal.setitimer(signal.ITIMER_REAL, 0.02, 0.02)
+deadline = time.monotonic() + 10
+while len(got) < 4 and time.monotonic() < deadline:
+    time.sleep(0.01)
+print(len(got) >= 4)
+print(signal.getitimer(signal.ITIMER_REAL)[1])
+old = signal.alarm(0)
+print(old in (0, 1), signal.getitimer(signal.ITIMER_REAL))
+time.sleep(0.1)
+count = len(got)
+time.sleep(0.2)
+print(len(got) == count)
+PYEOF
+'''
+tags = ["signals", "itimer"]
+
+[[case]]
+id = "signal-alarm-ignored-does-not-interrupt"
+script = '''
+python3 - <<'PYEOF'
+import signal, time
+signal.signal(signal.SIGALRM, signal.SIG_IGN)
+signal.setitimer(signal.ITIMER_REAL, 0.02)
+time.sleep(0.2)
+print("seguiu", signal.getitimer(signal.ITIMER_REAL))
+PYEOF
+'''
+tags = ["signals", "itimer"]
+
+[[case]]
+id = "signal-alarm-default-action-kills-the-process"
+script = '''
+python3 - <<'PYEOF'
+import os, signal, time
+pid = os.fork()
+if pid == 0:
+    signal.setitimer(signal.ITIMER_REAL, 0.05)
+    time.sleep(30)
+    os._exit(0)
+_, status = os.waitpid(pid, 0)
+print(os.WIFSIGNALED(status), os.WTERMSIG(status) == signal.SIGALRM, signal.strsignal(os.WTERMSIG(status)))
+PYEOF
+python3 -c 'import signal; signal.alarm(1); import time; time.sleep(5)'
+echo "rc=$?"
+'''
+tags = ["signals", "itimer"]
+
+[[case]]
+id = "signal-alarm-default-action-kills-a-busy-loop"
+script = '''
+python3 -c '
+import signal
+signal.setitimer(signal.ITIMER_REAL, 0.1)
+while True:
+    pass
+'
+echo "rc=$?"
+'''
+tags = ["signals", "itimer"]
+
+[[case]]
+id = "signal-itimer-fork-clears-the-child-timers"
+script = '''
+python3 - <<'PYEOF'
+import os, signal
+signal.signal(signal.SIGALRM, lambda s, f: None)
+signal.setitimer(signal.ITIMER_REAL, 100, 3)
+signal.setitimer(signal.ITIMER_VIRTUAL, 100, 4)
+signal.setitimer(signal.ITIMER_PROF, 100, 5)
+pid = os.fork()
+if pid == 0:
+    print("child", [signal.getitimer(w) for w in (0, 1, 2)], signal.alarm(7))
+    os._exit(0)
+os.waitpid(pid, 0)
+print("parent", [signal.getitimer(w)[0] > 98 for w in (0, 1, 2)], [signal.getitimer(w)[1] for w in (0, 1, 2)])
+print(signal.alarm(0) >= 99)
+PYEOF
+'''
+tags = ["signals", "itimer", "fork"]
+
+[[case]]
+id = "signal-itimer-exec-keeps-the-timers"
+script = '''
+python3 - <<'PYEOF'
+import os, signal
+signal.signal(signal.SIGALRM, signal.SIG_IGN)
+signal.setitimer(signal.ITIMER_REAL, 100, 3)
+os.execv("/usr/bin/python3", ["python3", "-c", "import signal; print(signal.getitimer(signal.ITIMER_REAL)[0] > 98, signal.getitimer(signal.ITIMER_REAL)[1])"])
+PYEOF
+'''
+tags = ["signals", "itimer", "exec"]
+
+[[case]]
+id = "signal-itimer-cpu-timers-fire-on-cpu-time"
+script = '''
+python3 - <<'PYEOF'
+import signal, time
+got = []
+signal.signal(signal.SIGVTALRM, lambda s, f: got.append("virtual"))
+signal.signal(signal.SIGPROF, lambda s, f: got.append("prof"))
+for which, name in ((signal.ITIMER_VIRTUAL, "virtual"), (signal.ITIMER_PROF, "prof")):
+    signal.setitimer(which, 0.05)
+    deadline = time.monotonic() + 30
+    n = 0
+    while name not in got and time.monotonic() < deadline:
+        n += 1
+    print(name, name in got, signal.getitimer(which))
+# O processo parado em `sleep` não gasta CPU: o timer de CPU não vence.
+signal.setitimer(signal.ITIMER_VIRTUAL, 0.05)
+got.clear()
+time.sleep(0.4)
+print(got)
+signal.setitimer(signal.ITIMER_VIRTUAL, 0)
+PYEOF
+'''
+tags = ["signals", "itimer", "cpu"]
+
+[[case]]
+id = "signal-itimer-handler-sees-the-signal-number"
+script = '''
+python3 - <<'PYEOF'
+import signal, time
+seen = []
+def handler(signum, frame):
+    seen.append((signum, signal.Signals(signum).name, frame is not None))
+signal.signal(signal.SIGALRM, handler)
+signal.setitimer(signal.ITIMER_REAL, 0.02)
+time.sleep(0.3)
+print(seen)
+PYEOF
+'''
+tags = ["signals", "itimer"]

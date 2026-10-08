@@ -17,24 +17,13 @@ const OCTDIGITS: &str = "01234567";
 const PUNCTUATION: &str = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
 const WHITESPACE: &str = " \t\n\r\u{b}\u{c}";
 
-fn capitalize(word: &str) -> String {
-    let mut it = word.chars();
-    match it.next() {
-        None => String::new(),
-        Some(first) => {
-            let mut out: String = first.to_uppercase().collect();
-            out.push_str(&it.as_str().to_lowercase());
-            out
-        }
-    }
-}
-
 /// `string.capwords(s, sep=None)`.
 pub fn capwords_str(s: &str, sep: Option<&str>) -> Result<String, &'static str> {
+    use crate::object::capitalize_str;
     match sep {
-        None => Ok(s.split_whitespace().map(capitalize).collect::<Vec<_>>().join(" ")),
+        None => Ok(s.split_whitespace().map(capitalize_str).collect::<Vec<_>>().join(" ")),
         Some("") => Err("empty separator"),
-        Some(sep) => Ok(s.split(sep).map(capitalize).collect::<Vec<_>>().join(sep)),
+        Some(sep) => Ok(s.split(sep).map(capitalize_str).collect::<Vec<_>>().join(sep)),
     }
 }
 

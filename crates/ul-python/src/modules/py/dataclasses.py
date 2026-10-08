@@ -1,6 +1,7 @@
 """dataclasses do sandbox (Python embutido)."""
 
 import copy
+import types
 import typing
 
 __all__ = [
@@ -53,6 +54,8 @@ _FIELD_INITVAR = _FieldKind('_FIELD_INITVAR')
 
 
 class Field:
+    __class_getitem__ = classmethod(types.GenericAlias)
+
     def __init__(self, default, default_factory, init, repr, hash, compare, metadata, kw_only):
         self.name = None
         self.type = None

@@ -139,7 +139,7 @@ const PSEUDO_TYPES: &[&str] = &[
 pub(crate) fn class_name(v: &Value) -> Option<&'static str> {
     match v {
         Value::Builtin(n) => {
-            if TYPE_NAMES.contains(n) || PSEUDO_TYPES.contains(n) || *n == "NoneType" || matches!(*n, "ellipsis" | "NotImplementedType") || EXC_CLASSES.iter().any(|(e, _)| e == n) || crate::object::is_native_type(n) {
+            if TYPE_NAMES.contains(n) || PSEUDO_TYPES.contains(n) || matches!(*n, "NoneType" | "ellipsis" | "NotImplementedType" | "property" | "staticmethod" | "classmethod" | "super") || EXC_CLASSES.iter().any(|(e, _)| e == n) || crate::object::is_native_type(n) {
                 Some(*n)
             } else {
                 None
@@ -160,7 +160,7 @@ pub(crate) fn class_name(v: &Value) -> Option<&'static str> {
 fn instance_of(v: &Value, cname: &str) -> bool {
     if let Value::Instance(i) = v {
         return cname == "object"
-            || i.class.mro().iter().any(|c| {
+            || i.class().mro().iter().any(|c| {
                 c.builtin_base.is_some_and(|b| subclass_of(b, cname))
                     || c.data_base.is_some_and(|d| d == cname || (d == "bool" && cname == "int"))
             });
@@ -182,7 +182,7 @@ fn instance_of(v: &Value, cname: &str) -> bool {
         "bytearray" => matches!(v, Value::ByteArray(_)),
         other if PSEUDO_TYPES.contains(&other) => v.type_name() == other,
         // Tipo de objeto nativo (`weakref.ReferenceType`, ...): o `type()` dele é o nome registrado.
-        other if matches!(v, Value::Ext(_)) && crate::object::is_native_type(other) => v.type_name() == other,
+        other if matches!(v, Value::Ext(_)) && (other == "super" || crate::object::is_native_type(other)) => v.type_name() == other,
         other => matches!(v, Value::Exception(e) if exc_is_subclass(e.kind, other)),
     }
 }
@@ -209,7 +209,7 @@ fn isinstance_check(v: &Value, cls: &Value) -> PyResult<bool> {
         });
     }
     if let (Value::Instance(i), Value::Builtin("type")) = (v, cls) {
-        return Ok(i.class.is_meta);
+        return Ok(i.class().is_meta);
     }
     if let Value::Class(c) = cls {
         // `__instancecheck__` da metaclasse (`collections.abc`, protocolos).
@@ -222,7 +222,14 @@ fn isinstance_check(v: &Value, cls: &Value) -> PyResult<bool> {
         if let Value::Class(vc) = v {
             return Ok(vc.meta.as_ref().is_some_and(|m| m.mro().iter().any(|x| Rc::ptr_eq(x, c))));
         }
-        return Ok(matches!(v, Value::Instance(i) if i.class.mro().iter().any(|x| Rc::ptr_eq(x, c))));
+        if matches!(v, Value::Instance(i) if i.class().mro().iter().any(|x| Rc::ptr_eq(x, c))) {
+            return Ok(true);
+        }
+        // Módulo com `__class__` trocado por uma subclasse de `ModuleType`.
+        if matches!(v, Value::Module(m) if crate::classes::module_class(m).is_some_and(|k| k.mro().iter().any(|x| Rc::ptr_eq(x, c)))) {
+            return Ok(true);
+        }
+        return reported_class_is_subtype(v, cls);
     }
     // `property`, `classmethod` e `staticmethod` são descritores nativos (objetos `Ext`).
     if let Value::Builtin(n @ ("property" | "classmethod" | "staticmethod")) = cls {
@@ -239,7 +246,10 @@ fn isinstance_check(v: &Value, cls: &Value) -> PyResult<bool> {
         });
     }
     if let Some(c) = class_name(cls) {
-        return Ok(instance_of(v, c));
+        if instance_of(v, c) {
+            return Ok(true);
+        }
+        return reported_class_is_subtype(v, cls);
     }
     if let Value::Tuple(t) = cls {
         for c in t.iter() {
@@ -271,6 +281,37 @@ fn subclass_of(a: &str, b: &str) -> bool {
     a == b || b == "object" || (a == "bool" && b == "int") || exc_is_subclass(a, b)
 }
 
+/// `PyType_IsSubtype(a, cls)`: a relação crua entre tipos, sem `__subclasscheck__`, para `cls` uma
+/// classe de usuário ou um tipo embutido.
+fn type_is_subtype(a: &Value, cls: &Value) -> bool {
+    if let Value::Class(b) = cls {
+        return matches!(a, Value::Class(c) if c.mro().iter().any(|x| Rc::ptr_eq(x, b)));
+    }
+    class_name(cls).is_some_and(|b| match a {
+        Value::Class(c) => b == "object" || c.mro().iter().any(|x| x.builtin_base.is_some_and(|n| subclass_of(n, b))),
+        other => class_name(other).is_some_and(|n| subclass_of(n, b)),
+    })
+}
+
+/// O recurso do `object_isinstance` quando o tipo real não casa: o `obj.__class__` (um descritor da
+/// classe, como o do `unittest.mock` com `spec`) pode ser um tipo que seja subtipo de `cls`.
+fn reported_class_is_subtype(v: &Value, cls: &Value) -> PyResult<bool> {
+    let Value::Instance(i) = v else { return Ok(false) };
+    if i.class().lookup("__class__").is_none() {
+        return Ok(false);
+    }
+    let Some(mut vm) = crate::vm::current() else { return Ok(false) };
+    let reported = match vm.load_attr(v, "__class__") {
+        Ok(r) => r,
+        Err(e) if e.kind == "AttributeError" => return Ok(false),
+        Err(e) => return Err(e),
+    };
+    if matches!(&reported, Value::Class(c) if Rc::ptr_eq(c, &i.class())) {
+        return Ok(false);
+    }
+    Ok(type_is_subtype(&reported, cls))
+}
+
 fn issubclass_check(a: &Value, cls: &Value) -> PyResult<bool> {
     // `issubclass(M, type)`: só as metaclasses (e o próprio `type`).
     if matches!(cls, Value::Builtin("type")) {
@@ -294,20 +335,17 @@ fn issubclass_check(a: &Value, cls: &Value) -> PyResult<bool> {
                 return Ok(r?.is_true());
             }
         }
-        return Ok(matches!(a, Value::Class(c) if c.mro().iter().any(|x| Rc::ptr_eq(x, b))));
+        return Ok(type_is_subtype(a, cls));
     }
-    // `property` é descritor nativo e não entra em `class_name`; só a própria e as subclasses casam.
+    // `property` é descritor nativo (objeto `Ext`) e não tem `instance_of` próprio; só a própria e as subclasses casam.
     if matches!(cls, Value::Builtin("property")) {
         return Ok(match a {
             Value::Class(c) => c.mro().iter().any(|x| x.data_base == Some("property")),
             other => matches!(other, Value::Builtin("property")),
         });
     }
-    if let Some(b) = class_name(cls) {
-        return Ok(match a {
-            Value::Class(c) => b == "object" || c.mro().iter().any(|x| x.builtin_base.is_some_and(|n| subclass_of(n, b))),
-            other => class_name(other).is_some_and(|n| subclass_of(n, b)),
-        });
+    if class_name(cls).is_some() {
+        return Ok(type_is_subtype(a, cls));
     }
     if let Value::Tuple(t) = cls {
         for c in t.iter() {
@@ -336,10 +374,10 @@ fn b_issubclass(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::Bool(issubclass_check(&args[0], &args[1])?))
 }
 
-fn is_callable(v: &Value) -> bool {
+pub(crate) fn is_callable(v: &Value) -> bool {
     match v {
         Value::Function(_) | Value::Builtin(_) | Value::NativeFn(_) | Value::Bound(_) | Value::BoundFn(_) | Value::Class(_) => true,
-        Value::Instance(i) => matches!(i.class.lookup("__call__"), Some(Value::Function(_))),
+        Value::Instance(i) => matches!(i.class().lookup("__call__"), Some(Value::Function(_))),
         Value::Ext(e) => e.methods().contains(&"__call__"),
         _ => false,
     }
@@ -390,9 +428,22 @@ struct SeqIter {
     kind: &'static str,
 }
 
+/// O iterador de sequência (`iter(lista)`) numa posição dada, para a imagem do heap refazê-lo.
+pub(crate) fn seq_iter(kind: &'static str, items: Vec<Value>, pos: usize) -> Value {
+    Value::Ext(Rc::new(SeqIter { items, pos: Cell::new(pos), kind }))
+}
+
 impl ExtObject for SeqIter {
     fn type_name(&self) -> &'static str {
         self.kind
+    }
+
+    fn image(&self) -> Option<crate::object::ExtImage> {
+        Some(crate::object::ExtImage::Lazy(crate::lazy::LazyParts::Seq {
+            kind: self.kind,
+            items: self.items.clone(),
+            pos: self.pos.get(),
+        }))
     }
 
     fn repr(&self) -> String {
@@ -400,12 +451,23 @@ impl ExtObject for SeqIter {
     }
 
     fn methods(&self) -> &'static [&'static str] {
-        &["__next__"]
+        &["__next__", "__length_hint__", "__setstate__"]
     }
 
-    fn call_method(&self, _vm: &mut Vm, name: &str, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    fn call_method(&self, _vm: &mut Vm, name: &str, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
         match name {
             "__next__" => self.iter_next()?.ok_or_else(|| exc("StopIteration", "")),
+            // O que falta percorrer.
+            "__length_hint__" => Ok(Value::Int(self.items.len().saturating_sub(self.pos.get()) as i64)),
+            // `__setstate__(índice)`: reposiciona o iterador, preso ao fim da sequência.
+            "__setstate__" => {
+                let [index] = <[Value; 1]>::try_from(args).map_err(|a| {
+                    type_error(format!("__setstate__() takes exactly one argument ({} given)", a.len()))
+                })?;
+                let index = crate::native_util::want_int(&index)?.max(0) as usize;
+                self.pos.set(index.min(self.items.len()));
+                Ok(Value::None)
+            }
             _ => Err(crate::object::no_attribute(self.kind, name)),
         }
     }
@@ -545,7 +607,7 @@ fn b_enumerate(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 fn b_reversed(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let v = one("reversed", args, &kw)?;
     if let Value::Instance(inst) = &v {
-        if inst.class.lookup("__reversed__").is_some() {
+        if inst.class().lookup("__reversed__").is_some() {
             let f = vm.load_attr(&v, "__reversed__")?;
             return vm.call(&f, Vec::new(), Vec::new());
         }
@@ -556,7 +618,8 @@ fn b_reversed(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
             return Ok(crate::lazy::ReversedIter::new(kind, iterate(&p)?));
         }
         // Protocolo de sequência: `__len__` e `__getitem__`.
-        if inst.class.lookup("__len__").is_some() && inst.class.lookup("__getitem__").is_some() {
+        let class = inst.class();
+        if class.lookup("__len__").is_some() && class.lookup("__getitem__").is_some() {
             let n = vm.load_attr(&v, "__len__").and_then(|f| vm.call(&f, Vec::new(), Vec::new()))?;
             let getitem = vm.load_attr(&v, "__getitem__")?;
             let mut out = Vec::new();
@@ -614,11 +677,9 @@ fn merge_sort(mut v: Vec<(Value, Value)>) -> PyResult<Vec<(Value, Value)>> {
     Ok(out)
 }
 
-/// Ordena `items` (estável) pela chave `key` (ou pelo próprio valor), opcionalmente invertido.
-pub fn sort_items(vm: &mut Vm, mut items: Vec<Value>, key: Option<Value>, reverse: bool) -> PyResult<Vec<Value>> {
-    if reverse {
-        items.reverse();
-    }
+/// Ordena `items` (estável) pela chave `key` (ou pelo próprio valor), opcionalmente invertido. As chaves são
+/// chamadas na ordem dos itens, antes de qualquer comparação e antes de inverter (`list.sort` do CPython).
+pub fn sort_items(vm: &mut Vm, items: Vec<Value>, key: Option<Value>, reverse: bool) -> PyResult<Vec<Value>> {
     let mut pairs = Vec::with_capacity(items.len());
     for x in items {
         let k = match &key {
@@ -626,6 +687,14 @@ pub fn sort_items(vm: &mut Vm, mut items: Vec<Value>, key: Option<Value>, revers
             None => x.clone(),
         };
         pairs.push((k, x));
+    }
+    sort_keyed(pairs, reverse)
+}
+
+/// Ordena os pares (chave, item) de forma estável pela chave, opcionalmente invertido, e devolve os itens.
+pub(crate) fn sort_keyed(mut pairs: Vec<(Value, Value)>, reverse: bool) -> PyResult<Vec<Value>> {
+    if reverse {
+        pairs.reverse();
     }
     let sorted = merge_sort(pairs)?;
     let mut out: Vec<Value> = sorted.into_iter().map(|p| p.1).collect();
@@ -656,7 +725,7 @@ fn b_sorted(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::list(sort_items(vm, items, key, reverse)?))
 }
 
-fn b_sum(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+fn b_sum(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     if args.is_empty() {
         return Err(type_error("sum() takes at least 1 positional argument (0 given)"));
     }
@@ -673,70 +742,19 @@ fn b_sum(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         }
         start = Some(v);
     }
-    let items = iterate(&args[0])?;
-    let mut acc = start.unwrap_or(Value::Int(0));
+    let it = crate::vm::get_iter(&args[0])?;
+    let acc = start.unwrap_or(Value::Int(0));
     match &acc {
         Value::Str(_) => return Err(type_error("sum() can't sum strings [use ''.join(seq) instead]")),
         Value::Bytes(_) => return Err(type_error("sum() can't sum bytes [use b''.join(seq) instead]")),
         Value::ByteArray(_) => return Err(type_error("sum() can't sum bytearray [use b''.join(seq) instead]")),
         _ => {}
     }
-    let mut idx = 0;
-    // Fase inteira: soma `int` enquanto couber em `i64`.
-    if let Value::Int(i0) = acc.clone() {
-        let mut i = i0;
-        while idx < items.len() {
-            match &items[idx] {
-                Value::Int(x) => match i.checked_add(*x) {
-                    Some(r) => {
-                        i = r;
-                        idx += 1;
-                    }
-                    None => break,
-                },
-                _ => break,
-            }
-        }
-        acc = Value::Int(i);
-    }
-    // Fase de ponto flutuante: soma compensada de Neumaier, como o CPython 3.12 em diante.
-    let fstart = match (&acc, items.get(idx)) {
-        (Value::Float(f), _) => Some(*f),
-        (Value::Int(i), Some(Value::Float(_))) => Some(*i as f64),
-        _ => None,
-    };
-    if let Some(mut f) = fstart {
-        let mut c = 0.0_f64;
-        while idx < items.len() {
-            match &items[idx] {
-                Value::Float(x) => {
-                    let x = *x;
-                    let t = f + x;
-                    if f.abs() >= x.abs() {
-                        c += (f - t) + x;
-                    } else {
-                        c += (x - t) + f;
-                    }
-                    f = t;
-                }
-                Value::Int(x) => f += *x as f64,
-                _ => break,
-            }
-            idx += 1;
-        }
-        if c != 0.0 && c.is_finite() {
-            f += c;
-        }
-        acc = Value::Float(f);
-    }
-    for item in &items[idx..] {
-        acc = py_binary("+", &acc, item)?;
-    }
-    Ok(acc)
+    crate::fold::run(vm, crate::fold::Fold::sum(acc), it)
 }
 
 /// `a > b`, com a mensagem de `TypeError` do operador `>`.
-fn py_gt(a: &Value, b: &Value) -> PyResult<bool> {
+pub(crate) fn py_gt(a: &Value, b: &Value) -> PyResult<bool> {
     match py_lt(b, a) {
         Err(e) if e.kind == "TypeError" && e.msg.starts_with("'<' not supported between instances of") => {
             Err(type_error(format!(
@@ -766,56 +784,39 @@ fn minmax(vm: &mut Vm, name: &'static str, args: Vec<Value>, kw: Kw, is_max: boo
     if args.is_empty() {
         return Err(type_error(format!("{name} expected at least 1 argument, got 0")));
     }
-    let items = if args.len() == 1 {
-        iterate(&args[0])?
+    let it = if args.len() == 1 {
+        crate::vm::get_iter(&args[0])?
     } else {
         if default.is_some() {
             return Err(type_error(format!("Cannot specify a default for {name}() with multiple positional arguments")));
         }
-        args
+        crate::vm::get_iter(&Value::tuple(args))?
     };
-    let mut it = items.into_iter();
-    let Some(first) = it.next() else {
-        return match default {
-            Some(d) => Ok(d),
-            None => Err(value_error(format!("{name}() iterable argument is empty"))),
-        };
-    };
-    let keyof = |vm: &mut Vm, x: &Value| -> PyResult<Value> {
-        match &key {
-            Some(f) => vm.call(f, vec![x.clone()], Vec::new()),
-            None => Ok(x.clone()),
+    crate::fold::run(vm, crate::fold::Fold::min_max(is_max, key, default), it)
+}
+
+/// `min` e `max`: a mesma busca, com o nome e o sentido como parâmetro.
+macro_rules! minmax_builtins {
+    ($($f:ident = $name:literal, $is_max:literal;)*) => {$(
+        fn $f(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+            minmax(vm, $name, args, kw, $is_max)
         }
-    };
-    let mut best_key = keyof(vm, &first)?;
-    let mut best = first;
-    for x in it {
-        let k = keyof(vm, &x)?;
-        let better = if is_max { py_gt(&k, &best_key)? } else { py_lt(&k, &best_key)? };
-        if better {
-            best_key = k;
-            best = x;
-        }
-    }
-    Ok(best)
+    )*};
 }
 
-fn b_min(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    minmax(vm, "min", args, kw, false)
+minmax_builtins! {
+    b_min = "min", false;
+    b_max = "max", true;
 }
 
-fn b_max(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    minmax(vm, "max", args, kw, true)
-}
-
-fn b_any(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+fn b_any(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let v = one("any", args, &kw)?;
-    Ok(Value::Bool(iterate(&v)?.iter().any(Value::is_true)))
+    crate::fold::run(vm, crate::fold::Fold::Any, crate::vm::get_iter(&v)?)
 }
 
-fn b_all(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+fn b_all(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let v = one("all", args, &kw)?;
-    Ok(Value::Bool(iterate(&v)?.iter().all(Value::is_true)))
+    crate::fold::run(vm, crate::fold::Fold::All, crate::vm::get_iter(&v)?)
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1015,7 +1016,7 @@ fn b_pow(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 
 fn radix_str(fname: &str, args: Vec<Value>, kw: Kw, prefix: &str, radix: u32) -> PyResult<Value> {
     let v = one(fname, args, &kw)?;
-    let Some(n) = crate::bigint::as_big(&v) else {
+    let Some(n) = crate::bigint::as_big(&crate::vm::unwrap_payload(&v)) else {
         return Err(type_error(format!("'{}' object cannot be interpreted as an integer", v.type_name())));
     };
     let digits = crate::bigint::to_radix(&num_traits::Signed::abs(&n), radix);
@@ -1034,38 +1035,49 @@ fn b_bin(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     radix_str("bin", args, kw, "0b", 2)
 }
 
-fn b_chr(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    let v = one("chr", args, &kw)?;
-    let n = want_int(&v)?;
-    if (0xD800..=0xDFFF).contains(&n) {
-        return Ok(Value::str(crate::object::surrogate_to_char(n as u32).to_string()));
-    }
-    u32::try_from(n)
-        .ok()
-        .and_then(char::from_u32)
-        .map(|c| Value::str(c.to_string()))
-        .ok_or_else(|| value_error("chr() arg not in range(0x110000)"))
+/// Os embutidos de um valor só que viram outro pela conversão `$conv(&valor)`.
+macro_rules! convert_builtins {
+    ($($f:ident = $name:literal, $conv:ident;)*) => {$(
+        fn $f(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+            $conv(&one($name, args, &kw)?)
+        }
+    )*};
 }
 
-fn b_ord(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    let v = one("ord", args, &kw)?;
-    match &v {
-        Value::Str(s) => {
-            let mut it = s.as_str().chars();
-            match (it.next(), it.next()) {
-                (Some(c), None) => {
-                    Ok(Value::Int(i64::from(crate::object::char_surrogate(c).unwrap_or(u32::from(c)))))
-                }
-                _ => Err(type_error(format!(
-                    "ord() expected a character, but string of length {} found",
-                    s.as_str().chars().count()
-                ))),
-            }
+convert_builtins! {
+    b_chr = "chr", chr_of;
+    b_ord = "ord", ord_of;
+}
+
+/// `chr(v)`: o código-ponto `v` (surrogates inclusive) como `str` de um caractere.
+pub(crate) fn chr_of(v: &Value) -> PyResult<Value> {
+    // Um int grande (positivo ou negativo) está fora do intervalo: `ValueError`, não `OverflowError`.
+    let n = match v {
+        Value::Big(_) => return Err(value_error("chr() arg not in range(0x110000)")),
+        _ => want_int(v)?,
+    };
+    match u32::try_from(n) {
+        Ok(cp) if cp <= 0x10_FFFF => Ok(Value::str(crate::object::cp_to_str(cp))),
+        _ => Err(value_error("chr() arg not in range(0x110000)")),
+    }
+}
+
+/// `ord(v)`: o código-ponto de um `str` de comprimento 1 (o par de escape conta como um) ou o
+/// byte de um `bytes`/`bytearray` de comprimento 1.
+pub(crate) fn ord_of(v: &Value) -> PyResult<Value> {
+    let (len, first) = match v {
+        Value::Str(s) => (s.len(), s.cp_at(0).map_or(0, i64::from)),
+        Value::Bytes(b) => (b.len(), b.first().map_or(0, |x| i64::from(*x))),
+        Value::ByteArray(b) => {
+            let b = b.borrow();
+            (b.len(), b.first().map_or(0, |x| i64::from(*x)))
         }
-        Value::ByteArray(b) if b.borrow().len() == 1 => Ok(Value::Int(i64::from(b.borrow()[0]))),
-        Value::Bytes(b) if b.len() == 1 => Ok(Value::Int(i64::from(b[0]))),
-        Value::Bytes(b) => Err(type_error(format!("ord() expected a character, but string of length {} found", b.len()))),
-        other => Err(type_error(format!("ord() expected string of length 1, but {} found", other.type_name()))),
+        other => return Err(type_error(format!("ord() expected string of length 1, but {} found", other.type_name()))),
+    };
+    if len == 1 {
+        Ok(Value::Int(first))
+    } else {
+        Err(type_error(format!("ord() expected a character, but string of length {len} found")))
     }
 }
 
@@ -1079,13 +1091,23 @@ fn addr<T: ?Sized>(rc: &Rc<T>) -> i64 {
 
 pub(crate) fn b_id(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let v = one("id", args, &kw)?;
-    let id = match &v {
+    Ok(Value::Int(id_of(&v)))
+}
+
+/// `id(v)`: o endereço que o programa vê do objeto.
+pub(crate) fn id_of(v: &Value) -> i64 {
+    match v {
         Value::None => 0x7f00_0000_1000,
         Value::Bool(b) => 0x7f00_0000_2000 + i64::from(*b) * 32,
+        // Os ints pequenos (-5..=256) são objetos estáticos do binário, contíguos de 32 em 32 bytes.
+        Value::Int(i) if (-5..=256).contains(i) => 0xa4_2a10 + (i + 5) * 32,
         Value::Int(i) => 0x7f00_1000_0000_i64.wrapping_add(i.wrapping_mul(32)),
         Value::Float(x) => (x.to_bits() >> 4) as i64,
         Value::Big(b) => addr(b),
-        Value::Range(r) => r.start.wrapping_mul(31).wrapping_add(r.stop).wrapping_mul(31).wrapping_add(r.step),
+        Value::Range(r) => {
+            let mixed = r.start.wrapping_mul(31).wrapping_add(r.stop).wrapping_mul(31).wrapping_add(r.step);
+            crate::object::py_addr((mixed as usize).wrapping_mul(0x9E37_79B9) << 3) as i64
+        }
         Value::Builtin(name) => crate::object::PyStr::new(*name).hash() >> 4,
         Value::Str(s) => addr(s),
         Value::Bytes(b) => addr(b),
@@ -1105,8 +1127,7 @@ pub(crate) fn b_id(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         Value::Instance(i) => addr(i),
         Value::BoundFn(b) => addr(b),
         Value::Slice(s) => addr(s),
-    };
-    Ok(Value::Int(id))
+    }
 }
 
 fn b_hash(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -1167,18 +1188,24 @@ fn fill_dict(d: &mut Dict, src: &Value) -> PyResult<()> {
         return Ok(());
     }
     for (i, item) in iterate(src)?.into_iter().enumerate() {
-        let pair = iterate(&item)
-            .map_err(|_| type_error(format!("cannot convert dictionary update sequence element #{i} to a sequence")))?;
-        if pair.len() != 2 {
-            return Err(value_error(format!(
-                "dictionary update sequence element #{i} has length {}; 2 is required",
-                pair.len()
-            )));
-        }
-        let mut it = pair.into_iter();
-        if let (Some(k), Some(v)) = (it.next(), it.next()) {
-            d.set(k, v)?;
-        }
+        dict_item(d, i, item)?;
+    }
+    Ok(())
+}
+
+/// Um item de `dict(iterável)`: um par `(chave, valor)`; `index` é a posição dele, para a mensagem de erro.
+pub(crate) fn dict_item(d: &mut Dict, index: usize, item: Value) -> PyResult<()> {
+    let pair = iterate(&item)
+        .map_err(|_| type_error(format!("cannot convert dictionary update sequence element #{index} to a sequence")))?;
+    if pair.len() != 2 {
+        return Err(value_error(format!(
+            "dictionary update sequence element #{index} has length {}; 2 is required",
+            pair.len()
+        )));
+    }
+    let mut it = pair.into_iter();
+    if let (Some(k), Some(v)) = (it.next(), it.next()) {
+        d.set(k, v)?;
     }
     Ok(())
 }
@@ -1202,9 +1229,7 @@ fn make_set(fname: &str, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     expect(fname, &args, 0, 1)?;
     let mut s = Set::new();
     if let Some(src) = args.first() {
-        for x in iterate(src)? {
-            s.add(x)?;
-        }
+        crate::methods::setm::extend(&mut s, crate::methods::setm::gather(src)?)?;
     }
     Ok(if fname == "frozenset" { Value::frozenset(s) } else { Value::set(s) })
 }
@@ -1247,133 +1272,6 @@ fn b_bool(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 // Codificação de texto (bytes e str)
 // ---------------------------------------------------------------------------------------------
 
-/// Um caractere como o CPython o escreve nas mensagens de erro de codec (`'\xe9'`, `'\u20ac'`).
-fn esc_char(c: char) -> String {
-    let u = u32::from(c);
-    if u < 256 {
-        format!("'\\x{u:02x}'")
-    } else if u < 0x1_0000 {
-        format!("'\\u{u:04x}'")
-    } else {
-        format!("'\\U{u:08x}'")
-    }
-}
-
-fn encode_limited(s: &str, limit: u32, codec: &str, errors: &str) -> PyResult<Vec<u8>> {
-    let mut out = Vec::with_capacity(s.len());
-    for (pos, c) in s.chars().enumerate() {
-        if u32::from(c) < limit {
-            out.push(c as u32 as u8);
-            continue;
-        }
-        match errors {
-            "ignore" => {}
-            "replace" => out.push(b'?'),
-            _ => {
-                return Err(exc(
-                    "UnicodeEncodeError",
-                    format!(
-                        "'{codec}' codec can't encode character {} in position {pos}: ordinal not in range({limit})",
-                        esc_char(c)
-                    ),
-                ))
-            }
-        }
-    }
-    Ok(out)
-}
-
-fn encode_text(s: &str, encoding: &str, errors: &str) -> PyResult<Vec<u8>> {
-    let norm = encoding.to_ascii_lowercase().replace('_', "-");
-    match norm.as_str() {
-        "utf-8" | "utf8" | "u8" | "utf" => Ok(s.as_bytes().to_vec()),
-        "ascii" | "us-ascii" => encode_limited(s, 128, "ascii", errors),
-        "latin-1" | "latin1" | "iso-8859-1" | "iso8859-1" | "l1" => encode_limited(s, 256, "latin-1", errors),
-        _ => match crate::textcodec::lookup(encoding) {
-            Some(c) => crate::textcodec::encode(&c, s, errors),
-            None => Err(exc("LookupError", format!("unknown encoding: {encoding}"))),
-        },
-    }
-}
-
-fn decode_utf8(b: &[u8], errors: &str) -> PyResult<String> {
-    let mut out = String::new();
-    let mut pos = 0usize;
-    while pos < b.len() {
-        match std::str::from_utf8(&b[pos..]) {
-            Ok(s) => {
-                out.push_str(s);
-                break;
-            }
-            Err(e) => {
-                let valid = e.valid_up_to();
-                if let Ok(s) = std::str::from_utf8(&b[pos..pos + valid]) {
-                    out.push_str(s);
-                }
-                let bad = pos + valid;
-                let bad_len = e.error_len().unwrap_or(b.len() - bad);
-                match errors {
-                    "ignore" => {}
-                    "replace" => out.push('\u{FFFD}'),
-                    _ => {
-                        let byte = b[bad];
-                        let reason = if e.error_len().is_none() {
-                            "unexpected end of data"
-                        } else if matches!(byte, 0x80..=0xC1 | 0xF5..=0xFF) {
-                            "invalid start byte"
-                        } else {
-                            "invalid continuation byte"
-                        };
-                        let msg = if bad_len == 1 {
-                            format!("'utf-8' codec can't decode byte 0x{byte:02x} in position {bad}: {reason}")
-                        } else {
-                            format!(
-                                "'utf-8' codec can't decode bytes in position {bad}-{}: {reason}",
-                                bad + bad_len - 1
-                            )
-                        };
-                        return Err(exc("UnicodeDecodeError", msg));
-                    }
-                }
-                pos = bad + bad_len;
-            }
-        }
-    }
-    Ok(out)
-}
-
-fn decode_bytes(b: &[u8], encoding: &str, errors: &str) -> PyResult<String> {
-    let norm = encoding.to_ascii_lowercase().replace('_', "-");
-    match norm.as_str() {
-        "utf-8" | "utf8" | "u8" | "utf" => decode_utf8(b, errors),
-        "ascii" | "us-ascii" => {
-            let mut out = String::with_capacity(b.len());
-            for (i, &x) in b.iter().enumerate() {
-                if x < 128 {
-                    out.push(char::from(x));
-                } else {
-                    match errors {
-                        "ignore" => {}
-                        "replace" => out.push('\u{FFFD}'),
-                        _ => {
-                            return Err(exc(
-                                "UnicodeDecodeError",
-                                format!("'ascii' codec can't decode byte 0x{x:02x} in position {i}: ordinal not in range(128)"),
-                            ))
-                        }
-                    }
-                }
-            }
-            Ok(out)
-        }
-        "latin-1" | "latin1" | "iso-8859-1" | "iso8859-1" | "l1" => Ok(b.iter().map(|&x| char::from(x)).collect()),
-        _ => match crate::textcodec::lookup(encoding) {
-            Some(c) => crate::textcodec::decode(&c, b, errors),
-            None => Err(exc("LookupError", format!("unknown encoding: {encoding}"))),
-        },
-    }
-}
-
 /// Argumento de texto opcional (`encoding=`, `errors=`) com valor padrão.
 fn opt_text(fname: &str, name: &str, v: &Option<Value>, default: &str) -> PyResult<String> {
     match v {
@@ -1406,7 +1304,7 @@ fn b_bytes(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         }
         let enc = opt_text("bytes", "encoding", &s[1], "utf-8")?;
         let errs = opt_text("bytes", "errors", &s[2], "strict")?;
-        return Ok(Value::bytes(encode_text(st.as_str(), &enc, &errs)?));
+        return Ok(Value::bytes(crate::methods::strm::encode_str(st.as_str(), &enc, &errs)?));
     }
     if s[1].is_some() {
         return Err(type_error("encoding without a string argument"));
@@ -1454,7 +1352,7 @@ fn b_str(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
             let b = obj.bytes_like().unwrap_or_else(|| Rc::from(&[][..]));
             let enc = opt_text("str", "encoding", &s[1], "utf-8")?;
             let errs = opt_text("str", "errors", &s[2], "strict")?;
-            Ok(Value::str(decode_bytes(&b, &enc, &errs)?))
+            Ok(Value::str(crate::methods::bytesm::decode_bytes(&b, &enc, &errs)?))
         }
         other => Err(type_error(format!("decoding to str: need a bytes-like object, {} found", other.type_name()))),
     }

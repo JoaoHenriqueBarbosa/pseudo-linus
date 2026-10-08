@@ -5,8 +5,8 @@
 
 use std::rc::Rc;
 
-use crate::native_util::{bind, want_int, int_or};
-use crate::object::{Kw, NativeFnPtr, Value};
+use crate::native_util::{bind, clinic_str_arg, want_int, int_or};
+use crate::object::{push_cp, Kw, NativeFnPtr, Value};
 use crate::vm::{exc, iterate, type_error, PyResult, Vm};
 
 fn this(args: &[Value]) -> PyResult<Rc<[u8]>> {
@@ -131,30 +131,50 @@ fn codec_of(name: &str) -> Option<Codec> {
     }
 }
 
-fn decode_error(codec: &str, bad_start: usize, bad_len: usize, byte: u8, reason: &str) -> crate::vm::PyException {
-    let msg = if bad_len == 1 {
-        format!("'{codec}' codec can't decode byte 0x{byte:02x} in position {bad_start}: {reason}")
+/// Acrescenta UTF-8 válido a `out` na codificação dos `str` da VM: só o texto com o byte 0xF4
+/// (plano 16) pode conter os chars que colidem com os surrogates guardados e o próprio U+10FFFF.
+pub(crate) fn push_valid_utf8(out: &mut String, valid: &str) {
+    if valid.as_bytes().contains(&0xF4) {
+        valid.chars().for_each(|c| push_cp(out, u32::from(c)));
     } else {
-        format!("'{codec}' codec can't decode bytes in position {bad_start}-{}: {reason}", bad_start + bad_len - 1)
-    };
-    exc("UnicodeDecodeError", msg)
+        out.push_str(valid);
+    }
+}
+
+/// O surrogate que o `surrogatepass` lê nos bytes `ED A0..BF 80..BF` (3 bytes, o que o UTF-8
+/// estrito recusa).
+fn utf8_surrogate(bytes: &[u8]) -> Option<u32> {
+    match bytes {
+        [0xED, b1 @ 0xA0..=0xBF, b2 @ 0x80..=0xBF, ..] => Some(0xD000 | (u32::from(b1 & 0x3F) << 6) | u32::from(b2 & 0x3F)),
+        _ => None,
+    }
 }
 
 pub(crate) fn decode_utf8(data: &[u8], errors: &str) -> PyResult<String> {
+    decode_utf8_stateful(data, errors, true).map(|(text, _)| text)
+}
+
+/// `PyUnicode_DecodeUTF8Stateful`: o texto e quantos bytes foram consumidos (com `final_` falso, a
+/// sequência válida que o fim dos dados interrompe fica para a próxima chamada).
+pub(crate) fn decode_utf8_stateful(data: &[u8], errors: &str, final_: bool) -> PyResult<(String, usize)> {
     let mut out = String::new();
     let mut pos = 0usize;
     while pos < data.len() {
         match std::str::from_utf8(&data[pos..]) {
             Ok(s) => {
-                out.push_str(s);
+                push_valid_utf8(&mut out, s);
                 break;
             }
             Err(e) => {
                 let valid = e.valid_up_to();
-                out.push_str(std::str::from_utf8(&data[pos..pos + valid]).unwrap_or(""));
+                push_valid_utf8(&mut out, std::str::from_utf8(&data[pos..pos + valid]).unwrap_or(""));
                 let bad_start = pos + valid;
                 let first = data[bad_start];
+                // `ED A0..BF` no fim dos dados é o começo de um surrogate que o `surrogatepass` aceitaria:
+                // com `final_` falso o CPython o deixa para a próxima chamada, como uma sequência truncada.
+                let surrogate_prefix = matches!(&data[bad_start..], [0xED, 0xA0..=0xBF]);
                 let (bad_len, reason) = match e.error_len() {
+                    Some(_) if surrogate_prefix && !final_ => return Ok((out, bad_start)),
                     Some(n) => {
                         let r = if (0x80..=0xc1).contains(&first) || first >= 0xf5 {
                             "invalid start byte"
@@ -163,28 +183,20 @@ pub(crate) fn decode_utf8(data: &[u8], errors: &str) -> PyResult<String> {
                         };
                         (n, r)
                     }
+                    None if !final_ => return Ok((out, bad_start)),
                     None => (data.len() - bad_start, "unexpected end of data"),
                 };
-                match errors {
-                    "ignore" => {}
-                    "replace" => out.push('\u{fffd}'),
-                    "surrogateescape" => {
-                        for &b in &data[bad_start..bad_start + bad_len] {
-                            out.push(crate::object::surrogate_to_char(0xDC00 + u32::from(b)));
-                        }
-                    }
-                    "backslashreplace" => {
-                        for &b in &data[bad_start..bad_start + bad_len] {
-                            out.push_str(&format!("\\x{b:02x}"));
-                        }
-                    }
-                    _ => return Err(decode_error("utf-8", bad_start, bad_len, first, reason)),
+                if let Some(cp) = utf8_surrogate(&data[bad_start..]).filter(|_| errors == "surrogatepass") {
+                    push_cp(&mut out, cp);
+                    pos = bad_start + 3;
+                    continue;
                 }
-                pos = bad_start + bad_len;
+                pos = bad_start
+                    + crate::textcodec::decode_bad(&mut out, errors, data, bad_start..bad_start + bad_len, "utf-8", reason)?;
             }
         }
     }
-    Ok(out)
+    Ok((out, data.len()))
 }
 
 fn decode_ascii(data: &[u8], errors: &str) -> PyResult<String> {
@@ -192,13 +204,8 @@ fn decode_ascii(data: &[u8], errors: &str) -> PyResult<String> {
     for (i, &b) in data.iter().enumerate() {
         if b < 0x80 {
             out.push(b as char);
-            continue;
-        }
-        match errors {
-            "ignore" => {}
-            "replace" => out.push('\u{fffd}'),
-            "surrogateescape" => out.push(crate::object::surrogate_to_char(0xDC00 + u32::from(b))),
-            _ => return Err(decode_error("ascii", i, 1, b, "ordinal not in range(128)")),
+        } else {
+            crate::textcodec::decode_bad(&mut out, errors, data, i..i + 1, "ascii", "ordinal not in range(128)")?;
         }
     }
     Ok(out)
@@ -207,30 +214,25 @@ fn decode_ascii(data: &[u8], errors: &str) -> PyResult<String> {
 fn decode(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let data = this(&args)?;
     let slots = bind("decode", args[1..].to_vec(), kw, &["encoding", "errors"], 0)?;
-    let text_arg = |slot: &Option<Value>, what: &str, default: &str| -> PyResult<String> {
-        match slot {
-            None => Ok(default.to_string()),
-            Some(Value::Str(s)) => Ok(s.as_str().to_string()),
-            Some(other) => {
-                Err(type_error(format!("decode() argument '{what}' must be str, not {}", other.type_name())))
-            }
-        }
-    };
-    let encoding = text_arg(&slots[0], "encoding", "utf-8")?;
-    let errors = text_arg(&slots[1], "errors", "strict")?;
-    let Some(codec) = codec_of(&encoding) else {
-        return match crate::textcodec::lookup(&encoding) {
-            Some(c) => Ok(Value::str(crate::textcodec::decode(&c, &data, &errors)?)),
+    let encoding = clinic_str_arg("decode", "encoding", &slots[0], "utf-8")?;
+    let errors = clinic_str_arg("decode", "errors", &slots[1], "strict")?;
+    Ok(Value::str(decode_bytes(&data, &encoding, &errors)?))
+}
+
+/// `bytes.decode(encoding, errors)`: o codec pelo nome (UTF-8, ASCII, Latin-1, cp437 e o resto).
+pub(crate) fn decode_bytes(data: &[u8], encoding: &str, errors: &str) -> PyResult<String> {
+    let Some(codec) = codec_of(encoding) else {
+        return match crate::textcodec::lookup(encoding) {
+            Some(c) => crate::textcodec::decode(&c, data, errors),
             None => Err(exc("LookupError", format!("unknown encoding: {encoding}"))),
         };
     };
-    let text = match codec {
-        Codec::Utf8 => decode_utf8(&data, &errors)?,
-        Codec::Ascii => decode_ascii(&data, &errors)?,
+    Ok(match codec {
+        Codec::Utf8 => decode_utf8(data, errors)?,
+        Codec::Ascii => decode_ascii(data, errors)?,
         Codec::Latin1 => data.iter().map(|&b| b as char).collect(),
         Codec::Cp437 => data.iter().map(|&b| crate::cp437::decode_byte(b)).collect(),
-    };
-    Ok(Value::str(text))
+    })
 }
 
 // ----------------------------------------------------------------------------------------------
@@ -815,6 +817,21 @@ fn islower(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     predicate("islower", &args, &kw, |d| d.iter().any(u8::is_ascii_lowercase) && !d.iter().any(u8::is_ascii_uppercase))
 }
 
+fn istitle(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    predicate("istitle", &args, &kw, |d| {
+        let mut prev_cased = false;
+        let mut any = false;
+        for b in d {
+            if b.is_ascii_uppercase() == prev_cased && (b.is_ascii_uppercase() || b.is_ascii_lowercase()) {
+                return false;
+            }
+            prev_cased = b.is_ascii_alphabetic();
+            any |= prev_cased;
+        }
+        any
+    })
+}
+
 fn isascii(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     predicate("isascii", &args, &kw, |d| d.is_ascii())
 }
@@ -928,6 +945,7 @@ pub const TABLE: &[(&str, NativeFnPtr)] = &[
     ("isspace", isspace),
     ("isupper", isupper),
     ("islower", islower),
+    ("istitle", istitle),
     ("isascii", isascii),
     ("swapcase", swapcase),
     ("capitalize", capitalize),

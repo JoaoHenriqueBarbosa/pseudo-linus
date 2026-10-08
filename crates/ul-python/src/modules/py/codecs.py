@@ -1,17 +1,40 @@
 """Registro de codecs sobre `str.encode`/`bytes.decode`, mais as transformações de bytes comuns."""
 
-import io as _io
+import builtins
 import sys
+
+from _codecs import *
+
+__all__ = ["register", "lookup", "open", "EncodedFile", "BOM", "BOM_BE",
+           "BOM_LE", "BOM32_BE", "BOM32_LE", "BOM64_BE", "BOM64_LE",
+           "BOM_UTF8", "BOM_UTF16", "BOM_UTF16_LE", "BOM_UTF16_BE",
+           "BOM_UTF32", "BOM_UTF32_LE", "BOM_UTF32_BE",
+           "CodecInfo", "Codec", "IncrementalEncoder", "IncrementalDecoder",
+           "StreamReader", "StreamWriter",
+           "StreamReaderWriter", "StreamRecoder",
+           "getencoder", "getdecoder", "getincrementalencoder",
+           "getincrementaldecoder", "getreader", "getwriter",
+           "encode", "decode", "iterencode", "iterdecode",
+           "strict_errors", "ignore_errors", "replace_errors",
+           "xmlcharrefreplace_errors",
+           "backslashreplace_errors", "namereplace_errors",
+           "register_error", "lookup_error"]
 
 BOM_UTF8 = b'\xef\xbb\xbf'
 BOM_LE = BOM_UTF16_LE = b'\xff\xfe'
 BOM_BE = BOM_UTF16_BE = b'\xfe\xff'
 BOM_UTF32_LE = b'\xff\xfe\x00\x00'
 BOM_UTF32_BE = b'\x00\x00\xfe\xff'
-BOM = BOM_UTF16 = BOM_LE if sys.byteorder == 'little' else BOM_BE
-BOM32_LE = BOM_UTF32_LE
-BOM32_BE = BOM_UTF32_BE
-BOM_UTF32 = BOM_UTF32_LE
+if sys.byteorder == 'little':
+    BOM = BOM_UTF16 = BOM_UTF16_LE
+    BOM_UTF32 = BOM_UTF32_LE
+else:
+    BOM = BOM_UTF16 = BOM_UTF16_BE
+    BOM_UTF32 = BOM_UTF32_BE
+BOM32_LE = BOM_UTF16_LE
+BOM32_BE = BOM_UTF16_BE
+BOM64_LE = BOM_UTF32_LE
+BOM64_BE = BOM_UTF32_BE
 
 _CANON = {
     'utf8': 'utf-8', 'utf-8': 'utf-8', 'u8': 'utf-8', 'utf': 'utf-8', 'utf_8': 'utf-8',
@@ -23,6 +46,7 @@ _CANON = {
     'utf-32': 'utf-32', 'utf32': 'utf-32', 'utf-32-le': 'utf-32-le', 'utf-32le': 'utf-32-le',
     'utf-32-be': 'utf-32-be', 'utf-32be': 'utf-32-be',
     'utf-8-sig': 'utf-8-sig', 'utf8-sig': 'utf-8-sig',
+    'utf-7': 'utf-7', 'utf7': 'utf-7', 'u7': 'utf-7', 'unicode-1-1-utf-7': 'utf-7',
     'cp1252': 'cp1252', 'windows-1252': 'cp1252',
     'rot13': 'rot-13', 'rot-13': 'rot-13', 'rot_13': 'rot-13',
     'hex': 'hex', 'hex_codec': 'hex', 'base64': 'base64', 'base64_codec': 'base64',
@@ -32,13 +56,41 @@ _CANON = {
     'idna': 'idna', 'punycode': 'punycode',
 }
 _BYTES_TO_BYTES = {'hex', 'base64', 'zlib'}
-_ERRORS = {}
+_NOT_TEXT = {'hex', 'base64', 'zlib', 'rot-13'}
 
+# Os codecs cujas funções sem estado são as do `_codecs`: `(codificador, decodificador, aceita final)`.
+_STATELESS = {
+    'utf-8': (utf_8_encode, utf_8_decode, True),
+    'ascii': (ascii_encode, ascii_decode, False),
+    'iso8859-1': (latin_1_encode, latin_1_decode, False),
+    'utf-16': (utf_16_encode, utf_16_decode, True),
+    'utf-16-le': (utf_16_le_encode, utf_16_le_decode, True),
+    'utf-16-be': (utf_16_be_encode, utf_16_be_decode, True),
+    'utf-32': (utf_32_encode, utf_32_decode, True),
+    'utf-32-le': (utf_32_le_encode, utf_32_le_decode, True),
+    'utf-32-be': (utf_32_be_encode, utf_32_be_decode, True),
+    'utf-7': (utf_7_encode, utf_7_decode, True),
+    'unicode-escape': (unicode_escape_encode, unicode_escape_decode, True),
+    'raw-unicode-escape': (raw_unicode_escape_encode, raw_unicode_escape_decode, True),
+}
+
+
+### Codec base classes (defining the API)
 
 class CodecInfo(tuple):
+    """Codec details when looking up the codec registry"""
+
+    # Private API to allow Python 3.4 to denylist the known non-Unicode
+    # codecs in the standard library. A more general mechanism to
+    # reliably distinguish test encodings from other codecs will hopefully
+    # be defined for Python 3.5
+    #
+    # See http://bugs.python.org/issue19619
+    _is_text_encoding = True # Assume codecs are text encodings by default
 
     def __new__(cls, encode, decode, streamreader=None, streamwriter=None,
-                incrementalencoder=None, incrementaldecoder=None, name=None, *, _is_text_encoding=None):
+        incrementalencoder=None, incrementaldecoder=None, name=None,
+        *, _is_text_encoding=None):
         self = tuple.__new__(cls, (encode, decode, streamreader, streamwriter))
         self.name = name
         self.encode = encode
@@ -47,12 +99,17 @@ class CodecInfo(tuple):
         self.incrementaldecoder = incrementaldecoder
         self.streamwriter = streamwriter
         self.streamreader = streamreader
-        self._is_text_encoding = _is_text_encoding
+        if _is_text_encoding is not None:
+            self._is_text_encoding = _is_text_encoding
         return self
 
     def __repr__(self):
-        return '<%s.%s object for encoding %s at %#x>' % (
-            self.__class__.__module__, self.__class__.__name__, self.name, id(self))
+        return "<%s.%s object for encoding %s at %#x>" % \
+                (self.__class__.__module__, self.__class__.__qualname__,
+                 self.name, id(self))
+
+    def __getnewargs__(self):
+        return tuple(self)
 
 
 def _norm(encoding):
@@ -70,32 +127,46 @@ def _norm(encoding):
     return found
 
 
+def _buffer(data):
+    """Os bytes de um objeto com buffer, com a recusa do `Py_buffer` do CPython."""
+    if isinstance(data, str):
+        raise TypeError("a bytes-like object is required, not 'str'")
+    try:
+        return bytes(memoryview(data))
+    except TypeError:
+        raise TypeError("a bytes-like object is required, not '%s'" % type(data).__name__) from None
+
+
+def _ascii_buffer(data):
+    return data.encode('ascii') if isinstance(data, str) else _buffer(data)
+
+
 def _hex_enc(data, errors='strict'):
-    return bytes(data).hex().encode('ascii'), len(data)
+    return _buffer(data).hex().encode('ascii'), len(data)
 
 
 def _hex_dec(data, errors='strict'):
-    return bytes.fromhex(bytes(data).decode('ascii')), len(data)
+    return bytes.fromhex(_ascii_buffer(data).decode('ascii')), len(data)
 
 
 def _b64_enc(data, errors='strict'):
     import base64
-    return base64.encodebytes(bytes(data)), len(data)
+    return base64.encodebytes(_buffer(data)), len(data)
 
 
 def _b64_dec(data, errors='strict'):
     import base64
-    return base64.decodebytes(bytes(data)), len(data)
+    return base64.decodebytes(_ascii_buffer(data)), len(data)
 
 
 def _zlib_enc(data, errors='strict'):
     import zlib
-    return zlib.compress(bytes(data)), len(data)
+    return zlib.compress(_buffer(data)), len(data)
 
 
 def _zlib_dec(data, errors='strict'):
     import zlib
-    return zlib.decompress(bytes(data)), len(data)
+    return zlib.decompress(_ascii_buffer(data)), len(data)
 
 
 _ROT = str.maketrans('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
@@ -104,6 +175,34 @@ _ROT = str.maketrans('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
 
 def _rot_enc(text, errors='strict'):
     return str.translate(text, _ROT), len(text)
+
+
+def _stateless(encode_fn, decode_fn, with_final):
+    """O par `(encode, decode)` de `encodings/*.py` sobre as funções do `_codecs`."""
+    def encoder(text, errors='strict'):
+        return encode_fn(text, errors)
+
+    if with_final:
+        def decoder(data, errors='strict'):
+            return decode_fn(data, errors, True)
+    else:
+        def decoder(data, errors='strict'):
+            return decode_fn(data, errors)
+    return encoder, decoder
+
+
+def _charmap_pair(name):
+    """O par de um codec de texto que o núcleo conhece (cp125x, iso8859-x, koi8, utf-8-sig...)."""
+    label = 'utf_8_encode' if name == 'utf-8-sig' else 'charmap_encode'
+
+    def enc(text, errors='strict'):
+        if not isinstance(text, str):
+            raise TypeError('%s() argument 1 must be str, not %s' % (label, type(text).__name__))
+        return text.encode(name, errors), len(text)
+
+    def dec(data, errors='strict'):
+        return _buffer(data).decode(name, errors), len(data)
+    return enc, dec
 
 
 def _make(name):
@@ -115,38 +214,33 @@ def _make(name):
         enc, dec = _zlib_enc, _zlib_dec
     elif name == 'rot-13':
         enc, dec = _rot_enc, _rot_enc
+    elif name in _STATELESS:
+        enc, dec = _stateless(*_STATELESS[name])
     else:
-        def enc(text, errors='strict', _n=name):
-            data = text.encode(_n if _n != 'iso8859-1' else 'latin-1', errors)
-            return data, len(text)
-
-        def dec(data, errors='strict', _n=name):
-            text = bytes(data).decode(_n if _n != 'iso8859-1' else 'latin-1', errors)
-            return text, len(data)
+        enc, dec = _charmap_pair(name)
     return CodecInfo(enc, dec, name=name,
                      streamreader=_stream_reader(name), streamwriter=_stream_writer(name),
-                     incrementalencoder=_inc_encoder(name), incrementaldecoder=_inc_decoder(name))
+                     incrementalencoder=_inc_encoder(name), incrementaldecoder=_inc_decoder(name),
+                     _is_text_encoding=name not in _NOT_TEXT)
 
 
 _cache = {}
 
 
-def lookup(encoding):
-    name = _norm(encoding)
-    if name is None:
-        raise LookupError('unknown encoding: %s' % encoding)
-    if name not in _cache:
-        _cache[name] = _make(name)
-    return _cache[name]
+def _search(name):
+    """A função de busca dos codecs da imagem, a que o `encodings` registra no CPython."""
+    canonical = _norm(name)
+    if canonical is None:
+        return None
+    if canonical not in _cache:
+        _cache[canonical] = _make(canonical)
+    return _cache[canonical]
 
 
-def register(search_function):
-    pass
+register(_search)
 
 
-def unregister(search_function):
-    pass
-
+### Shortcuts
 
 def getencoder(encoding):
     return lookup(encoding).encode
@@ -170,51 +264,6 @@ def getreader(encoding):
 
 def getwriter(encoding):
     return lookup(encoding).streamwriter
-
-
-def encode(obj, encoding='utf-8', errors='strict'):
-    name = _norm(encoding)
-    if name is None:
-        raise LookupError('unknown encoding: %s' % encoding)
-    if name in _BYTES_TO_BYTES or name == 'rot-13':
-        return lookup(name).encode(obj, errors)[0]
-    return obj.encode(encoding, errors) if isinstance(obj, str) else _bad_encode(obj, encoding)
-
-
-def _bad_encode(obj, encoding):
-    raise TypeError("'%s' object cannot be interpreted as str" % type(obj).__name__)
-
-
-def decode(obj, encoding='utf-8', errors='strict'):
-    name = _norm(encoding)
-    if name is None:
-        raise LookupError('unknown encoding: %s' % encoding)
-    if name in _BYTES_TO_BYTES:
-        if isinstance(obj, str):
-            obj = obj.encode('ascii')
-        return lookup(name).decode(obj, errors)[0]
-    if name == 'rot-13':
-        return lookup(name).decode(obj, errors)[0]
-    return bytes(obj).decode(encoding, errors)
-
-
-def register_error(name, handler):
-    _ERRORS[name] = handler
-
-
-def lookup_error(name):
-    if name in _ERRORS:
-        return _ERRORS[name]
-    if name in ('strict', 'ignore', 'replace', 'backslashreplace', 'xmlcharrefreplace', 'namereplace', 'surrogateescape', 'surrogatepass'):
-        def handler(exc, _n=name):
-            raise exc
-        handler.__name__ = name + '_errors'
-        return handler
-    raise LookupError('unknown error handler name %r' % name)
-
-
-def strict_errors(exc):
-    raise exc
 
 
 def iterencode(iterator, encoding, errors='strict', **kwargs):
@@ -320,7 +369,126 @@ class BufferedIncrementalDecoder(IncrementalDecoder):
         self.buffer = state[0]
 
 
+def _idna_split(text):
+    """`dots.split(text)` de `encodings/idna.py`: separa em U+002E, U+3002, U+FF0E e U+FF61."""
+    labels = []
+    start = 0
+    for i, ch in enumerate(text):
+        if ch in '.。．｡':
+            labels.append(text[start:i])
+            start = i + 1
+    labels.append(text[start:])
+    return labels
+
+
+def _idna_incremental_encoder():
+    import _idna
+
+    class IncrementalEncoder(BufferedIncrementalEncoder):
+        def _buffer_encode(self, input, errors, final):
+            if errors != 'strict':
+                raise UnicodeError(f"Unsupported error handling: {errors}")
+            if not input:
+                return (b'', 0)
+            labels = _idna_split(input)
+            trailing_dot = b''
+            if labels:
+                if not labels[-1]:
+                    trailing_dot = b'.'
+                    del labels[-1]
+                elif not final:
+                    # Mantém o rótulo possivelmente incompleto até a próxima chamada.
+                    del labels[-1]
+                    if labels:
+                        trailing_dot = b'.'
+            result = bytearray()
+            size = 0
+            for label in labels:
+                if size:
+                    result.extend(b'.')
+                    size += 1
+                try:
+                    result.extend(_idna.to_ascii(label))
+                except (UnicodeEncodeError, UnicodeDecodeError) as exc:
+                    raise UnicodeEncodeError("idna", input, size + exc.start, size + exc.end, exc.reason)
+                size += len(label)
+            result += trailing_dot
+            size += len(trailing_dot)
+            return (bytes(result), size)
+    return IncrementalEncoder
+
+
+def _idna_incremental_decoder():
+    import _idna
+
+    class IncrementalDecoder(BufferedIncrementalDecoder):
+        def _buffer_decode(self, input, errors, final):
+            if errors != 'strict':
+                raise UnicodeError("Unsupported error handling: {errors}")
+            if not input:
+                return ("", 0)
+            if isinstance(input, str):
+                labels = _idna_split(input)
+            else:
+                try:
+                    input = str(input, "ascii")
+                except (UnicodeEncodeError, UnicodeDecodeError) as exc:
+                    raise UnicodeDecodeError("idna", input, exc.start, exc.end, exc.reason)
+                labels = input.split(".")
+            trailing_dot = ''
+            if labels:
+                if not labels[-1]:
+                    trailing_dot = '.'
+                    del labels[-1]
+                elif not final:
+                    del labels[-1]
+                    if labels:
+                        trailing_dot = '.'
+            result = []
+            size = 0
+            for label in labels:
+                try:
+                    u_label = _idna.to_unicode(label)
+                except (UnicodeEncodeError, UnicodeDecodeError) as exc:
+                    raise UnicodeDecodeError("idna", input.encode("ascii", errors="backslashreplace"),
+                                             size + exc.start, size + exc.end, exc.reason)
+                else:
+                    result.append(u_label)
+                if size:
+                    size += 1
+                size += len(label)
+            result = ".".join(result) + trailing_dot
+            size += len(trailing_dot)
+            return (result, size)
+    return IncrementalDecoder
+
+
+def _punycode_incremental_encoder():
+    class _Enc(IncrementalEncoder):
+        def encode(self, input, final=False):
+            return input.encode('punycode')
+    _Enc.__name__ = 'IncrementalEncoder'
+    return _Enc
+
+
+def _punycode_incremental_decoder():
+    class _Dec(IncrementalDecoder):
+        def decode(self, input, final=False):
+            if self.errors not in ('strict', 'replace', 'ignore'):
+                raise UnicodeError(f"Unsupported error handling: {self.errors}")
+            if isinstance(input, str):
+                input = input.encode('ascii')
+            return bytes(input).decode('punycode', self.errors)
+    _Dec.__name__ = 'IncrementalDecoder'
+    return _Dec
+
+
 def _inc_encoder(name):
+    if name == 'idna':
+        return _idna_incremental_encoder()
+    if name == 'punycode':
+        return _punycode_incremental_encoder()
+
     class _Enc(IncrementalEncoder):
         def encode(self, input, final=False):
             return encode(input, name, self.errors)
@@ -329,6 +497,16 @@ def _inc_encoder(name):
 
 
 def _inc_decoder(name):
+    if name == 'idna':
+        return _idna_incremental_decoder()
+    if name == 'punycode':
+        return _punycode_incremental_decoder()
+    if name == 'utf-7':
+        class IncrementalDecoder(BufferedIncrementalDecoder):
+            def _buffer_decode(self, input, errors, final):
+                return utf_7_decode(input, errors, final)
+        return IncrementalDecoder
+
     class _Dec(BufferedIncrementalDecoder):
         def _buffer_decode(self, input, errors, final):
             if final or name in _BYTES_TO_BYTES:
@@ -435,8 +613,6 @@ class StreamReader(Codec):
 
 
 def _stream_reader(name):
-    info = {}
-
     class _R(StreamReader):
         def decode(self, input, errors='strict'):
             return lookup(name).decode(input, errors)
@@ -490,23 +666,178 @@ class StreamReaderWriter:
         self.stream.close()
 
 
+class StreamRecoder:
+
+    """ StreamRecoder instances translate data from one encoding to another.
+
+        They use the complete set of APIs returned by the
+        codecs.lookup() function to implement their task.
+
+        Data written to the StreamRecoder is first decoded into an
+        intermediate format (depending on the "decode" codec) and then
+        written to the underlying stream using an instance of the provided
+        Writer class.
+
+        In the other direction, data is read from the underlying stream using
+        a Reader instance and then encoded and returned to the caller.
+
+    """
+    # Optional attributes set by the file wrappers below
+    data_encoding = 'unknown'
+    file_encoding = 'unknown'
+
+    def __init__(self, stream, encode, decode, Reader, Writer,
+                 errors='strict'):
+        self.stream = stream
+        self.encode = encode
+        self.decode = decode
+        self.reader = Reader(stream, errors)
+        self.writer = Writer(stream, errors)
+        self.errors = errors
+
+    def read(self, size=-1):
+
+        data = self.reader.read(size)
+        data, bytesencoded = self.encode(data, self.errors)
+        return data
+
+    def readline(self, size=None):
+
+        if size is None:
+            data = self.reader.readline()
+        else:
+            data = self.reader.readline(size)
+        data, bytesencoded = self.encode(data, self.errors)
+        return data
+
+    def readlines(self, sizehint=None):
+
+        data = self.reader.read()
+        data, bytesencoded = self.encode(data, self.errors)
+        return data.splitlines(keepends=True)
+
+    def __next__(self):
+
+        """ Return the next decoded line from the input stream."""
+        data = next(self.reader)
+        data, bytesencoded = self.encode(data, self.errors)
+        return data
+
+    def __iter__(self):
+        return self
+
+    def write(self, data):
+
+        data, bytesdecoded = self.decode(data, self.errors)
+        return self.writer.write(data)
+
+    def writelines(self, list):
+
+        data = b''.join(list)
+        data, bytesdecoded = self.decode(data, self.errors)
+        return self.writer.write(data)
+
+    def reset(self):
+
+        self.reader.reset()
+        self.writer.reset()
+
+    def seek(self, offset, whence=0):
+        # Seeks must be propagated to both the readers and writers
+        # as they might need to reset their internal buffers.
+        self.reader.seek(offset, whence)
+        self.writer.seek(offset, whence)
+
+    def __getattr__(self, name,
+                    getattr=getattr):
+
+        """ Inherit all other methods from the underlying stream.
+        """
+        return getattr(self.stream, name)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, tb):
+        self.stream.close()
+
+    def __reduce_ex__(self, proto):
+        raise TypeError("can't serialize %s" % self.__class__.__name__)
+
+
 def open(filename, mode='r', encoding=None, errors='strict', buffering=-1):
     if encoding is not None and 'b' not in mode:
         mode = mode + 'b'
-    file = _io.open(filename, mode, buffering)
+    file = builtins.open(filename, mode, buffering)
     if encoding is None:
         return file
-    info = lookup(encoding)
-    srw = StreamReaderWriter(file, info.streamreader, info.streamwriter, errors)
-    srw.encoding = encoding
-    return srw
+    try:
+        info = lookup(encoding)
+        srw = StreamReaderWriter(file, info.streamreader, info.streamwriter, errors)
+        srw.encoding = encoding
+        return srw
+    except:
+        file.close()
+        raise
 
 
 def EncodedFile(file, data_encoding, file_encoding=None, errors='strict'):
     if file_encoding is None:
         file_encoding = data_encoding
-    return StreamReaderWriter(file, getreader(file_encoding), getwriter(file_encoding), errors)
+    data_info = lookup(data_encoding)
+    file_info = lookup(file_encoding)
+    sr = StreamRecoder(file, data_info.encode, data_info.decode,
+                       file_info.streamreader, file_info.streamwriter, errors)
+    sr.data_encoding = data_encoding
+    sr.file_encoding = file_encoding
+    return sr
 
 
 def make_identity_dict(rng):
     return {i: i for i in rng}
+
+
+def make_encoding_map(decoding_map):
+    """ Creates an encoding map from a decoding map.
+
+        If a target mapping in the decoding map occurs multiple
+        times, then that target is mapped to None (undefined mapping),
+        causing an exception when encountered by the charmap codec
+        during translation.
+
+        One example where this happens is cp875.py which decodes
+        multiple character to \\u001a.
+
+    """
+    m = {}
+    for k,v in decoding_map.items():
+        if not v in m:
+            m[v] = k
+        else:
+            m[v] = None
+    return m
+
+
+### error handlers
+
+try:
+    strict_errors = lookup_error("strict")
+    ignore_errors = lookup_error("ignore")
+    replace_errors = lookup_error("replace")
+    xmlcharrefreplace_errors = lookup_error("xmlcharrefreplace")
+    backslashreplace_errors = lookup_error("backslashreplace")
+    namereplace_errors = lookup_error("namereplace")
+except LookupError:
+    # In --disable-unicode builds, these error handler are missing
+    strict_errors = None
+    ignore_errors = None
+    replace_errors = None
+    xmlcharrefreplace_errors = None
+    backslashreplace_errors = None
+    namereplace_errors = None
+
+# Tell modulefinder that using codecs probably needs the encodings
+# package
+_false = 0
+if _false:
+    import encodings

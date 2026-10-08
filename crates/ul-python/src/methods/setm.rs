@@ -117,33 +117,52 @@ fn copy(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::set(c))
 }
 
-/// Acrescenta os itens de `src` a `dst`.
-fn add_all(dst: &mut Set, src: &Value) -> PyResult<()> {
-    for it in iterate(src)? {
+/// Os itens de `src` e, quando a origem é um `dict` ou um `set`, quantos são: o CPython amplia a
+/// tabela uma única vez antes de inserir nesse caso (`set_update_internal`).
+pub(crate) fn gather(src: &Value) -> PyResult<(Vec<Value>, Option<usize>)> {
+    let incoming = match src {
+        Value::Dict(d) => Some(d.borrow().len()),
+        Value::Set(s) => Some(s.borrow().len()),
+        _ => None,
+    };
+    Ok((iterate(src)?, incoming))
+}
+
+/// Insere os itens de [`gather`] em `dst`.
+pub(crate) fn extend(dst: &mut Set, (items, incoming): (Vec<Value>, Option<usize>)) -> PyResult<()> {
+    if let Some(n) = incoming {
+        dst.presize(n);
+    }
+    for it in items {
         dst.add(it)?;
     }
     Ok(())
+}
+
+/// Acrescenta os itens de `src` a `dst`.
+fn add_all(dst: &mut Set, src: &Value) -> PyResult<()> {
+    extend(dst, gather(src)?)
 }
 
 fn update(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("update", &kw)?;
     let s = this(&args)?;
     for other in &args[1..] {
-        let items = iterate(other)?;
-        let mut m = s.borrow_mut();
-        for it in items {
-            m.add(it)?;
-        }
+        let src = gather(other)?;
+        extend(&mut s.borrow_mut(), src)?;
     }
     Ok(Value::None)
+}
+
+/// Acrescenta os itens de cada um dos `others` a `dst`.
+fn add_each(dst: &mut Set, others: &[Value]) -> PyResult<()> {
+    others.iter().try_for_each(|other| add_all(dst, other))
 }
 
 fn union(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("union", &kw)?;
     let mut out = this(&args)?.borrow().clone();
-    for other in &args[1..] {
-        add_all(&mut out, other)?;
-    }
+    add_each(&mut out, &args[1..])?;
     Ok(Value::set(out))
 }
 
@@ -225,11 +244,9 @@ fn difference_update(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> 
     Ok(Value::None)
 }
 
-fn symmetric_difference(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    nokw("symmetric_difference", &kw)?;
-    argc("symmetric_difference", &args[1..], 1)?;
-    let me = this(&args)?;
-    let frozen = me.borrow().is_frozen();
+fn symmetric_difference_of(name: &str, args: &[Value]) -> PyResult<Set> {
+    argc(name, &args[1..], 1)?;
+    let me = this(args)?;
     let mine = snapshot(&me);
     let mut out = to_set(&args[1])?;
     for k in mine {
@@ -239,7 +256,20 @@ fn symmetric_difference(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Valu
             out.add(k)?;
         }
     }
-    Ok(Value::set(out.with_frozen(frozen)))
+    Ok(out)
+}
+
+fn symmetric_difference(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    nokw("symmetric_difference", &kw)?;
+    let frozen = this(&args)?.borrow().is_frozen();
+    Ok(Value::set(symmetric_difference_of("symmetric_difference", &args)?.with_frozen(frozen)))
+}
+
+fn symmetric_difference_update(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    nokw("symmetric_difference_update", &kw)?;
+    let result = symmetric_difference_of("symmetric_difference_update", &args)?.with_frozen(false);
+    *this(&args)?.borrow_mut() = result;
+    Ok(Value::None)
 }
 
 fn issubset(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -320,6 +350,7 @@ pub const TABLE: &[(&str, NativeFnPtr)] = &[
     ("isdisjoint", isdisjoint),
     ("intersection_update", intersection_update),
     ("difference_update", difference_update),
+    ("symmetric_difference_update", symmetric_difference_update),
 ];
 
 #[cfg(test)]

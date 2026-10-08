@@ -102,6 +102,23 @@ class ModuleSpec:
         self._set_fileattr = bool(value)
 
 
+# Typically used by loader classes as a method replacement.
+def _load_module_shim(self, fullname):
+    """Load the specified module into sys.modules and return it.
+
+    This method is deprecated.  Use loader.exec_module() instead.
+
+    """
+    import sys
+    import warnings
+    msg = ("the load_module() method is deprecated and slated for removal in "
+           "Python 3.15; use exec_module() instead")
+    warnings.warn(msg, DeprecationWarning)
+    if fullname not in sys.modules:
+        __import__(fullname)
+    return sys.modules[fullname]
+
+
 class BuiltinImporter:
     """Meta path import for built-in modules.
 
@@ -141,6 +158,8 @@ class BuiltinImporter:
     def is_package(cls, fullname):
         """Return False as built-in modules are never packages."""
         return False
+
+    load_module = classmethod(_load_module_shim)
 
 
 class FrozenImporter:

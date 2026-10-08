@@ -1,0 +1,1196 @@
+tool = "python3"
+source = "manual"
+
+# `threading` e `_thread` (wip/notes/python-fork.md): nomes de thread, ident e native_id, travões, Condition,
+# excepthook, `_thread.start_new_thread`, ordem do desligamento e bloqueio cooperativo. Nada não determinístico
+# aparece na saída: ids, tempos e endereços nunca são impressos, só comparações e formatos normalizados.
+
+[[case]]
+id = "threading-thread-names"
+script = '''
+python3 - <<'PYEOF'
+import threading
+def worker(): pass
+class Callable:
+    def __call__(self): pass
+a = threading.Thread(target=worker)
+b = threading.Thread(target=worker, name="given")
+c = threading.Thread()
+d = threading.Thread(target=Callable())
+e = threading.Thread(target=lambda: None)
+f = threading.Thread(target=print)
+print(a.name, b.name, c.name, d.name, e.name, f.name, sep="|")
+print(threading.main_thread().name, threading.current_thread().name, threading.current_thread() is threading.main_thread())
+a.name = "renamed"
+print(a.name, a.getName() if False else a.name)
+t = threading.Timer(0, worker)
+print(t.name)
+PYEOF
+'''
+tags = ["threading", "names"]
+
+[[case]]
+id = "threading-thread-attributes"
+script = '''
+python3 - <<'PYEOF'
+import re, threading
+def norm(s): return re.sub(r"\d{3,}", "N", s)
+def worker(): pass
+t = threading.Thread(target=worker, daemon=True)
+print(norm(repr(t)), t.ident, t.native_id, t.is_alive(), t.daemon)
+try:
+    t.join()
+except RuntimeError as e:
+    print("join", e)
+t.start()
+print(norm(repr(t)), t.ident is not None, t.native_id is not None, t.is_alive())
+try:
+    t.start()
+except RuntimeError as e:
+    print("start", e)
+try:
+    t.daemon = False
+except RuntimeError as e:
+    print("daemon", e)
+t.join()
+print(norm(repr(t)), t.is_alive(), t.ident is not None)
+n = threading.Thread(target=worker)
+print(n.daemon, threading.Thread(target=worker, daemon=False).daemon)
+try:
+    threading.current_thread().join()
+except RuntimeError as e:
+    print("current", e)
+m = threading.main_thread()
+print(norm(repr(m)), m.is_alive(), m.daemon, m.ident == threading.get_ident(), m.native_id == threading.get_native_id())
+try:
+    threading.Thread(group=1)
+except AssertionError as e:
+    print("group", e)
+PYEOF
+'''
+tags = ["threading", "attributes"]
+
+[[case]]
+id = "threading-ident-native-id"
+script = '''
+python3 - <<'PYEOF'
+import os, threading
+seen = {}
+def worker():
+    seen["ident"] = threading.get_ident()
+    seen["native"] = threading.get_native_id()
+    seen["current"] = threading.current_thread().ident
+    seen["current_native"] = threading.current_thread().native_id
+t1 = threading.Thread(target=worker); t2 = threading.Thread(target=worker)
+t1.start(); t2.start(); t1.join(); t2.join()
+print(threading.get_native_id() == os.getpid(), threading.main_thread().native_id == os.getpid())
+print(type(threading.get_ident()).__name__, type(seen["native"]).__name__)
+print(seen["ident"] != threading.get_ident(), seen["native"] != os.getpid(), seen["ident"] == seen["current"], seen["native"] == seen["current_native"])
+print(t1.ident != t2.ident, t1.native_id != t2.native_id, t1.native_id > 0)
+PYEOF
+'''
+tags = ["threading", "ident"]
+
+[[case]]
+id = "threading-enumerate-active-count"
+script = '''
+python3 - <<'PYEOF'
+import threading
+ev = threading.Event()
+ts = [threading.Thread(target=ev.wait, name=f"w{i}") for i in range(3)]
+print(threading.active_count(), [t.name for t in threading.enumerate()])
+for t in ts: t.start()
+print(threading.active_count(), [t.name for t in threading.enumerate()], all(t.is_alive() for t in ts))
+ev.set()
+for t in ts: t.join()
+print(threading.active_count(), [t.name for t in threading.enumerate()], any(t.is_alive() for t in ts))
+PYEOF
+'''
+tags = ["threading", "enumerate"]
+
+[[case]]
+id = "threading-excepthook-default-format"
+script = '''
+python3 - <<'PYEOF' 2>&1
+import threading
+def f():
+    raise ValueError("boom")
+t = threading.Thread(target=f)
+t.start(); t.join()
+t = threading.Thread(target=f, name="custom")
+t.start(); t.join()
+def g():
+    raise SystemExit(3)
+t = threading.Thread(target=g)
+t.start(); t.join()
+print("done")
+PYEOF
+'''
+tags = ["threading", "excepthook"]
+
+[[case]]
+id = "threading-excepthook-custom"
+script = '''
+python3 - <<'PYEOF' 2>&1
+import sys, threading
+seen = []
+def hook(args):
+    seen.append((type(args).__name__, args.exc_type.__name__, str(args.exc_value), args.exc_traceback is not None, args.thread.name))
+    print(len(args), args[0].__name__)
+threading.excepthook = hook
+def f(): raise KeyError("k")
+t = threading.Thread(target=f, name="A"); t.start(); t.join()
+print(seen)
+print(threading.excepthook is hook, threading.__excepthook__.__name__)
+def bad(args): raise RuntimeError("in hook")
+threading.excepthook = bad
+t = threading.Thread(target=f, name="B"); t.start(); t.join()
+threading.excepthook = None
+t = threading.Thread(target=f, name="C"); t.start(); t.join()
+print("end")
+PYEOF
+'''
+tags = ["threading", "excepthook"]
+
+[[case]]
+id = "threading-excepthook-args-type"
+script = '''
+python3 - <<'PYEOF'
+import _thread, threading
+A = threading.ExceptHookArgs
+print(A is _thread._ExceptHookArgs, A.__name__, A.__module__, threading.excepthook is _thread._excepthook)
+a = A((ValueError, ValueError("x"), None, None))
+print(a.exc_type.__name__, a.thread, len(a), tuple(a)[0].__name__)
+try:
+    A((1, 2))
+except TypeError as e:
+    print("TypeError", e)
+try:
+    _thread._excepthook(1)
+except TypeError as e:
+    print("TypeError", e)
+_thread._excepthook(A((SystemExit, SystemExit(1), None, None)))
+print("ok")
+PYEOF
+'''
+tags = ["threading", "excepthook"]
+
+[[case]]
+id = "thread-lock-basics"
+script = '''
+python3 - <<'PYEOF'
+import re, _thread, threading
+def norm(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+l = threading.Lock()
+print(norm(repr(l)), type(l) is _thread.lock, _thread.LockType is _thread.lock, threading.Lock is _thread.lock)
+print(l.acquire(), norm(repr(l)), l.locked(), l.acquire(False), l.acquire(blocking=False))
+l.release()
+print(l.locked())
+try:
+    l.release()
+except RuntimeError as e:
+    print("RuntimeError", e)
+with l:
+    print("in", l.locked())
+print(l.acquire(True, 0), l.acquire(timeout=0.01), l.acquire(True, 0.01))
+l.release()
+for args in [(False, 1), (True, -2), (True, 1e30), (False, 0)]:
+    try:
+        print(args, l.acquire(*args))
+    except (ValueError, OverflowError) as e:
+        print(type(e).__name__, e)
+    else:
+        if l.locked(): l.release()
+print(l.__enter__(), l.locked()); l.__exit__(None, None, None); print(l.locked())
+print(sorted(n for n in ("acquire_lock", "release_lock", "locked_lock", "_at_fork_reinit", "acquire", "release", "locked", "__enter__", "__exit__") if hasattr(l, n)))
+try:
+    class Sub(_thread.lock): pass
+except TypeError as e:
+    print("TypeError", e)
+try:
+    _thread.lock(1)
+except TypeError as e:
+    print("TypeError", e)
+print(_thread.TIMEOUT_MAX == threading.TIMEOUT_MAX, _thread.error is RuntimeError, threading.ThreadError is RuntimeError)
+print(type(_thread.allocate_lock()).__name__, type(_thread.allocate()).__name__)
+PYEOF
+'''
+tags = ["threading", "lock"]
+
+[[case]]
+id = "thread-lock-cross-thread-release"
+script = '''
+python3 - <<'PYEOF'
+import threading
+l = threading.Lock()
+l.acquire()
+done = []
+def releaser():
+    l.release()
+    done.append("released")
+t = threading.Thread(target=releaser); t.start(); t.join()
+print(done, l.locked())
+l.acquire()
+order = []
+def holder():
+    with l:
+        order.append("worker got it")
+    order.append("worker done")
+l.release()
+t = threading.Thread(target=holder)
+l.acquire()
+t.start()
+order.append("main holds")
+l.release()
+order.append("main released")
+t.join()
+print(order)
+PYEOF
+'''
+tags = ["threading", "lock", "blocking"]
+
+[[case]]
+id = "thread-lock-blocking-acquire-waits-for-worker"
+script = '''
+python3 - <<'PYEOF'
+import threading, time
+l = threading.Lock()
+events = []
+def worker():
+    with l:
+        events.append("worker has lock")
+        time.sleep(0.05)
+        events.append("worker releasing")
+l.acquire()
+t = threading.Thread(target=worker)
+l.release()
+t.start()
+time.sleep(0.01)
+events.append("main acquiring")
+l.acquire()
+events.append("main got lock")
+l.release()
+t.join()
+print(events)
+l.acquire()
+t0 = time.monotonic()
+print(l.acquire(timeout=0.05), time.monotonic() - t0 >= 0.04)
+l.release()
+PYEOF
+'''
+tags = ["threading", "lock", "blocking"]
+
+[[case]]
+id = "thread-lock-timeout-lets-others-run"
+script = '''
+python3 - <<'PYEOF'
+import threading, time
+l = threading.Lock(); l.acquire()
+ran = []
+def other():
+    ran.append("other ran")
+    time.sleep(0.01)
+    l.release()
+    ran.append("other released")
+t = threading.Thread(target=other); t.start()
+print(l.acquire(True, 1.0), ran)
+t.join()
+PYEOF
+'''
+tags = ["threading", "lock", "blocking"]
+
+[[case]]
+id = "thread-rlock-basics"
+script = '''
+python3 - <<'PYEOF'
+import re, _thread, threading
+def norm(s): return re.sub(r"owner=\d+", "owner=N", re.sub(r"0x[0-9a-f]+", "0xADDR", s))
+r = threading.RLock()
+print(norm(repr(r)), type(r) is _thread.RLock, type(r).__module__, type(r).__name__)
+print(r.acquire(), r.acquire(), norm(repr(r)))
+r.release()
+print(norm(repr(r)))
+r.release()
+print(norm(repr(r)))
+try:
+    r.release()
+except RuntimeError as e:
+    print("RuntimeError", e)
+print(r.acquire(blocking=False), r._is_owned(), r._recursion_count())
+r.release()
+with r:
+    with r:
+        print(norm(repr(r)))
+for args in [(False, 1), (True, -3)]:
+    try:
+        r.acquire(*args)
+    except ValueError as e:
+        print("ValueError", e)
+saved = r._release_save()
+print(type(saved).__name__, norm(repr(r)), r._is_owned())
+r._acquire_restore(saved)
+print(r._is_owned())
+r.release()
+try:
+    r._release_save()
+except RuntimeError as e:
+    print("RuntimeError", e)
+print(threading.RLock.__name__, callable(threading.RLock))
+PYEOF
+'''
+tags = ["threading", "rlock"]
+
+[[case]]
+id = "thread-rlock-owned-by-other-thread"
+script = '''
+python3 - <<'PYEOF'
+import threading
+r = threading.RLock()
+res = {}
+def other():
+    res["acquire_nb"] = r.acquire(False)
+    res["timeout"] = r.acquire(timeout=0.01)
+    try:
+        r.release()
+    except RuntimeError as e:
+        res["release"] = str(e)
+    res["owned"] = r._is_owned()
+r.acquire()
+t = threading.Thread(target=other); t.start(); t.join()
+print(res, r._is_owned())
+r.release()
+got = []
+def taker():
+    with r:
+        got.append("taker")
+r.acquire()
+t = threading.Thread(target=taker); t.start()
+got.append("main holds")
+r.release()
+t.join()
+print(got)
+PYEOF
+'''
+tags = ["threading", "rlock", "blocking"]
+
+[[case]]
+id = "thread-rlock-argument-warning"
+script = '''
+python3 -W error::DeprecationWarning - <<'PYEOF'
+import threading
+try:
+    threading.RLock(1)
+except DeprecationWarning as e:
+    print("DeprecationWarning", e)
+print(type(threading.RLock()).__name__)
+PYEOF
+'''
+tags = ["threading", "rlock"]
+
+[[case]]
+id = "threading-condition-semantics"
+script = '''
+python3 - <<'PYEOF'
+import threading, time
+c = threading.Condition()
+for fn in (c.wait, c.notify, c.notify_all):
+    try:
+        fn()
+    except RuntimeError as e:
+        print("RuntimeError", e)
+with c:
+    t0 = time.monotonic()
+    print(c.wait(0.05), time.monotonic() - t0 >= 0.04)
+    print(c.wait(0), c.wait_for(lambda: False, 0.02), c.wait_for(lambda: True))
+box = []
+def waiter(name):
+    with c:
+        r = c.wait(2)
+        box.append((name, r))
+def notifier(n):
+    with c:
+        c.notify(n)
+ws = [threading.Thread(target=waiter, args=(i,)) for i in range(3)]
+for w in ws: w.start()
+time.sleep(0.05)
+notifier(1)
+time.sleep(0.05)
+print(sorted(box))
+notifier(2)
+for w in ws: w.join()
+print(sorted(box))
+l = threading.Lock()
+c2 = threading.Condition(l)
+try:
+    c2.wait()
+except RuntimeError as e:
+    print("RuntimeError", e)
+with c2:
+    print(c2.wait(0.01))
+print(repr(c2).startswith("<Condition(<unlocked _thread.lock object at 0x"), repr(threading.Condition()).startswith("<Condition(<unlocked _thread.RLock object owner=0 count=0 at 0x"))
+PYEOF
+'''
+tags = ["threading", "condition"]
+
+[[case]]
+id = "threading-condition-producer-consumer"
+script = '''
+python3 - <<'PYEOF'
+import threading
+c = threading.Condition()
+items = []
+out = []
+def consumer():
+    for _ in range(3):
+        with c:
+            c.wait_for(lambda: items)
+            out.append(items.pop(0))
+def producer():
+    for i in range(3):
+        with c:
+            items.append(i)
+            c.notify()
+t = threading.Thread(target=consumer); p = threading.Thread(target=producer)
+t.start(); p.start(); t.join(); p.join()
+print(out, items)
+PYEOF
+'''
+tags = ["threading", "condition"]
+
+[[case]]
+id = "threading-event-semantics"
+script = '''
+python3 - <<'PYEOF'
+import threading, time
+e = threading.Event()
+print(e.is_set(), e.isSet() if False else e.is_set(), e.wait(0.02), e.set(), e.is_set(), e.wait(), e.wait(0))
+e.clear()
+order = []
+def setter():
+    time.sleep(0.03)
+    order.append("setter")
+    e.set()
+def waiter():
+    order.append("waiting")
+    order.append(("wait result", e.wait(2)))
+a = threading.Thread(target=waiter); b = threading.Thread(target=setter)
+a.start(); b.start(); a.join(); b.join()
+print(order)
+e.clear()
+t0 = time.monotonic()
+other = []
+def other_thread():
+    other.append("ran during wait")
+th = threading.Thread(target=other_thread); th.start()
+print(e.wait(0.05), other, time.monotonic() - t0 >= 0.04)
+th.join()
+PYEOF
+'''
+tags = ["threading", "event"]
+
+[[case]]
+id = "threading-semaphore-barrier"
+script = '''
+python3 - <<'PYEOF'
+import re, threading
+s = threading.Semaphore(2)
+print(re.sub(r"0x[0-9a-f]+", "0xADDR", repr(s)))
+print(s.acquire(), s.acquire(), s.acquire(False), s.acquire(timeout=0.01), s.acquire(True, 0.01))
+s.release(2)
+print(s._value)
+for fn in (lambda: s.acquire(False, 1), lambda: s.release(0), lambda: threading.Semaphore(-1)):
+    try:
+        fn()
+    except ValueError as e:
+        print("ValueError", e)
+b = threading.BoundedSemaphore(1)
+b.acquire(); b.release()
+try:
+    b.release()
+except ValueError as e:
+    print("ValueError", e)
+print(re.sub(r"0x[0-9a-f]+", "0xADDR", repr(b)))
+bar = threading.Barrier(3, timeout=1)
+res = []
+def party(i):
+    try:
+        res.append(bar.wait())
+    except threading.BrokenBarrierError:
+        res.append("broken")
+ts = [threading.Thread(target=party, args=(i,)) for i in range(3)]
+for t in ts: t.start()
+for t in ts: t.join()
+print(sorted(res, key=str), bar.parties, bar.n_waiting, bar.broken)
+lone = threading.Barrier(2)
+try:
+    lone.wait(0.02)
+except threading.BrokenBarrierError as e:
+    print("BrokenBarrierError", repr(e), lone.broken)
+try:
+    lone.wait()
+except threading.BrokenBarrierError:
+    print("still broken")
+lone.reset()
+print(lone.broken)
+PYEOF
+'''
+tags = ["threading", "semaphore", "barrier"]
+
+[[case]]
+id = "threading-timer"
+script = '''
+python3 - <<'PYEOF'
+import threading, time
+out = []
+t = threading.Timer(0.02, out.append, args=["fired"])
+t.start(); t.join()
+print(out, t.finished.is_set(), t.name.startswith("Thread-"), t.interval, t.args, t.kwargs)
+c = threading.Timer(5, out.append, args=["never"])
+c.start()
+c.cancel()
+c.join()
+print(out, c.finished.is_set(), c.is_alive())
+k = threading.Timer(0.01, lambda **kw: out.append(kw), kwargs={"a": 1})
+k.start(); k.join()
+print(out[-1])
+PYEOF
+'''
+tags = ["threading", "timer"]
+
+[[case]]
+id = "threading-local"
+script = '''
+python3 - <<'PYEOF'
+import _thread, threading
+loc = threading.local()
+print(type(loc).__module__, type(loc).__name__, threading.local is _thread._local)
+loc.x = 1
+seen = []
+def w(n):
+    seen.append(hasattr(loc, "x"))
+    loc.x = n
+    seen.append(loc.x)
+ts = [threading.Thread(target=w, args=(i,)) for i in (10, 20)]
+for t in ts: t.start()
+for t in ts: t.join()
+print(loc.x, seen)
+class L(threading.local):
+    def __init__(self, v): self.v = v
+l = L(5)
+out = []
+t = threading.Thread(target=lambda: out.append(l.v)); t.start(); t.join()
+print(l.v, out)
+try:
+    threading.local(1)
+except TypeError as e:
+    print("TypeError", e)
+del loc.x
+try:
+    loc.x
+except AttributeError as e:
+    print("AttributeError", e)
+try:
+    loc.__dict__ = {}
+except AttributeError as e:
+    print("AttributeError", e)
+PYEOF
+'''
+tags = ["threading", "local"]
+
+[[case]]
+id = "thread-start-new-thread"
+script = '''
+python3 - <<'PYEOF' 2>&1 | sed -E 's/0x[0-9a-f]+/0xADDR/'
+import re, threading, time, _thread
+res = []
+def f(a, b=0):
+    res.append((a, b, threading.get_ident() == ident_box[0]))
+ident_box = [None]
+ident = _thread.start_new_thread(f, (1,), {"b": 2})
+ident_box[0] = ident
+print(type(ident).__name__, ident != threading.get_ident())
+time.sleep(0.05)
+print(res, threading.active_count(), len(threading.enumerate()))
+print(_thread.start_new(f, (3,)) != ident)
+time.sleep(0.05)
+print(len(res), _thread._count())
+for args in [(1, ()), (f, [1]), (f, (1,), 5)]:
+    try:
+        _thread.start_new_thread(*args)
+    except TypeError as e:
+        print("TypeError", e)
+def boom():
+    raise ValueError("raw")
+_thread.start_new_thread(boom, ())
+time.sleep(0.05)
+def quit_early():
+    _thread.exit()
+_thread.start_new_thread(quit_early, ())
+time.sleep(0.05)
+print("end")
+PYEOF
+'''
+tags = ["threading", "_thread"]
+
+[[case]]
+id = "thread-count-and-stack-size"
+script = '''
+python3 - <<'PYEOF'
+import threading, _thread
+ev = threading.Event()
+print(_thread._count())
+ts = [threading.Thread(target=ev.wait) for _ in range(2)]
+for t in ts: t.start()
+print(_thread._count())
+ev.set()
+for t in ts: t.join()
+print(_thread._count())
+print(threading.stack_size(), _thread.stack_size() , threading.stack_size is _thread.stack_size)
+print(threading.stack_size(1 << 20), threading.stack_size(), threading.stack_size(0), threading.stack_size())
+for v in (1, 32767, -1, 3.5, "x"):
+    try:
+        threading.stack_size(v)
+    except (ValueError, TypeError) as e:
+        print(type(e).__name__, e)
+print(threading.stack_size(32768), threading.stack_size(0))
+print(_thread.TIMEOUT_MAX, threading.TIMEOUT_MAX)
+PYEOF
+'''
+tags = ["threading", "_thread", "stack_size"]
+
+[[case]]
+id = "thread-interrupt-main"
+script = '''
+python3 - <<'PYEOF'
+import _thread, signal, threading
+try:
+    _thread.interrupt_main()
+except KeyboardInterrupt:
+    print("KeyboardInterrupt")
+got = []
+signal.signal(signal.SIGUSR1, lambda s, f: got.append(s == signal.SIGUSR1))
+_thread.interrupt_main(signal.SIGUSR1)
+print(got)
+signal.signal(signal.SIGUSR2, signal.SIG_IGN)
+_thread.interrupt_main(signal.SIGUSR2)
+signal.signal(signal.SIGTERM, signal.SIG_DFL)
+_thread.interrupt_main(signal.SIGTERM)
+for v in (0, 65, -1):
+    try:
+        _thread.interrupt_main(v)
+    except ValueError as e:
+        print("ValueError", e)
+try:
+    _thread.interrupt_main("x")
+except TypeError as e:
+    print("TypeError", e)
+print("end")
+PYEOF
+'''
+tags = ["threading", "_thread", "signal"]
+
+[[case]]
+id = "threading-shutdown-joins-non-daemon"
+script = '''
+python3 - <<'PYEOF'
+import atexit, sys, threading, time
+def work():
+    time.sleep(0.05)
+    print("non-daemon finished", flush=True)
+def background():
+    time.sleep(30)
+    print("daemon should never print", flush=True)
+atexit.register(lambda: print("atexit runs after the join", flush=True))
+threading.Thread(target=work).start()
+threading.Thread(target=background, daemon=True).start()
+print("main done", flush=True)
+PYEOF
+'''
+tags = ["threading", "shutdown"]
+
+[[case]]
+id = "threading-register-atexit-and-late-start"
+script = '''
+python3 - <<'PYEOF'
+import atexit, threading
+order = []
+threading._register_atexit(lambda: order.append("threading atexit"))
+def late():
+    try:
+        threading.Thread(target=lambda: None).start()
+    except RuntimeError as e:
+        print("RuntimeError", e)
+    try:
+        threading._register_atexit(lambda: None)
+    except RuntimeError as e:
+        print("RuntimeError", e)
+    print(order)
+atexit.register(late)
+PYEOF
+'''
+tags = ["threading", "shutdown"]
+
+[[case]]
+id = "threading-main-exits-with-nondaemon-error"
+script = '''
+python3 - <<'PYEOF' 2>&1
+import threading, time
+def f():
+    time.sleep(0.02)
+    raise RuntimeError("late failure")
+threading.Thread(target=f, name="late").start()
+print("main exits first", flush=True)
+PYEOF
+echo "status $?"
+'''
+tags = ["threading", "shutdown", "excepthook"]
+
+[[case]]
+id = "threading-deprecated-aliases"
+script = '''
+python3 - <<'PYEOF' 2>&1
+import threading, warnings
+warnings.simplefilter("always")
+t = threading.Thread(target=print, name="n")
+print(t.getName(), t.isDaemon())
+t.setName("m"); t.setDaemon(True)
+print(t.name, t.daemon)
+print(threading.currentThread() is threading.current_thread(), threading.activeCount())
+c = threading.Condition()
+with c:
+    c.notifyAll()
+print(threading.Event().isSet())
+PYEOF
+'''
+tags = ["threading", "deprecated"]
+
+[[case]]
+id = "threading-deadlock-does-not-hang"
+script = '''
+timeout 20 python3 - <<'PYEOF' 2>&1 | head -c 2000
+import threading
+l = threading.Lock(); l.acquire()
+print("acquire with timeout", l.acquire(timeout=0.05))
+ev = threading.Event()
+print("event with timeout", ev.wait(0.05))
+c = threading.Condition()
+with c:
+    print("cond with timeout", c.wait(0.05))
+q_done = []
+def waiter():
+    ev.wait(0.2)
+    q_done.append("woke up on timeout")
+t = threading.Thread(target=waiter); t.start(); t.join()
+print(q_done)
+PYEOF
+'''
+tags = ["threading", "deadlock"]
+
+[[case]]
+id = "threading-tracebacks-in-thread"
+script = '''
+python3 - <<'PYEOF' 2>&1
+import threading
+def inner():
+    1 / 0
+def outer():
+    inner()
+t = threading.Thread(target=outer)
+t.start(); t.join()
+PYEOF
+'''
+tags = ["threading", "excepthook", "traceback"]
+
+[[case]]
+id = "threading-settrace-setprofile-new-threads"
+script = '''
+python3 - <<'PYEOF'
+import sys, threading
+events = []
+def prof(frame, event, arg):
+    if frame.f_code.co_name == "target": events.append(("profile", event))
+def target(): pass
+threading.setprofile(prof)
+print(threading.getprofile() is prof, threading.gettrace())
+t = threading.Thread(target=target); t.start(); t.join()
+threading.setprofile(None)
+print(events[:2], sys.getprofile())
+def tr(frame, event, arg):
+    if frame.f_code.co_name == "target": events.append(("trace", event))
+    return tr
+threading.settrace(tr)
+t = threading.Thread(target=target); t.start(); t.join()
+threading.settrace(None)
+print([e for e in events if e[0] == "trace"][:2], sys.gettrace())
+PYEOF
+'''
+tags = ["threading", "trace"]
+
+[[case]]
+id = "threading-fork-child-sees-only-forking-thread"
+script = '''
+python3 - <<'PYEOF'
+import os, threading, warnings
+warnings.simplefilter("ignore")
+ev = threading.Event()
+t = threading.Thread(target=ev.wait, daemon=True, name="bg"); t.start()
+pid = os.fork()
+if pid == 0:
+    print("child", threading.active_count(), [x.name for x in threading.enumerate()], threading.get_native_id() == os.getpid(), threading.main_thread().native_id == os.getpid(), flush=True)
+    os._exit(0)
+os.waitpid(pid, 0)
+print("parent", threading.active_count(), t.is_alive())
+ev.set(); t.join()
+PYEOF
+'''
+tags = ["threading", "fork"]
+
+# O processo que espera um filho (leitura do pipe até o EOF, `wait`, `waitid`) não pode parar a thread do servidor
+# que o próprio filho precisa para terminar: o `read` bloqueante do `stdout` do `check_output` e do `run` soltam a GIL.
+[[case]]
+id = "threading-server-thread-subprocess-run-stdout-only"
+script = '''
+cd /tmp
+mkdir -p thr-site && echo "olá" > thr-site/a.txt
+python3 - <<'PYEOF'
+import http.server, threading, subprocess, functools
+H = functools.partial(http.server.SimpleHTTPRequestHandler, directory='/tmp/thr-site')
+http.server.SimpleHTTPRequestHandler.log_message = lambda *a: None
+s = http.server.ThreadingHTTPServer(('127.0.0.1', 0), H)
+url = 'http://127.0.0.1:%d/a.txt' % s.server_address[1]
+threading.Thread(target=s.serve_forever, daemon=True).start()
+r = subprocess.run(['curl', '-s', url], stdout=subprocess.PIPE)
+print(r.returncode, r.stdout)
+r = subprocess.run(['curl', '-s', '-w', ' %{http_code}', url], capture_output=True, text=True)
+print(r.returncode, repr(r.stdout), repr(r.stderr))
+print(repr(subprocess.check_output(['curl', '-s', url], text=True)))
+s.shutdown()
+PYEOF
+'''
+tags = ["threading", "subprocess", "net"]
+
+[[case]]
+id = "threading-server-thread-python-client-subprocess"
+script = '''
+cd /tmp
+mkdir -p thr-site && echo "olá" > thr-site/a.txt
+python3 - <<'PYEOF'
+import http.server, threading, subprocess, functools, sys
+H = functools.partial(http.server.SimpleHTTPRequestHandler, directory='/tmp/thr-site')
+http.server.SimpleHTTPRequestHandler.log_message = lambda *a: None
+s = http.server.ThreadingHTTPServer(('127.0.0.1', 0), H)
+port = s.server_address[1]
+threading.Thread(target=s.serve_forever, daemon=True).start()
+code = "import urllib.request,sys;r=urllib.request.urlopen('http://127.0.0.1:%d/a.txt');print(r.status, r.read())" % port
+print(subprocess.run([sys.executable, '-c', code], capture_output=True, text=True).stdout, end='')
+p = subprocess.Popen([sys.executable, '-c', code], stdout=subprocess.PIPE, text=True)
+print(repr(p.stdout.readline()), repr(p.stdout.read()), p.wait())
+s.shutdown()
+PYEOF
+'''
+tags = ["threading", "subprocess", "net"]
+
+[[case]]
+id = "threading-os-read-pipe-and-waitid-with-live-thread"
+script = '''
+python3 - <<'PYEOF'
+import os, threading, subprocess, time
+ev = threading.Event()
+box = []
+def feeder():
+    ev.wait()
+    os.write(w, b'da thread\n')
+    os.close(w)
+r, w = os.pipe()
+t = threading.Thread(target=feeder); t.start()
+child = subprocess.Popen(['sleep', '0.3'])
+def releaser():
+    child.wait()
+    ev.set()
+threading.Thread(target=releaser).start()
+f = os.fdopen(r, 'rb')
+print(f.read(), child.returncode)
+t.join()
+p = subprocess.Popen(['sh', '-c', 'sleep 0.2; exit 3'])
+threading.Thread(target=time.sleep, args=(0.5,)).start()
+info = os.waitid(os.P_PID, p.pid, os.WEXITED | os.WNOWAIT)
+print(info.si_code == os.CLD_EXITED, info.si_status, p.wait())
+PYEOF
+'''
+tags = ["threading", "subprocess"]
+
+[[case]]
+id = "threading-os-write-full-pipe-reader-thread"
+script = '''
+python3 - <<'PYEOF'
+import os, threading
+r, w = os.pipe()
+got = []
+def reader():
+    while True:
+        chunk = os.read(r, 4096)
+        if not chunk:
+            break
+        got.append(chunk)
+t = threading.Thread(target=reader)
+t.start()
+n = os.write(w, b'x' * 200000)
+os.close(w)
+t.join()
+print(n, sum(map(len, got)))
+PYEOF
+'''
+tags = ["threading", "pipe"]
+
+[[case]]
+id = "threading-fileio-write-and-flush-full-pipe-reader-thread"
+script = '''
+python3 - <<'PYEOF'
+import os, threading
+r, w = os.pipe()
+box = []
+t = threading.Thread(target=lambda: box.append(os.fdopen(r, 'rb').read()))
+t.start()
+f = os.fdopen(w, 'wb', buffering=0)
+print(f.write(b'y' * 150000))
+f.close()
+t.join()
+r, w = os.pipe()
+t = threading.Thread(target=lambda: box.append(os.fdopen(r, 'rb').read()))
+t.start()
+b = os.fdopen(w, 'wb')
+b.write(b'z' * 300000)
+b.flush()
+b.close()
+t.join()
+print([len(x) for x in box], box[0][:1], box[1][-1:])
+PYEOF
+'''
+tags = ["threading", "pipe"]
+
+[[case]]
+id = "threading-os-writev-readv-full-pipe-threads"
+script = '''
+python3 - <<'PYEOF'
+import os, threading
+r, w = os.pipe()
+total = []
+def reader():
+    bufs = [bytearray(1000), bytearray(3000)]
+    n = 0
+    while True:
+        k = os.readv(r, bufs)
+        if k == 0:
+            break
+        n += k
+    total.append(n)
+t = threading.Thread(target=reader)
+t.start()
+print(os.writev(w, [b'a' * 70000, b'b' * 70000]))
+os.close(w)
+t.join()
+print(total)
+PYEOF
+'''
+tags = ["threading", "pipe"]
+
+[[case]]
+id = "threading-os-write-nonblocking-pipe-full-eagain"
+script = '''
+python3 - <<'PYEOF'
+import os, threading
+r, w = os.pipe()
+os.set_blocking(w, False)
+threading.Thread(target=lambda: None).start()
+print(os.write(w, b'q' * 100000))
+try:
+    os.write(w, b'q')
+except BlockingIOError as e:
+    print(type(e).__name__, e.errno)
+PYEOF
+'''
+tags = ["threading", "pipe"]
+
+[[case]]
+id = "threading-eventfd-read-write-between-threads"
+script = '''
+python3 - <<'PYEOF'
+import os, threading, time
+efd = os.eventfd(0)
+out = []
+def waiter():
+    out.append(os.eventfd_read(efd))
+t = threading.Thread(target=waiter)
+t.start()
+time.sleep(0.05)
+os.eventfd_write(efd, 5)
+t.join()
+print(out)
+big = os.eventfd(1)
+os.eventfd_write(big, 0xfffffffffffffffe - 1)
+res = []
+def drain():
+    time.sleep(0.05)
+    res.append(os.eventfd_read(big))
+t = threading.Thread(target=drain)
+t.start()
+os.eventfd_write(big, 1)
+t.join()
+print(res, os.eventfd_read(big))
+PYEOF
+'''
+tags = ["threading", "eventfd"]
+
+[[case]]
+id = "threading-flock-two-fds-blocking-between-threads"
+script = '''
+python3 - <<'PYEOF'
+import fcntl, os, threading, time
+path = '/tmp/thr-flock.lock'
+a = open(path, 'w')
+b = open(path, 'w')
+fcntl.flock(a, fcntl.LOCK_EX)
+log = []
+def holder():
+    time.sleep(0.1)
+    log.append('release')
+    fcntl.flock(a, fcntl.LOCK_UN)
+t = threading.Thread(target=holder)
+t.start()
+try:
+    fcntl.flock(b, fcntl.LOCK_EX | fcntl.LOCK_NB)
+except OSError as e:
+    log.append(('nb', e.errno))
+fcntl.flock(b, fcntl.LOCK_EX)
+log.append('acquired')
+t.join()
+print(log)
+fcntl.flock(b, fcntl.LOCK_UN)
+os.unlink(path)
+PYEOF
+'''
+tags = ["threading", "flock"]
+
+[[case]]
+id = "threading-stdin-readline-fed-by-thread-via-dup2"
+script = '''
+python3 - <<'PYEOF'
+import os, sys, threading, time
+r, w = os.pipe()
+os.dup2(r, 0)
+def feed():
+    time.sleep(0.05)
+    os.write(w, b'first\n')
+    time.sleep(0.05)
+    os.write(w, b'par')
+    time.sleep(0.05)
+    os.write(w, b'tial\n')
+    time.sleep(0.05)
+    os.write(w, b'tail')
+    os.close(w)
+t = threading.Thread(target=feed)
+t.start()
+print(repr(sys.stdin.readline()))
+print(repr(sys.stdin.readline()))
+print(repr(sys.stdin.readline()))
+print(repr(sys.stdin.readline()))
+t.join()
+PYEOF
+'''
+tags = ["threading", "stdin", "pipe"]
+
+[[case]]
+id = "threading-input-fed-by-thread-via-dup2"
+script = '''
+python3 - <<'PYEOF'
+import os, threading, time
+r, w = os.pipe()
+os.dup2(r, 0)
+def feed():
+    for word in (b'alpha', b'be', b'ta', b'\n', b'gamma\n'):
+        time.sleep(0.05)
+        os.write(w, word)
+    os.close(w)
+t = threading.Thread(target=feed)
+t.start()
+print(input('> '))
+print(input())
+try:
+    input()
+except EOFError as e:
+    print('EOFError', e)
+t.join()
+PYEOF
+'''
+tags = ["threading", "stdin", "pipe"]
+
+[[case]]
+id = "threading-stdin-read-and-iteration-fed-by-thread-via-dup2"
+script = '''
+python3 - <<'PYEOF'
+import os, sys, threading, time
+r, w = os.pipe()
+os.dup2(r, 0)
+def feed():
+    for chunk in (b'one\ntw', b'o\nthree\n', b'four', b'\r\nfive'):
+        time.sleep(0.05)
+        os.write(w, chunk)
+    os.close(w)
+t = threading.Thread(target=feed)
+t.start()
+print(repr(sys.stdin.read(5)))
+for line in sys.stdin:
+    print(repr(line))
+t.join()
+r, w = os.pipe()
+os.dup2(r, 0)
+t = threading.Thread(target=feed)
+t.start()
+print(repr(sys.stdin.read()))
+t.join()
+PYEOF
+'''
+tags = ["threading", "stdin", "pipe"]
+
+[[case]]
+id = "threading-stdin-buffer-read-read1-readline-fed-by-thread-via-dup2"
+script = '''
+python3 - <<'PYEOF'
+import os, sys, threading, time
+r, w = os.pipe()
+os.dup2(r, 0)
+def feed():
+    for chunk in (b'ab', b'cdef\n', b'ghi', b'jkl\nmn'):
+        time.sleep(0.05)
+        os.write(w, chunk)
+    os.close(w)
+t = threading.Thread(target=feed)
+t.start()
+buf = sys.stdin.buffer
+print(buf.read1(1))
+print(buf.readline())
+print(buf.read(4))
+print(buf.readline())
+print(buf.read())
+t.join()
+PYEOF
+'''
+tags = ["threading", "stdin", "pipe"]
+
+[[case]]
+id = "threading-stdin-nonblocking-pipe-with-live-thread"
+script = '''
+python3 - <<'PYEOF'
+import os, sys, threading, time
+r, w = os.pipe()
+os.dup2(r, 0)
+os.set_blocking(0, False)
+t = threading.Thread(target=time.sleep, args=(0.1,))
+t.start()
+print(repr(sys.stdin.readline()))
+os.write(w, b'late\n')
+print(repr(sys.stdin.readline()))
+t.join()
+PYEOF
+'''
+tags = ["threading", "stdin", "pipe"]

@@ -1,0 +1,1185 @@
+tool = "python3"
+source = "manual"
+
+# `os.fork` e o que depende dele (wip/notes/python-fork.md): estado do filho, buffers, ganchos de
+# `register_at_fork`, espera (`waitpid`, `wait3`, `wait4`, `waitid`), sinais, `multiprocessing`, `pty` e
+# `socketserver`. Nada não determinístico aparece na saída: pids e tempos nunca são impressos, só
+# comparações entre eles. A ordem da saída é fixada porque o pai espera o filho antes de imprimir.
+
+[[case]]
+id = "fork-waitpid-basic"
+script = '''
+python3 - <<'PYEOF'
+import os
+parent = os.getpid()
+pid = os.fork()
+if pid == 0:
+    print("child", os.getpid() != parent, os.getppid() == parent, flush=True)
+    os._exit(3)
+print("parent", pid > 0, pid != parent)
+got, status = os.waitpid(pid, 0)
+print(got == pid, os.WIFEXITED(status), os.WEXITSTATUS(status), os.WIFSIGNALED(status), os.WIFSTOPPED(status))
+print(os.waitstatus_to_exitcode(status), status)
+try:
+    os.waitpid(pid, 0)
+except ChildProcessError as e:
+    print("again", e.errno, e.strerror)
+try:
+    os.wait()
+except ChildProcessError as e:
+    print("wait", e.errno)
+PYEOF
+'''
+tags = ["fork", "process"]
+
+[[case]]
+id = "fork-independent-state"
+script = '''
+python3 - <<'PYEOF'
+import os, sys
+
+class Box:
+    def __init__(self):
+        self.items = [1, 2, 3]
+        self.tag = "orig"
+
+lst = [1, [2, 3], {"a": 1}]
+dct = {"k": [1], "n": {"x": 1}}
+box = Box()
+alias = lst[1]
+counter = 0
+
+def say(*a):
+    print(*a, flush=True)
+
+pid = os.fork()
+if pid == 0:
+    lst.append("child")
+    alias.append("child")
+    dct["k"].append(2)
+    dct["new"] = True
+    box.items.clear()
+    box.tag = "changed"
+    counter += 1
+    say("child", lst, dct, box.items, box.tag, counter, alias is lst[1])
+    os._exit(0)
+os.waitpid(pid, 0)
+say("parent", lst, dct, box.items, box.tag, counter, alias is lst[1])
+lst.append("parent")
+box.tag = "parent"
+pid = os.fork()
+if pid == 0:
+    say("second child", lst, box.tag)
+    os._exit(0)
+os.waitpid(pid, 0)
+PYEOF
+'''
+tags = ["fork", "process"]
+
+[[case]]
+id = "fork-return-values"
+script = '''
+python3 - <<'PYEOF'
+import os
+pids = [os.fork() for _ in range(1)]
+if pids[0] == 0:
+    os._exit(0)
+print(type(pids[0]).__name__, pids[0] > 0)
+os.waitpid(pids[0], 0)
+child = os.fork()
+if not child:
+    os._exit(0 if child == 0 else 1)
+print(os.waitstatus_to_exitcode(os.waitpid(child, 0)[1]))
+r = os.fork() if True else None
+if r == 0:
+    os._exit(9)
+print(os.WEXITSTATUS(os.wait()[1]))
+PYEOF
+'''
+tags = ["fork", "process"]
+
+[[case]]
+id = "fork-stdout-buffer-duplicated"
+script = '''
+python3 -c 'import os
+print("before")
+pid = os.fork()
+if pid == 0:
+    print("child")
+else:
+    os.waitpid(pid, 0)
+    print("parent")' | cat
+echo "rc=${PIPESTATUS[0]}"
+'''
+tags = ["fork", "io"]
+
+[[case]]
+id = "fork-stdout-flushed-before"
+script = '''
+python3 -c 'import os, sys
+print("before"); sys.stdout.flush()
+pid = os.fork()
+if pid == 0:
+    print("child")
+else:
+    os.waitpid(pid, 0)
+    print("parent")' | cat
+echo "rc=${PIPESTATUS[0]}"
+'''
+tags = ["fork", "io"]
+
+[[case]]
+id = "fork-os-exit-no-flush"
+script = '''
+python3 -c 'import os, sys
+print("before")
+pid = os.fork()
+if pid == 0:
+    print("child buffered")
+    sys.stderr.write("child stderr\n")
+    os._exit(3)
+_, status = os.waitpid(pid, 0)
+print("parent", os.WEXITSTATUS(status))' | cat
+echo "rc=${PIPESTATUS[0]}"
+python3 -c 'import os
+pid = os.fork()
+if pid == 0:
+    os.write(1, b"raw write survives\n")
+    print("lost")
+    os._exit(4)
+print(os.WEXITSTATUS(os.waitpid(pid, 0)[1]))' | cat
+'''
+tags = ["fork", "io"]
+
+[[case]]
+id = "fork-at-fork-hooks-order"
+script = '''
+python3 - <<'PYEOF'
+import os
+
+def say(*a):
+    print(*a, flush=True)
+
+for n in (1, 2, 3):
+    os.register_at_fork(before=lambda n=n: say("before", n))
+    os.register_at_fork(after_in_parent=lambda n=n: say("after_in_parent", n))
+    os.register_at_fork(after_in_child=lambda n=n: say("after_in_child", n))
+os.register_at_fork(before=lambda: say("before x"), after_in_parent=lambda: say("parent x"), after_in_child=lambda: say("child x"))
+say("fork")
+pid = os.fork()
+if pid == 0:
+    say("in child")
+    os._exit(0)
+os.waitpid(pid, 0)
+say("done")
+PYEOF
+'''
+tags = ["fork", "hooks"]
+
+[[case]]
+id = "fork-at-fork-hooks-forkpty-and-errors"
+script = '''
+python3 - <<'PYEOF'
+import os
+
+def say(*a):
+    print(*a, flush=True)
+
+os.register_at_fork(before=lambda: say("before"), after_in_parent=lambda: say("parent"), after_in_child=lambda: say("child"))
+pid, fd = os.forkpty()
+if pid == 0:
+    os._exit(0)
+os.waitpid(pid, 0)
+os.close(fd)
+for kwargs in ({}, {"before": 1}, {"after_in_parent": None}, {"after_in_child": "x"}):
+    try:
+        os.register_at_fork(**kwargs)
+    except TypeError as e:
+        say(e)
+try:
+    os.register_at_fork(lambda: None)
+except TypeError as e:
+    say(e)
+PYEOF
+'''
+tags = ["fork", "hooks", "pty"]
+
+[[case]]
+id = "fork-at-fork-hook-raises"
+script = '''
+python3 -c 'import os
+def bad():
+    raise RuntimeError("hook boom")
+os.register_at_fork(before=bad, after_in_parent=bad, after_in_child=bad)
+pid = os.fork()
+if pid == 0:
+    os.write(1, b"child ran\n")
+    os._exit(0)
+os.waitpid(pid, 0)
+print("parent ran")' 2>&1 | sed -E 's/0x[0-9a-f]+/0xADDR/'
+'''
+tags = ["fork", "hooks", "error"]
+
+[[case]]
+id = "fork-recursive-function"
+script = '''
+python3 - <<'PYEOF'
+import os
+
+def depth(n):
+    if n == 0:
+        pid = os.fork()
+        if pid == 0:
+            os._exit(42)
+        return os.WEXITSTATUS(os.waitpid(pid, 0)[1])
+    return depth(n - 1) + 1
+
+print(depth(50))
+
+def tree(d):
+    if d == 0:
+        return 0
+    pids = []
+    for _ in range(2):
+        pid = os.fork()
+        if pid == 0:
+            os._exit(tree(d - 1) + 1)
+        pids.append(pid)
+    return max(os.WEXITSTATUS(os.waitpid(p, 0)[1]) for p in pids)
+
+print(tree(3))
+
+def fact_in_child(n):
+    if n <= 1:
+        return 1
+    pid = os.fork()
+    if pid == 0:
+        os._exit(n % 256 if n < 6 else fact_in_child(n - 1) % 256)
+    return os.WEXITSTATUS(os.waitpid(pid, 0)[1])
+
+print(fact_in_child(10))
+PYEOF
+'''
+tags = ["fork", "process"]
+
+[[case]]
+id = "fork-in-generator"
+script = '''
+python3 - <<'PYEOF'
+import os
+
+def spawn(n):
+    for i in range(n):
+        pid = os.fork()
+        if pid == 0:
+            os._exit(10 + i)
+        yield pid
+
+pids = list(spawn(3))
+print(sorted(os.WEXITSTATUS(os.waitpid(p, 0)[1]) for p in pids))
+
+def lazy():
+    total = 0
+    for i in range(3):
+        pid = os.fork()
+        if pid == 0:
+            os._exit(i * 2)
+        total += os.WEXITSTATUS(os.waitpid(pid, 0)[1])
+        yield total
+
+g = lazy()
+print(next(g), next(g), next(g))
+
+def inner():
+    pid = os.fork()
+    if pid == 0:
+        os._exit(7)
+    return os.WEXITSTATUS(os.waitpid(pid, 0)[1])
+
+def outer():
+    yield inner()
+    yield from [inner(), inner()]
+
+print(list(outer()))
+print([inner() for _ in range(2)])
+print(sorted({inner() for _ in range(3)}))
+PYEOF
+'''
+tags = ["fork", "process"]
+
+[[case]]
+id = "fork-in-with-and-try-finally"
+script = '''
+python3 - <<'PYEOF'
+import os, sys, contextlib
+
+MAIN = os.getpid()
+
+def say(*a):
+    print(*a, flush=True)
+
+@contextlib.contextmanager
+def cm(tag):
+    say("enter", tag)
+    try:
+        yield
+    finally:
+        say("exit", tag, os.getpid() == MAIN)
+
+class Res:
+    def __enter__(self):
+        say("Res enter")
+        return self
+    def __exit__(self, *exc):
+        say("Res exit", os.getpid() == MAIN, exc[0].__name__ if exc[0] else None)
+        return False
+
+with cm("a"):
+    pid = os.fork()
+    if pid != 0:
+        os.waitpid(pid, 0)
+    else:
+        say("child in with")
+if pid == 0:
+    os._exit(0)
+
+with Res():
+    pid = os.fork()
+    if pid == 0:
+        say("child in Res")
+        sys.exit(2)
+    status = os.waitpid(pid, 0)[1]
+    say("parent status", os.waitstatus_to_exitcode(status))
+
+try:
+    pid = os.fork()
+    if pid == 0:
+        say("child try")
+        raise SystemExit(6)
+    status = os.waitpid(pid, 0)[1]
+    say("parent got", os.waitstatus_to_exitcode(status))
+finally:
+    say("finally", os.getpid() == MAIN)
+PYEOF
+'''
+tags = ["fork", "process"]
+
+[[case]]
+id = "fork-with-threads-warning"
+script = '''
+cat > /tmp/fork_threads_case.py <<'PYEOF'
+import os, re, sys, threading, warnings
+
+ev = threading.Event()
+t = threading.Thread(target=ev.wait)
+t.start()
+
+def reap():
+    try:
+        while True:
+            os.wait()
+    except ChildProcessError:
+        pass
+
+try:
+    pid = os.fork()
+except BaseException as e:
+    print("parent raised", type(e).__name__, re.sub(r"pid=\d+", "pid=N", str(e)), flush=True)
+    reap()
+else:
+    if pid == 0:
+        print("child threads", threading.active_count(), threading.current_thread().name, t.is_alive(), flush=True)
+        os._exit(0)
+    reap()
+    print("parent ok", flush=True)
+ev.set()
+t.join()
+PYEOF
+python3 /tmp/fork_threads_case.py 2>&1 | sed -E 's/pid=[0-9]+/pid=N/'
+echo ---
+python3 -W error /tmp/fork_threads_case.py 2>&1 | sed -E 's/pid=[0-9]+/pid=N/'
+echo ---
+python3 -W always::DeprecationWarning /tmp/fork_threads_case.py 2>&1 | sed -E 's#/tmp/fork_threads_case.py#SCRIPT#; s/pid=[0-9]+/pid=N/'
+rm -f /tmp/fork_threads_case.py
+'''
+tags = ["fork", "threads", "warnings"]
+
+[[case]]
+id = "fork-with-threads-warning-catch"
+script = '''
+python3 - <<'PYEOF'
+import os, threading, warnings, re
+
+ev = threading.Event()
+t = threading.Thread(target=ev.wait)
+t.start()
+with warnings.catch_warnings(record=True) as w:
+    warnings.simplefilter("always")
+    pid = os.fork()
+    if pid == 0:
+        os._exit(len(w))
+    os.waitpid(pid, 0)
+    print(len(w), w[0].category.__name__, w[0].filename, w[0].lineno)
+    print(re.sub(r"pid=\d+", "pid=N", str(w[0].message)))
+    print(str(w[0].message).startswith("This process (pid=%d) is multi-threaded" % os.getpid()))
+    pid, fd = os.forkpty()
+    if pid == 0:
+        os._exit(0)
+    os.waitpid(pid, 0)
+    os.close(fd)
+    print(len(w), re.sub(r"pid=\d+", "pid=N", str(w[1].message)))
+ev.set()
+t.join()
+with warnings.catch_warnings(record=True) as w:
+    warnings.simplefilter("always")
+    pid = os.fork()
+    if pid == 0:
+        os._exit(0)
+    os.waitpid(pid, 0)
+    print("no threads", len(w))
+PYEOF
+'''
+tags = ["fork", "threads", "warnings"]
+
+[[case]]
+id = "fork-threads-after-fork-state"
+script = '''
+python3 - 2>/tmp/fork_state_err <<'PYEOF'
+import os, threading
+
+lock = threading.Lock()
+done = threading.Event()
+worker = threading.Thread(target=done.wait, name="worker")
+worker.start()
+print(threading.active_count(), sorted(t.name for t in threading.enumerate()))
+pid = os.fork()
+if pid == 0:
+    out = []
+    out.append(threading.active_count())
+    out.append(threading.current_thread() is threading.main_thread())
+    out.append(threading.current_thread().name)
+    out.append(worker.is_alive())
+    r = []
+    th = threading.Thread(target=lambda: r.append("ran in child thread"))
+    th.start()
+    th.join()
+    out.append(r)
+    with lock:
+        out.append("lock ok")
+    print(*out, flush=True)
+    os._exit(0)
+os.waitpid(pid, 0)
+done.set()
+worker.join()
+print(threading.active_count())
+PYEOF
+sed -E 's/pid=[0-9]+/pid=N/' /tmp/fork_state_err >&2
+rm -f /tmp/fork_state_err
+'''
+tags = ["fork", "threads"]
+
+[[case]]
+id = "fork-pipe-parent-child"
+script = '''
+python3 - <<'PYEOF'
+import os
+
+r, w = os.pipe()
+pid = os.fork()
+if pid == 0:
+    os.close(r)
+    os.write(w, b"hello from child\n")
+    os.close(w)
+    os._exit(0)
+os.close(w)
+data = b""
+while True:
+    chunk = os.read(r, 100)
+    if not chunk:
+        break
+    data += chunk
+os.close(r)
+os.waitpid(pid, 0)
+print(data)
+
+# Dois pipes: o filho responde ao que o pai manda.
+to_child_r, to_child_w = os.pipe()
+to_parent_r, to_parent_w = os.pipe()
+pid = os.fork()
+if pid == 0:
+    os.close(to_child_w)
+    os.close(to_parent_r)
+    msg = os.read(to_child_r, 100)
+    os.write(to_parent_w, msg.upper() + b"!")
+    os._exit(0)
+os.close(to_child_r)
+os.close(to_parent_w)
+os.write(to_child_w, b"ping")
+os.close(to_child_w)
+print(os.read(to_parent_r, 100))
+os.waitpid(pid, 0)
+
+# O fim de leitura fica aberto nos dois lados: EOF só com todos os escritores fechados.
+r, w = os.pipe()
+pid = os.fork()
+if pid == 0:
+    os.close(w)
+    print("child sees eof", os.read(r, 10) == b"", flush=True)
+    os._exit(0)
+os.close(w)
+os.waitpid(pid, 0)
+print(os.read(r, 10))
+PYEOF
+'''
+tags = ["fork", "pipe"]
+
+[[case]]
+id = "fork-fd-sharing-and-offset"
+script = '''
+python3 - <<'PYEOF'
+import os, tempfile
+
+d = tempfile.mkdtemp()
+path = d + "/f.txt"
+with open(path, "w") as f:
+    f.write("0123456789")
+fd = os.open(path, os.O_RDONLY)
+os.read(fd, 2)
+pid = os.fork()
+if pid == 0:
+    os.write(1, b"child read " + os.read(fd, 3) + b"\n")
+    os._exit(0)
+os.waitpid(pid, 0)
+print("parent read", os.read(fd, 3), os.lseek(fd, 0, os.SEEK_CUR))
+os.close(fd)
+
+fd = os.open(path, os.O_WRONLY | os.O_APPEND)
+pid = os.fork()
+if pid == 0:
+    os.write(fd, b"C")
+    os._exit(0)
+os.waitpid(pid, 0)
+os.write(fd, b"P")
+os.close(fd)
+print(open(path).read())
+os.unlink(path)
+os.rmdir(d)
+PYEOF
+'''
+tags = ["fork", "fs"]
+
+[[case]]
+id = "fork-random-reseeded-in-child"
+script = '''
+python3 - <<'PYEOF'
+import os, random
+
+random.seed(12345)
+r, w = os.pipe()
+pid = os.fork()
+if pid == 0:
+    os.write(w, repr(random.random()).encode())
+    os._exit(0)
+os.waitpid(pid, 0)
+child_value = float(os.read(r, 100))
+parent_value = random.random()
+print(child_value != parent_value)
+random.seed(12345)
+print(random.random() == parent_value)
+PYEOF
+'''
+tags = ["fork", "random"]
+
+[[case]]
+id = "fork-multiprocessing-process"
+script = '''
+python3 - <<'PYEOF'
+import multiprocessing as mp, os, sys
+
+ctx = mp.get_context("fork")
+PARENT = os.getpid()
+
+def work(q, n):
+    q.put((n * n, os.getpid() != PARENT))
+
+def die(code):
+    sys.exit(code)
+
+def boom():
+    raise ValueError("boom in process")
+
+if __name__ == "__main__":
+    q = ctx.Queue()
+    procs = [ctx.Process(target=work, args=(q, n)) for n in range(4)]
+    for p in procs:
+        p.start()
+    results = sorted(q.get() for _ in procs)
+    for p in procs:
+        p.join()
+    print(results, [p.exitcode for p in procs], [p.is_alive() for p in procs])
+    p = ctx.Process(target=die, args=(7,))
+    p.start()
+    p.join()
+    print("exitcode", p.exitcode)
+    p = ctx.Process(target=boom)
+    p.start()
+    p.join()
+    print("exitcode", p.exitcode)
+    p = ctx.Process(target=work, args=(q, 1), daemon=True, name="named")
+    print(p.name, p.daemon, p.exitcode, p.pid)
+    p.start()
+    p.join()
+    print(q.get(), p.exitcode)
+    print(mp.get_start_method(allow_none=True), "fork" in mp.get_all_start_methods())
+PYEOF
+'''
+tags = ["fork", "multiprocessing"]
+
+[[case]]
+id = "fork-multiprocessing-process-traceback"
+script = '''
+d=$(mktemp -d)
+cat > "$d/t.py" <<'PYEOF'
+import multiprocessing as mp
+
+def boom():
+    raise ValueError("boom in process")
+
+if __name__ == "__main__":
+    ctx = mp.get_context("fork")
+    p = ctx.Process(target=boom)
+    p.start()
+    p.join()
+    print("exitcode", p.exitcode)
+PYEOF
+python3 "$d/t.py" 2>&1 | sed "s#$d#DIR#g; s/Process-[0-9]*/Process-N/"
+rm -rf "$d"
+'''
+tags = ["fork", "multiprocessing", "error"]
+
+[[case]]
+id = "fork-multiprocessing-pool"
+script = '''
+python3 - <<'PYEOF'
+import multiprocessing as mp, os
+
+def square(x):
+    return x * x
+
+def pid_differs(_):
+    return os.getpid() != MAIN
+
+MAIN = os.getpid()
+
+if __name__ == "__main__":
+    ctx = mp.get_context("fork")
+    with ctx.Pool(3) as pool:
+        print(pool.map(square, range(10)))
+        print(sorted(pool.imap_unordered(square, range(6))))
+        print(pool.apply(square, (7,)))
+        print(pool.apply_async(square, (8,)).get(10))
+        print(all(pool.map(pid_differs, range(5))))
+        print(pool.starmap(pow, [(2, 3), (3, 2)]))
+    try:
+        with ctx.Pool(2) as pool:
+            pool.map(int, ["1", "x"])
+    except ValueError as e:
+        print("ValueError", e)
+PYEOF
+'''
+tags = ["fork", "multiprocessing"]
+
+[[case]]
+id = "fork-forkpty-reads-child-output"
+script = '''
+python3 - <<'PYEOF'
+import os
+
+pid, fd = os.forkpty()
+if pid == 0:
+    os.write(1, b"hello from the pty child\n")
+    os._exit(5)
+data = b""
+while True:
+    try:
+        chunk = os.read(fd, 1024)
+    except OSError:
+        break
+    if not chunk:
+        break
+    data += chunk
+os.close(fd)
+_, status = os.waitpid(pid, 0)
+print(data, os.WEXITSTATUS(status))
+
+pid, fd = os.forkpty()
+if pid == 0:
+    print("isatty", os.isatty(0), os.isatty(1), os.isatty(2), flush=True)
+    print("session leader", os.getsid(0) == os.getpid(), os.getpgrp() == os.getpid(), flush=True)
+    os._exit(0)
+data = b""
+while True:
+    try:
+        chunk = os.read(fd, 1024)
+    except OSError:
+        break
+    if not chunk:
+        break
+    data += chunk
+os.close(fd)
+os.waitpid(pid, 0)
+print(data.decode().splitlines())
+PYEOF
+'''
+tags = ["fork", "pty"]
+
+[[case]]
+id = "fork-pty-fork-echo"
+script = '''
+python3 - <<'PYEOF'
+import os, pty
+
+pid, fd = pty.fork()
+if pid == pty.CHILD:
+    os.execvp("echo", ["echo", "from exec in pty"])
+data = b""
+while True:
+    try:
+        chunk = os.read(fd, 1024)
+    except OSError:
+        break
+    if not chunk:
+        break
+    data += chunk
+os.close(fd)
+_, status = os.waitpid(pid, 0)
+print(data, os.waitstatus_to_exitcode(status))
+
+pid, fd = pty.fork()
+if pid == 0:
+    line = input()
+    print("got", line.upper(), flush=True)
+    os._exit(0)
+os.write(fd, b"abc\n")
+data = b""
+while True:
+    try:
+        chunk = os.read(fd, 1024)
+    except OSError:
+        break
+    if not chunk:
+        break
+    data += chunk
+os.close(fd)
+os.waitpid(pid, 0)
+print(data)
+PYEOF
+'''
+tags = ["fork", "pty"]
+
+[[case]]
+id = "fork-socketserver-forking-mixin"
+script = '''
+python3 - <<'PYEOF'
+import os, socket, socketserver
+
+MAIN = os.getpid()
+
+class Handler(socketserver.StreamRequestHandler):
+    def handle(self):
+        line = self.rfile.readline()
+        self.wfile.write(line.upper() + (b"child\n" if os.getpid() != MAIN else b"main\n"))
+
+with socketserver.ForkingTCPServer(("127.0.0.1", 0), Handler) as server:
+    addr = server.server_address
+    for word in (b"one\n", b"two\n", b"three\n"):
+        client = socket.create_connection(addr)
+        client.sendall(word)
+        server.handle_request()
+        reply = b""
+        while True:
+            chunk = client.recv(100)
+            if not chunk:
+                break
+            reply += chunk
+        client.close()
+        print(reply)
+    print(server.max_children, type(server.active_children).__name__)
+print("closed", len(server.active_children or ()))
+PYEOF
+'''
+tags = ["fork", "socketserver", "net"]
+
+[[case]]
+id = "fork-child-killed-by-signal"
+script = '''
+python3 - <<'PYEOF'
+import os, resource, signal
+
+for sig in (signal.SIGKILL, signal.SIGTERM, signal.SIGABRT, signal.SIGUSR1):
+    pid = os.fork()
+    if pid == 0:
+        # Sem core dump: o SIGABRT deixaria um core.NNN no diretório, com o pid no nome.
+        resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+        os.kill(os.getpid(), sig)
+        os._exit(99)
+    _, status = os.waitpid(pid, 0)
+    print(sig.name, os.WIFSIGNALED(status), os.WTERMSIG(status) == sig, os.WIFEXITED(status),
+          os.waitstatus_to_exitcode(status) == -sig, os.WCOREDUMP(status) in (False, True))
+
+# Sinal enviado pelo pai a um filho que espera num pipe.
+r, w = os.pipe()
+pid = os.fork()
+if pid == 0:
+    os.read(r, 1)
+    os._exit(0)
+os.kill(pid, signal.SIGTERM)
+_, status = os.waitpid(pid, 0)
+print(os.WIFSIGNALED(status), os.WTERMSIG(status))
+
+# Sinal ignorado no filho: o disposition herdado do pai.
+signal.signal(signal.SIGUSR2, signal.SIG_IGN)
+pid = os.fork()
+if pid == 0:
+    os.kill(os.getpid(), signal.SIGUSR2)
+    os._exit(11)
+print(os.WEXITSTATUS(os.waitpid(pid, 0)[1]))
+
+# Tratador Python herdado: roda no filho.
+got = []
+signal.signal(signal.SIGUSR1, lambda s, f: got.append(s))
+pid = os.fork()
+if pid == 0:
+    os.kill(os.getpid(), signal.SIGUSR1)
+    os._exit(len(got))
+print(os.WEXITSTATUS(os.waitpid(pid, 0)[1]), got)
+PYEOF
+'''
+tags = ["fork", "signals"]
+
+[[case]]
+id = "fork-zombie-wait3-wait4-waitid"
+script = '''
+python3 - <<'PYEOF'
+import os, signal
+
+def state(pid):
+    with open("/proc/%d/stat" % pid) as f:
+        return f.read().rsplit(")", 1)[1].split()[0]
+
+# waitid com WNOWAIT deixa o zumbi.
+pid = os.fork()
+if pid == 0:
+    os._exit(13)
+info = os.waitid(os.P_PID, pid, os.WEXITED | os.WNOWAIT)
+print(info.si_pid == pid, info.si_status, info.si_code == os.CLD_EXITED, info.si_signo == signal.SIGCHLD, type(info).__name__)
+print("state", state(pid))
+print(os.waitpid(pid, os.WNOHANG)[0] == pid)
+try:
+    state(pid)
+except FileNotFoundError:
+    print("reaped")
+
+# wait4 devolve o rusage.
+pid = os.fork()
+if pid == 0:
+    os._exit(14)
+got, status, ru = os.wait4(pid, 0)
+print(got == pid, os.WEXITSTATUS(status), type(ru).__name__, ru.ru_utime >= 0, ru.ru_maxrss >= 0)
+
+# wait3 com WNOHANG: o filho ainda espera.
+r, w = os.pipe()
+pid = os.fork()
+if pid == 0:
+    os.close(w)
+    os.read(r, 1)
+    os._exit(15)
+got, status, ru = os.wait3(os.WNOHANG)
+print("running", got, status)
+print(os.waitpid(pid, os.WNOHANG))
+os.write(w, b"x")
+got, status, ru = os.wait3(0)
+print(got == pid, os.WEXITSTATUS(status), type(ru).__name__)
+
+# waitid de filho morto por sinal.
+pid = os.fork()
+if pid == 0:
+    os.kill(os.getpid(), signal.SIGKILL)
+info = os.waitid(os.P_PID, pid, os.WEXITED)
+print(info.si_code == os.CLD_KILLED, info.si_status)
+
+# waitid P_ALL e sem filhos.
+pid = os.fork()
+if pid == 0:
+    os._exit(0)
+info = os.waitid(os.P_ALL, 0, os.WEXITED)
+print(info.si_pid == pid)
+try:
+    os.waitid(os.P_ALL, 0, os.WEXITED)
+except ChildProcessError as e:
+    print(e.errno)
+try:
+    os.wait3(0)
+except ChildProcessError as e:
+    print(e.errno)
+try:
+    os.wait4(-1, 0)
+except ChildProcessError as e:
+    print(e.errno)
+PYEOF
+'''
+tags = ["fork", "wait"]
+
+[[case]]
+id = "fork-waitpid-options-and-stopped"
+script = '''
+python3 - <<'PYEOF'
+import os, signal, time
+
+r, w = os.pipe()
+pid = os.fork()
+if pid == 0:
+    os.read(r, 1)
+    os._exit(21)
+os.kill(pid, signal.SIGSTOP)
+_, status = os.waitpid(pid, os.WUNTRACED)
+print(os.WIFSTOPPED(status), os.WSTOPSIG(status) == signal.SIGSTOP, os.WIFEXITED(status), os.WIFCONTINUED(status))
+os.kill(pid, signal.SIGCONT)
+_, status = os.waitpid(pid, os.WCONTINUED)
+print(os.WIFCONTINUED(status), os.WIFSTOPPED(status))
+os.write(w, b"x")
+_, status = os.waitpid(pid, 0)
+print(os.WEXITSTATUS(status))
+for opt in (os.WNOHANG, os.WUNTRACED, os.WCONTINUED):
+    print(opt)
+PYEOF
+'''
+tags = ["fork", "wait", "signals"]
+
+[[case]]
+id = "fork-sigchld-handler"
+script = '''
+python3 - <<'PYEOF'
+import os, signal, time
+
+seen = []
+signal.signal(signal.SIGCHLD, lambda signum, frame: seen.append(signal.Signals(signum).name))
+for i in range(3):
+    pid = os.fork()
+    if pid == 0:
+        os._exit(i)
+    deadline = time.monotonic() + 10
+    while len(seen) <= i and time.monotonic() < deadline:
+        time.sleep(0.01)
+    print(i, os.WEXITSTATUS(os.waitpid(pid, 0)[1]), seen)
+
+# SIG_IGN em SIGCHLD: o kernel colhe o filho sozinho e o waitpid falha com ECHILD.
+signal.signal(signal.SIGCHLD, signal.SIG_IGN)
+pid = os.fork()
+if pid == 0:
+    os._exit(0)
+try:
+    os.waitpid(pid, 0)
+except ChildProcessError as e:
+    print("ECHILD", e.errno)
+
+# SIG_DFL de volta: o zumbi fica até o waitpid.
+signal.signal(signal.SIGCHLD, signal.SIG_DFL)
+pid = os.fork()
+if pid == 0:
+    os._exit(8)
+print(os.WEXITSTATUS(os.waitpid(pid, 0)[1]))
+PYEOF
+'''
+tags = ["fork", "signals"]
+
+[[case]]
+id = "fork-child-unhandled-exception"
+script = '''
+d=$(mktemp -d)
+cat > "$d/t.py" <<'PYEOF'
+import os, sys
+
+def inner(n):
+    return 1 // n
+
+def child():
+    inner(0)
+
+pid = os.fork()
+if pid == 0:
+    child()
+    os._exit(0)
+_, status = os.waitpid(pid, 0)
+print("parent saw", os.WEXITSTATUS(status), flush=True)
+
+pid = os.fork()
+if pid == 0:
+    raise KeyboardInterrupt
+_, status = os.waitpid(pid, 0)
+print("parent saw", os.waitstatus_to_exitcode(status), flush=True)
+
+pid = os.fork()
+if pid == 0:
+    try:
+        raise RuntimeError("first")
+    except RuntimeError:
+        raise ValueError("second")
+_, status = os.waitpid(pid, 0)
+print("parent saw", os.WEXITSTATUS(status))
+PYEOF
+python3 "$d/t.py" 2>&1 | sed "s#$d#DIR#g"
+rm -rf "$d"
+'''
+tags = ["fork", "error"]
+
+[[case]]
+id = "fork-child-sys-exit-and-atexit"
+script = '''
+python3 - <<'PYEOF'
+import atexit, os, sys
+
+PARENT = os.getpid()
+
+def bye(tag):
+    print("atexit", tag, "parent" if os.getpid() == PARENT else "child", flush=True)
+
+atexit.register(bye, "one")
+atexit.register(bye, "two")
+
+def code(value):
+    pid = os.fork()
+    if pid == 0:
+        sys.exit(value)
+    return os.waitstatus_to_exitcode(os.waitpid(pid, 0)[1])
+
+print(code(5), flush=True)
+print(code(0), flush=True)
+print(code(None), flush=True)
+print(code("message"), flush=True)
+print(code(256 + 3), flush=True)
+
+pid = os.fork()
+if pid == 0:
+    os._exit(6)
+print(os.waitstatus_to_exitcode(os.waitpid(pid, 0)[1]), flush=True)
+
+pid = os.fork()
+if pid == 0:
+    atexit.unregister(bye)
+    sys.exit(4)
+print(os.waitstatus_to_exitcode(os.waitpid(pid, 0)[1]), flush=True)
+print("end of parent", flush=True)
+PYEOF
+echo "rc=$?"
+'''
+tags = ["fork", "atexit"]
+
+[[case]]
+id = "fork-sys-exit-in-child-message"
+script = '''
+python3 -c 'import os, sys
+pid = os.fork()
+if pid == 0:
+    sys.exit("child says goodbye")
+_, status = os.waitpid(pid, 0)
+print("parent", os.WEXITSTATUS(status))' 2>&1
+echo "rc=$?"
+python3 -c 'import os, sys
+pid = os.fork()
+if pid == 0:
+    sys.exit(5)
+print(os.WEXITSTATUS(os.waitpid(pid, 0)[1]))
+sys.exit(12)'
+echo "rc=$?"
+'''
+tags = ["fork", "error"]
+
+[[case]]
+id = "fork-loop-twenty-times"
+script = '''
+python3 - <<'PYEOF'
+import os
+
+pids = []
+for i in range(20):
+    pid = os.fork()
+    if pid == 0:
+        os._exit(i)
+    pids.append(pid)
+print(len(set(pids)))
+statuses = [os.WEXITSTATUS(os.waitpid(p, 0)[1]) for p in pids]
+print(statuses)
+
+# O wait() colhe em qualquer ordem: só o conjunto é fixo.
+for i in range(20):
+    if os.fork() == 0:
+        os._exit(100 + i)
+got = []
+try:
+    while True:
+        got.append(os.WEXITSTATUS(os.wait()[1]))
+except ChildProcessError:
+    pass
+print(sorted(got) == list(range(100, 120)), len(got))
+
+# Filhos em sequência, cada um com o estado do anterior.
+acc = []
+for i in range(20):
+    pid = os.fork()
+    if pid == 0:
+        acc.append(i)
+        os._exit(len(acc))
+    acc.append(-i)
+    os.waitpid(pid, 0)
+print(len(acc))
+PYEOF
+'''
+tags = ["fork", "process"]
+
+[[case]]
+id = "fork-getpid-cache-and-process-state"
+script = '''
+python3 - <<'PYEOF'
+import os, sys
+
+os.environ["FORK_CASE"] = "parent"
+os.chdir("/tmp")
+umask = os.umask(0o027)
+pid = os.fork()
+if pid == 0:
+    os.environ["FORK_CASE"] = "child"
+    os.chdir("/")
+    os.umask(0o077)
+    print("child", os.environ["FORK_CASE"], os.getcwd(), oct(os.umask(0o077)), flush=True)
+    os._exit(0)
+os.waitpid(pid, 0)
+print("parent", os.environ["FORK_CASE"], os.getcwd(), oct(os.umask(umask)))
+print(os.getpid() == os.getpid(), os.getppid() > 0)
+PYEOF
+'''
+tags = ["fork", "process"]
+
+[[case]]
+id = "fork-os-fork-errors-and-audit"
+script = '''
+python3 - <<'PYEOF'
+import os, sys
+
+events = []
+sys.addaudithook(lambda event, args: events.append((event, args)) if event.startswith("os.fork") else None)
+pid = os.fork()
+if pid == 0:
+    os._exit(len(events))
+status = os.waitpid(pid, 0)[1]
+print(os.WEXITSTATUS(status), events)
+try:
+    os.fork(1)
+except TypeError as e:
+    print(e)
+print(os.fork.__name__, os.fork.__doc__.splitlines()[0])
+print(os.forkpty.__name__, os.forkpty.__doc__.splitlines()[0])
+print(os.register_at_fork.__name__)
+PYEOF
+'''
+tags = ["fork", "hooks"]

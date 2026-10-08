@@ -1,5 +1,17 @@
 """itertools do sandbox (Python embutido)."""
 
+from types import GenericAlias as _GenericAlias
+
+# Os iteradores do `itertools` são classes (tipos em C no CPython): cada uma valida os argumentos ao ser criada, como
+# o `tp_new`, e entrega os itens por um gerador privado, que só existe aqui dentro.
+
+_NOTHING = object()
+
+
+def _same(a, b):
+    """`PyObject_RichCompareBool(a, b, Py_EQ)`: a identidade vale antes da igualdade."""
+    return a is b or bool(a == b)
+
 
 class count:
     def __init__(self, start=0, step=1):
@@ -20,9 +32,9 @@ class count:
         return 'count(%r, %r)' % (self._n, self._step)
 
 
-def cycle(iterable):
+def _cycle(it):
     saved = []
-    for element in iterable:
+    for element in it:
         yield element
         saved.append(element)
     while saved:
@@ -30,17 +42,46 @@ def cycle(iterable):
             yield element
 
 
-def repeat(obj, times=None):
-    if times is None:
-        while True:
-            yield obj
-    else:
-        for _ in range(times):
-            yield obj
+class cycle:
+    def __init__(self, iterable, /):
+        self._gen = _cycle(iter(iterable))
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self._gen)
 
 
-def accumulate(iterable, func=None, *, initial=None):
-    it = iter(iterable)
+class repeat:
+    def __init__(self, object, times=None):
+        if times is not None and times < 0:
+            times = 0
+        self._object = object
+        self._times = times
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self._times is not None:
+            if self._times <= 0:
+                raise StopIteration
+            self._times -= 1
+        return self._object
+
+    def __length_hint__(self):
+        if self._times is None:
+            raise TypeError('len() of unsized object')
+        return self._times
+
+    def __repr__(self):
+        if self._times is None:
+            return 'repeat(%r)' % (self._object,)
+        return 'repeat(%r, %d)' % (self._object, self._times)
+
+
+def _accumulate(it, func, initial):
     total = initial
     if initial is None:
         try:
@@ -53,7 +94,20 @@ def accumulate(iterable, func=None, *, initial=None):
         yield total
 
 
+class accumulate:
+    def __init__(self, iterable, func=None, *, initial=None):
+        self._gen = _accumulate(iter(iterable), func, initial)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self._gen)
+
+
 class chain:
+    __class_getitem__ = classmethod(_GenericAlias)
+
     def __init__(self, *iterables):
         self._iterables = iter(iterables)
         self._current = iter(())
@@ -75,12 +129,18 @@ class chain:
                 self._current = iter(next(self._iterables))
 
 
-def compress(data, selectors):
-    return (d for d, s in zip(data, selectors) if s)
+class compress:
+    def __init__(self, data, selectors):
+        self._gen = (d for d, s in zip(data, selectors) if s)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self._gen)
 
 
-def dropwhile(predicate, iterable):
-    it = iter(iterable)
+def _dropwhile(predicate, it):
     for x in it:
         if not predicate(x):
             yield x
@@ -89,47 +149,108 @@ def dropwhile(predicate, iterable):
         yield x
 
 
-def takewhile(predicate, iterable):
-    for x in iterable:
+class dropwhile:
+    def __init__(self, predicate, iterable, /):
+        self._gen = _dropwhile(predicate, iter(iterable))
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self._gen)
+
+
+def _takewhile(predicate, it):
+    for x in it:
         if predicate(x):
             yield x
         else:
             break
 
 
-def filterfalse(predicate, iterable):
+class takewhile:
+    def __init__(self, predicate, iterable, /):
+        self._gen = _takewhile(predicate, iter(iterable))
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self._gen)
+
+
+def _filterfalse(predicate, it):
     if predicate is None:
         predicate = bool
-    for x in iterable:
+    for x in it:
         if not predicate(x):
             yield x
 
 
-def groupby(iterable, key=None):
-    it = iter(iterable)
-    sentinel = object()
-    current = sentinel
-    current_key = sentinel
-    while True:
-        if current is sentinel:
-            try:
-                current = next(it)
-            except StopIteration:
-                return
-            current_key = current if key is None else key(current)
-        group_key = current_key
-        group = []
-        while True:
-            group.append(current)
-            try:
-                current = next(it)
-            except StopIteration:
-                current = sentinel
-                break
-            current_key = current if key is None else key(current)
-            if current_key != group_key:
-                break
-        yield group_key, iter(group)
+class filterfalse:
+    def __init__(self, function, iterable, /):
+        self._gen = _filterfalse(function, iter(iterable))
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self._gen)
+
+
+class groupby:
+    """groupby(iterable, key=None) -> make an iterator that returns consecutive keys and groups from the iterable"""
+
+    def __init__(self, iterable, key=None):
+        self._it = iter(iterable)
+        self._keyfunc = key
+        self._tgtkey = _NOTHING
+        self._currkey = _NOTHING
+        self._currvalue = _NOTHING
+        self._currgrouper = None
+
+    def __iter__(self):
+        return self
+
+    def _step(self):
+        newvalue = next(self._it)
+        newkey = newvalue if self._keyfunc is None else self._keyfunc(newvalue)
+        self._currvalue = newvalue
+        self._currkey = newkey
+
+    def __next__(self):
+        self._currgrouper = None
+        # Pula até a próxima chave diferente.
+        if self._currvalue is _NOTHING:
+            self._step()
+        while self._tgtkey is not _NOTHING and _same(self._tgtkey, self._currkey):
+            self._step()
+        self._tgtkey = self._currkey
+        grouper = _grouper(self, self._tgtkey)
+        self._currgrouper = grouper
+        return (self._currkey, grouper)
+
+
+class _grouper:
+    def __init__(self, parent, tgtkey):
+        self._parent = parent
+        self._tgtkey = tgtkey
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        parent = self._parent
+        if parent._currgrouper is not self:
+            raise StopIteration
+        if parent._currvalue is _NOTHING:
+            parent._step()
+        if not _same(self._tgtkey, parent._currkey):
+            raise StopIteration
+        value = parent._currvalue
+        parent._currvalue = _NOTHING
+        parent._currkey = _NOTHING
+        return value
 
 
 class islice:
@@ -220,8 +341,7 @@ but returns an iterator."""
         return item
 
 
-def pairwise(iterable):
-    it = iter(iterable)
+def _pairwise(it):
     try:
         a = next(it)
     except StopIteration:
@@ -231,18 +351,95 @@ def pairwise(iterable):
         a = b
 
 
-def starmap(function, iterable):
-    for args in iterable:
+class pairwise:
+    def __init__(self, iterable, /):
+        self._gen = _pairwise(iter(iterable))
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self._gen)
+
+
+def _starmap(function, it):
+    for args in it:
         yield function(*args)
 
 
-def tee(iterable, n=2):
-    data = list(iterable)
-    return tuple(iter(data) for _ in range(n))
+class starmap:
+    def __init__(self, function, iterable, /):
+        self._gen = _starmap(function, iter(iterable))
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self._gen)
 
 
-def zip_longest(*iterables, fillvalue=None):
-    iterators = [iter(it) for it in iterables]
+_LINKCELLS = 57
+
+
+class _tee_dataobject:
+    """Um bloco de até `_LINKCELLS` itens já lidos do iterador, ligado ao bloco seguinte."""
+
+    def __init__(self, it):
+        self._it = it
+        self._values = []
+        self._nextlink = None
+
+    def _getitem(self, i):
+        if i < len(self._values):
+            return self._values[i]
+        value = next(self._it)
+        self._values.append(value)
+        return value
+
+
+class _tee:
+    def __init__(self, dataobj, index=0):
+        self._data = dataobj
+        self._index = index
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self._index >= _LINKCELLS:
+            following = self._data._nextlink
+            if following is None:
+                following = self._data._nextlink = _tee_dataobject(self._data._it)
+            self._data = following
+            self._index = 0
+        value = self._data._getitem(self._index)
+        self._index += 1
+        return value
+
+    def __copy__(self):
+        return _tee(self._data, self._index)
+
+
+def tee(iterable, n=2, /):
+    """Returns a tuple of n independent iterators."""
+    if n < 0:
+        raise ValueError('n must be >= 0')
+    if n == 0:
+        return ()
+    it = iter(iterable)
+    copyfunc = getattr(it, '__copy__', None)
+    if copyfunc is None:
+        copyable = _tee(_tee_dataobject(it))
+        copyfunc = copyable.__copy__
+    else:
+        copyable = it
+    result = [copyable]
+    for _ in range(n - 1):
+        result.append(copyfunc())
+    return tuple(result)
+
+
+def _zip_longest(iterators, fillvalue):
     if not iterators:
         return
     active = len(iterators)
@@ -263,19 +460,48 @@ def zip_longest(*iterables, fillvalue=None):
         yield tuple(values)
 
 
-def product(*iterables, repeat=1):
-    pools = [tuple(pool) for pool in iterables] * repeat
-    result = [[]]
-    for pool in pools:
-        result = [x + [y] for x in result for y in pool]
-    for prod in result:
-        yield tuple(prod)
+class zip_longest:
+    def __init__(self, *iterables, fillvalue=None):
+        self._gen = _zip_longest([iter(it) for it in iterables], fillvalue)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self._gen)
 
 
-def permutations(iterable, r=None):
-    pool = tuple(iterable)
+def _product(pools):
+    if any(not pool for pool in pools):
+        return
+    indices = [0] * len(pools)
+    yield tuple(pool[i] for pool, i in zip(pools, indices))
+    while True:
+        for i in reversed(range(len(pools))):
+            indices[i] += 1
+            if indices[i] < len(pools[i]):
+                break
+            indices[i] = 0
+        else:
+            return
+        yield tuple(pool[i] for pool, i in zip(pools, indices))
+
+
+class product:
+    def __init__(self, *iterables, repeat=1):
+        if repeat < 0:
+            raise ValueError('repeat argument cannot be negative')
+        self._gen = _product([tuple(pool) for pool in iterables] * repeat)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self._gen)
+
+
+def _permutations(pool, r):
     n = len(pool)
-    r = n if r is None else r
     if r > n:
         return
     indices = list(range(n))
@@ -296,8 +522,22 @@ def permutations(iterable, r=None):
             return
 
 
-def combinations(iterable, r):
-    pool = tuple(iterable)
+class permutations:
+    def __init__(self, iterable, r=None):
+        pool = tuple(iterable)
+        r = len(pool) if r is None else r
+        if r < 0:
+            raise ValueError('r must be non-negative')
+        self._gen = _permutations(pool, r)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self._gen)
+
+
+def _combinations(pool, r):
     n = len(pool)
     if r > n:
         return
@@ -315,8 +555,21 @@ def combinations(iterable, r):
         yield tuple(pool[i] for i in indices)
 
 
-def combinations_with_replacement(iterable, r):
-    pool = tuple(iterable)
+class combinations:
+    def __init__(self, iterable, r):
+        pool = tuple(iterable)
+        if r < 0:
+            raise ValueError('r must be non-negative')
+        self._gen = _combinations(pool, r)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self._gen)
+
+
+def _combinations_with_replacement(pool, r):
     n = len(pool)
     if not n and r:
         return
@@ -332,12 +585,41 @@ def combinations_with_replacement(iterable, r):
         yield tuple(pool[i] for i in indices)
 
 
-def batched(iterable, n):
-    if n < 1:
-        raise ValueError('n must be at least one')
-    it = iter(iterable)
+class combinations_with_replacement:
+    def __init__(self, iterable, r):
+        pool = tuple(iterable)
+        if r < 0:
+            raise ValueError('r must be non-negative')
+        self._gen = _combinations_with_replacement(pool, r)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self._gen)
+
+
+def _batched(it, n, strict):
     while True:
         batch = tuple(islice(it, n))
         if not batch:
             return
+        if strict and len(batch) != n:
+            raise ValueError('batched(): incomplete batch')
         yield batch
+
+
+class batched:
+    def __init__(self, iterable, n, *, strict=False):
+        if n < 1:
+            raise ValueError('n must be at least one')
+        self._gen = _batched(iter(iterable), n, strict)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self._gen)
+
+
+del _GenericAlias

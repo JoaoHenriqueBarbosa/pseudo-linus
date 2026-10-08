@@ -1,0 +1,1811 @@
+tool = "python3"
+source = "manual"
+
+# PyYAML 6.0.2 sobre a libyaml 0.2.5 (`yaml._yaml`: `CParser` e `CEmitter`): `CSafeLoader`, `CLoader`,
+# `CSafeDumper` e `CDumper` em escalares, coleções, fluxo e bloco, âncoras, tags, documentos múltiplos,
+# unicode, largura, indentação, `canonical`, a API de baixo nível (`scan`, `parse`, `compose`, `emit`,
+# `serialize`), os erros com a marca de linha e coluna, e um arquivo de configuração lido e regravado.
+# Todo script captura as exceções e imprime `type(e).__name__` e `str(e)`, para nenhum caso abortar.
+
+[[case]]
+id = "yaml-libyaml-available"
+script = '''
+python3 - <<'PYEOF'
+import yaml
+print(yaml.__version__, yaml.__with_libyaml__)
+from yaml import _yaml
+print(_yaml.get_version_string(), _yaml.get_version())
+print(yaml.CParser.__name__, yaml.CEmitter.__name__)
+print([c.__name__ for c in (yaml.CLoader, yaml.CSafeLoader, yaml.CFullLoader, yaml.CBaseLoader, yaml.CDumper, yaml.CSafeDumper, yaml.CBaseDumper)])
+print([c.__mro__[1].__name__ for c in (yaml.CLoader, yaml.CSafeLoader, yaml.CDumper, yaml.CSafeDumper)])
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-load-scalars"
+script = '''
+python3 - <<'PYEOF'
+import yaml
+
+
+def t(text, loader):
+    try:
+        print(repr(text), '->', repr(yaml.load(text, Loader=loader)))
+    except Exception as e:
+        print(repr(text), '->', type(e).__name__, str(e))
+
+
+texts = [
+    '42', '-42', '+42', '0o17', '017', '0x1F', '0b101', '1_000', '1:30:00', '190:20:30',
+    '3.14', '-3.14', '.5', '5.', '1e3', '1.0e+3', '1.0E-3', '.inf', '-.inf', '+.inf', '.Inf', '.INF', '.nan', '.NaN', '.NAN', 'inf', 'nan',
+    '1_0.5', '685230.15', '+685_230.15', '190:20:30.15',
+    'true', 'True', 'TRUE', 'false', 'False', 'FALSE', 'yes', 'Yes', 'YES', 'no', 'No', 'NO', 'on', 'On', 'ON', 'off', 'Off', 'OFF', 'y', 'n', 'Y', 'N',
+    'null', 'Null', 'NULL', '~', '', 'nil', 'none',
+    '2001-12-14', '2001-12-14t21:59:43.10-05:00', '2001-12-14 21:59:43.10 -5', '2001-12-15 2:59:43.10', '2002-12-14',
+    '2001-12-14T21:59:43Z', '2001-12-14 21:59:43.123456789Z', '2001-13-45', '2001-02-30',
+    '"quoted"', "'single'", "'it''s'", '"tab\\there"', '"\\u00e9\\U0001F600\\x41\\0\\a\\e\\N\\_\\L\\P"', '"\\q"', '"line1\\\n  line2"',
+    '=', '<<', '!!str 12', '!!int "12"', '!!float 3', '!!bool yes', '!!null ""', '!!str', '!!int abc', '!!bool maybe', '!!float x',
+    'a: b: c', '- - - 1', '? a', '[1, 2', '{a: 1', 'a\tb', '\tx', ' x', '@x', '`x', '%x', '*x', '&a x', '|', '>',
+]
+for loader in (yaml.CSafeLoader, yaml.CLoader):
+    print('==', loader.__name__)
+    for text in texts:
+        t(text, loader)
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-load-multiline-scalars"
+script = '''
+python3 - <<'PYEOF'
+import yaml
+
+
+def t(text):
+    try:
+        print(repr(text), '->', repr(yaml.load(text, Loader=yaml.CSafeLoader)))
+    except Exception as e:
+        print(repr(text), '->', type(e).__name__, str(e))
+
+
+texts = [
+    'a: |\n  x\n  y\n',
+    'a: |\n  x\n  y\n\n\n',
+    'a: |-\n  x\n  y\n\n\n',
+    'a: |+\n  x\n  y\n\n\n',
+    'a: >\n  x\n  y\n\n  z\n',
+    'a: >-\n  x\n  y\n',
+    'a: >+\n  x\n  y\n\n',
+    'a: |2\n    x\n   y\n',
+    'a: |1\n  x\n',
+    'a: |2-\n   x\n',
+    'a: |-2\n   x\n',
+    'a: >2+\n    x\n\n',
+    'a: |0\n  x\n',
+    'a: |10\n  x\n',
+    'a: |\n\n  x\n',
+    'a: |\n  x\n   y\n  z\n',
+    'a: >\n  x\n   indented\n  y\n',
+    'a: >\n\n  x\n\n\n  y\n',
+    'a: |\n',
+    'a: |+\n\n\n',
+    'a: |-\n',
+    'a: |\n  x\nb: 1\n',
+    'a: |  # comment\n  x\n',
+    'a: |x\n  y\n',
+    'a: |\n\ttab\n',
+    '|\n  top level\n',
+    '>-\n  folded\n  top\n',
+    '- |\n  a\n- >\n  b\n  c\n',
+    'plain\n  continued\n  more\n',
+    'plain\n\n  with blank\n',
+    '"double\n  continued\n\n  blank"',
+    "'single\n  continued\n\n  blank'",
+    '"trailing\\n"',
+    '"esc \\\n    cont"',
+    'a: b\n  c\n',
+    'a:\n  b\n  c\n',
+    'key with spaces: value with spaces\n',
+    'a: "x\ty"\n',
+    'a: ' + "'" + 'x\ty' + "'" + '\n',
+    'a: x # comment\nb: y#notcomment\n',
+    'a: "#notcomment"\n',
+]
+for text in texts:
+    t(text)
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-load-collections"
+script = '''
+PYTHONHASHSEED=0 python3 - <<'PYEOF'
+import yaml
+
+
+def t(text):
+    for loader in (yaml.CSafeLoader, yaml.CLoader):
+        try:
+            print(loader.__name__, repr(text), '->', repr(yaml.load(text, Loader=loader)))
+        except Exception as e:
+            print(loader.__name__, repr(text), '->', type(e).__name__, str(e))
+
+
+texts = [
+    '[]', '{}', '[1, 2, 3]', '{a: 1, b: 2}', '[a, [b, [c, []]], {d: {}}]', '{a: [1, 2], b: {c: d}}',
+    '[1, 2, ]', '[, 1]', '{a: 1, }', '{a, b}', '{a: , b: }', '[a: 1, b: 2]', '[? a : b]', '{? a : b}',
+    '- 1\n- 2\n- [3, 4]\n- {a: b}\n',
+    'a:\n- 1\n- 2\nb:\n  - 3\n',
+    'a:\n  b:\n    c:\n      d: deep\n',
+    '- a: 1\n  b: 2\n- c: 3\n',
+    '- - 1\n  - 2\n- - 3\n',
+    '? [1, 2]\n: tuple key\n',
+    '? {a: b}\n: map key\n',
+    '? |\n  block key\n: v\n',
+    '? a\n? b\n: c\n',
+    'a: 1\na: 2\n',
+    '1: a\n2: b\n',
+    'true: a\nfalse: b\nnull: c\n~: d\n',
+    '1.5: a\n.inf: b\n',
+    '[1, 2]: x\n',
+    '{}: x\n',
+    '? - a\n  - b\n: c\n',
+    '!!set {a, b, c}',
+    '!!set\n? a\n? b\n',
+    '!!omap [a: 1, b: 2]',
+    '!!omap\n- a: 1\n- b: 2\n',
+    '!!omap [a: 1, a: 2]',
+    '!!omap [a, b]',
+    '!!omap {a: 1}',
+    '!!pairs [a: 1, a: 2]',
+    '!!seq [1]', '!!map {a: 1}', '!!seq {a: 1}', '!!map [1]',
+    '<<: {a: 1}\nb: 2\n',
+    'base: &b {x: 1, y: 2}\nderived:\n  <<: *b\n  y: 3\n',
+    'a: &x {p: 1}\nb: &y {q: 2}\nc:\n  <<: [*x, *y]\n',
+    'a: &x {p: 1}\nc:\n  <<: [*x, 3]\n',
+    'c:\n  <<: 3\n',
+    'c:\n  <<: [[1]]\n',
+]
+for text in texts:
+    t(text)
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-anchors-aliases"
+script = '''
+PYTHONHASHSEED=0 python3 - <<'PYEOF'
+import yaml
+
+
+def t(text, loader=yaml.CSafeLoader):
+    try:
+        r = yaml.load(text, Loader=loader)
+        print(repr(text), '->', repr(r))
+        return r
+    except Exception as e:
+        print(repr(text), '->', type(e).__name__, str(e))
+
+
+r = t('a: &x [1, 2]\nb: *x\nc: *x\n')
+print(r['a'] is r['b'], r['b'] is r['c'])
+r = t('&a [1, *a]')
+print(r[1] is r, len(r))
+r = t('&a {k: *a}')
+print(r['k'] is r)
+r = t('&a !!set {x, y}')
+print(r)
+t('a: *undefined\n')
+t('a: &x 1\nb: *x\n')
+t('&a &b x\n')
+t('*a\n')
+t('&a\n')
+t('a: &x\nb: *x\n')
+t('a: &x !!str\nb: *x\n')
+t('- &x 1\n- &x 2\n- *x\n')
+t('a: &long-anchor_1 x\nb: *long-anchor_1\n')
+t('a: &é x\nb: *é\n')
+t('a: & x\n')
+t('a: &x,y z\n')
+t('a: [&x 1, *x]\n')
+t('[&x 1, *x ]\n')
+t('{a: &x 1, b: *x}\n')
+t('{&k a: 1}\n')
+t('&k a: 1\nb: *k\n')
+t('- &k\n  a: 1\n- *k\n')
+t('a: &x\n  - 1\nb: *x\n')
+t('? &k a\n: *k\n')
+r = t('x: &a !!binary aGVsbG8=\ny: *a\n')
+r = t('- &a 1\n- &b 2\n- [*a, *b, *a]\n')
+t('a: &x 1\n', yaml.CLoader)
+print(yaml.load_all('&a x\n---\n*a\n', Loader=yaml.CSafeLoader).__class__.__name__)
+try:
+    print(list(yaml.load_all('&a x\n---\n*a\n', Loader=yaml.CSafeLoader)))
+except Exception as e:
+    print(type(e).__name__, str(e))
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-tags-binary-set-omap"
+script = '''
+python3 - <<'PYEOF' | sed -E 's/ at 0x[0-9a-f]+/ at 0xADDR/g'
+import yaml
+
+
+def t(text, loader=yaml.CSafeLoader):
+    try:
+        print(repr(text), '->', repr(yaml.load(text, Loader=loader)))
+    except Exception as e:
+        print(repr(text), '->', type(e).__name__, str(e))
+
+
+t('!!binary aGVsbG8gd29ybGQ=')
+t('!!binary |\n  aGVsbG8g\n  d29ybGQ=\n')
+t('!!binary ""')
+t('!!binary "!!!"')
+t('!!binary "aGVsbG8"')
+t('!!binary YQ==')
+t('!!timestamp 2001-12-14')
+t('!!timestamp "2001-12-14 21:59:43.1"')
+t('!!timestamp nope')
+t('!local 1')
+t('!local {a: 1}')
+t('!<tag:example.com,2000:x> 1')
+t('!e!x 1')
+t('!!python/tuple [1, 2]')
+t('!!python/tuple [1, 2]', yaml.CLoader)
+t('!!python/name:builtins.int', yaml.CLoader)
+t('!!python/object:collections.OrderedDict {}', yaml.CLoader)
+t('!!python/complex 1+2j', yaml.CLoader)
+t('!!python/bytes aGk=', yaml.CLoader)
+t('!!python/unicode x', yaml.CLoader)
+t('!!python/str x', yaml.CLoader)
+t('!!python/long 12', yaml.CLoader)
+t('!!python/none ""', yaml.CLoader)
+t('!!python/bool true', yaml.CLoader)
+t('!!python/int 12', yaml.CLoader)
+t('!!python/float 1.5', yaml.CLoader)
+t('!!python/list [1]', yaml.CLoader)
+t('!!python/dict {a: 1}', yaml.CLoader)
+t('!!python/apply:int [5]', yaml.CLoader)
+t('!!python/object/apply:int [5]', yaml.CLoader)
+t('!!python/object/new:int [5]', yaml.CLoader)
+t('!!python/name:os.path.join', yaml.CLoader)
+t('!!python/name:nope.nothing', yaml.CLoader)
+t('!!python/module:os.path', yaml.CLoader)
+t('!!python/object:builtins.object {}', yaml.CLoader)
+t('!!python/tuple [1, 2]', yaml.CSafeLoader)
+t('!!python/name:os.system', yaml.CSafeLoader)
+t('!!float 3', yaml.CSafeLoader)
+t('!!seq [1]', yaml.CSafeLoader)
+t('!!merge <<', yaml.CSafeLoader)
+t('!!value =', yaml.CSafeLoader)
+t('!!yaml x', yaml.CSafeLoader)
+t('!!set {a: 1}')
+t('!!set [a]')
+t('!!set\n? a\n: 1\n')
+t('!!int 0x1f')
+t('!!int 1_0')
+t('!!bool "true"')
+t('!!str 1')
+t('!!str [1]')
+t('!!int [1]')
+t('!!null x')
+t('!!map x')
+t('!! x')
+t('!x!y z')
+t('! x')
+t('!')
+t('--- !!str\nx\n')
+t('--- !t\na: 1\n')
+t('%TAG !e! tag:example.com,2000:\n---\n!e!foo 1\n')
+t('%TAG !e! tag:example.com,2000:\n---\n!e!foo 1\n', yaml.CLoader)
+t('%TAG !! tag:example.com,2000:\n---\n!!foo 1\n')
+t('%TAG ! tag:example.com,2000:\n---\n!foo 1\n')
+t('%TAG !e! tag:a:\n%TAG !e! tag:b:\n---\nx\n')
+t('%YAML 1.1\n---\nx\n')
+t('%YAML 1.2\n---\nx\n')
+t('%YAML 1.0\n---\nx\n')
+t('%YAML 2.0\n---\nx\n')
+t('%YAML 1.1\n%YAML 1.1\n---\nx\n')
+t('%YAML 1.x\n---\nx\n')
+t('%FOO bar\n---\nx\n')
+t('%YAML 1.1\nx\n')
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-load-all-documents"
+script = '''
+python3 - <<'PYEOF'
+import yaml
+
+
+def t(text, loader=yaml.CSafeLoader):
+    try:
+        print(repr(text), '->', repr(list(yaml.load_all(text, Loader=loader))))
+    except Exception as e:
+        print(repr(text), '->', type(e).__name__, str(e))
+
+
+t('')
+t('---\n')
+t('--- \n...\n')
+t('a\n---\nb\n---\nc\n')
+t('a\n...\nb\n')
+t('a\n...\n---\nb\n...\n')
+t('---\na: 1\n---\n- 1\n---\n"x"\n---\n---\n')
+t('--- a\n--- b\n')
+t('--- |\n  lit\n--- >\n  fold\n')
+t('--- # comment\nx\n')
+t('# only comment\n')
+t('---\n...\n---\n...\n')
+t('%YAML 1.1\n---\na\n...\n%YAML 1.1\n---\nb\n')
+t('a\n%YAML 1.1\n---\nb\n')
+t('a\n...\n%YAML 1.1\n---\nb\n')
+t('a: 1\n---b\n')
+t('a: 1\n----\n')
+t('...\n')
+t('... x\n')
+t('---x\n')
+t('--- x\n...x\n')
+t('x\n... \n')
+t('first\n---\nsecond: [\n')
+for loader in (yaml.CSafeLoader, yaml.CLoader):
+    try:
+        g = yaml.load_all('1\n---\n2\n---\n[\n', Loader=loader)
+        print(next(g), next(g))
+        print(next(g))
+    except Exception as e:
+        print(type(e).__name__, str(e))
+try:
+    print(yaml.load('a\n---\nb\n', Loader=yaml.CSafeLoader))
+except Exception as e:
+    print(type(e).__name__, str(e))
+try:
+    print(yaml.safe_load(''), yaml.load('', Loader=yaml.CSafeLoader), yaml.load('# c', Loader=yaml.CSafeLoader))
+except Exception as e:
+    print(type(e).__name__, str(e))
+for src in ('a: 1', b'a: 1', bytearray(b'a: 2')):
+    try:
+        print(yaml.load(src, Loader=yaml.CSafeLoader))
+    except Exception as e:
+        print(type(e).__name__, str(e))
+import io
+print(yaml.load(io.StringIO('x: 1\n'), Loader=yaml.CSafeLoader), yaml.load(io.BytesIO('x: é\n'.encode()), Loader=yaml.CSafeLoader))
+print(yaml.load(io.BytesIO('x: é\n'.encode('utf-16')), Loader=yaml.CSafeLoader))
+print(yaml.load('x: é\n'.encode('utf-16-le'), Loader=yaml.CSafeLoader))
+print(yaml.load(b'\xef\xbb\xbfx: 1\n', Loader=yaml.CSafeLoader))
+print(yaml.load('\ufeffx: 1\n', Loader=yaml.CSafeLoader))
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-dump-scalars"
+script = '''
+python3 - <<'PYEOF'
+import yaml, datetime, decimal, fractions, collections
+
+
+def t(value, dumper, **kw):
+    try:
+        print(ascii(value), '->', ascii(yaml.dump(value, Dumper=dumper, **kw)))
+    except Exception as e:
+        print(ascii(value), '->', type(e).__name__, str(e))
+
+
+values = [
+    0, 1, -1, 2**63, -2**100, 10**30, True, False, None,
+    1.0, -1.5, 1e16, 1e-7, 1.5e300, 123456789.123456789, 0.1, float('inf'), float('-inf'), float('nan'), -0.0, 5e-324,
+    '', ' ', 'a', 'abc def', 'yes', 'No', 'on', 'OFF', 'true', 'False', 'null', 'Null', '~', 'y', 'n', '1', '1.5', '0x10', '1e3', '.inf', '.nan', '1:30', '1_000', '0o7', '0b1',
+    '2001-12-14', '2001-12-14 21:59:43', '2001-12-14T21:59:43Z', '12:30:45',
+    'a: b', 'a #b', '#a', 'a:', ':a', '- a', '-a', '-', '?', '? a', '? ', '- ', '[a]', '{a}', 'a, b', 'a,b', '[', ']', '{', '}', ',', '&a', '*a', '!a', '|a', '>a', "'a'", '"a"', '%a', '@a', '`a', '=', '<<', '--- a', '...', '---', 'a---', 'x ', ' x', 'x\ty', '\tx', 'x\n', 'x\ny', '\n', '\nx', 'a\r\nb', 'a\rb', 'x\x00y', 'x\x07y', 'x\x1by', 'x\x7fy', 'x\x85y', 'x\u2028y', 'x\u2029y', 'x\u00a0y', '\ufeffx', 'x\ufeff',
+    'caf\u00e9', '\u65e5\u672c\u8a9e', '\U0001f600', 'a\U0001f600b', '\ufffd', '\ufffe', '\uffff', '\U0010ffff',
+    b'', b'abc', b'\xff\x00', bytes(range(40)), bytearray(b'xy'),
+    datetime.date(2001, 12, 14), datetime.date(1, 1, 1), datetime.datetime(2001, 12, 14, 21, 59, 43), datetime.datetime(2001, 12, 14, 21, 59, 43, 100000),
+    datetime.datetime(2001, 12, 14, 21, 59, 43, tzinfo=datetime.timezone.utc), datetime.datetime(2001, 12, 14, 21, 59, 43, 10, tzinfo=datetime.timezone(datetime.timedelta(hours=-5))),
+    datetime.time(1, 2, 3), datetime.timedelta(days=1), decimal.Decimal('1.5'), fractions.Fraction(1, 3), complex(1, 2), 1 + 0j,
+    object, int, len, type(None), slice(1, 2), range(3), frozenset([1, 2]), {1, 2, 3}, set(), (1, 2), (), [], {}, collections.OrderedDict(a=1), collections.deque([1]), collections.Counter(a=1), collections.defaultdict(int),
+]
+for dumper in (yaml.CSafeDumper, yaml.CDumper):
+    print('==', dumper.__name__)
+    for v in values:
+        t(v, dumper)
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-dump-multiline-and-styles"
+script = '''
+python3 - <<'PYEOF'
+import yaml
+
+
+def t(value, dumper=yaml.CSafeDumper, **kw):
+    try:
+        print(ascii(value), kw, '->', ascii(yaml.dump(value, Dumper=dumper, **kw)))
+    except Exception as e:
+        print(ascii(value), kw, '->', type(e).__name__, str(e))
+
+
+class Lit(str):
+    pass
+
+
+class Fold(str):
+    pass
+
+
+def lit(d, v):
+    return d.represent_scalar('tag:yaml.org,2002:str', v, style='|')
+
+
+def fold(d, v):
+    return d.represent_scalar('tag:yaml.org,2002:str', v, style='>')
+
+
+class D(yaml.CSafeDumper):
+    pass
+
+
+D.add_representer(Lit, lit)
+D.add_representer(Fold, fold)
+
+for text in ['a\nb\n', 'a\nb', 'a\nb\n\n', 'a\nb\n\n\n', '\na\n', ' a\nb\n', 'a\n b\n', 'a\n\nb\n', 'x\n', 'x', '\n', '\n\n', 'a  \nb\n', 'a\t\nb\n', 'a\nb \n', ' \n', '# c\n', 'a: b\nc: d\n', '- x\n', 'line one\nline two\nline three is rather long and keeps going until it needs to be wrapped at the width limit of eighty chars\n']:
+    t({'k': text})
+    t({'k': Lit(text)}, D)
+    t({'k': Fold(text)}, D)
+    t([Lit(text), Fold(text)], D, default_flow_style=True)
+t({'k': 'a\nb'}, default_style='|')
+t({'k': 'a\nb'}, default_style='>')
+t({'k': 'a b', 'l': ['x', 1, None, True]}, default_style='"')
+t({'k': 'a b', 'l': ['x', 1, None, True]}, default_style="'")
+t({'k': 'a b', 'l': ['x', 1, None, True]}, default_style='|')
+t({'k': 'a b', 'l': ['x', 1, None, True]}, default_style='>')
+t({'k': 'a b', 'l': ['x', 1, None, True]}, default_style='x')
+t({'k': 'a b', 'l': ['x', 1, None, True]}, default_style='')
+t('plain', default_style='"')
+t('quote"d', default_style='"')
+t("quote'd", default_style="'")
+t('esc\n\t\\', default_style='"')
+t('uni\u00e9\U0001f600\x00\x07\x1b\x85\u2028', default_style='"')
+t('uni\u00e9\U0001f600\x00\x07\x1b\x85\u2028', default_style='"', allow_unicode=True)
+t('uni\u00e9', default_style="'")
+t('uni\u00e9\n', default_style='|')
+t('x\x00y\n', default_style='|')
+t('long ' * 40, default_style='"')
+t('long ' * 40, default_style="'")
+t('long ' * 40)
+t('long ' * 40, width=20)
+t('long ' * 40, width=1000)
+t('longword' * 20, width=20)
+t(['long ' * 20] * 2, width=30)
+t({'k' * 100: 'v'})
+t({'k' * 100: 'v' * 100})
+t({'a b ' * 30: 1})
+t({'k\nk': 1})
+t({'k\nk': 1}, default_style='|')
+t({('a', 'b'): 1})
+t({(1, 2): 3}, dumper=yaml.CDumper)
+t({frozenset([1]): 1}, dumper=yaml.CDumper)
+t({None: 1, True: 2, 1.5: 3, 7: 4})
+t({'': 1})
+t({' ': 1})
+t({'? a': 1, ': b': 2})
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-dump-flow-block-sort"
+script = '''
+python3 - <<'PYEOF'
+import yaml, collections
+
+
+def t(value, dumper=yaml.CSafeDumper, **kw):
+    try:
+        print(ascii(value), kw, '->', ascii(yaml.dump(value, Dumper=dumper, **kw)))
+    except Exception as e:
+        print(ascii(value), kw, '->', type(e).__name__, str(e))
+
+
+data = {'name': 'x', 'list': [1, 2, [3, 4], {'a': 1}, []], 'map': {'b': 2, 'a': 1, 'nested': {'z': [], 'y': {}}}, 'empty_l': [], 'empty_m': {}, 'scalar': 'v'}
+for dumper in (yaml.CSafeDumper, yaml.CDumper):
+    for dfs in (None, True, False):
+        t(data, dumper, default_flow_style=dfs)
+        t([1, 2, 3], dumper, default_flow_style=dfs)
+        t([[1, 2], [3, [4, 5]]], dumper, default_flow_style=dfs)
+        t([{'a': 1}, {'b': [1, 2]}], dumper, default_flow_style=dfs)
+        t({}, dumper, default_flow_style=dfs)
+        t([], dumper, default_flow_style=dfs)
+        t('scalar', dumper, default_flow_style=dfs)
+        t([[]], dumper, default_flow_style=dfs)
+        t([{}], dumper, default_flow_style=dfs)
+        t({'a': [[], {}], 'b': [[1], {'x': []}]}, dumper, default_flow_style=dfs)
+t({'b': 1, 'a': 2, 'c': 3})
+t({'b': 1, 'a': 2, 'c': 3}, sort_keys=False)
+t({'b': 1, 'a': 2, 'c': 3}, sort_keys=True)
+t({3: 'c', 1: 'a', 2: 'b'})
+t({'b': {'z': 1, 'y': 2}, 'a': {'q': 1, 'p': 2}}, sort_keys=False)
+t({'b': {'z': 1, 'y': 2}, 'a': {'q': 1, 'p': 2}}, sort_keys=True)
+t({'a': 1, 2: 'x'})
+t({'a': 1, None: 'x'})
+t({'a': 1, (1, 2): 'x'}, yaml.CDumper)
+t({'a': 1, (1, 2): 'x'}, yaml.CDumper, sort_keys=False)
+t(collections.OrderedDict([('b', 1), ('a', 2)]), yaml.CDumper)
+t(collections.OrderedDict([('b', 1), ('a', 2)]), yaml.CSafeDumper)
+t(collections.OrderedDict([('b', 1), ('a', 2)]), yaml.CDumper, sort_keys=False)
+t({'k': [1, 2]}, yaml.CSafeDumper, indent=4)
+t({'k': [1, 2], 'm': {'a': [{'x': 1}]}}, yaml.CSafeDumper, indent=4)
+t({'k': [1, 2], 'm': {'a': [{'x': 1}]}}, yaml.CSafeDumper, indent=1)
+t({'k': [1, 2], 'm': {'a': [{'x': 1}]}}, yaml.CSafeDumper, indent=0)
+t({'k': [1, 2], 'm': {'a': [{'x': 1}]}}, yaml.CSafeDumper, indent=2)
+t({'k': [1, 2], 'm': {'a': [{'x': 1}]}}, yaml.CSafeDumper, indent=9)
+t({'k': [1, 2], 'm': {'a': [{'x': 1}]}}, yaml.CSafeDumper, indent=10)
+t({'k': [1, 2], 'm': {'a': [{'x': 1}]}}, yaml.CSafeDumper, indent=-3)
+t({'k': [1, 2], 'm': {'a': [{'x': 1}]}}, yaml.CSafeDumper, indent='x')
+t({'k': [1, 2], 'm': {'a': [{'x': 1}]}}, yaml.CSafeDumper, indent=None)
+t({'k': [1, 2], 'm': {'a': [{'x': 1}]}}, yaml.CSafeDumper, indent=4, default_flow_style=True)
+t({'k': 'v ' * 30, 'l': ['w ' * 30]}, yaml.CSafeDumper, indent=4, width=40)
+t({'a': 1}, yaml.CSafeDumper, width=0)
+t({'a': 'x ' * 50}, yaml.CSafeDumper, width=0)
+t({'a': 'x ' * 50}, yaml.CSafeDumper, width=-1)
+t({'a': 'x ' * 50}, yaml.CSafeDumper, width=2)
+t({'a': 'x ' * 50}, yaml.CSafeDumper, width=None)
+t({'a': 'x ' * 50}, yaml.CSafeDumper, width='x')
+t({'a': ['x ' * 20] * 3}, yaml.CSafeDumper, width=25, indent=5)
+t({'a': [list(range(40))]}, yaml.CSafeDumper, default_flow_style=True)
+t({'a': [list(range(40))]}, yaml.CSafeDumper, default_flow_style=True, width=30)
+t({'a': {str(i): i for i in range(20)}}, yaml.CSafeDumper, default_flow_style=True, width=40)
+t({'a': {str(i): i for i in range(20)}}, yaml.CSafeDumper, default_flow_style=True, width=40, indent=4)
+t({'a': 1, 'b': [1]}, yaml.CSafeDumper, line_break='\r\n')
+t({'a': 1, 'b': [1]}, yaml.CSafeDumper, line_break='\r')
+t({'a': 1, 'b': [1]}, yaml.CSafeDumper, line_break='\n')
+t({'a': 1, 'b': [1]}, yaml.CSafeDumper, line_break='x')
+t({'a': 1, 'b': [1]}, yaml.CSafeDumper, line_break=None)
+t({'a': 'x\ny\n'}, yaml.CSafeDumper, line_break='\r\n')
+t({'a': 'x\ny\n'}, yaml.CSafeDumper, line_break='\r', default_style='|')
+t({'a': 'x\ny'}, yaml.CSafeDumper, line_break='\r\n', default_style='"')
+t({'a': 'x ' * 50}, yaml.CSafeDumper, line_break='\r\n', width=30)
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-dump-unicode-encoding"
+script = '''
+python3 - <<'PYEOF'
+import yaml, io
+
+
+def t(value, dumper=yaml.CSafeDumper, **kw):
+    try:
+        r = yaml.dump(value, Dumper=dumper, **kw)
+        print(ascii(value), kw, '->', type(r).__name__, ascii(r))
+    except Exception as e:
+        print(ascii(value), kw, '->', type(e).__name__, str(e))
+
+
+vals = ['caf\u00e9', '\u65e5\u672c', '\U0001f600', 'a\U0001f600b', {'\u00e9': '\u00fc'}, ['\u00e9', '\U0001f600'], '\ud800', 'a\udfffb', '\ud83d\ude00', '\x85', '\u2028', '\u00a0', '\ufeff', '\ufffe', '\uffff', '\u0080', '\u009f', '\u00a1', '\ue000', '\U000e0001', '\U0010ffff', 'x\u0301', '\u200b', '\u202e']
+for v in vals:
+    for au in (False, True, None):
+        t(v, yaml.CSafeDumper, allow_unicode=au)
+    t(v, yaml.CDumper, allow_unicode=True)
+for enc in ('utf-8', 'utf-16', 'utf-16-le', 'utf-16-be', 'latin-1', 'ascii', 'utf-32', 'cp1252', 'nope', 'UTF8', 'Utf-8', 'utf8', 'iso-8859-1'):
+    t(['caf\u00e9', '\U0001f600', 'x'], yaml.CSafeDumper, encoding=enc)
+    t(['caf\u00e9', '\U0001f600', 'x'], yaml.CSafeDumper, encoding=enc, allow_unicode=True)
+t({'k': 'caf\u00e9'}, yaml.CSafeDumper, encoding=None)
+t({'k': 'caf\u00e9'}, yaml.CSafeDumper, encoding=None, allow_unicode=True)
+t({'k': 'caf\u00e9'}, yaml.CSafeDumper, encoding='utf-8', allow_unicode=True, explicit_start=True)
+t({'k': 'caf\u00e9'}, yaml.CSafeDumper, encoding='utf-16', allow_unicode=True, explicit_start=True)
+t(['caf\u00e9', '\U0001f600'], yaml.CSafeDumper, encoding='utf-8', allow_unicode=True, default_style='"')
+s = io.StringIO()
+try:
+    yaml.dump(['\u00e9'], s, Dumper=yaml.CSafeDumper, allow_unicode=True)
+    print(ascii(s.getvalue()))
+except Exception as e:
+    print(type(e).__name__, str(e))
+b = io.BytesIO()
+try:
+    yaml.dump(['\u00e9'], b, Dumper=yaml.CSafeDumper, allow_unicode=True, encoding='utf-8')
+    print(b.getvalue())
+except Exception as e:
+    print(type(e).__name__, str(e))
+b = io.BytesIO()
+try:
+    yaml.dump(['\u00e9'], b, Dumper=yaml.CSafeDumper, allow_unicode=True)
+    print(b.getvalue())
+except Exception as e:
+    print(type(e).__name__, str(e))
+s = io.StringIO()
+try:
+    yaml.dump(['\u00e9'], s, Dumper=yaml.CSafeDumper, allow_unicode=True, encoding='utf-8')
+    print(ascii(s.getvalue()))
+except Exception as e:
+    print(type(e).__name__, str(e))
+for text in ['k: "\\ud800"\n', 'k: "\\udfff"\n', 'k: "\\ud83d\\ude00"\n', 'k: "\\U0001F600"\n', 'k: "\\U00110000"\n', 'k: "\\xe9"\n', 'k: "\\uFFFE"\n']:
+    for loader in (yaml.CSafeLoader, yaml.CLoader):
+        try:
+            print(loader.__name__, ascii(text), '->', ascii(yaml.load(text, Loader=loader)))
+        except Exception as e:
+            print(loader.__name__, ascii(text), '->', type(e).__name__, str(e))
+for raw in [b'k: \xff\n', b'k: \xc3\n', b'k: \xed\xa0\x80\n', b'k: \xf4\x90\x80\x80\n', b'k: \xc0\x80\n', b'\xff\xfek\x00:\x00 \x001\x00\n\x00', b'k: \x00\n', b'k: \x07\n', b'k: \x85\n', b'k: \xc2\x85\n']:
+    for loader in (yaml.CSafeLoader, yaml.CLoader):
+        try:
+            print(loader.__name__, raw, '->', ascii(yaml.load(raw, Loader=loader)))
+        except Exception as e:
+            print(loader.__name__, raw, '->', type(e).__name__, str(e))
+for text in ['k: \x00\n', 'k: \x07\n', 'k: \x7f\n', 'k: \x85\n', 'k: \u2028\n', 'k: \ufffe\n', 'k: \ud800\n', 'k: \U0001f600\n', 'k: \ufeff\n']:
+    for loader in (yaml.CSafeLoader, yaml.CLoader):
+        try:
+            print(loader.__name__, ascii(text), '->', ascii(yaml.load(text, Loader=loader)))
+        except Exception as e:
+            print(loader.__name__, ascii(text), '->', type(e).__name__, str(e))
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-dump-all-documents"
+script = '''
+python3 - <<'PYEOF' | sed -E 's/ at 0x[0-9a-f]+/ at 0xADDR/g'
+import yaml
+
+
+def t(docs, dumper=yaml.CSafeDumper, **kw):
+    try:
+        print(ascii(docs), kw, '->', ascii(yaml.dump_all(docs, Dumper=dumper, **kw)))
+    except Exception as e:
+        print(ascii(docs), kw, '->', type(e).__name__, str(e))
+
+
+docs = [{'a': 1}, [1, 2], 'scalar', None, 3]
+for dumper in (yaml.CSafeDumper, yaml.CDumper):
+    t(docs, dumper)
+    t(docs, dumper, explicit_start=True)
+    t(docs, dumper, explicit_end=True)
+    t(docs, dumper, explicit_start=True, explicit_end=True)
+    t([], dumper)
+    t([], dumper, explicit_start=True)
+    t([], dumper, explicit_end=True)
+    t([None], dumper)
+    t([None], dumper, explicit_start=True, explicit_end=True)
+    t([''], dumper)
+    t(['', ''], dumper)
+    t(iter([1, 2]), dumper)
+    t((x for x in 'ab'), dumper, explicit_start=True)
+t(docs, yaml.CSafeDumper, version=(1, 1))
+t(docs, yaml.CSafeDumper, version=(1, 2))
+t(docs, yaml.CSafeDumper, version=(1, 0))
+t(docs, yaml.CSafeDumper, version=(2, 0))
+t(docs, yaml.CSafeDumper, version=(1, 1), explicit_start=True)
+t(docs, yaml.CSafeDumper, version='1.1')
+t(docs, yaml.CSafeDumper, version=[1, 1])
+t(docs, yaml.CSafeDumper, version=(1,))
+t(docs, yaml.CSafeDumper, version=(1, 1, 0))
+t(docs, yaml.CSafeDumper, tags={'!e!': 'tag:example.com,2000:'})
+t(docs, yaml.CSafeDumper, tags={'!e!': 'tag:example.com,2000:', '!f!': 'tag:f:'}, explicit_start=True)
+t(docs, yaml.CSafeDumper, tags={'e': 'x'})
+t(docs, yaml.CSafeDumper, tags={'!e': 'x'})
+t(docs, yaml.CSafeDumper, tags={'!!': 'tag:example.com,2000:'})
+t(docs, yaml.CSafeDumper, tags={'!': 'tag:example.com,2000:'})
+t(docs, yaml.CSafeDumper, tags={'!e!': 'tag:example.com,2000:'}, version=(1, 1))
+t(docs, yaml.CSafeDumper, tags={})
+t(docs, yaml.CSafeDumper, tags=None)
+t([{'a': 1}], yaml.CSafeDumper, explicit_start=True, canonical=True)
+t(docs, yaml.CSafeDumper, canonical=True)
+t(docs, yaml.CSafeDumper, canonical=True, version=(1, 1))
+t('x', yaml.CSafeDumper, explicit_start=True)
+t('x', yaml.CSafeDumper, explicit_end=True)
+t('x', yaml.CSafeDumper, explicit_start=True, explicit_end=True)
+t([1], yaml.CSafeDumper, explicit_start=True, explicit_end=True)
+print(ascii(yaml.dump('x', Dumper=yaml.CSafeDumper, explicit_end=True)))
+print(ascii(yaml.dump(1, Dumper=yaml.CSafeDumper, explicit_end=True)))
+print(ascii(yaml.dump([], Dumper=yaml.CSafeDumper, explicit_end=True)))
+print(ascii(yaml.dump('a\nb\n', Dumper=yaml.CSafeDumper, explicit_end=True, default_style='|')))
+print(ascii(yaml.dump('a\nb\n\n', Dumper=yaml.CSafeDumper, default_style='|')))
+print(ascii(yaml.dump_all(['a\n\n', 'b'], Dumper=yaml.CSafeDumper, default_style='|')))
+print(ascii(yaml.dump_all(['a', 'b'], Dumper=yaml.CSafeDumper, default_style='"')))
+for text in [yaml.dump_all(docs, Dumper=yaml.CSafeDumper, explicit_start=True, explicit_end=True, version=(1, 1), tags={'!e!': 'tag:example.com,2000:'})]:
+    print(ascii(text))
+    print(list(yaml.load_all(text, Loader=yaml.CSafeLoader)))
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-dump-canonical-and-tags"
+script = '''
+python3 - <<'PYEOF' | sed -E 's/ at 0x[0-9a-f]+/ at 0xADDR/g'
+import yaml, datetime, collections
+
+
+def t(value, dumper=yaml.CSafeDumper, **kw):
+    try:
+        print(ascii(value), kw, '->', ascii(yaml.dump(value, Dumper=dumper, **kw)))
+    except Exception as e:
+        print(ascii(value), kw, '->', type(e).__name__, str(e))
+
+
+vals = [1, 'a', None, True, 1.5, [], {}, [1, 'a', [2]], {'a': 1, 'b': [1, 2], 'c': {'d': None}}, b'bin', 'multi\nline', 'caf\u00e9', {1, 2}, datetime.date(2001, 12, 14), 'x' * 100, ['x y ' * 30]]
+for v in vals:
+    t(v, yaml.CSafeDumper, canonical=True)
+    t(v, yaml.CSafeDumper, canonical=True, allow_unicode=True)
+    t(v, yaml.CSafeDumper, canonical=True, indent=4)
+    t(v, yaml.CSafeDumper, canonical=True, width=20)
+    t(v, yaml.CSafeDumper, canonical=False)
+    t(v, yaml.CDumper, canonical=True)
+    t(v, yaml.CSafeDumper, canonical=True, explicit_start=True, explicit_end=True)
+    t(v, yaml.CSafeDumper, canonical=True, default_flow_style=False)
+
+
+class P:
+    def __init__(self):
+        self.x = 1
+        self.y = [1, 2]
+
+
+class Q:
+    pass
+
+
+t(P(), yaml.CSafeDumper)
+t(P(), yaml.CDumper)
+t([P(), P()], yaml.CDumper)
+t(P(), yaml.CDumper, canonical=True)
+t(Q(), yaml.CDumper)
+t(complex(1, 2), yaml.CDumper)
+t((1, (2, 3)), yaml.CDumper)
+t((1, (2, 3)), yaml.CSafeDumper)
+t(frozenset([1, 2]), yaml.CDumper)
+t(int, yaml.CDumper)
+t(collections.OrderedDict(a=1), yaml.CDumper)
+t(b'\xff', yaml.CDumper)
+t('\xff', yaml.CDumper)
+
+
+class SD(yaml.CSafeDumper):
+    pass
+
+
+SD.add_representer(P, lambda d, o: d.represent_mapping('!p', {'x': o.x}))
+SD.add_representer(Q, lambda d, o: d.represent_scalar('!q', 'qq'))
+SD.add_representer(type(None), lambda d, o: d.represent_scalar('tag:yaml.org,2002:null', 'NULL'))
+t(P(), SD)
+t(Q(), SD)
+t([P(), Q(), None], SD)
+t([P(), Q(), None], SD, default_flow_style=True)
+t([P(), Q()], SD, tags={'!': 'tag:example.com,2000:'}, explicit_start=True)
+t([P(), Q()], SD, tags={'!p': 'tag:p:'}, explicit_start=True)
+t({'k': Q()}, SD, canonical=True)
+
+
+class SD2(yaml.CSafeDumper):
+    pass
+
+
+SD2.add_representer(Q, lambda d, o: d.represent_scalar('tag:example.com,2000:foo', 'v'))
+SD2.add_representer(P, lambda d, o: d.represent_scalar('tag:yaml.org,2002:str', 'forced'))
+t(Q(), SD2)
+t(Q(), SD2, tags={'!e!': 'tag:example.com,2000:'}, explicit_start=True)
+t(Q(), SD2, tags={'!e!': 'tag:example.com,'}, explicit_start=True)
+t([Q()], SD2, tags={'!e!': 'tag:example.com,2000:'}, explicit_start=True)
+t(P(), SD2)
+t(P(), SD2, default_style='"')
+yaml.add_representer(Q, lambda d, o: d.represent_scalar('!global', 'g'), Dumper=yaml.CSafeDumper)
+t(Q(), yaml.CSafeDumper)
+t(Q(), yaml.CDumper)
+yaml.add_multi_representer(P, lambda d, o: d.represent_scalar('!multi', 'm'), Dumper=yaml.CSafeDumper)
+t(P(), yaml.CSafeDumper)
+yaml.add_implicit_resolver('!ver', __import__('re').compile(r'^v\d+$'), ['v'], Loader=yaml.CSafeLoader, Dumper=yaml.CSafeDumper)
+t('v12', yaml.CSafeDumper)
+t('v1x', yaml.CSafeDumper)
+print(yaml.load('v12', Loader=yaml.CSafeLoader))
+yaml.add_constructor('!ver', lambda l, n: 'VER:' + n.value, Loader=yaml.CSafeLoader)
+print(yaml.load('v12', Loader=yaml.CSafeLoader), yaml.load('[v12, v1x, !ver zz]', Loader=yaml.CSafeLoader))
+yaml.add_path_resolver('!pathmap', ['special'], dict, Loader=yaml.CSafeLoader)
+try:
+    print(yaml.load('special: {a: 1}\nother: {b: 2}\n', Loader=yaml.CSafeLoader))
+except Exception as e:
+    print(type(e).__name__, str(e))
+yaml.add_multi_constructor('!multi:', lambda l, s, n: (s, n.value), Loader=yaml.CSafeLoader)
+print(yaml.load('[!multi:abc 1, !multi:x:y z]', Loader=yaml.CSafeLoader))
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-syntax-errors"
+script = '''
+python3 - <<'PYEOF'
+import yaml
+
+
+def show(text, loader=yaml.CSafeLoader, many=False):
+    try:
+        r = list(yaml.load_all(text, Loader=loader)) if many else yaml.load(text, Loader=loader)
+        print(ascii(text), '=> OK', ascii(r))
+    except Exception as e:
+        print(ascii(text), '=>', type(e).__name__)
+        print(str(e))
+        for attr in ('context', 'problem', 'note'):
+            print(' ', attr, repr(getattr(e, attr, 'N/A')))
+        for attr in ('context_mark', 'problem_mark'):
+            m = getattr(e, attr, None)
+            if m is None:
+                print(' ', attr, None)
+            else:
+                print(' ', attr, m.name, m.index, m.line, m.column, repr(m.buffer if hasattr(m, 'buffer') else None) if False else '', repr(m.get_snippet()))
+
+
+texts = [
+    'a: b: c\n',
+    'a: [1, 2\n',
+    'a: {x: 1\n',
+    'a: [1, 2}\n',
+    'a: {x: 1]\n',
+    '- a\nb: c\n',
+    'a: 1\n- b\n',
+    'a:\n  - 1\n - 2\n',
+    'a:\n    b: 1\n  c: 2\n',
+    'a: "unterminated\n',
+    "a: 'unterminated\n",
+    'a: "bad \\q escape"\n',
+    'a: "bad \\xZZ"\n',
+    'a: "\\u12"\n',
+    'a: "\\U0011FFFF"\n',
+    'a: "\\UD800DFFF"\n',
+    'a: *\n',
+    'a: &\n',
+    'a: !<unterminated x\n',
+    'a: !<> x\n',
+    'a: !<a b> x\n',
+    '%YAML 1.1 extra\n---\nx\n',
+    '%YAML\n---\nx\n',
+    '%TAG\n---\nx\n',
+    '%TAG !e!\n---\nx\n',
+    '%TAG e tag:x\n---\nx\n',
+    '%TAG !e!bad tag:x\n---\nx\n',
+    '%YAML 1.1\n%YAML 1.2\n---\nx\n',
+    'a: !e!x 1\n',
+    '{a: 1,, b: 2}\n',
+    '[1,, 2]\n',
+    '{a 1}\n',
+    '{? : }\n',
+    '? a\n  b: c\n',
+    'a: b\n c\n  d: e\n',
+    'key: [a, b]]\n',
+    'key: {a: b}}\n',
+    ']\n',
+    '}\n',
+    ',\n',
+    '- [a,\n  b\n',
+    'a: |\n  x\n y\n',
+    'a: >\n x\n  y\n z\n',
+    'a: |x\n',
+    'a: |0\n  x\n',
+    'a: |--\n  x\n',
+    'a: |1 2\n  x\n',
+    '\tkey: v\n',
+    'key:\tv\n',
+    'key:\n\t- v\n',
+    'a: \t\n\tb: 1\n',
+    '- a\n\t- b\n',
+    '@reserved\n',
+    '`reserved\n',
+    'a: @reserved\n',
+    'a: `x`\n',
+    '- @\n',
+    '? \n: \n? a\n',
+    '- - -\n',
+    '---\n--- \n---\n',
+    'a: b\n...\nc: d\n',
+    'a: b\n--- \nc: d\n',
+    'x\n--- y\nz: w\n',
+    '[a, b] c\n',
+    '{a: b} c\n',
+    '"a" b\n',
+    "'a' b\n",
+    '"a": b: c\n',
+    'a: "b" c\n',
+    '- "a" b\n',
+    'a: [b] c\n',
+    'a: {b: c} d\n',
+    'a: &x &y z\n',
+    'a: !t !u z\n',
+    'a: !t &x !u z\n',
+    '&x\n',
+    '&x : y\n',
+    '!t\n',
+    '!t : y\n',
+    'a: *x\n',
+    '*x : y\n',
+    '[*x]\n',
+    '[*a, &a b]\n',
+    '--- &a\n- *a\n',
+    '- &a\n- *b\n',
+    '? a\n: b\n? c\n',
+    '? [a\n: b\n',
+    '- ? a\n  : b\n  c\n',
+    'a: b\nc\n',
+    'a: b\n c: d\n',
+    '{a: b\n c}\n',
+    '{a: [b\n',
+    '[a, {b: c]\n',
+    'a: [b, c\nd: e\n',
+    'a: {b: c\nd: e\n',
+    'a: "b\nc: d\n',
+    "a: 'b\nc: d\n",
+    '"\\\n',
+    '"a\\\n',
+    '\x00',
+    'a: \x01\n',
+    '\ufeff\ufeffa\n',
+    '--- !!str\n- a\n',
+    '!!str\na: b\n',
+    '!!map\n- a\n',
+    '!!seq\na: b\n',
+    '%YAML 1.1\n',
+    '%YAML 1.1\n...\n',
+    '%TAG !e! x\n',
+    '---\n%YAML 1.1\n',
+    'a: b # c\n d\n',
+    'a:\n  # c\n b\n',
+    '- a\n - b\n',
+    ' - a\n- b\n',
+    'a: [\n',
+    'a: {\n',
+    '[\n',
+    '{\n',
+    '"\n',
+    "'\n",
+    '[a, b\n---\nc\n',
+    '{a: b\n---\nc\n',
+    '[a, b\n...\n',
+    '? \n',
+    ':\n',
+    ': a\n',
+    '- : a\n',
+    'a:b: c\n',
+    'a :b\n',
+    'a : b : c\n',
+    'a: - b\n',
+    'a: ? b\n',
+    'a: ? b : c\n',
+    '- a: b\n   c: d\n',
+    '- a: b\n c: d\n',
+    '? a: b\n: c\n',
+    '? - a\n: - b\n  c\n',
+]
+for loader in (yaml.CSafeLoader, yaml.CLoader):
+    print('==', loader.__name__)
+    for text in texts:
+        show(text, loader)
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-error-marks-multiline"
+script = '''
+python3 - <<'PYEOF'
+import yaml
+
+text = 'first: 1\nsecond:\n  - a\n  - b\n  - [c, d\nthird: 3\n'
+for loader in (yaml.CSafeLoader, yaml.CLoader):
+    try:
+        yaml.load(text, Loader=loader)
+    except yaml.YAMLError as e:
+        print(type(e).__mro__[0].__name__, [c.__name__ for c in type(e).__mro__[1:4]])
+        print(str(e))
+        for attr in ('context', 'problem', 'note'):
+            print(attr, repr(getattr(e, attr)))
+        for attr in ('context_mark', 'problem_mark'):
+            m = getattr(e, attr)
+            print(attr, type(m).__name__, m.name, m.index, m.line, m.column, repr(m.get_snippet()), repr(m.get_snippet(indent=2, max_length=20)), str(m))
+        print(e.args, repr(e)[:60])
+for text, name in ((b'a: [\n', None), ('a: [\n', None), ('a: [\n', 'my.yml')):
+    import io
+    s = io.StringIO(text) if isinstance(text, str) else io.BytesIO(text)
+    try:
+        yaml.load(s, Loader=yaml.CSafeLoader)
+    except yaml.YAMLError as e:
+        print(repr(text), type(e).__name__, str(e))
+        print(e.problem_mark.name)
+long_line = 'key: [' + ', '.join(str(i) for i in range(60)) + '\nx: 1\n'
+try:
+    yaml.load(long_line, Loader=yaml.CSafeLoader)
+except yaml.YAMLError as e:
+    print(str(e))
+    print(e.problem_mark.get_snippet(), '|', e.problem_mark.get_snippet(max_length=30))
+tabs = 'a:\n\t- 1\n'
+try:
+    yaml.load(tabs, Loader=yaml.CSafeLoader)
+except yaml.YAMLError as e:
+    print(str(e))
+uni = 'k\u00e9y: [\u65e5\u672c\n'
+try:
+    yaml.load(uni, Loader=yaml.CSafeLoader)
+except yaml.YAMLError as e:
+    print(ascii(str(e)))
+    print(e.problem_mark.index, e.problem_mark.line, e.problem_mark.column)
+emoji = 'k: \U0001f600 [\nz: 1\n'
+try:
+    yaml.load(emoji, Loader=yaml.CSafeLoader)
+except yaml.YAMLError as e:
+    print(ascii(str(e)))
+    print(e.problem_mark.index, e.problem_mark.line, e.problem_mark.column)
+crlf = 'a: 1\r\nb: [2\r\nc: 3\r\n'
+try:
+    yaml.load(crlf, Loader=yaml.CSafeLoader)
+except yaml.YAMLError as e:
+    print(ascii(str(e)))
+    print(e.problem_mark.index, e.problem_mark.line, e.problem_mark.column)
+bytes_utf8 = 'k\u00e9: [\n'.encode('utf-8')
+try:
+    yaml.load(bytes_utf8, Loader=yaml.CSafeLoader)
+except yaml.YAMLError as e:
+    print(ascii(str(e)))
+    print(e.problem_mark.index, e.problem_mark.line, e.problem_mark.column)
+bytes16 = 'k\u00e9: [\n'.encode('utf-16')
+try:
+    yaml.load(bytes16, Loader=yaml.CSafeLoader)
+except yaml.YAMLError as e:
+    print(ascii(str(e)))
+    print(e.problem_mark.index, e.problem_mark.line, e.problem_mark.column)
+for bad in (b'k: \xff\n', b'\xff\xfe\x00'):
+    try:
+        yaml.load(bad, Loader=yaml.CSafeLoader)
+    except Exception as e:
+        print(type(e).__name__, str(e))
+        print(getattr(e, 'name', None), getattr(e, 'character', None), getattr(e, 'position', None), getattr(e, 'reason', None))
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-scan-tokens"
+script = '''
+python3 - <<'PYEOF'
+import yaml
+
+
+def tok(t):
+    extra = ''
+    for a in ('value', 'plain', 'style', 'name', 'handle', 'suffix', 'tag'):
+        if hasattr(t, a):
+            extra += ' %s=%r' % (a, getattr(t, a))
+    return '%s [%d:%d-%d:%d]%s' % (type(t).__name__, t.start_mark.line, t.start_mark.column, t.end_mark.line, t.end_mark.column, extra)
+
+
+def scan(text, loader=yaml.CSafeLoader):
+    print('--', ascii(text), loader.__name__)
+    try:
+        for t in yaml.scan(text, Loader=loader):
+            print(tok(t))
+    except Exception as e:
+        print(type(e).__name__, str(e))
+
+
+texts = [
+    'a: 1\n', '- a\n- b\n', '[a, b]', '{a: 1, b: 2}', '? a\n: b\n', '--- a\n...\n', '%YAML 1.1\n%TAG !e! tag:x:\n---\nx\n',
+    '&a !t x', '*a', '!!str x', '!<tag:x> y', '"dq \\n x"', "'sq ''x'' y'",'plain  text', '|\n  lit\n', '>-\n  fold\n  x\n',
+    'a:\n  b:\n    - c\n    - d\n  e: f\n', '- - a\n  - b\n- c\n', '# comment\nk: v # trailing\n', '', '---\n', 'k: [\n', 'k: "x\n', '\t', 'a: |\n  x\n y\n',
+    'a: b\n---\nc: d\n', 'x: !!binary |\n  aGk=\n', 'a:\n- 1\n- 2\n', '- {a: [1, {b: c}]}\n', '"a": "b"', '? |\n  k\n: v\n',
+    'caf\u00e9: \U0001f600\n',
+]
+for loader in (yaml.CSafeLoader, yaml.CLoader):
+    for text in texts:
+        scan(text, loader)
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-parse-events"
+script = '''
+python3 - <<'PYEOF'
+import yaml
+
+
+def ev(e):
+    parts = [type(e).__name__]
+    for a in ('anchor', 'tag', 'implicit', 'value', 'style', 'flow_style', 'explicit', 'version', 'tags'):
+        if hasattr(e, a):
+            parts.append('%s=%r' % (a, getattr(e, a)))
+    parts.append('[%d:%d-%d:%d]' % (e.start_mark.line, e.start_mark.column, e.end_mark.line, e.end_mark.column))
+    return ' '.join(parts)
+
+
+def parse(text, loader=yaml.CSafeLoader):
+    print('--', ascii(text), loader.__name__)
+    try:
+        for e in yaml.parse(text, Loader=loader):
+            print(ev(e))
+    except Exception as e:
+        print(type(e).__name__, str(e))
+
+
+texts = [
+    'a', 'a: 1\nb: [x, y]\n', '- &a x\n- *a\n- !t y\n', '--- !!str "q"\n...\n', '%YAML 1.1\n%TAG !e! tag:x:\n---\n!e!y z\n',
+    '{a: 1, ? b : c}', '[a, b: c]', '? a\n? b\n: c\n', '|\n  x\n', '>+\n  x\n\n', '"\\u00e9"', "'x'", '', '---\n', '--- \n...\n--- x\n',
+    'a\n---\nb\n', '- !!seq [x]\n- !!map {y: z}\n', '!!set {a, b}', '&k [1]: v\n', '- - - x\n', 'a: ~\nb:\nc: ""\n', '!t', '&a', 'a: [\n', 'x: !<tag:y> z\n',
+    '- ""\n- \'\'\n- !!str\n- !!null\n', '? \n: \n', 'a: b\n? c\n', '- &a\n  b: 1\n- *a\n', 'caf\u00e9: \U0001f600\n',
+]
+for loader in (yaml.CSafeLoader, yaml.CLoader, yaml.CBaseLoader):
+    for text in texts:
+        parse(text, loader)
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-compose-nodes"
+script = '''
+python3 - <<'PYEOF'
+import yaml
+
+
+def show(n, depth=0):
+    pad = '  ' * depth
+    mk = '[%d:%d-%d:%d]' % (n.start_mark.line, n.start_mark.column, n.end_mark.line, n.end_mark.column)
+    if isinstance(n, yaml.ScalarNode):
+        print(pad + 'Scalar', repr(n.tag), repr(n.value), repr(n.style), mk)
+    elif isinstance(n, yaml.SequenceNode):
+        print(pad + 'Sequence', repr(n.tag), repr(n.flow_style), mk)
+        for c in n.value:
+            show(c, depth + 1)
+    else:
+        print(pad + 'Mapping', repr(n.tag), repr(n.flow_style), mk)
+        for k, v in n.value:
+            show(k, depth + 1)
+            show(v, depth + 2)
+
+
+def comp(text, loader=yaml.CSafeLoader, many=False):
+    print('--', ascii(text), loader.__name__)
+    try:
+        if many:
+            for n in yaml.compose_all(text, Loader=loader):
+                show(n)
+                print('.')
+        else:
+            n = yaml.compose(text, Loader=loader)
+            if n is None:
+                print(None)
+            else:
+                show(n)
+    except Exception as e:
+        print(type(e).__name__, str(e))
+
+
+texts = [
+    'a: 1\nb: [x, "y", 2.5, ~, true]\n', '- &a [1, 2]\n- *a\n', '!!set {a, b}', '!t {a: 1}', '%TAG !e! tag:x:\n---\n!e!foo bar\n', '', '# c', '|\n  lit\n', 'a: *x\n',
+    'a\n---\nb\n', '&a x\n', '[1, 2\n', '- !!binary aGk=\n', '? [a]\n: {b: c}\n', '&a {k: *a}', '<<: {a: 1}\n', '"x": \'y\'\n',
+]
+for loader in (yaml.CSafeLoader, yaml.CLoader):
+    for text in texts:
+        comp(text, loader)
+comp('a\n---\nb\n', yaml.CSafeLoader, True)
+comp('a\n---\nb: [\n', yaml.CSafeLoader, True)
+comp('', yaml.CSafeLoader, True)
+n = yaml.compose('a: &x [1, 2]\nb: *x\n', Loader=yaml.CSafeLoader)
+print(n.value[0][1] is n.value[1][1])
+n = yaml.compose('&a [1, *a]', Loader=yaml.CSafeLoader)
+print(n.value[1] is n)
+n = yaml.compose('a: 1\n', Loader=yaml.CSafeLoader)
+print(repr(n)[:70])
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-emit-events"
+script = '''
+python3 - <<'PYEOF' | sed -E 's/ at 0x[0-9a-f]+/ at 0xADDR/g'
+import yaml
+
+
+def em(events, dumper=yaml.CSafeDumper, **kw):
+    try:
+        r = yaml.emit(events, Dumper=dumper, **kw)
+        print(kw, '->', ascii(r))
+    except Exception as e:
+        print(kw, '->', type(e).__name__, str(e))
+
+
+def doc(*body, start=False, end=False, version=None, tags=None):
+    return [yaml.StreamStartEvent(), yaml.DocumentStartEvent(explicit=start, version=version, tags=tags)] + list(body) + [yaml.DocumentEndEvent(explicit=end), yaml.StreamEndEvent()]
+
+
+S = yaml.ScalarEvent
+em(doc(S(None, None, (True, False), 'x')))
+em(doc(S(None, None, (True, False), 'x')), explicit_start=True)
+em(doc(S(None, None, (True, False), 'x'), start=True, end=True))
+em(doc(S(None, 'tag:yaml.org,2002:str', (False, False), 'x')))
+em(doc(S(None, 'tag:yaml.org,2002:str', (True, False), 'x')))
+em(doc(S(None, 'tag:yaml.org,2002:int', (True, False), '12')))
+em(doc(S(None, 'tag:yaml.org,2002:int', (False, False), '12')))
+em(doc(S(None, '!local', (False, False), 'x')))
+em(doc(S('anc', None, (True, False), 'x')))
+em(doc(S(None, None, (True, False), 'x', style='"')))
+em(doc(S(None, None, (True, False), 'x', style="'")))
+em(doc(S(None, None, (True, False), 'x\ny\n', style='|')))
+em(doc(S(None, None, (True, False), 'x y', style='>')))
+em(doc(S(None, None, (True, False), 'x', style='?')))
+em(doc(S(None, None, (True, False), '', style=None)))
+em(doc(S(None, None, (True, False), '', style="'")))
+em(doc(S(None, None, (False, True), '')))
+em(doc(S(None, None, (True, False), 'a: b')))
+em(doc(yaml.SequenceStartEvent(None, None, True), S(None, None, (True, False), 'a'), S(None, None, (True, False), 'b'), yaml.SequenceEndEvent()))
+em(doc(yaml.SequenceStartEvent(None, None, True, flow_style=True), S(None, None, (True, False), 'a'), yaml.SequenceEndEvent()))
+em(doc(yaml.SequenceStartEvent(None, None, True, flow_style=False), S(None, None, (True, False), 'a'), yaml.SequenceEndEvent()))
+em(doc(yaml.SequenceStartEvent(None, None, True, flow_style=None), S(None, None, (True, False), 'a'), yaml.SequenceEndEvent()))
+em(doc(yaml.SequenceStartEvent('a', '!seq', False, flow_style=True), S(None, None, (True, False), 'a'), yaml.SequenceEndEvent()))
+em(doc(yaml.MappingStartEvent(None, None, True), S(None, None, (True, False), 'k'), S(None, None, (True, False), 'v'), yaml.MappingEndEvent()))
+em(doc(yaml.MappingStartEvent(None, None, True, flow_style=True), S(None, None, (True, False), 'k'), S(None, None, (True, False), 'v'), yaml.MappingEndEvent()))
+em(doc(yaml.MappingStartEvent(None, '!m', False), S(None, None, (True, False), 'k'), S(None, None, (True, False), 'v'), yaml.MappingEndEvent()))
+em(doc(yaml.MappingStartEvent(None, None, True), yaml.SequenceStartEvent(None, None, True), S(None, None, (True, False), 'a'), yaml.SequenceEndEvent(), S(None, None, (True, False), 'v'), yaml.MappingEndEvent()))
+em(doc(yaml.MappingStartEvent(None, None, True), S(None, None, (True, False), 'k'), yaml.MappingStartEvent(None, None, True), yaml.MappingEndEvent(), yaml.MappingEndEvent()))
+em(doc(yaml.SequenceStartEvent(None, None, True), yaml.SequenceEndEvent()))
+em(doc(yaml.MappingStartEvent(None, None, True), yaml.MappingEndEvent()))
+em(doc(yaml.SequenceStartEvent(None, None, True, flow_style=False), yaml.SequenceEndEvent()))
+em(doc(yaml.AliasEvent('a')))
+em(doc(yaml.SequenceStartEvent('a', None, True), yaml.AliasEvent('a'), yaml.SequenceEndEvent()))
+em(doc(yaml.SequenceStartEvent(None, None, True), S('a', None, (True, False), 'x'), yaml.AliasEvent('a'), yaml.SequenceEndEvent()))
+em(doc(S(None, None, (True, False), 'x'), start=True, version=(1, 1)))
+em(doc(S(None, None, (True, False), 'x'), start=True, version=(1, 2)))
+em(doc(S(None, None, (True, False), 'x'), start=True, version=(1, 0)))
+em(doc(S(None, None, (True, False), 'x'), start=True, version=(2, 0)))
+em(doc(S(None, None, (True, False), 'x'), start=True, tags={'!e!': 'tag:x:'}))
+em(doc(S(None, '!e!y', (False, False), 'x'), start=True, tags={'!e!': 'tag:x:'}))
+em(doc(S(None, 'tag:x:y', (False, False), 'x'), start=True, tags={'!e!': 'tag:x:'}))
+em(doc(S(None, 'tag:x:y', (False, False), 'x'), start=False, tags={'!e!': 'tag:x:'}))
+em(doc(S(None, None, (True, False), 'x'), start=True, tags={'bad': 'tag:x:'}))
+em(doc(S(None, None, (True, False), 'x'), start=True, tags={'!e!': ''}))
+em([yaml.StreamStartEvent(), yaml.StreamEndEvent()])
+em([yaml.StreamStartEvent()])
+em([yaml.StreamStartEvent(), yaml.DocumentStartEvent()])
+em([yaml.DocumentStartEvent(), yaml.DocumentEndEvent()])
+em([yaml.StreamStartEvent(), S(None, None, (True, False), 'x'), yaml.StreamEndEvent()])
+em([yaml.StreamStartEvent(), yaml.DocumentStartEvent(), yaml.DocumentEndEvent(), yaml.StreamEndEvent()])
+em([yaml.StreamStartEvent(), yaml.DocumentStartEvent(), yaml.SequenceStartEvent(None, None, True), yaml.DocumentEndEvent(), yaml.StreamEndEvent()])
+em([yaml.StreamStartEvent(), yaml.DocumentStartEvent(), yaml.SequenceEndEvent(), yaml.DocumentEndEvent(), yaml.StreamEndEvent()])
+em([yaml.StreamStartEvent(), yaml.DocumentStartEvent(), S(None, None, (True, False), 'a'), S(None, None, (True, False), 'b'), yaml.DocumentEndEvent(), yaml.StreamEndEvent()])
+em([yaml.StreamStartEvent(), yaml.DocumentStartEvent(), yaml.MappingStartEvent(None, None, True), S(None, None, (True, False), 'k'), yaml.MappingEndEvent(), yaml.DocumentEndEvent(), yaml.StreamEndEvent()])
+em([yaml.StreamStartEvent(), yaml.DocumentStartEvent(), S(None, None, (True, False), 'a'), yaml.DocumentEndEvent(), yaml.DocumentStartEvent(), S(None, None, (True, False), 'b'), yaml.DocumentEndEvent(), yaml.StreamEndEvent()])
+em([yaml.StreamStartEvent(encoding='utf-8')] + doc(S(None, None, (True, False), 'caf\u00e9'))[1:], allow_unicode=True)
+em(doc(S(None, None, (True, False), 'x')), encoding='utf-8')
+em(doc(S(None, None, (True, False), 'x')), canonical=True)
+em(doc(S(None, None, (True, False), 'x')), Dumper=yaml.CDumper)
+em([object()])
+em(['x'])
+em([None])
+em(doc(S(None, None, (True, False), 1)))
+em(doc(S(None, None, (True, False), None)))
+em(doc(S(1, None, (True, False), 'x')))
+em(doc(S(None, 1, (False, False), 'x')))
+em(doc(S(None, None, True, 'x')))
+em(doc(S(None, None, (True,), 'x')))
+em(doc(S(None, None, (True, False), 'x', style=1)))
+em(doc(S(None, None, (True, False), 'x', style='ab')))
+for style in ('"', "'", '|', '>', None, ''):
+    for value in ('x', 'x y', 'a\nb', 'a\nb\n', '', ' x', 'x ', 'caf\u00e9', 'a: b', '- x', '#x', 'x\ty', '\x00', '\x85'):
+        em(doc(S(None, None, (True, True), value, style=style)), allow_unicode=True)
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-serialize-nodes"
+script = '''
+python3 - <<'PYEOF'
+import yaml
+
+
+def ser(node, dumper=yaml.CSafeDumper, **kw):
+    try:
+        print(kw, '->', ascii(yaml.serialize(node, Dumper=dumper, **kw)))
+    except Exception as e:
+        print(kw, '->', type(e).__name__, str(e))
+
+
+def ser_all(nodes, dumper=yaml.CSafeDumper, **kw):
+    try:
+        print(kw, '->', ascii(yaml.serialize_all(nodes, Dumper=dumper, **kw)))
+    except Exception as e:
+        print(kw, '->', type(e).__name__, str(e))
+
+
+STR = 'tag:yaml.org,2002:str'
+INT = 'tag:yaml.org,2002:int'
+n = yaml.compose('a: &x [1, 2]\nb: *x\nc: !t {d: e}\n', Loader=yaml.CSafeLoader)
+ser(n)
+ser(n, canonical=True)
+ser(n, default_flow_style=True)
+ser(n, default_style='"')
+ser(n, explicit_start=True, explicit_end=True)
+ser(n, version=(1, 1), tags={'!e!': 'tag:x:'})
+ser(n, indent=4, width=10)
+ser(n, Dumper=yaml.CDumper)
+ser(n, encoding='utf-8')
+ser(yaml.ScalarNode(STR, 'x'))
+ser(yaml.ScalarNode(STR, 'x'), default_style='|')
+ser(yaml.ScalarNode(STR, 'x', style='"'))
+ser(yaml.ScalarNode(INT, '12'))
+ser(yaml.ScalarNode('!t', '12'))
+ser(yaml.ScalarNode('tag:yaml.org,2002:str', '12'))
+ser(yaml.ScalarNode('tag:yaml.org,2002:str', 'x'), explicit_start=True)
+ser(yaml.SequenceNode('tag:yaml.org,2002:seq', [yaml.ScalarNode(STR, 'a'), yaml.ScalarNode(INT, '1')]))
+ser(yaml.SequenceNode('tag:yaml.org,2002:seq', [], flow_style=True))
+ser(yaml.SequenceNode('tag:yaml.org,2002:seq', [], flow_style=False))
+ser(yaml.MappingNode('tag:yaml.org,2002:map', [(yaml.ScalarNode(STR, 'k'), yaml.ScalarNode(STR, 'v'))]))
+ser(yaml.MappingNode('tag:yaml.org,2002:map', [(yaml.ScalarNode(STR, 'k'), yaml.ScalarNode(STR, 'v'))], flow_style=True))
+ser(yaml.MappingNode('!m', [(yaml.ScalarNode(STR, 'k'), yaml.ScalarNode(STR, 'v'))]))
+shared = yaml.ScalarNode(STR, 'sh')
+ser(yaml.SequenceNode('tag:yaml.org,2002:seq', [shared, shared, shared]))
+ser(yaml.SequenceNode('tag:yaml.org,2002:seq', [shared, shared]), Dumper=yaml.CDumper)
+cyc = yaml.SequenceNode('tag:yaml.org,2002:seq', [])
+cyc.value.append(cyc)
+ser(cyc)
+ser_all([yaml.ScalarNode(STR, 'a'), yaml.ScalarNode(STR, 'b')])
+ser_all([yaml.ScalarNode(STR, 'a'), yaml.ScalarNode(STR, 'b')], explicit_start=True, explicit_end=True)
+ser_all([])
+ser_all([], explicit_start=True)
+ser_all([shared, shared])
+ser(None)
+ser('x')
+ser(1)
+ser(yaml.ScalarNode(None, 'x'))
+ser(yaml.ScalarNode(STR, 1))
+ser(yaml.ScalarNode(STR, None))
+ser(yaml.SequenceNode(STR, 'abc'))
+ser(yaml.SequenceNode('tag:yaml.org,2002:seq', [1]))
+ser(yaml.MappingNode('tag:yaml.org,2002:map', [1]))
+ser(yaml.MappingNode('tag:yaml.org,2002:map', [(1, 2)]))
+ser(yaml.MappingNode('tag:yaml.org,2002:map', [(yaml.ScalarNode(STR, 'k'),)]))
+ser(yaml.ScalarNode(STR, 'caf\u00e9'), allow_unicode=True)
+ser(yaml.ScalarNode(STR, 'caf\u00e9'), allow_unicode=False)
+ser(yaml.ScalarNode(STR, '\ud800'))
+ser(yaml.ScalarNode(STR, '\ud800'), allow_unicode=True)
+ser(yaml.ScalarNode(STR, '\ud800'), encoding='utf-8')
+ser(yaml.ScalarNode(STR, '\U0001f600'), allow_unicode=True, encoding='utf-16')
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-dump-to-stream-and-api"
+script = '''
+python3 - <<'PYEOF' | sed -E 's/ at 0x[0-9a-f]+/ at 0xADDR/g'
+import yaml, io, sys
+
+
+def t(label, f):
+    try:
+        print(label, '->', ascii(f()))
+    except Exception as e:
+        print(label, '->', type(e).__name__, str(e))
+
+
+s = io.StringIO()
+t('dump stream returns', lambda: yaml.dump({'a': 1}, s, Dumper=yaml.CSafeDumper))
+print(ascii(s.getvalue()))
+b = io.BytesIO()
+t('dump bytes stream', lambda: yaml.dump({'a': 'é'}, b, Dumper=yaml.CSafeDumper, encoding='utf-8'))
+print(b.getvalue())
+s = io.StringIO()
+t('dump_all stream', lambda: yaml.dump_all([1, 2], s, Dumper=yaml.CSafeDumper))
+print(ascii(s.getvalue()))
+t('dump to sys.stdout', lambda: yaml.dump({'k': [1, 2]}, sys.stdout, Dumper=yaml.CSafeDumper))
+t('dump to nothing', lambda: yaml.dump({'k': 1}, None, Dumper=yaml.CSafeDumper))
+t('dump bad stream', lambda: yaml.dump({'k': 1}, object(), Dumper=yaml.CSafeDumper))
+t('dump bad stream int', lambda: yaml.dump({'k': 1}, 5, Dumper=yaml.CSafeDumper))
+t('safe_dump', lambda: yaml.safe_dump({'k': (1, 2)}))
+t('safe_dump_all', lambda: yaml.safe_dump_all([1, 'a']))
+t('safe_dump tuple', lambda: yaml.safe_dump((1, 2)))
+t('safe_dump object', lambda: yaml.safe_dump(object()))
+t('safe_dump kw', lambda: yaml.safe_dump({'b': 1, 'a': 2}, sort_keys=False, default_flow_style=True))
+t('dump default Dumper tuple', lambda: yaml.dump((1, 2)))
+t('dump no dumper kw', lambda: yaml.dump({'k': 1}, bogus=1, Dumper=yaml.CSafeDumper))
+t('dump positional', lambda: yaml.dump({'k': 1}, None, yaml.CSafeDumper))
+t('load no loader', lambda: yaml.load('a: 1'))
+t('load none loader', lambda: yaml.load('a: 1', Loader=None))
+t('load_all no loader', lambda: list(yaml.load_all('a: 1')))
+t('load positional', lambda: yaml.load('a: 1', yaml.CSafeLoader))
+t('full_load', lambda: yaml.full_load('a: !!python/tuple [1]'))
+t('unsafe_load', lambda: yaml.unsafe_load('a: !!python/tuple [1]'))
+t('safe_load', lambda: yaml.safe_load('a: [1, 2]'))
+t('safe_load_all', lambda: list(yaml.safe_load_all('1\n---\n2')))
+t('CFullLoader tuple', lambda: yaml.load('!!python/tuple [1]', Loader=yaml.CFullLoader))
+t('CFullLoader name', lambda: yaml.load('!!python/name:os.getcwd', Loader=yaml.CFullLoader))
+t('CBaseLoader', lambda: yaml.load('a: [1, true, null, 2.5]', Loader=yaml.CBaseLoader))
+t('CBaseLoader tags', lambda: yaml.load('[!!int 1, !!str 2, !t 3]', Loader=yaml.CBaseLoader))
+t('CBaseLoader anchor', lambda: yaml.load('[&a x, *a]', Loader=yaml.CBaseLoader))
+t('CBaseLoader merge', lambda: yaml.load('a: &b {x: 1}\nc:\n  <<: *b\n', Loader=yaml.CBaseLoader))
+t('CBaseDumper', lambda: yaml.dump({'a': 1}, Dumper=yaml.CBaseDumper))
+t('CBaseDumper str', lambda: yaml.dump('x', Dumper=yaml.CBaseDumper))
+t('CBaseDumper list', lambda: yaml.dump([1, 2], Dumper=yaml.CBaseDumper))
+t('CBaseDumper tuple', lambda: yaml.dump((1,), Dumper=yaml.CBaseDumper))
+t('reuse loader', lambda: (lambda l: (l.get_single_data(), l.dispose()))(yaml.CSafeLoader('a: 1')))
+t('loader get_data', lambda: (lambda l: (l.check_data(), l.get_data(), l.check_data()))(yaml.CSafeLoader('1\n---\n2')))
+t('loader get_single_data multi', lambda: yaml.CSafeLoader('1\n---\n2').get_single_data())
+t('loader empty', lambda: yaml.CSafeLoader('').get_single_data())
+t('loader attrs', lambda: (lambda l: (type(l).__name__, l.check_node(), l.get_node().tag))(yaml.CSafeLoader('a')))
+t('loader peek', lambda: (lambda l: (type(l.peek_event()).__name__, type(l.get_event()).__name__, l.check_event(yaml.StreamStartEvent), l.check_event(yaml.DocumentStartEvent)))(yaml.CSafeLoader('a')))
+t('loader tokens', lambda: (lambda l: (type(l.peek_token()).__name__, type(l.get_token()).__name__, l.check_token(yaml.DocumentStartToken), l.check_token(yaml.ScalarToken)))(yaml.CSafeLoader('a')))
+t('loader get_event done', lambda: (lambda l: [l.get_event() for _ in range(6)])(yaml.CSafeLoader('a')))
+t('loader bad stream', lambda: yaml.CSafeLoader(5))
+t('loader bad stream obj', lambda: yaml.CSafeLoader(object()))
+t('loader None stream', lambda: yaml.CSafeLoader(None))
+t('loader closed file', lambda: (lambda f: (f.close(), yaml.CSafeLoader(f).get_single_data()))(io.StringIO('a')))
+d = yaml.CSafeDumper(None)
+t('dumper open/represent/close', lambda: (d.open(), d.represent({'a': 1}), d.close(), 'done'))
+d = yaml.CSafeDumper(io.StringIO())
+t('dumper stream', lambda: (d.open(), d.represent([1]), d.close(), d.stream.getvalue()))
+d = yaml.CSafeDumper(io.StringIO())
+t('dumper no open', lambda: (d.represent([1]), d.stream.getvalue()))
+d = yaml.CSafeDumper(io.StringIO())
+t('dumper close no open', lambda: (d.close(), d.stream.getvalue()))
+d = yaml.CSafeDumper(io.StringIO())
+t('dumper double close', lambda: (d.open(), d.close(), d.close(), d.stream.getvalue()))
+d = yaml.CSafeDumper(io.StringIO())
+t('dumper dispose', lambda: (d.open(), d.represent(1), d.dispose(), 'ok'))
+t('dumper bad opts', lambda: yaml.CSafeDumper(io.StringIO(), indent='x'))
+t('dumper bad version', lambda: yaml.CSafeDumper(io.StringIO(), version=(9, 9)).open())
+t('dumper tags', lambda: (lambda d: (d.open(), d.represent(1), d.close(), d.stream.getvalue()))(yaml.CSafeDumper(io.StringIO(), tags={'!a!': 'x:'}, explicit_start=True)))
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-roundtrip-values"
+script = '''
+python3 - <<'PYEOF'
+import yaml, datetime, math
+
+values = [
+    0, 1, -1, 2**70, 1.5, -0.0, 1e100, 1e-100, 123456789012345.6, float('inf'), float('-inf'), True, False, None,
+    '', ' ', 'x', 'yes', 'no', 'on', 'off', 'true', 'null', '~', '1', '1.5', '0x1', '1e3', '.inf', '2001-12-14', '12:30:45', '1:2', 'a: b', '# c', '- d', '? e', '@f', '`g', '!h', '&i', '*j', '|k', '>l', "'m'", '"n"', '%o', 'p, q', '[r]', '{s}',
+    'a\nb', 'a\nb\n', '\n', ' \n', 'a  b', 'a\tb', 'x ', ' y', 'caf\u00e9', '\u65e5\u672c', '\U0001f600', 'tab\there', 'cr\rhere', 'nul\x00here', 'bell\x07', 'del\x7f', 'nel\x85', 'ls\u2028', 'bom\ufeff', '\ud800', 'z' * 200, 'w ' * 100,
+    b'', b'\x00\xff', bytes(range(256)),
+    datetime.date(2024, 2, 29), datetime.datetime(2024, 2, 29, 12, 30, 45), datetime.datetime(2024, 2, 29, 12, 30, 45, 123456), datetime.datetime(2024, 2, 29, 12, 30, 45, tzinfo=datetime.timezone.utc), datetime.datetime(2024, 2, 29, 12, 30, 45, tzinfo=datetime.timezone(datetime.timedelta(hours=5, minutes=30))),
+    [], {}, [[]], [{}], {'a': []}, {'a': {}}, [1, [2, [3, [4]]]], {'a': {'b': {'c': {'d': 1}}}}, {1: 'a', 2: 'b'}, {None: 1}, {True: 1}, {1.5: 1}, {'': ''}, {'a b': 'c d'},
+    {'users': [{'name': 'a', 'tags': ['x', 'y'], 'meta': {'k': None}}, {'name': 'b', 'tags': [], 'meta': {}}]},
+]
+for dumper, loader in ((yaml.CSafeDumper, yaml.CSafeLoader), (yaml.CDumper, yaml.CLoader), (yaml.CSafeDumper, yaml.CLoader), (yaml.CDumper, yaml.CSafeLoader)):
+    print('==', dumper.__name__, loader.__name__)
+    for dfs in (None, False, True):
+        for au in (False, True):
+            ok = bad = 0
+            for v in values:
+                try:
+                    text = yaml.dump(v, Dumper=dumper, default_flow_style=dfs, allow_unicode=au)
+                    back = yaml.load(text, Loader=loader)
+                    same = back == v or (isinstance(v, float) and math.isnan(v))
+                    if same and type(back) is type(v):
+                        ok += 1
+                    else:
+                        bad += 1
+                        print('  MISMATCH', ascii(v), ascii(text), ascii(back))
+                except Exception as e:
+                    bad += 1
+                    print('  ERROR', ascii(v), type(e).__name__, str(e))
+            print(dfs, au, ok, bad)
+nan = yaml.load(yaml.dump(float('nan'), Dumper=yaml.CSafeDumper), Loader=yaml.CSafeLoader)
+print(math.isnan(nan), yaml.dump(float('nan'), Dumper=yaml.CSafeDumper), yaml.dump(-0.0, Dumper=yaml.CSafeDumper))
+print(math.copysign(1, yaml.load('-0.0', Loader=yaml.CSafeLoader)))
+for w in (10, 20, 40, 80, 200):
+    for ind in (2, 3, 4, 8):
+        v = {'k': 'word ' * 30, 'l': ['item ' * 15, {'n': 'deep ' * 20}], 'm': {'p': [1, 2, 3], 'q': 'x'}}
+        text = yaml.dump(v, Dumper=yaml.CSafeDumper, width=w, indent=ind)
+        print(w, ind, yaml.load(text, Loader=yaml.CSafeLoader) == v, len(text.splitlines()), max(len(x) for x in text.splitlines()))
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-dump-known-bad-inputs"
+script = '''
+python3 - <<'PYEOF' | sed -E 's/ at 0x[0-9a-f]+/ at 0xADDR/g'
+import yaml
+
+
+def t(value, dumper=yaml.CSafeDumper, **kw):
+    try:
+        print(kw, '->', ascii(yaml.dump(value, Dumper=dumper, **kw)))
+    except Exception as e:
+        print(kw, '->', type(e).__name__, str(e))
+
+
+a = []
+a.append(a)
+t(a)
+t(a, yaml.CDumper)
+t(a, default_flow_style=True)
+d = {}
+d['self'] = d
+t(d)
+t(d, yaml.CDumper)
+shared = [1, 2]
+t({'a': shared, 'b': shared})
+t({'a': shared, 'b': shared}, yaml.CDumper)
+t([shared, shared, [shared]], default_flow_style=True)
+s = 'shared string that is long enough'
+t([s, s, s])
+t([{'k': 1}] * 3)
+t([{'k': 1}] * 3, default_flow_style=True)
+t({'a': (1, 2), 'b': (1, 2)}, yaml.CDumper)
+t([1.5] * 3)
+t([None] * 3)
+t([True, True])
+t(['x', 'x'])
+t([[], []])
+t([{}, {}])
+t([[1], [1]])
+t(set([1, 2]) , yaml.CDumper)
+t({1, 2}, yaml.CSafeDumper)
+t(b'bytes')
+t(lambda: 1)
+t(print)
+t(type)
+t(Exception('x'))
+t(ValueError)
+t(NotImplemented)
+t(Ellipsis)
+t(float)
+t(open)
+t(yaml)
+t(yaml.dump)
+t(yaml.CSafeDumper)
+t({object(): 1})
+t({[1]: 1})
+t({(1, [2]): 1}, yaml.CDumper)
+t({'a': object()}, yaml.CDumper)
+t({'a': object()})
+t('x', yaml.CSafeDumper, Dumper=yaml.CSafeDumper)
+t('x', 5)
+t('x', None)
+t('x', object)
+t('x', int)
+t('x', yaml.SafeDumper)
+t('x', yaml.Dumper)
+t('x', yaml.BaseDumper)
+t({'a': [1, {'b': 2}]}, yaml.SafeDumper)
+t({'a': [1, {'b': 2}]}, yaml.Dumper)
+print(yaml.dump({'a': [1, {'b': 2}], 'c': 'x\ny'}, Dumper=yaml.CSafeDumper) == yaml.dump({'a': [1, {'b': 2}], 'c': 'x\ny'}, Dumper=yaml.SafeDumper))
+print(yaml.dump({'z': 'caf\u00e9 \U0001f600', 'k': ['a b', 'c: d', '1', 'true']}, Dumper=yaml.CSafeDumper) == yaml.dump({'z': 'caf\u00e9 \U0001f600', 'k': ['a b', 'c: d', '1', 'true']}, Dumper=yaml.SafeDumper))
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-config-compose-roundtrip"
+script = '''
+python3 - <<'PYEOF'
+import yaml
+
+compose = """\
+# stack de exemplo
+version: "3.8"
+x-common: &common
+  restart: unless-stopped
+  environment:
+    TZ: America/Sao_Paulo
+    LOG_LEVEL: info
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+
+services:
+  web:
+    <<: *common
+    image: registry.example.com/web:1.4.2
+    ports:
+      - "8080:80"
+      - 8443:443
+    environment:
+      TZ: UTC
+      DEBUG: yes
+      EMPTY:
+      PORT: 8080
+      RATIO: 0.75
+      FLAGS: [a, b, c]
+    command: ["gunicorn", "-b", "0.0.0.0:8000", "app:app"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - db
+      - cache
+    volumes:
+      - ./data:/var/lib/data:ro
+      - type: bind
+        source: ./conf
+        target: /etc/app
+  db:
+    <<: *common
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: "s3cr3t: with colon"
+      POSTGRES_DB: app
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=256MB
+  cache:
+    image: redis:7
+    entrypoint: |
+      #!/bin/sh
+      exec redis-server "$@"
+
+volumes:
+  dbdata: {}
+  other:
+networks:
+  default:
+    name: stack_net
+"""
+
+workflow = """\
+name: CI
+on:
+  push:
+    branches: [main, 'release/**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Enable debug'
+        required: false
+        default: false
+        type: boolean
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+jobs:
+  test:
+    name: Test (${{ matrix.os }}, ${{ matrix.rust }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        rust: [stable, beta, nightly]
+        include:
+          - os: ubuntu-latest
+            rust: '1.75'
+        exclude:
+          - {os: windows-latest, rust: nightly}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+          components: clippy, rustfmt
+      - name: Build
+        run: |
+          cargo build --all-targets --locked
+          cargo test --all -- --nocapture
+      - name: Long one-liner
+        run: cargo clippy --all-targets --all-features -- -D warnings -W clippy::pedantic -A clippy::module_name_repetitions
+      - if: ${{ failure() }}
+        run: echo "failed on ${{ matrix.os }}"
+        continue-on-error: true
+        timeout-minutes: 15
+  deploy:
+    needs: [test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - run: >-
+          echo deploying
+          and more
+"""
+
+for label, text in (('compose', compose), ('workflow', workflow)):
+    print('=====', label)
+    for loader in (yaml.CSafeLoader, yaml.CLoader):
+        data = yaml.load(text, Loader=loader)
+        print(loader.__name__, type(data).__name__, list(data))
+    data = yaml.load(text, Loader=yaml.CSafeLoader)
+    print(repr(data))
+    for dumper in (yaml.CSafeDumper, yaml.CDumper):
+        for kw in ({}, {'sort_keys': False}, {'sort_keys': False, 'default_flow_style': False, 'indent': 2}, {'sort_keys': False, 'default_flow_style': None}, {'default_flow_style': True}, {'sort_keys': False, 'width': 60}, {'sort_keys': False, 'indent': 4, 'width': 1000}, {'sort_keys': False, 'allow_unicode': True, 'explicit_start': True}, {'canonical': True}):
+            out = yaml.dump(data, Dumper=dumper, **kw)
+            print('--', dumper.__name__, kw)
+            print(out)
+            back = yaml.load(out, Loader=yaml.CSafeLoader)
+            print('roundtrip equal:', back == data)
+    node = yaml.compose(text, Loader=yaml.CSafeLoader)
+    print(ascii(yaml.serialize(node, Dumper=yaml.CSafeDumper)))
+    evs = [type(e).__name__ for e in yaml.parse(text, Loader=yaml.CSafeLoader)]
+    print(len(evs), evs[:12])
+    toks = [type(t).__name__ for t in yaml.scan(text, Loader=yaml.CSafeLoader)]
+    print(len(toks), toks[:12])
+    print(ascii(yaml.emit(yaml.parse(text, Loader=yaml.CSafeLoader), Dumper=yaml.CSafeDumper)))
+    print(ascii(yaml.emit(yaml.parse(text, Loader=yaml.CSafeLoader), Dumper=yaml.CSafeDumper, canonical=True)))
+    print(ascii(yaml.emit(yaml.parse(text, Loader=yaml.CSafeLoader), Dumper=yaml.CSafeDumper, width=40, indent=4)))
+    print(yaml.emit(yaml.parse(text, Loader=yaml.CSafeLoader), Dumper=yaml.CSafeDumper) == text)
+broken = compose.replace('      - db\n', '    - db\n', 1)
+try:
+    yaml.load(broken, Loader=yaml.CSafeLoader)
+except yaml.YAMLError as e:
+    print(type(e).__name__)
+    print(e)
+broken = workflow.replace("branches: [main, 'release/**']", "branches: [main, 'release/**'")
+try:
+    yaml.load(broken, Loader=yaml.CSafeLoader)
+except yaml.YAMLError as e:
+    print(type(e).__name__)
+    print(e)
+PYEOF
+'''
+
+[[case]]
+id = "yaml-libyaml-config-file-io"
+script = '''
+python3 - <<'PYEOF'
+import yaml, os, tempfile
+
+cfg = {
+    'server': {'host': '0.0.0.0', 'port': 8080, 'tls': {'enabled': False, 'cert': None}},
+    'features': ['a', 'b', {'c': True}],
+    'limits': {'rate': 1.5, 'burst': 10, 'name': 'caf\u00e9'},
+    'motd': 'line one\nline two\n',
+    'regex': '^\\\\d+$',
+    'empty': [],
+    'when': None,
+}
+d = '/tmp/yaml-config-io'
+os.makedirs(d, exist_ok=True)
+p = os.path.join(d, 'config.yml')
+for dumper, loader in ((yaml.CSafeDumper, yaml.CSafeLoader), (yaml.CDumper, yaml.CLoader)):
+    with open(p, 'w', encoding='utf-8') as f:
+        r = yaml.dump(cfg, f, Dumper=dumper, sort_keys=False, allow_unicode=True)
+        print('dump returned', r)
+    with open(p, encoding='utf-8') as f:
+        raw = f.read()
+    print(raw)
+    with open(p, encoding='utf-8') as f:
+        back = yaml.load(f, Loader=loader)
+    print(back == cfg, back)
+    with open(p, 'rb') as f:
+        back = yaml.load(f, Loader=loader)
+    print(back == cfg)
+    with open(p, 'wb') as f:
+        yaml.dump(cfg, f, Dumper=dumper, sort_keys=False, encoding='utf-8')
+    with open(p, 'rb') as f:
+        data = f.read()
+    print(data[:60], len(data))
+    with open(p, 'wb') as f:
+        yaml.dump(cfg, f, Dumper=dumper, sort_keys=False, encoding='utf-16', allow_unicode=True)
+    with open(p, 'rb') as f:
+        data = f.read()
+    print(data[:20], len(data))
+    with open(p, 'rb') as f:
+        print(yaml.load(f, Loader=loader) == cfg)
+    with open(p, 'w', encoding='utf-8') as f:
+        yaml.dump_all([cfg, [1, 2], 'x'], f, Dumper=dumper, sort_keys=False, explicit_start=True)
+    with open(p, encoding='utf-8') as f:
+        docs = list(yaml.load_all(f, Loader=loader))
+    print(len(docs), docs[0] == cfg, docs[1:])
+    with open(p, 'w', encoding='latin-1') as f:
+        yaml.dump({'k': 'caf\u00e9'}, f, Dumper=dumper, allow_unicode=True)
+    with open(p, 'rb') as f:
+        data = f.read()
+    print(data)
+    try:
+        with open(p, 'rb') as f:
+            print(yaml.load(f, Loader=loader))
+    except Exception as e:
+        print(type(e).__name__, str(e))
+    try:
+        with open(p, 'w') as f:
+            f.write('a: [1, 2\nb: 3\n')
+        with open(p) as f:
+            yaml.load(f, Loader=loader)
+    except yaml.YAMLError as e:
+        print(type(e).__name__)
+        print(e)
+        print(e.problem_mark.name == p, os.path.basename(e.problem_mark.name))
+os.remove(p)
+os.rmdir(d)
+PYEOF
+'''

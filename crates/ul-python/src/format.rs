@@ -10,7 +10,7 @@ use num_bigint::BigInt;
 use num_traits::{Signed, ToPrimitive};
 
 use crate::native_util::value_error;
-use crate::object::{float_repr, repr, to_str, ExcObj, Kw, Value};
+use crate::object::{code_points, cp_to_str, float_repr, repr, to_str, units, ExcObj, Kw, Value, ESCAPE};
 use crate::vm::{exc, type_error, PyException, PyResult, Vm};
 
 /// `KeyError(chave)`: a mensagem é o `repr` da chave, como no CPython.
@@ -48,7 +48,7 @@ pub fn ascii_repr(v: &Value) -> String {
 
 #[derive(Clone)]
 struct Spec {
-    fill: char,
+    fill: String,
     fill_given: bool,
     align: Option<char>,
     sign: Option<char>,
@@ -77,10 +77,13 @@ fn parse_digits(c: &[char], i: &mut usize) -> PyResult<Option<usize>> {
 }
 
 fn parse_spec(spec: &str, tname: &str) -> PyResult<Spec> {
-    let c: Vec<char> = spec.chars().collect();
+    let cps: Vec<u32> = code_points(spec).collect();
+    // Lido por código-ponto: U+10FFFF e os surrogates são pares de escape internos, e o
+    // preenchimento é um só caractere do ponto de vista do Python.
+    let c: Vec<char> = cps.iter().map(|&cp| char::from_u32(cp).unwrap_or('\u{fffd}')).collect();
     let mut i = 0usize;
     let mut sp = Spec {
-        fill: ' ',
+        fill: " ".to_string(),
         fill_given: false,
         align: None,
         sign: None,
@@ -94,7 +97,7 @@ fn parse_spec(spec: &str, tname: &str) -> PyResult<Spec> {
     };
     let is_align = |ch: char| matches!(ch, '<' | '>' | '^' | '=');
     if c.len() >= 2 && is_align(c[1]) {
-        sp.fill = c[0];
+        sp.fill = cp_to_str(cps[0]);
         sp.fill_given = true;
         sp.align = Some(c[1]);
         i = 2;
@@ -115,7 +118,7 @@ fn parse_spec(spec: &str, tname: &str) -> PyResult<Spec> {
         i += 1;
     }
     if !sp.fill_given && i < c.len() && c[i] == '0' {
-        sp.fill = '0';
+        sp.fill = "0".to_string();
         sp.zero = true;
         i += 1;
     }
@@ -162,8 +165,8 @@ fn unknown_code(t: char, tname: &str) -> PyException {
 }
 
 /// Preenche `body` até a largura com `fill`, alinhando por `align` (`<`, `>` ou `^`).
-fn pad(body: &str, width: Option<usize>, fill: char, align: char) -> String {
-    let n = body.chars().count();
+fn pad(body: &str, width: Option<usize>, fill: &str, align: char) -> String {
+    let n = code_points(body).count();
     let w = width.unwrap_or(0);
     if w <= n {
         return body.to_string();
@@ -175,9 +178,9 @@ fn pad(body: &str, width: Option<usize>, fill: char, align: char) -> String {
         _ => (total, 0),
     };
     let mut out = String::with_capacity(body.len() + total);
-    out.extend(std::iter::repeat_n(fill, l));
+    out.push_str(&fill.repeat(l));
     out.push_str(body);
-    out.extend(std::iter::repeat_n(fill, r));
+    out.push_str(&fill.repeat(r));
     out
 }
 
@@ -203,7 +206,7 @@ fn assemble(lead: &str, int_part: &str, rest: &str, sp: &Spec, size: usize) -> S
     let mut int_g = group(int_part);
     let w = sp.width.unwrap_or(0);
     let fixed = lead.chars().count() + rest.chars().count();
-    if align == '=' && sp.fill == '0' && sp.grouping.is_some() && !int_part.is_empty() {
+    if align == '=' && sp.fill == "0" && sp.grouping.is_some() && !int_part.is_empty() {
         // O CPython estende o agrupamento para dentro do preenchimento de zeros.
         let mut digits = int_part.to_string();
         while fixed + int_g.chars().count() < w {
@@ -216,7 +219,7 @@ fn assemble(lead: &str, int_part: &str, rest: &str, sp: &Spec, size: usize) -> S
         return format!("{lead}{int_g}{rest}");
     }
     let total = w - len;
-    let fill = |n: usize| -> String { std::iter::repeat_n(sp.fill, n).collect() };
+    let fill = |n: usize| -> String { sp.fill.repeat(n) };
     match align {
         '<' => format!("{lead}{int_g}{rest}{}", fill(total)),
         '^' => format!("{}{lead}{int_g}{rest}{}", fill(total / 2), fill(total - total / 2)),
@@ -367,10 +370,10 @@ fn format_str(s: &str, spec: &str) -> PyResult<String> {
         return Err(value_error("'=' alignment not allowed in string format specifier"));
     }
     let text: String = match sp.precision {
-        Some(p) => s.chars().take(p).collect(),
+        Some(p) => units(s).take(p).collect(),
         None => s.to_string(),
     };
-    Ok(pad(&text, sp.width, sp.fill, sp.align.unwrap_or('<')))
+    Ok(pad(&text, sp.width, &sp.fill, sp.align.unwrap_or('<')))
 }
 
 fn sign_str(neg: bool, sign: Option<char>) -> &'static str {
@@ -403,11 +406,11 @@ fn format_int(n: &BigInt, spec: &str, tname: &str) -> PyResult<String> {
         if sp.alt {
             return Err(value_error("Alternate form (#) not allowed with integer format specifier 'c'"));
         }
-        let ch = n
+        let cp = n
             .to_u32()
-            .and_then(char::from_u32)
+            .filter(|&cp| cp <= 0x10_FFFF)
             .ok_or_else(|| exc("OverflowError", "%c arg not in range(0x110000)"))?;
-        return Ok(pad(&ch.to_string(), sp.width, sp.fill, sp.align.unwrap_or('>')));
+        return Ok(pad(&cp_to_str(cp), sp.width, &sp.fill, sp.align.unwrap_or('>')));
     }
     let a = n.abs();
     let (digits, prefix, size) = match ty {
@@ -491,7 +494,7 @@ fn next_arg(items: &[Value], next: &mut usize) -> PyResult<Value> {
 
 /// Sinal e prefixo, preenchimento de zeros entre eles e os dígitos, ou espaços.
 fn layout(lead: &str, body: &str, width: Option<usize>, left: bool, zero: bool) -> String {
-    let n = lead.chars().count() + body.chars().count();
+    let n = code_points(lead).count() + code_points(body).count();
     let w = width.unwrap_or(0);
     if w <= n {
         return format!("{lead}{body}");
@@ -516,9 +519,24 @@ fn float_to_bigint(x: f64) -> PyResult<BigInt> {
     Ok(crate::bigint::float_to_big(x).unwrap_or_default())
 }
 
+/// Os bytes como texto latin-1: o formato de `bytes` roda sobre uma `String` de código-pontos < 256.
+fn latin(b: &[u8]) -> String {
+    b.iter().map(|&c| c as char).collect()
+}
+
+/// O argumento de `%b`/`%s` no formato de `bytes`: `bytes`, `bytearray` ou o que tem `__bytes__`
+/// (`memoryview` incluído), em latin-1.
+fn bytes_like(arg: &Value) -> Option<String> {
+    match arg {
+        Value::Bytes(b) => Some(latin(b)),
+        Value::ByteArray(b) => Some(latin(&b.borrow())),
+        Value::Instance(_) => crate::vm::memoryview_bytes(arg).map(|b| latin(&b)),
+        _ => None,
+    }
+}
+
 /// `fmt % args` com `fmt` em `bytes`: `%b` vale como `%s`, e argumentos `bytes` entram como estão.
 pub fn bytes_percent_format(fmt: &[u8], args: &Value) -> PyResult<Vec<u8>> {
-    let latin = |b: &[u8]| -> String { b.iter().map(|&c| c as char).collect() };
     let mut text: Vec<char> = latin(fmt).chars().collect();
     let mut i = 0usize;
     while i < text.len() {
@@ -541,16 +559,8 @@ pub fn bytes_percent_format(fmt: &[u8], args: &Value) -> PyResult<Vec<u8>> {
         }
         i += 1;
     }
-    let conv = |v: &Value| match v {
-        Value::Bytes(b) => Value::str(&latin(b)),
-        other => other.clone(),
-    };
-    let args = match args {
-        Value::Tuple(t) => Value::tuple(t.iter().map(conv).collect()),
-        other => conv(other),
-    };
     let text: String = text.into_iter().collect();
-    let out = percent_format(&text, &args)?;
+    let out = percent_format_with(&text, args, PercentKind::Bytes, &mut |_, v| Ok(v.clone()))?;
     out.chars()
         .map(|c| u8::try_from(c as u32).map_err(|_| exc("ValueError", "bytes formatting: character out of latin-1 range")))
         .collect()
@@ -558,7 +568,16 @@ pub fn bytes_percent_format(fmt: &[u8], args: &Value) -> PyResult<Vec<u8>> {
 
 /// `fmt % args`.
 pub fn percent_format(fmt: &str, args: &Value) -> PyResult<String> {
-    percent_format_with(fmt, args, &mut |_, v| Ok(v.clone()))
+    percent_format_with(fmt, args, PercentKind::Str, &mut |_, v| Ok(v.clone()))
+}
+
+/// De que tipo é o formato do `%`: muda só a mensagem de "unsupported format character".
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum PercentKind {
+    /// `unicode_format_arg_parse`: o caractere sai se estiver em 31..=126, senão `?`.
+    Str,
+    /// `_PyBytes_FormatEx`: o byte sai cru, como `%c`.
+    Bytes,
 }
 
 /// `fmt % args` com `hook(conversão, instância)`: devolve o texto (`%s`, `%r`, `%a`) ou o número que
@@ -566,6 +585,7 @@ pub fn percent_format(fmt: &str, args: &Value) -> PyResult<String> {
 pub fn percent_format_with(
     fmt: &str,
     args: &Value,
+    kind: PercentKind,
     hook: &mut dyn FnMut(char, &Value) -> PyResult<Value>,
 ) -> PyResult<String> {
     let c: Vec<char> = fmt.chars().collect();
@@ -587,8 +607,12 @@ pub fn percent_format_with(
             continue;
         }
         i += 1;
-        let mut key: Option<String> = None;
+        // `%(chave)`: o CPython procura a chave logo que a lê, antes de flags, largura e conversão.
+        let mut keyed: Option<Value> = None;
         if i < c.len() && c[i] == '(' {
+            if !is_dict {
+                return Err(type_error("format requires a mapping"));
+            }
             let mut depth = 1;
             let st = i + 1;
             i += 1;
@@ -603,7 +627,16 @@ pub fn percent_format_with(
             if depth > 0 {
                 return Err(value_error("incomplete format key"));
             }
-            key = Some(c[st..i - 1].iter().collect());
+            // No formato de `bytes` a chave é um `bytes` (latin-1), não `str`.
+            let kv = match kind {
+                PercentKind::Str => Value::str(c[st..i - 1].iter().collect::<String>()),
+                PercentKind::Bytes => Value::bytes(c[st..i - 1].iter().map(|&ch| ch as u8).collect::<Vec<u8>>()),
+            };
+            let found = match args {
+                Value::Dict(d) => d.borrow().get(&kv)?,
+                _ => None,
+            };
+            keyed = Some(found.ok_or_else(|| key_error(&kv))?);
         }
         let (mut left, mut plus, mut space, mut alt, mut zero) = (false, false, false, false, false);
         while i < c.len() {
@@ -617,6 +650,7 @@ pub fn percent_format_with(
             }
             i += 1;
         }
+        let flags_end = i;
         let mut width: Option<usize> = None;
         if i < c.len() && c[i] == '*' {
             let v = next_arg(&items, &mut next)?;
@@ -649,29 +683,28 @@ pub fn percent_format_with(
                 prec = Some(parse_digits(&c, &mut i)?.unwrap_or(0));
             }
         }
+        // O `_PyBytes_FormatEx` lê o caractere logo depois das flags com sinal (`c = *fmt++`), mas o que
+        // vem depois de largura ou precisão com `Py_CHARMASK`: só no primeiro caso um byte alto vira negativo.
+        let masked_fetch = i > flags_end;
         while i < c.len() && matches!(c[i], 'h' | 'l' | 'L') {
             i += 1;
         }
         if i >= c.len() {
             return Err(value_error("incomplete format"));
         }
+        let conv_at = i;
         let conv = c[i];
         i += 1;
+        // O par de escape (U+10FFFF e o char seguinte) é um só código-ponto: não é conversão válida.
+        if conv == ESCAPE && i < c.len() {
+            i += 1;
+        }
         if conv == '%' {
             out.push('%');
             continue;
         }
-        let arg = match &key {
-            Some(k) => {
-                let kv = Value::str(k.clone());
-                match args {
-                    Value::Dict(d) => match d.borrow().get(&kv)? {
-                        Some(v) => v,
-                        None => return Err(key_error(&kv)),
-                    },
-                    _ => return Err(type_error("format requires a mapping")),
-                }
-            }
+        let arg = match keyed {
+            Some(v) => v,
             None => next_arg(&items, &mut next)?,
         };
         // Instância de classe do usuário: `__int__`, `__index__` e `__float__` valem nas conversões numéricas.
@@ -692,49 +725,62 @@ pub fn percent_format_with(
         };
         match conv {
             's' | 'r' | 'a' => {
-                let hooked = match &arg {
-                    Value::Instance(_) => match hook(conv, &arg)? {
-                        Value::Str(s) => Some(s.as_str().to_string()),
-                        _ => None,
-                    },
-                    _ => None,
-                };
-                let mut t = match (hooked, conv) {
-                    (Some(t), _) => t,
-                    (None, 's') => to_str(&arg),
-                    (None, 'r') => repr(&arg),
-                    (None, _) => ascii_repr(&arg),
+                let mut t = match (kind, conv) {
+                    // `_PyBytes_FormatEx`: `%s` e `%b` pedem bytes; `%r` vale como `%a`.
+                    (PercentKind::Bytes, 's') => bytes_like(&arg).ok_or_else(|| {
+                        type_error(format!(
+                            "%b requires a bytes-like object, or an object that implements __bytes__, not '{}'",
+                            arg.type_name()
+                        ))
+                    })?,
+                    (PercentKind::Bytes, _) => ascii_repr(&arg),
+                    _ => {
+                        let hooked = match &arg {
+                            Value::Instance(_) => match hook(conv, &arg)? {
+                                Value::Str(s) => Some(s.as_str().to_string()),
+                                _ => None,
+                            },
+                            _ => None,
+                        };
+                        match (hooked, conv) {
+                            (Some(t), _) => t,
+                            (None, 's') => to_str(&arg),
+                            (None, 'r') => repr(&arg),
+                            (None, _) => ascii_repr(&arg),
+                        }
+                    }
                 };
                 if let Some(p) = prec {
-                    t = t.chars().take(p).collect();
+                    t = units(&t).take(p).collect();
                 }
                 out.push_str(&layout("", &t, width, left, false));
             }
+            'c' if kind == PercentKind::Bytes => {
+                let byte = match &arg {
+                    Value::Bytes(b) if b.len() == 1 => Some(b[0]),
+                    Value::ByteArray(b) if b.borrow().len() == 1 => Some(b.borrow()[0]),
+                    Value::Int(n) => Some(u8::try_from(*n).map_err(|_| exc("OverflowError", "%c arg not in range(256)"))?),
+                    Value::Bool(b) => Some(u8::from(*b)),
+                    _ => None,
+                };
+                let byte = byte
+                    .ok_or_else(|| type_error("%c requires an integer in range(256) or a single byte"))?;
+                out.push_str(&layout("", &cp_to_str(u32::from(byte)), width, left, false));
+            }
             'c' => {
-                let from_int = |n: i64| -> PyResult<char> {
+                let from_int = |n: i64| -> PyResult<u32> {
                     u32::try_from(n)
                         .ok()
-                        .and_then(char::from_u32)
+                        .filter(|&cp| cp <= 0x10_FFFF)
                         .ok_or_else(|| exc("OverflowError", "%c arg not in range(0x110000)"))
                 };
-                let ch = match &arg {
+                let cp = match &arg {
                     Value::Int(n) => from_int(*n)?,
                     Value::Bool(b) => from_int(i64::from(*b))?,
-                    Value::Str(s) if s.len() == 1 => s.as_str().chars().next().unwrap_or(' '),
-                    Value::Str(s) => {
-                        return Err(type_error(format!(
-                            "%c requires an int or a unicode character, not a string of length {}",
-                            s.len()
-                        )))
-                    }
-                    other => {
-                        return Err(type_error(format!(
-                            "%c requires an int or a unicode character, not {}",
-                            other.type_name()
-                        )))
-                    }
+                    Value::Str(s) if s.len() == 1 => s.cp_at(0).unwrap_or(0x20),
+                    _ => return Err(type_error("%c requires int or char")),
                 };
-                out.push_str(&layout("", &ch.to_string(), width, left, false));
+                out.push_str(&layout("", &cp_to_str(cp), width, left, false));
             }
             'd' | 'i' | 'u' => {
                 let n: BigInt = match &arg {
@@ -743,8 +789,10 @@ pub fn percent_format_with(
                     Value::Bool(b) => BigInt::from(i64::from(*b)),
                     Value::Float(x) => float_to_bigint(*x)?,
                     other => {
+                        // `_PyBytes_FormatEx` normaliza `%i` para `%d` antes da mensagem; o str mantém.
+                        let shown = if kind == PercentKind::Bytes && conv == 'i' { 'd' } else { conv };
                         return Err(type_error(format!(
-                            "%{conv} format: a real number is required, not {}",
+                            "%{shown} format: a real number is required, not {}",
                             other.type_name()
                         )))
                     }
@@ -758,14 +806,12 @@ pub fn percent_format_with(
                 out.push_str(&layout(sign_for(n.is_negative()), &digits, width, left, zero));
             }
             'o' | 'x' | 'X' => {
-                let n: BigInt = match &arg {
-                    Value::Int(n) => BigInt::from(*n),
-                    Value::Big(n) => (**n).clone(),
-                    Value::Bool(b) => BigInt::from(i64::from(*b)),
-                    other => {
+                let n: BigInt = match crate::bigint::as_big(&crate::vm::unwrap_payload(&arg)) {
+                    Some(n) => n,
+                    None => {
                         return Err(type_error(format!(
                             "%{conv} format: an integer is required, not {}",
-                            other.type_name()
+                            arg.type_name()
                         )))
                     }
                 };
@@ -792,6 +838,9 @@ pub fn percent_format_with(
                     Value::Int(n) => *n as f64,
                     Value::Big(n) => crate::bigint::to_f64(n)?,
                     Value::Bool(b) => f64::from(u8::from(*b)),
+                    other if kind == PercentKind::Bytes => {
+                        return Err(type_error(format!("float argument required, not {}", other.type_name())))
+                    }
                     other => return Err(type_error(format!("must be real number, not {}", other.type_name()))),
                 };
                 let neg = x.is_sign_negative() && !x.is_nan();
@@ -808,16 +857,35 @@ pub fn percent_format_with(
                 };
                 out.push_str(&layout(sign_for(neg), &body, width, left, zero && a.is_finite()));
             }
-            other => {
-                return Err(value_error(format!(
-                    "unsupported format character '{other}' (0x{:x})",
-                    other as u32
-                )))
+            _ => {
+                // `unicode_format_arg_parse` do CPython: o caractere só aparece se imprimível
+                // ASCII (31..126), senão '?'; o índice conta código-pontos do formato.
+                let at = conv_at;
+                let (cp, index) = {
+                    let rendered: String = c[..at].iter().collect();
+                    let index = code_points(&rendered).count();
+                    let tail: String = c[at..].iter().take(2).collect();
+                    (code_points(&tail).next().unwrap_or(0), index)
+                };
+                if kind == PercentKind::Bytes && cp >= 0x80 && !masked_fetch {
+                    // `_PyBytes_FormatEx` lê o byte num `char` com sinal: o `%c` do
+                    // `PyUnicode_FromFormat` recebe um inteiro negativo e estoura.
+                    return Err(exc("OverflowError", "character argument not in range(0x110000)"));
+                }
+                let shown = if kind == PercentKind::Bytes {
+                    char::from(cp as u8)
+                } else if (31..=126).contains(&cp) {
+                    char::from(cp as u8)
+                } else {
+                    '?'
+                };
+                return Err(value_error(format!("unsupported format character '{shown}' (0x{cp:x}) at index {index}")));
             }
         }
     }
     if !is_dict && next < items.len() {
-        return Err(type_error("not all arguments converted during string formatting"));
+        let what = if kind == PercentKind::Bytes { "bytes" } else { "string" };
+        return Err(type_error(format!("not all arguments converted during {what} formatting")));
     }
     Ok(out)
 }
@@ -1051,7 +1119,7 @@ fn get_item(obj: &Value, key: &Value) -> PyResult<Value> {
             None => Err(type_error(format!("tuple indices must be integers or slices, not {}", key.type_name()))),
         },
         Value::Str(s) => match norm_index(key, s.len()) {
-            Some(Some(i)) => Ok(Value::str(s.char_at(i).map(String::from).unwrap_or_default())),
+            Some(Some(i)) => Ok(Value::str(s.unit_at(i).unwrap_or_default())),
             Some(None) => Err(exc("IndexError", "string index out of range")),
             None => Err(type_error(format!("string indices must be integers, not '{}'", key.type_name()))),
         },
@@ -1238,7 +1306,20 @@ mod tests {
         assert_eq!(pe("sem", Value::Int(1)), "TypeError: not all arguments converted during string formatting");
         assert_eq!(pe("%d", s("x")), "TypeError: %d format: a real number is required, not str");
         assert_eq!(pe("%x", Value::Float(1.5)), "TypeError: %x format: an integer is required, not float");
-        assert_eq!(pe("%y", Value::Int(1)), "ValueError: unsupported format character 'y' (0x79)");
+        assert_eq!(pe("%y", Value::Int(1)), "ValueError: unsupported format character 'y' (0x79) at index 1");
+        assert_eq!(pe("%\0", Value::Int(1)), "ValueError: unsupported format character '?' (0x0) at index 1");
+        let bytes_err = bytes_percent_format(b"%\0", &Value::tuple(vec![Value::Int(1)])).unwrap_err();
+        assert_eq!(bytes_err.msg, "unsupported format character '\0' (0x0) at index 1");
+        let one = Value::tuple(vec![Value::Int(1)]);
+        let overflow = bytes_percent_format(b"%\x80", &one).unwrap_err();
+        assert_eq!(overflow.msg, "character argument not in range(0x110000)");
+        let missing = bytes_percent_format(b"%\xff", &Value::tuple(vec![])).unwrap_err();
+        assert_eq!(missing.msg, "not enough arguments for format string");
+        let int_msg = bytes_percent_format(b"%i", &Value::bytes(b"s".to_vec())).unwrap_err();
+        assert_eq!(int_msg.msg, "%d format: a real number is required, not bytes");
+        let uint_msg = bytes_percent_format(b"%u", &Value::bytes(b"s".to_vec())).unwrap_err();
+        assert_eq!(uint_msg.msg, "%u format: a real number is required, not bytes");
+        assert_eq!(pe("%i", s("x")), "TypeError: %i format: a real number is required, not str");
         assert_eq!(pe("%", Value::tuple(vec![])), "ValueError: incomplete format");
         assert_eq!(pe("%f", s("x")), "TypeError: must be real number, not str");
     }

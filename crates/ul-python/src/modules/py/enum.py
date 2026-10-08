@@ -79,6 +79,7 @@ class EnumType(type):
             else:
                 member = member_type.__new__(cls, *args)
             member._name_ = key
+            member.__objclass__ = cls
             member._value_ = value if member_type is object else (args[0] if len(args) == 1 else value)
             last_values.append(member._value_)
             existing = None

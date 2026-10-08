@@ -1,7 +1,16 @@
 """collections do sandbox (Python embutido)."""
 
-from itertools import chain, repeat
+__all__ = ['ChainMap', 'Counter', 'OrderedDict', 'UserDict', 'UserList',
+           'UserString', 'defaultdict', 'deque', 'namedtuple']
+
+import _collections_abc
+import sys as _sys
+from itertools import chain as _chain, repeat as _repeat, starmap as _starmap
+from keyword import iskeyword as _iskeyword
+from operator import eq as _eq, itemgetter as _itemgetter
+from reprlib import recursive_repr as _recursive_repr
 from types import GenericAlias as _GenericAlias
+from _weakref import proxy as _proxy
 
 
 def namedtuple(typename, field_names, *, rename=False, defaults=None, module=None):
@@ -125,6 +134,17 @@ def namedtuple(typename, field_names, *, rename=False, defaults=None, module=Non
     for index, name in enumerate(fields):
         namespace[name] = property(lambda self, i=index: self[i], None, None)
     result = type(typename, (tuple,), namespace)
+    # O módulo do tipo é o de quem chamou `namedtuple`, como no `collections/__init__.py` do CPython 3.13.
+    if module is None:
+        try:
+            module = _sys._getframemodulename(1) or '__main__'
+        except AttributeError:
+            try:
+                module = _sys._getframe(1).f_globals.get('__name__', '__main__')
+            except (AttributeError, ValueError):
+                pass
+    if module is not None:
+        result.__module__ = module
     holder.append(result)
     return result
 
@@ -273,6 +293,13 @@ class deque:
             return 'deque(%r)' % (self._items,)
         return 'deque(%r, maxlen=%d)' % (self._items, self.maxlen)
 
+    def __reduce__(self):
+        # `deque_reduce` do _collectionsmodule.c: o estado é o `__dict__` do usuário, que aqui seria só
+        # os campos internos, então vai `None`.
+        if self.maxlen is None:
+            return type(self), (), None, iter(self)
+        return type(self), ((), self.maxlen), None, iter(self)
+
     __hash__ = None
 
 
@@ -297,6 +324,9 @@ class defaultdict(dict):
 
     __copy__ = copy
 
+    def __reduce__(self):
+        args = () if self.default_factory is None else (self.default_factory,)
+        return type(self), args, None, None, iter(self.items())
     def __repr__(self):
         return 'defaultdict(%r, %r)' % (self.default_factory, {k: v for k, v in self.items()})
 
@@ -350,6 +380,9 @@ class Counter(dict):
     def __missing__(self, key):
         return 0
 
+    def __reduce__(self):
+        return self.__class__, (dict(self),)
+
     def total(self):
         return sum(self.values())
 
@@ -360,7 +393,7 @@ class Counter(dict):
         return ordered[:n]
 
     def elements(self):
-        return chain.from_iterable(repeat(elem, count) for elem, count in self.items())
+        return _chain.from_iterable(_repeat(elem, count) for elem, count in self.items())
 
     def update(self, iterable=None, /, **kwds):
         if iterable is not None:

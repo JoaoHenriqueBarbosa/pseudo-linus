@@ -1,0 +1,618 @@
+[[case]]
+id = "socket-audit-repr-and-timeouts"
+script = '''
+python3 - <<'PY'
+import re
+import socket
+import _socket
+
+def show(text):
+    print(re.sub(r"\('127\.0\.0\.1', \d+\)", "(ADDR)", text))
+
+s = socket.socket()
+print(repr(s))
+print(repr(socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)))
+print(repr(_socket.socket()))
+print(repr(socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)))
+s.bind(("127.0.0.1", 0))
+show(repr(s))
+s.listen()
+c = socket.create_connection(s.getsockname())
+show(repr(c))
+c.close()
+print(repr(c))
+s.close()
+print(repr(s))
+print(type(socket.socket().family), type(socket.socket().type))
+
+t = socket.socket()
+print(t.gettimeout(), t.getblocking())
+t.settimeout(0)
+print(t.gettimeout(), t.getblocking())
+t.settimeout(1.5)
+print(t.gettimeout(), t.getblocking())
+t.setblocking(True)
+print(t.gettimeout(), t.getblocking())
+t.setblocking(False)
+print(t.gettimeout(), t.getblocking())
+for value in (1e-12, 0.1, 0.3, 5, True, 2 ** 31, 1e9, -0.0, -1, "a", float("nan"), 10 ** 30,
+              float("inf"), -float("inf"), b"x", [1], None):
+    try:
+        t.settimeout(value)
+        print(repr(value), "->", t.gettimeout())
+    except Exception as e:
+        print(repr(value), type(e).__name__, e)
+print(socket.timeout is TimeoutError, socket.error is OSError)
+for cls in (socket.gaierror, socket.herror, socket.timeout, socket.error):
+    print(cls, cls.__module__, cls.__qualname__, [k.__name__ for k in cls.__mro__])
+socket.setdefaulttimeout(2.5)
+print(socket.getdefaulttimeout(), socket.socket().gettimeout(), socket.socket().getblocking())
+socket.setdefaulttimeout(0)
+print(socket.getdefaulttimeout(), socket.socket().gettimeout(), socket.socket().getblocking())
+for value in (-1, "a", float("nan"), 3):
+    try:
+        socket.setdefaulttimeout(value)
+        print(repr(value), "->", socket.getdefaulttimeout())
+    except Exception as e:
+        print(repr(value), type(e).__name__, e)
+socket.setdefaulttimeout(None)
+print(socket.getdefaulttimeout(), socket.socket().gettimeout())
+u = socket.socket()
+u.close()
+for call in (lambda: u.settimeout(7), lambda: u.setblocking(True), lambda: u.gettimeout(), lambda: u.getblocking()):
+    try:
+        print(call())
+    except Exception as e:
+        print(type(e).__name__, e.args)
+print(u.gettimeout())
+print(type(_socket.CAPI).__name__, re.sub(r"0x[0-9a-f]+", "0xADDR", repr(_socket.CAPI)))
+PY
+'''
+tags = ["agent", "net"]
+
+[[case]]
+id = "socket-audit-call-errors"
+script = '''
+python3 - <<'PY'
+import socket
+
+def run(label, call):
+    try:
+        print(label, call())
+    except Exception as e:
+        print(label, type(e).__name__, e.args)
+
+a = socket.socket()
+a.bind(("127.0.0.1", 0))
+a.listen()
+port = a.getsockname()[1]
+b = socket.socket()
+run("bind em uso", lambda: b.bind(("127.0.0.1", port)))
+b.close()
+spare = socket.socket()
+spare.bind(("127.0.0.1", 0))
+free = spare.getsockname()[1]
+spare.close()
+c = socket.socket()
+run("connect recusado", lambda: c.connect(("127.0.0.1", free)))
+run("connect_ex recusado", lambda: c.connect_ex(("127.0.0.1", free)))
+c.close()
+for name in ("send", "recv", "bind", "connect", "listen", "getsockname", "getpeername", "shutdown", "accept",
+             "settimeout", "fileno", "getsockopt", "setsockopt"):
+    d = socket.socket()
+    d.close()
+    method = getattr(d, name)
+    args = {"send": (b"x",), "recv": (1,), "bind": (("127.0.0.1", 0),), "connect": (("127.0.0.1", 1),),
+            "shutdown": (socket.SHUT_RD,), "settimeout": (None,), "getsockopt": (socket.SOL_SOCKET, socket.SO_TYPE),
+            "setsockopt": (socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)}.get(name, ())
+    run("fechado " + name, lambda: method(*args))
+e = socket.socket()
+run("send str", lambda: e.send("abc"))
+run("send int", lambda: e.send(5))
+run("send None", lambda: e.send(None))
+run("sendall str", lambda: e.sendall("abc"))
+run("sendto str", lambda: e.sendto("abc", ("127.0.0.1", 1)))
+run("sendto 1 arg", lambda: e.sendto(b"abc"))
+run("recv str", lambda: e.recv("a"))
+run("recv negativo", lambda: e.recv(-1))
+run("recv float", lambda: e.recv(1.5))
+run("recv_into somente leitura", lambda: e.recv_into(b"ro"))
+run("recv_into int", lambda: e.recv_into(5))
+run("recvfrom_into somente leitura", lambda: e.recvfrom_into(b"ro"))
+run("recv_into grande", lambda: e.recv_into(bytearray(2), 5))
+run("recv_into negativo", lambda: e.recv_into(bytearray(2), -1))
+run("bind str", lambda: e.bind("127.0.0.1"))
+run("bind int", lambda: e.bind(5))
+run("bind lista", lambda: e.bind(["127.0.0.1", 0]))
+run("bind tupla de 3", lambda: e.bind(("127.0.0.1", 0, 1)))
+run("bind tupla de 1", lambda: e.bind(("127.0.0.1",)))
+run("bind porta str", lambda: e.bind(("127.0.0.1", "80")))
+run("bind porta float", lambda: e.bind(("127.0.0.1", 80.0)))
+run("bind porta grande", lambda: e.bind(("127.0.0.1", 70000)))
+run("bind porta negativa", lambda: e.bind(("127.0.0.1", -1)))
+run("bind porta enorme", lambda: e.bind(("127.0.0.1", 2 ** 40)))
+run("bind host int", lambda: e.bind((5, 80)))
+run("bind host None", lambda: e.bind((None, 80)))
+run("bind host float", lambda: e.bind((1.5, 80)))
+run("bind host inexistente", lambda: e.bind(("nao-existe.example", 0)))
+run("bind host v6 em v4", lambda: e.bind(("::1", 0)))
+run("bind endereco nao local", lambda: e.bind(("10.1.2.3", 0)))
+run("connect str", lambda: e.connect("127.0.0.1"))
+run("connect tupla de 3", lambda: e.connect(("127.0.0.1", 80, 1)))
+run("connect_ex str", lambda: e.connect_ex("127.0.0.1"))
+run("connect porta grande", lambda: e.connect(("127.0.0.1", 70000)))
+run("connect_ex porta grande", lambda: e.connect_ex(("127.0.0.1", 70000)))
+run("sendto porta grande", lambda: e.sendto(b"x", ("127.0.0.1", 70000)))
+f = socket.socket(socket.AF_INET6)
+run("v6 bind str", lambda: f.bind("::1"))
+run("v6 bind tupla de 1", lambda: f.bind(("::1",)))
+run("v6 bind tupla de 5", lambda: f.bind(("::1", 0, 0, 0, 0)))
+run("v6 bind porta grande", lambda: f.bind(("::1", 70000)))
+run("v6 bind fluxo grande", lambda: f.bind(("::1", 0, 2 ** 20)))
+run("v6 bind v4", lambda: f.bind(("127.0.0.1", 0)))
+g = socket.socket(socket.AF_UNIX)
+run("unix bind int", lambda: g.bind(5))
+run("unix bind None", lambda: g.bind(None))
+run("unix connect inexistente", lambda: g.connect("/tmp/socket-audit-sem-dono"))
+run("socket familia str", lambda: socket.socket("a"))
+run("socket tipo float", lambda: socket.socket(socket.AF_INET, 1.5))
+run("socket familia invalida", lambda: socket.socket(99))
+run("socket fileno str", lambda: socket.socket(fileno="a"))
+run("socket fileno negativo", lambda: socket.socket(fileno=-1))
+run("socket fileno invalido", lambda: socket.socket(fileno=999))
+run("listen str", lambda: e.listen("a"))
+run("shutdown invalido", lambda: e.shutdown(7))
+run("shutdown sem conexao", lambda: e.shutdown(socket.SHUT_RD))
+run("getpeername sem conexao", lambda: e.getpeername())
+PY
+'''
+tags = ["agent", "net"]
+
+[[case]]
+id = "socket-audit-getaddrinfo"
+script = '''
+python3 - <<'PY'
+import _socket
+import socket
+
+def run(label, call):
+    try:
+        print(label, call())
+    except Exception as e:
+        print(label, type(e).__name__, e.args)
+
+def raw(*args, **kwargs):
+    return _socket.getaddrinfo(*args, **kwargs)
+
+run("localhost 80", lambda: raw("localhost", 80))
+run("localhost 80 stream", lambda: raw("localhost", 80, 0, socket.SOCK_STREAM))
+run("localhost 80 inet", lambda: raw("localhost", 80, socket.AF_INET))
+run("localhost 80 inet6", lambda: raw("localhost", 80, socket.AF_INET6))
+run("localhost None", lambda: raw("localhost", None))
+run("localhost str 80", lambda: raw("localhost", "80"))
+run("localhost bytes", lambda: raw(b"localhost", b"80"))
+run("localhost vazio", lambda: raw("localhost", ""))
+run("localhost 70000", lambda: raw("localhost", 70000, 0, socket.SOCK_STREAM))
+run("localhost -1", lambda: raw("localhost", -1, 0, socket.SOCK_STREAM))
+run("ip6-localhost canon", lambda: raw("ip6-localhost", 80, 0, socket.SOCK_STREAM, 0, socket.AI_CANONNAME))
+run("localhost canon", lambda: raw("localhost", 80, 0, socket.SOCK_STREAM, 0, socket.AI_CANONNAME))
+run("ip6-allnodes", lambda: raw("ip6-allnodes", None, 0, socket.SOCK_STREAM))
+run("ip6-localnet inet", lambda: raw("ip6-localnet", None, socket.AF_INET, socket.SOCK_STREAM))
+run("LOCALHOST maiusculas", lambda: raw("LOCALHOST", 1, 0, socket.SOCK_STREAM))
+run("localhost ponto final", lambda: raw("localhost.", 1, 0, socket.SOCK_STREAM))
+run("pypi.sandbox", lambda: raw("pypi.sandbox", 443, 0, socket.SOCK_STREAM))
+run("pypi.sandbox inet6", lambda: raw("pypi.sandbox", 443, socket.AF_INET6, socket.SOCK_STREAM))
+run("pypi.sandbox inet6 v4mapped", lambda: raw("pypi.sandbox", 443, socket.AF_INET6, socket.SOCK_STREAM, 0,
+                                               socket.AI_V4MAPPED))
+run("None 80", lambda: raw(None, 80, 0, socket.SOCK_STREAM))
+run("None 80 passive", lambda: raw(None, 80, 0, socket.SOCK_STREAM, 0, socket.AI_PASSIVE))
+run("None 80 inet passive", lambda: raw(None, 80, socket.AF_INET, socket.SOCK_STREAM, 0, socket.AI_PASSIVE))
+run("None 80 inet6 passive", lambda: raw(None, 80, socket.AF_INET6, socket.SOCK_DGRAM, 0, socket.AI_PASSIVE))
+run("None None", lambda: raw(None, None))
+run("None 80 canon", lambda: raw(None, 80, 0, socket.SOCK_STREAM, 0, socket.AI_CANONNAME))
+for host in ("127.1", "127.0.0.1", "0x7f.1", "010.1.1.1", "1.2.3", "16909060", "1.2.3.4.5", "256.1.1.1", "1.2.3.4 ",
+             " 1.2.3.4", "::1", "0:0:0:0:0:0:0:1", "::ffff:1.2.3.4", "fe80::1%lo", "1::2::3", ":::", ""):
+    run("numerico " + repr(host), lambda: raw(host, 80, 0, socket.SOCK_STREAM, 0, socket.AI_CANONNAME))
+run("v4 em inet6", lambda: raw("1.2.3.4", 80, socket.AF_INET6, socket.SOCK_STREAM))
+run("v4 em inet6 mapeado", lambda: raw("1.2.3.4", 80, socket.AF_INET6, socket.SOCK_STREAM, 0, socket.AI_V4MAPPED))
+run("v6 em inet", lambda: raw("::1", 80, socket.AF_INET, socket.SOCK_STREAM))
+run("serv http", lambda: raw("localhost", "http", socket.AF_INET))
+run("serv domain", lambda: raw("localhost", "domain", socket.AF_INET))
+run("serv ssh dgram", lambda: raw("localhost", "ssh", socket.AF_INET, socket.SOCK_DGRAM))
+run("serv ssh stream", lambda: raw("localhost", "ssh", socket.AF_INET, socket.SOCK_STREAM))
+run("serv inexistente", lambda: raw("localhost", "nao-existe"))
+run("serv numerico com NUMERICSERV", lambda: raw("localhost", "80", socket.AF_INET, socket.SOCK_STREAM, 0,
+                                                 socket.AI_NUMERICSERV))
+run("serv nome com NUMERICSERV", lambda: raw("localhost", "http", socket.AF_INET, socket.SOCK_STREAM, 0,
+                                             socket.AI_NUMERICSERV))
+run("proto tcp", lambda: raw("localhost", 80, socket.AF_INET, 0, socket.IPPROTO_TCP))
+run("proto udp", lambda: raw("localhost", 80, socket.AF_INET, 0, socket.IPPROTO_UDP))
+run("proto 47", lambda: raw("localhost", 80, socket.AF_INET, 0, 47))
+run("raw", lambda: raw("localhost", 80, socket.AF_INET, socket.SOCK_RAW))
+run("tipo seqpacket", lambda: raw("localhost", 80, socket.AF_INET, socket.SOCK_SEQPACKET))
+run("tipo e proto discordantes", lambda: raw("localhost", 80, socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_UDP))
+run("familia invalida", lambda: raw("localhost", 80, 99))
+run("familia unix", lambda: raw("localhost", 80, socket.AF_UNIX))
+run("flags invalidas", lambda: raw("localhost", 80, 0, 0, 0, 0x10000))
+run("canonname sem host", lambda: raw(None, 80, 0, 0, 0, socket.AI_CANONNAME))
+run("NUMERICHOST com nome", lambda: raw("localhost", 80, 0, 0, 0, socket.AI_NUMERICHOST))
+run("NUMERICHOST numerico", lambda: raw("127.0.0.1", 80, socket.AF_INET, socket.SOCK_STREAM, 0, socket.AI_NUMERICHOST))
+run("ADDRCONFIG", lambda: raw("localhost", 80, 0, socket.SOCK_STREAM, 0, socket.AI_ADDRCONFIG))
+run("nome inexistente", lambda: raw("nao-existe.example", 80))
+run("nome invalid", lambda: raw("x.invalid", 80))
+run("nome da maquina", lambda: raw(socket.gethostname(), 80))
+run("host int", lambda: raw(5, 80))
+run("host float", lambda: raw(1.5, 80))
+run("porta float", lambda: raw("localhost", 1.5))
+run("porta lista", lambda: raw("localhost", [80]))
+run("family str", lambda: raw("localhost", 80, "a"))
+run("porta chave", lambda: raw(host="localhost", port=80, family=socket.AF_INET, type=socket.SOCK_STREAM,
+                               proto=0, flags=0))
+print(repr(socket.getaddrinfo("localhost", 80, type=socket.SOCK_STREAM)))
+print(repr(socket.getaddrinfo("127.0.0.1", "http", proto=socket.IPPROTO_TCP, flags=socket.AI_NUMERICHOST)))
+PY
+'''
+tags = ["agent", "net"]
+
+[[case]]
+id = "socket-audit-hosts-services-protocols"
+script = '''
+python3 - <<'PY'
+import socket
+
+def run(label, call):
+    try:
+        print(label, call())
+    except Exception as e:
+        print(label, type(e).__name__, e.args)
+
+run("gethostbyname localhost", lambda: socket.gethostbyname("localhost"))
+run("gethostbyname bytes", lambda: socket.gethostbyname(b"localhost"))
+run("gethostbyname bytearray", lambda: socket.gethostbyname(bytearray(b"localhost")))
+run("gethostbyname numerico", lambda: socket.gethostbyname("127.1"))
+run("gethostbyname vazio", lambda: socket.gethostbyname(""))
+run("gethostbyname broadcast", lambda: socket.gethostbyname("<broadcast>"))
+run("gethostbyname 255", lambda: socket.gethostbyname("255.255.255.255"))
+run("gethostbyname inexistente", lambda: socket.gethostbyname("nao-existe.example"))
+run("gethostbyname ip6 so", lambda: socket.gethostbyname("ip6-allnodes"))
+run("gethostbyname int", lambda: socket.gethostbyname(5))
+run("gethostbyname pypi", lambda: socket.gethostbyname("pypi.sandbox"))
+run("gethostbyname_ex localhost", lambda: socket.gethostbyname_ex("localhost"))
+run("gethostbyname_ex ip6-localhost", lambda: socket.gethostbyname_ex("ip6-localhost"))
+run("gethostbyname_ex numerico", lambda: socket.gethostbyname_ex("127.1"))
+run("gethostbyname_ex vazio", lambda: socket.gethostbyname_ex(""))
+run("gethostbyname_ex broadcast", lambda: socket.gethostbyname_ex("<broadcast>"))
+run("gethostbyname_ex inexistente", lambda: socket.gethostbyname_ex("nao-existe.example"))
+run("gethostbyaddr 127", lambda: socket.gethostbyaddr("127.0.0.1"))
+run("gethostbyaddr ::1", lambda: socket.gethostbyaddr("::1"))
+run("gethostbyaddr ::1 longo", lambda: socket.gethostbyaddr("0:0:0:0:0:0:0:1"))
+run("gethostbyaddr nome", lambda: socket.gethostbyaddr("localhost"))
+run("gethostbyaddr ip6-allnodes", lambda: socket.gethostbyaddr("ff02::1"))
+run("gethostbyaddr 127.0.0.2", lambda: socket.gethostbyaddr("127.0.0.2"))
+run("gethostbyaddr 10.1.2.3", lambda: socket.gethostbyaddr("10.1.2.3"))
+run("gethostbyaddr inexistente", lambda: socket.gethostbyaddr("nao-existe.example"))
+run("gethostbyaddr bytes", lambda: socket.gethostbyaddr(b"127.0.0.1"))
+run("gethostbyaddr int", lambda: socket.gethostbyaddr(5))
+run("getfqdn 127", lambda: socket.getfqdn("127.0.0.1"))
+run("getfqdn 10", lambda: socket.getfqdn("10.1.2.3"))
+for sockaddr, flags in ((("127.0.0.1", 80), 0), (("127.0.0.1", 80), socket.NI_NUMERICHOST),
+                        (("127.0.0.1", 80), socket.NI_NUMERICSERV), (("127.0.0.1", 53), socket.NI_DGRAM),
+                        (("127.0.0.1", 53), 0), (("127.0.0.1", 0), 0), (("127.0.0.1", 5), 0),
+                        (("::1", 22, 0, 0), 0), (("::1", 22), socket.NI_NUMERICHOST),
+                        (("0:0:0:0:0:0:0:1", 22), socket.NI_NUMERICHOST), (("127.1", 80), socket.NI_NUMERICHOST),
+                        (("8.8.8.8", 443), 0), (("8.8.8.8", 443), socket.NI_NAMEREQD),
+                        (("127.0.0.1", 80), socket.NI_NAMEREQD), (("nao-existe.example", 80), 0),
+                        (("localhost", 80), 0), (("", 80), 0), (("127.0.0.1", 80, 0, 0), 0),
+                        (("127.0.0.1",), 0), (("127.0.0.1", 80, 0, 0, 0), 0), ("127.0.0.1", 0),
+                        ([("127.0.0.1"), 80], 0), ((5, 80), 0), (("127.0.0.1", "80"), 0),
+                        (("::1", 80, 2 ** 21, 0), 0), (("127.0.0.1", 80), "a")):
+    run("getnameinfo %r %r" % (sockaddr, flags), lambda: socket.getnameinfo(sockaddr, flags))
+for args in (("http",), ("http", "tcp"), ("http", "udp"), ("www",), ("domain", "udp"), ("domain",), ("ssh", "tcp"),
+             ("nao-existe",), ("HTTP",), ("80",), ("http", "xxx"), (b"http",), (5,), ("http", None), ("http", 5),
+             ("ht\0tp",), (), ("http", "tcp", 1)):
+    run("getservbyname %r" % (args,), lambda: socket.getservbyname(*args))
+for args in ((80,), (80, "tcp"), (80, "udp"), (53, "udp"), (53,), (1,), (0,), (65535,), (65536,), (-1,), ("80",),
+             (80.0,), (2 ** 40,), (443, "tcp"), (443, "udp"), (80, 5), ()):
+    run("getservbyport %r" % (args,), lambda: socket.getservbyport(*args))
+for args in (("tcp",), ("udp",), ("ip",), ("IP",), ("icmp",), ("ipv6",), ("IPv6",), ("nao-existe",), ("TCP",), (5,),
+             (b"tcp",), ("tcp", "x"), ()):
+    run("getprotobyname %r" % (args,), lambda: socket.getprotobyname(*args))
+run("gethostname tipo", lambda: type(socket.gethostname()).__name__)
+run("sethostname", lambda: socket.sethostname("x"))
+run("sethostname int", lambda: socket.sethostname(5))
+PY
+'''
+tags = ["agent", "net"]
+
+[[case]]
+id = "socket-audit-inet-and-byte-order"
+script = '''
+python3 - <<'PY'
+import re
+import socket
+
+def run(label, call):
+    try:
+        print(label, call())
+    except Exception as e:
+        print(label, type(e).__name__, e.args)
+
+for text in ("1.2.3.4", "127.1", "0x7f.1", "0x7f.0.0.1", "010.1.1.1", "09.1.1.1", "1.2.3", "1.2", "1", "0", "16909060",
+             "4294967295", "4294967296", "1.2.3.4.5", "256.1.1.1", "1.2.3.256", "1.2.3.4 ", "1.2.3.4 junk", " 1.2.3.4",
+             "1.2.3.4\n", "", ".", "1.", ".1", "1..2", "-1", "+1", "a.b.c.d", "0x", "0xg", "1.2.3.4\0", "١.2.3.4"):
+    run("inet_aton %r" % text, lambda: socket.inet_aton(text))
+for value in (b"1.2.3.4", 5, None, "1.2.3.4"):
+    run("inet_aton tipo %r" % (value,), lambda: socket.inet_aton(value))
+for packed in (b"\x01\x02\x03\x04", b"\x01\x02\x03", b"", b"\x01\x02\x03\x04\x05", bytearray(b"\x7f\x00\x00\x01"),
+               memoryview(b"\x7f\x00\x00\x01"), "abcd", 5, None):
+    run("inet_ntoa %s" % re.sub(r"0x[0-9a-f]+", "0xADDR", repr(packed)), lambda: socket.inet_ntoa(packed))
+for text in ("1.2.3.4", "127.1", "01.2.3.4", "1.2.3", "1.2.3.4.5", "256.1.1.1", "1.2.3.4 ", "0.0.0.0", "255.255.255.255",
+             "1.2.3.-4", "١.2.3.4", ""):
+    run("inet_pton v4 %r" % text, lambda: socket.inet_pton(socket.AF_INET, text))
+for text in ("::", "::1", "1::", "1::2", "1:2:3:4:5:6:7:8", "1:2:3:4:5:6:7::", "::2:3:4:5:6:7:8", "1:2:3:4:5:6:7:8:9",
+             "::ffff:1.2.3.4", "::1.2.3.4", "1:2:3:4:5:6:1.2.3.4", "1:2:3:4:5:6:7:1.2.3.4", "1::2::3", ":::", ":1", "1:",
+             "12345::", "fe80::1%lo", "FE80::ABCD", "0:0:0:0:0:0:0:1", "::01.2.3.4", "g::", "1.2.3.4", ""):
+    run("inet_pton v6 %r" % text, lambda: socket.inet_pton(socket.AF_INET6, text))
+run("inet_pton familia", lambda: socket.inet_pton(socket.AF_UNIX, "1.2.3.4"))
+run("inet_pton familia str", lambda: socket.inet_pton("a", "1.2.3.4"))
+run("inet_pton texto bytes", lambda: socket.inet_pton(socket.AF_INET, b"1.2.3.4"))
+for packed in (bytes(16), bytes(15) + b"\x01", b"\xfe\x80" + bytes(13) + b"\x01", bytes(10) + b"\xff\xff\x01\x02\x03\x04",
+               bytes(12) + b"\x01\x02\x03\x04", bytes(12) + b"\x00\x00\x00\x02", bytes(15) + b"\x00", b"\x00\x01" * 8,
+               b"\x00\x01\x00\x00\x00\x00\x00\x01" + bytes(8), b"\x00\x00\x00\x01\x00\x00\x00\x00" * 2,
+               b"\x20\x01\x0d\xb8" + bytes(10) + b"\x00\x01", bytes(4) + b"\x00\x01" + bytes(10),
+               b"\x00\x01" + bytes(4) + b"\x00\x01" + bytes(2) + b"\x00\x02" + bytes(4)):
+    run("inet_ntop v6 %r" % (packed,), lambda: socket.inet_ntop(socket.AF_INET6, packed))
+run("inet_ntop v4", lambda: socket.inet_ntop(socket.AF_INET, b"\x01\x02\x03\x04"))
+run("inet_ntop v4 curto", lambda: socket.inet_ntop(socket.AF_INET, b"\x01\x02\x03"))
+run("inet_ntop v6 curto", lambda: socket.inet_ntop(socket.AF_INET6, bytes(15)))
+run("inet_ntop familia", lambda: socket.inet_ntop(socket.AF_UNIX, bytes(4)))
+run("inet_ntop familia errada", lambda: socket.inet_ntop(99, bytes(4)))
+run("inet_ntop str", lambda: socket.inet_ntop(socket.AF_INET, "abcd"))
+run("inet_ntop familia str", lambda: socket.inet_ntop("a", bytes(4)))
+for function in (socket.htons, socket.ntohs):
+    for value in (0, 1, 0x1234, 0xffff, 0x10000, -1, 2 ** 31, 2 ** 40, 2 ** 70, True, "a", 1.5, None, b"a"):
+        run("%s %r" % (function.__name__, value), lambda: function(value))
+for function in (socket.htonl, socket.ntohl):
+    for value in (0, 1, 0x12345678, 0xffffffff, 0x100000000, -1, 2 ** 63, 2 ** 64, 2 ** 70, True, "a", 1.5, None, b"a"):
+        run("%s %r" % (function.__name__, value), lambda: function(value))
+print(socket.if_nameindex())
+for arg in ("lo", "eth0", "", b"lo", 5, None, "lo\0"):
+    run("if_nametoindex %r" % (arg,), lambda: socket.if_nametoindex(arg))
+for arg in (1, 0, 2, 999, 2 ** 32, 2 ** 40, -1, "a", 1.5, None, True):
+    run("if_indextoname %r" % (arg,), lambda: socket.if_indextoname(arg))
+PY
+'''
+tags = ["agent", "net"]
+
+[[case]]
+id = "socket-audit-constants-and-api"
+script = '''
+python3 - <<'PY'
+import hashlib
+import socket
+import _socket
+
+for module in (_socket, socket):
+    names = sorted(dir(module))
+    print(module.__name__, len(names), hashlib.md5(" ".join(names).encode()).hexdigest())
+    print(" ".join(names))
+print(sorted(set(dir(_socket)) - set(dir(socket))))
+print(sorted(set(dir(socket)) - set(dir(_socket))))
+for name in ("AF_UNSPEC", "AF_INET", "AF_INET6", "AF_UNIX", "AF_NETLINK", "AF_ROUTE", "AF_PACKET", "AF_VSOCK", "AF_CAN",
+             "AF_ALG", "AF_TIPC", "AF_BLUETOOTH", "AF_QIPCRTR", "SOCK_STREAM", "SOCK_CLOEXEC", "SOCK_NONBLOCK",
+             "SOMAXCONN", "SO_REUSEADDR", "SO_BINDTODEVICE", "SO_INCOMING_CPU", "SO_BINDTOIFINDEX", "SO_J1939_FILTER",
+             "SCM_J1939_PRIO", "TCP_FASTOPEN", "TCP_ZEROCOPY_RECEIVE", "TCP_TX_DELAY", "IP_PKTINFO",
+             "IP_BIND_ADDRESS_NO_PORT", "IPV6_RECVTCLASS", "IPPROTO_MPTCP", "IPPROTO_UDPLITE", "MSG_ERRQUEUE",
+             "MSG_FASTOPEN", "AI_NUMERICSERV", "AI_ALL", "NI_IDN", "NI_MAXHOST", "EAI_ADDRFAMILY", "EAI_NODATA",
+             "EAI_OVERFLOW", "INADDR_ALLHOSTS_GROUP", "INADDR_UNSPEC_GROUP", "CAN_BCM_CAN_FD_FRAME", "CAN_EFF_FLAG",
+             "VMADDR_CID_ANY", "VMADDR_CID_HOST", "IOCTL_VM_SOCKETS_GET_LOCAL_CID", "TIPC_WAIT_FOREVER",
+             "ETHERTYPE_IPV6", "ETH_P_ALL", "NETLINK_CRYPTO", "PACKET_FASTROUTE", "UDPLITE_RECV_CSCOV", "HCI_FILTER",
+             "ALG_SET_PUBKEY", "ALG_SET_AEAD_AUTHSIZE", "J1939_PGN_MAX", "BDADDR_ANY", "BDADDR_LOCAL", "has_ipv6"):
+    print(name, repr(getattr(socket, name, "AUSENTE")))
+print(len(socket.AddressFamily), len(socket.SocketKind), len(socket.MsgFlag), len(socket.AddressInfo))
+print(repr(socket.AF_INET), repr(socket.SOCK_STREAM), repr(socket.MSG_PEEK), repr(socket.AI_PASSIVE))
+print(socket.AddressFamily.AF_UNIX.name, socket.AddressFamily(10), socket.SocketKind(2))
+print(socket.SocketType is socket.socket, _socket.SocketType is _socket.socket, socket.socket.__mro__)
+for name in ("fromshare", "share", "ioctl", "sendfile", "sendmsg", "recvmsg", "recvmsg_into", "sendmsg_afalg",
+             "makefile", "dup", "detach", "get_inheritable", "set_inheritable", "timeout", "family", "type", "proto",
+             "_accept", "accept", "__enter__", "__exit__", "__getstate__", "__del__", "__weakref__", "__slots__"):
+    print(name, hasattr(socket, name), hasattr(socket.socket, name), hasattr(_socket.socket, name))
+PY
+'''
+tags = ["agent", "net"]
+
+[[case]]
+id = "socket-audit-helpers"
+script = '''
+python3 - <<'PY'
+import re
+import socket
+
+def run(label, call):
+    try:
+        print(label, call())
+    except Exception as e:
+        print(label, type(e).__name__, e.args)
+
+a, b = socket.socketpair()
+print(a.family, b.type, a.proto, repr(a.family), repr(b.type))
+a.sendall(b"ola\nmundo\n")
+f = b.makefile("rb")
+print(f.readline(), f.readline())
+print(socket.has_dualstack_ipv6())
+srv = socket.create_server(("127.0.0.1", 0))
+print(srv.getsockname()[0], srv.type, srv.gettimeout())
+c = socket.create_connection(srv.getsockname(), timeout=2)
+print(c.gettimeout(), c.getpeername() == srv.getsockname())
+conn, peer = srv.accept()
+print(type(conn).__name__, conn.gettimeout(), peer == c.getsockname())
+c.sendall(b"abc")
+print(conn.recv(10))
+buf = bytearray(8)
+c.sendall(b"xyz")
+print(conn.recv_into(buf, 2), bytes(buf[:2]))
+print(conn.recv_into(memoryview(buf)[4:], 1), bytes(buf))
+c.close()
+print(conn.recv(10))
+run("create_connection recusado", lambda: socket.create_connection(("127.0.0.1", 1), timeout=1))
+run("create_connection nome", lambda: socket.create_connection(("nao-existe.example", 80), timeout=1))
+run("create_connection vazio", lambda: socket.create_connection(("", 0), timeout=1))
+d = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+d.bind(("127.0.0.1", 0))
+e = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+print(e.sendto(b"dg", d.getsockname()))
+data, source = d.recvfrom(10)
+print(data, source[0])
+run("dgram sendto str", lambda: e.sendto("dg", d.getsockname()))
+run("dgram sendto nome", lambda: e.sendto(b"dg", ("localhost", d.getsockname()[1])))
+print(d.recvfrom(10)[0])
+run("dgram sendto inexistente", lambda: e.sendto(b"dg", ("nao-existe.example", 9)))
+run("dgram sendto porta grande", lambda: e.sendto(b"dg", ("127.0.0.1", 70000)))
+run("bind nome localhost", lambda: socket.socket().bind(("localhost", 0)))
+run("bind vazio", lambda: socket.socket().bind(("", 0)))
+run("bind broadcast", lambda: socket.socket(socket.AF_INET, socket.SOCK_DGRAM).bind(("<broadcast>", 0)))
+run("bind broadcast v6", lambda: socket.socket(socket.AF_INET6, socket.SOCK_DGRAM).bind(("<broadcast>", 0)))
+run("bind bytes", lambda: socket.socket().bind((b"127.0.0.1", 0)))
+run("bind bytearray", lambda: socket.socket().bind((bytearray(b"127.0.0.1"), 0)))
+run("bind v6 vazio", lambda: socket.socket(socket.AF_INET6).bind(("", 0)))
+run("bind v6 localhost", lambda: socket.socket(socket.AF_INET6).bind(("localhost", 0)))
+run("bind v6 em v4 numerico", lambda: socket.socket(socket.AF_INET6).bind(("127.0.0.1", 0)))
+print(re.sub(r"\d+", "N", repr(socket.socket(socket.AF_INET6).getsockname())))
+PY
+'''
+tags = ["agent", "net"]
+
+[[case]]
+id = "socket-audit-instance-surface"
+script = '''
+python3 - <<'PY'
+import socket
+
+s = socket.socket()
+print(hasattr(s, "__dict__"), hasattr(s, "__slots__"), hasattr(socket.socket, "__slots__"))
+print(sorted(n for n in dir(s) if n.startswith("_") and not n.startswith("__")))
+print(sorted(vars(s)) if hasattr(s, "__dict__") else "sem __dict__")
+print(sorted(socket.socket.__dict__))
+try:
+    s.novo = 1
+    print("atributo novo aceito")
+except AttributeError as e:
+    print(type(e).__name__, e)
+PY
+'''
+tags = ["agent", "net"]
+
+[[case]]
+id = "socket-audit-slots-descriptors"
+script = '''
+python3 - <<'PY'
+class A:
+    __slots__ = ("x", "y")
+
+class B(A):
+    __slots__ = ("z", "__weakref__")
+
+class C(A):
+    pass
+
+class P:
+    __slots__ = ("__private",)
+
+a = A()
+print(hasattr(a, "__dict__"), sorted(n for n in A.__dict__ if not n.startswith("__")))
+print(repr(A.x), type(A.x).__name__, A.x.__name__, A.x.__objclass__ is A)
+print(sorted(n for n in B.__dict__ if not n.startswith("__")), "__weakref__" in B.__dict__, "__weakref__" in A.__dict__)
+print(repr(B.__dict__["__weakref__"]))
+try:
+    vars(a)
+except TypeError as e:
+    print(type(e).__name__, e)
+try:
+    a.x
+except AttributeError as e:
+    print(type(e).__name__, e)
+a.x = 1
+print(a.x, A.x.__get__(a), sorted(n for n in dir(a) if n in ("x", "y")))
+A.x.__set__(a, 7)
+print(a.x)
+del a.x
+try:
+    del a.x
+except AttributeError as e:
+    print(type(e).__name__, e)
+try:
+    a.w = 1
+except AttributeError as e:
+    print(type(e).__name__, e)
+try:
+    A.x.__get__(object())
+except TypeError as e:
+    print(type(e).__name__, e)
+b = B()
+b.x = 1
+b.z = 2
+print(hasattr(b, "__dict__"), sorted(n for n in dir(b) if n in ("x", "y", "z", "w")))
+try:
+    b.w = 3
+except AttributeError as e:
+    print(type(e).__name__, e)
+c = C()
+c.w = 1
+print(vars(c), sorted(n for n in dir(c) if n in ("x", "y", "w")))
+print(sorted(n for n in P.__dict__ if "private" in n), dir(P()).count("_P__private"))
+print(A.__slots__, B.__slots__, hasattr(C, "__slots__"))
+PY
+'''
+tags = ["agent", "net"]
+
+[[case]]
+id = "socket-audit-c-type-surface"
+script = '''
+python3 - <<'PY'
+import _socket
+import socket
+
+s = _socket.socket()
+print(hasattr(s, "__dict__"), hasattr(s, "__slots__"), hasattr(_socket.socket, "__slots__"))
+print(sorted(n for n in dir(s) if n.startswith("_") and not n.startswith("__")))
+print(sorted(n for n in dir(_socket.socket) if not n.startswith("__")))
+for name in ("_fd", "_guard", "_timeout", "_family", "_type", "_proto"):
+    print(name, hasattr(_socket.socket, name), hasattr(socket.socket, name))
+try:
+    vars(s)
+except TypeError as e:
+    print(type(e).__name__, e)
+try:
+    s.novo = 1
+except AttributeError as e:
+    print(type(e).__name__, e)
+try:
+    s.novo
+except AttributeError as e:
+    print(type(e).__name__, e)
+
+t = socket.socket()
+print(sorted(n for n in dir(t) if n.startswith("_") and not n.startswith("__")))
+print(hasattr(t, "__dict__"), hasattr(t, "__slots__"), t.__slots__)
+print(sorted(set(vars(socket.socket)) & {"_fd", "_guard", "_timeout", "_family", "_type", "_proto"}))
+try:
+    vars(t)
+except TypeError as e:
+    print(type(e).__name__, e)
+t._io_refs = 5
+t._closed = False
+print(t._io_refs, t._closed)
+
+class Sub(socket.socket):
+    pass
+
+u = Sub()
+u.extra = 1
+print(vars(u), sorted(n for n in dir(u) if n.startswith("_") and not n.startswith("__")))
+print(u.family, u.type, u.proto, u.timeout)
+s.close()
+t.close()
+u.close()
+PY
+'''
+tags = ["agent", "net"]

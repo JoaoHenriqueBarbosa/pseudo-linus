@@ -106,7 +106,7 @@ mkdir -p /tmp/site && cd /tmp/site
 echo '<h1>oi</h1>' > index.html
 printf '{"a": 1}\n' > dados.json
 python3 -m http.server 8123 --bind 127.0.0.1 >/tmp/srv.log 2>&1 &
-sleep 1
+for _ in $(seq 100); do curl -s -o /dev/null http://127.0.0.1:8123/ && break; sleep 0.1; done
 curl -s http://127.0.0.1:8123/dados.json
 curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8123/nada
 curl -sI http://127.0.0.1:8123/index.html | head -1
@@ -380,3 +380,60 @@ s.shutdown()
 PY
 '''
 tags = ["agent", "net", "subprocess"]
+
+# O asyncio real do disco sobre sockets de fd real, epoll, set_wakeup_fd e pidfd.
+[[case]]
+id = "asyncio-selector-loop"
+script = '''
+python3 - <<'PY'
+import asyncio, socket
+async def handle(r, w):
+    data = await r.readline()
+    w.write(b'eco ' + data); await w.drain(); w.close()
+async def main():
+    srv = await asyncio.start_server(handle, '127.0.0.1', 0)
+    port = srv.sockets[0].getsockname()[1]
+    r, w = await asyncio.open_connection('127.0.0.1', port)
+    w.write(b'oi\n'); await w.drain()
+    print(await r.readline())
+    w.close(); await w.wait_closed()
+    loop = asyncio.get_running_loop()
+    print(type(loop).__name__, type(loop._selector).__name__)
+    s = socket.socket(); s.setblocking(False)
+    s.bind(('127.0.0.1', 0)); free = s.getsockname()[1]; s.close()
+    c = socket.socket(); c.setblocking(False)
+    try: await loop.sock_connect(c, ('127.0.0.1', free))
+    except ConnectionRefusedError as e: print('refused', e.errno)
+    c.close()
+    try: await asyncio.wait_for(asyncio.sleep(5), 0.05)
+    except asyncio.TimeoutError: print('timeout')
+    srv.close(); await srv.wait_closed()
+asyncio.run(main())
+print(asyncio.Future.__module__, asyncio.Task.__module__, asyncio.Future)
+PY
+'''
+tags = ["agent", "net", "asyncio"]
+
+[[case]]
+id = "asyncio-signal-and-subprocess"
+script = '''
+python3 - <<'PY'
+import asyncio, os, signal
+async def main():
+    loop = asyncio.get_running_loop()
+    got = loop.create_future()
+    loop.add_signal_handler(signal.SIGUSR1, lambda: got.set_result('usr1'))
+    os.kill(os.getpid(), signal.SIGUSR1)
+    print(await asyncio.wait_for(got, 2))
+    loop.remove_signal_handler(signal.SIGUSR1)
+    p = await asyncio.create_subprocess_exec('echo', 'olá', stdout=asyncio.subprocess.PIPE)
+    out, _ = await p.communicate()
+    print(out, p.returncode)
+    p = await asyncio.create_subprocess_shell('exit 3')
+    print(await p.wait())
+    r, w = os.pipe(); os.set_blocking(w, False)
+    print(signal.set_wakeup_fd(w) == -1, signal.set_wakeup_fd(-1) == w)
+asyncio.run(main())
+PY
+'''
+tags = ["agent", "asyncio", "subprocess"]

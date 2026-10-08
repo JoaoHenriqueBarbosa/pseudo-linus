@@ -1,0 +1,258 @@
+tool = "python3"
+source = "manual"
+
+# As exceções embutidas e as de usuário seguem o protocolo de pickle do CPython 3.13: `__reduce__` e
+# `__reduce_ex__` devolvem `(tipo, args)` ou `(tipo, args, __dict__)`, o `OSError` refaz os argumentos com
+# `filename` e `filename2`, o `ImportError` e o `AttributeError` levam `name`/`path` no estado, e
+# `pickle.dumps`/`pickle.loads` (protocolos 0 a 5) devolvem a mesma exceção. É o que o `multiprocessing.Pool`
+# usa para levar de volta a exceção que a tarefa levantou. Os endereços saem normalizados para `0xADDR`.
+
+[[case]]
+id = "pickle-exceptions-reduce"
+script = '''
+python3 - <<'PYEOF' 2>&1 | sed -E 's/0x[0-9a-f]+/0xADDR/g'
+e = ValueError("x", 2)
+print(e.__reduce__())
+print(e.__reduce_ex__(2))
+print(e.__reduce_ex__(0), e.__reduce_ex__(5))
+print(ValueError().__reduce__())
+
+k = KeyError("k")
+print(k.__reduce__())
+k.x = 5
+print(k.__reduce__(), k.x, k.__dict__)
+k.y = [1, 2]
+print(k.__reduce_ex__(4))
+del k.x
+print(k.__reduce__(), hasattr(k, "x"))
+
+print(StopIteration(7).__reduce__(), StopIteration(7).value)
+print(SystemExit(3).__reduce__(), SystemExit(3).code)
+print(SystemExit().__reduce__(), SystemExit("a", "b").__reduce__())
+print(Exception("a", (1, 2), {"k": None}).__reduce_ex__(2))
+print(UnicodeDecodeError("utf-8", b"\xff", 0, 1, "invalid start byte").__reduce__())
+print(SyntaxError("bad", ("f.py", 1, 2, "x = (", 1, 3)).__reduce__())
+print(ValueError.__reduce__(ValueError("viaclass")))
+print(BaseException.__reduce__(KeyError("k")))
+PYEOF
+'''
+
+[[case]]
+id = "pickle-exceptions-oserror"
+script = '''
+python3 - <<'PYEOF' 2>&1 | sed -E 's/0x[0-9a-f]+/0xADDR/g'
+e = OSError(2, "nf", "f")
+print(type(e).__name__, e.errno, e.strerror, e.filename, e.filename2, e.args)
+print(e.__reduce__())
+print(e.__reduce_ex__(2))
+e2 = OSError(2, "nf", "f", None, "g")
+print(e2.__reduce__(), e2.filename2)
+print(OSError(5, "io").__reduce__())
+print(OSError("only").__reduce__())
+print(OSError().__reduce__())
+print(FileNotFoundError(2, "No such file or directory", "/x").__reduce__())
+print(FileNotFoundError("plain").__reduce__())
+print(PermissionError(13, "denied", "p").__reduce_ex__(4))
+e3 = OSError(2, "nf", "f")
+e3.extra = "dado"
+print(e3.__reduce__())
+print(e3.__dict__)
+PYEOF
+'''
+
+[[case]]
+id = "pickle-exceptions-import-attribute"
+script = '''
+python3 - <<'PYEOF' 2>&1 | sed -E 's/0x[0-9a-f]+/0xADDR/g'
+e = ImportError("msg", name="mod", path="/p/mod.py")
+print(e.__reduce__())
+print(e.__reduce_ex__(2))
+print(ImportError("sem campos").__reduce__())
+print(ImportError("so nome", name="n").__reduce__())
+print(ModuleNotFoundError("no mod", name="zz").__reduce__())
+
+a = AttributeError("sem atributo", name="foo", obj=object())
+print(a.__reduce__()[0], a.__reduce__()[1], a.__reduce__()[2])
+print(a.__reduce_ex__(2)[2])
+b = AttributeError("simples")
+print(b.__reduce__())
+print(AttributeError("a", "b").__reduce__())
+
+n = NameError("nome", name="v")
+print(n.__reduce__())
+PYEOF
+'''
+
+[[case]]
+id = "pickle-exceptions-user-defined"
+script = '''
+python3 - <<'PYEOF' 2>&1 | sed -E 's/0x[0-9a-f]+/0xADDR/g'
+class E(Exception):
+    pass
+
+class WithAttr(Exception):
+    def __init__(self, msg, code):
+        super().__init__(msg, code)
+        self.code = code
+        self.tags = ["a", "b"]
+
+class Bad(Exception):
+    def __init__(self, a, b):
+        super().__init__(a)
+        self.b = b
+
+class NoSuper(Exception):
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+
+class MyOS(OSError):
+    pass
+
+print(E("x").__reduce__())
+print(E("x", 1).__reduce_ex__(2))
+print(E().__reduce__())
+x = E("y")
+x.extra = {"k": 1}
+print(x.__reduce__())
+print(x.__reduce_ex__(0), x.__reduce_ex__(5))
+w = WithAttr("m", 3)
+print(w.__reduce__())
+print(w.__reduce_ex__(4))
+b = Bad("p", 9)
+print(b.__reduce__())
+try:
+    import pickle
+    pickle.loads(pickle.dumps(b))
+except Exception as ex:
+    print(type(ex).__name__, ex)
+s = NoSuper(1, 2)
+print(s.__reduce__(), s.args)
+print(MyOS(2, "nf", "f").__reduce__())
+print(E.__reduce__(E("via classe")))
+y = E("setstate")
+y.__setstate__({"a": 1, "b": 2})
+print(y.a, y.b, y.__dict__)
+y.__setstate__(None)
+try:
+    y.__setstate__([1])
+except Exception as ex:
+    print(type(ex).__name__, ex)
+PYEOF
+'''
+
+[[case]]
+id = "pickle-exceptions-roundtrip"
+script = '''
+python3 - <<'PYEOF' 2>&1 | sed -E 's/0x[0-9a-f]+/0xADDR/g'
+import copy
+import pickle
+
+class E(Exception):
+    pass
+
+class WithAttr(Exception):
+    def __init__(self, msg, code):
+        super().__init__(msg, code)
+        self.code = code
+
+def same(a, b):
+    return type(a) is type(b) and a.args == b.args and getattr(a, "__dict__", {}) == getattr(b, "__dict__", {})
+
+samples = [
+    ValueError("x"),
+    ValueError("x", 2),
+    ValueError(),
+    KeyError("k"),
+    IndexError("i"),
+    TypeError("t", None, 3.5),
+    ZeroDivisionError("division by zero"),
+    RuntimeError("r"),
+    StopIteration(7),
+    StopIteration(),
+    SystemExit(3),
+    SystemExit("sair"),
+    KeyboardInterrupt(),
+    UnicodeDecodeError("utf-8", b"\xff", 0, 1, "invalid start byte"),
+    UnicodeEncodeError("ascii", "é", 0, 1, "ordinal not in range(128)"),
+    E("user"),
+    E("user", 1, (2, 3)),
+    WithAttr("m", 5),
+]
+for proto in range(6):
+    results = []
+    for e in samples:
+        r = pickle.loads(pickle.dumps(e, proto))
+        results.append(same(e, r))
+    print(proto, all(results), results.count(False))
+
+for proto in range(6):
+    k = KeyError("k")
+    k.x = 5
+    r = pickle.loads(pickle.dumps(k, proto))
+    print(proto, type(r).__name__, r.args, r.x, str(r))
+
+for proto in range(6):
+    e = OSError(2, "nf", "f")
+    r = pickle.loads(pickle.dumps(e, proto))
+    print(proto, type(r).__name__, r.errno, r.strerror, r.filename, r.filename2, r.args, str(r))
+    e = OSError(2, "nf", "f", None, "g")
+    r = pickle.loads(pickle.dumps(e, proto))
+    print(proto, type(r).__name__, r.filename, r.filename2, str(r))
+    r = pickle.loads(pickle.dumps(FileNotFoundError(2, "nf", "f"), proto))
+    print(proto, type(r).__name__, r.errno, r.filename)
+    r = pickle.loads(pickle.dumps(PermissionError("p"), proto))
+    print(proto, type(r).__name__, r.args)
+
+for proto in range(6):
+    e = ImportError("msg", name="mod", path="/p")
+    r = pickle.loads(pickle.dumps(e, proto))
+    print(proto, type(r).__name__, r.args, r.name, r.path)
+    r = pickle.loads(pickle.dumps(ModuleNotFoundError("nm", name="zz"), proto))
+    print(proto, type(r).__name__, r.args, r.name, r.path)
+    a = AttributeError("sem", name="foo", obj=object())
+    r = pickle.loads(pickle.dumps(a, proto))
+    print(proto, type(r).__name__, r.args, r.name, r.obj)
+    r = pickle.loads(pickle.dumps(AttributeError("simples"), proto))
+    print(proto, type(r).__name__, r.args, r.name, r.obj)
+
+w = WithAttr("m", 5)
+r = pickle.loads(pickle.dumps(w))
+print(type(r).__name__, r.args, r.code, r.__dict__)
+
+c = copy.copy(KeyError("k"))
+print(type(c).__name__, c.args)
+c = copy.copy(OSError(2, "nf", "f"))
+print(type(c).__name__, c.errno, c.filename)
+c = copy.deepcopy(WithAttr("m", 5))
+print(type(c).__name__, c.args, c.code)
+PYEOF
+'''
+
+[[case]]
+id = "pickle-exceptions-pool"
+script = '''
+python3 - <<'PYEOF' 2>&1 | sed -E 's/0x[0-9a-f]+/0xADDR/g'
+import multiprocessing
+
+def boom(n):
+    if n == 2:
+        raise ValueError("falhou em %d" % n)
+    return n * n
+
+def missing(path):
+    open(path)
+
+if __name__ == "__main__":
+    with multiprocessing.Pool(2) as pool:
+        print(pool.map(boom, [0, 1]))
+        try:
+            pool.map(boom, [1, 2, 3])
+        except ValueError as e:
+            print(type(e).__name__, e)
+        try:
+            pool.apply(missing, ("/nao/existe",))
+        except FileNotFoundError as e:
+            print(type(e).__name__, e.errno, e.filename)
+PYEOF
+'''

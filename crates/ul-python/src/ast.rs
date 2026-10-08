@@ -893,7 +893,7 @@ pub fn str_repr(s: &str) -> String {
                 out.push(c);
             }
             ' '..='~' => out.push(c),
-            c if is_printable(c) => out.push(c),
+            c if is_printable(u32::from(c)) => out.push(c),
             c => {
                 let v = c as u32;
                 if v <= 0xff {

@@ -494,9 +494,19 @@ struct HashObj {
     data: RefCell<Vec<u8>>,
 }
 
+/// Refaz um `HASH` a partir da imagem do heap: o algoritmo e os bytes já alimentados.
+pub(crate) fn restore_image(_tag: &str, state: &(dyn std::any::Any + Send + Sync), _refs: Vec<Value>) -> Option<Value> {
+    let (algo, data) = state.downcast_ref::<(Algo, Vec<u8>)>()?;
+    Some(Value::Ext(Rc::new(HashObj { algo: *algo, data: RefCell::new(data.clone()) })))
+}
+
 impl ExtObject for HashObj {
     fn type_name(&self) -> &'static str {
         "HASH"
+    }
+
+    fn image(&self) -> Option<crate::object::ExtImage> {
+        crate::object::OpaqueImage::image("hash", (self.algo, self.data.borrow().clone()), Vec::new())
     }
 
     fn repr(&self) -> String {

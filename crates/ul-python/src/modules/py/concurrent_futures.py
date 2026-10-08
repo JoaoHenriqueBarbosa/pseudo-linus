@@ -3,6 +3,7 @@
 
 import threading as _threading
 from collections import namedtuple as _namedtuple
+from types import GenericAlias
 
 __all__ = ['FIRST_COMPLETED', 'FIRST_EXCEPTION', 'ALL_COMPLETED', 'CancelledError', 'TimeoutError', 'Future',
            'Executor', 'wait', 'as_completed', 'ThreadPoolExecutor', 'ProcessPoolExecutor', 'BrokenExecutor']
@@ -37,6 +38,8 @@ class BrokenExecutor(RuntimeError):
 
 
 class Future:
+    __class_getitem__ = classmethod(GenericAlias)
+
     def __init__(self):
         self._state = PENDING
         self._result = None

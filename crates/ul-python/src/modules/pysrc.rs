@@ -17,10 +17,12 @@ const SOURCES: &[(&str, &str)] = &[
     ("sys", include_str!("py/sys.py")),
     ("posixpath", include_str!("../../../kernel/image/usr/lib/python3.13/posixpath.py")),
     ("os", include_str!("py/os.py")),
-    ("io", include_str!("py/io.py")),
+    // O `_io` do CPython é C; o `io` é o Python do Debian, que monta as ABCs sobre ele.
+    ("_io", include_str!("py/_io.py")),
+    ("io", include_str!("../../../kernel/image/usr/lib/python3.13/io.py")),
     ("itertools", include_str!("py/itertools.py")),
-    ("functools", include_str!("py/functools.py")),
-    ("contextlib", include_str!("py/contextlib.py")),
+    ("functools", include_str!("../../../kernel/image/usr/lib/python3.13/functools.py")),
+    ("contextlib", include_str!("../../../kernel/image/usr/lib/python3.13/contextlib.py")),
     ("abc", include_str!("py/abc.py")),
     ("collections", include_str!("py/collections.py")),
     ("enum", include_str!("py/enum.py")),
@@ -39,8 +41,9 @@ const SOURCES: &[(&str, &str)] = &[
     ("bisect", include_str!("../../../kernel/image/usr/lib/python3.13/bisect.py")),
     // Congelado no CPython; o texto é o do `stat.py` do Debian, que o boot precisa antes do `sys.path`.
     ("stat", include_str!("../../../kernel/image/usr/lib/python3.13/stat.py")),
+    ("_stat", include_str!("py/_stat.py")),
     ("glob", include_str!("../../../kernel/image/usr/lib/python3.13/glob.py")),
-    ("shutil", include_str!("py/shutil.py")),
+    ("shutil", include_str!("../../../kernel/image/usr/lib/python3.13/shutil.py")),
     ("tempfile", include_str!("../../../kernel/image/usr/lib/python3.13/tempfile.py")),
     ("pathlib", include_str!("../../../kernel/image/usr/lib/python3.13/pathlib/__init__.py")),
     ("zlib", include_str!("py/zlib.py")),
@@ -78,9 +81,13 @@ const SOURCES: &[(&str, &str)] = &[
     ("concurrent", include_str!("../../../kernel/image/usr/lib/python3.13/concurrent/__init__.py")),
     ("concurrent.futures", include_str!("py/concurrent_futures.py")),
     ("_thread", include_str!("py/_thread.py")),
+    ("_gsched", include_str!("py/_gsched.py")),
     ("colorsys", include_str!("../../../kernel/image/usr/lib/python3.13/colorsys.py")),
     ("keyword", include_str!("../../../kernel/image/usr/lib/python3.13/keyword.py")),
-    ("dis", include_str!("py/dis.py")),
+    // O `dis` e o `opcode` do Debian rodam sobre o `_opcode` nativo e o `co_code` que o compilador emite.
+    ("dis", include_str!("../../../kernel/image/usr/lib/python3.13/dis.py")),
+    ("opcode", include_str!("../../../kernel/image/usr/lib/python3.13/opcode.py")),
+    ("_opcode_metadata", include_str!("../../../kernel/image/usr/lib/python3.13/_opcode_metadata.py")),
     ("graphlib", include_str!("../../../kernel/image/usr/lib/python3.13/graphlib.py")),
     ("reprlib", include_str!("../../../kernel/image/usr/lib/python3.13/reprlib.py")),
     ("getopt", include_str!("../../../kernel/image/usr/lib/python3.13/getopt.py")),
@@ -88,7 +95,8 @@ const SOURCES: &[(&str, &str)] = &[
     ("zipfile", include_str!("py/zipfile.py")),
     ("traceback", include_str!("py/traceback.py")),
     ("warnings", include_str!("../../../kernel/image/usr/lib/python3.13/warnings.py")),
-    ("subprocess", include_str!("py/subprocess.py")),
+    ("subprocess", include_str!("../../../kernel/image/usr/lib/python3.13/subprocess.py")),
+    ("_posixsubprocess", include_str!("py/_posixsubprocess.py")),
     ("_complex", include_str!("py/_complex.py")),
     ("_match", include_str!("py/_match.py")),
     ("_memoryview", include_str!("py/_memoryview.py")),
@@ -102,6 +110,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("json.scanner", include_str!("../../../kernel/image/usr/lib/python3.13/json/scanner.py")),
     ("configparser", include_str!("../../../kernel/image/usr/lib/python3.13/configparser.py")),
     ("queue", include_str!("py/queue.py")),
+    ("_queue", include_str!("py/_queue.py")),
     ("calendar", include_str!("py/calendar.py")),
     ("uuid", include_str!("../../../kernel/image/usr/lib/python3.13/uuid.py")),
     ("secrets", include_str!("../../../kernel/image/usr/lib/python3.13/secrets.py")),
@@ -125,35 +134,42 @@ const SOURCES: &[(&str, &str)] = &[
     ("importlib.abc", include_str!("py/importlib_abc.py")),
     ("importlib.util", include_str!("py/importlib_util.py")),
     ("asyncio", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/__init__.py")),
-    ("asyncio.base_events", include_str!("py/asyncio_base_events.py")),
-    ("asyncio.base_futures", include_str!("py/asyncio_base_futures.py")),
+    ("asyncio.base_events", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/base_events.py")),
+    ("asyncio.base_futures", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/base_futures.py")),
+    ("asyncio.base_subprocess", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/base_subprocess.py")),
     ("asyncio.base_tasks", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/base_tasks.py")),
     ("asyncio.constants", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/constants.py")),
     ("asyncio.coroutines", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/coroutines.py")),
-    ("asyncio.events", include_str!("py/asyncio_events.py")),
+    ("asyncio.events", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/events.py")),
     ("asyncio.exceptions", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/exceptions.py")),
     ("asyncio.format_helpers", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/format_helpers.py")),
-    ("asyncio.futures", include_str!("py/asyncio_futures.py")),
-    ("asyncio.locks", include_str!("py/asyncio_locks.py")),
-    ("asyncio.loopback", include_str!("py/asyncio_loopback.py")),
+    ("asyncio.futures", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/futures.py")),
+    ("asyncio.locks", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/locks.py")),
     ("asyncio.log", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/log.py")),
-    ("asyncio.mixins", include_str!("py/asyncio_mixins.py")),
-    ("asyncio.queues", include_str!("py/asyncio_queues.py")),
-    ("asyncio.runners", include_str!("py/asyncio_runners.py")),
-    ("asyncio.subprocess", include_str!("py/asyncio_subprocess.py")),
-    ("asyncio.taskgroups", include_str!("py/asyncio_taskgroups.py")),
-    ("asyncio.tasks", include_str!("py/asyncio_tasks.py")),
-    ("asyncio.threads", include_str!("py/asyncio_threads.py")),
-    ("asyncio.timeouts", include_str!("py/asyncio_timeouts.py")),
-    ("asyncio.unix_events", include_str!("py/asyncio_unix_events.py")),
+    ("asyncio.mixins", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/mixins.py")),
+    ("asyncio.queues", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/queues.py")),
+    ("asyncio.runners", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/runners.py")),
+    ("asyncio.selector_events", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/selector_events.py")),
+    ("asyncio.sslproto", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/sslproto.py")),
+    ("asyncio.staggered", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/staggered.py")),
+    ("asyncio.subprocess", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/subprocess.py")),
+    ("asyncio.taskgroups", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/taskgroups.py")),
+    ("asyncio.tasks", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/tasks.py")),
+    ("asyncio.threads", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/threads.py")),
+    ("asyncio.timeouts", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/timeouts.py")),
+    ("asyncio.unix_events", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/unix_events.py")),
+    ("_asyncio", include_str!("py/_asyncio.py")),
     ("inspect", include_str!("py/inspect.py")),
     ("linecache", include_str!("../../../kernel/image/usr/lib/python3.13/linecache.py")),
     ("_excgroup", include_str!("py/_excgroup.py")),
+    ("_unraisable", include_str!("py/_unraisable.py")),
+    ("_mappingproxy", include_str!("py/_mappingproxy.py")),
     ("_imp", include_str!("py/_imp.py")),
     ("errno", include_str!("py/errno.py")),
     ("posix", include_str!("py/posix.py")),
     ("tarfile", include_str!("../../../kernel/image/usr/lib/python3.13/tarfile.py")),
     ("_archivefile", include_str!("py/_archivefile.py")),
+    ("_yaml_impl", include_str!("py/_yaml_impl.py")),
     ("sqlite3", include_str!("py/sqlite3.py")),
     ("sqlite3.dbapi2", include_str!("py/sqlite3_dbapi2.py")),
     ("sqlite3.dump", include_str!("../../../kernel/image/usr/lib/python3.13/sqlite3/dump.py")),
@@ -171,7 +187,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("ntpath", include_str!("../../../kernel/image/usr/lib/python3.13/ntpath.py")),
     ("genericpath", include_str!("../../../kernel/image/usr/lib/python3.13/genericpath.py")),
     ("asyncio.trsock", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/trsock.py")),
-    ("asyncio.streams", include_str!("py/asyncio_streams.py")),
+    ("asyncio.streams", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/streams.py")),
     ("asyncio.transports", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/transports.py")),
     ("asyncio.protocols", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/protocols.py")),
     ("pstats", include_str!("py/pstats.py")),
@@ -201,13 +217,14 @@ const SOURCES: &[(&str, &str)] = &[
     ("struct", include_str!("py/struct.py")),
     ("py_compile", include_str!("py/py_compile.py")),
     ("compileall", include_str!("../../../kernel/image/usr/lib/python3.13/compileall.py")),
-    ("multiprocessing", include_str!("py/multiprocessing.py")),
+    ("_multiprocessing", include_str!("py/_multiprocessing.py")),
     ("faulthandler", include_str!("py/faulthandler.py")),
     ("re", include_str!("py/re.py")),
     ("base64", include_str!("../../../kernel/image/usr/lib/python3.13/base64.py")),
     ("_colorize", include_str!("../../../kernel/image/usr/lib/python3.13/_colorize.py")),
     ("doctest", include_str!("../../../kernel/image/usr/lib/python3.13/doctest.py")),
-    ("pdb", include_str!("py/pdb.py")),
+    ("pdb", include_str!("../../../kernel/image/usr/lib/python3.13/pdb.py")),
+    ("rlcompleter", include_str!("../../../kernel/image/usr/lib/python3.13/rlcompleter.py")),
     ("pwd", include_str!("py/pwd.py")),
     ("grp", include_str!("py/grp.py")),
     ("wave", include_str!("../../../kernel/image/usr/lib/python3.13/wave.py")),
@@ -222,13 +239,22 @@ const SOURCES: &[(&str, &str)] = &[
     ("importlib.metadata.diagnose", include_str!("../../../kernel/image/usr/lib/python3.13/importlib/metadata/diagnose.py")),
     ("_frozen_importlib", include_str!("py/_frozen_importlib.py")),
     ("_frozen_importlib_external", include_str!("py/_frozen_importlib_external.py")),
-    ("importlib.resources", include_str!("py/importlib_resources.py")),
+    ("importlib.resources", include_str!("../../../kernel/image/usr/lib/python3.13/importlib/resources/__init__.py")),
+    ("importlib.resources._adapters", include_str!("../../../kernel/image/usr/lib/python3.13/importlib/resources/_adapters.py")),
+    ("importlib.resources._common", include_str!("../../../kernel/image/usr/lib/python3.13/importlib/resources/_common.py")),
+    ("importlib.resources._functional", include_str!("../../../kernel/image/usr/lib/python3.13/importlib/resources/_functional.py")),
+    ("importlib.resources._itertools", include_str!("../../../kernel/image/usr/lib/python3.13/importlib/resources/_itertools.py")),
+    ("importlib.resources.abc", include_str!("../../../kernel/image/usr/lib/python3.13/importlib/resources/abc.py")),
+    ("importlib.resources.readers", include_str!("../../../kernel/image/usr/lib/python3.13/importlib/resources/readers.py")),
+    ("importlib.resources.simple", include_str!("../../../kernel/image/usr/lib/python3.13/importlib/resources/simple.py")),
     ("_ssl", include_str!("py/_ssl.py")),
     ("marshal", include_str!("py/marshal.py")),
     ("resource", include_str!("py/resource.py")),
     ("fcntl", include_str!("py/fcntl.py")),
+    ("termios", include_str!("py/termios.py")),
     ("readline", include_str!("py/readline.py")),
     ("select", include_str!("py/select.py")),
+    ("_select", include_str!("py/_select.py")),
     ("selectors", include_str!("../../../kernel/image/usr/lib/python3.13/selectors.py")),
     ("socketserver", include_str!("py/socketserver.py")),
     ("http.cookiejar", include_str!("../../../kernel/image/usr/lib/python3.13/http/cookiejar.py")),
@@ -314,7 +340,8 @@ const SOURCES: &[(&str, &str)] = &[
     ("filecmp", include_str!("../../../kernel/image/usr/lib/python3.13/filecmp.py")),
     ("gettext", include_str!("py/gettext.py")),
     ("timeit", include_str!("../../../kernel/image/usr/lib/python3.13/timeit.py")),
-    ("signal", include_str!("py/signal.py")),
+    ("signal", include_str!("../../../kernel/image/usr/lib/python3.13/signal.py")),
+    ("_signal", include_str!("py/_signal.py")),
     ("unittest", include_str!("../../../kernel/image/usr/lib/python3.13/unittest/__init__.py")),
     ("unittest.__main__", include_str!("py/unittest___main__.py")),
     ("unittest.mock", include_str!("py/unittest_mock.py")),
@@ -476,9 +503,8 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     let globals: Rc<RefCell<crate::object::VarMap>> = Rc::new(RefCell::new(Default::default()));
     {
         let mut g = globals.borrow_mut();
-        if let Some(b) = builtins {
-            g.insert("__builtins__".into(), b);
-        }
+        // A ordem do CPython: `__name__`, `__doc__`, `__package__` (do módulo), depois `__path__`, `__file__`,
+        // `__cached__` (do spec) e por último o `__builtins__` que o `exec` do módulo acrescenta.
         g.insert("__name__".into(), Value::str(real));
         g.insert("__doc__".into(), Value::None);
         let as_path = real.replace('.', "/");
@@ -488,21 +514,24 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         } else {
             format!("{base}/{as_path}.py")
         };
-        // Módulo que no Debian é C embutido no executável não tem `__file__`.
-        if !crate::object::BUILTIN_MODULES.contains(&real) {
-            if !crate::object::FROZEN_MODULES.contains(&real) {
-                if let Some(cached) = crate::modules::cached_path(&file) {
-                    g.insert("__cached__".into(), Value::str(cached));
-                }
-            }
-            g.insert("__file__".into(), Value::str(file));
-        }
         // Pacote: `__package__` é ele mesmo e `__path__` aponta o diretório dele; módulo: o pacote pai.
         if crate::modules::is_embedded_package(real) {
             g.insert("__package__".into(), Value::str(real));
             g.insert("__path__".into(), Value::list(vec![Value::str(format!("{base}/{as_path}"))]));
         } else {
             g.insert("__package__".into(), Value::str(real.rsplit_once('.').map_or("", |(p, _)| p)));
+        }
+        // Módulo que no Debian é C embutido no executável não tem `__file__`.
+        if !crate::object::BUILTIN_MODULES.contains(&real) {
+            g.insert("__file__".into(), Value::str(file.clone()));
+            if !crate::object::FROZEN_MODULES.contains(&real) {
+                if let Some(cached) = crate::modules::cached_path(&file) {
+                    g.insert("__cached__".into(), Value::str(cached));
+                }
+            }
+        }
+        if let Some(b) = builtins {
+            g.insert("__builtins__".into(), b);
         }
     }
     vm.module_globals.borrow_mut().insert(module.name, globals.clone());
@@ -525,7 +554,14 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     code.set_filename(&filename);
     code.mark_internal();
     crate::vm::register_source(&filename, src);
-    if let Err(e) = inner.run(&Rc::new(code)) {
+    let running = crate::modules::Initializing::enter(module.name);
+    // O corpo do módulo avança a linha corrente da VM (compartilhada com `inner`): quem importou, mesmo por nativa
+    // (`warnings.warn` de `co_lnotab`), continua na linha dele, como o quadro do chamador no CPython.
+    let caller_line = vm.cur_line.get();
+    let outcome = inner.run(&Rc::new(code));
+    vm.cur_line.set(caller_line);
+    drop(running);
+    if let Err(e) = outcome {
         // Como no CPython, o módulo que falhou ao rodar sai de `sys.modules` e a exceção sobe para
         // quem importou (o `import_checked` a recolhe com `take_error`).
         vm.modules.borrow_mut().remove(real);
@@ -535,11 +571,19 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     // Módulo que no Debian é C embutido: o programa só enxerga os nomes que o `dir()` do CPython
     // lista. As funções do shim seguem com as globais completas, como o C, que não consulta o
     // dicionário do módulo (trocar `time.time` de fora não muda o que o `time` usa por dentro).
-    if let Some(visible) = builtin_dir(real) {
+    // Módulo que no Debian é Python mas cujo shim tem auxiliares próprios: o `dir()` mostra o que o CPython
+    // mostra (os nomes públicos e os `_nome` que o `.py` do Debian define), e o resto fica nas globais
+    // completas, que as funções do módulo seguem usando.
+    let visible_in_dir: Option<Box<dyn Fn(&str) -> bool>> = match (builtin_dir(real), private_keep(real)) {
+        (Some(visible), _) => Some(Box::new(move |k: &str| visible.contains(&k))),
+        (None, Some(keep)) => Some(Box::new(move |k: &str| !is_private_name(k) || keep.contains(&k))),
+        (None, None) => None,
+    };
+    if let Some(is_visible) = &visible_in_dir {
         let public: crate::object::VarMap = globals
             .borrow()
             .iter()
-            .filter(|(k, _)| visible.contains(&k.to_string().as_str()))
+            .filter(|(k, _)| is_visible(&k.to_string()))
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect();
         vm.module_globals.borrow_mut().insert(module.name, Rc::new(RefCell::new(public)));
@@ -549,6 +593,11 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     let shown = vm.module_globals.borrow().get(module.name).cloned().unwrap_or_else(|| globals.clone());
     for (k, v) in shown.borrow().iter() {
         attrs.insert(k.to_string(), v.clone());
+    }
+    // Um auxiliar com sublinhado que o programa (ou outro módulo embutido) gravou no módulo durante a carga, como o
+    // `_posix_init` que o `posix` deixa no `os`, não entra no `dir()` do CPython.
+    if let Some(is_visible) = &visible_in_dir {
+        attrs.retain(|k, _| !is_private_name(k) || is_visible(k));
     }
     drop(attrs);
     // `import pacote.sub` deixa `sub` como atributo do módulo `pacote`.
@@ -575,6 +624,18 @@ pub fn private_attr(module: &str, name: &str) -> Option<Value> {
     PRIVATE.with(|p| p.borrow().get(module).and_then(|g| g.borrow().get(name).cloned()))
 }
 
+/// As globais completas dos módulos embutidos filtrados, por nome, para a imagem de um `os.fork`.
+pub(crate) fn private_snapshot() -> Vec<(&'static str, Rc<RefCell<crate::object::VarMap>>)> {
+    let mut all: Vec<_> = PRIVATE.with(|p| p.borrow().iter().map(|(n, g)| (*n, g.clone())).collect());
+    all.sort_unstable_by_key(|(n, _)| *n);
+    all
+}
+
+/// Põe de volta as globais completas (a thread do filho nasce com a tabela vazia).
+pub(crate) fn private_install(name: &'static str, globals: Rc<RefCell<crate::object::VarMap>>) {
+    PRIVATE.with(|p| p.borrow_mut().insert(name, globals));
+}
+
 /// Os nomes do `dir()` do módulo embutido `name` no CPython 3.13 do Debian (`builtin-dir.tsv`,
 /// gerado no oráculo). `sys` e `builtins` ficam de fora: o programa religa nomes públicos deles
 /// (`sys.stdout = ...`) e o interpretador precisa ver a troca.
@@ -583,10 +644,49 @@ fn builtin_dir(name: &str) -> Option<Vec<&'static str>> {
     if matches!(name, "sys" | "builtins") {
         return None;
     }
-    TABLE.lines().find_map(|line| {
+    table_row(TABLE, name)
+}
+
+/// Os nomes `_nome` (fora os `__nome__`) que o `dir()` do módulo `name` tem no CPython 3.13 do Debian, para
+/// os módulos que lá são Python (`module-private-names.tsv`, gerado do `dir()` do oráculo). Um módulo com
+/// linha na tabela só mostra, entre os nomes com sublinhado, os que estão nela; sem linha, mostra tudo.
+fn private_keep(name: &str) -> Option<Vec<&'static str>> {
+    const TABLE: &str = include_str!("../../data/cpython-docs/module-private-names.tsv");
+    table_row(TABLE, name)
+}
+
+/// A linha `módulo<TAB>nome nome ...` de `table` para `name`.
+fn table_row(table: &'static str, name: &str) -> Option<Vec<&'static str>> {
+    table.lines().find_map(|line| {
         let (module, names) = line.split_once('\t')?;
         (module == name).then(|| names.split(' ').collect())
     })
+}
+
+/// Nome com sublinhado que não é `__nome__`: o auxiliar interno de um módulo.
+fn is_private_name(name: &str) -> bool {
+    name.starts_with('_') && !(name.len() > 4 && name.starts_with("__") && name.ends_with("__"))
+}
+
+/// A escrita (`Some`) ou o `del` (`None`) de um atributo de módulo feita pelo programa, repassada às globais
+/// completas de um módulo em Python embutido que tem o `dir()` filtrado: as funções do módulo leem o nome
+/// nelas, e `mock.patch("shutil.copyfile")` precisa valer para quem chama `copyfile` por dentro, como no
+/// CPython. Os módulos em C (`builtin_dir`) não consultam o dicionário e ficam de fora.
+pub(crate) fn mirror_private(module: &str, name: &str, value: Option<&Value>) {
+    PRIVATE.with(|p| {
+        let Some(full) = p.borrow().get(module).cloned() else { return };
+        if private_keep(module).is_none() {
+            return;
+        }
+        match value {
+            Some(v) => {
+                full.borrow_mut().insert(name.into(), v.clone());
+            }
+            None => {
+                full.borrow_mut().shift_remove(name);
+            }
+        }
+    });
 }
 
 /// O texto-fonte do módulo embutido `name`.

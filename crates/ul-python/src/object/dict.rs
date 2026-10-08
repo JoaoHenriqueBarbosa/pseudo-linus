@@ -25,7 +25,18 @@ pub struct Dict {
     len: usize,
 }
 
+/// O valor atual do contador global das mutações: igual ao de uma leitura anterior quer dizer que nenhum
+/// dict foi alterado nesse intervalo (as visões vivas das globais usam isso para não varrer nada).
+pub fn generation_now() -> u64 {
+    GENERATION.load(Ordering::Relaxed)
+}
+
 impl Dict {
+    /// `d.clear()`: esvazia e conta como mutação, para as visões vivas perceberem.
+    pub fn clear(&mut self) {
+        *self = Dict::default();
+        self.generation = GENERATION.fetch_add(1, Ordering::Relaxed);
+    }
 
     pub fn len(&self) -> usize {
         self.len
@@ -104,6 +115,24 @@ impl Dict {
     /// Pares chave e valor na ordem de inserção.
     pub fn iter(&self) -> impl Iterator<Item = (&Value, &Value)> {
         self.entries.iter().flatten().map(|(_, k, v)| (k, v))
+    }
+
+    /// Como [`Dict::iter`], com o hash que cada chave tinha ao entrar (a imagem do heap o leva junto: uma
+    /// chave cujo `__hash__` é código Python, como um membro de `IntEnum`, não se rehasheia sem uma `Vm`).
+    pub fn iter_hashed(&self) -> impl Iterator<Item = (i64, &Value, &Value)> {
+        self.entries.iter().flatten().map(|(h, k, v)| (*h, k, v))
+    }
+
+    /// Refaz um dict da lista de [`Dict::iter_hashed`]: as chaves já são distintas, entram com o hash dado.
+    pub fn from_hashed(entries: impl IntoIterator<Item = (i64, Value, Value)>) -> Dict {
+        let mut dict = Dict::default();
+        for (h, k, v) in entries {
+            dict.index.entry(h).or_default().push(dict.entries.len());
+            dict.entries.push(Some((h, k, v)));
+            dict.len += 1;
+        }
+        dict.generation = GENERATION.fetch_add(1, Ordering::Relaxed);
+        dict
     }
 
     pub fn keys(&self) -> impl Iterator<Item = &Value> {

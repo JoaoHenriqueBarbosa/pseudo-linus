@@ -132,33 +132,128 @@ fn runtime_docs(name: &str, docs: &mut Docs) {
     }
 }
 
+/// As assinaturas de texto (`__text_signature__`) das funções de módulo no CPython 3.13, geradas no
+/// oráculo por `gen_module_function_sigs.py`: `módulo<TAB>função[<TAB>assinatura]`.
+const MODULE_SIGNATURES: &str = include_str!("../../data/cpython-docs/module-function-sigs.tsv");
+
+/// Tabela `(dono, nome) -> assinatura` de um `.tsv` gerado no oráculo (`dono<TAB>nome[<TAB>assinatura]`).
+/// A linha sem a terceira coluna é um chamável sem `__text_signature__`; a linha sem TAB continua a
+/// assinatura da anterior (o texto do CPython tem quebras de linha). `#` abre comentário.
+pub(crate) fn parse_signature_table(src: &'static str) -> std::collections::HashMap<(&'static str, &'static str), Option<&'static str>> {
+    let mut table = std::collections::HashMap::new();
+    // A linha corrente: `(dono, nome, início e fim da assinatura no texto)`.
+    let mut open: Option<(&'static str, &'static str, Option<(usize, usize)>)> = None;
+    let mut flush = |open: &mut Option<(&'static str, &'static str, Option<(usize, usize)>)>| {
+        if let Some((owner, name, span)) = open.take() {
+            table.insert((owner, name), span.map(|(a, b)| &src[a..b]));
+        }
+    };
+    let mut pos = 0;
+    for line in src.split('\n') {
+        let end = pos + line.len();
+        if line.starts_with('#') || line.is_empty() {
+            flush(&mut open);
+        } else if let Some((owner, rest)) = line.split_once('\t') {
+            flush(&mut open);
+            let (name, sig) = rest.split_once('\t').map_or((rest, None), |(n, _)| (n, Some(pos + owner.len() + 1 + n.len() + 1)));
+            open = Some((owner, name, sig.map(|a| (a, end))));
+        } else if let Some((_, _, Some(span))) = open.as_mut() {
+            span.1 = end;
+        }
+        pos = end + 1;
+    }
+    flush(&mut open);
+    table
+}
+
+/// O `__text_signature__` da função de módulo `name` de `module` na tabela do CPython.
+pub(crate) fn module_function_signature(module: &str, name: &str) -> Option<&'static str> {
+    module_signatures().get(&(module, name)).copied().flatten()
+}
+
+fn module_signatures() -> &'static std::collections::HashMap<(&'static str, &'static str), Option<&'static str>> {
+    static TABLE: std::sync::OnceLock<std::collections::HashMap<(&'static str, &'static str), Option<&'static str>>> =
+        std::sync::OnceLock::new();
+    TABLE.get_or_init(|| parse_signature_table(MODULE_SIGNATURES))
+}
+
+/// As assinaturas de texto dos tipos de módulos em C do CPython 3.13 (`itertools.chain`, `_io.BytesIO`...),
+/// geradas no oráculo por `gen_module_class_sigs.py`: `módulo<TAB>tipo<TAB>assinatura`.
+const CLASS_SIGNATURES: &str = include_str!("../../data/cpython-docs/module-class-sigs.tsv");
+
+/// O `__text_signature__` do tipo `name` do módulo `module` na tabela do CPython.
+pub(crate) fn class_signature(module: &str, name: &str) -> Option<&'static str> {
+    static TABLE: std::sync::OnceLock<std::collections::HashMap<(&'static str, &'static str), Option<&'static str>>> =
+        std::sync::OnceLock::new();
+    TABLE.get_or_init(|| parse_signature_table(CLASS_SIGNATURES)).get(&(module, name)).copied().flatten()
+}
+
 thread_local! {
+    /// Assinaturas de texto das funções nativas em Rust, pelo endereço da função (`register_native`).
+    static NATIVE_SIGNATURES: std::cell::RefCell<std::collections::HashMap<usize, &'static str>> =
+        std::cell::RefCell::new(std::collections::HashMap::new());
     /// Docstrings das funções nativas em Rust, pelo endereço da função (`register_native`).
     static NATIVE_DOCS: std::cell::RefCell<std::collections::HashMap<usize, String>> =
         std::cell::RefCell::new(std::collections::HashMap::new());
+    /// O módulo dono de cada função nativa, pelo endereço da função: o `__module__` e o `__self__`.
+    static NATIVE_OWNERS: std::cell::RefCell<std::collections::HashMap<usize, String>> =
+        std::cell::RefCell::new(std::collections::HashMap::new());
 }
 
-/// Liga as funções nativas do módulo `module` às docstrings que o CPython dá a elas na tabela.
+/// Liga as funções nativas do módulo `module` às docstrings que o CPython dá a elas na tabela, e ao
+/// módulo que as define.
 pub fn register_native(module: &str, attrs: &std::collections::BTreeMap<String, crate::object::Value>) {
     let mut docs = Docs::new();
     runtime_docs(module, &mut docs);
     NATIVE_DOCS.with(|m| {
-        let mut m = m.borrow_mut();
-        for (name, value) in attrs {
-            if let (crate::object::Value::NativeFn(f), Some(Some((doc, _)))) = (value, docs.get(name.as_str())) {
-                m.entry(f.f as *const () as usize).or_insert_with(|| doc.clone());
+        NATIVE_OWNERS.with(|owners| {
+            let (mut m, mut owners) = (m.borrow_mut(), owners.borrow_mut());
+            for (name, value) in attrs {
+                let crate::object::Value::NativeFn(f) = value else { continue };
+                let key = f.f as *const () as usize;
+                // Módulo de apoio não existe para o programa: o dono é o módulo público que expõe as funções dele
+                // (o `_sys` é o `sys`), e os demais não aparecem como dono.
+                let public = if module == "_sys" { Some("sys") } else { Some(module).filter(|m| !super::INTERNAL.contains(m)) };
+                if let Some(owner) = public {
+                    owners.entry(key).or_insert_with(|| owner.to_string());
+                }
+                if let Some(Some((doc, _))) = docs.get(name.as_str()) {
+                    m.entry(key).or_insert_with(|| doc.clone());
+                }
+                if let Some(sig) = module_function_signature(module, name) {
+                    NATIVE_SIGNATURES.with(|s| {
+                        s.borrow_mut().entry(key).or_insert(sig);
+                    });
+                }
             }
-        }
+        });
     });
 }
 
-/// A docstring de uma função nativa registrada por `register_native`.
-pub fn native_doc(f: &crate::object::NativeFn) -> Option<String> {
-    NATIVE_DOCS.with(|m| m.borrow().get(&(f.f as *const () as usize)).cloned())
+/// Gera as consultas do que `register_native` guardou de uma função nativa, pelo endereço dela.
+macro_rules! native_lookups {
+    ($($(#[$meta:meta])* $name:ident($table:ident) -> $ty:ty;)*) => {
+        $($(#[$meta])*
+        pub fn $name(f: &crate::object::NativeFn) -> Option<$ty> {
+            $table.with(|m| m.borrow().get(&(f.f as *const () as usize)).cloned())
+        })*
+    };
 }
 
-/// A docstring da função embutida `name` (`len`, `abs`...), da tabela do módulo `builtins`.
-pub fn builtin_doc(name: &str) -> Option<String> {
+native_lookups! {
+    /// O módulo que define a função nativa `f` (`math` para `math.sqrt`), se foi registrada por
+    /// `register_native`.
+    native_owner(NATIVE_OWNERS) -> String;
+    /// O `__text_signature__` de uma função nativa registrada por `register_native` (`None` sem linha na
+    /// tabela ou linha sem assinatura).
+    native_signature(NATIVE_SIGNATURES) -> &'static str;
+    /// A docstring de uma função nativa registrada por `register_native`.
+    native_doc(NATIVE_DOCS) -> String;
+}
+
+/// A linha da tabela do módulo `builtins` para `name` (`len`, `str`, `str.upper`, `int.__add__`...):
+/// `None` sem linha, `Some(None)` quando a docstring é `None` no CPython.
+pub(crate) fn builtin_doc_entry(name: &str) -> Option<Option<String>> {
     thread_local! {
         static BUILTINS: Docs = {
             let mut docs = Docs::new();
@@ -166,7 +261,12 @@ pub fn builtin_doc(name: &str) -> Option<String> {
             docs
         };
     }
-    BUILTINS.with(|d| d.get(name).cloned().flatten().map(|(doc, _)| doc))
+    BUILTINS.with(|d| d.get(name).map(|entry| entry.as_ref().map(|(doc, _)| doc.clone())))
+}
+
+/// A docstring da função ou do tipo embutido `name` (`len`, `abs`, `str`...), da tabela do módulo `builtins`.
+pub fn builtin_doc(name: &str) -> Option<String> {
+    builtin_doc_entry(name).flatten()
 }
 
 /// A docstring de módulo que a tabela dá para `name` (`None` se ela não tem ou se é `None` no CPython).

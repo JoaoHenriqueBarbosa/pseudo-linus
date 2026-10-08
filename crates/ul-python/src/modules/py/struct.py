@@ -11,7 +11,14 @@ def iter_unpack(format, buffer, /):
     return iter(_iter_unpack(format, buffer))
 
 
+def _clearcache():
+    """Clear the internal cache."""
+    return None
+
+
 class Struct:
+    __module__ = '_struct'
+
     def __init__(self, format):
         if isinstance(format, (bytes, bytearray)):
             format = bytes(format).decode('ascii')

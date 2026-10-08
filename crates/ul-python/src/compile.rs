@@ -1,8 +1,9 @@
 //! Compilador do AST (`parser::parse_module`) para o bytecode próprio da VM (fatia 10 de
 //! `docs/python3-port.md`).
 //!
-//! O bytecode é de pilha e não copia os opcodes do CPython (`dis` e `.pyc` estão fora do escopo),
-//! mas a ordem de avaliação é a mesma: operandos da esquerda para a direita, valor antes do alvo na
+//! O bytecode que a VM executa é de pilha e próprio (o `Op` abaixo); o bytecode do CPython 3.13 que o `dis`
+//! mostra é emitido em paralelo por `cpybc` e guardado em `Code::cpy`. A ordem de avaliação é a mesma:
+//! operandos da esquerda para a direita, valor antes do alvo na
 //! atribuição, comparações encadeadas avaliando cada operando uma vez só. Cada instrução guarda a
 //! linha do nó que a gerou, que é o `lineno` do traceback.
 //!
@@ -72,6 +73,9 @@ pub enum Op {
     SetupTry(u32),
     /// Fecha o bloco protegido mais interno.
     PopBlock,
+    /// `pass`: não faz nada, mas guarda a linha dele (o CPython mantém o `NOP` quando a linha não
+    /// teria outra instrução, e é ele que gera o evento `line` do `sys.settrace`).
+    Nop,
     /// Move a exceção do topo (mantendo-a) para a pilha de exceções tratadas.
     PushExc,
     /// Descarta a exceção tratada mais recente.
@@ -134,6 +138,12 @@ pub enum Op {
     DictSet,
     /// `[dict, mapeamento]` vira `[dict]` atualizado (`**m`); chave repetida é `TypeError`.
     DictUpdate,
+    /// `[func, lista, dict, chave, valor]` vira `[func, lista, dict]` com o par (`nome=valor` de uma chamada
+    /// com `*args`/`**kwargs`); chave repetida é `TypeError`.
+    CallKwSet,
+    /// `[func, lista, dict, mapeamento]` vira `[func, lista, dict]` mesclado (`**m` de uma chamada); chave
+    /// repetida é `TypeError: f() got multiple values for keyword argument 'k'`.
+    CallKwMerge,
     /// `objeto.nome = valor`, com a pilha `[value, objeto]`.
     StoreAttr(u32),
     /// `del objeto.nome`.
@@ -193,6 +203,44 @@ pub enum Op {
     SetAddAt(u32),
     /// Como `ListAppendAt`, com `[chave, valor]` no topo, para dicionário.
     MapAddAt(u32),
+    /// Remove a variável local do escopo em execução, sem erro se ela não estiver ligada (o alvo
+    /// oculto de uma compreensão inline que não chegou a iterar).
+    ClearLocal(u32),
+    /// Abre a célula dos alvos de laço que uma função de dentro da compreensão fecha: guarda um
+    /// escopo novo sob `names[key]`, filho do escopo da célula `parent` (a compreensão de fora que
+    /// também tem uma) ou do escopo em execução.
+    EnterCell { key: u32, parent: Option<u32> },
+    /// Empilha o alvo `names[name]` na célula guardada sob `names[key]`.
+    LoadCell { key: u32, name: u32 },
+    /// Grava o topo no alvo `names[name]` da célula guardada sob `names[key]`.
+    StoreCell { key: u32, name: u32 },
+    /// A função no topo passa a fechar sobre a célula guardada sob `names[key]`, e não sobre o
+    /// escopo em execução: é como ela enxerga o alvo do laço, mesmo depois que a compreensão acaba.
+    BindCell(u32),
+}
+
+/// Chave sob a qual uma compreensão inline guarda a célula dos alvos que as funções de dentro dela
+/// fecham.
+pub fn comp_cell_key(depth: usize) -> String {
+    format!(".k{depth}")
+}
+
+/// O inverso de [`comp_cell_key`]: o aninhamento da compreensão dona de uma chave de célula.
+pub fn comp_cell_depth(key: &str) -> Option<usize> {
+    key.strip_prefix(".k")?.parse().ok()
+}
+
+/// Chave sob a qual uma compreensão inline guarda o alvo `name` do laço no escopo que a contém. O
+/// ponto inicial a separa de qualquer identificador do usuário e `depth` (o aninhamento de
+/// compreensões) separa o alvo de uma compreensão do homônimo da que a contém.
+pub fn comp_hidden_key(depth: usize, name: &str) -> String {
+    format!(".c{depth}.{name}")
+}
+
+/// O inverso de [`comp_hidden_key`]: `(aninhamento, nome)` de uma chave de alvo de compreensão.
+pub fn comp_hidden_parts(key: &str) -> Option<(usize, &str)> {
+    let (depth, name) = key.strip_prefix(".c")?.split_once('.')?;
+    Some((depth.parse().ok()?, name))
 }
 
 /// Corpo de uma função: instruções (`def`) ou uma expressão (`lambda`).
@@ -226,7 +274,7 @@ impl Span {
 }
 
 /// Código compilado de um módulo ou de uma função.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Code {
     pub ops: Vec<Op>,
     /// Linha de cada instrução, paralela a `ops`.
@@ -245,6 +293,14 @@ pub struct Code {
     pub vararg: Option<Rc<str>>,
     pub kwonly: Vec<Rc<str>>,
     pub kwarg: Option<Rc<str>>,
+    /// `co_varnames`: os parâmetros (posicionais, só-nomeados, `*args`, `**kwargs`) e depois os locais
+    /// na ordem em que o compilador os numera (a primeira aparição no corpo), sem as células que não
+    /// são parâmetros.
+    pub varnames: Vec<Rc<str>>,
+    /// `co_cellvars`: as variáveis que uma função de dentro fecha, em ordem alfabética.
+    pub cellvars: Vec<Rc<str>>,
+    /// `co_freevars`: as variáveis de funções de fora que este código fecha, em ordem alfabética.
+    pub freevars: Vec<Rc<str>>,
     pub is_function: bool,
     /// Corpo de classe: o resultado é o espaço de nomes, não um valor devolvido.
     pub is_class: bool,
@@ -264,6 +320,15 @@ pub struct Code {
     /// Código de módulo embutido do interpretador: só ele enxerga os módulos internos (`_os`, `_net`...),
     /// que o CPython não tem. Nenhum caminho do usuário (`compile`, `exec`) liga isto.
     pub internal: bool,
+    /// PEP 695: de que escopo de parâmetros de tipo o código é, ou se é filho de um (ver `pep695::SCOPE_*`,
+    /// `CHILD` e `NESTED`); 0 nos demais. O `co_varnames`, o `co_freevars` e o `co_flags` do CPython dependem disto.
+    pub type_params_role: u8,
+    /// Os bits `CO_FUTURE_*` que o `co_flags` herda dos `from __future__ import` do módulo (ver `future_flags`); o código
+    /// aninhado leva os mesmos.
+    pub future_flags: i64,
+    /// O bytecode do CPython 3.13 equivalente (`co_code`, `co_consts`, `co_linetable`...), quando o emissor de
+    /// `cpybc` cobre o código; senão `None` e o objeto `code` mostra o esqueleto de `Emitted::synthetic`.
+    pub cpy: Option<Rc<crate::cpybc::Emitted>>,
 }
 
 impl Code {
@@ -416,7 +481,7 @@ fn clean_doc(doc: &str) -> String {
 }
 
 /// O docstring de um corpo: a primeira instrução, se for só um literal de texto.
-fn docstring(body: &[Stmt]) -> Option<String> {
+pub(crate) fn docstring(body: &[Stmt]) -> Option<String> {
     match body.first().map(|s| &s.kind) {
         Some(S::Expr { value }) => match &value.kind {
             E::Constant { value: Constant::Str(s), kind: Some(k) } if k == crate::modules::cpydocs::CLEANED_DOC => {
@@ -430,7 +495,7 @@ fn docstring(body: &[Stmt]) -> Option<String> {
 }
 
 /// Texto de uma anotação, para `from __future__ import annotations` (o que `ast.unparse` daria).
-fn ann_text(e: &Expr) -> String {
+pub(crate) fn ann_text(e: &Expr) -> String {
     match &e.kind {
         E::Name { id, .. } => id.clone(),
         E::Attribute { value, attr, .. } => format!("{}.{attr}", ann_text(value)),
@@ -459,15 +524,47 @@ fn ann_text(e: &Expr) -> String {
     }
 }
 
+const CO_FUTURE_ANNOTATIONS: i64 = 0x100_0000;
+
+/// Os bits `CO_FUTURE_*` que o `future.c` do 3.13 grava: só `barry_as_FLUFL` e `annotations` ligam bit (os demais
+/// recursos já são a linguagem).
+fn future_flags(body: &[Stmt]) -> i64 {
+    const BARRY_AS_BDFL: i64 = 0x40_0000;
+    let mut flags = 0;
+    for s in body {
+        if let S::ImportFrom { module: Some(m), names, .. } = &s.kind {
+            if m == "__future__" {
+                for n in names {
+                    flags |= match n.name.as_str() {
+                        "barry_as_FLUFL" => BARRY_AS_BDFL,
+                        "annotations" => CO_FUTURE_ANNOTATIONS,
+                        _ => 0,
+                    };
+                }
+            }
+        }
+    }
+    flags
+}
+
+/// `compile(..., 'single')`: o mesmo módulo, com o bytecode do modo interativo (a expressão solta vai a `INTRINSIC_PRINT`).
+pub fn reemit_interactive(code: &mut Code, module: &Mod) {
+    let Mod::Module { body, .. } = module else { return };
+    let imports = crate::cpybc::module_imports(body);
+    let future = code.future_flags & CO_FUTURE_ANNOTATIONS != 0;
+    code.cpy = crate::cpybc::module(code, body, &imports, future, true).map(Rc::new);
+}
+
 pub fn compile_module(module: &Mod) -> Result<Code, CompileError> {
     let Mod::Module { body, .. } = module else {
         return Err(CompileError { kind: "NotImplementedError", msg: "only modules can be compiled".into(), lineno: 1 });
     };
-    let mut c = Compiler::new(Code { name: "<module>".into(), ..Code::default() }, 1);
+    let mut c = Compiler::new(Code { name: "<module>".into(), future_flags: future_flags(body), ..Code::default() }, 1);
     c.future_annotations = body.iter().any(|s| {
         matches!(&s.kind, S::ImportFrom { module: Some(m), names, .. }
             if m == "__future__" && names.iter().any(|n| n.name == "annotations"))
     });
+    c.imports = Rc::new(crate::cpybc::module_imports(body));
     // Sem docstring, `__doc__` fica como o chamador definiu (`None` ao criar o módulo).
     if let Some(doc) = docstring(body) {
         let k = c.constant(Value::str(doc));
@@ -475,12 +572,22 @@ pub fn compile_module(module: &Mod) -> Result<Code, CompileError> {
         c.emit_store("__doc__");
     }
     c.block(body)?;
+    c.code.cpy = crate::cpybc::module(&c.code, body, &c.imports, c.future_annotations, false).map(Rc::new);
     Ok(c.code)
+}
+
+/// O módulo `__eval_value__ = expr` de um `compile(..., 'eval')`, com a expressão no lugar que o parser lhe deu
+/// (colunas reais, sem o prefixo do embrulho `__eval_value__ = (`): o código aninhado nela sai com as posições do CPython.
+pub fn eval_module(expr: Expr) -> Mod {
+    let pos = expr.pos;
+    let target = Expr { kind: E::Name { id: "__eval_value__".to_string(), ctx: ExprContext::Store }, pos };
+    let assign = Stmt { kind: S::Assign { targets: vec![target], value: Box::new(expr), type_comment: None }, pos };
+    Mod::Module { body: vec![assign], type_ignores: Vec::new() }
 }
 
 /// Os `self.x` atribuídos nos métodos definidos no corpo de uma classe (inclusive dentro de `if`,
 /// `try` e afins no nível da classe), onde `self` é o primeiro parâmetro de cada método.
-fn static_attributes(body: &[Stmt], out: &mut std::collections::BTreeSet<String>) {
+pub(crate) fn static_attributes(body: &[Stmt], out: &mut std::collections::BTreeSet<String>) {
     for s in body {
         match &s.kind {
             S::FunctionDef { args, body, .. } | S::AsyncFunctionDef { args, body, .. } => {
@@ -542,6 +649,13 @@ impl Scope {
         }
     }
 
+    /// O alvo de uma compreensão inline que uma função de dentro fecha vira célula da função que a
+    /// contém (PEP 709): é local dela também fora da compreensão, e lido antes de ligado levanta
+    /// `UnboundLocalError`, como no CPython 3.13.
+    fn inline_cells(&mut self, elts: &[&Expr], generators: &[Comprehension]) {
+        self.bound.extend(captured_targets(elts, generators));
+    }
+
     /// Procura `x := v` em uma expressão (o alvo liga no escopo da função que a contém). Não entra
     /// em `lambda`; entra nas compreensões, cujo walrus também liga no escopo externo.
     fn expr(&mut self, e: &Expr) {
@@ -586,6 +700,9 @@ impl Scope {
                 }
             }
             E::ListComp { elt, generators } | E::SetComp { elt, generators } | E::GeneratorExp { elt, generators } => {
+                if !matches!(e.kind, E::GeneratorExp { .. }) {
+                    self.inline_cells(&[&**elt], generators);
+                }
                 self.expr(elt);
                 for g in generators {
                     self.expr(&g.iter);
@@ -593,6 +710,7 @@ impl Scope {
                 }
             }
             E::DictComp { key, value, generators } => {
+                self.inline_cells(&[&**key, &**value], generators);
                 self.expr(key);
                 self.expr(value);
                 for g in generators {
@@ -693,6 +811,11 @@ impl Scope {
                 targets.iter().for_each(|t| self.target(t));
                 self.self_name = saved;
             }
+            S::TypeAlias { name, .. } => {
+                if let E::Name { id, .. } = &name.kind {
+                    self.bound.insert(id.clone());
+                }
+            }
             S::FunctionDef { name, .. } | S::AsyncFunctionDef { name, .. } | S::ClassDef { name, .. } => {
                 self.bound.insert(name.clone());
             }
@@ -765,6 +888,188 @@ impl Scope {
     }
 }
 
+/// As subexpressões diretas de `e`.
+pub(crate) fn children(e: &Expr) -> Vec<&Expr> {
+    let mut out: Vec<&Expr> = Vec::new();
+    match &e.kind {
+        E::BoolOp { values, .. } | E::JoinedStr { values } => out.extend(values),
+        E::NamedExpr { target, value } => out.extend([&**target, &**value]),
+        E::BinOp { left, right, .. } => out.extend([&**left, &**right]),
+        E::UnaryOp { operand, .. } => out.push(operand),
+        E::Lambda { args, body } => {
+            out.extend(&args.defaults);
+            out.extend(args.kw_defaults.iter().flatten());
+            out.push(body);
+        }
+        E::IfExp { test, body, orelse } => out.extend([&**test, &**body, &**orelse]),
+        E::Dict { keys, values } => {
+            out.extend(keys.iter().flatten());
+            out.extend(values);
+        }
+        E::Set { elts } | E::List { elts, .. } | E::Tuple { elts, .. } => out.extend(elts),
+        E::ListComp { elt, generators } | E::SetComp { elt, generators } | E::GeneratorExp { elt, generators } => {
+            out.push(elt);
+            for g in generators {
+                out.extend([&g.target, &g.iter]);
+                out.extend(&g.ifs);
+            }
+        }
+        E::DictComp { key, value, generators } => {
+            out.extend([&**key, &**value]);
+            for g in generators {
+                out.extend([&g.target, &g.iter]);
+                out.extend(&g.ifs);
+            }
+        }
+        E::Await { value } | E::YieldFrom { value } | E::Attribute { value, .. } | E::Starred { value, .. } => {
+            out.push(value)
+        }
+        E::Yield { value } => out.extend(value.as_deref()),
+        E::Compare { left, comparators, .. } => {
+            out.push(left);
+            out.extend(comparators);
+        }
+        E::Call { func, args, keywords } => {
+            out.push(func);
+            out.extend(args);
+            out.extend(keywords.iter().map(|k| &k.value));
+        }
+        E::FormattedValue { value, format_spec, .. } => {
+            out.push(value);
+            out.extend(format_spec.as_deref());
+        }
+        E::Subscript { value, slice, .. } => out.extend([&**value, &**slice]),
+        E::Slice { lower, upper, step } => out.extend([lower, upper, step].into_iter().flatten().map(|b| &**b)),
+        E::Constant { .. } | E::Name { .. } => {}
+    }
+    out
+}
+
+/// Todo nome (lido ou ligado) que aparece em `e`, em qualquer profundidade.
+fn names_in<'a>(e: &'a Expr, out: &mut HashSet<&'a str>) {
+    if let E::Name { id, .. } = &e.kind {
+        out.insert(id.as_str());
+    }
+    children(e).into_iter().for_each(|c| names_in(c, out));
+}
+
+/// Os nomes que os alvos dos laços de uma compreensão ligam, na ordem em que aparecem.
+pub(crate) fn ordered_targets(e: &Expr, out: &mut Vec<String>) {
+    match &e.kind {
+        E::Name { id, .. } => {
+            if !out.contains(id) {
+                out.push(id.clone());
+            }
+        }
+        E::Tuple { elts, .. } | E::List { elts, .. } => elts.iter().for_each(|x| ordered_targets(x, out)),
+        E::Starred { value, .. } => ordered_targets(value, out),
+        _ => {}
+    }
+}
+
+/// Os nomes que os alvos dos laços de uma compreensão ligam.
+fn comp_targets(generators: &[Comprehension]) -> HashSet<String> {
+    let mut ordered = Vec::new();
+    generators.iter().for_each(|g| ordered_targets(&g.target, &mut ordered));
+    ordered.into_iter().collect()
+}
+
+/// Os nomes que o corpo de uma compreensão liga ou usa (alvos, `:=`, `await`), para decidir o
+/// escopo dela.
+fn comp_scope(elt: &Expr, value: Option<&Expr>, generators: &[Comprehension]) -> Scope {
+    let mut scope = Scope::default();
+    for g in generators {
+        scope.target(&g.target);
+        scope.expr(&g.iter);
+        g.ifs.iter().for_each(|i| scope.expr(i));
+    }
+    scope.expr(elt);
+    if let Some(v) = value {
+        scope.expr(v);
+    }
+    scope
+}
+
+/// O que roda no escopo próprio de uma compreensão: os elementos, os alvos, as condições e os
+/// iteráveis, menos o primeiro (que é avaliado no escopo de fora).
+pub(crate) fn comp_body<'a>(elts: &[&'a Expr], generators: &'a [Comprehension]) -> Vec<&'a Expr> {
+    let mut body: Vec<&Expr> = elts.to_vec();
+    for (i, g) in generators.iter().enumerate() {
+        body.push(&g.target);
+        if i > 0 {
+            body.push(&g.iter);
+        }
+        body.extend(&g.ifs);
+    }
+    body
+}
+
+/// A expressão geradora `elts`/`generators`, que é função, lê algum nome de `targets` do escopo de
+/// fora, ou o primeiro iterável dela cria uma função que o lê.
+fn scope_captures(elts: &[&Expr], generators: &[Comprehension], targets: &HashSet<String>) -> bool {
+    let own = comp_targets(generators);
+    let mut used = HashSet::new();
+    comp_body(elts, generators).into_iter().for_each(|b| names_in(b, &mut used));
+    used.iter().any(|n| targets.contains(*n) && !own.contains(*n)) || captures(&generators[0].iter, targets)
+}
+
+/// `e` cria, em algum ponto de dentro, uma função (`lambda` ou expressão geradora) que lê um nome
+/// de `targets`. Uma compreensão inline não é função: só o que ela cria dentro conta, e os alvos
+/// dela escondem os homônimos de fora.
+fn captures(e: &Expr, targets: &HashSet<String>) -> bool {
+    match &e.kind {
+        E::GeneratorExp { elt, generators } => return scope_captures(&[&**elt], generators, targets),
+        E::ListComp { elt, generators } | E::SetComp { elt, generators } => {
+            return inline_captures(&[&**elt], generators, targets);
+        }
+        E::DictComp { key, value, generators } => return inline_captures(&[&**key, &**value], generators, targets),
+        E::Lambda { args, body } => {
+            let mut used = HashSet::new();
+            names_in(body, &mut used);
+            let params = args.posonlyargs.iter().chain(&args.args).chain(&args.kwonlyargs);
+            let params = params.chain(args.vararg.as_deref()).chain(args.kwarg.as_deref());
+            params.for_each(|p| {
+                used.remove(p.arg.as_str());
+            });
+            if used.iter().any(|n| targets.contains(*n)) {
+                return true;
+            }
+        }
+        _ => {}
+    }
+    children(e).into_iter().any(|c| captures(c, targets))
+}
+
+/// A compreensão inline `elts`/`generators` cria uma função que lê um nome de `targets`: no primeiro
+/// iterável (avaliado fora dela) com todos os alvos à vista; no resto, sem os que ela mesma liga.
+fn inline_captures(elts: &[&Expr], generators: &[Comprehension], targets: &HashSet<String>) -> bool {
+    let own = comp_targets(generators);
+    let visible: HashSet<String> = targets.difference(&own).cloned().collect();
+    captures(&generators[0].iter, targets)
+        || (!visible.is_empty() && comp_body(elts, generators).into_iter().any(|b| captures(b, &visible)))
+}
+
+/// Os alvos de laço da compreensão inline `elts`/`generators` que uma função criada dentro dela
+/// fecha: o CPython dá a cada um uma célula (`co_cellvars` da função de fora), nova a cada execução
+/// da compreensão, em vez de uma variável do quadro.
+fn captured_targets(elts: &[&Expr], generators: &[Comprehension]) -> HashSet<String> {
+    let names: Vec<String> = comp_targets(generators).into_iter().collect();
+    captured_names(&names, &comp_body(elts, generators))
+}
+
+/// Os nomes de `names` que alguma expressão de `body` fecha com uma função criada dentro dela (`lambda` ou expressão
+/// geradora).
+pub(crate) fn captured_names(names: &[String], body: &[&Expr]) -> HashSet<String> {
+    names
+        .iter()
+        .filter(|t| {
+            let one: HashSet<String> = std::iter::once((*t).clone()).collect();
+            body.iter().any(|b| captures(b, &one))
+        })
+        .cloned()
+        .collect()
+}
+
 struct LoopCtx {
     continue_target: usize,
     breaks: Vec<usize>,
@@ -787,6 +1092,22 @@ struct TryCtx {
     handler: Option<Option<String>>,
 }
 
+/// Uma compreensão inline aberta: onde vive cada alvo de laço dela.
+struct CompScope {
+    /// Alvo que nenhuma função de dentro fecha, e a chave oculta do `Env` em que ele vive.
+    hidden: HashMap<String, String>,
+    /// Alvos que uma função de dentro fecha, e a chave sob a qual a célula deles vive no `Env`.
+    cell: Option<(String, HashSet<String>)>,
+}
+
+/// Onde mora o alvo de laço de uma compreensão inline.
+enum CompTarget {
+    /// Variável oculta do `Env`.
+    Hidden(String),
+    /// Célula guardada sob a chave dada.
+    Cell(String),
+}
+
 struct Compiler {
     code: Code,
     line: usize,
@@ -794,6 +1115,9 @@ struct Compiler {
     span: Span,
     loops: Vec<LoopCtx>,
     name_index: HashMap<String, u32>,
+    /// Tuplas constantes já guardadas em `consts`, por `repr`: duas iguais no mesmo código são o mesmo
+    /// objeto, como o `merge_consts` do CPython (`(1, 2) is (1, 2)`).
+    tuple_consts: HashMap<String, u32>,
     tries: Vec<TryCtx>,
     /// Variáveis locais da função sendo compilada (`None` no módulo).
     locals: Option<HashSet<String>>,
@@ -814,6 +1138,29 @@ struct Compiler {
     needs_class_cell: bool,
     /// `from __future__ import annotations`: anotações viram texto em vez de serem avaliadas.
     future_annotations: bool,
+    /// Compreensões inline abertas, da mais externa à mais interna: nome do alvo do laço e a chave
+    /// oculta em que ele vive no `Env` (a variável de fora, de mesmo nome, não é tocada).
+    comp_scopes: Vec<CompScope>,
+    /// Nomes lidos ou gravados fora do escopo (nem locais nem `global`), deste código e dos de
+    /// dentro: candidatos a variável livre, resolvidos em [`Compiler::seal_scope`].
+    free_uses: HashSet<String>,
+    /// Locais que uma função de dentro fecha (as células, `co_cellvars`).
+    cells: HashSet<String>,
+    /// Alvos de compreensões inline deste escopo: locais rápidos (`LOAD_FAST_AND_CLEAR`) do `co_varnames` mesmo
+    /// quando também são células.
+    comp_fast: HashSet<String>,
+    /// Locais das funções que envolvem este escopo.
+    outer_locals: HashSet<String>,
+    /// Nomes ligados por `import` no nível do módulo inteiro (o compilador do CPython não otimiza a chamada
+    /// de método sobre eles).
+    imports: Rc<HashSet<String>>,
+    /// Este compilador é o de um escopo `<generic parameters of ...>` (PEP 695): o que ele cria direto é filho dele.
+    type_params_scope: bool,
+    /// Nomes das próximas funções `lambda` a criar (limites de `TypeVar` e o valor de um alias), em vez de
+    /// `<lambda>`: o CPython dá a elas o nome do parâmetro de tipo ou do alias.
+    lambda_names: Vec<(String, bool)>,
+    /// Localização do `RETURN_VALUE` da próxima `lambda` quando ela é o valor de um alias (a instrução `type`).
+    alias_return: Option<Pos>,
 }
 
 impl Compiler {
@@ -824,6 +1171,7 @@ impl Compiler {
             span: Span::default(),
             loops: Vec::new(),
             name_index: HashMap::new(),
+            tuple_consts: HashMap::new(),
             tries: Vec::new(),
             locals: None,
             globals_decl: HashSet::new(),
@@ -835,6 +1183,97 @@ impl Compiler {
             enclosing_class: None,
             needs_class_cell: false,
             future_annotations: false,
+            comp_scopes: Vec::new(),
+            free_uses: HashSet::new(),
+            cells: HashSet::new(),
+            comp_fast: HashSet::new(),
+            outer_locals: HashSet::new(),
+            imports: Rc::default(),
+            type_params_scope: false,
+            lambda_names: Vec::new(),
+            alias_return: None,
+        }
+    }
+
+    /// Compilador de um escopo filho de `self` (função, classe ou compreensão-função).
+    fn child(&self, code: Code, line: usize) -> Compiler {
+        let mut c = Compiler::new(code, line);
+        c.code.future_flags = self.code.future_flags;
+        c.imports = self.imports.clone();
+        c.outer_locals = self.outer_locals.clone();
+        if self.code.is_function {
+            c.outer_locals.extend(self.locals.iter().flatten().cloned());
+        }
+        c
+    }
+
+    /// Anota `id` como local de função na ordem em que o compilador o numera (`co_varnames`).
+    fn note_local(&mut self, id: &str) {
+        if self.code.is_function && !id.starts_with('.') && !self.code.varnames.iter().any(|v| **v == *id) {
+            self.code.varnames.push(Rc::from(id));
+        }
+    }
+
+    /// Anota o alvo de uma compreensão inline em `co_varnames`, em qualquer escopo: no módulo e no corpo da classe ele
+    /// também é um local rápido (o CPython esconde o nome com `LOAD_FAST_AND_CLEAR`), e a função que o fecha como célula
+    /// não o tira de lá (`seal_scope`).
+    fn note_comp_target(&mut self, id: &str) {
+        if !id.starts_with('.') && !self.code.varnames.iter().any(|v| **v == *id) {
+            self.code.varnames.push(Rc::from(id));
+        }
+        self.comp_fast.insert(id.to_string());
+    }
+
+    /// Os alvos de compreensão inline que, fora dela, não são locais do escopo: o `co_varnames` os guarda, mas o
+    /// nome lido ou gravado fora da compreensão é global ou livre.
+    fn comp_only(&self) -> HashSet<String> {
+        let locals = self.locals.as_ref();
+        self.comp_fast.iter().filter(|n| !locals.is_some_and(|l| l.contains(*n))).cloned().collect()
+    }
+
+    /// Anota a referência a `id`: um local entra em `co_varnames`; o que não é local nem `global`
+    /// pode ser variável livre de uma função de fora.
+    fn note_use(&mut self, id: &str, local: bool) {
+        if local {
+            self.note_local(id);
+        } else if self.locals.is_some() && !self.globals_decl.contains(id) && !self.free_uses.contains(id) {
+            self.free_uses.insert(id.to_string());
+        }
+    }
+
+    /// Fecha o escopo `inner`, já compilado: separa as células das variáveis livres dele e passa ao
+    /// escopo de fora o que `inner` usa de fora. Preenche `varnames`, `cellvars` e `freevars` de `inner`.
+    fn seal_scope(&mut self, inner: &mut Compiler) {
+        if inner.code.is_function {
+            let code = &mut inner.code;
+            let params = code.params.len() + code.kwonly.len() + code.vararg.iter().count() + code.kwarg.iter().count();
+            // Como o CPython: as células que são parâmetros ficam em `varnames` (e abrem `cellvars`); as demais
+            // saem de `varnames` e seguem em ordem alfabética.
+            let (param_names, _) = code.varnames.split_at(params.min(code.varnames.len()));
+            let mut cellvars: Vec<Rc<str>> = param_names.iter().filter(|n| inner.cells.contains(&***n)).cloned().collect();
+            let mut rest: Vec<&String> = inner.cells.iter().filter(|n| !param_names.iter().any(|p| **p == ***n)).collect();
+            rest.sort();
+            cellvars.extend(rest.into_iter().map(|n| Rc::from(n.as_str())));
+            let mut index = 0;
+            code.varnames.retain(|n| {
+                index += 1;
+                index <= params || !inner.cells.contains(&**n) || inner.comp_fast.contains(&**n)
+            });
+            code.cellvars = cellvars;
+            let mut free: Vec<String> = inner.free_uses.iter().filter(|n| inner.outer_locals.contains(*n)).cloned().collect();
+            if inner.needs_class_cell {
+                free.push("__class__".to_string());
+            }
+            free.sort();
+            free.dedup();
+            code.freevars = free.iter().map(|n| Rc::from(n.as_str())).collect();
+        }
+        for n in &inner.free_uses {
+            if self.code.is_function && self.locals.as_ref().is_some_and(|l| l.contains(n)) && !self.globals_decl.contains(n) && !self.nonlocals_decl.contains(n) {
+                self.cells.insert(n.clone());
+            } else {
+                self.free_uses.insert(n.clone());
+            }
         }
     }
 
@@ -897,11 +1336,22 @@ impl Compiler {
 
     fn stmt(&mut self, stmt: &Stmt) -> Result<(), CompileError> {
         self.at(&stmt.pos);
+        if let Some((target, call, names)) = crate::pep695::plain_alias(stmt) {
+            // `type X = valor`: sem escopo de parâmetros de tipo, só a criação do alias.
+            self.lambda_names = names;
+            self.expr(&call)?;
+            self.lambda_names.clear();
+            self.emit_store(&target);
+            return Ok(());
+        }
         if let Some(g) = crate::pep695::desugar(stmt) {
             // PEP 695: o escopo sintético roda na hora e o resultado entra no nome original.
-            self.make_function(&g.scope_name, &crate::pep695::no_args(), FnBody::Stmts(&g.body), stmt.pos.lineno, false, None)?;
+            self.lambda_names = g.lambda_names.clone();
+            self.make_function(&g.scope_name, &crate::pep695::no_args(), FnBody::Stmts(&g.body), stmt.pos.lineno, stmt.pos.lineno, false, None)?;
+            self.lambda_names.clear();
             self.emit(Op::Call { argc: 0, kwnames: None });
             self.emit_store(&g.target);
+            self.seal_generic_scope(stmt, g.role);
             return Ok(());
         }
         match &stmt.kind {
@@ -919,7 +1369,9 @@ impl Compiler {
                 }
             }
             S::AugAssign { target, op, value } => self.aug_assign(target, *op, value)?,
-            S::Pass => {}
+            S::Pass => {
+                self.emit(Op::Nop);
+            }
             // No nível de módulo `global x` não muda nada.
             S::Global { .. } => {}
             S::If { test, body, orelse } => {
@@ -1046,7 +1498,9 @@ impl Compiler {
                 for d in decorator_list {
                     self.expr(d)?;
                 }
-                self.make_function(name, args, FnBody::Stmts(body), stmt.pos.lineno, is_async, returns.as_deref())?;
+                // `co_firstlineno` é a linha do primeiro decorador (compiler_function do 3.13).
+                let first_line = decorator_list.first().map_or(stmt.pos.lineno, |d| d.pos.lineno);
+                self.make_function(name, args, FnBody::Stmts(body), stmt.pos.lineno, first_line, is_async, returns.as_deref())?;
                 for _ in decorator_list {
                     self.at(&stmt.pos);
                     self.emit(Op::Call { argc: 1, kwnames: None });
@@ -1120,6 +1574,14 @@ impl Compiler {
                     let m = self.name(&module);
                     self.emit(if level == 0 { Op::Import(m) } else { Op::ImportRel { name: m, level: level as u32 } });
                     if alias.name == "*" {
+                        // `symtable_visit_stmt`: o `import *` só existe no nível do módulo.
+                        if self.code.is_function || self.code.is_class {
+                            return Err(CompileError {
+                                kind: "SyntaxError",
+                                msg: "import * only allowed at module level".into(),
+                                lineno: stmt.pos.lineno,
+                            });
+                        }
                         self.emit(Op::ImportStar);
                         continue;
                     }
@@ -1224,6 +1686,11 @@ impl Compiler {
             self.try_except(body, handlers, orelse)?;
         }
         self.tries.pop();
+        // O fechamento do bloco é do `finally` (no CPython ele nem existe como instrução): sem isto o
+        // caminho normal herdaria a linha do último `except` e geraria um `line` a mais.
+        if let Some(first) = finalbody.first() {
+            self.at(&first.pos);
+        }
         self.emit(Op::PopBlock);
         self.block(finalbody)?;
         let to_end = self.emit(Op::Jump(0));
@@ -1345,9 +1812,53 @@ impl Compiler {
         result
     }
 
+    /// Onde mora o alvo de laço `id` numa compreensão inline aberta (a mais interna vale).
+    fn comp_target(&self, id: &str) -> Option<CompTarget> {
+        self.comp_scopes.iter().rev().find_map(|s| {
+            if let Some(key) = s.hidden.get(id) {
+                return Some(CompTarget::Hidden(key.clone()));
+            }
+            s.cell.as_ref().filter(|(_, names)| names.contains(id)).map(|(key, _)| CompTarget::Cell(key.clone()))
+        })
+    }
+
+    /// A chave da célula da compreensão inline aberta mais interna que tem uma.
+    fn open_cell(&self) -> Option<&str> {
+        self.comp_scopes.iter().rev().find_map(|s| s.cell.as_ref()).map(|(key, _)| key.as_str())
+    }
+
+    /// Depois de emitir a criação de uma função: dentro de uma compreensão com célula, a função
+    /// fecha sobre ela.
+    fn bind_open_cell(&mut self) {
+        if let Some(key) = self.open_cell().map(str::to_string) {
+            let k = self.name(&key);
+            self.emit(Op::BindCell(k));
+        }
+    }
+
+    /// `id` é variável local do escopo sendo compilado. Numa compreensão dentro de corpo de classe
+    /// os nomes da classe não são vistos (PEP 709 mantém a regra do escopo de função).
+    fn is_local(&self, id: &str) -> bool {
+        !(self.in_class_body && !self.comp_scopes.is_empty()) && self.locals.as_ref().is_some_and(|l| l.contains(id))
+    }
+
     fn emit_load(&mut self, id: &str) {
+        match self.comp_target(id) {
+            Some(CompTarget::Hidden(key)) => {
+                let n = self.name(&key);
+                self.emit(Op::LoadLocal(n));
+                return;
+            }
+            Some(CompTarget::Cell(key)) => {
+                let (key, name) = (self.name(&key), self.name(id));
+                self.emit(Op::LoadCell { key, name });
+                return;
+            }
+            None => {}
+        }
         let n = self.name(id);
-        let local = self.locals.as_ref().is_some_and(|l| l.contains(id));
+        let local = self.is_local(id);
+        self.note_use(id, local);
         self.emit(if local {
             Op::LoadLocal(n)
         } else if self.globals_decl.contains(id) {
@@ -1369,8 +1880,22 @@ impl Compiler {
     }
 
     fn emit_store(&mut self, id: &str) {
+        match self.comp_target(id) {
+            Some(CompTarget::Hidden(key)) => {
+                let n = self.name(&key);
+                self.emit(Op::StoreLocal(n));
+                return;
+            }
+            Some(CompTarget::Cell(key)) => {
+                let (key, name) = (self.name(&key), self.name(id));
+                self.emit(Op::StoreCell { key, name });
+                return;
+            }
+            None => {}
+        }
         let n = self.name(id);
-        let local = self.locals.as_ref().is_some_and(|l| l.contains(id));
+        let local = self.is_local(id);
+        self.note_use(id, local);
         self.emit(if local {
             Op::StoreLocal(n)
         } else if self.nonlocals_decl.contains(id) {
@@ -1387,6 +1912,23 @@ impl Compiler {
         class.and_then(crate::mangle::prefix)
     }
 
+    /// PEP 695: marca o código do escopo `<generic parameters of ...>` que acabou de ser criado (de que tipo ele é e se
+    /// leva `CO_NESTED`) e gera o bytecode do CPython dele, a partir da instrução original.
+    fn seal_generic_scope(&mut self, stmt: &Stmt, role: u8) {
+        let nested = if self.qual_prefix.contains("<locals>") { crate::pep695::NESTED } else { 0 };
+        if let Some(c) = self.code.functions.last_mut().and_then(Rc::get_mut) {
+            c.type_params_role = role | nested;
+        }
+        let emitted = self
+            .code
+            .functions
+            .last()
+            .and_then(|c| crate::cpybc::generic_scope(c, stmt, &self.imports, self.future_annotations));
+        if let Some(c) = self.code.functions.last_mut().and_then(Rc::get_mut) {
+            c.cpy = emitted.map(Rc::new);
+        }
+    }
+
     /// Compila uma função (`def` ou `lambda`) num `Code` próprio e emite a criação dela: os padrões
     /// são avaliados aqui, no escopo de fora. Deixa a função na pilha; guardar é com o chamador.
     fn make_function(
@@ -1395,9 +1937,11 @@ impl Compiler {
         args: &Arguments,
         body: FnBody,
         line: usize,
+        first_line: usize,
         is_async: bool,
         returns: Option<&Expr>,
     ) -> Result<(), CompileError> {
+        let alias_return = self.alias_return.take();
         // `def __m` numa classe liga `_A__m`, mas o `__name__` e o `__qualname__` mostram `__m`.
         let name = crate::mangle::unmangle(self.mangle_prefix(), name).to_string();
         let name = name.as_str();
@@ -1417,9 +1961,17 @@ impl Compiler {
             FnBody::Expr(e) => scope.expr(e),
         }
         let (locals, globals, nonlocals) = scope.locals();
-        let qualname = format!("{}{}", self.qual_prefix, name);
+        // O escopo de parâmetros de tipo (PEP 695) não entra no `__qualname__`: `f` dentro de
+        // `<generic parameters of f>` continua `f`, e o próprio escopo fica ao lado do pai, sem `<locals>`.
+        let generic = name.starts_with("<generic parameters of ");
+        let qualname = if generic {
+            format!("{}{}", self.qual_prefix.strip_suffix("<locals>.").unwrap_or(&self.qual_prefix), name)
+        } else {
+            format!("{}{}", self.qual_prefix, name)
+        };
+        let child_role = if self.type_params_scope { crate::pep695::CHILD | crate::pep695::NESTED } else { 0 };
         let rcs = |v: &[String]| -> Vec<Rc<str>> { v.iter().map(|s| Rc::from(s.as_str())).collect() };
-        let mut inner = Compiler::new(
+        let mut inner = self.child(
             Code {
                 name: name.to_string(),
                 qualname: qualname.clone(),
@@ -1428,19 +1980,33 @@ impl Compiler {
                 vararg: vararg.as_deref().map(Rc::from),
                 kwonly: rcs(&kwonly),
                 kwarg: kwarg.as_deref().map(Rc::from),
+                varnames: rcs(&params.iter().chain(&kwonly).chain(vararg.iter()).chain(kwarg.iter()).cloned().collect::<Vec<_>>()),
                 is_function: true,
                 is_async,
-                first_line: line,
+                first_line,
+                type_params_role: child_role,
                 ..Code::default()
             },
             line,
         );
         inner.locals = Some(locals);
-        inner.qual_prefix = format!("{qualname}.<locals>.");
+        inner.qual_prefix = if generic { self.qual_prefix.clone() } else { format!("{qualname}.<locals>.") };
+        if generic {
+            inner.type_params_scope = true;
+            inner.lambda_names = std::mem::take(&mut self.lambda_names);
+        }
         inner.globals_decl = globals;
         inner.nonlocals_decl = nonlocals;
         inner.enclosing_class = if self.in_class_body { self.class_name.clone() } else { self.enclosing_class.clone() };
         inner.future_annotations = self.future_annotations;
+        let cpy_body: Option<&[Stmt]> = match &body {
+            FnBody::Stmts(b) => Some(*b),
+            FnBody::Expr(_) => None,
+        };
+        let cpy_expr: Option<&Expr> = match &body {
+            FnBody::Expr(e) => Some(*e),
+            FnBody::Stmts(_) => None,
+        };
         match body {
             FnBody::Stmts(b) => {
                 inner.code.doc = docstring(b);
@@ -1459,6 +2025,22 @@ impl Compiler {
                 self.needs_class_cell = true;
             }
         }
+        self.seal_scope(&mut inner);
+        if let Some(stmts) = cpy_body {
+            inner.code.cpy = crate::cpybc::function(
+                &inner.code,
+                stmts,
+                &inner.globals_decl,
+                &inner.imports,
+                inner.comp_only(),
+                inner.future_annotations,
+            )
+            .map(Rc::new);
+        } else if let Some(e) = cpy_expr {
+            inner.code.cpy =
+                crate::cpybc::lambda(&inner.code, e, &inner.globals_decl, &inner.imports, inner.comp_only(), alias_return)
+                    .map(Rc::new);
+        }
         let code = Rc::new(inner.code);
         self.line = line;
         for d in &args.defaults {
@@ -1476,6 +2058,7 @@ impl Compiler {
         self.code.functions.push(code);
         let idx = (self.code.functions.len() - 1) as u32;
         self.emit(Op::MakeFunction { code: idx, ndefaults: args.defaults.len() as u32, kwdefaults });
+        self.bind_open_cell();
         // Anotações de parâmetros e de retorno, na ordem da assinatura (como o CPython).
         let mut ann_names = Vec::new();
         let ordered = args
@@ -1523,7 +2106,11 @@ impl Compiler {
         scope.block(body);
         let (locals, globals, nonlocals) = scope.locals();
         let qualname = format!("{}{}", self.qual_prefix, name);
-        let mut inner = Compiler::new(Code { name: name.to_string(), qualname: qualname.clone(), is_class: true, ..Code::default() }, line);
+        let child_role = if self.type_params_scope { crate::pep695::CHILD | crate::pep695::NESTED } else { 0 };
+        let mut inner = self.child(
+            Code { name: name.to_string(), qualname: qualname.clone(), is_class: true, type_params_role: child_role, ..Code::default() },
+            line,
+        );
         inner.qual_prefix = format!("{qualname}.");
         inner.locals = Some(locals);
         inner.globals_decl = globals;
@@ -1563,6 +2150,25 @@ impl Compiler {
         let c = inner.constant_none();
         inner.emit(Op::LoadConst(c));
         inner.emit(Op::Return);
+        self.seal_scope(&mut inner);
+        // Os métodos que usam `__class__` ou `super()` fecham essa célula, a única variável do corpo da classe.
+        if inner.code.uses_class_cell {
+            inner.code.cellvars = vec![Rc::from("__class__")];
+        }
+        // O objeto `code` do corpo mostra o `co_firstlineno` do CPython (o primeiro decorador, se houver).
+        inner.code.first_line = first_line;
+        // O corpo e os métodos fecham variáveis de função de fora: o CPython compila o corpo como closure (`co_freevars`
+        // em ordem alfabética, `COPY_FREE_VARS` no prefixo). O nome que o próprio corpo também liga (`LOAD_NAME` no
+        // CPython, com a variável livre escondida atrás do local) fica no esqueleto.
+        let mut outer_free: Vec<String> = inner.free_uses.iter().filter(|n| inner.outer_locals.contains(*n)).cloned().collect();
+        outer_free.sort();
+        let shadowed = inner.locals.as_ref().is_some_and(|l| outer_free.iter().any(|n| l.contains(n)));
+        if !shadowed && inner.globals_decl.is_empty() && inner.nonlocals_decl.is_empty() {
+            inner.code.freevars = outer_free.iter().map(|n| Rc::from(n.as_str())).collect();
+            inner.code.cpy =
+                crate::cpybc::class_body(&inner.code, body, first_line as i32, &inner.imports, inner.future_annotations)
+                    .map(Rc::new);
+        }
         let code = Rc::new(inner.code);
         self.line = line;
         self.exprs(bases)?;
@@ -1868,6 +2474,7 @@ impl Compiler {
             E::Name { id, .. } => {
                 let n = self.name(id);
                 let local = self.locals.as_ref().is_some_and(|l| l.contains(id.as_str()));
+                self.note_use(id, local);
                 self.emit(if local { Op::DeleteLocal(n) } else { Op::DeleteGlobal(n) });
             }
             E::Attribute { value, attr, .. } => {
@@ -1877,7 +2484,7 @@ impl Compiler {
             }
             E::Subscript { value, slice, .. } => {
                 self.expr(value)?;
-                self.slice_or_expr(slice)?;
+                self.expr(slice)?;
                 self.emit(Op::DeleteSubscript);
             }
             E::Tuple { elts, .. } | E::List { elts, .. } => {
@@ -1890,28 +2497,10 @@ impl Compiler {
         Ok(())
     }
 
-    /// O índice de um subscript: uma fatia vira um objeto `slice`.
-    fn slice_or_expr(&mut self, slice: &Expr) -> Result<(), CompileError> {
-        if let E::Slice { lower, upper, step } = &slice.kind {
-            for part in [lower, upper, step] {
-                match part {
-                    Some(e) => self.expr(e)?,
-                    None => {
-                        let c = self.constant_none();
-                        self.emit(Op::LoadConst(c));
-                    }
-                }
-            }
-            self.emit(Op::BuildSlice);
-            Ok(())
-        } else {
-            self.expr(slice)
-        }
-    }
-
-    /// Compreensão: o corpo vira uma função `<listcomp>` etc. chamada com o primeiro iterável, como
-    /// no CPython (o alvo do laço não vaza para fora). `kind`: 0 lista, 1 conjunto, 2 dicionário,
-    /// 3 gerador.
+    /// Compreensão. As de lista, conjunto e dicionário são inline como no CPython 3.12+ (PEP 709):
+    /// sem quadro próprio, rodam no escopo que as contém e o alvo do laço fica isolado. A expressão
+    /// geradora, e a compreensão cujo alvo é fechado por uma função de dentro dela, viram a função
+    /// `<genexpr>` etc. `kind`: 0 lista, 1 conjunto, 2 dicionário, 3 gerador.
     fn comprehension(
         &mut self,
         kind: u8,
@@ -1919,19 +2508,9 @@ impl Compiler {
         value: Option<&Expr>,
         generators: &[Comprehension],
         line: usize,
+        pos: Pos,
     ) -> Result<(), CompileError> {
-        let name = ["<listcomp>", "<setcomp>", "<dictcomp>", "<genexpr>"][kind as usize];
-        let mut scope = Scope::default();
-        scope.bound.insert(".0".to_string());
-        for g in generators {
-            scope.target(&g.target);
-            scope.expr(&g.iter);
-            g.ifs.iter().for_each(|i| scope.expr(i));
-        }
-        scope.expr(elt);
-        if let Some(v) = value {
-            scope.expr(v);
-        }
+        let scope = comp_scope(elt, value, generators);
         let is_async = generators.iter().any(|g| g.is_async != 0) || scope.has_await;
         if is_async && !self.code.is_async {
             return Err(CompileError {
@@ -1940,9 +2519,121 @@ impl Compiler {
                 lineno: line,
             });
         }
+        if kind == 3 {
+            self.comprehension_function(kind, elt, value, generators, line, is_async, pos)
+        } else {
+            self.comprehension_inline(kind, elt, value, generators, line)
+        }
+    }
+
+    /// Compreensão inline: `[acumulador, iterador]` na pilha, o alvo de cada laço numa chave oculta
+    /// do `Env` (a variável de fora de mesmo nome fica como está) que sai de lá no fim, ou numa
+    /// exceção, como o `LOAD_FAST_AND_CLEAR` do CPython restauraria. O alvo que uma função de dentro
+    /// fecha vive numa célula nova a cada execução (`EnterCell`): a variável de fora não é tocada e
+    /// as funções criadas na compreensão seguem vendo o último valor depois que ela acaba.
+    fn comprehension_inline(
+        &mut self,
+        kind: u8,
+        elt: &Expr,
+        value: Option<&Expr>,
+        generators: &[Comprehension],
+        line: usize,
+    ) -> Result<(), CompileError> {
+        // O primeiro iterável é avaliado no escopo de fora, com o alvo ainda visível.
+        let first = &generators[0];
+        self.expr(&first.iter)?;
+        self.at(&first.iter.pos);
+        self.emit(if first.is_async != 0 { Op::GetAIter } else { Op::GetIter });
+        self.line = line;
+        self.emit(match kind {
+            0 => Op::BuildList(0),
+            1 => Op::BuildSet(0),
+            _ => Op::BuildDict(0),
+        });
+        self.emit(Op::Rot2);
+        let depth = self.comp_scopes.len() + 1;
+        // O alvo entra em `co_varnames` com o nome real, na posição em que a compreensão aparece.
+        let mut ordered = Vec::new();
+        generators.iter().for_each(|g| ordered_targets(&g.target, &mut ordered));
+        ordered.iter().for_each(|n| self.note_comp_target(n));
+        let elts: Vec<&Expr> = std::iter::once(elt).chain(value).collect();
+        let captured = captured_targets(&elts, generators);
+        // Um alvo que uma função de dentro fecha é variável livre dela e célula de quem a contém, mesmo que a função
+        // não o ligue em outro ponto: vale como local da função enquanto a compreensão roda.
+        let is_function = self.code.is_function;
+        let mut as_local = Vec::new();
+        if let Some(locals) = self.locals.as_mut().filter(|_| is_function) {
+            as_local.extend(captured.iter().filter(|n| locals.insert((*n).clone())).cloned());
+        }
+        let hidden: HashMap<String, String> = comp_targets(generators)
+            .into_iter()
+            .filter(|name| !captured.contains(name))
+            .map(|name| {
+                let key = comp_hidden_key(depth, &name);
+                (name, key)
+            })
+            .collect();
+        let mut keys: Vec<u32> = hidden.values().map(|k| self.name(k)).collect();
+        let cell = (!captured.is_empty()).then(|| (comp_cell_key(depth), captured));
+        if let Some((key, _)) = &cell {
+            // A célula nasce depois do primeiro iterável: ele é avaliado fora dela.
+            let parent = self.open_cell().map(str::to_string);
+            let (key, parent) = (self.name(key), parent.map(|p| self.name(&p)));
+            self.emit(Op::EnterCell { key, parent });
+            keys.push(key);
+        }
+        self.comp_scopes.push(CompScope { hidden, cell });
+        let setup = self.emit(Op::SetupTry(0));
+        self.comp_loops(kind, elt, value, generators, 0, true)?;
+        self.line = line;
+        self.emit(Op::PopBlock);
+        keys.iter().for_each(|&k| {
+            self.emit(Op::ClearLocal(k));
+        });
+        let to_end = self.emit(Op::Jump(0));
+        let handler = self.code.ops.len();
+        self.patch(setup, handler);
+        self.emit(Op::PushExc);
+        keys.iter().for_each(|&k| {
+            self.emit(Op::ClearLocal(k));
+        });
+        self.emit(Op::Reraise);
+        let end = self.code.ops.len();
+        self.patch(to_end, end);
+        self.comp_scopes.pop();
+        if let Some(locals) = self.locals.as_mut() {
+            as_local.iter().for_each(|n| {
+                locals.remove(n);
+            });
+        }
+        Ok(())
+    }
+
+    /// Compreensão como função `<listcomp>`, `<genexpr>` etc. chamada com o primeiro iterável.
+    fn comprehension_function(
+        &mut self,
+        kind: u8,
+        elt: &Expr,
+        value: Option<&Expr>,
+        generators: &[Comprehension],
+        line: usize,
+        is_async: bool,
+        pos: Pos,
+    ) -> Result<(), CompileError> {
+        let name = ["<listcomp>", "<setcomp>", "<dictcomp>", "<genexpr>"][kind as usize];
+        let mut scope = comp_scope(elt, value, generators);
+        scope.bound.insert(".0".to_string());
         let (locals, globals, nonlocals) = scope.locals();
-        let mut inner = Compiler::new(
-            Code { name: name.to_string(), qualname: format!("{}{}", self.qual_prefix, name), params: vec![Rc::from(".0")], is_function: true, ..Code::default() },
+        let mut inner = self.child(
+            Code {
+                name: name.to_string(),
+                qualname: format!("{}{}", self.qual_prefix, name),
+                params: vec![Rc::from(".0")],
+                varnames: vec![Rc::from(".0")],
+                is_function: true,
+                first_line: line,
+                ..Code::default()
+            },
             line,
         );
         inner.qual_prefix = format!("{}{}.<locals>.", self.qual_prefix, name);
@@ -1963,17 +2654,23 @@ impl Compiler {
             }
             _ => {}
         }
-        inner.comp_loops(kind, elt, value, generators, 0)?;
+        inner.comp_loops(kind, elt, value, generators, 0, false)?;
         if kind == 3 {
             let c = inner.constant_none();
             inner.emit(Op::LoadConst(c));
         }
         inner.emit(Op::Return);
+        self.seal_scope(&mut inner);
+        if kind == 3 {
+            inner.code.cpy = crate::cpybc::genexp_code(&inner.code, &pos, elt, generators, &inner.globals_decl, &inner.imports)
+                .map(Rc::new);
+        }
         let code = Rc::new(inner.code);
         self.line = line;
         self.code.functions.push(code);
         let idx = (self.code.functions.len() - 1) as u32;
         self.emit(Op::MakeFunction { code: idx, ndefaults: 0, kwdefaults: None });
+        self.bind_open_cell();
         self.expr(&generators[0].iter)?;
         self.line = line;
         self.emit(Op::Call { argc: 1, kwnames: None });
@@ -1985,7 +2682,8 @@ impl Compiler {
         Ok(())
     }
 
-    /// Laços aninhados de uma compreensão; no mais interno, acrescenta o elemento.
+    /// Laços aninhados de uma compreensão; no mais interno, acrescenta o elemento. `preloaded`: o
+    /// iterador do primeiro laço já está na pilha (compreensão inline).
     fn comp_loops(
         &mut self,
         kind: u8,
@@ -1993,17 +2691,22 @@ impl Compiler {
         value: Option<&Expr>,
         generators: &[Comprehension],
         depth: usize,
+        preloaded: bool,
     ) -> Result<(), CompileError> {
         let g = &generators[depth];
-        if depth == 0 {
-            self.emit_load(".0");
-        } else {
-            self.expr(&g.iter)?;
+        if !preloaded {
+            if depth == 0 {
+                self.emit_load(".0");
+            } else {
+                self.expr(&g.iter)?;
+            }
         }
         self.at(&g.iter.pos);
         let is_async_loop = g.is_async != 0;
         let top = if is_async_loop {
-            self.emit(Op::GetAIter);
+            if !preloaded {
+                self.emit(Op::GetAIter);
+            }
             let top = self.emit(Op::SetupTry(0));
             self.emit(Op::GetANext);
             self.emit(Op::GetAwaitable);
@@ -2011,7 +2714,9 @@ impl Compiler {
             self.emit(Op::PopBlock);
             top
         } else {
-            self.emit(Op::GetIter);
+            if !preloaded {
+                self.emit(Op::GetIter);
+            }
             self.emit(Op::ForIter(0))
         };
         self.store(&g.target)?;
@@ -2021,7 +2726,7 @@ impl Compiler {
             skips.push(self.emit(Op::PopJumpIfFalse(0)));
         }
         if depth + 1 < generators.len() {
-            self.comp_loops(kind, elt, value, generators, depth + 1)?;
+            self.comp_loops(kind, elt, value, generators, depth + 1, false)?;
         } else {
             match kind {
                 0 => {
@@ -2080,7 +2785,7 @@ impl Compiler {
             }
             E::Subscript { value: container, slice, .. } => {
                 self.expr(container)?;
-                self.slice_or_expr(slice)?;
+                self.expr(slice)?;
                 self.emit(Op::Dup2);
                 self.emit(Op::Subscript);
                 self.expr(value)?;
@@ -2113,7 +2818,7 @@ impl Compiler {
             }
             E::Subscript { value, slice, .. } => {
                 self.expr(value)?;
-                self.slice_or_expr(slice)?;
+                self.expr(slice)?;
                 self.emit(Op::StoreSubscript);
             }
             E::Attribute { value, attr, .. } => {
@@ -2206,7 +2911,10 @@ impl Compiler {
                 self.emit(Op::LoadConst(i));
             }
             E::Name { id, .. } => {
-                if id == "__class__" && self.enclosing_class.is_some() && !self.in_class_body {
+                // `symtable_visit_expr`: ler `super` numa função também usa `__class__` (o `super(C, x)` de dois argumentos
+                // incluso), então a função fecha a célula da classe em volta.
+                let reads_super = id == "super" && self.code.is_function;
+                if (id == "__class__" || reads_super) && self.enclosing_class.is_some() && !self.in_class_body {
                     self.needs_class_cell = true;
                 }
                 self.emit_load(id);
@@ -2312,11 +3020,11 @@ impl Compiler {
                                     let c = self.constant(Value::str(name.clone()));
                                     self.emit(Op::LoadConst(c));
                                     self.expr(&kw.value)?;
-                                    self.emit(Op::DictSet);
+                                    self.emit(Op::CallKwSet);
                                 }
                                 None => {
                                     self.expr(&kw.value)?;
-                                    self.emit(Op::DictUpdate);
+                                    self.emit(Op::CallKwMerge);
                                 }
                             }
                         }
@@ -2326,8 +3034,19 @@ impl Compiler {
                 }
             }
             E::List { elts, .. } => self.build_list(elts)?,
-            E::Tuple { elts, .. } => {
-                if elts.iter().any(|e| matches!(e.kind, E::Starred { .. })) {
+            E::Tuple { elts, ctx } => {
+                if let Some(value) = self.fold_tuple(elts).filter(|_| *ctx == ExprContext::Load) {
+                    let key = crate::object::repr(&value);
+                    let i = match self.tuple_consts.get(&key) {
+                        Some(&i) => i,
+                        None => {
+                            let i = self.constant(value);
+                            self.tuple_consts.insert(key, i);
+                            i
+                        }
+                    };
+                    self.emit(Op::LoadConst(i));
+                } else if elts.iter().any(|e| matches!(e.kind, E::Starred { .. })) {
                     self.build_list(elts)?;
                     self.emit(Op::ListToTuple);
                 } else {
@@ -2372,7 +3091,7 @@ impl Compiler {
             }
             E::Subscript { value, slice, .. } => {
                 self.expr(value)?;
-                self.slice_or_expr(slice)?;
+                self.expr(slice)?;
                 self.at(&expr.pos);
                 self.emit(Op::Subscript);
             }
@@ -2382,18 +3101,26 @@ impl Compiler {
                 self.at(&expr.pos);
                 self.emit(Op::LoadAttr(n));
             }
-            E::Lambda { args, body } => self.make_function("<lambda>", args, FnBody::Expr(body), expr.pos.lineno, false, None)?,
+            E::Lambda { args, body } => {
+                // Limite de `TypeVar` e valor de alias (PEP 695) têm o nome do parâmetro ou do alias.
+                let (name, alias_value) =
+                    if self.lambda_names.is_empty() { ("<lambda>".to_string(), false) } else { self.lambda_names.remove(0) };
+                self.alias_return = alias_value.then_some(expr.pos);
+                self.make_function(&name, args, FnBody::Expr(body), expr.pos.lineno, expr.pos.lineno, false, None)?
+            }
             E::NamedExpr { target, value } => {
                 self.expr(value)?;
                 self.emit(Op::Dup);
                 self.store(target)?;
             }
-            E::ListComp { elt, generators } => self.comprehension(0, elt, None, generators, expr.pos.lineno)?,
-            E::SetComp { elt, generators } => self.comprehension(1, elt, None, generators, expr.pos.lineno)?,
+            E::ListComp { elt, generators } => self.comprehension(0, elt, None, generators, expr.pos.lineno, expr.pos)?,
+            E::SetComp { elt, generators } => self.comprehension(1, elt, None, generators, expr.pos.lineno, expr.pos)?,
             E::DictComp { key, value, generators } => {
-                self.comprehension(2, key, Some(value), generators, expr.pos.lineno)?
+                self.comprehension(2, key, Some(value), generators, expr.pos.lineno, expr.pos)?
             }
-            E::GeneratorExp { elt, generators } => self.comprehension(3, elt, None, generators, expr.pos.lineno)?,
+            E::GeneratorExp { elt, generators } => {
+                self.comprehension(3, elt, None, generators, expr.pos.lineno, expr.pos)?
+            }
             E::JoinedStr { values } => {
                 for v in values {
                     self.expr(v)?;
@@ -2453,7 +3180,19 @@ impl Compiler {
                     lineno: self.line,
                 })
             }
-            E::Slice { .. } => return Err(self.unsupported("slicing outside a subscript")),
+            // Uma fatia é um objeto `slice`; vale também dentro de uma tupla de índices (`x[1:2, ::3]`).
+            E::Slice { lower, upper, step } => {
+                for part in [lower, upper, step] {
+                    match part {
+                        Some(e) => self.expr(e)?,
+                        None => {
+                            let c = self.constant_none();
+                            self.emit(Op::LoadConst(c));
+                        }
+                    }
+                }
+                self.emit(Op::BuildSlice);
+            }
         }
         Ok(())
     }
@@ -2488,6 +3227,24 @@ impl Compiler {
         let end = self.code.ops.len();
         self.patch(to_end, end);
         Ok(())
+    }
+
+    /// A tupla de literais `(1, "a", (2, 3))` já pronta, como o CPython a dobra em constante; `None` se
+    /// algum elemento não é literal (ou a tupla é vazia, que não vira constante daqui).
+    fn fold_tuple(&self, elts: &[Expr]) -> Option<Value> {
+        if elts.is_empty() {
+            return None;
+        }
+        let items = elts
+            .iter()
+            .map(|e| match &e.kind {
+                E::Constant { value: Constant::Complex(..), .. } => None,
+                E::Constant { value, .. } => self.constant_value(value).ok(),
+                E::Tuple { elts, ctx: ExprContext::Load } => self.fold_tuple(elts),
+                _ => None,
+            })
+            .collect::<Option<Vec<_>>>()?;
+        Some(Value::tuple(items))
     }
 
     fn constant_value(&self, c: &Constant) -> Result<Value, CompileError> {

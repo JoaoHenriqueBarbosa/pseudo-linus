@@ -1,0 +1,63 @@
+--- 
++++ 
+@@ -758,7 +758,7 @@
+ 'utf-7'
+ 'utf-7'
+ 'utf-7'
+-'IncrementalDecoder'
++'_Utf7Dec'
+ ['count', 'decode', 'encode', 'incrementaldecoder', 'incrementalencoder', 'index', 'name', 'streamreader', 'streamwriter']
+ (b'a+AOk-', 2)
+ ('a\xe9', 6)
+@@ -866,22 +866,22 @@
+ ['', '', '', '', '', '', '', '', '\U0001f600', '']
+ UnicodeDecodeError "'utf7' codec can't decode bytes in position 0-8: partial character in shift sequence"
+ incdec b'+AGE'
+-['', '', '', '', 'a']
+-'a'
+-['', '', '', '', 'a']
+-['', '', '', '', 'a']
+-['', '', '', '', '']
++['', '', '', 'a', 'a']
++'aa'
++['', '', '', 'a', 'a']
++['', '', '', 'a', 'a']
++['', '', '', 'a', 'a']
+ incdec b'+AGEA'
+ UnicodeDecodeError "'utf7' codec can't decode bytes in position 0-4: unterminated shift sequence"
+ UnicodeDecodeError "'utf7' codec can't decode bytes in position 0-4: unterminated shift sequence"
+-['', '', '', '', '', 'a\ufffd']
+-['', '', '', '', '', 'a']
+-['', '', '', '', '', '']
++['', '', '', 'a', 'a', 'a\ufffd']
++['', '', '', 'a', 'a', 'a']
++['', '', '', 'a', 'a', 'a']
+ incdec b'+AGEA-'
+ UnicodeDecodeError "'utf7' codec can't decode bytes in position 0-5: partial character in shift sequence"
+ UnicodeDecodeError "'utf7' codec can't decode bytes in position 0-5: partial character in shift sequence"
+-['', '', '', '', '', 'a\ufffd', '']
+-['', '', '', '', '', 'a', '']
++['', '', '', 'a', 'a', 'a\ufffd', '']
++['', '', '', 'a', 'a', 'a', '']
+ UnicodeDecodeError "'utf7' codec can't decode bytes in position 0-5: partial character in shift sequence"
+ incdec b'~\\+-'
+ ['~', '\\', '', '+', '']
+@@ -969,7 +969,7 @@
+ b''
+ 0
+ 'a\xe9b\u20ac'
+-ValueError 'I/O operation on closed file.'
++b'a+AOkgrA-b'
+ 'a\xe9b'
+ 'a\xe9'
+ b'a+AOk-+IKw-b'
+@@ -978,7 +978,7 @@
+ 'a\xe9b'
+ 'a\xe9b'
+ 'a\xe9'
+-TypeError "decode() argument 'errors' must be str, not None"
++TypeError "decode() argument 'errors' must be str, not NoneType"
+ 'a\xe9'
+ b'a+AOk-'
+ LookupError "unknown error handler name 'nosuchhandler'"
+

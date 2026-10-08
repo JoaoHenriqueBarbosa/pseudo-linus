@@ -1024,7 +1024,7 @@ impl Parser {
     /// `pattern_capture_target: !"_" NAME !('.' | '(' | '=')`.
     fn capture_target(&mut self) -> Result<Option<String>, ParseError> {
         if self.is_name_at(0)?
-            && self.peek(0)?.text != "_"
+            && !self.peek(0)?.is_word("_")
             && !matches!(self.peek_kind(1)?, T::Dot | T::Lpar | T::Equal)
         {
             return Ok(Some(self.advance().text));
@@ -1128,7 +1128,7 @@ impl Parser {
         if tok.kind != T::Name {
             return Ok(None);
         }
-        let value = match tok.text.as_str() {
+        let value = match if tok.normalized { "" } else { tok.text.as_str() } {
             "None" => Constant::None,
             "True" => Constant::Bool(true),
             "False" => Constant::Bool(false),

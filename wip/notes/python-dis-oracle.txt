@@ -1,0 +1,72 @@
+f003010101db0009f202010111f20405010df30c00010e 2
+  0           RESUME                   0
+
+  1           LOAD_CONST               0 (0)
+              LOAD_CONST               1 (None)
+              IMPORT_NAME              0 (os)
+              STORE_NAME               0 (os)
+
+  2           LOAD_CONST               2 (<code object f at 0x7f9acb7624f0, file "m", line 2>)
+              MAKE_FUNCTION
+              STORE_NAME               1 (f)
+
+  4           LOAD_CONST               3 (<code object g at 0x7f9acb7468b0, file "m", line 4>)
+              MAKE_FUNCTION
+              STORE_NAME               2 (g)
+
+ 10           LOAD_CONST               4 (<code object h at 0x7f9acb5f5b00, file "m", line 10>)
+              MAKE_FUNCTION
+              STORE_NAME               3 (h)
+              RETURN_CONST             1 (None)
+
+Disassembly of <code object f at 0x7f9acb7624f0, file "m", line 2>:
+  2           RESUME                   0
+
+  3           LOAD_FAST_LOAD_FAST      1 (a, b)
+              BINARY_OP                0 (+)
+              RETURN_VALUE
+
+Disassembly of <code object g at 0x7f9acb7468b0, file "m", line 4>:
+  4           RESUME                   0
+
+  5           LOAD_FAST                0 (x)
+              POP_JUMP_IF_NOT_NONE     1 (to L1)
+
+  6           RETURN_CONST             1 (1)
+
+  7   L1:     LOAD_FAST                0 (x)
+              LOAD_ATTR                1 (m + NULL|self)
+              LOAD_CONST               2 (2)
+              LOAD_CONST               3 (3)
+              LOAD_CONST               4 (('k',))
+              CALL_KW                  2
+              STORE_FAST               1 (y)
+
+  8           LOAD_GLOBAL              2 (os)
+              LOAD_ATTR                4 (getcwd)
+              PUSH_NULL
+              CALL                     0
+              POP_TOP
+
+  9           LOAD_FAST                1 (y)
+              RETURN_VALUE
+
+Disassembly of <code object h at 0x7f9acb5f5b00, file "m", line 10>:
+ 10           RESUME                   0
+              RETURN_CONST             0 (None)
+f 8000d80b0c8935804c 2 950058012d0000002400 [(3, 3, 11, 16), (3, 3, 4, 16)]
+g 8000d807088179d80f10d808098f038903884190118803880b8041dc040687498249844bd80b0c8048 5 950055006301000067015500520100000000000000000000000000000000000053025303530439026e015b020000000000000000520400000000000000000000000000000000000022003500000000000000200055012400 [(9, 9, 11, 12), (9, 9, 4, 12)]
+h 80008814 1 95006700 [(10, 10, 0, 0), (10, 10, 9, 13)]
+1 f103010101
+hasarg [149, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 236, 240, 241, 242, 243, 244, 245, 248, 249, 250, 251, 252, 253, 256, 257, 258, 259, 260, 261, 262, 264, 265, 266, 267]
+hasconst [83, 103, 240]
+hasname [63, 66, 67, 74, 75, 82, 90, 91, 92, 93, 108, 113, 114, 259, 260, 261, 262]
+hasjump [72, 77, 78, 79, 97, 98, 99, 100, 104, 256, 257]
+hasfree [64, 84, 89, 94, 109]
+haslocal [65, 85, 86, 87, 88, 110, 111, 112, 258, 267]
+hasexc [264, 265, 266]
+RETURN_GENERATOR 1 1 1
+SEND 0 0 0
+FOR_ITER 1 1 1
+LOAD_SUPER_ATTR -1 -1 -1
+CALL_FUNCTION_EX -3 -3 -3

@@ -11,6 +11,7 @@ erro que o OpenSSL dá a ele. O lado servidor ainda não negocia: recusa como qu
 import os as _os
 import hashlib as _hashlib
 import _socket
+import _tls_crypto
 
 OPENSSL_VERSION = 'OpenSSL 3.5.7 9 Jun 2026'
 OPENSSL_VERSION_INFO = (3, 5, 0, 7, 0)
@@ -670,19 +671,14 @@ def _client_hello(server_hostname, alpn, options):
     return b'\x16\x03\x01' + len(handshake).to_bytes(2, 'big') + handshake, handshake, priv
 
 
-# --- criptografia do TLS 1.3 (Python puro) --------------------------------------------------------
+# --- criptografia do TLS 1.3 (primitivas em Rust, no `_tls_crypto`) -------------------------------
 
 def _hash(name, data):
     return getattr(_hashlib, name)(data).digest()
 
 
-def _hmac(name, key, data):
-    block = 128 if name in ('sha384', 'sha512') else 64
-    if len(key) > block:
-        key = _hash(name, key)
-    key = key + bytes(block - len(key))
-    inner = _hash(name, bytes(b ^ 0x36 for b in key) + data)
-    return _hash(name, bytes(b ^ 0x5c for b in key) + inner)
+_hmac = _tls_crypto.hmac
+_x25519 = _tls_crypto.x25519
 
 
 def _expand_label(name, secret, label, context, length):
@@ -699,259 +695,7 @@ def _expand_label(name, secret, label, context, length):
     return out[:length]
 
 
-def _xor_bytes(a, b):
-    n = len(a)
-    return (int.from_bytes(a, 'big') ^ int.from_bytes(b[:n], 'big')).to_bytes(n, 'big')
-
-
-# X25519 (RFC 7748).
-_P25519 = (1 << 255) - 19
 _X25519_BASE = b'\x09' + bytes(31)
-
-
-def _x25519(k, u):
-    p = _P25519
-    k = bytearray(k)
-    k[0] &= 248
-    k[31] &= 127
-    k[31] |= 64
-    k = int.from_bytes(k, 'little')
-    x1 = int.from_bytes(u, 'little') & ((1 << 255) - 1)
-    x2, z2, x3, z3, swap = 1, 0, x1, 1, 0
-    for t in range(254, -1, -1):
-        kt = (k >> t) & 1
-        swap ^= kt
-        if swap:
-            x2, x3 = x3, x2
-            z2, z3 = z3, z2
-        swap = kt
-        a = (x2 + z2) % p
-        aa = a * a % p
-        b = (x2 - z2) % p
-        bb = b * b % p
-        e = (aa - bb) % p
-        c = (x3 + z3) % p
-        d = (x3 - z3) % p
-        da = d * a % p
-        cb = c * b % p
-        x3 = (da + cb) % p
-        x3 = x3 * x3 % p
-        z3 = (da - cb) % p
-        z3 = x1 * (z3 * z3 % p) % p
-        x2 = aa * bb % p
-        z2 = e * (aa + 121665 * e) % p
-    if swap:
-        x2, x3 = x3, x2
-        z2, z3 = z3, z2
-    return (x2 * pow(z2, p - 2, p) % p).to_bytes(32, 'little')
-
-
-# ChaCha20-Poly1305 (RFC 8439).
-_CHACHA_ROUNDS = ((0, 4, 8, 12), (1, 5, 9, 13), (2, 6, 10, 14), (3, 7, 11, 15),
-                  (0, 5, 10, 15), (1, 6, 11, 12), (2, 7, 8, 13), (3, 4, 9, 14))
-
-
-def _chacha_block(kw, counter, nw):
-    state = [0x61707865, 0x3320646e, 0x79622d32, 0x6b206574] + list(kw) + [counter & 0xffffffff] + list(nw)
-    x = list(state)
-    for _ in range(10):
-        for a, b, c, d in _CHACHA_ROUNDS:
-            x[a] = (x[a] + x[b]) & 0xffffffff
-            x[d] ^= x[a]
-            x[d] = ((x[d] << 16) | (x[d] >> 16)) & 0xffffffff
-            x[c] = (x[c] + x[d]) & 0xffffffff
-            x[b] ^= x[c]
-            x[b] = ((x[b] << 12) | (x[b] >> 20)) & 0xffffffff
-            x[a] = (x[a] + x[b]) & 0xffffffff
-            x[d] ^= x[a]
-            x[d] = ((x[d] << 8) | (x[d] >> 24)) & 0xffffffff
-            x[c] = (x[c] + x[d]) & 0xffffffff
-            x[b] ^= x[c]
-            x[b] = ((x[b] << 7) | (x[b] >> 25)) & 0xffffffff
-    return b''.join(((x[i] + state[i]) & 0xffffffff).to_bytes(4, 'little') for i in range(16))
-
-
-def _chacha_xor(kw, counter, nw, data):
-    out = bytearray()
-    for i in range(0, len(data), 64):
-        stream = _chacha_block(kw, counter + i // 64, nw)
-        chunk = data[i:i + 64]
-        out += (int.from_bytes(chunk, 'little') ^ int.from_bytes(stream[:len(chunk)], 'little')).to_bytes(
-            len(chunk), 'little')
-    return bytes(out)
-
-
-def _poly1305(key, msg):
-    r = int.from_bytes(key[:16], 'little') & 0x0ffffffc0ffffffc0ffffffc0fffffff
-    s = int.from_bytes(key[16:32], 'little')
-    p = (1 << 130) - 5
-    acc = 0
-    for i in range(0, len(msg), 16):
-        acc = (acc + int.from_bytes(msg[i:i + 16] + b'\x01', 'little')) * r % p
-    return ((acc + s) & ((1 << 128) - 1)).to_bytes(16, 'little')
-
-
-def _chacha_tag(kw, nw, aad, ct):
-    otk = _chacha_block(kw, 0, nw)[:32]
-    pad_a = bytes((-len(aad)) % 16)
-    pad_c = bytes((-len(ct)) % 16)
-    return _poly1305(otk, aad + pad_a + ct + pad_c + len(aad).to_bytes(8, 'little') + len(ct).to_bytes(8, 'little'))
-
-
-def _chacha_seal(kw, nonce, aad, plain):
-    nw = [int.from_bytes(nonce[i:i + 4], 'little') for i in (0, 4, 8)]
-    ct = _chacha_xor(kw, 1, nw, plain)
-    return ct + _chacha_tag(kw, nw, aad, ct)
-
-
-def _chacha_open(kw, nonce, aad, data):
-    if len(data) < 16:
-        return None
-    nw = [int.from_bytes(nonce[i:i + 4], 'little') for i in (0, 4, 8)]
-    ct, tag = data[:-16], data[-16:]
-    if _chacha_tag(kw, nw, aad, ct) != tag:
-        return None
-    return _chacha_xor(kw, 1, nw, ct)
-
-
-# AES e GCM (FIPS 197, SP 800-38D).
-_AES_TABLES = []
-
-
-def _aes_tables():
-    if _AES_TABLES:
-        return _AES_TABLES
-    sbox = [0] * 256
-    p = q = 1
-    while True:
-        p = (p ^ ((p << 1) & 0xff) ^ (0x1b if p & 0x80 else 0)) & 0xff
-        q = (q ^ (q << 1)) & 0xff
-        q = (q ^ (q << 2)) & 0xff
-        q = (q ^ (q << 4)) & 0xff
-        if q & 0x80:
-            q ^= 0x09
-        x = q
-        for shift in (1, 2, 3, 4):
-            x ^= ((q << shift) | (q >> (8 - shift))) & 0xff
-        sbox[p] = (x ^ 0x63) & 0xff
-        if p == 1:
-            break
-    sbox[0] = 0x63
-    mul2 = [(((b << 1) ^ 0x1b) & 0xff) if b & 0x80 else b << 1 for b in range(256)]
-    mul3 = [mul2[b] ^ b for b in range(256)]
-    _AES_TABLES.extend((sbox, mul2, mul3))
-    return _AES_TABLES
-
-
-def _aes_expand(key):
-    sbox, mul2, _ = _aes_tables()
-    nk = len(key) // 4
-    rounds = nk + 6
-    words = [list(key[4 * i:4 * i + 4]) for i in range(nk)]
-    rcon = 1
-    for i in range(nk, 4 * (rounds + 1)):
-        t = list(words[i - 1])
-        if i % nk == 0:
-            t = [sbox[b] for b in t[1:] + t[:1]]
-            t[0] ^= rcon
-            rcon = mul2[rcon]
-        elif nk > 6 and i % nk == 4:
-            t = [sbox[b] for b in t]
-        words.append([words[i - nk][j] ^ t[j] for j in range(4)])
-    keys = []
-    for r in range(rounds + 1):
-        flat = []
-        for w in words[4 * r:4 * r + 4]:
-            flat += w
-        keys.append(flat)
-    return keys
-
-
-def _aes_encrypt_block(round_keys, block):
-    sbox, mul2, mul3 = _aes_tables()
-    state = [b ^ k for b, k in zip(block, round_keys[0])]
-    last = len(round_keys) - 1
-    for rnd in range(1, last + 1):
-        state = [sbox[b] for b in state]
-        state = [state[(i % 4) + 4 * (((i // 4) + (i % 4)) % 4)] for i in range(16)]
-        if rnd < last:
-            mixed = []
-            for c in range(0, 16, 4):
-                a0, a1, a2, a3 = state[c:c + 4]
-                mixed += [mul2[a0] ^ mul3[a1] ^ a2 ^ a3, a0 ^ mul2[a1] ^ mul3[a2] ^ a3,
-                          a0 ^ a1 ^ mul2[a2] ^ mul3[a3], mul3[a0] ^ a1 ^ a2 ^ mul2[a3]]
-            state = mixed
-        state = [b ^ k for b, k in zip(state, round_keys[rnd])]
-    return bytes(state)
-
-
-_GCM_R = 0xe1 << 120
-
-
-def _gcm_shift(v):
-    return (v >> 1) ^ (_GCM_R if v & 1 else 0)
-
-
-def _gcm_reduction():
-    out = []
-    for r in range(16):
-        t = r
-        for _ in range(4):
-            t = _gcm_shift(t)
-        out.append(t)
-    return out
-
-
-_GCM_RED = _gcm_reduction()
-
-
-def _ghash_table(h):
-    """Tabela de 4 bits do método de Shoup: `m[n]` é `n * h` no corpo do GCM."""
-    base = {8: h}
-    base[4] = _gcm_shift(h)
-    base[2] = _gcm_shift(base[4])
-    base[1] = _gcm_shift(base[2])
-    table = []
-    for n in range(16):
-        v = 0
-        for bit in (8, 4, 2, 1):
-            if n & bit:
-                v ^= base[bit]
-        table.append(v)
-    return table
-
-
-def _ghash_mul(table, x):
-    z = 0
-    for shift in range(0, 128, 4):
-        z = (z >> 4) ^ _GCM_RED[z & 0xf] ^ table[(x >> shift) & 0xf]
-    return z
-
-
-def _ghash(table, aad, ct):
-    y = 0
-    for part in (aad, ct):
-        for i in range(0, len(part), 16):
-            block = part[i:i + 16]
-            if len(block) < 16:
-                block = block + bytes(16 - len(block))
-            y = _ghash_mul(table, y ^ int.from_bytes(block, 'big'))
-    return _ghash_mul(table, y ^ (((len(aad) * 8) << 64) | (len(ct) * 8)))
-
-
-def _gcm_ctr(round_keys, nonce, data):
-    out = bytearray()
-    for i in range(0, len(data), 16):
-        stream = _aes_encrypt_block(round_keys, nonce + (2 + i // 16).to_bytes(4, 'big'))
-        chunk = data[i:i + 16]
-        out += (int.from_bytes(chunk, 'big') ^ int.from_bytes(stream[:len(chunk)], 'big')).to_bytes(
-            len(chunk), 'big')
-    return bytes(out)
-
-
-def _gcm_tag(round_keys, table, nonce, aad, ct):
-    mask = _aes_encrypt_block(round_keys, nonce + b'\x00\x00\x00\x01')
-    return _xor_bytes(mask, _ghash(table, aad, ct).to_bytes(16, 'big'))
 
 
 class _Keys:
@@ -963,14 +707,15 @@ class _Keys:
         self.secret = secret
         self.hash_name = hash_name
         self.kind = kind
-        key = _expand_label(hash_name, secret, b'key', b'', key_len)
+        self.key = _expand_label(hash_name, secret, b'key', b'', key_len)
         self.iv = _expand_label(hash_name, secret, b'iv', b'', 12)
         self.seq = 0
         if kind == 'chacha':
-            self.chacha_words = [int.from_bytes(key[i:i + 4], 'little') for i in range(0, 32, 4)]
+            self._seal = _tls_crypto.chacha20_poly1305_seal
+            self._open = _tls_crypto.chacha20_poly1305_open
         else:
-            self.round_keys = _aes_expand(key)
-            self.table = _ghash_table(int.from_bytes(_aes_encrypt_block(self.round_keys, bytes(16)), 'big'))
+            self._seal = _tls_crypto.aes_gcm_seal
+            self._open = _tls_crypto.aes_gcm_open
 
     def _nonce(self):
         nonce = (int.from_bytes(self.iv, 'big') ^ self.seq).to_bytes(12, 'big')
@@ -978,23 +723,11 @@ class _Keys:
         return nonce
 
     def seal(self, plain, aad):
-        nonce = self._nonce()
-        if self.kind == 'chacha':
-            return _chacha_seal(self.chacha_words, nonce, aad, plain)
-        ct = _gcm_ctr(self.round_keys, nonce, plain)
-        return ct + _gcm_tag(self.round_keys, self.table, nonce, aad, ct)
+        return self._seal(self.key, self._nonce(), aad, plain)
 
     def open(self, data, aad):
         """O texto claro, ou `None` quando a etiqueta de autenticação não confere."""
-        nonce = self._nonce()
-        if self.kind == 'chacha':
-            return _chacha_open(self.chacha_words, nonce, aad, data)
-        if len(data) < 16:
-            return None
-        ct, tag = data[:-16], data[-16:]
-        if _gcm_tag(self.round_keys, self.table, nonce, aad, ct) != tag:
-            return None
-        return _gcm_ctr(self.round_keys, nonce, ct)
+        return self._open(self.key, self._nonce(), aad, data)
 
     def update(self):
         """As chaves do KeyUpdate (RFC 8446, seção 7.2)."""

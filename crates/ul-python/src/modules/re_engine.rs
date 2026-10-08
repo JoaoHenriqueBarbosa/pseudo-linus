@@ -11,8 +11,12 @@
 //! atômico nem laço que aceite vazio, o casador memoriza os estados `(desvio, posição)` já
 //! esgotados (um padrão como `(a+)+b` cai de exponencial para polinomial).
 //!
-//! O texto é uma fatia de pontos de código (`&[char]`); todos os índices são em pontos de código.
+//! O texto é uma fatia de pontos de código (`&[u32]`, com os surrogates solitários); todos os
+//! índices são em pontos de código.
 //! Fora desta versão: padrões em `bytes`, `\N{nome}` e o modo LOCALE.
+
+use crate::modules::ucd::CaseMap;
+use crate::object::push_cp;
 
 pub const I: u32 = 2;
 pub const L: u32 = 4;
@@ -55,15 +59,15 @@ impl ReError {
 
     /// A mensagem como o CPython a mostra: `msg at position N` e, se o padrão tem quebra de
     /// linha, `(line L, column C)`.
-    pub fn format(&self, pattern: &[char]) -> String {
+    pub fn format(&self, pattern: &[u32]) -> String {
         match self.pos {
             None => self.msg.clone(),
             Some(pos) => {
                 let mut s = format!("{} at position {}", self.msg, pos);
-                if pattern.contains(&'\n') {
+                if pattern.contains(&u32::from('\n')) {
                     let upto = pos.min(pattern.len());
-                    let line = pattern[..upto].iter().filter(|c| **c == '\n').count() + 1;
-                    let col = match pattern[..upto].iter().rposition(|c| *c == '\n') {
+                    let line = pattern[..upto].iter().filter(|c| **c == u32::from('\n')).count() + 1;
+                    let col = match pattern[..upto].iter().rposition(|c| *c == u32::from('\n')) {
                         Some(l) => pos - l,
                         None => pos + 1,
                     };
@@ -91,8 +95,8 @@ enum ClassKind {
 
 #[derive(Debug, Clone)]
 enum SetItem {
-    Ch(char),
-    Range(char, char),
+    Ch(u32),
+    Range(u32, u32),
     Class(ClassKind),
 }
 
@@ -103,47 +107,54 @@ struct CharSet {
     fl: u32,
 }
 
-/// Zeros dos blocos de dígitos decimais (Nd) fora do ASCII: cada bloco tem 10 dígitos.
-const ND_ZEROS: &[u32] = &[
-    0x0660, 0x06F0, 0x07C0, 0x0966, 0x09E6, 0x0A66, 0x0AE6, 0x0B66, 0x0BE6, 0x0C66, 0x0CE6, 0x0D66, 0x0DE6,
-    0x0E50, 0x0ED0, 0x0F20, 0x1040, 0x1090, 0x17E0, 0x1810, 0x1946, 0x19D0, 0x1A80, 0x1A90, 0x1B50, 0x1BB0,
-    0x1C40, 0x1C50, 0xA620, 0xA8D0, 0xA900, 0xA9D0, 0xA9F0, 0xAA50, 0xABF0, 0xFF10, 0x104A0, 0x11066,
-];
-
-fn is_decimal(c: char, ascii: bool) -> bool {
-    if c.is_ascii_digit() {
-        return true;
-    }
-    if ascii || (c as u32) < 0x660 {
-        return false;
-    }
-    let v = c as u32;
-    if (0x1D7CE..=0x1D7FF).contains(&v) {
-        return true;
-    }
-    ND_ZEROS.iter().any(|z| v >= *z && v < *z + 10)
+/// O `char` de um código-ponto; surrogates (que não são `char`) viram U+FFFD, que não é
+/// estrutural em padrão nenhum nem pertence a classe alguma além de `.` e conjuntos negados.
+pub fn cp_char(c: u32) -> char {
+    char::from_u32(c).unwrap_or('\u{fffd}')
 }
 
-fn is_word(c: char, ascii: bool) -> bool {
+/// Acrescenta a fatia de código-pontos `cps` a `out`, na codificação dos `str` da VM.
+pub fn push_cps(out: &mut String, cps: &[u32]) {
+    for &c in cps {
+        push_cp(out, c);
+    }
+}
+
+/// Texto de uma fatia de código-pontos, na codificação dos `str` da VM.
+pub fn cps_to_string(cps: &[u32]) -> String {
+    let mut s = String::with_capacity(cps.len());
+    push_cps(&mut s, cps);
+    s
+}
+
+fn is_digit_class(c: u32, ascii: bool) -> bool {
     if ascii {
-        c.is_ascii_alphanumeric() || c == '_'
+        (0x30..=0x39).contains(&c)
     } else {
-        c.is_alphanumeric() || c == '_'
+        crate::object::is_decimal(c)
     }
 }
 
-fn is_space(c: char, ascii: bool) -> bool {
+fn is_word(c: u32, ascii: bool) -> bool {
     if ascii {
-        matches!(c, ' ' | '\t' | '\n' | '\r' | '\u{b}' | '\u{c}')
+        char::from_u32(c).is_some_and(|ch| ch.is_ascii_alphanumeric() || ch == '_')
     } else {
-        c.is_whitespace() || ('\u{1c}'..='\u{1f}').contains(&c)
+        c == u32::from('_') || crate::object::is_alnum(c)
     }
 }
 
-fn class_match(k: ClassKind, c: char, ascii: bool) -> bool {
+fn is_space(c: u32, ascii: bool) -> bool {
+    if ascii {
+        matches!(c, 0x20 | 0x09 | 0x0a | 0x0d | 0x0b | 0x0c)
+    } else {
+        crate::object::is_space(c)
+    }
+}
+
+fn class_match(k: ClassKind, c: u32, ascii: bool) -> bool {
     match k {
-        ClassKind::Digit => is_decimal(c, ascii),
-        ClassKind::NotDigit => !is_decimal(c, ascii),
+        ClassKind::Digit => is_digit_class(c, ascii),
+        ClassKind::NotDigit => !is_digit_class(c, ascii),
         ClassKind::Word => is_word(c, ascii),
         ClassKind::NotWord => !is_word(c, ascii),
         ClassKind::Space => is_space(c, ascii),
@@ -151,38 +162,33 @@ fn class_match(k: ClassKind, c: char, ascii: bool) -> bool {
     }
 }
 
-fn lower1(c: char, ascii: bool) -> char {
-    if ascii || c.is_ascii() {
-        return c.to_ascii_lowercase();
-    }
-    let mut it = c.to_lowercase();
-    match (it.next(), it.next()) {
-        (Some(l), None) => l,
-        _ => c,
+/// `Py_UNICODE_TOLOWER`/`Py_UNICODE_TOUPPER` do `sre`: o mapeamento simples, do banco do 15.1.0.
+fn simple_case(c: u32, ascii: bool, which: CaseMap) -> u32 {
+    match (ascii || c < 0x80, char::from_u32(c)) {
+        (true, Some(ch)) => u32::from(if matches!(which, CaseMap::Lower) { ch.to_ascii_lowercase() } else { ch.to_ascii_uppercase() }),
+        (true, None) => c,
+        (false, _) => crate::modules::ucd::current().simple_case(which, c),
     }
 }
 
-fn upper1(c: char, ascii: bool) -> char {
-    if ascii || c.is_ascii() {
-        return c.to_ascii_uppercase();
-    }
-    let mut it = c.to_uppercase();
-    match (it.next(), it.next()) {
-        (Some(u), None) => u,
-        _ => c,
-    }
+fn lower1(c: u32, ascii: bool) -> u32 {
+    simple_case(c, ascii, CaseMap::Lower)
+}
+
+fn upper1(c: u32, ascii: bool) -> u32 {
+    simple_case(c, ascii, CaseMap::Upper)
 }
 
 /// Chave de comparação sem diferença de maiúsculas (IGNORECASE).
-fn fold(c: char, ascii: bool) -> char {
-    if !ascii && c == '\u{17f}' {
-        return 's';
+fn fold(c: u32, ascii: bool) -> u32 {
+    if !ascii && c == 0x17f {
+        return u32::from('s');
     }
     lower1(c, ascii)
 }
 
 impl CharSet {
-    fn test(&self, c: char) -> bool {
+    fn test(&self, c: u32) -> bool {
         let ascii = self.fl & A != 0;
         self.items.iter().any(|it| match it {
             SetItem::Ch(x) => *x == c,
@@ -191,7 +197,7 @@ impl CharSet {
         })
     }
 
-    fn matches(&self, c: char) -> bool {
+    fn matches(&self, c: u32) -> bool {
         let mut r = self.test(c);
         if !r && self.fl & I != 0 {
             let ascii = self.fl & A != 0;
@@ -228,7 +234,7 @@ enum RepMode {
 
 enum Node {
     Empty,
-    Char(char, u32),
+    Char(u32, u32),
     Any(u32),
     Set(CharSet),
     Cat(Vec<Node>),
@@ -306,7 +312,7 @@ fn width(n: &Node) -> (usize, Option<usize>) {
 // ---------------------------------------------------------------------------
 
 struct Parser<'a> {
-    p: &'a [char],
+    p: &'a [u32],
     i: usize,
     /// Flags em vigor neste ponto do padrão.
     fl: u32,
@@ -318,7 +324,7 @@ struct Parser<'a> {
 }
 
 enum Elem {
-    Ch(char),
+    Ch(u32),
     Class(ClassKind),
 }
 
@@ -331,13 +337,13 @@ impl From<Elem> for SetItem {
     }
 }
 
-fn is_identifier(s: &str) -> bool {
-    let mut it = s.chars();
+/// `str.isidentifier` (os nomes de grupo seguem o `isidentifier` do CPython).
+pub fn is_identifier(s: &str) -> bool {
+    let mut it = crate::object::code_points(s);
     match it.next() {
-        Some(c) if c == '_' || c.is_alphabetic() => {}
-        _ => return false,
+        Some(c) => (c == u32::from('_') || crate::object::is_xid_start(c)) && it.all(crate::object::is_xid_continue),
+        None => false,
     }
-    it.all(|c| c == '_' || c.is_alphanumeric())
 }
 
 fn parse_count(s: &str) -> Result<usize, ReError> {
@@ -356,12 +362,13 @@ fn cat(mut items: Vec<Node>) -> Node {
 }
 
 impl<'a> Parser<'a> {
+    /// O `char` em `i` (`cp_char`): serve para casar a sintaxe, nunca para guardar um literal.
     fn peek(&self) -> Option<char> {
-        self.p.get(self.i).copied()
+        self.p.get(self.i).copied().map(cp_char)
     }
 
     fn peek_at(&self, off: usize) -> Option<char> {
-        self.p.get(self.i + off).copied()
+        self.p.get(self.i + off).copied().map(cp_char)
     }
 
     fn digits(&mut self) -> String {
@@ -473,7 +480,7 @@ impl<'a> Parser<'a> {
                         '?' => (0, 1),
                         _ => {
                             if self.peek() == Some('}') {
-                                items.push(Node::Char('{', fl));
+                                items.push(Node::Char(u32::from('{'), fl));
                                 continue;
                             }
                             let save = self.i;
@@ -487,7 +494,7 @@ impl<'a> Parser<'a> {
                             }
                             if self.peek() != Some('}') {
                                 self.i = save;
-                                items.push(Node::Char('{', fl));
+                                items.push(Node::Char(u32::from('{'), fl));
                                 continue;
                             }
                             self.i += 1;
@@ -525,7 +532,7 @@ impl<'a> Parser<'a> {
                         items.push(Node::Repeat { node: Box::new(node), min, max, mode });
                     }
                 }
-                _ => items.push(Node::Char(c, fl)),
+                _ => items.push(Node::Char(self.p[start], fl)),
             }
         }
         Ok(cat(items))
@@ -579,7 +586,7 @@ impl<'a> Parser<'a> {
                     }
                     Ok(Some(Node::Look { behind: Some(mn), neg: d == '!', node: Box::new(body) }))
                 }
-                Some(d) => Err(ReError::at(format!("unknown extension ?<{d}"), qpos)),
+                Some(_) => Err(ReError::at(format!("unknown extension ?<{}", cps_to_string(&self.p[self.i..=self.i])), qpos)),
                 None => Err(ReError::at("unexpected end of pattern", self.p.len())),
             },
             '>' => {
@@ -592,7 +599,7 @@ impl<'a> Parser<'a> {
                 self.i -= 1;
                 self.parse_flags(start, first)
             }
-            other => Err(ReError::at(format!("unknown extension ?{other}"), qpos)),
+            _ => Err(ReError::at(format!("unknown extension ?{}", cps_to_string(&self.p[self.i - 1..self.i])), qpos)),
         }
     }
 
@@ -617,7 +624,7 @@ impl<'a> Parser<'a> {
                         }
                         return Ok(s);
                     }
-                    s.push(ch);
+                    push_cp(&mut s, self.p[self.i - 1]);
                 }
             }
         }
@@ -666,7 +673,7 @@ impl<'a> Parser<'a> {
                 }
                 Ok(Some(Node::Backref(k, self.fl)))
             }
-            Some(d) => Err(ReError::at(format!("unknown extension ?P{d}"), qpos)),
+            Some(_) => Err(ReError::at(format!("unknown extension ?P{}", cps_to_string(&self.p[self.i..=self.i])), qpos)),
             None => Err(ReError::at("unexpected end of pattern", self.p.len())),
         }
     }
@@ -767,12 +774,12 @@ impl<'a> Parser<'a> {
                 }
                 match self.peek() {
                     Some(':') => self.i += 1,
-                    Some(ch) if ch.is_alphabetic() => return Err(ReError::at("unknown flag", self.i)),
+                    Some(ch) if crate::object::is_alpha(u32::from(ch)) => return Err(ReError::at("unknown flag", self.i)),
                     _ => return Err(ReError::at("missing :", self.i)),
                 }
             }
             Some(':') => self.i += 1,
-            Some(ch) if ch.is_alphabetic() => return Err(ReError::at("unknown flag", self.i)),
+            Some(ch) if crate::object::is_alpha(u32::from(ch)) => return Err(ReError::at("unknown flag", self.i)),
             _ => return Err(ReError::at("missing -, : or )", self.i)),
         }
         let saved = self.fl;
@@ -789,7 +796,7 @@ impl<'a> Parser<'a> {
         Ok(Some(Node::Group(None, Box::new(body))))
     }
 
-    fn hex_esc(&mut self, start: usize, n: usize) -> Result<char, ReError> {
+    fn hex_esc(&mut self, start: usize, n: usize) -> Result<u32, ReError> {
         let mut v: u32 = 0;
         let mut cnt = 0;
         while cnt < n {
@@ -802,14 +809,14 @@ impl<'a> Parser<'a> {
                 None => break,
             }
         }
-        let text = |p: &[char], a: usize, b: usize| -> String { p[a..b].iter().collect() };
         if cnt < n {
-            return Err(ReError::at(format!("incomplete escape {}", text(self.p, start, self.i)), start));
+            return Err(ReError::at(format!("incomplete escape {}", cps_to_string(&self.p[start..self.i])), start));
         }
-        match char::from_u32(v) {
-            Some(c) => Ok(c),
-            None => Err(ReError::at(format!("bad escape {}", text(self.p, start, self.i)), start)),
+        // O CPython aceita os surrogates (`\ud800`); só passa de U+10FFFF é escape inválido.
+        if v > 0x10_FFFF {
+            return Err(ReError::at(format!("bad escape {}", cps_to_string(&self.p[start..self.i])), start));
         }
+        Ok(v)
     }
 
     /// A letra depois da barra; sem ela, "bad escape (end of pattern)".
@@ -830,12 +837,12 @@ impl<'a> Parser<'a> {
             'S' => ClassKind::NotSpace,
             _ => {
                 let ch = match c {
-                    'a' => '\u{7}',
-                    'f' => '\u{c}',
-                    'n' => '\n',
-                    'r' => '\r',
-                    't' => '\t',
-                    'v' => '\u{b}',
+                    'a' => 0x7,
+                    'f' => 0xc,
+                    'n' => 0xa,
+                    'r' => 0xd,
+                    't' => 0x9,
+                    'v' => 0xb,
                     'x' => self.hex_esc(start, 2)?,
                     'u' => self.hex_esc(start, 4)?,
                     'U' => self.hex_esc(start, 8)?,
@@ -876,20 +883,20 @@ impl<'a> Parser<'a> {
                     return Err(ReError::at("missing {", self.i));
                 }
                 let open = self.i;
-                let close = (open..self.p.len()).find(|&k| self.p[k] == '}');
+                let close = (open..self.p.len()).find(|&k| self.p[k] == u32::from('}'));
                 let Some(close) = close else {
                     return Err(ReError::at("missing }, unterminated name", open + 1));
                 };
-                let name: String = self.p[open + 1..close].iter().collect();
+                let name = cps_to_string(&self.p[open + 1..close]);
                 match unicode_names2::character(&name) {
                     Some(ch) => {
                         self.i = close + 1;
-                        Ok(Node::Char(ch, fl))
+                        Ok(Node::Char(u32::from(ch), fl))
                     }
                     None => Err(ReError::at(format!("undefined character name '{name}'"), start)),
                 }
             }
-            '0' => Ok(Node::Char(char::from_u32(self.octal_tail(0)).unwrap_or('\0'), fl)),
+            '0' => Ok(Node::Char(self.octal_tail(0), fl)),
             '1'..='9' => {
                 let mut g = c.to_digit(10).unwrap_or(0) as usize;
                 if let Some(d2) = self.peek() {
@@ -901,7 +908,7 @@ impl<'a> Parser<'a> {
                                         + d2.to_digit(8).unwrap_or(0) * 8
                                         + d3.to_digit(8).unwrap_or(0);
                                     self.i += 2;
-                                    return Ok(Node::Char(char::from_u32(v).unwrap_or('\0'), fl));
+                                    return Ok(Node::Char(v, fl));
                                 }
                             }
                         }
@@ -918,7 +925,7 @@ impl<'a> Parser<'a> {
                 Ok(Node::Backref(g, fl))
             }
             c if c.is_ascii_alphabetic() => Err(ReError::at(format!("bad escape \\{c}"), start)),
-            c => Ok(Node::Char(c, fl)),
+            _ => Ok(Node::Char(self.p[self.i - 1], fl)),
         }
     }
 
@@ -928,18 +935,18 @@ impl<'a> Parser<'a> {
             return Ok(e);
         }
         match c {
-            'b' => Ok(Elem::Ch('\u{8}')),
+            'b' => Ok(Elem::Ch(8)),
             '0'..='7' => {
                 let v = self.octal_tail(c.to_digit(8).unwrap_or(0));
                 if v > 0o377 {
-                    let esc: String = self.p[start..self.i].iter().collect();
+                    let esc = cps_to_string(&self.p[start..self.i]);
                     return Err(ReError::at(format!("octal escape value {esc} outside of range 0-0o377"), start));
                 }
-                Ok(Elem::Ch(char::from_u32(v).unwrap_or('\0')))
+                Ok(Elem::Ch(v))
             }
             '8' | '9' => Err(ReError::at(format!("bad escape \\{c}"), start)),
             c if c.is_ascii_alphabetic() => Err(ReError::at(format!("bad escape \\{c}"), start)),
-            c => Ok(Elem::Ch(c)),
+            _ => Ok(Elem::Ch(self.p[self.i - 1])),
         }
     }
 
@@ -959,19 +966,19 @@ impl<'a> Parser<'a> {
             let es = self.i;
             let c = self.p[self.i];
             self.i += 1;
-            if c == ']' && !first {
+            if cp_char(c) == ']' && !first {
                 break;
             }
             first = false;
-            let lo = if c == '\\' { self.class_escape(es)? } else { Elem::Ch(c) };
+            let lo = if cp_char(c) == '\\' { self.class_escape(es)? } else { Elem::Ch(c) };
             let lo_end = self.i;
             if self.peek() == Some('-') {
                 if self.i + 1 >= self.p.len() {
                     return Err(ReError::at("unterminated character set", start));
                 }
-                if self.p[self.i + 1] == ']' {
+                if cp_char(self.p[self.i + 1]) == ']' {
                     items.push(lo.into());
-                    items.push(SetItem::Ch('-'));
+                    items.push(SetItem::Ch(u32::from('-')));
                     self.i += 1;
                     continue;
                 }
@@ -979,12 +986,12 @@ impl<'a> Parser<'a> {
                 let hs = self.i;
                 let hc = self.p[self.i];
                 self.i += 1;
-                let hi = if hc == '\\' { self.class_escape(hs)? } else { Elem::Ch(hc) };
+                let hi = if cp_char(hc) == '\\' { self.class_escape(hs)? } else { Elem::Ch(hc) };
                 match (lo, hi) {
                     (Elem::Ch(a), Elem::Ch(b)) if a <= b => items.push(SetItem::Range(a, b)),
                     _ => {
-                        let lo_txt: String = self.p[es..lo_end].iter().collect();
-                        let hi_txt: String = self.p[hs..self.i].iter().collect();
+                        let lo_txt = cps_to_string(&self.p[es..lo_end]);
+                        let hi_txt = cps_to_string(&self.p[hs..self.i]);
                         return Err(ReError::at(format!("bad character range {lo_txt}-{hi_txt}"), es));
                     }
                 }
@@ -1002,8 +1009,8 @@ impl<'a> Parser<'a> {
 
 #[derive(Debug, Clone, Copy)]
 enum Atom {
-    Char(char),
-    CharI(char, bool),
+    Char(u32),
+    CharI(u32, bool),
     Any,
     AnyNl,
     Set(usize),
@@ -1028,11 +1035,11 @@ enum Inst {
     Match,
 }
 
-fn atom_ok(sets: &[CharSet], a: Atom, c: char) -> bool {
+fn atom_ok(sets: &[CharSet], a: Atom, c: u32) -> bool {
     match a {
         Atom::Char(x) => c == x,
         Atom::CharI(x, ascii) => fold(c, ascii) == x,
-        Atom::Any => c != '\n',
+        Atom::Any => c != u32::from('\n'),
         Atom::AnyNl => true,
         Atom::Set(i) => sets[i].matches(c),
     }
@@ -1279,11 +1286,11 @@ pub struct Regex {
     last_slot: usize,
     memo_ok: bool,
     nsplits: usize,
-    first: Option<char>,
+    first: Option<u32>,
 }
 
 /// Compila `pattern` com `flags`.
-pub fn compile(pattern: &[char], flags: u32) -> Result<Regex, ReError> {
+pub fn compile(pattern: &[u32], flags: u32) -> Result<Regex, ReError> {
     if flags & L != 0 {
         return Err(ReError::value("cannot use LOCALE flag with a str pattern"));
     }
@@ -1363,7 +1370,7 @@ enum Bt {
 
 struct Matcher<'a> {
     re: &'a Regex,
-    text: &'a [char],
+    text: &'a [u32],
     end: usize,
     full: bool,
     /// Se diferente de `UNSET`, um casamento que termine nesta posição é recusado (vazio sem avanço).
@@ -1378,9 +1385,9 @@ impl<'a> Matcher<'a> {
         let end = self.end;
         match kind {
             AssertKind::Bol | AssertKind::StartText => pos == 0,
-            AssertKind::MBol => pos == 0 || t[pos - 1] == '\n',
-            AssertKind::Eol => pos == end || (pos + 1 == end && t[pos] == '\n'),
-            AssertKind::MEol => pos == end || t[pos] == '\n',
+            AssertKind::MBol => pos == 0 || t[pos - 1] == u32::from('\n'),
+            AssertKind::Eol => pos == end || (pos + 1 == end && t[pos] == u32::from('\n')),
+            AssertKind::MEol => pos == end || t[pos] == u32::from('\n'),
             AssertKind::EndText => pos == end,
             AssertKind::WordB | AssertKind::NotWordB => {
                 let a = pos > 0 && is_word(t[pos - 1], ascii);
@@ -1642,7 +1649,7 @@ impl Regex {
 
     /// Executa o casamento sobre `text[..endpos]` a partir de `pos`. `must_advance` recusa um
     /// casamento vazio em `pos` (usado entre casamentos consecutivos de `finditer`, `sub`...).
-    pub fn exec(&self, text: &[char], pos: usize, endpos: usize, mode: Mode, must_advance: bool) -> Option<Captures> {
+    pub fn exec(&self, text: &[u32], pos: usize, endpos: usize, mode: Mode, must_advance: bool) -> Option<Captures> {
         let end = endpos.min(text.len());
         if pos > end {
             return None;
@@ -1707,7 +1714,7 @@ impl IterState {
         IterState { pos, endpos, must_advance: false, done: false }
     }
 
-    pub fn next(&mut self, re: &Regex, text: &[char]) -> Option<Captures> {
+    pub fn next(&mut self, re: &Regex, text: &[u32]) -> Option<Captures> {
         if self.done || self.pos > self.endpos {
             self.done = true;
             return None;
@@ -1734,9 +1741,23 @@ impl IterState {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::object::{code_points, cp_to_str};
 
-    fn cs(s: &str) -> Vec<char> {
-        s.chars().collect()
+    #[test]
+    fn surrogates_and_escape_chars_match_by_code_point() {
+        let lone = cp_to_str(0xD800);
+        let hi = cp_to_str(0x10_D800);
+        let top = cp_to_str(0x10_FFFF);
+        assert_eq!(search("\\ud800", 0, &format!("a{lone}")), Some((1, 2)));
+        assert_eq!(search(&lone, 0, &format!("a{lone}")), Some((1, 2)));
+        assert_eq!(search("[\\ud800-\\udfff]", 0, &format!("a{hi}{lone}")), Some((2, 3)));
+        assert_eq!(search(".", 0, &top), Some((0, 1)));
+        assert_eq!(search("\\U0010d800", 0, &format!("{lone}{hi}")), Some((1, 2)));
+        assert_eq!(err("\\U00110000"), "bad escape \\U00110000 at position 0");
+    }
+
+    fn cs(s: &str) -> Vec<u32> {
+        code_points(s).collect()
     }
 
     fn comp(p: &str, fl: u32) -> Regex {

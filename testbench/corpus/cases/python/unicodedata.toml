@@ -19,7 +19,7 @@ for label, db in [('cur', unicodedata), ('old', unicodedata.ucd_3_2_0)]:
     for f in FUNCS + DEF + FORMS:
         h = hashlib.md5()
         for cp in range(0, 0x110000, 5):
-            if 0xD800 <= cp <= 0xDFFF or 0x10D800 <= cp <= 0x10DFFF:
+            if 0xD800 <= cp <= 0xDFFF:
                 continue
             c = chr(cp)
             if f in FUNCS:

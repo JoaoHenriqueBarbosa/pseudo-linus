@@ -1,0 +1,32 @@
+{
+  "generator-finalize-at-exit": {
+    "stdout": "end of module\nfinally one\nfinally two\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "generator-finalize-for-break": {
+    "stdout": "2 ['finally']\n0 ['finally', 'finally']\n0 ['finally', 'finally', 'finally']\n[(0, 'a'), (1, 'b')] ['finally', 'finally', 'finally', 'finally']\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "generator-finalize-frame-exit-yield-from": {
+    "stdout": "[2, 'inner finally', 'outer finally']\n[2, 'inner finally', 'outer finally', 'plain finally']\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "generator-finalize-rebind-del-none": {
+    "stdout": "[]\n['close a']\n['close a', 'close b']\n['close a', 'close b', 'close c']\n['close a', 'close b', 'close c']\n['close a', 'close b', 'close c']\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "generator-finalize-with-and-generatorexit": {
+    "stdout": "['cm exit']\n['cm exit', 'caught GeneratorExit']\n['cm exit', 'caught GeneratorExit', 'swallowed']\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

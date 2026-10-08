@@ -4,6 +4,8 @@
 //! As tabelas dos codecs de byte único saem de `textcodec_tables.rs` (gerado a partir do `codecs` do
 //! CPython 3.13). `lookup` aceita o nome do jeito que `encodings.search_function` normaliza.
 
+use crate::object::{code_points, push_cp, ExcObj, Value};
+use std::rc::Rc;
 use crate::textcodec_tables::{ALIASES, SINGLE};
 use crate::vm::{exc, PyResult};
 
@@ -15,6 +17,7 @@ pub enum Codec {
     Utf16 { big: Option<bool>, name: &'static str },
     Utf32 { big: Option<bool>, name: &'static str },
     Utf8Sig,
+    Utf7,
     UnicodeEscape,
     RawUnicodeEscape,
     Punycode,
@@ -32,6 +35,7 @@ pub fn lookup(name: &str) -> Option<Codec> {
         "utf_32_le" | "utf_32le" | "utf32le" => return Some(Codec::Utf32 { big: Some(false), name: "utf-32-le" }),
         "utf_32_be" | "utf_32be" | "utf32be" => return Some(Codec::Utf32 { big: Some(true), name: "utf-32-be" }),
         "utf_8_sig" | "utf8_sig" => return Some(Codec::Utf8Sig),
+        "utf_7" | "utf7" | "u7" | "unicode_1_1_utf_7" => return Some(Codec::Utf7),
         "unicode_escape" | "unicodeescape" => return Some(Codec::UnicodeEscape),
         "raw_unicode_escape" => return Some(Codec::RawUnicodeEscape),
         "punycode" => return Some(Codec::Punycode),
@@ -42,8 +46,8 @@ pub fn lookup(name: &str) -> Option<Codec> {
     SINGLE.iter().find(|(n, _)| *n == canon).map(|(_, t)| Codec::Single(t))
 }
 
-fn escape_char(c: char) -> String {
-    let v = c as u32;
+/// Como o CPython escreve um código-ponto nas mensagens e no `backslashreplace`.
+pub fn escape_cp(v: u32) -> String {
     if v <= 0xff {
         format!("\\x{v:02x}")
     } else if v <= 0xffff {
@@ -53,160 +57,252 @@ fn escape_char(c: char) -> String {
     }
 }
 
-/// Resposta do `errors` a um trecho que não codifica: `Some(bytes)` para continuar, `None` para
-/// `strict` (o chamador levanta).
-fn encode_fallback(errors: &str, run: &[char]) -> PyResult<Option<Vec<u8>>> {
-    Ok(match errors {
-        "strict" => None,
-        "ignore" => Some(Vec::new()),
-        "replace" => Some(vec![b'?'; run.len()]),
-        "backslashreplace" => Some(run.iter().flat_map(|c| escape_char(*c).into_bytes()).collect()),
-        "xmlcharrefreplace" => Some(run.iter().flat_map(|c| format!("&#{};", *c as u32).into_bytes()).collect()),
-        "namereplace" => Some(
-            run.iter()
-                .flat_map(|c| match unicode_names2::name(*c) {
-                    Some(n) => format!("\\N{{{n}}}").into_bytes(),
-                    None => escape_char(*c).into_bytes(),
-                })
-                .collect(),
-        ),
-        other => return Err(exc("LookupError", format!("unknown error handler name '{other}'"))),
-    })
+/// O que um handler de `errors` devolve para um trecho que não codifica.
+enum Replacement {
+    /// Bytes que entram direto na saída (`surrogateescape`, `surrogatepass`).
+    Raw(Vec<u8>),
+    /// Texto ASCII que passa pelo próprio codec (em UTF-16/32 cada caractere vira uma unidade).
+    Text(Vec<u8>),
 }
 
-fn encode_error(codec: &str, run: &[char], start: usize, reason: &str) -> crate::vm::PyException {
-    let msg = if run.len() == 1 {
-        format!("'{codec}' codec can't encode character '{}' in position {start}: {reason}", escape_char(run[0]))
-    } else {
-        format!("'{codec}' codec can't encode characters in position {start}-{}: {reason}", start + run.len() - 1)
-    };
-    exc("UnicodeEncodeError", msg)
+/// Um codec que codifica por código-ponto e trata os trechos sem representação (`Runs::encode`).
+/// `put` grava o código-ponto e devolve `true`, ou devolve `false` sem gravar nada se ele não
+/// codifica; `pass` é o `surrogatepass` do codec (só UTF-8/16/32 o têm); `prefix_escape` é o
+/// atalho do `surrogateescape` nos codecs UTF-8, ASCII e Latin-1, que grava o prefixo escapável
+/// do trecho e só reclama do resto.
+pub struct Runs<'a> {
+    pub name: &'a str,
+    pub reason: &'a str,
+    pub put: &'a dyn Fn(u32, &mut Vec<u8>) -> bool,
+    pub pass: Option<&'a dyn Fn(u32, &mut Vec<u8>)>,
+    pub prefix_escape: bool,
+    /// `true` quando o codec entrega ao handler o trecho inteiro que não codifica (UTF-8, ASCII,
+    /// Latin-1, charmap); `false` no UTF-16/32 do CPython, que falha em um surrogate por vez.
+    pub group: bool,
 }
 
-fn decode_error(codec: &str, start: usize, len: usize, byte: u8, reason: &str) -> crate::vm::PyException {
-    let msg = if len == 1 {
-        format!("'{codec}' codec can't decode byte 0x{byte:02x} in position {start}: {reason}")
-    } else {
-        format!("'{codec}' codec can't decode bytes in position {start}-{}: {reason}", start + len - 1)
-    };
-    exc("UnicodeDecodeError", msg)
+/// O `UnicodeEncodeError` / `UnicodeDecodeError` do CPython: `args` são `(encoding, object, start,
+/// end, reason)`, de onde saem a mensagem e os atributos.
+pub(crate) fn unicode_error(kind: &'static str, encoding: &str, object: Value, start: usize, end: usize, reason: &str) -> crate::vm::PyException {
+    let args = vec![Value::str(encoding), object, Value::Int(start as i64), Value::Int(end as i64), Value::str(reason)];
+    crate::vm::PyException::from_value(&Value::Exception(Rc::new(ExcObj::new(kind, args))))
 }
 
-/// Texto no lugar de bytes que não decodificam, ou `None` para `strict`.
-fn decode_fallback(errors: &str, bytes: &[u8]) -> PyResult<Option<String>> {
-    Ok(match errors {
-        "strict" => None,
-        "ignore" => Some(String::new()),
-        "replace" => Some("\u{FFFD}".to_string()),
-        "surrogateescape" => Some(bytes.iter().map(|b| crate::object::surrogate_to_char(0xDC00 + u32::from(*b))).collect()),
-        "backslashreplace" => Some(bytes.iter().map(|b| format!("\\x{b:02x}")).collect()),
-        other => return Err(exc("LookupError", format!("unknown error handler name '{other}'"))),
-    })
-}
-
-/// O que fazer com `c` num codec UTF-16/32: `None` se não é surrogate (codifica normal),
-/// `Some(Some(cp))` para gravar o surrogate (`surrogatepass`), `Some(None)` para pular (`ignore`).
-fn surrogate_policy(c: char, name: &str, pos: usize, errors: &str) -> PyResult<Option<Option<u32>>> {
-    let Some(cp) = crate::object::char_surrogate(c) else { return Ok(None) };
-    match errors {
-        "surrogatepass" => Ok(Some(Some(cp))),
-        "ignore" => Ok(Some(None)),
-        "replace" => Ok(Some(Some(u32::from(b'?')))),
-        _ => Err(exc(
-            "UnicodeEncodeError",
-            format!("'{name}' codec can't encode character '\\u{cp:04x}' in position {pos}: surrogates not allowed"),
-        )),
+impl Runs<'_> {
+    fn error(&self, s: &str, start: usize, len: usize) -> crate::vm::PyException {
+        unicode_error("UnicodeEncodeError", self.name, Value::str(s), start, start + len, self.reason)
     }
+
+    /// Resposta do `errors` a um trecho que não codifica: `None` quando o handler recusa (o erro
+    /// original sobe), `Err` para handler desconhecido.
+    fn fallback(&self, errors: &str, run: &[u32]) -> PyResult<Option<Replacement>> {
+        let text = |f: &dyn Fn(u32) -> String| Some(Replacement::Text(run.iter().flat_map(|&cp| f(cp).into_bytes()).collect()));
+        Ok(match errors {
+            "strict" => None,
+            "ignore" => text(&|_| String::new()),
+            "replace" => text(&|_| "?".to_string()),
+            "backslashreplace" => text(&escape_cp),
+            "xmlcharrefreplace" => text(&|cp| format!("&#{cp};")),
+            "namereplace" => text(&|cp| match char::from_u32(cp).and_then(unicode_names2::name) {
+                Some(n) => format!("\\N{{{n}}}"),
+                None => escape_cp(cp),
+            }),
+            "surrogateescape" if run.iter().all(|cp| (0xDC80..=0xDCFF).contains(cp)) => {
+                Some(Replacement::Raw(run.iter().map(|cp| (cp - 0xDC00) as u8).collect()))
+            }
+            "surrogateescape" => None,
+            "surrogatepass" => self.pass.filter(|_| run.iter().all(|cp| (0xD800..=0xDFFF).contains(cp))).map(|pass| {
+                let mut raw = Vec::new();
+                run.iter().for_each(|&cp| pass(cp, &mut raw));
+                Replacement::Raw(raw)
+            }),
+            other => return Err(exc("LookupError", format!("unknown error handler name '{other}'"))),
+        })
+    }
+
+    /// Codifica `s` em `out`; as posições dos erros contam código-pontos.
+    pub fn encode(&self, s: &str, errors: &str) -> PyResult<Vec<u8>> {
+        let cps: Vec<u32> = code_points(s).collect();
+        let mut out = Vec::with_capacity(cps.len());
+        let mut i = 0;
+        while i < cps.len() {
+            if (self.put)(cps[i], &mut out) {
+                i += 1;
+                continue;
+            }
+            let mut scratch = Vec::new();
+            let mut end = i + 1;
+            while self.group && end < cps.len() && !(self.put)(cps[end], &mut scratch) {
+                end += 1;
+            }
+            let mut start = i;
+            if self.prefix_escape && errors == "surrogateescape" {
+                while start < end && (0xDC80..=0xDCFF).contains(&cps[start]) {
+                    out.push((cps[start] - 0xDC00) as u8);
+                    start += 1;
+                }
+            }
+            if start < end {
+                let run = &cps[start..end];
+                match self.fallback(errors, run)? {
+                    Some(Replacement::Raw(bytes)) => out.extend(bytes),
+                    Some(Replacement::Text(ascii)) => {
+                        if !ascii.iter().all(|&b| (self.put)(u32::from(b), &mut out)) {
+                            return Err(self.error(s, start, run.len()));
+                        }
+                    }
+                    None => return Err(self.error(s, start, run.len())),
+                }
+            }
+            i = end;
+        }
+        Ok(out)
+    }
+}
+
+/// ASCII (`limit` 128) e Latin-1 (`limit` 256): o código-ponto vira o próprio byte.
+pub fn encode_ucs1(name: &str, limit: u32, s: &str, errors: &str) -> PyResult<Vec<u8>> {
+    let put = |cp: u32, out: &mut Vec<u8>| {
+        let fits = cp < limit;
+        if fits {
+            out.push(cp as u8);
+        }
+        fits
+    };
+    let reason = format!("ordinal not in range({limit})");
+    Runs { name, reason: &reason, put: &put, pass: None, prefix_escape: true, group: true }.encode(s, errors)
+}
+
+/// UTF-8: surrogates não codificam, só `surrogatepass` os grava (3 bytes).
+pub fn encode_utf8(s: &str, errors: &str) -> PyResult<Vec<u8>> {
+    // Texto que não tem o byte 0xF4 não guarda surrogate nem par de escape: os bytes já são UTF-8.
+    if !s.as_bytes().contains(&0xF4) {
+        return Ok(s.as_bytes().to_vec());
+    }
+    let put = |cp: u32, out: &mut Vec<u8>| {
+        char::from_u32(cp).is_some_and(|c| {
+            out.extend_from_slice(c.encode_utf8(&mut [0; 4]).as_bytes());
+            true
+        })
+    };
+    let pass = |cp: u32, out: &mut Vec<u8>| {
+        out.extend([0xE0 | (cp >> 12) as u8, 0x80 | ((cp >> 6) & 0x3F) as u8, 0x80 | (cp & 0x3F) as u8]);
+    };
+    Runs { name: "utf-8", reason: "surrogates not allowed", put: &put, pass: Some(&pass), prefix_escape: true, group: true }
+        .encode(s, errors)
+}
+
+/// UTF-16 e UTF-32 (`wide`): unidades de 2 ou 4 bytes na ordem `big`; a unidade de 2 bytes quebra o que passa de
+/// U+FFFF em par de surrogates, e o `surrogatepass` grava o surrogate como unidade.
+fn encode_utf16_or_32(s: &str, big: bool, name: &str, errors: &str, wide: bool) -> PyResult<Vec<u8>> {
+    let push = |v: u32, out: &mut Vec<u8>| match (wide, big) {
+        (true, true) => out.extend_from_slice(&v.to_be_bytes()),
+        (true, false) => out.extend_from_slice(&v.to_le_bytes()),
+        (false, true) => out.extend_from_slice(&(v as u16).to_be_bytes()),
+        (false, false) => out.extend_from_slice(&(v as u16).to_le_bytes()),
+    };
+    let put = |cp: u32, out: &mut Vec<u8>| {
+        let Some(c) = char::from_u32(cp) else { return false };
+        if wide {
+            push(cp, out);
+        } else {
+            c.encode_utf16(&mut [0; 2]).iter().for_each(|&u| push(u32::from(u), out));
+        }
+        true
+    };
+    let pass = |cp: u32, out: &mut Vec<u8>| push(cp, out);
+    Runs { name, reason: "surrogates not allowed", put: &put, pass: Some(&pass), prefix_escape: false, group: false }.encode(s, errors)
+}
+
+/// Aplica o handler `errors` aos bytes `data[bad]` que não decodificam: acrescenta o texto a
+/// `out` e devolve quantos bytes consumiu, ou levanta o `UnicodeDecodeError` do codec `codec`
+/// (com `data` inteiro como `object`). O `surrogateescape` recusa bytes ASCII e consome no
+/// máximo 4; os outros consomem o trecho todo.
+pub(crate) fn decode_bad(
+    out: &mut String,
+    errors: &str,
+    data: &[u8],
+    bad: std::ops::Range<usize>,
+    codec: &str,
+    reason: &str,
+) -> PyResult<usize> {
+    let bytes = &data[bad.clone()];
+    let consumed = match errors {
+        "ignore" => bytes.len(),
+        "replace" => {
+            out.push('\u{FFFD}');
+            bytes.len()
+        }
+        "surrogateescape" => {
+            let escapable = bytes.iter().take(4).take_while(|b| **b >= 0x80).count();
+            for &b in &bytes[..escapable] {
+                push_cp(out, 0xDC00 + u32::from(b));
+            }
+            escapable
+        }
+        "backslashreplace" => {
+            bytes.iter().for_each(|b| out.push_str(&format!("\\x{b:02x}")));
+            bytes.len()
+        }
+        "strict" | "surrogatepass" => 0,
+        other => return Err(exc("LookupError", format!("unknown error handler name '{other}'"))),
+    };
+    if consumed == 0 {
+        return Err(unicode_error("UnicodeDecodeError", codec, Value::bytes(data), bad.start, bad.end, reason));
+    }
+    Ok(consumed)
+}
+
+/// O `surrogatepass` na decodificação: o valor `cp` lido dos bytes, se é um surrogate, entra no
+/// texto como código-ponto (e `true` diz que foi aceito); fora da faixa o erro estrito segue.
+fn push_surrogate(out: &mut String, cp: u32) -> bool {
+    let is_surrogate = (0xD800..=0xDFFF).contains(&cp);
+    if is_surrogate {
+        push_cp(out, cp);
+    }
+    is_surrogate
 }
 
 pub fn encode(codec: &Codec, s: &str, errors: &str) -> PyResult<Vec<u8>> {
     match codec {
         Codec::Single(table) => encode_single(table, s, errors),
         Codec::Utf16 { big, name } => {
-            let mut out = Vec::new();
-            let big = match big {
-                Some(b) => *b,
-                None => {
-                    out.extend_from_slice(&[0xFF, 0xFE]);
-                    false
-                }
-            };
-            let push = |u: u16, out: &mut Vec<u8>| {
-                out.extend_from_slice(&if big { u.to_be_bytes() } else { u.to_le_bytes() })
-            };
-            for (pos, c) in s.chars().enumerate() {
-                match surrogate_policy(c, name, pos, errors)? {
-                    Some(Some(cp)) => push(cp as u16, &mut out),
-                    Some(None) => {}
-                    None => {
-                        let mut buf = [0u16; 2];
-                        for u in c.encode_utf16(&mut buf) {
-                            push(*u, &mut out);
-                        }
-                    }
-                }
-            }
+            let mut out = if big.is_none() { vec![0xFF, 0xFE] } else { Vec::new() };
+            out.extend(encode_utf16_or_32(s, big.unwrap_or(false), name, errors, false)?);
             Ok(out)
         }
         Codec::Utf32 { big, name } => {
-            let mut out = Vec::new();
-            let big = match big {
-                Some(b) => *b,
-                None => {
-                    out.extend_from_slice(&[0xFF, 0xFE, 0, 0]);
-                    false
-                }
-            };
-            for (pos, c) in s.chars().enumerate() {
-                let v = match surrogate_policy(c, name, pos, errors)? {
-                    Some(Some(cp)) => cp,
-                    Some(None) => continue,
-                    None => c as u32,
-                };
-                out.extend_from_slice(&if big { v.to_be_bytes() } else { v.to_le_bytes() });
-            }
+            let mut out = if big.is_none() { vec![0xFF, 0xFE, 0, 0] } else { Vec::new() };
+            out.extend(encode_utf16_or_32(s, big.unwrap_or(false), name, errors, true)?);
             Ok(out)
         }
         Codec::Utf8Sig => {
             let mut out = vec![0xEF, 0xBB, 0xBF];
-            out.extend_from_slice(s.as_bytes());
+            out.extend(encode_utf8(s, errors)?);
             Ok(out)
         }
+        Codec::Utf7 => Ok(encode_utf7(s)),
         Codec::UnicodeEscape => Ok(encode_unicode_escape(s, false)),
         Codec::RawUnicodeEscape => Ok(encode_unicode_escape(s, true)),
-        Codec::Punycode => Ok(punycode_encode(s).into_bytes()),
-        Codec::Idna => idna_encode(s),
+        Codec::Punycode => Ok(crate::idna::punycode_encode(&code_points(s).collect::<Vec<u32>>())),
+        Codec::Idna => crate::idna::idna_encode(s, errors),
     }
 }
 
 fn encode_single(table: &[u16; 256], s: &str, errors: &str) -> PyResult<Vec<u8>> {
-    let chars: Vec<char> = s.chars().collect();
-    let mut out = Vec::with_capacity(chars.len());
-    let mut i = 0;
-    while i < chars.len() {
-        let c = chars[i];
-        let byte = if (c as u32) < 0x10000 && c != '\u{FFFF}' {
-            table.iter().position(|&u| u == c as u32 as u16)
+    let put = |cp: u32, out: &mut Vec<u8>| {
+        let byte = if cp < 0x10000 && cp != u32::from(UNDEFINED) {
+            table.iter().position(|&u| u32::from(u) == cp)
         } else {
             None
         };
-        if let Some(b) = byte {
+        byte.is_some_and(|b| {
             out.push(b as u8);
-            i += 1;
-            continue;
-        }
-        let mut j = i + 1;
-        while j < chars.len() && !table.contains(&(chars[j] as u32 as u16)) {
-            j += 1;
-        }
-        let run = &chars[i..j];
-        match encode_fallback(errors, run)? {
-            Some(bytes) => out.extend(bytes),
-            None => return Err(encode_error("charmap", run, i, "character maps to <undefined>")),
-        }
-        i = j;
-    }
-    Ok(out)
+            true
+        })
+    };
+    Runs { name: "charmap", reason: "character maps to <undefined>", put: &put, pass: None, prefix_escape: false, group: true }
+        .encode(s, errors)
 }
 
 pub fn decode(codec: &Codec, data: &[u8], errors: &str) -> PyResult<String> {
@@ -215,183 +311,198 @@ pub fn decode(codec: &Codec, data: &[u8], errors: &str) -> PyResult<String> {
             let mut out = String::with_capacity(data.len());
             for (i, &b) in data.iter().enumerate() {
                 match table[b as usize] {
-                    UNDEFINED => match decode_fallback(errors, &[b])? {
-                        Some(t) => out.push_str(&t),
-                        None => return Err(decode_error("charmap", i, 1, b, "character maps to <undefined>")),
-                    },
+                    UNDEFINED => {
+                        decode_bad(&mut out, errors, data, i..i + 1, "charmap", "character maps to <undefined>")?;
+                    }
                     u => out.push(char::from_u32(u32::from(u)).unwrap_or('\u{FFFD}')),
                 }
             }
             Ok(out)
         }
-        Codec::Utf16 { big, name } => decode_utf16(data, *big, name, errors),
-        Codec::Utf32 { big, name } => decode_utf32(data, *big, name, errors),
+        Codec::Utf16 { big, name } => decode_utf16(data, *big, name, errors, true).map(|(text, _)| text),
+        Codec::Utf32 { big, name } => decode_utf32(data, *big, name, errors, true).map(|(text, _)| text),
         Codec::Utf8Sig => {
+            // Como o encodings/utf_8_sig.py: o BOM sai antes e o erro do `utf-8` vê só o resto
+            // (object sem o BOM, posições relativas a ele).
             let body = data.strip_prefix(&[0xEF, 0xBB, 0xBF][..]).unwrap_or(data);
-            let skipped = data.len() - body.len();
-            crate::methods::bytesm::decode_utf8(body, errors).map_err(|mut e| {
-                shift_positions(&mut e, skipped);
-                e
-            })
+            crate::methods::bytesm::decode_utf8(body, errors)
         }
-        Codec::UnicodeEscape => decode_unicode_escape(data, false, errors),
-        Codec::RawUnicodeEscape => decode_unicode_escape(data, true, errors),
-        Codec::Punycode => {
-            let text = String::from_utf8_lossy(data);
-            punycode_decode(&text).ok_or_else(|| exc("UnicodeError", "decoding with 'punycode' codec failed (UnicodeError: Incomplete punicode string)"))
-        }
-        Codec::Idna => {
-            let text = std::str::from_utf8(data)
-                .map_err(|_| exc("UnicodeError", "decoding with 'idna' codec failed (UnicodeError: ASCII decoding error)"))?;
-            let labels: Vec<String> = text
-                .split('.')
-                .map(|l| match l.get(..4) {
-                    Some(p) if p.eq_ignore_ascii_case("xn--") => punycode_decode(&l[4..]).unwrap_or_else(|| l.to_string()),
-                    _ => l.to_string(),
-                })
-                .collect();
-            Ok(labels.join("."))
-        }
+        Codec::Utf7 => decode_utf7(data, errors, true).map(|(text, _)| text),
+        Codec::UnicodeEscape => decode_unicode_escape(data, false, errors, true).map(|(text, _)| text),
+        Codec::RawUnicodeEscape => decode_unicode_escape(data, true, errors, true).map(|(text, _)| text),
+        Codec::Punycode => crate::idna::punycode_decode(data, errors),
+        Codec::Idna => crate::idna::idna_decode(data, errors),
     }
 }
 
-const PUNY_BASE: u32 = 36;
-const PUNY_TMIN: u32 = 1;
-const PUNY_TMAX: u32 = 26;
+const UTF7_BASE64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-fn puny_adapt(mut delta: u32, points: u32, first: bool) -> u32 {
-    delta = if first { delta / 700 } else { delta / 2 };
-    delta += delta / points;
-    let mut k = 0;
-    while delta > ((PUNY_BASE - PUNY_TMIN) * PUNY_TMAX) / 2 {
-        delta /= PUNY_BASE - PUNY_TMIN;
-        k += PUNY_BASE;
-    }
-    k + (PUNY_BASE - PUNY_TMIN + 1) * delta / (delta + 38)
+fn utf7_is_base64(b: u8) -> bool {
+    b.is_ascii_alphanumeric() || b == b'+' || b == b'/'
 }
 
-fn puny_digit(d: u32) -> char {
-    if d < 26 { (b'a' + d as u8) as char } else { (b'0' + (d - 26) as u8) as char }
+fn utf7_from_base64(b: u8) -> u32 {
+    UTF7_BASE64.iter().position(|&c| c == b).unwrap_or(0) as u32
 }
 
-/// RFC 3492: a parte depois de `xn--`.
-pub fn punycode_encode(s: &str) -> String {
-    let cps: Vec<u32> = s.chars().map(|c| c as u32).collect();
-    let mut out: String = s.chars().filter(|c| c.is_ascii()).collect();
-    let b = out.len() as u32;
-    let mut h = b;
-    if b > 0 {
-        out.push('-');
-    }
-    let (mut n, mut delta, mut bias) = (128u32, 0u32, 72u32);
-    while (h as usize) < cps.len() {
-        let m = cps.iter().copied().filter(|&c| c >= n).min().unwrap_or(n);
-        delta += (m - n) * (h + 1);
-        n = m;
-        for &c in &cps {
-            if c < n {
-                delta += 1;
+/// `ENCODE_DIRECT` do unicodeobject.c com o conjunto O e os espaços diretos (como o `PyUnicode_EncodeUTF7`).
+fn utf7_encode_direct(cp: u32) -> bool {
+    matches!(cp, 9 | 10 | 13 | 0x20..=0x7E) && !matches!(cp, 0x2B | 0x5C | 0x7E)
+}
+
+/// `PyUnicode_EncodeUTF7`: base64 modificado sobre UTF-16, surrogates soltos entram como unidade.
+pub fn encode_utf7(s: &str) -> Vec<u8> {
+    let mut out = Vec::with_capacity(s.len());
+    let (mut in_shift, mut bits, mut buffer) = (false, 0u32, 0u64);
+    let emit = |unit: u32, bits: &mut u32, buffer: &mut u64, out: &mut Vec<u8>| {
+        *bits += 16;
+        *buffer = (*buffer << 16) | u64::from(unit);
+        while *bits >= 6 {
+            out.push(UTF7_BASE64[((*buffer >> (*bits - 6)) & 0x3F) as usize]);
+            *bits -= 6;
+        }
+    };
+    for cp in code_points(s) {
+        let direct = utf7_encode_direct(cp);
+        if in_shift && direct {
+            if bits > 0 {
+                out.push(UTF7_BASE64[((buffer << (6 - bits)) & 0x3F) as usize]);
+                buffer = 0;
+                bits = 0;
             }
-            if c == n {
-                let mut q = delta;
-                let mut k = PUNY_BASE;
-                loop {
-                    let t = if k <= bias { PUNY_TMIN } else if k >= bias + PUNY_TMAX { PUNY_TMAX } else { k - bias };
-                    if q < t {
-                        break;
-                    }
-                    out.push(puny_digit(t + (q - t) % (PUNY_BASE - t)));
-                    q = (q - t) / (PUNY_BASE - t);
-                    k += PUNY_BASE;
-                }
-                out.push(puny_digit(q));
-                bias = puny_adapt(delta, h + 1, h == b);
-                delta = 0;
-                h += 1;
+            in_shift = false;
+            if utf7_is_base64(cp as u8) || cp == u32::from(b'-') {
+                out.push(b'-');
             }
+            out.push(cp as u8);
+            continue;
         }
-        delta += 1;
-        n += 1;
+        if !in_shift {
+            if cp == u32::from(b'+') {
+                out.extend_from_slice(b"+-");
+                continue;
+            }
+            if direct {
+                out.push(cp as u8);
+                continue;
+            }
+            out.push(b'+');
+            in_shift = true;
+        }
+        if cp >= 0x1_0000 {
+            let v = cp - 0x1_0000;
+            emit(0xD800 + (v >> 10), &mut bits, &mut buffer, &mut out);
+            emit(0xDC00 + (v & 0x3FF), &mut bits, &mut buffer, &mut out);
+        } else {
+            emit(cp, &mut bits, &mut buffer, &mut out);
+        }
+    }
+    if bits > 0 {
+        out.push(UTF7_BASE64[((buffer << (6 - bits)) & 0x3F) as usize]);
+    }
+    if in_shift {
+        out.push(b'-');
     }
     out
 }
 
-pub fn punycode_decode(s: &str) -> Option<String> {
-    let (basic, rest) = match s.rfind('-') {
-        Some(i) => (&s[..i], &s[i + 1..]),
-        None => ("", s),
-    };
-    let mut out: Vec<char> = basic.chars().collect();
-    let (mut n, mut i, mut bias) = (128u32, 0u32, 72u32);
-    let mut it = rest.chars().peekable();
-    while it.peek().is_some() {
-        let oldi = i;
-        let mut w = 1u32;
-        let mut k = PUNY_BASE;
-        loop {
-            let c = it.next()?;
-            let digit = match c {
-                'a'..='z' => c as u32 - 'a' as u32,
-                'A'..='Z' => c as u32 - 'A' as u32,
-                '0'..='9' => c as u32 - '0' as u32 + 26,
-                _ => return None,
-            };
-            i = i.checked_add(digit.checked_mul(w)?)?;
-            let t = if k <= bias { PUNY_TMIN } else if k >= bias + PUNY_TMAX { PUNY_TMAX } else { k - bias };
-            if digit < t {
-                break;
+/// `PyUnicode_DecodeUTF7Stateful`: o texto e quantos bytes foram consumidos (com `final` falso, uma
+/// sequência de shift aberta fica para a próxima chamada).
+pub fn decode_utf7(data: &[u8], errors: &str, final_: bool) -> PyResult<(String, usize)> {
+    let mut out = String::with_capacity(data.len());
+    let (mut s, mut start, mut shift_out_start) = (0usize, 0usize, 0usize);
+    let (mut in_shift, mut bits, mut buffer, mut surrogate) = (false, 0u32, 0u32, 0u32);
+    while s < data.len() {
+        let ch = data[s];
+        let mut reason: Option<&str> = None;
+        if in_shift {
+            if utf7_is_base64(ch) {
+                buffer = (buffer << 6) | utf7_from_base64(ch);
+                bits += 6;
+                s += 1;
+                if bits >= 16 {
+                    let unit = buffer >> (bits - 16);
+                    bits -= 16;
+                    buffer &= (1 << bits) - 1;
+                    if surrogate != 0 {
+                        if (0xDC00..0xE000).contains(&unit) {
+                            push_cp(&mut out, 0x1_0000 + ((surrogate - 0xD800) << 10) + (unit - 0xDC00));
+                            surrogate = 0;
+                            continue;
+                        }
+                        push_cp(&mut out, surrogate);
+                        surrogate = 0;
+                    }
+                    if (0xD800..0xDC00).contains(&unit) {
+                        surrogate = unit;
+                    } else {
+                        push_cp(&mut out, unit);
+                    }
+                }
+            } else {
+                in_shift = false;
+                if bits >= 6 {
+                    s += 1;
+                    reason = Some("partial character in shift sequence");
+                } else if bits > 0 && buffer != 0 {
+                    s += 1;
+                    reason = Some("non-zero padding bits in shift sequence");
+                } else {
+                    if surrogate != 0 && ch <= 127 {
+                        push_cp(&mut out, surrogate);
+                    }
+                    surrogate = 0;
+                    if ch == b'-' {
+                        s += 1;
+                    }
+                }
             }
-            w = w.checked_mul(PUNY_BASE - t)?;
-            k += PUNY_BASE;
+        } else if ch == b'+' {
+            start = s;
+            s += 1;
+            if data.get(s) == Some(&b'-') {
+                s += 1;
+                out.push('+');
+            } else if data.get(s).is_some_and(|&b| !utf7_is_base64(b)) {
+                s += 1;
+                reason = Some("ill-formed sequence");
+            } else {
+                in_shift = true;
+                surrogate = 0;
+                shift_out_start = out.len();
+                bits = 0;
+                buffer = 0;
+            }
+        } else if ch <= 127 {
+            s += 1;
+            out.push(ch as char);
+        } else {
+            start = s;
+            s += 1;
+            reason = Some("unexpected special character");
         }
-        let len = out.len() as u32 + 1;
-        bias = puny_adapt(i - oldi, len, oldi == 0);
-        n = n.checked_add(i / len)?;
-        i %= len;
-        out.insert(i as usize, char::from_u32(n)?);
-        i += 1;
-    }
-    Some(out.into_iter().collect())
-}
-
-/// IDNA 2003: cada rótulo não ASCII passa por nameprep (aqui NFKC e caixa baixa) e vira `xn--...`.
-fn idna_encode(s: &str) -> PyResult<Vec<u8>> {
-    use icu_normalizer::ComposingNormalizer;
-    let mut labels: Vec<String> = Vec::new();
-    let normalized = s.replace(['\u{3002}', '\u{ff0e}', '\u{ff61}'], ".");
-    let total = normalized.split('.').count();
-    let mut pos = 0usize;
-    for (idx, l) in normalized.split('.').enumerate() {
-        let label = if l.is_ascii() {
-            l.to_string()
-        } else {
-            let prepped = ComposingNormalizer::new_nfkc().normalize(l).to_lowercase();
-            if prepped.is_ascii() { prepped } else { format!("xn--{}", punycode_encode(&prepped)) }
-        };
-        let reason = if label.len() > 63 {
-            Some("label too long")
-        } else if label.is_empty() && idx + 1 != total {
-            Some("label empty")
-        } else {
-            None
-        };
         if let Some(reason) = reason {
-            let shown = normalized.chars().nth(pos).map_or_else(String::new, |c| format!("\\x{:02x}", c as u32));
-            return Err(exc(
-                "UnicodeEncodeError",
-                format!("'idna' codec can't encode character '{shown}' in position {pos}: {reason}"),
-            ));
+            s = start + decode_bad(&mut out, errors, data, start..s, "utf7", reason)?;
         }
-        pos += l.chars().count() + 1;
-        labels.push(label);
     }
-    Ok(labels.join(".").into_bytes())
+    if in_shift && final_ {
+        in_shift = false;
+        if surrogate != 0 || bits >= 6 || (bits > 0 && buffer != 0) {
+            decode_bad(&mut out, errors, data, start..data.len(), "utf7", "unterminated shift sequence")?;
+        }
+    }
+    if !in_shift {
+        return Ok((out, s));
+    }
+    // Sem `final`: a sequência aberta volta inteira na próxima chamada, então o texto que ela já
+    // produziu (ASCII ou não) é descartado aqui e sai quando ela for decodificada de novo.
+    out.truncate(shift_out_start);
+    Ok((out, start))
 }
 
-/// O erro de UTF-8 do CPython no `utf-8-sig` conta as posições a partir do começo dos bytes originais.
-fn shift_positions(_e: &mut crate::vm::PyException, _by: usize) {}
-
-fn decode_utf16(data: &[u8], big: Option<bool>, name: &str, errors: &str) -> PyResult<String> {
+/// `PyUnicode_DecodeUTF16Stateful`: o texto e quantos bytes foram consumidos (com `final_` falso, a
+/// unidade incompleta e o par de surrogates aberto no fim ficam para a próxima chamada).
+pub(crate) fn decode_utf16(data: &[u8], big: Option<bool>, name: &str, errors: &str, final_: bool) -> PyResult<(String, usize)> {
     let name = match big {
         Some(_) => name,
         None if data.starts_with(&[0xFE, 0xFF]) => "utf-16-be",
@@ -427,40 +538,44 @@ fn decode_utf16(data: &[u8], big: Option<bool>, name: &str, errors: &str) -> PyR
     while i + 1 < body.len() {
         let u = unit(i);
         if !(0xD800..0xE000).contains(&u) {
-            out.push(char::from_u32(u32::from(u)).unwrap_or('\u{FFFD}'));
+            push_cp(&mut out, u32::from(u));
             i += 2;
             continue;
         }
         let (reason, len) = if u >= 0xDC00 {
             ("illegal encoding", 2)
         } else if i + 3 >= body.len() {
+            if !final_ {
+                return Ok((out, base + i));
+            }
             ("unexpected end of data", body.len() - i)
         } else {
             let lo = unit(i + 2);
             if (0xDC00..0xE000).contains(&lo) {
                 let v = 0x10000 + ((u32::from(u) - 0xD800) << 10) + (u32::from(lo) - 0xDC00);
-                out.push(char::from_u32(v).unwrap_or('\u{FFFD}'));
+                push_cp(&mut out, v);
                 i += 4;
                 continue;
             }
             ("illegal UTF-16 surrogate", 2)
         };
-        match decode_fallback(errors, &body[i..i + len])? {
-            Some(t) => out.push_str(&t),
-            None => return Err(decode_error(name, base + i, len, body[i], reason)),
+        if errors == "surrogatepass" && push_surrogate(&mut out, u32::from(u)) {
+            i += 2;
+            continue;
         }
-        i += len;
+        i += decode_bad(&mut out, errors, data, base + i..base + i + len, name, reason)?;
     }
-    if i < body.len() {
-        match decode_fallback(errors, &body[i..])? {
-            Some(t) => out.push_str(&t),
-            None => return Err(decode_error(name, base + i, 1, body[i], "truncated data")),
-        }
+    if !final_ {
+        return Ok((out, base + i));
     }
-    Ok(out)
+    while i < body.len() {
+        i += decode_bad(&mut out, errors, data, base + i..base + body.len(), name, "truncated data")?;
+    }
+    Ok((out, data.len()))
 }
 
-fn decode_utf32(data: &[u8], big: Option<bool>, name: &str, errors: &str) -> PyResult<String> {
+/// `PyUnicode_DecodeUTF32Stateful`: como `decode_utf16`, com a palavra incompleta do fim guardada.
+pub(crate) fn decode_utf32(data: &[u8], big: Option<bool>, name: &str, errors: &str, final_: bool) -> PyResult<(String, usize)> {
     let name = match big {
         Some(_) => name,
         None if data.starts_with(&[0, 0, 0xFE, 0xFF]) => "utf-32-be",
@@ -488,48 +603,45 @@ fn decode_utf32(data: &[u8], big: Option<bool>, name: &str, errors: &str) -> PyR
     while i + 3 < body.len() {
         let w = [body[i], body[i + 1], body[i + 2], body[i + 3]];
         let v = if big { u32::from_be_bytes(w) } else { u32::from_le_bytes(w) };
-        match char::from_u32(v) {
-            Some(c) => out.push(c),
+        i += match char::from_u32(v) {
+            Some(_) => {
+                push_cp(&mut out, v);
+                4
+            }
+            None if errors == "surrogatepass" && push_surrogate(&mut out, v) => 4,
             None => {
                 let reason = if v > 0x10FFFF { "code point not in range(0x110000)" } else { "code point in surrogate code point range(0xd800, 0xe000)" };
-                match decode_fallback(errors, &body[i..i + 4])? {
-                    Some(t) => out.push_str(&t),
-                    None => return Err(decode_error(name, base + i, 4, body[i], reason)),
-                }
+                decode_bad(&mut out, errors, data, base + i..base + i + 4, name, reason)?
             }
-        }
-        i += 4;
+        };
     }
-    if i < body.len() {
-        match decode_fallback(errors, &body[i..])? {
-            Some(t) => out.push_str(&t),
-            None => return Err(decode_error(name, base + i, body.len() - i, body[i], "truncated data")),
-        }
+    if !final_ {
+        return Ok((out, base + i));
     }
-    Ok(out)
+    while i < body.len() {
+        i += decode_bad(&mut out, errors, data, base + i..base + body.len(), name, "truncated data")?;
+    }
+    Ok((out, data.len()))
 }
 
 fn encode_unicode_escape(s: &str, raw: bool) -> Vec<u8> {
     let mut out = Vec::with_capacity(s.len());
-    for c in s.chars() {
-        let v = c as u32;
+    for v in code_points(s) {
         if raw {
             if v < 0x100 {
                 out.push(v as u8);
-            } else if v < 0x10000 {
-                out.extend(format!("\\u{v:04x}").bytes());
             } else {
-                out.extend(format!("\\U{v:08x}").bytes());
+                out.extend(escape_cp(v).bytes());
             }
             continue;
         }
-        match c {
-            '\\' => out.extend(b"\\\\"),
-            '\t' => out.extend(b"\\t"),
-            '\n' => out.extend(b"\\n"),
-            '\r' => out.extend(b"\\r"),
-            ' '..='~' => out.push(v as u8),
-            _ => out.extend(escape_char(c).bytes()),
+        match v {
+            0x5C => out.extend(b"\\\\"),
+            0x09 => out.extend(b"\\t"),
+            0x0A => out.extend(b"\\n"),
+            0x0D => out.extend(b"\\r"),
+            0x20..=0x7E => out.push(v as u8),
+            _ => out.extend(escape_cp(v).bytes()),
         }
     }
     out
@@ -543,7 +655,9 @@ fn hex_value(bytes: &[u8]) -> Option<u32> {
     Some(v)
 }
 
-fn decode_unicode_escape(data: &[u8], raw: bool, errors: &str) -> PyResult<String> {
+/// `_PyUnicode_DecodeUnicodeEscapeStateful` e o `raw`: o texto e quantos bytes foram consumidos (com
+/// `final_` falso, o escape que o fim dos dados interrompe fica para a próxima chamada).
+pub(crate) fn decode_unicode_escape(data: &[u8], raw: bool, errors: &str, final_: bool) -> PyResult<(String, usize)> {
     let codec = if raw { "rawunicodeescape" } else { "unicodeescape" };
     let mut out = String::new();
     let mut i = 0;
@@ -554,11 +668,8 @@ fn decode_unicode_escape(data: &[u8], raw: bool, errors: &str) -> PyResult<Strin
             i += 1;
             continue;
         }
-        let fail = |start: usize, len: usize, reason: &str| -> PyResult<Option<String>> {
-            match decode_fallback(errors, &data[start..start + len])? {
-                Some(t) => Ok(Some(t)),
-                None => Err(decode_error(codec, start, len, data[start], reason)),
-            }
+        let fail = |out: &mut String, start: usize, len: usize, reason: &str| -> PyResult<usize> {
+            decode_bad(out, errors, data, start..start + len, codec, reason)
         };
         let Some(&next) = data.get(i + 1) else {
             if raw {
@@ -566,8 +677,10 @@ fn decode_unicode_escape(data: &[u8], raw: bool, errors: &str) -> PyResult<Strin
                 i += 1;
                 continue;
             }
-            out.push_str(&fail(i, 1, "\\ at end of string")?.unwrap_or_default());
-            i += 1;
+            if !final_ {
+                return Ok((out, i));
+            }
+            i += fail(&mut out, i, 1, "\\ at end of string")?;
             continue;
         };
         if raw && !matches!(next, b'u' | b'U') {
@@ -607,10 +720,10 @@ fn decode_unicode_escape(data: &[u8], raw: bool, errors: &str) -> PyResult<Strin
                     b'u' => 4,
                     _ => 8,
                 };
-                let digits = data.get(i + 2..i + 2 + n);
-                match digits.and_then(hex_value).and_then(char::from_u32) {
-                    Some(c) => {
-                        out.push(c);
+                let digits = data.get(i + 2..i + 2 + n).and_then(hex_value);
+                match digits.filter(|v| *v <= 0x10FFFF) {
+                    Some(v) => {
+                        push_cp(&mut out, v);
                         i += 2 + n;
                     }
                     None => {
@@ -620,9 +733,11 @@ fn decode_unicode_escape(data: &[u8], raw: bool, errors: &str) -> PyResult<Strin
                             _ => "truncated \\UXXXXXXXX escape",
                         };
                         let avail = data[i + 2..].iter().take(n).take_while(|c| c.is_ascii_hexdigit()).count();
-                        let reason = if digits.and_then(hex_value).is_some() { "illegal Unicode character" } else { reason };
-                        out.push_str(&fail(i, 2 + avail, reason)?.unwrap_or_default());
-                        i += 2 + avail;
+                        if !final_ && digits.is_none() && i + 2 + avail == data.len() {
+                            return Ok((out, i));
+                        }
+                        let reason = if digits.is_some() { "illegal Unicode character" } else { reason };
+                        i += fail(&mut out, i, 2 + avail, reason)?;
                     }
                 }
             }
@@ -634,13 +749,15 @@ fn decode_unicode_escape(data: &[u8], raw: bool, errors: &str) -> PyResult<Strin
                 });
                 match named {
                     Some((c, e)) => {
-                        out.push(c);
+                        push_cp(&mut out, u32::from(c));
                         i += 4 + e;
                     }
                     None => {
+                        if !final_ && end.is_none() {
+                            return Ok((out, i));
+                        }
                         let len = end.map_or(data.len() - i, |e| e + 4);
-                        out.push_str(&fail(i, len, "unknown Unicode character name")?.unwrap_or_default());
-                        i += len;
+                        i += fail(&mut out, i, len, "unknown Unicode character name")?;
                     }
                 }
             }
@@ -651,5 +768,66 @@ fn decode_unicode_escape(data: &[u8], raw: bool, errors: &str) -> PyResult<Strin
             }
         }
     }
-    Ok(out)
+    Ok((out, data.len()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::object::cp_to_str;
+
+    #[test]
+    fn utf8_encode_distinguishes_surrogates_from_real_chars() {
+        assert_eq!(encode_utf8(&cp_to_str(0x10_FFFF), "strict").unwrap(), [0xF4, 0x8F, 0xBF, 0xBF]);
+        assert_eq!(encode_utf8(&cp_to_str(0x10_D800), "strict").unwrap(), [0xF4, 0x8D, 0xA0, 0x80]);
+        let lone = format!("a{}", cp_to_str(0xDC80));
+        assert_eq!(encode_utf8(&lone, "surrogateescape").unwrap(), [b'a', 0x80]);
+        assert_eq!(encode_utf8(&lone, "surrogatepass").unwrap(), [b'a', 0xED, 0xB2, 0x80]);
+        assert_eq!(encode_utf8(&lone, "replace").unwrap(), b"a?");
+        assert_eq!(encode_utf8(&lone, "backslashreplace").unwrap(), b"a\\udc80");
+        assert!(encode_utf8(&lone, "strict").is_err());
+        assert!(encode_utf8(&lone, "nonexistent").is_err());
+    }
+
+    #[test]
+    fn utf16_and_utf32_handle_supplementary_and_surrogates() {
+        let codec = lookup("utf-16-le").unwrap();
+        assert_eq!(encode(&codec, &cp_to_str(0x10_FFFF), "strict").unwrap(), [0xFF, 0xDB, 0xFF, 0xDF]);
+        assert_eq!(decode(&codec, &[0xFF, 0xDB, 0xFF, 0xDF], "strict").unwrap(), cp_to_str(0x10_FFFF));
+        let lone = cp_to_str(0xD800);
+        assert_eq!(encode(&codec, &lone, "surrogatepass").unwrap(), [0x00, 0xD8]);
+        assert_eq!(decode(&codec, &[0x00, 0xD8], "surrogatepass").unwrap(), lone);
+        assert!(encode(&codec, &lone, "strict").is_err());
+        let codec = lookup("utf-32-be").unwrap();
+        assert_eq!(decode(&codec, &[0, 0x10, 0xD8, 0x00], "strict").unwrap(), cp_to_str(0x10_D800));
+    }
+
+    #[test]
+    fn utf7_matches_cpython() {
+        use crate::object::cp_to_str;
+        assert_eq!(encode_utf7(&cp_to_str(0xD800)), b"+2AA-");
+        assert_eq!(encode_utf7(&cp_to_str(0x1_0000)), b"+2ADcAA-");
+        assert_eq!(encode_utf7("a+b~c\u{e9}d"), b"a+-b+AH4-c+AOk-d");
+        assert_eq!(decode_utf7(b"+2ADcAA-", "strict", true).unwrap().0, cp_to_str(0x1_0000));
+        assert_eq!(decode_utf7(b"+2AA-", "strict", true).unwrap().0, cp_to_str(0xD800));
+        assert_eq!(decode_utf7(b"a+-b~", "strict", true).unwrap().0, "a+b~");
+        for bad in [&b"+@"[..], b"+2AA", b"+AGEA-", b"+AGF-", b"\xff"] {
+            assert!(decode_utf7(bad, "strict", true).is_err());
+        }
+        assert_eq!(decode_utf7(b"+@x", "replace", true).unwrap().0, "\u{fffd}x");
+        assert_eq!(decode_utf7(b"+AGF-x", "ignore", true).unwrap().0, "ax");
+        assert_eq!(decode_utf7(b"a+AOk", "strict", false).unwrap(), ("a".to_string(), 1));
+        // A sequência aberta volta inteira, mesmo quando o que ela já produziu é ASCII.
+        assert_eq!(decode_utf7(b"+AGE", "strict", false).unwrap(), (String::new(), 0));
+        assert_eq!(decode_utf7(b"x+AGE", "strict", false).unwrap(), ("x".to_string(), 1));
+    }
+
+    #[test]
+    fn ascii_and_latin1_handlers_count_code_points() {
+        assert_eq!(encode_ucs1("ascii", 128, "a\u{e9}b", "replace").unwrap(), b"a?b");
+        assert_eq!(encode_ucs1("ascii", 128, "a\u{e9}b", "xmlcharrefreplace").unwrap(), b"a&#233;b");
+        let escaped = format!("x{}", cp_to_str(0xDCFF));
+        assert_eq!(encode_ucs1("latin-1", 256, &escaped, "surrogateescape").unwrap(), [b'x', 0xFF]);
+        assert!(encode_ucs1("latin-1", 256, "\u{20ac}", "strict").is_err());
+    }
 }

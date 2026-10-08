@@ -5,8 +5,8 @@
 //! expõe a categoria geral (ver os comentários de cada predicado).
 
 use crate::format::str_format;
-use crate::native_util::{bind, exactly, no_kwargs, value_error, want_int};
-use crate::object::{is_printable, Kw, NativeFnPtr, PyStr, Value};
+use crate::native_util::{bind, clinic_str_arg, exactly, no_kwargs, value_error, want_int};
+use crate::object::{capitalize_str, casefold_str, code_points, ends_with_units, is_alnum, is_alpha, is_decimal, is_digit, is_lower, is_numeric, is_printable, is_space, is_title, is_upper, is_xid_continue, is_xid_start, lower_str, match_offsets, push_cp, rmatch_offsets, swapcase_str, title_str, units, upper_str, ESCAPE, Kw, NativeFnPtr, PyStr, Value};
 use crate::vm::{exc, iterate, type_error, PyResult, Vm};
 
 // ---------------------------------------------------------------------------------------------
@@ -75,34 +75,16 @@ fn no_args(name: &str, args: &[Value], kw: &Kw) -> PyResult<()> {
     exactly(name, &args[1..], 0)
 }
 
-/// Espaço no sentido de `str.isspace` (`Py_UNICODE_ISSPACE`).
+/// `str.isspace` sobre um `char` (para `trim_matches` e `char_indices`).
 fn is_py_space(c: char) -> bool {
-    c.is_whitespace() || ('\x1c'..='\x1f').contains(&c)
+    is_space(u32::from(c))
 }
 
-fn title_char(c: char) -> String {
-    match c {
-        'ß' => "Ss".to_string(),
-        // Dígrafos com forma própria de título (U+01C5, U+01C8, U+01CB, U+01F2).
-        '\u{1C4}'..='\u{1C6}' => "\u{1C5}".to_string(),
-        '\u{1C7}'..='\u{1C9}' => "\u{1C8}".to_string(),
-        '\u{1CA}'..='\u{1CC}' => "\u{1CB}".to_string(),
-        '\u{1F1}'..='\u{1F3}' => "\u{1F2}".to_string(),
-        // Ligaduras: só a primeira letra sobe.
-        '\u{FB00}' => "Ff".to_string(),
-        '\u{FB01}' => "Fi".to_string(),
-        '\u{FB02}' => "Fl".to_string(),
-        '\u{FB03}' => "Ffi".to_string(),
-        '\u{FB04}' => "Ffl".to_string(),
-        '\u{FB05}' | '\u{FB06}' => "St".to_string(),
-        _ => c.to_uppercase().collect(),
-    }
-}
-
-fn fill_char(name: &str, v: &Option<Value>) -> PyResult<char> {
+/// O caractere de preenchimento como trecho guardado (um char, ou o par de escape inteiro).
+fn fill_char(name: &str, v: &Option<Value>) -> PyResult<String> {
     match v {
-        None => Ok(' '),
-        Some(Value::Str(s)) if s.len() == 1 => Ok(s.as_str().chars().next().unwrap_or(' ')),
+        None => Ok(" ".to_string()),
+        Some(Value::Str(s)) if s.len() == 1 => Ok(s.as_str().to_string()),
         Some(Value::Str(_)) => Err(type_error("The fill character must be exactly one character long")),
         Some(o) => Err(type_error(format!("{name}() argument 2 must be str, not {}", o.type_name()))),
     }
@@ -112,74 +94,33 @@ fn fill_char(name: &str, v: &Option<Value>) -> PyResult<char> {
 // Caixa
 // ---------------------------------------------------------------------------------------------
 
-fn upper(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    no_args("upper", &args, &kw)?;
-    Ok(Value::str(me(&args)?.as_str().to_uppercase()))
-}
-
-fn lower(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    no_args("lower", &args, &kw)?;
-    Ok(Value::str(me(&args)?.as_str().to_lowercase()))
-}
-
-fn capitalize(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    no_args("capitalize", &args, &kw)?;
-    let t = me(&args)?.as_str();
-    let mut chars = t.chars();
-    let mut out = String::with_capacity(t.len());
-    if let Some(first) = chars.next() {
-        out.push_str(&title_char(first));
-        out.push_str(&chars.as_str().to_lowercase());
-    }
-    Ok(Value::str(out))
-}
-
-fn casefold(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    no_args("casefold", &args, &kw)?;
-    let mut out = String::new();
-    for c in me(&args)?.as_str().chars() {
-        match c {
-            'ß' => out.push_str("ss"),
-            'ς' => out.push('σ'),
-            _ => out.extend(c.to_lowercase()),
+/// Os métodos de `str` sem argumentos que devolvem um `str` novo: o nome e a conversão de caixa.
+macro_rules! case_methods {
+    ($($f:ident => $convert:ident;)*) => {$(
+        fn $f(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+            no_args(stringify!($f), &args, &kw)?;
+            Ok(Value::str($convert(me(&args)?.as_str())))
         }
-    }
-    Ok(Value::str(out))
+    )*};
 }
 
-fn swapcase(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    no_args("swapcase", &args, &kw)?;
-    let mut out = String::new();
-    for c in me(&args)?.as_str().chars() {
-        if c.is_uppercase() {
-            out.extend(c.to_lowercase());
-        } else if c.is_lowercase() {
-            out.extend(c.to_uppercase());
-        } else {
-            out.push(c);
+case_methods! {
+    upper => upper_str;
+    lower => lower_str;
+    capitalize => capitalize_str;
+    casefold => casefold_str;
+    swapcase => swapcase_str;
+    title => title_str;
+}
+
+/// Os métodos que são uma mesma implementação `(args, kw, nome, ...)` com a variante como parâmetro
+/// (`find`/`rfind`/`index`/`rindex`, `strip`/`lstrip`/`rstrip`...): o nome do método é o do próprio item.
+macro_rules! variant_methods {
+    ($($f:ident => $imp:ident($($variant:expr),*);)*) => {$(
+        fn $f(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+            $imp(args, kw, stringify!($f) $(, $variant)*)
         }
-    }
-    Ok(Value::str(out))
-}
-
-fn title(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    no_args("title", &args, &kw)?;
-    let mut out = String::new();
-    let mut prev_cased = false;
-    for c in me(&args)?.as_str().chars() {
-        if prev_cased {
-            out.extend(c.to_lowercase());
-        } else {
-            out.push_str(&title_char(c));
-        }
-        prev_cased = is_cased(c);
-    }
-    Ok(Value::str(out))
-}
-
-/// Maiúscula, minúscula ou de título (`Lt`, como `ǅ`), a noção de "com caixa" do `title`.
-fn is_cased(c: char) -> bool {
-    c.is_lowercase() || c.is_uppercase() || (!c.is_ascii() && crate::modules::unicodedata::category_code(c) == "Lt")
+    )*};
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -195,8 +136,8 @@ fn find_impl(args: Vec<Value>, kw: Kw, name: &str, reverse: bool, raise: bool) -
         None
     } else {
         let sl = s.slice(st, en);
-        let off = if reverse { sl.rfind(sub) } else { sl.find(sub) };
-        off.map(|o| st + sl[..o].chars().count())
+        let hit = if reverse { rmatch_offsets(sl, sub, 1) } else { match_offsets(sl, sub, 1) };
+        hit.first().map(|&o| st + code_points(&sl[..o]).count())
     };
     match found {
         Some(i) => Ok(Value::Int(i as i64)),
@@ -205,20 +146,11 @@ fn find_impl(args: Vec<Value>, kw: Kw, name: &str, reverse: bool, raise: bool) -
     }
 }
 
-fn find(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    find_impl(args, kw, "find", false, false)
-}
-
-fn rfind(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    find_impl(args, kw, "rfind", true, false)
-}
-
-fn index(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    find_impl(args, kw, "index", false, true)
-}
-
-fn rindex(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    find_impl(args, kw, "rindex", true, true)
+variant_methods! {
+    find => find_impl(false, false);
+    rfind => find_impl(true, false);
+    index => find_impl(false, true);
+    rindex => find_impl(true, true);
 }
 
 fn count(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -231,7 +163,7 @@ fn count(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     } else if sub.is_empty() {
         en - st + 1
     } else {
-        s.slice(st, en).matches(sub).count()
+        match_offsets(s.slice(st, en), sub, usize::MAX).len()
     };
     Ok(Value::Int(n as i64))
 }
@@ -244,7 +176,7 @@ fn affix(args: Vec<Value>, kw: Kw, name: &str, ends: bool) -> PyResult<Value> {
         return Ok(Value::Bool(false));
     }
     let sl = s.slice(st, en);
-    let test = |p: &str| if ends { sl.ends_with(p) } else { sl.starts_with(p) };
+    let test = |p: &str| if ends { ends_with_units(sl, p) } else { sl.starts_with(p) };
     match req(&b, 0)? {
         Value::Str(p) => Ok(Value::Bool(test(p.as_str()))),
         Value::Tuple(t) => {
@@ -272,12 +204,9 @@ fn affix(args: Vec<Value>, kw: Kw, name: &str, ends: bool) -> PyResult<Value> {
     }
 }
 
-fn startswith(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    affix(args, kw, "startswith", false)
-}
-
-fn endswith(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    affix(args, kw, "endswith", true)
+variant_methods! {
+    startswith => affix(false);
+    endswith => affix(true);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -302,23 +231,13 @@ fn justify(args: Vec<Value>, kw: Kw, name: &str, mode: char) -> PyResult<Value> 
             (left, marg - left)
         }
     };
-    let mut out = String::new();
-    out.extend(std::iter::repeat_n(fill, l));
-    out.push_str(s.as_str());
-    out.extend(std::iter::repeat_n(fill, r));
-    Ok(Value::str(out))
+    Ok(Value::str(format!("{}{}{}", fill.repeat(l), s.as_str(), fill.repeat(r))))
 }
 
-fn center(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    justify(args, kw, "center", 'c')
-}
-
-fn ljust(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    justify(args, kw, "ljust", 'l')
-}
-
-fn rjust(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    justify(args, kw, "rjust", 'r')
+variant_methods! {
+    center => justify('c');
+    ljust => justify('l');
+    rjust => justify('r');
 }
 
 fn zfill(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -343,9 +262,9 @@ fn expandtabs(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     };
     let mut out = String::new();
     let mut col: i64 = 0;
-    for c in s.as_str().chars() {
+    for c in units(s.as_str()) {
         match c {
-            '\t' => {
+            "\t" => {
                 if tab > 0 {
                     let n = tab - col % tab;
                     for _ in 0..n {
@@ -354,12 +273,12 @@ fn expandtabs(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
                     col += n;
                 }
             }
-            '\n' | '\r' => {
-                out.push(c);
+            "\n" | "\r" => {
+                out.push_str(c);
                 col = 0;
             }
             _ => {
-                out.push(c);
+                out.push_str(c);
                 col += 1;
             }
         }
@@ -371,71 +290,29 @@ fn expandtabs(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 // Predicados
 // ---------------------------------------------------------------------------------------------
 
-/// Letra no sentido de `str.isalpha` (categorias L*): a `std` também inclui os numerais romanos
-/// (Nl), que ficam de fora aqui.
-fn is_alpha(c: char) -> bool {
-    c.is_alphabetic() && !c.is_numeric()
-}
-
-fn is_alnum(c: char) -> bool {
-    c.is_alphabetic() || c.is_numeric()
-}
-
-/// Início de cada bloco de dez dígitos decimais (categoria Nd) que a `std` não separa de Nl/No.
-const DECIMAL_STARTS: &[u32] = &[
-    0x30, 0x660, 0x6f0, 0x7c0, 0x966, 0x9e6, 0xa66, 0xae6, 0xb66, 0xbe6, 0xc66, 0xce6, 0xd66, 0xde6, 0xe50, 0xed0,
-    0xf20, 0x1040, 0x1090, 0x17e0, 0x1810, 0x1946, 0x19d0, 0x1a80, 0x1a90, 0x1b50, 0x1bb0, 0x1c40, 0x1c50, 0xa620,
-    0xa8d0, 0xa900, 0xa9d0, 0xa9f0, 0xaa50, 0xabf0, 0xff10,
-];
-
-fn is_decimal(c: char) -> bool {
-    let v = c as u32;
-    DECIMAL_STARTS.iter().any(|&s| v >= s && v < s + 10)
-}
-
-fn is_digit(c: char) -> bool {
-    let v = c as u32;
-    is_decimal(c)
-        || matches!(v, 0xb2 | 0xb3 | 0xb9 | 0x2070 | 0x2074..=0x2079 | 0x2080..=0x2089)
-        || matches!(v, 0x2460..=0x2468 | 0x2474..=0x247c | 0x2488..=0x2490 | 0x24ea | 0x2776..=0x277e)
-}
-
-fn is_ident_start(c: char) -> bool {
-    c == '_' || is_alpha(c)
-}
-
-fn is_ident_continue(c: char) -> bool {
-    c == '_' || is_alnum(c)
-}
-
-fn all_nonempty(name: &str, args: &[Value], kw: &Kw, pred: fn(char) -> bool) -> PyResult<Value> {
+/// Todos os predicados vêm de `object` (Unicode 15.1.0 do `unicodedata`); surrogate é categoria
+/// Cs e dá `false`, como no CPython.
+fn all_nonempty(name: &str, args: &[Value], kw: &Kw, pred: fn(u32) -> bool) -> PyResult<Value> {
     no_args(name, args, kw)?;
     let t = me(args)?.as_str();
-    Ok(Value::Bool(!t.is_empty() && t.chars().all(pred)))
+    Ok(Value::Bool(!t.is_empty() && code_points(t).all(pred)))
 }
 
-fn isalnum(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    all_nonempty("isalnum", &args, &kw, is_alnum)
+macro_rules! class_predicates {
+    ($($f:ident => $pred:ident;)*) => {$(
+        fn $f(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+            all_nonempty(stringify!($f), &args, &kw, $pred)
+        }
+    )*};
 }
 
-fn isalpha(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    all_nonempty("isalpha", &args, &kw, is_alpha)
-}
-
-fn isdecimal(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    all_nonempty("isdecimal", &args, &kw, is_decimal)
-}
-
-fn isdigit(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    all_nonempty("isdigit", &args, &kw, is_digit)
-}
-
-fn isnumeric(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    all_nonempty("isnumeric", &args, &kw, char::is_numeric)
-}
-
-fn isspace(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    all_nonempty("isspace", &args, &kw, is_py_space)
+class_predicates! {
+    isalnum => is_alnum;
+    isalpha => is_alpha;
+    isdecimal => is_decimal;
+    isdigit => is_digit;
+    isnumeric => is_numeric;
+    isspace => is_space;
 }
 
 fn isascii(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -445,14 +322,14 @@ fn isascii(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 
 fn isprintable(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_args("isprintable", &args, &kw)?;
-    Ok(Value::Bool(me(&args)?.as_str().chars().all(is_printable)))
+    Ok(Value::Bool(code_points(me(&args)?.as_str()).all(is_printable)))
 }
 
 fn isidentifier(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_args("isidentifier", &args, &kw)?;
-    let mut chars = me(&args)?.as_str().chars();
-    let ok = match chars.next() {
-        Some(first) => is_ident_start(first) && chars.all(is_ident_continue),
+    let mut cps = code_points(me(&args)?.as_str());
+    let ok = match cps.next() {
+        Some(first) => (first == u32::from('_') || is_xid_start(first)) && cps.all(is_xid_continue),
         None => false,
     };
     Ok(Value::Bool(ok))
@@ -461,11 +338,11 @@ fn isidentifier(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 fn islower(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_args("islower", &args, &kw)?;
     let mut cased = false;
-    for c in me(&args)?.as_str().chars() {
-        if c.is_uppercase() {
+    for cp in code_points(me(&args)?.as_str()) {
+        if is_upper(cp) || is_title(cp) {
             return Ok(Value::Bool(false));
         }
-        if c.is_lowercase() {
+        if is_lower(cp) {
             cased = true;
         }
     }
@@ -475,11 +352,11 @@ fn islower(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 fn isupper(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_args("isupper", &args, &kw)?;
     let mut cased = false;
-    for c in me(&args)?.as_str().chars() {
-        if c.is_lowercase() {
+    for cp in code_points(me(&args)?.as_str()) {
+        if is_lower(cp) || is_title(cp) {
             return Ok(Value::Bool(false));
         }
-        if c.is_uppercase() {
+        if is_upper(cp) {
             cased = true;
         }
     }
@@ -490,14 +367,14 @@ fn istitle(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     no_args("istitle", &args, &kw)?;
     let mut prev_cased = false;
     let mut any = false;
-    for c in me(&args)?.as_str().chars() {
-        if c.is_uppercase() || (!c.is_ascii() && crate::modules::unicodedata::category_code(c) == "Lt") {
+    for cp in code_points(me(&args)?.as_str()) {
+        if is_upper(cp) || is_title(cp) {
             if prev_cased {
                 return Ok(Value::Bool(false));
             }
             prev_cased = true;
             any = true;
-        } else if c.is_lowercase() {
+        } else if is_lower(cp) {
             if !prev_cased {
                 return Ok(Value::Bool(false));
             }
@@ -566,6 +443,16 @@ fn strip_impl(args: Vec<Value>, kw: Kw, name: &str, left: bool, right: bool) -> 
                 t = t.trim_end_matches(is_py_space);
             }
         }
+        Some(Value::Str(cs)) if t.contains(ESCAPE) || cs.as_str().contains(ESCAPE) => {
+            // Com par de escape um char solto não é um código-ponto: apara por trecho.
+            let set: Vec<&str> = units(cs.as_str()).collect();
+            let all: Vec<&str> = units(t).collect();
+            let first = if left { all.iter().position(|u| !set.contains(u)).unwrap_or(all.len()) } else { 0 };
+            let end = if right { all.iter().rposition(|u| !set.contains(u)).map_or(first, |i| i + 1) } else { all.len() };
+            let from: usize = all[..first].iter().map(|u| u.len()).sum();
+            let to: usize = all[..end.max(first)].iter().map(|u| u.len()).sum();
+            t = &t[from..to];
+        }
         Some(Value::Str(cs)) => {
             let set: Vec<char> = cs.as_str().chars().collect();
             if left {
@@ -580,16 +467,10 @@ fn strip_impl(args: Vec<Value>, kw: Kw, name: &str, left: bool, right: bool) -> 
     Ok(Value::str(t))
 }
 
-fn strip(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    strip_impl(args, kw, "strip", true, true)
-}
-
-fn lstrip(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    strip_impl(args, kw, "lstrip", true, false)
-}
-
-fn rstrip(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    strip_impl(args, kw, "rstrip", false, true)
+variant_methods! {
+    strip => strip_impl(true, true);
+    lstrip => strip_impl(true, false);
+    rstrip => strip_impl(false, true);
 }
 
 fn partition_impl(args: Vec<Value>, kw: Kw, name: &str, reverse: bool) -> PyResult<Value> {
@@ -603,8 +484,8 @@ fn partition_impl(args: Vec<Value>, kw: Kw, name: &str, reverse: bool) -> PyResu
     if sep.is_empty() {
         return Err(value_error("empty separator"));
     }
-    let found = if reverse { t.rfind(sep) } else { t.find(sep) };
-    let parts = match found {
+    let found = if reverse { rmatch_offsets(t, sep, 1) } else { match_offsets(t, sep, 1) };
+    let parts = match found.first().copied() {
         Some(i) => vec![Value::str(&t[..i]), Value::str(sep), Value::str(&t[i + sep.len()..])],
         None if reverse => vec![Value::str(""), Value::str(""), Value::str(t)],
         None => vec![Value::str(t), Value::str(""), Value::str("")],
@@ -612,12 +493,9 @@ fn partition_impl(args: Vec<Value>, kw: Kw, name: &str, reverse: bool) -> PyResu
     Ok(Value::tuple(parts))
 }
 
-fn partition(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    partition_impl(args, kw, "partition", false)
-}
-
-fn rpartition(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    partition_impl(args, kw, "rpartition", true)
+variant_methods! {
+    partition => partition_impl(false);
+    rpartition => partition_impl(true);
 }
 
 fn removeprefix(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -635,7 +513,7 @@ fn removesuffix(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     exactly("removesuffix", &args[1..], 1)?;
     let t = me(&args)?.as_str();
     match &args[1] {
-        Value::Str(p) => Ok(Value::str(t.strip_suffix(p.as_str()).unwrap_or(t))),
+        Value::Str(p) => Ok(Value::str(if ends_with_units(t, p.as_str()) { &t[..t.len() - p.as_str().len()] } else { t })),
         other => Err(type_error(format!("removesuffix() argument must be str, not {}", other.type_name()))),
     }
 }
@@ -656,8 +534,16 @@ fn replace(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         Some(v) => want_int(v)?,
     };
     let t = s.as_str();
-    let r = if count < 0 { t.replace(old, new) } else { t.replacen(old, new, count as usize) };
-    Ok(Value::str(r))
+    let limit = usize::try_from(count).unwrap_or(usize::MAX);
+    let mut out = String::with_capacity(t.len());
+    let mut last = 0;
+    for at in match_offsets(t, old, limit) {
+        out.push_str(&t[last..at]);
+        out.push_str(new);
+        last = at + old.len();
+    }
+    out.push_str(&t[last..]);
+    Ok(Value::str(out))
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -711,30 +597,26 @@ fn split_impl(args: Vec<Value>, kw: Kw, name: &str, reverse: bool) -> PyResult<V
             if sep.is_empty() {
                 return Err(value_error("empty separator"));
             }
-            if max < 0 {
-                t.split(sep).map(String::from).collect()
-            } else {
-                let n = (max as usize).saturating_add(1);
-                if reverse {
-                    let mut v: Vec<String> = t.rsplitn(n, sep).map(String::from).collect();
-                    v.reverse();
-                    v
-                } else {
-                    t.splitn(n, sep).map(String::from).collect()
-                }
+            let limit = usize::try_from(max).unwrap_or(usize::MAX);
+            let mut at = if reverse { rmatch_offsets(t, sep, limit) } else { match_offsets(t, sep, limit) };
+            at.sort_unstable();
+            let mut parts = Vec::with_capacity(at.len() + 1);
+            let mut last = 0;
+            for o in at {
+                parts.push(t[last..o].to_string());
+                last = o + sep.len();
             }
+            parts.push(t[last..].to_string());
+            parts
         }
         Some(o) => return Err(type_error(format!("must be str or None, not {}", o.type_name()))),
     };
     Ok(Value::list(parts.into_iter().map(Value::str).collect()))
 }
 
-fn split(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    split_impl(args, kw, "split", false)
-}
-
-fn rsplit(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    split_impl(args, kw, "rsplit", true)
+variant_methods! {
+    split => split_impl(false);
+    rsplit => split_impl(true);
 }
 
 fn is_line_break(c: char) -> bool {
@@ -777,7 +659,7 @@ fn splitlines(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 fn table_lookup(table: &Value, ord: u32) -> PyResult<Option<Value>> {
     match table {
         Value::Dict(d) => Ok(d.borrow().get(&Value::Int(i64::from(ord)))?),
-        Value::Str(s) => Ok(s.char_at(ord as usize).map(|c| Value::str(c.to_string()))),
+        Value::Str(s) => Ok(s.unit_at(ord as usize).map(Value::str)),
         Value::List(l) => Ok(l.borrow().get(ord as usize).cloned()),
         Value::Tuple(t) => Ok(t.get(ord as usize).cloned()),
         other => Err(type_error(format!("'{}' object is not subscriptable", other.type_name()))),
@@ -790,16 +672,16 @@ fn translate(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let t = me(&args)?.as_str();
     let table = &args[1];
     let mut out = String::with_capacity(t.len());
-    for c in t.chars() {
-        match table_lookup(table, c as u32)? {
-            None => out.push(c),
+    for (unit, cp) in units(t).zip(code_points(t)) {
+        match table_lookup(table, cp)? {
+            None => out.push_str(unit),
             Some(Value::None) => {}
             Some(Value::Int(n)) => {
-                let ch = u32::try_from(n)
+                let cp = u32::try_from(n)
                     .ok()
-                    .and_then(char::from_u32)
+                    .filter(|cp| *cp <= 0x10_FFFF)
                     .ok_or_else(|| value_error("character mapping must be in range(0x110000)"))?;
-                out.push(ch);
+                push_cp(&mut out, cp);
             }
             Some(Value::Str(x)) => out.push_str(x.as_str()),
             Some(_) => return Err(type_error("character mapping must return integer, None or str")),
@@ -808,139 +690,31 @@ fn translate(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::str(out))
 }
 
-/// Como o CPython escreve um código-ponto nas mensagens e no `backslashreplace`.
-fn escape_cp(c: char) -> String {
-    let v = crate::object::char_surrogate(c).unwrap_or(c as u32);
-    if v <= 0xff {
-        format!("\\x{v:02x}")
-    } else if v <= 0xffff {
-        format!("\\u{v:04x}")
-    } else {
-        format!("\\U{v:08x}")
-    }
-}
-
 fn encode(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let s = me(&args)?;
     let b = bind("encode", args[1..].to_vec(), kw, &["encoding", "errors"], 0)?;
-    let enc = match &b[0] {
-        None => "utf-8".to_string(),
-        Some(Value::Str(e)) => e.as_str().to_string(),
-        Some(o) => {
-            return Err(type_error(format!("encode() argument 'encoding' must be str, not {}", o.type_name())))
-        }
-    };
-    let errors = match &b[1] {
-        None => "strict".to_string(),
-        Some(Value::Str(e)) => e.as_str().to_string(),
-        Some(o) => return Err(type_error(format!("encode() argument 'errors' must be str, not {}", o.type_name()))),
-    };
+    let enc = clinic_str_arg("encode", "encoding", &b[0], "utf-8")?;
+    let errors = clinic_str_arg("encode", "errors", &b[1], "strict")?;
+    Ok(Value::bytes(encode_str(s.as_str(), &enc, &errors)?))
+}
+
+/// `str.encode(enc, errors)`: o codec pelo nome, como o CPython resolve (UTF-8, ASCII, Latin-1 e o resto).
+pub(crate) fn encode_str(s: &str, enc: &str, errors: &str) -> PyResult<Vec<u8>> {
     let norm = enc.to_lowercase().replace(['-', ' '], "_");
     let (cname, limit): (&str, u32) = match norm.as_str() {
-        "utf_8" | "utf8" | "u8" | "utf" | "cp65001" => {
-            // Surrogates solitários vivem em U+10D800..U+10DFFF (o texto não os guarda em UTF-8).
-            // `surrogateescape` devolve o byte original, `surrogatepass` grava os 3 bytes do surrogate,
-            // e o resto recusa como o CPython (`_has_surrogates` do `email` depende do erro estrito).
-            let text = s.as_str();
-            if text.as_bytes().contains(&0xF4) && text.chars().any(|c| crate::object::char_surrogate(c).is_some()) {
-                let mut out = Vec::with_capacity(text.len());
-                for (pos, ch) in text.chars().enumerate() {
-                    let Some(cp) = crate::object::char_surrogate(ch) else {
-                        out.extend(ch.to_string().bytes());
-                        continue;
-                    };
-                    match errors.as_str() {
-                        "surrogateescape" if (0xDC80..=0xDCFF).contains(&cp) => out.push((cp - 0xDC00) as u8),
-                        "surrogatepass" => {
-                            out.extend([0xE0 | (cp >> 12) as u8, 0x80 | ((cp >> 6) & 0x3F) as u8, 0x80 | (cp & 0x3F) as u8])
-                        }
-                        "ignore" => {}
-                        "replace" => out.push(b'?'),
-                        "backslashreplace" => out.extend(format!("\\u{cp:04x}").bytes()),
-                        "xmlcharrefreplace" => out.extend(format!("&#{cp};").bytes()),
-                        _ => {
-                            return Err(exc(
-                                "UnicodeEncodeError",
-                                format!(
-                                    "'utf-8' codec can't encode character '\\u{cp:04x}' in position {pos}: surrogates not allowed"
-                                ),
-                            ))
-                        }
-                    }
-                }
-                return Ok(Value::bytes(out));
-            }
-            return Ok(Value::bytes(s.as_str().as_bytes().to_vec()));
-        }
+        "utf_8" | "utf8" | "u8" | "utf" | "cp65001" => return crate::textcodec::encode_utf8(s, errors),
         "ascii" | "us_ascii" | "646" | "ansi_x3.4_1968" => ("ascii", 128),
         "latin_1" | "latin1" | "iso_8859_1" | "iso8859_1" | "l1" | "latin" | "8859" | "cp819" | "iso_ir_100" => {
             ("latin-1", 256)
         }
         _ => {
-            return match crate::textcodec::lookup(&enc) {
-                Some(c) => Ok(Value::bytes(crate::textcodec::encode(&c, s.as_str(), &errors)?)),
+            return match crate::textcodec::lookup(enc) {
+                Some(c) => crate::textcodec::encode(&c, s, errors),
                 None => Err(exc("LookupError", format!("unknown encoding: {enc}"))),
             }
         }
     };
-    let chars: Vec<char> = s.as_str().chars().collect();
-    let mut out: Vec<u8> = Vec::with_capacity(chars.len());
-    let mut i = 0usize;
-    while i < chars.len() {
-        let c = chars[i];
-        if (c as u32) < limit {
-            out.push(c as u32 as u8);
-            i += 1;
-            continue;
-        }
-        let mut j = i;
-        while j < chars.len() && (chars[j] as u32) >= limit {
-            j += 1;
-        }
-        match errors.as_str() {
-            "strict" => {
-                let what = if j - i == 1 {
-                    format!("character '{}' in position {}", escape_cp(chars[i]), i)
-                } else {
-                    format!("characters in position {}-{}", i, j - 1)
-                };
-                return Err(exc(
-                    "UnicodeEncodeError",
-                    format!("'{cname}' codec can't encode {what}: ordinal not in range({limit})"),
-                ));
-            }
-            "ignore" => {}
-            "surrogateescape"
-                if chars[i..j]
-                    .iter()
-                    .all(|c| crate::object::char_surrogate(*c).is_some_and(|cp| (0xDC80..=0xDCFF).contains(&cp))) =>
-            {
-                out.extend(chars[i..j].iter().filter_map(|c| crate::object::char_surrogate(*c)).map(|cp| (cp - 0xDC00) as u8));
-            }
-            "replace" => out.extend(std::iter::repeat_n(b'?', j - i)),
-            "backslashreplace" => {
-                for &ch in &chars[i..j] {
-                    out.extend(escape_cp(ch).bytes());
-                }
-            }
-            "xmlcharrefreplace" => {
-                for &ch in &chars[i..j] {
-                    out.extend(format!("&#{};", ch as u32).bytes());
-                }
-            }
-            "namereplace" => {
-                for &ch in &chars[i..j] {
-                    match unicode_names2::name(ch) {
-                        Some(n) => out.extend(format!("\\N{{{n}}}").bytes()),
-                        None => out.extend(escape_cp(ch).bytes()),
-                    }
-                }
-            }
-            other => return Err(exc("LookupError", format!("unknown error handler name '{other}'"))),
-        }
-        i = j;
-    }
-    Ok(Value::bytes(out))
+    crate::textcodec::encode_ucs1(cname, limit, s, errors)
 }
 
 fn format(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -1049,6 +823,9 @@ mod tests {
         assert_eq!(run("print(\"they're\".title())"), "They'Re\n");
         assert_eq!(run("print('HeLLo'.casefold())"), "hello\n");
         assert_eq!(run("print('straße'.upper())"), "STRASSE\n");
+        assert_eq!(run("print(ascii('ŉ'.upper()), ascii('ﬃ'.upper()), ascii('ﬃ'.title()), ascii('İ'.lower()))"), "'\\u02bcN' 'FFI' 'Ffi' 'i\\u0307'\n");
+        assert_eq!(run("print(ascii('ΑΣ'.lower()), ascii('ΑΣ.'.lower()), ascii('Σ'.lower()), ascii('ẞ'.casefold()), ascii('ς'.casefold()))"), "'\\u03b1\\u03c2' '\\u03b1\\u03c2.' '\\u03c3' 'ss' '\\u03c3'\n");
+        assert_eq!(run("print('ǆ'.title() == 'ǅ', 'ᾳ'.upper() == 'ΑΙ', 'ᾳ'.title() == 'ᾼ', 'ᾼ'.casefold() == 'αι')"), "True True True True\n");
     }
 
     #[test]

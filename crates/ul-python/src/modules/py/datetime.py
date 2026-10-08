@@ -5,6 +5,9 @@ import time as _time
 MINYEAR = 1
 MAXYEAR = 9999
 
+__all__ = ("date", "datetime", "time", "timedelta", "timezone", "tzinfo",
+           "MINYEAR", "MAXYEAR", "UTC")
+
 _DIM = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
 _DAYNAMES = ('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun')
 _MONTHNAMES = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
@@ -43,6 +46,21 @@ def _ord2ymd(n):
         n -= _dim(y, m)
         m += 1
     return y, m, n + 1
+
+
+def _pickled_state(value, size):
+    """Os bytes de estado do pickle (`bytes`, ou `str` do Python 2 em latin-1) ou `None`."""
+    if isinstance(value, bytes):
+        return value if len(value) == size else None
+    if isinstance(value, str) and len(value) == size and all(ord(c) < 256 for c in value):
+        return value.encode('latin-1')
+    return None
+
+
+def _state_tzinfo(tz):
+    if tz is not None and not isinstance(tz, tzinfo):
+        raise TypeError('bad tzinfo state arg')
+    return tz
 
 
 def _check_date(y, m, d):
@@ -243,6 +261,14 @@ timedelta.resolution = timedelta(microseconds=1)
 class tzinfo:
     __slots__ = ()
 
+    def __reduce__(self):
+        getinitargs = getattr(self, '__getinitargs__', None)
+        args = () if getinitargs is None else getinitargs()
+        state = self.__getstate__()
+        if state is None:
+            return (type(self), args)
+        return (type(self), args, state)
+
     def tzname(self, dt):
         raise NotImplementedError
 
@@ -317,8 +343,12 @@ class timezone(tzinfo):
     def __hash__(self):
         return hash(self._offset)
 
-    def __reduce__(self):
-        return (type(self), (self._offset, self._name))
+    def __getinitargs__(self):
+        return (self._offset,) if self._name is None else (self._offset, self._name)
+
+    def __getstate__(self):
+        # No C, o `timezone` não tem estado além dos argumentos de construção.
+        return None
 
     def __repr__(self):
         if self is timezone.utc:
@@ -380,6 +410,10 @@ class date:
     __slots__ = ('_year', '_month', '_day')
 
     def __new__(cls, year, month=None, day=None):
+        if month is None and day is None:
+            state = _pickled_state(year, 4)
+            if state is not None and 1 <= state[2] <= 12:
+                year, month, day = state[0] * 256 + state[1], state[2], state[3]
         _check_date(year, month, day)
         self = object.__new__(cls)
         self._year = year
@@ -471,7 +505,7 @@ class date:
                           self._day if day is None else day)
 
     def __reduce__(self):
-        return (type(self), (self._year, self._month, self._day))
+        return (type(self), (bytes((self._year >> 8, self._year & 255, self._month, self._day)),))
 
     def __repr__(self):
         return 'datetime.date(%d, %d, %d)' % (self._year, self._month, self._day)
@@ -543,6 +577,13 @@ class time:
     __slots__ = ('_hour', '_minute', '_second', '_microsecond', '_tzinfo', '_fold')
 
     def __new__(cls, hour=0, minute=0, second=0, microsecond=0, tzinfo=None, *, fold=0):
+        state = _pickled_state(hour, 6)
+        if state is not None and (state[0] & 127) < 24 and second == 0 and microsecond == 0 and tzinfo is None:
+            # O estado do pickle: `hour` é o `bytes`, e `minute` ocupa o lugar do `tzinfo`.
+            tzinfo = None if type(minute) is int and minute == 0 else _state_tzinfo(minute)
+            hour, minute, second = state[0] & 127, state[1], state[2]
+            microsecond = (state[3] << 16) | (state[4] << 8) | state[5]
+            fold = state[0] >> 7
         _check_time(hour, minute, second, microsecond)
         self = object.__new__(cls)
         self._hour = hour
@@ -674,8 +715,17 @@ class time:
     def __bool__(self):
         return True
 
+    def _getstate(self, proto):
+        us = self._microsecond
+        hour = self._hour | 128 if proto > 3 and self._fold else self._hour
+        base = bytes((hour, self._minute, self._second, us >> 16, (us >> 8) & 255, us & 255))
+        return (base,) if self._tzinfo is None else (base, self._tzinfo)
+
+    def __reduce_ex__(self, proto):
+        return (type(self), self._getstate(proto))
+
     def __reduce__(self):
-        return (type(self), (self._hour, self._minute, self._second, self._microsecond, self._tzinfo))
+        return (type(self), self._getstate(2))
 
     def __repr__(self):
         if self._microsecond:
@@ -700,6 +750,15 @@ class datetime(date):
 
     def __new__(cls, year, month=None, day=None, hour=0, minute=0, second=0, microsecond=0,
                 tzinfo=None, *, fold=0):
+        state = _pickled_state(year, 10)
+        if state is not None and 1 <= (state[2] & 127) <= 12 and day is None and hour == 0 and minute == 0 \
+                and second == 0 and microsecond == 0 and tzinfo is None:
+            # O estado do pickle: `year` é o `bytes`, e `month` ocupa o lugar do `tzinfo`.
+            tzinfo = None if month is None else _state_tzinfo(month)
+            year, month, day = state[0] * 256 + state[1], state[2] & 127, state[3]
+            hour, minute, second = state[4], state[5], state[6]
+            microsecond = (state[7] << 16) | (state[8] << 8) | state[9]
+            fold = state[2] >> 7
         _check_date(year, month, day)
         _check_time(hour, minute, second, microsecond)
         self = object.__new__(cls)
@@ -864,9 +923,18 @@ class datetime(date):
                           self._tzinfo if tzinfo is True else tzinfo,
                           fold=self._fold if fold is None else fold)
 
+    def __reduce_ex__(self, proto):
+        return (type(self), self._getstate(proto))
+
     def __reduce__(self):
-        return (type(self), (self._year, self._month, self._day, self._hour, self._minute, self._second,
-                             self._microsecond, self._tzinfo), {"fold": self._fold} if self._fold else None)
+        return (type(self), self._getstate(2))
+
+    def _getstate(self, proto):
+        us = self._microsecond
+        month = self._month | 128 if proto > 3 and self._fold else self._month
+        base = bytes((self._year >> 8, self._year & 255, month, self._day, self._hour, self._minute, self._second,
+                      us >> 16, (us >> 8) & 255, us & 255))
+        return (base,) if self._tzinfo is None else (base, self._tzinfo)
 
     def __repr__(self):
         parts = [self._year, self._month, self._day, self._hour, self._minute, self._second, self._microsecond]

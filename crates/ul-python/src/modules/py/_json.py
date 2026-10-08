@@ -7,11 +7,15 @@
 
 from _json_native import scanstring, encode_basestring_ascii, encode_basestring
 
+# Os nomes dos `__slots__`, lidos no fim do módulo (o VM esconde o `__slots__` de um shim de tipo em C).
+_SCANNER_SLOTS = ('object_hook', 'object_pairs_hook', 'parse_constant', 'parse_float', 'parse_int', 'strict')
+_ENCODER_SLOTS = ('default', 'encoder', 'indent', 'item_separator', 'key_separator', 'markers', 'skipkeys', 'sort_keys')
+
 
 class Scanner:
     """JSON scanner object"""
 
-    __slots__ = ('object_hook', 'object_pairs_hook', 'parse_constant', 'parse_float', 'parse_int', 'strict')
+    __slots__ = _SCANNER_SLOTS
 
     def __new__(cls, *args, **kwargs):
         import _json_native
@@ -42,7 +46,7 @@ class Scanner:
 class Encoder:
     """Encoder(markers, default, encoder, indent, key_separator, item_separator, sort_keys, skipkeys, allow_nan)"""
 
-    __slots__ = ('default', 'encoder', 'indent', 'item_separator', 'key_separator', 'markers', 'skipkeys', 'sort_keys')
+    __slots__ = _ENCODER_SLOTS
 
     def __new__(cls, *args, **kwargs):
         import _json_native
@@ -89,10 +93,10 @@ class member_descriptor:
 
 
 member_descriptor.__module__ = 'builtins'
-for _cls in (Scanner, Encoder):
-    for _name in _cls.__slots__:
+for _cls, _names in ((Scanner, _SCANNER_SLOTS), (Encoder, _ENCODER_SLOTS)):
+    for _name in _names:
         setattr(_cls, _name, member_descriptor(_name, _cls))
-del Scanner.__slots__, Encoder.__slots__, _cls, _name, member_descriptor
+del Scanner.__slots__, Encoder.__slots__, _cls, _names, _name, member_descriptor, _SCANNER_SLOTS, _ENCODER_SLOTS
 make_scanner = Scanner
 make_encoder = Encoder
 del Scanner, Encoder

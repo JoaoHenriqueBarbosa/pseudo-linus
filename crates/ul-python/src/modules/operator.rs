@@ -203,8 +203,8 @@ fn getitem_value(container: &Value, index: &Value) -> PyResult<Value> {
             let i = as_index(index)
                 .ok_or_else(|| type_error(format!("string indices must be integers, not '{}'", index.type_name())))?;
             normalize(i, s.len())
-                .and_then(|k| s.char_at(k))
-                .map(|c| Value::str(c.to_string()))
+                .and_then(|k| s.unit_at(k))
+                .map(Value::str)
                 .ok_or_else(|| exc("IndexError", "string index out of range"))
         }
         Value::Bytes(b) => {

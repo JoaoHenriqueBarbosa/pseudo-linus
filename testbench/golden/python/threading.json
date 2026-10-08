@@ -1,0 +1,272 @@
+{
+  "thread-count-and-stack-size": {
+    "stdout": "0\n2\n0\n0 0 True\n0 1048576 0 0\nValueError size not valid: 1 bytes\nValueError size not valid: 32767 bytes\nValueError size must be 0 or a positive value\nTypeError 'float' object cannot be interpreted as an integer\nTypeError 'str' object cannot be interpreted as an integer\n0 32768\n9223372036.0 9223372036.0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "thread-interrupt-main": {
+    "stdout": "KeyboardInterrupt\n[True]\nValueError signal number out of range\nValueError signal number out of range\nValueError signal number out of range\nTypeError 'str' object cannot be interpreted as an integer\nend\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "thread-lock-basics": {
+    "stdout": "<unlocked _thread.lock object at 0xADDR> True True True\nTrue <locked _thread.lock object at 0xADDR> True False False\nFalse\nRuntimeError release unlocked lock\nin True\nTrue False False\nValueError can't specify a timeout for a non-blocking call\nValueError timeout value must be a non-negative number\nOverflowError timestamp out of range for platform time_t\nValueError can't specify a timeout for a non-blocking call\nTrue True\nFalse\n['__enter__', '__exit__', '_at_fork_reinit', 'acquire', 'acquire_lock', 'locked', 'locked_lock', 'release', 'release_lock']\nTypeError type '_thread.lock' is not an acceptable base type\nTypeError lock expected 0 arguments, got 1\nTrue True True\nlock lock\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "thread-lock-blocking-acquire-waits-for-worker": {
+    "stdout": "['worker has lock', 'main acquiring', 'worker releasing', 'main got lock']\nFalse True\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "thread-lock-cross-thread-release": {
+    "stdout": "['released'] False\n['main holds', 'main released', 'worker got it', 'worker done']\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "thread-lock-timeout-lets-others-run": {
+    "stdout": "True ['other ran', 'other released']\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "thread-rlock-argument-warning": {
+    "stdout": "DeprecationWarning Passing arguments to RLock is deprecated and will be removed in 3.15\nRLock\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "thread-rlock-basics": {
+    "stdout": "<unlocked _thread.RLock object owner=N count=0 at 0xADDR> True _thread RLock\nTrue True <locked _thread.RLock object owner=N count=2 at 0xADDR>\n<locked _thread.RLock object owner=N count=1 at 0xADDR>\n<unlocked _thread.RLock object owner=N count=0 at 0xADDR>\nRuntimeError cannot release un-acquired lock\nTrue True 1\n<locked _thread.RLock object owner=N count=2 at 0xADDR>\nValueError can't specify a timeout for a non-blocking call\nValueError timeout value must be a non-negative number\n",
+    "stderr": "Traceback (most recent call last):\n  File \"<stdin>\", line 24, in <module>\nRuntimeError: cannot release un-acquired lock\n",
+    "exit": 1,
+    "files": {}
+  },
+  "thread-rlock-owned-by-other-thread": {
+    "stdout": "{'acquire_nb': False, 'timeout': False, 'release': 'cannot release un-acquired lock', 'owned': False} True\n['main holds', 'taker']\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "thread-start-new-thread": {
+    "stdout": "Exception ignored in thread started by <function boom at 0xADDR>:\nTraceback (most recent call last):\n  File \"<stdin>\", line 20, in boom\nValueError: raw\nint True\n[(1, 2, True)] 1 1\nFalse\n2 0\nTypeError first arg must be callable\nTypeError 2nd arg must be a tuple\nTypeError optional 3rd arg must be a dictionary\nend\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-condition-producer-consumer": {
+    "stdout": "[0, 1, 2] []\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-condition-semantics": {
+    "stdout": "RuntimeError cannot wait on un-acquired lock\nRuntimeError cannot notify on un-acquired lock\nRuntimeError cannot notify on un-acquired lock\nFalse True\nFalse False True\n[(0, True)]\n[(0, True), (1, True), (2, True)]\nRuntimeError cannot wait on un-acquired lock\nFalse\nTrue True\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-deadlock-does-not-hang": {
+    "stdout": "acquire with timeout False\nevent with timeout False\ncond with timeout False\n['woke up on timeout']\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-deprecated-aliases": {
+    "stdout": "<stdin>:4: DeprecationWarning: getName() is deprecated, get the name attribute instead\n<stdin>:4: DeprecationWarning: isDaemon() is deprecated, get the daemon attribute instead\n<stdin>:5: DeprecationWarning: setName() is deprecated, set the name attribute instead\n<stdin>:5: DeprecationWarning: setDaemon() is deprecated, set the daemon attribute instead\n<stdin>:7: DeprecationWarning: currentThread() is deprecated, use current_thread() instead\n<stdin>:7: DeprecationWarning: activeCount() is deprecated, use active_count() instead\n<stdin>:10: DeprecationWarning: notifyAll() is deprecated, use notify_all() instead\n<stdin>:11: DeprecationWarning: isSet() is deprecated, use is_set() instead\nn False\nm True\nTrue 1\nFalse\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-enumerate-active-count": {
+    "stdout": "1 ['MainThread']\n4 ['MainThread', 'w0', 'w1', 'w2'] True\n1 ['MainThread'] False\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-event-semantics": {
+    "stdout": "False False False None True True True\n['waiting', 'setter', ('wait result', True)]\nFalse ['ran during wait'] True\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-eventfd-read-write-between-threads": {
+    "stdout": "[5]\n[18446744073709551614] 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-excepthook-args-type": {
+    "stdout": "True _ExceptHookArgs _thread True\nValueError None 4 ValueError\nTypeError _thread._ExceptHookArgs() takes a 4-sequence (2-sequence given)\nTypeError _thread.excepthook argument type must be ExceptHookArgs\nok\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-excepthook-custom": {
+    "stdout": "Exception in threading.excepthook:\nTraceback (most recent call last):\n  File \"/usr/lib/python3.13/threading.py\", line 1292, in invoke_excepthook\n    hook(args)\n    ~~~~^^^^^^\n  File \"<stdin>\", line 11, in bad\nRuntimeError: in hook\n4 KeyError\n[('_ExceptHookArgs', 'KeyError', \"'k'\", True, 'A')]\nTrue _excepthook\nTraceback (most recent call last):\n  File \"<stdin>\", line 15, in <module>\n  File \"/usr/lib/python3.13/threading.py\", line 924, in __init__\n    self._invoke_excepthook = _make_invoke_excepthook()\n                              ~~~~~~~~~~~~~~~~~~~~~~~^^\n  File \"/usr/lib/python3.13/threading.py\", line 1275, in _make_invoke_excepthook\n    raise RuntimeError(\"threading.excepthook is None\")\nRuntimeError: threading.excepthook is None\n",
+    "stderr": "",
+    "exit": 1,
+    "files": {}
+  },
+  "threading-excepthook-default-format": {
+    "stdout": "Exception in thread Thread-1 (f):\nTraceback (most recent call last):\n  File \"/usr/lib/python3.13/threading.py\", line 1043, in _bootstrap_inner\n    self.run()\n    ~~~~~~~~^^\n  File \"/usr/lib/python3.13/threading.py\", line 994, in run\n    self._target(*self._args, **self._kwargs)\n    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<stdin>\", line 3, in f\nValueError: boom\nException in thread custom:\nTraceback (most recent call last):\n  File \"/usr/lib/python3.13/threading.py\", line 1043, in _bootstrap_inner\n    self.run()\n    ~~~~~~~~^^\n  File \"/usr/lib/python3.13/threading.py\", line 994, in run\n    self._target(*self._args, **self._kwargs)\n    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<stdin>\", line 3, in f\nValueError: boom\ndone\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-fileio-write-and-flush-full-pipe-reader-thread": {
+    "stdout": "150000\n[150000, 300000] b'y' b'z'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-flock-two-fds-blocking-between-threads": {
+    "stdout": "[('nb', 11), 'release', 'acquired']\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-fork-child-sees-only-forking-thread": {
+    "stdout": "child 1 ['MainThread'] True True\nparent 2 True\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-ident-native-id": {
+    "stdout": "True True\nint int\nTrue True True True\nTrue True True\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-input-fed-by-thread-via-dup2": {
+    "stdout": "> alphabeta\ngamma\nEOFError EOF when reading a line\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-local": {
+    "stdout": "_thread _local True\n1 [False, 10, False, 20]\n5 [5]\nTypeError Initialization arguments are not supported\nAttributeError '_thread._local' object has no attribute 'x'\nAttributeError '_thread._local' object attribute '__dict__' is read-only\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-main-exits-with-nondaemon-error": {
+    "stdout": "main exits first\nException in thread late:\nTraceback (most recent call last):\n  File \"/usr/lib/python3.13/threading.py\", line 1043, in _bootstrap_inner\n    self.run()\n    ~~~~~~~~^^\n  File \"/usr/lib/python3.13/threading.py\", line 994, in run\n    self._target(*self._args, **self._kwargs)\n    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<stdin>\", line 4, in f\nRuntimeError: late failure\nstatus 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-os-read-pipe-and-waitid-with-live-thread": {
+    "stdout": "b'da thread\\n' 0\nTrue 3 3\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-os-write-full-pipe-reader-thread": {
+    "stdout": "200000 200000\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-os-write-nonblocking-pipe-full-eagain": {
+    "stdout": "65536\nBlockingIOError 11\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-os-writev-readv-full-pipe-threads": {
+    "stdout": "140000\n[140000]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-register-atexit-and-late-start": {
+    "stdout": "RuntimeError can't register atexit after shutdown\n['threading atexit']\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-semaphore-barrier": {
+    "stdout": "<threading.Semaphore at 0xADDR: value=2>\nTrue True False False False\n2\nValueError can't specify timeout for non-blocking acquire\nValueError n must be one or more\nValueError semaphore initial value must be >= 0\nValueError Semaphore released too many times\n<threading.BoundedSemaphore at 0xADDR: value=1/1>\n[0, 1, 2] 3 0 False\nBrokenBarrierError BrokenBarrierError() True\nstill broken\nFalse\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-server-thread-python-client-subprocess": {
+    "stdout": "200 b'ol\\xc3\\xa1\\n'\n\"200 b'ol\\\\xc3\\\\xa1\\\\n'\\n\" '' 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-server-thread-subprocess-run-stdout-only": {
+    "stdout": "0 b'ol\\xc3\\xa1\\n'\n0 'olá\\n 200' ''\n'olá\\n'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-settrace-setprofile-new-threads": {
+    "stdout": "True None\n[('profile', 'call'), ('profile', 'return')] None\n[('trace', 'call'), ('trace', 'line')] None\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-shutdown-joins-non-daemon": {
+    "stdout": "main done\nnon-daemon finished\natexit runs after the join\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-stdin-buffer-read-read1-readline-fed-by-thread-via-dup2": {
+    "stdout": "b'a'\nb'bcdef\\n'\nb'ghij'\nb'kl\\n'\nb'mn'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-stdin-nonblocking-pipe-with-live-thread": {
+    "stdout": "''\n'late\\n'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-stdin-read-and-iteration-fed-by-thread-via-dup2": {
+    "stdout": "'one\\nt'\n'wo\\n'\n'three\\n'\n'four\\r\\n'\n'five'\n'one\\ntwo\\nthree\\nfour\\r\\nfive'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-stdin-readline-fed-by-thread-via-dup2": {
+    "stdout": "'first\\n'\n'partial\\n'\n'tail'\n''\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-thread-attributes": {
+    "stdout": "<Thread(Thread-1 (worker), initial daemon)> None None False True\njoin cannot join thread before it is started\n<Thread(Thread-1 (worker), stopped daemon N)> True True False\nstart threads can only be started once\ndaemon cannot set daemon status of active thread\n<Thread(Thread-1 (worker), stopped daemon N)> False True\nFalse False\ncurrent cannot join current thread\n<_MainThread(MainThread, started N)> True False True True\ngroup group argument must be None for now\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-thread-names": {
+    "stdout": "Thread-1 (worker)|given|Thread-2|Thread-3|Thread-4 (<lambda>)|Thread-5 (print)\nMainThread MainThread True\nrenamed renamed\nThread-6\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-timer": {
+    "stdout": "['fired'] True True 0.02 ['fired'] {}\n['fired'] True False\n{'a': 1}\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "threading-tracebacks-in-thread": {
+    "stdout": "Exception in thread Thread-1 (outer):\nTraceback (most recent call last):\n  File \"/usr/lib/python3.13/threading.py\", line 1043, in _bootstrap_inner\n    self.run()\n    ~~~~~~~~^^\n  File \"/usr/lib/python3.13/threading.py\", line 994, in run\n    self._target(*self._args, **self._kwargs)\n    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<stdin>\", line 5, in outer\n  File \"<stdin>\", line 3, in inner\nZeroDivisionError: division by zero\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

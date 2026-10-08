@@ -1,0 +1,20 @@
+{
+  "python-setprofile-gen": {
+    "stdout": "[('call', 0, 'None'), ('return', 2, '0'), ('call', 2, 'None'), ('return', 2, '1'), ('call', 2, 'None'), ('return', 1, 'None')]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "python-settrace-gen-for-loop": {
+    "stdout": "gen_for [0, 1]\n[('call', 0), ('line', 1), ('line', 2), ('return', 2), ('call', 2), ('line', 1), ('line', 2), ('return', 2), ('call', 2), ('line', 1), ('line', 3), ('return', 3)]\ngen_for_one_line [0, 1]\n[('call', 0), ('line', 1), ('return', 1), ('call', 1), ('line', 1), ('return', 1), ('call', 1), ('line', 1), ('return', 1)]\ngen_while [0, 1]\n[('call', 0), ('line', 1), ('line', 2), ('line', 3), ('return', 3), ('call', 3), ('line', 4), ('line', 2), ('line', 3), ('return', 3), ('call', 3), ('line', 4), ('line', 2), ('return', 2)]\ngen_continue [0, 2]\n[('call', 0), ('line', 1), ('line', 2), ('line', 4), ('return', 4), ('call', 4), ('line', 1), ('line', 2), ('line', 3), ('line', 1), ('line', 2), ('line', 4), ('return', 4), ('call', 4), ('line', 1), ('return', 1)]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "python-settrace-gen-manual-resume": {
+    "stdout": "gen_send [1, 5, 7]\n[('call', 0), ('line', 1), ('return', 1), ('call', 1), ('line', 2), ('return', 2), ('call', 2), ('line', 3), ('return', 3)]\ngen_yield_from [0, 1, 9]\n[('call', 0), ('line', 1), ('return', 1), ('call', 1), ('return', 1), ('call', 1), ('line', 2), ('return', 2), ('call', 2), ('return', 2)]\ngen_loop_send [0, 2]\n[('call', 0), ('line', 1), ('line', 2), ('line', 3), ('return', 3), ('call', 3), ('line', 2), ('line', 3), ('return', 3), ('call', 3), ('line', 2), ('return', 2)]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

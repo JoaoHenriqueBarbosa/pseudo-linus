@@ -1,18 +1,19 @@
 """collections.abc do sandbox (Python embutido)."""
 
 from abc import ABCMeta, abstractmethod
+from types import GenericAlias
 
 _NONE_TYPE = type(None)
 
 
-def _has_methods(subclass, names):
-    mro = getattr(subclass, '__mro__', None)
+def _check_methods(C, *methods):
+    mro = getattr(C, '__mro__', None)
     if mro is None:
         return NotImplemented
-    for name in names:
-        for base in mro:
-            if name in base.__dict__:
-                if base.__dict__[name] is None:
+    for method in methods:
+        for B in mro:
+            if method in B.__dict__:
+                if B.__dict__[method] is None:
                     return NotImplemented
                 break
         else:
@@ -76,11 +77,6 @@ def _native_abcs(subclass):
 class _Builtins(ABCMeta):
     """Metaclasse que conhece quais tipos embutidos satisfazem a interface."""
 
-    def __new__(mcs, name, bases, ns, **kwargs):
-        # `Iterable[str]` e afins: em anotações a subscrição só precisa devolver a classe.
-        ns.setdefault('__class_getitem__', classmethod(lambda cls, params: cls))
-        return ABCMeta.__new__(mcs, name, bases, ns, **kwargs)
-
     def __instancecheck__(cls, instance):
         check = _INSTANCE_CHECKS.get(cls.__name__)
         if check is not None:
@@ -98,7 +94,7 @@ class _Builtins(ABCMeta):
         names = cls._methods_
         if not names:
             return NotImplemented
-        return _has_methods(subclass, names)
+        return _check_methods(subclass, *names)
 
 
 class Hashable(metaclass=_Builtins):
@@ -114,6 +110,7 @@ class Awaitable(metaclass=_Builtins):
     _builtins_ = ()
     _methods_ = ('__await__',)
 
+    __class_getitem__ = classmethod(GenericAlias)
 
 class Coroutine(Awaitable):
     _builtins_ = ()
@@ -124,6 +121,7 @@ class AsyncIterable(metaclass=_Builtins):
     _builtins_ = ()
     _methods_ = ('__aiter__',)
 
+    __class_getitem__ = classmethod(GenericAlias)
 
 class AsyncIterator(AsyncIterable):
     _builtins_ = ()
@@ -143,6 +141,8 @@ class Iterable(metaclass=_Builtins):
     def __iter__(self):
         while False:
             yield None
+
+    __class_getitem__ = classmethod(GenericAlias)
 
 
 class Iterator(Iterable):
@@ -188,6 +188,8 @@ class Container(metaclass=_Builtins):
     @abstractmethod
     def __contains__(self, x):
         return False
+
+    __class_getitem__ = classmethod(GenericAlias)
 
 
 class Collection(Sized, Iterable, Container):
@@ -503,6 +505,7 @@ class MappingView(Sized):
     _builtins_ = ()
     _methods_ = ()
 
+    __class_getitem__ = classmethod(GenericAlias)
 
 class KeysView(MappingView, Set):
     _builtins_ = ()

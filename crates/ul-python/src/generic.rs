@@ -73,7 +73,7 @@ impl GenericAlias {
 
 /// `TypeVar`, `ParamSpec` ou `TypeVarTuple` (do `typing` em Python).
 fn is_type_param(v: &Value) -> bool {
-    matches!(v, Value::Instance(i) if matches!(i.class.name.as_str(), "TypeVar" | "ParamSpec" | "TypeVarTuple"))
+    matches!(v, Value::Instance(i) if matches!(i.class().name.as_str(), "TypeVar" | "ParamSpec" | "TypeVarTuple"))
 }
 
 fn same_object(a: &Value, b: &Value) -> bool {
@@ -111,6 +111,10 @@ fn substitute(v: &Value, params: &[Value], subs: &[Value]) -> Value {
 impl ExtObject for GenericAlias {
     fn type_name(&self) -> &'static str {
         "GenericAlias"
+    }
+    fn image(&self) -> Option<crate::object::ExtImage> {
+        let refs = std::iter::once(self.origin.clone()).chain(self.args.iter().cloned()).collect();
+        crate::object::OpaqueImage::image("generic_alias", (), refs)
     }
     fn as_any(&self) -> Option<&dyn std::any::Any> {
         Some(self)
@@ -207,9 +211,26 @@ pub fn union_args(v: &Value) -> Option<Vec<Value>> {
     }
 }
 
+/// Refaz um `GenericAlias` (origem e depois os argumentos) ou uma `UnionType` (só os argumentos) a
+/// partir da imagem do heap.
+pub(crate) fn restore_image(tag: &str, _state: &(dyn std::any::Any + Send + Sync), refs: Vec<Value>) -> Option<Value> {
+    match tag {
+        "generic_alias" => {
+            let mut refs = refs.into_iter();
+            let origin = refs.next()?;
+            Some(Value::Ext(Rc::new(GenericAlias { origin, args: refs.collect() })))
+        }
+        "union_type" => Some(Value::Ext(Rc::new(UnionType { args: refs }))),
+        _ => None,
+    }
+}
+
 impl ExtObject for UnionType {
     fn type_name(&self) -> &'static str {
         "UnionType"
+    }
+    fn image(&self) -> Option<crate::object::ExtImage> {
+        crate::object::OpaqueImage::image("union_type", (), self.args.clone())
     }
     fn repr(&self) -> String {
         let parts: Vec<String> = self.args.iter().map(type_repr).collect();
@@ -260,8 +281,23 @@ pub fn class_getitem(vm: &mut Vm, container: &Value, key: &Value) -> Option<PyRe
                 _ => Some(Err(type_error(format!("type '{}' is not subscriptable", c.name)))),
             }
         }
-        Value::NativeFn(f) if crate::typeattrs::TYPES.contains(&f.name) => Some(Ok(GenericAlias::make(container.clone(), key))),
-        Value::Builtin(n) if crate::object::is_builtin_type(n) => Some(Ok(GenericAlias::make(container.clone(), key))),
+        Value::NativeFn(f) if crate::typeattrs::TYPES.contains(&f.name) || f.name == "ref" => {
+            Some(builtin_class_getitem(f.name, container, key))
+        }
+        Value::Builtin(n) if crate::object::is_builtin_type(n) => Some(builtin_class_getitem(n, container, key)),
         _ => None,
+    }
+}
+
+/// Os tipos embutidos do 3.13 que definem `__class_getitem__` (`Py_GenericAlias`), mais o `weakref.ref`
+/// (nativo aqui); os demais (`int`, `str`, `range`, as exceções...) recusam como o CPython.
+fn builtin_class_getitem(name: &str, container: &Value, key: &Value) -> PyResult<Value> {
+    if matches!(
+        name,
+        "type" | "list" | "dict" | "tuple" | "set" | "frozenset" | "enumerate" | "generator" | "coroutine" | "async_generator" | "ref" | "ReferenceType"
+    ) {
+        Ok(GenericAlias::make(container.clone(), key))
+    } else {
+        Err(type_error(format!("type '{name}' is not subscriptable")))
     }
 }

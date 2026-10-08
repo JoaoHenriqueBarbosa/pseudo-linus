@@ -1,0 +1,301 @@
+tool = "python3"
+source = "manual"
+
+# `termios` (CPython 3.13 sobre a glibc): o `dir()` do módulo, `tcflush` e `tcflow` (`TCFLSH` e `TCXONC`) em
+# pseudoterminais e os erros em fd que não é terminal, junto com o resto da interface (`tcgetattr`,
+# `tcsetattr`, `tcgetwinsize`, `tcsetwinsize`, `tcsendbreak`, `tcdrain`). O que o kernel entrega de forma
+# assíncrona (a escrita no mestre vira entrada do escravo depois) é sincronizado com `select`, e nada
+# não determinístico aparece na saída.
+
+[[case]]
+id = "termios-dir-and-constants"
+script = '''
+python3 - <<'PYEOF'
+import termios
+print(len(dir(termios)))
+print(' '.join(dir(termios)))
+print(termios.TCIFLUSH, termios.TCOFLUSH, termios.TCIOFLUSH)
+print(termios.TCOOFF, termios.TCOON, termios.TCIOFF, termios.TCION)
+print(termios.TCFLSH, termios.TCXONC, termios.TCSBRK, termios.TCSBRKP)
+print(termios.error.__module__, termios.error.__name__, termios.error.__mro__[1].__name__)
+for name in ('tcflush', 'tcflow', 'tcdrain', 'tcsendbreak', 'tcgetattr', 'tcsetattr', 'tcgetwinsize', 'tcsetwinsize'):
+    f = getattr(termios, name)
+    print(name, type(f).__name__, f.__module__, f.__doc__.splitlines()[0])
+PYEOF
+'''
+tags = ["termios"]
+
+[[case]]
+id = "termios-non-tty-errors"
+script = '''
+python3 - <<'PYEOF'
+import os, termios
+r, w = os.pipe()
+f = open('/dev/null')
+calls = [
+    ('tcflush', lambda fd: termios.tcflush(fd, termios.TCIFLUSH)),
+    ('tcflush-bad-queue', lambda fd: termios.tcflush(fd, 99)),
+    ('tcflow', lambda fd: termios.tcflow(fd, termios.TCOON)),
+    ('tcflow-bad-action', lambda fd: termios.tcflow(fd, 99)),
+    ('tcdrain', lambda fd: termios.tcdrain(fd)),
+    ('tcsendbreak', lambda fd: termios.tcsendbreak(fd, 0)),
+    ('tcgetattr', lambda fd: termios.tcgetattr(fd)),
+    ('tcsetattr', lambda fd: termios.tcsetattr(fd, termios.TCSANOW, [0] * 6 + [[b'\0'] * termios.NCCS])),
+    ('tcgetwinsize', lambda fd: termios.tcgetwinsize(fd)),
+    ('tcsetwinsize', lambda fd: termios.tcsetwinsize(fd, (24, 80))),
+]
+for target in (r, w, f, 9999):
+    for name, call in calls:
+        try:
+            call(target)
+            print(name, 'ok')
+        except termios.error as e:
+            print(name, 'error', e.args)
+        except Exception as e:
+            print(name, type(e).__name__, e)
+PYEOF
+'''
+tags = ["termios"]
+
+[[case]]
+id = "termios-flush-and-flow-argument-checks"
+script = '''
+python3 - <<'PYEOF'
+import os, termios
+m, s = os.openpty()
+for call in (
+    lambda: termios.tcflush(s, 'x'),
+    lambda: termios.tcflush(s, 1.5),
+    lambda: termios.tcflush(s, 2 ** 31),
+    lambda: termios.tcflush(s, -2 ** 31 - 1),
+    lambda: termios.tcflush(s),
+    lambda: termios.tcflush(),
+    lambda: termios.tcflush(s, queue=0),
+    lambda: termios.tcflush('x', 0),
+    lambda: termios.tcflush(None, 0),
+    lambda: termios.tcflow(s, 'x'),
+    lambda: termios.tcflow(s, None),
+    lambda: termios.tcflow(s, 2 ** 40),
+    lambda: termios.tcflow(s),
+    lambda: termios.tcflow(s, action=0),
+    lambda: termios.tcflush(s, 3),
+    lambda: termios.tcflush(m, -1),
+    lambda: termios.tcflow(s, 4),
+    lambda: termios.tcflow(m, -1),
+):
+    try:
+        print(call())
+    except Exception as e:
+        print(type(e).__module__, type(e).__name__, e.args)
+# Objeto com fileno() e valores com __index__ valem como no CPython.
+class Fileno:
+    def __init__(self, fd): self.fd = fd
+    def fileno(self): return self.fd
+class Index:
+    def __index__(self): return 2
+print(termios.tcflush(Fileno(s), Index()), termios.tcflow(Fileno(m), True), termios.tcflush(s, False))
+PYEOF
+'''
+tags = ["termios"]
+
+[[case]]
+id = "termios-pty-flush"
+script = '''
+python3 - <<'PYEOF'
+import os, select, termios, time
+
+m, s = os.openpty()
+
+def readable(fd, wait=0.3):
+    return bool(select.select([fd], [], [], wait)[0])
+
+def slurp(fd, want):
+    got = b''
+    while len(got) < want and readable(fd, 2):
+        got += os.read(fd, 256)
+    return got
+
+# O eco prova que a disciplina de linha já viu a entrada antes do descarte.
+os.write(m, b'ab\n')
+print(slurp(m, 4))
+print(termios.tcflush(s, termios.TCIFLUSH), readable(s))
+os.write(m, b'xy')
+print(slurp(m, 2))
+termios.tcflush(s, termios.TCIOFLUSH)
+os.write(m, b'z\n')
+print(slurp(m, 3), os.read(s, 64))
+# TCOFLUSH não toca a entrada do escravo.
+os.write(m, b'keep\n')
+print(slurp(m, 6))
+termios.tcflush(s, termios.TCOFLUSH)
+print(os.read(s, 64))
+# No mestre, a entrada é o que o escravo escreveu e ninguém leu.
+os.write(s, b'hello')
+termios.tcflush(m, termios.TCIFLUSH)
+print(readable(m))
+os.write(s, b'again')
+print(slurp(m, 5))
+termios.tcflush(m, termios.TCOFLUSH)
+termios.tcflush(m, termios.TCIOFLUSH)
+print(readable(m))
+# No modo não canônico a entrada pendente também sai.
+attrs = termios.tcgetattr(s)
+attrs[3] &= ~(termios.ICANON | termios.ECHO)
+termios.tcsetattr(s, termios.TCSANOW, attrs)
+os.write(m, b'raw')
+time.sleep(0.2)
+print(termios.tcflush(s, termios.TCIFLUSH), readable(s))
+os.write(m, b'new')
+print(os.read(s, 64))
+os.close(m)
+os.close(s)
+PYEOF
+'''
+tags = ["termios", "pty"]
+
+[[case]]
+id = "termios-pty-flow-output"
+script = '''
+python3 - <<'PYEOF'
+import os, select, termios, time
+
+m, s = os.openpty()
+os.set_blocking(m, False)
+os.set_blocking(s, False)
+
+def writable(fd):
+    return bool(select.select([], [fd], [], 0.2)[1])
+
+def try_write(fd, data):
+    try:
+        return os.write(fd, data)
+    except BlockingIOError as e:
+        return type(e).__name__
+
+print(writable(s), try_write(s, b'a'))
+print(termios.tcflow(s, termios.TCOOFF), writable(s), try_write(s, b'a'))
+print(termios.tcflow(s, termios.TCOOFF), writable(s))
+print(termios.tcflow(s, termios.TCOON), writable(s), try_write(s, b'b'))
+time.sleep(0.2)
+print(os.read(m, 64))
+print(termios.tcflow(s, termios.TCOON), writable(s))
+# O mestre também suspende a própria saída.
+print(termios.tcflow(m, termios.TCOOFF), writable(m), try_write(m, b'c'))
+print(termios.tcflow(m, termios.TCOON), writable(m), try_write(m, b'd'))
+# A saída do escravo suspensa não impede o mestre de ler o que já existia.
+os.write(s, b'old')
+termios.tcflow(s, termios.TCOOFF)
+time.sleep(0.2)
+print(os.read(m, 64), try_write(s, b'x'))
+termios.tcflow(s, termios.TCOON)
+print(try_write(s, b'x'))
+os.close(m)
+os.close(s)
+PYEOF
+'''
+tags = ["termios", "pty"]
+
+[[case]]
+id = "termios-pty-flow-send"
+script = '''
+python3 - <<'PYEOF'
+import os, select, termios, time
+
+m, s = os.openpty()
+os.set_blocking(m, False)
+os.set_blocking(s, False)
+
+def readable(fd, wait=0.3):
+    return bool(select.select([fd], [], [], wait)[0])
+
+def writable(fd):
+    return bool(select.select([], [fd], [], 0.2)[1])
+
+def try_write(fd, data):
+    try:
+        return os.write(fd, data)
+    except BlockingIOError as e:
+        return type(e).__name__
+
+# O escravo manda STOP e START ao que o mestre lê, sem OPOST nem eco.
+print(termios.tcflow(s, termios.TCIOFF), readable(m, 2), os.read(m, 64))
+print(termios.tcflow(s, termios.TCION), readable(m, 2), os.read(m, 64))
+# Com o caractere desligado (_POSIX_VDISABLE) não se escreve nada.
+attrs = termios.tcgetattr(s)
+saved = attrs[6][termios.VSTOP]
+attrs[6][termios.VSTOP] = b'\0'
+termios.tcsetattr(s, termios.TCSANOW, attrs)
+print(termios.tcflow(s, termios.TCIOFF), readable(m))
+attrs[6][termios.VSTOP] = saved
+termios.tcsetattr(s, termios.TCSANOW, attrs)
+# O mestre manda o STOP ao escravo: com IXON ele é consumido (nem entrada nem eco) e suspende a saída.
+print(termios.tcflow(m, termios.TCIOFF))
+time.sleep(0.3)
+print(readable(s), readable(m), writable(s), try_write(s, b'x'))
+print(termios.tcflow(m, termios.TCION))
+time.sleep(0.3)
+print(writable(s), try_write(s, b'y'), readable(s), readable(m, 2), os.read(m, 64))
+# STOP e START digitados no mestre fazem o mesmo.
+os.write(m, b'\x13')
+time.sleep(0.3)
+print(writable(s), try_write(s, b'z'))
+os.write(m, b'\x11')
+time.sleep(0.3)
+print(writable(s), try_write(s, b'z'), readable(s))
+os.read(m, 64)
+# O START digitado não desfaz o TCOOFF.
+termios.tcflow(s, termios.TCOOFF)
+os.write(m, b'\x11')
+time.sleep(0.3)
+print(writable(s), try_write(s, b'w'))
+termios.tcflow(s, termios.TCOON)
+print(writable(s), try_write(s, b'w'))
+os.read(m, 64)
+# Desligar o IXON religa a saída parada pelo STOP.
+os.write(m, b'\x13')
+time.sleep(0.3)
+print(writable(s))
+attrs = termios.tcgetattr(s)
+attrs[0] &= ~termios.IXON
+termios.tcsetattr(s, termios.TCSANOW, attrs)
+print(writable(s), try_write(s, b'v'))
+os.close(m)
+os.close(s)
+PYEOF
+'''
+tags = ["termios", "pty"]
+
+[[case]]
+id = "termios-pty-attributes-winsize-break-drain"
+script = '''
+python3 - <<'PYEOF'
+import os, termios
+
+m, s = os.openpty()
+attrs = termios.tcgetattr(s)
+print(attrs[:6])
+print([c for c in attrs[6]])
+print(termios.tcgetwinsize(s), termios.tcgetwinsize(m))
+termios.tcsetwinsize(s, (24, 80))
+print(termios.tcgetwinsize(s), termios.tcgetwinsize(m))
+termios.tcsetwinsize(m, (50, 132))
+print(termios.tcgetwinsize(s))
+print(termios.tcsendbreak(s, 0), termios.tcsendbreak(m, 3), termios.tcdrain(s), termios.tcdrain(m))
+# As ioctls de modo no mestre agem no escravo.
+attrs[3] &= ~termios.ECHO
+termios.tcsetattr(m, termios.TCSADRAIN, attrs)
+print(termios.tcgetattr(s)[3] & termios.ECHO, termios.tcgetattr(m)[3] & termios.ECHO)
+attrs[3] |= termios.ECHO
+termios.tcsetattr(s, termios.TCSAFLUSH, attrs)
+print(termios.tcgetattr(m)[3] & termios.ECHO != 0)
+for bad in (lambda: termios.tcsetattr(s, 7, attrs), lambda: termios.tcsendbreak(s, 'x'), lambda: termios.tcsetwinsize(s, (1,)),
+            lambda: termios.tcsetwinsize(s, (1, 2, 3)), lambda: termios.tcsetwinsize(s, 5)):
+    try:
+        print(bad())
+    except Exception as e:
+        print(type(e).__module__, type(e).__name__, e.args)
+os.close(m)
+os.close(s)
+PYEOF
+'''
+tags = ["termios", "pty"]

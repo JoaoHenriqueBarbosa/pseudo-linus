@@ -8,15 +8,15 @@ use crate::modules::ucd::{self, Props};
 type Db = dyn Props;
 use crate::modules::ModuleBuilder;
 use crate::native_util::bind;
-use crate::object::{ExtObject, Kw, ModuleObj, Value};
+use crate::object::{code_points, cp_to_str, push_cp, ExtObject, Kw, ModuleObj, Value};
 use crate::vm::{exc, type_error, PyResult, Vm};
 
 fn one_char(fname: &str, v: Option<&Value>) -> PyResult<u32> {
     match v {
         Some(Value::Str(s)) => {
-            let mut it = s.as_str().chars();
+            let mut it = code_points(s.as_str());
             match (it.next(), it.next()) {
-                (Some(c), None) => Ok(u32::from(c)),
+                (Some(cp), None) => Ok(cp),
                 _ => Err(type_error(format!("{fname}() argument must be a unicode character, not str"))),
             }
         }
@@ -25,9 +25,9 @@ fn one_char(fname: &str, v: Option<&Value>) -> PyResult<u32> {
     }
 }
 
-/// Categoria geral de `c` no banco atual (`str.istitle` e afins).
-pub(crate) fn category_code(c: char) -> &'static str {
-    ucd::current().category(u32::from(c))
+/// Categoria geral do código-ponto `cp` no banco atual (`str.istitle` e afins).
+pub(crate) fn category_code(cp: u32) -> &'static str {
+    ucd::current().category(cp)
 }
 
 /// Troca os dígitos decimais Unicode (`Nd`) de um texto não ASCII pelos ASCII (`int('٣')` é 3).
@@ -38,16 +38,16 @@ pub fn fold_decimal_digits(s: &str) -> Option<String> {
     }
     let db = ucd::current();
     let mut changed = false;
-    let out: String = s
-        .chars()
-        .map(|c| match (c.is_ascii(), db.decimal(u32::from(c))) {
+    let mut out = String::with_capacity(s.len());
+    for cp in code_points(s) {
+        match (cp < 0x80, db.decimal(cp)) {
             (false, Some(d)) => {
                 changed = true;
-                char::from_digit(d as u32, 10).unwrap_or(c)
+                out.push(char::from_digit(d as u32, 10).unwrap_or('0'));
             }
-            _ => c,
-        })
-        .collect();
+            _ => push_cp(&mut out, cp),
+        }
+    }
     changed.then_some(out)
 }
 
@@ -125,7 +125,7 @@ fn call(db: &'static Db, name: &str, args: Vec<Value>, kw: Kw) -> PyResult<Value
                 return Err(exc("KeyError", "name too long"));
             }
             match db.lookup(&text) {
-                Some(cps) => Ok(Value::str(cps.into_iter().filter_map(char::from_u32).collect::<String>())),
+                Some(cps) => Ok(Value::str(cps.into_iter().map(cp_to_str).collect::<String>())),
                 None => Err(exc("KeyError", format!("undefined character name '{text}'"))),
             }
         }
@@ -172,9 +172,18 @@ struct Ucd {
     db: &'static Db,
 }
 
+/// Refaz o `ucd_3_2_0` a partir da imagem do heap (não tem estado: é sempre o banco 3.2).
+pub(crate) fn restore_image(_tag: &str, _state: &(dyn std::any::Any + Send + Sync), _refs: Vec<Value>) -> Option<Value> {
+    Some(Value::Ext(Rc::new(Ucd { db: ucd::v3_2() })))
+}
+
 impl ExtObject for Ucd {
     fn type_name(&self) -> &'static str {
         "unicodedata.UCD"
+    }
+
+    fn image(&self) -> Option<crate::object::ExtImage> {
+        crate::object::OpaqueImage::image("ucd", (), Vec::new())
     }
 
     fn methods(&self) -> &'static [&'static str] {

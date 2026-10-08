@@ -58,6 +58,78 @@ def thread_time():
     return _secs(2)
 
 
+def thread_time_ns():
+    return process_time_ns()
+
+
+# Os relógios do Linux (`clock_gettime(2)`) que o sandbox sabe servir: `_os.clock` tem o real, o monotônico e o de CPU.
+CLOCK_REALTIME = 0
+CLOCK_MONOTONIC = 1
+CLOCK_PROCESS_CPUTIME_ID = 2
+CLOCK_THREAD_CPUTIME_ID = 3
+CLOCK_MONOTONIC_RAW = 4
+CLOCK_BOOTTIME = 7
+CLOCK_TAI = 11
+_STRUCT_TM_ITEMS = 11
+
+
+def _clock_kind(clk_id):
+    """O `kind` do `_os.clock` para o relógio `clk_id`; EINVAL para o que o Linux não conhece."""
+    if not isinstance(clk_id, int):
+        raise TypeError("'%s' object cannot be interpreted as an integer" % type(clk_id).__name__)
+    if clk_id in (CLOCK_REALTIME, CLOCK_TAI):
+        return 0
+    if clk_id in (CLOCK_MONOTONIC, CLOCK_MONOTONIC_RAW, CLOCK_BOOTTIME):
+        return 1
+    if clk_id in (CLOCK_PROCESS_CPUTIME_ID, CLOCK_THREAD_CPUTIME_ID) or clk_id < 0:
+        return 2
+    raise OSError(22, 'Invalid argument')
+
+
+def clock_gettime(clk_id, /):
+    """Return the time of the specified clock clk_id as a float."""
+    return _secs(_clock_kind(clk_id))
+
+
+def clock_gettime_ns(clk_id, /):
+    """Return the time of the specified clock clk_id as nanoseconds (int)."""
+    s, ns = _os.clock(_clock_kind(clk_id))
+    return s * 1000000000 + ns
+
+
+def clock_getres(clk_id, /):
+    """Return the resolution (precision) of the specified clock clk_id."""
+    _clock_kind(clk_id)
+    return 1e-09
+
+
+def clock_settime(clk_id, time, /):
+    """Set the time of the specified clock clk_id."""
+    if _clock_kind(clk_id) != 0 or clk_id == CLOCK_TAI:
+        raise OSError(22, 'Invalid argument')
+    raise PermissionError(1, 'Operation not permitted')
+
+
+def clock_settime_ns(clk_id, time, /):
+    """Set the time of the specified clock clk_id with nanoseconds."""
+    if _clock_kind(clk_id) != 0 or clk_id == CLOCK_TAI:
+        raise OSError(22, 'Invalid argument')
+    raise PermissionError(1, 'Operation not permitted')
+
+
+def pthread_getcpuclockid(thread_id, /):
+    """Return the clk_id of a thread's CPU time clock."""
+    if not isinstance(thread_id, int):
+        raise TypeError("'%s' object cannot be interpreted as an integer" % type(thread_id).__name__)
+    # `CPUCLOCK_PERTHREAD(tid, CPUCLOCK_SCHED)` do kernel: `(~tid << 3) | 6`.
+    return (~thread_id << 3) | 6
+
+
+def tzset():
+    """Initialize, or reinitialize, the local timezone to the value stored in os.environ['TZ']."""
+    return None
+
+
 _sleep_hooks = []
 
 
@@ -376,6 +448,14 @@ perf_counter_ns = _sys._builtin(perf_counter_ns)
 process_time = _sys._builtin(process_time)
 process_time_ns = _sys._builtin(process_time_ns)
 thread_time = _sys._builtin(thread_time)
+thread_time_ns = _sys._builtin(thread_time_ns)
+clock_gettime = _sys._builtin(clock_gettime)
+clock_gettime_ns = _sys._builtin(clock_gettime_ns)
+clock_getres = _sys._builtin(clock_getres)
+clock_settime = _sys._builtin(clock_settime)
+clock_settime_ns = _sys._builtin(clock_settime_ns)
+pthread_getcpuclockid = _sys._builtin(pthread_getcpuclockid)
+tzset = _sys._builtin(tzset)
 sleep = _sys._builtin(sleep)
 gmtime = _sys._builtin(gmtime)
 localtime = _sys._builtin(localtime)

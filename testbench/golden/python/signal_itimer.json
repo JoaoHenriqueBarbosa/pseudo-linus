@@ -1,0 +1,98 @@
+{
+  "signal-alarm-argument-errors": {
+    "stdout": "TypeError 'float' object cannot be interpreted as an integer\nTypeError 'str' object cannot be interpreted as an integer\nTypeError 'NoneType' object cannot be interpreted as an integer\nOverflowError Python int too large to convert to C int\nOverflowError Python int too large to convert to C int\nTrue\nTrue\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "signal-alarm-default-action-kills-a-busy-loop": {
+    "stdout": "rc=142\n",
+    "stderr": "bash: line 6:    68 Alarm clock             python3 -c '\nimport signal\nsignal.setitimer(signal.ITIMER_REAL, 0.1)\nwhile True:\n    pass\n'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "signal-alarm-default-action-kills-the-process": {
+    "stdout": "True True Alarm clock\nrc=142\n",
+    "stderr": "bash: line 11:    63 Alarm clock             python3 -c 'import signal; signal.alarm(1); import time; time.sleep(5)'\n",
+    "exit": 0,
+    "files": {}
+  },
+  "signal-alarm-delivers-to-the-handler": {
+    "stdout": "True (0.0, 0.0)\nTrue\n[14]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "signal-alarm-handler-exception-interrupts-sleep": {
+    "stdout": "interrompido tempo esgotado True\n(0.0, 0.0)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "signal-alarm-ignored-does-not-interrupt": {
+    "stdout": "seguiu (0.0, 0.0)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "signal-alarm-remainder-and-cancel": {
+    "stdout": "0\n0\nTrue 0.0\n100\n50\n(0.0, 0.0)\n0\n0\nTrue\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "signal-alarm-sleep-resumes-after-the-handler": {
+    "stdout": "1 True\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "signal-itimer-constants-and-error": {
+    "stdout": "0 1 2\nTrue itimer_error signal\nTrue OSError\nTrue True True\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "signal-itimer-cpu-timers-fire-on-cpu-time": {
+    "stdout": "virtual True (0.0, 0.0)\nprof True (0.0, 0.0)\n[]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "signal-itimer-exec-keeps-the-timers": {
+    "stdout": "True 3.0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "signal-itimer-fork-clears-the-child-timers": {
+    "stdout": "parent [True, True, True] [3.0, 4.0, 5.0]\nTrue\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "signal-itimer-handler-sees-the-signal-number": {
+    "stdout": "[(14, 'SIGALRM', True)]\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "signal-setitimer-errors": {
+    "stdout": "itimer_error (22, 'Invalid argument')\nitimer_error (22, 'Invalid argument')\nitimer_error (22, 'Invalid argument')\nitimer_error (22, 'Invalid argument')\nitimer_error (22, 'Invalid argument')\nitimer_error (22, 'Invalid argument')\nitimer_error (22, 'Invalid argument')\nTypeError 'str' object cannot be interpreted as an integer\nTypeError 'str' object cannot be interpreted as an integer\nTypeError 'NoneType' object cannot be interpreted as an integer\nValueError Invalid value NaN (not a number)\nOverflowError timestamp out of range for platform time_t\nTypeError 'float' object cannot be interpreted as an integer\nTypeError 'str' object cannot be interpreted as an integer\nOverflowError Python int too large to convert to C int\n22 Invalid argument True [Errno 22] Invalid argument\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "signal-setitimer-interval-repeats-until-cancelled": {
+    "stdout": "True\n0.02\nTrue (0.0, 0.0)\nTrue\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "signal-setitimer-returns-the-previous-timer": {
+    "stdout": "(0.0, 0.0) float\nTrue 5.0\n(0.0, 0.0)\n(0.0, 0.0)\nTrue\n0.25\n0.25\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

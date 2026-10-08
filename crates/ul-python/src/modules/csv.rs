@@ -4,7 +4,7 @@
 //! `join_append_data`. `QUOTE_NONNUMERIC` no leitor não converte campos para `float` (devolve
 //! strings), e `QUOTE_STRINGS`/`QUOTE_NOTNULL` não distinguem campo vazio de `None` na leitura.
 
-use crate::object::{to_str, Value};
+use crate::object::{code_points, cp_to_str, push_cp, to_str, Value};
 
 pub const QUOTE_MINIMAL: i32 = 0;
 pub const QUOTE_ALL: i32 = 1;
@@ -13,12 +13,13 @@ pub const QUOTE_NONE: i32 = 3;
 pub const QUOTE_STRINGS: i32 = 4;
 pub const QUOTE_NOTNULL: i32 = 5;
 
-/// Dialeto de CSV (padrão: `excel`).
+/// Dialeto de CSV (padrão: `excel`). Os caracteres são código-pontos (`Py_UCS4` do `_csv.c`),
+/// o que inclui surrogates solitários e U+10FFFF.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Dialect {
-    pub delimiter: char,
-    pub quotechar: Option<char>,
-    pub escapechar: Option<char>,
+    pub delimiter: u32,
+    pub quotechar: Option<u32>,
+    pub escapechar: Option<u32>,
     pub doublequote: bool,
     pub skipinitialspace: bool,
     pub lineterminator: String,
@@ -29,8 +30,8 @@ pub struct Dialect {
 impl Default for Dialect {
     fn default() -> Self {
         Dialect {
-            delimiter: ',',
-            quotechar: Some('"'),
+            delimiter: u32::from(b','),
+            quotechar: Some(u32::from(b'"')),
             escapechar: None,
             doublequote: true,
             skipinitialspace: false,
@@ -65,10 +66,10 @@ enum State {
 }
 
 /// Fim de linha sintético (`EOL` do C, o `'\0'` que fecha cada linha).
-const EOL: Option<char> = None;
+const EOL: Option<u32> = None;
 
 /// Leitor (`_csv.reader`).
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Reader {
     dialect: Dialect,
     state: State,
@@ -87,17 +88,17 @@ impl Reader {
         self.fields.push(f);
     }
 
-    fn is_quote(&self, c: char) -> bool {
+    fn is_quote(&self, c: u32) -> bool {
         self.dialect.quoting != QUOTE_NONE && self.dialect.quotechar == Some(c)
     }
 
-    fn is_escape(&self, c: char) -> bool {
+    fn is_escape(&self, c: u32) -> bool {
         self.dialect.escapechar == Some(c)
     }
 
     /// `parse_process_char`; `c == None` é o fim de linha.
-    fn process_char(&mut self, c: Option<char>) -> Result<(), CsvError> {
-        let is_nl = matches!(c, Some('\n') | Some('\r'));
+    fn process_char(&mut self, c: Option<u32>) -> Result<(), CsvError> {
+        let is_nl = matches!(c, Some(10) | Some(13));
         let mut state = self.state;
         // Os `fallthru` do C viram laços de reentrada no estado seguinte.
         loop {
@@ -123,12 +124,12 @@ impl Reader {
                             state = State::InQuotedField;
                         } else if self.is_escape(ch) {
                             state = State::EscapedChar;
-                        } else if ch == ' ' && self.dialect.skipinitialspace {
+                        } else if ch == u32::from(b' ') && self.dialect.skipinitialspace {
                             // ignora o espaço inicial
                         } else if ch == self.dialect.delimiter {
                             self.save_field();
                         } else {
-                            self.field.push(ch);
+                            push_cp(&mut self.field, ch);
                             state = State::InField;
                         }
                     }
@@ -136,11 +137,11 @@ impl Reader {
                 }
                 State::EscapedChar => {
                     if is_nl {
-                        self.field.push(c.unwrap());
+                        push_cp(&mut self.field, c.unwrap());
                         state = State::AfterEscapedCrnl;
                         break;
                     }
-                    self.field.push(c.unwrap_or('\n'));
+                    push_cp(&mut self.field, c.unwrap_or(10));
                     state = State::InField;
                     break;
                 }
@@ -163,7 +164,7 @@ impl Reader {
                             self.save_field();
                             state = State::StartField;
                         } else {
-                            self.field.push(ch);
+                            push_cp(&mut self.field, ch);
                         }
                     }
                     break;
@@ -175,20 +176,20 @@ impl Reader {
                         } else if self.is_quote(ch) {
                             state = if self.dialect.doublequote { State::QuoteInQuotedField } else { State::InField };
                         } else {
-                            self.field.push(ch);
+                            push_cp(&mut self.field, ch);
                         }
                     }
                     break;
                 }
                 State::EscapeInQuotedField => {
-                    self.field.push(c.unwrap_or('\n'));
+                    push_cp(&mut self.field, c.unwrap_or(10));
                     state = State::InQuotedField;
                     break;
                 }
                 State::QuoteInQuotedField => {
                     if let Some(ch) = c {
                         if self.is_quote(ch) {
-                            self.field.push(ch);
+                            push_cp(&mut self.field, ch);
                             state = State::InQuotedField;
                             break;
                         }
@@ -202,15 +203,15 @@ impl Reader {
                         self.save_field();
                         state = if c == EOL { State::StartRecord } else { State::EatCrnl };
                     } else if !self.dialect.strict {
-                        self.field.push(c.unwrap());
+                        push_cp(&mut self.field, c.unwrap());
                         state = State::InField;
                     } else {
                         let ch = c.unwrap();
                         self.state = state;
                         return err(format!(
                             "'{}' expected after '{}'",
-                            self.dialect.delimiter,
-                            self.dialect.quotechar.unwrap_or(ch)
+                            cp_to_str(self.dialect.delimiter),
+                            cp_to_str(self.dialect.quotechar.unwrap_or(ch))
                         ));
                     }
                     break;
@@ -259,7 +260,7 @@ impl Reader {
                 }
             };
             self.line_num += 1;
-            for ch in line.chars() {
+            for ch in code_points(&line) {
                 self.process_char(Some(ch))?;
             }
             self.process_char(EOL)?;
@@ -279,13 +280,13 @@ fn join_append(
     mut quoted: bool,
 ) -> Result<(), CsvError> {
     let mut body = String::new();
-    for c in field.chars() {
+    for c in code_points(field) {
         let special = c == d.delimiter
             || Some(c) == d.escapechar
             || Some(c) == d.quotechar
-            || d.lineterminator.contains(c)
-            || c == '\n'
-            || c == '\r';
+            || code_points(&d.lineterminator).any(|t| t == c)
+            || c == 10
+            || c == 13;
         if special {
             let mut want_escape = false;
             if d.quoting == QUOTE_NONE {
@@ -293,7 +294,7 @@ fn join_append(
             } else {
                 if Some(c) == d.quotechar {
                     if d.doublequote {
-                        body.push(c);
+                        push_cp(&mut body, c);
                     } else {
                         want_escape = true;
                     }
@@ -306,21 +307,21 @@ fn join_append(
             }
             if want_escape {
                 match d.escapechar {
-                    Some(e) => body.push(e),
+                    Some(e) => push_cp(&mut body, e),
                     None => return err("need to escape, but no escapechar set"),
                 }
             }
         }
-        body.push(c);
+        push_cp(&mut body, c);
     }
     if quoted {
         let q = match d.quotechar {
             Some(q) => q,
             None => return err("quotechar must be set if quoting enabled"),
         };
-        out.push(q);
+        push_cp(out, q);
         out.push_str(&body);
-        out.push(q);
+        push_cp(out, q);
     } else {
         out.push_str(&body);
     }
@@ -335,12 +336,12 @@ pub fn writerow(dialect: &Dialect, fields: &[Value]) -> Result<String, CsvError>
     let mut out = String::new();
     for (i, f) in fields.iter().enumerate() {
         if i > 0 {
-            out.push(dialect.delimiter);
+            push_cp(&mut out, dialect.delimiter);
         }
         // `PyNumber_Check`: inteiro, real, complexo, ou instância com `__index__`, `__int__` ou `__float__` (Decimal).
         let is_number = match f {
             Value::Int(_) | Value::Big(_) | Value::Float(_) | Value::Bool(_) => true,
-            Value::Instance(i) => ["__index__", "__int__", "__float__", "__complex__"].iter().any(|n| i.class.lookup(n).is_some()),
+            Value::Instance(i) => ["__index__", "__int__", "__float__", "__complex__"].iter().any(|n| i.class().lookup(n).is_some()),
             _ => false,
         };
         let quoted = match dialect.quoting {
@@ -443,6 +444,20 @@ mod tests {
     #[test]
     fn writes_single_empty_field_quoted() {
         assert_eq!(writerow(&Dialect::default(), &[Value::str("")]).unwrap(), "\"\"\r\n");
+    }
+
+    #[test]
+    fn surrogate_and_max_delimiters_round_trip() {
+        for delimiter in [0xD800, 0x10_FFFF] {
+            let d = Dialect { delimiter, ..Dialect::default() };
+            let mut sep = String::new();
+            push_cp(&mut sep, delimiter);
+            let line = format!("a{sep}b\r\n");
+            let rows = read_all(d.clone(), &[line.as_str()]).unwrap();
+            assert_eq!(rows, vec![strs(&["a", "b"])]);
+            let out = writerow(&d, &[Value::str("a"), Value::str("b")]).unwrap();
+            assert_eq!(out, line);
+        }
     }
 
     #[test]

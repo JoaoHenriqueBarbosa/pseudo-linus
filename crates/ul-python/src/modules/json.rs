@@ -1,12 +1,39 @@
 //! Módulo `json` do CPython 3.13: `dumps` (sem indent, separadores `', '` e `': '`) e `loads`.
 //!
-//! Limitações conhecidas: inteiros fora de `i64` não são suportados no `loads`, e uma metade
-//! substituta (surrogate) solitária num `\uXXXX` vira U+FFFD, porque `String` do Rust não
-//! guarda surrogates.
+//! Limitação conhecida: inteiros fora de `i64` não são suportados no `loads`. Os textos são lidos
+//! e escritos por código-ponto (`code_points`, `cp_to_str`), então surrogates solitários passam
+//! como no CPython.
 
 use std::rc::Rc;
 
-use crate::object::{float_repr, repr, Dict, Value};
+use crate::object::{code_points, float_repr, push_cp, repr, Dict, Kw, Value};
+
+/// O char ASCII que o código-ponto `cp` representa; qualquer outro vira U+FFFD, que não é
+/// estrutural em JSON. Serve para casar delimitadores sem decodificar o texto.
+fn ascii_char(cp: u32) -> char {
+    if cp < 0x80 { cp as u8 as char } else { '\u{fffd}' }
+}
+
+/// O valor do dígito hexadecimal ASCII `cp`.
+fn hex_digit(cp: u32) -> Option<u32> {
+    char::from_u32(cp)?.to_digit(16)
+}
+
+/// `\uXXXX` de `cp`; acima do plano básico saem os dois surrogates, como no `ensure_ascii`.
+fn push_u_escape(out: &mut String, cp: u32) {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let (first, second) = if cp >= 0x1_0000 {
+        (0xd800 + ((cp - 0x1_0000) >> 10), Some(0xdc00 + ((cp - 0x1_0000) & 0x3ff)))
+    } else {
+        (cp, None)
+    };
+    for unit in std::iter::once(first).chain(second) {
+        out.push_str("\\u");
+        for k in [12, 8, 4, 0] {
+            out.push(HEX[((unit >> k) & 0xf) as usize] as char);
+        }
+    }
+}
 
 // ---------------------------------------------------------------------------
 // dumps
@@ -32,8 +59,8 @@ fn float_json(x: f64) -> String {
 
 fn encode_str(s: &str, ensure_ascii: bool, out: &mut String) {
     out.push('"');
-    for c in s.chars() {
-        match c {
+    for cp in code_points(s) {
+        match ascii_char(cp) {
             '"' => out.push_str("\\\""),
             '\\' => out.push_str("\\\\"),
             '\n' => out.push_str("\\n"),
@@ -41,17 +68,8 @@ fn encode_str(s: &str, ensure_ascii: bool, out: &mut String) {
             '\t' => out.push_str("\\t"),
             '\u{8}' => out.push_str("\\b"),
             '\u{c}' => out.push_str("\\f"),
-            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
-            c if ensure_ascii && crate::object::char_surrogate(c).is_some() => {
-                out.push_str(&format!("\\u{:04x}", crate::object::char_surrogate(c).unwrap_or(0)))
-            }
-            c if ensure_ascii && (c as u32) >= 0x7f => {
-                let mut buf = [0u16; 2];
-                for unit in c.encode_utf16(&mut buf) {
-                    out.push_str(&format!("\\u{:04x}", unit));
-                }
-            }
-            c => out.push(c),
+            _ if cp < 0x20 || (ensure_ascii && cp >= 0x7f) => push_u_escape(out, cp),
+            _ => push_cp(out, cp),
         }
     }
     out.push('"');
@@ -159,15 +177,21 @@ impl JsonError {
 const MAX_DEPTH: usize = 900;
 
 struct Parser {
-    s: Vec<char>,
+    /// Os código-pontos do texto: as posições dos erros contam como no CPython.
+    s: Vec<u32>,
 }
 
 impl Parser {
+    /// O delimitador ASCII em `i` (`ascii_char`), ou `None` além do fim.
+    fn peek(&self, i: usize) -> Option<char> {
+        self.s.get(i).map(|&c| ascii_char(c))
+    }
+
     fn err(&self, msg: &str, pos: usize) -> JsonError {
         let pos = pos.min(self.s.len());
         let before = &self.s[..pos];
-        let line = 1 + before.iter().filter(|&&c| c == '\n').count();
-        let col = match before.iter().rposition(|&c| c == '\n') {
+        let line = 1 + before.iter().filter(|&&c| c == 0x0a).count();
+        let col = match before.iter().rposition(|&c| c == 0x0a) {
             Some(i) => pos - i,
             None => pos + 1,
         };
@@ -175,7 +199,7 @@ impl Parser {
     }
 
     fn skip_ws(&self, mut i: usize) -> usize {
-        while matches!(self.s.get(i), Some(' ' | '\t' | '\n' | '\r')) {
+        while matches!(self.peek(i), Some(' ' | '\t' | '\n' | '\r')) {
             i += 1;
         }
         i
@@ -184,7 +208,7 @@ impl Parser {
     fn starts_with(&self, i: usize, lit: &str) -> bool {
         let mut k = i;
         for c in lit.chars() {
-            if self.s.get(k) != Some(&c) {
+            if self.s.get(k) != Some(&(c as u32)) {
                 return false;
             }
             k += 1;
@@ -196,7 +220,7 @@ impl Parser {
         if depth > MAX_DEPTH {
             return Err(JsonError::unsupported("maximum recursion depth exceeded while decoding a JSON document"));
         }
-        let Some(&c) = self.s.get(i) else {
+        let Some(c) = self.peek(i) else {
             return Err(self.err("Expecting value", i));
         };
         match c {
@@ -218,15 +242,15 @@ impl Parser {
     }
 
     fn number(&self, start: usize) -> Result<(Value, usize), JsonError> {
-        let digit = |k: usize| matches!(self.s.get(k), Some('0'..='9'));
+        let digit = |k: usize| matches!(self.peek(k), Some('0'..='9'));
         let mut i = start;
-        if self.s.get(i) == Some(&'-') {
+        if self.peek(i) == Some('-') {
             i += 1;
         }
         if !digit(i) {
             return Err(self.err("Expecting value", start));
         }
-        if self.s[i] == '0' {
+        if self.peek(i) == Some('0') {
             i += 1;
         } else {
             while digit(i) {
@@ -234,16 +258,16 @@ impl Parser {
             }
         }
         let mut is_float = false;
-        if self.s.get(i) == Some(&'.') && digit(i + 1) {
+        if self.peek(i) == Some('.') && digit(i + 1) {
             is_float = true;
             i += 1;
             while digit(i) {
                 i += 1;
             }
         }
-        if matches!(self.s.get(i), Some('e' | 'E')) {
+        if matches!(self.peek(i), Some('e' | 'E')) {
             let mut k = i + 1;
-            if matches!(self.s.get(k), Some('+' | '-')) {
+            if matches!(self.peek(k), Some('+' | '-')) {
                 k += 1;
             }
             if digit(k) {
@@ -254,7 +278,7 @@ impl Parser {
                 i = k;
             }
         }
-        let text: String = self.s[start..i].iter().collect();
+        let text: String = self.s[start..i].iter().map(|&c| ascii_char(c)).collect();
         if is_float {
             let x: f64 = text.parse().map_err(|_| self.err("Expecting value", start))?;
             Ok((Value::Float(x), i))
@@ -272,7 +296,7 @@ impl Parser {
         }
         let mut v = 0u32;
         for k in 0..4 {
-            v = v * 16 + self.s[at + k].to_digit(16)?;
+            v = v * 16 + hex_digit(self.s[at + k])?;
         }
         Some(v)
     }
@@ -282,13 +306,13 @@ impl Parser {
         let mut out = String::new();
         let mut i = begin;
         loop {
-            let Some(&c) = self.s.get(i) else {
+            let Some(c) = self.peek(i) else {
                 return Err(self.err("Unterminated string starting at", begin - 1));
             };
             match c {
                 '"' => return Ok((out, i + 1)),
                 '\\' => {
-                    let Some(&e) = self.s.get(i + 1) else {
+                    let Some(e) = self.peek(i + 1) else {
                         return Err(self.err("Unterminated string starting at", begin - 1));
                     };
                     match e {
@@ -305,7 +329,7 @@ impl Parser {
                                 return Err(self.err("Invalid \\uXXXX escape", i + 1));
                             };
                             i += 6;
-                            if (0xD800..0xDC00).contains(&cp) && self.s.get(i) == Some(&'\\') && self.s.get(i + 1) == Some(&'u') {
+                            if (0xD800..0xDC00).contains(&cp) && self.peek(i) == Some('\\') && self.peek(i + 1) == Some('u') {
                                 let Some(lo) = self.hex4(i + 2) else {
                                     return Err(self.err("Invalid \\uXXXX escape", i + 1));
                                 };
@@ -314,12 +338,8 @@ impl Parser {
                                     i += 6;
                                 }
                             }
-                            // Uma metade substituta solitária não cabe numa `String` do Rust: erro, para que o
-                            // chamador use o decodificador em Python em vez de trocá-la por U+FFFD.
-                            let Some(ch) = char::from_u32(cp) else {
-                                return Err(JsonError::unsupported("Lone surrogate"));
-                            };
-                            out.push(ch);
+                            // Uma metade substituta solitária fica como está, como no CPython.
+                            push_cp(&mut out, cp);
                             continue;
                         }
                         _ => return Err(self.err("Invalid \\escape", i)),
@@ -327,8 +347,8 @@ impl Parser {
                     i += 2;
                 }
                 c if (c as u32) < 0x20 => return Err(self.err("Invalid control character at", i)),
-                c => {
-                    out.push(c);
+                _ => {
+                    push_cp(&mut out, self.s[i]);
                     i += 1;
                 }
             }
@@ -338,19 +358,19 @@ impl Parser {
     fn array(&self, mut i: usize, depth: usize) -> Result<(Value, usize), JsonError> {
         let mut items = Vec::new();
         i = self.skip_ws(i);
-        if self.s.get(i) == Some(&']') {
+        if self.peek(i) == Some(']') {
             return Ok((Value::list(items), i + 1));
         }
         loop {
             let (v, end) = self.value(i, depth + 1)?;
             items.push(v);
             i = self.skip_ws(end);
-            match self.s.get(i) {
+            match self.peek(i) {
                 Some(']') => return Ok((Value::list(items), i + 1)),
                 Some(',') => {
                     let comma = i;
                     i = self.skip_ws(i + 1);
-                    if self.s.get(i) == Some(&']') {
+                    if self.peek(i) == Some(']') {
                         return Err(self.err("Illegal trailing comma before end of array", comma));
                     }
                 }
@@ -362,28 +382,28 @@ impl Parser {
     fn object(&self, mut i: usize, depth: usize) -> Result<(Value, usize), JsonError> {
         let mut dict = Dict::default();
         i = self.skip_ws(i);
-        if self.s.get(i) == Some(&'}') {
+        if self.peek(i) == Some('}') {
             return Ok((Value::dict(dict), i + 1));
         }
         loop {
-            if self.s.get(i) != Some(&'"') {
+            if self.peek(i) != Some('"') {
                 return Err(self.err("Expecting property name enclosed in double quotes", i));
             }
             let (key, end) = self.string(i + 1)?;
             i = self.skip_ws(end);
-            if self.s.get(i) != Some(&':') {
+            if self.peek(i) != Some(':') {
                 return Err(self.err("Expecting ':' delimiter", i));
             }
             i = self.skip_ws(i + 1);
             let (v, end) = self.value(i, depth + 1)?;
             dict.set(Value::str(key), v).map_err(|_| JsonError::unsupported("invalid dict key"))?;
             i = self.skip_ws(end);
-            match self.s.get(i) {
+            match self.peek(i) {
                 Some('}') => return Ok((Value::dict(dict), i + 1)),
                 Some(',') => {
                     let comma = i;
                     i = self.skip_ws(i + 1);
-                    if self.s.get(i) == Some(&'}') {
+                    if self.peek(i) == Some('}') {
                         return Err(self.err("Illegal trailing comma before end of object", comma));
                     }
                 }
@@ -395,7 +415,7 @@ impl Parser {
 
 /// `json.loads(s)`.
 pub fn loads(s: &str) -> Result<Value, JsonError> {
-    let p = Parser { s: s.chars().collect() };
+    let p = Parser { s: code_points(s).collect() };
     let start = p.skip_ws(0);
     let (v, end) = p.value(start, 0)?;
     let end = p.skip_ws(end);
@@ -415,7 +435,6 @@ pub fn loads(s: &str) -> Result<Value, JsonError> {
 
 use std::cell::RefCell;
 
-use crate::object::{char_surrogate, surrogate_to_char, Kw};
 use crate::vm::{exc, type_error, PyException, PyResult, Vm};
 
 /// Folga de pilha do C no 3.13 (`Py_C_RECURSION_LIMIT`) que sobra para os contêineres aninhados,
@@ -449,11 +468,6 @@ fn enter_recursive(limit: usize, place: &str) -> PyResult<()> {
 
 fn leave_recursive() {
     C_DEPTH.with(|c| c.set(c.get().saturating_sub(1)));
-}
-
-/// O código-ponto de um caractere do `str` da VM (os surrogates moram no plano 16).
-fn code_point(c: char) -> u32 {
-    char_surrogate(c).unwrap_or(c as u32)
 }
 
 /// O texto de um `str` ou de uma instância de subclasse de `str`.
@@ -498,40 +512,19 @@ fn first_arg_not_string(v: &Value) -> PyException {
 
 /// `ascii_escape_unicode`.
 fn ascii_escape(s: &str) -> String {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
     let mut out = String::with_capacity(s.len() + 2);
     out.push('"');
-    for ch in s.chars() {
-        let c = code_point(ch);
-        if (0x20..=0x7e).contains(&c) && c != u32::from(b'\\') && c != u32::from(b'"') {
-            out.push(ch);
-            continue;
-        }
-        out.push('\\');
-        match c {
-            0x5c => out.push('\\'),
-            0x22 => out.push('"'),
-            0x08 => out.push('b'),
-            0x0c => out.push('f'),
-            0x0a => out.push('n'),
-            0x0d => out.push('r'),
-            0x09 => out.push('t'),
-            _ => {
-                let mut c = c;
-                if c >= 0x10000 {
-                    let v = 0xd800 + ((c - 0x10000) >> 10);
-                    out.push('u');
-                    for k in [12, 8, 4, 0] {
-                        out.push(HEX[((v >> k) & 0xf) as usize] as char);
-                    }
-                    c = 0xdc00 + ((c - 0x10000) & 0x3ff);
-                    out.push('\\');
-                }
-                out.push('u');
-                for k in [12, 8, 4, 0] {
-                    out.push(HEX[((c >> k) & 0xf) as usize] as char);
-                }
-            }
+    for c in code_points(s) {
+        match ascii_char(c) {
+            ' '..='~' if c != 0x5c && c != 0x22 => out.push(c as u8 as char),
+            '\\' => out.push_str("\\\\"),
+            '"' => out.push_str("\\\""),
+            '\u{8}' => out.push_str("\\b"),
+            '\u{c}' => out.push_str("\\f"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            _ => push_u_escape(&mut out, c),
         }
     }
     out.push('"');
@@ -540,11 +533,10 @@ fn ascii_escape(s: &str) -> String {
 
 /// `escape_unicode`.
 fn escape(s: &str) -> String {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
     let mut out = String::with_capacity(s.len() + 2);
     out.push('"');
-    for ch in s.chars() {
-        match ch {
+    for cp in code_points(s) {
+        match ascii_char(cp) {
             '\\' => out.push_str("\\\\"),
             '"' => out.push_str("\\\""),
             '\u{8}' => out.push_str("\\b"),
@@ -552,12 +544,8 @@ fn escape(s: &str) -> String {
             '\n' => out.push_str("\\n"),
             '\r' => out.push_str("\\r"),
             '\t' => out.push_str("\\t"),
-            c if (c as u32) <= 0x1f => {
-                out.push_str("\\u00");
-                out.push(HEX[((c as u32) >> 4) as usize] as char);
-                out.push(HEX[((c as u32) & 0xf) as usize] as char);
-            }
-            c => out.push(c),
+            _ if cp <= 0x1f => push_u_escape(&mut out, cp),
+            _ => push_cp(&mut out, cp),
         }
     }
     out.push('"');
@@ -565,7 +553,7 @@ fn escape(s: &str) -> String {
 }
 
 /// `scanstring_unicode`: o texto e o índice depois da aspa final.
-fn scanstring_unicode(vm: &mut Vm, s: &Value, buf: &[char], end: i64, strict: bool) -> PyResult<(String, usize)> {
+fn scanstring_unicode(vm: &mut Vm, s: &Value, buf: &[u32], end: i64, strict: bool) -> PyResult<(String, usize)> {
     let len = buf.len();
     if end < 0 || len < end as usize {
         return Err(exc("ValueError", "end is out of bounds"));
@@ -577,7 +565,7 @@ fn scanstring_unicode(vm: &mut Vm, s: &Value, buf: &[char], end: i64, strict: bo
         let mut next = end;
         let mut c = 0u32;
         while next < len {
-            c = code_point(buf[next]);
+            c = buf[next];
             if c == u32::from(b'"') || c == u32::from(b'\\') {
                 break;
             }
@@ -592,7 +580,9 @@ fn scanstring_unicode(vm: &mut Vm, s: &Value, buf: &[char], end: i64, strict: bo
         if c != u32::from(b'"') && c != u32::from(b'\\') {
             return Err(raise_errmsg(vm, "Unterminated string starting at", s, begin));
         }
-        out.extend(&buf[end..next]);
+        for &cp in &buf[end..next] {
+            push_cp(&mut out, cp);
+        }
         next += 1;
         if c == u32::from(b'"') {
             end = next;
@@ -601,19 +591,19 @@ fn scanstring_unicode(vm: &mut Vm, s: &Value, buf: &[char], end: i64, strict: bo
         if next == len {
             return Err(raise_errmsg(vm, "Unterminated string starting at", s, begin));
         }
-        let e = code_point(buf[next]);
-        let ch: char;
+        let e = buf[next];
+        let ch: u32;
         if e != u32::from(b'u') {
             end = next + 1;
-            ch = match char::from_u32(e) {
-                Some('"') => '"',
-                Some('\\') => '\\',
-                Some('/') => '/',
-                Some('b') => '\u{8}',
-                Some('f') => '\u{c}',
-                Some('n') => '\n',
-                Some('r') => '\r',
-                Some('t') => '\t',
+            ch = match ascii_char(e) {
+                '"' => 0x22,
+                '\\' => 0x5c,
+                '/' => 0x2f,
+                'b' => 0x08,
+                'f' => 0x0c,
+                'n' => 0x0a,
+                'r' => 0x0d,
+                't' => 0x09,
                 _ => return Err(raise_errmsg(vm, "Invalid \\escape", s, end - 2)),
             };
         } else {
@@ -622,22 +612,21 @@ fn scanstring_unicode(vm: &mut Vm, s: &Value, buf: &[char], end: i64, strict: bo
             if end >= len {
                 return Err(raise_errmsg(vm, "Invalid \\uXXXX escape", s, next - 1));
             }
-            let hex = |at: usize| buf[at].to_digit(16).filter(|_| buf[at].is_ascii_hexdigit());
             let mut cp = 0u32;
             while next < end {
-                let Some(d) = hex(next) else {
+                let Some(d) = hex_digit(buf[next]) else {
                     return Err(raise_errmsg(vm, "Invalid \\uXXXX escape", s, end - 5));
                 };
                 cp = (cp << 4) | d;
                 next += 1;
             }
             // Par de surrogates: o `\uDC00` seguinte junta-se ao alto; senão o alto fica sozinho.
-            if (0xd800..0xdc00).contains(&cp) && end + 6 < len && buf[next] == '\\' && buf[next + 1] == 'u' {
+            if (0xd800..0xdc00).contains(&cp) && end + 6 < len && buf[next] == u32::from(b'\\') && buf[next + 1] == u32::from(b'u') {
                 next += 2;
                 end += 6;
                 let mut c2 = 0u32;
                 while next < end {
-                    let Some(d) = hex(next) else {
+                    let Some(d) = hex_digit(buf[next]) else {
                         return Err(raise_errmsg(vm, "Invalid \\uXXXX escape", s, end - 5));
                     };
                     c2 = (c2 << 4) | d;
@@ -649,9 +638,9 @@ fn scanstring_unicode(vm: &mut Vm, s: &Value, buf: &[char], end: i64, strict: bo
                     end -= 6;
                 }
             }
-            ch = char::from_u32(cp).unwrap_or_else(|| surrogate_to_char(cp));
+            ch = cp;
         }
-        out.push(ch);
+        push_cp(&mut out, ch);
     }
     Ok((out, end))
 }
@@ -667,28 +656,33 @@ struct Scanner {
     memo: std::collections::HashMap<String, Value>,
 }
 
-fn skip_ws(buf: &[char], mut idx: usize) -> usize {
-    while idx < buf.len() && matches!(buf[idx], ' ' | '\t' | '\n' | '\r') {
+/// O delimitador ASCII em `idx` de `buf`, ou `None` além do fim.
+fn at_char(buf: &[u32], idx: usize) -> Option<char> {
+    buf.get(idx).map(|&c| ascii_char(c))
+}
+
+fn skip_ws(buf: &[u32], mut idx: usize) -> usize {
+    while matches!(at_char(buf, idx), Some(' ' | '\t' | '\n' | '\r')) {
         idx += 1;
     }
     idx
 }
 
 /// `_parse_object_unicode`.
-fn parse_object(vm: &mut Vm, sc: &mut Scanner, s: &Value, buf: &[char], mut idx: usize) -> PyResult<(Value, usize)> {
+fn parse_object(vm: &mut Vm, sc: &mut Scanner, s: &Value, buf: &[u32], mut idx: usize) -> PyResult<(Value, usize)> {
     let has_pairs_hook = !matches!(sc.object_pairs_hook, Value::None);
     let mut pairs: Vec<Value> = Vec::new();
     let mut dict = Dict::default();
     idx = skip_ws(buf, idx);
-    if idx >= buf.len() || buf[idx] != '}' {
+    if at_char(buf, idx) != Some('}') {
         loop {
-            if idx >= buf.len() || buf[idx] != '"' {
+            if at_char(buf, idx) != Some('"') {
                 return Err(raise_errmsg(vm, "Expecting property name enclosed in double quotes", s, idx));
             }
             let (text, next) = scanstring_unicode(vm, s, buf, idx as i64 + 1, sc.strict)?;
             let key = sc.memo.entry(text.clone()).or_insert_with(|| Value::str(text)).clone();
             idx = skip_ws(buf, next);
-            if idx >= buf.len() || buf[idx] != ':' {
+            if at_char(buf, idx) != Some(':') {
                 return Err(raise_errmsg(vm, "Expecting ':' delimiter", s, idx));
             }
             idx = skip_ws(buf, idx + 1);
@@ -699,15 +693,15 @@ fn parse_object(vm: &mut Vm, sc: &mut Scanner, s: &Value, buf: &[char], mut idx:
                 dict.set(key, val).map_err(|_| exc("SystemError", "dict insertion failed"))?;
             }
             idx = skip_ws(buf, next);
-            if idx < buf.len() && buf[idx] == '}' {
+            if at_char(buf, idx) == Some('}') {
                 break;
             }
-            if idx >= buf.len() || buf[idx] != ',' {
+            if at_char(buf, idx) != Some(',') {
                 return Err(raise_errmsg(vm, "Expecting ',' delimiter", s, idx));
             }
             let comma = idx;
             idx = skip_ws(buf, idx + 1);
-            if idx < buf.len() && buf[idx] == '}' {
+            if at_char(buf, idx) == Some('}') {
                 return Err(raise_errmsg(vm, "Illegal trailing comma before end of object", s, comma));
             }
         }
@@ -726,23 +720,23 @@ fn parse_object(vm: &mut Vm, sc: &mut Scanner, s: &Value, buf: &[char], mut idx:
 }
 
 /// `_parse_array_unicode`.
-fn parse_array(vm: &mut Vm, sc: &mut Scanner, s: &Value, buf: &[char], mut idx: usize) -> PyResult<(Value, usize)> {
+fn parse_array(vm: &mut Vm, sc: &mut Scanner, s: &Value, buf: &[u32], mut idx: usize) -> PyResult<(Value, usize)> {
     let mut items = Vec::new();
     idx = skip_ws(buf, idx);
-    if idx >= buf.len() || buf[idx] != ']' {
+    if at_char(buf, idx) != Some(']') {
         loop {
             let (val, next) = scan_once(vm, sc, s, buf, idx as i64)?;
             items.push(val);
             idx = skip_ws(buf, next);
-            if idx < buf.len() && buf[idx] == ']' {
+            if at_char(buf, idx) == Some(']') {
                 break;
             }
-            if idx >= buf.len() || buf[idx] != ',' {
+            if at_char(buf, idx) != Some(',') {
                 return Err(raise_errmsg(vm, "Expecting ',' delimiter", s, idx));
             }
             let comma = idx;
             idx = skip_ws(buf, idx + 1);
-            if idx < buf.len() && buf[idx] == ']' {
+            if at_char(buf, idx) == Some(']') {
                 return Err(raise_errmsg(vm, "Illegal trailing comma before end of array", s, comma));
             }
         }
@@ -751,38 +745,39 @@ fn parse_array(vm: &mut Vm, sc: &mut Scanner, s: &Value, buf: &[char], mut idx: 
 }
 
 /// `_match_number_unicode`.
-fn match_number(vm: &mut Vm, sc: &mut Scanner, buf: &[char], start: usize) -> PyResult<(Value, usize)> {
+fn match_number(vm: &mut Vm, sc: &mut Scanner, buf: &[u32], start: usize) -> PyResult<(Value, usize)> {
     let end_idx = buf.len() as i64 - 1;
-    let digit = |i: i64| i >= 0 && i <= end_idx && buf[i as usize].is_ascii_digit();
+    let at = |i: i64| if i >= 0 && i <= end_idx { at_char(buf, i as usize) } else { None };
+    let digit = |i: i64| matches!(at(i), Some('0'..='9'));
     let mut idx = start as i64;
-    if buf[idx as usize] == '-' {
+    if at(idx) == Some('-') {
         idx += 1;
         if idx > end_idx {
             return Err(raise_stop_iteration(start));
         }
     }
-    match buf[idx as usize] {
-        '1'..='9' => {
+    match at(idx) {
+        Some('1'..='9') => {
             idx += 1;
             while digit(idx) {
                 idx += 1;
             }
         }
-        '0' => idx += 1,
+        Some('0') => idx += 1,
         _ => return Err(raise_stop_iteration(start)),
     }
     let mut is_float = false;
-    if idx < end_idx && buf[idx as usize] == '.' && digit(idx + 1) {
+    if idx < end_idx && at(idx) == Some('.') && digit(idx + 1) {
         is_float = true;
         idx += 2;
         while digit(idx) {
             idx += 1;
         }
     }
-    if idx < end_idx && matches!(buf[idx as usize], 'e' | 'E') {
+    if idx < end_idx && matches!(at(idx), Some('e' | 'E')) {
         let e_start = idx;
         idx += 1;
-        if idx < end_idx && matches!(buf[idx as usize], '-' | '+') {
+        if idx < end_idx && matches!(at(idx), Some('-' | '+')) {
             idx += 1;
         }
         while digit(idx) {
@@ -794,7 +789,7 @@ fn match_number(vm: &mut Vm, sc: &mut Scanner, buf: &[char], start: usize) -> Py
             idx = e_start;
         }
     }
-    let text: String = buf[start..idx as usize].iter().collect();
+    let text: String = buf[start..idx as usize].iter().map(|&c| ascii_char(c)).collect();
     let custom = if is_float && !matches!(sc.parse_float, Value::Builtin("float")) {
         Some(sc.parse_float.clone())
     } else if !is_float && !matches!(sc.parse_int, Value::Builtin("int")) {
@@ -813,7 +808,7 @@ fn match_number(vm: &mut Vm, sc: &mut Scanner, buf: &[char], start: usize) -> Py
 }
 
 /// `scan_once_unicode`.
-fn scan_once(vm: &mut Vm, sc: &mut Scanner, s: &Value, buf: &[char], idx: i64) -> PyResult<(Value, usize)> {
+fn scan_once(vm: &mut Vm, sc: &mut Scanner, s: &Value, buf: &[u32], idx: i64) -> PyResult<(Value, usize)> {
     if idx < 0 {
         return Err(exc("ValueError", "idx cannot be negative"));
     }
@@ -822,8 +817,8 @@ fn scan_once(vm: &mut Vm, sc: &mut Scanner, s: &Value, buf: &[char], idx: i64) -
     if idx >= length {
         return Err(raise_stop_iteration(idx));
     }
-    let at = |k: usize, lit: &str| lit.chars().enumerate().all(|(j, c)| buf[k + j] == c);
-    match buf[idx] {
+    let at = |k: usize, lit: &str| lit.chars().enumerate().all(|(j, c)| buf[k + j] == c as u32);
+    match ascii_char(buf[idx]) {
         '"' => {
             let (text, next) = scanstring_unicode(vm, s, buf, idx as i64 + 1, sc.strict)?;
             return Ok((Value::str(text), next));
@@ -875,7 +870,7 @@ fn native_scan_once(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         parse_constant: vm.load_attr(&scanner, "parse_constant")?,
         memo: Default::default(),
     };
-    let buf: Vec<char> = text.as_str().chars().collect();
+    let buf: Vec<u32> = code_points(text.as_str()).collect();
     let (v, next) = scan_once(vm, &mut sc, &s, &buf, idx)?;
     Ok(Value::tuple(vec![v, Value::Int(next as i64)]))
 }
@@ -892,7 +887,7 @@ fn native_scanstring(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let end = crate::native_util::want_int(&args[1])?;
     let strict = args.get(2).is_none_or(|v| v.is_true());
     let Some(text) = str_payload(&args[0]) else { return Err(first_arg_not_string(&args[0])) };
-    let buf: Vec<char> = text.as_str().chars().collect();
+    let buf: Vec<u32> = code_points(text.as_str()).collect();
     let (out, next) = scanstring_unicode(vm, &args[0], &buf, end, strict)?;
     Ok(Value::tuple(vec![Value::str(out), Value::Int(next as i64)]))
 }

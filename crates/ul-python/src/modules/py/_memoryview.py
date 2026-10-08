@@ -1,8 +1,14 @@
 """`memoryview` sobre `bytes` e `bytearray`: uma visão (com fatias e passo) que escreve na base."""
 
+# No CPython a classe e os métodos são do módulo `builtins`; o nome deste módulo de apoio não pode vazar
+# em `__module__` das funções.
+__name__ = 'builtins'
 
 class memoryview:
     __module__ = 'builtins'
+
+    def __reduce__(self):
+        raise TypeError("cannot pickle 'memoryview' object")
 
     def __init__(self, obj):
         if isinstance(obj, memoryview):
@@ -125,7 +131,11 @@ class memoryview:
             return self.tobytes() == bytes(other)
         return NotImplemented
 
-    __hash__ = None
+    def __hash__(self):
+        self._check()
+        if not self.readonly:
+            raise ValueError('cannot hash writable memoryview object')
+        return hash(self.tobytes())
 
     def __repr__(self):
         if self._released:

@@ -151,7 +151,7 @@ fn update(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 fn clear(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     nokw("clear", &kw)?;
     noargs("clear", &args[1..])?;
-    *this(&args)?.borrow_mut() = Dict::default();
+    this(&args)?.borrow_mut().clear();
     Ok(Value::None)
 }
 

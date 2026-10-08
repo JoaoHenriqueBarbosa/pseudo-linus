@@ -4,6 +4,7 @@ para `isinstance(x, re.Pattern)` e anotações como `re.Match[str]`."""
 from _re import *
 from _re import (compile, match, search, fullmatch, findall, finditer, sub, subn, split, escape, purge, error)
 import enum as _enum
+from types import GenericAlias as _GenericAlias
 
 PatternError = error
 
@@ -47,10 +48,11 @@ class _NativeType(type):
 
 
 class Pattern(metaclass=_NativeType):
-    def __class_getitem__(cls, item):
-        return cls
+    __class_getitem__ = classmethod(_GenericAlias)
 
 
 class Match(metaclass=_NativeType):
-    def __class_getitem__(cls, item):
-        return cls
+    __class_getitem__ = classmethod(_GenericAlias)
+
+
+del _GenericAlias

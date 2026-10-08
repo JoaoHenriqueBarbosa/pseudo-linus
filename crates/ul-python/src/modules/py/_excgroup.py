@@ -1,7 +1,14 @@
 """BaseExceptionGroup, ExceptionGroup e o auxiliar `_eg_split` da instrução `except*`."""
 
+# No CPython as classes e os métodos são do módulo `builtins`; o nome deste módulo de apoio não pode vazar
+# em `__module__` (das classes nem das funções).
+__name__ = 'builtins'
+
+from types import GenericAlias as _GenericAlias
+
 
 class BaseExceptionGroup(BaseException):
+    __class_getitem__ = classmethod(_GenericAlias)
 
     def __new__(cls, message, exceptions):
         if not isinstance(message, str):
@@ -92,7 +99,7 @@ class BaseExceptionGroup(BaseException):
 
 
 class ExceptionGroup(BaseExceptionGroup, Exception):
-    pass
+    __class_getitem__ = classmethod(_GenericAlias)
 
 
 def _eg_split(exc, types):

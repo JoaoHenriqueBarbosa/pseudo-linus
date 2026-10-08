@@ -135,9 +135,11 @@ def _build():
             def __repr__(self):
                 return '%s.%s(%s)' % (module, name, ', '.join('%s=%r' % kv for kv in zip(fields, self._values)))
 
-        plain(StructSeq, name)
-        StructSeq.__module__ = module
-        return StructSeq(values)
+        # O tipo se chama `flags`, `version_info`... (o `tp_name` do CPython), não `StructSeq`.
+        skip = ('__dict__', '__weakref__', '__module__', '__qualname__', '__doc__')
+        attrs = {k: v for k, v in vars(StructSeq).items() if k not in skip}
+        attrs['__module__'] = module
+        return type(name, (), attrs)(values)
 
     class SimpleNamespace:
         def __init__(self, **kw):
@@ -228,10 +230,13 @@ def _build():
         def __repr__(self):
             return repr(self._all())
 
-    plain(Modules, 'dict')
-    Modules.__module__ = 'builtins'
+    skip = ('__dict__', '__weakref__', '__module__', '__qualname__', '__doc__')
+    # `sys.modules` é um `dict` para o programa: o tipo leva o nome do embutido.
+    modules_attrs = {k: v for k, v in vars(Modules).items() if k not in skip}
+    modules_attrs['__module__'] = 'builtins'
+    Modules = type('dict', (), modules_attrs)
 
-    state = {'profile': None, 'audit': [], 'dlopenflags': 2, 'int_max_str_digits': 4300,
+    state = {'audit': [], 'dlopenflags': 2, 'int_max_str_digits': 4300,
              'asyncgen_hooks': (None, None), 'coroutine_depth': 0, 'switchinterval': 0.005}
 
     ns = {}
@@ -263,8 +268,26 @@ def _build():
 
     @public
     def breakpointhook(*args, **kws):
-        import pdb
-        return pdb.set_trace(*args, **kws)
+        """This hook function is called by built-in breakpoint()."""
+        # `sys_breakpointhook` do sysmodule.c: lê o PYTHONBREAKPOINT a cada chamada (a não ser com -E).
+        import _os
+        envar = None if _sys.cli_flags[7] else _os.getenv('PYTHONBREAKPOINT')
+        if not envar:
+            hookname = 'pdb.set_trace'
+        elif envar == '0':
+            return None
+        else:
+            hookname = envar
+        modname, dot, attrname = hookname.rpartition('.')
+        if not dot:
+            modname = 'builtins'
+        try:
+            hook = getattr(__import__(modname, None, None, ['__name__']), attrname)
+        except BaseException:
+            import warnings
+            warnings.warn('Ignoring unimportable $PYTHONBREAKPOINT: "%s"' % envar, RuntimeWarning, 2)
+            return None
+        return hook(*args, **kws)
 
     @public
     def unraisablehook(unraisable):
@@ -273,16 +296,6 @@ def _build():
         msg = unraisable.err_msg or 'Exception ignored in'
         _sys.stderr.write('%s: %r\n' % (msg, unraisable.object))
         tb.print_exception(unraisable.exc_type, unraisable.exc_value, unraisable.exc_traceback)
-
-    @public
-    def setprofile(function):
-        """Set the profiling function."""
-        state['profile'] = function
-
-    @public
-    def getprofile():
-        """Return the profiling function set with sys.setprofile."""
-        return state['profile']
 
     @public
     def addaudithook(hook):
@@ -331,6 +344,7 @@ def _build():
         if interval <= 0:
             raise ValueError('switch interval must be strictly positive')
         state['switchinterval'] = float(interval)
+        _sys._gt_interval(state['switchinterval'])
 
     @public
     def getdlopenflags():
@@ -448,7 +462,9 @@ def _build():
     def _getframemodulename(depth=0):
         """Return the name of the module for a calling frame."""
         try:
-            return _sys._getframe(depth + 1).f_globals.get('__name__')
+            # Esta função conta como embutida (sem quadro próprio, como a do CPython): o quadro 0 do
+            # `_getframe` já é o de quem a chamou.
+            return _sys._getframe(depth).f_globals.get('__name__')
         except ValueError:
             return None
 
@@ -459,7 +475,7 @@ def _build():
     @public
     def _setprofileallthreads(function):
         """Set the profiling function in all running threads belonging to the current interpreter."""
-        state['profile'] = function
+        _sys.setprofile(function)
 
     @public
     def _settraceallthreads(function):
@@ -609,6 +625,8 @@ def _build():
         setrecursionlimit=_sys.setrecursionlimit,
         settrace=_sys.settrace,
         gettrace=_sys.gettrace,
+        setprofile=_sys.setprofile,
+        getprofile=_sys.getprofile,
         version='3.13.5 (main, Aug 10 2026, 12:06:59) [GCC 14.2.0]',
         version_info=version_info,
         hexversion=hexversion,

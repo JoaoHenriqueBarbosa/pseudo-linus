@@ -24,6 +24,10 @@ def _ncallbacks():
 
 def _run_exitfuncs():
     import sys
+    # O `Py_FinalizeEx` espera as threads (`threading._shutdown`) antes de chamar as funções do `atexit`.
+    threading = sys.modules.get('threading')
+    if threading is not None:
+        threading._shutdown()
     while _exithandlers:
         func, args, kwargs = _exithandlers.pop()
         try:

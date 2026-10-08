@@ -56,9 +56,22 @@ fn to_set(items: Vec<Value>) -> Result<Set, PyException> {
     Ok(s)
 }
 
+/// Refaz uma view a partir da imagem do heap (o inverso de [`ExtObject::image`]).
+pub(crate) fn restore_image(_tag: &str, state: &(dyn std::any::Any + Send + Sync), refs: Vec<Value>) -> Option<Value> {
+    let kind = *state.downcast_ref::<Kind>()?;
+    match refs.into_iter().next()? {
+        Value::Dict(d) => Some(DictView::make(d, kind)),
+        _ => None,
+    }
+}
+
 impl ExtObject for DictView {
     fn type_name(&self) -> &'static str {
         self.name()
+    }
+
+    fn image(&self) -> Option<crate::object::ExtImage> {
+        crate::object::OpaqueImage::image("dict_view", self.kind, vec![Value::Dict(self.dict.clone())])
     }
 
     fn repr(&self) -> String {
@@ -68,6 +81,16 @@ impl ExtObject for DictView {
 
     fn methods(&self) -> &'static [&'static str] {
         &["isdisjoint"]
+    }
+
+    fn getattr(&self, vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
+        match name {
+            // O `mappingproxy` do dicionário de que a view vem.
+            "mapping" => Some(crate::builtins_ext::mapping_proxy(vm, Value::Dict(self.dict.clone()))),
+            // As views de conjunto definem `__eq__` sem `__hash__`: o `__hash__` delas é `None`.
+            "__hash__" if self.set_like() => Some(Ok(Value::None)),
+            _ => None,
+        }
     }
 
     fn call_method(&self, _vm: &mut Vm, name: &str, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {

@@ -1,0 +1,44 @@
+{
+  "termios-dir-and-constants": {
+    "stdout": "249\nB0 B1000000 B110 B115200 B1152000 B1200 B134 B150 B1500000 B1800 B19200 B200 B2000000 B230400 B2400 B2500000 B300 B3000000 B3500000 B38400 B4000000 B460800 B4800 B50 B500000 B57600 B576000 B600 B75 B921600 B9600 BRKINT BS0 BS1 BSDLY CBAUD CBAUDEX CDSUSP CEOF CEOL CEOT CERASE CFLUSH CIBAUD CINTR CKILL CLNEXT CLOCAL CQUIT CR0 CR1 CR2 CR3 CRDLY CREAD CRPRNT CRTSCTS CS5 CS6 CS7 CS8 CSIZE CSTART CSTOP CSTOPB CSUSP CWERASE ECHO ECHOCTL ECHOE ECHOK ECHOKE ECHONL ECHOPRT EXTA EXTB EXTPROC FF0 FF1 FFDLY FIOASYNC FIOCLEX FIONBIO FIONCLEX FIONREAD FLUSHO HUPCL ICANON ICRNL IEXTEN IGNBRK IGNCR IGNPAR IMAXBEL INLCR INPCK IOCSIZE_MASK IOCSIZE_SHIFT ISIG ISTRIP IUCLC IUTF8 IXANY IXOFF IXON NCC NCCS NL0 NL1 NLDLY NOFLSH N_MOUSE N_PPP N_SLIP N_STRIP N_TTY OCRNL OFDEL OFILL OLCUC ONLCR ONLRET ONOCR OPOST PARENB PARMRK PARODD PENDIN TAB0 TAB1 TAB2 TAB3 TABDLY TCFLSH TCGETA TCGETS TCIFLUSH TCIOFF TCIOFLUSH TCION TCOFLUSH TCOOFF TCOON TCSADRAIN TCSAFLUSH TCSANOW TCSBRK TCSBRKP TCSETA TCSETAF TCSETAW TCSETS TCSETSF TCSETSW TCXONC TIOCCONS TIOCEXCL TIOCGETD TIOCGICOUNT TIOCGLCKTRMIOS TIOCGPGRP TIOCGSERIAL TIOCGSOFTCAR TIOCGWINSZ TIOCINQ TIOCLINUX TIOCMBIC TIOCMBIS TIOCMGET TIOCMIWAIT TIOCMSET TIOCM_CAR TIOCM_CD TIOCM_CTS TIOCM_DSR TIOCM_DTR TIOCM_LE TIOCM_RI TIOCM_RNG TIOCM_RTS TIOCM_SR TIOCM_ST TIOCNOTTY TIOCNXCL TIOCOUTQ TIOCPKT TIOCPKT_DATA TIOCPKT_DOSTOP TIOCPKT_FLUSHREAD TIOCPKT_FLUSHWRITE TIOCPKT_NOSTOP TIOCPKT_START TIOCPKT_STOP TIOCSCTTY TIOCSERCONFIG TIOCSERGETLSR TIOCSERGETMULTI TIOCSERGSTRUCT TIOCSERGWILD TIOCSERSETMULTI TIOCSERSWILD TIOCSER_TEMT TIOCSETD TIOCSLCKTRMIOS TIOCSPGRP TIOCSSERIAL TIOCSSOFTCAR TIOCSTI TIOCSWINSZ TOSTOP VDISCARD VEOF VEOL VEOL2 VERASE VINTR VKILL VLNEXT VMIN VQUIT VREPRINT VSTART VSTOP VSUSP VSWTC VSWTCH VT0 VT1 VTDLY VTIME VWERASE XCASE XTABS _POSIX_VDISABLE __doc__ __file__ __loader__ __name__ __package__ __spec__ error tcdrain tcflow tcflush tcgetattr tcgetwinsize tcsendbreak tcsetattr tcsetwinsize\n0 1 2\n0 1 2 3\n21515 21514 21513 21541\ntermios error Exception\ntcflush builtin_function_or_method termios Discard queued data on file descriptor fd.\ntcflow builtin_function_or_method termios Suspend or resume input or output on file descriptor fd.\ntcdrain builtin_function_or_method termios Wait until all output written to file descriptor fd has been transmitted.\ntcsendbreak builtin_function_or_method termios Send a break on file descriptor fd.\ntcgetattr builtin_function_or_method termios Get the tty attributes for file descriptor fd.\ntcsetattr builtin_function_or_method termios Set the tty attributes for file descriptor fd.\ntcgetwinsize builtin_function_or_method termios Get the tty winsize for file descriptor fd.\ntcsetwinsize builtin_function_or_method termios Set the tty winsize for file descriptor fd.\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "termios-flush-and-flow-argument-checks": {
+    "stdout": "builtins TypeError (\"'str' object cannot be interpreted as an integer\",)\nbuiltins TypeError (\"'float' object cannot be interpreted as an integer\",)\nbuiltins OverflowError ('Python int too large to convert to C int',)\nbuiltins OverflowError ('Python int too large to convert to C int',)\nbuiltins TypeError ('tcflush expected 2 arguments, got 1',)\nbuiltins TypeError ('tcflush expected 2 arguments, got 0',)\nbuiltins TypeError ('termios.tcflush() takes no keyword arguments',)\nbuiltins TypeError ('argument must be an int, or have a fileno() method.',)\nbuiltins TypeError ('argument must be an int, or have a fileno() method.',)\nbuiltins TypeError (\"'str' object cannot be interpreted as an integer\",)\nbuiltins TypeError (\"'NoneType' object cannot be interpreted as an integer\",)\nbuiltins OverflowError ('Python int too large to convert to C int',)\nbuiltins TypeError ('tcflow expected 2 arguments, got 1',)\nbuiltins TypeError ('termios.tcflow() takes no keyword arguments',)\ntermios error (22, 'Invalid argument')\ntermios error (22, 'Invalid argument')\ntermios error (22, 'Invalid argument')\ntermios error (22, 'Invalid argument')\nNone None None\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "termios-non-tty-errors": {
+    "stdout": "tcflush error (25, 'Inappropriate ioctl for device')\ntcflush-bad-queue error (25, 'Inappropriate ioctl for device')\ntcflow error (25, 'Inappropriate ioctl for device')\ntcflow-bad-action error (25, 'Inappropriate ioctl for device')\ntcdrain error (25, 'Inappropriate ioctl for device')\ntcsendbreak error (25, 'Inappropriate ioctl for device')\ntcgetattr error (25, 'Inappropriate ioctl for device')\ntcsetattr error (25, 'Inappropriate ioctl for device')\ntcgetwinsize error (25, 'Inappropriate ioctl for device')\ntcsetwinsize error (25, 'Inappropriate ioctl for device')\ntcflush error (25, 'Inappropriate ioctl for device')\ntcflush-bad-queue error (25, 'Inappropriate ioctl for device')\ntcflow error (25, 'Inappropriate ioctl for device')\ntcflow-bad-action error (25, 'Inappropriate ioctl for device')\ntcdrain error (25, 'Inappropriate ioctl for device')\ntcsendbreak error (25, 'Inappropriate ioctl for device')\ntcgetattr error (25, 'Inappropriate ioctl for device')\ntcsetattr error (25, 'Inappropriate ioctl for device')\ntcgetwinsize error (25, 'Inappropriate ioctl for device')\ntcsetwinsize error (25, 'Inappropriate ioctl for device')\ntcflush error (25, 'Inappropriate ioctl for device')\ntcflush-bad-queue error (25, 'Inappropriate ioctl for device')\ntcflow error (25, 'Inappropriate ioctl for device')\ntcflow-bad-action error (25, 'Inappropriate ioctl for device')\ntcdrain error (25, 'Inappropriate ioctl for device')\ntcsendbreak error (25, 'Inappropriate ioctl for device')\ntcgetattr error (25, 'Inappropriate ioctl for device')\ntcsetattr error (25, 'Inappropriate ioctl for device')\ntcgetwinsize error (25, 'Inappropriate ioctl for device')\ntcsetwinsize error (25, 'Inappropriate ioctl for device')\ntcflush error (9, 'Bad file descriptor')\ntcflush-bad-queue error (9, 'Bad file descriptor')\ntcflow error (9, 'Bad file descriptor')\ntcflow-bad-action error (9, 'Bad file descriptor')\ntcdrain error (9, 'Bad file descriptor')\ntcsendbreak error (9, 'Bad file descriptor')\ntcgetattr error (9, 'Bad file descriptor')\ntcsetattr error (9, 'Bad file descriptor')\ntcgetwinsize error (9, 'Bad file descriptor')\ntcsetwinsize error (9, 'Bad file descriptor')\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "termios-pty-attributes-winsize-break-drain": {
+    "stdout": "[1280, 5, 191, 35387, 15, 15]\n[b'\\x03', b'\\x1c', b'\\x7f', b'\\x15', b'\\x04', b'\\x00', b'\\x01', b'\\x00', b'\\x11', b'\\x13', b'\\x1a', b'\\x00', b'\\x12', b'\\x0f', b'\\x17', b'\\x16', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00', b'\\x00']\n(0, 0) (0, 0)\n(24, 80) (24, 80)\n(50, 132)\nNone None None None\n0 0\nTrue\ntermios error (22, 'Invalid argument')\nbuiltins TypeError (\"'str' object cannot be interpreted as an integer\",)\nbuiltins TypeError ('tcsetwinsize, arg 2: must be a two-item sequence',)\nbuiltins TypeError ('tcsetwinsize, arg 2: must be a two-item sequence',)\nbuiltins TypeError ('tcsetwinsize, arg 2: must be a two-item sequence',)\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "termios-pty-flow-output": {
+    "stdout": "True 1\nNone False BlockingIOError\nNone False\nNone True 1\nb'ab'\nNone True\nNone False BlockingIOError\nNone True 1\nb'old' BlockingIOError\n1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "termios-pty-flow-send": {
+    "stdout": "None True b'\\x13'\nNone True b'\\x11'\nNone False\nNone\nFalse False False BlockingIOError\nNone\nTrue 1 False True b'y'\nFalse BlockingIOError\nTrue 1 False\nFalse BlockingIOError\nTrue 1\nFalse\nTrue 1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "termios-pty-flush": {
+    "stdout": "b'ab\\r\\n'\nNone False\nb'xy'\nb'z\\r\\n' b'z\\n'\nb'keep\\r\\n'\nb'keep\\n'\nFalse\nb'again'\nFalse\nNone False\nb'new'\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  }
+}

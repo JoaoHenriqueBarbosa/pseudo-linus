@@ -26,6 +26,11 @@ name = "kernel"
 path = "tests/kernel.rs"
 required-features = ["kernel", "test-programs"]
 
+[[test]]
+name = "python"
+path = "tests/python.rs"
+required-features = ["kernel"]
+
 [features]
 default = ["kernel"]
 # O backend de produção: o kernel do pseudo-linus com a tabela completa de programas.

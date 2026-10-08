@@ -443,8 +443,9 @@ class ZipFile:
         self._didModify = True
 
     def read(self, name, pwd=None):
-        with self.open(name, 'r', pwd) as fp:
-            return fp.read()
+        if not self.fp:
+            raise ValueError('Attempt to use ZIP archive that was already closed')
+        return self._read_member(name if isinstance(name, ZipInfo) else self.getinfo(name))
 
     def _read_member(self, zinfo):
         if self.fp is None:

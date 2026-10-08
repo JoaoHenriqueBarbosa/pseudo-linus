@@ -6,7 +6,7 @@
 //! e os mantém iguais: a tabela empurra cada nome gravado para o dict (`push`) e o dict puxa para a tabela o que
 //! mudou desde a última sincronização (`sync_pull`, antes de cada instrução, só enquanto existir alguma visão).
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, HashSet};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -15,6 +15,13 @@ use crate::object::{Dict, Value, VarMap};
 
 /// Ligada quando a primeira visão é criada; sem ela o laço da VM não paga nada.
 pub static ARMED: AtomicBool = AtomicBool::new(false);
+
+thread_local! {
+    /// O contador global de mutações de dict na última varredura completa de `sync_pull` deste interpretador.
+    /// É por thread, como as visões: cada processo Python do sandbox é uma thread do host, e a varredura de um
+    /// não vale pelas visões do outro.
+    static SEEN: Cell<u64> = const { Cell::new(0) };
+}
 
 struct View {
     map: Rc<RefCell<VarMap>>,
@@ -36,21 +43,25 @@ fn name_of(key: &Value) -> Option<String> {
     }
 }
 
-/// Copia a tabela (e os `extras`) para o dict, na ordem alfabética dos nomes novos.
+/// Copia a tabela para o dict na ordem de inserção dela; os `extras` que a tabela não tem entram depois, em
+/// ordem alfabética.
 fn refresh(view: &mut View, extras: &BTreeMap<String, Value>) {
-    let mut all: BTreeMap<String, Value> = extras.clone();
-    for (k, v) in view.map.borrow().iter() {
-        all.insert(k.to_string(), v.clone());
+    let mut all: Vec<(String, Value)> = Vec::new();
+    {
+        let map = view.map.borrow();
+        all.extend(map.iter().map(|(k, v)| (k.to_string(), v.clone())));
+        all.extend(extras.iter().filter(|(k, _)| !map.contains_key(k.as_str())).map(|(k, v)| (k.clone(), v.clone())));
     }
     let mut d = view.dict.borrow_mut();
-    let stale: Vec<String> = view.keys.iter().filter(|k| !all.contains_key(*k)).cloned().collect();
+    let present: HashSet<&str> = all.iter().map(|(k, _)| k.as_str()).collect();
+    let stale: Vec<String> = view.keys.iter().filter(|k| !present.contains(k.as_str())).cloned().collect();
     for k in stale {
         let _ = d.remove(&Value::str(k));
     }
     for (k, v) in &all {
         let _ = d.set(Value::str(k.clone()), v.clone());
     }
-    view.keys = all.into_keys().collect();
+    view.keys = all.into_iter().map(|(k, _)| k).collect();
     view.generation = d.generation;
 }
 
@@ -83,11 +94,26 @@ pub fn map_of_dict(dict: &Value) -> Option<Rc<RefCell<VarMap>>> {
 }
 
 /// Aplica nas tabelas o que mudou nos dicts desde a última sincronização.
+///
+/// O contador global de mutações de dict (`dict_generation_now`) é o filtro barato: se não andou desde a
+/// última varredura completa deste interpretador, nenhum dict mudou e não há o que olhar (uma leitura atômica
+/// e uma `Cell`). Só uma mutação de dict de verdade paga a varredura das visões.
 pub fn sync_pull() {
+    let now = crate::object::dict_generation_now();
+    if now == SEEN.with(Cell::get) {
+        return;
+    }
+    let mut complete = true;
     VIEWS.with(|views| {
-        let Ok(mut views) = views.try_borrow_mut() else { return };
+        let Ok(mut views) = views.try_borrow_mut() else {
+            complete = false;
+            return;
+        };
         for view in views.iter_mut() {
-            let Ok(d) = view.dict.try_borrow() else { continue };
+            let Ok(d) = view.dict.try_borrow() else {
+                complete = false;
+                continue;
+            };
             if d.generation == view.generation {
                 continue;
             }
@@ -102,12 +128,15 @@ pub fn sync_pull() {
                 }
             }
             for gone in view.keys.iter().filter(|k| !present.contains(*k)) {
-                map.remove(gone.as_str());
+                map.shift_remove(gone.as_str());
             }
             view.keys = present;
             view.generation = d.generation;
         }
     });
+    if complete {
+        SEEN.with(|s| s.set(now));
+    }
 }
 
 /// Uma global foi gravada (`Some`) ou apagada (`None`) na tabela `map`: reflete no dict da visão.

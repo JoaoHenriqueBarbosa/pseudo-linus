@@ -610,3 +610,181 @@ def stack(context=1):
         frames.append((f, f.f_code.co_filename, f.f_lineno, f.f_code.co_name, None, None))
         f = f.f_back
     return frames
+
+
+# -------------------------------------------------- source code extraction
+# O texto abaixo é o do inspect do CPython 3.13 (Lib/inspect.py), com os imports de `linecache` e
+# `tokenize` feitos na hora do uso.
+
+def indentsize(line):
+    """Return the indent size, in spaces, at the start of a line of text."""
+    expline = line.expandtabs()
+    return len(expline) - len(expline.lstrip())
+
+
+def findsource(object):
+    """Return the entire source file and starting line number for an object.
+
+    The argument may be a module, class, method, function, traceback, frame,
+    or code object.  The source code is returned as a list of all the lines
+    in the file and the line number indexes a line in that list.  An OSError
+    is raised if the source code cannot be retrieved."""
+    import linecache
+
+    file = getsourcefile(object)
+    if file:
+        # Invalidate cache if needed.
+        linecache.checkcache(file)
+    else:
+        file = getfile(object)
+        # Allow filenames in form of "<something>" to pass through.
+        if (not (file.startswith('<') and file.endswith('>'))) or file.endswith('.fwork'):
+            raise OSError('source code not available')
+
+    module = getmodule(object, file)
+    if module:
+        lines = linecache.getlines(file, module.__dict__)
+    else:
+        lines = linecache.getlines(file)
+    if not lines:
+        raise OSError('could not get source code')
+
+    if ismodule(object):
+        return lines, 0
+
+    if isclass(object):
+        try:
+            lnum = vars(object)['__firstlineno__'] - 1
+        except (TypeError, KeyError):
+            raise OSError('source code not available')
+        if lnum >= len(lines):
+            raise OSError('lineno is out of bounds')
+        return lines, lnum
+
+    if ismethod(object):
+        object = object.__func__
+    if isfunction(object):
+        object = object.__code__
+    if istraceback(object):
+        object = object.tb_frame
+    if isframe(object):
+        object = object.f_code
+    if iscode(object):
+        if not hasattr(object, 'co_firstlineno'):
+            raise OSError('could not find function definition')
+        lnum = object.co_firstlineno - 1
+        if lnum >= len(lines):
+            raise OSError('lineno is out of bounds')
+        return lines, lnum
+    raise OSError('could not find code object')
+
+
+class EndOfBlock(Exception):
+    pass
+
+
+class BlockFinder:
+    """Provide a tokeneater() method to detect the end of a code block."""
+    def __init__(self):
+        self.indent = 0
+        self.islambda = False
+        self.started = False
+        self.passline = False
+        self.indecorator = False
+        self.last = 1
+        self.body_col0 = None
+
+    def tokeneater(self, type, token, srowcol, erowcol, line):
+        import tokenize
+        if not self.started and not self.indecorator:
+            # skip any decorators
+            if token == "@":
+                self.indecorator = True
+            # look for the first "def", "class" or "lambda"
+            elif token in ("def", "class", "lambda"):
+                if token == "lambda":
+                    self.islambda = True
+                self.started = True
+            self.passline = True    # skip to the end of the line
+        elif type == tokenize.NEWLINE:
+            self.passline = False   # stop skipping when a NEWLINE is seen
+            self.last = srowcol[0]
+            if self.islambda:       # lambdas always end at the first NEWLINE
+                raise EndOfBlock
+            # hitting a NEWLINE when in a decorator without args
+            # ends the decorator
+            if self.indecorator:
+                self.indecorator = False
+        elif self.passline:
+            pass
+        elif type == tokenize.INDENT:
+            if self.body_col0 is None and self.started:
+                self.body_col0 = erowcol[1]
+            self.indent = self.indent + 1
+            self.passline = True
+        elif type == tokenize.DEDENT:
+            self.indent = self.indent - 1
+            # the end of matching indent/dedent pairs end a block
+            if self.indent <= 0:
+                raise EndOfBlock
+        elif type == tokenize.COMMENT:
+            if self.body_col0 is not None and srowcol[1] >= self.body_col0:
+                # Include comments if indented at least as much as the block
+                self.last = srowcol[0]
+        elif self.indent == 0 and type not in (tokenize.COMMENT, tokenize.NL):
+            # any other token on the same indentation level end the previous
+            # block as well, except the pseudo-tokens COMMENT and NL.
+            raise EndOfBlock
+
+
+def getblock(lines):
+    """Extract the block of code at the top of the given list of lines."""
+    import tokenize
+    blockfinder = BlockFinder()
+    try:
+        tokens = tokenize.generate_tokens(iter(lines).__next__)
+        for _token in tokens:
+            blockfinder.tokeneater(*_token)
+    except (EndOfBlock, IndentationError):
+        pass
+    except SyntaxError as e:
+        if "unmatched" not in e.msg:
+            raise e from None
+        _, *_token_info = _token
+        try:
+            blockfinder.tokeneater(tokenize.NEWLINE, *_token_info)
+        except (EndOfBlock, IndentationError):
+            pass
+    return lines[:blockfinder.last]
+
+
+def getsourcelines(object):
+    """Return a list of source lines and starting line number for an object.
+
+    The argument may be a module, class, method, function, traceback, frame,
+    or code object.  The source code is returned as a list of the lines
+    corresponding to the object and the line number indicates where in the
+    original source file the first line of code was found.  An OSError is
+    raised if the source code cannot be retrieved."""
+    object = unwrap(object)
+    lines, lnum = findsource(object)
+
+    if istraceback(object):
+        object = object.tb_frame
+
+    # for module or frame that corresponds to module, return all source lines
+    if (ismodule(object) or
+        (isframe(object) and object.f_code.co_name == "<module>")):
+        return lines, 0
+    else:
+        return getblock(lines[lnum:]), lnum + 1
+
+
+def getsource(object):
+    """Return the text of the source code for an object.
+
+    The argument may be a module, class, method, function, traceback, frame,
+    or code object.  The source code is returned as a single string.  An
+    OSError is raised if the source code cannot be retrieved."""
+    lines, lnum = getsourcelines(object)
+    return ''.join(lines)

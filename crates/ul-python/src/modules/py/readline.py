@@ -4,6 +4,7 @@ _history = []
 _completer = None
 _delims = ' \t\n`~!@#$%^&*()-=+[{]}\\|;:\'",<>/?'
 _history_length = -1
+backend = 'readline'
 
 
 def parse_and_bind(string):

@@ -11,7 +11,7 @@ use std::rc::{Rc, Weak};
 use super::re_engine::{self as eng, Captures, IterState, Mode, ReError, Regex};
 use super::ModuleBuilder;
 use crate::native_util::{bind, exactly, no_kwargs, want_int};
-use crate::object::{repr, Dict, ExcObj, ExtObject, Kw, ModuleObj, Value};
+use crate::object::{code_points, push_cp, repr, Dict, ExcObj, ExtObject, Kw, ModuleObj, Value};
 use crate::vm::{exc, type_error, PyException, PyResult, Vm};
 
 thread_local! {
@@ -23,7 +23,7 @@ thread_local! {
 
 const CACHE_MAX: usize = 512;
 
-fn to_py(e: &ReError, pattern: &[char]) -> PyException {
+fn to_py(e: &ReError, pattern: &[u32]) -> PyException {
     if e.value_error {
         exc("ValueError", e.msg.clone())
     } else {
@@ -32,13 +32,13 @@ fn to_py(e: &ReError, pattern: &[char]) -> PyException {
 }
 
 /// `re.error` com `msg`, `pattern` e `pos` guardados nos argumentos (o `str` mostra só o primeiro).
-fn re_error(e: &ReError, pattern: &[char]) -> PyException {
+fn re_error(e: &ReError, pattern: &[u32]) -> PyException {
     let formatted = e.format(pattern);
     let pos = e.pos.map_or(Value::None, |p| Value::Int(p as i64));
     let args = vec![
         Value::str(formatted.clone()),
         Value::str(e.msg.clone()),
-        Value::str(pattern.iter().collect::<String>()),
+        Value::str(eng::cps_to_string(pattern)),
         pos,
     ];
     let value = Value::Exception(Rc::new(ExcObj::new("re.PatternError", args)));
@@ -66,10 +66,10 @@ fn flags_of(v: &Option<Value>) -> PyResult<u32> {
 const TEXT_CACHE_MIN: usize = 512;
 
 thread_local! {
-    static TEXT_CACHE: std::cell::RefCell<Option<(Value, Rc<Vec<char>>)>> = const { std::cell::RefCell::new(None) };
+    static TEXT_CACHE: std::cell::RefCell<Option<(Value, Rc<Vec<u32>>)>> = const { std::cell::RefCell::new(None) };
 }
 
-fn cached_chars(v: &Value, convert: impl FnOnce() -> Vec<char>, len: usize) -> Rc<Vec<char>> {
+fn cached_chars(v: &Value, convert: impl FnOnce() -> Vec<u32>, len: usize) -> Rc<Vec<u32>> {
     if len < TEXT_CACHE_MIN {
         return Rc::new(convert());
     }
@@ -91,7 +91,7 @@ fn cached_chars(v: &Value, convert: impl FnOnce() -> Vec<char>, len: usize) -> R
 }
 
 /// O texto a casar: `str` (em pontos de código), ou `bytes` (um ponto de código por byte, latin-1).
-fn want_text_for(v: &Value, bytes_pattern: bool) -> PyResult<(Value, Rc<Vec<char>>)> {
+fn want_text_for(v: &Value, bytes_pattern: bool) -> PyResult<(Value, Rc<Vec<u32>>)> {
     // Subclasse de `str`/`bytes` (como `configparser._Line`): casa o valor embutido.
     let unwrapped = match crate::vm::unwrap_payload(v) {
         // `bytearray` e `memoryview` casam como `bytes` (os grupos saem `bytes`).
@@ -101,15 +101,15 @@ fn want_text_for(v: &Value, bytes_pattern: bool) -> PyResult<(Value, Rc<Vec<char
     let v = &unwrapped;
     match v {
         Value::Str(_) if bytes_pattern => Err(type_error("cannot use a bytes pattern on a string-like object")),
-        Value::Str(s) => Ok((v.clone(), cached_chars(v, || s.as_str().chars().collect(), s.len()))),
+        Value::Str(s) => Ok((v.clone(), cached_chars(v, || code_points(s.as_str()).collect(), s.len()))),
         Value::Bytes(_) if !bytes_pattern => Err(type_error("cannot use a string pattern on a bytes-like object")),
-        Value::Bytes(b) => Ok((v.clone(), cached_chars(v, || b.iter().map(|&c| c as char).collect(), b.len()))),
+        Value::Bytes(b) => Ok((v.clone(), cached_chars(v, || b.iter().map(|&c| u32::from(c)).collect(), b.len()))),
         other => Err(type_error(format!("expected string or bytes-like object, got '{}'", other.type_name()))),
     }
 }
 
 #[cfg(test)]
-fn want_text(v: &Value) -> PyResult<(Value, Rc<Vec<char>>)> {
+fn want_text(v: &Value) -> PyResult<(Value, Rc<Vec<u32>>)> {
     want_text_for(v, false)
 }
 
@@ -140,25 +140,17 @@ fn clamp_arg(v: Option<&Value>, default: i64, len: usize) -> PyResult<usize> {
     Ok(n.clamp(0, len as i64) as usize)
 }
 
-fn valid_name(s: &str) -> bool {
-    let mut it = s.chars();
-    match it.next() {
-        Some(c) if c == '_' || c.is_alphabetic() => {}
-        _ => return false,
-    }
-    it.all(|c| c == '_' || c.is_alphanumeric())
-}
 
 // ---------------------------------------------------------------------------
 // Núcleo sem VM (também usado pelos testes)
 // ---------------------------------------------------------------------------
 
-fn slice_string(chars: &[char], a: usize, b: usize) -> String {
-    chars[a..b].iter().collect()
+fn slice_string(chars: &[u32], a: usize, b: usize) -> String {
+    eng::cps_to_string(&chars[a..b])
 }
 
 /// `findall`: strings do casamento, do grupo único ou tuplas de grupos (não casados viram `''`).
-pub fn findall_core(re: &Regex, chars: &[char], pos: usize, endpos: usize) -> Vec<Value> {
+pub fn findall_core(re: &Regex, chars: &[u32], pos: usize, endpos: usize) -> Vec<Value> {
     let mut out = Vec::new();
     let mut st = IterState::new(pos, endpos);
     while let Some(c) = st.next(re, chars) {
@@ -180,7 +172,7 @@ pub fn findall_core(re: &Regex, chars: &[char], pos: usize, endpos: usize) -> Ve
 
 /// `split`: pedaços e, entre eles, os grupos de captura (`None` se o grupo não casou).
 /// `maxsplit == 0` não limita.
-pub fn split_core(re: &Regex, chars: &[char], maxsplit: usize) -> Vec<Option<String>> {
+pub fn split_core(re: &Regex, chars: &[u32], maxsplit: usize) -> Vec<Option<String>> {
     let mut out: Vec<Option<String>> = Vec::new();
     let mut last = 0usize;
     let mut n = 0usize;
@@ -203,7 +195,7 @@ pub fn split_core(re: &Regex, chars: &[char], maxsplit: usize) -> Vec<Option<Str
 }
 
 /// `sub`/`subn`: troca cada casamento (até `count`, 0 = todos) pelo que `f` devolver.
-pub fn sub_core<F>(re: &Regex, chars: &[char], count: usize, mut f: F) -> PyResult<(String, usize)>
+pub fn sub_core<F>(re: &Regex, chars: &[u32], count: usize, mut f: F) -> PyResult<(String, usize)>
 where
     F: FnMut(&Captures) -> PyResult<String>,
 {
@@ -217,12 +209,12 @@ where
             None => break,
         };
         let (s, e) = caps.spans[0].unwrap_or((last, last));
-        out.extend(chars[last..s].iter());
+        eng::push_cps(&mut out, &chars[last..s]);
         out.push_str(&f(&caps)?);
         last = e;
         n += 1;
     }
-    out.extend(chars[last..].iter());
+    eng::push_cps(&mut out, &chars[last..]);
     Ok((out, n))
 }
 
@@ -253,32 +245,31 @@ pub enum Tpl {
     Group(usize),
 }
 
-fn terr(msg: impl Into<String>, pos: usize, tpl: &[char]) -> PyException {
+fn terr(msg: impl Into<String>, pos: usize, tpl: &[u32]) -> PyException {
     re_error(&ReError::at(msg, pos), tpl)
 }
 
 /// Analisa `\1`, `\g<1>`, `\g<nome>`, `\n`... de um template de `sub`/`expand`.
-pub fn parse_template(tpl: &[char], re: &Regex) -> PyResult<Vec<Tpl>> {
+pub fn parse_template(tpl: &[u32], re: &Regex) -> PyResult<Vec<Tpl>> {
+    let at = |k: usize| tpl.get(k).copied().map(eng::cp_char);
     let mut out: Vec<Tpl> = Vec::new();
     let mut lit = String::new();
     let mut i = 0usize;
     while i < tpl.len() {
-        let c = tpl[i];
-        if c != '\\' {
-            lit.push(c);
+        if at(i) != Some('\\') {
+            push_cp(&mut lit, tpl[i]);
             i += 1;
             continue;
         }
         let bs = i;
         i += 1;
-        if i >= tpl.len() {
+        let Some(d) = at(i) else {
             return Err(terr("bad escape (end of pattern)", bs, tpl));
-        }
-        let d = tpl[i];
+        };
         i += 1;
         match d {
             'g' => {
-                if tpl.get(i) != Some(&'<') {
+                if at(i) != Some('<') {
                     return Err(terr("missing <", i, tpl));
                 }
                 i += 1;
@@ -288,11 +279,11 @@ pub fn parse_template(tpl: &[char], re: &Regex) -> PyResult<Vec<Tpl>> {
                 while i < tpl.len() {
                     let ch = tpl[i];
                     i += 1;
-                    if ch == '>' {
+                    if eng::cp_char(ch) == '>' {
                         closed = true;
                         break;
                     }
-                    name.push(ch);
+                    push_cp(&mut name, ch);
                 }
                 if !closed {
                     let m = if name.is_empty() { "missing group name" } else { "missing >, unterminated name" };
@@ -308,7 +299,7 @@ pub fn parse_template(tpl: &[char], re: &Regex) -> PyResult<Vec<Tpl>> {
                     }
                     n
                 } else {
-                    if !valid_name(&name) {
+                    if !eng::is_identifier(&name) {
                         return Err(terr(format!("bad character in group name '{name}'"), ns, tpl));
                     }
                     match re.group_index(&name) {
@@ -325,7 +316,7 @@ pub fn parse_template(tpl: &[char], re: &Regex) -> PyResult<Vec<Tpl>> {
                 let mut v = 0u32;
                 let mut n = 0;
                 while n < 2 {
-                    match tpl.get(i).and_then(|x| x.to_digit(8)) {
+                    match at(i).and_then(|x| x.to_digit(8)) {
                         Some(x) => {
                             v = v * 8 + x;
                             i += 1;
@@ -334,19 +325,19 @@ pub fn parse_template(tpl: &[char], re: &Regex) -> PyResult<Vec<Tpl>> {
                         None => break,
                     }
                 }
-                lit.push(char::from_u32(v).unwrap_or('\0'));
+                push_cp(&mut lit, v);
             }
             '1'..='9' => {
                 let mut n = d.to_digit(10).unwrap_or(0) as usize;
-                if let Some(&d2) = tpl.get(i) {
+                if let Some(d2) = at(i) {
                     if d2.is_ascii_digit() {
                         if ('0'..='3').contains(&d) && ('0'..='7').contains(&d2) {
-                            if let Some(&d3) = tpl.get(i + 1) {
+                            if let Some(d3) = at(i + 1) {
                                 if ('0'..='7').contains(&d3) {
                                     let v = d.to_digit(8).unwrap_or(0) * 64
                                         + d2.to_digit(8).unwrap_or(0) * 8
                                         + d3.to_digit(8).unwrap_or(0);
-                                    lit.push(char::from_u32(v).unwrap_or('\0'));
+                                    push_cp(&mut lit, v);
                                     i += 2;
                                     continue;
                                 }
@@ -373,9 +364,9 @@ pub fn parse_template(tpl: &[char], re: &Regex) -> PyResult<Vec<Tpl>> {
             'v' => lit.push('\u{b}'),
             '\\' => lit.push('\\'),
             c if c.is_ascii_alphabetic() => return Err(terr(format!("bad escape \\{c}"), bs, tpl)),
-            c => {
+            _ => {
                 lit.push('\\');
-                lit.push(c);
+                push_cp(&mut lit, tpl[i - 1]);
             }
         }
     }
@@ -386,14 +377,14 @@ pub fn parse_template(tpl: &[char], re: &Regex) -> PyResult<Vec<Tpl>> {
 }
 
 /// Aplica o template já analisado a um casamento (grupo não casado vira texto vazio).
-pub fn expand_parts(parts: &[Tpl], chars: &[char], caps: &Captures) -> String {
+pub fn expand_parts(parts: &[Tpl], chars: &[u32], caps: &Captures) -> String {
     let mut out = String::new();
     for p in parts {
         match p {
             Tpl::Lit(s) => out.push_str(s),
             Tpl::Group(g) => {
                 if let Some(Some((a, b))) = caps.spans.get(*g) {
-                    out.extend(chars[*a..*b].iter());
+                    eng::push_cps(&mut out, &chars[*a..*b]);
                 }
             }
         }
@@ -421,7 +412,7 @@ pub fn compile_pattern(pattern: &str, flags: u32) -> PyResult<Rc<PatternObj>> {
 
 /// Como [`compile_pattern`]; `bytes` indica um padrão `bytes` (texto em latin-1).
 fn compile_pattern_kind(pattern: &str, flags: u32, bytes: bool) -> PyResult<Rc<PatternObj>> {
-    let chars: Vec<char> = pattern.chars().collect();
+    let chars: Vec<u32> = code_points(pattern).collect();
     let flags = if bytes { flags | eng::A } else { flags };
     let regex = eng::compile(&chars, flags).map_err(|e| to_py(&e, &chars))?;
     let rc = Rc::new_cyclic(|w| PatternObj {
@@ -496,7 +487,7 @@ impl PatternObj {
         self.me.upgrade().expect("o Pattern vive enquanto é chamado")
     }
 
-    fn new_match(&self, sv: &Value, chars: &Rc<Vec<char>>, caps: Captures, pos: usize, endpos: usize) -> Value {
+    fn new_match(&self, sv: &Value, chars: &Rc<Vec<u32>>, caps: Captures, pos: usize, endpos: usize) -> Value {
         Value::Ext(Rc::new(MatchObj {
             pattern: self.this(),
             string: sv.clone(),
@@ -576,11 +567,11 @@ impl PatternObj {
                     return Err(type_error("expected a bytes-like object, str found"));
                 }
                 Value::Str(s) => {
-                    let t: Vec<char> = s.as_str().chars().collect();
+                    let t: Vec<u32> = code_points(s.as_str()).collect();
                     Some(parse_template(&t, &self.regex)?)
                 }
                 Value::Bytes(b) if self.bytes => {
-                    let t: Vec<char> = b.iter().map(|&c| c as char).collect();
+                    let t: Vec<u32> = b.iter().map(|&c| u32::from(c)).collect();
                     Some(parse_template(&t, &self.regex)?)
                 }
                 other => {
@@ -642,13 +633,53 @@ const PATTERN_FLAG_NAMES: &[(u32, &str)] = &[
     (eng::A, "re.ASCII"),
 ];
 
+/// Refaz um `Pattern` (recompilado do texto e das flags efetivas), um `Match` ou o iterador de
+/// `finditer` a partir da imagem do heap.
+pub(crate) fn restore_image(tag: &str, state: &(dyn std::any::Any + Send + Sync), refs: Vec<Value>) -> Option<Value> {
+    let mut refs = refs.into_iter();
+    match tag {
+        "re_pattern" => {
+            let (text, flags, bytes) = state.downcast_ref::<(String, u32, bool)>()?;
+            let pattern = compile_pattern_kind(text, *flags, *bytes).ok()?;
+            Some(Value::Ext(pattern))
+        }
+        "re_match" => {
+            let (chars, caps, pos, endpos) = state.downcast_ref::<(Vec<u32>, Captures, usize, usize)>()?;
+            let pattern = as_pattern(&refs.next()?)?;
+            let string = refs.next()?;
+            let m = MatchObj { pattern, string, chars: Rc::new(chars.clone()), caps: caps.clone(), pos: *pos, endpos: *endpos };
+            Some(Value::Ext(Rc::new(m)))
+        }
+        "re_finditer" => {
+            let (chars, scan, pos, endpos) = state.downcast_ref::<(Vec<u32>, (usize, usize, bool, bool), usize, usize)>()?;
+            let pattern = as_pattern(&refs.next()?)?;
+            let string = refs.next()?;
+            let state = IterState { pos: scan.0, endpos: scan.1, must_advance: scan.2, done: scan.3 };
+            let it = FinditerObj {
+                pattern,
+                string,
+                chars: Rc::new(chars.clone()),
+                state: RefCell::new(state),
+                pos: *pos,
+                endpos: *endpos,
+            };
+            Some(Value::Ext(Rc::new(it)))
+        }
+        _ => None,
+    }
+}
+
 impl ExtObject for PatternObj {
+    fn image(&self) -> Option<crate::object::ExtImage> {
+        crate::object::OpaqueImage::image("re_pattern", (self.text.clone(), self.regex.flags, self.bytes), Vec::new())
+    }
     fn type_name(&self) -> &'static str {
         "Pattern"
     }
 
     fn repr(&self) -> String {
-        let shown: String = if self.text.chars().count() > 200 { self.text.chars().take(200).collect() } else { self.text.clone() };
+        let mut shown = String::new();
+        code_points(&self.text).take(200).for_each(|cp| push_cp(&mut shown, cp));
         let mut rest = self.regex.flags & !eng::U & !(if self.bytes { eng::A } else { 0 });
         let mut parts: Vec<String> = Vec::new();
         for (bit, name) in PATTERN_FLAG_NAMES {
@@ -723,13 +754,19 @@ impl ExtObject for PatternObj {
 struct FinditerObj {
     pattern: Rc<PatternObj>,
     string: Value,
-    chars: Rc<Vec<char>>,
+    chars: Rc<Vec<u32>>,
     state: RefCell<IterState>,
     pos: usize,
     endpos: usize,
 }
 
 impl ExtObject for FinditerObj {
+    fn image(&self) -> Option<crate::object::ExtImage> {
+        let st = self.state.borrow();
+        let scan = (st.pos, st.endpos, st.must_advance, st.done);
+        let refs = vec![Value::Ext(self.pattern.clone()), self.string.clone()];
+        crate::object::OpaqueImage::image("re_finditer", ((*self.chars).clone(), scan, self.pos, self.endpos), refs)
+    }
     fn type_name(&self) -> &'static str {
         "callable_iterator"
     }
@@ -754,7 +791,7 @@ impl ExtObject for FinditerObj {
 struct MatchObj {
     pattern: Rc<PatternObj>,
     string: Value,
-    chars: Rc<Vec<char>>,
+    chars: Rc<Vec<u32>>,
     caps: Captures,
     pos: usize,
     endpos: usize,
@@ -809,6 +846,10 @@ impl MatchObj {
 }
 
 impl ExtObject for MatchObj {
+    fn image(&self) -> Option<crate::object::ExtImage> {
+        let refs = vec![Value::Ext(self.pattern.clone()), self.string.clone()];
+        crate::object::OpaqueImage::image("re_match", ((*self.chars).clone(), self.caps.clone(), self.pos, self.endpos), refs)
+    }
     fn type_name(&self) -> &'static str {
         "Match"
     }
@@ -901,9 +942,9 @@ impl ExtObject for MatchObj {
             "expand" => {
                 no_kwargs("expand", &kw)?;
                 exactly("expand", &args, 1)?;
-                let t: Vec<char> = match &args[0] {
-                    Value::Str(s) if !self.pattern.bytes => s.as_str().chars().collect(),
-                    Value::Bytes(b) if self.pattern.bytes => b.iter().map(|&c| c as char).collect(),
+                let t: Vec<u32> = match &args[0] {
+                    Value::Str(s) if !self.pattern.bytes => code_points(s.as_str()).collect(),
+                    Value::Bytes(b) if self.pattern.bytes => b.iter().map(|&c| u32::from(c)).collect(),
                     other => {
                         return Err(type_error(format!(
                             "expected string or bytes-like object, got '{}'",
@@ -1044,8 +1085,8 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
 mod tests {
     use super::*;
 
-    fn cs(s: &str) -> Vec<char> {
-        s.chars().collect()
+    fn cs(s: &str) -> Vec<u32> {
+        code_points(s).collect()
     }
 
     fn pat(p: &str, fl: u32) -> Rc<PatternObj> {
@@ -1233,7 +1274,7 @@ mod tests {
         }
     }
 
-    fn p_text(v: &Value) -> PyResult<(Value, Rc<Vec<char>>)> {
+    fn p_text(v: &Value) -> PyResult<(Value, Rc<Vec<u32>>)> {
         want_text(v)
     }
 

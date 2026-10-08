@@ -56,11 +56,11 @@ fn is_ws(c: char) -> bool {
 }
 
 fn is_word(c: char) -> bool {
-    c.is_alphanumeric() || c == '_'
+    crate::object::is_alnum(u32::from(c)) || c == '_'
 }
 
 fn is_letter(c: char) -> bool {
-    c.is_alphabetic() || c == '_'
+    crate::object::is_alpha(u32::from(c)) || c == '_'
 }
 
 fn is_word_punct(c: char) -> bool {

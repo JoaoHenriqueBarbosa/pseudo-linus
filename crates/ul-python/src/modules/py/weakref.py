@@ -6,7 +6,7 @@ entradas mortas na leitura, na iteração e em `len`. `proxy` e `finalize` autom
 existem."""
 
 from _weakref import ref
-
+from types import GenericAlias
 ReferenceType = type(ref(type('_probe', (), {})))
 KeyedRef = ref
 
@@ -231,6 +231,8 @@ class WeakKeyDictionary:
 
 
 class WeakSet:
+    __class_getitem__ = classmethod(GenericAlias)
+
     def __init__(self, data=None):
         self.data = set()
         if data is not None:

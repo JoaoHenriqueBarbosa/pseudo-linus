@@ -248,17 +248,20 @@ def _object_reduce_ex(self, proto=0):
     """`object.__reduce_ex__`: o `(callable, args, estado, ...)` que o `pickle` e o `copy` usam."""
     cls = type(self)
     # O `__reduce__` próprio de alguma classe do MRO; o de `object` é este mesmo protocolo.
+    # Os `method_descriptor` dos tipos embutidos (o `BaseException.__reduce__`) são tratados mais abaixo.
     custom = next((k.__dict__['__reduce__'] for k in cls.__mro__
-                   if k is not object and '__reduce__' in k.__dict__), None)
+                   if k is not object and '__reduce__' in k.__dict__
+                   and type(k.__dict__['__reduce__']).__name__ != 'method_descriptor'), None)
     if custom is not None and getattr(custom, '__module__', None) != 'copyreg':
         return custom(self)
+    # `BaseException` tem `__reduce__` próprio (`BaseException_reduce`): nunca passa pelo protocolo de `object`.
+    if isinstance(self, BaseException):
+        return _exception_reduce(self)
     own_getstate = any(k is not object and '__getstate__' in k.__dict__ for k in cls.__mro__)
     if proto < 2 and getattr(cls, '__slots__', None) and not own_getstate:
         raise TypeError("a class that defines __slots__ without defining __getstate__ cannot be pickled")
     getstate = getattr(self, '__getstate__', None)
     state = getstate() if getstate is not None else _object_getstate(self)
-    if isinstance(self, BaseException):
-        return cls, tuple(self.args), state
     if proto >= 2:
         getnewargs_ex = getattr(self, '__getnewargs_ex__', None)
         if getnewargs_ex is not None:
@@ -283,7 +286,75 @@ def _object_reduce_ex(self, proto=0):
         if isinstance(self, candidate):
             base = candidate
             break
+    # `copyreg._reduce_ex`: um tipo embutido exato não se reconstrói pelo protocolo 0 e 1.
+    if base is cls and base is not object:
+        raise TypeError("cannot pickle %r object" % cls.__name__)
     return _reconstructor, (cls, base, None if base is object else base(self)), state
+
+
+# Os campos que o `OSError` mantém fora do `__dict__` (membros do tipo em C).
+_OSERROR_MEMBERS = ('errno', 'strerror', 'filename', 'filename2')
+
+
+def _exception_dict(self):
+    """O `__dict__` de uma exceção: sem `args` nem os campos que o tipo em C guarda fora dele."""
+    members = ('args',) + (_OSERROR_MEMBERS if isinstance(self, OSError) else ())
+    d = getattr(self, '__dict__', None) or {}
+    return {k: v for k, v in d.items() if k not in members}
+
+
+def _exception_reduce(self):
+    """`BaseException.__reduce__` e as variantes de `OSError`, `ImportError` e `AttributeError`
+    (`BaseException_reduce`, `OSError_reduce`, `ImportError_reduce`, `AttributeError_reduce`)."""
+    cls = type(self)
+    args = tuple(self.args)
+    state = _exception_dict(self)
+    if isinstance(self, OSError):
+        # `args` guarda só `errno` e `strerror` quando há nome de arquivo; ele volta como terceiro argumento
+        # e, havendo `filename2`, o `winerror` (`None` fora do Windows) abre caminho para ele.
+        filename = getattr(self, 'filename', None)
+        if filename is not None:
+            args = args[:2] + (filename,)
+            filename2 = getattr(self, 'filename2', None)
+            if filename2 is not None:
+                args += (None, filename2)
+    elif isinstance(self, ImportError):
+        for key in ('name', 'path', 'name_from'):
+            value = getattr(self, key, None)
+            if value is not None:
+                state[key] = value
+    elif isinstance(self, AttributeError):
+        return cls, args, _exception_getstate(self)
+    if state:
+        return cls, args, state
+    return cls, args
+
+
+def _exception_getstate(self):
+    """`__getstate__` de uma exceção: o `AttributeError` leva `name` e `args` junto do `__dict__` (o `obj`
+    não entra de propósito, GH-103352); as demais usam o de `object`."""
+    if isinstance(self, AttributeError):
+        state = _exception_dict(self)
+        if getattr(self, 'name', None) is not None:
+            state['name'] = self.name
+        state['args'] = tuple(self.args)
+        return state
+    return _object_getstate(self)
+
+
+def _exception_setstate(self, state):
+    """`BaseException.__setstate__`: cada item do dicionário vira atributo."""
+    if state is None:
+        return None
+    if not isinstance(state, dict):
+        raise TypeError("state is not a dictionary")
+    for key, value in state.items():
+        if key == 'args':
+            value = tuple(value)
+            if value == tuple(self.args):
+                continue
+        setattr(self, key, value)
+    return None
 
 
 def _type_mro(cls):
@@ -292,9 +363,24 @@ def _type_mro(cls):
 
 
 def _builtin_reduce_ex(self, proto=0):
-    """`__reduce_ex__` dos valores embutidos sem classe em Python (`range`, `Ellipsis`)."""
+    """`__reduce_ex__` dos valores embutidos sem classe em Python (`range`, `Ellipsis`, `slice`,
+    `bytearray`)."""
     if self is Ellipsis:
         return 'Ellipsis'
+    if type(self).__name__ == 'builtin_function_or_method':
+        return self.__qualname__
     if isinstance(self, range):
         return range, (self.start, self.stop, self.step)
+    if isinstance(self, slice):
+        return slice, (self.start, self.stop, self.step)
+    if isinstance(self, bytearray):
+        # `_common_reduce` do bytearrayobject.c: antes do protocolo 3 o conteúdo vai como texto latin-1.
+        if proto < 3:
+            return bytearray, (bytes(self).decode('latin-1'), 'latin-1'), None
+        return bytearray, (bytes(self),), None
     raise TypeError("cannot pickle '%s' object" % type(self).__name__)
+
+
+def _builtin_reduce(self):
+    """`__reduce__` dos mesmos valores: o protocolo 2."""
+    return _builtin_reduce_ex(self, 2)

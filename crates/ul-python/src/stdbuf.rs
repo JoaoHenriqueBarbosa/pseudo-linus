@@ -35,16 +35,23 @@ impl StdBuffer {
         if self.kind != FileKind::Stdin {
             return Err(exc("UnsupportedOperation", "read"));
         }
-        let Native::File(f) = &mut *self.file.borrow_mut() else { return Ok(Vec::new()) };
-        Ok(if available_only { crate::stdin::bytes_read1(f, take) } else { crate::stdin::bytes_read(f, take) })
+        if available_only { crate::stdin::bytes_read1(&self.file, take) } else { crate::stdin::bytes_read(&self.file, take) }
     }
 
     fn read_line(&self) -> PyResult<Vec<u8>> {
         if self.kind != FileKind::Stdin {
             return Err(exc("UnsupportedOperation", "read"));
         }
-        let Native::File(f) = &mut *self.file.borrow_mut() else { return Ok(Vec::new()) };
-        Ok(crate::stdin::bytes_line(f))
+        crate::stdin::bytes_line(&self.file)
+    }
+}
+
+/// Refaz um `StdBuffer` a partir da imagem do heap (o inverso de [`ExtObject::image`]).
+pub(crate) fn restore_image(_tag: &str, state: &(dyn std::any::Any + Send + Sync), refs: Vec<Value>) -> Option<Value> {
+    let kind = *state.downcast_ref::<FileKind>()?;
+    match refs.into_iter().next()? {
+        Value::Native(file) => Some(StdBuffer::value(&file, kind)),
+        _ => None,
     }
 }
 
@@ -55,6 +62,10 @@ impl ExtObject for StdBuffer {
         } else {
             "BufferedWriter"
         }
+    }
+
+    fn image(&self) -> Option<crate::object::ExtImage> {
+        crate::object::OpaqueImage::image("std_buffer", self.kind, vec![Value::Native(self.file.clone())])
     }
 
     fn repr(&self) -> String {

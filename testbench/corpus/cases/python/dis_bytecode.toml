@@ -1,0 +1,3523 @@
+tool = "python3"
+source = "manual"
+
+# Bytecode do CPython 3.13 (wip/notes/python-dis.md): `dis.dis`, `dis.get_instructions`, `co_code`,
+# `co_consts`, `co_names`, `co_varnames`, `co_stacksize`, `co_flags`, `co_exceptiontable`, `co_linetable` e
+# `co_lines` de uma função (ou de um módulo compilado) por construção da linguagem. O golden é o que o
+# compilador do Debian 13 produz; o emissor (`cpybc.rs`, `cpyops.rs`, `opcodenative.rs`) tem de igualar byte a byte.
+# Determinístico: todo `0x...` (endereço de objeto código) é trocado por `0xADDR` antes de imprimir, e os
+# números de linha são os do próprio script (o heredoc é fixo). O auxiliar `show` é repetido em cada caso
+# porque cada caso é um script independente. Códigos aninhados (lambdas, classes, compreensões, funções
+# internas) são impressos recursivamente.
+
+[[case]]
+id = "dis-opmap"
+script = '''
+python3 - <<'PYEOF'
+import dis
+print(len(dis.opmap))
+for name, num in sorted(dis.opmap.items(), key=lambda kv: (kv[1], kv[0])):
+    print(num, name)
+print(dis.HAVE_ARGUMENT, dis.EXTENDED_ARG, dis.MIN_INSTRUMENTED_OPCODE if hasattr(dis, "MIN_INSTRUMENTED_OPCODE") else None)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "opcodes"]
+
+[[case]]
+id = "dis-opname"
+script = '''
+python3 - <<'PYEOF'
+import dis
+print(len(dis.opname))
+for n, name in enumerate(dis.opname):
+    print(n, name)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "opcodes"]
+
+[[case]]
+id = "dis-opcode-classes"
+script = '''
+python3 - <<'PYEOF'
+import dis
+for attr in ("hasarg", "hasconst", "hasname", "hasjump", "hasjrel", "hasjabs", "haslocal", "hasfree", "hasexc", "hascompare", "hasnargs"):
+    value = getattr(dis, attr, None)
+    print(attr, None if value is None else sorted(value))
+print(dis.cmp_op)
+print(dis._nb_ops)
+print(getattr(dis, "_intrinsic_1_descs", None))
+print(getattr(dis, "_intrinsic_2_descs", None))
+print(sorted(dis._inline_cache_entries.items()) if isinstance(getattr(dis, "_inline_cache_entries", None), dict) else getattr(dis, "_inline_cache_entries", None))
+print(dis.COMPILER_FLAG_NAMES if hasattr(dis, "COMPILER_FLAG_NAMES") else None)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "opcodes"]
+
+[[case]]
+id = "dis-opcode-module"
+script = '''
+python3 - <<'PYEOF'
+import opcode
+print(opcode.HAVE_ARGUMENT, opcode.EXTENDED_ARG)
+print(sorted(opcode.opmap.items(), key=lambda kv: (kv[1], kv[0]))[:20])
+print(opcode.opname[:20])
+print(sorted(opcode.hasjrel), sorted(opcode.hasjabs), sorted(opcode.hascompare), sorted(opcode.hasfree))
+print(opcode.cmp_op)
+print(opcode.hasexc, opcode.hasconst)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "opcodes"]
+
+[[case]]
+id = "dis-assign-arith"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(a, b):
+    x = a + b * 2
+    y = x - a
+    z = x // 3
+    return x % y, a ** b, -a, ~b, a << 1, a >> 1, a & b, a | b, a ^ b, a @ b, z, +a, not b
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "arith"]
+
+[[case]]
+id = "dis-augassign-ops"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(x, y):
+    x += y
+    x -= y
+    x *= y
+    x /= y
+    x //= y
+    x %= y
+    x **= y
+    x <<= y
+    x >>= y
+    x &= y
+    x |= y
+    x ^= y
+    x @= y
+    return x
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "arith"]
+
+[[case]]
+id = "dis-if-elif-else"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(x):
+    if x < 0:
+        r = "neg"
+    elif x == 0:
+        r = "zero"
+    elif x > 100:
+        r = "big"
+    else:
+        r = "pos"
+    return r
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "branch"]
+
+[[case]]
+id = "dis-if-no-else"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(x):
+    if x:
+        x += 1
+    if not x:
+        return 1
+    if x is None:
+        return 2
+    if x is not None:
+        return 3
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "branch"]
+
+[[case]]
+id = "dis-while"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(n):
+    i = 0
+    while i < n:
+        i += 1
+    return i
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "loop"]
+
+[[case]]
+id = "dis-while-else"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(n):
+    while n:
+        n -= 1
+        if n == 5:
+            break
+    else:
+        return "done"
+    return "broke"
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "loop"]
+
+[[case]]
+id = "dis-while-true"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(q):
+    while True:
+        x = q.pop()
+        if x:
+            return x
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "loop"]
+
+[[case]]
+id = "dis-for"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(items):
+    total = 0
+    for x in items:
+        total += x
+    return total
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "loop"]
+
+[[case]]
+id = "dis-for-else-break-continue"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(items):
+    for x in items:
+        if x < 0:
+            continue
+        if x > 10:
+            break
+        print(x)
+    else:
+        print("sem break")
+    return x
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "loop"]
+
+[[case]]
+id = "dis-for-nested-unpack"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(pairs):
+    out = []
+    for i, (a, b) in enumerate(pairs):
+        for j in range(a):
+            if j == b:
+                continue
+            out.append((i, j))
+    return out
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "loop"]
+
+[[case]]
+id = "dis-and-or-not"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(a, b, c):
+    x = a and b
+    y = a or b
+    z = a and b or c
+    w = not a
+    return x, y, z, w, a and b and c, a or b or c, not (a and b)
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "boolop"]
+
+[[case]]
+id = "dis-and-or-in-condition"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(a, b, c):
+    if a and b:
+        return 1
+    if a or b:
+        return 2
+    if not (a and b) or c:
+        return 3
+    while a and not b:
+        a -= 1
+    return 4
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "boolop"]
+
+[[case]]
+id = "dis-compare-chain"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(a, b, c, d):
+    x = a < b < c
+    y = a <= b == c != d
+    if a < b <= c:
+        return x
+    return y, a < b > c >= d
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "compare"]
+
+[[case]]
+id = "dis-compare-ops"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(a, b):
+    return a == b, a != b, a < b, a <= b, a > b, a >= b, a is b, a is not b, a in b, a not in b
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "compare"]
+
+[[case]]
+id = "dis-ternary"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(a, b):
+    x = a if b else 0
+    y = (a if a > 1 else b) if b else (1 if a else 2)
+    return x, y
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "branch"]
+
+[[case]]
+id = "dis-call-simple"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(a):
+    print()
+    print(a)
+    len(a)
+    return max(a, 1, 2)
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "call"]
+
+[[case]]
+id = "dis-call-method"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(s, d):
+    s.strip()
+    s.split(",", 1)
+    d.a.b.c(1)
+    return s.upper().lower().title()
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "call"]
+
+[[case]]
+id = "dis-call-kwargs"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(g, o):
+    g(1, 2, x=3, y=4)
+    o.m(a=1)
+    return sorted(o, key=len, reverse=True)
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "call"]
+
+[[case]]
+id = "dis-call-star-args"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(g, a, b):
+    g(*a)
+    g(1, *a)
+    g(*a, *b)
+    g(1, *a, 2)
+    return g(*a, x=1)
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "call"]
+
+[[case]]
+id = "dis-call-star-kwargs"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(g, a, kw):
+    g(**kw)
+    g(x=1, **kw)
+    g(*a, **kw)
+    return g(1, *a, y=2, **kw, z=3)
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "call"]
+
+[[case]]
+id = "dis-def-signature"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(a, b=1, /, c=2, *args, d, e=5, **kw):
+    return a, b, c, args, d, e, kw
+show(f)
+print(f.__code__.co_posonlyargcount, f.__code__.co_kwonlyargcount, f.__defaults__, f.__kwdefaults__)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "def"]
+
+[[case]]
+id = "dis-def-make-function"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(x):
+    def g(a, b=x, *, c=3, d: int = 4) -> str:
+        return a
+    def h():
+        pass
+    return g, h
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "def"]
+
+[[case]]
+id = "dis-fstring-simple"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(a, b):
+    x = f"{a}"
+    y = f"a={a} b={b}!"
+    z = f"{a}{b}"
+    w = f"só texto"
+    return x, y, z, w, f"{a + 1}", f""
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "fstring"]
+
+[[case]]
+id = "dis-fstring-conversion"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(a):
+    return f"{a!r}", f"{a!s}", f"{a!a}", f"x{a!r}y"
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "fstring"]
+
+[[case]]
+id = "dis-fstring-spec"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(a, w):
+    return f"{a:>10}", f"{a!r:^8}", f"{a:{w}}", f"{a:{w}.{w}f}", f"[{a:08.3f}]"
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "fstring"]
+
+[[case]]
+id = "dis-fstring-debug"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(a):
+    return f"{a=}", f"{a = !s}", f"{a=:>5}", f"{a + 1=}"
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "fstring"]
+
+[[case]]
+id = "dis-fstring-many-parts"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(a, b, c, d):
+    return f"{a}-{b}-{c}-{d}-{a}-{b}-{c}-{d}", "x" "y" f"{a}" "z", f"{'q'}", f"{{}}{a}{{}}"
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "fstring"]
+
+[[case]]
+id = "dis-collection-literals"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(a, b):
+    return [], (), {}, [a], (a,), {a}, [a, b], (a, b), {a, b}, {a: b}, {a: b, b: a}
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "collections"]
+
+[[case]]
+id = "dis-collection-const-big"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f():
+    a = [1, 2, 3]
+    b = [1, 2, 3, 4, 5]
+    c = {1, 2, 3, 4}
+    d = (1, 2, 3)
+    e = {"a": 1, "b": 2}
+    g = [1, "x", None, 2.5, True]
+    return a, b, c, d, e, g
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "collections"]
+
+[[case]]
+id = "dis-collection-unpack-literal"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(a, b, d, e):
+    return [*a], [1, *a, 2], (*a, *b), (1, *a), {*a, 3}, {**d}, {**d, "k": 1}, {"k": 1, **d, **e}, [*a, *b, *a]
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "collections"]
+
+[[case]]
+id = "dis-slices"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(x, i, j, k):
+    return x[i], x[i:j], x[:j], x[i:], x[:], x[i:j:k], x[::k], x[1:2], x[::2], x[i, j], x[1:2, ::3], x[...]
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "subscript"]
+
+[[case]]
+id = "dis-slice-assign-del"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(x, i, j, v):
+    x[i:j] = v
+    x[:j] = v
+    x[i:] = v
+    x[::2] = v
+    del x[i:j]
+    del x[::2]
+    x[i:j] += v
+    return x
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "subscript"]
+
+[[case]]
+id = "dis-unpack-assign"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(t):
+    a, b = t
+    [c, d] = t
+    (e, (g, h)) = t
+    a, b = b, a
+    a, b, c = c, a, b
+    i = j = k = t
+    return a, b, c, d, e, g, h, i, j, k
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "assign"]
+
+[[case]]
+id = "dis-unpack-star"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(t):
+    a, *b = t
+    *c, d = t
+    e, *g, h = t
+    i, (j, *k), l = t
+    return a, b, c, d, e, g, h, i, j, k, l
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "assign"]
+
+[[case]]
+id = "dis-unpack-attr-subscr-targets"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(o, d, t):
+    o.a, d["k"] = t
+    o.x = d["y"] = t
+    o.p, o.q = o.q, o.p
+    return o
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "assign"]
+
+[[case]]
+id = "dis-attr-assign"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(o, v):
+    o.a = v
+    o.a.b = v
+    o.a.b.c = 1
+    return o.a.b
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "attr"]
+
+[[case]]
+id = "dis-attr-augassign"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(o, v):
+    o.a += v
+    o.a.b -= 1
+    o.n *= 2
+    o.s |= v
+    return o
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "attr"]
+
+[[case]]
+id = "dis-subscr-assign"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(d, k, v):
+    d[k] = v
+    d["x"] = 1
+    d[k][v] = 2
+    d[1, 2] = 3
+    return d
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "subscript"]
+
+[[case]]
+id = "dis-subscr-augassign"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(d, k, v):
+    d[k] += v
+    d["x"] -= 1
+    d[k][v] *= 2
+    d[1, 2] |= 3
+    return d
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "subscript"]
+
+[[case]]
+id = "dis-del-simple"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(o, d):
+    a = 1
+    b = 2
+    del a
+    del b, o.x
+    del d["k"], d[1]
+    del o.y.z
+    return o
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "del"]
+
+[[case]]
+id = "dis-assert"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(x):
+    assert x
+    assert x > 0, "x deve ser positivo"
+    assert x is not None, ValueError("v")
+    return x
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "assert"]
+
+[[case]]
+id = "dis-raise"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(x, e):
+    if x == 1:
+        raise
+    if x == 2:
+        raise ValueError
+    if x == 3:
+        raise ValueError("três")
+    if x == 4:
+        raise ValueError("quatro") from e
+    raise e from None
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "raise"]
+
+[[case]]
+id = "dis-try-except"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(x):
+    try:
+        x()
+    except ValueError:
+        return 1
+    except KeyError:
+        return 2
+    except:
+        return 3
+    return 0
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "try"]
+
+[[case]]
+id = "dis-try-except-as"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(x):
+    try:
+        x()
+    except ValueError as e:
+        print(e)
+        return e.args
+    except (KeyError, IndexError) as err:
+        raise RuntimeError("x") from err
+    return None
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "try"]
+
+[[case]]
+id = "dis-try-except-else"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(x):
+    try:
+        v = x()
+    except ValueError:
+        v = 0
+    else:
+        v += 1
+    return v
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "try"]
+
+[[case]]
+id = "dis-try-finally"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(x):
+    try:
+        x()
+    finally:
+        print("fim")
+    return 1
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "try"]
+
+[[case]]
+id = "dis-try-except-finally"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(x):
+    try:
+        x()
+    except ValueError as e:
+        print(e)
+    else:
+        print("ok")
+    finally:
+        print("fim")
+    return 1
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "try"]
+
+[[case]]
+id = "dis-try-nested"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(x):
+    try:
+        try:
+            x()
+        except KeyError:
+            raise
+        finally:
+            print("a")
+    except Exception as e:
+        print(e)
+    finally:
+        print("b")
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "try"]
+
+[[case]]
+id = "dis-except-star"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(x):
+    try:
+        x()
+    except* ValueError as e:
+        print(e)
+    except* (KeyError, TypeError):
+        print("k")
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "try"]
+
+[[case]]
+id = "dis-with"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(cm):
+    with cm:
+        print("a")
+    with cm as v:
+        print(v)
+    return 1
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "with"]
+
+[[case]]
+id = "dis-with-multiple"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(a, b):
+    with a as x, b as y:
+        print(x, y)
+    with a as (p, q), b as r.s:
+        pass
+    with (a as m, b as n):
+        pass
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "with"]
+
+[[case]]
+id = "dis-with-return-break-continue"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(cm, items):
+    with cm as v:
+        return v
+def g(cm, items):
+    for i in items:
+        with cm:
+            if i:
+                continue
+            if i > 3:
+                break
+    return 0
+show(f)
+show(g)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "with"]
+
+[[case]]
+id = "dis-return-in-try-finally"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(x):
+    try:
+        return x()
+    finally:
+        print("limpa")
+def g(x):
+    try:
+        return 1
+    except ValueError:
+        return 2
+    finally:
+        return 3
+show(f)
+show(g)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "try"]
+
+[[case]]
+id = "dis-break-continue-in-finally-loop"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(items):
+    for i in items:
+        try:
+            if i == 1:
+                continue
+            if i == 2:
+                break
+        finally:
+            print("f")
+    return i
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "try"]
+
+[[case]]
+id = "dis-class-module"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+src = """
+class A:
+    x = 1
+    def m(self, y):
+        return self.x + y
+    @staticmethod
+    def s():
+        return 1
+    @property
+    def p(self):
+        return self.x
+class B(A, metaclass=type):
+    pass
+class C(A, object, k=1):
+    "doc"
+    y: int = 2
+"""
+show(compile(src, "<m>", "exec"))
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "class"]
+
+[[case]]
+id = "dis-class-in-function"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(base, n):
+    class K(base):
+        v = n
+        def get(self):
+            return n + self.v
+        def __init__(self):
+            super().__init__()
+    return K
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "class"]
+
+[[case]]
+id = "dis-decorators"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(d, e):
+    @d
+    def a():
+        pass
+    @d(1)
+    @e.attr
+    def b(x):
+        return x
+    @d
+    class C:
+        pass
+    return a, b, C
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "def"]
+
+[[case]]
+id = "dis-lambda"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(y):
+    a = lambda: 1
+    b = lambda x: x + 1
+    c = lambda x, z=2, *r, k=3, **kw: (x, z, r, k, kw)
+    d = lambda: y
+    return a, b, c, d, (lambda x: lambda z: x + z + y)
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "lambda"]
+
+[[case]]
+id = "dis-closure-cells"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(a, b):
+    c = 10
+    def g(x):
+        return a + x + c
+    def h():
+        return b, g
+    return g, h, c
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "closure"]
+
+[[case]]
+id = "dis-closure-cell-arg-and-local"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(a, *args, **kw):
+    x = a
+    x += 1
+    def g():
+        return a, args, kw, x
+    del x
+    return g
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "closure"]
+
+[[case]]
+id = "dis-nonlocal"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f():
+    n = 0
+    def inc():
+        nonlocal n
+        n += 1
+        return n
+    def reset():
+        nonlocal n
+        n = 0
+        del n
+    return inc, reset
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "closure"]
+
+[[case]]
+id = "dis-global"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+G = 0
+def f(x):
+    global G, H
+    G += x
+    H = G
+    G = G + 1
+    del H
+    return G, len(x), print
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "global"]
+
+[[case]]
+id = "dis-global-module-level"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+src = """
+a = 1
+b = a + 2
+a += b
+del b
+print(a)
+if a:
+    c = [a]
+for i in c:
+    pass
+try:
+    import os
+except ImportError:
+    os = None
+"""
+show(compile(src, "<m>", "exec"))
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "module"]
+
+[[case]]
+id = "dis-walrus"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(data):
+    if (n := len(data)) > 3:
+        return n
+    while (line := data.pop()):
+        print(line)
+    print(m := 5, (k := m + 1))
+    return [y := 1, y ** 2]
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "walrus"]
+
+[[case]]
+id = "dis-listcomp"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(xs):
+    a = [x for x in xs]
+    b = [x * 2 for x in xs if x]
+    c = [(x, y) for x in xs for y in xs if x != y]
+    return a, b, c
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "comprehension"]
+
+[[case]]
+id = "dis-setcomp-dictcomp"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(xs):
+    a = {x for x in xs}
+    b = {x: x * 2 for x in xs if x}
+    c = {k: v for k, v in xs}
+    return a, b, c
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "comprehension"]
+
+[[case]]
+id = "dis-genexp"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(xs):
+    a = (x for x in xs)
+    b = sum(x * x for x in xs if x > 0)
+    c = any(x for x in xs for y in x)
+    return a, b, c
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "comprehension"]
+
+[[case]]
+id = "dis-comprehension-closure-and-scope"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(xs, n):
+    k = 3
+    a = [x + n + k for x in xs]
+    x = "fora"
+    b = [lambda: x for x in xs]
+    c = [[y for y in x] for x in xs]
+    return a, b, c, x
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "comprehension"]
+
+[[case]]
+id = "dis-comprehension-walrus-and-module"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(xs):
+    r = [y for x in xs if (y := x * 2) > 1]
+    return r, y
+src = """
+xs = [1, 2]
+sq = [x * x for x in xs]
+d = {x: x for x in xs}
+g = (x for x in xs)
+"""
+show(f)
+show(compile(src, "<m>", "exec"))
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "comprehension"]
+
+[[case]]
+id = "dis-generator-yield"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(n):
+    for i in range(n):
+        yield i
+    yield
+    return "fim"
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "generator"]
+
+[[case]]
+id = "dis-generator-send-expr"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f():
+    x = yield 1
+    y = yield x + 1
+    z = (yield) + 2
+    print((yield y))
+    return x, y, z
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "generator"]
+
+[[case]]
+id = "dis-yield-from"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(a, b):
+    yield from a
+    r = yield from b
+    return r
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "generator"]
+
+[[case]]
+id = "dis-generator-try-finally"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(cm):
+    with cm:
+        try:
+            yield 1
+        finally:
+            print("c")
+    yield 2
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "generator"]
+
+[[case]]
+id = "dis-async-def-await"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+async def f(a):
+    x = await a
+    await a.m()
+    return await a + x
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "async"]
+
+[[case]]
+id = "dis-async-for"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+async def f(it):
+    async for x in it:
+        print(x)
+    async for y in it:
+        if y:
+            break
+    else:
+        return 0
+    return 1
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "async"]
+
+[[case]]
+id = "dis-async-with"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+async def f(cm, dm):
+    async with cm:
+        pass
+    async with cm as v, dm as w:
+        print(v, w)
+    return 1
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "async"]
+
+[[case]]
+id = "dis-async-comprehension"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+async def f(it, a):
+    x = [y async for y in it]
+    z = [await q for q in a]
+    s = {y async for y in it if y}
+    g = (y async for y in it)
+    return x, z, s, g
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "async"]
+
+[[case]]
+id = "dis-async-generator"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+async def f(it):
+    async for x in it:
+        yield x
+    yield 1
+    await it.close()
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "async"]
+
+[[case]]
+id = "dis-match-literal"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(x):
+    match x:
+        case 1:
+            return "um"
+        case "dois" | "two":
+            return "dois"
+        case None:
+            return "nada"
+        case True:
+            return "t"
+        case -1:
+            return "neg"
+        case _:
+            return "outro"
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "match"]
+
+[[case]]
+id = "dis-match-capture-guard-as"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(x):
+    match x:
+        case 0 | 1 as small:
+            return small
+        case n if n > 100:
+            return n
+        case (1 | 2) as k if k:
+            return k
+        case other:
+            return other
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "match"]
+
+[[case]]
+id = "dis-match-sequence"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(x):
+    match x:
+        case []:
+            return 0
+        case [a]:
+            return a
+        case [a, b]:
+            return a + b
+        case [1, *rest]:
+            return rest
+        case (a, *_, z):
+            return a, z
+        case [[a, b], c]:
+            return a, b, c
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "match"]
+
+[[case]]
+id = "dis-match-mapping"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(x):
+    match x:
+        case {}:
+            return 0
+        case {"a": 1}:
+            return 1
+        case {"a": a, "b": b}:
+            return a, b
+        case {"k": v, **rest}:
+            return v, rest
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "match"]
+
+[[case]]
+id = "dis-match-class"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+class P:
+    __match_args__ = ("x", "y")
+def f(x):
+    match x:
+        case P():
+            return 0
+        case P(1, 2):
+            return 1
+        case P(x=a, y=b):
+            return a, b
+        case P(a, y=2):
+            return a
+        case int() | str():
+            return 2
+        case os.sep:
+            return 3
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "match"]
+
+[[case]]
+id = "dis-match-value-dotted"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+import os
+def f(x):
+    match x:
+        case os.sep:
+            return 1
+        case 1.5 | 2j | b"b":
+            return 2
+        case 1 + 2j:
+            return 3
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "match"]
+
+[[case]]
+id = "dis-match-subject-tuple"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(a, b):
+    match a, b:
+        case (0, 0):
+            return "origem"
+        case (x, 0) | (0, x):
+            return x
+        case _:
+            return None
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "match"]
+
+[[case]]
+id = "dis-const-folding"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f():
+    return 1 + 2, 2 * 3 - 1, 7 // 2, 7 % 3, 2 ** 10, 1 / 4, -5, ~3, +4, 1 << 3, 6 & 3, 6 | 1, 6 ^ 2, 10 - 20
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "constfold"]
+
+[[case]]
+id = "dis-const-folding-strings"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f():
+    return "a" * 3, "ab" + "cd", "x" * 5000, 3 * "z", b"a" + b"b", (1, 2) + (3,), (1,) * 3, "abc"[1], (1, 2, 3)[0], "%s" % "q", "a" "b"
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "constfold"]
+
+[[case]]
+id = "dis-const-folding-skipped"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f():
+    return 1 / 0, 1 // 0, 2 ** 100000, 1 << 100, 1 % 0, "a" * -1, 10 ** -2, (1, 2) * 100, "x" * 4097
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "constfold"]
+
+[[case]]
+id = "dis-const-in-set-tuple"
+script = '''
+PYTHONHASHSEED=0 python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(x):
+    a = x in {1, 2, 3}
+    b = x in [1, 2, 3]
+    c = x not in {"a", "b"}
+    for i in [1, 2, 3]:
+        pass
+    for j in {4, 5}:
+        pass
+    return a, b, c
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "constfold"]
+
+[[case]]
+id = "dis-constants-kinds"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f():
+    return None, True, False, ..., 0, 1, -1, 255, 256, 65536, 2 ** 40, 1.5, -0.0, 2j, "s", b"b", "é", 10 ** 30
+def g():
+    return 0.0, 0, False, 1, 1.0, True, "", b"", (), 0j
+show(f)
+show(g)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "constfold"]
+
+[[case]]
+id = "dis-docstring"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f():
+    """Documentação da função."""
+    return 1
+def g():
+    "só doc"
+def h(x):
+    """doc"""
+    "não é doc"
+    return x
+show(f)
+show(g)
+show(h)
+print(f.__doc__, g.__doc__, h.__doc__)
+src = '"""doc do módulo"""\nx = 1\n'
+show(compile(src, "<m>", "exec"))
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "docstring"]
+
+[[case]]
+id = "dis-annotations-function"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(x):
+    def g(a: int, b: "str" = "s", *c: float, d: list[int] = None, **e: dict) -> bool:
+        y: int = 3
+        z: str
+        return True
+    return g
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "annotations"]
+
+[[case]]
+id = "dis-annotations-module-and-class"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+src = """
+x: int = 1
+y: str
+z: list[int] = []
+o.a: int = 2
+d["k"]: int = 3
+class C:
+    a: int
+    b: str = "s"
+"""
+show(compile(src, "<m>", "exec"))
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "annotations"]
+
+[[case]]
+id = "dis-future-annotations"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+src = """
+from __future__ import annotations
+def f(a: int, b: list[str] = None) -> dict[str, int]:
+    x: int = 1
+    return {}
+"""
+show(compile(src, "<m>", "exec"))
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "annotations"]
+
+[[case]]
+id = "dis-import"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f():
+    import os
+    import os.path
+    import os.path as p
+    import sys as s, re
+    from os import path
+    from os import path as q, sep
+    from os.path import *
+    return os, p, s, re, path, q, sep
+src = """
+from . import a
+from .. import b as c
+from .m import d
+from ..m.n import e, f as g
+"""
+show(f)
+show(compile(src, "<m>", "exec"))
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "import"]
+
+[[case]]
+id = "dis-expression-statements"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(a, b):
+    a
+    a + b
+    a.b
+    a[0]
+    1
+    "x"
+    None
+    ...
+    pass
+    -a
+    (a, b)
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "expr"]
+
+[[case]]
+id = "dis-returns-and-empty"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def a(): pass
+def b(): return
+def c(): return None
+def d(): return 0
+def e(x): return x
+def g(x): return x, 1
+def h(x): return [x]
+for fn in (a, b, c, d, e, g, h):
+    show(fn)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "return"]
+
+[[case]]
+id = "dis-multiline-lines"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(a, b, g):
+    x = g(
+        a,
+        b,
+        k=a
+            + b,
+    )
+
+    y = [
+        a,
+
+        b,
+    ]
+    z = a + \
+        b
+    if (a and
+            b):
+        return {
+            "k": x,
+            "v": y,
+        }
+    return g(a)(
+        b)
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "lines"]
+
+[[case]]
+id = "dis-multiline-chain-attr"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(s):
+    return (s
+            .strip()
+            .lower()
+            .replace("a",
+                     "b")
+            [0])
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "lines"]
+
+[[case]]
+id = "dis-positions"
+script = '''
+python3 - <<'PYEOF'
+import dis
+def f(a, b):
+    x = a + (b *
+             2)
+    return x.real(a,
+                  b)
+for i in dis.get_instructions(f):
+    p = i.positions
+    print(i.offset, i.opname, i.argrepr, p.lineno, p.end_lineno, p.col_offset, p.end_col_offset, i.line_number, i.starts_line, i.is_jump_target)
+print(list(f.__code__.co_positions()))
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "lines"]
+
+[[case]]
+id = "dis-generic-function-type-params"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+src = """
+type X = int
+type Y[T] = list[T]
+def f[T](a: T) -> T:
+    return a
+class C[T, *Ts, **P]:
+    pass
+"""
+show(compile(src, "<m>", "exec"))
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "typeparams"]
+
+[[case]]
+id = "dis-super-and-class-cell"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+src = """
+class A(B):
+    def m(self):
+        return super().m()
+    def n(self):
+        return super(A, self).n()
+    def o(self):
+        return __class__
+"""
+show(compile(src, "<m>", "exec"))
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "class"]
+
+[[case]]
+id = "dis-conditional-expressions-in-loops"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+def f(xs):
+    n = 0
+    for x in xs:
+        if x and x > 1 or not x:
+            n += 1 if x else 2
+        elif x is None:
+            continue
+        else:
+            while n > 0 and x:
+                n -= 1
+    return n
+show(f)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "branch"]
+
+[[case]]
+id = "dis-many-locals-extended-arg"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+src = "def f(a):\n" + "".join("    v%d = a + %d\n" % (i, i) for i in range(300)) + "    return v0, v299, a\n"
+ns = {}
+exec(src, ns)
+c = ns["f"].__code__
+ins = list(dis.get_instructions(c))
+print(len(ins), c.co_nlocals, c.co_stacksize)
+print([(i.opname, i.arg, i.argrepr) for i in ins if i.opname == "EXTENDED_ARG"][:5])
+print([(i.opname, i.argrepr) for i in ins[-8:]])
+print(c.co_code.hex()[-80:])
+print(c.co_linetable.hex()[:80])
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "extended_arg"]
+
+[[case]]
+id = "dis-long-jump-extended-arg"
+script = '''
+python3 - <<'PYEOF'
+import dis
+body = "".join("        x = x + %d\n" % i for i in range(120))
+src = "def f(x):\n    if x:\n" + body + "    return x\n"
+ns = {}
+exec(src, ns)
+c = ns["f"].__code__
+ins = list(dis.get_instructions(c))
+print(len(ins), c.co_stacksize)
+print([(i.opname, i.arg, i.argrepr) for i in ins[:6]])
+print([(i.opname, i.arg, i.argrepr) for i in ins if i.opname == "EXTENDED_ARG"][:5])
+print([(i.opname, i.argrepr) for i in ins[-6:]])
+print(c.co_code.hex()[:60], c.co_code.hex()[-40:])
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "extended_arg"]
+
+[[case]]
+id = "dis-flags-matrix"
+script = '''
+python3 - <<'PYEOF'
+import dis
+def a(): pass
+def b(*x): pass
+def c(**x): pass
+def d(*x, **y): pass
+def e():
+    yield 1
+async def g(): pass
+async def h():
+    yield 1
+def i():
+    def j(): return k
+    k = 1
+    return j
+def l():
+    return lambda: i
+for fn in (a, b, c, d, e, g, h, i, l):
+    c0 = fn.__code__
+    print(fn.__name__, c0.co_flags, dis.pretty_flags(c0.co_flags))
+    for k in c0.co_consts:
+        if hasattr(k, "co_flags"):
+            print("  ", k.co_name, k.co_flags, dis.pretty_flags(k.co_flags))
+print(compile("x", "<m>", "exec").co_flags, compile("x", "<m>", "eval").co_flags, compile("x", "<m>", "single").co_flags)
+print(compile("x = [y for y in z]", "<m>", "exec").co_consts[0].co_flags if hasattr(compile("x = [y for y in z]", "<m>", "exec").co_consts[0], "co_flags") else "inline")
+print(compile("class A: pass", "<m>", "exec").co_consts[0].co_flags)
+print(compile("(x for x in y)", "<m>", "exec").co_consts[0].co_flags)
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "flags"]
+
+[[case]]
+id = "dis-eval-and-single-modes"
+script = '''
+python3 - <<'PYEOF'
+import dis, io, re
+def fx(s): return re.sub(r"0x[0-9a-f]+", "0xADDR", s)
+def show(c, depth=0):
+    if hasattr(c, "__code__"): c = c.__code__
+    b = io.StringIO(); b.write(dis.Bytecode(c).dis()); print(fx(b.getvalue()))
+    print(fx(repr([(i.opname, i.argrepr) for i in dis.get_instructions(c)])))
+    print(c.co_code.hex())
+    print(fx(repr(c.co_consts)), c.co_names, c.co_varnames, c.co_freevars, c.co_cellvars)
+    print(c.co_name, c.co_qualname, c.co_stacksize, c.co_flags, c.co_argcount, c.co_nlocals)
+    print(c.co_exceptiontable.hex())
+    print(c.co_linetable.hex())
+    print(list(c.co_lines()))
+    for k in c.co_consts:
+        if hasattr(k, "co_code"):
+            print("--", k.co_name); show(k, depth + 1)
+show(compile("a + 1", "<m>", "eval"))
+show(compile("a + 1", "<m>", "single"))
+show(compile("x = 1; x", "<m>", "single"))
+show(compile("[i for i in range(3)]", "<m>", "eval"))
+show(compile("lambda: 1", "<m>", "eval"))
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "module"]
+
+[[case]]
+id = "dis-dis-api-surface"
+script = '''
+python3 - <<'PYEOF'
+import dis, io
+def f(a, b=2):
+    x = a + b
+    return x
+buf = io.StringIO()
+dis.dis(f, file=buf)
+dis.dis(f, file=buf, show_caches=True)
+dis.dis(f, file=buf, adaptive=True)
+dis.dis(f, file=buf, depth=0)
+dis.dis("a + b", file=buf)
+dis.dis(f.__code__.co_code, file=buf)
+print(buf.getvalue())
+dis.show_code(f, file=buf)
+print(dis.code_info(f))
+print(dis.findlinestarts(f.__code__).__class__.__name__, list(dis.findlinestarts(f.__code__)))
+print(dis.findlabels(f.__code__.co_code))
+print(dis.stack_effect(dis.opmap["LOAD_FAST"], 0), dis.stack_effect(dis.opmap["BINARY_OP"], 0), dis.stack_effect(dis.opmap["CALL"], 2), dis.stack_effect(dis.opmap["POP_JUMP_IF_FALSE"], 5, jump=True))
+bc = dis.Bytecode(f)
+print(bc.first_line, repr(bc.codeobj.co_name), len(list(bc)))
+print(dis.Bytecode(f, show_caches=True).info())
+print([i.baseopname for i in dis.get_instructions(f)][:3], [i.arg for i in dis.get_instructions(f)][:3])
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "api"]
+
+[[case]]
+id = "dis-cache-entries"
+script = '''
+python3 - <<'PYEOF'
+import dis
+def f(a, o, g):
+    x = o.attr
+    y = g(a)
+    z = a + 1
+    w = a < y
+    return o.m(x), g.__name__, a[0], z, w
+for i in dis.get_instructions(f, show_caches=True):
+    print(i.offset, i.opname, i.arg, i.argrepr, i.cache_info if hasattr(i, "cache_info") else None)
+print(f.__code__.co_code.hex())
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "api"]
+
+[[case]]
+id = "dis-code-object-attributes"
+script = '''
+python3 - <<'PYEOF'
+def f(a, b=1, *c, d, **e):
+    x = 1
+    def g(): return x, a
+    return g
+c = f.__code__
+for name in ("co_argcount", "co_posonlyargcount", "co_kwonlyargcount", "co_nlocals", "co_stacksize", "co_flags", "co_firstlineno", "co_name", "co_qualname", "co_filename", "co_names", "co_varnames", "co_freevars", "co_cellvars", "co_lnotab", "co_exceptiontable"):
+    print(name, repr(getattr(c, name)))
+print(c._varname_from_oparg(0) if hasattr(c, "_varname_from_oparg") else None)
+d = c.replace(co_name="outro", co_firstlineno=100)
+print(d.co_name, d.co_firstlineno, d.co_qualname, d.co_linetable == c.co_linetable)
+print(c == f.__code__, hash(c) == hash(f.__code__), c == d)
+print(compile("1", "a", "eval") == compile("1", "b", "eval"))
+print(c.co_consts[0] is None or c.co_consts[0])
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "api"]
+
+[[case]]
+id = "dis-exec-bytecode-semantics"
+script = '''
+python3 - <<'PYEOF'
+# O que o emissor gera tem de executar igual: resultados, não bytes.
+def a(n):
+    t = 0
+    for i in range(n):
+        if i % 2:
+            continue
+        t += i
+    else:
+        t += 100
+    return t
+def b(x):
+    try:
+        return 1 / x
+    except ZeroDivisionError as e:
+        return str(e)
+    finally:
+        print("fim", x)
+def c(xs):
+    return [y * 2 for y in xs if y], {k: v for k, v in enumerate(xs)}, sum(z for z in xs)
+def d(x):
+    match x:
+        case [1, *r]:
+            return r
+        case {"k": v}:
+            return v
+        case str() as s:
+            return s.upper()
+        case _:
+            return None
+def e(n):
+    def inc():
+        nonlocal n
+        n += 1
+        return n
+    return inc(), inc()
+def g():
+    x = yield 1
+    y = yield from [x, 2]
+    return y
+print(a(10), b(2), b(0), c([0, 1, 2]), d([1, 2, 3]), d({"k": 5}), d("ab"), d(3), e(5))
+it = g()
+print(next(it), it.send("s"), next(it), list(g()))
+print(f"{a(3)!r:>6}|{1.5:08.3f}|{'x'=}")
+PYEOF
+'''
+tags = ["python", "dis", "bytecode", "semantics"]

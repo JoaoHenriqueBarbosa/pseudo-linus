@@ -16,6 +16,9 @@ const DATA_15_1: Sources = Sources {
     exclusions: include_str!("../../data/unicode-15.1.0/CompositionExclusions.txt"),
     aliases: include_str!("../../data/unicode-15.1.0/NameAliases.txt"),
     sequences: include_str!("../../data/unicode-15.1.0/NamedSequences.txt"),
+    special_casing: include_str!("../../data/unicode-15.1.0/SpecialCasing.txt"),
+    case_folding: include_str!("../../data/unicode-15.1.0/CaseFolding.txt"),
+    derived_core: include_str!("../../data/unicode-15.1.0/DerivedCoreProperties.txt"),
 };
 
 const DATA_3_2: Sources = Sources {
@@ -25,6 +28,9 @@ const DATA_3_2: Sources = Sources {
     exclusions: include_str!("../../data/unicode-3.2.0/CompositionExclusions-3.2.0.txt"),
     aliases: "",
     sequences: "",
+    special_casing: "",
+    case_folding: "",
+    derived_core: "",
 };
 
 const UNIHAN_NUMERIC: &str = include_str!("../../data/unicode-15.1.0/Unihan_NumericValues.txt");
@@ -36,7 +42,39 @@ struct Sources {
     exclusions: &'static str,
     aliases: &'static str,
     sequences: &'static str,
+    special_casing: &'static str,
+    case_folding: &'static str,
+    derived_core: &'static str,
 }
+
+/// Qual mapeamento de caixa consultar (`Db::case_map`).
+#[derive(Clone, Copy)]
+pub enum CaseMap {
+    Lower,
+    Upper,
+    Title,
+    Fold,
+}
+
+/// Propriedades do `DerivedCoreProperties.txt` que o `str` consulta.
+#[derive(Clone, Copy)]
+pub enum Property {
+    CaseIgnorable,
+    Cased,
+    Lowercase,
+    Uppercase,
+    XidStart,
+    XidContinue,
+}
+
+const PROPERTY_NAMES: [(&str, Property); 6] = [
+    ("Case_Ignorable", Property::CaseIgnorable),
+    ("Cased", Property::Cased),
+    ("Lowercase", Property::Lowercase),
+    ("Uppercase", Property::Uppercase),
+    ("XID_Start", Property::XidStart),
+    ("XID_Continue", Property::XidContinue),
+];
 
 /// Uma linha do `UnicodeData.txt`, com os campos como estão no arquivo.
 #[derive(Clone, Copy)]
@@ -72,6 +110,12 @@ pub struct Db {
     composition: HashMap<(u32, u32), u32>,
     /// `numeric()` dos ideogramas, do Unihan.
     unihan: HashMap<u32, &'static str>,
+    /// Mapeamentos completos de caixa, indexados por `CaseMap`: os simples do `UnicodeData.txt`,
+    /// trocados pelos incondicionais do `SpecialCasing.txt`; o dobramento é o `CaseFolding.txt`
+    /// (status C e F). O que não está na tabela fica como está.
+    case_maps: [HashMap<u32, Vec<u32>>; 4],
+    /// Intervalos ordenados de cada `Property`.
+    core: [Vec<(u32, u32)>; 6],
 }
 
 // Hangul (Unicode 3.12, "Conjoining Jamo Behavior").
@@ -129,7 +173,7 @@ pub trait Props: Sync {
 
     /// `normalize(forma, texto)`; `None` se a forma não existe.
     fn normalize(&self, form: &str, text: &str) -> Option<String> {
-        let cps: Vec<u32> = text.chars().map(u32::from).collect();
+        let cps: Vec<u32> = crate::object::code_points(text).collect();
         let out = match form {
             "NFD" => decompose(self, &cps, false),
             "NFKD" => decompose(self, &cps, true),
@@ -137,7 +181,11 @@ pub trait Props: Sync {
             "NFKC" => compose(self, decompose(self, &cps, true)),
             _ => return None,
         };
-        Some(out.into_iter().filter_map(char::from_u32).collect())
+        let mut result = String::with_capacity(text.len());
+        for cp in out {
+            crate::object::push_cp(&mut result, cp);
+        }
+        Some(result)
     }
 }
 
@@ -363,12 +411,66 @@ fn code_range(s: &str) -> Option<(u32, u32)> {
     }
 }
 
+/// Lista de código-pontos em hexadecimal separados por espaço.
+fn code_list(s: &str) -> Vec<u32> {
+    s.split_whitespace().filter_map(hex).collect()
+}
+
+/// `SpecialCasing.txt`: só as linhas incondicionais (`makeunicodedata.py` ignora as demais, e o
+/// sigma final é tratado em `handle_capital_sigma`); elas trocam os três mapeamentos simples.
+fn parse_special_casing(text: &'static str, maps: &mut [HashMap<u32, Vec<u32>>; 4]) {
+    for line in data_lines(text) {
+        let f: Vec<&str> = line.split(';').map(str::trim).collect();
+        if f.len() < 4 || f.get(4).is_some_and(|c| !c.is_empty()) {
+            continue;
+        }
+        let Some(cp) = hex(f[0]) else { continue };
+        for (which, field) in [(CaseMap::Lower, 1), (CaseMap::Title, 2), (CaseMap::Upper, 3)] {
+            maps[which as usize].insert(cp, code_list(f[field]));
+        }
+    }
+}
+
+/// `CaseFolding.txt`: status C (comum) e F (completo, que prevalece sobre o C); S e T não entram.
+fn parse_case_folding(text: &'static str, fold: &mut HashMap<u32, Vec<u32>>) {
+    for line in data_lines(text) {
+        let f: Vec<&str> = line.split(';').map(str::trim).collect();
+        let (Some(cp), Some(&status), Some(mapped)) = (f.first().and_then(|c| hex(c)), f.get(1), f.get(2)) else { continue };
+        match status {
+            "C" => {
+                fold.entry(cp).or_insert_with(|| code_list(mapped));
+            }
+            "F" => {
+                fold.insert(cp, code_list(mapped));
+            }
+            _ => {}
+        }
+    }
+}
+
+/// `DerivedCoreProperties.txt`: os intervalos de cada propriedade de `PROPERTY_NAMES`.
+fn parse_core_properties(text: &'static str) -> [Vec<(u32, u32)>; 6] {
+    let mut core: [Vec<(u32, u32)>; 6] = Default::default();
+    for line in data_lines(text) {
+        let mut f = line.split(';').map(str::trim);
+        let (Some(range), Some(name)) = (f.next().and_then(code_range), f.next()) else { continue };
+        if let Some(&(_, prop)) = PROPERTY_NAMES.iter().find(|(n, _)| *n == name) {
+            core[prop as usize].push(range);
+        }
+    }
+    for ranges in &mut core {
+        ranges.sort_unstable();
+    }
+    core
+}
+
 impl Db {
     fn parse(src: &Sources) -> Db {
         let mut by_cp = HashMap::new();
         let mut ranges = Vec::new();
         let mut names = HashMap::new();
         let mut open: Option<(u32, Rec, bool)> = None;
+        let mut case_maps: [HashMap<u32, Vec<u32>>; 4] = Default::default();
         for line in src.unicode_data.lines().filter(|l| !l.is_empty()) {
             let f: Vec<&'static str> = line.split(';').collect();
             if f.len() < 15 {
@@ -399,9 +501,18 @@ impl Db {
             if !f[1].starts_with('<') {
                 names.insert(f[1], cp);
             }
+            // Campos 12, 13 e 14: maiúscula, minúscula e título simples.
+            for (which, field) in [(CaseMap::Upper, 12), (CaseMap::Lower, 13), (CaseMap::Title, 14)] {
+                if let Some(mapped) = hex(f[field]) {
+                    case_maps[which as usize].insert(cp, vec![mapped]);
+                }
+            }
             by_cp.insert(cp, rec);
         }
         ranges.sort_by_key(|r| r.first);
+        parse_special_casing(src.special_casing, &mut case_maps);
+        parse_case_folding(src.case_folding, &mut case_maps[CaseMap::Fold as usize]);
+        let core = parse_core_properties(src.derived_core);
 
         let mut widths = Vec::new();
         for line in data_lines(src.east_asian_width) {
@@ -437,6 +548,8 @@ impl Db {
             sequences,
             composition: HashMap::new(),
             unihan: HashMap::new(),
+            case_maps,
+            core,
         };
         // Pares de composição canônica: decomposições canônicas de dois caracteres, fora das
         // exclusões do arquivo e das decomposições de não-iniciais (UAX #15, "Full Composition Exclusion").
@@ -482,6 +595,24 @@ impl Db {
 
     pub fn category(&self, cp: u32) -> &'static str {
         self.record(cp).map_or("Cn", |r| r.category)
+    }
+
+    /// O mapeamento completo de caixa de `cp`; `None` quando o caractere fica como está.
+    pub fn case_map(&self, which: CaseMap, cp: u32) -> Option<&[u32]> {
+        self.case_maps[which as usize].get(&cp).map(Vec::as_slice)
+    }
+
+    /// O mapeamento simples de caixa, como `_PyUnicode_ToLowercase` e afins: o primeiro
+    /// código-ponto do mapeamento completo.
+    pub fn simple_case(&self, which: CaseMap, cp: u32) -> u32 {
+        self.case_map(which, cp).and_then(|m| m.first().copied()).unwrap_or(cp)
+    }
+
+    /// Se `cp` tem a propriedade `prop` do `DerivedCoreProperties.txt`.
+    pub fn has(&self, prop: Property, cp: u32) -> bool {
+        let ranges = &self.core[prop as usize];
+        let i = ranges.partition_point(|r| r.0 <= cp);
+        i.checked_sub(1).is_some_and(|i| cp <= ranges[i].1)
     }
 
     pub fn bidirectional(&self, cp: u32) -> &'static str {
