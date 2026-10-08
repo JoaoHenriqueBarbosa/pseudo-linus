@@ -19,44 +19,32 @@ fn character_requires_parse_string_slow_case<C: crate::wtf::text::string_impl::C
     character < 0xE || (C::SIZE != 1 && character > 0xFF)
 }
 
-/// `U16_IS_SURROGATE`.
-fn u16_is_surrogate(c: u32) -> bool {
-    (c & 0xF800) == 0xD800
-}
-
-/// `U16_IS_SURROGATE_LEAD`: só vale para um `c` que já é surrogate.
+/// `U16_IS_SURROGATE_LEAD`: só vale para um `c` que já é surrogate (o bit 0x400 separa lead de
+/// trail), o inverso do `u16_is_surrogate_trail` de `lexer.rs`.
 fn u16_is_surrogate_lead(c: u32) -> bool {
-    (c & 0x400) == 0
+    !u16_is_surrogate_trail(c)
 }
 
 impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
-    /// O caractere corrente como inteiro de 32 bits (o C++ compara `m_current` com literais de
-    /// caractere promovidos a `int`).
-    #[inline(always)]
-    fn current_unit(&self) -> u32 {
-        self.current.into()
+    /// O texto da fonte como `Rc`, para fatiar `T::span_of(&texto)` sem prender o `self` (as
+    /// chamadas de `make_identifier` e `record*` tomam `&mut self`). Só é nulo antes do `set_code`.
+    fn source_rc(&self) -> std::rc::Rc<crate::wtf::text::string_impl::StringImpl> {
+        match &self.source_text {
+            Some(text) => std::rc::Rc::clone(text),
+            None => unreachable!("Lexer usado antes de set_code"),
+        }
     }
 
-    /// `record8(int)`: o chamador garante `isLatin1(c)`.
-    #[inline]
-    fn record8(&mut self, c: u32) {
-        self.buffer8.push(c as u8);
-    }
-
-    /// `append8(std::span<const T>)`: o chamador garante que cada unidade é Latin1.
-    fn append8(&mut self, span: &[T]) {
-        self.buffer8.extend(span.iter().map(|&c| Into::<u32>::into(c) as u8));
-    }
-
-    /// `append16(std::span<const Latin1Character>)` e `append16(std::span<const char16_t>)`: as
-    /// duas sobrecargas viram esta, genérica sobre `T` (cada unidade é alargada a 16 bits).
-    fn append16(&mut self, span: &[T]) {
+    /// As duas sobrecargas de `append16(std::span<const ...>)` do C++ que o código escolhe pelo
+    /// `T` da fonte (`Latin1Character` ou `char16_t`): cada unidade é alargada a 16 bits.
+    fn append16_units(&mut self, span: &[T]) {
         self.buffer16.extend(span.iter().map(|&c| c.to_u16()));
     }
 
     /// `record16(T)` e `record16(int)`: o chamador garante `0 <= c <= USHRT_MAX`.
     #[inline]
     fn record16(&mut self, c: u32) {
+        debug_assert!(c <= u16::MAX as u32);
         self.buffer16.push(c as u16);
     }
 
@@ -69,6 +57,16 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
             self.buffer16.push(lead as u16);
             self.buffer16.push(trail as u16);
         }
+    }
+
+    /// `makeLatin1Identifier(std::span<const T>)`: o C++ escolhe a sobrecarga pelo `T` da fonte
+    /// (`Latin1Character` cai no `makeIdentifier` genérico, `char16_t` estreita para Latin1).
+    fn make_latin1_identifier_units(&mut self, span: &[T]) -> Identifier {
+        if T::SIZE == 1 {
+            return self.make_identifier(span);
+        }
+        let units: Vec<u16> = span.iter().map(|&c| c.to_u16()).collect();
+        self.make_latin1_identifier(&units)
     }
 
     /// `makeIdentifier(m_buffer16.span())`. O buffer sai do `self` durante a chamada porque a
@@ -85,7 +83,7 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
     fn parse_identifier<const SHOULD_CREATE_IDENTIFIER: bool>(
         &mut self,
         token_data: &mut JSTokenData,
-        lexer_flags: LexerFlags,
+        lexer_flags: LexerFlagSet,
         strict_mode: bool,
     ) -> JSTokenType {
         if T::SIZE == 1 {
@@ -99,24 +97,24 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
     fn parse_identifier_latin1<const SHOULD_CREATE_IDENTIFIER: bool>(
         &mut self,
         token_data: &mut JSTokenData,
-        lexer_flags: LexerFlags,
+        lexer_flags: LexerFlagSet,
         strict_mode: bool,
     ) -> JSTokenType {
         token_data.escaped = false;
         let remaining = (self.code_end - self.code) as isize;
-        if remaining >= MAX_TOKEN_LENGTH as isize && !lexer_flags.contains(LexerFlags::IGNORE_RESERVED_WORDS) {
+        if remaining >= MAX_TOKEN_LENGTH as isize && !lexer_flags.contains(LexerFlags::IgnoreReservedWords) {
             let keyword = self.parse_keyword::<SHOULD_CREATE_IDENTIFIER>(token_data);
             if keyword != IDENT {
                 return if keyword == RESERVED_IF_STRICT && !strict_mode { IDENT } else { keyword };
             }
         }
 
-        let is_private_name = self.current_unit() == '#' as u32;
-        let is_builtin_name = self.current_unit() == '@' as u32 && self.parsing_builtin_function;
+        let is_private_name = self.cur() == '#' as u32;
+        let is_builtin_name = self.cur() == '@' as u32 && self.parsing_builtin_function;
         let mut is_well_known_symbol = false;
         if is_builtin_name {
             self.shift();
-            if self.current_unit() == '@' as u32 {
+            if self.cur() == '@' as u32 {
                 is_well_known_symbol = true;
                 self.shift();
             }
@@ -128,7 +126,8 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
             self.shift();
         }
 
-        let source = self.source.clone();
+        let source_owner = self.source_rc();
+        let source = T::span_of(&source_owner);
 
         // A busca vetorial só para em fim de identificador ASCII; o laço escalar abaixo cobre
         // as partes Latin1 não ASCII. O predicado escalar do C++ é `!isIdentPart(c)`.
@@ -138,11 +137,11 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
         self.current = if found < self.code_end { source[found] } else { T::from_u16(0) };
 
         // Scalar fallback for non-ASCII Latin1 identifier parts
-        while is_ident_part(self.current_unit()) {
+        while is_ident_part(self.cur()) {
             self.shift();
         }
 
-        if self.current_unit() == '\\' as u32 {
+        if self.cur() == '\\' as u32 {
             return self.parse_identifier_slow_case::<SHOULD_CREATE_IDENTIFIER>(
                 token_data,
                 lexer_flags,
@@ -151,20 +150,18 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
             );
         }
 
-        let mut ident: Option<Identifier> = None;
-
         if SHOULD_CREATE_IDENTIFIER || self.parsing_builtin_function {
             let identifier_span = &source[identifier_start..self.current_source_ptr()];
-            if self.parsing_builtin_function && is_builtin_name {
+            let ident = if self.parsing_builtin_function && is_builtin_name {
                 let symbol = if is_well_known_symbol {
                     self.vm.property_names.builtin_names().look_up_well_known_symbol(identifier_span)
                 } else {
                     self.vm.property_names.builtin_names().look_up_private_name(identifier_span)
                 };
-                ident = symbol.map(|symbol| self.arena.borrow_mut().make_symbol_identifier(&symbol));
-                if ident.is_none() {
+                let Some(symbol) = symbol else {
                     return INVALID_PRIVATE_NAME_ERRORTOK;
-                }
+                };
+                self.shared_arena().borrow_mut().make_symbol_identifier(&symbol)
             } else {
                 let made = self.make_identifier(identifier_span);
                 if self.parsing_builtin_function {
@@ -174,20 +171,22 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
                         token_data.ident = Some(self.vm.property_names.undefined_private_name.clone());
                     }
                 }
-                ident = Some(made);
-            }
-            token_data.ident = ident.clone();
+                made
+            };
+            token_data.ident = Some(ident);
         } else {
             token_data.ident = None;
         }
 
         let ident_type = if is_private_name { PRIVATENAME } else { IDENT };
-        if remaining < MAX_TOKEN_LENGTH as isize && !lexer_flags.contains(LexerFlags::IGNORE_RESERVED_WORDS) {
+        if remaining < MAX_TOKEN_LENGTH as isize && !lexer_flags.contains(LexerFlags::IgnoreReservedWords) {
             if !is_builtin_name {
-                let entry = ident.as_ref().and_then(main_table_lexer_value);
-                let Some(token) = entry else {
+                // `JSC::mainTable.entry(*ident)`: o identificador foi feito deste mesmo trecho.
+                let entry = main_table_entry(&source[identifier_start..self.current_source_ptr()]);
+                let Some(entry) = entry else {
                     return ident_type;
                 };
+                let token = entry.token;
                 return if token != RESERVED_IF_STRICT || strict_mode { token } else { ident_type };
             }
         }
@@ -199,19 +198,19 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
     fn parse_identifier_utf16<const SHOULD_CREATE_IDENTIFIER: bool>(
         &mut self,
         token_data: &mut JSTokenData,
-        lexer_flags: LexerFlags,
+        lexer_flags: LexerFlagSet,
         strict_mode: bool,
     ) -> JSTokenType {
         token_data.escaped = false;
         let remaining = (self.code_end - self.code) as isize;
-        if remaining >= MAX_TOKEN_LENGTH as isize && !lexer_flags.contains(LexerFlags::IGNORE_RESERVED_WORDS) {
+        if remaining >= MAX_TOKEN_LENGTH as isize && !lexer_flags.contains(LexerFlags::IgnoreReservedWords) {
             let keyword = self.parse_keyword::<SHOULD_CREATE_IDENTIFIER>(token_data);
             if keyword != IDENT {
                 return if keyword == RESERVED_IF_STRICT && !strict_mode { IDENT } else { keyword };
             }
         }
 
-        let is_private_name = self.current_unit() == '#' as u32;
+        let is_private_name = self.cur() == '#' as u32;
         let identifier_start = self.current_source_ptr();
 
         if is_private_name {
@@ -220,7 +219,8 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
 
         let mut or_all_chars: u16 = 0;
 
-        let source = self.source.clone();
+        let source_owner = self.source_rc();
+        let source = T::span_of(&source_owner);
 
         // Attempt SIMD scan first (predicado escalar do C++)
         let start = self.current_source_ptr();
@@ -239,7 +239,7 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
             self.shift();
         }
 
-        if u16_is_surrogate(self.current_unit()) || self.current_unit() == '\\' as u32 {
+        if u16_is_surrogate(self.cur()) || self.cur() == '\\' as u32 {
             return self.parse_identifier_slow_case::<SHOULD_CREATE_IDENTIFIER>(
                 token_data,
                 lexer_flags,
@@ -249,17 +249,15 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
         }
 
         let is_all_8_bit = (or_all_chars & !0xff) == 0;
-        let mut ident: Option<Identifier> = None;
 
         if SHOULD_CREATE_IDENTIFIER {
             let identifier_span = &source[identifier_start..self.current_source_ptr()];
             let made = if is_all_8_bit {
-                self.make_lchar_identifier(identifier_span)
+                self.make_latin1_identifier_units(identifier_span)
             } else {
                 self.make_identifier(identifier_span)
             };
-            ident = Some(made);
-            token_data.ident = ident.clone();
+            token_data.ident = Some(made);
         } else {
             token_data.ident = None;
         }
@@ -268,11 +266,13 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
             return PRIVATENAME;
         }
 
-        if remaining < MAX_TOKEN_LENGTH as isize && !lexer_flags.contains(LexerFlags::IGNORE_RESERVED_WORDS) {
-            let entry = ident.as_ref().and_then(main_table_lexer_value);
-            let Some(token) = entry else {
+        if remaining < MAX_TOKEN_LENGTH as isize && !lexer_flags.contains(LexerFlags::IgnoreReservedWords) {
+            // `JSC::mainTable.entry(*ident)`: o identificador foi feito deste mesmo trecho.
+            let entry = main_table_entry(&source[identifier_start..self.current_source_ptr()]);
+            let Some(entry) = entry else {
                 return IDENT;
             };
+            let token = entry.token;
             return if token != RESERVED_IF_STRICT || strict_mode { token } else { IDENT };
         }
 
@@ -288,17 +288,18 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
         ident_type: JSTokenType,
         is_start: bool,
     ) -> JSTokenType {
-        let source = self.source.clone();
+        let source_owner = self.source_rc();
+        let source = T::span_of(&source_owner);
 
         // \uXXXX unicode characters or Surrogate pairs.
         if *identifier_start != self.current_source_ptr() {
-            self.append16(&source[*identifier_start..self.current_source_ptr()]);
+            self.append16_units(&source[*identifier_start..self.current_source_ptr()]);
         }
 
-        if self.current_unit() == '\\' as u32 {
+        if self.cur() == '\\' as u32 {
             token_data.escaped = true;
             self.shift();
-            if self.current_unit() != 'u' as u32 {
+            if self.cur() != 'u' as u32 {
                 return if self.at_end() {
                     UNTERMINATED_IDENTIFIER_ESCAPE_ERRORTOK
                 } else {
@@ -325,7 +326,7 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
             return ident_type;
         }
 
-        if !u16_is_surrogate_lead(self.current_unit()) {
+        if !u16_is_surrogate_lead(self.cur()) {
             return INVALID_UNICODE_ENCODING_ERRORTOK;
         }
 
@@ -336,7 +337,7 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
         if if is_start { !is_non_latin1_ident_start(code_point) } else { !is_non_latin1_ident_part(code_point) } {
             return INVALID_IDENTIFIER_UNICODE_ERRORTOK;
         }
-        self.append16(&source[self.code..self.code + 2]);
+        self.append16_units(&source[self.code..self.code + 2]);
         self.shift();
         self.shift();
         *identifier_start = self.current_source_ptr();
@@ -346,11 +347,12 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
     fn parse_identifier_slow_case<const SHOULD_CREATE_IDENTIFIER: bool>(
         &mut self,
         token_data: &mut JSTokenData,
-        lexer_flags: LexerFlags,
+        lexer_flags: LexerFlagSet,
         strict_mode: bool,
         identifier_start: usize,
     ) -> JSTokenType {
-        let source = self.source.clone();
+        let source_owner = self.source_rc();
+        let source = T::span_of(&source_owner);
         let mut identifier_start = identifier_start;
 
         let mut ident_chars_start = identifier_start;
@@ -376,7 +378,7 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
                 self.shift();
                 continue;
             }
-            if !u16_is_surrogate(self.current_unit()) && self.current_unit() != '\\' as u32 {
+            if !u16_is_surrogate(self.cur()) && self.cur() != '\\' as u32 {
                 break;
             }
 
@@ -391,22 +393,24 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
             }
         }
 
-        let mut ident: Option<Identifier> = None;
         if SHOULD_CREATE_IDENTIFIER {
             if identifier_start != self.current_source_ptr() {
-                self.append16(&source[identifier_start..self.current_source_ptr()]);
+                self.append16_units(&source[identifier_start..self.current_source_ptr()]);
             }
             let made = self.make_identifier_from_buffer16();
-            token_data.ident = Some(made.clone());
-            ident = Some(made);
+            token_data.ident = Some(made);
         } else {
             token_data.ident = None;
         }
 
+        // `JSC::mainTable.entry(*ident)`: o identificador foi feito do conteúdo do `m_buffer16`,
+        // que o `shrink(0)` zera logo depois, então a consulta tem de vir antes.
+        let entry_token = main_table_entry(&self.buffer16[..]).map(|entry| entry.token);
+
         self.buffer16.clear();
 
-        if !lexer_flags.contains(LexerFlags::IGNORE_RESERVED_WORDS) {
-            let Some(token) = ident.as_ref().and_then(main_table_lexer_value) else {
+        if !lexer_flags.contains(LexerFlags::IgnoreReservedWords) {
+            let Some(token) = entry_token else {
                 return ident_type;
             };
             if token != RESERVED_IF_STRICT || strict_mode {
@@ -445,7 +449,8 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
         let string_quote_character = self.current;
         self.shift();
 
-        let source = self.source.clone();
+        let source_owner = self.source_rc();
+        let source = T::span_of(&source_owner);
         let mut string_start = self.current_source_ptr();
 
         let quote: u32 = string_quote_character.into();
@@ -483,7 +488,7 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
         self.current = source[found];
         if self.current == string_quote_character {
             if SHOULD_BUILD_STRINGS {
-                token_data.ident = Some(self.make_lchar_identifier(&source[string_start..found]));
+                token_data.ident = Some(self.make_latin1_identifier_units(&source[string_start..found]));
             } else {
                 token_data.ident = None;
             }
@@ -491,30 +496,30 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
         }
 
         while self.current != string_quote_character {
-            if self.current_unit() == '\\' as u32 {
+            if self.cur() == '\\' as u32 {
                 if SHOULD_BUILD_STRINGS && string_start != self.current_source_ptr() {
                     self.append8(&source[string_start..self.current_source_ptr()]);
                 }
                 self.shift();
 
-                let escape = single_escape(self.current_unit());
+                let escape = single_escape(self.cur() as i32);
 
                 // Most common escape sequences first.
                 if escape != 0 {
                     if SHOULD_BUILD_STRINGS {
-                        self.record8(escape as u32);
+                        self.record8(escape as i32);
                     }
                     self.shift();
                 } else if Self::is_line_terminator(self.current) {
                     self.shift_line_terminator();
-                } else if self.current_unit() == 'x' as u32 {
+                } else if self.cur() == 'x' as u32 {
                     self.shift();
-                    if !crate::wtf::ascii_ctype::is_ascii_hex_digit(self.current_unit())
+                    if !crate::wtf::ascii_ctype::is_ascii_hex_digit(self.cur())
                         || !crate::wtf::ascii_ctype::is_ascii_hex_digit(Into::<u32>::into(self.peek(1)))
                     {
                         self.lex_error_message = lex_message("\\x can only be followed by a hex character sequence");
                         return if self.at_end()
-                            || (crate::wtf::ascii_ctype::is_ascii_hex_digit(self.current_unit())
+                            || (crate::wtf::ascii_ctype::is_ascii_hex_digit(self.cur())
                                 && self.code + 1 == self.code_end)
                         {
                             StringParseResult::StringUnterminated
@@ -522,10 +527,10 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
                             StringParseResult::StringCannotBeParsed
                         };
                     }
-                    let prev = self.current_unit();
+                    let prev = self.cur();
                     self.shift();
                     if SHOULD_BUILD_STRINGS {
-                        self.record8(Self::convert_hex(prev, self.current_unit()) as u32);
+                        self.record8(Self::convert_hex(prev as i32, self.cur() as i32) as i32);
                     }
                     self.shift();
                 } else {
@@ -594,9 +599,9 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
     }
 
     fn parse_complex_escape<const SHOULD_BUILD_STRINGS: bool>(&mut self, strict_mode: bool) -> StringParseResult {
-        if self.current_unit() == 'x' as u32 {
+        if self.cur() == 'x' as u32 {
             self.shift();
-            if !crate::wtf::ascii_ctype::is_ascii_hex_digit(self.current_unit())
+            if !crate::wtf::ascii_ctype::is_ascii_hex_digit(self.cur())
                 || !crate::wtf::ascii_ctype::is_ascii_hex_digit(Into::<u32>::into(self.peek(1)))
             {
                 // For raw template literal syntax, we consume `NotEscapeSequence`.
@@ -604,7 +609,7 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
                 // NotEscapeSequence ::
                 //     x [lookahread not one of HexDigit]
                 //     x HexDigit [lookahread not one of HexDigit]
-                if crate::wtf::ascii_ctype::is_ascii_hex_digit(self.current_unit()) {
+                if crate::wtf::ascii_ctype::is_ascii_hex_digit(self.cur()) {
                     self.shift();
                 }
 
@@ -616,17 +621,17 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
                 };
             }
 
-            let prev = self.current_unit();
+            let prev = self.cur();
             self.shift();
             if SHOULD_BUILD_STRINGS {
-                self.record16(Self::convert_hex(prev, self.current_unit()) as u32);
+                self.record16(Self::convert_hex(prev as i32, self.cur() as i32) as u32);
             }
             self.shift();
 
             return StringParseResult::StringParsedSuccessfully;
         }
 
-        if self.current_unit() == 'u' as u32 {
+        if self.cur() == 'u' as u32 {
             self.shift();
 
             let character = self.parse_unicode_escape();
@@ -646,11 +651,11 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
         }
 
         if strict_mode {
-            if crate::wtf::ascii_ctype::is_ascii_digit(self.current_unit()) {
+            if crate::wtf::ascii_ctype::is_ascii_digit(self.cur()) {
                 // The only valid numeric escape in strict mode is '\0', and this must not be followed by a decimal digit.
-                let character1 = self.current_unit();
+                let character1 = self.cur();
                 self.shift();
-                if character1 != '0' as u32 || crate::wtf::ascii_ctype::is_ascii_digit(self.current_unit()) {
+                if character1 != '0' as u32 || crate::wtf::ascii_ctype::is_ascii_digit(self.cur()) {
                     // For raw template literal syntax, we consume `NotEscapeSequence`.
                     //
                     // NotEscapeSequence ::
@@ -672,21 +677,21 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
                 }
                 return StringParseResult::StringParsedSuccessfully;
             }
-        } else if crate::wtf::ascii_ctype::is_ascii_octal_digit(self.current_unit()) {
+        } else if crate::wtf::ascii_ctype::is_ascii_octal_digit(self.cur()) {
             // Octal character sequences
-            let character1 = self.current_unit();
+            let character1 = self.cur();
             self.shift();
-            if crate::wtf::ascii_ctype::is_ascii_octal_digit(self.current_unit()) {
+            if crate::wtf::ascii_ctype::is_ascii_octal_digit(self.cur()) {
                 // Two octal characters
-                let character2 = self.current_unit();
+                let character2 = self.cur();
                 self.shift();
                 if character1 >= '0' as u32
                     && character1 <= '3' as u32
-                    && crate::wtf::ascii_ctype::is_ascii_octal_digit(self.current_unit())
+                    && crate::wtf::ascii_ctype::is_ascii_octal_digit(self.cur())
                 {
                     if SHOULD_BUILD_STRINGS {
                         self.record16(
-                            (character1 - '0' as u32) * 64 + (character2 - '0' as u32) * 8 + self.current_unit()
+                            (character1 - '0' as u32) * 64 + (character2 - '0' as u32) * 8 + self.cur()
                                 - '0' as u32,
                         );
                     }
@@ -702,7 +707,7 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
 
         if !self.at_end() {
             if SHOULD_BUILD_STRINGS {
-                self.record16(self.current_unit());
+                self.record16(self.cur());
             }
             self.shift();
             return StringParseResult::StringParsedSuccessfully;
@@ -720,17 +725,18 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
         let string_quote_character = self.current;
         self.shift();
 
-        let source = self.source.clone();
+        let source_owner = self.source_rc();
+        let source = T::span_of(&source_owner);
         let mut string_start = self.current_source_ptr();
 
         while self.current != string_quote_character {
-            if self.current_unit() == '\\' as u32 {
+            if self.cur() == '\\' as u32 {
                 if SHOULD_BUILD_STRINGS && string_start != self.current_source_ptr() {
-                    self.append16(&source[string_start..self.current_source_ptr()]);
+                    self.append16_units(&source[string_start..self.current_source_ptr()]);
                 }
                 self.shift();
 
-                let escape = single_escape(self.current_unit());
+                let escape = single_escape(self.cur() as i32);
 
                 // Most common escape sequences first
                 if escape != 0 {
@@ -752,9 +758,9 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
             }
             // Fast check for characters that require special handling.
             // Catches 0, \n, and \r as efficiently as possible, and lets through all common ASCII characters.
-            if self.current_unit() < 0xE {
+            if self.cur() < 0xE {
                 // New-line or end of input is not allowed
-                if self.at_end() || self.current_unit() == '\r' as u32 || self.current_unit() == '\n' as u32 {
+                if self.at_end() || self.cur() == '\r' as u32 || self.cur() == '\n' as u32 {
                     self.lex_error_message = lex_message("Unexpected EOF");
                     return if self.at_end() {
                         StringParseResult::StringUnterminated
@@ -769,7 +775,7 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
 
         if SHOULD_BUILD_STRINGS {
             if self.current_source_ptr() != string_start {
-                self.append16(&source[string_start..self.current_source_ptr()]);
+                self.append16_units(&source[string_start..self.current_source_ptr()]);
             }
             token_data.ident = Some(self.make_identifier_from_buffer16());
         } else {
@@ -787,18 +793,19 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
     ) -> StringParseResult {
         let build_raw_strings = raw_strings_build_mode == RawStringsBuildMode::BuildRawStrings;
         let mut parse_cooked_failed = false;
-        let source = self.source.clone();
+        let source_owner = self.source_rc();
+        let source = T::span_of(&source_owner);
         let mut string_start = self.current_source_ptr();
         let mut raw_string_start = self.current_source_ptr();
 
-        while self.current_unit() != '`' as u32 {
-            if self.current_unit() == '\\' as u32 {
+        while self.cur() != '`' as u32 {
+            if self.cur() == '\\' as u32 {
                 if string_start != self.current_source_ptr() {
-                    self.append16(&source[string_start..self.current_source_ptr()]);
+                    self.append16_units(&source[string_start..self.current_source_ptr()]);
                 }
                 self.shift();
 
-                let escape = single_escape(self.current_unit());
+                let escape = single_escape(self.cur() as i32);
 
                 // Most common escape sequences first.
                 if escape != 0 {
@@ -806,7 +813,7 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
                     self.shift();
                 } else if Self::is_line_terminator(self.current) {
                     // Normalize <CR>, <CR><LF> to <LF>.
-                    if self.current_unit() == '\r' as u32 {
+                    if self.cur() == '\r' as u32 {
                         if build_raw_strings {
                             self.buffer_for_raw_template_string16
                                 .extend(source[raw_string_start..self.current_source_ptr()].iter().map(|&c| c.to_u16()));
@@ -834,14 +841,14 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
                 continue;
             }
 
-            if self.current_unit() == '$' as u32 && Into::<u32>::into(self.peek(1)) == '{' as u32 {
+            if self.cur() == '$' as u32 && Into::<u32>::into(self.peek(1)) == '{' as u32 {
                 break;
             }
 
             // Fast check for characters that require special handling.
             // Catches 0, \n, \r, 0x2028, and 0x2029 as efficiently
             // as possible, and lets through all common ASCII characters.
-            if (self.current_unit().wrapping_sub(0xE) & 0x2000) != 0 {
+            if (self.cur().wrapping_sub(0xE) & 0x2000) != 0 {
                 // End of input is not allowed.
                 // Unlike String, line terminator is allowed.
                 if self.at_end() {
@@ -850,10 +857,10 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
                 }
 
                 if Self::is_line_terminator(self.current) {
-                    if self.current_unit() == '\r' as u32 {
+                    if self.cur() == '\r' as u32 {
                         // Normalize <CR>, <CR><LF> to <LF>.
                         if string_start != self.current_source_ptr() {
-                            self.append16(&source[string_start..self.current_source_ptr()]);
+                            self.append16_units(&source[string_start..self.current_source_ptr()]);
                         }
                         if raw_string_start != self.current_source_ptr() && build_raw_strings {
                             self.buffer_for_raw_template_string16
@@ -878,10 +885,10 @@ impl<T: crate::wtf::text::string_impl::CharType> Lexer<T> {
             self.shift();
         }
 
-        let is_tail = self.current_unit() == '`' as u32;
+        let is_tail = self.cur() == '`' as u32;
 
         if self.current_source_ptr() != string_start {
-            self.append16(&source[string_start..self.current_source_ptr()]);
+            self.append16_units(&source[string_start..self.current_source_ptr()]);
         }
         if raw_string_start != self.current_source_ptr() && build_raw_strings {
             self.buffer_for_raw_template_string16

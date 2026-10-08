@@ -1398,3 +1398,9 @@ impl<T: CharType> Lexer<T> {
         self.current = self.char_at(self.code);
     }
 }
+
+// Linhas 900 a 1674 do Lexer.cpp.
+include!("lexer_part2.rs");
+// Linhas 1675 em diante do Lexer.cpp.
+include!("lexer_part3.rs");
+include!("lexer_part4.rs");
