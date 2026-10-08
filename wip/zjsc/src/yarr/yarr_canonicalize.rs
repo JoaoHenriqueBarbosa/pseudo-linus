@@ -4,8 +4,10 @@
 //! casar sob as regras de casamento de RegExp sem diferenciar maiúsculas de minúsculas do ES6,
 //! especificadas em 21.2.2.8.2. As tabelas não Unicode são geradas por `YarrCanonicalizeUCS2.js`.
 //! As tabelas do modo Unicode (`YarrCanonicalizeUnicode.cpp`, gerado por
-//! `generateYarrCanonicalizeUnicode`) entram com o `CanonicalMode::Unicode` em outro lote.
+//! `generateYarrCanonicalizeUnicode`) estão em `yarr_canonicalize_unicode`, geradas por
+//! `scripts/gen-yarr-canonicalize-unicode.py`.
 
+use super::yarr_canonicalize_unicode::{UNICODE_CHARACTER_SET_INFO, UNICODE_RANGE_INFO};
 use self::UCS2CanonicalizationType::{
     CanonicalizeAlternatingAligned, CanonicalizeAlternatingUnaligned, CanonicalizeRangeHi,
     CanonicalizeRangeLo, CanonicalizeSet, CanonicalizeUnique,
@@ -29,14 +31,14 @@ pub struct CanonicalizationRange {
     pub type_: UCS2CanonicalizationType,
 }
 
-/// `enum class CanonicalMode { UCS2, Unicode }`. A variante `Unicode` depende das tabelas de
-/// `YarrCanonicalizeUnicode.cpp`, ainda não portadas.
+/// `enum class CanonicalMode { UCS2, Unicode }`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CanonicalMode {
     UCS2,
+    Unicode,
 }
 
-const fn r(begin: u32, end: u32, value: u32, type_: UCS2CanonicalizationType) -> CanonicalizationRange {
+pub(super) const fn r(begin: u32, end: u32, value: u32, type_: UCS2CanonicalizationType) -> CanonicalizationRange {
     CanonicalizationRange { begin, end, value, type_ }
 }
 
@@ -579,6 +581,7 @@ pub static LATIN1_CANONICALIZATION_TABLE: [u16; 256] = [
 pub fn canonical_character_set_info(index: u32, canonical_mode: CanonicalMode) -> &'static [u32] {
     match canonical_mode {
         CanonicalMode::UCS2 => UCS2_CHARACTER_SET_INFO[index as usize],
+        CanonicalMode::Unicode => UNICODE_CHARACTER_SET_INFO[index as usize],
     }
 }
 
@@ -587,6 +590,7 @@ pub fn canonical_character_set_info(index: u32, canonical_mode: CanonicalMode) -
 pub fn canonical_range_info_for(ch: u32, canonical_mode: CanonicalMode) -> &'static CanonicalizationRange {
     let mut info: &'static [CanonicalizationRange] = match canonical_mode {
         CanonicalMode::UCS2 => &UCS2_RANGE_INFO,
+        CanonicalMode::Unicode => &UNICODE_RANGE_INFO,
     };
 
     loop {
@@ -651,6 +655,18 @@ mod tests {
     use super::*;
 
     const UCS2: CanonicalMode = CanonicalMode::UCS2;
+
+    /// Oráculo (bun 1.4.2): `/K/i.test("k")` é false e com `u` é true; o mesmo para `ſ`
+    /// contra `s`. O sinal de Kelvin e o s longo só se equivalem às letras ASCII no modo Unicode.
+    #[test]
+    fn unicode_mode_folds_kelvin_and_long_s() {
+        assert!(!are_canonically_equivalent(0x212a, 'k' as u32, UCS2));
+        assert!(are_canonically_equivalent(0x212a, 'k' as u32, CanonicalMode::Unicode));
+        assert!(!are_canonically_equivalent(0x017f, 's' as u32, UCS2));
+        assert!(are_canonically_equivalent(0x017f, 's' as u32, CanonicalMode::Unicode));
+        let last = &UNICODE_RANGE_INFO[UNICODE_RANGE_INFO.len() - 1];
+        assert_eq!(last.end, 0x10ffff);
+    }
 
     #[test]
     fn table_is_contiguous_and_covers_ucs2() {

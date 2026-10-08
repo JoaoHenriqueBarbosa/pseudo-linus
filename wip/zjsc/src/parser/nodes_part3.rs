@@ -8,72 +8,66 @@
 //   `ArrayPatternNode::BindingType` é `ArrayPatternBindingType` e `ObjectPatternNode::BindingType` é
 //   `ObjectPatternBindingType`.
 // - `ParserArenaDeletable`, `ParserArenaFreeable` e `JSC_MAKE_PARSER_ARENA_DELETABLE_ALLOCATED` somem: a posse
-//   por `Box`/`Rc` os substitui.
-// - `DestructuringPatternNode` é abstrata e sem campos, mas o `TryNode` a guarda como `Box<DestructuringPatternNode>`:
-//   ela vira um `enum` com uma variante por classe concreta, sem `Deref` (não há struct base).
+//   compartilhada por `NodeRef` (`Rc<RefCell<T>>`) os substitui.
+// - `DestructuringPatternNode` é abstrata e sem campos, mas o `TryNode` a guarda por ponteiro:
+//   ela vira um `enum` por classe concreta que é a própria alça (como `Expression`), sem base comum.
 // - `collectBoundIdentifiers`, `toString`, `bindValue` e afins dos padrões de destructuring vivem no
 //   `NodesCodegen.cpp` e só o bytecompiler os usa: ficam para a camada dele.
 
-/// Classe com `m_next` própria, encadeada por `Box`: o que `NodeList` precisa para ligar o rabo.
+/// Classe com `m_next` própria, encadeada por `NodeRef`: o que `NodeList` precisa para ligar o rabo.
 pub trait ChainNode: Sized {
-    fn next_mut(&mut self) -> &mut Option<Box<Self>>;
+    fn next_mut(&mut self) -> &mut Option<NodeRef<Self>>;
 }
 
 impl ChainNode for ElementNode {
-    fn next_mut(&mut self) -> &mut Option<Box<ElementNode>> {
+    fn next_mut(&mut self) -> &mut Option<NodeRef<ElementNode>> {
         &mut self.next
     }
 }
 
 impl ChainNode for PropertyListNode {
-    fn next_mut(&mut self) -> &mut Option<Box<PropertyListNode>> {
+    fn next_mut(&mut self) -> &mut Option<NodeRef<PropertyListNode>> {
         &mut self.next
     }
 }
 
 impl ChainNode for ArgumentListNode {
-    fn next_mut(&mut self) -> &mut Option<Box<ArgumentListNode>> {
+    fn next_mut(&mut self) -> &mut Option<NodeRef<ArgumentListNode>> {
         &mut self.next
     }
 }
 
 impl ChainNode for ClauseListNode {
-    fn next_mut(&mut self) -> &mut Option<Box<ClauseListNode>> {
+    fn next_mut(&mut self) -> &mut Option<NodeRef<ClauseListNode>> {
         &mut self.next
     }
 }
 
 /// `ElementList`, `PropertyList`, `ArgumentList` e `ClauseList` do C++ (`{ head, tail }`).
 ///
-/// Com posse por `Box` o `tail` não pode ser guardado ao lado do `head` sem `unsafe`, e andar até ele a cada
-/// anexo tornaria a construção quadrática. Os nós ficam num `Vec` na ordem de chegada (cada um com `next`
-/// vazio) e `into_head` os liga de trás para frente, devolvendo o `head` que o C++ guardaria.
+/// Como no C++: `head` e `tail` são alças para os mesmos nós, e `push` faz `tail->m_next = node; tail = node`
+/// em tempo constante.
 pub struct NodeList<T: ChainNode> {
-    pub nodes: Vec<Box<T>>,
+    pub head: Option<NodeRef<T>>,
+    pub tail: Option<NodeRef<T>>,
 }
 
 impl<T: ChainNode> NodeList<T> {
     pub fn new() -> Self {
-        NodeList { nodes: Vec::new() }
+        NodeList { head: None, tail: None }
     }
 
     /// `tail->m_next = node; tail = node`.
-    pub fn push(&mut self, node: Box<T>) {
-        self.nodes.push(node);
-    }
-
-    pub fn tail_mut(&mut self) -> Option<&mut T> {
-        self.nodes.last_mut().map(|node| &mut **node)
-    }
-
-    /// Liga os nós pelo `next` e devolve o `head`.
-    pub fn into_head(self) -> Option<Box<T>> {
-        let mut head: Option<Box<T>> = None;
-        for mut node in self.nodes.into_iter().rev() {
-            *node.next_mut() = head;
-            head = Some(node);
+    pub fn push(&mut self, node: NodeRef<T>) {
+        match self.tail.replace(node.clone()) {
+            Some(tail) => *tail.borrow_mut().next_mut() = Some(node),
+            None => self.head = Some(node),
         }
-        head
+    }
+
+    /// O `head` que o C++ guardaria.
+    pub fn into_head(self) -> Option<NodeRef<T>> {
+        self.head
     }
 }
 
@@ -114,11 +108,11 @@ macro_rules! scope_node {
                 end_location: &JSTokenLocation,
                 $start_column: u32,
                 $end_column: u32,
-                children: Option<Box<SourceElements>>,
+                children: Option<NodeRef<SourceElements>>,
                 var_environment: VariableEnvironment,
                 func_stack: FunctionStack,
                 lexical_variables: VariableEnvironment,
-                $parameters: Option<Box<FunctionParameters>>,
+                $parameters: Option<NodeRef<FunctionParameters>>,
                 source: &SourceCode,
                 $features: CodeFeatures,
                 lexically_scoped_features: LexicallyScopedFeatures,
@@ -211,11 +205,11 @@ impl ImportSpecifierNode {
 
 #[derive(Default)]
 pub struct ImportSpecifierListNode {
-    pub specifiers: Vec<Box<ImportSpecifierNode>>,
+    pub specifiers: Vec<NodeRef<ImportSpecifierNode>>,
 }
 
 impl ImportSpecifierListNode {
-    pub fn append(&mut self, specifier: Box<ImportSpecifierNode>) {
+    pub fn append(&mut self, specifier: NodeRef<ImportSpecifierNode>) {
         self.specifiers.push(specifier);
     }
 }
@@ -242,9 +236,9 @@ pub enum ImportType {
 
 pub struct ImportDeclarationNode {
     pub base: StatementNode,
-    pub specifier_list: Box<ImportSpecifierListNode>,
-    pub module_name: Box<ModuleNameNode>,
-    pub attributes_list: Option<Box<ImportAttributesListNode>>,
+    pub specifier_list: NodeRef<ImportSpecifierListNode>,
+    pub module_name: NodeRef<ModuleNameNode>,
+    pub attributes_list: Option<NodeRef<ImportAttributesListNode>>,
     pub type_: ImportType,
 }
 
@@ -254,9 +248,9 @@ impl ImportDeclarationNode {
     pub fn new(
         location: &JSTokenLocation,
         type_: ImportType,
-        import_specifier_list: Box<ImportSpecifierListNode>,
-        module_name: Box<ModuleNameNode>,
-        import_attributes_list: Option<Box<ImportAttributesListNode>>,
+        import_specifier_list: NodeRef<ImportSpecifierListNode>,
+        module_name: NodeRef<ModuleNameNode>,
+        import_attributes_list: Option<NodeRef<ImportAttributesListNode>>,
     ) -> Self {
         ImportDeclarationNode {
             base: StatementNode::new(location),
@@ -270,8 +264,8 @@ impl ImportDeclarationNode {
 
 pub struct ExportAllDeclarationNode {
     pub base: StatementNode,
-    pub module_name: Box<ModuleNameNode>,
-    pub attributes_list: Option<Box<ImportAttributesListNode>>,
+    pub module_name: NodeRef<ModuleNameNode>,
+    pub attributes_list: Option<NodeRef<ImportAttributesListNode>>,
 }
 
 inherit!(ExportAllDeclarationNode => StatementNode);
@@ -279,8 +273,8 @@ inherit!(ExportAllDeclarationNode => StatementNode);
 impl ExportAllDeclarationNode {
     pub fn new(
         location: &JSTokenLocation,
-        module_name: Box<ModuleNameNode>,
-        import_attributes_list: Option<Box<ImportAttributesListNode>>,
+        module_name: NodeRef<ModuleNameNode>,
+        import_attributes_list: Option<NodeRef<ImportAttributesListNode>>,
     ) -> Self {
         ExportAllDeclarationNode {
             base: StatementNode::new(location),
@@ -333,20 +327,20 @@ impl ExportSpecifierNode {
 
 #[derive(Default)]
 pub struct ExportSpecifierListNode {
-    pub specifiers: Vec<Box<ExportSpecifierNode>>,
+    pub specifiers: Vec<NodeRef<ExportSpecifierNode>>,
 }
 
 impl ExportSpecifierListNode {
-    pub fn append(&mut self, specifier: Box<ExportSpecifierNode>) {
+    pub fn append(&mut self, specifier: NodeRef<ExportSpecifierNode>) {
         self.specifiers.push(specifier);
     }
 }
 
 pub struct ExportNamedDeclarationNode {
     pub base: StatementNode,
-    pub specifier_list: Box<ExportSpecifierListNode>,
-    pub module_name: Option<Box<ModuleNameNode>>,
-    pub attributes_list: Option<Box<ImportAttributesListNode>>,
+    pub specifier_list: NodeRef<ExportSpecifierListNode>,
+    pub module_name: Option<NodeRef<ModuleNameNode>>,
+    pub attributes_list: Option<NodeRef<ImportAttributesListNode>>,
 }
 
 inherit!(ExportNamedDeclarationNode => StatementNode);
@@ -354,9 +348,9 @@ inherit!(ExportNamedDeclarationNode => StatementNode);
 impl ExportNamedDeclarationNode {
     pub fn new(
         location: &JSTokenLocation,
-        export_specifier_list: Box<ExportSpecifierListNode>,
-        module_name: Option<Box<ModuleNameNode>>,
-        import_attributes_list: Option<Box<ImportAttributesListNode>>,
+        export_specifier_list: NodeRef<ExportSpecifierListNode>,
+        module_name: Option<NodeRef<ModuleNameNode>>,
+        import_attributes_list: Option<NodeRef<ImportAttributesListNode>>,
     ) -> Self {
         ExportNamedDeclarationNode {
             base: StatementNode::new(location),
@@ -509,7 +503,7 @@ scope_node!(
         ident: Identifier = Identifier::default(),
         // O C++ deixa `m_functionMode` sem valor até o `finishParsing`.
         function_mode: FunctionMode = FunctionMode::None,
-        parameters: Option<Box<FunctionParameters>> = parameters,
+        parameters: Option<NodeRef<FunctionParameters>> = parameters,
         start_column: u32 = start_column,
         end_column: u32 = end_column,
     }
@@ -681,7 +675,7 @@ pub struct ClassExprNode {
     pub ecma_name: Option<Identifier>,
     pub constructor_expression: Option<Expression>,
     pub class_heritage: Option<Expression>,
-    pub class_elements: Option<Box<PropertyListNode>>,
+    pub class_elements: Option<NodeRef<PropertyListNode>>,
     pub needs_lexical_scope: bool,
 }
 
@@ -696,9 +690,9 @@ impl ClassExprNode {
         class_environment: VariableEnvironment,
         constructor_expression: Option<Expression>,
         class_heritage: Option<Expression>,
-        class_elements: Option<Box<PropertyListNode>>,
+        class_elements: Option<NodeRef<PropertyListNode>>,
     ) -> Self {
-        let needs_lexical_scope = PropertyListNode::should_create_lexical_scope_for_class(class_elements.as_deref());
+        let needs_lexical_scope = PropertyListNode::should_create_lexical_scope_for_class(class_elements.as_ref());
         ClassExprNode {
             base: ExpressionNode::new(location),
             throwable: ThrowableExpressionData::default(),
@@ -723,21 +717,37 @@ impl ClassExprNode {
     }
 
     pub fn has_static_property(&self, prop_name: &Identifier) -> bool {
-        self.class_elements.as_ref().is_some_and(|elements| elements.has_statically_named_property(prop_name))
+        self.class_elements.as_ref().is_some_and(|elements| elements.borrow().has_statically_named_property(prop_name))
     }
 
     pub fn has_instance_fields(&self) -> bool {
-        self.class_elements.as_ref().is_some_and(|elements| elements.has_instance_fields())
+        self.class_elements.as_ref().is_some_and(|elements| elements.borrow().has_instance_fields())
     }
 }
 
-/// Classe abstrata com métodos virtuais e sem campos: um `enum` por classe concreta (ver a nota do topo).
+/// Classe abstrata com métodos virtuais e sem campos: um `enum` por classe concreta (ver a nota do topo). O
+/// próprio enum é a alça (clonar copia o ponteiro) e dois valores são iguais quando apontam para o mesmo nó.
+#[derive(Clone)]
 pub enum DestructuringPatternNode {
-    ArrayPattern(Box<ArrayPatternNode>),
-    ObjectPattern(Box<ObjectPatternNode>),
-    Binding(Box<BindingNode>),
-    RestParameter(Box<RestParameterNode>),
-    AssignmentElement(Box<AssignmentElementNode>),
+    ArrayPattern(NodeRef<ArrayPatternNode>),
+    ObjectPattern(NodeRef<ObjectPatternNode>),
+    Binding(NodeRef<BindingNode>),
+    RestParameter(NodeRef<RestParameterNode>),
+    AssignmentElement(NodeRef<AssignmentElementNode>),
+}
+
+impl PartialEq for DestructuringPatternNode {
+    fn eq(&self, other: &Self) -> bool {
+        use DestructuringPatternNode::*;
+        match (self, other) {
+            (ArrayPattern(a), ArrayPattern(b)) => Rc::ptr_eq(a, b),
+            (ObjectPattern(a), ObjectPattern(b)) => Rc::ptr_eq(a, b),
+            (Binding(a), Binding(b)) => Rc::ptr_eq(a, b),
+            (RestParameter(a), RestParameter(b)) => Rc::ptr_eq(a, b),
+            (AssignmentElement(a), AssignmentElement(b)) => Rc::ptr_eq(a, b),
+            _ => false,
+        }
+    }
 }
 
 impl DestructuringPatternNode {
@@ -764,7 +774,7 @@ pub enum ArrayPatternBindingType {
 
 pub struct ArrayPatternEntry {
     pub binding_type: ArrayPatternBindingType,
-    pub pattern: Option<Box<DestructuringPatternNode>>,
+    pub pattern: Option<DestructuringPatternNode>,
     pub default_value: Option<Expression>,
 }
 
@@ -782,7 +792,7 @@ impl ArrayPatternNode {
         &mut self,
         binding_type: ArrayPatternBindingType,
         _location: &JSTokenLocation,
-        node: Option<Box<DestructuringPatternNode>>,
+        node: Option<DestructuringPatternNode>,
         default_value: Option<Expression>,
     ) {
         self.target_patterns.push(ArrayPatternEntry { binding_type, pattern: node, default_value });
@@ -806,7 +816,7 @@ pub struct ObjectPatternEntry {
     pub property_name: Identifier,
     pub property_expression: Option<Expression>,
     pub was_string: bool,
-    pub pattern: Box<DestructuringPatternNode>,
+    pub pattern: DestructuringPatternNode,
     pub default_value: Option<Expression>,
     pub binding_type: ObjectPatternBindingType,
 }
@@ -834,7 +844,7 @@ impl ObjectPatternNode {
         _location: &JSTokenLocation,
         identifier: Identifier,
         was_string: bool,
-        pattern: Box<DestructuringPatternNode>,
+        pattern: DestructuringPatternNode,
         default_value: Option<Expression>,
         binding_type: ObjectPatternBindingType,
     ) {
@@ -854,7 +864,7 @@ impl ObjectPatternNode {
         vm: &VM,
         _location: &JSTokenLocation,
         property_expression: Expression,
-        pattern: Box<DestructuringPatternNode>,
+        pattern: DestructuringPatternNode,
         default_value: Option<Expression>,
         binding_type: ObjectPatternBindingType,
     ) {
@@ -894,12 +904,12 @@ impl BindingNode {
 }
 
 pub struct RestParameterNode {
-    pub pattern: Box<DestructuringPatternNode>,
+    pub pattern: DestructuringPatternNode,
     pub num_parameters_to_skip: u32,
 }
 
 impl RestParameterNode {
-    pub fn new(pattern: Box<DestructuringPatternNode>, num_parameters_to_skip: u32) -> Self {
+    pub fn new(pattern: DestructuringPatternNode, num_parameters_to_skip: u32) -> Self {
         RestParameterNode { pattern, num_parameters_to_skip }
     }
 }
@@ -918,7 +928,7 @@ impl AssignmentElementNode {
 
 pub struct DestructuringAssignmentNode {
     pub base: ExpressionNode,
-    pub bindings: Box<DestructuringPatternNode>,
+    pub bindings: DestructuringPatternNode,
     pub initializer: Option<Expression>,
 }
 
@@ -927,7 +937,7 @@ inherit!(DestructuringAssignmentNode => ExpressionNode);
 impl DestructuringAssignmentNode {
     pub fn new(
         location: &JSTokenLocation,
-        bindings: Box<DestructuringPatternNode>,
+        bindings: DestructuringPatternNode,
         initializer: Option<Expression>,
     ) -> Self {
         DestructuringAssignmentNode { base: ExpressionNode::new(location), bindings, initializer }
@@ -935,7 +945,7 @@ impl DestructuringAssignmentNode {
 }
 
 pub struct FunctionParameters {
-    pub patterns: Vec<(Box<DestructuringPatternNode>, Option<Expression>)>,
+    pub patterns: Vec<(DestructuringPatternNode, Option<Expression>)>,
     pub is_simple_parameter_list: bool,
 }
 
@@ -944,7 +954,7 @@ impl FunctionParameters {
         FunctionParameters { patterns: Vec::new(), is_simple_parameter_list: true }
     }
 
-    pub fn append(&mut self, pattern: Box<DestructuringPatternNode>, default_value: Option<Expression>) {
+    pub fn append(&mut self, pattern: DestructuringPatternNode, default_value: Option<Expression>) {
         // https://tc39.es/ecma262/#sec-functiondeclarationinstantiation
         // Implementa `IsSimpleParameterList` da ECMA 2015: é falsa quando a lista tem algum valor padrão, um
         // parâmetro rest ou qualquer padrão de destructuring. Nesse caso o objeto `arguments` é criado como o
@@ -998,44 +1008,46 @@ impl ClassDeclNode {
 /// `expr` é nulo na cláusula `default`.
 pub struct CaseClauseNode {
     pub expr: Option<Expression>,
-    pub statements: Option<Box<SourceElements>>,
+    pub statements: Option<NodeRef<SourceElements>>,
     /// O C++ deixa `m_startOffset` sem valor até o `setStartOffset`.
     pub start_offset: i32,
 }
 
 impl CaseClauseNode {
-    pub fn new(expr: Option<Expression>, statements: Option<Box<SourceElements>>) -> Self {
+    pub fn new(expr: Option<Expression>, statements: Option<NodeRef<SourceElements>>) -> Self {
         CaseClauseNode { expr, statements, start_offset: 0 }
     }
 }
 
 pub struct ClauseListNode {
-    pub clause: Box<CaseClauseNode>,
-    pub next: Option<Box<ClauseListNode>>,
+    pub clause: NodeRef<CaseClauseNode>,
+    pub next: Option<NodeRef<ClauseListNode>>,
 }
 
 impl ClauseListNode {
-    pub fn new(clause: Box<CaseClauseNode>) -> Self {
+    pub fn new(clause: NodeRef<CaseClauseNode>) -> Self {
         ClauseListNode { clause, next: None }
     }
 
     /// `ClauseListNode(clauseList, clause)`.
-    pub fn append(clause_list: &mut ClauseListNode, clause: Box<CaseClauseNode>) -> &mut ClauseListNode {
-        clause_list.next.insert(Box::new(ClauseListNode::new(clause)))
+    pub fn append(clause_list: &NodeRef<ClauseListNode>, clause: NodeRef<CaseClauseNode>) -> NodeRef<ClauseListNode> {
+        let tail = node(ClauseListNode::new(clause));
+        clause_list.borrow_mut().next = Some(tail.clone());
+        tail
     }
 }
 
 pub struct CaseBlockNode {
-    pub list1: Option<Box<ClauseListNode>>,
-    pub default_clause: Option<Box<CaseClauseNode>>,
-    pub list2: Option<Box<ClauseListNode>>,
+    pub list1: Option<NodeRef<ClauseListNode>>,
+    pub default_clause: Option<NodeRef<CaseClauseNode>>,
+    pub list2: Option<NodeRef<ClauseListNode>>,
 }
 
 impl CaseBlockNode {
     pub fn new(
-        list1: Option<Box<ClauseListNode>>,
-        default_clause: Option<Box<CaseClauseNode>>,
-        list2: Option<Box<ClauseListNode>>,
+        list1: Option<NodeRef<ClauseListNode>>,
+        default_clause: Option<NodeRef<CaseClauseNode>>,
+        list2: Option<NodeRef<ClauseListNode>>,
     ) -> Self {
         CaseBlockNode { list1, default_clause, list2 }
     }
@@ -1045,7 +1057,7 @@ pub struct SwitchNode {
     pub base: StatementNode,
     pub variable_environment: VariableEnvironmentNode,
     pub expr: Expression,
-    pub block: Box<CaseBlockNode>,
+    pub block: NodeRef<CaseBlockNode>,
 }
 
 inherit!(SwitchNode => StatementNode);
@@ -1054,7 +1066,7 @@ impl SwitchNode {
     pub fn new(
         location: &JSTokenLocation,
         expr: Expression,
-        block: Box<CaseBlockNode>,
+        block: NodeRef<CaseBlockNode>,
         lexical_variables: VariableEnvironment,
         function_stack: FunctionStack,
     ) -> Self {

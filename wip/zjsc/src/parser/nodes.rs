@@ -11,23 +11,24 @@
 //!   `MetaPropertyNode`) não vira struct: o filho aponta direto para o avô. A segunda herança
 //!   (`ThrowableExpressionData` e variantes) é um campo `throwable`, sem `Deref`.
 //! - O polimorfismo vira `enum Expression` e `enum Statement`, com UMA variante por classe concreta do
-//!   `Nodes.h` inteiro (sem o sufixo `Node`), cada uma `Box<Struct>`. O enum faz `Deref` para
-//!   `ExpressionNode`/`StatementNode`, então `expr.position()` e `stmt.set_next(..)` funcionam direto.
+//!   `Nodes.h` inteiro (sem o sufixo `Node`), cada uma `NodeRef<Struct>`. O enum é a própria alça (clonar
+//!   copia o ponteiro; igualdade é de ponteiro) e dá a struct base por `expr.base()`/`expr.base_mut()`
+//!   (`Ref`/`RefMut` do `ExpressionNode`/`StatementNode`), não por `Deref`: `expr.base().position()`.
 //!   Os métodos virtuais viram `match` no enum. `NumberNode` é abstrata: as variantes são `Double` e
 //!   `Integer`. Nenhum `*Node` abstrato com campos vira variante.
-//! - Ponteiro de nó vira `Expression`/`Box<Struct>` (nunca nulo) ou `Option<..>` (nulo no C++).
-//!   Lista encadeada do C++ mantém `next: Option<Box<..>>`. O construtor `X(previous, ...)` que faz
-//!   `previous->m_next = this` vira `X::append(tail, ...) -> &mut X`, que cria o nó, o liga ao
-//!   `tail` e devolve o novo rabo (o chamador anda com `tail = X::append(tail, ..)`).
+//! - Ponteiro de nó vira `Expression`/`NodeRef<Struct>` (nunca nulo) ou `Option<..>` (nulo no C++).
+//!   Lista encadeada do C++ mantém `next: Option<NodeRef<..>>`. O construtor `X(previous, ...)` que faz
+//!   `previous->m_next = this` vira `X::append(&tail, ...) -> NodeRef<X>`, que cria o nó, o liga ao
+//!   `tail` e devolve o novo rabo como alça clonada (o chamador anda com `tail = X::append(&tail, ..)`).
 //! - `const Identifier&` vira `Identifier` (clonado pelo chamador). Posições (`JSTextPosition`) entram
 //!   por valor; `JSTokenLocation` por referência, como no C++.
 //! - Omitidos de propósito: `emitBytecode` e tudo que recebe `BytecodeGenerator`/`RegisterID` (camada do
 //!   bytecompiler, inclusive `isPure`, cujos corpos não triviais estão no `NodesCodegen.cpp`, e
 //!   `ArrayNode::toArgumentList`, que só o emissor usa e que compartilha filhos); `ASSERT`s;
-//!   `ParserArenaFreeable`/`ParserArenaDeletable` (a posse por `Box` os substitui); acessor de campo
+//!   `ParserArenaFreeable`/`ParserArenaDeletable` (a posse compartilhada por `NodeRef` os substitui); acessor de campo
 //!   puro (`value()`, `identifier()`, `lexicalVariables()`: use o campo `pub`) e função de repasse
 //!   (`hasUsingDeclaration` do `VariableEnvironmentNode`, `isComputedClassField` do `PropertyListNode`:
-//!   chame o alvo direto, `nó.lexical_variables.has_using_declaration()`, `nó.node.is_computed_class_field()`).
+//!   chame o alvo direto, `nó.lexical_variables.has_using_declaration()`, `nó.node.borrow().is_computed_class_field()`).
 //! - A segunda metade deve: declarar `inherit!(Filho => Pai)` para cada struct com pai; definir os
 //!   métodos `has_completion_value`/`has_early_break_or_continue` em `BlockNode` e `ScopeNode`; dar o
 //!   campo `statement` a `LabelNode`; e usar `Rc<FunctionMetadataNode>` onde o C++ divide o ponteiro
@@ -81,26 +82,43 @@ macro_rules! inherit {
 }
 pub(crate) use inherit;
 
-/// Define o enum de uma família (uma variante `Box<Struct>` por classe concreta) e o `Deref` para a
-/// struct base da família.
+/// `NodeRef<T>`: o ponteiro de nó do C++. Os nós vivem enquanto alguém aponta para eles (no C++, na
+/// arena do parser), e o `Parser`/`ASTBuilder` alteram nós que já estão na árvore; daí posse
+/// compartilhada com mutação interior. Igualdade de ponteiro é `Rc::ptr_eq`.
+pub type NodeRef<T> = Rc<RefCell<T>>;
+
+/// `new (parserArena) T(...)`: cria o nó e devolve o ponteiro.
+pub fn node<T>(value: T) -> NodeRef<T> {
+    Rc::new(RefCell::new(value))
+}
+
+/// Define o enum de uma família (uma variante `NodeRef<Struct>` por classe concreta) e o acesso à
+/// struct base da família, `base()`/`base_mut()`, no lugar da conversão implícita do C++ para a
+/// classe base. Dois valores são iguais quando apontam para o mesmo nó.
 macro_rules! define_node_enum {
     ($(#[$meta:meta])* $name:ident => $target:ident { $($variant:ident($ty:ident)),* $(,)? }) => {
         $(#[$meta])*
+        #[derive(Clone)]
         pub enum $name {
-            $($variant(Box<$ty>)),*
+            $($variant(NodeRef<$ty>)),*
         }
-        impl Deref for $name {
-            type Target = $target;
-            fn deref(&self) -> &$target {
+        impl $name {
+            pub fn base(&self) -> std::cell::Ref<'_, $target> {
                 match self {
-                    $($name::$variant(n) => n),*
+                    $($name::$variant(n) => std::cell::Ref::map(n.borrow(), |n| -> &$target { n })),*
+                }
+            }
+            pub fn base_mut(&self) -> std::cell::RefMut<'_, $target> {
+                match self {
+                    $($name::$variant(n) => std::cell::RefMut::map(n.borrow_mut(), |n| -> &mut $target { n })),*
                 }
             }
         }
-        impl DerefMut for $name {
-            fn deref_mut(&mut self) -> &mut $target {
-                match self {
-                    $($name::$variant(n) => n),*
+        impl PartialEq for $name {
+            fn eq(&self, other: &Self) -> bool {
+                match (self, other) {
+                    $(($name::$variant(a), $name::$variant(b)) => Rc::ptr_eq(a, b),)*
+                    _ => false,
                 }
             }
         }
@@ -287,7 +305,7 @@ impl ExpressionNode {
 pub struct StatementNode {
     pub base: Node,
     pub last_line: i32,
-    pub next: Option<Box<Statement>>,
+    pub next: Option<Statement>,
 }
 
 inherit!(StatementNode => Node);
@@ -307,11 +325,11 @@ impl StatementNode {
         self.last_line as u32
     }
 
-    pub fn next(&self) -> Option<&Statement> {
-        self.next.as_deref()
+    pub fn next(&self) -> Option<Statement> {
+        self.next.clone()
     }
 
-    pub fn set_next(&mut self, next: Option<Box<Statement>>) {
+    pub fn set_next(&mut self, next: Option<Statement>) {
         self.next = next;
     }
 }
@@ -592,7 +610,7 @@ impl ThrowablePrefixedSubExpressionData {
 }
 
 pub struct TemplateExpressionListNode {
-    pub next: Option<Box<TemplateExpressionListNode>>,
+    pub next: Option<NodeRef<TemplateExpressionListNode>>,
     pub node: Expression,
 }
 
@@ -602,8 +620,10 @@ impl TemplateExpressionListNode {
     }
 
     /// `TemplateExpressionListNode(previous, node)`.
-    pub fn append(previous: &mut TemplateExpressionListNode, node: Expression) -> &mut TemplateExpressionListNode {
-        previous.next.insert(Box::new(TemplateExpressionListNode::new(node)))
+    pub fn append(previous: &NodeRef<TemplateExpressionListNode>, expression: Expression) -> NodeRef<TemplateExpressionListNode> {
+        let tail = node(TemplateExpressionListNode::new(expression));
+        previous.borrow_mut().next = Some(tail.clone());
+        tail
     }
 }
 
@@ -622,38 +642,40 @@ impl TemplateStringNode {
 }
 
 pub struct TemplateStringListNode {
-    pub next: Option<Box<TemplateStringListNode>>,
-    pub node: Box<TemplateStringNode>,
+    pub next: Option<NodeRef<TemplateStringListNode>>,
+    pub node: NodeRef<TemplateStringNode>,
 }
 
 impl TemplateStringListNode {
-    pub fn new(node: Box<TemplateStringNode>) -> Self {
+    pub fn new(node: NodeRef<TemplateStringNode>) -> Self {
         TemplateStringListNode { next: None, node }
     }
 
     /// `TemplateStringListNode(previous, node)`.
-    pub fn append(previous: &mut TemplateStringListNode, node: Box<TemplateStringNode>) -> &mut TemplateStringListNode {
-        previous.next.insert(Box::new(TemplateStringListNode::new(node)))
+    pub fn append(previous: &NodeRef<TemplateStringListNode>, string: NodeRef<TemplateStringNode>) -> NodeRef<TemplateStringListNode> {
+        let tail = node(TemplateStringListNode::new(string));
+        previous.borrow_mut().next = Some(tail.clone());
+        tail
     }
 }
 
 pub struct TemplateLiteralNode {
     pub base: ExpressionNode,
-    pub template_strings: Option<Box<TemplateStringListNode>>,
-    pub template_expressions: Option<Box<TemplateExpressionListNode>>,
+    pub template_strings: Option<NodeRef<TemplateStringListNode>>,
+    pub template_expressions: Option<NodeRef<TemplateExpressionListNode>>,
 }
 
 inherit!(TemplateLiteralNode => ExpressionNode);
 
 impl TemplateLiteralNode {
-    pub fn new(location: &JSTokenLocation, template_strings: Option<Box<TemplateStringListNode>>) -> Self {
+    pub fn new(location: &JSTokenLocation, template_strings: Option<NodeRef<TemplateStringListNode>>) -> Self {
         Self::with_expressions(location, template_strings, None)
     }
 
     pub fn with_expressions(
         location: &JSTokenLocation,
-        template_strings: Option<Box<TemplateStringListNode>>,
-        template_expressions: Option<Box<TemplateExpressionListNode>>,
+        template_strings: Option<NodeRef<TemplateStringListNode>>,
+        template_expressions: Option<NodeRef<TemplateExpressionListNode>>,
     ) -> Self {
         TemplateLiteralNode { base: ExpressionNode::new(location), template_strings, template_expressions }
     }
@@ -663,13 +685,13 @@ pub struct TaggedTemplateNode {
     pub base: ExpressionNode,
     pub throwable: ThrowableExpressionData,
     pub tag: Expression,
-    pub template_literal: Box<TemplateLiteralNode>,
+    pub template_literal: NodeRef<TemplateLiteralNode>,
 }
 
 inherit!(TaggedTemplateNode => ExpressionNode);
 
 impl TaggedTemplateNode {
-    pub fn new(location: &JSTokenLocation, tag: Expression, template_literal: Box<TemplateLiteralNode>) -> Self {
+    pub fn new(location: &JSTokenLocation, tag: Expression, template_literal: NodeRef<TemplateLiteralNode>) -> Self {
         TaggedTemplateNode {
             base: ExpressionNode::new(location),
             throwable: ThrowableExpressionData::default(),
@@ -800,7 +822,7 @@ impl PrivateIdentifierNode {
 }
 
 pub struct ElementNode {
-    pub next: Option<Box<ElementNode>>,
+    pub next: Option<NodeRef<ElementNode>>,
     pub node: Expression,
     pub elision: i32,
 }
@@ -811,14 +833,16 @@ impl ElementNode {
     }
 
     /// `ElementNode(l, elision, node)`.
-    pub fn append(l: &mut ElementNode, elision: i32, node: Expression) -> &mut ElementNode {
-        l.next.insert(Box::new(ElementNode::new(elision, node)))
+    pub fn append(l: &NodeRef<ElementNode>, elision: i32, expr: Expression) -> NodeRef<ElementNode> {
+        let tail = node(ElementNode::new(elision, expr));
+        l.borrow_mut().next = Some(tail.clone());
+        tail
     }
 }
 
 pub struct ArrayNode {
     pub base: ExpressionNode,
-    pub element: Option<Box<ElementNode>>,
+    pub element: Option<NodeRef<ElementNode>>,
     pub elision: i32,
 }
 
@@ -831,11 +855,11 @@ impl ArrayNode {
     }
 
     /// `ArrayNode(location, element)`: sem elisão.
-    pub fn from_elements(location: &JSTokenLocation, element: Option<Box<ElementNode>>) -> Self {
+    pub fn from_elements(location: &JSTokenLocation, element: Option<NodeRef<ElementNode>>) -> Self {
         Self::with_elision(location, 0, element)
     }
 
-    pub fn with_elision(location: &JSTokenLocation, elision: i32, element: Option<Box<ElementNode>>) -> Self {
+    pub fn with_elision(location: &JSTokenLocation, elision: i32, element: Option<NodeRef<ElementNode>>) -> Self {
         ArrayNode { base: ExpressionNode::new(location), element, elision }
     }
 
@@ -844,15 +868,16 @@ impl ArrayNode {
         if self.elision != 0 {
             return false;
         }
-        let mut ptr = self.element.as_deref();
+        let mut ptr = self.element.clone();
         while let Some(element) = ptr {
-            if element.elision != 0 {
+            let element_ref = element.borrow();
+            if element_ref.elision != 0 {
                 return false;
             }
-            if element.node.is_spread_expression() {
+            if element_ref.node.is_spread_expression() {
                 return false;
             }
-            ptr = element.next.as_deref();
+            ptr = element_ref.next.clone();
         }
         true
     }
@@ -1036,71 +1061,70 @@ impl PropertyNode {
 
 pub struct PropertyListNode {
     pub base: ExpressionNode,
-    pub node: Box<PropertyNode>,
-    pub next: Option<Box<PropertyListNode>>,
+    pub node: NodeRef<PropertyNode>,
+    pub next: Option<NodeRef<PropertyListNode>>,
     pub has_private_accessors: bool,
 }
 
 inherit!(PropertyListNode => ExpressionNode);
 
 impl PropertyListNode {
-    pub fn new(location: &JSTokenLocation, node: Box<PropertyNode>) -> Self {
+    pub fn new(location: &JSTokenLocation, node: NodeRef<PropertyNode>) -> Self {
         PropertyListNode { base: ExpressionNode::new(location), node, next: None, has_private_accessors: false }
     }
 
     /// `PropertyListNode(location, node, list)`.
-    pub fn append<'a>(
-        list: &'a mut PropertyListNode,
+    pub fn append(
+        list: &NodeRef<PropertyListNode>,
         location: &JSTokenLocation,
-        node: Box<PropertyNode>,
-    ) -> &'a mut PropertyListNode {
-        list.next.insert(Box::new(PropertyListNode::new(location, node)))
+        property: NodeRef<PropertyNode>,
+    ) -> NodeRef<PropertyListNode> {
+        let tail = node(PropertyListNode::new(location, property));
+        list.borrow_mut().next = Some(tail.clone());
+        tail
+    }
+
+    /// Anda a lista (este nó e os `next`) e diz se algum `PropertyNode` satisfaz `predicate`: o laço que o
+    /// C++ repete em `hasStaticallyNamedProperty`, `hasInstanceFields` e `shouldCreateLexicalScopeForClass`.
+    fn any_property(&self, mut predicate: impl FnMut(&PropertyNode) -> bool) -> bool {
+        if predicate(&self.node.borrow()) {
+            return true;
+        }
+        let mut list = self.next.clone();
+        while let Some(current) = list {
+            let current_ref = current.borrow();
+            if predicate(&current_ref.node.borrow()) {
+                return true;
+            }
+            list = current_ref.next.clone();
+        }
+        false
     }
 
     /// `PropertyListNode::hasStaticallyNamedProperty` (Nodes.cpp).
     pub fn has_statically_named_property(&self, prop_name: &Identifier) -> bool {
-        let mut list = Some(self);
-        while let Some(current) = list {
-            if current.node.is_static_class_property() {
-                if let Some(current_node_name) = current.node.name.as_ref() {
-                    if current_node_name == prop_name {
-                        return true;
-                    }
-                }
-            }
-            list = current.next.as_deref();
-        }
-        false
+        self.any_property(|property| {
+            property.is_static_class_property()
+                && property.name.as_ref().is_some_and(|current_node_name| current_node_name == prop_name)
+        })
     }
 
     /// `PropertyListNode::hasInstanceFields` (Nodes.cpp).
     pub fn has_instance_fields(&self) -> bool {
-        let mut list = Some(self);
-        while let Some(current) = list {
-            if current.node.is_instance_class_field() {
-                return true;
-            }
-            list = current.next.as_deref();
-        }
-        false
+        self.any_property(|property| property.is_instance_class_field())
     }
 
     /// `PropertyListNode::shouldCreateLexicalScopeForClass` (Nodes.cpp).
-    pub fn should_create_lexical_scope_for_class(list: Option<&PropertyListNode>) -> bool {
-        let mut list = list;
-        while let Some(current) = list {
-            if current.node.is_computed_class_field() || current.node.is_private() {
-                return true;
-            }
-            list = current.next.as_deref();
-        }
-        false
+    pub fn should_create_lexical_scope_for_class(list: Option<&NodeRef<PropertyListNode>>) -> bool {
+        list.is_some_and(|list| {
+            list.borrow().any_property(|property| property.is_computed_class_field() || property.is_private())
+        })
     }
 }
 
 pub struct ObjectLiteralNode {
     pub base: ExpressionNode,
-    pub list: Option<Box<PropertyListNode>>,
+    pub list: Option<NodeRef<PropertyListNode>>,
 }
 
 inherit!(ObjectLiteralNode => ExpressionNode);
@@ -1110,7 +1134,7 @@ impl ObjectLiteralNode {
         Self::with_list(location, None)
     }
 
-    pub fn with_list(location: &JSTokenLocation, list: Option<Box<PropertyListNode>>) -> Self {
+    pub fn with_list(location: &JSTokenLocation, list: Option<NodeRef<PropertyListNode>>) -> Self {
         ObjectLiteralNode { base: ExpressionNode::new(location), list }
     }
 }
@@ -1227,7 +1251,7 @@ impl ObjectSpreadExpressionNode {
 
 pub struct ArgumentListNode {
     pub base: ExpressionNode,
-    pub next: Option<Box<ArgumentListNode>>,
+    pub next: Option<NodeRef<ArgumentListNode>>,
     pub expr: Expression,
 }
 
@@ -1239,17 +1263,19 @@ impl ArgumentListNode {
     }
 
     /// `ArgumentListNode(location, listNode, expr)`.
-    pub fn append<'a>(
-        list_node: &'a mut ArgumentListNode,
+    pub fn append(
+        list_node: &NodeRef<ArgumentListNode>,
         location: &JSTokenLocation,
         expr: Expression,
-    ) -> &'a mut ArgumentListNode {
-        list_node.next.insert(Box::new(ArgumentListNode::new(location, expr)))
+    ) -> NodeRef<ArgumentListNode> {
+        let tail = node(ArgumentListNode::new(location, expr));
+        list_node.borrow_mut().next = Some(tail.clone());
+        tail
     }
 }
 
 pub struct ArgumentsNode {
-    pub list_node: Option<Box<ArgumentListNode>>,
+    pub list_node: Option<NodeRef<ArgumentListNode>>,
     pub has_assignments: bool,
 }
 
@@ -1258,7 +1284,7 @@ impl ArgumentsNode {
         ArgumentsNode { list_node: None, has_assignments: false }
     }
 
-    pub fn with_list(list_node: Option<Box<ArgumentListNode>>, has_assignments: bool) -> Self {
+    pub fn with_list(list_node: Option<NodeRef<ArgumentListNode>>, has_assignments: bool) -> Self {
         ArgumentsNode { list_node, has_assignments }
     }
 }
@@ -1273,7 +1299,7 @@ pub struct NewExprNode {
     pub base: ExpressionNode,
     pub throwable: ThrowableExpressionData,
     pub expr: Expression,
-    pub args: Option<Box<ArgumentsNode>>,
+    pub args: Option<NodeRef<ArgumentsNode>>,
 }
 
 inherit!(NewExprNode => ExpressionNode);
@@ -1283,7 +1309,7 @@ impl NewExprNode {
         Self::with_args(location, expr, None)
     }
 
-    pub fn with_args(location: &JSTokenLocation, expr: Expression, args: Option<Box<ArgumentsNode>>) -> Self {
+    pub fn with_args(location: &JSTokenLocation, expr: Expression, args: Option<NodeRef<ArgumentsNode>>) -> Self {
         NewExprNode {
             base: ExpressionNode::new(location),
             throwable: ThrowableExpressionData::default(),
@@ -1296,7 +1322,7 @@ impl NewExprNode {
 pub struct EvalFunctionCallNode {
     pub base: ExpressionNode,
     pub throwable: ThrowableExpressionData,
-    pub args: Box<ArgumentsNode>,
+    pub args: NodeRef<ArgumentsNode>,
 }
 
 inherit!(EvalFunctionCallNode => ExpressionNode);
@@ -1304,7 +1330,7 @@ inherit!(EvalFunctionCallNode => ExpressionNode);
 impl EvalFunctionCallNode {
     pub fn new(
         location: &JSTokenLocation,
-        args: Box<ArgumentsNode>,
+        args: NodeRef<ArgumentsNode>,
         divot: JSTextPosition,
         divot_start: JSTextPosition,
         divot_end: JSTextPosition,
@@ -1321,7 +1347,7 @@ pub struct FunctionCallValueNode {
     pub base: ExpressionNode,
     pub throwable: ThrowableExpressionData,
     pub expr: Expression,
-    pub args: Box<ArgumentsNode>,
+    pub args: NodeRef<ArgumentsNode>,
     pub is_optional_call: bool,
 }
 
@@ -1331,7 +1357,7 @@ impl FunctionCallValueNode {
     pub fn new(
         location: &JSTokenLocation,
         expr: Expression,
-        args: Box<ArgumentsNode>,
+        args: NodeRef<ArgumentsNode>,
         divot: JSTextPosition,
         divot_start: JSTextPosition,
         divot_end: JSTextPosition,
@@ -1375,7 +1401,7 @@ pub struct FunctionCallResolveNode {
     pub base: ExpressionNode,
     pub throwable: ThrowableExpressionData,
     pub ident: Identifier,
-    pub args: Box<ArgumentsNode>,
+    pub args: NodeRef<ArgumentsNode>,
     pub is_optional_call: bool,
 }
 
@@ -1385,7 +1411,7 @@ impl FunctionCallResolveNode {
     pub fn new(
         location: &JSTokenLocation,
         ident: Identifier,
-        args: Box<ArgumentsNode>,
+        args: NodeRef<ArgumentsNode>,
         divot: JSTextPosition,
         divot_start: JSTextPosition,
         divot_end: JSTextPosition,
@@ -1406,7 +1432,7 @@ pub struct FunctionCallBracketNode {
     pub throwable: ThrowableSubExpressionData,
     pub base_expr: Expression,
     pub subscript: Expression,
-    pub args: Box<ArgumentsNode>,
+    pub args: NodeRef<ArgumentsNode>,
     pub subscript_has_assignments: bool,
     pub is_optional_call: bool,
 }
@@ -1419,7 +1445,7 @@ impl FunctionCallBracketNode {
         base_expr: Expression,
         subscript: Expression,
         subscript_has_assignments: bool,
-        args: Box<ArgumentsNode>,
+        args: NodeRef<ArgumentsNode>,
         divot: JSTextPosition,
         divot_start: JSTextPosition,
         divot_end: JSTextPosition,
@@ -1440,7 +1466,7 @@ impl FunctionCallBracketNode {
 pub struct FunctionCallDotNode {
     pub base: BaseDotNode,
     pub throwable: ThrowableSubExpressionData,
-    pub args: Box<ArgumentsNode>,
+    pub args: NodeRef<ArgumentsNode>,
     pub is_optional_call: bool,
 }
 
@@ -1452,7 +1478,7 @@ impl FunctionCallDotNode {
         base_expr: Expression,
         ident: Identifier,
         type_: DotType,
-        args: Box<ArgumentsNode>,
+        args: NodeRef<ArgumentsNode>,
         divot: JSTextPosition,
         divot_start: JSTextPosition,
         divot_end: JSTextPosition,
@@ -1479,7 +1505,7 @@ pub struct BytecodeIntrinsicNode {
     pub throwable: ThrowableExpressionData,
     pub entry: BytecodeIntrinsicRegistryEntry,
     pub ident: Identifier,
-    pub args: Option<Box<ArgumentsNode>>,
+    pub args: Option<NodeRef<ArgumentsNode>>,
     pub type_: BytecodeIntrinsicNodeType,
 }
 
@@ -1491,7 +1517,7 @@ impl BytecodeIntrinsicNode {
         location: &JSTokenLocation,
         entry: BytecodeIntrinsicRegistryEntry,
         ident: Identifier,
-        args: Option<Box<ArgumentsNode>>,
+        args: Option<NodeRef<ArgumentsNode>>,
         divot: JSTextPosition,
         divot_start: JSTextPosition,
         divot_end: JSTextPosition,
@@ -1520,7 +1546,7 @@ impl CallFunctionCallDotNode {
         base_expr: Expression,
         ident: Identifier,
         type_: DotType,
-        args: Box<ArgumentsNode>,
+        args: NodeRef<ArgumentsNode>,
         divot: JSTextPosition,
         divot_start: JSTextPosition,
         divot_end: JSTextPosition,
@@ -1557,7 +1583,7 @@ impl ApplyFunctionCallDotNode {
         base_expr: Expression,
         ident: Identifier,
         type_: DotType,
-        args: Box<ArgumentsNode>,
+        args: NodeRef<ArgumentsNode>,
         divot: JSTextPosition,
         divot_start: JSTextPosition,
         divot_end: JSTextPosition,
@@ -1593,7 +1619,7 @@ impl HasOwnPropertyFunctionCallDotNode {
         base_expr: Expression,
         ident: Identifier,
         type_: DotType,
-        args: Box<ArgumentsNode>,
+        args: NodeRef<ArgumentsNode>,
         divot: JSTextPosition,
         divot_start: JSTextPosition,
         divot_end: JSTextPosition,
@@ -1911,6 +1937,11 @@ impl Expression {
         matches!(self, Expression::Null(_))
     }
 
+    /// `ExpressionNode::resultDescriptor`.
+    pub fn result_descriptor(&self) -> ResultType {
+        self.base().result_descriptor()
+    }
+
     /// `ConstantNode::isConstant`: `Null`, `Boolean`, `Double`, `Integer`, `String` e `BigInt`.
     pub fn is_constant(&self) -> bool {
         matches!(
@@ -1930,7 +1961,7 @@ impl Expression {
 
     pub fn is_private_location(&self) -> bool {
         match self {
-            Expression::DotAccessor(n) => n.type_ == DotType::PrivateMember,
+            Expression::DotAccessor(n) => n.borrow().type_ == DotType::PrivateMember,
             _ => false,
         }
     }
@@ -1981,7 +2012,7 @@ impl Expression {
 
     pub fn is_simple_array(&self) -> bool {
         match self {
-            Expression::Array(n) => n.is_simple_array(),
+            Expression::Array(n) => n.borrow().is_simple_array(),
             _ => false,
         }
     }
@@ -2071,7 +2102,7 @@ impl Expression {
             | Expression::CallFunctionCallDot(_)
             | Expression::ApplyFunctionCallDot(_)
             | Expression::HasOwnPropertyFunctionCallDot(_) => true,
-            Expression::BytecodeIntrinsic(n) => n.type_ == BytecodeIntrinsicNodeType::Function,
+            Expression::BytecodeIntrinsic(n) => n.borrow().type_ == BytecodeIntrinsicNodeType::Function,
             _ => false,
         }
     }
@@ -2092,13 +2123,13 @@ impl Expression {
 
     pub fn is_optional_call(&self) -> bool {
         match self {
-            Expression::FunctionCallValue(n) => n.is_optional_call,
-            Expression::FunctionCallResolve(n) => n.is_optional_call,
-            Expression::FunctionCallBracket(n) => n.is_optional_call,
-            Expression::FunctionCallDot(n) => n.is_optional_call,
-            Expression::CallFunctionCallDot(n) => n.is_optional_call,
-            Expression::ApplyFunctionCallDot(n) => n.is_optional_call,
-            Expression::HasOwnPropertyFunctionCallDot(n) => n.is_optional_call,
+            Expression::FunctionCallValue(n) => n.borrow().is_optional_call,
+            Expression::FunctionCallResolve(n) => n.borrow().is_optional_call,
+            Expression::FunctionCallBracket(n) => n.borrow().is_optional_call,
+            Expression::FunctionCallDot(n) => n.borrow().is_optional_call,
+            Expression::CallFunctionCallDot(n) => n.borrow().is_optional_call,
+            Expression::ApplyFunctionCallDot(n) => n.borrow().is_optional_call,
+            Expression::HasOwnPropertyFunctionCallDot(n) => n.borrow().is_optional_call,
             _ => false,
         }
     }
@@ -2110,30 +2141,31 @@ impl Expression {
     /// `BaseDotNode::isArgumentsLengthAccess`: toda subclasse de `BaseDotNode`.
     pub fn is_arguments_length_access(&self, vm: &VM) -> bool {
         match self {
-            Expression::DotAccessor(n) => n.is_arguments_length_access(vm),
-            Expression::FunctionCallDot(n) => n.is_arguments_length_access(vm),
-            Expression::CallFunctionCallDot(n) => n.is_arguments_length_access(vm),
-            Expression::ApplyFunctionCallDot(n) => n.is_arguments_length_access(vm),
-            Expression::HasOwnPropertyFunctionCallDot(n) => n.is_arguments_length_access(vm),
-            Expression::AssignDot(n) => n.is_arguments_length_access(vm),
-            Expression::ReadModifyDot(n) => n.is_arguments_length_access(vm),
-            Expression::ShortCircuitReadModifyDot(n) => n.is_arguments_length_access(vm),
+            Expression::DotAccessor(n) => n.borrow().is_arguments_length_access(vm),
+            Expression::FunctionCallDot(n) => n.borrow().is_arguments_length_access(vm),
+            Expression::CallFunctionCallDot(n) => n.borrow().is_arguments_length_access(vm),
+            Expression::ApplyFunctionCallDot(n) => n.borrow().is_arguments_length_access(vm),
+            Expression::HasOwnPropertyFunctionCallDot(n) => n.borrow().is_arguments_length_access(vm),
+            Expression::AssignDot(n) => n.borrow().is_arguments_length_access(vm),
+            Expression::ReadModifyDot(n) => n.borrow().is_arguments_length_access(vm),
+            Expression::ShortCircuitReadModifyDot(n) => n.borrow().is_arguments_length_access(vm),
             _ => false,
         }
     }
 
     pub fn is_arguments(&self, vm: &VM) -> bool {
         match self {
-            Expression::Resolve(n) => n.ident == vm.property_names.arguments,
+            Expression::Resolve(n) => n.borrow().ident == vm.property_names.arguments,
             _ => false,
         }
     }
 
-    /// `ExpressionNode::stripUnaryPlus`: o `UnaryPlusNode` devolve o operando, os demais a si mesmos.
-    pub fn strip_unary_plus(&self) -> &Expression {
+    /// `ExpressionNode::stripUnaryPlus`: o `UnaryPlusNode` devolve o operando, os demais a si mesmos
+    /// (a alça clonada: o mesmo nó).
+    pub fn strip_unary_plus(&self) -> Expression {
         match self {
-            Expression::UnaryPlus(n) => &n.expr,
-            _ => self,
+            Expression::UnaryPlus(n) => n.borrow().expr.clone(),
+            _ => self.clone(),
         }
     }
 }
@@ -2141,12 +2173,12 @@ impl Expression {
 impl Statement {
     pub fn has_completion_value(&self) -> bool {
         match self {
-            Statement::Block(n) => n.has_completion_value(),
-            Statement::Program(n) => n.has_completion_value(),
-            Statement::Eval(n) => n.has_completion_value(),
-            Statement::ModuleProgram(n) => n.has_completion_value(),
-            Statement::Function(n) => n.has_completion_value(),
-            Statement::Label(n) => n.statement.has_completion_value(),
+            Statement::Block(n) => n.borrow().has_completion_value(),
+            Statement::Program(n) => n.borrow().has_completion_value(),
+            Statement::Eval(n) => n.borrow().has_completion_value(),
+            Statement::ModuleProgram(n) => n.borrow().has_completion_value(),
+            Statement::Function(n) => n.borrow().has_completion_value(),
+            Statement::Label(n) => n.borrow().statement.has_completion_value(),
             Statement::EmptyStatement(_)
             | Statement::DebuggerStatement(_)
             | Statement::DeclarationStatement(_)
@@ -2165,12 +2197,12 @@ impl Statement {
 
     pub fn has_early_break_or_continue(&self) -> bool {
         match self {
-            Statement::Block(n) => n.has_early_break_or_continue(),
-            Statement::Program(n) => n.has_early_break_or_continue(),
-            Statement::Eval(n) => n.has_early_break_or_continue(),
-            Statement::ModuleProgram(n) => n.has_early_break_or_continue(),
-            Statement::Function(n) => n.has_early_break_or_continue(),
-            Statement::Label(n) => n.statement.has_early_break_or_continue(),
+            Statement::Block(n) => n.borrow().has_early_break_or_continue(),
+            Statement::Program(n) => n.borrow().has_early_break_or_continue(),
+            Statement::Eval(n) => n.borrow().has_early_break_or_continue(),
+            Statement::ModuleProgram(n) => n.borrow().has_early_break_or_continue(),
+            Statement::Function(n) => n.borrow().has_early_break_or_continue(),
+            Statement::Label(n) => n.borrow().statement.has_early_break_or_continue(),
             Statement::Continue(_) | Statement::Break(_) => true,
             _ => false,
         }
