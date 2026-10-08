@@ -49,6 +49,13 @@ impl<'a> StringBuilder<'a> {
         self.buffer.len() as i32
     }
 
+    /// O buffer que o builder preenche, inteiro. No C++ o chamador tem o próprio ponteiro para o
+    /// buffer (`truncateTrailingZeros` lê o texto montado por ele); no Rust o builder detém a
+    /// referência mutável, então a leitura passa por aqui.
+    pub fn buffer(&self) -> &[u8] {
+        self.buffer
+    }
+
     /// Posição atual no builder.
     pub fn position(&self) -> i32 {
         debug_assert!(!self.is_finalized());

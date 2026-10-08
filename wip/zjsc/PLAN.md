@@ -31,3 +31,4 @@ estiver compilando.
 (anotar aqui: fatia, linhas de C++, minutos)
 - lote 1 (09:24): utils+ieee 386+404 linhas 1,5 min; bignum 916 linhas 2,1 min; diy_fp+cached_powers 424 linhas 1,0 min; fast_dtoa 753 linhas 1,5 min; ascii_ctype+fixed_dtoa 757 linhas 2,0 min. Conclusão: fatias podem crescer para cerca de 1500 linhas.
 - integrado e verde (41 testes): utils, ieee, diy_fp, cached_powers, bignum, fast_dtoa, fixed_dtoa, ascii_ctype.
+- lote 2: Nodes.h 1-1205 (+construtores) levou 7,5 min: acima do teto. Fatias do parser caem para cerca de 800 linhas.
