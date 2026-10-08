@@ -10,3 +10,6 @@ pub mod yarr_unicode_properties;
 pub mod yarr_syntax_checker;
 pub mod yarr_canonicalize_unicode;
 pub mod reg_exp_jit_tables;
+pub mod yarr_pattern_cpp1;
+pub mod yarr_interpreter;
+pub mod yarr_matching_context_holder;

@@ -18,9 +18,15 @@ use crate::yarr::yarr_canonicalize::{
     CanonicalizationRange,
 };
 use crate::yarr::yarr_parser::CharacterClassSetOp;
+use crate::yarr::yarr_flags::FlagSet;
 use crate::yarr::yarr_pattern::{
-    ByteTable, CharacterClass, CharacterClassWidths, CharacterRange, CompileMode, UCHAR_MAX_VALUE,
+    AlternativeId, ByteTable, CharacterClass, CharacterClassId, CharacterClassWidths, CharacterRange,
+    CompileMode, DisjunctionId, MatchDirection, PatternAlternative, PatternDisjunction, PatternTerm,
+    PatternTermType, YarrPattern, UCHAR_MAX_VALUE,
 };
+use crate::wtf::text::wtf_string::String;
+use crate::yarr::yarr_parser::Delegate;
+use std::collections::HashMap;
 
 /// `isLatin1(char32_t)`.
 pub(crate) fn is_latin1(ch: u32) -> bool {
@@ -835,3 +841,9 @@ impl CharacterClassConstructor {
         self.may_contain_strings = !self.strings.is_empty();
     }
 }
+
+include!("yarr_pattern_cpp2.rs");
+include!("yarr_pattern_cpp3.rs");
+include!("yarr_pattern_cpp4.rs");
+include!("yarr_pattern_cpp5.rs");
+include!("yarr_pattern_cpp6.rs");
