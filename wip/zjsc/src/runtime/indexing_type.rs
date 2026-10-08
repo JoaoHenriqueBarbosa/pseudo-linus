@@ -1,5 +1,6 @@
-//! Constantes de `runtime/IndexingType.h` (só os valores; as funções `has*` e
-//! `leastUpperBoundOfIndexingTypes` não entram aqui).
+//! Constantes e predicados puros de `runtime/IndexingType.h`. `indexingTypeForValue`,
+//! `leastUpperBoundOfIndexingTypes` e `dumpIndexingType` não entram aqui (dependem de `JSValue`,
+//! `IndexingTypeInlines.h`, `.cpp` e `PrintStream`).
 
 /// `typedef uint8_t IndexingType`.
 pub type IndexingType = u8;
@@ -48,3 +49,57 @@ pub const ARRAY_WITH_SLOW_PUT_ARRAY_STORAGE: IndexingType = IS_ARRAY | SLOW_PUT_
 pub const COPY_ON_WRITE_ARRAY_WITH_INT32: IndexingType = IS_ARRAY | INT32_SHAPE | COPY_ON_WRITE;
 pub const COPY_ON_WRITE_ARRAY_WITH_DOUBLE: IndexingType = IS_ARRAY | DOUBLE_SHAPE | COPY_ON_WRITE;
 pub const COPY_ON_WRITE_ARRAY_WITH_CONTIGUOUS: IndexingType = IS_ARRAY | CONTIGUOUS_SHAPE | COPY_ON_WRITE;
+
+pub const ALL_WRITABLE_ARRAY_TYPES: IndexingType = INDEXING_SHAPE_MASK | IS_ARRAY;
+pub const ALL_ARRAY_TYPES: IndexingType = ALL_WRITABLE_ARRAY_TYPES | COPY_ON_WRITE;
+pub const ALL_WRITABLE_ARRAY_TYPES_AND_HISTORY: IndexingType =
+    ALL_WRITABLE_ARRAY_TYPES | MAY_HAVE_INDEXED_ACCESSORS;
+pub const ALL_ARRAY_TYPES_AND_HISTORY: IndexingType = ALL_ARRAY_TYPES | MAY_HAVE_INDEXED_ACCESSORS;
+
+pub const fn has_indexed_properties(indexing_type: IndexingType) -> bool {
+    (indexing_type & INDEXING_SHAPE_MASK) != NO_INDEXING_SHAPE
+}
+
+pub const fn has_undecided(indexing_type: IndexingType) -> bool {
+    (indexing_type & INDEXING_SHAPE_MASK) == UNDECIDED_SHAPE
+}
+
+pub const fn has_int32(indexing_type: IndexingType) -> bool {
+    (indexing_type & INDEXING_SHAPE_MASK) == INT32_SHAPE
+}
+
+pub const fn has_double(indexing_type: IndexingType) -> bool {
+    (indexing_type & INDEXING_SHAPE_MASK) == DOUBLE_SHAPE
+}
+
+pub const fn has_contiguous(indexing_type: IndexingType) -> bool {
+    (indexing_type & INDEXING_SHAPE_MASK) == CONTIGUOUS_SHAPE
+}
+
+pub const fn has_array_storage(indexing_type: IndexingType) -> bool {
+    (indexing_type & INDEXING_SHAPE_MASK) == ARRAY_STORAGE_SHAPE
+}
+
+pub const fn has_any_array_storage(indexing_type: IndexingType) -> bool {
+    (indexing_type & INDEXING_SHAPE_MASK) >= ARRAY_STORAGE_SHAPE
+}
+
+pub const fn has_slow_put_array_storage(indexing_type: IndexingType) -> bool {
+    (indexing_type & INDEXING_SHAPE_MASK) == SLOW_PUT_ARRAY_STORAGE_SHAPE
+}
+
+/// `shouldUseSlowPut` é só `hasSlowPutArrayStorage`.
+pub use self::has_slow_put_array_storage as should_use_slow_put;
+
+pub const fn is_copy_on_write(indexing_mode: IndexingType) -> bool {
+    indexing_mode & COPY_ON_WRITE != 0
+}
+
+pub const fn array_index_from_indexing_type(indexing_type: IndexingType) -> u32 {
+    if is_copy_on_write(indexing_type) {
+        return (((indexing_type & INDEXING_SHAPE_MASK) as u32) - UNDECIDED_SHAPE as u32
+            + SLOW_PUT_ARRAY_STORAGE_SHAPE as u32)
+            >> INDEXING_SHAPE_SHIFT;
+    }
+    ((indexing_type & INDEXING_SHAPE_MASK) >> INDEXING_SHAPE_SHIFT) as u32
+}

@@ -2,6 +2,7 @@
 
 use crate::runtime::construct_ability::ConstructAbility;
 use crate::runtime::identifier::Identifier;
+use crate::wtf::option_set::{OptionSet, OptionSetFlag};
 
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -38,6 +39,20 @@ pub enum CodeGenerationMode {
     TypeProfiler = 1 << 1,
     ControlFlowProfiler = 1 << 2,
 }
+
+impl OptionSetFlag for CodeGenerationMode {
+    type Mask = u8;
+    const NONE: u8 = 0;
+    const ALL: &'static [CodeGenerationMode] =
+        &[CodeGenerationMode::Debugger, CodeGenerationMode::TypeProfiler, CodeGenerationMode::ControlFlowProfiler];
+
+    fn bit(self) -> u8 {
+        self as u8
+    }
+}
+
+/// `OptionSet<CodeGenerationMode>`.
+pub type CodeGenerationModeSet = OptionSet<CodeGenerationMode>;
 
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -84,29 +99,40 @@ pub enum SourceParseMode {
     ClassStaticBlockMode = 20,
 }
 
-/// `SourceParseModeSet`: máscara de bits sobre `SourceParseMode`.
-#[derive(Clone, Copy, Debug)]
-pub struct SourceParseModeSet {
-    mask: u32,
+/// `SourceParseModeSet`: o enumerador é a posição do bit (`1u32 << mode`).
+impl OptionSetFlag for SourceParseMode {
+    type Mask = u32;
+    const NONE: u32 = 0;
+    const ALL: &'static [SourceParseMode] = &[
+        SourceParseMode::NormalFunctionMode,
+        SourceParseMode::GeneratorBodyMode,
+        SourceParseMode::GeneratorWrapperFunctionMode,
+        SourceParseMode::GetterMode,
+        SourceParseMode::SetterMode,
+        SourceParseMode::MethodMode,
+        SourceParseMode::ArrowFunctionMode,
+        SourceParseMode::AsyncFunctionBodyMode,
+        SourceParseMode::AsyncArrowFunctionBodyMode,
+        SourceParseMode::AsyncFunctionMode,
+        SourceParseMode::AsyncMethodMode,
+        SourceParseMode::AsyncArrowFunctionMode,
+        SourceParseMode::ProgramMode,
+        SourceParseMode::ModuleAnalyzeMode,
+        SourceParseMode::ModuleEvaluateMode,
+        SourceParseMode::AsyncGeneratorBodyMode,
+        SourceParseMode::AsyncGeneratorWrapperFunctionMode,
+        SourceParseMode::AsyncGeneratorWrapperMethodMode,
+        SourceParseMode::GeneratorWrapperMethodMode,
+        SourceParseMode::ClassFieldInitializerMode,
+        SourceParseMode::ClassStaticBlockMode,
+    ];
+
+    fn bit(self) -> u32 {
+        1u32 << (self as u32)
+    }
 }
 
-impl SourceParseModeSet {
-    /// O construtor variádico do C++ (`mergeSourceParseModes`).
-    pub const fn new(modes: &[SourceParseMode]) -> Self {
-        let mut mask = 0u32;
-        let mut i = 0;
-        while i < modes.len() {
-            mask |= 1u32 << (modes[i] as u32);
-            i += 1;
-        }
-        SourceParseModeSet { mask }
-    }
-
-    #[inline(always)]
-    pub const fn contains(&self, mode: SourceParseMode) -> bool {
-        ((1u32 << (mode as u32)) & self.mask) != 0
-    }
-}
+pub type SourceParseModeSet = OptionSet<SourceParseMode>;
 
 #[inline(always)]
 pub fn is_function_parse_mode(parse_mode: SourceParseMode) -> bool {

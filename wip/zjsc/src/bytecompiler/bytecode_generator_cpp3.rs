@@ -36,10 +36,10 @@ impl BytecodeGenerator {
         };
 
         let resolve_type = self.resolve_type();
-        crate::bytecode::bytecode_list::OpProfileType::emit(
+        crate::bytecode::bytecode_ops::OpProfileType::emit(
             self,
             &register_to_profile,
-            crate::bytecode::bytecode_list::SymbolTableOrScopeDepth::default(),
+            crate::bytecode::bytecode_ops::SymbolTableOrScopeDepth::default(),
             flag,
             Default::default(),
             resolve_type,
@@ -67,18 +67,18 @@ impl BytecodeGenerator {
         let symbol_table_or_scope_depth;
         if var.local().is_some() || var.offset().is_scope() {
             flag = crate::bytecompiler::profile_type_bytecode_flag::ProfileTypeBytecodeFlag::ProfileTypeBytecodeLocallyResolved;
-            symbol_table_or_scope_depth = crate::bytecode::bytecode_list::SymbolTableOrScopeDepth::symbol_table(
+            symbol_table_or_scope_depth = crate::bytecode::bytecode_ops::SymbolTableOrScopeDepth::symbol_table(
                 crate::bytecode::virtual_register::VirtualRegister::new(var.symbol_table_constant_index()),
             );
         } else {
             flag = crate::bytecompiler::profile_type_bytecode_flag::ProfileTypeBytecodeFlag::ProfileTypeBytecodeClosureVar;
             symbol_table_or_scope_depth =
-                crate::bytecode::bytecode_list::SymbolTableOrScopeDepth::scope_depth(self.local_scope_depth());
+                crate::bytecode::bytecode_ops::SymbolTableOrScopeDepth::scope_depth(self.local_scope_depth());
         }
 
         let ident_constant = self.add_constant(var.ident());
         let resolve_type = self.resolve_type();
-        crate::bytecode::bytecode_list::OpProfileType::emit(
+        crate::bytecode::bytecode_ops::OpProfileType::emit(
             self,
             &register_to_profile,
             symbol_table_or_scope_depth,
@@ -94,7 +94,7 @@ impl BytecodeGenerator {
         if self.should_emit_control_flow_profiler_hooks() {
             assert!(text_offset >= 0);
 
-            crate::bytecode::bytecode_list::OpProfileControlFlow::emit(self, text_offset);
+            crate::bytecode::bytecode_ops::OpProfileControlFlow::emit(self, text_offset);
             let offset = self.last_instruction.offset();
             self.code_block.add_op_profile_control_flow_bytecode_offset(offset);
         }
@@ -104,7 +104,7 @@ impl BytecodeGenerator {
     pub fn add_constant_index(&mut self) -> u32 {
         let index = self.next_constant_offset;
         self.constant_pool_registers
-            .push(crate::bytecompiler::bytecode_generator::FIRST_CONSTANT_REGISTER_INDEX + self.next_constant_offset as i32);
+            .push(crate::bytecode::virtual_register::FIRST_CONSTANT_REGISTER_INDEX + self.next_constant_offset as i32);
         self.next_constant_offset += 1;
         index
     }
@@ -183,7 +183,7 @@ impl BytecodeGenerator {
         LookUpVarKindFunctor: FnMut(
             &crate::wtf::text::uniqued_string_impl::UniquedStringImpl,
             &crate::parser::variable_environment::VariableEnvironmentEntry,
-        ) -> crate::bytecode::var_offset::VarKind,
+        ) -> crate::runtime::var_offset::VarKind,
     {
         let mut has_captured_variables = false;
         {
@@ -192,7 +192,7 @@ impl BytecodeGenerator {
             // Para isso, primeiro os definimos e depois os filtramos de lexicalVariables.
             if scope_type == ScopeType::ClassScope && has_private_names {
                 has_captured_variables = true;
-                let private_class_brand_offset = crate::bytecode::var_offset::VarOffset::from_scope_offset(
+                let private_class_brand_offset = crate::runtime::var_offset::VarOffset::from_scope_offset(
                     symbol_table.take_next_scope_offset(crate::runtime::symbol_table::NO_LOCKING_NECESSARY),
                 );
                 assert!(
@@ -208,7 +208,7 @@ impl BytecodeGenerator {
                     ),
                 );
 
-                let private_brand_offset = crate::bytecode::var_offset::VarOffset::from_scope_offset(
+                let private_brand_offset = crate::runtime::var_offset::VarOffset::from_scope_offset(
                     symbol_table.take_next_scope_offset(crate::runtime::symbol_table::NO_LOCKING_NECESSARY),
                 );
                 assert!(
@@ -245,8 +245,8 @@ impl BytecodeGenerator {
 
                 let var_kind = look_up_var_kind(key, entry.value());
                 let var_offset;
-                if var_kind == crate::bytecode::var_offset::VarKind::Scope {
-                    var_offset = crate::bytecode::var_offset::VarOffset::from_scope_offset(
+                if var_kind == crate::runtime::var_offset::VarKind::Scope {
+                    var_offset = crate::runtime::var_offset::VarOffset::from_scope_offset(
                         symbol_table.take_next_scope_offset(crate::runtime::symbol_table::NO_LOCKING_NECESSARY),
                     );
                     has_captured_variables = true;
@@ -258,7 +258,7 @@ impl BytecodeGenerator {
                     } else {
                         local = self.add_var();
                     }
-                    var_offset = crate::bytecode::var_offset::VarOffset::from_virtual_register(local.borrow().virtual_register());
+                    var_offset = crate::runtime::var_offset::VarOffset::from_virtual_register(local.borrow().virtual_register());
                 }
 
                 let new_entry = crate::runtime::symbol_table::SymbolTableEntry::new(
@@ -413,11 +413,11 @@ impl BytecodeGenerator {
 
         let look_up_var_kind = |_: &crate::wtf::text::uniqued_string_impl::UniquedStringImpl,
                                 entry: &crate::parser::variable_environment::VariableEnvironmentEntry|
-         -> crate::bytecode::var_offset::VarKind {
+         -> crate::runtime::var_offset::VarKind {
             if entry.is_captured() {
-                crate::bytecode::var_offset::VarKind::Scope
+                crate::runtime::var_offset::VarKind::Scope
             } else {
-                crate::bytecode::var_offset::VarKind::Stack
+                crate::runtime::var_offset::VarKind::Stack
             }
         };
 
@@ -428,7 +428,10 @@ impl BytecodeGenerator {
         let mut constant_symbol_table: Option<crate::bytecompiler::bytecode_generator::RegisterRef> = None;
         let mut symbol_table_constant_index: i32 = 0;
         if self.should_emit_type_profiler_hooks() {
-            let constant = self.add_constant_value_symbol_table(symbol_table.clone());
+            let constant = self.add_constant_value(
+                crate::runtime::js_value::JSValue::from_cell(symbol_table.cell_id()),
+                crate::runtime::js_cjs_value_types::SourceCodeRepresentation::Other,
+            );
             symbol_table_constant_index = constant.borrow().index();
             constant_symbol_table = Some(constant);
         }
@@ -446,7 +449,10 @@ impl BytecodeGenerator {
                     &self.vm,
                     crate::runtime::symbol_table::PropagateCloneInvalidationToOriginal::No,
                 );
-                let constant = self.add_constant_value_symbol_table(cloned);
+                let constant = self.add_constant_value(
+                    crate::runtime::js_value::JSValue::from_cell(cloned.cell_id()),
+                    crate::runtime::js_cjs_value_types::SourceCodeRepresentation::Other,
+                );
                 symbol_table_constant_index = constant.borrow().index();
                 constant_symbol_table = Some(constant);
             }
@@ -461,7 +467,7 @@ impl BytecodeGenerator {
             };
             let tdz_constant = self.add_constant_value(tdz_or_undefined, crate::parser::parser_tokens::SourceCodeRepresentation::Other);
             let scope_register = self.scope_register();
-            crate::bytecode::bytecode_list::OpCreateLexicalEnvironment::emit(
+            crate::bytecode::bytecode_ops::OpCreateLexicalEnvironment::emit(
                 self,
                 &scope,
                 scope_register.as_ref(),
@@ -588,7 +594,7 @@ impl BytecodeGenerator {
             }
 
             match self.code_type() {
-                crate::bytecode::executable_info::CodeType::FunctionCode => {
+                crate::bytecode::code_type::CodeType::FunctionCode => {
                     let var_scope_index = self.var_scope_lexical_scope_stack_index.unwrap();
                     assert!(var_scope_index < self.lexical_scope_stack.len());
                     let mut var_scope = self.lexical_scope_stack[var_scope_index].clone();
@@ -619,7 +625,7 @@ impl BytecodeGenerator {
                         crate::runtime::get_put_info::InitializationMode::NotInitialization,
                     );
                 }
-                crate::bytecode::executable_info::CodeType::GlobalCode | crate::bytecode::executable_info::CodeType::EvalCode => {
+                crate::bytecode::code_type::CodeType::GlobalCode | crate::bytecode::code_type::CodeType::EvalCode => {
                     let scope_id = self.emit_resolve_scope_for_hoisting_func_decl_in_eval(None, &function_name);
                     let is_not_var_scope_label = self.new_label();
                     let temporary = self.new_temporary();
@@ -635,7 +641,7 @@ impl BytecodeGenerator {
                     );
                     self.emit_label(&is_not_var_scope_label);
                 }
-                crate::bytecode::executable_info::CodeType::ModuleCode => {
+                crate::bytecode::code_type::CodeType::ModuleCode => {
                     unreachable!("RELEASE_ASSERT_NOT_REACHED");
                 }
             }
@@ -654,11 +660,11 @@ impl BytecodeGenerator {
         if let Some(top_level) = self.top_level_scope_register.clone() {
             self.move_register(Some(&scope), &top_level);
         } else {
-            crate::bytecode::bytecode_list::OpGetScope::emit(self, &scope);
+            crate::bytecode::bytecode_ops::OpGetScope::emit(self, &scope);
         }
         let property_constant = self.add_constant(property);
         let killed = self.kill(&result);
-        crate::bytecode::bytecode_list::OpResolveScopeForHoistingFuncDeclInEval::emit(self, &killed, &scope, property_constant);
+        crate::bytecode::bytecode_ops::OpResolveScopeForHoistingFuncDeclInEval::emit(self, &killed, &scope, property_constant);
         Some(result)
     }
 
@@ -773,7 +779,7 @@ impl BytecodeGenerator {
             crate::runtime::js_value::js_tdz_value(),
             crate::parser::parser_tokens::SourceCodeRepresentation::Other,
         );
-        crate::bytecode::bytecode_list::OpCreateLexicalEnvironment::emit(
+        crate::bytecode::bytecode_ops::OpCreateLexicalEnvironment::emit(
             self,
             &loop_scope,
             scope_register.as_ref(),
@@ -814,7 +820,7 @@ impl BytecodeGenerator {
             let this_register = self.this_register();
             return crate::bytecompiler::bytecode_generator::Variable::new(
                 property.clone(),
-                crate::bytecode::var_offset::VarOffset::from_virtual_register(this_register.borrow().virtual_register()),
+                crate::runtime::var_offset::VarOffset::from_virtual_register(this_register.borrow().virtual_register()),
                 Some(this_register),
                 crate::runtime::property_attribute::PropertyAttribute::ReadOnly as u32,
                 crate::bytecompiler::bytecode_generator::VariableKind::SpecialVariable,
@@ -907,7 +913,7 @@ impl BytecodeGenerator {
     pub fn create_variable(
         &mut self,
         property: &crate::runtime::identifier::Identifier,
-        var_kind: crate::bytecode::var_offset::VarKind,
+        var_kind: crate::runtime::var_offset::VarKind,
         symbol_table: &std::rc::Rc<crate::runtime::symbol_table::SymbolTable>,
         existing_variable_mode: ExistingVariableMode,
     ) {
@@ -937,20 +943,20 @@ impl BytecodeGenerator {
         }
 
         let var_offset;
-        if var_kind == crate::bytecode::var_offset::VarKind::Scope {
-            var_offset = crate::bytecode::var_offset::VarOffset::from_scope_offset(
+        if var_kind == crate::runtime::var_offset::VarKind::Scope {
+            var_offset = crate::runtime::var_offset::VarOffset::from_scope_offset(
                 symbol_table.take_next_scope_offset(crate::runtime::symbol_table::NO_LOCKING_NECESSARY),
             );
         } else {
-            assert!(var_kind == crate::bytecode::var_offset::VarKind::Stack);
-            var_offset = crate::bytecode::var_offset::VarOffset::from_virtual_register(
+            assert!(var_kind == crate::runtime::var_offset::VarKind::Stack);
+            var_offset = crate::runtime::var_offset::VarOffset::from_virtual_register(
                 crate::bytecode::virtual_register::virtual_register_for_local(self.callee_locals.len() as i32),
             );
         }
         let new_entry = crate::runtime::symbol_table::SymbolTableEntry::new(var_offset, 0);
         symbol_table.add(crate::runtime::symbol_table::NO_LOCKING_NECESSARY, property.impl_().clone(), new_entry);
 
-        if var_kind == crate::bytecode::var_offset::VarKind::Stack {
+        if var_kind == crate::runtime::var_offset::VarKind::Stack {
             let local = self.add_var();
             assert!(local.borrow().index() == var_offset.stack_offset().offset());
         }
@@ -1027,11 +1033,11 @@ impl BytecodeGenerator {
         variable: &crate::bytecompiler::bytecode_generator::Variable,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         match variable.offset().kind() {
-            crate::bytecode::var_offset::VarKind::Stack => None,
+            crate::runtime::var_offset::VarKind::Stack => None,
 
-            crate::bytecode::var_offset::VarKind::DirectArgument => self.arguments_register(),
+            crate::runtime::var_offset::VarKind::DirectArgument => self.arguments_register(),
 
-            crate::bytecode::var_offset::VarKind::Scope => {
+            crate::runtime::var_offset::VarKind::Scope => {
                 // Isto sempre se refere à ativação que *nós* alocamos, e não ao escopo atual em que o
                 // código vive. Isto mudará quando houver suporte adequado a escopo de bloco; então
                 // será correto devolver scopeRegister(). O único motivo de não fazermos isso já é que
@@ -1059,7 +1065,7 @@ impl BytecodeGenerator {
 
                 unreachable!("RELEASE_ASSERT_NOT_REACHED");
             }
-            crate::bytecode::var_offset::VarKind::Invalid => {
+            crate::runtime::var_offset::VarKind::Invalid => {
                 // Indica resolução não local.
 
                 let dst = Some(self.temp_destination(dst.as_ref()));
@@ -1068,7 +1074,7 @@ impl BytecodeGenerator {
                 let ident_constant = self.add_constant(variable.ident());
                 let resolve_type = self.resolve_type();
                 let local_scope_depth = self.local_scope_depth();
-                crate::bytecode::bytecode_list::OpResolveScope::emit(
+                crate::bytecode::bytecode_ops::OpResolveScope::emit(
                     self,
                     &killed,
                     scope_register.as_ref(),
@@ -1090,15 +1096,15 @@ impl BytecodeGenerator {
         resolve_mode: crate::runtime::get_put_info::ResolveMode,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         match variable.offset().kind() {
-            crate::bytecode::var_offset::VarKind::Stack => {
+            crate::runtime::var_offset::VarKind::Stack => {
                 let local = variable.local().unwrap();
                 self.move_register(dst.as_ref(), &local)
             }
 
-            crate::bytecode::var_offset::VarKind::DirectArgument => {
+            crate::runtime::var_offset::VarKind::DirectArgument => {
                 let killed = self.kill(dst.as_ref().unwrap());
                 let value_profile = self.next_value_profile_index();
-                crate::bytecode::bytecode_list::OpGetFromArguments::emit(
+                crate::bytecode::bytecode_ops::OpGetFromArguments::emit(
                     self,
                     &killed,
                     scope.as_ref().unwrap(),
@@ -1108,7 +1114,7 @@ impl BytecodeGenerator {
                 dst
             }
 
-            crate::bytecode::var_offset::VarKind::Scope | crate::bytecode::var_offset::VarKind::Invalid => {
+            crate::runtime::var_offset::VarKind::Scope | crate::runtime::var_offset::VarKind::Invalid => {
                 let killed = self.kill(dst.as_ref().unwrap());
                 let ident_constant = self.add_constant(variable.ident());
                 let resolve_type = if variable.offset().is_scope() {
@@ -1129,7 +1135,7 @@ impl BytecodeGenerator {
                     0
                 };
                 let value_profile = self.next_value_profile_index();
-                crate::bytecode::bytecode_list::OpGetFromScope::emit(
+                crate::bytecode::bytecode_ops::OpGetFromScope::emit(
                     self,
                     &killed,
                     scope.as_ref().unwrap(),
@@ -1154,14 +1160,14 @@ impl BytecodeGenerator {
         initialization_mode: crate::runtime::get_put_info::InitializationMode,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         match variable.offset().kind() {
-            crate::bytecode::var_offset::VarKind::Stack => {
+            crate::runtime::var_offset::VarKind::Stack => {
                 let local = variable.local();
                 self.move_register(local.as_ref(), value.as_ref().unwrap());
                 value
             }
 
-            crate::bytecode::var_offset::VarKind::DirectArgument => {
-                crate::bytecode::bytecode_list::OpPutToArguments::emit(
+            crate::runtime::var_offset::VarKind::DirectArgument => {
+                crate::bytecode::bytecode_ops::OpPutToArguments::emit(
                     self,
                     scope.as_ref().unwrap(),
                     variable.offset().captured_arguments_offset().offset(),
@@ -1170,10 +1176,10 @@ impl BytecodeGenerator {
                 value
             }
 
-            crate::bytecode::var_offset::VarKind::Scope | crate::bytecode::var_offset::VarKind::Invalid => {
+            crate::runtime::var_offset::VarKind::Scope | crate::runtime::var_offset::VarKind::Invalid => {
                 let get_put_info;
                 let symbol_table_or_scope_depth;
-                let mut offset: Option<crate::bytecode::var_offset::ScopeOffset> = None;
+                let mut offset: Option<crate::runtime::var_offset::ScopeOffset> = None;
                 if variable.offset().is_scope() {
                     offset = Some(variable.offset().scope_offset());
                     get_put_info = crate::runtime::get_put_info::GetPutInfo::new(
@@ -1182,7 +1188,7 @@ impl BytecodeGenerator {
                         initialization_mode,
                         self.ecma_mode(),
                     );
-                    symbol_table_or_scope_depth = crate::bytecode::bytecode_list::SymbolTableOrScopeDepth::symbol_table(
+                    symbol_table_or_scope_depth = crate::bytecode::bytecode_ops::SymbolTableOrScopeDepth::symbol_table(
                         crate::bytecode::virtual_register::VirtualRegister::new(variable.symbol_table_constant_index()),
                     );
                 } else {
@@ -1191,10 +1197,10 @@ impl BytecodeGenerator {
                     get_put_info =
                         crate::runtime::get_put_info::GetPutInfo::new(resolve_mode, resolve_type, initialization_mode, self.ecma_mode());
                     symbol_table_or_scope_depth =
-                        crate::bytecode::bytecode_list::SymbolTableOrScopeDepth::scope_depth(self.local_scope_depth());
+                        crate::bytecode::bytecode_ops::SymbolTableOrScopeDepth::scope_depth(self.local_scope_depth());
                 }
                 let ident_constant = self.add_constant(variable.ident());
-                crate::bytecode::bytecode_list::OpPutToScope::emit(
+                crate::bytecode::bytecode_ops::OpPutToScope::emit(
                     self,
                     scope.as_ref().unwrap(),
                     ident_constant,
@@ -1229,13 +1235,13 @@ impl BytecodeGenerator {
         let scope_offset: u32 = 0;
         let ident_constant = self.add_constant(ident);
         let local_scope_depth = self.local_scope_depth();
-        crate::bytecode::bytecode_list::OpPutToScope::emit(
+        crate::bytecode::bytecode_ops::OpPutToScope::emit(
             self,
             scope.as_ref().unwrap(),
             ident_constant,
             value.as_ref().unwrap(),
             get_put_info,
-            crate::bytecode::bytecode_list::SymbolTableOrScopeDepth::scope_depth(local_scope_depth),
+            crate::bytecode::bytecode_ops::SymbolTableOrScopeDepth::scope_depth(local_scope_depth),
             scope_offset,
         );
         value
@@ -1247,7 +1253,7 @@ impl BytecodeGenerator {
         variable: &crate::bytecompiler::bytecode_generator::Variable,
         value: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        assert!(variable.offset().kind() != crate::bytecode::var_offset::VarKind::Invalid);
+        assert!(variable.offset().kind() != crate::runtime::var_offset::VarKind::Invalid);
         let scope = self.emit_resolve_scope(None, variable);
         self.emit_put_to_scope(
             scope,
@@ -1268,7 +1274,7 @@ impl BytecodeGenerator {
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         let has_instance_value_profile = self.next_value_profile_index();
         let prototype_value_profile = self.next_value_profile_index();
-        crate::bytecode::bytecode_list::OpInstanceof::emit(
+        crate::bytecode::bytecode_ops::OpInstanceof::emit(
             self,
             dst.as_ref().unwrap(),
             value.as_ref().unwrap(),
@@ -1297,7 +1303,7 @@ impl BytecodeGenerator {
                 let context = context.borrow();
                 (context.mode(), context.property_offset(), context.enumerator())
             };
-            crate::bytecode::bytecode_list::OpEnumeratorInByVal::emit_wide32(
+            crate::bytecode::bytecode_ops::OpEnumeratorInByVal::emit_wide32(
                 self,
                 dst.as_ref().unwrap(),
                 base.as_ref().unwrap(),
@@ -1311,7 +1317,7 @@ impl BytecodeGenerator {
             return dst;
         }
 
-        crate::bytecode::bytecode_list::OpInByVal::emit(self, dst.as_ref().unwrap(), base.as_ref().unwrap(), property.as_ref().unwrap());
+        crate::bytecode::bytecode_ops::OpInByVal::emit(self, dst.as_ref().unwrap(), base.as_ref().unwrap(), property.as_ref().unwrap());
         dst
     }
 
@@ -1323,7 +1329,7 @@ impl BytecodeGenerator {
         property: &crate::runtime::identifier::Identifier,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         let property_constant = self.add_constant(property);
-        crate::bytecode::bytecode_list::OpInById::emit(self, dst.as_ref().unwrap(), base.as_ref().unwrap(), property_constant);
+        crate::bytecode::bytecode_ops::OpInById::emit(self, dst.as_ref().unwrap(), base.as_ref().unwrap(), property_constant);
         dst
     }
 
@@ -1335,7 +1341,7 @@ impl BytecodeGenerator {
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         let killed = self.kill(dst.as_ref().unwrap());
         let value_profile = self.next_value_profile_index();
-        crate::bytecode::bytecode_list::OpGetLength::emit(self, &killed, base.as_ref().unwrap(), value_profile);
+        crate::bytecode::bytecode_ops::OpGetLength::emit(self, &killed, base.as_ref().unwrap(), value_profile);
         dst
     }
 
@@ -1352,11 +1358,11 @@ impl BytecodeGenerator {
         let killed = self.kill(dst.as_ref().unwrap());
         if *property == *self.vm.property_names().length() {
             let value_profile = self.next_value_profile_index();
-            crate::bytecode::bytecode_list::OpGetLength::emit(self, &killed, base.as_ref().unwrap(), value_profile);
+            crate::bytecode::bytecode_ops::OpGetLength::emit(self, &killed, base.as_ref().unwrap(), value_profile);
         } else {
             let property_constant = self.add_constant(property);
             let value_profile = self.next_value_profile_index();
-            crate::bytecode::bytecode_list::OpGetById::emit(self, &killed, base.as_ref().unwrap(), property_constant, value_profile);
+            crate::bytecode::bytecode_ops::OpGetById::emit(self, &killed, base.as_ref().unwrap(), property_constant, value_profile);
         }
         dst
     }
@@ -1375,7 +1381,7 @@ impl BytecodeGenerator {
         let killed = self.kill(dst.as_ref().unwrap());
         let property_constant = self.add_constant(property);
         let value_profile = self.next_value_profile_index();
-        crate::bytecode::bytecode_list::OpGetByIdWithThis::emit(
+        crate::bytecode::bytecode_ops::OpGetByIdWithThis::emit(
             self,
             &killed,
             base.as_ref().unwrap(),
@@ -1399,7 +1405,7 @@ impl BytecodeGenerator {
         let killed = self.kill(dst.as_ref().unwrap());
         let property_constant = self.add_constant(property);
         let value_profile = self.next_value_profile_index();
-        crate::bytecode::bytecode_list::OpGetByIdDirect::emit(self, &killed, base.as_ref().unwrap(), property_constant, value_profile);
+        crate::bytecode::bytecode_ops::OpGetByIdDirect::emit(self, &killed, base.as_ref().unwrap(), property_constant, value_profile);
         dst
     }
 
@@ -1418,7 +1424,7 @@ impl BytecodeGenerator {
         self.static_property_analyzer.put_by_id(base.as_ref().unwrap(), property_index);
 
         // não é direto
-        crate::bytecode::bytecode_list::OpPutById::emit(
+        crate::bytecode::bytecode_ops::OpPutById::emit(
             self,
             base.as_ref().unwrap(),
             property_index,
@@ -1441,7 +1447,7 @@ impl BytecodeGenerator {
 
         let property_index = self.add_constant(property);
 
-        crate::bytecode::bytecode_list::OpPutByIdWithThis::emit(
+        crate::bytecode::bytecode_ops::OpPutByIdWithThis::emit(
             self,
             base.as_ref().unwrap(),
             this_value.as_ref().unwrap(),
@@ -1468,7 +1474,7 @@ impl BytecodeGenerator {
         self.static_property_analyzer.put_by_id(base.as_ref().unwrap(), property_index);
 
         let type_ = crate::bytecode::put_by_id_flags::PutByIdFlags::create_direct(self.ecma_mode());
-        crate::bytecode::bytecode_list::OpPutById::emit(self, base.as_ref().unwrap(), property_index, value.as_ref().unwrap(), type_);
+        crate::bytecode::bytecode_ops::OpPutById::emit(self, base.as_ref().unwrap(), property_index, value.as_ref().unwrap(), type_);
         value
     }
 
@@ -1483,7 +1489,7 @@ impl BytecodeGenerator {
         let property_index = self.add_constant(property);
         self.static_property_analyzer.put_by_id(base.as_ref().unwrap(), property_index);
 
-        crate::bytecode::bytecode_list::OpPutGetterById::emit(
+        crate::bytecode::bytecode_ops::OpPutGetterById::emit(
             self,
             base.as_ref().unwrap(),
             property_index,
@@ -1503,7 +1509,7 @@ impl BytecodeGenerator {
         let property_index = self.add_constant(property);
         self.static_property_analyzer.put_by_id(base.as_ref().unwrap(), property_index);
 
-        crate::bytecode::bytecode_list::OpPutSetterById::emit(
+        crate::bytecode::bytecode_ops::OpPutSetterById::emit(
             self,
             base.as_ref().unwrap(),
             property_index,
@@ -1525,7 +1531,7 @@ impl BytecodeGenerator {
 
         self.static_property_analyzer.put_by_id(base.as_ref().unwrap(), property_index);
 
-        crate::bytecode::bytecode_list::OpPutGetterSetterById::emit(
+        crate::bytecode::bytecode_ops::OpPutGetterSetterById::emit(
             self,
             base.as_ref().unwrap(),
             property_index,
@@ -1543,7 +1549,7 @@ impl BytecodeGenerator {
         attributes: u32,
         getter: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) {
-        crate::bytecode::bytecode_list::OpPutGetterByVal::emit(
+        crate::bytecode::bytecode_ops::OpPutGetterByVal::emit(
             self,
             base.as_ref().unwrap(),
             property.as_ref().unwrap(),
@@ -1560,7 +1566,7 @@ impl BytecodeGenerator {
         attributes: u32,
         setter: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) {
-        crate::bytecode::bytecode_list::OpPutSetterByVal::emit(
+        crate::bytecode::bytecode_ops::OpPutSetterByVal::emit(
             self,
             base.as_ref().unwrap(),
             property.as_ref().unwrap(),
@@ -1574,7 +1580,7 @@ impl BytecodeGenerator {
         let generator_register = self.generator_register();
         self.emit_put_internal_field(
             generator_register.clone(),
-            crate::runtime::js_generator::JSGeneratorField::Next as u32,
+            crate::runtime::js_generator::Field::Next as u32,
             next_function,
         );
 
@@ -1586,7 +1592,7 @@ impl BytecodeGenerator {
             let this_register = self.this_register();
             self.emit_put_internal_field(
                 generator_register,
-                crate::runtime::js_generator::JSGeneratorField::This as u32,
+                crate::runtime::js_generator::Field::This as u32,
                 Some(this_register),
             );
         }
@@ -1599,13 +1605,13 @@ impl BytecodeGenerator {
         let generator_register = self.generator_register();
         self.emit_put_internal_field(
             generator_register.clone(),
-            crate::runtime::js_async_generator::JSAsyncGeneratorField::Next as u32,
+            crate::runtime::js_async_generator::Field::Next as u32,
             next_function,
         );
         let this_register = self.this_register();
         self.emit_put_internal_field(
             generator_register,
-            crate::runtime::js_async_generator::JSAsyncGeneratorField::This as u32,
+            crate::runtime::js_async_generator::Field::This as u32,
             Some(this_register),
         );
     }
@@ -1618,7 +1624,7 @@ impl BytecodeGenerator {
         property: &crate::runtime::identifier::Identifier,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         let property_constant = self.add_constant(property);
-        crate::bytecode::bytecode_list::OpDelById::emit(
+        crate::bytecode::bytecode_ops::OpDelById::emit(
             self,
             dst.as_ref().unwrap(),
             base.as_ref().unwrap(),
@@ -1648,7 +1654,7 @@ impl BytecodeGenerator {
             };
             let killed = self.kill(dst.as_ref().unwrap());
             let value_profile = self.next_value_profile_index();
-            crate::bytecode::bytecode_list::OpEnumeratorGetByVal::emit_wide32(
+            crate::bytecode::bytecode_ops::OpEnumeratorGetByVal::emit_wide32(
                 self,
                 &killed,
                 base.as_ref().unwrap(),
@@ -1665,7 +1671,7 @@ impl BytecodeGenerator {
 
         let killed = self.kill(dst.as_ref().unwrap());
         let value_profile = self.next_value_profile_index();
-        crate::bytecode::bytecode_list::OpGetByVal::emit(self, &killed, base.as_ref().unwrap(), property.as_ref().unwrap(), value_profile);
+        crate::bytecode::bytecode_ops::OpGetByVal::emit(self, &killed, base.as_ref().unwrap(), property.as_ref().unwrap(), value_profile);
         dst
     }
 
@@ -1679,7 +1685,7 @@ impl BytecodeGenerator {
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         let killed = self.kill(dst.as_ref().unwrap());
         let value_profile = self.next_value_profile_index();
-        crate::bytecode::bytecode_list::OpGetByValWithThis::emit(
+        crate::bytecode::bytecode_ops::OpGetByValWithThis::emit(
             self,
             &killed,
             base.as_ref().unwrap(),
@@ -1697,7 +1703,7 @@ impl BytecodeGenerator {
         value: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         let value_profile = self.next_value_profile_index();
-        crate::bytecode::bytecode_list::OpGetPrototypeOf::emit(self, dst.as_ref().unwrap(), value.as_ref().unwrap(), value_profile);
+        crate::bytecode::bytecode_ops::OpGetPrototypeOf::emit(self, dst.as_ref().unwrap(), value.as_ref().unwrap(), value_profile);
         dst
     }
 
@@ -1716,7 +1722,7 @@ impl BytecodeGenerator {
             return self.emit_enumerator_put_by_val(&mut context.borrow_mut(), base, property, value);
         }
 
-        crate::bytecode::bytecode_list::OpPutByVal::emit(
+        crate::bytecode::bytecode_ops::OpPutByVal::emit(
             self,
             base.as_ref().unwrap(),
             property.as_ref().unwrap(),

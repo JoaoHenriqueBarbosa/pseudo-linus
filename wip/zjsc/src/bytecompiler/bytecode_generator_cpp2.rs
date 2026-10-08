@@ -11,13 +11,13 @@ impl BytecodeGenerator {
         vm: &crate::runtime::vm::VM,
         module_program_node: crate::parser::nodes::NodeRef<crate::parser::nodes::ModuleProgramNode>,
         code_block: &mut crate::bytecode::unlinked_module_program_code_block::UnlinkedModuleProgramCodeBlock,
-        code_generation_mode: crate::bytecode::code_generation_mode::OptionSet<crate::bytecode::code_generation_mode::CodeGenerationMode>,
-        parent_scope_tdz_variables: &Option<std::rc::Rc<crate::bytecompiler::tdz_environment::TDZEnvironmentLink>>,
+        code_generation_mode: crate::parser::parser_modes::CodeGenerationModeSet,
+        parent_scope_tdz_variables: &Option<std::rc::Rc<crate::bytecode::tdz_environment::TDZEnvironmentLink>>,
     ) -> BytecodeGenerator {
         use crate::bytecompiler::bytecode_generator::{Variable, VariableKind};
         let mut this = BytecodeGenerator::with_defaults(
             vm,
-            crate::bytecode::unlinked_code_block_generator::UnlinkedCodeBlockGenerator::new(vm, code_block),
+            Box::new(crate::bytecode::unlinked_code_block_generator::UnlinkedCodeBlockGenerator::new(vm, code_block)),
             crate::bytecode::code_block::llint_baseline_callee_save_space_as_virtual_registers(),
         );
         this.code_generation_mode = code_generation_mode;
@@ -26,7 +26,7 @@ impl BytecodeGenerator {
             crate::interpreter::call_frame::this_argument_offset(),
         );
         this.code_type = crate::bytecode::code_type::CodeType::ModuleCode;
-        this.default_allow_call_ignore_result_optimization = !crate::runtime::options::eval_mode();
+        this.default_allow_call_ignore_result_optimization = !crate::runtime::options::Options::eval_mode();
         this.uses_exceptions = false;
         this.expression_too_deep = false;
         this.is_builtin_function = false;
@@ -57,8 +57,8 @@ impl BytecodeGenerator {
         };
         let look_up_var_kind = |uid: &crate::wtf::text::uniqued_string_impl::UniquedStringImpl,
                                 entry: &crate::parser::variable_environment::VariableEnvironmentEntry|
-         -> crate::bytecompiler::var_kind::VarKind {
-            use crate::bytecompiler::var_kind::VarKind;
+         -> crate::runtime::var_offset::VarKind {
+            use crate::runtime::var_offset::VarKind;
             // Aloca as variáveis exportadas no ambiente do módulo.
             if entry.is_exported() {
                 return VarKind::Scope;
@@ -107,16 +107,16 @@ impl BytecodeGenerator {
 
         this.create_variable(
             &this.vm.property_names().star_namespace_private_name(),
-            crate::bytecompiler::var_kind::VarKind::Scope,
+            crate::runtime::var_offset::VarKind::Scope,
             &module_environment_symbol_table,
-            crate::bytecompiler::bytecode_generator::ExistingVariableMode::VerifyExisting,
+            crate::bytecompiler::existing_variable_mode::ExistingVariableMode::VerifyExisting,
         );
         if module_program_node.borrow().features() & crate::parser::parser_modes::IMPORT_META_FEATURE != 0 {
             this.create_variable(
                 &this.vm.property_names().builtin_names().meta_private_name(),
-                crate::bytecompiler::var_kind::VarKind::Scope,
+                crate::runtime::var_offset::VarKind::Scope,
                 &module_environment_symbol_table,
-                crate::bytecompiler::bytecode_generator::ExistingVariableMode::VerifyExisting,
+                crate::bytecompiler::existing_variable_mode::ExistingVariableMode::VerifyExisting,
             );
         }
 
@@ -139,7 +139,7 @@ impl BytecodeGenerator {
                 &ident,
                 var_kind,
                 &module_environment_symbol_table,
-                crate::bytecompiler::bytecode_generator::ExistingVariableMode::IgnoreExisting,
+                crate::bytecompiler::existing_variable_mode::ExistingVariableMode::IgnoreExisting,
             );
         }
 
@@ -157,7 +157,7 @@ impl BytecodeGenerator {
         if this.should_emit_type_profiler_hooks() || module_program_node.borrow().uses_await() {
             constant_symbol_table = Some(this.add_constant_value(
                 crate::runtime::js_value::JSValue::from_cell(module_environment_symbol_table.cell_id()),
-                crate::parser::source_code_representation::SourceCodeRepresentation::Other,
+                crate::runtime::js_cjs_value_types::SourceCodeRepresentation::Other,
             ));
         } else {
             let cloned = module_environment_symbol_table.borrow().clone_scope_part(
@@ -166,7 +166,7 @@ impl BytecodeGenerator {
             );
             constant_symbol_table = Some(this.add_constant_value(
                 crate::runtime::js_value::JSValue::from_cell(cloned.cell_id()),
-                crate::parser::source_code_representation::SourceCodeRepresentation::Other,
+                crate::runtime::js_cjs_value_types::SourceCodeRepresentation::Other,
             ));
         }
         let constant_symbol_table = constant_symbol_table.unwrap();
@@ -212,7 +212,7 @@ impl BytecodeGenerator {
             assert!(!found_value.is_imported());
 
             let var_kind = look_up_var_kind(&found_key, &found_value);
-            if var_kind == crate::bytecompiler::var_kind::VarKind::Scope {
+            if var_kind == crate::runtime::var_offset::VarKind::Scope {
                 // http://www.ecma-international.org/ecma-262/6.0/#sec-moduledeclarationinstantiation
                 // Seção 15.2.1.16.4, passo 16-a-iv-1.
                 // Todas as declarações de função alocadas no heap devem ser instanciadas quando o ambiente
@@ -368,7 +368,7 @@ impl BytecodeGenerator {
                         Some(value_temp),
                         scope,
                         &var,
-                        crate::runtime::resolve_type::ResolveMode::DoNotThrowIfNotFound,
+                        crate::runtime::get_put_info::ResolveMode::DoNotThrowIfNotFound,
                     );
                     values_to_move_into_vars.push((ident, value.expect("emitGetFromScope devolve dst")));
                 }
@@ -394,8 +394,8 @@ impl BytecodeGenerator {
                 scope,
                 &var,
                 Some(value.clone()),
-                crate::runtime::resolve_type::ResolveMode::DoNotThrowIfNotFound,
-                crate::runtime::resolve_type::InitializationMode::NotInitialization,
+                crate::runtime::get_put_info::ResolveMode::DoNotThrowIfNotFound,
+                crate::runtime::get_put_info::InitializationMode::NotInitialization,
             );
         }
     }
@@ -404,7 +404,7 @@ impl BytecodeGenerator {
     pub fn needs_derived_constructor_in_arrow_function_lexical_environment(&mut self) -> bool {
         debug_assert!(
             self.code_block.is_class_context()
-                || !(self.is_constructor() && self.constructor_kind() == crate::parser::parser_modes::ConstructorKind::Extends)
+                || !(self.is_constructor() && self.constructor_kind() == crate::runtime::constructor_kind::ConstructorKind::Extends)
         );
         self.code_block.is_class_context() && self.is_super_used_in_inner_arrow_function()
     }
@@ -553,7 +553,7 @@ impl BytecodeGenerator {
             assert!(self.lexical_environment_register.is_some());
             let undefined_constant = self.add_constant_value(
                 crate::runtime::js_value::JSValue::undefined(),
-                crate::parser::source_code_representation::SourceCodeRepresentation::Other,
+                crate::runtime::js_cjs_value_types::SourceCodeRepresentation::Other,
             );
             let scope_register = self.scope_register();
             let lexical_environment_register = self.lexical_environment_register.clone();
@@ -619,7 +619,7 @@ impl BytecodeGenerator {
     pub fn emit_enter(&mut self) {
         crate::bytecode::bytecode_ops::OpEnter::emit(self);
 
-        if crate::runtime::options::optimize_recursive_tail_calls() {
+        if crate::runtime::options::Options::optimize_recursive_tail_calls() {
             // Devemos adicionar o fim do op_enter como possível alvo de salto, porque o parser de bytecode
             // pode decidir dividir seu basic block para ter para onde saltar caso haja uma tail-call
             // recursiva apontando para esta função.
@@ -648,7 +648,7 @@ impl BytecodeGenerator {
     pub fn rewind(&mut self) {
         debug_assert!(self.last_instruction.is_valid());
         self.disable_peephole_optimization();
-        self.writer.rewind(self.last_instruction.clone());
+        self.writer.rewind(&self.last_instruction);
     }
 
     // BytecodeGenerator.cpp:1494
@@ -662,7 +662,7 @@ impl BytecodeGenerator {
         let mut binop = self.last_instruction.as_op::<BinOp>();
         let matches = {
             let cond = cond.borrow();
-            cond.index() == binop.dst().offset() && cond.is_temporary() && cond.ref_count() == 0
+            cond.index() == binop.dst().offset() && cond.is_temporary() && crate::wtf::ref_counted::RefCounted::ref_count(&*cond) == 0
         };
         if matches {
             self.rewind();
@@ -688,7 +688,7 @@ impl BytecodeGenerator {
         let unop = self.last_instruction.as_op::<UnaryOp>();
         let matches = {
             let cond = cond.borrow();
-            cond.index() == unop.dst().offset() && cond.is_temporary() && cond.ref_count() == 0
+            cond.index() == unop.dst().offset() && cond.is_temporary() && crate::wtf::ref_counted::RefCounted::ref_count(&*cond) == 0
         };
         if matches {
             self.rewind();
@@ -706,55 +706,55 @@ impl BytecodeGenerator {
         use crate::bytecode::opcode::OpcodeID;
         if self.can_do_peephole_optimization() {
             let last = self.last_opcode_id;
-            if last == OpcodeID::OpLess {
+            if last == OpcodeID::op_less {
                 if self.fuse_compare_and_jump::<OpLess, OpJless>(cond, target, false) {
                     return;
                 }
-            } else if last == OpcodeID::OpLesseq {
+            } else if last == OpcodeID::op_lesseq {
                 if self.fuse_compare_and_jump::<OpLesseq, OpJlesseq>(cond, target, false) {
                     return;
                 }
-            } else if last == OpcodeID::OpGreater {
+            } else if last == OpcodeID::op_greater {
                 if self.fuse_compare_and_jump::<OpGreater, OpJgreater>(cond, target, false) {
                     return;
                 }
-            } else if last == OpcodeID::OpGreatereq {
+            } else if last == OpcodeID::op_greatereq {
                 if self.fuse_compare_and_jump::<OpGreatereq, OpJgreatereq>(cond, target, false) {
                     return;
                 }
-            } else if last == OpcodeID::OpEq {
+            } else if last == OpcodeID::op_eq {
                 if self.fuse_compare_and_jump::<OpEq, OpJeq>(cond, target, false) {
                     return;
                 }
-            } else if last == OpcodeID::OpStricteq {
+            } else if last == OpcodeID::op_stricteq {
                 if self.fuse_compare_and_jump::<OpStricteq, OpJstricteq>(cond, target, false) {
                     return;
                 }
-            } else if last == OpcodeID::OpNeq {
+            } else if last == OpcodeID::op_neq {
                 if self.fuse_compare_and_jump::<OpNeq, OpJneq>(cond, target, false) {
                     return;
                 }
-            } else if last == OpcodeID::OpNstricteq {
+            } else if last == OpcodeID::op_nstricteq {
                 if self.fuse_compare_and_jump::<OpNstricteq, OpJnstricteq>(cond, target, false) {
                     return;
                 }
-            } else if last == OpcodeID::OpBelow {
+            } else if last == OpcodeID::op_below {
                 if self.fuse_compare_and_jump::<OpBelow, OpJbelow>(cond, target, false) {
                     return;
                 }
-            } else if last == OpcodeID::OpBeloweq {
+            } else if last == OpcodeID::op_beloweq {
                 if self.fuse_compare_and_jump::<OpBeloweq, OpJbeloweq>(cond, target, false) {
                     return;
                 }
-            } else if last == OpcodeID::OpEqNull && target.is_forward() {
+            } else if last == OpcodeID::op_eq_null && target.is_forward() {
                 if self.fuse_test_and_jmp::<OpEqNull, OpJeqNull>(cond, target) {
                     return;
                 }
-            } else if last == OpcodeID::OpNeqNull && target.is_forward() {
+            } else if last == OpcodeID::op_neq_null && target.is_forward() {
                 if self.fuse_test_and_jmp::<OpNeqNull, OpJneqNull>(cond, target) {
                     return;
                 }
-            } else if last == OpcodeID::OpIsUndefinedOrNull && target.is_forward() {
+            } else if last == OpcodeID::op_is_undefined_or_null && target.is_forward() {
                 if self.fuse_test_and_jmp::<OpIsUndefinedOrNull, OpJundefinedOrNull>(cond, target) {
                     return;
                 }
@@ -771,59 +771,59 @@ impl BytecodeGenerator {
         use crate::bytecode::opcode::OpcodeID;
         if self.can_do_peephole_optimization() {
             let last = self.last_opcode_id;
-            if last == OpcodeID::OpLess && target.is_forward() {
+            if last == OpcodeID::op_less && target.is_forward() {
                 if self.fuse_compare_and_jump::<OpLess, OpJnless>(cond, target, false) {
                     return;
                 }
-            } else if last == OpcodeID::OpLesseq && target.is_forward() {
+            } else if last == OpcodeID::op_lesseq && target.is_forward() {
                 if self.fuse_compare_and_jump::<OpLesseq, OpJnlesseq>(cond, target, false) {
                     return;
                 }
-            } else if last == OpcodeID::OpGreater && target.is_forward() {
+            } else if last == OpcodeID::op_greater && target.is_forward() {
                 if self.fuse_compare_and_jump::<OpGreater, OpJngreater>(cond, target, false) {
                     return;
                 }
-            } else if last == OpcodeID::OpGreatereq && target.is_forward() {
+            } else if last == OpcodeID::op_greatereq && target.is_forward() {
                 if self.fuse_compare_and_jump::<OpGreatereq, OpJngreatereq>(cond, target, false) {
                     return;
                 }
-            } else if last == OpcodeID::OpEq && target.is_forward() {
+            } else if last == OpcodeID::op_eq && target.is_forward() {
                 if self.fuse_compare_and_jump::<OpEq, OpJneq>(cond, target, false) {
                     return;
                 }
-            } else if last == OpcodeID::OpStricteq && target.is_forward() {
+            } else if last == OpcodeID::op_stricteq && target.is_forward() {
                 if self.fuse_compare_and_jump::<OpStricteq, OpJnstricteq>(cond, target, false) {
                     return;
                 }
-            } else if last == OpcodeID::OpNeq && target.is_forward() {
+            } else if last == OpcodeID::op_neq && target.is_forward() {
                 if self.fuse_compare_and_jump::<OpNeq, OpJeq>(cond, target, false) {
                     return;
                 }
-            } else if last == OpcodeID::OpNstricteq && target.is_forward() {
+            } else if last == OpcodeID::op_nstricteq && target.is_forward() {
                 if self.fuse_compare_and_jump::<OpNstricteq, OpJstricteq>(cond, target, false) {
                     return;
                 }
-            } else if last == OpcodeID::OpBelow && target.is_forward() {
+            } else if last == OpcodeID::op_below && target.is_forward() {
                 if self.fuse_compare_and_jump::<OpBelow, OpJbeloweq>(cond, target, true) {
                     return;
                 }
-            } else if last == OpcodeID::OpBeloweq && target.is_forward() {
+            } else if last == OpcodeID::op_beloweq && target.is_forward() {
                 if self.fuse_compare_and_jump::<OpBeloweq, OpJbelow>(cond, target, true) {
                     return;
                 }
-            } else if last == OpcodeID::OpNot {
+            } else if last == OpcodeID::op_not {
                 if self.fuse_test_and_jmp::<OpNot, OpJtrue>(cond, target) {
                     return;
                 }
-            } else if last == OpcodeID::OpEqNull && target.is_forward() {
+            } else if last == OpcodeID::op_eq_null && target.is_forward() {
                 if self.fuse_test_and_jmp::<OpEqNull, OpJneqNull>(cond, target) {
                     return;
                 }
-            } else if last == OpcodeID::OpNeqNull && target.is_forward() {
+            } else if last == OpcodeID::op_neq_null && target.is_forward() {
                 if self.fuse_test_and_jmp::<OpNeqNull, OpJeqNull>(cond, target) {
                     return;
                 }
-            } else if last == OpcodeID::OpIsUndefinedOrNull && target.is_forward() {
+            } else if last == OpcodeID::op_is_undefined_or_null && target.is_forward() {
                 if self.fuse_test_and_jmp::<OpIsUndefinedOrNull, OpJnundefinedOrNull>(cond, target) {
                     return;
                 }
@@ -881,7 +881,7 @@ impl BytecodeGenerator {
         let bound = target.bind_generator(self);
         crate::bytecode::bytecode_ops::OpJneqPtr::emit_sized(
             self,
-            crate::bytecode::opcode::OpcodeSize::Wide32,
+            crate::bytecode::opcode_size::OpcodeSize::Wide32,
             Some(cond.clone()),
             constant,
             bound,
@@ -940,9 +940,9 @@ impl BytecodeGenerator {
     pub fn add_constant_value(
         &mut self,
         v: crate::runtime::js_value::JSValue,
-        source_code_representation: crate::parser::source_code_representation::SourceCodeRepresentation,
+        source_code_representation: crate::runtime::js_cjs_value_types::SourceCodeRepresentation,
     ) -> RegisterRef {
-        use crate::parser::source_code_representation::SourceCodeRepresentation;
+        use crate::runtime::js_cjs_value_types::SourceCodeRepresentation;
         let mut v = v;
         if v.is_empty() {
             return self.add_constant_empty_value();
@@ -1041,7 +1041,7 @@ impl BytecodeGenerator {
             .constant_register(src2.borrow().virtual_register())
             .as_js_string()
             .try_get_value();
-        if value != crate::wtf::text::wtf_string::String::from_latin1("u") {
+        if value != crate::wtf::text::wtf_string::String::from_latin1(b"u") {
             return false;
         }
 
@@ -1067,24 +1067,24 @@ impl BytecodeGenerator {
         use crate::bytecode::bytecode_ops::*;
         use crate::bytecode::opcode::OpcodeID;
         match opcode_id {
-            OpcodeID::OpNot => {
+            OpcodeID::op_not => {
                 self.emit_unary_op::<OpNot>(dst.clone(), src);
             }
-            OpcodeID::OpNegate => {
+            OpcodeID::op_negate => {
                 let profile = self.code_block.add_unary_arith_profile();
-                OpNegate::emit_with_profile_and_type(self, dst.clone(), src, profile, type_);
+                OpNegate::emit(self, dst.clone(), src, profile, type_);
             }
-            OpcodeID::OpBitnot => {
+            OpcodeID::op_bitnot => {
                 let profile = self.code_block.add_unary_arith_profile();
-                OpBitnot::emit_with_profile(self, dst.clone(), src, profile);
+                OpBitnot::emit(self, dst.clone(), src, profile);
             }
-            OpcodeID::OpToNumber => {
+            OpcodeID::op_to_number => {
                 let profile = self.code_block.add_unary_arith_profile();
-                OpToNumber::emit_with_profile(self, dst.clone(), src, profile);
+                OpToNumber::emit(self, dst.clone(), src, profile);
             }
-            OpcodeID::OpToNumeric => {
+            OpcodeID::op_to_numeric => {
                 let profile = self.code_block.add_unary_arith_profile();
-                OpToNumeric::emit_with_profile(self, dst.clone(), src, profile);
+                OpToNumeric::emit(self, dst.clone(), src, profile);
             }
             _ => unreachable!("ASSERT_NOT_REACHED"),
         }
@@ -1103,11 +1103,11 @@ impl BytecodeGenerator {
         use crate::bytecode::bytecode_ops::*;
         use crate::bytecode::opcode::OpcodeID;
         match opcode_id {
-            OpcodeID::OpEq => self.emit_binary_op::<OpEq>(dst, src1, src2, types),
-            OpcodeID::OpNeq => self.emit_binary_op::<OpNeq>(dst, src1, src2, types),
-            OpcodeID::OpStricteq => self.emit_binary_op::<OpStricteq>(dst, src1, src2, types),
-            OpcodeID::OpNstricteq => self.emit_binary_op::<OpNstricteq>(dst, src1, src2, types),
-            OpcodeID::OpLess => {
+            OpcodeID::op_eq => self.emit_binary_op::<OpEq>(dst, src1, src2, types),
+            OpcodeID::op_neq => self.emit_binary_op::<OpNeq>(dst, src1, src2, types),
+            OpcodeID::op_stricteq => self.emit_binary_op::<OpStricteq>(dst, src1, src2, types),
+            OpcodeID::op_nstricteq => self.emit_binary_op::<OpNstricteq>(dst, src1, src2, types),
+            OpcodeID::op_less => {
                 if self.try_emit_typeof_is_undefined_for_string_comparison::<true>(
                     dst.clone(),
                     src1.as_ref().unwrap(),
@@ -1117,8 +1117,8 @@ impl BytecodeGenerator {
                 }
                 self.emit_binary_op::<OpLess>(dst, src1, src2, types)
             }
-            OpcodeID::OpLesseq => self.emit_binary_op::<OpLesseq>(dst, src1, src2, types),
-            OpcodeID::OpGreater => {
+            OpcodeID::op_lesseq => self.emit_binary_op::<OpLesseq>(dst, src1, src2, types),
+            OpcodeID::op_greater => {
                 if self.try_emit_typeof_is_undefined_for_string_comparison::<false>(
                     dst.clone(),
                     src1.as_ref().unwrap(),
@@ -1128,15 +1128,15 @@ impl BytecodeGenerator {
                 }
                 self.emit_binary_op::<OpGreater>(dst, src1, src2, types)
             }
-            OpcodeID::OpGreatereq => self.emit_binary_op::<OpGreatereq>(dst, src1, src2, types),
-            OpcodeID::OpBelow => self.emit_binary_op::<OpBelow>(dst, src1, src2, types),
-            OpcodeID::OpBeloweq => self.emit_binary_op::<OpBeloweq>(dst, src1, src2, types),
-            OpcodeID::OpMod => self.emit_binary_op::<OpMod>(dst, src1, src2, types),
-            OpcodeID::OpPow => self.emit_binary_op::<OpPow>(dst, src1, src2, types),
-            OpcodeID::OpLshift => self.emit_binary_op::<OpLshift>(dst, src1, src2, types),
-            OpcodeID::OpRshift => self.emit_binary_op::<OpRshift>(dst, src1, src2, types),
-            OpcodeID::OpUrshift => self.emit_binary_op::<OpUrshift>(dst, src1, src2, types),
-            OpcodeID::OpAdd => {
+            OpcodeID::op_greatereq => self.emit_binary_op::<OpGreatereq>(dst, src1, src2, types),
+            OpcodeID::op_below => self.emit_binary_op::<OpBelow>(dst, src1, src2, types),
+            OpcodeID::op_beloweq => self.emit_binary_op::<OpBeloweq>(dst, src1, src2, types),
+            OpcodeID::op_mod => self.emit_binary_op::<OpMod>(dst, src1, src2, types),
+            OpcodeID::op_pow => self.emit_binary_op::<OpPow>(dst, src1, src2, types),
+            OpcodeID::op_lshift => self.emit_binary_op::<OpLshift>(dst, src1, src2, types),
+            OpcodeID::op_rshift => self.emit_binary_op::<OpRshift>(dst, src1, src2, types),
+            OpcodeID::op_urshift => self.emit_binary_op::<OpUrshift>(dst, src1, src2, types),
+            OpcodeID::op_add => {
                 let is_constant_empty_string = |generator: &BytecodeGenerator, src: &RegisterRef| -> bool {
                     let virtual_register = src.borrow().virtual_register();
                     if !virtual_register.is_constant() {
@@ -1161,12 +1161,12 @@ impl BytecodeGenerator {
 
                 self.emit_binary_op::<OpAdd>(dst, src1, src2, types)
             }
-            OpcodeID::OpMul => self.emit_binary_op::<OpMul>(dst, src1, src2, types),
-            OpcodeID::OpDiv => self.emit_binary_op::<OpDiv>(dst, src1, src2, types),
-            OpcodeID::OpSub => self.emit_binary_op::<OpSub>(dst, src1, src2, types),
-            OpcodeID::OpBitand => self.emit_binary_op::<OpBitand>(dst, src1, src2, types),
-            OpcodeID::OpBitxor => self.emit_binary_op::<OpBitxor>(dst, src1, src2, types),
-            OpcodeID::OpBitor => self.emit_binary_op::<OpBitor>(dst, src1, src2, types),
+            OpcodeID::op_mul => self.emit_binary_op::<OpMul>(dst, src1, src2, types),
+            OpcodeID::op_div => self.emit_binary_op::<OpDiv>(dst, src1, src2, types),
+            OpcodeID::op_sub => self.emit_binary_op::<OpSub>(dst, src1, src2, types),
+            OpcodeID::op_bitand => self.emit_binary_op::<OpBitand>(dst, src1, src2, types),
+            OpcodeID::op_bitxor => self.emit_binary_op::<OpBitxor>(dst, src1, src2, types),
+            OpcodeID::op_bitor => self.emit_binary_op::<OpBitor>(dst, src1, src2, types),
             _ => unreachable!("ASSERT_NOT_REACHED"),
         }
     }
@@ -1182,14 +1182,14 @@ impl BytecodeGenerator {
     // BytecodeGenerator.cpp:1882
     pub fn emit_to_number(&mut self, dst: Option<RegisterRef>, src: Option<RegisterRef>) -> Option<RegisterRef> {
         let profile = self.code_block.add_unary_arith_profile();
-        crate::bytecode::bytecode_ops::OpToNumber::emit_with_profile(self, dst.clone(), src, profile);
+        crate::bytecode::bytecode_ops::OpToNumber::emit(self, dst.clone(), src, profile);
         dst
     }
 
     // BytecodeGenerator.cpp:1888
     pub fn emit_to_numeric(&mut self, dst: Option<RegisterRef>, src: Option<RegisterRef>) -> Option<RegisterRef> {
         let profile = self.code_block.add_unary_arith_profile();
-        crate::bytecode::bytecode_ops::OpToNumeric::emit_with_profile(self, dst.clone(), src, profile);
+        crate::bytecode::bytecode_ops::OpToNumeric::emit(self, dst.clone(), src, profile);
         dst
     }
 
@@ -1206,14 +1206,14 @@ impl BytecodeGenerator {
     // BytecodeGenerator.cpp:1904
     pub fn emit_inc(&mut self, src_dst: &RegisterRef) -> Option<RegisterRef> {
         let profile = self.code_block.add_unary_arith_profile();
-        crate::bytecode::bytecode_ops::OpInc::emit_with_profile(self, Some(src_dst.clone()), profile);
+        crate::bytecode::bytecode_ops::OpInc::emit(self, Some(src_dst.clone()), profile);
         Some(src_dst.clone())
     }
 
     // BytecodeGenerator.cpp:1910
     pub fn emit_dec(&mut self, src_dst: &RegisterRef) -> Option<RegisterRef> {
         let profile = self.code_block.add_unary_arith_profile();
-        crate::bytecode::bytecode_ops::OpDec::emit_with_profile(self, Some(src_dst.clone()), profile);
+        crate::bytecode::bytecode_ops::OpDec::emit(self, Some(src_dst.clone()), profile);
         Some(src_dst.clone())
     }
 
@@ -1238,7 +1238,7 @@ impl BytecodeGenerator {
                     .constant_register(src2.borrow().virtual_register())
                     .as_js_string()
                     .try_get_value();
-                let is = |text: &str| value == crate::wtf::text::wtf_string::String::from_latin1(text);
+                let is = |text: &str| value == crate::wtf::text::wtf_string::String::from_latin1(text.as_bytes());
                 if is("undefined") {
                     self.rewind();
                     OpTypeofIsUndefined::emit(self, dst, op.value());
@@ -1289,8 +1289,8 @@ impl BytecodeGenerator {
     // BytecodeGenerator.cpp:1978
     pub fn emit_type_profiler_expression_info(
         &mut self,
-        start_divot: &crate::parser::js_text_position::JSTextPosition,
-        end_divot: &crate::parser::js_text_position::JSTextPosition,
+        start_divot: &crate::parser::parser_tokens::JSTextPosition,
+        end_divot: &crate::parser::parser_tokens::JSTextPosition,
     ) {
         debug_assert!(self.should_emit_type_profiler_hooks());
 
@@ -1314,9 +1314,9 @@ impl BytecodeGenerator {
         crate::bytecode::bytecode_ops::OpProfileType::emit(
             self,
             Some(register_to_profile),
-            None,
+            crate::bytecode::bytecode_ops::SymbolTableOrScopeDepth::default(),
             flag,
-            None,
+            0,
             resolve_type,
         );
 

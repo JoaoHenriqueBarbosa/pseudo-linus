@@ -20,10 +20,7 @@ impl BytecodeGenerator {
         n.emit_bytecode(self, dst);
     }
 
-    // BytecodeGenerator.h:519
-    pub fn add_metadata_for(&mut self, opcode_id: crate::bytecode::opcode::OpcodeID) -> u32 {
-        self.code_block.metadata().add_entry(opcode_id)
-    }
+    // BytecodeGenerator.h:519: `add_metadata_for` é o método do `OpWriter` (bytecode_generator.rs).
 
     // BytecodeGenerator.h:524
     pub fn next_value_profile_index(&mut self) -> u32 {
@@ -184,7 +181,7 @@ impl BytecodeGenerator {
         n: &crate::parser::nodes::Expression,
         true_target: &mut crate::bytecompiler::label::Label,
         false_target: &mut crate::bytecompiler::label::Label,
-        fall_through_mode: crate::bytecompiler::label::FallThroughMode,
+        fall_through_mode: crate::parser::nodes::FallThroughMode,
     ) {
         if !self.vm.is_safe_to_recurse() {
             self.emit_throw_expression_too_deep_exception();
@@ -330,7 +327,7 @@ impl BytecodeGenerator {
         dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
         src: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
     ) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
-        if U::OPCODE_ID == crate::bytecode::opcode::OpcodeID::OpUnsigned {
+        if U::OPCODE_ID == crate::bytecode::opcode::OpcodeID::op_unsigned {
             let profile = self.code_block.add_unary_arith_profile();
             U::emit_with_profile(self, dst.clone(), src, profile);
         } else {
@@ -352,17 +349,17 @@ impl BytecodeGenerator {
     ) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
         use crate::bytecode::opcode::OpcodeID;
         let id = B::OPCODE_ID;
-        if id == OpcodeID::OpAdd
-            || id == OpcodeID::OpMul
-            || id == OpcodeID::OpSub
-            || id == OpcodeID::OpDiv
-            || id == OpcodeID::OpBitand
-            || id == OpcodeID::OpBitor
-            || id == OpcodeID::OpBitxor
+        if id == OpcodeID::op_add
+            || id == OpcodeID::op_mul
+            || id == OpcodeID::op_sub
+            || id == OpcodeID::op_div
+            || id == OpcodeID::op_bitand
+            || id == OpcodeID::op_bitor
+            || id == OpcodeID::op_bitxor
         {
             let profile = self.code_block.add_binary_arith_profile();
             B::emit_with_profile_and_types(self, dst.clone(), src1, src2, profile, types);
-        } else if id == OpcodeID::OpLshift || id == OpcodeID::OpRshift {
+        } else if id == OpcodeID::op_lshift || id == OpcodeID::op_rshift {
             let profile = self.code_block.add_binary_arith_profile();
             B::emit_with_profile(self, dst.clone(), src1, src2, profile);
         } else {

@@ -131,6 +131,12 @@ impl<Traits> Default for GenericLabel<Traits> {
     }
 }
 
+impl<Traits> crate::wtf::ref_counted::RefCounted for GenericLabel<Traits> {
+    fn ref_count(&self) -> i32 {
+        self.ref_count
+    }
+}
+
 impl<Traits> GenericLabel<Traits> {
     const INVALID_LOCATION: u32 = u32::MAX;
 
@@ -176,10 +182,6 @@ impl<Traits> GenericLabel<Traits> {
     pub fn deref(&mut self) {
         self.ref_count -= 1;
         debug_assert!(self.ref_count >= 0);
-    }
-
-    pub fn ref_count(&self) -> i32 {
-        self.ref_count
     }
 
     pub fn has_one_ref(&self) -> bool {

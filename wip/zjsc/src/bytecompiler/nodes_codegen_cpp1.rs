@@ -784,7 +784,7 @@ impl crate::parser::nodes::ArrayNode {
                     Some(index_register.clone()),
                     Some(index_register.clone()),
                     addend,
-                    crate::bytecode::operand_types::OperandTypes::new(
+                    crate::parser::result_type::OperandTypes::new(
                         crate::parser::result_type::ResultType::number_type_is_int32(),
                         crate::parser::result_type::ResultType::number_type_is_int32(),
                     ),
@@ -808,7 +808,7 @@ impl crate::parser::nodes::ArrayNode {
                 Some(index_register.clone()),
                 Some(index_register.clone()),
                 addend,
-                crate::bytecode::operand_types::OperandTypes::new(
+                crate::parser::result_type::OperandTypes::new(
                     crate::parser::result_type::ResultType::number_type_is_int32(),
                     crate::parser::result_type::ResultType::number_type_is_int32(),
                 ),

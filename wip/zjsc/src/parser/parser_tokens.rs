@@ -8,6 +8,9 @@ use std::ops::{Add, Sub};
 
 use crate::runtime::identifier::Identifier;
 
+/// `SourceCodeRepresentation` (JSCJSValue.h:91), que o `ParserTokens.h` usa nos literais numéricos.
+pub use crate::runtime::js_cjs_value_types::SourceCodeRepresentation;
+
 /// `BINARY_OP_PRECEDENCE(prec)`.
 pub const fn binary_op_precedence(prec: u32) -> u32 {
     (prec << BINARY_OP_TOKEN_PRECEDENCE_SHIFT)

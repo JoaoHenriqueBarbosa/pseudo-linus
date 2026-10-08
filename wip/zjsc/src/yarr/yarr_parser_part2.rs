@@ -365,8 +365,8 @@ impl<'a, D: Delegate, C: CharType> Parser<'a, D, C> {
                 // RegularExpressionFlags válidas para modificadores de regexp.
                 Some('-' | 'i' | 'm' | 's') => {
                     // Consome caracteres até o ':'.
-                    let mut set = FlagSet::new();
-                    let mut unset = FlagSet::new();
+                    let mut set = FlagSet::empty();
+                    let mut unset = FlagSet::empty();
                     let mut has_hit_negation = false;
                     is_non_capturing_group = true;
                     while !self.at_end_of_pattern() {
@@ -409,8 +409,8 @@ impl<'a, D: Delegate, C: CharType> Parser<'a, D, C> {
 
                         // É erro de sintaxe se algum ponto de código do primeiro
                         // RegularExpressionModifiers também estiver no segundo.
-                        // (`set.containsAny(unset)`: `FlagSet` não tem `contains_any`.)
-                        if (set.to_raw() & unset.to_raw()) != 0 {
+                        // `set.containsAny(unset)`.
+                        if set.contains_any(unset) {
                             self.error_code = ErrorCode::InvalidRegularExpressionModifier;
                         }
                         // É erro de sintaxe se o primeiro e o segundo RegularExpressionModifiers

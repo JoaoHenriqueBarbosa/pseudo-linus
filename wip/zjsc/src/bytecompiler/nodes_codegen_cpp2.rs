@@ -75,7 +75,7 @@ impl crate::parser::nodes::BaseDotNode {
                     Some(temp),
                     scope.clone(),
                     &var,
-                    crate::bytecompiler::bytecode_generator::ResolveMode::ThrowIfNotFound,
+                    crate::runtime::get_put_info::ResolveMode::ThrowIfNotFound,
                 );
                 let temp = generator.new_temporary();
                 let set_private_name = generator.property_names().builtin_names().set_private_name();
@@ -122,7 +122,7 @@ impl crate::parser::nodes::BaseDotNode {
                 private_name.clone(),
                 scope,
                 &var,
-                crate::bytecompiler::bytecode_generator::ResolveMode::DoNotThrowIfNotFound,
+                crate::runtime::get_put_info::ResolveMode::DoNotThrowIfNotFound,
             );
             return generator.emit_private_field_put(base, private_name, value);
         }
@@ -287,7 +287,7 @@ impl crate::parser::nodes::EvalFunctionCallNode {
                 func.clone(),
                 this_register,
                 &var,
-                crate::bytecompiler::bytecode_generator::ResolveMode::ThrowIfNotFound,
+                crate::runtime::get_put_info::ResolveMode::ThrowIfNotFound,
             );
             generator.emit_tdz_check_if_necessary(&var, func.clone(), None);
         }
@@ -383,11 +383,11 @@ impl crate::parser::nodes::FunctionCallValueNode {
 
             debug_assert!(
                 generator.is_constructor()
-                    || generator.derived_context_type() == crate::parser::parser_modes::DerivedContextType::DerivedConstructorContext
+                    || generator.derived_context_type() == crate::bytecode::executable_info::DerivedContextType::DerivedConstructorContext
             );
             debug_assert!(
                 generator.constructor_kind() == crate::runtime::constructor_kind::ConstructorKind::Extends
-                    || generator.derived_context_type() == crate::parser::parser_modes::DerivedContextType::DerivedConstructorContext
+                    || generator.derived_context_type() == crate::bytecode::executable_info::DerivedContextType::DerivedConstructorContext
             );
             let new_target = generator.new_target();
             let ret = generator.emit_super_construct(
@@ -434,7 +434,7 @@ impl crate::parser::nodes::FunctionCallValueNode {
                 debug_assert!(
                     generator.is_constructor()
                         || generator.derived_context_type()
-                            == crate::parser::parser_modes::DerivedContextType::DerivedConstructorContext
+                            == crate::bytecode::executable_info::DerivedContextType::DerivedConstructorContext
                 );
                 func = generator.emit_load_derived_constructor();
                 generator.emit_instance_field_initialization_if_needed(
@@ -769,7 +769,7 @@ impl crate::parser::nodes::BytecodeIntrinsicNode {
         generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
         dst: Cpp2Reg,
     ) -> Cpp2Reg {
-        self.emit_intrinsic_put_by_val_with_this(generator, crate::parser::parser_modes::ECMAMode::sloppy());
+        self.emit_intrinsic_put_by_val_with_this(generator, crate::runtime::ecma_mode::ECMAMode::sloppy());
         dst
     }
 
@@ -778,7 +778,7 @@ impl crate::parser::nodes::BytecodeIntrinsicNode {
         generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
         dst: Cpp2Reg,
     ) -> Cpp2Reg {
-        self.emit_intrinsic_put_by_val_with_this(generator, crate::parser::parser_modes::ECMAMode::strict());
+        self.emit_intrinsic_put_by_val_with_this(generator, crate::runtime::ecma_mode::ECMAMode::strict());
         dst
     }
 
@@ -786,7 +786,7 @@ impl crate::parser::nodes::BytecodeIntrinsicNode {
     fn emit_intrinsic_put_by_val_with_this(
         &self,
         generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
-        ecma_mode: crate::parser::parser_modes::ECMAMode,
+        ecma_mode: crate::runtime::ecma_mode::ECMAMode,
     ) {
         let node = self.intrinsic_list_node().unwrap();
         let base = generator.emit_node_expression(None, &node.borrow().expr);
@@ -998,7 +998,7 @@ impl crate::parser::nodes::BytecodeIntrinsicNode {
         } else {
             let message = generator.emit_node_expression(None, &node.borrow().expr);
             generator.emit_throw_static_error_register(
-                crate::bytecompiler::bytecode_generator::ErrorTypeWithExtension::TypeError,
+                crate::runtime::error_type::ErrorTypeWithExtension::TypeError,
                 message.as_ref().unwrap(),
             );
         }
@@ -1018,7 +1018,7 @@ impl crate::parser::nodes::BytecodeIntrinsicNode {
         } else {
             let message = generator.emit_node_expression(None, &node.borrow().expr);
             generator.emit_throw_static_error_register(
-                crate::bytecompiler::bytecode_generator::ErrorTypeWithExtension::RangeError,
+                crate::runtime::error_type::ErrorTypeWithExtension::RangeError,
                 message.as_ref().unwrap(),
             );
         }
@@ -1122,7 +1122,7 @@ impl crate::parser::nodes::BytecodeIntrinsicNode {
         let mut node = self.intrinsic_list_node().unwrap();
         let id_value = Some(generator.new_temporary());
         generator.emit_node_expression(id_value.clone(), &node.borrow().expr);
-        let mut speculation = crate::bytecode::speculated_type::SpecNone;
+        let mut speculation = crate::bytecode::speculated_type::SPEC_NONE;
         loop {
             let next = node.borrow().next.clone();
             let Some(next) = next else { break };

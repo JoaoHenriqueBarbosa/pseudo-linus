@@ -132,7 +132,7 @@ impl crate::parser::nodes::InNode {
                     Some(temp),
                     scope.clone(),
                     &var,
-                    crate::bytecompiler::bytecode_generator::ResolveMode::DoNotThrowIfNotFound,
+                    crate::runtime::get_put_info::ResolveMode::DoNotThrowIfNotFound,
                 );
                 let final_dst = Some(generator.final_destination(dst.as_ref(), base.as_ref()));
                 return generator.emit_has_private_name(final_dst, base, private_name);

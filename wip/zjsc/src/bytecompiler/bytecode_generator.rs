@@ -9,7 +9,8 @@ use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use crate::bytecode::handler_info::HandlerType;
-use crate::bytecompiler::label::Label;
+use crate::bytecompiler::bytecode_generator_base::{BytecodeGeneratorBase, BytecodeGeneratorTraits};
+use crate::bytecompiler::label::{GenericLabelRef, Label};
 use crate::bytecompiler::label_scope::{LabelScope, LabelScopeType};
 use crate::bytecompiler::register_id::RegisterID;
 use crate::parser::nodes::{ArgumentsNode, NodeRef, Statement};
@@ -17,10 +18,8 @@ use crate::runtime::identifier::Identifier;
 use crate::runtime::property_attribute::READ_ONLY;
 use crate::runtime::var_offset::VarOffset;
 
-pub use crate::bytecompiler::bytecode_generator_part2::BytecodeGenerator;
-
-/// `RefPtr<RegisterID>` do C++: posse compartilhada, identidade por ponteiro.
-pub type RegisterRef = Rc<RefCell<RegisterID>>;
+/// `RefPtr<RegisterID>` do C++: a contagem intrusiva vive em `register_id.rs`.
+pub use crate::bytecompiler::register_id::RegisterRef;
 
 /// `enum ExpectedFunction`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -496,12 +495,122 @@ pub struct UsingScope {
     pub has_await_using: bool,
 }
 
-/// `struct JSGeneratorTraits`: os tipos associados vivem no trait `BytecodeGeneratorTraits`
-/// (ver `bytecode_generator_base`); aqui a marca do tipo e a constante `opcodeForDisablingOptimizations`.
-pub struct JSGeneratorTraits;
+/// `struct JSGeneratorTraits` (`BytecodeGenerator.h:347`): a marca do tipo vive em `label.rs`
+/// (base de `Label`); aqui os tipos associados, `opcodeForDisablingOptimizations` e a
+/// especialização `GenericLabel<JSGeneratorTraits>::setLocation(BytecodeGenerator&, unsigned)`.
+pub use crate::bytecompiler::label::JSGeneratorTraits;
 
-impl JSGeneratorTraits {
-    pub const OPCODE_FOR_DISABLING_OPTIMIZATIONS: crate::bytecode::opcode::OpcodeID = crate::bytecode::opcode::OpcodeID::op_debug;
+impl BytecodeGeneratorTraits for JSGeneratorTraits {
+    type OpcodeID = crate::bytecode::opcode::OpcodeID;
+    type OpcodeTraits = crate::bytecode::opcode_traits::JSOpcodeTraits;
+    type CodeBlock = crate::bytecode::unlinked_code_block_generator::UnlinkedCodeBlockGenerator;
+
+    const OPCODE_FOR_DISABLING_OPTIMIZATIONS: crate::bytecode::opcode::OpcodeID = crate::bytecode::opcode::OpcodeID::op_debug;
+
+    fn opcode_id_value(opcode_id: crate::bytecode::opcode::OpcodeID) -> u16 {
+        opcode_id as u16
+    }
+
+    fn set_label_location(
+        generator: &mut BytecodeGeneratorBase<Self>,
+        label: &GenericLabelRef<Self>,
+        location: u32,
+    ) {
+        label.borrow_mut().set_location_raw(location);
+        let unresolved: Vec<i32> = label.borrow().unresolved_jumps().clone();
+
+        for offset in unresolved {
+            let mut instruction = generator.writer.ref_at(offset as u32);
+            let target = location as i32 - offset;
+
+            macro_rules! case {
+                ($op:ident) => {
+                    if instruction.opcode_id() == crate::bytecode::bytecode_ops::$op::OPCODE_ID as u16 {
+                        let instruction_offset = instruction.offset();
+                        let code_block = &mut generator.code_block;
+                        instruction.cast_mut::<crate::bytecode::bytecode_ops::$op>().set_target_label(
+                            crate::bytecompiler::label::BoundLabel::from_offset(target),
+                            &mut || {
+                                code_block.add_out_of_line_jump_target(instruction_offset, target);
+                                crate::bytecompiler::label::BoundLabel::new()
+                            },
+                        );
+                        continue;
+                    }
+                };
+            }
+
+            case!(OpJmp);
+            case!(OpJtrue);
+            case!(OpJfalse);
+            case!(OpJeqNull);
+            case!(OpJneqNull);
+            case!(OpJundefinedOrNull);
+            case!(OpJnundefinedOrNull);
+            case!(OpJeq);
+            case!(OpJstricteq);
+            case!(OpJneq);
+            case!(OpJeqPtr);
+            case!(OpJneqPtr);
+            case!(OpJnstricteq);
+            case!(OpJless);
+            case!(OpJlesseq);
+            case!(OpJgreater);
+            case!(OpJgreatereq);
+            case!(OpJnless);
+            case!(OpJnlesseq);
+            case!(OpJngreater);
+            case!(OpJngreatereq);
+            case!(OpJbelow);
+            case!(OpJbeloweq);
+            // default: ASSERT_NOT_REACHED()
+        }
+    }
+}
+
+/// `m_writer.position()`: o `BoundLabel` lê a posição do escritor do gerador. Os membros da base
+/// estão achatados na struct (ver `bytecode_generator_part3.rs`).
+impl crate::bytecompiler::label::LabelGenerator for BytecodeGenerator {
+    fn writer_position(&self) -> i32 {
+        self.writer.position() as i32
+    }
+}
+
+/// O que o `emit` gerado de cada `Op*` pede ao gerador (`template<typename BytecodeGenerator>`):
+/// `recordOpcode` e `writeOpcode<size>` da `BytecodeGeneratorBase` (mesmas funções, sobre os
+/// membros achatados), `addMetadataFor` (`BytecodeGenerator.h:515`) e `setUsesCheckpoints`
+/// (`BytecodeGenerator.h:1110`).
+impl crate::bytecode::bytecode_ops::OpWriter for BytecodeGenerator {
+    fn record_opcode(&mut self, opcode_id: crate::bytecode::opcode::OpcodeID) {
+        crate::bytecompiler::bytecode_generator_base::record_opcode_in::<JSGeneratorTraits>(
+            &self.writer,
+            &mut self.last_instruction,
+            &mut self.last_opcode_id,
+            opcode_id,
+        );
+    }
+
+    fn write_opcode(
+        &mut self,
+        size: crate::bytecompiler::bytecode_generator_base::OpcodeSize,
+        opcode_id: crate::bytecode::opcode::OpcodeID,
+        ops: &[&dyn crate::bytecompiler::bytecode_generator_base::Fits],
+    ) {
+        crate::bytecompiler::bytecode_generator_base::write_opcode_in::<JSGeneratorTraits>(
+            &mut self.writer,
+            size,
+            opcode_id,
+            ops,
+        );
+    }
+
+    fn add_metadata_for(&mut self, opcode_id: crate::bytecode::opcode::OpcodeID) -> u32 {
+        self.code_block.metadata().add_entry(opcode_id)
+    }
+
+    fn set_uses_checkpoints(&mut self) {
+        self.code_block.set_has_checkpoints();
+    }
 }
 
 /// Contrato dos quatro construtores do `BytecodeGenerator` (Program, Function, Eval, ModuleProgram),
@@ -512,10 +621,10 @@ pub trait BytecodeGeneratorNode<UnlinkedCodeBlock> {
         vm: &crate::runtime::vm::VM,
         node: &NodeRef<Self>,
         unlinked_code_block: &Rc<RefCell<UnlinkedCodeBlock>>,
-        code_generation_mode: crate::bytecode::code_generation_mode::CodeGenerationMode,
+        code_generation_mode: crate::parser::parser_modes::CodeGenerationModeSet,
         parent_scope_tdz_variables: &Option<Rc<crate::bytecode::tdz_environment::TDZEnvironmentLink>>,
         generator_or_async_wrapper_function_parameter_names: Option<&[Identifier]>,
-        private_name_environment: Option<&crate::bytecode::private_name_environment::PrivateNameEnvironment>,
+        private_name_environment: Option<&crate::parser::variable_environment::PrivateNameEnvironment>,
     ) -> BytecodeGenerator
     where
         Self: Sized;
@@ -537,10 +646,10 @@ impl BytecodeGenerator {
     }
 
     pub fn is_constructor(&self) -> bool {
-        self.code_block.borrow().is_constructor()
+        self.code_block.is_constructor()
     }
 
-    pub fn derived_context_type(&self) -> crate::parser::parser_modes::DerivedContextType {
+    pub fn derived_context_type(&self) -> crate::bytecode::executable_info::DerivedContextType {
         self.derived_context_type
     }
 
@@ -577,23 +686,23 @@ impl BytecodeGenerator {
     }
 
     pub fn private_brand_requirement(&self) -> crate::bytecode::executable_info::PrivateBrandRequirement {
-        self.code_block.borrow().private_brand_requirement()
+        self.code_block.private_brand_requirement()
     }
 
     pub fn constructor_kind(&self) -> crate::runtime::constructor_kind::ConstructorKind {
-        self.code_block.borrow().constructor_kind()
+        self.code_block.constructor_kind()
     }
 
     pub fn super_binding(&self) -> crate::bytecode::executable_info::SuperBinding {
-        self.code_block.borrow().super_binding()
+        self.code_block.super_binding()
     }
 
     pub fn script_mode(&self) -> crate::parser::parser_modes::JSParserScriptMode {
-        self.code_block.borrow().script_mode()
+        self.code_block.script_mode()
     }
 
     pub fn needs_class_field_initializer(&self) -> crate::bytecode::executable_info::NeedsClassFieldInitializer {
-        self.code_block.borrow().needs_class_field_initializer()
+        self.code_block.needs_class_field_initializer()
     }
 
     /// `static ParserError generate(...)`. O ramo `Options::reportBytecodeCompileTimes()` só imprime
@@ -605,10 +714,10 @@ impl BytecodeGenerator {
         node: &NodeRef<Node>,
         _source_code: &crate::parser::source_code::SourceCode,
         unlinked_code_block: &Rc<RefCell<UnlinkedCodeBlock>>,
-        code_generation_mode: crate::bytecode::code_generation_mode::CodeGenerationMode,
+        code_generation_mode: crate::parser::parser_modes::CodeGenerationModeSet,
         parent_scope_tdz_variables: &Option<Rc<crate::bytecode::tdz_environment::TDZEnvironmentLink>>,
         generator_or_async_wrapper_function_parameter_names: Option<&[Identifier]>,
-        private_name_environment: Option<&crate::bytecode::private_name_environment::PrivateNameEnvironment>,
+        private_name_environment: Option<&crate::parser::variable_environment::PrivateNameEnvironment>,
     ) -> crate::parser::parser_error::ParserError {
         let _defer_gc = vm.defer_gc();
         let mut bytecode_generator = Node::new_generator(

@@ -25,7 +25,7 @@ pub enum ResolveMode {
 }
 
 impl ResolveMode {
-    fn from_u32(value: u32) -> ResolveMode {
+    pub(crate) fn from_u32(value: u32) -> ResolveMode {
         match value {
             0 => ResolveMode::ThrowIfNotFound,
             1 => ResolveMode::DoNotThrowIfNotFound,
@@ -80,7 +80,7 @@ pub const FOR_EACH_RESOLVE_TYPE: [ResolveType; 13] = [
 ];
 
 impl ResolveType {
-    fn from_u32(value: u32) -> ResolveType {
+    pub(crate) fn from_u32(value: u32) -> ResolveType {
         match FOR_EACH_RESOLVE_TYPE.get(value as usize) {
             Some(resolve_type) => *resolve_type,
             None => panic!("ResolveType inválido: {value}"),
@@ -99,7 +99,7 @@ pub enum InitializationMode {
 }
 
 impl InitializationMode {
-    fn from_u32(value: u32) -> InitializationMode {
+    pub(crate) fn from_u32(value: u32) -> InitializationMode {
         match value {
             0 => InitializationMode::Initialization,
             1 => InitializationMode::ConstInitialization,

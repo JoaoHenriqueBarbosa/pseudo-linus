@@ -165,7 +165,7 @@ impl ParenthesisContext {
             invert: false,
             match_direction: crate::yarr::yarr_pattern::MatchDirection::Forward,
             inside_lookbehind: false,
-            flags: crate::yarr::yarr_flags::FlagSet::new(),
+            flags: crate::yarr::yarr_flags::FlagSet::empty(),
         }
     }
 
@@ -209,7 +209,7 @@ impl ParenthesisContext {
             self.invert = false;
             self.match_direction = crate::yarr::yarr_pattern::MatchDirection::Forward;
             self.inside_lookbehind = false;
-            self.flags = crate::yarr::yarr_flags::FlagSet::new();
+            self.flags = crate::yarr::yarr_flags::FlagSet::empty();
         }
     }
 
@@ -265,7 +265,7 @@ impl ParenthesisContext {
         self.invert = false;
         self.match_direction = crate::yarr::yarr_pattern::MatchDirection::Forward;
         self.inside_lookbehind = false;
-        self.flags = crate::yarr::yarr_flags::FlagSet::new();
+        self.flags = crate::yarr::yarr_flags::FlagSet::empty();
     }
 }
 

@@ -17,7 +17,7 @@ impl BytecodeGenerator {
         divot_end: &crate::parser::parser_tokens::JSTextPosition,
         is_default_derived_constructor_call: bool,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        debug_assert!(func.as_ref().unwrap().borrow().ref_count() != 0);
+        debug_assert!(crate::wtf::ref_counted::RefCounted::ref_count(&*func.as_ref().unwrap().borrow()) != 0);
 
         // Generate code for arguments.
         let mut argument: usize = 0;
@@ -271,7 +271,7 @@ impl BytecodeGenerator {
     // BytecodeGenerator.cpp:4156
     pub fn emit_debug_hook(
         &mut self,
-        debug_hook_type: crate::bytecode::opcode::DebugHookType,
+        debug_hook_type: crate::interpreter::interpreter::DebugHookType,
         divot: &crate::parser::parser_tokens::JSTextPosition,
         data: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) {
@@ -307,7 +307,7 @@ impl BytecodeGenerator {
         }
 
         self.emit_debug_hook(
-            crate::bytecode::opcode::DebugHookType::WillExecuteStatement,
+            crate::interpreter::interpreter::DebugHookType::WillExecuteStatement,
             &statement.position(),
             data,
         );
@@ -320,7 +320,7 @@ impl BytecodeGenerator {
         data: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) {
         self.emit_debug_hook(
-            crate::bytecode::opcode::DebugHookType::WillExecuteStatement,
+            crate::interpreter::interpreter::DebugHookType::WillExecuteStatement,
             &expr.position(),
             data,
         );
@@ -336,7 +336,7 @@ impl BytecodeGenerator {
                 scope_node.line_start_offset() as i32,
             )
         };
-        self.emit_debug_hook(crate::bytecode::opcode::DebugHookType::WillLeaveCallFrame, &position, None);
+        self.emit_debug_hook(crate::interpreter::interpreter::DebugHookType::WillLeaveCallFrame, &position, None);
     }
 
     // BytecodeGenerator.cpp:4193
@@ -448,7 +448,7 @@ impl BytecodeGenerator {
         scope_register.borrow_mut().ref_();
         let virtual_register = scope_register.borrow().virtual_register();
         self.scope_register = Some(scope_register);
-        self.code_block.borrow_mut().set_scope_register(virtual_register);
+        self.code_block.set_scope_register(virtual_register);
     }
 
     // BytecodeGenerator.cpp:4280
@@ -684,7 +684,7 @@ impl BytecodeGenerator {
             }
             entry.set_is_const(); // The function name scope name acts like a const variable.
         }
-        let num_vars = self.code_block.borrow().num_vars();
+        let num_vars = self.code_block.num_vars();
         self.push_lexical_scope_internal(
             &mut name_scope_environment,
             TDZCheckOptimization::Optimize,
@@ -694,7 +694,7 @@ impl BytecodeGenerator {
             ScopeType::FunctionNameScope,
             ScopeRegisterType::Var,
         );
-        debug_assert!(self.code_block.borrow().num_vars() == num_vars + 1); // Should have only created one new "var" for the function name scope.
+        debug_assert!(self.code_block.num_vars() == num_vars + 1); // Should have only created one new "var" for the function name scope.
         let should_treat_as_lexical_variable = self.ecma_mode().is_strict();
         let (symbol_table, symbol_table_constant_index, scope) = {
             let last = self.lexical_scope_stack.last().unwrap();
@@ -758,29 +758,29 @@ impl BytecodeGenerator {
     pub fn begin_switch(
         &mut self,
         scrutinee_register: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
-        switch_type: crate::bytecode::switch_info::SwitchType,
+        switch_type: crate::parser::nodes::SwitchType,
     ) {
-        use crate::bytecode::switch_info::SwitchType;
+        use crate::parser::nodes::SwitchType;
         match switch_type {
             SwitchType::Immediate | SwitchType::ImmediateList => {
-                let table_index = self.code_block.borrow().number_of_unlinked_switch_jump_tables();
-                self.code_block.borrow_mut().add_unlinked_switch_jump_table();
+                let table_index = self.code_block.number_of_unlinked_switch_jump_tables();
+                self.code_block.add_unlinked_switch_jump_table();
                 crate::bytecode::bytecode_ops::OpSwitchImm::emit(self, table_index, scrutinee_register.as_ref().unwrap());
             }
             SwitchType::Character | SwitchType::CharacterList => {
-                let table_index = self.code_block.borrow().number_of_unlinked_switch_jump_tables();
-                self.code_block.borrow_mut().add_unlinked_switch_jump_table();
+                let table_index = self.code_block.number_of_unlinked_switch_jump_tables();
+                self.code_block.add_unlinked_switch_jump_table();
                 crate::bytecode::bytecode_ops::OpSwitchChar::emit(self, table_index, scrutinee_register.as_ref().unwrap());
             }
             SwitchType::String => {
-                let table_index = self.code_block.borrow().number_of_unlinked_string_switch_jump_tables();
-                self.code_block.borrow_mut().add_unlinked_string_switch_jump_table();
+                let table_index = self.code_block.number_of_unlinked_string_switch_jump_tables();
+                self.code_block.add_unlinked_string_switch_jump_table();
                 crate::bytecode::bytecode_ops::OpSwitchString::emit(self, table_index, scrutinee_register.as_ref().unwrap());
             }
             SwitchType::None => unreachable!("RELEASE_ASSERT_NOT_REACHED"),
         }
 
-        let info = crate::bytecode::switch_info::SwitchInfo {
+        let info = crate::parser::nodes::SwitchInfo {
             bytecode_offset: self.last_instruction.offset(),
             switch_type,
         };
@@ -796,7 +796,7 @@ impl BytecodeGenerator {
         min: i32,
         max: i32,
     ) {
-        use crate::bytecode::switch_info::SwitchType;
+        use crate::parser::nodes::SwitchType;
         let switch_info = self.switch_context_stack.pop().expect("m_switchContextStack.last()");
 
         // Chave de um caso de `switch` numérico (Immediate/ImmediateList) ou de um caractere (Character/CharacterList).
@@ -847,7 +847,7 @@ impl BytecodeGenerator {
             debug_assert!(!default_label.borrow().is_forward());
             let default_offset = default_label.borrow_mut().bind_offset(switch_info.bytecode_offset).target_value();
 
-            let mut code_block = generator.code_block.borrow_mut();
+            let code_block = &mut generator.code_block;
             let jump_table = code_block.unlinked_switch_jump_table(table_index);
             jump_table.min = min;
             jump_table.branch_offsets = vec![0i32; size];
@@ -884,7 +884,7 @@ impl BytecodeGenerator {
 
             debug_assert!(!default_label.borrow().is_forward());
             let default_offset = default_label.borrow_mut().bind_offset(switch_info.bytecode_offset).target_value();
-            let mut code_block = generator.code_block.borrow_mut();
+            let code_block = &mut generator.code_block;
             let jump_table = code_block.unlinked_switch_jump_table(table_index);
             jump_table.min = i32::MAX;
             jump_table.is_list = true;
@@ -910,12 +910,12 @@ impl BytecodeGenerator {
             debug_assert!(!default_label.borrow().is_forward());
             let default_offset = default_label.borrow_mut().bind_offset(switch_info.bytecode_offset).target_value();
 
-            let mut code_block = generator.code_block.borrow_mut();
+            let code_block = &mut generator.code_block;
             let jump_table = code_block.unlinked_string_switch_jump_table(table_index);
             for (clause, offset) in entries {
                 let is_new_entry = jump_table.add_offset(
                     clause.clone(),
-                    crate::bytecode::unlinked_string_jump_table::OffsetLocation { branch_offset: offset, index_in_table: 0 },
+                    crate::bytecode::unlinked_code_block::OffsetLocation { branch_offset: offset, index_in_table: 0 },
                 );
                 if is_new_entry {
                     let size = jump_table.offset_table_size();

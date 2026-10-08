@@ -40,8 +40,8 @@ fn cpp4b_emit_read_modify_assignment(
     use crate::parser::nodes::Operator;
 
     let opcode_id = match oper {
-        Operator::MultEq => OpcodeID::OpMul,
-        Operator::DivEq => OpcodeID::OpDiv,
+        Operator::MultEq => OpcodeID::op_mul,
+        Operator::DivEq => OpcodeID::op_div,
         Operator::PlusEq => {
             if right.is_add() && right.result_descriptor().definitely_is_string() {
                 let result = match right {
@@ -56,17 +56,17 @@ fn cpp4b_emit_read_modify_assignment(
                 return result;
             }
 
-            OpcodeID::OpAdd
+            OpcodeID::op_add
         }
-        Operator::MinusEq => OpcodeID::OpSub,
-        Operator::LShift => OpcodeID::OpLshift,
-        Operator::RShift => OpcodeID::OpRshift,
-        Operator::URShift => OpcodeID::OpUrshift,
-        Operator::BitAndEq => OpcodeID::OpBitand,
-        Operator::BitXOrEq => OpcodeID::OpBitxor,
-        Operator::BitOrEq => OpcodeID::OpBitor,
-        Operator::ModEq => OpcodeID::OpMod,
-        Operator::PowEq => OpcodeID::OpPow,
+        Operator::MinusEq => OpcodeID::op_sub,
+        Operator::LShift => OpcodeID::op_lshift,
+        Operator::RShift => OpcodeID::op_rshift,
+        Operator::URShift => OpcodeID::op_urshift,
+        Operator::BitAndEq => OpcodeID::op_bitand,
+        Operator::BitXOrEq => OpcodeID::op_bitxor,
+        Operator::BitOrEq => OpcodeID::op_bitor,
+        Operator::ModEq => OpcodeID::op_mod,
+        Operator::PowEq => OpcodeID::op_pow,
         _ => unreachable!("RELEASE_ASSERT_NOT_REACHED"),
     };
 
@@ -797,7 +797,7 @@ impl crate::parser::nodes::BlockNode {
         };
         generator.push_lexical_scope(
             &self.variable_environment,
-            crate::bytecompiler::bytecode_generator::ScopeType::LetConstScope,
+            crate::runtime::symbol_table::ScopeType::LetConstScope,
             crate::bytecompiler::bytecode_generator::TDZCheckOptimization::Optimize,
             crate::bytecompiler::bytecode_generator::NestedScopeType::IsNested,
             None,
@@ -834,7 +834,7 @@ impl crate::parser::nodes::DebuggerStatementNode {
         _dst: Cpp4Reg,
     ) {
         let position = *self.base.position();
-        generator.emit_debug_hook(crate::bytecode::opcode::DebugHookType::DidReachDebuggerStatement, &position, None);
+        generator.emit_debug_hook(crate::interpreter::interpreter::DebugHookType::DidReachDebuggerStatement, &position, None);
     }
 }
 

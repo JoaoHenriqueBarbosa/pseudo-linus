@@ -523,7 +523,7 @@ impl crate::parser::nodes::ReturnNode {
         generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
         mut dst: Cpp5bReg,
     ) {
-        debug_assert!(generator.code_type() == crate::bytecompiler::bytecode_generator::CodeType::FunctionCode);
+        debug_assert!(generator.code_type() == crate::bytecode::code_type::CodeType::FunctionCode);
 
         if let Some(register) = &dst {
             if std::rc::Rc::ptr_eq(register, &generator.ignored_result()) {

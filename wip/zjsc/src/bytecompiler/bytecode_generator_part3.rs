@@ -19,7 +19,7 @@ pub enum ScopeType {
 
 /// `TDZCheckOptimization` (BytecodeGenerator.h:1130).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum TdzCheckOptimization {
+pub enum TDZCheckOptimization {
     Optimize,
     DoNotOptimize,
 }
@@ -33,9 +33,9 @@ pub enum NestedScopeType {
 
 /// `TDZRequirement` (privado).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum TdzRequirement {
-    UnderTdz,
-    NotUnderTdz,
+pub enum TDZRequirement {
+    UnderTDZ,
+    NotUnderTDZ,
 }
 
 /// `ScopeRegisterType` (privado).
@@ -47,7 +47,7 @@ pub enum ScopeRegisterType {
 
 /// `TDZNecessityLevel` (privado).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum TdzNecessityLevel {
+pub enum TDZNecessityLevel {
     NotNeeded,
     Optimize,
     DoNotOptimize,
@@ -62,15 +62,15 @@ pub enum FunctionVariableType {
 }
 
 /// `TDZMap`: `UncheckedKeyHashMap<RefPtr<UniquedStringImpl>, TDZNecessityLevel, IdentifierRepHash>`.
-pub type TdzMap = std::collections::HashMap<
+pub type TDZMap = std::collections::HashMap<
     std::rc::Rc<crate::runtime::identifier::UniquedStringImpl>,
-    TdzNecessityLevel,
+    TDZNecessityLevel,
 >;
 
 /// `TDZStackEntry`.
-pub type TdzStackEntry = (
-    TdzMap,
-    Option<std::rc::Rc<crate::bytecompiler::bytecode_generator::TdzEnvironmentLink>>,
+pub type TDZStackEntry = (
+    TDZMap,
+    Option<std::rc::Rc<crate::parser::variable_environment::TDZEnvironmentLink>>,
 );
 
 /// `BigIntMapEntry`.
@@ -78,8 +78,8 @@ pub type BigIntMapEntry = (std::rc::Rc<crate::runtime::identifier::UniquedString
 
 /// `class PreservedTDZStack` (BytecodeGenerator.h:1294). `friend class BytecodeGenerator`.
 #[derive(Default)]
-pub struct PreservedTdzStack {
-    pub(crate) preserved_tdz_stack: Vec<TdzStackEntry>,
+pub struct PreservedTDZStack {
+    pub(crate) preserved_tdz_stack: Vec<TDZStackEntry>,
 }
 
 /// `struct LexicalScopeStackEntry` (privado).
@@ -108,7 +108,7 @@ pub struct CatchEntry {
 /// O `struct { JSTextPosition position; DebugHookType type { DidExecuteProgram }; } m_lastDebugHook`.
 pub struct LastDebugHook {
     pub position: crate::parser::parser_tokens::JSTextPosition,
-    pub type_: crate::bytecode::opcode::DebugHookType,
+    pub type_: crate::interpreter::interpreter::DebugHookType,
 }
 
 /// `class BytecodeGenerator` (BytecodeGenerator.h:1337 a 1437, os campos). Todos os campos do C++, em
@@ -116,19 +116,20 @@ pub struct LastDebugHook {
 /// `SegmentedVector<T, N>` vira `Vec<T>` (os ponteiros do C++ para dentro dele viram `Rc`).
 pub struct BytecodeGenerator {
     // Campos da base `BytecodeGeneratorBase<JSGeneratorTraits>`.
-    pub code_block: std::rc::Rc<std::cell::RefCell<crate::bytecode::unlinked_code_block::UnlinkedCodeBlock>>,
+    // `CodeBlock m_codeBlock` da base, com `CodeBlock = std::unique_ptr<UnlinkedCodeBlockGenerator>`.
+    pub code_block: Box<crate::bytecode::unlinked_code_block_generator::UnlinkedCodeBlockGenerator>,
     pub writer: crate::bytecode::instruction_stream::JSInstructionStreamWriter,
     pub callee_locals: Vec<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
     pub last_instruction: crate::bytecode::instruction_stream::MutableRef,
     pub last_opcode_id: crate::bytecode::opcode::OpcodeID,
 
     // Campos da própria classe.
-    pub code_generation_mode: crate::bytecode::code_generation_mode::CodeGenerationModeSet,
+    pub code_generation_mode: crate::parser::parser_modes::CodeGenerationModeSet,
     pub lexical_scope_stack: Vec<LexicalScopeStackEntry>,
-    pub cached_parent_tdz: Option<std::rc::Rc<crate::bytecompiler::bytecode_generator::TdzEnvironmentLink>>,
+    pub cached_parent_tdz: Option<std::rc::Rc<crate::parser::variable_environment::TDZEnvironmentLink>>,
     pub generator_or_async_wrapper_function_parameter_names: Option<std::rc::Rc<Vec<crate::runtime::identifier::Identifier>>>,
-    pub tdz_stack: Vec<TdzStackEntry>,
-    pub private_names_stack: Vec<crate::parser::parser_tokens::PrivateNameEnvironment>,
+    pub tdz_stack: Vec<TDZStackEntry>,
+    pub private_names_stack: Vec<crate::parser::variable_environment::PrivateNameEnvironment>,
     pub var_scope_lexical_scope_stack_index: Option<usize>,
     pub scope_node: crate::parser::nodes::ScopeNodeRef,
     pub functions: std::collections::HashSet<std::rc::Rc<crate::runtime::identifier::UniquedStringImpl>>,
@@ -160,7 +161,7 @@ pub struct BytecodeGenerator {
     pub local_scope_count: u32,
     pub code_type: crate::bytecode::code_type::CodeType,
     pub control_flow_scope_stack: Vec<crate::bytecompiler::bytecode_generator::ControlFlowScope>,
-    pub switch_context_stack: Vec<crate::bytecode::switch_info::SwitchInfo>,
+    pub switch_context_stack: Vec<crate::parser::nodes::SwitchInfo>,
     pub for_in_context_stack: Vec<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::bytecode_generator::ForInContext>>>,
     pub try_context_stack: Vec<crate::bytecompiler::bytecode_generator::TryContext>,
     pub using_scope_stack: Vec<crate::bytecompiler::bytecode_generator::UsingScope>,
@@ -207,8 +208,8 @@ pub struct BytecodeGenerator {
     // Campos de bit (`: 1`).
     pub needs_to_update_arrow_function_context: bool,
     pub needs_arguments: bool,
-    pub ecma_mode: crate::parser::parser_modes::ECMAMode,
-    pub derived_context_type: crate::parser::parser_modes::DerivedContextType,
+    pub ecma_mode: crate::runtime::ecma_mode::ECMAMode,
+    pub derived_context_type: crate::bytecode::executable_info::DerivedContextType,
     pub exception_handlers_to_emit: Vec<CatchEntry>,
     pub last_debug_hook: LastDebugHook,
 }
@@ -254,13 +255,13 @@ pub struct BytecodeGenerator {
 /// anterior e o restaura em `Drop`; o gerador é acessado pelo chamador via `generator()`.
 pub struct StrictModeScope<'a> {
     generator: &'a mut BytecodeGenerator,
-    saved: crate::parser::parser_modes::ECMAMode,
+    saved: crate::runtime::ecma_mode::ECMAMode,
 }
 
 impl<'a> StrictModeScope<'a> {
     pub fn new(generator: &'a mut BytecodeGenerator) -> StrictModeScope<'a> {
         let saved = generator.ecma_mode;
-        generator.ecma_mode = crate::parser::parser_modes::ECMAMode::strict();
+        generator.ecma_mode = crate::runtime::ecma_mode::ECMAMode::strict();
         StrictModeScope { generator, saved }
     }
 
@@ -399,33 +400,30 @@ impl BytecodeGenerator {
 
     // BytecodeGenerator.h:1120
     pub fn should_emit_debug_hooks(&self) -> bool {
-        self.code_generation_mode.contains(crate::bytecode::code_generation_mode::CodeGenerationMode::Debugger)
+        self.code_generation_mode.contains(crate::parser::parser_modes::CodeGenerationMode::Debugger)
             && !self.is_private_builtin_function()
     }
 
     // BytecodeGenerator.h:1121
     pub fn should_emit_type_profiler_hooks(&self) -> bool {
-        self.code_generation_mode.contains(crate::bytecode::code_generation_mode::CodeGenerationMode::TypeProfiler)
+        self.code_generation_mode.contains(crate::parser::parser_modes::CodeGenerationMode::TypeProfiler)
     }
 
     // BytecodeGenerator.h:1122
     pub fn should_emit_control_flow_profiler_hooks(&self) -> bool {
-        self.code_generation_mode.contains(crate::bytecode::code_generation_mode::CodeGenerationMode::ControlFlowProfiler)
+        self.code_generation_mode.contains(crate::parser::parser_modes::CodeGenerationMode::ControlFlowProfiler)
     }
 
     // BytecodeGenerator.h:1124
-    pub fn ecma_mode(&self) -> crate::parser::parser_modes::ECMAMode {
+    pub fn ecma_mode(&self) -> crate::runtime::ecma_mode::ECMAMode {
         self.ecma_mode
     }
 
-    // BytecodeGenerator.h:1125
-    pub fn set_uses_checkpoints(&mut self) {
-        self.code_block.borrow_mut().set_has_checkpoints();
-    }
+    // BytecodeGenerator.h:1125: `set_uses_checkpoints` é o método do `OpWriter` (bytecode_generator.rs).
 
     // BytecodeGenerator.h:1127
     pub fn parse_mode(&self) -> crate::parser::parser_modes::SourceParseMode {
-        self.code_block.borrow().parse_mode()
+        self.code_block.parse_mode()
     }
 
     // BytecodeGenerator.h:1129
@@ -450,20 +448,20 @@ impl BytecodeGenerator {
 
     // BytecodeGenerator.h:1142
     pub fn is_derived_constructor_context(&self) -> bool {
-        self.derived_context_type == crate::parser::parser_modes::DerivedContextType::DerivedConstructorContext
+        self.derived_context_type == crate::bytecode::executable_info::DerivedContextType::DerivedConstructorContext
     }
 
     // BytecodeGenerator.h:1143
     pub fn is_derived_class_context(&self) -> bool {
-        self.derived_context_type == crate::parser::parser_modes::DerivedContextType::DerivedMethodContext
+        self.derived_context_type == crate::bytecode::executable_info::DerivedContextType::DerivedMethodContext
     }
 
     // BytecodeGenerator.h:1144
     pub fn is_arrow_function(&self) -> bool {
-        self.code_block.borrow().is_arrow_function()
+        self.code_block.is_arrow_function()
     }
 
-    // pub fn push_lexical_scope_internal(&mut self, env: &mut VariableEnvironment, tdz: TdzCheckOptimization, nested: NestedScopeType, constant_symbol_table_result: Option<&mut Option<RegisterRef>>, requirement: TdzRequirement, ty: ScopeType, register_type: ScopeRegisterType);  // .cpp
+    // pub fn push_lexical_scope_internal(&mut self, env: &mut VariableEnvironment, tdz: TDZCheckOptimization, nested: NestedScopeType, constant_symbol_table_result: Option<&mut Option<RegisterRef>>, requirement: TDZRequirement, ty: ScopeType, register_type: ScopeRegisterType);  // .cpp
     // pub fn initialize_block_scoped_functions(&mut self, env: &mut VariableEnvironment, stack: &mut FunctionStack, constant_symbol_table: Option<RegisterRef>);  // .cpp
     // pub fn pop_lexical_scope_internal(&mut self, env: &mut VariableEnvironment);  // .cpp
     // pub fn instantiate_lexical_variables<F>(&mut self, env: &VariableEnvironment, ty: ScopeType, table: &mut SymbolTable, register_type: ScopeRegisterType, look_up_var_kind: F) -> bool;  // .cpp
@@ -484,18 +482,18 @@ impl BytecodeGenerator {
 
     // BytecodeGenerator.h:1172
     pub fn disable_peephole_optimization(&mut self) {
-        self.last_opcode_id = crate::bytecode::opcode::OpcodeID::OpDebug;
+        self.last_opcode_id = crate::bytecode::opcode::OpcodeID::op_debug;
     }
 
     // BytecodeGenerator.h:1174
     pub fn can_do_peephole_optimization(&self) -> bool {
-        self.last_opcode_id != crate::bytecode::opcode::OpcodeID::OpDebug
+        self.last_opcode_id != crate::bytecode::opcode::OpcodeID::op_debug
     }
 
     // pub fn is_super_used_in_inner_arrow_function(&mut self) -> bool;  // .cpp
     // pub fn is_super_call_used_in_inner_arrow_function(&mut self) -> bool;  // .cpp
     // pub fn is_this_used_in_inner_arrow_function(&mut self) -> bool;  // .cpp
-    // pub fn push_lexical_scope(&mut self, node: &VariableEnvironmentNode, ty: ScopeType, tdz: TdzCheckOptimization, nested: NestedScopeType /* padrão IsNotNested */, constant_symbol_table_result: Option<&mut Option<RegisterRef>> /* padrão None */, should_initialize_block_scoped_functions: bool /* padrão true */);  // .cpp
+    // pub fn push_lexical_scope(&mut self, node: &VariableEnvironmentNode, ty: ScopeType, tdz: TDZCheckOptimization, nested: NestedScopeType /* padrão IsNotNested */, constant_symbol_table_result: Option<&mut Option<RegisterRef>> /* padrão None */, should_initialize_block_scoped_functions: bool /* padrão true */);  // .cpp
     // pub fn push_class_lexical_scope(&mut self, node: &VariableEnvironmentNode);  // .cpp
     // pub fn pop_lexical_scope(&mut self, node: &VariableEnvironmentNode);  // .cpp
     // pub fn prepare_lexical_scope_for_next_for_loop_iteration(&mut self, node: &VariableEnvironmentNode, loop_symbol_table: &RegisterRef);  // .cpp
@@ -574,12 +572,12 @@ impl BytecodeGenerator {
         ) {
             if self.constructor_kind() == ConstructorKind::Extends || self.is_derived_constructor_context() {
                 new_derived_context_type = DerivedContextType::DerivedConstructorContext;
-                needs_class_field_initializer = self.code_block.borrow().needs_class_field_initializer();
-                private_brand_requirement = self.code_block.borrow().private_brand_requirement();
-            } else if self.code_block.borrow().is_class_context() || self.is_derived_class_context() {
+                needs_class_field_initializer = self.code_block.needs_class_field_initializer();
+                private_brand_requirement = self.code_block.private_brand_requirement();
+            } else if self.code_block.is_class_context() || self.is_derived_class_context() {
                 new_derived_context_type = DerivedContextType::DerivedMethodContext;
             }
-            new_eval_context_type = self.code_block.borrow().eval_context_type();
+            new_eval_context_type = self.code_block.eval_context_type();
         }
 
         let optional_variables_under_tdz = self.get_variables_under_tdz();
@@ -589,12 +587,12 @@ impl BytecodeGenerator {
         // FIXME do upstream: estes flags, ParserModes e a propagação para os XXXCodeBlocks deviam ser reorganizados.
         // https://bugs.webkit.org/show_bug.cgi?id=151547
         let parse_mode = metadata.parse_mode();
-        let mut construct_ability = crate::runtime::construct_ability::construct_ability_for_parse_mode(parse_mode);
+        let mut construct_ability = crate::parser::parser_modes::construct_ability_for_parse_mode(parse_mode);
         if parse_mode == SourceParseMode::MethodMode && metadata.constructor_kind() != ConstructorKind::None {
             construct_ability = ConstructAbility::CanConstruct;
         }
 
-        if crate::parser::parser_modes::is_generator_or_async_function_wrapper_parse_mode(self.code_block.borrow().parse_mode())
+        if crate::parser::parser_modes::is_generator_or_async_function_wrapper_parse_mode(self.code_block.parse_mode())
             && crate::parser::parser_modes::is_generator_or_async_function_body_parse_mode(parse_mode)
         {
             generator_or_async_wrapper_function_parameter_names = self.get_parameter_names();
@@ -622,7 +620,7 @@ impl BytecodeGenerator {
         )
     }
 
-    // pub fn get_variables_under_tdz(&mut self) -> Option<Rc<TdzEnvironmentLink>>;  // .cpp
+    // pub fn get_variables_under_tdz(&mut self) -> Option<Rc<TDZEnvironmentLink>>;  // .cpp
     // pub fn get_parameter_names(&self) -> Vec<Identifier>;  // .cpp
     // pub fn get_available_private_access_names(&mut self) -> Option<PrivateNameEnvironment>;  // .cpp
     // pub fn emit_construct_varargs(&mut self, dst: Option<RegisterRef>, func: &RegisterRef, this_register: Option<RegisterRef>, arguments: &RegisterRef, first_free_register: &RegisterRef, first_var_arg_offset: i32, divot: &JSTextPosition, divot_start: &JSTextPosition, divot_end: &JSTextPosition, debuggable: DebuggableCall) -> Option<RegisterRef>;  // .cpp
@@ -645,8 +643,8 @@ impl BytecodeGenerator {
     }
 
     // pub fn emit_throw_expression_too_deep_exception(&mut self) -> Option<RegisterRef>;  // .cpp
-    // pub fn preserve_tdz_stack(&mut self, preserved: &mut PreservedTdzStack);  // .cpp
-    // pub fn restore_tdz_stack(&mut self, preserved: &PreservedTdzStack);  // .cpp
+    // pub fn preserve_tdz_stack(&mut self, preserved: &mut PreservedTDZStack);  // .cpp
+    // pub fn restore_tdz_stack(&mut self, preserved: &PreservedTDZStack);  // .cpp
 
     // BytecodeGenerator.h:1304
     pub fn with_writer<F: FnOnce(&mut BytecodeGenerator)>(
@@ -658,7 +656,7 @@ impl BytecodeGenerator {
         let prev_last_instruction = self.last_instruction.clone();
         self.writer.swap(writer);
         self.disable_peephole_optimization();
-        self.last_instruction = self.writer.r#ref();
+        self.last_instruction = self.writer.ref_();
         func(self);
         self.writer.swap(writer);
         self.last_opcode_id = prev_last_opcode_id;
@@ -696,6 +694,6 @@ impl BytecodeGenerator {
     // pub fn local_scope_depth(&self) -> u32;  // .cpp
     // pub fn push_local_control_flow_scope(&mut self);  // .cpp
     // pub fn pop_local_control_flow_scope(&mut self);  // .cpp
-    // pub fn push_tdz_variables(&mut self, env: &VariableEnvironment, tdz: TdzCheckOptimization, requirement: TdzRequirement);  // .cpp
+    // pub fn push_tdz_variables(&mut self, env: &VariableEnvironment, tdz: TDZCheckOptimization, requirement: TDZRequirement);  // .cpp
     // pub fn async_func_parameters_try_catch_wrap<F>(&mut self, emit_bytecode: F);  // .cpp (template)
 }
