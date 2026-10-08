@@ -447,6 +447,9 @@ impl ExtObject for StaticMethod {
     fn type_name(&self) -> &'static str {
         "staticmethod"
     }
+    fn repr(&self) -> String {
+        format!("<staticmethod({})>", crate::object::repr(&self.0))
+    }
     fn getattr(&self, vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
         wrapped_function_attr(vm, &self.0, name)
     }
@@ -474,6 +477,9 @@ struct ClassMethod(Value);
 impl ExtObject for ClassMethod {
     fn type_name(&self) -> &'static str {
         "classmethod"
+    }
+    fn repr(&self) -> String {
+        format!("<classmethod({})>", crate::object::repr(&self.0))
     }
     fn getattr(&self, vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
         wrapped_function_attr(vm, &self.0, name)
@@ -1037,7 +1043,8 @@ pub(crate) fn restore_image(tag: &str, state: &(dyn std::any::Any + Send + Sync)
         "file_exit" => Rc::new(FileExit(refs.next()?)),
         "exc_with_traceback" => Rc::new(ExcWithTraceback { obj: refs.next()? }),
         "exc_add_note" => Rc::new(ExcAddNote { obj: refs.next()? }),
-        "shim_method" => Rc::new(ShimMethod { recv: refs.next()?, func: refs.next()?, name: name()? }),
+        "shim_method" => Rc::new(ShimMethod { recv: refs.next()?, func: refs.next()?, name: name()?, passes_recv: true }),
+        "shim_new" => Rc::new(ShimMethod { recv: refs.next()?, func: refs.next()?, name: name()?, passes_recv: false }),
         "instance_dunder" => Rc::new(InstanceDunder { obj: refs.next()?, name: name()? }),
         "builtin_super_method" => Rc::new(BuiltinSuperMethod { obj: refs.next()?, name: name()? }),
         "plain_object_method" => Rc::new(PlainObjectMethod { obj: refs.next()?, name: name()? }),
@@ -1151,11 +1158,21 @@ struct ShimMethod {
     recv: Value,
     func: Value,
     name: &'static str,
+    /// `false` no `__new__` (um `staticmethod` no shim): no CPython ele aparece ligado ao tipo, mas a chamada
+    /// recebe o tipo a criar como primeiro argumento, sem o `__self__` na frente.
+    passes_recv: bool,
+}
+
+impl ShimMethod {
+    fn bound(recv: Value, f: &Rc<FuncObj>, passes_recv: bool) -> Value {
+        Value::Ext(Rc::new(ShimMethod { recv, func: Value::Function(f.clone()), name: intern(&f.code.name), passes_recv }))
+    }
 }
 
 impl ExtObject for ShimMethod {
     fn image(&self) -> Option<ExtImage> {
-        OpaqueImage::image("shim_method", self.name, vec![self.recv.clone(), self.func.clone()])
+        let tag = if self.passes_recv { "shim_method" } else { "shim_new" };
+        OpaqueImage::image(tag, self.name, vec![self.recv.clone(), self.func.clone()])
     }
     fn type_name(&self) -> &'static str {
         if crate::typeattrs::is_slot_wrapper(self.recv.type_name(), self.name) {
@@ -1174,6 +1191,9 @@ impl ExtObject for ShimMethod {
         &["__call__"]
     }
     fn call_method(&self, vm: &mut Vm, _name: &str, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+        if !self.passes_recv {
+            return vm.call(&self.func, args, kw);
+        }
         let mut full = Vec::with_capacity(args.len() + 1);
         full.push(self.recv.clone());
         full.extend(args);
@@ -2093,16 +2113,21 @@ impl Vm {
         match attr {
             // Função embutida no CPython (escrita em Python aqui): `Classe.attr = time.time` não liga `self`.
             Value::Function(f) if f.attrs.borrow().contains_key("__no_bind__") => Ok(attr.clone()),
+            Value::Function(f) if f.is_builtin_type_method() && f.code.name == "__new__" => {
+                Ok(ShimMethod::bound(Value::Class(cls.clone()), f, false))
+            }
             Value::Function(f) => match recv {
                 Value::Class(_) => Ok(attr.clone()),
                 // O método de um shim de tipo de `builtins` ligado a um objeto é método embutido, como no CPython.
-                _ if f.is_builtin_type_method() => {
-                    Ok(Value::Ext(Rc::new(ShimMethod { recv, func: attr.clone(), name: intern(&f.code.name) })))
-                }
+                _ if f.is_builtin_type_method() => Ok(ShimMethod::bound(recv, f, true)),
                 _ => Ok(Value::BoundFn(Rc::new((recv, f.clone())))),
             },
             Value::Ext(e) => match e.descriptor() {
+                // Os métodos de classe de um shim de tipo de `builtins` saem ligados ao tipo.
                 Some(Descriptor::Static(f)) => Ok(f),
+                Some(Descriptor::Class(Value::Function(f))) if f.is_builtin_type_method() => {
+                    Ok(ShimMethod::bound(Value::Class(cls.clone()), &f, true))
+                }
                 Some(Descriptor::Class(Value::Function(f))) => {
                     Ok(Value::BoundFn(Rc::new((Value::Class(cls.clone()), f))))
                 }
@@ -2228,10 +2253,13 @@ impl Vm {
             return Ok(v);
         }
         if let Some(attr) = class_attr {
-            // `__new__` é estático implicitamente: pela instância vem a função sem ligar.
+            // `__new__` é estático implicitamente: pela instância vem a função sem ligar (a de um shim de tipo
+            // de `builtins` vem como o método embutido ligado ao tipo, pelo `bind_class_attr_defer`).
             if name == "__new__" {
-                if let Value::Function(_) = &attr {
-                    return Ok(attr);
+                if let Value::Function(f) = &attr {
+                    if !f.is_builtin_type_method() {
+                        return Ok(attr);
+                    }
                 }
             }
             return self.bind_class_attr_defer(&attr, obj.clone(), &inst.class(), defer);

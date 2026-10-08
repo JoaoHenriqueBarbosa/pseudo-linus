@@ -571,9 +571,15 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         format!("{}.py", embedded_dir(real))
     };
     // As docstrings são as do CPython que está no disco, nunca as do fonte embutido (sem processo,
-    // como nos testes de unidade, valem só as da tabela).
+    // como nos testes de unidade, valem só as da tabela). Os módulos congelados não têm arquivo próprio:
+    // as docstrings deles são as do fonte de onde o CPython os congela.
+    let doc_source = match real {
+        "_frozen_importlib" => "/usr/lib/python3.13/importlib/_bootstrap.py".to_string(),
+        "_frozen_importlib_external" => "/usr/lib/python3.13/importlib/_bootstrap_external.py".to_string(),
+        _ => filename.clone(),
+    };
     let cpython = sysabi::sys::try_current()
-        .and_then(|_| sysabi::sys::read_file(filename.as_bytes()).ok())
+        .and_then(|_| sysabi::sys::read_file(doc_source.as_bytes()).ok())
         .and_then(|b| crate::parser::parse_module(&String::from_utf8_lossy(&b)).ok());
     crate::modules::cpydocs::align(&mut parsed, real, cpython.as_ref());
     let mut code = crate::compile::compile_module(&parsed)

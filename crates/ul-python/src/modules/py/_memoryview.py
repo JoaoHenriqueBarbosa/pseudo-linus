@@ -3,6 +3,7 @@
 # No CPython a classe e os métodos são do módulo `builtins`; o nome deste módulo de apoio não pode vazar
 # em `__module__` das funções.
 __name__ = 'builtins'
+_object_new = object.__new__
 
 class memoryview:
     __module__ = 'builtins'
@@ -10,8 +11,21 @@ class memoryview:
     def __reduce__(self):
         raise TypeError("cannot pickle 'memoryview' object")
 
-    def __init__(self, obj):
+    def __new__(cls, *args, **kwargs):
+        # `memory_new` analisa os argumentos com o nome `memoryview`, não `__new__`.
+        if len(args) + len(kwargs) > 1:
+            raise TypeError('memoryview() takes at most 1 argument (%d given)' % (len(args) + len(kwargs)))
+        if args:
+            obj = args[0]
+        elif 'object' in kwargs:
+            obj = kwargs['object']
+        else:
+            raise TypeError("memoryview() missing required argument 'object' (pos 1)")
+        if kwargs.keys() - {'object'}:
+            raise TypeError("memoryview() got an unexpected keyword argument '%s'" % next(iter(kwargs.keys() - {'object'})))
+        self = _object_new(cls)
         if isinstance(obj, memoryview):
+            obj._check()
             self._base = obj._base
             self._idx = list(obj._idx)
             self.obj = obj.obj
@@ -28,6 +42,45 @@ class memoryview:
         else:
             raise TypeError("memoryview: a bytes-like object is required, not '%s'" % type(obj).__name__)
         self._released = False
+        return self
+
+    @classmethod
+    def _from_flags(cls, object, flags):
+        return cls(object)
+
+    def __buffer__(self, flags, /):
+        return memoryview(self)
+
+    def __release_buffer__(self, buffer, /):
+        buffer.release()
+
+    def __delitem__(self, key, /):
+        self._check()
+        if self.readonly:
+            raise TypeError('cannot modify read-only memory')
+        raise TypeError('cannot delete memory')
+
+    def __ne__(self, value, /):
+        eq = self.__eq__(value)
+        return eq if eq is NotImplemented else not eq
+
+    # O `memory_richcompare` do CPython só compara igualdade: as ordens devolvem `NotImplemented`.
+    def __lt__(self, value, /):
+        return NotImplemented
+
+    def __le__(self, value, /):
+        return NotImplemented
+
+    def __gt__(self, value, /):
+        return NotImplemented
+
+    def __ge__(self, value, /):
+        return NotImplemented
+
+    @property
+    def suboffsets(self):
+        self._check()
+        return ()
 
     def _check(self):
         if self._released:
