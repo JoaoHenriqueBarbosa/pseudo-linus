@@ -7,6 +7,7 @@
 pub mod wtf;
 pub mod yarr;
 pub mod bytecode;
+pub mod bytecompiler;
 pub mod runtime;
 pub mod interpreter;
 pub mod parser;

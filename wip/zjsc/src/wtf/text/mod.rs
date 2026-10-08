@@ -9,3 +9,6 @@ pub mod text_position;
 pub mod string_view;
 pub mod string_common;
 pub mod string_builder;
+pub mod string_concatenate;
+
+pub use string_concatenate::{make_string_dyn, try_make_string, try_make_string_dyn};

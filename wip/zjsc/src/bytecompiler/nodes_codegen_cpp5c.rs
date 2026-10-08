@@ -17,8 +17,8 @@ impl crate::parser::nodes::CaseBlockNode {
         literal_vector: &mut Vec<crate::parser::nodes::Expression>,
         min_num: &mut i32,
         max_num: &mut i32,
-    ) -> crate::bytecode::switch_info::SwitchType {
-        use crate::bytecode::switch_info::SwitchType;
+    ) -> crate::parser::nodes::SwitchType {
+        use crate::parser::nodes::SwitchType;
 
         let mut type_for_table = Cpp5bSwitchKind::SwitchUnset;
         let mut single_character_switch = true;
@@ -88,7 +88,7 @@ impl crate::parser::nodes::CaseBlockNode {
         switch_expression: Cpp5bReg,
         dst: Cpp5bReg,
     ) {
-        use crate::bytecode::switch_info::SwitchType;
+        use crate::parser::nodes::SwitchType;
 
         let mut label_vector: Vec<crate::bytecompiler::label::LabelRef> = Vec::new();
         let mut literal_vector: Vec<crate::parser::nodes::Expression> = Vec::new();
@@ -178,7 +178,7 @@ impl crate::parser::nodes::SwitchNode {
 
         generator.push_lexical_scope(
             &self.variable_environment,
-            crate::bytecompiler::bytecode_generator::ScopeType::LetConstScope,
+            crate::runtime::symbol_table::ScopeType::LetConstScope,
             crate::bytecompiler::bytecode_generator::TDZCheckOptimization::DoNotOptimize,
             crate::bytecompiler::bytecode_generator::NestedScopeType::IsNested,
             None,
@@ -354,9 +354,9 @@ impl crate::parser::nodes::TryNode {
 
             if let Some(catch_pattern) = &self.catch_pattern {
                 let scope_type = if catch_pattern.is_binding_node() {
-                    crate::bytecompiler::bytecode_generator::ScopeType::CatchScopeWithSimpleParameter
+                    crate::runtime::symbol_table::ScopeType::CatchScopeWithSimpleParameter
                 } else {
-                    crate::bytecompiler::bytecode_generator::ScopeType::CatchScope
+                    crate::runtime::symbol_table::ScopeType::CatchScope
                 };
                 generator.emit_push_catch_scope(&mut self.variable_environment.lexical_variables().borrow_mut(), scope_type);
                 catch_pattern.bind_value(generator, thrown_value_register.clone());
@@ -456,7 +456,7 @@ fn cpp5c_emit_program_node_bytecode(
     generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
     scope_node: &crate::parser::nodes::ScopeNode,
 ) {
-    use crate::bytecode::opcode::DebugHookType;
+    use crate::interpreter::interpreter::DebugHookType;
 
     generator.emit_debug_hook(
         DebugHookType::WillExecuteProgram,
@@ -537,7 +537,7 @@ impl crate::parser::nodes::EvalNode {
         generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
         _dst: Cpp5bReg,
     ) {
-        use crate::bytecode::opcode::DebugHookType;
+        use crate::interpreter::interpreter::DebugHookType;
 
         generator.emit_debug_hook(
             DebugHookType::WillExecuteProgram,

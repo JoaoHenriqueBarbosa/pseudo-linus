@@ -362,8 +362,8 @@ impl crate::parser::nodes::ClassExprNode {
             constructor.clone(),
             None,
             None,
-            crate::bytecompiler::bytecode_generator_part2::PROPERTY_CONFIGURABLE
-                | crate::bytecompiler::bytecode_generator_part2::PROPERTY_WRITABLE,
+            crate::bytecompiler::bytecode_generator::PROPERTY_CONFIGURABLE
+                | crate::bytecompiler::bytecode_generator::PROPERTY_WRITABLE,
             node.position(),
         );
 

@@ -13,7 +13,7 @@ impl BytecodeGenerator {
         property: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         value: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        crate::bytecode::bytecode_list::OpPutByValWithThis::emit(
+        crate::bytecode::bytecode_ops::OpPutByValWithThis::emit(
             self,
             base.as_ref().unwrap(),
             this_value.as_ref().unwrap(),
@@ -31,9 +31,9 @@ impl BytecodeGenerator {
         this_value: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         property: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         value: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
-        ecma_mode: crate::parser::parser_modes::ECMAMode,
+        ecma_mode: crate::runtime::ecma_mode::ECMAMode,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        crate::bytecode::bytecode_list::OpPutByValWithThis::emit(
+        crate::bytecode::bytecode_ops::OpPutByValWithThis::emit(
             self,
             base.as_ref().unwrap(),
             this_value.as_ref().unwrap(),
@@ -53,7 +53,7 @@ impl BytecodeGenerator {
         value: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         // FIXME: Deveríamos ter um reescritor de bytecode melhor, que redimensione blocos.
-        crate::bytecode::bytecode_list::OpEnumeratorPutByVal::emit_wide32(
+        crate::bytecode::bytecode_ops::OpEnumeratorPutByVal::emit_wide32(
             self,
             base.as_ref().unwrap(),
             context.mode().as_ref().unwrap(),
@@ -76,7 +76,7 @@ impl BytecodeGenerator {
         property: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         let value_profile = self.next_value_profile_index();
-        crate::bytecode::bytecode_list::OpGetPrivateName::emit(
+        crate::bytecode::bytecode_ops::OpGetPrivateName::emit(
             self,
             dst.as_ref().unwrap(),
             base.as_ref().unwrap(),
@@ -93,7 +93,7 @@ impl BytecodeGenerator {
         base: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         property: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        crate::bytecode::bytecode_list::OpHasPrivateName::emit(
+        crate::bytecode::bytecode_ops::OpHasPrivateName::emit(
             self,
             dst.as_ref().unwrap(),
             base.as_ref().unwrap(),
@@ -109,7 +109,7 @@ impl BytecodeGenerator {
         src: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         flags: u32,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        crate::bytecode::bytecode_list::OpHasStructureWithFlags::emit(self, dst.as_ref().unwrap(), src.as_ref().unwrap(), flags);
+        crate::bytecode::bytecode_ops::OpHasStructureWithFlags::emit(self, dst.as_ref().unwrap(), src.as_ref().unwrap(), flags);
         dst
     }
 
@@ -120,7 +120,7 @@ impl BytecodeGenerator {
         property: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         value: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        crate::bytecode::bytecode_list::OpPutByValDirect::emit(
+        crate::bytecode::bytecode_ops::OpPutByValDirect::emit(
             self,
             base.as_ref().unwrap(),
             property.as_ref().unwrap(),
@@ -137,7 +137,7 @@ impl BytecodeGenerator {
         base: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         property: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        crate::bytecode::bytecode_list::OpDelByVal::emit(
+        crate::bytecode::bytecode_ops::OpDelByVal::emit(
             self,
             dst.as_ref().unwrap(),
             base.as_ref().unwrap(),
@@ -155,7 +155,7 @@ impl BytecodeGenerator {
         index: u32,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         let value_profile = self.next_value_profile_index();
-        crate::bytecode::bytecode_list::OpGetInternalField::emit(
+        crate::bytecode::bytecode_ops::OpGetInternalField::emit(
             self,
             dst.as_ref().unwrap(),
             base.as_ref().unwrap(),
@@ -172,7 +172,7 @@ impl BytecodeGenerator {
         index: u32,
         value: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        crate::bytecode::bytecode_list::OpPutInternalField::emit(self, base.as_ref().unwrap(), index, value.as_ref().unwrap());
+        crate::bytecode::bytecode_ops::OpPutInternalField::emit(self, base.as_ref().unwrap(), index, value.as_ref().unwrap());
         value
     }
 
@@ -183,7 +183,7 @@ impl BytecodeGenerator {
         property: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         value: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        crate::bytecode::bytecode_list::OpPutPrivateName::emit(
+        crate::bytecode::bytecode_ops::OpPutPrivateName::emit(
             self,
             base.as_ref().unwrap(),
             property.as_ref().unwrap(),
@@ -249,7 +249,7 @@ impl BytecodeGenerator {
         let is_static = false;
         let temporary = self.new_temporary();
         let private_brand_symbol = self.emit_get_private_brand(Some(temporary), private_brand_var_scope, is_static);
-        crate::bytecode::bytecode_list::OpSetPrivateBrand::emit(
+        crate::bytecode::bytecode_ops::OpSetPrivateBrand::emit(
             self,
             target.as_ref().unwrap(),
             private_brand_symbol.as_ref().unwrap(),
@@ -294,7 +294,7 @@ impl BytecodeGenerator {
             self.ecma_mode(),
         );
         let value_profile = self.next_value_profile_index();
-        crate::bytecode::bytecode_list::OpGetFromScope::emit(
+        crate::bytecode::bytecode_ops::OpGetFromScope::emit(
             self,
             &killed,
             scope.as_ref().unwrap(),
@@ -302,9 +302,9 @@ impl BytecodeGenerator {
             get_put_info,
             0,
             if is_static {
-                crate::runtime::private_name_entry::PrivateNameEntry::PRIVATE_CLASS_BRAND_OFFSET
+                crate::parser::variable_environment::PrivateNameEntry::PRIVATE_CLASS_BRAND_OFFSET
             } else {
-                crate::runtime::private_name_entry::PrivateNameEntry::PRIVATE_BRAND_OFFSET
+                crate::parser::variable_environment::PrivateNameEntry::PRIVATE_BRAND_OFFSET
             },
             value_profile,
         );
@@ -318,7 +318,7 @@ impl BytecodeGenerator {
         property: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         value: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        crate::bytecode::bytecode_list::OpPutPrivateName::emit(
+        crate::bytecode::bytecode_ops::OpPutPrivateName::emit(
             self,
             base.as_ref().unwrap(),
             property.as_ref().unwrap(),
@@ -341,11 +341,11 @@ impl BytecodeGenerator {
             let temporary = self.new_temporary();
             let is_object = self.emit_is_object(Some(temporary), base.clone());
             self.emit_jump_if_true(is_object.as_ref().unwrap(), &is_object_label);
-            self.emit_throw_type_error_str("Cannot access static private method or accessor of a non-Object");
+            self.emit_throw_type_error("Cannot access static private method or accessor of a non-Object");
             self.emit_label(&is_object_label);
             self.emit_equality_op::<crate::bytecode::bytecode_ops::OpStricteq>(dst.clone(), base, brand);
         } else {
-            crate::bytecode::bytecode_list::OpHasPrivateBrand::emit(
+            crate::bytecode::bytecode_ops::OpHasPrivateBrand::emit(
                 self,
                 dst.as_ref().unwrap(),
                 base.as_ref().unwrap(),
@@ -368,21 +368,21 @@ impl BytecodeGenerator {
             let temporary = self.new_temporary();
             let equal = self.emit_equality_op::<crate::bytecode::bytecode_ops::OpStricteq>(Some(temporary), base, brand);
             self.emit_jump_if_true(equal.as_ref().unwrap(), &brand_check_ok_label);
-            self.emit_throw_type_error_str("Cannot access static private method or accessor");
+            self.emit_throw_type_error("Cannot access static private method or accessor");
             self.emit_label(&brand_check_ok_label);
             return;
         }
-        crate::bytecode::bytecode_list::OpCheckPrivateBrand::emit(self, base.as_ref().unwrap(), brand.as_ref().unwrap());
+        crate::bytecode::bytecode_ops::OpCheckPrivateBrand::emit(self, base.as_ref().unwrap(), brand.as_ref().unwrap());
     }
 
     // BytecodeGenerator.cpp:3150
     pub fn emit_super_sampler_begin(&mut self) {
-        crate::bytecode::bytecode_list::OpSuperSamplerBegin::emit(self);
+        crate::bytecode::bytecode_ops::OpSuperSamplerBegin::emit(self);
     }
 
     // BytecodeGenerator.cpp:3155
     pub fn emit_super_sampler_end(&mut self) {
-        crate::bytecode::bytecode_list::OpSuperSamplerEnd::emit(self);
+        crate::bytecode::bytecode_ops::OpSuperSamplerEnd::emit(self);
     }
 
     // BytecodeGenerator.cpp:3160
@@ -391,7 +391,7 @@ impl BytecodeGenerator {
         src: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         profile: crate::bytecode::speculated_type::SpeculatedType,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        crate::bytecode::bytecode_list::OpIdentityWithProfile::emit(
+        crate::bytecode::bytecode_ops::OpIdentityWithProfile::emit(
             self,
             src.as_ref().unwrap(),
             (profile >> 32) as u32,
@@ -402,7 +402,7 @@ impl BytecodeGenerator {
 
     // BytecodeGenerator.cpp:3166
     pub fn emit_unreachable(&mut self) {
-        crate::bytecode::bytecode_list::OpUnreachable::emit(self);
+        crate::bytecode::bytecode_ops::OpUnreachable::emit(self);
     }
 
     // BytecodeGenerator.cpp:3171
@@ -413,7 +413,7 @@ impl BytecodeGenerator {
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         let value_profile = self.next_value_profile_index();
         // O +1 inclui |this|.
-        crate::bytecode::bytecode_list::OpGetArgument::emit(self, dst.as_ref().unwrap(), index + 1, value_profile);
+        crate::bytecode::bytecode_ops::OpGetArgument::emit(self, dst.as_ref().unwrap(), index + 1, value_profile);
         dst
     }
 
@@ -422,9 +422,9 @@ impl BytecodeGenerator {
         &mut self,
         dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        crate::bytecode::bytecode_list::OpCreateThis::emit(self, dst.as_ref().unwrap(), dst.as_ref().unwrap(), 0);
+        crate::bytecode::bytecode_ops::OpCreateThis::emit(self, dst.as_ref().unwrap(), dst.as_ref().unwrap(), 0);
         let last_instruction = self.last_instruction.clone();
-        self.static_property_analyzer.create_this(dst.as_ref().unwrap(), &last_instruction);
+        self.static_property_analyzer.create_this(dst.as_ref().unwrap(), last_instruction);
         dst
     }
 
@@ -434,7 +434,7 @@ impl BytecodeGenerator {
         dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         new_target: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        crate::bytecode::bytecode_list::OpCreatePromise::emit(self, dst.as_ref().unwrap(), new_target.as_ref().unwrap());
+        crate::bytecode::bytecode_ops::OpCreatePromise::emit(self, dst.as_ref().unwrap(), new_target.as_ref().unwrap());
         dst
     }
 
@@ -443,7 +443,7 @@ impl BytecodeGenerator {
         &mut self,
         dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        crate::bytecode::bytecode_list::OpNewPromise::emit(self, dst.as_ref().unwrap());
+        crate::bytecode::bytecode_ops::OpNewPromise::emit(self, dst.as_ref().unwrap());
         dst
     }
 
@@ -453,7 +453,7 @@ impl BytecodeGenerator {
         dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         new_target: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        crate::bytecode::bytecode_list::OpCreateGenerator::emit(self, dst.as_ref().unwrap(), new_target.as_ref().unwrap());
+        crate::bytecode::bytecode_ops::OpCreateGenerator::emit(self, dst.as_ref().unwrap(), new_target.as_ref().unwrap());
         dst
     }
 
@@ -462,7 +462,7 @@ impl BytecodeGenerator {
         &mut self,
         dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        crate::bytecode::bytecode_list::OpNewGenerator::emit(self, dst.as_ref().unwrap());
+        crate::bytecode::bytecode_ops::OpNewGenerator::emit(self, dst.as_ref().unwrap());
         dst
     }
 
@@ -471,7 +471,7 @@ impl BytecodeGenerator {
         &mut self,
         dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        crate::bytecode::bytecode_list::OpNewAsyncFunctionGenerator::emit(self, dst.as_ref().unwrap());
+        crate::bytecode::bytecode_ops::OpNewAsyncFunctionGenerator::emit(self, dst.as_ref().unwrap());
         dst
     }
 
@@ -481,7 +481,7 @@ impl BytecodeGenerator {
         dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         new_target: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        crate::bytecode::bytecode_list::OpCreateAsyncGenerator::emit(self, dst.as_ref().unwrap(), new_target.as_ref().unwrap());
+        crate::bytecode::bytecode_ops::OpCreateAsyncGenerator::emit(self, dst.as_ref().unwrap(), new_target.as_ref().unwrap());
         dst
     }
 
@@ -530,18 +530,18 @@ impl BytecodeGenerator {
         let string_constant = self.add_string_constant(variable.ident());
         let constant = self.add_constant_value(
             crate::runtime::js_value::JSValue::from_cell(string_constant.cell_id()),
-            crate::parser::source_code_representation::SourceCodeRepresentation::Other,
+            crate::runtime::js_cjs_value_types::SourceCodeRepresentation::Other,
         );
-        crate::bytecode::bytecode_list::OpCheckTdz::emit(self, target, &constant);
+        crate::bytecode::bytecode_ops::OpCheckTdz::emit(self, target, &constant);
     }
 
     // BytecodeGenerator.cpp:3238
     pub fn emit_tdz_check(&mut self, target: &crate::bytecompiler::bytecode_generator::RegisterRef) {
         let constant = self.add_constant_value(
             crate::runtime::js_value::js_undefined(),
-            crate::parser::source_code_representation::SourceCodeRepresentation::Other,
+            crate::runtime::js_cjs_value_types::SourceCodeRepresentation::Other,
         );
-        crate::bytecode::bytecode_list::OpCheckTdz::emit(self, target, &constant);
+        crate::bytecode::bytecode_ops::OpCheckTdz::emit(self, target, &constant);
     }
 
     // BytecodeGenerator.cpp:3243
@@ -551,7 +551,7 @@ impl BytecodeGenerator {
             let Some(level) = self.tdz_stack[i].0.get(&identifier) else {
                 continue;
             };
-            return *level != TdzNecessityLevel::NotNeeded;
+            return *level != TDZNecessityLevel::NotNeeded;
         }
 
         {
@@ -595,8 +595,8 @@ impl BytecodeGenerator {
         let identifier = variable.ident().impl_();
         for i in (0..self.tdz_stack.len()).rev() {
             if let Some(level) = self.tdz_stack[i].0.get_mut(&identifier) {
-                if *level == TdzNecessityLevel::Optimize {
-                    *level = TdzNecessityLevel::NotNeeded;
+                if *level == TDZNecessityLevel::Optimize {
+                    *level = TDZNecessityLevel::NotNeeded;
                 }
                 break;
             }
@@ -619,7 +619,7 @@ impl BytecodeGenerator {
     }
 
     // BytecodeGenerator.cpp:3303
-    pub fn push_private_access_names(&mut self, environment: Option<&crate::parser::parser_tokens::PrivateNameEnvironment>) {
+    pub fn push_private_access_names(&mut self, environment: Option<&crate::parser::variable_environment::PrivateNameEnvironment>) {
         let Some(environment) = environment else {
             return;
         };
@@ -640,29 +640,29 @@ impl BytecodeGenerator {
     pub fn push_tdz_variables(
         &mut self,
         environment: &crate::parser::variable_environment::VariableEnvironment,
-        optimization: TdzCheckOptimization,
-        requirement: TdzRequirement,
+        optimization: TDZCheckOptimization,
+        requirement: TDZRequirement,
     ) {
         if environment.is_empty() {
             return;
         }
 
-        let level = if requirement == TdzRequirement::UnderTdz {
-            if optimization == TdzCheckOptimization::Optimize {
-                TdzNecessityLevel::Optimize
+        let level = if requirement == TDZRequirement::UnderTDZ {
+            if optimization == TDZCheckOptimization::Optimize {
+                TDZNecessityLevel::Optimize
             } else {
-                TdzNecessityLevel::DoNotOptimize
+                TDZNecessityLevel::DoNotOptimize
             }
         } else {
-            TdzNecessityLevel::NotNeeded
+            TDZNecessityLevel::NotNeeded
         };
 
-        let mut map = TdzMap::new();
+        let mut map = TDZMap::new();
         for (key, value) in environment.iter() {
             map.insert(
                 key.clone(),
                 if value.is_function() {
-                    TdzNecessityLevel::NotNeeded
+                    TDZNecessityLevel::NotNeeded
                 } else {
                     level
                 },
@@ -685,8 +685,8 @@ impl BytecodeGenerator {
     }
 
     // BytecodeGenerator.cpp:3348
-    pub fn get_available_private_access_names(&mut self) -> Option<crate::parser::parser_tokens::PrivateNameEnvironment> {
-        let mut result = crate::parser::parser_tokens::PrivateNameEnvironment::default();
+    pub fn get_available_private_access_names(&mut self) -> Option<crate::parser::variable_environment::PrivateNameEnvironment> {
+        let mut result = crate::parser::variable_environment::PrivateNameEnvironment::default();
         let mut excluded_names = std::collections::HashSet::new();
         for i in (0..self.private_names_stack.len()).rev() {
             let map = &self.private_names_stack[i];
@@ -706,7 +706,7 @@ impl BytecodeGenerator {
     // BytecodeGenerator.cpp:3366
     pub fn get_variables_under_tdz(
         &mut self,
-    ) -> Option<std::rc::Rc<crate::bytecompiler::bytecode_generator::TdzEnvironmentLink>> {
+    ) -> Option<std::rc::Rc<crate::parser::variable_environment::TDZEnvironmentLink>> {
         let mut parent = self.cached_parent_tdz.clone();
         if self.tdz_stack.is_empty() {
             return parent;
@@ -718,14 +718,14 @@ impl BytecodeGenerator {
 
         for i in 0..self.tdz_stack.len() {
             if self.tdz_stack[i].1.is_none() {
-                let mut environment = crate::bytecompiler::bytecode_generator::TdzEnvironment::default();
+                let mut environment = crate::parser::variable_environment::TDZEnvironment::default();
                 for (key, level) in self.tdz_stack[i].0.iter() {
-                    if *level != TdzNecessityLevel::NotNeeded {
+                    if *level != TDZNecessityLevel::NotNeeded {
                         environment.insert(key.clone());
                     }
                 }
                 let compact = self.vm.compact_variable_map().get(environment);
-                self.tdz_stack[i].1 = Some(crate::bytecompiler::bytecode_generator::TdzEnvironmentLink::create(compact, parent.clone()));
+                self.tdz_stack[i].1 = Some(crate::parser::variable_environment::TDZEnvironmentLink::create(compact, parent.clone()));
             }
             parent = self.tdz_stack[i].1.clone();
         }
@@ -734,12 +734,12 @@ impl BytecodeGenerator {
     }
 
     // BytecodeGenerator.cpp:3406
-    pub fn preserve_tdz_stack(&mut self, preserved_stack: &mut PreservedTdzStack) {
+    pub fn preserve_tdz_stack(&mut self, preserved_stack: &mut PreservedTDZStack) {
         preserved_stack.preserved_tdz_stack = self.tdz_stack.clone();
     }
 
     // BytecodeGenerator.cpp:3411
-    pub fn restore_tdz_stack(&mut self, preserved_stack: &PreservedTdzStack) {
+    pub fn restore_tdz_stack(&mut self, preserved_stack: &PreservedTDZStack) {
         self.tdz_stack = preserved_stack.preserved_tdz_stack.clone();
     }
 
@@ -748,9 +748,9 @@ impl BytecodeGenerator {
         &mut self,
         dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        crate::bytecode::bytecode_list::OpNewObject::emit(self, dst.as_ref().unwrap(), 0);
+        crate::bytecode::bytecode_ops::OpNewObject::emit(self, dst.as_ref().unwrap(), 0);
         let last_instruction = self.last_instruction.clone();
-        self.static_property_analyzer.new_object(dst.as_ref().unwrap(), &last_instruction);
+        self.static_property_analyzer.new_object(dst.as_ref().unwrap(), last_instruction);
 
         dst
     }
@@ -768,7 +768,7 @@ impl BytecodeGenerator {
         }
 
         let vm = self.vm.clone();
-        let _defer_scope = crate::runtime::defer_termination::DeferTermination::new(&vm);
+        let _defer_scope = crate::runtime::vm::DeferTermination::new(&vm);
         let parse_int_sign = if sign {
             crate::runtime::js_big_int::ParseIntSign::Signed
         } else {
@@ -784,7 +784,7 @@ impl BytecodeGenerator {
         );
         self.add_constant_value(
             big_int_in_map,
-            crate::parser::source_code_representation::SourceCodeRepresentation::Other,
+            crate::runtime::js_cjs_value_types::SourceCodeRepresentation::Other,
         );
 
         self.big_int_map.insert(key, big_int_in_map);
@@ -803,7 +803,7 @@ impl BytecodeGenerator {
         let string_in_map = crate::runtime::js_string::js_string(&self.vm, identifier.string());
         self.add_constant_value(
             crate::runtime::js_value::JSValue::from_cell(string_in_map.cell_id()),
-            crate::parser::source_code_representation::SourceCodeRepresentation::Other,
+            crate::runtime::js_cjs_value_types::SourceCodeRepresentation::Other,
         );
         self.string_map.insert(key, string_in_map.clone());
         string_in_map
@@ -844,9 +844,9 @@ impl BytecodeGenerator {
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         let array_constant = self.add_constant_value(
             crate::runtime::js_value::JSValue::from_cell(array.cell_id()),
-            crate::parser::source_code_representation::SourceCodeRepresentation::Other,
+            crate::runtime::js_cjs_value_types::SourceCodeRepresentation::Other,
         );
-        crate::bytecode::bytecode_list::OpNewArrayBuffer::emit(
+        crate::bytecode::bytecode_ops::OpNewArrayBuffer::emit(
             self,
             dst.as_ref().unwrap(),
             &array_constant,
@@ -883,14 +883,14 @@ impl BytecodeGenerator {
         assert!(length == 0);
         let argv_count = argv.len() as u32;
         match argv.first() {
-            Some(first) => crate::bytecode::bytecode_list::OpNewArray::emit(
+            Some(first) => crate::bytecode::bytecode_ops::OpNewArray::emit(
                 self,
                 dst.as_ref().unwrap(),
                 first.borrow().virtual_register(),
                 argv_count,
                 recommended_indexing_type,
             ),
-            None => crate::bytecode::bytecode_list::OpNewArray::emit(
+            None => crate::bytecode::bytecode_ops::OpNewArray::emit(
                 self,
                 dst.as_ref().unwrap(),
                 crate::bytecode::virtual_register::VirtualRegister::new(0),
@@ -936,7 +936,7 @@ impl BytecodeGenerator {
                         (spread.divot(), spread.divot_start(), spread.divot_end())
                     };
                     self.emit_expression_info(&divot, &divot_start, &divot_end);
-                    crate::bytecode::bytecode_list::OpSpread::emit(self, &argv[i], &tmp);
+                    crate::bytecode::bytecode_ops::OpSpread::emit(self, &argv[i], &tmp);
                 } else {
                     self.emit_node_expression(Some(argv[i].clone()), &value);
                 }
@@ -947,7 +947,7 @@ impl BytecodeGenerator {
 
         let bit_vector_index = self.code_block.add_bit_vector(bit_vector);
         let argv_count = argv.len() as u32;
-        crate::bytecode::bytecode_list::OpNewArrayWithSpread::emit(
+        crate::bytecode::bytecode_ops::OpNewArrayWithSpread::emit(
             self,
             dst.as_ref().unwrap(),
             argv[0].borrow().virtual_register(),
@@ -963,7 +963,7 @@ impl BytecodeGenerator {
         dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         length: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        crate::bytecode::bytecode_list::OpNewArrayWithSize::emit(self, dst.as_ref().unwrap(), length.as_ref().unwrap());
+        crate::bytecode::bytecode_ops::OpNewArrayWithSize::emit(self, dst.as_ref().unwrap(), length.as_ref().unwrap());
         dst
     }
 
@@ -975,7 +975,7 @@ impl BytecodeGenerator {
         array: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         let value_profile = self.next_value_profile_index();
-        crate::bytecode::bytecode_list::OpNewArrayWithSpecies::emit(
+        crate::bytecode::bytecode_ops::OpNewArrayWithSpecies::emit(
             self,
             dst.as_ref().unwrap(),
             length.as_ref().unwrap(),
@@ -993,9 +993,9 @@ impl BytecodeGenerator {
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         let reg_exp_constant = self.add_constant_value(
             crate::runtime::js_value::JSValue::from_cell(reg_exp.cell_id()),
-            crate::parser::source_code_representation::SourceCodeRepresentation::Other,
+            crate::runtime::js_cjs_value_types::SourceCodeRepresentation::Other,
         );
-        crate::bytecode::bytecode_list::OpNewRegExp::emit(self, dst.as_ref().unwrap(), &reg_exp_constant);
+        crate::bytecode::bytecode_ops::OpNewRegExp::emit(self, dst.as_ref().unwrap(), &reg_exp_constant);
         dst
     }
 
@@ -1013,7 +1013,7 @@ impl BytecodeGenerator {
 
         match function.borrow().parse_mode() {
             SourceParseMode::GeneratorWrapperFunctionMode | SourceParseMode::GeneratorWrapperMethodMode => {
-                crate::bytecode::bytecode_list::OpNewGeneratorFuncExp::emit(
+                crate::bytecode::bytecode_ops::OpNewGeneratorFuncExp::emit(
                     self,
                     dst.as_ref().unwrap(),
                     scope_register.as_ref().unwrap(),
@@ -1021,7 +1021,7 @@ impl BytecodeGenerator {
                 );
             }
             SourceParseMode::AsyncFunctionMode | SourceParseMode::AsyncMethodMode | SourceParseMode::AsyncArrowFunctionMode => {
-                crate::bytecode::bytecode_list::OpNewAsyncFuncExp::emit(
+                crate::bytecode::bytecode_ops::OpNewAsyncFuncExp::emit(
                     self,
                     dst.as_ref().unwrap(),
                     scope_register.as_ref().unwrap(),
@@ -1029,7 +1029,7 @@ impl BytecodeGenerator {
                 );
             }
             SourceParseMode::AsyncGeneratorWrapperFunctionMode | SourceParseMode::AsyncGeneratorWrapperMethodMode => {
-                crate::bytecode::bytecode_list::OpNewAsyncGeneratorFuncExp::emit(
+                crate::bytecode::bytecode_ops::OpNewAsyncGeneratorFuncExp::emit(
                     self,
                     dst.as_ref().unwrap(),
                     scope_register.as_ref().unwrap(),
@@ -1037,7 +1037,7 @@ impl BytecodeGenerator {
                 );
             }
             _ => {
-                crate::bytecode::bytecode_list::OpNewFuncExp::emit(
+                crate::bytecode::bytecode_ops::OpNewFuncExp::emit(
                     self,
                     dst.as_ref().unwrap(),
                     scope_register.as_ref().unwrap(),
@@ -1109,7 +1109,7 @@ impl BytecodeGenerator {
         let index = self.code_block.add_function_expr(executable);
 
         let scope_register = self.scope_register();
-        crate::bytecode::bytecode_list::OpNewFuncExp::emit(self, dst.as_ref().unwrap(), scope_register.as_ref().unwrap(), index);
+        crate::bytecode::bytecode_ops::OpNewFuncExp::emit(self, dst.as_ref().unwrap(), scope_register.as_ref().unwrap(), index);
         dst
     }
 
@@ -1133,16 +1133,16 @@ impl BytecodeGenerator {
         let parse_mode = crate::parser::parser_modes::SourceParseMode::ClassFieldInitializerMode;
         let construct_ability = crate::runtime::construct_ability::ConstructAbility::CannotConstruct;
 
+        let token_location = crate::parser::parser_tokens::JSTokenLocation::default();
         let metadata = crate::parser::nodes::FunctionMetadataNode::new(
-            self.parser_arena(),
-            crate::parser::parser_tokens::JSTokenLocation::default(),
-            crate::parser::parser_tokens::JSTokenLocation::default(),
+            &token_location,
+            &token_location,
             0,
             0,
             0,
             0,
             0,
-            crate::parser::parser_modes::ImplementationVisibility::Private,
+            crate::runtime::implementation_visibility::ImplementationVisibility::Private,
             crate::parser::parser_modes::STRICT_MODE_LEXICALLY_SCOPED_FEATURE,
             crate::runtime::constructor_kind::ConstructorKind::None,
             super_binding,
@@ -1172,7 +1172,7 @@ impl BytecodeGenerator {
             Vec::new(),
             parent_private_name_environment,
             new_derived_context_type,
-            crate::parser::parser_modes::EvalContextType::InstanceFieldEvalContext,
+            crate::bytecode::executable_info::EvalContextType::InstanceFieldEvalContext,
             crate::bytecode::executable_info::NeedsClassFieldInitializer::No,
             crate::bytecode::executable_info::PrivateBrandRequirement::None,
         );
@@ -1180,7 +1180,7 @@ impl BytecodeGenerator {
 
         let index = self.code_block.add_function_expr(initializer);
         let scope_register = self.scope_register();
-        crate::bytecode::bytecode_list::OpNewFuncExp::emit(self, dst.as_ref().unwrap(), scope_register.as_ref().unwrap(), index);
+        crate::bytecode::bytecode_ops::OpNewFuncExp::emit(self, dst.as_ref().unwrap(), scope_register.as_ref().unwrap(), index);
         dst
     }
 
@@ -1195,28 +1195,28 @@ impl BytecodeGenerator {
         let scope_register = self.scope_register();
         let parse_mode = function.borrow().parse_mode();
         if crate::parser::parser_modes::is_generator_wrapper_parse_mode(parse_mode) {
-            crate::bytecode::bytecode_list::OpNewGeneratorFunc::emit(
+            crate::bytecode::bytecode_ops::OpNewGeneratorFunc::emit(
                 self,
                 dst.as_ref().unwrap(),
                 scope_register.as_ref().unwrap(),
                 index,
             );
         } else if parse_mode == crate::parser::parser_modes::SourceParseMode::AsyncFunctionMode {
-            crate::bytecode::bytecode_list::OpNewAsyncFunc::emit(
+            crate::bytecode::bytecode_ops::OpNewAsyncFunc::emit(
                 self,
                 dst.as_ref().unwrap(),
                 scope_register.as_ref().unwrap(),
                 index,
             );
         } else if crate::parser::parser_modes::is_async_generator_wrapper_parse_mode(parse_mode) {
-            crate::bytecode::bytecode_list::OpNewAsyncGeneratorFunc::emit(
+            crate::bytecode::bytecode_ops::OpNewAsyncGeneratorFunc::emit(
                 self,
                 dst.as_ref().unwrap(),
                 scope_register.as_ref().unwrap(),
                 index,
             );
         } else {
-            crate::bytecode::bytecode_list::OpNewFunc::emit(
+            crate::bytecode::bytecode_ops::OpNewFunc::emit(
                 self,
                 dst.as_ref().unwrap(),
                 scope_register.as_ref().unwrap(),
@@ -1259,7 +1259,7 @@ impl BytecodeGenerator {
 
         // FIXME: Deveríamos usar um op_call para uma função interna aqui.
         // https://bugs.webkit.org/show_bug.cgi?id=155547
-        crate::bytecode::bytecode_list::OpSetFunctionName::emit(self, value.as_ref().unwrap(), name.as_ref().unwrap());
+        crate::bytecode::bytecode_ops::OpSetFunctionName::emit(self, value.as_ref().unwrap(), name.as_ref().unwrap());
     }
 
     // BytecodeGenerator.cpp:3665
@@ -1270,7 +1270,7 @@ impl BytecodeGenerator {
     ) {
         // FIXME: Deveríamos usar um op_call para uma função interna aqui.
         // https://bugs.webkit.org/show_bug.cgi?id=155547
-        crate::bytecode::bytecode_list::OpSetFunctionName::emit(self, value.as_ref().unwrap(), name.as_ref().unwrap());
+        crate::bytecode::bytecode_ops::OpSetFunctionName::emit(self, value.as_ref().unwrap(), name.as_ref().unwrap());
     }
 
     // BytecodeGenerator.cpp:3672
@@ -1290,7 +1290,7 @@ impl BytecodeGenerator {
 
         if self.should_emit_debug_hooks() {
             self.emit_debug_hook_position(
-                crate::bytecode::opcode::DebugHookType::WillExecuteExpression,
+                crate::interpreter::interpreter::DebugHookType::WillExecuteExpression,
                 &node.divot_start(),
                 None,
             );
@@ -1300,7 +1300,7 @@ impl BytecodeGenerator {
         let iterable_value_profile = self.next_value_profile_index();
         let iterator_value_profile = self.next_value_profile_index();
         let next_value_profile = self.next_value_profile_index();
-        crate::bytecode::bytecode_list::OpAsyncIteratorOpen::emit(
+        crate::bytecode::bytecode_ops::OpAsyncIteratorOpen::emit(
             self,
             iterator.as_ref().unwrap(),
             next.as_ref().unwrap(),
@@ -1367,7 +1367,7 @@ impl BytecodeGenerator {
         let killed = self.kill(dst.as_ref().unwrap());
         let generator_register = self.generator_register();
         let value_profile = self.next_value_profile_index();
-        crate::bytecode::bytecode_list::OpAsyncIteratorNext::emit(
+        crate::bytecode::bytecode_ops::OpAsyncIteratorNext::emit(
             self,
             &killed,
             next.as_ref().unwrap(),
@@ -1393,7 +1393,7 @@ impl BytecodeGenerator {
         debuggable_call: crate::bytecompiler::bytecode_generator::DebuggableCall,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_call_op(
-            crate::bytecode::opcode::OpcodeID::OpCall,
+            crate::bytecode::opcode::OpcodeID::op_call,
             dst,
             func,
             expected_function,
@@ -1418,7 +1418,7 @@ impl BytecodeGenerator {
         debuggable_call: crate::bytecompiler::bytecode_generator::DebuggableCall,
     ) {
         self.emit_call_op(
-            crate::bytecode::opcode::OpcodeID::OpCallIgnoreResult,
+            crate::bytecode::opcode::OpcodeID::op_call_ignore_result,
             dst,
             func,
             expected_function,
@@ -1445,7 +1445,7 @@ impl BytecodeGenerator {
         if self.allow_tail_call_optimization {
             self.code_block.set_has_tail_calls();
             return self.emit_call_op(
-                crate::bytecode::opcode::OpcodeID::OpTailCall,
+                crate::bytecode::opcode::OpcodeID::op_tail_call,
                 dst,
                 func,
                 expected_function,
@@ -1458,7 +1458,7 @@ impl BytecodeGenerator {
         }
         if self.allow_call_ignore_result_optimization {
             return self.emit_call_op(
-                crate::bytecode::opcode::OpcodeID::OpCallIgnoreResult,
+                crate::bytecode::opcode::OpcodeID::op_call_ignore_result,
                 dst,
                 func,
                 expected_function,
@@ -1470,7 +1470,7 @@ impl BytecodeGenerator {
             );
         }
         self.emit_call_op(
-            crate::bytecode::opcode::OpcodeID::OpCall,
+            crate::bytecode::opcode::OpcodeID::op_call,
             dst,
             func,
             expected_function,
@@ -1494,7 +1494,7 @@ impl BytecodeGenerator {
         debuggable_call: crate::bytecompiler::bytecode_generator::DebuggableCall,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_call_op(
-            crate::bytecode::opcode::OpcodeID::OpCallDirectEval,
+            crate::bytecode::opcode::OpcodeID::op_call_direct_eval,
             dst,
             func,
             crate::bytecompiler::bytecode_generator::ExpectedFunction::NoExpectedFunction,
@@ -1551,7 +1551,7 @@ impl BytecodeGenerator {
                     crate::bytecode::link_time_constant::LinkTimeConstant::Object,
                 );
                 let bound = real_call.bind_generator(self);
-                crate::bytecode::bytecode_list::OpJneqPtr::emit(
+                crate::bytecode::bytecode_ops::OpJneqPtr::emit(
                     self,
                     func.as_ref().unwrap(),
                     object_constant.as_ref().unwrap(),
@@ -1577,7 +1577,7 @@ impl BytecodeGenerator {
                     crate::bytecode::link_time_constant::LinkTimeConstant::Array,
                 );
                 let bound = real_call.bind_generator(self);
-                crate::bytecode::bytecode_list::OpJneqPtr::emit(
+                crate::bytecode::bytecode_ops::OpJneqPtr::emit(
                     self,
                     func.as_ref().unwrap(),
                     array_constant.as_ref().unwrap(),
@@ -1590,7 +1590,7 @@ impl BytecodeGenerator {
                         self.emit_new_array_with_size(dst, argument_register);
                     } else {
                         assert!(call_arguments.argument_count_including_this() == 1);
-                        crate::bytecode::bytecode_list::OpNewArray::emit(
+                        crate::bytecode::bytecode_ops::OpNewArray::emit(
                             self,
                             dst.as_ref().unwrap(),
                             crate::bytecode::virtual_register::VirtualRegister::new(0),
@@ -1608,7 +1608,7 @@ impl BytecodeGenerator {
         }
 
         let bound = done.bind_generator(self);
-        crate::bytecode::bytecode_list::OpJmp::emit(self, bound);
+        crate::bytecode::bytecode_ops::OpJmp::emit(self, bound);
         self.emit_label(&real_call);
 
         expected_function
@@ -1646,10 +1646,10 @@ impl BytecodeGenerator {
         use crate::bytecode::opcode::OpcodeID;
         let mut expected_function = expected_function;
         assert!(
-            call_opcode == OpcodeID::OpCall
-                || call_opcode == OpcodeID::OpCallDirectEval
-                || call_opcode == OpcodeID::OpTailCall
-                || call_opcode == OpcodeID::OpCallIgnoreResult
+            call_opcode == OpcodeID::op_call
+                || call_opcode == OpcodeID::op_call_direct_eval
+                || call_opcode == OpcodeID::op_tail_call
+                || call_opcode == OpcodeID::op_call_ignore_result
         );
         assert!(func.is_some());
 
@@ -1661,7 +1661,7 @@ impl BytecodeGenerator {
                 let first_expr = first.borrow().expr.clone();
                 if first_expr.is_spread_expression() {
                     assert!(first.borrow().next.is_none());
-                    assert!(call_opcode != OpcodeID::OpCallDirectEval);
+                    assert!(call_opcode != OpcodeID::op_call_direct_eval);
                     let crate::parser::nodes::Expression::Spread(spread_node) = &first_expr else {
                         unreachable!("isSpreadExpression");
                     };
@@ -1686,7 +1686,7 @@ impl BytecodeGenerator {
                                     (spread.divot(), spread.divot_start(), spread.divot_end())
                                 };
                                 self.emit_expression_info(&spread_divot, &spread_divot_start, &spread_divot_end);
-                                crate::bytecode::bytecode_list::OpSpread::emit(self, &argument_register, &argument_register);
+                                crate::bytecode::bytecode_ops::OpSpread::emit(self, &argument_register, &argument_register);
 
                                 let first_free_register = self.new_temporary();
                                 return self.emit_call_varargs_op(
@@ -1742,7 +1742,7 @@ impl BytecodeGenerator {
             && debuggable_call == crate::bytecompiler::bytecode_generator::DebuggableCall::Yes
         {
             self.emit_debug_hook_position(
-                crate::bytecode::opcode::DebugHookType::WillExecuteExpression,
+                crate::interpreter::interpreter::DebugHookType::WillExecuteExpression,
                 divot_start,
                 None,
             );
@@ -1753,7 +1753,7 @@ impl BytecodeGenerator {
         let done = self.new_label();
         expected_function = self.emit_expected_function_snippet(dst.clone(), func.clone(), expected_function, call_arguments, &done);
 
-        if call_opcode == OpcodeID::OpTailCall {
+        if call_opcode == OpcodeID::op_tail_call {
             self.emit_log_shadow_chicken_tail_if_necessary();
         }
 
@@ -1762,12 +1762,12 @@ impl BytecodeGenerator {
         assert!(!self.is_ignored_result(dst.as_ref()));
         let argument_count_including_this = call_arguments.argument_count_including_this();
         let stack_offset = call_arguments.stack_offset();
-        if call_opcode == OpcodeID::OpCallDirectEval {
+        if call_opcode == OpcodeID::op_call_direct_eval {
             let this_register = self.this_register();
             let scope_register = self.scope_register();
             let features = self.compute_features_for_call_direct_eval();
             let value_profile = self.next_value_profile_index();
-            crate::bytecode::bytecode_list::OpCallDirectEval::emit(
+            crate::bytecode::bytecode_ops::OpCallDirectEval::emit(
                 self,
                 dst.as_ref().unwrap(),
                 func.as_ref().unwrap(),
@@ -1778,8 +1778,8 @@ impl BytecodeGenerator {
                 features,
                 value_profile,
             );
-        } else if call_opcode == OpcodeID::OpCallIgnoreResult {
-            crate::bytecode::bytecode_list::OpCallIgnoreResult::emit(
+        } else if call_opcode == OpcodeID::op_call_ignore_result {
+            crate::bytecode::bytecode_ops::OpCallIgnoreResult::emit(
                 self,
                 func.as_ref().unwrap(),
                 argument_count_including_this,
@@ -1788,8 +1788,8 @@ impl BytecodeGenerator {
             if self.should_emit_type_profiler_hooks() {
                 self.emit_load_js_value(dst.clone(), crate::runtime::js_value::js_undefined());
             }
-        } else if call_opcode == OpcodeID::OpTailCall {
-            crate::bytecode::bytecode_list::OpTailCall::emit(
+        } else if call_opcode == OpcodeID::op_tail_call {
+            crate::bytecode::bytecode_ops::OpTailCall::emit(
                 self,
                 dst.as_ref().unwrap(),
                 func.as_ref().unwrap(),
@@ -1798,7 +1798,7 @@ impl BytecodeGenerator {
             );
         } else {
             let value_profile = self.next_value_profile_index();
-            crate::bytecode::bytecode_list::OpCall::emit(
+            crate::bytecode::bytecode_ops::OpCall::emit(
                 self,
                 dst.as_ref().unwrap(),
                 func.as_ref().unwrap(),
@@ -1819,10 +1819,10 @@ impl BytecodeGenerator {
     fn varargs_opcode_for(call_opcode: crate::bytecode::opcode::OpcodeID) -> crate::bytecode::opcode::OpcodeID {
         use crate::bytecode::opcode::OpcodeID;
         match call_opcode {
-            OpcodeID::OpTailCall => OpcodeID::OpTailCallVarargs,
-            OpcodeID::OpConstruct => OpcodeID::OpConstructVarargs,
-            OpcodeID::OpSuperConstruct => OpcodeID::OpSuperConstructVarargs,
-            _ => OpcodeID::OpCallVarargs,
+            OpcodeID::op_tail_call => OpcodeID::op_tail_call_varargs,
+            OpcodeID::op_construct => OpcodeID::op_construct_varargs,
+            OpcodeID::op_super_construct => OpcodeID::op_super_construct_varargs,
+            _ => OpcodeID::op_call_varargs,
         }
     }
 
@@ -1841,7 +1841,7 @@ impl BytecodeGenerator {
         debuggable_call: crate::bytecompiler::bytecode_generator::DebuggableCall,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_call_varargs_op(
-            crate::bytecode::opcode::OpcodeID::OpCallVarargs,
+            crate::bytecode::opcode::OpcodeID::op_call_varargs,
             dst,
             func,
             this_register,
@@ -1870,9 +1870,9 @@ impl BytecodeGenerator {
         debuggable_call: crate::bytecompiler::bytecode_generator::DebuggableCall,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         let opcode = if self.allow_tail_call_optimization {
-            crate::bytecode::opcode::OpcodeID::OpTailCallVarargs
+            crate::bytecode::opcode::OpcodeID::op_tail_call_varargs
         } else {
-            crate::bytecode::opcode::OpcodeID::OpCallVarargs
+            crate::bytecode::opcode::OpcodeID::op_call_varargs
         };
         self.emit_call_varargs_op(
             opcode,
@@ -1904,7 +1904,7 @@ impl BytecodeGenerator {
         debuggable_call: crate::bytecompiler::bytecode_generator::DebuggableCall,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_call_varargs_op(
-            crate::bytecode::opcode::OpcodeID::OpConstructVarargs,
+            crate::bytecode::opcode::OpcodeID::op_construct_varargs,
             dst,
             func,
             this_register,
@@ -1933,7 +1933,7 @@ impl BytecodeGenerator {
         debuggable_call: crate::bytecompiler::bytecode_generator::DebuggableCall,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_call_varargs_op(
-            crate::bytecode::opcode::OpcodeID::OpSuperConstructVarargs,
+            crate::bytecode::opcode::OpcodeID::op_super_construct_varargs,
             dst,
             func,
             this_register,
@@ -1968,7 +1968,7 @@ impl BytecodeGenerator {
             && debuggable_call == crate::bytecompiler::bytecode_generator::DebuggableCall::Yes
         {
             self.emit_debug_hook_position(
-                crate::bytecode::opcode::DebugHookType::WillExecuteExpression,
+                crate::interpreter::interpreter::DebugHookType::WillExecuteExpression,
                 divot_start,
                 None,
             );
@@ -1976,7 +1976,7 @@ impl BytecodeGenerator {
 
         self.emit_expression_info(divot, divot_start, divot_end);
 
-        if varargs_opcode == OpcodeID::OpTailCallVarargs {
+        if varargs_opcode == OpcodeID::op_tail_call_varargs {
             self.emit_log_shadow_chicken_tail_if_necessary();
         }
 
@@ -1988,8 +1988,8 @@ impl BytecodeGenerator {
             None => crate::bytecode::virtual_register::VirtualRegister::new(0),
         };
         match varargs_opcode {
-            OpcodeID::OpTailCallVarargs => {
-                crate::bytecode::bytecode_list::OpTailCallVarargs::emit(
+            OpcodeID::op_tail_call_varargs => {
+                crate::bytecode::bytecode_ops::OpTailCallVarargs::emit(
                     self,
                     dst.as_ref().unwrap(),
                     func.as_ref().unwrap(),
@@ -1999,9 +1999,9 @@ impl BytecodeGenerator {
                     first_var_arg_offset,
                 );
             }
-            OpcodeID::OpConstructVarargs => {
+            OpcodeID::op_construct_varargs => {
                 let value_profile = self.next_value_profile_index();
-                crate::bytecode::bytecode_list::OpConstructVarargs::emit(
+                crate::bytecode::bytecode_ops::OpConstructVarargs::emit(
                     self,
                     dst.as_ref().unwrap(),
                     func.as_ref().unwrap(),
@@ -2012,9 +2012,9 @@ impl BytecodeGenerator {
                     value_profile,
                 );
             }
-            OpcodeID::OpSuperConstructVarargs => {
+            OpcodeID::op_super_construct_varargs => {
                 let value_profile = self.next_value_profile_index();
-                crate::bytecode::bytecode_list::OpSuperConstructVarargs::emit(
+                crate::bytecode::bytecode_ops::OpSuperConstructVarargs::emit(
                     self,
                     dst.as_ref().unwrap(),
                     func.as_ref().unwrap(),
@@ -2027,7 +2027,7 @@ impl BytecodeGenerator {
             }
             _ => {
                 let value_profile = self.next_value_profile_index();
-                crate::bytecode::bytecode_list::OpCallVarargs::emit(
+                crate::bytecode::bytecode_ops::OpCallVarargs::emit(
                     self,
                     dst.as_ref().unwrap(),
                     func.as_ref().unwrap(),
@@ -2049,7 +2049,7 @@ impl BytecodeGenerator {
             return;
         }
         let scope_register = self.scope_register();
-        crate::bytecode::bytecode_list::OpLogShadowChickenPrologue::emit(self, scope_register.as_ref().unwrap());
+        crate::bytecode::bytecode_ops::OpLogShadowChickenPrologue::emit(self, scope_register.as_ref().unwrap());
     }
 
     // BytecodeGenerator.cpp:3940
@@ -2059,7 +2059,7 @@ impl BytecodeGenerator {
         }
         let this_register = self.this_register();
         let scope_register = self.scope_register();
-        crate::bytecode::bytecode_list::OpLogShadowChickenTail::emit(self, &this_register, scope_register.as_ref().unwrap());
+        crate::bytecode::bytecode_ops::OpLogShadowChickenTail::emit(self, &this_register, scope_register.as_ref().unwrap());
     }
 
     // BytecodeGenerator.cpp:3947
@@ -2127,7 +2127,7 @@ impl BytecodeGenerator {
                 None,
                 crate::runtime::js_value::js_number_u32(attributes.raw_representation()),
             );
-            crate::bytecode::bytecode_list::OpDefineAccessorProperty::emit(
+            crate::bytecode::bytecode_ops::OpDefineAccessorProperty::emit(
                 self,
                 new_obj.as_ref().unwrap(),
                 property_name_register.as_ref().unwrap(),
@@ -2140,7 +2140,7 @@ impl BytecodeGenerator {
                 None,
                 crate::runtime::js_value::js_number_u32(attributes.raw_representation()),
             );
-            crate::bytecode::bytecode_list::OpDefineDataProperty::emit(
+            crate::bytecode::bytecode_ops::OpDefineDataProperty::emit(
                 self,
                 new_obj.as_ref().unwrap(),
                 property_name_register.as_ref().unwrap(),
@@ -2173,14 +2173,16 @@ impl BytecodeGenerator {
                     self.emit_jump_if_true(is_undefined.as_ref().unwrap(), &is_undefined_label);
 
                     assert!(self.scope_node.borrow().is_function_node());
-                    let class_name = self.scope_node.as_function_node().borrow().ident().string();
+                    let class_name = self.scope_node.as_function_node().borrow().ident().string().string().clone();
                     if class_name.is_null() || class_name.is_empty() {
-                        self.emit_throw_type_error_str("Cannot return a non-object type in the constructor of a derived class.");
+                        self.emit_throw_type_error("Cannot return a non-object type in the constructor of a derived class.");
                     } else {
-                        let error_message = format!(
-                            "Cannot return a non-object type in the constructor of a derived class {}.",
-                            class_name.to_std_string_lossy()
-                        );
+                        let error_message = crate::wtf::text::try_make_string_dyn(&[
+                            &"Cannot return a non-object type in the constructor of a derived class ",
+                            &&class_name,
+                            &".",
+                        ])
+                        .unwrap_or_default();
                         let identifier = crate::runtime::identifier::Identifier::from_string(&self.vm, &error_message);
                         self.emit_throw_type_error(&identifier);
                     }
@@ -2189,12 +2191,17 @@ impl BytecodeGenerator {
                 }
 
                 let this_value = self.ensure_this();
-                crate::bytecode::bytecode_list::OpRet::emit(self, this_value.as_ref().unwrap());
+                crate::bytecode::bytecode_ops::OpRet::emit(self, this_value.as_ref().unwrap());
                 self.emit_label(&is_object_label);
             }
         }
 
-        crate::bytecode::bytecode_list::OpRet::emit(self, src.as_ref().unwrap());
+        crate::bytecode::bytecode_ops::OpRet::emit(self, src.as_ref().unwrap());
         src
+    }
+
+    /// `dst == ignoredResult()` (comparação de ponteiro do `RegisterID*` no C++).
+    pub fn is_ignored_result(&self, dst: Option<&crate::bytecompiler::bytecode_generator::RegisterRef>) -> bool {
+        dst.map_or(false, |register| std::rc::Rc::ptr_eq(register, &self.ignored_result()))
     }
 }

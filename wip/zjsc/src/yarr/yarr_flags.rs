@@ -2,6 +2,7 @@
 //!
 //! `OptionSet<Flags>` vira `FlagSet`, uma struct sobre `u16` com os mesmos bits do enum `Flags`.
 
+use crate::wtf::option_set::{OptionSet, OptionSetFlag};
 use crate::wtf::text::string_impl::CharType;
 
 // As flags devem estar em ordem alfabética: (chave, nome, índice).
@@ -36,48 +37,35 @@ pub enum Flags {
     DeletedValue = 1 << 8,
 }
 
+impl OptionSetFlag for Flags {
+    type Mask = u16;
+    const NONE: u16 = 0;
+    const ALL: &'static [Flags] = &[
+        Flags::HasIndices,
+        Flags::Global,
+        Flags::IgnoreCase,
+        Flags::Multiline,
+        Flags::DotAll,
+        Flags::Unicode,
+        Flags::UnicodeSets,
+        Flags::Sticky,
+        Flags::DeletedValue,
+    ];
+
+    fn bit(self) -> u16 {
+        self as u16
+    }
+}
+
 /// `OptionSet<Flags>`.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct FlagSet {
-    bits: u16,
-}
-
-impl FlagSet {
-    pub const fn new() -> Self {
-        FlagSet { bits: 0 }
-    }
-
-    pub const fn from_raw(bits: u16) -> Self {
-        FlagSet { bits }
-    }
-
-    pub const fn to_raw(self) -> u16 {
-        self.bits
-    }
-
-    pub const fn contains(self, flag: Flags) -> bool {
-        self.bits & (flag as u16) == flag as u16
-    }
-
-    pub fn add(&mut self, flag: Flags) {
-        self.bits |= flag as u16;
-    }
-
-    pub fn remove(&mut self, flag: Flags) {
-        self.bits &= !(flag as u16);
-    }
-
-    pub const fn is_empty(self) -> bool {
-        self.bits == 0
-    }
-}
+pub type FlagSet = OptionSet<Flags>;
 
 /// `FlagsString`: `numberOfFlags + 1` bytes, com o terminador nulo.
 pub type FlagsString = [u8; NUMBER_OF_FLAGS + 1];
 
 /// `parseFlags(StringView)`. Recebe as unidades de código da string (`StringView::codeUnits()`).
 pub fn parse_flags<C: CharType>(string: &[C]) -> Option<FlagSet> {
-    let mut flags = FlagSet::new();
+    let mut flags = FlagSet::empty();
     for &character in string {
         let unit = character.to_u16();
         let mut found = None;
@@ -145,7 +133,7 @@ mod tests {
     fn parses_utf16_and_empty() {
         let units: Vec<u16> = "gi".encode_utf16().collect();
         assert_eq!(parse_flags(&units).unwrap().to_raw(), 0b110);
-        assert_eq!(parse_flags::<u8>(b"").unwrap(), FlagSet::new());
+        assert_eq!(parse_flags::<u8>(b"").unwrap(), FlagSet::empty());
     }
 
     #[test]

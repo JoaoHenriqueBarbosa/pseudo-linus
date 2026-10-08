@@ -39,6 +39,7 @@ use crate::wtf::ascii_ctype::{
     is_ascii_binary_digit, is_ascii_digit, is_ascii_hex_digit, is_ascii_octal_digit, to_ascii_hex_value, AsciiChar,
 };
 use crate::wtf::math_extras::truncate_double_to_int64;
+use crate::wtf::option_set::{OptionSet, OptionSetFlag};
 use crate::wtf::text::string_impl::{CharType, StringImpl};
 use crate::wtf::text::string_view::StringView;
 use crate::wtf::text::wtf_string::String as WtfString;
@@ -55,43 +56,19 @@ pub enum LexerFlags {
     DontBuildKeywords = 1 << 2,
 }
 
+impl OptionSetFlag for LexerFlags {
+    type Mask = u8;
+    const NONE: u8 = 0;
+    const ALL: &'static [LexerFlags] =
+        &[LexerFlags::IgnoreReservedWords, LexerFlags::DontBuildStrings, LexerFlags::DontBuildKeywords];
+
+    fn bit(self) -> u8 {
+        self as u8
+    }
+}
+
 /// `OptionSet<LexerFlags>`.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct LexerFlagSet {
-    mask: u8,
-}
-
-impl LexerFlagSet {
-    pub const fn empty() -> LexerFlagSet {
-        LexerFlagSet { mask: 0 }
-    }
-
-    pub const fn new(flags: &[LexerFlags]) -> LexerFlagSet {
-        let mut mask = 0u8;
-        let mut i = 0;
-        while i < flags.len() {
-            mask |= flags[i] as u8;
-            i += 1;
-        }
-        LexerFlagSet { mask }
-    }
-
-    /// `OptionSet::contains`.
-    #[inline(always)]
-    pub const fn contains(&self, flag: LexerFlags) -> bool {
-        self.mask & (flag as u8) != 0
-    }
-
-    /// `OptionSet::add`.
-    pub fn add(&mut self, flag: LexerFlags) {
-        self.mask |= flag as u8;
-    }
-
-    /// `OptionSet::remove`.
-    pub fn remove(&mut self, flag: LexerFlags) {
-        self.mask &= !(flag as u8);
-    }
-}
+pub type LexerFlagSet = OptionSet<LexerFlags>;
 
 /// `Lexer<T>::RawStringsBuildMode`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

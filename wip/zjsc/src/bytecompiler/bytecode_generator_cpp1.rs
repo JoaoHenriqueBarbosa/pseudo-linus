@@ -34,69 +34,12 @@ impl VarArgsOp for crate::bytecode::bytecode_ops::OpSuperConstruct {
     type Type = crate::bytecode::bytecode_ops::OpSuperConstructVarargs;
 }
 
-/// `GenericLabel<JSGeneratorTraits>::setLocation(BytecodeGenerator&, unsigned)`.
-pub fn generic_label_set_location(
-    label: &crate::bytecompiler::label::LabelRef,
-    generator: &mut BytecodeGenerator,
-    location: u32,
-) {
-    label.borrow_mut().set_location_raw(location);
-    let unresolved: Vec<i32> = label.borrow().unresolved_jumps().clone();
-
-    for offset in unresolved {
-        let mut instruction = generator.writer.ref_(offset as u32);
-        let target = location as i32 - offset;
-
-        macro_rules! case {
-            ($op:ident) => {
-                if instruction.opcode_id() == crate::bytecode::bytecode_ops::$op::OPCODE_ID {
-                    let instruction_offset = instruction.offset();
-                    let code_block = &mut generator.code_block;
-                    instruction.cast_mut::<crate::bytecode::bytecode_ops::$op>().set_target_label(
-                        crate::bytecompiler::label::BoundLabel::from_offset(target),
-                        &mut || {
-                            code_block.add_out_of_line_jump_target(instruction_offset, target);
-                            crate::bytecompiler::label::BoundLabel::new()
-                        },
-                    );
-                    continue;
-                }
-            };
-        }
-
-        case!(OpJmp);
-        case!(OpJtrue);
-        case!(OpJfalse);
-        case!(OpJeqNull);
-        case!(OpJneqNull);
-        case!(OpJundefinedOrNull);
-        case!(OpJnundefinedOrNull);
-        case!(OpJeq);
-        case!(OpJstricteq);
-        case!(OpJneq);
-        case!(OpJeqPtr);
-        case!(OpJneqPtr);
-        case!(OpJnstricteq);
-        case!(OpJless);
-        case!(OpJlesseq);
-        case!(OpJgreater);
-        case!(OpJgreatereq);
-        case!(OpJnless);
-        case!(OpJnlesseq);
-        case!(OpJngreater);
-        case!(OpJngreatereq);
-        case!(OpJbelow);
-        case!(OpJbeloweq);
-        // default: ASSERT_NOT_REACHED()
-    }
-}
-
 impl Variable {
     /// `Variable::dump(PrintStream&)`: devolve o texto que o C++ imprimiria.
     pub fn dump(&self) -> String {
         format!(
             "{{ident = {}, offset = {}, local = {}, attributes = {}, kind = {}, symbolTableConstantIndex = {}, isLexicallyScoped = {}}}",
-            self.ident.dump_string(),
+            String::from_utf8_lossy(&self.ident.utf8()),
             self.offset.dump_string(),
             match &self.local {
                 Some(local) => format!("{:p}", std::rc::Rc::as_ptr(local)),
@@ -168,10 +111,10 @@ impl BytecodeGenerator {
 
         let mut calling_non_callable_constructor = false;
         match self.constructor_kind() {
-            crate::parser::unlinked_function_executable::ConstructorKind::None => {}
-            crate::parser::unlinked_function_executable::ConstructorKind::Naked
-            | crate::parser::unlinked_function_executable::ConstructorKind::Base
-            | crate::parser::unlinked_function_executable::ConstructorKind::Extends => {
+            crate::runtime::constructor_kind::ConstructorKind::None => {}
+            crate::runtime::constructor_kind::ConstructorKind::Naked
+            | crate::runtime::constructor_kind::ConstructorKind::Base
+            | crate::runtime::constructor_kind::ConstructorKind::Extends => {
                 calling_non_callable_constructor = !self.is_constructor();
             }
         }
@@ -282,7 +225,11 @@ impl BytecodeGenerator {
                 handler.thrown_value_register,
             );
             let last_instruction_offset = self.last_instruction.offset();
-            generic_label_set_location(&real_catch_target, self, last_instruction_offset);
+            <crate::bytecompiler::bytecode_generator::JSGeneratorTraits as crate::bytecompiler::bytecode_generator_base::BytecodeGeneratorTraits>::set_label_location(
+                self,
+                &real_catch_target,
+                last_instruction_offset,
+            );
             if handler.completion_type_register.is_valid() {
                 let completion_type_register = std::rc::Rc::new(std::cell::RefCell::new(
                     RegisterID::from_virtual_register(handler.completion_type_register),
@@ -395,7 +342,7 @@ impl BytecodeGenerator {
 
             let target = range.try_data.borrow().target.clone();
             let handler_type = range.try_data.borrow().handler_type;
-            let info = crate::bytecode::unlinked_handler_info::UnlinkedHandlerInfo::new(
+            let info = crate::bytecode::handler_info::UnlinkedHandlerInfo::new(
                 start as u32,
                 end as u32,
                 target.borrow_mut().bind().target_value() as u32,
@@ -438,9 +385,9 @@ impl BytecodeGenerator {
     pub fn new_program(
         vm: &mut crate::runtime::vm::VM,
         program_node: NodeRef<crate::parser::nodes::ProgramNode>,
-        code_block: &mut crate::bytecode::unlinked_program_code_block::UnlinkedProgramCodeBlock,
-        code_generation_mode: crate::bytecode::code_generation_mode::CodeGenerationModeSet,
-        parent_scope_tdz_variables: &Option<Rc<RefCell<TDZEnvironmentLink>>>,
+        code_block: &mut crate::bytecode::unlinked_code_block::UnlinkedProgramCodeBlock,
+        code_generation_mode: crate::parser::parser_modes::CodeGenerationModeSet,
+        parent_scope_tdz_variables: &Option<Rc<TDZEnvironmentLink>>,
         _generator_or_async_wrapper_function_parameter_names: Option<&Vec<Identifier>>,
         _parent_private_name_environment: Option<&PrivateNameEnvironment>,
     ) -> BytecodeGenerator {
@@ -504,14 +451,14 @@ impl BytecodeGenerator {
     pub fn new_function(
         vm: &mut crate::runtime::vm::VM,
         function_node: NodeRef<crate::parser::nodes::FunctionNode>,
-        code_block: &mut crate::bytecode::unlinked_function_code_block::UnlinkedFunctionCodeBlock,
-        code_generation_mode: crate::bytecode::code_generation_mode::CodeGenerationModeSet,
-        parent_scope_tdz_variables: &Option<Rc<RefCell<TDZEnvironmentLink>>>,
+        code_block: &mut crate::bytecode::unlinked_code_block::UnlinkedFunctionCodeBlock,
+        code_generation_mode: crate::parser::parser_modes::CodeGenerationModeSet,
+        parent_scope_tdz_variables: &Option<Rc<TDZEnvironmentLink>>,
         generator_or_async_wrapper_function_parameter_names: Option<&Vec<Identifier>>,
         parent_private_name_environment: Option<&PrivateNameEnvironment>,
     ) -> BytecodeGenerator {
         use crate::parser::parser::SourceParseMode;
-        use crate::parser::unlinked_function_executable::ConstructorKind;
+        use crate::runtime::constructor_kind::ConstructorKind;
         let mut this = BytecodeGenerator::with_defaults(
             vm,
             code_block.as_unlinked_code_block_mut(),
@@ -679,14 +626,14 @@ impl BytecodeGenerator {
             ConstructorKind::None => {}
             ConstructorKind::Naked => {
                 if !this.is_constructor() {
-                    let constructor_name = function_node.borrow().ident().string();
+                    let constructor_name = function_node.borrow().ident().string().string().clone();
                     if constructor_name.is_null() || constructor_name.is_empty() {
                         this.emit_throw_type_error_str("Cannot call a constructor without |new|");
                     } else {
-                        let error_message_str = crate::wtf::text::try_make_string(&[
-                            "Cannot call a constructor ",
-                            constructor_name.as_str(),
-                            " without |new|",
+                        let error_message_str = crate::wtf::text::try_make_string_dyn(&[
+                            &"Cannot call a constructor ",
+                            &&constructor_name,
+                            &" without |new|",
                         ]);
                         match error_message_str {
                             None => this.emit_throw_type_error_str("Cannot call a constructor without |new|"),
@@ -701,14 +648,14 @@ impl BytecodeGenerator {
             }
             ConstructorKind::Base | ConstructorKind::Extends => {
                 if !this.is_constructor() {
-                    let constructor_name = function_node.borrow().ident().string();
+                    let constructor_name = function_node.borrow().ident().string().string().clone();
                     if constructor_name.is_null() || constructor_name.is_empty() {
                         this.emit_throw_type_error_str("Cannot call a class constructor without |new|");
                     } else {
-                        let error_message_str = crate::wtf::text::try_make_string(&[
-                            "Cannot call a class constructor ",
-                            constructor_name.as_str(),
-                            " without |new|",
+                        let error_message_str = crate::wtf::text::try_make_string_dyn(&[
+                            &"Cannot call a class constructor ",
+                            &&constructor_name,
+                            &" without |new|",
                         ]);
                         match error_message_str {
                             None => this.emit_throw_type_error_str("Cannot call a class constructor without |new|"),

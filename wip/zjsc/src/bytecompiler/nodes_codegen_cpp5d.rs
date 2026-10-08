@@ -15,7 +15,7 @@
 // - `crate::bytecode::link_time_constant::LinkTimeConstant::{NewResolvedPromise, NewRejectedPromise,
 //   ResolvePromiseWithFirstResolvingFunctionCallCheck, RejectPromiseWithFirstResolvingFunctionCallCheck,
 //   AsyncFunctionDrive}`.
-// - `crate::bytecode::opcode::DebugHookType::{DidEnterCallFrame, WillLeaveCallFrame}`.
+// - `crate::interpreter::interpreter::DebugHookType::{DidEnterCallFrame, WillLeaveCallFrame}`.
 // - `crate::interpreter::call_frame::argument_offset(i32) -> i32` (usado pela cpp5 do gerador com
 //   `usize`; aqui passo `i32` e o tipo exato fica por conferir).
 // - `BytecodeGenerator::{emit_profile_type_flag_divots, emit_profile_control_flow, emit_debug_hook,
@@ -87,7 +87,7 @@ impl crate::parser::nodes::FunctionNode {
         _dst: Cpp5bReg,
     ) {
         use crate::bytecode::handler_info::HandlerType;
-        use crate::bytecode::opcode::DebugHookType;
+        use crate::interpreter::interpreter::DebugHookType;
         use crate::bytecompiler::bytecode_generator::{CallArguments, CompletionType, DebuggableCall, ExpectedFunction};
         use crate::bytecompiler::profile_type_bytecode_flag::ProfileTypeBytecodeFlag;
         use crate::parser::parser_modes::SourceParseMode;

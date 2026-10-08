@@ -26,6 +26,12 @@ pub struct LabelScope {
     continue_target: Option<LabelRef>,
 }
 
+impl crate::wtf::ref_counted::RefCounted for LabelScope {
+    fn ref_count(&self) -> i32 {
+        self.ref_count
+    }
+}
+
 impl LabelScope {
     pub fn new(
         type_: LabelScopeType,
@@ -64,10 +70,6 @@ impl LabelScope {
     pub fn deref(&mut self) {
         self.ref_count -= 1;
         debug_assert!(self.ref_count >= 0);
-    }
-
-    pub fn ref_count(&self) -> i32 {
-        self.ref_count
     }
 
     pub fn has_one_ref(&self) -> bool {

@@ -105,7 +105,7 @@ impl crate::parser::nodes::ObjectPatternNode {
         }
         generator.emit_require_object_coercible_for_destructuring(rhs.as_ref().unwrap(), first_property_name);
 
-        let mut preserved_tdz_stack = crate::bytecompiler::bytecode_generator::PreservedTdzStack::default();
+        let mut preserved_tdz_stack = crate::bytecompiler::bytecode_generator::PreservedTDZStack::default();
         generator.preserve_tdz_stack(&mut preserved_tdz_stack);
 
         {

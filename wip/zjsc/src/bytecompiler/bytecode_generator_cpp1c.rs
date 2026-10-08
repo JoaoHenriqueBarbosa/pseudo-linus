@@ -6,11 +6,11 @@ impl BytecodeGenerator {
     pub fn new_eval(
         vm: &mut crate::runtime::vm::VM,
         eval_node: crate::parser::nodes::NodeRef<crate::parser::nodes::EvalNode>,
-        code_block: &mut crate::bytecode::unlinked_eval_code_block::UnlinkedEvalCodeBlock,
-        code_generation_mode: crate::bytecode::code_generation_mode::CodeGenerationModeSet,
-        parent_scope_tdz_variables: &Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::tdz_environment::TDZEnvironmentLink>>>,
+        code_block: &mut crate::bytecode::unlinked_code_block::UnlinkedEvalCodeBlock,
+        code_generation_mode: crate::parser::parser_modes::CodeGenerationModeSet,
+        parent_scope_tdz_variables: &Option<std::rc::Rc<crate::bytecode::tdz_environment::TDZEnvironmentLink>>,
         _generator_or_async_wrapper_function_parameter_names: Option<&Vec<crate::runtime::identifier::Identifier>>,
-        parent_private_name_environment: Option<&crate::bytecode::private_name_environment::PrivateNameEnvironment>,
+        parent_private_name_environment: Option<&crate::parser::variable_environment::PrivateNameEnvironment>,
     ) -> BytecodeGenerator {
         let mut this = BytecodeGenerator::with_defaults(
             vm,

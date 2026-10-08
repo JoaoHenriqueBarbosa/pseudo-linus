@@ -207,8 +207,8 @@ impl<'a> TreeBuilder for SyntaxChecker<'a> {
     const CREATES_AST: bool = false;
     const NEEDS_FREE_VARIABLE_INFO: bool = false;
     const CAN_USE_FUNCTION_CACHE: bool = true;
-    const DONT_BUILD_KEYWORDS: LexerFlagSet = LexerFlagSet::new(&[LexerFlags::DontBuildKeywords]);
-    const DONT_BUILD_STRINGS: LexerFlagSet = LexerFlagSet::new(&[LexerFlags::DontBuildStrings]);
+    const DONT_BUILD_KEYWORDS: LexerFlagSet = LexerFlagSet::from_raw(LexerFlags::DontBuildKeywords as u8);
+    const DONT_BUILD_STRINGS: LexerFlagSet = LexerFlagSet::from_raw(LexerFlags::DontBuildStrings as u8);
 
     /// `static NO_RETURN_DUE_TO_CRASH FunctionMetadataNode* getMetadata(ParserFunctionInfo<SyntaxChecker>&)`.
     fn get_metadata(_function_info: &ParserFunctionInfo<SyntaxChecker<'a>>) -> std::rc::Rc<crate::parser::nodes::FunctionMetadataNode> {

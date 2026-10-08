@@ -1272,20 +1272,20 @@ mod tests {
 
     #[test]
     fn alternatives_are_indexed() {
-        let mut pattern = YarrPattern::with_flags(FlagSet::new(), ExecutionMode::IncludeSubpatterns);
+        let mut pattern = YarrPattern::with_flags(FlagSet::empty(),ExecutionMode::IncludeSubpatterns);
         pattern.disjunctions.push(PatternDisjunction::new(None));
         let id = DisjunctionId(0);
         let alternative = pattern.disjunctions[0].add_new_alternative(id, 1, MatchDirection::Forward);
         assert_eq!(alternative, AlternativeId { disjunction: id, index: 0 });
         assert_eq!(pattern.alternative(alternative).parent, id);
-        pattern.alternative_mut(alternative).terms.push(PatternTerm::new_character('a' as u32, FlagSet::new(), MatchDirection::Forward));
+        pattern.alternative_mut(alternative).terms.push(PatternTerm::new_character('a' as u32, FlagSet::empty(),MatchDirection::Forward));
         assert_eq!(pattern.alternative(alternative).last_term_index(), 0);
         assert_eq!(pattern.alternative_mut(alternative).last_term().pattern_character(), 'a' as u32);
     }
 
     #[test]
     fn term_quantify_and_cleanup() {
-        let mut term = PatternTerm::new_parentheses(PatternTermType::ParenthesesSubpattern, 1, DisjunctionId(1), FlagSet::new(), true, false, MatchDirection::Forward);
+        let mut term = PatternTerm::new_parentheses(PatternTermType::ParenthesesSubpattern, 1, DisjunctionId(1), FlagSet::empty(), true, false, MatchDirection::Forward);
         term.quantify_range(2, 5, QuantifierType::Greedy);
         assert_eq!((term.quantity_min_count, term.quantity_max_count), (2, 5));
         assert!(!term.contains_any_captures());

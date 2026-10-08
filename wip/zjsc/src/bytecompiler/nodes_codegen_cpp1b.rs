@@ -688,8 +688,8 @@ impl crate::parser::nodes::PropertyListNode {
                 Some(value),
                 None,
                 None,
-                crate::bytecompiler::bytecode_generator_part2::PROPERTY_CONFIGURABLE
-                    | crate::bytecompiler::bytecode_generator_part2::PROPERTY_WRITABLE,
+                crate::bytecompiler::bytecode_generator::PROPERTY_CONFIGURABLE
+                    | crate::bytecompiler::bytecode_generator::PROPERTY_WRITABLE,
                 &position,
             );
             return;
@@ -746,7 +746,7 @@ impl crate::parser::nodes::PropertyListNode {
                 Some(comparison_dst),
                 prototype_string,
                 property_name.clone(),
-                crate::bytecode::operand_types::OperandTypes::new(
+                crate::parser::result_type::OperandTypes::new(
                     crate::parser::result_type::ResultType::string_type(),
                     crate::parser::result_type::ResultType::string_type(),
                 ),

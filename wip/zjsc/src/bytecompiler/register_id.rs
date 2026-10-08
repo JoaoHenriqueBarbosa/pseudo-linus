@@ -84,8 +84,10 @@ impl RegisterID {
         self.ref_count -= 1;
         debug_assert!(self.ref_count >= 0);
     }
+}
 
-    pub fn ref_count(&self) -> i32 {
+impl crate::wtf::ref_counted::RefCounted for RegisterID {
+    fn ref_count(&self) -> i32 {
         self.ref_count
     }
 }

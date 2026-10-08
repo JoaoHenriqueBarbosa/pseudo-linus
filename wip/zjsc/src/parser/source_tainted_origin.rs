@@ -18,14 +18,8 @@ pub enum SourceTaintedOrigin {
     KnownTainted = 3,
 }
 
-/// `WTF::TriState`.
-#[repr(u8)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum TriState {
-    False = 0,
-    True = 1,
-    Indeterminate = 2,
-}
+/// `WTF::TriState` (definido em `crate::wtf::tri_state`; reexportado para os chamadores atuais).
+pub use crate::wtf::tri_state::TriState;
 
 /// `taintednessToTriState(SourceTaintedOrigin)`.
 pub fn taintedness_to_tri_state(origin: SourceTaintedOrigin) -> TriState {

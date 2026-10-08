@@ -11,6 +11,8 @@ pub mod parser_modes;
 pub mod parser_tokens;
 pub mod result_type;
 pub mod source_code;
+pub mod source_code_representation;
+pub mod js_text_position;
 pub mod source_code_key;
 pub mod source_provider;
 pub mod source_tainted_origin;

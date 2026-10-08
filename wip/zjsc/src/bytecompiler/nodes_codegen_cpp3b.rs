@@ -970,7 +970,7 @@ impl crate::parser::nodes::UnaryOpNode {
             //          ...
             //     })(a);
             // ```
-            if self.opcode_id == crate::bytecode::opcode::OpcodeID::OpNot {
+            if self.opcode_id == crate::bytecode::opcode::OpcodeID::op_not {
                 generator.emit_node_in_ignore_result_position_expression(&self.expr);
                 return None;
             }
@@ -987,7 +987,7 @@ impl crate::parser::nodes::UnaryOpNode {
 
 impl crate::parser::nodes::UnaryPlusNode {
     pub fn emit_bytecode(&self, generator: &mut Cpp3bGen, dst: Cpp3bReg) -> Cpp3bReg {
-        debug_assert!(self.opcode_id == crate::bytecode::opcode::OpcodeID::OpToNumber);
+        debug_assert!(self.opcode_id == crate::bytecode::opcode::OpcodeID::op_to_number);
         let src = generator.emit_node_expression(None, &self.expr);
         let position = *self.position();
         generator.emit_expression_info(&position, &position, &position);
@@ -1027,7 +1027,7 @@ enum Cpp3bUInt32Result {
 
 /// O lambda `isUInt32` de `BinaryOpNode::emitBytecode`.
 fn cpp3b_is_uint32(node: &crate::parser::nodes::Expression) -> Option<Cpp3bUInt32Result> {
-    if node.is_binary_op_node() && cpp3b_binary_opcode_id(node) == crate::bytecode::opcode::OpcodeID::OpUrshift {
+    if node.is_binary_op_node() && cpp3b_binary_opcode_id(node) == crate::bytecode::opcode::OpcodeID::op_urshift {
         return Some(Cpp3bUInt32Result::UInt32);
     }
     if let crate::parser::nodes::Expression::Integer(integer) = node {
@@ -1051,7 +1051,7 @@ fn cpp3b_can_fold_to_branch(
     if expression_type.definitely_is_boolean() && constant.is_boolean() {
         true
     } else if expression_type.definitely_is_boolean() && constant.is_int32() && (constant.as_int32() == 0 || constant.as_int32() == 1) {
-        opcode_id == OpcodeID::OpEq || opcode_id == OpcodeID::OpNeq // Strict equality is false in the case of type mismatch.
+        opcode_id == OpcodeID::op_eq || opcode_id == OpcodeID::op_neq // Strict equality is false in the case of type mismatch.
     } else {
         expression_type.is_int32() && constant.is_int32() && constant.as_int32() == 0
     }
@@ -1246,9 +1246,9 @@ impl crate::parser::nodes::BinaryOpNode {
         }
 
         let mut branch_condition = branch_condition;
-        if opcode_id == OpcodeID::OpEq || opcode_id == OpcodeID::OpStricteq {
+        if opcode_id == OpcodeID::op_eq || opcode_id == OpcodeID::op_stricteq {
             branch_condition = if value.pure_to_boolean() != TriState::False { TriState::True } else { TriState::False };
-        } else if opcode_id == OpcodeID::OpNeq || opcode_id == OpcodeID::OpNstricteq {
+        } else if opcode_id == OpcodeID::op_neq || opcode_id == OpcodeID::op_nstricteq {
             branch_condition = if value.pure_to_boolean() == TriState::False { TriState::True } else { TriState::False };
         }
         (branch_condition, Some(branch_expression))
@@ -1260,7 +1260,7 @@ impl crate::parser::nodes::BinaryOpNode {
         let opcode_id = self.opcode_id;
         let position = *self.position();
 
-        if opcode_id == OpcodeID::OpLess || opcode_id == OpcodeID::OpLesseq || opcode_id == OpcodeID::OpGreater || opcode_id == OpcodeID::OpGreatereq {
+        if opcode_id == OpcodeID::op_less || opcode_id == OpcodeID::op_lesseq || opcode_id == OpcodeID::op_greater || opcode_id == OpcodeID::op_greatereq {
             let left_result = cpp3b_is_uint32(&self.expr1);
             let right_result = cpp3b_is_uint32(&self.expr2);
             if left_result.is_some()
@@ -1270,11 +1270,11 @@ impl crate::parser::nodes::BinaryOpNode {
                 let left = self.expr1.clone();
                 let right = self.expr2.clone();
                 if left.is_binary_op_node() {
-                    debug_assert!(cpp3b_binary_opcode_id(&left) == OpcodeID::OpUrshift);
+                    debug_assert!(cpp3b_binary_opcode_id(&left) == OpcodeID::op_urshift);
                     cpp3b_with_binary_op_node!(&left, n, n.borrow_mut().should_to_unsigned_result = false);
                 }
                 if right.is_binary_op_node() {
-                    debug_assert!(cpp3b_binary_opcode_id(&right) == OpcodeID::OpUrshift);
+                    debug_assert!(cpp3b_binary_opcode_id(&right) == OpcodeID::op_urshift);
                     cpp3b_with_binary_op_node!(&right, n, n.borrow_mut().should_to_unsigned_result = false);
                 }
                 let right_is_pure = right.is_pure(generator);
@@ -1285,15 +1285,15 @@ impl crate::parser::nodes::BinaryOpNode {
                 // Since the both sides only accept Int32, replacing operands is not observable to users.
                 let mut replace_operands = false;
                 let result_op = match opcode_id {
-                    OpcodeID::OpLess => OpcodeID::OpBelow,
-                    OpcodeID::OpLesseq => OpcodeID::OpBeloweq,
-                    OpcodeID::OpGreater => {
+                    OpcodeID::op_less => OpcodeID::op_below,
+                    OpcodeID::op_lesseq => OpcodeID::op_beloweq,
+                    OpcodeID::op_greater => {
                         replace_operands = true;
-                        OpcodeID::OpBelow
+                        OpcodeID::op_below
                     }
-                    OpcodeID::OpGreatereq => {
+                    OpcodeID::op_greatereq => {
                         replace_operands = true;
-                        OpcodeID::OpBeloweq
+                        OpcodeID::op_beloweq
                     }
                     _ => unreachable!("RELEASE_ASSERT_NOT_REACHED"),
                 };
@@ -1307,12 +1307,12 @@ impl crate::parser::nodes::BinaryOpNode {
             }
         }
 
-        if opcode_id == OpcodeID::OpAdd && self.expr1.is_add() && self.expr1.result_descriptor().definitely_is_string() {
+        if opcode_id == OpcodeID::op_add && self.expr1.is_add() && self.expr1.result_descriptor().definitely_is_string() {
             generator.emit_expression_info(&position, &position, &position);
             return self.emit_strcat(generator, dst, None, None);
         }
 
-        if opcode_id == OpcodeID::OpNeq && (self.expr1.is_null() || self.expr2.is_null()) {
+        if opcode_id == OpcodeID::op_neq && (self.expr1.is_null() || self.expr2.is_null()) {
             let src = generator.emit_node_expression(None, if self.expr1.is_null() { &self.expr2 } else { &self.expr1 });
             let final_dst = Some(generator.final_destination(dst.as_ref(), src.as_ref()));
             return generator.emit_unary_op::<crate::bytecode::bytecode_ops::OpNeqNull>(final_dst, src);
@@ -1320,19 +1320,19 @@ impl crate::parser::nodes::BinaryOpNode {
 
         let mut left = self.expr1.clone();
         let mut right = self.expr2.clone();
-        if (opcode_id == OpcodeID::OpNeq || opcode_id == OpcodeID::OpNstricteq) && left.is_string() {
+        if (opcode_id == OpcodeID::op_neq || opcode_id == OpcodeID::op_nstricteq) && left.is_string() {
             std::mem::swap(&mut left, &mut right);
         }
 
         let right_is_pure = right.is_pure(generator);
         let src1 = generator.emit_node_for_left_hand_side(&left, self.right_has_assignments, right_is_pure);
-        let was_typeof = generator.last_opcode_id() == OpcodeID::OpTypeof;
+        let was_typeof = generator.last_opcode_id() == OpcodeID::op_typeof;
         let src2 = generator.emit_node_expression(None, &right);
         generator.emit_expression_info(&position, &position, &position);
-        if was_typeof && (opcode_id == OpcodeID::OpNeq || opcode_id == OpcodeID::OpNstricteq) {
+        if was_typeof && (opcode_id == OpcodeID::op_neq || opcode_id == OpcodeID::op_nstricteq) {
             let tmp = Some(generator.temp_destination(dst.as_ref()));
             let equality_dst = Some(generator.final_destination(tmp.as_ref(), src1.as_ref()));
-            if opcode_id == OpcodeID::OpNeq {
+            if opcode_id == OpcodeID::op_neq {
                 generator.emit_equality_op::<crate::bytecode::bytecode_ops::OpEq>(equality_dst, src1, src2);
             } else {
                 generator.emit_equality_op::<crate::bytecode::bytecode_ops::OpStricteq>(equality_dst, src1, src2);
@@ -1348,7 +1348,7 @@ impl crate::parser::nodes::BinaryOpNode {
             src2,
             OperandTypes::new(left.result_descriptor(), right.result_descriptor()),
         );
-        if self.should_to_unsigned_result && opcode_id == OpcodeID::OpUrshift && !cpp3b_is_ignored_result(generator, &dst) {
+        if self.should_to_unsigned_result && opcode_id == OpcodeID::op_urshift && !cpp3b_is_ignored_result(generator, &dst) {
             return generator.emit_unary_op::<crate::bytecode::bytecode_ops::OpUnsigned>(result.clone(), result);
         }
         result

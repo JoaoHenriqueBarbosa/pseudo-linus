@@ -28,6 +28,7 @@ def main():
     declared = int(re.search(r"#define NUMBER_OF_BYTECODE_IDS (\d+)", text).group(1))
     assert len(ops) == declared, (len(ops), declared)
     variants = "\n".join(f"    {name} = {i}," for i, (name, _) in enumerate(ops))
+    ids = ",\n".join(f"    OpcodeID::{name}" for name, _ in ops)
     lengths = ", ".join(str(n) for _, n in ops)
     names = ",\n".join(f'    "{name}"' for name, _ in ops)
     out = f"""//! Gerado por `scripts/gen-opcodes.py` a partir de `derived/JavaScriptCore/Bytecodes.h`.
@@ -42,6 +43,18 @@ pub enum OpcodeID {{
 
 /// `NUMBER_OF_BYTECODE_IDS`.
 pub const NUMBER_OF_BYTECODE_IDS: usize = {declared};
+
+/// Todo `OpcodeID`, na ordem do número.
+pub static OPCODE_IDS: [OpcodeID; NUMBER_OF_BYTECODE_IDS] = [
+{ids},
+];
+
+impl OpcodeID {{
+    /// O `static_cast<OpcodeID>(value)` do C++ (`enum OpcodeID : unsigned`), com o `ASSERT` de faixa.
+    pub fn from_u32(value: u32) -> OpcodeID {{
+        OPCODE_IDS[value as usize]
+    }}
+}}
 
 /// Tamanho de cada instrução (opcode mais operandos), na ordem de `OpcodeID`.
 pub static OPCODE_LENGTHS: [u8; NUMBER_OF_BYTECODE_IDS] = [{lengths}];

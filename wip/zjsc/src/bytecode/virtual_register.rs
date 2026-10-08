@@ -11,6 +11,10 @@ use crate::bytecompiler::register_id::RegisterID;
 
 /// `FirstConstantRegisterIndex` de `BytecodeConventions.h`.
 pub const FIRST_CONSTANT_REGISTER_INDEX: i32 = 0x4000_0000;
+/// `FirstConstantRegisterIndex8` de `BytecodeConventions.h`.
+pub const FIRST_CONSTANT_REGISTER_INDEX8: i32 = 16;
+/// `FirstConstantRegisterIndex16` de `BytecodeConventions.h`.
+pub const FIRST_CONSTANT_REGISTER_INDEX16: i32 = 64;
 
 /// `CallFrameSlot` de `CallFrame.h`, com os valores inteiros do C++.
 pub mod call_frame_slot {

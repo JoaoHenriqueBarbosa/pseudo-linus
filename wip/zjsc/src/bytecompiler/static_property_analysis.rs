@@ -10,6 +10,7 @@ use std::cell::{Ref, RefCell};
 use std::collections::HashSet;
 use std::rc::Rc;
 
+use crate::bytecode::bytecode_ops::{OpCreateThis, OpNewObject};
 use crate::bytecode::instruction_stream::JSInstructionStreamMutableRef;
 use crate::bytecode::opcode::OpcodeID;
 
@@ -38,16 +39,16 @@ impl StaticPropertyAnalysis {
     }
 
     pub fn record(&mut self) {
-        let size = self.property_indexes.len();
-        let instruction = self.instruction_ref.ptr_mut();
-        match instruction.opcode_id() {
+        let size = self.property_indexes.len() as u32;
+        match self.instruction_ref.opcode_id_enum() {
             OpcodeID::op_new_object => {
-                instruction.cast_op_new_object().set_inline_capacity(size, || 255);
+                self.instruction_ref.cast_mut::<OpNewObject>().set_inline_capacity(size, &mut || 255);
             }
             OpcodeID::op_create_this => {
-                instruction.cast_op_create_this().set_inline_capacity(size, || 255);
+                self.instruction_ref.cast_mut::<OpCreateThis>().set_inline_capacity(size, &mut || 255);
             }
-            _ => unreachable!(),
+            // `ASSERT_NOT_REACHED()`: só aborta em build de depuração; em release o C++ não faz nada.
+            _ => debug_assert!(false, "StaticPropertyAnalysis::record: opcode inesperado"),
         }
     }
 
