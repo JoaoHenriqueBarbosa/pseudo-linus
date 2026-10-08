@@ -1607,6 +1607,11 @@ pub(crate) fn btree_set_spill_size(p: &mut Btree, mx_page: i32) -> i32 {
     p.bt.pager.pcache.set_spill_size(mx_page)
 }
 
+/// `sqlite3BtreeIsReadonly`: verdadeiro se o arquivo do banco foi aberto somente para leitura.
+pub(crate) fn btree_is_readonly(p: &Btree) -> bool {
+    (p.bt.bts_flags & BTS_READ_ONLY) != 0
+}
+
 /// `sqlite3BtreeSetMmapLimit`.
 pub(crate) fn btree_set_mmap_limit(p: &mut Btree, sz_mmap: i64) -> i32 {
     p.bt.pager.set_mmap_limit(sz_mmap);

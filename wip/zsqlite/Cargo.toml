@@ -5,6 +5,8 @@ edition = "2024"
 rust-version = "1.98"
 license = "blessing"
 publish = false
+# `src/main.rs` é o porte de `main.c` (módulo da biblioteca), não um binário.
+autobins = false
 description = "SQLite 3.46.1 traduzido para Rust sem unsafe, com saída idêntica à do sqlite3 do Debian 13"
 
 # Fora do workspace principal enquanto amadurece (o Cargo.toml raiz exclui wip/).

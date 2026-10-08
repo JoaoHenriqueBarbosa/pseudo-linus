@@ -19,10 +19,11 @@
 //!   `SQLITE_TOOBIG` e quem tem a conexão grava o erro no `Parse`.
 //! - Texto e blob são bytes. Leituras além do fim de `z` não existem: use [`Mem::bytes`].
 //!
-//! ADIADAS (precisam de `Connection`, `Context`, `Vdbe`, `FuncDef`, `Expr` ou `Parse`):
-//! `sqlite3VdbeMemFinalize`, `sqlite3VdbeMemAggValue`, `sqlite3VdbeMemSetPointer` (valores
-//! ponteiro), `sqlite3ValueFromExpr` (precisa de `Expr`), `sqlite3ValueIsOfClass` (destrutores),
-//! `sqlite3Stat4*` (`SQLITE_ENABLE_STAT4` está desligado no Debian). Funções só de `SQLITE_DEBUG`
+//! Em `crate::mem2` (reexportado daqui, pois precisam de `Connection`, `Context`, `FuncDef` ou
+//! `Expr`): `sqlite3VdbeMemFinalize`, `sqlite3VdbeMemAggValue`, `sqlite3VdbeMemSetPointer`
+//! (valores ponteiro) e `sqlite3ValueFromExpr`.
+//!
+//! ADIADAS: `sqlite3ValueIsOfClass` (destrutores), `sqlite3Stat4*` (`SQLITE_ENABLE_STAT4` está desligado no Debian). Funções só de `SQLITE_DEBUG`
 //! (`sqlite3VdbeCheckMemInvariants`, `sqlite3VdbeMemValidStrRep`, `sqlite3VdbeMemAboutToChange`,
 //! `sqlite3VdbeMemPrettyPrint`, `sqlite3VdbeMemIsRowSet`) não existem; `Mem::is_row_set` cobre o
 //! único uso fora de `assert`. `sqlite3ValueSetStr`, `sqlite3ValueFree` e `sqlite3MemSetArrayInt64`
@@ -242,6 +243,11 @@ pub struct Mem {
     pub agg: Option<Box<dyn Any>>,
     /// O conjunto de rowids de um `OP_RowSetAdd`, com `MEM_BLOB|MEM_DYN`.
     pub row_set: Option<Box<RowSet>>,
+    /// O ponteiro de um valor ponteiro (`z` e `u.zPType` do C, com `MEM_Null|MEM_Dyn|MEM_Subtype|
+    /// MEM_Term` e `e_subtype == 'p'`). É um `Rc` porque a cópia de uma célula (`sqlite3VdbeMemCopy`,
+    /// que no C copia o ponteiro cru e tira a flag `MEM_Dyn`) precisa compartilhar o dado; o
+    /// destrutor `xDel` vira o `Drop` do último dono.
+    pub pointer: Option<(Rc<dyn Any>, &'static [u8])>,
 }
 
 impl Clone for Mem {
@@ -261,6 +267,7 @@ impl Clone for Mem {
             u_temp: self.u_temp,
             agg: None,
             row_set: None,
+            pointer: self.pointer.clone(),
         }
     }
 }
@@ -610,6 +617,8 @@ fn mem_clear_extern_and_set_null(p: &mut Mem) {
         }
         p.z = Vec::new();
         p.sz_malloc = 0;
+        // O `xDel` de um valor ponteiro: o dado cai com o último `Rc`.
+        p.pointer = None;
     }
     p.flags = MEM_NULL;
 }
@@ -826,6 +835,8 @@ pub fn mem_set_null(p: &mut Mem) {
         mem_clear_extern_and_set_null(p);
     } else {
         p.flags = MEM_NULL;
+        // Cópia de um valor ponteiro (sem `MEM_Dyn`): solta a referência ao dado.
+        p.pointer = None;
     }
 }
 
@@ -891,6 +902,7 @@ fn mem_copy_cell(to: &mut Mem, from: &Mem) {
     to.u_i = from.u_i;
     to.u_r = from.u_r;
     to.n_zero = from.n_zero;
+    to.pointer = from.pointer.clone();
     if from.flags & (MEM_STR | MEM_BLOB) != 0 {
         to.z = from.z.clone();
         to.sz_malloc = 0;
@@ -1712,3 +1724,5 @@ mod tests {
         assert!(m.flags & MEM_BLOB != 0 && m.flags & MEM_STR == 0);
     }
 }
+
+pub use crate::mem2::*;

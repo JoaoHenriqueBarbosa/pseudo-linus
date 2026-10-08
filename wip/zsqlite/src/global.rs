@@ -8,6 +8,7 @@
 use crate::os::{os_randomness, vfs_find};
 use crate::printf::{render_log_msg, PrintfArg};
 use crate::random::Prng;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
 /// Gancho de log do `SQLITE_CONFIG_LOG`: recebe o código e a mensagem já formatada.
@@ -64,4 +65,23 @@ pub fn log(code: i32, fmt: &[u8], args: &[PrintfArg]) {
         let msg = render_log_msg(fmt, args);
         hook(code, &msg);
     }
+}
+
+/// `sqlite3GlobalConfig.bExtraSchemaChecks` (padrão 1): confere type, name e tbl_name das
+/// linhas do esquema. `SQLITE_CONFIG_...` o altera por [`set_extra_schema_checks`].
+static EXTRA_SCHEMA_CHECKS: AtomicBool = AtomicBool::new(true);
+
+/// Lê `sqlite3GlobalConfig.bExtraSchemaChecks`.
+pub fn extra_schema_checks() -> bool {
+    EXTRA_SCHEMA_CHECKS.load(Ordering::SeqCst)
+}
+
+/// Grava `sqlite3GlobalConfig.bExtraSchemaChecks`.
+pub fn set_extra_schema_checks(v: bool) {
+    EXTRA_SCHEMA_CHECKS.store(v, Ordering::SeqCst);
+}
+
+/// Lê `sqlite3GlobalConfig.bUseCis`: usar índices de cobertura em varreduras completas.
+pub fn use_cis() -> bool {
+    crate::main::global_config().b_use_cis
 }

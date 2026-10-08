@@ -1,0 +1,3 @@
+
+#endif /* SQLITE_OMIT_WINDOWFUNC */
+

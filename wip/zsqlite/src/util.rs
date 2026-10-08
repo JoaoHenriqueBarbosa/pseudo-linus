@@ -19,6 +19,13 @@ use crate::consts::{
     SQLITE_MAX_U32, SQLITE_ROW, SQLITE_UTF8,
 };
 use crate::ctype::{is_digit, is_quote, is_space, is_xdigit, UPPER_TO_LOWER};
+use crate::connection::{Connection, Parse};
+use crate::consts::{
+    COLFLAG_HASTYPE, EP_DBL_QUOTED, EP_INNER_ON, EP_INT_VALUE, EP_OUTER_ON, EP_QUOTED,
+    SQLITE_DIGIT_SEPARATOR, SQLITE_INTERRUPT, TK_FLOAT, TK_INTEGER, TK_QNUMBER,
+};
+use crate::printf::PrintfArg;
+use crate::sqlite_int::{Column, Expr, ExprU};
 
 /// `LogEst` do sqliteInt.h: `typedef short LogEst`, aproximação de `10*log2(x)`.
 pub type LogEst = i16;
@@ -2002,6 +2009,252 @@ pub fn err_str(rc: i32) -> &'static str {
         }
     }
     z_err
+}
+
+// ---------------------------------------------------------------------------------------------
+// Erro da conexão e do analisador (util.c e malloc.c)
+// ---------------------------------------------------------------------------------------------
+
+/// `sqlite3SystemError`: grava `Connection.i_sys_errno` quando o código `rc` pede (CANTOPEN e
+/// IOERR), com o `errno` que o VFS guardou da última falha. O ramo `SQLITE_USE_SEH` não existe
+/// na build do Debian.
+pub fn system_error(db: &mut crate::connection::Connection, rc: i32) {
+    if rc == crate::consts::SQLITE_IOERR_NOMEM {
+        return;
+    }
+    let rc = rc & 0xff;
+    if rc == crate::consts::SQLITE_CANTOPEN || rc == crate::consts::SQLITE_IOERR {
+        // `sqlite3OsGetLastError`: sem VFS (conexão que falhou ao abrir) devolve zero.
+        db.i_sys_errno = match db.p_vfs.as_ref() {
+            Some(vfs) => vfs.get_last_error(0, &mut Vec::new()),
+            None => 0,
+        };
+    }
+}
+
+/// `sqlite3OomFault`: registra que faltou memória. Liga `malloc_failed`, interrompe os VDBEs em
+/// execução e desliga o lookaside. O C ainda grava "out of memory" no `Parse` corrente
+/// (`db->pParse`) e propaga o `SQLITE_NOMEM` aos analisadores externos; a conexão do modelo v2
+/// não aponta para o `Parse` (ele viaja por parâmetro), então quem tem o `Parse` à mão faz o
+/// `error_msg(db, parse, b"out of memory", &[])` depois desta chamada. `bBenignMalloc` não
+/// existe (a alocação em Rust não falha, só o `oom_fault` explícito liga o sinal).
+pub fn oom_fault(db: &mut crate::connection::Connection) {
+    if db.malloc_failed == 0 {
+        db.malloc_failed = 1;
+        if db.n_vdbe_exec > 0 {
+            db.interrupted.store(true, std::sync::atomic::Ordering::SeqCst);
+        }
+        // `DisableLookaside`.
+        db.lookaside.b_disable += 1;
+        db.lookaside.sz = 0;
+    }
+}
+
+/// `sqlite3OomClear`: reativa o alocador e limpa `malloc_failed`, a menos que haja VDBEs
+/// rodando.
+pub fn oom_clear(db: &mut crate::connection::Connection) {
+    if db.malloc_failed != 0 && db.n_vdbe_exec == 0 {
+        db.malloc_failed = 0;
+        db.interrupted.store(false, std::sync::atomic::Ordering::SeqCst);
+        debug_assert!(db.lookaside.b_disable > 0);
+        // `EnableLookaside`.
+        db.lookaside.b_disable = db.lookaside.b_disable.saturating_sub(1);
+        db.lookaside.sz = if db.lookaside.b_disable != 0 { 0 } else { db.lookaside.sz_true };
+    }
+}
+
+/// `sqlite3ErrorMsg`: acrescenta a mensagem de erro formatada a `parse.z_err_msg` e incrementa
+/// `parse.n_err`. É o relato de erro de quem compila SQL (dentro de `sqlite3_prepare()`); a
+/// última coisa que o `prepare` faz é copiar a mensagem para a conexão com `error`/
+/// `error_with_msg`. Com `db.suppress_err` a mensagem é descartada. As extensões do `printf`
+/// interno (`%T`, `%S`) valem aqui.
+pub fn error_msg(
+    db: &mut crate::connection::Connection,
+    parse: &mut crate::connection::Parse,
+    fmt: &[u8],
+    args: &[crate::printf::PrintfArg],
+) {
+    db.err_byte_offset = -2;
+    let z_msg = crate::main::db_printf(db, fmt, args);
+    if db.err_byte_offset < -1 {
+        db.err_byte_offset = -1;
+    }
+    if db.suppress_err != 0 {
+        if db.malloc_failed != 0 {
+            parse.n_err += 1;
+            parse.rc = crate::consts::SQLITE_NOMEM;
+        }
+    } else {
+        parse.n_err += 1;
+        parse.z_err_msg = z_msg;
+        parse.rc = crate::consts::SQLITE_ERROR;
+        parse.p_with = None;
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Tipo de coluna, progresso, dequote de expressão e de número, offset de erro
+// ---------------------------------------------------------------------------------------------
+
+/// `sqlite3ColumnType`: o tipo declarado de uma coluna, ou `z_dflt` se ela não tem. O tipo é a
+/// cadeia guardada depois do NUL do nome, se e somente se `COLFLAG_HASTYPE` está ligada.
+pub fn column_type<'a>(p_col: &'a Column, z_dflt: &'a [u8]) -> &'a [u8] {
+    if (p_col.col_flags & COLFLAG_HASTYPE) != 0 {
+        let z = &p_col.z_cn_name[..];
+        let n = z.iter().position(|&c| c == 0).unwrap_or(z.len());
+        let rest = z.get(n + 1..).unwrap_or(&[]);
+        let m = rest.iter().position(|&c| c == 0).unwrap_or(rest.len());
+        &rest[..m]
+    } else if p_col.e_c_type != 0 {
+        debug_assert!((p_col.e_c_type as usize) <= STD_TYPE.len());
+        STD_TYPE[p_col.e_c_type as usize - 1].as_bytes()
+    } else {
+        z_dflt
+    }
+}
+
+/// `sqlite3ProgressCheck`: confere interrupções e invoca o gancho de progresso.
+pub fn progress_check(parse: &mut Parse, db: &mut Connection) {
+    if db.interrupted.load(std::sync::atomic::Ordering::SeqCst) {
+        parse.n_err += 1;
+        parse.rc = SQLITE_INTERRUPT;
+    }
+    if let Some(x_progress) = db.x_progress.as_mut() {
+        if parse.rc == SQLITE_INTERRUPT {
+            parse.n_progress_steps = 0;
+        } else {
+            parse.n_progress_steps += 1;
+            if parse.n_progress_steps >= db.n_progress_ops {
+                if x_progress() != 0 {
+                    parse.n_err += 1;
+                    parse.rc = SQLITE_INTERRUPT;
+                }
+                parse.n_progress_steps = 0;
+            }
+        }
+    }
+}
+
+/// `sqlite3DequoteExpr`: remove as aspas do texto do token de `p` e liga `EP_Quoted` (e
+/// `EP_DblQuoted` para aspas duplas). O texto sem aspas termina no NUL que `dequote` grava.
+pub fn dequote_expr(p: &mut Expr) {
+    debug_assert!(!p.has_property(EP_INT_VALUE));
+    let first = match &p.u {
+        ExprU::Token(Some(z)) => at(z, 0),
+        _ => 0,
+    };
+    debug_assert!(is_quote(first));
+    p.flags |= if first == b'"' { EP_QUOTED | EP_DBL_QUOTED } else { EP_QUOTED };
+    if let ExprU::Token(Some(z)) = &mut p.u {
+        dequote(z);
+        if let Some(n) = z.iter().position(|&c| c == 0) {
+            z.truncate(n);
+        }
+    }
+}
+
+/// `sqlite3DequoteToken`: tira as aspas de um token se ele é uma string entre aspas sem aspas
+/// internas; senão o deixa como está. O C avança o ponteiro e diminui `n`; aqui o deslocamento
+/// `i_ofst` acompanha o primeiro caractere.
+pub fn dequote_token(p: &mut crate::sqlite_int::Token) {
+    let n = p.z.len();
+    if n < 2 {
+        return;
+    }
+    if !crate::ctype::is_quote(p.z[0]) {
+        return;
+    }
+    if p.z[1..n - 1].iter().any(|&c| crate::ctype::is_quote(c)) {
+        return;
+    }
+    p.z = p.z[1..n - 1].to_vec();
+    p.i_ofst += 1;
+}
+
+/// `sqlite3DbSpanDup` (de malloc.c): cópia do trecho de SQL `z_span` sem os espaços nas pontas.
+/// O analisador garante ao menos um caractere que não é espaço.
+pub fn db_span_dup(z_span: &[u8]) -> Vec<u8> {
+    let start = z_span.iter().position(|&c| !crate::ctype::is_space(c)).unwrap_or(z_span.len());
+    let end = z_span.iter().rposition(|&c| !crate::ctype::is_space(c)).map_or(start, |i| i + 1);
+    z_span[start..end].to_vec()
+}
+
+/// `sqlite3DequoteNumber`: `p` é um QNUMBER (número com `_`). Remove os separadores do texto e
+/// troca o tipo para INTEGER ou FLOAT. A conversão é feita no lugar, como no C, de modo que a
+/// mensagem de erro mostra o texto parcialmente convertido.
+pub fn dequote_number(db: &mut Connection, parse: &mut Parse, p: Option<&mut Expr>) {
+    let Some(p) = p else {
+        return;
+    };
+    let mut buf: Vec<u8> = match &p.u {
+        ExprU::Token(Some(z)) => z.clone(),
+        _ => Vec::new(),
+    };
+    buf.push(0);
+    let b_hex = buf[0] == b'0' && (at(&buf, 1) == b'x' || at(&buf, 1) == b'X');
+    debug_assert!(p.op == TK_QNUMBER);
+    p.op = TK_INTEGER;
+    let mut i_in = 0usize;
+    let mut i_out = 0usize;
+    loop {
+        let c = buf[i_in];
+        if c != SQLITE_DIGIT_SEPARATOR {
+            buf[i_out] = c;
+            i_out += 1;
+            if c == b'e' || c == b'E' || c == b'.' {
+                p.op = TK_FLOAT;
+            }
+        } else {
+            let prev = if i_in > 0 { buf[i_in - 1] } else { 0 };
+            let next = at(&buf, i_in + 1);
+            if (!b_hex && (!is_digit(prev) || !is_digit(next)))
+                || (b_hex && (!is_xdigit(prev) || !is_xdigit(next)))
+            {
+                let n = buf.iter().position(|&c| c == 0).unwrap_or(buf.len());
+                error_msg(
+                    db,
+                    parse,
+                    b"unrecognized token: \"%s\"",
+                    &[PrintfArg::Text(Some(buf[..n].to_vec()))],
+                );
+            }
+        }
+        i_in += 1;
+        if c == 0 {
+            break;
+        }
+    }
+    if b_hex {
+        p.op = TK_INTEGER;
+    }
+    buf.truncate(i_out - 1);
+
+    // tag-20240227-a: se depois do dequote o número é um inteiro que cabe em 32 bits, ele
+    // precisa virar EP_IntValue. Outras partes do código esperam isso.
+    if p.op == TK_INTEGER {
+        if let Some(i_value) = get_int32(&buf) {
+            p.u = ExprU::IValue(i_value);
+            p.flags |= EP_INT_VALUE;
+            return;
+        }
+    }
+    p.u = ExprU::Token(Some(buf));
+}
+
+/// `sqlite3RecordErrorOffsetOfExpr`: se `p_expr` tem o deslocamento do início de um token,
+/// grava-o como deslocamento do erro.
+pub fn record_error_offset_of_expr(db: &mut Connection, p_expr: Option<&Expr>) {
+    let mut cur = p_expr;
+    while let Some(e) = cur {
+        if e.has_property(EP_OUTER_ON | EP_INNER_ON) || e.i_ofst() <= 0 {
+            cur = e.p_left.as_deref();
+        } else {
+            break;
+        }
+    }
+    if let Some(e) = cur {
+        db.err_byte_offset = e.i_ofst();
+    }
 }
 
 #[cfg(test)]

@@ -1,0 +1,5282 @@
+[
+{
+"file": "sqliteInt.h",
+"part": 0,
+"parts": 15,
+"path": "chunks/sqliteInt_h.000.c",
+"line": 29,
+"lines": 350
+},
+{
+"file": "sqliteInt.h",
+"part": 1,
+"parts": 15,
+"path": "chunks/sqliteInt_h.001.c",
+"line": 379,
+"lines": 350
+},
+{
+"file": "sqliteInt.h",
+"part": 2,
+"parts": 15,
+"path": "chunks/sqliteInt_h.002.c",
+"line": 729,
+"lines": 488
+},
+{
+"file": "sqliteInt.h",
+"part": 3,
+"parts": 15,
+"path": "chunks/sqliteInt_h.003.c",
+"line": 1217,
+"lines": 384
+},
+{
+"file": "sqliteInt.h",
+"part": 4,
+"parts": 15,
+"path": "chunks/sqliteInt_h.004.c",
+"line": 1601,
+"lines": 404
+},
+{
+"file": "sqliteInt.h",
+"part": 5,
+"parts": 15,
+"path": "chunks/sqliteInt_h.005.c",
+"line": 2005,
+"lines": 430
+},
+{
+"file": "sqliteInt.h",
+"part": 6,
+"parts": 15,
+"path": "chunks/sqliteInt_h.006.c",
+"line": 2435,
+"lines": 394
+},
+{
+"file": "sqliteInt.h",
+"part": 7,
+"parts": 15,
+"path": "chunks/sqliteInt_h.007.c",
+"line": 2829,
+"lines": 423
+},
+{
+"file": "sqliteInt.h",
+"part": 8,
+"parts": 15,
+"path": "chunks/sqliteInt_h.008.c",
+"line": 3252,
+"lines": 477
+},
+{
+"file": "sqliteInt.h",
+"part": 9,
+"parts": 15,
+"path": "chunks/sqliteInt_h.009.c",
+"line": 3729,
+"lines": 408
+},
+{
+"file": "sqliteInt.h",
+"part": 10,
+"parts": 15,
+"path": "chunks/sqliteInt_h.010.c",
+"line": 4137,
+"lines": 399
+},
+{
+"file": "sqliteInt.h",
+"part": 11,
+"parts": 15,
+"path": "chunks/sqliteInt_h.011.c",
+"line": 4536,
+"lines": 350
+},
+{
+"file": "sqliteInt.h",
+"part": 12,
+"parts": 15,
+"path": "chunks/sqliteInt_h.012.c",
+"line": 4886,
+"lines": 350
+},
+{
+"file": "sqliteInt.h",
+"part": 13,
+"parts": 15,
+"path": "chunks/sqliteInt_h.013.c",
+"line": 5236,
+"lines": 350
+},
+{
+"file": "sqliteInt.h",
+"part": 14,
+"parts": 15,
+"path": "chunks/sqliteInt_h.014.c",
+"line": 5586,
+"lines": 245
+},
+{
+"file": "msvc.h",
+"part": 0,
+"parts": 1,
+"path": "chunks/msvc_h.000.c",
+"line": 89,
+"lines": 46
+},
+{
+"file": "sqlite3.h",
+"part": 0,
+"parts": 29,
+"path": "chunks/sqlite3_h.000.c",
+"line": 314,
+"lines": 350
+},
+{
+"file": "sqlite3.h",
+"part": 1,
+"parts": 29,
+"path": "chunks/sqlite3_h.001.c",
+"line": 664,
+"lines": 383
+},
+{
+"file": "sqlite3.h",
+"part": 2,
+"parts": 29,
+"path": "chunks/sqlite3_h.002.c",
+"line": 1047,
+"lines": 350
+},
+{
+"file": "sqlite3.h",
+"part": 3,
+"parts": 29,
+"path": "chunks/sqlite3_h.003.c",
+"line": 1397,
+"lines": 421
+},
+{
+"file": "sqlite3.h",
+"part": 4,
+"parts": 29,
+"path": "chunks/sqlite3_h.004.c",
+"line": 1818,
+"lines": 350
+},
+{
+"file": "sqlite3.h",
+"part": 5,
+"parts": 29,
+"path": "chunks/sqlite3_h.005.c",
+"line": 2168,
+"lines": 350
+},
+{
+"file": "sqlite3.h",
+"part": 6,
+"parts": 29,
+"path": "chunks/sqlite3_h.006.c",
+"line": 2518,
+"lines": 350
+},
+{
+"file": "sqlite3.h",
+"part": 7,
+"parts": 29,
+"path": "chunks/sqlite3_h.007.c",
+"line": 2868,
+"lines": 350
+},
+{
+"file": "sqlite3.h",
+"part": 8,
+"parts": 29,
+"path": "chunks/sqlite3_h.008.c",
+"line": 3218,
+"lines": 350
+},
+{
+"file": "sqlite3.h",
+"part": 9,
+"parts": 29,
+"path": "chunks/sqlite3_h.009.c",
+"line": 3568,
+"lines": 350
+},
+{
+"file": "sqlite3.h",
+"part": 10,
+"parts": 29,
+"path": "chunks/sqlite3_h.010.c",
+"line": 3918,
+"lines": 350
+},
+{
+"file": "sqlite3.h",
+"part": 11,
+"parts": 29,
+"path": "chunks/sqlite3_h.011.c",
+"line": 4268,
+"lines": 350
+},
+{
+"file": "sqlite3.h",
+"part": 12,
+"parts": 29,
+"path": "chunks/sqlite3_h.012.c",
+"line": 4618,
+"lines": 350
+},
+{
+"file": "sqlite3.h",
+"part": 13,
+"parts": 29,
+"path": "chunks/sqlite3_h.013.c",
+"line": 4968,
+"lines": 350
+},
+{
+"file": "sqlite3.h",
+"part": 14,
+"parts": 29,
+"path": "chunks/sqlite3_h.014.c",
+"line": 5318,
+"lines": 350
+},
+{
+"file": "sqlite3.h",
+"part": 15,
+"parts": 29,
+"path": "chunks/sqlite3_h.015.c",
+"line": 5668,
+"lines": 350
+},
+{
+"file": "sqlite3.h",
+"part": 16,
+"parts": 29,
+"path": "chunks/sqlite3_h.016.c",
+"line": 6018,
+"lines": 350
+},
+{
+"file": "sqlite3.h",
+"part": 17,
+"parts": 29,
+"path": "chunks/sqlite3_h.017.c",
+"line": 6368,
+"lines": 350
+},
+{
+"file": "sqlite3.h",
+"part": 18,
+"parts": 29,
+"path": "chunks/sqlite3_h.018.c",
+"line": 6718,
+"lines": 350
+},
+{
+"file": "sqlite3.h",
+"part": 19,
+"parts": 29,
+"path": "chunks/sqlite3_h.019.c",
+"line": 7068,
+"lines": 599
+},
+{
+"file": "sqlite3.h",
+"part": 20,
+"parts": 29,
+"path": "chunks/sqlite3_h.020.c",
+"line": 7667,
+"lines": 350
+},
+{
+"file": "sqlite3.h",
+"part": 21,
+"parts": 29,
+"path": "chunks/sqlite3_h.021.c",
+"line": 8017,
+"lines": 463
+},
+{
+"file": "sqlite3.h",
+"part": 22,
+"parts": 29,
+"path": "chunks/sqlite3_h.022.c",
+"line": 8480,
+"lines": 350
+},
+{
+"file": "sqlite3.h",
+"part": 23,
+"parts": 29,
+"path": "chunks/sqlite3_h.023.c",
+"line": 8830,
+"lines": 415
+},
+{
+"file": "sqlite3.h",
+"part": 24,
+"parts": 29,
+"path": "chunks/sqlite3_h.024.c",
+"line": 9245,
+"lines": 350
+},
+{
+"file": "sqlite3.h",
+"part": 25,
+"parts": 29,
+"path": "chunks/sqlite3_h.025.c",
+"line": 9595,
+"lines": 350
+},
+{
+"file": "sqlite3.h",
+"part": 26,
+"parts": 29,
+"path": "chunks/sqlite3_h.026.c",
+"line": 9945,
+"lines": 350
+},
+{
+"file": "sqlite3.h",
+"part": 27,
+"parts": 29,
+"path": "chunks/sqlite3_h.027.c",
+"line": 10295,
+"lines": 532
+},
+{
+"file": "sqlite3.h",
+"part": 28,
+"parts": 29,
+"path": "chunks/sqlite3_h.028.c",
+"line": 10827,
+"lines": 337
+},
+{
+"file": "sqlite3rtree.h",
+"part": 0,
+"parts": 1,
+"path": "chunks/sqlite3rtree_h.000.c",
+"line": 11164,
+"lines": 117
+},
+{
+"file": "sqlite3session.h",
+"part": 0,
+"parts": 6,
+"path": "chunks/sqlite3session_h.000.c",
+"line": 11283,
+"lines": 350
+},
+{
+"file": "sqlite3session.h",
+"part": 1,
+"parts": 6,
+"path": "chunks/sqlite3session_h.001.c",
+"line": 11633,
+"lines": 350
+},
+{
+"file": "sqlite3session.h",
+"part": 2,
+"parts": 6,
+"path": "chunks/sqlite3session_h.002.c",
+"line": 11983,
+"lines": 350
+},
+{
+"file": "sqlite3session.h",
+"part": 3,
+"parts": 6,
+"path": "chunks/sqlite3session_h.003.c",
+"line": 12333,
+"lines": 350
+},
+{
+"file": "sqlite3session.h",
+"part": 4,
+"parts": 6,
+"path": "chunks/sqlite3session_h.004.c",
+"line": 12683,
+"lines": 424
+},
+{
+"file": "sqlite3session.h",
+"part": 5,
+"parts": 6,
+"path": "chunks/sqlite3session_h.005.c",
+"line": 13107,
+"lines": 4
+},
+{
+"file": "fts5.h",
+"part": 0,
+"parts": 2,
+"path": "chunks/fts5_h.000.c",
+"line": 13113,
+"lines": 566
+},
+{
+"file": "fts5.h",
+"part": 1,
+"parts": 2,
+"path": "chunks/fts5_h.001.c",
+"line": 13679,
+"lines": 59
+},
+{
+"file": "sqliteLimit.h",
+"part": 0,
+"parts": 1,
+"path": "chunks/sqliteLimit_h.000.c",
+"line": 13759,
+"lines": 211
+},
+{
+"file": "hash.h",
+"part": 0,
+"parts": 1,
+"path": "chunks/hash_h.000.c",
+"line": 14389,
+"lines": 97
+},
+{
+"file": "parse.h",
+"part": 0,
+"parts": 1,
+"path": "chunks/parse_h.000.c",
+"line": 14490,
+"lines": 186
+},
+{
+"file": "os.h",
+"part": 0,
+"parts": 1,
+"path": "chunks/os_h.000.c",
+"line": 15443,
+"lines": 226
+},
+{
+"file": "os_setup.h",
+"part": 0,
+"parts": 1,
+"path": "chunks/os_setup_h.000.c",
+"line": 15471,
+"lines": 92
+},
+{
+"file": "pager.h",
+"part": 0,
+"parts": 1,
+"path": "chunks/pager_h.000.c",
+"line": 15768,
+"lines": 248
+},
+{
+"file": "btree.h",
+"part": 0,
+"parts": 2,
+"path": "chunks/btree_h.000.c",
+"line": 16020,
+"lines": 350
+},
+{
+"file": "btree.h",
+"part": 1,
+"parts": 2,
+"path": "chunks/btree_h.001.c",
+"line": 16370,
+"lines": 72
+},
+{
+"file": "vdbe.h",
+"part": 0,
+"parts": 2,
+"path": "chunks/vdbe_h.000.c",
+"line": 16446,
+"lines": 350
+},
+{
+"file": "vdbe.h",
+"part": 1,
+"parts": 2,
+"path": "chunks/vdbe_h.001.c",
+"line": 16796,
+"lines": 64
+},
+{
+"file": "opcodes.h",
+"part": 0,
+"parts": 1,
+"path": "chunks/opcodes_h.000.c",
+"line": 16614,
+"lines": 239
+},
+{
+"file": "pcache.h",
+"part": 0,
+"parts": 1,
+"path": "chunks/pcache_h.000.c",
+"line": 17106,
+"lines": 191
+},
+{
+"file": "mutex.h",
+"part": 0,
+"parts": 1,
+"path": "chunks/mutex_h.000.c",
+"line": 17301,
+"lines": 72
+},
+{
+"file": "os_common.h",
+"part": 0,
+"parts": 1,
+"path": "chunks/os_common_h.000.c",
+"line": 21778,
+"lines": 100
+},
+{
+"file": "ctime.c",
+"part": 0,
+"parts": 3,
+"path": "chunks/ctime_c.000.c",
+"line": 21880,
+"lines": 350
+},
+{
+"file": "ctime.c",
+"part": 1,
+"parts": 3,
+"path": "chunks/ctime_c.001.c",
+"line": 22230,
+"lines": 439
+},
+{
+"file": "ctime.c",
+"part": 2,
+"parts": 3,
+"path": "chunks/ctime_c.002.c",
+"line": 22669,
+"lines": 8
+},
+{
+"file": "global.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/global_c.000.c",
+"line": 22679,
+"lines": 394
+},
+{
+"file": "global.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/global_c.001.c",
+"line": 23073,
+"lines": 9
+},
+{
+"file": "status.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/status_c.000.c",
+"line": 23084,
+"lines": 398
+},
+{
+"file": "status.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/status_c.001.c",
+"line": 23482,
+"lines": 1
+},
+{
+"file": "vdbeInt.h",
+"part": 0,
+"parts": 3,
+"path": "chunks/vdbeInt_h.000.c",
+"line": 23102,
+"lines": 372
+},
+{
+"file": "vdbeInt.h",
+"part": 1,
+"parts": 3,
+"path": "chunks/vdbeInt_h.001.c",
+"line": 23474,
+"lines": 350
+},
+{
+"file": "vdbeInt.h",
+"part": 2,
+"parts": 3,
+"path": "chunks/vdbeInt_h.002.c",
+"line": 23824,
+"lines": 10
+},
+{
+"file": "date.c",
+"part": 0,
+"parts": 5,
+"path": "chunks/date_c.000.c",
+"line": 24220,
+"lines": 359
+},
+{
+"file": "date.c",
+"part": 1,
+"parts": 5,
+"path": "chunks/date_c.001.c",
+"line": 24579,
+"lines": 350
+},
+{
+"file": "date.c",
+"part": 2,
+"parts": 5,
+"path": "chunks/date_c.002.c",
+"line": 24929,
+"lines": 374
+},
+{
+"file": "date.c",
+"part": 3,
+"parts": 5,
+"path": "chunks/date_c.003.c",
+"line": 25303,
+"lines": 475
+},
+{
+"file": "date.c",
+"part": 4,
+"parts": 5,
+"path": "chunks/date_c.004.c",
+"line": 25778,
+"lines": 258
+},
+{
+"file": "os.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/os_c.000.c",
+"line": 26038,
+"lines": 381
+},
+{
+"file": "os.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/os_c.001.c",
+"line": 26419,
+"lines": 67
+},
+{
+"file": "fault.c",
+"part": 0,
+"parts": 1,
+"path": "chunks/fault_c.000.c",
+"line": 26488,
+"lines": 88
+},
+{
+"file": "mem0.c",
+"part": 0,
+"parts": 1,
+"path": "chunks/mem0_c.000.c",
+"line": 26578,
+"lines": 60
+},
+{
+"file": "mem1.c",
+"part": 0,
+"parts": 1,
+"path": "chunks/mem1_c.000.c",
+"line": 26640,
+"lines": 292
+},
+{
+"file": "mem2.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/mem2_c.000.c",
+"line": 26934,
+"lines": 358
+},
+{
+"file": "mem2.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/mem2_c.001.c",
+"line": 27292,
+"lines": 171
+},
+{
+"file": "mem3.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/mem3_c.000.c",
+"line": 27465,
+"lines": 428
+},
+{
+"file": "mem3.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/mem3_c.001.c",
+"line": 27893,
+"lines": 260
+},
+{
+"file": "mem5.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/mem5_c.000.c",
+"line": 28155,
+"lines": 351
+},
+{
+"file": "mem5.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/mem5_c.001.c",
+"line": 28506,
+"lines": 235
+},
+{
+"file": "mutex.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/mutex_c.000.c",
+"line": 28743,
+"lines": 354
+},
+{
+"file": "mutex.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/mutex_c.001.c",
+"line": 29097,
+"lines": 8
+},
+{
+"file": "mutex_unix.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/mutex_unix_c.000.c",
+"line": 29325,
+"lines": 371
+},
+{
+"file": "mutex_unix.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/mutex_unix_c.001.c",
+"line": 29696,
+"lines": 24
+},
+{
+"file": "malloc.c",
+"part": 0,
+"parts": 3,
+"path": "chunks/malloc_c.000.c",
+"line": 30216,
+"lines": 356
+},
+{
+"file": "malloc.c",
+"part": 1,
+"parts": 3,
+"path": "chunks/malloc_c.001.c",
+"line": 30572,
+"lines": 356
+},
+{
+"file": "malloc.c",
+"part": 2,
+"parts": 3,
+"path": "chunks/malloc_c.002.c",
+"line": 30928,
+"lines": 209
+},
+{
+"file": "printf.c",
+"part": 0,
+"parts": 4,
+"path": "chunks/printf_c.000.c",
+"line": 31139,
+"lines": 350
+},
+{
+"file": "printf.c",
+"part": 1,
+"parts": 4,
+"path": "chunks/printf_c.001.c",
+"line": 31489,
+"lines": 551
+},
+{
+"file": "printf.c",
+"part": 2,
+"parts": 4,
+"path": "chunks/printf_c.002.c",
+"line": 32040,
+"lines": 351
+},
+{
+"file": "printf.c",
+"part": 3,
+"parts": 4,
+"path": "chunks/printf_c.003.c",
+"line": 32391,
+"lines": 192
+},
+{
+"file": "random.c",
+"part": 0,
+"parts": 1,
+"path": "chunks/random_c.000.c",
+"line": 33904,
+"lines": 158
+},
+{
+"file": "threads.c",
+"part": 0,
+"parts": 1,
+"path": "chunks/threads_c.000.c",
+"line": 34064,
+"lines": 275
+},
+{
+"file": "utf.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/utf_c.000.c",
+"line": 34341,
+"lines": 395
+},
+{
+"file": "utf.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/utf_c.001.c",
+"line": 34736,
+"lines": 172
+},
+{
+"file": "util.c",
+"part": 0,
+"parts": 6,
+"path": "chunks/util_c.000.c",
+"line": 34910,
+"lines": 363
+},
+{
+"file": "util.c",
+"part": 1,
+"parts": 6,
+"path": "chunks/util_c.001.c",
+"line": 35273,
+"lines": 367
+},
+{
+"file": "util.c",
+"part": 2,
+"parts": 6,
+"path": "chunks/util_c.002.c",
+"line": 35640,
+"lines": 429
+},
+{
+"file": "util.c",
+"part": 3,
+"parts": 6,
+"path": "chunks/util_c.003.c",
+"line": 36069,
+"lines": 358
+},
+{
+"file": "util.c",
+"part": 4,
+"parts": 6,
+"path": "chunks/util_c.004.c",
+"line": 36427,
+"lines": 367
+},
+{
+"file": "util.c",
+"part": 5,
+"parts": 6,
+"path": "chunks/util_c.005.c",
+"line": 36794,
+"lines": 10
+},
+{
+"file": "hwtime.h",
+"part": 0,
+"parts": 1,
+"path": "chunks/hwtime_h.000.c",
+"line": 36803,
+"lines": 86
+},
+{
+"file": "hash.c",
+"part": 0,
+"parts": 1,
+"path": "chunks/hash_c.000.c",
+"line": 36895,
+"lines": 271
+},
+{
+"file": "opcodes.c",
+"part": 0,
+"parts": 1,
+"path": "chunks/opcodes_c.000.c",
+"line": 37168,
+"lines": 207
+},
+{
+"file": "os_unix.c",
+"part": 0,
+"parts": 22,
+"path": "chunks/os_unix_c.000.c",
+"line": 38359,
+"lines": 410
+},
+{
+"file": "os_unix.c",
+"part": 1,
+"parts": 22,
+"path": "chunks/os_unix_c.001.c",
+"line": 38769,
+"lines": 378
+},
+{
+"file": "os_unix.c",
+"part": 2,
+"parts": 22,
+"path": "chunks/os_unix_c.002.c",
+"line": 39147,
+"lines": 393
+},
+{
+"file": "os_unix.c",
+"part": 3,
+"parts": 22,
+"path": "chunks/os_unix_c.003.c",
+"line": 39540,
+"lines": 368
+},
+{
+"file": "os_unix.c",
+"part": 4,
+"parts": 22,
+"path": "chunks/os_unix_c.004.c",
+"line": 39908,
+"lines": 381
+},
+{
+"file": "os_unix.c",
+"part": 5,
+"parts": 22,
+"path": "chunks/os_unix_c.005.c",
+"line": 40289,
+"lines": 372
+},
+{
+"file": "os_unix.c",
+"part": 6,
+"parts": 22,
+"path": "chunks/os_unix_c.006.c",
+"line": 40661,
+"lines": 391
+},
+{
+"file": "os_unix.c",
+"part": 7,
+"parts": 22,
+"path": "chunks/os_unix_c.007.c",
+"line": 41052,
+"lines": 449
+},
+{
+"file": "os_unix.c",
+"part": 8,
+"parts": 22,
+"path": "chunks/os_unix_c.008.c",
+"line": 41501,
+"lines": 354
+},
+{
+"file": "os_unix.c",
+"part": 9,
+"parts": 22,
+"path": "chunks/os_unix_c.009.c",
+"line": 41855,
+"lines": 370
+},
+{
+"file": "os_unix.c",
+"part": 10,
+"parts": 22,
+"path": "chunks/os_unix_c.010.c",
+"line": 42225,
+"lines": 366
+},
+{
+"file": "os_unix.c",
+"part": 11,
+"parts": 22,
+"path": "chunks/os_unix_c.011.c",
+"line": 42591,
+"lines": 408
+},
+{
+"file": "os_unix.c",
+"part": 12,
+"parts": 22,
+"path": "chunks/os_unix_c.012.c",
+"line": 42999,
+"lines": 358
+},
+{
+"file": "os_unix.c",
+"part": 13,
+"parts": 22,
+"path": "chunks/os_unix_c.013.c",
+"line": 43357,
+"lines": 387
+},
+{
+"file": "os_unix.c",
+"part": 14,
+"parts": 22,
+"path": "chunks/os_unix_c.014.c",
+"line": 43744,
+"lines": 363
+},
+{
+"file": "os_unix.c",
+"part": 15,
+"parts": 22,
+"path": "chunks/os_unix_c.015.c",
+"line": 44107,
+"lines": 382
+},
+{
+"file": "os_unix.c",
+"part": 16,
+"parts": 22,
+"path": "chunks/os_unix_c.016.c",
+"line": 44489,
+"lines": 403
+},
+{
+"file": "os_unix.c",
+"part": 17,
+"parts": 22,
+"path": "chunks/os_unix_c.017.c",
+"line": 44892,
+"lines": 391
+},
+{
+"file": "os_unix.c",
+"part": 18,
+"parts": 22,
+"path": "chunks/os_unix_c.018.c",
+"line": 45283,
+"lines": 376
+},
+{
+"file": "os_unix.c",
+"part": 19,
+"parts": 22,
+"path": "chunks/os_unix_c.019.c",
+"line": 45659,
+"lines": 412
+},
+{
+"file": "os_unix.c",
+"part": 20,
+"parts": 22,
+"path": "chunks/os_unix_c.020.c",
+"line": 46071,
+"lines": 352
+},
+{
+"file": "os_unix.c",
+"part": 21,
+"parts": 22,
+"path": "chunks/os_unix_c.021.c",
+"line": 46423,
+"lines": 227
+},
+{
+"file": "memdb.c",
+"part": 0,
+"parts": 3,
+"path": "chunks/memdb_c.000.c",
+"line": 52866,
+"lines": 352
+},
+{
+"file": "memdb.c",
+"part": 1,
+"parts": 3,
+"path": "chunks/memdb_c.001.c",
+"line": 53218,
+"lines": 352
+},
+{
+"file": "memdb.c",
+"part": 2,
+"parts": 3,
+"path": "chunks/memdb_c.002.c",
+"line": 53570,
+"lines": 233
+},
+{
+"file": "bitvec.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/bitvec_c.000.c",
+"line": 53805,
+"lines": 410
+},
+{
+"file": "bitvec.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/bitvec_c.001.c",
+"line": 54215,
+"lines": 2
+},
+{
+"file": "pcache.c",
+"part": 0,
+"parts": 3,
+"path": "chunks/pcache_c.000.c",
+"line": 54219,
+"lines": 353
+},
+{
+"file": "pcache.c",
+"part": 1,
+"parts": 3,
+"path": "chunks/pcache_c.001.c",
+"line": 54572,
+"lines": 370
+},
+{
+"file": "pcache.c",
+"part": 2,
+"parts": 3,
+"path": "chunks/pcache_c.002.c",
+"line": 54942,
+"lines": 213
+},
+{
+"file": "pcache1.c",
+"part": 0,
+"parts": 4,
+"path": "chunks/pcache1_c.000.c",
+"line": 55157,
+"lines": 377
+},
+{
+"file": "pcache1.c",
+"part": 1,
+"parts": 4,
+"path": "chunks/pcache1_c.001.c",
+"line": 55534,
+"lines": 366
+},
+{
+"file": "pcache1.c",
+"part": 2,
+"parts": 4,
+"path": "chunks/pcache1_c.002.c",
+"line": 55900,
+"lines": 365
+},
+{
+"file": "pcache1.c",
+"part": 3,
+"parts": 4,
+"path": "chunks/pcache1_c.003.c",
+"line": 56265,
+"lines": 173
+},
+{
+"file": "rowset.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/rowset_c.000.c",
+"line": 56440,
+"lines": 370
+},
+{
+"file": "rowset.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/rowset_c.001.c",
+"line": 56810,
+"lines": 133
+},
+{
+"file": "pager.c",
+"part": 0,
+"parts": 20,
+"path": "chunks/pager_c.000.c",
+"line": 56945,
+"lines": 442
+},
+{
+"file": "pager.c",
+"part": 1,
+"parts": 20,
+"path": "chunks/pager_c.001.c",
+"line": 57387,
+"lines": 384
+},
+{
+"file": "pager.c",
+"part": 2,
+"parts": 20,
+"path": "chunks/pager_c.002.c",
+"line": 57771,
+"lines": 404
+},
+{
+"file": "pager.c",
+"part": 3,
+"parts": 20,
+"path": "chunks/pager_c.003.c",
+"line": 58175,
+"lines": 453
+},
+{
+"file": "pager.c",
+"part": 4,
+"parts": 20,
+"path": "chunks/pager_c.004.c",
+"line": 58628,
+"lines": 478
+},
+{
+"file": "pager.c",
+"part": 5,
+"parts": 20,
+"path": "chunks/pager_c.005.c",
+"line": 59106,
+"lines": 460
+},
+{
+"file": "pager.c",
+"part": 6,
+"parts": 20,
+"path": "chunks/pager_c.006.c",
+"line": 59566,
+"lines": 374
+},
+{
+"file": "pager.c",
+"part": 7,
+"parts": 20,
+"path": "chunks/pager_c.007.c",
+"line": 59940,
+"lines": 361
+},
+{
+"file": "pager.c",
+"part": 8,
+"parts": 20,
+"path": "chunks/pager_c.008.c",
+"line": 60301,
+"lines": 355
+},
+{
+"file": "pager.c",
+"part": 9,
+"parts": 20,
+"path": "chunks/pager_c.009.c",
+"line": 60656,
+"lines": 372
+},
+{
+"file": "pager.c",
+"part": 10,
+"parts": 20,
+"path": "chunks/pager_c.010.c",
+"line": 61028,
+"lines": 400
+},
+{
+"file": "pager.c",
+"part": 11,
+"parts": 20,
+"path": "chunks/pager_c.011.c",
+"line": 61428,
+"lines": 572
+},
+{
+"file": "pager.c",
+"part": 12,
+"parts": 20,
+"path": "chunks/pager_c.012.c",
+"line": 62000,
+"lines": 378
+},
+{
+"file": "pager.c",
+"part": 13,
+"parts": 20,
+"path": "chunks/pager_c.013.c",
+"line": 62378,
+"lines": 442
+},
+{
+"file": "pager.c",
+"part": 14,
+"parts": 20,
+"path": "chunks/pager_c.014.c",
+"line": 62820,
+"lines": 357
+},
+{
+"file": "pager.c",
+"part": 15,
+"parts": 20,
+"path": "chunks/pager_c.015.c",
+"line": 63177,
+"lines": 424
+},
+{
+"file": "pager.c",
+"part": 16,
+"parts": 20,
+"path": "chunks/pager_c.016.c",
+"line": 63601,
+"lines": 389
+},
+{
+"file": "pager.c",
+"part": 17,
+"parts": 20,
+"path": "chunks/pager_c.017.c",
+"line": 63990,
+"lines": 373
+},
+{
+"file": "pager.c",
+"part": 18,
+"parts": 20,
+"path": "chunks/pager_c.018.c",
+"line": 64363,
+"lines": 357
+},
+{
+"file": "pager.c",
+"part": 19,
+"parts": 20,
+"path": "chunks/pager_c.019.c",
+"line": 64720,
+"lines": 26
+},
+{
+"file": "wal.h",
+"part": 0,
+"parts": 1,
+"path": "chunks/wal_h.000.c",
+"line": 56969,
+"lines": 161
+},
+{
+"file": "wal.c",
+"part": 0,
+"parts": 12,
+"path": "chunks/wal_c.000.c",
+"line": 64912,
+"lines": 400
+},
+{
+"file": "wal.c",
+"part": 1,
+"parts": 12,
+"path": "chunks/wal_c.001.c",
+"line": 65312,
+"lines": 394
+},
+{
+"file": "wal.c",
+"part": 2,
+"parts": 12,
+"path": "chunks/wal_c.002.c",
+"line": 65706,
+"lines": 387
+},
+{
+"file": "wal.c",
+"part": 3,
+"parts": 12,
+"path": "chunks/wal_c.003.c",
+"line": 66093,
+"lines": 419
+},
+{
+"file": "wal.c",
+"part": 4,
+"parts": 12,
+"path": "chunks/wal_c.004.c",
+"line": 66512,
+"lines": 404
+},
+{
+"file": "wal.c",
+"part": 5,
+"parts": 12,
+"path": "chunks/wal_c.005.c",
+"line": 66916,
+"lines": 364
+},
+{
+"file": "wal.c",
+"part": 6,
+"parts": 12,
+"path": "chunks/wal_c.006.c",
+"line": 67280,
+"lines": 361
+},
+{
+"file": "wal.c",
+"part": 7,
+"parts": 12,
+"path": "chunks/wal_c.007.c",
+"line": 67641,
+"lines": 506
+},
+{
+"file": "wal.c",
+"part": 8,
+"parts": 12,
+"path": "chunks/wal_c.008.c",
+"line": 68147,
+"lines": 373
+},
+{
+"file": "wal.c",
+"part": 9,
+"parts": 12,
+"path": "chunks/wal_c.009.c",
+"line": 68520,
+"lines": 377
+},
+{
+"file": "wal.c",
+"part": 10,
+"parts": 12,
+"path": "chunks/wal_c.010.c",
+"line": 68897,
+"lines": 394
+},
+{
+"file": "wal.c",
+"part": 11,
+"parts": 12,
+"path": "chunks/wal_c.011.c",
+"line": 69291,
+"lines": 201
+},
+{
+"file": "btmutex.c",
+"part": 0,
+"parts": 1,
+"path": "chunks/btmutex_c.000.c",
+"line": 69494,
+"lines": 310
+},
+{
+"file": "btreeInt.h",
+"part": 0,
+"parts": 3,
+"path": "chunks/btreeInt_h.000.c",
+"line": 69513,
+"lines": 363
+},
+{
+"file": "btreeInt.h",
+"part": 1,
+"parts": 3,
+"path": "chunks/btreeInt_h.001.c",
+"line": 69876,
+"lines": 350
+},
+{
+"file": "btreeInt.h",
+"part": 2,
+"parts": 3,
+"path": "chunks/btreeInt_h.002.c",
+"line": 70226,
+"lines": 22
+},
+{
+"file": "btree.c",
+"part": 0,
+"parts": 27,
+"path": "chunks/btree_c.000.c",
+"line": 70544,
+"lines": 380
+},
+{
+"file": "btree.c",
+"part": 1,
+"parts": 27,
+"path": "chunks/btree_c.001.c",
+"line": 70924,
+"lines": 367
+},
+{
+"file": "btree.c",
+"part": 2,
+"parts": 27,
+"path": "chunks/btree_c.002.c",
+"line": 71291,
+"lines": 363
+},
+{
+"file": "btree.c",
+"part": 3,
+"parts": 27,
+"path": "chunks/btree_c.003.c",
+"line": 71654,
+"lines": 376
+},
+{
+"file": "btree.c",
+"part": 4,
+"parts": 27,
+"path": "chunks/btree_c.004.c",
+"line": 72030,
+"lines": 412
+},
+{
+"file": "btree.c",
+"part": 5,
+"parts": 27,
+"path": "chunks/btree_c.005.c",
+"line": 72442,
+"lines": 357
+},
+{
+"file": "btree.c",
+"part": 6,
+"parts": 27,
+"path": "chunks/btree_c.006.c",
+"line": 72799,
+"lines": 560
+},
+{
+"file": "btree.c",
+"part": 7,
+"parts": 27,
+"path": "chunks/btree_c.007.c",
+"line": 73359,
+"lines": 364
+},
+{
+"file": "btree.c",
+"part": 8,
+"parts": 27,
+"path": "chunks/btree_c.008.c",
+"line": 73723,
+"lines": 353
+},
+{
+"file": "btree.c",
+"part": 9,
+"parts": 27,
+"path": "chunks/btree_c.009.c",
+"line": 74076,
+"lines": 354
+},
+{
+"file": "btree.c",
+"part": 10,
+"parts": 27,
+"path": "chunks/btree_c.010.c",
+"line": 74430,
+"lines": 402
+},
+{
+"file": "btree.c",
+"part": 11,
+"parts": 27,
+"path": "chunks/btree_c.011.c",
+"line": 74832,
+"lines": 421
+},
+{
+"file": "btree.c",
+"part": 12,
+"parts": 27,
+"path": "chunks/btree_c.012.c",
+"line": 75253,
+"lines": 544
+},
+{
+"file": "btree.c",
+"part": 13,
+"parts": 27,
+"path": "chunks/btree_c.013.c",
+"line": 75797,
+"lines": 356
+},
+{
+"file": "btree.c",
+"part": 14,
+"parts": 27,
+"path": "chunks/btree_c.014.c",
+"line": 76153,
+"lines": 559
+},
+{
+"file": "btree.c",
+"part": 15,
+"parts": 27,
+"path": "chunks/btree_c.015.c",
+"line": 76712,
+"lines": 555
+},
+{
+"file": "btree.c",
+"part": 16,
+"parts": 27,
+"path": "chunks/btree_c.016.c",
+"line": 77267,
+"lines": 435
+},
+{
+"file": "btree.c",
+"part": 17,
+"parts": 27,
+"path": "chunks/btree_c.017.c",
+"line": 77702,
+"lines": 357
+},
+{
+"file": "btree.c",
+"part": 18,
+"parts": 27,
+"path": "chunks/btree_c.018.c",
+"line": 78059,
+"lines": 359
+},
+{
+"file": "btree.c",
+"part": 19,
+"parts": 27,
+"path": "chunks/btree_c.019.c",
+"line": 78418,
+"lines": 350
+},
+{
+"file": "btree.c",
+"part": 20,
+"parts": 27,
+"path": "chunks/btree_c.020.c",
+"line": 78768,
+"lines": 688
+},
+{
+"file": "btree.c",
+"part": 21,
+"parts": 27,
+"path": "chunks/btree_c.021.c",
+"line": 79456,
+"lines": 683
+},
+{
+"file": "btree.c",
+"part": 22,
+"parts": 27,
+"path": "chunks/btree_c.022.c",
+"line": 80139,
+"lines": 488
+},
+{
+"file": "btree.c",
+"part": 23,
+"parts": 27,
+"path": "chunks/btree_c.023.c",
+"line": 80627,
+"lines": 369
+},
+{
+"file": "btree.c",
+"part": 24,
+"parts": 27,
+"path": "chunks/btree_c.024.c",
+"line": 80996,
+"lines": 548
+},
+{
+"file": "btree.c",
+"part": 25,
+"parts": 27,
+"path": "chunks/btree_c.025.c",
+"line": 81544,
+"lines": 371
+},
+{
+"file": "btree.c",
+"part": 26,
+"parts": 27,
+"path": "chunks/btree_c.026.c",
+"line": 81915,
+"lines": 96
+},
+{
+"file": "backup.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/backup_c.000.c",
+"line": 82013,
+"lines": 566
+},
+{
+"file": "backup.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/backup_c.001.c",
+"line": 82579,
+"lines": 202
+},
+{
+"file": "vdbemem.c",
+"part": 0,
+"parts": 6,
+"path": "chunks/vdbemem_c.000.c",
+"line": 82783,
+"lines": 369
+},
+{
+"file": "vdbemem.c",
+"part": 1,
+"parts": 6,
+"path": "chunks/vdbemem_c.001.c",
+"line": 83152,
+"lines": 362
+},
+{
+"file": "vdbemem.c",
+"part": 2,
+"parts": 6,
+"path": "chunks/vdbemem_c.002.c",
+"line": 83514,
+"lines": 354
+},
+{
+"file": "vdbemem.c",
+"part": 3,
+"parts": 6,
+"path": "chunks/vdbemem_c.003.c",
+"line": 83868,
+"lines": 388
+},
+{
+"file": "vdbemem.c",
+"part": 4,
+"parts": 6,
+"path": "chunks/vdbemem_c.004.c",
+"line": 84256,
+"lines": 373
+},
+{
+"file": "vdbemem.c",
+"part": 5,
+"parts": 6,
+"path": "chunks/vdbemem_c.005.c",
+"line": 84629,
+"lines": 207
+},
+{
+"file": "vdbeaux.c",
+"part": 0,
+"parts": 14,
+"path": "chunks/vdbeaux_c.000.c",
+"line": 84838,
+"lines": 365
+},
+{
+"file": "vdbeaux.c",
+"part": 1,
+"parts": 14,
+"path": "chunks/vdbeaux_c.001.c",
+"line": 85203,
+"lines": 381
+},
+{
+"file": "vdbeaux.c",
+"part": 2,
+"parts": 14,
+"path": "chunks/vdbeaux_c.002.c",
+"line": 85584,
+"lines": 360
+},
+{
+"file": "vdbeaux.c",
+"part": 3,
+"parts": 14,
+"path": "chunks/vdbeaux_c.003.c",
+"line": 85944,
+"lines": 365
+},
+{
+"file": "vdbeaux.c",
+"part": 4,
+"parts": 14,
+"path": "chunks/vdbeaux_c.004.c",
+"line": 86309,
+"lines": 414
+},
+{
+"file": "vdbeaux.c",
+"part": 5,
+"parts": 14,
+"path": "chunks/vdbeaux_c.005.c",
+"line": 86723,
+"lines": 458
+},
+{
+"file": "vdbeaux.c",
+"part": 6,
+"parts": 14,
+"path": "chunks/vdbeaux_c.006.c",
+"line": 87181,
+"lines": 374
+},
+{
+"file": "vdbeaux.c",
+"part": 7,
+"parts": 14,
+"path": "chunks/vdbeaux_c.007.c",
+"line": 87555,
+"lines": 427
+},
+{
+"file": "vdbeaux.c",
+"part": 8,
+"parts": 14,
+"path": "chunks/vdbeaux_c.008.c",
+"line": 87982,
+"lines": 374
+},
+{
+"file": "vdbeaux.c",
+"part": 9,
+"parts": 14,
+"path": "chunks/vdbeaux_c.009.c",
+"line": 88356,
+"lines": 410
+},
+{
+"file": "vdbeaux.c",
+"part": 10,
+"parts": 14,
+"path": "chunks/vdbeaux_c.010.c",
+"line": 88766,
+"lines": 448
+},
+{
+"file": "vdbeaux.c",
+"part": 11,
+"parts": 14,
+"path": "chunks/vdbeaux_c.011.c",
+"line": 89214,
+"lines": 547
+},
+{
+"file": "vdbeaux.c",
+"part": 12,
+"parts": 14,
+"path": "chunks/vdbeaux_c.012.c",
+"line": 89761,
+"lines": 355
+},
+{
+"file": "vdbeaux.c",
+"part": 13,
+"parts": 14,
+"path": "chunks/vdbeaux_c.013.c",
+"line": 90116,
+"lines": 259
+},
+{
+"file": "vdbeapi.c",
+"part": 0,
+"parts": 7,
+"path": "chunks/vdbeapi_c.000.c",
+"line": 90377,
+"lines": 367
+},
+{
+"file": "vdbeapi.c",
+"part": 1,
+"parts": 7,
+"path": "chunks/vdbeapi_c.001.c",
+"line": 90744,
+"lines": 375
+},
+{
+"file": "vdbeapi.c",
+"part": 2,
+"parts": 7,
+"path": "chunks/vdbeapi_c.002.c",
+"line": 91119,
+"lines": 361
+},
+{
+"file": "vdbeapi.c",
+"part": 3,
+"parts": 7,
+"path": "chunks/vdbeapi_c.003.c",
+"line": 91480,
+"lines": 423
+},
+{
+"file": "vdbeapi.c",
+"part": 4,
+"parts": 7,
+"path": "chunks/vdbeapi_c.004.c",
+"line": 91903,
+"lines": 357
+},
+{
+"file": "vdbeapi.c",
+"part": 5,
+"parts": 7,
+"path": "chunks/vdbeapi_c.005.c",
+"line": 92260,
+"lines": 353
+},
+{
+"file": "vdbeapi.c",
+"part": 6,
+"parts": 7,
+"path": "chunks/vdbeapi_c.006.c",
+"line": 92613,
+"lines": 304
+},
+{
+"file": "vdbetrace.c",
+"part": 0,
+"parts": 1,
+"path": "chunks/vdbetrace_c.000.c",
+"line": 92919,
+"lines": 193
+},
+{
+"file": "vdbe.c",
+"part": 0,
+"parts": 24,
+"path": "chunks/vdbe_c.000.c",
+"line": 93114,
+"lines": 364
+},
+{
+"file": "vdbe.c",
+"part": 1,
+"parts": 24,
+"path": "chunks/vdbe_c.001.c",
+"line": 93478,
+"lines": 419
+},
+{
+"file": "vdbe.c",
+"part": 2,
+"parts": 24,
+"path": "chunks/vdbe_c.002.c",
+"line": 93897,
+"lines": 366
+},
+{
+"file": "vdbe.c",
+"part": 3,
+"parts": 24,
+"path": "chunks/vdbe_c.003.c",
+"line": 94263,
+"lines": 366
+},
+{
+"file": "vdbe.c",
+"part": 4,
+"parts": 24,
+"path": "chunks/vdbe_c.004.c",
+"line": 94629,
+"lines": 401
+},
+{
+"file": "vdbe.c",
+"part": 5,
+"parts": 24,
+"path": "chunks/vdbe_c.005.c",
+"line": 95030,
+"lines": 441
+},
+{
+"file": "vdbe.c",
+"part": 6,
+"parts": 24,
+"path": "chunks/vdbe_c.006.c",
+"line": 95471,
+"lines": 437
+},
+{
+"file": "vdbe.c",
+"part": 7,
+"parts": 24,
+"path": "chunks/vdbe_c.007.c",
+"line": 95908,
+"lines": 408
+},
+{
+"file": "vdbe.c",
+"part": 8,
+"parts": 24,
+"path": "chunks/vdbe_c.008.c",
+"line": 96316,
+"lines": 495
+},
+{
+"file": "vdbe.c",
+"part": 9,
+"parts": 24,
+"path": "chunks/vdbe_c.009.c",
+"line": 96811,
+"lines": 416
+},
+{
+"file": "vdbe.c",
+"part": 10,
+"parts": 24,
+"path": "chunks/vdbe_c.010.c",
+"line": 97227,
+"lines": 415
+},
+{
+"file": "vdbe.c",
+"part": 11,
+"parts": 24,
+"path": "chunks/vdbe_c.011.c",
+"line": 97642,
+"lines": 401
+},
+{
+"file": "vdbe.c",
+"part": 12,
+"parts": 24,
+"path": "chunks/vdbe_c.012.c",
+"line": 98043,
+"lines": 423
+},
+{
+"file": "vdbe.c",
+"part": 13,
+"parts": 24,
+"path": "chunks/vdbe_c.013.c",
+"line": 98466,
+"lines": 388
+},
+{
+"file": "vdbe.c",
+"part": 14,
+"parts": 24,
+"path": "chunks/vdbe_c.014.c",
+"line": 98854,
+"lines": 359
+},
+{
+"file": "vdbe.c",
+"part": 15,
+"parts": 24,
+"path": "chunks/vdbe_c.015.c",
+"line": 99213,
+"lines": 379
+},
+{
+"file": "vdbe.c",
+"part": 16,
+"parts": 24,
+"path": "chunks/vdbe_c.016.c",
+"line": 99592,
+"lines": 355
+},
+{
+"file": "vdbe.c",
+"part": 17,
+"parts": 24,
+"path": "chunks/vdbe_c.017.c",
+"line": 99947,
+"lines": 361
+},
+{
+"file": "vdbe.c",
+"part": 18,
+"parts": 24,
+"path": "chunks/vdbe_c.018.c",
+"line": 100308,
+"lines": 387
+},
+{
+"file": "vdbe.c",
+"part": 19,
+"parts": 24,
+"path": "chunks/vdbe_c.019.c",
+"line": 100695,
+"lines": 372
+},
+{
+"file": "vdbe.c",
+"part": 20,
+"parts": 24,
+"path": "chunks/vdbe_c.020.c",
+"line": 101067,
+"lines": 383
+},
+{
+"file": "vdbe.c",
+"part": 21,
+"parts": 24,
+"path": "chunks/vdbe_c.021.c",
+"line": 101450,
+"lines": 363
+},
+{
+"file": "vdbe.c",
+"part": 22,
+"parts": 24,
+"path": "chunks/vdbe_c.022.c",
+"line": 101813,
+"lines": 467
+},
+{
+"file": "vdbe.c",
+"part": 23,
+"parts": 24,
+"path": "chunks/vdbe_c.023.c",
+"line": 102280,
+"lines": 2
+},
+{
+"file": "vdbeblob.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/vdbeblob_c.000.c",
+"line": 102284,
+"lines": 372
+},
+{
+"file": "vdbeblob.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/vdbeblob_c.001.c",
+"line": 102656,
+"lines": 144
+},
+{
+"file": "vdbesort.c",
+"part": 0,
+"parts": 8,
+"path": "chunks/vdbesort_c.000.c",
+"line": 102802,
+"lines": 362
+},
+{
+"file": "vdbesort.c",
+"part": 1,
+"parts": 8,
+"path": "chunks/vdbesort_c.001.c",
+"line": 103164,
+"lines": 351
+},
+{
+"file": "vdbesort.c",
+"part": 2,
+"parts": 8,
+"path": "chunks/vdbesort_c.002.c",
+"line": 103515,
+"lines": 354
+},
+{
+"file": "vdbesort.c",
+"part": 3,
+"parts": 8,
+"path": "chunks/vdbesort_c.003.c",
+"line": 103869,
+"lines": 381
+},
+{
+"file": "vdbesort.c",
+"part": 4,
+"parts": 8,
+"path": "chunks/vdbesort_c.004.c",
+"line": 104250,
+"lines": 424
+},
+{
+"file": "vdbesort.c",
+"part": 5,
+"parts": 8,
+"path": "chunks/vdbesort_c.005.c",
+"line": 104674,
+"lines": 378
+},
+{
+"file": "vdbesort.c",
+"part": 6,
+"parts": 8,
+"path": "chunks/vdbesort_c.006.c",
+"line": 105052,
+"lines": 375
+},
+{
+"file": "vdbesort.c",
+"part": 7,
+"parts": 8,
+"path": "chunks/vdbesort_c.007.c",
+"line": 105427,
+"lines": 142
+},
+{
+"file": "vdbevtab.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/vdbevtab_c.000.c",
+"line": 105571,
+"lines": 369
+},
+{
+"file": "vdbevtab.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/vdbevtab_c.001.c",
+"line": 105940,
+"lines": 78
+},
+{
+"file": "memjournal.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/memjournal_c.000.c",
+"line": 106020,
+"lines": 386
+},
+{
+"file": "memjournal.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/memjournal_c.001.c",
+"line": 106406,
+"lines": 55
+},
+{
+"file": "walker.c",
+"part": 0,
+"parts": 1,
+"path": "chunks/walker_c.000.c",
+"line": 106463,
+"lines": 260
+},
+{
+"file": "resolve.c",
+"part": 0,
+"parts": 6,
+"path": "chunks/resolve_c.000.c",
+"line": 106725,
+"lines": 350
+},
+{
+"file": "resolve.c",
+"part": 1,
+"parts": 6,
+"path": "chunks/resolve_c.001.c",
+"line": 107075,
+"lines": 512
+},
+{
+"file": "resolve.c",
+"part": 2,
+"parts": 6,
+"path": "chunks/resolve_c.002.c",
+"line": 107587,
+"lines": 578
+},
+{
+"file": "resolve.c",
+"part": 3,
+"parts": 6,
+"path": "chunks/resolve_c.003.c",
+"line": 108165,
+"lines": 380
+},
+{
+"file": "resolve.c",
+"part": 4,
+"parts": 6,
+"path": "chunks/resolve_c.004.c",
+"line": 108545,
+"lines": 383
+},
+{
+"file": "resolve.c",
+"part": 5,
+"parts": 6,
+"path": "chunks/resolve_c.005.c",
+"line": 108928,
+"lines": 82
+},
+{
+"file": "expr.c",
+"part": 0,
+"parts": 18,
+"path": "chunks/expr_c.000.c",
+"line": 109012,
+"lines": 352
+},
+{
+"file": "expr.c",
+"part": 1,
+"parts": 18,
+"path": "chunks/expr_c.001.c",
+"line": 109364,
+"lines": 426
+},
+{
+"file": "expr.c",
+"part": 2,
+"parts": 18,
+"path": "chunks/expr_c.002.c",
+"line": 109790,
+"lines": 373
+},
+{
+"file": "expr.c",
+"part": 3,
+"parts": 18,
+"path": "chunks/expr_c.003.c",
+"line": 110163,
+"lines": 378
+},
+{
+"file": "expr.c",
+"part": 4,
+"parts": 18,
+"path": "chunks/expr_c.004.c",
+"line": 110541,
+"lines": 384
+},
+{
+"file": "expr.c",
+"part": 5,
+"parts": 18,
+"path": "chunks/expr_c.005.c",
+"line": 110925,
+"lines": 363
+},
+{
+"file": "expr.c",
+"part": 6,
+"parts": 18,
+"path": "chunks/expr_c.006.c",
+"line": 111288,
+"lines": 406
+},
+{
+"file": "expr.c",
+"part": 7,
+"parts": 18,
+"path": "chunks/expr_c.007.c",
+"line": 111694,
+"lines": 641
+},
+{
+"file": "expr.c",
+"part": 8,
+"parts": 18,
+"path": "chunks/expr_c.008.c",
+"line": 112335,
+"lines": 415
+},
+{
+"file": "expr.c",
+"part": 9,
+"parts": 18,
+"path": "chunks/expr_c.009.c",
+"line": 112750,
+"lines": 359
+},
+{
+"file": "expr.c",
+"part": 10,
+"parts": 18,
+"path": "chunks/expr_c.010.c",
+"line": 113109,
+"lines": 381
+},
+{
+"file": "expr.c",
+"part": 11,
+"parts": 18,
+"path": "chunks/expr_c.011.c",
+"line": 113490,
+"lines": 350
+},
+{
+"file": "expr.c",
+"part": 12,
+"parts": 18,
+"path": "chunks/expr_c.012.c",
+"line": 113840,
+"lines": 497
+},
+{
+"file": "expr.c",
+"part": 13,
+"parts": 18,
+"path": "chunks/expr_c.013.c",
+"line": 114337,
+"lines": 455
+},
+{
+"file": "expr.c",
+"part": 14,
+"parts": 18,
+"path": "chunks/expr_c.014.c",
+"line": 114792,
+"lines": 377
+},
+{
+"file": "expr.c",
+"part": 15,
+"parts": 18,
+"path": "chunks/expr_c.015.c",
+"line": 115169,
+"lines": 371
+},
+{
+"file": "expr.c",
+"part": 16,
+"parts": 18,
+"path": "chunks/expr_c.016.c",
+"line": 115540,
+"lines": 436
+},
+{
+"file": "expr.c",
+"part": 17,
+"parts": 18,
+"path": "chunks/expr_c.017.c",
+"line": 115976,
+"lines": 165
+},
+{
+"file": "alter.c",
+"part": 0,
+"parts": 6,
+"path": "chunks/alter_c.000.c",
+"line": 116143,
+"lines": 466
+},
+{
+"file": "alter.c",
+"part": 1,
+"parts": 6,
+"path": "chunks/alter_c.001.c",
+"line": 116609,
+"lines": 356
+},
+{
+"file": "alter.c",
+"part": 2,
+"parts": 6,
+"path": "chunks/alter_c.002.c",
+"line": 116965,
+"lines": 353
+},
+{
+"file": "alter.c",
+"part": 3,
+"parts": 6,
+"path": "chunks/alter_c.003.c",
+"line": 117318,
+"lines": 477
+},
+{
+"file": "alter.c",
+"part": 4,
+"parts": 6,
+"path": "chunks/alter_c.004.c",
+"line": 117795,
+"lines": 423
+},
+{
+"file": "alter.c",
+"part": 5,
+"parts": 6,
+"path": "chunks/alter_c.005.c",
+"line": 118218,
+"lines": 237
+},
+{
+"file": "analyze.c",
+"part": 0,
+"parts": 5,
+"path": "chunks/analyze_c.000.c",
+"line": 118457,
+"lines": 359
+},
+{
+"file": "analyze.c",
+"part": 1,
+"parts": 5,
+"path": "chunks/analyze_c.001.c",
+"line": 118816,
+"lines": 419
+},
+{
+"file": "analyze.c",
+"part": 2,
+"parts": 5,
+"path": "chunks/analyze_c.002.c",
+"line": 119235,
+"lines": 598
+},
+{
+"file": "analyze.c",
+"part": 3,
+"parts": 5,
+"path": "chunks/analyze_c.003.c",
+"line": 119833,
+"lines": 369
+},
+{
+"file": "analyze.c",
+"part": 4,
+"parts": 5,
+"path": "chunks/analyze_c.004.c",
+"line": 120202,
+"lines": 273
+},
+{
+"file": "attach.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/attach_c.000.c",
+"line": 120477,
+"lines": 409
+},
+{
+"file": "attach.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/attach_c.001.c",
+"line": 120886,
+"lines": 209
+},
+{
+"file": "auth.c",
+"part": 0,
+"parts": 1,
+"path": "chunks/auth_c.000.c",
+"line": 121097,
+"lines": 269
+},
+{
+"file": "build.c",
+"part": 0,
+"parts": 15,
+"path": "chunks/build_c.000.c",
+"line": 121368,
+"lines": 419
+},
+{
+"file": "build.c",
+"part": 1,
+"parts": 15,
+"path": "chunks/build_c.001.c",
+"line": 121787,
+"lines": 375
+},
+{
+"file": "build.c",
+"part": 2,
+"parts": 15,
+"path": "chunks/build_c.002.c",
+"line": 122162,
+"lines": 382
+},
+{
+"file": "build.c",
+"part": 3,
+"parts": 15,
+"path": "chunks/build_c.003.c",
+"line": 122544,
+"lines": 420
+},
+{
+"file": "build.c",
+"part": 4,
+"parts": 15,
+"path": "chunks/build_c.004.c",
+"line": 122964,
+"lines": 372
+},
+{
+"file": "build.c",
+"part": 5,
+"parts": 15,
+"path": "chunks/build_c.005.c",
+"line": 123336,
+"lines": 528
+},
+{
+"file": "build.c",
+"part": 6,
+"parts": 15,
+"path": "chunks/build_c.006.c",
+"line": 123864,
+"lines": 473
+},
+{
+"file": "build.c",
+"part": 7,
+"parts": 15,
+"path": "chunks/build_c.007.c",
+"line": 124337,
+"lines": 373
+},
+{
+"file": "build.c",
+"part": 8,
+"parts": 15,
+"path": "chunks/build_c.008.c",
+"line": 124710,
+"lines": 380
+},
+{
+"file": "build.c",
+"part": 9,
+"parts": 15,
+"path": "chunks/build_c.009.c",
+"line": 125090,
+"lines": 350
+},
+{
+"file": "build.c",
+"part": 10,
+"parts": 15,
+"path": "chunks/build_c.010.c",
+"line": 125440,
+"lines": 442
+},
+{
+"file": "build.c",
+"part": 11,
+"parts": 15,
+"path": "chunks/build_c.011.c",
+"line": 125882,
+"lines": 388
+},
+{
+"file": "build.c",
+"part": 12,
+"parts": 15,
+"path": "chunks/build_c.012.c",
+"line": 126270,
+"lines": 354
+},
+{
+"file": "build.c",
+"part": 13,
+"parts": 15,
+"path": "chunks/build_c.013.c",
+"line": 126624,
+"lines": 361
+},
+{
+"file": "build.c",
+"part": 14,
+"parts": 15,
+"path": "chunks/build_c.014.c",
+"line": 126985,
+"lines": 88
+},
+{
+"file": "callback.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/callback_c.000.c",
+"line": 127075,
+"lines": 374
+},
+{
+"file": "callback.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/callback_c.001.c",
+"line": 127449,
+"lines": 167
+},
+{
+"file": "delete.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/delete_c.000.c",
+"line": 127618,
+"lines": 691
+},
+{
+"file": "delete.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/delete_c.001.c",
+"line": 128309,
+"lines": 338
+},
+{
+"file": "func.c",
+"part": 0,
+"parts": 8,
+"path": "chunks/func_c.000.c",
+"line": 128649,
+"lines": 436
+},
+{
+"file": "func.c",
+"part": 1,
+"parts": 8,
+"path": "chunks/func_c.001.c",
+"line": 129085,
+"lines": 419
+},
+{
+"file": "func.c",
+"part": 2,
+"parts": 8,
+"path": "chunks/func_c.002.c",
+"line": 129504,
+"lines": 377
+},
+{
+"file": "func.c",
+"part": 3,
+"parts": 8,
+"path": "chunks/func_c.003.c",
+"line": 129881,
+"lines": 365
+},
+{
+"file": "func.c",
+"part": 4,
+"parts": 8,
+"path": "chunks/func_c.004.c",
+"line": 130246,
+"lines": 367
+},
+{
+"file": "func.c",
+"part": 5,
+"parts": 8,
+"path": "chunks/func_c.005.c",
+"line": 130613,
+"lines": 357
+},
+{
+"file": "func.c",
+"part": 6,
+"parts": 8,
+"path": "chunks/func_c.006.c",
+"line": 130970,
+"lines": 436
+},
+{
+"file": "func.c",
+"part": 7,
+"parts": 8,
+"path": "chunks/func_c.007.c",
+"line": 131406,
+"lines": 1
+},
+{
+"file": "fkey.c",
+"part": 0,
+"parts": 4,
+"path": "chunks/fkey_c.000.c",
+"line": 131409,
+"lines": 460
+},
+{
+"file": "fkey.c",
+"part": 1,
+"parts": 4,
+"path": "chunks/fkey_c.001.c",
+"line": 131869,
+"lines": 351
+},
+{
+"file": "fkey.c",
+"part": 2,
+"parts": 4,
+"path": "chunks/fkey_c.002.c",
+"line": 132220,
+"lines": 373
+},
+{
+"file": "fkey.c",
+"part": 3,
+"parts": 4,
+"path": "chunks/fkey_c.003.c",
+"line": 132593,
+"lines": 299
+},
+{
+"file": "insert.c",
+"part": 0,
+"parts": 9,
+"path": "chunks/insert_c.000.c",
+"line": 132894,
+"lines": 378
+},
+{
+"file": "insert.c",
+"part": 1,
+"parts": 9,
+"path": "chunks/insert_c.001.c",
+"line": 133272,
+"lines": 391
+},
+{
+"file": "insert.c",
+"part": 2,
+"parts": 9,
+"path": "chunks/insert_c.002.c",
+"line": 133663,
+"lines": 350
+},
+{
+"file": "insert.c",
+"part": 3,
+"parts": 9,
+"path": "chunks/insert_c.003.c",
+"line": 134013,
+"lines": 523
+},
+{
+"file": "insert.c",
+"part": 4,
+"parts": 9,
+"path": "chunks/insert_c.004.c",
+"line": 134536,
+"lines": 350
+},
+{
+"file": "insert.c",
+"part": 5,
+"parts": 9,
+"path": "chunks/insert_c.005.c",
+"line": 134886,
+"lines": 350
+},
+{
+"file": "insert.c",
+"part": 6,
+"parts": 9,
+"path": "chunks/insert_c.006.c",
+"line": 135236,
+"lines": 361
+},
+{
+"file": "insert.c",
+"part": 7,
+"parts": 9,
+"path": "chunks/insert_c.007.c",
+"line": 135597,
+"lines": 669
+},
+{
+"file": "insert.c",
+"part": 8,
+"parts": 9,
+"path": "chunks/insert_c.008.c",
+"line": 136266,
+"lines": 2
+},
+{
+"file": "legacy.c",
+"part": 0,
+"parts": 1,
+"path": "chunks/legacy_c.000.c",
+"line": 136270,
+"lines": 142
+},
+{
+"file": "loadext.c",
+"part": 0,
+"parts": 3,
+"path": "chunks/loadext_c.000.c",
+"line": 136414,
+"lines": 521
+},
+{
+"file": "loadext.c",
+"part": 1,
+"parts": 3,
+"path": "chunks/loadext_c.001.c",
+"line": 136935,
+"lines": 356
+},
+{
+"file": "loadext.c",
+"part": 2,
+"parts": 3,
+"path": "chunks/loadext_c.002.c",
+"line": 137291,
+"lines": 45
+},
+{
+"file": "sqlite3ext.h",
+"part": 0,
+"parts": 3,
+"path": "chunks/sqlite3ext_h.000.c",
+"line": 136434,
+"lines": 369
+},
+{
+"file": "sqlite3ext.h",
+"part": 1,
+"parts": 3,
+"path": "chunks/sqlite3ext_h.001.c",
+"line": 136803,
+"lines": 350
+},
+{
+"file": "sqlite3ext.h",
+"part": 2,
+"parts": 3,
+"path": "chunks/sqlite3ext_h.002.c",
+"line": 137153,
+"lines": 1
+},
+{
+"file": "pragma.c",
+"part": 0,
+"parts": 8,
+"path": "chunks/pragma_c.000.c",
+"line": 138061,
+"lines": 375
+},
+{
+"file": "pragma.c",
+"part": 1,
+"parts": 8,
+"path": "chunks/pragma_c.001.c",
+"line": 138436,
+"lines": 350
+},
+{
+"file": "pragma.c",
+"part": 2,
+"parts": 8,
+"path": "chunks/pragma_c.002.c",
+"line": 138786,
+"lines": 350
+},
+{
+"file": "pragma.c",
+"part": 3,
+"parts": 8,
+"path": "chunks/pragma_c.003.c",
+"line": 139136,
+"lines": 350
+},
+{
+"file": "pragma.c",
+"part": 4,
+"parts": 8,
+"path": "chunks/pragma_c.004.c",
+"line": 139486,
+"lines": 350
+},
+{
+"file": "pragma.c",
+"part": 5,
+"parts": 8,
+"path": "chunks/pragma_c.005.c",
+"line": 139836,
+"lines": 350
+},
+{
+"file": "pragma.c",
+"part": 6,
+"parts": 8,
+"path": "chunks/pragma_c.006.c",
+"line": 140186,
+"lines": 636
+},
+{
+"file": "pragma.c",
+"part": 7,
+"parts": 8,
+"path": "chunks/pragma_c.007.c",
+"line": 140822,
+"lines": 316
+},
+{
+"file": "pragma.h",
+"part": 0,
+"parts": 2,
+"path": "chunks/pragma_h.000.c",
+"line": 138093,
+"lines": 659
+},
+{
+"file": "pragma.h",
+"part": 1,
+"parts": 2,
+"path": "chunks/pragma_h.001.c",
+"line": 138752,
+"lines": 2
+},
+{
+"file": "prepare.c",
+"part": 0,
+"parts": 3,
+"path": "chunks/prepare_c.000.c",
+"line": 141804,
+"lines": 433
+},
+{
+"file": "prepare.c",
+"part": 1,
+"parts": 3,
+"path": "chunks/prepare_c.001.c",
+"line": 142237,
+"lines": 408
+},
+{
+"file": "prepare.c",
+"part": 2,
+"parts": 3,
+"path": "chunks/prepare_c.002.c",
+"line": 142645,
+"lines": 245
+},
+{
+"file": "select.c",
+"part": 0,
+"parts": 20,
+"path": "chunks/select_c.000.c",
+"line": 142892,
+"lines": 386
+},
+{
+"file": "select.c",
+"part": 1,
+"parts": 20,
+"path": "chunks/select_c.001.c",
+"line": 143278,
+"lines": 453
+},
+{
+"file": "select.c",
+"part": 2,
+"parts": 20,
+"path": "chunks/select_c.002.c",
+"line": 143731,
+"lines": 663
+},
+{
+"file": "select.c",
+"part": 3,
+"parts": 20,
+"path": "chunks/select_c.003.c",
+"line": 144394,
+"lines": 363
+},
+{
+"file": "select.c",
+"part": 4,
+"parts": 20,
+"path": "chunks/select_c.004.c",
+"line": 144757,
+"lines": 434
+},
+{
+"file": "select.c",
+"part": 5,
+"parts": 20,
+"path": "chunks/select_c.005.c",
+"line": 145191,
+"lines": 474
+},
+{
+"file": "select.c",
+"part": 6,
+"parts": 20,
+"path": "chunks/select_c.006.c",
+"line": 145665,
+"lines": 446
+},
+{
+"file": "select.c",
+"part": 7,
+"parts": 20,
+"path": "chunks/select_c.007.c",
+"line": 146111,
+"lines": 559
+},
+{
+"file": "select.c",
+"part": 8,
+"parts": 20,
+"path": "chunks/select_c.008.c",
+"line": 146670,
+"lines": 373
+},
+{
+"file": "select.c",
+"part": 9,
+"parts": 20,
+"path": "chunks/select_c.009.c",
+"line": 147043,
+"lines": 599
+},
+{
+"file": "select.c",
+"part": 10,
+"parts": 20,
+"path": "chunks/select_c.010.c",
+"line": 147642,
+"lines": 560
+},
+{
+"file": "select.c",
+"part": 11,
+"parts": 20,
+"path": "chunks/select_c.011.c",
+"line": 148202,
+"lines": 364
+},
+{
+"file": "select.c",
+"part": 12,
+"parts": 20,
+"path": "chunks/select_c.012.c",
+"line": 148566,
+"lines": 676
+},
+{
+"file": "select.c",
+"part": 13,
+"parts": 20,
+"path": "chunks/select_c.013.c",
+"line": 149242,
+"lines": 375
+},
+{
+"file": "select.c",
+"part": 14,
+"parts": 20,
+"path": "chunks/select_c.014.c",
+"line": 149617,
+"lines": 372
+},
+{
+"file": "select.c",
+"part": 15,
+"parts": 20,
+"path": "chunks/select_c.015.c",
+"line": 149989,
+"lines": 350
+},
+{
+"file": "select.c",
+"part": 16,
+"parts": 20,
+"path": "chunks/select_c.016.c",
+"line": 150339,
+"lines": 350
+},
+{
+"file": "select.c",
+"part": 17,
+"parts": 20,
+"path": "chunks/select_c.017.c",
+"line": 150689,
+"lines": 350
+},
+{
+"file": "select.c",
+"part": 18,
+"parts": 20,
+"path": "chunks/select_c.018.c",
+"line": 151039,
+"lines": 470
+},
+{
+"file": "select.c",
+"part": 19,
+"parts": 20,
+"path": "chunks/select_c.019.c",
+"line": 151509,
+"lines": 1
+},
+{
+"file": "table.c",
+"part": 0,
+"parts": 1,
+"path": "chunks/table_c.000.c",
+"line": 151512,
+"lines": 199
+},
+{
+"file": "trigger.c",
+"part": 0,
+"parts": 5,
+"path": "chunks/trigger_c.000.c",
+"line": 151713,
+"lines": 414
+},
+{
+"file": "trigger.c",
+"part": 1,
+"parts": 5,
+"path": "chunks/trigger_c.001.c",
+"line": 152127,
+"lines": 415
+},
+{
+"file": "trigger.c",
+"part": 2,
+"parts": 5,
+"path": "chunks/trigger_c.002.c",
+"line": 152542,
+"lines": 360
+},
+{
+"file": "trigger.c",
+"part": 3,
+"parts": 5,
+"path": "chunks/trigger_c.003.c",
+"line": 152902,
+"lines": 367
+},
+{
+"file": "trigger.c",
+"part": 4,
+"parts": 5,
+"path": "chunks/trigger_c.004.c",
+"line": 153269,
+"lines": 3
+},
+{
+"file": "update.c",
+"part": 0,
+"parts": 4,
+"path": "chunks/update_c.000.c",
+"line": 153274,
+"lines": 350
+},
+{
+"file": "update.c",
+"part": 1,
+"parts": 4,
+"path": "chunks/update_c.001.c",
+"line": 153624,
+"lines": 350
+},
+{
+"file": "update.c",
+"part": 2,
+"parts": 4,
+"path": "chunks/update_c.002.c",
+"line": 153974,
+"lines": 469
+},
+{
+"file": "update.c",
+"part": 3,
+"parts": 4,
+"path": "chunks/update_c.003.c",
+"line": 154443,
+"lines": 200
+},
+{
+"file": "upsert.c",
+"part": 0,
+"parts": 1,
+"path": "chunks/upsert_c.000.c",
+"line": 154645,
+"lines": 330
+},
+{
+"file": "vacuum.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/vacuum_c.000.c",
+"line": 154977,
+"lines": 411
+},
+{
+"file": "vacuum.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/vacuum_c.001.c",
+"line": 155388,
+"lines": 3
+},
+{
+"file": "vtab.c",
+"part": 0,
+"parts": 4,
+"path": "chunks/vtab_c.000.c",
+"line": 155393,
+"lines": 351
+},
+{
+"file": "vtab.c",
+"part": 1,
+"parts": 4,
+"path": "chunks/vtab_c.001.c",
+"line": 155744,
+"lines": 376
+},
+{
+"file": "vtab.c",
+"part": 2,
+"parts": 4,
+"path": "chunks/vtab_c.002.c",
+"line": 156120,
+"lines": 354
+},
+{
+"file": "vtab.c",
+"part": 3,
+"parts": 4,
+"path": "chunks/vtab_c.003.c",
+"line": 156474,
+"lines": 293
+},
+{
+"file": "wherecode.c",
+"part": 0,
+"parts": 8,
+"path": "chunks/wherecode_c.000.c",
+"line": 156769,
+"lines": 397
+},
+{
+"file": "wherecode.c",
+"part": 1,
+"parts": 8,
+"path": "chunks/wherecode_c.001.c",
+"line": 157166,
+"lines": 498
+},
+{
+"file": "wherecode.c",
+"part": 2,
+"parts": 8,
+"path": "chunks/wherecode_c.002.c",
+"line": 157664,
+"lines": 351
+},
+{
+"file": "wherecode.c",
+"part": 3,
+"parts": 8,
+"path": "chunks/wherecode_c.003.c",
+"line": 158015,
+"lines": 350
+},
+{
+"file": "wherecode.c",
+"part": 4,
+"parts": 8,
+"path": "chunks/wherecode_c.004.c",
+"line": 158365,
+"lines": 350
+},
+{
+"file": "wherecode.c",
+"part": 5,
+"parts": 8,
+"path": "chunks/wherecode_c.005.c",
+"line": 158715,
+"lines": 350
+},
+{
+"file": "wherecode.c",
+"part": 6,
+"parts": 8,
+"path": "chunks/wherecode_c.006.c",
+"line": 159065,
+"lines": 432
+},
+{
+"file": "wherecode.c",
+"part": 7,
+"parts": 8,
+"path": "chunks/wherecode_c.007.c",
+"line": 159497,
+"lines": 100
+},
+{
+"file": "whereInt.h",
+"part": 0,
+"parts": 2,
+"path": "chunks/whereInt_h.000.c",
+"line": 156791,
+"lines": 357
+},
+{
+"file": "whereInt.h",
+"part": 1,
+"parts": 2,
+"path": "chunks/whereInt_h.001.c",
+"line": 157148,
+"lines": 283
+},
+{
+"file": "whereexpr.c",
+"part": 0,
+"parts": 5,
+"path": "chunks/whereexpr_c.000.c",
+"line": 160242,
+"lines": 454
+},
+{
+"file": "whereexpr.c",
+"part": 1,
+"parts": 5,
+"path": "chunks/whereexpr_c.001.c",
+"line": 160696,
+"lines": 441
+},
+{
+"file": "whereexpr.c",
+"part": 2,
+"parts": 5,
+"path": "chunks/whereexpr_c.002.c",
+"line": 161137,
+"lines": 618
+},
+{
+"file": "whereexpr.c",
+"part": 3,
+"parts": 5,
+"path": "chunks/whereexpr_c.003.c",
+"line": 161755,
+"lines": 360
+},
+{
+"file": "whereexpr.c",
+"part": 4,
+"parts": 5,
+"path": "chunks/whereexpr_c.004.c",
+"line": 162115,
+"lines": 1
+},
+{
+"file": "where.c",
+"part": 0,
+"parts": 18,
+"path": "chunks/where_c.000.c",
+"line": 162118,
+"lines": 448
+},
+{
+"file": "where.c",
+"part": 1,
+"parts": 18,
+"path": "chunks/where_c.001.c",
+"line": 162566,
+"lines": 354
+},
+{
+"file": "where.c",
+"part": 2,
+"parts": 18,
+"path": "chunks/where_c.002.c",
+"line": 162920,
+"lines": 366
+},
+{
+"file": "where.c",
+"part": 3,
+"parts": 18,
+"path": "chunks/where_c.003.c",
+"line": 163286,
+"lines": 358
+},
+{
+"file": "where.c",
+"part": 4,
+"parts": 18,
+"path": "chunks/where_c.004.c",
+"line": 163644,
+"lines": 391
+},
+{
+"file": "where.c",
+"part": 5,
+"parts": 18,
+"path": "chunks/where_c.005.c",
+"line": 164035,
+"lines": 365
+},
+{
+"file": "where.c",
+"part": 6,
+"parts": 18,
+"path": "chunks/where_c.006.c",
+"line": 164400,
+"lines": 376
+},
+{
+"file": "where.c",
+"part": 7,
+"parts": 18,
+"path": "chunks/where_c.007.c",
+"line": 164776,
+"lines": 350
+},
+{
+"file": "where.c",
+"part": 8,
+"parts": 18,
+"path": "chunks/where_c.008.c",
+"line": 165126,
+"lines": 398
+},
+{
+"file": "where.c",
+"part": 9,
+"parts": 18,
+"path": "chunks/where_c.009.c",
+"line": 165524,
+"lines": 643
+},
+{
+"file": "where.c",
+"part": 10,
+"parts": 18,
+"path": "chunks/where_c.010.c",
+"line": 166167,
+"lines": 498
+},
+{
+"file": "where.c",
+"part": 11,
+"parts": 18,
+"path": "chunks/where_c.011.c",
+"line": 166665,
+"lines": 556
+},
+{
+"file": "where.c",
+"part": 12,
+"parts": 18,
+"path": "chunks/where_c.012.c",
+"line": 167221,
+"lines": 503
+},
+{
+"file": "where.c",
+"part": 13,
+"parts": 18,
+"path": "chunks/where_c.013.c",
+"line": 167724,
+"lines": 390
+},
+{
+"file": "where.c",
+"part": 14,
+"parts": 18,
+"path": "chunks/where_c.014.c",
+"line": 168114,
+"lines": 350
+},
+{
+"file": "where.c",
+"part": 15,
+"parts": 18,
+"path": "chunks/where_c.015.c",
+"line": 168464,
+"lines": 526
+},
+{
+"file": "where.c",
+"part": 16,
+"parts": 18,
+"path": "chunks/where_c.016.c",
+"line": 168990,
+"lines": 355
+},
+{
+"file": "where.c",
+"part": 17,
+"parts": 18,
+"path": "chunks/where_c.017.c",
+"line": 169345,
+"lines": 1
+},
+{
+"file": "window.c",
+"part": 0,
+"parts": 9,
+"path": "chunks/window_c.000.c",
+"line": 169348,
+"lines": 351
+},
+{
+"file": "window.c",
+"part": 1,
+"parts": 9,
+"path": "chunks/window_c.001.c",
+"line": 169699,
+"lines": 377
+},
+{
+"file": "window.c",
+"part": 2,
+"parts": 9,
+"path": "chunks/window_c.002.c",
+"line": 170076,
+"lines": 389
+},
+{
+"file": "window.c",
+"part": 3,
+"parts": 9,
+"path": "chunks/window_c.003.c",
+"line": 170465,
+"lines": 402
+},
+{
+"file": "window.c",
+"part": 4,
+"parts": 9,
+"path": "chunks/window_c.004.c",
+"line": 170867,
+"lines": 382
+},
+{
+"file": "window.c",
+"part": 5,
+"parts": 9,
+"path": "chunks/window_c.005.c",
+"line": 171249,
+"lines": 469
+},
+{
+"file": "window.c",
+"part": 6,
+"parts": 9,
+"path": "chunks/window_c.006.c",
+"line": 171718,
+"lines": 350
+},
+{
+"file": "window.c",
+"part": 7,
+"parts": 9,
+"path": "chunks/window_c.007.c",
+"line": 172068,
+"lines": 380
+},
+{
+"file": "window.c",
+"part": 8,
+"parts": 9,
+"path": "chunks/window_c.008.c",
+"line": 172448,
+"lines": 3
+},
+{
+"file": "parse.c",
+"part": 0,
+"parts": 14,
+"path": "chunks/parse_c.000.c",
+"line": 172453,
+"lines": 513
+},
+{
+"file": "parse.c",
+"part": 1,
+"parts": 14,
+"path": "chunks/parse_c.001.c",
+"line": 172966,
+"lines": 566
+},
+{
+"file": "parse.c",
+"part": 2,
+"parts": 14,
+"path": "chunks/parse_c.002.c",
+"line": 173532,
+"lines": 377
+},
+{
+"file": "parse.c",
+"part": 3,
+"parts": 14,
+"path": "chunks/parse_c.003.c",
+"line": 173909,
+"lines": 405
+},
+{
+"file": "parse.c",
+"part": 4,
+"parts": 14,
+"path": "chunks/parse_c.004.c",
+"line": 174314,
+"lines": 416
+},
+{
+"file": "parse.c",
+"part": 5,
+"parts": 14,
+"path": "chunks/parse_c.005.c",
+"line": 174730,
+"lines": 402
+},
+{
+"file": "parse.c",
+"part": 6,
+"parts": 14,
+"path": "chunks/parse_c.006.c",
+"line": 175132,
+"lines": 523
+},
+{
+"file": "parse.c",
+"part": 7,
+"parts": 14,
+"path": "chunks/parse_c.007.c",
+"line": 175655,
+"lines": 414
+},
+{
+"file": "parse.c",
+"part": 8,
+"parts": 14,
+"path": "chunks/parse_c.008.c",
+"line": 176069,
+"lines": 355
+},
+{
+"file": "parse.c",
+"part": 9,
+"parts": 14,
+"path": "chunks/parse_c.009.c",
+"line": 176424,
+"lines": 355
+},
+{
+"file": "parse.c",
+"part": 10,
+"parts": 14,
+"path": "chunks/parse_c.010.c",
+"line": 176779,
+"lines": 372
+},
+{
+"file": "parse.c",
+"part": 11,
+"parts": 14,
+"path": "chunks/parse_c.011.c",
+"line": 177151,
+"lines": 352
+},
+{
+"file": "parse.c",
+"part": 12,
+"parts": 14,
+"path": "chunks/parse_c.012.c",
+"line": 177503,
+"lines": 472
+},
+{
+"file": "parse.c",
+"part": 13,
+"parts": 14,
+"path": "chunks/parse_c.013.c",
+"line": 177975,
+"lines": 15
+},
+{
+"file": "tokenize.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/tokenize_c.000.c",
+"line": 177992,
+"lines": 594
+},
+{
+"file": "tokenize.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/tokenize_c.001.c",
+"line": 178586,
+"lines": 295
+},
+{
+"file": "keywordhash.h",
+"part": 0,
+"parts": 2,
+"path": "chunks/keywordhash_h.000.c",
+"line": 178141,
+"lines": 465
+},
+{
+"file": "keywordhash.h",
+"part": 1,
+"parts": 2,
+"path": "chunks/keywordhash_h.001.c",
+"line": 178606,
+"lines": 18
+},
+{
+"file": "complete.c",
+"part": 0,
+"parts": 1,
+"path": "chunks/complete_c.000.c",
+"line": 179369,
+"lines": 291
+},
+{
+"file": "main.c",
+"part": 0,
+"parts": 13,
+"path": "chunks/main_c.000.c",
+"line": 179662,
+"lines": 390
+},
+{
+"file": "main.c",
+"part": 1,
+"parts": 13,
+"path": "chunks/main_c.001.c",
+"line": 180052,
+"lines": 397
+},
+{
+"file": "main.c",
+"part": 2,
+"parts": 13,
+"path": "chunks/main_c.002.c",
+"line": 180449,
+"lines": 356
+},
+{
+"file": "main.c",
+"part": 3,
+"parts": 13,
+"path": "chunks/main_c.003.c",
+"line": 180805,
+"lines": 393
+},
+{
+"file": "main.c",
+"part": 4,
+"parts": 13,
+"path": "chunks/main_c.004.c",
+"line": 181198,
+"lines": 354
+},
+{
+"file": "main.c",
+"part": 5,
+"parts": 13,
+"path": "chunks/main_c.005.c",
+"line": 181552,
+"lines": 372
+},
+{
+"file": "main.c",
+"part": 6,
+"parts": 13,
+"path": "chunks/main_c.006.c",
+"line": 181924,
+"lines": 363
+},
+{
+"file": "main.c",
+"part": 7,
+"parts": 13,
+"path": "chunks/main_c.007.c",
+"line": 182287,
+"lines": 604
+},
+{
+"file": "main.c",
+"part": 8,
+"parts": 13,
+"path": "chunks/main_c.008.c",
+"line": 182891,
+"lines": 375
+},
+{
+"file": "main.c",
+"part": 9,
+"parts": 13,
+"path": "chunks/main_c.009.c",
+"line": 183266,
+"lines": 436
+},
+{
+"file": "main.c",
+"part": 10,
+"parts": 13,
+"path": "chunks/main_c.010.c",
+"line": 183702,
+"lines": 660
+},
+{
+"file": "main.c",
+"part": 11,
+"parts": 13,
+"path": "chunks/main_c.011.c",
+"line": 184362,
+"lines": 357
+},
+{
+"file": "main.c",
+"part": 12,
+"parts": 13,
+"path": "chunks/main_c.012.c",
+"line": 184719,
+"lines": 54
+},
+{
+"file": "fts3.h",
+"part": 0,
+"parts": 1,
+"path": "chunks/fts3_h.000.c",
+"line": 179683,
+"lines": 27
+},
+{
+"file": "rtree.h",
+"part": 0,
+"parts": 1,
+"path": "chunks/rtree_h.000.c",
+"line": 179716,
+"lines": 31
+},
+{
+"file": "notify.c",
+"part": 0,
+"parts": 1,
+"path": "chunks/notify_c.000.c",
+"line": 184869,
+"lines": 336
+},
+{
+"file": "fts3.c",
+"part": 0,
+"parts": 17,
+"path": "chunks/fts3_c.000.c",
+"line": 185207,
+"lines": 376
+},
+{
+"file": "fts3.c",
+"part": 1,
+"parts": 17,
+"path": "chunks/fts3_c.001.c",
+"line": 185583,
+"lines": 369
+},
+{
+"file": "fts3.c",
+"part": 2,
+"parts": 17,
+"path": "chunks/fts3_c.002.c",
+"line": 185952,
+"lines": 415
+},
+{
+"file": "fts3.c",
+"part": 3,
+"parts": 17,
+"path": "chunks/fts3_c.003.c",
+"line": 186367,
+"lines": 391
+},
+{
+"file": "fts3.c",
+"part": 4,
+"parts": 17,
+"path": "chunks/fts3_c.004.c",
+"line": 186758,
+"lines": 439
+},
+{
+"file": "fts3.c",
+"part": 5,
+"parts": 17,
+"path": "chunks/fts3_c.005.c",
+"line": 187197,
+"lines": 442
+},
+{
+"file": "fts3.c",
+"part": 6,
+"parts": 17,
+"path": "chunks/fts3_c.006.c",
+"line": 187639,
+"lines": 371
+},
+{
+"file": "fts3.c",
+"part": 7,
+"parts": 17,
+"path": "chunks/fts3_c.007.c",
+"line": 188010,
+"lines": 355
+},
+{
+"file": "fts3.c",
+"part": 8,
+"parts": 17,
+"path": "chunks/fts3_c.008.c",
+"line": 188365,
+"lines": 355
+},
+{
+"file": "fts3.c",
+"part": 9,
+"parts": 17,
+"path": "chunks/fts3_c.009.c",
+"line": 188720,
+"lines": 352
+},
+{
+"file": "fts3.c",
+"part": 10,
+"parts": 17,
+"path": "chunks/fts3_c.010.c",
+"line": 189072,
+"lines": 385
+},
+{
+"file": "fts3.c",
+"part": 11,
+"parts": 17,
+"path": "chunks/fts3_c.011.c",
+"line": 189457,
+"lines": 373
+},
+{
+"file": "fts3.c",
+"part": 12,
+"parts": 17,
+"path": "chunks/fts3_c.012.c",
+"line": 189830,
+"lines": 356
+},
+{
+"file": "fts3.c",
+"part": 13,
+"parts": 17,
+"path": "chunks/fts3_c.013.c",
+"line": 190186,
+"lines": 488
+},
+{
+"file": "fts3.c",
+"part": 14,
+"parts": 17,
+"path": "chunks/fts3_c.014.c",
+"line": 190674,
+"lines": 355
+},
+{
+"file": "fts3.c",
+"part": 15,
+"parts": 17,
+"path": "chunks/fts3_c.015.c",
+"line": 191029,
+"lines": 364
+},
+{
+"file": "fts3.c",
+"part": 16,
+"parts": 17,
+"path": "chunks/fts3_c.016.c",
+"line": 191393,
+"lines": 4
+},
+{
+"file": "fts3Int.h",
+"part": 0,
+"parts": 2,
+"path": "chunks/fts3Int_h.000.c",
+"line": 185499,
+"lines": 353
+},
+{
+"file": "fts3Int.h",
+"part": 1,
+"parts": 2,
+"path": "chunks/fts3Int_h.001.c",
+"line": 185852,
+"lines": 307
+},
+{
+"file": "fts3_tokenizer.h",
+"part": 0,
+"parts": 1,
+"path": "chunks/fts3_tokenizer_h.000.c",
+"line": 185545,
+"lines": 162
+},
+{
+"file": "fts3_hash.h",
+"part": 0,
+"parts": 1,
+"path": "chunks/fts3_hash_h.000.c",
+"line": 185711,
+"lines": 113
+},
+{
+"file": "fts3_aux.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/fts3_aux_c.000.c",
+"line": 192343,
+"lines": 360
+},
+{
+"file": "fts3_aux.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/fts3_aux_c.001.c",
+"line": 192703,
+"lines": 198
+},
+{
+"file": "fts3_expr.c",
+"part": 0,
+"parts": 4,
+"path": "chunks/fts3_expr_c.000.c",
+"line": 192903,
+"lines": 383
+},
+{
+"file": "fts3_expr.c",
+"part": 1,
+"parts": 4,
+"path": "chunks/fts3_expr_c.001.c",
+"line": 193286,
+"lines": 372
+},
+{
+"file": "fts3_expr.c",
+"part": 2,
+"parts": 4,
+"path": "chunks/fts3_expr_c.002.c",
+"line": 193658,
+"lines": 408
+},
+{
+"file": "fts3_expr.c",
+"part": 3,
+"parts": 4,
+"path": "chunks/fts3_expr_c.003.c",
+"line": 194066,
+"lines": 131
+},
+{
+"file": "fts3_hash.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/fts3_hash_c.000.c",
+"line": 194199,
+"lines": 381
+},
+{
+"file": "fts3_hash.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/fts3_hash_c.001.c",
+"line": 194580,
+"lines": 3
+},
+{
+"file": "fts3_porter.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/fts3_porter_c.000.c",
+"line": 194585,
+"lines": 572
+},
+{
+"file": "fts3_porter.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/fts3_porter_c.001.c",
+"line": 195157,
+"lines": 91
+},
+{
+"file": "fts3_tokenizer.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/fts3_tokenizer_c.000.c",
+"line": 195250,
+"lines": 372
+},
+{
+"file": "fts3_tokenizer.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/fts3_tokenizer_c.001.c",
+"line": 195622,
+"lines": 149
+},
+{
+"file": "fts3_tokenizer1.c",
+"part": 0,
+"parts": 1,
+"path": "chunks/fts3_tokenizer1_c.000.c",
+"line": 195773,
+"lines": 235
+},
+{
+"file": "fts3_tokenize_vtab.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/fts3_tokenize_vtab_c.000.c",
+"line": 196010,
+"lines": 365
+},
+{
+"file": "fts3_tokenize_vtab.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/fts3_tokenize_vtab_c.001.c",
+"line": 196375,
+"lines": 95
+},
+{
+"file": "fts3_write.c",
+"part": 0,
+"parts": 16,
+"path": "chunks/fts3_write_c.000.c",
+"line": 196472,
+"lines": 429
+},
+{
+"file": "fts3_write.c",
+"part": 1,
+"parts": 16,
+"path": "chunks/fts3_write_c.001.c",
+"line": 196901,
+"lines": 430
+},
+{
+"file": "fts3_write.c",
+"part": 2,
+"parts": 16,
+"path": "chunks/fts3_write_c.002.c",
+"line": 197331,
+"lines": 388
+},
+{
+"file": "fts3_write.c",
+"part": 3,
+"parts": 16,
+"path": "chunks/fts3_write_c.003.c",
+"line": 197719,
+"lines": 362
+},
+{
+"file": "fts3_write.c",
+"part": 4,
+"parts": 16,
+"path": "chunks/fts3_write_c.004.c",
+"line": 198081,
+"lines": 352
+},
+{
+"file": "fts3_write.c",
+"part": 5,
+"parts": 16,
+"path": "chunks/fts3_write_c.005.c",
+"line": 198433,
+"lines": 416
+},
+{
+"file": "fts3_write.c",
+"part": 6,
+"parts": 16,
+"path": "chunks/fts3_write_c.006.c",
+"line": 198849,
+"lines": 374
+},
+{
+"file": "fts3_write.c",
+"part": 7,
+"parts": 16,
+"path": "chunks/fts3_write_c.007.c",
+"line": 199223,
+"lines": 361
+},
+{
+"file": "fts3_write.c",
+"part": 8,
+"parts": 16,
+"path": "chunks/fts3_write_c.008.c",
+"line": 199584,
+"lines": 400
+},
+{
+"file": "fts3_write.c",
+"part": 9,
+"parts": 16,
+"path": "chunks/fts3_write_c.009.c",
+"line": 199984,
+"lines": 426
+},
+{
+"file": "fts3_write.c",
+"part": 10,
+"parts": 16,
+"path": "chunks/fts3_write_c.010.c",
+"line": 200410,
+"lines": 461
+},
+{
+"file": "fts3_write.c",
+"part": 11,
+"parts": 16,
+"path": "chunks/fts3_write_c.011.c",
+"line": 200871,
+"lines": 352
+},
+{
+"file": "fts3_write.c",
+"part": 12,
+"parts": 16,
+"path": "chunks/fts3_write_c.012.c",
+"line": 201223,
+"lines": 356
+},
+{
+"file": "fts3_write.c",
+"part": 13,
+"parts": 16,
+"path": "chunks/fts3_write_c.013.c",
+"line": 201579,
+"lines": 368
+},
+{
+"file": "fts3_write.c",
+"part": 14,
+"parts": 16,
+"path": "chunks/fts3_write_c.014.c",
+"line": 201947,
+"lines": 357
+},
+{
+"file": "fts3_write.c",
+"part": 15,
+"parts": 16,
+"path": "chunks/fts3_write_c.015.c",
+"line": 202304,
+"lines": 3
+},
+{
+"file": "fts3_snippet.c",
+"part": 0,
+"parts": 5,
+"path": "chunks/fts3_snippet_c.000.c",
+"line": 202309,
+"lines": 365
+},
+{
+"file": "fts3_snippet.c",
+"part": 1,
+"parts": 5,
+"path": "chunks/fts3_snippet_c.001.c",
+"line": 202674,
+"lines": 467
+},
+{
+"file": "fts3_snippet.c",
+"part": 2,
+"parts": 5,
+"path": "chunks/fts3_snippet_c.002.c",
+"line": 203141,
+"lines": 381
+},
+{
+"file": "fts3_snippet.c",
+"part": 3,
+"parts": 5,
+"path": "chunks/fts3_snippet_c.003.c",
+"line": 203522,
+"lines": 373
+},
+{
+"file": "fts3_snippet.c",
+"part": 4,
+"parts": 5,
+"path": "chunks/fts3_snippet_c.004.c",
+"line": 203895,
+"lines": 170
+},
+{
+"file": "fts3_unicode.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/fts3_unicode_c.000.c",
+"line": 204067,
+"lines": 377
+},
+{
+"file": "fts3_unicode.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/fts3_unicode_c.001.c",
+"line": 204444,
+"lines": 21
+},
+{
+"file": "fts3_unicode2.c",
+"part": 0,
+"parts": 2,
+"path": "chunks/fts3_unicode2_c.000.c",
+"line": 204467,
+"lines": 381
+},
+{
+"file": "fts3_unicode2.c",
+"part": 1,
+"parts": 2,
+"path": "chunks/fts3_unicode2_c.001.c",
+"line": 204848,
+"lines": 3
+},
+{
+"file": "json.c",
+"part": 0,
+"parts": 15,
+"path": "chunks/json_c.000.c",
+"line": 204853,
+"lines": 369
+},
+{
+"file": "json.c",
+"part": 1,
+"parts": 15,
+"path": "chunks/json_c.001.c",
+"line": 205222,
+"lines": 361
+},
+{
+"file": "json.c",
+"part": 2,
+"parts": 15,
+"path": "chunks/json_c.002.c",
+"line": 205583,
+"lines": 372
+},
+{
+"file": "json.c",
+"part": 3,
+"parts": 15,
+"path": "chunks/json_c.003.c",
+"line": 205955,
+"lines": 392
+},
+{
+"file": "json.c",
+"part": 4,
+"parts": 15,
+"path": "chunks/json_c.004.c",
+"line": 206347,
+"lines": 476
+},
+{
+"file": "json.c",
+"part": 5,
+"parts": 15,
+"path": "chunks/json_c.005.c",
+"line": 206823,
+"lines": 366
+},
+{
+"file": "json.c",
+"part": 6,
+"parts": 15,
+"path": "chunks/json_c.006.c",
+"line": 207189,
+"lines": 378
+},
+{
+"file": "json.c",
+"part": 7,
+"parts": 15,
+"path": "chunks/json_c.007.c",
+"line": 207567,
+"lines": 463
+},
+{
+"file": "json.c",
+"part": 8,
+"parts": 15,
+"path": "chunks/json_c.008.c",
+"line": 208030,
+"lines": 376
+},
+{
+"file": "json.c",
+"part": 9,
+"parts": 15,
+"path": "chunks/json_c.009.c",
+"line": 208406,
+"lines": 377
+},
+{
+"file": "json.c",
+"part": 10,
+"parts": 15,
+"path": "chunks/json_c.010.c",
+"line": 208783,
+"lines": 380
+},
+{
+"file": "json.c",
+"part": 11,
+"parts": 15,
+"path": "chunks/json_c.011.c",
+"line": 209163,
+"lines": 376
+},
+{
+"file": "json.c",
+"part": 12,
+"parts": 15,
+"path": "chunks/json_c.012.c",
+"line": 209539,
+"lines": 353
+},
+{
+"file": "json.c",
+"part": 13,
+"parts": 15,
+"path": "chunks/json_c.013.c",
+"line": 209892,
+"lines": 398
+},
+{
+"file": "json.c",
+"part": 14,
+"parts": 15,
+"path": "chunks/json_c.014.c",
+"line": 210290,
+"lines": 22
+},
+{
+"file": "rtree.c",
+"part": 0,
+"parts": 12,
+"path": "chunks/rtree_c.000.c",
+"line": 210314,
+"lines": 371
+},
+{
+"file": "rtree.c",
+"part": 1,
+"parts": 12,
+"path": "chunks/rtree_c.001.c",
+"line": 210685,
+"lines": 440
+},
+{
+"file": "rtree.c",
+"part": 2,
+"parts": 12,
+"path": "chunks/rtree_c.002.c",
+"line": 211125,
+"lines": 359
+},
+{
+"file": "rtree.c",
+"part": 3,
+"parts": 12,
+"path": "chunks/rtree_c.003.c",
+"line": 211484,
+"lines": 367
+},
+{
+"file": "rtree.c",
+"part": 4,
+"parts": 12,
+"path": "chunks/rtree_c.004.c",
+"line": 211851,
+"lines": 443
+},
+{
+"file": "rtree.c",
+"part": 5,
+"parts": 12,
+"path": "chunks/rtree_c.005.c",
+"line": 212294,
+"lines": 351
+},
+{
+"file": "rtree.c",
+"part": 6,
+"parts": 12,
+"path": "chunks/rtree_c.006.c",
+"line": 212645,
+"lines": 353
+},
+{
+"file": "rtree.c",
+"part": 7,
+"parts": 12,
+"path": "chunks/rtree_c.007.c",
+"line": 212998,
+"lines": 391
+},
+{
+"file": "rtree.c",
+"part": 8,
+"parts": 12,
+"path": "chunks/rtree_c.008.c",
+"line": 213389,
+"lines": 426
+},
+{
+"file": "rtree.c",
+"part": 9,
+"parts": 12,
+"path": "chunks/rtree_c.009.c",
+"line": 213815,
+"lines": 368
+},
+{
+"file": "rtree.c",
+"part": 10,
+"parts": 12,
+"path": "chunks/rtree_c.010.c",
+"line": 214183,
+"lines": 351
+},
+{
+"file": "rtree.c",
+"part": 11,
+"parts": 12,
+"path": "chunks/rtree_c.011.c",
+"line": 214534,
+"lines": 247
+},
+{
+"file": "geopoly.c",
+"part": 0,
+"parts": 5,
+"path": "chunks/geopoly_c.000.c",
+"line": 214602,
+"lines": 371
+},
+{
+"file": "geopoly.c",
+"part": 1,
+"parts": 5,
+"path": "chunks/geopoly_c.001.c",
+"line": 214973,
+"lines": 353
+},
+{
+"file": "geopoly.c",
+"part": 2,
+"parts": 5,
+"path": "chunks/geopoly_c.002.c",
+"line": 215326,
+"lines": 453
+},
+{
+"file": "geopoly.c",
+"part": 3,
+"parts": 5,
+"path": "chunks/geopoly_c.003.c",
+"line": 215779,
+"lines": 365
+},
+{
+"file": "geopoly.c",
+"part": 4,
+"parts": 5,
+"path": "chunks/geopoly_c.004.c",
+"line": 216144,
+"lines": 298
+},
+{
+"file": "fts3_icu.c",
+"part": 0,
+"parts": 1,
+"path": "chunks/fts3_icu_c.000.c",
+"line": 217217,
+"lines": 263
+},
+{
+"file": "fts5.c",
+"part": 0,
+"parts": 67,
+"path": "chunks/fts5_c.000.c",
+"line": 231410,
+"lines": 362
+},
+{
+"file": "fts5.c",
+"part": 1,
+"parts": 67,
+"path": "chunks/fts5_c.001.c",
+"line": 231772,
+"lines": 410
+},
+{
+"file": "fts5.c",
+"part": 2,
+"parts": 67,
+"path": "chunks/fts5_c.002.c",
+"line": 232182,
+"lines": 443
+},
+{
+"file": "fts5.c",
+"part": 3,
+"parts": 67,
+"path": "chunks/fts5_c.003.c",
+"line": 232625,
+"lines": 486
+},
+{
+"file": "fts5.c",
+"part": 4,
+"parts": 67,
+"path": "chunks/fts5_c.004.c",
+"line": 233111,
+"lines": 362
+},
+{
+"file": "fts5.c",
+"part": 5,
+"parts": 67,
+"path": "chunks/fts5_c.005.c",
+"line": 233473,
+"lines": 354
+},
+{
+"file": "fts5.c",
+"part": 6,
+"parts": 67,
+"path": "chunks/fts5_c.006.c",
+"line": 233827,
+"lines": 372
+},
+{
+"file": "fts5.c",
+"part": 7,
+"parts": 67,
+"path": "chunks/fts5_c.007.c",
+"line": 234199,
+"lines": 369
+},
+{
+"file": "fts5.c",
+"part": 8,
+"parts": 67,
+"path": "chunks/fts5_c.008.c",
+"line": 234568,
+"lines": 460
+},
+{
+"file": "fts5.c",
+"part": 9,
+"parts": 67,
+"path": "chunks/fts5_c.009.c",
+"line": 235028,
+"lines": 355
+},
+{
+"file": "fts5.c",
+"part": 10,
+"parts": 67,
+"path": "chunks/fts5_c.010.c",
+"line": 235383,
+"lines": 377
+},
+{
+"file": "fts5.c",
+"part": 11,
+"parts": 67,
+"path": "chunks/fts5_c.011.c",
+"line": 235760,
+"lines": 373
+},
+{
+"file": "fts5.c",
+"part": 12,
+"parts": 67,
+"path": "chunks/fts5_c.012.c",
+"line": 236133,
+"lines": 361
+},
+{
+"file": "fts5.c",
+"part": 13,
+"parts": 67,
+"path": "chunks/fts5_c.013.c",
+"line": 236494,
+"lines": 357
+},
+{
+"file": "fts5.c",
+"part": 14,
+"parts": 67,
+"path": "chunks/fts5_c.014.c",
+"line": 236851,
+"lines": 403
+},
+{
+"file": "fts5.c",
+"part": 15,
+"parts": 67,
+"path": "chunks/fts5_c.015.c",
+"line": 237254,
+"lines": 354
+},
+{
+"file": "fts5.c",
+"part": 16,
+"parts": 67,
+"path": "chunks/fts5_c.016.c",
+"line": 237608,
+"lines": 353
+},
+{
+"file": "fts5.c",
+"part": 17,
+"parts": 67,
+"path": "chunks/fts5_c.017.c",
+"line": 237961,
+"lines": 416
+},
+{
+"file": "fts5.c",
+"part": 18,
+"parts": 67,
+"path": "chunks/fts5_c.018.c",
+"line": 238377,
+"lines": 359
+},
+{
+"file": "fts5.c",
+"part": 19,
+"parts": 67,
+"path": "chunks/fts5_c.019.c",
+"line": 238736,
+"lines": 371
+},
+{
+"file": "fts5.c",
+"part": 20,
+"parts": 67,
+"path": "chunks/fts5_c.020.c",
+"line": 239107,
+"lines": 379
+},
+{
+"file": "fts5.c",
+"part": 21,
+"parts": 67,
+"path": "chunks/fts5_c.021.c",
+"line": 239486,
+"lines": 370
+},
+{
+"file": "fts5.c",
+"part": 22,
+"parts": 67,
+"path": "chunks/fts5_c.022.c",
+"line": 239856,
+"lines": 468
+},
+{
+"file": "fts5.c",
+"part": 23,
+"parts": 67,
+"path": "chunks/fts5_c.023.c",
+"line": 240324,
+"lines": 535
+},
+{
+"file": "fts5.c",
+"part": 24,
+"parts": 67,
+"path": "chunks/fts5_c.024.c",
+"line": 240859,
+"lines": 351
+},
+{
+"file": "fts5.c",
+"part": 25,
+"parts": 67,
+"path": "chunks/fts5_c.025.c",
+"line": 241210,
+"lines": 361
+},
+{
+"file": "fts5.c",
+"part": 26,
+"parts": 67,
+"path": "chunks/fts5_c.026.c",
+"line": 241571,
+"lines": 368
+},
+{
+"file": "fts5.c",
+"part": 27,
+"parts": 67,
+"path": "chunks/fts5_c.027.c",
+"line": 241939,
+"lines": 382
+},
+{
+"file": "fts5.c",
+"part": 28,
+"parts": 67,
+"path": "chunks/fts5_c.028.c",
+"line": 242321,
+"lines": 358
+},
+{
+"file": "fts5.c",
+"part": 29,
+"parts": 67,
+"path": "chunks/fts5_c.029.c",
+"line": 242679,
+"lines": 459
+},
+{
+"file": "fts5.c",
+"part": 30,
+"parts": 67,
+"path": "chunks/fts5_c.030.c",
+"line": 243138,
+"lines": 369
+},
+{
+"file": "fts5.c",
+"part": 31,
+"parts": 67,
+"path": "chunks/fts5_c.031.c",
+"line": 243507,
+"lines": 372
+},
+{
+"file": "fts5.c",
+"part": 32,
+"parts": 67,
+"path": "chunks/fts5_c.032.c",
+"line": 243879,
+"lines": 355
+},
+{
+"file": "fts5.c",
+"part": 33,
+"parts": 67,
+"path": "chunks/fts5_c.033.c",
+"line": 244234,
+"lines": 404
+},
+{
+"file": "fts5.c",
+"part": 34,
+"parts": 67,
+"path": "chunks/fts5_c.034.c",
+"line": 244638,
+"lines": 364
+},
+{
+"file": "fts5.c",
+"part": 35,
+"parts": 67,
+"path": "chunks/fts5_c.035.c",
+"line": 245002,
+"lines": 379
+},
+{
+"file": "fts5.c",
+"part": 36,
+"parts": 67,
+"path": "chunks/fts5_c.036.c",
+"line": 245381,
+"lines": 596
+},
+{
+"file": "fts5.c",
+"part": 37,
+"parts": 67,
+"path": "chunks/fts5_c.037.c",
+"line": 245977,
+"lines": 370
+},
+{
+"file": "fts5.c",
+"part": 38,
+"parts": 67,
+"path": "chunks/fts5_c.038.c",
+"line": 246347,
+"lines": 375
+},
+{
+"file": "fts5.c",
+"part": 39,
+"parts": 67,
+"path": "chunks/fts5_c.039.c",
+"line": 246722,
+"lines": 364
+},
+{
+"file": "fts5.c",
+"part": 40,
+"parts": 67,
+"path": "chunks/fts5_c.040.c",
+"line": 247086,
+"lines": 450
+},
+{
+"file": "fts5.c",
+"part": 41,
+"parts": 67,
+"path": "chunks/fts5_c.041.c",
+"line": 247536,
+"lines": 361
+},
+{
+"file": "fts5.c",
+"part": 42,
+"parts": 67,
+"path": "chunks/fts5_c.042.c",
+"line": 247897,
+"lines": 351
+},
+{
+"file": "fts5.c",
+"part": 43,
+"parts": 67,
+"path": "chunks/fts5_c.043.c",
+"line": 248248,
+"lines": 424
+},
+{
+"file": "fts5.c",
+"part": 44,
+"parts": 67,
+"path": "chunks/fts5_c.044.c",
+"line": 248672,
+"lines": 584
+},
+{
+"file": "fts5.c",
+"part": 45,
+"parts": 67,
+"path": "chunks/fts5_c.045.c",
+"line": 249256,
+"lines": 410
+},
+{
+"file": "fts5.c",
+"part": 46,
+"parts": 67,
+"path": "chunks/fts5_c.046.c",
+"line": 249666,
+"lines": 354
+},
+{
+"file": "fts5.c",
+"part": 47,
+"parts": 67,
+"path": "chunks/fts5_c.047.c",
+"line": 250020,
+"lines": 364
+},
+{
+"file": "fts5.c",
+"part": 48,
+"parts": 67,
+"path": "chunks/fts5_c.048.c",
+"line": 250384,
+"lines": 377
+},
+{
+"file": "fts5.c",
+"part": 49,
+"parts": 67,
+"path": "chunks/fts5_c.049.c",
+"line": 250761,
+"lines": 352
+},
+{
+"file": "fts5.c",
+"part": 50,
+"parts": 67,
+"path": "chunks/fts5_c.050.c",
+"line": 251113,
+"lines": 351
+},
+{
+"file": "fts5.c",
+"part": 51,
+"parts": 67,
+"path": "chunks/fts5_c.051.c",
+"line": 251464,
+"lines": 360
+},
+{
+"file": "fts5.c",
+"part": 52,
+"parts": 67,
+"path": "chunks/fts5_c.052.c",
+"line": 251824,
+"lines": 359
+},
+{
+"file": "fts5.c",
+"part": 53,
+"parts": 67,
+"path": "chunks/fts5_c.053.c",
+"line": 252183,
+"lines": 359
+},
+{
+"file": "fts5.c",
+"part": 54,
+"parts": 67,
+"path": "chunks/fts5_c.054.c",
+"line": 252542,
+"lines": 363
+},
+{
+"file": "fts5.c",
+"part": 55,
+"parts": 67,
+"path": "chunks/fts5_c.055.c",
+"line": 252905,
+"lines": 358
+},
+{
+"file": "fts5.c",
+"part": 56,
+"parts": 67,
+"path": "chunks/fts5_c.056.c",
+"line": 253263,
+"lines": 390
+},
+{
+"file": "fts5.c",
+"part": 57,
+"parts": 67,
+"path": "chunks/fts5_c.057.c",
+"line": 253653,
+"lines": 394
+},
+{
+"file": "fts5.c",
+"part": 58,
+"parts": 67,
+"path": "chunks/fts5_c.058.c",
+"line": 254047,
+"lines": 444
+},
+{
+"file": "fts5.c",
+"part": 59,
+"parts": 67,
+"path": "chunks/fts5_c.059.c",
+"line": 254491,
+"lines": 364
+},
+{
+"file": "fts5.c",
+"part": 60,
+"parts": 67,
+"path": "chunks/fts5_c.060.c",
+"line": 254855,
+"lines": 355
+},
+{
+"file": "fts5.c",
+"part": 61,
+"parts": 67,
+"path": "chunks/fts5_c.061.c",
+"line": 255210,
+"lines": 445
+},
+{
+"file": "fts5.c",
+"part": 62,
+"parts": 67,
+"path": "chunks/fts5_c.062.c",
+"line": 255655,
+"lines": 513
+},
+{
+"file": "fts5.c",
+"part": 63,
+"parts": 67,
+"path": "chunks/fts5_c.063.c",
+"line": 256168,
+"lines": 360
+},
+{
+"file": "fts5.c",
+"part": 64,
+"parts": 67,
+"path": "chunks/fts5_c.064.c",
+"line": 256528,
+"lines": 393
+},
+{
+"file": "fts5.c",
+"part": 65,
+"parts": 67,
+"path": "chunks/fts5_c.065.c",
+"line": 256921,
+"lines": 353
+},
+{
+"file": "fts5.c",
+"part": 66,
+"parts": 67,
+"path": "chunks/fts5_c.066.c",
+"line": 257274,
+"lines": 52
+}
+]

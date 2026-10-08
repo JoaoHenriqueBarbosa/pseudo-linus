@@ -1,0 +1,3 @@
+
+#endif  /* SQLITE_OMIT_VACUUM && SQLITE_OMIT_ATTACH */
+

@@ -355,6 +355,8 @@ pub struct VdbeTxtBlbCache {
 /// virtual, pseudotabela de uma linha).
 #[derive(Default)]
 pub struct VdbeCursor {
+    /// Tabela virtual dona do cursor (`pVtabCursor->pVtab`), para o `xClose`.
+    pub p_v_table: Option<VTableId>,
     /// Um dos `CURTYPE_*`.
     pub e_cur_type: u8,
     /// Índice do banco do cursor em `Connection.dbs`.
@@ -520,6 +522,12 @@ pub struct VListEntry {
 /// `struct Vdbe`: uma instância da máquina virtual. O handle é `StmtId` (o `sqlite3_stmt`).
 #[derive(Default)]
 pub struct Vdbe {
+    /// O handle deste comando em `Connection.stmts` (o `sqlite3_stmt*` do C); atribuído ao
+    /// registrar e preservado por `vdbe_swap`.
+    pub stmt_id: StmtId,
+    /// Falha de alocação ou limite `SQLITE_LIMIT_VDBE_OP` estourado durante a construção (o
+    /// `sqlite3OomFault` que `vdbeaux` não pode chamar sem a conexão).
+    pub malloc_failed: bool,
     /// Entradas de `a_var`.
     pub n_var: i32,
     /// Células de memória alocadas (os registros vão de 1 a `n_mem`).

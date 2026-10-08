@@ -901,6 +901,9 @@ pub struct Window {
     pub b_expr_args: u8,
     /// Posição na lista `Select.pWin` (1, 2, ...); 0 enquanto a janela não foi ligada.
     pub link_seq: u32,
+    /// Próxima janela da lista de definições do analisador (`windowdefn_list` do parse.y,
+    /// `pNextWin` do C).
+    pub p_next_win: Option<Box<Window>>,
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -965,6 +968,9 @@ pub struct TriggerStep {
     pub p_upsert: Option<Box<Upsert>>,
     /// Texto original do comando.
     pub z_span: Option<Vec<u8>>,
+    /// Próximo passo enquanto o analisador monta a lista (`trigger_cmd_list` do parse.y); o
+    /// `finish_trigger` a desfaz em `Trigger.step_list`.
+    pub p_next: Option<Box<TriggerStep>>,
 }
 
 /// `Trigger`: um gatilho do esquema. Fica em `Schema.trig_hash` (por nome) e em
@@ -1532,11 +1538,11 @@ pub enum NcU<'a> {
 /// precisa de `sqlite3WindowLink`/`WindowUpdate` recebe o `&mut Select` explicitamente.
 pub struct NameContext<'a> {
     /// Tabelas usadas para resolver nomes.
-    pub p_src_list: Option<&'a SrcList>,
+    pub p_src_list: Option<&'a mut SrcList>,
     /// Lista de resultado, `AggInfo`, upsert ou registrador-base.
     pub u_nc: NcU<'a>,
     /// Contexto externo.
-    pub p_next: Option<&'a mut NameContext<'a>>,
+    pub p_next: Option<&'a mut (dyn crate::resolve::NcLevel + 'a)>,
     /// Quantos nomes este contexto resolveu.
     pub n_ref: i32,
     /// Erros encontrados.
@@ -1545,6 +1551,10 @@ pub struct NameContext<'a> {
     pub nc_flags: i32,
     /// Selects aninhados que usam este contexto.
     pub n_nested_select: u32,
+    /// Cópia de `Select.p_win_defn` do select dono (o `pWinSelect` do C).
+    pub p_win_defn: Vec<Window>,
+    /// Contador `Select.n_win_linked` do select dono (o `pWinSelect` do C).
+    pub n_win_linked: Option<&'a mut u32>,
 }
 
 /// `Walker`: o contexto passado ao percorrer a árvore. O `union u` do C (onze tipos de ponteiro

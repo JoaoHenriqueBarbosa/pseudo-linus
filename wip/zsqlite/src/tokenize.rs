@@ -16,6 +16,8 @@ use crate::keywordhash::keyword_code_raw;
 /// `sqlite3IsIdChar` / macro `IdChar`: verdadeiro se o byte pode aparecer num identificador
 /// (qualquer byte com o bit alto ligado, mais letras, dígitos, `_` e `$`).
 pub use crate::ctype::is_id_char;
+pub use crate::keywordhash::keyword_code;
+pub use crate::prepare::run_parser;
 
 // Classes de caracteres usadas por `get_token`.
 const CC_X: u8 = 0; // A letra 'x', ou início de literal BLOB

@@ -550,6 +550,18 @@ impl StrAccum {
         self.text = Vec::new();
     }
 
+    /// Remove os `n` primeiros bytes do texto acumulado (o `memmove` de `groupConcatInverse`):
+    /// com `n` maior ou igual a `n_char` o acumulador fica vazio.
+    pub fn remove_prefix(&mut self, n: u32) {
+        if n >= self.n_char {
+            self.n_char = 0;
+            self.text.clear();
+        } else {
+            self.n_char -= n;
+            self.text.drain(..n as usize);
+        }
+    }
+
     /// Adoção do buffer do `%z` em `sqlite3_mprintf("%z...")`: estende uma
     /// alocação existente em vez de criar outra. `nAlloc` do C é
     /// `sqlite3DbMallocSize(bufpt)`, aqui o tamanho da glibc para `len + 1`.
@@ -1315,6 +1327,21 @@ pub fn vm_printf(mx_alloc: u32, fmt: &[u8], args: &[PrintfArg]) -> (Option<Vec<u
     acc.appendf(fmt, args);
     let z = acc.finish();
     (z, acc)
+}
+
+/// `sqlite3ResultStrAccum`: usa o conteúdo do acumulador como resultado de uma função SQL.
+pub fn result_str_accum(ctx: &mut crate::connection::Context<'_>, p: &mut StrAccum) {
+    if p.acc_error != 0 {
+        crate::vdbeapi::result_error_code(ctx, p.acc_error as i32);
+        p.reset();
+    } else if p.is_malloced() {
+        let n = p.n_char as i32;
+        let z = p.finish().unwrap_or_default();
+        crate::vdbeapi::result_text(ctx, Some(&z), n, crate::mem::StrDtor::Dynamic);
+    } else {
+        crate::vdbeapi::result_text(ctx, Some(b""), 0, crate::mem::StrDtor::Static);
+        p.reset();
+    }
 }
 
 /// `sqlite3_mprintf`/`sqlite3_vmprintf`: imprime em memória nova SEM as

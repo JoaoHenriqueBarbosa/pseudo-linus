@@ -1,0 +1,101 @@
+//! zsqlite: SQLite 3.46.1 traduzido para Rust seguro.
+#![forbid(unsafe_code)]
+#![allow(clippy::all)]
+
+pub mod aliases;
+pub mod api;
+pub mod prelude;
+
+// Cabeçalhos (tipos e constantes).
+pub mod btreeInt_h;
+pub mod btree_h;
+pub mod hash_h;
+pub mod keywordhash_h;
+pub mod mutex_h;
+pub mod opcodes_h;
+pub mod os_common_h;
+pub mod os_h;
+pub mod os_setup_h;
+pub mod pager_h;
+pub mod parse_h;
+pub mod pcache_h;
+pub mod pragma_h;
+pub mod sqlite3_h;
+pub mod sqliteInt_h;
+pub mod sqliteLimit_h;
+pub mod vdbeInt_h;
+pub mod vdbe_h;
+pub mod wal_h;
+pub mod whereInt_h;
+
+// Arquivos de implementação.
+pub mod alter_c;
+pub mod analyze_c;
+pub mod attach_c;
+pub mod auth_c;
+pub mod backup_c;
+pub mod bitvec_c;
+pub mod btmutex_c;
+pub mod btree_c;
+pub mod build_c;
+pub mod callback_c;
+pub mod complete_c;
+pub mod ctime_c;
+pub mod date_c;
+pub mod delete_c;
+pub mod expr_c;
+pub mod fault_c;
+pub mod fkey_c;
+pub mod func_c;
+pub mod global_c;
+pub mod insert_c;
+pub mod json_c;
+pub mod legacy_c;
+pub mod loadext_c;
+pub mod main_c;
+pub mod malloc_c;
+pub mod mem0_c;
+pub mod mem1_c;
+pub mod memdb_c;
+pub mod memjournal_c;
+pub mod mutex_c;
+pub mod mutex_unix_c;
+pub mod notify_c;
+pub mod opcodes_c;
+pub mod os_c;
+pub mod os_unix_c;
+pub mod pager_c;
+pub mod parse_c;
+pub mod pcache1_c;
+pub mod pcache_c;
+pub mod pragma_c;
+pub mod prepare_c;
+pub mod printf_c;
+pub mod random_c;
+pub mod resolve_c;
+pub mod rowset_c;
+pub mod select_c;
+pub mod status_c;
+pub mod table_c;
+pub mod threads_c;
+pub mod tokenize_c;
+pub mod trigger_c;
+// pub mod update_c; (faltam partes 000)
+pub mod upsert_c;
+pub mod utf_c;
+pub mod util_c;
+pub mod vacuum_c;
+pub mod vdbe_c;
+pub mod vdbeapi_c;
+pub mod vdbeaux_c;
+pub mod vdbeblob_c;
+pub mod vdbemem_c;
+pub mod vdbesort_c;
+pub mod vdbevtab_c;
+pub mod vtab_c;
+pub mod wal_c;
+pub mod walker_c;
+pub mod where_c;
+pub mod wherecode_c;
+pub mod whereexpr_c;
+pub mod window_c;

@@ -415,6 +415,8 @@ pub struct Context<'a> {
     pub skip_flag: u8,
     /// Número de argumentos.
     pub argc: u8,
+    /// Colação do `OP_CollSeq` que precede a chamada (o `pColl` do C).
+    pub p_coll: Option<Rc<CollSeq>>,
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -704,6 +706,12 @@ pub struct VTable {
     pub e_vtab_risk: u8,
     /// Profundidade da pilha de SAVEPOINT.
     pub i_savepoint: i32,
+    /// O esquema da tabela a que o `VTable` pertence (o `pTab->pSchema` do C).
+    pub schema: SchemaId,
+    /// O nome dessa tabela; vazio quando o `VTable` não está ligado a tabela.
+    pub z_tab_name: Vec<u8>,
+    /// Verdadeiro para a tabela epônima do módulo.
+    pub b_eponymous: bool,
 }
 
 /// `struct VtabCtx`: o contexto de um `xCreate`/`xConnect` em curso (`Connection.p_vtab_ctx`).
@@ -1227,8 +1235,9 @@ pub struct Parse {
     pub z_tail: usize,
     /// A tabela sendo construída por CREATE TABLE.
     pub p_new_table: Option<Box<TableBuilder>>,
-    /// O índice sendo construído por CREATE INDEX (e UNIQUEs redundantes no RENAME COLUMN).
-    pub p_new_index: Option<Box<Index>>,
+    /// O índice sendo construído por CREATE INDEX (e UNIQUEs redundantes no RENAME COLUMN, o
+    /// mais novo na posição 0, como a cadeia `pNext` do C).
+    pub p_new_index: Vec<Box<Index>>,
     /// O gatilho sendo construído por CREATE TRIGGER.
     pub p_new_trigger: Option<Box<Trigger>>,
     /// O sexto parâmetro dos ganchos `xAuth`.
@@ -1241,6 +1250,13 @@ pub struct Parse {
     pub p_with: Option<Box<With>>,
     /// Tokens sujeitos a renomeação por ALTER TABLE (o mais novo é o último).
     pub p_rename: Vec<RenameToken>,
+    /// O texto SQL inteiro sendo analisado (o `zSql` de `sqlite3RunParser`); os `i_ofst` dos
+    /// tokens são deslocamentos nele.
+    pub z_sql: Vec<u8>,
+    /// Os `AggInfo` deste analisador; `AggInfoId` é o índice (o C os encadeia por ponteiro).
+    pub agg_infos: Vec<AggInfo>,
+    /// Os `CteUse` deste analisador; `CteUseId` é o índice.
+    pub cte_uses: Vec<CteUse>,
 }
 
 impl Parse {
