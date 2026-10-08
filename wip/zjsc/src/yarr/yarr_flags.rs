@@ -32,7 +32,8 @@ pub enum Flags {
     Unicode = 1 << 5,
     UnicodeSets = 1 << 6,
     Sticky = 1 << 7,
-    DeletedValue = 1 << NUMBER_OF_FLAGS,
+    // `1 << numberOfFlags`, com numberOfFlags = 8 (as oito flags acima).
+    DeletedValue = 1 << 8,
 }
 
 /// `OptionSet<Flags>`.

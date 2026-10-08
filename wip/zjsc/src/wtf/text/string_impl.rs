@@ -1,6 +1,7 @@
 //! Tradução de `WTF/wtf/text/StringImpl.h`: a declaração da classe, os enums, as constantes de
-//! flags e as funções inline do cabeçalho. As funções do `StringImpl.cpp` (substring, conversões
-//! de caixa, replace, UTF-8 etc.) ficam para a próxima fatia.
+//! flags e as funções inline do cabeçalho, mais as funções do `StringImpl.cpp` até a linha 840
+//! (criação, substring, conversões de caixa). O resto do `.cpp` (trim, replace, UTF-8 etc.) fica
+//! para a próxima fatia.
 //!
 //! Modelo (CONVENTIONS, item 1): o buffer é sempre um `Box<[T]>` dono. O buffer interno, o
 //! substring e o static do C++ viram cópia; a contagem de referência some porque o `String` é um
@@ -11,7 +12,14 @@ use std::cell::Cell;
 use std::cmp::Ordering;
 use std::rc::Rc;
 
+use crate::wtf::ascii_ctype::{
+    is_ascii, is_ascii_alpha_caseless_equal, is_ascii_lower, is_ascii_upper, to_ascii_lower, to_ascii_upper, AsciiChar,
+};
 use crate::wtf::text::string_hasher;
+use crate::wtf::unicode::case_mapping::{
+    fold_case as icu_fold_case, str_fold_case, str_to_lower, str_to_upper, to_lower, to_upper,
+};
+use crate::wtf::unicode::character_names::SMALL_LETTER_SHARP_S;
 
 /// `Latin1Character`.
 pub type LChar = u8;
@@ -614,6 +622,658 @@ impl StringImpl {
 }
 
 // ---------------------------------------------------------------------------------------------
+// StringImpl.cpp (linhas 1 a 840): criação, substring, conversões de caixa
+// ---------------------------------------------------------------------------------------------
+
+/// `UTF8ConversionError` de `wtf/text/UTF8ConversionError.h`. Só existe aqui porque o
+/// `tryReallocate` o devolve; o módulo próprio ainda não foi portado e este tipo se move para lá.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UTF8ConversionError {
+    OutOfMemory,
+}
+
+/// `StringImpl::CaseConvertType`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CaseConvertType {
+    Upper,
+    Lower,
+}
+
+/// `U16_IS_SINGLE(c)`: a unidade não é substituta. As macros do ICU de `utf8_conversion.rs` são
+/// privadas daquele módulo, então estas duas vivem aqui.
+fn u16_is_single(c: u16) -> bool {
+    (c as u32 & 0xFFFF_F800) != 0xD800
+}
+
+/// `U16_IS_LEAD(c)`.
+fn u16_is_lead(c: u16) -> bool {
+    (c as u32 & 0xFFFF_FC00) == 0xD800
+}
+
+/// `U16_IS_TRAIL(c)`.
+fn u16_is_trail(c: u16) -> bool {
+    (c as u32 & 0xFFFF_FC00) == 0xDC00
+}
+
+/// `U16_GET_SUPPLEMENTARY(lead, trail)`.
+fn u16_get_supplementary(lead: u16, trail: u16) -> u32 {
+    ((lead as u32) << 10)
+        .wrapping_add(trail as u32)
+        .wrapping_sub((0xD800 << 10) + 0xDC00 - 0x10000)
+}
+
+/// `locale[index]` de uma `AtomString`. O C++ lê além do fim quando o identificador é curto
+/// demais; aqui o que não existe lê como 0, que não é letra e portanto nunca casa.
+fn locale_char(locale: &StringImpl, index: u32) -> u16 {
+    if index < locale.length() {
+        locale.char_at(index)
+    } else {
+        0
+    }
+}
+
+/// `needsTurkishCasingRules`.
+fn needs_turkish_casing_rules(locale: &StringImpl) -> bool {
+    // Either "tr" or "az" locale, with ASCII case insensitive comparison and allowing for an
+    // ignored subtag.
+    let first = locale_char(locale, 0);
+    let second = locale_char(locale, 1);
+    ((is_ascii_alpha_caseless_equal(first, b't') && is_ascii_alpha_caseless_equal(second, b'r'))
+        || (is_ascii_alpha_caseless_equal(first, b'a') && is_ascii_alpha_caseless_equal(second, b'z')))
+        && (locale.length() == 2 || locale_char(locale, 2) == '-' as u16)
+}
+
+/// `needsGreekUppercasingRules`.
+fn needs_greek_uppercasing_rules(locale: &StringImpl) -> bool {
+    // The "el" locale, with ASCII case insensitive comparison and allowing for an ignored subtag.
+    is_ascii_alpha_caseless_equal(locale_char(locale, 0), b'e')
+        && is_ascii_alpha_caseless_equal(locale_char(locale, 1), b'l')
+        && (locale.length() == 2 || locale_char(locale, 2) == '-' as u16)
+}
+
+/// `needsLithuanianCasingRules`.
+fn needs_lithuanian_casing_rules(locale: &StringImpl) -> bool {
+    // The "lt" locale, with ASCII case insensitive comparison and allowing for an ignored subtag.
+    is_ascii_alpha_caseless_equal(locale_char(locale, 0), b'l')
+        && is_ascii_alpha_caseless_equal(locale_char(locale, 1), b't')
+        && (locale.length() == 2 || locale_char(locale, 2) == '-' as u16)
+}
+
+impl StringImpl {
+    /// `createUninitializedInternalNonEmpty`: o buffer nasce zerado e `fill` o preenche antes de a
+    /// string existir (o C++ devolve o span para o chamador escrever).
+    pub fn create_uninitialized_internal_non_empty<T: CharType>(
+        length: usize,
+        fill: impl FnOnce(&mut [T]),
+    ) -> Rc<StringImpl> {
+        debug_assert!(length != 0);
+
+        // Allocate a single buffer large enough to contain the StringImpl struct as well as the
+        // data which it contains.
+        if !Self::is_valid_length::<T>(length) {
+            // CRASH()
+            panic!("StringImpl: comprimento inválido");
+        }
+
+        let mut data = vec![T::from_u16(0); length];
+        fill(&mut data);
+        T::create(&data)
+    }
+
+    /// `createUninitializedInternal`.
+    fn create_uninitialized_internal<T: CharType>(length: usize, fill: impl FnOnce(&mut [T])) -> Rc<StringImpl> {
+        if length == 0 {
+            fill(&mut []);
+            return Self::empty();
+        }
+
+        Self::create_uninitialized_internal_non_empty(length, fill)
+    }
+
+    /// `StringImpl::createUninitialized(size_t, std::span<Latin1Character>&)` e a versão de 16
+    /// bits: `fill` recebe o buffer a preencher.
+    pub fn create_uninitialized<T: CharType>(length: usize, fill: impl FnOnce(&mut [T])) -> Rc<StringImpl> {
+        Self::create_uninitialized_internal(length, fill)
+    }
+
+    /// `StringImpl::createWithoutCopyingNonEmpty`: o C++ aponta para o buffer do chamador sem
+    /// copiar; o porte sempre é dono do buffer, então copia.
+    pub fn create_without_copying_non_empty<T: CharType>(characters: &[T]) -> Rc<StringImpl> {
+        debug_assert!(!characters.is_empty());
+        T::create(characters)
+    }
+
+    /// `StringImpl::reallocateInternal`. O C++ exige `hasOneRef()` e buffer interno; o conteúdo
+    /// antigo é preservado até o menor dos dois comprimentos, como o `realloc`. `fill` recebe o
+    /// novo buffer já com esse conteúdo.
+    fn reallocate_internal<T: CharType>(
+        original_string: Rc<StringImpl>,
+        length: u32,
+        fill: impl FnOnce(&mut [T]),
+    ) -> Result<Rc<StringImpl>, UTF8ConversionError> {
+        debug_assert!(Rc::strong_count(&original_string) == 1);
+        debug_assert!(original_string.buffer_ownership() == BufferOwnership::BufferInternal);
+
+        if length == 0 {
+            fill(&mut []);
+            return Ok(Self::empty());
+        }
+
+        // Same as createUninitialized() except here we use fastRealloc.
+        if !Self::is_valid_length::<T>(length as usize) {
+            return Err(UTF8ConversionError::OutOfMemory);
+        }
+
+        let old = original_string.span::<T>();
+        let mut data = vec![T::from_u16(0); length as usize];
+        let preserved = std::cmp::min(old.len(), data.len());
+        data[..preserved].copy_from_slice(&old[..preserved]);
+        fill(&mut data);
+        Ok(T::create(&data))
+    }
+
+    /// `StringImpl::reallocate` (as duas sobrecargas).
+    pub fn reallocate<T: CharType>(
+        original_string: Rc<StringImpl>,
+        length: u32,
+        fill: impl FnOnce(&mut [T]),
+    ) -> Rc<StringImpl> {
+        match Self::try_reallocate(original_string, length, fill) {
+            Ok(string_impl) => string_impl,
+            // RELEASE_ASSERT(expectedStringImpl)
+            Err(_) => panic!("StringImpl::reallocate: sem memória"),
+        }
+    }
+
+    /// `StringImpl::tryReallocate` (as duas sobrecargas): o tipo `T` exige a largura da string
+    /// original (`ASSERT(is8Bit())` para `u8`, `ASSERT(!is8Bit())` para `u16`).
+    pub fn try_reallocate<T: CharType>(
+        original_string: Rc<StringImpl>,
+        length: u32,
+        fill: impl FnOnce(&mut [T]),
+    ) -> Result<Rc<StringImpl>, UTF8ConversionError> {
+        debug_assert!(original_string.is_8bit() == (T::SIZE == 1));
+        Self::reallocate_internal(original_string, length, fill)
+    }
+
+    /// `StringImpl::createStaticStringImpl(std::span<const Latin1Character>)`.
+    pub fn create_static_string_impl8(characters: &[u8]) -> Rc<StringImpl> {
+        if characters.is_empty() {
+            return Self::empty();
+        }
+        let mut result = Self::new8(characters.into());
+        result.hash();
+        result.is_static = true;
+        Rc::new(result)
+    }
+
+    /// `StringImpl::createStaticStringImpl(std::span<const char16_t>)`.
+    pub fn create_static_string_impl16(characters: &[u16]) -> Rc<StringImpl> {
+        if characters.is_empty() {
+            return Self::empty();
+        }
+        let result = Self::create8_bit_if_possible(characters);
+        result.hash();
+        // O `Rc` acabou de nascer e ainda é único, então o campo se muda sem compartilhar.
+        match Rc::try_unwrap(result) {
+            Ok(mut owned) => {
+                owned.is_static = true;
+                Rc::new(owned)
+            }
+            Err(shared) => shared,
+        }
+    }
+
+    /// `StringImpl::substring(position, length)`; o `length` padrão do C++ é `MaxLength`.
+    pub fn substring(self: &Rc<Self>, start: u32, length: u32) -> Rc<StringImpl> {
+        let m_length = self.length();
+        if start >= m_length {
+            return Self::empty();
+        }
+        let max_length = m_length - start;
+        let mut length = length;
+        if length >= max_length {
+            if start == 0 {
+                return Rc::clone(self);
+            }
+            length = max_length;
+        }
+        let (start, length) = (start as usize, length as usize);
+        if self.is_8bit() {
+            return Self::create(&self.span8()[start..start + length]);
+        }
+
+        Self::create16(&self.span16()[start..start + length])
+    }
+
+    /// `StringImpl::codePointAt(i)`.
+    pub fn code_point_at(&self, i: u32) -> u32 {
+        if self.is_8bit() {
+            return self.span8()[i as usize] as u32;
+        }
+        let span = self.span16();
+        let i = i as usize;
+        if u16_is_single(span[i]) {
+            return span[i] as u32;
+        }
+        if i + 1 < self.length() as usize && u16_is_lead(span[i]) && u16_is_trail(span[i + 1]) {
+            return u16_get_supplementary(span[i], span[i + 1]);
+        }
+        span[i] as u32
+    }
+
+    /// `StringView(*this).upconvertedCharacters()`: o texto como UTF-16.
+    fn upconverted_characters(&self) -> Vec<u16> {
+        match &self.data {
+            StringData::Latin1(data) => data.iter().map(|c| *c as u16).collect(),
+            StringData::Utf16(data) => data.to_vec(),
+        }
+    }
+
+    // ---- caixa sem locale ----------------------------------------------------------------
+
+    /// `StringImpl::convertToLowercaseWithoutLocale()`.
+    pub fn convert_to_lowercase_without_locale(self: &Rc<Self>) -> Rc<StringImpl> {
+        // Note: At one time this was a hot function in the Dromaeo benchmark, specifically the
+        // no-op code path that may return ourself if we find no upper case letters and no
+        // invalid ASCII letters.
+
+        // First scan the string for uppercase and non-ASCII characters:
+        if self.is_8bit() {
+            let span = self.span8();
+            for (i, &character) in span.iter().enumerate() {
+                if !is_ascii(character) || is_ascii_upper(character) {
+                    return self.convert_to_lowercase_without_locale_starting_at_failing_index8_bit(i as u32);
+                }
+            }
+
+            return Rc::clone(self);
+        }
+
+        self.convert_to_lowercase_without_locale_starting_at_failing_index16_bit(0)
+    }
+
+    /// `StringImpl::convertToLowercaseWithoutLocaleStartingAtFailingIndex16Bit`.
+    pub fn convert_to_lowercase_without_locale_starting_at_failing_index16_bit(
+        self: &Rc<Self>,
+        failing_index: u32,
+    ) -> Rc<StringImpl> {
+        debug_assert!(!self.is_8bit());
+        let span = self.span16();
+        let failing_index = failing_index as usize;
+
+        // Characters before the failing index are already known to be ASCII with no uppercase
+        // among them, so only the rest can decide which of the paths below applies.
+        let mut no_upper = true;
+        let mut ored: u32 = 0;
+
+        for &character in &span[failing_index..] {
+            if is_ascii_upper(character) {
+                no_upper = false;
+            }
+            ored |= character as u32;
+        }
+        // Nothing to do if the string is all ASCII with no uppercase.
+        if no_upper && (ored & !0x7F) == 0 {
+            return Rc::clone(self);
+        }
+
+        if (ored & !0x7F) == 0 {
+            return Self::create_uninitialized_internal_non_empty::<u16>(span.len(), |data16| {
+                copy_characters(data16, &span[..failing_index]);
+                for i in failing_index..span.len() {
+                    data16[i] = to_ascii_lower(span[i]);
+                }
+            });
+        }
+
+        // Do a slower implementation for cases that include non-ASCII characters. O ICU devolve o
+        // resultado inteiro, com o comprimento real (as duas passadas do C++ viram uma).
+        Self::create16(&str_to_lower(span))
+    }
+
+    /// `StringImpl::convertToLowercaseWithoutLocaleStartingAtFailingIndex8Bit`.
+    pub fn convert_to_lowercase_without_locale_starting_at_failing_index8_bit(
+        self: &Rc<Self>,
+        failing_index: u32,
+    ) -> Rc<StringImpl> {
+        debug_assert!(self.is_8bit());
+        let span = self.span8();
+        let failing_index = failing_index as usize;
+
+        Self::create_uninitialized_internal_non_empty::<u8>(span.len(), |data8| {
+            copy_characters(data8, &span[..failing_index]);
+
+            for i in failing_index..span.len() {
+                let character = span[i];
+                if is_ascii(character) {
+                    data8[i] = to_ascii_lower(character);
+                } else {
+                    // ASSERT(isLatin1(u_tolower(character)))
+                    data8[i] = to_lower(character as u32) as u8;
+                }
+            }
+        })
+    }
+
+    /// `StringImpl::convertToUppercaseWithoutLocale()`.
+    pub fn convert_to_uppercase_without_locale(self: &Rc<Self>) -> Rc<StringImpl> {
+        // This function could be optimized for no-op cases the way
+        // convertToLowercaseWithoutLocale() is, but in empirical testing, few actual calls to
+        // upper() are no-ops, so it wouldn't be worth the extra time for pre-scanning.
+
+        if self.length() > MAX_LENGTH {
+            // CRASH()
+            panic!("StringImpl: comprimento acima de MaxLength");
+        }
+
+        // First scan the string for uppercase and non-ASCII characters:
+        if self.is_8bit() {
+            let span = self.span8();
+            for (i, &character) in span.iter().enumerate() {
+                if !is_ascii(character) || is_ascii_lower(character) {
+                    return self.convert_to_uppercase_without_locale_starting_at_failing_index8_bit(i as u32);
+                }
+            }
+            return Rc::clone(self);
+        }
+        self.convert_to_uppercase_without_locale_upconvert()
+    }
+
+    /// `StringImpl::convertToUppercaseWithoutLocaleStartingAtFailingIndex8Bit`.
+    pub fn convert_to_uppercase_without_locale_starting_at_failing_index8_bit(
+        self: &Rc<Self>,
+        failing_index: u32,
+    ) -> Rc<StringImpl> {
+        debug_assert!(self.is_8bit());
+        let span = self.span8();
+        let failing_index = failing_index as usize;
+        let mut destination = vec![0u8; span.len()];
+
+        copy_characters(&mut destination, &span[..failing_index]);
+
+        // Do a faster loop for the case where all the characters are ASCII.
+        let mut ored: u32 = 0;
+        for i in failing_index..span.len() {
+            let character = span[i];
+            ored |= character as u32;
+            destination[i] = to_ascii_upper(character);
+        }
+        if (ored & !0x7F) == 0 {
+            return Self::create(&destination);
+        }
+
+        // Do a slower implementation for cases that include non-ASCII Latin-1 characters.
+        let mut number_sharp_s_characters: usize = 0;
+
+        // There are two special cases.
+        //  1. Some Latin-1 characters when converted to upper case are 16 bit characters.
+        //  2. Lower case sharp-S converts to "SS" (two characters)
+        for i in 0..span.len() {
+            let character = span[i];
+            if character as u16 == SMALL_LETTER_SHARP_S {
+                number_sharp_s_characters += 1;
+            }
+            // ASSERT(u_toupper(character) <= 0xFFFF)
+            let upper = to_upper(character as u32) as u16;
+            if upper > 0xFF {
+                // Since this upper-cased character does not fit in an 8-bit string, we need to
+                // take the 16-bit path.
+                return self.convert_to_uppercase_without_locale_upconvert();
+            }
+            destination[i] = upper as u8;
+        }
+
+        if number_sharp_s_characters == 0 {
+            return Self::create(&destination);
+        }
+
+        // We have numberSSCharacters sharp-s characters, but none of the other special
+        // characters.
+        if self.length() as usize + number_sharp_s_characters > MAX_LENGTH as usize {
+            return Rc::clone(self);
+        }
+        let mut destination = vec![0u8; span.len() + number_sharp_s_characters];
+
+        let mut destination_index: usize = 0;
+        for &character in span {
+            if character as u16 == SMALL_LETTER_SHARP_S {
+                destination[destination_index] = b'S';
+                destination_index += 1;
+                destination[destination_index] = b'S';
+                destination_index += 1;
+            } else {
+                // ASSERT(isLatin1(u_toupper(character)))
+                destination[destination_index] = to_upper(character as u32) as u8;
+                destination_index += 1;
+            }
+        }
+
+        Self::create(&destination)
+    }
+
+    /// `StringImpl::convertToUppercaseWithoutLocaleUpconvert()`.
+    fn convert_to_uppercase_without_locale_upconvert(self: &Rc<Self>) -> Rc<StringImpl> {
+        let upconverted_characters = self.upconverted_characters();
+        self.convert_to_uppercase_without_locale16_bit(&upconverted_characters, 0)
+    }
+
+    /// `StringImpl::convertToUppercaseWithoutLocaleStartingAtFailingIndex16Bit`.
+    pub fn convert_to_uppercase_without_locale_starting_at_failing_index16_bit(
+        self: &Rc<Self>,
+        failing_index: u32,
+    ) -> Rc<StringImpl> {
+        debug_assert!(!self.is_8bit());
+        self.convert_to_uppercase_without_locale16_bit(self.span16(), failing_index)
+    }
+
+    /// `StringImpl::convertToUppercaseWithoutLocale16Bit`.
+    fn convert_to_uppercase_without_locale16_bit(
+        self: &Rc<Self>,
+        source16: &[u16],
+        failing_index: u32,
+    ) -> Rc<StringImpl> {
+        debug_assert!(source16.len() == self.length() as usize);
+        let failing_index = failing_index as usize;
+        let mut data16 = vec![0u16; source16.len()];
+
+        // Characters before the failing index are already known to be ASCII that upper-casing
+        // leaves alone, so they can be copied across without being tested or converted.
+        copy_characters(&mut data16, &source16[..failing_index]);
+
+        // Do a faster loop for the case where all the characters are ASCII.
+        let mut ored: u32 = 0;
+        for i in failing_index..source16.len() {
+            let character = source16[i];
+            ored |= character as u32;
+            data16[i] = to_ascii_upper(character);
+        }
+        if (ored & !0x7F) == 0 {
+            return Self::create16(&data16);
+        }
+
+        // Do a slower implementation for cases that include non-ASCII characters. O ICU devolve o
+        // resultado inteiro, com o comprimento real (as duas passadas do C++ viram uma).
+        Self::create16(&str_to_upper(source16))
+    }
+
+    // ---- caixa com locale ----------------------------------------------------------------
+
+    /// `StringImpl::convertToLowercaseWithLocale(const AtomString&)`: `locale_identifier` é o
+    /// `StringImpl` do átomo.
+    pub fn convert_to_lowercase_with_locale(self: &Rc<Self>, locale_identifier: &StringImpl) -> Rc<StringImpl> {
+        // Use the more-optimized code path most of the time.
+        let locale: &str;
+        if needs_turkish_casing_rules(locale_identifier) {
+            // Passing in the hardcoded locale "tr" is more efficient than allocating memory just
+            // to turn localeIdentifier into a C string, and we assume there is no difference
+            // between the lowercasing for "tr" and "az" locales.
+            // FIXME: Could optimize further by looking for the three sequences that have
+            // locale-specific lowercasing.
+            locale = "tr";
+        } else if needs_lithuanian_casing_rules(locale_identifier) {
+            locale = "lt";
+        } else {
+            return self.convert_to_lowercase_without_locale();
+        }
+
+        // FIXME: Could share more code with convertToLowercaseWithoutLocale.
+
+        if self.length() > MAX_LENGTH {
+            // CRASH()
+            panic!("StringImpl: comprimento acima de MaxLength");
+        }
+
+        let source16 = self.upconverted_characters();
+        // LOCALE: o `case_mapping` só tem a localidade raiz; `locale` ("tr" ou "lt") ainda não
+        // altera o resultado até a tabela com as regras por localidade existir.
+        let _ = locale;
+        Self::create16(&str_to_lower(&source16))
+    }
+
+    /// `StringImpl::convertToUppercaseWithLocale(const AtomString&)`.
+    pub fn convert_to_uppercase_with_locale(self: &Rc<Self>, locale_identifier: &StringImpl) -> Rc<StringImpl> {
+        // Use the more-optimized code path most of the time.
+        let locale: &str;
+        if needs_turkish_casing_rules(locale_identifier) && self.find_character('i' as u16, 0) != NOT_FOUND {
+            // Passing in the hardcoded locale "tr" is more efficient than allocating memory just
+            // to turn localeIdentifier into a C string, and we assume there is no difference
+            // between the uppercasing for "tr" and "az" locales.
+            locale = "tr";
+        } else if needs_greek_uppercasing_rules(locale_identifier) {
+            locale = "el";
+        } else if needs_lithuanian_casing_rules(locale_identifier) {
+            locale = "lt";
+        } else {
+            return self.convert_to_uppercase_without_locale();
+        }
+
+        if self.length() > MAX_LENGTH {
+            // CRASH()
+            panic!("StringImpl: comprimento acima de MaxLength");
+        }
+
+        let source16 = self.upconverted_characters();
+        // LOCALE: o `case_mapping` só tem a localidade raiz; `locale` ("tr", "el" ou "lt") ainda
+        // não altera o resultado até a tabela com as regras por localidade existir.
+        let _ = locale;
+        Self::create16(&str_to_upper(&source16))
+    }
+
+    /// `StringImpl::foldCase()`.
+    pub fn fold_case(self: &Rc<Self>) -> Rc<StringImpl> {
+        if self.is_8bit() {
+            let span = self.span8();
+            let failing_index = match span.iter().position(|&character| !is_ascii(character) || is_ascii_upper(character))
+            {
+                Some(index) => index,
+                // String was all ASCII and no uppercase, so just return as-is.
+                None => return Rc::clone(self),
+            };
+
+            // SlowPath:
+            let need16_bit_characters = span[failing_index..]
+                .iter()
+                .any(|&character| character == 0xB5 || character == 0xDF);
+
+            if !need16_bit_characters {
+                return Self::create_uninitialized_internal_non_empty::<u8>(span.len(), |data8| {
+                    copy_characters(data8, &span[..failing_index]);
+                    for i in failing_index..span.len() {
+                        let character = span[i];
+                        if is_ascii(character) {
+                            data8[i] = to_ascii_lower(character);
+                        } else {
+                            // ASSERT(isLatin1(u_foldCase(character, U_FOLD_CASE_DEFAULT)))
+                            data8[i] = icu_fold_case(character as u32) as u8;
+                        }
+                    }
+                });
+            }
+        } else {
+            // FIXME: Unclear why we use goto in the 8-bit case, and a different approach in the
+            // 16-bit case.
+            let mut no_upper = true;
+            let mut ored: u32 = 0;
+            let span = self.span16();
+            for &character in span {
+                if is_ascii_upper(character) {
+                    no_upper = false;
+                }
+                ored |= character as u32;
+            }
+            if (ored & !0x7F) == 0 {
+                if no_upper {
+                    // String was all ASCII and no uppercase, so just return as-is.
+                    return Rc::clone(self);
+                }
+                return Self::create_uninitialized_internal_non_empty::<u16>(span.len(), |data16| {
+                    for i in 0..span.len() {
+                        data16[i] = to_ascii_lower(span[i]);
+                    }
+                });
+            }
+        }
+
+        if self.length() > MAX_LENGTH {
+            // CRASH()
+            panic!("StringImpl: comprimento acima de MaxLength");
+        }
+
+        let source16 = self.upconverted_characters();
+
+        // u_strFoldCase(..., U_FOLD_CASE_DEFAULT): o ICU devolve o resultado inteiro (as duas
+        // passadas do C++ viram uma).
+        Self::create16(&str_fold_case(&source16))
+    }
+
+    // ---- caixa ASCII ---------------------------------------------------------------------
+
+    /// `StringImpl::convertASCIICase<type, CharacterType>`.
+    fn convert_ascii_case<T: CharType + AsciiChar>(
+        case_convert_type: CaseConvertType,
+        this: &Rc<StringImpl>,
+        data: &[T],
+    ) -> Rc<StringImpl> {
+        let failing_index = data.iter().position(|&character| match case_convert_type {
+            CaseConvertType::Lower => is_ascii_upper(character),
+            CaseConvertType::Upper => is_ascii_lower(character),
+        });
+        let failing_index = match failing_index {
+            Some(index) => index,
+            None => return Rc::clone(this),
+        };
+
+        // SlowPath:
+        Self::create_uninitialized_internal_non_empty::<T>(data.len(), |new_data| {
+            copy_characters(new_data, &data[..failing_index]);
+            for i in failing_index..data.len() {
+                new_data[i] = match case_convert_type {
+                    CaseConvertType::Lower => to_ascii_lower(data[i]),
+                    CaseConvertType::Upper => to_ascii_upper(data[i]),
+                };
+            }
+        })
+    }
+
+    /// `StringImpl::convertToASCIILowercase()`.
+    pub fn convert_to_ascii_lowercase(self: &Rc<Self>) -> Rc<StringImpl> {
+        if self.is_8bit() {
+            return Self::convert_ascii_case(CaseConvertType::Lower, self, self.span8());
+        }
+        Self::convert_ascii_case(CaseConvertType::Lower, self, self.span16())
+    }
+
+    /// `StringImpl::convertToASCIIUppercase()`.
+    pub fn convert_to_ascii_uppercase(self: &Rc<Self>) -> Rc<StringImpl> {
+        if self.is_8bit() {
+            return Self::convert_ascii_case(CaseConvertType::Upper, self, self.span8());
+        }
+        Self::convert_ascii_case(CaseConvertType::Upper, self, self.span16())
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
 // copyCharacters
 // ---------------------------------------------------------------------------------------------
 
@@ -867,5 +1527,119 @@ impl Eq for UniquedKey {}
 impl std::hash::Hash for UniquedKey {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         std::ptr::hash(std::rc::Rc::as_ptr(&self.0), state);
+    }
+}
+
+/// Testes dos caminhos ASCII do `StringImpl.cpp` (os que não consultam o ICU).
+#[cfg(test)]
+mod cpp_tests {
+    use super::*;
+
+    #[test]
+    fn lowercase_ascii_paths() {
+        let upper8 = StringImpl::create(b"HeLLo-1");
+        let lower8 = upper8.convert_to_lowercase_without_locale();
+        assert!(lower8.is_8bit());
+        assert_eq!(lower8.span8(), b"hello-1");
+
+        // Sem maiúsculas devolve a própria string.
+        let same = lower8.convert_to_lowercase_without_locale();
+        assert!(Rc::ptr_eq(&lower8, &same));
+
+        let upper16 = StringImpl::create16(&['A' as u16, 'b' as u16, 'C' as u16]);
+        let lower16 = upper16.convert_to_lowercase_without_locale();
+        assert!(!lower16.is_8bit());
+        assert_eq!(lower16.span16(), &['a' as u16, 'b' as u16, 'c' as u16]);
+        let same16 = lower16.convert_to_lowercase_without_locale();
+        assert!(Rc::ptr_eq(&lower16, &same16));
+    }
+
+    #[test]
+    fn uppercase_ascii_paths() {
+        let lower8 = StringImpl::create(b"abC-d");
+        let upper8 = lower8.convert_to_uppercase_without_locale();
+        assert_eq!(upper8.span8(), b"ABC-D");
+        let same = upper8.convert_to_uppercase_without_locale();
+        assert!(Rc::ptr_eq(&upper8, &same));
+
+        let lower16 = StringImpl::create16(&['a' as u16, 'b' as u16]);
+        let upper16 = lower16.convert_to_uppercase_without_locale();
+        assert_eq!(upper16.span16(), &['A' as u16, 'B' as u16]);
+    }
+
+    #[test]
+    fn locale_selection_falls_back_to_plain_conversion() {
+        let abc = StringImpl::create(b"ABC");
+        let en = StringImpl::create(b"en-US");
+        assert_eq!(abc.convert_to_lowercase_with_locale(&en).span8(), b"abc");
+        let low = StringImpl::create(b"abc");
+        assert_eq!(low.convert_to_uppercase_with_locale(&en).span8(), b"ABC");
+        assert!(needs_turkish_casing_rules(&StringImpl::create(b"TR")));
+        assert!(needs_turkish_casing_rules(&StringImpl::create(b"az-Latn")));
+        assert!(!needs_turkish_casing_rules(&StringImpl::create(b"trx")));
+        assert!(needs_greek_uppercasing_rules(&StringImpl::create(b"el-GR")));
+        assert!(needs_lithuanian_casing_rules(&StringImpl::create(b"lt")));
+        assert!(!needs_lithuanian_casing_rules(&StringImpl::create(b"l")));
+    }
+
+    #[test]
+    fn fold_case_ascii_paths() {
+        let s = StringImpl::create(b"AbC");
+        assert_eq!(s.fold_case().span8(), b"abc");
+        let lower = StringImpl::create(b"abc");
+        assert!(Rc::ptr_eq(&lower, &lower.fold_case()));
+        let wide = StringImpl::create16(&['A' as u16, 'b' as u16]);
+        assert_eq!(wide.fold_case().span16(), &['a' as u16, 'b' as u16]);
+    }
+
+    #[test]
+    fn ascii_case_conversion() {
+        let s = StringImpl::create(b"aBc\xE9");
+        let lower = s.convert_to_ascii_lowercase();
+        assert_eq!(lower.span8(), b"abc\xE9");
+        let upper = s.convert_to_ascii_uppercase();
+        assert_eq!(upper.span8(), b"ABC\xE9");
+        assert!(Rc::ptr_eq(&upper, &upper.convert_to_ascii_uppercase()));
+        let wide = StringImpl::create16(&['x' as u16, 0x20AC]);
+        assert_eq!(wide.convert_to_ascii_uppercase().span16(), &['X' as u16, 0x20AC]);
+    }
+
+    #[test]
+    fn substring_and_code_point_at() {
+        let s = StringImpl::create(b"abcdef");
+        assert!(Rc::ptr_eq(&s, &s.substring(0, MAX_LENGTH)));
+        assert_eq!(s.substring(2, 3).span8(), b"cde");
+        assert_eq!(s.substring(4, MAX_LENGTH).span8(), b"ef");
+        assert!(s.substring(6, 1).is_empty());
+
+        let pair = StringImpl::create16(&[0xD83D, 0xDE00, 0x61, 0xD83D]);
+        assert_eq!(pair.code_point_at(0), 0x1F600);
+        assert_eq!(pair.code_point_at(1), 0xDE00);
+        assert_eq!(pair.code_point_at(2), 0x61);
+        assert_eq!(pair.code_point_at(3), 0xD83D);
+        assert_eq!(s.code_point_at(1), 'b' as u32);
+    }
+
+    #[test]
+    fn uninitialized_reallocate_and_static() {
+        let s = StringImpl::create_uninitialized::<u8>(3, |data| data.copy_from_slice(b"xyz"));
+        assert_eq!(s.span8(), b"xyz");
+        assert!(StringImpl::create_uninitialized::<u16>(0, |_| {}).is_empty());
+
+        let grown = StringImpl::reallocate::<u8>(s, 5, |data| {
+            data[3] = b'!';
+            data[4] = b'?';
+        });
+        assert_eq!(grown.span8(), b"xyz!?");
+        let shrunk = StringImpl::reallocate::<u8>(grown, 2, |_| {});
+        assert_eq!(shrunk.span8(), b"xy");
+        assert!(StringImpl::reallocate::<u8>(shrunk, 0, |_| {}).is_empty());
+
+        let st = StringImpl::create_static_string_impl8(b"abc");
+        assert!(st.is_static() && st.has_hash() && st.is_8bit());
+        let st16 = StringImpl::create_static_string_impl16(&['a' as u16, 'b' as u16]);
+        assert!(st16.is_static() && st16.has_hash() && st16.is_8bit());
+        let copy = StringImpl::create_without_copying_non_empty(b"q".as_slice());
+        assert_eq!(copy.span8(), b"q");
     }
 }

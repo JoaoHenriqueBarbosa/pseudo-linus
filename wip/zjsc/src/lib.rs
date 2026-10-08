@@ -2,3 +2,4 @@
 #![forbid(unsafe_code)]
 
 pub mod wtf;
+pub mod yarr;
