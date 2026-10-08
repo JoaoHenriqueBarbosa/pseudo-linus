@@ -39,3 +39,5 @@ pub mod sqlite_int;
 pub mod connection;
 pub mod vdbe_types;
 pub mod vdbesort;
+#[cfg(test)]
+mod btree_oracle_test;
