@@ -5909,7 +5909,7 @@ True True select select
 /// Põe no disco do kernel de teste os `.py` do Debian que o interpretador embute, como a imagem de verdade os
 /// tem. Sem eles `native_in_cpython` toma todo módulo embutido por shim de módulo em C e esconde os quadros
 /// dele: o `raise` de nível de módulo do `types` sai sem traceback e o `import os` morre.
-fn with_debian_stdlib(kit: sysabi::testkit::TestKit) -> sysabi::testkit::TestKit {
+pub(crate) fn with_debian_stdlib(kit: sysabi::testkit::TestKit) -> sysabi::testkit::TestKit {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../kernel/image/usr/lib/python3.13");
     for name in crate::modules::pysrc::names() {
         let rel = name.replace('.', "/");

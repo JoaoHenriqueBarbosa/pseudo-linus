@@ -74,14 +74,8 @@ impl ExtObject for TracebackObj {
         let file = if own.is_empty() { self.filename.clone() } else { own.clone() };
         Some(Ok(match name {
             "tb_lineno" => Value::Int(*line as i64),
-            "tb_lasti" => Value::Int(held.as_ref().map_or(0, |h| synthetic_lasti(&h.code, *line)) as i64),
-            "_position" if span.lineno > 0 => Value::tuple(vec![
-                Value::Int(span.lineno as i64),
-                Value::Int(span.end_lineno as i64),
-                Value::Int(span.col as i64),
-                Value::Int(span.end_col as i64),
-            ]),
-            "_position" => Value::None,
+            // Sem o código do quadro não há como localizar a instrução: `-1`, e o `traceback` cai na linha do `tb_lineno`.
+            "tb_lasti" => Value::Int(held.as_ref().map_or(-1, |h| lasti_at_span(&h.code, *line, span) as i64)),
             "tb_frame" => {
                 if let Some(frame) = self.frame.borrow().clone() {
                     return Some(Ok(frame));
@@ -278,6 +272,20 @@ pub fn synthetic_lasti(c: &crate::compile::Code, line: usize) -> usize {
         Some(e) => e.first_offset_of_line(line).unwrap_or(0),
         None => c.lines.iter().position(|l| *l == line).map_or(0, |i| 2 + 2 * i),
     }
+}
+
+/// O `tb_lasti`: o deslocamento da primeira instrução cuja localização é o intervalo de fonte que a exceção
+/// registrou (é daí que o `traceback.py` do Debian tira as colunas dos carets, por `co_positions()`). Sem
+/// intervalo, ou sem instrução com ele, vale a primeira instrução da linha.
+pub fn lasti_at_span(c: &crate::compile::Code, line: usize, span: &crate::compile::Span) -> usize {
+    if span.lineno > 0 {
+        let want = (span.lineno as i32, span.end_lineno as i32, span.col as i32, span.end_col as i32);
+        let found = crate::cpybc::of(c).positions().iter().position(|p| (p.line, p.end_line, p.col, p.end_col) == want);
+        if let Some(index) = found {
+            return index * 2;
+        }
+    }
+    synthetic_lasti(c, line)
 }
 
 /// Uma linha de `co_lines()`/`co_positions()` por item de `rows`.

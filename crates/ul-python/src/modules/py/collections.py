@@ -16,6 +16,51 @@ from types import GenericAlias as _GenericAlias
 from _weakref import proxy as _proxy
 
 
+def _count_elements(mapping, iterable):
+    'Tally elements from the iterable.'
+    mapping_get = mapping.get
+    for elem in iterable:
+        mapping[elem] = mapping_get(elem, 0) + 1
+
+
+class _tuplegetter:
+    """O descritor de campo do `namedtuple`: lê o item `index` da tupla."""
+
+    def __init__(self, index, doc):
+        self._index = index
+        self.__doc__ = doc
+
+    def __get__(self, instance, owner=None):
+        if instance is None:
+            return self
+        if not isinstance(instance, tuple):
+            raise TypeError("descriptor for index '%d' for tuple subclasses doesn't apply to '%s' object"
+                            % (self._index, type(instance).__name__))
+        return instance[self._index]
+
+    def __set__(self, instance, value):
+        raise AttributeError("can't set attribute")
+
+    def __delete__(self, instance):
+        raise AttributeError("can't delete attribute")
+
+    def __reduce__(self):
+        return type(self), (self._index, self.__doc__)
+
+
+class _deque_iterator:
+    """O iterador de `deque.__iter__`."""
+
+    def __init__(self, items):
+        self._it = iter(items)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self._it)
+
+
 def namedtuple(typename, field_names, *, rename=False, defaults=None, module=None):
     """Returns a new subclass of tuple with named fields.
 
@@ -135,7 +180,7 @@ def namedtuple(typename, field_names, *, rename=False, defaults=None, module=Non
         'count': lambda self, value: tuple(self).count(value),
     }
     for index, name in enumerate(fields):
-        namespace[name] = property(lambda self, i=index: self[i], None, None)
+        namespace[name] = _tuplegetter(index, 'Alias for field number %d' % index)
     result = type(typename, (tuple,), namespace)
     # O módulo do tipo é o de quem chamou `namedtuple`, como no `collections/__init__.py` do CPython 3.13.
     if module is None:
@@ -245,7 +290,7 @@ class deque:
         return len(self._items)
 
     def __iter__(self):
-        return iter(self._items)
+        return _deque_iterator(self._items)
 
     def __reversed__(self):
         return iter(self._items[::-1])
@@ -332,6 +377,30 @@ class defaultdict(dict):
         return type(self), args, None, None, iter(self.items())
     def __repr__(self):
         return 'defaultdict(%r, %r)' % (self.default_factory, {k: v for k, v in self.items()})
+
+
+class _Link(object):
+    __slots__ = 'prev', 'next', 'key', '__weakref__'
+
+
+class _OrderedDictKeysView(_collections_abc.KeysView):
+
+    def __reversed__(self):
+        yield from reversed(self._mapping)
+
+
+class _OrderedDictItemsView(_collections_abc.ItemsView):
+
+    def __reversed__(self):
+        for key in reversed(self._mapping):
+            yield (key, self._mapping[key])
+
+
+class _OrderedDictValuesView(_collections_abc.ValuesView):
+
+    def __reversed__(self):
+        for key in reversed(self._mapping):
+            yield self._mapping[key]
 
 
 class OrderedDict(dict):

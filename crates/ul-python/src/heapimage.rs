@@ -2643,7 +2643,8 @@ fn restore_opaque(tag: &str, state: &(dyn std::any::Any + Send + Sync), refs: Ve
         "type_class_method" | "new_fn" | "class_getitem" | "unbound" => crate::typeattrs::restore_image,
         "native_type_method" | "getset_descriptor" | "member_descriptor" | "slice_indices" | "subclasses_call"
         | "alt_ctor" | "file_exit" | "exc_with_traceback" | "exc_add_note" | "instance_dunder"
-        | "builtin_super_method" | "super_proxy" | "plain_object_method" | "object_class_method" | "shim_method" => {
+        | "builtin_super_method" | "super_proxy" | "plain_object_method" | "object_class_method" | "shim_method"
+        | "shim_new" | "bound_callable" => {
             crate::classes::restore_image
         }
         "hash" | "hmac" => crate::modules::hashlib::restore_image,

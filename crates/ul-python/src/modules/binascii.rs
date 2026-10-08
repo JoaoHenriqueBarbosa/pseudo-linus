@@ -1,6 +1,5 @@
-//! Módulo `binascii` do CPython 3.13: conversões entre binário e texto ASCII (hex, base64, CRC-32).
-//!
-//! Ficam de fora: `b2a_uu`/`a2b_uu`, `b2a_qp`/`a2b_qp`, `crc_hqx`. As funções `encode_base64`,
+//! Módulo `binascii` do CPython 3.13: conversões entre binário e texto ASCII (hex, base64, uuencode,
+//! quoted-printable, CRC-32 e CRC-CCITT). As funções `encode_base64`,
 //! `decode_base64` e `want_bytes` são públicas para o módulo `base64` reaproveitar.
 
 use std::rc::Rc;
@@ -140,6 +139,196 @@ fn a2b_base64(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     decode_base64(&data, strict).map(Value::bytes).map_err(binascii_error)
 }
 
+/// `crc_hqx(data, crc, /)`: o CRC-CCITT (polinômio 0x1021) de `binhex`, sem reflexão.
+fn crc_hqx(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    let s = bind("crc_hqx", args, kw, &["data", "crc"], 2)?;
+    let data = want_bytes(s[0].as_ref().unwrap())?;
+    // Só os 16 bits baixos do valor inicial entram na conta.
+    let mut crc = (crate::native_util::want_int(s[1].as_ref().unwrap())? & 0xffff) as u32;
+    for byte in data {
+        crc ^= u32::from(byte) << 8;
+        for _ in 0..8 {
+            crc = if crc & 0x8000 != 0 { (crc << 1) ^ 0x1021 } else { crc << 1 };
+        }
+        crc &= 0xffff;
+    }
+    Ok(Value::Int(i64::from(crc)))
+}
+
+/// `b2a_uu(data, /, *, backtick=False)`: uma linha de uuencode, de até 45 bytes.
+fn b2a_uu(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    let s = bind("b2a_uu", args, kw, &["data", "backtick"], 1)?;
+    let data = want_bytes(s[0].as_ref().unwrap())?;
+    let backtick = s[1].as_ref().is_some_and(Value::is_true);
+    if data.len() > 45 {
+        return Err(binascii_error("At most 45 bytes at once"));
+    }
+    let glyph = |bits: u8| if backtick && bits == 0 { b'`' } else { bits + b' ' };
+    let mut out = vec![glyph(data.len() as u8)];
+    for chunk in data.chunks(3) {
+        // O CPython completa o último grupo com bytes nulos: cada trio vira sempre quatro caracteres.
+        let mut group = [0u8; 3];
+        group[..chunk.len()].copy_from_slice(chunk);
+        let word = u32::from(group[0]) << 16 | u32::from(group[1]) << 8 | u32::from(group[2]);
+        out.extend((0..4).map(|i| glyph(((word >> (18 - 6 * i)) & 0x3f) as u8)));
+    }
+    out.push(b'\n');
+    Ok(Value::bytes(out))
+}
+
+/// `a2b_uu(data, /)`: uma linha de uuencode; o que faltar no fim vira bytes nulos, como no CPython.
+fn a2b_uu(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    let s = bind("a2b_uu", args, kw, &["data"], 1)?;
+    let data = want_ascii_or_bytes(s[0].as_ref().unwrap())?;
+    let mut bin_len = (i32::from(data.first().copied().unwrap_or(0)) - 32) & 0o77;
+    let mut ascii_len = data.len() as i64 - 1;
+    let mut pos = 1;
+    let (mut leftbits, mut leftchar) = (0u32, 0u32);
+    let mut out = Vec::new();
+    while bin_len > 0 {
+        let this = if ascii_len > 0 { data[pos] } else { 0 };
+        let sextet = if this == b'\n' || this == b'\r' || ascii_len <= 0 {
+            0
+        } else if this < b' ' || this > b' ' + 64 {
+            return Err(binascii_error("Illegal char"));
+        } else {
+            u32::from(this - b' ') & 0o77
+        };
+        leftchar = (leftchar << 6) | sextet;
+        leftbits += 6;
+        if leftbits >= 8 {
+            leftbits -= 8;
+            out.push(((leftchar >> leftbits) & 0xff) as u8);
+            leftchar &= (1 << leftbits) - 1;
+            bin_len -= 1;
+        }
+        ascii_len -= 1;
+        pos += 1;
+    }
+    while ascii_len > 0 {
+        if !matches!(data[pos], b' ' | b'`' | b'\n' | b'\r') {
+            return Err(binascii_error("Trailing garbage"));
+        }
+        ascii_len -= 1;
+        pos += 1;
+    }
+    Ok(Value::bytes(out))
+}
+
+/// `a2b_qp(data, /, header=False)`: quoted-printable para bytes.
+fn a2b_qp(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    let s = bind("a2b_qp", args, kw, &["data", "header"], 1)?;
+    let data = want_ascii_or_bytes(s[0].as_ref().unwrap())?;
+    let header = s[1].as_ref().is_some_and(Value::is_true);
+    let mut out = Vec::with_capacity(data.len());
+    let mut i = 0;
+    while i < data.len() {
+        match data[i] {
+            b'=' => {
+                i += 1;
+                if i >= data.len() {
+                    break;
+                }
+                if data[i] == b'\n' || data[i] == b'\r' {
+                    // Quebra de linha suave: some até o fim da linha.
+                    if data[i] != b'\n' {
+                        while i < data.len() && data[i] != b'\n' {
+                            i += 1;
+                        }
+                    }
+                    if i < data.len() {
+                        i += 1;
+                    }
+                } else if data[i] == b'=' {
+                    out.push(b'=');
+                    i += 1;
+                } else if let (Some(high), Some(low)) = (hex_digit(data[i]), data.get(i + 1).copied().and_then(hex_digit)) {
+                    out.push((high << 4) | low);
+                    i += 2;
+                } else {
+                    out.push(b'=');
+                }
+            }
+            b'_' if header => {
+                out.push(b' ');
+                i += 1;
+            }
+            byte => {
+                out.push(byte);
+                i += 1;
+            }
+        }
+    }
+    Ok(Value::bytes(out))
+}
+
+/// `b2a_qp(data, /, quotetabs=False, istext=True, header=False)`: bytes para quoted-printable, em linhas de até 76
+/// caracteres; o fim de linha da saída segue o da primeira linha da entrada (`\r\n` ou `\n`).
+fn b2a_qp(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    const MAX_LINE_SIZE: usize = 76;
+    let s = bind("b2a_qp", args, kw, &["data", "quotetabs", "istext", "header"], 1)?;
+    let data = want_bytes(s[0].as_ref().unwrap())?;
+    let quotetabs = s[1].as_ref().is_some_and(Value::is_true);
+    let istext = s[2].as_ref().map_or(true, Value::is_true);
+    let header = s[3].as_ref().is_some_and(Value::is_true);
+    let crlf = data.iter().position(|&b| b == b'\n').is_some_and(|p| p > 0 && data[p - 1] == b'\r');
+    let push_hex = |out: &mut Vec<u8>, byte: u8| {
+        const DIGITS: &[u8; 16] = b"0123456789ABCDEF";
+        out.extend([b'=', DIGITS[usize::from(byte >> 4)], DIGITS[usize::from(byte & 15)]]);
+    };
+    let soft_break = |out: &mut Vec<u8>| {
+        out.push(b'=');
+        if crlf {
+            out.push(b'\r');
+        }
+        out.push(b'\n');
+    };
+    let mut out = Vec::with_capacity(data.len() * 2);
+    let (mut i, mut linelen) = (0, 0);
+    while i < data.len() {
+        let byte = data[i];
+        let next = data.get(i + 1).copied();
+        let last = i + 1 == data.len();
+        let must_quote = byte > 126
+            || byte == b'='
+            || (header && byte == b'_')
+            || (byte == b'.' && linelen == 0 && (last || matches!(next, Some(b'\n' | b'\r' | 0))))
+            || (!istext && (byte == b'\r' || byte == b'\n'))
+            || ((byte == b'\t' || byte == b' ') && last)
+            || (byte < 33 && byte != b'\r' && byte != b'\n' && (quotetabs || (byte != b'\t' && byte != b' ')));
+        if must_quote {
+            if linelen + 3 >= MAX_LINE_SIZE {
+                soft_break(&mut out);
+                linelen = 0;
+            }
+            push_hex(&mut out, byte);
+            i += 1;
+            linelen += 3;
+        } else if istext && (byte == b'\n' || (byte == b'\r' && next == Some(b'\n'))) {
+            linelen = 0;
+            // Espaço ou tab antes do fim de linha: o último byte já escrito vira escape.
+            if let Some(&tail) = out.last().filter(|&&t| t == b' ' || t == b'\t') {
+                out.pop();
+                push_hex(&mut out, tail);
+            }
+            if crlf {
+                out.push(b'\r');
+            }
+            out.push(b'\n');
+            i += if byte == b'\r' { 2 } else { 1 };
+        } else {
+            if !last && next != Some(b'\n') && linelen + 1 >= MAX_LINE_SIZE {
+                soft_break(&mut out);
+                linelen = 0;
+            }
+            linelen += 1;
+            out.push(if header && byte == b' ' { b'_' } else { byte });
+            i += 1;
+        }
+    }
+    Ok(Value::bytes(out))
+}
+
 pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
     ModuleBuilder::new("binascii")
         .func("hexlify", hexlify)
@@ -147,8 +336,13 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
         .func("unhexlify", unhexlify)
         .func("a2b_hex", unhexlify)
         .func("crc32", crc32)
+        .func("crc_hqx", crc_hqx)
         .func("b2a_base64", b2a_base64)
         .func("a2b_base64", a2b_base64)
+        .func("b2a_uu", b2a_uu)
+        .func("a2b_uu", a2b_uu)
+        .func("b2a_qp", b2a_qp)
+        .func("a2b_qp", a2b_qp)
         .value("Error", Value::Builtin("binascii.Error"))
         .value("Incomplete", Value::Builtin("binascii.Incomplete"))
         .build()

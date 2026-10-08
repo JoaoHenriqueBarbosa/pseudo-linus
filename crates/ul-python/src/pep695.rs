@@ -3,9 +3,9 @@
 //! cria os `TypeVar`, define o objeto de verdade dentro dela (os `T` ficam visíveis nas anotações, nas bases
 //! e no corpo) e o devolve. O chamador a executa e guarda o resultado no nome original.
 //!
-//! Limite, restrição e padrão de cada parâmetro viram uma função sem argumentos (`typing._Lazy`), calculada na
+//! Limite, restrição e padrão de cada parâmetro viram uma função sem argumentos (`_typing._Lazy`), calculada na
 //! primeira leitura de `__bound__`, `__constraints__` ou `__default__`, como no CPython. O escopo não liga nenhum
-//! nome auxiliar (o módulo `typing` vem de `__import__`), para o `co_varnames` dele ser o do CPython.
+//! nome auxiliar (o módulo `_typing` vem de `__import__`), para o `co_varnames` dele ser o do CPython.
 
 use crate::ast::{
     Arguments, Constant, Expr, ExprContext, ExprKind as E, Keyword, Pos, Stmt, StmtKind as S, TypeParam, TypeParamKind,
@@ -64,10 +64,11 @@ fn text(s: &str, pos: Pos) -> Expr {
     ex(E::Constant { value: Constant::Str(s.to_string()), kind: None }, pos)
 }
 
-/// `__import__("typing").attr`: o módulo sem ligar nome algum no escopo.
+/// `__import__("_typing").attr`: o módulo sem ligar nome algum no escopo. O `_typing` é o módulo C do CPython que
+/// guarda `TypeVar`, `Generic` e `TypeAliasType`; importá-lo não puxa o `typing`, como as instruções do CPython.
 fn typing_attr(attr: &str, pos: Pos) -> Expr {
     let import = ex(
-        E::Call { func: Box::new(name("__import__", ExprContext::Load, pos)), args: vec![text("typing", pos)], keywords: Vec::new() },
+        E::Call { func: Box::new(name("__import__", ExprContext::Load, pos)), args: vec![text("_typing", pos)], keywords: Vec::new() },
         pos,
     );
     ex(E::Attribute { value: Box::new(import), attr: attr.to_string(), ctx: ExprContext::Load }, pos)
@@ -81,7 +82,7 @@ fn assign(target: Expr, value: Expr, pos: Pos) -> Stmt {
     Stmt { kind: S::Assign { targets: vec![target], value: Box::new(value), type_comment: None }, pos }
 }
 
-/// `typing._Lazy(lambda: body)`; o `*x` de um padrão de `TypeVarTuple` vira o único item de `(*x,)`.
+/// `_typing._Lazy(lambda: body)`; o `*x` de um padrão de `TypeVarTuple` vira o único item de `(*x,)`.
 fn lazy(body: &Expr, pos: Pos) -> Expr {
     let body = match &body.kind {
         E::Starred { .. } => {

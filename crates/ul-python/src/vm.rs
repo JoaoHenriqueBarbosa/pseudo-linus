@@ -384,7 +384,9 @@ fn jump_index(code: &Code, line: usize) -> Option<usize> {
 /// O quadro de função que a entrada de traceback guarda: o escopo e o código (módulos e corpos de
 /// classe ficam de fora, as variáveis deles são as globais).
 fn tb_frame_of(code: &Rc<Code>, env: &Rc<Env>) -> Option<Rc<crate::frameobj::FrameHold>> {
-    (!env.is_module && !env.is_class).then(|| crate::frameobj::FrameHold::new(env.clone(), code.clone()))
+    // O quadro de módulo também: sem o código dele o `tb_lasti` não acha a instrução, e o `traceback` do
+    // Debian perde os acentos circunflexos (o `exec` do `bdb` roda o script como módulo).
+    (!env.is_class).then(|| crate::frameobj::FrameHold::new(env.clone(), code.clone()))
 }
 
 impl PyException {
@@ -492,10 +494,13 @@ pub fn exc(kind: &'static str, msg: impl Into<String>) -> PyException {
 }
 
 /// Dá ao `AttributeError` de um `obj.nome` o `name` e o `obj` que o CPython guarda (e que as sugestões usam).
-/// Auxiliar escondido de módulo embutido (`_socket._fds`), visível só para código embutido.
-fn internal_private_attr(internal: bool, obj: &Value, name: &str) -> Option<Value> {
+/// Auxiliar escondido de módulo embutido (`_socket._fds`), visível só para código embutido e para o escopo
+/// sintético dos parâmetros de tipo (PEP 695), que lê `_typing._Lazy` como o CPython lê os avaliadores em C.
+fn internal_private_attr(code: &Code, obj: &Value, name: &str) -> Option<Value> {
     match obj {
-        Value::Module(m) if internal => crate::modules::pysrc::private_attr(m.name, name),
+        Value::Module(m) if code.internal || code.type_params_role & crate::pep695::SCOPE_MASK != 0 => {
+            crate::modules::pysrc::private_attr(m.name, name)
+        }
         _ => None,
     }
 }
@@ -1163,6 +1168,10 @@ fn plain_method(obj: &Value, name: &str) -> Option<Rc<FuncObj>> {
     if f.attrs.borrow().contains_key("__no_bind__") || class.lookup("__getattribute__").is_some() {
         return None;
     }
+    // Função de módulo em C guardada na classe (`_default_algorithm = hashlib.sha256`): não se liga.
+    if f.is_c_module_function() {
+        return None;
+    }
     Some(f)
 }
 
@@ -1668,12 +1677,30 @@ impl Vm {
 
     /// Executa o código de um módulo.
     pub fn run(&mut self, code: &Rc<Code>) -> Result<(), RuntimeError> {
+        self.run_body(code, false)
+    }
+
+    /// `run` do corpo de um módulo embutido: com `listed`, o quadro entra em `frames` enquanto o corpo roda, como o
+    /// quadro `<module>` de um módulo importado no CPython (é dele que `sys._getframe(1)` tira o `__name__` de quem
+    /// chamou, por exemplo no `namedtuple` chamado no nível do módulo).
+    pub(crate) fn run_body(&mut self, code: &Rc<Code>, listed: bool) -> Result<(), RuntimeError> {
         let env = Env::new(None, false, true);
         // O laço mais externo do programa: é o único onde o `os.fork` copia o estado e o filho retoma.
         let entry = self.fork_entry();
         let result = {
             let _main = crate::fork::MainGuard::enter(entry);
-            self.exec(code, &env)
+            let depth = self.frames.borrow().len();
+            if listed {
+                let caller_line = self.cur_line.get();
+                self.frames.borrow_mut().push((code.clone(), caller_line, env.clone()));
+                crate::frameobj::bind_globals(&env, &self.globals);
+            }
+            let result = self.exec(code, &env);
+            if listed {
+                crate::frameobj::unbind_globals(&env);
+                self.frames.borrow_mut().truncate(depth);
+            }
+            result
         };
         run_outcome(result)
     }
@@ -2615,7 +2642,7 @@ impl Vm {
                 args.insert(0, b.0.clone());
                 self.enter_function(&b.1, args, kwargs)
             }
-            Value::Class(c) if !matches!(c.meta.as_ref().and_then(|m| m.lookup("__call__")), Some(Value::Function(_))) => {
+            Value::Class(c) if c.meta.as_ref().and_then(|m| m.lookup("__call__")).is_none() => {
                 match self.begin_instance(c, args, kwargs)? {
                     crate::classes::Built::Done(v) => Ok(Entered::Done(v)),
                     crate::classes::Built::Init { obj, init, args, kw } => match self.enter_function(&init, args, kw)? {
@@ -3503,7 +3530,7 @@ impl Vm {
             }
             return Ok(env);
         }
-        let name = code.qual();
+        let name = f.qualname();
         let params = &code.params;
         let n = params.len();
         let ndefaults = f.defaults.len();
@@ -4410,8 +4437,8 @@ impl Vm {
                     // `import_from`: só o `AttributeError` cai para o submódulo; o resto (um `__getattr__`
                     // de módulo que falha de outro jeito) sobe.
                     Err(e) if e.kind != "AttributeError" && matches!(obj, Value::Module(_)) => return Err(e),
-                    Err(_) if internal_private_attr(code.internal, &obj, name).is_some() => {
-                        stack.push(Slot::Val(internal_private_attr(code.internal, &obj, name).unwrap_or(Value::None)));
+                    Err(_) if internal_private_attr(code, &obj, name).is_some() => {
+                        stack.push(Slot::Val(internal_private_attr(code, &obj, name).unwrap_or(Value::None)));
                     }
                     Err(_) => {
                         let module = match &obj {
@@ -4487,7 +4514,7 @@ impl Vm {
                 let obj = pop(stack)?;
                 let name = &code.names[i as usize];
                 let v = match self.load_attr(&obj, name) {
-                    Err(e) => match internal_private_attr(code.internal, &obj, name) {
+                    Err(e) => match internal_private_attr(code, &obj, name) {
                         Some(v) => v,
                         None => Err(tag_attribute_error(e, &obj, name))?,
                     },
@@ -4503,7 +4530,7 @@ impl Vm {
                     stack.push(Slot::Val(obj));
                 } else {
                     let v = match self.load_attr(&obj, name) {
-                        Err(e) => match internal_private_attr(code.internal, &obj, name) {
+                        Err(e) => match internal_private_attr(code, &obj, name) {
                             Some(v) => v,
                             None => Err(tag_attribute_error(e, &obj, name))?,
                         },
@@ -4582,6 +4609,9 @@ impl Vm {
                         Ok(Value::BoundFn(Rc::new((recv.clone(), f.clone()))))
                     }
                     [_, Value::None] => Err(type_error("instance must not be None")),
+                    [func, recv] if crate::builtins::is_callable(func) => {
+                        Ok(Value::Ext(Rc::new(crate::classes::BoundCallable { recv: recv.clone(), func: func.clone() })))
+                    }
                     [func, _] => Err(type_error(format!("first argument must be callable, not {}", func.type_name()))),
                     _ => Err(type_error(format!("method expected 2 arguments, got {}", args.len()))),
                 };
@@ -5045,6 +5075,12 @@ impl Vm {
                 return Ok(Value::Ext(Rc::new(crate::classes::NativeTypeMethod { owner: n, name: method })));
             }
             Value::Builtin(_) | Value::NativeFn(_)
+                if name == "__flags__" && builtin_type_name(obj).and_then(crate::builtins_ext::builtin_type_flags).is_some() =>
+            {
+                let flags = builtin_type_name(obj).and_then(crate::builtins_ext::builtin_type_flags);
+                return Ok(Value::Int(flags.unwrap_or_default()));
+            }
+            Value::Builtin(_) | Value::NativeFn(_)
                 if name == "__dict__" && (crate::builtins::class_name(obj).is_some() || matches!(obj, Value::Builtin("type"))) =>
             {
                 return crate::builtins_ext::type_own_dict(self, obj);
@@ -5062,6 +5098,17 @@ impl Vm {
                 if let Some(descriptor) = key.and_then(|k| crate::typeattrs::descriptor_for_kind("function", k, obj)) {
                     return Ok(descriptor);
                 }
+            }
+            // `function.__get__` e `type.__subclasscheck__`: os slots e métodos que a tabela do CPython lista
+            // para esses tipos são descritores (o `inspect` liga `__init__` por `type(f).__get__`, e o
+            // `typing._ProtocolMeta` chama `type.__subclasscheck__(cls, other)`).
+            Value::Builtin(n @ ("function" | "type"))
+                if !matches!(name, "__getattribute__" | "__setattr__" | "__delattr__")
+                    && !(*n == "type" && matches!(name, "__call__" | "__init__" | "__repr__" | "__or__" | "__ror__"))
+                    && crate::builtins_ext::type_var_kind(n, name)
+                        .is_some_and(|k| matches!(k, "wrapper_descriptor" | "method_descriptor")) =>
+            {
+                return Ok(crate::typeattrs::unbound(n, crate::object::intern(name)));
             }
             Value::Builtin(_) | Value::NativeFn(_)
                 if matches!(name, "__getattribute__" | "__setattr__" | "__delattr__")
@@ -5083,7 +5130,7 @@ impl Vm {
             Value::Builtin("object")
                 if !matches!(name, "__name__" | "__qualname__" | "__mro__" | "__bases__" | "__module__" | "__doc__" | "__text_signature__") =>
             {
-                if let Some(v) = crate::typeattrs::object_attr(name) {
+                if let Some(v) = crate::typeattrs::object_type_attr(name) {
                     return Ok(v);
                 }
             }
@@ -5237,7 +5284,7 @@ impl Vm {
                         return Ok(Value::Bound(Rc::new(BoundMethod { recv: obj.clone(), name: "__get__" })))
                     }
                     "__name__" => return Ok(Value::str(f.code.name.clone())),
-                    "__qualname__" => return Ok(Value::str(f.code.qual())),
+                    "__qualname__" => return Ok(Value::str(f.qualname())),
                     "__defaults__" => {
                         return Ok(if f.defaults.is_empty() { Value::None } else { Value::tuple(f.defaults.clone()) })
                     }
@@ -5465,9 +5512,8 @@ impl Vm {
                 if matches!(name, "__reduce_ex__" | "__reduce__")
                     && (!matches!(obj, Value::NativeFn(_)) || crate::builtins::class_name(obj).is_none()) =>
             {
-                let m = crate::modules::import_checked(self, "copyreg")?;
                 let reducer = if name == "__reduce__" { "_builtin_reduce" } else { "_builtin_reduce_ex" };
-                match self.load_attr(&Value::Module(m), reducer)? {
+                match crate::modules::pysrc::copyreg_helper(self, reducer)? {
                     Value::Function(f) => return Ok(Value::BoundFn(Rc::new((obj.clone(), f)))),
                     _ => return Err(missing()),
                 }
@@ -5543,8 +5589,7 @@ impl Vm {
                     Some(v) => Ok(v),
                     // `object.__getstate__` (3.11+) também vale para o módulo: vive em `copyreg`.
                     None if name == "__getstate__" => {
-                        let copyreg = crate::modules::import_checked(self, "copyreg")?;
-                        match self.load_attr(&Value::Module(copyreg), "_object_getstate")? {
+                        match crate::modules::pysrc::copyreg_helper(self, "_object_getstate")? {
                             Value::Function(f) => Ok(Value::BoundFn(Rc::new((obj.clone(), f)))),
                             _ => self.module_missing_attr(m, name),
                         }
@@ -7502,6 +7547,14 @@ pub(crate) fn contains(container: &Value, item: &Value) -> PyResult<bool> {
             },
         },
         _ => contains_by_iteration(container, item),
+    }
+}
+
+/// O nome do tipo embutido que `v` é (`int`, `type`, `function`), para as tabelas geradas no oráculo.
+fn builtin_type_name(v: &Value) -> Option<&'static str> {
+    match v {
+        Value::Builtin(n) => Some(*n),
+        _ => crate::builtins::class_name(v),
     }
 }
 

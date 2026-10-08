@@ -1045,12 +1045,14 @@ pub(crate) fn restore_image(tag: &str, state: &(dyn std::any::Any + Send + Sync)
         "exc_add_note" => Rc::new(ExcAddNote { obj: refs.next()? }),
         "shim_method" => Rc::new(ShimMethod { recv: refs.next()?, func: refs.next()?, name: name()?, passes_recv: true }),
         "shim_new" => Rc::new(ShimMethod { recv: refs.next()?, func: refs.next()?, name: name()?, passes_recv: false }),
+        "bound_callable" => Rc::new(BoundCallable { recv: refs.next()?, func: refs.next()? }),
         "instance_dunder" => Rc::new(InstanceDunder { obj: refs.next()?, name: name()? }),
         "builtin_super_method" => Rc::new(BuiltinSuperMethod { obj: refs.next()?, name: name()? }),
         "plain_object_method" => Rc::new(PlainObjectMethod { obj: refs.next()?, name: name()? }),
         "object_class_method" => return Some(object_class_method(refs.next()?, name()?)),
-        "super_proxy" => match (refs.next()?, refs.next()?) {
-            (obj, Value::Class(cls)) => Rc::new(SuperProxy { obj, cls }),
+        "super_proxy" => match refs.collect::<Vec<_>>().as_slice() {
+            [obj, ty, sc] => Rc::new(SuperProxy { obj: Some(obj.clone()), ty: ty.clone(), self_class: Some(sc.clone()) }),
+            [ty] => Rc::new(SuperProxy { obj: None, ty: ty.clone(), self_class: None }),
             _ => return None,
         },
         _ => return None,
@@ -1058,60 +1060,186 @@ pub(crate) fn restore_image(tag: &str, state: &(dyn std::any::Any + Send + Sync)
     Some(Value::Ext(ext))
 }
 
-/// Resultado de `super()`: procura o atributo nas classes depois de `cls` na ordem de herança.
+/// Resultado de `super()`: procura o atributo nas classes depois de `ty` na ordem de herança.
+/// `ty` é uma classe de usuário ou um tipo embutido; sem `obj` (`super(T)`) o objeto não está ligado.
+#[derive(Clone)]
 struct SuperProxy {
-    obj: Value,
-    cls: Rc<ClassObj>,
+    obj: Option<Value>,
+    ty: Value,
+    /// O `__self_class__`: o próprio `obj` quando ele é um subtipo de `ty`, senão o tipo dele.
+    self_class: Option<Value>,
+}
+
+/// O nome de um tipo (classe de usuário ou embutido) como o `tp_name` que o CPython imprime.
+/// O `__flags__` de uma classe do usuário, como o `type_new` do CPython 3.13 o monta: `HEAPTYPE`, `BASETYPE`,
+/// `READY` e `HAVE_GC`; da base sólida embutida, os bits herdáveis (subclasse de `int`/`list`/..., `MATCH_SELF`,
+/// `ITEMS_AT_END`, `HAVE_VECTORCALL`, `SEQUENCE`, `MAPPING`); o dict e o weakref gerenciados quando alguma classe
+/// da MRO não os fecha com `__slots__`; `INLINE_VALUES` sobre `object`; e `IS_ABSTRACT` com métodos abstratos.
+fn class_flags(cls: &Rc<ClassObj>) -> i64 {
+    const HEAP_READY_GC: i64 = 0x200 | 0x400 | 0x1000 | 0x4000;
+    const INHERITED: i64 = 0xff00_0000 | 0x00c0_0000 | 0x800 | 0x60;
+    const MANAGED_DICT: i64 = 0x10;
+    const MANAGED_WEAKREF: i64 = 0x8;
+    const INLINE_VALUES: i64 = 0x4;
+    const IS_ABSTRACT: i64 = 1 << 20;
+    let base = if cls.is_meta { "type" } else { cls.data_base.or(cls.builtin_base).unwrap_or("object") };
+    let base_flags = crate::builtins_ext::builtin_type_flags(base).unwrap_or(0x1502);
+    let mut flags = HEAP_READY_GC | (base_flags & INHERITED);
+    // `__slots__` sem `__dict__` (ou sem `__weakref__`) em todas as classes da MRO fecha o slot.
+    let opens = |slot: &str| {
+        cls.mro().iter().any(|c| match c.dict.borrow().get("__slots__") {
+            None => true,
+            Some(Value::Str(s)) => s.as_str() == slot,
+            Some(v) => crate::vm::iterate(v).is_ok_and(|names| {
+                names.iter().any(|n| matches!(n, Value::Str(s) if s.as_str() == slot))
+            }),
+        })
+    };
+    // As exceções e `type` já guardam dict e weakref próprios; os tipos de tamanho variável não têm weakref.
+    let own_dict = cls.is_meta || crate::object::exc_is_subclass(base, "BaseException");
+    if !own_dict && opens("__dict__") {
+        flags |= MANAGED_DICT;
+        if base == "object" {
+            flags |= INLINE_VALUES;
+        }
+    }
+    if !cls.is_meta && !matches!(base, "int" | "bool" | "tuple" | "bytes") && opens("__weakref__") {
+        flags |= MANAGED_WEAKREF;
+    }
+    // O `abc` grava `__abstractmethods__` em cada classe; o bit só vale para a própria.
+    let abstract_methods = cls.dict.borrow().get("__abstractmethods__").cloned();
+    if abstract_methods.is_some_and(|v| crate::vm::iterate(&v).is_ok_and(|m| !m.is_empty())) {
+        flags |= IS_ABSTRACT;
+    }
+    flags
+}
+
+fn type_value_name(ty: &Value) -> String {
+    match ty {
+        Value::Class(c) => c.name.clone(),
+        other => crate::builtins::class_name(other).map_or_else(|| other.type_name().to_string(), str::to_string),
+    }
+}
+
+impl SuperProxy {
+    /// Os membros do próprio tipo `super` (`__thisclass__`, `__self__`, `__self_class__`) e o `__class__`.
+    fn member(&self, name: &str) -> Option<Value> {
+        match name {
+            "__class__" => Some(Value::Builtin("super")),
+            "__thisclass__" => Some(self.ty.clone()),
+            "__self__" => Some(self.obj.clone().unwrap_or(Value::None)),
+            "__self_class__" => Some(self.self_class.clone().unwrap_or(Value::None)),
+            _ => None,
+        }
+    }
+
+    /// `super.__get__` ligado a este objeto: o único atributo do tipo `super` que o `object` não esconde.
+    fn own_attr(&self, name: &str) -> Option<Value> {
+        self.member(name).or_else(|| {
+            (name == "__get__").then(|| {
+                let recv = Value::Ext(Rc::new(self.clone()));
+                Value::Bound(Rc::new(crate::object::BoundMethod { recv, name: "__get__" }))
+            })
+        })
+    }
+
+    /// `super(T, obj).name` com `T` um tipo embutido: o atributo vem do primeiro tipo depois de `T` na cadeia
+    /// de herança embutida que o define, ligado a `obj`.
+    fn builtin_attr(&self, vm: &mut Vm, tname: &'static str, obj: &Value, name: &str) -> PyResult<Value> {
+        match crate::typeattrs::inherited_owner(tname, name) {
+            Some("object") => Ok(self.object_member(obj, name)),
+            Some(_) => vm.load_attr(obj, name),
+            None => self.own_attr(name).ok_or_else(|| crate::object::no_attribute("super", name)),
+        }
+    }
+
+    /// O atributo `name` de `object` ligado a `obj`: os de classe saem ligados ao `__self_class__`.
+    fn object_member(&self, obj: &Value, name: &str) -> Value {
+        let name = intern(name);
+        match name {
+            "__doc__" => crate::modules::cpydocs::builtin_doc("object").map_or(Value::None, Value::str),
+            "__new__" => object_class_method(Value::Builtin("object"), name),
+            "__init_subclass__" | "__subclasshook__" => {
+                object_class_method(self.self_class.clone().unwrap_or(Value::None), name)
+            }
+            _ if matches!(obj, Value::Instance(_)) => Value::Ext(Rc::new(BuiltinSuperMethod { obj: obj.clone(), name })),
+            _ => Value::Ext(Rc::new(PlainObjectMethod { obj: obj.clone(), name })),
+        }
+    }
 }
 
 impl ExtObject for SuperProxy {
     fn image(&self) -> Option<ExtImage> {
-        OpaqueImage::image("super_proxy", (), vec![self.obj.clone(), Value::Class(self.cls.clone())])
+        let refs = match (&self.obj, &self.self_class) {
+            (Some(obj), Some(sc)) => vec![obj.clone(), self.ty.clone(), sc.clone()],
+            _ => vec![self.ty.clone()],
+        };
+        OpaqueImage::image("super_proxy", (), refs)
     }
     fn type_name(&self) -> &'static str {
         "super"
     }
     fn repr(&self) -> String {
-        // Como o `super_repr` do CPython: a classe e o nome do tipo do receptor.
-        format!("<super: <class '{}'>, <{} object>>", self.cls.name, receiver_type_name(&self.obj))
+        // Como o `super_repr` do CPython: a classe e o nome do tipo de `__self_class__` (`NULL` sem objeto).
+        let ty = type_value_name(&self.ty);
+        match &self.self_class {
+            Some(sc) => format!("<super: <class '{ty}'>, <{} object>>", type_value_name(sc)),
+            None => format!("<super: <class '{ty}'>, NULL>"),
+        }
     }
     fn getattr(&self, vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
-        if let Value::Class(recv) = &self.obj {
+        // `super_getattro` não procura `__class__` na cadeia: é sempre o do próprio `super`.
+        if name == "__class__" {
+            return self.member(name).map(Ok);
+        }
+        let Some(obj) = &self.obj else { return self.own_attr(name).map(Ok) };
+        let cls = match &self.ty {
+            Value::Class(cls) => cls,
+            ty => {
+                let tname = crate::builtins::class_name(ty)?;
+                return Some(self.builtin_attr(vm, tname, obj, name));
+            }
+        };
+        if let Value::Class(recv) = obj {
             // Receptor é uma classe (`__init_subclass__`, `__new__` de metaclasse, classmethods).
             let mut mro = recv.mro();
             // Método de metaclasse chamando `super()`: o MRO que vale é o da metaclasse.
-            if !mro.iter().any(|c| Rc::ptr_eq(c, &self.cls)) {
+            if !mro.iter().any(|c| Rc::ptr_eq(c, cls)) {
                 if let Some(m) = &recv.meta {
-                    if m.mro().iter().any(|c| Rc::ptr_eq(c, &self.cls)) {
+                    if m.mro().iter().any(|c| Rc::ptr_eq(c, cls)) {
                         mro = m.mro();
                     }
                 }
             }
-            let start = mro.iter().position(|c| Rc::ptr_eq(c, &self.cls)).map_or(0, |i| i + 1);
+            let start = mro.iter().position(|c| Rc::ptr_eq(c, cls)).map_or(0, |i| i + 1);
             for c in &mro[start..] {
                 let attr = c.dict.borrow().get(name).cloned();
                 if let Some(attr) = attr {
                     return Some(match (&attr, name) {
-                        (Value::Function(f), "__init_subclass__") => {
-                            Ok(Value::BoundFn(Rc::new((self.obj.clone(), f.clone()))))
-                        }
-                        _ => vm.bind_class_attr(&attr, self.obj.clone(), recv),
+                        (Value::Function(f), "__init_subclass__") => Ok(Value::BoundFn(Rc::new((obj.clone(), f.clone())))),
+                        _ => vm.bind_class_attr(&attr, obj.clone(), recv),
                     });
                 }
             }
-            return Some(Ok(Value::Ext(Rc::new(BuiltinSuperMethod { obj: self.obj.clone(), name: intern(name) }))));
+            if let Some(own) = self.member(name) {
+                return Some(Ok(own));
+            }
+            return Some(Ok(Value::Ext(Rc::new(BuiltinSuperMethod { obj: obj.clone(), name: intern(name) }))));
         }
-        let Value::Instance(inst) = &self.obj else { return None };
+        let Value::Instance(inst) = obj else { return None };
         let mro = inst.class().mro();
-        let start = mro.iter().position(|c| Rc::ptr_eq(c, &self.cls)).map_or(0, |i| i + 1);
+        let start = mro.iter().position(|c| Rc::ptr_eq(c, cls)).map_or(0, |i| i + 1);
         for c in &mro[start..] {
             let attr = c.dict.borrow().get(name).cloned();
             if let Some(attr) = attr {
-                return Some(vm.bind_class_attr(&attr, self.obj.clone(), &inst.class()));
+                return Some(vm.bind_class_attr(&attr, obj.clone(), &inst.class()));
             }
         }
+        if let Some(own) = self.member(name) {
+            return Some(Ok(own));
+        }
         // Métodos herdados das classes embutidas (`object`, `Exception`).
-        Some(Ok(Value::Ext(Rc::new(BuiltinSuperMethod { obj: self.obj.clone(), name: intern(name) }))))
+        Some(Ok(Value::Ext(Rc::new(BuiltinSuperMethod { obj: obj.clone(), name: intern(name) }))))
     }
 }
 
@@ -1194,6 +1322,50 @@ impl ExtObject for ShimMethod {
         if !self.passes_recv {
             return vm.call(&self.func, args, kw);
         }
+        let mut full = Vec::with_capacity(args.len() + 1);
+        full.push(self.recv.clone());
+        full.extend(args);
+        vm.call(&self.func, full, kw)
+    }
+}
+
+/// O `method` do CPython sobre um chamável que não é função (`types.MethodType(objeto, x)`, e o
+/// `classmethod` de um `functools.lru_cache`): chama `func(recv, *args)`; os demais atributos vêm de `func`.
+pub(crate) struct BoundCallable {
+    pub(crate) recv: Value,
+    pub(crate) func: Value,
+}
+
+impl ExtObject for BoundCallable {
+    fn image(&self) -> Option<ExtImage> {
+        OpaqueImage::image("bound_callable", (), vec![self.recv.clone(), self.func.clone()])
+    }
+    fn type_name(&self) -> &'static str {
+        "method"
+    }
+    fn repr(&self) -> String {
+        // `method_repr`: o `__qualname__` da função, senão o `__name__`, senão `?`.
+        let name = match &self.func {
+            Value::Function(f) => Some(f.qualname()),
+            Value::Instance(i) => ["__qualname__", "__name__"].iter().find_map(|a| match i.dict.borrow().get(*a) {
+                Some(Value::Str(s)) => Some(s.as_str().to_string()),
+                _ => None,
+            }),
+            _ => None,
+        };
+        format!("<bound method {} of {}>", name.unwrap_or_else(|| "?".into()), crate::object::repr(&self.recv))
+    }
+    fn getattr(&self, vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
+        match name {
+            "__func__" => Some(Ok(self.func.clone())),
+            "__self__" => Some(Ok(self.recv.clone())),
+            _ => Some(vm.load_attr(&self.func, name)),
+        }
+    }
+    fn methods(&self) -> &'static [&'static str] {
+        &["__call__"]
+    }
+    fn call_method(&self, vm: &mut Vm, _name: &str, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         let mut full = Vec::with_capacity(args.len() + 1);
         full.push(self.recv.clone());
         full.extend(args);
@@ -1324,8 +1496,7 @@ impl ExtObject for PlainObjectMethod {
         };
         let native = if let Some(fname) = copyreg_method {
             // Os métodos de exceção que não são o `__reduce__` de `object`: a lógica vive em `copyreg`.
-            let copyreg = crate::modules::import_checked(vm, "copyreg")?;
-            Some(vm.load_attr(&Value::Module(copyreg), fname)?)
+            Some(crate::modules::pysrc::copyreg_helper(vm, fname)?)
         } else {
             crate::typeattrs::object_attr(self.name)
         };
@@ -1408,15 +1579,26 @@ fn bound_object_method_repr(recv: &Value, name: &str) -> String {
 /// de um método de `object` ligado a `recv`.
 fn bound_object_method_attr(recv: &Value, name: &str, attr: &str) -> Option<PyResult<Value>> {
     let wrapper = object_method_type_name(name) == "method-wrapper";
+    // O shim de um tipo embutido que redefine o slot (`memoryview.__getattribute__`) é o dono do wrapper.
+    let shim = match recv {
+        Value::Instance(i) => Some(i.class()).filter(|c| {
+            c.emulates_c_type() && crate::builtins_ext::own_type_keys(&c.name).is_some_and(|keys| keys.contains(&name))
+        }),
+        _ => None,
+    };
     // As exceções herdam também os métodos de `BaseException` (`__setstate__`): a cadeia parte do tipo delas.
-    let owner = if let Value::Exception(e) = recv { e.kind } else { "object" };
+    let owner = match (&shim, recv) {
+        (Some(c), _) => c.name.as_str(),
+        (None, Value::Exception(e)) => e.kind,
+        _ => "object",
+    };
     match attr {
         "__self__" => Some(Ok(recv.clone())),
         "__name__" => Some(Ok(Value::str(name))),
         // O wrapper guarda o tipo dono (`object`); a função embutida usa o tipo do receptor.
-        "__qualname__" if wrapper => Some(Ok(Value::str(format!("object.{name}")))),
+        "__qualname__" if wrapper => Some(Ok(Value::str(format!("{}.{name}", shim.as_ref().map_or("object", |c| c.name.as_str()))))),
         "__qualname__" => Some(Ok(Value::str(format!("{}.{name}", receiver_qualname(recv))))),
-        "__objclass__" if wrapper => Some(Ok(Value::Builtin("object"))),
+        "__objclass__" if wrapper => Some(Ok(shim.map_or(Value::Builtin("object"), Value::Class))),
         "__module__" if !wrapper => Some(Ok(Value::None)),
         "__text_signature__" => {
             Some(Ok(crate::typeattrs::text_signature(owner, name).map_or(Value::None, Value::str)))
@@ -1785,21 +1967,29 @@ impl Vm {
         let mut expanded: Vec<Value> = Vec::with_capacity(bases.len());
         let mut any_entries = false;
         for b in &bases {
-            if let Value::Instance(i) = b {
-                if let Some(Value::Function(f)) = i.class().lookup("__mro_entries__") {
-                    any_entries = true;
-                    match self.call_function(&f, vec![b.clone(), Value::tuple(bases.clone())], Vec::new())? {
-                        Value::Tuple(t) => expanded.extend(t.iter().cloned()),
-                        _ => return Err(type_error("__mro_entries__ must return a tuple")),
-                    }
-                    continue;
-                }
-            }
             // `class X(list[Any])`: o `types.GenericAlias` entra na MRO como a sua origem.
             if let Value::Ext(e) = b {
                 if let Some(g) = e.as_any().and_then(|a| a.downcast_ref::<crate::generic::GenericAlias>()) {
                     any_entries = true;
                     expanded.push(g.origin.clone());
+                    continue;
+                }
+            }
+            // `update_bases` do CPython: a base que não é tipo (`Generic[T]`, a função `typing.NamedTuple`) e
+            // tem `__mro_entries__` escolhe as bases reais.
+            let is_type = matches!(b, Value::Class(_)) || crate::builtins::class_name(b).is_some();
+            if !is_type {
+                let entries = match self.load_attr(b, "__mro_entries__") {
+                    Ok(m) => Some(m),
+                    Err(e) if crate::object::exc_is_subclass(e.kind, "AttributeError") => None,
+                    Err(e) => return Err(e),
+                };
+                if let Some(m) = entries {
+                    any_entries = true;
+                    match self.call(&m, vec![Value::tuple(bases.clone())], Vec::new())? {
+                        Value::Tuple(t) => expanded.extend(t.iter().cloned()),
+                        _ => return Err(type_error("__mro_entries__ must return a tuple")),
+                    }
                     continue;
                 }
             }
@@ -1980,6 +2170,12 @@ impl Vm {
         if let Some(r) = self.meta_dunder(cls, "__call__", args.clone(), kw.clone()) {
             return r;
         }
+        // `__call__ = dict` no `_TypedDictMeta`: um chamável que não é descritor é chamado sem a classe.
+        if let Some(call) = cls.meta.as_ref().and_then(|m| m.lookup("__call__")) {
+            if crate::builtins::class_name(&call).is_some() || matches!(call, Value::Class(_) | Value::NativeFn(_)) {
+                return self.call(&call, args, kw);
+            }
+        }
         self.instantiate_default(cls, args, kw)
     }
 
@@ -2111,6 +2307,11 @@ impl Vm {
         defer: Option<&mut PendingCall>,
     ) -> PyResult<Value> {
         match attr {
+            // O slot de `object` herdado (`A().__init__`): ligado à instância é o `method-wrapper`.
+            _ if !matches!(recv, Value::Class(_)) && crate::typeattrs::object_descriptor_name(attr).is_some() => {
+                let name = crate::typeattrs::object_descriptor_name(attr).unwrap_or_default();
+                Ok(Value::Ext(Rc::new(BuiltinSuperMethod { obj: recv, name })))
+            }
             // Função embutida no CPython (escrita em Python aqui): `Classe.attr = time.time` não liga `self`.
             Value::Function(f) if f.attrs.borrow().contains_key("__no_bind__") => Ok(attr.clone()),
             Value::Function(f) if f.is_builtin_type_method() && f.code.name == "__new__" => {
@@ -2120,6 +2321,8 @@ impl Vm {
                 Value::Class(_) => Ok(attr.clone()),
                 // O método de um shim de tipo de `builtins` ligado a um objeto é método embutido, como no CPython.
                 _ if f.is_builtin_type_method() => Ok(ShimMethod::bound(recv, f, true)),
+                // Função de módulo em C (`hashlib.sha256` guardado na classe): o `PyCFunction` não é descritor.
+                _ if f.is_c_module_function() => Ok(attr.clone()),
                 _ => Ok(Value::BoundFn(Rc::new((recv, f.clone())))),
             },
             Value::Ext(e) => match e.descriptor() {
@@ -2131,7 +2334,10 @@ impl Vm {
                 Some(Descriptor::Class(Value::Function(f))) => {
                     Ok(Value::BoundFn(Rc::new((Value::Class(cls.clone()), f))))
                 }
-                Some(Descriptor::Class(other)) => Ok(other),
+                // `cm_descr_get` do 3.13: um chamável qualquer sai como `method` ligado à classe.
+                Some(Descriptor::Class(other)) => {
+                    Ok(Value::Ext(Rc::new(BoundCallable { recv: Value::Class(cls.clone()), func: other })))
+                }
                 Some(Descriptor::Property { get, .. }) => match recv {
                     Value::Class(_) => Ok(attr.clone()),
                     _ => self.call_or_defer(&get, vec![recv], defer),
@@ -2222,9 +2428,12 @@ impl Vm {
             // `__class__` de `object` é um descritor de dados na MRO: uma classe que define o seu
             // (`__class__ = property(...)`, o `spec` do `unittest.mock`) passa pela busca normal.
             "__class__" if inst.class().lookup("__class__").is_none() => return Ok(Value::Class(inst.class())),
-            // O shim de um tipo embutido (`memoryview`) não tem `__dict__`, como o tipo em C.
-            "__dict__" if matches!(inst.class().dict.borrow().get("__module__"), Some(Value::Str(m)) if m.as_str() == "builtins") => {
-                return Err(exc("AttributeError", format!("'{}' object has no attribute '__dict__'", inst.class().name)));
+            // O shim de um tipo embutido (`memoryview`, `mappingproxy`) não tem `__dict__` nem `__module__` na
+            // instância, como o tipo em C: o `__module__` só existe no tipo (`type.__module__`).
+            "__dict__" | "__module__"
+                if matches!(inst.class().dict.borrow().get("__module__"), Some(Value::Str(m)) if m.as_str() == "builtins") =>
+            {
+                return Err(exc("AttributeError", format!("'{}' object has no attribute '{name}'", inst.class().name)));
             }
             "__dict__" if inst.class().slots_allow("__dict__") => return Ok(inst.live_dict()),
             _ => {}
@@ -2324,6 +2533,11 @@ impl Vm {
         // `object.__init__` herdado: ligado à instância, como qualquer método.
         if name == "__init__" {
             let cls = inst.class();
+            // O shim de um tipo embutido que não redefine `__init__` herda o `object.__init__`: um
+            // `method-wrapper`, não a função embutida solta.
+            if cls.emulates_c_type() && cls.lookup("__init__").is_none() {
+                return Ok(Value::Ext(Rc::new(BuiltinSuperMethod { obj: obj.clone(), name: "__init__" })));
+            }
             let attr = self.class_getattr(&cls, "__init__")?;
             return self.bind_class_attr(&attr, obj.clone(), &cls);
         }
@@ -2413,11 +2627,15 @@ impl Vm {
             }
             // O docstring não é herdado: sem o próprio, `__doc__` é `None`.
             "__doc__" => return Ok(cls.dict.borrow().get("__doc__").cloned().unwrap_or(Value::None)),
+            "__flags__" => return Ok(Value::Int(class_flags(cls))),
+            // `type_get_type_params`: o do próprio dict, sem herança; sem ele, a tupla vazia.
+            "__type_params__" => {
+                return Ok(cls.dict.borrow().get("__type_params__").cloned().unwrap_or_else(|| Value::tuple(Vec::new())))
+            }
             _ => {}
         }
         if name == "mro" && cls.lookup("mro").is_none() {
-            let m = crate::modules::import_checked(self, "copyreg")?;
-            if let Value::Function(f) = self.load_attr(&Value::Module(m), "_type_mro")? {
+            if let Value::Function(f) = crate::modules::pysrc::copyreg_helper(self, "_type_mro")? {
                 return Ok(Value::BoundFn(Rc::new((Value::Class(cls.clone()), f))));
             }
         }
@@ -2477,7 +2695,7 @@ impl Vm {
         }
         // Os métodos de `object` (`__init__`, `__eq__`, `__setattr__`...) valem para toda classe comum.
         if cls.data_base.is_none() && cls.builtin_base.is_none() && name != "__name__" {
-            if let Some(v) = crate::typeattrs::object_attr(name) {
+            if let Some(v) = crate::typeattrs::object_type_attr(name) {
                 // Os métodos de classe ficam ligados à própria classe (`A.__init_subclass__.__self__ is A`).
                 if matches!(name, "__init_subclass__" | "__subclasshook__") {
                     return Ok(object_class_method(Value::Class(cls.clone()), intern(name)));
@@ -3121,6 +3339,28 @@ impl Vm {
         Some(self.call_function(&f, full, Vec::new()))
     }
 
+    /// `supercheck` do CPython: o `__self_class__` de `super(ty, obj)`, ou o `TypeError` quando `obj` não é
+    /// instância nem subtipo de `ty`.
+    fn super_check(&mut self, ty: &Value, obj: &Value) -> PyResult<Value> {
+        let obj_is_type = matches!(obj, Value::Class(_)) || crate::builtins::class_name(obj).is_some();
+        let ask = |vm: &mut Vm, func: &str| -> PyResult<bool> {
+            let f = crate::builtins::get(func).ok_or_else(|| type_error(format!("{func} is unavailable")))?;
+            Ok(vm.call(&f, vec![obj.clone(), ty.clone()], Vec::new())?.is_true())
+        };
+        if obj_is_type && ask(self, "issubclass")? {
+            return Ok(obj.clone());
+        }
+        if ask(self, "isinstance")? {
+            return Ok(self.type_of(obj));
+        }
+        let (kind, shown) =
+            if obj_is_type { ("type", type_value_name(obj)) } else { ("instance of", receiver_type_name(obj)) };
+        Err(type_error(format!(
+            "super(type, obj): obj ({kind} {shown}) is not an instance or subtype of type ({}).",
+            type_value_name(ty)
+        )))
+    }
+
     /// Builtins ligados a classes: `staticmethod`, `classmethod`, `property`, `super`, `type`, `object`.
     pub(crate) fn call_class_builtin(&mut self, name: &str, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         match name {
@@ -3150,11 +3390,23 @@ impl Vm {
                 *p.doc.borrow_mut() = doc;
                 Ok(Value::Ext(Rc::new(p)))
             }
-            "super" => match args.as_slice() {
+            "super" => {
                 // `super()` sem argumentos vira `super(__class__, primeiro_parâmetro)` no compilador.
-                [Value::Class(cls), obj] => Ok(Value::Ext(Rc::new(SuperProxy { obj: obj.clone(), cls: cls.clone() }))),
-                _ => Err(exc("RuntimeError", "super(): no arguments")),
-            },
+                if !kw.is_empty() {
+                    return Err(type_error("super() takes no keyword arguments"));
+                }
+                if args.len() > 2 {
+                    return Err(type_error(format!("super expected at most 2 arguments, got {}", args.len())));
+                }
+                let mut it = args.into_iter();
+                let Some(ty) = it.next() else { return Err(exc("RuntimeError", "super(): no arguments")) };
+                if !matches!(ty, Value::Class(_)) && crate::builtins::class_name(&ty).is_none() {
+                    return Err(type_error(format!("super() argument 1 must be a type, not {}", receiver_type_name(&ty))));
+                }
+                let obj = it.next().filter(|o| !matches!(o, Value::None));
+                let self_class = obj.as_ref().map(|o| self.super_check(&ty, o)).transpose()?;
+                Ok(Value::Ext(Rc::new(SuperProxy { obj, ty, self_class })))
+            }
             "type" => match args.as_slice() {
                 [v] => Ok(self.type_of(v)),
                 [Value::Str(n), Value::Tuple(bases), ns] => {

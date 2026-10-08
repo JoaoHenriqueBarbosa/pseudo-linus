@@ -80,7 +80,9 @@ pub(crate) fn lazy_from_parts(parts: LazyParts) -> Option<Value> {
         }
         LazyParts::Map { func, iters } => Value::Ext(Rc::new(MapIter { func, iters: RefCell::new(many(iters)?) })),
         LazyParts::Filter { func, iter } => Value::Ext(Rc::new(FilterIter { func, iter: RefCell::new(iter_from_parts(iter)?) })),
-        LazyParts::Zip { iters, strict } => Value::Ext(Rc::new(ZipIter { iters: RefCell::new(many(iters)?), strict })),
+        LazyParts::Zip { iters, strict } => {
+            Value::Ext(Rc::new(ZipIter { iters: RefCell::new(many(iters)?), strict: Cell::new(strict) }))
+        }
         LazyParts::Enumerate { iter, next_index } => Value::Ext(Rc::new(EnumerateIter {
             iter: RefCell::new(iter_from_parts(iter)?),
             next_index: Cell::new(next_index),
@@ -238,13 +240,14 @@ fn iter_next(&self) {
 
 pub struct ZipIter {
     iters: RefCell<Vec<PyIter>>,
-    strict: bool,
+    /// Mutável porque `zip.__setstate__(estado)` o reescreve.
+    strict: Cell<bool>,
 }
 
 impl ZipIter {
     pub fn new(sources: &[Value], strict: bool) -> PyResult<Value> {
         let iters = sources.iter().map(get_iter).collect::<PyResult<Vec<_>>>()?;
-        Ok(Value::Ext(std::rc::Rc::new(ZipIter { iters: RefCell::new(iters), strict })))
+        Ok(Value::Ext(std::rc::Rc::new(ZipIter { iters: RefCell::new(iters), strict: Cell::new(strict) })))
     }
 
     /// `zip(strict=True)`: o iterador `ended` acabou; os demais precisam ter acabado também.
@@ -269,7 +272,7 @@ pub(crate) fn zip_mismatch(arg: usize, how: &str) -> PyException {
 }
 
 lazy_iterator!(ZipIter, "zip",
-image(&self) { Some(ExtImage::Lazy(LazyParts::Zip { iters: iters_parts(&self.iters), strict: self.strict })) },
+image(&self) { Some(ExtImage::Lazy(LazyParts::Zip { iters: iters_parts(&self.iters), strict: self.strict.get() })) },
 fn iter_next(&self) {
     let mut iters = self.iters.borrow_mut();
     if iters.is_empty() {
@@ -277,7 +280,7 @@ fn iter_next(&self) {
     }
     match next_of_each(&mut iters)? {
         Ok(items) => Ok(Some(Value::tuple(items))),
-        Err(ended) if self.strict => self.strict_end(&mut iters, ended),
+        Err(ended) if self.strict.get() => self.strict_end(&mut iters, ended),
         Err(_) => Ok(None),
     }
 });
@@ -402,6 +405,22 @@ fn parts(obj: &dyn ExtObject) -> Option<Parts<'_>> {
 
 fn not_pullable() -> crate::vm::PyException {
     internal("not a lazy iterator the loop can pull")
+}
+
+/// `zip.__setstate__(estado)` (o `strict` passa a ser a verdade de `estado`) e `reversed.__setstate__(índice)`
+/// (reposiciona o iterador, preso aos limites da sequência). `None` quando `obj` não é um destes.
+pub(crate) fn set_state(obj: &dyn ExtObject, state: &Value) -> Option<PyResult<()>> {
+    let any = obj.as_any()?;
+    if let Some(zip) = any.downcast_ref::<ZipIter>() {
+        zip.strict.set(state.is_true());
+        return Some(Ok(()));
+    }
+    let reversed = any.downcast_ref::<ReversedIter>()?;
+    Some(crate::native_util::want_int(state).map(|index| {
+        // `index` é a posição na sequência original (decrescente): sobram `index + 1` itens.
+        let len = reversed.items.len() as i64;
+        reversed.next.set((len - (index + 1).clamp(0, len)) as usize);
+    }))
 }
 
 /// Aplica `f` à fonte de índice `idx` de `obj`; `None` se `obj` não é um iterador preguiçoso destes ou não
@@ -618,8 +637,8 @@ pub(crate) enum ZipEnd {
 /// mais curta que as anteriores) ou manda conferir as demais; `map` e `zip` comuns só terminam.
 pub(crate) fn zip_ended(obj: &dyn ExtObject, at: usize) -> PyResult<ZipEnd> {
     match parts(obj) {
-        Some(Parts::Zip(z)) if z.strict && at > 0 => Err(zip_mismatch(at, "shorter")),
-        Some(Parts::Zip(z)) if z.strict && z.iters.borrow().len() > 1 => Ok(ZipEnd::Check),
+        Some(Parts::Zip(z)) if z.strict.get() && at > 0 => Err(zip_mismatch(at, "shorter")),
+        Some(Parts::Zip(z)) if z.strict.get() && z.iters.borrow().len() > 1 => Ok(ZipEnd::Check),
         _ => Ok(ZipEnd::Ends),
     }
 }
@@ -643,6 +662,9 @@ impl ReversedIter {
 impl ExtObject for ReversedIter {
     fn type_name(&self) -> &'static str {
         self.kind
+    }
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
     }
     fn repr(&self) -> String {
         object_repr(self.kind, self)

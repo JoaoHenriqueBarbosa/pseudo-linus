@@ -409,6 +409,7 @@ pub(crate) fn merge_dir(vm: &mut Vm, obj: &Value) -> Value {
                 Value::Ext(e) => e.type_name(),
                 v => v.type_name(),
             };
+            names.extend(ext_instance_keys(vm, v));
             merge_builtin_type(tname, &mut names);
         }
     }
@@ -531,6 +532,15 @@ fn type_var_kinds() -> &'static VarKindIndex {
 
 const TYPE_VAR_KINDS_TABLE: &str = include_str!("../data/cpython-docs/builtin-type-var-kinds.tsv");
 
+/// O `__flags__` do tipo embutido `name` no CPython 3.13, da tabela gerada no oráculo.
+pub(crate) fn builtin_type_flags(name: &str) -> Option<i64> {
+    include_str!("../data/cpython-docs/builtin-type-flags.tsv")
+        .lines()
+        .filter_map(|line| line.split_once('\t'))
+        .find(|(t, _)| *t == name)
+        .and_then(|(_, f)| i64::from_str_radix(f.trim_start_matches("0x"), 16).ok())
+}
+
 /// Os atributos do tipo `object` no CPython 3.13.
 const OBJECT_ATTRS: &[&str] = &[
     "__class__", "__delattr__", "__dir__", "__doc__", "__eq__", "__format__", "__ge__", "__getattribute__", "__getstate__",
@@ -586,7 +596,24 @@ pub(crate) fn dir_names(vm: &mut Vm, obj: Option<&Value>) -> Vec<String> {
             None => names.extend(crate::suggest::builtin_methods(v.type_name()).iter().map(|s| (*s).to_string())),
         },
     }
+    if let Some(o) = obj {
+        names.extend(ext_instance_keys(vm, o));
+    }
     names
+}
+
+/// As chaves que o `__dict__` de um objeto nativo guarda e o `dir()` do tipo não lista: o `classmethod` e o
+/// `staticmethod` copiam `__module__`, `__name__` e `__qualname__` da função envolvida na criação.
+fn ext_instance_keys(vm: &mut Vm, obj: &Value) -> Vec<String> {
+    let Value::Ext(e) = obj else { return Vec::new() };
+    if !matches!(e.type_name(), "classmethod" | "staticmethod") {
+        return Vec::new();
+    }
+    ["__module__", "__name__", "__qualname__"]
+        .into_iter()
+        .filter(|attr| vm.load_attr(obj, attr).is_ok())
+        .map(String::from)
+        .collect()
 }
 
 /// O `dir()` do tipo embutido `name` no CPython 3.13 do Debian (`builtin-type-dir.tsv`, gerado

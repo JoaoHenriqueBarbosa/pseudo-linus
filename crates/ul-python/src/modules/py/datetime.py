@@ -2,6 +2,8 @@
 
 import time as _time
 
+import _capsule
+
 MINYEAR = 1
 MAXYEAR = 9999
 
@@ -1039,6 +1041,8 @@ class datetime(date):
 datetime.min = datetime(1, 1, 1)
 datetime.max = datetime(9999, 12, 31, 23, 59, 59, 999999)
 datetime.resolution = timedelta(microseconds=1)
+
+datetime_CAPI = _capsule.make('datetime.datetime_CAPI')
 
 
 def _modf(x):

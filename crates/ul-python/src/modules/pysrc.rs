@@ -32,13 +32,18 @@ const SOURCES: &[(&str, &str)] = &[
     // entrada só existe para o `collections` ser um pacote, e o `collections/abc.py` real nunca chega a rodar.
     ("collections.abc", include_str!("py/collections_abc.py")),
     ("_collections_abc", include_str!("py/_collections_abc.py")),
-    ("typing", include_str!("py/typing.py")),
+    // O `_typing` do CPython é C (`Objects/typevarobject.c`); o `typing` é o Python do Debian, que importa daqui
+    // `TypeVar`, `Generic` e os demais.
+    ("_typing", include_str!("py/_typing.py")),
+    ("typing", include_str!("../../../kernel/image/usr/lib/python3.13/typing.py")),
     ("copy", include_str!("py/copy.py")),
-    ("dataclasses", include_str!("py/dataclasses.py")),
+    ("dataclasses", include_str!("../../../kernel/image/usr/lib/python3.13/dataclasses.py")),
     ("time", include_str!("py/time.py")),
     ("datetime", include_str!("py/datetime.py")),
     ("random", include_str!("../../../kernel/image/usr/lib/python3.13/random.py")),
     ("_random", include_str!("py/_random.py")),
+    ("_functools", include_str!("py/_functools.py")),
+    ("_capsule", include_str!("py/_capsule.py")),
     ("_tracemalloc", include_str!("py/_tracemalloc.py")),
     ("mmap", include_str!("py/mmap.py")),
     ("_lsprof", include_str!("py/_lsprof.py")),
@@ -101,7 +106,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("getopt", include_str!("../../../kernel/image/usr/lib/python3.13/getopt.py")),
     ("difflib", include_str!("../../../kernel/image/usr/lib/python3.13/difflib.py")),
     ("zipfile", include_str!("py/zipfile.py")),
-    ("traceback", include_str!("py/traceback.py")),
+    ("traceback", include_str!("../../../kernel/image/usr/lib/python3.13/traceback.py")),
     ("warnings", include_str!("../../../kernel/image/usr/lib/python3.13/warnings.py")),
     ("subprocess", include_str!("../../../kernel/image/usr/lib/python3.13/subprocess.py")),
     ("_posixsubprocess", include_str!("py/_posixsubprocess.py")),
@@ -177,7 +182,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("asyncio.timeouts", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/timeouts.py")),
     ("asyncio.unix_events", include_str!("../../../kernel/image/usr/lib/python3.13/asyncio/unix_events.py")),
     ("_asyncio", include_str!("py/_asyncio.py")),
-    ("inspect", include_str!("py/inspect.py")),
+    ("inspect", include_str!("../../../kernel/image/usr/lib/python3.13/inspect.py")),
     ("linecache", include_str!("../../../kernel/image/usr/lib/python3.13/linecache.py")),
     ("_excgroup", include_str!("py/_excgroup.py")),
     ("_unraisable", include_str!("py/_unraisable.py")),
@@ -591,7 +596,7 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     // O corpo do módulo avança a linha corrente da VM (compartilhada com `inner`): quem importou, mesmo por nativa
     // (`warnings.warn` de `co_lnotab`), continua na linha dele, como o quadro do chamador no CPython.
     let caller_line = vm.cur_line.get();
-    let outcome = inner.run(&Rc::new(code));
+    let outcome = inner.run_body(&Rc::new(code), true);
     vm.cur_line.set(caller_line);
     drop(running);
     if let Err(e) = outcome {
@@ -655,6 +660,16 @@ thread_local! {
 /// shim (`_socket._fds` no `select`); o programa nunca chega aqui.
 pub fn private_attr(module: &str, name: &str) -> Option<Value> {
     PRIVATE.with(|p| p.borrow().get(module).and_then(|g| g.borrow().get(name).cloned()))
+}
+
+/// Um auxiliar do `copyreg` (o `_object_reduce_ex`, o `_type_mro`...) para o código nativo: o `dir()` do módulo
+/// mostra só o que o `copyreg.py` do Debian define, e os auxiliares do interpretador vivem nas globais completas.
+pub(crate) fn copyreg_helper(vm: &mut Vm, name: &str) -> crate::vm::PyResult<Value> {
+    let m = crate::modules::import_checked(vm, "copyreg")?;
+    match private_attr("copyreg", name) {
+        Some(v) => Ok(v),
+        None => vm.load_attr(&Value::Module(m), name),
+    }
 }
 
 /// As globais completas dos módulos embutidos filtrados, por nome, para a imagem de um `os.fork`.

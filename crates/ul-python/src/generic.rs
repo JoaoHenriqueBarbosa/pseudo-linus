@@ -13,8 +13,14 @@ pub fn is_type_like(v: &Value) -> bool {
         Value::Builtin(n) => crate::object::is_builtin_type(n) || *n == "object" || *n == "type",
         Value::NativeFn(f) => crate::typeattrs::TYPES.contains(&f.name),
         Value::Ext(e) => matches!(e.type_name(), "GenericAlias" | "UnionType"),
-        _ => false,
+        // `type X = ...`: o `|` do CPython aceita o `TypeAliasType` dos dois lados.
+        v => is_type_alias(v),
     }
+}
+
+/// Um `TypeAliasType` (do `_typing` em Python).
+fn is_type_alias(v: &Value) -> bool {
+    matches!(v, Value::Instance(i) if i.class().name == "TypeAliasType")
 }
 
 fn type_repr(v: &Value) -> String {
@@ -32,8 +38,8 @@ fn type_repr(v: &Value) -> String {
             let parts: Vec<String> = items.borrow().iter().map(type_repr).collect();
             format!("[{}]", parts.join(", "))
         }
-        // `~T`, `+T`, `-T` e `*Ts`: o `__repr__` do `typing`.
-        v if is_type_param(v) => match crate::vm::current() {
+        // `~T`, `+T`, `-T`, `*Ts` e o nome de um `type X = ...`: o `__repr__` do `typing`.
+        v if is_type_param(v) || is_type_alias(v) => match crate::vm::current() {
             Some(mut vm) => vm.repr_of(v).unwrap_or_else(|_| crate::object::repr(v)),
             None => crate::object::repr(v),
         },

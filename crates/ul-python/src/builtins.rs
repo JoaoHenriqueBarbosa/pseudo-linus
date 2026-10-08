@@ -301,6 +301,16 @@ fn type_is_subtype(a: &Value, cls: &Value) -> bool {
     })
 }
 
+/// `type.__instancecheck__(cls, obj)` e `type.__subclasscheck__(cls, sub)`: o `_PyObject_RealIsInstance` e
+/// o `_PyObject_RealIsSubclass` do CPython, sem passar pelo gancho da metaclasse (o `ABCMeta` os chama via
+/// `super()`).
+pub(crate) fn real_type_check(vm: &Vm, cls: &Value, arg: &Value, instance: bool) -> PyResult<bool> {
+    if !instance {
+        return Ok(type_is_subtype(arg, cls));
+    }
+    Ok(type_is_subtype(&vm.type_of(arg), cls) || reported_class_is_subtype(arg, cls)?)
+}
+
 /// O recurso do `object_isinstance` quando o tipo real não casa: o `obj.__class__` (um descritor da
 /// classe, como o do `unittest.mock` com `spec`) pode ser um tipo que seja subtipo de `cls`.
 fn reported_class_is_subtype(v: &Value, cls: &Value) -> PyResult<bool> {

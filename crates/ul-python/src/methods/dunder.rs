@@ -360,6 +360,30 @@ checked_methods! { slot:
     release_buffer = "__release_buffer__", 1, |_vm, _args, _a| Ok(Value::None);
 }
 
+// `__del__` de um gerador, de uma corrente e dos objetos que fecham ao ser finalizados: roda o `close()`.
+checked_methods! { slot:
+    finalize = "__del__", 0, |vm, args, _a| {
+        if let Ok(close) = vm.load_attr(&args[0], "close") {
+            vm.call(&close, Vec::new(), Kw::new())?;
+        }
+        Ok(Value::None)
+    };
+}
+
+// `__setstate__` dos iteradores `zip` e `reversed`.
+checked_methods! { method:
+    setstate = "__setstate__", 1, |_vm, args, a| {
+        let recv = &args[0];
+        match recv {
+            Value::Ext(e) => match crate::lazy::set_state(&**e, &a[1]) {
+                Some(done) => done.map(|()| Value::None),
+                None => Err(crate::object::no_attribute(recv.type_name(), "__setstate__")),
+            },
+            _ => Err(crate::object::no_attribute(recv.type_name(), "__setstate__")),
+        }
+    };
+}
+
 /// `list[int]`, `dict[str, int]`: o `__class_getitem__` do tipo, lido pela instância.
 fn class_getitem(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let tname = args[0].type_name();
@@ -502,9 +526,8 @@ fn reduce_with(vm: &mut Vm, name: &'static str, n: usize, args: Vec<Value>, kw: 
     let recv = args.first().map_or("object", Value::type_name);
     method_args(&format!("{recv}.{name}"), &args, &kw, n)?;
     let method = if matches!(args.first(), Some(Value::Range(_) | Value::ByteArray(_) | Value::Slice(_))) {
-        let copyreg = crate::modules::import_checked(vm, "copyreg")?;
         let reducer = if name == "__reduce__" { "_builtin_reduce" } else { "_builtin_reduce_ex" };
-        vm.load_attr(&Value::Module(copyreg), reducer)?
+        crate::modules::pysrc::copyreg_helper(vm, reducer)?
     } else {
         crate::typeattrs::object_attr(name).expect("object define o método")
     };
@@ -602,6 +625,8 @@ pub const TABLE: &[(&str, NativeFnPtr)] = &[
     ("__alloc__", alloc),
     ("__class_getitem__", class_getitem),
     ("__sizeof__", sizeof),
+    ("__del__", finalize),
+    ("__setstate__", setstate),
     ("__init__", init),
     ("__setattr__", setattr),
     ("__delattr__", delattr),

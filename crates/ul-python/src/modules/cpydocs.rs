@@ -121,12 +121,13 @@ pub fn align(module: &mut Mod, name: &str, cpython: Option<&Mod>) {
 /// Docstrings do CPython em tempo de execução que o `.py` do disco não dá (`data/cpython-docs`).
 const RUNTIME: &str = include_str!("../../data/cpython-docs/runtime.tsv");
 
-/// As docstrings da tabela para o módulo `name`, pelo nome qualificado (o módulo é `""`).
+/// As docstrings da tabela para o módulo `name`, pelo nome qualificado (o módulo é `""`). Os tipos do `_typing`
+/// dizem `__module__ == 'typing'`, e a tabela os guarda sob o `typing`.
 fn runtime_docs(name: &str, docs: &mut Docs) {
     for line in RUNTIME.lines() {
         let mut parts = line.splitn(3, '\t');
         let (Some(module), Some(qual), Some(doc)) = (parts.next(), parts.next(), parts.next()) else { continue };
-        if module == name {
+        if module == name || (name == "_typing" && module == "typing" && !qual.is_empty()) {
             docs.insert(qual.to_string(), json_string(doc).map(|d| (d, true)));
         }
     }
@@ -169,6 +170,11 @@ pub(crate) fn parse_signature_table(src: &'static str) -> std::collections::Hash
 /// O `__text_signature__` da função de módulo `name` de `module` na tabela do CPython.
 pub(crate) fn module_function_signature(module: &str, name: &str) -> Option<&'static str> {
     module_signatures().get(&(module, name)).copied().flatten()
+}
+
+/// O módulo C `module` do CPython 3.13 tem a função `name` (com ou sem assinatura de texto).
+pub(crate) fn is_module_function(module: &str, name: &str) -> bool {
+    module_signatures().contains_key(&(module, name))
 }
 
 fn module_signatures() -> &'static std::collections::HashMap<(&'static str, &'static str), Option<&'static str>> {
@@ -220,7 +226,7 @@ pub fn register_native(module: &str, attrs: &std::collections::BTreeMap<String, 
                 if let Some(Some((doc, _))) = docs.get(name.as_str()) {
                     m.entry(key).or_insert_with(|| doc.clone());
                 }
-                if let Some(sig) = module_function_signature(module, name) {
+                if let Some(sig) = module_function_signature(public.unwrap_or(module), name) {
                     NATIVE_SIGNATURES.with(|s| {
                         s.borrow_mut().entry(key).or_insert(sig);
                     });

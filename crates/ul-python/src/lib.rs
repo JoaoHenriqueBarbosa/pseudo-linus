@@ -1051,11 +1051,15 @@ run(lambda: None + 1)
 run(lambda: len(5))
 run(lambda: f(1)(2))
 "##;
-        let out = run_with(src, vec!["t.py".into()], "t.py", true);
-        assert_eq!(out.status, 0, "{}", out.stderr);
+        // O script é um arquivo no kernel de teste: o `linecache` do Debian faz `os.stat` nele, como no CPython.
+        let kit = crate::stdlib_tests::with_debian_stdlib(sysabi::testkit::TestKit::new().programs(crate::programs()))
+            .file("/tmp/t.py", src, 0o644)
+            .cwd("/tmp");
+        let out = kit.run(&["python3", "t.py"], b"");
+        assert_eq!(out.status, sysabi::WaitStatus::Exited(0), "{}", out.stderr_str());
         assert_eq!(
-            // O caminho do script sai absoluto como no CPython; o teste roda com cwd arbitrário.
-            String::from_utf8(out.stdout).unwrap().replace("\"/t.py\"", "\"t.py\""),
+            // O CPython mostra o caminho absoluto do script; o esperado abaixo o abrevia.
+            out.stdout_str().replace("\"/tmp/t.py\"", "\"t.py\""),
             r##"Traceback (most recent call last):
   File "t.py", line 20, in run
     case()

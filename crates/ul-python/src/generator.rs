@@ -653,6 +653,19 @@ impl GenObj {
     }
 }
 
+/// O sub-iterador (ou aguardável) em que o gerador está parado numa delegação (`yield from`, `await`): o
+/// topo da pilha do quadro suspenso na instrução `DelegateNext`; `None` fora disso.
+fn delegated_target(st: &GenState) -> Value {
+    let parked = st.started && !st.done && !st.running;
+    if !parked || !matches!(st.frame.code.ops.get(st.frame.pc), Some(Op::DelegateNext(_))) {
+        return Value::None;
+    }
+    match st.frame.stack.last() {
+        Some(Slot::Val(v)) => v.clone(),
+        _ => Value::None,
+    }
+}
+
 impl ExtObject for GenObj {
     fn as_any(&self) -> Option<&dyn std::any::Any> {
         Some(self)
@@ -717,6 +730,10 @@ impl ExtObject for GenObj {
                 let link = FrameLink { line, name: code.name.clone(), file, code: Some(code), env: Some(st.frame.env.clone()), caller_line: 0 };
                 crate::frameobj::generator_frame(&link, st.running)
             }
+            // O sub-iterador de um `yield from` (ou o aguardável de um `await`) em que o gerador está parado.
+            "yieldfrom" if self.core.kind == Kind::Generator => delegated_target(&st),
+            "await" if self.core.kind != Kind::Generator => delegated_target(&st),
+            "origin" if self.core.kind == Kind::Coroutine => Value::None,
             _ => return None,
         }))
     }

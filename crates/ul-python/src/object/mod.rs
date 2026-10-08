@@ -559,6 +559,7 @@ const C_EXTENSION_MODULES: &[(&str, &str)] = &[
     ("_sha1", "_sha1"),
     ("_sha2", "_sha2"),
     ("_sre", "_sre"),
+    ("_typing", "_typing"),
 ];
 
 /// Funções soltas de módulos que no CPython misturam Python e C, como `(módulo daqui, módulo do CPython,
@@ -591,6 +592,7 @@ const C_EXTENSION_FUNCTIONS: &[(&str, &str, &[&str])] = &[
         ],
     ),
     ("struct", "_struct", &["iter_unpack", "_clearcache"]),
+    ("collections", "_collections", &["_count_elements"]),
     ("functools", "_functools", &["reduce", "cmp_to_key"]),
     ("bisect", "_bisect", &["bisect_left", "bisect_right", "insort_left", "insort_right"]),
     (
@@ -620,8 +622,23 @@ impl FuncObj {
     /// `complex`, os grupos de exceção: o módulo do shim se chama `builtins`). Ligado a um objeto, no CPython ele é
     /// um método embutido ou o wrapper de um slot, nunca um `method` de função.
     pub fn is_builtin_type_method(&self) -> bool {
-        self.code.qual().contains('.')
-            && matches!(self.globals.borrow().get("__name__"), Some(Value::Str(s)) if s.as_str() == "builtins")
+        let qual = self.code.qual();
+        let Some((_, method)) = qual.rsplit_once('.') else { return false };
+        match self.globals.borrow().get("__name__") {
+            Some(Value::Str(s)) if s.as_str() == "builtins" => true,
+            // `_random.Random` é um tipo em C no CPython: `random`, `getrandbits`... ligados são métodos embutidos.
+            Some(Value::Str(s)) if s.as_str() == "_random" => !method.starts_with('_'),
+            _ => false,
+        }
+    }
+
+    /// O `__qualname__` da função: o atribuído (o `dataclasses` grava `Point.__init__`) ou o do código. É o
+    /// nome das mensagens de erro de argumentos, como o `func_qualname` do CPython.
+    pub fn qualname(&self) -> String {
+        match self.attrs.borrow().get("__qualname__") {
+            Some(Value::Str(s)) => s.as_str().to_string(),
+            _ => self.code.qual().to_string(),
+        }
     }
 
     /// O nome qualificado sem o `_build.<locals>.` dos módulos que montam a API num escopo fechado (`sys`): o
@@ -648,6 +665,13 @@ impl FuncObj {
             }
         }
         crate::vm::code_is_posix_builtin(&self.code).then(|| "posix".to_string())
+    }
+
+    /// A função é uma função de módulo C que o CPython 3.13 tem (`_hashlib.openssl_sha256`): como o
+    /// `PyCFunction`, não é descritor e não se liga guardada numa classe. Os auxiliares internos do shim
+    /// (`_typing._has_default`) se ligam como função Python.
+    pub fn is_c_module_function(&self) -> bool {
+        self.c_owner().is_some_and(|owner| crate::modules::cpydocs::is_module_function(&owner, self.plain_qual()))
     }
 }
 

@@ -8,6 +8,7 @@ família, o tipo, o protocolo e o timeout (que liga `O_NONBLOCK` no fd e decide 
 import errno as _errno
 import time as _time
 
+import _capsule
 import _net
 import _os
 
@@ -403,13 +404,8 @@ _POLLIN = 1
 _POLLOUT = 4
 
 
-def _capsule_repr(self):
-    return '<capsule object "_socket.CAPI" at 0x%x>' % (id(self) & 0xffffffffffff)
-
-
-# O `PyCapsule` do `_socket.CAPI`: a API de C que o Python entrega a extensões; aqui só o objeto.
-# O nome entra pelo `type()` porque atribuir `__name__` à classe não troca o nome do tipo.
-CAPI = type('PyCapsule', (), {'__repr__': _capsule_repr, '__module__': 'builtins'})()
+# O `PyCapsule` do `_socket.CAPI`.
+CAPI = _capsule.make('_socket.CAPI')
 
 error = OSError
 

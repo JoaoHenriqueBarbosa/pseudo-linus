@@ -26,6 +26,9 @@ _OP_RE = '|'.join(re.escape(o) for o in _OPS)
 _TOKEN = re.compile(
     '(?P<ws>[ \\f\\t]*)(?:(?P<comment>#[^\\r\\n]*)|(?P<number>' + _NUMBER + ')|(?P<string>' + _PREFIX +
     '(?:\'\'\'|"""|\'|"))|(?P<name>' + _NAME + ')|(?P<op>' + _OP_RE + ')|(?P<nl>\\r?\\n)|(?P<cont>\\\\\\r?\\n))')
+_WS = re.compile('[ \\f\\t]*')
+# Com `extra_tokens`, o nome que começa num caractere não ASCII segue por letras, dígitos e outros não ASCII.
+_LOOSE_NAME = re.compile('(?:\\w|[^\\x00-\\x7f])+')
 _END = {"'": re.compile(r"[^'\\]*(?:\\.[^'\\]*)*'", re.S), '"': re.compile(r'[^"\\]*(?:\\.[^"\\]*)*"', re.S),
         "'''": re.compile(r"[^'\\]*(?:(?:\\.|'(?!''))[^'\\]*)*'''", re.S),
         '"""': re.compile(r'[^"\\]*(?:(?:\\.|"(?!""))[^"\\]*)*"""', re.S)}
@@ -55,6 +58,23 @@ class TokenizerIter:
 
     def _error(self, msg, lnum, col, line):
         raise SyntaxError(msg, ('<string>', lnum, col + 1, line))
+
+    def _stray(self, line, lnum, pos):
+        """O caractere que nenhum token reconhece, como o `tok_get` do C: os ASCII imprimíveis viram OP;
+        os não ASCII, um nome com `extra_tokens` (o `tokenize.py` os aceita) e erro sem ele; os de controle,
+        erro sempre. Devolve a posição seguinte."""
+        c = line[pos]
+        text = line.rstrip('\r\n')
+        if not c.isprintable():
+            self._error('invalid non-printable character U+%04X' % ord(c), lnum, pos, text)
+        if c.isascii():
+            yield (_t.OP, c, (lnum, pos), (lnum, pos + 1), line)
+            return pos + 1
+        if not self._extra:
+            self._error("invalid character '%s' (U+%04X)" % (c, ord(c)), lnum, pos, text)
+        end = _LOOSE_NAME.match(line, pos).end()
+        yield (_t.NAME, line[pos:end], (lnum, pos), (lnum, end), line)
+        return end
 
     def _run(self):
         lnum = 0
@@ -101,7 +121,8 @@ class TokenizerIter:
                 if m is None:
                     if line[pos:].strip(' \t\f\r\n') == '':
                         break
-                    self._error('invalid syntax', lnum, pos, line)
+                    pos = yield from self._stray(line, lnum, pos + len(_WS.match(line, pos).group()))
+                    continue
                 kind = m.lastgroup
                 start = m.start(kind)
                 end = m.end(kind)

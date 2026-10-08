@@ -139,6 +139,19 @@ const PLAIN_DUNDERS: &[&str] = &[
 const PLAIN_SLOTS: &[(&str, &str)] =
     &[("dict", "__getitem__"), ("dict", "__contains__"), ("list", "__getitem__"), ("set", "__contains__"), ("frozenset", "__contains__")];
 
+/// O primeiro tipo depois de `tname` na cadeia de herança embutida que guarda `name` no próprio `__dict__`: é
+/// onde `super(tname, obj).name` encontra o atributo.
+pub(crate) fn inherited_owner(tname: &str, name: &str) -> Option<&'static str> {
+    let mut owner = builtin_base(tname);
+    while let Some(t) = owner {
+        if crate::builtins_ext::own_type_keys(t).is_some_and(|keys| keys.contains(&name)) {
+            return Some(t);
+        }
+        owner = builtin_base(t);
+    }
+    None
+}
+
 /// O tipo do descritor que o primeiro tipo da cadeia de herança de `tname` que define `name` guarda no
 /// `__dict__` (`wrapper_descriptor`, `method_descriptor`, `classmethod_descriptor`...), da tabela do oráculo.
 /// `None` quando o tipo não tem linha na tabela ou nenhum tipo da cadeia define o nome.
@@ -186,6 +199,9 @@ fn type_attr_image(tag: &'static str, tname: &'static str, name: &'static str) -
 }
 
 impl ExtObject for Unbound {
+    fn as_any(&self) -> Option<&dyn std::any::Any> {
+        Some(self)
+    }
     fn type_name(&self) -> &'static str {
         if is_slot_wrapper(self.tname, self.name) {
             "wrapper_descriptor"
@@ -242,12 +258,20 @@ impl ExtObject for Unbound {
             };
         }
         // Os ganchos de atributo (`tuple.__getattribute__(self, nome)`) agem sobre a instância inteira: o
-        // `__dict__` dela mora na instância, não no dado de dentro, que o `unwrap_payload` expõe.
-        if matches!(self.name, "__getattribute__" | "__setattr__" | "__delattr__") {
+        // `__dict__` dela mora na instância, não no dado de dentro, que o `unwrap_payload` expõe. Os slots de
+        // `object` são a implementação de `object` em si: `object.__init__(self)` dentro de um `__init__`
+        // sobrescrito não pode voltar ao atributo do receptor.
+        if self.tname == "object" || matches!(self.name, "__getattribute__" | "__setattr__" | "__delattr__") {
             if let Some(native) = object_attr(self.name) {
                 args.insert(0, recv);
                 return vm.call(&native, args, kw);
             }
+        }
+        if let ("type", "__instancecheck__" | "__subclasscheck__") = (self.tname, self.name) {
+            let [arg] = <[Value; 1]>::try_from(args).map_err(|a| {
+                type_error(format!("{}() takes exactly one argument ({} given)", self.name, a.len()))
+            })?;
+            return crate::builtins::real_type_check(vm, &recv, &arg, self.name == "__instancecheck__").map(Value::Bool);
         }
         // `dict.__getitem__(self, k)` numa subclasse que sobrescreve `__getitem__`: vale o método do tipo
         // embutido sobre o dado de dentro da instância, não a sobrescrita (senão recursa).
@@ -859,8 +883,7 @@ fn object_init_subclass(_vm: &mut Vm, _args: Vec<Value>, kw: Kw) -> PyResult<Val
 
 /// `object.__reduce_ex__`, `__reduce__` e `__getstate__`: as funções de `copyreg`.
 fn copyreg_call(vm: &mut Vm, fname: &str, args: Vec<Value>) -> PyResult<Value> {
-    let m = crate::modules::import_checked(vm, "copyreg")?;
-    let f = vm.load_attr(&Value::Module(m), fname)?;
+    let f = crate::modules::pysrc::copyreg_helper(vm, fname)?;
     vm.call(&f, args, Vec::new())
 }
 
@@ -1126,14 +1149,37 @@ pub fn type_attr(tname: &str, name: &str) -> Option<Value> {
         ("str", "maketrans") => return Some(class_method(tname, "maketrans", str_maketrans)),
         _ => {}
     }
-    let (method, _) = crate::methods::lookup(&sample(tname)?, name)?;
-    Some(unbound(owner_of(tname, method), method))
+    if let Some((method, _)) = sample(tname).and_then(|s| crate::methods::lookup(&s, name)) {
+        return Some(unbound(owner_of(tname, method), method));
+    }
+    // Os slots e métodos que a tabela do CPython lista para tipos sem amostra (`function.__get__`,
+    // `type.__subclasscheck__`): o descritor despacha pelo receptor.
+    crate::builtins_ext::type_var_kind(tname, name)
+        .filter(|k| matches!(*k, "wrapper_descriptor" | "method_descriptor"))
+        .map(|_| unbound(tname, crate::object::intern(name)))
+}
+
+/// O nome do slot ou método de `object` que `v` é (`object.__init__`, herdado por `A.__init__`), se for.
+pub(crate) fn object_descriptor_name(v: &Value) -> Option<&'static str> {
+    let Value::Ext(e) = v else { return None };
+    let u = e.as_any()?.downcast_ref::<Unbound>()?;
+    (u.tname == "object").then_some(u.name)
+}
+
+/// O atributo `name` de `object` lido pelo tipo (`object.__le__`, e o mesmo herdado por `V.__le__`): os slots e
+/// métodos são descritores (`wrapper_descriptor`, `method_descriptor`), como no CPython, e um só objeto por
+/// nome (o `functools.total_ordering` compara `getattr(cls, op) is getattr(object, op)`); o resto, o nativo.
+pub(crate) fn object_type_attr(name: &str) -> Option<Value> {
+    let native = object_attr(name)?;
+    let is_descriptor = crate::builtins_ext::type_var_kind("object", name)
+        .is_some_and(|k| matches!(k, "wrapper_descriptor" | "method_descriptor"));
+    Some(if is_descriptor { unbound("object", crate::object::intern(name)) } else { native })
 }
 
 /// O descritor `tname.name` (`tname` é o tipo dono): um objeto só por par, para `dict.__repr__ is
 /// dict.__repr__` e `bool.__add__ is int.__add__` valerem e o descritor servir de chave de dict (o `pprint`
 /// despacha por `type(obj).__repr__`).
-fn unbound(tname: &'static str, name: &'static str) -> Value {
+pub(crate) fn unbound(tname: &'static str, name: &'static str) -> Value {
     thread_local! {
         static UNBOUND: std::cell::RefCell<std::collections::HashMap<(&'static str, &'static str), Value>> =
             std::cell::RefCell::new(std::collections::HashMap::new());
@@ -1198,7 +1244,15 @@ pub(crate) fn bound_method_attr(recv: &Value, name: &'static str, attr: &str) ->
             }
         }
         "__module__" => Value::None,
-        "__text_signature__" => text_signature(tname, name).map_or(Value::None, Value::str),
+        "__text_signature__" => {
+            // O método de classe de um shim de tipo embutido (`memoryview._from_flags`): a assinatura é a do
+            // tipo que o shim emula.
+            let owner = match recv {
+                Value::Class(c) if c.emulates_c_type() => c.name.as_str(),
+                _ => tname,
+            };
+            text_signature(owner, name).map_or(Value::None, Value::str)
+        }
         _ => return None,
     })
 }
