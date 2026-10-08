@@ -1,0 +1,659 @@
+{
+  "flock-x-close-descriptor": {
+    "stdout": "0 1 2 3 4 \n0 1 2 3 \n0 1 2 3 \n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-command-args-passed": {
+    "stdout": "a|b c|\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-command-exit-status": {
+    "stdout": "rc=7\nrc=0\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-command-is-child-of-flock": {
+    "stdout": "flock\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-command-killed-by-signal": {
+    "stdout": "rc=137\nrc=143\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-command-option-before-file": {
+    "stdout": "rc=64\n",
+    "stderr": "flock: invalid option -- 'c'\nTry 'flock --help' for more information.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "flock-x-command-string": {
+    "stdout": "one\ntwo\nrc=0\nrc=5\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-command-string-extra-args": {
+    "stdout": "rc=64\nrc=64\nrc=64\n",
+    "stderr": "flock: -c requires exactly one command argument\nflock: -c requires exactly one command argument\nflock: --command requires exactly one command argument\n",
+    "exit": 0,
+    "files": {}
+  },
+  "flock-x-command-string-uses-shell-env": {
+    "stdout": "-c hi\nempty-shell-falls-back\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-conflict-exit-code": {
+    "stdout": "rc=42\nrc=0\nrc=255\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-creates-lock-file": {
+    "stdout": "rc=0\nregular empty file 644 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "newlock": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-directory-lock": {
+    "stdout": "dir\nrc=0\nshared-dir\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "d": {
+        "kind": "dir",
+        "mode": 493
+      }
+    }
+  },
+  "flock-x-double-dash": {
+    "stdout": "dd\ndash-file\n-dash\nlk\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "-dash": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-exclusive-vs-shared": {
+    "stdout": "rc=1\nrc=1\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-exec-not-executable": {
+    "stdout": "rc=69\nrc=69\n",
+    "stderr": "flock: failed to execute ./x: Permission denied\nflock: failed to execute /tmp: Permission denied\n",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      },
+      "x": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "ab08508fdf5ca4da5c4995987bc41c56c048aaa5eeb046417ae4049b7d40286e",
+        "data": "echo hi\n"
+      }
+    }
+  },
+  "flock-x-exec-not-found": {
+    "stdout": "rc=69\nrc=69\n",
+    "stderr": "flock: failed to execute ./no-such-command: No such file or directory\nflock: failed to execute ./no-such-command: No such file or directory\n",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-existing-lock-file-kept": {
+    "stdout": "conteudo\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 9,
+        "sha256": "30e58096c51818c0cc95edfbc4a2c442a74d51a11381a58170aa62d9e28aef8d",
+        "data": "conteudo\n"
+      }
+    }
+  },
+  "flock-x-fcntl-and-flock-independent": {
+    "stdout": "fcntl-ok\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-fcntl-conflict": {
+    "stdout": "rc=1\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-fcntl-fd": {
+    "stdout": "rc=0\nrc2=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-fcntl-shared": {
+    "stdout": "shared-ok\nrc=0\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-fd-bad-number": {
+    "stdout": "rc=64\nrc=64\nrc=64\n",
+    "stderr": "flock: bad file descriptor: 'abc'\nflock: bad file descriptor: '3x'\nflock: bad file descriptor: '99999999999999999999': Numerical result out of range\n",
+    "exit": 0,
+    "files": {}
+  },
+  "flock-x-fd-closed": {
+    "stdout": "rc=65\n",
+    "stderr": "flock: 99: Bad file descriptor\n",
+    "exit": 0,
+    "files": {}
+  },
+  "flock-x-fd-conflict-exit-code": {
+    "stdout": "rc=77\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-fd-lock-and-conflict": {
+    "stdout": "rc=0\nrc2=1\nrc3=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-fd-negative": {
+    "stdout": "rc=64\n",
+    "stderr": "flock: invalid option -- '1'\nTry 'flock --help' for more information.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "flock-x-fd-shared": {
+    "stdout": "rc=0\nrc2=0\nrc3=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-help-and-version": {
+    "stdout": "\nUsage:\n flock [options] <file>|<directory> <command> [<argument>...]\n flock [options] <file>|<directory> -c <command>\n -V, --version            display version\n\nFor more details see flock(1).\nflock from util-linux 2.41.5\nflock from util-linux 2.41.5\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "flock-x-invalid-conflict-code": {
+    "stdout": "rc=64\nrc=64\nrc=64\nrc=64\nrc=64\n",
+    "stderr": "flock: exit code out of range (expected 0 to 255)\nflock: exit code out of range (expected 0 to 255)\nflock: invalid exit code: 'abc'\nflock: invalid exit code: '99999999999': Numerical result out of range\nflock: invalid exit code: ''\n",
+    "exit": 0,
+    "files": {}
+  },
+  "flock-x-invalid-options": {
+    "stdout": "rc=64\nrc=64\nrc=64\nrc=64\nrc=64\nrc=64\nrc=64\n",
+    "stderr": "flock: invalid option -- 'Z'\nTry 'flock --help' for more information.\nflock: unrecognized option '--bogus'\nTry 'flock --help' for more information.\nflock: option requires an argument -- 'w'\nTry 'flock --help' for more information.\nflock: option '--timeout' requires an argument\nTry 'flock --help' for more information.\nflock: option requires an argument -- 'E'\nTry 'flock --help' for more information.\nflock: invalid option -- 'v'\nTry 'flock --help' for more information.\nTry 'flock --help' for more information.\n",
+    "exit": 0,
+    "files": {}
+  },
+  "flock-x-invalid-timeout": {
+    "stdout": "rc=64\nrc=71\nrc=64\nrc=64\nrc=64\n",
+    "stderr": "flock: invalid timeout value: 'abc'\nflock: cannot set up timer: Invalid argument\nflock: invalid timeout value: '1x'\nflock: invalid timeout value: ''\nflock: invalid timeout value: 'nope'\n",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-long-option-prefixes": {
+    "stdout": "a\nb\nc\nd\ne\nf\nrc=64\n",
+    "stderr": "flock: option '--no' is ambiguous; possibilities: '--nonblocking' '--no-fork'\nTry 'flock --help' for more information.\n",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-no-args": {
+    "stdout": "rc=64\nrc=64\nrc=64\n",
+    "stderr": "flock: not enough arguments\nTry 'flock --help' for more information.\nflock: requires file descriptor, file or directory\nflock: requires file descriptor, file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "flock-x-no-fork": {
+    "stdout": "nofork\nrc=0\nsh\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-no-fork-with-close": {
+    "stdout": "rc=64\nrc=64\n",
+    "stderr": "flock: the --no-fork and --close options are incompatible\nflock: the --no-fork and --close options are incompatible\n",
+    "exit": 0,
+    "files": {}
+  },
+  "flock-x-nonblock-conflict": {
+    "stdout": "rc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-nonblock-long-option": {
+    "stdout": "rc=1\nrc=1\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-open-error-missing-parent": {
+    "stdout": "rc=66\nrc=66\n",
+    "stderr": "flock: cannot open lock file /nonexistent/dir/lk: No such file or directory\nflock: cannot open lock file d/lk: No such file or directory\n",
+    "exit": 0,
+    "files": {}
+  },
+  "flock-x-open-error-not-a-directory": {
+    "stdout": "rc=66\n",
+    "stderr": "flock: cannot open lock file f/lk: Not a directory\n",
+    "exit": 0,
+    "files": {
+      "f": {
+        "kind": "file",
+        "mode": 420,
+        "size": 8,
+        "sha256": "fb575342c88c585afe068028a8d051afc1f2050cd8412a0ac79b44e5c9e13b54",
+        "data": "arquivo\n"
+      }
+    }
+  },
+  "flock-x-open-error-too-long": {
+    "stdout": "rc=66\n",
+    "stderr": "flock: cannot open lock file aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: File name too long\n",
+    "exit": 0,
+    "files": {}
+  },
+  "flock-x-options-stop-at-first-operand": {
+    "stdout": "-src=0\nrc=69\n",
+    "stderr": "flock: failed to execute -n: No such file or directory\n",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-released-at-exit": {
+    "stdout": "rc=0\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-shared-vs-exclusive": {
+    "stdout": "rc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-shared-with-shared": {
+    "stdout": "shared-ok\nrc=0\nshared-ok\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-timeout-expires": {
+    "stdout": "rc=1\nrc=9\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-timeout-succeeds-after-release": {
+    "stdout": "got\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-timeout-zero-is-nonblock": {
+    "stdout": "rc=1\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-unlock-option": {
+    "stdout": "unlocked\nrc=0\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-valid-timeout-forms": {
+    "stdout": "a\nb\nc\nd\ne\nf\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-verbose-command": {
+    "stdout": "hi\nflock: getting lock took T seconds\nflock: executing echo\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-verbose-conflict": {
+    "stdout": "flock: failed to get lock\nrc=1\nflock: timeout while waiting to get lock\nrc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-verbose-fd": {
+    "stdout": "flock: getting lock took T seconds\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  },
+  "flock-x-wait-blocks-until-release": {
+    "stdout": "got\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {
+      "lk": {
+        "kind": "file",
+        "mode": 420,
+        "size": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "data": ""
+      }
+    }
+  }
+}

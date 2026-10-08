@@ -47,11 +47,18 @@ impl Daemon {
         let token = v["token"].as_str().context("bootstrap sem token")?.to_string();
 
         let port = free_port()?;
-        let child = Command::new(&bin)
-            .arg("serve")
+        let mut cmd = Command::new(&bin);
+        cmd.arg("serve")
             .env("PL_LISTEN", format!("127.0.0.1:{port}"))
             .env("PL_DATA_DIR", data_dir.path())
-            .env("PL_WORKERS", std::env::var("PL_WORKERS").unwrap_or_else(|_| "2".into()))
+            .env("PL_WORKERS", std::env::var("PL_WORKERS").unwrap_or_else(|_| "2".into()));
+        // O `pip install` dos cenários sai do espelho do PyPI com os wheels fixados da bancada
+        // (`testbench/mirror/fetch.sh`), não da internet: a fita reproduz igual em qualquer máquina.
+        let wheels = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../testbench/mirror/wheels");
+        if std::env::var_os("PL_PYPI_MIRROR").is_none() && wheels.is_dir() {
+            cmd.env("PL_PYPI_MIRROR", wheels);
+        }
+        let child = cmd
             .stdout(Stdio::null())
             .stderr(Stdio::inherit())
             .spawn()

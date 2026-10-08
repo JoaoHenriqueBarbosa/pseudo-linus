@@ -90,6 +90,32 @@ unsafe impl<A: GlobalAlloc> GlobalAlloc for Allocator<A> {
         object_ptr
     }
 
+    // pseudo-linus: o `realloc` padrão aloca, copia e libera sempre. Com o rastreio desligado o alocador de
+    // baixo redimensiona no lugar (o mimalloc quase nunca move), com o cabeçalho zerado de novo como o
+    // `alloc` deixa; ligado, vale o caminho padrão, que conta a alocação nova e a liberação da velha.
+    #[track_caller]
+    unsafe fn realloc(&self, object_ptr: *mut u8, object_layout: Layout, new_size: usize) -> *mut u8 {
+        let new_layout = Layout::from_size_align_unchecked(new_size, object_layout.align());
+        if get_global_tracker().is_some() {
+            let new_ptr = self.alloc(new_layout);
+            if !new_ptr.is_null() {
+                std::ptr::copy_nonoverlapping(object_ptr, new_ptr, object_layout.size().min(new_size));
+                self.dealloc(object_ptr, object_layout);
+            }
+            return new_ptr;
+        }
+        let (old_wrapped, offset_to_object) = get_wrapped_layout(object_layout);
+        let (new_wrapped, _) = get_wrapped_layout(new_layout);
+        let actual_ptr = object_ptr.wrapping_sub(offset_to_object);
+        let new_actual = self.inner.realloc(actual_ptr, old_wrapped, new_wrapped.size());
+        if new_actual.is_null() {
+            handle_alloc_error(new_wrapped);
+        }
+        #[allow(clippy::cast_ptr_alignment)]
+        new_actual.cast::<usize>().write(0);
+        new_actual.wrapping_add(offset_to_object)
+    }
+
     #[track_caller]
     unsafe fn dealloc(&self, object_ptr: *mut u8, object_layout: Layout) {
         // Regenerate the wrapped layout so we know where we have to look, as the pointer we've given relates to the
@@ -101,6 +127,14 @@ unsafe impl<A: GlobalAlloc> GlobalAlloc for Allocator<A> {
         // allocation it refers to, was allocated by us. Thus, since we wrap _all_ allocations, we know that this object
         // pointer can be safely subtracted by `offset_to_object` to get back to the group ID field in our wrapper.
         let actual_ptr = object_ptr.wrapping_sub(offset_to_object);
+
+        // pseudo-linus: com o rastreio desligado (o estado de quase toda a vida do processo) o cabeçalho não
+        // é lido: a liberação é só a do alocador de baixo. O custo do rastreio passa a existir só quando ele
+        // está ligado.
+        let Some(tracker) = get_global_tracker() else {
+            self.inner.dealloc(actual_ptr, wrapped_layout);
+            return;
+        };
 
         // SAFETY: We know that `actual_ptr` is at least aligned enough for casting it to `*mut usize` as the layout for
         // the allocation backing this pointer ensures the first field in the layout is `usize.
@@ -114,41 +148,45 @@ unsafe impl<A: GlobalAlloc> GlobalAlloc for Allocator<A> {
         let object_size = object_layout.size();
         let wrapped_size = wrapped_layout.size();
 
-        if let Some(tracker) = get_global_tracker() {
-            if let Some(source_group_id) = AllocationGroupId::from_raw(raw_group_id) {
-                try_with_suspended_allocation_group(
-                    #[inline(always)]
-                    |current_group_id| {
-                        tracker.deallocated(
-                            object_addr,
-                            object_size,
-                            wrapped_size,
-                            source_group_id,
-                            current_group_id,
-                        );
-                    },
-                );
-            }
+        if let Some(source_group_id) = AllocationGroupId::from_raw(raw_group_id) {
+            try_with_suspended_allocation_group(
+                #[inline(always)]
+                |current_group_id| {
+                    tracker.deallocated(
+                        object_addr,
+                        object_size,
+                        wrapped_size,
+                        source_group_id,
+                        current_group_id,
+                    );
+                },
+            );
         }
     }
 }
 
+#[inline(always)]
 fn get_wrapped_layout(object_layout: Layout) -> (Layout, usize) {
-    static HEADER_LAYOUT: Layout = Layout::new::<usize>();
-
     // We generate a new allocation layout that gives us a location to store the active allocation group ID ahead
     // of the requested allocation, which lets us always attempt to retrieve it on the deallocation path. We'll
     // always set this to zero, and conditionally update it to the actual allocation group ID if tracking is enabled.
     // pseudo-linus: o objeto sai alinhado a pelo menos 16, como o malloc entrega. Com o cabeçalho de
     // 8 bytes na frente, um pedido de alinhamento 8 caía em endereço 8 mod 16, e o libunwind do LLVM
     // (o unwinder do alvo musl) grava a `_Unwind_Exception` do Rust com `movaps`: SIGSEGV em todo panic.
-    let object_layout = object_layout
-        .align_to(16)
+    //
+    // Conta direta, equivalente a `align_to(16)` + `Layout::new::<usize>().extend(..)` + `pad_to_align()`: o
+    // alinhamento é `max(16, pedido)` (potência de dois, então múltiplo do cabeçalho de 8), o objeto começa
+    // nesse mesmo deslocamento e o tamanho total sobe ao múltiplo do alinhamento. Sem as três chamadas de
+    // `Layout` com `expect` por alocação e por liberação.
+    let align = if object_layout.align() > 16 { object_layout.align() } else { 16 };
+    let size = object_layout
+        .size()
+        .checked_add(align)
+        .and_then(|total| total.checked_add(align - 1))
+        .map(|total| total & !(align - 1))
         .expect("wrapping requested layout resulted in overflow");
-    let (actual_layout, offset_to_object) = HEADER_LAYOUT
-        .extend(object_layout)
-        .expect("wrapping requested layout resulted in overflow");
-    let actual_layout = actual_layout.pad_to_align();
+    let actual_layout = Layout::from_size_align(size, align).expect("wrapping requested layout resulted in overflow");
 
-    (actual_layout, offset_to_object)
+    (actual_layout, align)
 }
+

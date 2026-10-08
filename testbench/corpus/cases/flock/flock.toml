@@ -1,0 +1,291 @@
+tool = "flock"
+source = "manual"
+
+# flock do util-linux 2.41 com a trava de fato tomada. Os conflitos usam um processo que segura o
+# arquivo por alguns segundos em segundo plano; o `sleep 0.5` dá tempo dele pegar a trava e o `wait`
+# fecha o caso. Nenhum caso imprime tempo: a saída do --verbose passa por sed.
+
+# ---- conflito, espera e códigos de saída ----
+
+[[case]]
+id = "flock-x-nonblock-conflict"
+script = "flock lk sleep 2 & sleep 0.5; flock -n lk echo got; echo \"rc=$?\"; wait"
+tags = ["conflict"]
+
+[[case]]
+id = "flock-x-nonblock-long-option"
+script = "flock lk sleep 2 & sleep 0.5; flock --nonblock lk echo got; echo \"rc=$?\"; flock --nb lk echo got; echo \"rc=$?\"; flock --nonblocking lk echo got; echo \"rc=$?\"; wait"
+tags = ["conflict"]
+
+[[case]]
+id = "flock-x-conflict-exit-code"
+script = "flock lk sleep 2 & sleep 0.5; flock -n -E 42 lk echo got; echo \"rc=$?\"; flock -n --conflict-exit-code 0 lk echo got; echo \"rc=$?\"; flock -n -E 255 lk echo got; echo \"rc=$?\"; wait"
+tags = ["conflict"]
+
+[[case]]
+id = "flock-x-timeout-expires"
+script = "flock lk sleep 2 & sleep 0.5; flock -w 0.3 lk echo got; echo \"rc=$?\"; flock -w 0.3 -E 9 lk echo got; echo \"rc=$?\"; wait"
+tags = ["conflict", "timeout"]
+
+[[case]]
+id = "flock-x-timeout-zero-is-nonblock"
+script = "flock lk sleep 2 & sleep 0.5; flock -w 0 lk echo got; echo \"rc=$?\"; flock --timeout 0.0 lk echo got; echo \"rc=$?\"; wait"
+tags = ["conflict", "timeout"]
+
+[[case]]
+id = "flock-x-timeout-succeeds-after-release"
+script = "flock lk sleep 1 & sleep 0.3; flock -w 10 lk echo got; echo \"rc=$?\"; wait"
+tags = ["conflict", "timeout"]
+
+[[case]]
+id = "flock-x-wait-blocks-until-release"
+script = "flock lk sleep 1 & sleep 0.3; flock lk echo got; echo \"rc=$?\"; wait"
+tags = ["conflict"]
+
+[[case]]
+id = "flock-x-shared-with-shared"
+script = "flock -s lk sleep 2 & sleep 0.5; flock -s -n lk echo shared-ok; echo \"rc=$?\"; flock --shared -n lk echo shared-ok; echo \"rc=$?\"; wait"
+tags = ["shared"]
+
+[[case]]
+id = "flock-x-exclusive-vs-shared"
+script = "flock -s lk sleep 2 & sleep 0.5; flock -x -n lk echo got; echo \"rc=$?\"; flock -e -n lk echo got; echo \"rc=$?\"; flock --exclusive -n lk echo got; echo \"rc=$?\"; wait"
+tags = ["shared", "conflict"]
+
+[[case]]
+id = "flock-x-shared-vs-exclusive"
+script = "flock -x lk sleep 2 & sleep 0.5; flock -s -n lk echo got; echo \"rc=$?\"; wait"
+tags = ["shared", "conflict"]
+
+[[case]]
+id = "flock-x-released-at-exit"
+script = "flock -n lk true; echo \"rc=$?\"; flock -n lk true; echo \"rc=$?\""
+tags = ["basic"]
+
+[[case]]
+id = "flock-x-unlock-option"
+script = "flock -u lk echo unlocked; echo \"rc=$?\"; flock --unlock lk true; echo \"rc=$?\""
+tags = ["basic"]
+
+# ---- descritor de arquivo ----
+
+[[case]]
+id = "flock-x-fd-lock-and-conflict"
+script = "exec 9>lk; flock -n 9; echo \"rc=$?\"; ( exec 8>lk; flock -n 8; echo \"rc2=$?\" ); flock -u 9; ( exec 8>lk; flock -n 8; echo \"rc3=$?\" )"
+tags = ["fd"]
+
+[[case]]
+id = "flock-x-fd-shared"
+script = "exec 9>lk; flock -s 9; echo \"rc=$?\"; ( exec 8>lk; flock -s -n 8; echo \"rc2=$?\"; flock -x -n 8; echo \"rc3=$?\" )"
+tags = ["fd"]
+
+[[case]]
+id = "flock-x-fd-conflict-exit-code"
+script = "exec 9>lk; flock -x 9; ( exec 8>lk; flock -n -E 77 8; echo \"rc=$?\" )"
+tags = ["fd"]
+
+[[case]]
+id = "flock-x-fd-closed"
+script = "flock 99; echo \"rc=$?\""
+tags = ["fd", "error"]
+
+[[case]]
+id = "flock-x-fd-bad-number"
+script = "flock abc; echo \"rc=$?\"; flock 3x; echo \"rc=$?\"; flock 99999999999999999999; echo \"rc=$?\""
+tags = ["fd", "error"]
+
+[[case]]
+id = "flock-x-fd-negative"
+script = "flock -1; echo \"rc=$?\""
+tags = ["fd", "error"]
+
+# ---- comando e shell ----
+
+[[case]]
+id = "flock-x-command-exit-status"
+script = "flock lk sh -c 'exit 7'; echo \"rc=$?\"; flock lk sh -c 'exit 0'; echo \"rc=$?\"; flock lk false; echo \"rc=$?\""
+tags = ["exec"]
+
+[[case]]
+id = "flock-x-command-killed-by-signal"
+script = "flock lk sh -c 'kill -9 $$'; echo \"rc=$?\"; flock lk sh -c 'kill -15 $$'; echo \"rc=$?\""
+tags = ["exec"]
+
+[[case]]
+id = "flock-x-command-is-child-of-flock"
+script = "flock lk sh -c 'ps -o comm= -p $PPID'"
+tags = ["exec"]
+
+[[case]]
+id = "flock-x-command-string"
+script = "flock lk -c 'echo one; echo two'; echo \"rc=$?\"; flock lk --command 'exit 5'; echo \"rc=$?\""
+tags = ["exec", "shell"]
+
+[[case]]
+id = "flock-x-command-string-uses-shell-env"
+script = "SHELL=/bin/echo flock lk -c 'hi'; SHELL= flock lk -c 'echo empty-shell-falls-back'"
+tags = ["exec", "shell"]
+
+[[case]]
+id = "flock-x-command-string-extra-args"
+script = "flock lk -c echo a; echo \"rc=$?\"; flock lk -c; echo \"rc=$?\"; flock lk --command; echo \"rc=$?\""
+tags = ["exec", "error"]
+
+[[case]]
+id = "flock-x-command-option-before-file"
+script = "flock -c 'echo x' lk; echo \"rc=$?\""
+tags = ["exec", "error"]
+
+[[case]]
+id = "flock-x-command-args-passed"
+script = "flock lk sh -c 'echo \"$0|$1|$2\"' a 'b c'"
+tags = ["exec"]
+
+[[case]]
+id = "flock-x-exec-not-executable"
+script = "echo 'echo hi' > x; flock lk ./x; echo \"rc=$?\"; flock lk /tmp; echo \"rc=$?\""
+tags = ["exec", "error"]
+
+[[case]]
+id = "flock-x-exec-not-found"
+script = "flock lk ./no-such-command; echo \"rc=$?\"; flock -F lk ./no-such-command; echo \"rc=$?\""
+tags = ["exec", "error"]
+
+# ---- -o e -F ----
+
+[[case]]
+id = "flock-x-close-descriptor"
+script = "flock lk ls /proc/self/fd | tr '\\n' ' '; echo; flock -o lk ls /proc/self/fd | tr '\\n' ' '; echo; flock --close lk ls /proc/self/fd | tr '\\n' ' '; echo"
+tags = ["close"]
+
+[[case]]
+id = "flock-x-no-fork"
+script = "flock -F lk echo nofork; echo \"rc=$?\"; flock --no-fork lk sh -c 'ps -o comm= -p $$'"
+tags = ["no-fork"]
+
+[[case]]
+id = "flock-x-no-fork-with-close"
+script = "flock -F -o lk true; echo \"rc=$?\"; flock --no-fork --close lk true; echo \"rc=$?\""
+tags = ["no-fork", "error"]
+
+# ---- abertura do arquivo ----
+
+[[case]]
+id = "flock-x-creates-lock-file"
+script = "flock newlock true; echo \"rc=$?\"; stat -c '%F %a %s' newlock"
+tags = ["open"]
+
+[[case]]
+id = "flock-x-existing-lock-file-kept"
+script = "flock lk cat lk; echo \"rc=$?\""
+tags = ["open"]
+[case.files]
+"lk" = "conteudo\n"
+
+[[case]]
+id = "flock-x-directory-lock"
+script = "mkdir d; flock d echo dir; echo \"rc=$?\"; flock -s -n d echo shared-dir; echo \"rc=$?\""
+tags = ["open"]
+
+[[case]]
+id = "flock-x-open-error-missing-parent"
+script = "flock /nonexistent/dir/lk true; echo \"rc=$?\"; flock -n d/lk true; echo \"rc=$?\""
+tags = ["open", "error"]
+
+[[case]]
+id = "flock-x-open-error-not-a-directory"
+script = "flock f/lk true; echo \"rc=$?\""
+tags = ["open", "error"]
+[case.files]
+"f" = "arquivo\n"
+
+[[case]]
+id = "flock-x-open-error-too-long"
+script = "flock \"$(head -c 300 /dev/zero | tr '\\0' a)\" true; echo \"rc=$?\""
+tags = ["open", "error"]
+
+# ---- erros de opção e de argumento ----
+
+[[case]]
+id = "flock-x-no-args"
+script = "flock; echo \"rc=$?\"; flock -n; echo \"rc=$?\"; flock -x -w 1; echo \"rc=$?\""
+tags = ["error"]
+
+[[case]]
+id = "flock-x-invalid-options"
+script = "flock -Z lk true; echo \"rc=$?\"; flock --bogus lk true; echo \"rc=$?\"; flock -w; echo \"rc=$?\"; flock --timeout; echo \"rc=$?\"; flock -E; echo \"rc=$?\"; flock -v lk true; echo \"rc=$?\"; flock -?; echo \"rc=$?\""
+tags = ["error"]
+
+[[case]]
+id = "flock-x-invalid-timeout"
+script = "flock -w abc lk true; echo \"rc=$?\"; flock -w -1 lk true; echo \"rc=$?\"; flock -w 1x lk true; echo \"rc=$?\"; flock -w '' lk true; echo \"rc=$?\"; flock --wait nope lk true; echo \"rc=$?\""
+tags = ["error", "timeout"]
+
+[[case]]
+id = "flock-x-valid-timeout-forms"
+script = "flock -w 1 lk echo a; flock -w 0.5 lk echo b; flock -w .5 lk echo c; flock -w 1e0 lk echo d; flock -w +2 lk echo e; flock -w 1. lk echo f"
+tags = ["timeout"]
+
+[[case]]
+id = "flock-x-invalid-conflict-code"
+script = "flock -E 256 lk true; echo \"rc=$?\"; flock -E -1 lk true; echo \"rc=$?\"; flock -E abc lk true; echo \"rc=$?\"; flock -E 99999999999 lk true; echo \"rc=$?\"; flock -E '' lk true; echo \"rc=$?\""
+tags = ["error", "conflict"]
+
+[[case]]
+id = "flock-x-long-option-prefixes"
+script = "flock --excl lk echo a; flock --sh lk echo b; flock --un lk echo c; flock --conf 3 lk echo d; flock --no-f lk echo e; flock --clo lk echo f; flock --no lk echo g; echo \"rc=$?\""
+tags = ["options"]
+
+[[case]]
+id = "flock-x-options-stop-at-first-operand"
+script = "flock lk echo -n -s; echo \"rc=$?\"; flock lk -n; echo \"rc=$?\""
+tags = ["options"]
+
+[[case]]
+id = "flock-x-double-dash"
+script = "flock -- lk echo dd; flock -n -- -dash echo dash-file; ls"
+tags = ["options"]
+
+[[case]]
+id = "flock-x-help-and-version"
+script = "flock -h | head -n 4; flock --help | tail -n 3; flock --version; flock -V; echo \"rc=$?\""
+tags = ["help"]
+
+# ---- --verbose ----
+
+[[case]]
+id = "flock-x-verbose-command"
+script = "flock --verbose lk echo hi 2>&1 | sed -E 's/took [0-9]+\\.[0-9]+ seconds/took T seconds/'"
+tags = ["verbose"]
+
+[[case]]
+id = "flock-x-verbose-fd"
+script = "exec 9>lk; flock --verbose 9 2>&1 | sed -E 's/took [0-9]+\\.[0-9]+ seconds/took T seconds/'; echo \"rc=$?\""
+tags = ["verbose", "fd"]
+
+[[case]]
+id = "flock-x-verbose-conflict"
+script = "flock lk sleep 2 & sleep 0.5; flock --verbose -n lk echo got 2>&1; echo \"rc=$?\"; flock --verbose -w 0.3 lk echo got 2>&1; echo \"rc=$?\"; wait"
+tags = ["verbose", "conflict"]
+
+# ---- --fcntl (travas OFD) ----
+
+[[case]]
+id = "flock-x-fcntl-conflict"
+script = "flock --fcntl lk sleep 2 & sleep 0.5; flock --fcntl -n lk echo got; echo \"rc=$?\"; flock --fcntl -s -n lk echo got; echo \"rc=$?\"; wait"
+tags = ["fcntl", "conflict"]
+
+[[case]]
+id = "flock-x-fcntl-shared"
+script = "flock --fcntl -s lk sleep 2 & sleep 0.5; flock --fcntl -s -n lk echo shared-ok; echo \"rc=$?\"; flock --fcntl -x -n lk echo got; echo \"rc=$?\"; wait"
+tags = ["fcntl", "shared"]
+
+[[case]]
+id = "flock-x-fcntl-and-flock-independent"
+script = "flock lk sleep 2 & sleep 0.5; flock --fcntl -n lk echo fcntl-ok; echo \"rc=$?\"; wait"
+tags = ["fcntl"]
+
+[[case]]
+id = "flock-x-fcntl-fd"
+script = "exec 9<>lk; flock --fcntl -n 9; echo \"rc=$?\"; ( exec 8<>lk; flock --fcntl -n 8; echo \"rc2=$?\" )"
+tags = ["fcntl", "fd"]

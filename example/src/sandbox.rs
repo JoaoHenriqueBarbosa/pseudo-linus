@@ -104,6 +104,12 @@ impl Sandbox {
         Ok(v["data"].as_str().unwrap_or_default().to_string())
     }
 
+    /// Grava um arquivo como upload do usuário, criando os diretórios que faltarem.
+    pub async fn write_file(&self, path: &str, data: &str) -> Result<()> {
+        let p = json!({ "sandbox_id": self.inner.id, "path": path, "data": data, "create_parents": true });
+        self.call("fs.write", p).await.map(|_| ())
+    }
+
     pub async fn destroy(&self) -> Result<()> {
         self.call("sandbox.destroy", json!({ "sandbox_id": self.inner.id })).await.map(|_| ())
     }
