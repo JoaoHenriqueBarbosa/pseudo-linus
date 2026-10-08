@@ -27,7 +27,8 @@ use std::sync::atomic::{AtomicIsize, Ordering};
 
 use crate::parser::source_tainted_origin::SourceTaintedOrigin;
 use crate::runtime::source_origin::SourceOrigin;
-use crate::wtf::text::string_impl::{ConversionMode, StringImpl};
+use crate::wtf::text::string_impl::StringImpl;
+use crate::wtf::text::wtf_string::ConversionMode;
 use crate::wtf::text::text_position::TextPosition;
 use crate::wtf::text::wtf_string::String as WtfString;
 use crate::wtf::url::URL;

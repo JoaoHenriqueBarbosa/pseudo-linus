@@ -5,4 +5,4 @@ pub mod wtf;
 pub mod yarr;
 pub mod bytecode;
 pub mod runtime;
-// pub mod parser; (em integração)
+pub mod parser;

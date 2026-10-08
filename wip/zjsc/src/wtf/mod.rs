@@ -6,3 +6,4 @@ pub mod fast_float;
 pub mod unicode;
 pub mod text;
 pub mod url;
+pub mod math_extras;

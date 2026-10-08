@@ -16,7 +16,7 @@ use std::rc::Rc;
 use crate::runtime::private_name::PrivateName;
 use crate::runtime::vm::VM;
 use crate::wtf::text::atom_string::AtomString;
-use crate::wtf::text::string_impl::{ConversionMode, StringImpl, UniquedKey};
+use crate::wtf::text::string_impl::{equal_span, CharType, ConversionMode, StringImpl, UniquedKey};
 use crate::wtf::text::symbol_impl::SymbolImpl;
 use crate::wtf::text::wtf_string::String as WtfString;
 
@@ -139,20 +139,29 @@ impl Identifier {
         }
     }
 
-    /// `fromString(VM&, std::span<const Latin1Character>)` e `fromString(VM&, ASCIILiteral)`.
-    pub fn from_latin1(_vm: &VM, characters: &[u8]) -> Identifier {
+    /// `fromString(VM&, std::span<const Latin1Character>)`, `fromString(VM&, ASCIILiteral)` e
+    /// `fromString(VM&, std::span<const char16_t>)`.
+    pub fn from_span<T: CharType>(_vm: &VM, characters: &[T]) -> Identifier {
         if characters.is_empty() {
             return Identifier::empty_identifier();
         }
-        Identifier { m_string: AtomString::from_latin1(characters), m_private: false }
+        Identifier { m_string: AtomString::from_string_impl(Some(&T::create(characters))), m_private: false }
     }
 
-    /// `fromString(VM&, std::span<const char16_t>)`.
-    pub fn from_uchars(_vm: &VM, characters: &[u16]) -> Identifier {
-        if characters.is_empty() {
-            return Identifier::empty_identifier();
-        }
-        Identifier { m_string: AtomString::from_utf16(characters), m_private: false }
+    /// `createLatin1(VM&, std::span<const char16_t>)`: cada unidade cabe em Latin1 por contrato.
+    pub fn create_latin1(_vm: &VM, characters: &[u16]) -> Identifier {
+        let narrow: Vec<u8> = characters.iter().map(|&c| c as u8).collect();
+        Identifier { m_string: AtomString::from_latin1(&narrow), m_private: false }
+    }
+
+    /// `equal(const StringImpl*, std::span<const CharacterType>)`.
+    pub fn equal<T: CharType>(r: Option<UniquedKey>, characters: &[T]) -> bool {
+        equal_span(r.as_ref().map(|key| &*key.0), Some(characters))
+    }
+
+    /// `from(VM&, double)`.
+    pub fn from_double(_vm: &VM, value: f64) -> Identifier {
+        Identifier { m_string: AtomString::number_f64(value), m_private: false }
     }
 
     /// `fromString(VM&, const String&)`: sempre átomo; a espécie símbolo é descartada.
@@ -238,7 +247,7 @@ mod tests {
 
     fn index_of(text: &str) -> Option<u32> {
         let vm = VM::default();
-        Identifier::from_latin1(&vm, text.as_bytes()).as_index()
+        Identifier::from_span(&vm, text.as_bytes()).as_index()
     }
 
     #[test]
@@ -258,7 +267,7 @@ mod tests {
     fn parse_index_utf16_and_symbols() {
         let vm = VM::default();
         let wide: Vec<u16> = "123".encode_utf16().collect();
-        assert_eq!(Identifier::from_uchars(&vm, &wide).as_index(), Some(123));
+        assert_eq!(Identifier::from_span(&vm, &wide).as_index(), Some(123));
         assert_eq!(Identifier::null_identifier().as_index(), None);
         let name = PrivateName::with_description(&StringImpl::create(b"12"));
         let id = Identifier::from_private_name(&name);
@@ -275,9 +284,9 @@ mod tests {
         assert!(Identifier::null_identifier().is_null());
         assert!(Identifier::empty_identifier().is_empty());
         assert!(!Identifier::empty_identifier().is_null());
-        assert_eq!(Identifier::from_latin1(&vm, b""), Identifier::empty_identifier());
-        let a = Identifier::from_latin1(&vm, b"abc");
-        assert_eq!(a, Identifier::from_latin1(&vm, b"abc"));
+        assert_eq!(Identifier::from_span(&vm, b""), Identifier::empty_identifier());
+        let a = Identifier::from_span(&vm, b"abc");
+        assert_eq!(a, Identifier::from_span(&vm, b"abc"));
         assert_eq!(a.length(), 3);
         assert_eq!(a.utf8(), b"abc".to_vec());
     }

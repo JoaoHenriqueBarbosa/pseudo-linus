@@ -383,7 +383,7 @@ impl VariableEnvironment {
 
     /// `add(const Identifier&)`.
     pub fn add_identifier(&mut self, identifier: &Identifier) -> AddResult<'_, VariableEnvironmentEntry> {
-        self.add(identifier.r#impl())
+        self.add(&identifier.impl_().expect("identifier sem StringImpl"))
     }
 
     /// `addPrivateName(const RefPtr<UniquedStringImpl>&)`.
@@ -394,7 +394,7 @@ impl VariableEnvironment {
 
     /// `addPrivateName(const Identifier&)`.
     pub fn add_private_name_identifier(&mut self, identifier: &Identifier) -> AddResult<'_, PrivateNameEntry> {
-        self.add_private_name(identifier.r#impl())
+        self.add_private_name(&identifier.impl_().expect("identifier sem StringImpl"))
     }
 
     pub fn size(&self) -> u32 {
@@ -515,7 +515,7 @@ impl VariableEnvironment {
 
     /// `declarePrivateField(const Identifier&)`.
     pub fn declare_private_field_identifier(&mut self, identifier: &Identifier) -> AddResult<'_, VariableEnvironmentEntry> {
-        self.declare_private_field(identifier.r#impl())
+        self.declare_private_field(&identifier.impl_().expect("identifier sem StringImpl"))
     }
 
     /// `declarePrivateMethod(const RefPtr<UniquedStringImpl>&, Traits)`. `additional_traits` são
@@ -541,12 +541,12 @@ impl VariableEnvironment {
 
     /// `declarePrivateMethod(const Identifier&)`.
     pub fn declare_private_method_identifier(&mut self, identifier: &Identifier) -> bool {
-        self.declare_private_method(identifier.r#impl(), PrivateNameEntry::NONE)
+        self.declare_private_method(&identifier.impl_().expect("identifier sem StringImpl"), PrivateNameEntry::NONE)
     }
 
     /// `declareStaticPrivateMethod(const Identifier&)`.
     pub fn declare_static_private_method(&mut self, identifier: &Identifier) -> bool {
-        self.declare_private_method(identifier.r#impl(), PrivateNameEntry::IS_METHOD | PrivateNameEntry::IS_STATIC)
+        self.declare_private_method(&identifier.impl_().expect("identifier sem StringImpl"), PrivateNameEntry::IS_METHOD | PrivateNameEntry::IS_STATIC)
     }
 
     pub fn declare_private_accessor(&mut self, identifier: &UniquedKey, accessor_traits: PrivateNameEntry) -> PrivateDeclarationResult {
@@ -602,12 +602,12 @@ impl VariableEnvironment {
 
     /// `declarePrivateSetter(const Identifier&)`.
     pub fn declare_private_setter_identifier(&mut self, identifier: &Identifier) -> PrivateDeclarationResult {
-        self.declare_private_setter(identifier.r#impl(), PrivateNameEntry::NONE)
+        self.declare_private_setter(&identifier.impl_().expect("identifier sem StringImpl"), PrivateNameEntry::NONE)
     }
 
     /// `declareStaticPrivateSetter(const Identifier&)`.
     pub fn declare_static_private_setter(&mut self, identifier: &Identifier) -> PrivateDeclarationResult {
-        self.declare_private_setter(identifier.r#impl(), PrivateNameEntry::IS_STATIC)
+        self.declare_private_setter(&identifier.impl_().expect("identifier sem StringImpl"), PrivateNameEntry::IS_STATIC)
     }
 
     /// `declarePrivateGetter(const RefPtr<UniquedStringImpl>&, Traits)`.
@@ -617,12 +617,12 @@ impl VariableEnvironment {
 
     /// `declarePrivateGetter(const Identifier&)`.
     pub fn declare_private_getter_identifier(&mut self, identifier: &Identifier) -> PrivateDeclarationResult {
-        self.declare_private_getter(identifier.r#impl(), PrivateNameEntry::NONE)
+        self.declare_private_getter(&identifier.impl_().expect("identifier sem StringImpl"), PrivateNameEntry::NONE)
     }
 
     /// `declareStaticPrivateGetter(const Identifier&)`.
     pub fn declare_static_private_getter(&mut self, identifier: &Identifier) -> PrivateDeclarationResult {
-        self.declare_private_getter(identifier.r#impl(), PrivateNameEntry::IS_STATIC)
+        self.declare_private_getter(&identifier.impl_().expect("identifier sem StringImpl"), PrivateNameEntry::IS_STATIC)
     }
 
     /// `privateNames()`. O C++ exige `privateNamesSize() > 0` (ASSERT); sem `RareData` o porte
@@ -681,7 +681,7 @@ impl VariableEnvironment {
     pub fn has_private_name(&self, identifier: &Identifier) -> bool {
         match &self.rare_data {
             None => false,
-            Some(rare_data) => rare_data.private_names.contains(identifier.r#impl()),
+            Some(rare_data) => rare_data.private_names.contains(&identifier.impl_().expect("identifier sem StringImpl")),
         }
     }
 

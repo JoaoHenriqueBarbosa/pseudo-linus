@@ -7,7 +7,7 @@
 use std::rc::Rc;
 
 use crate::parser::source_provider::SourceProvider;
-use crate::wtf::text::string_impl::ConversionMode;
+use crate::wtf::text::wtf_string::ConversionMode;
 use crate::wtf::text::wtf_string::String as WtfString;
 
 /// `class UnlinkedSourceCode`. O `RefPtr<SourceProvider>` vira `Option<Rc<dyn SourceProvider>>`.

@@ -10,11 +10,10 @@
 //!
 //! Dependências não portadas, e como foram tratadas:
 //!
-//! - `StringView`: os parâmetros `StringView` viram `&String` (o `StringView(const String&)` do C++:
-//!   `String` nulo é visão nula, vazio é visão vazia). A lógica de `StringView.h`, `StringCommon.h`
-//!   e `StringImpl.cpp` de que o `WTFString` depende (`findCommon`, `findInner`, `reverseFindInner`,
-//!   `equalInner`, `startsWith`, `endsWith` e as versões que ignoram caixa ASCII) está traduzida
-//!   aqui como funções privadas.
+//! - `StringView`: os parâmetros `StringView` viram `&String`, convertido com `StringView::from`
+//!   (`String` nulo é visão nula, vazio é visão vazia). A lógica de `StringView.h`,
+//!   `StringCommon.h` e `StringImpl.cpp` de que o `WTFString` depende vive em `string_view`,
+//!   `string_common` e `string_impl`; este módulo só a chama.
 //! - `StringBuilder`: `makeStringByJoining` e `makeStringByRemoving` montam o resultado direto, com
 //!   a mesma largura (8 ou 16 bits) que o `StringBuilder`/`makeString` produzem.
 //! - `parseDouble` e `parseFixedDouble` vêm de `crate::wtf::fast_float` (o `FastFloat.cpp`).
@@ -27,20 +26,20 @@
 
 use std::rc::Rc;
 
-use crate::wtf::ascii_ctype::{
-    is_ascii_alpha_caseless_equal, is_unicode_compatible_ascii_whitespace, to_ascii_lower,
-};
+use crate::wtf::ascii_ctype::is_unicode_compatible_ascii_whitespace;
 use crate::wtf::dtoa::{number_to_string_and_size, NumberToStringBuffer};
+use crate::wtf::text::string_common::equal_prefix;
 use crate::wtf::text::string_impl::{
     self, copy_characters_widen, CharType, StringImpl,
 };
+use crate::wtf::text::string_view::{self, with_view, StringView};
 use crate::wtf::unicode::utf8_conversion::{
     convert_latin1_to_utf8, convert_replacing_invalid_sequences_utf16_to_utf8,
     convert_replacing_invalid_sequences_utf8_to_utf16, convert_utf16_to_utf8, ConversionResultCode,
 };
 
 /// `notFound` de `StringCommon.h`.
-pub const NOT_FOUND: usize = usize::MAX;
+pub use crate::wtf::text::string_common::NOT_FOUND;
 
 /// `String::MaxLength`.
 pub const MAX_LENGTH: u32 = StringImpl::MAX_LENGTH;
@@ -99,18 +98,6 @@ enum Chars<'a> {
     Utf16(&'a [u16]),
 }
 
-/// Despacha uma expressão genérica sobre os dois pares de largura de caractere.
-macro_rules! dispatch2 {
-    ($a:expr, $b:expr, |$x:ident, $y:ident| $body:expr) => {
-        match ($a, $b) {
-            (Chars::Latin1($x), Chars::Latin1($y)) => $body,
-            (Chars::Latin1($x), Chars::Utf16($y)) => $body,
-            (Chars::Utf16($x), Chars::Latin1($y)) => $body,
-            (Chars::Utf16($x), Chars::Utf16($y)) => $body,
-        }
-    };
-}
-
 impl<'a> Chars<'a> {
     fn of(string: &'a StringImpl) -> Chars<'a> {
         if string.is_8bit() {
@@ -119,308 +106,15 @@ impl<'a> Chars<'a> {
             Chars::Utf16(string.span16())
         }
     }
-
-    fn len(self) -> usize {
-        match self {
-            Chars::Latin1(span) => span.len(),
-            Chars::Utf16(span) => span.len(),
-        }
-    }
-
-    fn at(self, index: usize) -> u16 {
-        match self {
-            Chars::Latin1(span) => span[index] as u16,
-            Chars::Utf16(span) => span[index],
-        }
-    }
-
-    /// `WTF::find(span, character, start)`.
-    fn find_character(self, character: u16, start: usize) -> usize {
-        match self {
-            Chars::Latin1(span) => string_impl::find(span, |c| c == character, start),
-            Chars::Utf16(span) => string_impl::find(span, |c| c == character, start),
-        }
-    }
 }
 
 // ---------------------------------------------------------------------------------------------
-// Funções de comparação e busca sobre spans (StringCommon.h)
+// Comparação e busca: a lógica de `StringCommon.h` e `StringView.h` vive em `string_common` e
+// `string_view` (regra DRY); aqui só se monta a `StringView` de cada `String`.
 // ---------------------------------------------------------------------------------------------
-
-/// `equal(const CharType* a, std::span<const OtherType> b)`: compara os `b.len()` primeiros
-/// caracteres de `a` com `b`. O chamador garante `a.len() >= b.len()`.
-fn equal_prefix<A: CharType, B: CharType>(a: &[A], b: &[B]) -> bool {
-    a.iter().zip(b.iter()).all(|(x, y)| x.to_u16() == y.to_u16()) && a.len() >= b.len()
-}
-
-/// `equalIgnoringASCIICaseWithLength`.
-fn equal_ignoring_ascii_case_with_length<A: CharType, B: CharType>(a: &[A], b: &[B], length_to_check: usize) -> bool {
-    (0..length_to_check).all(|i| to_ascii_lower(a[i].to_u16()) == to_ascii_lower(b[i].to_u16()))
-}
-
-/// `equalLettersIgnoringASCIICaseWithLength`.
-fn equal_letters_ignoring_ascii_case_with_length<T: CharType>(
-    characters: &[T],
-    lowercase_letters: &[u8],
-    length: usize,
-) -> bool {
-    (0..length).all(|i| is_ascii_alpha_caseless_equal(characters[i].to_u16(), lowercase_letters[i]))
-}
-
-/// `findInner` de `StringCommon.h`: hash corrente das janelas, `equal` só quando o hash casa.
-fn find_inner<S: CharType, M: CharType>(search_characters: &[S], match_characters: &[M], index: usize) -> usize {
-    // delta is the number of additional times to test; delta == 0 means test only once.
-    let delta = search_characters.len() - match_characters.len();
-
-    let mut search_hash: u32 = 0;
-    let mut match_hash: u32 = 0;
-
-    for i in 0..match_characters.len() {
-        search_hash = search_hash.wrapping_add(search_characters[i].to_u16() as u32);
-        match_hash = match_hash.wrapping_add(match_characters[i].to_u16() as u32);
-    }
-
-    let mut i = 0;
-    // keep looping until we match
-    while search_hash != match_hash || !equal_prefix(&search_characters[i..], match_characters) {
-        if i == delta {
-            return NOT_FOUND;
-        }
-        search_hash = search_hash.wrapping_add(search_characters[i + match_characters.len()].to_u16() as u32);
-        search_hash = search_hash.wrapping_sub(search_characters[i].to_u16() as u32);
-        i += 1;
-    }
-    index + i
-}
-
-/// `reverseFindInner` de `StringCommon.h`.
-fn reverse_find_inner<S: CharType, M: CharType>(
-    search_characters: &[S],
-    match_characters: &[M],
-    start: usize,
-) -> usize {
-    if search_characters.len() < match_characters.len() {
-        return NOT_FOUND;
-    }
-
-    // delta is the number of additional times to test; delta == 0 means test only once.
-    let mut delta = std::cmp::min(start, search_characters.len() - match_characters.len());
-
-    let mut search_hash: u32 = 0;
-    let mut match_hash: u32 = 0;
-    for i in 0..match_characters.len() {
-        search_hash = search_hash.wrapping_add(search_characters[delta + i].to_u16() as u32);
-        match_hash = match_hash.wrapping_add(match_characters[i].to_u16() as u32);
-    }
-
-    // keep looping until we match
-    while search_hash != match_hash || !equal_prefix(&search_characters[delta..], match_characters) {
-        if delta == 0 {
-            return NOT_FOUND;
-        }
-        delta -= 1;
-        search_hash = search_hash.wrapping_sub(search_characters[delta + match_characters.len()].to_u16() as u32);
-        search_hash = search_hash.wrapping_add(search_characters[delta].to_u16() as u32);
-    }
-    delta
-}
-
-/// `WTF::findIgnoringASCIICase(span, span, startOffset)`.
-fn find_ignoring_ascii_case_spans<S: CharType, M: CharType>(
-    source: &[S],
-    match_characters: &[M],
-    start_offset: usize,
-) -> usize {
-    let mut offset = start_offset;
-    while offset <= source.len() && source.len() - offset >= match_characters.len() {
-        if equal_ignoring_ascii_case_with_length(&source[offset..], match_characters, match_characters.len()) {
-            return offset;
-        }
-        offset += 1;
-    }
-    NOT_FOUND
-}
-
-/// `findCommon(StringView haystack, StringView needle, unsigned start)` de `StringView.h`.
-fn find_common(haystack: Chars, needle: Chars, start: usize) -> usize {
-    let needle_length = needle.len();
-
-    if needle_length == 1 {
-        return haystack.find_character(needle.at(0), start);
-    }
-
-    if start > haystack.len() {
-        return NOT_FOUND;
-    }
-
-    if needle_length == 0 {
-        return start;
-    }
-
-    let search_length = haystack.len() - start;
-    if needle_length > search_length {
-        return NOT_FOUND;
-    }
-
-    dispatch2!(haystack, needle, |h, n| find_inner(&h[start..], n, start))
-}
-
-/// `findIgnoringASCIICase(StringView source, StringView stringToFind, unsigned start)`.
-fn find_ignoring_ascii_case(source: Chars, string_to_find: Chars, start: usize) -> usize {
-    let source_string_length = source.len();
-    let match_length = string_to_find.len();
-    if match_length == 0 {
-        return std::cmp::min(start, source_string_length);
-    }
-
-    // Check start & matchLength are in range.
-    if start > source_string_length {
-        return NOT_FOUND;
-    }
-    let search_length = source_string_length - start;
-    if match_length > search_length {
-        return NOT_FOUND;
-    }
-
-    dispatch2!(source, string_to_find, |s, f| find_ignoring_ascii_case_spans(s, f, start))
-}
-
-/// `startsWith(StringView reference, StringView prefix)`.
-fn starts_with_chars(reference: Chars, prefix: Chars) -> bool {
-    if prefix.len() > reference.len() {
-        return false;
-    }
-    dispatch2!(reference, prefix, |r, p| equal_prefix(r, p))
-}
-
-/// `startsWithIgnoringASCIICase(StringView reference, StringView prefix)`.
-fn starts_with_ignoring_ascii_case_chars(reference: Chars, prefix: Chars) -> bool {
-    if prefix.len() > reference.len() {
-        return false;
-    }
-    dispatch2!(reference, prefix, |r, p| equal_ignoring_ascii_case_with_length(r, p, p.len()))
-}
-
-/// `endsWith(StringView reference, StringView suffix)`.
-fn ends_with_chars(reference: Chars, suffix: Chars) -> bool {
-    let suffix_length = suffix.len();
-    let reference_length = reference.len();
-    if suffix_length > reference_length {
-        return false;
-    }
-
-    let start_offset = reference_length - suffix_length;
-    dispatch2!(reference, suffix, |r, s| equal_prefix(&r[start_offset..], s))
-}
-
-/// `endsWithIgnoringASCIICase(StringView reference, StringView suffix)`.
-fn ends_with_ignoring_ascii_case_chars(reference: Chars, suffix: Chars) -> bool {
-    let suffix_length = suffix.len();
-    let reference_length = reference.len();
-    if suffix_length > reference_length {
-        return false;
-    }
-
-    let start_offset = reference_length - suffix_length;
-    dispatch2!(reference, suffix, |r, s| equal_ignoring_ascii_case_with_length(
-        &r[start_offset..],
-        s,
-        s.len()
-    ))
-}
-
-/// `equalInner(const StringImpl&, unsigned start, StringView)` do `StringImpl.cpp`.
-fn equal_inner(string: &StringImpl, start: u32, match_string: &String) -> bool {
-    let start = start as usize;
-    let length = string.length() as usize;
-    let match_chars = match_string.chars();
-    if start > length {
-        return false;
-    }
-    if match_chars.len() > length {
-        return false;
-    }
-    if match_chars.len() + start > length {
-        return false;
-    }
-
-    dispatch2!(Chars::of(string), match_chars, |s, m| equal_prefix(&s[start..], m))
-}
-
-/// `StringImpl::find(StringView matchString)`.
-fn impl_find(string: &StringImpl, match_string: &String) -> usize {
-    // Check for null string to match against
-    if match_string.is_null() {
-        return NOT_FOUND;
-    }
-    let match_chars = match_string.chars();
-    let match_length = match_chars.len();
-    let haystack = Chars::of(string);
-
-    // Optimization 1: fast case for strings of length 1.
-    if match_length == 1 {
-        return haystack.find_character(match_chars.at(0), 0);
-    }
-
-    // Check matchLength is in range.
-    if match_length > string.length() as usize {
-        return NOT_FOUND;
-    }
-
-    // Check for empty string to match against
-    if match_length == 0 {
-        return 0;
-    }
-
-    dispatch2!(haystack, match_chars, |h, m| find_inner(h, m, 0))
-}
-
-/// `StringImpl::reverseFind(StringView matchString, size_t start)`.
-fn impl_reverse_find(string: &StringImpl, match_string: &String, start: usize) -> usize {
-    // Check for null or empty string to match against
-    if match_string.is_null() {
-        return NOT_FOUND;
-    }
-    let match_chars = match_string.chars();
-    if match_chars.len() == 0 {
-        return std::cmp::min(start, string.length() as usize);
-    }
-
-    let haystack = Chars::of(string);
-
-    // Optimization 1: fast case for strings of length 1.
-    if match_chars.len() == 1 {
-        return match haystack {
-            Chars::Latin1(span) => string_impl::reverse_find_8_char16(span, match_chars.at(0), start),
-            Chars::Utf16(span) => string_impl::reverse_find(span, match_chars.at(0), start),
-        };
-    }
-
-    // Check start & matchLength are in range.
-    if match_chars.len() > string.length() as usize {
-        return NOT_FOUND;
-    }
-
-    dispatch2!(haystack, match_chars, |h, m| reverse_find_inner(h, m, start))
-}
-
-/// `equalCommon(a, b)` entre dois `StringImpl` já não nulos: mesmo tamanho e mesmos caracteres.
-fn equal_common(a: &StringImpl, b: &StringImpl) -> bool {
-    if a.length() != b.length() {
-        return false;
-    }
-    dispatch2!(Chars::of(a), Chars::of(b), |x, y| equal_prefix(x, y))
-}
 
 /// `equal(const StringImpl&, const StringImpl&)`: o hash já calculado serve de atalho.
-pub fn equal_string_impl(a: &StringImpl, b: &StringImpl) -> bool {
-    let a_hash = a.existing_hash();
-    let b_hash = b.existing_hash();
-    if a_hash != b_hash && a_hash != 0 && b_hash != 0 {
-        return false;
-    }
-    equal_common(a, b)
-}
+pub use crate::wtf::text::string_impl::equal as equal_string_impl;
 
 /// `equal(const StringImpl*, const StringImpl*)`: igualdade de ponteiro, nulo só casa com nulo.
 pub fn equal_impl(a: Option<&Rc<StringImpl>>, b: Option<&Rc<StringImpl>>) -> bool {
@@ -459,7 +153,7 @@ fn utf8_length_from_utf16(characters: &[u16]) -> usize {
 }
 
 /// `true` se o UTF-16 é bem formado, o único caso em que a conversão do `simdutf` tem sucesso.
-fn is_well_formed_utf16(characters: &[u16]) -> bool {
+pub(crate) fn is_well_formed_utf16(characters: &[u16]) -> bool {
     let mut i = 0;
     while i < characters.len() {
         let unit = characters[i];
@@ -1003,7 +697,8 @@ impl String {
             (Some(_), None) => false,
             (Some(string), Some(literal)) => {
                 string.length() as usize == literal.len()
-                    && (literal.is_empty() || equal_prefix_chars(Chars::of(string), literal))
+                    && (literal.is_empty()
+                        || with_view!(StringView::from(&**string), |characters| equal_prefix(characters, literal)))
             }
         }
     }
@@ -1136,7 +831,7 @@ impl String {
     /// `find(StringView)`.
     pub fn find(&self, match_string: &String) -> usize {
         match &self.m_impl {
-            Some(string) => impl_find(string, match_string),
+            Some(string) => string.find_view(StringView::from(match_string)),
             None => NOT_FOUND,
         }
     }
@@ -1145,8 +840,7 @@ impl String {
     pub fn find_from(&self, match_string: &String, start: u32) -> usize {
         match &self.m_impl {
             // Check for null or empty string to match against
-            Some(_) if match_string.is_null() => NOT_FOUND,
-            Some(string) => find_common(Chars::of(string), match_string.chars(), start as usize),
+            Some(string) => string.find_view_from(StringView::from(match_string), start as usize),
             None => NOT_FOUND,
         }
     }
@@ -1167,8 +861,9 @@ impl String {
     /// `findIgnoringASCIICase(StringView, start)`.
     pub fn find_ignoring_ascii_case_from(&self, match_string: &String, start: u32) -> usize {
         match &self.m_impl {
-            Some(_) if match_string.is_null() => NOT_FOUND,
-            Some(string) => find_ignoring_ascii_case(Chars::of(string), match_string.chars(), start as usize),
+            Some(string) => {
+                string.find_ignoring_ascii_case_view_from(StringView::from(match_string), start as usize)
+            }
             None => NOT_FOUND,
         }
     }
@@ -1176,10 +871,7 @@ impl String {
     /// `reverseFind(char16_t, start)`; o `start` padrão do C++ é `MaxLength`.
     pub fn reverse_find_character(&self, character: u16, start: u32) -> usize {
         match &self.m_impl {
-            Some(string) => match Chars::of(string) {
-                Chars::Latin1(span) => string_impl::reverse_find_8_char16(span, character, start as usize),
-                Chars::Utf16(span) => string_impl::reverse_find(span, character, start as usize),
-            },
+            Some(string) => string.reverse_find_character(character, start as usize),
             None => NOT_FOUND,
         }
     }
@@ -1187,7 +879,7 @@ impl String {
     /// `reverseFind(StringView, start)`; o `start` padrão do C++ é `MaxLength`.
     pub fn reverse_find(&self, match_string: &String, start: u32) -> usize {
         match &self.m_impl {
-            Some(string) => impl_reverse_find(string, match_string, start as usize),
+            Some(string) => string.reverse_find_view(StringView::from(match_string), start as usize),
             None => NOT_FOUND,
         }
     }
@@ -1220,7 +912,7 @@ impl String {
     /// `startsWith(StringView)`: a string nula só começa com o vazio.
     pub fn starts_with(&self, prefix: &String) -> bool {
         match &self.m_impl {
-            Some(string) => prefix.is_null() || starts_with_chars(Chars::of(string), prefix.chars()),
+            Some(string) => string.starts_with_view(StringView::from(prefix)),
             None => prefix.is_empty(),
         }
     }
@@ -1228,9 +920,7 @@ impl String {
     /// `startsWithIgnoringASCIICase(StringView)`.
     pub fn starts_with_ignoring_ascii_case(&self, prefix: &String) -> bool {
         match &self.m_impl {
-            Some(string) => {
-                !prefix.is_null() && starts_with_ignoring_ascii_case_chars(Chars::of(string), prefix.chars())
-            }
+            Some(string) => string.starts_with_ignoring_ascii_case_view(StringView::from(prefix)),
             None => prefix.is_empty(),
         }
     }
@@ -1246,7 +936,9 @@ impl String {
     /// `hasInfixStartingAt(prefix, start)`.
     pub fn has_infix_starting_at(&self, prefix: &String, start: u32) -> bool {
         match &self.m_impl {
-            Some(string) => !prefix.is_null() && equal_inner(string, start, prefix),
+            Some(string) => {
+                !prefix.is_null() && string.has_infix_starting_at(StringView::from(prefix), start as usize)
+            }
             None => false,
         }
     }
@@ -1254,7 +946,7 @@ impl String {
     /// `endsWith(StringView)`: a string nula só termina com o vazio.
     pub fn ends_with(&self, suffix: &String) -> bool {
         match &self.m_impl {
-            Some(string) => !suffix.is_null() && ends_with_chars(Chars::of(string), suffix.chars()),
+            Some(string) => string.ends_with_view(StringView::from(suffix)),
             None => suffix.is_empty(),
         }
     }
@@ -1262,9 +954,7 @@ impl String {
     /// `endsWithIgnoringASCIICase(StringView)`.
     pub fn ends_with_ignoring_ascii_case(&self, suffix: &String) -> bool {
         match &self.m_impl {
-            Some(string) => {
-                !suffix.is_null() && ends_with_ignoring_ascii_case_chars(Chars::of(string), suffix.chars())
-            }
+            Some(string) => string.ends_with_ignoring_ascii_case_view(StringView::from(suffix)),
             None => suffix.is_empty(),
         }
     }
@@ -1281,9 +971,7 @@ impl String {
     pub fn has_infix_ending_at(&self, suffix: &String, end: u32) -> bool {
         match &self.m_impl {
             Some(string) => {
-                !suffix.is_null()
-                    && end >= suffix.length()
-                    && equal_inner(string, end - suffix.length(), suffix)
+                !suffix.is_null() && string.has_infix_ending_at(StringView::from(suffix), end as usize)
             }
             None => false,
         }
@@ -1569,14 +1257,6 @@ fn view_substring(string: &String, start: u32, length: u32) -> String {
     }
 }
 
-/// `equal(span, span)` para o `ASCIILiteral`: tamanhos já conferidos pelo chamador.
-fn equal_prefix_chars(characters: Chars, literal: &[u8]) -> bool {
-    match characters {
-        Chars::Latin1(span) => equal_prefix(span, literal),
-        Chars::Utf16(span) => equal_prefix(span, literal),
-    }
-}
-
 // ---------------------------------------------------------------------------------------------
 // Funções livres do cabeçalho e do .cpp
 // ---------------------------------------------------------------------------------------------
@@ -1596,15 +1276,7 @@ pub fn empty_string() -> String {
 pub fn equal_ignoring_ascii_case_string(a: &String, b: &String) -> bool {
     match (a.impl_(), b.impl_()) {
         (None, None) => true,
-        (Some(x), Some(y)) => {
-            Rc::ptr_eq(x, y)
-                || (x.length() == y.length()
-                    && dispatch2!(Chars::of(x), Chars::of(y), |p, q| equal_ignoring_ascii_case_with_length(
-                        p,
-                        q,
-                        q.len()
-                    )))
-        }
+        (Some(x), Some(y)) => Rc::ptr_eq(x, y) || string_impl::equal_ignoring_ascii_case(x, y),
         _ => false,
     }
 }
@@ -1615,15 +1287,7 @@ pub fn equal_letters_ignoring_ascii_case(string: &String, lowercase_letters: &[u
     match string.impl_() {
         None => false,
         Some(string) => {
-            string.length() as usize == lowercase_letters.len()
-                && match Chars::of(string) {
-                    Chars::Latin1(span) => {
-                        equal_letters_ignoring_ascii_case_with_length(span, lowercase_letters, lowercase_letters.len())
-                    }
-                    Chars::Utf16(span) => {
-                        equal_letters_ignoring_ascii_case_with_length(span, lowercase_letters, lowercase_letters.len())
-                    }
-                }
+            string_view::equal_letters_ignoring_ascii_case(StringView::from(&**string), lowercase_letters)
         }
     }
 }
@@ -1633,20 +1297,7 @@ pub fn starts_with_letters_ignoring_ascii_case(string: &String, lowercase_letter
     match string.impl_() {
         None => false,
         Some(string) => {
-            if lowercase_letters.is_empty() {
-                return true;
-            }
-            if (string.length() as usize) < lowercase_letters.len() {
-                return false;
-            }
-            match Chars::of(string) {
-                Chars::Latin1(span) => {
-                    equal_letters_ignoring_ascii_case_with_length(span, lowercase_letters, lowercase_letters.len())
-                }
-                Chars::Utf16(span) => {
-                    equal_letters_ignoring_ascii_case_with_length(span, lowercase_letters, lowercase_letters.len())
-                }
-            }
+            string_view::starts_with_letters_ignoring_ascii_case(StringView::from(&**string), lowercase_letters)
         }
     }
 }
