@@ -691,7 +691,9 @@ pub fn non_empty_ranges_overlap<T: PartialOrd>(left_min: T, left_max: T, right_m
 /// Pass ranges with the min being inclusive and the max being exclusive. For example, this should
 /// return false:
 ///
-///     ranges_overlap(0, 8, 8, 16)
+/// ```text
+/// ranges_overlap(0, 8, 8, 16)
+/// ```
 pub fn ranges_overlap<T: PartialOrd>(left_min: T, left_max: T, right_min: T, right_max: T) -> bool {
     // Empty ranges interfere with nothing.
     if left_min == left_max {
