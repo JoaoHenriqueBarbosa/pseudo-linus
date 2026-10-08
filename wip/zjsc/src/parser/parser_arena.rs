@@ -16,6 +16,7 @@
 //! `crate::runtime::vm::VM` (`property_names.empty_identifier`, `private_symbol_registry()`),
 //! `crate::runtime::js_big_int::JSBigInt`, `crate::runtime::math_common`.
 
+use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::runtime::identifier::Identifier;
@@ -182,9 +183,13 @@ impl IdentifierArena {
 }
 
 /// `class ParserArena`. Só carrega o `IdentifierArena` (criado sob demanda).
+///
+/// O C++ entrega ao `Lexer` um ponteiro cru para o `IdentifierArena` (`m_arena = &arena->identifierArena()`),
+/// e o `Lexer` o usa enquanto o `ParserArena` vive. No porte a arena de identificadores é
+/// compartilhada (`Rc<RefCell<..>>`): o `Lexer` guarda um clone do `Rc`, sem empréstimo.
 #[derive(Default)]
 pub struct ParserArena {
-    identifier_arena: Option<Box<IdentifierArena>>,
+    identifier_arena: Option<Rc<RefCell<IdentifierArena>>>,
 }
 
 impl ParserArena {
@@ -198,7 +203,9 @@ impl ParserArena {
         std::mem::swap(&mut self.identifier_arena, &mut other_arena.identifier_arena);
     }
 
-    pub fn identifier_arena(&mut self) -> &mut IdentifierArena {
-        self.identifier_arena.get_or_insert_with(|| Box::new(IdentifierArena::new()))
+    /// `identifierArena()`: a arena compartilhada, criada na primeira chamada. Quem usa a arena
+    /// pega o empréstimo com `borrow_mut()` pelo tempo da operação.
+    pub fn identifier_arena(&mut self) -> Rc<RefCell<IdentifierArena>> {
+        Rc::clone(self.identifier_arena.get_or_insert_with(|| Rc::new(RefCell::new(IdentifierArena::new()))))
     }
 }
