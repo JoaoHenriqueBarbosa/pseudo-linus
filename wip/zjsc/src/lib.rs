@@ -3,3 +3,5 @@
 
 pub mod wtf;
 pub mod yarr;
+pub mod bytecode;
+pub mod runtime;

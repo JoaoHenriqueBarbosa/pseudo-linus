@@ -33,7 +33,7 @@ use std::rc::Rc;
 use crate::wtf::ascii_ctype::{
     is_ascii_alpha_caseless_equal, is_unicode_compatible_ascii_whitespace, to_ascii_lower,
 };
-use crate::wtf::dtoa::{number_to_string, NumberToStringBuffer};
+use crate::wtf::dtoa::{number_to_string_and_size, NumberToStringBuffer};
 use crate::wtf::text::string_impl::{
     self, copy_characters_widen, CharType, StringImpl,
 };
@@ -818,7 +818,7 @@ fn simplify_matched_characters_to_space<T: CharType>(
 /// `class String`. Nulo (`None`) é distinguível de vazio.
 #[derive(Clone, Default, Debug)]
 pub struct String {
-    m_impl: Option<Rc<StringImpl>>,
+    pub(crate) m_impl: Option<Rc<StringImpl>>,
 }
 
 /// `String::MaxLength`, também como constante associada.
@@ -1202,8 +1202,8 @@ impl String {
 
     /// `number(double)`: `numberToStringAndSize` (a tradução do `wtf/dtoa`).
     pub fn number_f64(number: f64) -> String {
-        let mut buffer = NumberToStringBuffer::default();
-        String::from_latin1(number_to_string(number, &mut buffer).as_bytes())
+        let mut buffer: NumberToStringBuffer = [0; 124];
+        String::from_latin1(number_to_string_and_size(number, &mut buffer))
     }
 
     // ---- busca ---------------------------------------------------------------------------
