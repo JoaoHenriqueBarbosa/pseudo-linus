@@ -11,6 +11,7 @@ description = "SQLite 3.46.1 traduzido para Rust sem unsafe, com saída idêntic
 [workspace]
 
 [dependencies]
+sysabi = { path = "../../crates/sysabi" }
 
 [lints.rust]
 unsafe_code = "forbid"

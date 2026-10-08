@@ -33,6 +33,9 @@ pub const CURSOR_INVALID: u8 = 1;
 pub const CURSOR_SKIPNEXT: u8 = 2;
 pub const CURSOR_REQUIRESEEK: u8 = 3;
 pub const CURSOR_FAULT: u8 = 4;
+pub const BTALLOC_ANY: u8 = 0;   // Alocar qualquer página
+pub const BTALLOC_EXACT: u8 = 1; // Alocar a página exata se possível
+pub const BTALLOC_LE: u8 = 2;    // Alocar qualquer página <= o parâmetro
 pub const PTRMAP_ROOTPAGE: u8 = 1;
 pub const PTRMAP_FREEPAGE: u8 = 2;
 pub const PTRMAP_OVERFLOW1: u8 = 3;

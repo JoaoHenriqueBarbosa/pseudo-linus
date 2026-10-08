@@ -293,7 +293,7 @@ fn at(z: &[u8], i: usize) -> u8 {
 /// Tamanho que o alocador devolve para um pedido de `n` bytes: o `sqlite3Realloc`
 /// arredonda para 8 (`sqlite3MemRoundup`) e o `sqlite3MallocSize` do Debian usa
 /// `malloc_usable_size` da glibc (`HAVE_MALLOC_USABLE_SIZE`).
-fn malloc_size(n: u64) -> u32 {
+pub(crate) fn malloc_size(n: u64) -> u32 {
     let r = (n + 7) & !7;
     let usable = (((r + 8 + 15) & !15) - 8).max(24);
     usable as u32

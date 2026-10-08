@@ -430,6 +430,14 @@ pub const M10D_ANY: u8 = 1;   // Não especificado. Escolha do planejador
 pub const M10D_NO: u8 = 2;    // AS NOT MATERIALIZED
 pub const SQLITE_NOMEM_BKPT: i32 = SQLITE_NOMEM;
 pub const SQLITE_IOERR_NOMEM_BKPT: i32 = SQLITE_IOERR_NOMEM;
+/// `SQLITE_CORRUPT_BKPT`: só acrescenta um `sqlite3_log` com o número da linha no C.
+pub const SQLITE_CORRUPT_BKPT: i32 = SQLITE_CORRUPT;
+/// `SQLITE_CANTOPEN_BKPT`: idem.
+pub const SQLITE_CANTOPEN_BKPT: i32 = SQLITE_CANTOPEN;
+/// `SQLITE_DEFAULT_SYNCHRONOUS` (padrão do sqliteInt.h: 2, NORMAL).
+pub const SQLITE_DEFAULT_SYNCHRONOUS: i32 = 2;
+/// `SQLITE_STMTJRNL_SPILL`: padrão de `sqlite3Config.nStmtSpill` (64 KiB).
+pub const SQLITE_STMTJRNL_SPILL: i32 = 64 * 1024;
 pub const EXP754: u64 = 0x7ffu64 << 52;
 pub const MAN754: u64 = (1u64 << 52) - 1;
 pub const ONEPASS_OFF: i32 = 0; // Uso de ONEPASS não permitido
@@ -454,3 +462,4 @@ pub const IN_INDEX_LOOP: u32 = 0x0004; // IN usado como laço
 pub const MEMTYPE_HEAP: u8 = 0x01; // Alocações gerais do heap
 pub const MEMTYPE_LOOKASIDE: u8 = 0x02; // Heap que poderia ter vindo do lookaside
 pub const MEMTYPE_PCACHE: u8 = 0x04; // Alocações do cache de páginas
+pub const SQLITE_MEMDB_DEFAULT_MAXSIZE: i64 = 1073741824; // tamanho máximo padrão de um banco memdb (1 GiB)

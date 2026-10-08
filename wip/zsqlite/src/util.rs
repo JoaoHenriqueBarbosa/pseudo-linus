@@ -25,7 +25,7 @@ pub type LogEst = i16;
 
 /// Byte `i` da "string C" `z`; além do fim da fatia é o NUL terminador (`0`).
 #[inline]
-fn at(z: &[u8], i: usize) -> u8 {
+pub(crate) fn at(z: &[u8], i: usize) -> u8 {
     z.get(i).copied().unwrap_or(0)
 }
 

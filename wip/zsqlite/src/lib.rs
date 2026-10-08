@@ -20,3 +20,15 @@ pub mod util;
 pub mod os;
 pub mod pcache;
 pub mod pcache1;
+
+// Camada 4 (base de valores e registros do VDBE).
+pub mod mem;
+pub mod record;
+pub mod memjournal;
+pub mod memdb;
+pub mod os_unix;
+pub mod wal;
+pub mod global;
+pub mod pager;
+pub mod btree_types;
+pub mod pager_ext;

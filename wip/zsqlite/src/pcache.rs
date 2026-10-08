@@ -228,6 +228,14 @@ impl<E: Default> PCache<E> {
         self.sl(id).n_ref
     }
 
+    /// O cabeçalho de pcache da página já foi inicializado (`pPage != 0`)? Chamada entre
+    /// `fetch` e `fetch_finish`, responde o que o C pergunta depois do finish com
+    /// `pPg->pPager != 0`: a página já estava no cache e o pager já a inicializou (uma página
+    /// recém-criada ou reciclada ainda tem `is_init` falso).
+    pub fn page_is_init(&self, id: PgId) -> bool {
+        self.sl(id).is_init
+    }
+
     // ------------------------------------------------------------------
     // Lista suja
     // ------------------------------------------------------------------

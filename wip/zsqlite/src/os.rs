@@ -89,6 +89,13 @@ pub trait VfsFile {
         1
     }
 
+    /// `sqlite3JournalIsInMemory(p)` (`p->pMethods == &MemJournalMethods`): só o
+    /// journal em memória (`crate::memjournal::MemJournal` ainda sem arquivo
+    /// real) devolve `true`. Sem o downcast do C, o pager consulta o trait.
+    fn is_in_memory_journal(&self) -> bool {
+        false
+    }
+
     /// `xClose`.
     fn close(&mut self) -> i32;
 
@@ -305,7 +312,7 @@ pub fn os_sync(f: &mut dyn VfsFile, flags: i32) -> i32 {
 }
 
 /// `sqlite3OsFileControl`: arquivo ausente (`pMethods == 0`) é `SQLITE_NOTFOUND`.
-pub fn os_file_control(f: Option<&mut dyn VfsFile>, op: i32, arg: &mut FileControlArg) -> i32 {
+pub fn os_file_control<F: VfsFile + ?Sized>(f: Option<&mut F>, op: i32, arg: &mut FileControlArg) -> i32 {
     match f {
         None => SQLITE_NOTFOUND,
         Some(f) => f.file_control(op, arg),
@@ -313,7 +320,7 @@ pub fn os_file_control(f: Option<&mut dyn VfsFile>, op: i32, arg: &mut FileContr
 }
 
 /// `sqlite3OsFileControlHint`: dica ao VFS; o resultado não importa.
-pub fn os_file_control_hint(f: Option<&mut dyn VfsFile>, op: i32, arg: &mut FileControlArg) {
+pub fn os_file_control_hint<F: VfsFile + ?Sized>(f: Option<&mut F>, op: i32, arg: &mut FileControlArg) {
     if let Some(f) = f {
         let _ = f.file_control(op, arg);
     }
