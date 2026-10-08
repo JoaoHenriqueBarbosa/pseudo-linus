@@ -53,14 +53,18 @@ pub enum CharSize {
     Char16,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[repr(u32)]
-pub enum BuiltInCharacterClassID {
-    DigitClassID,
-    SpaceClassID,
-    WordClassID,
-    DotClassID,
-    BaseUnicodePropertyID,
+/// `enum class BuiltInCharacterClassID : unsigned`. O C++ soma o índice da propriedade Unicode a
+/// `BaseUnicodePropertyID`, valor que nenhum enumerador nomeia; por isso é um newtype.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct BuiltInCharacterClassID(pub u32);
+
+#[allow(non_upper_case_globals)]
+impl BuiltInCharacterClassID {
+    pub const DigitClassID: Self = Self(0);
+    pub const SpaceClassID: Self = Self(1);
+    pub const WordClassID: Self = Self(2);
+    pub const DotClassID: Self = Self(3);
+    pub const BaseUnicodePropertyID: Self = Self(4);
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -94,6 +98,6 @@ mod tests {
         assert_eq!(QUANTIFY_INFINITE, 4294967295);
         assert_eq!(MATCH_LIMIT, 100_000_000);
         assert_eq!(JSRegExpResult::ErrorInternal as i32, -5);
-        assert_eq!(BuiltInCharacterClassID::BaseUnicodePropertyID as u32, 4);
+        assert_eq!(BuiltInCharacterClassID::BaseUnicodePropertyID.0, 4);
     }
 }

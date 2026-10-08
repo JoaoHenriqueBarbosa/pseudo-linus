@@ -51,12 +51,12 @@ fn u_is_surrogate(c: u32) -> bool {
 }
 
 /// `U16_IS_LEAD(c)`.
-fn u16_is_lead(c: u32) -> bool {
+pub fn u16_is_lead(c: u32) -> bool {
     (c & 0xfffffc00) == 0xd800
 }
 
 /// `U16_IS_TRAIL(c)`.
-fn u16_is_trail(c: u32) -> bool {
+pub fn u16_is_trail(c: u32) -> bool {
     (c & 0xfffffc00) == 0xdc00
 }
 
@@ -66,7 +66,7 @@ fn u16_is_surrogate_lead(c: u32) -> bool {
 }
 
 /// `U16_GET_SUPPLEMENTARY(lead, trail)`.
-fn u16_get_supplementary(lead: u32, trail: u32) -> u32 {
+pub fn u16_get_supplementary(lead: u32, trail: u32) -> u32 {
     (lead << 10)
         .wrapping_add(trail)
         .wrapping_sub((0xd800 << 10) + 0xdc00 - 0x10000)
