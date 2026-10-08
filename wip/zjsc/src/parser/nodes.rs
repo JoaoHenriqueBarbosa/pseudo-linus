@@ -33,13 +33,19 @@
 //!   campo `statement` a `LabelNode`; e usar `Rc<FunctionMetadataNode>` onde o C++ divide o ponteiro
 //!   (ver `declaration_stacks::FunctionStack`), com mutabilidade interior em `FunctionMetadataNode`.
 
+use std::cell::{Cell, RefCell};
 use std::ops::{Deref, DerefMut};
+use std::rc::Rc;
 
 use crate::bytecode::bytecode_intrinsic_registry::Entry as BytecodeIntrinsicRegistryEntry;
+use crate::parser::module_scope_data::ModuleScopeData;
 use crate::parser::parser_arena::ParserArena;
+use crate::runtime::constructor_kind::ConstructorKind;
+use crate::runtime::implementation_visibility::ImplementationVisibility;
 use crate::bytecode::opcode::OpcodeID;
 use crate::parser::parser_modes::{
-    CodeFeatures, InnerArrowFunctionCodeFeatures, LexicallyScopedFeatures, SuperBinding, ARGUMENTS_FEATURE,
+    CodeFeatures, FunctionMode, InnerArrowFunctionCodeFeatures, LexicallyScopedFeatures, PrivateBrandRequirement,
+    SourceParseMode, SuperBinding, ARGUMENTS_FEATURE, AWAIT_FEATURE,
     ARGUMENTS_INNER_ARROW_FUNCTION_FEATURE, ARROW_FUNCTION_FEATURE, ASYNC_FUNCTION_WITHOUT_AWAIT_FEATURE,
     EVAL_FEATURE, EVAL_INNER_ARROW_FUNCTION_FEATURE, NEW_TARGET_FEATURE, NEW_TARGET_INNER_ARROW_FUNCTION_FEATURE,
     NON_SIMPLE_PARAMETER_LIST_FEATURE, NO_FEATURES, NO_INNER_ARROW_FUNCTION_FEATURES, SHADOWS_ARGUMENTS_FEATURE,
