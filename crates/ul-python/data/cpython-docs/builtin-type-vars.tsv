@@ -124,3 +124,4 @@ dict_itemiterator	__iter__ __next__ __length_hint__ __reduce__ __doc__
 dict_valueiterator	__iter__ __next__ __length_hint__ __reduce__ __doc__
 str_iterator	__iter__ __next__ __length_hint__ __reduce__ __setstate__ __doc__
 socket	__module__ __firstlineno__ __doc__ __slots__ __init__ __enter__ __exit__ __repr__ __getstate__ dup accept makefile _sendfile_use_sendfile _sendfile_use_send _check_sendfile_params sendfile _decref_socketios _real_close close detach family type get_inheritable set_inheritable __static_attributes__ _closed _io_refs __weakref__
+NoDefaultType	__new__ __repr__ __reduce__ __doc__

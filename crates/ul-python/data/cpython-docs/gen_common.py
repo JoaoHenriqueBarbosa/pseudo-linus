@@ -24,6 +24,8 @@ NAMED = {
     'dict_itemiterator': type(iter({}.items())), 'dict_reversekeyiterator': type(reversed({})),
     'set_iterator': type(iter(set())), 'list_reverseiterator': type(reversed([])),
     'bytes_iterator': type(iter(b'')), 'bytearray_iterator': type(iter(bytearray())),
+    # O `tp_name` do C é `NoDefaultType`, sem módulo: um tipo de `builtins` que só o `typing` alcança.
+    'NoDefaultType': type(__import__('typing').NoDefault),
 }
 
 

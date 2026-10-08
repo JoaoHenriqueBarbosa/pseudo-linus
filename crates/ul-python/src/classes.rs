@@ -2635,7 +2635,9 @@ impl Vm {
             }
             // O docstring não é herdado: sem o próprio, `__doc__` é `None`.
             "__doc__" => return Ok(cls.dict.borrow().get("__doc__").cloned().unwrap_or(Value::None)),
-            "__flags__" => return Ok(Value::Int(class_flags(cls))),
+            "__flags__" => {
+                return Ok(Value::Int(crate::builtins_ext::emulated_type_flags(cls).unwrap_or_else(|| class_flags(cls))))
+            }
             // `type_get_type_params`: o do próprio dict, sem herança; sem ele, a tupla vazia.
             "__type_params__" => {
                 return Ok(cls.dict.borrow().get("__type_params__").cloned().unwrap_or_else(|| Value::tuple(Vec::new())))

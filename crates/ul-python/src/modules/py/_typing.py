@@ -67,7 +67,8 @@ _idfunc = _sys._builtin(_idfunc)
 
 def _unsubclassable(cls):
     """Os tipos do C sem `Py_TPFLAGS_BASETYPE`: criar uma subclasse é um `TypeError`."""
-    message = f"type 'typing.{cls.__name__}' is not an acceptable base type"
+    tp_name = cls.__name__ if cls.__module__ == 'builtins' else f'typing.{cls.__name__}'
+    message = f"type '{tp_name}' is not an acceptable base type"
 
     def __init_subclass__(subclass, /, *args, **kwargs):
         raise TypeError(message)
@@ -159,7 +160,10 @@ def _reverse_union(self, other):
 
 @_unsubclassable
 class NoDefaultType:
-    __module__ = 'typing'
+    """The type of the NoDefault singleton."""
+
+    # O `tp_name` do C é só `NoDefaultType`, sem módulo: o tipo é de `builtins`.
+    __module__ = 'builtins'
 
     def __new__(cls, *args, **kwargs):
         if args or kwargs:

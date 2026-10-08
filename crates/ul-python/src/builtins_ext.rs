@@ -320,6 +320,11 @@ fn emulated_name(cls: &Rc<crate::object::ClassObj>) -> Option<&'static str> {
     (cls.module() == "builtins").then(|| crate::object::intern(&cls.name)).filter(|n| type_vars(n).is_some())
 }
 
+/// O `__flags__` de um shim em Python de um tipo de `builtins`, da tabela do oráculo.
+pub(crate) fn emulated_type_flags(cls: &Rc<crate::object::ClassObj>) -> Option<i64> {
+    emulated_name(cls).and_then(builtin_type_flags)
+}
+
 /// `vars(T)` de um shim em Python de um tipo de `builtins`: as chaves e os tipos de descritor do oráculo, no
 /// lugar do dicionário da classe (que tem `__module__`, `__firstlineno__`, funções comuns e os auxiliares
 /// privados do shim, nada do que o tipo em C mostra). Só o que o oráculo não guarda como descritor (a

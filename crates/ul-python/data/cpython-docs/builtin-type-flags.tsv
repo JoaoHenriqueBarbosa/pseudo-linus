@@ -124,3 +124,4 @@ dict_itemiterator	0x5182
 dict_valueiterator	0x5182
 str_iterator	0x5182
 socket	0x5608
+NoDefaultType	0x1102

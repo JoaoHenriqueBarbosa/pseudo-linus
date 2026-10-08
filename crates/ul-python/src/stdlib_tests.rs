@@ -6455,6 +6455,32 @@ for o in (threading.RLock(), _thread._local(), itertools.count()):
     );
 }
 
+/// O `NoDefaultType` do `typing` é de `builtins` (o `tp_name` do C não tem módulo), estático e sem base.
+#[test]
+fn typing_no_default_type_matches_cpython() {
+    let src = r#"
+import typing
+T = type(typing.NoDefault)
+print(list(T.__dict__), T.__flags__, T.__module__, repr(T), hasattr(typing.NoDefault, '__module__'))
+print(T.__dict__['__repr__'], T.__dict__['__reduce__'], repr(typing.NoDefault), typing.NoDefault.__reduce__())
+try:
+    class X(T): pass
+except TypeError as e:
+    print(e)
+"#;
+    let kit = with_debian_stdlib(sysabi::testkit::TestKit::new().programs(crate::programs()))
+        .file("/tmp/t.py", src, 0o644)
+        .cwd("/tmp");
+    let o = kit.run(&["python3", "t.py"], b"");
+    assert_eq!(o.status, sysabi::WaitStatus::Exited(0), "{}", o.stderr_str());
+    assert_eq!(
+        o.stdout_str(),
+        "['__new__', '__repr__', '__reduce__', '__doc__'] 4354 builtins <class 'NoDefaultType'> False\n\
+         <slot wrapper '__repr__' of 'NoDefaultType' objects> <method '__reduce__' of 'NoDefaultType' objects> \
+         typing.NoDefault NoDefault\ntype 'NoDefaultType' is not an acceptable base type\n"
+    );
+}
+
 /// O parâmetro de tipo da sintaxe da PEP 695 não tem `__module__` próprio (lê o da classe, `typing`); o criado
 /// pelo construtor leva o módulo de quem o chamou (conferido no oráculo).
 #[test]
