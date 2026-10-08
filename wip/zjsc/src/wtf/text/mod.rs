@@ -5,3 +5,4 @@ pub mod atom_string;
 pub mod atom_string_impl;
 pub mod symbol_impl;
 pub mod wtf_string;
+pub mod text_position;
