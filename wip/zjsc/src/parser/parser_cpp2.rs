@@ -407,7 +407,7 @@ impl<T: CharType> Parser<T> {
                 if export_type == ExportType::Exported {
                     semantic_fail_if_false!(self, self.export_name(&name), "Cannot export a duplicate name '", name, "'");
                     if let Some(data) = &self.module_scope_data {
-                        data.borrow_mut().export_binding(&name);
+                        data.export_binding_same_name(&name);
                     }
                 }
 
@@ -476,7 +476,7 @@ impl<T: CharType> Parser<T> {
                         let head_expression = head.clone().unwrap_or_default();
                         self.record_pause_location(context.breakpoint_location(&head_expression));
                         let comma = context.create_comma_expr(&head_location, head_expression);
-                        head = Some(context.comma_as_expression(&comma));
+                        head = Some(comma.clone().into());
                         tail = Some(comma);
                     }
                     self.record_pause_location(context.breakpoint_location(&node));
@@ -559,7 +559,7 @@ impl<T: CharType> Parser<T> {
         if export_type == ExportType::Exported {
             semantic_fail_if_false!(self, self.export_name(name), "Cannot export a duplicate name '", name, "'");
             if let Some(data) = &self.module_scope_data {
-                data.borrow_mut().export_binding(name);
+                data.export_binding_same_name(name);
             }
         }
         Some(context.create_binding_location(&token.location(), name, token.start_position, token.end_position, binding_context))
@@ -778,7 +778,7 @@ impl<T: CharType> Parser<T> {
 
                     consume_or_fail!(self, CLOSEBRACKET, if rest_element_was_found { "Expected a closing ']' following a rest element destructuring pattern" } else { "Expected either a closing ']' or a ',' following an element destructuring pattern" });
                     context.finish_array_pattern(&array_pattern, divot_start, divot_start, self.last_token_end_position());
-                    pattern = Some(context.array_pattern_as_destructuring_pattern(&array_pattern));
+                    pattern = Some(array_pattern.into());
                 }
                 OPENBRACE => {
                     let divot_start = *self.token_start_position();
@@ -913,7 +913,7 @@ impl<T: CharType> Parser<T> {
                     }
                     consume_or_fail!(self, CLOSEBRACE, if rest_element_was_found { "Expected a closing '}' following a rest element destructuring pattern" } else { "Expected either a closing '}' or an ',' after a property destructuring pattern" });
                     context.finish_object_pattern(&object_pattern, divot_start, divot_start, self.last_token_end_position());
-                    pattern = Some(context.object_pattern_as_destructuring_pattern(&object_pattern));
+                    pattern = Some(object_pattern.into());
                 }
 
                 _ => {

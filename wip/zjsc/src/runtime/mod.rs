@@ -15,3 +15,4 @@ pub mod construct_ability;
 pub mod js_big_int;
 pub mod options;
 pub mod options_list;
+pub mod code_specialization_kind;

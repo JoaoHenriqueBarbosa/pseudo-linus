@@ -415,7 +415,7 @@ impl<T: CharType> Parser<T> {
                 let exported = self.export_name(&default_keyword);
                 semantic_fail_if_false!(self, exported, "Only one 'default' export is allowed");
                 if let Some(data) = &self.module_scope_data {
-                    data.borrow_mut().export_binding(&local_name, &default_keyword);
+                    data.export_binding(&local_name, &default_keyword);
                 }
                 Some(context.create_export_default_declaration(&export_location, result.unwrap_or_default(), &local_name))
             }
@@ -481,7 +481,7 @@ impl<T: CharType> Parser<T> {
                     // will reference the current module's bindings.
                     for (local_name, exported_name) in &maybe_exported_local_names {
                         if let Some(data) = &self.module_scope_data {
-                            data.borrow_mut().export_binding(local_name, exported_name);
+                            data.export_binding(local_name, exported_name);
                         }
                     }
                 }
@@ -573,7 +573,7 @@ impl<T: CharType> Parser<T> {
             tail = context.append_to_comma_expr(&tail_location, tail, right);
         }
         // O `Comma*` do C++ converte para `ExpressionNode*` (mesmo nó) ao devolver.
-        let head = context.comma_as_expression(head);
+        let head: B::Expression = head.into();
         context.set_end_offset(&head, self.last_token_location.end_offset as i32);
         Some(head)
     }

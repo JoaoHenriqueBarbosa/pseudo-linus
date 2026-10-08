@@ -25,7 +25,7 @@ impl Scope {
             // be caused by declaring a var with that function's name or if we have a parameter with
             // that function's name. Note that we would only cause a syntax error if we had a let/const/class
             // variable with the same name.
-            let function = match metadata.ident().impl_() {
+            let function = match metadata.ident.borrow().impl_() {
                 Some(function) => function,
                 None => continue,
             };
@@ -47,7 +47,7 @@ impl Scope {
     pub fn bubble_sloppy_mode_function_hoisting_candidates(&self, parent_scope: &mut Scope) {
         for (metadata, check) in self.sloppy_mode_function_hoisting_candidates.iter() {
             let needs_check = *check == NeedsDuplicateDeclarationCheck::Yes;
-            let in_lexical = match metadata.ident().impl_() {
+            let in_lexical = match metadata.ident.borrow().impl_() {
                 Some(key) => self.lexical_variables.contains(&key),
                 None => false,
             };
@@ -245,8 +245,8 @@ pub struct SavePointWithError {
 
 /// `Parser::ParseInnerResult`.
 pub struct ParseInnerResult {
-    pub parameters: Option<Box<FunctionParameters>>,
-    pub source_elements: Option<Box<SourceElements>>,
+    pub parameters: Link<FunctionParameters>,
+    pub source_elements: Link<SourceElements>,
     pub function_declarations: FunctionStack,
     pub var_declarations: VariableEnvironment,
     pub lexical_variables: VariableEnvironment,
@@ -398,7 +398,7 @@ pub struct Parser<T: CharType> {
     pub(crate) function_cache: Option<Rc<RefCell<SourceProviderCache>>>,
     /// `m_callOrApplyDepthScope`: a pilha de `CallOrApplyDepthScope` ativos (o topo é o atual).
     pub(crate) call_or_apply_depth_scopes: Vec<CallOrApplyDepthScope>,
-    pub(crate) module_scope_data: Option<Rc<RefCell<ModuleScopeData>>>,
+    pub(crate) module_scope_data: Option<Rc<ModuleScopeData>>,
     pub(crate) script_mode: JSParserScriptMode,
     pub(crate) super_binding: SuperBinding,
     pub(crate) has_stack_overflow: bool,
@@ -717,7 +717,7 @@ impl<T: CharType> Parser<T> {
         let mut scope = self.current_scope();
         loop {
             // Annex B.3.5 exempts `try {} catch (e) { var e; }` from being a syntax error.
-            if self.scope_stack[scope].has_lexically_declared_variable(ident) && !self.scope_stack[scope].is_simple_catch_parameter_scope() {
+            if self.scope_stack[scope].has_lexically_declared_variable_identifier(ident) && !self.scope_stack[scope].is_simple_catch_parameter_scope() {
                 return DeclarationResult::INVALID_DUPLICATE_DECLARATION;
             }
 
@@ -750,7 +750,7 @@ impl<T: CharType> Parser<T> {
         let scope = self.current_lexical_declaration_scope();
         if self.scope_stack[scope].is_catch_block_scope() {
             let containing = self.scope_stack[scope].containing_scope().expect("containingScope nulo");
-            if self.scope_stack[containing].has_lexically_declared_variable(ident) {
+            if self.scope_stack[containing].has_lexically_declared_variable_identifier(ident) {
                 return DeclarationResult::INVALID_DUPLICATE_DECLARATION;
             }
         }
@@ -772,7 +772,7 @@ impl<T: CharType> Parser<T> {
         let lexical_variable_scope = self.current_lexical_declaration_scope();
         if self.scope_stack[lexical_variable_scope].is_catch_block_scope() {
             let containing = self.scope_stack[lexical_variable_scope].containing_scope().expect("containingScope nulo");
-            if self.scope_stack[containing].has_lexically_declared_variable(ident) {
+            if self.scope_stack[containing].has_lexically_declared_variable_identifier(ident) {
                 return (DeclarationResult::INVALID_DUPLICATE_DECLARATION, lexical_variable_scope);
             }
         }
@@ -784,7 +784,7 @@ impl<T: CharType> Parser<T> {
     /// `NEVER_INLINE`.
     fn has_declared_variable(&self, ident: &Identifier) -> bool {
         let scope = self.current_variable_scope();
-        self.scope_stack[scope].has_declared_variable(ident)
+        self.scope_stack[scope].has_declared_variable_identifier(ident)
     }
 
     /// `NEVER_INLINE`.
@@ -801,14 +801,14 @@ impl<T: CharType> Parser<T> {
             // in the outer wrapper function, so pick the outer scope here.
             scope = self.scope_stack[scope].containing_scope().expect("containingScope nulo");
         }
-        self.scope_stack[scope].has_declared_parameter(ident)
+        self.scope_stack[scope].has_declared_parameter_identifier(ident)
     }
 
     fn export_name(&mut self, ident: &Identifier) -> bool {
         debug_assert!(self.scope_stack[self.current_scope()].containing_scope().is_none());
         debug_assert!(self.module_scope_data.is_some());
         match &self.module_scope_data {
-            Some(data) => data.borrow_mut().export_name(ident),
+            Some(data) => data.export_name(ident),
             None => false,
         }
     }

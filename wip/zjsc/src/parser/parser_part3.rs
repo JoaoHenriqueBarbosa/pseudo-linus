@@ -81,17 +81,17 @@ pub trait ParsedNode: IsEvalNode + IsFunctionMetadataNode + Sized {
         end_location: &JSTokenLocation,
         start_column: u32,
         end_column: u32,
-        source_elements: Option<Box<SourceElements>>,
+        source_elements: Link<SourceElements>,
         var_declarations: VariableEnvironment,
         function_declarations: FunctionStack,
         lexical_variables: VariableEnvironment,
-        parameters: Option<Box<FunctionParameters>>,
+        parameters: Link<FunctionParameters>,
         source: &SourceCode,
         features: CodeFeatures,
         lexically_scoped_features: LexicallyScopedFeatures,
         inner_arrow_function_features: InnerArrowFunctionCodeFeatures,
         num_constants: i32,
-        module_scope_data: Option<Rc<RefCell<ModuleScopeData>>>,
+        module_scope_data: Option<Rc<ModuleScopeData>>,
     ) -> Box<Self>;
 
     fn set_loc(&mut self, first_line: u32, last_line: u32, start_offset: i32, line_start_offset: i32);
@@ -745,7 +745,7 @@ fn parse_with_char_type<T: CharType, P: ParsedNode>(
     if log_builtin_errors && builtin_mode == JSParserBuiltinMode::Builtin && result.is_none() {
         debug_assert!(error.is_valid());
         if error.type_() != ErrorType::StackOverflow {
-            eprintln!("Unexpected error compiling builtin: {} on line {} for function {}.", error.message(), error.line(), name);
+            eprintln!("Unexpected error compiling builtin: {} on line {} for function {}.", String::from_utf8_lossy(&error.message().utf8(crate::wtf::text::wtf_string::ConversionMode::LenientConversion)), error.line(), String::from_utf8_lossy(&name.utf8()));
         }
     }
     result

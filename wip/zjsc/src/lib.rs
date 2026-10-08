@@ -6,3 +6,4 @@ pub mod yarr;
 pub mod bytecode;
 pub mod runtime;
 pub mod parser;
+pub mod debugger;

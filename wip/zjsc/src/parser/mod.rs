@@ -21,3 +21,6 @@ pub mod syntax_checker;
 pub mod parser_function_info;
 pub mod ast_builder;
 pub mod parser;
+pub mod source_provider_cache;
+pub mod source_provider_cache_item;
+pub mod parsed_node_impls;

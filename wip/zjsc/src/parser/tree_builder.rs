@@ -57,7 +57,7 @@ pub trait TreeBuilder: Sized {
     type Expression: TreeNode + TreeNodeHandle;
     type SourceElements: TreeNode;
     type Arguments: TreeNode;
-    type Comma: TreeNode;
+    type Comma: TreeNode + Into<Self::Expression>;
     type Property: TreeNode;
     type PropertyList: TreeNode;
     type ElementList: TreeNode;
@@ -65,10 +65,10 @@ pub trait TreeBuilder: Sized {
     type TemplateExpressionList: TreeNode;
     type TemplateString: TreeNode;
     type TemplateStringList: TreeNode;
-    type TemplateLiteral: TreeNode;
+    type TemplateLiteral: TreeNode + Into<Self::Expression>;
     type FormalParameterList: TreeNode;
     type FunctionBody: TreeNode + TreeNodeHandle;
-    type ClassExpression: TreeNode;
+    type ClassExpression: TreeNode + Into<Self::Expression>;
     type ModuleName: TreeNode;
     type ImportSpecifier: TreeNode;
     type ImportSpecifierList: TreeNode;
@@ -80,11 +80,11 @@ pub trait TreeBuilder: Sized {
     type Clause: TreeNode + TreeNodeHandle;
     type BinaryOperand: TreeNode;
     type DestructuringPattern: TreeNode;
-    type ArrayPattern: TreeNode;
-    type ObjectPattern: TreeNode;
-    type RestPattern: TreeNode;
+    type ArrayPattern: TreeNode + Into<Self::DestructuringPattern>;
+    type ObjectPattern: TreeNode + Into<Self::DestructuringPattern>;
+    type RestPattern: TreeNode + Into<Self::DestructuringPattern>;
     /// `DefineFieldNode*` (o `SyntaxChecker` devolve `int`).
-    type DefineField: TreeNode;
+    type DefineField: TreeNode + Into<Self::Statement>;
     /// Estado que `SyntaxChecker::BinaryExprContext` / `ASTBuilder::BinaryExprContext` salvam.
     type BinaryExprContext;
     /// Estado que `SyntaxChecker::UnaryExprContext` / `ASTBuilder::UnaryExprContext` salvam.
@@ -342,6 +342,22 @@ pub trait TreeBuilder: Sized {
     fn set_contains_object_rest_element(&mut self, node: &Self::ObjectPattern, contains_rest_element: bool);
     fn set_contains_computed_property(&mut self, node: &Self::ObjectPattern, contains_computed_property: bool);
     fn finish_object_pattern(&mut self, node: &Self::ObjectPattern, divot_start: JSTextPosition, divot: JSTextPosition, divot_end: JSTextPosition);
+
+    // As conversões de ponteiro derivado para base do C++ (`Comma*` para `ExpressionNode*`,
+    // `ArrayPatternNode*` para `DestructuringPatternNode*`...) são os `Into` dos tipos associados acima.
+    // Os métodos abaixo só existem no `ASTBuilder` (o C++ os chama dentro de `if constexpr` de `ASTBuilder`);
+    // o `SyntaxChecker` fica com o corpo vazio do trait.
+
+    /// `static_cast<DotAccessorNode*>(expression)->identifier()`: `None` quando não é um acesso por ponto.
+    fn dot_accessor_identifier(&self, _expression: &Self::Expression) -> Option<Identifier> {
+        None
+    }
+    /// `classElements->setHasPrivateAccessors(...)`.
+    fn set_has_private_accessors(&self, _class_elements: &Self::PropertyList, _has_private_accessors: bool) {}
+    /// `functionInfo.body->setEcmaName(name)`.
+    fn set_function_body_ecma_name(_body: &Self::FunctionBody, _name: &Identifier) {}
+    /// `getMetadata(ParserFunctionInfo<...>&)`: a sobrecarga por tipo de construtor.
+    fn get_metadata(function_info: &ParserFunctionInfo<Self>) -> std::rc::Rc<crate::parser::nodes::FunctionMetadataNode>;
 
     fn create_binding_location(&mut self, location: &JSTokenLocation, bound_property: &Identifier, start: JSTextPosition, end: JSTextPosition, context: AssignmentContext) -> Self::DestructuringPattern;
     fn create_rest_parameter(&mut self, pattern: Self::DestructuringPattern, num_parameters_to_skip: usize) -> Self::RestPattern;
