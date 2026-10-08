@@ -2,18 +2,21 @@
 // `matchDotStarEnclosure` (os membros de `Interpreter<CharType>` ligados a parênteses, asserções
 // parentéticas e ao enclosure `.*`). Incluído por `include!` no fim de `yarr_interpreter.rs`.
 //
-// Convenções assumidas da struct `Interpreter` (fatia 1): contextos vivem em arenas do interpretador
-// e são endereçados por `DisjunctionContextId` e `ParenthesesDisjunctionContextId`; o quadro
-// (`frame`) é um `Vec<usize>` indexado a partir de `term.frame_location`; `BackTrackInfoParentheses`
-// é o par `{ context, location }` (posição do quadro) com os índices de campo `BEGIN`,
-// `MATCH_AMOUNT` e `LAST_CONTEXT`. `output` e `input` são campos do interpretador.
+// Usa o contrato unificado descrito no topo de `yarr_interpreter_cpp1.rs` (`DisjunctionContextRef`,
+// `context_mut`, contextos de parênteses como `usize`). `match_disjunction` é da fatia 4;
+// `record_parentheses_match`, `reset_matches` e `parentheses_do_backtrack` são da fatia 2.
+//
+// O `BackTrackInfoParentheses` do C++ é um `reinterpret_cast` do quadro; aqui `match_parentheses` e
+// `backtrack_parentheses` o carregam do quadro (`load`), operam sobre a cópia local e a gravam de volta
+// (`store`) antes de devolver, o que é equivalente porque nenhum contexto aninhado lê esse trecho do
+// quadro. Como a alocação do Rust não falha, os ramos `if (!context) return ErrorNoMemory` de
+// `allocParenthesesDisjunctionContext` não existem (mesma decisão da fatia 1).
 
-impl<C: crate::wtf::text::CharType> Interpreter<C> {
-    pub fn match_parentheses_once_end(
-        &mut self,
-        term: &crate::yarr::yarr_interpreter::ByteTerm,
-        context: DisjunctionContextId,
-    ) -> bool {
+impl<'a, C: crate::wtf::text::string_impl::CharType> Interpreter<'a, C> {
+    pub fn match_parentheses_once_end(&mut self, term: &ByteTerm, context: DisjunctionContextRef) -> bool {
+        debug_assert!(term.atom.quantity_max_count == 1);
+        let pattern = self.pattern;
+
         if term.capture() {
             let subpattern_id = term.subpattern_id() as usize;
             // Para casamentos Backward, os índices capturados são gravados fim e depois início.
@@ -22,7 +25,7 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
 
             if term.duplicate_named_group_id() != 0 {
                 // Registra qual dos subpadrões nomeados duplicados casou.
-                let offset = self.pattern.offset_for_duplicate_named_group_id(term.duplicate_named_group_id());
+                let offset = pattern.offset_for_duplicate_named_group_id(term.duplicate_named_group_id());
                 self.output[offset as usize] = subpattern_id as u32;
             }
         }
@@ -31,25 +34,25 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
             return true;
         }
 
-        let begin = self.frame(context, (term.frame_location + BackTrackInfoParenthesesOnce::begin_index()) as usize);
-        begin != self.input.get_pos() as usize
+        let begin_slot = (term.frame_location
+            + crate::yarr::yarr_pattern::BackTrackInfoParenthesesOnce::begin_index()) as usize;
+        self.context_mut(context).frame[begin_slot] != self.input.get_pos() as usize
     }
 
-    pub fn backtrack_parentheses_once_begin(
-        &mut self,
-        term: &crate::yarr::yarr_interpreter::ByteTerm,
-        context: DisjunctionContextId,
-    ) -> bool {
-        let begin_slot = (term.frame_location + BackTrackInfoParenthesesOnce::begin_index()) as usize;
+    pub fn backtrack_parentheses_once_begin(&mut self, term: &ByteTerm, context: DisjunctionContextRef) -> bool {
+        debug_assert!(term.atom.quantity_max_count == 1);
+        let pattern = self.pattern;
+        let begin_slot = (term.frame_location
+            + crate::yarr::yarr_pattern::BackTrackInfoParenthesesOnce::begin_index()) as usize;
 
         if term.capture() {
             let subpattern_id = term.subpattern_id() as usize;
-            self.output[subpattern_id << 1] = OFFSET_NO_MATCH;
-            self.output[(subpattern_id << 1) + 1] = OFFSET_NO_MATCH;
+            self.output[subpattern_id << 1] = crate::yarr::yarr::OFFSET_NO_MATCH;
+            self.output[(subpattern_id << 1) + 1] = crate::yarr::yarr::OFFSET_NO_MATCH;
 
             if term.duplicate_named_group_id() != 0 {
                 // Limpa o subpatternId que casou.
-                let offset = self.pattern.offset_for_duplicate_named_group_id(term.duplicate_named_group_id());
+                let offset = pattern.offset_for_duplicate_named_group_id(term.duplicate_named_group_id());
                 self.output[offset as usize] = 0;
             }
         }
@@ -58,30 +61,31 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
             QuantifierType::Greedy => {
                 // Se voltamos até aqui, há outra chance: tentar casar nada.
                 // `notFound` do WTF é `usize::MAX`.
-                self.set_frame(context, begin_slot, usize::MAX);
-                self.disjunction_context(context).term += term.atom.parentheses_width as i32;
+                let frame_context = self.context_mut(context);
+                debug_assert!(frame_context.frame[begin_slot] != usize::MAX);
+                frame_context.frame[begin_slot] = usize::MAX;
+                frame_context.term += term.atom.parentheses_width as i32;
                 true
             }
             QuantifierType::NonGreedy | QuantifierType::FixedCount => false,
         }
     }
 
-    pub fn backtrack_parentheses_once_end(
-        &mut self,
-        term: &crate::yarr::yarr_interpreter::ByteTerm,
-        context: DisjunctionContextId,
-    ) -> bool {
-        let begin_slot = (term.frame_location + BackTrackInfoParenthesesOnce::begin_index()) as usize;
-        let begin = self.frame(context, begin_slot);
+    pub fn backtrack_parentheses_once_end(&mut self, term: &ByteTerm, context: DisjunctionContextRef) -> bool {
+        debug_assert!(term.atom.quantity_max_count == 1);
+        let begin_slot = (term.frame_location
+            + crate::yarr::yarr_pattern::BackTrackInfoParenthesesOnce::begin_index()) as usize;
 
         match term.atom.quantity_type {
             QuantifierType::Greedy | QuantifierType::NonGreedy => {
+                let begin = self.context_mut(context).frame[begin_slot];
                 if term.atom.quantity_type == QuantifierType::Greedy && begin == usize::MAX {
-                    self.disjunction_context(context).term -= term.atom.parentheses_width as i32;
+                    self.context_mut(context).term -= term.atom.parentheses_width as i32;
                     return false;
                 }
                 if begin == usize::MAX {
-                    self.set_frame(context, begin_slot, self.input.get_pos() as usize);
+                    let pos = self.input.get_pos();
+                    self.context_mut(context).frame[begin_slot] = pos as usize;
                     if term.capture() {
                         // Tecnicamente este acesso a inputPosition deveria usar o do termo Begin,
                         // mas para repetições que não sejam de contagem fixa os valores são iguais
@@ -89,9 +93,9 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
                         let subpattern_id = term.subpattern_id() as usize;
                         // Para casamentos Backward, os índices capturados são gravados fim e depois início.
                         self.output[(subpattern_id << 1) + term.match_direction() as usize] =
-                            self.input.get_pos().wrapping_sub(term.input_position);
+                            pos.wrapping_sub(term.input_position);
                     }
-                    self.disjunction_context(context).term -= term.atom.parentheses_width as i32;
+                    self.context_mut(context).term -= term.atom.parentheses_width as i32;
                     return true;
                 }
                 false
@@ -100,74 +104,78 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
         }
     }
 
-    pub fn match_parentheses_terminal_begin(
-        &mut self,
-        term: &crate::yarr::yarr_interpreter::ByteTerm,
-        context: DisjunctionContextId,
-    ) -> bool {
+    pub fn match_parentheses_terminal_begin(&mut self, term: &ByteTerm, context: DisjunctionContextRef) -> bool {
+        debug_assert!(term.atom.quantity_type == QuantifierType::Greedy);
+        debug_assert!(term.atom.quantity_max_count == crate::yarr::yarr::QUANTIFY_INFINITE);
+        debug_assert!(!term.capture());
+
         let pos = self.input.get_pos() as usize;
-        self.set_frame(context, (term.frame_location + BackTrackInfoParenthesesTerminal::begin_index()) as usize, pos);
-        self.set_frame(
-            context,
-            (term.frame_location + BackTrackInfoParenthesesTerminal::entry_position_index()) as usize,
-            pos,
-        );
+        let begin_slot = (term.frame_location
+            + crate::yarr::yarr_pattern::BackTrackInfoParenthesesTerminal::begin_index()) as usize;
+        let entry_slot = (term.frame_location
+            + crate::yarr::yarr_pattern::BackTrackInfoParenthesesTerminal::entry_position_index()) as usize;
+        let frame = &mut self.context_mut(context).frame;
+        frame[begin_slot] = pos;
+        frame[entry_slot] = pos;
         true
     }
 
-    pub fn match_parentheses_terminal_end(
-        &mut self,
-        term: &crate::yarr::yarr_interpreter::ByteTerm,
-        context: DisjunctionContextId,
-    ) -> bool {
-        let begin_slot = (term.frame_location + BackTrackInfoParenthesesTerminal::begin_index()) as usize;
-        let entry_slot = (term.frame_location + BackTrackInfoParenthesesTerminal::entry_position_index()) as usize;
+    pub fn match_parentheses_terminal_end(&mut self, term: &ByteTerm, context: DisjunctionContextRef) -> bool {
+        let begin_slot = (term.frame_location
+            + crate::yarr::yarr_pattern::BackTrackInfoParenthesesTerminal::begin_index()) as usize;
+        let entry_slot = (term.frame_location
+            + crate::yarr::yarr_pattern::BackTrackInfoParenthesesTerminal::entry_position_index()) as usize;
         let pos = self.input.get_pos() as usize;
 
-        if self.frame(context, begin_slot) == pos {
+        let frame_context = self.context_mut(context);
+        if frame_context.frame[begin_slot] == pos {
             // Uma iteração vazia não pode ser repetida, então só é aceitável como a única
             // iteração que um mínimo de um exige, e só antes de qualquer consumo. Limpar
             // entryPosition registra que o mínimo foi atendido e rejeita qualquer nova
             // iteração vazia.
-            if term.atom.quantity_min_count == 0 || self.frame(context, entry_slot) != pos {
+            if term.atom.quantity_min_count == 0 || frame_context.frame[entry_slot] != pos {
                 return false;
             }
-            self.set_frame(context, entry_slot, usize::MAX);
+            frame_context.frame[entry_slot] = usize::MAX;
         }
 
-        self.set_frame(context, begin_slot, pos);
+        frame_context.frame[begin_slot] = pos;
 
         // Casamento bem-sucedido! O que vem agora? Voltar ao laço e tentar casar mais!
         // Volta ao primeiro termo do corpo, e não ao ParenthesesSubpatternTerminalBegin, cujas
         // gravações inicializam o grupo inteiro e não devem rodar de novo a cada iteração.
-        self.disjunction_context(context).term -= term.atom.parentheses_width as i32;
+        frame_context.term -= term.atom.parentheses_width as i32;
         true
     }
 
     pub fn backtrack_parentheses_terminal_begin(
         &mut self,
-        term: &crate::yarr::yarr_interpreter::ByteTerm,
-        context: DisjunctionContextId,
+        term: &ByteTerm,
+        context: DisjunctionContextRef,
     ) -> bool {
+        debug_assert!(term.atom.quantity_type == QuantifierType::Greedy);
+        debug_assert!(term.atom.quantity_max_count == crate::yarr::yarr::QUANTIFY_INFINITE);
+        debug_assert!(!term.capture());
+
         // Se voltamos até aqui, esta iteração dos parênteses falhou. Nada segue um grupo
         // terminal, então um mínimo já satisfeito torna essa falha um fim aceitável do casamento;
         // um mínimo não satisfeito falha o casamento.
+        let pos = self.input.get_pos() as usize;
+        let frame_context = self.context_mut(context);
         if term.atom.quantity_min_count != 0 {
-            let entry_slot = (term.frame_location + BackTrackInfoParenthesesTerminal::entry_position_index()) as usize;
-            if self.frame(context, entry_slot) == self.input.get_pos() as usize {
+            let entry_slot = (term.frame_location
+                + crate::yarr::yarr_pattern::BackTrackInfoParenthesesTerminal::entry_position_index())
+                as usize;
+            if frame_context.frame[entry_slot] == pos {
                 return false;
             }
         }
 
-        self.disjunction_context(context).term += term.atom.parentheses_width as i32;
+        frame_context.term += term.atom.parentheses_width as i32;
         true
     }
 
-    pub fn backtrack_parentheses_terminal_end(
-        &mut self,
-        _term: &crate::yarr::yarr_interpreter::ByteTerm,
-        _context: DisjunctionContextId,
-    ) -> bool {
+    pub fn backtrack_parentheses_terminal_end(&mut self, _term: &ByteTerm, _context: DisjunctionContextRef) -> bool {
         // Parênteses 'terminais' ficam no fim da regex e, portanto, um casamento além do fim
         // sempre deve ser devolvido como sucesso: nunca devemos voltar até aqui.
         unreachable!("RELEASE_ASSERT_NOT_REACHED")
@@ -175,27 +183,25 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
 
     pub fn match_parenthetical_assertion_begin(
         &mut self,
-        term: &crate::yarr::yarr_interpreter::ByteTerm,
-        context: DisjunctionContextId,
+        term: &ByteTerm,
+        context: DisjunctionContextRef,
     ) -> bool {
+        debug_assert!(term.atom.quantity_max_count == 1);
+
         let pos = self.input.get_pos() as usize;
-        self.set_frame(
-            context,
-            (term.frame_location + BackTrackInfoParentheticalAssertion::begin_index()) as usize,
-            pos,
-        );
+        let begin_slot = (term.frame_location
+            + crate::yarr::yarr_pattern::BackTrackInfoParentheticalAssertion::begin_index()) as usize;
+        self.context_mut(context).frame[begin_slot] = pos;
+
         true
     }
 
-    pub fn match_parenthetical_assertion_end(
-        &mut self,
-        term: &crate::yarr::yarr_interpreter::ByteTerm,
-        context: DisjunctionContextId,
-    ) -> bool {
-        let begin = self.frame(
-            context,
-            (term.frame_location + BackTrackInfoParentheticalAssertion::begin_index()) as usize,
-        );
+    pub fn match_parenthetical_assertion_end(&mut self, term: &ByteTerm, context: DisjunctionContextRef) -> bool {
+        debug_assert!(term.atom.quantity_max_count == 1);
+
+        let begin_slot = (term.frame_location
+            + crate::yarr::yarr_pattern::BackTrackInfoParentheticalAssertion::begin_index()) as usize;
+        let begin = self.context_mut(context).frame[begin_slot];
 
         self.input.set_pos(begin as u32);
 
@@ -203,11 +209,11 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
         if term.invert() {
             if term.contains_any_captures() {
                 for subpattern in term.subpattern_id()..=term.last_subpattern_id() {
-                    self.output[(subpattern << 1) as usize] = OFFSET_NO_MATCH;
-                    self.output[((subpattern << 1) + 1) as usize] = OFFSET_NO_MATCH;
+                    self.output[(subpattern << 1) as usize] = crate::yarr::yarr::OFFSET_NO_MATCH;
+                    self.output[((subpattern << 1) + 1) as usize] = crate::yarr::yarr::OFFSET_NO_MATCH;
                 }
             }
-            self.disjunction_context(context).term -= term.atom.parentheses_width as i32;
+            self.context_mut(context).term -= term.atom.parentheses_width as i32;
             return false;
         }
 
@@ -216,20 +222,22 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
 
     pub fn backtrack_parenthetical_assertion_begin(
         &mut self,
-        term: &crate::yarr::yarr_interpreter::ByteTerm,
-        context: DisjunctionContextId,
+        term: &ByteTerm,
+        context: DisjunctionContextRef,
     ) -> bool {
+        debug_assert!(term.atom.quantity_max_count == 1);
+
         if term.match_direction() == MatchDirection::Backward {
-            let begin = self.frame(
-                context,
-                (term.frame_location + BackTrackInfoParentheticalAssertion::begin_index()) as usize,
-            );
+            let begin_slot = (term.frame_location
+                + crate::yarr::yarr_pattern::BackTrackInfoParentheticalAssertion::begin_index())
+                as usize;
+            let begin = self.context_mut(context).frame[begin_slot];
             self.input.set_pos(begin as u32);
         }
 
         // Falhamos em casar os parênteses; se estão invertidos, isto é vitória!
         if term.invert() {
-            self.disjunction_context(context).term += term.atom.parentheses_width as i32;
+            self.context_mut(context).term += term.atom.parentheses_width as i32;
             return true;
         }
 
@@ -238,43 +246,58 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
 
     pub fn backtrack_parenthetical_assertion_end(
         &mut self,
-        term: &crate::yarr::yarr_interpreter::ByteTerm,
-        context: DisjunctionContextId,
+        term: &ByteTerm,
+        context: DisjunctionContextRef,
     ) -> bool {
-        let begin = self.frame(
-            context,
-            (term.frame_location + BackTrackInfoParentheticalAssertion::begin_index()) as usize,
-        );
+        debug_assert!(term.atom.quantity_max_count == 1);
+
+        let begin_slot = (term.frame_location
+            + crate::yarr::yarr_pattern::BackTrackInfoParentheticalAssertion::begin_index()) as usize;
+        let begin = self.context_mut(context).frame[begin_slot];
 
         self.input.set_pos(begin as u32);
 
         if term.contains_any_captures() {
             for subpattern in term.subpattern_id()..=term.last_subpattern_id() {
-                self.output[(subpattern << 1) as usize] = OFFSET_NO_MATCH;
-                self.output[((subpattern << 1) + 1) as usize] = OFFSET_NO_MATCH;
+                self.output[(subpattern << 1) as usize] = crate::yarr::yarr::OFFSET_NO_MATCH;
+                self.output[((subpattern << 1) + 1) as usize] = crate::yarr::yarr::OFFSET_NO_MATCH;
             }
         }
 
-        self.disjunction_context(context).term -= term.atom.parentheses_width as i32;
+        self.context_mut(context).term -= term.atom.parentheses_width as i32;
         false
     }
 
-    pub fn match_parentheses(
+    /// `matchParentheses`: o `BackTrackInfoParentheses` é carregado do quadro e gravado de volta ao
+    /// fim (ver o cabeçalho do arquivo).
+    pub fn match_parentheses(&mut self, term: &ByteTerm, context: DisjunctionContextRef) -> crate::yarr::yarr::JSRegExpResult {
+        let slot = term.frame_location as usize;
+        let mut back_track = BackTrackInfoParentheses::load(&self.context_mut(context).frame, slot);
+        let result = self.match_parentheses_with_back_track(term, &mut back_track);
+        back_track.store(&mut self.context_mut(context).frame, slot);
+        result
+    }
+
+    fn match_parentheses_with_back_track(
         &mut self,
-        term: &crate::yarr::yarr_interpreter::ByteTerm,
-        context: DisjunctionContextId,
-    ) -> JSRegExpResult {
-        let back_track = BackTrackInfoParentheses::new(context, term.frame_location as usize);
-        let pattern = self.pattern.clone();
+        term: &ByteTerm,
+        back_track: &mut BackTrackInfoParentheses,
+    ) -> crate::yarr::yarr::JSRegExpResult {
+        use crate::yarr::yarr::JSRegExpResult;
+        let pattern = self.pattern;
         let Some(body_id) = term.atom.parentheses_disjunction else {
             return JSRegExpResult::ErrorInternal;
         };
         let disjunction_body = pattern.parentheses_disjunction(body_id);
 
-        let pos = self.input.get_pos() as usize;
-        self.set_frame(context, back_track.slot(BackTrackInfoParentheses::BEGIN), pos);
-        self.set_frame(context, back_track.slot(BackTrackInfoParentheses::MATCH_AMOUNT), 0);
-        self.set_last_context(back_track, None);
+        back_track.begin = self.input.get_pos() as usize;
+        back_track.match_amount = 0;
+        back_track.last_context = None;
+
+        debug_assert!(
+            term.atom.quantity_type != QuantifierType::FixedCount
+                || term.atom.quantity_min_count == term.atom.quantity_max_count
+        );
 
         let minimum_match_count = term.atom.quantity_min_count;
 
@@ -286,13 +309,16 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
                 return result;
             }
 
-            if let Some(last) = self.last_context(back_track) {
+            if let Some(last) = back_track.last_context {
                 self.record_parentheses_match(term, last);
             }
         }
 
         match term.atom.quantity_type {
-            QuantifierType::FixedCount => JSRegExpResult::Match,
+            QuantifierType::FixedCount => {
+                debug_assert!(back_track.match_amount == term.atom.quantity_max_count as usize);
+                JSRegExpResult::Match
+            }
 
             QuantifierType::Greedy => {
                 let result = self.extend_parentheses_contexts_to_max_count(term, back_track, disjunction_body);
@@ -300,8 +326,8 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
                     return result;
                 }
 
-                if self.frame(context, back_track.slot(BackTrackInfoParentheses::MATCH_AMOUNT)) != 0 {
-                    if let Some(last) = self.last_context(back_track) {
+                if back_track.match_amount != 0 {
+                    if let Some(last) = back_track.last_context {
                         self.record_parentheses_match(term, last);
                     }
                 }
@@ -310,6 +336,20 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
 
             QuantifierType::NonGreedy => JSRegExpResult::Match,
         }
+    }
+
+    /// `backtrackParentheses`: carrega o `BackTrackInfoParentheses` do quadro e o grava de volta ao
+    /// fim (ver o cabeçalho do arquivo).
+    pub fn backtrack_parentheses(
+        &mut self,
+        term: &ByteTerm,
+        context: DisjunctionContextRef,
+    ) -> crate::yarr::yarr::JSRegExpResult {
+        let slot = term.frame_location as usize;
+        let mut back_track = BackTrackInfoParentheses::load(&self.context_mut(context).frame, slot);
+        let result = self.backtrack_parentheses_with_back_track(term, &mut back_track);
+        back_track.store(&mut self.context_mut(context).frame, slot);
+        result
     }
 
     // As regras de backtracking diferem conforme a repetição seja gulosa ou não gulosa.
@@ -321,14 +361,13 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
     //
     // Não gulosos: o caso de 'um a menos' já foi feito, então não casar ao remover.
     // O caso de 'um a mais' não foi feito, então sempre tentar acrescentá-lo.
-    pub fn backtrack_parentheses(
+    fn backtrack_parentheses_with_back_track(
         &mut self,
-        term: &crate::yarr::yarr_interpreter::ByteTerm,
-        context: DisjunctionContextId,
-    ) -> JSRegExpResult {
-        let back_track = BackTrackInfoParentheses::new(context, term.frame_location as usize);
-        let match_amount_slot = back_track.slot(BackTrackInfoParentheses::MATCH_AMOUNT);
-        let pattern = self.pattern.clone();
+        term: &ByteTerm,
+        back_track: &mut BackTrackInfoParentheses,
+    ) -> crate::yarr::yarr::JSRegExpResult {
+        use crate::yarr::yarr::JSRegExpResult;
+        let pattern = self.pattern;
         let Some(body_id) = term.atom.parentheses_disjunction else {
             return JSRegExpResult::ErrorInternal;
         };
@@ -336,6 +375,9 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
 
         match term.atom.quantity_type {
             QuantifierType::FixedCount => {
+                debug_assert!(back_track.match_amount == term.atom.quantity_max_count as usize);
+                debug_assert!(term.atom.quantity_min_count == term.atom.quantity_max_count);
+
                 let mut result = self.parentheses_do_backtrack(term, back_track);
                 if result != JSRegExpResult::Match {
                     return result;
@@ -348,28 +390,32 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
                     return result;
                 }
 
-                if let Some(last) = self.last_context(back_track) {
+                debug_assert!(back_track.match_amount == term.atom.quantity_max_count as usize);
+                if let Some(last) = back_track.last_context {
                     self.record_parentheses_match(term, last);
                 }
                 JSRegExpResult::Match
             }
 
             QuantifierType::Greedy => {
-                if self.frame(context, match_amount_slot) == 0 {
+                if back_track.match_amount == 0 {
                     return JSRegExpResult::NoMatch;
                 }
 
-                let Some(last_context) = self.last_context(back_track) else {
+                let Some(context) = back_track.last_context else {
                     return JSRegExpResult::ErrorInternal;
                 };
-                let last_disjunction_context = self.parentheses_context(last_context).get_disjunction_context();
                 // Pelo RepeatMatcher, só as iterações além do mínimo obrigatório precisam ser
                 // não vazias; uma iteração obrigatória (contagem <= min) pode casar vazio,
                 // então o conteúdo é refeito permitindo casamento vazio nesse caso.
-                let mut result = if self.frame(context, match_amount_slot) <= term.atom.quantity_min_count as usize {
-                    self.match_disjunction(disjunction_body, last_disjunction_context, true)
+                let mut result = if back_track.match_amount <= term.atom.quantity_min_count as usize {
+                    self.match_disjunction(disjunction_body, DisjunctionContextRef::Parentheses(context), true)
                 } else {
-                    self.match_non_zero_disjunction(disjunction_body, last_disjunction_context, true)
+                    self.match_non_zero_disjunction(
+                        disjunction_body,
+                        DisjunctionContextRef::Parentheses(context),
+                        true,
+                    )
                 };
                 if result == JSRegExpResult::Match {
                     result = self.extend_parentheses_contexts_to_max_count(term, back_track, disjunction_body);
@@ -377,9 +423,9 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
                         return result;
                     }
                 } else {
-                    self.reset_matches(term, last_context);
-                    self.pop_parentheses_disjunction_context(back_track);
-                    self.free_parentheses_disjunction_context(last_context);
+                    self.reset_matches(term, context);
+                    Self::pop_parentheses_disjunction_context(back_track, &self.parentheses_contexts);
+                    self.free_parentheses_disjunction_context(context);
 
                     if result != JSRegExpResult::NoMatch {
                         return result;
@@ -394,7 +440,7 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
                     // entrada e isso faz a contagem `2` de {2,3} falhar. Em vez de declarar
                     // falha de imediato, devemos voltar atrás em `a+`, reduzindo a quantidade
                     // de `a` esgotada, e então os parênteses têm sucesso.
-                    if self.frame(context, match_amount_slot) < term.atom.quantity_min_count as usize {
+                    if back_track.match_amount < term.atom.quantity_min_count as usize {
                         result = self.parentheses_do_backtrack(term, back_track);
                         if result != JSRegExpResult::Match {
                             return result;
@@ -415,8 +461,8 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
                     }
                 }
 
-                if self.frame(context, match_amount_slot) != 0 {
-                    if let Some(last) = self.last_context(back_track) {
+                if back_track.match_amount != 0 {
+                    if let Some(last) = back_track.last_context {
                         self.record_parentheses_match(term, last);
                     }
                 }
@@ -425,20 +471,25 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
 
             QuantifierType::NonGreedy => {
                 // Se não chegamos ao limite, tentar acrescentar mais um casamento.
-                if self.frame(context, match_amount_slot) < term.atom.quantity_max_count as usize {
-                    let Some(new_context) = self.alloc_parentheses_disjunction_context(disjunction_body, term) else {
-                        return JSRegExpResult::ErrorNoMemory;
-                    };
-                    let new_disjunction_context = self.parentheses_context(new_context).get_disjunction_context();
-                    let result = self.match_non_zero_disjunction(disjunction_body, new_disjunction_context, false);
+                if back_track.match_amount < term.atom.quantity_max_count as usize {
+                    let context = self.alloc_parentheses_disjunction_context(disjunction_body, term);
+                    let result = self.match_non_zero_disjunction(
+                        disjunction_body,
+                        DisjunctionContextRef::Parentheses(context),
+                        false,
+                    );
                     if result == JSRegExpResult::Match {
-                        self.append_parentheses_disjunction_context(back_track, new_context);
-                        self.record_parentheses_match(term, new_context);
+                        Self::append_parentheses_disjunction_context(
+                            back_track,
+                            context,
+                            &mut self.parentheses_contexts[context],
+                        );
+                        self.record_parentheses_match(term, context);
                         return JSRegExpResult::Match;
                     }
 
-                    self.reset_matches(term, new_context);
-                    self.free_parentheses_disjunction_context(new_context);
+                    self.reset_matches(term, context);
+                    self.free_parentheses_disjunction_context(context);
 
                     if result != JSRegExpResult::NoMatch {
                         return result;
@@ -446,17 +497,20 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
                 }
 
                 // Não deu; voltar atrás procurando uma alternativa.
-                while self.frame(context, match_amount_slot) != 0 {
-                    let Some(last_context) = self.last_context(back_track) else {
+                while back_track.match_amount != 0 {
+                    let Some(context) = back_track.last_context else {
                         return JSRegExpResult::ErrorInternal;
                     };
-                    let last_disjunction_context = self.parentheses_context(last_context).get_disjunction_context();
                     // Iterações obrigatórias (contagem <= min) podem casar vazio; só as extras
                     // precisam ser não vazias (RepeatMatcher).
-                    let result = if self.frame(context, match_amount_slot) <= term.atom.quantity_min_count as usize {
-                        self.match_disjunction(disjunction_body, last_disjunction_context, true)
+                    let result = if back_track.match_amount <= term.atom.quantity_min_count as usize {
+                        self.match_disjunction(disjunction_body, DisjunctionContextRef::Parentheses(context), true)
                     } else {
-                        self.match_non_zero_disjunction(disjunction_body, last_disjunction_context, true)
+                        self.match_non_zero_disjunction(
+                            disjunction_body,
+                            DisjunctionContextRef::Parentheses(context),
+                            true,
+                        )
                     };
                     if result == JSRegExpResult::Match {
                         // Um backtrack bem-sucedido do conteúdo pode ter nos deixado abaixo do
@@ -466,14 +520,15 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
                         // Sem isso o interpretador devolveria um casamento com menos de
                         // quantityMinCount iterações (por exemplo /(?:xy|x){2,3}?yxw/ casando
                         // "xyxw" por engano).
-                        let refill = self.refill_parentheses_contexts_to_min_count(term, back_track, disjunction_body);
+                        let refill =
+                            self.refill_parentheses_contexts_to_min_count(term, back_track, disjunction_body);
                         if refill != JSRegExpResult::Match {
                             return refill;
                         }
 
                         // Backtrack bem-sucedido! Estamos de volta ao jogo!
-                        if self.frame(context, match_amount_slot) != 0 {
-                            if let Some(last) = self.last_context(back_track) {
+                        if back_track.match_amount != 0 {
+                            if let Some(last) = back_track.last_context {
                                 self.record_parentheses_match(term, last);
                             }
                         }
@@ -481,9 +536,9 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
                     }
 
                     // Remove um casamento da pilha.
-                    self.reset_matches(term, last_context);
-                    self.pop_parentheses_disjunction_context(back_track);
-                    self.free_parentheses_disjunction_context(last_context);
+                    self.reset_matches(term, context);
+                    Self::pop_parentheses_disjunction_context(back_track, &self.parentheses_contexts);
+                    self.free_parentheses_disjunction_context(context);
 
                     if result != JSRegExpResult::NoMatch {
                         return result;
@@ -497,19 +552,24 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
 
     pub fn refill_parentheses_contexts_to_min_count(
         &mut self,
-        term: &crate::yarr::yarr_interpreter::ByteTerm,
-        back_track: BackTrackInfoParentheses,
-        disjunction_body: &crate::yarr::yarr_interpreter::ByteDisjunction,
-    ) -> JSRegExpResult {
-        let match_amount_slot = back_track.slot(BackTrackInfoParentheses::MATCH_AMOUNT);
-        while self.frame(back_track.context, match_amount_slot) < term.atom.quantity_min_count as usize {
-            let Some(context) = self.alloc_parentheses_disjunction_context(disjunction_body, term) else {
-                return JSRegExpResult::ErrorNoMemory;
-            };
-            let disjunction_context = self.parentheses_context(context).get_disjunction_context();
-            let mut result = self.match_disjunction(disjunction_body, disjunction_context, false);
+        term: &ByteTerm,
+        back_track: &mut BackTrackInfoParentheses,
+        disjunction_body: &ByteDisjunction,
+    ) -> crate::yarr::yarr::JSRegExpResult {
+        use crate::yarr::yarr::JSRegExpResult;
+        while back_track.match_amount < term.atom.quantity_min_count as usize {
+            let context = self.alloc_parentheses_disjunction_context(disjunction_body, term);
+            let mut result = self.match_disjunction(
+                disjunction_body,
+                DisjunctionContextRef::Parentheses(context),
+                false,
+            );
             if result == JSRegExpResult::Match {
-                self.append_parentheses_disjunction_context(back_track, context);
+                Self::append_parentheses_disjunction_context(
+                    back_track,
+                    context,
+                    &mut self.parentheses_contexts[context],
+                );
                 continue;
             }
             self.reset_matches(term, context);
@@ -529,19 +589,24 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
     // quantityMaxCount, cada uma exigida a casar ao menos um caractere.
     pub fn extend_parentheses_contexts_to_max_count(
         &mut self,
-        term: &crate::yarr::yarr_interpreter::ByteTerm,
-        back_track: BackTrackInfoParentheses,
-        disjunction_body: &crate::yarr::yarr_interpreter::ByteDisjunction,
-    ) -> JSRegExpResult {
-        let match_amount_slot = back_track.slot(BackTrackInfoParentheses::MATCH_AMOUNT);
-        while self.frame(back_track.context, match_amount_slot) < term.atom.quantity_max_count as usize {
-            let Some(context) = self.alloc_parentheses_disjunction_context(disjunction_body, term) else {
-                return JSRegExpResult::ErrorNoMemory;
-            };
-            let disjunction_context = self.parentheses_context(context).get_disjunction_context();
-            let result = self.match_non_zero_disjunction(disjunction_body, disjunction_context, false);
+        term: &ByteTerm,
+        back_track: &mut BackTrackInfoParentheses,
+        disjunction_body: &ByteDisjunction,
+    ) -> crate::yarr::yarr::JSRegExpResult {
+        use crate::yarr::yarr::JSRegExpResult;
+        while back_track.match_amount < term.atom.quantity_max_count as usize {
+            let context = self.alloc_parentheses_disjunction_context(disjunction_body, term);
+            let result = self.match_non_zero_disjunction(
+                disjunction_body,
+                DisjunctionContextRef::Parentheses(context),
+                false,
+            );
             if result == JSRegExpResult::Match {
-                self.append_parentheses_disjunction_context(back_track, context);
+                Self::append_parentheses_disjunction_context(
+                    back_track,
+                    context,
+                    &mut self.parentheses_contexts[context],
+                );
                 continue;
             }
             self.reset_matches(term, context);
@@ -554,17 +619,17 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
         JSRegExpResult::Match
     }
 
-    pub fn match_dot_star_enclosure(
-        &mut self,
-        term: &crate::yarr::yarr_interpreter::ByteTerm,
-        context: DisjunctionContextId,
-    ) -> bool {
+    pub fn match_dot_star_enclosure(&mut self, term: &ByteTerm, context: DisjunctionContextRef) -> bool {
         let multiline = term.multiline();
-        let is_newline = |this: &Interpreter<C>, position: u32| -> bool {
-            this.test_character_class(this.pattern.newline_character_class, this.input.reread(position))
+        let is_newline = |this: &Interpreter<'a, C>, position: u32| -> bool {
+            let pattern = this.pattern;
+            Self::test_character_class(
+                pattern.character_class(pattern.newline_character_class),
+                this.input.reread(position),
+            )
         };
         // Um ^ inicial vale na posição 0 ou, sob /m, logo depois de um terminador de linha.
-        let is_line_start = |this: &Interpreter<C>, position: u32| -> bool {
+        let is_line_start = |this: &Interpreter<'a, C>, position: u32| -> bool {
             position == 0 || (multiline && is_newline(this, position - 1))
         };
         // [startOffset, noNewlineBefore) sabidamente não tem terminador de linha. O intervalo só
@@ -573,16 +638,19 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
         // posterior da expressão envolvida. Sem /m, um ^ rejeitado uma vez continua rejeitado
         // (ocorrências posteriores começam não antes), registrado como bolUnsatisfiable para
         // que falhem de imediato em vez de percorrer a linha de novo.
+        debug_assert!(
+            self.no_newline_before >= self.start_offset || self.no_newline_before == Self::BOL_UNSATISFIABLE
+        );
         if self.no_newline_before == Self::BOL_UNSATISFIABLE {
             return false;
         }
-        let reject_for_bol = |this: &mut Interpreter<C>| -> bool {
+        let reject_for_bol = |this: &mut Interpreter<'a, C>| -> bool {
             if !multiline {
                 this.no_newline_before = Self::BOL_UNSATISFIABLE;
             }
             false
         };
-        let expression_begin = self.disjunction_context(context).match_begin;
+        let expression_begin = self.context_mut(context).match_begin;
 
         if term.dot_all() {
             // Sob /s o .* inicial alcança de volta o ponto onde o casamento começou e o .* final
@@ -605,9 +673,9 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
                 match_begin += 1; // logo depois da quebra de linha
             }
             let end = self.input.end();
-            let disjunction_context = self.disjunction_context(context);
-            disjunction_context.match_begin = match_begin;
-            disjunction_context.match_end = end;
+            let frame_context = self.context_mut(context);
+            frame_context.match_begin = match_begin;
+            frame_context.match_end = end;
             return true;
         }
 
@@ -652,9 +720,9 @@ impl<C: crate::wtf::text::CharType> Interpreter<C> {
             return false;
         }
 
-        let disjunction_context = self.disjunction_context(context);
-        disjunction_context.match_begin = match_begin;
-        disjunction_context.match_end = match_end;
+        let frame_context = self.context_mut(context);
+        frame_context.match_begin = match_begin;
+        frame_context.match_end = match_end;
         true
     }
 }

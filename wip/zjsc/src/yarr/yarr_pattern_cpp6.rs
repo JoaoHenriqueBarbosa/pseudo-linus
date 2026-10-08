@@ -641,7 +641,7 @@ fn indent_for_nesting_level(out: &mut std::string::String, nesting_depth: u32) {
 }
 
 /// `dumpChar32`.
-fn dump_char32(out: &mut std::string::String, c: u32) {
+pub(crate) fn dump_char32(out: &mut std::string::String, c: u32) {
     use std::fmt::Write as _;
     if c >= ' ' as u32 && c <= 0xff {
         let _ = write!(out, "'{}'", (c as u8) as char);
@@ -696,7 +696,7 @@ fn dump_ranges(out: &mut std::string::String, need_matches_ranges_separator: &mu
 
 /// `dumpCharacterClass(out, pattern, characterClass)`. O `CharacterClass*` do C++ é o id, e o
 /// `pattern` nunca é nulo nos chamadores.
-fn dump_character_class(
+pub(crate) fn dump_character_class(
     out: &mut std::string::String,
     pattern: &mut crate::yarr::yarr_pattern::YarrPattern,
     character_class: crate::yarr::yarr_pattern::CharacterClassId,
