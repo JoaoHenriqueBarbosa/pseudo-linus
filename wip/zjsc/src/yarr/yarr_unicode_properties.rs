@@ -108,7 +108,8 @@ pub fn unicode_match_property(
 }
 
 fn property_index(unicode_class_id: BuiltInCharacterClassID) -> u32 {
-    unicode_class_id.0 - BuiltInCharacterClassID::BaseUnicodePropertyID.0
+    // Subtração `unsigned` do C++: as classes embutidas (`\d`, `\w`) dão a volta e caem fora da tabela.
+    unicode_class_id.0.wrapping_sub(BuiltInCharacterClassID::BaseUnicodePropertyID.0)
 }
 
 /// `createUnicodeCharacterClassFor`.
