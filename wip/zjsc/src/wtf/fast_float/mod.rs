@@ -8,3 +8,4 @@ pub mod decimal_to_binary;
 pub mod bigint;
 pub mod digit_comparison;
 pub mod parse_number;
+pub use parse_number::{parse_double, parse_fixed_double};

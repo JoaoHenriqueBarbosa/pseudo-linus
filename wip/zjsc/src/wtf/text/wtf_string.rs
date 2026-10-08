@@ -17,10 +17,7 @@
 //!   aqui como funções privadas.
 //! - `StringBuilder`: `makeStringByJoining` e `makeStringByRemoving` montam o resultado direto, com
 //!   a mesma largura (8 ou 16 bits) que o `StringBuilder`/`makeString` produzem.
-//! - `parseDouble` e `parseFixedDouble` (`FastFloat.cpp`, fast_float): reescritos como
-//!   `parse_double_general` e `parse_double_fixed` abaixo. Medem o prefixo com a gramática do
-//!   `fast_float::from_chars` e convertem o prefixo com o `str::parse::<f64>` do Rust, que também
-//!   arredonda corretamente (mesmo resultado bit a bit do fast_float).
+//! - `parseDouble` e `parseFixedDouble` vêm de `crate::wtf::fast_float` (o `FastFloat.cpp`).
 //! - `AtomString`: `convert_to_*_with_locale` recebem `&String` no lugar do `const AtomString&`.
 //!
 //! Fora deste porte (dependem de módulos ainda inexistentes): `toExistingAtomString`,
@@ -577,94 +574,6 @@ fn is_integer_unit(unit: u16) -> bool {
     (0x30..=0x39).contains(&unit)
 }
 
-/// O `fast_float::from_chars` com `no_infnan`: lê o prefixo numérico e devolve o valor e o
-/// comprimento consumido (0 quando não há número). `general` aceita `+` inicial e expoente
-/// (`chars_format::general | no_infnan | allow_leading_plus`); `fixed` não aceita nenhum dos dois
-/// (`chars_format::fixed | no_infnan`). Um `e` sem dígitos de expoente é ignorado e o número termina
-/// antes dele, porque o formato `general` inclui o bit `fixed`.
-fn parse_double_prefix<T: CharType>(string: &[T], general: bool) -> (f64, usize) {
-    let unit = |index: usize| string[index].to_u16();
-    let end = string.len();
-    let mut text: Vec<u8> = Vec::new();
-    let mut p = 0;
-
-    if p < end && (unit(p) == '-' as u16 || (general && unit(p) == '+' as u16)) {
-        if unit(p) == '-' as u16 {
-            text.push(b'-');
-        }
-        p += 1;
-    }
-    if p == end {
-        return (0.0, 0);
-    }
-
-    let start_digits = p;
-    while p < end && is_integer_unit(unit(p)) {
-        text.push(unit(p) as u8);
-        p += 1;
-    }
-    let mut digit_count = p - start_digits;
-
-    if p < end && unit(p) == '.' as u16 {
-        p += 1;
-        let start_fraction = p;
-        let mut fraction: Vec<u8> = Vec::new();
-        while p < end && is_integer_unit(unit(p)) {
-            fraction.push(unit(p) as u8);
-            p += 1;
-        }
-        digit_count += p - start_fraction;
-        if !fraction.is_empty() {
-            text.push(b'.');
-            text.extend_from_slice(&fraction);
-        }
-    }
-
-    // we must have encountered at least one digit!
-    if digit_count == 0 {
-        return (0.0, 0);
-    }
-
-    if general && p < end && (unit(p) == 'e' as u16 || unit(p) == 'E' as u16) {
-        let location_of_e = p;
-        p += 1;
-        let mut exponent_text: Vec<u8> = vec![b'e'];
-        if p < end && unit(p) == '-' as u16 {
-            exponent_text.push(b'-');
-            p += 1;
-        } else if p < end && unit(p) == '+' as u16 {
-            p += 1;
-        }
-        if p == end || !is_integer_unit(unit(p)) {
-            // Otherwise, we will be ignoring the 'e'.
-            p = location_of_e;
-        } else {
-            while p < end && is_integer_unit(unit(p)) {
-                exponent_text.push(unit(p) as u8);
-                p += 1;
-            }
-            text.extend_from_slice(&exponent_text);
-        }
-    }
-
-    // O texto montado é ASCII puro; o `parse` do Rust arredonda corretamente e devolve infinito
-    // no estouro, como o fast_float (cujo `ec` o C++ ignora).
-    let value = std::str::from_utf8(&text)
-        .ok()
-        .and_then(|text| text.parse::<f64>().ok())
-        .unwrap_or(0.0);
-    (value, p)
-}
-
-/// `parseDouble(span, parsedLength)`.
-fn parse_double_general<T: CharType>(string: &[T]) -> (f64, usize) {
-    parse_double_prefix(string, true)
-}
-
-/// `parseFixedDouble(span, parsedLength)`.
-fn parse_double_fixed<T: CharType>(string: &[T]) -> (f64, usize) {
-    parse_double_prefix(string, false)
-}
 
 /// `toDoubleType<CharacterType, trailingJunkPolicy, whitespacePolicy, mode>`: devolve o número, o
 /// `ok` e o `parsedLength`.
@@ -684,9 +593,9 @@ fn to_double_type<T: CharType>(
     }
 
     let (number, mut parsed_length) = if mode == ParseMode::Fixed {
-        parse_double_fixed(&data[leading_spaces_length..])
+        { let mut n = 0; (crate::wtf::fast_float::parse_fixed_double(&data[leading_spaces_length..], &mut n), n) }
     } else {
-        parse_double_general(&data[leading_spaces_length..])
+        { let mut n = 0; (crate::wtf::fast_float::parse_double(&data[leading_spaces_length..], &mut n), n) }
     };
 
     if parsed_length == 0 {
