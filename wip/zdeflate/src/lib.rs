@@ -212,7 +212,7 @@ impl std::fmt::Debug for Deflate {
 }
 
 /// `adler32`.
-fn adler32(adler: u32, data: &[u8]) -> u32 {
+pub fn adler32(adler: u32, data: &[u8]) -> u32 {
     const BASE: u32 = 65521;
     const NMAX: usize = 5552;
     let mut a = adler & 0xffff;

@@ -16,7 +16,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gen_common
 
 # Tipos que o `dir()` dos valores embutidos não lista mas o interpretador consulta.
-EXTRA = [types.ModuleType, types.SimpleNamespace, types.MappingProxyType]
+EXTRA = [
+    types.ModuleType, types.SimpleNamespace, types.MappingProxyType,
+    types.CellType, types.TracebackType, types.GenericAlias, types.UnionType,
+]
 
 print('# Gerado no oráculo (python3.13 do Debian 13): tipo<TAB>nome[<TAB>assinatura].')
 seen = []

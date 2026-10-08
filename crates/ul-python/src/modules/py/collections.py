@@ -5,6 +5,9 @@ __all__ = ['ChainMap', 'Counter', 'OrderedDict', 'UserDict', 'UserList',
 
 import _collections_abc
 import sys as _sys
+
+_sys.modules['collections.abc'] = _collections_abc
+abc = _collections_abc
 from itertools import chain as _chain, repeat as _repeat, starmap as _starmap
 from keyword import iskeyword as _iskeyword
 from operator import eq as _eq, itemgetter as _itemgetter
@@ -502,9 +505,26 @@ class Counter(dict):
     __hash__ = None
 
 
-class ChainMap:
+class ChainMap(_collections_abc.MutableMapping):
+    ''' A ChainMap groups multiple dicts (or other mappings) together
+    to create a single, updateable view.
+
+    The underlying mappings are stored in a list.  That list is public and can
+    be accessed or updated using the *maps* attribute.  There is no other
+    state.
+
+    Lookups search the underlying mappings successively until a key is found.
+    In contrast, writes, updates, and deletions only operate on the first
+    mapping.
+
+    '''
+
     def __init__(self, *maps):
-        self.maps = list(maps) or [{}]
+        '''Initialize a ChainMap by setting *maps* to the given mappings.
+        If no mappings are provided, a single empty dictionary is used.
+
+        '''
+        self.maps = list(maps) or [{}]          # always at least one map
 
     def __missing__(self, key):
         raise KeyError(key)
@@ -512,21 +532,21 @@ class ChainMap:
     def __getitem__(self, key):
         for mapping in self.maps:
             try:
-                return mapping[key]
+                return mapping[key]             # can't use 'key in mapping' with defaultdict
             except KeyError:
                 pass
-        return self.__missing__(key)
+        return self.__missing__(key)            # support subclasses that define __missing__
 
     def get(self, key, default=None):
         return self[key] if key in self else default
 
     def __len__(self):
-        return len(set().union(*self.maps))
+        return len(set().union(*self.maps))     # reuses stored hash values if possible
 
     def __iter__(self):
         d = {}
-        for mapping in reversed(self.maps):
-            d.update(dict.fromkeys(mapping))
+        for mapping in map(dict.fromkeys, reversed(self.maps)):
+            d |= mapping                        # reuses stored hash values if possible
         return iter(d)
 
     def __contains__(self, key):
@@ -535,30 +555,35 @@ class ChainMap:
     def __bool__(self):
         return any(self.maps)
 
+    @_recursive_repr()
     def __repr__(self):
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(map(repr, self.maps)))
+        return f'{self.__class__.__name__}({", ".join(map(repr, self.maps))})'
 
-    def keys(self):
-        return list(self)
-
-    def values(self):
-        return [self[k] for k in self]
-
-    def items(self):
-        return [(k, self[k]) for k in self]
+    @classmethod
+    def fromkeys(cls, iterable, value=None, /):
+        'Create a new ChainMap with keys from iterable and values set to value.'
+        return cls(dict.fromkeys(iterable, value))
 
     def copy(self):
+        'New ChainMap or subclass with a new copy of maps[0] and refs to maps[1:]'
         return self.__class__(self.maps[0].copy(), *self.maps[1:])
 
     __copy__ = copy
 
-    def new_child(self, m=None):
+    def new_child(self, m=None, **kwargs):      # like Django's Context.push()
+        '''New ChainMap with a new map followed by all previous maps.
+        If no map is provided, an empty dict is used.
+        Keyword arguments update the map or new empty dict.
+        '''
         if m is None:
-            m = {}
+            m = kwargs
+        elif kwargs:
+            m.update(kwargs)
         return self.__class__(m, *self.maps)
 
     @property
-    def parents(self):
+    def parents(self):                          # like Django's Context.pop()
+        'New ChainMap from maps[1:].'
         return self.__class__(*self.maps[1:])
 
     def __setitem__(self, key, value):
@@ -568,25 +593,53 @@ class ChainMap:
         try:
             del self.maps[0][key]
         except KeyError:
-            raise KeyError('Key not found in the first mapping: %r' % (key,))
+            raise KeyError(f'Key not found in the first mapping: {key!r}')
 
     def popitem(self):
+        'Remove and return an item pair from maps[0]. Raise KeyError is maps[0] is empty.'
         try:
             return self.maps[0].popitem()
         except KeyError:
             raise KeyError('No keys found in the first mapping.')
 
     def pop(self, key, *args):
+        'Remove *key* from maps[0] and return its value. Raise KeyError if *key* not in maps[0].'
         try:
             return self.maps[0].pop(key, *args)
         except KeyError:
-            raise KeyError('Key not found in the first mapping: %r' % (key,))
+            raise KeyError(f'Key not found in the first mapping: {key!r}')
 
     def clear(self):
+        'Clear maps[0], leaving maps[1:] intact.'
         self.maps[0].clear()
 
+    def __ior__(self, other):
+        self.maps[0].update(other)
+        return self
 
-class UserDict:
+    def __or__(self, other):
+        if not isinstance(other, _collections_abc.Mapping):
+            return NotImplemented
+        m = self.copy()
+        m.maps[0].update(other)
+        return m
+
+    def __ror__(self, other):
+        if not isinstance(other, _collections_abc.Mapping):
+            return NotImplemented
+        m = dict(other)
+        for child in reversed(self.maps):
+            m.update(child)
+        return self.__class__(m)
+
+
+################################################################################
+### UserDict
+################################################################################
+
+class UserDict(_collections_abc.MutableMapping):
+
+    # Start by filling-out the abstract methods
     def __init__(self, dict=None, /, **kwargs):
         self.data = {}
         if dict is not None:
@@ -600,7 +653,7 @@ class UserDict:
     def __getitem__(self, key):
         if key in self.data:
             return self.data[key]
-        if hasattr(self.__class__, '__missing__'):
+        if hasattr(self.__class__, "__missing__"):
             return self.__class__.__missing__(self, key)
         raise KeyError(key)
 
@@ -613,60 +666,120 @@ class UserDict:
     def __iter__(self):
         return iter(self.data)
 
+    # Modify __contains__ and get() to work like dict
+    # does when __missing__ is present.
     def __contains__(self, key):
         return key in self.data
 
+    def get(self, key, default=None):
+        if key in self:
+            return self[key]
+        return default
+
+
+    # Now, add the methods in dicts but not in MutableMapping
     def __repr__(self):
         return repr(self.data)
 
-    def keys(self):
-        return self.data.keys()
+    def __or__(self, other):
+        if isinstance(other, UserDict):
+            return self.__class__(self.data | other.data)
+        if isinstance(other, dict):
+            return self.__class__(self.data | other)
+        return NotImplemented
 
-    def values(self):
-        return self.data.values()
+    def __ror__(self, other):
+        if isinstance(other, UserDict):
+            return self.__class__(other.data | self.data)
+        if isinstance(other, dict):
+            return self.__class__(other | self.data)
+        return NotImplemented
 
-    def items(self):
-        return self.data.items()
-
-    def get(self, key, default=None):
-        return self[key] if key in self else default
-
-    def pop(self, key, *args):
-        return self.data.pop(key, *args)
-
-    def setdefault(self, key, default=None):
-        if key not in self:
-            self[key] = default
-        return self[key]
-
-    def update(self, other=(), /, **kwds):
-        if hasattr(other, 'items'):
-            for key, value in other.items():
-                self[key] = value
+    def __ior__(self, other):
+        if isinstance(other, UserDict):
+            self.data |= other.data
         else:
-            for key, value in other:
-                self[key] = value
-        for key, value in kwds.items():
-            self[key] = value
+            self.data |= other
+        return self
+
+    def __copy__(self):
+        inst = self.__class__.__new__(self.__class__)
+        inst.__dict__.update(self.__dict__)
+        # Create a copy and avoid triggering descriptors
+        inst.__dict__["data"] = self.__dict__["data"].copy()
+        return inst
 
     def copy(self):
-        return self.__class__(self.data)
+        if self.__class__ is UserDict:
+            return UserDict(self.data.copy())
+        import copy
+        data = self.data
+        try:
+            self.data = {}
+            c = copy.copy(self)
+        finally:
+            self.data = data
+        c.update(self)
+        return c
+
+    @classmethod
+    def fromkeys(cls, iterable, value=None):
+        d = cls()
+        for key in iterable:
+            d[key] = value
+        return d
 
 
-class UserList:
+################################################################################
+### UserList
+################################################################################
+
+class UserList(_collections_abc.MutableSequence):
+    """A more or less complete user-defined wrapper around list objects."""
+
     def __init__(self, initlist=None):
         self.data = []
         if initlist is not None:
-            self.data[:] = list(initlist)
+            # XXX should this accept an arbitrary sequence?
+            if type(initlist) == type(self.data):
+                self.data[:] = initlist
+            elif isinstance(initlist, UserList):
+                self.data[:] = initlist.data[:]
+            else:
+                self.data = list(initlist)
 
     def __repr__(self):
         return repr(self.data)
+
+    def __lt__(self, other):
+        return self.data < self.__cast(other)
+
+    def __le__(self, other):
+        return self.data <= self.__cast(other)
+
+    def __eq__(self, other):
+        return self.data == self.__cast(other)
+
+    def __gt__(self, other):
+        return self.data > self.__cast(other)
+
+    def __ge__(self, other):
+        return self.data >= self.__cast(other)
+
+    def __cast(self, other):
+        return other.data if isinstance(other, UserList) else other
+
+    def __contains__(self, item):
+        return item in self.data
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, i):
-        return self.data[i]
+        if isinstance(i, slice):
+            return self.__class__(self.data[i])
+        else:
+            return self.data[i]
 
     def __setitem__(self, i, item):
         self.data[i] = item
@@ -674,20 +787,47 @@ class UserList:
     def __delitem__(self, i):
         del self.data[i]
 
-    def __iter__(self):
-        return iter(self.data)
+    def __add__(self, other):
+        if isinstance(other, UserList):
+            return self.__class__(self.data + other.data)
+        elif isinstance(other, type(self.data)):
+            return self.__class__(self.data + other)
+        return self.__class__(self.data + list(other))
 
-    def __contains__(self, item):
-        return item in self.data
+    def __radd__(self, other):
+        if isinstance(other, UserList):
+            return self.__class__(other.data + self.data)
+        elif isinstance(other, type(self.data)):
+            return self.__class__(other + self.data)
+        return self.__class__(list(other) + self.data)
 
-    def __eq__(self, other):
-        return self.data == (other.data if isinstance(other, UserList) else other)
+    def __iadd__(self, other):
+        if isinstance(other, UserList):
+            self.data += other.data
+        elif isinstance(other, type(self.data)):
+            self.data += other
+        else:
+            self.data += list(other)
+        return self
+
+    def __mul__(self, n):
+        return self.__class__(self.data * n)
+
+    __rmul__ = __mul__
+
+    def __imul__(self, n):
+        self.data *= n
+        return self
+
+    def __copy__(self):
+        inst = self.__class__.__new__(self.__class__)
+        inst.__dict__.update(self.__dict__)
+        # Create a copy and avoid triggering descriptors
+        inst.__dict__["data"] = self.__dict__["data"][:]
+        return inst
 
     def append(self, item):
         self.data.append(item)
-
-    def extend(self, other):
-        self.data.extend(other)
 
     def insert(self, i, item):
         self.data.insert(i, item)
@@ -698,11 +838,11 @@ class UserList:
     def remove(self, item):
         self.data.remove(item)
 
-    def sort(self, *args, **kwds):
-        self.data.sort(*args, **kwds)
+    def clear(self):
+        self.data.clear()
 
-    def reverse(self):
-        self.data.reverse()
+    def copy(self):
+        return self.__class__(self)
 
     def count(self, item):
         return self.data.count(item)
@@ -710,15 +850,24 @@ class UserList:
     def index(self, item, *args):
         return self.data.index(item, *args)
 
-    def copy(self):
-        return self.__class__(self)
+    def reverse(self):
+        self.data.reverse()
+
+    def sort(self, /, *args, **kwds):
+        self.data.sort(*args, **kwds)
+
+    def extend(self, other):
+        if isinstance(other, UserList):
+            self.data.extend(other.data)
+        else:
+            self.data.extend(other)
 
 
-from collections.abc import Sequence as _Sequence
-import sys as _sys
+################################################################################
+### UserString
+################################################################################
 
-
-class UserString(_Sequence):
+class UserString(_collections_abc.Sequence):
 
     def __init__(self, seq):
         if isinstance(seq, str):

@@ -88,7 +88,7 @@ def compressobj(level=-1, method=DEFLATED, wbits=MAX_WBITS, memLevel=DEF_MEM_LEV
 
 
 def decompressobj(wbits=MAX_WBITS, zdict=b''):
-    return _Decompress(_wrap(_zlib.decompressobj, wbits))
+    return _Decompress(_wrap(_zlib.decompressobj, wbits, zdict))
 
 
 class _ZlibDecompressor:
@@ -130,19 +130,21 @@ the unused_data attribute."""
             raise EOFError('End of stream already reached')
         data = self._pending + bytes(data)
         self._pending = b''
-        if max_length < 0:
-            out = self._raw.decompress(data)
-        elif max_length == 0:
+        if max_length == 0:
+            # Sem espaço para saída: a entrada espera a próxima chamada.
             self._pending = data
             out = b''
+        elif max_length < 0:
+            out = self._raw.decompress(data)
         else:
+            # O que o limite deixou de fora fica no `unconsumed_tail` do descompressor cru.
             out = self._raw.decompress(data, max_length)
-            self._pending = self._raw.unconsumed_tail
         if self._raw.eof:
             self.eof = True
             self.unused_data = self._raw.unused_data
             self._pending = b''
-        self.needs_input = not self.eof and not self._pending and (max_length < 0 or len(out) < max_length)
+        more_input = bool(self._pending or self._raw.unconsumed_tail)
+        self.needs_input = not self.eof and not more_input and (max_length < 0 or len(out) < max_length)
         return out
 
 

@@ -905,6 +905,86 @@ impl ExtObject for ClassCell {
     }
 }
 
+/// A célula de uma variável livre de função (`f.__closure__[i]`): o escopo que a guarda e o nome dela. Ler e gravar
+/// `cell_contents` vai direto à variável, como no CPython, onde a função de dentro e a de fora dividem a célula.
+struct FreeCell {
+    env: Rc<Env>,
+    name: String,
+}
+
+impl FreeCell {
+    fn contents(&self) -> Option<Value> {
+        self.env.vars.borrow().get(&self.name).cloned()
+    }
+}
+
+impl ExtObject for FreeCell {
+    fn type_name(&self) -> &'static str {
+        "cell"
+    }
+    fn repr(&self) -> String {
+        let at = crate::object::py_addr(Rc::as_ptr(&self.env) as usize);
+        match self.contents() {
+            Some(v) => format!(
+                "<cell at 0x{at:x}: {} object at 0x{:x}>",
+                v.type_name(),
+                crate::builtins::id_of(&v)
+            ),
+            None => format!("<cell at 0x{at:x}: empty>"),
+        }
+    }
+    fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
+        (name == "cell_contents").then(|| self.contents().ok_or_else(|| exc("ValueError", "Cell is empty")))
+    }
+    fn setattr(&self, name: &str, value: Value) -> Option<PyResult<()>> {
+        (name == "cell_contents").then(|| {
+            self.env.set(&self.name, value);
+            Ok(())
+        })
+    }
+    fn delattr(&self, name: &str) -> Option<PyResult<()>> {
+        (name == "cell_contents").then(|| match self.env.vars.borrow_mut().remove(&self.name) {
+            Some(_) => Ok(()),
+            None => Err(exc("ValueError", "Cell is empty")),
+        })
+    }
+}
+
+/// `types.CellType([contents])`: uma célula avulsa, num escopo só dela.
+pub(crate) fn new_cell(args: &[Value]) -> PyResult<Value> {
+    if args.len() > 1 {
+        return Err(type_error(format!("cell expected at most 1 argument, got {}", args.len())));
+    }
+    let env = Env::new(None, false, false);
+    if let Some(contents) = args.first() {
+        env.set("contents", contents.clone());
+    }
+    Ok(Value::Ext(Rc::new(FreeCell { env, name: "contents".to_string() })))
+}
+
+/// `f.__closure__`: uma `cell` por variável livre do código (`co_freevars`), na mesma ordem, ou `None` quando a
+/// função não fecha nada. Cada célula aponta para o escopo de função mais interno que define o nome.
+pub(crate) fn function_closure(f: &FuncObj) -> Value {
+    let free = crate::cpybc::layout(&f.code).freevars;
+    let Some(outer) = f.closure.as_ref().filter(|_| !free.is_empty()) else { return Value::None };
+    let cells = free
+        .iter()
+        .map(|name| {
+            let mut scope = Some(outer.clone());
+            let mut home = outer.clone();
+            while let Some(env) = scope {
+                if !env.is_class && env.vars.borrow().contains_key(name) {
+                    home = env;
+                    break;
+                }
+                scope = env.parent.clone();
+            }
+            Value::Ext(Rc::new(FreeCell { env: home, name: name.to_string() }))
+        })
+        .collect();
+    Value::tuple(cells)
+}
+
 /// Refaz um objeto nativo a partir da imagem do heap (o inverso de [`ExtObject::image`]).
 /// `None` para as imagens que outro módulo refaz (iteradores, geradores, `weakref`, `Opaque`: ver
 /// `heapimage`), porque elas precisam do contexto da reconstrução.
@@ -1477,6 +1557,12 @@ impl ExtObject for BuiltinSuperMethod {
                     inst.dict.borrow_mut().insert("__doc__".to_string(), doc);
                     return Ok(Value::None);
                 }
+                // `super().__init__(funcao)` de subclasse de `classmethod`/`staticmethod`: cria o descritor nativo.
+                if let Some(t @ ("classmethod" | "staticmethod")) = inst.class().data_base {
+                    let fresh = vm.call(&Value::Builtin(t), args, kw)?;
+                    *inst.payload.borrow_mut() = Some(fresh);
+                    return Ok(Value::None);
+                }
                 // `super().__init__(...)` de subclasse de `dict`/`list`/`set`: preenche o valor embutido.
                 let payload = inst.payload.borrow().clone();
                 if let Some(p @ (Value::Dict(_) | Value::List(_) | Value::Set(_))) = payload {
@@ -1840,40 +1926,17 @@ impl Vm {
         Ok(cls)
     }
 
-    /// Recusa instanciar uma classe derivada de `ABC` que ainda tem métodos abstratos.
+    /// Recusa instanciar uma classe com `__abstractmethods__` próprio não vazio: o `type.__abstractmethods__` do
+    /// CPython liga a bandeira `Py_TPFLAGS_IS_ABSTRACT` da classe quando recebe um valor verdadeiro (é o que o
+    /// `_abc_init` do `abc` faz), e o `object.__new__` a confere. A bandeira não é herdada: só o dicionário da
+    /// própria classe conta, e os nomes saem ordenados.
     fn check_abstract(&mut self, cls: &Rc<ClassObj>) -> PyResult<()> {
-        let mro = cls.mro();
-        if !mro.iter().any(|c| c.dict.borrow().contains_key("__abstract_base__")) {
-            return Ok(());
-        }
-        let is_abstract = |v: &Value| match v {
-            Value::Function(f) => f.attrs.borrow().contains_key("__isabstractmethod__"),
-            Value::Ext(e) => match e.descriptor() {
-                Some(Descriptor::Static(Value::Function(f))) | Some(Descriptor::Class(Value::Function(f))) => {
-                    f.attrs.borrow().contains_key("__isabstractmethod__")
-                }
-                Some(Descriptor::Property { get: Value::Function(f), .. }) => {
-                    f.attrs.borrow().contains_key("__isabstractmethod__")
-                }
-                _ => false,
-            },
-            _ => false,
+        let abstracts = match cls.dict.borrow().get("__abstractmethods__") {
+            Some(v) if v.is_true() => v.clone(),
+            _ => return Ok(()),
         };
-        let mut names: Vec<String> = Vec::new();
-        for c in mro.iter().rev() {
-            for (k, v) in c.dict.borrow().iter() {
-                if is_abstract(v) && !names.contains(k) {
-                    names.push(k.clone());
-                }
-            }
-        }
-        let missing: Vec<String> = names
-            .into_iter()
-            .filter(|n| cls.lookup(n).is_some_and(|v| is_abstract(&v)))
-            .collect();
-        if missing.is_empty() {
-            return Ok(());
-        }
+        let mut missing: Vec<String> = crate::vm::iterate(&abstracts)?.iter().map(to_str).collect();
+        missing.sort();
         let quoted: Vec<String> = missing.iter().map(|n| format!("'{n}'")).collect();
         let (noun, list) = if missing.len() == 1 { ("method", quoted[0].clone()) } else { ("methods", quoted.join(", ")) };
         Err(type_error(format!(
@@ -1945,8 +2008,12 @@ impl Vm {
             // Sem `__init__`/`__new__` de usuário os argumentos vão direto para o tipo embutido.
             let own = user_new.is_some() || matches!(cls.lookup("__init__"), Some(Value::Function(_)));
             let (a, k) = if own { (Vec::new(), Vec::new()) } else { (args.clone(), kw.clone()) };
-            let payload = self.call(&data_ctor(t), a, k)?;
-            *fresh.payload.borrow_mut() = Some(payload);
+            // `classmethod` e `staticmethod` exigem a função: com `__init__` próprio o descritor só nasce no
+            // `super().__init__(funcao)`, e a instância fica sem valor até lá.
+            if !(own && matches!(t, "classmethod" | "staticmethod")) {
+                let payload = self.call(&data_ctor(t), a, k)?;
+                *fresh.payload.borrow_mut() = Some(payload);
+            }
         }
         let (inst, obj) = match user_new {
             Some(f) => {
@@ -2056,9 +2123,11 @@ impl Vm {
                     let args = vec![attr.clone(), instance, Value::Class(cls.clone())];
                     self.call_or_defer(&Value::Function(f), args, defer)
                 }
-                // Subclasse de `property` sem `__get__` próprio: o `property.__get__` herdado.
-                _ => match (property_parts(attr), recv) {
-                    (Some((get, ..)), recv) if !matches!(recv, Value::Class(_)) => {
+                // Subclasse de `property` sem `__get__` próprio: o `property.__get__` herdado; de `classmethod` ou
+                // `staticmethod`, o descritor nativo guardado liga como o original.
+                _ => match (method_wrapper_payload(d), property_parts(attr), recv) {
+                    (Some(inner), _, recv) => self.bind_class_attr_defer(&inner, recv, cls, defer),
+                    (None, Some((get, ..)), recv) if !matches!(recv, Value::Class(_)) => {
                         if matches!(get, Value::None) {
                             return Err(property_missing(cls, attr, "getter"));
                         }
@@ -2767,6 +2836,16 @@ impl Vm {
         }
     }
 
+    /// A classe em Python do módulo dono que representa o tipo do objeto nativo `type_name` (`re.Pattern`,
+    /// `_hashlib.HASH`), se o módulo já a definiu. Lida do módulo a cada chamada, sem estado próprio, para
+    /// valer também na `Vm` refeita pelo `fork`.
+    pub(crate) fn native_python_class(&self, type_name: &str) -> Option<Value> {
+        let owner = crate::object::native_type_owner(type_name)?;
+        let globals = self.module_globals.borrow().get(owner).cloned()?;
+        let class = globals.borrow().get(type_name).filter(|v| matches!(v, Value::Class(_))).cloned();
+        class
+    }
+
     /// `type(valor)`.
     pub(crate) fn type_of(&self, v: &Value) -> Value {
         if let Value::Module(m) = v {
@@ -2791,6 +2870,12 @@ impl Vm {
                 None => Value::Builtin("type"),
             },
             other => {
+                // Objeto nativo cujo tipo o módulo dono define como classe em Python (`re.Pattern`).
+                if let Value::Ext(e) = other {
+                    if let Some(class) = self.native_python_class(e.type_name()) {
+                        return class;
+                    }
+                }
                 // Os tipos de dados são os mesmos valores que os nomes globais `int`, `dict`...
                 let n = other.type_name();
                 crate::builtins::get(n).unwrap_or_else(|| {
@@ -3186,9 +3271,21 @@ struct BaseInfo {
     derives_type: bool,
 }
 
-/// Tipos de dados embutidos que uma classe de usuário pode estender (a instância guarda o valor).
+/// Tipos de dados embutidos que uma classe de usuário pode estender (a instância guarda o valor). `property`,
+/// `classmethod` e `staticmethod` guardam no valor o descritor nativo que o `super().__init__` cria.
 fn data_type(name: &str) -> Option<&'static str> {
-    ["int", "float", "str", "bytes", "list", "tuple", "dict", "set", "bool", "module", "property"].into_iter().find(|n| *n == name)
+    ["int", "float", "str", "bytes", "list", "tuple", "dict", "set", "bool", "module", "property", "classmethod", "staticmethod"]
+        .into_iter()
+        .find(|n| *n == name)
+}
+
+/// O descritor nativo guardado numa instância de subclasse de `classmethod` ou `staticmethod` (o
+/// `abstractclassmethod` e o `abstractstaticmethod` do `abc`), ou `None` antes do `super().__init__`.
+fn method_wrapper_payload(inst: &InstanceObj) -> Option<Value> {
+    match inst.class().data_base {
+        Some("classmethod" | "staticmethod") => inst.payload.borrow().clone(),
+        _ => None,
+    }
 }
 
 /// `types.ModuleType(name, doc=None)`: a subclasse de módulo não tem valor embutido, só os
@@ -3212,8 +3309,11 @@ fn init_module_fields(inst: &InstanceObj, args: &[Value], kw: &[(String, Value)]
 
 /// O construtor embutido (`dict`, `list`...) de um tipo de dados.
 fn data_ctor(name: &str) -> Value {
-    if name == "property" {
-        return Value::Builtin("property");
+    match name {
+        "property" => return Value::Builtin("property"),
+        "classmethod" => return Value::Builtin("classmethod"),
+        "staticmethod" => return Value::Builtin("staticmethod"),
+        _ => {}
     }
     crate::builtins::get(name).unwrap_or(Value::Builtin("object"))
 }
@@ -3244,6 +3344,9 @@ fn resolve_bases(bases: &[Value]) -> PyResult<BaseInfo> {
             }
             Value::Builtin("type") => info.derives_type = true,
             Value::Builtin("object") => {}
+            // `class _CallableGenericAlias(GenericAlias)` do `_collections_abc`: o alias nativo entra como base
+            // sem comportamento próprio (quem o subclassa só o usa pelos métodos que ele mesmo define).
+            Value::Builtin("GenericAlias") => {}
             Value::Builtin(n) if data_type(n).is_some() => {
                 if info.data_base.is_none() {
                     info.data_base = data_type(n);

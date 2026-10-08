@@ -32,6 +32,9 @@ class mappingproxy:
 
     __hash__ = None
 
+    # `mappingproxy[str, int]`: o `types.GenericAlias`, que o `types` ainda não pode importar daqui.
+    __class_getitem__ = classmethod(type(list[int]))
+
     def __or__(self, other):
         if isinstance(other, mappingproxy):
             other = other._mapping

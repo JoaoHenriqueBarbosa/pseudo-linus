@@ -329,6 +329,25 @@ fn key_of_env(env: Option<usize>) -> Key {
     env.map_or(Key::Pos(0, 0, 0), Key::Env)
 }
 
+/// Uma função cujo escopo `env` uma função de dentro capturou devolveu: como no CPython, só as células
+/// (`co_cellvars`) sobrevivem ao quadro, e os demais locais morrem aqui. Se alguém tem o objeto `frame`
+/// dela (`sys._getframe`, traceback), o quadro inteiro continua vivo, com todos os locais.
+pub fn release_locals(code: &Code, env: &Rc<Env>) {
+    if !code.is_function || Rc::strong_count(env) == 1 {
+        return;
+    }
+    if REGISTRY.with(|reg| reg.borrow().contains_key(&Key::Env(Rc::as_ptr(env) as usize))) {
+        return;
+    }
+    // O que sai é solto depois do empréstimo: um `__del__` pode voltar a este escopo.
+    let dead: Vec<Value> = {
+        let mut vars = env.vars.borrow_mut();
+        let names: Vec<Rc<str>> = vars.keys().filter(|k| !code.cellvars.contains(k)).cloned().collect();
+        names.iter().filter_map(|k| vars.remove(k)).collect()
+    };
+    drop(dead);
+}
+
 /// O quadro em execução (`env` como em [`line_changed`]) já tem identidade e um `f_trace`? Não cria
 /// o quadro: quem ninguém pediu por `sys._getframe` nem recebeu num evento não tem rastreador.
 pub fn is_traced(env: Option<usize>) -> bool {

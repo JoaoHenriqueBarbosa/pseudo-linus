@@ -1,12 +1,17 @@
-//! `_weakref`: referências fracas de verdade sobre os `Rc` da VM. `ref(obj)` não mantém `obj` vivo;
-//! chamar a referência devolve o objeto, ou `None` depois que o último dono o soltou.
+//! `_wref`: o núcleo nativo das referências fracas, sobre os `Rc` da VM. `ref(obj)` não mantém `obj`
+//! vivo; chamar a referência devolve o objeto, ou `None` depois que o último dono o soltou. O programa
+//! nunca vê este módulo: o `_weakref` (Python embutido) monta em cima dele o tipo `weakref.ReferenceType`,
+//! que se pode herdar, e os procuradores.
 //!
 //! Só se pode apontar para o que o CPython também permite (instâncias, classes, funções, módulos e
 //! objetos nativos); `list`, `int`, `str` etc. dão `TypeError`, igual lá. A função de retorno
-//! (`callback`) roda na primeira vez que alguém observa a referência já morta, e não no instante
-//! exato da morte: a VM conta referências e não tem gancho de coleta que possa chamar Python.
+//! (`callback`) de uma referência a instância roda no ponto seguro logo depois da instrução que soltou
+//! a última referência (o `Drop` da instância enfileira, como o `__del__`: ver `crate::finalize`). Para
+//! classes, funções e módulos não há gancho de morte, e a função de retorno roda na primeira vez que
+//! alguém observa a referência já morta.
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::{Rc, Weak};
 
 use crate::modules::ModuleBuilder;
@@ -94,9 +99,8 @@ impl ExtObject for WeakRef {
         if let Some(v) = self.upgrade() {
             return Ok(v);
         }
-        let cb = self.callback.borrow_mut().take();
-        if let (Some(cb), Some(me)) = (cb, self.me.upgrade()) {
-            vm.call(&cb, vec![Value::Ext(me)], Vec::new())?;
+        if let Some(me) = self.me.upgrade() {
+            me.fire(vm);
         }
         Ok(Value::None)
     }
@@ -160,8 +164,63 @@ fn make_ref(obj: &Value, callback: Option<Value>) -> PyResult<Value> {
     Ok(new_ref(target, callback, None))
 }
 
+thread_local! {
+    /// As referências com função de retorno a instâncias vivas, pelo endereço da instância: o `Drop` dela
+    /// avisa (`referent_died`) e as funções de retorno rodam no próximo ponto seguro.
+    static WATCHED: RefCell<HashMap<usize, Vec<Weak<WeakRef>>>> = RefCell::new(HashMap::new());
+}
+
+/// Chamado pelo `Drop` de uma instância: se há referências com função de retorno a ela, entrega-as à fila
+/// de finalização (a ordem é a do registro, a mais antiga primeiro, como o CPython). Barato quando nada
+/// está sendo observado.
+pub(crate) fn referent_died(addr: usize) {
+    let refs = WATCHED
+        .try_with(|w| {
+            let mut w = w.try_borrow_mut().ok()?;
+            if w.is_empty() {
+                return None;
+            }
+            w.remove(&addr)
+        })
+        .ok()
+        .flatten();
+    for r in refs.into_iter().flatten().filter_map(|w| w.upgrade()) {
+        crate::finalize::enqueue_weakref(r);
+    }
+}
+
+impl WeakRef {
+    /// Roda a função de retorno de uma referência cujo referente morreu (uma vez só). Uma exceção dela
+    /// vai ao `sys.unraisablehook`, como no CPython.
+    pub(crate) fn fire(self: &Rc<Self>, vm: &mut Vm) {
+        if self.upgrade().is_some() {
+            return;
+        }
+        let Some(cb) = self.callback.borrow_mut().take() else { return };
+        let me = Value::Ext(self.clone());
+        if let Err(e) = vm.call(&cb, vec![me], Vec::new()) {
+            vm.write_unraisable(&cb, e);
+        }
+    }
+}
+
 fn new_ref(target: Target, callback: Option<Value>, hash: Option<i64>) -> Value {
+    let watch = match (&target, &callback) {
+        (Target::Instance(w), Some(_)) => Some(w.as_ptr() as usize),
+        _ => None,
+    };
     let r = Rc::new_cyclic(|me| WeakRef { target, me: me.clone(), callback: RefCell::new(callback), hash: RefCell::new(hash) });
+    if let Some(addr) = watch {
+        let _ = WATCHED.try_with(|w| {
+            let mut w = w.borrow_mut();
+            let watching = w.entry(addr).or_default();
+            // As referências já soltas não esperam mais nada: sai o registro delas antes que a lista cresça.
+            if watching.len() >= 16 {
+                watching.retain(|r| r.strong_count() > 0);
+            }
+            watching.push(Rc::downgrade(&r));
+        });
+    }
     Value::Ext(r)
 }
 
@@ -191,15 +250,6 @@ fn weak_ref(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     make_ref(obj, cb)
 }
 
-/// `_weakref.proxy(obj, callback=None)`: os tipos de proxy vivem em `weakref.py`, carregado só na primeira
-/// chamada, para o `collections` poder importar o nome no arranque sem trazer o `weakref` junto (no CPython o
-/// `sys.modules` do arranque não tem `weakref`).
-fn weak_proxy(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    let module = crate::modules::import_checked(vm, "weakref")?;
-    let proxy = vm.load_attr(&Value::Module(module), "proxy")?;
-    vm.call(&proxy, args, kw)
-}
-
 pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
-    ModuleBuilder::new("_weakref").func("ref", weak_ref).func("proxy", weak_proxy).build()
+    ModuleBuilder::new("_wref").func("ref", weak_ref).build()
 }

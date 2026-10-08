@@ -1,17 +1,10 @@
 """Thread module emulating a subset of Java's threading model."""
 
-# As threads são verdes (`_gsched`): cada uma é uma pilha de quadros da VM e o laço de instruções troca entre
-# elas. `start()` roda a thread nova na hora, até ela bloquear ou acabar; quem bloqueia (`join`, `Event.wait`,
-# `Condition.wait`, uma fila vazia, `time.sleep`) fica suspensa e volta quando a condição vale. Onde a VM não
-# pode trocar de thread (dentro de um callback de `sorted(key=)`, de um gerador...) vale o escalonador aninhado
-# antigo: `start()` só enfileira a thread e quem bloqueia roda as pendentes; uma que bloqueia sem ninguém para
-# destravá-la fica estacionada. O resto do módulo é o `threading.py` do CPython 3.13, com os mesmos números de
-# linha nos tracebacks.
-
-import _thread, _os, _gsched
+import _thread, _os, _gsched, warnings
 import sys as _sys
 import _sys as _native_sys
 from time import monotonic as _time; import time as _timemod
+from _weakrefset import WeakSet
 from itertools import count as _count
 from collections import deque as _deque
 
@@ -34,9 +27,16 @@ __all__ = ['get_ident', 'active_count', 'Condition', 'current_thread',
            'setprofile_all_threads','settrace_all_threads']
 
 # Rename some stuff so "from threading import *" is safe
+_start_joinable_thread = _thread.start_joinable_thread
+_daemon_threads_allowed = _thread.daemon_threads_allowed
 _allocate_lock = _thread.allocate_lock
 _LockType = _thread.LockType
+_thread_shutdown = _thread._shutdown
+_make_thread_handle = _thread._make_thread_handle
+_ThreadHandle = _thread._ThreadHandle
 get_ident = _thread.get_ident
+_get_main_thread_ident = _thread._get_main_thread_ident
+_is_main_interpreter = _thread._is_main_interpreter
 get_native_id = _thread.get_native_id
 _HAVE_THREAD_NATIVE_ID = True
 __all__.append('get_native_id')
@@ -848,9 +848,9 @@ def _newname(name_template):
 # bpo-44422: Use a reentrant lock to allow reentrant calls to functions like
 # threading.enumerate().
 _active_limbo_lock = RLock()
-# Aqui as threads vivas ficam em `_threads` (as de `threading.Thread`) e em `_raw` (as de
-# `_thread.start_new_thread`), e a que roda agora em `_state['current']`; o que o CPython guarda em
-# `_active`, `_limbo` e `_dangling` é o que o escalonador acima já sabe.
+_active = {}    # maps thread id to Thread object
+_limbo = {}
+_dangling = WeakSet()
 
 
 # Main class for threads
@@ -923,7 +923,7 @@ class Thread:
         self._stderr = _sys.stderr
         self._invoke_excepthook = _make_invoke_excepthook()
         # For debugging and _after_fork()
-        # (as threads vivas já estão em `_threads`, `_raw` e `_pending`)
+        _dangling.add(self)
 
     def _after_fork(self, new_ident=None):
         # Private!  Called by threading._after_fork().
@@ -967,14 +967,14 @@ class Thread:
             raise RuntimeError("threads can only be started once")
 
         # Como no CPython, a thread nova começa a rodar já e `start()` só devolve quando ela bloqueia ou acaba
-        # (a GIL passa a quem acabou de nascer): `_gsched.start` troca para ela e volta aqui depois. Onde a VM
-        # não troca de thread, a thread só entra na fila (`_pending`) e roda quando alguém bloquear.
-        # O ident e o native id já ficam disponíveis, como depois do `_started.wait()` do CPython.
-        # (`_limbo` e `_start_joinable_thread` não existem: a thread passa direto de criada a viva.)
-        self._ident = _thread._new_ident()
+        # (a GIL passa a quem acabou de nascer); onde a VM não troca de thread ela entra na fila (`_pending`).
+        # O ident e o native id já ficam disponíveis, como depois do `_started.wait()` do CPython (`_limbo` fica
+        # vazio: a thread passa direto de criada a viva).
+        self._ident = self._handle.ident = _thread._new_ident()
         self._native_id = _os.getpid() + _thread._slots[self._ident]
         self._started.set()
         _threads.append(self)
+        _active[self._ident] = self
         if _gsched.can_switch():
             _gsched.start(self)
         else:
@@ -1056,6 +1056,7 @@ class Thread:
         if not self._parked:
             self._finished = True
             _threads[:] = [t for t in _threads if t is not self]
+            _active.pop(self._ident, None)
             _thread._release_ident(self._ident)
 
     def join(self, timeout=None):
@@ -1214,7 +1215,6 @@ class Thread:
                       DeprecationWarning, stacklevel=2)
         self.name = name
 
-
 try:
     from _thread import (_excepthook as excepthook,
                          _ExceptHookArgs as ExceptHookArgs)
@@ -1352,8 +1352,227 @@ class _MainThread(Thread):
     def __init__(self):
         Thread.__init__(self, name="MainThread", daemon=False)
         self._started.set()
-        self._ident = _thread.get_ident()
+        self._ident = _get_main_thread_ident()
+        self._handle = _make_thread_handle(self._ident)
         self._native_id = _os.getpid()
+        with _active_limbo_lock:
+            _active[self._ident] = self
+
+
+# Helper thread-local instance to detect when a _DummyThread
+# is collected. Not a part of the public API.
+_thread_local_info = local()
+
+
+class _DeleteDummyThreadOnDel:
+    '''
+    Helper class to remove a dummy thread from threading._active on __del__.
+    '''
+
+    def __init__(self, dummy_thread):
+        self._dummy_thread = dummy_thread
+        self._tident = dummy_thread.ident
+        # Put the thread on a thread local variable so that when
+        # the related thread finishes this instance is collected.
+        #
+        # Note: no other references to this instance may be created.
+        # If any client code creates a reference to this instance,
+        # the related _DummyThread will be kept forever!
+        _thread_local_info._track_dummy_thread_ref = self
+
+    def __del__(self):
+        with _active_limbo_lock:
+            if _active.get(self._tident) is self._dummy_thread:
+                _active.pop(self._tident, None)
+
+
+# Dummy thread class to represent threads not started here.
+# These should be added to `_active` and removed automatically
+# when they die, although they can't be waited for.
+# Their purpose is to return *something* from current_thread().
+# They are marked as daemon threads so we won't wait for them
+# when we exit (conform previous semantics).
+
+class _DummyThread(Thread):
+
+    def __init__(self):
+        Thread.__init__(self, name=_newname("Dummy-%d"),
+                        daemon=_daemon_threads_allowed())
+        self._started.set()
+        self._set_ident()
+        self._handle = _make_thread_handle(self._ident)
+        if _HAVE_THREAD_NATIVE_ID:
+            self._set_native_id()
+        with _active_limbo_lock:
+            _active[self._ident] = self
+        _DeleteDummyThreadOnDel(self)
+
+    def is_alive(self):
+        if not self._handle.is_done() and self._started.is_set():
+            return True
+        raise RuntimeError("thread is not alive")
+
+    def join(self, timeout=None):
+        raise RuntimeError("cannot join a dummy thread")
+
+    def _after_fork(self, new_ident=None):
+        if new_ident is not None:
+            self.__class__ = _MainThread
+            self._name = 'MainThread'
+            self._daemonic = False
+        Thread._after_fork(self, new_ident=new_ident)
+
+
+class _RLock:
+    """This class implements reentrant lock objects.
+
+    A reentrant lock must be released by the thread that acquired it. Once a
+    thread has acquired a reentrant lock, the same thread may acquire it
+    again without blocking; the thread must release it once for each time it
+    has acquired it.
+
+    """
+
+    def __init__(self):
+        self._block = _allocate_lock()
+        self._owner = None
+        self._count = 0
+
+    def __repr__(self):
+        owner = self._owner
+        try:
+            owner = _active[owner].name
+        except KeyError:
+            pass
+        return "<%s %s.%s object owner=%r count=%d at %s>" % (
+            "locked" if self._block.locked() else "unlocked",
+            self.__class__.__module__,
+            self.__class__.__qualname__,
+            owner,
+            self._count,
+            hex(id(self))
+        )
+
+    def _at_fork_reinit(self):
+        self._block._at_fork_reinit()
+        self._owner = None
+        self._count = 0
+
+    def acquire(self, blocking=True, timeout=-1):
+        """Acquire a lock, blocking or non-blocking.
+
+        When invoked without arguments: if this thread already owns the lock,
+        increment the recursion level by one, and return immediately. Otherwise,
+        if another thread owns the lock, block until the lock is unlocked. Once
+        the lock is unlocked (not owned by any thread), then grab ownership, set
+        the recursion level to one, and return. If more than one thread is
+        blocked waiting until the lock is unlocked, only one at a time will be
+        able to grab ownership of the lock. There is no return value in this
+        case.
+
+        When invoked with the blocking argument set to true, do the same thing
+        as when called without arguments, and return true.
+
+        When invoked with the blocking argument set to false, do not block. If a
+        call without an argument would block, return false immediately;
+        otherwise, do the same thing as when called without arguments, and
+        return true.
+
+        When invoked with the floating-point timeout argument set to a positive
+        value, block for at most the number of seconds specified by timeout
+        and as long as the lock cannot be acquired.  Return true if the lock has
+        been acquired, false if the timeout has elapsed.
+
+        """
+        me = get_ident()
+        if self._owner == me:
+            self._count += 1
+            return 1
+        rc = self._block.acquire(blocking, timeout)
+        if rc:
+            self._owner = me
+            self._count = 1
+        return rc
+
+    __enter__ = acquire
+
+    def release(self):
+        """Release a lock, decrementing the recursion level.
+
+        If after the decrement it is zero, reset the lock to unlocked (not owned
+        by any thread), and if any other threads are blocked waiting for the
+        lock to become unlocked, allow exactly one of them to proceed. If after
+        the decrement the recursion level is still nonzero, the lock remains
+        locked and owned by the calling thread.
+
+        Only call this method when the calling thread owns the lock. A
+        RuntimeError is raised if this method is called when the lock is
+        unlocked.
+
+        There is no return value.
+
+        """
+        if self._owner != get_ident():
+            raise RuntimeError("cannot release un-acquired lock")
+        self._count = count = self._count - 1
+        if not count:
+            self._owner = None
+            self._block.release()
+
+    def __exit__(self, t, v, tb):
+        self.release()
+
+    # Internal methods used by condition variables
+
+    def _acquire_restore(self, state):
+        self._block.acquire()
+        self._count, self._owner = state
+
+    def _release_save(self):
+        if self._count == 0:
+            raise RuntimeError("cannot release un-acquired lock")
+        count = self._count
+        self._count = 0
+        owner = self._owner
+        self._owner = None
+        self._block.release()
+        return (count, owner)
+
+    def _is_owned(self):
+        return self._owner == get_ident()
+
+    # Internal method used for reentrancy checks
+
+    def _recursion_count(self):
+        if self._owner != get_ident():
+            return 0
+        return self._count
+
+_PyRLock = _RLock
+
+
+# Aqui `_finished` é o `is_done()` do handle da thread (como no CPython o `Thread` consulta o `_handle`): o
+# escalonador marca o fim por `self._finished = True` em vários pontos, e o handle de `Thread` nasce no primeiro
+# `self._finished = False` do `__init__`.
+def _finished_get(self):
+    try:
+        handle = self._handle
+    except AttributeError:
+        return False
+    return handle.is_done()
+
+
+def _finished_set(self, value):
+    try:
+        handle = self._handle
+    except AttributeError:
+        handle = self._handle = _ThreadHandle()
+    if value:
+        handle._set_done()
+
+
+Thread._finished = property(_finished_get, _finished_set)
+del _finished_get, _finished_set
 
 
 # Global API functions
@@ -1441,7 +1660,18 @@ from _thread import stack_size
 _main = None
 _state['current'] = None
 _main = _MainThread()
+_main_thread = _main
 _state['current'] = _main
+
+def _join_non_daemon():
+    # Wait for all non-daemon threads to exit (as que ainda não rodaram rodam agora).
+    for t in list(_pending):
+        if t._daemonic:
+            _pending.remove(t)
+    _run_all()
+    if _gsched.can_switch():
+        for t in [t for t in _threads if not t._daemonic]:
+            t.join()
 
 def _shutdown():
     """
@@ -1458,14 +1688,7 @@ def _shutdown():
     for atexit_call in reversed(_threading_atexits):
         atexit_call()
 
-    # Wait for all non-daemon threads to exit (as que ainda não rodaram rodam agora).
-    for t in list(_pending):
-        if t._daemonic:
-            _pending.remove(t)
-    _run_all()
-    if _gsched.can_switch():
-        for t in [t for t in _threads if not t._daemonic]:
-            t.join()
+    _thread_shutdown()
 
 
 def main_thread():
@@ -1490,6 +1713,9 @@ def _after_fork():
     del _raw[:]
     del _pending[:]
     del _services[:]
+    _limbo.clear()
+    _active.clear()
+    _active[_state['current']._ident] = _state['current']
     _main._native_id = _os.getpid()
     _thread._slots.clear()
     _gsched.after_fork()
@@ -1592,9 +1818,17 @@ def _before_sleep(secs):
 _deadline = None
 
 
+# As threads são verdes (`_gsched`): cada uma é uma pilha de quadros da VM e o laço de instruções troca entre
+# elas. `start()` roda a thread nova na hora, até ela bloquear ou acabar; quem bloqueia (`join`, `Event.wait`,
+# `Condition.wait`, uma fila vazia, `time.sleep`) fica suspensa e volta quando a condição vale. Onde a VM não
+# pode trocar de thread (dentro de um callback de `sorted(key=)`, de um gerador...) vale o escalonador aninhado
+# antigo: `start()` só enfileira a thread e quem bloqueia roda as pendentes; uma que bloqueia sem ninguém para
+# destravá-la fica estacionada. O resto do módulo é o `threading.py` do CPython 3.13, com os mesmos números de
+# linha nos tracebacks onde isso aparece (`Condition`, `Thread.run`, `Timer.run`).
 _thread._hooks['wait'] = _wait_for
 _thread._hooks['start'] = _start_raw
 _thread._hooks['count'] = lambda: len(_threads) + len(_raw)
+_thread._hooks['shutdown'] = _join_non_daemon
 _timemod._sleep_hooks.append(_before_sleep)
 _gsched._state = _state
 _gsched.pollers = _pollers

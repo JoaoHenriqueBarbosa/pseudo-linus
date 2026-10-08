@@ -72,8 +72,8 @@ fn new_compress(level: i32, wrap: Wrap, mem_level: i32, strategy: Strategy) -> P
     Deflate::new(level, window_bits, mem_level, strategy).map_err(|_| exc("ValueError", "Invalid initialization option"))
 }
 
-fn new_decompress(wrap: Wrap, head: &[u8]) -> Decompress {
-    match wrap {
+fn new_decompress(wrap: Wrap, head: &[u8], zdict: &[u8]) -> PyResult<Decompress> {
+    let mut d = match wrap {
         Wrap::Zlib(w) => Decompress::new_with_window_bits(true, w),
         Wrap::Raw(w) => Decompress::new_with_window_bits(false, w),
         Wrap::Gzip(w) => Decompress::new_gzip(w),
@@ -84,7 +84,12 @@ fn new_decompress(wrap: Wrap, head: &[u8]) -> Decompress {
                 Decompress::new_with_window_bits(true, w)
             }
         }
+    };
+    // O deflate cru não tem cabeçalho que peça o dicionário: ele entra antes do primeiro byte.
+    if matches!(wrap, Wrap::Raw(_)) && !zdict.is_empty() {
+        d.set_dictionary(zdict).map_err(|e| decompress_error(&e))?;
     }
+    Ok(d)
 }
 
 fn run_compress(c: &mut Deflate, input: &[u8], flush: Flush) -> PyResult<Vec<u8>> {
@@ -120,56 +125,55 @@ fn compress(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 }
 
 fn decompress_error(e: &flate2::DecompressError) -> crate::vm::PyException {
+    if e.needs_dictionary().is_some() {
+        return exc("ValueError", "Error 2 while decompressing data");
+    }
     let msg = e.message().unwrap_or("invalid data");
     exc("ValueError", format!("Error -3 while decompressing data: {msg}"))
 }
 
-/// Alimenta `input` ao decompressor; devolve (saída, bytes consumidos, chegou ao fim).
-fn run_decompress(d: &mut Decompress, input: &[u8], max_out: usize) -> PyResult<(Vec<u8>, usize, bool)> {
+/// Alimenta `input` ao descompressor; devolve (saída, bytes consumidos, chegou ao fim). Com `max_out > 0`
+/// a saída nunca passa desse tamanho (o que sobra da entrada fica para a próxima chamada). `zdict` é o
+/// dicionário que um fluxo zlib com `FDICT` pede.
+fn run_decompress(d: &mut Decompress, input: &[u8], max_out: usize, zdict: &[u8]) -> PyResult<(Vec<u8>, usize, bool)> {
     let mut out: Vec<u8> = Vec::new();
     let start = d.total_in();
-    let mut ended = false;
+    let mut buf = vec![0u8; 16384];
     loop {
         let consumed = (d.total_in() - start) as usize;
-        if max_out > 0 && out.len() >= max_out {
+        let room = if max_out > 0 { (max_out - out.len()).min(buf.len()) } else { buf.len() };
+        if room == 0 {
             break;
         }
-        let want = if max_out > 0 { max_out - out.len() } else { input.len().max(4096) * 4 };
-        out.reserve(want);
-        let room = if max_out > 0 { want } else { out.capacity() - out.len() };
-        let _ = room;
-        let before_out = out.len();
-        let status = d
-            .decompress_vec(&input[consumed..], &mut out, FlushDecompress::None)
-            .map_err(|e| decompress_error(&e))?;
-        let now_consumed = (d.total_in() - start) as usize;
-        match status {
-            Status::StreamEnd => {
-                ended = true;
-                break;
+        let (in_before, out_before) = (d.total_in(), d.total_out());
+        let status = match d.decompress(&input[consumed..], &mut buf[..room], FlushDecompress::None) {
+            Ok(status) => status,
+            Err(e) if e.needs_dictionary().is_some() && !zdict.is_empty() => {
+                d.set_dictionary(zdict).map_err(|e| decompress_error(&e))?;
+                continue;
             }
-            Status::BufError => {
-                if out.len() == before_out && now_consumed == consumed {
-                    break;
-                }
-            }
-            Status::Ok => {
-                if now_consumed >= input.len() && out.len() < out.capacity() {
-                    break;
-                }
-            }
+            Err(e) => return Err(decompress_error(&e)),
+        };
+        let produced = (d.total_out() - out_before) as usize;
+        out.extend_from_slice(&buf[..produced]);
+        if status == Status::StreamEnd {
+            return Ok((out, (d.total_in() - start) as usize, true));
+        }
+        let all_consumed = (d.total_in() - start) as usize >= input.len();
+        // Sem progresso, ou entrada toda consumida com folga na saída: nada mais a escoar.
+        if (d.total_in() == in_before && produced == 0) || (all_consumed && produced < room) {
+            break;
         }
     }
-    let consumed = (d.total_in() - start) as usize;
-    Ok((out, consumed, ended))
+    Ok((out, (d.total_in() - start) as usize, false))
 }
 
 fn decompress(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let s = bind("decompress", args, kw, &["data", "wbits", "bufsize"], 1)?;
     let data = want_data(s[0].as_ref().unwrap())?;
     let wrap = wrap_of(int_or(s[1].as_ref(), 15)?)?;
-    let mut d = new_decompress(wrap, &data);
-    let (out, _, ended) = run_decompress(&mut d, &data, 0)?;
+    let mut d = new_decompress(wrap, &data, &[])?;
+    let (out, _, ended) = run_decompress(&mut d, &data, 0, &[])?;
     if !ended {
         return Err(exc(
             "ValueError",
@@ -233,6 +237,9 @@ fn compressobj(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 
 struct DecompObj {
     wrap: Wrap,
+    /// Dicionário predefinido (`zdict`): vale para o deflate cru desde o início e para o zlib quando o
+    /// cabeçalho o pede.
+    zdict: Vec<u8>,
     state: RefCell<Option<Decompress>>,
     unused: RefCell<Vec<u8>>,
     tail: RefCell<Vec<u8>>,
@@ -277,10 +284,10 @@ impl ExtObject for DecompObj {
                     if input.is_empty() {
                         return Ok(Value::bytes(Vec::new()));
                     }
-                    *guard = Some(new_decompress(self.wrap, &input));
+                    *guard = Some(new_decompress(self.wrap, &input, &self.zdict)?);
                 }
                 let d = guard.as_mut().unwrap();
-                let (out, consumed, ended) = run_decompress(d, &input, max as usize)?;
+                let (out, consumed, ended) = run_decompress(d, &input, max as usize, &self.zdict)?;
                 let rest = input[consumed..].to_vec();
                 if ended {
                     self.end_stream(rest);
@@ -293,7 +300,7 @@ impl ExtObject for DecompObj {
                 let mut guard = self.state.borrow_mut();
                 let Some(d) = guard.as_mut() else { return Ok(Value::bytes(Vec::new())) };
                 let input = std::mem::take(&mut *self.tail.borrow_mut());
-                let (out, consumed, ended) = run_decompress(d, &input, 0)?;
+                let (out, consumed, ended) = run_decompress(d, &input, 0, &self.zdict)?;
                 if ended {
                     self.end_stream(input[consumed..].to_vec());
                 }
@@ -314,12 +321,17 @@ impl DecompObj {
 fn decompressobj(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let s = bind("decompressobj", args, kw, &["wbits", "zdict"], 0)?;
     let wrap = wrap_of(int_or(s[0].as_ref(), 15)?)?;
+    let zdict = match s[1].as_ref() {
+        None | Some(Value::None) => Vec::new(),
+        Some(v) => want_data(v)?,
+    };
     let state = match wrap {
         Wrap::Auto(_) => None,
-        other => Some(new_decompress(other, &[])),
+        other => Some(new_decompress(other, &[], &zdict)?),
     };
     Ok(Value::Ext(Rc::new(DecompObj {
         wrap,
+        zdict,
         state: RefCell::new(state),
         unused: RefCell::new(Vec::new()),
         tail: RefCell::new(Vec::new()),
@@ -331,16 +343,7 @@ fn adler32(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let s = bind("adler32", args, kw, &["data", "value"], 1)?;
     let data = want_data(s[0].as_ref().unwrap())?;
     let init = int_or(s[1].as_ref(), 1)? as u32;
-    let (mut a, mut b) = (init & 0xffff, init >> 16);
-    for chunk in data.chunks(5552) {
-        for &x in chunk {
-            a += u32::from(x);
-            b += a;
-        }
-        a %= 65521;
-        b %= 65521;
-    }
-    Ok(Value::Int(i64::from((b << 16) | a)))
+    Ok(Value::Int(i64::from(zdeflate::adler32(init, &data))))
 }
 
 pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {

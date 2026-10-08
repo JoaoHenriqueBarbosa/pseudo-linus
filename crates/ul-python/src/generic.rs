@@ -269,7 +269,7 @@ pub fn class_getitem(vm: &mut Vm, container: &Value, key: &Value) -> Option<PyRe
                         Some(vm.call_function(&f, vec![container.clone(), key.clone()], Vec::new()))
                     }
                     // `__class_getitem__ = classmethod(GenericAlias)`, o idioma da stdlib.
-                    Some(crate::object::Descriptor::Class(Value::Class(g))) if g.name == "GenericAlias" => {
+                    Some(crate::object::Descriptor::Class(Value::Builtin("GenericAlias"))) => {
                         Some(Ok(GenericAlias::make(container.clone(), key)))
                     }
                     _ => None,

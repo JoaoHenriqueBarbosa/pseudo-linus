@@ -41,6 +41,8 @@ const EXIT_ROUNDS: usize = 32;
 enum Doomed {
     Instance(Rc<InstanceObj>),
     Generator(Rc<GenCore>),
+    /// Referência fraca cujo referente acabou de morrer: roda a função de retorno dela.
+    WeakRef(Rc<crate::modules::weakrefmod::WeakRef>),
 }
 
 /// A referência fraca de um objeto finalizável vivo.
@@ -94,6 +96,11 @@ pub(crate) fn enqueue(obj: Rc<InstanceObj>) {
 /// O mesmo para o gerador suspenso que perdeu a última referência (`Drop` de `GenCore`).
 pub(crate) fn enqueue_generator(core: Rc<GenCore>) {
     push(Doomed::Generator(core));
+}
+
+/// E a referência fraca com função de retorno cujo referente morreu (`Drop` de `InstanceObj`).
+pub(crate) fn enqueue_weakref(r: Rc<crate::modules::weakrefmod::WeakRef>) {
+    push(Doomed::WeakRef(r));
 }
 
 fn push(obj: Doomed) {
@@ -168,6 +175,7 @@ impl Vm {
         match obj {
             Doomed::Instance(inst) => self.finalize(inst),
             Doomed::Generator(core) => core.reap(self),
+            Doomed::WeakRef(r) => r.fire(self),
         }
     }
 

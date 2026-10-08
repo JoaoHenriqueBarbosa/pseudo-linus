@@ -1874,10 +1874,14 @@ impl Vm {
                     }
                     Op::Return => match stack.pop() {
                         Some(Slot::Val(v)) if is_child => {
+                            crate::frameobj::release_locals(code, env);
                             finish = Some(Ok(v));
                             Ok(None)
                         }
-                        Some(Slot::Val(v)) => return Ok(Exit::Return(v)),
+                        Some(Slot::Val(v)) => {
+                            crate::frameobj::release_locals(code, env);
+                            return Ok(Exit::Return(v));
+                        }
                         _ => Err(internal("bad value stack")),
                     },
                     Op::Yield => match stack.pop() {
@@ -4580,6 +4584,22 @@ impl Vm {
                     _ => Err(type_error(format!("method expected 2 arguments, got {}", args.len()))),
                 };
             }
+            Value::Builtin("cell") => {
+                if let Some((k, _)) = kwargs.first() {
+                    return Err(type_error(format!("cell() takes no keyword arguments ('{k}' given)")));
+                }
+                return crate::classes::new_cell(&args);
+            }
+            // `types.GenericAlias(origem, args)`, o mesmo que `origem[args]`.
+            Value::Builtin("GenericAlias") => {
+                if !kwargs.is_empty() {
+                    return Err(type_error("GenericAlias() takes no keyword arguments"));
+                }
+                return match args.as_slice() {
+                    [origin, key] => Ok(crate::generic::GenericAlias::make(origin.clone(), key)),
+                    _ => Err(type_error(format!("GenericAlias expected 2 arguments, got {}", args.len()))),
+                };
+            }
             Value::Builtin(name @ ("staticmethod" | "classmethod" | "property" | "super" | "type" | "object")) => {
                 return self.call_class_builtin(name, args, kwargs);
             }
@@ -5027,6 +5047,20 @@ impl Vm {
             {
                 return crate::builtins_ext::type_own_dict(self, obj);
             }
+            // `function.__code__` (um `getset_descriptor`) e `function.__globals__` (um `member_descriptor`): os
+            // campos de dados do tipo `function`, lidos pelo tipo (o `types.GetSetDescriptorType` sai daqui).
+            Value::Builtin("function")
+                if matches!(
+                    name,
+                    "__code__" | "__globals__" | "__defaults__" | "__kwdefaults__" | "__annotations__" | "__closure__"
+                        | "__builtins__" | "__type_params__"
+                ) =>
+            {
+                let key = crate::builtins_ext::own_type_keys("function").and_then(|keys| keys.into_iter().find(|k| *k == name));
+                if let Some(descriptor) = key.and_then(|k| crate::typeattrs::descriptor_for_kind("function", k, obj)) {
+                    return Ok(descriptor);
+                }
+            }
             Value::Builtin(_) | Value::NativeFn(_)
                 if matches!(name, "__getattribute__" | "__setattr__" | "__delattr__")
                     && crate::builtins::class_name(obj).is_some() =>
@@ -5114,6 +5148,8 @@ impl Vm {
             Value::Builtin(b) if name == "__module__" && b.contains('.') && !b.contains("__") => {
                 return Ok(Value::str(b.rsplit_once('.').map_or("builtins", |(module, _)| module)))
             }
+            // Os tipos de anotação (`list[int]`, `int | str`) nascem em `types`.
+            Value::Builtin("GenericAlias" | "UnionType") if name == "__module__" => return Ok(Value::str("types")),
             // Tipos embutidos escritos como função nativa (`slice`) têm o mesmo `__module__` dos demais.
             Value::Builtin(_) | Value::NativeFn(_)
                 if name == "__module__" && (matches!(obj, Value::Builtin(_)) || crate::builtins::class_name(obj).is_some()) =>
@@ -5220,8 +5256,8 @@ impl Vm {
                             return Ok(builtins);
                         }
                     }
-                    // Sem variáveis livres a função não tem células; as que têm seguem sem o atributo.
-                    "__closure__" if f.closure.is_none() => return Ok(Value::None),
+                    // Uma `cell` por variável livre (`co_freevars`); sem nenhuma, `None`.
+                    "__closure__" => return Ok(crate::classes::function_closure(f)),
                     "__type_params__" => return Ok(Value::tuple(Vec::new())),
                     "__annotations__" => {
                         let d = Value::dict(Dict::default());

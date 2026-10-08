@@ -2636,7 +2636,7 @@ fn restore_opaque(tag: &str, state: &(dyn std::any::Any + Send + Sync), refs: Ve
         | "builtin_super_method" | "super_proxy" | "plain_object_method" | "object_class_method" | "shim_method" => {
             crate::classes::restore_image
         }
-        "hash" => crate::modules::hashlib::restore_image,
+        "hash" | "hmac" => crate::modules::hashlib::restore_image,
         "mersenne_twister" => crate::modules::mtrandom::restore_image,
         "fd_guard" => crate::modules::osnative::restore_image,
         "ucd" => crate::modules::unicodedata::restore_image,

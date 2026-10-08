@@ -899,6 +899,36 @@ namespace(a=1, b=2) 2 7
     );
 }
 
+/// Uma função de dentro só mantém vivas as células que fecha: os outros locais da função de fora morrem
+/// no `return` (conferido no oráculo).
+#[test]
+fn closure_keeps_only_its_cells_alive() {
+    let src = r#"
+import weakref
+class C: pass
+def f(ob, keep):
+    def g(_d, me=1): return keep
+    return g
+o, k = C(), C()
+r, rk = weakref.ref(o), weakref.ref(k)
+g = f(o, k)
+del o, k
+print(r(), rk() is not None)
+def h(ob):
+    import sys
+    frame = sys._getframe()
+    def g(): pass
+    return g, frame
+o = C(); r = weakref.ref(o)
+g, frame = h(o)
+del o
+print(r() is not None, 'ob' in frame.f_locals)
+"#;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(String::from_utf8(o.stdout).unwrap(), "None True\nTrue True\n");
+}
+
 #[test]
 fn weakref_module_matches_cpython() {
     let src = r#"

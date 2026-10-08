@@ -4,7 +4,8 @@
 
 use std::rc::Rc;
 
-use crate::modules::hashlib::{self, Algo};
+use ul_common::hash::{hmac, Algo};
+
 use crate::modules::ModuleBuilder;
 use crate::native_util::{exactly, no_kwargs, value_error, want_str};
 use crate::object::{Kw, ModuleObj, Value};
@@ -630,7 +631,7 @@ fn hmac_py(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     };
     let key = want_bytes("hmac", "key", &args[1])?;
     let data = want_bytes("hmac", "data", &args[2])?;
-    Ok(Value::bytes(hashlib::hmac(algo, &key, &data)))
+    Ok(Value::bytes(hmac(algo, &key, &data)))
 }
 
 pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {

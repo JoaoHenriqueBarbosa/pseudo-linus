@@ -142,14 +142,21 @@ def _build():
         return type(name, (), attrs)(values)
 
     class SimpleNamespace:
-        def __init__(self, **kw):
-            self.__dict__.update(kw)
+        """`types.SimpleNamespace`, o tipo de `sys.implementation` (o `types` do Debian o lê daqui)."""
+
+        def __init__(self, mapping_or_iterable=(), /, **kwargs):
+            for k, v in dict(mapping_or_iterable).items():
+                setattr(self, k, v)
+            for k, v in kwargs.items():
+                setattr(self, k, v)
 
         def __repr__(self):
             return 'namespace(%s)' % ', '.join('%s=%r' % kv for kv in self.__dict__.items())
 
         def __eq__(self, other):
-            return isinstance(other, SimpleNamespace) and self.__dict__ == other.__dict__
+            if isinstance(self, SimpleNamespace) and isinstance(other, SimpleNamespace):
+                return self.__dict__ == other.__dict__
+            return NotImplemented
 
     plain(SimpleNamespace)
     SimpleNamespace.__module__ = 'types'
@@ -520,6 +527,10 @@ def _build():
     version_info = structseq('version_info', ('major', 'minor', 'micro', 'releaselevel', 'serial'),
                              (3, 13, 5, 'final', 0))
     hexversion = 51185136
+    implementation = SimpleNamespace(name='cpython', cache_tag='cpython-313', version=version_info,
+                                     hexversion=hexversion, _multiarch='x86_64-linux-gnu')
+    # Os imports logo abaixo puxam o `types`, que lê `sys.implementation` antes de o `sys` estar montado.
+    globals()['implementation'] = implementation
     # `sys.path[0]` (o diretório do script, ou '' para -c e -m) só entra depois do `site`, como no
     # `pymain_run_python` do CPython: o interpretador o insere antes de rodar o programa.
     path = list(_sys.path)
@@ -672,8 +683,7 @@ def _build():
         int_info=structseq('int_info', ('bits_per_digit', 'sizeof_digit', 'default_max_str_digits',
                                         'str_digits_check_threshold'), (30, 4, 4300, 640)),
         thread_info=structseq('thread_info', ('name', 'lock', 'version'), ('pthread', 'semaphore', 'NPTL 2.41')),
-        implementation=SimpleNamespace(name='cpython', cache_tag='cpython-313', version=version_info,
-                                       hexversion=hexversion, _multiarch='x86_64-linux-gnu'),
+        implementation=implementation,
         builtin_module_names=(
             '_abc', '_ast', '_bisect', '_blake2', '_codecs', '_collections', '_csv', '_datetime', '_elementtree',
             '_functools', '_heapq', '_imp', '_io', '_json', '_locale', '_md5', '_opcode', '_operator', '_pickle',

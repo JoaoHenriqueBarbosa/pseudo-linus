@@ -1,483 +1,19 @@
-//! Módulo `hashlib` do CPython 3.13, com os algoritmos escritos à mão em Rust puro (sem dependências).
-//!
-//! Cobre `md5`, `sha1`, `sha224`, `sha256`, `sha384`, `sha512`, `blake2b`, `new(name)` e
-//! `pbkdf2_hmac`. O objeto de hash guarda os bytes recebidos e calcula o resumo sob demanda, então
-//! `update`, `copy`, `digest` e `hexdigest` são baratos de escrever e sempre coerentes. Ficam de
-//! fora: `sha3_*`, `shake_*`, `blake2s`, `scrypt`, `file_digest`, `algorithms_available`, e as
-//! opções `key`/`salt`/`person` do `blake2b`.
-//!
-//! As constantes do SHA-2 (e o IV do BLAKE2b) são derivadas na primeira chamada das raízes
-//! quadradas e cúbicas dos primeiros primos, com aritmética inteira exata, em vez de digitadas.
+//! `_hashimpl`: os resumos, o HMAC e os derivadores de chave por trás de `_hashlib`, `_blake2`, `_md5`,
+//! `_sha1`, `_sha2` e `_sha3` (módulos em Python que reproduzem a superfície dos de C do CPython). Os
+//! algoritmos vivem em `ul_common::hash`; aqui ficam só os objetos nativos (`HASH`, `HASHXOF`, `HMAC`) e as
+//! funções que os criam. É módulo de apoio: só código embutido o importa.
 
 use std::cell::RefCell;
-use std::cmp::Ordering;
 use std::rc::Rc;
-use std::sync::OnceLock;
 
 use ul_common::codec::hex_lower as hex_of;
-use ul_common::hash;
+use ul_common::hash::blake2::{self, Params};
+use ul_common::hash::{self, Algo, Hasher, Hmac};
 
 use crate::modules::ModuleBuilder;
-use crate::native_util::{bind, want_int, want_str};
+use crate::native_util::{bind, exactly, no_kwargs, want_int, want_str};
 use crate::object::{ExtObject, Kw, ModuleObj, Value};
 use crate::vm::{exc, type_error, PyResult, Vm};
-
-// ---------------------------------------------------------------------------
-// Constantes derivadas (parte fracionária de raízes de primos)
-// ---------------------------------------------------------------------------
-
-fn primes(count: usize) -> Vec<u64> {
-    let mut out: Vec<u64> = Vec::new();
-    let mut n = 2u64;
-    while out.len() < count {
-        if out.iter().all(|p| n % p != 0) {
-            out.push(n);
-        }
-        n += 1;
-    }
-    out
-}
-
-fn big_mul(a: &[u32], b: &[u32]) -> Vec<u32> {
-    let mut out = vec![0u32; a.len() + b.len()];
-    for (i, &x) in a.iter().enumerate() {
-        let mut carry = 0u64;
-        for (j, &y) in b.iter().enumerate() {
-            let cur = u64::from(out[i + j]) + u64::from(x) * u64::from(y) + carry;
-            out[i + j] = cur as u32;
-            carry = cur >> 32;
-        }
-        out[i + b.len()] = carry as u32;
-    }
-    out
-}
-
-fn big_cmp(a: &[u32], b: &[u32]) -> Ordering {
-    let trim = |x: &[u32]| {
-        let mut n = x.len();
-        while n > 0 && x[n - 1] == 0 {
-            n -= 1;
-        }
-        n
-    };
-    let (la, lb) = (trim(a), trim(b));
-    if la != lb {
-        return la.cmp(&lb);
-    }
-    for i in (0..la).rev() {
-        if a[i] != b[i] {
-            return a[i].cmp(&b[i]);
-        }
-    }
-    Ordering::Equal
-}
-
-fn limbs(x: u128) -> Vec<u32> {
-    vec![x as u32, (x >> 32) as u32, (x >> 64) as u32, (x >> 96) as u32]
-}
-
-/// Maior `x` com `x^n <= p * 2^(64 n)`: a raiz `n`-ésima de `p` com 64 bits fracionários.
-fn iroot(p: u64, n: u32) -> u128 {
-    let mut target = vec![0u32; (2 * n) as usize];
-    target.push(p as u32);
-    let power = |x: u128| -> Vec<u32> {
-        let l = limbs(x);
-        let mut acc = l.clone();
-        for _ in 1..n {
-            acc = big_mul(&acc, &l);
-        }
-        acc
-    };
-    let guess = ((p as f64).powf(1.0 / f64::from(n)) * 18_446_744_073_709_551_616.0) as u128;
-    let margin: u128 = 1 << 24;
-    let mut lo = guess.saturating_sub(margin);
-    let mut hi = guess + margin;
-    // Invariante: lo^n <= alvo < hi^n.
-    while hi - lo > 1 {
-        let mid = lo + (hi - lo) / 2;
-        if big_cmp(&power(mid), &target) != Ordering::Greater {
-            lo = mid;
-        } else {
-            hi = mid;
-        }
-    }
-    lo
-}
-
-fn frac_root(p: u64, n: u32) -> u64 {
-    (iroot(p, n) & u128::from(u64::MAX)) as u64
-}
-
-/// Parte fracionária das raízes quadradas dos 16 primeiros primos (64 bits).
-fn sqrt_consts() -> &'static [u64; 16] {
-    static CELL: OnceLock<[u64; 16]> = OnceLock::new();
-    CELL.get_or_init(|| {
-        let ps = primes(16);
-        let mut out = [0u64; 16];
-        for (i, p) in ps.iter().enumerate() {
-            out[i] = frac_root(*p, 2);
-        }
-        out
-    })
-}
-
-/// Parte fracionária das raízes cúbicas dos 80 primeiros primos (64 bits).
-fn cbrt_consts() -> &'static [u64; 80] {
-    static CELL: OnceLock<[u64; 80]> = OnceLock::new();
-    CELL.get_or_init(|| {
-        let ps = primes(80);
-        let mut out = [0u64; 80];
-        for (i, p) in ps.iter().enumerate() {
-            out[i] = frac_root(*p, 3);
-        }
-        out
-    })
-}
-
-// ---------------------------------------------------------------------------
-// Algoritmos
-// ---------------------------------------------------------------------------
-
-fn pad_message(data: &[u8], block: usize, len_bytes: usize, big_endian: bool) -> Vec<u8> {
-    let mut m = data.to_vec();
-    m.push(0x80);
-    while m.len() % block != block - len_bytes {
-        m.push(0);
-    }
-    let bits = (data.len() as u128) * 8;
-    if big_endian {
-        let b = bits.to_be_bytes();
-        m.extend_from_slice(&b[16 - len_bytes..]);
-    } else {
-        let b = bits.to_le_bytes();
-        m.extend_from_slice(&b[..len_bytes]);
-    }
-    m
-}
-
-fn sha512_core(data: &[u8], init: [u64; 8], out_len: usize) -> Vec<u8> {
-    let kc = cbrt_consts();
-    let mut h = init;
-    let msg = pad_message(data, 128, 16, true);
-    for chunk in msg.chunks(128) {
-        let mut w = [0u64; 80];
-        for i in 0..16 {
-            let mut b = [0u8; 8];
-            b.copy_from_slice(&chunk[8 * i..8 * i + 8]);
-            w[i] = u64::from_be_bytes(b);
-        }
-        for i in 16..80 {
-            let s0 = w[i - 15].rotate_right(1) ^ w[i - 15].rotate_right(8) ^ (w[i - 15] >> 7);
-            let s1 = w[i - 2].rotate_right(19) ^ w[i - 2].rotate_right(61) ^ (w[i - 2] >> 6);
-            w[i] = w[i - 16].wrapping_add(s0).wrapping_add(w[i - 7]).wrapping_add(s1);
-        }
-        let mut v = h;
-        for i in 0..80 {
-            let s1 = v[4].rotate_right(14) ^ v[4].rotate_right(18) ^ v[4].rotate_right(41);
-            let ch = (v[4] & v[5]) ^ (!v[4] & v[6]);
-            let t1 = v[7].wrapping_add(s1).wrapping_add(ch).wrapping_add(kc[i]).wrapping_add(w[i]);
-            let s0 = v[0].rotate_right(28) ^ v[0].rotate_right(34) ^ v[0].rotate_right(39);
-            let maj = (v[0] & v[1]) ^ (v[0] & v[2]) ^ (v[1] & v[2]);
-            let t2 = s0.wrapping_add(maj);
-            v[7] = v[6];
-            v[6] = v[5];
-            v[5] = v[4];
-            v[4] = v[3].wrapping_add(t1);
-            v[3] = v[2];
-            v[2] = v[1];
-            v[1] = v[0];
-            v[0] = t1.wrapping_add(t2);
-        }
-        for i in 0..8 {
-            h[i] = h[i].wrapping_add(v[i]);
-        }
-    }
-    let mut out: Vec<u8> = h.iter().flat_map(|w| w.to_be_bytes()).collect();
-    out.truncate(out_len);
-    out
-}
-
-pub fn sha512(data: &[u8]) -> Vec<u8> {
-    let s = sqrt_consts();
-    let mut init = [0u64; 8];
-    init.copy_from_slice(&s[..8]);
-    sha512_core(data, init, 64)
-}
-
-pub fn sha384(data: &[u8]) -> Vec<u8> {
-    let s = sqrt_consts();
-    let mut init = [0u64; 8];
-    init.copy_from_slice(&s[8..]);
-    sha512_core(data, init, 48)
-}
-
-const BLAKE2B_SIGMA: [[usize; 16]; 10] = [
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-    [14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3],
-    [11, 8, 12, 0, 5, 2, 15, 13, 10, 14, 3, 6, 7, 1, 9, 4],
-    [7, 9, 3, 1, 13, 12, 11, 14, 2, 6, 5, 10, 4, 0, 15, 8],
-    [9, 0, 5, 7, 2, 4, 10, 15, 14, 1, 11, 12, 6, 8, 3, 13],
-    [2, 12, 6, 10, 0, 11, 8, 3, 4, 13, 7, 5, 15, 14, 1, 9],
-    [12, 5, 1, 15, 14, 13, 4, 10, 0, 7, 6, 3, 9, 2, 8, 11],
-    [13, 11, 7, 14, 12, 1, 3, 9, 5, 0, 15, 4, 8, 6, 2, 10],
-    [6, 15, 14, 9, 11, 3, 0, 8, 12, 2, 13, 7, 1, 4, 10, 5],
-    [10, 2, 8, 4, 7, 6, 1, 5, 15, 11, 9, 14, 3, 12, 13, 0],
-];
-
-fn blake2b_g(v: &mut [u64; 16], a: usize, b: usize, c: usize, d: usize, x: u64, y: u64) {
-    v[a] = v[a].wrapping_add(v[b]).wrapping_add(x);
-    v[d] = (v[d] ^ v[a]).rotate_right(32);
-    v[c] = v[c].wrapping_add(v[d]);
-    v[b] = (v[b] ^ v[c]).rotate_right(24);
-    v[a] = v[a].wrapping_add(v[b]).wrapping_add(y);
-    v[d] = (v[d] ^ v[a]).rotate_right(16);
-    v[c] = v[c].wrapping_add(v[d]);
-    v[b] = (v[b] ^ v[c]).rotate_right(63);
-}
-
-fn blake2b_compress(h: &mut [u64; 8], block: &[u8], t: u128, last: bool) {
-    let iv = &sqrt_consts()[..8];
-    let mut m = [0u64; 16];
-    for (i, w) in m.iter_mut().enumerate() {
-        let mut b = [0u8; 8];
-        b.copy_from_slice(&block[8 * i..8 * i + 8]);
-        *w = u64::from_le_bytes(b);
-    }
-    let mut v = [0u64; 16];
-    v[..8].copy_from_slice(&h[..]);
-    v[8..].copy_from_slice(iv);
-    v[12] ^= t as u64;
-    v[13] ^= (t >> 64) as u64;
-    if last {
-        v[14] = !v[14];
-    }
-    for r in 0..12 {
-        let s = &BLAKE2B_SIGMA[r % 10];
-        blake2b_g(&mut v, 0, 4, 8, 12, m[s[0]], m[s[1]]);
-        blake2b_g(&mut v, 1, 5, 9, 13, m[s[2]], m[s[3]]);
-        blake2b_g(&mut v, 2, 6, 10, 14, m[s[4]], m[s[5]]);
-        blake2b_g(&mut v, 3, 7, 11, 15, m[s[6]], m[s[7]]);
-        blake2b_g(&mut v, 0, 5, 10, 15, m[s[8]], m[s[9]]);
-        blake2b_g(&mut v, 1, 6, 11, 12, m[s[10]], m[s[11]]);
-        blake2b_g(&mut v, 2, 7, 8, 13, m[s[12]], m[s[13]]);
-        blake2b_g(&mut v, 3, 4, 9, 14, m[s[14]], m[s[15]]);
-    }
-    for i in 0..8 {
-        h[i] ^= v[i] ^ v[i + 8];
-    }
-}
-
-pub fn blake2b(data: &[u8], out_len: usize) -> Vec<u8> {
-    let mut h = [0u64; 8];
-    h.copy_from_slice(&sqrt_consts()[..8]);
-    h[0] ^= 0x0101_0000 ^ (out_len as u64);
-    let n = data.len();
-    if n == 0 {
-        blake2b_compress(&mut h, &[0u8; 128], 0, true);
-    } else {
-        let mut off = 0usize;
-        while n - off > 128 {
-            blake2b_compress(&mut h, &data[off..off + 128], (off + 128) as u128, false);
-            off += 128;
-        }
-        let mut block = [0u8; 128];
-        block[..n - off].copy_from_slice(&data[off..]);
-        blake2b_compress(&mut h, &block, n as u128, true);
-    }
-    let mut out: Vec<u8> = h.iter().flat_map(|w| w.to_le_bytes()).collect();
-    out.truncate(out_len);
-    out
-}
-
-// ---------------------------------------------------------------------------
-// Algoritmo nomeado, HMAC e PBKDF2
-// ---------------------------------------------------------------------------
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Algo {
-    Md5,
-    Sha1,
-    Sha224,
-    Sha256,
-    Sha384,
-    Sha512,
-    Blake2b(usize),
-    /// SHA-3 com o tamanho do resumo em bytes (28, 32, 48 ou 64).
-    Sha3(usize),
-}
-
-/// Keccak-f[1600]. As constantes de rodada saem do LFSR do padrão e as rotações da caminhada
-/// `(x, y) -> (y, 2x + 3y)`, em vez de digitadas.
-fn keccak_f(a: &mut [u64; 25]) {
-    let mut lfsr: u8 = 1;
-    for _ in 0..24 {
-        let mut c = [0u64; 5];
-        for x in 0..5 {
-            c[x] = a[x] ^ a[x + 5] ^ a[x + 10] ^ a[x + 15] ^ a[x + 20];
-        }
-        for x in 0..5 {
-            let d = c[(x + 4) % 5] ^ c[(x + 1) % 5].rotate_left(1);
-            for y in 0..5 {
-                a[x + 5 * y] ^= d;
-            }
-        }
-        let mut b = [0u64; 25];
-        b[0] = a[0];
-        let (mut x, mut y) = (1usize, 0usize);
-        for t in 0..24u32 {
-            let (nx, ny) = (y, (2 * x + 3 * y) % 5);
-            b[nx + 5 * ny] = a[x + 5 * y].rotate_left(((t + 1) * (t + 2) / 2) % 64);
-            x = nx;
-            y = ny;
-        }
-        for y in 0..5 {
-            for x in 0..5 {
-                a[x + 5 * y] = b[x + 5 * y] ^ (!b[(x + 1) % 5 + 5 * y] & b[(x + 2) % 5 + 5 * y]);
-            }
-        }
-        for j in 0..7 {
-            let bit = lfsr & 1 != 0;
-            lfsr = if lfsr & 0x80 != 0 { (lfsr << 1) ^ 0x71 } else { lfsr << 1 };
-            if bit {
-                a[0] ^= 1u64 << ((1u32 << j) - 1);
-            }
-        }
-    }
-}
-
-/// SHA-3 (FIPS 202) com resumo de `out_len` bytes.
-pub fn sha3(data: &[u8], out_len: usize) -> Vec<u8> {
-    let rate = 200 - 2 * out_len;
-    let mut msg = data.to_vec();
-    msg.push(0x06);
-    while msg.len() % rate != 0 {
-        msg.push(0);
-    }
-    let last = msg.len() - 1;
-    msg[last] |= 0x80;
-    let mut state = [0u64; 25];
-    for block in msg.chunks(rate) {
-        for (i, lane) in block.chunks(8).enumerate() {
-            let mut w = [0u8; 8];
-            w.copy_from_slice(lane);
-            state[i] ^= u64::from_le_bytes(w);
-        }
-        keccak_f(&mut state);
-    }
-    let mut out = Vec::with_capacity(out_len);
-    for lane in state.iter() {
-        out.extend_from_slice(&lane.to_le_bytes());
-    }
-    out.truncate(out_len);
-    out
-}
-
-impl Algo {
-    pub fn from_name(name: &str) -> Option<Algo> {
-        Some(match name.to_ascii_lowercase().replace('-', "_").as_str() {
-            "md5" => Algo::Md5,
-            "sha1" => Algo::Sha1,
-            "sha224" => Algo::Sha224,
-            "sha256" => Algo::Sha256,
-            "sha384" => Algo::Sha384,
-            "sha512" => Algo::Sha512,
-            "blake2b" => Algo::Blake2b(64),
-            "sha3_224" => Algo::Sha3(28),
-            "sha3_256" => Algo::Sha3(32),
-            "sha3_384" => Algo::Sha3(48),
-            "sha3_512" => Algo::Sha3(64),
-            _ => return None,
-        })
-    }
-
-    pub fn name(&self) -> &'static str {
-        match self {
-            Algo::Md5 => "md5",
-            Algo::Sha1 => "sha1",
-            Algo::Sha224 => "sha224",
-            Algo::Sha256 => "sha256",
-            Algo::Sha384 => "sha384",
-            Algo::Sha512 => "sha512",
-            Algo::Blake2b(_) => "blake2b",
-            Algo::Sha3(28) => "sha3_224",
-            Algo::Sha3(32) => "sha3_256",
-            Algo::Sha3(48) => "sha3_384",
-            Algo::Sha3(_) => "sha3_512",
-        }
-    }
-
-    pub fn digest_size(&self) -> usize {
-        match self {
-            Algo::Md5 => 16,
-            Algo::Sha1 => 20,
-            Algo::Sha224 => 28,
-            Algo::Sha256 => 32,
-            Algo::Sha384 => 48,
-            Algo::Sha512 => 64,
-            Algo::Blake2b(n) | Algo::Sha3(n) => *n,
-        }
-    }
-
-    pub fn block_size(&self) -> usize {
-        match self {
-            Algo::Md5 | Algo::Sha1 | Algo::Sha224 | Algo::Sha256 => 64,
-            Algo::Sha384 | Algo::Sha512 | Algo::Blake2b(_) => 128,
-            Algo::Sha3(n) => 200 - 2 * n,
-        }
-    }
-
-    pub fn digest(&self, data: &[u8]) -> Vec<u8> {
-        match self {
-            Algo::Md5 => hash::md5(data).to_vec(),
-            Algo::Sha1 => hash::sha1(data).to_vec(),
-            Algo::Sha224 => hash::sha224(data).to_vec(),
-            Algo::Sha256 => hash::sha256(data).to_vec(),
-            Algo::Sha384 => sha384(data),
-            Algo::Sha512 => sha512(data),
-            Algo::Blake2b(n) => blake2b(data, *n),
-            Algo::Sha3(n) => sha3(data, *n),
-        }
-    }
-}
-
-/// HMAC (RFC 2104) sobre o algoritmo dado.
-pub fn hmac(algo: Algo, key: &[u8], msg: &[u8]) -> Vec<u8> {
-    let bs = algo.block_size();
-    let mut k = if key.len() > bs { algo.digest(key) } else { key.to_vec() };
-    k.resize(bs, 0);
-    let mut inner: Vec<u8> = k.iter().map(|b| b ^ 0x36).collect();
-    inner.extend_from_slice(msg);
-    let ih = algo.digest(&inner);
-    let mut outer: Vec<u8> = k.iter().map(|b| b ^ 0x5c).collect();
-    outer.extend_from_slice(&ih);
-    algo.digest(&outer)
-}
-
-/// PBKDF2 (RFC 8018) com HMAC.
-pub fn pbkdf2(algo: Algo, password: &[u8], salt: &[u8], iterations: u64, dklen: usize) -> Vec<u8> {
-    let mut out = Vec::with_capacity(dklen);
-    let mut block: u32 = 1;
-    while out.len() < dklen {
-        let mut s = salt.to_vec();
-        s.extend_from_slice(&block.to_be_bytes());
-        let mut u = hmac(algo, password, &s);
-        let mut t = u.clone();
-        for _ in 1..iterations {
-            u = hmac(algo, password, &u);
-            for (a, b) in t.iter_mut().zip(u.iter()) {
-                *a ^= b;
-            }
-        }
-        out.extend_from_slice(&t);
-        block += 1;
-    }
-    out.truncate(dklen);
-    out
-}
-
-// ---------------------------------------------------------------------------
-// Objeto Python
-// ---------------------------------------------------------------------------
 
 fn want_hash_input(v: &Value) -> PyResult<Vec<u8>> {
     match v {
@@ -489,28 +25,87 @@ fn want_hash_input(v: &Value) -> PyResult<Vec<u8>> {
     }
 }
 
-struct HashObj {
-    algo: Algo,
-    data: RefCell<Vec<u8>>,
+/// O argumento obrigatório `i` que o `bind` já garantiu presente.
+fn slot(s: &[Option<Value>], i: usize) -> PyResult<&Value> {
+    s[i].as_ref().ok_or_else(|| type_error("missing required argument"))
 }
 
-/// Refaz um `HASH` a partir da imagem do heap: o algoritmo e os bytes já alimentados.
-pub(crate) fn restore_image(_tag: &str, state: &(dyn std::any::Any + Send + Sync), _refs: Vec<Value>) -> Option<Value> {
-    let (algo, data) = state.downcast_ref::<(Algo, Vec<u8>)>()?;
-    Some(Value::Ext(Rc::new(HashObj { algo: *algo, data: RefCell::new(data.clone()) })))
+/// `int` não negativo que cabe em 64 bits (o `node_offset` do BLAKE2b passa de `i64`).
+fn want_u64(v: &Value) -> PyResult<u64> {
+    match v {
+        Value::Big(b) => b.to_string().parse::<u64>().map_err(|_| exc("OverflowError", "Python int too large to convert to C unsigned long")),
+        other => u64::try_from(want_int(other)?).map_err(|_| exc("OverflowError", "can't convert negative int to unsigned")),
+    }
+}
+
+fn unsupported(name: &str) -> crate::vm::PyException {
+    exc("ValueError", format!("unsupported hash type {name}"))
+}
+
+fn algo_named(name: &str) -> PyResult<Algo> {
+    Algo::from_name(name).ok_or_else(|| unsupported(name))
+}
+
+// ---------------------------------------------------------------------------
+// HASH e HASHXOF
+// ---------------------------------------------------------------------------
+
+struct HashObj {
+    algo: Algo,
+    hasher: RefCell<Hasher>,
+}
+
+/// Refaz um `HASH`, `HASHXOF` ou `HMAC` a partir da imagem do heap: o algoritmo e o estado do resumo.
+pub(crate) fn restore_image(tag: &str, state: &(dyn std::any::Any + Send + Sync), _refs: Vec<Value>) -> Option<Value> {
+    if tag == "hmac" {
+        let (algo, mac) = state.downcast_ref::<(Algo, Hmac)>()?;
+        return Some(Value::Ext(Rc::new(HmacObj { algo: *algo, mac: RefCell::new(mac.clone()) })));
+    }
+    let (algo, hasher) = state.downcast_ref::<(Algo, Hasher)>()?;
+    Some(make_hash(*algo, hasher.clone()))
+}
+
+fn make_hash(algo: Algo, hasher: Hasher) -> Value {
+    Value::Ext(Rc::new(HashObj { algo, hasher: RefCell::new(hasher) }))
+}
+
+/// `digest()` e `hexdigest()`: o tamanho é o do algoritmo, ou o argumento `length` nos de saída livre.
+fn finish(algo: Algo, hasher: &Hasher, method: &str, args: Vec<Value>, kw: Kw) -> PyResult<Vec<u8>> {
+    if !algo.is_xof() {
+        no_kwargs(method, &kw)?;
+        exactly(method, &args, 0)?;
+        return Ok(hasher.finalize(0));
+    }
+    let s = bind(method, args, kw, &["length"], 0)?;
+    let Some(length) = &s[0] else {
+        return Err(type_error(format!("{method}() missing required argument 'length' (pos 1)")));
+    };
+    let length = want_int(length)?;
+    if length < 0 {
+        return Err(exc("ValueError", "negative digest length"));
+    }
+    if length > (1 << 29) {
+        return Err(exc("ValueError", "length is too large"));
+    }
+    Ok(hasher.finalize(length as usize))
 }
 
 impl ExtObject for HashObj {
     fn type_name(&self) -> &'static str {
-        "HASH"
+        if self.algo.is_xof() { "HASHXOF" } else { "HASH" }
     }
 
     fn image(&self) -> Option<crate::object::ExtImage> {
-        crate::object::OpaqueImage::image("hash", (self.algo, self.data.borrow().clone()), Vec::new())
+        crate::object::OpaqueImage::image("hash", (self.algo, self.hasher.borrow().clone()), Vec::new())
     }
 
     fn repr(&self) -> String {
-        format!("<{} _hashlib.HASH object @ {:#x}>", self.algo.name(), crate::object::py_addr(self as *const Self as usize))
+        format!(
+            "<{} _hashlib.{} object @ {:#x}>",
+            self.algo.name(),
+            self.type_name(),
+            crate::object::py_addr(self as *const Self as usize)
+        )
     }
 
     fn methods(&self) -> &'static [&'static str] {
@@ -529,139 +124,200 @@ impl ExtObject for HashObj {
     fn call_method(&self, _vm: &mut Vm, name: &str, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         match name {
             "update" => {
-                let s = bind("update", args, kw, &["obj"], 1)?;
-                let data = want_hash_input(s[0].as_ref().unwrap())?;
-                self.data.borrow_mut().extend_from_slice(&data);
+                no_kwargs("update", &kw)?;
+                exactly("update", &args, 1)?;
+                let data = want_hash_input(&args[0])?;
+                self.hasher.borrow_mut().update(&data);
                 Ok(Value::None)
             }
-            "digest" => {
-                crate::native_util::no_kwargs("digest", &kw)?;
-                crate::native_util::exactly("digest", &args, 0)?;
-                Ok(Value::bytes(self.algo.digest(&self.data.borrow())))
-            }
-            "hexdigest" => {
-                crate::native_util::no_kwargs("hexdigest", &kw)?;
-                crate::native_util::exactly("hexdigest", &args, 0)?;
-                Ok(Value::str(hex_of(&self.algo.digest(&self.data.borrow()))))
-            }
+            "digest" => Ok(Value::bytes(finish(self.algo, &self.hasher.borrow(), "digest", args, kw)?)),
+            "hexdigest" => Ok(Value::str(hex_of(&finish(self.algo, &self.hasher.borrow(), "hexdigest", args, kw)?))),
             "copy" => {
-                crate::native_util::no_kwargs("copy", &kw)?;
-                crate::native_util::exactly("copy", &args, 0)?;
-                Ok(make_hash(self.algo, self.data.borrow().clone()))
+                no_kwargs("copy", &kw)?;
+                exactly("copy", &args, 0)?;
+                Ok(make_hash(self.algo, self.hasher.borrow().clone()))
             }
-            _ => Err(crate::object::no_attribute("HASH", name)),
+            _ => Err(crate::object::no_attribute(self.type_name(), name)),
         }
     }
 }
 
-fn make_hash(algo: Algo, data: Vec<u8>) -> Value {
-    Value::Ext(Rc::new(HashObj { algo, data: RefCell::new(data) }))
-}
-
-fn new_hash(fname: &str, algo: Algo, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    let s = bind(fname, args, kw, &["data", "usedforsecurity", "string"], 0)?;
-    let init = match (&s[0], &s[2]) {
-        (Some(v), _) | (None, Some(v)) => want_hash_input(v)?,
-        (None, None) => Vec::new(),
-    };
-    Ok(make_hash(algo, init))
-}
-
-macro_rules! ctor {
-    ($f:ident, $py:literal, $algo:expr) => {
-        fn $f(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-            new_hash($py, $algo, args, kw)
-        }
-    };
-}
-
-ctor!(md5_new, "md5", Algo::Md5);
-ctor!(sha1_new, "sha1", Algo::Sha1);
-ctor!(sha224_new, "sha224", Algo::Sha224);
-ctor!(sha256_new, "sha256", Algo::Sha256);
-ctor!(sha384_new, "sha384", Algo::Sha384);
-ctor!(sha512_new, "sha512", Algo::Sha512);
-ctor!(sha3_224_new, "sha3_224", Algo::Sha3(28));
-ctor!(sha3_256_new, "sha3_256", Algo::Sha3(32));
-ctor!(sha3_384_new, "sha3_384", Algo::Sha3(48));
-ctor!(sha3_512_new, "sha3_512", Algo::Sha3(64));
-
-fn blake2b_new(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    let s = bind("blake2b", args, kw, &["data", "digest_size"], 0)?;
-    let size = match &s[1] {
-        None => 64,
-        Some(v) => want_int(v)?,
-    };
-    if !(1..=64).contains(&size) {
-        return Err(exc("ValueError", format!("digest_size for blake2b must be between 1 and 64 bytes, got {size}")));
+/// `new(name, data=b'')`: o resumo de nome OpenSSL `name`, já alimentado com `data`.
+/// Os dados opcionais com que `new(name, data)` e `hmac_new(name, key, msg)` já alimentam o objeto.
+fn fed<T>(mut state: T, data: &Option<Value>, update: fn(&mut T, &[u8])) -> PyResult<T> {
+    if let Some(v) = data {
+        update(&mut state, &want_hash_input(v)?);
     }
-    let init = match &s[0] {
-        Some(v) => want_hash_input(v)?,
-        None => Vec::new(),
-    };
-    Ok(make_hash(Algo::Blake2b(size as usize), init))
+    Ok(state)
 }
 
 fn new(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let s = bind("new", args, kw, &["name", "data"], 1)?;
-    let name = want_str("new", s[0].as_ref().unwrap())?;
-    let Some(algo) = Algo::from_name(name) else {
-        return Err(exc("ValueError", format!("unsupported hash type {name}")));
-    };
-    let init = match &s[1] {
-        Some(v) => want_hash_input(v)?,
-        None => Vec::new(),
-    };
-    Ok(make_hash(algo, init))
+    let algo = algo_named(want_str("new", slot(&s, 0)?)?)?;
+    Ok(make_hash(algo, fed(algo.hasher(), &s[1], Hasher::update)?))
 }
 
-fn pbkdf2_hmac(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
-    let s = bind("pbkdf2_hmac", args, kw, &["hash_name", "password", "salt", "iterations", "dklen"], 4)?;
-    let name = want_str("pbkdf2_hmac", s[0].as_ref().unwrap())?;
-    let Some(algo) = Algo::from_name(name) else {
-        return Err(exc("ValueError", format!("unsupported hash type {name}")));
+/// `blake2(kind, data, digest_size, key, salt, person, fanout, depth, leaf_size, node_offset, node_depth,
+/// inner_size, last_node)`: um BLAKE2b (`kind == "b"`) ou BLAKE2s com o bloco de parâmetros completo. Os
+/// limites de cada campo são conferidos em Python (`_blake2`), com as mensagens do CPython.
+fn blake2_new(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    const NAMES: [&str; 13] = [
+        "kind", "data", "digest_size", "key", "salt", "person", "fanout", "depth", "leaf_size", "node_offset", "node_depth",
+        "inner_size", "last_node",
+    ];
+    let s = bind("blake2", args, kw, &NAMES, NAMES.len())?;
+    let size = want_int(slot(&s, 2)?)? as usize;
+    let params = Params {
+        digest_length: size,
+        key: want_hash_input(slot(&s, 3)?)?,
+        salt: want_hash_input(slot(&s, 4)?)?,
+        person: want_hash_input(slot(&s, 5)?)?,
+        fanout: want_int(slot(&s, 6)?)? as u8,
+        depth: want_int(slot(&s, 7)?)? as u8,
+        leaf_length: want_int(slot(&s, 8)?)? as u32,
+        node_offset: want_u64(slot(&s, 9)?)?,
+        node_depth: want_int(slot(&s, 10)?)? as u8,
+        inner_length: want_int(slot(&s, 11)?)? as u8,
+        last_node: slot(&s, 12)?.is_true(),
     };
-    let password = want_hash_input(s[1].as_ref().unwrap())?;
-    let salt = want_hash_input(s[2].as_ref().unwrap())?;
-    let iterations = want_int(s[3].as_ref().unwrap())?;
-    if iterations < 1 {
-        return Err(exc("ValueError", "iteration value must be greater than 0."));
-    }
-    let dklen = match &s[4] {
-        None | Some(Value::None) => algo.digest_size() as i64,
-        Some(v) => want_int(v)?,
+    let (algo, mut hasher) = if want_str("blake2", slot(&s, 0)?)? == "b" {
+        (Algo::Blake2b(size), Hasher::Blake2b(blake2::b::State::new(&params)))
+    } else {
+        (Algo::Blake2s(size), Hasher::Blake2s(blake2::s::State::new(&params)))
     };
-    if dklen < 1 {
-        return Err(exc("ValueError", "key length must be greater than 0."));
-    }
-    Ok(Value::bytes(pbkdf2(algo, &password, &salt, iterations as u64, dklen as usize)))
+    hasher.update(&want_hash_input(slot(&s, 1)?)?);
+    Ok(make_hash(algo, hasher))
 }
 
-fn names_set(names: &[&str]) -> Value {
-    let mut set = crate::object::Set::new();
-    for n in names {
-        let _ = set.add(Value::str(*n));
+// ---------------------------------------------------------------------------
+// HMAC
+// ---------------------------------------------------------------------------
+
+struct HmacObj {
+    algo: Algo,
+    mac: RefCell<Hmac>,
+}
+
+impl ExtObject for HmacObj {
+    fn type_name(&self) -> &'static str {
+        "HMAC"
     }
-    Value::set(set)
+
+    fn image(&self) -> Option<crate::object::ExtImage> {
+        crate::object::OpaqueImage::image("hmac", (self.algo, self.mac.borrow().clone()), Vec::new())
+    }
+
+    fn repr(&self) -> String {
+        format!("<{} HMAC object @ {:#x}>", self.algo.name(), crate::object::py_addr(self as *const Self as usize))
+    }
+
+    fn methods(&self) -> &'static [&'static str] {
+        &["update", "digest", "hexdigest", "copy"]
+    }
+
+    fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
+        match name {
+            "name" => Some(Ok(Value::str(format!("hmac-{}", self.algo.name())))),
+            "digest_size" => Some(Ok(Value::Int(self.algo.digest_size() as i64))),
+            "block_size" => Some(Ok(Value::Int(self.algo.block_size() as i64))),
+            _ => None,
+        }
+    }
+
+    fn call_method(&self, _vm: &mut Vm, name: &str, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+        no_kwargs(name, &kw)?;
+        match name {
+            "update" => {
+                exactly("update", &args, 1)?;
+                let data = want_hash_input(&args[0])?;
+                self.mac.borrow_mut().update(&data);
+                Ok(Value::None)
+            }
+            "digest" => {
+                exactly("digest", &args, 0)?;
+                Ok(Value::bytes(self.mac.borrow().finalize()))
+            }
+            "hexdigest" => {
+                exactly("hexdigest", &args, 0)?;
+                Ok(Value::str(hex_of(&self.mac.borrow().finalize())))
+            }
+            "copy" => {
+                exactly("copy", &args, 0)?;
+                Ok(Value::Ext(Rc::new(HmacObj { algo: self.algo, mac: RefCell::new(self.mac.borrow().clone()) })))
+            }
+            _ => Err(crate::object::no_attribute("HMAC", name)),
+        }
+    }
+}
+
+fn keyed(name: &str, key: &[u8]) -> PyResult<(Algo, Hmac)> {
+    let algo = algo_named(name)?;
+    let mac = Hmac::new(algo, key).ok_or_else(|| unsupported(name))?;
+    Ok((algo, mac))
+}
+
+/// `hmac_new(name, key, msg=b'')`.
+fn hmac_new(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    let s = bind("hmac_new", args, kw, &["name", "key", "msg"], 2)?;
+    let name = want_str("hmac_new", slot(&s, 0)?)?;
+    let (algo, mac) = keyed(name, &want_hash_input(slot(&s, 1)?)?)?;
+    let mac = fed(mac, &s[2], Hmac::update)?;
+    Ok(Value::Ext(Rc::new(HmacObj { algo, mac: RefCell::new(mac) })))
+}
+
+/// `hmac_digest(name, key, msg)`.
+fn hmac_digest(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    let s = bind("hmac_digest", args, kw, &["name", "key", "msg"], 3)?;
+    let name = want_str("hmac_digest", slot(&s, 0)?)?;
+    let key = want_hash_input(slot(&s, 1)?)?;
+    let msg = want_hash_input(slot(&s, 2)?)?;
+    let algo = algo_named(name)?;
+    if algo.is_xof() {
+        return Err(unsupported(name));
+    }
+    Ok(Value::bytes(hash::hmac(algo, &key, &msg)))
+}
+
+// ---------------------------------------------------------------------------
+// PBKDF2 e scrypt
+// ---------------------------------------------------------------------------
+
+/// `pbkdf2(name, password, salt, iterations, dklen)`: `dklen` já resolvido (o padrão é o tamanho do
+/// resumo, resolvido em Python).
+fn pbkdf2(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    let s = bind("pbkdf2", args, kw, &["name", "password", "salt", "iterations", "dklen"], 5)?;
+    let name = want_str("pbkdf2", slot(&s, 0)?)?;
+    let algo = algo_named(name)?;
+    if algo.is_xof() {
+        return Err(unsupported(name));
+    }
+    let password = want_hash_input(slot(&s, 1)?)?;
+    let salt = want_hash_input(slot(&s, 2)?)?;
+    let iterations = want_int(slot(&s, 3)?)?;
+    let dklen = want_int(slot(&s, 4)?)?;
+    if iterations < 1 || dklen < 1 {
+        return Err(exc("ValueError", "invalid pbkdf2 parameters"));
+    }
+    Ok(Value::bytes(hash::pbkdf2(algo, &password, &salt, iterations as u64, dklen as usize)))
+}
+
+/// `scrypt(password, salt, n, r, p, dklen)`, com os parâmetros já validados em Python.
+fn scrypt(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    let s = bind("scrypt", args, kw, &["password", "salt", "n", "r", "p", "dklen"], 6)?;
+    let password = want_hash_input(slot(&s, 0)?)?;
+    let salt = want_hash_input(slot(&s, 1)?)?;
+    let (n, r, p, dklen) = (want_u64(slot(&s, 2)?)?, want_u64(slot(&s, 3)?)?, want_u64(slot(&s, 4)?)?, want_u64(slot(&s, 5)?)?);
+    Ok(Value::bytes(hash::scrypt(&password, &salt, n, r as u32, p as u32, dklen as usize)))
 }
 
 pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
-    ModuleBuilder::new("hashlib")
-        .func("md5", md5_new)
-        .func("sha1", sha1_new)
-        .func("sha224", sha224_new)
-        .func("sha256", sha256_new)
-        .func("sha384", sha384_new)
-        .func("sha512", sha512_new)
-        .func("sha3_224", sha3_224_new)
-        .func("sha3_256", sha3_256_new)
-        .func("sha3_384", sha3_384_new)
-        .func("sha3_512", sha3_512_new)
-        .value("algorithms_guaranteed", names_set(&["blake2b", "md5", "sha1", "sha224", "sha256", "sha384", "sha3_224", "sha3_256", "sha3_384", "sha3_512", "sha512"]))
-        .value("algorithms_available", names_set(&["blake2b", "md5", "sha1", "sha224", "sha256", "sha384", "sha3_224", "sha3_256", "sha3_384", "sha3_512", "sha512"]))
-        .func("blake2b", blake2b_new)
+    ModuleBuilder::new("_hashimpl")
         .func("new", new)
-        .func("pbkdf2_hmac", pbkdf2_hmac)
+        .func("blake2", blake2_new)
+        .func("hmac_new", hmac_new)
+        .func("hmac_digest", hmac_digest)
+        .func("pbkdf2", pbkdf2)
+        .func("scrypt", scrypt)
         .build()
 }
 
@@ -670,39 +326,10 @@ mod tests {
     use super::*;
     use crate::object::repr;
 
-    fn hx(v: Vec<u8>) -> String {
-        hex_of(&v)
-    }
-
-    #[test]
-    fn sha2_vectors() {
-        assert_eq!(
-            hx(sha384(b"abc")),
-            "cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7"
-        );
-        assert_eq!(
-            hx(sha512(b"abc")),
-            "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f"
-        );
-    }
-
-    #[test]
-    fn blake2b_prefixes() {
-        assert!(hx(blake2b(b"", 64)).starts_with("786a02f742015903"));
-        assert!(hx(blake2b(b"abc", 64)).starts_with("ba80a53f981c4d0d"));
-        assert_eq!(blake2b(b"abc", 32).len(), 32);
-    }
-
-    #[test]
-    fn pbkdf2_rfc6070() {
-        let dk = pbkdf2(Algo::Sha1, b"password", b"salt", 1, 20);
-        assert_eq!(hx(dk), "0c60c80f961f0e71f3a9b524af6012062fe037a6");
-    }
-
     #[test]
     fn python_object() {
         let mut vm = Vm::new();
-        let h = md5_new(&mut vm, vec![Value::bytes(b"a".to_vec())], Vec::new()).unwrap();
+        let h = new(&mut vm, vec![Value::str("md5"), Value::bytes(b"a".to_vec())], Vec::new()).unwrap();
         let Value::Ext(obj) = &h else { panic!("esperava um objeto Ext") };
         obj.call_method(&mut vm, "update", vec![Value::bytes(b"bc".to_vec())], Vec::new()).unwrap();
         let hexd = obj.call_method(&mut vm, "hexdigest", Vec::new(), Vec::new()).unwrap();
@@ -717,9 +344,21 @@ mod tests {
         assert_eq!(repr(&size), "16");
         let name = obj.getattr(&mut vm, "name").unwrap().unwrap();
         assert_eq!(repr(&name), "'md5'");
-        let e = md5_new(&mut vm, vec![Value::str("x")], Vec::new()).unwrap_err();
-        assert_eq!(e.msg, "Strings must be encoded before hashing");
         let e = new(&mut vm, vec![Value::str("nope")], Vec::new()).unwrap_err();
         assert_eq!(e.msg, "unsupported hash type nope");
+        let e = obj.call_method(&mut vm, "update", vec![Value::str("x")], Vec::new()).unwrap_err();
+        assert_eq!(e.msg, "Strings must be encoded before hashing");
+    }
+
+    #[test]
+    fn xof_needs_a_length() {
+        let mut vm = Vm::new();
+        let h = new(&mut vm, vec![Value::str("shake_128")], Vec::new()).unwrap();
+        let Value::Ext(obj) = &h else { panic!("esperava um objeto Ext") };
+        assert_eq!(obj.type_name(), "HASHXOF");
+        let e = obj.call_method(&mut vm, "digest", Vec::new(), Vec::new()).unwrap_err();
+        assert_eq!(e.msg, "digest() missing required argument 'length' (pos 1)");
+        let d = obj.call_method(&mut vm, "hexdigest", vec![Value::Int(4)], Vec::new()).unwrap();
+        assert_eq!(repr(&d), "'7f9c2ba4'");
     }
 }

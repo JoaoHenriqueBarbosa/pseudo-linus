@@ -349,6 +349,96 @@ def interrupt_main(signum=2):
     signal._dispatch([signum])
 
 
+class _ThreadHandle:
+    """Handle of a thread: o identificador dela e se já terminou (`join` espera o fim)."""
+
+    def __init__(self):
+        self.ident = None
+        self._done = False
+
+    def __repr__(self):
+        return '<_thread._ThreadHandle object: ident=%s>' % (self.ident,)
+
+    def is_done(self):
+        return self._done
+
+    def _set_done(self):
+        self._done = True
+
+    def join(self, timeout=None):
+        if not self._done:
+            if self.ident == get_ident():
+                raise RuntimeError('Cannot join current thread')
+            _block(lambda: self._done, timeout, 'Thread.join()')
+
+
+class _Runner:
+    """O que a thread de `start_joinable_thread` roda: a função e, ao fim dela, o aviso no handle. O `repr` é o da
+    função, que é o que o aviso de exceção da thread mostra."""
+
+    def __init__(self, function, handle):
+        self.function = function
+        self.handle = handle
+
+    def __call__(self):
+        try:
+            self.function()
+        finally:
+            self.handle._set_done()
+
+    def __repr__(self):
+        return repr(self.function)
+
+
+def start_joinable_thread(function, handle=None, daemon=True):
+    """*For internal use only*: start a new thread.
+
+Like start_new_thread(), this starts a new thread calling the given function.
+Unlike start_new_thread(), this returns a handle object with methods to join
+or detach the given thread.
+This function is not for third-party code, please use the
+`threading` module instead. During finalization the runtime will not wait for
+the thread to exit if daemon is True. If handle is provided it must be a
+newly created thread._ThreadHandle instance."""
+    if not callable(function):
+        raise TypeError('thread function must be callable')
+    if handle is None:
+        handle = _ThreadHandle()
+    import threading
+    handle.ident = _hooks['start'](_Runner(function, handle), (), {})
+    return handle
+
+
+def _make_thread_handle(ident, /):
+    """Internal only. Make a handle for an existing thread identifier."""
+    handle = _ThreadHandle()
+    handle.ident = ident
+    return handle
+
+
+def _get_main_thread_ident():
+    """Internal only. Return a non-zero integer that uniquely identifies the main thread
+of the main interpreter."""
+    return _MAIN_IDENT
+
+
+def _is_main_interpreter():
+    """Return True if the current interpreter is the main Python interpreter."""
+    return True
+
+
+def daemon_threads_allowed():
+    """Return True if daemon threads are allowed in the current interpreter, and False otherwise."""
+    return True
+
+
+def _shutdown():
+    """Wait for all non-daemon threads (other than the calling thread) to stop."""
+    hook = _hooks.get('shutdown')
+    if hook is not None:
+        hook()
+
+
 class _local:
     """Dados locais da thread: cada thread enxerga o seu próprio conjunto de atributos."""
 

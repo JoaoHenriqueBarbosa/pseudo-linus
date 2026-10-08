@@ -222,6 +222,14 @@ fn isinstance_check(v: &Value, cls: &Value) -> PyResult<bool> {
         if let Value::Class(vc) = v {
             return Ok(vc.meta.as_ref().is_some_and(|m| m.mro().iter().any(|x| Rc::ptr_eq(x, c))));
         }
+        // Objeto nativo cujo tipo é uma classe em Python do módulo dono (`re.Pattern`, `_hashlib.HASH`).
+        if let Value::Ext(e) = v {
+            if let Some(vm) = crate::vm::current() {
+                if let Some(Value::Class(native)) = vm.native_python_class(e.type_name()) {
+                    return Ok(native.mro().iter().any(|x| Rc::ptr_eq(x, c)));
+                }
+            }
+        }
         if matches!(v, Value::Instance(i) if i.class().mro().iter().any(|x| Rc::ptr_eq(x, c))) {
             return Ok(true);
         }
@@ -234,8 +242,8 @@ fn isinstance_check(v: &Value, cls: &Value) -> PyResult<bool> {
     // `property`, `classmethod` e `staticmethod` são descritores nativos (objetos `Ext`).
     if let Value::Builtin(n @ ("property" | "classmethod" | "staticmethod")) = cls {
         return Ok(match v {
-            // Instância de subclasse de `property` (o descritor vive no payload).
-            Value::Instance(i) => *n == "property" && crate::classes::is_property_instance(i),
+            // Instância de subclasse de `property`, `classmethod` ou `staticmethod` (o descritor vive no payload).
+            Value::Instance(i) => i.class().data_base == Some(*n),
             Value::Ext(e) => matches!(
                 (e.descriptor(), *n),
                 (Some(crate::object::Descriptor::Property { .. }), "property")

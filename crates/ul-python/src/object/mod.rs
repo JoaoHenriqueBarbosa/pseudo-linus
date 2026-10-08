@@ -521,6 +521,7 @@ pub struct FuncObj {
 /// `.py` no disco do Debian e sem função que faça o papel de classe; o `os` não está aqui porque só parte do
 /// `os.py` é `posix` (ver `code_is_posix_builtin`).
 const C_EXTENSION_MODULES: &[(&str, &str)] = &[
+    ("_abc", "_abc"),
     ("termios", "termios"),
     ("fcntl", "fcntl"),
     ("_select", "select"),
@@ -544,6 +545,13 @@ const C_EXTENSION_MODULES: &[(&str, &str)] = &[
     ("_stat", "_stat"),
     ("posix", "posix"),
     ("_csv", "_csv"),
+    ("_weakref", "_weakref"),
+    ("_pickle", "_pickle"),
+    ("_hashlib", "_hashlib"),
+    ("_md5", "_md5"),
+    ("_sha1", "_sha1"),
+    ("_sha2", "_sha2"),
+    ("_sre", "_sre"),
 ];
 
 /// Funções soltas de módulos que no CPython misturam Python e C, como `(módulo daqui, módulo do CPython,
@@ -567,7 +575,6 @@ const C_EXTENSION_FUNCTIONS: &[(&str, &str, &[&str])] = &[
         ],
     ),
     ("itertools", "itertools", &["tee"]),
-    ("abc", "_abc", &["get_cache_token"]),
     (
         "operator",
         "_operator",
@@ -859,18 +866,21 @@ pub struct InstanceObj {
 
 impl Drop for InstanceObj {
     fn drop(&mut self) {
+        let addr = (&*self) as *const InstanceObj as usize;
         let class = self.class_cell.get_mut();
-        if self.finalized.get() || class.finalizer().is_none() {
-            return;
+        if !self.finalized.get() && class.finalizer().is_some() {
+            let class = class.clone();
+            crate::finalize::enqueue(Rc::new(InstanceObj {
+                class_cell: RefCell::new(class),
+                dict: RefCell::new(std::mem::take(self.dict.get_mut())),
+                view: RefCell::new(self.view.get_mut().take()),
+                payload: RefCell::new(self.payload.get_mut().take()),
+                finalized: std::cell::Cell::new(true),
+            }));
         }
-        let class = class.clone();
-        crate::finalize::enqueue(Rc::new(InstanceObj {
-            class_cell: RefCell::new(class),
-            dict: RefCell::new(std::mem::take(self.dict.get_mut())),
-            view: RefCell::new(self.view.get_mut().take()),
-            payload: RefCell::new(self.payload.get_mut().take()),
-            finalized: std::cell::Cell::new(true),
-        }));
+        // Referências fracas com função de retorno a esta instância: depois do `__del__` (que entrou na fila
+        // antes), a morte delas roda no próximo ponto seguro.
+        crate::modules::weakrefmod::referent_died(addr);
     }
 }
 
@@ -1444,6 +1454,16 @@ fn module_prefix(c: &ClassObj) -> String {
     }
 }
 
+/// O prefixo de módulo com que o `repr` de um tipo embutido sai: os dois tipos de anotação nascem em `types`
+/// (`<class 'types.GenericAlias'>`), os demais em `builtins` (sem prefixo).
+pub fn builtin_type_prefix(name: &str) -> &'static str {
+    if matches!(name, "GenericAlias" | "UnionType") {
+        "types."
+    } else {
+        ""
+    }
+}
+
 /// Embutidos que no CPython são classes (`str`, `int`, `range`...), não funções: o `repr` deles é
 /// `<class 'str'>` e o tipo é `type`.
 pub fn is_builtin_type(name: &str) -> bool {
@@ -1492,6 +1512,16 @@ pub fn native_type_method(type_name: &str, method: &str) -> Option<&'static str>
 
 pub fn is_native_type(name: &str) -> bool {
     NATIVE_TYPES.lock().unwrap_or_else(|e| e.into_inner()).contains(&name)
+}
+
+/// O módulo em Python cuja classe de mesmo nome é o `type()` dos objetos nativos `type_name`
+/// (`re.Pattern`, `_hashlib.HASH`): no CPython esses tipos têm `__module__` e `repr` do módulo C que os define.
+pub fn native_type_owner(type_name: &str) -> Option<&'static str> {
+    match type_name {
+        "Pattern" | "Match" => Some("re"),
+        "HASH" | "HASHXOF" | "HMAC" => Some("_hashlib"),
+        _ => None,
+    }
 }
 
 thread_local! {
@@ -1628,7 +1658,7 @@ pub(crate) fn repr_into(v: &Value, out: &mut String, stack: &mut ReprStack) {
                 out.push_str(n);
             }
         }
-        Value::Builtin(name) if is_builtin_type(name) => out.push_str(&format!("<class '{name}'>")),
+        Value::Builtin(name) if is_builtin_type(name) => out.push_str(&format!("<class '{}{name}'>", builtin_type_prefix(name))),
         Value::Builtin(name) => out.push_str(&format!("<built-in function {name}>")),
         Value::Exception(e) => out.push_str(&exc_repr(e)),
         Value::Function(f) if f.is_c_function() => out.push_str(&format!("<built-in function {}>", f.plain_qual())),

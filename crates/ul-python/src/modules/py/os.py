@@ -927,7 +927,7 @@ def walk(top, topdown=True, onerror=None, followlinks=False):
 
 # Change environ to automatically call putenv() and unsetenv()
 from _collections_abc import MutableMapping, Mapping
-from collections.abc import _check_methods
+from _collections_abc import _check_methods
 
 class _Environ(MutableMapping):
     def __init__(self, data, encodekey, decodekey, encodevalue, decodevalue):

@@ -1996,6 +1996,8 @@ impl Compiler {
             inner.lambda_names = std::mem::take(&mut self.lambda_names);
         }
         inner.globals_decl = globals;
+        // `nonlocal x` faz de `x` uma variável livre (`co_freevars`, `__closure__`) mesmo sem uso no corpo.
+        inner.free_uses.extend(nonlocals.iter().cloned());
         inner.nonlocals_decl = nonlocals;
         inner.enclosing_class = if self.in_class_body { self.class_name.clone() } else { self.enclosing_class.clone() };
         inner.future_annotations = self.future_annotations;

@@ -1,37 +1,68 @@
-//! Resumos MD5, SHA-1 e SHA-256 (e SHA-224) em Rust puro, com a API de uma passada e a incremental
-//! (`new`, `update`, `finalize`).
-//!
-//! Os algoritmos mais raros (SHA-512, BLAKE2b, SHA-3) ficam com quem os usa.
+//! Resumos MD5, SHA-1, SHA-2 (SHA-256, SHA-224 e a família SHA-512), SHA-3 e SHAKE, BLAKE2b e BLAKE2s,
+//! RIPEMD-160 e SM3 em Rust puro, com a API de uma passada e a incremental (`new`, `update`, `finalize`),
+//! mais HMAC, PBKDF2 e scrypt. [`Algo`] e [`Hasher`] escolhem o algoritmo pelo nome do OpenSSL.
 
 use std::sync::OnceLock;
 
-/// Acumula os bytes de entrada em blocos de 64 e cuida do preenchimento final (`0x80`, zeros e o
-/// comprimento em bits), que é o mesmo nos três algoritmos; só a ordem dos bytes do comprimento muda.
-#[derive(Clone)]
-struct Blocks {
-    buf: [u8; 64],
-    len: usize,
-    total: u64,
+/// `update` e `finalize` dos algoritmos de Merkle-Damgård de bloco de 64 bytes cujo tipo guarda `state` (as
+/// palavras) e `blocks` (o `Blocks<64>`): só mudam a função de compressão, a ordem dos bytes do comprimento
+/// no preenchimento e a das palavras no resumo. Fica antes dos `mod` para os módulos filhos a enxergarem.
+macro_rules! block_hash {
+    ($ty:ty, $compress:path, length_big_endian: $length_be:expr, words_little_endian: $words_le:expr, out: $out:literal) => {
+        impl $ty {
+            pub fn update(&mut self, data: &[u8]) {
+                let state = &mut self.state;
+                self.blocks.feed(data, &mut |b: &[u8; 64]| $compress(state, b));
+            }
+
+            pub fn finalize(mut self) -> [u8; $out] {
+                let state = &mut self.state;
+                self.blocks.finish($length_be, &mut |b: &[u8; 64]| $compress(state, b));
+                store_words(&self.state, $words_le)
+            }
+        }
+    };
 }
 
-impl Blocks {
-    const fn new() -> Blocks {
-        Blocks { buf: [0; 64], len: 0, total: 0 }
+pub mod algo;
+pub mod blake2;
+pub mod kdf;
+pub mod keccak;
+pub mod ripemd;
+pub mod sha512;
+pub mod sm3;
+
+pub use algo::{Algo, Hasher};
+pub use kdf::{hmac, pbkdf2, scrypt, Hmac};
+
+/// Acumula os bytes de entrada em blocos de `N` (64 ou 128) e cuida do preenchimento final (`0x80`, zeros
+/// e o comprimento em bits, em `N / 8` bytes), que é o mesmo nos algoritmos de Merkle-Damgård; só a ordem
+/// dos bytes do comprimento muda.
+#[derive(Clone)]
+struct Blocks<const N: usize> {
+    buf: [u8; N],
+    len: usize,
+    total: u128,
+}
+
+impl<const N: usize> Blocks<N> {
+    const fn new() -> Blocks<N> {
+        Blocks { buf: [0; N], len: 0, total: 0 }
     }
 
-    fn feed(&mut self, mut data: &[u8], compress: &mut impl FnMut(&[u8; 64])) {
-        self.total = self.total.wrapping_add(data.len() as u64);
+    fn feed(&mut self, mut data: &[u8], compress: &mut impl FnMut(&[u8; N])) {
+        self.total = self.total.wrapping_add(data.len() as u128);
         if self.len > 0 {
-            let take = (64 - self.len).min(data.len());
+            let take = (N - self.len).min(data.len());
             self.buf[self.len..self.len + take].copy_from_slice(&data[..take]);
             self.len += take;
             data = &data[take..];
-            if self.len == 64 {
+            if self.len == N {
                 compress(&self.buf);
                 self.len = 0;
             }
         }
-        while let Some((block, rest)) = data.split_first_chunk::<64>() {
+        while let Some((block, rest)) = data.split_first_chunk::<N>() {
             compress(block);
             data = rest;
         }
@@ -41,14 +72,19 @@ impl Blocks {
         }
     }
 
-    fn finish(&mut self, big_endian: bool, compress: &mut impl FnMut(&[u8; 64])) {
+    fn finish(&mut self, big_endian: bool, compress: &mut impl FnMut(&[u8; N])) {
+        let length_bytes = N / 8;
         let bits = self.total.wrapping_mul(8);
-        let mut pad = [0u8; 72];
+        let mut pad = [0u8; N];
         pad[0] = 0x80;
-        let pad_len = if self.len < 56 { 56 - self.len } else { 120 - self.len };
+        let limit = N - length_bytes;
+        let pad_len = if self.len < limit { limit - self.len } else { N + limit - self.len };
         self.feed(&pad[..pad_len], &mut *compress);
-        let length = if big_endian { bits.to_be_bytes() } else { bits.to_le_bytes() };
-        self.feed(&length, &mut *compress);
+        if big_endian {
+            self.feed(&bits.to_be_bytes()[16 - length_bytes..], &mut *compress);
+        } else {
+            self.feed(&bits.to_le_bytes()[..length_bytes], &mut *compress);
+        }
     }
 }
 
@@ -121,25 +157,16 @@ fn md5_compress(state: &mut [u32; 4], block: &[u8; 64]) {
 #[derive(Clone)]
 pub struct Md5 {
     state: [u32; 4],
-    blocks: Blocks,
+    blocks: Blocks<64>,
 }
 
 impl Md5 {
     pub fn new() -> Md5 {
         Md5 { state: [0x6745_2301, 0xefcd_ab89, 0x98ba_dcfe, 0x1032_5476], blocks: Blocks::new() }
     }
-
-    pub fn update(&mut self, data: &[u8]) {
-        let state = &mut self.state;
-        self.blocks.feed(data, &mut |b: &[u8; 64]| md5_compress(state, b));
-    }
-
-    pub fn finalize(mut self) -> [u8; 16] {
-        let state = &mut self.state;
-        self.blocks.finish(false, &mut |b: &[u8; 64]| md5_compress(state, b));
-        store_words(&self.state, true)
-    }
 }
+
+block_hash!(Md5, md5_compress, length_big_endian: false, words_little_endian: true, out: 16);
 
 default_via_new!(Md5);
 
@@ -184,25 +211,16 @@ fn sha1_compress(state: &mut [u32; 5], block: &[u8; 64]) {
 #[derive(Clone)]
 pub struct Sha1 {
     state: [u32; 5],
-    blocks: Blocks,
+    blocks: Blocks<64>,
 }
 
 impl Sha1 {
     pub fn new() -> Sha1 {
         Sha1 { state: [0x6745_2301, 0xEFCD_AB89, 0x98BA_DCFE, 0x1032_5476, 0xC3D2_E1F0], blocks: Blocks::new() }
     }
-
-    pub fn update(&mut self, data: &[u8]) {
-        let state = &mut self.state;
-        self.blocks.feed(data, &mut |b: &[u8; 64]| sha1_compress(state, b));
-    }
-
-    pub fn finalize(mut self) -> [u8; 20] {
-        let state = &mut self.state;
-        self.blocks.finish(true, &mut |b: &[u8; 64]| sha1_compress(state, b));
-        store_words(&self.state, false)
-    }
 }
+
+block_hash!(Sha1, sha1_compress, length_big_endian: true, words_little_endian: false, out: 20);
 
 default_via_new!(Sha1);
 
@@ -269,7 +287,7 @@ fn sha256_compress(state: &mut [u32; 8], block: &[u8; 64]) {
 #[derive(Clone)]
 pub struct Sha256 {
     state: [u32; 8],
-    blocks: Blocks,
+    blocks: Blocks<64>,
 }
 
 impl Sha256 {
@@ -281,18 +299,9 @@ impl Sha256 {
     pub fn new_224() -> Sha256 {
         Sha256 { state: SHA224_INIT, blocks: Blocks::new() }
     }
-
-    pub fn update(&mut self, data: &[u8]) {
-        let state = &mut self.state;
-        self.blocks.feed(data, &mut |b: &[u8; 64]| sha256_compress(state, b));
-    }
-
-    pub fn finalize(mut self) -> [u8; 32] {
-        let state = &mut self.state;
-        self.blocks.finish(true, &mut |b: &[u8; 64]| sha256_compress(state, b));
-        store_words(&self.state, false)
-    }
 }
+
+block_hash!(Sha256, sha256_compress, length_big_endian: true, words_little_endian: false, out: 32);
 
 default_via_new!(Sha256);
 
