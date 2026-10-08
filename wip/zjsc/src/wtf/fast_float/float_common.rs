@@ -190,7 +190,7 @@ pub const fn cpp20_and_in_constexpr() -> bool {
 /// A máscara por unidade de código do C++ (`0x2020...`, `0x0020...`): o bit 5 de cada unidade.
 /// As operações do C++ trabalham em palavras de 64 bits, mas o `|` não cruza unidades, então
 /// comparar unidade a unidade é exatamente a mesma conta.
-const fn lane_mask<UC: CharType>() -> Option<u32> {
+fn lane_mask<UC: CharType>() -> Option<u32> {
     if UC::SIZE == 1 || UC::SIZE == 2 || UC::SIZE == 4 {
         Some(0x20)
     } else {
@@ -198,8 +198,18 @@ const fn lane_mask<UC: CharType>() -> Option<u32> {
     }
 }
 
+/// O valor numérico do caractere (`UC` vira inteiro nas contas do C++).
+fn code_of<UC: CharType>(c: UC) -> u32 {
+    c.into()
+}
+
 fn masked_equal<UC: CharType>(actual: UC, expected: UC, mask: u32) -> bool {
-    (actual.into() | mask) == (expected.into() | mask)
+    (code_of(actual) | mask) == (code_of(expected) | mask)
+}
+
+/// `(actual | 32) == expected`: o último caractere dos ramos de 16 e 32 bits não mascara o esperado.
+fn or32_equals<UC: CharType>(actual: UC, expected: UC) -> bool {
+    (code_of(actual) | 32) == code_of(expected)
 }
 
 /// `fastfloat_strncasecmp3`.
@@ -225,7 +235,7 @@ pub fn fastfloat_strncasecmp3<UC: CharType>(
                 return false;
             }
         }
-        (actual_mixedcase[2].into() | 32) == expected_lowercase[2].into()
+        or32_equals(actual_mixedcase[2], expected_lowercase[2])
     } else {
         false
     }
@@ -250,14 +260,14 @@ pub fn fastfloat_strncasecmp5<UC: CharType>(
                 return false;
             }
         }
-        (actual_mixedcase[4].into() | 32) == expected_lowercase[4].into()
+        or32_equals(actual_mixedcase[4], expected_lowercase[4])
     } else if UC::SIZE == 4 {
         for i in 0..4 {
             if !masked_equal(actual_mixedcase[i], expected_lowercase[i], 0x20) {
                 return false;
             }
         }
-        (actual_mixedcase[4].into() | 32) == expected_lowercase[4].into()
+        or32_equals(actual_mixedcase[4], expected_lowercase[4])
     } else {
         false
     }
