@@ -1044,6 +1044,9 @@ pub struct CaseBlockNode {
 }
 
 impl CaseBlockNode {
+    /// `s_tableSwitchMinimum`.
+    pub const TABLE_SWITCH_MINIMUM: usize = 3;
+
     pub fn new(
         list1: Option<NodeRef<ClauseListNode>>,
         default_clause: Option<NodeRef<CaseClauseNode>>,

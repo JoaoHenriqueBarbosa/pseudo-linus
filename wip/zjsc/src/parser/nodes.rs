@@ -350,6 +350,18 @@ impl VariableEnvironmentNode {
     pub fn with_function_stack(lexical_variables: VariableEnvironment, function_stack: FunctionStack) -> Self {
         VariableEnvironmentNode { lexical_variables, function_stack }
     }
+
+    pub fn has_using_declaration(&self) -> bool {
+        self.lexical_variables.has_using_declaration()
+    }
+
+    pub fn has_await_using_declaration(&self) -> bool {
+        self.lexical_variables.has_await_using_declaration()
+    }
+
+    pub fn using_declaration_count(&self) -> u32 {
+        self.lexical_variables.using_declaration_count()
+    }
 }
 
 /// `JSValue(double).isInt32()`: o valor entra como int32 quando a conversão é exata e não é `-0`.
@@ -946,12 +958,12 @@ impl PropertyNode {
     /// `PropertyNode(const Identifier&, ExpressionNode* assign, Type, SuperBinding, ClassElementTag)`.
     pub fn from_name_and_assign(
         name: Identifier,
-        assign: Expression,
+        assign: Option<Expression>,
         type_: PropertyNodeType,
         super_binding: SuperBinding,
         tag: ClassElementTag,
     ) -> Self {
-        Self::from_parts(Some(name), None, Some(assign), type_, super_binding, tag)
+        Self::from_parts(Some(name), None, assign, type_, super_binding, tag)
     }
 
     /// `PropertyNode(ExpressionNode* assign, Type, SuperBinding, ClassElementTag)`.
@@ -962,24 +974,24 @@ impl PropertyNode {
     /// `PropertyNode(ExpressionNode* propertyName, ExpressionNode* assign, Type, SuperBinding, ClassElementTag)`.
     pub fn from_expression_and_assign(
         property_name: Expression,
-        assign: Expression,
+        assign: Option<Expression>,
         type_: PropertyNodeType,
         super_binding: SuperBinding,
         tag: ClassElementTag,
     ) -> Self {
-        Self::from_parts(None, Some(property_name), Some(assign), type_, super_binding, tag)
+        Self::from_parts(None, Some(property_name), assign, type_, super_binding, tag)
     }
 
     /// `PropertyNode(const Identifier&, ExpressionNode* propertyName, ExpressionNode* assign, Type, SuperBinding, ClassElementTag)`.
     pub fn from_name_expression_and_assign(
         ident: Identifier,
         property_name: Expression,
-        assign: Expression,
+        assign: Option<Expression>,
         type_: PropertyNodeType,
         super_binding: SuperBinding,
         tag: ClassElementTag,
     ) -> Self {
-        Self::from_parts(Some(ident), Some(property_name), Some(assign), type_, super_binding, tag)
+        Self::from_parts(Some(ident), Some(property_name), assign, type_, super_binding, tag)
     }
 
     pub fn is_class_property(&self) -> bool {
