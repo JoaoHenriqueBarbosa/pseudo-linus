@@ -42,8 +42,8 @@ pub fn set_heap_nearly_full(nearly_full: bool) {
     HEAP_NEARLY_FULL.store(nearly_full, Ordering::Relaxed);
 }
 
-/// `sqlite3HeapNearlyFull`.
-fn heap_nearly_full() -> bool {
+/// `sqlite3HeapNearlyFull` (também usada por `crate::vdbesort`).
+pub(crate) fn heap_nearly_full() -> bool {
     HEAP_NEARLY_FULL.load(Ordering::Relaxed)
 }
 

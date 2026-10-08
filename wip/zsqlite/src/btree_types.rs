@@ -8,6 +8,7 @@
 //! CAMPOS:
 //!
 //! `MemPage` (só metadados decodificados; vive no `extra` do slot do `Pager<MemPage>`):
+//!   geom: PageGeom                 (novo) cópia de pageSize, usableSize, maxLocal... do BtShared
 //!   is_init: bool                  isInit
 //!   int_key: bool                  intKey
 //!   int_key_leaf: bool             intKeyLeaf
@@ -70,7 +71,7 @@
 //!   n_transaction: i32             nTransaction
 //!   n_page: u32                    nPage
 //!   p_schema: Option<Box<dyn Any>> pSchema (o destrutor xFreeSchema é o Drop do Box)
-//!   p_has_content: Option<Bitvec>  pHasContent
+//!   p_has_content: Option<Box<Bitvec>> pHasContent (o `bitvec_create` devolve `Box`)
 //!   lock_list: Vec<BtLock>         pLock
 //!   has_writer: bool               pWriter != 0 (com Btree == BtShared, o escritor é o próprio)
 //!   p_tmp_space: Vec<u8>           pTmpSpace
@@ -251,10 +252,37 @@ impl<T> Slab<T> {
     }
 }
 
+/// Cópia, guardada em cada `MemPage`, dos campos do `BtShared` que o C lê por `pPage->pBt`
+/// (`pageSize`, `usableSize`, `maxLocal`, `minLocal`, `maxLeaf`, `minLeaf`, `max1bytePayload` e
+/// o bit `SQLITE_CellSizeCk` de `pBt->db->flags`). Existe porque o `MemPage` não aponta para o
+/// `BtShared` e porque o `reiniter` do pager (`pageReinit`) é uma `fn` sem acesso ao `BtShared`.
+/// `btree_init_page` e `zero_page` a preenchem a partir do `BtShared` vigente.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct PageGeom {
+    /// `pBt->pageSize`.
+    pub page_size: u32,
+    /// `pBt->usableSize`.
+    pub usable_size: u32,
+    /// `pBt->maxLocal`.
+    pub max_local: u16,
+    /// `pBt->minLocal`.
+    pub min_local: u16,
+    /// `pBt->maxLeaf`.
+    pub max_leaf: u16,
+    /// `pBt->minLeaf`.
+    pub min_leaf: u16,
+    /// `pBt->max1bytePayload`.
+    pub max1byte_payload: u8,
+    /// `pBt->db->flags & SQLITE_CellSizeCk`.
+    pub cell_size_ck: bool,
+}
+
 /// `struct MemPage`: cabeçalho decodificado de uma página de árvore-b. Sem bytes: estes ficam
 /// no slot da página e se alcançam por `pager.page_parts(pg)`.
 #[derive(Default)]
 pub struct MemPage {
+    /// Geometria do `BtShared` vista na última inicialização (substitui `pPage->pBt->...`).
+    pub geom: PageGeom,
     /// Verdadeiro se a página já foi inicializada.
     pub is_init: bool,
     /// Verdadeiro em árvores de tabela, falso em índices.
@@ -353,7 +381,7 @@ pub struct BtShared {
     /// O esquema do banco, alocado pelo módulo de esquema (`sqlite3BtreeSchema`).
     pub p_schema: Option<Box<dyn Any>>,
     /// Páginas que passaram para a lista livre nesta transação.
-    pub p_has_content: Option<Bitvec>,
+    pub p_has_content: Option<Box<Bitvec>>,
     /// Travas de tabela do cache compartilhado.
     pub lock_list: Vec<BtLock>,
     /// Há uma transação de escrita aberta (o `pWriter` do C, que só pode ser este Btree).

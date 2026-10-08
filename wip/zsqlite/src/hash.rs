@@ -47,6 +47,13 @@ pub struct Hash<V> {
     free: Vec<usize>,
 }
 
+impl<V> Default for Hash<V> {
+    /// Tabela vazia (`sqlite3HashInit`), para os `#[derive(Default)]` de quem possui um `Hash`.
+    fn default() -> Self {
+        hash_init()
+    }
+}
+
 /// `sqlite3HashInit`: uma tabela vazia.
 pub fn hash_init<V>() -> Hash<V> {
     Hash { count: 0, first: None, ht: Vec::new(), elems: Vec::new(), free: Vec::new() }
