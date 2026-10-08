@@ -411,7 +411,7 @@ print(r.status_code, r.get_json())
 r = c.get("/nada")
 print(r.status_code)
 r = c.post("/")
-print(r.status_code, r.headers["Allow"])
+print(r.status_code, sorted(r.headers["Allow"].split(", ")))
 PY
 echo "py rc=$?"
 '''
@@ -1054,7 +1054,7 @@ Um parágrafo com *ênfase*, **negrito** e ``código``.
 
    x = 1
 """
-parts = publish_parts(src, writer_name="html", settings_overrides={"report_level": 5, "halt_level": 5})
+parts = publish_parts(src, writer_name="html5",settings_overrides={"report_level": 5, "halt_level": 5})
 print(parts["body"])
 print(parts["title"])
 PY
@@ -1219,6 +1219,1806 @@ try:
     iniconfig.IniConfig("y.ini", data="solto = 1\n")
 except iniconfig.ParseError as e:
     print(type(e).__name__, e)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-setuptools"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v /tmp/pk
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q setuptools; echo "pip rc=$?"
+mkdir -p /tmp/pk/a/b /tmp/pk/c
+touch /tmp/pk/a/__init__.py /tmp/pk/a/b/__init__.py /tmp/pk/c/__init__.py /tmp/pk/solto.py
+/tmp/v/bin/python - <<'PY'
+from setuptools import Distribution, find_namespace_packages, find_packages
+
+print(sorted(find_packages(where="/tmp/pk")))
+print(sorted(find_packages(where="/tmp/pk", exclude=["c*"])))
+print(sorted(find_namespace_packages(where="/tmp/pk", include=["a.*"])))
+d = Distribution({"name": "demo-pkg", "version": "1.2.3", "packages": ["a", "a.b"], "py_modules": ["solto"]})
+print(d.get_name(), d.get_version(), d.get_fullname(), d.packages, d.py_modules)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-wheel"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v /tmp/wh
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q wheel; echo "pip rc=$?"
+mkdir -p /tmp/wh
+/tmp/v/bin/python - <<'PY'
+import zipfile
+
+from wheel.wheelfile import WheelFile
+
+path = "/tmp/wh/demo-1.0-py3-none-any.whl"
+with WheelFile(path, "w") as wf:
+    wf.writestr("demo/__init__.py", "x = 1\n")
+    wf.writestr("demo-1.0.dist-info/METADATA", "Metadata-Version: 2.1\nName: demo\nVersion: 1.0\n")
+    wf.writestr("demo-1.0.dist-info/WHEEL", "Wheel-Version: 1.0\nGenerator: demo\nRoot-Is-Purelib: true\nTag: py3-none-any\n")
+with WheelFile(path) as wf:
+    print(wf.parsed_filename.group("name"), wf.parsed_filename.group("ver"), wf.parsed_filename.group("pyver"))
+    print(sorted(wf.namelist()))
+    print(wf.read("demo-1.0.dist-info/RECORD").decode())
+print(zipfile.is_zipfile(path))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-pyparsing"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q pyparsing; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import pyparsing as pp
+
+num = pp.Word(pp.nums).set_parse_action(lambda t: int(t[0]))
+expr = pp.infix_notation(
+    num,
+    [(pp.one_of("* /"), 2, pp.OpAssoc.LEFT), (pp.one_of("+ -"), 2, pp.OpAssoc.LEFT)],
+)
+print(expr.parse_string("1 + 2 * 3").as_list())
+print(expr.parse_string("(1 + 2) * 3 - 4").as_list())
+word = pp.Word(pp.alphas)
+greet = word + "," + word + "!"
+print(greet.parse_string("Hello, World!").as_list())
+try:
+    greet.parse_string("Hello World")
+except pp.ParseException as e:
+    print(e)
+print(pp.DelimitedList(num).parse_string("1, 2, 3").as_list())
+kv = pp.Group(word("k") + "=" + num("v"))
+res = pp.OneOrMore(kv).parse_string("a = 1 b = 22 c = 333")
+print([(g.k, g.v) for g in res])
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-decorator"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q decorator; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import inspect
+
+from decorator import decorator
+
+
+@decorator
+def trace(f, *a, **kw):
+    print("chamada", f.__name__, a, kw)
+    return f(*a, **kw)
+
+
+@trace
+def soma(x, y=2):
+    """Soma dois números."""
+    return x + y
+
+
+print(soma(1), soma(1, y=5))
+print(inspect.signature(soma), soma.__name__, soma.__doc__)
+print(soma.__wrapped__.__name__)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-zipp"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q zipp; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import io
+import zipfile
+
+import zipp
+
+buf = io.BytesIO()
+with zipfile.ZipFile(buf, "w") as z:
+    z.writestr("a/b.txt", "olá")
+    z.writestr("a/c/d.txt", "dd")
+    z.writestr("e.txt", "e")
+buf.seek(0)
+root = zipp.Path(zipfile.ZipFile(buf))
+print(sorted(p.name for p in root.iterdir()))
+a = root / "a"
+print(a.is_dir(), sorted(p.name for p in a.iterdir()))
+print((a / "b.txt").read_text(encoding="utf-8"), (a / "c" / "d.txt").exists(), (root / "zz").exists())
+print((a / "c" / "d.txt").parent.name, (a / "b.txt").suffix, (a / "b.txt").stem)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-importlib-metadata"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q importlib-metadata; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import importlib_metadata as m
+
+print(sorted(d.metadata["Name"] for d in m.distributions()))
+dist = m.distribution("zipp")
+print(dist.metadata["Name"], dist.metadata["Metadata-Version"] is not None)
+print(sorted(ep.name for ep in m.entry_points(group="console_scripts") if ep.name.startswith("pip")))
+print(m.packages_distributions().get("zipp"))
+try:
+    m.version("nao-existe")
+except m.PackageNotFoundError as e:
+    print(type(e).__name__, e)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-more-itertools"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q more-itertools; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import more_itertools as mi
+
+print(list(mi.chunked(range(7), 3)))
+print(list(mi.windowed(range(5), 3)))
+print(list(mi.unique_everseen("AAABBCA")))
+evens, odds = mi.partition(lambda n: n % 2, range(8))
+print(list(evens), list(odds))
+print(mi.first([], "vazio"), mi.last(range(5)), mi.ilen(iter("abcd")))
+print(list(mi.collapse([1, [2, [3, (4, 5)]], 6])))
+print(list(mi.flatten([[1, 2], [3]])), mi.take(3, mi.ncycles("ab", 5)))
+p = mi.peekable(iter([1, 2, 3]))
+print(p.peek(), next(p), list(p))
+print(mi.one([42]), mi.sliced("abcdefg", 3) and list(mi.sliced("abcdefg", 3)))
+try:
+    mi.one([])
+except ValueError as e:
+    print(e)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-pyjwt"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q pyjwt; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import jwt
+
+key = "k" * 32
+tok = jwt.encode({"sub": "u1", "n": 1}, key, algorithm="HS256")
+print(tok)
+print(jwt.decode(tok, key, algorithms=["HS256"]))
+print(jwt.get_unverified_header(tok))
+try:
+    jwt.decode(tok, "w" * 32, algorithms=["HS256"])
+except jwt.InvalidSignatureError as e:
+    print(type(e).__name__, e)
+old = jwt.encode({"exp": 1}, key, algorithm="HS256")
+try:
+    jwt.decode(old, key, algorithms=["HS256"])
+except jwt.ExpiredSignatureError as e:
+    print(type(e).__name__, e)
+try:
+    jwt.decode("isto.nao.e-jwt", key, algorithms=["HS256"])
+except jwt.DecodeError as e:
+    print(type(e).__name__)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-oauthlib"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q oauthlib; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from oauthlib.oauth1 import Client as Client1
+from oauthlib.oauth2 import WebApplicationClient
+
+c = WebApplicationClient("cid")
+print(c.prepare_request_uri("https://example.com/auth", redirect_uri="https://app/cb", scope=["a", "b"], state="xyz"))
+tok = c.parse_request_body_response('{"access_token": "tok", "token_type": "Bearer", "expires_in": 3600, "scope": "a b"}')
+print(sorted(tok), c.access_token, c.token_type, tok["scope"])
+print(c.prepare_request_body(code="abc", redirect_uri="https://app/cb"))
+o1 = Client1("key", client_secret="s", nonce="n1", timestamp="1700000000")
+uri, headers, body = o1.sign("https://example.com/r?x=1")
+print(uri)
+print(headers["Authorization"])
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-requests-oauthlib"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q requests-oauthlib; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import requests
+from requests_oauthlib import OAuth1, OAuth2Session
+
+s = OAuth2Session("cid", redirect_uri="https://app/cb", scope=["a", "b"], state="st")
+url, state = s.authorization_url("https://example.com/auth")
+print(url, state)
+a = OAuth1("k", client_secret="s", nonce="n1", timestamp="1700000000")
+p = requests.Request("GET", "https://example.com/x", params={"q": "1"}, auth=a).prepare()
+print(p.url)
+print(p.headers["Authorization"])
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-requests-toolbelt"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q requests-toolbelt; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from requests_toolbelt import MultipartEncoder
+from requests_toolbelt.sessions import BaseUrlSession
+
+m = MultipartEncoder(fields={"a": "1", "f": ("x.txt", "ola", "text/plain")}, boundary="BOUNDARY")
+print(m.content_type, m.len)
+print(m.to_string().decode().replace("\r\n", "|"))
+s = BaseUrlSession("https://api.example.com/v1/")
+print(s.create_url("users"), s.create_url("/users/7"), s.create_url("https://outro.org/z"))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-httplib2"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q httplib2; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import json
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+import httplib2
+
+
+class H(BaseHTTPRequestHandler):
+    def do_GET(self):
+        body = json.dumps({"path": self.path}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_POST(self):
+        n = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(n)
+        self.send_response(201)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *a):
+        pass
+
+
+srv = ThreadingHTTPServer(("127.0.0.1", 8765), H)
+threading.Thread(target=srv.serve_forever, daemon=True).start()
+h = httplib2.Http(proxy_info=None)
+resp, content = h.request("http://127.0.0.1:8765/x?y=1")
+print(resp.status, resp["content-type"], content)
+resp, content = h.request("http://127.0.0.1:8765/p", "POST", body="dados", headers={"Content-Type": "text/plain"})
+print(resp.status, content)
+srv.shutdown()
+srv.server_close()
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-uritemplate"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q uritemplate; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from uritemplate import URITemplate, expand
+
+print(expand("http://x/{user}{/list*}{?q,n}", user="u", list=["a", "b"], q="a b", n=1))
+t = URITemplate("/repos{/owner,repo}{?page}")
+print(sorted(str(v) for v in t.variable_names), t.expand(owner="o", repo="r", page=2))
+print(expand("{+path}/here{#frag}", path="/a/b c", frag="x y"))
+print(expand("{;x,y}{.z}", x=1, y=2, z="w"))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-tzdata"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q tzdata; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import importlib.resources as r
+import zoneinfo
+from datetime import datetime
+
+zoneinfo.reset_tzpath(to=[])
+z = zoneinfo.ZoneInfo("America/Sao_Paulo")
+d = datetime(2024, 1, 15, 12, 0, tzinfo=z)
+print(d.isoformat(), d.tzname(), d.utcoffset())
+d2 = datetime(2024, 7, 1, 12, 0, tzinfo=zoneinfo.ZoneInfo("Europe/Lisbon"))
+print(d2.isoformat(), d2.tzname(), d2.dst())
+d3 = datetime(2024, 1, 1, 0, 0, tzinfo=zoneinfo.ZoneInfo("Asia/Kolkata"))
+print(d3.isoformat(), d3.tzname())
+print(r.files("tzdata.zoneinfo.America").joinpath("Sao_Paulo").is_file())
+print("UTC" in zoneinfo.available_timezones(), "Asia/Tokyo" in zoneinfo.available_timezones())
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-mccabe"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q mccabe; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import ast
+
+from mccabe import PathGraphingAstVisitor
+
+src = """
+def f(x):
+    if x:
+        for i in x:
+            pass
+    elif x == 1:
+        return 1
+    return 2
+
+
+def g():
+    return 0
+"""
+v = PathGraphingAstVisitor()
+v.preorder(ast.parse(src), v)
+for graph in v.graphs.values():
+    print(graph.entity, graph.lineno, graph.complexity())
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-pycodestyle"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v /tmp/pc
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q pycodestyle; echo "pip rc=$?"
+mkdir -p /tmp/pc
+printf 'import os,sys\nx=1\ndef f( a ):\n    return a+1\n\n\n\nclass C: pass\n' > /tmp/pc/ruim.py
+printf 'x = 1\n' > /tmp/pc/bom.py
+cd /tmp/pc
+/tmp/v/bin/python - <<'PY'
+import pycodestyle
+
+sg = pycodestyle.StyleGuide()
+r = sg.check_files(["ruim.py", "bom.py"])
+print("total", r.total_errors)
+print(sorted(r.counters.items()))
+PY
+echo "py rc=$?"
+/tmp/v/bin/python -m pycodestyle --statistics -qq ruim.py; echo "cli rc=$?"
+/tmp/v/bin/python -m pycodestyle bom.py; echo "cli rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-pyflakes"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v /tmp/pf
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q pyflakes; echo "pip rc=$?"
+mkdir -p /tmp/pf
+printf 'import os\nx = 1\n\n\ndef f():\n    y = 2\n    return indefinido\n' > /tmp/pf/a.py
+printf 'def (:\n' > /tmp/pf/b.py
+cd /tmp/pf
+/tmp/v/bin/python - <<'PY'
+import sys
+
+from pyflakes.api import check
+from pyflakes.reporter import Reporter
+
+src = "import os\nx = 1\n\n\ndef f():\n    y = 2\n    return indefinido\n"
+n = check(src, "demo.py", Reporter(sys.stdout, sys.stdout))
+sys.stdout.flush()
+print("mensagens", n)
+PY
+echo "py rc=$?"
+/tmp/v/bin/python -m pyflakes a.py b.py; echo "cli rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-flake8"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v /tmp/f8
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q flake8; echo "pip rc=$?"
+mkdir -p /tmp/f8
+printf 'import os\n\n\ndef f(x):\n    if x:\n        for i in x:\n            print(i)\n    return undefined_name\n\n\nl = lambda: 0\n' > /tmp/f8/a.py
+printf 'x = 1\n' > /tmp/f8/ok.py
+cd /tmp/f8
+/tmp/v/bin/flake8 --version; echo "rc=$?"
+/tmp/v/bin/flake8 -j1 a.py; echo "rc=$?"
+/tmp/v/bin/flake8 -j1 ok.py; echo "rc=$?"
+/tmp/v/bin/flake8 -j1 --max-complexity 2 --select=C901 a.py; echo "rc=$?"
+/tmp/v/bin/flake8 -j1 --count --statistics --exit-zero a.py; echo "rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-isort"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v /tmp/is
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q isort; echo "pip rc=$?"
+mkdir -p /tmp/is
+printf 'import sys\nimport os\nfrom b import z, a\nimport abc\n' > /tmp/is/m.py
+cd /tmp/is
+/tmp/v/bin/python - <<'PY'
+import isort
+
+src = "import sys\nimport os\nfrom b import z, a\nimport abc\n"
+print(isort.code(src, src_paths=()), end="")
+print("--")
+print(isort.code(src, profile="black", force_single_line=True, src_paths=()), end="")
+print("--")
+print(isort.place_module("os"), isort.place_module("sys"), isort.Config(profile="black").line_length)
+PY
+echo "py rc=$?"
+/tmp/v/bin/isort --diff m.py | sed -E '/^(---|\+\+\+) /d'; echo "rc=${PIPESTATUS[0]}"
+/tmp/v/bin/isort --check-only m.py; echo "rc=$?"
+/tmp/v/bin/isort -q m.py; echo "rc=$?"
+cat m.py
+'''
+
+[[case]]
+id = "pip-smoke-dill"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q dill; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import dill
+
+
+def make(n):
+    def inner(x):
+        return x + n
+
+    return inner
+
+
+class P:
+    def __init__(self, v):
+        self.v = v
+
+    def get(self):
+        return self.v
+
+
+sq = lambda x: x * x
+add3 = make(3)
+data = dill.dumps({"sq": sq, "add3": add3, "t": (1, 2.5, "s", {1, 2}), "p": P(5)})
+o = dill.loads(data)
+print(o["sq"](7), o["add3"](4), o["t"], o["p"].get())
+print(dill.pickles(sq), dill.pickles(add3))
+print(dill.copy(add3)(10))
+print(dill.loads(dill.dumps(P)).__name__, dill.loads(dill.dumps(sq))(9))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-tomlkit"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q tomlkit; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import tomlkit
+
+doc = tomlkit.parse('# c\n[tool]\nname = "x"  # inline\nlist = [1, 2]\n')
+doc["tool"]["name"] = "y"
+doc["tool"]["novo"] = 3
+print(tomlkit.dumps(doc), end="")
+print(doc["tool"]["list"], type(doc["tool"]["name"]).__name__, doc.unwrap())
+t = tomlkit.table()
+t.add("a", 1)
+t.add(tomlkit.nl())
+t.add("b", [1, 2, 3])
+d = tomlkit.document()
+d.add(tomlkit.comment("gerado"))
+d.add("sec", t)
+print(tomlkit.dumps(d))
+try:
+    tomlkit.parse("a = = 1")
+except tomlkit.exceptions.ParseError as e:
+    print(type(e).__name__, e)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-mako"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q mako; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from mako.lookup import TemplateLookup
+from mako.template import Template
+
+t = Template("Olá ${nome | h}!\n% for i in itens:\n- ${i}\n% endfor\n<%def name=\"b(x)\">[${x}]</%def>${b('z')}\n")
+print(t.render(nome="W&Co", itens=[1, 2]), end="")
+tl = TemplateLookup(directories=[])
+tl.put_string("base", "<${self.body()}>")
+tl.put_string("filho", "<%inherit file=\"base\"/>corpo ${x}")
+print(tl.get_template("filho").render(x=7))
+print(Template("${1 + 2} ${'a'.upper()} ${u | trim}", ).render(u="  espaço  "))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-typer"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q typer; echo "pip rc=$?"
+export COLUMNS=80 NO_COLOR=1 TERM=dumb
+/tmp/v/bin/python - <<'PY'
+import typer
+from typer.testing import CliRunner
+
+app = typer.Typer()
+
+
+@app.command()
+def hello(name: str, count: int = 1, shout: bool = False):
+    """Diz olá."""
+    for _ in range(count):
+        print(name.upper() if shout else name)
+
+
+r = CliRunner().invoke(app, ["bob", "--count", "2", "--shout"])
+print(r.exit_code, repr(r.output))
+r = CliRunner().invoke(app, ["bob", "--count", "x"])
+print(r.exit_code)
+print(r.output)
+r = CliRunner().invoke(app, ["--help"])
+print(r.exit_code)
+print(r.output)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-shellingham"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q shellingham; echo "pip rc=$?"
+cat > /tmp/sh_detect.py <<'EOT'
+import shellingham
+
+try:
+    name, path = shellingham.detect_shell()
+    print("detectado", name)
+except shellingham.ShellDetectionFailure as e:
+    print("falha", type(e).__name__)
+print(issubclass(shellingham.ShellDetectionFailure, RuntimeError))
+EOT
+bash -c '/tmp/v/bin/python /tmp/sh_detect.py; echo "py rc=$?"'
+sh -c '/tmp/v/bin/python /tmp/sh_detect.py; echo "py rc=$?"'
+'''
+
+[[case]]
+id = "pip-smoke-python-dotenv"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v /tmp/de
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q "python-dotenv[cli]"; echo "pip rc=$?"
+mkdir -p /tmp/de
+printf 'A=1\nB="duas palavras"\nC=${A}x\n# comentario\nexport D=%sq%s\nE=\nG\n' "'" "'" > /tmp/de/.env
+cd /tmp/de
+/tmp/v/bin/python - <<'PY'
+import os
+
+from dotenv import dotenv_values, find_dotenv, get_key, load_dotenv, set_key, unset_key
+
+print(dict(dotenv_values("/tmp/de/.env")))
+print(find_dotenv(usecwd=True))
+for k in "ABCDE":
+    os.environ.pop(k, None)
+print(load_dotenv("/tmp/de/.env"))
+print(os.environ["C"], os.environ["B"], repr(os.environ["E"]))
+print(set_key("/tmp/de/.env", "F", "v 1"))
+print(get_key("/tmp/de/.env", "F"))
+print(unset_key("/tmp/de/.env", "A"))
+print(open("/tmp/de/.env").read(), end="")
+PY
+echo "py rc=$?"
+/tmp/v/bin/dotenv -f /tmp/de/.env list; echo "cli rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-annotated-types"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q annotated-types; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from typing import Annotated, get_type_hints
+
+from annotated_types import Ge, Gt, Interval, Le, Len, MaxLen, MinLen, Predicate
+
+Idade = Annotated[int, Gt(0), Le(150)]
+print(Idade.__metadata__)
+print(list(Interval(gt=0, le=10)))
+print(list(Len(1, 3)))
+print(Interval(ge=1, le=5) == Interval(ge=1, le=5), MinLen(2) == MinLen(3))
+
+
+class M:
+    nome: Annotated[str, MinLen(1), MaxLen(8)]
+    nota: Annotated[float, Ge(0), Le(10)]
+
+
+for k, v in get_type_hints(M, include_extras=True).items():
+    print(k, v.__origin__.__name__, v.__metadata__)
+p = Predicate(str.isdigit)
+print(p.func("123"), p.func("12a"))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-email-validator"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q email-validator; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from email_validator import EmailNotValidError, validate_email
+
+r = validate_email("Test.User@Example.COM", check_deliverability=False)
+print(r.normalized, r.local_part, r.domain, r.ascii_email)
+r = validate_email("usuário@bücher.de", check_deliverability=False)
+print(ascii(r.normalized), r.ascii_domain, r.smtputf8)
+for bad in ["sem-arroba", "a@b", "a..b@exemplo.com", "@exemplo.com", "a b@exemplo.com"]:
+    try:
+        validate_email(bad, check_deliverability=False)
+    except EmailNotValidError as e:
+        print(bad, "->", e)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-dnspython"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q dnspython; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import dns.message
+import dns.name
+import dns.rdata
+import dns.rdataclass
+import dns.rdatatype
+import dns.reversename
+import dns.zone
+
+n = dns.name.from_text("www.Example.com.")
+print(n, n.is_absolute(), n.parent(), n.labels)
+print(dns.name.from_text("a.b", origin=dns.name.from_text("example.org.")))
+q = dns.message.make_query("example.com", "A", id=4660)
+print(q.id, q.to_wire().hex())
+print(dns.message.from_wire(q.to_wire()).question[0])
+print(dns.reversename.from_address("192.0.2.1"), dns.reversename.to_address(dns.reversename.from_address("192.0.2.1")))
+rd = dns.rdata.from_text(dns.rdataclass.IN, dns.rdatatype.MX, "10 mail.example.com.")
+print(rd.preference, rd.exchange, rd.to_text(), dns.rdatatype.to_text(rd.rdtype))
+z = dns.zone.from_text(
+    "$ORIGIN example.com.\n@ 3600 IN SOA ns1 admin 1 2 3 4 5\n@ IN NS ns1\nns1 IN A 192.0.2.1\nwww IN CNAME ns1\n",
+    origin="example.com.",
+)
+print(z.to_text())
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-starlette"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q starlette httpx; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from starlette.applications import Starlette
+from starlette.responses import JSONResponse, PlainTextResponse
+from starlette.routing import Route
+from starlette.testclient import TestClient
+
+
+async def hello(request):
+    return JSONResponse({"nome": request.path_params["nome"], "q": request.query_params.get("q")})
+
+
+async def eco(request):
+    corpo = await request.body()
+    return PlainTextResponse(corpo.decode().upper(), status_code=201)
+
+
+app = Starlette(routes=[Route("/ola/{nome}", hello), Route("/eco", eco, methods=["POST"])])
+c = TestClient(app)
+r = c.get("/ola/ana", params={"q": "1"})
+print(r.status_code, r.headers["content-type"], r.json())
+r = c.post("/eco", content="texto")
+print(r.status_code, r.headers["content-type"], r.text)
+r = c.get("/nada")
+print(r.status_code, r.text)
+r = c.get("/eco")
+print(r.status_code, r.headers["allow"])
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-uvicorn"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q uvicorn; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import threading
+import time
+import urllib.request
+
+import uvicorn
+
+
+async def app(scope, receive, send):
+    corpo = b'{"path": "%s"}' % scope["path"].encode()
+    await send({"type": "http.response.start", "status": 200, "headers": [(b"content-type", b"application/json")]})
+    await send({"type": "http.response.body", "body": corpo})
+
+
+cfg = uvicorn.Config(app, host="127.0.0.1", port=8765, log_level="warning", lifespan="off", http="h11")
+srv = uvicorn.Server(cfg)
+t = threading.Thread(target=srv.run, daemon=True)
+t.start()
+for _ in range(100):
+    if srv.started:
+        break
+    time.sleep(0.05)
+op = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+with op.open("http://127.0.0.1:8765/ola") as r:
+    print(r.status, r.headers["content-type"], r.headers["server"], r.read())
+srv.should_exit = True
+t.join(10)
+print(t.is_alive())
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-pexpect"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q pexpect; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import pexpect
+
+c = pexpect.spawn("/bin/sh", ["-c", "echo ola; read x; echo got:$x"], encoding="utf-8", timeout=5)
+c.expect("ola")
+print(repr(c.before), repr(c.after))
+c.sendline("abc")
+c.expect("got:abc")
+print(repr(c.before), repr(c.after))
+c.expect(pexpect.EOF)
+c.close()
+print(c.exitstatus, c.signalstatus)
+print(pexpect.run("echo oi"))
+print(pexpect.run("sh -c 'exit 3'", withexitstatus=True))
+c = pexpect.spawn("/bin/cat", timeout=1)
+try:
+    c.expect("nunca")
+except pexpect.TIMEOUT:
+    print("TIMEOUT")
+c.close()
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-ptyprocess"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q ptyprocess; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from ptyprocess import PtyProcess
+
+p = PtyProcess.spawn(["/bin/sh", "-c", "echo ola; exit 4"])
+print(p.getwinsize())
+out = b""
+try:
+    while True:
+        out += p.read(1024)
+except EOFError:
+    pass
+p.wait()
+print(out, p.exitstatus, p.isalive())
+p = PtyProcess.spawn(["/bin/cat"], dimensions=(30, 100))
+print(p.getwinsize())
+p.write(b"abc\n")
+print(p.readline(), p.readline())
+p.terminate(force=True)
+print(p.isalive())
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-wcwidth"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q wcwidth; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from wcwidth import wcswidth, wcwidth
+
+print(wcwidth("a"), wcwidth("中"), wcwidth("\u0301"), wcwidth("\u200b"), wcwidth("\x07"), wcwidth("😀"))
+print(wcswidth("hello"), wcswidth("日本語"), wcswidth("e\u0301"), wcswidth("a\x07b"), wcswidth("ｱｲｳ"))
+print(wcswidth("한국어 abc"), wcswidth("👨\u200d👩\u200d👧"))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-prompt-toolkit"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q prompt-toolkit; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from prompt_toolkit import PromptSession
+from prompt_toolkit.buffer import Buffer
+from prompt_toolkit.completion import CompleteEvent, WordCompleter
+from prompt_toolkit.document import Document
+from prompt_toolkit.formatted_text import HTML, to_formatted_text
+from prompt_toolkit.input import create_pipe_input
+from prompt_toolkit.output import DummyOutput
+
+print(to_formatted_text(HTML("<b>oi</b> <style fg='red'>x</style>")))
+d = Document("hello world foo", cursor_position=7)
+print(d.current_line, d.cursor_position_col, d.find_next_word_beginning(), d.get_word_before_cursor())
+c = WordCompleter(["apple", "apricot", "banana"])
+print([x.text for x in c.get_completions(Document("ap"), CompleteEvent())])
+b = Buffer()
+b.insert_text("abc")
+b.cursor_left()
+b.delete()
+print(b.text, b.cursor_position)
+with create_pipe_input() as inp:
+    inp.send_text("ola mundo\r")
+    s = PromptSession(input=inp, output=DummyOutput())
+    print(repr(s.prompt("> ")))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-jedi"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q jedi; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import jedi
+
+s = jedi.Script("import os\nos.path.jo")
+print(sorted(set(c.name for c in s.complete(2, 10))))
+sig = jedi.Script("def f(a, b=1):\n    pass\nf(").get_signatures(3, 2)
+print([x.to_string() for x in sig])
+names = jedi.Script("class A:\n    def m(self):\n        pass\nA().m").get_names(all_scopes=True)
+print([(n.name, n.type, n.line) for n in names])
+inf = jedi.Script("x = 'a'\nx.upper").infer(2, 3)
+print([(i.name, i.type) for i in inf])
+print([(d.name, d.line) for d in jedi.Script("def g():\n    pass\ng()").goto(3, 0)])
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-parso"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q parso; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import parso
+
+g = parso.load_grammar(version="3.12")
+src = "def f(x):\n    return x +  1  # c\n"
+m = g.parse(src)
+print(m.get_code() == src, [type(c).__name__ for c in m.children])
+fn = m.children[0]
+print(fn.name.value, [p.name.value for p in fn.get_params()], fn.start_pos, fn.end_pos)
+ret = fn.children[-1].children[-1]
+print(type(ret).__name__, ret.get_code())
+errs = list(g.iter_errors(g.parse("def (:\n")))
+print([(e.code, e.message, e.start_pos) for e in errs])
+print([str(e.message) for e in g.iter_errors(g.parse("x = 1\n  y = 2\n"))])
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-traitlets"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q traitlets; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from traitlets import HasTraits, Int, List, TraitError, Unicode, observe, validate
+
+
+class P(HasTraits):
+    name = Unicode("x")
+    age = Int(0)
+    tags = List(Unicode())
+
+    @observe("age")
+    def _o(self, ch):
+        print("age", ch["old"], "->", ch["new"])
+
+    @validate("age")
+    def _v(self, proposal):
+        if proposal["value"] < 0:
+            raise TraitError("negativo")
+        return proposal["value"]
+
+
+p = P(name="n")
+p.age = 3
+p.tags.append("a")
+try:
+    p.age = -1
+except TraitError as e:
+    print(e)
+try:
+    p.age = "s"
+except TraitError as e:
+    print(e)
+print(sorted(p.trait_values().items()), sorted(P.class_trait_names()))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-stack-data"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v /tmp/sd
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q stack-data; echo "pip rc=$?"
+mkdir -p /tmp/sd
+printf 'def f(n):\n    xs = [i * 2 for i in range(n)]\n    total = sum(xs)\n    raise ValueError(total)\n' > /tmp/sd/alvo.py
+cd /tmp/sd
+/tmp/v/bin/python - <<'PY'
+import sys
+
+import stack_data
+
+sys.path.insert(0, "/tmp/sd")
+import alvo
+
+try:
+    alvo.f(3)
+except ValueError:
+    tb = sys.exc_info()[2]
+    while tb.tb_next:
+        tb = tb.tb_next
+    fi = stack_data.FrameInfo(tb, stack_data.Options(before=1, after=0))
+    print(fi.code.co_name, fi.lineno)
+    for line in fi.lines:
+        if isinstance(line, stack_data.Line):
+            print(line.lineno, repr(line.text), line.is_current)
+    print(sorted((v.name, repr(v.value)) for v in fi.variables))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-executing"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v /tmp/ex
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q executing; echo "pip rc=$?"
+mkdir -p /tmp/ex
+printf 'import ast\nimport sys\n\nimport executing\n\n\ndef quem():\n    ex = executing.Source.executing(sys._getframe(1))\n    return type(ex.node).__name__, ast.unparse(ex.node)\n\n\ndef roda():\n    a = quem()\n    b = [quem() for _ in range(1)]\n    c = (quem(), 1)\n    return a, b, c\n' > /tmp/ex/alvo.py
+cd /tmp/ex
+/tmp/v/bin/python - <<'PY'
+import sys
+
+sys.path.insert(0, "/tmp/ex")
+import alvo
+
+for item in alvo.roda():
+    print(item)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-asttokens"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q asttokens; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import ast
+
+import asttokens
+
+src = "def f(a, b):\n    return a + b * 2  # c\n"
+at = asttokens.ASTTokens(src, parse=True)
+for n in ast.walk(at.tree):
+    if isinstance(n, ast.BinOp):
+        print(type(n.op).__name__, repr(at.get_text(n)), n.first_token.string, n.last_token.string, at.get_text_range(n))
+print([t.string for t in at.tokens][:9])
+fn = at.tree.body[0]
+print(fn.first_token.start, fn.last_token.string, at.get_text(fn.args))
+print(at.mark_tokens is not None, at.get_token_from_offset(src.index("b *")).string)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-pure-eval"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q pure-eval; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import ast
+from types import SimpleNamespace
+
+from pure_eval import CannotEval, Evaluator
+
+ev = Evaluator({"x": [1, 2, 3], "d": {"a": 5}, "n": 2, "s": "texto", "ns": SimpleNamespace(v=7)})
+for e in ["x[0]", "d['a']", "x[n]", "ns.v", "len(x)", "x[1:]", "unknown", "[n, n]", "d['b']"]:
+    try:
+        print(e, "=>", ev[ast.parse(e, mode="eval").body])
+    except CannotEval:
+        print(e, "=> CannotEval")
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-matplotlib-inline"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q matplotlib-inline; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from matplotlib_inline.config import InlineBackend
+
+ib = InlineBackend.instance()
+print(sorted(ib.figure_formats), ib.print_figure_kwargs, ib.close_figures)
+print(sorted(ib.rc))
+ib.figure_formats = {"svg", "png"}
+print(sorted(ib.figure_formats))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-cycler"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q cycler; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from cycler import cycler
+
+c = cycler(cor=["r", "g"]) + cycler(lw=[1, 2])
+print(list(c))
+print(c.by_key(), sorted(c.keys), len(c))
+m = cycler(a=[1, 2]) * cycler(b="xy")
+print(list(m), len(m))
+print(repr(c[:1]))
+print(list(cycler(x=range(3))[1:]))
+try:
+    cycler(a=[1]) + cycler(b=[1, 2])
+except ValueError as e:
+    print(e)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-humanize"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q humanize; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import datetime as dt
+
+import humanize
+
+print(humanize.intcomma(1234567), humanize.intword(1_200_000), humanize.ordinal(23), humanize.apnumber(7))
+print(humanize.naturalsize(123456789), humanize.naturalsize(2048, binary=True), humanize.naturalsize(999, gnu=True))
+print(humanize.fractional(0.75), humanize.scientific(12345).encode("ascii", "backslashreplace").decode())
+print(humanize.naturaldelta(dt.timedelta(seconds=4000)), "|", humanize.naturaltime(dt.timedelta(minutes=5)))
+print(humanize.naturaltime(dt.timedelta(minutes=-90)), "|", humanize.naturaldelta(dt.timedelta(days=800)))
+print(humanize.precisedelta(dt.timedelta(days=1, hours=2, seconds=3)))
+print(humanize.metric(1500, "V"), humanize.clamp(5, floor=10, ceil=20))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-termcolor"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q termcolor; echo "pip rc=$?"
+cat > /tmp/tc.py <<'EOT'
+import io
+
+from termcolor import colored, cprint
+
+print(repr(colored("oi", "red", attrs=["bold"])))
+print(repr(colored("x", "white", "on_blue")))
+print(repr(colored("y", "green", attrs=["underline", "reverse"])))
+buf = io.StringIO()
+cprint("fim", "yellow", file=buf)
+print(repr(buf.getvalue()))
+EOT
+env -u NO_COLOR -u ANSI_COLORS_DISABLED FORCE_COLOR=1 /tmp/v/bin/python /tmp/tc.py; echo "py rc=$?"
+env -u FORCE_COLOR -u ANSI_COLORS_DISABLED NO_COLOR=1 /tmp/v/bin/python /tmp/tc.py; echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-unidecode"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q unidecode; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from unidecode import unidecode
+
+for s in ["Åçaí São Paulo", "北京", "Привет мир", "ñandú ½ € ©", "naïve café", "Ελληνικά", "ひらがな"]:
+    print(unidecode(s))
+print(unidecode("a​b"), repr(unidecode("\U0001f600")))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-python-slugify"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q python-slugify; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from slugify import slugify
+
+print(slugify("Olá, Mundo! Ação São Paulo"))
+print(slugify("This is a test ---"))
+print(slugify("C'est déjà l'été", separator="_"))
+print(slugify("a b c d e f", max_length=7, word_boundary=True))
+print(slugify("Foo & Bar", replacements=[["&", "and"]]))
+print(slugify("Éclair", allow_unicode=True))
+print(slugify("the quick fox", stopwords=["the"]), slugify("Já Vou", lowercase=False))
+print(slugify("a--b__c  d", regex_pattern=r"[^-a-z0-9_]+"))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-text-unidecode"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q text-unidecode; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from text_unidecode import unidecode
+
+print(unidecode("Ünïcödé → 北京 € ñ"))
+print(unidecode("Привет"), unidecode("ß æ ø"))
+print(repr(unidecode("\x00\x7f")))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-babel"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q babel; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import datetime as dt
+
+from babel import Locale, dates, numbers
+
+print(ascii(numbers.format_decimal(1234567.891, locale="pt_BR")))
+print(ascii(numbers.format_currency(1234.5, "BRL", locale="pt_BR")), ascii(numbers.format_currency(1234.5, "USD", locale="en_US")))
+print(ascii(numbers.format_percent(0.256, locale="de_DE")), numbers.parse_decimal("1.234,5", locale="de"))
+print(ascii(numbers.format_compact_decimal(1234567, locale="en")))
+print(ascii(dates.format_date(dt.date(2024, 3, 9), format="full", locale="pt_BR")), dates.format_date(dt.date(2024, 3, 9), locale="en_GB"))
+print(ascii(dates.format_datetime(dt.datetime(2024, 3, 9, 15, 4, 5), "EEEE, d MMMM y HH:mm", locale="fr")))
+print(ascii(dates.format_timedelta(dt.timedelta(days=3), locale="es")))
+print(Locale.parse("pt_BR").display_name, "|", ascii(Locale("en", "US").get_display_name("de")))
+print(Locale.parse("pt-BR", sep="-"), Locale("zh", territory="CN", script="Hans"),Locale.parse("en_US").language)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-boto3"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q boto3; echo "pip rc=$?"
+export AWS_CONFIG_FILE=/dev/null AWS_SHARED_CREDENTIALS_FILE=/dev/null AWS_EC2_METADATA_DISABLED=true
+/tmp/v/bin/python - <<'PY'
+import boto3
+from botocore.auth import SigV4Auth
+from botocore.awsrequest import AWSRequest
+from botocore.credentials import Credentials
+from botocore.stub import Stubber
+
+s = boto3.session.Session(
+    aws_access_key_id="AKIDEXAMPLE",
+    aws_secret_access_key="wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY",
+    region_name="us-east-1",
+)
+print("s3" in s.get_available_services(), "sqs" in s.get_available_services())
+c = s.client("s3")
+print(c.meta.region_name, c.meta.endpoint_url, c.meta.service_model.service_name)
+print(sorted(c.meta.method_to_api_mapping)[:5], c.can_paginate("list_objects_v2"))
+stub = Stubber(c)
+stub.add_response("list_buckets", {"Buckets": [{"Name": "a"}, {"Name": "b"}], "Owner": {"ID": "1"}})
+with stub:
+    print([b["Name"] for b in c.list_buckets()["Buckets"]])
+res = s.resource("s3")
+print(res.Bucket("meu-balde").name, res.Object("meu-balde", "k/o.txt").key)
+req = AWSRequest(method="GET", url="https://s3.amazonaws.com/")
+req.context["timestamp"] = "20240101T000000Z"
+auth = SigV4Auth(Credentials("AKIDEXAMPLE", "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY"), "s3", "us-east-1")
+print(auth.signature("AWS4-HMAC-SHA256\n20240101T000000Z\n20240101/us-east-1/s3/aws4_request\nabc", req))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-botocore"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q botocore; echo "pip rc=$?"
+export AWS_CONFIG_FILE=/dev/null AWS_SHARED_CREDENTIALS_FILE=/dev/null
+/tmp/v/bin/python - <<'PY'
+import botocore.session
+from botocore.exceptions import ClientError
+from botocore.utils import ArnParser
+
+s = botocore.session.get_session()
+print("s3" in s.get_available_services(), len(s.get_available_services()) > 300)
+m = s.get_service_model("s3")
+op = m.operation_model("GetObject")
+print(m.protocol, m.service_name, sorted(op.input_shape.required_members))
+print(s.get_service_model("dynamodb").service_id, "PutItem" in s.get_service_model("dynamodb").operation_names)
+print(ArnParser().parse_arn("arn:aws:s3:::bucket/key"))
+err = ClientError({"Error": {"Code": "NoSuchKey", "Message": "chave ausente"}}, "GetObject")
+print(err, err.response["Error"]["Code"], err.operation_name)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-jmespath"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q jmespath; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import jmespath
+
+d = {"people": [
+    {"name": "a", "age": 30, "tags": ["x", "y"]},
+    {"name": "b", "age": 20, "tags": []},
+    {"name": "c", "age": 40, "tags": ["z"]},
+]}
+print(jmespath.search("people[?age>`25`].name", d))
+print(jmespath.search("max_by(people,&age).name", d), jmespath.search("length(people)", d))
+print(jmespath.search("people[*].{n:name,c:length(tags)}", d))
+print(jmespath.search("sort_by(people,&age)[].name", d), jmespath.search("people[0].tags[1]", d))
+print(jmespath.search("people[].tags[]", d), jmespath.search("join(', ', people[].name)", d))
+print(jmespath.search("not.there", d), jmespath.search("sum(people[].age)", d))
+try:
+    jmespath.compile("a[")
+except jmespath.exceptions.ParseError as e:
+    print(type(e).__name__, e)
+try:
+    jmespath.search("abs(`\"x\"`)", d)
+except jmespath.exceptions.JMESPathTypeError as e:
+    print(type(e).__name__)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-s3transfer"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v /tmp/s3t
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q s3transfer; echo "pip rc=$?"
+mkdir -p /tmp/s3t
+printf 'conteudo' > /tmp/s3t/f.txt
+/tmp/v/bin/python - <<'PY'
+from s3transfer.manager import TransferConfig
+from s3transfer.utils import ChunksizeAdjuster, OSUtils, calculate_range_parameter
+
+MB = 1024 * 1024
+cfg = TransferConfig()
+print(cfg.multipart_threshold // MB, cfg.multipart_chunksize // MB, cfg.max_request_concurrency, cfg.max_submission_concurrency)
+a = ChunksizeAdjuster()
+print(a.adjust_chunksize(8 * MB, file_size=10 * MB), a.adjust_chunksize(1, file_size=10**11), a.adjust_chunksize(100 * 1024 * MB, file_size=10 * MB))
+print(calculate_range_parameter(8 * MB, 1, 3), calculate_range_parameter(8 * MB, 0, 3), calculate_range_parameter(8 * MB, 2, 3))
+print(OSUtils().get_file_size("/tmp/s3t/f.txt"), OSUtils().is_special_file("/tmp/s3t/f.txt"))
+try:
+    TransferConfig(max_request_concurrency=0)
+except ValueError as e:
+    print(e)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-google-auth"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q google-auth; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import os
+
+from google.auth import _helpers, environment_vars, exceptions
+from google.auth.credentials import AnonymousCredentials
+
+import google.auth
+
+print(_helpers.to_bytes("olá"), _helpers.to_unicode(b"ol\xc3\xa1"))
+enc = _helpers.unpadded_urlsafe_b64encode(b"\xff\xfe\xfd")
+print(enc, _helpers.padded_urlsafe_b64decode(enc))
+print(_helpers.update_query("https://x.test/p?a=1", {"b": "2 3"}))
+print(environment_vars.CREDENTIALS, issubclass(exceptions.DefaultCredentialsError, exceptions.GoogleAuthError))
+c = AnonymousCredentials()
+h = {}
+c.apply(h)
+print(c.valid, c.expired, c.token, h)
+os.environ[environment_vars.CREDENTIALS] = "/tmp/nao-existe.json"
+try:
+    google.auth.default()
+except exceptions.DefaultCredentialsError as e:
+    print(type(e).__name__, e)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-rsa"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q rsa; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import rsa
+
+pub, priv = rsa.newkey(512)
+msg = b"hello"
+c = rsa.encrypt(msg, pub)
+print(len(c), rsa.decrypt(c, priv), pub.n.bit_length(), pub.e)
+sig = rsa.sign(msg, priv, "SHA-256")
+print(len(sig), rsa.verify(msg, sig, pub))
+try:
+    rsa.verify(b"x", sig, pub)
+except rsa.VerificationError as e:
+    print(type(e).__name__, e)
+print(rsa.PublicKey.load_pkcs1(pub.save_pkcs1()) == pub, rsa.PrivateKey.load_pkcs1(priv.save_pkcs1()) == priv)
+print(pub.save_pkcs1().splitlines()[0], priv.save_pkcs1().splitlines()[0])
+print(rsa.compute_hash(b"abc", "SHA-256").hex())
+try:
+    rsa.encrypt(b"x" * 100, pub)
+except OverflowError as e:
+    print(type(e).__name__)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-pyasn1"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q pyasn1; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from pyasn1.codec.der import decoder, encoder
+from pyasn1.type import char, namedtype, univ
+
+
+class Rec(univ.Sequence):
+    componentType = namedtype.NamedTypes(
+        namedtype.NamedType("id", univ.Integer()),
+        namedtype.NamedType("name", char.UTF8String()),
+        namedtype.NamedType("flag", univ.Boolean()),
+    )
+
+
+r = Rec()
+r["id"] = 300
+r["name"] = "ab"
+r["flag"] = True
+der = encoder.encode(r)
+print(der.hex())
+d, rest = decoder.decode(der, asn1Spec=Rec())
+print(d.prettyPrint(), rest)
+print(encoder.encode(univ.ObjectIdentifier("1.2.840.113549.1.1.11")).hex(), encoder.encode(univ.Integer(-129)).hex())
+obj, _ = decoder.decode(der)
+print(type(obj).__name__, [type(obj[i]).__name__ for i in range(len(obj))])
+so = univ.SetOf(componentType=univ.Integer())
+so.extend([3, 1, 2])
+print(encoder.encode(so).hex())
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-pyasn1-modules"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q pyasn1-modules; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+import io
+
+from pyasn1.codec.der import decoder, encoder
+from pyasn1.type import univ
+from pyasn1_modules import pem, rfc4055, rfc5280
+
+ai = rfc5280.AlgorithmIdentifier()
+ai["algorithm"] = rfc4055.sha256WithRSAEncryption
+ai["parameters"] = univ.Any(encoder.encode(univ.Null("")))
+der = encoder.encode(ai)
+print(der.hex())
+d, rest = decoder.decode(der, asn1Spec=rfc5280.AlgorithmIdentifier())
+print(d["algorithm"], d["algorithm"] == rfc4055.sha256WithRSAEncryption, rest)
+text = "-----BEGIN CERTIFICATE-----\nMAMCAQU=\n-----END CERTIFICATE-----\n"
+idx, sub = pem.readPemBlocksFromFile(io.StringIO(text), ("-----BEGIN CERTIFICATE-----", "-----END CERTIFICATE-----"))
+print(idx, sub)
+obj, _ = decoder.decode(sub)
+print(obj.prettyPrint())
+print(rfc5280.id_ce_keyUsage, rfc5280.id_at_commonName)
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-cachetools"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q cachetools; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from cachetools import LFUCache, LRUCache, TTLCache, cached
+
+c = LRUCache(maxsize=2)
+c["a"] = 1
+c["b"] = 2
+c["a"]
+c["c"] = 3
+print(list(c), "b" in c, c.currsize, c.maxsize)
+calls = []
+
+
+@cached(cache=LRUCache(maxsize=8))
+def f(x):
+    calls.append(x)
+    return x * 2
+
+
+print(f(1), f(1), f(2), calls)
+agora = [0]
+t = TTLCache(maxsize=2, ttl=10, timer=lambda: agora[0])
+t["a"] = 1
+agora[0] = 5
+print("a" in t)
+agora[0] = 11
+print("a" in t, len(t))
+l = LFUCache(maxsize=2)
+l["x"] = 1
+l["y"] = 2
+l["x"]
+l["x"]
+l["z"] = 3
+print(sorted(l))
+PY
+echo "py rc=$?"
+'''
+
+[[case]]
+id = "pip-smoke-tenacity"
+tags = ["mirror", "pip-smoke"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install -q tenacity; echo "pip rc=$?"
+/tmp/v/bin/python - <<'PY'
+from tenacity import RetryError, retry, retry_if_exception_type, stop_after_attempt, wait_none
+
+n = {"c": 0}
+
+
+@retry(stop=stop_after_attempt(3), wait=wait_none(), retry=retry_if_exception_type(ValueError))
+def instavel():
+    n["c"] += 1
+    if n["c"] < 3:
+        raise ValueError("falha %d" % n["c"])
+    return "ok"
+
+
+print(instavel(), n)
+
+
+@retry(stop=stop_after_attempt(2), wait=wait_none())
+def ruim():
+    raise KeyError("k")
+
+
+try:
+    ruim()
+except RetryError as e:
+    print("RetryError", e.last_attempt.attempt_number, repr(e.last_attempt.exception()))
+
+
+@retry(stop=stop_after_attempt(2), wait=wait_none(), reraise=True)
+def ruim2():
+    raise KeyError("k2")
+
+
+try:
+    ruim2()
+except KeyError as e:
+    print("KeyError", e)
 PY
 echo "py rc=$?"
 '''

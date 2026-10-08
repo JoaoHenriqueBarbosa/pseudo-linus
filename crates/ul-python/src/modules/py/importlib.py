@@ -4,6 +4,10 @@ import sys
 import _sys
 import types
 
+import _frozen_importlib_external as _bootstrap_external
+
+sys.modules['importlib._bootstrap_external'] = _bootstrap_external
+
 from . import machinery as _machinery
 from . import util as _util
 

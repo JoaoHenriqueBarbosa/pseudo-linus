@@ -136,6 +136,14 @@ fn is_data_descriptor(attr: &Value) -> bool {
     }
 }
 
+/// O descritor tem `__get__`? Só o de classe Python pode não ter (o `property` nativo sempre tem).
+fn has_descr_get(attr: &Value) -> bool {
+    match attr {
+        Value::Instance(d) => d.class().lookup("__get__").is_some() || is_property_instance(d),
+        _ => true,
+    }
+}
+
 /// `type(obj).nome` de um objeto nativo: o método sem receptor (`method_descriptor`), que chamado
 /// com o objeto na frente repassa a chamada a ele.
 pub(crate) struct NativeTypeMethod {
@@ -2222,7 +2230,11 @@ impl Vm {
             init_module_fields(&fresh, &args, &kw)?;
         } else if let Some(t) = cls.data_base {
             // Sem `__init__`/`__new__` de usuário os argumentos vão direto para o tipo embutido.
-            let own = user_new.is_some() || matches!(cls.lookup("__init__"), Some(Value::Function(_)));
+            // Tipo imutável (`tuple`, `int`, `str`...) recebe os argumentos no `__new__`: um `__init__` próprio
+            // não os tira do tipo embutido (o `_TokenType(tuple)` do pygments tem `__init__(self, *args)`).
+            let immutable = matches!(t, "tuple" | "int" | "float" | "complex" | "str" | "bytes" | "frozenset" | "bool");
+            let own_init = !immutable && matches!(cls.lookup("__init__"), Some(Value::Function(_)));
+            let own = user_new.is_some() || own_init;
             let (a, k) = if own { (Vec::new(), Vec::new()) } else { (args.clone(), kw.clone()) };
             // `classmethod` e `staticmethod` exigem a função: com `__init__` próprio o descritor só nasce no
             // `super().__init__(funcao)`, e a instância fica sem valor até lá.
@@ -2263,6 +2275,13 @@ impl Vm {
                 full.push(obj.clone());
                 full.extend(args);
                 return Ok(Built::Init { obj, init: f, args: full, kw });
+            }
+            // `__init__` que é um objeto de usuário com `__get__` (um `functools.partialmethod`, o
+            // `envwrap` do `tqdm`): liga-se à instância como qualquer descritor e roda como o `__init__`.
+            Some(attr @ Value::Instance(_)) => {
+                let bound = self.bind_class_attr(&attr, obj.clone(), cls)?;
+                let r = self.call(&bound, args, kw)?;
+                return Ok(Built::Done(init_returned(obj, &r)?));
             }
             Some(_) => {}
             None => {
@@ -2313,7 +2332,7 @@ impl Vm {
                 Ok(Value::Ext(Rc::new(BuiltinSuperMethod { obj: recv, name })))
             }
             // Função embutida no CPython (escrita em Python aqui): `Classe.attr = time.time` não liga `self`.
-            Value::Function(f) if f.attrs.borrow().contains_key("__no_bind__") => Ok(attr.clone()),
+            Value::Function(f) if f.no_bind.get() => Ok(attr.clone()),
             Value::Function(f) if f.is_builtin_type_method() && f.code.name == "__new__" => {
                 Ok(ShimMethod::bound(Value::Class(cls.clone()), f, false))
             }
@@ -2458,7 +2477,9 @@ impl Vm {
         // Propriedades e descritores de dados escritos em Python (têm `__set__`) têm precedência sobre o
         // dicionário da instância.
         let class_attr = lookup_public(&inst.class(), name);
-        if class_attr.as_ref().is_some_and(is_data_descriptor) {
+        // Um descritor de dados sem `__get__` (só `__set__`) não tem `tp_descr_get`: a busca cai no
+        // dicionário da instância e, sem a chave, devolve o próprio descritor.
+        if class_attr.as_ref().is_some_and(|a| is_data_descriptor(a) && has_descr_get(a)) {
             return self.bind_class_attr_defer(class_attr.as_ref().unwrap_or(&Value::None), obj.clone(), &inst.class(), defer);
         }
         let own = inst.dict.borrow().get(name).cloned();
@@ -2493,6 +2514,11 @@ impl Vm {
             if OBJECT_INSTANCE_METHODS.contains(&name) {
                 return Ok(Value::Ext(Rc::new(BuiltinSuperMethod { obj: obj.clone(), name: intern(name) })));
             }
+        }
+        // `obj.__weakref__`: o `getset_descriptor` que o `type` pôs na classe devolve a primeira referência
+        // fraca à instância, ou `None`.
+        if name == "__weakref__" && inst.class().slots_allow("__weakref__") {
+            return Ok(crate::modules::weakrefmod::first_weakref(inst));
         }
         if hook {
             if let Some(Value::Function(f)) = inst.class().lookup("__getattr__") {
@@ -2844,8 +2870,20 @@ impl Vm {
                 m.attrs.borrow_mut().insert(name.to_string(), value);
                 Ok(())
             }
+            // `f.__dict__ = d` troca o dict da função inteiro.
+            Value::Function(f) if name == "__dict__" => match value {
+                Value::Dict(d) => {
+                    f.replace_dict(d);
+                    Ok(())
+                }
+                other => Err(exc("TypeError", format!("__dict__ must be set to a dictionary, not a '{}'", other.type_name()))),
+            },
+            // `f.__annotations__ = d`: o campo próprio da função, fora do `__dict__`; `None` o apaga.
+            Value::Function(f) if name == "__annotations__" && !f.is_c_function() => f
+                .set_annotations(value)
+                .map_err(|_| exc("TypeError", "__annotations__ must be set to a dict object".to_string())),
             Value::Function(f) => {
-                f.attrs.borrow_mut().insert(name.to_string(), value);
+                f.set_attr(name, value);
                 Ok(())
             }
             Value::Ext(e) if e.setattr(name, value.clone()).is_some() => e.setattr(name, value).unwrap_or(Ok(())),
@@ -2956,8 +2994,12 @@ impl Vm {
                 Ok(())
             }
             // Atributo de usuário de função (`f.__click_params__`, `f.cache`): vive no `__dict__` dela.
+            Value::Function(f) if name == "__annotations__" && !f.is_c_function() => {
+                f.clear_annotations();
+                Ok(())
+            }
             Value::Function(f) => {
-                if f.attrs.borrow_mut().remove(name).is_none() {
+                if !f.remove_attr(name) {
                     return Err(crate::object::no_attribute("function", name));
                 }
                 Ok(())
@@ -3488,23 +3530,32 @@ pub fn instance_text(v: &Value, is_str: bool) -> Option<String> {
     Some(if is_str { crate::object::to_str(&payload) } else { crate::object::repr(&payload) })
 }
 
-/// O operando direito é instância de uma subclasse estrita da classe do esquerdo: o `richcompare` e
-/// o refletido dele vão primeiro (`do_richcompare` e `slot_nb_*` do CPython).
-pub(crate) fn right_is_subclass(a: &Value, b: &Value) -> bool {
-    matches!((a, b), (Value::Instance(l), Value::Instance(r)) if r.class().is_strict_subtype_of(&l.class()))
+/// O tipo que responde pelos métodos mágicos de `v`: a classe de uma instância e a metaclasse de uma
+/// classe (`None` quando a metaclasse é o `type` padrão ou `v` não é objeto de usuário).
+fn dispatch_type(v: &Value) -> Option<Rc<ClassObj>> {
+    match v {
+        Value::Instance(i) => Some(i.class()),
+        Value::Class(c) => c.meta.clone(),
+        _ => None,
+    }
 }
 
-/// `a == b` quando um dos lados é instância com `__eq__`.
+/// O tipo do operando direito é subclasse estrita do tipo do esquerdo: o `richcompare` e o refletido
+/// dele vão primeiro (`do_richcompare` e `slot_nb_*` do CPython). Vale para instâncias e, pela
+/// metaclasse, para classes (o `__eq__` do `_ProtocolMeta` do typing_extensions depende disso).
+pub(crate) fn right_is_subclass(a: &Value, b: &Value) -> bool {
+    matches!((dispatch_type(a), dispatch_type(b)), (Some(l), Some(r)) if r.is_strict_subtype_of(&l))
+}
+
+/// `a == b` quando um dos lados é instância (ou classe de metaclasse) com `__eq__` em Python.
 pub fn instance_eq(a: &Value, b: &Value) -> Option<bool> {
     let mut vm = current()?;
     let sides = if right_is_subclass(a, b) { [(b, a), (a, b)] } else { [(a, b), (b, a)] };
     for (x, y) in sides {
-        if let Value::Instance(i) = x {
-            if let Some(Value::Function(f)) = i.class().lookup("__eq__") {
-                if let Ok(r) = vm.call_function(&f, vec![x.clone(), y.clone()], Vec::new()) {
-                    if !is_not_implemented(&r) {
-                        return Some(r.is_true());
-                    }
+        if let Some(Value::Function(f)) = dispatch_type(x).and_then(|t| t.lookup("__eq__")) {
+            if let Ok(r) = vm.call_function(&f, vec![x.clone(), y.clone()], Vec::new()) {
+                if !is_not_implemented(&r) {
+                    return Some(r.is_true());
                 }
             }
         }

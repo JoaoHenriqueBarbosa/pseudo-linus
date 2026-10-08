@@ -2423,6 +2423,50 @@ Module([AnnAssign(Name('x', Store()), Name('int', Load()), Constant(1), 1), AugA
 }
 
 #[test]
+fn ast_fstring_formatted_value() {
+    let src = r##"
+import ast, _ast
+tree = ast.parse('f"a{x!r:>{w}}b"')
+print(ast.dump(tree))
+print(ast.unparse(tree))
+print(ast.dump(compile('f"{x!s}"', '<s>', 'eval', ast.PyCF_ONLY_AST)))
+print(hasattr(_ast, '_parse'))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"Module(body=[Expr(value=JoinedStr(values=[Constant(value='a'), FormattedValue(value=Name(id='x', ctx=Load()), conversion=114, format_spec=JoinedStr(values=[Constant(value='>'), FormattedValue(value=Name(id='w', ctx=Load()), conversion=-1)])), Constant(value='b')]))])
+f'a{x!r:>{w}}b'
+Expression(body=JoinedStr(values=[FormattedValue(value=Name(id='x', ctx=Load()), conversion=115)]))
+False
+"##
+    );
+}
+
+#[test]
+fn ast_compile_tree_direct() {
+    let src = r##"
+import ast
+t = ast.Expression(ast.JoinedStr([ast.Constant('a'), ast.Call(ast.Name('str', ast.Load()), [ast.Constant(5)], [])]))
+ast.fix_missing_locations(t)
+print(eval(compile(t, '<x>', 'eval')))
+m = ast.parse('x = 1\nprint(x + 1)')
+exec(compile(m, '<m>', 'exec'))
+try:
+    compile(ast.Module([ast.Expr(ast.Constant(1))], []), '<y>', 'exec')
+except TypeError as e:
+    print(e)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        "a5\n2\nrequired field \"lineno\" missing from stmt\n"
+    );
+}
+
+#[test]
 fn enum_simple_enum_auto() {
     let src = r##"
 from enum import IntEnum, auto, _simple_enum, Enum
@@ -3010,6 +3054,25 @@ e = ValueError('z'); e.__traceback__ = None; print(e.__traceback__)
 None
 "##
     );
+}
+
+#[test]
+fn traceback_frame_globals_of_exec_namespace() {
+    // O `jinja2.debug` acha `__jinja_template__` em `tb.tb_frame.f_globals` do quadro de `root`, função de um
+    // `exec(código, espaço)`: as globais do quadro são as do espaço, não as do `__main__`.
+    let src = r##"
+ns = {"__file__": "<tpl>", "__marker__": 7}
+exec("def root():\n    raise ValueError('x')", ns)
+try:
+    ns["root"]()
+except ValueError as e:
+    tb = e.__traceback__
+    print(tb.tb_frame.f_globals is globals(), tb.tb_next.tb_frame.f_globals is ns)
+    print(tb.tb_next.tb_frame.f_globals.get("__marker__"), "__marker__" in globals())
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(String::from_utf8(o.stdout).unwrap(), "True True\n7 False\n");
 }
 
 #[test]
@@ -3639,6 +3702,54 @@ No closing quotation
     );
 }
 
+/// `py_compile` e `compileall` são os do Debian: o corpo do `.pyc` vem de `marshal.dumps(code)`. Sem o marshal
+/// de objeto de código não se grava `.pyc` falso (nunca um corpo `None`), e nada é impresso.
+#[test]
+fn py_compile_and_compileall_never_write_fake_pyc() {
+    let src = r##"
+import compileall
+import importlib._bootstrap_external as ext
+import importlib.util
+import os
+import py_compile
+import tempfile
+
+print(ext is importlib._bootstrap_external, py_compile.__file__.endswith('python3.13/py_compile.py'))
+code = compile('x = 1\n', 'x.py', 'exec')
+try:
+    import marshal
+    marshal.dumps(code)
+    marshal_code = True
+except ValueError:
+    marshal_code = False
+with tempfile.TemporaryDirectory() as d:
+    path = os.path.join(d, 'm.py')
+    with open(path, 'w') as f:
+        f.write('x = 1\n')
+    cfile = py_compile.compile(path)
+    ok = compileall.compile_file(path, force=True, quiet=True)
+    exists = os.path.exists(cfile)
+    print(cfile == importlib.util.cache_from_source(path), ok, exists == marshal_code)
+    if exists:
+        data = open(cfile, 'rb').read()
+        print(data[:4] == importlib.util.MAGIC_NUMBER, data[16:] != b'N')
+    print(compileall.compile_dir(d, quiet=1, force=True))
+    bad = os.path.join(d, 'bad.py')
+    with open(bad, 'w') as f:
+        f.write('def (:\n')
+    try:
+        py_compile.compile(bad, doraise=True)
+    except py_compile.PyCompileError as e:
+        print('PyCompileError', 'SyntaxError' in e.exc_type_name)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(o.stderr, "");
+    let out = String::from_utf8(o.stdout).unwrap();
+    assert!(out.starts_with("True True\nTrue True True\n"), "{out}");
+    assert!(out.ends_with("True\nPyCompileError True\n"), "{out}");
+}
+
 #[test]
 fn marshal_resource_fcntl_readline_protocol_modules() {
     let src = r##"
@@ -3703,6 +3814,64 @@ b'N' [1, (1, 2), [1], 1.5, 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 http://x.org:8080/app/a%20b?q=1 http://x.org:8080/app
 "##
     );
+}
+
+/// `marshal` no formato do CPython 3.13 (versão 4): vetores conhecidos do `Python/marshal.c`, `FLAG_REF` e `TYPE_REF`.
+/// Os vetores de str não internada e de contêineres sem marca (a aproximação da contagem de referências está no
+/// docstring do módulo) estão marcados para conferir no oráculo.
+#[test]
+fn marshal_matches_cpython_313_vectors() {
+    let src = r##"
+import marshal
+
+print(marshal.version)
+print(marshal.dumps(('a', 'a')))
+print(marshal.dumps(1))
+print(marshal.dumps(1.5))
+print(marshal.dumps(None), marshal.dumps(True), marshal.dumps(...))
+print(marshal.dumps(2 ** 40))
+print(marshal.dumps(-2 ** 40))
+print(marshal.dumps(1 + 2j))
+print(marshal.dumps(b'ab'))
+print(marshal.dumps(frozenset()))
+print(marshal.dumps('é'))
+print(marshal.dumps(()))
+for value in [('a', 'a'), (1, 'abc', 2.5, 1 + 2j, b'xy', None, True), 'x' * 300, -5, 2 ** 70, frozenset({1}), ((), ())]:
+    assert marshal.loads(marshal.dumps(value)) == value, value
+print(marshal.loads(b'\xa9\x02\xda\x01ar\x01\x00\x00\x00'))
+print(marshal.loads(b'\xe9\x01\x00\x00\x00'), marshal.loads(b'\xe7\x00\x00\x00\x00\x00\x00\xf8?'))
+def f(a, b=1):
+    return a + b
+blob = marshal.dumps(f.__code__)
+print(blob[:1], blob[1:13])
+try:
+    marshal.dumps(f.__code__, allow_code=False)
+except ValueError as e:
+    print('ValueError', e)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(o.stderr, "");
+    let out = String::from_utf8(o.stdout).unwrap();
+    // Os cinco primeiros vetores são os do CPython 3.13. Os de 2 ** 40, complex, bytes, frozenset vazio, 'é' e tupla
+    // vazia seguem as regras do marshal.c (dígitos de 15 bits, raiz com FLAG_REF): conferir no oráculo.
+    let want = "4\n\
+b'\\xa9\\x02\\xda\\x01ar\\x01\\x00\\x00\\x00'\n\
+b'\\xe9\\x01\\x00\\x00\\x00'\n\
+b'\\xe7\\x00\\x00\\x00\\x00\\x00\\x00\\xf8?'\n\
+b'N' b'T' b'.'\n\
+b'\\xec\\x03\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x04'\n\
+b'\\xec\\xfd\\xff\\xff\\xff\\x00\\x00\\x00\\x00\\x00\\x04'\n\
+b'\\xf9\\x00\\x00\\x00\\x00\\x00\\x00\\xf0?\\x00\\x00\\x00\\x00\\x00\\x00\\x00@'\n\
+b'\\xf3\\x02\\x00\\x00\\x00ab'\n\
+b'\\xbe\\x00\\x00\\x00\\x00'\n\
+b'\\xf5\\x02\\x00\\x00\\x00\\xc3\\xa9'\n\
+b'\\xa9\\x00'\n\
+('a', 'a')\n\
+1 1.5\n\
+b'\\xe3' b'\\x02\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00'\n\
+ValueError unmarshallable object\n";
+    assert_eq!(out, want);
 }
 
 #[test]
@@ -4882,6 +5051,55 @@ True
     );
 }
 
+/// `object.__setattr__.__get__(o)` (o `attrs` de classe congelada), `type.__call__(Cls, ...)` (o `pygments`) e
+/// `object.__init_subclass__()` ligado ao tipo (o `pytest`): a saída é a do CPython 3.13.
+#[test]
+fn object_slot_descriptors_bind_and_call() {
+    let src = r##"
+class F:
+    def __setattr__(self, k, v):
+        raise AttributeError('frozen')
+f = F()
+s = object.__setattr__
+print(type(s).__name__, type(s.__get__(f)).__name__)
+s.__get__(f)('x', 5)
+print(f.x)
+print(type(type.__call__).__name__)
+class P:
+    def __init__(self, v=1):
+        self.x = v
+print(type.__call__(P).x, type.__call__(P, 7).x)
+class M(type):
+    def __call__(cls, *a):
+        o = type.__call__(cls, *a)
+        o.tag = 'm'
+        return o
+class Q(metaclass=M):
+    pass
+print(Q().tag)
+print(object.__init_subclass__(), int.__init_subclass__())
+class K:
+    def __init_subclass__(cls, **kw):
+        super().__init_subclass__(**kw)
+        print('hook', cls.__name__)
+class D(K, dict):
+    pass
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"wrapper_descriptor method-wrapper
+5
+wrapper_descriptor
+1 7
+m
+None None
+hook D
+"##
+    );
+}
+
 #[test]
 fn lone_surrogates_and_surrogateescape() {
     let src = r##"
@@ -4913,6 +5131,40 @@ b'\xed\xa0\x80' '\udfff x' b'a\\udc80b' b'a\x80b'
 'utf-8' codec can't encode character '\ud800' in position 0: surrogates not allowed
 "\ud83d" True True 😀
 True
+"##
+    );
+}
+
+#[test]
+fn surrogates_and_plane_16_in_every_str_operation() {
+    let src = r##"
+a = chr(0xd800); b = '\ud800'
+print(len(a), repr(a), a == b, hash(a) == hash(b), ord(a), a in {b}, {a: 1}[b])
+top = chr(0x10ffff)
+print(repr(top), len(top), ord(top), ascii(top), hash(top) == hash('\U0010ffff'), top == '\U0010ffff')
+s = 'x' + chr(0xdcff) + top + 'y'
+print(len(s), ascii(s[1]), ascii(s[2]), ascii(s[1:3]), ascii(s[::-1]), ord(s[-2]))
+print(ascii('-'.join([a, top, 'z'])), ascii(f'{a}{b}'), ascii('%s|%r' % (a, a)), ascii(format(a, '>3')))
+print(a < chr(0xe000), chr(0xdcff) < top, top > chr(0xffff), ascii(max('a', a)), sorted([top, a, 'a']) == ['a', a, top])
+print(s.find(top), s.index('y'), s.count(chr(0xdcff)), ascii(s.split(top)), ascii(s.replace(chr(0xdcff), '?')))
+print(top.encode(), top.encode('utf-16-le'), b'\xf4\x8f\xbf\xbf'.decode() == top)
+print(ascii(b'\xff'.decode('utf-8', 'surrogateescape')), '\udcff'.encode('utf-8', 'surrogateescape'))
+try: a.encode()
+except UnicodeEncodeError as e: print(e)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        r##"1 '\ud800' True True 55296 True 1
+'\U0010ffff' 1 1114111 '\U0010ffff' True True
+4 '\udcff' '\U0010ffff' '\udcff\U0010ffff' 'y\U0010ffff\udcffx' 1114111
+'\ud800-\U0010ffff-z' '\ud800\ud800' "\ud800|'\\ud800'" '  \ud800'
+True True True '\ud800' True
+2 3 1 ['x\udcff', 'y'] 'x?\U0010ffffy'
+b'\xf4\x8f\xbf\xbf' b'\xff\xdb\xff\xdf' True
+'\udcff' b'\xff'
+'utf-8' codec can't encode character '\ud800' in position 0: surrogates not allowed
 "##
     );
 }
@@ -5997,6 +6249,22 @@ print(x, counter, os.WIFEXITED(status), os.WEXITSTATUS(status), pid != os.getpid
 }
 
 #[test]
+fn fork_keeps_function_dict_identity_and_non_text_keys() {
+    let src = "\
+import os
+def f(): pass
+f.__dict__[1] = 'x'; f.a = 2
+d = f.__dict__
+pid = os.fork()
+if pid == 0:
+    print(d is f.__dict__, f.__dict__, flush=True); os._exit(0)
+os.waitpid(pid, 0)
+";
+    let r = in_process(src);
+    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str(), r.status), ("True {1: 'x', 'a': 2}\n", "", exited(0)));
+}
+
+#[test]
 fn fork_child_continues_after_the_call_and_exits_with_the_pending_buffer() {
     // O filho segue do ponto do `fork` e termina como o pai: ganchos de saída, stdout descarregado. O buffer
     // do stdout ainda não descarregado (aqui, num pipe) é copiado, então a linha anterior ao `fork` sai duas vezes.
@@ -6070,6 +6338,26 @@ print(Worker('w').spawn(3))
         (r.stdout_str().as_str(), r.stderr_str().as_str(), r.status),
         ("child w 0 []\nchild w 1 [0]\nchild w 2 [0, 1]\n[0, 1, 2]\n", "", exited(0))
     );
+}
+
+#[test]
+fn fork_inside_a_plain_function_called_by_the_script() {
+    // O caso comum de agente: o `fork` numa função chamada pelo script, o filho sai com `os._exit` e o pai lê o
+    // status. Com stdout em pipe o CPython só entrega o que foi descarregado antes do `_exit`, então o `flush=True`
+    // faz parte da saída do oráculo.
+    let src = "\
+import os
+def f():
+    pid = os.fork()
+    if pid == 0:
+        print('filho', flush=True)
+        os._exit(3)
+    _, st = os.waitpid(pid, 0)
+    print('pai', os.WEXITSTATUS(st))
+f()
+";
+    let r = in_process(src);
+    assert_eq!((r.stdout_str().as_str(), r.stderr_str().as_str(), r.status), ("filho\npai 3\n", "", exited(0)));
 }
 
 #[test]
@@ -6455,6 +6743,45 @@ for o in (threading.RLock(), _thread._local(), itertools.count()):
     );
 }
 
+/// Os tipos de descritor (`types.GetSetDescriptorType` e companhia) têm o `__dict__` do oráculo, e a leitura pelo
+/// tipo dá o descritor do dicionário (`__objclass__`, `__self__`, `__get__`), salvo o que é de `type`.
+#[test]
+fn descriptor_types_dict_matches_cpython() {
+    let src = "\
+import types
+for T in (types.GetSetDescriptorType, types.MethodWrapperType):
+    for k in T.__dict__:
+        print(k, getattr(T, k))
+";
+    assert_eq!(
+        out(src),
+        "__repr__ <slot wrapper '__repr__' of 'getset_descriptor' objects>\n\
+         __get__ <slot wrapper '__get__' of 'getset_descriptor' objects>\n\
+         __set__ <slot wrapper '__set__' of 'getset_descriptor' objects>\n\
+         __delete__ <slot wrapper '__delete__' of 'getset_descriptor' objects>\n\
+         __objclass__ <member '__objclass__' of 'getset_descriptor' objects>\n\
+         __name__ getset_descriptor\n\
+         __doc__ <attribute '__doc__' of 'getset_descriptor' objects>\n\
+         __qualname__ getset_descriptor\n\
+         __repr__ <slot wrapper '__repr__' of 'method-wrapper' objects>\n\
+         __hash__ <slot wrapper '__hash__' of 'method-wrapper' objects>\n\
+         __call__ <slot wrapper '__call__' of 'method-wrapper' objects>\n\
+         __lt__ <slot wrapper '__lt__' of 'method-wrapper' objects>\n\
+         __le__ <slot wrapper '__le__' of 'method-wrapper' objects>\n\
+         __eq__ <slot wrapper '__eq__' of 'method-wrapper' objects>\n\
+         __ne__ <slot wrapper '__ne__' of 'method-wrapper' objects>\n\
+         __gt__ <slot wrapper '__gt__' of 'method-wrapper' objects>\n\
+         __ge__ <slot wrapper '__ge__' of 'method-wrapper' objects>\n\
+         __reduce__ <method '__reduce__' of 'method-wrapper' objects>\n\
+         __self__ <member '__self__' of 'method-wrapper' objects>\n\
+         __objclass__ <attribute '__objclass__' of 'method-wrapper' objects>\n\
+         __name__ method-wrapper\n\
+         __qualname__ method-wrapper\n\
+         __doc__ <attribute '__doc__' of 'method-wrapper' objects>\n\
+         __text_signature__ None\n"
+    );
+}
+
 /// O `NoDefaultType` do `typing` é de `builtins` (o `tp_name` do C não tem módulo), estático e sem base.
 #[test]
 fn typing_no_default_type_matches_cpython() {
@@ -6513,5 +6840,316 @@ print(X.__module__)
         o.stdout_str(),
         "['typing', 'typing', 'typing']\ntyping (T,)\n__main__ typing\ntyping typing __main__\n__main__\n\
          __main__ __main__ __main__\n__main__\n"
+    );
+}
+
+/// O `typing_extensions` do 3.13 redefine o `Protocol` com metaclasse derivada de `type(typing.Protocol)`
+/// e um `__eq__` nela, para que `cls in (Generic, Protocol)` do `typing._generic_class_getitem` trate os
+/// dois `Protocol` como equivalentes. O `in` de tupla compara `item == cls` e, como o tipo de `cls`
+/// (a metaclasse) é subclasse estrita do tipo do item, o `__eq__` da metaclasse vai primeiro. Sem isso
+/// `Protocol[T]` caía no ramo de classe comum e dava `TypeError: ... is not a generic class`.
+#[test]
+fn metaclass_eq_decides_class_membership_like_cpython() {
+    let src = r#"
+import abc, typing
+
+class Meta(type(typing.Protocol)):
+    def __eq__(cls, other):
+        if abc.ABCMeta.__eq__(cls, other) is True:
+            return True
+        return cls is Proto and other is typing.Protocol
+    def __hash__(cls):
+        return type.__hash__(cls)
+
+class Proto(typing.Generic, metaclass=Meta):
+    __slots__ = ()
+
+T = typing.TypeVar("T")
+print(Proto == typing.Protocol, typing.Protocol == Proto, Proto != typing.Protocol)
+print(Proto in (typing.Generic, typing.Protocol), typing.Generic == Proto)
+alias = Proto[T]
+print(alias.__origin__ is Proto, alias.__parameters__)
+class X(Proto[T]):
+    pass
+print(X.__parameters__, X.__orig_bases__ == (Proto[T],))
+"#;
+    let kit = with_debian_stdlib(sysabi::testkit::TestKit::new().programs(crate::programs()))
+        .file("/tmp/t.py", src, 0o644)
+        .cwd("/tmp");
+    let o = kit.run(&["python3", "t.py"], b"");
+    assert_eq!(o.status, sysabi::WaitStatus::Exited(0), "{}", o.stderr_str());
+    assert_eq!(o.stdout_str(), "True True False\nTrue False\nTrue (~T,)\n(~T,) True\n");
+}
+
+/// Regressões da fase 3 (pluggy, tqdm, openpyxl), com a saída do CPython 3.13:
+/// `__weakref__` das instâncias e da classe; descritor de dados sem `__get__` (o `Descriptor` do openpyxl)
+/// cai no `__dict__` da instância; `__init__` que é um `functools.partialmethod` (o `envwrap` do tqdm) roda.
+#[test]
+fn weakref_attr_data_descriptor_without_get_and_partialmethod_init() {
+    let src = r#"
+import weakref, functools
+
+class A:
+    pass
+a = A()
+print(a.__weakref__)
+r = weakref.ref(a)
+print(a.__weakref__ is r)
+print(type(A.__dict__['__weakref__']).__name__, A.__weakref__.__objclass__ is A)
+class B(A):
+    pass
+print(B().__weakref__, '__weakref__' in B.__dict__)
+class S:
+    __slots__ = ()
+print(hasattr(S(), '__weakref__'))
+
+class D:
+    def __set__(self, obj, value):
+        obj.__dict__['x'] = value
+class C:
+    x = D()
+c = C()
+print(type(c.x).__name__)
+c.x = 5
+print(c.x)
+
+class T:
+    def __new__(cls, *args, **kwargs):
+        return object.__new__(cls)
+    def _init(self, v=0, w=1):
+        self.v = v
+        self.w = w
+    __init__ = functools.partialmethod(_init, w=7)
+t = T(3)
+print(t.v, t.w)
+"#;
+    let kit = with_debian_stdlib(sysabi::testkit::TestKit::new().programs(crate::programs()))
+        .file("/tmp/t.py", src, 0o644)
+        .cwd("/tmp");
+    let o = kit.run(&["python3", "t.py"], b"");
+    assert_eq!(o.status, sysabi::WaitStatus::Exited(0), "{}", o.stderr_str());
+    assert_eq!(o.stdout_str(), "None\nTrue\ngetset_descriptor True\nNone False\nFalse\nD\n5\n3 7\n");
+}
+
+#[test]
+fn bytes_dunder_and_bound_method_equality() {
+    let src = "\
+class R:
+    def __init__(self):
+        self.d = b'ab'
+    def __bytes__(self):
+        return self.d
+    def __len__(self):
+        return 2
+print(bytes(R()), bytearray(R()))
+class Bad:
+    def __bytes__(self):
+        return 5
+try:
+    bytes(Bad())
+except TypeError as e:
+    print(e)
+class A:
+    def m(self):
+        pass
+a = A()
+print(a.m == a.m, a.m is a.m, A().m == a.m, hash(a.m) == hash(a.m))
+l = [a.m]
+l.remove(a.m)
+print(l)
+obs = []
+obs.append(a.m)
+print(a.m in obs, {a.m: 1}[a.m])
+x = []
+print(x.append == x.append, [].append == [].append)
+";
+    assert_eq!(
+        out(src),
+        "b'ab' bytearray(b'ab')\n__bytes__ returned non-bytes (type int)\nTrue False False True\n[]\nTrue 1\nTrue False\n"
+    );
+}
+
+/// `compile(bytes)` tira o BOM do UTF-8 e lê o cookie de codificação (o `ast.parse(fn.read_bytes())` do
+/// `pytest`), e o gancho de importação do `pytest` (finder em `sys.meta_path` que reescreve a árvore e a
+/// compila com `dont_inherit=True`) carrega o módulo com o `PathFinder.find_spec` guardado na classe.
+#[test]
+fn compile_bytes_source_and_pytest_style_import_hook() {
+    let src = r##"
+import sys, os, ast, tempfile, importlib.abc, importlib.machinery, importlib.util
+print(ast.parse(b'\xef\xbb\xbfx = 1\n').body[0].targets[0].id)
+print(ast.parse(b'# -*- coding: latin-1 -*-\ns = "\xe9"\n').body[1].value.value == '\xe9')
+d = tempfile.mkdtemp()
+with open(os.path.join(d, 'rwmod.py'), 'w') as f:
+    f.write('def f(x):\n    assert x == 1, "bad"\n    return x\n')
+sys.path.insert(0, d)
+class Hook(importlib.abc.MetaPathFinder, importlib.abc.Loader):
+    _find_spec = importlib.machinery.PathFinder.find_spec
+    def find_spec(self, name, path=None, target=None):
+        if name != 'rwmod':
+            return None
+        spec = self._find_spec(name, path)
+        if spec is None or spec.origin is None or not isinstance(spec.loader, importlib.machinery.SourceFileLoader):
+            return None
+        return importlib.util.spec_from_file_location(
+            name, spec.origin, loader=self, submodule_search_locations=spec.submodule_search_locations)
+    def create_module(self, spec):
+        return None
+    def exec_module(self, module):
+        fn = module.__spec__.origin
+        with open(fn, 'rb') as f:
+            tree = ast.parse(f.read(), filename=fn)
+        imp = ast.Import(names=[ast.alias('builtins', '@py_builtins')])
+        ast.copy_location(imp, tree.body[0])
+        tree.body.insert(0, imp)
+        ast.fix_missing_locations(tree)
+        co = compile(tree, fn, 'exec', dont_inherit=True)
+        exec(co, module.__dict__)
+sys.meta_path.insert(0, Hook())
+import rwmod
+print(type(rwmod.__spec__.loader).__name__, rwmod.__file__.endswith('rwmod.py'), rwmod.f(1), '@py_builtins' in vars(rwmod))
+try:
+    rwmod.f(2)
+except AssertionError as e:
+    print(type(e).__name__, e.args)
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(String::from_utf8(o.stdout).unwrap(), "x\nTrue\nHook True 1 True\nAssertionError ('bad',)\n");
+}
+
+/// O `_TokenType(tuple)` do pygments: o `__init__` próprio não pode tirar o conteúdo do `tuple.__new__`.
+#[test]
+fn tuple_subclass_with_own_init_keeps_contents() {
+    let src = r#"
+class _TokenType(tuple):
+    parent = None
+    def __init__(self, *args):
+        self.subtypes = set()
+    def __contains__(self, val):
+        return self is val or (type(val) is self.__class__ and val[:len(self)] == self)
+    def __getattr__(self, val):
+        if not val or not val[0].isupper():
+            return tuple.__getattribute__(self, val)
+        new = _TokenType(self + (val,))
+        setattr(self, val, new)
+        self.subtypes.add(new)
+        new.parent = self
+        return new
+    def __repr__(self):
+        return 'Token' + (self and '.' or '') + '.'.join(self)
+Token = _TokenType()
+print(Token.Name)
+print(Token.Name.Builtin)
+print(Token.Name in Token)
+print(len(Token.Name.Builtin))
+print(Token.Name.parent)
+"#;
+    assert_eq!(out(src), "Token.Name\nToken.Name.Builtin\nTrue\n2\nToken\n");
+}
+
+/// `re.sub` aceita qualquer chamável como repl: método ligado de classmethod (o `substitute_xml` do bs4),
+/// instância com `__call__` e a função guardada num atributo de instância.
+#[test]
+fn re_sub_accepts_bound_classmethod_repl() {
+    let src = r##"
+import re
+
+class E:
+    TABLE = {"<": "lt", ">": "gt"}
+    PAT = re.compile("[<>]")
+
+    @classmethod
+    def entity(cls, m):
+        return "&%s;" % cls.TABLE[m.group(0)]
+
+    @classmethod
+    def sub(cls, value):
+        return cls.PAT.sub(cls.entity, value)
+
+class F:
+    def __init__(self, fn):
+        self.fn = fn
+    def go(self, ns):
+        return self.fn(ns)
+
+class C:
+    def __call__(self, m):
+        return "X"
+
+print(F(E.sub).go("a<b>c"))
+print(re.sub("a", C(), "bab"), re.subn("<", E.entity, "<<"))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(String::from_utf8(o.stdout).unwrap(), "a&lt;b&gt;c\nXbX ('&lt;&lt;', 2)\n");
+}
+
+/// `eval` de um código compilado em modo `exec` roda o código e devolve `None` (o `attrs` gera o `__repr__` por
+/// `eval(compile(script, filename, "exec"), globs)`); só o código de `compile(..., "eval")` devolve o valor.
+#[test]
+fn eval_of_exec_mode_code_runs_it() {
+    let src = r##"
+script = "\n".join([
+    "def __repr__(self):",
+    "  try:",
+    "    seen = ctx.seen",
+    "  except AttributeError:",
+    "    seen = {id(self),}",
+    "  try:",
+    "    return f'{self.__class__.__qualname__.rsplit(\">.\", 1)[-1]}(x={self.x!r})'",
+    "  finally:",
+    "    seen.discard(id(self))",
+])
+class Ctx: pass
+g = {"ctx": Ctx()}
+print(eval(compile(script, "<s>", "exec"), g))
+class P:
+    x = 3
+P.__repr__ = g["__repr__"]
+print(repr(P()))
+print(eval(compile("1 + 1", "<s>", "exec")), eval(compile("1 + 1", "<s>", "eval")))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(String::from_utf8(o.stdout).unwrap(), "None\nP(x=3)\nNone 2\n");
+}
+
+/// O `__dict__` de função é o dict vivo (o `functools.update_wrapper` copia por `w.__dict__.update(f.__dict__)`).
+#[test]
+fn function_dict_is_live() {
+    let src = r##"
+def f(): pass
+f.mark = 1
+def w(): pass
+w.__dict__.update(f.__dict__)
+print(w.__dict__, getattr(w, "mark", None))
+d = w.__dict__; d["z"] = 2; print(w.z, w.__dict__ is d)
+del w.__dict__["z"]; print(hasattr(w, "z"))
+w.__dict__ = {"q": 5}; print(w.q, w.__dict__)
+w.b = 1; w.a = 2; w.b = 3; print(list(w.__dict__))
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(String::from_utf8(o.stdout).unwrap(), "{'mark': 1} 1\n2 True\nFalse\n5 {'q': 5}\n['q', 'b', 'a']\n");
+}
+
+/// `__annotations__` é o campo `func_annotations` (preguiçoso, fora do `__dict__`) e o marcador interno de
+/// função embutida não aparece em `__dict__`, `dir` nem `vars`.
+#[test]
+fn function_annotations_live_outside_dict() {
+    let src = r##"
+def f(x: int) -> str: pass
+print(f.__dict__, f.__annotations__)
+def g(): pass
+print(g.__annotations__, g.__dict__)
+g.__annotations__ = {'a': 1}; print(g.__annotations__, '__annotations__' in g.__dict__)
+del g.__annotations__; print(g.__annotations__)
+print('__no_bind__' in dir(print), [n for n in dir(f) if 'bind' in n])
+"##;
+    let o = crate::run_source(src);
+    assert_eq!(o.status, 0, "{}", o.stderr);
+    assert_eq!(
+        String::from_utf8(o.stdout).unwrap(),
+        "{} {'x': <class 'int'>, 'return': <class 'str'>}\n{} {}\n{'a': 1} False\n{}\nFalse []\n"
     );
 }

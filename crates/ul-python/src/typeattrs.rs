@@ -220,7 +220,7 @@ impl ExtObject for Unbound {
         }
     }
     fn methods(&self) -> &'static [&'static str] {
-        &["__call__"]
+        &["__call__", "__get__"]
     }
     fn getattr(&self, vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
         match name {
@@ -232,7 +232,26 @@ impl ExtObject for Unbound {
             _ => None,
         }
     }
-    fn call_method(&self, vm: &mut Vm, _name: &str, mut args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    fn call_method(&self, vm: &mut Vm, name: &str, mut args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+        // `str.upper.__get__(obj, tipo)`: sem objeto, o próprio descritor; com objeto, o método ligado a ele.
+        if name == "__get__" {
+            let obj = match args.first() {
+                Some(o) => o.clone(),
+                None => return Err(type_error("expected at least 1 argument, got 0")),
+            };
+            if matches!(obj, Value::None) {
+                return Ok(unbound(self.tname, self.name));
+            }
+            self.check_receiver(&obj)?;
+            // `object.__setattr__.__get__(o)`: o slot do próprio `object`, sem passar pela sobrescrita da
+            // classe do receptor (o `attrs` guarda `object.__setattr__` para escrever em classe congelada).
+            if self.tname == "object" {
+                if let Some(bound) = crate::classes::plain_object_method(&obj, self.name) {
+                    return Ok(bound);
+                }
+            }
+            return vm.load_attr(&crate::vm::unwrap_payload(&obj), self.name);
+        }
         if args.is_empty() {
             return Err(type_error(if is_slot_wrapper(self.tname, self.name) {
                 format!("descriptor '{}' of '{}' object needs an argument", self.name, self.tname)
@@ -267,11 +286,32 @@ impl ExtObject for Unbound {
                 return vm.call(&native, args, kw);
             }
         }
+        // `type.__call__(Cls, *args)`: o slot `tp_call` de `type` instancia direto, sem passar pelo `__call__`
+        // da metaclasse de `Cls` (que é quem costuma chamá-lo, via `super().__call__`).
+        if let ("type", "__call__") = (self.tname, self.name) {
+            return match &recv {
+                Value::Class(c) => vm.instantiate_default(c, args, kw),
+                other => vm.call(other, args, kw),
+            };
+        }
         if let ("type", "__instancecheck__" | "__subclasscheck__") = (self.tname, self.name) {
             let [arg] = <[Value; 1]>::try_from(args).map_err(|a| {
                 type_error(format!("{}() takes exactly one argument ({} given)", self.name, a.len()))
             })?;
             return crate::builtins::real_type_check(vm, &recv, &arg, self.name == "__instancecheck__").map(Value::Bool);
+        }
+        // Os slots dos tipos de descritor (`wrapper_descriptor.__get__(d, obj, tipo)`, que o `inspect` chama pelo
+        // tipo): o objeto nativo os atende.
+        if let Value::Ext(e) = &recv {
+            if e.type_name() == self.tname
+                && matches!(
+                    self.tname,
+                    "getset_descriptor" | "member_descriptor" | "method_descriptor" | "wrapper_descriptor"
+                        | "classmethod_descriptor" | "method-wrapper"
+                )
+            {
+                return e.clone().call_method(vm, self.name, args, kw);
+            }
         }
         // `dict.__getitem__(self, k)` numa subclasse que sobrescreve `__getitem__`: vale o método do tipo
         // embutido sobre o dado de dentro da instância, não a sobrescrita (senão recursa).
@@ -1149,6 +1189,11 @@ pub fn type_attr(tname: &str, name: &str) -> Option<Value> {
         ("str", "maketrans") => return Some(class_method(tname, "maketrans", str_maketrans)),
         _ => {}
     }
+    // Os métodos de classe de `object` (`int.__init_subclass__`, `dict.__subclasshook__`) já saem ligados ao tipo:
+    // chamados sem argumento (`super().__init_subclass__(**kw)`), não podem pedir o receptor como um descritor.
+    if matches!(name, "__init_subclass__" | "__subclasshook__") {
+        return Some(crate::classes::object_class_method(type_object(tname), crate::object::intern(name)));
+    }
     if let Some((method, _)) = sample(tname).and_then(|s| crate::methods::lookup(&s, name)) {
         return Some(unbound(owner_of(tname, method), method));
     }
@@ -1214,7 +1259,9 @@ pub(crate) fn bound_method_repr(recv: &Value, name: &str) -> String {
     } else if is_class_method(tname, name) {
         format!("<built-in method {name} of type object at {:#x}>", crate::builtins::id_of(&type_object(tname)))
     } else {
-        format!("<built-in method {name} of {tname} object at {:#x}>", crate::builtins::id_of(recv))
+        // O `tp_name` do tipo do receptor: `re.Pattern` e `_hashlib.HASH` levam o módulo C que os define.
+        let shown = crate::object::native_type_owner(tname).map_or_else(|| tname.to_string(), |owner| format!("{owner}.{tname}"));
+        format!("<built-in method {name} of {shown} object at {:#x}>", crate::builtins::id_of(recv))
     }
 }
 
@@ -1245,6 +1292,9 @@ pub(crate) fn bound_method_attr(recv: &Value, name: &'static str, attr: &str) ->
         }
         "__module__" => Value::None,
         "__text_signature__" => {
+            if let Some(sig) = crate::modules::re::pattern_method_signature(tname, name) {
+                return Some(Value::str(sig));
+            }
             // O método de classe de um shim de tipo embutido (`memoryview._from_flags`): a assinatura é a do
             // tipo que o shim emula.
             let owner = match recv {

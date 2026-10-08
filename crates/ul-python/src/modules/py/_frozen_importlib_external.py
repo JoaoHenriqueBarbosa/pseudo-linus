@@ -562,6 +562,98 @@ class AppleFrameworkLoader(ExtensionFileLoader):
     """
 
 
+def _pack_uint32(x):
+    """Convert a 32-bit integer to little-endian."""
+    return (int(x) & 0xFFFFFFFF).to_bytes(4, 'little')
+
+
+def _calc_mode(path):
+    """Calculate the mode permissions for a bytecode file."""
+    import os
+    try:
+        mode = os.stat(path).st_mode
+    except OSError:
+        mode = 0o666
+    # We always ensure write access so we can update cached files
+    # later even when the source files are read-only on Windows (#6074)
+    mode |= 0o200
+    return mode
+
+
+def _dumps_code(code):
+    """`marshal.dumps(code)`, ou `None` enquanto o marshal não serializa objetos de código.
+
+    Sem o corpo do `.pyc` verdadeiro não se grava `.pyc` algum (um falso, com `None` marshalado, seria
+    evidência de simulação): `_write_atomic` ignora os dados vazios, e `py_compile.compile`, o `compileall`
+    e o pip seguem em silêncio, como se o diretório `__pycache__` não pudesse ser populado. Quando o marshal
+    passar a serializar código este ramo deixa de ser alcançado."""
+    import marshal
+    try:
+        return marshal.dumps(code)
+    except ValueError as error:
+        if str(error) != 'unmarshallable object':
+            raise
+        return None
+
+
+def _code_to_timestamp_pyc(code, mtime=0, source_size=0):
+    "Produce the data for a timestamp-based pyc."
+    body = _dumps_code(code)
+    if body is None:
+        return bytearray()
+    data = bytearray(MAGIC_NUMBER)
+    data.extend(_pack_uint32(0))
+    data.extend(_pack_uint32(mtime))
+    data.extend(_pack_uint32(source_size))
+    data.extend(body)
+    return data
+
+
+def _code_to_hash_pyc(code, source_hash, checked=True):
+    "Produce the data for a hash-based pyc."
+    body = _dumps_code(code)
+    if body is None:
+        return bytearray()
+    data = bytearray(MAGIC_NUMBER)
+    flags = 0b1 | checked << 1
+    data.extend(_pack_uint32(flags))
+    assert len(source_hash) == 8
+    data.extend(source_hash)
+    data.extend(body)
+    return data
+
+
+def _write_atomic(path, data, mode=0o666):
+    """Best-effort function to write data to a path atomically.
+    Be prepared to handle a FileExistsError if concurrent writing of the
+    temporary file is attempted."""
+    import io
+    import os
+    if not data:
+        # Sem bytecode (ver `_dumps_code`): nada a gravar.
+        return
+    # id() is used to generate a pseudo-random filename.
+    path_tmp = f'{path}.{id(path)}'
+    fd = os.open(path_tmp,
+                 os.O_EXCL | os.O_CREAT | os.O_WRONLY, mode & 0o666)
+    try:
+        # We first write data to a temporary file, and then use os.replace() to
+        # perform an atomic rename.
+        with io.FileIO(fd, 'wb') as file:
+            bytes_written = file.write(data)
+        if bytes_written != len(data):
+            # Raise an OSError so the 'except' below cleans up the partially
+            # written file.
+            raise OSError("os.write() didn't write the full pyc file")
+        os.replace(path_tmp, path)
+    except OSError:
+        try:
+            os.unlink(path_tmp)
+        except OSError:
+            pass
+        raise
+
+
 def decode_source(source_bytes):
     """Decode bytes representing source code and return the string.
 

@@ -223,7 +223,7 @@ fn setrecursionlimit(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value>
 /// ligado quando é guardada num atributo de classe (`converter = time.localtime` do `logging`).
 fn mark_builtin(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     if let Some(Value::Function(f)) = args.first() {
-        f.attrs.borrow_mut().insert("__no_bind__".to_string(), Value::Bool(true));
+        f.no_bind.set(true);
     }
     Ok(args.into_iter().next().unwrap_or(Value::None))
 }

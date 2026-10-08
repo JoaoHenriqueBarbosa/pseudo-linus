@@ -890,6 +890,32 @@ PYEOF
 '''
 tags = ["threading", "subprocess", "net"]
 
+# O HTTPServer simples (sem ThreadingMixIn) atende dentro da própria thread do serve_forever, e o cliente é um
+# filho com o stdout herdado (nenhum pipe do subprocess): a principal espera só no waitpid.
+[[case]]
+id = "threading-plain-httpserver-thread-subprocess-run-inherited-stdout"
+script = '''
+python3 - <<'PYEOF'
+import http.server, threading, subprocess
+class H(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        body = b'corpo do servidor\n'
+        self.send_response(200)
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+    def log_message(self, *args):
+        pass
+httpd = http.server.HTTPServer(('127.0.0.1', 0), H)
+url = 'http://127.0.0.1:%d/' % httpd.server_address[1]
+threading.Thread(target=httpd.serve_forever, daemon=True).start()
+r = subprocess.run(['curl', '-s', url])
+print('rc', r.returncode)
+httpd.shutdown()
+PYEOF
+'''
+tags = ["threading", "subprocess", "net"]
+
 [[case]]
 id = "threading-os-read-pipe-and-waitid-with-live-thread"
 script = '''

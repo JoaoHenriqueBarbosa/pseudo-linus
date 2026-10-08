@@ -1281,6 +1281,41 @@ print(body.co_consts[0], body.co_consts[-1], len(body.co_exceptiontable))
     );
 }
 
+/// `__debug__` lido é a constante `True` (o `fold_name` do `ast_opt.c`): `return __debug__` é `RETURN_CONST True` e o
+/// `if __debug__:` não deixa teste. O nome privado `self.__x` chega mutilado (`_A__x` em `co_names`) e o corpo da classe
+/// aninhada `__In` guarda o nome original como constante e o mutilado só em `co_names`. Dedução do `compile.c` do 3.13.5,
+/// a conferir no oráculo com `dis.dis`.
+#[test]
+fn cpython_bytecode_of_debug_constant_and_private_names() {
+    let src = "\
+import dis
+def f():
+    return __debug__
+def g(x):
+    if __debug__:
+        return x
+    return 0
+class A:
+    def m(self):
+        return self.__x
+    class __In:
+        pass
+print(f.__code__.co_consts, [i.opname for i in dis.get_instructions(f)])
+print([i.opname for i in dis.get_instructions(g)])
+print(A.m.__code__.co_names, [i.opname for i in dis.get_instructions(A.m)])
+mod = compile('class A:\\n    class __In:\\n        pass\\n', 'm', 'exec')
+body = [k for k in mod.co_consts if hasattr(k, 'co_code')][0]
+print(body.co_names, '__In' in body.co_consts, '_A__In' in body.co_consts)
+";
+    assert_eq!(
+        out(src),
+        "(None, True) ['RESUME', 'RETURN_CONST']\n\
+         ['RESUME', 'NOP', 'LOAD_FAST', 'RETURN_VALUE']\n\
+         ('_A__x',) ['RESUME', 'LOAD_FAST', 'LOAD_ATTR', 'RETURN_VALUE']\n\
+         ('__name__', '__module__', '__qualname__', '__firstlineno__', '_A__In', '__static_attributes__') True False\n"
+    );
+}
+
 /// O `__doc__` dos métodos dos tipos embutidos (`method_descriptor`, `wrapper_descriptor`,
 /// `method-wrapper`, método ligado), dos tipos e das funções nativas, da tabela gerada no oráculo.
 #[test]

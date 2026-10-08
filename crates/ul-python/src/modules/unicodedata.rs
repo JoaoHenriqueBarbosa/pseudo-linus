@@ -191,7 +191,12 @@ impl ExtObject for Ucd {
     }
 
     fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
-        (name == "unidata_version").then(|| Ok(Value::str(self.db.version())))
+        match name {
+            "unidata_version" => Some(Ok(Value::str(self.db.version()))),
+            // O `UCD` é um tipo de heap (`PyType_FromSpec`): o `__module__` mora no tipo e a instância o herda.
+            "__module__" => Some(Ok(Value::str("unicodedata"))),
+            _ => None,
+        }
     }
 
     fn call_method(&self, _vm: &mut Vm, name: &str, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
@@ -223,7 +228,15 @@ module_fn!(
     numeric
 );
 
-pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
+pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
+    // A cápsula do `PyUnicode_Name` que o `_ucnhash_CAPI` entrega às extensões em C: só o objeto opaco.
+    let make = crate::modules::import(vm, "_capsule").and_then(|m| {
+        let make = m.attrs.borrow().get("make").cloned();
+        make
+    });
+    let capsule = make
+        .and_then(|make| vm.call(&make, vec![Value::str("unicodedata.ucnhash_CAPI")], Vec::new()).ok())
+        .unwrap_or(Value::None);
     ModuleBuilder::new("unicodedata")
         .func("category", category)
         .func("combining", combining)
@@ -239,6 +252,8 @@ pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
         .func("digit", digit)
         .func("numeric", numeric)
         .value("unidata_version", Value::str(ucd::current().version))
+        .value("UCD", crate::typeattrs::type_object("unicodedata.UCD"))
+        .value("_ucnhash_CAPI", capsule)
         .value("ucd_3_2_0", Value::Ext(Rc::new(Ucd { db: ucd::v3_2() })))
         .build()
 }

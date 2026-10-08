@@ -122,12 +122,15 @@ pub fn align(module: &mut Mod, name: &str, cpython: Option<&Mod>) {
 const RUNTIME: &str = include_str!("../../data/cpython-docs/runtime.tsv");
 
 /// As docstrings da tabela para o módulo `name`, pelo nome qualificado (o módulo é `""`). Os tipos do `_typing`
-/// dizem `__module__ == 'typing'`, e a tabela os guarda sob o `typing`.
+/// dizem `__module__ == 'typing'`, e a tabela os guarda sob o `typing`; os do `_decimal` dizem `decimal`; os do
+/// `_sqlite3` (`Connection`, `Cursor`...) dizem `sqlite3`.
 fn runtime_docs(name: &str, docs: &mut Docs) {
     for line in RUNTIME.lines() {
         let mut parts = line.splitn(3, '\t');
         let (Some(module), Some(qual), Some(doc)) = (parts.next(), parts.next(), parts.next()) else { continue };
-        if module == name || (name == "_typing" && module == "typing" && !qual.is_empty()) {
+        let reexported = matches!((name, module), ("_typing", "typing") | ("_decimal", "decimal") | ("_sqlite3", "sqlite3"))
+            && !qual.is_empty();
+        if module == name || reexported {
             docs.insert(qual.to_string(), json_string(doc).map(|d| (d, true)));
         }
     }

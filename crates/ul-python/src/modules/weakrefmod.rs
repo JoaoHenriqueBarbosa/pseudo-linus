@@ -250,6 +250,64 @@ fn weak_ref(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     make_ref(obj, cb)
 }
 
+/// Uma referência fraca a uma instância, do ponto de vista de `obj.__weakref__`.
+struct Noted {
+    /// O referente (para reconhecer o registro de um endereço reaproveitado).
+    target: Weak<InstanceObj>,
+    /// O objeto `weakref.ReferenceType` que o programa vê.
+    wrapper: Weak<InstanceObj>,
+    has_callback: bool,
+}
+
+thread_local! {
+    /// As referências fracas a cada instância, pelo endereço dela, na ordem de criação.
+    static NOTED: RefCell<HashMap<usize, Vec<Noted>>> = RefCell::new(HashMap::new());
+}
+
+/// `_wref.note(objeto, referência, tem_callback)`: o `ReferenceType` registra aqui a referência que criou
+/// a uma instância, para o `__weakref__` dela devolver a primeira.
+fn note(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    if let [Value::Instance(target), Value::Instance(wrapper), Value::Bool(has_callback)] = args.as_slice() {
+        let has_callback = *has_callback;
+        let key = Rc::as_ptr(target) as usize;
+        let _ = NOTED.try_with(|n| {
+            let mut n = n.borrow_mut();
+            // Instâncias mortas deixam registros: varre o mapa de tempos em tempos, e a lista de uma
+            // instância que acumulou muitas referências.
+            if n.len() >= 1024 && n.len().is_power_of_two() {
+                n.retain(|_, list| list.iter().any(|r| r.target.strong_count() > 0));
+            }
+            let list = n.entry(key).or_default();
+            if list.len() >= 16 {
+                list.retain(|r| r.wrapper.strong_count() > 0);
+            }
+            list.push(Noted { target: Rc::downgrade(target), wrapper: Rc::downgrade(wrapper), has_callback });
+        });
+    }
+    Ok(Value::None)
+}
+
+/// `obj.__weakref__`: a primeira referência fraca viva à instância (as sem função de retorno vêm antes,
+/// como na lista do CPython), ou `None`.
+pub(crate) fn first_weakref(inst: &Rc<InstanceObj>) -> Value {
+    let key = Rc::as_ptr(inst) as usize;
+    NOTED
+        .try_with(|n| {
+            let n = n.try_borrow().ok()?;
+            let list = n.get(&key)?;
+            let live = |r: &&Noted| r.target.as_ptr() == Rc::as_ptr(inst) && r.target.strong_count() > 0;
+            let pick = list
+                .iter()
+                .filter(live)
+                .filter_map(|r| r.wrapper.upgrade().map(|w| (r.has_callback, w)))
+                .min_by_key(|(cb, _)| *cb)?;
+            Some(Value::Instance(pick.1))
+        })
+        .ok()
+        .flatten()
+        .unwrap_or(Value::None)
+}
+
 pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
-    ModuleBuilder::new("_wref").func("ref", weak_ref).build()
+    ModuleBuilder::new("_wref").func("ref", weak_ref).func("note", note).build()
 }

@@ -138,7 +138,7 @@ impl Gen<'_> {
             first.get_or_insert(loc);
             let id = match &p.kind {
                 TypeParamKind::TypeVar { name, bound, default_value } => {
-                    self.check_name(name)?;
+                    self.check_plain(name)?;
                     self.load_cv(Cv::str(name.clone()), loc);
                     match bound.as_deref() {
                         Some(b) => {
@@ -156,14 +156,14 @@ impl Gen<'_> {
                     name
                 }
                 TypeParamKind::ParamSpec { name, default_value } => {
-                    self.check_name(name)?;
+                    self.check_plain(name)?;
                     self.load_cv(Cv::str(name.clone()), loc);
                     self.add(CALL_INTRINSIC_1, INTRINSIC_PARAMSPEC, loc);
                     self.param_default(default_value.as_deref(), loc)?;
                     name
                 }
                 TypeParamKind::TypeVarTuple { name, default_value } => {
-                    self.check_name(name)?;
+                    self.check_plain(name)?;
                     self.load_cv(Cv::str(name.clone()), loc);
                     self.add(CALL_INTRINSIC_1, INTRINSIC_TYPEVARTUPLE, loc);
                     self.param_default(default_value.as_deref(), loc)?;
@@ -190,7 +190,7 @@ impl Gen<'_> {
                 self.add(RETURN_VALUE, 0, loc);
             }
             S::ClassDef { name, bases, keywords, type_params, .. } => {
-                self.check_name(name)?;
+                self.check_plain(name)?;
                 if bases.iter().any(is_starred) || keywords.iter().any(|k| k.arg.is_none()) {
                     return Err(Unsupported);
                 }
@@ -277,7 +277,7 @@ impl Gen<'_> {
         if self.code.is_class || (class && closes_outer) {
             return Err(Unsupported);
         }
-        self.check_name(name)?;
+        self.check_plain(name)?;
         for d in decorators {
             self.expr(d)?;
         }
@@ -297,7 +297,7 @@ impl Gen<'_> {
         if self.code.is_class {
             return Err(Unsupported);
         }
-        self.check_name(name)?;
+        self.check_plain(name)?;
         self.load_cv(Cv::str(name.to_string()), loc);
         self.load_cv(Cv::none(), loc);
         self.next_function(loc, 0)?;

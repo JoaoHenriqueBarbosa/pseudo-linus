@@ -44,6 +44,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("_random", include_str!("py/_random.py")),
     ("_functools", include_str!("py/_functools.py")),
     ("_capsule", include_str!("py/_capsule.py")),
+    ("_uuid", include_str!("py/_uuid.py")),
     ("_tracemalloc", include_str!("py/_tracemalloc.py")),
     ("mmap", include_str!("py/mmap.py")),
     ("_lsprof", include_str!("py/_lsprof.py")),
@@ -140,11 +141,19 @@ const SOURCES: &[(&str, &str)] = &[
     ("_sha3", include_str!("py/_sha3.py")),
     ("numbers", include_str!("../../../kernel/image/usr/lib/python3.13/numbers.py")),
     ("contextvars", include_str!("py/contextvars.py")),
-    ("decimal", include_str!("py/decimal.py")),
+    // O `_decimal` do CPython é C (libmpdec); o `decimal` é o Python do Debian, que reexporta dele. O fonte do `_decimal`
+    // é o `_pydecimal` (que o programa importa à parte, do disco), e o `dir()` o limita ao que o módulo C mostra.
+    ("_decimal", include_str!("py/decimal.py")),
+    ("decimal", include_str!("../../../kernel/image/usr/lib/python3.13/decimal.py")),
     ("fractions", include_str!("py/fractions.py")),
     ("statistics", include_str!("py/statistics.py")),
     ("pprint", include_str!("../../../kernel/image/usr/lib/python3.13/pprint.py")),
-    ("locale", include_str!("py/locale.py")),
+    ("locale", include_str!("../../../kernel/image/usr/lib/python3.13/locale.py")),
+    // O CPython importa `encodings` na partida (`sys.modules` já o tem); o `locale.py` do Debian o importa no topo.
+    // Os codecs avulsos (`encodings.utf_8`...) continuam vindo do disco quando a busca de codec os pede.
+    ("encodings", include_str!("../../../kernel/image/usr/lib/python3.13/encodings/__init__.py")),
+    ("encodings.aliases", include_str!("../../../kernel/image/usr/lib/python3.13/encodings/aliases.py")),
+    ("_locale", include_str!("py/_locale.py")),
     ("urllib", include_str!("../../../kernel/image/usr/lib/python3.13/urllib/__init__.py")),
     ("urllib.parse", include_str!("../../../kernel/image/usr/lib/python3.13/urllib/parse.py")),
     ("urllib.error", include_str!("../../../kernel/image/usr/lib/python3.13/urllib/error.py")),
@@ -193,8 +202,9 @@ const SOURCES: &[(&str, &str)] = &[
     ("tarfile", include_str!("../../../kernel/image/usr/lib/python3.13/tarfile.py")),
     ("_archivefile", include_str!("py/_archivefile.py")),
     ("_yaml_impl", include_str!("py/_yaml_impl.py")),
-    ("sqlite3", include_str!("py/sqlite3.py")),
-    ("sqlite3.dbapi2", include_str!("py/sqlite3_dbapi2.py")),
+    ("_sqlite3", include_str!("py/_sqlite3.py")),
+    ("sqlite3", include_str!("../../../kernel/image/usr/lib/python3.13/sqlite3/__init__.py")),
+    ("sqlite3.dbapi2", include_str!("../../../kernel/image/usr/lib/python3.13/sqlite3/dbapi2.py")),
     ("sqlite3.dump", include_str!("../../../kernel/image/usr/lib/python3.13/sqlite3/dump.py")),
     ("bdb", include_str!("../../../kernel/image/usr/lib/python3.13/bdb.py")),
     ("trace", include_str!("../../../kernel/image/usr/lib/python3.13/trace.py")),
@@ -238,7 +248,7 @@ const SOURCES: &[(&str, &str)] = &[
     ("zipapp", include_str!("../../../kernel/image/usr/lib/python3.13/zipapp.py")),
     ("this", include_str!("../../../kernel/image/usr/lib/python3.13/this.py")),
     ("struct", include_str!("py/struct.py")),
-    ("py_compile", include_str!("py/py_compile.py")),
+    ("py_compile", include_str!("../../../kernel/image/usr/lib/python3.13/py_compile.py")),
     ("compileall", include_str!("../../../kernel/image/usr/lib/python3.13/compileall.py")),
     ("_multiprocessing", include_str!("py/_multiprocessing.py")),
     ("faulthandler", include_str!("py/faulthandler.py")),
@@ -335,6 +345,8 @@ const SOURCES: &[(&str, &str)] = &[
     ("codeop", include_str!("../../../kernel/image/usr/lib/python3.13/codeop.py")),
     ("plistlib", include_str!("py/plistlib.py")),
     ("quopri", include_str!("../../../kernel/image/usr/lib/python3.13/quopri.py")),
+    ("html", include_str!("../../../kernel/image/usr/lib/python3.13/html/__init__.py")),
+    ("textwrap", include_str!("../../../kernel/image/usr/lib/python3.13/textwrap.py")),
     ("html.entities", include_str!("../../../kernel/image/usr/lib/python3.13/html/entities.py")),
     ("__future__", include_str!("../../../kernel/image/usr/lib/python3.13/__future__.py")),
     ("_compat_pickle", include_str!("../../../kernel/image/usr/lib/python3.13/_compat_pickle.py")),
@@ -516,6 +528,15 @@ fn embedded_dir(real: &str) -> String {
     format!("{}/{}", embedded_base(real), real.replace('.', "/"))
 }
 
+/// Módulos que no Debian são extensões em C carregadas do `lib-dynload` (não embutidas no executável): o
+/// `__file__` é o `.so`, o `__loader__` é o `ExtensionFileLoader` e, como em todo módulo de C, não há `__builtins__`
+/// nem `__cached__`.
+const DYNLOAD_MODULES: &[&str] = &["termios", "resource", "_uuid"];
+
+fn is_dynload(real: &str) -> bool {
+    DYNLOAD_MODULES.contains(&real)
+}
+
 /// O módulo em Python embutido chamado `name`, construído na primeira vez.
 pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     let real = alias(name);
@@ -531,7 +552,11 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
     // Registrado antes de rodar, para que importações circulares enxerguem o módulo.
     vm.modules.borrow_mut().insert(real.to_string(), module.clone());
     // Só os módulos de arquivo têm `__builtins__` nas globais (os de C do CPython não).
-    let builtins = if crate::object::BUILTIN_MODULES.contains(&real) { None } else { crate::modules::builtins_dict(vm) };
+    let builtins = if crate::object::BUILTIN_MODULES.contains(&real) || is_dynload(real) {
+        None
+    } else {
+        crate::modules::builtins_dict(vm)
+    };
     let globals: Rc<RefCell<crate::object::VarMap>> = Rc::new(RefCell::new(Default::default()));
     {
         let mut g = globals.borrow_mut();
@@ -541,7 +566,9 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         g.insert("__doc__".into(), Value::None);
         let as_path = real.replace('.', "/");
         let base = embedded_base(real);
-        let file = if crate::modules::is_embedded_package(real) {
+        let file = if is_dynload(real) {
+            format!("{base}/lib-dynload/{real}.cpython-313-x86_64-linux-gnu.so")
+        } else if crate::modules::is_embedded_package(real) {
             format!("{base}/{as_path}/__init__.py")
         } else {
             format!("{base}/{as_path}.py")
@@ -556,7 +583,7 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         // Módulo que no Debian é C embutido no executável não tem `__file__`.
         if !crate::object::BUILTIN_MODULES.contains(&real) {
             g.insert("__file__".into(), Value::str(file.clone()));
-            if !crate::object::FROZEN_MODULES.contains(&real) {
+            if !crate::object::FROZEN_MODULES.contains(&real) && !is_dynload(real) {
                 if let Some(cached) = crate::modules::cached_path(&file) {
                     g.insert("__cached__".into(), Value::str(cached));
                 }

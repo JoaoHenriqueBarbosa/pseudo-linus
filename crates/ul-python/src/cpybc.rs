@@ -1657,6 +1657,8 @@ fn key_truth(k: &Key) -> bool {
 fn fold(e: &Expr) -> Res<Option<Cv>> {
     Ok(match &e.kind {
         E::Constant { value, .. } => Some(const_cv(value)?),
+        // `fold_name` do `ast_opt.c`: sem `-O`, `__debug__` lido é a constante `True`.
+        E::Name { id, ctx: ExprContext::Load } if id == "__debug__" => Some(Cv { key: Key::Bool(true), value: Value::Bool(true) }),
         E::UnaryOp { op, operand } => match fold(operand)? {
             Some(v) => fold_unary(*op, &v)?,
             None => None,
@@ -1919,17 +1921,18 @@ impl<'a> Gen<'a> {
         self.names.len() - 1
     }
 
-    /// Nome de atributo: só o mangling de `__x` o torna especial.
-    fn check_attr(&self, attr: &str) -> Res<()> {
-        if attr.starts_with("__") && !attr.ends_with("__") {
+    /// Nome que vira texto de constante (nome de parâmetro de tipo, de alias): o `__x` chega mutilado do AST (`mangle.rs`),
+    /// mas a constante leva o original, que o emissor não recupera.
+    fn check_plain(&self, n: &str) -> Res<()> {
+        if n.starts_with("__") && !n.ends_with("__") {
             return Err(Unsupported);
         }
-        Ok(())
+        self.check_name(n)
     }
 
-    /// Nomes que o compilador trata à parte (mangling de `__x`, `__debug__`, `__class__` fora de uma função que a fecha).
+    /// Nomes que o compilador trata à parte (`__debug__`, `__class__` fora de uma função que a fecha). O mangling de `__x`
+    /// já veio feito no AST do corpo da classe (`mangle::class_body`), então atributos e nomes passam como estão.
     fn check_name(&self, n: &str) -> Res<()> {
-        self.check_attr(n)?;
         let class_cell = n == "__class__" && self.code.freevars.iter().any(|f| &**f == n);
         if (n == "__class__" && !class_cell) || n == "__debug__" {
             return Err(Unsupported);
@@ -2940,7 +2943,9 @@ impl<'a> Gen<'a> {
         self.add(LOAD_BUILD_CLASS, 0, loc);
         self.add(PUSH_NULL, 0, loc);
         self.closure_code(k, &inner, loc, 0)?;
-        self.load_cv(Cv::str(name.to_string()), loc);
+        // O nome ligado pode vir mutilado (`class __Inner` em `A` liga `_A__Inner`); a constante leva o original, que o
+        // `Code` do corpo guarda.
+        self.load_cv(Cv::str(inner.name.clone()), loc);
         for b in bases {
             self.expr(b)?;
         }
@@ -2977,7 +2982,6 @@ impl<'a> Gen<'a> {
                 self.load_name(id, tloc, false)?;
             }
             E::Attribute { value: obj, attr, .. } => {
-                self.check_attr(attr)?;
                 self.expr(obj)?;
                 self.add(COPY, 1, tloc);
                 let i = self.name_index(attr);
@@ -3032,7 +3036,6 @@ impl<'a> Gen<'a> {
         match &t.kind {
             E::Name { id, .. } => self.del_name(id, loc)?,
             E::Attribute { value, attr, .. } => {
-                self.check_attr(attr)?;
                 self.expr(value)?;
                 let i = self.name_index(attr);
                 self.add(DELETE_ATTR, i as i64, match_attr(loc, loc, attr));
@@ -3063,7 +3066,6 @@ impl<'a> Gen<'a> {
         match &t.kind {
             E::Name { id, .. } => self.store_name(id, loc)?,
             E::Attribute { value, attr, .. } => {
-                self.check_attr(attr)?;
                 self.expr(value)?;
                 let l = match_attr(loc, loc, attr);
                 let i = self.name_index(attr);
@@ -3203,7 +3205,6 @@ impl<'a> Gen<'a> {
                 self.load_name(id, loc, false)?;
             }
             E::Attribute { value, attr, ctx: ExprContext::Load } => {
-                self.check_attr(attr)?;
                 if !self.super_attr(value, attr, false, loc)? {
                     self.expr(value)?;
                     let l = match_attr(loc, loc, attr);
@@ -3562,7 +3563,6 @@ impl<'a> Gen<'a> {
             return Err(Unsupported);
         }
         if let Some((value, attr)) = method {
-            self.check_attr(attr)?;
             let attr_loc = self.loc(&func.pos);
             let meth_loc = match_attr(attr_loc, attr_loc, attr);
             if !self.super_attr(value, attr, true, attr_loc)? {

@@ -174,7 +174,8 @@ def allocate_lock():
     return lock()
 
 
-allocate = allocate_lock
+def allocate():
+    return lock()
 
 
 class RLock:
@@ -309,7 +310,7 @@ def stack_size(size=0):
     return old
 
 
-def start_new_thread(function, args, kwargs=None):
+def _spawn(function, args, kwargs):
     if not callable(function):
         raise TypeError('first arg must be callable')
     if not isinstance(args, tuple):
@@ -320,14 +321,22 @@ def start_new_thread(function, args, kwargs=None):
     return _hooks['start'](function, args, kwargs if kwargs is not None else {})
 
 
-start_new = start_new_thread
+# No CPython `start_new` e `start_new_thread` (e `exit` e `exit_thread`, `allocate` e `allocate_lock`) são
+# definições de método separadas sobre a mesma implementação, cada uma com o próprio nome.
+def start_new_thread(function, args, kwargs=None):
+    return _spawn(function, args, kwargs)
+
+
+def start_new(function, args, kwargs=None):
+    return _spawn(function, args, kwargs)
 
 
 def exit():
     raise SystemExit
 
 
-exit_thread = exit
+def exit_thread():
+    raise SystemExit
 
 
 def _count():

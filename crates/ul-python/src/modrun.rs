@@ -98,7 +98,12 @@ impl Vm {
         let Body { name, module, code, globals } = body;
         let run = ImportRun { name, guard: Initializing::enter(module.name), module, plan };
         let caller = std::mem::replace(&mut self.globals, globals);
-        Callee { frame: Frame::new(code, Env::new(None, false, true)), link: self.body_link(Some(caller), Dunder::Import(Box::new(run))) }
+        // O corpo entra em `frames`: `sys._getframe(1)` dentro de uma função chamada por ele (o
+        // `install_lazy_importer` do anyio) enxerga o módulo, não o quadro de quem importou.
+        let env = Env::new(None, false, true);
+        self.frames.borrow_mut().push((code.clone(), self.cur_line.get(), env.clone()));
+        crate::frameobj::bind_globals(&env, &self.globals);
+        Callee { frame: Frame::new(code, env), link: self.body_link(Some(caller), Dunder::Import(Box::new(run))) }
     }
 
     /// O módulo seguinte da cadeia do `import`: o corpo dele vira quadro; sem mais corpo a rodar, a cadeia acabou
@@ -115,6 +120,9 @@ impl Vm {
     /// O corpo de um módulo acabou com `outcome`.
     fn close_import(&mut self, run: ImportRun, link: CallLink, outcome: PyResult<Value>) -> PyResult<Next> {
         self.handled.borrow_mut().truncate(link.handled_len);
+        if let Some((_, _, env)) = self.frames.borrow_mut().pop() {
+            crate::frameobj::unbind_globals(&env);
+        }
         self.cur_line.set(link.caller_line);
         if let Some(globals) = link.caller_globals {
             self.globals = globals;

@@ -558,7 +558,7 @@ impl PatternObj {
                 s
             }
         };
-        let callable = matches!(repl, Value::Function(_) | Value::Builtin(_) | Value::NativeFn(_) | Value::Bound(_));
+        let callable = crate::builtins::is_callable(repl);
         let parts: Option<Vec<Tpl>> = if callable {
             None
         } else {
@@ -669,6 +669,25 @@ pub(crate) fn restore_image(tag: &str, state: &(dyn std::any::Any + Send + Sync)
     }
 }
 
+/// O método `name` de um `re.Pattern` (`tname` é o `type_name` do receptor) é declarado com `defining_class`
+/// (`METH_METHOD`) no `_sre`: ligado, vira `builtin_method`, não `builtin_function_or_method`.
+pub(crate) fn is_method_with_class(tname: &str, name: &str) -> bool {
+    tname == "Pattern" && matches!(name, "match" | "fullmatch" | "search" | "finditer" | "sub" | "subn")
+}
+
+/// O `__text_signature__` do método `name` de `re.Pattern`, como o argument clinic do `_sre` o escreve.
+pub(crate) fn pattern_method_signature(tname: &str, name: &str) -> Option<&'static str> {
+    if tname != "Pattern" {
+        return None;
+    }
+    match name {
+        "match" | "fullmatch" | "search" | "finditer" | "findall" => Some("($self, /, string, pos=0, endpos=sys.maxsize)"),
+        "sub" | "subn" => Some("($self, /, repl, string, count=0)"),
+        "split" => Some("($self, /, string, maxsplit=0)"),
+        _ => None,
+    }
+}
+
 impl ExtObject for PatternObj {
     fn image(&self) -> Option<crate::object::ExtImage> {
         crate::object::OpaqueImage::image("re_pattern", (self.text.clone(), self.regex.flags, self.bytes), Vec::new())
@@ -706,6 +725,7 @@ impl ExtObject for PatternObj {
     fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
         match name {
             "pattern" => Some(Ok(self.source.clone())),
+            "__module__" => Some(Ok(Value::str("re"))),
             "flags" => Some(Ok(Value::Int(i64::from(if self.bytes { self.regex.flags & !eng::A } else { self.regex.flags })))),
             "groups" => Some(Ok(Value::Int(self.regex.ngroups as i64))),
             "groupindex" => {
@@ -867,6 +887,8 @@ impl ExtObject for MatchObj {
     fn getattr(&self, _vm: &mut Vm, name: &str) -> Option<PyResult<Value>> {
         match name {
             "string" => Some(Ok(self.string.clone())),
+            // `re.Match` e `re.Pattern` são tipos de heap (`PyType_FromSpec`): a instância herda o `__module__`.
+            "__module__" => Some(Ok(Value::str("re"))),
             "re" => Some(Ok(Value::Ext(self.pattern.clone()))),
             "pos" => Some(Ok(Value::Int(self.pos as i64))),
             "endpos" => Some(Ok(Value::Int(self.endpos as i64))),

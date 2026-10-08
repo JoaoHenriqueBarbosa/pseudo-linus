@@ -1,0 +1,1012 @@
+tool = "pip"
+source = "manual"
+
+# Um caso por pacote da leva da Fase 3 (pacotes Python puro do topo do PyPI, ver
+# testbench/mirror/packages.txt): pip instala do espelho (https://pypi.sandbox/simple/) num venv novo e
+# a saída mostra a resolução, `pip list`, `pip show`, `pip show -f` (as 30 primeiras linhas),
+# `pip freeze` e `pip check`. O cache do pip é desligado para a saída não depender da ordem dos
+# casos, e as velocidades e tempos da barra de progresso passam por um normalizador. A tag "mirror"
+# faz o oráculo subir o espelho antes do caso. O uso real de cada pacote fica em smoke.toml.
+
+[[case]]
+id = "mirror-install-setuptools"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off setuptools 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show setuptools; echo "rc=$?"
+/tmp/v/bin/pip show -f setuptools | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-wheel"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off wheel 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show wheel; echo "rc=$?"
+/tmp/v/bin/pip show -f wheel | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-pyparsing"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off pyparsing 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show pyparsing; echo "rc=$?"
+/tmp/v/bin/pip show -f pyparsing | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-decorator"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off decorator 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show decorator; echo "rc=$?"
+/tmp/v/bin/pip show -f decorator | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-zipp"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off zipp 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show zipp; echo "rc=$?"
+/tmp/v/bin/pip show -f zipp | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-importlib-metadata"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off importlib-metadata 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show importlib-metadata; echo "rc=$?"
+/tmp/v/bin/pip show -f importlib-metadata | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-more-itertools"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off more-itertools 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show more-itertools; echo "rc=$?"
+/tmp/v/bin/pip show -f more-itertools | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-pyjwt"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off pyjwt 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show pyjwt; echo "rc=$?"
+/tmp/v/bin/pip show -f pyjwt | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-oauthlib"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off oauthlib 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show oauthlib; echo "rc=$?"
+/tmp/v/bin/pip show -f oauthlib | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-requests-oauthlib"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off requests-oauthlib 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show requests-oauthlib; echo "rc=$?"
+/tmp/v/bin/pip show -f requests-oauthlib | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-requests-toolbelt"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off requests-toolbelt 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show requests-toolbelt; echo "rc=$?"
+/tmp/v/bin/pip show -f requests-toolbelt | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-httplib2"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off httplib2 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show httplib2; echo "rc=$?"
+/tmp/v/bin/pip show -f httplib2 | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-uritemplate"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off uritemplate 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show uritemplate; echo "rc=$?"
+/tmp/v/bin/pip show -f uritemplate | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-tzdata"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off tzdata 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show tzdata; echo "rc=$?"
+/tmp/v/bin/pip show -f tzdata | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-mccabe"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off mccabe 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show mccabe; echo "rc=$?"
+/tmp/v/bin/pip show -f mccabe | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-pycodestyle"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off pycodestyle 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show pycodestyle; echo "rc=$?"
+/tmp/v/bin/pip show -f pycodestyle | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-pyflakes"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off pyflakes 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show pyflakes; echo "rc=$?"
+/tmp/v/bin/pip show -f pyflakes | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-flake8"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off flake8 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show flake8; echo "rc=$?"
+/tmp/v/bin/pip show -f flake8 | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-isort"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off isort 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show isort; echo "rc=$?"
+/tmp/v/bin/pip show -f isort | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-dill"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off dill 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show dill; echo "rc=$?"
+/tmp/v/bin/pip show -f dill | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-tomlkit"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off tomlkit 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show tomlkit; echo "rc=$?"
+/tmp/v/bin/pip show -f tomlkit | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-mako"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off mako 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show mako; echo "rc=$?"
+/tmp/v/bin/pip show -f mako | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-typer"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off typer 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show typer; echo "rc=$?"
+/tmp/v/bin/pip show -f typer | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-shellingham"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off shellingham 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show shellingham; echo "rc=$?"
+/tmp/v/bin/pip show -f shellingham | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-python-dotenv"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off python-dotenv 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show python-dotenv; echo "rc=$?"
+/tmp/v/bin/pip show -f python-dotenv | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-annotated-types"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off annotated-types 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show annotated-types; echo "rc=$?"
+/tmp/v/bin/pip show -f annotated-types | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-email-validator"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off email-validator 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show email-validator; echo "rc=$?"
+/tmp/v/bin/pip show -f email-validator | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-dnspython"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off dnspython 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show dnspython; echo "rc=$?"
+/tmp/v/bin/pip show -f dnspython | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-starlette"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off starlette 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show starlette; echo "rc=$?"
+/tmp/v/bin/pip show -f starlette | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-uvicorn"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off uvicorn 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show uvicorn; echo "rc=$?"
+/tmp/v/bin/pip show -f uvicorn | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-pexpect"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off pexpect 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show pexpect; echo "rc=$?"
+/tmp/v/bin/pip show -f pexpect | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-ptyprocess"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off ptyprocess 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show ptyprocess; echo "rc=$?"
+/tmp/v/bin/pip show -f ptyprocess | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-wcwidth"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off wcwidth 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show wcwidth; echo "rc=$?"
+/tmp/v/bin/pip show -f wcwidth | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-prompt-toolkit"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off prompt-toolkit 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show prompt-toolkit; echo "rc=$?"
+/tmp/v/bin/pip show -f prompt-toolkit | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-jedi"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off jedi 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show jedi; echo "rc=$?"
+/tmp/v/bin/pip show -f jedi | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-parso"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off parso 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show parso; echo "rc=$?"
+/tmp/v/bin/pip show -f parso | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-traitlets"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off traitlets 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show traitlets; echo "rc=$?"
+/tmp/v/bin/pip show -f traitlets | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-stack-data"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off stack-data 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show stack-data; echo "rc=$?"
+/tmp/v/bin/pip show -f stack-data | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-executing"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off executing 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show executing; echo "rc=$?"
+/tmp/v/bin/pip show -f executing | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-asttokens"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off asttokens 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show asttokens; echo "rc=$?"
+/tmp/v/bin/pip show -f asttokens | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-pure-eval"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off pure-eval 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show pure-eval; echo "rc=$?"
+/tmp/v/bin/pip show -f pure-eval | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-matplotlib-inline"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off matplotlib-inline 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show matplotlib-inline; echo "rc=$?"
+/tmp/v/bin/pip show -f matplotlib-inline | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-cycler"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off cycler 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show cycler; echo "rc=$?"
+/tmp/v/bin/pip show -f cycler | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-humanize"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off humanize 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show humanize; echo "rc=$?"
+/tmp/v/bin/pip show -f humanize | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-termcolor"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off termcolor 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show termcolor; echo "rc=$?"
+/tmp/v/bin/pip show -f termcolor | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-unidecode"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off unidecode 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show unidecode; echo "rc=$?"
+/tmp/v/bin/pip show -f unidecode | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-python-slugify"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off python-slugify 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show python-slugify; echo "rc=$?"
+/tmp/v/bin/pip show -f python-slugify | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-text-unidecode"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off text-unidecode 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show text-unidecode; echo "rc=$?"
+/tmp/v/bin/pip show -f text-unidecode | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-babel"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off babel 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show babel; echo "rc=$?"
+/tmp/v/bin/pip show -f babel | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-boto3"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off boto3 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show boto3; echo "rc=$?"
+/tmp/v/bin/pip show -f boto3 | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-botocore"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off botocore 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show botocore; echo "rc=$?"
+/tmp/v/bin/pip show -f botocore | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-jmespath"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off jmespath 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show jmespath; echo "rc=$?"
+/tmp/v/bin/pip show -f jmespath | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-s3transfer"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off s3transfer 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show s3transfer; echo "rc=$?"
+/tmp/v/bin/pip show -f s3transfer | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-google-auth"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off google-auth 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show google-auth; echo "rc=$?"
+/tmp/v/bin/pip show -f google-auth | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-rsa"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off rsa 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show rsa; echo "rc=$?"
+/tmp/v/bin/pip show -f rsa | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-pyasn1"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off pyasn1 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show pyasn1; echo "rc=$?"
+/tmp/v/bin/pip show -f pyasn1 | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-pyasn1-modules"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off pyasn1-modules 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show pyasn1-modules; echo "rc=$?"
+/tmp/v/bin/pip show -f pyasn1-modules | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-cachetools"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off cachetools 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show cachetools; echo "rc=$?"
+/tmp/v/bin/pip show -f cachetools | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''
+
+[[case]]
+id = "mirror-install-tenacity"
+tags = ["mirror"]
+script = '''
+exec 2>&1
+export PIP_NO_CACHE_DIR=1
+norm() { sed -E 's/[0-9.]+ [kMG]?B\/s/<speed>/g; s/eta [0-9:]+/eta <t>/g'; }
+rm -rf /tmp/v
+python3 -m venv /tmp/v; echo "venv rc=$?"
+/tmp/v/bin/pip install --progress-bar off tenacity 2>&1 | norm; echo "pip rc=${PIPESTATUS[0]}"
+/tmp/v/bin/pip list; echo "rc=$?"
+/tmp/v/bin/pip show tenacity; echo "rc=$?"
+/tmp/v/bin/pip show -f tenacity | sed -n '1,30p'
+/tmp/v/bin/pip freeze; echo "rc=$?"
+/tmp/v/bin/pip check; echo "rc=$?"
+'''

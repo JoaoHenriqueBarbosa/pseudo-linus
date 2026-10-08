@@ -125,3 +125,9 @@ dict_valueiterator	0x5182
 str_iterator	0x5182
 socket	0x5608
 NoDefaultType	0x1102
+getset_descriptor	0x5182
+member_descriptor	0x5182
+method_descriptor	0x25982
+wrapper_descriptor	0x25182
+classmethod_descriptor	0x5182
+method-wrapper	0x5182

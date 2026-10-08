@@ -121,7 +121,11 @@ struct FunctionImage {
     closure: Option<u32>,
     /// Nó `Globals`.
     globals: u32,
-    attrs: Pairs,
+    /// O `__dict__` vivo: um item como qualquer dict (chaves não textuais e identidade preservadas).
+    attrs: Item,
+    /// O `func_annotations`, quando já existe.
+    annotations: Option<Item>,
+    no_bind: bool,
 }
 
 struct CodeImage {
@@ -818,9 +822,12 @@ impl Encoder {
             None => None,
         };
         let globals = self.deferred(address(&f.globals), || Pending::Globals(f.globals.clone()));
-        let attrs: Vec<(String, Value)> = f.attrs.borrow().iter().map(|(k, v)| (k.clone(), v.clone())).collect();
-        let attrs = self.pairs(attrs)?;
-        Ok(FunctionImage { code, defaults, kwdefaults, closure, globals, attrs })
+        let attrs = self.item(&Value::Dict(f.dict()))?;
+        let annotations = match f.annotations.borrow().as_ref() {
+            Some(d) => Some(self.item(d)?),
+            None => None,
+        };
+        Ok(FunctionImage { code, defaults, kwdefaults, closure, globals, attrs, annotations, no_bind: f.no_bind.get() })
     }
 
     fn code(&mut self, c: &Code) -> Result<CodeImage, ImageError> {
@@ -2026,7 +2033,9 @@ impl HeapImage {
                     kwdefaults: rb.pairs(&f.kwdefaults)?,
                     closure,
                     globals: rb.globals(f.globals)?,
-                    attrs: RefCell::new(BTreeMap::new()),
+                    attrs: FuncObj::new_attrs(),
+                    annotations: RefCell::new(None),
+                    no_bind: std::cell::Cell::new(f.no_bind),
                 })))
             }
             Node::Code(c) => {
@@ -2171,7 +2180,12 @@ impl HeapImage {
                 *m.attrs.borrow_mut() = rb.pairs(attrs)?.into_iter().collect();
             }
             (Node::Function(f), Some(Value::Function(func)), _) => {
-                *func.attrs.borrow_mut() = rb.pairs(&f.attrs)?.into_iter().collect();
+                if let Value::Dict(d) = rb.value(f.attrs)? {
+                    func.replace_dict(d);
+                }
+                if let Some(d) = f.annotations {
+                    *func.annotations.borrow_mut() = Some(rb.value(d)?);
+                }
             }
             (Node::Env(e), _, Some(Aux::Env(env))) => {
                 let mut vars = LocalMap::default();
@@ -2596,7 +2610,7 @@ fn make_ext(x: &ExtNode, rb: &Rebuilt) -> Result<Value, ImageError> {
             let mut out = Vec::with_capacity(entries.len());
             for e in entries {
                 let held = match e.held {
-                    Some((env, code)) => Some(crate::frameobj::FrameHold::new(rb.env(env)?, rb.code(code)?)),
+                    Some((env, code)) => Some(crate::frameobj::FrameHold::new(rb.env(env)?, rb.code(code)?, None)),
                     None => None,
                 };
                 out.push((e.line, e.name.clone(), rb.name(&e.file), e.span, held));
@@ -3012,7 +3026,7 @@ mod tests {
         assert_eq!(int(&call(&mut vm, &out[2], vec![Value::Int(1), Value::Int(2)])), 3);
         let add = function_of(&out[2]);
         assert_eq!(add.defaults.len(), 1);
-        assert_eq!(text(add.attrs.borrow().get("tag").expect("tag")), "x");
+        assert_eq!(text(&add.attr("tag").expect("tag")), "x");
         // O `Code` de duas funções do mesmo `def` é um só, e o texto compilado é igual ao do original.
         let (la, lb) = (function_of(&out[3]), function_of(&out[4]));
         assert!(Rc::ptr_eq(&la.code, &lb.code));

@@ -26,6 +26,10 @@ NAMED = {
     'bytes_iterator': type(iter(b'')), 'bytearray_iterator': type(iter(bytearray())),
     # O `tp_name` do C é `NoDefaultType`, sem módulo: um tipo de `builtins` que só o `typing` alcança.
     'NoDefaultType': type(__import__('typing').NoDefault),
+    # Os tipos dos descritores (`types.GetSetDescriptorType` e companhia).
+    'getset_descriptor': types.GetSetDescriptorType, 'member_descriptor': types.MemberDescriptorType,
+    'method_descriptor': types.MethodDescriptorType, 'wrapper_descriptor': types.WrapperDescriptorType,
+    'classmethod_descriptor': types.ClassMethodDescriptorType, 'method-wrapper': types.MethodWrapperType,
 }
 
 
@@ -40,7 +44,7 @@ EXTENSION_MODULES = ['_json', '_csv', '_struct', '_datetime', '_decimal', '_hash
                      '_socket', 'select', 'math', 'cmath', 'zlib', 'binascii', 'array', 'unicodedata', '_random',
                      '_bisect', '_heapq', '_pickle', 'fcntl', 'termios', 'mmap', 'resource', 'grp',
                      '_posixsubprocess', '_contextvars', '_asyncio', '_queue', '_statistics', '_zoneinfo',
-                     'readline', '_sqlite3']
+                     'readline', '_sqlite3', '_uuid']
 
 
 def c_modules():

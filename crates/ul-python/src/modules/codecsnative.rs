@@ -853,6 +853,16 @@ thread_local! {
     static HANDLERS: RefCell<Option<HashMap<String, Value>>> = const { RefCell::new(None) };
 }
 
+/// O `__text_signature__` dos tratadores de erro embutidos: no CPython são `PyMethodDef` de `Python/codecs.c`
+/// (sem módulo dono), cujo `ml_doc` abre com `($self, object, /)`.
+pub(crate) fn handler_signature(name: &str) -> Option<&'static str> {
+    matches!(
+        name,
+        "strict_errors" | "ignore_errors" | "replace_errors" | "xmlcharrefreplace_errors" | "backslashreplace_errors" | "namereplace_errors"
+    )
+    .then_some("($self, object, /)")
+}
+
 fn builtin_handlers() -> HashMap<String, Value> {
     let table = [
         ("strict", "strict_errors", strict_errors as NativeFnPtr),

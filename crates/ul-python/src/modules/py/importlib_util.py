@@ -5,6 +5,7 @@ import types
 
 from . import machinery
 from .machinery import ModuleSpec, SourceFileLoader
+from _frozen_importlib_external import MAGIC_NUMBER
 
 _POPULATE = object()
 

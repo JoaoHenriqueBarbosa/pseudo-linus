@@ -597,6 +597,42 @@ fn p_scenario(ctx: &mut Ctx, args: &[OsString]) -> i32 {
             out(format!("{} {} {n3}\n", first == framed_looking, second == b"raw bytes"));
             0
         }
+        "tcp-unbound-socket" => {
+            // `socket(AF_INET, SOCK_STREAM)` no Linux: o fd e o inode existem desde a criação (`socket:[N]` em
+            // /proc/self/fd), `getsockname` dá 0.0.0.0:0, o socket em CLOSE sem porta não consta do /proc/net/tcp,
+            // e o `connect` faz o autobind numa porta de `ip_local_port_range`. Depois, `bind` dá EINVAL e
+            // um segundo `connect` dá EISCONN.
+            let lo: std::net::IpAddr = std::net::Ipv4Addr::LOCALHOST.into();
+            let any: std::net::IpAddr = std::net::Ipv4Addr::UNSPECIFIED.into();
+            let inode_rows = |ino: &str| -> Vec<String> {
+                let table = sys::open(b"/proc/net/tcp", OFlags::empty(), 0).unwrap();
+                let text = String::from_utf8(sys::read_to_end(table).unwrap()).unwrap();
+                s.close(table).unwrap();
+                text.lines().skip(1).filter_map(|l| l.split_whitespace().nth(9).filter(|n| *n == ino).map(|_| l.split_whitespace().nth(3).unwrap().to_string())).collect()
+            };
+            let (server, port) = s.tcp_listen(0, 4, false, true).unwrap();
+            let fd = s.tcp_socket(false, false, true).unwrap();
+            let path = format!("/proc/self/fd/{}", fd.0);
+            let link = String::from_utf8(s.readlinkat(Fd::CWD, path.as_bytes()).unwrap()).unwrap();
+            let ino = link.strip_prefix("socket:[").and_then(|r| r.strip_suffix(']')).unwrap().to_string();
+            let before = s.tcp_names(fd).unwrap();
+            let listed_before = inode_rows(&ino);
+            s.tcp_connect_fd(fd, lo, port).unwrap();
+            let ((me_ip, me_port), peer) = s.tcp_names(fd).unwrap();
+            let link_after = String::from_utf8(s.readlinkat(Fd::CWD, path.as_bytes()).unwrap()).unwrap();
+            let listed_after = inode_rows(&ino);
+            let rebind = s.tcp_bind_fd(fd, lo, 0, false);
+            let again = s.tcp_connect_fd(fd, lo, port);
+            let peer_is_server = peer == Some((lo, port));
+            out(format!(
+                "{} {:?} {listed_before:?} {me_ip} {} {peer_is_server} {} {listed_after:?} {rebind:?} {again:?}\n",
+                before == ((any, 0), None),
+                before.1,
+                (32768..=60999).contains(&me_port),
+                link == link_after
+            ));
+            0
+        }
         "tcp-send-unconnected" => {
             // `tcp_sendmsg` em CLOSE ou LISTEN: `sk_stream_wait_connect` dá EPIPE (não ENOTCONN) e o
             // `sk_stream_error` manda SIGPIPE, salvo `MSG_NOSIGNAL`. `write(2)` é `send` sem flags.
@@ -1353,6 +1389,13 @@ fn seqpacket_raw_fd_sees_exact_bytes_without_framing() {
 
 // Linux 6.12 (net/ipv4/tcp.c, af_unix.c): os valores esperados abaixo saem do código-fonte, conferidos um a um
 // com o `sk_state`, o `sk_shutdown` e o `sk_err` do socket em cada passo.
+
+#[test]
+fn tcp_socket_exists_from_creation_and_connect_autobinds() {
+    // Linux 6.12: fd e inode desde `socket()`, fora do /proc/net/tcp em CLOSE; `connect` escolhe a porta
+    // efêmera, entra na tabela em ESTABLISHED (01), `bind` depois dele dá EINVAL e o segundo `connect` EISCONN.
+    assert_scenario("tcp-unbound-socket", "true None [] 127.0.0.1 true true true [\"01\"] Err(EINVAL) Err(EISCONN)\n");
+}
 
 #[test]
 fn tcp_send_without_connection_is_epipe_with_sigpipe() {

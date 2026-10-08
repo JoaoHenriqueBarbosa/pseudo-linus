@@ -383,10 +383,10 @@ fn jump_index(code: &Code, line: usize) -> Option<usize> {
 
 /// O quadro de função que a entrada de traceback guarda: o escopo e o código (módulos e corpos de
 /// classe ficam de fora, as variáveis deles são as globais).
-fn tb_frame_of(code: &Rc<Code>, env: &Rc<Env>) -> Option<Rc<crate::frameobj::FrameHold>> {
+fn tb_frame_of(code: &Rc<Code>, env: &Rc<Env>, globals: &Rc<RefCell<crate::object::VarMap>>) -> Option<Rc<crate::frameobj::FrameHold>> {
     // O quadro de módulo também: sem o código dele o `tb_lasti` não acha a instrução, e o `traceback` do
     // Debian perde os acentos circunflexos (o `exec` do `bdb` roda o script como módulo).
-    (!env.is_class).then(|| crate::frameobj::FrameHold::new(env.clone(), code.clone()))
+    (!env.is_class).then(|| crate::frameobj::FrameHold::new(env.clone(), code.clone(), Some(globals.clone())))
 }
 
 impl PyException {
@@ -1165,7 +1165,7 @@ fn plain_method(obj: &Value, name: &str) -> Option<Rc<FuncObj>> {
     }
     let class = inst.class();
     let Some(Value::Function(f)) = class.lookup(name) else { return None };
-    if f.attrs.borrow().contains_key("__no_bind__") || class.lookup("__getattribute__").is_some() {
+    if f.no_bind.get() || class.lookup("__getattribute__").is_some() {
         return None;
     }
     // Função de módulo em C guardada na classe (`_default_algorithm = hashlib.sha256`): não se liga.
@@ -2263,7 +2263,7 @@ impl Vm {
                             match entries.first_mut() {
                                 Some(first) if is_inlined_comp(&first.1) => first.1 = code.name.clone(),
                                 _ if native_in_cpython(&code.filename, &code.qual()) => {}
-                                _ => entries.insert(0, (code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str()), code.spans[*pc], tb_frame_of(code, env))),
+                                _ => entries.insert(0, (code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str()), code.spans[*pc], tb_frame_of(code, env, &self.globals))),
                             }
                         }
                         let filename = self.script_name();
@@ -2277,7 +2277,7 @@ impl Vm {
                             match e.tb.last_mut() {
                                 Some(last) if is_inlined_comp(&last.1) => last.1 = code.name.clone(),
                                 _ if native_in_cpython(&code.filename, &code.qual()) => {}
-                                _ => e.tb.push((code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str()), code.spans[*pc], tb_frame_of(code, env))),
+                                _ => e.tb.push((code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str()), code.spans[*pc], tb_frame_of(code, env, &self.globals))),
                             }
                         }
                         // O quadro acaba: o traceback (`FrameHold`) é quem o guarda agora, e leva os locais ao morrer.
@@ -3234,7 +3234,7 @@ impl Vm {
         }
         // Função embutida no CPython (escrita em Python aqui): o traceback não mostra o interior dela.
         if let Err(e) = &mut result {
-            if link.func.as_ref().is_some_and(|f| f.attrs.borrow().contains_key("__no_bind__")) {
+            if link.func.as_ref().is_some_and(|f| f.no_bind.get()) {
                 while e.tb.last().is_some_and(|t| t.2.starts_with("/usr/lib/python3.13/")) {
                     e.tb.pop();
                 }
@@ -3962,7 +3962,9 @@ impl Vm {
                     kwdefaults: kw_names.into_iter().zip(kw_values).collect(),
                     closure: locals.capture(),
                     globals: self.globals.clone(),
-                    attrs: RefCell::new(std::collections::BTreeMap::new()),
+                    attrs: FuncObj::new_attrs(),
+                    annotations: RefCell::new(None),
+                    no_bind: std::cell::Cell::new(false),
                 };
                 stack.push(Slot::Val(Value::Function(Rc::new(f))));
             }
@@ -3977,7 +3979,7 @@ impl Vm {
                     d.set(Value::str(k), v)?;
                 }
                 if let Some(Slot::Val(Value::Function(f))) = stack.last() {
-                    f.attrs.borrow_mut().insert("__annotations__".to_string(), Value::dict(d));
+                    *f.annotations.borrow_mut() = Some(Value::dict(d));
                 }
             }
             Op::PushExc => {
@@ -4090,7 +4092,9 @@ impl Vm {
                     kwdefaults: f.kwdefaults.clone(),
                     closure,
                     globals: f.globals.clone(),
-                    attrs: RefCell::new(f.attrs.borrow().clone()),
+                    attrs: RefCell::new(Rc::new(RefCell::new(f.dict().borrow().clone()))),
+                    annotations: RefCell::new(f.annotations.borrow().clone()),
+                    no_bind: std::cell::Cell::new(f.no_bind.get()),
                 };
                 stack.push(Slot::Val(Value::Function(Rc::new(bound))));
             }
@@ -5070,6 +5074,24 @@ impl Vm {
             {
                 return crate::typeattrs::type_attr(obj.type_name(), name).ok_or_else(|| missing());
             }
+            // Os campos e métodos dos tipos de descritor (`types.GetSetDescriptorType.__objclass__`,
+            // `types.MethodWrapperType.__self__`, `.__repr__`): o que o dicionário do tipo tem vence tudo que não é
+            // descritor de dados de `type` (`__name__`, `__qualname__`, `__text_signature__`, que aqui é `None`).
+            Value::Builtin(
+                n @ ("getset_descriptor" | "member_descriptor" | "method_descriptor" | "wrapper_descriptor"
+                | "classmethod_descriptor" | "method-wrapper"),
+            ) if name == "__text_signature__" => return Ok(Value::None),
+            Value::Builtin(
+                n @ ("getset_descriptor" | "member_descriptor" | "method_descriptor" | "wrapper_descriptor"
+                | "classmethod_descriptor" | "method-wrapper"),
+            ) if !matches!(name, "__name__" | "__qualname__")
+                && crate::builtins_ext::type_var_kind(n, name).is_some() =>
+            {
+                let key = crate::builtins_ext::own_type_keys(n).and_then(|keys| keys.into_iter().find(|k| *k == name));
+                if let Some(descriptor) = key.and_then(|k| crate::typeattrs::descriptor_for_kind(n, k, obj)) {
+                    return Ok(descriptor);
+                }
+            }
             Value::Builtin(n) if crate::object::native_type_method(n, name).is_some() => {
                 let method = crate::object::native_type_method(n, name).unwrap_or_default();
                 return Ok(Value::Ext(Rc::new(crate::classes::NativeTypeMethod { owner: n, name: method })));
@@ -5104,7 +5126,7 @@ impl Vm {
             // `typing._ProtocolMeta` chama `type.__subclasscheck__(cls, other)`).
             Value::Builtin(n @ ("function" | "type"))
                 if !matches!(name, "__getattribute__" | "__setattr__" | "__delattr__")
-                    && !(*n == "type" && matches!(name, "__call__" | "__init__" | "__repr__" | "__or__" | "__ror__"))
+                    && !(*n == "type" && matches!(name, "__init__" | "__repr__" | "__or__" | "__ror__"))
                     && crate::builtins_ext::type_var_kind(n, name)
                         .is_some_and(|k| matches!(k, "wrapper_descriptor" | "method_descriptor")) =>
             {
@@ -5123,7 +5145,8 @@ impl Vm {
                     _ => "",
                 };
                 let descriptor = Some(tname).filter(|t| *t != "object").and_then(|t| crate::typeattrs::type_attr(t, name));
-                if let Some(v) = descriptor.or_else(|| crate::typeattrs::object_attr(name)) {
+                // `object.__setattr__` é o `wrapper_descriptor` do slot; o `Unbound` de `object` chama o nativo.
+                if let Some(v) = descriptor.or_else(|| crate::typeattrs::object_type_attr(name)) {
                     return Ok(v);
                 }
             }
@@ -5235,6 +5258,7 @@ impl Vm {
                 }
                 if name == "__text_signature__" && crate::builtins::class_name(obj).is_none() {
                     let sig = crate::modules::cpydocs::native_signature(f)
+                        .or_else(|| crate::modules::codecsnative::handler_signature(f.name))
                         .or_else(|| crate::builtins::get(f.name).and_then(|_| crate::modules::cpydocs::module_function_signature("builtins", f.name)));
                     return Ok(sig.map_or(Value::None, Value::str));
                 }
@@ -5268,8 +5292,8 @@ impl Vm {
                 return Ok(crate::modules::cpydocs::module_function_signature(&owner, f.plain_qual()).map_or(Value::None, Value::str));
             }
             Value::Function(f) => {
-                if let Some(v) = f.attrs.borrow().get(name) {
-                    return Ok(v.clone());
+                if let Some(v) = f.attr(name) {
+                    return Ok(v);
                 }
                 match name {
                     // Uma função de C não tem código, globais, padrões, anotações nem `__dict__`: cai no AttributeError.
@@ -5308,11 +5332,7 @@ impl Vm {
                     // Uma `cell` por variável livre (`co_freevars`); sem nenhuma, `None`.
                     "__closure__" => return Ok(crate::classes::function_closure(f)),
                     "__type_params__" => return Ok(Value::tuple(Vec::new())),
-                    "__annotations__" => {
-                        let d = Value::dict(Dict::default());
-                        f.attrs.borrow_mut().insert("__annotations__".to_string(), d.clone());
-                        return Ok(d);
-                    }
+                    "__annotations__" => return Ok(f.annotations()),
                     "__code__" => {
                         let file = if f.code.filename.is_empty() {
                             self.script_name()
@@ -5325,19 +5345,11 @@ impl Vm {
                         let name = f.globals.borrow().get("__name__").cloned();
                         return Ok(name.unwrap_or_else(|| Value::str("__main__")));
                     }
-                    "__dict__" => {
-                        let mut d = Dict::default();
-                        for (k, v) in f.attrs.borrow().iter() {
-                            d.set(Value::str(k.clone()), v.clone())?;
-                        }
-                        return Ok(Value::dict(d));
-                    }
+                    "__dict__" => return Ok(Value::Dict(f.dict())),
                     _ => {}
                 }
             }
-            Value::BoundFn(b) if b.1.attrs.borrow().contains_key(name) => {
-                return Ok(b.1.attrs.borrow().get(name).cloned().unwrap_or(Value::None))
-            }
+            Value::BoundFn(b) if b.1.has_attr(name) => return Ok(b.1.attr(name).unwrap_or(Value::None)),
             Value::Bound(b) => {
                 // `__self__`, `__name__`, `__qualname__`, `__objclass__` (só nos wrappers de slot), `__module__`
                 // e `__text_signature__` do método embutido ligado.

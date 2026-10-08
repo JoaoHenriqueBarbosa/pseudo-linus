@@ -15,7 +15,6 @@ pub mod codecsnative;
 pub mod cpydocs;
 pub mod csv;
 pub mod hashlib;
-pub mod html;
 pub mod imaging;
 pub mod json;
 pub mod markupsafe_speedups;
@@ -31,6 +30,7 @@ pub mod pysrc;
 pub mod pysys;
 pub mod re;
 pub mod re_engine;
+pub mod astfrompy;
 pub mod astnative;
 pub mod sqlitenative;
 pub mod string;
@@ -38,7 +38,6 @@ pub mod weakrefmod;
 pub mod yaml_native;
 pub mod lsprof;
 pub mod mtrandom;
-pub mod textwrap;
 pub mod tls_crypto;
 pub mod ucd;
 pub mod unicodedata;
@@ -99,8 +98,6 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         "binascii" => binascii::build(vm),
         "builtins" => builtinsmod::build(vm),
         "_hashimpl" => hashlib::build(vm),
-        "html" => html::build(vm),
-        "textwrap" => textwrap::build(vm),
         "_struct" => pystruct::build(vm),
         "unicodedata" => unicodedata::build(vm),
         "_operator" => operator::build(vm),
@@ -112,7 +109,7 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
         "PIL._imagingmath" => imaging::math::build_math(vm),
         "PIL._imagingmorph" => imaging::math::build_morph(vm),
         "_archive" => archivenative::build(vm),
-        "_sqlite3" => sqlitenative::build(vm),
+        "_sqlite_engine" => sqlitenative::build(vm),
         "_ast_native" => astnative::build(vm),
         "_wref" => weakrefmod::build(vm),
         "_mt" => mtrandom::build(vm),
@@ -145,7 +142,7 @@ pub fn import(vm: &mut Vm, name: &str) -> Option<Rc<ModuleObj>> {
 pub(crate) const INTERNAL: &[&str] = &[
     "_os", "_sys", "_mt", "_net", "_archive", "_archivefile", "_prof", "_csvimpl", "_re", "_base64",
     "_zlib", "_ast_native", "_match", "_memoryview", "_complex", "_excgroup", "_mappingproxy", "_json_native", "_anext",
-    "_yaml_core", "_yaml_impl", "_tls_crypto", "_utf7", "_idna", "_unraisable", "_select", "_gsched", "_wref", "_pickle_impl", "_hashimpl", "_hashbase", "_capsule",
+    "_yaml_core", "_yaml_impl", "_tls_crypto", "_utf7", "_idna", "_unraisable", "_select", "_gsched", "_wref", "_pickle_impl", "_hashimpl", "_hashbase", "_capsule", "_sqlite_engine",
 ];
 
 /// Os módulos de apoio não existem para o `import` de código do programa.
@@ -478,8 +475,8 @@ pub fn new_module(vm: &mut Vm, args: Vec<Value>, kwargs: Vec<(String, Value)>) -
 
 /// Módulos escritos em Rust, além dos que `pysrc` embute em Python.
 const NATIVE_MODULES: &[&str] = &[
-    "_sys", "_csvimpl", "_re", "math", "_base64", "binascii", "builtins", "_hashimpl", "html", "textwrap",
-    "_struct", "unicodedata", "_operator", "_os", "_zlib", "_archive", "_sqlite3", "_ast_native", "_wref", "_mt", "_json_native", "_prof", "_yaml_core", "_tls_crypto", "_utf7", "_idna",
+    "_sys", "_csvimpl", "_re", "math", "_base64", "binascii", "builtins", "_hashimpl",
+    "_struct", "unicodedata", "_operator", "_os", "_zlib", "_archive", "_sqlite_engine", "_ast_native", "_wref", "_mt", "_json_native", "_prof", "_yaml_core", "_tls_crypto", "_utf7", "_idna",
     "PIL._imaging", "PIL._imagingft", "PIL._imagingmath", "PIL._imagingmorph",
 ];
 

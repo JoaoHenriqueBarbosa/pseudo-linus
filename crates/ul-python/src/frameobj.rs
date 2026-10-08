@@ -85,7 +85,7 @@ pub struct FrameParts {
 pub fn frame_from_image(p: FrameParts) -> Value {
     let env = p.env;
     let held = match (p.held, &p.code) {
-        (Some(env), Some(code)) => Some(FrameHold::new(env, code.clone())),
+        (Some(env), Some(code)) => Some(FrameHold::new(env, code.clone(), None)),
         _ => None,
     };
     let obj = Rc::new(FrameObj {
@@ -213,6 +213,10 @@ impl FrameObj {
     }
 
     fn globals(&self, vm: &mut Vm) -> Value {
+        // Quadro de traceback de função: as globais em que a função rodava.
+        if let Some(map) = self.held.borrow().as_ref().and_then(|h| h.globals.clone()) {
+            return crate::globalsview::view_for(&map, None);
+        }
         // Quadro de módulo de `exec`/`eval`: as globais em que ele roda.
         let bound = self.env().and_then(|e| MODULE_GLOBALS.with(|m| m.borrow().get(&(Rc::as_ptr(&e) as usize)).cloned()));
         if let Some(map) = bound {
@@ -343,12 +347,16 @@ fn key_of_env(env: Option<usize>) -> Key {
 pub struct FrameHold {
     pub env: Rc<Env>,
     pub code: Rc<Code>,
+    /// As globais da função quando o quadro acabou (`f_globals`): a função de um `exec(código, espaço)` roda
+    /// nas globais do espaço, que nenhum módulo registrado tem (o jinja2 acha o `__jinja_template__` aí).
+    /// Fica vazio nos quadros refeitos da imagem do heap.
+    pub globals: Option<Rc<RefCell<crate::object::VarMap>>>,
 }
 
 impl FrameHold {
-    pub fn new(env: Rc<Env>, code: Rc<Code>) -> Rc<FrameHold> {
+    pub fn new(env: Rc<Env>, code: Rc<Code>, globals: Option<Rc<RefCell<crate::object::VarMap>>>) -> Rc<FrameHold> {
         env.holds.set(env.holds.get() + 1);
-        Rc::new(FrameHold { env, code })
+        Rc::new(FrameHold { env, code, globals })
     }
 }
 

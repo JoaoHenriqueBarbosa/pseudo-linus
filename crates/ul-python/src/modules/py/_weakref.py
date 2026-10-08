@@ -4,7 +4,7 @@
 # em cima dele os tipos do CPython: `ReferenceType` (que `weakref.WeakMethod` e `weakref.KeyedRef` herdam) e os
 # dois procuradores. Os tipos dizem `__module__ == 'weakref'`, como lá.
 
-from _wref import ref as _native_ref
+from _wref import ref as _native_ref, note as _note
 
 _GenericAlias = type(list[int])
 _FunctionType = type(lambda: None)
@@ -34,6 +34,8 @@ class ReferenceType:
                         cb(alive)
 
             self._wr_ref = _native_ref(ob, _dead)
+        # `ob.__weakref__` devolve a primeira referência (as sem função de retorno antes das outras).
+        _note(ob, self, callback is not None)
         return self
 
     def __init__(self, ob, callback=None, /):

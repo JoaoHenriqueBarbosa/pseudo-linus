@@ -47,9 +47,7 @@ def parse(source, filename='<unknown>', mode='exec', *,
             raise ValueError(f"Unsupported major version: {major}")
         feature_version = minor
     # Else it should be an int giving the minor version for 3.x.
-    # O parser nativo devolve a árvore direto (sem o `compile` com `PyCF_ONLY_AST`).
-    from _ast import _parse
-    return _parse(source, filename, mode)
+    return compile(source, filename, mode, flags)
 
 
 def literal_eval(node_or_string):

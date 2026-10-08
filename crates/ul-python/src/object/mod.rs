@@ -19,7 +19,7 @@ mod set;
 #[path = "str.rs"]
 mod pystr;
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::fmt;
 use std::rc::Rc;
 
@@ -518,8 +518,14 @@ pub struct FuncObj {
     pub closure: Option<Rc<Env>>,
     /// Globais do módulo onde a função nasceu (cada módulo em Python embutido tem as suas).
     pub globals: Rc<RefCell<VarMap>>,
-    /// Atributos atribuídos à função (`f.cache_clear = ...`, `__name__`, `__wrapped__`...).
-    pub attrs: RefCell<std::collections::BTreeMap<String, Value>>,
+    /// O `__dict__` da função (`f.cache_clear = ...`, `__wrapped__`...): o próprio dict vivo, em ordem de
+    /// inserção. A célula externa existe para `f.__dict__ = {...}` trocar o dict inteiro.
+    pub attrs: RefCell<Rc<RefCell<Dict>>>,
+    /// O `func_annotations` do CPython: fora do `__dict__`, criado vazio na primeira leitura.
+    pub annotations: RefCell<Option<Value>>,
+    /// Função escrita em Python que no CPython é embutida (C): não vira método ligado numa classe. Marca interna,
+    /// fora do `__dict__`.
+    pub no_bind: Cell<bool>,
 }
 
 /// Módulos que o CPython 3.13 do Debian escreve em C mas que aqui são Python embutido, como `(módulo daqui,
@@ -529,6 +535,8 @@ pub struct FuncObj {
 /// `os.py` é `posix` (ver `code_is_posix_builtin`).
 const C_EXTENSION_MODULES: &[(&str, &str)] = &[
     ("_abc", "_abc"),
+    ("array", "array"),
+    ("_uuid", "_uuid"),
     ("termios", "termios"),
     ("fcntl", "fcntl"),
     ("_select", "select"),
@@ -549,6 +557,7 @@ const C_EXTENSION_MODULES: &[(&str, &str)] = &[
     ("_socket", "_socket"),
     ("_signal", "_signal"),
     ("_io", "_io"),
+    ("_locale", "_locale"),
     ("_stat", "_stat"),
     ("posix", "posix"),
     ("_csv", "_csv"),
@@ -559,6 +568,7 @@ const C_EXTENSION_MODULES: &[(&str, &str)] = &[
     ("_sha1", "_sha1"),
     ("_sha2", "_sha2"),
     ("_sre", "_sre"),
+    ("_sqlite3", "_sqlite3"),
     ("_typing", "_typing"),
 ];
 
@@ -583,6 +593,9 @@ const C_EXTENSION_FUNCTIONS: &[(&str, &str, &[&str])] = &[
         ],
     ),
     ("itertools", "itertools", &["tee"]),
+    ("statistics", "_statistics", &["_normal_dist_inv_cdf"]),
+    // No Debian o `ElementTree.py` troca a `SubElement` de Python pela do acelerador `_elementtree`.
+    ("xml.etree.ElementTree", "_elementtree", &["SubElement"]),
     (
         "operator",
         "_operator",
@@ -592,6 +605,8 @@ const C_EXTENSION_FUNCTIONS: &[(&str, &str, &[&str])] = &[
         ],
     ),
     ("struct", "_struct", &["iter_unpack", "_clearcache"]),
+    // O fonte do `_decimal` se chama `decimal` por dentro (as classes e o pickle dizem `decimal.Decimal`).
+    ("decimal", "_decimal", &["getcontext", "setcontext", "localcontext"]),
     ("collections", "_collections", &["_count_elements"]),
     ("functools", "_functools", &["reduce", "cmp_to_key"]),
     ("bisect", "_bisect", &["bisect_left", "bisect_right", "insort_left", "insort_right"]),
@@ -612,6 +627,77 @@ const C_EXTENSION_FUNCTIONS: &[(&str, &str, &[&str])] = &[
 ];
 
 impl FuncObj {
+    /// O `__dict__` inicial de uma função: vazio.
+    pub fn new_attrs() -> RefCell<Rc<RefCell<Dict>>> {
+        RefCell::new(Rc::new(RefCell::new(Dict::default())))
+    }
+
+    /// `f.__annotations__`: o dict guardado, ou um dict vazio novo que passa a ser o guardado.
+    pub fn annotations(&self) -> Value {
+        self.annotations.borrow_mut().get_or_insert_with(|| Value::dict(Dict::default())).clone()
+    }
+
+    /// `f.__annotations__ = d` (`None` apaga, como `del`): só aceita dict ou `None`.
+    pub fn set_annotations(&self, value: Value) -> Result<(), Value> {
+        match value {
+            Value::None => *self.annotations.borrow_mut() = None,
+            Value::Dict(_) => *self.annotations.borrow_mut() = Some(value),
+            other => return Err(other),
+        }
+        Ok(())
+    }
+
+    /// `del f.__annotations__`: volta a criar vazio na próxima leitura.
+    pub fn clear_annotations(&self) {
+        *self.annotations.borrow_mut() = None;
+    }
+
+    /// O `__dict__` vivo da função (o mesmo objeto a cada leitura, até alguém trocá-lo).
+    pub fn dict(&self) -> Rc<RefCell<Dict>> {
+        self.attrs.borrow().clone()
+    }
+
+    /// `f.__dict__ = d`: passa a usar `d` como o dict da função.
+    pub fn replace_dict(&self, d: Rc<RefCell<Dict>>) {
+        *self.attrs.borrow_mut() = d;
+    }
+
+    /// O atributo `name` do `__dict__` da função.
+    pub fn attr(&self, name: &str) -> Option<Value> {
+        let d = self.dict();
+        let d = d.borrow();
+        if d.is_empty() {
+            return None;
+        }
+        d.get(&Value::str(name)).ok().flatten()
+    }
+
+    pub fn has_attr(&self, name: &str) -> bool {
+        self.attr(name).is_some()
+    }
+
+    /// `f.name = value`: grava no `__dict__` vivo, mantendo a posição de uma chave que já existe.
+    pub fn set_attr(&self, name: &str, value: Value) {
+        let _ = self.dict().borrow_mut().set(Value::str(name), value);
+    }
+
+    /// `del f.name`: diz se a chave existia.
+    pub fn remove_attr(&self, name: &str) -> bool {
+        matches!(self.dict().borrow_mut().remove(&Value::str(name)), Ok(Some(_)))
+    }
+
+    /// Os atributos de chave textual, em ordem de inserção.
+    pub fn attr_pairs(&self) -> Vec<(String, Value)> {
+        let d = self.dict();
+        let d = d.borrow();
+        d.iter()
+            .filter_map(|(k, v)| match k {
+                Value::Str(s) => Some((s.as_str().to_string(), v.clone())),
+                _ => None,
+            })
+            .collect()
+    }
+
     /// A função de nível de módulo de um módulo que o CPython implementa em C: `type()` e `repr()` a mostram como
     /// `builtin_function_or_method`, não como `function`.
     pub fn is_c_function(&self) -> bool {
@@ -635,7 +721,7 @@ impl FuncObj {
     /// O `__qualname__` da função: o atribuído (o `dataclasses` grava `Point.__init__`) ou o do código. É o
     /// nome das mensagens de erro de argumentos, como o `func_qualname` do CPython.
     pub fn qualname(&self) -> String {
-        match self.attrs.borrow().get("__qualname__") {
+        match self.attr("__qualname__") {
             Some(Value::Str(s)) => s.as_str().to_string(),
             _ => self.code.qual().to_string(),
         }
@@ -1404,6 +1490,7 @@ impl Value {
                 Native::CsvWriter { .. } => "_csv.writer",
             },
             Value::Bound(b) if crate::typeattrs::is_slot_wrapper(b.recv.type_name(), b.name) => "method-wrapper",
+            Value::Bound(b) if crate::modules::re::is_method_with_class(b.recv.type_name(), b.name) => "builtin_method",
             Value::Bound(_) => "builtin_function_or_method",
             Value::Class(_) => "type",
             Value::Instance(i) => intern(&i.class().name),
@@ -1716,7 +1803,8 @@ pub(crate) fn repr_into(v: &Value, out: &mut String, stack: &mut ReprStack) {
         Value::Builtin(name) => out.push_str(&format!("<built-in function {name}>")),
         Value::Exception(e) => out.push_str(&exc_repr(e)),
         Value::Function(f) if f.is_c_function() => out.push_str(&format!("<built-in function {}>", f.plain_qual())),
-        Value::Function(f) => out.push_str(&format!("<function {} at {:#x}>", f.code.qual(), addr(f))),
+        // O `func_repr` do CPython mostra o `__qualname__` da função (o que o `functools.wraps` copia), não o do código.
+        Value::Function(f) => out.push_str(&format!("<function {} at {:#x}>", f.qualname(), addr(f))),
         Value::Module(m) => out.push_str(&module_repr(m)),
         Value::NativeFn(n) if is_builtin_type(n.name) => out.push_str(&format!("<class '{}'>", n.name)),
         Value::NativeFn(n) => out.push_str(&format!("<built-in function {}>", n.name)),
@@ -1821,7 +1909,12 @@ fn int_float_eq(i: i64, x: f64) -> bool {
 
 /// `a == b` dos tipos embutidos.
 pub fn py_eq(a: &Value, b: &Value) -> bool {
-    if matches!(a, Value::Instance(_)) || matches!(b, Value::Instance(_)) {
+    let user_eq = |v: &Value| match v {
+        Value::Instance(_) => true,
+        Value::Class(c) => c.meta.is_some(),
+        _ => false,
+    };
+    if user_eq(a) || user_eq(b) {
         if let Some(r) = crate::vm::instance_eq(a, b) {
             return r;
         }
@@ -1867,10 +1960,12 @@ pub(crate) fn py_eq_native(a: &Value, b: &Value) -> bool {
         (Value::NativeFn(x), Value::NativeFn(y)) => x.name == y.name && x.f as usize == y.f as usize,
         (Value::Ext(x), Value::Ext(y)) => x.eq_value(b).or_else(|| y.eq_value(a)).unwrap_or_else(|| std::ptr::addr_eq(Rc::as_ptr(x), Rc::as_ptr(y))),
         (Value::Native(x), Value::Native(y)) => Rc::ptr_eq(x, y),
-        (Value::Bound(x), Value::Bound(y)) => Rc::ptr_eq(x, y),
+        // Método ligado: o mesmo receptor (identidade) e a mesma função (`method_richcompare` e
+        // `meth_richcompare`); cada acesso `obj.m` cria um objeto novo, então o ponteiro não serve.
+        (Value::Bound(x), Value::Bound(y)) => Rc::ptr_eq(x, y) || (x.name == y.name && is(&x.recv, &y.recv)),
         (Value::Class(x), Value::Class(y)) => Rc::ptr_eq(x, y),
         (Value::Instance(x), Value::Instance(y)) => Rc::ptr_eq(x, y),
-        (Value::BoundFn(x), Value::BoundFn(y)) => Rc::ptr_eq(x, y),
+        (Value::BoundFn(x), Value::BoundFn(y)) => Rc::ptr_eq(x, y) || (Rc::ptr_eq(&x.1, &y.1) && is(&x.0, &y.0)),
         (Value::Slice(x), Value::Slice(y)) => Rc::ptr_eq(x, y),
         _ => false,
     }
@@ -1905,7 +2000,7 @@ pub fn hash(v: &Value) -> Result<i64, ObjError> {
         Value::NativeFn(n) => Ok(PyStr::new(n.name).hash()),
         Value::Ext(e) => Ok(e.hash_value().unwrap_or(py_addr_hash(Rc::as_ptr(e) as *const () as usize))),
         Value::Native(n) => Ok(py_addr_hash(Rc::as_ptr(n) as usize)),
-        Value::Bound(b) => Ok(py_addr_hash(Rc::as_ptr(b) as usize)),
+        Value::Bound(b) => Ok(PyStr::new(b.name).hash()),
         Value::Class(c) => Ok((py_type_addr(Rc::as_ptr(c) as usize) >> 4) as i64),
         Value::Instance(i) => match crate::vm::instance_hash(v) {
             Some(h) => Ok(h),
@@ -1915,7 +2010,7 @@ pub fn hash(v: &Value) -> Result<i64, ObjError> {
             }
             None => Ok(py_addr_hash(Rc::as_ptr(i) as usize)),
         },
-        Value::BoundFn(b) => Ok(py_addr_hash(Rc::as_ptr(b) as usize)),
+        Value::BoundFn(b) => Ok(py_addr_hash(Rc::as_ptr(&b.1) as usize)),
         Value::Slice(s) => Ok(py_addr_hash(Rc::as_ptr(s) as usize)),
         Value::Set(s) if s.borrow().is_frozen() => Ok(s.borrow().frozen_hash()),
         Value::List(_) | Value::Dict(_) | Value::Set(_) | Value::ByteArray(_) => {

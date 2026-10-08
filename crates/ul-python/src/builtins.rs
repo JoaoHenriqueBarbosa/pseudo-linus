@@ -180,6 +180,8 @@ fn instance_of(v: &Value, cname: &str) -> bool {
         "frozenset" => matches!(v, Value::Set(s) if s.borrow().is_frozen()),
         "bytes" => matches!(v, Value::Bytes(_)),
         "bytearray" => matches!(v, Value::ByteArray(_)),
+        // `builtin_method` (`METH_METHOD`, os métodos de `re.Pattern`) é subtipo de `builtin_function_or_method`.
+        "builtin_function_or_method" => matches!(v.type_name(), "builtin_function_or_method" | "builtin_method"),
         other if PSEUDO_TYPES.contains(&other) => v.type_name() == other,
         // Tipo de objeto nativo (`weakref.ReferenceType`, ...): o `type()` dele é o nome registrado.
         other if matches!(v, Value::Ext(_)) && (other == "super" || crate::object::is_native_type(other)) => v.type_name() == other,
@@ -286,7 +288,7 @@ fn b_isinstance(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 
 /// `issubclass(a, b)` entre classes embutidas.
 fn subclass_of(a: &str, b: &str) -> bool {
-    a == b || b == "object" || (a == "bool" && b == "int") || exc_is_subclass(a, b)
+    a == b || b == "object" || (a == "bool" && b == "int") || (a == "builtin_method" && b == "builtin_function_or_method") || exc_is_subclass(a, b)
 }
 
 /// `PyType_IsSubtype(a, cls)`: a relação crua entre tipos, sem `__subclasscheck__`, para `cls` uma
@@ -1307,7 +1309,7 @@ fn b_bytearray(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     }
 }
 
-fn b_bytes(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+fn b_bytes(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let s = bind("bytes", args, kw, &["source", "encoding", "errors"], 0)?;
     let has_text_opts = s[1].is_some() || s[2].is_some();
     let Some(src) = &s[0] else {
@@ -1329,6 +1331,18 @@ fn b_bytes(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     }
     if s[2].is_some() {
         return Err(type_error("errors without a string argument"));
+    }
+    // `bytes(obj)` consulta `type(obj).__bytes__` antes de qualquer outro protocolo (inclusive nas
+    // subclasses de `bytes`).
+    if let Value::Instance(_) = src {
+        match vm.call_dunder(src, "__bytes__", Vec::new()) {
+            Some(Ok(Value::Bytes(b))) => return Ok(Value::Bytes(b)),
+            Some(Ok(r)) => {
+                return Err(type_error(format!("__bytes__ returned non-bytes (type {})", r.type_name())));
+            }
+            Some(Err(e)) => return Err(e),
+            None => {}
+        }
     }
     match src {
         Value::Instance(_) if src.bytes_like().is_some() => Ok(Value::Bytes(src.bytes_like().unwrap_or_else(|| Rc::from(&[][..])))),

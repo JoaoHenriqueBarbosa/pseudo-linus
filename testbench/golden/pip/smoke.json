@@ -1,6 +1,18 @@
 {
+  "pip-smoke-annotated-types": {
+    "stdout": "venv rc=0\npip rc=0\n(Gt(gt=0), Le(le=150))\n[Gt(gt=0), Le(le=10)]\n[MinLen(min_length=1), MaxLen(max_length=3)]\nTrue False\nnome str (MinLen(min_length=1), MaxLen(max_length=8))\nnota float (Ge(ge=0), Le(le=10))\nTrue False\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "pip-smoke-anyio": {
     "stdout": "venv rc=0\npip rc=0\n[0, 1, 4, 9]\nmsg\nTrue\nfim\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-asttokens": {
+    "stdout": "venv rc=0\npip rc=0\nAdd 'a + b * 2' a 2 (24, 33)\nMult 'b * 2' b 2 (28, 33)\n['def', 'f', '(', 'a', ',', 'b', ')', ':', '\\n']\n(1, 0) 2 a, b\nTrue b\npy rc=0\n",
     "stderr": "",
     "exit": 0,
     "files": {}
@@ -11,8 +23,32 @@
     "exit": 0,
     "files": {}
   },
+  "pip-smoke-babel": {
+    "stdout": "venv rc=0\npip rc=0\n'1.234.567,891'\n'R$\\xa01.234,50' '$1,234.50'\n'26\\xa0%' 1234.5\n'1M'\n's\\xe1bado, 9 de mar\\xe7o de 2024' 9 Mar 2024\n'samedi, 9 mars 2024 15:04'\n'3 d\\xedas'\nportuguês (Brasil) | 'Englisch (Vereinigte Staaten)'\npt_BR zh_Hans_CN en\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "pip-smoke-beautifulsoup4": {
     "stdout": "venv rc=0\npip rc=0\nOi mundo ['a']\n['x', 'y']\n/z\nmundo\n<p class=\"a\">Oi <b>terra</b></p>\n<html>\n <body>\n  <p class=\"a\">\n   Oi\n   <b>\n    terra\n   </b>\n  </p>\n  <ul>\n   <li id=\"1\">\n    x\n   </li>\n   <li id=\"2\">\n    y\n   </li>\n  </ul>\n  <a href=\"/z\">\n   link\n  </a>\n </body>\n</html>\n\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-boto3": {
+    "stdout": "venv rc=0\npip rc=0\nTrue True\nus-east-1 https://s3.amazonaws.com s3\n['abort_multipart_upload', 'complete_multipart_upload', 'copy_object', 'create_bucket', 'create_bucket_metadata_configuration'] True\n['a', 'b']\nmeu-balde k/o.txt\n4cbd44d63cd87eb852894fece73162272bf347c73c2f6fafbe9e83d34b273d10\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-botocore": {
+    "stdout": "venv rc=0\npip rc=0\nTrue True\nrest-xml s3 ['Bucket', 'Key']\nDynamoDB True\n{'partition': 'aws', 'service': 's3', 'region': '', 'account': '', 'resource': 'bucket/key'}\nAn error occurred (NoSuchKey) when calling the GetObject operation: chave ausente NoSuchKey GetObject\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-cachetools": {
+    "stdout": "venv rc=0\npip rc=0\n['a', 'c'] False 2 2\n2 2 4 [1, 2]\nTrue\nFalse 0\n['x', 'z']\npy rc=0\n",
     "stderr": "",
     "exit": 0,
     "files": {}
@@ -41,8 +77,38 @@
     "exit": 0,
     "files": {}
   },
+  "pip-smoke-cycler": {
+    "stdout": "venv rc=0\npip rc=0\n[{'cor': 'r', 'lw': 1}, {'cor': 'g', 'lw': 2}]\n{'cor': ['r', 'g'], 'lw': [1, 2]} ['cor', 'lw'] 2\n[{'a': 1, 'b': 'x'}, {'a': 1, 'b': 'y'}, {'a': 2, 'b': 'x'}, {'a': 2, 'b': 'y'}] 4\n(cycler('cor', ['r']) + cycler('lw', [1]))\n[{'x': 1}, {'x': 2}]\nCan only add equal length cycles, not 1 and 2\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-decorator": {
+    "stdout": "venv rc=0\npip rc=0\nchamada soma (1, 2) {}\nchamada soma (1, 5) {}\n3 6\n(x, y=2) soma Soma dois números.\nsoma\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-dill": {
+    "stdout": "venv rc=0\npip rc=0\n49 7 (1, 2.5, 's', {1, 2}) 5\nTrue True\n13\nP 81\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-dnspython": {
+    "stdout": "venv rc=0\npip rc=0\nwww.Example.com. True Example.com. (b'www', b'Example', b'com', b'')\na.b.example.org.\n4660 123401000001000000000000076578616d706c6503636f6d0000010001\nexample.com. IN A\n1.2.0.192.in-addr.arpa. 192.0.2.1\n10 mail.example.com. 10 mail.example.com. MX\n@ 3600 IN SOA ns1 admin 1 2 3 4 5\n@ 5 IN NS ns1\nns1 5 IN A 192.0.2.1\nwww 5 IN CNAME ns1\n\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "pip-smoke-docutils": {
-    "stdout": "venv rc=0\npip rc=0\n<p>Um parágrafo com <em>ênfase</em>, <strong>negrito</strong> e <tt class=\"docutils literal\">código</tt>.</p>\n<ul class=\"simple\">\n<li>item um</li>\n<li>item dois</li>\n</ul>\n<pre class=\"code python literal-block\">\nx = 1\n</pre>\n\nTítulo\npy rc=0\n",
+    "stdout": "venv rc=0\npip rc=0\n<p>Um parágrafo com <em>ênfase</em>, <strong>negrito</strong> e <span class=\"docutils literal\">código</span>.</p>\n<ul class=\"simple\">\n<li><p>item um</p></li>\n<li><p>item dois</p></li>\n</ul>\n<pre class=\"code python literal-block\"><code>x = 1</code></pre>\n\nTítulo\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-email-validator": {
+    "stdout": "venv rc=0\npip rc=0\nTest.User@example.com Test.User example.com Test.User@example.com\n'usu\\xe1rio@b\\xfccher.de' xn--bcher-kva.de True\nsem-arroba -> An email address must have an @-sign.\na@b -> The part after the @-sign is not valid. It should have a period.\na..b@exemplo.com -> An email address cannot have two periods in a row.\n@exemplo.com -> There must be something before the @-sign.\na b@exemplo.com -> The email address contains invalid characters before the @-sign: SPACE.\npy rc=0\n",
     "stderr": "",
     "exit": 0,
     "files": {}
@@ -53,14 +119,32 @@
     "exit": 0,
     "files": {}
   },
+  "pip-smoke-executing": {
+    "stdout": "venv rc=0\npip rc=0\n('Call', 'quem()')\n[('Call', 'quem()')]\n(('Call', 'quem()'), 1)\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "pip-smoke-filelock": {
     "stdout": "venv rc=0\npip rc=0\na preso True\nb falhou Timeout\na solto False\nb preso True\n/tmp/fl.lock\npy rc=0\n",
     "stderr": "",
     "exit": 0,
     "files": {}
   },
+  "pip-smoke-flake8": {
+    "stdout": "venv rc=0\npip rc=0\n7.4.1 (mccabe: 0.7.0, pycodestyle: 2.15.0, pyflakes: 4.0.3) CPython 3.13.5 on\nLinux\nrc=0\na.py:1:1: F401 'os' imported but unused\na.py:8:12: F821 undefined name 'undefined_name'\na.py:11:1: E741 ambiguous variable name 'l'\na.py:11:1: E731 do not assign a lambda expression, use a def\nrc=1\nrc=0\na.py:4:1: C901 'f' is too complex (3)\nrc=1\na.py:1:1: F401 'os' imported but unused\na.py:8:12: F821 undefined name 'undefined_name'\na.py:11:1: E741 ambiguous variable name 'l'\na.py:11:1: E731 do not assign a lambda expression, use a def\n1     E731 do not assign a lambda expression, use a def\n1     E741 ambiguous variable name 'l'\n1     F401 'os' imported but unused\n1     F821 undefined name 'undefined_name'\n4\nrc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "pip-smoke-flask": {
-    "stdout": "venv rc=0\npip rc=0\n200 b'ola' text/html; charset=utf-8\n200 {'total': 42}\n200 {'k': [1, 2]}\n404\n405 GET, OPTIONS, HEAD\npy rc=0\n",
+    "stdout": "venv rc=0\npip rc=0\n200 b'ola' text/html; charset=utf-8\n200 {'total': 42}\n200 {'k': [1, 2]}\n404\n405 ['GET', 'HEAD', 'OPTIONS']\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-google-auth": {
+    "stdout": "venv rc=0\npip rc=0\nTraceback (most recent call last):\n  File \"<stdin>\", line 8, in <module>\nAttributeError: module 'google.auth._helpers' has no attribute 'to_unicode'\npy rc=1\n",
     "stderr": "",
     "exit": 0,
     "files": {}
@@ -77,8 +161,20 @@
     "exit": 0,
     "files": {}
   },
+  "pip-smoke-httplib2": {
+    "stdout": "venv rc=0\npip rc=0\n200 application/json b'{\"path\": \"/x?y=1\"}'\n201 b'dados'\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "pip-smoke-httpx": {
     "stdout": "venv rc=0\npip rc=0\n200 HTTP/1.0 application/json\n{'path': '/ola?a=1'} http://127.0.0.1:8765/ola?a=1\n8443\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-humanize": {
+    "stdout": "venv rc=0\npip rc=0\n1,234,567 1.2 million 23rd seven\n123.5 MB 2.0 KiB 999B\n3/4 1.23 x 10\\u2074\nan hour | 5 minutes ago\n2 hours from now | 2 years\n1 day, 2 hours and 3 seconds\n1.50 kV <10\npy rc=0\n",
     "stderr": "",
     "exit": 0,
     "files": {}
@@ -89,8 +185,20 @@
     "exit": 0,
     "files": {}
   },
+  "pip-smoke-importlib-metadata": {
+    "stdout": "venv rc=0\npip rc=0\n['importlib_metadata', 'pip', 'zipp']\nzipp True\n['pip', 'pip3']\n['zipp']\nPackageNotFoundError No package metadata was found for nao-existe\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "pip-smoke-iniconfig": {
     "stdout": "venv rc=0\npip rc=0\n['geral', 'extra'] demo 3\n{'k': 'v'}\npadrao\nParseError y.ini:1: no section header defined\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-isort": {
+    "stdout": "venv rc=0\npip rc=0\nimport abc\nimport os\nimport sys\n\nfrom b import a, z\n--\nimport abc\nimport os\nimport sys\n\nfrom b import a\nfrom b import z\n--\nSTDLIB STDLIB 88\npy rc=0\n@@ -1,4 +1,5 @@\n+import abc\n+import os\n import sys\n-import os\n-from b import z, a\n-import abc\n+\n+from b import a, z\nrc=0\nERROR: /tmp/is/m.py Imports are incorrectly sorted and/or formatted.\nrc=1\nrc=0\nimport abc\nimport os\nimport sys\n\nfrom b import a, z\n",
     "stderr": "",
     "exit": 0,
     "files": {}
@@ -101,8 +209,26 @@
     "exit": 0,
     "files": {}
   },
+  "pip-smoke-jedi": {
+    "stdout": "venv rc=0\npip rc=0\n['join']\n['f(a, b=1)']\n[('A', 'class', 1), ('m', 'function', 2), ('self', 'param', 2)]\n[('upper', 'function')]\n[('g', 1)]\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "pip-smoke-jinja2": {
     "stdout": "venv rc=0\npip rc=0\nOlá, MUNDO! [1][2][3]\n<filho d>\n&lt;b&gt;&amp;&lt;/b&gt;\n3.1 x,y A B\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-jmespath": {
+    "stdout": "venv rc=0\npip rc=0\n['a', 'c']\nc 3\n[{'n': 'a', 'c': 2}, {'n': 'b', 'c': 0}, {'n': 'c', 'c': 1}]\n['b', 'a', 'c'] y\n['x', 'y', 'z'] a, b, c\nNone 90\nIncompleteExpressionError Invalid jmespath expression: Incomplete expression:\n\"a[\"\n   ^\nJMESPathTypeError\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-mako": {
+    "stdout": "venv rc=0\npip rc=0\nOlá W&amp;Co!\n- 1\n- 2\n[z]\n<corpo 7>\n3 A espaço\npy rc=0\n",
     "stderr": "",
     "exit": 0,
     "files": {}
@@ -119,6 +245,30 @@
     "exit": 0,
     "files": {}
   },
+  "pip-smoke-matplotlib-inline": {
+    "stdout": "venv rc=0\npip rc=0\nTraceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\n  File \"/tmp/v/lib/python3.13/site-packages/matplotlib_inline/__init__.py\", line 1, in <module>\n    from . import backend_inline, config  # noqa\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/v/lib/python3.13/site-packages/matplotlib_inline/backend_inline.py\", line 6, in <module>\n    import matplotlib\nModuleNotFoundError: No module named 'matplotlib'\npy rc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-mccabe": {
+    "stdout": "venv rc=0\npip rc=0\nf 2 4\ng 11 1\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-more-itertools": {
+    "stdout": "venv rc=0\npip rc=0\n[[0, 1, 2], [3, 4, 5], [6]]\n[(0, 1, 2), (1, 2, 3), (2, 3, 4)]\n['A', 'B', 'C']\n[0, 2, 4, 6] [1, 3, 5, 7]\nvazio 4 4\n[1, 2, 3, 4, 5, 6]\n[1, 2, 3] ['a', 'b', 'a']\n1 1 [2, 3]\n42 ['abc', 'def', 'g']\ntoo few items in iterable (expected 1)\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-oauthlib": {
+    "stdout": "venv rc=0\npip rc=0\nhttps://example.com/auth?response_type=code&client_id=cid&redirect_uri=https%3A%2F%2Fapp%2Fcb&scope=a+b&state=xyz\n['access_token', 'expires_at', 'expires_in', 'scope', 'token_type'] tok Bearer ['a', 'b']\ngrant_type=authorization_code&client_id=cid&code=abc&redirect_uri=https%3A%2F%2Fapp%2Fcb\nhttps://example.com/r?x=1\nOAuth oauth_nonce=\"n1\", oauth_timestamp=\"1700000000\", oauth_version=\"1.0\", oauth_signature_method=\"HMAC-SHA1\", oauth_consumer_key=\"key\", oauth_signature=\"Q9RFeMvxFUjAimIHXPR%2BV28OxaU%3D\"\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "pip-smoke-openpyxl": {
     "stdout": "venv rc=0\npip rc=0\n['dados'] 3 4 A1:D3\n('nome', 'qtd', None, '=SUM(B2:B3)')\n('maçã', 3, None, None)\n('pera', 12, None, None)\n=SUM(B2:B3)\npy rc=0\n",
     "stderr": "",
@@ -127,6 +277,18 @@
   },
   "pip-smoke-packaging": {
     "stdout": "venv rc=0\npip rc=0\nTrue True\n['0.9', '1.0a1', '1.0', '1.0.post1']\nTrue\nrequests {'security'} >=2.0 python_version >= \"3.8\"\nfriendly-bard-pkg\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-parso": {
+    "stdout": "venv rc=0\npip rc=0\nTrue ['Function', 'EndMarker']\nf ['x'] (1, 0) (3, 0)\nPythonNode     return x +  1  # c\n\n[(901, 'SyntaxError: invalid syntax', (1, 4))]\n['IndentationError: unexpected indent']\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-pexpect": {
+    "stdout": "venv rc=0\npip rc=0\n'' 'ola'\n'\\r\\nabc\\r\\n' 'got:abc'\n0 None\nb'oi\\r\\n'\n(b'', 3)\nTIMEOUT\npy rc=0\n",
     "stderr": "",
     "exit": 0,
     "files": {}
@@ -143,8 +305,62 @@
     "exit": 0,
     "files": {}
   },
+  "pip-smoke-prompt-toolkit": {
+    "stdout": "venv rc=0\npip rc=0\nFormattedText([('class:b', 'oi'), ('', ' '), ('fg:red', 'x')])\nhello world foo 7 5 w\n['apple', 'apricot']\nab 2\n'ola mundo'\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-ptyprocess": {
+    "stdout": "venv rc=0\npip rc=0\n(24, 80)\nb'ola\\r\\n' 4 False\n(30, 100)\nb'abc\\r\\n' b'abc\\r\\n'\nFalse\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-pure-eval": {
+    "stdout": "venv rc=0\npip rc=0\nx[0] => 1\nd['a'] => 5\nx[n] => 3\nns.v => 7\nlen(x) => CannotEval\nx[1:] => [2, 3]\nunknown => CannotEval\n[n, n] => [2, 2]\nd['b'] => CannotEval\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-pyasn1": {
+    "stdout": "venv rc=0\npip rc=0\n300b0202012c0c0261620101ff\nRec:\n id=300\n name=ab\n flag=True\n b''\n06092a864886f70d01010b 0202ff7f\nSequence ['Integer', 'UTF8String', 'Boolean']\n3109020101020102020103\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-pyasn1-modules": {
+    "stdout": "venv rc=0\npip rc=0\n300d06092a864886f70d01010b0500\n1.2.840.113549.1.1.11 True b''\n0 b'0\\x03\\x02\\x01\\x05'\nSequenceOf:\n 5\n2.5.29.15 2.5.4.3\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-pycodestyle": {
+    "stdout": "venv rc=0\npip rc=0\nruim.py:1:10: E231 missing whitespace after ','\nruim.py:1:10: E401 multiple imports on one line\nruim.py:2:2: E225 missing whitespace around operator\nruim.py:3:1: E302 expected 2 blank lines, found 0\nruim.py:3:7: E201 whitespace after '('\nruim.py:3:9: E202 whitespace before ')'\nruim.py:8:1: E303 too many blank lines (3)\nruim.py:8:8: E701 multiple statements on one line (colon)\ntotal 8\n[('E201', 1), ('E202', 1), ('E225', 1), ('E231', 1), ('E302', 1), ('E303', 1), ('E401', 1), ('E701', 1), ('directories', 0), ('files', 2), ('logical lines', 6), ('physical lines', 9)]\npy rc=0\n1       E201 whitespace after '('\n1       E202 whitespace before ')'\n1       E225 missing whitespace around operator\n1       E231 missing whitespace after ','\n1       E302 expected 2 blank lines, found 0\n1       E303 too many blank lines (3)\n1       E401 multiple imports on one line\n1       E701 multiple statements on one line (colon)\ncli rc=1\ncli rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-pyflakes": {
+    "stdout": "venv rc=0\npip rc=0\ndemo.py:1:1: 'os' imported but unused\ndemo.py:6:5: local variable 'y' is assigned to but never used\ndemo.py:7:12: undefined name 'indefinido'\nmensagens 3\npy rc=0\nb.py:1:5: invalid syntax\ndef (:\n    ^\na.py:1:1: 'os' imported but unused\na.py:6:5: local variable 'y' is assigned to but never used\na.py:7:12: undefined name 'indefinido'\ncli rc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "pip-smoke-pygments": {
     "stdout": "venv rc=0\npip rc=0\n<span class=\"k\">def</span><span class=\"w\"> </span><span class=\"nf\">f</span><span class=\"p\">(</span><span class=\"n\">x</span><span class=\"p\">):</span>\n    <span class=\"k\">return</span> <span class=\"n\">x</span> <span class=\"o\">+</span> <span class=\"mi\">1</span>\nJSON\nRust\n[Token.Name, Token.Text, Token.Operator]\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-pyjwt": {
+    "stdout": "venv rc=0\npip rc=0\neyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1MSIsIm4iOjF9.leZ7R-BzHHiDMb1gtAgCNKDTId-nqHRXxESn1P7dRRk\n{'sub': 'u1', 'n': 1}\n{'alg': 'HS256', 'typ': 'JWT'}\nInvalidSignatureError Signature verification failed\nExpiredSignatureError Signature has expired\nDecodeError\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-pyparsing": {
+    "stdout": "venv rc=0\npip rc=0\n[[1, '+', [2, '*', 3]]]\n[[[[1, '+', 2], '*', 3], '-', 4]]\n['Hello', ',', 'World', '!']\nExpected ',', found 'World'  (at char 6), (line:1, col:7)\n[1, 2, 3]\n[('a', 1), ('b', 22), ('c', 333)]\npy rc=0\n",
     "stderr": "",
     "exit": 0,
     "files": {}
@@ -157,6 +373,18 @@
   },
   "pip-smoke-python-dateutil": {
     "stdout": "venv rc=0\npip rc=0\n2024-01-31T10:30:00\n2024-02-29T10:30:00\n2023-03-05T16:15:00\nrelativedelta(years=+4, months=+2, days=+14)\n2024-01-01\n2024-01-08\n2024-01-15\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-python-dotenv": {
+    "stdout": "venv rc=0\npip rc=0\n{'A': '1', 'B': 'duas palavras', 'C': '1x', 'D': 'q', 'E': '', 'G': None}\n/tmp/de/.env\nTrue\n1x duas palavras ''\n(True, 'F', 'v 1')\nv 1\n(True, 'A')\nB=\"duas palavras\"\nC=${A}x\n# comentario\nexport D='q'\nE=\nG\nF='v 1'\npy rc=0\nB=duas palavras\nC=x\nD=q\nE=\nF=v 1\ncli rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-python-slugify": {
+    "stdout": "venv rc=0\npip rc=0\nola-mundo-acao-sao-paulo\nthis-is-a-test\nc_est_deja_l_ete\na-b-c-d\nfoo-and-bar\néclair\nquick-fox Ja-Vou\na-b__c-d\npy rc=0\n",
     "stderr": "",
     "exit": 0,
     "files": {}
@@ -179,8 +407,44 @@
     "exit": 0,
     "files": {}
   },
+  "pip-smoke-requests-oauthlib": {
+    "stdout": "venv rc=0\npip rc=0\nhttps://example.com/auth?response_type=code&client_id=cid&redirect_uri=https%3A%2F%2Fapp%2Fcb&scope=a+b&state=st st\nhttps://example.com/x?q=1\nb'OAuth oauth_nonce=\"n1\", oauth_timestamp=\"1700000000\", oauth_version=\"1.0\", oauth_signature_method=\"HMAC-SHA1\", oauth_consumer_key=\"k\", oauth_signature=\"rZQAURd7vWRBkljKU365Wny7pk4%3D\"'\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-requests-toolbelt": {
+    "stdout": "venv rc=0\npip rc=0\nmultipart/form-data; boundary=BOUNDARY 178\n--BOUNDARY|Content-Disposition: form-data; name=\"a\"||1|--BOUNDARY|Content-Disposition: form-data; name=\"f\"; filename=\"x.txt\"|Content-Type: text/plain||ola|--BOUNDARY--|\nhttps://api.example.com/v1/users https://api.example.com/users/7 https://outro.org/z\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "pip-smoke-rich": {
     "stdout": "venv rc=0\npip rc=0\n    Frutas    \n┏━━━━━━┳━━━━━┓\n┃ Nome ┃ Qtd ┃\n┡━━━━━━╇━━━━━┩\n│ maçã │   3 │\n│ pera │  12 │\n└──────┴─────┘\nnegrito e vermelho\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-rsa": {
+    "stdout": "venv rc=0\npip rc=0\nTraceback (most recent call last):\n  File \"<stdin>\", line 3, in <module>\nAttributeError: module 'rsa' has no attribute 'newkey'. Did you mean: 'newkeys'?\npy rc=1\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-s3transfer": {
+    "stdout": "venv rc=0\npip rc=0\n8 8 10 5\n8388608 16777216 5368709120\nbytes=8388608-16777215 bytes=0-8388607 bytes=16777216-\n8 False\nProvided parameter max_request_concurrency of value 0 must be greater than 0.\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-setuptools": {
+    "stdout": "venv rc=0\npip rc=0\n['a', 'a.b', 'c']\n['a', 'a.b']\n['a.b']\ndemo-pkg 1.2.3 demo_pkg-1.2.3 ['a', 'a.b'] ['solto']\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-shellingham": {
+    "stdout": "venv rc=0\npip rc=0\ndetectado bash\nFalse\npy rc=0\ndetectado sh\nFalse\npy rc=0\n",
     "stderr": "",
     "exit": 0,
     "files": {}
@@ -203,8 +467,38 @@
     "exit": 0,
     "files": {}
   },
+  "pip-smoke-stack-data": {
+    "stdout": "venv rc=0\npip rc=0\nf 4\n3 '    total = sum(xs)' False\n4 '    raise ValueError(total)' True\n[('n', '3'), ('range(n)', 'range(0, 3)'), ('sum(xs)', '6'), ('total', '6'), ('xs', '[0, 2, 4]')]\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-starlette": {
+    "stdout": "venv rc=0\npip rc=0\n<stdin>:4: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.\n200 application/json {'nome': 'ana', 'q': '1'}\n201 text/plain; charset=utf-8 TEXTO\n404 Not Found\n405 POST\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "pip-smoke-tabulate": {
     "stdout": "venv rc=0\npip rc=0\nnome      qtd    preço\n------  -----  -------\nmaçã        3    1.5\npera       12   22.25\nuva       100    0.333\n\n+--------+-------+---------+\n| nome   |   qtd |   preço |\n+========+=======+=========+\n| maçã   |     3 |   1.5   |\n+--------+-------+---------+\n| pera   |    12 |  22.25  |\n+--------+-------+---------+\n| uva    |   100 |   0.333 |\n+--------+-------+---------+\n\n| nome   |   qtd |   preço |\n|--------|-------|---------|\n| maçã   |     3 |   1.5   |\n| pera   |    12 |  22.25  |\n| uva    |   100 |   0.333 |\n\nnome      qtd    preço\nmaçã        3    1.5\npera       12   22.25\nuva       100    0.333\n\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-tenacity": {
+    "stdout": "venv rc=0\npip rc=0\nok {'c': 3}\nRetryError 2 KeyError('k')\nKeyError 'k2'\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-termcolor": {
+    "stdout": "venv rc=0\npip rc=0\n'\\x1b[1m\\x1b[31moi\\x1b[0m'\n'\\x1b[44m\\x1b[97mx\\x1b[0m'\n'\\x1b[7m\\x1b[4m\\x1b[32my\\x1b[0m'\n'\\x1b[33mfim\\x1b[0m\\n'\npy rc=0\n'oi'\n'x'\n'y'\n'fim\\n'\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-text-unidecode": {
+    "stdout": "venv rc=0\npip rc=0\nUnicode - Bei Jing  EUR n\nPrivet ss ae o\n'\\x00\\x7f'\npy rc=0\n",
     "stderr": "",
     "exit": 0,
     "files": {}
@@ -221,8 +515,26 @@
     "exit": 0,
     "files": {}
   },
+  "pip-smoke-tomlkit": {
+    "stdout": "venv rc=0\npip rc=0\n# c\n[tool]\nname = \"y\"  # inline\nlist = [1, 2]\nnovo = 3\n[1, 2] String {'tool': {'list': [1, 2], 'name': 'y', 'novo': 3}}\n# gerado\n\n[sec]\na = 1\n\nb = [1, 2, 3]\n\nUnexpectedCharError Unexpected character: '=' at line 1 col 4\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "pip-smoke-tqdm": {
     "stdout": "venv rc=0\npip rc=0\n\r0/3\r1/3\r2/3\r3/3\r3/3\n\n3\n\r0/4\r2/4\r4/4\r4/4\n\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-traitlets": {
+    "stdout": "venv rc=0\npip rc=0\nage 0 -> 3\nnegativo\nThe 'age' trait of a P instance expected an int, not the str 's'.\n[('age', 3), ('name', 'n'), ('tags', ['a'])] ['age', 'name', 'tags']\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-typer": {
+    "stdout": "venv rc=0\npip rc=0\n0 'BOB\\nBOB\\n'\n2\nUsage: hello [OPTIONS] {name}\nTry 'hello --help' for help.\n╭─ Error ──────────────────────────────────────────────────────────────────────╮\n│ Invalid value for '--count': 'x' is not a valid int.                         │\n╰──────────────────────────────────────────────────────────────────────────────╯\n\n0\n                                                                                \n Usage: hello [OPTIONS] {name}                                                  \n                                                                                \n Diz olá.                                                                       \n                                                                                \n╭─ Arguments ──────────────────────────────────────────────────────────────────╮\n│ *    name      <str>  [required]                                             │\n╰──────────────────────────────────────────────────────────────────────────────╯\n╭─ Options ────────────────────────────────────────────────────────────────────╮\n│ --count                               <int>  [default: 1]                    │\n│ --shout                 --no-shout           [default: no-shout]             │\n│ --install-completion                         Install completion for the      │\n│                                              current shell.                  │\n│ --show-completion                            Show completion for the current │\n│                                              shell, to copy it or customize  │\n│                                              the installation.               │\n│ --help                                       Show this message and exit.     │\n╰──────────────────────────────────────────────────────────────────────────────╯\n\n\npy rc=0\n",
     "stderr": "",
     "exit": 0,
     "files": {}
@@ -233,14 +545,56 @@
     "exit": 0,
     "files": {}
   },
+  "pip-smoke-tzdata": {
+    "stdout": "venv rc=0\npip rc=0\n2024-01-15T12:00:00-03:00 -03 -1 day, 21:00:00\n2024-07-01T12:00:00+01:00 WEST 1:00:00\n2024-01-01T00:00:00+05:30 IST\nTrue\nTrue True\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-unidecode": {
+    "stdout": "venv rc=0\npip rc=0\nAcai Sao Paulo\nBei Jing \nPrivet mir\nnandu  1/2 EUR (c)\nnaive cafe\nEllenika\nhiragana\na b ''\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-uritemplate": {
+    "stdout": "venv rc=0\npip rc=0\nhttp://x/u/a/b?q=a%20b&n=1\n['owner', 'page', 'repo'] /repos/o/r?page=2\n/a/b%20c/here#x%20y\n;x=1;y=2.w\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "pip-smoke-urllib3": {
     "stdout": "venv rc=0\npip rc=0\n200 application/json\n{'path': '/x?q=1'}\nhttp user example.com 8080 /a/b c=1 f\n3\npy rc=0\n",
     "stderr": "",
     "exit": 0,
     "files": {}
   },
+  "pip-smoke-uvicorn": {
+    "stdout": "venv rc=0\npip rc=0\n200 application/json uvicorn b'{\"path\": \"/ola\"}'\nFalse\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-wcwidth": {
+    "stdout": "venv rc=0\npip rc=0\n1 2 0 0 -1 2\n5 6 1 -1 3\n10 2\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "pip-smoke-werkzeug": {
     "stdout": "venv rc=0\npip rc=0\n('user', {'id': 7})\n/u/9\netc_pass_wd_e.txt\nTrue False\nPOST /p {'a': '1', 'b': '2'} {'f': 'v'}\n201 CREATED b'corpo' 1\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-wheel": {
+    "stdout": "venv rc=0\npip rc=0\ndemo 1.0 py3\n['demo-1.0.dist-info/METADATA', 'demo-1.0.dist-info/RECORD', 'demo-1.0.dist-info/WHEEL', 'demo/__init__.py']\ndemo/__init__.py,sha256=nia_NpkRxFwkPGhBR7I_yeHc_PJX0pmhxjIBam_NM_Q,6\ndemo-1.0.dist-info/METADATA,sha256=NKonpgZPlYtBt4GiF_KQ_Qq1-WUeK25Kzas0G3uTwwU,46\ndemo-1.0.dist-info/WHEEL,sha256=Zfz4J9iZP8kCM5i8ndvcXerBYFds1ZJSXt9T1xZdYW4,75\ndemo-1.0.dist-info/RECORD,,\n\nTrue\npy rc=0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
+  "pip-smoke-zipp": {
+    "stdout": "venv rc=0\npip rc=0\n['a', 'e.txt']\nTrue ['b.txt', 'c']\nolá True False\nc .txt b\npy rc=0\n",
     "stderr": "",
     "exit": 0,
     "files": {}

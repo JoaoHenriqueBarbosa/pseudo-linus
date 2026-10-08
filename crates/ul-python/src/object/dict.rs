@@ -14,7 +14,7 @@ use super::{hash, is, py_eq, repr_into, ObjError, ReprStack, Value};
 /// das globais (`globalsview`) comparam para saber se houve escrita desde a última sincronização.
 static GENERATION: AtomicU64 = AtomicU64::new(1);
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct Dict {
     /// Número da última mutação (ver `GENERATION`); `0` num dict que nunca foi alterado.
     pub generation: u64,

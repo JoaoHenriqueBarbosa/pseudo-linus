@@ -185,6 +185,12 @@
     "exit": 0,
     "files": {}
   },
+  "threading-plain-httpserver-thread-subprocess-run-inherited-stdout": {
+    "stdout": "corpo do servidor\nrc 0\n",
+    "stderr": "",
+    "exit": 0,
+    "files": {}
+  },
   "threading-register-atexit-and-late-start": {
     "stdout": "RuntimeError can't register atexit after shutdown\n['threading atexit']\n",
     "stderr": "",

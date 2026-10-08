@@ -594,7 +594,7 @@ pub(crate) fn dir_names(vm: &mut Vm, obj: Option<&Value>) -> Vec<String> {
         }
         Some(Value::Function(f)) => {
             names.extend(type_dir("function").unwrap_or_default().iter().map(|s| (*s).to_string()));
-            names.extend(f.attrs.borrow().keys().map(|k| k.to_string()));
+            names.extend(f.attr_pairs().into_iter().map(|(k, _)| k));
         }
         Some(v) => match type_dir(v.type_name()) {
             Some(listed) => names.extend(listed.iter().map(|s| (*s).to_string())),
@@ -894,25 +894,44 @@ pub(crate) struct MappingBack {
 
 /// `exec`/`eval`: os argumentos ligados e o quadro do código pronto para o laço de instruções (ou o valor, se o
 /// código nem chegou a rodar).
+/// O que `exec`/`eval` executam: um texto a compilar ou o código já compilado de uma árvore.
+enum Program<'a> {
+    Text { src: &'a str, filename: Option<&'a str> },
+    Compiled(Rc<crate::compile::Code>),
+}
+
 pub(crate) fn enter_exec(vm: &mut Vm, eval: bool, args: Vec<Value>, kw: Kw) -> PyResult<crate::vm::Entered> {
     let who = if eval { "eval" } else { "exec" };
     let a = bind(who, args, kw, &["source", "globals", "locals"], 1)?;
     let (src, filename) = source_text(vm, who, a[0].as_ref().unwrap_or(&Value::None))?;
-    begin_ns(vm, &src, filename.as_deref(), a[1].clone(), a[2].clone(), eval, who)
+    let prog = match compiled_tree(a[0].as_ref(), eval) {
+        Some(code) => Program::Compiled(code),
+        None => Program::Text { src: &src, filename: filename.as_deref() },
+    };
+    begin_ns(vm, prog, a[1].clone(), a[2].clone(), eval, who)
+}
+
+/// O código de um `compile(...)` que roda como está: o de uma árvore (sem texto de origem) e, no `eval`, o
+/// compilado em modo `exec` (não tem o `__eval_value__` que o `compile(..., 'eval')` grava), que o CPython roda e
+/// devolve `None` em vez de reler o texto como expressão (o `attrs` faz `eval(compile(script, f, 'exec'), g)`).
+fn compiled_tree(v: Option<&Value>, eval: bool) -> Option<Rc<crate::compile::Code>> {
+    let Some(Value::Ext(e)) = v else { return None };
+    let c = e.as_any()?.downcast_ref::<CodeSource>()?;
+    let exec_mode = eval && !c.code.names.iter().any(|n| &**n == "__eval_value__");
+    (c.src.is_empty() || exec_mode).then(|| c.code.clone())
 }
 
 /// `exec`/`eval` com `locals` que não é um `dict`: o código roda sobre um instantâneo do mapeamento.
 fn begin_ns(
     vm: &mut Vm,
-    src: &str,
-    filename: Option<&str>,
+    prog: Program,
     globals: Option<Value>,
     locals: Option<Value>,
     eval: bool,
     who: &str,
 ) -> PyResult<crate::vm::Entered> {
     let Some(mapping) = locals.clone().filter(|l| !matches!(l, Value::None | Value::Dict(_))) else {
-        return begin_dict(vm, src, filename, globals, locals, eval, who, &mut None);
+        return begin_dict(vm, prog, globals, locals, eval, who, &mut None);
     };
     let before = mapping_items(vm, &mapping)?;
     let mut copy = Dict::default();
@@ -921,7 +940,7 @@ fn begin_ns(
     }
     let snapshot = Value::dict(copy);
     let mut back = Some(MappingBack { mapping, snapshot: snapshot.clone(), before });
-    match begin_dict(vm, src, filename, globals, Some(snapshot), eval, who, &mut back) {
+    match begin_dict(vm, prog, globals, Some(snapshot), eval, who, &mut back) {
         Err(e) => match back {
             Some(b) => finish_mapping(vm, b, Err(e)).map(crate::vm::Entered::Done),
             None => Err(e),
@@ -956,30 +975,34 @@ fn finish_mapping(vm: &mut Vm, back: MappingBack, result: PyResult<Value>) -> Py
 #[allow(clippy::too_many_arguments)]
 fn begin_dict(
     vm: &mut Vm,
-    src: &str,
-    filename: Option<&str>,
+    prog: Program,
     globals: Option<Value>,
     locals: Option<Value>,
     eval: bool,
     who: &str,
     back: &mut Option<MappingBack>,
 ) -> PyResult<crate::vm::Entered> {
-    let mut text = if eval { format!("__eval_value__ = ({})", src.trim()) } else { src.to_string() };
-    if !text.ends_with('\n') {
-        text.push('\n');
-    }
-    let module = crate::parser::parse_module(&text).map_err(|e| {
-        if eval {
-            crate::vm::eval_syntax_exc(e, filename.unwrap_or("<string>"), src)
-        } else {
-            crate::vm::syntax_exc(e, filename.unwrap_or("<string>"), src)
+    let code = match prog {
+        Program::Compiled(code) => code,
+        Program::Text { src, filename } => {
+            let mut text = if eval { format!("__eval_value__ = ({})", src.trim()) } else { src.to_string() };
+            if !text.ends_with('\n') {
+                text.push('\n');
+            }
+            let module = crate::parser::parse_module(&text).map_err(|e| {
+                if eval {
+                    crate::vm::eval_syntax_exc(e, filename.unwrap_or("<string>"), src)
+                } else {
+                    crate::vm::syntax_exc(e, filename.unwrap_or("<string>"), src)
+                }
+            })?;
+            let mut code = crate::compile::compile_module(&module).map_err(|e| exc("SyntaxError", e.msg))?;
+            if let Some(f) = filename {
+                code.set_filename(f);
+            }
+            Rc::new(code)
         }
-    })?;
-    let mut code = crate::compile::compile_module(&module).map_err(|e| exc("SyntaxError", e.msg))?;
-    if let Some(f) = filename {
-        code.set_filename(f);
-    }
-    let code = Rc::new(code);
+    };
     let globals = globals.filter(|g| !matches!(g, Value::None));
     let locals = locals.filter(|l| !matches!(l, Value::None));
     let Some(gdict) = globals else {
@@ -1208,6 +1231,53 @@ impl crate::object::ExtObject for CodeSource {
     }
 }
 
+/// A árvore `ast.AST` de `compile(tree, ..., mode)` na forma que o compilador recebe: `eval` vira o módulo
+/// `__eval_value__ = expr` e `single` vira um módulo com o corpo interativo.
+fn tree_module(vm: &mut Vm, tree: &Value, mode: &str) -> PyResult<crate::ast::Mod> {
+    Ok(match crate::modules::astfrompy::module_from_tree(vm, tree, mode)? {
+        crate::ast::Mod::Expression { body } => crate::compile::eval_module(*body),
+        crate::ast::Mod::Interactive { body } => crate::ast::Mod::Module { body, type_ignores: Vec::new() },
+        other => other,
+    })
+}
+
+/// O nome da declaração de codificação (PEP 263) nas duas primeiras linhas de `data`, só quando a linha é
+/// um comentário (`# -*- coding: latin-1 -*-`).
+fn source_cookie(data: &[u8]) -> Option<String> {
+    for (n, line) in data.split(|&b| b == b'\n').take(2).enumerate() {
+        let text = String::from_utf8_lossy(line);
+        let body = text.trim_start_matches([' ', '\t', '\x0c']);
+        if !body.starts_with('#') {
+            // Só a primeira linha pode ser vazia para a segunda ainda valer.
+            if n == 0 && body.trim().is_empty() {
+                continue;
+            }
+            return None;
+        }
+        let Some(at) = body.find("coding") else { continue };
+        let Some(rest) = body[at + "coding".len()..].strip_prefix([':', '=']) else { continue };
+        let name: String =
+            rest.trim_start_matches([' ', '\t']).chars().take_while(|c| c.is_alphanumeric() || matches!(c, '-' | '_' | '.')).collect();
+        if !name.is_empty() {
+            return Some(name);
+        }
+    }
+    None
+}
+
+/// O texto de um código-fonte em bytes como o `compile()` o lê: sem o BOM do UTF-8 e na codificação
+/// declarada no cookie (`utf-8` por omissão). Byte que a codificação não decodifica vira U+FFFD.
+fn decode_source(data: &[u8]) -> String {
+    let data = data.strip_prefix(b"\xef\xbb\xbf").unwrap_or(data);
+    let lossy = || String::from_utf8_lossy(data).into_owned();
+    let Some(name) = source_cookie(data) else { return lossy() };
+    let norm = name.to_ascii_lowercase().replace('_', "-");
+    if norm == "utf-8" || norm.starts_with("utf-8-") {
+        return lossy();
+    }
+    crate::textcodec::lookup(&name).and_then(|codec| crate::textcodec::decode(&codec, data, "strict").ok()).unwrap_or_else(lossy)
+}
+
 fn b_compile(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     let a = bind("compile", args, kw, &["source", "filename", "mode", "flags", "dont_inherit", "optimize"], 3)?;
     let mut source = a[0].clone().unwrap_or(Value::None);
@@ -1215,45 +1285,51 @@ fn b_compile(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         Some(Value::Int(n)) => *n,
         _ => 0,
     };
-    // Uma árvore (`ast.AST`) vira texto com `ast.unparse` e segue o caminho de sempre.
     if let Value::Bytes(b) = &source {
-        source = Value::str(String::from_utf8_lossy(b).into_owned());
+        source = Value::str(decode_source(b));
     }
-    if let Value::Instance(_) = &source {
-        let ast = crate::modules::import_checked(vm, "ast")?;
-        let unparse = vm.load_attr(&Value::Module(ast), "unparse")?;
-        source = vm.call(&unparse, vec![source], Vec::new())?;
-        if flags & 1024 != 0 {
-            return Ok(a[0].clone().unwrap_or(Value::None));
-        }
+    // Uma árvore (`ast.AST`) com `PyCF_ONLY_AST` volta como veio.
+    let is_tree = crate::modules::astfrompy::is_ast_node(&source);
+    if is_tree && flags & 1024 != 0 {
+        return Ok(source);
     }
     // `PyCF_ONLY_AST`: devolve a árvore em vez do código.
     if flags & 1024 != 0 {
         let m = crate::modules::import_checked(vm, "_ast")?;
-        let parse = vm.load_attr(&Value::Module(m), "_parse")?;
+        // O `dir()` do `_ast` é o do módulo C do Debian: o `_parse` do shim fica nas globais completas.
+        let parse = match crate::modules::pysrc::private_attr("_ast", "_parse") {
+            Some(f) => f,
+            None => vm.load_attr(&Value::Module(m), "_parse")?,
+        };
         let rest = vec![source, a[1].clone().unwrap_or(Value::None), a[2].clone().unwrap_or(Value::None)];
         return vm.call(&parse, rest, Vec::new());
     }
-    let src = want_str("compile", &source)?.to_string();
     let filename = a[1].as_ref().map(|f| crate::object::to_str(f)).unwrap_or_default();
     let mode = a[2].as_ref().map(|m| crate::object::to_str(m)).unwrap_or_default();
     if !matches!(mode.as_str(), "exec" | "eval" | "single") {
         return Err(exc("ValueError", "compile() mode must be 'exec', 'eval' or 'single'"));
     }
-    let mut text = if mode == "eval" { format!("__eval_value__ = ({})", src.trim()) } else { src.clone() };
-    if !text.ends_with('\n') {
-        text.push('\n');
-    }
-    let mut module = crate::parser::parse_module(&text).map_err(|e| {
-        if mode == "eval" {
-            crate::vm::eval_syntax_exc(e, &filename, &src)
-        } else {
-            crate::vm::syntax_exc(e, &filename, &src)
+    let (mut module, mut exact, src) = if is_tree {
+        // A árvore vai direto ao compilador, com as posições dela. O código não tem texto de origem
+        // (`src` vazio): `exec`/`eval` rodam o código já compilado.
+        (tree_module(vm, &source, &mode)?, true, String::new())
+    } else {
+        let src = want_str("compile", &source)?.to_string();
+        let mut text = if mode == "eval" { format!("__eval_value__ = ({})", src.trim()) } else { src.clone() };
+        if !text.ends_with('\n') {
+            text.push('\n');
         }
-    })?;
+        let module = crate::parser::parse_module(&text).map_err(|e| {
+            if mode == "eval" {
+                crate::vm::eval_syntax_exc(e, &filename, &src)
+            } else {
+                crate::vm::syntax_exc(e, &filename, &src)
+            }
+        })?;
+        (module, false, src)
+    };
     // Só quando a expressão não começa com espaço: as posições do `eval` são as dela, não as do embrulho.
-    let mut exact = false;
-    if mode == "eval" && src.trim_start().len() == src.len() {
+    if !is_tree && mode == "eval" && src.trim_start().len() == src.len() {
         if let Ok(expr) = crate::parser::parse_expression(src.trim()) {
             module = crate::compile::eval_module(expr);
             exact = true;
@@ -1276,7 +1352,7 @@ fn b_compile(vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     code.set_filename(&filename);
     let code = Rc::new(code);
     // Modo `single`: uma expressão solta passa pelo `sys.displayhook` (é o que o doctest espera).
-    let src = if mode == "single" && crate::parser::parse_module(&format!("__eval_value__ = ({})\n", src.trim())).is_ok() {
+    let src = if mode == "single" && !is_tree && crate::parser::parse_module(&format!("__eval_value__ = ({})\n", src.trim())).is_ok() {
         format!("import sys as __single_sys__\n__single_sys__.displayhook({})\n", src.trim())
     } else {
         src

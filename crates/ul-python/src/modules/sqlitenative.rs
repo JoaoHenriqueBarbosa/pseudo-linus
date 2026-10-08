@@ -1,8 +1,8 @@
-//! Módulo nativo `_sqlite3`: a conexão ao SQLite (mesmo motor e VFS do programa `sqlite3`) com o
-//! mínimo que o pacote `sqlite3` em Python precisa: executar uma instrução com parâmetros
+//! Módulo nativo `_sqlite_engine`: a conexão ao SQLite (mesmo motor e VFS do programa `sqlite3`) com o
+//! mínimo que o `_sqlite3` em Python precisa: executar uma instrução com parâmetros
 //! (materializando as linhas), rodar um script, e registrar funções, agregados e collations escritos
 //! em Python. A semântica do DB-API (cursores, transações implícitas, `Row`, conversores) fica no
-//! Python, em `modules/py/sqlite3.py`.
+//! Python, em `modules/py/_sqlite3.py`.
 //!
 //! As operações devolvem uma tupla `(tipo, mensagem)` no erro (o Python levanta a classe certa) ou o
 //! resultado. Os chamáveis Python ficam num registro por thread e os fechamentos do SQLite só levam
@@ -276,7 +276,7 @@ fn rewrite_binding(m: &str, idx: usize) -> String {
 
 impl ExtObject for SqliteConn {
     fn type_name(&self) -> &'static str {
-        "_sqlite3.Handle"
+        "_sqlite_engine.Handle"
     }
 
     fn methods(&self) -> &'static [&'static str] {
@@ -367,7 +367,7 @@ impl ExtObject for SqliteConn {
                 })
                 .unwrap_or_else(|e| e)
             }
-            other => return Err(crate::vm::type_error(format!("_sqlite3.Handle has no method '{other}'"))),
+            other => return Err(crate::vm::type_error(format!("_sqlite_engine.Handle has no method '{other}'"))),
         })
     }
 }
@@ -389,7 +389,7 @@ fn connect(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
 }
 
 pub fn build(_vm: &mut Vm) -> Rc<ModuleObj> {
-    ModuleBuilder::new("_sqlite3")
+    ModuleBuilder::new("_sqlite_engine")
         .func("connect", connect)
         .value("sqlite_version", Value::str(rusqlite::version().to_string()))
         .build()

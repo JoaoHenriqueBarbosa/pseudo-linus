@@ -1875,6 +1875,7 @@ datetime	tzinfo.fromutc	"datetime in UTC -> datetime in local time."
 datetime	tzinfo.tzname	"datetime -> string name of time zone."
 datetime	tzinfo.utcoffset	"datetime -> timedelta showing offset from UTC, negative values indicating West of UTC"
 dbm.dumb	_Database.sync	null
+_decimal		"C decimal arithmetic module"
 decimal	Clamped	null
 decimal	Context	"The context affects almost all operations and controls rounding,\nOver/Underflow, raising of exceptions and much more.  A new context\ncan be constructed as follows:\n\n    >>> c = Context(prec=28, Emin=-425000000, Emax=425000000,\n    ...             rounding=ROUND_HALF_EVEN, capitals=1, clamp=1,\n    ...             traps=[InvalidOperation, DivisionByZero, Overflow],\n    ...             flags=[])\n    >>>\n\n\n"
 decimal	Context.Emax	null

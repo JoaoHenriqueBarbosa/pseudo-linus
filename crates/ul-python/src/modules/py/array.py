@@ -250,4 +250,46 @@ class array:
 
 
 ArrayType = array
+
+# `enum machine_format_code` do `arraymodule.c`: o formato de `struct` de cada código (os dois últimos pares são
+# UTF-16 e UTF-32, decodificados pelo codec) e o código nativo de cada typecode no x86-64.
+_MACHINE_FORMATS = ('<B', '<b', '<H', '>H', '<h', '>h', '<I', '>I', '<i', '>i', '<Q', '>Q', '<q', '>q', '<f', '>f',
+                    '<d', '>d', 'utf-16-le', 'utf-16-be', 'utf-32-le', 'utf-32-be')
+_NATIVE_MACHINE_FORMAT = {'b': 1, 'B': 0, 'h': 4, 'H': 2, 'i': 8, 'I': 6, 'l': 12, 'L': 10, 'q': 12, 'Q': 10,
+                          'f': 14, 'd': 16, 'u': 20, 'w': 20}
+
+
+def _array_reconstructor(arraytype, typecode, mformat_code, items, /):
+    """Internal. Used for pickling support."""
+    if not isinstance(arraytype, type):
+        raise TypeError('first argument must be a type object, not %.200s' % type(arraytype).__name__)
+    if not issubclass(arraytype, array):
+        raise TypeError('%.200s is not a subtype of %.200s' % (arraytype.__name__, array.__name__))
+    if not isinstance(typecode, str):
+        raise TypeError('_array_reconstructor() argument 2 must be a unicode character, not %s'
+                        % type(typecode).__name__)
+    if len(typecode) != 1:
+        raise TypeError('_array_reconstructor() argument 2 must be a unicode character, not a string of length %d'
+                        % len(typecode))
+    if typecode not in typecodes:
+        raise ValueError('second argument must be a valid type code')
+    if not 0 <= mformat_code <= 21:
+        raise ValueError('third argument must be a valid machine format code.')
+    if not isinstance(items, bytes):
+        raise TypeError('fourth argument should be bytes, not %.200s' % type(items).__name__)
+    result = arraytype(typecode)
+    # Sem conversão: o código de máquina é o do próprio typecode.
+    if _NATIVE_MACHINE_FORMAT[typecode] == mformat_code:
+        result.frombytes(items)
+        return result
+    fmt = _MACHINE_FORMATS[mformat_code]
+    if mformat_code >= 18:
+        result.fromunicode(items.decode(fmt))
+        return result
+    if len(items) % struct.calcsize(fmt):
+        raise ValueError('string length not a multiple of item size')
+    for (value,) in struct.iter_unpack(fmt, items):
+        result.append(value)
+    return result
+
 del _GenericAlias
