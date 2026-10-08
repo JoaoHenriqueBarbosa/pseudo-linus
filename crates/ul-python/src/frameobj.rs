@@ -44,8 +44,8 @@ pub struct FrameObj {
     code: Option<Rc<Code>>,
     code_object: Value,
     env: RefCell<Weak<Env>>,
-    /// O escopo de um quadro de traceback: ele mantém o quadro vivo, e com ele as variáveis locais.
-    held: RefCell<Option<Rc<Env>>>,
+    /// O quadro de traceback mantém o quadro vivo, e com ele as variáveis locais (o mesmo dono do traceback).
+    held: RefCell<Option<Rc<FrameHold>>>,
     back: RefCell<Value>,
     /// Ainda em execução (vem do empilhamento da VM); `false` nos quadros de traceback.
     live: bool,
@@ -84,6 +84,10 @@ pub struct FrameParts {
 /// quadros vivos sem escopo (a chave é a posição na pilha) não voltam ao registro.
 pub fn frame_from_image(p: FrameParts) -> Value {
     let env = p.env;
+    let held = match (p.held, &p.code) {
+        (Some(env), Some(code)) => Some(FrameHold::new(env, code.clone())),
+        _ => None,
+    };
     let obj = Rc::new(FrameObj {
         line: Cell::new(p.line),
         name: p.name,
@@ -91,7 +95,7 @@ pub fn frame_from_image(p: FrameParts) -> Value {
         code: p.code,
         code_object: p.code_object,
         env: RefCell::new(env.as_ref().map_or_else(Weak::new, Rc::downgrade)),
-        held: RefCell::new(p.held),
+        held: RefCell::new(held),
         back: RefCell::new(Value::None),
         live: p.live,
         trace: RefCell::new(Value::None),
@@ -168,7 +172,7 @@ impl FrameObj {
             code: link.code.clone(),
             code_object,
             env: RefCell::new(link.env.as_ref().map_or_else(Weak::new, Rc::downgrade)),
-            held: RefCell::new(if live { None } else { link.env.clone() }),
+            held: RefCell::new(None),
             back: RefCell::new(Value::None),
             live,
             trace: RefCell::new(Value::None),
@@ -295,9 +299,12 @@ pub fn live_frame_at(chain: Vec<FrameLink>, depth: usize, fresh_innermost: bool)
     result
 }
 
-/// Um quadro de traceback (`tb_frame`): terminou, não tem identidade nem escopo.
-pub fn detached_frame(link: &FrameLink) -> Value {
-    Value::Ext(Rc::new(FrameObj::new(link, false)))
+/// Um quadro de traceback (`tb_frame`): terminou, não tem identidade; `hold` é o dono do quadro que ele
+/// divide com o traceback, e com ele as variáveis locais.
+pub fn detached_frame(link: &FrameLink, hold: Option<Rc<FrameHold>>) -> Value {
+    let obj = FrameObj::new(link, false);
+    *obj.held.borrow_mut() = hold;
+    Value::Ext(Rc::new(obj))
 }
 
 /// O quadro de um gerador, de uma corrente ou de um gerador assíncrono (`gi_frame`, `cr_frame`,
@@ -329,11 +336,42 @@ fn key_of_env(env: Option<usize>) -> Key {
     env.map_or(Key::Pos(0, 0, 0), Key::Env)
 }
 
-/// Uma função cujo escopo `env` uma função de dentro capturou devolveu: como no CPython, só as células
-/// (`co_cellvars`) sobrevivem ao quadro, e os demais locais morrem aqui. Se alguém tem o objeto `frame`
-/// dela (`sys._getframe`, traceback), o quadro inteiro continua vivo, com todos os locais.
+/// O quadro de uma função que já terminou por exceção, como o traceback o guarda: o escopo e o código.
+/// Todas as cópias do traceback compartilham o mesmo `FrameHold`; quando a última some, o quadro morre e
+/// leva os locais que não são células (o `frame_dealloc` do CPython).
+#[derive(Debug)]
+pub struct FrameHold {
+    pub env: Rc<Env>,
+    pub code: Rc<Code>,
+}
+
+impl FrameHold {
+    pub fn new(env: Rc<Env>, code: Rc<Code>) -> Rc<FrameHold> {
+        env.holds.set(env.holds.get() + 1);
+        Rc::new(FrameHold { env, code })
+    }
+}
+
+impl Drop for FrameHold {
+    fn drop(&mut self) {
+        self.env.holds.set(self.env.holds.get() - 1);
+        release_locals(&self.code, &self.env);
+    }
+}
+
+/// O quadro da função de escopo `env` acabou (`return`, ou exceção que saiu dela): daqui em diante, o
+/// último dono do quadro leva os locais.
+pub fn finish(code: &Code, env: &Rc<Env>) {
+    env.finished.set(true);
+    release_locals(code, env);
+}
+
+/// O quadro de `env` morreu (acabou, e nenhum traceback o guarda mais): como no CPython, só as células
+/// (`co_cellvars`) sobrevivem a ele, e os demais locais morrem aqui. Só importa quando uma função de
+/// dentro capturou o escopo (sem ela, o `env` morre inteiro com o quadro). Um objeto `frame` vivo
+/// (`sys._getframe`) também segura o quadro inteiro.
 pub fn release_locals(code: &Code, env: &Rc<Env>) {
-    if !code.is_function || Rc::strong_count(env) == 1 {
+    if !code.is_function || !env.finished.get() || env.holds.get() > 0 || Rc::strong_count(env) == 1 {
         return;
     }
     if REGISTRY.with(|reg| reg.borrow().contains_key(&Key::Env(Rc::as_ptr(env) as usize))) {
@@ -428,7 +466,7 @@ impl ExtObject for FrameObj {
             code: self.code.clone(),
             code_object: self.code_object.clone(),
             env: self.env(),
-            held: self.held.borrow().clone(),
+            held: self.held.borrow().as_ref().map(|h| h.env.clone()),
             back: self.back.borrow().clone(),
             live: self.live,
             trace: self.trace.borrow().clone(),

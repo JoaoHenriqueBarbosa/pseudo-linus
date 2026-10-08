@@ -923,10 +923,33 @@ o = C(); r = weakref.ref(o)
 g, frame = h(o)
 del o
 print(r() is not None, 'ob' in frame.f_locals)
+def k(ob):
+    def g(): pass
+    global G; G = g
+    raise ValueError
+o = C(); r = weakref.ref(o)
+try: k(o)
+except ValueError: pass
+del o
+print(r())
+o = C(); r = weakref.ref(o)
+try: k(o)
+except ValueError as e: fr = e.__traceback__.tb_next.tb_frame
+del o
+print(r() is not None, 'ob' in fr.f_locals)
+del fr
+print(r())
+def caller():
+    o = C(); r = weakref.ref(o)
+    try: k(o)
+    except ValueError: pass
+    return o is not None, r
+alive, r = caller()
+print(alive, r())
 "#;
     let o = crate::run_source(src);
     assert_eq!(o.status, 0, "{}", o.stderr);
-    assert_eq!(String::from_utf8(o.stdout).unwrap(), "None True\nTrue True\n");
+    assert_eq!(String::from_utf8(o.stdout).unwrap(), "None True\nTrue True\nNone\nTrue True\nNone\nTrue None\n");
 }
 
 #[test]

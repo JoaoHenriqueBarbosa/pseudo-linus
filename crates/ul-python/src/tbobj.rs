@@ -74,7 +74,7 @@ impl ExtObject for TracebackObj {
         let file = if own.is_empty() { self.filename.clone() } else { own.clone() };
         Some(Ok(match name {
             "tb_lineno" => Value::Int(*line as i64),
-            "tb_lasti" => Value::Int(held.as_ref().map_or(0, |(_, c)| synthetic_lasti(c, *line)) as i64),
+            "tb_lasti" => Value::Int(held.as_ref().map_or(0, |h| synthetic_lasti(&h.code, *line)) as i64),
             "_position" if span.lineno > 0 => Value::tuple(vec![
                 Value::Int(span.lineno as i64),
                 Value::Int(span.end_lineno as i64),
@@ -90,10 +90,10 @@ impl ExtObject for TracebackObj {
                     line: *line,
                     name: code.clone(),
                     file,
-                    code: held.as_ref().map(|(_, c)| c.clone()),
-                    env: held.as_ref().map(|(e, _)| e.clone()),
+                    code: held.as_ref().map(|h| h.code.clone()),
+                    env: held.as_ref().map(|h| h.env.clone()),
                     caller_line: 0,
-                });
+                }, held.clone());
                 *self.frame.borrow_mut() = Some(frame.clone());
                 frame
             }

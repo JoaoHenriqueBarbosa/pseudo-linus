@@ -326,6 +326,11 @@ pub struct Env {
     pub is_class: bool,
     /// Escopo do módulo (as variáveis ficam nas globais da VM, não aqui).
     pub is_module: bool,
+    /// O quadro desta função já acabou (`return` ou exceção que saiu dela): os locais que não são células
+    /// podem morrer quando o último dono do quadro soltar.
+    pub finished: std::cell::Cell<bool>,
+    /// Quantos tracebacks guardam este quadro (`frameobj::FrameHold`): enquanto houver um, ele não morre.
+    pub holds: std::cell::Cell<u32>,
 }
 
 /// Hasher multiplicativo (FxHash) para os nomes de variáveis: curtos, e sem necessidade de resistir a ataque.
@@ -462,6 +467,8 @@ impl Env {
             parent,
             is_class,
             is_module,
+            finished: std::cell::Cell::new(false),
+            holds: std::cell::Cell::new(0),
         })
     }
 

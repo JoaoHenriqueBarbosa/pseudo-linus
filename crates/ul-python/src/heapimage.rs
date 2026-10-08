@@ -176,9 +176,8 @@ struct EnvImage {
     parent: Option<u32>,
     is_class: bool,
     is_module: bool,
-}
-
-struct ClassImage {
+    finished: bool,
+}struct ClassImage {
     name: String,
     qualname: String,
     /// Nós `Class`.
@@ -886,7 +885,14 @@ impl Encoder {
             Some(p) => Some(self.env_ref(p)),
             None => None,
         };
-        Ok(EnvImage { vars, order: e.order.borrow().clone(), parent, is_class: e.is_class, is_module: e.is_module })
+        Ok(EnvImage {
+            vars,
+            order: e.order.borrow().clone(),
+            parent,
+            is_class: e.is_class,
+            is_module: e.is_module,
+            finished: e.finished.get(),
+        })
     }
 
     fn class(&mut self, c: &Rc<ClassObj>) -> Result<ClassImage, ImageError> {
@@ -1256,8 +1262,9 @@ impl Encoder {
                 name,
                 file: file.to_string(),
                 span,
-                held: held.map(|(env, code)| {
-                    let env = self.env_ref(&env);
+                held: held.map(|h| {
+                    let env = self.env_ref(&h.env);
+                    let code = h.code.clone();
                     (env, self.deferred(address(&code), || Pending::Code(code.clone())))
                 }),
             })
@@ -2082,6 +2089,9 @@ impl HeapImage {
                     parent,
                     is_class: e.is_class,
                     is_module: e.is_module,
+                    finished: std::cell::Cell::new(e.finished),
+                    // Os `FrameHold` refeitos da imagem contam de novo ao nascer.
+                    holds: std::cell::Cell::new(0),
                 })))
             }
             Node::Class(c) => {
@@ -2586,7 +2596,7 @@ fn make_ext(x: &ExtNode, rb: &Rebuilt) -> Result<Value, ImageError> {
             let mut out = Vec::with_capacity(entries.len());
             for e in entries {
                 let held = match e.held {
-                    Some((env, code)) => Some((rb.env(env)?, rb.code(code)?)),
+                    Some((env, code)) => Some(crate::frameobj::FrameHold::new(rb.env(env)?, rb.code(code)?)),
                     None => None,
                 };
                 out.push((e.line, e.name.clone(), rb.name(&e.file), e.span, held));

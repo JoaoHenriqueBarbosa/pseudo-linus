@@ -44,7 +44,7 @@ pub struct PyException {
 /// Uma entrada de traceback: linha, nome do código, arquivo (vazio: o script principal) e o intervalo de fonte
 /// da instrução que falhou. O quinto item é o escopo e o código do quadro de uma função, que o
 /// `tb_frame` mostra em `f_locals` e `f_code` (o traceback mantém o quadro vivo, como no CPython).
-pub type TbEntry = (usize, String, Rc<str>, crate::compile::Span, Option<(Rc<Env>, Rc<Code>)>);
+pub type TbEntry = (usize, String, Rc<str>, crate::compile::Span, Option<Rc<crate::frameobj::FrameHold>>);
 
 /// Desde o 3.12 (PEP 709) as compreensões de lista, conjunto e dicionário não têm quadro próprio:
 /// o traceback mostra a linha de dentro com o nome da função que as contém. (`<genexpr>` mantém o seu.)
@@ -383,8 +383,8 @@ fn jump_index(code: &Code, line: usize) -> Option<usize> {
 
 /// O quadro de função que a entrada de traceback guarda: o escopo e o código (módulos e corpos de
 /// classe ficam de fora, as variáveis deles são as globais).
-fn tb_frame_of(code: &Rc<Code>, env: &Rc<Env>) -> Option<(Rc<Env>, Rc<Code>)> {
-    (!env.is_module && !env.is_class).then(|| (env.clone(), code.clone()))
+fn tb_frame_of(code: &Rc<Code>, env: &Rc<Env>) -> Option<Rc<crate::frameobj::FrameHold>> {
+    (!env.is_module && !env.is_class).then(|| crate::frameobj::FrameHold::new(env.clone(), code.clone()))
 }
 
 impl PyException {
@@ -1874,12 +1874,12 @@ impl Vm {
                     }
                     Op::Return => match stack.pop() {
                         Some(Slot::Val(v)) if is_child => {
-                            crate::frameobj::release_locals(code, env);
+                            crate::frameobj::finish(code, env);
                             finish = Some(Ok(v));
                             Ok(None)
                         }
                         Some(Slot::Val(v)) => {
-                            crate::frameobj::release_locals(code, env);
+                            crate::frameobj::finish(code, env);
                             return Ok(Exit::Return(v));
                         }
                         _ => Err(internal("bad value stack")),
@@ -2253,6 +2253,8 @@ impl Vm {
                                 _ => e.tb.push((code.lines[*pc], code.name.clone(), Rc::from(code.filename.as_str()), code.spans[*pc], tb_frame_of(code, env))),
                             }
                         }
+                        // O quadro acaba: o traceback (`FrameHold`) é quem o guarda agora, e leva os locais ao morrer.
+                        crate::frameobj::finish(code, env);
                         if is_child {
                             finish = Some(Err(e));
                         } else {
