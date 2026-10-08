@@ -77,8 +77,9 @@ impl FloatFormat for Ieee754Binary64 {
 /// `default_float_traits<T>`: como interpretar um padrão de bits como número de ponto flutuante.
 /// Só `f32` (binary32) e `f64` (binary64) a implementam.
 pub trait FloatTraits: Copy {
-    /// `format`.
-    type Format: FloatFormat;
+    /// `format`. O limite `ComputeMulImpl` espelha o `compute_mul_impl<format>` que o `impl` do
+    /// C++ especializa por formato, o que deixa os usos genéricos sem repetir a cláusula.
+    type Format: FloatFormat + crate::wtf::dragonbox::dragonbox::ComputeMulImpl;
 
     /// `carrier_bits`.
     const CARRIER_BITS: i32;

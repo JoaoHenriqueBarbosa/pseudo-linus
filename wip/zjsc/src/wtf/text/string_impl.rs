@@ -625,11 +625,13 @@ impl StringImpl {
 // StringImpl.cpp (linhas 1 a 840): criação, substring, conversões de caixa
 // ---------------------------------------------------------------------------------------------
 
-/// `UTF8ConversionError` de `wtf/text/UTF8ConversionError.h`. Só existe aqui porque o
-/// `tryReallocate` o devolve; o módulo próprio ainda não foi portado e este tipo se move para lá.
+/// `UTF8ConversionError` de `wtf/text/UTF8ConversionError.h` (`OutOfMemory`, `Invalid`). Só existe
+/// aqui porque o `tryReallocate` e o `tryGetUTF8` o devolvem; o módulo próprio ainda não foi
+/// portado e este tipo se move para lá.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UTF8ConversionError {
     OutOfMemory,
+    Invalid,
 }
 
 /// `StringImpl::CaseConvertType`.
