@@ -74,8 +74,11 @@ pub fn match_keyword<C: Copy + Into<u32>>(
 ) -> Option<&'static Keyword> {
     debug_assert!(code.len() >= MAX_TOKEN_LENGTH);
     KEYWORDS.iter().find(|k| {
-        code.len() > k.word.len()
+        // O C++ lê `code[len]` mesmo quando a palavra termina exatamente no fim do buffer (palavra de
+        // `maxTokenLength` letras, como `instanceof`); o bun acusa a palavra-chave, então o byte
+        // depois do fim conta como quem encerra um identificador.
+        code.len() >= k.word.len()
             && k.word.iter().zip(code).all(|(&w, &c)| c.into() == w as u32)
-            && next_ends(code[k.word.len()])
+            && (code.len() == k.word.len() || next_ends(code[k.word.len()]))
     })
 }

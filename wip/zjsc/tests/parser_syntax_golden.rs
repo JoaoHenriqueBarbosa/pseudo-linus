@@ -80,6 +80,11 @@ fn parse(vm: &Rc<VM>, source: &[u16]) -> String {
 #[test]
 fn syntax_errors_match_bun() {
     let vm = Rc::new(VM::new());
+    // Depuração: PARSER_SRC='a in' mostra o resultado de um trecho avulso.
+    if let Some(src) = std::env::var_os("PARSER_SRC") {
+        let units: Vec<u16> = src.to_str().unwrap().encode_utf16().collect();
+        eprintln!("RESULT {:?}", parse(&vm, &units));
+    }
     let golden = include_str!("golden/syntax-errors.tsv");
     let mut failures = Vec::new();
     for (line_number, line) in golden.lines().enumerate() {
