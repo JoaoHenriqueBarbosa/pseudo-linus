@@ -1,0 +1,257 @@
+set(jsc_SOURCES ../jsc.cpp ../tools/JSDollarVMShell.cpp)
+set(jsc_LIBRARIES ${CMAKE_DL_LIBS})
+set(jsc_FRAMEWORKS
+    JavaScriptCore
+    WTF
+    bmalloc
+)
+
+set(jsc_PRIVATE_INCLUDE_DIRECTORIES
+    $<TARGET_PROPERTY:JavaScriptCore,INCLUDE_DIRECTORIES>
+)
+
+if (WTF_OS_MACOS)
+    list(APPEND jsc_LIBRARIES edit)
+endif ()
+
+if (WIN32)
+    list(APPEND jsc_LIBRARIES Winmm)
+endif ()
+
+if (USE_EXTERNAL_MIMALLOC)
+    # The shipped static archives intentionally leave mi_* unresolved so the
+    # consumer links its own mimalloc. The jsc shell still needs a working
+    # allocator, so link the vendored mimalloc object library here only.
+    list(APPEND jsc_LIBRARIES $<TARGET_OBJECTS:mimalloc-obj>)
+endif ()
+
+if (ENABLE_FUZZILLI)
+  list(APPEND jsc_SOURCES ../fuzzilli/Fuzzilli.cpp)
+endif ()
+
+# mya analyzes process corpses through Mach task APIs, so it only builds on
+# Apple platforms. Its sources do not compile elsewhere.
+if (APPLE)
+    set(mya_SOURCES ../mya/mya.cpp)
+    set(mya_FRAMEWORKS
+        JavaScriptCore
+        WTF
+        bmalloc
+    )
+
+    set(mya_PRIVATE_INCLUDE_DIRECTORIES
+        $<TARGET_PROPERTY:JavaScriptCore,INCLUDE_DIRECTORIES>
+    )
+
+    # The corpse support mya uses lives in the tools static library.
+    set(mya_LIBRARIES JavaScriptCoreTools edit)
+endif ()
+
+WEBKIT_EXECUTABLE_DECLARE(jsc)
+
+if (USE_BUN_JSC_ADDITIONS)
+    # bun:ffi (JSC FFI) C++ unit / ABI test executable, modeled on the
+    # testmasm_* variables below. Build and run it with:
+    #     ninja testFFI && ./bin/testFFI
+    # Unlike testmasm this is NOT additionally gated on DEVELOPER_MODE: the
+    # standard `bun build.ts debug` configuration never enables DEVELOPER_MODE,
+    # and testFFI must build from that same build directory. build.ts and the
+    # release scripts build it alongside jsc and ship it in the artifact's bin/.
+    # The native test fixtures (ffi/tests/FFITestFixtures.cpp) are NOT compiled
+    # here: they live in libJavaScriptCore itself (Sources.txt) so that
+    # $vm.ffiFixture in tools/JSDollarVM.cpp can link, and testFFI reaches them
+    # through the framework it links.
+    # FFI-SPEC-GAP: the target is gated on USE_BUN_JSC_ADDITIONS because
+    # testFFI.cpp compiles to nothing (no main) without the feature.
+    set(testFFI_SOURCES ../ffi/tests/testFFI.cpp)
+    set(testFFI_DEFINITIONS ${jsc_PRIVATE_DEFINITIONS})
+    set(testFFI_PRIVATE_INCLUDE_DIRECTORIES ${jsc_PRIVATE_INCLUDE_DIRECTORIES})
+    set(testFFI_FRAMEWORKS ${jsc_FRAMEWORKS})
+    set(testFFI_LIBRARIES ${CMAKE_DL_LIBS})
+    if (WIN32)
+        list(APPEND testFFI_LIBRARIES Winmm)
+    endif ()
+    if (USE_EXTERNAL_MIMALLOC)
+        # Same as jsc above: the shipped static archives leave mi_* unresolved
+        # under USE_EXTERNAL_MIMALLOC, so any executable that links the
+        # framework must supply the vendored mimalloc objects itself.
+        list(APPEND testFFI_LIBRARIES $<TARGET_OBJECTS:mimalloc-obj>)
+    endif ()
+
+    WEBKIT_EXECUTABLE_DECLARE(testFFI)
+endif ()
+
+if (APPLE)
+    WEBKIT_EXECUTABLE_DECLARE(mya)
+endif ()
+
+if (DEVELOPER_MODE)
+    set(testapi_SOURCES
+        ../API/tests/CompareAndSwapTest.cpp
+        ../API/tests/ExecutionTimeLimitTest.cpp
+        ../API/tests/FunctionOverridesTest.cpp
+        ../API/tests/FunctionToStringTests.cpp
+        ../API/tests/GlobalContextWithFinalizerTest.cpp
+        ../API/tests/JSONParseTest.cpp
+        ../API/tests/JSObjectGetProxyTargetTest.cpp
+        ../API/tests/MultithreadedMultiVMExecutionTest.cpp
+        ../API/tests/PingPongStackOverflowTest.cpp
+        ../API/tests/TemporalCoreTest.cpp
+        ../API/tests/TypedArrayCTest.cpp
+        ../API/tests/VMManagerStopTheWorldTest.cpp
+        ../API/tests/testapi.cpp
+    )
+    set(testapi_C_SOURCES
+        ../API/tests/CustomGlobalObjectClassTest.c
+        ../API/tests/testapi.c
+    )
+    set(testapi_DEFINITIONS ${jsc_PRIVATE_DEFINITIONS})
+    set(testapi_PRIVATE_INCLUDE_DIRECTORIES ${jsc_PRIVATE_INCLUDE_DIRECTORIES})
+    set(testapi_FRAMEWORKS ${jsc_FRAMEWORKS})
+
+    set(testmasm_SOURCES ../assembler/testmasm.cpp)
+    set(testmasm_DEFINITIONS ${jsc_PRIVATE_DEFINITIONS})
+    set(testmasm_PRIVATE_INCLUDE_DIRECTORIES ${jsc_PRIVATE_INCLUDE_DIRECTORIES})
+    set(testmasm_FRAMEWORKS ${jsc_FRAMEWORKS})
+
+    # (testFFI is declared above, outside DEVELOPER_MODE; see the comment there.)
+
+    set(testRegExp_SOURCES ../testRegExp.cpp)
+    set(testRegExp_DEFINITIONS ${jsc_PRIVATE_DEFINITIONS})
+    set(testRegExp_PRIVATE_INCLUDE_DIRECTORIES ${jsc_PRIVATE_INCLUDE_DIRECTORIES})
+    set(testRegExp_FRAMEWORKS ${jsc_FRAMEWORKS})
+
+    set(testb3_SOURCES
+        ../b3/testb3_1.cpp
+        ../b3/testb3_2.cpp
+        ../b3/testb3_3.cpp
+        ../b3/testb3_4.cpp
+        ../b3/testb3_5.cpp
+        ../b3/testb3_6.cpp
+        ../b3/testb3_7.cpp
+        ../b3/testb3_8.cpp
+    )
+    set(testb3_DEFINITIONS ${jsc_PRIVATE_DEFINITIONS})
+    set(testb3_PRIVATE_INCLUDE_DIRECTORIES ${jsc_PRIVATE_INCLUDE_DIRECTORIES})
+    set(testb3_FRAMEWORKS ${jsc_FRAMEWORKS})
+
+    set(testair_SOURCES ../b3/air/testair.cpp)
+    set(testair_DEFINITIONS ${jsc_PRIVATE_DEFINITIONS})
+    set(testair_PRIVATE_INCLUDE_DIRECTORIES ${jsc_PRIVATE_INCLUDE_DIRECTORIES})
+    set(testair_FRAMEWORKS ${jsc_FRAMEWORKS})
+
+    set(testdfg_SOURCES ../dfg/testdfg.cpp)
+    set(testdfg_DEFINITIONS ${jsc_PRIVATE_DEFINITIONS})
+    set(testdfg_PRIVATE_INCLUDE_DIRECTORIES ${jsc_PRIVATE_INCLUDE_DIRECTORIES})
+    set(testdfg_FRAMEWORKS ${jsc_FRAMEWORKS})
+
+    # The tools library and its tests are only relevant for Apple platforms.
+    if (APPLE)
+        set(testLibJSCTools_SOURCES
+            ../corpse/tests/CorpseAddressTest.cpp
+            ../corpse/tests/CorpseByteParserTest.cpp
+            ../corpse/tests/CorpseExportsTrieTest.cpp
+            ../corpse/tests/CorpseProcessTest.cpp
+            ../corpse/tests/CorpseRegionTest.cpp
+            ../corpse/tests/CorpseSnapshotTest.cpp
+            ../corpse/tests/CorpseSymbolTest.cpp
+            ../corpse/tests/CorpseThreadTest.cpp
+            ../corpse/tests/LibJSCToolsTestUtilities.cpp
+            ../corpse/tests/testLibJSCTools.cpp
+        )
+        set(testLibJSCTools_DEFINITIONS ${jsc_PRIVATE_DEFINITIONS})
+        set(testLibJSCTools_PRIVATE_INCLUDE_DIRECTORIES
+            ${jsc_PRIVATE_INCLUDE_DIRECTORIES}
+            ${JAVASCRIPTCORE_DIR}/corpse
+        )
+        set(testLibJSCTools_FRAMEWORKS ${jsc_FRAMEWORKS})
+        set(testLibJSCTools_LIBRARIES JavaScriptCoreTools)
+    endif ()
+
+    set(testwasmdebugger_SOURCES
+        ../wasm/debugger/testwasmdebugger.cpp
+
+        ../wasm/debugger/tests/BinaryTests.cpp
+        ../wasm/debugger/tests/ControlFlowTests.cpp
+        ../wasm/debugger/tests/ExecutionHandlerIdleStopTest.cpp
+        ../wasm/debugger/tests/ExecutionHandlerTest.cpp
+        ../wasm/debugger/tests/ExecutionHandlerTestSupport.cpp
+        ../wasm/debugger/tests/ExecutionHandlerVMLifecycleTest.cpp
+        ../wasm/debugger/tests/ExtGCTests.cpp
+        ../wasm/debugger/tests/GDBPacketParserTest.cpp
+        ../wasm/debugger/tests/MemoryTests.cpp
+        ../wasm/debugger/tests/SpecialTests.cpp
+        ../wasm/debugger/tests/TestScripts.cpp
+        ../wasm/debugger/tests/TestUtilities.cpp
+        ../wasm/debugger/tests/UnaryTests.cpp
+    )
+    set(testwasmdebugger_DEFINITIONS ${jsc_PRIVATE_DEFINITIONS})
+    set(testwasmdebugger_PRIVATE_INCLUDE_DIRECTORIES
+        ${jsc_PRIVATE_INCLUDE_DIRECTORIES}
+        ${JAVASCRIPTCORE_DIR}/wasm/debugger/tests
+    )
+    set(testwasmdebugger_FRAMEWORKS ${jsc_FRAMEWORKS})
+
+    WEBKIT_EXECUTABLE_DECLARE(testapi)
+    WEBKIT_EXECUTABLE_DECLARE(testRegExp)
+    WEBKIT_EXECUTABLE_DECLARE(testmasm)
+    WEBKIT_EXECUTABLE_DECLARE(testb3)
+    WEBKIT_EXECUTABLE_DECLARE(testair)
+    WEBKIT_EXECUTABLE_DECLARE(testdfg)
+    WEBKIT_EXECUTABLE_DECLARE(testwasmdebugger)
+
+    if (APPLE)
+        WEBKIT_EXECUTABLE_DECLARE(testLibJSCTools)
+    endif ()
+
+    if (COMPILER_IS_GCC_OR_CLANG)
+        WEBKIT_ADD_TARGET_CXX_FLAGS(testb3 -Wno-array-bounds)
+        WEBKIT_ADD_TARGET_CXX_FLAGS(testair -Wno-array-bounds)
+        WEBKIT_ADD_TARGET_CXX_FLAGS(testb3 -Wno-error=stack-exhausted)
+    endif ()
+endif ()
+
+WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS()
+
+WEBKIT_EXECUTABLE(jsc)
+set_target_properties(jsc PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+if (USE_BUN_JSC_ADDITIONS)
+    WEBKIT_EXECUTABLE(testFFI)
+endif ()
+
+if (SHOULD_INSTALL_JS_SHELL)
+    install(TARGETS jsc DESTINATION "${LIBEXEC_INSTALL_DIR}")
+endif ()
+
+if (APPLE)
+    WEBKIT_EXECUTABLE(mya)
+
+    if (SHOULD_INSTALL_JS_SHELL)
+        install(TARGETS mya DESTINATION "${LIBEXEC_INSTALL_DIR}")
+    endif ()
+endif ()
+
+if (DEVELOPER_MODE)
+    WEBKIT_EXECUTABLE(testapi)
+    WEBKIT_EXECUTABLE(testRegExp)
+    WEBKIT_EXECUTABLE(testmasm)
+    WEBKIT_EXECUTABLE(testb3)
+    WEBKIT_EXECUTABLE(testair)
+    WEBKIT_EXECUTABLE(testdfg)
+    WEBKIT_EXECUTABLE(testwasmdebugger)
+
+    if (APPLE)
+        WEBKIT_EXECUTABLE(testLibJSCTools)
+    endif ()
+
+    WEBKIT_ADD_PREFIX_HEADER(testapi ../JavaScriptCorePrefix.h PREFIX_NO_CODEGEN PREFIX_LANGUAGES CXX)
+    WEBKIT_REUSE_PREFIX_HEADER(testb3 testapi ../JavaScriptCorePrefix.h PREFIX_LANGUAGES CXX)
+    WEBKIT_REUSE_PREFIX_HEADER(testwasmdebugger testapi ../JavaScriptCorePrefix.h PREFIX_LANGUAGES CXX)
+
+    file(COPY
+        "${JAVASCRIPTCORE_DIR}/API/tests/testapiScripts"
+        DESTINATION
+        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+    )
+endif ()
