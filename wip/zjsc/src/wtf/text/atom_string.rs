@@ -216,6 +216,11 @@ impl AtomString {
         AtomString::from_latin1(number.to_string().as_bytes())
     }
 
+    /// `AtomString::number(double)`: o `numberToStringAndSize` (dtoa).
+    pub fn number_f64(number: f64) -> AtomString {
+        AtomString::from_string_owned(WtfString::number_f64(number))
+    }
+
     /// `contains(char16_t)`.
     pub fn contains_char(&self, character: u16) -> bool {
         self.find_char(character, 0) != NOT_FOUND

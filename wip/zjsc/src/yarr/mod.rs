@@ -7,3 +7,4 @@ pub mod yarr_pattern;
 pub mod unicode_pattern_tables;
 pub mod yarr_parser;
 pub mod yarr_unicode_properties;
+pub mod yarr_syntax_checker;

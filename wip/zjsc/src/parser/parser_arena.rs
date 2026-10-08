@@ -21,7 +21,7 @@ use std::rc::Rc;
 
 use crate::runtime::identifier::Identifier;
 use crate::runtime::js_big_int::{ErrorParseMode, JSBigInt, ParseIntSign};
-use crate::runtime::math_common::try_convert_to_strict_int32;
+use crate::wtf::math_extras::try_convert_to_strict_int32;
 use crate::runtime::vm::{DeferTermination, TopExceptionScope, VM};
 use crate::wtf::text::string_impl::{CharType, StringImpl};
 
@@ -72,31 +72,31 @@ impl IdentifierArena {
         }
         let front = characters[0].to_u16() as usize;
         if front >= MAXIMUM_CACHABLE_CHARACTER {
-            let index = self.append(Identifier::from_string(vm, characters));
+            let index = self.append(Identifier::from_span(vm, characters));
             return self.identifiers[index].clone();
         }
         if characters.len() == 1 {
             if let Some(index) = self.short_identifiers[front] {
                 return self.identifiers[index].clone();
             }
-            let index = self.append(Identifier::from_string(vm, characters));
+            let index = self.append(Identifier::from_span(vm, characters));
             self.short_identifiers[front] = Some(index);
             return self.identifiers[index].clone();
         }
         if let Some(index) = self.recent_identifiers[front] {
-            if Identifier::equal(self.identifiers[index].r#impl(), characters) {
+            if Identifier::equal(self.identifiers[index].impl_(), characters) {
                 return self.identifiers[index].clone();
             }
         }
-        let index = self.append(Identifier::from_string(vm, characters));
+        let index = self.append(Identifier::from_span(vm, characters));
         self.recent_identifiers[front] = Some(index);
         self.identifiers[index].clone()
     }
 
     /// `makeIdentifier(VM&, SymbolImpl*)`.
-    pub fn make_symbol_identifier(&mut self, symbol: &Rc<StringImpl>) -> Identifier {
+    pub fn make_symbol_identifier(&mut self, symbol: &Identifier) -> Identifier {
         debug_assert!(symbol.is_symbol());
-        let index = self.append(Identifier::from_uid(symbol));
+        let index = self.append(symbol.clone());
         self.identifiers[index].clone()
     }
 
@@ -120,12 +120,12 @@ impl IdentifierArena {
             if let Some(index) = self.short_identifiers[front] {
                 return self.identifiers[index].clone();
             }
-            let index = self.append(Identifier::from_string(vm, characters));
+            let index = self.append(Identifier::from_span(vm, characters));
             self.short_identifiers[front] = Some(index);
             return self.identifiers[index].clone();
         }
         if let Some(index) = self.recent_identifiers[front] {
-            if Identifier::equal(self.identifiers[index].r#impl(), characters) {
+            if Identifier::equal(self.identifiers[index].impl_(), characters) {
                 return self.identifiers[index].clone();
             }
         }
@@ -137,7 +137,7 @@ impl IdentifierArena {
     /// `makeNumericIdentifier(VM&, double)`.
     pub fn make_numeric_identifier(&mut self, vm: &VM, number: f64) -> Identifier {
         let token = match try_convert_to_strict_int32(number) {
-            Some(int32_value) => Identifier::from_int32(vm, int32_value),
+            Some(int32_value) => Identifier::from_i32(vm, int32_value),
             None => Identifier::from_double(vm, number),
         };
         let index = self.append(token);
@@ -169,7 +169,7 @@ impl IdentifierArena {
         // `USE(BIGINT32)` é 0 em PlatformUse.h, então só existe o caminho do BigInt no heap.
         let heap_big_int = big_int.as_heap_big_int();
 
-        let index = self.append(Identifier::from_wtf_string(vm, JSBigInt::try_get_string(vm, heap_big_int, 10)));
+        let index = self.append(Identifier::from_string(vm, &JSBigInt::try_get_string(vm, heap_big_int, 10)));
         Some(self.identifiers[index].clone())
     }
 
@@ -177,7 +177,7 @@ impl IdentifierArena {
     pub fn make_private_identifier(&mut self, vm: &VM, prefix: &str, identifier: u32) -> Identifier {
         let symbol_name = format!("{}{}", prefix, identifier);
         let symbol = vm.private_symbol_registry().symbol_for_key(&StringImpl::create(symbol_name.as_bytes()));
-        let index = self.append(Identifier::from_uid(&symbol));
+        let index = self.append(Identifier::from_uid_symbol(&symbol));
         self.identifiers[index].clone()
     }
 }

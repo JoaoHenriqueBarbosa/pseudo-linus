@@ -67,4 +67,4 @@ UTF8ConversionError e ConversionMode duplicados em string_impl e wtf_string; U16
   depois a célula inteira.
 - URLParser da WTF (o `wtf/url.rs` atual é parcial, não canoniza).
 - VM: `DeferTermination`, `TopExceptionScope`.
-- YarrUnicodeProperties + tabelas geradas (`derived/JavaScriptCore/yarr/UnicodePatternTables.h`).
+- FEITO (0fe4fc19): YarrUnicodeProperties, tabelas por `scripts/gen-yarr-unicode-tables.py`. Na roda: StringView, ParseInt+Math, StringBuilder, CommonIdentifiers+BuiltinNames, JSBigInt fatia 1.

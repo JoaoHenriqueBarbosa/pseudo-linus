@@ -26,8 +26,13 @@ pub type LChar = u8;
 /// `char16_t`.
 pub type UChar = u16;
 
-/// Posição "não encontrado" de `StringCommon.h` (`notFound`).
-const NOT_FOUND: usize = usize::MAX;
+use crate::wtf::text::string_common::{
+    characters_are_all_ascii, equal_prefix, find_inner, reverse_find_inner, unit, NOT_FOUND,
+};
+/// `WTF::find` e `WTF::reverseFind` de `StringCommon.h` vivem em `string_common`; os caminhos
+/// antigos continuam valendo.
+pub use crate::wtf::text::string_common::{find, reverse_find, reverse_find_16_latin1, reverse_find_8_char16};
+use crate::wtf::text::string_view::{with_view, with_views, StringView, StringViewData};
 
 /// Valor de `sizeof(StringImpl)` do C++ em x86_64 (refCount 4, length 4, ponteiro 8, hashAndFlags 4,
 /// com alinhamento 8). Entra só no cálculo de `is_valid_length` e dos limites de substring.
@@ -59,6 +64,12 @@ pub trait CharType: Copy + Into<u32> + Eq + Ord + 'static {
 
     /// `StringImpl::create(std::span<const CharacterType>)`.
     fn create(characters: &[Self]) -> Rc<StringImpl>;
+
+    /// `StringView::span<CharacterType>()`.
+    fn view_span<'a>(view: StringView<'a>) -> &'a [Self];
+
+    /// `StringView(std::span<const CharacterType>)`.
+    fn make_view<'a>(span: &'a [Self]) -> StringView<'a>;
 }
 
 impl CharType for u8 {
@@ -79,6 +90,14 @@ impl CharType for u8 {
     fn create(characters: &[u8]) -> Rc<StringImpl> {
         StringImpl::create(characters)
     }
+
+    fn view_span<'a>(view: StringView<'a>) -> &'a [u8] {
+        view.span8()
+    }
+
+    fn make_view<'a>(span: &'a [u8]) -> StringView<'a> {
+        StringView::from(span)
+    }
 }
 
 impl CharType for u16 {
@@ -98,6 +117,14 @@ impl CharType for u16 {
 
     fn create(characters: &[u16]) -> Rc<StringImpl> {
         StringImpl::create16(characters)
+    }
+
+    fn view_span<'a>(view: StringView<'a>) -> &'a [u16] {
+        view.span16()
+    }
+
+    fn make_view<'a>(span: &'a [u16]) -> StringView<'a> {
+        StringView::from(span)
     }
 }
 
@@ -567,8 +594,8 @@ impl StringImpl {
 
     pub fn contains_only_ascii(&self) -> bool {
         match &self.data {
-            StringData::Latin1(data) => data.is_ascii(),
-            StringData::Utf16(data) => data.iter().all(|c| *c <= 0x7F),
+            StringData::Latin1(data) => characters_are_all_ascii(&data[..]),
+            StringData::Utf16(data) => characters_are_all_ascii(&data[..]),
         }
     }
 
@@ -643,7 +670,7 @@ pub enum CaseConvertType {
 
 /// `U16_IS_SINGLE(c)`: a unidade não é substituta. As macros do ICU de `utf8_conversion.rs` são
 /// privadas daquele módulo, então estas duas vivem aqui.
-fn u16_is_single(c: u16) -> bool {
+pub(crate) fn u16_is_single(c: u16) -> bool {
     (c as u32 & 0xFFFF_F800) != 0xD800
 }
 
@@ -1308,18 +1335,6 @@ pub fn contains_only<T: CharType>(characters: &[T], is_special_character: fn(u16
     characters.iter().all(|c| is_special_character(c.to_u16()))
 }
 
-/// `WTF::find(span, matchFunction, start)`.
-pub fn find<T: CharType>(characters: &[T], match_function: impl Fn(u16) -> bool, start: usize) -> usize {
-    let mut start = start;
-    while start < characters.len() {
-        if match_function(characters[start].to_u16()) {
-            return start;
-        }
-        start += 1;
-    }
-    NOT_FOUND
-}
-
 /// `WTF::reverseFindLineTerminator`.
 pub fn reverse_find_line_terminator<T: CharType>(characters: &[T], start: usize) -> usize {
     if characters.is_empty() {
@@ -1338,35 +1353,6 @@ pub fn reverse_find_line_terminator<T: CharType>(characters: &[T], start: usize)
         character = characters[start].into();
     }
     start
-}
-
-/// `WTF::reverseFind(span, matchCharacter, start)`; `start` padrão no C++ é `MaxLength`.
-pub fn reverse_find<T: CharType>(characters: &[T], match_character: T, start: usize) -> usize {
-    if characters.is_empty() {
-        return NOT_FOUND;
-    }
-    let mut start = start;
-    if start >= characters.len() {
-        start = characters.len() - 1;
-    }
-    let search_length = start + 1;
-    match characters[..search_length].iter().rposition(|c| *c == match_character) {
-        Some(index) => index,
-        None => NOT_FOUND,
-    }
-}
-
-/// `WTF::reverseFind(span<const char16_t>, Latin1Character, start)`.
-pub fn reverse_find_16_latin1(characters: &[u16], match_character: u8, start: usize) -> usize {
-    reverse_find(characters, match_character as u16, start)
-}
-
-/// `WTF::reverseFind(span<const Latin1Character>, char16_t, start)`.
-pub fn reverse_find_8_char16(characters: &[u8], match_character: u16, start: usize) -> usize {
-    if match_character > 0xFF {
-        return NOT_FOUND;
-    }
-    reverse_find(characters, match_character as u8, start)
 }
 
 /// `WTF::codePointCompare`: ordem lexicográfica por unidade de código, depois por tamanho.
@@ -1677,74 +1663,6 @@ pub enum ConversionMode {
     StrictConversionReplacingUnpairedSurrogatesWithFFFD,
 }
 
-/// O papel de `StringView` nos parâmetros: uma fatia Latin1 ou UTF-16. A `StringView` nula do C++
-/// (`!view`) é o `None` de um `Option<StringSpan>`; a vazia não nula é uma fatia de comprimento 0.
-/// Quando o módulo `string_view` existir, este tipo se move para lá.
-#[derive(Clone, Copy, Debug)]
-pub enum StringSpan<'a> {
-    Latin1(&'a [u8]),
-    Utf16(&'a [u16]),
-}
-
-impl<'a> StringSpan<'a> {
-    /// `StringView(const StringImpl&)`.
-    pub fn of(string: &'a StringImpl) -> StringSpan<'a> {
-        match &string.data {
-            StringData::Latin1(data) => StringSpan::Latin1(data),
-            StringData::Utf16(data) => StringSpan::Utf16(data),
-        }
-    }
-
-    /// `StringView::length()`.
-    pub fn length(&self) -> usize {
-        match self {
-            StringSpan::Latin1(data) => data.len(),
-            StringSpan::Utf16(data) => data.len(),
-        }
-    }
-
-    /// `StringView::is8Bit()`.
-    pub fn is_8bit(&self) -> bool {
-        matches!(self, StringSpan::Latin1(_))
-    }
-
-    /// `StringView::operator[]`.
-    pub fn char_at(&self, i: usize) -> u16 {
-        match self {
-            StringSpan::Latin1(data) => data[i] as u16,
-            StringSpan::Utf16(data) => data[i],
-        }
-    }
-}
-
-/// Executa `$body` com `$x` ligado à fatia tipada (`&[u8]` ou `&[u16]`) de um `StringSpan`: o
-/// equivalente dos `if (is8Bit()) ... else ...` do C++ sobre `span8()`/`span16()`.
-macro_rules! with_span {
-    ($span:expr, |$x:ident| $body:expr) => {
-        match $span {
-            StringSpan::Latin1($x) => $body,
-            StringSpan::Utf16($x) => $body,
-        }
-    };
-}
-
-/// Como `with_span!`, para o par de fatias dos quatro casos (8/8, 8/16, 16/8, 16/16) do C++.
-macro_rules! with_spans {
-    ($a:expr, $b:expr, |$x:ident, $y:ident| $body:expr) => {
-        match ($a, $b) {
-            (StringSpan::Latin1($x), StringSpan::Latin1($y)) => $body,
-            (StringSpan::Latin1($x), StringSpan::Utf16($y)) => $body,
-            (StringSpan::Utf16($x), StringSpan::Latin1($y)) => $body,
-            (StringSpan::Utf16($x), StringSpan::Utf16($y)) => $body,
-        }
-    };
-}
-
-/// A unidade de código como inteiro (a promoção implícita do C++).
-fn unit<T: CharType>(character: T) -> u32 {
-    character.into()
-}
-
 /// `isLatin1(char16_t)`.
 fn is_latin1(character: u16) -> bool {
     character <= 0xFF
@@ -1757,90 +1675,11 @@ fn is_valid_capacity_for_vector_u8(capacity: usize) -> bool {
 
 /// `copyCharacters` entre larguras quaisquer: iguais copiam, 8 para 16 alarga, 16 para 8 estreita
 /// (o chamador garantiu Latin1). Cobre as quatro sobrecargas de `StringImpl::copyCharacters`.
-fn copy_characters_convert<D: CharType, T: CharType>(destination: &mut [D], source: &[T]) {
+pub(crate) fn copy_characters_convert<D: CharType, T: CharType>(destination: &mut [D], source: &[T]) {
     debug_assert!(destination.len() >= source.len());
     for (to, from) in destination.iter_mut().zip(source) {
         *to = D::from_u16(from.to_u16());
     }
-}
-
-/// `equal(const CharacterType* a, std::span<const CharacterType> b)` e as versões de larguras
-/// mistas de `StringCommon.h`: compara os `b.len()` primeiros elementos de `a`.
-fn equal_prefix<A: CharType, B: CharType>(a: &[A], b: &[B]) -> bool {
-    a.len() >= b.len() && a.iter().zip(b).all(|(x, y)| unit(*x) == unit(*y))
-}
-
-/// `equalIgnoringASCIICaseWithLength` (o laço escalar; o caminho SIMD dá o mesmo resultado).
-fn equal_ignoring_ascii_case_with_length<A: CharType, B: CharType>(a: &[A], b: &[B], length_to_check: usize) -> bool {
-    debug_assert!(a.len() >= length_to_check);
-    debug_assert!(b.len() >= length_to_check);
-    (0..length_to_check).all(|i| to_ascii_lower(a[i].to_u16()) == to_ascii_lower(b[i].to_u16()))
-}
-
-/// `findIgnoringASCIICase(std::span, std::span, startOffset)`.
-fn find_ignoring_ascii_case_spans<S: CharType, M: CharType>(source: &[S], match_characters: &[M], start_offset: usize) -> usize {
-    let mut offset = start_offset;
-    while offset <= source.len() && source.len() - offset >= match_characters.len() {
-        if equal_ignoring_ascii_case_with_length(&source[offset..], match_characters, match_characters.len()) {
-            return offset;
-        }
-        offset += 1;
-    }
-    NOT_FOUND
-}
-
-/// `findInner`: soma corrente dos caracteres, só chama `equal` quando as somas coincidem.
-fn find_inner<S: CharType, M: CharType>(search_characters: &[S], match_characters: &[M], index: usize) -> usize {
-    // delta is the number of additional times to test; delta == 0 means test only once.
-    let delta = search_characters.len() - match_characters.len();
-
-    let mut search_hash: u32 = 0;
-    let mut match_hash: u32 = 0;
-
-    for i in 0..match_characters.len() {
-        search_hash = search_hash.wrapping_add(unit(search_characters[i]));
-        match_hash = match_hash.wrapping_add(unit(match_characters[i]));
-    }
-
-    let mut i = 0;
-    // keep looping until we match
-    while search_hash != match_hash || !equal_prefix(&search_characters[i..], match_characters) {
-        if i == delta {
-            return NOT_FOUND;
-        }
-        search_hash = search_hash.wrapping_add(unit(search_characters[i + match_characters.len()]));
-        search_hash = search_hash.wrapping_sub(unit(search_characters[i]));
-        i += 1;
-    }
-    index + i
-}
-
-/// `reverseFindInner`.
-fn reverse_find_inner<S: CharType, M: CharType>(search_characters: &[S], match_characters: &[M], start: usize) -> usize {
-    if search_characters.len() < match_characters.len() {
-        return NOT_FOUND;
-    }
-
-    // delta is the number of additional times to test; delta == 0 means test only once.
-    let mut delta = std::cmp::min(start, search_characters.len() - match_characters.len());
-
-    let mut search_hash: u32 = 0;
-    let mut match_hash: u32 = 0;
-    for i in 0..match_characters.len() {
-        search_hash = search_hash.wrapping_add(unit(search_characters[delta + i]));
-        match_hash = match_hash.wrapping_add(unit(match_characters[i]));
-    }
-
-    // keep looping until we match
-    while search_hash != match_hash || !equal_prefix(&search_characters[delta..], match_characters) {
-        if delta == 0 {
-            return NOT_FOUND;
-        }
-        delta -= 1;
-        search_hash = search_hash.wrapping_sub(unit(search_characters[delta + match_characters.len()]));
-        search_hash = search_hash.wrapping_add(unit(search_characters[delta]));
-    }
-    delta
 }
 
 /// O `findWithHash` do `StringImpl::find(std::span<const Latin1Character>, size_t)`: hash de
@@ -1873,113 +1712,10 @@ fn find_with_hash<S: CharType>(search_characters: &[S], match_string: &[u8], del
     NOT_FOUND
 }
 
-/// `findCommon(StringView haystack, StringView needle, unsigned start)` de `StringView.h`.
-fn find_common(haystack: StringSpan, needle: StringSpan, start: u32) -> usize {
-    let start = start as usize;
-    let needle_length = needle.length();
-
-    if needle_length == 1 {
-        let first_character = needle.char_at(0);
-        return with_span!(haystack, |h| find(h, |c| c == first_character, start));
-    }
-
-    if start > haystack.length() {
-        return NOT_FOUND;
-    }
-
-    if needle_length == 0 {
-        return start;
-    }
-
-    let search_length = haystack.length() - start;
-    if needle_length > search_length {
-        return NOT_FOUND;
-    }
-
-    with_spans!(haystack, needle, |h, n| find_inner(&h[start..], n, start))
-}
-
-/// `findIgnoringASCIICase(StringView source, StringView stringToFind, unsigned start)`.
-fn find_ignoring_ascii_case_common(source: StringSpan, string_to_find: StringSpan, start: u32) -> usize {
-    let start = start as usize;
-    let source_string_length = source.length();
-    let match_length = string_to_find.length();
-    if match_length == 0 {
-        return std::cmp::min(start, source_string_length);
-    }
-
-    // Check start & matchLength are in range.
-    if start > source_string_length {
-        return NOT_FOUND;
-    }
-    let search_length = source_string_length - start;
-    if match_length > search_length {
-        return NOT_FOUND;
-    }
-
-    with_spans!(source, string_to_find, |s, m| find_ignoring_ascii_case_spans(s, m, start))
-}
-
-/// `startsWith(StringView reference, StringView prefix)`.
-fn starts_with_common(reference: StringSpan, prefix: StringSpan) -> bool {
-    if prefix.length() > reference.length() {
-        return false;
-    }
-    with_spans!(reference, prefix, |r, p| equal_prefix(r, p))
-}
-
-/// `startsWithIgnoringASCIICase(StringView reference, StringView prefix)`.
-fn starts_with_ignoring_ascii_case_common(reference: StringSpan, prefix: StringSpan) -> bool {
-    if prefix.length() > reference.length() {
-        return false;
-    }
-    with_spans!(reference, prefix, |r, p| equal_ignoring_ascii_case_with_length(r, p, prefix.length()))
-}
-
-/// `endsWith(StringView reference, StringView suffix)`.
-fn ends_with_common(reference: StringSpan, suffix: StringSpan) -> bool {
-    let suffix_length = suffix.length();
-    let reference_length = reference.length();
-    if suffix_length > reference_length {
-        return false;
-    }
-
-    let start_offset = reference_length - suffix_length;
-    with_spans!(reference, suffix, |r, s| equal_prefix(&r[start_offset..], s))
-}
-
-/// `endsWithIgnoringASCIICase(StringView reference, StringView suffix)`.
-fn ends_with_ignoring_ascii_case_common(reference: StringSpan, suffix: StringSpan) -> bool {
-    let suffix_length = suffix.length();
-    let reference_length = reference.length();
-    if suffix_length > reference_length {
-        return false;
-    }
-
-    let start_offset = reference_length - suffix_length;
-    with_spans!(reference, suffix, |r, s| equal_ignoring_ascii_case_with_length(&r[start_offset..], s, suffix_length))
-}
-
-/// `equalCommon(const StringClassA&, const StringClassB&)`: comprimento e depois os caracteres.
-fn equal_common(a: StringSpan, b: StringSpan) -> bool {
-    if a.length() != b.length() {
-        return false;
-    }
-    with_spans!(a, b, |x, y| equal_prefix(x, y))
-}
-
-/// `equalIgnoringASCIICaseCommon(const StringClassA&, const StringClassB&)`.
-fn equal_ignoring_ascii_case_common(a: StringSpan, b: StringSpan) -> bool {
-    if a.length() != b.length() {
-        return false;
-    }
-    with_spans!(a, b, |x, y| equal_ignoring_ascii_case_with_length(x, y, b.length()))
-}
-
 /// O `equalInner(const StringImpl&, unsigned, StringView)` do `.cpp` (as verificações de faixa
 /// são em `unsigned`, como no C++).
-fn equal_inner_view(string: &StringImpl, start: u32, match_string: StringSpan) -> bool {
-    let match_length = match_string.length() as u32;
+fn equal_inner_view(string: &StringImpl, start: u32, match_string: StringView) -> bool {
+    let match_length = match_string.length();
     if start > string.length() {
         return false;
     }
@@ -1990,7 +1726,7 @@ fn equal_inner_view(string: &StringImpl, start: u32, match_string: StringSpan) -
         return false;
     }
 
-    with_spans!(StringSpan::of(string), match_string, |s, m| equal_prefix(&s[start as usize..], m))
+    with_views!(StringView::from(string), match_string, |s, m| equal_prefix(&s[start as usize..], m))
 }
 
 /// O `equalInner(const StringImpl&, unsigned, std::span<const char>)` do `.cpp`.
@@ -1998,7 +1734,7 @@ fn equal_inner_bytes(string: &StringImpl, start: u32, match_string: &[u8]) -> bo
     debug_assert!(match_string.len() <= string.length() as usize);
     debug_assert!(start as usize + match_string.len() <= string.length() as usize);
 
-    with_span!(StringSpan::of(string), |s| equal_prefix(&s[start as usize..], match_string))
+    with_view!(StringView::from(string), |s| equal_prefix(&s[start as usize..], match_string))
 }
 
 /// O gerador do corpo de `replace(...)`: copia, para cada ocorrência, o trecho de origem antes
@@ -2104,7 +1840,7 @@ pub fn equal(a: &StringImpl, b: &StringImpl) -> bool {
     if a_hash != b_hash && a_hash != 0 && b_hash != 0 {
         return false;
     }
-    equal_common(StringSpan::of(a), StringSpan::of(b))
+    crate::wtf::text::string_view::equal(StringView::from(a), StringView::from(b))
 }
 
 /// `equal(const StringImpl*, const StringImpl*)`: `equalCommon` sobre ponteiros.
@@ -2134,7 +1870,7 @@ pub fn equal_span<T: CharType>(a: Option<&StringImpl>, b: Option<&[T]>) -> bool 
     if b.is_empty() {
         return true;
     }
-    with_span!(StringSpan::of(a), |s| equal_prefix(s, b))
+    with_view!(StringView::from(a), |s| equal_prefix(s, b))
 }
 
 /// `equalIgnoringNullity(StringImpl*, StringImpl*)`.
@@ -2171,7 +1907,7 @@ pub fn equal_ignoring_nullity_span16(a: &[u16], b: Option<&StringImpl>) -> bool 
 /// `equalIgnoringASCIICase(const StringImpl&, const StringImpl&)` (inline do cabeçalho, via
 /// `equalIgnoringASCIICaseCommon`).
 pub fn equal_ignoring_ascii_case(a: &StringImpl, b: &StringImpl) -> bool {
-    equal_ignoring_ascii_case_common(StringSpan::of(a), StringSpan::of(b))
+    crate::wtf::text::string_view::equal_ignoring_ascii_case(StringView::from(a), StringView::from(b))
 }
 
 /// `equalIgnoringASCIICase(const StringImpl*, const StringImpl*)`.
@@ -2303,7 +2039,7 @@ impl StringImpl {
 
         // Optimization: keep a running hash of the strings,
         // only call equal if the hashes match.
-        with_span!(StringSpan::of(self), |s| find_with_hash(&s[start..], match_string, delta, start))
+        with_view!(StringView::from(self), |s| find_with_hash(&s[start..], match_string, delta, start))
     }
 
     /// `StringImpl::reverseFind(std::span<const Latin1Character>, size_t start)`.
@@ -2314,21 +2050,20 @@ impl StringImpl {
             return NOT_FOUND;
         }
 
-        with_span!(StringSpan::of(self), |s| reverse_find_inner(s, match_string, start))
+        with_view!(StringView::from(self), |s| reverse_find_inner(s, match_string, start))
     }
 
     /// `StringImpl::find(StringView)`.
-    pub fn find_view(&self, match_string: Option<StringSpan>) -> usize {
+    pub fn find_view(&self, match_string: StringView) -> usize {
         // Check for null string to match against
-        let match_string = match match_string {
-            None => return NOT_FOUND,
-            Some(match_string) => match_string,
-        };
-        let match_length = match_string.length();
+        if match_string.is_null() {
+            return NOT_FOUND;
+        }
+        let match_length = match_string.length() as usize;
 
         // Optimization 1: fast case for strings of length 1.
         if match_length == 1 {
-            return self.find_character(match_string.char_at(0), 0);
+            return self.find_character(match_string.code_unit_at(0), 0);
         }
 
         // Check matchLength is in range.
@@ -2341,33 +2076,30 @@ impl StringImpl {
             return 0;
         }
 
-        with_spans!(StringSpan::of(self), match_string, |s, m| find_inner(s, m, 0))
+        with_views!(StringView::from(self), match_string, |s, m| find_inner(s, m, 0))
     }
 
     /// `StringImpl::find(StringView, size_t start)`. O `start` vira `unsigned` ao chamar o
     /// `findCommon`, como no C++.
-    pub fn find_view_from(&self, match_string: Option<StringSpan>, start: usize) -> usize {
+    pub fn find_view_from(&self, match_string: StringView, start: usize) -> usize {
         // Check for null or empty string to match against
-        match match_string {
-            None => NOT_FOUND,
-            Some(match_string) => find_common(StringSpan::of(self), match_string, start as u32),
+        if match_string.is_null() {
+            return NOT_FOUND;
         }
+        StringView::from(self).find(match_string, start as u32)
     }
 
     /// `StringImpl::findIgnoringASCIICase(StringView)`.
-    pub fn find_ignoring_ascii_case_view(&self, match_string: Option<StringSpan>) -> usize {
-        match match_string {
-            None => NOT_FOUND,
-            Some(match_string) => find_ignoring_ascii_case_common(StringSpan::of(self), match_string, 0),
-        }
+    pub fn find_ignoring_ascii_case_view(&self, match_string: StringView) -> usize {
+        self.find_ignoring_ascii_case_view_from(match_string, 0)
     }
 
     /// `StringImpl::findIgnoringASCIICase(StringView, size_t start)`.
-    pub fn find_ignoring_ascii_case_view_from(&self, match_string: Option<StringSpan>, start: usize) -> usize {
-        match match_string {
-            None => NOT_FOUND,
-            Some(match_string) => find_ignoring_ascii_case_common(StringSpan::of(self), match_string, start as u32),
+    pub fn find_ignoring_ascii_case_view_from(&self, match_string: StringView, start: usize) -> usize {
+        if match_string.is_null() {
+            return NOT_FOUND;
         }
+        StringView::from(self).find_ignoring_ascii_case(match_string, start as u32)
     }
 
     /// `StringImpl::reverseFind(char16_t, size_t start)`; o `start` padrão do C++ é `MaxLength`.
@@ -2379,45 +2111,45 @@ impl StringImpl {
     }
 
     /// `StringImpl::reverseFind(StringView, size_t start)`; o `start` padrão do C++ é `MaxLength`.
-    pub fn reverse_find_view(&self, match_string: Option<StringSpan>, start: usize) -> usize {
+    pub fn reverse_find_view(&self, match_string: StringView, start: usize) -> usize {
         // Check for null or empty string to match against
-        let match_string = match match_string {
-            None => return NOT_FOUND,
-            Some(match_string) => match_string,
-        };
-        if match_string.length() == 0 {
+        if match_string.is_null() {
+            return NOT_FOUND;
+        }
+        let match_length = match_string.length() as usize;
+        if match_length == 0 {
             return std::cmp::min(start, self.length() as usize);
         }
 
         // Optimization 1: fast case for strings of length 1.
-        if match_string.length() == 1 {
-            return self.reverse_find_character(match_string.char_at(0), start);
+        if match_length == 1 {
+            return self.reverse_find_character(match_string.code_unit_at(0), start);
         }
 
         // Check start & matchLength are in range.
-        if match_string.length() > self.length() as usize {
+        if match_length > self.length() as usize {
             return NOT_FOUND;
         }
 
-        with_spans!(StringSpan::of(self), match_string, |s, m| reverse_find_inner(s, m, start))
+        with_views!(StringView::from(self), match_string, |s, m| reverse_find_inner(s, m, start))
     }
 
     // ---- startsWith / endsWith -----------------------------------------------------------
 
     /// `StringImpl::startsWith(StringView)`.
-    pub fn starts_with_view(&self, string: Option<StringSpan>) -> bool {
-        match string {
-            None => true,
-            Some(string) => starts_with_common(StringSpan::of(self), string),
+    pub fn starts_with_view(&self, string: StringView) -> bool {
+        if string.is_null() {
+            return true;
         }
+        StringView::from(self).starts_with(string)
     }
 
     /// `StringImpl::startsWithIgnoringASCIICase(StringView)`.
-    pub fn starts_with_ignoring_ascii_case_view(&self, prefix: Option<StringSpan>) -> bool {
-        match prefix {
-            None => false,
-            Some(prefix) => starts_with_ignoring_ascii_case_common(StringSpan::of(self), prefix),
+    pub fn starts_with_ignoring_ascii_case_view(&self, prefix: StringView) -> bool {
+        if prefix.is_null() {
+            return false;
         }
+        StringView::from(self).starts_with_ignoring_ascii_case(prefix)
     }
 
     /// `StringImpl::startsWith(char16_t)`.
@@ -2432,24 +2164,24 @@ impl StringImpl {
 
     /// `StringImpl::hasInfixStartingAt(StringView, size_t start)`. O `start` vira `unsigned` no
     /// `equalInner`, como no C++.
-    pub fn has_infix_starting_at(&self, match_string: Option<StringSpan>, start: usize) -> bool {
-        equal_inner_view(self, start as u32, match_string.unwrap_or(StringSpan::Latin1(&[])))
+    pub fn has_infix_starting_at(&self, match_string: StringView, start: usize) -> bool {
+        equal_inner_view(self, start as u32, match_string)
     }
 
     /// `StringImpl::endsWith(StringView)`.
-    pub fn ends_with_view(&self, suffix: Option<StringSpan>) -> bool {
-        match suffix {
-            None => false,
-            Some(suffix) => ends_with_common(StringSpan::of(self), suffix),
+    pub fn ends_with_view(&self, suffix: StringView) -> bool {
+        if suffix.is_null() {
+            return false;
         }
+        StringView::from(self).ends_with(suffix)
     }
 
     /// `StringImpl::endsWithIgnoringASCIICase(StringView)`.
-    pub fn ends_with_ignoring_ascii_case_view(&self, suffix: Option<StringSpan>) -> bool {
-        match suffix {
-            None => false,
-            Some(suffix) => ends_with_ignoring_ascii_case_common(StringSpan::of(self), suffix),
+    pub fn ends_with_ignoring_ascii_case_view(&self, suffix: StringView) -> bool {
+        if suffix.is_null() {
+            return false;
         }
+        StringView::from(self).ends_with_ignoring_ascii_case(suffix)
     }
 
     /// `StringImpl::endsWith(char16_t)`.
@@ -2464,9 +2196,9 @@ impl StringImpl {
     }
 
     /// `StringImpl::hasInfixEndingAt(StringView, size_t end)`.
-    pub fn has_infix_ending_at(&self, match_string: Option<StringSpan>, end: usize) -> bool {
-        let match_string = match_string.unwrap_or(StringSpan::Latin1(&[]));
-        end >= match_string.length() && equal_inner_view(self, (end - match_string.length()) as u32, match_string)
+    pub fn has_infix_ending_at(&self, match_string: StringView, end: usize) -> bool {
+        let match_length = match_string.length() as usize;
+        end >= match_length && equal_inner_view(self, (end - match_length) as u32, match_string)
     }
 
     // ---- replace -------------------------------------------------------------------------
@@ -2494,14 +2226,13 @@ impl StringImpl {
         self: &Rc<Self>,
         position: usize,
         length_to_replace: usize,
-        string: Option<StringSpan>,
+        string: StringView,
     ) -> Rc<StringImpl> {
         let length = self.length() as usize;
         let position = std::cmp::min(position, length);
         let length_to_replace = std::cmp::min(length_to_replace, length - position);
         // A `StringView` nula tem comprimento 0 e conta como de 8 bits no teste abaixo.
-        let string = string.unwrap_or(StringSpan::Latin1(&[]));
-        let length_to_insert = string.length();
+        let length_to_insert = string.length() as usize;
         if length_to_replace == 0 && length_to_insert == 0 {
             return Rc::clone(self);
         }
@@ -2513,7 +2244,7 @@ impl StringImpl {
 
         let new_length = length - length_to_replace + length_to_insert;
         let both_8bit = self.is_8bit() && string.is_8bit();
-        with_spans!(StringSpan::of(self), string, |source, insert| {
+        with_views!(StringView::from(&**self), string, |source, insert| {
             if both_8bit {
                 replace_range_build::<_, _, u8>(source, insert, position, length_to_replace, new_length)
             } else {
@@ -2523,11 +2254,11 @@ impl StringImpl {
     }
 
     /// `StringImpl::replace(char16_t pattern, StringView replacement)`.
-    pub fn replace_character_with_view(self: &Rc<Self>, pattern: u16, replacement: Option<StringSpan>) -> Rc<StringImpl> {
-        match replacement {
-            None => Rc::clone(self),
-            Some(StringSpan::Latin1(replacement)) => self.replace_character_with_span(pattern, replacement),
-            Some(StringSpan::Utf16(replacement)) => self.replace_character_with_span(pattern, replacement),
+    pub fn replace_character_with_view(self: &Rc<Self>, pattern: u16, replacement: StringView) -> Rc<StringImpl> {
+        match replacement.data() {
+            StringViewData::Null => Rc::clone(self),
+            StringViewData::Latin1(replacement) => self.replace_character_with_span(pattern, replacement),
+            StringViewData::Utf16(replacement) => self.replace_character_with_span(pattern, replacement),
         }
     }
 
@@ -2569,7 +2300,7 @@ impl StringImpl {
 
         let both_8bit = self.is_8bit() && R::SIZE == 1;
         let find_next = |start: usize| self.find_character(pattern, start);
-        with_span!(StringSpan::of(self), |source| {
+        with_view!(StringView::from(&**self), |source| {
             if both_8bit {
                 replace_segments_build::<_, _, u8>(source, replacement, new_size, 1, find_next)
             } else {
@@ -2579,28 +2310,23 @@ impl StringImpl {
     }
 
     /// `StringImpl::replace(StringView pattern, StringView replacement)`.
-    pub fn replace_view(
-        self: &Rc<Self>,
-        pattern: Option<StringSpan>,
-        replacement: Option<StringSpan>,
-    ) -> Rc<StringImpl> {
-        let (pattern, replacement) = match (pattern, replacement) {
-            (Some(pattern), Some(replacement)) => (pattern, replacement),
-            _ => return Rc::clone(self),
-        };
+    pub fn replace_view(self: &Rc<Self>, pattern: StringView, replacement: StringView) -> Rc<StringImpl> {
+        if pattern.is_null() || replacement.is_null() {
+            return Rc::clone(self);
+        }
 
-        let pattern_length = pattern.length() as u32;
+        let pattern_length = pattern.length();
         if pattern_length == 0 {
             return Rc::clone(self);
         }
 
-        let rep_str_length = replacement.length() as u32;
+        let rep_str_length = replacement.length();
         let mut src_segment_start = 0usize;
         let mut match_count: u32 = 0;
 
         // Count the matches.
         loop {
-            src_segment_start = self.find_view_from(Some(pattern), src_segment_start);
+            src_segment_start = self.find_view_from(pattern, src_segment_start);
             if src_segment_start == NOT_FOUND {
                 break;
             }
@@ -2632,8 +2358,8 @@ impl StringImpl {
         // 3. This is 8 bit and replacement is 16 bit.
         // 4. This is 16 bit and replacement is 8 bit.
         let both_8bit = self.is_8bit() && replacement.is_8bit();
-        let find_next = |start: usize| self.find_view_from(Some(pattern), start);
-        with_spans!(StringSpan::of(self), replacement, |source, replacement_span| {
+        let find_next = |start: usize| self.find_view_from(pattern, start);
+        with_views!(StringView::from(&**self), replacement, |source, replacement_span| {
             if both_8bit {
                 replace_segments_build::<_, _, u8>(
                     source,
@@ -2844,8 +2570,13 @@ impl StringImpl {
 mod cpp_tests2 {
     use super::*;
 
-    fn latin1(bytes: &[u8]) -> Option<StringSpan<'_>> {
-        Some(StringSpan::Latin1(bytes))
+    fn latin1(bytes: &[u8]) -> StringView<'_> {
+        StringView::from(bytes)
+    }
+
+    /// A `StringView` de dados UTF-16.
+    fn utf16(units: &[u16]) -> StringView<'_> {
+        StringView::from(units)
     }
 
     /// O `StringImpl*` não nulo a partir do `Rc`.
@@ -2889,22 +2620,22 @@ mod cpp_tests2 {
         assert_eq!(wide.find_latin1_span(b"ab", 0), 1);
 
         let hello = StringImpl::create(b"hello world");
-        assert_eq!(hello.find_view(Some(StringSpan::Utf16(&[0x6F, 0x20, 0x77]))), 4);
-        assert_eq!(hello.find_view(None), NOT_FOUND);
+        assert_eq!(hello.find_view(utf16(&[0x6F, 0x20, 0x77])), 4);
+        assert_eq!(hello.find_view(StringView::new()), NOT_FOUND);
         assert_eq!(hello.find_view(latin1(b"")), 0);
         assert_eq!(hello.find_view(latin1(b"w")), 6);
-        assert_eq!(hello.find_view(Some(StringSpan::Utf16(&[0x20AC]))), NOT_FOUND);
+        assert_eq!(hello.find_view(utf16(&[0x20AC])), NOT_FOUND);
         assert_eq!(hello.find_view(latin1(b"hello world!")), NOT_FOUND);
         assert_eq!(hello.find_view_from(latin1(b"o"), 5), 7);
         assert_eq!(hello.find_view_from(latin1(b""), 3), 3);
         assert_eq!(hello.find_view_from(latin1(b"o"), 99), NOT_FOUND);
-        assert_eq!(hello.find_view_from(None, 0), NOT_FOUND);
+        assert_eq!(hello.find_view_from(StringView::new(), 0), NOT_FOUND);
 
         let mixed = StringImpl::create(b"Hello");
         assert_eq!(mixed.find_ignoring_ascii_case_view(latin1(b"LL")), 2);
         assert_eq!(mixed.find_ignoring_ascii_case_view_from(latin1(b"L"), 3), 3);
         assert_eq!(mixed.find_ignoring_ascii_case_view(latin1(b"")), 0);
-        assert_eq!(mixed.find_ignoring_ascii_case_view(None), NOT_FOUND);
+        assert_eq!(mixed.find_ignoring_ascii_case_view(StringView::new()), NOT_FOUND);
         assert_eq!(mixed.find_ignoring_ascii_case_view(latin1(b"xyz")), NOT_FOUND);
     }
 
@@ -2914,27 +2645,27 @@ mod cpp_tests2 {
         assert_eq!(s.reverse_find_view(latin1(b"bc"), usize::MAX), 4);
         assert_eq!(s.reverse_find_view(latin1(b"bc"), 3), 1);
         assert_eq!(s.reverse_find_view(latin1(b""), usize::MAX), 6);
-        assert_eq!(s.reverse_find_view(None, usize::MAX), NOT_FOUND);
+        assert_eq!(s.reverse_find_view(StringView::new(), usize::MAX), NOT_FOUND);
         assert_eq!(s.reverse_find_view(latin1(b"a"), usize::MAX), 3);
         assert_eq!(s.reverse_find_view(latin1(b"abcabcd"), usize::MAX), NOT_FOUND);
         assert_eq!(s.reverse_find_character(0x20AC, usize::MAX), NOT_FOUND);
         assert_eq!(s.reverse_find_character('c' as u16, usize::MAX), 5);
         let wide = StringImpl::create16(&[0x61, 0x20AC, 0x61]);
         assert_eq!(wide.reverse_find_character(0x61, usize::MAX), 2);
-        assert_eq!(wide.reverse_find_view(Some(StringSpan::Utf16(&[0x61, 0x20AC])), usize::MAX), 0);
+        assert_eq!(wide.reverse_find_view(utf16(&[0x61, 0x20AC]), usize::MAX), 0);
     }
 
     #[test]
     fn starts_and_ends_with() {
         let s = StringImpl::create(b"foobar");
         assert!(s.starts_with_view(latin1(b"foo")));
-        assert!(s.starts_with_view(None));
+        assert!(s.starts_with_view(StringView::new()));
         assert!(!s.starts_with_view(latin1(b"bar")));
         assert!(s.ends_with_view(latin1(b"bar")));
-        assert!(!s.ends_with_view(None));
+        assert!(!s.ends_with_view(StringView::new()));
         assert!(!s.ends_with_view(latin1(b"foo")));
         assert!(s.starts_with_ignoring_ascii_case_view(latin1(b"FOO")));
-        assert!(!s.starts_with_ignoring_ascii_case_view(None));
+        assert!(!s.starts_with_ignoring_ascii_case_view(StringView::new()));
         assert!(s.ends_with_ignoring_ascii_case_view(latin1(b"BAR")));
         assert!(s.starts_with_character('f' as u16));
         assert!(s.ends_with_character('r' as u16));
@@ -2948,7 +2679,7 @@ mod cpp_tests2 {
         assert!(s.has_infix_ending_at(latin1(b"oba"), 5));
         assert!(!s.has_infix_ending_at(latin1(b"oba"), 2));
         let wide = StringImpl::create16(&[0x61, 0x20AC, 0x62]);
-        assert!(wide.starts_with_view(Some(StringSpan::Utf16(&[0x61, 0x20AC]))));
+        assert!(wide.starts_with_view(utf16(&[0x61, 0x20AC])));
         assert!(wide.ends_with_view(latin1(b"b")));
     }
 
@@ -2963,28 +2694,28 @@ mod cpp_tests2 {
 
         let hello = StringImpl::create(b"hello");
         assert_eq!(hello.replace_range(1, 3, latin1(b"ipp")).span8(), b"hippo");
-        assert_eq!(hello.replace_range(1, 3, None).span8(), b"ho");
+        assert_eq!(hello.replace_range(1, 3, StringView::new()).span8(), b"ho");
         assert_eq!(hello.replace_range(99, 5, latin1(b"!")).span8(), b"hello!");
-        assert!(Rc::ptr_eq(&hello, &hello.replace_range(2, 0, None)));
-        let widened = hello.replace_range(0, 1, Some(StringSpan::Utf16(&[0x20AC])));
+        assert!(Rc::ptr_eq(&hello, &hello.replace_range(2, 0, StringView::new())));
+        let widened = hello.replace_range(0, 1, utf16(&[0x20AC]));
         assert_eq!(widened.span16(), &[0x20AC, 0x65, 0x6C, 0x6C, 0x6F]);
-        assert!(hello.replace_range(0, 5, None).is_empty());
+        assert!(hello.replace_range(0, 5, StringView::new()).is_empty());
 
         let dots = StringImpl::create(b"a.b.");
         assert_eq!(dots.replace_character_with_span('.' as u16, b"--".as_slice()).span8(), b"a--b--");
         assert_eq!(dots.replace_character_with_span('.' as u16, [0x20ACu16].as_slice()).span16(), &[0x61, 0x20AC, 0x62, 0x20AC]);
         assert_eq!(dots.replace_character_with_span('.' as u16, b"".as_slice()).span8(), b"ab");
         assert!(Rc::ptr_eq(&dots, &dots.replace_character_with_span('z' as u16, b"x".as_slice())));
-        assert!(Rc::ptr_eq(&dots, &dots.replace_character_with_view('.' as u16, None)));
+        assert!(Rc::ptr_eq(&dots, &dots.replace_character_with_view('.' as u16, StringView::new())));
         assert_eq!(dots.replace_character_with_view('.' as u16, latin1(b"!")).span8(), b"a!b!");
 
         let xx = StringImpl::create(b"aXXbXX");
         assert_eq!(xx.replace_view(latin1(b"XX"), latin1(b"-")).span8(), b"a-b-");
         assert_eq!(xx.replace_view(latin1(b"XX"), latin1(b"")).span8(), b"ab");
-        assert_eq!(xx.replace_view(latin1(b"XX"), Some(StringSpan::Utf16(&[0x20AC]))).span16(), &[0x61, 0x20AC, 0x62, 0x20AC]);
+        assert_eq!(xx.replace_view(latin1(b"XX"), utf16(&[0x20AC])).span16(), &[0x61, 0x20AC, 0x62, 0x20AC]);
         assert!(Rc::ptr_eq(&xx, &xx.replace_view(latin1(b""), latin1(b"-"))));
-        assert!(Rc::ptr_eq(&xx, &xx.replace_view(None, latin1(b"-"))));
-        assert!(Rc::ptr_eq(&xx, &xx.replace_view(latin1(b"XX"), None)));
+        assert!(Rc::ptr_eq(&xx, &xx.replace_view(StringView::new(), latin1(b"-"))));
+        assert!(Rc::ptr_eq(&xx, &xx.replace_view(latin1(b"XX"), StringView::new())));
         assert!(Rc::ptr_eq(&xx, &xx.replace_view(latin1(b"YY"), latin1(b"-"))));
         let wide = StringImpl::create16(&[0x20AC, 0x61, 0x61, 0x20AC]);
         assert_eq!(wide.replace_view(latin1(b"aa"), latin1(b"b")).span16(), &[0x20AC, 0x62, 0x20AC]);

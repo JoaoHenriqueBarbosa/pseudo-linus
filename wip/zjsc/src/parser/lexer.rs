@@ -909,7 +909,7 @@ impl<T: CharType> Lexer<T> {
 
         self.line_number = source.first_line().one_based_int();
 
-        let source_string = source.provider().source();
+        let source_string = source.provider().expect("Lexer::set_code: SourceCode sem provider").source();
 
         if !source_string.is_null() {
             self.set_code_start(&source_string);
@@ -1046,9 +1046,9 @@ impl<T: CharType> Lexer<T> {
 
     /// `getToken(const JSToken&)`.
     #[inline(always)]
-    pub fn get_token(&self, token: &JSToken) -> StringView {
+    pub fn get_token(&self, token: &JSToken) -> WtfString {
         let source_provider = match &self.source {
-            Some(source) => source.provider(),
+            Some(source) => source.provider().expect("Lexer::get_token: SourceCode sem provider"),
             None => unreachable!("Lexer::get_token chamado antes de set_code"),
         };
         debug_assert!(token.start_position.offset <= token.end_position.offset, "Calling this function with the baked token.");
@@ -1376,7 +1376,7 @@ impl<T: CharType> Lexer<T> {
         };
         self.internal_shift_by(keyword.word.len());
         if SHOULD_CREATE_IDENTIFIER {
-            data.ident = Some(Identifier::from_latin1(&self.vm, keyword.word));
+            data.ident = Some(Identifier::from_span(&self.vm, keyword.word));
         }
         keyword.token
     }

@@ -17,12 +17,6 @@
 // de erro numérica) são métodos à parte, num segundo bloco `impl` ao fim do arquivo, pela regra DRY.
 
 impl<T: CharType> Lexer<T> {
-    /// `peek(offset)` como `u32`, para comparar com literais de caractere.
-    #[inline(always)]
-    fn peek_u32(&self, offset: i32) -> u32 {
-        self.peek(offset).into()
-    }
-
     /// `U16_GET(m_code + ..., 0, 0, m_codeEnd - ..., codePoint)` a partir de `index`: junta o par
     /// substituto quando o caractere é o primeiro de um par válido; senão devolve a unidade crua.
     fn lexer_code_point_at(&self, index: usize) -> u32 {
@@ -478,7 +472,8 @@ impl<T: CharType> Lexer<T> {
                                 self.set_numeric_literal_error(&mut token, "Non-number found after exponent indicator");
                                 break 'b Label::ReturnError;
                             }
-                            let (value, _parsed_length) = crate::wtf::fast_float::parse_double(&self.buffer8);
+                            let mut _parsed_length: usize = 0;
+                            let value = crate::wtf::fast_float::parse_double(&self.buffer8, &mut _parsed_length);
                             token_record.data.double_value = value;
 
                             if self.finish_decimal_literal(&mut token) {
@@ -694,7 +689,8 @@ impl<T: CharType> Lexer<T> {
                                     self.set_numeric_literal_error(&mut token, "Non-number found after exponent indicator");
                                     break 'b Label::ReturnError;
                                 }
-                                let (value, _parsed_length) = crate::wtf::fast_float::parse_double(&self.buffer8);
+                                let mut _parsed_length: usize = 0;
+                                let value = crate::wtf::fast_float::parse_double(&self.buffer8, &mut _parsed_length);
                                 token_record.data.double_value = value;
                                 if token == INTEGER {
                                     token = token_type_for_integer_like_token(value);
