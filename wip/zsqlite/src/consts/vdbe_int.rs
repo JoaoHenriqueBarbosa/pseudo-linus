@@ -1,0 +1,33 @@
+//! Constantes extraídas de vdbeInt_h (codegen do material de consulta em legacy/).
+#![allow(unused_imports)]
+use super::*;
+pub const SQLITE_MAX_SCHEMA_RETRY: i32 = 25;
+pub const VDBE_DISPLAY_P4: u8 = 1;
+pub const CURTYPE_BTREE: u8 = 0;
+pub const CURTYPE_SORTER: u8 = 1;
+pub const CURTYPE_VTAB: u8 = 2;
+pub const CURTYPE_PSEUDO: u8 = 3;
+pub const CACHE_STALE: u32 = 0;
+pub const SQLITE_FRAME_MAGIC: u32 = 0x879fb71e;
+pub const MEM_UNDEFINED: u16 = 0x0000;
+pub const MEM_NULL: u16 = 0x0001;
+pub const MEM_STR: u16 = 0x0002;
+pub const MEM_INT: u16 = 0x0004;
+pub const MEM_REAL: u16 = 0x0008;
+pub const MEM_BLOB: u16 = 0x0010;
+pub const MEM_INTREAL: u16 = 0x0020;
+pub const MEM_AFFMASK: u16 = 0x003f;
+pub const MEM_FROMBIND: u16 = 0x0040;
+pub const MEM_CLEARED: u16 = 0x0100;
+pub const MEM_TERM: u16 = 0x0200;
+pub const MEM_ZERO: u16 = 0x0400;
+pub const MEM_SUBTYPE: u16 = 0x0800;
+pub const MEM_TYPEMASK: u16 = 0x0dbf;
+pub const MEM_DYN: u16 = 0x1000;
+pub const MEM_STATIC: u16 = 0x2000;
+pub const MEM_EPHEM: u16 = 0x4000;
+pub const MEM_AGG: u16 = 0x8000;
+pub const VDBE_INIT_STATE: u8 = 0;
+pub const VDBE_READY_STATE: u8 = 1;
+pub const VDBE_RUN_STATE: u8 = 2;
+pub const VDBE_HALT_STATE: u8 = 3;

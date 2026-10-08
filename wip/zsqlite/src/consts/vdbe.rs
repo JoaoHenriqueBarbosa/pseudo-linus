@@ -1,0 +1,34 @@
+//! Constantes extraídas de vdbe_h (codegen do material de consulta em legacy/).
+#![allow(unused_imports)]
+use super::*;
+pub const P4_NOTUSED: i8 = 0;
+pub const P4_TRANSIENT: i8 = 0;
+pub const P4_STATIC: i8 = -1;
+pub const P4_COLLSEQ: i8 = -2;
+pub const P4_INT32: i8 = -3;
+pub const P4_SUBPROGRAM: i8 = -4;
+pub const P4_TABLE: i8 = -5;
+pub const P4_FREE_IF_LE: i8 = -6;
+pub const P4_DYNAMIC: i8 = -6;
+pub const P4_FUNCDEF: i8 = -7;
+pub const P4_KEYINFO: i8 = -8;
+pub const P4_EXPR: i8 = -9;
+pub const P4_MEM: i8 = -10;
+pub const P4_VTAB: i8 = -11;
+pub const P4_REAL: i8 = -12;
+pub const P4_INT64: i8 = -13;
+pub const P4_INTARRAY: i8 = -14;
+pub const P4_FUNCCTX: i8 = -15;
+pub const P4_TABLEREF: i8 = -16;
+pub const P5_CONSTRAINTNOTNULL: u16 = 1;
+pub const P5_CONSTRAINTUNIQUE: u16 = 2;
+pub const P5_CONSTRAINTCHECK: u16 = 3;
+pub const P5_CONSTRAINTFK: u16 = 4;
+pub const COLNAME_NAME: i32 = 0;
+pub const COLNAME_DECLTYPE: i32 = 1;
+pub const COLNAME_DATABASE: i32 = 2;
+pub const COLNAME_TABLE: i32 = 3;
+pub const COLNAME_COLUMN: i32 = 4;
+pub const COLNAME_N: i32 = 5;
+pub const SQLITE_PREPARE_SAVESQL: u32 = 0x80;
+pub const SQLITE_PREPARE_MASK: u32 = 0x0f;
