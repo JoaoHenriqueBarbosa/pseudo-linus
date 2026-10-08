@@ -2429,8 +2429,12 @@ impl Vm {
             // (`__class__ = property(...)`, o `spec` do `unittest.mock`) passa pela busca normal.
             "__class__" if inst.class().lookup("__class__").is_none() => return Ok(Value::Class(inst.class())),
             // O shim de um tipo embutido (`memoryview`, `mappingproxy`) não tem `__dict__` nem `__module__` na
-            // instância, como o tipo em C: o `__module__` só existe no tipo (`type.__module__`).
-            "__dict__" | "__module__"
+            // instância, como o tipo em C: o `__module__` só existe no tipo (`type.__module__`). Vale para todo
+            // tipo de módulo C (`sys.flags`, `sys.float_info`).
+            "__module__" if inst.class().emulates_c_type() => {
+                return Err(exc("AttributeError", format!("'{}' object has no attribute '{name}'", inst.class().tp_name())));
+            }
+            "__dict__"
                 if matches!(inst.class().dict.borrow().get("__module__"), Some(Value::Str(m)) if m.as_str() == "builtins") =>
             {
                 return Err(exc("AttributeError", format!("'{}' object has no attribute '{name}'", inst.class().name)));

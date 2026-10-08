@@ -6427,6 +6427,23 @@ True False\n"
     );
 }
 
+/// Instância de tipo de módulo C não tem `__module__` (só o tipo tem), e a mensagem leva o `tp_name`.
+#[test]
+fn c_type_instance_has_no_module() {
+    let src = "\
+import sys
+for o in (sys.flags, sys.float_info, memoryview(b'')):
+    try: o.__module__
+    except AttributeError as e: print(e)
+print(type(sys.flags).__module__)
+";
+    assert_eq!(
+        out(src),
+        "'sys.flags' object has no attribute '__module__'\n'sys.float_info' object has no attribute '__module__'\n\
+         'memoryview' object has no attribute '__module__'\nsys\n"
+    );
+}
+
 /// O parâmetro de tipo da sintaxe da PEP 695 não tem `__module__` próprio (lê o da classe, `typing`); o criado
 /// pelo construtor leva o módulo de quem o chamou (conferido no oráculo).
 #[test]
