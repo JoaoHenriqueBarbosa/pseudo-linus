@@ -21,8 +21,6 @@
 //   usados em nenhum ponto de `Parser.cpp`; ver o relatório (dependem de `Scope::m_isGeneratorFunction`
 //   privado, a classe fica em `parser_cpp2` junto do primeiro uso).
 
-/// `std::atomic<unsigned> globalParseCount { 0 }`.
-pub static GLOBAL_PARSE_COUNT: AtomicU32 = AtomicU32::new(0);
 
 /// Argumento de `logError(shouldPrintToken, args...)`: o que o `PrintStream::print` do C++ aceita
 /// neste arquivo (literais, `String`, `Identifier`, `UniquedStringImpl*`, inteiros).
@@ -88,7 +86,7 @@ macro_rules! log_error {
             $( ParserPrintArg::print_arg(&$arg, &mut out); )+
             out.append_ascii_literal(".");
             let message = out.to_string().clone();
-            $p.set_error_message(message);
+            $p.set_error_message(&message);
         }
     }};
 }
@@ -144,7 +142,7 @@ macro_rules! log_error_unexpected_token {
             let mut out = StringBuilder::new();
             $p.print_unexpected_token_text(&mut out);
             let message = out.to_string().clone();
-            $p.set_error_message(message);
+            $p.set_error_message(&message);
         }
     }};
 }
@@ -315,10 +313,10 @@ macro_rules! handle_production_or_fail2 {
 macro_rules! semantic_failure_due_to_keyword_checking_token {
     ($p:expr, $token:expr, $($arg:expr),+ $(,)?) => {{
         let keyword_token: JSToken = ($token).clone();
-        semantic_fail_if_true!($p, $p.strict_mode() && keyword_token.type_ == RESERVED_IF_STRICT, "Cannot use the reserved word '", $p.get_token(&keyword_token), "' as a ", $($arg,)+ " in strict mode");
-        semantic_fail_if_true!($p, keyword_token.type_ == RESERVED || keyword_token.type_ == RESERVED_IF_STRICT, "Cannot use the reserved word '", $p.get_token(&keyword_token), "' as a ", $($arg),+);
+        semantic_fail_if_true!($p, $p.strict_mode() && keyword_token.type_ == RESERVED_IF_STRICT, "Cannot use the reserved word '", $p.get_token_for(&keyword_token), "' as a ", $($arg,)+ " in strict mode");
+        semantic_fail_if_true!($p, keyword_token.type_ == RESERVED || keyword_token.type_ == RESERVED_IF_STRICT, "Cannot use the reserved word '", $p.get_token_for(&keyword_token), "' as a ", $($arg),+);
         if (keyword_token.type_ & KEYWORD_TOKEN_FLAG) != 0 {
-            semantic_fail_if_false!($p, is_contextual_keyword(&keyword_token), "Cannot use the keyword '", $p.get_token(&keyword_token), "' as a ", $($arg),+);
+            semantic_fail_if_false!($p, is_contextual_keyword(&keyword_token), "Cannot use the keyword '", $p.get_token_for(&keyword_token), "' as a ", $($arg),+);
             semantic_fail_if_true!($p, keyword_token.type_ == LET && $p.strict_mode(), "Cannot use 'let' as a ", $($arg,)+ " ", $p.disallowed_identifier_let_reason());
             semantic_fail_if_true!($p, keyword_token.type_ == AWAIT && !$p.can_use_identifier_await(), "Cannot use 'await' as a ", $($arg,)+ " ", $p.disallowed_identifier_await_reason());
             semantic_fail_if_true!($p, keyword_token.type_ == YIELD && !$p.can_use_identifier_yield(), "Cannot use 'yield' as a ", $($arg,)+ " ", $p.disallowed_identifier_yield_reason());

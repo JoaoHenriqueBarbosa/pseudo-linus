@@ -83,6 +83,7 @@ impl Entry {
 }
 
 /// `class BytecodeIntrinsicRegistry`.
+#[derive(Debug)]
 pub struct BytecodeIntrinsicRegistry {
     m_bytecode_intrinsic_map: HashMap<UniquedKey, Entry>,
 }

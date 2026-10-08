@@ -25,7 +25,7 @@ use std::sync::atomic::AtomicU32;
 
 use crate::bytecode::executable_info::{DerivedContextType, EvalContextType};
 use crate::parser::nodes::{ClassElementTag, FunctionStack};
-use crate::parser::nodes_part3::FunctionMetadataNode;
+use crate::parser::nodes::FunctionMetadataNode;
 use crate::parser::parser_modes::{
     InnerArrowFunctionCodeFeatures, LexicallyScopedFeatures, SourceParseMode, SuperBinding,
     ARGUMENTS_INNER_ARROW_FUNCTION_FEATURE, EVAL_INNER_ARROW_FUNCTION_FEATURE,
@@ -34,9 +34,43 @@ use crate::parser::parser_modes::{
     TAINTED_BY_WITH_SCOPE_LEXICALLY_SCOPED_FEATURE, THIS_INNER_ARROW_FUNCTION_FEATURE,
 };
 use crate::parser::parser_tokens::{
-    JSToken, JSTokenType, FIRST_CONTEXTUAL_KEYWORD_TOKEN, IDENT, KEYWORD_TOKEN_FLAG,
+    AUTOMINUSMINUS, DIVEQUAL, DIVIDE, MINUSMINUS, UNTERMINATED_IDENTIFIER_ESCAPE_ERRORTOK, UNTERMINATED_IDENTIFIER_UNICODE_ESCAPE_ERRORTOK,
+    JSTextPosition, JSToken, JSTokenLocation, JSTokenType, FIRST_CONTEXTUAL_KEYWORD_TOKEN, IDENT, KEYWORD_TOKEN_FLAG,
     LAST_CONTEXTUAL_KEYWORD_TOKEN, LAST_UNTAGGED_TOKEN,
+    AND, ANDEQUAL, ARROWFUNCTION, AUTOPLUSPLUS, AWAIT, BACKQUOTE, BIGINT, BINARY_OP_TOKEN_ALLOWS_IN_PRECEDENCE_ADDITIONAL_SHIFT, BINARY_OP_TOKEN_PRECEDENCE_MASK, BREAK, CAN_BE_ERROR_TOKEN_FLAG, CASE, CATCH, CLASSTOKEN, CLOSEBRACE, CLOSEBRACKET, CLOSEPAREN, COALESCE, COLON, COMMA, CONSTTOKEN, CONTINUE, DEBUGGER, DEFAULT, DO, DOT, DOTDOTDOT, DOUBLE, ELSE, EOFTOK, EQUAL, ERRORTOK, ESCAPED_KEYWORD, EXTENDS, FINALLY, FOR, FUNCTION, IF, IMPORT, INTEGER, INTOKEN, LET, NEW, OPENBRACE, OPENBRACKET, OPENPAREN, OR, PLUSPLUS, POW, PRIVATENAME, QUESTION, QUESTIONDOT, REGEXP, RESERVED, RESERVED_IF_STRICT, RETURN, SEMICOLON, STRING, SUPER, SWITCH, TEMPLATE, THROW, TIMES, TRY, UNTERMINATED_CAN_BE_ERROR_TOKEN_FLAG, UNTERMINATED_MULTILINE_COMMENT_ERRORTOK, UNTERMINATED_TEMPLATE_LITERAL_ERRORTOK, VAR, WHILE, WITH, YIELD,
 };
+use crate::parser::lexer::{LexerFlagSet, RawStringsBuildMode};
+use crate::parser::nodes::{AssignmentContext, Operator, PropertyNode};
+use crate::parser::parser_error::{ErrorType, ParserError, SyntaxErrorType};
+use crate::parser::parser_function_info::ParserFunctionInfo;
+use crate::parser::parser_modes::{is_async_function_or_async_generator_wrapper_parse_mode, is_module_parse_mode, FunctionMode, JSParserBuiltinMode, JSParserScriptMode, SourceParseModeSet};
+use crate::parser::source_code::SourceCode;
+use crate::parser::syntax_checker::SyntaxChecker;
+use crate::parser::tree_builder::TreeBuilder;
+use crate::runtime::options::Options;
+use crate::wtf::text::string_builder::StringBuilder;
+use crate::wtf::text::string_impl::CharType;
+use crate::wtf::text::wtf_string::String as WtfString;
+use std::cell::RefCell;
+use crate::parser::ast_builder::ASTBuilder;
+use crate::parser::lexer::{Lexer, LexerFlags};
+use crate::parser::module_scope_data::ModuleScopeData;
+use crate::parser::nodes::{DefineFieldType, DotType, FunctionParameters, PropertyNodeType, SourceElements};
+use crate::parser::parser_arena::ParserArena;
+use crate::parser::parser_function_info::ParserClassInfo;
+use crate::parser::parser_modes::{
+    function_name_is_in_scope, is_async_function_parse_mode, is_async_function_wrapper_parse_mode,
+    is_async_generator_wrapper_parse_mode, is_async_method_parse_mode, is_function_parse_mode,
+    is_generator_method_parse_mode, is_generator_or_async_function_body_parse_mode,
+    is_generator_or_async_function_wrapper_parse_mode, is_generator_or_async_generator_wrapper_parse_mode,
+    is_generator_wrapper_parse_mode, is_method_parse_mode, CodeFeatures, ARGUMENTS_FEATURE,
+    ASYNC_FUNCTION_WITHOUT_AWAIT_FEATURE, AWAIT_FEATURE, IMPORT_META_FEATURE, NON_SIMPLE_PARAMETER_LIST_FEATURE,
+    NO_EVAL_CACHE_FEATURE, NO_LEXICALLY_SCOPED_FEATURES, SHADOWS_ARGUMENTS_FEATURE,
+};
+use crate::parser::parser_tokens::{is_unary_op, is_update_op};
+use crate::parser::variable_environment::PrivateNameEnvironment;
+use crate::wtf::text::string_impl::{LChar, UChar};
+use crate::wtf::text::wtf_string::make_string_by_joining;
 use crate::parser::variable_environment::{
     OrderedKeyMap, PrivateDeclarationResult, PrivateNameEntry, VariableEnvironment,
 };
@@ -1221,3 +1255,13 @@ impl Scope {
 }
 
 // continua em parser_part2.rs
+include!("parser_part2.rs");
+include!("parser_part3.rs");
+include!("parser_cpp1.rs");
+include!("parser_cpp2.rs");
+include!("parser_cpp3.rs");
+include!("parser_cpp4.rs");
+include!("parser_cpp5.rs");
+include!("parser_cpp6.rs");
+include!("parser_cpp7.rs");
+include!("parser_cpp8.rs");

@@ -16,3 +16,8 @@ pub mod source_provider;
 pub mod source_tainted_origin;
 pub mod unlinked_source_code;
 pub mod variable_environment;
+pub mod tree_builder;
+pub mod syntax_checker;
+pub mod parser_function_info;
+pub mod ast_builder;
+pub mod parser;
