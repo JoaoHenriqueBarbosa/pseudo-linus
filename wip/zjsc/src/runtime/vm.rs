@@ -43,6 +43,11 @@ pub struct VM {
     symbol_registry: Box<SymbolRegistry>,
     private_symbol_registry: Box<SymbolRegistry>,
     pub property_names: PropertyNames,
+    /// `m_softStackLimit` (`softStackLimit()`): endereço abaixo do qual a pilha da VM é considerada
+    /// cheia. 0 até o `StackBounds` real ser portado.
+    soft_stack_limit: Cell<usize>,
+    /// `m_executingRegExp`: identidade do `RegExp*` em execução (0 é o `nullptr`).
+    executing_reg_exp: Cell<usize>,
 }
 
 impl Default for VM {
@@ -61,10 +66,32 @@ impl VM {
             symbol_registry: Box::new(SymbolRegistry::new(SymbolRegistryType::PublicSymbol)),
             private_symbol_registry: Box::new(SymbolRegistry::new(SymbolRegistryType::PrivateSymbol)),
             property_names: PropertyNames::default(),
+            soft_stack_limit: Cell::new(0),
+            executing_reg_exp: Cell::new(0),
         };
         let property_names = Box::new(CommonIdentifiers::new(&vm));
         assert!(vm.property_names.0.set(property_names).is_ok());
         vm
+    }
+
+    /// `softStackLimit()`.
+    pub fn soft_stack_limit(&self) -> usize {
+        self.soft_stack_limit.get()
+    }
+
+    /// `setSoftStackLimit` (a parte que grava `m_softStackLimit`).
+    pub fn set_soft_stack_limit(&self, limit: usize) {
+        self.soft_stack_limit.set(limit);
+    }
+
+    /// `m_executingRegExp`, como identidade (0 é `nullptr`).
+    pub fn executing_reg_exp(&self) -> usize {
+        self.executing_reg_exp.get()
+    }
+
+    /// `m_executingRegExp = regExp`.
+    pub fn set_executing_reg_exp(&self, reg_exp: usize) {
+        self.executing_reg_exp.set(reg_exp);
     }
 
     /// `symbolRegistry()`.

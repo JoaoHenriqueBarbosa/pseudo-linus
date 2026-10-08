@@ -10,7 +10,7 @@
 
 /// `WTF::BitSet<N>`: conjunto de bits de tamanho fixo (`size` é múltiplo de 64), iterado em ordem
 /// crescente. Só as operações que o `YarrPattern.cpp` usa.
-struct BitSet {
+pub(crate) struct BitSet {
     words: Vec<u64>,
     size: usize,
 }
@@ -532,6 +532,7 @@ impl<'a> YarrPatternConstructor<'a> {
             character_class_stack: Vec::new(),
             forward_references_in_lookbehind: Vec::new(),
             stack_check: Default::default(),
+            factoring_budget: 0,
             error: crate::yarr::yarr_error_code::ErrorCode::NoError,
             invert_character_class: false,
             parenthesis_context,
@@ -540,19 +541,6 @@ impl<'a> YarrPatternConstructor<'a> {
         }
     }
 
-    pub fn reset_for_reparsing(&mut self) {
-        self.pattern.reset_for_reparsing();
-        self.base_character_class_constructor.reset();
-        self.current_character_class_constructor = None;
-        self.error = crate::yarr::yarr_error_code::ErrorCode::NoError;
-        self.parenthesis_context.reset();
-        self.parenthesis_context.set_flags(self.flags);
-        self.forward_references_in_lookbehind.clear();
-
-        self.alternative = add_new_body_disjunction(self.pattern);
-
-        self.flags = self.initial_flags;
-    }
 
     pub fn add_capture_group_for_name(&mut self, group_name: crate::wtf::text::wtf_string::String, subpattern_id: u32) {
         self.pattern.has_named_capture_groups = true;
