@@ -56,3 +56,15 @@ parser/pattern.cpp/interpreter; locale tr/lt/el no case mapping.
 
 Dívida anotada: wtf_string make_string_by_joining aproxima a largura do StringBuilder;
 UTF8ConversionError e ConversionMode duplicados em string_impl e wtf_string; U16_* duplicados.
+
+## Fila acrescentada (tarde de 2026-10-08)
+
+- runtime/OptionsList.h + Options.{h,cpp}: 586 opções, defaults literais e calculados (o lexer usa
+  `exposePrivateIdentifiers`); o Bun liga opções no início (conferir em `.bun-src/src/bun.js`).
+- CommonIdentifiers (gerar das macros) + BuiltinNames (nomes privados e símbolos) para
+  `vm.property_names`.
+- JSBigInt: o núcleo de parse/toString de que o parser precisa (`makeBigIntDecimalIdentifier`),
+  depois a célula inteira.
+- URLParser da WTF (o `wtf/url.rs` atual é parcial, não canoniza).
+- VM: `DeferTermination`, `TopExceptionScope`.
+- YarrUnicodeProperties + tabelas geradas (`derived/JavaScriptCore/yarr/UnicodePatternTables.h`).

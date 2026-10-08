@@ -30,9 +30,7 @@ use crate::parser::lexer_lut::main_table_entry;
 use crate::parser::lexer_unicode_properties::is_non_latin1_white_space;
 use crate::parser::parser_arena::{IdentifierArena, ParserArena};
 use crate::parser::parser_modes::{JSParserBuiltinMode, JSParserScriptMode};
-use crate::parser::parser_tokens::{
-    JSTextPosition, JSToken, JSTokenData, JSTokenType, BREAK, CONTINUE, DOUBLE, IDENT, INTEGER, RETURN, THROW,
-};
+use crate::parser::parser_tokens::*;
 use crate::parser::source_code::SourceCode;
 use crate::runtime::identifier::Identifier;
 use crate::runtime::options::Options;
