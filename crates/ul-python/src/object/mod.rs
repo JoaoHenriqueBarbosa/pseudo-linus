@@ -798,12 +798,13 @@ impl ClassObj {
             if m.as_str() == "builtins" || BUILTIN_MODULES.contains(&m.as_str()) || C_TYPE_MODULES.contains(&m.as_str()))
     }
 
-    /// Tipo de C avulso num módulo Python (`C_TYPES`), ou shim de tipo em C: o `__module__` só existe no tipo,
-    /// fora do `__dict__` dele e longe das instâncias.
+    /// O tipo de C é estático (sem `Py_TPFLAGS_HEAPTYPE`): o `__module__` sai do `tp_name`, fora do `__dict__`
+    /// do tipo e longe das instâncias. Os tipos de `builtins` e os da tabela `STATIC_C_TYPES` (levantada no
+    /// oráculo); os tipos de módulo C feitos por `PyType_FromSpec` (`_thread.RLock`) guardam o `__module__` no
+    /// dicionário e as instâncias o herdam.
     pub fn module_is_type_only(&self) -> bool {
-        self.emulates_c_type()
-            || matches!(self.dict.borrow().get("__module__"), Some(Value::Str(m))
-                if C_TYPES.contains(&(m.as_str(), self.name.as_str())))
+        matches!(self.dict.borrow().get("__module__"), Some(Value::Str(m))
+            if m.as_str() == "builtins" || STATIC_C_TYPES.contains(&(m.as_str(), self.name.as_str())))
     }
 
     /// Ordem de resolução de métodos (`__mro__`): linearização C3. Herança simples não paga o
@@ -1461,8 +1462,15 @@ pub(crate) const FROZEN_MODULES: &[&str] = &[
 /// público (`_datetime` dá `datetime.timezone`): os tipos são de C, o módulo não é embutido.
 pub(crate) const C_TYPE_MODULES: &[&str] = &["datetime"];
 
-/// Tipos de C avulsos num módulo que no mais é Python (`types.SimpleNamespace`, do `namespaceobject.c`).
-pub(crate) const C_TYPES: &[(&str, &str)] = &[("types", "SimpleNamespace")];
+/// Os tipos estáticos de C fora de `builtins` (`__module__` ausente do `__dict__` e sem `Py_TPFLAGS_HEAPTYPE`),
+/// levantados no oráculo sobre os módulos embutidos, `datetime` e `types`.
+pub(crate) const STATIC_C_TYPES: &[(&str, &str)] = &[
+    ("collections", "OrderedDict"), ("datetime", "date"), ("datetime", "datetime"), ("datetime", "time"),
+    ("datetime", "timedelta"), ("datetime", "timezone"), ("datetime", "tzinfo"), ("pickle", "PickleBuffer"),
+    ("sys", "flags"), ("sys", "float_info"), ("sys", "hash_info"), ("sys", "int_info"), ("sys", "thread_info"),
+    ("sys", "version_info"), ("types", "GenericAlias"), ("types", "SimpleNamespace"), ("types", "UnionType"),
+    ("weakref", "CallableProxyType"), ("weakref", "ProxyType"), ("weakref", "ReferenceType"),
+];
 
 pub(crate) const BUILTIN_MODULES: &[&str] = &[
     "_abc", "_ast", "_bisect", "_blake2", "_codecs", "_collections", "_csv", "_datetime", "_elementtree",

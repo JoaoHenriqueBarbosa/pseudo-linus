@@ -6443,12 +6443,15 @@ t = types.SimpleNamespace
 print(t.__module__, '__dict__' in t.__dict__, '__module__' in t.__dict__, hasattr(t(a=1), '__module__'))
 class S(t): pass
 print(S(x=1), t(y=2), S.__module__)
+import threading, _thread, itertools
+for o in (threading.RLock(), _thread._local(), itertools.count()):
+    print(type(o).__name__, o.__module__, '__module__' in type(o).__dict__)
 ";
     assert_eq!(
         out(src),
         "'sys.flags' object has no attribute '__module__'\n'sys.float_info' object has no attribute '__module__'\n\
          'memoryview' object has no attribute '__module__'\nsys\nFalse datetime\ntypes True False False\n\
-         S(x=1) namespace(y=2) __main__\n"
+         S(x=1) namespace(y=2) __main__\nRLock _thread True\n_local _thread True\ncount itertools True\n"
     );
 }
 
