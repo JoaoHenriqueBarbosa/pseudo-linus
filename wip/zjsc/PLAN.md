@@ -8,11 +8,11 @@ Branch `wip-javascriptcore`. Roda de 5 Sonnets (só escrevem, nunca compilam); e
 
 | Fatia | Origem | Destino | Estado |
 |---|---|---|---|
-| utils+ieee | dtoa/utils.h, dtoa/ieee.h | src/wtf/dtoa/{utils,ieee}.rs | roda |
-| bignum | dtoa/bignum.{h,cc} | src/wtf/dtoa/bignum.rs | roda |
-| diy_fp+cached_powers | dtoa/diy-fp.*, cached-powers.* | src/wtf/dtoa/{diy_fp,cached_powers}.rs | roda |
-| fast_dtoa | dtoa/fast-dtoa.* | src/wtf/dtoa/fast_dtoa.rs | roda |
-| ascii_ctype+fixed_dtoa | wtf/ASCIICType.h, dtoa/fixed-dtoa.* | src/wtf/ascii_ctype.rs, src/wtf/dtoa/fixed_dtoa.rs | roda |
+| utils+ieee | dtoa/utils.h, dtoa/ieee.h | src/wtf/dtoa/{utils,ieee}.rs | feito |
+| bignum | dtoa/bignum.{h,cc} | src/wtf/dtoa/bignum.rs | feito |
+| diy_fp+cached_powers | dtoa/diy-fp.*, cached-powers.* | src/wtf/dtoa/{diy_fp,cached_powers}.rs | feito |
+| fast_dtoa | dtoa/fast-dtoa.* | src/wtf/dtoa/fast_dtoa.rs | feito |
+| ascii_ctype+fixed_dtoa | wtf/ASCIICType.h, dtoa/fixed-dtoa.* | src/wtf/ascii_ctype.rs, src/wtf/dtoa/fixed_dtoa.rs | feito |
 | bignum_dtoa | dtoa/bignum-dtoa.* | src/wtf/dtoa/bignum_dtoa.rs | fila |
 | strtod | dtoa/strtod.* | src/wtf/dtoa/strtod.rs | fila |
 | double_conversion (1/2) | double-conversion.h + .cc até ToShortest/ToFixed | src/wtf/dtoa/double_conversion.rs | fila |
@@ -33,3 +33,26 @@ estiver compilando.
 - integrado e verde (41 testes): utils, ieee, diy_fp, cached_powers, bignum, fast_dtoa, fixed_dtoa, ascii_ctype.
 - lote 2: Nodes.h 1-1205 (+construtores) levou 7,5 min: acima do teto. Fatias do parser caem para cerca de 800 linhas.
 - dtoa.cpp + Dragonbox + golden: 12 min (escopo cresceu sozinho com o Dragonbox).
+
+## Estado em 2026-10-08, fim da manhã
+
+Feito e verde (151 testes + goldens de números, hash, caixa, identificadores): WTF dtoa inteiro
+(com Dragonbox e numberToString), ascii_ctype, unicode (UTF-8, CharacterNames, case mapping, bidi,
+ID_Start/ID_Continue, categoria geral; tabelas do UCD 17 por scripts/gen-*.py), StringImpl,
+StringHasher, WTFString, AtomString, SymbolImpl, runtime::Identifier, PrivateName, VM (esqueleto),
+yarr flags/erros/canonicalize UCS2, bytecode::opcode (gerado), parser tokens/modes/error,
+VariableEnvironment, ParserArena, ResultType.
+
+Escrito e fora da compilação (falta dependência): parser::nodes (+part2, part3) espera
+source_code, module_scope_data, runtime::constructor_kind, runtime::implementation_visibility,
+bytecode::bytecode_intrinsic_registry.
+
+Fila (ordem): SourceCode/SourceProvider/UnlinkedSourceCode + ModuleScopeData + ConstructorKind +
+ImplementationVisibility; KeywordLookup (gerar de parser/Keywords.table com script próprio) e
+Lexer.lut.h (gerar); Lexer.cpp 1675-fim (números, lex principal); fast_float restante
+(decimal_to_binary, bigint, digit_comparison, parse_number) e trocar o str::parse do WTFString;
+StringBuilder; Parser.h e Parser.cpp em fatias de 800 linhas; ASTBuilder; SyntaxChecker; yarr
+parser/pattern.cpp/interpreter; locale tr/lt/el no case mapping.
+
+Dívida anotada: wtf_string make_string_by_joining aproxima a largura do StringBuilder;
+UTF8ConversionError e ConversionMode duplicados em string_impl e wtf_string; U16_* duplicados.
