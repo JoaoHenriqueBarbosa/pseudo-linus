@@ -1,0 +1,211 @@
+""	-	-
+";"	-	-
+"var a = 1;"	-	-
+"let a = 1; let a = 2;"	1	0
+"const a;"	1	0
+"const a = 1; a = 2;"	-	-
+"var let = 1;"	-	-
+"let let = 1;"	1	0
+"function f() { return 1 }"	-	-
+"return 1;"	1	0
+"break;"	1	0
+"continue;"	1	0
+"a: a: 1;"	1	0
+"while (1) { break b; }"	1	0
+"if (1) function f() {}"	-	-
+"'use strict'; with (a) {}"	1	0
+"'use strict'; var eval;"	1	0
+"'use strict'; 010"	1	0
+"'use strict'; delete x;"	1	0
+"'use strict'; function f(a, a) {}"	1	0
+"function f(a, a) {}"	-	-
+"function f(a = 1, a) {}"	1	0
+"(a, a) => 1"	1	0
+"(a = 1) => { 'use strict' }"	1	0
+"x = {"	1	0
+"x = ["	1	0
+"x = ("	1	0
+"x = `"	1	0
+"x = `${"	1	0
+"x = 'abc"	1	0
+"x = \"abc\n\""	1	0
+"/abc"	1	0
+"/(/"	1	0
+"/a/gg"	1	0
+"1 +"	1	0
+"1 + + 1"	-	-
+"+ +"	1	0
+"a ? b"	1	0
+"a ? b :"	1	0
+"a ?? b || c"	1	0
+"a || b ?? c"	1	0
+"a ** b"	-	-
+"-a ** b"	1	0
+"(-a) ** b"	-	-
+"a?.b = 1"	1	0
+"a?.b++"	1	0
+"new a?.b()"	1	0
+"a?.`x`"	1	0
+"async function f() { await }"	1	0
+"function f() { await 1 }"	1	0
+"async () => await"	1	0
+"function* g() { yield }"	-	-
+"function* g() { var yield; }"	1	0
+"yield = 1"	-	-
+"'use strict'; yield = 1"	1	0
+"class A { constructor() {} constructor() {} }"	1	0
+"class A extends B { constructor() { super(); } foo() { super(); } }"	1	0
+"class A { #a; #a; }"	1	0
+"class A { foo() { this.#b } }"	1	0
+"class A { static prototype() {} }"	1	0
+"class A { get constructor() {} }"	1	0
+"class { }"	1	0
+"class A { x = arguments }"	1	0
+"for (let x of y, z) {}"	1	0
+"for (var i = 0 of []) {}"	1	0
+"for (let of x) {}"	1	0
+"for await (x of y) {}"	1	0
+"for (const x in y) { x = 1 }"	-	-
+"for (;;"	1	0
+"for (a b c)"	1	0
+"switch (a) { default: default: }"	1	0
+"switch (a) { case }"	1	0
+"try {}"	1	0
+"try {} catch {} finally"	1	0
+"try {} catch (a, b) {}"	1	0
+"throw\n1"	2	0
+"do x; while (0) y"	-	-
+"if (a) else b"	1	0
+"var {a, a} = b"	-	-
+"let {a, a} = b"	1	0
+"var [a, ...b,] = c"	1	0
+"({a: 1} = 1)"	1	0
+"({a}) = 1"	1	0
+"[a + 1] = b"	1	0
+"({...{a}} = b)"	1	0
+"({get a() {}, get a() {}})"	-	-
+"({__proto__: 1, __proto__: 2})"	1	0
+"({a = 1})"	1	0
+"({a = 1} = {})"	-	-
+"(a, b) => {"	1	0
+"(a, b) =>"	1	0
+"() => {}()"	1	0
+"async (a, b) => {}"	-	-
+"async a => {}"	-	-
+"async\na => {}"	-	-
+"a => {} + 1"	1	0
+"x = a => {}\n(1)"	-	-
+"import a from 'b'"	1	0
+"export var a;"	1	0
+"import.meta"	1	0
+"import('a')"	-	-
+"import()"	1	0
+"new.target"	1	0
+"function f() { new.target }"	-	-
+"super.x"	1	0
+"({ foo() { super.x } })"	-	-
+"label: function* g() {}"	1	0
+"if (1) class A {}"	1	0
+"while (1) let\nx"	-	-
+"let\nlet = 1"	2	0
+"0b2"	1	0
+"0o8"	1	0
+"0xg"	1	0
+"1_"	1	0
+"1__0"	1	0
+"1e"	1	0
+"08.5"	-	-
+"09n"	1	0
+"1n.5"	1	0
+"1.n"	1	0
+"'\\u{110000}'"	1	0
+"'\\x4'"	1	0
+"'\\u12'"	1	0
+"`\\u{`"	1	0
+"\"\\08\""	-	-
+"/[/"	1	0
+"/(?<a>x)(?<a>y)/"	1	0
+"/\\u{1}/u"	-	-
+"a b"	-	-
+"var  "	2	0
+"var a\\u0020b"	1	0
+"var \\u0061 = 1"	-	-
+"v\\u0061r a"	1	0
+"/* unterminated"	1	0
+"// ok"	-	-
+"<!-- html comment\n1"	-	-
+"-->"	-	-
+"#!shebang\n1"	-	-
+"a\n#!x"	2	0
+"var a = #"	1	0
+"@"	1	0
+"a b"	1	0
+"a("	1	0
+"a)"	1	0
+"a["	1	0
+"a]"	1	0
+"{"	1	0
+"}"	1	0
+"a."	1	0
+"a..b"	1	0
+"a.1"	1	0
+"...a"	1	0
+"a = ...b"	1	0
+"var 1"	1	0
+"var a b"	1	0
+"var a,"	1	0
+"let ["	1	0
+"let {"	1	0
+"const {a}"	1	0
+"var a = ;"	1	0
+"function"	1	0
+"function ("	1	0
+"function f("	1	0
+"function f()"	1	0
+"function f() {"	1	0
+"function f(...a, b) {}"	1	0
+"function f(...a = []) {}"	1	0
+"(...a, b) => 1"	1	0
+"(a, ...b,) => 1"	1	0
+"async function* f() { yield await }"	1	0
+"x = async function await() {}"	1	0
+"function f() { 'use strict'; with(a); }"	1	0
+"function f(a = 1) { 'use strict'; }"	1	0
+"'use strict'; arguments = 1"	1	0
+"'use strict'; ({eval} = 1)"	1	0
+"'use strict'; implements = 1"	1	0
+"'use strict'; let\nlet"	2	0
+"a = {if: 1, class: 2}"	-	-
+"a.if.class"	-	-
+"var if"	1	0
+"var enum"	1	0
+"enum = 1"	1	0
+"await = 1"	-	-
+"async = 1"	-	-
+"of = 1"	-	-
+"let = 1"	-	-
+"static = 1"	-	-
+"get = 1"	-	-
+"set = 1"	-	-
+"({async *[a]() {}})"	-	-
+"({async get a() {}})"	1	0
+"({get a(x) {}})"	1	0
+"({set a() {}})"	1	0
+"({set a(x, y) {}})"	1	0
+"({set a(...x) {}})"	1	0
+"1 = 2"	1	0
+"a++ = 1"	1	0
+"++a++"	1	0
+"a + b = c"	1	0
+"(a, b) = 1"	1	0
+"[(a)] = 1"	-	-
+"[(a = 1)] = 1"	1	0
+"({a: (b)} = 1)"	-	-
+"({a: (b = 1)} = 1)"	1	0
+"for ((a) of b);"	-	-
+"for (let [a] = 1 of b);"	1	0
+"for (async of x);"	1	0
+"for (let in x);"	1	0
+"using x = 1"	1	0
+"await using x = 1"	1	0
+"{ using x = 1 }"	-	-

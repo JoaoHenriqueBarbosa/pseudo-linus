@@ -1,6 +1,10 @@
-//! Golden de SyntaxError do parser contra o bun 1.4.2 (`scripts/gen-syntax-errors-golden.js`):
-//! cada linha é `fonte (JSON) <TAB> "ok" ou a mensagem do SyntaxError`.
+//! Golden da linha do SyntaxError do parser contra o bun (`scripts/gen-syntax-error-positions-golden.js`):
+//! cada linha é `fonte (JSON) <TAB> linha <TAB> coluna`, com "-" nos trechos aceitos.
+//!
+//! O bun só expõe a linha (`addErrorInfo` grava `line` e zera a coluna), então a coluna do golden
+//! não é comparada: `error.token().start_position` fica coberto apenas pela linha dele.
 
+use std::rc::Rc;
 use zjsc::parser::nodes::ProgramNode;
 use zjsc::parser::parser::parse_root_node;
 use zjsc::parser::parser_error::ParserError;
@@ -8,15 +12,14 @@ use zjsc::parser::parser_modes::{
     JSParserBuiltinMode, JSParserScriptMode, SourceParseMode, NO_LEXICALLY_SCOPED_FEATURES,
 };
 use zjsc::parser::source_code::make_source;
+use zjsc::parser::source_provider::SourceProviderSourceType;
 use zjsc::parser::source_tainted_origin::SourceTaintedOrigin;
 use zjsc::runtime::constructor_kind::ConstructorKind;
 use zjsc::runtime::implementation_visibility::ImplementationVisibility;
 use zjsc::runtime::source_origin::SourceOrigin;
 use zjsc::runtime::vm::VM;
 use zjsc::wtf::text::text_position::TextPosition;
-use zjsc::wtf::text::wtf_string::{ConversionMode, String as WtfString};
-use zjsc::parser::source_provider::SourceProviderSourceType;
-use std::rc::Rc;
+use zjsc::wtf::text::wtf_string::String as WtfString;
 
 /// Desfaz o `JSON.stringify` do gerador (escapes `\n`, `\"`, `\\`, `\uXXXX`).
 fn unquote(quoted: &str) -> Vec<u16> {
@@ -48,7 +51,8 @@ fn unquote(quoted: &str) -> Vec<u16> {
     out
 }
 
-fn parse(vm: &Rc<VM>, source: &[u16]) -> String {
+/// Linha do erro como o bun a expõe, ou "-" quando o trecho é aceito.
+fn error_line(vm: &Rc<VM>, source: &[u16]) -> String {
     let code = make_source(
         &WtfString::from_utf16(source),
         &SourceOrigin::default(),
@@ -72,32 +76,24 @@ fn parse(vm: &Rc<VM>, source: &[u16]) -> String {
         None,
     );
     match root {
-        Some(_) => "ok".to_string(),
-        None => String::from_utf8(error.message().utf8(ConversionMode::LenientConversion)).unwrap(),
+        Some(_) => "-".to_string(),
+        None => error.line().to_string(),
     }
 }
 
 #[test]
-fn syntax_errors_match_bun() {
+fn syntax_error_lines_match_bun() {
+    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/golden/syntax-error-positions.tsv");
+    let golden = std::fs::read_to_string(path).unwrap_or_else(|_| {
+        panic!("golden ausente: gere com `bun scripts/gen-syntax-error-positions-golden.js > tests/golden/syntax-error-positions.tsv`")
+    });
     let vm = Rc::new(VM::new());
-    // Depuração: PARSER_SRC='a in' mostra o resultado de um trecho avulso.
-    if let Some(src) = std::env::var_os("PARSER_SRC") {
-        let units: Vec<u16> = src.to_str().unwrap().encode_utf16().collect();
-        eprintln!("RESULT {:?}", parse(&vm, &units));
-    }
-    let golden = include_str!("golden/syntax-errors.tsv");
     let mut failures = Vec::new();
     for (line_number, line) in golden.lines().enumerate() {
-        let (quoted, expected) = line.split_once('\t').unwrap();
-        if let Some(only) = std::env::var_os("PARSER_ONLY") {
-            if only.to_str() != Some(&(line_number + 1).to_string()) {
-                continue;
-            }
-        }
-        if std::env::var_os("PARSER_TRACE").is_some() {
-            eprintln!("{}", line_number + 1);
-        }
-        let got = parse(&vm, &unquote(quoted));
+        let mut fields = line.split('\t');
+        let quoted = fields.next().unwrap();
+        let expected = fields.next().unwrap();
+        let got = error_line(&vm, &unquote(quoted));
         if got != expected {
             failures.push(format!("linha {}: {}: esperado {:?}, obtido {:?}", line_number + 1, quoted, expected, got));
         }

@@ -209,3 +209,919 @@
 "using x = 1"	'using' declaration is not allowed at the top level of a script or eval.
 "await using x = 1"	Unexpected identifier 'using'
 "{ using x = 1 }"	ok
+"class A { static { await } }"	Unexpected identifier 'await'. Cannot use 'await' within static block.
+"class A { static { return } }"	Return statements are only valid inside functions.
+"class A { static { arguments } }"	Cannot use 'arguments' as an identifier in static block.
+"class A { static { var await; } }"	Cannot use 'await' as a variable name in a static block.
+"class A { static { super() } }"	super is not valid in this context.
+"class A { static { break; } }"	'break' cannot cross static block boundary.
+"class A { static {} static {} }"	ok
+"class A { #constructor; }"	Cannot declare private class field named '#constructor'.
+"class A { constructor = 1 }"	Cannot declare class field named 'constructor'.
+"class A { 'constructor' = 1 }"	Cannot declare class field named 'constructor'.
+"class A { static prototype = 1 }"	Cannot declare a static field named 'prototype'.
+"class A { async constructor() {} }"	Cannot declare an async method named 'constructor'.
+"class A { *constructor() {} }"	Cannot declare a generator method named 'constructor'.
+"class A { #a() {} get #a() {} }"	Declared private setter with an already used name.
+"class A { get #a() {} get #a() {} }"	Declared private setter with an already used name.
+"class A { get #a() {} set #a(x) {} }"	ok
+"class A { static get #a() {} set #a(x) {} }"	Cannot declare a private non-static setter if there is a static private getter with used name.
+"class A { #a; foo() { delete this.#a } }"	Cannot delete private field #a.
+"class A { #a; foo() { delete this?.#a } }"	ok
+"class A { foo() { this.# a } }"	Invalid character: '#'
+"class A extends B { x = super() }"	Unexpected token '('. super call is not valid in class field initializer context.
+"class A { x = super.y }"	ok
+"class A { foo() { super() } }"	super is not valid in this context.
+"class A extends B { constructor() { (() => super())() } }"	ok
+"class A { constructor() { super.x } }"	ok
+"class A extends B, C {}"	Unexpected token ','. Expected opening '{' at the start of a class body.
+"class A { a b }"	Unexpected identifier 'b'. Expected a ';' following a class field.
+"class A { a = 1 b = 2 }"	Unexpected identifier 'b'. Expected a ';' following a class field.
+"class A { get\n a() {} }"	ok
+"class yield {}"	Cannot use 'yield' as a class name in strict mode.
+"class let {}"	Cannot use 'let' as a class name in strict mode.
+"class A { x = await }"	ok
+"class A { x = yield }"	Unexpected keyword 'yield'. Cannot use yield expression out of generator.
+"class A { get a(x) {} }"	Unexpected identifier 'x'. getter functions must have no parameters.
+"class A { set a() {} }"	Unexpected token ')'. setter functions must have one parameter.
+"class A { static #a; static #a }"	Cannot declare private field twice.
+"class A { #a; foo() { #a } }"	Bare private name can only be used as the left-hand side of an `in` expression.
+"class A { #a; foo() { #a in this } }"	ok
+"class A { #a; foo() { 1 + #a in this } }"	Bare private name can only be used as the left-hand side of an `in` expression.
+"class A { foo() { super?.x } }"	Cannot use super as the base of an optional chain.
+"class A { #a; foo() { super.#a } }"	Unexpected private name #a. Cannot access private names from super.
+"class A { *#a() {} #a }"	Cannot declare private field twice.
+"class A { static async *#m() {} }"	ok
+"class A { constructor() {} 'constructor'() {} }"	Cannot declare multiple constructors in a single class.
+"class A { static constructor() {} static constructor() {} }"	ok
+"class A { foo() { new.target } }"	ok
+"class A extends null {}"	ok
+"class A extends B { constructor() { super; } }"	super is not valid in this context.
+"class A { 1 = 2; 'a' = 3; [4] = 5 }"	ok
+"class A { static async = 1; static get; static set }"	ok
+"class A { static static() {} get get() {} }"	ok
+"class A { x = () => arguments }"	Unexpected identifier 'arguments'. Cannot reference 'arguments' in class field initializer.
+"class A { x = function() { arguments } }"	ok
+"class A { [arguments] = 1 }"	ok
+"class A { #a = 1; #b = this.#a }"	ok
+"(class { #a; foo() { class B { bar() { this.#a } } } })"	ok
+"(class { foo() { class B { bar() { this.#c } } } })"	Cannot reference undeclared private names: "#c"
+"class A { #x; static m(o) { return o?.#x } }"	ok
+"let [a, a] = b"	Unexpected identifier 'a'. Cannot declare a lexical variable twice: 'a'.
+"[...a, b] = c"	Unexpected token ','. Expected a closing ']' following a rest element destructuring pattern.
+"[...a,] = c"	Unexpected token ','. Expected a closing ']' following a rest element destructuring pattern.
+"({...a, b} = c)"	Unexpected token ','. Cannot parse assignment pattern.
+"({...a,} = c)"	Unexpected token ','. Cannot parse assignment pattern.
+"[...[a]] = b"	ok
+"[...a = 1] = b"	Unexpected token '='. Expected a closing ']' following a rest element destructuring pattern.
+"({a = 1}, b)"	Unexpected token '='. Expected a ':' following the property name 'a'.
+"[a = 1]"	ok
+"var {a: [b]}"	Unexpected end of script
+"for (var [a] of b);"	ok
+"let {...{a}} = b"	Unexpected token '{'. Expected a binding element.
+"let {...[a]} = b"	Unexpected token '['. Expected a binding element.
+"({...[a]} = b)"	Invalid destructuring assignment target.
+"({...(a)} = b)"	ok
+"[...(a)] = b"	ok
+"[...(a, b)] = c"	Invalid destructuring assignment target.
+"([a]) = 1"	Left side of assignment is not a reference.
+"({a: [b]}) = 1"	Left side of assignment is not a reference.
+"[{a = 1}] = b"	ok
+"({a: {b = 1}} = c)"	ok
+"[a.b] = c"	ok
+"[a()] = c"	Invalid destructuring assignment target.
+"({a: b()} = c)"	Invalid destructuring assignment target.
+"({a: this} = b)"	Invalid destructuring assignment target.
+"[this] = a"	Invalid destructuring assignment target.
+"({a: 1 + 1} = b)"	Invalid destructuring assignment target.
+"'use strict'; [eval] = a"	Cannot modify 'eval' in strict mode.
+"'use strict'; ({a: arguments} = b)"	Cannot modify 'arguments' in strict mode.
+"'use strict'; var {eval} = a"	Cannot declare a variable named 'eval' in strict mode.
+"let [let] = a"	Unexpected keyword 'let'. Cannot use 'let' as an identifier name for a LexicalDeclaration.
+"const {let} = a"	Cannot use the keyword 'let' as a lexical variable name.
+"let {a: let} = b"	Unexpected keyword 'let'. Cannot use 'let' as an identifier name for a LexicalDeclaration.
+"var [,] = a"	ok
+"var [a,,b] = c"	ok
+"var [...a, ...b] = c"	Unexpected token ','. Expected a closing ']' following a rest element destructuring pattern.
+"var {...a, b} = c"	Unexpected token ','. Expected a closing '}' following a rest element destructuring pattern.
+"var {a: 1} = b"	Unexpected number '1'. Expected a parameter pattern or a ')' in parameter list.
+"var {1} = b"	Unexpected token '}'. Expected a ':' prior to a named destructuring property.
+"var {'a'} = b"	Unexpected token '}'. Expected a ':' prior to a named destructuring property.
+"var {[a]} = b"	Unexpected token '}'. Expected a ':' prior to a named destructuring property.
+"var {a: b: c} = d"	Unexpected token ':'. Expected either a closing '}' or an ',' after a property destructuring pattern.
+"var a.b = 1"	Unexpected token '.'. Expected ';' after variable declaration.
+"var (a) = 1"	Unexpected token '('. Expected a parameter pattern or a ')' in parameter list.
+"let {a:} = b"	Unexpected token '}'. Expected a parameter pattern or a ')' in parameter list.
+"let a, b = ;"	Unexpected token ';'
+"const a = 1, b;"	Unexpected token ';'. const declared variable 'b' must have an initializer.
+"async function f(await) {}"	Cannot use 'await' as a parameter name in an async function.
+"async function f() { var await; }"	Cannot use 'await' as a variable name in an async function.
+"async function f(a = await 1) {}"	Cannot use 'await' within a parameter default expression.
+"async (a = await 1) => 1"	Unexpected number '1'. Expected ')' to end an argument list.
+"async (await) => 1"	Cannot use 'await' as a parameter name in an async function.
+"async await => 1"	Cannot use 'await' as a parameter name in an async function.
+"function* g(a = yield) {}"	Unexpected keyword 'yield'. Cannot use yield expression within parameters.
+"function* g(yield) {}"	Cannot use 'yield' as a parameter name in a generator function.
+"function* g() { function yield() {} }"	Unexpected keyword 'yield'
+"function* g() { yield\n* 1 }"	Unexpected token '*'
+"function* g() { yield * }"	Unexpected token '*'
+"function* g() { (yield) => 1 }"	Cannot use 'yield' as a parameter name in a generator function.
+"function* g() { (a = yield) => 1 }"	Unexpected keyword 'yield'. Cannot use yield expression out of generator.
+"function* g() { yield ? 1 : 2 }"	Unexpected token '?'
+"function* g() { 1 + yield }"	Unexpected keyword 'yield'
+"function* g() { yield yield 1 }"	ok
+"(function* yield() {})"	Cannot declare generator function named 'yield'.
+"(async function await() {})"	Cannot declare async function named 'await'.
+"async function* f() { yield* await }"	Unexpected token '*'
+"async () => { await\n1 }"	ok
+"async function f() { for await (a of b); }"	ok
+"function f() { for await (a of b); }"	for-await-of can only be used in an async function or async generator.
+"async function f() { for await (a in b); }"	Unexpected keyword 'in'. Expected 'of' in for-await syntax.
+"async function f() { for await (;;); }"	Unexpected token ';'. Unexpected a ';' in for-await-of header.
+"async function f() { for await (let a = 1 of b); }"	Cannot assign to the loop variable inside a for-of loop header.
+"async function f() { for await (async of b); }"	Unexpected identifier 'of'
+"async function f() { await => 1 }"	Cannot use 'await' as a parameter name in an async function.
+"async function f() { (await) => 1 }"	Cannot use 'await' as a parameter name in an async function.
+"async function f() { ({await}) }"	Cannot use 'await' as a shorthand property name in an async function.
+"async function f() { await await 1 }"	ok
+"async function f() { await 1 ** 2 }"	ok
+"function* g() { yield ** 2 }"	Unexpected token '**'
+"({ async a: 1 })"	Unexpected token ':'. Expected a parenthesis for argument list.
+"({ *a: 1 })"	Unexpected token ':'. Expected a parenthesis for argument list.
+"({ get *a() {} })"	Unexpected token '*'
+"({ async\na() {} })"	Unexpected identifier 'a'. Expected a property name following keyword 'async'.
+"async function f() { class A { [await 1]() {} } }"	ok
+"export default 1"	Unexpected keyword 'export'
+"export { a }"	Unexpected keyword 'export'
+"export * from 'a'"	Unexpected keyword 'export'
+"export * as a from 'b'"	Unexpected keyword 'export'
+"import { a } from 'b'"	Unexpected token '{'. import call expects one or two arguments.
+"import * as a from 'b'"	Unexpected token '*'. import call expects one or two arguments.
+"import 'a'"	Unexpected string literal 'a'. import call expects one or two arguments.
+"import a, { b } from 'c'"	Unexpected identifier 'a'. import call expects one or two arguments.
+"export default function () {}"	Unexpected keyword 'export'
+"import.meta.url"	import.meta is only valid inside modules.
+"function f() { import.meta }"	import.meta is only valid inside modules.
+"import(...a)"	Unexpected token '...'
+"import(a, b)"	ok
+"import(a, b, c)"	Unexpected identifier 'c'. import call expects one or two arguments.
+"import(a,)"	ok
+"new import(a)"	Cannot use new with import.
+"import.foo"	Unexpected identifier 'foo'. "import." can only be followed with meta or defer.
+"import."	Unexpected end of script
+"import"	Unexpected end of script
+"import a"	Unexpected identifier 'a'. import call expects one or two arguments.
+"await import('a')"	Unexpected keyword 'import'
+"export"	Unexpected keyword 'export'
+"export {"	Unexpected keyword 'export'
+"export var"	Unexpected keyword 'export'
+"export default"	Unexpected keyword 'export'
+"export class A {}"	Unexpected keyword 'export'
+"export { a as default }"	Unexpected keyword 'export'
+"export { a as 'b' }"	Unexpected keyword 'export'
+"export { a } from 'b'"	Unexpected keyword 'export'
+"import { default as a } from 'b'"	Unexpected token '{'. import call expects one or two arguments.
+"import?.('a')"	Unexpected token '?.'. import call expects one or two arguments.
+"`${}`"	Unexpected token '}'. Template literal expression cannot be empty.
+"`${a`"	Unexpected EOF
+"`${a}"	Unexpected EOF
+"`\\u`"	\u can only be followed by a Unicode character sequence
+"`\\u{110000}`"	\u can only be followed by a Unicode character sequence
+"`\\xg`"	\x can only be followed by a hex character sequence
+"`\\01`"	The only valid numeric escape in strict mode is '\0'
+"`\\1`"	The only valid numeric escape in strict mode is '\0'
+"`\\0`"	ok
+"tag`\\u`"	ok
+"tag`\\xg`"	ok
+"tag`\\01`"	ok
+"`a\\u{`"	\u can only be followed by a Unicode character sequence
+"`${`${`"	Unexpected EOF
+"`${`}`"	Unexpected end of script
+"a`${}`"	Unexpected token '}'. Template literal expression cannot be empty.
+"`${a b}`"	Unexpected identifier 'b'. Expected a closing '}' following an expression in template literal.
+"`${...a}`"	Unexpected token '...'
+"`${a,b}`"	ok
+"`$`"	ok
+"`${{}}`"	ok
+"`${'}'}`"	ok
+"'use strict'; `\\07`"	The only valid numeric escape in strict mode is '\0'
+"`\\8`"	The only valid numeric escape in strict mode is '\0'
+"`\\9`"	The only valid numeric escape in strict mode is '\0'
+"tag`\\8`"	ok
+"new a`b`"	ok
+"`a` = 1"	Left side of assignment is not a reference.
+"`a`++"	Postfix ++ operator applied to value that is not a reference.
+"(`a`) = 1"	Left side of assignment is not a reference.
+"/(?<=a)+/"	Invalid regular expression: invalid quantifier
+"/(?=a)+/u"	Invalid regular expression: nothing to repeat
+"/(?=a)*/"	ok
+"/a**/"	Invalid regular expression: nothing to repeat
+"/+/"	Invalid regular expression: nothing to repeat
+"/*/"	Multiline comment was not closed properly
+"/?/"	Invalid regular expression: nothing to repeat
+"/a{2,1}/"	Invalid regular expression: numbers out of order in {} quantifier
+"/a{2,1}/u"	Invalid regular expression: numbers out of order in {} quantifier
+"/{/u"	Invalid regular expression: incomplete {} quantifier for Unicode pattern
+"/}/u"	Invalid regular expression: unmatched ] or } bracket for Unicode pattern
+"/]/u"	Invalid regular expression: unmatched ] or } bracket for Unicode pattern
+"/\\u{110000}/u"	Invalid regular expression: invalid Unicode code point \u{} escape
+"/\\p{Foo}/u"	Invalid regular expression: invalid property expression
+"/\\k<a>/u"	Invalid regular expression: invalid \k<> named backreference
+"/(?<a>.)\\k<b>/"	Invalid regular expression: invalid \k<> named backreference
+"/\\1/u"	Invalid regular expression: invalid backreference for Unicode pattern
+"/(a)\\2/u"	Invalid regular expression: invalid backreference for Unicode pattern
+"/[b-a]/"	Invalid regular expression: range out of order in character class
+"/[\\d-a]/u"	Invalid regular expression: invalid range in character class for Unicode pattern
+"/[a-\\d]/u"	Invalid regular expression: invalid range in character class for Unicode pattern
+"/\\c/u"	Invalid regular expression: invalid escaped character for Unicode pattern
+"/\\-/u"	Invalid regular expression: invalid escaped character for Unicode pattern
+"/\\a/u"	Invalid regular expression: invalid escaped character for Unicode pattern
+"/(?<1a>x)/"	Invalid regular expression: invalid group specifier name
+"/(?<a/"	Invalid regular expression: invalid group specifier name
+"/(?:/"	Invalid regular expression: missing )
+"/)/"	Invalid regular expression: unmatched parentheses
+"/(?/"	Invalid regular expression: unrecognized character after (?
+"/a/x"	Invalid regular expression: invalid flags
+"/a/uv"	Invalid regular expression: invalid flags
+"/[a&&b]/v"	ok
+"/[(]/v"	Invalid regular expression: invalid class set character
+"/[a--b]/v"	ok
+"/(?i:a)/"	ok
+"/(?-i:a)/"	ok
+"/(?i-i:a)/"	Invalid regular expression: invalid regular expression modifier
+"/(?<a>.)|(?<a>.)/"	ok
+"/\n/"	Unterminated regular expression literal '/'
+"a = /\\\n/"	Unterminated regular expression literal '/\'
+"/a\\"	Unterminated regular expression literal '/a\'
+"/[\\"	Unterminated regular expression literal '/[\'
+"/{1}/"	Invalid regular expression: nothing to repeat
+"/a{1}{2}/"	Invalid regular expression: nothing to repeat
+"/^*/"	Invalid regular expression: nothing to repeat
+"/$+/"	Invalid regular expression: nothing to repeat
+"/\\b+/"	Invalid regular expression: nothing to repeat
+"/(?<!a)*/"	Invalid regular expression: invalid quantifier
+"a: { continue a; }"	Cannot continue to the label 'a' as it is not targeting a loop.
+"a: while (1) { continue b; }"	Cannot use the undeclared label 'b'.
+"a: b: c: 1"	ok
+"a: { a: 1 }"	Unexpected number '1'. Cannot find scope for the label 'a'.
+"a: function f() {}"	ok
+"'use strict'; a: function f() {}"	Function declarations are only allowed inside blocks or switch statements in strict mode.
+"a: async function f() {}"	Unexpected keyword 'function'. Cannot use async function declaration in single-statement context.
+"a: let x"	Unexpected identifier 'x'
+"a: class A {}"	Unexpected keyword 'class'. 'class' declaration is not directly within a block statement.
+"a: const b = 1"	Unexpected keyword 'const'
+"a: if (1) function f() {}"	ok
+"while (1) { function f() { break; } }"	'break' is only valid inside a switch or loop statement.
+"while (1) { (() => { continue; })() }"	'continue' is only valid inside a loop statement.
+"switch (1) { case 1: continue; }"	'continue' is only valid inside a loop statement.
+"a: switch (1) { case 1: continue a; }"	Cannot continue to the label 'a' as it is not targeting a loop.
+"while (1) { break\na }"	ok
+"yield: 1"	ok
+"await: 1"	ok
+"'use strict'; yield: 1"	Cannot use 'yield' as a label in strict mode.
+"function* g() { yield: 1 }"	Cannot use 'yield' as a label in a generator function.
+"async function f() { await: 1 }"	Cannot use 'await' as a label in an async function.
+"let: 1"	ok
+"'use strict'; let: 1"	Unexpected token ':'. Expected a parameter pattern or a ')' in parameter list.
+"if (1) a: function f() {}"	Unexpected keyword 'function'. Function declarations are only allowed inside block statements or at the top level of a program.
+"while (1) a: function f() {}"	Unexpected keyword 'function'. Function declarations are only allowed inside block statements or at the top level of a program.
+"a: for (;;) { (function () { break a; }) }"	Cannot use the undeclared label 'a'.
+"break a b"	Cannot use the undeclared label 'a'.
+"continue\na"	'continue' is only valid inside a loop statement.
+"a: { break a }"	ok
+"'use strict'; 08"	Decimal integer literals with a leading zero are forbidden in strict mode
+"'use strict'; 0123"	Decimal integer literals with a leading zero are forbidden in strict mode
+"'use strict'; '\\01'"	The only valid numeric escape in strict mode is '\0'
+"'use strict'; '\\8'"	The only valid numeric escape in strict mode is '\0'
+"'use strict'; '\\08'"	The only valid numeric escape in strict mode is '\0'
+"'use strict'; delete (x)"	Cannot delete unqualified property 'x' in strict mode.
+"'use strict'; delete ((x))"	Cannot delete unqualified property 'x' in strict mode.
+"'use strict'; delete x.y"	ok
+"'use strict'; eval = 1"	Cannot modify 'eval' in strict mode.
+"'use strict'; eval++"	Cannot modify 'eval' in strict mode.
+"'use strict'; --arguments"	Cannot modify 'arguments' in strict mode.
+"'use strict'; function eval() {}"	'eval' is not a valid function name in strict mode.
+"'use strict'; function f(eval) {}"	Cannot destructure to a parameter name 'eval' in strict mode.
+"'use strict'; function arguments() {}"	'arguments' is not a valid function name in strict mode.
+"'use strict'; (eval) => 1"	Cannot destructure to a parameter name 'eval' in strict mode.
+"'use strict'; try {} catch (eval) {}"	Cannot declare a catch variable named 'eval' in strict mode.
+"'use strict'; var public"	Cannot use the reserved word 'public' as a variable name in strict mode.
+"'use strict'; var interface"	Cannot use the reserved word 'interface' as a variable name in strict mode.
+"'use strict'; var package"	Cannot use the reserved word 'package' as a variable name in strict mode.
+"'use strict'; var private"	Cannot use the reserved word 'private' as a variable name in strict mode.
+"'use strict'; var protected"	Cannot use the reserved word 'protected' as a variable name in strict mode.
+"'use strict'; var static"	Cannot use the reserved word 'static' as a variable name in strict mode.
+"'use strict'; var let"	Cannot use 'let' as a variable name in strict mode.
+"function f() { 'use strict'; 010 }"	Decimal integer literals with a leading zero are forbidden in strict mode
+"function f() { '\\01'; 'use strict'; }"	The only valid numeric escape in strict mode is '\0'
+"function eval() { 'use strict'; }"	'eval' is not a valid function name in strict mode.
+"function f(eval) { 'use strict'; }"	Invalid parameters or function name in strict mode.
+"function f(a, a) { 'use strict'; }"	Invalid parameters or function name in strict mode.
+"function f([a]) { 'use strict'; }"	'use strict' directive not allowed inside a function with a non-simple parameter list.
+"function f({a}) { 'use strict'; }"	'use strict' directive not allowed inside a function with a non-simple parameter list.
+"function f(...a) { 'use strict'; }"	'use strict' directive not allowed inside a function with a non-simple parameter list.
+"(a, b) => { 'use strict'; 010 }"	Decimal integer literals with a leading zero are forbidden in strict mode
+"'use strict'; with (a);"	'with' statements are not valid in strict mode.
+"with (a) function f() {}"	Unexpected keyword 'function'. Function declarations are only allowed inside block statements or at the top level of a program.
+"'use strict'; if (1) function f() {}"	Function declarations are only allowed inside blocks or switch statements in strict mode.
+"'use strict'; while (1) function f() {}"	Function declarations are only allowed inside blocks or switch statements in strict mode.
+"'use strict'; ({ eval() {} })"	ok
+"'use strict'; (function eval() {})"	'eval' is not a valid function name in strict mode.
+"'use strict'; ({ set a(eval) {} })"	Cannot destructure to a parameter name 'eval' in strict mode.
+"'use strict'; for (eval of a);"	ok
+"'use strict'; for (arguments in a);"	ok
+"'use strict'; class eval {}"	Unexpected token '{'. 'eval' is not a valid class name.
+"class A { foo() { delete x } }"	Cannot delete unqualified property 'x' in strict mode.
+"class A { foo() { with (a); } }"	'with' statements are not valid in strict mode.
+"class A { foo() { 010 } }"	Decimal integer literals with a leading zero are forbidden in strict mode
+"class A { foo(a, a) {} }"	Cannot declare a parameter named 'a' in strict mode as it has already been declared.
+"'use strict'; for (var a = 1 in b);"	Cannot assign to the loop variable inside a for-in loop header.
+"'use strict'; { function a() {} function a() {} }"	Cannot declare a function that shadows a let/const/class/function variable 'a'.
+"'use strict'; switch (a) { case 1: function f() {} case 2: function f() {} }"	Cannot declare a function that shadows a let/const/class/function variable 'f'.
+"a?.["	Unexpected end of script
+"a?.("	Unexpected end of script
+"a?.b.c = 1"	Left side of assignment is not a reference.
+"a?.b.c++"	Postfix ++ operator applied to value that is not a reference.
+"a?.[0] = 1"	Left side of assignment is not a reference.
+"a?.() = 1"	Left side of assignment is not a reference.
+"for (a?.b of c);"	Left side of assignment is not a reference.
+"for (a?.b in c);"	Left side of assignment is not a reference.
+"[a?.b] = c"	Invalid destructuring assignment target.
+"({a: b?.c} = d)"	Invalid destructuring assignment target.
+"a?.b`c`"	Cannot use tagged templates in an optional chain.
+"a?.\nb"	ok
+"a?.5"	Unexpected end of script
+"new a?.()"	Cannot call constructor in an optional chain.
+"new a.b?.c"	Cannot call constructor in an optional chain.
+"super?.a"	super is not valid in this context.
+"a?.#b"	Cannot reference undeclared private names: "#b"
+"delete a?.b"	ok
+"(a?.b) = 1"	Left side of assignment is not a reference.
+"(a?.b)++"	Postfix ++ operator applied to value that is not a reference.
+"a?.b?.c?.()"	ok
+"new.target?.x"	new.target is only valid inside functions or static blocks.
+"a?.[b]`c`"	Cannot use tagged templates in an optional chain.
+"a??.b"	Unexpected token '.'
+"a ?? ?? b"	Unexpected token '??'
+"a ?? (b || c)"	ok
+"a && b ?? c"	Unexpected token '??'. Coalescing and logical operators used together in the same expression; parentheses must be used to disambiguate.
+"a ?? b && c"	Unexpected token '&&'. Coalescing and logical operators used together in the same expression; parentheses must be used to disambiguate.
+"a ??= 1"	ok
+"a ||= 1"	ok
+"a &&= 1"	ok
+"a?.b ??= 1"	Left side of assignment is not a reference.
+"(a, b) ??= 1"	Left side of assignment is not a reference.
+"1 ??= 2"	Left side of assignment is not a reference.
+"a ?? = 1"	Unexpected token '='
+"new.target = 1"	new.target is only valid inside functions or static blocks.
+"() => new.target"	new.target is not valid inside arrow functions in global code.
+"function f() { () => new.target }"	ok
+"function f() { new.target++ }"	new.target can't come before a postfix operator.
+"function f() { new.foo }"	Unexpected identifier 'foo'. "new." can only be followed with target.
+"function f() { new.t\\u0061rget }"	Unexpected identifier 't\u0061rget'. "new." can only be followed with target.
+"new . target"	new.target is only valid inside functions or static blocks.
+"class A { static { new.target } }"	ok
+"({ a() { new.target } })"	ok
+"({ a: () => new.target })"	new.target is not valid inside arrow functions in global code.
+"0x"	No hexadecimal digits after '0x'
+"0b"	No binary digits after '0b'
+"0o"	No octal digits after '0o'
+"0b1.1"	Unexpected number '.1'
+"0x1.1"	Unexpected number '.1'
+"0o1.1"	Unexpected number '.1'
+"0b1e1"	No space between binary literal and identifier
+"0n"	ok
+"00n"	No identifiers allowed directly after numeric literal
+"01n"	No identifiers allowed directly after numeric literal
+"1e1n"	No identifiers allowed directly after numeric literal
+"1.5n"	No identifiers allowed directly after numeric literal
+"0b12"	Unexpected number '2'
+"0o19"	Unexpected number '9'
+"1_000"	ok
+"1_000_"	No identifiers allowed directly after numeric literal
+"1._0"	No identifiers allowed directly after numeric literal
+"1_.0"	No identifiers allowed directly after numeric literal
+"1e_1"	Non-number found after exponent indicator
+"1e1_"	Non-number found after exponent indicator
+"0_1"	Numeric literals may not begin with 0_
+"0x_1"	No hexadecimal digits after '0x'
+"0x1_"	No space between hexadecimal literal and identifier
+"0b_1"	No binary digits after '0b'
+"08_1"	No identifiers allowed directly after numeric literal
+"1n_"	No identifiers allowed directly after numeric literal
+"1a"	No identifiers allowed directly after numeric literal
+"1_a"	No identifiers allowed directly after numeric literal
+"3in []"	No identifiers allowed directly after numeric literal
+"0.0.0"	Unexpected number '.0'
+"1.a"	No identifiers allowed directly after numeric literal
+".1.a"	ok
+"..1"	Unexpected token '.'
+".e1"	Unexpected token '.'
+"1e+"	Non-number found after exponent indicator
+"1e-"	Non-number found after exponent indicator
+"1E"	Non-number found after exponent indicator
+"0e"	Non-number found after exponent indicator
+"0X1"	ok
+"0B1"	ok
+"0O1"	ok
+"5.toString()"	No identifiers allowed directly after numeric literal
+"'\\u{}'"	\u can only be followed by a Unicode character sequence
+"'\\u{1'"	\u can only be followed by a Unicode character sequence
+"'\\u{g}'"	\u can only be followed by a Unicode character sequence
+"'\\ug'"	\u can only be followed by a Unicode character sequence
+"'\\xg0'"	\x can only be followed by a hex character sequence
+"'\\x'"	\x can only be followed by a hex character sequence
+"'\\u'"	\u can only be followed by a Unicode character sequence
+"'\\u{0000000000000041}'"	ok
+"'\\\n'"	ok
+"'\\\r\n'"	ok
+"'\n'"	Unexpected EOF
+"'\r'"	Unexpected EOF
+"' '"	ok
+"' '"	ok
+"\"\\"	Unterminated string constant
+"'\\1'"	ok
+"'\\8'"	ok
+"'\\9'"	ok
+"'\\00'"	ok
+"'\\400'"	ok
+"'\\u{10FFFF}'"	ok
+"'\\u{11FFFF}'"	\u can only be followed by a Unicode character sequence
+"'\\uD800'"	ok
+"x = '\\"	Unterminated string constant
+"x = \"\\"	Unterminated string constant
+"x = '\\u"	\u can only be followed by a Unicode character sequence
+"x = '\\u{"	\u can only be followed by a Unicode character sequence
+"x = '\\x"	\x can only be followed by a hex character sequence
+"'"	Unexpected EOF
+"\""	Unexpected EOF
+"<!--"	ok
+"a <!-- b"	ok
+"a\n--> b"	ok
+"a --> b"	ok
+"/* */ --> x"	ok
+"/*\n*/ --> x"	ok
+"/* */ /* */ --> x"	ok
+"x = 1 <!-- y\nz"	ok
+"<!-- x\n--> y"	ok
+"--> x\n<!-- y"	ok
+"/**/-->"	ok
+"a\n/**/-->"	ok
+"a\n/*\n*/-->"	ok
+"a\n  --> b"	ok
+"a\n//\n--> b"	ok
+"a; --> b"	Unexpected token '>'
+"1 <!--2"	ok
+"a<!--b"	ok
+"//\n-->"	ok
+"/* */\n--> x"	ok
+"#!"	ok
+"#!\n"	ok
+"#! x"	ok
+"\n#!x"	Invalid character: '#'
+" #!x"	Invalid character: '#'
+"/**/#!x"	Invalid character: '#'
+"#!x\n#!y"	Invalid character: '#'
+"#"	Invalid character: '#'
+"# x"	Invalid character: '#'
+"#a"	Bare private name can only be used as the left-hand side of an `in` expression.
+"#a in b"	Cannot reference undeclared private names: "#a"
+"this.#a"	Cannot reference undeclared private names: "#a"
+"using\nx = 1"	ok
+"using x"	'using' declaration is not allowed at the top level of a script or eval.
+"using x, y = 1"	'using' declaration is not allowed at the top level of a script or eval.
+"using [a] = b"	ok
+"using {a} = b"	Unexpected token '{'
+"for (using x of y);"	ok
+"for (using x = 1;;);"	ok
+"for (using x in y);"	Unexpected keyword 'in'. Cannot use 'using' declaration in for-in loop.
+"for (await using x of y);"	Unexpected identifier 'using'. Expected either 'in' or 'of' in enumeration syntax.
+"async function f() { for (await using x of y); }"	ok
+"async function f() { await using x = 1 }"	ok
+"async function f() { await using\nx = 1 }"	ok
+"async function f() { await using [a] = b }"	Left side of assignment is not a reference.
+"function f() { using x = 1 }"	ok
+"switch (1) { case 1: using x = 1 }"	'using' declaration is not allowed directly in a switch case or default clause.
+"{ using x = 1, x = 2 }"	Cannot declare a using variable twice: 'x'.
+"{ using x = 1; using x = 2 }"	Cannot declare a using variable twice: 'x'.
+"{ using let = 1 }"	Unexpected keyword 'let'. Cannot use 'let' as an identifier name for a LexicalDeclaration.
+"{ using await = 1 }"	ok
+"using = 1"	ok
+"using()"	ok
+"using\nx"	ok
+"using in x"	ok
+"using of x"	'using' declaration is not allowed at the top level of a script or eval.
+"for (using of of []);"	Unexpected token ']'
+"for (using of []);"	ok
+"{ await using x }"	Unexpected identifier 'using'
+"label: using x = 1"	Unexpected identifier 'x'
+"if (1) using x = 1"	Unexpected identifier 'x'
+"({get: 1, set: 2})"	ok
+"({get})"	ok
+"({get, set})"	ok
+"({get a})"	Unexpected token '}'. Expected a parameter list for getter definition.
+"({get a() {}, set a(x, y) {}})"	Unexpected token ','. setter functions must have one parameter.
+"({get 1() {}})"	ok
+"({get 'a'() {}})"	ok
+"({get [a]() {}})"	ok
+"({set [a](x) {}})"	ok
+"({set a([b]) {}})"	ok
+"({set a({b} = {}) {}})"	ok
+"({set a(x = 1) {}})"	ok
+"({set a(x,) {}})"	Unexpected token ','. setter functions must have one parameter.
+"({get a(,) {}})"	Unexpected token ','. getter functions must have no parameters.
+"({set a([x]) { 'use strict'; }})"	'use strict' directive not allowed inside a function with a non-simple parameter list.
+"({set a(eval) { 'use strict'; }})"	Invalid parameters or function name in strict mode.
+"'use strict'; ({set a(x, x) {}})"	Unexpected token ','. setter functions must have one parameter.
+"({get a() { super() }})"	super is not valid in this context.
+"({a() { super() }})"	super is not valid in this context.
+"({a: function() { super.x }})"	super is not valid in this context.
+"({ __proto__: 1, ['__proto__']: 2 })"	ok
+"({ __proto__: 1, __proto__() {} })"	ok
+"({ __proto__: 1, __proto__ })"	ok
+"({ __proto__: 1, '__proto__': 2 })"	Attempted to redefine __proto__ property.
+"({ __proto__: 1, __proto__: 2 } = {})"	Attempted to redefine __proto__ property.
+"({ get async() {} })"	ok
+"({ async })"	ok
+"({ async, await })"	ok
+"({ await })"	ok
+"({ yield })"	ok
+"'use strict'; ({ yield })"	Cannot use 'yield' as a shorthand property name in strict mode.
+"({ if })"	Cannot use the keyword 'if' as a shorthand property name.
+"({ 1 })"	Unexpected token '}'. Expected ':' after property name.
+"({ 'a' })"	Unexpected token '}'. Expected an identifier as property name.
+"({ [a] })"	Unexpected token '}'. Expected ':' after property name.
+"({ a, b: })"	Unexpected token '}'
+"({ ,a })"	Unexpected token ','. Expected a property name.
+"({ a,, b })"	Unexpected token ','. Expected a property name.
+"({ a b })"	Unexpected identifier 'b'. Expected a ':' following the property name 'a'.
+"({ ...a, ...b })"	ok
+"({ ... })"	Unexpected token '}'
+"({ *1() {} })"	ok
+"({ async 1() {} })"	ok
+"({ async *'a'() {} })"	ok
+"a\n=> 1"	Unexpected token '=>'
+"(a)\n=> 1"	Unexpected token '=>'
+"() \n=> 1"	Unexpected token '=>'
+"(a, b)\n=> 1"	Unexpected token '=>'
+"async (a)\n=> 1"	Unexpected token '=>'
+"a => {}\n.b"	Unexpected token '.'
+"a => {} ? 1 : 2"	Unexpected token '?'
+"(a) => {} || b"	Unexpected token '||'
+"a ? b => 1 : c"	ok
+"a ? (b) : c => 1"	ok
+"a ? (b) : (c) : d"	Unexpected token ':'
+"(a, (b)) => 1"	Unexpected token '('. Expected a parameter pattern or a ')' in parameter list.
+"((a)) => 1"	Unexpected token '('. Expected a parameter pattern or a ')' in parameter list.
+"([a]) => 1"	ok
+"({a}) => 1"	ok
+"(a.b) => 1"	Unexpected token '=>'
+"(1) => 1"	Unexpected number '1'. Expected a parameter pattern or a ')' in parameter list.
+"('a') => 1"	Unexpected string literal 'a'. Expected a parameter pattern or a ')' in parameter list.
+"(a + b) => 1"	Unexpected token '=>'
+"(a, 1) => 1"	Unexpected number '1'. Expected a parameter pattern or a ')' in parameter list.
+"(...[a]) => 1"	ok
+"(...{a}) => 1"	ok
+"(...a,) => 1"	Unexpected token '...'
+"(a,) => 1"	ok
+"(,) => 1"	Unexpected token ','
+"(,a) => 1"	Unexpected token ','
+"() => ,"	Unexpected token ','
+"(a,)"	Unexpected token ')'
+"(,)"	Unexpected token ','
+"()"	Unexpected token ')'
+"() + 1"	Unexpected token ')'
+"(...a)"	Unexpected token '...'
+"(a, ...b)"	Unexpected token '...'
+"async (...a)"	ok
+"async (a,)"	ok
+"async (,)"	Unexpected token ','
+"async () + 1"	ok
+"async (a, ...b) => 1"	ok
+"async (a, a) => 1"	Duplicate parameter 'a' not allowed in an arrow function.
+"(a, [a]) => 1"	Duplicate parameter 'a' not allowed in function with destructuring parameters.
+"([a, a]) => 1"	Duplicate parameter 'a' not allowed in function with destructuring parameters.
+"({a, a}) => 1"	Duplicate parameter 'a' not allowed in function with destructuring parameters.
+"(a, {a}) => 1"	Duplicate parameter 'a' not allowed in function with destructuring parameters.
+"a => { let a }"	Cannot declare a let variable twice: 'a'.
+"(a) => { let a }"	Cannot declare a let variable twice: 'a'.
+"(a = 1) => { let a }"	Cannot declare a let variable twice: 'a'.
+"(a) => { const a = 1 }"	Cannot declare a const variable twice: 'a'.
+"a => => 1"	Unexpected token '=>'
+"a = =>"	Unexpected token '=>'
+"=>"	Unexpected token '=>'
+"function f(a) { let a }"	Cannot declare a let variable twice: 'a'.
+"function f() { let a; var a }"	Cannot declare a var variable that shadows a let/const/class variable: 'a'.
+"function f() { var a; let a }"	Cannot declare a let variable twice: 'a'.
+"{ let a; var a }"	Cannot declare a var variable that shadows a let/const/class variable: 'a'.
+"{ var a; let a }"	Cannot declare a let variable twice: 'a'.
+"{ function a() {} let a }"	Cannot declare a let variable twice: 'a'.
+"{ let a; function a() {} }"	Cannot declare a function that shadows a let/const/class/function variable 'a'.
+"{ function a() {} var a }"	Cannot declare a var variable that shadows a let/const/class variable: 'a'.
+"{ async function a() {} function a() {} }"	Cannot declare a function that shadows a let/const/class/function variable 'a'.
+"{ function* a() {} function a() {} }"	Cannot declare a function that shadows a let/const/class/function variable 'a'.
+"try {} catch (a) { let a }"	Cannot declare a let variable twice: 'a'.
+"try {} catch ([a]) { var a }"	Cannot declare a var variable that shadows a let/const/class variable: 'a'.
+"try {} catch ({a}) { var a }"	Cannot declare a var variable that shadows a let/const/class variable: 'a'.
+"try {} catch (a) { for (var a of b); }"	ok
+"try {} catch ([a, a]) {}"	Unexpected identifier 'a'. Cannot declare a lexical variable twice: 'a'.
+"switch (a) { case 1: let b; case 2: let b; }"	Cannot declare a let variable twice: 'b'.
+"switch (a) { case 1: let b; default: var b; }"	Cannot declare a var variable that shadows a let/const/class variable: 'b'.
+"switch (a) { case 1: class A {} case 2: class A {} }"	Cannot declare a class twice: 'A'.
+"for (let a of b) { var a }"	Cannot declare a var variable that shadows a let/const/class variable: 'a'.
+"for (let a of b) var a;"	Cannot declare a var variable that shadows a let/const/class variable: 'a'.
+"for (let a in b) { var a }"	Cannot declare a var variable that shadows a let/const/class variable: 'a'.
+"for (let a;;) { var a }"	Cannot declare a var variable that shadows a let/const/class variable: 'a'.
+"try {} catch (a = 1) {}"	Unexpected token '='. Expected ')' to end a 'catch' target.
+"try {} catch (...a) {}"	Unexpected token '...'. Expected a parameter pattern or a ')' in parameter list.
+"try {} catch () {}"	Unexpected token ')'. Expected a parameter pattern or a ')' in parameter list.
+"try {} catch"	Unexpected end of script
+"try {} catch (a)"	Unexpected end of script
+"try {} catch {} catch {}"	Unexpected keyword 'catch'
+"try {} finally {} catch {}"	Unexpected keyword 'catch'
+"try {} catch (let) {}"	ok
+"try {} catch ('a') {}"	Unexpected string literal 'a'. Expected a parameter pattern or a ')' in parameter list.
+"try {} catch (a.b) {}"	Unexpected token '.'. Expected ')' to end a 'catch' target.
+"try catch {}"	Unexpected keyword 'catch'. Expected a block statement as body of a try statement.
+"try {} finally"	Unexpected end of script
+"finally {}"	Unexpected keyword 'finally'
+"catch (a) {}"	Unexpected keyword 'catch'
+"try ; catch (a) {}"	Unexpected token ';'. Expected a block statement as body of a try statement.
+"for (let [a, a] of b);"	Unexpected identifier 'a'. Cannot declare a lexical variable twice: 'a'.
+"for (let a, b of c);"	Unexpected identifier 'of'. can only declare a single variable in an enumeration.
+"for (let a, b in c);"	Unexpected keyword 'in'. can only declare a single variable in an enumeration.
+"for (var a, b of c);"	Unexpected identifier 'of'. can only declare a single variable in an enumeration.
+"for (let a = 1 in b);"	Cannot assign to the loop variable inside a for-in loop header.
+"for (const a = 1 in b);"	Cannot assign to the loop variable inside a for-in loop header.
+"for (const a of b, c);"	Unexpected token ','. Expected ')' to end a for-of header.
+"for (a of b, c);"	Unexpected token ','. Expected ')' to end a for-of header.
+"for (let a of b = c, d);"	Unexpected token ','. Expected ')' to end a for-of header.
+"for (var [a] = 1 in b);"	Cannot assign to the loop variable inside a for-in loop header.
+"for (let let of a);"	Unexpected keyword 'let'. Cannot use 'let' as an identifier name for a LexicalDeclaration.
+"for (let let in a);"	Unexpected keyword 'let'. Cannot use 'let' as an identifier name for a LexicalDeclaration.
+"for (let let;;);"	Unexpected keyword 'let'. Cannot use 'let' as an identifier name for a LexicalDeclaration.
+"for (const let of a);"	Unexpected keyword 'let'. Cannot use 'let' as an identifier name for a LexicalDeclaration.
+"for (a;b;c;d);"	Unexpected token ';'. Expected ')' to end a for-loop header.
+"for (a;b);"	Unexpected token ')'. Expected a ';' after the for loop condition expression.
+"for (;);"	Unexpected token ')'
+"for (;;;);"	Unexpected token ';'
+"for (let\n;;);"	Unexpected token ';'. Expected a parameter pattern or a ')' in parameter list.
+"for (let [a];;);"	ok
+"for (const a;;);"	Unexpected token ';'. const variables in for loops must have initializers.
+"for (a = 1 of b);"	Unexpected identifier 'of'. Expected a reference on the left hand side of an enumeration statement.
+"for (a() of b);"	ok
+"for (a() in b);"	ok
+"for (this of b);"	Left side of assignment is not a reference.
+"for ([a] of b);"	ok
+"for ({a} of b);"	ok
+"for ([a] = 1 of b);"	Left side of assignment is not a reference.
+"for ({a} = 1 in b);"	Left side of assignment is not a reference.
+"for (1 of b);"	Left side of assignment is not a reference.
+"for ((a, b) of c);"	Left side of assignment is not a reference.
+"for ((a = 1) of b);"	Left side of assignment is not a reference.
+"for (x of y) function f() {}"	Unexpected keyword 'function'. Function declarations are only allowed inside block statements or at the top level of a program.
+"for (x of y) class A {}"	Unexpected keyword 'class'. 'class' declaration is not directly within a block statement.
+"for (x in y) let x"	Unexpected identifier 'x'
+"for (x in y) const a = 1"	Unexpected keyword 'const'
+"for (;;) const a = 1"	Unexpected keyword 'const'
+"for (;;) let a"	Unexpected identifier 'a'
+"if (1) let a"	Unexpected identifier 'a'
+"if (1) const a = 1"	Unexpected keyword 'const'
+"while (1) function f() {}"	Unexpected keyword 'function'. Function declarations are only allowed inside block statements or at the top level of a program.
+"do function f() {} while (0)"	Unexpected keyword 'function'. Function declarations are only allowed inside block statements or at the top level of a program.
+"if (1) function* g() {}"	Unexpected token '*'. Cannot use generator function declaration in single-statement context.
+"if (1) async function f() {}"	Unexpected keyword 'function'. Cannot use async function declaration in single-statement context.
+"do ; while 0"	Unexpected number '0'. Expected '(' to start a do-while loop condition.
+"do while (0)"	Unexpected end of script
+"while"	Unexpected end of script
+"while ()"	Must provide an expression as a while loop condition.
+"while (1"	Unexpected end of script
+"if"	Unexpected end of script
+"if ()"	Unexpected token ')'
+"if (1"	Unexpected end of script
+"if (1) {} else"	Unexpected end of script
+"else {}"	Unexpected keyword 'else'
+"do {}"	Unexpected end of script
+"do {} while"	Unexpected end of script
+"do {} while ("	Unexpected end of script
+"for"	Unexpected end of script
+"for ("	Unexpected end of script
+"for ()"	Unexpected token ')'
+"for (;"	Unexpected end of script
+"for (;;)"	Unexpected end of script
+"for (let a of)"	Unexpected token ')'
+"for (a of)"	Unexpected token ')'
+"for (a in)"	Unexpected token ')'
+"for (a of b"	Unexpected end of script
+"for await"	for-await-of can only be used in an async function or async generator.
+"for await ("	for-await-of can only be used in an async function or async generator.
+"for each (a in b);"	Unexpected identifier 'each'. Expected '(' to start a for-loop header.
+"with"	Unexpected end of script
+"with ("	Unexpected end of script
+"with (a)"	Unexpected end of script
+"with ()"	Unexpected token ')'
+"switch"	Unexpected end of script
+"switch ("	Unexpected end of script
+"switch (a)"	Unexpected end of script
+"switch (a) {"	Unexpected end of script
+"switch (a) { case 1 }"	Unexpected token '}'. Expected a ':' after switch clause expression.
+"switch (a) { case 1: } }"	Parser error
+"switch (a) { 1 }"	Unexpected number '1'. Expected '}' to end a body of a 'switch'.
+"switch (a) { default }"	Unexpected token '}'. Expected a ':' after switch default clause.
+"switch (a) { case: }"	Unexpected token ':'
+"switch (a) { case 1:, }"	Unexpected token ','
+"switch (a) { case 1: break a }"	Cannot use the undeclared label 'a'.
+"switch (a) { case 1: return }"	Return statements are only valid inside functions.
+"switch (a) { case 1: { continue } }"	'continue' is only valid inside a loop statement.
+"switch (a) {} {"	Unexpected end of script
+"throw"	Cannot have a newline after 'throw'.
+"throw;"	Unexpected token ';'. Expected expression after 'throw'.
+"throw\n"	Cannot have a newline after 'throw'.
+"function f() { return\n }"	ok
+"function f() { throw\n1 }"	Cannot have a newline after 'throw'.
+"debugger"	ok
+"debugger 1"	Unexpected number '1'. Debugger keyword must be followed by a ';'.
+"debugger\n1"	ok
+"var debugger"	Cannot use the keyword 'debugger' as a variable name.
+"void"	Unexpected end of script
+"typeof"	Unexpected end of script
+"delete"	Unexpected end of script
+"new"	Unexpected end of script
+"new 1"	ok
+"new a("	Unexpected end of script
+"new a(,)"	Unexpected token ','
+"new a(...)"	Unexpected token ')'
+"new new a"	ok
+"new import('a')"	Cannot use new with import.
+"var a = 1, ;"	Unexpected token ';'. Expected a parameter pattern or a ')' in parameter list.
+"var a, , b"	Unexpected token ','. Expected a parameter pattern or a ')' in parameter list.
+"let a = 1 b"	Unexpected identifier 'b'. Expected ';' after variable declaration.
+"let [a] = "	Unexpected end of script
+"let {a} = "	Unexpected end of script
+"var this"	Cannot use the keyword 'this' as a variable name.
+"var null"	Cannot use the keyword 'null' as a variable name.
+"var true"	Cannot use the keyword 'true' as a variable name.
+"var typeof"	Cannot use the keyword 'typeof' as a variable name.
+"let this"	Unexpected keyword 'this'
+"let new"	Unexpected keyword 'new'
+"function this() {}"	Cannot use the keyword 'this' as a function name.
+"function null() {}"	Cannot use the keyword 'null' as a function name.
+"function f(this) {}"	Cannot use the keyword 'this' as a parameter name.
+"function f(1) {}"	Unexpected number '1'. Expected a parameter pattern or a ')' in parameter list.
+"function f('a') {}"	Unexpected string literal 'a'. Expected a parameter pattern or a ')' in parameter list.
+"function f(a b) {}"	Unexpected identifier 'b'. Expected a ')' or a ',' after a parameter declaration.
+"function f(a,, b) {}"	Unexpected token ','. Expected a parameter pattern or a ')' in parameter list.
+"function f(,) {}"	Unexpected token ','. Expected a parameter pattern or a ')' in parameter list.
+"function f(...) {}"	Unexpected token ')'. Expected a parameter pattern or a ')' in parameter list.
+"function f(...a,) {}"	Unexpected token ','. Rest parameter should be the last parameter in a function declaration.
+"function f(...a b) {}"	Unexpected identifier 'b'. Expected a ')' or a ',' after a parameter declaration.
+"function f(a = ) {}"	Unexpected token ')'
+"function f(a = 1 = 2) {}"	Left side of assignment is not a reference.
+"function f([a, a]) {}"	Duplicate parameter 'a' not allowed in function with destructuring parameters.
+"function f({a, a}) {}"	Duplicate parameter 'a' not allowed in function with destructuring parameters.
+"function f(a, [a]) {}"	Duplicate parameter 'a' not allowed in function with destructuring parameters.
+"function f(a, {a}) {}"	Duplicate parameter 'a' not allowed in function with destructuring parameters.
+"function f(a, ...a) {}"	Duplicate parameter 'a' not allowed in function with a rest parameter.
+"function f(...a, a) {}"	Unexpected token ','. Rest parameter should be the last parameter in a function declaration.
+"function f(a = 1, ...a) {}"	Duplicate parameter 'a' not allowed in function with default parameter values.
+"function* g(a, a) {}"	ok
+"async function f(a, a) {}"	ok
+"({ a(b, b) {} })"	Duplicate parameter 'b' not allowed in a method.
+"class A { a(b, b) {} }"	Cannot declare a parameter named 'b' in strict mode as it has already been declared.
+"function f() { 'use strict'; function g(a, a) {} }"	Cannot declare a parameter named 'a' in strict mode as it has already been declared.
+"a = = b"	Unexpected token '='
+"a = b = "	Unexpected end of script
+"a +"	Unexpected end of script
+"a ++ b"	Unexpected identifier 'b'
+"a++ ++"	Unexpected token '++'
+"++"	Unexpected end of script
+"--"	Unexpected end of script
+"a --b"	Unexpected identifier 'b'
+"a++b"	Unexpected identifier 'b'
+"typeof typeof a"	ok
+"~"	Unexpected end of script
+"!"	Unexpected end of script
+"a ? : b"	Unexpected token ':'
+"a ? b : : c"	Unexpected token ':'
+"a ? b ? c : d"	Unexpected end of script
+"a ?"	Unexpected end of script
+"a ? ? b"	Unexpected token '?'
+"a ?."	Unexpected end of script
+"a, "	Unexpected end of script
+", a"	Unexpected token ','
+"a,, b"	Unexpected token ','
+"(a,,b)"	Unexpected token ','
+"(,a)"	Unexpected token ','
+"a && "	Unexpected end of script
+"|| a"	Unexpected token '||'
+"a | "	Unexpected end of script
+"a ^"	Unexpected end of script
+"a == "	Unexpected end of script
+"a !== "	Unexpected end of script
+"a <= "	Unexpected end of script
+"a >>> "	Unexpected end of script
+"a ** "	Unexpected end of script
+"a in "	Unexpected end of script
+"a instanceof"	Unexpected end of script
+"a += "	Unexpected end of script
+"a **= "	Unexpected end of script
+"a >>>= "	Unexpected end of script
+"a ! b"	Unexpected token '!'
+"a ~ b"	Unexpected token '~'
+"a $ b"	Unexpected identifier '$'
+"a ` b"	Unexpected EOF
+"` a"	Unexpected EOF
+"a \\"	Incomplete unicode escape in identifier: '\'
+" "	ok
+"﻿1"	ok
+"᠎"	Invalid character '\u180e'
+"​"	Invalid character '\u200b'
+"⁠"	Invalid character '\u2060'
+"­"	Invalid character '\u00ad'
+"a​b"	Invalid character '\u200b'
+"1​"	Invalid character '\u200b'
+""	Invalid character '\u0085'
+"\u0000"	Invalid character: '\0'
+"a\u0000"	Invalid character: '\0'
+"\\"	Incomplete unicode escape in identifier: '\'
+"\\\\"	Invalid escape in identifier: '\'
+"😀"	Invalid character '\ud83d'
+"var 😀"	Invalid character '\ud83d'
+"var a😀"	Invalid unicode code point in identifier: 'a'
+"'😀'"	ok
+"var é = 1"	ok
+"var ℘ = 1"	ok
+"var ℮"	ok
+"var ゛"	ok
+"var à"	ok
+"var ̀"	Invalid character '\u0300'
+"var a‍"	ok
+"var ‍"	Invalid character '\u200d'
+"var \ud800"	Invalid character '\ud800'
+"'\ud800'"	ok
+"var 𐀀"	ok
+"var \\u{61} = 1"	ok
+"var \\u{0061} = 1"	ok
+"var a\\u{62} = 1"	ok
+"var \\u{}"	Invalid unicode escape in identifier: '\u{'
+"var \\u{110000}"	Invalid unicode escape in identifier: '\u{110000'
+"var \\u0030a"	Invalid unicode escape in identifier: '\u0030'
+"var a\\u0030"	ok
+"var \\u{30}a"	Invalid unicode escape in identifier: '\u{30}'
+"var \\u0020"	Invalid unicode escape in identifier: '\u0020'
+"var \\u"	Incomplete unicode escape in identifier: '\u'
+"var \\ua"	Incomplete unicode escape in identifier: '\ua'
+"var \\u00"	Incomplete unicode escape in identifier: '\u00'
+"var \\"	Incomplete unicode escape in identifier: '\'
+"var a\\"	Incomplete unicode escape in identifier: 'a\'
+"var \\x61"	Invalid escape in identifier: '\'
+"var \\u{1F600}"	Invalid unicode escape in identifier: '\u{1F600}'
+"var \\u{2118}"	ok
+"var a\\u200d"	ok
+"var \\u200d"	Invalid unicode escape in identifier: '\u200d'
+"var \\u200c"	Invalid unicode escape in identifier: '\u200c'
+"var a\\u200c"	ok
+"var \\u00e9"	ok
+"var \\u{d800}"	Invalid unicode escape in identifier: '\u{d800}'
+"var \\ud800"	Invalid unicode escape in identifier: '\ud800'
+"var \\u{10000}"	ok
+"var a\\u{10000}"	ok
+"var \\u{1d7d8}"	Invalid unicode escape in identifier: '\u{1d7d8}'
+"var \\u2E2F"	Invalid unicode escape in identifier: '\u2E2F'
+"var \\u0069f"	Unexpected escaped characters in keyword token: '\u0069f'
+"var l\\u0065t = 1"	ok
+"'use strict'; var l\\u0065t"	Unexpected escaped characters in keyword token: 'l\u0065t'
+"var \\u0079ield"	ok
+"'use strict'; var \\u0079ield"	Unexpected escaped characters in keyword token: '\u0079ield'
+"function* g() { var \\u0079ield }"	Unexpected escaped characters in keyword token: '\u0079ield'
+"async function f() { var aw\\u0061it }"	Cannot use 'await' as a variable name in an async function.
+"var aw\\u0061it"	ok
+"({ \\u0069f: 1 })"	ok
+"a.\\u0069f"	ok
+"a.\\u{69}f"	ok
+"({ \\u0069f })"	ok
+"n\\u0065w a"	Unexpected escaped characters in keyword token: 'n\u0065w'
+"typ\\u0065of a"	Unexpected escaped characters in keyword token: 'typ\u0065of'
+"tru\\u0065"	Unexpected escaped characters in keyword token: 'tru\u0065'
+"nul\\u006c"	Unexpected escaped characters in keyword token: 'nul\u006c'
+"this.\\u0061"	ok
+"th\\u0069s"	Unexpected escaped characters in keyword token: 'th\u0069s'
+"\\u0074his"	Unexpected escaped characters in keyword token: '\u0074his'
+"class A { st\\u0061tic a() {} }"	Unexpected identifier 'a'. Expected a ';' following a class field.
+"class A { static g\\u0065t a() {} }"	Unexpected identifier 'a'. Expected a ';' following a class field.
+"({ g\\u0065t a() {} })"	Unexpected identifier 'a'. Expected a ':' following the property name 'get'.
+"({ \\u0061sync a() {} })"	Unexpected identifier 'a'. Expected a ':' following the property name 'async'.
+"\\u0061sync function f() {}"	Unexpected keyword 'function'
+"\\u0061sync () => 1"	Unexpected token '=>'
+"async\\u0020function f() {}"	Invalid unicode escape in identifier: 'async\u0020'
+"\\u0061wait: 1"	ok
+"for (a \\u006ff b);"	Unexpected identifier '\u006ff'. Expected either 'in' or 'of' in enumeration syntax.
+"for (a o\\u0066 b);"	Unexpected identifier 'o\u0066'. Expected either 'in' or 'of' in enumeration syntax.
+"for (a \\u0069n b);"	Unexpected escaped characters in keyword token: '\u0069n'
+"a \\u0069n b"	Unexpected escaped characters in keyword token: '\u0069n'
+"a \\u0069nstanceof b"	Unexpected escaped characters in keyword token: '\u0069nstanceof'
+"a in\\u0073tanceof b"	Unexpected escaped characters in keyword token: 'in\u0073tanceof'
+"l\\u0065t a"	Unexpected identifier 'a'
+"({ \\u{} })"	Invalid unicode escape in identifier: '\u{'
+"\\u{61}"	ok
+"'\\u{61}'"	ok
