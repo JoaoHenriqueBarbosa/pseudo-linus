@@ -1,9 +1,13 @@
 //! JavaScriptCore traduzido para Rust. Ver `CONVENTIONS.md`.
 #![forbid(unsafe_code)]
+// Constante de token (ou de enum) que falta importar vira, num `match`, um padrão de captura que
+// casa tudo: o parser tomava `0b2` por `this`. Estas duas lints pegam o erro na compilação.
+#![deny(non_snake_case, unreachable_patterns)]
 
 pub mod wtf;
 pub mod yarr;
 pub mod bytecode;
 pub mod runtime;
+pub mod interpreter;
 pub mod parser;
 pub mod debugger;

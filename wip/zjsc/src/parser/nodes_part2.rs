@@ -1234,6 +1234,18 @@ impl ScopeNode {
         }
     }
 
+    pub fn start_line(&self) -> i32 {
+        self.start_line_number
+    }
+
+    pub fn start_start_offset(&self) -> i32 {
+        self.start_start_offset as i32
+    }
+
+    pub fn start_line_start_offset(&self) -> i32 {
+        self.start_line_start_offset as i32
+    }
+
     pub fn do_any_inner_arrow_functions_use_any_feature(&self) -> bool {
         self.inner_arrow_function_code_features != NO_INNER_ARROW_FUNCTION_FEATURES
     }

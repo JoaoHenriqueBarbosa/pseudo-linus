@@ -12,8 +12,10 @@
 //! - `toStringPreserveCapacity` é `const` com `m_string` mutável no C++; aqui recebe `&mut self`.
 //! - `StringView`, `StringTypeAdapter` e as tuplas do `StringConcatenate` não estão portados: os
 //!   `append(StringTypes...)` viram os métodos `append_*` explícitos abaixo.
-//! - `appendQuotedJSONString` mora em `StringBuilderJSON.cpp` e fica fora deste módulo.
+//! - `appendQuotedJSONString` (`StringBuilderJSON.cpp`/`.h`, com `EscapedFormsForJSON.h`) está
+//!   aqui como `append_quoted_json_string`.
 
+use crate::wtf::ascii_ctype::{lower_nibble_to_lowercase_ascii_hex_digit, upper_nibble_to_lowercase_ascii_hex_digit};
 use crate::wtf::dtoa::{number_to_string_and_size, NumberToStringBuffer};
 use crate::wtf::text::atom_string::AtomString;
 use crate::wtf::text::string_impl::{copy_characters, copy_characters_widen, CharType, StringImpl, MAX_LENGTH};
@@ -467,6 +469,49 @@ impl StringBuilder {
         }
     }
 
+    /// `appendQuotedJSONString(const String&)` (`StringBuilderJSON.cpp`).
+    pub fn append_quoted_json_string(&mut self, string: &WtfString) {
+        if self.has_overflowed() {
+            return;
+        }
+
+        // Espaço para o pior caso sem realocar: 2 aspas e 6 unidades (`\uNNNN`) por caractere.
+        // `CheckedInt32`: estourar o `i32` é estouro do builder.
+        let string_length = match i32::try_from(string.length())
+            .ok()
+            .and_then(|length| length.checked_mul(6))
+            .and_then(|length| length.checked_add(2))
+        {
+            Some(length) => length as u32,
+            None => {
+                self.did_overflow();
+                return;
+            }
+        };
+        let required = saturating_sum(self.length, string_length);
+        let total = string_length as usize;
+
+        if self.is_8bit() && string.is_8bit() {
+            if let Some(start) = self.extend_buffer_for_appending(required) {
+                let output = self.latin1_tail(start, start + total);
+                let remaining = quoted_json_content(output, string.span8());
+                if remaining != 0 {
+                    self.shrink(self.length - remaining as u32);
+                }
+            }
+        } else if let Some(start) = self.extend_buffer_for_appending_with_upconvert(required) {
+            let output = self.utf16_tail(start, start + total);
+            let remaining = if string.is_8bit() {
+                quoted_json_content(output, string.span8())
+            } else {
+                quoted_json_content(output, string.span16())
+            };
+            if remaining != 0 {
+                self.shrink(self.length - remaining as u32);
+            }
+        }
+    }
+
     /// `append(number)` via `IntegerToStringConversionTrait<StringBuilder>::flush`.
     pub fn append_number_i32(&mut self, number: i32) {
         self.append_string(&WtfString::number_i32(number));
@@ -652,9 +697,166 @@ impl StringBuilder {
     }
 }
 
+/// `escapedFormsForJSON` (`EscapedFormsForJSON.h`): 0 não escapa, `u` vira `\u00XX`.
+const ESCAPED_FORMS_FOR_JSON: [u8; 0x100] = {
+    let mut table = [0u8; 0x100];
+    let mut i = 0;
+    while i < 0x20 {
+        table[i] = b'u';
+        i += 1;
+    }
+    table[0x08] = b'b';
+    table[0x09] = b't';
+    table[0x0A] = b'n';
+    table[0x0C] = b'f';
+    table[0x0D] = b'r';
+    table[b'"' as usize] = b'"';
+    table[b'\\' as usize] = b'\\';
+    table
+};
+
+/// A unidade de saída de `appendEscapedJSONStringContent` (`Latin1Character` ou `char16_t`).
+trait JsonOutputUnit: Copy {
+    const IS_LATIN1: bool;
+    fn from_unit(unit: u16) -> Self;
+}
+
+impl JsonOutputUnit for u8 {
+    const IS_LATIN1: bool = true;
+    fn from_unit(unit: u16) -> u8 {
+        unit as u8
+    }
+}
+
+impl JsonOutputUnit for u16 {
+    const IS_LATIN1: bool = false;
+    fn from_unit(unit: u16) -> u16 {
+        unit
+    }
+}
+
+/// A unidade de entrada (`Latin1Character` ou `char16_t`).
+trait JsonInputUnit: Copy {
+    fn unit(self) -> u16;
+}
+
+impl JsonInputUnit for u8 {
+    fn unit(self) -> u16 {
+        self as u16
+    }
+}
+
+impl JsonInputUnit for u16 {
+    fn unit(self) -> u16 {
+        self
+    }
+}
+
+/// `appendEscapedJSONStringContent(output, input)` mais as aspas de `appendQuotedJSONString`:
+/// escreve `"`, o conteúdo escapado e `"` no começo de `output`, e devolve quantas unidades
+/// de `output` sobraram sem uso (o `output.size()` final do C++).
+fn quoted_json_content<O: JsonOutputUnit, I: JsonInputUnit>(output: &mut [O], input: &[I]) -> usize {
+    let mut at = 0;
+    let mut put = |output: &mut [O], unit: u16| {
+        output[at] = O::from_unit(unit);
+        at += 1;
+    };
+    put(output, b'"' as u16);
+    let mut i = 0;
+    while i < input.len() {
+        let character = input[i].unit();
+        i += 1;
+        if character <= 0xFF {
+            let escaped = ESCAPED_FORMS_FOR_JSON[character as usize];
+            if escaped == 0 {
+                put(output, character);
+                continue;
+            }
+            put(output, b'\\' as u16);
+            put(output, escaped as u16);
+            if escaped == b'u' {
+                put(output, b'0' as u16);
+                put(output, b'0' as u16);
+                put(output, upper_nibble_to_lowercase_ascii_hex_digit(character as u8) as u16);
+                put(output, lower_nibble_to_lowercase_ascii_hex_digit(character as u8) as u16);
+            }
+            continue;
+        }
+
+        // Só se chega aqui com entrada UTF-16; a saída Latin1 do C++ devolveria `false`.
+        if O::IS_LATIN1 {
+            break;
+        }
+
+        if !(0xD800..=0xDFFF).contains(&character) {
+            put(output, character);
+            continue;
+        }
+
+        if i < input.len() {
+            let next = input[i].unit();
+            if character <= 0xDBFF && (0xDC00..=0xDFFF).contains(&next) {
+                put(output, character);
+                put(output, next);
+                i += 1;
+                continue;
+            }
+        }
+
+        let (upper, lower) = ((character >> 8) as u8, character as u8);
+        put(output, b'\\' as u16);
+        put(output, b'u' as u16);
+        put(output, upper_nibble_to_lowercase_ascii_hex_digit(upper) as u16);
+        put(output, lower_nibble_to_lowercase_ascii_hex_digit(upper) as u16);
+        put(output, upper_nibble_to_lowercase_ascii_hex_digit(lower) as u16);
+        put(output, lower_nibble_to_lowercase_ascii_hex_digit(lower) as u16);
+    }
+    put(output, b'"' as u16);
+    output.len() - at
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn quoted(builder: &mut StringBuilder, string: &WtfString) -> std::string::String {
+        builder.append_quoted_json_string(string);
+        let value = builder.to_string().clone();
+        if value.is_8bit() {
+            value.span8().iter().map(|&c| c as char).collect()
+        } else {
+            std::string::String::from_utf16_lossy(value.span16())
+        }
+    }
+
+    #[test]
+    fn quoted_json_latin1_escapes() {
+        let mut builder = StringBuilder::new();
+        let out = quoted(&mut builder, &WtfString::from_latin1(b"a\"b\\c\n\t\x08\x0c\r\x01\x1f\xe9"));
+        assert_eq!(out, "\"a\\\"b\\\\c\\n\\t\\b\\f\\r\\u0001\\u001f\u{e9}\"");
+        assert!(builder.is_8bit());
+        assert_eq!(builder.length() as usize, out.chars().count());
+    }
+
+    #[test]
+    fn quoted_json_utf16_surrogates() {
+        let mut builder = StringBuilder::new();
+        builder.append_ascii_literal("x:");
+        let string = WtfString::from_utf16(&[0xD83D, 0xDE00, 0xD800, 0x41, 0xDC00, 0x20AC, 0xDBFF]);
+        builder.append_quoted_json_string(&string);
+        let expected: Vec<u16> = "x:\"".encode_utf16().chain([0xD83D, 0xDE00]).chain("\\ud800A\\udc00\u{20AC}\\udbff\"".encode_utf16()).collect();
+        assert_eq!(builder.span16(), &expected[..]);
+        assert_eq!(builder.length() as usize, expected.len());
+    }
+
+    #[test]
+    fn quoted_json_empty_and_upconvert() {
+        let mut builder = StringBuilder::new();
+        assert_eq!(quoted(&mut builder, &WtfString::from_latin1(b"")), "\"\"");
+        builder.append_character(0x20AC);
+        builder.append_quoted_json_string(&WtfString::from_latin1(b"\n\xff"));
+        assert_eq!(builder.span16(), &[0x22, 0x22, 0x20AC, 0x22, 0x5C, 0x6E, 0xFF, 0x22]);
+    }
 
     #[test]
     fn appends_latin1_and_promotes_to_utf16() {

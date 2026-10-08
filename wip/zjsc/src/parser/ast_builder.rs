@@ -900,14 +900,14 @@ impl TreeBuilder for ASTBuilder {
         Self::set_metadata_ecma_name(Self::body_of(function_info), name);
         let null_identifier = self.vm.property_names.null_identifier.clone();
         let method_def = self.build_accessor_method_definition(location, function_info, &null_identifier);
-        Link::new(PropertyNode::from_name_and_assign(name.clone(), method_def, type_, SuperBinding::Needed, tag))
+        Link::new(PropertyNode::from_name_and_assign(name.clone(), Some(method_def), type_, SuperBinding::Needed, tag))
     }
 
     fn create_getter_or_setter_property_computed(&mut self, location: &JSTokenLocation, type_: PropertyNodeType, name: Option<Expression>, function_info: &ParserFunctionInfo<ASTBuilder>, tag: ClassElementTag) -> Link<PropertyNode> {
         Self::set_function_body_loc(function_info, location);
         let null_identifier = self.vm.property_names.null_identifier.clone();
         let method_def = self.build_accessor_method_definition(location, function_info, &null_identifier);
-        Link::new(PropertyNode::from_expression_and_assign(non_null(name), method_def, type_, SuperBinding::Needed, tag))
+        Link::new(PropertyNode::from_expression_and_assign(non_null(name), Some(method_def), type_, SuperBinding::Needed, tag))
     }
 
     fn create_getter_or_setter_property_number(&mut self, vm: &VM, parser_arena: &mut ParserArena, location: &JSTokenLocation, type_: PropertyNodeType, name: f64, function_info: &ParserFunctionInfo<ASTBuilder>, tag: ClassElementTag) -> Link<PropertyNode> {
@@ -915,7 +915,7 @@ impl TreeBuilder for ASTBuilder {
         let ident = parser_arena.identifier_arena().borrow_mut().make_numeric_identifier(vm, name);
         Self::set_metadata_ecma_name(Self::body_of(function_info), &ident);
         let method_def = self.build_accessor_method_definition(location, function_info, &vm.property_names.null_identifier);
-        Link::new(PropertyNode::from_name_and_assign(ident, method_def, type_, SuperBinding::Needed, tag))
+        Link::new(PropertyNode::from_name_and_assign(ident, Some(method_def), type_, SuperBinding::Needed, tag))
     }
 
     fn create_property_identifier(&mut self, property_name: &Identifier, type_: PropertyNodeType, super_binding: SuperBinding, tag: ClassElementTag) -> Link<PropertyNode> {
@@ -924,9 +924,8 @@ impl TreeBuilder for ASTBuilder {
 
     fn create_property_named(&mut self, name: Option<&Identifier>, node: Option<Expression>, type_: PropertyNodeType, super_binding: SuperBinding, infer_name: InferName, tag: ClassElementTag) -> Link<PropertyNode> {
         let property_name = name.expect("RELEASE_ASSERT: nome de propriedade nulo");
-        let node = non_null(node);
-        if infer_name == InferName::Allowed {
-            Self::set_ecma_name_of_function_or_class(&node, property_name);
+        if let (InferName::Allowed, Some(node)) = (infer_name, &node) {
+            Self::set_ecma_name_of_function_or_class(node, property_name);
         }
         Link::new(PropertyNode::from_name_and_assign(property_name.clone(), node, type_, super_binding, tag))
     }
@@ -937,15 +936,15 @@ impl TreeBuilder for ASTBuilder {
 
     fn create_property_number(&mut self, vm: &VM, parser_arena: &mut ParserArena, property_name: f64, node: Option<Expression>, type_: PropertyNodeType, super_binding: SuperBinding, tag: ClassElementTag) -> Link<PropertyNode> {
         let ident = parser_arena.identifier_arena().borrow_mut().make_numeric_identifier(vm, property_name);
-        Link::new(PropertyNode::from_name_and_assign(ident, non_null(node), type_, super_binding, tag))
+        Link::new(PropertyNode::from_name_and_assign(ident, node, type_, super_binding, tag))
     }
 
     fn create_property_computed(&mut self, property_name: Option<Expression>, node: Option<Expression>, type_: PropertyNodeType, super_binding: SuperBinding, tag: ClassElementTag) -> Link<PropertyNode> {
-        Link::new(PropertyNode::from_expression_and_assign(non_null(property_name), non_null(node), type_, super_binding, tag))
+        Link::new(PropertyNode::from_expression_and_assign(non_null(property_name), node, type_, super_binding, tag))
     }
 
     fn create_property_identifier_computed(&mut self, identifier: &Identifier, property_name: Option<Expression>, node: Option<Expression>, type_: PropertyNodeType, super_binding: SuperBinding, tag: ClassElementTag) -> Link<PropertyNode> {
-        Link::new(PropertyNode::from_name_expression_and_assign(identifier.clone(), non_null(property_name), non_null(node), type_, super_binding, tag))
+        Link::new(PropertyNode::from_name_expression_and_assign(identifier.clone(), non_null(property_name), node, type_, super_binding, tag))
     }
 
     fn create_property_list(&mut self, location: &JSTokenLocation, property: Link<PropertyNode>) -> Link<PropertyListNode> {
