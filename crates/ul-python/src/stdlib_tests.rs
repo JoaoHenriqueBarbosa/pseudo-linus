@@ -6436,11 +6436,13 @@ for o in (sys.flags, sys.float_info, memoryview(b'')):
     try: o.__module__
     except AttributeError as e: print(e)
 print(type(sys.flags).__module__)
+import datetime
+print(hasattr(datetime.UTC, '__module__'), datetime.timezone.__module__)
 ";
     assert_eq!(
         out(src),
         "'sys.flags' object has no attribute '__module__'\n'sys.float_info' object has no attribute '__module__'\n\
-         'memoryview' object has no attribute '__module__'\nsys\n"
+         'memoryview' object has no attribute '__module__'\nsys\nFalse datetime\n"
     );
 }
 

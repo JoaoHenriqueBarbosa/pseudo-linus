@@ -795,7 +795,7 @@ impl ClassObj {
     /// aparecer, porque o tipo real não tem `__dict__` nem esses nomes.
     pub fn emulates_c_type(&self) -> bool {
         matches!(self.dict.borrow().get("__module__"), Some(Value::Str(m))
-            if m.as_str() == "builtins" || BUILTIN_MODULES.contains(&m.as_str()))
+            if m.as_str() == "builtins" || BUILTIN_MODULES.contains(&m.as_str()) || C_TYPE_MODULES.contains(&m.as_str()))
     }
 
     /// Ordem de resolução de métodos (`__mro__`): linearização C3. Herança simples não paga o
@@ -1449,6 +1449,10 @@ pub(crate) const FROZEN_MODULES: &[&str] = &[
 ];
 
 /// Módulos embutidos no executável do CPython 3.13 do Debian (`sys.builtin_module_names`).
+/// Módulos escritos em Python cujos tipos, no Debian, vêm de um módulo C com o `__module__` do módulo
+/// público (`_datetime` dá `datetime.timezone`): os tipos são de C, o módulo não é embutido.
+pub(crate) const C_TYPE_MODULES: &[&str] = &["datetime"];
+
 pub(crate) const BUILTIN_MODULES: &[&str] = &[
     "_abc", "_ast", "_bisect", "_blake2", "_codecs", "_collections", "_csv", "_datetime", "_elementtree",
     "_functools", "_heapq", "_imp", "_io", "_json", "_locale", "_md5", "_opcode", "_operator", "_pickle",
