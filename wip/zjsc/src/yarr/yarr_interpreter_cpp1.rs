@@ -2,6 +2,27 @@
 // (contextos de disjunção, `InputStream`, `testCharacterClass`, `checkCharacter`). Incluída por
 // `include!` no fim de `yarr_interpreter.rs`, de modo que os `use` do topo daquele arquivo valem aqui.
 //
+// # CONTRATO UNIFICADO (fatias 1 a 6 seguem este modelo)
+//
+// - `DisjunctionContextRef` (`Copy`): `Disjunction(usize)` (índice em `disjunction_contexts`, o
+//   `DisjunctionContext*` da raiz) ou `Parentheses(usize)` (o `getDisjunctionContext()` de
+//   `parentheses_contexts[i]`). Todo `DisjunctionContext* context` do C++ vira `DisjunctionContextRef`.
+// - Acesso: `self.context(ref) -> &DisjunctionContext`, `self.context_mut(ref) -> &mut DisjunctionContext`
+//   (campos `term`, `match_begin`, `match_end`, `frame`), `self.frame(ref, slot) -> usize`,
+//   `self.set_frame(ref, slot, valor)`.
+// - `ParenthesesDisjunctionContext*` é `usize` (índice em `parentheses_contexts`), sem newtype.
+// - `alloc_disjunction_context(&mut self, &ByteDisjunction) -> usize` (devolve índice; o chamador monta
+//   `DisjunctionContextRef::Disjunction(i)`); `free_disjunction_context(&mut self, usize)`.
+// - `alloc_parentheses_disjunction_context(&mut self, &ByteDisjunction, &ByteTerm) -> usize`;
+//   `free_parentheses_disjunction_context(&mut self, usize)`.
+// - `BackTrackInfoParentheses` é cópia local (`Copy`) com `begin`, `match_amount`, `last_context:
+//   Option<usize>`, lida do quadro com `load(&frame, term.frame_location)` e gravada com `store`.
+//   `Self::append_parentheses_disjunction_context(&mut bt, idx, &mut ctx)` e
+//   `Self::pop_parentheses_disjunction_context(&mut bt, &self.parentheses_contexts)` são associadas.
+// - `match_disjunction`/`match_non_zero_disjunction(&mut self, &ByteDisjunction, DisjunctionContextRef,
+//   btrack: bool) -> JSRegExpResult`; `record_parentheses_match`/`reset_matches(&mut self, &ByteTerm,
+//   usize)`; `parentheses_do_backtrack(&mut self, &ByteTerm, &mut BackTrackInfoParentheses)`.
+//
 // # Modelo de posse dos contextos
 //
 // O C++ aloca `DisjunctionContext` e `ParenthesesDisjunctionContext` em um `BumpPointerPool`
@@ -105,6 +126,14 @@ impl BackTrackInfoParentheses {
             Some(index) => index + 1,
         };
     }
+}
+
+/// `DisjunctionContext*` do C++: o contexto da raiz (índice em `disjunction_contexts`) ou o que vive
+/// dentro de um `ParenthesesDisjunctionContext` (índice em `parentheses_contexts`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DisjunctionContextRef {
+    Disjunction(usize),
+    Parentheses(usize),
 }
 
 /// `Interpreter<CharType>::DisjunctionContext`.
@@ -500,11 +529,41 @@ pub struct Interpreter<'a, C: CharType> {
     pub start_offset: u32,
     pub no_newline_before: u32,
     pub remaining_match_count: u32,
+    /// `m_stackCheck`.
+    pub stack_check: crate::yarr::yarr_pattern_cpp1::StackCheck,
 }
 
 impl<'a, C: CharType> Interpreter<'a, C> {
     /// `Interpreter::bolUnsatisfiable`.
     pub const BOL_UNSATISFIABLE: u32 = u32::MAX;
+
+    /// `DisjunctionContext*` desreferenciado (leitura).
+    pub fn context(&self, context: DisjunctionContextRef) -> &DisjunctionContext {
+        match context {
+            DisjunctionContextRef::Disjunction(index) => &self.disjunction_contexts[index],
+            DisjunctionContextRef::Parentheses(index) => &self.parentheses_contexts[index].disjunction_context,
+        }
+    }
+
+    /// `DisjunctionContext*` desreferenciado (escrita).
+    pub fn context_mut(&mut self, context: DisjunctionContextRef) -> &mut DisjunctionContext {
+        match context {
+            DisjunctionContextRef::Disjunction(index) => &mut self.disjunction_contexts[index],
+            DisjunctionContextRef::Parentheses(index) => {
+                &mut self.parentheses_contexts[index].disjunction_context
+            }
+        }
+    }
+
+    /// `context->frame[slot]`.
+    pub fn frame(&self, context: DisjunctionContextRef, slot: usize) -> usize {
+        self.context(context).frame[slot]
+    }
+
+    /// `context->frame[slot] = value`.
+    pub fn set_frame(&mut self, context: DisjunctionContextRef, slot: usize, value: usize) {
+        self.context_mut(context).frame[slot] = value;
+    }
 
     /// `appendParenthesesDisjunctionContext(backTrack, context)`: `context` é o contexto de índice
     /// `context_index` no vetor de contextos de parênteses.

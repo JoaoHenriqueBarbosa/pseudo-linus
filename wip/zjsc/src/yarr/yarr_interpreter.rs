@@ -695,3 +695,9 @@ impl BytecodePattern {
 // `pub fn interpret(pattern: &BytecodePattern, input: StringView, start: u32, output: &mut [u32]) -> u32`.
 
 include!("yarr_interpreter_cpp1.rs");
+
+include!("yarr_interpreter_cpp2.rs");
+include!("yarr_interpreter_cpp3.rs");
+include!("yarr_interpreter_cpp4.rs");
+include!("yarr_interpreter_cpp5.rs");
+include!("yarr_interpreter_cpp6.rs");
