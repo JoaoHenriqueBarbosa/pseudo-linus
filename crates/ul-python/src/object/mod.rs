@@ -798,6 +798,14 @@ impl ClassObj {
             if m.as_str() == "builtins" || BUILTIN_MODULES.contains(&m.as_str()) || C_TYPE_MODULES.contains(&m.as_str()))
     }
 
+    /// Tipo de C avulso num módulo Python (`C_TYPES`), ou shim de tipo em C: o `__module__` só existe no tipo,
+    /// fora do `__dict__` dele e longe das instâncias.
+    pub fn module_is_type_only(&self) -> bool {
+        self.emulates_c_type()
+            || matches!(self.dict.borrow().get("__module__"), Some(Value::Str(m))
+                if C_TYPES.contains(&(m.as_str(), self.name.as_str())))
+    }
+
     /// Ordem de resolução de métodos (`__mro__`): linearização C3. Herança simples não paga o
     /// merge; se as bases forem inconsistentes, cai na busca em profundidade sem repetir.
     pub fn mro(self: &Rc<Self>) -> Vec<Rc<ClassObj>> {
@@ -1452,6 +1460,9 @@ pub(crate) const FROZEN_MODULES: &[&str] = &[
 /// Módulos escritos em Python cujos tipos, no Debian, vêm de um módulo C com o `__module__` do módulo
 /// público (`_datetime` dá `datetime.timezone`): os tipos são de C, o módulo não é embutido.
 pub(crate) const C_TYPE_MODULES: &[&str] = &["datetime"];
+
+/// Tipos de C avulsos num módulo que no mais é Python (`types.SimpleNamespace`, do `namespaceobject.c`).
+pub(crate) const C_TYPES: &[(&str, &str)] = &[("types", "SimpleNamespace")];
 
 pub(crate) const BUILTIN_MODULES: &[&str] = &[
     "_abc", "_ast", "_bisect", "_blake2", "_codecs", "_collections", "_csv", "_datetime", "_elementtree",

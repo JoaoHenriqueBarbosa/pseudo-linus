@@ -2431,7 +2431,7 @@ impl Vm {
             // O shim de um tipo embutido (`memoryview`, `mappingproxy`) não tem `__dict__` nem `__module__` na
             // instância, como o tipo em C: o `__module__` só existe no tipo (`type.__module__`). Vale para todo
             // tipo de módulo C (`sys.flags`, `sys.float_info`).
-            "__module__" if inst.class().emulates_c_type() => {
+            "__module__" if inst.class().module_is_type_only() => {
                 return Err(exc("AttributeError", format!("'{}' object has no attribute '{name}'", inst.class().tp_name())));
             }
             "__dict__"
@@ -2605,6 +2605,10 @@ impl Vm {
                 for (k, v) in cls.dict.borrow().iter() {
                     // O `__slots__` de um shim de tipo em C é maquinaria nossa: o tipo real não o tem.
                     if k == "__slots__" && cls.emulates_c_type() {
+                        continue;
+                    }
+                    // O `__module__` de um tipo de C avulso sai do `tp_name`, não do dicionário.
+                    if k == "__module__" && cls.module_is_type_only() {
                         continue;
                     }
                     d.set(Value::str(k.clone()), v.clone())?;

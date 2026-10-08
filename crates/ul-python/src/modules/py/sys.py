@@ -151,7 +151,9 @@ def _build():
                 setattr(self, k, v)
 
         def __repr__(self):
-            return 'namespace(%s)' % ', '.join('%s=%r' % kv for kv in self.__dict__.items())
+            # O `namespace_repr`: `namespace` no tipo base, o nome do tipo numa subclasse.
+            name = 'namespace' if type(self) is SimpleNamespace else type(self).__name__
+            return '%s(%s)' % (name, ', '.join('%s=%r' % kv for kv in self.__dict__.items()))
 
         def __eq__(self, other):
             if isinstance(self, SimpleNamespace) and isinstance(other, SimpleNamespace):

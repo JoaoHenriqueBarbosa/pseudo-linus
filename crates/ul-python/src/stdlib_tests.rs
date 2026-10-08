@@ -6438,11 +6438,17 @@ for o in (sys.flags, sys.float_info, memoryview(b'')):
 print(type(sys.flags).__module__)
 import datetime
 print(hasattr(datetime.UTC, '__module__'), datetime.timezone.__module__)
+import types
+t = types.SimpleNamespace
+print(t.__module__, '__dict__' in t.__dict__, '__module__' in t.__dict__, hasattr(t(a=1), '__module__'))
+class S(t): pass
+print(S(x=1), t(y=2), S.__module__)
 ";
     assert_eq!(
         out(src),
         "'sys.flags' object has no attribute '__module__'\n'sys.float_info' object has no attribute '__module__'\n\
-         'memoryview' object has no attribute '__module__'\nsys\nFalse datetime\n"
+         'memoryview' object has no attribute '__module__'\nsys\nFalse datetime\ntypes True False False\n\
+         S(x=1) namespace(y=2) __main__\n"
     );
 }
 
