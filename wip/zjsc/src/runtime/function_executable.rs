@@ -315,11 +315,13 @@ impl FunctionExecutable {
     }
 
     pub fn is_private_builtin_function(&self) -> bool {
-        self.is_builtin_function()
-            && match self.source.provider() {
-                None => true,
-                Some(provider) => provider.source_url().is_null(),
-            }
+        let hidden = self.source.provider().is_some_and(|provider| provider.is_hidden());
+        hidden
+            || self.is_builtin_function()
+                && match self.source.provider() {
+                    None => true,
+                    Some(provider) => provider.source_url().is_null(),
+                }
     }
 
     pub fn construct_ability(&self) -> ConstructAbility {
@@ -596,10 +598,23 @@ impl FunctionExecutable {
         };
 
         if this.borrow().is_private_builtin_function() {
-            let name = this.borrow().name();
+            // O método e o acessor escondidos não têm `has_name`: o nome deles é o `ecmaName` (a chave da propriedade).
+            let name = if this.borrow().source.provider().is_some_and(|provider| provider.is_hidden()) {
+                this.borrow().ecma_name()
+            } else {
+                this.borrow().name()
+            };
+            // O acessor nativo do navegador mostra o prefixo (`function get x() { [native code] }`); as builtins do
+            // próprio JSC não.
+            let hidden = this.borrow().source.provider().is_some_and(|provider| provider.is_hidden());
+            let prefix = match this.borrow().parse_mode() {
+                SourceParseMode::GetterMode if hidden => "get ",
+                SourceParseMode::SetterMode if hidden => "set ",
+                _ => "",
+            };
             let value = js_make_nontrivial_string(
                 global_object,
-                &[&"function ", &name.string().string(), &"() { [native code] }"],
+                &[&"function ", &prefix, &name.string().string(), &"() { [native code] }"],
             );
             if throw_scope.exception().is_some() {
                 return None;

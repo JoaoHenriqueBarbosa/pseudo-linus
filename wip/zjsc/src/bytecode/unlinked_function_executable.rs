@@ -239,7 +239,11 @@ impl UnlinkedFunctionExecutable {
             features: NO_FEATURES,
             constructor_kind: node.constructor_kind,
             source_parse_mode: node.parse_mode,
-            implementation_visibility: node.implementation_visibility,
+            implementation_visibility: if node_source.provider().is_some_and(|provider| provider.is_hidden()) {
+                ImplementationVisibility::Private
+            } else {
+                node.implementation_visibility
+            },
             lexically_scoped_features: node.lexically_scoped_features,
             function_mode: node.function_mode.get(),
             derived_context_type,

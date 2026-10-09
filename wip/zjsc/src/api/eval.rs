@@ -261,6 +261,24 @@ pub fn evaluate_named_script_running_timers_reporting_uncaught(source: &str, url
     evaluate_named_script_inner(source, url, result_name, None, true)
 }
 
+/// Avalia `source` como programa do hospedeiro que a página não enxerga (o DOM do navegador escrito em
+/// JavaScript): toda função criada por ele se comporta como builtin do JSC (`toString` nativo, frame fora do
+/// `Error.stack`). O nome do programa não aparece em lugar nenhum.
+pub fn evaluate_hidden_program(global_object: &JSGlobalObjectRef, source: &str) -> Result<JSValue, JSValue> {
+    let code = make_source(
+        &WtfString::from_utf8(source.as_bytes()),
+        &SourceOrigin::default(),
+        SourceTaintedOrigin::Untainted,
+        WtfString::default(),
+        TextPosition::default(),
+        SourceProviderSourceType::Program,
+    );
+    if let Some(provider) = code.provider() {
+        provider.set_hidden();
+    }
+    evaluate(global_object, &code)
+}
+
 /// O `SourceCode` de um `Program` com a origem `file:///url` e o nome de arquivo `url`.
 pub(crate) fn named_program_source(source: &str, url: &str) -> SourceCode {
     let origin = SourceOrigin::new(URL::from_string(&WtfString::from_latin1(format!("file:///{url}").as_bytes())));
@@ -1614,4 +1632,40 @@ fn evaluate_with_cjs_caller(source: &[u16], caller_file: &str, caller: &str, res
         }
         read_global_result(&global_object, result_name)
     })
+}
+
+#[cfg(test)]
+mod hidden_program_tests {
+    use super::*;
+    use crate::wtf::text::conversion_mode::ConversionMode;
+
+    /// Roda `prelude` como programa escondido e `page` como script da página `page.js`; devolve o texto de `page`.
+    fn run(prelude: &str, page: &str) -> String {
+        run_program(|| {
+            let (vm, global_object) = new_global_object();
+            let _finalizer = VmFinalizer::new(&vm);
+            evaluate_hidden_program(&global_object, prelude).unwrap_or_else(|error| panic!("prelúdio: {}", describe_exception(&error)));
+            let value = evaluate(&global_object, &named_program_source(page, "page.js")).unwrap_or_else(|error| panic!("página: {}", describe_exception(&error)));
+            String::from_utf8_lossy(&value.to_wtf_string().utf8(ConversionMode::LenientConversion)).into_owned()
+        })
+    }
+
+    const PRELUDE: &str = "function storeOf(x) { if (x == null) throw new TypeError('bad'); return x; } \
+        globalThis.thing = { add(x) { return storeOf(x); }, get size() { return 1; } }; \
+        globalThis.make = function make(f) { return f(); };";
+
+    #[test]
+    fn functions_of_the_hidden_program_print_as_native() {
+        let shown = run(PRELUDE, "[thing.add.toString(), Object.getOwnPropertyDescriptor(thing, 'size').get.toString(), make.toString(), (() => 1).toString()].join('|')");
+        assert_eq!(shown, "function add() { [native code] }|function get size() { [native code] }|function make() { [native code] }|() => 1");
+    }
+
+    #[test]
+    fn frames_of_the_hidden_program_leave_the_stack() {
+        let shown = run(PRELUDE, "function page() { try { thing.add(null); } catch (e) { return e.stack; } }\npage()");
+        assert!(!shown.contains("storeOf") && !shown.contains("add"), "{shown}");
+        assert!(shown.contains("page@") || shown.contains("at page"), "{shown}");
+        let callback = run(PRELUDE, "make(function inner() { return new Error('x').stack; })");
+        assert!(!callback.contains("make"), "{callback}");
+    }
 }

@@ -75,6 +75,9 @@ pub struct SourceProviderBase {
     /// O fonte não passou pelo transpilador do bun (o que `vm.runInThisContext` avalia): a coluna das frames fica a
     /// crua do JSC, sem o recuo `callee_back_offset`. Só o harness dos goldens o liga.
     raw_columns: Cell<bool>,
+    /// Fonte do próprio hospedeiro que a página não pode enxergar (o DOM do navegador escrito em JavaScript): toda
+    /// função dele nasce `ImplementationVisibility::Private`, como as builtins do JSC.
+    hidden: Cell<bool>,
 }
 
 impl SourceProviderBase {
@@ -102,6 +105,7 @@ impl SourceProviderBase {
             source_code_dump_file_path: RefCell::new(None),
             position_map: RefCell::new(None),
             raw_columns: Cell::new(false),
+            hidden: Cell::new(false),
         }
     }
 }
@@ -133,6 +137,16 @@ pub trait SourceProvider: std::fmt::Debug {
     /// Marca o fonte como não transpilado.
     fn set_raw_columns(&self) {
         self.base().raw_columns.set(true);
+    }
+
+    /// `true` quando o fonte é do hospedeiro e se comporta como builtin (ver `hidden`).
+    fn is_hidden(&self) -> bool {
+        self.base().hidden.get()
+    }
+
+    /// Marca o fonte como builtin do hospedeiro.
+    fn set_hidden(&self) {
+        self.base().hidden.set(true);
     }
 
     /// Instala o mapa de posições.
