@@ -202,7 +202,7 @@ pub(crate) fn native_function(global_object: &JSGlobalObject, name: &str, length
 }
 
 /// Como [`native_function`], com o `[[Construct]]` escolhido por quem chama.
-fn native_function_with_constructor(
+pub(crate) fn native_function_with_constructor(
     global_object: &JSGlobalObject,
     name: &str,
     length: u32,

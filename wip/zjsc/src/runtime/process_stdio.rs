@@ -80,7 +80,7 @@ use crate::runtime::node_buffer::Encoding;
 use crate::runtime::string_decoder::StringDecoder;
 use crate::runtime::text_decoder::input_bytes;
 use crate::wtf::text::wtf_string::String as WtfString;
-use crate::runtime::timers::{native, put_accessor_with};
+use crate::runtime::timers::{native, native_function_with_constructor, put_accessor_with};
 
 const WRITE_MESSAGE: &str = "write() expects a string, ArrayBufferView, or ArrayBuffer";
 
@@ -859,7 +859,12 @@ fn put_methods(global_object: &JSGlobalObject, target: &crate::runtime::js_objec
 /// `constructor` não enumerável de um protótipo da cadeia.
 fn put_constructor(global_object: &JSGlobalObject, prototype: &crate::runtime::js_object::JSObject, name: &str, length: u32, function: NativeFunction) {
     let vm = global_object.vm();
-    prototype.put_direct(vm, &prop(vm, "constructor"), native(global_object, name, length, function), DONT_ENUM);
+    // Com ou sem `new` a função faz o mesmo (medido: `new WriteStream()` valida `path` como a chamada comum).
+    let constructor = native_function_with_constructor(global_object, name, length, function, function);
+    // Medido: `prototype` é uma propriedade de dados comum de função (gravável, configurável, não enumerável), depois de
+    // `length` e `name`, e `C.prototype` é o protótipo do objeto criado.
+    constructor.put_direct(vm, &prop(vm, "prototype"), prototype.as_value(), DONT_ENUM);
+    prototype.put_direct(vm, &prop(vm, "constructor"), constructor.as_value(), DONT_ENUM);
 }
 
 /// `EventEmitter.prototype` -> `Stream.prototype`, pela ordem de baixo para cima; devolve o `Stream.prototype`.
