@@ -7654,6 +7654,7 @@ dependencies = [
  "sysabi",
  "ul-archive",
  "ul-awk",
+ "ul-chromium",
  "ul-coreutils",
  "ul-diff",
  "ul-findutils",
