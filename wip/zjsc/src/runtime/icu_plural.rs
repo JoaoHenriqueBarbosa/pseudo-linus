@@ -62,12 +62,13 @@ pub fn select(locale: &str, ordinal: bool, integer: &str, fraction: &str, expone
 }
 
 /// A categoria do intervalo (`selectRange`): as categorias das pontas, pelas regras do `type` pedido
-/// (cardinais ou ordinais), e a tabela de intervalos do CLDR. Cada ponta é `(inteiro, fração, expoente)`.
+/// (cardinais ou ordinais), e a tabela de intervalos do CLDR. Cada ponta é `(inteiro, fração, expoente)`; `None` é o
+/// infinito, que o ICU classifica como `other` (medido no bun 1.4.2: `ru` `selectRange(Infinity, 1)` é `one`).
 pub fn select_range(
     locale: &str,
     ordinal: bool,
-    start: (&str, &str, u8),
-    end: (&str, &str, u8),
+    start: Option<(&str, &str, u8)>,
+    end: Option<(&str, &str, u8)>,
 ) -> Option<&'static str> {
     let locale = parse_locale(locale)?;
     let rules = if ordinal {
@@ -75,10 +76,14 @@ pub fn select_range(
     } else {
         PluralRulesWithRanges::try_new_cardinal((&locale).into()).ok()?
     };
-    let start = decimal_of(start.0, start.1, start.2)?;
-    let end = decimal_of(end.0, end.1, end.2)?;
-    let start_category = rules.rules().category_for(&start);
-    let end_category = rules.rules().category_for(&end);
+    let category_of = |bound: Option<(&str, &str, u8)>| -> Option<PluralCategory> {
+        match bound {
+            Some((integer, fraction, exponent)) => Some(rules.rules().category_for(&decimal_of(integer, fraction, exponent)?)),
+            None => Some(PluralCategory::Other),
+        }
+    };
+    let start_category = category_of(start)?;
+    let end_category = category_of(end)?;
     // O `StandardPluralRanges` do ICU consulta a tabela do locale (a mesma para cardinais e ordinais) e,
     // sem entrada para o par de categorias, devolve `other`. O `resolve_range` do icu4x devolveria a
     // categoria da ponta final, por isso a tabela é lida direto.

@@ -119,12 +119,30 @@ fn is_infinite(input: &NumericInput) -> bool {
     matches!(input, NumericInput::Double(value) if !value.is_finite())
 }
 
+/// A parte inteira que o ICU4C entrega às regras (`DecimalQuantity`): `n` é o `double` do número e `i` o `toLong`
+/// truncado nos 18 dígitos baixos. Medido no bun 1.4.2: `select(1e21)` é `one` em `pt` e `fr` e `other` em `es`
+/// (`i` zero), e `12345678901234567890` é `many` em `ar` (`n % 100` do `double` exato, 68). O icu4x tem um
+/// decimal só, então com mais de 18 dígitos vão os 18 baixos do `double` exato.
+fn icu4c_integer_operand(integer: String) -> String {
+    if integer.len() <= 18 {
+        return integer;
+    }
+    let Ok(value) = integer.parse::<f64>() else { return integer };
+    let exact = format!("{value:.0}");
+    let low = &exact[exact.len().saturating_sub(18)..];
+    let trimmed = low.trim_start_matches('0');
+    // LACUNA: com os 18 baixos todos zero (`1e21`) o ICU4C tem `i` 0 e `n` não nulo, e o icu4x só tem um decimal: ficam
+    // os dígitos originais, o que acerta as regras por `n` (`ar`, `ro`, `cy`) e erra as por `i` (`pt`, `es`, `fr`).
+    if trimmed.is_empty() { integer } else { trimmed.to_string() }
+}
+
 /// Os dígitos visíveis e o expoente compacto do número: na notação compacta o número sai escalado (`1.5M`
 /// mostra `1` e `5`), e o expoente de dez que sobrou (6) é o operando `c` das regras. O expoente sai da
 /// diferença entre as casas inteiras do valor e as dos dígitos escalados; fora do compacto é zero.
 /// LACUNA: um arredondamento que sobe de grandeza (`999999` virando `1M`) dá o expoente uma casa abaixo.
 fn visible_operands(state: &PluralRulesState, input: &NumericInput) -> (String, String, u8) {
     let (integer, fraction) = visible_digits(state, input);
+    let integer = icu4c_integer_operand(integer);
     if state.settings.notation != Notation::Compact {
         return (integer, fraction, 0);
     }
@@ -152,16 +170,14 @@ fn select_category(state: &PluralRulesState, input: &NumericInput) -> &'static s
 /// `IntlPluralRules::selectRange`: a categoria do intervalo pelas formas visíveis das duas pontas, com as
 /// regras do `type` da instância.
 fn select_range_category(state: &PluralRulesState, start: &NumericInput, end: &NumericInput) -> &'static str {
-    if is_infinite(start) || is_infinite(end) {
-        return "other";
-    }
-    let (start_integer, start_fraction, start_exponent) = visible_operands(state, start);
-    let (end_integer, end_fraction, end_exponent) = visible_operands(state, end);
+    // O infinito não tem operandos: o ICU o trata como categoria `other` e a tabela de intervalos decide.
+    let bound = |input: &NumericInput| (!is_infinite(input)).then(|| visible_operands(state, input));
+    let (start, end) = (bound(start), bound(end));
     icu_plural::select_range(
         &state.locale,
         state.kind == PluralType::Ordinal,
-        (&start_integer, &start_fraction, start_exponent),
-        (&end_integer, &end_fraction, end_exponent),
+        start.as_ref().map(|(integer, fraction, exponent)| (integer.as_str(), fraction.as_str(), *exponent)),
+        end.as_ref().map(|(integer, fraction, exponent)| (integer.as_str(), fraction.as_str(), *exponent)),
     )
     .unwrap_or("other")
 }
@@ -342,16 +358,31 @@ mod tests {
     #[test]
     fn select_range_uses_ranges_table() {
         // Inglês: qualquer intervalo é `other`; em francês `0..1` é `one` (tabela do CLDR).
-        assert_eq!(icu_plural::select_range("en", false, ("0", "", 0), ("1", "", 0)), Some("other"));
-        assert_eq!(icu_plural::select_range("fr", false, ("0", "", 0), ("1", "", 0)), Some("one"));
-        assert_eq!(icu_plural::select_range("ja", false, ("1", "", 0), ("5", "", 0)), Some("other"));
+        assert_eq!(icu_plural::select_range("en", false, Some(("0", "", 0)), Some(("1", "", 0))), Some("other"));
+        assert_eq!(icu_plural::select_range("fr", false, Some(("0", "", 0)), Some(("1", "", 0))), Some("one"));
+        assert_eq!(icu_plural::select_range("ja", false, Some(("1", "", 0)), Some(("5", "", 0))), Some("other"));
         // Par ausente da tabela: o ICU devolve `other`, não a categoria da ponta final (`en` ordinal `1..2`,
         // `he` cardinal `1..2`), e o par presente vence (`ru` `0..1` é `one`).
-        assert_eq!(icu_plural::select_range("en", true, ("1", "", 0), ("2", "", 0)), Some("other"));
-        assert_eq!(icu_plural::select_range("he", false, ("1", "", 0), ("2", "", 0)), Some("other"));
-        assert_eq!(icu_plural::select_range("ru", false, ("0", "", 0), ("1", "", 0)), Some("one"));
+        assert_eq!(icu_plural::select_range("en", true, Some(("1", "", 0)), Some(("2", "", 0))), Some("other"));
+        assert_eq!(icu_plural::select_range("he", false, Some(("1", "", 0)), Some(("2", "", 0))), Some("other"));
+        assert_eq!(icu_plural::select_range("ru", false, Some(("0", "", 0)), Some(("1", "", 0))), Some("one"));
         // Compacto: `1M` em francês tem `c = 6`, categoria `many`.
         assert_eq!(icu_plural::select("fr", false, "1", "", 6), Some("many"));
+    }
+
+    /// Medido no bun 1.4.2: o infinito é categoria `other` e a tabela de intervalos decide (`ru` `Infinity..1` é `one`).
+    #[test]
+    fn infinite_range_bound_is_other() {
+        assert_eq!(icu_plural::select_range("ru", false, None, Some(("1", "", 0))), Some("one"));
+        assert_eq!(icu_plural::select_range("en", false, None, Some(("1", "", 0))), Some("other"));
+    }
+
+    /// Medido no bun 1.4.2: acima de 18 dígitos inteiros o ICU4C usa os 18 baixos do `double` exato.
+    #[test]
+    fn huge_integer_keeps_the_low_eighteen_digits_of_the_double() {
+        assert_eq!(icu4c_integer_operand("1000000000000000000000".to_string()), "1000000000000000000000");
+        assert_eq!(icu4c_integer_operand("12345678901234567000".to_string()), "345678901234567168");
+        assert_eq!(icu4c_integer_operand("123456789012345678".to_string()), "123456789012345678");
     }
 
     #[test]
