@@ -371,6 +371,10 @@ struct Decompressor {
 
 /// O tamanho do cabeçalho gzip que `data` abre: `None` se ainda falta byte, erro se o que há não é gzip.
 fn gzip_header_length(data: &[u8]) -> Result<Option<usize>, CodecError> {
+    // Medido no bun: um byte solto, qualquer que seja, espera o seguinte (só com dois a magia é conferida).
+    if data.len() == 1 {
+        return Ok(None);
+    }
     let invalid = data.first().is_some_and(|&byte| byte != 0x1f) || data.get(1).is_some_and(|&byte| byte != 0x8b) || data.get(2).is_some_and(|&byte| byte != 8);
     if invalid || data.get(3).is_some_and(|flags| flags & 0xE0 != 0) {
         return Err(CodecError::Inflate);
@@ -615,6 +619,16 @@ fn codec_error(global_object: &JSGlobalObject, error: CodecError) -> Thrown {
 fn chunk_bytes(global_object: &JSGlobalObject, chunk: JSValue) -> Result<Vec<u8>, Thrown> {
     if chunk.is_string() {
         return Ok(String::from_utf16_lossy(&string_units(global_object, chunk)?).into_bytes());
+    }
+    // `null` é o erro do Node para escrita em stream; uma visão sobre `SharedArrayBuffer` não é `BufferSource` (medido no
+    // bun 1.4.2), então cai no erro de tipo como qualquer valor inválido.
+    if chunk.is_null() {
+        return Err(throw_coded_type_error(global_object, "May not write null values to stream", "ERR_STREAM_NULL_VALUES"));
+    }
+    let shared = crate::runtime::js_generic_typed_array_view::JSGenericTypedArrayView::from_value(&chunk).is_some_and(|view| view.is_shared())
+        || crate::runtime::js_data_view::JSDataView::from_value(&chunk).is_some_and(|view| view.is_shared());
+    if shared {
+        return Err(invalid_chunk(global_object, chunk));
     }
     input_bytes(chunk).ok_or_else(|| invalid_chunk(global_object, chunk))
 }
