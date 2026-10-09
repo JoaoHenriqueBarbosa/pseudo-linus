@@ -86,7 +86,9 @@ fn define_property_does_not_update_the_limit() {
 }
 
 #[test]
-fn capture_stack_trace_without_a_limit_uses_zero_frames() {
+fn capture_stack_trace_without_a_limit_keeps_the_frames() {
+    // Medido no bun 1.4.2: `captureStackTrace` com o limite limpo ainda captura os frames (`indexOf` dá 6), ao contrário
+    // do `new Error`, que fica sem `stack`.
     let source = "\"use strict\";\nfunction f() { var o = {}; Error.stackTraceLimit = 'a'; Error.captureStackTrace(o); return typeof o.stack + '|' + o.stack.indexOf('    at ') }\nglobalThis.R = f()";
-    assert_eq!(run(source), "string|-1");
+    assert_eq!(run(source), "string|6");
 }

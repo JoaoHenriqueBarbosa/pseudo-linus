@@ -139,7 +139,9 @@ fn probe_package_path(fs: &dyn ModuleFs, target: &str, slash: bool) -> Option<St
       return Some(found);
     }
   }
-  probe_directory(fs, target)
+  // Com barra final o diretório vem primeiro; se não houver, o bun ainda acha o arquivo (medido no bun 1.4.2:
+  // `import('./a.mjs/')` e `import('file:///.../a.mjs/')` carregam `a.mjs`).
+  probe_directory(fs, target).or_else(|| if slash { probe_file(fs, &IMPLICIT_EXTENSIONS, target) } else { None })
 }
 
 /// Mensagem do `require("pkg")` que não acha o pacote (`importer` é o arquivo que chamou).
