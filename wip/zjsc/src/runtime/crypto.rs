@@ -2802,6 +2802,12 @@ fn decapsulate_for(global_object: &JSGlobalObject, call: &HostCall, name: &str) 
 /// `length` pedido é ignorado.
 fn shared_secret_key(global_object: &JSGlobalObject, call: &HostCall, shared: Vec<u8>, usages: u16, shared_name: &str, first_argument: usize) -> HostResult {
     let algorithm = call.argument(first_argument);
+    // Medido no bun 1.4.2: o algoritmo da chave de saída que não é de chave secreta (ECDSA, RSA, ML-KEM...) é
+    // `NotSupportedError`, antes de qualquer checagem de usos.
+    use AlgorithmId::*;
+    if !resolve_algorithm(shared_name, Operation::ImportKey).is_ok_and(|id| matches!(id, AesCtr | AesCbc | AesGcm | AesCfb | AesKw | Hmac | Hkdf | Pbkdf2 | ChaCha20Poly1305)) {
+        return Err(dom_error(global_object, call, "NotSupportedError", NOT_SUPPORTED));
+    }
     let extractable = call.argument(first_argument + 1).to_boolean();
     let key = import_named(global_object, call, shared_name, "raw-secret", Some(shared), None, algorithm, extractable, usages)?;
     Ok(create_key(global_object, key))
