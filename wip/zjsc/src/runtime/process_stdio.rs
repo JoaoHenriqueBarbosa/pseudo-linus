@@ -547,8 +547,11 @@ host_function!(emitter_prepend_once, prepend_once_body);
 fn remove_all_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let fd = fd_of(global_object, call)?;
     let event = (!call.argument(0).is_undefined()).then(|| event_key(global_object, call.argument(0)));
+    let had_listeners = with_table(fd, |table| !table.event_names().is_empty());
     with_table(fd, |table| table.remove_all(event.as_deref()));
-    if event.is_none() {
+    // Como o `removeAllListeners` do node: a contagem que chega a zero troca o `_events` por um objeto vazio.
+    let emptied = event.is_some() && had_listeners && with_table(fd, |table| table.event_names().is_empty());
+    if event.is_none() || emptied {
         with_slot(fd, |slot| slot.events_cleared = true);
     }
     sync_events(global_object, call.this_value(), fd, true);
@@ -645,11 +648,10 @@ fn base_events(global_object: &JSGlobalObject, cleared: bool) -> JSValue {
     events_with_keys(global_object, if cleared { &[] } else { &BASE_EVENTS })
 }
 
-/// Um `_events` de protótipo nulo (medido) com as chaves `names` em `undefined`.
+/// Um `_events` (objeto comum, medido no bun: o protótipo não é nulo) com as chaves `names` em `undefined`.
 fn events_with_keys(global_object: &JSGlobalObject, names: &[&str]) -> JSValue {
     let vm = global_object.vm();
     let events = construct_empty_object(global_object);
-    events.set_prototype_direct(vm, JSValue::null());
     for name in names {
         events.put_direct(vm, &prop(vm, name), JSValue::undefined(), 0);
     }
