@@ -2694,7 +2694,9 @@ fn kem_call(global_object: &JSGlobalObject, call: &HostCall, name: &str) -> Resu
         normalize_named(global_object, call, &lower_name, Operation::Encapsulate)?;
         crypto_pq::PqAlgorithm::from_lower_name(&lower_name).ok_or_else(|| not_supported(global_object, call))
     };
-    let mut early = if wraps_key { None } else { Some(resolve_alg()?) };
+    // O golden do bun (`encapsulateBits(1, 1)`) mostra a chave sendo validada antes de o algoritmo ser normalizado também nos
+    // `...Bits`; só o nome é lido antes.
+    let mut early = None;
     let argument = if decapsulate { "decapsulationKey" } else { "encapsulationKey" };
     let key = key_at(global_object, call, name, 1, 2, argument)?;
     let ciphertext = if decapsulate { buffer_source(global_object, call.argument(2))? } else { Vec::new() };
