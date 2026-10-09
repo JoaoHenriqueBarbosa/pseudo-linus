@@ -71,6 +71,16 @@ estrito: o bun dá `a,d`, o porte `d,a`). `process_bun_golden` falha com pânico
 (`js_value.rs:331`), preexistente. Pendentes em `crypto` (17): RSA-OAEP com `valueOf` que lança, ML-KEM e ML-DSA, ECDSA
 com curva inválida (`P-1` é `DataError`, não `NotSupportedError`), `supports` com valores exóticos.
 
+`process_bun_golden`: o pânico `as_cell em valor que não é célula` e a asserção `vm.exception().is_none()` vinham de
+`process.exit()` dentro de um `nextTick` (a drenagem seguia chamando JS com a terminação pendente) e de um valor lançado
+vazio no `capture_stack_for_exception`; os dois foram corrigidos e a suíte passou a medir de verdade: 100 divergências,
+64 depois de `throw null`/`undefined` em minúsculas, `Received type bigint (1n)` e do pid normalizado no teste. O que sobra
+(64): `process.env` (cerca de 20: `Object.keys`, descritores, `freeze`, `structuredClone`), os streams de `stdout`/`stdin`
+(cerca de 20: `_events`, construtores sem `new`), o relato de erro não capturado de erro nativo com `code` (o bun omite o
+frame nativo `at exit (unknown)` e imprime ` code: "ERR_..."`, o porte não: 7 casos de `process.exit` inválido, em
+`uncaught_report.rs`), a coluna do caret nos erros de timer/microtarefa em CJS (mesma família do `error_stack`, mapa de
+posições), `delete process.exitCode` (o bun lança `Unable to delete property`) e `this` do callback de `nextTick`.
+
 Ainda abertos (catalogados, sem ordem de atacar agora):
 - `buffer`: 6 casos exigem o global `Bun` (`Bun.inspect`), que não existe no porte; 1 caso (`Buffer.from(new Date(0))`)
   depende do fuso do bun (`America/Sao_Paulo`), não é bug do porte.
