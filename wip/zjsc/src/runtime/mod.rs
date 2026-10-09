@@ -124,6 +124,7 @@ pub mod microtask_queue;
 pub mod js_microtask;
 pub mod base64_globals;
 pub mod global_aliases;
+pub mod bun_global;
 pub mod navigator;
 pub mod crypto;
 pub(crate) mod crypto_ec;
