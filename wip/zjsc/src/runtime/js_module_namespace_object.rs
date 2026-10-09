@@ -57,7 +57,7 @@ use crate::runtime::js_object::{JSNonFinalObject, JSObject, PutError, JS_NON_FIN
 use crate::runtime::js_string::js_string;
 use crate::runtime::js_symbol_table_object::symbol_table_get;
 use crate::runtime::js_type::JSType;
-use crate::runtime::js_type_info::{TypeInfo, IS_IMMUTABLE_PROTOTYPE_EXOTIC_OBJECT};
+use crate::runtime::js_type_info::{TypeInfo, IS_IMMUTABLE_PROTOTYPE_EXOTIC_OBJECT, OVERRIDES_PUT};
 use crate::runtime::js_value::{js_boolean, EncodedJSValue, JSValue};
 use crate::interpreter::call_frame::NativeCallFrame;
 use crate::runtime::implementation_visibility::ImplementationVisibility;
@@ -240,7 +240,7 @@ fn export_setter(global_object: &JSGlobalObject, _this_value: EncodedJSValue, _v
 
 impl JSModuleNamespaceObject {
     /// `StructureFlags` (a parte que o porte representa).
-    pub const STRUCTURE_FLAGS: u32 = JSNonFinalObject::STRUCTURE_FLAGS | IS_IMMUTABLE_PROTOTYPE_EXOTIC_OBJECT;
+    pub const STRUCTURE_FLAGS: u32 = JSNonFinalObject::STRUCTURE_FLAGS | OVERRIDES_PUT | IS_IMMUTABLE_PROTOTYPE_EXOTIC_OBJECT;
 
     /// `createStructure(vm, globalObject, prototype)`.
     pub fn create_structure(vm: &VM, global_object: &JSGlobalObject, prototype: JSValue) -> crate::runtime::structure::StructureRef {
