@@ -1709,7 +1709,9 @@ fn rsa_jwk_members(key: &KeyState) -> Vec<(&'static str, JwkMember)> {
         members.push(("alg", JwkMember::Text(alg)));
     }
     if let Some(private) = &parts.private {
-        members.push(("d", text(&private.d)));
+        if !private.d.is_empty() {
+            members.push(("d", text(&private.d)));
+        }
         members.push(("dp", text(&private.dp)));
         members.push(("dq", text(&private.dq)));
     }

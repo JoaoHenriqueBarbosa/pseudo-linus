@@ -171,7 +171,7 @@ pub(crate) fn components(der: &[u8]) -> Option<RsaComponents> {
     let public = public_of_any(der)?;
     let bytes = |value: UintRef<'_>| to_big(value).to_bytes_be();
     let private = raw_private(der).map(|raw| PrivateComponents {
-        d: bytes(raw.private_exponent),
+        d: if exponent_is_present(&raw) { bytes(raw.private_exponent) } else { Vec::new() },
         p: bytes(raw.prime1),
         q: bytes(raw.prime2),
         dp: bytes(raw.exponent1),
@@ -179,6 +179,12 @@ pub(crate) fn components(der: &[u8]) -> Option<RsaComponents> {
         qi: bytes(raw.coefficient),
     });
     Some(RsaComponents { n: public.n().to_bytes_be(), e: public.e().to_bytes_be(), private })
+}
+
+/// Medido no bun 1.4.2: um JWK privado com `d` zero vira uma chave privada cujo `exportKey('jwk')` não traz `d` (o
+/// OpenSSL trata o expoente zerado como ausente); qualquer outro `d`, coerente ou não, sai como veio.
+fn exponent_is_present(raw: &Pkcs1Private<'_>) -> bool {
+    raw.private_exponent.as_bytes().iter().any(|byte| *byte != 0)
 }
 
 /// Monta a chave de um JWK: o SPKI DER (sem parte privada) ou o PKCS#8 DER (com `d`, `p`, `q`, `dp`, `dq` e `qi`,
