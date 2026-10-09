@@ -15,7 +15,12 @@
 use crate::parser::source_code::SourceCode;
 use crate::parser::source_provider::SourceProviderSourceType;
 use crate::runtime::abstract_module_record::{AbstractModuleRecord, AbstractModuleRecordRef, ExportEntry};
+use crate::runtime::enumeration_mode::{DontEnumPropertiesMode, PrivateSymbolMode, PropertyNameMode};
 use crate::runtime::host_call::Thrown;
+use crate::runtime::iterator_operations::get_value_property;
+use crate::runtime::own_property_names::get_own_property_names;
+use crate::runtime::property_name::PropertyName;
+use crate::runtime::property_name_array::PropertyNameArrayBuilder;
 use crate::runtime::identifier::Identifier;
 use crate::runtime::js_global_object::JSGlobalObject;
 use crate::runtime::js_module_environment::JSModuleEnvironment;
@@ -92,11 +97,14 @@ pub fn try_create_default_export_synthetic_module(
     try_create_with_export_names_and_values(global_object, module_key, &export_names, &[default_export], source_type)
 }
 
-/// `SyntheticModuleRecord::parseJSONModule(globalObject, moduleKey, sourceCode)`.
+/// `SyntheticModuleRecord::parseJSONModule(globalObject, moduleKey, sourceCode)`. Com `named_exports` (o Bun,
+/// medido no 1.4.2), o objeto de topo exporta também cada chave própria (com `default` sempre o objeto todo), e
+/// o que não é objeto (array, número, string, `null`) exporta `__esModule` verdadeiro ao lado de `default`.
 pub fn parse_json_module(
     global_object: &JSGlobalObject,
     module_key: &Identifier,
     source_code: &SourceCode,
+    named_exports: bool,
 ) -> ModuleResult<AbstractModuleRecordRef> {
     // https://tc39.es/proposal-json-modules/#sec-parse-json-module
     // `JSONParseWithException(globalObject, sourceCode.view())`: o parse estrito, com o `SyntaxError` do JSON.
@@ -107,7 +115,25 @@ pub fn parse_json_module(
             return Err(Thrown::Pending);
         }
     };
-    try_create_default_export_synthetic_module(global_object, module_key, result, SourceProviderSourceType::JSON)
+    if !named_exports {
+        return try_create_default_export_synthetic_module(global_object, module_key, result, SourceProviderSourceType::JSON);
+    }
+    let vm = global_object.vm();
+    let default_name = vm.property_names.default_keyword.clone();
+    let mut names = vec![default_name.clone()];
+    let mut values = vec![result];
+    if result.is_object() && result.as_object().type_() != crate::runtime::js_type::JSType::ArrayType {
+        let mut keys = PropertyNameArrayBuilder::new(vm, PropertyNameMode::Strings, PrivateSymbolMode::Exclude);
+        get_own_property_names(vm, &result.as_object(), &mut keys, DontEnumPropertiesMode::Exclude)?;
+        for key in keys.iter().filter(|key| **key != default_name) {
+            names.push(key.clone());
+            values.push(get_value_property(global_object, result, &PropertyName::from_identifier(key))?);
+        }
+    } else {
+        names.push(Identifier::from_span(vm, b"__esModule"));
+        values.push(JSValue::Bool(true));
+    }
+    try_create_with_export_names_and_values(global_object, module_key, &names, &values, SourceProviderSourceType::JSON)
 }
 
 /// `SyntheticModuleRecord::createTextModule(globalObject, moduleKey, sourceCode)`.

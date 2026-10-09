@@ -140,6 +140,12 @@ pub trait ModuleHost {
         false
     }
 
+    /// O módulo JSON exporta, além de `default`, cada chave do objeto de topo (o Bun; para o que não é objeto,
+    /// `__esModule`). Falso é a proposta de módulos JSON, só `default` (o navegador). O padrão é o do Bun.
+    fn json_named_exports(&self) -> bool {
+        true
+    }
+
     /// O `import.meta` da especificação HTML (o navegador): objeto de protótipo nulo com `url` e `resolve` próprios,
     /// no lugar do `ImportMeta` do bun.
     fn html_import_meta(&self) -> bool {
@@ -768,7 +774,7 @@ impl ModuleLoader {
         match source_type {
             // https://tc39.es/proposal-json-modules/#sec-parse-json-module
             SourceProviderSourceType::JSON => {
-                let record = parse_json_module(global_object, &module_key, &source)?;
+                let record = parse_json_module(global_object, &module_key, &source, self.host.json_named_exports())?;
                 self.registry.borrow_mut().insert(registry_key, Rc::clone(&record));
                 return Ok(record);
             }

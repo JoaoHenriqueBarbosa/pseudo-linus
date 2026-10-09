@@ -108,6 +108,10 @@ impl ModuleHost for UrlModuleHost {
         true
     }
 
+    fn json_named_exports(&self) -> bool {
+        false
+    }
+
     fn html_import_meta(&self) -> bool {
         true
     }
