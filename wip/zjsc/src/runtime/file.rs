@@ -13,7 +13,6 @@
 //! O estado das instâncias é o de `Blob` (`blob.rs`): este módulo só constrói e confere.
 
 use std::cell::Cell;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::host_function;
 use crate::runtime::blob::{blob_prototype, normalized_type, parts_bytes, register_instance, state_of, BlobState};
@@ -46,7 +45,7 @@ fn option_property(global_object: &JSGlobalObject, options: JSValue, name: &str)
 }
 
 fn now_milliseconds() -> f64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).map_or(0.0, |elapsed| elapsed.as_millis() as f64)
+    (ul_common::time::realtime_nanos() / 1_000_000) as f64
 }
 
 /// `lastModified` das opções: ausente é o relógio, `NaN` é 0, o resto o número como veio.
