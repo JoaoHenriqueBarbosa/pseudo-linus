@@ -965,9 +965,9 @@ fn import_pq_key(
     extractable: bool,
     usages: u16,
 ) -> Result<KeyState, Thrown> {
-    // `toKeyData`: `jwk` com `BufferSource` é o `Exception { TypeError }`.
+    // `toKeyData`: `jwk` ausente (`null`/`undefined`) é `DataError`; outro valor que não é objeto, `TypeError`.
     if format == "jwk" && jwk.is_none() {
-        return Err(throw_native_type_error(global_object, "Type error"));
+        return Err(missing_jwk_error(global_object, call, false));
     }
     if matches!(format, "raw" | "raw-secret") {
         let message = format!("Unable to import {} using {format} format", alg.name());
@@ -1106,9 +1106,9 @@ fn import_asym_key(
     usages: u16,
 ) -> Result<KeyState, Thrown> {
     let curve = asym_curve(global_object, call, id, algorithm)?;
-    // `toKeyData`: `jwk` com `BufferSource` é o `Exception { TypeError }`.
+    // `toKeyData`: `jwk` ausente (`null`/`undefined`) é `DataError`; outro valor que não é objeto, `TypeError`.
     if format == "jwk" && jwk.is_none() {
-        return Err(throw_native_type_error(global_object, "Type error"));
+        return Err(missing_jwk_error(global_object, call, false));
     }
     let data_error = |message: &str| dom_error(global_object, call, "DataError", message);
     // O `raw-seed` nunca é de curva elíptica, e o bun recusa antes de olhar usos e dados.
@@ -1213,6 +1213,15 @@ fn export_key_bytes(key: &KeyState, format: &str) -> Vec<u8> {
 fn ecdsa_hash(global_object: &JSGlobalObject, call: &HostCall, algorithm: JSValue) -> Result<usize, Thrown> {
     let hash = required_member(global_object, algorithm, "EcdsaParams", "hash", "(object or DOMString)")?;
     hash_index(&algorithm_name(global_object, hash)?).ok_or_else(|| not_supported(global_object, call))
+}
+
+/// O erro de `importKey('jwk', ...)` sem objeto JWK: `null` e `undefined` são `DataError` (`Invalid keyData`, e a mensagem
+/// genérica no AES), qualquer outro valor é o `TypeError` do WebIDL (medido no bun 1.4.2).
+fn missing_jwk_error(global_object: &JSGlobalObject, call: &HostCall, generic: bool) -> Thrown {
+    if call.argument(1).is_undefined_or_null() {
+        return dom_error(global_object, call, "DataError", if generic { DATA_ERROR } else { "Invalid keyData" });
+    }
+    throw_native_type_error(global_object, "Type error")
 }
 
 /// A chave que é o `member` (`publicKey` do ECDH/X25519) do dicionário `algorithm`.
@@ -1784,9 +1793,9 @@ fn import_rsa_key(
     usages: u16,
 ) -> Result<KeyState, Thrown> {
     let hash = rsa_hash(global_object, call, algorithm, "RsaHashedImportParams")?;
-    // `toKeyData`: `jwk` com `BufferSource` é o `Exception { TypeError }`.
+    // `toKeyData`: `jwk` ausente (`null`/`undefined`) é `DataError`; outro valor que não é objeto, `TypeError`.
     if format == "jwk" && jwk.is_none() {
-        return Err(throw_native_type_error(global_object, "Type error"));
+        return Err(missing_jwk_error(global_object, call, false));
     }
     if matches!(format, "raw" | "raw-public" | "raw-secret" | "raw-seed") {
         let shown = if format == "raw-seed" { format } else { "raw" };
@@ -1922,9 +1931,9 @@ fn import_aes_key(
     extractable: bool,
     usages: u16,
 ) -> Result<KeyState, Thrown> {
-    // `toKeyData`: `jwk` com `BufferSource` é o `Exception { TypeError }`.
+    // `toKeyData`: `jwk` ausente (`null`/`undefined`) é `DataError`; outro valor que não é objeto, `TypeError`.
     if format == "jwk" && jwk.is_none() {
-        return Err(throw_native_type_error(global_object, "Type error"));
+        return Err(missing_jwk_error(global_object, call, true));
     }
     if matches!(format, "raw-public" | "raw-seed") {
         return Err(dom_error(global_object, call, "NotSupportedError", &format!("Unable to import {} using {format} format", aes_name(id))));
@@ -2020,9 +2029,9 @@ fn import_hmac_key(
     usages: u16,
 ) -> Result<KeyState, Thrown> {
     let (hash, length) = hmac_params(global_object, call, algorithm)?;
-    // `toKeyData`: `jwk` com `BufferSource` é o `Exception { TypeError }`.
+    // `toKeyData`: `jwk` ausente (`null`/`undefined`) é `DataError`; outro valor que não é objeto, `TypeError`.
     if format == "jwk" && jwk.is_none() {
-        return Err(throw_native_type_error(global_object, "Type error"));
+        return Err(missing_jwk_error(global_object, call, false));
     }
     // `aliasImportKeyFormat`: o HMAC não é AKP nem tem `raw-public`/`raw-seed`.
     if matches!(format, "raw-public" | "raw-seed") {
@@ -2062,11 +2071,12 @@ fn import_key_body_impl(global_object: &JSGlobalObject, call: &HostCall) -> Host
     let bytes = input_bytes(data);
     let mut jwk = None;
     if format == "jwk" {
-        let Some(object) = JSObject::from_value(&data) else {
-            return Err(throw_native_type_error(global_object, "Type error"));
-        };
-        if bytes.is_none() {
-            jwk = Some(parse_jwk(global_object, &object)?);
+        // `null` e `undefined` seguem sem `jwk`: o erro (`DataError`) depende do algoritmo e sai de `missing_jwk_error`.
+        match JSObject::from_value(&data) {
+            Some(object) if bytes.is_none() => jwk = Some(parse_jwk(global_object, &object)?),
+            Some(_) => {}
+            None if data.is_undefined_or_null() => {}
+            None => return Err(throw_native_type_error(global_object, "Type error")),
         }
     } else if bytes.is_none() {
         let message = "Failed to execute 'importKey' on 'SubtleCrypto': 2nd argument is not instance of ArrayBuffer, Buffer, TypedArray, or DataView.";
