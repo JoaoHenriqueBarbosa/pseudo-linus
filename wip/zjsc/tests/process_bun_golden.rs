@@ -101,10 +101,12 @@ fn process_next_tick_matches_bun() {
                 Some(name) => format!("signal:{name}"),
                 None => code.to_string(),
             };
+            // O gerador troca o pid de `(bun:PID)` e `(node:PID)` por `<pid>`.
+            let pid_prefix = format!("(node:{}", std::process::id());
             let actual = format!(
                 "{}#stderr\n{}#exit {exit}",
                 String::from_utf8_lossy(&console.stdout_bytes()),
-                String::from_utf8_lossy(&console.stderr_bytes())
+                String::from_utf8_lossy(&console.stderr_bytes()).replace(&pid_prefix, "(node:<pid>")
             );
             covered += 1;
             if actual != expected {
