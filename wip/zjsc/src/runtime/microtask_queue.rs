@@ -120,6 +120,11 @@ impl VM {
                 let was_processing = ticks::set_processing_ticks(true);
                 loop {
                     ticks::run_pending_ticks(self);
+                    // `process.exit()` dentro de um tick deixa a terminação pendente: nada mais roda (chamar JS agora
+                    // com exceção pendente quebra o contrato do interpretador).
+                    if self.has_pending_termination_exception() {
+                        break;
+                    }
                     self.drain_microtasks_only();
                     if !ticks::has_pending_ticks() || self.has_pending_termination_exception() {
                         break;
