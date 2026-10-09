@@ -157,6 +157,18 @@ pub(crate) fn install_global(global_object: &JSGlobalObject, name: &str, constru
 /// Função nativa global do bun (propriedade de dados comum, `length` dado, não construtor): `reportError`,
 /// `queueMicrotask`, `postMessage`.
 pub(crate) fn install_global_function(global_object: &JSGlobalObject, name: &str, length: u32, function: NativeFunction) {
+    install_global_function_with_visibility(global_object, name, length, function, crate::runtime::implementation_visibility::ImplementationVisibility::Public);
+}
+
+/// Como [`install_global_function`], com a visibilidade escolhida: `Private` some do `Error.stack` (o nativo do
+/// hospedeiro que a página não enxerga).
+pub fn install_global_function_with_visibility(
+    global_object: &JSGlobalObject,
+    name: &str,
+    length: u32,
+    function: NativeFunction,
+    visibility: crate::runtime::implementation_visibility::ImplementationVisibility,
+) {
     let vm = global_object.vm();
     let identifier = Identifier::from_span(vm, name.as_bytes());
     let created = crate::runtime::js_function::JSFunction::create_native(
@@ -165,7 +177,7 @@ pub(crate) fn install_global_function(global_object: &JSGlobalObject, name: &str
         length,
         identifier.string().string(),
         function,
-        crate::runtime::implementation_visibility::ImplementationVisibility::Public,
+        visibility,
         crate::runtime::intrinsic::Intrinsic::NoIntrinsic,
         crate::runtime::js_function::call_host_function_as_constructor,
     );
