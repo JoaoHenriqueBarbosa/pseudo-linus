@@ -242,7 +242,10 @@ pub(crate) fn describe_received(global_object: &JSGlobalObject, value: JSValue) 
         }
         ("string", _) => Some(format!("type string ('{}')", rust_string(&value.to_wtf_string()))),
         ("bigint", _) => Some(format!("type bigint ({}n)", rust_string(&value.to_wtf_string()))),
-        ("symbol", _) => Some("type symbol (Symbol())".to_owned()),
+        ("symbol", _) => {
+            let text = crate::runtime::symbol::as_symbol(value).try_get_descriptive_string().unwrap_or_default();
+            Some(format!("type symbol ({})", rust_string(&text)))
+        }
         (other, _) => Some(format!("type {other} ({})", rust_string(&value.to_wtf_string()))),
     }
 }
