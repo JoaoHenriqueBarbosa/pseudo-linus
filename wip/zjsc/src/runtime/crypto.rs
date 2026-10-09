@@ -78,6 +78,8 @@ use aes_kw::{KekAes128, KekAes192, KekAes256};
 use chacha20poly1305::aead::{Aead, KeyInit as _, Payload};
 use chacha20poly1305::{ChaCha20Poly1305, Nonce};
 
+use crate::runtime::iterator_operations::for_each_in_iterable;
+use crate::runtime::string_regexp_support::get_object_property;
 use ul_common::codec::{base64_decode, base64_encode, BASE64_URL};
 use ul_common::hash::{hmac, Algo};
 
@@ -533,25 +535,27 @@ fn resolve_algorithm(lower_name: &str, operation: Operation) -> Result<Algorithm
 /// A lista de `KeyUsage` como máscara de bits (posição em [`KEY_USAGES`]): não iterável é `Value is not a sequence`,
 /// objeto não array é `Type error`, elemento que não é texto ou fora do enum, os erros do WebIDL do bun.
 fn check_usages(global_object: &JSGlobalObject, value: JSValue) -> Result<u16, Thrown> {
+    // Sequência do WebIDL: qualquer iterável de objeto (`Array`, `Set`), medido no bun 1.4.2. Objeto sem `@@iterator` é
+    // `Type error`; valor que não é objeto, `Value is not a sequence`.
+    if JSObject::from_value(&value).is_none() {
+        return Err(throw_coded_type_error(global_object, "Value is not a sequence", "ERR_INVALID_ARG_TYPE"));
+    }
     let vm = global_object.vm();
-    let Some(array) = JSArray::from_value(&value) else {
-        return Err(if JSObject::from_value(&value).is_some() {
-            throw_native_type_error(global_object, "Type error")
-        } else {
-            throw_coded_type_error(global_object, "Value is not a sequence", "ERR_INVALID_ARG_TYPE")
-        });
-    };
+    let iterator = get_object_property(global_object, value, &vm.property_names.iterator_symbol)?;
+    if !iterator.is_callable() {
+        return Err(throw_native_type_error(global_object, "Type error"));
+    }
     let mut mask = 0u16;
-    for index in 0..array.length() {
-        let element = JSObject::from_value(&value).map_or_else(JSValue::undefined, |object| object.get_by_index(vm, index));
+    for_each_in_iterable(global_object, value, |element| {
         if !element.is_string() {
-            return Err(throw_native_type_error(global_object, "value must be a string"));
+            return Err(Thrown::type_error("value must be a string"));
         }
         let Some(bit) = KEY_USAGES.iter().position(|usage| *usage == rust_string(&element.to_wtf_string()).as_str()) else {
-            return Err(throw_native_type_error(global_object, "value must be enumeration (string)"));
+            return Err(Thrown::type_error("value must be enumeration (string)"));
         };
         mask |= 1 << bit;
-    }
+        Ok(())
+    })?;
     Ok(mask)
 }
 
@@ -1477,8 +1481,18 @@ fn algorithm_value(global_object: &JSGlobalObject, key: &KeyState) -> JSValue {
 fn enforce_range(global_object: &JSGlobalObject, value: JSValue, max: u32) -> Result<u32, Thrown> {
     let number = value.to_number();
     let truncated = number.trunc();
-    if number.is_nan() || truncated < 0.0 {
-        let text = if number.is_nan() { "NaN".to_owned() } else if number.is_finite() && number.fract() == 0.0 { format!("{}", number as i64) } else { format!("{number}") };
+    // Fora de `unsigned long` (infinito, NaN, negativo, acima de 2^32 - 1) a mensagem cita o valor e o intervalo pedido; entre o
+    // `max` e 2^32 - 1 é só `Type error` (medido no bun 1.4.2: `256` dá `Type error`, `Infinity` e `1e10` dão a mensagem).
+    if number.is_nan() || truncated < 0.0 || truncated > f64::from(u32::MAX) {
+        let text = if number.is_nan() {
+            "NaN".to_owned()
+        } else if number.is_infinite() {
+            (if number < 0.0 { "-Infinity" } else { "Infinity" }).to_owned()
+        } else if number.fract() == 0.0 {
+            format!("{}", number as i64)
+        } else {
+            format!("{number}")
+        };
         return Err(throw_native_type_error(global_object, &format!("Value {text} is outside the range [0, {max}]")));
     }
     if truncated > f64::from(max) {
