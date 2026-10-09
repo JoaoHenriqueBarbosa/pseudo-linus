@@ -2928,12 +2928,16 @@ fn supports_operation(global_object: &JSGlobalObject, call: &HostCall, operation
             }
             if operation == "deriveBits" { supports_derive_length(global_object, extra) } else { supports_target_key(global_object, call, extra, true) }
         }
-        // Medido no bun 1.4.2: só `AES-KW` e `RSA-OAEP` embrulham, e o 3º argumento tem de ser um algoritmo de chave importável.
+        // Medido no bun 1.4.2: só `AES-KW` e `RSA-OAEP` embrulham.
         "wrapKey" | "unwrapKey" => {
             if !resolved(Operation::WrapKey).is_some_and(|id| matches!(id, AesKw | RsaOaep)) {
                 return Ok(false);
             }
-            supports_target_key(global_object, call, extra, false)
+            // O 3º argumento é a chave embrulhada: `wrapKey` a exporta (sem HKDF/PBKDF2) e `unwrapKey` a importa, ambos
+            // com os parâmetros do algoritmo.
+            let Some(name) = algorithm_name_core(global_object, extra)? else { return Ok(false) };
+            let kind = if operation == "wrapKey" { Operation::GenerateKey } else { Operation::ImportKey };
+            resolve_algorithm(&name, kind).map_or(Ok(false), |id| supports_params(global_object, call, id, extra, ParamUse::Import))
         }
         "encapsulateBits" | "decapsulateBits" => Ok(resolved(Operation::Encapsulate).is_some()),
         "encapsulateKey" | "decapsulateKey" => {
