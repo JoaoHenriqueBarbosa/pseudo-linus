@@ -1073,7 +1073,8 @@ fn asym_jwk_material(global_object: &JSGlobalObject, call: &HostCall, jwk: &Jwk,
     if !matches!(asym.id, AlgorithmId::Ecdh | AlgorithmId::X25519) && jwk.alg.as_deref().is_some_and(|alg| Some(alg) != expected_alg && !(asym.id == AlgorithmId::Ed25519 && alg == "EdDSA")) {
         return Err(dom_error(global_object, call, "DataError", "JWK \"alg\" does not match the requested algorithm"));
     }
-    let key_ops_bad = jwk.key_ops.as_deref().is_some_and(|operations| has_duplicate(operations) || usage_mask_of(operations) & usages != usages);
+    // Medido no bun: `key_ops` duplicado passa; só a incompatibilidade com os usos vale.
+    let key_ops_bad = jwk.key_ops.as_deref().is_some_and(|operations| usage_mask_of(operations) & usages != usages);
     if key_ops_bad || (jwk.ext == Some(false) && extractable) {
         return Err(invalid());
     }
@@ -1946,7 +1947,8 @@ fn oct_jwk_secret(
 fn aes_jwk_secret(id: AlgorithmId, jwk: &Jwk, extractable: bool, usages: u16) -> Option<Vec<u8>> {
     let k = jwk.k.as_deref().filter(|_| jwk.kty.as_deref() == Some("oct"))?;
     let invalid = (usages != 0 && jwk.use_.as_deref().is_some_and(|use_| use_ != "enc"))
-        || jwk.key_ops.as_deref().is_some_and(|operations| has_duplicate(operations) || usage_mask_of(operations) & usages != usages)
+        // Medido no bun: `key_ops` duplicado passa no AES (o ChaCha20-Poly1305 e o HMAC recusam); só a incompatibilidade vale.
+        || jwk.key_ops.as_deref().is_some_and(|operations| usage_mask_of(operations) & usages != usages)
         || (jwk.ext == Some(false) && extractable);
     if invalid {
         return None;
@@ -1983,14 +1985,7 @@ fn import_aes_key(
         ("raw", _) if chacha => return Err(dom_error(global_object, call, "NotSupportedError", NOT_SUPPORTED)),
         ("raw" | "raw-secret", _) => bytes.unwrap_or_default(),
         ("jwk", Some(jwk)) if chacha => oct_jwk_secret(global_object, call, &jwk, Some("C20P"), "enc", extractable, usages)?,
-        // Medido no bun: `key_ops` duplicado com usos vazios é o `SyntaxError` dos usos; os demais JWK recusados, `DataError`.
-        ("jwk", Some(jwk)) => match aes_jwk_secret(id, &jwk, extractable, usages) {
-            Some(secret) => secret,
-            None if usages == 0 && jwk.k.is_some() && jwk.kty.as_deref() == Some("oct") && jwk.key_ops.as_deref().is_some_and(has_duplicate) => {
-                return Err(throw_native_syntax_error(global_object, "Usages cannot be empty when importing a secret key."));
-            }
-            None => Vec::new(),
-        },
+        ("jwk", Some(jwk)) => aes_jwk_secret(id, &jwk, extractable, usages).unwrap_or_default(),
         _ => return Err(dom_error(global_object, call, "NotSupportedError", NOT_SUPPORTED)),
     };
     if chacha && secret.len() != 32 {
