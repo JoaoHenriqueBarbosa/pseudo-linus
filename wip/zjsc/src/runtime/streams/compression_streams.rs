@@ -21,15 +21,16 @@
 //!
 //! O pedaço de saída de um passo tem no máximo `max(65536, tamanho da escrita)` bytes (regra do `step` do bun).
 //!
-//! DIVERGÊNCIAS: os bytes do deflate saem do `miniz_oxide` (nível 6), que pode divergir do zlib do bun em entradas
-//! grandes; um erro de lixo no fim descarta a saída da mesma escrita (o bun emite antes os pedaços cheios dos
+//! DIVERGÊNCIAS: os bytes do deflate saem do `zdeflate` (o zlib 1.3.1 traduzido, nível 6), idêntico ao bun em entradas
+//! pequenas; em entrada grande (200 KB de dois bytes repetidos) o bun dá 1 byte a mais, provavelmente por outro fork do
+//! zlib; um erro de lixo no fim descarta a saída da mesma escrita (o bun emite antes os pedaços cheios dos
 //! passos anteriores); `brotli` decodifica em streaming e o código de erro é `ERR_` mais o nome do erro do decodificador.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use flate2::{Compress, Compression, Crc, Decompress, FlushCompress, FlushDecompress, Status};
+use flate2::{Crc, Decompress, FlushDecompress, Status};
 
 use super::readable::extract_high_water_mark;
 use super::text_streams::{construct_inner_stream, enqueue, inspect_composite, install_wrapped_class, invalid_chunk, native_transformer, Produced};
@@ -255,7 +256,7 @@ impl ZstdStream {
 
 struct Compressor {
     format: Format,
-    deflate: Compress,
+    deflate: zdeflate::Deflate,
     crc: Crc,
     /// `deflate`: o Adler-32 do rodapé zlib, já que o cabeçalho e o rodapé saem à mão (ver `ZLIB_HEADER`).
     adler: Adler32,
@@ -270,7 +271,7 @@ impl Compressor {
     fn new(format: Format, high_water_mark: usize) -> Compressor {
         Compressor {
             format,
-            deflate: Compress::new(Compression::new(6), false),
+            deflate: zdeflate::Deflate::new(zdeflate::DEFAULT_COMPRESSION, -15, 8, zdeflate::Strategy::Default).expect("parâmetros fixos válidos"),
             crc: Crc::new(),
             adler: Adler32::new(),
             started: false,
@@ -306,11 +307,16 @@ impl Compressor {
         self.adler.update(input);
         let mut consumed = 0;
         loop {
-            out.reserve(CHUNK);
-            let before = self.deflate.total_in();
-            self.deflate.compress_vec(&input[consumed..], &mut out, FlushCompress::None).map_err(|_| CodecError::Inflate)?;
-            consumed += (self.deflate.total_in() - before) as usize;
-            if consumed >= input.len() && out.len() < out.capacity() {
+            let start = out.len();
+            out.resize(start + CHUNK, 0);
+            let progress = self.deflate.deflate(&input[consumed..], &mut out[start..], zdeflate::Flush::None);
+            out.truncate(start + progress.produced);
+            consumed += progress.consumed;
+            // `Z_BUF_ERROR` sem entrada nova nem saída é só "nada a fazer" (escrita vazia).
+            if progress.status.is_err() && progress.produced == 0 && progress.consumed == 0 && consumed < input.len() {
+                return Err(CodecError::Inflate);
+            }
+            if consumed >= input.len() && progress.produced < CHUNK {
                 return Ok(vec![out]);
             }
         }
@@ -326,9 +332,14 @@ impl Compressor {
         let mut out = Vec::new();
         self.start(&mut out);
         loop {
-            out.reserve(CHUNK);
-            if self.deflate.compress_vec(&[], &mut out, FlushCompress::Finish).map_err(|_| CodecError::Inflate)? == Status::StreamEnd {
-                break;
+            let start = out.len();
+            out.resize(start + CHUNK, 0);
+            let progress = self.deflate.deflate(&[], &mut out[start..], zdeflate::Flush::Finish);
+            out.truncate(start + progress.produced);
+            match progress.status {
+                Ok(zdeflate::Status::StreamEnd) => break,
+                Ok(_) => {}
+                Err(_) => return Err(CodecError::Inflate),
             }
         }
         match self.format {
