@@ -15,6 +15,21 @@ pub mod strftime;
 #[cfg(feature = "zone")]
 pub mod zone;
 
+/// Nanossegundos desde a época no `CLOCK_REALTIME` do pseudo-processo (o mesmo relógio do `date`, que o
+/// kernel do sandbox e o `TestKit` controlam). Fora de um pseudo-processo (testes de uma crate isolada),
+/// o relógio do host.
+pub fn realtime_nanos() -> i128 {
+    if let Some(sys) = sysabi::sys::try_current() {
+        if let Ok(spec) = sys.clock_gettime(sysabi::Clock::Realtime) {
+            return i128::from(spec.sec) * 1_000_000_000 + i128::from(spec.nsec);
+        }
+    }
+    match std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
+        Ok(elapsed) => elapsed.as_nanos() as i128,
+        Err(error) => -(error.duration().as_nanos() as i128),
+    }
+}
+
 /// Segundos num dia.
 pub const SECS_PER_DAY: i64 = 86_400;
 

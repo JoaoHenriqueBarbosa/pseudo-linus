@@ -94,23 +94,14 @@ pub mod int64_milliseconds {
 
 use int64_milliseconds as i64ms;
 
-/// `jsCurrentTime()`: o instante atual em milissegundos inteiros desde a época.
+/// `jsCurrentTime()`: o instante atual em milissegundos inteiros desde a época, no relógio do pseudo-processo.
 pub fn js_current_time() -> f64 {
-    let since_epoch = match std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
-        Ok(duration) => duration.as_secs_f64() * 1000.0,
-        Err(error) => -(error.duration().as_secs_f64() * 1000.0),
-    };
-    since_epoch.floor()
+    (current_time_in_nanoseconds() as f64 / 1_000_000.0).floor()
 }
 
 /// `WTF::currentTimeInNanoseconds()`: o instante atual em nanossegundos desde a época, do mesmo relógio de
 /// `js_current_time`, sem o arredondamento para milissegundos.
-pub fn current_time_in_nanoseconds() -> i128 {
-    match std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
-        Ok(duration) => duration.as_nanos() as i128,
-        Err(error) => -(error.duration().as_nanos() as i128),
-    }
-}
+pub use ul_common::time::realtime_nanos as current_time_in_nanoseconds;
 
 /// `timeClip(t)`.
 pub fn time_clip(t: f64) -> f64 {

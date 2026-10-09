@@ -163,7 +163,7 @@ fn new_boundary() -> String {
         cell.set(cell.get() + 1);
         cell.get()
     });
-    let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |elapsed| elapsed.as_nanos() as u64);
+    let nanos = ul_common::time::realtime_nanos() as u64;
     let first = splitmix(nanos ^ counter);
     format!("----WebKitFormBoundary{:016x}{:016x}", first, splitmix(first ^ counter))
 }
