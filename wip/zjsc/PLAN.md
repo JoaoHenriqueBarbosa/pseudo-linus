@@ -24,6 +24,12 @@ regressão. Famílias com causa comum já vistas: colunas e linhas de `stack` em
 bun mantém o recuo de 2 espaços do wrapper), e `Intl` (`datetime_*`, `display_names`, `duration_format`).
 Prioridade quando a conformidade for retomada: `error_stack` e `function_source` (um conserto cada, afetam muitos casos).
 
+Diagnóstico medido do `error_stack` (105 de 954, mesma contagem antes e depois do conserto do wrapper CJS, então a causa é
+outra): o frame de topo sai com coluna errada (59 no porte, 53 no bun) e os frames de função saem com a linha do texto
+transpilado (2:42) em vez da posição do mapa do golden (4:10). É precisão do `position_map.rs` na tradução de posição do
+texto executável para o canônico, não do wrapper. O `function_source` não foi remedido isolado (o cargo parou no primeiro
+teste vermelho); o recuo de 2 espaços do bun vem do texto executável, que o golden de modo 0 não grava.
+
 Corrigido e medido: `blob_bun_golden` verde (`null`/`undefined` nas partes do `new Blob` não contam, `Blob.text()` com BOM
 `FF FE` decodifica UTF-16LE, JSON de corpo vazio rejeita com `Unexpected end of JSON input`, `Blob` global enumerável).
 `cjs_require` caiu de 6 para 3 divergências: o wrapper CJS sem mapa de posições agora usa o mapa identidade com
