@@ -17,7 +17,8 @@ use std::cell::Cell;
 
 use crate::host_function;
 use crate::runtime::error_instance::ErrorInstance;
-use crate::runtime::error_natives::put_message_property;
+use crate::interpreter::call_frame::CallFrame;
+use crate::runtime::error_natives::{capture_frames, put_message_property};
 use crate::runtime::error_type::ErrorType;
 use crate::runtime::host_call::{pending_or, HostCall, HostResult, Thrown};
 use crate::runtime::iterator_operations::get_value_property;
@@ -141,6 +142,13 @@ fn build_warning(global_object: &JSGlobalObject, message: JSValue, kind: JSValue
     }
     if detail.is_string() {
         instance.put_direct(vm, &property_key(vm, "detail"), detail, 0);
+    }
+    // O bun cria o aviso com `Error.captureStackTrace` dentro de `emitWarning`: a pilha parte do chamador.
+    let top = vm.top_call_frame();
+    if top != 0 {
+        if let Some(frames) = capture_frames(global_object, CallFrame::create(top), None, false) {
+            instance.set_pending_stack(frames);
+        }
     }
     Ok(instance.as_value())
 }
