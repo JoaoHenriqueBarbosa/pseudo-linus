@@ -35,8 +35,9 @@ fn escape(out: &mut String, text: &str, attribute: bool) {
             '&' => out.push_str("&amp;"),
             '\u{a0}' => out.push_str("&nbsp;"),
             '"' if attribute => out.push_str("&quot;"),
-            '<' if !attribute => out.push_str("&lt;"),
-            '>' if !attribute => out.push_str("&gt;"),
+            // O Chromium (como a especificação atual) escapa `<` e `>` também nos valores de atributo.
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
             c => out.push(c),
         }
     }

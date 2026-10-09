@@ -7178,6 +7178,7 @@ dependencies = [
  "blitz-dom",
  "blitz-html",
  "blitz-traits",
+ "encoding_rs",
  "html5ever",
  "markup5ever",
  "pl-testing",

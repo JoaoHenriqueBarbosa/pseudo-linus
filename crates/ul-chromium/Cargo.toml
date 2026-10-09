@@ -14,6 +14,7 @@ ul-net = { path = "../ul-net" }
 # Parser de HTML conforme a especificação (o mesmo do Servo), na versão que o blitz-html usa.
 html5ever = "0.39"
 markup5ever = "0.39"
+encoding_rs = "0.8"
 # O DOM, o parser e os seletores vêm do Blitz (Dioxus), não de uma árvore própria.
 blitz-dom = "=0.3.0-beta.2"
 blitz-html = "=0.3.0-beta.2"

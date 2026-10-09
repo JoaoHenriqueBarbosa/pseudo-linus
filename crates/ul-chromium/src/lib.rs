@@ -2,6 +2,7 @@
 
 pub mod cli;
 pub mod document;
+pub mod encoding;
 pub mod page;
 
 /// Os programas deste crate.

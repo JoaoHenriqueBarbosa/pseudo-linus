@@ -4,7 +4,7 @@ use blitz_dom::BaseDocument;
 use sysabi::sys;
 use ul_net::net::client;
 
-use crate::document;
+use crate::{document, encoding};
 
 pub struct Page {
     pub url: String,
@@ -15,8 +15,8 @@ pub struct Page {
 impl Page {
     /// Busca `url` (`file:`, `http:` ou `https:`) e monta o documento.
     pub fn load(url: &str) -> Result<Page, String> {
-        let (bytes, final_url) = fetch(url)?;
-        let source = String::from_utf8_lossy(&bytes);
+        let (bytes, final_url, content_type) = fetch(url)?;
+        let source = encoding::decode(&bytes, content_type.as_deref());
         Ok(Page { url: final_url, doctype: document::sniff_doctype(&source), doc: document::parse(&source) })
     }
 
@@ -33,12 +33,13 @@ impl Page {
     }
 }
 
-fn fetch(url: &str) -> Result<(Vec<u8>, String), String> {
+fn fetch(url: &str) -> Result<(Vec<u8>, String, Option<String>), String> {
     if let Some(path) = url.strip_prefix("file://") {
         let bytes = sys::read_file(path.as_bytes()).map_err(|_| "[ERROR:net::ERR_FILE_NOT_FOUND]".to_owned())?;
-        return Ok((bytes, url.to_owned()));
+        return Ok((bytes, url.to_owned(), None));
     }
     let response = client::request(url, &client::RequestSpec::default()).map_err(|e| e.net_error().to_owned())?;
     let final_url = response.url.to_string_with(true);
-    Ok((response.body, final_url))
+    let content_type = response.header("Content-Type");
+    Ok((response.body, final_url, content_type))
 }
