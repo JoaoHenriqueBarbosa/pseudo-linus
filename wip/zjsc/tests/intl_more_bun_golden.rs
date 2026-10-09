@@ -12,8 +12,9 @@ const GOLDEN: &str = include_str!("golden/intl_more_bun.tsv");
 /// Roda a expressão e devolve a string, `throw` se lançou, ou o motivo de não ter devolvido.
 fn run(source: &str) -> Result<String, String> {
     match catch_unwind(AssertUnwindSafe(|| evaluate_script(source))) {
-        Ok(Ok(value)) if value.is_string() => {
-            let bytes = value.as_js_string().value().utf8(ConversionMode::LenientConversion);
+        // O `compare` do Collator devolve número; o golden guarda o texto dele.
+        Ok(Ok(value)) if value.is_string() || value.is_number() => {
+            let bytes = value.to_wtf_string().utf8(ConversionMode::LenientConversion);
             Ok(String::from_utf8_lossy(&bytes).into_owned())
         }
         Ok(Ok(_)) => Err("o programa não devolveu string".to_string()),
