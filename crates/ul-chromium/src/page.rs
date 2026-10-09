@@ -73,7 +73,8 @@ pub struct Page {
 }
 
 /// A ida e volta de rede de uma busca em tempo virtual: o que já estava na fila de tarefas roda antes da resposta.
-const NETWORK_LATENCY_MS: f64 = 1.0;
+/// Maior que o 1ms a que o `setTimeout(0)` é arredondado, para a resposta nunca empatar com uma tarefa já agendada.
+const NETWORK_LATENCY_MS: f64 = 2.0;
 
 impl Page {
     /// Busca `url` (`file:`, `http:` ou `https:`) e monta o documento.

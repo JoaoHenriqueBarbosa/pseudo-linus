@@ -2,7 +2,8 @@
 
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36';
 // A ida e volta de rede em tempo virtual (o NETWORK_LATENCY_MS do hospedeiro): o que já está na fila roda antes.
-const NETWORK_LATENCY_MS = 1;
+// Maior que o 1ms a que o setTimeout(0) é arredondado, para a resposta nunca empatar com uma tarefa já agendada.
+const NETWORK_LATENCY_MS = 2;
 // A janela do headless medida no oráculo (o WINDOW do hospedeiro): conteúdo 780x493, janela 780x580, tela 800x600.
 const VIEWPORT = Object.freeze({ width: 780, height: 493, outerWidth: 780, outerHeight: 580 });
 const pageState = { url: op('pageUrl') };
