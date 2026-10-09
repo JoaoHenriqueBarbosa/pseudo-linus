@@ -124,6 +124,12 @@ pub fn describe_exception(value: &JSValue) -> String {
             return format!("{}: {}", error.name(), String::from_utf8_lossy(&message));
         }
     }
+    // O bun mostra `null` e `undefined` em minúsculas (`throw null` é `error: null`).
+    match value {
+        JSValue::Null => return "null".to_owned(),
+        JSValue::Undefined => return "undefined".to_owned(),
+        _ => {}
+    }
     format!("{value:?}")
 }
 

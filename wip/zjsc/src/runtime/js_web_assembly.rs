@@ -335,6 +335,9 @@ pub(crate) fn received_description(global_object: &JSGlobalObject, value: JSValu
     if value.is_string() {
         return format!("type string ('{}')", wtf_to_rust(&value.to_string(vm).value()));
     }
+    if value.is_big_int() {
+        return format!("type bigint ({}n)", wtf_to_rust(&value.to_string(vm).value()));
+    }
     if value.is_cell() {
         if let Some(symbol) = crate::runtime::symbol::Symbol::from_cell_id(value.as_cell()) {
             if let Ok(description) = symbol.try_get_descriptive_string() {
