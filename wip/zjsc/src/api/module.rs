@@ -221,6 +221,24 @@ pub fn evaluate_module_with_fs(fs: Rc<dyn ModuleFs>, source: &str, entry_key: &s
     evaluate_logged_module(Rc::new(host), entry_key)
 }
 
+/// O erro como os geradores dos goldens de módulo o escrevem: `Nome: mensagem` para um `Error` (inclusive o
+/// `ResolveMessage` e o `BuildMessage`, que o bun faz herdar de `Error`), `throw <String(valor)>` para o resto.
+fn describe_rejection(global_object: &crate::runtime::js_global_object::JSGlobalObjectRef, reason: JSValue) -> String {
+    let formatter = "(function (e) { return e instanceof Error ? e.name + ': ' + e.message : 'throw ' + String(e); })";
+    let text = evaluate(global_object, &program_source(formatter)).ok().and_then(|function| {
+        crate::runtime::call_data::call_with_error_message(global_object, function, JSValue::undefined(), &[reason], "formatador do erro").ok()
+    });
+    match text {
+        Some(value) if value.is_string() => {
+            String::from_utf8_lossy(&value.as_js_string().value().utf8(ConversionMode::LenientConversion)).into_owned()
+        }
+        _ => {
+            global_object.vm().clear_exception();
+            describe_exception(&reason)
+        }
+    }
+}
+
 fn evaluate_logged_module(host: Rc<dyn ModuleHost>, entry_specifier: &str) -> ModuleMapOutcome {
     crate::runtime::cell_registry::run_program(|| {
         let (vm, global_object) = new_global_object();
@@ -235,7 +253,7 @@ fn evaluate_logged_module(host: Rc<dyn ModuleHost>, entry_specifier: &str) -> Mo
             PromiseStatus::Fulfilled => None,
             PromiseStatus::Rejected => {
                 promise.mark_as_handled();
-                Some(describe_exception(&promise.result()))
+                Some(describe_rejection(&global_object, promise.result()))
             }
             PromiseStatus::Pending => Some("pending".to_owned()),
         };

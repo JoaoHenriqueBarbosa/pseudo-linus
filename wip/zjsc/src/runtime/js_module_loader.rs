@@ -548,6 +548,20 @@ fn throw_message(global_object: &JSGlobalObject, state: MessageState) -> Thrown 
 }
 
 /// Lança um `ResolveMessage` do bun (`message`, `code`).
+/// A falha de `ModuleHost::resolve` de `specifier` (pedido por `referrer`), igual no `import` estático e no `import()`:
+/// o `TypeError` do host de navegador, o `BuildMessage` do especificador que o transpilador do bun recusa, ou o
+/// `ResolveMessage` com o `code` do Node.
+fn throw_unresolved(host: &dyn ModuleHost, global_object: &JSGlobalObject, specifier: &str, referrer: Option<&str>, message: &str) -> Thrown {
+    if host.failures_are_type_errors() {
+        return throw_type_error(global_object, message);
+    }
+    if let Some(text) = build_message_text(specifier) {
+        return throw_build_message(global_object, text);
+    }
+    let code = if message.starts_with("No such built-in module") { "ERR_UNKNOWN_BUILTIN_MODULE" } else { "ERR_MODULE_NOT_FOUND" };
+    throw_resolve_message(global_object, message, code, specifier, &referrer_path(referrer))
+}
+
 fn throw_resolve_message(global_object: &JSGlobalObject, message: &str, code: &str, specifier: &str, referrer: &str) -> Thrown {
     let state = MessageState {
         kind: RESOLVE,
@@ -789,10 +803,7 @@ impl ModuleLoader {
                 Ok(imported_key) => imported_key,
                 Err(message) => {
                     self.registry.borrow_mut().remove(&registry_key);
-                    if self.host.failures_are_type_errors() {
-                        return Err(throw_type_error(global_object, &message));
-                    }
-                    return Err(throw_error(global_object, &message));
+                    return Err(throw_unresolved(self.host.as_ref(), global_object, &specifier, Some(key), &message));
                 }
             };
             match self.load_module(global_object, &imported_key, request.attributes.as_ref()) {
@@ -968,14 +979,7 @@ fn request_import_module(
     };
     let key = match loader.host.resolve(specifier, referrer) {
         Ok(key) => key,
-        Err(message) if loader.host.failures_are_type_errors() => return Err(throw_type_error(global_object, &message)),
-        Err(message) => {
-            if let Some(text) = build_message_text(specifier) {
-                return Err(throw_build_message(global_object, text));
-            }
-            let code = if message.starts_with("No such built-in module") { "ERR_UNKNOWN_BUILTIN_MODULE" } else { "ERR_MODULE_NOT_FOUND" };
-            return Err(throw_resolve_message(global_object, &message, code, specifier, &referrer_path(referrer)));
-        }
+        Err(message) => return Err(throw_unresolved(loader.host.as_ref(), global_object, specifier, referrer, &message)),
     };
 
     // O `referrerAsyncOrder`: a ordem de avaliação assíncrona do módulo que faz o `import()`.
