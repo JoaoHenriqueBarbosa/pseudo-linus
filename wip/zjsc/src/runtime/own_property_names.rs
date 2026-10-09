@@ -63,8 +63,10 @@ pub fn get_own_property_names_with_special(
                 .filter(|(_, entry)| mode == DontEnumPropertiesMode::Include || !entry.is_dont_enum())
                 .map(|(key, _)| key.clone())
                 .collect();
+            // `PropertyNameArray` descarta o nome privado (os globais do host, `@lazy` e companhia, moram aqui): o bun
+            // dá `Object.getOwnPropertySymbols(globalThis).length === 0`.
             for key in &keys {
-                property_names.add_uid(key, false);
+                property_names.add_uid(key, key.0.is_private_symbol());
             }
         }
     }
