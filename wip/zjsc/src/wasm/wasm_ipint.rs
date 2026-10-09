@@ -1592,12 +1592,14 @@ impl Instance {
                     if owner_info.canonical_type_id(callee_type as usize) != info.canonical_type_id(type_position as usize) {
                         return Err(trap(ExceptionType::BadSignature));
                     }
-                    let arguments = self.take_call_arguments(callee, &mut stack, owner_info);
+                    // Na mesma instância os argumentos ficam na pilha: o laço os passa ao novo quadro.
+                    let arguments = other.is_some().then(|| self.take_call_arguments(callee, &mut stack, owner_info));
+                    let outcome = match (other, arguments) {
+                        (Some(owner), Some(arguments)) => Outcome::CallOther { owner, callee, arguments },
+                        _ => Outcome::Call { callee },
+                    };
                     frame.save(locals, stack, labels, pc, handlers, caught, op == 0x13);
-                    return Ok(match other {
-                        Some(owner) => Outcome::CallOther { owner, callee, arguments },
-                        None => Outcome::Call { callee },
-                    });
+                    return Ok(outcome);
                 }
                 // call_ref e return_call_ref: a validação já garantiu a assinatura, só falta a referência nula.
                 0x14 | 0x15 => {
@@ -1612,12 +1614,14 @@ impl Instance {
                         None if owner == self.id => info,
                         None => return Err(trap(ExceptionType::BadSignature)),
                     };
-                    let arguments = self.take_call_arguments(callee, &mut stack, owner_info);
+                    // Na mesma instância os argumentos ficam na pilha: o laço os passa ao novo quadro.
+                    let arguments = other.is_some().then(|| self.take_call_arguments(callee, &mut stack, owner_info));
+                    let outcome = match (other, arguments) {
+                        (Some(owner), Some(arguments)) => Outcome::CallOther { owner, callee, arguments },
+                        _ => Outcome::Call { callee },
+                    };
                     frame.save(locals, stack, labels, pc, handlers, caught, op == 0x15);
-                    return Ok(match other {
-                        Some(owner) => Outcome::CallOther { owner, callee, arguments },
-                        None => Outcome::Call { callee },
-                    });
+                    return Ok(outcome);
                 }
                 0x1a => {
                     pop!();
@@ -2985,6 +2989,29 @@ mod tests {
             call(&instance, "dispatch", &[4]),
             Err(WasmError::Runtime("Out of bounds call_indirect".to_string()))
         );
+    }
+
+    #[test]
+    fn call_indirect_passes_arguments_to_the_callee() {
+        // tipo 0 = (i32, i32) -> i32. Função 0 subtrai; a 1 chama a 0 pela tabela com 100 e o parâmetro (a pilha
+        // do chamador tem só os argumentos e o seletor), e a 2 faz o mesmo com um valor a mais embaixo na pilha.
+        let sub = [0x00, 0x20, 0x00, 0x20, 0x01, 0x6b, 0x0b];
+        let shallow = [0x00, 0x41, 0xe4, 0x00, 0x20, 0x00, 0x41, 0x00, 0x11, 0x00, 0x00, 0x0b];
+        let deep = [0x00, 0x41, 0x05, 0x41, 0xe4, 0x00, 0x20, 0x00, 0x41, 0x00, 0x11, 0x00, 0x00, 0x6a, 0x0b];
+        let instance = instantiate(
+            vec![
+                section(1, vector(vec![func_type(&[I32, I32], &[I32]), func_type(&[I32], &[I32])])),
+                section(3, vector(vec![vec![0], vec![1], vec![1]])),
+                section(4, vector(vec![vec![0x70, 0x00, 0x01]])),
+                section(7, vector(vec![export("shallow", 0, 1), export("deep", 0, 2)])),
+                section(9, vector(vec![vec![0x00, 0x41, 0x00, 0x0b, 0x01, 0x00]])),
+                section(10, vector(vec![body(&sub), body(&shallow), body(&deep)])),
+            ],
+            vec![],
+        )
+        .unwrap();
+        assert_eq!(call(&instance, "shallow", &[1]), Ok(vec![99]));
+        assert_eq!(call(&instance, "deep", &[1]), Ok(vec![104]));
     }
 
     #[test]
