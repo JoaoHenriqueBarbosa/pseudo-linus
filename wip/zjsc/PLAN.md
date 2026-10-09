@@ -22,13 +22,16 @@ commit 9c21851a, então esta foi a primeira medição deles: as divergências s�
 regressão. Famílias com causa comum já vistas: colunas e linhas de `stack` em CJS (`error_stack`: o bun dá 4:10, o porte
 2:42, mapa de posições do golden), indentação do `Function.prototype.toString` de função de CJS (`function_source`, o
 bun mantém o recuo de 2 espaços do wrapper), e `Intl` (`datetime_*`, `display_names`, `duration_format`).
-Prioridade quando a conformidade for retomada: `error_stack` e `function_source` (um conserto cada, afetam muitos casos).
+Prioridade quando a conformidade for retomada: `error_stack` (um conserto afeta os 105 casos).
 
-Diagnóstico medido do `error_stack` (105 de 954, mesma contagem antes e depois do conserto do wrapper CJS, então a causa é
-outra): o frame de topo sai com coluna errada (59 no porte, 53 no bun) e os frames de função saem com a linha do texto
-transpilado (2:42) em vez da posição do mapa do golden (4:10). É precisão do `position_map.rs` na tradução de posição do
-texto executável para o canônico, não do wrapper. O `function_source` não foi remedido isolado (o cargo parou no primeiro
-teste vermelho); o recuo de 2 espaços do bun vem do texto executável, que o golden de modo 0 não grava.
+Diagnóstico medido do `error_stack` (105 de 954, mesma contagem antes e depois do conserto do wrapper CJS, e o golden
+regenerado contra o bun dá as mesmas 105, então a divergência é real e não de golden velho). Pista: no caso de função
+`async` retomada depois de `await`, o bun mostra a posição do texto transpilado (4:10) e o porte aplica o mapa e mostra a
+do fonte original (2:42); o frame de topo sai com coluna 59 no porte contra 53 no bun. Parece que o bun não remapeia o
+frame retomado de microtarefa, e o `position_map.rs` do porte remapeia todos.
+
+`function_source` ficou verde: o golden era antigo (o bun atual imprime a função ESM com o recuo de 2 espaços, o golden
+guardava o de 4 de outra classificação de módulo) e foi regenerado com `scripts/gen-function-source-golden.js`.
 
 Corrigido e medido: `blob_bun_golden` verde (`null`/`undefined` nas partes do `new Blob` não contam, `Blob.text()` com BOM
 `FF FE` decodifica UTF-16LE, JSON de corpo vazio rejeita com `Unexpected end of JSON input`, `Blob` global enumerável).
