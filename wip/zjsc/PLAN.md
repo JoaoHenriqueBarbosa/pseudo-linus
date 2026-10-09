@@ -37,8 +37,7 @@ Mais corrigido nesta passada: global `Bun` com `Bun.inspect(value)` (formatador 
 opções ainda não são lidas), `BuildMessage` e `ResolveMessage` agora no objeto global (antes caíam no proxy `globalThis`,
 onde `putDirect` não encaminha), `global_order_bun_golden` verde (o mínimo de 150 programas era de um golden antigo, o
 gerador atual produz 2), `function_source` verde (golden regenerado). Sobras medidas: `buffer` 2 (data/fuso do bun e o
-`inspect` de extras do `Buffer` com aspas simples onde o bun usa duplas), `global_navigator` 3 (`R = ...` sem declarar
-em modo estrito, regeneração dá o mesmo golden), `global_semantics` 2 (ordem `a,d` do bun contra `d,a` do porte em uma das três formas do programa; o `#0` contra `#23` foi
+`inspect` de extras do `Buffer` com aspas simples onde o bun usa duplas), `global_navigator` ficou verde (o gerador roda `(0, eval)("var R")` antes de cada programa; o teste agora faz `var R;` na frente), `global_semantics` 2 (ordem `a,d` do bun contra `d,a` do porte em uma das três formas do programa; o `#0` contra `#23` foi
 consertado: os nomes privados do `SymbolTable` do global passavam a `getOwnPropertySymbols`).
 `console_dir` (30): o golden roda o fonte cru como script e o bun o transpila, então o nome do frame (`<anonymous>`) e as
 posições mapeadas não batem; o conserto é o gerador gravar o texto canônico com o mapa de posições (`prepareProgram`).
