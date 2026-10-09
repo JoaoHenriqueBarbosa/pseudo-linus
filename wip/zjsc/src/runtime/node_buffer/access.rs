@@ -166,8 +166,8 @@ fn require_number_offset(global_object: &JSGlobalObject, value: JSValue) -> Resu
 
 fn read_variable<const SIGNED: bool, const LITTLE: bool>(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let view = buffer_receiver(global_object, call)?;
-    let width = checked_byte_length(global_object, call.argument(1))?;
     require_number_offset(global_object, call.argument(0))?;
+    let width = checked_byte_length(global_object, call.argument(1))?;
     read_integer(global_object, view.as_ref(), call.argument(0), width, SIGNED, LITTLE)
 }
 

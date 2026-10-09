@@ -399,6 +399,19 @@ fn buffer_from_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResu
             }
         }
     }
+    // `Symbol.toPrimitive` com a dica `string` (o `Date`): se der string, é `Buffer.from(string)` (`ERR_INVALID_ARG_TYPE`
+    // só quando não der).
+    if value.is_object() && !value.is_callable() {
+        let vm = global_object.vm();
+        let hook = get_object_property(global_object, value, &vm.property_names.to_primitive_symbol)?;
+        if hook.is_callable() {
+            let primitive = value.to_primitive_preferred(crate::runtime::object_to_primitive::PreferredPrimitiveType::PreferString);
+            if primitive.is_string() {
+                let units = crate::runtime::text_encoder::string_units(global_object, primitive)?;
+                return buffer_from_bytes(global_object, &encode_units(&units, encoding_argument(global_object, call.argument(1))?));
+            }
+        }
+    }
     Err(invalid_first_argument(global_object, value))
 }
 
@@ -496,6 +509,10 @@ fn buffer_compare_body(global_object: &JSGlobalObject, call: &HostCall) -> HostR
 /// `Buffer.concat(list, length)`: os buffers da lista emendados, cortados ou completados com zeros até `length`.
 fn buffer_concat_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let list = call.argument(0);
+    // Sem argumento o bun devolve um `Buffer` vazio (medido no bun 1.4.2: `Buffer.concat()` dá `[]`).
+    if call.argument_count() == 0 {
+        return buffer_from_bytes(global_object, &[]);
+    }
     if !is_js_array(&list) {
         return Err(invalid_argument_type(global_object, "list", "an instance of Array", list));
     }
@@ -945,6 +962,10 @@ pub fn install_buffer(global_object: &JSGlobalObject) {
     put_methods(global_object, &prototype, &methods[..split]);
     access::put_accessors(global_object, &prototype);
     put_methods(global_object, &prototype, &methods[split..]);
+    // `toLocaleString` é o mesmo objeto de função que `toString` (medido no bun 1.4.2: `===` dá `true`); a chave
+    // mantém a posição de origem.
+    let to_string_function = prototype.get(vm, &property_key(vm, "toString"));
+    prototype.put_direct(vm, &property_key(vm, "toLocaleString"), to_string_function, 0);
     prototype.put_direct(vm, &PropertyName::from_identifier(&vm.property_names.constructor), constructor.as_value(), DONT_ENUM);
     // Depois de `constructor`, na ordem do bun: `Symbol.toStringTag` (`Uint8Array`, só leitura), o `inspect` sob
     // `Symbol.for('nodejs.util.inspect.custom')` (a mesma função de `inspect`, gravável e enumerável) e `Symbol.species`

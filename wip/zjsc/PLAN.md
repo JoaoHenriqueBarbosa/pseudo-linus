@@ -13,6 +13,26 @@ em três caixas: pânico/regressão (corrige), golden desatualizado por gerador 
 se for rápido, senão deixa IN_SCOPE como está e anota), divergência de conformidade (anota);
 (4) commit sem assinatura; (5) PLAN.md com o estado medido.
 
+### Segunda passada de correções (2026-10-09, depois do commit 9c21851a)
+
+Corrigido e medido: `blob_bun_golden` verde (`null`/`undefined` nas partes do `new Blob` não contam, `Blob.text()` com BOM
+`FF FE` decodifica UTF-16LE, JSON de corpo vazio rejeita com `Unexpected end of JSON input`, `Blob` global enumerável).
+`cjs_require` caiu de 6 para 3 divergências: o wrapper CJS sem mapa de posições agora usa o mapa identidade com
+deslocamento de uma linha (o `SourceCode` de função prende a primeira linha em 1, o `start_position` negativo não chegava).
+`buffer_bun_golden` caiu de 11 para 7: `toLocaleString === toString`, `Buffer.concat()` sem argumento, `Buffer.from(date)`,
+ordem `offset` antes de `byteLength` em `readUIntBE`.
+
+Ainda abertos (catalogados, sem ordem de atacar agora):
+- `buffer`: 6 casos exigem o global `Bun` (`Bun.inspect`), que não existe no porte; 1 caso (`Buffer.from(new Date(0))`)
+  depende do fuso do bun (`America/Sao_Paulo`), não é bug do porte.
+- `cjs_require`: `stack_compiled`/`stack_sites` (coluna de `x.js` e flag `isEval` do frame de `_compile`) e
+  `stack_recursion` (a recursão por `toString` nativo passa de 1000 no bun, o porte para antes: `MAX_NATIVE_DEPTH`).
+- `console_dir`: 30 casos de `console.trace` (nome `<anonymous>` no frame de função chamada em cauda, frames
+  `native:`/`unknown` do porte contra a ausência no bun, coluna do frame do topo).
+- `broadcast_channel_uncaught`: a coluna do frame do erro lançado em handler é a do `)` de `new Error(...)` no bun
+  (118) e a de `Error` no porte (106).
+- `compression_streams`: `inspect` quebra linha por `breakLength`, brotli (bytes) e 18 divergências no total.
+
 ### Fechamento em andamento (2026-10-09): o que foi corrigido e o que ficou anotado
 
 Corrigido nesta passagem (regressões ou bugs de verdade, medidos pela suíte):

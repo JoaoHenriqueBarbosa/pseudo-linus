@@ -173,6 +173,11 @@ pub(crate) fn parts_bytes(global_object: &JSGlobalObject, parts: JSValue) -> Res
             continue;
         }
         let item = array.object().get_by_index(global_object.vm(), index);
+        // `null` e `undefined` na lista não são parte (medido no bun 1.4.2: contribuem com 0 bytes).
+        if item.is_undefined_or_null() {
+            index += 1;
+            continue;
+        }
         match binary_bytes(item) {
             Some(bytes) => out.extend_from_slice(&bytes),
             None => out.extend_from_slice(&string_bytes(global_object, item)?),
@@ -277,7 +282,15 @@ pub(crate) fn resolved_promise(global_object: &JSGlobalObject, value: JSValue) -
 }
 
 fn text_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    read_body(global_object, Read::Text, &method_state(global_object, call)?.bytes)
+    let state = method_state(global_object, call)?;
+    // `Blob.text()` do bun decodifica como UTF-16LE quando o conteúdo começa com a BOM `FF FE` (medido no bun 1.4.2:
+    // `[ff fe 41]` dá `""`, o byte ímpar final cai). `Response.text()` não faz isso.
+    if let Some(rest) = state.bytes.strip_prefix(&[0xff, 0xfe]) {
+        let units: Vec<u16> = rest.chunks_exact(2).map(|pair| u16::from_le_bytes([pair[0], pair[1]])).collect();
+        let text = WtfString::from_utf8(String::from_utf16_lossy(&units).as_bytes());
+        return Ok(resolved_promise(global_object, JSValue::from_js_string(js_string(global_object.vm(), &text))));
+    }
+    read_body(global_object, Read::Text, &state.bytes)
 }
 
 fn array_buffer_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
@@ -425,5 +438,5 @@ pub fn install_blob(global_object: &JSGlobalObject) {
     put_to_string_tag(vm, &prototype, "Blob");
     BLOB_PROTOTYPE.with(|slot| *slot.borrow_mut() = Some(prototype.as_value()));
     // `File.prototype` é este mesmo objeto: `install_file` roda depois.
-    install_global_with_attributes(global_object, "Blob", constructor.as_value(), DONT_ENUM);
+    install_global_with_attributes(global_object, "Blob", constructor.as_value(), 0);
 }
