@@ -976,6 +976,9 @@ fn build_read_prototype(global_object: &JSGlobalObject) -> JSValue {
     let vm = global_object.vm();
     readable.put_direct(vm, &prop(vm, "isPaused"), native(global_object, "", 0, readable_is_paused), 0);
     put_readable_flowing(global_object, &readable);
+    // Medido: getters do `Readable.prototype`; o stdio nunca se destrói nem termina.
+    put_accessor_with(global_object, &readable, "destroyed", readable_destroyed, None, DONT_ENUM);
+    put_accessor_with(global_object, &readable, "readable", readable_readable, None, DONT_ENUM);
     READABLE_PROTOTYPE.with(|cell| cell.set(Some(readable.as_value())));
     let read_stream = object_with_prototype(global_object, Some(readable.as_value()));
     put_constructor(global_object, &read_stream, "ReadStream", 2, read_stream_constructor);
@@ -1209,6 +1212,30 @@ fn stdin_read_body(_global_object: &JSGlobalObject, _call: &HostCall) -> HostRes
 }
 host_function!(stdin_read, stdin_read_body);
 
+fn stdin_state_flowing_body(_global_object: &JSGlobalObject, _call: &HostCall) -> HostResult {
+    Ok(with_slot(0, |slot| slot.flow.flowing).map_or_else(JSValue::null, JSValue::Bool))
+}
+host_function!(stdin_state_flowing, stdin_state_flowing_body);
+
+fn stdin_state_set_flowing_body(_global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let value = call.argument(0);
+    if value.is_boolean() || value.is_null() {
+        with_slot(0, |slot| slot.flow.flowing = if value.is_null() { None } else { Some(value.as_boolean()) });
+    }
+    Ok(JSValue::undefined())
+}
+host_function!(stdin_state_set_flowing, stdin_state_set_flowing_body);
+
+fn readable_destroyed_body(_global_object: &JSGlobalObject, _call: &HostCall) -> HostResult {
+    Ok(JSValue::Bool(false))
+}
+host_function!(readable_destroyed, readable_destroyed_body);
+
+fn readable_readable_body(_global_object: &JSGlobalObject, _call: &HostCall) -> HostResult {
+    Ok(JSValue::Bool(true))
+}
+host_function!(readable_readable, readable_readable_body);
+
 /// O stream do descritor `fd`: `WriteStream` para 1 e 2, `ReadStream` para 0.
 pub(crate) fn create(global_object: &JSGlobalObject, fd: u8) -> JSValue {
     let vm = global_object.vm();
@@ -1234,7 +1261,12 @@ pub(crate) fn create(global_object: &JSGlobalObject, fd: u8) -> JSValue {
             }
         }
         put("_events", events);
-        put("_readableState", readable_state(global_object));
+        let state = readable_state(global_object);
+        if let Some(state_object) = JSObject::from_value(&state) {
+            // Medido: `_readableState.flowing` do stdin acompanha `readableFlowing` (`null`, `true` ou `false`), sem ser chave listada.
+            put_accessor_with(global_object, &state_object, "flowing", stdin_state_flowing, Some(stdin_state_set_flowing), DONT_ENUM);
+        }
+        put("_readableState", state);
         put("_maxListeners", undefined);
         // Medido: 5 = os quatro ouvintes internos mais o `kConstruct` (chave símbolo que `_events` não lista).
         put("_eventsCount", js_number(STDIN_BASE_EVENTS_COUNT));
