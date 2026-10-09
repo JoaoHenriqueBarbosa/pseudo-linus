@@ -1022,7 +1022,7 @@ fn request_import_module(
             // O navegador: a resposta da rede é uma tarefa de timer, depois das que já estão na fila.
             let promise = Rc::clone(&state_promise);
             let pending = RefCell::new(Some(pending));
-            crate::runtime::timers::schedule_native(
+            crate::runtime::timers::schedule_native_with_ref(
                 global_object,
                 latency,
                 Rc::new(move |global_object| {
@@ -1030,6 +1030,7 @@ fn request_import_module(
                         finish_pending_import(global_object, &promise, pending);
                     }
                 }),
+                true,
             );
         } else if !already_loaded && event_loop_is_driven() {
             let promise = Rc::clone(&state_promise);

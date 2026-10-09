@@ -257,6 +257,32 @@ mod tests {
     }
 
     #[test]
+    fn a_slice_reaches_the_network_timer_alone_and_its_pause_ends_only_that_slice() {
+        let files: HashMap<String, String> = [("https://site.test/app/m.js".to_owned(), "log.push('m');".to_owned())].into_iter().collect();
+        let logs = run_program(|| {
+            let (vm, global_object) = new_global_object();
+            let _finalizer = VmFinalizer::new(&vm);
+            let host = Rc::new(UrlModuleHost::new("https://site.test/app/index.html", Rc::new(move |url: &str| files.get(url).cloned())));
+            host.set_network_latency_ms(1.0);
+            install_url_module_loader(&global_object, host);
+            crate::runtime::timers::enable_event_loop();
+            evaluate(&global_object, &program_source("globalThis.log = []; import('./m.js').then(() => log.push('then'));")).expect("script");
+            vm.drain_microtasks();
+            let read = || {
+                let value = evaluate(&global_object, &program_source("JSON.stringify(log)")).expect("log");
+                String::from_utf8_lossy(&value.as_js_string().value().utf8(ConversionMode::LenientConversion)).into_owned()
+            };
+            crate::runtime::timers::run_event_loop_for(&global_object, 2.0);
+            let first = read();
+            evaluate(&global_object, &program_source("setTimeout(() => log.push('t3'), 3);")).expect("timer");
+            crate::runtime::timers::run_event_loop_for(&global_object, 5.0);
+            (first, read())
+        });
+        assert_eq!(logs.0, r#"["m","then"]"#);
+        assert_eq!(logs.1, r#"["m","then","t3"]"#);
+    }
+
+    #[test]
     fn dynamic_import_resolution_failure_has_the_short_message() {
         let (log, error) = run(
             &[],

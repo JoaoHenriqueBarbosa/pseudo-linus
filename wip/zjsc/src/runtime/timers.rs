@@ -558,8 +558,21 @@ fn register(global_object: &JSGlobalObject, kind: Kind, callback: Callback, args
 /// timer de 0 ms roda depois dos immediates já enfileirados e antes de qualquer `setTimeout` (mínimo de 1 ms),
 /// então vale uma volta do laço (`LOOP_PASS_MS`).
 pub(crate) fn schedule_native(global_object: &JSGlobalObject, milliseconds: f64, action: Rc<dyn Fn(&JSGlobalObject)>) {
+    schedule_native_with_ref(global_object, milliseconds, action, false);
+}
+
+/// Como [`schedule_native`], com o timer segurando o laço vivo quando `refed` (a resposta da rede do navegador, o
+/// fim de uma fatia de [`run_event_loop_for`]): sem isso o laço só com ele sai sem chegar ao prazo.
+pub(crate) fn schedule_native_with_ref(global_object: &JSGlobalObject, milliseconds: f64, action: Rc<dyn Fn(&JSGlobalObject)>, refed: bool) {
     let fire_delay = if milliseconds == 0.0 { LOOP_PASS_MS } else { milliseconds };
-    register(global_object, Kind::Timeout, Callback::Native(action), Vec::new(), milliseconds, fire_delay);
+    let object = register(global_object, Kind::Timeout, Callback::Native(action), Vec::new(), milliseconds, fire_delay);
+    if refed {
+        STATE.with(|state| {
+            if let Some(entry) = state.borrow_mut().entries.get_mut(&object.cell_id()) {
+                entry.refed = true;
+            }
+        });
+    }
 }
 
 fn set_timeout_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
@@ -807,7 +820,7 @@ pub fn run_event_loop(global_object: &JSGlobalObject) {
 /// lá dispara, o resto fica na fila para a chamada seguinte, que retoma o relógio de onde esta parou. `false` quando
 /// o laço parou de vez (exceção fatal).
 pub fn run_event_loop_for(global_object: &JSGlobalObject, budget_ms: f64) -> bool {
-    schedule_native(global_object, budget_ms, Rc::new(|_| STATE.with(|state| state.borrow_mut().paused = true)));
+    schedule_native_with_ref(global_object, budget_ms, Rc::new(|_| STATE.with(|state| state.borrow_mut().paused = true)), true);
     run_event_loop_until_held(global_object)
 }
 
@@ -828,9 +841,6 @@ pub fn run_event_loop_until_held(global_object: &JSGlobalObject) -> bool {
         if STATE.with(|state| state.borrow().halted) {
             return false;
         }
-        if STATE.with(|state| std::mem::take(&mut state.borrow_mut().paused)) {
-            return true;
-        }
         if STATE.with(|state| state.borrow().alive()) {
             run_due_loads(global_object);
             run_due_timers(global_object, &mut budget);
@@ -844,6 +854,11 @@ pub fn run_event_loop_until_held(global_object: &JSGlobalObject) -> bool {
         crate::runtime::worker_host::deliver_pending(global_object);
         if budget == 0 {
             return false;
+        }
+        // A pausa que venceu nesta volta encerra a fatia já: sem isso, com ela como último timer, o laço vazio sairia
+        // por baixo com a pausa ainda armada para a fatia seguinte.
+        if STATE.with(|state| std::mem::take(&mut state.borrow_mut().paused)) {
+            return true;
         }
         let (alive, pending_immediates, earliest) = STATE.with(|state| {
             let state = state.borrow();
