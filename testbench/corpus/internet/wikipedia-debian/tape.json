@@ -1,0 +1,617 @@
+{
+ "url": "https://en.wikipedia.org/wiki/Debian",
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/w/load.php?lang=en&modules=ext.cite.parsoid.styles%7Cext.cite.styles%7Cext.uls.interlanguage%7Cext.visualEditor.desktopArticleTarget.noscript%7Cext.wikimediaBadges%7Cext.wikimediaBadges.ulsV2%7Cext.wikimediamessages.styles%7Cjquery.makeCollapsible.styles%7Cmediawiki.skinning.content.parsoid%7Cmediawiki.skins.legacy%7Cskins.vector.icons%2Cstyles%7Cskins.vector.search.codex.styles%7Cwikibase.client.init&only=styles&skin=vector-2022",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "ae19aa2c98fcbf6e53e54de913ae01f1bbc3dffe9badb007a9bb9a08680b088a"
+  },
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/w/load.php?lang=en&modules=startup&only=scripts&raw=1&skin=vector-2022",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "ab8afc863646e2bfd76a958d67f4da4b9e64d8424f948c9cd49c7c562fbbe2c4"
+  },
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/wiki/Debian",
+   "status": 200,
+   "headers": [
+    [
+     "content-language",
+     "en"
+    ],
+    [
+     "content-security-policy",
+     "script-src 'unsafe-eval' blob: 'self' meta.wikimedia.org *.wikimedia.org *.wikipedia.org *.wikinews.org *.wiktionary.org *.wikibooks.org *.wikiversity.org *.wikisource.org wikisource.org *.wikiquote.org *.wikidata.org *.wikifunctions.org *.wikivoyage.org *.mediawiki.org mediawiki.org wikimedia.org *.wmflabs.org *.wmcloud.org *.toolforge.org wss://*.toolforge.org *.jsdelivr.net unpkg.com cdnjs.cloudflare.com raw.githubusercontent.com *.github.com code.jquery.com cdn.mathjax.org use.typekit.net fonts.cdnfonts.com use.fontawesome.com i.ytimg.com rsms.me doi.org localhost https://localhost:* http://localhost:* wss://localhost:* ws://localhost:* *.google.com *.gstatic.com *.googleapis.com *.translate.yandex.net yastatic.net ya.ru radically.github.io cdn.sammdot.ca cdn.fontshare.com viaf.org publicai-proxy.alaexis.workers.dev iiif.archive.org api.flickr.com live.staticflickr.com api.anthropic.com api.openai.com api.publicai.co catalogo.pusc.it parsifal.urbe.it opac.sbn.it overpass-api.de api.openrouteservice.org archive.org *.openstreetmap.org *.waymarkedtrails.org *.thunderforest.com registry.ipe.wiki analytics.ipe.wiki qlever.dev app.goacoustic.com wikipedia-archive.ourworldindata.org api.inaturalist.org inaturalist-open-data.s3.amazonaws.com validator.w3.org db.onlinewebfonts.com fontlibrary.org 'unsafe-inline' auth.wikimedia.org; default-src 'self' data: blob: upload.wikimedia.org thumb.wikimedia.org https://commons.wikimedia.org meta.wikimedia.org *.wikimedia.org *.wikipedia.org *.wikinews.org *.wiktionary.org *.wikibooks.org *.wikiversity.org *.wikisource.org wikisource.org *.wikiquote.org *.wikidata.org *.wikifunctions.org *.wikivoyage.org *.mediawiki.org mediawiki.org wikimedia.org *.wmflabs.org *.wmcloud.org *.toolforge.org wss://*.toolforge.org *.jsdelivr.net unpkg.com cdnjs.cloudflare.com raw.githubusercontent.com *.github.com code.jquery.com cdn.mathjax.org use.typekit.net fonts.cdnfonts.com use.fontawesome.com i.ytimg.com rsms.me doi.org localhost https://localhost:* http://localhost:* wss://localhost:* ws://localhost:* *.google.com *.gstatic.com *.googleapis.com *.translate.yandex.net yastatic.net ya.ru radically.github.io cdn.sammdot.ca cdn.fontshare.com viaf.org publicai-proxy.alaexis.workers.dev iiif.archive.org api.flickr.com live.staticflickr.com api.anthropic.com api.openai.com api.publicai.co catalogo.pusc.it parsifal.urbe.it opac.sbn.it overpass-api.de api.openrouteservice.org archive.org *.openstreetmap.org *.waymarkedtrails.org *.thunderforest.com registry.ipe.wiki analytics.ipe.wiki qlever.dev app.goacoustic.com wikipedia-archive.ourworldindata.org api.inaturalist.org inaturalist-open-data.s3.amazonaws.com validator.w3.org db.onlinewebfonts.com fontlibrary.org en.wikibooks.org en.wikinews.org en.wikiquote.org en.wikisource.org en.wikiversity.org en.wikivoyage.org en.wiktionary.org www.mediawiki.org commons.wikimedia.org foundation.wikimedia.org incubator.wikimedia.org species.wikimedia.org wikimania.wikimedia.org www.wikidata.org www.wikifunctions.org auth.wikimedia.org; style-src 'self' data: blob: upload.wikimedia.org thumb.wikimedia.org https://commons.wikimedia.org meta.wikimedia.org *.wikimedia.org *.wikipedia.org *.wikinews.org *.wiktionary.org *.wikibooks.org *.wikiversity.org *.wikisource.org wikisource.org *.wikiquote.org *.wikidata.org *.wikifunctions.org *.wikivoyage.org *.mediawiki.org mediawiki.org wikimedia.org *.wmflabs.org *.wmcloud.org *.toolforge.org wss://*.toolforge.org *.jsdelivr.net unpkg.com cdnjs.cloudflare.com raw.githubusercontent.com *.github.com code.jquery.com cdn.mathjax.org use.typekit.net fonts.cdnfonts.com use.fontawesome.com i.ytimg.com rsms.me doi.org localhost https://localhost:* http://localhost:* wss://localhost:* ws://localhost:* *.google.com *.gstatic.com *.googleapis.com *.translate.yandex.net yastatic.net ya.ru radically.github.io cdn.sammdot.ca cdn.fontshare.com viaf.org publicai-proxy.alaexis.workers.dev iiif.archive.org api.flickr.com live.staticflickr.com api.anthropic.com api.openai.com api.publicai.co catalogo.pusc.it parsifal.urbe.it opac.sbn.it overpass-api.de api.openrouteservice.org archive.org *.openstreetmap.org *.waymarkedtrails.org *.thunderforest.com registry.ipe.wiki analytics.ipe.wiki qlever.dev app.goacoustic.com wikipedia-archive.ourworldindata.org api.inaturalist.org inaturalist-open-data.s3.amazonaws.com validator.w3.org db.onlinewebfonts.com fontlibrary.org 'unsafe-inline'; object-src 'none'; report-uri /w/api.php?action=cspreport&format=json; report-to csp-report-to-endpoint"
+    ],
+    [
+     "content-type",
+     "text/html; charset=UTF-8"
+    ],
+    [
+     "x-content-type-options",
+     "nosniff"
+    ]
+   ],
+   "body": "7649bf2f6fcbdc64b483d09a93643148665148f83593e753f0f6577106678ec0"
+  },
+  {
+   "method": "GET",
+   "url": "https://upload.wikimedia.org/wikipedia/commons/4/4d/Icon_pdf_file.png",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-expose-headers",
+     "Age, Date, Content-Length, Content-Range, X-Content-Duration, X-Cache"
+    ],
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "a524ef7507020b455c32f5ed4cfc65a13a047c432b3000477443ff23502575a5"
+  },
+  {
+   "method": "GET",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/66/Openlogo-debianV2.svg/120px-Openlogo-debianV2.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-expose-headers",
+     "Age, Date, Content-Length, Content-Range, X-Content-Duration, X-Cache"
+    ],
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/webp"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "250d40310045c56af852324f6c9f23f21b13fbcc04b12ffe27ba38d8dff840dd"
+  },
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/wiki/Special:CentralAutoLogin/start?useformat=desktop&type=script&usesul3=1",
+   "status": 302,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/html; charset=UTF-8"
+    ],
+    [
+     "location",
+     "https://auth.wikimedia.org/metawiki/wiki/Special:CentralAutoLogin/checkLoggedIn?useformat=desktop&wikiid=enwiki&usesul3=1&type=script"
+    ]
+   ],
+   "body": null
+  },
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/w/load.php?modules=skins.vector.icons.js&image=appearance&format=original&lang=en&skin=vector-2022&version=16qkf",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "d787adb196479e7ba928d2186cea03cd55107a4bf9c36165762e7f6e369b79ee"
+  },
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/w/load.php?lang=en&modules=ext.cite.referencePreviews%7Cext.math.popup%7Cext.popups.main&skin=vector-2022&version=zzdks",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "f6e0117a37b1af2f50a7a610226348b35441569ef3657b64f18e86cc54e95f18"
+  },
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/static/favicon/wikipedia.ico",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/vnd.microsoft.icon"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "3638de61226857e62cf5187d7d59cf902111ad4f792b5bdff1bfed3f5ed5e608"
+  },
+  {
+   "method": "POST",
+   "url": "https://en.wikipedia.org/ins-502b/v2/events?hasty=true",
+   "status": 202,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self'; object-src 'none'; media-src 'none'; img-src 'none'; style-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/w/load.php?lang=en&modules=mw.config.values.wbCurrentSiteDetails%2CwbRepo%7Coojs-ui.styles.icons-editing-core&skin=vector-2022&version=34vgf",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "51be20d50654e9a1ade62dc497ad35cdc264c678574e49e325fed13d7c90bcb9"
+  },
+  {
+   "method": "GET",
+   "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/85/IanMurdock_%28cropped%29.jpg/250px-IanMurdock_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-expose-headers",
+     "Age, Date, Content-Length, Content-Range, X-Content-Duration, X-Cache"
+    ],
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "8b5bd0094574cdb657a9b500730cf1c3cc62d242e23c1d38a60c695aeae339c1"
+  },
+  {
+   "method": "GET",
+   "url": "https://thumb.wikimedia.org/wikipedia/en/thumb/8/8a/OOjs_UI_icon_edit-ltr-progressive.svg/20px-OOjs_UI_icon_edit-ltr-progressive.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-expose-headers",
+     "Age, Date, Content-Length, Content-Range, X-Content-Duration, X-Cache"
+    ],
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/webp"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "659912e3ebc4dd65a4e0c8c75d0812b921715cb90d9d2387f1b57d6872593d5c"
+  },
+  {
+   "method": "GET",
+   "url": "https://thumb.wikimedia.org/wikipedia/en/thumb/9/94/Symbol_support_vote.svg/20px-Symbol_support_vote.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-expose-headers",
+     "Age, Date, Content-Length, Content-Range, X-Content-Duration, X-Cache"
+    ],
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/webp"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "57ea48256755cf3e153f15af8d1a5caf877d573698affdca812f1eff694c193e"
+  },
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/w/load.php?lang=en&modules=ext.centralNotice.bannerHistoryLogger%2CchoiceData%2Cdisplay%2CgeoIP%2CimpressionDiet%2CkvStore%2ClargeBannerLimit%2ClegacySupport%2CstartUp%7Cext.centralauth.ForeignApi%2Ccentralautologin%7Cext.checkUser.clientHints%7Cext.cite.ux-enhancements%7Cext.cx.eventlogging.campaigns%7Cext.cx.model%7Cext.cx.uls.quick.actions%7Cext.echo.centralauth%7Cext.eventLogging%2CnavigationTiming%2Cpopups%2CreaderExperiments%2FpreferredSources%2CtestKitchen%2CwikimediaEvents%7Cext.eventLogging.metricsPlatform%7Cext.quicksurveys.init%2Clib%7Cext.scribunto.logs%7Cext.uls.interface%2Cpreferences%2Cwebfonts%7Cext.uls.rewrite.entrypoints%7Cext.urlShortener.toolbar%7Cext.wikimediaCustomizations.discordSurvey%2Cdonor%2CdonorAccountCreation%7Cext.wikimediaEvents.testKitchen%7Cjquery%2Coojs%2Csite%7Cjquery.client%2CmakeCollapsible%2Cspinner%2CtextSelection%7Cjquery.spinner.styles%7Cmediawiki.ForeignApi%2CString%2CTitle%2Capi%2Cbase%2Ccldr%2Ccookie%2Cexperiments%2CjqueryMsg%2Clanguage%2Crouter%2Cstorage%2Ctoc%2Cuser%2Cutil%2CvisibleTimeout%7Cmediawiki.ForeignApi.core%7Cmediawiki.editfont.styles%7Cmediawiki.libs.pluralruleparser%7Cmediawiki.page.media%2Cready%7Cmediawiki.page.watch.ajax%7Cmmv.bootstrap%7Cmw.cx.SiteMapper%7Cskins.vector.clientPreferences%2Cjs%7Cskins.vector.icons.js%7Cwikibase.client.vector-2022%7Cwikibase.databox.fromWikidata&skin=vector-2022&version=mm2ef",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "aaa93606270189de40d8cf31211878513429ad3dc3b2018832ead55305df6afa"
+  },
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/w/load.php?lang=en&modules=ext.visualEditor.core.utils.parsing%7Cext.visualEditor.desktopArticleTarget.init%7Cext.visualEditor.progressBarWidget%2CsupportCheck%2CtargetLoader%2CtempWikitextEditorWidget%2Ctrack%2Cve&skin=vector-2022&version=1yc9z",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "002af58bed8fb544d2e48d939c9f62c785883203c41985ee5334911e5a01ceae"
+  },
+  {
+   "method": "GET",
+   "url": "https://auth.wikimedia.org/metawiki/wiki/Special:CentralAutoLogin/checkLoggedIn?useformat=desktop&wikiid=enwiki&usesul3=1&type=script",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "3e0e7bc95f60a5cd1b2d131baeeafd9a42f7876893ab2b2f62d2517f0928dc22"
+  },
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/w/load.php?lang=en&modules=ext.gadget.ReferenceTooltips%2Cswitcher&skin=vector-2022&version=wc99c",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "bda98bbab7c105ae39e87c10c14c40ec83a9dc34170d875c98a263b67ccf6fe5"
+  },
+  {
+   "method": "GET",
+   "url": "https://upload.wikimedia.org/wikipedia/commons/d/d6/Lock-gray-alt-2.svg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-expose-headers",
+     "Age, Date, Content-Length, Content-Range, X-Content-Duration, X-Cache"
+    ],
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "05f4643b05b101110bfb1883843ce6f6b41dc88d289e6e8eff73590d1b0765cc"
+  },
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/w/resources/src/mediawiki.skinning/images/magnify-clip-ltr.svg?8330e",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "78f5ef3e585b3073c58b955ace7c662e51ee29bb2ff4ef4b0769bc46e8d7110c"
+  },
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/w/skins/Vector/resources/skins.vector.styles/images/link-external-small-ltr-progressive.svg?fb64d",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "b324430a72a978ffc29853c1dbb95679833c58b30e5b5d10e5063f96f98c5ba2"
+  },
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/w/load.php?modules=skins.vector.icons&image=verticalEllipsis&format=original&lang=en&skin=vector-2022&version=zp9ra",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "38fc8ec3eda14fdfccc26a0ef0297217f728b8469466153eeded3c9aaad3e363"
+  },
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/w/skins/Vector/resources/skins.vector.styles/images/arrow-down-progressive.svg?5cd6d",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "57e3ab07391cd97b6b0c95e7d0142f34af796bff0932d8a83179b0638256a188"
+  },
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/w/load.php?modules=skins.vector.icons&image=language&variant=progressive&format=original&lang=en&skin=vector-2022&version=zp9ra",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "b665bdf3802a04109a9c5aac7ad6a085856250bb64b6276e997d6f7e55199ac6"
+  },
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/w/load.php?modules=skins.vector.icons&image=listBullet&format=original&lang=en&skin=vector-2022&version=zp9ra",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "59793d8ea2e2402f46dc3ee7e2b1d2153d2a45d4e8ff24811b3993d4c4f5888d"
+  },
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/w/load.php?modules=skins.vector.icons&image=search&format=original&lang=en&skin=vector-2022&version=zp9ra",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "e3c3f409daed8b352e66c602eacaa02e8e553ffa8909868ca7b79089bbcf7a51"
+  },
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/w/load.php?modules=skins.vector.icons&image=menu&format=original&lang=en&skin=vector-2022&version=zp9ra",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "f95bdd835f49a42def318ad8c291d14b46a3fdfb12b4a69031c94367dc663765"
+  },
+  {
+   "method": "GET",
+   "url": "data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 20 20\" fill=\"%23000\"><path d=\"m16.7 8-6 6H9.3l-6-6 1.4-1.4 5.3 5.3 5.3-5.3z\"/></svg>",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "5bc2ff21be391234895c1177e3f8abb6912d4531b331e252c7138f45d89affce"
+  },
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/static/images/icons/enwiki-25.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "095fb188212ac25419535feb7aee7a6a7b2d58270ae42a168abf9942d1b44315"
+  },
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/static/images/mobile/copyright/wikipedia-tagline-en-25.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "400508c091b4e9cd71f55512b8c871e08e4ad6ddfc54597c6ec0733d67d064ca"
+  },
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/static/images/mobile/copyright/wikipedia-wordmark-en-25.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "169241aebac0b1222230274878e82c34fd51865f825c29516386810fcdbf6fc2"
+  },
+  {
+   "method": "GET",
+   "url": "https://en.wikipedia.org/w/load.php?lang=en&modules=site.styles&only=styles&skin=vector-2022",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "a292ccfd0f47accce300fd2febc776a88c2cd18b82f3f4cc8fad01fbdb9ca1d8"
+  }
+ ]
+}

@@ -1,0 +1,1121 @@
+{
+ "url": "https://vite.dev/",
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://vite.dev/",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/html; charset=UTF-8"
+    ]
+   ],
+   "body": "778ab07458119caf63d36dba4f04a641b5688a6604ef54a734ac2514ab6c8aec"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/chunks/metadata.6b94e949.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "6b94e9490975c92d8a6f283e8712f2b6c798e19df882923ce4f3bec31a431b48"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/app.DNrex1zO.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "f270edfcee1e667a38ac957d3a0ed1d8aa56f6b86360469b2d30767f5114afe6"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/style.DKMfOyQO.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css; charset=UTF-8"
+    ]
+   ],
+   "body": "e75345fb8dbfabeb4063f7ecc883c8d5bc5e883ab4bbf82116e9e08b91731169"
+  },
+  {
+   "method": "GET",
+   "url": "data:image/svg+xml,%3csvg%20viewBox='0%200%2023%2014'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20d='M20.7482%200H18.8887C21.641%203.93959%2021.6571%2010.0462%2018.8887%2014H20.7482C23.516%2010.0462%2023.4999%203.93959%2020.7482%200Z'%20fill='white'/%3e%3cpath%20d='M2.07027%203.05176e-05C-0.682028%203.93963%20-0.698142%2010.0463%202.07027%2014H3.92985C1.16208%2010.0463%201.1782%203.93963%203.92985%203.05176e-05H2.07027Z'%20fill='white'/%3e%3cpath%20d='M12.0135%2013.6771C11.815%2013.9298%2011.4089%2013.7892%2011.4089%2013.4683V10.3853C11.4089%2010.0114%2011.106%209.70849%2010.7321%209.70849H7.32818C7.05295%209.70849%206.89245%209.39716%207.05295%209.1735L9.29089%206.04026C9.61124%205.59228%209.29089%204.96963%208.73979%204.96963H4.62036C4.34513%204.96963%204.18463%204.65831%204.34512%204.43464L7.24632%200.372579C7.31013%200.283628%207.41262%200.230774%207.52155%200.230774H16.1671C16.4424%200.230774%2016.6029%200.5421%2016.4424%200.765765L14.2044%203.89901C13.8841%204.34698%2014.2044%204.96963%2014.7555%204.96963H18.1595C18.4418%204.96963%2018.6004%205.29514%2018.4257%205.51751L12.0142%2013.6777L12.0135%2013.6771Z'%20fill='white'/%3e%3c/svg%3e",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "60485b84eb1b75def4fa89dbce9f394db1106fbccf89b8c6ca2321c67f9c8183"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/vite-dark.D2ACe7TL.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "1ed7fd2e8ab39a1cf1f37dae1e3e3bc7536d1ae86160987a81ff834279bbdd78"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/primary-button-background.CHnwvuqy.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "503cd5c19a55a8ec75dbbfc1f97e18ce97f0153443cd6cf4384d19babb01cf7b"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/trusted-by/stripe.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "16127d400fe4e09fad34902117857233d901b2384924335f80fcd2f5e1586258"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/trusted-by/clickup.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "9ba5482cfdbe7a47bcedb81836ab7d6f0ed6f348df97ebc0c311b9192ce9f808"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/primary-button-background.Bjk7gn3x.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "28bb26715655559933e8d5ea5014e86ff57e9c07ba1e70e8a5f1579ca5fccaf9"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/trusted-by/linear.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "6b8c0756d1dc581364c4a91782fc512727e4c47c7bacdfb7f4fbbab1d99c5066"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/641_x_629_vite_masthead.CJXD3cz6.riv",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/octet-stream"
+    ]
+   ],
+   "body": "0056dd989b3d9f1611867cb149d19d7af3baeeb808e4fe557ae40bcbaaaa4335"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/vite-featurepanel-1-terminal.CQVUoUSU.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "dc037264ea15ca45dae2c988a7b39563e1e3b671abaa0edfeb60ad06a45068a1"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/rive.BagEuNN0.wasm",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/wasm"
+    ]
+   ],
+   "body": "f99097e604933a69a2c20cf0249c117379a4411df12359ab863361645fa2fc45"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/logo-without-border.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "64d973a3a997902bd7c89923e29fb165460cbf4e396cc45bdf454c9ded362ef3"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/e5709ac7-6542-44f7-bc10-a6f7ac139522",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "e34fe00f8205ca3cc328ede92e68e41a38d93293ff62e7f291721781d5aab2e3"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/324d7117-3c2d-4bbd-9026-ff323dcf751f",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "be5ee049d14473675b407e38972ae423f4516c749afb2766ae0e18a33fa788e8"
+  },
+  {
+   "method": "GET",
+   "url": "https://avatars.githubusercontent.com/u/107723282?u=2639caa14ce293a0b6202c5766a40bb99ac9697e&v=4",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'none'"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "570a45995d5d1535805056da47da684b1667cd7735c75fe264760c98fb12ebf4"
+  },
+  {
+   "method": "GET",
+   "url": "https://avatars.githubusercontent.com/u/327003943?v=4",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'none'"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "ae1b5466d63cef5b3fb924e2df407a44c58342382549b5492867bc914be63790"
+  },
+  {
+   "method": "GET",
+   "url": "https://sponsors.vite.dev/images/transloadit.png",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "ad908fb5daf01538e164819175dc09ba3bb49dbaeba105c53b874529a3b25a33"
+  },
+  {
+   "method": "GET",
+   "url": "https://sponsors.vite.dev/images/follower24.svg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "774af7aab39b85dcbb6e8b5b9a0aace19d61d9fd9b4ef09753003d78131c4e15"
+  },
+  {
+   "method": "GET",
+   "url": "https://sponsors.vite.dev/images/serpapi.png",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "57f272f46870ba23714b408ec10aa2a74d4225b99631fb61ee13059260f99e44"
+  },
+  {
+   "method": "GET",
+   "url": "https://sponsors.vite.dev/images/mojam.svg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "30afe208baf9db89d9a44cc223bb1a89413c5c2e3bda1603eeb2bcf9fbbec358"
+  },
+  {
+   "method": "GET",
+   "url": "https://sponsors.vite.dev/images/nuxtlabs.svg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "fb3c89d5f6ba8f39507ab68c760693cb57414866dea534f70b7497ee31980f36"
+  },
+  {
+   "method": "GET",
+   "url": "https://sponsors.vite.dev/images/coderabbit.png",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "845077c4f2d44022872df746f079e41a816cec35ee28360d79afa42bb94ceb02"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/b9d3c214-f170-428d-892c-43de98d51573",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "afe05f8d89a80602c16c672d9bfc53de4d46468126dbf7208ffadf430b5a7d8b"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/35d0bfba-1160-45ed-aaa6-77d7b6290f4e",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "997832c36b33036fb2c391201b599da2bdb8e26567f279633c4d9883f0bde220"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/256ee93c-5c24-4af2-a6fa-f48ff0b77fdb",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "27aa152e7df3f5906178712fad2ab0cde7e67c9384f0841753abafe8f097b072"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/b5d5c4b4-b150-4413-b2a8-ffdfad471388",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "303e46b1d70da1ab33775574dbb1755d71d11065c3435b5ace6c363c57f4881e"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/6831f4b8-1364-46a7-bcd8-c32e5c5570e0",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "d8b77753e2fc9b01a49a5214965032dfe4b192130a999a72d9f256ff078abfdb"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/040b91a7-bbe5-4d04-be3c-558f5338df84",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "95bd4852f4ffdba0669d993b42481aad38ac62beae66fd3a200fb3de5079d048"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/e47b3259-a3dc-4c15-98ab-7cced3f65ed7",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "8bc3e30684c1adb490c85450ec0dc0ebb92012f176d3f48d8366285e9721ad1a"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/4cfc54ad-dad1-4527-8e08-3d7ba017c659",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "45066737b5840f0954f45a106e175cdc7c06816ce910c8a3d33598917e84a1ef"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/b7092aec-94b6-487c-b1e2-78c1d2e034e6",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "66339f0ad367ab0e58a0999f71f2e3fada0d1a6e899c855f8e9ab2c3b2e47988"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/272557bd-9e93-4d26-ba38-674616822e7a",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "d667300e462d57a65a98af1a653c71225f0e4793a9e0afb0ebbce0656172cad5"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/0f5bf32c-4ccd-439e-8b63-fb0a48f34c3f",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "27aa152e7df3f5906178712fad2ab0cde7e67c9384f0841753abafe8f097b072"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/3ee2f618-d6f1-426c-a1eb-daa156b7b889",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "8bc3e30684c1adb490c85450ec0dc0ebb92012f176d3f48d8366285e9721ad1a"
+  },
+  {
+   "method": "GET",
+   "url": "https://sponsors.vite.dev/images/catalyst.svg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "101ba1fc661fdc6d35eb2d5c93089c3e77f635462600b9572956b871b98573c7"
+  },
+  {
+   "method": "GET",
+   "url": "https://sponsors.vite.dev/images/sanity.svg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "9bb5054b71c27cba6bbae3a7ed149c632dcfcadd452a75079db301e135e17ff5"
+  },
+  {
+   "method": "GET",
+   "url": "https://sponsors.vite.dev/images/nx.svg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "d0c1eb0f2200e775e559ceeec5112f62333f1dd1d559a949dbcf31c59552edb7"
+  },
+  {
+   "method": "GET",
+   "url": "https://sponsors.vite.dev/images/zephyr_cloud.png",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "52b5891a8e35d8e944d20ae6078dd603ac8f807acede9e9a75dad8707a5f028a"
+  },
+  {
+   "method": "GET",
+   "url": "https://sponsors.vite.dev/images/convex.svg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "a747ddd9063f2492403a9981ebf962492434e6edf449643938d7017137abcdbb"
+  },
+  {
+   "method": "GET",
+   "url": "https://sponsors.vite.dev/images/greptile.png",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "ef1bf9cdf00a310f0780d6be7a06e77e38f6b2ba67d71837195f6f8162102c8d"
+  },
+  {
+   "method": "GET",
+   "url": "https://sponsors.vite.dev/images/storyblok.png",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "a28f4b0acd0e86883a7bd8ad73705d892328a7682e21d52ca296c30434821ae0"
+  },
+  {
+   "method": "GET",
+   "url": "https://sponsors.vite.dev/images/railway.svg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "f2820390873ebe5b8bafa3d08cd4820a0b96c85ad415f122121415c20e116580"
+  },
+  {
+   "method": "GET",
+   "url": "https://sponsors.vite.dev/images/handsontable.svg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "5c85f06ee5d0955e0f1cf377ee1134d965ab9ee4b3d3f6e53cbe15046b6db95f"
+  },
+  {
+   "method": "GET",
+   "url": "https://sponsors.vite.dev/images/mux.svg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "f4d78ff7de29ac30852d63ac7d7bc43e53edb6613f281414ec12c3b2f8bf44ba"
+  },
+  {
+   "method": "GET",
+   "url": "https://sponsors.vite.dev/images/bolt.svg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "64bce70c9f5cf81dab1557411bedcedd806a760865295fa3533a7acb04e33c14"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/d3202555-0a86-4e97-9647-4ee6252e479e",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "05efe73439f6449755b79ed82d098f38b598ef1129533d8b89d0145e3f24de5b"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/f1bdbcca-d39c-475d-a90a-bbcda4eef7fe",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "16e19128db3f1efa7dd56b7cbacbb0eddf195ce209a3ebf3d9669434e909e994"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/2372abb1-416b-4802-b7a1-0aa08a83d4de",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "a9c1d301857b87946235824eda2bf14547409a32f9a0f5f29b6b87f35b3edb3e"
+  },
+  {
+   "method": "GET",
+   "url": "https://sponsors.vite.dev/sponsors.json",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/json"
+    ]
+   ],
+   "body": "fdfbc1833417f41d22b859e5c0c8e6ea34bcb79f63eb19163c99403365fa6422"
+  },
+  {
+   "method": "GET",
+   "url": "https://api.iconify.design/lucide.json?icons=languages%2Csearch%2Cx",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-methods",
+     "GET, OPTIONS"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "access-control-allow-headers",
+     "Origin, X-Requested-With, Content-Type, Accept, Accept-Encoding"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "a3260cc9d7dc36a866ff317bba6368450a1c0018a51e059ad8d3ba07bf8bb22a"
+  },
+  {
+   "method": "GET",
+   "url": "https://api.iconify.design/simple-icons.json?icons=bluesky%2Cdiscord%2Cgithub%2Cmastodon%2Cx",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-methods",
+     "GET, OPTIONS"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "access-control-allow-headers",
+     "Origin, X-Requested-With, Content-Type, Accept, Accept-Encoding"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "520bd293c0678d6784f1f4cb34f2cc91c2c23f57e0bcaffca81232f5dac231d8"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/640_x_300_flexible_plugin.DzLLIuId.riv",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/octet-stream"
+    ]
+   ],
+   "body": "92f48fecdf8fefe8055a73ca119d07a8bc4897a3a4d7331a517596b7679e234f"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/563_x_420_rich_features.Gwgw8IXl.riv",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/octet-stream"
+    ]
+   ],
+   "body": "1415885df4f48ca6f5c06a8f558aa48bf39d92b6e3361be064fdd938d44f4442"
+  },
+  {
+   "method": "GET",
+   "url": "https://images.opencollective.com/bairesdev/48bb773/logo/460.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "5f949d6beabd8fb168489d8ebf61ba914a9d53f9121152465c89c3e3f15bb2c8"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/b584bcd0-e74d-4a45-8490-b1421412386b",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "9fc5f831b429ad6c63f9e34e2190d226d35ba685984a31e033f17b43fddd415a"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/23115ee4-59f1-46ca-86c5-8c37dda4deb2",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "0268189d66a8b05eb4d29284705d79938bf804583a6edd6804d55a2bf5bd77c0"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/51941844-0bf6-48e7-b80d-e4e6c66faed7",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "b8d7158d952de1d4081633de7a0cb320e3c3f415bdf1cd0f092daad88b318b92"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/670fc83c-fa57-41d5-a642-dfdcc14ffea7",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "52130f290fae2978695078b417f7d7f207ca68711ed79b9bdf6b83c9e286d874"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/c8368be2-9286-4198-8efe-520ac7315f75",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "d8b77753e2fc9b01a49a5214965032dfe4b192130a999a72d9f256ff078abfdb"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/0fb9d641-140c-4df1-83a0-ff2e0afcc7c7",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "c2f53bb3f947817b63536f186713a2583a5b3a3a979ce2c1f026176bbbefe2d9"
+  },
+  {
+   "method": "GET",
+   "url": "blob:https://vite.dev/150ad1d8-e99e-4993-b425-8632d74f11a6",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "997832c36b33036fb2c391201b599da2bdb8e26567f279633c4d9883f0bde220"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/vite-featurepanel-1-background.BHnDg8j4.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "3f97e5edd9e0a8f864987086315f48fb5c9b3005bed28a59858262b99d999616"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/trusted-by/openai.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "5a28b637ffcde9e25fcac5790b7ac24fbaa3fd591f955062ec2c6021618e400a"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/inter-roman-latin.Di8DUHzh.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "font/woff2"
+    ]
+   ],
+   "body": "f7ab715caa2c78facb4334b211c81ee66f037cf9c99ca3f24acd543e84a93278"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/KHTekaMono-Regular.CiZ9ZkmZ.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "font/woff2"
+    ]
+   ],
+   "body": "767a225cb32f4e67ead42f2c3b5eb0acc9496367769a135032b380621b6f3dce"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/trusted-by/wiz.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "12eb69a5471704be447e2d185d3f385e3809e83225b3009f13dcdf126209538f"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/KHTekaMono-Medium.CxAWoJPq.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "font/woff2"
+    ]
+   ],
+   "body": "2b046aaee7fdcd253884dd00b83eb9fb0755782d792d7d0ea02059cba266aa64"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/trusted-by/shopify.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "d36c6c94c35e0b1dbfac86475d68b76a6292965caabf8b5b9e7cd713e23f3c79"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/APK-Protocol-Medium.C7Mq9oGh.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "font/woff2"
+    ]
+   ],
+   "body": "57dbf2861d5106cd381720221050e9cdfed1ce01a4828569257ed028da5244a7"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/vite-featurepanel-4-background.Bnx0RZk-.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "cee040111876be9130c8450b639110c8d2e9ac518b23d9493949032ddff8b149"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/index.md.DNpnSOya.lean.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "07fc3683c09f22cd510f2e561eaa9bcd93ed8cee26079869543e0c74b46232c8"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/footer-background.BIgtbvhx.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "350ec1e53d629665afbb04c014bcb7c0a075473f126fed729e57bdeb7eb13ae4"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/vite-by-voidzero.D7bblMgo.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "b34f512c3bdfbc7cbb78826c352986d8017031067fd9457d62e98e7380000ad9"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/vite-light.t8GCa_VF.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "4529cda6e4431e7629c75d55386bcc1fa4e31be88b5e9190d6dda70d058df7c1"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/chunks/theme.fhmbth10.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "b363a29ba054e86f1776b9c93b641d74a5c510d10c42efe099c91142bc8f14e8"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/chunks/framework.B29EMeTV.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "f81e398930aa541a456b568cb34f620cea631f401d9fa865469bf31606799fa9"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/chunks/assets.DxlRNK2L.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "f2e062b722b4aec29d19b713e30f05d18e08601dbd91958c1dd9e606aa1f7dc8"
+  },
+  {
+   "method": "GET",
+   "url": "https://vite.dev/assets/chunks/Footer.C1CKKpni.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "7aef93a4f8143159deb39a97426745b14c6893a96d83d62ac58e126a65d473bf"
+  },
+  {
+   "method": "GET",
+   "url": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='rgba(128,128,128,1)' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'%3E%3Crect width='8' height='4' x='8' y='2' rx='1' ry='1'/%3E%3Cpath d='M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2'/%3E%3C/g%3E%3C/svg%3E",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "3c6fd7d1c8342c246903c82cc736547f3be19d2c0fc50556fcb85e6dce5ae7fe"
+  },
+  {
+   "method": "GET",
+   "url": "data:image/svg+xml,%3csvg%20viewBox='0%200%2091%2015'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3e%3cpath%20fill-rule='evenodd'%20clip-rule='evenodd'%20d='M27.3271%200C33.439%202.28882e-05%2036.6504%202.56908%2036.6504%207.5C36.6503%2012.4308%2033.4389%2015%2027.3271%2015C21.2156%2014.9999%2018.0245%2012.4307%2018.0244%207.5C18.0244%202.56915%2021.2155%209.15527e-05%2027.3271%200ZM70.0195%200C67.0714%204.22099%2067.0541%2010.7638%2070.0195%2015H68.0264C65.0603%2010.7639%2065.0777%204.22097%2068.0264%200H70.0195ZM88.2852%200C91.2333%204.22098%2091.2505%2010.7638%2088.2852%2015H86.293C89.259%2010.7639%2089.2417%204.22096%2086.293%200H88.2852ZM78.1562%200.0205078C82.2874%200.0206451%2085.6357%203.3695%2085.6357%207.5C85.6357%2011.6305%2082.2868%2014.9794%2078.1562%2014.9795C74.0256%2014.9795%2070.6768%2011.6306%2070.6768%207.5C70.6768%203.36942%2074.0257%200.0205078%2078.1562%200.0205078ZM9.13672%2010.6904L12.9072%200.249023H18.0664L12.3477%2014.751H5.71777L0%200.249023H5.30371L9.13672%2010.6904ZM43.5293%2014.751H38.5566V0.249023H43.5293V14.751ZM55.166%200.249023C60.2005%200.249039%2063.0801%202.52763%2063.0801%207.5C63.08%2012.4722%2060.1798%2014.7509%2055.1455%2014.751H46.0498V0.249023H55.166ZM82.7119%204.3584C82.6014%204.11057%2082.2689%204.06387%2082.0977%204.27441L75.6289%2012.209C75.4742%2012.3996%2075.5485%2012.6852%2075.7764%2012.7764C76.4462%2013.0443%2077.2392%2013.1768%2078.1562%2013.1768C81.5505%2013.1767%2083.2676%2011.3536%2083.2676%207.5C83.2676%206.23413%2083.0814%205.18989%2082.7119%204.3584ZM27.3271%203.56348C24.4475%203.56358%2023.1006%204.80673%2023.1006%207.5C23.1006%2010.1931%2024.4476%2011.4159%2027.3271%2011.416C30.2069%2011.416%2031.5537%2010.2139%2031.5537%207.5C31.5537%204.78593%2030.2069%203.56351%2027.3271%203.56348ZM51.0225%2011.2295H54.4619C56.8234%2011.2294%2057.9834%2010.2138%2057.9834%207.5C57.9834%204.78608%2056.8235%203.77064%2054.4619%203.77051H51.0225V11.2295ZM78.1562%201.84375C74.7425%201.84375%2073.0449%203.66709%2073.0449%207.5C73.0449%208.77074%2073.2294%209.82088%2073.5996%2010.6572C73.7095%2010.9057%2074.0426%2010.9517%2074.2139%2010.7412L80.6719%202.80566C80.8271%202.6151%2080.7518%202.32979%2080.5234%202.23926C79.8557%201.97479%2079.0664%201.84377%2078.1562%201.84375Z'%20fill='white'/%3e%3c/svg%3e",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "fb2116ea7e56286ccea53abececc1dfb3e17a98782ee31ea285e36f601814da2"
+  }
+ ]
+}

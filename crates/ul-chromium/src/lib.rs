@@ -1,8 +1,10 @@
 //! `chromium --headless` do pseudo-linus.
 
+pub mod bridge;
 pub mod cli;
 pub mod document;
 pub mod encoding;
+pub mod fetch;
 pub mod page;
 
 /// Os programas deste crate.

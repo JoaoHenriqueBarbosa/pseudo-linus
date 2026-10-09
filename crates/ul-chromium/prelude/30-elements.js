@@ -1,0 +1,392 @@
+// ---- Element, atributos, classList, style, dataset e as interfaces HTML/SVG.
+
+const attrNames = (id) => { const flat = op('attrs', id); const out = []; for (let i = 0; i < flat.length; i += 2) out.push(flat[i]); return out; };
+
+class Attr extends Node {
+  constructor() { super(ILLEGAL); }
+  get name() { return this.__name; }
+  get localName() { return this.__name; }
+  get namespaceURI() { return null; }
+  get prefix() { return null; }
+  get value() { return this.__owner ? this.__owner.getAttribute(this.__name) ?? '' : this.__value; }
+  set value(v) { if (this.__owner) this.__owner.setAttribute(this.__name, v); else this.__value = String(v); }
+  get nodeValue() { return this.value; }
+  get textContent() { return this.value; }
+  get ownerElement() { return this.__owner || null; }
+  get specified() { return true; }
+  get nodeType() { return 2; }
+  get nodeName() { return this.__name; }
+}
+tag(Attr, 'Attr');
+const makeAttr = (owner, name, value) => {
+  const attr = Object.create(Attr.prototype);
+  ids.set(attr, -1);
+  hidden(attr, '__owner', owner);
+  hidden(attr, '__name', name);
+  hidden(attr, '__value', value);
+  return attr;
+};
+
+class NamedNodeMap {
+  constructor() { throw new TypeError('Illegal constructor'); }
+  get length() { return attrNames(idOf(this.__owner)).length; }
+  item(i) { const names = attrNames(idOf(this.__owner)); return i < names.length ? this.getNamedItem(names[i]) : null; }
+  getNamedItem(name) { const v = this.__owner.getAttribute(name); return v === null ? null : makeAttr(this.__owner, lower(name) === name ? name : name, v); }
+  setNamedItem(attr) { this.__owner.setAttribute(attr.name, attr.value); return null; }
+  removeNamedItem(name) { const a = this.getNamedItem(name); if (!a) throw domException('Failed to execute \'removeNamedItem\' on \'NamedNodeMap\': No item with name \'' + name + '\' was found.', 'NotFoundError'); this.__owner.removeAttribute(name); return a; }
+  [Symbol.iterator]() { return Array.from({ length: this.length }, (_, i) => this.item(i))[Symbol.iterator](); }
+}
+tag(NamedNodeMap, 'NamedNodeMap');
+const attributeMap = (owner) => {
+  const target = Object.create(NamedNodeMap.prototype);
+  hidden(target, '__owner', owner);
+  return new Proxy(target, {
+    get(t, key, receiver) {
+      if (isIndex(key)) return t.item(+key) ?? undefined;
+      if (typeof key === 'string' && !(key in t)) { const a = t.getNamedItem(key); if (a) return a; }
+      return Reflect.get(t, key, receiver);
+    },
+    has(t, key) { return isIndex(key) ? +key < t.length : Reflect.has(t, key); },
+  });
+};
+
+class DOMTokenList {
+  constructor() { throw new TypeError('Illegal constructor'); }
+  __tokens() { const v = this.__element.getAttribute(this.__attr); return v ? v.split(/[ \t\n\f\r]+/).filter(Boolean) : []; }
+  __write(tokens) { this.__element.setAttribute(this.__attr, tokens.join(' ')); }
+  __check(token, method) {
+    token = String(token);
+    if (token === '') throw domException(`Failed to execute '${method}' on 'DOMTokenList': The token provided must not be empty.`, 'SyntaxError');
+    if (/[ \t\n\f\r]/.test(token)) throw domException(`Failed to execute '${method}' on 'DOMTokenList': The token provided ('${token}') contains HTML space characters, which are not valid in tokens.`, 'InvalidCharacterError');
+    return token;
+  }
+  get length() { return this.__tokens().length; }
+  get value() { return this.__element.getAttribute(this.__attr) ?? ''; }
+  set value(v) { this.__element.setAttribute(this.__attr, v); }
+  item(i) { return this.__tokens()[i] ?? null; }
+  contains(token) { return this.__tokens().includes(String(token)); }
+  add(...tokens) {
+    const list = this.__tokens();
+    for (const t of tokens) { const token = this.__check(t, 'add'); if (!list.includes(token)) list.push(token); }
+    this.__write(list);
+  }
+  remove(...tokens) {
+    const set = new Set(tokens.map((t) => this.__check(t, 'remove')));
+    this.__write(this.__tokens().filter((t) => !set.has(t)));
+  }
+  toggle(token, force) {
+    token = this.__check(token, 'toggle');
+    const has = this.contains(token);
+    if (has && force !== true) { this.remove(token); return false; }
+    if (!has && force !== false) { this.add(token); return true; }
+    return has;
+  }
+  replace(oldToken, newToken) {
+    const list = this.__tokens();
+    const i = list.indexOf(String(oldToken));
+    if (i < 0) return false;
+    list[i] = this.__check(newToken, 'replace');
+    this.__write(list.filter((t, j) => list.indexOf(t) === j));
+    return true;
+  }
+  supports() { return true; }
+  forEach(cb, thisArg) { this.__tokens().forEach((t, i) => cb.call(thisArg, t, i, this)); }
+  entries() { return this.__tokens().entries(); }
+  keys() { return this.__tokens().keys(); }
+  values() { return this.__tokens().values(); }
+  toString() { return this.value; }
+  [Symbol.iterator]() { return this.__tokens().values(); }
+}
+tag(DOMTokenList, 'DOMTokenList');
+const tokenList = (element, attr) => {
+  const target = Object.create(DOMTokenList.prototype);
+  hidden(target, '__element', element);
+  hidden(target, '__attr', attr);
+  return new Proxy(target, { get(t, key, receiver) { return isIndex(key) ? t.item(+key) ?? undefined : Reflect.get(t, key, receiver); } });
+};
+
+// CSSStyleDeclaration sobre o atributo `style`: lê e escreve `prop: valor;` e serializa como o Chromium.
+const kebab = (name) => name.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase());
+const parseDeclarations = (text) => {
+  const out = [];
+  let depth = 0, quote = '', start = 0;
+  const flush = (end) => {
+    const part = text.slice(start, end);
+    const colon = part.indexOf(':');
+    if (colon > 0) {
+      let name = part.slice(0, colon).trim();
+      let value = part.slice(colon + 1).trim();
+      let priority = '';
+      const m = /\s*!\s*important$/i.exec(value);
+      if (m) { priority = 'important'; value = value.slice(0, m.index).trim(); }
+      if (name && value) { if (!name.startsWith('--')) name = name.toLowerCase(); out.push({ name, value, priority }); }
+    }
+  };
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quote) { if (c === '\\') i++; else if (c === quote) quote = ''; }
+    else if (c === '"' || c === "'") quote = c;
+    else if (c === '(') depth++;
+    else if (c === ')') depth--;
+    else if (c === ';' && depth === 0) { flush(i); start = i + 1; }
+  }
+  flush(text.length);
+  return out;
+};
+class CSSStyleDeclaration {
+  constructor() { throw new TypeError('Illegal constructor'); }
+  __list() { return parseDeclarations(this.__element.getAttribute('style') || ''); }
+  __save(list) {
+    if (list.length === 0 && this.__element.getAttribute('style') === null) return;
+    this.__element.setAttribute('style', list.map((d) => `${d.name}: ${d.value}${d.priority ? ' !important' : ''};`).join(' '));
+  }
+  get cssText() { return this.__list().map((d) => `${d.name}: ${d.value}${d.priority ? ' !important' : ''};`).join(' '); }
+  set cssText(v) { this.__element.setAttribute('style', String(v)); this.__save(parseDeclarations(String(v))); }
+  get length() { return this.__list().length; }
+  item(i) { const l = this.__list(); return i < l.length ? l[i].name : ''; }
+  getPropertyValue(name) { const n = String(name); const d = this.__list().find((x) => x.name === (n.startsWith('--') ? n : n.toLowerCase())); return d ? d.value : ''; }
+  getPropertyPriority(name) { const d = this.__list().find((x) => x.name === lower(name)); return d ? d.priority : ''; }
+  setProperty(name, value, priority = '') {
+    name = String(name);
+    if (!name.startsWith('--')) name = name.toLowerCase();
+    const list = this.__list();
+    const i = list.findIndex((d) => d.name === name);
+    if (value === null || value === undefined || String(value) === '') { if (i >= 0) list.splice(i, 1); }
+    else if (i >= 0) list[i] = { name, value: String(value), priority: priority === 'important' ? 'important' : '' };
+    else list.push({ name, value: String(value), priority: priority === 'important' ? 'important' : '' });
+    this.__save(list);
+  }
+  removeProperty(name) {
+    const old = this.getPropertyValue(name);
+    this.setProperty(name, '');
+    return old;
+  }
+  [Symbol.iterator]() { return this.__list().map((d) => d.name).values(); }
+  get parentRule() { return null; }
+}
+tag(CSSStyleDeclaration, 'CSSStyleDeclaration');
+const styleOf = (element) => {
+  const target = Object.create(CSSStyleDeclaration.prototype);
+  hidden(target, '__element', element);
+  return new Proxy(target, {
+    get(t, key, receiver) {
+      if (typeof key === 'string' && !(key in t)) {
+        if (isIndex(key)) return t.item(+key);
+        if (key === 'cssFloat') return t.getPropertyValue('float');
+        return t.getPropertyValue(kebab(key));
+      }
+      return Reflect.get(t, key, receiver);
+    },
+    set(t, key, value) {
+      if (typeof key === 'string' && !(key in t)) { t.setProperty(key === 'cssFloat' ? 'float' : kebab(key), value); return true; }
+      return Reflect.set(t, key, value, t);
+    },
+  });
+};
+
+const datasetOf = (element) => {
+  const toAttr = (key) => 'data-' + key.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase());
+  const toKey = (attr) => attr.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+  return new Proxy(Object.create(null), {
+    get: (t, key) => (typeof key === 'string' ? element.getAttribute(toAttr(key)) ?? undefined : undefined),
+    set: (t, key, value) => { element.setAttribute(toAttr(String(key)), toStr(value)); return true; },
+    deleteProperty: (t, key) => { element.removeAttribute(toAttr(String(key))); return true; },
+    has: (t, key) => typeof key === 'string' && element.hasAttribute(toAttr(key)),
+    ownKeys: () => attrNames(idOf(element)).filter((n) => n.startsWith('data-')).map(toKey),
+    getOwnPropertyDescriptor: (t, key) => (typeof key === 'string' && element.hasAttribute(toAttr(key)) ? { value: element.getAttribute(toAttr(key)), writable: true, enumerable: true, configurable: true } : undefined),
+  });
+};
+
+const parseFragment = (context, html) => {
+  const holder = document.createElement(context && context.nodeType === 1 ? context.localName : 'div');
+  op('setInnerHTML', idOf(holder), String(html));
+  return holder;
+};
+
+class Element extends Node {
+  constructor() { super(ILLEGAL); }
+  get namespaceURI() { return op('ns', idOf(this)); }
+  get localName() { return op('name', idOf(this)); }
+  get prefix() { return null; }
+  get tagName() {
+    const name = this.localName;
+    return this.namespaceURI === HTML_NS ? name.toUpperCase() : name;
+  }
+  get id() { return this.getAttribute('id') ?? ''; }
+  set id(v) { this.setAttribute('id', v); }
+  get className() { return this.getAttribute('class') ?? ''; }
+  set className(v) { this.setAttribute('class', v); }
+  get classList() { return tokenList(this, 'class'); }
+  set classList(v) { this.setAttribute('class', v); }
+  get slot() { return this.getAttribute('slot') ?? ''; }
+  set slot(v) { this.setAttribute('slot', v); }
+  get attributes() { return attributeMap(this); }
+  getAttribute(name) { return op('getAttr', idOf(this), this.__attrName(name)); }
+  __attrName(name) { name = toStr(name); return this.namespaceURI === HTML_NS && this.ownerDocument.__html ? name.toLowerCase() : name; }
+  getAttributeNS(ns, local) { return this.getAttribute(local); }
+  getAttributeNode(name) { const v = this.getAttribute(name); return v === null ? null : makeAttr(this, this.__attrName(name), v); }
+  getAttributeNames() { return attrNames(idOf(this)); }
+  hasAttribute(name) { return this.getAttribute(name) !== null; }
+  hasAttributes() { return attrNames(idOf(this)).length > 0; }
+  setAttribute(name, value) {
+    name = this.__attrName(name);
+    if (!/^[A-Za-z_:][-A-Za-z0-9_:.]*$/.test(name)) throw domException(`Failed to execute 'setAttribute' on 'Element': '${name}' is not a valid attribute name.`, 'InvalidCharacterError');
+    const old = op('getAttr', idOf(this), name);
+    op('setAttr', idOf(this), name, toStr(value));
+    attributeChanged(this, name, old, toStr(value));
+  }
+  setAttributeNS(ns, name, value) { this.setAttribute(name, value); }
+  setAttributeNode(attr) { this.setAttribute(attr.name, attr.value); return null; }
+  removeAttribute(name) {
+    name = this.__attrName(name);
+    const old = op('getAttr', idOf(this), name);
+    if (old === null) return;
+    op('removeAttr', idOf(this), name);
+    attributeChanged(this, name, old, null);
+  }
+  removeAttributeNS(ns, local) { this.removeAttribute(local); }
+  toggleAttribute(name, force) {
+    const has = this.hasAttribute(name);
+    if (has && force !== true) { this.removeAttribute(name); return false; }
+    if (!has && force !== false) { this.setAttribute(name, ''); return true; }
+    return has;
+  }
+  get innerHTML() { return op('innerHTML', idOf(this)); }
+  set innerHTML(html) {
+    const removed = Array.from(this.childNodes);
+    op('setInnerHTML', idOf(this), toStr(html === null ? '' : html));
+    mutationHook.record({ type: 'childList', target: this, removedNodes: removed, addedNodes: Array.from(this.childNodes) });
+    for (const child of Array.from(this.childNodes)) afterInsert(child);
+  }
+  get outerHTML() { return op('outerHTML', idOf(this)); }
+  set outerHTML(html) {
+    const parent = this.parentNode;
+    if (!parent) throw domException("Failed to set the 'outerHTML' property on 'Element': This element has no parent node.", 'NoModificationAllowedError');
+    const holder = parseFragment(parent, html);
+    const fragment = document.createDocumentFragment();
+    while (holder.firstChild) fragment.appendChild(holder.firstChild);
+    parent.replaceChild(fragment, this);
+  }
+  get innerText() { return this.textContent; }
+  set innerText(v) { this.textContent = v; }
+  insertAdjacentHTML(position, html) {
+    const holder = parseFragment(this, html);
+    const fragment = document.createDocumentFragment();
+    while (holder.firstChild) fragment.appendChild(holder.firstChild);
+    this.insertAdjacentElement(position, fragment);
+  }
+  insertAdjacentElement(position, node) {
+    switch (lower(position)) {
+      case 'beforebegin': if (!this.parentNode) return null; this.parentNode.insertBefore(node, this); break;
+      case 'afterbegin': this.insertBefore(node, this.firstChild); break;
+      case 'beforeend': this.appendChild(node); break;
+      case 'afterend': if (!this.parentNode) return null; this.parentNode.insertBefore(node, this.nextSibling); break;
+      default: throw domException(`Failed to execute 'insertAdjacentElement' on 'Element': The value provided ('${position}') is not one of 'beforeBegin', 'afterBegin', 'beforeEnd', or 'afterEnd'.`, 'SyntaxError');
+    }
+    return node;
+  }
+  insertAdjacentText(position, text) { this.insertAdjacentElement(position, document.createTextNode(text)); }
+  matches(selector) { return op('matches', idOf(this), toStr(selector)); }
+  webkitMatchesSelector(selector) { return this.matches(selector); }
+  closest(selector) { for (let el = this; el && el.nodeType === 1; el = el.parentElement) if (el.matches(selector)) return el; return null; }
+  getElementsByTagName(name) {
+    const id = idOf(this);
+    const wanted = name === '*' ? null : lower(name);
+    return liveList(HTMLCollection.prototype, () => op('query', id, '*', true).map(wrap).filter((e) => wanted === null || e.localName.toLowerCase() === wanted));
+  }
+  getElementsByTagNameNS(ns, name) { return this.getElementsByTagName(name); }
+  getElementsByClassName(names) {
+    const id = idOf(this);
+    const wanted = String(names).split(/\s+/).filter(Boolean);
+    return liveList(HTMLCollection.prototype, () => (wanted.length ? op('query', id, wanted.map((n) => '.' + CSS.escape(n)).join(''), true).map(wrap) : []));
+  }
+  get style() { return styleOf(this); }
+  set style(v) { this.style.cssText = v; }
+  get dataset() { return datasetOf(this); }
+  get shadowRoot() { return this.__shadow && this.__shadow.mode === 'open' ? this.__shadow : null; }
+  attachShadow(init) {
+    if (this.__shadow) throw domException("Failed to execute 'attachShadow' on 'Element': Shadow root cannot be created on a host which already hosts a shadow tree.", 'NotSupportedError');
+    const root = new DocumentFragment();
+    Object.setPrototypeOf(root, ShadowRoot.prototype);
+    hidden(root, '__host', this);
+    hidden(root, 'mode', init.mode);
+    hidden(this, '__shadow', root);
+    return root;
+  }
+  get clientWidth() { return 0; }
+  get clientHeight() { return 0; }
+  get clientTop() { return 0; }
+  get clientLeft() { return 0; }
+  get offsetWidth() { return 0; }
+  get offsetHeight() { return 0; }
+  get offsetTop() { return 0; }
+  get offsetLeft() { return 0; }
+  get offsetParent() { return null; }
+  get scrollWidth() { return 0; }
+  get scrollHeight() { return 0; }
+  get scrollTop() { return 0; }
+  set scrollTop(v) {}
+  get scrollLeft() { return 0; }
+  set scrollLeft(v) {}
+  getBoundingClientRect() { return new DOMRect(0, 0, 0, 0); }
+  getClientRects() { return []; }
+  scrollIntoView() {}
+  scrollTo() {}
+  scroll() {}
+  focus() { if (document.__active !== this) { const prev = document.__active; document.__active = this; if (prev) prev.dispatchEvent(new FocusEvent('blur')); this.dispatchEvent(new FocusEvent('focus')); this.dispatchEvent(new FocusEvent('focusin', { bubbles: true })); } }
+  blur() { if (document.__active === this) { document.__active = null; this.dispatchEvent(new FocusEvent('blur')); this.dispatchEvent(new FocusEvent('focusout', { bubbles: true })); } }
+  click() { this.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, composed: true })); }
+  animate() { return { cancel() {}, finish() {}, play() {}, pause() {}, finished: Promise.resolve(), onfinish: null }; }
+  getAnimations() { return []; }
+  checkVisibility() { return true; }
+  setPointerCapture() {}
+  releasePointerCapture() {}
+  hasPointerCapture() { return false; }
+  requestFullscreen() { return Promise.reject(new TypeError('Fullscreen is not supported')); }
+}
+tag(Element, 'Element');
+mixin(Element.prototype, ChildNode);
+mixin(Element.prototype, ParentNode);
+delete Element.prototype.getElementById;
+mixin(Element.prototype, NonElementSiblings);
+
+class ShadowRoot extends DocumentFragment {
+  get host() { return this.__host; }
+  get innerHTML() { return op('innerHTML', idOf(this)); }
+  set innerHTML(html) { op('setInnerHTML', idOf(this), toStr(html)); }
+  get activeElement() { return null; }
+}
+tag(ShadowRoot, 'ShadowRoot');
+
+class DOMRect {
+  constructor(x = 0, y = 0, width = 0, height = 0) { Object.assign(this, { x, y, width, height }); }
+  get top() { return this.y; }
+  get left() { return this.x; }
+  get right() { return this.x + this.width; }
+  get bottom() { return this.y + this.height; }
+  toJSON() { return { x: this.x, y: this.y, width: this.width, height: this.height, top: this.top, right: this.right, bottom: this.bottom, left: this.left }; }
+}
+tag(DOMRect, 'DOMRect');
+
+// Reflexão de atributos: propriedade <-> atributo, com o tipo do valor.
+const reflect = (cls, spec) => {
+  for (const [prop, attr, kind] of spec) {
+    Object.defineProperty(cls.prototype, prop, {
+      configurable: true,
+      enumerable: true,
+      get() {
+        const v = this.getAttribute(attr);
+        if (kind === 'bool') return v !== null;
+        if (kind === 'long') { const n = parseInt(v, 10); return Number.isFinite(n) ? n : 0; }
+        if (kind === 'url') return v === null ? '' : resolveUrl(v);
+        if (kind === 'enum') return v === null ? '' : lower(v);
+        return v === null ? '' : v;
+      },
+      set(value) {
+        if (kind === 'bool') { if (value) this.setAttribute(attr, ''); else this.removeAttribute(attr); }
+        else this.setAttribute(attr, toStr(value));
+      },
+    });
+  }
+};
+reflect(Element, [['title', 'title'], ['lang', 'lang'], ['dir', 'dir', 'enum'], ['hidden', 'hidden', 'bool'], ['accessKey', 'accesskey'], ['draggable', 'draggable', 'bool'], ['tabIndex', 'tabindex', 'long'], ['nonce', 'nonce'], ['ariaLabel', 'aria-label'], ['role', 'role']]);

@@ -2,11 +2,12 @@
 //! (scripting ligado, doctype preservado).
 
 use blitz_dom::node::NodeData;
-use blitz_dom::{BaseDocument, DocumentConfig, NodeId};
+use blitz_dom::{BaseDocument, DocumentConfig, DocumentMutator, NodeId};
 use blitz_html::DocumentHtmlParser;
 use html5ever::ParseOpts;
 use html5ever::tendril::TendrilSink;
 use html5ever::tree_builder::TreeBuilderOpts;
+use markup5ever::QualName;
 
 /// Parseia `html` num documento novo, com as opções do navegador (scripting ligado: `<noscript>` vira texto).
 pub fn parse(html: &str) -> BaseDocument {
@@ -21,6 +22,39 @@ pub fn parse(html: &str) -> BaseDocument {
         html5ever::parse_document(sink, opts).from_utf8().read_from(&mut html.as_bytes()).unwrap();
     }
     doc
+}
+
+/// O nome do atributo como a serialização o escreve: os de `xml`, `xmlns` e `xlink` levam o prefixo.
+pub fn qualified_attr_name(name: &QualName) -> String {
+    let local: &str = &name.local;
+    match &*name.ns {
+        "http://www.w3.org/XML/1998/namespace" => format!("xml:{local}"),
+        "http://www.w3.org/2000/xmlns/" if local == "xmlns" => "xmlns".to_owned(),
+        "http://www.w3.org/2000/xmlns/" => format!("xmlns:{local}"),
+        "http://www.w3.org/1999/xlink" => format!("xlink:{local}"),
+        _ => match &name.prefix {
+            Some(prefix) => format!("{prefix}:{local}"),
+            None => local.to_owned(),
+        },
+    }
+}
+
+/// Parseia `html` como fragmento no contexto de `context` e põe o resultado como filhos dele (substitui o que havia).
+/// Mesmas opções do documento: scripting ligado, então o conteúdo de `<noscript>` vira texto como no Chromium.
+pub fn set_inner_html(mutr: &mut DocumentMutator<'_>, context: NodeId, html: &str) {
+    mutr.remove_and_drop_all_children(context);
+    let sink = DocumentHtmlParser::new(mutr);
+    let opts = ParseOpts {
+        tree_builder: TreeBuilderOpts { scripting_enabled: true, drop_doctype: true, ..Default::default() },
+        ..Default::default()
+    };
+    html5ever::driver::parse_fragment_for_element(sink, opts, context, false, None).from_utf8().read_from(&mut html.as_bytes()).unwrap();
+    // O html5ever cria uma raiz de fragmento sob o documento: os filhos dela passam ao contexto e ela some.
+    let document_id = mutr.doc.root_node().id;
+    let fragment_root = mutr.last_child_id(document_id).unwrap();
+    let children = mutr.child_ids(fragment_root);
+    mutr.append_children(context, &children);
+    mutr.remove_and_drop_node(fragment_root);
 }
 
 /// Elementos sem conteúdo nem tag de fechamento.
@@ -80,7 +114,7 @@ fn write_node(doc: &BaseDocument, id: NodeId, out: &mut String) {
             out.push_str(name);
             for attr in element.attrs.iter() {
                 out.push(' ');
-                out.push_str(&attr.name.local);
+                out.push_str(&qualified_attr_name(&attr.name));
                 out.push_str("=\"");
                 escape(out, &attr.value, true);
                 out.push('"');

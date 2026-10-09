@@ -2,14 +2,43 @@
 //! sobre um global novo, com o console e o DOM do hospedeiro instalados, onde o hospedeiro avalia scripts em ordem,
 //! dispara os eventos do documento e roda o laço de eventos.
 
+use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::api::eval::{describe_exception, evaluate, named_program_source, new_global_object, VmFinalizer};
+use crate::host_function;
 use crate::runtime::cell_registry::run_program;
 use crate::runtime::console_host::ConsoleHost;
 use crate::runtime::dom_bridge::{self, DomHost};
-use crate::runtime::js_global_object::JSGlobalObjectRef;
+use crate::runtime::host_call::{HostCall, HostResult, Thrown};
+use crate::runtime::js_global_object::{JSGlobalObject, JSGlobalObjectRef};
+use crate::runtime::js_module_loader::rust_string;
+use crate::runtime::js_value::JSValue;
+use crate::runtime::native_class_support::install_global_function;
+use crate::runtime::program_executable::ProgramExecutable;
 use crate::runtime::vm::VM;
+
+thread_local! {
+    /// O global da página, para o `__pl_eval` (que roda no escopo global, com `let` e `const` de topo visíveis aos
+    /// scripts seguintes, como um `<script>` clássico).
+    static PAGE_GLOBAL: RefCell<Option<JSGlobalObjectRef>> = const { RefCell::new(None) };
+}
+
+/// `__pl_eval(fonte, url)`: avalia `fonte` como script clássico no global da página. A exceção do script segue
+/// pendente para o chamador JavaScript, que a relata como erro de página.
+fn pl_eval_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let source = rust_string(&call.argument(0).to_wtf_string());
+    let url = rust_string(&call.argument(1).to_wtf_string());
+    let Some(global) = PAGE_GLOBAL.with(|slot| slot.borrow().clone()) else { return Ok(JSValue::undefined()) };
+    let executable = ProgramExecutable::create(&global, &named_program_source(&source, &url));
+    let vm = global_object.vm();
+    vm.interpreter().execute_program(&executable, &global);
+    if vm.exception().is_some() {
+        return Err(Thrown::Pending);
+    }
+    Ok(JSValue::undefined())
+}
+host_function!(pl_eval, pl_eval_body);
 
 /// O programa em curso: avalia scripts no global da página.
 pub struct PageRunner {
@@ -26,9 +55,12 @@ impl PageRunner {
         result.map(|_| ()).map_err(|exception| describe_exception(&exception))
     }
 
-    /// Roda o laço de eventos (timers, immediates, microtarefas) até esvaziar, no relógio virtual do motor.
-    pub fn run_event_loop(&self) {
-        crate::runtime::timers::run_event_loop(&self.global_object);
+    /// Roda o laço de eventos (timers, immediates, microtarefas) no relógio virtual do motor até esvaziar ou até
+    /// passarem `budget_ms` de tempo virtual (o `--virtual-time-budget` do Chromium); o que sobrar de timers fica sem
+    /// disparar. Só deve ser chamado uma vez por página: o laço parado pelo orçamento não é retomável.
+    pub fn run_event_loop_for(&self, budget_ms: f64) {
+        crate::runtime::timers::schedule_native(&self.global_object, budget_ms, Rc::new(|_| crate::runtime::timers::halt_event_loop()));
+        crate::runtime::timers::run_event_loop_until_held(&self.global_object);
     }
 
     /// Só as microtarefas pendentes.
@@ -44,8 +76,12 @@ pub fn run_page<T>(console: Rc<dyn ConsoleHost>, dom: Rc<dyn DomHost>, body: imp
         let _finalizer = VmFinalizer::new(&vm);
         global_object.set_console_host(console);
         dom_bridge::install(&global_object, dom);
+        install_global_function(&global_object, "__pl_eval", 2, pl_eval);
+        PAGE_GLOBAL.with(|slot| *slot.borrow_mut() = Some(global_object.clone()));
         crate::runtime::timers::enable_event_loop();
         let runner = PageRunner { vm, global_object };
-        body(&runner)
+        let result = body(&runner);
+        PAGE_GLOBAL.with(|slot| slot.borrow_mut().take());
+        result
     })
 }

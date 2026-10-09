@@ -1,0 +1,329 @@
+{
+ "url": "https://todomvc.com/examples/backbone/dist/",
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/backbone/dist/",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "body": "f1b6632bef11e3d7716af0a47a20d877874706b1813cb645ba261824529c8223"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/backbone/dist/index.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "9744ab180420e503eaa7e0c69c2a9a283ef68d99f9678cbb8167a7476aa2f04a"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/backbone/dist/models/todo.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "13e1251ae73a34ac231d4e04ab57594f51438be7c0ee3d0f25d9e83b9fdcfa5a"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/backbone/dist/base.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "5c67ddc771b558bc07b58695c9c4b7f663d2ba813edb4810341799c47ba0822d"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/backbone/dist/app.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "12b148a98d666e8bd265a68d03a1c4e6d447bba69c2dfff6b44432b8d8ada897"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/backbone/dist/jquery.min.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "a0fe8723dcf55da64d06b25446d0a8513e52527c45afcb37073465f9c6f352af"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/backbone/dist/base.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "84090789021f5f8206800503e18adbc38b5fddbfb0a84bfe36e86e683da60c20"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.google-analytics.com/analytics.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/javascript"
+    ]
+   ],
+   "body": "f1a61277e3f902f50ab42015d8b07218db9b7601bb0967e54a52bfdcb4fa7e81"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/learn.json",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "47192f5d6f87d5a2025ff26ea00ac9040e1092144e0431185e92c417a3e4f439"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/backbone/dist/collections/todos.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "d9be2040894576de9d678ee43d5087585384b128aa61cd6194da67ed6b9c0a43"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/backbone/dist/backbone-min.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "f1874da7bd6de3604f6db0afbb5bec704d9a8a0010f4da5de70c08131c30543e"
+  },
+  {
+   "method": "POST",
+   "url": "https://www.google-analytics.com/j/collect?v=1&_v=j102&a=1699102062&t=pageview&_s=1&dl=https%3A%2F%2Ftodomvc.com%2Fexamples%2Fbackbone%2Fdist%2F&ul=en-us&dt=TodoMVC%3A%20Backbone&sr=800x600&vp=780x437&_u=IEBAAEABAAAAACAAI~&jid=2098304447&gjid=1602218986&cid=1023439885.1791582364&tid=UA-31081062-1&_gid=1589356417.1791582364&_r=1&_slc=1&z=1163116755",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/plain"
+    ],
+    [
+     "access-control-allow-credentials",
+     "true"
+    ],
+    [
+     "access-control-allow-origin",
+     "https://todomvc.com"
+    ]
+   ],
+   "body": "507af7ab51eb4cdc1f544183a1be4e27a0943bad4ada5ab732ed65cd837d5a3c"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/backbone/dist/sync/backbone.sync.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "bab5bc687e16e76c0c801066f64c614cde3c59e774d38e9ad3466a2ef044258e"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/backbone/dist/underscore-min.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "25f436e933246f279adc4967725a4d915e0fc7a6419d3b956a945bb5782dc6e5"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/backbone/dist/views/todo-view.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "021c0009cb59c6c84f0eb63f986e277c5740241221457388308d8403754ee254"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/backbone/dist/routers/router.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "dc8f54150ffb67cde92efb98f7ec9f50bb192d382e91b1b1b5a5cfbe89eeaf9c"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/favicon.ico",
+   "status": 404,
+   "headers": [
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'none'; style-src 'unsafe-inline'; img-src data:; connect-src 'self'"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "b620507312c5e97566a3c6cfaf99144fefc18a0da7d941401dfa0f5f58fb0368"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/backbone/dist/views/app-view.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "307001f19e620018aa3ef74e51c5f27a6d44ac9cddf984ff9c70a5cf7fcdf470"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.googletagmanager.com/gtag/js?id=G-T3XWXPZX5B&cx=c&_slc=1",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-credentials",
+     "true"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ],
+    [
+     "access-control-allow-headers",
+     "Cache-Control"
+    ]
+   ],
+   "body": "7a49d40d50c691294a35053b72a303799a3e704a1187701a13430c2a3cfa7603"
+  }
+ ]
+}

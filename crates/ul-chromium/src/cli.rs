@@ -5,13 +5,16 @@ use std::io::Write as _;
 
 use sysabi::Ctx;
 
+use crate::fetch;
 use crate::page::Page;
 
 /// O que a linha de comando pediu.
-#[derive(Default, Debug, PartialEq, Eq)]
+#[derive(Default, Debug, PartialEq)]
 pub struct Options {
     pub headless: bool,
     pub dump_dom: bool,
+    /// `--virtual-time-budget=<ms>`: quanto tempo virtual a página tem para ficar ociosa antes do despejo.
+    pub virtual_time_budget: Option<f64>,
     pub urls: Vec<String>,
 }
 
@@ -23,6 +26,7 @@ pub fn parse(args: &[String]) -> Options {
         match arg.as_str() {
             "--headless" | "--headless=new" | "--headless=old" => options.headless = true,
             "--dump-dom" => options.dump_dom = true,
+            flag if flag.starts_with("--virtual-time-budget=") => options.virtual_time_budget = flag["--virtual-time-budget=".len()..].parse().ok(),
             flag if flag.starts_with("--") => {}
             url => options.urls.push(url.to_owned()),
         }
@@ -30,19 +34,34 @@ pub fn parse(args: &[String]) -> Options {
     options
 }
 
+/// Quantas navegações seguidas (`location.href = ...`) uma invocação acompanha.
+const MAX_NAVIGATIONS: usize = 20;
+
 pub fn main(ctx: &mut Ctx, argv: &[OsString]) -> i32 {
     let args: Vec<String> = argv.iter().skip(1).map(|a| a.to_string_lossy().into_owned()).collect();
     let options = parse(&args);
-    let Some(url) = options.urls.first() else { return 0 };
-    let page = match Page::load(url) {
-        Ok(page) => page,
-        Err(message) => {
-            let _ = ctx.stderr().write_all(format!("{message}\n").as_bytes());
-            return 1;
+    let Some(first) = options.urls.first() else { return 0 };
+    let mut address = first.clone();
+    for _ in 0..MAX_NAVIGATIONS {
+        let mut page = match Page::load(&address, fetch::network()) {
+            Ok(page) => page,
+            Err(message) => {
+                let _ = ctx.stderr().write_all(format!("[ERROR:components/headless/command_handler/headless_command_handler.cc:403] Page load failed: {message}\n").as_bytes());
+                return 1;
+            }
+        };
+        if let Some(budget) = options.virtual_time_budget {
+            page.budget_ms = budget;
         }
-    };
-    if options.dump_dom {
-        let _ = ctx.stdout().write_all(page.dump_dom().as_bytes());
+        page.run();
+        if let Some(next) = page.pending_navigation() {
+            address = next;
+            continue;
+        }
+        if options.dump_dom {
+            let _ = ctx.stdout().write_all(page.dump_dom().as_bytes());
+        }
+        return 0;
     }
     0
 }
@@ -53,7 +72,7 @@ mod tests {
 
     #[test]
     fn parses_headless_flags() {
-        let args: Vec<String> = ["--headless", "--no-sandbox", "--disable-gpu", "--dump-dom", "file:///a.html"].map(String::from).to_vec();
-        assert_eq!(parse(&args), Options { headless: true, dump_dom: true, urls: vec!["file:///a.html".into()] });
+        let args: Vec<String> = ["--headless", "--no-sandbox", "--disable-gpu", "--virtual-time-budget=15000", "--dump-dom", "file:///a.html"].map(String::from).to_vec();
+        assert_eq!(parse(&args), Options { headless: true, dump_dom: true, virtual_time_budget: Some(15000.0), urls: vec!["file:///a.html".into()] });
     }
 }

@@ -1,0 +1,673 @@
+{
+ "url": "https://htmx.org/",
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://htmx.org/",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/html; charset=UTF-8"
+    ]
+   ],
+   "body": "c640452e79cb35be4f6483520c661bf170ce0ba6718dad173f2fc118204489fc"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/css/site.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css; charset=UTF-8"
+    ]
+   ],
+   "body": "0e7f26f36fcf53018ded4f0530aa6210816018cd91f388e05310f834a99e6005"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/js/preload.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "5a1c0b17b1139d0aed897998ae2af96e30887a91e03a27672d355b06ed953530"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/js/htmx.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "30612ca7e3d3baf407481f1798281c4481dcb93390a9722d328ce07290250426"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/js/class-tools.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "a5c0e5079da985cc1227b8e9dbdc8486be04fa82cf714ba9cae62fd0d8949b2f"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/exchange-rate-api-dark.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "60a0ca75dadeaa4d756af7847c9e584c41d31fa8d7650b8b63fa3300ef754d20"
+  },
+  {
+   "method": "GET",
+   "url": "https://buttons.github.io/buttons.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "e1238a1f9e4e466283e28114abfc4e6747a237ac948b8572b7e1735a72f994f1"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/follower_light.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "0a21a4b9faf6dbd25bf779bda719e3cd7e3ea86e2d03fb8d5877ffe1ccbe2310"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/stake.jpeg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "175f0aadda8263f63b6f347687d04b8c1a6b38ddbaafd1fecf7dd249d989611f"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/vps-server-logo.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "bc7d47e473ddb61c36203bb6cbe1bd8179d3647ca3f5c08e07df356ea26779ad"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/prospex.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "89d93a05a66c2954afee67c73a25181a513f57fd4c14392bb4c928dfaeb22392"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/BroadbandMapLogo2LineDarkMode.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "df2f3ff7c7fb8836be53b39e904a9548806fb41cd807858283b578d08cb39895"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/llc-org.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "4e9d2939d3621b460c7974fef7f59fbd66b8e1ff03a2086610c861e64c616282"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/follower_dark.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "66d3e06f8d6c97aa8cd91f1c940b1e0a0fe4c12dc052642e5bae1e72cb06fcda"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/das-filter.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "8faaf408bc0ae6160aced034f590d0cea9f3443f9ca246e49067d6cb7ce774ea"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/Cased_Logo_DarkBlue.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "e33543d11ba1004a175502a46e92b2249c4d1842050979a6df3e7983672f76cf"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/ohne-makler.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "8c1144bef23db6c4a7a7f3653c090c205375bfb2c6ae9beb1781639628bef547"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/tracebit-logo.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "32ad9f731a59604ae8465083158d6dac23883636d26fca8baca74b45578886b0"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/ui-bakery.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "fbf375d8a084fcfaaea6c0c575cd8d5af28f7094fe6b7e3b284783814fd8f183"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/Cased_Logo_Beige-01.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "bf1322b215b4338321824b2aa340603aa8ee67a62d455a0f0c51e95e50c6c5e5"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/vps-server-logo-dark.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "9bbcfc4cb8f7dcb41604d3dfa016faac9012061a356b3ea634f25284303abb5e"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/bss_bars.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "a76e6f427dbe0579a72c09dd3f9594b487365a3df2ab43904c2a8460ddff4b1a"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/ablogcms_logo.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "e6a97bcd616926f189c488f65f910034ba6fc5da34709d21809214e46e787d16"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/BroadbandMapLogo2LineLightMode.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "360a4b0cf784f5d2013bc5634152c8130179f99709f1382af31be54fb52095fa"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/topo.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "36cf273c6d2c5256fcca09b013969e99205e167d478530e04da9a72a761fc372"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/exchange-rate-api.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "ba64b608e3342e8393136a63162ae9da219e14bc9a42097e283b00b8cd7a9bad"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/favicon.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "e80e970d43ff0a1b32eacaeb9bde45e93294d3744f87c5dfdc43c70cc219941f"
+  },
+  {
+   "method": "GET",
+   "url": "https://api.github.com/repos/bigskysoftware/htmx",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-expose-headers",
+     "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset, Warning"
+    ],
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'none'"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "4cf726955f9b79e24c70f1be34b83f20d4f1a70fb5b87b1222a3cd83a0aa8b14"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/rxdb.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "7bf483069c8eb7452116682e34478eb2ad2f123dbbf0ae23c9eda0f29be6e71b"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/rsz_instant_famous.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "c2181ec75420b56350a6da59f1c0270b3d537a8f71bb86074554095ab352535e"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/tracebit-logo-dark.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "d6e5609de45a1344f9d6f9f573481b1733a8bb61d85258d6d885c8885b6acc5d"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/ui-bakery-dark.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "1bbc75eb23684c0383b17469d4488d9ee354fa868579a42ce20590b2febe93da"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/sekun-doggo.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "93fff0a6c0533a90197e074dfe2ad190c90fb824b7791badf2947b828b02add0"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/logo-craft-cms.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "2648e95cce8beb951a20e498656d00a2b1f270d635ff0fbcf84766a1e30cbcea"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/v7n-logo-dark.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "08f6df477acd10a619c94e8e181b6a1e80f850c077a7a1e335564ae3679f17d5"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/pullapprove-logo.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "8a773b41a29fb691eada246e698bf47501d215600b937a76aac30345eb849662"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/v7n-logo.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "83db880efc101750ca5c25520cbafde100b54dad00ce5693c4e06677d483c39f"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/blackhost-logo.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "5368cba645a440da68af03efce43a79342aef6dbabedfc0e9f1d63964a33050f"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/das-filter-dark.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "b95310f0c55e0765a0ae0cab8c65104ac44d5d74912805bd2882fc63ebf845e9"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/pullapprove-logo-dark.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "095e4cba936a0083b57ff01e59af259760a68c0a68f9adb0b2728dc6ac15b316"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/butter-cms.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "81c4730bb3f0302ac7f0136e881a77ce4a32d0605593e394d3d6f14a1a106d53"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/logo-craft-cms-dark.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "8fcc752695503d3ed6681042bc23472bb5817c4f18379aed621a57dfd35c2801"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/Github_Logo.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "8fe8e40d21fee140d5eb62500863fded0e70894c947e30d930da3d189f6cd617"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/serpapi-dark.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "05f23c7a38df343d8c0ecadae356a7added950ef5298d65aa2954a1fe562a208"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/serpapi.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "1510fd9ebe85c42434c19868917211d43ccc950e14ce23b3e942f8b94774e596"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/commspace-dark.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "be49fd7decf74bd3477074a4b592db15a65b0299054f64650d900a2e67cfe8a8"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/jetbrains.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "bc1758c5909fffdeb11f7a039ffcfc88ae455884dceb59df529bae41f5de4b94"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/commspace.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "7760d7ffa042047b417d11a28668426705fb3beaac0b15243279d11c03ba71a3"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/hypermedia-systems.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "8efbcfb1d9e89d502985d289daa5c66fd23973ba1eb4db3a90fb0e63577003ed"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/ads_bottom.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "6c0ed0969add45e05fd89cd236393351da0fd619d639ffc363273c8b4b804fe7"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/kawaii.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "5dc975fc617aaf6376638a73b57e40ba73593d3016636947aebdd69c3a537777"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/ads_top.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "61d98ce3030d3694e4d1b5f47da91bbd7fad252fe049cb3e8cbf91de3a598520"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/img/wuw.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "a38bbcb0f31fd3d345942fedcf015ffa5a90c4ae0e74597b529e848bdeda8c66"
+  },
+  {
+   "method": "GET",
+   "url": "https://htmx.org/js/_hyperscript.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ]
+   ],
+   "body": "b2d5290125eaa818034cc4e36179475419aec52225d93b99a4cf0156aecb643d"
+  }
+ ]
+}

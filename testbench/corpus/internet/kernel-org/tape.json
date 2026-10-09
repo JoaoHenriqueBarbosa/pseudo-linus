@@ -1,0 +1,249 @@
+{
+ "url": "https://www.kernel.org/",
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://www.kernel.org/",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "default-src 'self' *.kernel.org; img-src https: data:"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ],
+    [
+     "x-content-type-options",
+     "nosniff"
+    ]
+   ],
+   "body": "d6636e71a1c874db5a9facce9e15dee1160e1b8c0964540e0cd70b819bd03105"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.kernel.org/theme/css/main.css",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "text/css"
+    ]
+   ],
+   "body": "03b2a8c8c1f8a5b1f286e4c267b3a0d8e07c94aa470f4f23a4b72be926216075"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.kernel.org/theme/images/icons/downloadarrow_small.png",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "d78b1cc22346f469453697023f07ed31ff462ea458701e9c49d55ecd0f5ce95a"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.kernel.org/theme/images/logos/constellix-green-logo.png",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "c99ce2f3b2bf6f0f0104f9a4304b7d2b10e2e782d8d65c80d0d80c5955ded34e"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.kernel.org/theme/images/logos/fastly-logo.png",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "df267388074fe73d1d70773b590311acc6d4ed43017f13c3d7d939eae99b09bf"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.kernel.org/theme/images/logos/thelinuxfoundation.png",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "056ae50b3e427a9068d5754d696f90a3ecb4df5603229bb425457caf3dc32f7f"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.kernel.org/theme/fonts/oswald-regular-webfont.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "font/woff2"
+    ]
+   ],
+   "body": "7595cd1e9157905ff70bb625acdd15ae2e6ad4a71f9c68c34e43095eff0b7db1"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.kernel.org/theme/fonts/oxygen-regular-webfont.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "font/woff2"
+    ]
+   ],
+   "body": "88c4afa1296bb49f40e9a9ab9d0a13044eb57bcbaeb52411569a07d7fa00bf7f"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.kernel.org/theme/images/logos/tux.png",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "5a6004f465e6604c90470cb6ed4ffc91137f6ee24a40d37e8377581417d91150"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.kernel.org/theme/images/logos/favicon.png",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "9bfb70bf96004ac694b4ed902e634d029df9cc3b0ca50ce06d0608d29afa6d37"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.kernel.org/theme/css/normalize.css",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "text/css"
+    ]
+   ],
+   "body": "0786c5485cda1ee7fc77bc41b60b25cf3fa15a40a70617ebddcba9c0aa51abc5"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.kernel.org/theme/images/logos/serverscom.svg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "dd22df922ff3bd05a2ddfa6548dbd54e89af1de5c096d5ab6b3fb4c89cd6e133"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.kernel.org/theme/images/logos/redhat-community.png",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "a6002618d20aa4e239db29af2549bf015bef211042db74b212436e6f9b297e18"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.kernel.org/theme/images/logos/google.png",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "784aaaa7e154fc0edde84711f75a20a8852baa6fab5d7c49cd1620df6676be0f"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.kernel.org/theme/images/logos/akamai.png",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "a91c8dbc548792a401a27ec6e694d877ee4c225a01f2df10a5071f1a199efdd4"
+  }
+ ]
+}

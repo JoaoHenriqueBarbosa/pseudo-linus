@@ -1,0 +1,845 @@
+{
+ "url": "https://angular.dev/",
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://angular.dev/",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "body": "1e392518ab8dc9ff7fe25a3b361d49b5d9e72f4c70b076f9c129cde3a7256cda"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-CTEIptZw.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "89fac3dc0e8cf52edf974d97d37226ff7e330552eaa5442544b8a57bfad6a10c"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-CNyT-CDp.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "46d5c21510d41fc2ea294996939cd8fa4c0c9f0ab490f0065c826f372d0b5cc8"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-CIOM-Haa.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "8b7d0278405e8305382397c67888c2458ece24329b2531f0514848621648f106"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-DnM7d6q1.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "4e490f1992c5af3cce04eb4edf80ebb7533c78fad8473e4e31d78a2bfcf95719"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-D_Aw3EbW.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "81c186b119cb2804907854e61204287a13f635766a2604c145150632bc1ebff5"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/styles-V46FXCBJ.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "fdf9fad1d8683df3f9db7cd6dc2042ffe1a7953d1b52dfdaa4051776eb02028b"
+  },
+  {
+   "method": "GET",
+   "url": "https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600&family=Inter:wght@400;500;600&family=DM+Mono:ital@0;1&display=swap",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "link",
+     "<https://fonts.gstatic.com>; rel=preconnect; crossorigin"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "373b2dcef32d3576c04826a7f7b8c33551384cdc645f0eecaf625c3f993279a9"
+  },
+  {
+   "method": "GET",
+   "url": "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "link",
+     "<https://fonts.gstatic.com>; rel=preconnect; crossorigin"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "e2b1cb67f07a26f6a62ebec50d259b0f7f92e0626e6dd9ea7e45bfeab7c1bdef"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/main-XOGNJOWC.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "86a67f30c3ace776330bcb65808d301ae32966f5832cba4af0d35ade438c27a3"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/assets/icons/site.webmanifest",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/manifest+json"
+    ]
+   ],
+   "body": "992b557a8a783f0319aa61b4d6eac8e39a42b08481603a37781e918373888410"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-A8jdGNy-.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "5188ad55b9bb6a21df85bd9ba703967122fc13c8490f92950c80a9fe008ae21e"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-BnEWohmg.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "76516e6ee92cc8e04b751be7001e5e0314b5d04416490ec83cedcc956284113d"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-BmkwWBeJ.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "4af730a067d28401a60c2fadc3c63f4b05b391b83b0b29a5c2f61fc6fd16ba6d"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/assets/others/versions.json",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/json"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "550f5893b1293ef4408b2f8f34efacdbc485ff2b647c6361fcff21cf9ec7d2ff"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.googletagmanager.com/gtag/js?id=G-XB6NEVW32B",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-credentials",
+     "true"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ],
+    [
+     "access-control-allow-headers",
+     "Cache-Control"
+    ]
+   ],
+   "body": "b37739016cc4efea79463c9534d7699697bbf4970220767b64f975097e6bf87e"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-BPm-SZS9.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "2389c02fb61aed826f29b47f5d8a7376abe2643e279c3c32998ba0c3750bf66b"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/assets/icons/favicon.ico",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/x-icon"
+    ]
+   ],
+   "body": "f9102be80297c0529207607be5277b4f90bca89d65988fa1771b91c7894e815f"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-CQLGXh_K.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "d8dff791b7261065a5f9710e7821846b25a03bc762a896b37185bc899b80f3e7"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/assets/images/angie/greeting.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "21e1e8d4c4b8e370d101caa5333cdacbe7879be8c34722b87511656e2261a0dc"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-DRzOVhxS.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "ff0e3dbe0d0cd91f0cb1b2bd26367dd95d557b719c702079ca3b91f992e44428"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-CUE2FT8x.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "8dbe6d674bdc7c297a29a1774c2e52fe89e6f635175898b7411368856d19e9e1"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-DzmjwhYq.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "99a25e7ac852844cc700b5da19ec1012bf5faa1402eeadd565217f202c75d963"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-vssLBWrQ.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "1ae636de95a1fedcd3a76129c5f91e0c1a78566cd221f5f1d87e052dbe732b17"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-BnNnDXSB.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "e53e7c84615f0e8f40e99b8ffc144caf855f8e8be2a4d9ddbd654e2a25e1e070"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-Yd1_s_ei.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "622a6a2b30af7faf1e69c77e84ffbc165722066965795919b6b2980b2e26b419"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-D8uTaXsH.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "8502ae1dfcad9537b05026f704133b5d4fb4c5fddbdf4a3ec0c8c85a50122e1d"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-CTeCQvmu.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "432ce55affeb8c9602ca67b5f0b16fa129f95afe8ebbf2963fba7e65251201c9"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-Cg-53P7y.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "f6d0f3220e9cfa440f70d92ef519440403a0f4c9ecc87f7bca4933aa715724c3"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-BRLtRsXw.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "dfc5f5184dd3e6ea54adc866614857221c91af05c618640d0b7745a590441493"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-DzycFhCy.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "95b423e9966c3eaff5b807d2e7b61a330e76d1921cfa16394f2cdd7036542873"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-BH_eiUy0.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "770207667b4ad5ac32e6b2c8dce4046f4ee5ec614fd551b8b376890dc27bf770"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-DThMAhWW.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "aff58aeef5486370e8b7364b226f654d03b546ca2182725025339da9cd66c32f"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-CypiKwJm.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "669803a14c739e0d4a8d837f5ea5df2f322d18d6058a01711b76d7447701035b"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-RAZtzPgh.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "0b99dc05f255af5aa3f840a90cc2c339f1055b19f32bac60e482784fa021e2ab"
+  },
+  {
+   "method": "GET",
+   "url": "https://fonts.gstatic.com/s/materialsymbolsoutlined/v377/kJF1BvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oDMzByHX9rA6RzaxHMPdY43zj-jCxv3fzvRNU22ZXGJpEpjC_1v-p_4MrImHCIJIZrDCvHOej.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "font/woff2"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "946e24582425d894e605d7ad217ca2b398ed00a2d55da9071473e07b618bfa6a"
+  },
+  {
+   "method": "GET",
+   "url": "https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa25L7SUc.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "font/woff2"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "34b9c504cab7a73e37b746343a449132e56cf7b5481af2cb81dc74dcff25c956"
+  },
+  {
+   "method": "GET",
+   "url": "https://fonts.gstatic.com/s/dmmono/v16/aFTU7PB1QTsUX8KYthqQBA.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "font/woff2"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "e1896b13b2b1bb112fac2f9571bd6c40e118746e77a4511edbf43fbb41bf3e1e"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-jE6Y_6eY.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "ca4f11488ad15408857729f4d30b95dd270194fc7eb8af3921ccf3aeaa3c4e60"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-BgW8eGNc.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "2103c89b27cb23619d75c90a2f7a7d8fb529fce3bf7410948504b86993dcba4c"
+  },
+  {
+   "method": "GET",
+   "url": "https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7SUc.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "font/woff2"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "71d5ee93cc1e9f1d520a3a8b66456de18c7879d8df09d57fcd2eaff75fef0075"
+  },
+  {
+   "method": "GET",
+   "url": "https://fonts.gstatic.com/s/intertight/v9/NGSwv5HMAFg6IuGlBNMjxLsH8ag.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "font/woff2"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "77fefe8ca19b9f69b5284832c519e0493127c1f091f0a8936884be7721c4e618"
+  },
+  {
+   "method": "GET",
+   "url": "https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "font/woff2"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "3100e775e8616cd2611beecfa23a4263d7037586789b43f035236a2e6fbd4c62"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/media/angular-logo-light-A36B7RRE.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "0c13e20fb12bf832dbaf14dde17e0ca11e7dd0fdfea478396681b956d12c5c2d"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/media/editor-light-IWWA7SEJ.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "9b1a285d06960e762aa24e751e8d7602cced4d1684f14f067e47ba9ce2a3b0a1"
+  },
+  {
+   "method": "GET",
+   "url": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'><defs><pattern id='p' patternUnits='userSpaceOnUse' width='72' height='72'><g transform='translate(36 36) rotate(-60)'><line x1='-10' y1='0' x2='10' y2='0' stroke='white' stroke-width='3' stroke-linecap='round'/></g></pattern></defs><rect width='100%' height='100%' fill='url(%23p)'/></svg>",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "75675a298cd727ffd718ce85f44070f73036dd4175351446e0f1f6f31d7f52b1"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-BbYgsnNQ.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "01ce971daf2f330e67bab01182aadc63d1149c5c9d55951698d1b3361d8627ba"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-BbgFU4tH.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "188442056b6bd6a9baeb6b888cc36d13048d2dd530ef0f2d6042b7d04f15da67"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-BVDUjXwE.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "78d8eb77b179605d070b08804ebd2133d27c9df7271aa4e6933adcce772b5aa2"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-DZBGZuRz.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "dde97a764687525e8b32d4c14fb29194fece8eb496d56586ee86c3d233326c1d"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-BCfsnBNs.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "9fe378debe91515adeb5dd0fece1308df0f8ce617778171f8035fe452f5ffb25"
+  },
+  {
+   "method": "GET",
+   "url": "https://angular.dev/chunk-DiscwNkY.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "6f5cc18d1932a84f7d8ee4eb82beeec98d6947c47cc8a9d9ac6cf68f286bf34b"
+  }
+ ]
+}

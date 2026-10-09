@@ -1,0 +1,53 @@
+{
+ "url": "https://www.sqlite.org/about.html",
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://www.sqlite.org/about.html",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "body": "4b99169565af75a3e637a2cba19c1a3f59ab770444239931c969f94ab218357e"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.sqlite.org/images/sqlite370_banner.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml; charset=utf-8"
+    ]
+   ],
+   "body": "462c4ce8229b585dd6880cd308b121d9de63eb619db05e469598594e80d7b151"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.sqlite.org/sqlite.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ]
+   ],
+   "body": "df6c3feeaa715f05028e5c9ee958d6ac7df3b7c9a11551f2852fac8f4a1d9896"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.sqlite.org/favicon.ico",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/octet-stream; charset=utf-8"
+    ]
+   ],
+   "body": "76d60ff1eb9596a1d92930c4dd14b1dd4cc208136bf2547c45c9250dd29fb1e9"
+  }
+ ]
+}

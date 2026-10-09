@@ -1,0 +1,1 @@
+function N(E,..._){return _.length?_.some(A=>E[A]):E.altKey||E.shiftKey||E.ctrlKey||E.metaKey}function U(){return typeof __karma__<`u`&&!!__karma__||typeof jasmine<`u`&&!!jasmine||typeof jest<`u`&&!!jest||typeof Mocha<`u`&&!!Mocha}export{U as n,N as t};

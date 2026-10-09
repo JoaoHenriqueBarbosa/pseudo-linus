@@ -1,0 +1,405 @@
+{
+ "url": "https://www.rust-lang.org/",
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://www.rust-lang.org/",
+   "status": 301,
+   "headers": [
+    [
+     "content-type",
+     "text/html"
+    ],
+    [
+     "location",
+     "https://rust-lang.org/"
+    ]
+   ],
+   "body": null
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "body": "b02acf7a454b3f8688d07bc2e1faecacfeaddd2604fd6eb6e986d5fae598600d"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/styles/fonts_8049871103083011125.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "547819e4dc1af0eac3a588614b42d4d8743b837eba83c25556b7e25aeada9c90"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/styles/vendor_10880690442070639967.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "d2630342fbb294d03d9b4d16d6cbe106fdcbbe5c154f078a933f887b23860014"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/images/github.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "e510730cb979c82ea3551c5aca4589d5c0b7f523a87a8e7ad27e57b3bccec0fa"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/images/site.webmanifest?v=ngJW8jGAmR",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/manifest+json; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "37a27c6d55a3c621d0044dbb939fee3bec4213f4391ab625ba66c678784ec6f0"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/images/youtube.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "1bc71f844b8d8dab91b172d20ac1a7f3d4959401480d0ba05b303de59ac39dce"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/images/bluesky.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "75a200e5b7881ff798f3603c662e4cd42e041454784e55da319aff596a17e409"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/fonts/woff2/FiraSans-Regular.cyrillic.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "font/woff2"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "2182297cf28576cb674bd8b9ed11d7134036844cc39187fc3a69928edb8c2404"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/fonts/woff2/AlfaSlabOne-Regular.latin.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "font/woff2"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "3518784a0c66be54bc7cafd59d2a9ae2315bb858cd2e168a9dcf7c2937519c8a"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/fonts/woff2/FiraSans-ExtraBold.latin.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "font/woff2"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "f5bed1081a6b6a2d7ded5a408594c3f0b18266ca851cb1189cc27f40fb60e278"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/fonts/woff2/FiraSans-SemiBold.latin.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "font/woff2"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "9c3268e02a502282659fc2967b7312aaa77f945684b8bb6b8994b38a152434ed"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/fonts/woff2/FiraSans-Regular.latin.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "font/woff2"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "c5f8e21984a95830078e6c6cf7af0f711a3fa6cf4e6e9d52a11b750100fe567c"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/images/mastodon.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "b1205f541c2bdbee0a7301357a3590fb7a64d1c47e34b549e7d4dd364a5114ff"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/images/embedded.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "df9f24db5be4786b30495f6f2d4f85f0a0c381d04ba17a7ccdfd0ce4dfe6d350"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/images/networking.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "d88b2acd834bf741db43f9f5cd354c74e622e3e7519636c6c6f15ac128d9da48"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/images/webassembly.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "508fddea7d2b6c45c8aad0682f47fdf4318ec4f5aee25f91016a8113c2c611e6"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/styles/a11y-dark.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "a3eb910e692e13614e71b6d66560dee00e39d457c17f290a3ef31e529da78255"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/images/cli.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "4016c406630a3171202cfce388865cc709dd39528d36d53fb1f6457eecc37e22"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/styles/app_17774143076088586802.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "ede5fdfec45b1cecf3705120a40b7e269b1d049fda80fee94bfd44ae8744783a"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/images/rust-logo-blk.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "6d6e0fd29e2015bec5ca9bdbdc11ede1e84fb792c560599b58e564346825a229"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/scripts/highlight.pack.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "ac4fb38b1965bdd871e1c6cd12d0b393d55878b7f1bd2eaea2df576b7074e826"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/scripts/init.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "7f00d3669a6d6aafa9943bdb8055bd00e251c4207cb088af1008456877827f28"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/scripts/languages.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "62904b5aaac12012122e761197197007b9cb88d9ac5c6bb073d1ff0cf7f6cd96"
+  },
+  {
+   "method": "GET",
+   "url": "https://rust-lang.org/static/images/favicon.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "044be39144ab304cf9ea0e9014c3f476e0c5194c62aa525b3669caf5db5ac088"
+  }
+ ]
+}

@@ -3,8 +3,9 @@
 FROM debian:trixie-slim@sha256:a99cfc517144bc59b1978475ec53b46ecabec7e43635402ee5b77cc54cd1b20a
 
 ENV DEBIAN_FRONTEND=noninteractive
+# python3-websockets e openssl: o gravador de fitas (CDP) e o servidor de replay com TLS.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends chromium fonts-dejavu fonts-liberation ca-certificates python3 \
+ && apt-get install -y --no-install-recommends chromium fonts-dejavu fonts-liberation ca-certificates python3 python3-websockets openssl \
  && rm -rf /var/lib/apt/lists/*
 
 ENV LC_ALL=C.UTF-8 TZ=UTC HOME=/root

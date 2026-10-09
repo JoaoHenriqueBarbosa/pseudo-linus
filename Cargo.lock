@@ -7182,6 +7182,7 @@ dependencies = [
  "html5ever",
  "markup5ever",
  "pl-testing",
+ "serde_json",
  "sysabi",
  "ul-common",
  "ul-net",

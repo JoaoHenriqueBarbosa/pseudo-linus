@@ -1,0 +1,265 @@
+{
+ "url": "https://lite.cnn.com/",
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://lite.cnn.com/",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' blob: https://*.cnn.com:* http://*.cnn.com:* *.cnn.io:* *.cnn.net:* *.turner.com:* *.turner.io:* *.ugdturner.com:* courageousstudio.com *.vgtf.net:*; script-src 'unsafe-eval' 'unsafe-inline' 'self' *; style-src 'unsafe-inline' 'self' blob: *; child-src 'self' blob: *; frame-src 'self' *; object-src 'self' *; img-src 'self' data: blob: *; media-src 'self' data: blob: *; font-src 'self' data: *; connect-src 'self' data: *; frame-ancestors 'self' https://*.cnn.com:* http://*.cnn.com https://*.cnn.io:* http://*.cnn.io:* *.turner.com:* courageousstudio.com;"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ],
+    [
+     "x-content-type-options",
+     "nosniff"
+    ]
+   ],
+   "body": "03455b51a6e88022730834558ff18b9961fcd9aebcc6e70d6620dc5492cc6624"
+  },
+  {
+   "method": "GET",
+   "url": "https://lite.cnn.com/wmuc/cnn_user_consent.min.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript"
+    ]
+   ],
+   "body": "440151b8cda857f48d9575f4d7dc3118b60aea1b988fa9239de6e5dc649ccd6a"
+  },
+  {
+   "method": "GET",
+   "url": "https://lite.cnn.com/wbdotp/scripttemplates/otSDKStub.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript"
+    ]
+   ],
+   "body": "7b097fc5a3d173f4747604ed6b8c3d0d0eaace7dbc80261e2ba2a5e0073d0d40"
+  },
+  {
+   "method": "GET",
+   "url": "https://lite.cnn.com/wbdotp/consent/3d9a6f21-8e47-43f8-8d58-d86150f3e92b/3d9a6f21-8e47-43f8-8d58-d86150f3e92b.json",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/json"
+    ]
+   ],
+   "body": "dcf9b3d348b2467fb147525a5f2b72df97228eabec229d440331a4af25cfd867"
+  },
+  {
+   "method": "GET",
+   "url": "https://lite.cnn.com/wbdotp/scripttemplates/202608.1.0/otBannerSdk.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript"
+    ]
+   ],
+   "body": "3d2f7f7ae2fdfbf24acada1eaeaa636b84db784d2587115af8c7288565c65208"
+  },
+  {
+   "method": "GET",
+   "url": "https://lite.cnn.com/wbdotp/consent/3d9a6f21-8e47-43f8-8d58-d86150f3e92b/019e2847-ca25-7aeb-b4f3-a1ccddcd7a5e/en.json",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/json"
+    ]
+   ],
+   "body": "4914600e8ca1906c3be220da215fe1fb6673e0985c8c0f05c4b12786554d2cb8"
+  },
+  {
+   "method": "OPTIONS",
+   "url": "https://cookies-data.onetrust.io/cfw/cmp/v1/session",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-headers",
+     "Content-Type, Authorization"
+    ],
+    [
+     "access-control-allow-methods",
+     "GET, POST, OPTIONS"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "x-content-type-options",
+     "nosniff"
+    ]
+   ],
+   "body": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+   "method": "GET",
+   "url": "https://lite.cnn.com/media/sites/cnn/favicon.ico",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/x-icon"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'self' blob: https://*.cnn.com:* http://*.cnn.com:* *.cnn.io:* *.cnn.net:* *.turner.com:* *.turner.io:* *.ugdturner.com:* courageousstudio.com *.vgtf.net:*; script-src 'unsafe-eval' 'unsafe-inline' 'self' *; style-src 'unsafe-inline' 'self' blob: *; child-src 'self' blob: *; frame-src 'self' *; object-src 'self' *; img-src 'self' data: blob: *; media-src 'self' data: blob: *; font-src 'self' data: *; connect-src 'self' data: *; frame-ancestors 'self' https://*.cnn.com:* http://*.cnn.com https://*.cnn.io:* http://*.cnn.io:* *.turner.com:* courageousstudio.com;"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "0cf453fe1114b59fa626c511484e5a9e502ddc2cc32875cfa6c37dd0673ba953"
+  },
+  {
+   "method": "GET",
+   "url": "https://cdn.cookielaw.org/vendorlist/iab2V2Data.json",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-expose-headers",
+     "x-ms-request-id,Server,x-ms-version,Content-Type,Content-Encoding,Cache-Control,ETag,Last-Modified,Content-MD5,x-ms-lease-status,x-ms-blob-type,Content-Length,Date,Transfer-Encoding"
+    ],
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/json"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "772ffceb2b337e157b37e07c528d7da58f715f741a9b7b7e1a939bb7a506eaea"
+  },
+  {
+   "method": "GET",
+   "url": "https://lite.cnn.com/wbdotp/scripttemplates/202608.1.0/otTCF.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript"
+    ]
+   ],
+   "body": "5812ece79bb9e15ad9d75fae937019c762777e30f8b6ee1d43c591d5d86dda1a"
+  },
+  {
+   "method": "POST",
+   "url": "https://cookies-data.onetrust.io/cfw/cmp/v1/session",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/json"
+    ]
+   ],
+   "body": "c955e57777ec0d73639dca6748560d00aa5eb8e12f13ebb2ed9656add3908f97"
+  },
+  {
+   "method": "GET",
+   "url": "https://lite.cnn.com/wbdotp/scripttemplates/202608.1.0/assets/otFlat.json",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/json"
+    ]
+   ],
+   "body": "4094c6314c974b3347e0c3adbf78e24c8cfd1d838af3a5ad38d36316c24c73a1"
+  },
+  {
+   "method": "GET",
+   "url": "https://lite.cnn.com/wbdotp/scripttemplates/202608.1.0/assets/otCommonStyles.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css"
+    ]
+   ],
+   "body": "e70d0c7dcc897292d8254bdfff1b999bd53a98f6ecbfbd5b18736002a2519668"
+  },
+  {
+   "method": "GET",
+   "url": "https://lite.cnn.com/wbdotp/scripttemplates/202608.1.0/assets/v2/otPcCenter.json",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/json"
+    ]
+   ],
+   "body": "35886f7c3b3b53782e5cced85c25accd4affbe2cfc6f8a9925aca0831175a934"
+  },
+  {
+   "method": "GET",
+   "url": "https://lite.cnn.com/wbdotp/consent/3d9a6f21-8e47-43f8-8d58-d86150f3e92b/019e2847-ca25-7aeb-b4f3-a1ccddcd7a5e/logos/9651e1f6-c35b-4377-be7f-5a0c93f0ecb8/7e4d8b6a-8a36-4f21-ae87-486526b79967/72d4fac5-64d5-4f4d-8be0-946d6a514160/CNN_logo.png",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "46001b8206f6fecc2abe084e3712dc3b6efb0bfcfa378ebeb9c5526f830ce5bd"
+  },
+  {
+   "method": "GET",
+   "url": "https://lite.cnn.com/wbdotp/consent/3d9a6f21-8e47-43f8-8d58-d86150f3e92b/019e2847-ca25-7aeb-b4f3-a1ccddcd7a5e/logos/static/ot_guard_logo.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "691dcdb24853a0f5ce4e6597e5713dea66799b57ffe2c2a10f28f98e0b569b19"
+  },
+  {
+   "method": "GET",
+   "url": "https://lite.cnn.com/wbdotp/consent/3d9a6f21-8e47-43f8-8d58-d86150f3e92b/019e2847-ca25-7aeb-b4f3-a1ccddcd7a5e/logos/static/powered_by_logo.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "cddd450a33be5e50d6f27aea78d2e278beae2762678b22fc2dcee8de29cbc0be"
+  }
+ ]
+}

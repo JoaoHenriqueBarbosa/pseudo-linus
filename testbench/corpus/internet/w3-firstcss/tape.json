@@ -1,0 +1,525 @@
+{
+ "url": "https://www.w3.org/Style/Examples/011/firstcss",
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/Style/Examples/011/firstcss",
+   "status": 200,
+   "headers": [
+    [
+     "content-language",
+     "en"
+    ],
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ],
+    [
+     "x-content-type-options",
+     "nosniff"
+    ]
+   ],
+   "body": "b2463fd9056aaa1193bd61a7924fa98775e203925041fda85ab574052f8153fe"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/Style/Examples/011/gevaar.png",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/png; qs=0.7"
+    ],
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ]
+   ],
+   "body": "8f3b8605c0693c2ed27dd36c77e0db76357659d3779fd30e004b11ea0403f102"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/Style/Examples/011/snapshot11.png",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/png; qs=0.7"
+    ],
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ]
+   ],
+   "body": "07f7f737c1f9eb70842ff62f60cc4033ced9afa7d56852f7cc1457a45b7a700a"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/Style/threepart-f.css",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ]
+   ],
+   "body": "7c2588db9f78557483e8358eac92ff95140827a807ecd19970077a444cba2235"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/Style/Examples/011/snapshot12.png",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/png; qs=0.7"
+    ],
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ]
+   ],
+   "body": "a1534c14e7b7ee82378769010a225baf31073a6bf30bd0e417cbca420e9eff5f"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/Icons/w3c_home",
+   "status": 301,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ],
+    [
+     "location",
+     "https://www.w3.org/assets/logos/w3c-2025-transitional/w3c-72x48.svg"
+    ],
+    [
+     "x-content-type-options",
+     "nosniff"
+    ]
+   ],
+   "body": null
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/Style/Examples/011/snapshot13.png",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/png; qs=0.7"
+    ],
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ]
+   ],
+   "body": "a4900776bec85a0ff3571ce2b8d87a6b5621dd20a6e35bcf7cb04f87863922f6"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/Style/Examples/011/snapshot14.png",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/png; qs=0.7"
+    ],
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ]
+   ],
+   "body": "ac312a532776fbd8b7f6b5f3042328ce0915ee2a93d4c8ac6e9aacfd804c7f90"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/Style/Examples/011/snapshot15.png",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/png; qs=0.7"
+    ],
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ]
+   ],
+   "body": "85da65bb93a395a2a71e4a7f56086cac5d34ce8178839e61787c7b8431cb1dc3"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/Style/threepart.css",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ]
+   ],
+   "body": "11c0eff1b8b88cd0afcb0da5265667b033ab2bf6670508d356f9bd62506740be"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/assets/logos/w3c-2025-transitional/w3c-72x48.svg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ]
+   ],
+   "body": "acf7cffbb3b097ea1da12865d5b7b9c1d0d24dd565981296aeaa64ff3074602c"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/Style/hints2.css",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ]
+   ],
+   "body": "795946b81e27d3c4f36735a357b0518c842bacabcdb623f36d177e052c4d76e2"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/Style/CSS/GILLSAN3.woff",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/font-woff"
+    ],
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ]
+   ],
+   "body": "492802277b1063ec73112690ce668bdde17f1b3a320c7e7b0f2eec8f8dce9932"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/Style/sandydogsear.png",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/png; qs=0.7"
+    ],
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ]
+   ],
+   "body": "441afbc4fd61c1aece315381863571fddb96204a0bd951df4e8ca33547d300aa"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/Style/CSS/GILLSAN1.woff",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/font-woff"
+    ],
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ]
+   ],
+   "body": "0187433a7d0461429b3b4988ea41cf835cbf7a86139cd854597d1ce15acb4f3b"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/Style/CSS/GILLSAN0.woff",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/font-woff"
+    ],
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ]
+   ],
+   "body": "9a1502a29fa3f3033b082b3aaaac23b4a2322868fbf18f8b4ccb7626bfaabe88"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/Style/dogsear.png",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/png; qs=0.7"
+    ],
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ]
+   ],
+   "body": "ca3f7c0a77bbd14d01f772f6c0d5dc7af8766b7a35ed0123fa54f7668e31a4b0"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/Style/CSS/GILLSAN2.woff",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/font-woff"
+    ],
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ]
+   ],
+   "body": "0d28cbcc13c28341e386d15310b98d74da946f9671bc39fc97a6d189172b6d69"
+  },
+  {
+   "method": "GET",
+   "url": "https://jigsaw.w3.org/css-validator/images/vcss",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "0b2ac9b67e454f9b561d632629e27f87b60144b2020faefd020aca99a3b5aabb"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/Style/Examples/011/mypage.html",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ],
+    [
+     "x-content-type-options",
+     "nosniff"
+    ]
+   ],
+   "body": "59dbe5874a99a9517630034847ff5b8c112e9f82e5a86e8741daad3dc83ae6ab"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/Style/Examples/011/mystyle.css",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ]
+   ],
+   "body": "93da7bd5e06bdcfa2e661e6be7d5fbdfcdc06ee0ccf5ea5edfd1254fd0eee108"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/Style/CSS/colors",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/png; qs=0.7"
+    ],
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ]
+   ],
+   "body": "95ce792706a9f80d4e3ce56f220f6b6095f2ad6b3eb3de1a61755d4ec589d7cb"
+  },
+  {
+   "method": "GET",
+   "url": "https://validator.w3.org/images/vh40",
+   "status": 301,
+   "headers": [
+    [
+     "location",
+     "https://www.w3.org/Icons/valid-html40"
+    ],
+    [
+     "x-content-type-options",
+     "nosniff"
+    ]
+   ],
+   "body": null
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/Style/CSS/Buttons/mwcts",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/png; qs=0.7"
+    ],
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ]
+   ],
+   "body": "918c4682a9c2390fbd7d4891b825f9636046b8b318b26acf6798ab86a3161657"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/Icons/valid-html40",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/png; qs=0.7"
+    ],
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "2935e1f192a3fbeca58bc31ca28e7a7831fd1d9ac5eab80d94de4367aba3c614"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.w3.org/favicon.ico",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/vnd.microsoft.icon"
+    ],
+    [
+     "content-security-policy",
+     "frame-ancestors 'self' https://cms.w3.org/ https://cms-dev.w3.org/; upgrade-insecure-requests"
+    ]
+   ],
+   "body": "1838f0e6ed15ed21a9b999553077f43c170fe1450cbfc55f097ec1c434b6a349"
+  }
+ ]
+}

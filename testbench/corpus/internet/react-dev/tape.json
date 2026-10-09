@@ -1,0 +1,1061 @@
+{
+ "url": "https://react.dev/",
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://react.dev/",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "body": "8fc786b2ccce7dd85ca12aef346d2903dcc559b6aea4e7b2c74bb2bfe697f7f9"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/_next/static/css/f647474d5749a6d8.css",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ]
+   ],
+   "body": "f933104d2a768944449cc99e985b12ce82834aa7229168a5b9be3e18ef2fc9da"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/fonts/Optimistic_Display_W_Md.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "font/woff2"
+    ]
+   ],
+   "body": "335c9d533de28d205ef071d85c8950c0eff5e2301d4a0f970883daad43bd7fe8"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/tafu.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "e6f82ecd603b0b7568dbbbf461ea2025d8f21aff2071082ab48077161f0b07de"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/site.webmanifest",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/manifest+json; charset=utf-8"
+    ]
+   ],
+   "body": "df0019bca736f44b0326280c0a08e0791a13f9a7c82f4d3dddd705518e6c5f80"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/_next/static/chunks/811.b2e5ca620a3f883e.js",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "eb7bcd59c5bae96a946623879b6542146f161730894e706d48321b59d734748e"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/_next/static/chunks/4ad82c5e.aa059996e264f809.js",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "1133ac0b139883cc52c0b3b0055b4ed31a2aa434a5980744a5a4dbfdfd6fd13f"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/_next/static/chunks/972.d10c430071e5a41c.js",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "2af86d00a7c68c66d601f3903e2a4879dccc8c2060758b1af7b1a4fc661c1c0d"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/_next/data/GqElElY447YALnqZIMkuo/versions.json?markdownPath=versions",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/json"
+    ]
+   ],
+   "body": "b1af871ac3a632da7f1653c13ee1856b83883e5a54c6a2d58fff6ccabd81ec00"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/_next/data/GqElElY447YALnqZIMkuo/community/translations.json?markdownPath=community&markdownPath=translations",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/json"
+    ]
+   ],
+   "body": "5995adc444dcab22106450ee0a6e9f07f34a2a58dab6b994916cbf4cb7f1c543"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/_next/data/GqElElY447YALnqZIMkuo/index.json",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/json"
+    ]
+   ],
+   "body": "acda2cf0b1886778ce8e1d4d1e91b5cdf3642bb45090595ae90f1cf6406e466d"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/videos/rn.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "ea5014844934c641195e9432ddd5520457aaf7a062e2014dd022c3f13beb50b5"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.googletagmanager.com/gtag/js?id=G-B1E83PJ3RT",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-credentials",
+     "true"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ],
+    [
+     "access-control-allow-headers",
+     "Cache-Control"
+    ]
+   ],
+   "body": "7d67ca41f7ed778b075e8546b99c44b4b4b37ba8aba2a295c97844bd6fed5c80"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/videos/documentary.webp",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/webp"
+    ]
+   ],
+   "body": "425709517d842154d2a95a0d9fd4c4a1786e101420f825f4eec2547c315c1690"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/_next/data/GqElElY447YALnqZIMkuo/reference/react.json?markdownPath=reference&markdownPath=react",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/json"
+    ]
+   ],
+   "body": "bb2b1660606ad3096e8d767c1b2d39c27e8d8f7511d651999100ced5d71bb17a"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/_next/data/GqElElY447YALnqZIMkuo/learn.json?markdownPath=learn",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/json"
+    ]
+   ],
+   "body": "322b15e3fbb89f2b201f5b5e2cc0b8daee978f85ce2a92b146a3a82972bd47eb"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/videos/hooks.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "8fe5b29917bd8cbe6306dd10b995e589366e5dffe86abcaa3db7421b4d0cd77c"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/videos/rethinking.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "43d96bb28a5505aa63820414a594f1b99bd027b69d2289bdf51213c28b8b3891"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/videos/rsc.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "b0d1142e64b2ffeb4a1c583bca97430101a74f97952f79795583b773e1d475df"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/_next/static/chunks/668-9be9de6fa7660277.js",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "8f585748ef2adfe304cb7817afab0077659ace7f33d7757cbb37383e03edb72a"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/_next/static/chunks/928-132eeb57d328ee63.js",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "fca123c7e40b98cbf26166c65ccc03fb9143737b7652ad9177657ce249f80cf9"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/_next/static/GqElElY447YALnqZIMkuo/_buildManifest.js",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "75bdece5152b4e52fec4c7de8eb168b91432a20d5e437efc5af98c0f74d55ca2"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/_next/static/chunks/pages/_app-6d7b64b3b21a9551.js",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "a195c388af255f9b5014db68c9d952cbc9bd07436f5382b3ffbd7a4611c16fb4"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/_next/static/chunks/main-8bc660a98b463b2d.js",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "2483f2b9ae1b9ab7a6b29399497f6fddf0801d79ad4e648befb231c20d719971"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/_next/static/chunks/framework-76ad44d61c11f057.js",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "a1069e7ada6add3ca76c6eccc80628c9093bd34cced20f110bf86cbbd95cff4b"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/_next/static/GqElElY447YALnqZIMkuo/_ssgManifest.js",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "e67d28a1d8ecf64e18f49e40a78e8f1fe827b7f976e40f0ec168b24b739ba490"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/favicon-32x32.png",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "b5c3ee3158773e36fd4f42ef319564ab549b4746ee6cc6a3e220447618ad8559"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/_next/static/chunks/pages/%5B%5B...markdownPath%5D%5D-5093e36719d692c5.js",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "dfb5bbb42d6c02dfcb61bcb56194d44914aa9ab144451dad0f5af1d4c4e78ccc"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/_next/static/chunks/webpack-95fc1f1713249e81.js",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "ea98910c3be7af97c337f2a89a64e162025737cd85fffb76e257270b69219306"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2019/cover.svg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "1a3ad9920e4332bac54d23c9edd40077aab7f739ee20ba402ce60889cbf9e63a"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/meta-gradient.png",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "19576844b19b7d7c550b4e85bd1ac90e03e664041939b39051fc925c499a53f5"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/sarah.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "4a9ebfaebf6decd214eee1a2ef6daecd704f6315b3c71e9eccc312770355ac2e"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/lyle.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "6cad354c91a9e3541e3219475688c76ccae62d8c1ff076902d2573559074a5ee"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/_next/image?url=%2Fimages%2Fuwu.png&w=64&q=75",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "script-src 'none'; frame-src 'none'; sandbox;"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/webp"
+    ]
+   ],
+   "body": "11a6bb748a6ce5be632debd0eb2d22360e7e12813fe69866689ff6161b056c2a"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/xuan.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "11c5899484e18872fc4cf5de48dd6783b0b39ba92b3a2b5876acb2142fdaa47e"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/aakansha.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "b5912041ceae0f3a4fe854f61ffc00a4f9546ae12e5603b5fd23ba892b7ef6c7"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/helen.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "b1657a2ef2ececffc87127def2b3cbfe980d66a335012ed509c85b71a143b326"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/uwu.png",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/png"
+    ]
+   ],
+   "body": "dd8bc6dc97f5fc69010653808bbfe576652f36f6cc277663516727626f17cbd0"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/delba.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "8564703d5959aede2974e66a9aaa06c26df2506338a878bd68c77b2efe999310"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/daishi.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "d3bd9750d41e038f062ab8cc5e3909f21ecf54627110346896572d2a8270e54a"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/debbie.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "6ed208f86c802907a5a8b82730f1aa29d8f4914cbb6c7e06cca55792d31ecb4c"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/diego.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "f06bd42448762974aa7be328897aaa530ba87b27611a003a2fbe8a877eb8bcfa"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/shaundai.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "1c2de7497a540385a39fe559dc999839e25cf5daf823f37f567420c71dfba376"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/roman.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "5a2c380a2449569fdef7b3da3bd5e15fc6b2ffee14fadf9fc0a580726cee3a2b"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/rachel.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "9db480c7853e0e8f730161e5cd0df67fe3d6a7d640cbf12138777e1a59062426"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/brian.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "d01756570b4030d894ed59e2dad79d485cbf12ce5b0c56435ef8e23de9538fce"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/steven.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "ea32b84782a7913f29bd4cd0c529899098031cc7d2f236f64b36d9dedcb6a4f5"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/linton.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "a531fc46c53daf6ea5b73ee8833a942e072eb64cfc30cbda41bb9c51f204ef78"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/eric.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "852079b2c463deb0fa255c6797addba09db7007edbc3420b7369e3947e4c5e7f"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/rick.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "413c209ff2103eb90209e4e952a71121ad8f80d8762a500ab5935110f782e204"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/robert.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "c9524f142ed49ca73a20ac857d0b1c7f9d53835fd8b1898349fcf5525fcef519"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/shruti.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "0dda66d18b7ba421cf0bd486ee9bb8ac74cd9b9b6ca254dc2ec2c80e8e27f926"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/andrew.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "92445124ca122c6595f1bd5f3839dc5c8881824190cb533f5732ecd6c23dbed4"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/juan.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "8a84b438b6769698179f3afcba41159190c69cba956ebf515e3e97f131d24ef7"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/lauren.jpg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/jpeg"
+    ]
+   ],
+   "body": "f63ba889a0ee0bbdca6f87acaada4602d0423d7e41b3c39855e310e70c4a8c45"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/fonts/Source-Code-Pro-Regular.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "font/woff2"
+    ]
+   ],
+   "body": "23a0d7981dc90c0a8ec7d8a6ca7ee5dc439c777f3e2aabcf1009fdcf0e821b79"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/fonts/Optimistic_Display_W_SBd.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "font/woff2"
+    ]
+   ],
+   "body": "b59f10bb1099f5ae0bc01feeeea866a165fcff6884ec7f23ba3e093624241a2e"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/fonts/Source-Code-Pro-Bold.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "font/woff2"
+    ]
+   ],
+   "body": "e5e15b262fa1b6cfe91ae9ff019adc3592398d9dedf63bed2827ad36de4cf63b"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/images/home/conf2021/cover.svg",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "7e971110d972ce9f5597fc9c00c19b4362a65d3229525f71dd5929432fd03209"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/fonts/Optimistic_Text_W_Rg.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "font/woff2"
+    ]
+   ],
+   "body": "916eeb8b981099e4bd15357415eb668d0ce87c471fc8d0a9c6020325521982ca"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/_next/image?url=%2Fimages%2Fuwu.png&w=384&q=75",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "script-src 'none'; frame-src 'none'; sandbox;"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "image/webp"
+    ]
+   ],
+   "body": "5576f62bb88694b306e92eeeb42c8bca4e17ffb03eb5ffac341d9322e3bd4a74"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/fonts/Optimistic_Text_W_Md.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "font/woff2"
+    ]
+   ],
+   "body": "38e55fa471a89bdf7b9829cf03424d13252f381a9ff672da0feab3a611151f19"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/fonts/Optimistic_Text_W_Bd.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "font/woff2"
+    ]
+   ],
+   "body": "559c4ddcfdefa492d1fb900756ae408859355cb17e6c29d9928ba79235c05027"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/fonts/Optimistic_Text_W_It.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "font/woff2"
+    ]
+   ],
+   "body": "e06ec368e3c0ce630a153d1151138fe8ad41dbdc322a06daaa14b64ff52c7b27"
+  },
+  {
+   "method": "GET",
+   "url": "https://react.dev/fonts/Optimistic_Display_W_Bd.woff2",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "font/woff2"
+    ]
+   ],
+   "body": "3d871b7ae91fc21d06a37410cda737d25a9ef079364108b1618d1b34e432ae06"
+  }
+ ]
+}

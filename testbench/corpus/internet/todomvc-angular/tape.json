@@ -1,0 +1,185 @@
+{
+ "url": "https://todomvc.com/examples/angular/dist/browser/",
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/angular/dist/browser/",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "body": "55249482eb150613fad5871198f15b8f4593500ccfc535d6da6bd08dffffd9bb"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/angular/dist/browser/styles-I6SUBC5N.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "0b7a1915fc6d1e25cd19f5f1b513f3a59771ce3667308b70c80035ed217e4a08"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/angular/dist/browser/scripts-E4L224QG.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "35976c24bdf1619de175723f592459600c6ee1f560ac8d72c931210910c2f0cb"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/angular/dist/browser/polyfills-DOYHMSTV.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "55055d0448a86a0f8f80bc06d40b9c3be9cc44c5c467db50937be0222fb5d43f"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/examples/angular/dist/browser/main-JRCDYUFU.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "dc0dec5d0ae1c812a251414fa1d4110b84a1b6c43e79cfb14487f3a10fa4b9de"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/learn.json",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/json; charset=utf-8"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "47192f5d6f87d5a2025ff26ea00ac9040e1092144e0431185e92c417a3e4f439"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.google-analytics.com/analytics.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/javascript"
+    ]
+   ],
+   "body": "f1a61277e3f902f50ab42015d8b07218db9b7601bb0967e54a52bfdcb4fa7e81"
+  },
+  {
+   "method": "POST",
+   "url": "https://www.google-analytics.com/j/collect?v=1&_v=j102&a=2134703751&t=pageview&_s=1&dl=https%3A%2F%2Ftodomvc.com%2Fexamples%2Fangular%2Fdist%2Fbrowser%2F&ul=en-us&dt=TodoMVC%3A%20Angular&sr=800x600&vp=780x437&_u=IEBAAEABAAAAACAAI~&jid=919088667&gjid=1776480521&cid=1665554951.1791582378&tid=UA-31081062-1&_gid=1076810850.1791582378&_r=1&_slc=1&z=1113411248",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/plain"
+    ],
+    [
+     "access-control-allow-credentials",
+     "true"
+    ],
+    [
+     "access-control-allow-origin",
+     "https://todomvc.com"
+    ]
+   ],
+   "body": "507af7ab51eb4cdc1f544183a1be4e27a0943bad4ada5ab732ed65cd837d5a3c"
+  },
+  {
+   "method": "GET",
+   "url": "https://todomvc.com/favicon.ico",
+   "status": 404,
+   "headers": [
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ],
+    [
+     "content-security-policy",
+     "default-src 'none'; style-src 'unsafe-inline'; img-src data:; connect-src 'self'"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "b620507312c5e97566a3c6cfaf99144fefc18a0da7d941401dfa0f5f58fb0368"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.googletagmanager.com/gtag/js?id=G-T3XWXPZX5B&cx=c&_slc=1",
+   "status": 200,
+   "headers": [
+    [
+     "access-control-allow-credentials",
+     "true"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ],
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ],
+    [
+     "access-control-allow-headers",
+     "Cache-Control"
+    ]
+   ],
+   "body": "2920ef30bf210a5eeeafd9525f0c656db3094a91c989c246ea07563e596210a5"
+  }
+ ]
+}

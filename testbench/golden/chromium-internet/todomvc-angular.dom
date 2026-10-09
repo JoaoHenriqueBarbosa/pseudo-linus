@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en" data-framework="angular" data-beasties-container=""><head>
+        <meta charset="utf-8">
+        <meta name="description" content="A TodoMVC written in Angular.">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>TodoMVC: Angular</title>
+    <style>html,body{margin:0;padding:0}body{font:14px Helvetica Neue,Helvetica,Arial,sans-serif;line-height:1.4em;background:#f5f5f5;color:#111;min-width:230px;max-width:550px;margin:0 auto;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-weight:300}.info{margin:65px auto 0;color:#4d4d4d;font-size:11px;text-shadow:0 1px 0 rgba(255,255,255,.5);text-align:center}.info p{line-height:1}.info a{color:inherit;text-decoration:none;font-weight:400}.info a:hover{text-decoration:underline}</style><link rel="stylesheet" href="styles-I6SUBC5N.css" media="all" onload="this.media='all'"><noscript><link rel="stylesheet" href="styles-I6SUBC5N.css"></noscript></head>
+    <body class="learn-bar"><aside class="learn"><header> <h3>Angular</h3> <span class="source-links">   <h5>Angular</h5> <a href="https://github.com/tastejs/todomvc/tree/gh-pages/examples/angular">Source</a>   </span> </header> <hr> <blockquote class="quote speech-bubble"> <p>Angular is a TypeScript-first web framework for building fast, reliable applications. The modern toolchain (standalone components, signals, the @angular/build builder, zoneless change detection by default in v21+) keeps the framework current while preserving the structured, opinionated developer experience Angular is known for.</p> <footer> <a href="http://angular.dev">Angular</a> </footer> </blockquote>  <hr>  <h4>Official Resources</h4> <ul>  <li> <a href="https://angular.dev">Docs</a> </li>  </ul>   <footer> <hr> <em>If you have other helpful links to share, or find any of the links above no longer work, please <a href="https://github.com/tastejs/todomvc/issues">let us know</a>.</em> </footer></aside>
+        <app-root ng-version="21.2.11"><section class="todoapp"><app-todo-header><header class="header"><h1>Todos</h1><input autofocus="" placeholder="What needs to be done?" class="new-todo ng-untouched ng-pristine ng-valid"></header></app-todo-header><app-todo-list><main class="main" hidden=""><div class="toggle-all-container"><input type="checkbox" class="toggle-all"><label htmlfor="toggle-all" class="toggle-all-label">Toggle All Input</label></div><ul class="todo-list"><!----></ul></main></app-todo-list><app-todo-footer><footer class="footer" hidden=""><span class="todo-count"><strong>0</strong> items left </span><ul class="filters"><li><a routerlink="/" class="selected" href="#/">All</a></li><li><a routerlink="/active" href="#/active">Active</a></li><li><a routerlink="/completed" href="#/completed">Completed</a></li></ul><button type="button" class="clear-completed" hidden=""> Clear completed </button></footer></app-todo-footer></section></app-root>
+        <footer class="info">
+            <p>Double-click to edit a todo</p>
+            <p>Created by the TodoMVC Team</p>
+            <p>Part of <a href="http://todomvc.com">TodoMVC</a></p>
+        </footer>
+    <script async="" src="https://www.google-analytics.com/analytics.js"></script><script src="polyfills-DOYHMSTV.js" type="module"></script><script src="scripts-E4L224QG.js" defer=""></script><script src="main-JRCDYUFU.js" type="module"></script>
+
+</body></html>

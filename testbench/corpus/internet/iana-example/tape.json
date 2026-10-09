@@ -1,0 +1,185 @@
+{
+ "url": "https://www.iana.org/help/example-domains",
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://www.iana.org/help/example-domains",
+   "status": 200,
+   "headers": [
+    [
+     "content-security-policy",
+     "upgrade-insecure-requests; default-src 'self' https://*.iana.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://cse.google.com https://clients1.google.com; style-src 'self' 'unsafe-inline' https://www.google.com; child-src 'self' https://www.youtube.com https://clients1.google.com https://cse.google.com https://www.google.com/; img-src 'self' https://data.iana.org https://www.iana.org https://www.google.com https://www.googleapis.com https://clients1.google.com https://*.gstatic.com;"
+    ],
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ],
+    [
+     "x-content-type-options",
+     "nosniff\nnosniff"
+    ]
+   ],
+   "body": "044c9d1095c3abc7772dbf31eff7f75aa83b4d3c6ec2caaeac0ab170f628bb49"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.iana.org/static/img/iana-logo-header.426b3ac01d35.svg",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "content-security-policy",
+     "upgrade-insecure-requests; default-src 'self' https://*.iana.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://cse.google.com https://clients1.google.com; style-src 'self' 'unsafe-inline' https://www.google.com; child-src 'self' https://www.youtube.com https://clients1.google.com https://cse.google.com https://www.google.com/; img-src 'self' https://data.iana.org https://www.iana.org https://www.google.com https://www.googleapis.com https://clients1.google.com https://*.gstatic.com;"
+    ]
+   ],
+   "body": "888b41c392a51d5aa6ca6df224e345f74ffbb97a48422753a3e4f90f305d0004"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.iana.org/static/js/jquery.a8e7cabd4d49.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript"
+    ],
+    [
+     "content-security-policy",
+     "upgrade-insecure-requests; default-src 'self' https://*.iana.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://cse.google.com https://clients1.google.com; style-src 'self' 'unsafe-inline' https://www.google.com; child-src 'self' https://www.youtube.com https://clients1.google.com https://cse.google.com https://www.google.com/; img-src 'self' https://data.iana.org https://www.iana.org https://www.google.com https://www.googleapis.com https://clients1.google.com https://*.gstatic.com;"
+    ]
+   ],
+   "body": "39a546ea9ad97f8bfaf5d3e0e8f8556adb415e470e59007ada9759dce472adaa"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.iana.org/static/fonts/IBMPlexMono-Regular.560033d0c7f2.ttf",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "font/ttf"
+    ],
+    [
+     "content-security-policy",
+     "upgrade-insecure-requests; default-src 'self' https://*.iana.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://cse.google.com https://clients1.google.com; style-src 'self' 'unsafe-inline' https://www.google.com; child-src 'self' https://www.youtube.com https://clients1.google.com https://cse.google.com https://www.google.com/; img-src 'self' https://data.iana.org https://www.iana.org https://www.google.com https://www.googleapis.com https://clients1.google.com https://*.gstatic.com;"
+    ]
+   ],
+   "body": "6a3412f058c7d8dfd9170c41e85ade48e5156ecb89356110ca57a0a27734af46"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.iana.org/static/js/relative-time.79f0e30be3b8.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript"
+    ],
+    [
+     "content-security-policy",
+     "upgrade-insecure-requests; default-src 'self' https://*.iana.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://cse.google.com https://clients1.google.com; style-src 'self' 'unsafe-inline' https://www.google.com; child-src 'self' https://www.youtube.com https://clients1.google.com https://cse.google.com https://www.google.com/; img-src 'self' https://data.iana.org https://www.iana.org https://www.google.com https://www.googleapis.com https://clients1.google.com https://*.gstatic.com;"
+    ]
+   ],
+   "body": "0654136bb6b5cbf7a24b56de36d5b74d0b88e12ace7d8979ca07d86881141998"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.iana.org/static/js/dtable.46ee921d4414.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript"
+    ],
+    [
+     "content-security-policy",
+     "upgrade-insecure-requests; default-src 'self' https://*.iana.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://cse.google.com https://clients1.google.com; style-src 'self' 'unsafe-inline' https://www.google.com; child-src 'self' https://www.youtube.com https://clients1.google.com https://cse.google.com https://www.google.com/; img-src 'self' https://data.iana.org https://www.iana.org https://www.google.com https://www.googleapis.com https://clients1.google.com https://*.gstatic.com;"
+    ]
+   ],
+   "body": "437fad66b669c3eabeca3156df9e3f512f9ec90bf0b9bc9358ab9ac1f46212ed"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.iana.org/static/css/iana_website.f414e8ebfa51.css",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/css"
+    ],
+    [
+     "content-security-policy",
+     "upgrade-insecure-requests; default-src 'self' https://*.iana.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://cse.google.com https://clients1.google.com; style-src 'self' 'unsafe-inline' https://www.google.com; child-src 'self' https://www.youtube.com https://clients1.google.com https://cse.google.com https://www.google.com/; img-src 'self' https://data.iana.org https://www.iana.org https://www.google.com https://www.googleapis.com https://clients1.google.com https://*.gstatic.com;"
+    ]
+   ],
+   "body": "978a4c6ac1ea7f027782cc1715c0d5c4f26ebdef0bf877dd7b8040c544c68ce5"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.iana.org/static/fonts/NotoSans-Latin.b72e420edb95.ttf",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "font/ttf"
+    ],
+    [
+     "content-security-policy",
+     "upgrade-insecure-requests; default-src 'self' https://*.iana.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://cse.google.com https://clients1.google.com; style-src 'self' 'unsafe-inline' https://www.google.com; child-src 'self' https://www.youtube.com https://clients1.google.com https://cse.google.com https://www.google.com/; img-src 'self' https://data.iana.org https://www.iana.org https://www.google.com https://www.googleapis.com https://clients1.google.com https://*.gstatic.com;"
+    ]
+   ],
+   "body": "7b8cac46a1c86d2533a616b1fcf4e1926b8e39bda69034508b0df96791f56d97"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.iana.org/static/img/bookmark_icon.e14a2530b3e9.ico",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "image/vnd.microsoft.icon"
+    ],
+    [
+     "content-security-policy",
+     "upgrade-insecure-requests; default-src 'self' https://*.iana.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://cse.google.com https://clients1.google.com; style-src 'self' 'unsafe-inline' https://www.google.com; child-src 'self' https://www.youtube.com https://clients1.google.com https://cse.google.com https://www.google.com/; img-src 'self' https://data.iana.org https://www.iana.org https://www.google.com https://www.googleapis.com https://clients1.google.com https://*.gstatic.com;"
+    ]
+   ],
+   "body": "24bfb441173c83b8184b0c19cc8695615b5a3878a00e63e3dc52b3c430b18ab3"
+  }
+ ]
+}

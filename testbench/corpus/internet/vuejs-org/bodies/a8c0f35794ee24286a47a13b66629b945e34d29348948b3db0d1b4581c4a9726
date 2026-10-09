@@ -1,0 +1,381 @@
+(function() {
+  'use strict';
+
+  // currentScript is the reliable source (works for any serving path, incl. the
+  // legacy media.bitterbrains.com/main.js URL); the selector is a fallback for
+  // very old browsers and matches both the loader and legacy main.js paths.
+  var thisScript = document.currentScript;
+  if (!thisScript) {
+    var scripts = document.querySelectorAll('script[src*="loader"], script[src*="main.js"]');
+    thisScript = scripts[scripts.length - 1];
+  }
+  var src = thisScript ? thisScript.getAttribute('src') : '';
+  var params = {};
+  try {
+    var url = new URL(src, window.location.href);
+    url.searchParams.forEach(function(v, k) { params[k] = v; });
+  } catch(e) {
+    var qs = src.split('?')[1] || '';
+    qs.split('&').forEach(function(pair) {
+      var kv = pair.split('=');
+      if (kv[0]) params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || '');
+    });
+  }
+
+  // `from` is the legacy media.bitterbrains.com param name — kept as an alias so
+  // affiliates' existing embed tags keep working unchanged.
+  var affiliateCode = params.affiliate || params.from;
+  if (!affiliateCode) { console.warn('[BannerStudio] Missing affiliate param'); return; }
+
+  // Some installed embed snippets ship an unsubstituted "BANNER_TYPE" placeholder
+  // (or other junk) as ?type=. Left as-is, it matches no real type: the banner
+  // never takes the sticky-top path, never gets position:fixed, and never applies
+  // the VitePress offset — so on a VitePress site (vuejs-challenges.netlify.app,
+  // learnvue.co …) the fixed nav ends up UNDER the banner. Treat anything that
+  // isn't a real placement as absent, so it falls back to the banner's own
+  // display_type / 'top'.
+  var VALID_TYPES = ['top', 'bottom', 'left', 'right', 'inline'];
+  if (params.type && VALID_TYPES.indexOf(params.type) === -1) {
+    params.type = undefined;
+  }
+
+  var bannerType = params.type || 'top';
+  // `condition` is the legacy vueschool param name for the visitor tier; accept
+  // it as an alias for `segment` so old embed tags keep targeting correctly.
+  var segment = params.segment || params.condition || '';
+  // Sandbox embeds carry ?test=1; forward it on every fetch so the API serves
+  // sandbox data (absent = live). Threaded the same way as `segment`.
+  var testParam = params.test ? '&test=' + encodeURIComponent(params.test) : '';
+  var API_BASE = 'https://media.bitterbrains.com';
+
+  /**
+   * The host page's stylesheet reaches our elements, and a bare `iframe { ... }`
+   * rule is a normal thing for a docs site to have. reglejs.dev styles all of its
+   * embeds with `iframe { margin-top: 40px; border-radius: 10px; height: 700px }`,
+   * which landed on OUR banner: the iframe sat 40px down inside its container, so
+   * the container was 112px tall while we reserved only the iframe's 72 — and the
+   * site's nav ended up under the banner by exactly 40px.
+   *
+   * We set the geometry that matters as !important, so a stylesheet we've never
+   * seen cannot move our banner around.
+   */
+  function harden(el, styles) {
+    for (var prop in styles) {
+      if (Object.prototype.hasOwnProperty.call(styles, prop)) {
+        el.style.setProperty(prop, styles[prop], 'important');
+      }
+    }
+  }
+
+  // Create container
+  var container = document.createElement('div');
+  container.id = 'bb-banner-container';
+  container.style.cssText = 'width:100%;overflow:hidden;';
+  harden(container, { margin: '0', padding: '0', border: '0' });
+
+  // Placing the container touches document.body, which is null when the loader
+  // runs from <head> before the body is parsed — VitePress (router.vuejs.org,
+  // vuejs.org …) injects site scripts there, so the synchronous insert threw
+  // "Cannot read properties of null (reading 'insertBefore')" and no banner
+  // loaded. Build the container detached and defer only the DOM insertion to
+  // DOMContentLoaded when the body isn't ready yet; everything downstream
+  // (iframe, fetches, height sync) operates on the detached node until then.
+  function insertContainer() {
+    if (bannerType === 'bottom') {
+      container.style.position = 'fixed';
+      container.style.bottom = '0';
+      container.style.left = '0';
+      container.style.right = '0';
+      container.style.zIndex = '99999';
+      document.body.appendChild(container);
+    } else if (bannerType === 'left' || bannerType === 'right') {
+      // Floating side panel — pinned to the edge, vertically centred, out of flow.
+      container.style.position = 'fixed';
+      container.style[bannerType] = '0';
+      container.style.top = '50%';
+      container.style.transform = 'translateY(-50%)';
+      container.style.width = '160px';
+      container.style.maxWidth = '40vw';
+      container.style.zIndex = '99999';
+      document.body.appendChild(container);
+    } else if (bannerType === 'inline') {
+      if (thisScript && thisScript.parentNode) {
+        thisScript.parentNode.insertBefore(container, thisScript.nextSibling);
+      } else {
+        document.body.appendChild(container);
+      }
+    } else {
+      container.style.position = 'relative';
+      container.style.zIndex = '99999';
+      document.body.insertBefore(container, document.body.firstChild);
+    }
+  }
+
+  if (document.body) {
+    insertContainer();
+  } else {
+    document.addEventListener('DOMContentLoaded', insertContainer);
+  }
+
+  // Create iframe
+  var iframe = document.createElement('iframe');
+  iframe.style.cssText = 'width:100%;border:none;overflow:hidden;display:block;height:72px;';
+  // Same reason as the container: a site-wide `iframe {}` rule must not be able to
+  // margin, round, shadow or resize the banner. Height is set separately (it
+  // changes), also !important.
+  harden(iframe, {
+    margin: '0',
+    padding: '0',
+    border: '0',
+    'border-radius': '0',
+    'box-shadow': 'none',
+    'max-width': 'none',
+    'min-width': '0',
+    'max-height': 'none',
+    'min-height': '0',
+    'vertical-align': 'top',
+    display: 'block',
+    width: '100%',
+  });
+  setIframeHeight(72);
+  iframe.setAttribute('scrolling', 'no');
+  iframe.setAttribute('frameborder', '0');
+  iframe.setAttribute('allowtransparency', 'true');
+  container.appendChild(iframe);
+
+  // Sticky-top banners are position:fixed, so they take no space in the page
+  // flow — without compensation they float OVER the site's header. Legacy
+  // parity: push the whole document down by the banner height via a margin on
+  // <html>, kept in sync with height changes and cleared on close.
+  var isStickyTop = false;
+
+  // A margin on <html> cannot move a position:fixed element — fixed boxes are
+  // positioned against the viewport, not the document. VitePress (vuejs.org,
+  // router.vuejs.org, pinia.vuejs.org, vueuse.org …) fixes its navbar, so the
+  // margin pushed the CONTENT down while the nav stayed pinned under our banner:
+  // the nav vanished and a blank band appeared where it should have been.
+  //
+  // VitePress exposes --vp-layout-top-height for exactly this — its nav, sidebar,
+  // content and hero all offset by it. Use the site's own hook when it has one.
+  function usesVitePressLayout() {
+    try {
+      if (document.querySelector('.VPNav, .VPContent')) return true;
+      return getComputedStyle(document.documentElement).getPropertyValue('--vp-nav-height').trim() !== '';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function setIframeHeight(h) {
+    iframe.style.setProperty('height', h + 'px', 'important');
+  }
+
+  /**
+   * What we RESERVE must equal what we OCCUPY.
+   *
+   * The offset used to be the height we ASKED the iframe to be. Measuring the
+   * container instead means a host stylesheet that adds a margin or a border to
+   * our banner can't leave the page pushed down by less than the banner covers —
+   * which is exactly how reglejs.dev's `iframe { margin-top: 40px }` buried the
+   * site's own nav under 40px of banner.
+   */
+  function occupiedHeight(fallback) {
+    var h = container.getBoundingClientRect().height;
+
+    return h > 0 ? Math.round(h) : fallback;
+  }
+
+  function syncStickyOffset(h) {
+    if (!isStickyTop) return;
+    if (usesVitePressLayout()) {
+      document.documentElement.style.setProperty('--vp-layout-top-height', h + 'px');
+      document.documentElement.style.marginTop = '';
+      // Newer VitePress offsets its own nav/sidebar/content by that variable.
+      // OLDER builds never reference it (vuejs-challenges.netlify.app), so the
+      // nav stays pinned at top:0 — under the banner. Detect that after a frame
+      // and offset the nav directly; harmless on newer VitePress, where the nav
+      // has already moved and the check fails.
+      requestAnimationFrame(function() {
+        var nav = document.querySelector('.VPNav');
+        if (nav && Math.round(nav.getBoundingClientRect().top) < h - 4) {
+          applyVitePressFallback(h);
+        }
+      });
+    } else {
+      document.documentElement.style.marginTop = h + 'px';
+      offsetPinnedHeaders(h);
+    }
+  }
+
+  // The html margin only moves a header while it is IN FLOW. A sticky header
+  // (learnvue.co: Tailwind `sticky top-0`) sits below the banner at scroll 0,
+  // then pins to the viewport's top the moment the page scrolls — under our
+  // banner. A fixed header is under it from the start. Push any header pinned
+  // within the banner's band down by the banner height, remembering the inline
+  // `top` it had so closing the banner can hand it back.
+  var PINNED_HEADER_SELECTOR = 'header, nav, [role="banner"], [class*="sticky"], [class*="fixed"], [class*="header"], [class*="navbar"], body > *';
+  var pinnedHeaders = [];
+
+  function offsetPinnedHeaders(h) {
+    var candidates;
+    try { candidates = document.querySelectorAll(PINNED_HEADER_SELECTOR); } catch (e) { return; }
+    for (var i = 0; i < candidates.length; i++) {
+      var el = candidates[i];
+      if (el === container || container.contains(el) || el.contains(container)) continue;
+      if (el.hasAttribute('data-bb-pinned')) continue;
+      var cs = getComputedStyle(el);
+      if (cs.position !== 'sticky' && cs.position !== 'fixed') continue;
+      var top = parseFloat(cs.top);
+      if (isNaN(top) || top < 0 || top >= h) continue;
+      // A fixed box anchored to the bottom too is an overlay or a drawer, not a header.
+      if (cs.position === 'fixed' && cs.bottom !== 'auto') continue;
+      el.setAttribute('data-bb-pinned', String(top));
+      pinnedHeaders.push({ el: el, inlineTop: el.style.getPropertyValue('top'), inlinePriority: el.style.getPropertyPriority('top') });
+    }
+    for (var j = 0; j < pinnedHeaders.length; j++) {
+      var base = parseFloat(pinnedHeaders[j].el.getAttribute('data-bb-pinned')) || 0;
+      pinnedHeaders[j].el.style.setProperty('top', (base + h) + 'px', 'important');
+    }
+  }
+
+  function clearPinnedHeaders() {
+    for (var i = 0; i < pinnedHeaders.length; i++) {
+      var p = pinnedHeaders[i];
+      p.el.removeAttribute('data-bb-pinned');
+      if (p.inlineTop) { p.el.style.setProperty('top', p.inlineTop, p.inlinePriority); }
+      else { p.el.style.removeProperty('top'); }
+    }
+    pinnedHeaders = [];
+  }
+
+  // Older VitePress: this is exactly what --vp-layout-top-height does in newer
+  // builds, applied by hand. Push the fixed nav (and any sidebar / sticky local
+  // nav) below the banner, and add the banner height to the content's top padding
+  // so the article clears the nav's NEW position — its own padding only cleared
+  // the nav at top:0. An html margin was tried first but the doc layout ignored
+  // it (the content is padded, not flowed), so it clipped the first heading.
+  function applyVitePressFallback(h) {
+    var st = document.getElementById('bb-vp-fallback');
+    if (!st) { st = document.createElement('style'); st.id = 'bb-vp-fallback'; document.head.appendChild(st); }
+    st.textContent =
+      '.VPNav{top:' + h + 'px !important;}' +
+      '.VPLocalNav{top:calc(var(--vp-nav-height,0px) + ' + h + 'px) !important;}' +
+      '.VPSidebar{top:calc(var(--vp-nav-height,0px) + ' + h + 'px) !important;}' +
+      '.VPContent{padding-top:calc(var(--vp-nav-height,0px) + ' + h + 'px) !important;}';
+  }
+
+  function clearStickyOffset() {
+    document.documentElement.style.marginTop = '';
+    document.documentElement.style.removeProperty('margin-top');
+    document.documentElement.style.removeProperty('--vp-layout-top-height');
+    var st = document.getElementById('bb-vp-fallback');
+    if (st) { st.parentNode.removeChild(st); }
+    clearPinnedHeaders();
+  }
+
+  // Per-campaign dismissal key (from /banners). Set once the feed lands; the
+  // close handler and the pre-show check below both read it. Namespaced so it
+  // never collides with the legacy runtime's own closedKey on the same domain.
+  var closedKey = null;
+  function bbRemember(key) { if (key) { try { localStorage.setItem(key, "1"); } catch (err) {} } }
+  function bbIsClosed(key) { if (!key) return false; try { return !!localStorage.getItem(key); } catch (err) { return false; } }
+
+  // Listen for messages from banner
+  window.addEventListener('message', function(e) {
+    if (!e.data) return;
+    if (e.data.type === 'banner-height') {
+      setIframeHeight(e.data.height);
+      syncStickyOffset(occupiedHeight(e.data.height));
+    }
+    if (e.data.type === 'banner-close') {
+      container.style.display = 'none';
+      if (isStickyTop) clearStickyOffset();
+      // Remember the dismissal so a refresh doesn't bring the banner back.
+      bbRemember(closedKey);
+    }
+  });
+
+  // Fetch banner data
+  fetch(API_BASE + '/banners?affiliate=' + encodeURIComponent(affiliateCode) + (segment ? '&segment=' + encodeURIComponent(segment) : '') + testParam, { cache: 'no-store' })
+    .then(function(r) { return r.json(); })
+    .then(function(phases) {
+      if (!phases || !phases.length) { container.style.display = 'none'; return; }
+      phases.sort(function(a, b) { return (b.priority || 0) - (a.priority || 0); });
+      var banner = phases[0].banners && phases[0].banners[0];
+      if (!banner) { container.style.display = 'none'; return; }
+
+      // If the visitor already closed this campaign's banner, keep it hidden —
+      // so a refresh doesn't bring it back.
+      closedKey = phases[0].closedKey || null;
+      if (bbIsClosed(closedKey)) { container.style.display = 'none'; return; }
+
+      // Fetch serve metadata
+      var serveUrl = API_BASE + '/banners/' + banner.uuid + '/serve';
+      if (banner.v) serveUrl += '?v=' + banner.v;
+      if (params.test) serveUrl += (serveUrl.indexOf('?') === -1 ? '?' : '&') + 'test=' + encodeURIComponent(params.test);
+
+      fetch(serveUrl, { headers: { Accept: 'application/json' }, cache: 'no-cache' })
+        .then(function(r) { return r.json(); })
+        .then(function(b) {
+          b = b.data || b;
+          var canvas = b.canvas || null;
+
+          // Apply canvas dimensions
+          if (canvas) {
+            if (canvas.type === 'fixed' && canvas.width) {
+              container.style.width = canvas.width + 'px';
+              container.style.maxWidth = bannerType === 'left' || bannerType === 'right' ? '40vw' : '100%';
+              // Side panels stay pinned to their edge; others centre in flow.
+              if (bannerType !== 'left' && bannerType !== 'right') {
+                container.style.margin = '0 auto';
+              }
+            }
+            if (canvas.height) setIframeHeight(canvas.height);
+          }
+
+          // Apply sticky. The affiliate's OWN embed `type` (their placement on
+          // their page) wins over the banner's designed display_type — otherwise
+          // a banner defaulting to `top` (MetaController returns 'top' when the
+          // payload has no display.type) forces sticky-top and pushes the host
+          // document down, ignoring an affiliate who explicitly asked for bottom.
+          // The banner's display_type only fills in when the affiliate is silent.
+          var isSticky = b.sticky;
+          var displayType = params.type || b.display_type || bannerType;
+          if (isSticky && (displayType === 'top' || displayType === 'bottom')) {
+            container.style.position = 'fixed';
+            container.style.left = '0';
+            container.style.right = '0';
+            container.style.zIndex = '99999';
+            container.style[displayType === 'bottom' ? 'bottom' : 'top'] = '0';
+            if (displayType !== 'bottom') {
+              // Push the document down so the fixed banner doesn't cover the
+              // site's header (legacy html margin-top behaviour).
+              isStickyTop = true;
+              syncStickyOffset(occupiedHeight(canvas && canvas.height ? canvas.height : 72));
+            }
+          }
+
+          // Load compiled HTML directly. Pass the affiliate + type so the serve
+          // endpoint can append the campaign's UTM/friend attribution params.
+          // Forward affiliate/type (+ segment) so the served banner fires the
+          // analytics beacon attributed correctly. `segment` is bounded, so it
+          // doesn't blow up the per-URL CDN cache.
+          //
+          // The visitor's page path + host go in the URL FRAGMENT (`#p=…&h=…`):
+          // fragments are client-only (never sent to the server), so the served
+          // banner stays cacheable per affiliate/banner, yet the beacon inside
+          // can read them and attribute the impression to the real page.
+          iframe.src = API_BASE + '/embed/banners/' + banner.uuid + '?v=' + (banner.v || '')
+            + '&affiliate=' + encodeURIComponent(affiliateCode)
+            + '&type=' + encodeURIComponent(bannerType)
+            + (segment ? '&segment=' + encodeURIComponent(segment) : '') + testParam
+            + '#p=' + encodeURIComponent(window.location.pathname)
+            + '&h=' + encodeURIComponent(window.location.host);
+        })
+        .catch(function(err) { console.warn('[BannerStudio] Failed:', err); });
+    })
+    .catch(function(err) {
+      console.warn('[BannerStudio] Failed:', err);
+      container.style.display = 'none';
+    });
+})();

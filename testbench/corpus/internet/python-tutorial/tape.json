@@ -1,0 +1,277 @@
+{
+ "url": "https://docs.python.org/3/tutorial/index.html",
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://docs.python.org/3/tutorial/index.html",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/html"
+    ]
+   ],
+   "body": "6501486b6d27166aee486c943cec6336c54196cb0bc0a84bc6ef063efb04778a"
+  },
+  {
+   "method": "GET",
+   "url": "https://docs.python.org/3/_static/sidebar.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript"
+    ]
+   ],
+   "body": "c369ea07e39afac090a9d3e23921217a83d8aab4e20d27dc847b71807da44e63"
+  },
+  {
+   "method": "GET",
+   "url": "https://docs.python.org/3/_static/themetoggle.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript"
+    ]
+   ],
+   "body": "e83d4b134c20f038cf3fbefafcac4f0b15dd224fa0189257e436291c52c6d54c"
+  },
+  {
+   "method": "GET",
+   "url": "https://docs.python.org/3/_static/sphinx_highlight.js?v=dc90522c",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript"
+    ]
+   ],
+   "body": "096231e9c87df80ec3273da9c5b71bc81503206726a07a4dd4de44c256ff859c"
+  },
+  {
+   "method": "GET",
+   "url": "https://docs.python.org/3/_static/switchers.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript"
+    ]
+   ],
+   "body": "a481eb4117a369b926ee14cf8e90ff254d5e3a94da462f4375bfe8f4e7363858"
+  },
+  {
+   "method": "GET",
+   "url": "https://docs.python.org/3/_static/menu.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript"
+    ]
+   ],
+   "body": "266aca0f4f3fe828828101f7d80b3d020892895fad8757d922756b9930a28730"
+  },
+  {
+   "method": "GET",
+   "url": "https://docs.python.org/3/_static/basic.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css"
+    ]
+   ],
+   "body": "656ff1bacd6f260fc7d71b97f9c2f1fcbf692dc84bf469cd952034efcb9eefed"
+  },
+  {
+   "method": "GET",
+   "url": "https://docs.python.org/3/_static/pydoctheme_dark.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css"
+    ]
+   ],
+   "body": "93845fdda186e878dc784565b9dafe5643a34e0ccac6883786d01b6ac7ca57d0"
+  },
+  {
+   "method": "GET",
+   "url": "https://docs.python.org/3/_static/pygments_dark.css?v=0fc419ee",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css"
+    ]
+   ],
+   "body": "a3f4575ccc3820812c6fe0a38122a3f8ec38fe5a936c21074672843948638616"
+  },
+  {
+   "method": "GET",
+   "url": "https://analytics.python.org/js/script.file-downloads.outbound-links.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/javascript"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "d50afd83686304b7893d699a120130acdf21c4e112c94f5501e8248fef284c9a"
+  },
+  {
+   "method": "GET",
+   "url": "https://docs.python.org/3/_static/rtd_switcher.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript"
+    ]
+   ],
+   "body": "b5fd9ae1a8f1715567139ca088de37decabf4f4ef36ba04edd90a481aa64d480"
+  },
+  {
+   "method": "GET",
+   "url": "https://docs.python.org/3/_static/pydoctheme.css?v=48df1187",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css"
+    ]
+   ],
+   "body": "74fa3ad1b5ade44766b5a790da14427620dde3d351b426db2a724ac42f18cdc4"
+  },
+  {
+   "method": "GET",
+   "url": "https://docs.python.org/3/_static/py.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "5865be8bcc0af888594903ea0112f6c8d923c5726c4081e8c856110cc7339cef"
+  },
+  {
+   "method": "GET",
+   "url": "https://docs.python.org/3/_static/copybutton.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript"
+    ]
+   ],
+   "body": "160f7f5dcd24a45b858a57d6a4141aedc0e65c4b326efae69dac1d7f71ac932a"
+  },
+  {
+   "method": "GET",
+   "url": "https://docs.python.org/3/_static/documentation_options.js?v=0fe728b1",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript"
+    ]
+   ],
+   "body": "3c3c71122f9f9076d0cdd9dba95ecf4a87068cacb6d43d475c19dd0d2def4d1b"
+  },
+  {
+   "method": "GET",
+   "url": "https://docs.python.org/3/_static/search-focus.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript"
+    ]
+   ],
+   "body": "0f0595ef5b2c2afaf36a03de9cfef22ef15009dcaa1498ab6c19353c546f5680"
+  },
+  {
+   "method": "GET",
+   "url": "https://docs.python.org/3/_static/doctools.js?v=9bcbadda",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript"
+    ]
+   ],
+   "body": "2992c09df91826a8d33e3b48b645ee77e457adcf7c712d776a814e1e2c448b43"
+  },
+  {
+   "method": "GET",
+   "url": "https://docs.python.org/3/_static/classic.css?v=234b1a7c",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css"
+    ]
+   ],
+   "body": "94a00e0d0665461f189271938d429f1d92f5d5e3d8d54293346280b8144fefb5"
+  },
+  {
+   "method": "GET",
+   "url": "https://docs.python.org/3/_static/py.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "5865be8bcc0af888594903ea0112f6c8d923c5726c4081e8c856110cc7339cef"
+  },
+  {
+   "method": "GET",
+   "url": "https://docs.python.org/3/_static/pygments.css?v=b86133f3",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css"
+    ]
+   ],
+   "body": "1391123c90891f96f975870647f0b2c364fbfda7cd9e9b02bbd84f2077608034"
+  },
+  {
+   "method": "POST",
+   "url": "https://analytics.python.org/api/event",
+   "status": 202,
+   "headers": [
+    [
+     "access-control-expose-headers",
+     ""
+    ],
+    [
+     "content-type",
+     "text/plain; charset=utf-8"
+    ],
+    [
+     "access-control-allow-credentials",
+     "true"
+    ],
+    [
+     "access-control-allow-origin",
+     "*"
+    ]
+   ],
+   "body": "2689367b205c16ce32ed4200942b8b8b1e262dfc70d9bc9fbc77c49699a4f1df"
+  }
+ ]
+}
