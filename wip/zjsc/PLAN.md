@@ -81,6 +81,13 @@ frame nativo `at exit (unknown)` e imprime ` code: "ERR_..."`, o porte não: 7 c
 `uncaught_report.rs`), a coluna do caret nos erros de timer/microtarefa em CJS (mesma família do `error_stack`, mapa de
 posições), `delete process.exitCode` (o bun lança `Unable to delete property`) e `this` do callback de `nextTick`.
 
+Depois disso, de 64 para 34: o env/argv/cwd/script do embedder sobrevivem ao reset do programa (64 para 47), `freeze` e
+`seal` de `process.env` passam pelo `defineProperty` do env (45), os erros de validação de `process.exit` têm `code` próprio
+e saem sem o frame nativo (38), `delete process.exitCode` lança (37) e o aviso de `emitWarning` nasce com pilha (34). As 34
+que sobram: coluna do caret em erros de CJS (mapa de posições, cerca de 15), `new process.nextTick` e o `this` cru do
+callback de `nextTick` (o wrapper CJS do bun trata `function` sloppy como estrita), o frame `at emitTick (unknown)` nos
+ouvintes de `warning`, e streams de `stdout`/`stdin` (`_events`, construtores sem `new`, `ReadStream`/`WriteStream` com `new`).
+
 Ainda abertos (catalogados, sem ordem de atacar agora):
 - `buffer`: 6 casos exigem o global `Bun` (`Bun.inspect`), que não existe no porte; 1 caso (`Buffer.from(new Date(0))`)
   depende do fuso do bun (`America/Sao_Paulo`), não é bug do porte.
