@@ -15,7 +15,10 @@ const GOLDEN: &str = include_str!("golden/global_navigator_bun.tsv");
 #[test]
 fn global_navigator_match_bun() {
     common::check(GOLDEN, common::NO_PRELUDES, 150, |source| {
-        match catch_unwind(AssertUnwindSafe(|| evaluate_named_script_reporting_uncaught(source, "global_navigator_case.js", "R"))) {
+        // O gerador roda `(0, eval)("var R")` antes de cada programa, então `R` já existe como global (o programa pode gravá-lo
+        // de uma função estrita sem `ReferenceError`). O `var R;` na mesma linha reproduz isso sem mexer nas posições.
+        let source = format!("var R;{source}");
+        match catch_unwind(AssertUnwindSafe(|| evaluate_named_script_reporting_uncaught(&source, "global_navigator_case.js", "R"))) {
             Ok(Err(uncaught)) => Ok(common::Units::from(uncaught)),
             Ok(Ok(read)) => common::guarded_units(|| read),
             Err(panic) => {
