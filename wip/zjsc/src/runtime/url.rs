@@ -141,7 +141,7 @@ fn has_valid_parsed_host(url: &URL, input: &[u16]) -> bool {
 
 /// `URL(input, base)`: `None` se `input` (ou `base`) não analisa ou tem host `xn--` inválido (`DOMURL::create`,
 /// `parseBase`, `parseInternal` e `setHref` aplicam `hasValidParsedHost` a cada uma das duas análises).
-fn parse_with_base(input: &[u16], base: Option<&[u16]>) -> Option<URL> {
+pub(crate) fn parse_with_base(input: &[u16], base: Option<&[u16]>) -> Option<URL> {
     let base_url = match base {
         Some(base) => {
             let parsed = URLParser::parse_url(&WtfString::from_utf16(base), &URL::default(), QueryEncoding::None);

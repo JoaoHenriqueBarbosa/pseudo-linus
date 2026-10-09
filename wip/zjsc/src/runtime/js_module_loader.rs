@@ -116,6 +116,12 @@ pub trait ModuleHost {
     /// um módulo Text).
     fn fetch(&self, key: &str) -> Result<String, String>;
 
+    /// Falha de `resolve` e de `fetch` vira `TypeError` com a mensagem do host (o navegador: `Failed to resolve
+    /// module specifier`, `Failed to fetch dynamically imported module`), não o `ResolveMessage` nem o `Error` do Bun.
+    fn failures_are_type_errors(&self) -> bool {
+        false
+    }
+
     /// O `import.meta.url` de `key`. O padrão é a própria chave.
     fn import_meta_url(&self, key: &str) -> String {
         key.to_owned()
@@ -709,6 +715,7 @@ impl ModuleLoader {
         }
         let text = match self.host.fetch(key) {
             Ok(text) => text,
+            Err(message) if self.host.failures_are_type_errors() => return Err(throw_type_error(global_object, &message)),
             Err(message) => return Err(throw_error(global_object, &message)),
         };
         let host_defined_type = parameters.map(|parameters| rust_string(parameters.host_defined_import_type())).unwrap_or_default();
@@ -782,6 +789,9 @@ impl ModuleLoader {
                 Ok(imported_key) => imported_key,
                 Err(message) => {
                     self.registry.borrow_mut().remove(&registry_key);
+                    if self.host.failures_are_type_errors() {
+                        return Err(throw_type_error(global_object, &message));
+                    }
                     return Err(throw_error(global_object, &message));
                 }
             };
@@ -958,6 +968,7 @@ fn request_import_module(
     };
     let key = match loader.host.resolve(specifier, referrer) {
         Ok(key) => key,
+        Err(message) if loader.host.failures_are_type_errors() => return Err(throw_type_error(global_object, &message)),
         Err(message) => {
             if let Some(text) = build_message_text(specifier) {
                 return Err(throw_build_message(global_object, text));
