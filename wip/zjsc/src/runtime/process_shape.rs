@@ -478,7 +478,12 @@ fn install_member(global_object: &JSGlobalObject, process: &JSObject, member: &M
     let vm = global_object.vm();
     match member {
         Function(name, length) => {
-            let function = native_function(global_object, name, *length, function_body(name));
+            // `nextTick` é função de JS no bun: `new process.nextTick(fn)` agenda o tick e não lança.
+            let function = if *name == "nextTick" {
+                crate::runtime::timers::native_function_with_constructor(global_object, name, *length, function_body(name), function_body(name))
+            } else {
+                native_function(global_object, name, *length, function_body(name))
+            };
             if let Some((property, body)) = function_property(name) {
                 function.put_direct(vm, &prop(vm, property), native(global_object, property, 0, body), 0);
             }
