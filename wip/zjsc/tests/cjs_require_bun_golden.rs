@@ -9,6 +9,14 @@ const GOLDEN: &str = include_str!("golden/cjs_require_bun.tsv");
 
 #[test]
 fn cjs_require_matches_bun() {
+    // Pilha grande: a recursão por `toString` nativo passa de 1000 níveis no bun (`stack_recursion`).
+    common::run_with_stack(256 * 1024 * 1024, || {
+        zjsc::runtime::vm::VM::set_thread_stack_budget(240 * 1024 * 1024);
+        check_golden();
+    });
+}
+
+fn check_golden() {
     let mut failures = Vec::new();
     let mut total = 0;
     for line in GOLDEN.lines().filter(|line| !line.is_empty()) {
