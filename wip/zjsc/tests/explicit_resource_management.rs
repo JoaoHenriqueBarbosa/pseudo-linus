@@ -405,7 +405,7 @@ fn using_in_a_block_loop_and_switch_disposes_at_the_end_of_each_scope() {
            function run() {
              { using a = make('block'); log.push('in block'); }
              for (var i = 0; i < 2; i++) { using b = make('loop' + i); log.push('iter' + i); }
-             switch (1) { case 1: using c = make('switch'); log.push('in switch'); }
+             switch (1) { case 1: { using c = make('switch'); log.push('in switch'); } }
              for (using d of [make('of0'), make('of1')]) { log.push('body-of'); }
            }
            run();
