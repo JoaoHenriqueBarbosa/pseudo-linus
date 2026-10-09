@@ -215,8 +215,12 @@ impl PromiseHost for JSGlobalObject {
     /// `JSGlobalObject::promiseRejectionTracker` (ver o cabeçalho).
     fn promise_rejection_tracker(&self, promise: &JSPromise, operation: JSPromiseRejectionOperation) {
         match operation {
-            // Handler novo numa rejeição que já foi entregue a `unhandledRejection`: emite `rejectionHandled`.
-            JSPromiseRejectionOperation::Handle => crate::runtime::process_exit::promise_handled(self, promise.cell_id()),
+            // Handler novo numa rejeição que já foi entregue a `unhandledRejection`: emite `rejectionHandled` (ou
+            // entrega ao embedder que ouve todo tratador novo, o navegador).
+            JSPromiseRejectionOperation::Handle => match self.vm().rejection_handled_reporter() {
+                Some(reporter) => reporter(self, JSValue::Cell(promise.cell_id())),
+                None => crate::runtime::process_exit::promise_handled(self, promise.cell_id()),
+            },
             JSPromiseRejectionOperation::Reject => {
                 let promise = JSPromise::from_cell_id(promise.cell_id()).expect("a promessa do rastreador está no registro de células");
                 self.vm().promise_rejected(promise);
