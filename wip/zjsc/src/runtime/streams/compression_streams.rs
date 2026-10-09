@@ -21,9 +21,9 @@
 //!
 //! O pedaço de saída de um passo tem no máximo `max(65536, tamanho da escrita)` bytes (regra do `step` do bun).
 //!
-//! DIVERGÊNCIAS: os bytes do deflate saem do `zdeflate` (o zlib 1.3.1 traduzido, nível 6), idêntico ao bun em entradas
-//! pequenas; em entrada grande (200 KB de dois bytes repetidos) o bun dá 1 byte a mais, provavelmente por outro fork do
-//! zlib; um erro de lixo no fim descarta a saída da mesma escrita (o bun emite antes os pedaços cheios dos
+//! Os bytes do deflate saem do `zdeflate` no sabor zlib-ng 2.2.4 (o do bun: o `deflate_medium` do nível 6).
+//!
+//! DIVERGÊNCIAS: um erro de lixo no fim descarta a saída da mesma escrita (o bun emite antes os pedaços cheios dos
 //! passos anteriores); `brotli` decodifica em streaming e o código de erro é `ERR_` mais o nome do erro do decodificador.
 
 use std::cell::RefCell;
@@ -272,7 +272,7 @@ impl Compressor {
     fn new(format: Format, high_water_mark: usize) -> Compressor {
         Compressor {
             format,
-            deflate: zdeflate::Deflate::new(zdeflate::DEFAULT_COMPRESSION, -15, 8, zdeflate::Strategy::Default).expect("parâmetros fixos válidos"),
+            deflate: zdeflate::Deflate::new_zlib_ng(zdeflate::DEFAULT_COMPRESSION, -15, 8, zdeflate::Strategy::Default).expect("parâmetros fixos válidos"),
             crc: Crc::new(),
             adler: Adler32::new(),
             started: false,
