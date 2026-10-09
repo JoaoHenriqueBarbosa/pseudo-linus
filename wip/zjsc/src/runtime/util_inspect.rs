@@ -1571,7 +1571,7 @@ impl State<'_> {
             } else {
                 self.stylize(String::from_utf16_lossy(&quoted_name(&name.encode_utf16().collect::<Vec<u16>>())), (32, 39))
             };
-            output.push(format!("{label}: {shown}"));
+            output.push(format!("{label}:{separator}{shown}"));
         }
         for symbol in self.enumerable_symbols(value)? {
             let Some(identifier) = symbol.to_property_key(self.global_object) else { continue };
