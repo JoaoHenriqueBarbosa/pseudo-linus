@@ -276,6 +276,9 @@ tag(PerformanceObserver, 'PerformanceObserver');
 
 // ---- Rede: fetch e XMLHttpRequest sobre a operação síncrona `fetch` do hospedeiro, executada num timer.
 const netFetch = (method, url, headers, body) => op('fetch', method, url, headers, body);
+// O corpo chega da ponte um byte por unidade de código.
+const rawBytes = (latin1) => { const out = new Uint8Array(latin1.length); for (let i = 0; i < latin1.length; i++) out[i] = latin1.charCodeAt(i); return out; };
+const decodeBody = (bytes, label) => { try { return new TextDecoder(label || 'utf-8').decode(bytes); } catch { return new TextDecoder('utf-8').decode(bytes); } };
 const headerList = (list) => { const out = []; for (let i = 0; i < list.length; i += 2) out.push([list[i], list[i + 1]]); return out; };
 
 class XMLHttpRequest extends EventTarget {
@@ -297,7 +300,8 @@ class XMLHttpRequest extends EventTarget {
     const r = this.__response;
     if (!r) return this.responseType === '' || this.responseType === 'text' ? '' : null;
     if (this.responseType === 'json') { try { return JSON.parse(r.text); } catch { return null; } }
-    if (this.responseType === 'arraybuffer') return new TextEncoder().encode(r.text).buffer;
+    if (this.responseType === 'arraybuffer') return r.bytes.slice().buffer;
+    if (this.responseType === 'blob') return new Blob([r.bytes], { type: this.getResponseHeader('content-type') || '' });
     return r.text;
   }
   get responseText() { if (this.responseType !== '' && this.responseType !== 'text') throw domException("Failed to read the 'responseText' property from 'XMLHttpRequest': The value is only accessible if the object's 'responseType' is '' or 'text' (was '" + this.responseType + "').", 'InvalidStateError'); return this.__response ? this.__response.text : ''; }
@@ -330,12 +334,13 @@ class XMLHttpRequest extends EventTarget {
         return;
       }
       this.status = result[0]; this.statusText = result[1]; this.responseURL = result[2];
-      this.__response = { headers: headerList(result[3]), text: result[4] };
+      const bytes = rawBytes(result[4]);
+      this.__response = { headers: headerList(result[3]), bytes, text: decodeBody(bytes, result[5]) };
       this.__setState(2);
       this.__setState(3);
       this.__setState(4);
-      this.dispatchEvent(new ProgressEvent('load', { loaded: result[4].length, total: result[4].length }));
-      this.dispatchEvent(new ProgressEvent('loadend', { loaded: result[4].length, total: result[4].length }));
+      this.dispatchEvent(new ProgressEvent('load', { lengthComputable: true, loaded: bytes.length, total: bytes.length }));
+      this.dispatchEvent(new ProgressEvent('loadend', { lengthComputable: true, loaded: bytes.length, total: bytes.length }));
     };
     if (s.async) setTimeout(run, 0); else run();
   }
@@ -358,7 +363,7 @@ const realFetch = (input, init = {}) => new Promise((resolve, reject) => {
     if (init.signal && init.signal.aborted) return reject(domException('The user aborted a request.', 'AbortError'));
     const result = netFetch(method, url, headers, body);
     if (result === null) return reject(new TypeError('Failed to fetch'));
-    const response = new Response(result[0] === 204 || result[0] === 205 || result[0] === 304 ? null : result[4], { status: result[0], statusText: result[1], headers: headerList(result[3]) });
+    const response = new Response(result[0] === 204 || result[0] === 205 || result[0] === 304 ? null : rawBytes(result[4]), { status: result[0], statusText: result[1], headers: headerList(result[3]) });
     Object.defineProperty(response, 'url', { value: result[2], configurable: true });
     resolve(response);
   }, 0);
@@ -382,7 +387,7 @@ function runDynamicScript(el) {
     setTimeout(() => {
       const result = netFetch('GET', url, [], null);
       if (result === null || result[0] >= 400) { el.dispatchEvent(new Event('error')); return; }
-      execScript(el, result[4], result[2]);
+      execScript(el, decodeBody(rawBytes(result[4]), result[5]), result[2]);
       el.dispatchEvent(new Event('load'));
     }, 0);
     return;

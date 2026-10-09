@@ -12,8 +12,13 @@ const storeOf = (target) => {
   return store;
 };
 
-// `addEventListener(...)` chamado solto no topo da página: no navegador o `this` ausente é a janela.
-const targetOf = (self) => (self === undefined || self === null ? globalThis : self);
+// `addEventListener(...)` chamado solto no topo da página: no navegador o `this` ausente é a janela; um `this` que não
+// é objeto é "Illegal invocation", como num método nativo.
+const targetOf = (self) => {
+  if (self === undefined || self === null) return globalThis;
+  if (typeof self !== 'object' && typeof self !== 'function') throw new TypeError('Illegal invocation');
+  return self;
+};
 
 class EventTarget {
   addEventListener(type, callback, options) {

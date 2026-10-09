@@ -14,7 +14,10 @@ const NodeFilter = { FILTER_ACCEPT: 1, FILTER_REJECT: 2, FILTER_SKIP: 3, SHOW_AL
 
 class DOMParser {
   parseFromString(text, type) {
-    throw domException('DOMParser is not supported in this build.', 'NotSupportedError');
+    const mime = String(type);
+    const supported = ['text/html', 'text/xml', 'application/xml', 'application/xhtml+xml', 'image/svg+xml'];
+    if (!supported.includes(mime)) throw new TypeError(`Failed to execute 'parseFromString' on 'DOMParser': The provided value '${mime}' is not a valid enum value of type DOMParserSupportedType.`);
+    return wrap(op('parseDocument', String(text), mime !== 'text/html'));
   }
 }
 tag(DOMParser, 'DOMParser');
@@ -29,7 +32,7 @@ const windowGlobals = {
   localStorage: makeStorage(), sessionStorage: makeStorage(), customElements,
   getComputedStyle, matchMedia, fetch: realFetch, XMLHttpRequest, MutationObserver, MutationRecord, ResizeObserver, IntersectionObserver, PerformanceObserver,
   Node, Element, HTMLElement, HTMLUnknownElement, SVGElement, SVGGraphicsElement, SVGSVGElement, MathMLElement, Text, Comment, CDATASection, CharacterData, DocumentFragment, ShadowRoot, DocumentType, Document, Attr, NamedNodeMap, NodeList, HTMLCollection,
-  DOMTokenList, CSSStyleDeclaration, CSSStyleSheet, DOMRect, DOMRectReadOnly: DOMRect, Range, Selection, TreeWalker, NodeIterator, DOMParser, XMLSerializer, DOMImplementation, XPathEvaluator, XPathExpression, XPathResult, Location, History, Navigator, Storage, CustomElementRegistry,
+  DOMTokenList, CSSStyleDeclaration, CSSStyleSheet, DOMRect, DOMRectReadOnly: DOMRect, Range, Selection, TreeWalker, NodeIterator, DOMParser, XMLSerializer, DOMImplementation, XPathEvaluator, XPathExpression, XPathResult, SVGAnimatedString, Location, History, Navigator, Storage, CustomElementRegistry,
   EventTarget, Event, CustomEvent, UIEvent, MouseEvent, PointerEvent, WheelEvent, KeyboardEvent, FocusEvent, InputEvent, ErrorEvent, MessageEvent, HashChangeEvent, PopStateEvent, ProgressEvent, TouchEvent, AnimationEvent, TransitionEvent, PageTransitionEvent, SubmitEvent,
   HTMLDocument: Document,
 };

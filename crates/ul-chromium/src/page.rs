@@ -133,7 +133,10 @@ impl Page {
         let scripts = self.collect_scripts();
         let bridge = self.bridge.clone();
         let budget = self.budget_ms;
-        run_page(self.console.clone(), bridge.clone(), |runner| {
+        let document_url = self.bridge.url.borrow().clone();
+        let module_bridge = self.bridge.clone();
+        let module_fetch: zjsc::api::browser_modules::ModuleFetch = Rc::new(move |address: &str| fetch_text(&module_bridge.fetcher, address, "*/*"));
+        run_page(self.console.clone(), bridge.clone(), &document_url, module_fetch, |runner| {
             let prelude = format!("let $plHook = (function () {{ 'use strict';\n{}{}\nreturn hook;\n}})();", PRELUDE_PARTS.concat(), PRELUDE_TAIL);
             if let Err(error) = runner.eval(&prelude, "chrome-prelude") {
                 // O prelúdio é parte do navegador: falha dele é bug nosso e a página fica sem DOM de script.
@@ -145,6 +148,20 @@ impl Page {
             };
             let run_script = |info: &ScriptInfo| {
                 let node = info.node.as_u64();
+                if info.kind == ScriptKind::Module {
+                    // `document.currentScript` é `null` durante um módulo; a busca é do carregador de módulos.
+                    let result = match &info.src {
+                        Some(address) => runner.eval_module(None, Some(address)),
+                        None => {
+                            let text = self.bridge.doc.borrow().get_node(info.node).map(|n| n.text_content()).unwrap_or_default();
+                            runner.eval_module(Some(&text), None)
+                        }
+                    };
+                    if let Err(message) = result {
+                        call(&format!("'scriptError', {}, {}", js_quote(&message), js_quote(info.src.as_deref().unwrap_or(&document_url))));
+                    }
+                    return;
+                }
                 let Some((source, name)) = self.script_source(info) else {
                     call(&format!("'fire', {node}, 'error'"));
                     return;
@@ -221,18 +238,21 @@ impl Page {
                 let text = doc.get_node(info.node)?.text_content();
                 Some((text, self.bridge.url.borrow().clone()))
             }
-            Some(address) => {
-                let headers = vec![("User-Agent".to_owned(), USER_AGENT.to_owned()), ("Accept".to_owned(), "*/*".to_owned())];
-                let spec = RequestSpec { headers: &headers, ..RequestSpec::default() };
-                let response = (self.bridge.fetcher)(address, &spec).ok()?;
-                if response.status >= 400 {
-                    return None;
-                }
-                let content_type = response.header("Content-Type");
-                Some((encoding::decode(&response.body, content_type.as_deref()), address.clone()))
-            }
+            Some(address) => Some((fetch_text(&self.bridge.fetcher, address, "*/*")?, address.clone())),
         }
     }
+}
+
+/// O texto decodificado de um subrecurso (script clássico ou módulo); `None` para falha de rede ou status de erro.
+fn fetch_text(fetcher: &Fetcher, address: &str, accept: &str) -> Option<String> {
+    let headers = vec![("User-Agent".to_owned(), USER_AGENT.to_owned()), ("Accept".to_owned(), accept.to_owned())];
+    let spec = RequestSpec { headers: &headers, ..RequestSpec::default() };
+    let response = fetcher(address, &spec).ok()?;
+    if response.status >= 400 {
+        return None;
+    }
+    let content_type = response.header("Content-Type");
+    Some(encoding::decode(&response.body, content_type.as_deref()))
 }
 
 fn is_classic_type(value: &str) -> bool {

@@ -15,6 +15,11 @@ pub fn decode(bytes: &[u8], content_type: Option<&str>) -> String {
     encoding.decode(bytes).0.into_owned()
 }
 
+/// O rótulo do charset declarado no `Content-Type` (`utf-8` quando não há): o que o XHR usa no `responseText`.
+pub fn label(content_type: Option<&str>) -> String {
+    content_type.and_then(charset_of).unwrap_or(UTF_8).name().to_ascii_lowercase()
+}
+
 fn bom(bytes: &[u8]) -> Option<&'static Encoding> {
     Encoding::for_bom(bytes).map(|(encoding, _)| encoding)
 }

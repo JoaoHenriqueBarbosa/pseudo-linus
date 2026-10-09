@@ -161,14 +161,17 @@ impl Bridge {
                 return Ok(DomArg::Null);
             }
         }
+        // O corpo cruza a ponte cru, um byte por unidade de código (latin1): binários (wasm, imagens) chegam intactos, e
+        // o JavaScript decodifica texto pelo charset que este último item diz (o rótulo do encoding_rs).
         let content_type = response.header("Content-Type");
-        let text = encoding::decode(&response.body, content_type.as_deref());
+        let charset = encoding::label(content_type.as_deref());
+        let raw: String = response.body.iter().map(|&b| char::from(b)).collect();
         let mut flat = Vec::new();
         for (name, value) in &response.headers {
             flat.push(DomArg::Str(String::from_utf8_lossy(name).into_owned()));
             flat.push(DomArg::Str(String::from_utf8_lossy(value).into_owned()));
         }
-        Ok(DomArg::List(vec![DomArg::Num(f64::from(response.status)), DomArg::Str(response.reason), DomArg::Str(final_url), DomArg::List(flat), DomArg::Str(text)]))
+        Ok(DomArg::List(vec![DomArg::Num(f64::from(response.status)), DomArg::Str(response.reason), DomArg::Str(final_url), DomArg::List(flat), DomArg::Str(raw), DomArg::Str(charset)]))
     }
 
     fn mutate<T>(&self, f: impl FnOnce(&mut DocumentMutator<'_>) -> T) -> T {
@@ -212,6 +215,23 @@ impl Bridge {
         }
         vec![child]
     }
+}
+
+/// Copia a subárvore `id` de outro documento para o da página, nó a nó.
+fn copy_across(from: &BaseDocument, id: NodeId, m: &mut DocumentMutator<'_>) -> Option<NodeId> {
+    let node = from.get_node(id)?;
+    let copy = match &node.data {
+        NodeData::Element(element) => m.create_element(element.name.clone(), element.attrs.iter().cloned().collect()),
+        NodeData::Text(text) => m.create_text_node(&text.content),
+        NodeData::Comment { contents } => m.create_comment_node(contents),
+        _ => return None,
+    };
+    for &child in &node.children {
+        if let Some(child_copy) = copy_across(from, child, m) {
+            m.append_children(copy, &[child_copy]);
+        }
+    }
+    Some(copy)
 }
 
 /// A origem (`esquema://host[:porta]`) de uma URL absoluta; `None` para o que não tem origem de rede.
@@ -352,6 +372,23 @@ impl DomHost for Bridge {
                 let (local, namespace) = (str_arg(args, 0)?, str_arg(args, 1)?);
                 let qname = QualName::new(None, Namespace::from(namespace), LocalName::from(local));
                 Ok(num(self.mutate(|m| m.create_element(qname, Vec::<Attribute>::new()))))
+            }
+            // `DOMParser.parseFromString`: o texto é parseado num documento à parte (html5ever ou xml5ever) e a árvore
+            // copiada para cá sob uma raiz de documento secundário.
+            "parseDocument" => {
+                let text = str_arg(args, 0)?;
+                let xml = matches!(args.get(1), Some(DomArg::Bool(true)));
+                let base = self.url.borrow().clone();
+                let parsed = if xml { document::parse_xml(text, &base) } else { document::parse_at(text, &base) };
+                Ok(num(self.mutate(|m| {
+                    let root = m.create_element(QualName::new(None, ns!(), LocalName::from(SUBDOCUMENT)), Vec::new());
+                    for &child in &parsed.root_node().children {
+                        if let Some(copy) = copy_across(&parsed, child, m) {
+                            m.append_children(root, &[copy]);
+                        }
+                    }
+                    root
+                })))
             }
             "createFragment" => {
                 let qname = QualName::new(None, ns!(), LocalName::from(FRAGMENT));

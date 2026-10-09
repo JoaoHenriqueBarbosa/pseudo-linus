@@ -277,11 +277,20 @@ defineHtml('HTMLDataListElement', ['datalist']);
 defineHtml('HTMLParamElement', ['param']);
 defineHtml('HTMLFrameSetElement', ['frameset']);
 
+// `className` de SVG é um SVGAnimatedString vivo sobre o atributo `class`.
+class SVGAnimatedString {
+  constructor() { throw new TypeError('Illegal constructor'); }
+  get baseVal() { return this.__element.getAttribute(this.__attr) ?? ''; }
+  set baseVal(v) { this.__element.setAttribute(this.__attr, v); }
+  get animVal() { return this.baseVal; }
+}
+tag(SVGAnimatedString, 'SVGAnimatedString');
+const animatedString = (element, attr) => { const s = Object.create(SVGAnimatedString.prototype); hidden(s, '__element', element); hidden(s, '__attr', attr); return s; };
+
 class SVGElement extends Element {
   get ownerSVGElement() { return this.closest('svg'); }
   get viewportElement() { return this.closest('svg'); }
-  get className() { return { baseVal: this.getAttribute('class') ?? '', animVal: this.getAttribute('class') ?? '' }; }
-  set className(v) { this.setAttribute('class', v); }
+  get className() { return animatedString(this, 'class'); }
   get style() { return styleOf(this); }
 }
 tag(SVGElement, 'SVGElement');

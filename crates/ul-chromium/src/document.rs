@@ -29,6 +29,16 @@ pub fn parse_at(html: &str, base_url: &str) -> BaseDocument {
     doc
 }
 
+/// Parseia `xml` (o `application/xml` do `DOMParser`) com o xml5ever, num documento novo.
+pub fn parse_xml(xml: &str, base_url: &str) -> BaseDocument {
+    let mut doc = BaseDocument::new(DocumentConfig { base_url: Some(base_url.to_owned()), ..DocumentConfig::default() });
+    {
+        let mut mutr = doc.mutate();
+        DocumentHtmlParser::parse_xml_into_mutator(&mut mutr, xml);
+    }
+    doc
+}
+
 /// Nonce hiding (HTML, "nonce attributes"): com CSP entregue por cabeçalho, o atributo `nonce` de cada elemento fica
 /// vazio depois da inserção (a propriedade `nonce` guardaria o valor; o DOM serializado mostra `nonce=""`).
 pub fn hide_nonces(doc: &mut BaseDocument) {

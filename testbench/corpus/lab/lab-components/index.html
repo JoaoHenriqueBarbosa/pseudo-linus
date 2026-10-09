@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>lab: componentes</title>
+</head>
+<body>
+<h1>Web Components</h1>
+<x-card id="antes" heading="Upgrade"><span slot="body">conteúdo projetado</span><em>sem slot</em></x-card>
+<x-counter start="3"></x-counter>
+<template id="tpl-badge"><span class="badge"><slot>padrão</slot></span></template>
+<div id="area"></div>
+<pre id="log"></pre>
+<script>
+  var lines = [];
+  function log(line) { lines.push(String(line)); document.getElementById('log').textContent = lines.join('\n'); }
+
+  log('antes do define: ' + (document.getElementById('antes') instanceof HTMLElement) + ' ' + document.getElementById('antes').constructor.name + ' defined=' + document.getElementById('antes').matches(':defined'));
+
+  class XCard extends HTMLElement {
+    static get observedAttributes() { return ['heading']; }
+    constructor() {
+      super();
+      log('XCard constructor, conectado=' + this.isConnected + ' filhos=' + this.childNodes.length);
+      const root = this.attachShadow({ mode: 'open' });
+      root.innerHTML = '<h2 part="title"></h2><slot name="body"></slot><slot></slot>';
+    }
+    connectedCallback() { log('XCard connected #' + this.id); this.render(); }
+    disconnectedCallback() { log('XCard disconnected #' + this.id); }
+    adoptedCallback() { log('XCard adopted'); }
+    attributeChangedCallback(name, oldValue, newValue) { log('XCard attr ' + name + ': ' + oldValue + ' -> ' + newValue); this.render(); }
+    render() {
+      if (!this.shadowRoot) return;
+      this.shadowRoot.querySelector('h2').textContent = this.getAttribute('heading') || '(sem título)';
+      this.setAttribute('data-rendered', String((Number(this.getAttribute('data-rendered')) || 0) + 1));
+    }
+  }
+
+  customElements.whenDefined('x-card').then(function (ctor) { log('whenDefined x-card: ' + (ctor === XCard)); });
+  customElements.define('x-card', XCard);
+  var antes = document.getElementById('antes');
+  log('depois do define: ' + antes.constructor.name + ' defined=' + antes.matches(':defined') + ' shadow=' + (antes.shadowRoot !== null));
+  log('slot body atribuído: ' + antes.shadowRoot.querySelector('slot[name=body]').assignedNodes().map(function (n) { return n.textContent; }).join('|'));
+  log('slot padrão atribuído: ' + antes.shadowRoot.querySelector('slot:not([name])').assignedElements().map(function (n) { return n.localName; }).join('|'));
+
+  antes.setAttribute('heading', 'Trocado');
+  antes.setAttribute('ignored', 'x');
+
+  class XCounter extends HTMLElement {
+    connectedCallback() {
+      this.value = Number(this.getAttribute('start'));
+      const button = document.createElement('button');
+      button.textContent = '+';
+      button.addEventListener('click', () => { this.value += 1; this.output.textContent = String(this.value); this.dispatchEvent(new CustomEvent('change', { detail: this.value, bubbles: true, composed: true })); });
+      this.output = document.createElement('output');
+      this.output.textContent = String(this.value);
+      this.append(button, this.output);
+    }
+  }
+  customElements.define('x-counter', XCounter);
+  document.body.addEventListener('change', function (e) { log('change chegou ao body: detail=' + e.detail + ' target=' + e.target.localName); });
+  var counter = document.querySelector('x-counter');
+  counter.querySelector('button').click();
+  counter.querySelector('button').click();
+
+  var created = document.createElement('x-card');
+  created.id = 'criado';
+  log('createElement: ' + created.constructor.name + ' conectado=' + created.isConnected);
+  document.getElementById('area').appendChild(created);
+  document.getElementById('area').removeChild(created);
+  document.getElementById('area').appendChild(created);
+
+  try { customElements.define('x-card', class extends HTMLElement {}); } catch (e) { log('define duplicado: ' + e.name); }
+  try { customElements.define('semhifen', class extends HTMLElement {}); } catch (e) { log('nome inválido: ' + e.name); }
+
+  class XBadge extends HTMLElement {
+    constructor() {
+      super();
+      this.attachShadow({ mode: 'closed' }).appendChild(document.getElementById('tpl-badge').content.cloneNode(true));
+    }
+  }
+  customElements.define('x-badge', XBadge);
+  var badge = document.createElement('x-badge');
+  badge.textContent = 'novo';
+  document.getElementById('area').appendChild(badge);
+  log('shadow fechado: shadowRoot=' + badge.shadowRoot);
+  log('innerHTML do host não mostra a sombra: ' + badge.outerHTML);
+  log('getName: ' + customElements.getName(XBadge) + ' get: ' + (customElements.get('x-badge') === XBadge));
+  var composedPathEvent = null;
+  antes.shadowRoot.querySelector('h2').addEventListener('ping', function (e) { composedPathEvent = e.composedPath().map(function (n) { return n.nodeName || (n === window ? 'window' : String(n)); }).join('>'); });
+  antes.shadowRoot.querySelector('h2').dispatchEvent(new Event('ping', { bubbles: true, composed: true }));
+  log('composedPath: ' + composedPathEvent);
+</script>
+</body>
+</html>

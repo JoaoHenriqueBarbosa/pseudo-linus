@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>lab: roteador</title>
+</head>
+<body>
+<nav>
+  <a href="/lab-router/" data-link>início</a>
+  <a href="/lab-router/sobre?aba=2#equipe" data-link>sobre</a>
+  <a href="/lab-router/contato" data-link>contato</a>
+  <a href="#secao" id="ancora">âncora</a>
+</nav>
+<main id="view"></main>
+<pre id="log"></pre>
+<script>
+  var lines = [];
+  function log(line) { lines.push(String(line)); document.getElementById('log').textContent = lines.join('\n'); }
+  var routes = {
+    '/lab-router/': function () { return '<h2>Início</h2>'; },
+    '/lab-router/sobre': function (q) { return '<h2>Sobre</h2><p>aba ' + q.get('aba') + '</p>'; },
+    '/lab-router/contato': function () { return '<h2>Contato</h2><form><input name=email value="a@b.c"></form>'; },
+  };
+  function render() {
+    var handler = routes[location.pathname] || function () { return '<h2>404</h2>'; };
+    document.getElementById('view').innerHTML = handler(new URLSearchParams(location.search));
+    document.title = 'lab: ' + document.querySelector('#view h2').textContent;
+    log('render ' + location.pathname + location.search + location.hash + ' state=' + JSON.stringify(history.state) + ' length=' + history.length);
+  }
+  document.addEventListener('click', function (e) {
+    var link = e.target.closest('a[data-link]');
+    if (!link) return;
+    e.preventDefault();
+    history.pushState({ via: 'clique', href: link.getAttribute('href') }, '', link.href);
+    render();
+  });
+  window.addEventListener('popstate', function (e) { log('popstate state=' + JSON.stringify(e.state) + ' path=' + location.pathname); render(); });
+  window.addEventListener('hashchange', function (e) { log('hashchange ' + new URL(e.oldURL).hash + ' -> ' + new URL(e.newURL).hash); });
+
+  log('location: protocol=' + location.protocol + ' host=' + location.host + ' origin=' + location.origin + ' pathname=' + location.pathname);
+  render();
+  document.querySelectorAll('a[data-link]')[1].click();
+  document.querySelectorAll('a[data-link]')[2].click();
+  history.replaceState({ substituído: true }, '');
+  log('depois do replaceState: state=' + JSON.stringify(history.state) + ' url=' + location.href);
+  try { history.pushState(null, '', 'https://outro.test/x'); } catch (e) { log('pushState de outra origem: ' + e.name); }
+  var a = document.createElement('a');
+  a.href = '../outro/caminho?x=1#f';
+  log('a.href resolvido: ' + a.href + ' pathname=' + a.pathname + ' search=' + a.search + ' hash=' + a.hash);
+  var u = new URL('/api/itens?pagina=2&ordem=asc', location.href);
+  u.searchParams.append('filtro', 'ç ã');
+  log('URL: ' + u.href);
+  setTimeout(function () {
+    log('history.back()');
+    history.back();
+    setTimeout(function () {
+      location.hash = 'secao';
+      setTimeout(function () { history.go(-1); }, 20);
+    }, 20);
+  }, 20);
+</script>
+</body>
+</html>

@@ -123,6 +123,14 @@ fn cssom_write_serializes_canonically() {
 }
 
 #[test]
+fn module_scripts_with_dynamic_import_and_top_level_await() {
+    let html = "<body><script type=module>import { a } from './m.js'; const { b } = await import('/n.js'); console.log(a, b, document.currentScript, import.meta.url)</script><script type=module>console.log(typeof C)</script><script>var C = 1</script>";
+    let (_, log) = run(&[("/", html), ("/m.js", "export const a = 'a'"), ("/n.js", "export const b = 'b'")]);
+    // O clássico roda primeiro (bloqueia o parser); os módulos são adiados, e o segundo roda enquanto o primeiro espera.
+    assert_eq!(log, "number\na b null http://t.test/\n");
+}
+
+#[test]
 fn hidden_is_on_html_element_prototype() {
     let (_, log) = run(&[("/", "<script>console.log(Object.getOwnPropertyNames(HTMLElement.prototype).includes('hidden'), 'hidden' in Element.prototype)</script>")]);
     assert_eq!(log, "true false\n");
