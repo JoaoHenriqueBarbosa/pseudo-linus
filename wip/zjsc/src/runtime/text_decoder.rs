@@ -60,7 +60,6 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 
 use crate::host_function;
-use crate::runtime::array_buffer_prototype::put_native_getter;
 use crate::runtime::class_info::ClassInfo;
 use crate::runtime::collection_support::{derived_structure, put_to_string_tag};
 use crate::runtime::host_call::{pending_or, HostCall, HostResult, Thrown};
@@ -78,7 +77,7 @@ use crate::runtime::js_object::{JSFinalObject, JS_NON_FINAL_OBJECT_S_INFO};
 use crate::runtime::js_string::js_string;
 use crate::runtime::js_value::{EncodedJSValue, JSValue};
 use crate::runtime::native_class_support::{
-    create_native_class, install_global, instance_structure, throw_coded_range_error, throw_coded_type_error,
+    create_native_class, install_global, instance_structure, put_native_accessor, throw_coded_range_error, throw_coded_type_error,
 };
 use crate::runtime::property_attribute::{DONT_DELETE, DONT_ENUM};
 use crate::runtime::property_name::PropertyName;
@@ -636,7 +635,7 @@ fn decode_body(encoding: Encoding, fatal: bool, body: &[u8]) -> Result<String, (
                 let (advance, points) = big5_next(body, index).unwrap_or((body.len() - index, None));
                 index += advance;
                 match points {
-                    Some((first, second)) => text.extend([first, second].into_iter().filter(|&point| point != 0).filter_map(char::from_u32)),
+                    Some((first, second)) => text.extend(std::iter::once(first).chain((second != 0).then_some(second)).filter_map(char::from_u32)),
                     None if fatal => return Err(()),
                     None => text.push(char::REPLACEMENT_CHARACTER),
                 }
@@ -838,9 +837,9 @@ pub fn install_text_decoder(global_object: &JSGlobalObject) {
         Intrinsic::NoIntrinsic,
         DONT_DELETE,
     );
-    put_native_getter(vm, global_object, &prototype, "encoding", text_decoder_encoding, Intrinsic::NoIntrinsic, DONT_DELETE);
-    put_native_getter(vm, global_object, &prototype, "fatal", text_decoder_fatal, Intrinsic::NoIntrinsic, DONT_DELETE);
-    put_native_getter(vm, global_object, &prototype, "ignoreBOM", text_decoder_ignore_bom, Intrinsic::NoIntrinsic, DONT_DELETE);
+    put_native_accessor(vm, global_object, &prototype, "encoding", text_decoder_encoding, None, DONT_DELETE);
+    put_native_accessor(vm, global_object, &prototype, "fatal", text_decoder_fatal, None, DONT_DELETE);
+    put_native_accessor(vm, global_object, &prototype, "ignoreBOM", text_decoder_ignore_bom, None, DONT_DELETE);
     prototype.put_direct(vm, &PropertyName::from_identifier(&vm.property_names.constructor), constructor.as_value(), DONT_ENUM);
     put_to_string_tag(vm, &prototype, "TextDecoder");
 
