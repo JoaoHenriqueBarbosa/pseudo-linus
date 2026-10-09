@@ -116,6 +116,12 @@ pub trait ModuleHost {
     /// um módulo Text).
     fn fetch(&self, key: &str) -> Result<String, String>;
 
+    /// A resolução do `import()` dinâmico; só difere da estática na mensagem de falha de quem quer outra (o
+    /// navegador).
+    fn resolve_dynamic(&self, specifier: &str, referrer: Option<&str>) -> Result<String, String> {
+        self.resolve(specifier, referrer)
+    }
+
     /// Falha de `resolve` e de `fetch` vira `TypeError` com a mensagem do host (o navegador: `Failed to resolve
     /// module specifier`, `Failed to fetch dynamically imported module`), não o `ResolveMessage` nem o `Error` do Bun.
     fn failures_are_type_errors(&self) -> bool {
@@ -955,6 +961,7 @@ fn request_import_module(
     deferred: bool,
     referrer: Option<&str>,
     defer_load: bool,
+    dynamic: bool,
 ) -> ModuleResult<JSPromiseRef> {
     let vm = global_object.vm();
     // Sem host de módulos (script avulso) nada resolve: o bun rejeita com o `ResolveMessage` do resolvedor dele.
@@ -966,7 +973,8 @@ fn request_import_module(
         let (message, code, shown) = unresolved_specifier_message(specifier, &from);
         return Err(throw_resolve_message(global_object, &message, code, &shown, &from));
     };
-    let key = match loader.host.resolve(specifier, referrer) {
+    let resolved = if dynamic { loader.host.resolve_dynamic(specifier, referrer) } else { loader.host.resolve(specifier, referrer) };
+    let key = match resolved {
         Ok(key) => key,
         Err(message) if loader.host.failures_are_type_errors() => return Err(throw_type_error(global_object, &message)),
         Err(message) => {
@@ -1105,7 +1113,7 @@ thread_local! {
 /// namespace do módulo (`loadAndEvaluateModule` de `jsc.cpp`): o namespace só existe depois que as
 /// microtasks drenarem, porque a avaliação pode ser assíncrona.
 pub fn load_and_evaluate_module(global_object: &JSGlobalObject, specifier: &str) -> JSPromiseRef {
-    match request_import_module(global_object, specifier, None, false, None, false) {
+    match request_import_module(global_object, specifier, None, false, None, false, false) {
         Ok(promise) => promise,
         Err(Thrown::Unported(what)) => panic!("módulos: {what} ainda não portado"),
         Err(_) => {
@@ -1303,7 +1311,7 @@ fn global_func_import_module(global_object: &JSGlobalObject, call_frame: &mut Na
     };
     let deferred = call_frame.argument(2).is_true();
     let referrer = (!source_origin.is_null()).then(|| rust_string(source_origin.string()));
-    let import_promise = match request_import_module(global_object, &specifier, parameters, deferred, referrer.as_deref(), true) {
+    let import_promise = match request_import_module(global_object, &specifier, parameters, deferred, referrer.as_deref(), true, true) {
         Ok(promise) => promise,
         Err(Thrown::Unported(what)) => panic!("módulos: {what} ainda não portado"),
         Err(_) => return reject_with_caught_exception(None),
