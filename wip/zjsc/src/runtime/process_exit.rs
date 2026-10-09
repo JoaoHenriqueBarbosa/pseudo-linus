@@ -33,7 +33,8 @@ use crate::runtime::js_value::{js_number, JSValue};
 use crate::runtime::js_value_conversions::number_to_string_radix10;
 use crate::runtime::js_web_assembly::received_description;
 use crate::runtime::native_function::NativeFunction;
-use crate::runtime::node_error::{throw_coded_error, throw_coded_range_error, throw_coded_type_error};
+use crate::runtime::error_type::ErrorType;
+use crate::runtime::node_error::{throw_coded_error, throw_coded_range_error, throw_coded_type_error, throw_validation_error};
 use crate::runtime::process_object::{run_pending_ticks, set_processing_ticks};
 use crate::runtime::process_warning::print_warning;
 use crate::runtime::throw_scope::{throw_exception, ThrowScope};
@@ -117,7 +118,7 @@ fn with_separators(text: &str) -> String {
 
 fn invalid_code_type(global_object: &JSGlobalObject, value: JSValue) -> Thrown {
     let message = format!("The \"code\" argument must be of type number. Received {}", received_description(global_object, value));
-    throw_coded_type_error(global_object, &message, "ERR_INVALID_ARG_TYPE")
+    throw_validation_error(global_object, ErrorType::TypeError, &message, "ERR_INVALID_ARG_TYPE")
 }
 
 /// A validação de `exitCode` e de `exit(code)`: `Ok(None)` para `undefined` e `null`.
@@ -136,14 +137,14 @@ fn parse_exit_code(global_object: &JSGlobalObject, value: JSValue) -> Result<Opt
     let vm = global_object.vm();
     if !number.is_finite() || number.fract() != 0.0 {
         let message = format!("The value of \"code\" is out of range. It must be an integer. Received {}", number_text(vm, number));
-        return Err(throw_coded_range_error(global_object, &message, "ERR_OUT_OF_RANGE"));
+        return Err(throw_validation_error(global_object, ErrorType::RangeError, &message, "ERR_OUT_OF_RANGE"));
     }
     if number.abs() > MAX_SAFE_INTEGER {
         let shown = with_separators(&number_text(vm, number));
         let message = format!(
             "The value of \"code\" is out of range. It must be >= -9007199254740991 && <= 9007199254740991. Received {shown}"
         );
-        return Err(throw_coded_range_error(global_object, &message, "ERR_OUT_OF_RANGE"));
+        return Err(throw_validation_error(global_object, ErrorType::RangeError, &message, "ERR_OUT_OF_RANGE"));
     }
     Ok(Some(number as i64))
 }
@@ -511,7 +512,7 @@ fn set_max_listeners_body(global_object: &JSGlobalObject, call: &HostCall) -> Ho
             "The value of \"n\" is out of range. It must be a non-negative number. Received {}",
             received_description(global_object, value)
         );
-        return Err(throw_coded_range_error(global_object, &message, "ERR_OUT_OF_RANGE"));
+        return Err(throw_validation_error(global_object, ErrorType::RangeError, &message, "ERR_OUT_OF_RANGE"));
     }
     MAX_LISTENERS.with(|max| max.set(value.as_number()));
     Ok(call.this_value())
