@@ -1034,8 +1034,9 @@ fn request_import_module(
         // Módulo novo: a leitura do arquivo é uma macrotask no bun, o corpo e o `.then` só rodam quando o laço
         // de eventos a entrega (depois de esvaziar a fila de microtasks inteira). Módulo já carregado, ou sem
         // laço de eventos: os saltos de microtask medidos.
-        if let (false, Some(latency)) = (already_loaded, loader.host.network_latency_ms()) {
-            // O navegador: a resposta da rede é uma tarefa de timer, depois das que já estão na fila.
+        if let Some(latency) = loader.host.network_latency_ms() {
+            // O navegador: a resposta da rede é uma tarefa de timer, depois das que já estão na fila; o módulo que já
+            // está no mapa também só continua numa tarefa (medido no Chromium 154).
             let promise = Rc::clone(&state_promise);
             let pending = RefCell::new(Some(pending));
             crate::runtime::timers::schedule_native_with_ref(

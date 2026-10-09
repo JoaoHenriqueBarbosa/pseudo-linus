@@ -258,12 +258,16 @@ mod tests {
             let before = read();
             crate::runtime::timers::run_event_loop_for(&global_object, 10.0);
             let first = read();
+            // O módulo já carregado também só continua numa tarefa: depois do `setTimeout(0)` agendado antes.
+            let again = "setTimeout(() => log.push('t0b'), 0); import('./m.js').then(() => log.push('again')); log.push('sync');";
+            evaluate(&global_object, &program_source(again)).expect("again");
+            vm.drain_microtasks();
             crate::runtime::timers::run_event_loop_for(&global_object, 10.0);
             (before, first, read())
         });
         assert_eq!(logs.0, r#"["bare"]"#);
         assert_eq!(logs.1, r#"["bare","t0","m","then"]"#);
-        assert_eq!(logs.2, r#"["bare","t0","m","then","t15"]"#);
+        assert_eq!(logs.2, r#"["bare","t0","m","then","sync","t0b","again","t15"]"#);
     }
 
     #[test]
