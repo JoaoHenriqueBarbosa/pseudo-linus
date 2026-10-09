@@ -12,7 +12,7 @@ const GOLDEN: &str = include_str!("golden/global_order_bun.tsv");
 
 #[test]
 fn global_order_matches_bun() {
-    common::check(GOLDEN, common::NO_PRELUDES, 150, |source| {
+    common::check(GOLDEN, common::NO_PRELUDES, 2, |source| {
         match catch_unwind(AssertUnwindSafe(|| evaluate_named_script_reporting_uncaught(source, "global_order_case.js", "R"))) {
             Ok(Err(uncaught)) => Ok(common::Units::from(uncaught)),
             Ok(Ok(read)) => common::guarded_units(|| read),

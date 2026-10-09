@@ -570,6 +570,7 @@ impl JSGlobalObject {
         // O global é um `EventTarget` (`addEventListener` & cia entram antes da reordenação).
         crate::runtime::event_target::install_global_event_target(&global_object);
         crate::runtime::navigator::install_navigator(&global_object);
+        crate::runtime::bun_global::install_bun(&global_object);
         crate::runtime::crypto::install_crypto(&global_object);
         crate::runtime::process_object::complete_process(&global_object);
         // `Buffer` entra antes da reordenação, que o põe depois de `Blob` (a posição vem da lista `ORDER`).

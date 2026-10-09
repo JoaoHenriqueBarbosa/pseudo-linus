@@ -475,9 +475,8 @@ pub fn install_message_classes(global_object: &JSGlobalObject) {
         prototype.put_direct(vm, &PropertyName::from_identifier(&vm.property_names.to_primitive_symbol), to_primitive.as_value(), READ_ONLY | DONT_ENUM);
         prototype.put_direct(vm, &PropertyName::from_identifier(&vm.property_names.to_string_tag_symbol), js_text(vm, class_name), READ_ONLY | DONT_ENUM);
         constructor.put_direct(vm, &PropertyName::from_identifier(&vm.property_names.prototype), prototype.as_value(), READ_ONLY | DONT_ENUM | DONT_DELETE);
-        if let Some(global_this) = global_object.global_this() {
-            global_this.put_direct(vm, &property_key(vm, class_name), constructor.as_value(), 0);
-        }
+        // No próprio objeto global: `globalThis` é um `JSGlobalProxy`, e `putDirect` nele não encaminha ao alvo.
+        global_object.put_direct(vm, &property_key(vm, class_name), constructor.as_value(), 0);
         let instance_structure = JSFinalObject::create_structure(vm, Some(global_object), prototype.as_value(), JSFinalObject::DEFAULT_INLINE_CAPACITY);
         MESSAGE_STRUCTURES.with(|slots| slots.borrow_mut()[kind] = Some(instance_structure));
     }
