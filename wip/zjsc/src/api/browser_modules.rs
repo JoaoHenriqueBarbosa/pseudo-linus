@@ -36,9 +36,9 @@ impl UrlModuleHost {
         self.network_latency_ms.set(Some(milliseconds));
     }
 
-    /// O especificador que o Chromium resolve: absoluto (com esquema) ou começando por `/`, `./` ou `../`. A falha do
-    /// `import()` dinâmico tem a forma curta, com aspas simples (medido no Chromium 154).
-    fn resolve_against(&self, specifier: &str, base: &str, dynamic: bool) -> Result<String, String> {
+    /// O especificador que o Chromium resolve: absoluto (com esquema) ou começando por `/`, `./` ou `../`. A mensagem
+    /// da falha depende de quem resolve (medido no Chromium 154).
+    fn resolve_against(&self, specifier: &str, base: &str, by: Resolver) -> Result<String, String> {
         let units = |text: &str| text.encode_utf16().collect::<Vec<u16>>();
         let relative = specifier.starts_with('/') || specifier.starts_with("./") || specifier.starts_with("../");
         let parsed = if relative {
@@ -46,17 +46,15 @@ impl UrlModuleHost {
         } else {
             crate::runtime::url::parse_with_base(&units(specifier), None)
         };
-        parsed.map(|url| rust_string(url.string())).ok_or_else(|| {
-            if dynamic {
-                return format!("Failed to resolve module specifier '{specifier}'");
-            }
-            format!(
-                "Failed to resolve module specifier \"{specifier}\". Relative references must start with either \"/\", \"./\", or \"../\"."
-            )
+        const RELATIVE: &str = "Relative references must start with either \"/\", \"./\", or \"../\".";
+        parsed.map(|url| rust_string(url.string())).ok_or_else(|| match by {
+            Resolver::Static => format!("Failed to resolve module specifier \"{specifier}\". {RELATIVE}"),
+            Resolver::Dynamic => format!("Failed to resolve module specifier '{specifier}'"),
+            Resolver::ImportMeta => format!("Failed to resolve module specifier {specifier}: {RELATIVE}"),
         })
     }
 
-    fn resolve_with(&self, specifier: &str, referrer: Option<&str>, dynamic: bool) -> Result<String, String> {
+    fn resolve_with(&self, specifier: &str, referrer: Option<&str>, by: Resolver) -> Result<String, String> {
         if referrer.is_none() && self.inline.borrow().iter().any(|(key, _)| key == specifier) {
             return Ok(specifier.to_owned());
         }
@@ -66,8 +64,16 @@ impl UrlModuleHost {
             Some(referrer) => referrer.strip_prefix("file:///").filter(|url| url.contains("://")).unwrap_or(referrer),
             None => &self.document_url,
         };
-        self.resolve_against(specifier, shown_url(base), dynamic)
+        self.resolve_against(specifier, shown_url(base), by)
     }
+}
+
+/// Quem pede a resolução: o `import` estático, o `import()` e o `import.meta.resolve` falham com textos diferentes.
+#[derive(Clone, Copy)]
+enum Resolver {
+    Static,
+    Dynamic,
+    ImportMeta,
 }
 
 /// A chave de um módulo inline é `<url do documento>#__inline_module_<n>`: a parte antes do marcador é a URL que o
@@ -80,11 +86,11 @@ fn shown_url(key: &str) -> &str {
 
 impl ModuleHost for UrlModuleHost {
     fn resolve(&self, specifier: &str, referrer: Option<&str>) -> Result<String, String> {
-        self.resolve_with(specifier, referrer, false)
+        self.resolve_with(specifier, referrer, Resolver::Static)
     }
 
     fn resolve_dynamic(&self, specifier: &str, referrer: Option<&str>) -> Result<String, String> {
-        self.resolve_with(specifier, referrer, true)
+        self.resolve_with(specifier, referrer, Resolver::Dynamic)
     }
 
     fn network_latency_ms(&self) -> Option<f64> {
@@ -106,12 +112,16 @@ impl ModuleHost for UrlModuleHost {
         false
     }
 
+    fn html_import_meta(&self) -> bool {
+        true
+    }
+
     fn import_meta_url(&self, key: &str) -> String {
         shown_url(key).to_owned()
     }
 
     fn import_meta_resolve(&self, specifier: &str, referrer: &str, _sync: bool) -> Result<String, String> {
-        self.resolve_against(specifier, shown_url(referrer), false)
+        self.resolve_against(specifier, shown_url(referrer), Resolver::ImportMeta)
     }
 
     /// No navegador o tipo vem do `type` do pedido (JSON com `with { type: 'json' }`), nunca da extensão.
@@ -280,6 +290,33 @@ mod tests {
         });
         assert_eq!(logs.0, r#"["m","then"]"#);
         assert_eq!(logs.1, r#"["m","then","t3"]"#);
+    }
+
+    /// Medido no Chromium 154.
+    #[test]
+    fn import_meta_has_the_html_shape() {
+        let files = [("https://site.test/app/m.js", "log.push(import.meta.url, import.meta.resolve('./x.js'));")];
+        let (log, error) = run(
+            &files,
+            "const m = import.meta; const r = m.resolve; \
+             log.push(Object.getPrototypeOf(m), Reflect.ownKeys(m).join(), Object.prototype.toString.call(m), Object.isExtensible(m), m === import.meta); \
+             const d = Object.getOwnPropertyDescriptor(m, 'resolve'); log.push(d.writable && d.enumerable && d.configurable); \
+             log.push(r.length, r.name, r.toString(), m.url, r('./x.js'), r.call({}, '/y.js')); \
+             for (const s of ['react', undefined]) { try { r(s); } catch (e) { log.push(e.name + ': ' + e.message); } } \
+             try { new r('./x'); } catch (e) { log.push(e.name); } \
+             await import('./m.js');",
+        );
+        assert_eq!(error, None);
+        assert_eq!(
+            log,
+            concat!(
+                r#"[null,"url,resolve","[object Object]",true,true,true,1,"resolve","function resolve() { [native code] }","#,
+                r#""https://site.test/app/index.html","https://site.test/app/x.js","https://site.test/y.js","#,
+                r#""TypeError: Failed to resolve module specifier react: Relative references must start with either \"/\", \"./\", or \"../\".","#,
+                r#""TypeError: Failed to resolve module specifier undefined: Relative references must start with either \"/\", \"./\", or \"../\".","#,
+                r#""TypeError","https://site.test/app/m.js","https://site.test/app/x.js"]"#
+            )
+        );
     }
 
     #[test]
