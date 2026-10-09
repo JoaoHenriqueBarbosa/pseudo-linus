@@ -39,7 +39,12 @@ thread_local! {
 
 /// Fim do programa (`cell_registry::reset_program_state`).
 pub(crate) fn reset_for_program() {
-    let _ = PROGRAM.try_with(|state| *state.borrow_mut() = ProgramState::default());
+    // Argumentos e diretório de trabalho são configuração do embedder (`set_script_arguments`, `set_working_directory`),
+    // feita antes de `run_program`, cujo início solta o programa anterior e chega aqui: não são estado de programa.
+    let _ = PROGRAM.try_with(|state| {
+        let mut state = state.borrow_mut();
+        *state = ProgramState { arguments: std::mem::take(&mut state.arguments), cwd: state.cwd.take(), ..ProgramState::default() };
+    });
     let _ = UMASK.try_with(|mask| mask.set(DEFAULT_UMASK));
 }
 
