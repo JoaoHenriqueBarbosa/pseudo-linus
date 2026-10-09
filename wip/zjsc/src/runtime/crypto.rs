@@ -125,7 +125,7 @@ use crate::runtime::native_class_support::{
     create_native_class, install_global, instance_structure, property_key, put_native_accessor, throw_coded_type_error, throw_native_type_error,
 };
 use crate::runtime::native_function::NativeFunction;
-use crate::runtime::node_error::{throw_coded_range_error, throw_native_range_error};
+use crate::runtime::node_error::throw_coded_range_error;
 use crate::runtime::property_attribute::{DONT_DELETE, DONT_ENUM};
 use crate::runtime::text_decoder::input_bytes;
 use crate::runtime::typed_array_type::TypedArrayType;
@@ -2469,11 +2469,7 @@ fn key_transform(global_object: &JSGlobalObject, call: &HostCall, key: &KeyState
     match params {
         AesParams::Oaep { label } => {
             let hash = HASHES[key.hash].algo;
-            // Cifrar com módulo menor que 2 * hash + 2 bytes é o `RangeError` do bun (conta de tamanho negativa).
-            let modulus_bytes = crypto_rsa::parameters(&key.secret).map_or(0, |(bits, _)| bits.div_ceil(8));
-            if !decrypt && modulus_bytes < 2 * hash.digest_size() + 2 {
-                return Err(throw_native_range_error(global_object, "length cannot be negative"));
-            }
+            // Medido no bun 1.4.2: módulo pequeno demais para o hash é `OperationError` (a conta falha dentro do OAEP).
             let result = if decrypt { crypto_rsa::decrypt_oaep(&key.secret, data, hash, label) } else { crypto_rsa::encrypt_oaep(&key.secret, data, hash, label) };
             result.ok_or_else(|| operation_error(global_object, call, OPERATION_FAILED))
         }

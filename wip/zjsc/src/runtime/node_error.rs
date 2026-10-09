@@ -263,11 +263,6 @@ pub(crate) fn throw_coded_range_error(global_object: &JSGlobalObject, message: &
     throw_coded(global_object, ErrorType::RangeError, message, Some(code))
 }
 
-/// Lança um `RangeError` nativo sem `code` (o `length cannot be negative` do bun no RSA-OAEP com módulo pequeno demais).
-pub(crate) fn throw_native_range_error(global_object: &JSGlobalObject, message: &str) -> Thrown {
-    throw_coded(global_object, ErrorType::RangeError, message, None)
-}
-
 /// Lança um `SyntaxError` nativo sem `code` (a rejeição `SyntaxError` do WebCrypto do bun, que não é `DOMException`)
 /// e devolve `Thrown::Pending`.
 pub(crate) fn throw_native_syntax_error(global_object: &JSGlobalObject, message: &str) -> Thrown {
