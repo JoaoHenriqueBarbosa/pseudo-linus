@@ -132,7 +132,8 @@ fn brotli_compress(input: &[u8]) -> Result<Vec<u8>, CodecError> {
     use std::io::Write;
     let mut writer = brotli::CompressorWriter::new(Vec::new(), 4096, 11, 22);
     writer.write_all(input).map_err(|_| CodecError::BrotliFailed("ERR__ERROR_UNREACHABLE".to_owned()))?;
-    writer.flush().map_err(|_| CodecError::BrotliFailed("ERR__ERROR_UNREACHABLE".to_owned()))?;
+    // Sem `flush`: ele emite um bloco de metadados vazio antes do fim (`6b0003` no stream vazio); o bun só termina o
+    // stream (`3b`), e `into_inner` faz exatamente isso.
     Ok(writer.into_inner())
 }
 
