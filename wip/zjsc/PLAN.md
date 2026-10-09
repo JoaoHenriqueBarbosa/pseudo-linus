@@ -56,6 +56,21 @@ deslocamento de uma linha (o `SourceCode` de função prende a primeira linha em
 `buffer_bun_golden` caiu de 11 para 7: `toLocaleString === toString`, `Buffer.concat()` sem argumento, `Buffer.from(date)`,
 ordem `offset` antes de `byteLength` em `readUIntBE`.
 
+Rodada seguinte (2026-10-09, depois da suíte completa ter sido parada por falta de memória; cada binário abaixo foi
+medido sozinho, sem rodar a suíte inteira): `crypto` 66 para 17 de 3633 (`raw-public` de chave privada recusado antes de
+`extractable`, `length: -1` do `deriveKey` HMAC é `EnforceRange`, `describe_received` cita o texto real do símbolo,
+`SubtleCrypto.supports` de `wrapKey`/`unwrapKey` valida a chave embrulhada como `exportKey`/`importKey`, `supports` exige
+`this === SubtleCrypto`, `deriveKey` importa como `raw-secret` e destrava o ChaCha20-Poly1305, JWK OKP privado ignora `x`,
+`key_ops` duplicado passa no AES e em EC/OKP, base64url com `+` ou `/` vira vazio). `compression_streams` 18 para 8
+(`null` e visão sobre `SharedArrayBuffer` rejeitados, gzip com um byte solto espera o próximo, `inspect` quebra o aninhado
+em `breakLength`); as 8 que sobram são bytes de deflate/gzip/brotli que o backend `miniz_oxide` não reproduz como o zlib
+(só um porte exato do deflate resolve). `text_decoder` e `text_streams` verdes (getters nativos com `toString` de nome
+puro, big5 preserva U+0000, `TextDecoderStream` confere `options` antes do rótulo). `buffer` 2 para 1 (o que sobra depende
+do fuso do gerador, não é bug do porte). Sobra em `global_semantics` 2 (ordem de chaves de `getOwnPropertyNames` no modo
+estrito: o bun dá `a,d`, o porte `d,a`). `process_bun_golden` falha com pânico `as_cell em valor que não é célula`
+(`js_value.rs:331`), preexistente. Pendentes em `crypto` (17): RSA-OAEP com `valueOf` que lança, ML-KEM e ML-DSA, ECDSA
+com curva inválida (`P-1` é `DataError`, não `NotSupportedError`), `supports` com valores exóticos.
+
 Ainda abertos (catalogados, sem ordem de atacar agora):
 - `buffer`: 6 casos exigem o global `Bun` (`Bun.inspect`), que não existe no porte; 1 caso (`Buffer.from(new Date(0))`)
   depende do fuso do bun (`America/Sao_Paulo`), não é bug do porte.
