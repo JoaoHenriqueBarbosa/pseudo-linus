@@ -95,7 +95,8 @@ impl Interpreter {
         // o espelho de `Error.stackTraceLimit`, que `Error.cpp getStackTrace` lê); um que já tem pilha (o
         // `new Error` relançado) não anda a pilha de novo, porque `set_pending_stack` não faria nada.
         let thrown = exception.value();
-        let error = if thrown.is_cell() { ErrorInstance::from_cell_id(thrown.as_cell()) } else { None };
+        // `is_cell` vale também para o valor vazio (como no C++); só uma célula de verdade pode ser um `ErrorInstance`.
+        let error = if matches!(thrown, JSValue::Cell(_)) { ErrorInstance::from_cell_id(thrown.as_cell()) } else { None };
         match error {
             Some(error) => {
                 if !error.has_stack_info() {
