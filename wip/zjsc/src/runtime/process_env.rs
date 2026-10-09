@@ -57,7 +57,7 @@ thread_local! {
 /// Fim do programa (`process_shape::reset_for_program`).
 pub(crate) fn reset_for_program() {
     let _ = ENV_CELL.try_with(|cell| cell.set(None));
-    let _ = ENVIRONMENT.try_with(|environment| *environment.borrow_mut() = None);
+    // `ENVIRONMENT` é configuração do embedder (`set_environment`), feita antes de `run_program`: sobrevive ao reset.
 }
 
 /// O ambiente do próximo programa, na ordem dada (sem isso, o do processo).
