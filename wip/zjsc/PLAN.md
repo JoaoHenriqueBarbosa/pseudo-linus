@@ -42,12 +42,12 @@ consertado: os nomes privados do `SymbolTable` do global passavam a `getOwnPrope
 `console_dir` (30): o golden roda o fonte cru como script e o bun o transpila, então o nome do frame (`<anonymous>`) e as
 posições mapeadas não batem; o conserto é o gerador gravar o texto canônico com o mapa de posições (`prepareProgram`).
 
-`crypto` caiu de 726 para 111 de 3633 (commits desta passada): `generateKey` assimétrico separa os usos da privada e da
+`crypto` caiu de 726 para 66 de 3633 (commits desta passada): `generateKey` assimétrico separa os usos da privada e da
 pública, `deriveBits`/`deriveKey` de ECDH e X25519 leem o membro `public` (as mensagens citam `publicKey`), o `k` do JWK
 é base64url sem padding e o decodificador compartilhado exige o `=` (`base64_url_bytes` completa), e `importKey('jwk', null)`
-é `DataError` por algoritmo. Sobras: `usages` como `Set` (o bun aceita iterável, o porte só array), `length: Infinity`
-no AES-CTR (`Value Infinity is outside the range [0, 255]`), `Unrecognized algorithm name` em 10 casos e
-`InvalidAccessError` em 10 (operação inválida para a chave).
+é `DataError` por algoritmo. Também: `usages` aceita qualquer iterável (`Set`), `EnforceRange` cita `Infinity`/`1e10`, e `encapsulate*` valida a chave
+antes do algoritmo. Sobras (66): `InvalidAccessError` em 10 casos (operação inválida para a chave), `NotSupportedError`
+`The algorithm is not supported` em 9, `baseKey does not have deriveKey usage` em 4.
 
 Corrigido e medido: `blob_bun_golden` verde (`null`/`undefined` nas partes do `new Blob` não contam, `Blob.text()` com BOM
 `FF FE` decodifica UTF-16LE, JSON de corpo vazio rejeita com `Unexpected end of JSON input`, `Blob` global enumerável).
