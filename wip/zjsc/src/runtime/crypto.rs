@@ -1012,17 +1012,21 @@ fn pq_jwk_members(key: &KeyState, pq: Pq) -> Vec<(&'static str, JwkMember)> {
 /// `generateKey` de ECDSA, ECDH, Ed25519 e X25519: o `CryptoKeyPair` (`privateKey` e `publicKey`, nessa ordem).
 fn generate_asym_key(global_object: &JSGlobalObject, call: &HostCall, id: AlgorithmId, usages: u16) -> HostResult {
     let curve = asym_curve(global_object, call, id, call.argument(0))?;
-    if usages & !asym_usages(id, true) != 0 {
+    // O par aceita os usos das duas metades (`sign` e `verify`); a privada fica com os dela e a pública com os dela
+    // (medido no bun 1.4.2). Uso fora das duas metades, `SyntaxError`; privada sem nenhum uso, `Usages cannot be empty`.
+    let private_usages = usages & asym_usages(id, true);
+    let public_usages = usages & asym_usages(id, false);
+    if usages & !(asym_usages(id, true) | asym_usages(id, false)) != 0 {
         return Err(throw_native_syntax_error(global_object, "A required parameter was missing or out-of-range"));
     }
-    if usages == 0 {
+    if private_usages == 0 {
         return Err(throw_native_syntax_error(global_object, "Usages cannot be empty when creating a key."));
     }
     let secret = curve.generate();
     let public = curve.public_of(&secret).expect("chave recém-gerada é válida");
     let extractable = call.argument(1).to_boolean();
-    let private_key = create_key(global_object, asym_key(Asym { id, curve, private: true }, secret, extractable, usages));
-    let public_key = create_key(global_object, asym_key(Asym { id, curve, private: false }, public, true, usages & asym_usages(id, false)));
+    let private_key = create_key(global_object, asym_key(Asym { id, curve, private: true }, secret, extractable, private_usages));
+    let public_key = create_key(global_object, asym_key(Asym { id, curve, private: false }, public, true, public_usages));
     let vm = global_object.vm();
     let pair = construct_empty_object(global_object);
     pair.put_direct(vm, &property_key(vm, "privateKey"), private_key, 0);
