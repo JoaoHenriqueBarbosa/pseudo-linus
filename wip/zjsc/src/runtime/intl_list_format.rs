@@ -14,8 +14,8 @@ use crate::host_function;
 use crate::runtime::intl_list_format_data::{Predicate, CONDITIONALS, HEBREW_RANGES, PATTERNS, TAGS};
 use crate::runtime::host_call::{HostCall, HostResult, Thrown};
 use crate::runtime::intl_support::{
-    canonicalize_locale_list, construct_instance, get_options_object, new_object, option_enum, parts_array, put, read_locale_matcher,
-    resolve_locale_from, str_value, with_instance, IntlClass, IntlEnum,
+    array_of, canonicalize_locale_list, construct_instance, get_options_object, new_object, option_enum, put, read_locale_matcher,
+    resolve_locale_from, str_value, units_value, with_instance, IntlClass, IntlEnum,
 };
 use crate::runtime::iterator_operations::for_each_in_iterable;
 use crate::runtime::js_global_object::JSGlobalObject;
@@ -63,8 +63,7 @@ fn lookup<T: Copy>(table: &[(&str, T)], tags: &[String]) -> Option<T> {
 
 /// O predicado, sobre o próximo elemento, das trocas condicionais de literal (es `y` por `e` e `o` por `u`, he `ו`
 /// por `ו-`), medido contra o ICU do bun pelo `scripts/gen-list-format-patterns.js`.
-fn predicate_holds(predicate: Predicate, next: &str) -> bool {
-    let chars: Vec<char> = next.chars().take(3).collect();
+fn predicate_holds(predicate: Predicate, chars: &[char]) -> bool {
     let at = |index: usize, set: &str| chars.get(index).is_some_and(|c| set.contains(*c));
     match predicate {
         Predicate::SpanishE => at(0, "iI") || (at(0, "hH") && at(1, "iI") && !at(2, "aAeE")),
@@ -77,54 +76,91 @@ fn predicate_holds(predicate: Predicate, next: &str) -> bool {
     }
 }
 
+/// O texto dos elementos da lista: `String` (os chamadores em Rust) ou UTF-16 (os elementos de JS, que podem ter
+/// surrogate solto, preservado como no ICU).
+pub trait ListText: Sized {
+    /// Os três primeiros caracteres (o que os predicados dos literais condicionais olham).
+    fn leading_chars(&self) -> Vec<char>;
+    /// O literal do padrão como texto do mesmo tipo.
+    fn from_literal(text: &str) -> Self;
+}
+
+impl ListText for String {
+    fn leading_chars(&self) -> Vec<char> {
+        self.chars().take(3).collect()
+    }
+    fn from_literal(text: &str) -> Self {
+        text.to_string()
+    }
+}
+
+impl ListText for Vec<u16> {
+    fn leading_chars(&self) -> Vec<char> {
+        char::decode_utf16(self.iter().copied()).take(3).map(|unit| unit.unwrap_or(char::REPLACEMENT_CHARACTER)).collect()
+    }
+    fn from_literal(text: &str) -> Self {
+        text.encode_utf16().collect()
+    }
+}
+
+/// Uma peça da lista: o literal do padrão ou um elemento.
+enum Piece<'a, T> {
+    Literal(&'a str),
+    Element(&'a T),
+}
+
 /// As partes `element` e `literal` da lista (`ulistfmt_formatStringsToResult`), pela tabela medida no ICU do bun
 /// (`intl_list_format_data`). `locale` é a tag pedida (o ICU formata pelo locale pedido, não pelo resolvido); língua
 /// sem dados usa `en`. Também serve ao `Intl.DurationFormat` (a lista `unit`).
-pub fn list_parts(locale: &str, kind: ListType, style: ListStyle, items: &[String]) -> Vec<(String, String)> {
+pub fn list_parts<T: ListText + Clone>(locale: &str, kind: ListType, style: ListStyle, items: &[T]) -> Vec<(String, T)> {
     let tags = candidate_tags(locale);
     let set = lookup(&TAGS, &tags).or_else(|| lookup(&TAGS, &["en".to_string()])).map_or(0, usize::from);
     let rules = lookup(&CONDITIONALS, &tags).unwrap_or(&[]);
     let patterns = &PATTERNS[set];
     let base = (kind as usize * 3 + style as usize) * 8;
-    let literal = |slot: usize, next: &str| -> &str {
+    let literal = |slot: usize, next: &T| -> &str {
         let text = patterns[base + slot];
-        rules.iter().find(|(from, _, predicate)| *from == text && predicate_holds(*predicate, next)).map_or(text, |(_, to, _)| to)
+        let chars = next.leading_chars();
+        rules.iter().find(|(from, _, predicate)| *from == text && predicate_holds(*predicate, &chars)).map_or(text, |(_, to, _)| to)
     };
-    let mut parts: Vec<(String, String)> = Vec::new();
-    let mut push = |kind: &str, text: &str| {
-        // O ICU não emite literal vazio.
-        if kind != "literal" || !text.is_empty() {
-            parts.push((kind.to_string(), text.to_string()));
+    let mut parts: Vec<(String, T)> = Vec::new();
+    let mut push = |piece: Piece<'_, T>| match piece {
+        Piece::Literal(text) => {
+            // O ICU não emite literal vazio.
+            if !text.is_empty() {
+                parts.push(("literal".to_string(), T::from_literal(text)));
+            }
         }
+        Piece::Element(text) => parts.push(("element".to_string(), text.clone())),
     };
     match items {
         [] => {}
-        [only] => push("element", only),
+        [only] => push(Piece::Element(only)),
         [first, second] => {
-            push("literal", patterns[base]);
-            push("element", first);
-            push("literal", literal(1, second));
-            push("element", second);
-            push("literal", patterns[base + 2]);
+            push(Piece::Literal(patterns[base]));
+            push(Piece::Element(first));
+            push(Piece::Literal(literal(1, second)));
+            push(Piece::Element(second));
+            push(Piece::Literal(patterns[base + 2]));
         }
         [first, middle @ .., last] => {
-            push("literal", patterns[base + 3]);
-            push("element", first);
+            push(Piece::Literal(patterns[base + 3]));
+            push(Piece::Element(first));
             for (index, item) in middle.iter().enumerate() {
-                push("literal", patterns[base + if index == 0 { 4 } else { 5 }]);
-                push("element", item);
+                push(Piece::Literal(patterns[base + if index == 0 { 4 } else { 5 }]));
+                push(Piece::Element(item));
             }
-            push("literal", literal(6, last));
-            push("element", last);
-            push("literal", patterns[base + 7]);
+            push(Piece::Literal(literal(6, last)));
+            push(Piece::Element(last));
+            push(Piece::Literal(patterns[base + 7]));
         }
     }
     parts
 }
 
 /// `stringListFromIterable`: os elementos, que precisam ser strings.
-fn string_list(global_object: &JSGlobalObject, iterable: JSValue) -> Result<Vec<String>, Thrown> {
-    let mut items: Vec<String> = Vec::new();
+fn string_list(global_object: &JSGlobalObject, iterable: JSValue) -> Result<Vec<Vec<u16>>, Thrown> {
+    let mut items: Vec<Vec<u16>> = Vec::new();
     if iterable.is_undefined() {
         return Ok(items);
     }
@@ -132,7 +168,8 @@ fn string_list(global_object: &JSGlobalObject, iterable: JSValue) -> Result<Vec<
         if !value.is_string() {
             return Err(Thrown::type_error("Iterable passed to ListFormat includes non String"));
         }
-        items.push(crate::runtime::intl_support::to_rust_string(global_object, value)?);
+        let text = crate::runtime::intl_support::to_wtf_checked(global_object, value)?;
+        items.push(text.characters_without_null_termination().expect("unidades UTF-16 do elemento"));
         Ok(())
     })?;
     Ok(items)
@@ -179,9 +216,9 @@ fn format_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
         "Intl.ListFormat.prototype.format called on value that's not a ListFormat",
         |state, _| {
             let items = string_list(global_object, call.argument(0))?;
-            let text: String =
-                list_parts(&state.format_locale, state.kind, state.style, &items).into_iter().map(|(_, text)| text).collect();
-            Ok(str_value(global_object.vm(), &text))
+            let units: Vec<u16> =
+                list_parts(&state.format_locale, state.kind, state.style, &items).into_iter().flat_map(|(_, text)| text).collect();
+            Ok(units_value(global_object.vm(), &units))
         },
     )
 }
@@ -192,7 +229,17 @@ fn format_to_parts_body(global_object: &JSGlobalObject, call: &HostCall) -> Host
         "Intl.ListFormat.prototype.formatToParts called on value that's not a ListFormat",
         |state, _| {
             let items = string_list(global_object, call.argument(0))?;
-            Ok(parts_array(global_object, &list_parts(&state.format_locale, state.kind, state.style, &items)))
+            let vm = global_object.vm();
+            let values: Vec<JSValue> = list_parts(&state.format_locale, state.kind, state.style, &items)
+                .into_iter()
+                .map(|(kind, text)| {
+                    let object = new_object(global_object);
+                    put(global_object, &object, "type", str_value(vm, &kind));
+                    put(global_object, &object, "value", units_value(vm, &text));
+                    object.as_value()
+                })
+                .collect();
+            Ok(array_of(global_object, &values))
         },
     )
 }
