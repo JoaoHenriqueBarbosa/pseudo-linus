@@ -34,3 +34,26 @@ fn json_module_exports_top_level_keys() {
     assert_eq!(error, None);
     assert_eq!(log, r#"["a,b,default","{\"b\":1,\"a\":2,\"default\":3}","2","__esModule,default","true"]"#);
 }
+
+/// `import.meta` do Bun: nenhuma propriedade própria, os valores vêm de um protótipo escondido que lê pelo `this`
+/// (`@@toStringTag` `ImportMeta`); `getPrototypeOf` dá `null`, mas o `[[Prototype]]` de verdade continua lá.
+#[test]
+fn import_meta_is_the_bun_import_meta_object() {
+    let (log, error) = run(&[(
+        "main.mjs",
+        "const m = import.meta; L(Reflect.ownKeys(m).length); L('hasOwnProperty' in m); L('url' in m); \
+         L(Object.prototype.toString.call(m)); L(Object.getPrototypeOf(m)); L(m instanceof Object); \
+         const d = Object.create(m); L(d.url); L('url' in d); L(Object.prototype.toString.call(d)); \
+         L(typeof m.main); m.x = 1; m.url = 'z'; L(JSON.stringify(m)); \
+         try { m(); } catch (e) { L(e.message); } \
+         Reflect.setPrototypeOf(m, null); L('resolve' in m);",
+    )]);
+    assert_eq!(error, None);
+    assert_eq!(
+        log,
+        concat!(
+            r#"["0","true","true","[object ImportMeta]","null","false","undefined","true","[object ImportMeta]","boolean","#,
+            r#""{\"x\":1,\"url\":\"z\"}","m is not a function. (In 'm()', 'm' is an instance of ImportMeta)","false"]"#
+        )
+    );
+}

@@ -356,6 +356,25 @@ impl JSNonFinalObject {
     }
 }
 
+/// O `getPrototype` da tabela de métodos de uma classe com `OverridesGetPrototype`.
+pub type GetPrototypeMethod = fn(&JSObject, &JSGlobalObject) -> Result<JSValue, Thrown>;
+
+thread_local! {
+    /// As classes de fora do motor com `OverridesGetPrototype` e o `getPrototype` de cada uma (a entrada da tabela
+    /// de métodos que o C++ guarda na `ClassInfo`).
+    static GET_PROTOTYPE_METHODS: RefCell<Vec<(&'static ClassInfo, GetPrototypeMethod)>> = const { RefCell::new(Vec::new()) };
+}
+
+/// Registra o `getPrototype` de `class_info` (as estruturas dela levam `OVERRIDES_GET_PROTOTYPE`).
+pub fn register_get_prototype_method(class_info: &'static ClassInfo, method: GetPrototypeMethod) {
+    GET_PROTOTYPE_METHODS.with(|methods| {
+        let mut methods = methods.borrow_mut();
+        if !methods.iter().any(|(class, _)| std::ptr::eq(*class, class_info)) {
+            methods.push((class_info, method));
+        }
+    });
+}
+
 /// `class JSFinalObject`: espaço de nomes das constantes e do `create` (veja o cabeçalho do módulo).
 pub struct JSFinalObject;
 
@@ -595,7 +614,15 @@ impl JSObject {
         if let Some(proxy) = ProxyObject::from_cell_id(self.cell_id()) {
             return proxy.perform_get_prototype(global_object);
         }
-        // `WebAssemblyGCObjectBase::getPrototype`: `jsNull()`. Os únicos tipos com `OverridesGetPrototype`
+        // O `methodTable()->getPrototype` das classes que o hospedeiro registrou (no bun, o `ImportMeta`).
+        let class_info = self.class_info();
+        let registered = GET_PROTOTYPE_METHODS.with(|methods| {
+            methods.borrow().iter().find(|(class, _)| std::ptr::eq(*class, class_info)).map(|(_, method)| *method)
+        });
+        if let Some(method) = registered {
+            return method(self, global_object);
+        }
+        // `WebAssemblyGCObjectBase::getPrototype`: `jsNull()`. Os únicos tipos do motor com `OverridesGetPrototype`
         // no C++ são `ProxyObject`, `JSGlobalProxy` e `WebAssemblyGCObjectBase`.
         assert!(
             self.type_() == JSType::WebAssemblyGCObjectType,
