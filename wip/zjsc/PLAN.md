@@ -93,6 +93,13 @@ imprime só `at main.js:5:13` (o frame de `f` e o de `h` somem e a posição é 
 relata a coluna 52, o `)` que fecha `new Error('in timer')`, e não o `new` (32). O bun não monta a pilha do JSC como o porte: antes de
 mexer no mapa de posições, medir quais frames o bun mantém e qual divot usa por tipo de expressão.
 
+Mais duas medidas (mesma data): o bun roda o módulo principal como ESTRITO (`zz = 1` falha, `this` é `undefined` em `function`
+sem diretiva), e a posição que ele relata não é a do arquivo nem a do texto que `bun build --no-bundle` imprime (o `throw`
+do exemplo do timer sai em 6:9 no texto transpilado e o bun relata 3:52): o bun mapeia a posição por um caminho que depende
+do transpilador dele. Sem reproduzir o printer do bun, a coluna do caret em erro de CJS do programa principal não fecha;
+prefixar `"use strict";` no principal resolve o `this` (34 para 32) mas desloca em 13 as colunas da linha 1 (o
+`start_position` do `SourceCode` não é honrado), então fica para quando houver o wrapper CJS com mapa também no principal.
+
 Ainda abertos (catalogados, sem ordem de atacar agora):
 - `buffer`: 6 casos exigem o global `Bun` (`Bun.inspect`), que não existe no porte; 1 caso (`Buffer.from(new Date(0))`)
   depende do fuso do bun (`America/Sao_Paulo`), não é bug do porte.
