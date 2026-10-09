@@ -140,6 +140,12 @@ pub trait ModuleHost {
         false
     }
 
+    /// O `import.meta` da especificação HTML (o navegador): objeto de protótipo nulo com `url` e `resolve` próprios,
+    /// no lugar do `ImportMeta` do bun.
+    fn html_import_meta(&self) -> bool {
+        false
+    }
+
     /// O `import.meta.url` de `key`. O padrão é a própria chave.
     fn import_meta_url(&self, key: &str) -> String {
         key.to_owned()
@@ -199,6 +205,8 @@ thread_local! {
     static IMPORT_META_OBJECTS: RefCell<HashMap<EncodedJSValue, Vec<(Identifier, JSValue)>>> = RefCell::new(HashMap::new());
     /// A `Structure` dos `import.meta` do realm (protótipo escondido, `OverridesGetPrototype`).
     static IMPORT_META_STRUCTURE: RefCell<Option<StructureRef>> = const { RefCell::new(None) };
+    /// `cell_id` de cada `import.meta.resolve` do navegador -> a chave do módulo dele (o referrer da resolução).
+    static HTML_RESOLVERS: RefCell<HashMap<usize, String>> = RefCell::new(HashMap::new());
 }
 
 /// Índice (e parâmetro const dos nativos) da classe `ResolveMessage`.
@@ -661,6 +669,7 @@ pub(crate) fn reset_for_program() {
     let _ = PENDING_IMPORTS.try_with(|pending| pending.borrow_mut().clear());
     let _ = IMPORT_META_OBJECTS.try_with(|objects| objects.borrow_mut().clear());
     let _ = IMPORT_META_STRUCTURE.try_with(|slot| slot.borrow_mut().take());
+    let _ = HTML_RESOLVERS.try_with(|resolvers| resolvers.borrow_mut().clear());
 }
 
 fn loader() -> Option<Rc<ModuleLoader>> {
@@ -1164,6 +1173,9 @@ pub fn load_and_evaluate_module(global_object: &JSGlobalObject, specifier: &str)
 /// import.meta` vale, `setPrototypeOf(import.meta, null)` apaga tudo).
 pub fn create_import_meta_properties(global_object: &JSGlobalObject, key: &Identifier) -> ModuleResult<JSValue> {
     let vm = global_object.vm();
+    if let Some(loader) = loader().filter(|loader| loader.host.html_import_meta()) {
+        return Ok(html_import_meta(global_object, &loader, &key_text(key)));
+    }
     let structure = import_meta_structure(global_object);
     let object = JSFinalObject::create(vm, &structure);
     let mut values: Vec<(Identifier, JSValue)> = Vec::new();
@@ -1205,6 +1217,37 @@ pub fn create_import_meta_properties(global_object: &JSGlobalObject, key: &Ident
     IMPORT_META_OBJECTS.with(|objects| objects.borrow_mut().insert(object.as_value().encode(), values));
     Ok(object.as_value())
 }
+
+/// O `import.meta` do Chromium 154, medido: protótipo `null`, extensível, só `url` e `resolve` próprios (graváveis,
+/// enumeráveis, configuráveis). `resolve` (comprimento 1, não construtor) resolve contra o módulo dele qualquer que
+/// seja o `this`.
+fn html_import_meta(global_object: &JSGlobalObject, loader: &ModuleLoader, key: &str) -> JSValue {
+    let vm = global_object.vm();
+    let structure = JSFinalObject::create_structure(vm, Some(global_object), js_null(), JSFinalObject::DEFAULT_INLINE_CAPACITY);
+    let object = JSFinalObject::create(vm, &structure);
+    let url = loader.host.import_meta_url(key);
+    let name = |text: &[u8]| PropertyName::from_identifier(&Identifier::from_span(vm, text));
+    object.put_direct(vm, &name(b"url"), JSValue::from_js_string(js_string(vm, &WtfString::from_utf8(url.as_bytes()))), 0);
+    let resolve = crate::runtime::timers::native(global_object, "resolve", 1, html_import_meta_resolve);
+    if let JSValue::Cell(cell_id) = resolve {
+        HTML_RESOLVERS.with(|resolvers| resolvers.borrow_mut().insert(cell_id, key.to_owned()));
+    }
+    object.put_direct(vm, &name(b"resolve"), resolve, 0);
+    object.as_value()
+}
+
+fn html_import_meta_resolve_body(global_object: &JSGlobalObject, call: &crate::runtime::host_call::HostCall) -> crate::runtime::host_call::HostResult {
+    let Some(key) = HTML_RESOLVERS.with(|resolvers| resolvers.borrow().get(&call.callee()).cloned()) else {
+        return Ok(JSValue::undefined());
+    };
+    let specifier = rust_string(&crate::runtime::host_call::pending_or(global_object, call.argument(0).to_wtf_string())?);
+    let Some(loader) = loader() else { return Ok(JSValue::undefined()) };
+    match loader.host.import_meta_resolve(&specifier, &key, false) {
+        Ok(url) => Ok(JSValue::from_js_string(js_string(global_object.vm(), &WtfString::from_utf8(url.as_bytes())))),
+        Err(message) => Err(Thrown::type_error(&message)),
+    }
+}
+crate::host_function!(html_import_meta_resolve, html_import_meta_resolve_body);
 
 /// Os nomes que o protótipo escondido do `ImportMeta` serve.
 const IMPORT_META_NAMES: [&[u8]; 9] = [b"url", b"path", b"filename", b"dirname", b"dir", b"file", b"main", b"resolve", b"resolveSync"];
