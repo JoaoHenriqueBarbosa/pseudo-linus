@@ -1,0 +1,7 @@
+# Divergências de cpp3 e cpp4 que exigem mudar outro arquivo
+
+- `runtime/symbol_table.rs`: não há `struct SymbolTable`, `SymbolTable::create`, `clone_scope_part` nem `cell_id`. cpp3:~380-455 (`push_lexical_scope_internal`) e cpp2:43,156-170 (módulo) os usam. Além disso cpp3 chama `symbol_table.clone_scope_part(..)` direto e cpp2 chama `symbol_table.borrow().clone_scope_part(..)`: definir qual é o tipo (Rc/RefCell ou Rc com interior mutability) e alinhar.
+- `bytecode_generator_cpp4.rs:~1136` (`emit_new_class_field_initializer_function`): `FunctionMetadataNode::new` (parser/nodes_part3.rs:400) não recebe arena, então removi `parser_arena()`; `finish_parsing` (nodes_part3.rs:444) e `UnlinkedFunctionExecutable::create` precisam conferir com a chamada.
+- cpp4:~2161-2193: `self.scope_node.source()`, `self.scope_node.as_function_node()` e `ident().string().string()` presumem a API de `scope_node` ainda não conferida (cpp3 usa `self.scope_node.borrow()`).
+- Três cópias locais de `is_ignored_result` em nodes_codegen_cpp1/2/3b/4 (função livre `nodes_codegen_is_ignored_result` e equivalentes): agora existe `BytecodeGenerator::is_ignored_result(Option<&RegisterRef>)` em cpp4 (fim do arquivo); os nodes_codegen devem usá-lo (DRY).
+- `bytecode_generator_part2.rs:648` `emit_is_undefined` recebe `Option` em `src`, enquanto `emit_is_object` (cpp6:114) recebe `&RegisterRef`; o C++ usa `RegisterID*` nos dois. Ajustei só as chamadas de cpp4.

@@ -173,6 +173,12 @@ def translate_atom(atom, imports):
     raise ValueError(f"argumento não reconhecido: {atom!r}")
 
 
+# Padrões que o Bun muda depois de iniciar o JSC (nome da opção -> (valor Rust, comentário)).
+BUN_DEFAULT_OVERRIDES = {
+    "useV8DateParser": ("true", "O Bun liga a opção ao criar o global object (ZigGlobalObject.cpp:316: Options::useV8DateParser() = true)."),
+}
+
+
 def translate_default(option_type, expr, option_names, imports):
     """Expressão C++ do padrão para expressão Rust (o contexto `let x: T = ...` fixa o tipo)."""
     expr = " ".join(expr.split())
@@ -244,6 +250,8 @@ def main():
         if rust_name in RUST_KEYWORDS:
             rust_name += "_"
         default_rs = translate_default(option_type, default, names, imports)
+        if name in BUN_DEFAULT_OVERRIDES:
+            default_rs = BUN_DEFAULT_OVERRIDES[name][0]
         names.add(name)
         options.append((option_type, name, rust_name, default_rs, availability, translate_description(description)))
     assert len({o[2] for o in options}) == len(options), "dois nomes viraram o mesmo snake_case"
@@ -258,7 +266,8 @@ def main():
         f"    pub {rn}: {TYPES[t][0]}," for t, _, rn, _, _, _ in options
     )
     lets = "\n".join(
-        f"        let {rn}: {TYPES[t][0]} = {d};" for t, _, rn, d, _, _ in options
+        (f"        // {BUN_DEFAULT_OVERRIDES[n][1]}\n" if n in BUN_DEFAULT_OVERRIDES else "")
+        + f"        let {rn}: {TYPES[t][0]} = {d};" for t, n, rn, d, _, _ in options
     )
     init = ", ".join(rn for _, _, rn, _, _, _ in options)
     accessors = []

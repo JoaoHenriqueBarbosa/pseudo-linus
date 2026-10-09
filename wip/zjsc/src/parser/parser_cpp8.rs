@@ -807,6 +807,7 @@ impl<T: CharType> Parser<T> {
                 }
                 _ => {
                     // If we get here something has gone horribly horribly wrong
+                    // Invariante: o `match` externo cobre todos os operadores unários que o lexer produz (mesmo CRASH do C++).
                     unreachable!("CRASH");
                 }
             }

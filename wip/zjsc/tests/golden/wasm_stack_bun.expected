@@ -1,0 +1,30 @@
+== noname-js Error
+Error: x
+    at f (wasm_stack_bun.js:30:99)
+    at unknown
+    at unknown
+    at wasm_stack_bun.js:31:16
+== named-js Error
+Error: x
+    at f (wasm_stack_bun.js:30:99)
+    at unknown
+    at unknown
+    at wasm_stack_bun.js:31:16
+== noname-trap RuntimeError
+RuntimeError: Unreachable code should not be executed (evaluating 'inst.exports.run()')
+    at unknown
+    at wasm_stack_bun.js:31:16
+== named-trap RuntimeError
+RuntimeError: Unreachable code should not be executed (evaluating 'inst.exports.run()')
+    at unknown
+    at wasm_stack_bun.js:31:16
+== jspi-resume Error
+Error: y
+    at t (wasm_stack_bun.js:49:161)
+    at unknown
+    at unknown
+== jspi-start Error
+Error: y
+    at t (wasm_stack_bun.js:49:161)
+    at unknown
+    at <anonymous> (wasm_stack_bun.js:51:54)

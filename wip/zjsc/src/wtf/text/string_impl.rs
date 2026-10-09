@@ -166,6 +166,10 @@ const S_FLAG_STRING_KIND_COUNT: u32 = 4;
 /// `s_hashFlagNeverAtomize` (`USE(BUN_JSC_ADDITIONS)` vale no `cmakeconfig.h`).
 const S_HASH_FLAG_NEVER_ATOMIZE: u32 = 1u32 << 6;
 
+/// DIVERGÊNCIA: no C++ o `UniquedStringImpl*` de um símbolo É o `SymbolImpl` e `isPrivate()` lê as flags
+/// dele. Aqui o `StringImpl` do símbolo não aponta de volta, então o bit 7 (livre) marca o símbolo privado.
+const S_HASH_FLAG_IS_PRIVATE_SYMBOL: u32 = 1u32 << 7;
+
 const S_HASH_ZERO_VALUE: u32 = 0;
 const S_HASH_FLAG_STRING_KIND_IS_ATOM: u32 = 1u32 << S_FLAG_STRING_KIND_COUNT;
 const S_HASH_FLAG_STRING_KIND_IS_SYMBOL: u32 = 1u32 << (S_FLAG_STRING_KIND_COUNT + 1);
@@ -194,6 +198,10 @@ pub struct StringImpl {
     /// O C++ marca a string estática no bit baixo da contagem de referência; sem contagem, é um
     /// campo. Nunca muda depois da construção.
     is_static: bool,
+    /// `SymbolImpl::m_hashForSymbolShiftedWithFlagCount`. O C++ guarda o campo no `SymbolImpl`, que
+    /// é o próprio objeto; o porte separa os tipos, então o valor mora aqui para que
+    /// `existingSymbolAwareHash()` o alcance a partir do `StringImpl`. Zero fora de símbolos.
+    hash_for_symbol_shifted_with_flag_count: Cell<u32>,
 }
 
 thread_local! {
@@ -212,6 +220,7 @@ impl StringImpl {
             data,
             hash_and_flags: Cell::new(hash_and_flags),
             is_static,
+            hash_for_symbol_shifted_with_flag_count: Cell::new(0),
         }
     }
 
@@ -500,6 +509,41 @@ impl StringImpl {
     }
 
     // ---- espécie da string ---------------------------------------------------------------
+
+    /// Liga a marca de símbolo privado (ver `S_HASH_FLAG_IS_PRIVATE_SYMBOL`).
+    pub(crate) fn mark_private_symbol(&self) {
+        self.hash_and_flags.set(self.hash_and_flags.get() | S_HASH_FLAG_IS_PRIVATE_SYMBOL);
+    }
+
+    /// `static_cast<SymbolImpl&>(*this).isPrivate()` para um `StringImpl` de espécie símbolo.
+    pub fn is_private_symbol(&self) -> bool {
+        self.is_symbol() && self.hash_and_flags.get() & S_HASH_FLAG_IS_PRIVATE_SYMBOL != 0
+    }
+
+    /// `SymbolImpl::m_hashForSymbolShiftedWithFlagCount`.
+    pub(crate) fn hash_for_symbol_shifted_with_flag_count(&self) -> u32 {
+        self.hash_for_symbol_shifted_with_flag_count.get()
+    }
+
+    pub(crate) fn set_hash_for_symbol_shifted_with_flag_count(&self, value: u32) {
+        self.hash_for_symbol_shifted_with_flag_count.set(value);
+    }
+
+    /// `StringImpl::symbolAwareHash()`.
+    pub fn symbol_aware_hash(&self) -> u32 {
+        if self.is_symbol() {
+            return self.hash_for_symbol_shifted_with_flag_count.get() >> S_FLAG_COUNT;
+        }
+        self.hash()
+    }
+
+    /// `StringImpl::existingSymbolAwareHash()`.
+    pub fn existing_symbol_aware_hash(&self) -> u32 {
+        if self.is_symbol() {
+            return self.hash_for_symbol_shifted_with_flag_count.get() >> S_FLAG_COUNT;
+        }
+        self.existing_hash()
+    }
 
     pub fn is_symbol(&self) -> bool {
         self.hash_and_flags.get() & S_HASH_FLAG_STRING_KIND_IS_SYMBOL != 0
@@ -1637,6 +1681,7 @@ mod cpp_tests {
 // ---------------------------------------------------------------------------------------------
 
 use crate::wtf::ascii_ctype::is_unicode_compatible_ascii_whitespace;
+use crate::wtf::text::conversion_mode::ConversionMode;
 use crate::wtf::unicode::char_direction;
 use crate::wtf::unicode::utf8_conversion::{
     convert_latin1_to_utf8, convert_replacing_invalid_sequences_utf16_to_utf8, convert_utf16_to_utf8,
@@ -1653,15 +1698,6 @@ pub const U_RIGHT_TO_LEFT: UCharDirection = 1;
 pub const U_WHITE_SPACE_NEUTRAL: UCharDirection = 9;
 /// `U_RIGHT_TO_LEFT_ARABIC`.
 pub const U_RIGHT_TO_LEFT_ARABIC: UCharDirection = 13;
-
-/// `ConversionMode` de `wtf/text/ConversionMode.h`. O padrão do C++ é `LenientConversion`; o
-/// chamador o passa explicitamente. Quando o módulo próprio existir, este tipo se move para lá.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ConversionMode {
-    LenientConversion,
-    StrictConversion,
-    StrictConversionReplacingUnpairedSurrogatesWithFFFD,
-}
 
 /// `isLatin1(char16_t)`.
 fn is_latin1(character: u16) -> bool {
@@ -2621,7 +2657,7 @@ mod cpp_tests2 {
 
         let hello = StringImpl::create(b"hello world");
         assert_eq!(hello.find_view(utf16(&[0x6F, 0x20, 0x77])), 4);
-        assert_eq!(hello.find_view(StringView::new()), NOT_FOUND);
+        assert_eq!(hello.find_view(StringView::default()), NOT_FOUND);
         assert_eq!(hello.find_view(latin1(b"")), 0);
         assert_eq!(hello.find_view(latin1(b"w")), 6);
         assert_eq!(hello.find_view(utf16(&[0x20AC])), NOT_FOUND);
@@ -2629,13 +2665,13 @@ mod cpp_tests2 {
         assert_eq!(hello.find_view_from(latin1(b"o"), 5), 7);
         assert_eq!(hello.find_view_from(latin1(b""), 3), 3);
         assert_eq!(hello.find_view_from(latin1(b"o"), 99), NOT_FOUND);
-        assert_eq!(hello.find_view_from(StringView::new(), 0), NOT_FOUND);
+        assert_eq!(hello.find_view_from(StringView::default(), 0), NOT_FOUND);
 
         let mixed = StringImpl::create(b"Hello");
         assert_eq!(mixed.find_ignoring_ascii_case_view(latin1(b"LL")), 2);
         assert_eq!(mixed.find_ignoring_ascii_case_view_from(latin1(b"L"), 3), 3);
         assert_eq!(mixed.find_ignoring_ascii_case_view(latin1(b"")), 0);
-        assert_eq!(mixed.find_ignoring_ascii_case_view(StringView::new()), NOT_FOUND);
+        assert_eq!(mixed.find_ignoring_ascii_case_view(StringView::default()), NOT_FOUND);
         assert_eq!(mixed.find_ignoring_ascii_case_view(latin1(b"xyz")), NOT_FOUND);
     }
 
@@ -2645,7 +2681,7 @@ mod cpp_tests2 {
         assert_eq!(s.reverse_find_view(latin1(b"bc"), usize::MAX), 4);
         assert_eq!(s.reverse_find_view(latin1(b"bc"), 3), 1);
         assert_eq!(s.reverse_find_view(latin1(b""), usize::MAX), 6);
-        assert_eq!(s.reverse_find_view(StringView::new(), usize::MAX), NOT_FOUND);
+        assert_eq!(s.reverse_find_view(StringView::default(), usize::MAX), NOT_FOUND);
         assert_eq!(s.reverse_find_view(latin1(b"a"), usize::MAX), 3);
         assert_eq!(s.reverse_find_view(latin1(b"abcabcd"), usize::MAX), NOT_FOUND);
         assert_eq!(s.reverse_find_character(0x20AC, usize::MAX), NOT_FOUND);
@@ -2659,13 +2695,13 @@ mod cpp_tests2 {
     fn starts_and_ends_with() {
         let s = StringImpl::create(b"foobar");
         assert!(s.starts_with_view(latin1(b"foo")));
-        assert!(s.starts_with_view(StringView::new()));
+        assert!(s.starts_with_view(StringView::default()));
         assert!(!s.starts_with_view(latin1(b"bar")));
         assert!(s.ends_with_view(latin1(b"bar")));
-        assert!(!s.ends_with_view(StringView::new()));
+        assert!(!s.ends_with_view(StringView::default()));
         assert!(!s.ends_with_view(latin1(b"foo")));
         assert!(s.starts_with_ignoring_ascii_case_view(latin1(b"FOO")));
-        assert!(!s.starts_with_ignoring_ascii_case_view(StringView::new()));
+        assert!(!s.starts_with_ignoring_ascii_case_view(StringView::default()));
         assert!(s.ends_with_ignoring_ascii_case_view(latin1(b"BAR")));
         assert!(s.starts_with_character('f' as u16));
         assert!(s.ends_with_character('r' as u16));
@@ -2694,19 +2730,19 @@ mod cpp_tests2 {
 
         let hello = StringImpl::create(b"hello");
         assert_eq!(hello.replace_range(1, 3, latin1(b"ipp")).span8(), b"hippo");
-        assert_eq!(hello.replace_range(1, 3, StringView::new()).span8(), b"ho");
+        assert_eq!(hello.replace_range(1, 3, StringView::default()).span8(), b"ho");
         assert_eq!(hello.replace_range(99, 5, latin1(b"!")).span8(), b"hello!");
-        assert!(Rc::ptr_eq(&hello, &hello.replace_range(2, 0, StringView::new())));
+        assert!(Rc::ptr_eq(&hello, &hello.replace_range(2, 0, StringView::default())));
         let widened = hello.replace_range(0, 1, utf16(&[0x20AC]));
         assert_eq!(widened.span16(), &[0x20AC, 0x65, 0x6C, 0x6C, 0x6F]);
-        assert!(hello.replace_range(0, 5, StringView::new()).is_empty());
+        assert!(hello.replace_range(0, 5, StringView::default()).is_empty());
 
         let dots = StringImpl::create(b"a.b.");
         assert_eq!(dots.replace_character_with_span('.' as u16, b"--".as_slice()).span8(), b"a--b--");
         assert_eq!(dots.replace_character_with_span('.' as u16, [0x20ACu16].as_slice()).span16(), &[0x61, 0x20AC, 0x62, 0x20AC]);
         assert_eq!(dots.replace_character_with_span('.' as u16, b"".as_slice()).span8(), b"ab");
         assert!(Rc::ptr_eq(&dots, &dots.replace_character_with_span('z' as u16, b"x".as_slice())));
-        assert!(Rc::ptr_eq(&dots, &dots.replace_character_with_view('.' as u16, StringView::new())));
+        assert!(Rc::ptr_eq(&dots, &dots.replace_character_with_view('.' as u16, StringView::default())));
         assert_eq!(dots.replace_character_with_view('.' as u16, latin1(b"!")).span8(), b"a!b!");
 
         let xx = StringImpl::create(b"aXXbXX");
@@ -2714,8 +2750,8 @@ mod cpp_tests2 {
         assert_eq!(xx.replace_view(latin1(b"XX"), latin1(b"")).span8(), b"ab");
         assert_eq!(xx.replace_view(latin1(b"XX"), utf16(&[0x20AC])).span16(), &[0x61, 0x20AC, 0x62, 0x20AC]);
         assert!(Rc::ptr_eq(&xx, &xx.replace_view(latin1(b""), latin1(b"-"))));
-        assert!(Rc::ptr_eq(&xx, &xx.replace_view(StringView::new(), latin1(b"-"))));
-        assert!(Rc::ptr_eq(&xx, &xx.replace_view(latin1(b"XX"), StringView::new())));
+        assert!(Rc::ptr_eq(&xx, &xx.replace_view(StringView::default(), latin1(b"-"))));
+        assert!(Rc::ptr_eq(&xx, &xx.replace_view(latin1(b"XX"), StringView::default())));
         assert!(Rc::ptr_eq(&xx, &xx.replace_view(latin1(b"YY"), latin1(b"-"))));
         let wide = StringImpl::create16(&[0x20AC, 0x61, 0x61, 0x20AC]);
         assert_eq!(wide.replace_view(latin1(b"aa"), latin1(b"b")).span16(), &[0x20AC, 0x62, 0x20AC]);

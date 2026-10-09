@@ -190,6 +190,7 @@ impl<T: CharType> Parser<T> {
             } else if is_await_using_declaration {
                 DeclarationType::AwaitUsingDeclaration
             } else {
+                // Invariante: o chamador só entra aqui com um dos cinco tokens de declaração (var, let, const, using, await using).
                 unreachable!("RELEASE_ASSERT_NOT_REACHED")
             };
             let current = self.current_scope();

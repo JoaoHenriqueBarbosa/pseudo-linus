@@ -8,14 +8,6 @@
 
 type Cpp4Reg = Option<crate::bytecompiler::bytecode_generator::RegisterRef>;
 
-/// `dst == generator.ignoredResult()`.
-fn cpp4_is_ignored_result(generator: &crate::bytecompiler::bytecode_generator::BytecodeGenerator, dst: &Cpp4Reg) -> bool {
-    match dst {
-        Some(register) => std::rc::Rc::ptr_eq(register, &generator.ignored_result()),
-        None => false,
-    }
-}
-
 impl crate::parser::nodes::EqualNode {
     pub fn emit_bytecode(
         &self,
@@ -35,7 +27,8 @@ impl crate::parser::nodes::EqualNode {
             std::mem::swap(&mut left, &mut right);
         }
 
-        let src1 = generator.emit_node_for_left_hand_side(&left, binary.right_has_assignments, binary.expr2.is_pure(generator));
+        let right_is_pure = binary.expr2.is_pure(generator);
+        let src1 = generator.emit_node_for_left_hand_side(&left, binary.right_has_assignments, right_is_pure);
         let src2 = generator.emit_node_expression_no_dst(&right);
         let final_dst = Some(generator.final_destination(dst.as_ref(), src1.as_ref()));
         generator.emit_equality_op::<crate::bytecode::bytecode_ops::OpEq>(final_dst, src1, src2)
@@ -55,7 +48,8 @@ impl crate::parser::nodes::StrictEqualNode {
             std::mem::swap(&mut left, &mut right);
         }
 
-        let src1 = generator.emit_node_for_left_hand_side(&left, binary.right_has_assignments, binary.expr2.is_pure(generator));
+        let right_is_pure = binary.expr2.is_pure(generator);
+        let src1 = generator.emit_node_for_left_hand_side(&left, binary.right_has_assignments, right_is_pure);
         let src2 = generator.emit_node_expression_no_dst(&right);
         let final_dst = Some(generator.final_destination(dst.as_ref(), src1.as_ref()));
         generator.emit_equality_op::<crate::bytecode::bytecode_ops::OpStricteq>(final_dst, src1, src2)
@@ -69,7 +63,8 @@ impl crate::parser::nodes::ThrowableBinaryOpNode {
         dst: Cpp4Reg,
     ) -> Cpp4Reg {
         let binary = &self.base;
-        let src1 = generator.emit_node_for_left_hand_side(&binary.expr1, binary.right_has_assignments, binary.expr2.is_pure(generator));
+        let right_is_pure = binary.expr2.is_pure(generator);
+        let src1 = generator.emit_node_for_left_hand_side(&binary.expr1, binary.right_has_assignments, right_is_pure);
         let src2 = generator.emit_node_expression_no_dst(&binary.expr2);
         generator.emit_expression_info(&self.throwable.divot, &self.throwable.divot_start, &self.throwable.divot_end);
         let final_dst = Some(generator.final_destination(dst.as_ref(), src1.as_ref()));
@@ -91,7 +86,8 @@ impl crate::parser::nodes::InstanceOfNode {
     ) -> Cpp4Reg {
         let throwable = &self.base;
         let binary = &throwable.base;
-        let value = generator.emit_node_for_left_hand_side(&binary.expr1, binary.right_has_assignments, binary.expr2.is_pure(generator));
+        let right_is_pure = binary.expr2.is_pure(generator);
+        let value = generator.emit_node_for_left_hand_side(&binary.expr1, binary.right_has_assignments, right_is_pure);
         let dst_reg = Some(generator.final_destination(dst.as_ref(), value.as_ref()));
         let constructor = generator.emit_node_expression_no_dst(&binary.expr2);
         let has_instance_or_prototype = Some(generator.new_temporary());
@@ -122,7 +118,7 @@ impl crate::parser::nodes::InNode {
                 _ => unreachable!("esperava um PrivateIdentifierNode"),
             };
             let private_traits = generator.get_private_traits(&identifier);
-            let var = generator.variable(&identifier);
+            let var = generator.variable(&identifier, crate::bytecompiler::bytecode_generator::ThisResolutionType::Local);
             let scope = generator.emit_resolve_scope(None, &var);
             debug_assert!(scope.is_some()); // Private names are always captured.
 
@@ -145,14 +141,15 @@ impl crate::parser::nodes::InNode {
             return generator.emit_has_private_brand(final_dst, base, private_brand, private_traits.is_static());
         }
 
-        if crate::parser::nodes::is_non_index_string_element(&binary.expr1) {
+        if nodes_codegen_is_non_index_string_element(&binary.expr1) {
             let base = generator.emit_node_expression_no_dst(&binary.expr2);
             generator.emit_expression_info(divot, divot_start, divot_end);
             let final_dst = Some(generator.final_destination(dst.as_ref(), base.as_ref()));
             return generator.emit_in_by_id(final_dst, base, &cpp2_string_value(&binary.expr1));
         }
 
-        let key = generator.emit_node_for_left_hand_side(&binary.expr1, binary.right_has_assignments, binary.expr2.is_pure(generator));
+        let right_is_pure = binary.expr2.is_pure(generator);
+        let key = generator.emit_node_for_left_hand_side(&binary.expr1, binary.right_has_assignments, right_is_pure);
         let base = generator.emit_node_expression_no_dst(&binary.expr2);
         generator.emit_expression_info(divot, divot_start, divot_end);
         let final_dst = Some(generator.final_destination(dst.as_ref(), key.as_ref()));
@@ -169,7 +166,7 @@ impl crate::parser::nodes::LogicalOpNode {
         dst: Cpp4Reg,
     ) -> Cpp4Reg {
         use crate::parser::nodes::FallThroughMode::{FallThroughMeansFalse, FallThroughMeansTrue};
-        if cpp4_is_ignored_result(generator, &dst) {
+        if generator.is_ignored_dst(dst.as_ref()) {
             let after_expr1 = generator.new_label();
             let after_expr2 = generator.new_label();
             if self.operator == crate::parser::nodes::LogicalOperator::And {
@@ -203,13 +200,13 @@ impl crate::parser::nodes::LogicalOpNode {
         &self,
         this: &crate::parser::nodes::Expression,
         generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
-        true_target: &crate::bytecompiler::label::Label,
-        false_target: &crate::bytecompiler::label::Label,
+        true_target: &crate::bytecompiler::label::LabelRef,
+        false_target: &crate::bytecompiler::label::LabelRef,
         fall_through_mode: crate::parser::nodes::FallThroughMode,
     ) {
         use crate::parser::nodes::FallThroughMode::{FallThroughMeansFalse, FallThroughMeansTrue};
         if this.base().needs_debug_hook() {
-            generator.emit_debug_hook_expression(this, None);
+            generator.emit_debug_hook_expression_data(this, None);
         }
 
         let after_expr1 = generator.new_label();
@@ -241,7 +238,7 @@ impl crate::parser::nodes::CoalesceNode {
         generator.emit_node_expression(temp.clone(), &self.expr1);
         let scratch = Some(generator.new_temporary());
         let is_nullish = generator.emit_is_undefined_or_null(scratch, temp.as_ref().unwrap());
-        generator.emit_jump_if_false(is_nullish.as_ref().unwrap(), &end_label);
+        generator.emit_jump_if_false_raw(is_nullish.as_ref().unwrap(), &end_label);
 
         if self.has_absorbed_optional_chain {
             generator.pop_optional_chain_target();
@@ -256,12 +253,12 @@ impl crate::parser::nodes::CoalesceNode {
         &self,
         this: &crate::parser::nodes::Expression,
         generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
-        true_target: &crate::bytecompiler::label::Label,
-        false_target: &crate::bytecompiler::label::Label,
+        true_target: &crate::bytecompiler::label::LabelRef,
+        false_target: &crate::bytecompiler::label::LabelRef,
         fall_through_mode: crate::parser::nodes::FallThroughMode,
     ) {
         if this.base().needs_debug_hook() {
-            generator.emit_debug_hook_expression(this, None);
+            generator.emit_debug_hook_expression_data(this, None);
         }
 
         let nullish_target = generator.new_label();
@@ -272,7 +269,7 @@ impl crate::parser::nodes::CoalesceNode {
         let value = generator.emit_node_expression_no_dst(&self.expr1);
         let scratch = Some(generator.new_temporary());
         let is_nullish = generator.emit_is_undefined_or_null(scratch, value.as_ref().unwrap());
-        generator.emit_jump_if_true(is_nullish.as_ref().unwrap(), &nullish_target);
+        generator.emit_jump_if_true_raw(is_nullish.as_ref().unwrap(), &nullish_target);
         if self.has_absorbed_optional_chain {
             generator.discard_optional_chain_target();
         }
@@ -315,12 +312,12 @@ impl crate::parser::nodes::OptionalChainNode {
         &self,
         this: &crate::parser::nodes::Expression,
         generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
-        true_target: &crate::bytecompiler::label::Label,
-        false_target: &crate::bytecompiler::label::Label,
+        true_target: &crate::bytecompiler::label::LabelRef,
+        false_target: &crate::bytecompiler::label::LabelRef,
         fall_through_mode: crate::parser::nodes::FallThroughMode,
     ) {
         if this.base().needs_debug_hook() {
-            generator.emit_debug_hook_expression(this, None);
+            generator.emit_debug_hook_expression_data(this, None);
         }
 
         if self.expr.is_delete_node() {
@@ -331,8 +328,7 @@ impl crate::parser::nodes::OptionalChainNode {
         // Short-circuiting produces undefined, which is falsy. Route the optional
         // chain bail-out straight to falseTarget instead of materializing undefined.
         if self.is_outermost {
-            let false_ref = crate::bytecompiler::label::LabelRef::new(&std::rc::Rc::new(std::cell::RefCell::new(false_target.clone())));
-            generator.push_optional_chain_target_existing(&false_ref);
+            generator.push_optional_chain_target_existing(false_target);
         }
         generator.emit_node_in_condition_context(&self.expr, true_target, false_target, fall_through_mode);
         if self.is_outermost {
@@ -381,12 +377,12 @@ impl crate::parser::nodes::ConditionalNode {
         &self,
         this: &crate::parser::nodes::Expression,
         generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
-        true_target: &crate::bytecompiler::label::Label,
-        false_target: &crate::bytecompiler::label::Label,
+        true_target: &crate::bytecompiler::label::LabelRef,
+        false_target: &crate::bytecompiler::label::LabelRef,
         fall_through_mode: crate::parser::nodes::FallThroughMode,
     ) {
         if this.base().needs_debug_hook() {
-            generator.emit_debug_hook_expression(this, None);
+            generator.emit_debug_hook_expression_data(this, None);
         }
 
         let before_then = generator.new_label();

@@ -10,18 +10,10 @@
 type Cpp3bReg = Option<crate::bytecompiler::bytecode_generator::RegisterRef>;
 type Cpp3bGen = crate::bytecompiler::bytecode_generator::BytecodeGenerator;
 
-/// `dst == generator.ignoredResult()`.
-fn cpp3b_is_ignored_result(generator: &Cpp3bGen, dst: &Cpp3bReg) -> bool {
-    match dst {
-        Some(register) => std::rc::Rc::ptr_eq(register, &generator.ignored_result()),
-        None => false,
-    }
-}
-
 /// Igualdade de ponteiro entre dois `RegisterID*` (nulo só é igual a nulo).
 fn cpp3b_same_register(a: &Cpp3bReg, b: &Cpp3bReg) -> bool {
     match (a, b) {
-        (Some(a), Some(b)) => std::rc::Rc::ptr_eq(a, b),
+        (Some(a), Some(b)) => a.is_same_register(b),
         (None, None) => true,
         _ => false,
     }
@@ -88,12 +80,18 @@ fn cpp3b_emit_post_inc_or_dec(
         let final_dst = Some(generator.final_destination(dst.as_ref(), None));
         return generator.emit_to_numeric(final_dst, Some(src_dst.clone()));
     }
+    // `RegisterID* dst` do C++ é ponteiro cru: um temporário recém-alocado por `finalDestination` não
+    // segura referência, e o `newTemporary()` seguinte o reaproveita (mesmo índice). Aqui `dst` chega
+    // contado; soltamos a contagem e reconstruímos o handle só no fim.
+    let raw_dst = dst.as_ref().map(|d| d.get().clone());
+    drop(dst);
     let temp = Some(generator.new_temporary());
     let tmp = generator.emit_to_numeric(temp, Some(src_dst.clone()));
     let result = Some(generator.temp_destination(Some(src_dst)));
     generator.move_register(result.as_ref(), tmp.as_ref().unwrap());
     cpp3b_emit_inc_or_dec(generator, result.as_ref().unwrap(), oper);
     generator.move_register(Some(src_dst), result.as_ref().unwrap());
+    let dst = raw_dst.map(|r| crate::bytecompiler::bytecode_generator::RegisterRef::new(&r));
     generator.move_register(dst.as_ref(), tmp.as_ref().unwrap())
 }
 
@@ -189,7 +187,7 @@ impl crate::parser::nodes::ApplyFunctionCallDotNode {
                         let temp = Some(generator.new_temporary());
                         let zero = generator.emit_load_js_value(None, crate::runtime::js_value::js_number(0));
                         let is_zero = generator.emit_equality_op::<crate::bytecode::bytecode_ops::OpStricteq>(temp, index.clone(), zero);
-                        generator.emit_jump_if_false(is_zero.as_ref().unwrap(), &have_this);
+                        generator.emit_jump_if_false_raw(is_zero.as_ref().unwrap(), &have_this);
                         generator.move_register(this_register.as_ref(), value.as_ref().unwrap());
                         generator.emit_load_js_value(index.clone(), crate::runtime::js_value::js_number(1));
                         generator.emit_jump(&end);
@@ -197,7 +195,7 @@ impl crate::parser::nodes::ApplyFunctionCallDotNode {
                         let temp = Some(generator.new_temporary());
                         let one = generator.emit_load_js_value(None, crate::runtime::js_value::js_number(1));
                         let is_one = generator.emit_equality_op::<crate::bytecode::bytecode_ops::OpStricteq>(temp, index.clone(), one);
-                        generator.emit_jump_if_false(is_one.as_ref().unwrap(), &end);
+                        generator.emit_jump_if_false_raw(is_one.as_ref().unwrap(), &end);
                         generator.move_register(arguments_register.as_ref(), value.as_ref().unwrap());
                         generator.emit_load_js_value(index.clone(), crate::runtime::js_value::js_number(2));
                         generator.emit_label(&end);
@@ -341,7 +339,7 @@ impl crate::parser::nodes::PostfixNode {
         use crate::runtime::get_put_info::{InitializationMode, ResolveMode};
         let divot_start = self.throwable.base.divot_start;
         let divot_end = self.throwable.base.divot_end;
-        if cpp3b_is_ignored_result(generator, &dst) {
+        if generator.is_ignored_dst(dst.as_ref()) {
             return self.base.emit_resolve(generator, dst);
         }
 
@@ -394,7 +392,7 @@ impl crate::parser::nodes::PostfixNode {
         let divot = self.throwable.base.divot;
         let divot_start = self.throwable.base.divot_start;
         let divot_end = self.throwable.base.divot_end;
-        if cpp3b_is_ignored_result(generator, &dst) {
+        if generator.is_ignored_dst(dst.as_ref()) {
             return self.base.emit_bracket(generator, dst);
         }
 
@@ -447,7 +445,7 @@ impl crate::parser::nodes::PostfixNode {
         let divot_start = self.throwable.base.divot_start;
         let divot_end = self.throwable.base.divot_end;
         let position = *self.position();
-        if cpp3b_is_ignored_result(generator, &dst) {
+        if generator.is_ignored_dst(dst.as_ref()) {
             return self.base.emit_dot(generator, dst);
         }
 
@@ -529,7 +527,7 @@ impl crate::parser::nodes::PostfixNode {
                 let temp = Some(generator.new_temporary());
                 let getter_setter_obj = generator.emit_get_from_scope(temp, scope, &var, ResolveMode::ThrowIfNotFound);
                 let temp = Some(generator.new_temporary());
-                let set_private_name = generator.property_names().builtin_names().set_private_name().clone();
+                let set_private_name = generator.property_names().builtin_names().set_dup_private_name().clone();
                 let setter_function = generator.emit_direct_get_by_id(temp, getter_setter_obj, &set_private_name);
                 let mut args = CallArguments::new(generator, None, 1);
                 generator.move_register(args.this_register().as_ref(), base.as_ref().unwrap());
@@ -665,7 +663,7 @@ impl crate::parser::nodes::DeleteValueNode {
 
 impl crate::parser::nodes::VoidNode {
     pub fn emit_bytecode(&self, generator: &mut Cpp3bGen, dst: Cpp3bReg) -> Cpp3bReg {
-        if cpp3b_is_ignored_result(generator, &dst) {
+        if generator.is_ignored_dst(dst.as_ref()) {
             generator.emit_node_in_ignore_result_position_expression(&self.expr);
             return None;
         }
@@ -685,7 +683,7 @@ impl crate::parser::nodes::TypeOfResolveNode {
         if let Some(local) = var.local() {
             generator.emit_expression_info(&new_divot, &new_divot, &divot_end);
             generator.emit_tdz_check_if_necessary(&var, Some(local.clone()), None);
-            if cpp3b_is_ignored_result(generator, &dst) {
+            if generator.is_ignored_dst(dst.as_ref()) {
                 return None;
             }
             let final_dst = Some(generator.final_destination(dst.as_ref(), None));
@@ -697,7 +695,7 @@ impl crate::parser::nodes::TypeOfResolveNode {
         let value = generator.emit_get_from_scope(temp, scope.clone(), &var, ResolveMode::DoNotThrowIfNotFound);
         generator.emit_expression_info(&new_divot, &new_divot, &divot_end);
         generator.emit_tdz_check_if_necessary(&var, value.clone(), None);
-        if cpp3b_is_ignored_result(generator, &dst) {
+        if generator.is_ignored_dst(dst.as_ref()) {
             return None;
         }
         let final_dst = Some(generator.final_destination(dst.as_ref(), scope.as_ref()));
@@ -709,7 +707,7 @@ impl crate::parser::nodes::TypeOfResolveNode {
 
 impl crate::parser::nodes::TypeOfValueNode {
     pub fn emit_bytecode(&self, generator: &mut Cpp3bGen, dst: Cpp3bReg) -> Cpp3bReg {
-        if cpp3b_is_ignored_result(generator, &dst) {
+        if generator.is_ignored_dst(dst.as_ref()) {
             generator.emit_node_in_ignore_result_position_expression(&self.expr);
             return None;
         }
@@ -898,7 +896,7 @@ impl crate::parser::nodes::PrefixNode {
                 let temp = Some(generator.new_temporary());
                 let getter_setter_obj = generator.emit_get_from_scope(temp, scope, &var, ResolveMode::ThrowIfNotFound);
                 let temp = Some(generator.new_temporary());
-                let set_private_name = generator.property_names().builtin_names().set_private_name().clone();
+                let set_private_name = generator.property_names().builtin_names().set_dup_private_name().clone();
                 let setter_function = generator.emit_direct_get_by_id(temp, getter_setter_obj, &set_private_name);
                 let mut args = CallArguments::new(generator, None, 1);
                 generator.move_register(args.this_register().as_ref(), base.as_ref().unwrap());
@@ -962,7 +960,7 @@ impl crate::parser::nodes::PrefixNode {
 
 impl crate::parser::nodes::UnaryOpNode {
     pub fn emit_bytecode(&self, generator: &mut Cpp3bGen, dst: Cpp3bReg) -> Cpp3bReg {
-        if cpp3b_is_ignored_result(generator, &dst) {
+        if generator.is_ignored_dst(dst.as_ref()) {
             // op_not is not user-observable. We can skip it completely if the result is not used.
             // This is used in the wild, for example,
             // ```
@@ -1003,12 +1001,12 @@ impl crate::parser::nodes::LogicalNotNode {
         &self,
         this: &crate::parser::nodes::Expression,
         generator: &mut Cpp3bGen,
-        true_target: &crate::bytecompiler::label::Label,
-        false_target: &crate::bytecompiler::label::Label,
+        true_target: &crate::bytecompiler::label::LabelRef,
+        false_target: &crate::bytecompiler::label::LabelRef,
         fall_through_mode: crate::parser::nodes::FallThroughMode,
     ) {
         if this.base().needs_debug_hook() {
-            generator.emit_debug_hook_expression(this, None);
+            generator.emit_debug_hook_expression_data(this, None);
         }
 
         // Reverse the true and false targets.
@@ -1190,15 +1188,15 @@ impl crate::parser::nodes::BinaryOpNode {
         &self,
         this: &crate::parser::nodes::Expression,
         generator: &mut Cpp3bGen,
-        true_target: &crate::bytecompiler::label::Label,
-        false_target: &crate::bytecompiler::label::Label,
+        true_target: &crate::bytecompiler::label::LabelRef,
+        false_target: &crate::bytecompiler::label::LabelRef,
         fall_through_mode: crate::parser::nodes::FallThroughMode,
     ) {
         use crate::parser::source_tainted_origin::TriState;
         let (branch_condition, branch_expression) = self.try_fold_to_branch(generator);
 
         if this.base().needs_debug_hook() && branch_condition != TriState::Indeterminate {
-            generator.emit_debug_hook_expression(this, None);
+            generator.emit_debug_hook_expression_data(this, None);
         }
 
         if branch_condition == TriState::Indeterminate {
@@ -1348,7 +1346,7 @@ impl crate::parser::nodes::BinaryOpNode {
             src2,
             OperandTypes::new(left.result_descriptor(), right.result_descriptor()),
         );
-        if self.should_to_unsigned_result && opcode_id == OpcodeID::op_urshift && !cpp3b_is_ignored_result(generator, &dst) {
+        if self.should_to_unsigned_result && opcode_id == OpcodeID::op_urshift && !generator.is_ignored_dst(dst.as_ref()) {
             return generator.emit_unary_op::<crate::bytecode::bytecode_ops::OpUnsigned>(result.clone(), result);
         }
         result

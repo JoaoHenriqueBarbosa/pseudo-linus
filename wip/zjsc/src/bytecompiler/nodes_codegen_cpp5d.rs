@@ -8,23 +8,18 @@
 // `cpp5d_emit_body_and_implicit_return`. A ordem de avaliação dos argumentos do C++ (clang,
 // esquerda para direita) é preservada onde ela aloca registro ou emite instrução.
 //
-// Nomes supostos e não conferidos (assumidos com o nome do C++ em snake_case):
-// - `crate::runtime::js_generator::{Field::{This, Next, State}, State::{Init, Executing},
-//   ResumeMode::{NormalMode, ThrowMode}}` (o módulo ainda não existe como arquivo; `Field` e
-//   `ResumeMode` já são citados pela cpp2/cpp6 do gerador, `State` não).
-// - `crate::bytecode::link_time_constant::LinkTimeConstant::{NewResolvedPromise, NewRejectedPromise,
+// Dependências conferidas por grep em 2026-10-08, todas existem:
+// - `runtime/js_generator.rs`: `Field::{This, Next, State}`, `State::{Init, Executing}`,
+//   `ResumeMode::{NormalMode, ThrowMode}`.
+// - `bytecode/bytecode_intrinsics_table.rs`: `LinkTimeConstant::{NewResolvedPromise, NewRejectedPromise,
 //   ResolvePromiseWithFirstResolvingFunctionCallCheck, RejectPromiseWithFirstResolvingFunctionCallCheck,
 //   AsyncFunctionDrive}`.
-// - `crate::interpreter::interpreter::DebugHookType::{DidEnterCallFrame, WillLeaveCallFrame}`.
-// - `crate::interpreter::call_frame::argument_offset(i32) -> i32` (usado pela cpp5 do gerador com
-//   `usize`; aqui passo `i32` e o tipo exato fica por conferir).
+// - `interpreter/interpreter.rs`: `DebugHookType::{DidEnterCallFrame, WillLeaveCallFrame}`.
+// - `interpreter/call_frame.rs:531`: `argument_offset(i32) -> i32` (o tipo `i32` está confirmado).
 // - `BytecodeGenerator::{emit_profile_type_flag_divots, emit_profile_control_flow, emit_debug_hook,
-//   emit_will_leave_call_frame_debug_hook, emit_load_this_from_arrow_function_lexical_environment}`
-//   existem; o `emit_profile_type` do C++ é a sobrecarga `*_divots`/`*_flag` correspondente.
+//   emit_will_leave_call_frame_debug_hook, emit_load_this_from_arrow_function_lexical_environment}`.
 // - `ScopeNode::{start_line, start_start_offset, start_line_start_offset, using_declaration_count,
-//   has_await_using_declaration, emit_statements_bytecode, single_statement, is_empty_body}` via
-//   `self.base` (os três primeiros existem; `using_declaration_count`/`has_await_using_declaration`
-//   estão em `Node` na nodes.rs:358/362 e supostos acessíveis por `Deref`).
+//   has_await_using_declaration, emit_statements_bytecode, single_statement, is_empty_body}`.
 // - `StatementNode::last_line()` devolve `u32`; o cast para `i32` do `JSTextPosition::new` é meu.
 // - `FunctionNode.parameters` como `Option<NodeRef<FunctionParameters>>` (o C++ nunca o tem nulo
 //   aqui; `expect` é o `m_parameters->`).
@@ -37,8 +32,8 @@ fn cpp5d_emit_statements_with_using(
     generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
 ) {
     generator.emit_body_with_using_if_needed(
-        function.base.using_declaration_count(),
-        function.base.has_await_using_declaration(),
+        function.base.variable_environment.using_declaration_count(),
+        function.base.variable_environment.has_await_using_declaration(),
         &mut |generator| {
             let ignored_result = Some(generator.ignored_result());
             function.base.emit_statements_bytecode(generator, ignored_result);
@@ -109,7 +104,7 @@ impl crate::parser::nodes::FunctionNode {
                         ),
                     ));
                     generator.emit_profile_type_flag_divots(
-                        Some(reg),
+                        Some(crate::bytecompiler::bytecode_generator::RegisterRef::new(&reg)),
                         ProfileTypeBytecodeFlag::ProfileTypeBytecodeFunctionArgument,
                         &binding_node.divot_start,
                         &binding_node.divot_end,
@@ -139,7 +134,7 @@ impl crate::parser::nodes::FunctionNode {
                 let next = Some(generator.new_temporary());
                 generator.emit_node_expression(next.clone(), &func_expr);
 
-                if generator.super_binding() == crate::bytecode::executable_info::SuperBinding::Needed {
+                if generator.super_binding() == crate::parser::parser_modes::SuperBinding::Needed {
                     let home_object = emit_home_object_for_callee(generator);
                     emit_put_home_object(
                         generator,
@@ -215,8 +210,8 @@ impl crate::parser::nodes::FunctionNode {
                     //     Into this: function empty() { return @newResolvedPromise(undefined); }
                     //
                     if self.base.is_empty_body() {
-                        debug_assert!(self.base.using_declaration_count() == 0);
-                        debug_assert!(!self.base.has_await_using_declaration());
+                        debug_assert!(self.base.variable_environment.using_declaration_count() == 0);
+                        debug_assert!(!self.base.variable_environment.has_await_using_declaration());
                         let new_resolved_promise = generator.move_link_time_constant(
                             None,
                             crate::bytecode::link_time_constant::LinkTimeConstant::NewResolvedPromise,
@@ -258,7 +253,7 @@ impl crate::parser::nodes::FunctionNode {
                     let try_start_label = generator.new_emitted_label();
                     let try_data = generator.push_try(&try_start_label, &catch_label, HandlerType::Finally);
                     cpp5d_emit_statements_with_using(self, generator);
-                    generator.emit_jump(&finally_label.borrow());
+                    generator.emit_jump(&finally_label);
                     let try_end_label = generator.new_emitted_label();
                     generator.pop_try(&try_data, &try_end_label);
 
@@ -284,7 +279,7 @@ impl crate::parser::nodes::FunctionNode {
                             completion_type_register.clone(),
                             throw_type,
                         );
-                        generator.emit_jump_if_false(condition.as_ref().expect("condition"), &resolve_case.borrow());
+                        generator.emit_jump_if_false_raw(condition.as_ref().expect("condition"), &resolve_case);
 
                         {
                             let new_rejected_promise = generator.move_link_time_constant(
@@ -342,7 +337,7 @@ impl crate::parser::nodes::FunctionNode {
                 let next = Some(generator.new_temporary());
                 generator.emit_node_expression(next.clone(), &func_expr);
 
-                if generator.super_binding() == crate::bytecode::executable_info::SuperBinding::Needed
+                if generator.super_binding() == crate::parser::parser_modes::SuperBinding::Needed
                     || (generator.parse_mode() == SourceParseMode::AsyncArrowFunctionMode
                         && generator.is_super_used_in_inner_arrow_function())
                 {
@@ -445,7 +440,7 @@ impl crate::parser::nodes::FunctionNode {
                         current_state,
                         executing_state,
                     );
-                    generator.emit_jump_if_false(condition.as_ref().expect("condition"), &drive_label.borrow());
+                    generator.emit_jump_if_false_raw(condition.as_ref().expect("condition"), &drive_label);
                 }
 
                 {
@@ -469,7 +464,7 @@ impl crate::parser::nodes::FunctionNode {
                         &divot,
                         DebuggableCall::No,
                     );
-                    generator.emit_jump(&success_label.borrow());
+                    generator.emit_jump(&success_label);
                 }
 
                 {
@@ -493,7 +488,7 @@ impl crate::parser::nodes::FunctionNode {
                         &divot,
                         DebuggableCall::No,
                     );
-                    generator.emit_jump(&success_label.borrow());
+                    generator.emit_jump(&success_label);
                 }
 
                 let try_end_label = generator.new_emitted_label();
@@ -543,28 +538,19 @@ impl crate::parser::nodes::FunctionNode {
             SourceParseMode::AsyncGeneratorBodyMode | SourceParseMode::GeneratorBodyMode => {
                 let generator_body_label = generator.new_label();
                 {
-                    let condition_register = Some(generator.new_temporary());
-                    let resume_mode_register = Some(generator.generator_resume_mode_register());
-                    let normal_mode = generator
-                        .emit_load_resume_mode(None, crate::runtime::js_generator::ResumeMode::NormalMode);
-                    let condition = generator.emit_equality_op::<crate::bytecode::bytecode_ops::OpStricteq>(
-                        condition_register,
-                        resume_mode_register,
-                        normal_mode,
+                    // O temporário do C++ é ponteiro cru: não segura referência, e o segundo
+                    // `newTemporary()` reaproveita o mesmo registrador. O auxiliar solta a referência
+                    // ao fim de cada salto.
+                    generator.emit_jump_if_resume_mode(
+                        crate::runtime::js_generator::ResumeMode::NormalMode,
+                        &generator_body_label,
                     );
-                    generator.emit_jump_if_true(condition.as_ref().expect("condition"), &generator_body_label.borrow());
 
                     let throw_label = generator.new_label();
-                    let condition_register = Some(generator.new_temporary());
-                    let resume_mode_register = Some(generator.generator_resume_mode_register());
-                    let throw_mode = generator
-                        .emit_load_resume_mode(None, crate::runtime::js_generator::ResumeMode::ThrowMode);
-                    let condition = generator.emit_equality_op::<crate::bytecode::bytecode_ops::OpStricteq>(
-                        condition_register,
-                        resume_mode_register,
-                        throw_mode,
+                    generator.emit_jump_if_resume_mode(
+                        crate::runtime::js_generator::ResumeMode::ThrowMode,
+                        &throw_label,
                     );
-                    generator.emit_jump_if_true(condition.as_ref().expect("condition"), &throw_label.borrow());
 
                     let generator_value_register = Some(generator.generator_value_register());
                     generator.emit_return(generator_value_register.clone());
@@ -593,7 +579,7 @@ impl crate::parser::nodes::FunctionNode {
                 // With using declarations, emitUsingBodyScope ends with a `done` label that needs
                 // a terminal, otherwise it collides with the op_catch stubs appended by generate().
                 if let Some(single_statement) = &single_statement {
-                    if self.base.using_declaration_count() == 0 {
+                    if self.base.variable_environment.using_declaration_count() == 0 {
                         if single_statement.is_return_node() {
                             has_return_node = true;
                         } else if let crate::parser::nodes::Statement::Block(block) = single_statement {

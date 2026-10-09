@@ -1,0 +1,3 @@
+[
+"var R;\nfunction G(l, c, o, t) { try { var f = new Intl.DateTimeFormat(l + \"-u-ca-\" + c, o); var d = new Date(t); return f.format(d) + \" # \" + f.formatToParts(d).map(function (p) { return p.type + \"=\" + p.value; }).join(\"|\"); } catch (e) { return e.name + \": \" + e.message; } }\n"
+]

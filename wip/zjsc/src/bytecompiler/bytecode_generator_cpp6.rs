@@ -13,19 +13,21 @@ impl BytecodeGenerator {
         let mut raw_strings = Vec::new();
         let mut cooked_strings = Vec::new();
 
-        let mut template_string = tagged_template.template_literal().template_strings();
+        let mut template_string = tagged_template.borrow().template_literal.borrow().template_strings.clone();
         while let Some(current) = template_string {
-            let string = current.value();
-            assert!(string.raw().is_some());
-            raw_strings.push(string.raw().unwrap().impl_());
-            match string.cooked() {
+            let string_node = current.borrow().node.clone();
+            let string = string_node.borrow();
+            assert!(string.raw.is_some());
+            raw_strings.push(string.raw.as_ref().unwrap().string().string().clone());
+            match &string.cooked {
                 None => cooked_strings.push(None),
-                Some(cooked) => cooked_strings.push(Some(cooked.impl_())),
+                Some(cooked) => cooked_strings.push(Some(cooked.string().string().clone())),
             }
-            template_string = current.next();
+            let next = current.borrow().next.clone();
+            template_string = next;
         }
         let descriptor = crate::runtime::template_object_descriptor::TemplateObjectDescriptor::create(raw_strings, cooked_strings);
-        let constant = self.add_template_object_constant(descriptor, tagged_template.end_offset() as i32);
+        let constant = self.add_template_object_constant(descriptor, tagged_template.borrow().end_offset());
         if dst.is_none() {
             return constant;
         }
@@ -248,7 +250,7 @@ impl BytecodeGenerator {
                 || self.is_derived_constructor_context()
         );
         if self.constructor_kind() == crate::runtime::constructor_kind::ConstructorKind::Extends {
-            return Some(self.callee_register.clone());
+            return Some(self.callee_register());
         }
         self.emit_load_derived_constructor_from_arrow_function_lexical_environment()
     }
@@ -273,39 +275,48 @@ impl BytecodeGenerator {
 
     // BytecodeGenerator.cpp:5235
     pub fn is_this_used_in_inner_arrow_function(&mut self) -> bool {
-        self.scope_node.do_any_inner_arrow_functions_use_this()
-            || self.scope_node.do_any_inner_arrow_functions_use_super_property()
-            || self.scope_node.do_any_inner_arrow_functions_use_super_call()
-            || self.scope_node.do_any_inner_arrow_functions_use_eval()
-            || self.uses_eval()
+        let scope_node = self.scope_node.borrow();
+        let used = scope_node.do_any_inner_arrow_functions_use_this()
+            || scope_node.do_any_inner_arrow_functions_use_super_property()
+            || scope_node.do_any_inner_arrow_functions_use_super_call()
+            || scope_node.do_any_inner_arrow_functions_use_eval();
+        drop(scope_node);
+        used || self.uses_eval()
     }
 
     // BytecodeGenerator.cpp:5240
     pub fn is_arguments_used_in_inner_arrow_function(&mut self) -> bool {
-        self.scope_node.do_any_inner_arrow_functions_use_arguments() || self.scope_node.do_any_inner_arrow_functions_use_eval()
+        let scope_node = self.scope_node.borrow();
+        scope_node.do_any_inner_arrow_functions_use_arguments() || scope_node.do_any_inner_arrow_functions_use_eval()
     }
 
     // BytecodeGenerator.cpp:5245
     pub fn is_new_target_used_in_inner_arrow_function(&mut self) -> bool {
-        self.scope_node.do_any_inner_arrow_functions_use_new_target()
-            || self.scope_node.do_any_inner_arrow_functions_use_super_call()
-            || self.scope_node.do_any_inner_arrow_functions_use_eval()
-            || self.uses_eval()
+        let scope_node = self.scope_node.borrow();
+        let used = scope_node.do_any_inner_arrow_functions_use_new_target()
+            || scope_node.do_any_inner_arrow_functions_use_super_call()
+            || scope_node.do_any_inner_arrow_functions_use_eval();
+        drop(scope_node);
+        used || self.uses_eval()
     }
 
     // BytecodeGenerator.cpp:5250
     pub fn is_super_used_in_inner_arrow_function(&mut self) -> bool {
-        self.scope_node.do_any_inner_arrow_functions_use_super_call()
-            || self.scope_node.do_any_inner_arrow_functions_use_super_property()
-            || self.scope_node.do_any_inner_arrow_functions_use_eval()
-            || self.uses_eval()
+        let scope_node = self.scope_node.borrow();
+        let used = scope_node.do_any_inner_arrow_functions_use_super_call()
+            || scope_node.do_any_inner_arrow_functions_use_super_property()
+            || scope_node.do_any_inner_arrow_functions_use_eval();
+        drop(scope_node);
+        used || self.uses_eval()
     }
 
     // BytecodeGenerator.cpp:5255
     pub fn is_super_call_used_in_inner_arrow_function(&mut self) -> bool {
-        self.scope_node.do_any_inner_arrow_functions_use_super_call()
-            || self.scope_node.do_any_inner_arrow_functions_use_eval()
-            || self.uses_eval()
+        let scope_node = self.scope_node.borrow();
+        let used = scope_node.do_any_inner_arrow_functions_use_super_call()
+            || scope_node.do_any_inner_arrow_functions_use_eval();
+        drop(scope_node);
+        used || self.uses_eval()
     }
 
     // BytecodeGenerator.cpp:5260
@@ -343,7 +354,7 @@ impl BytecodeGenerator {
                 crate::bytecompiler::bytecode_generator::ThisResolutionType::Local,
             );
             let scope = self.arrow_function_context_lexical_environment_register.clone();
-            let callee_register = self.callee_register.clone();
+            let callee_register = self.callee_register();
             self.emit_put_to_scope(
                 scope,
                 &proto_scope,
@@ -357,7 +368,7 @@ impl BytecodeGenerator {
     // BytecodeGenerator.cpp:5280
     pub fn emit_put_this_to_arrow_function_context_scope(&mut self) {
         if self.is_this_used_in_inner_arrow_function()
-            || (self.scope_node.uses_super_call() && self.code_type == crate::bytecode::code_type::CodeType::EvalCode)
+            || (self.scope_node.borrow().uses_super_call() && self.code_type == crate::bytecode::code_type::CodeType::EvalCode)
         {
             assert!(
                 self.is_derived_constructor_context() || self.arrow_function_context_lexical_environment_register.is_some()
@@ -395,7 +406,7 @@ impl BytecodeGenerator {
         if local_register.is_none() {
             return;
         }
-        let body_bytecode_start_offset = self.instructions().size() as u32;
+        let body_bytecode_start_offset = self.instructions().size_in_bytes() as u32;
         self.for_in_context_stack.push(std::rc::Rc::new(std::cell::RefCell::new(
             crate::bytecompiler::bytecode_generator::ForInContext::new(
                 local_register,
@@ -415,10 +426,9 @@ impl BytecodeGenerator {
         if local_register.is_none() {
             return;
         }
-        let body_bytecode_end_offset = self.instructions().size() as u32;
+        let body_bytecode_end_offset = self.instructions().size_in_bytes() as u32;
         let context = self.for_in_context_stack.last().unwrap().clone();
-        let code_block = self.code_block.clone();
-        context.borrow_mut().finalize(self, &code_block, body_bytecode_end_offset);
+        context.borrow_mut().finalize(self, body_bytecode_end_offset);
         self.for_in_context_stack.pop();
     }
 
@@ -436,7 +446,7 @@ impl BytecodeGenerator {
     // BytecodeGenerator.cpp:5317
     pub fn emit_require_object_coercible(&mut self, value: &crate::bytecompiler::bytecode_generator::RegisterRef, error: &str) {
         let target = self.new_label();
-        let bound = target.borrow_mut().bind_generator(self);
+        let bound = target.bind_generator();
         crate::bytecode::bytecode_ops::OpJnundefinedOrNull::emit(self, value, bound);
         self.emit_throw_type_error(error);
         self.emit_label(&target);
@@ -449,7 +459,7 @@ impl BytecodeGenerator {
         property_name: Option<&crate::runtime::identifier::Identifier>,
     ) {
         let target = self.new_label();
-        let bound = target.borrow_mut().bind_generator(self);
+        let bound = target.bind_generator();
         crate::bytecode::bytecode_ops::OpJnundefinedOrNull::emit(self, value, bound);
 
         match property_name {
@@ -461,7 +471,7 @@ impl BytecodeGenerator {
                 ])
                 .unwrap_or_default();
                 let identifier = crate::runtime::identifier::Identifier::from_string(&self.vm, &error_message);
-                self.emit_throw_type_error(&identifier);
+                self.emit_throw_type_error_identifier(&identifier);
             }
             _ => self.emit_throw_type_error("Cannot destructure null or undefined value"),
         }
@@ -496,11 +506,11 @@ impl BytecodeGenerator {
             let try_data = self.try_context_stack[i].try_data.clone();
             self.try_ranges.push(crate::bytecompiler::bytecode_generator::TryRange {
                 start,
-                end: save_point.get().clone(),
+                end: save_point.clone(),
                 try_data,
             });
             // Try range will be restared at the merge point.
-            self.try_context_stack[i].start = merge_point.get().clone();
+            self.try_context_stack[i].start = merge_point.clone();
         }
         let mut saved_try_context_stack = Vec::new();
         std::mem::swap(&mut self.try_context_stack, &mut saved_try_context_stack);
@@ -532,14 +542,14 @@ impl BytecodeGenerator {
             let return_register = self.generator_value_register();
             let has_finally = self.emit_return_via_finally_if_needed(&return_register);
             if !has_finally {
-                self.emit_return(&return_register);
+                self.emit_return(Some(return_register.clone()));
             }
         }
 
         // Throw.
         self.emit_label(&throw_label);
         let generator_value_register = self.generator_value_register();
-        self.emit_throw(&generator_value_register);
+        self.emit_throw(Some(generator_value_register));
 
         // Normal.
         self.emit_label(&normal_label);
@@ -549,7 +559,7 @@ impl BytecodeGenerator {
     // Os trechos `emitJumpIfTrue(emitEqualityOp<OpStricteq>(newTemporary(), generatorResumeModeRegister(),
     // emitLoad(nullptr, mode)), label)` do C++ aparecem seis vezes; aqui têm nome para não se repetirem.
     // (Não existe no C++: é a extração do trecho repetido.)
-    fn emit_jump_if_resume_mode(
+    pub(crate) fn emit_jump_if_resume_mode(
         &mut self,
         mode: crate::runtime::js_generator::ResumeMode,
         label: &crate::bytecompiler::label::LabelRef,
@@ -560,7 +570,7 @@ impl BytecodeGenerator {
         let condition = self
             .emit_equality_op::<crate::bytecode::bytecode_ops::OpStricteq>(Some(temporary), Some(resume_mode_register), mode_register)
             .unwrap();
-        self.emit_jump_if_true(&condition, label);
+        self.emit_jump_if_true_raw(&condition, label);
     }
 
     // `emitJumpIfTrue(emitIsObject(newTemporary(), reg), label)`, que o C++ repete cinco vezes.
@@ -572,7 +582,7 @@ impl BytecodeGenerator {
     ) {
         let temporary = self.new_temporary();
         let condition = self.emit_is_object(Some(temporary), register).unwrap();
-        self.emit_jump_if_true(&condition, label);
+        self.emit_jump_if_true_raw(&condition, label);
     }
 
     // `emitJumpIfTrue/False(emitIsUndefinedOrNull(newTemporary(), reg), label)`.
@@ -586,9 +596,9 @@ impl BytecodeGenerator {
         let temporary = self.new_temporary();
         let condition = self.emit_is_undefined_or_null(Some(temporary), register).unwrap();
         if jump_when {
-            self.emit_jump_if_true(&condition, label);
+            self.emit_jump_if_true_raw(&condition, label);
         } else {
-            self.emit_jump_if_false(&condition, label);
+            self.emit_jump_if_false_raw(&condition, label);
         }
     }
 
@@ -600,22 +610,25 @@ impl BytecodeGenerator {
         position: &crate::parser::parser_tokens::JSTextPosition,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         let generator_register = self.generator_register();
-        self.emit_debug_hook_position(crate::interpreter::interpreter::DebugHookType::WillAwait, position, generator_register);
+        self.emit_debug_hook(crate::interpreter::interpreter::DebugHookType::WillAwait, position, generator_register);
 
+        // Não solta a referência de `dst`: a maioria dos chamadores passa `RefPtr` com contagem maior que zero.
+        // Os dois que passam o temporário cru (`ReturnNode` de async generator e `AwaitExprNode`) usam
+        // `with_raw_register` no próprio site.
         self.emit_yield_point(src, crate::runtime::js_async_generator::AsyncGeneratorSuspendReason::Await);
 
         let normal_label = self.new_label();
         self.emit_jump_if_resume_mode(crate::runtime::js_generator::ResumeMode::NormalMode, &normal_label);
 
         let generator_value_register = self.generator_value_register();
-        self.emit_throw(&generator_value_register);
+        self.emit_throw(Some(generator_value_register));
 
         self.emit_label(&normal_label);
         let generator_value_register = self.generator_value_register();
         let result = self.move_register(dst.as_ref(), &generator_value_register);
 
         let generator_register = self.generator_register();
-        self.emit_debug_hook_position(crate::interpreter::interpreter::DebugHookType::DidAwait, position, generator_register);
+        self.emit_debug_hook(crate::interpreter::interpreter::DebugHookType::DidAwait, position, generator_register);
 
         result
     }
@@ -632,12 +645,12 @@ impl BytecodeGenerator {
         self.move_register(this_register.as_ref(), argument);
         self.emit_call(
             Some(iterator.clone()),
-            iterator,
+            Some(iterator.clone()),
             crate::bytecompiler::bytecode_generator::ExpectedFunction::NoExpectedFunction,
             &mut args,
-            &node.divot(),
-            &node.divot_start(),
-            &node.divot_end(),
+            &node.divot,
+            &node.divot_start,
+            &node.divot_end,
             crate::bytecompiler::bytecode_generator::DebuggableCall::No,
         );
 
@@ -660,14 +673,14 @@ impl BytecodeGenerator {
         }
 
         if self.should_emit_debug_hooks() {
-            self.emit_debug_hook_position(
+            self.emit_debug_hook(
                 crate::interpreter::interpreter::DebugHookType::WillExecuteExpression,
-                &node.divot_start(),
+                &node.divot_start,
                 None,
             );
         }
 
-        self.emit_expression_info(&node.divot(), &node.divot_start(), &node.divot_end());
+        self.emit_expression_info(&node.divot, &node.divot_start, &node.divot_end);
         let iterable_value_profile = self.next_value_profile_index();
         let iterator_value_profile = self.next_value_profile_index();
         let next_value_profile = self.next_value_profile_index();
@@ -702,14 +715,14 @@ impl BytecodeGenerator {
         }
 
         if self.should_emit_debug_hooks() {
-            self.emit_debug_hook_position(
+            self.emit_debug_hook(
                 crate::interpreter::interpreter::DebugHookType::WillExecuteExpression,
-                &node.divot_start(),
+                &node.divot_start,
                 None,
             );
         }
 
-        self.emit_expression_info(&node.divot(), &node.divot_start(), &node.divot_end());
+        self.emit_expression_info(&node.divot, &node.divot_start, &node.divot_end);
         let next_result_value_profile = self.next_value_profile_index();
         let done_value_profile = self.next_value_profile_index();
         let value_value_profile = self.next_value_profile_index();
@@ -734,9 +747,9 @@ impl BytecodeGenerator {
         argument: &crate::bytecompiler::bytecode_generator::RegisterRef,
         node: &crate::parser::nodes::ThrowableExpressionData,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        self.emit_expression_info(&node.divot(), &node.divot_start(), &node.divot_end());
+        self.emit_expression_info(&node.divot, &node.divot_start, &node.divot_end);
         let temporary = self.new_temporary();
-        let iterator_symbol = self.property_names().iterator_symbol().clone();
+        let iterator_symbol = self.property_names().iterator_symbol.clone();
         let iterator = self.emit_get_by_id(Some(temporary), Some(argument.clone()), &iterator_symbol).unwrap();
         self.emit_call_iterator(&iterator, argument, node);
 
@@ -758,17 +771,17 @@ impl BytecodeGenerator {
             self.move_register(this_register.as_ref(), iterator);
             self.emit_call(
                 dst.clone(),
-                next_method,
+                Some(next_method.clone()),
                 crate::bytecompiler::bytecode_generator::ExpectedFunction::NoExpectedFunction,
                 &mut next_arguments,
-                &node.divot(),
-                &node.divot_start(),
-                &node.divot_end(),
+                &node.divot,
+                &node.divot_start,
+                &node.divot_end,
                 crate::bytecompiler::bytecode_generator::DebuggableCall::No,
             );
 
             if do_emit_await == crate::bytecompiler::bytecode_generator::EmitAwait::Yes {
-                self.emit_await(dst.clone(), dst.as_ref().unwrap(), &node.divot());
+                self.emit_await(dst.clone(), dst.as_ref().unwrap(), &node.divot);
             }
         }
         {
@@ -797,12 +810,12 @@ impl BytecodeGenerator {
             self.move_register(argument_register.as_ref(), value);
             self.emit_call(
                 dst.clone(),
-                next_method,
+                Some(next_method.clone()),
                 crate::bytecompiler::bytecode_generator::ExpectedFunction::NoExpectedFunction,
                 &mut next_arguments,
-                &node.divot(),
-                &node.divot_start(),
-                &node.divot_end(),
+                &node.divot,
+                &node.divot_start,
+                &node.divot_end,
                 crate::bytecompiler::bytecode_generator::DebuggableCall::No,
             );
         }
@@ -819,7 +832,7 @@ impl BytecodeGenerator {
     ) {
         let done = self.new_label();
         let temporary = self.new_temporary();
-        let return_keyword = self.property_names().return_keyword().clone();
+        let return_keyword = self.property_names().return_keyword.clone();
         let return_method = self.emit_get_by_id(Some(temporary), Some(iterator.clone()), &return_keyword).unwrap();
         self.emit_jump_if_undefined_or_null(&return_method, &done, true);
 
@@ -829,17 +842,17 @@ impl BytecodeGenerator {
         self.move_register(this_register.as_ref(), iterator);
         self.emit_call(
             Some(value.clone()),
-            &return_method,
+            Some(return_method.clone()),
             crate::bytecompiler::bytecode_generator::ExpectedFunction::NoExpectedFunction,
             &mut return_arguments,
-            &node.divot(),
-            &node.divot_start(),
-            &node.divot_end(),
+            &node.divot,
+            &node.divot_start,
+            &node.divot_end,
             crate::bytecompiler::bytecode_generator::DebuggableCall::No,
         );
 
         if do_emit_await == crate::bytecompiler::bytecode_generator::EmitAwait::Yes {
-            self.emit_await(Some(value.clone()), &value, &node.divot());
+            self.emit_await(Some(value.clone()), &value, &node.divot);
         }
 
         self.emit_jump_if_object(&value, &done);
@@ -867,11 +880,11 @@ impl BytecodeGenerator {
             if is_async {
                 iterator = self.new_temporary();
                 next_method = self.new_temporary();
-                self.emit_get_generic_async_iterator(&iterator, &next_method, argument, node);
+                self.emit_get_generic_async_iterator(Some(iterator.clone()), Some(next_method.clone()), Some(argument.clone()), node);
             } else {
                 iterator = self.emit_get_generic_iterator(argument, node).unwrap();
                 let temporary = self.new_temporary();
-                let next = self.property_names().next().clone();
+                let next = self.property_names().next.clone();
                 next_method = self.emit_get_by_id(Some(temporary), Some(iterator.clone()), &next).unwrap();
             }
 
@@ -906,7 +919,7 @@ impl BytecodeGenerator {
                     {
                         let throw_method_found = self.new_label();
                         let temporary = self.new_temporary();
-                        let throw_keyword = self.property_names().throw_keyword().clone();
+                        let throw_keyword = self.property_names().throw_keyword.clone();
                         let throw_method =
                             self.emit_get_by_id(Some(temporary), Some(iterator.clone()), &throw_keyword).unwrap();
                         self.emit_jump_if_undefined_or_null(&throw_method, &throw_method_found, false);
@@ -925,12 +938,12 @@ impl BytecodeGenerator {
                         self.move_register(argument_register.as_ref(), &value);
                         self.emit_call(
                             Some(value.clone()),
-                            &throw_method,
+                            Some(throw_method.clone()),
                             ExpectedFunction::NoExpectedFunction,
                             &mut throw_arguments,
-                            &node.divot(),
-                            &node.divot_start(),
-                            &node.divot_end(),
+                            &node.divot,
+                            &node.divot_start,
+                            &node.divot_end,
                             DebuggableCall::No,
                         );
 
@@ -942,13 +955,13 @@ impl BytecodeGenerator {
                     {
                         let return_method_found = self.new_label();
                         let temporary = self.new_temporary();
-                        let return_keyword = self.property_names().return_keyword().clone();
+                        let return_keyword = self.property_names().return_keyword.clone();
                         let return_method =
                             self.emit_get_by_id(Some(temporary), Some(iterator.clone()), &return_keyword).unwrap();
                         self.emit_jump_if_undefined_or_null(&return_method, &return_method_found, false);
 
                         if is_async {
-                            self.emit_await(Some(value.clone()), &value, &node.divot());
+                            self.emit_await(Some(value.clone()), &value, &node.divot);
                         }
 
                         let return_sequence = self.new_label();
@@ -962,17 +975,17 @@ impl BytecodeGenerator {
                         self.move_register(argument_register.as_ref(), &value);
                         self.emit_call(
                             Some(value.clone()),
-                            &return_method,
+                            Some(return_method.clone()),
                             ExpectedFunction::NoExpectedFunction,
                             &mut return_arguments,
-                            &node.divot(),
-                            &node.divot_start(),
-                            &node.divot_end(),
+                            &node.divot,
+                            &node.divot_start,
+                            &node.divot_end,
                             DebuggableCall::No,
                         );
 
                         if is_async {
-                            self.emit_await(Some(value.clone()), &value, &node.divot());
+                            self.emit_await(Some(value.clone()), &value, &node.divot);
                         }
 
                         let return_iterator_result_is_object = self.new_label();
@@ -983,12 +996,12 @@ impl BytecodeGenerator {
 
                         let return_from_generator = self.new_label();
                         let temporary = self.new_temporary();
-                        let done_identifier = self.property_names().done().clone();
+                        let done_identifier = self.property_names().done.clone();
                         let done_register =
                             self.emit_get_by_id(Some(temporary), Some(value.clone()), &done_identifier).unwrap();
-                        self.emit_jump_if_true(&done_register, &return_from_generator);
+                        self.emit_jump_if_true_raw(&done_register, &return_from_generator);
 
-                        let value_identifier = self.property_names().value().clone();
+                        let value_identifier = self.property_names().value.clone();
                         self.emit_get_by_id(Some(value.clone()), Some(value.clone()), &value_identifier);
                         self.emit_jump(&loop_start);
 
@@ -998,7 +1011,7 @@ impl BytecodeGenerator {
                         self.emit_label(&return_sequence);
                         let has_finally = self.emit_return_via_finally_if_needed(&value);
                         if !has_finally {
-                            self.emit_return(&value);
+                            self.emit_return(Some(value.clone()));
                         }
                     }
 
@@ -1008,7 +1021,7 @@ impl BytecodeGenerator {
 
                 self.emit_label(&next_element);
                 if is_async {
-                    self.emit_async_iterator_next(Some(value.clone()), &next_method, &iterator, &value, node);
+                    self.emit_async_iterator_next(Some(value.clone()), Some(next_method.clone()), Some(iterator.clone()), Some(value.clone()), node);
                 } else {
                     self.emit_iterator_generic_next_with_value(Some(value.clone()), &next_method, &iterator, &value, node);
                 }
@@ -1016,7 +1029,7 @@ impl BytecodeGenerator {
                 self.emit_label(&branch_on_result);
 
                 if is_async {
-                    self.emit_await(Some(value.clone()), &value, &node.divot());
+                    self.emit_await(Some(value.clone()), &value, &node.divot);
                 }
 
                 let iterator_value_is_object = self.new_label();
@@ -1025,10 +1038,10 @@ impl BytecodeGenerator {
                 self.emit_label(&iterator_value_is_object);
 
                 let temporary = self.new_temporary();
-                let done_identifier = self.property_names().done().clone();
+                let done_identifier = self.property_names().done.clone();
                 let done_register = self.emit_get_by_id(Some(temporary), Some(value.clone()), &done_identifier).unwrap();
-                self.emit_jump_if_true(&done_register, &loop_done);
-                let value_identifier = self.property_names().value().clone();
+                self.emit_jump_if_true_raw(&done_register, &loop_done);
+                let value_identifier = self.property_names().value.clone();
                 self.emit_get_by_id(Some(value.clone()), Some(value.clone()), &value_identifier);
 
                 self.emit_jump(&loop_start);
@@ -1036,7 +1049,7 @@ impl BytecodeGenerator {
             self.emit_label(&loop_done);
         }
 
-        let value_identifier = self.property_names().value().clone();
+        let value_identifier = self.property_names().value.clone();
         self.emit_get_by_id(Some(value.clone()), Some(value.clone()), &value_identifier);
         Some(value)
     }
@@ -1054,7 +1067,7 @@ impl BytecodeGenerator {
             crate::runtime::js_generator::Field::State as u32
         };
         let generator_register = self.generator_register();
-        self.emit_put_internal_field(generator_register.unwrap(), field, completed_state.unwrap());
+        self.emit_put_internal_field(generator_register, field, completed_state);
     }
 
     // BytecodeGenerator.cpp:5672
@@ -1093,11 +1106,11 @@ impl BytecodeGenerator {
         };
         let innermost_finally_context = innermost_finally_context.unwrap();
 
-        let jump_id = crate::bytecompiler::bytecode_generator::bytecode_offset_to_jump_id(self.instructions().size() as u32);
+        let jump_id = crate::bytecompiler::bytecode_generator::bytecode_offset_to_jump_id(self.instructions().size_in_bytes() as u32);
         let lexical_scope_index = self.label_scope_depth_to_lexical_scope_index(target_label_scope_depth);
         outermost_finally_context
             .borrow_mut()
-            .register_jump(jump_id, lexical_scope_index, jump_target.get().clone());
+            .register_jump(jump_id, lexical_scope_index, jump_target.clone());
 
         let completion_type_register = innermost_finally_context.borrow().completion_type_register();
         self.emit_load_completion_type(completion_type_register, jump_id);
@@ -1151,15 +1164,18 @@ impl BytecodeGenerator {
         let completion_type_register = context.completion_type_register().unwrap();
         if context.number_of_breaks_or_continues() != 0 || context.handles_returns() {
             let completion_type_normal = self.emit_load_completion_type(None, CompletionType::NORMAL);
-            let temporary = self.new_temporary();
-            let is_normal = self
-                .emit_equality_op::<crate::bytecode::bytecode_ops::OpStricteq>(
-                    Some(temporary),
-                    Some(completion_type_register.clone()),
-                    completion_type_normal,
-                )
-                .unwrap();
-            self.emit_jump_if_true(&is_normal, normal_completion_label);
+            // O temporário do C++ morre no fim da expressão: escopo próprio para liberar o registrador.
+            {
+                let temporary = self.new_temporary();
+                let is_normal = self
+                    .emit_equality_op::<crate::bytecode::bytecode_ops::OpStricteq>(
+                        Some(temporary),
+                        Some(completion_type_register.clone()),
+                        completion_type_normal,
+                    )
+                    .unwrap();
+                self.emit_jump_if_true_raw(&is_normal, normal_completion_label);
+            }
 
             let outer_context = context.outer_context();
 
@@ -1182,7 +1198,7 @@ impl BytecodeGenerator {
                         jump_id_register,
                     )
                     .unwrap();
-                self.emit_jump_if_false(&is_jump, &next_label);
+                self.emit_jump_if_false_raw(&is_jump, &next_label);
 
                 // This case is for Break / Continue completions from an inner finally context
                 // with a jump target that is not beyond the next outer finally context:
@@ -1226,7 +1242,7 @@ impl BytecodeGenerator {
                             completion_type_return,
                         )
                         .unwrap();
-                    self.emit_jump_if_false(&is_return, &is_not_return_label);
+                    self.emit_jump_if_false_raw(&is_return, &is_not_return_label);
 
                     // This case is for Return completion from an inner finally context:
                     //
@@ -1267,7 +1283,7 @@ impl BytecodeGenerator {
                             crate::parser::result_type::OperandTypes::default(),
                         )
                         .unwrap();
-                    self.emit_jump_if_true(&is_throw_or_normal, &is_throw_or_normal_label);
+                    self.emit_jump_if_true_raw(&is_throw_or_normal, &is_throw_or_normal_label);
 
                     // A completionType above Throw means we have a Break or Continue encoded as a jumpID.
                     // We already ruled out Return above.
@@ -1318,7 +1334,7 @@ impl BytecodeGenerator {
                             completion_type_return,
                         )
                         .unwrap();
-                    self.emit_jump_if_false(&is_return, &not_return_label);
+                    self.emit_jump_if_false_raw(&is_return, &not_return_label);
 
                     // This case is for Return completion from the outermost finally context:
                     //
@@ -1333,7 +1349,7 @@ impl BytecodeGenerator {
 
                     self.emit_will_leave_call_frame_debug_hook();
                     let completion_value_register = context.completion_value_register().unwrap();
-                    self.emit_return(&completion_value_register);
+                    self.emit_return(Some(completion_value_register.clone()));
 
                     self.emit_label(&not_return_label);
                 }
@@ -1352,7 +1368,7 @@ impl BytecodeGenerator {
                 completion_type_throw,
             )
             .unwrap();
-        self.emit_jump_if_false(&is_throw, normal_completion_label);
+        self.emit_jump_if_false_raw(&is_throw, normal_completion_label);
 
         // We get here because we entered this finally context with Throw completionType (i.e. we have
         // an exception that we need to rethrow), and we didn't encounter a different abrupt completion
@@ -1365,25 +1381,25 @@ impl BytecodeGenerator {
         // in its completionValue.
 
         let completion_value_register = context.completion_value_register().unwrap();
-        self.emit_throw(&completion_value_register);
+        self.emit_throw(Some(completion_value_register.clone()));
     }
 
     // BytecodeGenerator.cpp:5888
     pub fn push_optional_chain_target(&mut self) {
         let label = self.new_label();
-        self.optional_chain_target_stack.push(label.get().clone());
+        self.optional_chain_target_stack.push(label);
     }
 
     // BytecodeGenerator.cpp:5893
     pub fn push_optional_chain_target_existing(&mut self, existing_target: &crate::bytecompiler::label::LabelRef) {
-        self.optional_chain_target_stack.push(existing_target.get().clone());
+        self.optional_chain_target_stack.push(existing_target.clone());
     }
 
     // BytecodeGenerator.cpp:5898
     pub fn pop_optional_chain_target(&mut self) {
         assert!(!self.optional_chain_target_stack.is_empty());
         let label = self.optional_chain_target_stack.pop().unwrap();
-        self.emit_label(&crate::bytecompiler::label::LabelRef::new(&label));
+        self.emit_label(&label);
     }
 
     // BytecodeGenerator.cpp:5904
@@ -1411,7 +1427,7 @@ impl BytecodeGenerator {
     // BytecodeGenerator.cpp:5921
     pub fn emit_optional_check(&mut self, src: &crate::bytecompiler::bytecode_generator::RegisterRef) {
         assert!(!self.optional_chain_target_stack.is_empty());
-        let target = crate::bytecompiler::label::LabelRef::new(self.optional_chain_target_stack.last().unwrap());
+        let target = self.optional_chain_target_stack.last().unwrap().clone();
         self.emit_jump_if_undefined_or_null(src, &target, true);
     }
 
@@ -1435,7 +1451,7 @@ impl BytecodeGenerator {
         for i in (0..self.for_in_context_stack.len()).rev() {
             let context = self.for_in_context_stack[i].clone();
             let is_property = match context.borrow().local() {
-                Some(local) => std::rc::Rc::ptr_eq(&local, property),
+                Some(local) => local.is_same_register(property),
                 None => false,
             };
             if !is_property {
@@ -1456,7 +1472,7 @@ fn rewrite_op<EmitNew>(
     inst_tuple: &(u32, i32),
     emit_new: EmitNew,
 ) where
-    EmitNew: FnOnce(&mut BytecodeGenerator, &crate::bytecode::instruction_stream::JSInstruction, crate::bytecode::virtual_register::VirtualRegister),
+    EmitNew: FnOnce(&mut BytecodeGenerator, &crate::bytecode::instruction_stream::MutableRef, crate::bytecode::virtual_register::VirtualRegister),
 {
     let inst_index = inst_tuple.0;
     let property_reg_index = inst_tuple.1;
@@ -1476,7 +1492,7 @@ fn rewrite_op<EmitNew>(
 
     // 4. nop out the remaining bytes
     while generator.writer.position() < end {
-        crate::bytecode::bytecode_ops::OpNop::emit_narrow(generator);
+        crate::bytecode::bytecode_ops::OpNop::emit(generator);
     }
 }
 
@@ -1485,7 +1501,6 @@ impl crate::bytecompiler::bytecode_generator::ForInContext {
     pub fn finalize(
         &mut self,
         generator: &mut BytecodeGenerator,
-        code_block: &crate::bytecode::unlinked_code_block_generator::UnlinkedCodeBlockGenerator,
         body_bytecode_end_offset: u32,
     ) {
         // Lexically invalidating ForInContexts is kind of weak sauce, but it only occurs if
@@ -1504,18 +1519,18 @@ impl crate::bytecompiler::bytecode_generator::ForInContext {
         let mut offset = self.body_bytecode_start_offset();
         while !escaped && offset < body_bytecode_end_offset {
             let instruction = generator.instructions().at(offset);
-            debug_assert!(!instruction.is::<crate::bytecode::bytecode_ops::OpEnter>());
+            debug_assert!(!instruction.is_op::<crate::bytecode::bytecode_ops::OpEnter>());
             let mut checkpoint = instruction.number_of_checkpoints();
             while checkpoint > 0 {
                 checkpoint -= 1;
                 let local_virtual_register = self.local().unwrap().borrow().virtual_register();
-                crate::bytecode::bytecode_use_def::compute_defs_for_bytecode_index(code_block, &instruction, checkpoint, |operand| {
+                crate::bytecode::bytecode_use_def::compute_defs_for_bytecode_index(&generator.code_block, &instruction, checkpoint, |operand| {
                     if local_virtual_register == operand {
                         escaped = true;
                     }
                 });
             }
-            offset += instruction.size();
+            offset += instruction.size() as u32;
         }
 
         if !escaped {
@@ -1545,8 +1560,11 @@ impl crate::bytecompiler::bytecode_generator::ForInContext {
         }
 
         for has_own_property_tuple in &self.has_own_property_jump_insts {
-            const _: () = assert!(
-                crate::bytecode::bytecode_ops::OpJmp::SIZE <= crate::bytecode::bytecode_ops::OpJneqPtr::SIZE
+            debug_assert!(
+                crate::bytecode::opcode::OPCODE_LENGTHS
+                    [<crate::bytecode::bytecode_ops::OpJmp as crate::bytecode::bytecode_ops::BytecodeOp>::OPCODE_ID as usize]
+                    <= crate::bytecode::opcode::OPCODE_LENGTHS[<crate::bytecode::bytecode_ops::OpJneqPtr as crate::bytecode::bytecode_ops::BytecodeOp>::OPCODE_ID
+                        as usize]
             );
             let branch_inst_index = has_own_property_tuple.0;
             let new_branch_target = has_own_property_tuple.1;
@@ -1565,11 +1583,11 @@ impl crate::bytecompiler::bytecode_generator::ForInContext {
             );
 
             while generator.writer.position() < end {
-                crate::bytecode::bytecode_ops::OpNop::emit_narrow(generator);
+                crate::bytecode::bytecode_ops::OpNop::emit(generator);
             }
         }
 
-        let size = generator.writer.size() as u32;
+        let size = generator.writer.size_in_bytes() as u32;
         generator.writer.seek(size);
         generator.disable_peephole_optimization(); // We might've just changed the last bytecode that was emitted.
     }

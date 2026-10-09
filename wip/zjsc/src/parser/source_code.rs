@@ -43,11 +43,6 @@ impl Deref for SourceCode {
 }
 
 impl SourceCode {
-    /// `SourceCode()`.
-    pub fn new() -> SourceCode {
-        SourceCode::default()
-    }
-
     /// `SourceCode(Ref<SourceProvider>&&)`: linha e coluna ficam no `OrdinalNumber()` padrão.
     pub fn from_provider(provider: Rc<dyn SourceProvider>) -> SourceCode {
         SourceCode {

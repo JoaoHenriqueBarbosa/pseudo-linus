@@ -1,0 +1,3 @@
+[
+"function S(v){try{return typeof v===\"string\"?JSON.stringify(v):Object.is(v,-0)?\"-0\":typeof v===\"bigint\"?v+\"n\":typeof v===\"symbol\"?v.toString():typeof v===\"undefined\"?\"undefined\":typeof v===\"function\"?\"function\":String(v)}catch(e){return \"?\"}}\nfunction T(f){try{return S(f())}catch(e){return \"throw \"+(e&&e.constructor&&e.constructor.name)+\": \"+(e&&e.message)}}\nvar sr = new ShadowRealm();\n"
+]

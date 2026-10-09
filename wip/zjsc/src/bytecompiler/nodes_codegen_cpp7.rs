@@ -12,9 +12,9 @@
 // do arquivo, com os padrões de `parser/Nodes.h:2517-2519`. `ArrayPatternNode::bind_value` é da fatia
 // anterior (`bindValue` do `ArrayPatternNode`, antes da linha 5900).
 //
-// Dependências ainda não portadas, assumidas com o nome do C++ em snake_case:
-// `StringBuilder::append_quoted_json_string(&WtfString)` (`appendQuotedJSONString`) e
-// `ArrayPatternNode::bind_value(&self, generator, Option<RegisterRef>)`.
+// Dependências: todas já portadas (conferido por grep em 2026-10-08):
+// `StringBuilder::append_quoted_json_string` em `wtf/text/string_builder.rs` e
+// `ArrayPatternNode::bind_value` na cpp6.
 
 type Cpp7Reg = Option<crate::bytecompiler::bytecode_generator::RegisterRef>;
 
@@ -112,7 +112,7 @@ impl crate::parser::nodes::ObjectPatternNode {
             let mut rest_element_base: Cpp7Reg = None;
             let mut rest_element_property_name: Cpp7Reg = None;
             let mut new_object: Cpp7Reg = None;
-            let mut excluded_set = crate::runtime::identifier::IdentifierSet::default();
+            let mut excluded_set = crate::parser::parser::IdentifierSet::default();
             let mut args: Option<crate::bytecompiler::bytecode_generator::CallArguments> = None;
             let mut number_of_computed_properties: u32 = 0;
             let mut index_in_arguments: u32 = 2;
@@ -193,12 +193,12 @@ impl crate::parser::nodes::ObjectPatternNode {
                                 }
                                 Some(index) => {
                                     let property_index = generator
-                                        .emit_load_js_value(None, crate::runtime::js_value::js_number_u32(index));
+                                        .emit_load_js_value(None, crate::runtime::js_value::JSValue::from_u32(index));
                                     generator.emit_get_by_val(temp.clone(), rhs.clone(), property_index);
                                 }
                             }
                             if self.contains_rest_element {
-                                excluded_set.add(target.property_name.impl_());
+                                excluded_set.add(&target.property_name.impl_().unwrap(), ());
                             }
                         }
                         Some(property_expression) => {
@@ -233,7 +233,7 @@ impl crate::parser::nodes::ObjectPatternNode {
                     }
 
                     if let Some(default_value) = &target.default_value {
-                        assign_default_value_if_undefined(generator, temp.clone(), default_value);
+                        cpp6_assign_default_value_if_undefined(generator, &temp, default_value);
                     }
 
                     if direct_binding.is_some() {
@@ -464,7 +464,7 @@ impl crate::parser::nodes::AssignmentElementNode {
                 base = Some(generator.new_temporary());
             }
 
-            let node = self.assignment_target.as_dot_accessor_node();
+            let node = self.assignment_target.as_dot_accessor_node().unwrap();
             generator.emit_node_expression(base.clone(), &node.borrow().base.base_expr);
             generator.emit_expression_info(&self.divot_end, &self.divot_start, &self.divot_end);
 
@@ -479,7 +479,7 @@ impl crate::parser::nodes::AssignmentElementNode {
                 property_name = Some(generator.new_temporary());
             }
 
-            let node = self.assignment_target.as_bracket_accessor_node();
+            let node = self.assignment_target.as_bracket_accessor_node().unwrap();
             generator.emit_node_expression(base.clone(), &node.borrow().base_expr);
             generator.emit_node_for_property_dst(property_name.clone(), &node.borrow().subscript);
             generator.emit_expression_info(&self.divot_end, &self.divot_start, &self.divot_end);
@@ -497,11 +497,11 @@ impl crate::parser::nodes::AssignmentElementNode {
         value: Cpp7Reg,
     ) {
         if self.assignment_target.is_dot_accessor_node() {
-            let node = self.assignment_target.as_dot_accessor_node();
+            let node = self.assignment_target.as_dot_accessor_node().unwrap();
             node.borrow().emit_put_property(generator, pair.0.clone(), value.clone());
             generator.emit_profile_type_divots(value, &self.divot_start, &self.divot_end);
         } else if self.assignment_target.is_bracket_accessor_node() {
-            let node = self.assignment_target.as_bracket_accessor_node();
+            let node = self.assignment_target.as_bracket_accessor_node().unwrap();
             if node.borrow().base_expr.is_super_node() {
                 let this_value = Some(generator.ensure_this());
                 generator.emit_put_by_val_with_this(pair.0.clone(), this_value, pair.1.clone(), value.clone());
@@ -517,8 +517,8 @@ impl crate::parser::nodes::AssignmentElementNode {
         generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
     ) -> bool {
         if self.assignment_target.is_resolve_node() {
-            let lhs = self.assignment_target.as_resolve_node();
-            let ident = lhs.borrow().identifier().clone();
+            let lhs = self.assignment_target.as_resolve_node().unwrap();
+            let ident = lhs.borrow().ident.clone();
             let var = generator.variable(&ident, crate::bytecompiler::bytecode_generator::ThisResolutionType::Local);
             if var.offset().is_stack() || var.offset().is_scope() {
                 return var.is_read_only() || generator.needs_tdz_check(&var);
@@ -535,8 +535,8 @@ impl crate::parser::nodes::AssignmentElementNode {
         if !self.assignment_target.is_resolve_node() {
             return None;
         }
-        let lhs = self.assignment_target.as_resolve_node();
-        let ident = lhs.borrow().identifier().clone();
+        let lhs = self.assignment_target.as_resolve_node().unwrap();
+        let ident = lhs.borrow().ident.clone();
         let var = generator.variable(&ident, crate::bytecompiler::bytecode_generator::ThisResolutionType::Local);
         let is_read_only = var.is_read_only();
         if let Some(local) = var.local() {
@@ -556,8 +556,8 @@ impl crate::parser::nodes::AssignmentElementNode {
         generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
     ) {
         debug_assert!(self.writable_direct_binding_if_possible(generator).is_some());
-        let lhs = self.assignment_target.as_resolve_node();
-        let ident = lhs.borrow().identifier().clone();
+        let lhs = self.assignment_target.as_resolve_node().unwrap();
+        let ident = lhs.borrow().ident.clone();
         let var = generator.variable(&ident, crate::bytecompiler::bytecode_generator::ThisResolutionType::Local);
         let local = var.local();
         generator.emit_profile_type_divots(local, &self.divot_start, &self.divot_end);
@@ -571,8 +571,8 @@ impl crate::parser::nodes::AssignmentElementNode {
         value: Cpp7Reg,
     ) {
         if self.assignment_target.is_resolve_node() {
-            let lhs = self.assignment_target.as_resolve_node();
-            let ident = lhs.borrow().identifier().clone();
+            let lhs = self.assignment_target.as_resolve_node().unwrap();
+            let ident = lhs.borrow().ident.clone();
             let var = generator.variable(&ident, crate::bytecompiler::bytecode_generator::ThisResolutionType::Local);
             let is_read_only = var.is_read_only();
             if let Some(local) = var.local() {
@@ -610,14 +610,14 @@ impl crate::parser::nodes::AssignmentElementNode {
                 generator.emit_profile_type_variable(value.clone(), &var, &self.divot_start, &self.divot_end);
             }
         } else if self.assignment_target.is_dot_accessor_node() {
-            let lhs = self.assignment_target.as_dot_accessor_node();
+            let lhs = self.assignment_target.as_dot_accessor_node().unwrap();
             let lhs = lhs.borrow();
             let base = generator.emit_node_for_left_hand_side(&lhs.base.base_expr, true, false);
             generator.emit_expression_info(&self.divot_end, &self.divot_start, &self.divot_end);
             lhs.emit_put_property(generator, base, value.clone());
             generator.emit_profile_type_divots(value, &self.divot_start, &self.divot_end);
         } else if self.assignment_target.is_bracket_accessor_node() {
-            let lhs = self.assignment_target.as_bracket_accessor_node();
+            let lhs = self.assignment_target.as_bracket_accessor_node().unwrap();
             let lhs = lhs.borrow();
             let base = generator.emit_node_for_left_hand_side(&lhs.base_expr, true, false);
             let property = generator.emit_node_for_left_hand_side_for_property(&lhs.subscript, true, false);
@@ -634,8 +634,8 @@ impl crate::parser::nodes::AssignmentElementNode {
 
     pub fn to_string(&self, builder: &mut crate::wtf::text::string_builder::StringBuilder) {
         if self.assignment_target.is_resolve_node() {
-            let target = self.assignment_target.as_resolve_node();
-            builder.append_atom_string(target.borrow().identifier().string());
+            let target = self.assignment_target.as_resolve_node().unwrap();
+            builder.append_atom_string(target.borrow().ident.string());
         }
     }
 }

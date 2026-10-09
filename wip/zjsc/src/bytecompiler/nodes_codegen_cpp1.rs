@@ -5,24 +5,13 @@
 // `Rc::ptr_eq` com `generator.ignored_result()`. O despacho por família (`Expression::emit_bytecode`)
 // fica em outro arquivo; aqui só os corpos por struct concreta.
 
-/// `dst == generator.ignoredResult()`.
-fn nodes_codegen_is_ignored_result(
-    generator: &crate::bytecompiler::bytecode_generator::BytecodeGenerator,
-    dst: &Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
-) -> bool {
-    match dst {
-        Some(d) => std::rc::Rc::ptr_eq(d, &generator.ignored_result()),
-        None => false,
-    }
-}
-
 /// `RegisterID callee; callee.setIndex(CallFrameSlot::callee);`
 fn nodes_codegen_callee_register() -> crate::bytecompiler::bytecode_generator::RegisterRef {
-    let mut callee = crate::bytecompiler::register_id::RegisterID::new();
+    let mut callee = crate::bytecompiler::register_id::RegisterID::default();
     callee.set_index(crate::bytecode::virtual_register::VirtualRegister::new(
         crate::interpreter::call_frame::CallFrameSlot::CALLEE,
     ));
-    std::rc::Rc::new(std::cell::RefCell::new(callee))
+    crate::bytecompiler::bytecode_generator::RegisterRef::new(&std::rc::Rc::new(std::cell::RefCell::new(callee)))
 }
 
 /// `ExpressionNode::emitBytecodeInConditionContext` (o padrão da família): `this` vem como
@@ -30,17 +19,20 @@ fn nodes_codegen_callee_register() -> crate::bytecompiler::bytecode_generator::R
 pub fn expression_node_emit_bytecode_in_condition_context(
     this: &crate::parser::nodes::Expression,
     generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
-    true_target: &crate::bytecompiler::label::Label,
-    false_target: &crate::bytecompiler::label::Label,
+    true_target: &crate::bytecompiler::label::LabelRef,
+    false_target: &crate::bytecompiler::label::LabelRef,
     fall_through_mode: crate::parser::nodes::FallThroughMode,
 ) {
     let result = generator.emit_node_expression_no_dst(this);
     let result = result.expect("emitNode devolveu nulo sem dst");
-    if fall_through_mode == crate::parser::nodes::FallThroughMode::FallThroughMeansTrue {
-        generator.emit_jump_if_false(&result, false_target);
-    } else {
-        generator.emit_jump_if_true(&result, true_target);
-    }
+    // `RegisterID* result = generator.emitNode(this)`: ponteiro cru, a fusão do salto pode desfazer a instrução.
+    generator.with_raw_register(Some(result.get()), |generator| {
+        if fall_through_mode == crate::parser::nodes::FallThroughMode::FallThroughMeansTrue {
+            generator.emit_jump_if_false(&result, false_target);
+        } else {
+            generator.emit_jump_if_true(&result, true_target);
+        }
+    });
 }
 
 // ------------------------------ ThrowableExpressionData --------------------------------
@@ -69,8 +61,8 @@ pub fn constant_node_emit_bytecode_in_condition_context(
     this: &crate::parser::nodes::Expression,
     constant: Option<crate::runtime::js_value::JSValue>,
     generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
-    true_target: &crate::bytecompiler::label::Label,
-    false_target: &crate::bytecompiler::label::Label,
+    true_target: &crate::bytecompiler::label::LabelRef,
+    false_target: &crate::bytecompiler::label::LabelRef,
     fall_through_mode: crate::parser::nodes::FallThroughMode,
 ) {
     let mut value = crate::parser::source_tainted_origin::TriState::Indeterminate;
@@ -79,7 +71,7 @@ pub fn constant_node_emit_bytecode_in_condition_context(
     }
 
     if this.base().needs_debug_hook() && value != crate::parser::source_tainted_origin::TriState::Indeterminate {
-        generator.emit_debug_hook_expression(this, None);
+        generator.emit_debug_hook_expression_data(this, None);
     }
 
     if value == crate::parser::source_tainted_origin::TriState::Indeterminate {
@@ -103,7 +95,7 @@ pub fn constant_node_emit_bytecode(
     generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
     dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
 ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-    if nodes_codegen_is_ignored_result(generator, &dst) {
+    if generator.is_ignored_dst(dst.as_ref()) {
         return None;
     }
     match constant {
@@ -118,7 +110,8 @@ impl crate::parser::nodes::StringNode {
         &self,
         generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
     ) -> Option<crate::runtime::js_value::JSValue> {
-        generator.add_string_constant(&self.value)
+        let string = generator.add_string_constant(&self.value);
+        Some(crate::runtime::js_value::JSValue::from_cell(string.cell_id()))
     }
 }
 
@@ -127,7 +120,7 @@ impl crate::parser::nodes::BigIntNode {
         &self,
         generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
     ) -> Option<crate::runtime::js_value::JSValue> {
-        generator.add_big_int_constant(&self.value, self.radix, self.sign)
+        Some(generator.add_big_int_constant(&self.value, self.radix, self.sign))
     }
 }
 
@@ -148,7 +141,7 @@ impl crate::parser::nodes::NumberNode {
         dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         is_integer_node: bool,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        if nodes_codegen_is_ignored_result(generator, &dst) {
+        if generator.is_ignored_dst(dst.as_ref()) {
             return None;
         }
         let constant = self.js_value(generator).expect("NumberNode::jsValue sempre tem valor");
@@ -172,13 +165,13 @@ impl crate::parser::nodes::RegExpNode {
         generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
         dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        if nodes_codegen_is_ignored_result(generator, &dst) {
+        if generator.is_ignored_dst(dst.as_ref()) {
             return None;
         }
 
         let flags = crate::yarr::yarr_flags::parse_flags(self.flags.string().span8());
         let flags = flags.expect("flags do literal de regexp já validadas pelo parser");
-        let reg_exp = crate::runtime::reg_exp::RegExp::create(generator.vm(), self.pattern.string(), flags);
+        let reg_exp = crate::runtime::reg_exp::RegExp::create(generator.vm(), self.pattern.string().string(), flags);
         if reg_exp.is_valid() {
             let final_dst = generator.final_destination(dst.as_ref(), None);
             return generator.emit_new_reg_exp(Some(final_dst), reg_exp);
@@ -187,8 +180,9 @@ impl crate::parser::nodes::RegExpNode {
         let message = generator
             .parser_arena()
             .identifier_arena()
-            .make_identifier(generator.vm(), reg_exp.error_message().span8());
-        generator.emit_throw_static_error_identifier(
+            .borrow_mut()
+            .make_identifier(generator.vm(), reg_exp.error_message());
+        generator.emit_throw_static_error(
             crate::runtime::error_type::ErrorTypeWithExtension::SyntaxError,
             &message,
         );
@@ -206,7 +200,7 @@ impl crate::parser::nodes::ThisNode {
         dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         generator.ensure_this();
-        if nodes_codegen_is_ignored_result(generator, &dst) {
+        if generator.is_ignored_dst(dst.as_ref()) {
             return None;
         }
 
@@ -305,7 +299,7 @@ impl crate::parser::nodes::ImportNode {
         let final_dst = generator.final_destination(dst.as_ref(), Some(&import_module));
         generator.emit_call(
             Some(final_dst),
-            &import_module,
+            Some(import_module.clone()),
             crate::bytecompiler::bytecode_generator::ExpectedFunction::NoExpectedFunction,
             &mut arguments,
             &self.throwable.divot,
@@ -324,7 +318,7 @@ impl crate::parser::nodes::NewTargetNode {
         generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
         dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        if nodes_codegen_is_ignored_result(generator, &dst) {
+        if generator.is_ignored_dst(dst.as_ref()) {
             return None;
         }
 
@@ -378,7 +372,7 @@ impl crate::parser::nodes::ResolveNode {
         if let Some(local) = var.local() {
             generator.emit_expression_info(&divot, &self.start, &divot);
             generator.emit_tdz_check_if_necessary(&var, Some(local.clone()), None);
-            if nodes_codegen_is_ignored_result(generator, &dst) {
+            if generator.is_ignored_dst(dst.as_ref()) {
                 return None;
             }
 
@@ -398,15 +392,16 @@ impl crate::parser::nodes::ResolveNode {
                 crate::runtime::get_put_info::ResolveMode::ThrowIfNotFound,
             );
         } else {
-            let unchecked_result = generator.new_temporary();
+            // O JSC do bun carrega o get_from_scope direto em finalDest e checa nele (sem temporário e sem mov).
             generator.emit_get_from_scope(
-                Some(unchecked_result.clone()),
+                Some(final_dest.clone()),
                 scope,
                 &var,
                 crate::runtime::get_put_info::ResolveMode::ThrowIfNotFound,
             );
-            generator.emit_tdz_check(&unchecked_result);
-            generator.move_register(Some(&final_dest), &unchecked_result);
+            // `emitTDZCheck(finalDest, m_ident)`: o `Variable` implícito de `Identifier` leva o nome.
+            let named = crate::bytecompiler::bytecode_generator::Variable::from_ident(&self.ident);
+            generator.emit_tdz_check_variable(&final_dest, &named);
         }
         let position = *self.position();
         generator.emit_profile_type_variable(Some(final_dest.clone()), &var, &position, &(position + ident_length));
@@ -422,12 +417,12 @@ impl crate::parser::nodes::TemplateStringNode {
         generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
         dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
-        if nodes_codegen_is_ignored_result(generator, &dst) {
+        if generator.is_ignored_dst(dst.as_ref()) {
             return None;
         }
         let cooked = self.cooked.as_ref().expect("TemplateStringNode::emitBytecode exige cooked");
         let constant = generator.add_string_constant(cooked);
-        generator.emit_load_js_value(dst, constant.expect("string constante"))
+        generator.emit_load_js_value(dst, crate::runtime::js_value::JSValue::from_cell(constant.cell_id()))
     }
 }
 
@@ -544,7 +539,7 @@ impl crate::parser::nodes::TaggedTemplateNode {
             let temporary = generator.new_temporary();
             if bracket.base_expr.is_super_node() {
                 let this_value = generator.ensure_this();
-                tag = generator.emit_get_by_val_with_this(Some(temporary), base.clone(), this_value, property);
+                tag = generator.emit_get_by_val_with_this(Some(temporary), base.clone(), Some(this_value), property);
             } else {
                 tag = generator.emit_get_by_val(Some(temporary), base.clone(), property);
             }
@@ -562,7 +557,7 @@ impl crate::parser::nodes::TaggedTemplateNode {
 
         let template_object = generator.emit_get_template_object(None, this_node);
 
-        let mut expressions_count: usize = 0;
+        let mut expressions_count: u32 = 0;
         let mut template_expression = self.template_literal.borrow().template_expressions.clone();
         while let Some(expression_list) = template_expression {
             expressions_count += 1;
@@ -592,7 +587,7 @@ impl crate::parser::nodes::TaggedTemplateNode {
         let final_dst = generator.final_destination(dst.as_ref(), Some(&tag));
         generator.emit_call_in_tail_position(
             Some(final_dst),
-            &tag,
+            Some(tag.clone()),
             expected_function,
             &mut call_arguments,
             &self.throwable.divot,
@@ -637,7 +632,7 @@ impl crate::parser::nodes::ArrayNode {
                             if !constant.is_string() {
                                 all_dense_strings = false;
                             } else {
-                                let is_atom = match constant.as_string().try_get_value_impl() {
+                                let is_atom = match constant.as_js_string().try_get_value_impl() {
                                     Some(value_impl) => value_impl.is_atom(),
                                     None => false,
                                 };
@@ -668,7 +663,7 @@ impl crate::parser::nodes::ArrayNode {
             if length != 0 && !had_variable_expression {
                 *recommended_indexing_type |= crate::runtime::indexing_type::COPY_ON_WRITE;
                 // We run bytecode generator under a DeferGC.
-                debug_assert!(generator.vm().heap.is_deferred());
+                // (O C++ tem aqui só `ASSERT(vm.heap.isDeferred())`, checagem de depuração; o `Heap` não existe.)
 
                 let cell_butterfly_structure = if all_dense_strings {
                     generator.vm().cell_butterfly_only_atom_strings_structure()
@@ -692,12 +687,12 @@ impl crate::parser::nodes::ArrayNode {
                         nodes_codegen_constant_js_value(generator, &current_ref.node).expect("constante")
                     };
                     if all_dense_strings {
-                        let string = constant.as_string();
+                        let string = constant.as_js_string();
                         let string_impl = string.get_value_impl();
                         constant = generator
                             .vm()
                             .atom_string_to_js_string_map()
-                            .ensure_value(string_impl, || string.clone());
+                            .ensure_value(&string_impl, || string.clone());
                     }
                     array.set_index(generator.vm(), index, constant);
                     index += 1;
@@ -705,7 +700,9 @@ impl crate::parser::nodes::ArrayNode {
                 }
                 return generator.emit_new_array_buffer(dst, array, *recommended_indexing_type);
             }
-            generator.emit_new_array(dst, elements, length, *recommended_indexing_type)
+            // `finalDestination(dst)`/`tempDestination(dst)` chegam crus ao `emitNewArray` (sem a referência do clone).
+            let raw_dst = dst.as_ref().map(|register| register.get().clone());
+            generator.with_raw_register(raw_dst.as_ref(), |generator| generator.emit_new_array(dst, elements, length, *recommended_indexing_type))
         };
 
         if first_put_element.is_none() && self.elision == 0 {
@@ -731,7 +728,8 @@ impl crate::parser::nodes::ArrayNode {
 
                 if !has_elision {
                     let final_dst = generator.final_destination(dst.as_ref(), None);
-                    return generator.emit_new_array_with_spread(Some(final_dst), self.element.clone());
+                    let raw_dst = final_dst.get().clone();
+                    return generator.with_raw_register(Some(&raw_dst), |generator| generator.emit_new_array_with_spread(Some(final_dst), self.element.clone()));
                 }
             }
         }
@@ -771,7 +769,7 @@ impl crate::parser::nodes::ArrayNode {
         generator.emit_load_js_value(Some(index_register.clone()), crate::runtime::js_value::js_number(length as f64));
         let spreader_array = array.clone();
         let spreader_index = index_register.clone();
-        let spreader = move |generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
+        let mut spreader = move |generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
                              value: Option<crate::bytecompiler::bytecode_generator::RegisterRef>| {
             generator.emit_direct_put_by_val(Some(spreader_array.clone()), Some(spreader_index.clone()), value);
             generator.emit_inc(&spreader_index);
@@ -793,7 +791,8 @@ impl crate::parser::nodes::ArrayNode {
             let value_expression = current.borrow().node.clone();
             if let crate::parser::nodes::Expression::SpreadExpression(spread) = &value_expression {
                 let spread_expression = spread.borrow().expression.clone();
-                generator.emit_enumeration(spread, &spread_expression, &spreader);
+                let throwable = spread.borrow().throwable.clone();
+                generator.emit_enumeration(&throwable, &spread_expression, &mut spreader, None, None);
             } else {
                 let value = generator.emit_node_expression_no_dst(&value_expression);
                 generator.emit_direct_put_by_val(Some(array.clone()), Some(index_register.clone()), value);

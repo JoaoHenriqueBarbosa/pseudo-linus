@@ -10,7 +10,7 @@
 // ...)`) recebem `this` como `NodeRef<T>`. O `StrictModeScope` guarda o gerador e o devolve por
 // `generator()`; o `Drop` restaura o modo ao sair do bloco.
 //
-// Dependências ainda não portadas, assumidas com o nome do C++ em snake_case:
+// Dependências: todas já portadas na cpp7 (conferido por grep em 2026-10-08):
 // `DestructuringPatternNode::bind_value`/`bind_value_can_throw` e
 // `AssignmentElementNode::emit_nodes_for_destructuring`/`bind_value_with_emitted_nodes`.
 
@@ -81,7 +81,7 @@ impl crate::parser::nodes::YieldExprNode {
                 None => generator.emit_load_js_value(None, crate::runtime::js_value::JSValue::Undefined),
             };
             let value = generator.emit_yield(arg.as_ref().unwrap());
-            if generator.is_ignored_result(dst.as_ref()) {
+            if generator.is_ignored_dst(dst.as_ref()) {
                 return None;
             }
             let final_dst = generator.final_destination(dst.as_ref(), None);
@@ -90,7 +90,7 @@ impl crate::parser::nodes::YieldExprNode {
         let argument = self.argument.as_ref().expect("yield* sempre tem argumento");
         let arg = generator.emit_node_expression(None, argument);
         let value = generator.emit_delegate_yield(arg.as_ref().unwrap(), &self.throwable);
-        if generator.is_ignored_result(dst.as_ref()) {
+        if generator.is_ignored_dst(dst.as_ref()) {
             return None;
         }
         let final_dst = generator.final_destination(dst.as_ref(), None);
@@ -111,7 +111,10 @@ impl crate::parser::nodes::AwaitExprNode {
             Some(register) => Some(register),
             None => Some(generator.new_temporary()),
         };
-        generator.emit_await(target, arg.as_ref().unwrap(), self.position())
+        // `dst ? dst : newTemporary()` chega cru ao `emitAwait` (contagem 0 no temporário novo).
+        let raw_target = target.as_ref().map(|register| register.get().clone());
+        let position = self.position();
+        generator.with_raw_register(raw_target.as_ref(), |generator| generator.emit_await(target, arg.as_ref().unwrap(), position))
     }
 }
 
@@ -141,11 +144,11 @@ impl crate::parser::nodes::DefineFieldNode {
 
         match self.type_ {
             crate::parser::nodes::DefineFieldType::Name => {
-                let mut strict_mode_scope = crate::bytecompiler::bytecode_generator_part3::StrictModeScope::new(generator);
+                let mut strict_mode_scope = crate::bytecompiler::bytecode_generator::StrictModeScope::new(generator);
                 let generator = strict_mode_scope.generator();
-                if let Some(index) = crate::runtime::identifier::parse_index(&self.ident) {
+                if let Some(index) = crate::runtime::identifier::parse_index_identifier(&self.ident) {
                     let property_name =
-                        generator.emit_load_js_value(None, crate::runtime::js_value::js_number_u32(index));
+                        generator.emit_load_js_value(None, crate::runtime::js_value::JSValue::from_u32(index));
                     let this_register = generator.this_register();
                     generator.emit_direct_put_by_val(Some(this_register), property_name, value);
                 } else {
@@ -195,7 +198,7 @@ impl crate::parser::nodes::DefineFieldNode {
                 generator.emit_profile_type_variable(private_name.clone(), &var, self.position(), &profile_end);
                 {
                     let mut strict_mode_scope =
-                        crate::bytecompiler::bytecode_generator_part3::StrictModeScope::new(generator);
+                        crate::bytecompiler::bytecode_generator::StrictModeScope::new(generator);
                     let generator = strict_mode_scope.generator();
                     let this_register = generator.this_register();
                     generator.emit_direct_put_by_val(Some(this_register), private_name, value);
@@ -225,7 +228,7 @@ impl crate::parser::nodes::ClassExprNode {
         generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
         dst: Cpp6Reg,
     ) -> Cpp6Reg {
-        let mut strict_mode_scope = crate::bytecompiler::bytecode_generator_part3::StrictModeScope::new(generator);
+        let mut strict_mode_scope = crate::bytecompiler::bytecode_generator::StrictModeScope::new(generator);
         let generator = strict_mode_scope.generator();
 
         let has_name = !this.borrow().name.is_null();
@@ -245,20 +248,20 @@ impl crate::parser::nodes::ClassExprNode {
         if node.needs_lexical_scope {
             generator.push_lexical_scope(
                 &node.variable_environment,
-                crate::bytecompiler::bytecode_generator_part3::ScopeType::ClassScope,
-                crate::bytecompiler::bytecode_generator_part3::TDZCheckOptimization::Optimize,
-                crate::bytecompiler::bytecode_generator_part3::NestedScopeType::IsNested,
+                crate::bytecompiler::bytecode_generator::ScopeType::ClassScope,
+                crate::bytecompiler::bytecode_generator::TDZCheckOptimization::Optimize,
+                crate::bytecompiler::bytecode_generator::NestedScopeType::IsNested,
                 None,
                 true,
             );
         }
 
-        let lexical_variables = node.variable_environment.lexical_variables();
-        let has_private_names = lexical_variables.borrow().private_names_size() != 0;
-        let should_emit_private_brand = lexical_variables.borrow().has_instance_private_method_or_accessor();
-        let should_install_brand_on_constructor = lexical_variables.borrow().has_static_private_method_or_accessor();
+        let lexical_variables = &node.variable_environment.lexical_variables;
+        let has_private_names = lexical_variables.private_names_size() != 0;
+        let should_emit_private_brand = lexical_variables.has_instance_private_method_or_accessor();
+        let should_install_brand_on_constructor = lexical_variables.has_static_private_method_or_accessor();
         if has_private_names {
-            generator.push_private_access_names(lexical_variables.borrow().private_name_environment());
+            generator.push_private_access_names(lexical_variables.private_name_environment());
         }
         if should_emit_private_brand {
             generator.emit_create_private_brand(node.position(), node.position(), node.position());
@@ -273,22 +276,23 @@ impl crate::parser::nodes::ClassExprNode {
             crate::bytecode::executable_info::NeedsClassFieldInitializer::No
         };
         let private_brand_requirement = if should_emit_private_brand {
-            crate::bytecode::executable_info::PrivateBrandRequirement::Needed
+            crate::parser::parser_modes::PrivateBrandRequirement::Needed
         } else {
-            crate::bytecode::executable_info::PrivateBrandRequirement::None
+            crate::parser::parser_modes::PrivateBrandRequirement::None
         };
         if let Some(constructor_expression) = &node.constructor_expression {
             debug_assert!(constructor_expression.is_func_expr_node());
-            let metadata = constructor_expression.as_func_expr_node().borrow().metadata();
-            metadata.borrow_mut().set_ecma_name(node.ecma_name());
-            metadata.borrow_mut().set_class_source(&node.class_source);
+            let metadata = constructor_expression.as_func_expr_node().unwrap().metadata.clone();
+            metadata.set_ecma_name(node.ecma_name());
+            metadata.set_class_source(&node.class_source);
+            // `needsClassFieldInitializer` e `privateBrandRequirement` são `Cell` no `FunctionMetadataNode`.
             metadata
-                .borrow_mut()
-                .set_needs_class_field_initializer(needs_class_field_initializer == crate::bytecode::executable_info::NeedsClassFieldInitializer::Yes);
-            metadata.borrow_mut().set_private_brand_requirement(private_brand_requirement);
+                .needs_class_field_initializer
+                .set(needs_class_field_initializer == crate::bytecode::executable_info::NeedsClassFieldInitializer::Yes);
+            metadata.private_brand_requirement.set(private_brand_requirement);
             constructor = generator.emit_node_expression(constructor.clone(), constructor_expression);
             needs_home_object = node.class_heritage.is_some()
-                || metadata.borrow().super_binding() == crate::parser::parser_modes::SuperBinding::Needed;
+                || metadata.super_binding == crate::parser::parser_modes::SuperBinding::Needed;
         } else {
             constructor = generator.emit_new_default_constructor(
                 constructor.clone(),
@@ -315,14 +319,19 @@ impl crate::parser::nodes::ClassExprNode {
             generator.emit_load_js_value(proto_parent.clone(), crate::runtime::js_value::JSValue::Null);
 
             let superclass_is_null_label = generator.new_label();
-            let is_null_dst = Some(generator.new_temporary());
-            let is_null = generator.emit_is_null(is_null_dst, Some(superclass.clone()));
-            generator.emit_jump_if_true(is_null.as_ref().unwrap(), &superclass_is_null_label.borrow());
+            // Temporários do C++ sem `RefPtr`: soltos logo após o salto, para o próximo `newTemporary` reaproveitar.
+            {
+                let is_null_dst = Some(generator.new_temporary());
+                let is_null = generator.emit_is_null(is_null_dst, superclass);
+                generator.emit_jump_if_true_raw(is_null.as_ref().unwrap(), &superclass_is_null_label);
+            }
 
             let superclass_is_constructor_label = generator.new_label();
-            let is_constructor_dst = Some(generator.new_temporary());
-            let is_constructor = generator.emit_is_constructor(is_constructor_dst, superclass);
-            generator.emit_jump_if_true(is_constructor.as_ref().unwrap(), &superclass_is_constructor_label.borrow());
+            {
+                let is_constructor_dst = Some(generator.new_temporary());
+                let is_constructor = generator.emit_is_constructor(is_constructor_dst, superclass);
+                generator.emit_jump_if_true_raw(is_constructor.as_ref().unwrap(), &superclass_is_constructor_label);
+            }
             generator.emit_expression_info(
                 &node.throwable.divot,
                 &node.throwable.divot_start,
@@ -481,7 +490,7 @@ impl crate::parser::nodes::ClassExprNode {
 
         drop(node);
         if has_name {
-            generator.pop_class_head_lexical_scope(&mut this.borrow_mut().class_head_environment);
+            generator.pop_lexical_scope_internal(&mut this.borrow_mut().class_head_environment);
         }
 
         let final_dst = generator.final_destination(dst.as_ref(), constructor.as_ref());
@@ -572,8 +581,8 @@ fn cpp6_assign_default_value_if_undefined(
 ) {
     let is_not_undefined = generator.new_label();
     let is_undefined_dst = Some(generator.new_temporary());
-    let is_undefined = generator.emit_is_undefined(is_undefined_dst, maybe_undefined.clone());
-    generator.emit_jump_if_false(is_undefined.as_ref().unwrap(), &is_not_undefined.borrow());
+    let is_undefined = generator.emit_is_undefined(is_undefined_dst, maybe_undefined.as_ref().unwrap());
+    generator.emit_jump_if_false_raw(is_undefined.as_ref().unwrap(), &is_not_undefined);
     generator.emit_node_expression(maybe_undefined.clone(), default_value);
     generator.emit_label(&is_not_undefined);
 }
@@ -631,7 +640,7 @@ impl crate::parser::nodes::ArrayPatternNode {
                     return false;
                 }
                 if default_value.is_resolve_node()
-                    && !default_value.as_resolve_node().borrow().get_from_scope_can_throw(generator)
+                    && !default_value.as_resolve_node().unwrap().borrow().get_from_scope_can_throw(generator)
                 {
                     return false;
                 }
@@ -649,14 +658,14 @@ impl crate::parser::nodes::ArrayPatternNode {
                 if let Some(crate::parser::nodes::DestructuringPatternNode::AssignmentElement(element)) =
                     &target.pattern
                 {
-                    target_base_and_property_name = Some(element.borrow().emit_nodes_for_destructuring(generator));
+                    target_base_and_property_name = element.borrow().emit_nodes_for_destructuring(generator, None, None);
                 }
 
                 match target.binding_type {
                     ArrayPatternBindingType::Elision | ArrayPatternBindingType::Element => {
                         let iteration_skipped = generator.new_label();
                         if i != 0 {
-                            generator.emit_jump_if_true(&done, &iteration_skipped.borrow());
+                            generator.emit_jump_if_true(&done, &iteration_skipped);
                         }
 
                         let value = generator.new_temporary();
@@ -683,7 +692,7 @@ impl crate::parser::nodes::ArrayPatternNode {
                                 &mut next_args,
                                 &self.throwable,
                             );
-                            generator.emit_jump_if_false(&done, &value_is_set.borrow());
+                            generator.emit_jump_if_false(&done, &value_is_set);
                             generator.emit_label(&iteration_skipped);
                             generator.emit_load_js_value(
                                 Some(value.clone()),
@@ -705,7 +714,7 @@ impl crate::parser::nodes::ArrayPatternNode {
                                 ) => {
                                     element.borrow().bind_value_with_emitted_nodes(
                                         generator,
-                                        emitted,
+                                        emitted.clone(),
                                         Some(value.clone()),
                                     );
                                 }
@@ -715,17 +724,21 @@ impl crate::parser::nodes::ArrayPatternNode {
                     }
 
                     ArrayPatternBindingType::RestElement => {
-                        let array_dst = Some(generator.new_temporary());
-                        let array = generator.emit_new_array(
-                            array_dst,
-                            None,
-                            0,
-                            crate::runtime::indexing_type::IndexingType::ArrayWithUndecided,
-                        );
+                        let array_dst = generator.new_temporary();
+                        // `newTemporary()` cru no C++ (contagem 0): o primeiro `newTemporary()` do array reaproveita o slot.
+                        let raw_array_dst = array_dst.get().clone();
+                        let array = generator.with_raw_register(Some(&raw_array_dst), |generator| {
+                            generator.emit_new_array(
+                                Some(array_dst),
+                                None,
+                                0,
+                                crate::runtime::indexing_type::ARRAY_WITH_UNDECIDED,
+                            )
+                        });
 
                         let iteration_done = generator.new_label();
                         if i != 0 {
-                            generator.emit_jump_if_true(&done, &iteration_done.borrow());
+                            generator.emit_jump_if_true(&done, &iteration_done);
                         }
 
                         let index = generator.new_temporary();
@@ -756,12 +769,12 @@ impl crate::parser::nodes::ArrayPatternNode {
                                 &mut next_args,
                                 &self.throwable,
                             );
-                            generator.emit_jump_if_true(&done, &iteration_done.borrow());
+                            generator.emit_jump_if_true(&done, &iteration_done);
                         }
 
                         generator.emit_direct_put_by_val(array.clone(), Some(index.clone()), Some(value.clone()));
                         generator.emit_inc(&index);
-                        generator.emit_jump(&loop_start.borrow());
+                        generator.emit_jump(&loop_start);
 
                         generator.emit_label(&iteration_done);
                         let pattern = target.pattern.as_ref().expect("o rest tem padrão");
@@ -770,7 +783,7 @@ impl crate::parser::nodes::ArrayPatternNode {
                                 Some(emitted),
                                 crate::parser::nodes::DestructuringPatternNode::AssignmentElement(element),
                             ) => {
-                                element.borrow().bind_value_with_emitted_nodes(generator, emitted, array.clone());
+                                element.borrow().bind_value_with_emitted_nodes(generator, emitted.clone(), array.clone());
                             }
                             _ => pattern.bind_value(generator, array.clone()),
                         }
@@ -781,7 +794,7 @@ impl crate::parser::nodes::ArrayPatternNode {
 
         let mut emit_iterator_close = |generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator| {
             let iterator_closed = generator.new_label();
-            generator.emit_jump_if_true(&done, &iterator_closed.borrow());
+            generator.emit_jump_if_true(&done, &iterator_closed);
             generator.emit_iterator_generic_close(
                 &iterator,
                 &self.throwable,

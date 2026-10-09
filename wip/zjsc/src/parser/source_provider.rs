@@ -25,10 +25,11 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicIsize, Ordering};
 
+use crate::parser::position_map::PositionMap;
 use crate::parser::source_tainted_origin::SourceTaintedOrigin;
 use crate::runtime::source_origin::SourceOrigin;
 use crate::wtf::text::string_impl::StringImpl;
-use crate::wtf::text::wtf_string::ConversionMode;
+use crate::wtf::text::conversion_mode::ConversionMode;
 use crate::wtf::text::text_position::TextPosition;
 use crate::wtf::text::wtf_string::String as WtfString;
 use crate::wtf::url::URL;
@@ -69,6 +70,11 @@ pub struct SourceProviderBase {
     taintedness: Cell<SourceTaintedOrigin>,
     /// `m_sourceCodeDumped` e `m_sourceCodeDumpFilePath`: `None` enquanto não houve despejo.
     source_code_dump_file_path: RefCell<Option<Vec<u8>>>,
+    /// Mapa do texto executado para o original (`position_map.rs`); só o harness dos goldens o põe.
+    position_map: RefCell<Option<Rc<PositionMap>>>,
+    /// O fonte não passou pelo transpilador do bun (o que `vm.runInThisContext` avalia): a coluna das frames fica a
+    /// crua do JSC, sem o recuo `callee_back_offset`. Só o harness dos goldens o liga.
+    raw_columns: Cell<bool>,
 }
 
 impl SourceProviderBase {
@@ -94,6 +100,8 @@ impl SourceProviderBase {
             id: Cell::new(0),
             taintedness: Cell::new(taintedness),
             source_code_dump_file_path: RefCell::new(None),
+            position_map: RefCell::new(None),
+            raw_columns: Cell::new(false),
         }
     }
 }
@@ -111,6 +119,26 @@ pub trait SourceProvider: std::fmt::Debug {
 
     /// `source()`, virtual puro. O `StringView` vira `String` (compartilha o `StringImpl`).
     fn source(&self) -> WtfString;
+
+    /// Mapa de posições para o texto original (o `SavedSourceMap` do bun); `None` quando o texto é o original.
+    fn position_map(&self) -> Option<Rc<PositionMap>> {
+        self.base().position_map.borrow().clone()
+    }
+
+    /// `true` quando o fonte não passou pelo transpilador (ver `raw_columns`).
+    fn has_raw_columns(&self) -> bool {
+        self.base().raw_columns.get()
+    }
+
+    /// Marca o fonte como não transpilado.
+    fn set_raw_columns(&self) {
+        self.base().raw_columns.set(true);
+    }
+
+    /// Instala o mapa de posições.
+    fn set_position_map(&self, map: Rc<PositionMap>) {
+        *self.base().position_map.borrow_mut() = Some(map);
+    }
 
     /// `memoryCost()` (Bun).
     fn memory_cost(&self) -> usize {

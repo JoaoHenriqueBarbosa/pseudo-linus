@@ -74,7 +74,7 @@ impl crate::parser::nodes::FunctionCallDotNode {
             generator.emit_argument_count(function.clone());
         } else {
             let base = if base_is_super {
-                self.emit_super_base_for_callee(generator)
+                emit_super_base_for_callee(generator)
             } else {
                 call_arguments.this_register()
             };

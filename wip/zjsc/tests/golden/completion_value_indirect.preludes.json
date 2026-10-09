@@ -1,0 +1,3 @@
+[
+"function S(v){if(v===undefined)return \"undefined\";if(v===null)return \"null\";if(Object.is(v,-0))return \"-0\";var t=typeof v;if(t===\"string\")return \"string:\"+v;if(t===\"number\"||t===\"boolean\")return t+\":\"+String(v);return t}\nfunction C(s){try{return S((0,eval)(s))}catch(e){return \"throw \"+(e&&e.name)}}\n"
+]

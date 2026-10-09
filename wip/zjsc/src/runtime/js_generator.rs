@@ -1,4 +1,8 @@
-//! Tradução de `runtime/JSGenerator.h` (constantes e enums; o objeto vive na camada do heap).
+//! Tradução de `runtime/JSGenerator.{h,cpp}`: constantes, enums e a célula `JSGenerator`
+//! (`CellEntry::Generator`), um `JSInternalFieldObjectImpl<4>`.
+
+use crate::runtime::js_internal_field_object_impl::define_internal_field_cell;
+use crate::runtime::js_value::{js_number_i32, js_undefined, JSValue};
 
 /// `JSInternalFieldObjectImpl<4>`.
 pub const NUMBER_OF_INTERNAL_FIELDS: u32 = 4;
@@ -45,9 +49,70 @@ pub enum Field {
     Frame = 3,
 }
 
+/// `JSGenerator::initialValues()`.
+fn initial_values() -> [JSValue; NUMBER_OF_INTERNAL_FIELDS as usize] {
+    [js_number_i32(State::Init as i32), js_undefined(), js_undefined(), js_undefined()]
+}
+
+define_internal_field_cell!(
+    JSGenerator,
+    JSGeneratorRef,
+    Generator,
+    JSGeneratorType,
+    JS_GENERATOR_S_INFO,
+    "Generator",
+    NUMBER_OF_INTERNAL_FIELDS as usize,
+    initial_values()
+);
+
+impl JSGenerator {
+    /// `state()`.
+    pub fn state(&self) -> i32 {
+        self.internal_field_as_int32(Field::State as u32)
+    }
+
+    /// `setState(state)`.
+    pub fn set_state(&self, state: i32) {
+        self.set_internal_field(Field::State as u32, js_number_i32(state));
+    }
+
+    /// `next()`.
+    pub fn next(&self) -> JSValue {
+        self.internal_field(Field::Next as u32)
+    }
+
+    /// `thisValue()`.
+    pub fn this_value(&self) -> JSValue {
+        self.internal_field(Field::This as u32)
+    }
+
+    /// `frame()`.
+    pub fn frame(&self) -> JSValue {
+        self.internal_field(Field::Frame as u32)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::runtime::cell_registry::{self, CellEntry};
+    use crate::runtime::js_type::JSType;
+    use crate::runtime::vm::VM;
+
+    #[test]
+    fn cell_starts_in_init_and_registers() {
+        let vm = VM::new();
+        let structure = JSGenerator::create_structure(&vm, None, crate::runtime::js_value::js_null());
+        let generator = JSGenerator::create(&vm, &structure);
+        assert_eq!(generator.state(), State::Init as i32);
+        assert_eq!(generator.next(), js_undefined());
+        generator.set_state(State::Executing as i32);
+        assert_eq!(generator.state(), -2);
+        let id = generator.as_value();
+        assert!(JSGenerator::from_value(&id).is_some());
+        assert_eq!(cell_registry::cell_type(generator.cell_id()), Some(JSType::JSGeneratorType));
+        assert!(matches!(cell_registry::get(generator.cell_id()), Some(CellEntry::Generator(_))));
+    }
 
     #[test]
     fn values() {

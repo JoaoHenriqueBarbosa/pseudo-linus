@@ -155,7 +155,7 @@ impl<'a, C: crate::wtf::text::string_impl::CharType> Interpreter<'a, C> {
             || (term.multiline()
                 && Self::test_character_class(
                     self.pattern.character_class(self.pattern.newline_character_class),
-                    self.input.read_checked_dont_advance(term.input_position + 1),
+                    self.input.read_checked_dont_advance(term.input_position.wrapping_add(1)),
                 ))
     }
 
@@ -186,7 +186,7 @@ impl<'a, C: crate::wtf::text::string_impl::CharType> Interpreter<'a, C> {
         let prev_is_wordchar = !self.input.at_start_with_offset(input_offset)
             && Self::test_character_class(
                 boundary_character_class,
-                self.input.read_checked_dont_advance(input_offset + 1),
+                self.input.read_checked_dont_advance(input_offset.wrapping_add(1)),
             );
         let read_is_wordchar = if input_offset != 0 {
             !self.input.at_end_with_offset(input_offset)
@@ -232,7 +232,7 @@ impl<'a, C: crate::wtf::text::string_impl::CharType> Interpreter<'a, C> {
                     let match_amount = self.frame(context, match_amount_slot);
                     if match_amount < term.atom.quantity_max_count as usize && self.input.check_input(1) {
                         self.set_frame(context, match_amount_slot, match_amount + 1);
-                        if self.check_character(term, term.input_position + 1) {
+                        if self.check_character(term, term.input_position.wrapping_add(1)) {
                             return true;
                         }
                     }
@@ -290,7 +290,7 @@ impl<'a, C: crate::wtf::text::string_impl::CharType> Interpreter<'a, C> {
                     let match_amount = self.frame(context, match_amount_slot);
                     if match_amount < term.atom.quantity_max_count as usize && self.input.check_input(1) {
                         self.set_frame(context, match_amount_slot, match_amount + 1);
-                        if self.check_cased_character(term, term.input_position + 1) {
+                        if self.check_cased_character(term, term.input_position.wrapping_add(1)) {
                             return true;
                         }
                     }
@@ -423,7 +423,7 @@ impl<'a, C: crate::wtf::text::string_impl::CharType> Interpreter<'a, C> {
                 let mut match_amount: u32 = 0;
                 if term.match_direction() == MatchDirection::Forward {
                     while match_amount < term.atom.quantity_max_count && self.input.check_input(1) {
-                        if !self.check_character_class(term, term.input_position + 1) {
+                        if !self.check_character_class(term, term.input_position.wrapping_add(1)) {
                             self.input.set_pos(position);
                             break;
                         }
@@ -516,7 +516,7 @@ impl<'a, C: crate::wtf::text::string_impl::CharType> Interpreter<'a, C> {
                     let match_amount = self.frame(context, match_amount_slot);
                     if match_amount < term.atom.quantity_max_count as usize && self.input.check_input(1) {
                         self.set_frame(context, match_amount_slot, match_amount + 1);
-                        if self.check_character_class(term, term.input_position + 1) {
+                        if self.check_character_class(term, term.input_position.wrapping_add(1)) {
                             return true;
                         }
                     }

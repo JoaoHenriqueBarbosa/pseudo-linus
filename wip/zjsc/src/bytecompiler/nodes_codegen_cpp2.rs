@@ -6,14 +6,6 @@
 
 type Cpp2Reg = Option<crate::bytecompiler::bytecode_generator::RegisterRef>;
 
-/// `dst == generator.ignoredResult()`.
-fn cpp2_is_ignored_result(generator: &crate::bytecompiler::bytecode_generator::BytecodeGenerator, dst: &Cpp2Reg) -> bool {
-    match dst {
-        Some(register) => std::rc::Rc::ptr_eq(register, &generator.ignored_result()),
-        None => false,
-    }
-}
-
 /// Valor de um `StringNode` (`static_cast<StringNode*>(node->m_expr)->value()`).
 fn cpp2_string_value(expr: &crate::parser::nodes::Expression) -> crate::runtime::identifier::Identifier {
     match expr {
@@ -60,10 +52,10 @@ impl crate::parser::nodes::BaseDotNode {
         this_value: &mut Cpp2Reg,
     ) -> Cpp2Reg {
         if self.is_private_member() {
-            let identifier_name = self.identifier();
+            let identifier_name = self.ident.clone();
             let private_traits = generator.get_private_traits(&identifier_name);
             if private_traits.is_setter() {
-                let var = generator.variable(&identifier_name);
+                let var = generator.variable(&identifier_name, crate::bytecompiler::bytecode_generator::ThisResolutionType::Local);
                 let scope = generator.emit_resolve_scope(None, &var);
                 debug_assert!(scope.is_some()); // Private names are always captured.
                 let temp = generator.new_temporary();
@@ -78,16 +70,16 @@ impl crate::parser::nodes::BaseDotNode {
                     crate::runtime::get_put_info::ResolveMode::ThrowIfNotFound,
                 );
                 let temp = generator.new_temporary();
-                let set_private_name = generator.property_names().builtin_names().set_private_name();
+                let set_private_name = generator.property_names().builtin_names().set_dup_private_name();
                 let setter_function = generator.emit_direct_get_by_id(Some(temp), getter_setter_obj, &set_private_name);
                 let mut args = crate::bytecompiler::bytecode_generator::CallArguments::new(generator, None, 1);
                 generator.move_register(args.this_register().as_ref(), base.as_ref().unwrap());
                 generator.move_register(args.argument_register(0).as_ref(), value.as_ref().unwrap());
                 let temp = generator.new_temporary();
-                let position = self.base.throwable_position();
+                let position = self.base.base.position().clone();
                 generator.emit_call_ignore_result(
                     Some(temp),
-                    setter_function.as_ref().unwrap(),
+                    setter_function,
                     crate::bytecompiler::bytecode_generator::ExpectedFunction::NoExpectedFunction,
                     &mut args,
                     &position,
@@ -100,7 +92,7 @@ impl crate::parser::nodes::BaseDotNode {
             }
 
             if private_traits.is_getter() || private_traits.is_method() {
-                let var = generator.variable(&identifier_name);
+                let var = generator.variable(&identifier_name, crate::bytecompiler::bytecode_generator::ThisResolutionType::Local);
                 let scope = generator.emit_resolve_scope(None, &var);
                 debug_assert!(scope.is_some()); // Private names are always captured.
                 let temp = generator.new_temporary();
@@ -112,7 +104,7 @@ impl crate::parser::nodes::BaseDotNode {
             }
 
             debug_assert!(private_traits.is_field());
-            let var = generator.variable(&self.ident);
+            let var = generator.variable(&self.ident, crate::bytecompiler::bytecode_generator::ThisResolutionType::Local);
             debug_assert!(var.local().is_none(), "Private Field names must be stored in captured variables");
 
             let scope = generator.emit_resolve_scope(None, &var);
@@ -129,7 +121,7 @@ impl crate::parser::nodes::BaseDotNode {
 
         if self.base_expr.is_super_node() {
             if this_value.is_none() {
-                *this_value = generator.ensure_this();
+                *this_value = Some(generator.ensure_this());
             }
             return generator.emit_put_by_id_with_this(base, this_value.clone(), &self.ident, value);
         }
@@ -160,7 +152,7 @@ impl crate::parser::nodes::NewExprNode {
     ) -> Cpp2Reg {
         let expected_function = match &self.expr {
             crate::parser::nodes::Expression::Resolve(resolve) => {
-                generator.expected_function_for_identifier(&resolve.borrow().identifier())
+                generator.expected_function_for_identifier(&resolve.borrow().ident)
             }
             _ => crate::bytecompiler::bytecode_generator::ExpectedFunction::NoExpectedFunction,
         };
@@ -174,7 +166,7 @@ impl crate::parser::nodes::NewExprNode {
         let mut call_arguments = crate::bytecompiler::bytecode_generator::CallArguments::new(generator, self.args.clone(), 0);
         generator.emit_construct(
             Some(return_value),
-            func.as_ref().unwrap(),
+            func.clone(),
             func.clone(),
             expected_function,
             &mut call_arguments,
@@ -204,7 +196,7 @@ impl crate::bytecompiler::bytecode_generator::CallArguments {
         const STACK_ALIGNMENT_REGISTERS: usize = 2;
         let mut argv_size = argument_count_including_this;
         debug_assert!(argv_size >= 1);
-        if (crate::interpreter::call_frame::CallFrame::HEADER_SIZE_IN_REGISTERS + argv_size) % STACK_ALIGNMENT_REGISTERS != 0 {
+        if (crate::interpreter::call_frame::HEADER_SIZE_IN_REGISTERS + argv_size as i32) % STACK_ALIGNMENT_REGISTERS as i32 != 0 {
             argv_size += 1;
         }
         argv_size += 1; // For stackOffset adjustment case.
@@ -220,7 +212,7 @@ impl crate::bytecompiler::bytecode_generator::CallArguments {
 
         // We initialize 0 based on offset. And adjust m_argv based on that.
         let second_index = allocated_registers[1].as_ref().unwrap().borrow().index() as isize;
-        let argv = if (-second_index + crate::interpreter::call_frame::CallFrame::HEADER_SIZE_IN_REGISTERS as isize)
+        let argv = if (-second_index + crate::interpreter::call_frame::HEADER_SIZE_IN_REGISTERS as isize)
             % STACK_ALIGNMENT_REGISTERS as isize
             != 0
         {
@@ -262,7 +254,7 @@ impl crate::parser::nodes::EvalFunctionCallNode {
         }
 
         let eval_name = generator.property_names().eval.clone();
-        let var = generator.variable(&eval_name);
+        let var = generator.variable(&eval_name, crate::bytecompiler::bytecode_generator::ThisResolutionType::Local);
         let local = var.local();
         let func: Cpp2Reg;
         if let Some(local_register) = &local {
@@ -322,7 +314,7 @@ impl crate::parser::nodes::EvalFunctionCallNode {
                 let mut direct_eval_arguments = direct_eval_arguments;
                 generator.emit_call_direct_eval(
                     return_value.clone(),
-                    func.as_ref().unwrap(),
+                    func.clone(),
                     &mut direct_eval_arguments,
                     &self.throwable.divot,
                     &self.throwable.divot_start,
@@ -335,7 +327,7 @@ impl crate::parser::nodes::EvalFunctionCallNode {
             generator.emit_label(&not_eval_function);
             generator.emit_call_in_tail_position(
                 return_value.clone(),
-                func.as_ref().unwrap(),
+                func.clone(),
                 crate::bytecompiler::bytecode_generator::ExpectedFunction::NoExpectedFunction,
                 &mut call_arguments,
                 &self.throwable.divot,
@@ -347,7 +339,7 @@ impl crate::parser::nodes::EvalFunctionCallNode {
         } else {
             generator.emit_call_direct_eval(
                 return_value.clone(),
-                func.as_ref().unwrap(),
+                func.clone(),
                 &mut call_arguments,
                 &self.throwable.divot,
                 &self.throwable.divot_start,
@@ -374,7 +366,7 @@ impl crate::parser::nodes::FunctionCallValueNode {
         let divot_end = self.throwable.divot_end;
 
         if self.expr.is_super_node() {
-            let mut func = self.emit_get_super_function_for_construct(generator);
+            let mut func = emit_get_super_function_for_construct(generator);
             let return_value = Some(generator.final_destination(dst.as_ref(), func.as_ref()));
 
             let is_default_derived_constructor_call = generator.is_builtin_default_class_constructor()
@@ -392,7 +384,7 @@ impl crate::parser::nodes::FunctionCallValueNode {
             let new_target = generator.new_target();
             let ret = generator.emit_super_construct(
                 return_value.clone(),
-                func.as_ref().unwrap(),
+                func.clone(),
                 Some(new_target),
                 ExpectedFunction::NoExpectedFunction,
                 &mut call_arguments,
@@ -414,8 +406,8 @@ impl crate::parser::nodes::FunctionCallValueNode {
             let this_is_empty_label = generator.new_label();
             let temp = Some(generator.new_temporary());
             let this_register = generator.this_register();
-            let is_empty = generator.emit_is_empty(temp, Some(this_register.clone()));
-            generator.emit_jump_if_true(is_empty.as_ref().unwrap(), &this_is_empty_label);
+            let is_empty = generator.emit_is_empty(temp, &this_register);
+            generator.emit_jump_if_true_raw(is_empty.as_ref().unwrap(), &this_is_empty_label);
             generator.emit_throw_reference_error("'super()' can't be called more than once in a constructor.");
             generator.emit_label(&this_is_empty_label);
 
@@ -462,7 +454,7 @@ impl crate::parser::nodes::FunctionCallValueNode {
         generator.emit_load_js_value(call_arguments.this_register(), crate::runtime::js_value::js_undefined());
         let ret = generator.emit_call_in_tail_position(
             return_value.clone(),
-            func.as_ref().unwrap(),
+            func.clone(),
             ExpectedFunction::NoExpectedFunction,
             &mut call_arguments,
             &divot,
@@ -470,7 +462,7 @@ impl crate::parser::nodes::FunctionCallValueNode {
             &divot_end,
             DebuggableCall::Yes,
         );
-        generator.emit_profile_type_divots(return_value.as_ref().unwrap(), &divot_start, &divot_end);
+        generator.emit_profile_type_divots(return_value.clone(), &divot_start, &divot_end);
         ret
     }
 }
@@ -486,9 +478,9 @@ impl crate::parser::nodes::StaticBlockFunctionCallNode {
         use crate::bytecompiler::bytecode_generator::{CallArguments, DebuggableCall, ExpectedFunction};
         // There are two possible optimizations in this implementation.
         // https://bugs.webkit.org/show_bug.cgi?id=245925
-        let home_object = self.emit_home_object_for_callee(generator);
+        let home_object = emit_home_object_for_callee(generator);
         let function = generator.emit_node_expression(None, self.expr.as_ref().unwrap());
-        self.emit_put_home_object(generator, function.clone(), home_object);
+        emit_put_home_object(generator, function.as_ref().unwrap(), home_object.as_ref().unwrap());
         let return_value = Some(generator.final_destination(dst.as_ref(), function.as_ref()));
 
         let mut call_arguments = CallArguments::new(generator, None, 0);
@@ -496,7 +488,7 @@ impl crate::parser::nodes::StaticBlockFunctionCallNode {
         generator.move_register(call_arguments.this_register().as_ref(), &this_register);
         let result = generator.emit_call_in_tail_position(
             return_value.clone(),
-            function.as_ref().unwrap(),
+            function.clone(),
             ExpectedFunction::NoExpectedFunction,
             &mut call_arguments,
             &self.throwable.divot,
@@ -505,7 +497,7 @@ impl crate::parser::nodes::StaticBlockFunctionCallNode {
             DebuggableCall::Yes,
         );
 
-        generator.emit_profile_type_divots(return_value.as_ref().unwrap(), &self.throwable.divot_start, &self.throwable.divot_end);
+        generator.emit_profile_type_divots(return_value.clone(), &self.throwable.divot_start, &self.throwable.divot_end);
         result
     }
 }
@@ -519,7 +511,7 @@ impl crate::parser::nodes::FunctionCallResolveNode {
         dst: Cpp2Reg,
     ) -> Cpp2Reg {
         use crate::bytecompiler::bytecode_generator::{CallArguments, DebuggableCall, ExpectedFunction, ResolveMode};
-        if !cfg!(debug_assertions) {
+        if !crate::runtime::options::assert_enabled() {
             if self.ident == generator.vm().property_names.builtin_names().assert_private_name() {
                 let undefined = generator.emit_load_js_value(None, crate::runtime::js_value::js_undefined());
                 return generator.move_register(dst.as_ref(), undefined.as_ref().unwrap());
@@ -531,7 +523,7 @@ impl crate::parser::nodes::FunctionCallResolveNode {
         let divot = self.throwable.divot;
         let divot_start = self.throwable.divot_start;
         let divot_end = self.throwable.divot_end;
-        let var = generator.variable(&self.ident);
+        let var = generator.variable(&self.ident, crate::bytecompiler::bytecode_generator::ThisResolutionType::Local);
         let local = var.local();
         let func: Cpp2Reg;
         let new_divot = divot_start + self.ident.length();
@@ -570,7 +562,7 @@ impl crate::parser::nodes::FunctionCallResolveNode {
 
         let ret = generator.emit_call_in_tail_position(
             return_value.clone(),
-            func.as_ref().unwrap(),
+            func.clone(),
             expected_function,
             &mut call_arguments,
             &divot,
@@ -578,7 +570,7 @@ impl crate::parser::nodes::FunctionCallResolveNode {
             &divot_end,
             DebuggableCall::Yes,
         );
-        generator.emit_profile_type_divots(return_value.as_ref().unwrap(), &divot_start, &divot_end);
+        generator.emit_profile_type_divots(return_value.clone(), &divot_start, &divot_end);
         ret
     }
 }
@@ -594,7 +586,7 @@ impl crate::parser::nodes::BytecodeIntrinsicNode {
         if self.entry.type_() == crate::bytecode::bytecode_intrinsic_registry::Type::Emitter {
             return self.emit_intrinsic_emitter(generator, dst, self.entry.emitter().unwrap());
         }
-        if cpp2_is_ignored_result(generator, &dst) {
+        if generator.is_ignored_dst(dst.as_ref()) {
             return None;
         }
         generator.move_link_time_constant(dst, self.entry.link_time_constant())
@@ -698,7 +690,7 @@ impl crate::parser::nodes::BytecodeIntrinsicNode {
     ) -> Cpp2Reg {
         debug_assert!(self.args.is_none());
         debug_assert!(self.type_ == crate::parser::nodes::BytecodeIntrinsicNodeType::Constant);
-        if cpp2_is_ignored_result(generator, &dst) {
+        if generator.is_ignored_dst(dst.as_ref()) {
             return None;
         }
         let value = generator.vm().bytecode_intrinsic_registry().constant_value(constant, generator);
@@ -738,10 +730,10 @@ impl crate::parser::nodes::BytecodeIntrinsicNode {
             .vm()
             .property_names
             .builtin_names()
-            .look_up_private_name(&cpp2_string_value(&node.borrow().expr));
+            .look_up_private_name_identifier(&cpp2_string_value(&node.borrow().expr));
         debug_assert!(symbol.is_some());
         debug_assert!(node.borrow().next.is_none());
-        let identifier = generator.parser_arena().identifier_arena().make_identifier(generator.vm(), symbol.unwrap());
+        let identifier = generator.parser_arena().identifier_arena().borrow_mut().make_symbol_identifier(&symbol.unwrap());
         let final_destination = Some(generator.final_destination(dst.as_ref(), None));
         generator.emit_direct_get_by_id(final_destination, base, &identifier)
     }
@@ -912,14 +904,14 @@ impl crate::parser::nodes::BytecodeIntrinsicNode {
             .vm()
             .property_names
             .builtin_names()
-            .look_up_private_name(&cpp2_string_value(&node.borrow().expr));
+            .look_up_private_name_identifier(&cpp2_string_value(&node.borrow().expr));
         debug_assert!(symbol.is_some());
         let node = node.borrow().next.clone().unwrap();
         let value = generator.emit_node_expression(None, &node.borrow().expr);
 
         debug_assert!(node.borrow().next.is_none());
 
-        let identifier = generator.parser_arena().identifier_arena().make_identifier(generator.vm(), symbol.unwrap());
+        let identifier = generator.parser_arena().identifier_arena().borrow_mut().make_symbol_identifier(&symbol.unwrap());
         let put = generator.emit_direct_put_by_id(base, &identifier, value);
         generator.move_register(dst.as_ref(), put.as_ref().unwrap())
     }
@@ -968,7 +960,7 @@ impl crate::parser::nodes::BytecodeIntrinsicNode {
     ) -> Cpp2Reg {
         debug_assert!(self.intrinsic_list_node().is_none());
         generator.emit_load_js_value(dst.clone(), crate::runtime::js_value::js_undefined());
-        generator.emit_super_sampler_begin();
+        crate::bytecode::bytecode_ops::OpSuperSamplerBegin::emit(generator);
 
         dst
     }
@@ -979,7 +971,7 @@ impl crate::parser::nodes::BytecodeIntrinsicNode {
         dst: Cpp2Reg,
     ) -> Cpp2Reg {
         debug_assert!(self.intrinsic_list_node().is_none());
-        generator.emit_super_sampler_end();
+        crate::bytecode::bytecode_ops::OpSuperSamplerEnd::emit(generator);
         generator.emit_load_js_value(dst.clone(), crate::runtime::js_value::js_undefined());
 
         dst
@@ -999,7 +991,7 @@ impl crate::parser::nodes::BytecodeIntrinsicNode {
             let message = generator.emit_node_expression(None, &node.borrow().expr);
             generator.emit_throw_static_error_register(
                 crate::runtime::error_type::ErrorTypeWithExtension::TypeError,
-                message.as_ref().unwrap(),
+                message,
             );
         }
         dst
@@ -1019,7 +1011,7 @@ impl crate::parser::nodes::BytecodeIntrinsicNode {
             let message = generator.emit_node_expression(None, &node.borrow().expr);
             generator.emit_throw_static_error_register(
                 crate::runtime::error_type::ErrorTypeWithExtension::RangeError,
-                message.as_ref().unwrap(),
+                message,
             );
         }
 
@@ -1129,7 +1121,7 @@ impl crate::parser::nodes::BytecodeIntrinsicNode {
             node = next;
             debug_assert!(node.borrow().expr.is_string());
             let ident = cpp2_string_value(&node.borrow().expr);
-            speculation |= crate::bytecode::speculated_type::speculation_from_string(&ident.utf8());
+            speculation |= crate::bytecode::speculated_type::speculation_from_string(&String::from_utf8_lossy(&ident.utf8()));
         }
 
         let profiled = generator.emit_id_with_profile(id_value, speculation);
@@ -1258,8 +1250,8 @@ impl crate::parser::nodes::BytecodeIntrinsicNode {
         let final_destination = Some(generator.final_destination(dst.as_ref(), None));
         generator.emit_iterator_generic_next(
             final_destination,
-            next_method,
-            iterator,
+            next_method.as_ref().unwrap(),
+            iterator.as_ref().unwrap(),
             &self.throwable,
             crate::bytecompiler::bytecode_generator::EmitAwait::No,
         )
@@ -1276,12 +1268,12 @@ impl crate::parser::nodes::BytecodeIntrinsicNode {
         debug_assert!(node.borrow().next.is_none());
 
         let end = generator.new_label();
-        let emit_second_argument_node = |generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator| {
+        let mut emit_second_argument_node = |generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator| {
             generator.emit_node_expression(None, &node.borrow().expr);
             generator.emit_jump(&end);
         };
 
-        let emit_iterator_close = |generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator| {
+        let mut emit_iterator_close = |generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator| {
             generator.emit_iterator_generic_close(
                 iterator.as_ref().unwrap(),
                 &self.throwable,
@@ -1289,7 +1281,7 @@ impl crate::parser::nodes::BytecodeIntrinsicNode {
             );
         };
 
-        generator.emit_try_with_finally_that_does_not_shadow_exception(&emit_second_argument_node, &emit_iterator_close);
+        generator.emit_try_with_finally_that_does_not_shadow_exception(&mut emit_second_argument_node, &mut emit_iterator_close);
         generator.emit_label(&end);
 
         dst
@@ -1469,7 +1461,7 @@ macro_rules! intrinsic_for_brand_check {
                     let src = generator.emit_node_expression(None, &node.borrow().expr);
                     debug_assert!(node.borrow().next.is_none());
                     let temp = Some(generator.temp_destination(dst.as_ref()));
-                    let checked = generator.$emit(temp, src);
+                    let checked = generator.$emit(temp, src.as_ref().unwrap());
                     generator.move_register(dst.as_ref(), checked.as_ref().unwrap())
                 }
             )+
@@ -1514,19 +1506,20 @@ impl crate::parser::nodes::FunctionCallBracketNode {
         let function = Some(generator.temp_destination(dst.as_ref()));
         let return_value = Some(generator.final_destination(dst.as_ref(), function.as_ref()));
         let base_is_super = self.base_expr.is_super_node();
-        let subscript_is_non_index_string = crate::parser::nodes::is_non_index_string_element(&self.subscript);
+        let subscript_is_non_index_string = nodes_codegen_is_non_index_string_element(&self.subscript);
 
         let base: Cpp2Reg;
         if base_is_super {
-            base = self.emit_super_base_for_callee(generator);
+            base = emit_super_base_for_callee(generator);
         } else {
             if subscript_is_non_index_string {
                 base = generator.emit_node_expression(None, &self.base_expr);
             } else {
+                let subscript_is_pure = self.subscript.is_pure(generator);
                 base = generator.emit_node_for_left_hand_side(
                     &self.base_expr,
                     self.subscript_has_assignments,
-                    self.subscript.is_pure(generator),
+                    subscript_is_pure,
                 );
             }
 
@@ -1538,7 +1531,7 @@ impl crate::parser::nodes::FunctionCallBracketNode {
         let mut this_register: Cpp2Reg = None;
         if base_is_super {
             // Note that we only need to do this once because we either have a non-TDZ this or we throw. Once we have a non-TDZ this, we can't change its value back to TDZ.
-            this_register = generator.ensure_this();
+            this_register = Some(generator.ensure_this());
         }
         if subscript_is_non_index_string {
             generator.emit_expression_info(&self.throwable.subexpression_divot(), &self.throwable.subexpression_start(), &self.throwable.subexpression_end());
@@ -1571,7 +1564,7 @@ impl crate::parser::nodes::FunctionCallBracketNode {
         }
         let ret = generator.emit_call_in_tail_position(
             return_value.clone(),
-            function.as_ref().unwrap(),
+            function.clone(),
             ExpectedFunction::NoExpectedFunction,
             &mut call_arguments,
             &divot,
@@ -1579,7 +1572,7 @@ impl crate::parser::nodes::FunctionCallBracketNode {
             &divot_end,
             DebuggableCall::Yes,
         );
-        generator.emit_profile_type_divots(return_value.as_ref().unwrap(), &divot_start, &divot_end);
+        generator.emit_profile_type_divots(return_value.clone(), &divot_start, &divot_end);
         ret
     }
 }

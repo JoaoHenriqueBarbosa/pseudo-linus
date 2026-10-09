@@ -46,6 +46,7 @@ fn create_comma_expr(&mut self, location: &JSTokenLocation, node: Option<Express
 }
 
 fn append_to_comma_expr(&mut self, location: &JSTokenLocation, tail: Option<Expression>, next: Option<Expression>) -> Option<Expression> {
+    // Invariante: `tail` sempre nasceu de `create_comma_expr` (ASSERT no C++).
     let Some(Expression::Comma(tail)) = tail else {
         panic!("ASSERT: tail->isCommaNode()");
     };

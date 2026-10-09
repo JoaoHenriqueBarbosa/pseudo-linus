@@ -30,8 +30,8 @@ impl crate::parser::nodes::DoWhileNode {
         generator.emit_label(scope.continue_target().expect("o laço sempre tem continueTarget"));
         generator.emit_node_in_condition_context(
             &self.expr,
-            &mut *top_of_loop.borrow_mut(),
-            &mut *scope.break_target().borrow_mut(),
+            &top_of_loop,
+            scope.break_target(),
             crate::parser::nodes::FallThroughMode::FallThroughMeansFalse,
         );
 
@@ -54,29 +54,29 @@ impl crate::parser::nodes::WhileNode {
 
         generator.emit_node_in_condition_context(
             &self.expr,
-            &mut *top_of_loop.borrow_mut(),
-            &mut *scope.break_target().borrow_mut(),
+            &top_of_loop,
+            scope.break_target(),
             crate::parser::nodes::FallThroughMode::FallThroughMeansTrue,
         );
 
         generator.emit_label(&top_of_loop);
         generator.emit_loop_hint();
 
-        generator.emit_profile_control_flow(self.statement.start_offset());
+        generator.emit_profile_control_flow(self.statement.base().start_offset());
         generator.emit_node_in_tail_position_statement(dst, &self.statement);
 
         generator.emit_label(scope.continue_target().expect("o laço sempre tem continueTarget"));
 
         generator.emit_node_in_condition_context(
             &self.expr,
-            &mut *top_of_loop.borrow_mut(),
-            &mut *scope.break_target().borrow_mut(),
+            &top_of_loop,
+            scope.break_target(),
             crate::parser::nodes::FallThroughMode::FallThroughMeansFalse,
         );
 
         generator.emit_label(scope.break_target());
 
-        generator.emit_profile_control_flow(self.statement.end_offset() + if self.statement.is_block() { 1 } else { 0 });
+        generator.emit_profile_control_flow(self.statement.base().end_offset() + if self.statement.is_block() { 1 } else { 0 });
     }
 }
 
@@ -93,15 +93,15 @@ impl crate::parser::nodes::ForNode {
         let mut for_loop_symbol_table: Cpp5Reg = None;
         generator.push_lexical_scope(
             &self.variable_environment,
-            crate::bytecompiler::bytecode_generator_part3::ScopeType::LetConstScope,
-            crate::bytecompiler::bytecode_generator_part3::TDZCheckOptimization::Optimize,
-            crate::bytecompiler::bytecode_generator_part3::NestedScopeType::IsNested,
+            crate::bytecompiler::bytecode_generator::ScopeType::LetConstScope,
+            crate::bytecompiler::bytecode_generator::TDZCheckOptimization::Optimize,
+            crate::bytecompiler::bytecode_generator::NestedScopeType::IsNested,
             Some(&mut for_loop_symbol_table),
             true,
         );
 
-        let using_count = self.variable_environment.lexical_variables.using_declaration_count();
-        let has_await_using = self.variable_environment.lexical_variables.has_await_using_declaration();
+        let using_count = self.variable_environment.using_declaration_count();
+        let has_await_using = self.variable_environment.has_await_using_declaration();
         generator.emit_body_with_using_if_needed(using_count, has_await_using, &mut |generator| {
             let scope = generator.new_label_scope(crate::bytecompiler::label_scope::LabelScopeType::Loop, None);
 
@@ -119,15 +119,15 @@ impl crate::parser::nodes::ForNode {
             if let Some(expr2) = &self.expr2 {
                 generator.emit_node_in_condition_context(
                     expr2,
-                    &mut *top_of_loop.borrow_mut(),
-                    &mut *scope.break_target().borrow_mut(),
+                    &top_of_loop,
+                    scope.break_target(),
                     crate::parser::nodes::FallThroughMode::FallThroughMeansTrue,
                 );
             }
 
             generator.emit_label(&top_of_loop);
             generator.emit_loop_hint();
-            generator.emit_profile_control_flow(self.statement.start_offset());
+            generator.emit_profile_control_flow(self.statement.base().start_offset());
 
             generator.emit_node_in_tail_position_statement(dst.clone(), &self.statement);
 
@@ -143,18 +143,18 @@ impl crate::parser::nodes::ForNode {
             if let Some(expr2) = &self.expr2 {
                 generator.emit_node_in_condition_context(
                     expr2,
-                    &mut *top_of_loop.borrow_mut(),
-                    &mut *scope.break_target().borrow_mut(),
+                    &top_of_loop,
+                    scope.break_target(),
                     crate::parser::nodes::FallThroughMode::FallThroughMeansFalse,
                 );
             } else {
-                generator.emit_jump(&top_of_loop.borrow());
+                generator.emit_jump(&top_of_loop);
             }
 
             generator.emit_label(scope.break_target());
         });
 
         generator.pop_lexical_scope(&self.variable_environment);
-        generator.emit_profile_control_flow(self.statement.end_offset() + if self.statement.is_block() { 1 } else { 0 });
+        generator.emit_profile_control_flow(self.statement.base().end_offset() + if self.statement.is_block() { 1 } else { 0 });
     }
 }

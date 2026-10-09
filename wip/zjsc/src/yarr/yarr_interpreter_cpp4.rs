@@ -412,14 +412,14 @@ impl<'a, C: crate::wtf::text::string_impl::CharType> Interpreter<'a, C> {
                 }
 
                 // Nunca devemos cair aqui.
-                unreachable!();
+                unreachable!("RELEASE_ASSERT_NOT_REACHED() em YarrInterpreter.cpp:2135 (fim do switch de matchDisjunction)");
             } else {
                 // backtrack:
                 match term.type_ {
                     ByteTermType::SubpatternBegin => {
                         return JSRegExpResult::NoMatch;
                     }
-                    ByteTermType::SubpatternEnd => unreachable!(),
+                    ByteTermType::SubpatternEnd => unreachable!("RELEASE_ASSERT_NOT_REACHED() em YarrInterpreter.cpp:2147 (SubpatternEnd em backtrack)"),
 
                     ByteTermType::BodyAlternativeBegin | ByteTermType::BodyAlternativeDisjunction => {
                         let offset = term.alternative.next;
@@ -446,7 +446,7 @@ impl<'a, C: crate::wtf::text::string_impl::CharType> Interpreter<'a, C> {
 
                         match_next!();
                     }
-                    ByteTermType::BodyAlternativeEnd => unreachable!(),
+                    ByteTermType::BodyAlternativeEnd => unreachable!("RELEASE_ASSERT_NOT_REACHED() em YarrInterpreter.cpp:2177 (BodyAlternativeEnd em backtrack)"),
 
                     ByteTermType::AlternativeBegin | ByteTermType::AlternativeDisjunction => {
                         let offset = term.alternative.next;
@@ -559,10 +559,10 @@ impl<'a, C: crate::wtf::text::string_impl::CharType> Interpreter<'a, C> {
                         backtrack!();
                     }
 
-                    ByteTermType::DotStarEnclosure => unreachable!(),
+                    ByteTermType::DotStarEnclosure => unreachable!("RELEASE_ASSERT_NOT_REACHED() em YarrInterpreter.cpp:2272 (DotStarEnclosure em backtrack)"),
                 }
 
-                unreachable!();
+                unreachable!("RELEASE_ASSERT_NOT_REACHED() em YarrInterpreter.cpp:2275 (fim do switch de backtrack)");
             }
         }
     }
@@ -649,9 +649,12 @@ impl<'a, C: crate::wtf::text::string_impl::CharType> Interpreter<'a, C> {
             input: InputStream::new(input, start, pattern.either_unicode()),
             disjunction_contexts: Vec::new(),
             parentheses_contexts: Vec::new(),
+            free_disjunction_contexts: Vec::new(),
+            free_parentheses_contexts: Vec::new(),
             start_offset: start,
             no_newline_before: start,
             remaining_match_count: crate::yarr::yarr::MATCH_LIMIT,
+            context_bytes: 0,
             stack_check: crate::yarr::yarr_pattern_cpp1::StackCheck::new(),
         }
     }

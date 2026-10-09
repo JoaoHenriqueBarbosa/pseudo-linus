@@ -1126,3 +1126,181 @@ pub fn parse<D: Delegate>(
     )
     .parse()
 }
+
+#[cfg(test)]
+mod tests {
+    //! Casos conferidos linha a linha contra `YarrParser.h`: ordem das verificações, qual erro
+    //! vence quando dois são definidos, e a diferença entre as flags `u` e `v`.
+
+    use super::*;
+    use crate::yarr::yarr_flags::parse_flags;
+    use crate::yarr::yarr_syntax_checker::SyntaxChecker;
+
+    fn error_for(pattern: &str, flags: &str) -> ErrorCode {
+        let parsed_flags = parse_flags(flags.as_bytes());
+        assert!(parsed_flags.is_some(), "flags inválidas no teste: {flags}");
+        let units: Vec<u16> = pattern.encode_utf16().collect();
+        let pattern_string = String::from_utf16(&units);
+        let mut checker = SyntaxChecker;
+        parse(&mut checker, &pattern_string, compile_mode(parsed_flags), QUANTIFY_INFINITE, true)
+    }
+
+    fn assert_errors(cases: &[(&str, &str, ErrorCode)]) {
+        for &(pattern, flags, expected) in cases {
+            assert_eq!(error_for(pattern, flags), expected, "/{pattern}/{flags}");
+        }
+    }
+
+    #[test]
+    fn legacy_octal_and_backreferences() {
+        assert_errors(&[
+            (r"\1(a)", "", ErrorCode::NoError),
+            (r"\2(a)", "", ErrorCode::NoError),
+            (r"\2(a)", "u", ErrorCode::InvalidBackreference),
+            (r"\01", "", ErrorCode::NoError),
+            (r"\01", "u", ErrorCode::InvalidOctalEscape),
+            (r"\8", "", ErrorCode::NoError),
+            (r"\8", "u", ErrorCode::InvalidBackreference),
+            (r"[\1]", "", ErrorCode::NoError),
+            (r"[\1]", "u", ErrorCode::InvalidOctalEscape),
+            (r"\0", "u", ErrorCode::NoError),
+        ]);
+    }
+
+    #[test]
+    fn control_letter_escapes() {
+        assert_errors(&[
+            (r"\c", "", ErrorCode::NoError),
+            (r"\c", "u", ErrorCode::InvalidIdentityEscape),
+            (r"\cA", "u", ErrorCode::NoError),
+            (r"\c1", "", ErrorCode::NoError),
+            (r"\c1", "u", ErrorCode::InvalidControlLetterEscape),
+            (r"[\c_]", "", ErrorCode::NoError),
+            (r"[\c_]", "u", ErrorCode::InvalidControlLetterEscape),
+            (r"[\c1]", "", ErrorCode::NoError),
+        ]);
+    }
+
+    #[test]
+    fn character_class_ranges() {
+        assert_errors(&[
+            (r"[\d-a]", "", ErrorCode::NoError),
+            (r"[\d-a]", "u", ErrorCode::CharacterClassRangeInvalid),
+            (r"[a-\d]", "", ErrorCode::NoError),
+            (r"[a-\d]", "u", ErrorCode::CharacterClassRangeInvalid),
+            (r"[b-a]", "", ErrorCode::CharacterClassRangeOutOfOrder),
+            (r"[a", "", ErrorCode::CharacterClassUnmatched),
+            (r"[\-]", "u", ErrorCode::NoError),
+            (r"\-", "u", ErrorCode::InvalidIdentityEscape),
+            (r"\-", "", ErrorCode::NoError),
+        ]);
+    }
+
+    #[test]
+    fn unicode_escapes_and_property_escapes() {
+        assert_errors(&[
+            (r"\u{1F600}", "u", ErrorCode::NoError),
+            (r"\u{110000}", "u", ErrorCode::InvalidUnicodeCodePointEscape),
+            (r"\u{", "u", ErrorCode::InvalidUnicodeCodePointEscape),
+            (r"\u{61}", "", ErrorCode::NoError),
+            (r"\u12", "u", ErrorCode::InvalidUnicodeEscape),
+            (r"\u12", "", ErrorCode::NoError),
+            (r"😀", "u", ErrorCode::NoError),
+            (r"\p", "u", ErrorCode::InvalidUnicodePropertyExpression),
+            (r"\p{", "u", ErrorCode::InvalidUnicodePropertyExpression),
+            (r"\p{Not_A_Property}", "u", ErrorCode::InvalidUnicodePropertyExpression),
+            (r"\p", "", ErrorCode::NoError),
+        ]);
+    }
+
+    #[test]
+    fn named_groups_and_references() {
+        assert_errors(&[
+            (r"(?<a>x)(?<a>y)", "", ErrorCode::DuplicateGroupName),
+            (r"(?<a>x)|(?<a>y)", "", ErrorCode::NoError),
+            (r"(?:(?<a>x)|(?<a>y))\k<a>", "", ErrorCode::NoError),
+            (r"(?<a>x)(?:(?<a>y))", "", ErrorCode::DuplicateGroupName),
+            (r"(?<1a>.)", "", ErrorCode::InvalidGroupName),
+            (r"(?<a", "", ErrorCode::InvalidGroupName),
+            (r"(?<a\u{62}>.)\k<ab>", "", ErrorCode::NoError),
+            (r"\k<a>(?<a>.)", "", ErrorCode::NoError),
+            (r"\k<b>(?<a>.)", "", ErrorCode::InvalidNamedBackReference),
+            (r"\k<a>", "", ErrorCode::NoError),
+            (r"\k<a>", "u", ErrorCode::InvalidNamedBackReference),
+            (r"(?<a>x)\k", "", ErrorCode::InvalidNamedBackReference),
+            (r"\k(?<a>x)", "", ErrorCode::InvalidNamedBackReference),
+            (r"\k", "u", ErrorCode::InvalidIdentityEscape),
+        ]);
+    }
+
+    #[test]
+    fn regexp_modifiers_lookbehind_and_quantifiers() {
+        assert_errors(&[
+            (r"(?i:a)", "", ErrorCode::NoError),
+            (r"(?ims-ims:a)", "", ErrorCode::InvalidRegularExpressionModifier),
+            (r"(?i-m:a)", "", ErrorCode::NoError),
+            (r"(?-:a)", "", ErrorCode::InvalidRegularExpressionModifier),
+            (r"(?i-i:a)", "", ErrorCode::InvalidRegularExpressionModifier),
+            (r"(?ii:a)", "", ErrorCode::InvalidRegularExpressionModifier),
+            (r"(?i--m:a)", "", ErrorCode::InvalidRegularExpressionModifier),
+            (r"(?ix:a)", "", ErrorCode::ParenthesesTypeInvalid),
+            (r"(?x:a)", "", ErrorCode::ParenthesesTypeInvalid),
+            (r"(?", "", ErrorCode::ParenthesesTypeInvalid),
+            (r"(?<=a)", "", ErrorCode::NoError),
+            (r"(?<=a)*", "", ErrorCode::CantQuantifyAtom),
+            (r"(?=a)*", "", ErrorCode::NoError),
+            (r"(?=a)*", "u", ErrorCode::QuantifierWithoutAtom),
+            (r"a{2,1}", "", ErrorCode::QuantifierOutOfOrder),
+            (r"a{99999999999999999999}", "", ErrorCode::QuantifierTooLarge),
+            (r"a{1", "", ErrorCode::NoError),
+            (r"a{1", "u", ErrorCode::QuantifierIncomplete),
+            (r"a**", "", ErrorCode::QuantifierWithoutAtom),
+            (r"]", "", ErrorCode::NoError),
+            (r"]", "u", ErrorCode::BracketUnmatched),
+            (r"(?:a", "", ErrorCode::MissingParentheses),
+            (r"a)", "", ErrorCode::ParenthesesUnmatched),
+        ]);
+    }
+
+    #[test]
+    fn unicode_sets_class_set_expressions() {
+        assert_errors(&[
+            (r"[a&&b]", "v", ErrorCode::NoError),
+            (r"[a--b]", "v", ErrorCode::NoError),
+            (r"[a&&&b]", "v", ErrorCode::InvalidClassSetCharacter),
+            (r"[&&a]", "v", ErrorCode::InvalidClassSetOperation),
+            (r"[a&&b--c]", "v", ErrorCode::InvalidClassSetOperation),
+            (r"[ab&&c]", "v", ErrorCode::InvalidClassSetOperation),
+            (r"[(]", "v", ErrorCode::InvalidClassSetCharacter),
+            (r"[!!]", "v", ErrorCode::InvalidClassSetOperation),
+            (r"[a-z]", "v", ErrorCode::NoError),
+            (r"[z-a]", "v", ErrorCode::CharacterClassRangeOutOfOrder),
+            (r"[[a-z]--[aeiou]]", "v", ErrorCode::NoError),
+            (r"[\q{ab|c}]", "v", ErrorCode::NoError),
+            (r"[^\q{ab}]", "v", ErrorCode::NegatedClassSetMayContainStrings),
+            (r"[^\q{a|b}]", "v", ErrorCode::NoError),
+            (r"[\q{a", "v", ErrorCode::ClassStringDisjunctionUnmatched),
+            (r"[\q{-}]", "v", ErrorCode::InvalidClassSetCharacter),
+            (r"[\q]", "v", ErrorCode::InvalidIdentityEscape),
+            (r"[\&]", "v", ErrorCode::NoError),
+            (r"[\&]", "u", ErrorCode::InvalidIdentityEscape),
+            (r"\&", "v", ErrorCode::InvalidIdentityEscape),
+            (r"[\d&&\w]", "v", ErrorCode::NoError),
+            (r"[a", "v", ErrorCode::CharacterClassUnmatched),
+            (r"[a-", "v", ErrorCode::CharacterClassUnmatched),
+            (r"[a&&b", "v", ErrorCode::CharacterClassUnmatched),
+            (r"[\d-a]", "v", ErrorCode::CharacterClassRangeInvalid),
+        ]);
+    }
+
+    #[test]
+    fn pattern_too_large() {
+        let units = vec![b'a' as u16; MAX_PATTERN_SIZE as usize + 1];
+        let pattern = String::from_utf16(&units);
+        let mut checker = SyntaxChecker;
+        assert_eq!(
+            parse(&mut checker, &pattern, CompileMode::Legacy, QUANTIFY_INFINITE, true),
+            ErrorCode::PatternTooLarge
+        );
+    }
+}

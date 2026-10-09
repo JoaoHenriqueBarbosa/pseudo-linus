@@ -1011,6 +1011,7 @@ impl TreeBuilder for ASTBuilder {
         let class_expression = non_null(class_expression);
         let name = match &class_expression {
             Expression::ClassExpr(class) => class.borrow().name.clone(),
+            // Invariante: o parser só passa um ClassExpr aqui (RELEASE_ASSERT_NOT_REACHED no C++).
             _ => panic!("RELEASE_ASSERT_NOT_REACHED"),
         };
         let assign = self.create_assign_resolve(location, &name, Some(class_expression), class_start, class_start + 1i32, class_end, AssignmentContext::DeclarationStatement);

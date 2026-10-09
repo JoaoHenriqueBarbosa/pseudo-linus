@@ -3,7 +3,7 @@
 //! Módulo hospedeiro: as fatias `nodes_codegen_cpp*.rs` são juntadas por `include!` na ordem do
 //! `.cpp`. Todas escrevem caminhos completos (`crate::...`, `std::...`), então nenhum `use` é
 //! necessário aqui; as definições de tipo e as funções auxiliares de cada fatia (`Cpp2Reg`,
-//! `cpp4_is_ignored_result`, `cpp5b_process_clause_list`, ...) ficam no escopo comum deste módulo,
+//! `cpp3b_same_register`, `cpp5b_process_clause_list`, ...) ficam no escopo comum deste módulo,
 //! que é o que permite a uma fatia chamar o auxiliar de outra.
 
 #![allow(clippy::too_many_arguments)]
@@ -34,3 +34,5 @@ include!("nodes_codegen_cpp5d.rs");
 include!("nodes_codegen_cpp6.rs");
 // Linhas 5982 a 6473.
 include!("nodes_codegen_cpp7.rs");
+// Despacho dos métodos virtuais de ExpressionNode e StatementNode sobre os enums.
+include!("nodes_codegen_dispatch.rs");

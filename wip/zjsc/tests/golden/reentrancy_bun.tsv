@@ -1,0 +1,121 @@
+sort_length_zero	var a=[5,3,1,4,2];a.sort(function(x,y){a.length=0;return x-y});a	ok [1,2,3,4,5]
+sort_push	var a=[5,3,1,4,2],n=0;a.sort(function(x,y){if(n++<3)a.push(9);return x-y});a	ok [1,2,3,4,5,9,9,9]
+sort_pop	var a=[5,3,1,4,2];a.sort(function(x,y){a.pop();return x-y});a	ok [1,2,3,4,5]
+sort_splice	var a=[5,3,1,4,2],n=0;a.sort(function(x,y){if(n++==1)a.splice(0,3);return x-y});a	ok [1,2,3,4,5]
+sort_delete	var a=[5,3,1,4,2],n=0;a.sort(function(x,y){if(n++==1)delete a[0];return x-y});a	ok [1,2,3,4,5]
+sort_setproto_holes	var a=[3,,1,2];a.sort(function(x,y){Object.setPrototypeOf(a,{1:7});return x-y});[a,Object.keys(a)]	ok [[1,2,3,"#undefined"],["0","1","2"]]
+sort_freeze	(function(){var a=[3,2,1],r;try{a.sort(function(x,y){Object.freeze(a);return x-y})}catch(e){r=e.name}return [r,a]})()	ok ["TypeError",[3,2,1]]
+tosorted_mutates_source	var a=[3,2,1,5,4];var r=a.toSorted(function(x,y){a.length=1;return x-y});[r,a]	ok [[1,2,3,4,5],[3]]
+sort_comparator_throws	(function(){var a=[4,3,2,1],n=0,r;try{a.sort(function(x,y){if(++n==3)throw new Error('x');return x-y})}catch(e){r=e.message}return [r,a.length]})()	ok ["x",4]
+sort_reentrant_sort	var a=[3,1,2],n=0;a.sort(function(x,y){if(n++==0)a.sort();return x-y});a	ok [1,2,3]
+sort_sparse_define	var a=[3,,,1];a.sort(function(x,y){a[1]=0;return x-y});[a,a.length]	ok [[1,3,"#undefined","#undefined"],4]
+sort_arraylike_length	var o={0:3,1:1,2:2,length:3};Array.prototype.sort.call(o,function(x,y){o.length=1;return x-y});[o[0],o[1],o[2],o.length]	ok [1,2,3,1]
+sort_shift_unshift	var a=[3,1,2],n=0;a.sort(function(x,y){if(n++<2){a.shift();a.unshift(8,9)}return x-y});a	ok [1,2,3,1,2]
+sort_comparator_returns_object_valueof	var a=[3,1,2];a.sort(function(x,y){return {valueOf:function(){a.length=0;return x-y}}});a	ok [1,2,3]
+map_length_zero	var a=[1,2,3,4];a.map(function(x,i){a.length=0;return x*2})	ok [2,"#undefined","#undefined","#undefined"]
+map_push	var a=[1,2,3],n=0;var r=a.map(function(x){if(n++<5)a.push(x);return x});[r,a.length]	ok [[1,2,3],6]
+filter_splice	var a=[1,2,3,4,5];a.filter(function(x,i){a.splice(0,1);return true})	ok [1,3,5]
+filter_pop	var a=[1,2,3,4,5];[a.filter(function(x){a.pop();return true}),a]	ok [[1,2,3],[1,2]]
+foreach_delete_next	var a=[1,2,3,4],r=[];a.forEach(function(x,i){r.push(x);delete a[i+1]});r	ok [1,3]
+foreach_push_not_visited	var a=[1,2,3],r=[];a.forEach(function(x){r.push(x);a.push(x+10)});[r,a.length]	ok [[1,2,3],6]
+reduce_length_zero	var a=[1,2,3,4];a.reduce(function(s,x){a.length=0;return s+x})	ok 3
+reduce_pop	var a=[1,2,3,4,5];a.reduce(function(s,x){a.pop();return s+x},0)	ok 6
+reduceright_splice	var a=[1,2,3,4,5];a.reduceRight(function(s,x){a.splice(0,2);return s+','+x},'')	ok ",5,5,5"
+find_shrinks	var a=[1,2,3,4];a.find(function(x,i){a.length=2;return x==4})	ok "#undefined"
+findlast_shrinks	var a=[1,2,3,4];a.findLast(function(x,i){a.length=1;return x==2})	ok "#undefined"
+findindex_delete	var a=[1,2,3];a.findIndex(function(x,i){delete a[2];return x===undefined})	ok 2
+some_pop	var a=[1,2,3,4];[a.some(function(x){a.pop();return x==4}),a]	ok [false,[1,2]]
+every_length_zero	var a=[1,2,3];[a.every(function(x){a.length=0;return true}),a.length]	ok [true,0]
+flat_getter_mutates	var a=[[1],[2],[3]];Object.defineProperty(a,1,{get:function(){a.length=0;return [9]},configurable:true});a.flat()	ok [1,9]
+flatmap_mutates	var a=[1,2,3,4];a.flatMap(function(x){a.length=2;return [x,x]})	ok [1,1,2,2]
+array_from_arraylike_getter	var o={length:3,get 0(){o.length=1;return 'a'},1:'b',2:'c'};Array.from(o)	ok ["a","b","c"]
+array_from_mapfn_mutates	var o={length:4,0:1,1:2,2:3,3:4};Array.from(o,function(x){o.length=2;return x})	ok [1,2,3,4]
+toSpliced_with_proxy_len	var a=[1,2,3,4];var p=new Proxy(a,{get:function(t,k,r){if(k==='length'){return 2}return Reflect.get(t,k,r)}});Array.prototype.toSpliced.call(p,0,1)	ok [2]
+copywithin_valueof	var a=[1,2,3,4,5];var s={valueOf:function(){a.length=2;return 0}};a.copyWithin(s,3);[a,a.length]	ok [["#undefined","#undefined"],2]
+copywithin_end_valueof	var a=[1,2,3,4,5];a.copyWithin(0,{valueOf:function(){a.length=0;return 2}},4);[a,a.length]	ok [[],0]
+fill_valueof_start	var a=[1,2,3,4,5];a.fill(0,{valueOf:function(){a.length=2;return 0}},5);[a,a.length]	ok [[0,0,0,0,0],5]
+fill_valueof_end	var a=[1,2,3];a.fill(7,0,{valueOf:function(){a.length=1;return 3}});[a,a.length]	ok [[7,7,7],3]
+includes_fromindex_valueof	var a=[1,2,3,4];[a.includes(4,{valueOf:function(){a.length=1;return 0}}),a.length]	ok [false,1]
+indexof_fromindex_valueof	var a=[1,2,3,4];[a.indexOf(undefined,{valueOf:function(){a.length=6;return 0}}),a.length]	ok [-1,6]
+lastindexof_fromindex_valueof	var a=[1,2,3,4];[a.lastIndexOf(4,{valueOf:function(){a.length=1;return 3}}),a.length]	ok [-1,1]
+slice_valueof_end	var a=[1,2,3,4,5];a.slice(0,{valueOf:function(){a.length=2;return 5}})	ok [1,2,"#undefined","#undefined","#undefined"]
+splice_valueof_count	var a=[1,2,3,4,5];var r=a.splice(1,{valueOf:function(){a.length=2;return 3}});[r,a]	ok [[2,"#undefined","#undefined"],[1,"#undefined"]]
+at_valueof	var a=[1,2,3];a.at({valueOf:function(){a.length=0;return 1}})	ok "#undefined"
+join_tostring_mutates	var a=[1,{toString:function(){a.length=1;return 'x'}},3];a.join('-')	ok "1-x-"
+join_tostring_grow	var a=[1,{toString:function(){a.push(4,5);return 'x'}},3];a.join('-')	ok "1-x-3"
+concat_spreadable_getter	var a=[1,2];var o={length:3,0:'a',1:'b',2:'c'};Object.defineProperty(o,Symbol.isConcatSpreadable,{get:function(){a.length=0;return true}});a.concat(o)	ok [1,2,"a","b","c"]
+reverse_getter_mutates	var a=[1,2,3,4];Object.defineProperty(a,1,{get:function(){a.length=2;return 'g'},configurable:true});a.reverse();[a.length,Object.keys(a)]	ok [3,["0","2"]]
+indexof_proto_getter	var a=[1,,3];Object.defineProperty(Array.prototype,'1',{get:function(){a.length=0;return 9},configurable:true});var r=a.indexOf(9);delete Array.prototype[1];r	ok 1
+map_foreach_delete_self	var m=new Map([[1,'a'],[2,'b'],[3,'c']]),r=[];m.forEach(function(v,k){r.push(k);m.delete(k+1)});r	ok [1,3]
+map_foreach_clear	var m=new Map([[1,'a'],[2,'b'],[3,'c']]),r=[];m.forEach(function(v,k){r.push(k);m.clear()});[r,m.size]	ok [[1],0]
+map_foreach_add	var m=new Map([[1,'a'],[2,'b']]),r=[];m.forEach(function(v,k){r.push(k);if(k<6)m.set(k+2,'n')});r	ok [1,2,3,4,5,6,7]
+map_foreach_delete_readd	var m=new Map([[1,'a'],[2,'b']]),r=[],n=0;m.forEach(function(v,k){r.push(k);if(n++<3){m.delete(k);m.set(k,v)}});r	ok [1,2,1,2,1]
+set_foreach_delete	var s=new Set([1,2,3,4]),r=[];s.forEach(function(v){r.push(v);s.delete(v+1)});r	ok [1,3]
+set_foreach_clear_add	var s=new Set([1,2,3]),r=[];s.forEach(function(v){r.push(v);if(r.length==1){s.clear();s.add(9)}});r	ok [1,9]
+map_iterator_delete_during	var m=new Map([[1,1],[2,2],[3,3]]),r=[];for(var e of m){r.push(e[0]);m.delete(2);if(e[0]==1)m.set(4,4)}r	ok [1,3,4]
+set_iterator_clear_then_add	var s=new Set([1,2,3]),r=[];for(var v of s){r.push(v);if(v==1){s.clear();s.add(7)}}r	ok [1,7]
+set_union_setlike_mutates	var s=new Set([1,2,3]);var o={size:2,has:function(){s.clear();return true},keys:function(){return [5,6][Symbol.iterator]()}};[Array.from(s.union(o)),s.size]	ok [[1,2,3,5,6],3]
+set_intersection_has_mutates	var s=new Set([1,2,3,4]);var o={size:10,has:function(v){s.delete(v+1);return true},keys:function(){return [][Symbol.iterator]()}};Array.from(s.intersection(o))	ok [1,3]
+set_difference_has_mutates	var s=new Set([1,2,3,4]);var o={size:1,has:function(v){s.clear();return false},keys:function(){return [][Symbol.iterator]()}};Array.from(s.difference(o))	ok [1,2,3,4]
+weakmap_getter_reentry	var w=new WeakMap(),k={};w.set(k,1);var o=Object.defineProperty({},'x',{get:function(){w.delete(k);return 2}});w.set(k,o.x);w.get(k)	ok 2
+json_stringify_tojson_mutates	var o={a:{toJSON:function(){delete o.b;o.c=3;return 1}},b:2};JSON.stringify(o)	ok "{\"a\":1}"
+json_stringify_array_tojson_length	var a=[{toJSON:function(){a.length=1;return 'x'}},2,3];JSON.stringify(a)	ok "[\"x\",null,null]"
+json_stringify_replacer_mutates	var o={a:1,b:2,c:3};JSON.stringify(o,function(k,v){if(k==='a')delete o.c;return v})	ok "{\"a\":1,\"b\":2}"
+json_stringify_replacer_array_proxy	var arr=['a','b'];JSON.stringify({a:1,b:2,c:3},new Proxy(arr,{get:function(t,k,r){if(k==='length')arr.length=1;return Reflect.get(t,k,r)}}))	ok "{\"a\":1}"
+json_parse_reviver_mutates	var r=[];JSON.parse('{"a":1,"b":[1,2,3],"c":3}',function(k,v){r.push(k);if(k==='a')delete this.c;if(k==='0')this.length=1;return v});r	ok ["a","0","1","2","b","c",""]
+object_assign_getter_deletes	var s={get a(){delete s.b;return 1},b:2,c:3};Object.assign({},s)	ok {"a":1,"c":3}
+object_keys_proxy_ownkeys_mutates	var t={a:1,b:2};var p=new Proxy(t,{ownKeys:function(){delete t.a;return ['a','b']},getOwnPropertyDescriptor:function(tt,k){return Reflect.getOwnPropertyDescriptor(tt,k)}});Object.keys(p)	ok ["b"]
+object_entries_getter_deletes	var o={get a(){delete o.b;return 1},b:2,c:3};Object.entries(o)	ok [["a",1],["c",3]]
+object_values_getter_clears	var o={get a(){for(var k in o)if(k!=='a')delete o[k];return 1},b:2,c:3};Object.values(o)	ok [1]
+object_fromentries_iterator_mutates	var a=[['x',1],['y',2],['z',3]];Object.fromEntries({[Symbol.iterator]:function(){var i=0;return {next:function(){if(i==1)a.length=0;return i<a.length?{value:a[i++],done:false}:{done:true}}}}})	ok {"x":1}
+object_defineproperties_getter	var d={get a(){delete d.b;return {value:1}},b:{value:2}};var o={};Object.defineProperties(o,d);Object.getOwnPropertyNames(o)	ok ["a"]
+forin_delete_during	var o={a:1,b:2,c:3,d:4},r=[];for(var k in o){r.push(k);delete o['b'];delete o['c']}r	ok ["a","d"]
+forin_add_during	var o={a:1,b:2},r=[];for(var k in o){r.push(k);o[k+'x']=1}r	ok ["a","b"]
+spread_iterator_mutates	var a=[1,2,3,4];[...{[Symbol.iterator]:function(){var i=0;return {next:function(){if(i==1)a.length=0;return i<a.length?{value:a[i++],done:false}:{done:true}}}}}]	ok [1]
+forof_array_shrinks	var a=[1,2,3,4],r=[];for(var v of a){r.push(v);a.length=2}r	ok [1,2]
+forof_array_grows	var a=[1,2],r=[];for(var v of a){r.push(v);if(a.length<5)a.push(v*10)}r	ok [1,2,10,20,100]
+forof_array_proto_iterator_patched	var a=[1,2,3],r=[];var orig=Array.prototype[Symbol.iterator];for(var v of a){r.push(v);Array.prototype[Symbol.iterator]=function(){return [][Symbol.iterator]()}}Array.prototype[Symbol.iterator]=orig;r	ok [1,2,3]
+array_iterator_next_patched	var a=[1,2,3],r=[];var it=a[Symbol.iterator](),P=Object.getPrototypeOf(it);var n=P.next;for(var v of a){r.push(v);P.next=function(){return {done:true}}}P.next=n;r	ok [1,2,3]
+spread_call_args_mutate	var a=[1,2,3];function f(){return arguments.length}f(...a,...{[Symbol.iterator]:function(){a.length=0;return [9][Symbol.iterator]()}})	ok 4
+destructure_iterator_mutates	var a=[1,2,3];var [x,y,z]={[Symbol.iterator]:function(){return {next:function(){a.length=0;return {value:a.length,done:false}}}}};[x,y,z]	ok [0,0,0]
+array_from_iterable_mutates	var src=[1,2,3,4];Array.from({[Symbol.iterator]:function(){var i=0;return {next:function(){if(i==2)src.length=0;return i<4?{value:i++,done:false}:{done:true}}}}},function(v){src.push(v);return v})	ok [0,1,2,3]
+array_from_set_mutates_in_mapfn	var s=new Set([1,2,3]);Array.from(s,function(v){s.delete(v+1);return v})	ok [1,3]
+promise_all_iterable_mutates	var a=[1,2,3];var r;Promise.all({[Symbol.iterator]:function(){var i=0;return {next:function(){a.length=1;return i<3?{value:i++,done:false}:{done:true}}}}}).then(function(v){r=v});r	ok "#undefined"
+ta_sort_resize	var b=new ArrayBuffer(8,{maxByteLength:16});var t=new Uint8Array(b);t.set([5,4,3,2,1,0,9,8]);t.sort(function(x,y){b.resize(2);return x-y});[b.byteLength,Array.from(t)]	ok [2,[0,1]]
+ta_sort_transfer	var b=new ArrayBuffer(8);var t=new Uint8Array(b);t.set([5,4,3,2,1,0,9,8]);var r;try{t.sort(function(x,y){b.transfer();return x-y})}catch(e){r=e.name}[r,t.length,b.detached]	ok ["TypeError",0,true]
+ta_map_resize	var b=new ArrayBuffer(4,{maxByteLength:8});var t=new Uint8Array(b);t.set([1,2,3,4]);var r=t.map(function(x,i){b.resize(2);return x*2});[Array.from(r),t.length]	ok [[2,4,0,0],2]
+ta_foreach_transfer	var b=new ArrayBuffer(4);var t=new Uint8Array(b),r=[];t.forEach(function(x,i){r.push(x);if(i==1)b.transfer()});[r,t.length]	ok [[0,0,"#undefined","#undefined"],0]
+ta_fill_valueof_resize	var b=new ArrayBuffer(8,{maxByteLength:16});var t=new Uint8Array(b);t.fill({valueOf:function(){b.resize(2);return 7}});[b.byteLength,Array.from(t)]	ok [2,[7,7]]
+ta_includes_fromindex_shrink	var b=new ArrayBuffer(4,{maxByteLength:8});var t=new Uint8Array(b);[t.includes(0,{valueOf:function(){b.resize(1);return 2}}),t.length]	ok [false,1]
+ta_indexof_fromindex_transfer	var b=new ArrayBuffer(4);var t=new Uint8Array(b);var r;try{r=t.indexOf(0,{valueOf:function(){b.transfer();return 0}})}catch(e){r=e.name}r	ok -1
+ta_set_array_getter_resize	var b=new ArrayBuffer(4,{maxByteLength:8});var t=new Uint8Array(b);var src={length:3,get 0(){b.resize(1);return 5},1:6,2:7};var r;try{t.set(src)}catch(e){r=e.name}[r,Array.from(t)]	ok ["#undefined",[5]]
+ta_slice_valueof_resize	var b=new ArrayBuffer(8,{maxByteLength:16});var t=new Uint8Array(b);t.set([1,2,3,4,5,6,7,8]);Array.from(t.slice(0,{valueOf:function(){b.resize(3);return 8}}))	ok [1,2,3,0,0,0,0,0]
+ta_subarray_tracking_resize	var b=new ArrayBuffer(8,{maxByteLength:16});var t=new Uint8Array(b);var s=t.subarray(2);b.resize(4);var r=[s.length];b.resize(1);r.push(s.length);r	ok [2,0]
+ta_copywithin_valueof_resize	var b=new ArrayBuffer(8,{maxByteLength:16});var t=new Uint8Array(b);t.set([1,2,3,4,5,6,7,8]);t.copyWithin(0,{valueOf:function(){b.resize(2);return 4}});[b.byteLength,Array.from(t)]	ok [2,[1,2]]
+ta_from_mapfn_resize	var b=new ArrayBuffer(4,{maxByteLength:8});var t=new Uint8Array(b);Uint8Array.from(t,function(x,i){b.resize(1);return i})	ok "TA:0,1,2,3"
+ta_tosorted_comparator_resize	var b=new ArrayBuffer(4,{maxByteLength:8});var t=new Uint8Array(b);t.set([4,3,2,1]);var r=t.toSorted(function(x,y){b.resize(0);return x-y});[Array.from(r),t.length]	ok [[1,2,3,4],0]
+ta_join_tostring_resize	var b=new ArrayBuffer(4,{maxByteLength:8});var t=new Uint8Array(b);t.join({toString:function(){b.resize(1);return '-'}})	ok "0---"
+dataview_getter_resize	var b=new ArrayBuffer(8,{maxByteLength:16});var d=new DataView(b);var r;try{r=d.getUint8({valueOf:function(){b.resize(2);return 5}})}catch(e){r=e.name}r	ok "RangeError"
+ta_every_detach_midway	var b=new ArrayBuffer(4);var t=new Uint8Array(b);var n=0;[t.every(function(x){if(n++==1)b.transfer();return true}),n]	ok [true,4]
+replace_fn_mutates_lastindex	var re=/a/g;var r='aaaa'.replace(re,function(m){re.lastIndex=0;return 'b'});r	ok "bbbb"
+replace_fn_changes_regexp_source	var re=/a/g;'aaaa'.replace(re,function(m){re.compile('b','g');return 'x'})	ok "xxxx"
+replace_fn_sets_proto_exec	var re=/a/g,n=0;var r='aaa'.replace(re,function(m){re.exec=function(){return null};return 'z'});r	ok "zzz"
+replaceall_fn_lastindex	var re=/a/g;'abab'.replaceAll(re,function(m){re.lastIndex=3;return 'q'})	ok "qbqb"
+match_all_lastindex_mutated	var re=/a/g,r=[];for(var m of 'aaa'.matchAll(re)){r.push(m.index);re.lastIndex=0;if(r.length>5)break}r	ok [0,1,2]
+split_species_regexp	var re=/,/;re.constructor={[Symbol.species]:function(){re.lastIndex=5;return /,/y}};'a,b,c'.split(re)	ok ["a","b","c"]
+regexp_exec_getter_lastindex	var re=/a/g;re.lastIndex={valueOf:function(){re.lastIndex=0;return 2}};[re.exec('aaaa').index,re.lastIndex]	ok [2,3]
+regexp_symbol_replace_replacement_tostring	var re=/a/g;'aaa'.replace(re,{toString:function(){re.lastIndex=1;return 'x'}})	ok "xxx"
+string_replace_searchvalue_tostring	var s='abcabc';s.replace({toString:function(){return 'b'}},function(){return 'X'})	ok "aXcabc"
+string_padstart_tostring_reenter	'x'.padStart(5,{toString:function(){return 'ab'}})	ok "ababx"
+string_localecompare_arr_sort	var a=['b','a','c'];a.sort(function(x,y){a.length=1;return x.localeCompare(y)});a	ok ["a","b","c"]
+proxy_get_trap_reenters_array	var a=[1,2,3];var p=new Proxy(a,{get:function(t,k,r){if(k==='length')a.push(0);return Reflect.get(t,k,r)}});Array.prototype.map.call(p,function(x){return x}).length	ok 4
+proxy_has_trap_deletes	var a=[1,2,3];var p=new Proxy(a,{has:function(t,k){delete a[2];return Reflect.has(t,k)}});Array.prototype.forEach.call(p,function(){});a.length	ok 3
+proxy_ownkeys_trap_adds	var t={a:1};var p=new Proxy(t,{ownKeys:function(){t.b=2;return Reflect.ownKeys(t)}});JSON.stringify(p)	ok "{\"a\":1,\"b\":2}"
+proxy_set_trap_sorts	var a=[3,2,1];var n=0;var p=new Proxy(a,{set:function(t,k,v,r){if(n++==1)t.length=0;return Reflect.set(t,k,v,r)}});Array.prototype.sort.call(p);[a,a.length]	ok [["#undefined",2,3],3]
+proxy_deleteproperty_trap_reenters	var o={a:1,b:2};var p=new Proxy(o,{deleteProperty:function(t,k){delete t.b;return Reflect.deleteProperty(t,k)}});delete p.a;Object.keys(o)	ok []
+proxy_revoked_in_callback	var r=Proxy.revocable([1,2,3],{});var res;try{res=Array.prototype.map.call(r.proxy,function(x){r.revoke();return x})}catch(e){res=e.name}res	ok "TypeError"
+proxy_getprototypeof_trap_mutates	var a=[1,,3];var p=new Proxy({},{get:function(){a.length=0;return 7}});Object.setPrototypeOf(a,p);var r=a.map(function(x){return x});[r.length,Object.keys(r)]	throw TypeError
+reflect_apply_comparator_arraylength	var a=[3,2,1];a.sort(function(x,y){return Reflect.apply(function(){a.length=2;return x-y},null,[])});a	ok [1,2,3]
+array_species_constructor_mutates	var a=[1,2,3];a.constructor={[Symbol.species]:function(n){a.length=0;return []}};var r=a.map(function(x){return x*2});[r,a.length]	ok [[],0]
+array_species_filter_mutates	var a=[1,2,3];a.constructor={[Symbol.species]:function(n){a.length=1;return {}}};var r=a.filter(function(x){return true});[Object.keys(r),a.length]	ok [["0"],1]
+array_length_setter_reenter	var a=[1,2,3];Object.defineProperty(a,'length',{writable:false});var r=[];try{a.push(1)}catch(e){r.push(e.name)}try{a.pop()}catch(e){r.push(e.name)}try{a.splice(0,1)}catch(e){r.push(e.name)}r.concat([a.length])	ok ["TypeError","TypeError","TypeError",3]

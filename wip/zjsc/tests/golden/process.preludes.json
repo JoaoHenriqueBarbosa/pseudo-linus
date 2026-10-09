@@ -1,0 +1,8 @@
+[
+"var L = function (x) { console.log(String(x)); };\nvar J = JSON.stringify;\n",
+"var L = function (x) { console.log(String(x)); };\nvar J = JSON.stringify;\n",
+"var L = function (x) { console.log(String(x)); };\nvar J = JSON.stringify;\n",
+"var L = function (x) { console.log(String(x)); };\nvar J = JSON.stringify;\n",
+"var L = function (x) { console.log(String(x)); };\nvar J = JSON.stringify;\n",
+"var L = function (x) { console.log(String(x)); };\nvar J = JSON.stringify;\n"
+]

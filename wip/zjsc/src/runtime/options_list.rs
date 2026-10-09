@@ -612,7 +612,8 @@ impl Default for Options {
         let use_reg_exp_alternation_dispatch: bool = true;
         let reg_exp_dispatch_max_inline_literal_length: u32 = 32;
         let report_must_succeed_executable_allocations: bool = false;
-        let use_v8_date_parser: bool = false;
+        // O Bun liga a opção ao criar o global object (ZigGlobalObject.cpp:316: Options::useV8DateParser() = true).
+        let use_v8_date_parser: bool = true;
         let show_private_scripts_in_stack_traces: bool = false;
         let eval_mode: bool = false;
         let use_ffiic_stub: bool = true;

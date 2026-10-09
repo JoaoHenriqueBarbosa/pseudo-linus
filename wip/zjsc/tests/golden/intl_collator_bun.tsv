@@ -1,0 +1,1840 @@
+new Intl.Collator("en", { sensitivity: "base" }).compare("a", "A")	0
+new Intl.Collator("en", { sensitivity: "base" }).compare("a", "á")	0
+new Intl.Collator("en", { sensitivity: "base" }).compare("a", "b")	-1
+new Intl.Collator("en", { sensitivity: "base" }).compare("á", "A")	0
+new Intl.Collator("en", { sensitivity: "base" }).compare("ä", "a")	0
+new Intl.Collator("en", { sensitivity: "base" }).compare("ss", "ß")	0
+new Intl.Collator("en", { sensitivity: "base" }).compare("e", "é")	0
+new Intl.Collator("en", { sensitivity: "base" }).compare("ç", "c")	0
+new Intl.Collator("en", { sensitivity: "base" }).compare("I", "ı")	-1
+new Intl.Collator("en", { sensitivity: "base" }).compare("i", "İ")	0
+new Intl.Collator("en", { sensitivity: "base" }).compare("ñ", "n")	0
+new Intl.Collator("en", { sensitivity: "base" }).compare("å", "z")	-1
+new Intl.Collator("en", { sensitivity: "accent" }).compare("a", "A")	0
+new Intl.Collator("en", { sensitivity: "accent" }).compare("a", "á")	-1
+new Intl.Collator("en", { sensitivity: "accent" }).compare("a", "b")	-1
+new Intl.Collator("en", { sensitivity: "accent" }).compare("á", "A")	1
+new Intl.Collator("en", { sensitivity: "accent" }).compare("ä", "a")	1
+new Intl.Collator("en", { sensitivity: "accent" }).compare("ss", "ß")	-1
+new Intl.Collator("en", { sensitivity: "accent" }).compare("e", "é")	-1
+new Intl.Collator("en", { sensitivity: "accent" }).compare("ç", "c")	1
+new Intl.Collator("en", { sensitivity: "accent" }).compare("I", "ı")	-1
+new Intl.Collator("en", { sensitivity: "accent" }).compare("i", "İ")	-1
+new Intl.Collator("en", { sensitivity: "accent" }).compare("ñ", "n")	1
+new Intl.Collator("en", { sensitivity: "accent" }).compare("å", "z")	-1
+new Intl.Collator("en", { sensitivity: "case" }).compare("a", "A")	-1
+new Intl.Collator("en", { sensitivity: "case" }).compare("a", "á")	0
+new Intl.Collator("en", { sensitivity: "case" }).compare("a", "b")	-1
+new Intl.Collator("en", { sensitivity: "case" }).compare("á", "A")	-1
+new Intl.Collator("en", { sensitivity: "case" }).compare("ä", "a")	0
+new Intl.Collator("en", { sensitivity: "case" }).compare("ss", "ß")	0
+new Intl.Collator("en", { sensitivity: "case" }).compare("e", "é")	0
+new Intl.Collator("en", { sensitivity: "case" }).compare("ç", "c")	0
+new Intl.Collator("en", { sensitivity: "case" }).compare("I", "ı")	-1
+new Intl.Collator("en", { sensitivity: "case" }).compare("i", "İ")	-1
+new Intl.Collator("en", { sensitivity: "case" }).compare("ñ", "n")	0
+new Intl.Collator("en", { sensitivity: "case" }).compare("å", "z")	-1
+new Intl.Collator("en", { sensitivity: "variant" }).compare("a", "A")	-1
+new Intl.Collator("en", { sensitivity: "variant" }).compare("a", "á")	-1
+new Intl.Collator("en", { sensitivity: "variant" }).compare("a", "b")	-1
+new Intl.Collator("en", { sensitivity: "variant" }).compare("á", "A")	1
+new Intl.Collator("en", { sensitivity: "variant" }).compare("ä", "a")	1
+new Intl.Collator("en", { sensitivity: "variant" }).compare("ss", "ß")	-1
+new Intl.Collator("en", { sensitivity: "variant" }).compare("e", "é")	-1
+new Intl.Collator("en", { sensitivity: "variant" }).compare("ç", "c")	1
+new Intl.Collator("en", { sensitivity: "variant" }).compare("I", "ı")	-1
+new Intl.Collator("en", { sensitivity: "variant" }).compare("i", "İ")	-1
+new Intl.Collator("en", { sensitivity: "variant" }).compare("ñ", "n")	1
+new Intl.Collator("en", { sensitivity: "variant" }).compare("å", "z")	-1
+new Intl.Collator("sv").compare("ö", "o")	1
+new Intl.Collator("sv").compare("å", "a")	1
+new Intl.Collator("sv").compare("ü", "u")	1
+new Intl.Collator("de").compare("ö", "o")	1
+new Intl.Collator("de").compare("å", "a")	1
+new Intl.Collator("de").compare("ü", "u")	1
+new Intl.Collator("tr").compare("ö", "o")	1
+new Intl.Collator("tr").compare("å", "a")	1
+new Intl.Collator("tr").compare("ü", "u")	1
+new Intl.Collator("en", { numeric: true }).compare("a2", "a10")	-1
+new Intl.Collator("en", { numeric: false }).compare("a2", "a10")	1
+new Intl.Collator("en-u-kn").compare("a2", "a10")	-1
+new Intl.Collator("en", { numeric: true }).compare("a02", "a2")	0
+new Intl.Collator("en", { numeric: false }).compare("a02", "a2")	-1
+new Intl.Collator("en-u-kn").compare("a02", "a2")	0
+new Intl.Collator("en", { numeric: true }).compare("a1b", "a01b")	0
+new Intl.Collator("en", { numeric: false }).compare("a1b", "a01b")	1
+new Intl.Collator("en-u-kn").compare("a1b", "a01b")	0
+new Intl.Collator("en", { numeric: true }).compare("10", "9")	1
+new Intl.Collator("en", { numeric: false }).compare("10", "9")	-1
+new Intl.Collator("en-u-kn").compare("10", "9")	1
+new Intl.Collator("en", { numeric: true }).compare("1.5", "1.10")	-1
+new Intl.Collator("en", { numeric: false }).compare("1.5", "1.10")	1
+new Intl.Collator("en-u-kn").compare("1.5", "1.10")	-1
+new Intl.Collator("en", { numeric: true }).compare("a-2", "a-10")	-1
+new Intl.Collator("en", { numeric: false }).compare("a-2", "a-10")	1
+new Intl.Collator("en-u-kn").compare("a-2", "a-10")	-1
+new Intl.Collator("en", { numeric: true }).compare("x1y2", "x1y10")	-1
+new Intl.Collator("en", { numeric: false }).compare("x1y2", "x1y10")	1
+new Intl.Collator("en-u-kn").compare("x1y2", "x1y10")	-1
+new Intl.Collator("en", { numeric: true }).compare("007", "7")	0
+new Intl.Collator("en", { numeric: false }).compare("007", "7")	-1
+new Intl.Collator("en-u-kn").compare("007", "7")	0
+new Intl.Collator("en", { numeric: true }).compare("a", "1")	1
+new Intl.Collator("en", { numeric: false }).compare("a", "1")	1
+new Intl.Collator("en-u-kn").compare("a", "1")	1
+new Intl.Collator("en", { numeric: true }).compare("١٢", "٣")	1
+new Intl.Collator("en", { numeric: false }).compare("١٢", "٣")	-1
+new Intl.Collator("en-u-kn").compare("١٢", "٣")	1
+new Intl.Collator("en", { caseFirst: "upper" }).compare("a", "A")	1
+new Intl.Collator("en", { caseFirst: "upper" }).compare("A", "a")	-1
+new Intl.Collator("en", { caseFirst: "upper" }).compare("b", "A")	1
+new Intl.Collator("en", { caseFirst: "upper" }).compare("aB", "Ab")	1
+new Intl.Collator("en", { caseFirst: "upper" }).compare("é", "É")	1
+new Intl.Collator("en", { caseFirst: "upper" }).compare("ab", "AB")	1
+new Intl.Collator("en-u-kf-upper").resolvedOptions().caseFirst	upper
+new Intl.Collator("en", { caseFirst: "lower" }).compare("a", "A")	-1
+new Intl.Collator("en", { caseFirst: "lower" }).compare("A", "a")	1
+new Intl.Collator("en", { caseFirst: "lower" }).compare("b", "A")	1
+new Intl.Collator("en", { caseFirst: "lower" }).compare("aB", "Ab")	-1
+new Intl.Collator("en", { caseFirst: "lower" }).compare("é", "É")	-1
+new Intl.Collator("en", { caseFirst: "lower" }).compare("ab", "AB")	-1
+new Intl.Collator("en-u-kf-lower").resolvedOptions().caseFirst	lower
+new Intl.Collator("en", { caseFirst: "false" }).compare("a", "A")	-1
+new Intl.Collator("en", { caseFirst: "false" }).compare("A", "a")	1
+new Intl.Collator("en", { caseFirst: "false" }).compare("b", "A")	1
+new Intl.Collator("en", { caseFirst: "false" }).compare("aB", "Ab")	-1
+new Intl.Collator("en", { caseFirst: "false" }).compare("é", "É")	-1
+new Intl.Collator("en", { caseFirst: "false" }).compare("ab", "AB")	-1
+new Intl.Collator("en-u-kf-false").resolvedOptions().caseFirst	false
+new Intl.Collator("en", { ignorePunctuation: true }).compare("a-b", "ab")	0
+new Intl.Collator("en", { ignorePunctuation: false }).compare("a-b", "ab")	-1
+new Intl.Collator("th", { ignorePunctuation: true }).compare("a-b", "ab")	0
+new Intl.Collator("en", { ignorePunctuation: true }).compare("a b", "ab")	0
+new Intl.Collator("en", { ignorePunctuation: false }).compare("a b", "ab")	-1
+new Intl.Collator("th", { ignorePunctuation: true }).compare("a b", "ab")	0
+new Intl.Collator("en", { ignorePunctuation: true }).compare("a.b", "ab")	0
+new Intl.Collator("en", { ignorePunctuation: false }).compare("a.b", "ab")	-1
+new Intl.Collator("th", { ignorePunctuation: true }).compare("a.b", "ab")	0
+new Intl.Collator("en", { ignorePunctuation: true }).compare("a_b", "ab")	0
+new Intl.Collator("en", { ignorePunctuation: false }).compare("a_b", "ab")	-1
+new Intl.Collator("th", { ignorePunctuation: true }).compare("a_b", "ab")	0
+new Intl.Collator("en", { ignorePunctuation: true }).compare("a,b", "a;b")	0
+new Intl.Collator("en", { ignorePunctuation: false }).compare("a,b", "a;b")	-1
+new Intl.Collator("th", { ignorePunctuation: true }).compare("a,b", "a;b")	0
+new Intl.Collator("en", { ignorePunctuation: true }).compare("(a)", "a")	0
+new Intl.Collator("en", { ignorePunctuation: false }).compare("(a)", "a")	-1
+new Intl.Collator("th", { ignorePunctuation: true }).compare("(a)", "a")	0
+new Intl.Collator("en", { ignorePunctuation: true }).compare("a!", "a")	0
+new Intl.Collator("en", { ignorePunctuation: false }).compare("a!", "a")	1
+new Intl.Collator("th", { ignorePunctuation: true }).compare("a!", "a")	0
+new Intl.Collator("en", { ignorePunctuation: true }).compare("a-b", "ac")	-1
+new Intl.Collator("en", { ignorePunctuation: false }).compare("a-b", "ac")	-1
+new Intl.Collator("th", { ignorePunctuation: true }).compare("a-b", "ac")	-1
+new Intl.Collator("en", { usage: "search" }).compare("a", "á")	-1
+new Intl.Collator("en", { usage: "search", sensitivity: "base" }).compare("a", "á")	0
+new Intl.Collator("en", { usage: "search" }).compare("a", "A")	-1
+new Intl.Collator("en", { usage: "search", sensitivity: "base" }).compare("a", "A")	0
+new Intl.Collator("en", { usage: "search" }).compare("ss", "ß")	-1
+new Intl.Collator("en", { usage: "search", sensitivity: "base" }).compare("ss", "ß")	0
+new Intl.Collator("de", { usage: "search" }).compare("ss", "ß")	-1
+new Intl.Collator("en", { usage: "search" }).compare("e", "é")	-1
+new Intl.Collator("en", { usage: "search", sensitivity: "base" }).compare("e", "é")	0
+new Intl.Collator("en", { usage: "search" }).compare("a-b", "ab")	-1
+new Intl.Collator("en", { usage: "search", sensitivity: "base" }).compare("a-b", "ab")	-1
+new Intl.Collator("de", { usage: "search" }).compare("a-b", "ab")	-1
+new Intl.Collator("de", { collation: "phonebk" }).resolvedOptions().collation	phonebk
+new Intl.Collator("de-u-co-standard").resolvedOptions().collation	default
+new Intl.Collator("de-u-co-standard").resolvedOptions().locale	de
+new Intl.Collator("de", { collation: "standard" }).resolvedOptions().collation	default
+new Intl.Collator("es", { collation: "trad" }).resolvedOptions().collation	trad
+new Intl.Collator("zh", { collation: "pinyin" }).resolvedOptions().collation	pinyin
+new Intl.Collator("zh-u-co-stroke").resolvedOptions().collation	stroke
+new Intl.Collator("zh-u-co-stroke").resolvedOptions().locale	zh-u-co-stroke
+new Intl.Collator("zh", { collation: "stroke" }).resolvedOptions().collation	stroke
+new Intl.Collator("zh-u-co-zhuyin").resolvedOptions().collation	zhuyin
+new Intl.Collator("zh-u-co-zhuyin").resolvedOptions().locale	zh-u-co-zhuyin
+new Intl.Collator("zh", { collation: "zhuyin" }).resolvedOptions().collation	zhuyin
+new Intl.Collator("ja-u-co-unihan").resolvedOptions().collation	unihan
+new Intl.Collator("ja-u-co-unihan").resolvedOptions().locale	ja-u-co-unihan
+new Intl.Collator("ja", { collation: "unihan" }).resolvedOptions().collation	unihan
+new Intl.Collator("sv-u-co-reformed").resolvedOptions().collation	default
+new Intl.Collator("sv-u-co-reformed").resolvedOptions().locale	sv
+new Intl.Collator("sv", { collation: "reformed" }).resolvedOptions().collation	default
+new Intl.Collator("en-u-co-emoji").resolvedOptions().collation	emoji
+new Intl.Collator("en", { collation: "emoji" }).resolvedOptions().collation	emoji
+new Intl.Collator("en-u-co-eor").resolvedOptions().collation	eor
+new Intl.Collator("en-u-co-eor").resolvedOptions().locale	en-u-co-eor
+new Intl.Collator("en", { collation: "eor" }).resolvedOptions().collation	eor
+new Intl.Collator("ko-u-co-searchjl").resolvedOptions().collation	searchjl
+new Intl.Collator("ko-u-co-searchjl").resolvedOptions().locale	ko-u-co-searchjl
+new Intl.Collator("ko", { collation: "searchjl" }).resolvedOptions().collation	searchjl
+new Intl.Collator("en-u-co-search").resolvedOptions().collation	default
+new Intl.Collator("en-u-co-search").resolvedOptions().locale	en
+new Intl.Collator("en", { collation: "search" }).resolvedOptions().collation	default
+new Intl.Collator("en-u-co-standard").resolvedOptions().collation	default
+new Intl.Collator("en-u-co-standard").resolvedOptions().locale	en
+new Intl.Collator("en", { collation: "standard" }).resolvedOptions().collation	default
+new Intl.Collator("en-u-co-bogus").resolvedOptions().collation	default
+new Intl.Collator("en-u-co-bogus").resolvedOptions().locale	en
+new Intl.Collator("en", { collation: "bogus" }).resolvedOptions().collation	default
+new Intl.Collator("fr-u-co-standard").resolvedOptions().collation	default
+new Intl.Collator("fr-u-co-standard").resolvedOptions().locale	fr
+new Intl.Collator("fr", { collation: "standard" }).resolvedOptions().collation	default
+["ä","a","z","o","ö","ß","ss","u","ü"].slice().sort(new Intl.Collator("de").compare).join(",")	a,ä,o,ö,ss,ß,u,ü,z
+["ä","a","z","o","ö","ß","ss","u","ü"].slice().sort(new Intl.Collator("de", { sensitivity: "base" }).compare).join(",")	ä,a,o,ö,ß,ss,u,ü,z
+["ä","a","z","o","ö","ß","ss","u","ü"].slice().sort(new Intl.Collator("de", { caseFirst: "upper" }).compare).join(",")	a,ä,o,ö,ss,ß,u,ü,z
+["ä","a","z","o","ö","ß","ss","u","ü"].slice().sort(new Intl.Collator("de", { numeric: true }).compare).join(",")	a,ä,o,ö,ss,ß,u,ü,z
+["ä","a","z","o","ö","ß","ss","u","ü"].slice().sort((a, b) => a.localeCompare(b, "de")).join(",")	a,ä,o,ö,ss,ß,u,ü,z
+["ä","a","z","o","ö","ß","ss","u","ü"].slice().sort(new Intl.Collator("de").compare).reverse().join(",")	z,ü,u,ß,ss,ö,o,ä,a
+new Intl.Collator("de").resolvedOptions().locale	de
+["ä","a","z","ö","å","o"].slice().sort(new Intl.Collator("sv").compare).join(",")	a,o,z,å,ä,ö
+["ä","a","z","ö","å","o"].slice().sort(new Intl.Collator("sv", { sensitivity: "base" }).compare).join(",")	a,o,z,å,ä,ö
+["ä","a","z","ö","å","o"].slice().sort(new Intl.Collator("sv", { caseFirst: "upper" }).compare).join(",")	a,o,z,å,ä,ö
+["ä","a","z","ö","å","o"].slice().sort(new Intl.Collator("sv", { numeric: true }).compare).join(",")	a,o,z,å,ä,ö
+["ä","a","z","ö","å","o"].slice().sort((a, b) => a.localeCompare(b, "sv")).join(",")	a,o,z,å,ä,ö
+["ä","a","z","ö","å","o"].slice().sort(new Intl.Collator("sv").compare).reverse().join(",")	ö,ä,å,z,o,a
+["ñ","n","o","ch","c","d","ll","l","m"].slice().sort(new Intl.Collator("es").compare).join(",")	c,ch,d,l,ll,m,n,ñ,o
+["ñ","n","o","ch","c","d","ll","l","m"].slice().sort(new Intl.Collator("es", { sensitivity: "base" }).compare).join(",")	c,ch,d,l,ll,m,n,ñ,o
+["ñ","n","o","ch","c","d","ll","l","m"].slice().sort(new Intl.Collator("es", { caseFirst: "upper" }).compare).join(",")	c,ch,d,l,ll,m,n,ñ,o
+["ñ","n","o","ch","c","d","ll","l","m"].slice().sort(new Intl.Collator("es", { numeric: true }).compare).join(",")	c,ch,d,l,ll,m,n,ñ,o
+["ñ","n","o","ch","c","d","ll","l","m"].slice().sort((a, b) => a.localeCompare(b, "es")).join(",")	c,ch,d,l,ll,m,n,ñ,o
+["ñ","n","o","ch","c","d","ll","l","m"].slice().sort(new Intl.Collator("es").compare).reverse().join(",")	o,ñ,n,m,ll,l,d,ch,c
+new Intl.Collator("es").resolvedOptions().locale	es
+["côte","cote","côté","coté","Cote"].slice().sort(new Intl.Collator("fr").compare).join(",")	cote,Cote,coté,côte,côté
+["côte","cote","côté","coté","Cote"].slice().sort(new Intl.Collator("fr", { sensitivity: "base" }).compare).join(",")	côte,cote,côté,coté,Cote
+["côte","cote","côté","coté","Cote"].slice().sort(new Intl.Collator("fr", { caseFirst: "upper" }).compare).join(",")	Cote,cote,coté,côte,côté
+["côte","cote","côté","coté","Cote"].slice().sort(new Intl.Collator("fr", { numeric: true }).compare).join(",")	cote,Cote,coté,côte,côté
+["côte","cote","côté","coté","Cote"].slice().sort((a, b) => a.localeCompare(b, "fr")).join(",")	cote,Cote,coté,côte,côté
+["côte","cote","côté","coté","Cote"].slice().sort(new Intl.Collator("fr").compare).reverse().join(",")	côté,côte,coté,Cote,cote
+new Intl.Collator("fr").resolvedOptions().locale	fr
+["aa","å","z","ø","æ","a","ä"].slice().sort(new Intl.Collator("da").compare).join(",")	a,z,æ,ä,ø,å,aa
+["aa","å","z","ø","æ","a","ä"].slice().sort(new Intl.Collator("da", { sensitivity: "base" }).compare).join(",")	a,z,æ,ä,ø,aa,å
+["aa","å","z","ø","æ","a","ä"].slice().sort(new Intl.Collator("da", { caseFirst: "upper" }).compare).join(",")	a,z,æ,ä,ø,å,aa
+["aa","å","z","ø","æ","a","ä"].slice().sort(new Intl.Collator("da", { numeric: true }).compare).join(",")	a,z,æ,ä,ø,å,aa
+["aa","å","z","ø","æ","a","ä"].slice().sort((a, b) => a.localeCompare(b, "da")).join(",")	a,z,æ,ä,ø,å,aa
+["aa","å","z","ø","æ","a","ä"].slice().sort(new Intl.Collator("da").compare).reverse().join(",")	aa,å,ø,ä,æ,z,a
+new Intl.Collator("da").resolvedOptions().locale	da
+["å","ø","æ","z","a"].slice().sort(new Intl.Collator("nb").compare).join(",")	a,z,æ,ø,å
+["å","ø","æ","z","a"].slice().sort(new Intl.Collator("nb", { sensitivity: "base" }).compare).join(",")	a,z,æ,ø,å
+["å","ø","æ","z","a"].slice().sort(new Intl.Collator("nb", { caseFirst: "upper" }).compare).join(",")	a,z,æ,ø,å
+["å","ø","æ","z","a"].slice().sort(new Intl.Collator("nb", { numeric: true }).compare).join(",")	a,z,æ,ø,å
+["å","ø","æ","z","a"].slice().sort((a, b) => a.localeCompare(b, "nb")).join(",")	a,z,æ,ø,å
+["å","ø","æ","z","a"].slice().sort(new Intl.Collator("nb").compare).reverse().join(",")	å,ø,æ,z,a
+["w","v","å","ä","ö","z"].slice().sort(new Intl.Collator("fi").compare).join(",")	v,w,z,å,ä,ö
+["w","v","å","ä","ö","z"].slice().sort(new Intl.Collator("fi", { sensitivity: "base" }).compare).join(",")	v,w,z,å,ä,ö
+["w","v","å","ä","ö","z"].slice().sort(new Intl.Collator("fi", { caseFirst: "upper" }).compare).join(",")	v,w,z,å,ä,ö
+["w","v","å","ä","ö","z"].slice().sort(new Intl.Collator("fi", { numeric: true }).compare).join(",")	v,w,z,å,ä,ö
+["w","v","å","ä","ö","z"].slice().sort((a, b) => a.localeCompare(b, "fi")).join(",")	v,w,z,å,ä,ö
+["w","v","å","ä","ö","z"].slice().sort(new Intl.Collator("fi").compare).reverse().join(",")	ö,ä,å,z,w,v
+new Intl.Collator("fi").resolvedOptions().locale	fi
+["ł","l","m","ń","n","ó","o","ż","z","ź"].slice().sort(new Intl.Collator("pl").compare).join(",")	l,ł,m,n,ń,o,ó,z,ź,ż
+["ł","l","m","ń","n","ó","o","ż","z","ź"].slice().sort(new Intl.Collator("pl", { sensitivity: "base" }).compare).join(",")	l,ł,m,n,ń,o,ó,z,ź,ż
+["ł","l","m","ń","n","ó","o","ż","z","ź"].slice().sort(new Intl.Collator("pl", { caseFirst: "upper" }).compare).join(",")	l,ł,m,n,ń,o,ó,z,ź,ż
+["ł","l","m","ń","n","ó","o","ż","z","ź"].slice().sort(new Intl.Collator("pl", { numeric: true }).compare).join(",")	l,ł,m,n,ń,o,ó,z,ź,ż
+["ł","l","m","ń","n","ó","o","ż","z","ź"].slice().sort((a, b) => a.localeCompare(b, "pl")).join(",")	l,ł,m,n,ń,o,ó,z,ź,ż
+["ł","l","m","ń","n","ó","o","ż","z","ź"].slice().sort(new Intl.Collator("pl").compare).reverse().join(",")	ż,ź,z,ó,o,ń,n,m,ł,l
+["ch","c","h","i","č","d","ř","r","s"].slice().sort(new Intl.Collator("cs").compare).join(",")	c,č,d,h,ch,i,r,ř,s
+["ch","c","h","i","č","d","ř","r","s"].slice().sort(new Intl.Collator("cs", { sensitivity: "base" }).compare).join(",")	c,č,d,h,ch,i,r,ř,s
+["ch","c","h","i","č","d","ř","r","s"].slice().sort(new Intl.Collator("cs", { caseFirst: "upper" }).compare).join(",")	c,č,d,h,ch,i,r,ř,s
+["ch","c","h","i","č","d","ř","r","s"].slice().sort(new Intl.Collator("cs", { numeric: true }).compare).join(",")	c,č,d,h,ch,i,r,ř,s
+["ch","c","h","i","č","d","ř","r","s"].slice().sort((a, b) => a.localeCompare(b, "cs")).join(",")	c,č,d,h,ch,i,r,ř,s
+["ch","c","h","i","č","d","ř","r","s"].slice().sort(new Intl.Collator("cs").compare).reverse().join(",")	s,ř,r,i,ch,h,d,č,c
+new Intl.Collator("cs").resolvedOptions().locale	cs
+["cs","c","d","dz","dzs","e","ö","o","ő"].slice().sort(new Intl.Collator("hu").compare).join(",")	c,cs,d,dz,dzs,e,o,ö,ő
+["cs","c","d","dz","dzs","e","ö","o","ő"].slice().sort(new Intl.Collator("hu", { sensitivity: "base" }).compare).join(",")	c,cs,d,dz,dzs,e,o,ö,ő
+["cs","c","d","dz","dzs","e","ö","o","ő"].slice().sort(new Intl.Collator("hu", { caseFirst: "upper" }).compare).join(",")	c,cs,d,dz,dzs,e,o,ö,ő
+["cs","c","d","dz","dzs","e","ö","o","ő"].slice().sort(new Intl.Collator("hu", { numeric: true }).compare).join(",")	c,cs,d,dz,dzs,e,o,ö,ő
+["cs","c","d","dz","dzs","e","ö","o","ő"].slice().sort((a, b) => a.localeCompare(b, "hu")).join(",")	c,cs,d,dz,dzs,e,o,ö,ő
+["cs","c","d","dz","dzs","e","ö","o","ő"].slice().sort(new Intl.Collator("hu").compare).reverse().join(",")	ő,ö,o,e,dzs,dz,d,cs,c
+new Intl.Collator("hu").resolvedOptions().locale	hu
+["ç","c","ı","i","İ","I","ş","s","ğ","g"].slice().sort(new Intl.Collator("tr").compare).join(",")	c,ç,g,ğ,ı,I,i,İ,s,ş
+["ç","c","ı","i","İ","I","ş","s","ğ","g"].slice().sort(new Intl.Collator("tr", { sensitivity: "base" }).compare).join(",")	c,ç,g,ğ,ı,I,i,İ,s,ş
+["ç","c","ı","i","İ","I","ş","s","ğ","g"].slice().sort(new Intl.Collator("tr", { caseFirst: "upper" }).compare).join(",")	c,ç,g,ğ,I,ı,İ,i,s,ş
+["ç","c","ı","i","İ","I","ş","s","ğ","g"].slice().sort(new Intl.Collator("tr", { numeric: true }).compare).join(",")	c,ç,g,ğ,ı,I,i,İ,s,ş
+["ç","c","ı","i","İ","I","ş","s","ğ","g"].slice().sort((a, b) => a.localeCompare(b, "tr")).join(",")	c,ç,g,ğ,ı,I,i,İ,s,ş
+["ç","c","ı","i","İ","I","ş","s","ğ","g"].slice().sort(new Intl.Collator("tr").compare).reverse().join(",")	ş,s,İ,i,I,ı,ğ,g,ç,c
+new Intl.Collator("tr").resolvedOptions().locale	tr
+["я","а","ё","е","ж","Я","А"].slice().sort(new Intl.Collator("ru").compare).join(",")	а,А,е,ё,ж,я,Я
+["я","а","ё","е","ж","Я","А"].slice().sort(new Intl.Collator("ru", { sensitivity: "base" }).compare).join(",")	а,А,ё,е,ж,я,Я
+["я","а","ё","е","ж","Я","А"].slice().sort(new Intl.Collator("ru", { caseFirst: "upper" }).compare).join(",")	А,а,е,ё,ж,Я,я
+["я","а","ё","е","ж","Я","А"].slice().sort(new Intl.Collator("ru", { numeric: true }).compare).join(",")	а,А,е,ё,ж,я,Я
+["я","а","ё","е","ж","Я","А"].slice().sort((a, b) => a.localeCompare(b, "ru")).join(",")	а,А,е,ё,ж,я,Я
+["я","а","ё","е","ж","Я","А"].slice().sort(new Intl.Collator("ru").compare).reverse().join(",")	Я,я,ж,ё,е,А,а
+["ω","α","ά","Α","β"].slice().sort(new Intl.Collator("el").compare).join(",")	α,Α,ά,β,ω
+["ω","α","ά","Α","β"].slice().sort(new Intl.Collator("el", { sensitivity: "base" }).compare).join(",")	α,ά,Α,β,ω
+["ω","α","ά","Α","β"].slice().sort(new Intl.Collator("el", { caseFirst: "upper" }).compare).join(",")	Α,α,ά,β,ω
+["ω","α","ά","Α","β"].slice().sort(new Intl.Collator("el", { numeric: true }).compare).join(",")	α,Α,ά,β,ω
+["ω","α","ά","Α","β"].slice().sort((a, b) => a.localeCompare(b, "el")).join(",")	α,Α,ά,β,ω
+["ω","α","ά","Α","β"].slice().sort(new Intl.Collator("el").compare).reverse().join(",")	ω,β,ά,Α,α
+new Intl.Collator("el").resolvedOptions().locale	el
+["ب","ا","أ","ت","ة","ث"].slice().sort(new Intl.Collator("ar").compare).join(",")	أ,ا,ب,ة,ت,ث
+["ب","ا","أ","ت","ة","ث"].slice().sort(new Intl.Collator("ar", { sensitivity: "base" }).compare).join(",")	ا,أ,ب,ت,ة,ث
+["ب","ا","أ","ت","ة","ث"].slice().sort(new Intl.Collator("ar", { caseFirst: "upper" }).compare).join(",")	أ,ا,ب,ة,ت,ث
+["ب","ا","أ","ت","ة","ث"].slice().sort(new Intl.Collator("ar", { numeric: true }).compare).join(",")	أ,ا,ب,ة,ت,ث
+["ب","ا","أ","ت","ة","ث"].slice().sort((a, b) => a.localeCompare(b, "ar")).join(",")	أ,ا,ب,ة,ت,ث
+["ب","ا","أ","ت","ة","ث"].slice().sort(new Intl.Collator("ar").compare).reverse().join(",")	ث,ت,ة,ب,ا,أ
+new Intl.Collator("ar").resolvedOptions().locale	ar
+["ב","א","ת","ג"].slice().sort(new Intl.Collator("he").compare).join(",")	א,ב,ג,ת
+["ב","א","ת","ג"].slice().sort(new Intl.Collator("he", { sensitivity: "base" }).compare).join(",")	א,ב,ג,ת
+["ב","א","ת","ג"].slice().sort(new Intl.Collator("he", { caseFirst: "upper" }).compare).join(",")	א,ב,ג,ת
+["ב","א","ת","ג"].slice().sort(new Intl.Collator("he", { numeric: true }).compare).join(",")	א,ב,ג,ת
+["ב","א","ת","ג"].slice().sort((a, b) => a.localeCompare(b, "he")).join(",")	א,ב,ג,ת
+["ב","א","ת","ג"].slice().sort(new Intl.Collator("he").compare).reverse().join(",")	ת,ג,ב,א
+["あ","ア","か","カ","ん","ー","漢"].slice().sort(new Intl.Collator("ja").compare).join(",")	ー,あ,ア,か,カ,ん,漢
+["あ","ア","か","カ","ん","ー","漢"].slice().sort(new Intl.Collator("ja", { sensitivity: "base" }).compare).join(",")	ー,あ,ア,か,カ,ん,漢
+["あ","ア","か","カ","ん","ー","漢"].slice().sort(new Intl.Collator("ja", { caseFirst: "upper" }).compare).join(",")	ー,あ,ア,か,カ,ん,漢
+["あ","ア","か","カ","ん","ー","漢"].slice().sort(new Intl.Collator("ja", { numeric: true }).compare).join(",")	ー,あ,ア,か,カ,ん,漢
+["あ","ア","か","カ","ん","ー","漢"].slice().sort((a, b) => a.localeCompare(b, "ja")).join(",")	ー,あ,ア,か,カ,ん,漢
+["あ","ア","か","カ","ん","ー","漢"].slice().sort(new Intl.Collator("ja").compare).reverse().join(",")	漢,ん,カ,か,ア,あ,ー
+["中","文","阿","波","啊","字"].slice().sort(new Intl.Collator("zh").compare).join(",")	阿,啊,波,文,中,字
+["中","文","阿","波","啊","字"].slice().sort(new Intl.Collator("zh", { sensitivity: "base" }).compare).join(",")	阿,啊,波,文,中,字
+["中","文","阿","波","啊","字"].slice().sort(new Intl.Collator("zh", { caseFirst: "upper" }).compare).join(",")	阿,啊,波,文,中,字
+["中","文","阿","波","啊","字"].slice().sort(new Intl.Collator("zh", { numeric: true }).compare).join(",")	阿,啊,波,文,中,字
+["中","文","阿","波","啊","字"].slice().sort((a, b) => a.localeCompare(b, "zh")).join(",")	阿,啊,波,文,中,字
+["中","文","阿","波","啊","字"].slice().sort(new Intl.Collator("zh").compare).reverse().join(",")	字,中,文,波,啊,阿
+["가","나","ㄱ","한","ㅎ"].slice().sort(new Intl.Collator("ko").compare).join(",")	ㄱ,가,나,ㅎ,한
+["가","나","ㄱ","한","ㅎ"].slice().sort(new Intl.Collator("ko", { sensitivity: "base" }).compare).join(",")	ㄱ,가,나,ㅎ,한
+["가","나","ㄱ","한","ㅎ"].slice().sort(new Intl.Collator("ko", { caseFirst: "upper" }).compare).join(",")	ㄱ,가,나,ㅎ,한
+["가","나","ㄱ","한","ㅎ"].slice().sort(new Intl.Collator("ko", { numeric: true }).compare).join(",")	ㄱ,가,나,ㅎ,한
+["가","나","ㄱ","한","ㅎ"].slice().sort((a, b) => a.localeCompare(b, "ko")).join(",")	ㄱ,가,나,ㅎ,한
+["가","나","ㄱ","한","ㅎ"].slice().sort(new Intl.Collator("ko").compare).reverse().join(",")	한,ㅎ,나,가,ㄱ
+["क","ख","अ","आ","ह"].slice().sort(new Intl.Collator("hi").compare).join(",")	अ,आ,क,ख,ह
+["क","ख","अ","आ","ह"].slice().sort(new Intl.Collator("hi", { sensitivity: "base" }).compare).join(",")	अ,आ,क,ख,ह
+["क","ख","अ","आ","ह"].slice().sort(new Intl.Collator("hi", { caseFirst: "upper" }).compare).join(",")	अ,आ,क,ख,ह
+["क","ख","अ","आ","ह"].slice().sort(new Intl.Collator("hi", { numeric: true }).compare).join(",")	अ,आ,क,ख,ह
+["क","ख","अ","आ","ह"].slice().sort((a, b) => a.localeCompare(b, "hi")).join(",")	अ,आ,क,ख,ह
+["क","ख","अ","आ","ह"].slice().sort(new Intl.Collator("hi").compare).reverse().join(",")	ह,ख,क,आ,अ
+new Intl.Collator("hi").resolvedOptions().locale	hi
+["ก","ข","ฮ","เ","ไ"].slice().sort(new Intl.Collator("th").compare).join(",")	ก,ข,ฮ,เ,ไ
+["ก","ข","ฮ","เ","ไ"].slice().sort(new Intl.Collator("th", { sensitivity: "base" }).compare).join(",")	ก,ข,ฮ,เ,ไ
+["ก","ข","ฮ","เ","ไ"].slice().sort(new Intl.Collator("th", { caseFirst: "upper" }).compare).join(",")	ก,ข,ฮ,เ,ไ
+["ก","ข","ฮ","เ","ไ"].slice().sort(new Intl.Collator("th", { numeric: true }).compare).join(",")	ก,ข,ฮ,เ,ไ
+["ก","ข","ฮ","เ","ไ"].slice().sort((a, b) => a.localeCompare(b, "th")).join(",")	ก,ข,ฮ,เ,ไ
+["ก","ข","ฮ","เ","ไ"].slice().sort(new Intl.Collator("th").compare).reverse().join(",")	ไ,เ,ฮ,ข,ก
+new Intl.Collator("th").resolvedOptions().locale	th
+["á","a","b","ç","c","A"].slice().sort(new Intl.Collator("pt").compare).join(",")	a,A,á,b,c,ç
+["á","a","b","ç","c","A"].slice().sort(new Intl.Collator("pt", { sensitivity: "base" }).compare).join(",")	á,a,A,b,ç,c
+["á","a","b","ç","c","A"].slice().sort(new Intl.Collator("pt", { caseFirst: "upper" }).compare).join(",")	A,a,á,b,c,ç
+["á","a","b","ç","c","A"].slice().sort(new Intl.Collator("pt", { numeric: true }).compare).join(",")	a,A,á,b,c,ç
+["á","a","b","ç","c","A"].slice().sort((a, b) => a.localeCompare(b, "pt")).join(",")	a,A,á,b,c,ç
+["á","a","b","ç","c","A"].slice().sort(new Intl.Collator("pt").compare).reverse().join(",")	ç,c,b,á,A,a
+new Intl.Collator("pt").resolvedOptions().locale	pt
+["è","e","é","à","a"].slice().sort(new Intl.Collator("it").compare).join(",")	a,à,e,é,è
+["è","e","é","à","a"].slice().sort(new Intl.Collator("it", { sensitivity: "base" }).compare).join(",")	à,a,è,e,é
+["è","e","é","à","a"].slice().sort(new Intl.Collator("it", { caseFirst: "upper" }).compare).join(",")	a,à,e,é,è
+["è","e","é","à","a"].slice().sort(new Intl.Collator("it", { numeric: true }).compare).join(",")	a,à,e,é,è
+["è","e","é","à","a"].slice().sort((a, b) => a.localeCompare(b, "it")).join(",")	a,à,e,é,è
+["è","e","é","à","a"].slice().sort(new Intl.Collator("it").compare).reverse().join(",")	è,é,e,à,a
+new Intl.Collator("it").resolvedOptions().locale	it
+["ij","IJ","i","j","y"].slice().sort(new Intl.Collator("nl").compare).join(",")	i,ij,IJ,j,y
+["ij","IJ","i","j","y"].slice().sort(new Intl.Collator("nl", { sensitivity: "base" }).compare).join(",")	i,ij,IJ,j,y
+["ij","IJ","i","j","y"].slice().sort(new Intl.Collator("nl", { caseFirst: "upper" }).compare).join(",")	i,IJ,ij,j,y
+["ij","IJ","i","j","y"].slice().sort(new Intl.Collator("nl", { numeric: true }).compare).join(",")	i,ij,IJ,j,y
+["ij","IJ","i","j","y"].slice().sort((a, b) => a.localeCompare(b, "nl")).join(",")	i,ij,IJ,j,y
+["ij","IJ","i","j","y"].slice().sort(new Intl.Collator("nl").compare).reverse().join(",")	y,j,IJ,ij,i
+new Intl.Collator("nl").resolvedOptions().locale	nl
+["â","ă","a","đ","d","ô","ơ","o"].slice().sort(new Intl.Collator("vi").compare).join(",")	a,ă,â,d,đ,o,ô,ơ
+["â","ă","a","đ","d","ô","ơ","o"].slice().sort(new Intl.Collator("vi", { sensitivity: "base" }).compare).join(",")	a,ă,â,d,đ,o,ô,ơ
+["â","ă","a","đ","d","ô","ơ","o"].slice().sort(new Intl.Collator("vi", { caseFirst: "upper" }).compare).join(",")	a,ă,â,d,đ,o,ô,ơ
+["â","ă","a","đ","d","ô","ơ","o"].slice().sort(new Intl.Collator("vi", { numeric: true }).compare).join(",")	a,ă,â,d,đ,o,ô,ơ
+["â","ă","a","đ","d","ô","ơ","o"].slice().sort((a, b) => a.localeCompare(b, "vi")).join(",")	a,ă,â,d,đ,o,ô,ơ
+["â","ă","a","đ","d","ô","ơ","o"].slice().sort(new Intl.Collator("vi").compare).reverse().join(",")	ơ,ô,o,đ,d,â,ă,a
+new Intl.Collator("vi").resolvedOptions().locale	vi
+["ї","і","и","й","г","ґ"].slice().sort(new Intl.Collator("uk").compare).join(",")	г,ґ,и,і,ї,й
+["ї","і","и","й","г","ґ"].slice().sort(new Intl.Collator("uk", { sensitivity: "base" }).compare).join(",")	г,ґ,и,і,ї,й
+["ї","і","и","й","г","ґ"].slice().sort(new Intl.Collator("uk", { caseFirst: "upper" }).compare).join(",")	г,ґ,и,і,ї,й
+["ї","і","и","й","г","ґ"].slice().sort(new Intl.Collator("uk", { numeric: true }).compare).join(",")	г,ґ,и,і,ї,й
+["ї","і","и","й","г","ґ"].slice().sort((a, b) => a.localeCompare(b, "uk")).join(",")	г,ґ,и,і,ї,й
+["ї","і","и","й","г","ґ"].slice().sort(new Intl.Collator("uk").compare).reverse().join(",")	й,ї,і,и,ґ,г
+new Intl.Collator("uk").resolvedOptions().locale	uk
+JSON.stringify(new Intl.Collator("en", {}).resolvedOptions())	{"locale":"en","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("de", {}).resolvedOptions())	{"locale":"de","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("sv", {}).resolvedOptions())	{"locale":"sv","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("th", {}).resolvedOptions())	{"locale":"th","usage":"sort","sensitivity":"variant","ignorePunctuation":true,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("tr", {}).resolvedOptions())	{"locale":"tr","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("zh-u-co-pinyin", {}).resolvedOptions())	{"locale":"zh-u-co-pinyin","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"pinyin","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("en", { sensitivity: "base" }).resolvedOptions())	{"locale":"en","usage":"sort","sensitivity":"base","ignorePunctuation":false,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("th", { sensitivity: "base" }).resolvedOptions())	{"locale":"th","usage":"sort","sensitivity":"base","ignorePunctuation":true,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("en", { sensitivity: "accent" }).resolvedOptions())	{"locale":"en","usage":"sort","sensitivity":"accent","ignorePunctuation":false,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("th", { sensitivity: "accent" }).resolvedOptions())	{"locale":"th","usage":"sort","sensitivity":"accent","ignorePunctuation":true,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("en", { sensitivity: "case" }).resolvedOptions())	{"locale":"en","usage":"sort","sensitivity":"case","ignorePunctuation":false,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("th", { sensitivity: "case" }).resolvedOptions())	{"locale":"th","usage":"sort","sensitivity":"case","ignorePunctuation":true,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("en", { numeric: true }).resolvedOptions())	{"locale":"en","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":true,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("th", { numeric: true }).resolvedOptions())	{"locale":"th","usage":"sort","sensitivity":"variant","ignorePunctuation":true,"collation":"default","numeric":true,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("en", { caseFirst: "upper" }).resolvedOptions())	{"locale":"en","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":false,"caseFirst":"upper"}
+JSON.stringify(new Intl.Collator("th", { caseFirst: "upper" }).resolvedOptions())	{"locale":"th","usage":"sort","sensitivity":"variant","ignorePunctuation":true,"collation":"default","numeric":false,"caseFirst":"upper"}
+JSON.stringify(new Intl.Collator("en", { caseFirst: "lower" }).resolvedOptions())	{"locale":"en","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":false,"caseFirst":"lower"}
+JSON.stringify(new Intl.Collator("th", { caseFirst: "lower" }).resolvedOptions())	{"locale":"th","usage":"sort","sensitivity":"variant","ignorePunctuation":true,"collation":"default","numeric":false,"caseFirst":"lower"}
+JSON.stringify(new Intl.Collator("en", { ignorePunctuation: true }).resolvedOptions())	{"locale":"en","usage":"sort","sensitivity":"variant","ignorePunctuation":true,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("th", { ignorePunctuation: true }).resolvedOptions())	{"locale":"th","usage":"sort","sensitivity":"variant","ignorePunctuation":true,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("en", { usage: "search" }).resolvedOptions())	{"locale":"en","usage":"search","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("th", { usage: "search" }).resolvedOptions())	{"locale":"th","usage":"search","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("en", { usage: "sort" }).resolvedOptions())	{"locale":"en","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("de", { usage: "sort" }).resolvedOptions())	{"locale":"de","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("sv", { usage: "sort" }).resolvedOptions())	{"locale":"sv","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("th", { usage: "sort" }).resolvedOptions())	{"locale":"th","usage":"sort","sensitivity":"variant","ignorePunctuation":true,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("tr", { usage: "sort" }).resolvedOptions())	{"locale":"tr","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("zh-u-co-pinyin", { usage: "sort" }).resolvedOptions())	{"locale":"zh-u-co-pinyin","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"pinyin","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("en", { sensitivity: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("de", { sensitivity: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("sv", { sensitivity: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("th", { sensitivity: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("tr", { sensitivity: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("zh-u-co-pinyin", { sensitivity: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("en", { usage: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("de", { usage: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("sv", { usage: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("th", { usage: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("tr", { usage: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("zh-u-co-pinyin", { usage: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("en", { caseFirst: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("de", { caseFirst: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("sv", { caseFirst: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("th", { caseFirst: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("tr", { caseFirst: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("zh-u-co-pinyin", { caseFirst: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("en", { numeric: "yes" }).resolvedOptions())	{"locale":"en","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":true,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("de", { numeric: "yes" }).resolvedOptions())	{"locale":"de","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":true,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("sv", { numeric: "yes" }).resolvedOptions())	{"locale":"sv","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":true,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("th", { numeric: "yes" }).resolvedOptions())	{"locale":"th","usage":"sort","sensitivity":"variant","ignorePunctuation":true,"collation":"default","numeric":true,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("tr", { numeric: "yes" }).resolvedOptions())	{"locale":"tr","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":true,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("zh-u-co-pinyin", { numeric: "yes" }).resolvedOptions())	{"locale":"zh-u-co-pinyin","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"pinyin","numeric":true,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("en", { collation: "phonebk" }).resolvedOptions())	{"locale":"en","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("de", { collation: "phonebk" }).resolvedOptions())	{"locale":"de","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"phonebk","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("sv", { collation: "phonebk" }).resolvedOptions())	{"locale":"sv","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("th", { collation: "phonebk" }).resolvedOptions())	{"locale":"th","usage":"sort","sensitivity":"variant","ignorePunctuation":true,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("tr", { collation: "phonebk" }).resolvedOptions())	{"locale":"tr","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("zh-u-co-pinyin", { collation: "phonebk" }).resolvedOptions())	{"locale":"zh-u-co-pinyin","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"pinyin","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("en", { localeMatcher: "lookup" }).resolvedOptions())	{"locale":"en","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("de", { localeMatcher: "lookup" }).resolvedOptions())	{"locale":"de","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("sv", { localeMatcher: "lookup" }).resolvedOptions())	{"locale":"sv","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("th", { localeMatcher: "lookup" }).resolvedOptions())	{"locale":"th","usage":"sort","sensitivity":"variant","ignorePunctuation":true,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("tr", { localeMatcher: "lookup" }).resolvedOptions())	{"locale":"tr","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"default","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("zh-u-co-pinyin", { localeMatcher: "lookup" }).resolvedOptions())	{"locale":"zh-u-co-pinyin","usage":"sort","sensitivity":"variant","ignorePunctuation":false,"collation":"pinyin","numeric":false,"caseFirst":"false"}
+JSON.stringify(new Intl.Collator("en", { localeMatcher: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("de", { localeMatcher: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("sv", { localeMatcher: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("th", { localeMatcher: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("tr", { localeMatcher: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Collator("zh-u-co-pinyin", { localeMatcher: "bogus" }).resolvedOptions())	throw
+JSON.stringify(Object.getOwnPropertyNames(new Intl.Collator().resolvedOptions()))	["locale","usage","sensitivity","ignorePunctuation","collation","numeric","caseFirst"]
+typeof new Intl.Collator().compare	function
+new Intl.Collator().compare === new Intl.Collator().compare	false
+(function () { const c = new Intl.Collator(); return c.compare === c.compare })()	true
+new Intl.Collator().compare.name === ""	true
+new Intl.Collator().compare.length	2
+JSON.stringify(Intl.Collator.supportedLocalesOf(["en", "de-DE", "xx", "zh-Hant", "sv-u-co-reformed"]))	["en","de-DE","zh-Hant","sv-u-co-reformed"]
+JSON.stringify(Intl.Collator.supportedLocalesOf("fr", { localeMatcher: "lookup" }))	["fr"]
+Intl.Collator().compare("a", "b")	-1
+Array.from(new Intl.Segmenter("en").segment("👨‍👩‍👧‍👦"), s => s.segment).join("|")	👨‍👩‍👧‍👦
+Array.from(new Intl.Segmenter("en", { granularity: "grapheme" }).segment("👨‍👩‍👧‍👦"), s => s.index).join(",")	0
+Array.from(new Intl.Segmenter("en").segment("👨‍👩‍👧‍👦")).length	1
+Array.from(new Intl.Segmenter("ja").segment("👨‍👩‍👧‍👦"), s => s.segment.length).join(",")	11
+Array.from(new Intl.Segmenter("en").segment("🇧🇷🇺🇸🇯🇵"), s => s.segment).join("|")	🇧🇷|🇺🇸|🇯🇵
+Array.from(new Intl.Segmenter("en", { granularity: "grapheme" }).segment("🇧🇷🇺🇸🇯🇵"), s => s.index).join(",")	0,4,8
+Array.from(new Intl.Segmenter("en").segment("🇧🇷🇺🇸🇯🇵")).length	3
+Array.from(new Intl.Segmenter("ja").segment("🇧🇷🇺🇸🇯🇵"), s => s.segment.length).join(",")	4,4,4
+Array.from(new Intl.Segmenter("en").segment("🇧🇷🇺"), s => s.segment).join("|")	🇧🇷|🇺
+Array.from(new Intl.Segmenter("en", { granularity: "grapheme" }).segment("🇧🇷🇺"), s => s.index).join(",")	0,4
+Array.from(new Intl.Segmenter("en").segment("🇧🇷🇺")).length	2
+Array.from(new Intl.Segmenter("ja").segment("🇧🇷🇺"), s => s.segment.length).join(",")	4,2
+Array.from(new Intl.Segmenter("en").segment("👍🏽"), s => s.segment).join("|")	👍🏽
+Array.from(new Intl.Segmenter("en", { granularity: "grapheme" }).segment("👍🏽"), s => s.index).join(",")	0
+Array.from(new Intl.Segmenter("en").segment("👍🏽")).length	1
+Array.from(new Intl.Segmenter("ja").segment("👍🏽"), s => s.segment.length).join(",")	4
+Array.from(new Intl.Segmenter("en").segment("1️⃣"), s => s.segment).join("|")	1️⃣
+Array.from(new Intl.Segmenter("en", { granularity: "grapheme" }).segment("1️⃣"), s => s.index).join(",")	0
+Array.from(new Intl.Segmenter("en").segment("1️⃣")).length	1
+Array.from(new Intl.Segmenter("ja").segment("1️⃣"), s => s.segment.length).join(",")	3
+Array.from(new Intl.Segmenter("en").segment("é́"), s => s.segment).join("|")	é́
+Array.from(new Intl.Segmenter("en", { granularity: "grapheme" }).segment("é́"), s => s.index).join(",")	0
+Array.from(new Intl.Segmenter("en").segment("é́")).length	1
+Array.from(new Intl.Segmenter("ja").segment("é́"), s => s.segment.length).join(",")	2
+Array.from(new Intl.Segmenter("en").segment("한국어"), s => s.segment).join("|")	한|국|어
+Array.from(new Intl.Segmenter("en", { granularity: "grapheme" }).segment("한국어"), s => s.index).join(",")	0,1,2
+Array.from(new Intl.Segmenter("en").segment("한국어")).length	3
+Array.from(new Intl.Segmenter("ja").segment("한국어"), s => s.segment.length).join(",")	1,1,1
+Array.from(new Intl.Segmenter("en").segment("ᄒ​ᅡᆫ"), s => s.segment).join("|")	ᄒ|​|ᅡᆫ
+Array.from(new Intl.Segmenter("en", { granularity: "grapheme" }).segment("ᄒ​ᅡᆫ"), s => s.index).join(",")	0,1,2
+Array.from(new Intl.Segmenter("en").segment("ᄒ​ᅡᆫ")).length	3
+Array.from(new Intl.Segmenter("ja").segment("ᄒ​ᅡᆫ"), s => s.segment.length).join(",")	1,1,2
+Array.from(new Intl.Segmenter("en").segment("a\r\nb"), s => s.segment).join("|")	"a|\r\n|b"
+Array.from(new Intl.Segmenter("en", { granularity: "grapheme" }).segment("a\r\nb"), s => s.index).join(",")	0,1,3
+Array.from(new Intl.Segmenter("en").segment("a\r\nb")).length	3
+Array.from(new Intl.Segmenter("ja").segment("a\r\nb"), s => s.segment.length).join(",")	1,2,1
+Array.from(new Intl.Segmenter("en").segment("क्षि"), s => s.segment).join("|")	क्षि
+Array.from(new Intl.Segmenter("en", { granularity: "grapheme" }).segment("क्षि"), s => s.index).join(",")	0
+Array.from(new Intl.Segmenter("en").segment("क्षि")).length	1
+Array.from(new Intl.Segmenter("ja").segment("क्षि"), s => s.segment.length).join(",")	4
+Array.from(new Intl.Segmenter("en").segment("สวัสดี"), s => s.segment).join("|")	ส|วั|ส|ดี
+Array.from(new Intl.Segmenter("en", { granularity: "grapheme" }).segment("สวัสดี"), s => s.index).join(",")	0,1,3,4
+Array.from(new Intl.Segmenter("en").segment("สวัสดี")).length	4
+Array.from(new Intl.Segmenter("ja").segment("สวัสดี"), s => s.segment.length).join(",")	1,2,1,2
+Array.from(new Intl.Segmenter("en").segment("🏴󠁧󠁢󠁥󠁮󠁧󠁿"), s => s.segment).join("|")	🏴󠁧󠁢󠁥󠁮󠁧󠁿
+Array.from(new Intl.Segmenter("en", { granularity: "grapheme" }).segment("🏴󠁧󠁢󠁥󠁮󠁧󠁿"), s => s.index).join(",")	0
+Array.from(new Intl.Segmenter("en").segment("🏴󠁧󠁢󠁥󠁮󠁧󠁿")).length	1
+Array.from(new Intl.Segmenter("ja").segment("🏴󠁧󠁢󠁥󠁮󠁧󠁿"), s => s.segment.length).join(",")	14
+Array.from(new Intl.Segmenter("en").segment("a👩🏽‍💻b"), s => s.segment).join("|")	a|👩🏽‍💻|b
+Array.from(new Intl.Segmenter("en", { granularity: "grapheme" }).segment("a👩🏽‍💻b"), s => s.index).join(",")	0,1,8
+Array.from(new Intl.Segmenter("en").segment("a👩🏽‍💻b")).length	3
+Array.from(new Intl.Segmenter("ja").segment("a👩🏽‍💻b"), s => s.segment.length).join(",")	1,7,1
+Array.from(new Intl.Segmenter("en").segment("नमस्ते"), s => s.segment).join("|")	न|म|स्ते
+Array.from(new Intl.Segmenter("en", { granularity: "grapheme" }).segment("नमस्ते"), s => s.index).join(",")	0,1,2
+Array.from(new Intl.Segmenter("en").segment("नमस्ते")).length	3
+Array.from(new Intl.Segmenter("ja").segment("नमस्ते"), s => s.segment.length).join(",")	1,1,4
+Array.from(new Intl.Segmenter("en").segment("́a"), s => s.segment).join("|")	́|a
+Array.from(new Intl.Segmenter("en", { granularity: "grapheme" }).segment("́a"), s => s.index).join(",")	0,1
+Array.from(new Intl.Segmenter("en").segment("́a")).length	2
+Array.from(new Intl.Segmenter("ja").segment("́a"), s => s.segment.length).join(",")	1,1
+Array.from(new Intl.Segmenter("en").segment(""), s => s.segment).join("|")	
+Array.from(new Intl.Segmenter("en", { granularity: "grapheme" }).segment(""), s => s.index).join(",")	
+Array.from(new Intl.Segmenter("en").segment("")).length	0
+Array.from(new Intl.Segmenter("ja").segment(""), s => s.segment.length).join(",")	
+Array.from(new Intl.Segmenter("en").segment("a b"), s => s.segment).join("|")	a| |b
+Array.from(new Intl.Segmenter("en", { granularity: "grapheme" }).segment("a b"), s => s.index).join(",")	0,1,2
+Array.from(new Intl.Segmenter("en").segment("a b")).length	3
+Array.from(new Intl.Segmenter("ja").segment("a b"), s => s.segment.length).join(",")	1,1,1
+Array.from(new Intl.Segmenter("en").segment("مرحبا"), s => s.segment).join("|")	م|ر|ح|ب|ا
+Array.from(new Intl.Segmenter("en", { granularity: "grapheme" }).segment("مرحبا"), s => s.index).join(",")	0,1,2,3,4
+Array.from(new Intl.Segmenter("en").segment("مرحبا")).length	5
+Array.from(new Intl.Segmenter("ja").segment("مرحبا"), s => s.segment.length).join(",")	1,1,1,1,1
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("Hello, world! It's 3.14 o'clock."), s => s.segment).join("|")	Hello|,| |world|!| |It's| |3.14| |o'clock|.
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("Hello, world! It's 3.14 o'clock."), s => s.isWordLike ? 1 : 0).join("")	100100101010
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("Hello, world! It's 3.14 o'clock."), s => s.segment).join("|")	Hello|,| |world|!| |It's| |3.14| |o'clock|.
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("Hello, world! It's 3.14 o'clock."), s => s.isWordLike ? 1 : 0).join("")	100100101010
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("Hello, world! It's 3.14 o'clock."), s => s.segment).join("|")	Hello|,| |world|!| |It's| |3.14| |o'clock|.
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("Hello, world! It's 3.14 o'clock."), s => s.isWordLike ? 1 : 0).join("")	100100101010
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("foo_bar baz-qux"), s => s.segment).join("|")	foo_bar| |baz|-|qux
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("foo_bar baz-qux"), s => s.isWordLike ? 1 : 0).join("")	10101
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("foo_bar baz-qux"), s => s.segment).join("|")	foo_bar| |baz|-|qux
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("foo_bar baz-qux"), s => s.isWordLike ? 1 : 0).join("")	10101
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("foo_bar baz-qux"), s => s.segment).join("|")	foo_bar| |baz|-|qux
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("foo_bar baz-qux"), s => s.isWordLike ? 1 : 0).join("")	10101
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("e-mail user@example.com"), s => s.segment).join("|")	e|-|mail| |user|@|example.com
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("e-mail user@example.com"), s => s.isWordLike ? 1 : 0).join("")	1010101
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("e-mail user@example.com"), s => s.segment).join("|")	e|-|mail| |user|@|example.com
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("e-mail user@example.com"), s => s.isWordLike ? 1 : 0).join("")	1010101
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("e-mail user@example.com"), s => s.segment).join("|")	e|-|mail| |user|@|example.com
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("e-mail user@example.com"), s => s.isWordLike ? 1 : 0).join("")	1010101
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("日本語のテキストです"), s => s.segment).join("|")	日本語|の|テキスト|です
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("日本語のテキストです"), s => s.isWordLike ? 1 : 0).join("")	1111
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("日本語のテキストです"), s => s.segment).join("|")	日本語|の|テキスト|です
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("日本語のテキストです"), s => s.isWordLike ? 1 : 0).join("")	1111
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("日本語のテキストです"), s => s.segment).join("|")	日本語|の|テキスト|です
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("日本語のテキストです"), s => s.isWordLike ? 1 : 0).join("")	1111
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("你好，世界！"), s => s.segment).join("|")	你好|，|世界|！
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("你好，世界！"), s => s.isWordLike ? 1 : 0).join("")	1010
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("你好，世界！"), s => s.segment).join("|")	你好|，|世界|！
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("你好，世界！"), s => s.isWordLike ? 1 : 0).join("")	1010
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("你好，世界！"), s => s.segment).join("|")	你好|，|世界|！
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("你好，世界！"), s => s.isWordLike ? 1 : 0).join("")	1010
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("สวัสดีครับ ผมชื่อ"), s => s.segment).join("|")	สวัสดี|ครับ| |ผม|ชื่อ
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("สวัสดีครับ ผมชื่อ"), s => s.isWordLike ? 1 : 0).join("")	11011
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("สวัสดีครับ ผมชื่อ"), s => s.segment).join("|")	สวัสดี|ครับ| |ผม|ชื่อ
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("สวัสดีครับ ผมชื่อ"), s => s.isWordLike ? 1 : 0).join("")	11011
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("สวัสดีครับ ผมชื่อ"), s => s.segment).join("|")	สวัสดี|ครับ| |ผม|ชื่อ
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("สวัสดีครับ ผมชื่อ"), s => s.isWordLike ? 1 : 0).join("")	11011
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("Привет, мир!"), s => s.segment).join("|")	Привет|,| |мир|!
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("Привет, мир!"), s => s.isWordLike ? 1 : 0).join("")	10010
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("Привет, мир!"), s => s.segment).join("|")	Привет|,| |мир|!
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("Привет, мир!"), s => s.isWordLike ? 1 : 0).join("")	10010
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("Привет, мир!"), s => s.segment).join("|")	Привет|,| |мир|!
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("Привет, мир!"), s => s.isWordLike ? 1 : 0).join("")	10010
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("안녕하세요 세계"), s => s.segment).join("|")	안녕하세요| |세계
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("안녕하세요 세계"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("안녕하세요 세계"), s => s.segment).join("|")	안녕하세요| |세계
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("안녕하세요 세계"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("안녕하세요 세계"), s => s.segment).join("|")	안녕하세요| |세계
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("안녕하세요 세계"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("مرحبا بالعالم"), s => s.segment).join("|")	مرحبا| |بالعالم
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("مرحبا بالعالم"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("مرحبا بالعالم"), s => s.segment).join("|")	مرحبا| |بالعالم
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("مرحبا بالعالم"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("مرحبا بالعالم"), s => s.segment).join("|")	مرحبا| |بالعالم
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("مرحبا بالعالم"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("שלום עולם"), s => s.segment).join("|")	שלום| |עולם
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("שלום עולם"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("שלום עולם"), s => s.segment).join("|")	שלום| |עולם
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("שלום עולם"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("שלום עולם"), s => s.segment).join("|")	שלום| |עולם
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("שלום עולם"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("नमस्ते दुनिया"), s => s.segment).join("|")	नमस्ते| |दुनिया
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("नमस्ते दुनिया"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("नमस्ते दुनिया"), s => s.segment).join("|")	नमस्ते| |दुनिया
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("नमस्ते दुनिया"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("नमस्ते दुनिया"), s => s.segment).join("|")	नमस्ते| |दुनिया
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("नमस्ते दुनिया"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("1,234.56 and 7:30"), s => s.segment).join("|")	1,234.56| |and| |7|:|30
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("1,234.56 and 7:30"), s => s.isWordLike ? 1 : 0).join("")	1010101
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("1,234.56 and 7:30"), s => s.segment).join("|")	1,234.56| |and| |7|:|30
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("1,234.56 and 7:30"), s => s.isWordLike ? 1 : 0).join("")	1010101
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("1,234.56 and 7:30"), s => s.segment).join("|")	1,234.56| |and| |7|:|30
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("1,234.56 and 7:30"), s => s.isWordLike ? 1 : 0).join("")	1010101
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("can't won’t"), s => s.segment).join("|")	can't| |won’t
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("can't won’t"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("can't won’t"), s => s.segment).join("|")	can't| |won’t
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("can't won’t"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("can't won’t"), s => s.segment).join("|")	can't| |won’t
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("can't won’t"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("a.b.c"), s => s.segment).join("|")	a.b.c
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("a.b.c"), s => s.isWordLike ? 1 : 0).join("")	1
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("a.b.c"), s => s.segment).join("|")	a.b.c
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("a.b.c"), s => s.isWordLike ? 1 : 0).join("")	1
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("a.b.c"), s => s.segment).join("|")	a.b.c
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("a.b.c"), s => s.isWordLike ? 1 : 0).join("")	1
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("🙂 smile 😀"), s => s.segment).join("|")	🙂| |smile| |😀
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("🙂 smile 😀"), s => s.isWordLike ? 1 : 0).join("")	00100
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("🙂 smile 😀"), s => s.segment).join("|")	🙂| |smile| |😀
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("🙂 smile 😀"), s => s.isWordLike ? 1 : 0).join("")	00100
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("🙂 smile 😀"), s => s.segment).join("|")	🙂| |smile| |😀
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("🙂 smile 😀"), s => s.isWordLike ? 1 : 0).join("")	00100
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("naïve café"), s => s.segment).join("|")	naïve| |café
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("naïve café"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("naïve café"), s => s.segment).join("|")	naïve| |café
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("naïve café"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("naïve café"), s => s.segment).join("|")	naïve| |café
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("naïve café"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("x y"), s => s.segment).join("|")	x| |y
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("x y"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("x y"), s => s.segment).join("|")	x| |y
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("x y"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("x y"), s => s.segment).join("|")	x| |y
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("x y"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("tab\tsep"), s => s.segment).join("|")	"tab|\t|sep"
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("tab\tsep"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("tab\tsep"), s => s.segment).join("|")	"tab|\t|sep"
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("tab\tsep"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("tab\tsep"), s => s.segment).join("|")	"tab|\t|sep"
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("tab\tsep"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("ひらがなカタカナ"), s => s.segment).join("|")	ひ|ら|が|な|カタカナ
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("ひらがなカタカナ"), s => s.isWordLike ? 1 : 0).join("")	11111
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("ひらがなカタカナ"), s => s.segment).join("|")	ひ|ら|が|な|カタカナ
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("ひらがなカタカナ"), s => s.isWordLike ? 1 : 0).join("")	11111
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("ひらがなカタカナ"), s => s.segment).join("|")	ひ|ら|が|な|カタカナ
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("ひらがなカタカナ"), s => s.isWordLike ? 1 : 0).join("")	11111
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("ＡＢＣ１２３"), s => s.segment).join("|")	ＡＢＣ１２３
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("ＡＢＣ１２３"), s => s.isWordLike ? 1 : 0).join("")	1
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("ＡＢＣ１２３"), s => s.segment).join("|")	ＡＢＣ１２３
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("ＡＢＣ１２３"), s => s.isWordLike ? 1 : 0).join("")	1
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("ＡＢＣ１２３"), s => s.segment).join("|")	ＡＢＣ１２３
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("ＡＢＣ１２３"), s => s.isWordLike ? 1 : 0).join("")	1
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("hello\nworld"), s => s.segment).join("|")	"hello|\n|world"
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("hello\nworld"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("hello\nworld"), s => s.segment).join("|")	"hello|\n|world"
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("hello\nworld"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("hello\nworld"), s => s.segment).join("|")	"hello|\n|world"
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("hello\nworld"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("  lead"), s => s.segment).join("|")	  |lead
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("  lead"), s => s.isWordLike ? 1 : 0).join("")	01
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("  lead"), s => s.segment).join("|")	  |lead
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("  lead"), s => s.isWordLike ? 1 : 0).join("")	01
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("  lead"), s => s.segment).join("|")	  |lead
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("  lead"), s => s.isWordLike ? 1 : 0).join("")	01
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("trail  "), s => s.segment).join("|")	trail|  
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("trail  "), s => s.isWordLike ? 1 : 0).join("")	10
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("trail  "), s => s.segment).join("|")	trail|  
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("trail  "), s => s.isWordLike ? 1 : 0).join("")	10
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("trail  "), s => s.segment).join("|")	trail|  
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("trail  "), s => s.isWordLike ? 1 : 0).join("")	10
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("snake_case_id"), s => s.segment).join("|")	snake_case_id
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("snake_case_id"), s => s.isWordLike ? 1 : 0).join("")	1
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("snake_case_id"), s => s.segment).join("|")	snake_case_id
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("snake_case_id"), s => s.isWordLike ? 1 : 0).join("")	1
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("snake_case_id"), s => s.segment).join("|")	snake_case_id
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("snake_case_id"), s => s.isWordLike ? 1 : 0).join("")	1
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("3rd 4th"), s => s.segment).join("|")	3rd| |4th
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("3rd 4th"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("3rd 4th"), s => s.segment).join("|")	3rd| |4th
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("3rd 4th"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("3rd 4th"), s => s.segment).join("|")	3rd| |4th
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("3rd 4th"), s => s.isWordLike ? 1 : 0).join("")	101
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("version 1.2.3-beta"), s => s.segment).join("|")	version| |1.2.3|-|beta
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("version 1.2.3-beta"), s => s.isWordLike ? 1 : 0).join("")	10101
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("version 1.2.3-beta"), s => s.segment).join("|")	version| |1.2.3|-|beta
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("version 1.2.3-beta"), s => s.isWordLike ? 1 : 0).join("")	10101
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("version 1.2.3-beta"), s => s.segment).join("|")	version| |1.2.3|-|beta
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("version 1.2.3-beta"), s => s.isWordLike ? 1 : 0).join("")	10101
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("O'Brien"), s => s.segment).join("|")	O'Brien
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("O'Brien"), s => s.isWordLike ? 1 : 0).join("")	1
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("O'Brien"), s => s.segment).join("|")	O'Brien
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("O'Brien"), s => s.isWordLike ? 1 : 0).join("")	1
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("O'Brien"), s => s.segment).join("|")	O'Brien
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("O'Brien"), s => s.isWordLike ? 1 : 0).join("")	1
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("ç‿d"), s => s.segment).join("|")	ç‿d
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("ç‿d"), s => s.isWordLike ? 1 : 0).join("")	1
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("ç‿d"), s => s.segment).join("|")	ç‿d
+Array.from(new Intl.Segmenter("ja", { granularity: "word" }).segment("ç‿d"), s => s.isWordLike ? 1 : 0).join("")	1
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("ç‿d"), s => s.segment).join("|")	ç‿d
+Array.from(new Intl.Segmenter("th", { granularity: "word" }).segment("ç‿d"), s => s.isWordLike ? 1 : 0).join("")	1
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("ab cd"), s => s.index).join(",")	0,2,3
+Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("ab cd"), s => s.input).join(",")	ab cd,ab cd,ab cd
+JSON.stringify(new Intl.Segmenter("en", { granularity: "word" }).segment("ab cd").containing(3))	{"segment":"cd","index":3,"input":"ab cd","isWordLike":true}
+JSON.stringify(new Intl.Segmenter("en", { granularity: "word" }).segment("ab cd").containing(2))	{"segment":" ","index":2,"input":"ab cd","isWordLike":false}
+JSON.stringify(new Intl.Segmenter("en", { granularity: "word" }).segment("ab cd").containing(99))	undefined
+JSON.stringify(new Intl.Segmenter("en", { granularity: "word" }).segment("ab cd").containing(-1))	undefined
+JSON.stringify(new Intl.Segmenter("en").segment("🇧🇷x").containing(1))	{"segment":"🇧🇷","index":0,"input":"🇧🇷x"}
+JSON.stringify(new Intl.Segmenter("en").segment("abc").containing())	{"segment":"a","index":0,"input":"abc"}
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("Hello world. How are you? I am fine!"), s => s.segment).join("|")	Hello world. |How are you? |I am fine!
+Array.from(new Intl.Segmenter("ja", { granularity: "sentence" }).segment("Hello world. How are you? I am fine!"), s => s.segment).join("|")	Hello world. |How are you? |I am fine!
+Array.from(new Intl.Segmenter("de", { granularity: "sentence" }).segment("Hello world. How are you? I am fine!"), s => s.segment).join("|")	Hello world. |How are you? |I am fine!
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("Hello world. How are you? I am fine!"), s => s.index).join(",")	0,13,26
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("Dr. Smith went home. He slept."), s => s.segment).join("|")	Dr. |Smith went home. |He slept.
+Array.from(new Intl.Segmenter("ja", { granularity: "sentence" }).segment("Dr. Smith went home. He slept."), s => s.segment).join("|")	Dr. |Smith went home. |He slept.
+Array.from(new Intl.Segmenter("de", { granularity: "sentence" }).segment("Dr. Smith went home. He slept."), s => s.segment).join("|")	Dr. |Smith went home. |He slept.
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("Dr. Smith went home. He slept."), s => s.index).join(",")	0,4,21
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("Mr. and Mrs. Jones arrived at 5 p.m. today."), s => s.segment).join("|")	Mr. and Mrs. |Jones arrived at 5 p.m. today.
+Array.from(new Intl.Segmenter("ja", { granularity: "sentence" }).segment("Mr. and Mrs. Jones arrived at 5 p.m. today."), s => s.segment).join("|")	Mr. and Mrs. |Jones arrived at 5 p.m. today.
+Array.from(new Intl.Segmenter("de", { granularity: "sentence" }).segment("Mr. and Mrs. Jones arrived at 5 p.m. today."), s => s.segment).join("|")	Mr. and Mrs. |Jones arrived at 5 p.m. today.
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("Mr. and Mrs. Jones arrived at 5 p.m. today."), s => s.index).join(",")	0,13
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("Wait... what? No!"), s => s.segment).join("|")	Wait... what? |No!
+Array.from(new Intl.Segmenter("ja", { granularity: "sentence" }).segment("Wait... what? No!"), s => s.segment).join("|")	Wait... what? |No!
+Array.from(new Intl.Segmenter("de", { granularity: "sentence" }).segment("Wait... what? No!"), s => s.segment).join("|")	Wait... what? |No!
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("Wait... what? No!"), s => s.index).join(",")	0,14
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("One.\nTwo.\n\nThree."), s => s.segment).join("|")	"One.\n|Two.\n|\n|Three."
+Array.from(new Intl.Segmenter("ja", { granularity: "sentence" }).segment("One.\nTwo.\n\nThree."), s => s.segment).join("|")	"One.\n|Two.\n|\n|Three."
+Array.from(new Intl.Segmenter("de", { granularity: "sentence" }).segment("One.\nTwo.\n\nThree."), s => s.segment).join("|")	"One.\n|Two.\n|\n|Three."
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("One.\nTwo.\n\nThree."), s => s.index).join(",")	0,5,10,11
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("He said \"Stop.\" Then left."), s => s.segment).join("|")	He said "Stop." |Then left.
+Array.from(new Intl.Segmenter("ja", { granularity: "sentence" }).segment("He said \"Stop.\" Then left."), s => s.segment).join("|")	He said "Stop." |Then left.
+Array.from(new Intl.Segmenter("de", { granularity: "sentence" }).segment("He said \"Stop.\" Then left."), s => s.segment).join("|")	He said "Stop." |Then left.
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("He said \"Stop.\" Then left."), s => s.index).join(",")	0,16
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("3.14 is pi. 2.71 is e."), s => s.segment).join("|")	3.14 is pi. |2.71 is e.
+Array.from(new Intl.Segmenter("ja", { granularity: "sentence" }).segment("3.14 is pi. 2.71 is e."), s => s.segment).join("|")	3.14 is pi. |2.71 is e.
+Array.from(new Intl.Segmenter("de", { granularity: "sentence" }).segment("3.14 is pi. 2.71 is e."), s => s.segment).join("|")	3.14 is pi. |2.71 is e.
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("3.14 is pi. 2.71 is e."), s => s.index).join(",")	0,12
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("日本語です。これは文です。"), s => s.segment).join("|")	日本語です。|これは文です。
+Array.from(new Intl.Segmenter("ja", { granularity: "sentence" }).segment("日本語です。これは文です。"), s => s.segment).join("|")	日本語です。|これは文です。
+Array.from(new Intl.Segmenter("de", { granularity: "sentence" }).segment("日本語です。これは文です。"), s => s.segment).join("|")	日本語です。|これは文です。
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("日本語です。これは文です。"), s => s.index).join(",")	0,6
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("你好。世界！再见？"), s => s.segment).join("|")	你好。|世界！|再见？
+Array.from(new Intl.Segmenter("ja", { granularity: "sentence" }).segment("你好。世界！再见？"), s => s.segment).join("|")	你好。|世界！|再见？
+Array.from(new Intl.Segmenter("de", { granularity: "sentence" }).segment("你好。世界！再见？"), s => s.segment).join("|")	你好。|世界！|再见？
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("你好。世界！再见？"), s => s.index).join(",")	0,3,6
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("Привет. Как дела? Хорошо!"), s => s.segment).join("|")	Привет. |Как дела? |Хорошо!
+Array.from(new Intl.Segmenter("ja", { granularity: "sentence" }).segment("Привет. Как дела? Хорошо!"), s => s.segment).join("|")	Привет. |Как дела? |Хорошо!
+Array.from(new Intl.Segmenter("de", { granularity: "sentence" }).segment("Привет. Как дела? Хорошо!"), s => s.segment).join("|")	Привет. |Как дела? |Хорошо!
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("Привет. Как дела? Хорошо!"), s => s.index).join(",")	0,8,18
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("a.b.c. Next one."), s => s.segment).join("|")	a.b.c. |Next one.
+Array.from(new Intl.Segmenter("ja", { granularity: "sentence" }).segment("a.b.c. Next one."), s => s.segment).join("|")	a.b.c. |Next one.
+Array.from(new Intl.Segmenter("de", { granularity: "sentence" }).segment("a.b.c. Next one."), s => s.segment).join("|")	a.b.c. |Next one.
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("a.b.c. Next one."), s => s.index).join(",")	0,7
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("Is it U.S.A. or USA? Both."), s => s.segment).join("|")	Is it U.S.A. or USA? |Both.
+Array.from(new Intl.Segmenter("ja", { granularity: "sentence" }).segment("Is it U.S.A. or USA? Both."), s => s.segment).join("|")	Is it U.S.A. or USA? |Both.
+Array.from(new Intl.Segmenter("de", { granularity: "sentence" }).segment("Is it U.S.A. or USA? Both."), s => s.segment).join("|")	Is it U.S.A. or USA? |Both.
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("Is it U.S.A. or USA? Both."), s => s.index).join(",")	0,21
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("no terminator"), s => s.segment).join("|")	no terminator
+Array.from(new Intl.Segmenter("ja", { granularity: "sentence" }).segment("no terminator"), s => s.segment).join("|")	no terminator
+Array.from(new Intl.Segmenter("de", { granularity: "sentence" }).segment("no terminator"), s => s.segment).join("|")	no terminator
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("no terminator"), s => s.index).join(",")	0
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment(""), s => s.segment).join("|")	
+Array.from(new Intl.Segmenter("ja", { granularity: "sentence" }).segment(""), s => s.segment).join("|")	
+Array.from(new Intl.Segmenter("de", { granularity: "sentence" }).segment(""), s => s.segment).join("|")	
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment(""), s => s.index).join(",")	
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("..."), s => s.segment).join("|")	...
+Array.from(new Intl.Segmenter("ja", { granularity: "sentence" }).segment("..."), s => s.segment).join("|")	...
+Array.from(new Intl.Segmenter("de", { granularity: "sentence" }).segment("..."), s => s.segment).join("|")	...
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("..."), s => s.index).join(",")	0
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("Hi!!! Really?! Yes."), s => s.segment).join("|")	Hi!!! |Really?! |Yes.
+Array.from(new Intl.Segmenter("ja", { granularity: "sentence" }).segment("Hi!!! Really?! Yes."), s => s.segment).join("|")	Hi!!! |Really?! |Yes.
+Array.from(new Intl.Segmenter("de", { granularity: "sentence" }).segment("Hi!!! Really?! Yes."), s => s.segment).join("|")	Hi!!! |Really?! |Yes.
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("Hi!!! Really?! Yes."), s => s.index).join(",")	0,6,15
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("Line one Line two Line three"), s => s.segment).join("|")	"Line one |Line two |Line three"
+Array.from(new Intl.Segmenter("ja", { granularity: "sentence" }).segment("Line one Line two Line three"), s => s.segment).join("|")	"Line one |Line two |Line three"
+Array.from(new Intl.Segmenter("de", { granularity: "sentence" }).segment("Line one Line two Line three"), s => s.segment).join("|")	"Line one |Line two |Line three"
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("Line one Line two Line three"), s => s.index).join(",")	0,9,18
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("e.g. this one. And that."), s => s.segment).join("|")	e.g. this one. |And that.
+Array.from(new Intl.Segmenter("ja", { granularity: "sentence" }).segment("e.g. this one. And that."), s => s.segment).join("|")	e.g. this one. |And that.
+Array.from(new Intl.Segmenter("de", { granularity: "sentence" }).segment("e.g. this one. And that."), s => s.segment).join("|")	e.g. this one. |And that.
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("e.g. this one. And that."), s => s.index).join(",")	0,15
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("ΠΡΟΣΟΧΉ; Επόμενη πρόταση."), s => s.segment).join("|")	ΠΡΟΣΟΧΉ; Επόμενη πρόταση.
+Array.from(new Intl.Segmenter("ja", { granularity: "sentence" }).segment("ΠΡΟΣΟΧΉ; Επόμενη πρόταση."), s => s.segment).join("|")	ΠΡΟΣΟΧΉ; Επόμενη πρόταση.
+Array.from(new Intl.Segmenter("de", { granularity: "sentence" }).segment("ΠΡΟΣΟΧΉ; Επόμενη πρόταση."), s => s.segment).join("|")	ΠΡΟΣΟΧΉ; Επόμενη πρόταση.
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("ΠΡΟΣΟΧΉ; Επόμενη πρόταση."), s => s.index).join(",")	0
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("सुनो। आगे चलो।"), s => s.segment).join("|")	सुनो। |आगे चलो।
+Array.from(new Intl.Segmenter("ja", { granularity: "sentence" }).segment("सुनो। आगे चलो।"), s => s.segment).join("|")	सुनो। |आगे चलो।
+Array.from(new Intl.Segmenter("de", { granularity: "sentence" }).segment("सुनो। आगे चलो।"), s => s.segment).join("|")	सुनो। |आगे चलो।
+Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("सुनो। आगे चलो।"), s => s.index).join(",")	0,6
+JSON.stringify(new Intl.Segmenter("en", {}).resolvedOptions())	{"locale":"en","granularity":"grapheme"}
+JSON.stringify(new Intl.Segmenter("ja-JP", {}).resolvedOptions())	{"locale":"ja-JP","granularity":"grapheme"}
+JSON.stringify(new Intl.Segmenter("th", {}).resolvedOptions())	{"locale":"th","granularity":"grapheme"}
+JSON.stringify(new Intl.Segmenter("zz", {}).resolvedOptions())	{"locale":"en-US","granularity":"grapheme"}
+JSON.stringify(new Intl.Segmenter("en", { granularity: "word" }).resolvedOptions())	{"locale":"en","granularity":"word"}
+JSON.stringify(new Intl.Segmenter("ja-JP", { granularity: "word" }).resolvedOptions())	{"locale":"ja-JP","granularity":"word"}
+JSON.stringify(new Intl.Segmenter("th", { granularity: "word" }).resolvedOptions())	{"locale":"th","granularity":"word"}
+JSON.stringify(new Intl.Segmenter("zz", { granularity: "word" }).resolvedOptions())	{"locale":"en-US","granularity":"word"}
+JSON.stringify(new Intl.Segmenter("en", { granularity: "sentence" }).resolvedOptions())	{"locale":"en","granularity":"sentence"}
+JSON.stringify(new Intl.Segmenter("ja-JP", { granularity: "sentence" }).resolvedOptions())	{"locale":"ja-JP","granularity":"sentence"}
+JSON.stringify(new Intl.Segmenter("th", { granularity: "sentence" }).resolvedOptions())	{"locale":"th","granularity":"sentence"}
+JSON.stringify(new Intl.Segmenter("zz", { granularity: "sentence" }).resolvedOptions())	{"locale":"en-US","granularity":"sentence"}
+JSON.stringify(new Intl.Segmenter("en", { granularity: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Segmenter("ja-JP", { granularity: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Segmenter("th", { granularity: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Segmenter("zz", { granularity: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Segmenter("en", { localeMatcher: "lookup" }).resolvedOptions())	{"locale":"en","granularity":"grapheme"}
+JSON.stringify(new Intl.Segmenter("ja-JP", { localeMatcher: "lookup" }).resolvedOptions())	{"locale":"ja-JP","granularity":"grapheme"}
+JSON.stringify(new Intl.Segmenter("th", { localeMatcher: "lookup" }).resolvedOptions())	{"locale":"th","granularity":"grapheme"}
+JSON.stringify(new Intl.Segmenter("zz", { localeMatcher: "lookup" }).resolvedOptions())	{"locale":"en-US","granularity":"grapheme"}
+JSON.stringify(new Intl.Segmenter("en", { localeMatcher: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Segmenter("ja-JP", { localeMatcher: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Segmenter("th", { localeMatcher: "bogus" }).resolvedOptions())	throw
+JSON.stringify(new Intl.Segmenter("zz", { localeMatcher: "bogus" }).resolvedOptions())	throw
+Object.prototype.toString.call(new Intl.Segmenter())	[object Intl.Segmenter]
+Object.prototype.toString.call(new Intl.Segmenter().segment("a"))	[object Object]
+Object.prototype.toString.call(new Intl.Segmenter().segment("a")[Symbol.iterator]())	[object Segment String Iterator]
+JSON.stringify(Intl.Segmenter.supportedLocalesOf(["en", "ja", "xx", "th-TH"]))	["en","ja","th-TH"]
+typeof new Intl.Segmenter().segment("x")[Symbol.iterator]	function
+Intl.Segmenter("en")	throw
+new Intl.Segmenter("en").segment(Symbol())	throw
+Array.from(new Intl.Segmenter("en").segment(12345), s => s.segment).join("|")	1|2|3|4|5
+Array.from(new Intl.Segmenter("en").segment(undefined), s => s.segment).join("|")	u|n|d|e|f|i|n|e|d
+JSON.stringify(Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("hi there"))[0])	{"segment":"hi","index":0,"input":"hi there","isWordLike":true}
+JSON.stringify(Array.from(new Intl.Segmenter("en", { granularity: "sentence" }).segment("hi there"))[0])	{"segment":"hi there","index":0,"input":"hi there"}
+Object.keys(Array.from(new Intl.Segmenter("en", { granularity: "word" }).segment("hi"))[0]).join()	segment,index,input,isWordLike
+Object.keys(Array.from(new Intl.Segmenter("en").segment("hi"))[0]).join()	segment,index,input
+Intl.getCanonicalLocales("EN-us").join(",")	en-US
+Intl.getCanonicalLocales("en_US").join(",")	throw
+Intl.getCanonicalLocales("en-us-u-ca-gregory").join(",")	en-US-u-ca-gregory
+Intl.getCanonicalLocales("en-u-ca-gregory-nu-latn").join(",")	en-u-ca-gregory-nu-latn
+Intl.getCanonicalLocales("en-u-nu-latn-ca-gregory").join(",")	en-u-ca-gregory-nu-latn
+Intl.getCanonicalLocales("iw").join(",")	he
+Intl.getCanonicalLocales("in").join(",")	id
+Intl.getCanonicalLocales("ji").join(",")	yi
+Intl.getCanonicalLocales("jw").join(",")	jv
+Intl.getCanonicalLocales("mo").join(",")	ro
+Intl.getCanonicalLocales("sh").join(",")	sh
+Intl.getCanonicalLocales("tl").join(",")	tl
+Intl.getCanonicalLocales("no-bok").join(",")	throw
+Intl.getCanonicalLocales("zh-cmn-Hans-CN").join(",")	throw
+Intl.getCanonicalLocales("sgn-BR").join(",")	bzs
+Intl.getCanonicalLocales("i-klingon").join(",")	throw
+Intl.getCanonicalLocales("art-lojban").join(",")	jbo
+Intl.getCanonicalLocales("en-GB-oed").join(",")	throw
+Intl.getCanonicalLocales("de-DE-1996").join(",")	de-DE-1996
+Intl.getCanonicalLocales("de-1996-DE").join(",")	throw
+Intl.getCanonicalLocales("ca-ES-valencia").join(",")	ca-ES-valencia
+Intl.getCanonicalLocales("sl-rozaj-biske").join(",")	sl-biske-rozaj
+Intl.getCanonicalLocales("en-a-bbb-x-a-ccc").join(",")	en-a-bbb-x-a-ccc
+Intl.getCanonicalLocales("en-x-private").join(",")	en-x-private
+Intl.getCanonicalLocales("x-whatever").join(",")	throw
+Intl.getCanonicalLocales("und").join(",")	und
+Intl.getCanonicalLocales("und-Latn").join(",")	und-Latn
+Intl.getCanonicalLocales("zh-hans").join(",")	zh-Hans
+Intl.getCanonicalLocales("zh-TW").join(",")	zh-TW
+Intl.getCanonicalLocales("zh-Hant-HK").join(",")	zh-Hant-HK
+Intl.getCanonicalLocales("sr-latn-rs").join(",")	sr-Latn-RS
+Intl.getCanonicalLocales("en-t-hi-latn").join(",")	en-t-hi-latn
+Intl.getCanonicalLocales("en-t-m0-ungegn-2007").join(",")	en-t-m0-ungegn-2007
+Intl.getCanonicalLocales("ja-JP-u-ca-japanese").join(",")	ja-JP-u-ca-japanese
+Intl.getCanonicalLocales("th-TH-u-ca-buddhist-nu-thai").join(",")	th-TH-u-ca-buddhist-nu-thai
+Intl.getCanonicalLocales("ar-u-nu-arab").join(",")	ar-u-nu-arab
+Intl.getCanonicalLocales("en-u-hc-h23").join(",")	en-u-hc-h23
+Intl.getCanonicalLocales("en-u-ks-level1").join(",")	en-u-ks-level1
+Intl.getCanonicalLocales("en-u-co-phonebk").join(",")	en-u-co-phonebk
+Intl.getCanonicalLocales("en-US-u-va-posix").join(",")	en-US-u-va-posix
+Intl.getCanonicalLocales("en-u-ca-islamicc").join(",")	en-u-ca-islamic-civil
+Intl.getCanonicalLocales("en-u-ca-ethiopic-amete-alem").join(",")	en-u-ca-ethioaa
+Intl.getCanonicalLocales("en-u-tz-usnyc").join(",")	en-u-tz-usnyc
+Intl.getCanonicalLocales("en-u-kn-true").join(",")	en-u-kn
+Intl.getCanonicalLocales("en-u-kn").join(",")	en-u-kn
+Intl.getCanonicalLocales("en-u-kf-upper").join(",")	en-u-kf-upper
+Intl.getCanonicalLocales("pt-BR").join(",")	pt-BR
+Intl.getCanonicalLocales("pt-br").join(",")	pt-BR
+Intl.getCanonicalLocales("ES-419").join(",")	es-419
+Intl.getCanonicalLocales("es-419").join(",")	es-419
+Intl.getCanonicalLocales("en-001").join(",")	en-001
+Intl.getCanonicalLocales("fr-CA").join(",")	fr-CA
+Intl.getCanonicalLocales("FR-ca").join(",")	fr-CA
+Intl.getCanonicalLocales("en-").join(",")	throw
+Intl.getCanonicalLocales("en--US").join(",")	throw
+Intl.getCanonicalLocales("-en").join(",")	throw
+Intl.getCanonicalLocales("e").join(",")	throw
+Intl.getCanonicalLocales("toolongtag-x").join(",")	throw
+Intl.getCanonicalLocales("en-us-").join(",")	throw
+Intl.getCanonicalLocales("123").join(",")	throw
+Intl.getCanonicalLocales("en-Latn-Latn").join(",")	throw
+Intl.getCanonicalLocales("en-US-US").join(",")	throw
+Intl.getCanonicalLocales("en-u").join(",")	throw
+Intl.getCanonicalLocales("en-u-").join(",")	throw
+Intl.getCanonicalLocales("en-u-a").join(",")	throw
+Intl.getCanonicalLocales("en-a").join(",")	throw
+Intl.getCanonicalLocales("").join(",")	throw
+Intl.getCanonicalLocales("en-u-ca-gregory-u-nu-latn").join(",")	throw
+Intl.getCanonicalLocales("en-a-bb-a-cc").join(",")	throw
+Intl.getCanonicalLocales("en-x-").join(",")	throw
+Intl.getCanonicalLocales("root").join(",")	throw
+Intl.getCanonicalLocales("EN").join(",")	en
+Intl.getCanonicalLocales("eN-uS").join(",")	en-US
+Intl.getCanonicalLocales("en-U-CA-GREGORY").join(",")	en-u-ca-gregory
+Intl.getCanonicalLocales("ZH-HANS-cn").join(",")	zh-Hans-CN
+Intl.getCanonicalLocales("de-u-co-phonebk-kn").join(",")	de-u-co-phonebk-kn
+Intl.getCanonicalLocales("iw-IL").join(",")	he-IL
+Intl.getCanonicalLocales("he-IL").join(",")	he-IL
+Intl.getCanonicalLocales("no-NO-nynorsk").join(",")	no-NO-nynorsk
+Intl.getCanonicalLocales("nn").join(",")	nn
+Intl.getCanonicalLocales("cmn").join(",")	cmn
+Intl.getCanonicalLocales("zh-yue").join(",")	throw
+Intl.getCanonicalLocales("yue-HK").join(",")	yue-HK
+Intl.getCanonicalLocales("pa-Arab-PK").join(",")	pa-Arab-PK
+Intl.getCanonicalLocales("uz-Cyrl").join(",")	uz-Cyrl
+Intl.getCanonicalLocales("az-Latn-AZ").join(",")	az-Latn-AZ
+Intl.getCanonicalLocales(["en-US", "EN-us", "pt-br", "en"]).join(",")	en-US,pt-BR,en
+Intl.getCanonicalLocales(["b", "a", "b"]).join(",")	throw
+Intl.getCanonicalLocales().length	0
+Intl.getCanonicalLocales(undefined).length	0
+Intl.getCanonicalLocales(null).length	throw
+Intl.getCanonicalLocales([]).length	0
+Intl.getCanonicalLocales([1]).length	throw
+Intl.getCanonicalLocales([undefined]).length	throw
+Intl.getCanonicalLocales(new Intl.Locale("en-us")).join(",")	en-US
+Intl.getCanonicalLocales({ length: 2, 0: "en", 1: "pt-br" }).join(",")	en,pt-BR
+Intl.getCanonicalLocales(42).length	0
+Intl.supportedValuesOf("calendar").length > 5	true
+Intl.supportedValuesOf("calendar").slice(0, 8).join(",")	buddhist,chinese,coptic,dangi,ethioaa,ethiopic,gregory,hebrew
+Intl.supportedValuesOf("calendar").slice(-5).join(",")	islamic-umalqura,iso8601,japanese,persian,roc
+(function () { const v = Intl.supportedValuesOf("calendar"); return v.every((x, i) => i === 0 || v[i - 1] < x) })()	true
+Intl.supportedValuesOf("collation").length > 5	true
+Intl.supportedValuesOf("collation").slice(0, 8).join(",")	compat,dict,emoji,eor,phonebk,phonetic,pinyin,searchjl
+Intl.supportedValuesOf("collation").slice(-5).join(",")	searchjl,stroke,trad,unihan,zhuyin
+(function () { const v = Intl.supportedValuesOf("collation"); return v.every((x, i) => i === 0 || v[i - 1] < x) })()	true
+Intl.supportedValuesOf("currency").length > 5	true
+Intl.supportedValuesOf("currency").slice(0, 8).join(",")	ADP,AED,AFA,AFN,ALK,ALL,AMD,ANG
+Intl.supportedValuesOf("currency").slice(-5).join(",")	ZRZ,ZWD,ZWG,ZWL,ZWR
+(function () { const v = Intl.supportedValuesOf("currency"); return v.every((x, i) => i === 0 || v[i - 1] < x) })()	true
+Intl.supportedValuesOf("numberingSystem").length > 5	true
+Intl.supportedValuesOf("numberingSystem").slice(0, 8).join(",")	adlm,ahom,arab,arabext,bali,beng,bhks,brah
+Intl.supportedValuesOf("numberingSystem").slice(-5).join(",")	tnsa,tols,vaii,wara,wcho
+(function () { const v = Intl.supportedValuesOf("numberingSystem"); return v.every((x, i) => i === 0 || v[i - 1] < x) })()	true
+Intl.supportedValuesOf("timeZone").length > 5	true
+Intl.supportedValuesOf("timeZone").slice(0, 8).join(",")	Africa/Abidjan,Africa/Accra,Africa/Addis_Ababa,Africa/Algiers,Africa/Asmara,Africa/Bamako,Africa/Bangui,Africa/Banjul
+Intl.supportedValuesOf("timeZone").slice(-5).join(",")	Pacific/Tarawa,Pacific/Tongatapu,Pacific/Wake,Pacific/Wallis,UTC
+(function () { const v = Intl.supportedValuesOf("timeZone"); return v.every((x, i) => i === 0 || v[i - 1] < x) })()	true
+Intl.supportedValuesOf("unit").length > 5	true
+Intl.supportedValuesOf("unit").slice(0, 8).join(",")	acre,bit,byte,celsius,centimeter,day,degree,fahrenheit
+Intl.supportedValuesOf("unit").slice(-5).join(",")	terabit,terabyte,week,yard,year
+(function () { const v = Intl.supportedValuesOf("unit"); return v.every((x, i) => i === 0 || v[i - 1] < x) })()	true
+Intl.supportedValuesOf(1)	throw
+Intl.supportedValuesOf("calendar").includes("gregory")	true
+Intl.supportedValuesOf("calendar").includes("islamicc")	false
+Intl.supportedValuesOf("collation").includes("standard")	false
+Intl.supportedValuesOf("collation").includes("search")	false
+Intl.supportedValuesOf("numberingSystem").includes("latn")	true
+new Intl.Locale("en").maximize().minimize().toString()	en
+new Intl.Locale("en").minimize().maximize().toString()	en-Latn-US
+new Intl.Locale("pt").maximize().minimize().toString()	pt
+new Intl.Locale("pt").minimize().maximize().toString()	pt-Latn-BR
+new Intl.Locale("zh").maximize().minimize().toString()	zh
+new Intl.Locale("zh").minimize().maximize().toString()	zh-Hans-CN
+new Intl.Locale("zh-TW").maximize().minimize().toString()	zh-TW
+new Intl.Locale("zh-TW").minimize().maximize().toString()	zh-Hant-TW
+new Intl.Locale("zh-Hant").maximize().minimize().toString()	zh-TW
+new Intl.Locale("zh-Hant").minimize().maximize().toString()	zh-Hant-TW
+new Intl.Locale("zh-HK").maximize().minimize().toString()	zh-HK
+new Intl.Locale("zh-HK").minimize().maximize().toString()	zh-Hant-HK
+new Intl.Locale("sr").maximize().minimize().toString()	sr
+new Intl.Locale("sr").minimize().maximize().toString()	sr-Cyrl-RS
+new Intl.Locale("sr-ME").maximize().minimize().toString()	sr-ME
+new Intl.Locale("sr-ME").minimize().maximize().toString()	sr-Latn-ME
+new Intl.Locale("ja").maximize().minimize().toString()	ja
+new Intl.Locale("ja").minimize().maximize().toString()	ja-Jpan-JP
+new Intl.Locale("ko").maximize().minimize().toString()	ko
+new Intl.Locale("ko").minimize().maximize().toString()	ko-Kore-KR
+new Intl.Locale("ar").maximize().minimize().toString()	ar
+new Intl.Locale("ar").minimize().maximize().toString()	ar-Arab-EG
+new Intl.Locale("he").maximize().minimize().toString()	he
+new Intl.Locale("he").minimize().maximize().toString()	he-Hebr-IL
+new Intl.Locale("ru").maximize().minimize().toString()	ru
+new Intl.Locale("ru").minimize().maximize().toString()	ru-Cyrl-RU
+new Intl.Locale("uk").minimize().toString()	uk
+new Intl.Locale("uk").maximize().minimize().toString()	uk
+new Intl.Locale("uk").minimize().maximize().toString()	uk-Cyrl-UA
+new Intl.Locale("hi").maximize().minimize().toString()	hi
+new Intl.Locale("hi").minimize().maximize().toString()	hi-Deva-IN
+new Intl.Locale("bn").minimize().toString()	bn
+new Intl.Locale("bn").maximize().minimize().toString()	bn
+new Intl.Locale("bn").minimize().maximize().toString()	bn-Beng-BD
+new Intl.Locale("th").maximize().minimize().toString()	th
+new Intl.Locale("th").minimize().maximize().toString()	th-Thai-TH
+new Intl.Locale("vi").minimize().toString()	vi
+new Intl.Locale("vi").maximize().minimize().toString()	vi
+new Intl.Locale("vi").minimize().maximize().toString()	vi-Latn-VN
+new Intl.Locale("tr").maximize().minimize().toString()	tr
+new Intl.Locale("tr").minimize().maximize().toString()	tr-Latn-TR
+new Intl.Locale("de").maximize().minimize().toString()	de
+new Intl.Locale("de").minimize().maximize().toString()	de-Latn-DE
+new Intl.Locale("fr").maximize().minimize().toString()	fr
+new Intl.Locale("fr").minimize().maximize().toString()	fr-Latn-FR
+new Intl.Locale("es").maximize().minimize().toString()	es
+new Intl.Locale("es").minimize().maximize().toString()	es-Latn-ES
+new Intl.Locale("it").maximize().minimize().toString()	it
+new Intl.Locale("it").minimize().maximize().toString()	it-Latn-IT
+new Intl.Locale("nl").maximize().minimize().toString()	nl
+new Intl.Locale("nl").minimize().maximize().toString()	nl-Latn-NL
+new Intl.Locale("sv").maximize().minimize().toString()	sv
+new Intl.Locale("sv").minimize().maximize().toString()	sv-Latn-SE
+new Intl.Locale("pl").maximize().minimize().toString()	pl
+new Intl.Locale("pl").minimize().maximize().toString()	pl-Latn-PL
+new Intl.Locale("cs").minimize().toString()	cs
+new Intl.Locale("cs").maximize().minimize().toString()	cs
+new Intl.Locale("cs").minimize().maximize().toString()	cs-Latn-CZ
+new Intl.Locale("el").minimize().toString()	el
+new Intl.Locale("el").maximize().minimize().toString()	el
+new Intl.Locale("el").minimize().maximize().toString()	el-Grek-GR
+new Intl.Locale("fa").maximize().minimize().toString()	fa
+new Intl.Locale("fa").minimize().maximize().toString()	fa-Arab-IR
+new Intl.Locale("ur").minimize().toString()	ur
+new Intl.Locale("ur").maximize().minimize().toString()	ur
+new Intl.Locale("ur").minimize().maximize().toString()	ur-Arab-PK
+new Intl.Locale("id").maximize().minimize().toString()	id
+new Intl.Locale("id").minimize().maximize().toString()	id-Latn-ID
+new Intl.Locale("ms").minimize().toString()	ms
+new Intl.Locale("ms").maximize().minimize().toString()	ms
+new Intl.Locale("ms").minimize().maximize().toString()	ms-Latn-MY
+new Intl.Locale("fil").maximize().minimize().toString()	fil
+new Intl.Locale("fil").minimize().maximize().toString()	fil-Latn-PH
+new Intl.Locale("sw").minimize().toString()	sw
+new Intl.Locale("sw").maximize().minimize().toString()	sw
+new Intl.Locale("sw").minimize().maximize().toString()	sw-Latn-TZ
+new Intl.Locale("am").minimize().toString()	am
+new Intl.Locale("am").maximize().minimize().toString()	am
+new Intl.Locale("am").minimize().maximize().toString()	am-Ethi-ET
+new Intl.Locale("ha").minimize().toString()	ha
+new Intl.Locale("ha").maximize().minimize().toString()	ha
+new Intl.Locale("ha").minimize().maximize().toString()	ha-Latn-NG
+new Intl.Locale("yo").minimize().toString()	yo
+new Intl.Locale("yo").maximize().minimize().toString()	yo
+new Intl.Locale("yo").minimize().maximize().toString()	yo-Latn-NG
+new Intl.Locale("zu").minimize().toString()	zu
+new Intl.Locale("zu").maximize().minimize().toString()	zu
+new Intl.Locale("zu").minimize().maximize().toString()	zu-Latn-ZA
+new Intl.Locale("az").minimize().toString()	az
+new Intl.Locale("az").maximize().minimize().toString()	az
+new Intl.Locale("az").minimize().maximize().toString()	az-Latn-AZ
+new Intl.Locale("uz").minimize().toString()	uz
+new Intl.Locale("uz").maximize().minimize().toString()	uz
+new Intl.Locale("uz").minimize().maximize().toString()	uz-Latn-UZ
+new Intl.Locale("kk").minimize().toString()	kk
+new Intl.Locale("kk").maximize().minimize().toString()	kk
+new Intl.Locale("kk").minimize().maximize().toString()	kk-Cyrl-KZ
+new Intl.Locale("mn").minimize().toString()	mn
+new Intl.Locale("mn").maximize().minimize().toString()	mn
+new Intl.Locale("mn").minimize().maximize().toString()	mn-Cyrl-MN
+new Intl.Locale("ne").minimize().toString()	ne
+new Intl.Locale("ne").maximize().minimize().toString()	ne
+new Intl.Locale("ne").minimize().maximize().toString()	ne-Deva-NP
+new Intl.Locale("si").minimize().toString()	si
+new Intl.Locale("si").maximize().minimize().toString()	si
+new Intl.Locale("si").minimize().maximize().toString()	si-Sinh-LK
+new Intl.Locale("my").minimize().toString()	my
+new Intl.Locale("my").maximize().minimize().toString()	my
+new Intl.Locale("my").minimize().maximize().toString()	my-Mymr-MM
+new Intl.Locale("km").minimize().toString()	km
+new Intl.Locale("km").maximize().minimize().toString()	km
+new Intl.Locale("km").minimize().maximize().toString()	km-Khmr-KH
+new Intl.Locale("und").maximize().minimize().toString()	en
+new Intl.Locale("und").minimize().maximize().toString()	en-Latn-US
+new Intl.Locale("und-BR").maximize().minimize().toString()	pt
+new Intl.Locale("und-BR").minimize().maximize().toString()	pt-Latn-BR
+new Intl.Locale("und-Cyrl").maximize().minimize().toString()	ru
+new Intl.Locale("und-Cyrl").minimize().maximize().toString()	ru-Cyrl-RU
+new Intl.Locale("und-419").maximize().minimize().toString()	es-419
+new Intl.Locale("und-419").minimize().maximize().toString()	es-Latn-419
+new Intl.Locale("en-AU").maximize().minimize().toString()	en-AU
+new Intl.Locale("en-AU").minimize().maximize().toString()	en-Latn-AU
+new Intl.Locale("en-001").maximize().toString()	en-Latn-001
+new Intl.Locale("en-001").minimize().toString()	en-001
+new Intl.Locale("en-001").maximize().minimize().toString()	en-001
+new Intl.Locale("en-001").minimize().maximize().toString()	en-Latn-001
+new Intl.Locale("pt-PT").maximize().minimize().toString()	pt-PT
+new Intl.Locale("pt-PT").minimize().maximize().toString()	pt-Latn-PT
+new Intl.Locale("es-MX").maximize().minimize().toString()	es-MX
+new Intl.Locale("es-MX").minimize().maximize().toString()	es-Latn-MX
+new Intl.Locale("fr-CH").maximize().minimize().toString()	fr-CH
+new Intl.Locale("fr-CH").minimize().maximize().toString()	fr-Latn-CH
+new Intl.Locale("de-AT").maximize().minimize().toString()	de-AT
+new Intl.Locale("de-AT").minimize().maximize().toString()	de-Latn-AT
+new Intl.Locale("en-Latn-US").minimize().maximize().toString()	en-Latn-US
+new Intl.Locale("zh-Hans-CN").minimize().maximize().toString()	zh-Hans-CN
+new Intl.Locale("sr-Latn").maximize().minimize().toString()	sr-Latn
+new Intl.Locale("sr-Latn").minimize().maximize().toString()	sr-Latn-RS
+new Intl.Locale("pa").minimize().toString()	pa
+new Intl.Locale("pa").maximize().minimize().toString()	pa
+new Intl.Locale("pa").minimize().maximize().toString()	pa-Guru-IN
+new Intl.Locale("pa-PK").minimize().toString()	pa-PK
+new Intl.Locale("pa-PK").maximize().minimize().toString()	pa-PK
+new Intl.Locale("pa-PK").minimize().maximize().toString()	pa-Arab-PK
+new Intl.Locale("ku").minimize().toString()	ku
+new Intl.Locale("ku").maximize().minimize().toString()	ku
+new Intl.Locale("ku").minimize().maximize().toString()	ku-Latn-TR
+new Intl.Locale("ky").minimize().toString()	ky
+new Intl.Locale("ky").maximize().minimize().toString()	ky
+new Intl.Locale("ky").minimize().maximize().toString()	ky-Cyrl-KG
+new Intl.Locale("tg").minimize().toString()	tg
+new Intl.Locale("tg").maximize().minimize().toString()	tg
+new Intl.Locale("tg").minimize().maximize().toString()	tg-Cyrl-TJ
+new Intl.Locale("ps").minimize().toString()	ps
+new Intl.Locale("ps").maximize().minimize().toString()	ps
+new Intl.Locale("ps").minimize().maximize().toString()	ps-Arab-AF
+new Intl.Locale("sd").minimize().toString()	sd
+new Intl.Locale("sd").maximize().minimize().toString()	sd
+new Intl.Locale("sd").minimize().maximize().toString()	sd-Arab-PK
+new Intl.Locale("yue").minimize().toString()	yue
+new Intl.Locale("yue").maximize().minimize().toString()	yue
+new Intl.Locale("yue").minimize().maximize().toString()	yue-Hant-HK
+new Intl.Locale("iw").maximize().minimize().toString()	he
+new Intl.Locale("iw").minimize().maximize().toString()	he-Hebr-IL
+new Intl.Locale("in").maximize().minimize().toString()	id
+new Intl.Locale("in").minimize().maximize().toString()	id-Latn-ID
+new Intl.Locale("no").maximize().minimize().toString()	no
+new Intl.Locale("no").minimize().maximize().toString()	no-Latn-NO
+new Intl.Locale("nb").maximize().minimize().toString()	nb
+new Intl.Locale("nb").minimize().maximize().toString()	nb-Latn-NO
+new Intl.Locale("nn").maximize().minimize().toString()	nn
+new Intl.Locale("nn").minimize().maximize().toString()	nn-Latn-NO
+new Intl.Locale("ca-ES-valencia").maximize().toString()	ca-Latn-ES-valencia
+new Intl.Locale("ca-ES-valencia").minimize().toString()	ca-valencia
+new Intl.Locale("ca-ES-valencia").maximize().minimize().toString()	ca-valencia
+new Intl.Locale("ca-ES-valencia").minimize().maximize().toString()	ca-Latn-ES-valencia
+new Intl.Locale("en-u-ca-gregory").maximize().minimize().toString()	en-u-ca-gregory
+new Intl.Locale("en-u-ca-gregory").minimize().maximize().toString()	en-Latn-US-u-ca-gregory
+new Intl.Locale("ja-JP-u-hc-h23").maximize().toString()	ja-Jpan-JP-u-hc-h23
+new Intl.Locale("ja-JP-u-hc-h23").minimize().toString()	ja-u-hc-h23
+new Intl.Locale("ja-JP-u-hc-h23").maximize().minimize().toString()	ja-u-hc-h23
+new Intl.Locale("ja-JP-u-hc-h23").minimize().maximize().toString()	ja-Jpan-JP-u-hc-h23
+new Intl.Locale("xx").maximize().toString()	xx
+new Intl.Locale("xx").minimize().toString()	xx
+new Intl.Locale("xx").maximize().minimize().toString()	xx
+new Intl.Locale("xx").minimize().maximize().toString()	xx
+new Intl.Locale("tlh").maximize().toString()	tlh
+new Intl.Locale("tlh").minimize().toString()	tlh
+new Intl.Locale("tlh").maximize().minimize().toString()	tlh
+new Intl.Locale("tlh").minimize().maximize().toString()	tlh
+new Intl.Locale("und-Hant").maximize().minimize().toString()	zh-TW
+new Intl.Locale("und-Hant").minimize().maximize().toString()	zh-Hant-TW
+String(new Intl.Locale("en").calendar)	undefined
+String(new Intl.Locale("en").calendars)	undefined
+String(new Intl.Locale("en").collation)	undefined
+String(new Intl.Locale("en").collations)	undefined
+String(new Intl.Locale("en").hourCycle)	undefined
+String(new Intl.Locale("en").hourCycles)	undefined
+String(new Intl.Locale("en").numberingSystem)	undefined
+String(new Intl.Locale("en").numberingSystems)	undefined
+String(new Intl.Locale("en").caseFirst)	undefined
+String(new Intl.Locale("en").numeric)	false
+String(new Intl.Locale("en").language)	en
+String(new Intl.Locale("en").script)	undefined
+String(new Intl.Locale("en").region)	undefined
+String(new Intl.Locale("en").baseName)	en
+String(new Intl.Locale("en").firstDayOfWeek)	undefined
+String(new Intl.Locale("en-US").calendar)	undefined
+String(new Intl.Locale("en-US").calendars)	undefined
+String(new Intl.Locale("en-US").collation)	undefined
+String(new Intl.Locale("en-US").collations)	undefined
+String(new Intl.Locale("en-US").hourCycle)	undefined
+String(new Intl.Locale("en-US").hourCycles)	undefined
+String(new Intl.Locale("en-US").numberingSystem)	undefined
+String(new Intl.Locale("en-US").numberingSystems)	undefined
+String(new Intl.Locale("en-US").caseFirst)	undefined
+String(new Intl.Locale("en-US").numeric)	false
+String(new Intl.Locale("en-US").language)	en
+String(new Intl.Locale("en-US").script)	undefined
+String(new Intl.Locale("en-US").region)	US
+String(new Intl.Locale("en-US").baseName)	en-US
+String(new Intl.Locale("en-US").firstDayOfWeek)	undefined
+String(new Intl.Locale("ja-JP-u-ca-japanese").calendar)	japanese
+String(new Intl.Locale("ja-JP-u-ca-japanese").calendars)	undefined
+String(new Intl.Locale("ja-JP-u-ca-japanese").collation)	undefined
+String(new Intl.Locale("ja-JP-u-ca-japanese").collations)	undefined
+String(new Intl.Locale("ja-JP-u-ca-japanese").hourCycle)	undefined
+String(new Intl.Locale("ja-JP-u-ca-japanese").hourCycles)	undefined
+String(new Intl.Locale("ja-JP-u-ca-japanese").numberingSystem)	undefined
+String(new Intl.Locale("ja-JP-u-ca-japanese").numberingSystems)	undefined
+String(new Intl.Locale("ja-JP-u-ca-japanese").caseFirst)	undefined
+String(new Intl.Locale("ja-JP-u-ca-japanese").numeric)	false
+String(new Intl.Locale("ja-JP-u-ca-japanese").language)	ja
+String(new Intl.Locale("ja-JP-u-ca-japanese").script)	undefined
+String(new Intl.Locale("ja-JP-u-ca-japanese").region)	JP
+String(new Intl.Locale("ja-JP-u-ca-japanese").baseName)	ja-JP
+String(new Intl.Locale("ja-JP-u-ca-japanese").firstDayOfWeek)	undefined
+String(new Intl.Locale("th-TH-u-ca-buddhist").calendar)	buddhist
+String(new Intl.Locale("th-TH-u-ca-buddhist").calendars)	undefined
+String(new Intl.Locale("th-TH-u-ca-buddhist").collation)	undefined
+String(new Intl.Locale("th-TH-u-ca-buddhist").collations)	undefined
+String(new Intl.Locale("th-TH-u-ca-buddhist").hourCycle)	undefined
+String(new Intl.Locale("th-TH-u-ca-buddhist").hourCycles)	undefined
+String(new Intl.Locale("th-TH-u-ca-buddhist").numberingSystem)	undefined
+String(new Intl.Locale("th-TH-u-ca-buddhist").numberingSystems)	undefined
+String(new Intl.Locale("th-TH-u-ca-buddhist").caseFirst)	undefined
+String(new Intl.Locale("th-TH-u-ca-buddhist").numeric)	false
+String(new Intl.Locale("th-TH-u-ca-buddhist").language)	th
+String(new Intl.Locale("th-TH-u-ca-buddhist").script)	undefined
+String(new Intl.Locale("th-TH-u-ca-buddhist").region)	TH
+String(new Intl.Locale("th-TH-u-ca-buddhist").baseName)	th-TH
+String(new Intl.Locale("th-TH-u-ca-buddhist").firstDayOfWeek)	undefined
+String(new Intl.Locale("ar-SA-u-ca-islamic").calendar)	islamic
+String(new Intl.Locale("ar-SA-u-ca-islamic").calendars)	undefined
+String(new Intl.Locale("ar-SA-u-ca-islamic").collation)	undefined
+String(new Intl.Locale("ar-SA-u-ca-islamic").collations)	undefined
+String(new Intl.Locale("ar-SA-u-ca-islamic").hourCycle)	undefined
+String(new Intl.Locale("ar-SA-u-ca-islamic").hourCycles)	undefined
+String(new Intl.Locale("ar-SA-u-ca-islamic").numberingSystem)	undefined
+String(new Intl.Locale("ar-SA-u-ca-islamic").numberingSystems)	undefined
+String(new Intl.Locale("ar-SA-u-ca-islamic").caseFirst)	undefined
+String(new Intl.Locale("ar-SA-u-ca-islamic").numeric)	false
+String(new Intl.Locale("ar-SA-u-ca-islamic").language)	ar
+String(new Intl.Locale("ar-SA-u-ca-islamic").script)	undefined
+String(new Intl.Locale("ar-SA-u-ca-islamic").region)	SA
+String(new Intl.Locale("ar-SA-u-ca-islamic").baseName)	ar-SA
+String(new Intl.Locale("ar-SA-u-ca-islamic").firstDayOfWeek)	undefined
+String(new Intl.Locale("fa-IR-u-ca-persian").calendar)	persian
+String(new Intl.Locale("fa-IR-u-ca-persian").calendars)	undefined
+String(new Intl.Locale("fa-IR-u-ca-persian").collation)	undefined
+String(new Intl.Locale("fa-IR-u-ca-persian").collations)	undefined
+String(new Intl.Locale("fa-IR-u-ca-persian").hourCycle)	undefined
+String(new Intl.Locale("fa-IR-u-ca-persian").hourCycles)	undefined
+String(new Intl.Locale("fa-IR-u-ca-persian").numberingSystem)	undefined
+String(new Intl.Locale("fa-IR-u-ca-persian").numberingSystems)	undefined
+String(new Intl.Locale("fa-IR-u-ca-persian").caseFirst)	undefined
+String(new Intl.Locale("fa-IR-u-ca-persian").numeric)	false
+String(new Intl.Locale("fa-IR-u-ca-persian").language)	fa
+String(new Intl.Locale("fa-IR-u-ca-persian").script)	undefined
+String(new Intl.Locale("fa-IR-u-ca-persian").region)	IR
+String(new Intl.Locale("fa-IR-u-ca-persian").baseName)	fa-IR
+String(new Intl.Locale("fa-IR-u-ca-persian").firstDayOfWeek)	undefined
+String(new Intl.Locale("he-IL-u-ca-hebrew").calendar)	hebrew
+String(new Intl.Locale("he-IL-u-ca-hebrew").calendars)	undefined
+String(new Intl.Locale("he-IL-u-ca-hebrew").collation)	undefined
+String(new Intl.Locale("he-IL-u-ca-hebrew").collations)	undefined
+String(new Intl.Locale("he-IL-u-ca-hebrew").hourCycle)	undefined
+String(new Intl.Locale("he-IL-u-ca-hebrew").hourCycles)	undefined
+String(new Intl.Locale("he-IL-u-ca-hebrew").numberingSystem)	undefined
+String(new Intl.Locale("he-IL-u-ca-hebrew").numberingSystems)	undefined
+String(new Intl.Locale("he-IL-u-ca-hebrew").caseFirst)	undefined
+String(new Intl.Locale("he-IL-u-ca-hebrew").numeric)	false
+String(new Intl.Locale("he-IL-u-ca-hebrew").language)	he
+String(new Intl.Locale("he-IL-u-ca-hebrew").script)	undefined
+String(new Intl.Locale("he-IL-u-ca-hebrew").region)	IL
+String(new Intl.Locale("he-IL-u-ca-hebrew").baseName)	he-IL
+String(new Intl.Locale("he-IL-u-ca-hebrew").firstDayOfWeek)	undefined
+String(new Intl.Locale("zh-CN-u-ca-chinese").calendar)	chinese
+String(new Intl.Locale("zh-CN-u-ca-chinese").calendars)	undefined
+String(new Intl.Locale("zh-CN-u-ca-chinese").collation)	undefined
+String(new Intl.Locale("zh-CN-u-ca-chinese").collations)	undefined
+String(new Intl.Locale("zh-CN-u-ca-chinese").hourCycle)	undefined
+String(new Intl.Locale("zh-CN-u-ca-chinese").hourCycles)	undefined
+String(new Intl.Locale("zh-CN-u-ca-chinese").numberingSystem)	undefined
+String(new Intl.Locale("zh-CN-u-ca-chinese").numberingSystems)	undefined
+String(new Intl.Locale("zh-CN-u-ca-chinese").caseFirst)	undefined
+String(new Intl.Locale("zh-CN-u-ca-chinese").numeric)	false
+String(new Intl.Locale("zh-CN-u-ca-chinese").language)	zh
+String(new Intl.Locale("zh-CN-u-ca-chinese").script)	undefined
+String(new Intl.Locale("zh-CN-u-ca-chinese").region)	CN
+String(new Intl.Locale("zh-CN-u-ca-chinese").baseName)	zh-CN
+String(new Intl.Locale("zh-CN-u-ca-chinese").firstDayOfWeek)	undefined
+String(new Intl.Locale("ko-KR-u-ca-dangi").calendar)	dangi
+String(new Intl.Locale("ko-KR-u-ca-dangi").calendars)	undefined
+String(new Intl.Locale("ko-KR-u-ca-dangi").collation)	undefined
+String(new Intl.Locale("ko-KR-u-ca-dangi").collations)	undefined
+String(new Intl.Locale("ko-KR-u-ca-dangi").hourCycle)	undefined
+String(new Intl.Locale("ko-KR-u-ca-dangi").hourCycles)	undefined
+String(new Intl.Locale("ko-KR-u-ca-dangi").numberingSystem)	undefined
+String(new Intl.Locale("ko-KR-u-ca-dangi").numberingSystems)	undefined
+String(new Intl.Locale("ko-KR-u-ca-dangi").caseFirst)	undefined
+String(new Intl.Locale("ko-KR-u-ca-dangi").numeric)	false
+String(new Intl.Locale("ko-KR-u-ca-dangi").language)	ko
+String(new Intl.Locale("ko-KR-u-ca-dangi").script)	undefined
+String(new Intl.Locale("ko-KR-u-ca-dangi").region)	KR
+String(new Intl.Locale("ko-KR-u-ca-dangi").baseName)	ko-KR
+String(new Intl.Locale("ko-KR-u-ca-dangi").firstDayOfWeek)	undefined
+String(new Intl.Locale("en-u-ca-iso8601").calendar)	iso8601
+String(new Intl.Locale("en-u-ca-iso8601").calendars)	undefined
+String(new Intl.Locale("en-u-ca-iso8601").collation)	undefined
+String(new Intl.Locale("en-u-ca-iso8601").collations)	undefined
+String(new Intl.Locale("en-u-ca-iso8601").hourCycle)	undefined
+String(new Intl.Locale("en-u-ca-iso8601").hourCycles)	undefined
+String(new Intl.Locale("en-u-ca-iso8601").numberingSystem)	undefined
+String(new Intl.Locale("en-u-ca-iso8601").numberingSystems)	undefined
+String(new Intl.Locale("en-u-ca-iso8601").caseFirst)	undefined
+String(new Intl.Locale("en-u-ca-iso8601").numeric)	false
+String(new Intl.Locale("en-u-ca-iso8601").language)	en
+String(new Intl.Locale("en-u-ca-iso8601").script)	undefined
+String(new Intl.Locale("en-u-ca-iso8601").region)	undefined
+String(new Intl.Locale("en-u-ca-iso8601").baseName)	en
+String(new Intl.Locale("en-u-ca-iso8601").firstDayOfWeek)	undefined
+String(new Intl.Locale("en-u-ca-gregory").calendar)	gregory
+String(new Intl.Locale("en-u-ca-gregory").calendars)	undefined
+String(new Intl.Locale("en-u-ca-gregory").collation)	undefined
+String(new Intl.Locale("en-u-ca-gregory").collations)	undefined
+String(new Intl.Locale("en-u-ca-gregory").hourCycle)	undefined
+String(new Intl.Locale("en-u-ca-gregory").hourCycles)	undefined
+String(new Intl.Locale("en-u-ca-gregory").numberingSystem)	undefined
+String(new Intl.Locale("en-u-ca-gregory").numberingSystems)	undefined
+String(new Intl.Locale("en-u-ca-gregory").caseFirst)	undefined
+String(new Intl.Locale("en-u-ca-gregory").numeric)	false
+String(new Intl.Locale("en-u-ca-gregory").language)	en
+String(new Intl.Locale("en-u-ca-gregory").script)	undefined
+String(new Intl.Locale("en-u-ca-gregory").region)	undefined
+String(new Intl.Locale("en-u-ca-gregory").baseName)	en
+String(new Intl.Locale("en-u-ca-gregory").firstDayOfWeek)	undefined
+String(new Intl.Locale("en-u-ca-bogus").calendar)	bogus
+String(new Intl.Locale("en-u-ca-bogus").calendars)	undefined
+String(new Intl.Locale("en-u-ca-bogus").collation)	undefined
+String(new Intl.Locale("en-u-ca-bogus").collations)	undefined
+String(new Intl.Locale("en-u-ca-bogus").hourCycle)	undefined
+String(new Intl.Locale("en-u-ca-bogus").hourCycles)	undefined
+String(new Intl.Locale("en-u-ca-bogus").numberingSystem)	undefined
+String(new Intl.Locale("en-u-ca-bogus").numberingSystems)	undefined
+String(new Intl.Locale("en-u-ca-bogus").caseFirst)	undefined
+String(new Intl.Locale("en-u-ca-bogus").numeric)	false
+String(new Intl.Locale("en-u-ca-bogus").language)	en
+String(new Intl.Locale("en-u-ca-bogus").script)	undefined
+String(new Intl.Locale("en-u-ca-bogus").region)	undefined
+String(new Intl.Locale("en-u-ca-bogus").baseName)	en
+String(new Intl.Locale("en-u-ca-bogus").firstDayOfWeek)	undefined
+String(new Intl.Locale("en-u-ca-islamic-civil").calendar)	islamic-civil
+String(new Intl.Locale("en-u-ca-islamic-civil").calendars)	undefined
+String(new Intl.Locale("en-u-ca-islamic-civil").collation)	undefined
+String(new Intl.Locale("en-u-ca-islamic-civil").collations)	undefined
+String(new Intl.Locale("en-u-ca-islamic-civil").hourCycle)	undefined
+String(new Intl.Locale("en-u-ca-islamic-civil").hourCycles)	undefined
+String(new Intl.Locale("en-u-ca-islamic-civil").numberingSystem)	undefined
+String(new Intl.Locale("en-u-ca-islamic-civil").numberingSystems)	undefined
+String(new Intl.Locale("en-u-ca-islamic-civil").caseFirst)	undefined
+String(new Intl.Locale("en-u-ca-islamic-civil").numeric)	false
+String(new Intl.Locale("en-u-ca-islamic-civil").language)	en
+String(new Intl.Locale("en-u-ca-islamic-civil").script)	undefined
+String(new Intl.Locale("en-u-ca-islamic-civil").region)	undefined
+String(new Intl.Locale("en-u-ca-islamic-civil").baseName)	en
+String(new Intl.Locale("en-u-ca-islamic-civil").firstDayOfWeek)	undefined
+String(new Intl.Locale("en-u-ca-roc").calendar)	roc
+String(new Intl.Locale("en-u-ca-roc").calendars)	undefined
+String(new Intl.Locale("en-u-ca-roc").collation)	undefined
+String(new Intl.Locale("en-u-ca-roc").collations)	undefined
+String(new Intl.Locale("en-u-ca-roc").hourCycle)	undefined
+String(new Intl.Locale("en-u-ca-roc").hourCycles)	undefined
+String(new Intl.Locale("en-u-ca-roc").numberingSystem)	undefined
+String(new Intl.Locale("en-u-ca-roc").numberingSystems)	undefined
+String(new Intl.Locale("en-u-ca-roc").caseFirst)	undefined
+String(new Intl.Locale("en-u-ca-roc").numeric)	false
+String(new Intl.Locale("en-u-ca-roc").language)	en
+String(new Intl.Locale("en-u-ca-roc").script)	undefined
+String(new Intl.Locale("en-u-ca-roc").region)	undefined
+String(new Intl.Locale("en-u-ca-roc").baseName)	en
+String(new Intl.Locale("en-u-ca-roc").firstDayOfWeek)	undefined
+String(new Intl.Locale("en-u-ca-coptic").calendar)	coptic
+String(new Intl.Locale("en-u-ca-coptic").calendars)	undefined
+String(new Intl.Locale("en-u-ca-coptic").collation)	undefined
+String(new Intl.Locale("en-u-ca-coptic").collations)	undefined
+String(new Intl.Locale("en-u-ca-coptic").hourCycle)	undefined
+String(new Intl.Locale("en-u-ca-coptic").hourCycles)	undefined
+String(new Intl.Locale("en-u-ca-coptic").numberingSystem)	undefined
+String(new Intl.Locale("en-u-ca-coptic").numberingSystems)	undefined
+String(new Intl.Locale("en-u-ca-coptic").caseFirst)	undefined
+String(new Intl.Locale("en-u-ca-coptic").numeric)	false
+String(new Intl.Locale("en-u-ca-coptic").language)	en
+String(new Intl.Locale("en-u-ca-coptic").script)	undefined
+String(new Intl.Locale("en-u-ca-coptic").region)	undefined
+String(new Intl.Locale("en-u-ca-coptic").baseName)	en
+String(new Intl.Locale("en-u-ca-coptic").firstDayOfWeek)	undefined
+String(new Intl.Locale("en-u-ca-indian").calendar)	indian
+String(new Intl.Locale("en-u-ca-indian").calendars)	undefined
+String(new Intl.Locale("en-u-ca-indian").collation)	undefined
+String(new Intl.Locale("en-u-ca-indian").collations)	undefined
+String(new Intl.Locale("en-u-ca-indian").hourCycle)	undefined
+String(new Intl.Locale("en-u-ca-indian").hourCycles)	undefined
+String(new Intl.Locale("en-u-ca-indian").numberingSystem)	undefined
+String(new Intl.Locale("en-u-ca-indian").numberingSystems)	undefined
+String(new Intl.Locale("en-u-ca-indian").caseFirst)	undefined
+String(new Intl.Locale("en-u-ca-indian").numeric)	false
+String(new Intl.Locale("en-u-ca-indian").language)	en
+String(new Intl.Locale("en-u-ca-indian").script)	undefined
+String(new Intl.Locale("en-u-ca-indian").region)	undefined
+String(new Intl.Locale("en-u-ca-indian").baseName)	en
+String(new Intl.Locale("en-u-ca-indian").firstDayOfWeek)	undefined
+String(new Intl.Locale("en-u-hc-h11").calendar)	undefined
+String(new Intl.Locale("en-u-hc-h11").calendars)	undefined
+String(new Intl.Locale("en-u-hc-h11").collation)	undefined
+String(new Intl.Locale("en-u-hc-h11").collations)	undefined
+String(new Intl.Locale("en-u-hc-h11").hourCycle)	h11
+String(new Intl.Locale("en-u-hc-h11").hourCycles)	undefined
+String(new Intl.Locale("en-u-hc-h11").numberingSystem)	undefined
+String(new Intl.Locale("en-u-hc-h11").numberingSystems)	undefined
+String(new Intl.Locale("en-u-hc-h11").caseFirst)	undefined
+String(new Intl.Locale("en-u-hc-h11").numeric)	false
+String(new Intl.Locale("en-u-hc-h11").language)	en
+String(new Intl.Locale("en-u-hc-h11").script)	undefined
+String(new Intl.Locale("en-u-hc-h11").region)	undefined
+String(new Intl.Locale("en-u-hc-h11").baseName)	en
+String(new Intl.Locale("en-u-hc-h11").firstDayOfWeek)	undefined
+String(new Intl.Locale("en-u-hc-h12").calendar)	undefined
+String(new Intl.Locale("en-u-hc-h12").calendars)	undefined
+String(new Intl.Locale("en-u-hc-h12").collation)	undefined
+String(new Intl.Locale("en-u-hc-h12").collations)	undefined
+String(new Intl.Locale("en-u-hc-h12").hourCycle)	h12
+String(new Intl.Locale("en-u-hc-h12").hourCycles)	undefined
+String(new Intl.Locale("en-u-hc-h12").numberingSystem)	undefined
+String(new Intl.Locale("en-u-hc-h12").numberingSystems)	undefined
+String(new Intl.Locale("en-u-hc-h12").caseFirst)	undefined
+String(new Intl.Locale("en-u-hc-h12").numeric)	false
+String(new Intl.Locale("en-u-hc-h12").language)	en
+String(new Intl.Locale("en-u-hc-h12").script)	undefined
+String(new Intl.Locale("en-u-hc-h12").region)	undefined
+String(new Intl.Locale("en-u-hc-h12").baseName)	en
+String(new Intl.Locale("en-u-hc-h12").firstDayOfWeek)	undefined
+String(new Intl.Locale("en-u-hc-h23").calendar)	undefined
+String(new Intl.Locale("en-u-hc-h23").calendars)	undefined
+String(new Intl.Locale("en-u-hc-h23").collation)	undefined
+String(new Intl.Locale("en-u-hc-h23").collations)	undefined
+String(new Intl.Locale("en-u-hc-h23").hourCycle)	h23
+String(new Intl.Locale("en-u-hc-h23").hourCycles)	undefined
+String(new Intl.Locale("en-u-hc-h23").numberingSystem)	undefined
+String(new Intl.Locale("en-u-hc-h23").numberingSystems)	undefined
+String(new Intl.Locale("en-u-hc-h23").caseFirst)	undefined
+String(new Intl.Locale("en-u-hc-h23").numeric)	false
+String(new Intl.Locale("en-u-hc-h23").language)	en
+String(new Intl.Locale("en-u-hc-h23").script)	undefined
+String(new Intl.Locale("en-u-hc-h23").region)	undefined
+String(new Intl.Locale("en-u-hc-h23").baseName)	en
+String(new Intl.Locale("en-u-hc-h23").firstDayOfWeek)	undefined
+String(new Intl.Locale("en-u-hc-h24").calendar)	undefined
+String(new Intl.Locale("en-u-hc-h24").calendars)	undefined
+String(new Intl.Locale("en-u-hc-h24").collation)	undefined
+String(new Intl.Locale("en-u-hc-h24").collations)	undefined
+String(new Intl.Locale("en-u-hc-h24").hourCycle)	h24
+String(new Intl.Locale("en-u-hc-h24").hourCycles)	undefined
+String(new Intl.Locale("en-u-hc-h24").numberingSystem)	undefined
+String(new Intl.Locale("en-u-hc-h24").numberingSystems)	undefined
+String(new Intl.Locale("en-u-hc-h24").caseFirst)	undefined
+String(new Intl.Locale("en-u-hc-h24").numeric)	false
+String(new Intl.Locale("en-u-hc-h24").language)	en
+String(new Intl.Locale("en-u-hc-h24").script)	undefined
+String(new Intl.Locale("en-u-hc-h24").region)	undefined
+String(new Intl.Locale("en-u-hc-h24").baseName)	en
+String(new Intl.Locale("en-u-hc-h24").firstDayOfWeek)	undefined
+String(new Intl.Locale("en-u-hc-bogus").calendar)	undefined
+String(new Intl.Locale("en-u-hc-bogus").calendars)	undefined
+String(new Intl.Locale("en-u-hc-bogus").collation)	undefined
+String(new Intl.Locale("en-u-hc-bogus").collations)	undefined
+String(new Intl.Locale("en-u-hc-bogus").hourCycle)	bogus
+String(new Intl.Locale("en-u-hc-bogus").hourCycles)	undefined
+String(new Intl.Locale("en-u-hc-bogus").numberingSystem)	undefined
+String(new Intl.Locale("en-u-hc-bogus").numberingSystems)	undefined
+String(new Intl.Locale("en-u-hc-bogus").caseFirst)	undefined
+String(new Intl.Locale("en-u-hc-bogus").numeric)	false
+String(new Intl.Locale("en-u-hc-bogus").language)	en
+String(new Intl.Locale("en-u-hc-bogus").script)	undefined
+String(new Intl.Locale("en-u-hc-bogus").region)	undefined
+String(new Intl.Locale("en-u-hc-bogus").baseName)	en
+String(new Intl.Locale("en-u-hc-bogus").firstDayOfWeek)	undefined
+String(new Intl.Locale("ja-u-hc-h11").calendar)	undefined
+String(new Intl.Locale("ja-u-hc-h11").calendars)	undefined
+String(new Intl.Locale("ja-u-hc-h11").collation)	undefined
+String(new Intl.Locale("ja-u-hc-h11").collations)	undefined
+String(new Intl.Locale("ja-u-hc-h11").hourCycle)	h11
+String(new Intl.Locale("ja-u-hc-h11").hourCycles)	undefined
+String(new Intl.Locale("ja-u-hc-h11").numberingSystem)	undefined
+String(new Intl.Locale("ja-u-hc-h11").numberingSystems)	undefined
+String(new Intl.Locale("ja-u-hc-h11").caseFirst)	undefined
+String(new Intl.Locale("ja-u-hc-h11").numeric)	false
+String(new Intl.Locale("ja-u-hc-h11").language)	ja
+String(new Intl.Locale("ja-u-hc-h11").script)	undefined
+String(new Intl.Locale("ja-u-hc-h11").region)	undefined
+String(new Intl.Locale("ja-u-hc-h11").baseName)	ja
+String(new Intl.Locale("ja-u-hc-h11").firstDayOfWeek)	undefined
+String(new Intl.Locale("en-u-nu-arab").calendar)	undefined
+String(new Intl.Locale("en-u-nu-arab").calendars)	undefined
+String(new Intl.Locale("en-u-nu-arab").collation)	undefined
+String(new Intl.Locale("en-u-nu-arab").collations)	undefined
+String(new Intl.Locale("en-u-nu-arab").hourCycle)	undefined
+String(new Intl.Locale("en-u-nu-arab").hourCycles)	undefined
+String(new Intl.Locale("en-u-nu-arab").numberingSystem)	arab
+String(new Intl.Locale("en-u-nu-arab").numberingSystems)	undefined
+String(new Intl.Locale("en-u-nu-arab").caseFirst)	undefined
+String(new Intl.Locale("en-u-nu-arab").numeric)	false
+String(new Intl.Locale("en-u-nu-arab").language)	en
+String(new Intl.Locale("en-u-nu-arab").script)	undefined
+String(new Intl.Locale("en-u-nu-arab").region)	undefined
+String(new Intl.Locale("en-u-nu-arab").baseName)	en
+String(new Intl.Locale("en-u-nu-arab").firstDayOfWeek)	undefined
+String(new Intl.Locale("en-u-nu-thai").calendar)	undefined
+String(new Intl.Locale("en-u-nu-thai").calendars)	undefined
+String(new Intl.Locale("en-u-nu-thai").collation)	undefined
+String(new Intl.Locale("en-u-nu-thai").collations)	undefined
+String(new Intl.Locale("en-u-nu-thai").hourCycle)	undefined
+String(new Intl.Locale("en-u-nu-thai").hourCycles)	undefined
+String(new Intl.Locale("en-u-nu-thai").numberingSystem)	thai
+String(new Intl.Locale("en-u-nu-thai").numberingSystems)	undefined
+String(new Intl.Locale("en-u-nu-thai").caseFirst)	undefined
+String(new Intl.Locale("en-u-nu-thai").numeric)	false
+String(new Intl.Locale("en-u-nu-thai").language)	en
+String(new Intl.Locale("en-u-nu-thai").script)	undefined
+String(new Intl.Locale("en-u-nu-thai").region)	undefined
+String(new Intl.Locale("en-u-nu-thai").baseName)	en
+String(new Intl.Locale("en-u-nu-thai").firstDayOfWeek)	undefined
+String(new Intl.Locale("en-u-co-phonebk").calendar)	undefined
+String(new Intl.Locale("en-u-co-phonebk").calendars)	undefined
+String(new Intl.Locale("en-u-co-phonebk").collation)	phonebk
+String(new Intl.Locale("en-u-co-phonebk").collations)	undefined
+String(new Intl.Locale("en-u-co-phonebk").hourCycle)	undefined
+String(new Intl.Locale("en-u-co-phonebk").hourCycles)	undefined
+String(new Intl.Locale("en-u-co-phonebk").numberingSystem)	undefined
+String(new Intl.Locale("en-u-co-phonebk").numberingSystems)	undefined
+String(new Intl.Locale("en-u-co-phonebk").caseFirst)	undefined
+String(new Intl.Locale("en-u-co-phonebk").numeric)	false
+String(new Intl.Locale("en-u-co-phonebk").language)	en
+String(new Intl.Locale("en-u-co-phonebk").script)	undefined
+String(new Intl.Locale("en-u-co-phonebk").region)	undefined
+String(new Intl.Locale("en-u-co-phonebk").baseName)	en
+String(new Intl.Locale("en-u-co-phonebk").firstDayOfWeek)	undefined
+String(new Intl.Locale("de-u-co-phonebk-kn-kf-upper").calendar)	undefined
+String(new Intl.Locale("de-u-co-phonebk-kn-kf-upper").calendars)	undefined
+String(new Intl.Locale("de-u-co-phonebk-kn-kf-upper").collation)	phonebk
+String(new Intl.Locale("de-u-co-phonebk-kn-kf-upper").collations)	undefined
+String(new Intl.Locale("de-u-co-phonebk-kn-kf-upper").hourCycle)	undefined
+String(new Intl.Locale("de-u-co-phonebk-kn-kf-upper").hourCycles)	undefined
+String(new Intl.Locale("de-u-co-phonebk-kn-kf-upper").numberingSystem)	undefined
+String(new Intl.Locale("de-u-co-phonebk-kn-kf-upper").numberingSystems)	undefined
+String(new Intl.Locale("de-u-co-phonebk-kn-kf-upper").caseFirst)	upper
+String(new Intl.Locale("de-u-co-phonebk-kn-kf-upper").numeric)	true
+String(new Intl.Locale("de-u-co-phonebk-kn-kf-upper").language)	de
+String(new Intl.Locale("de-u-co-phonebk-kn-kf-upper").script)	undefined
+String(new Intl.Locale("de-u-co-phonebk-kn-kf-upper").region)	undefined
+String(new Intl.Locale("de-u-co-phonebk-kn-kf-upper").baseName)	de
+String(new Intl.Locale("de-u-co-phonebk-kn-kf-upper").firstDayOfWeek)	undefined
+String(new Intl.Locale("en-u-kn-false").calendar)	undefined
+String(new Intl.Locale("en-u-kn-false").calendars)	undefined
+String(new Intl.Locale("en-u-kn-false").collation)	undefined
+String(new Intl.Locale("en-u-kn-false").collations)	undefined
+String(new Intl.Locale("en-u-kn-false").hourCycle)	undefined
+String(new Intl.Locale("en-u-kn-false").hourCycles)	undefined
+String(new Intl.Locale("en-u-kn-false").numberingSystem)	undefined
+String(new Intl.Locale("en-u-kn-false").numberingSystems)	undefined
+String(new Intl.Locale("en-u-kn-false").caseFirst)	undefined
+String(new Intl.Locale("en-u-kn-false").numeric)	false
+String(new Intl.Locale("en-u-kn-false").language)	en
+String(new Intl.Locale("en-u-kn-false").script)	undefined
+String(new Intl.Locale("en-u-kn-false").region)	undefined
+String(new Intl.Locale("en-u-kn-false").baseName)	en
+String(new Intl.Locale("en-u-kn-false").firstDayOfWeek)	undefined
+String(new Intl.Locale("en-u-kn-true").calendar)	undefined
+String(new Intl.Locale("en-u-kn-true").calendars)	undefined
+String(new Intl.Locale("en-u-kn-true").collation)	undefined
+String(new Intl.Locale("en-u-kn-true").collations)	undefined
+String(new Intl.Locale("en-u-kn-true").hourCycle)	undefined
+String(new Intl.Locale("en-u-kn-true").hourCycles)	undefined
+String(new Intl.Locale("en-u-kn-true").numberingSystem)	undefined
+String(new Intl.Locale("en-u-kn-true").numberingSystems)	undefined
+String(new Intl.Locale("en-u-kn-true").caseFirst)	undefined
+String(new Intl.Locale("en-u-kn-true").numeric)	true
+String(new Intl.Locale("en-u-kn-true").language)	en
+String(new Intl.Locale("en-u-kn-true").script)	undefined
+String(new Intl.Locale("en-u-kn-true").region)	undefined
+String(new Intl.Locale("en-u-kn-true").baseName)	en
+String(new Intl.Locale("en-u-kn-true").firstDayOfWeek)	undefined
+String(new Intl.Locale("en-u-kf-lower").calendar)	undefined
+String(new Intl.Locale("en-u-kf-lower").calendars)	undefined
+String(new Intl.Locale("en-u-kf-lower").collation)	undefined
+String(new Intl.Locale("en-u-kf-lower").collations)	undefined
+String(new Intl.Locale("en-u-kf-lower").hourCycle)	undefined
+String(new Intl.Locale("en-u-kf-lower").hourCycles)	undefined
+String(new Intl.Locale("en-u-kf-lower").numberingSystem)	undefined
+String(new Intl.Locale("en-u-kf-lower").numberingSystems)	undefined
+String(new Intl.Locale("en-u-kf-lower").caseFirst)	lower
+String(new Intl.Locale("en-u-kf-lower").numeric)	false
+String(new Intl.Locale("en-u-kf-lower").language)	en
+String(new Intl.Locale("en-u-kf-lower").script)	undefined
+String(new Intl.Locale("en-u-kf-lower").region)	undefined
+String(new Intl.Locale("en-u-kf-lower").baseName)	en
+String(new Intl.Locale("en-u-kf-lower").firstDayOfWeek)	undefined
+String(new Intl.Locale("en-u-kf-false").calendar)	undefined
+String(new Intl.Locale("en-u-kf-false").calendars)	undefined
+String(new Intl.Locale("en-u-kf-false").collation)	undefined
+String(new Intl.Locale("en-u-kf-false").collations)	undefined
+String(new Intl.Locale("en-u-kf-false").hourCycle)	undefined
+String(new Intl.Locale("en-u-kf-false").hourCycles)	undefined
+String(new Intl.Locale("en-u-kf-false").numberingSystem)	undefined
+String(new Intl.Locale("en-u-kf-false").numberingSystems)	undefined
+String(new Intl.Locale("en-u-kf-false").caseFirst)	false
+String(new Intl.Locale("en-u-kf-false").numeric)	false
+String(new Intl.Locale("en-u-kf-false").language)	en
+String(new Intl.Locale("en-u-kf-false").script)	undefined
+String(new Intl.Locale("en-u-kf-false").region)	undefined
+String(new Intl.Locale("en-u-kf-false").baseName)	en
+String(new Intl.Locale("en-u-kf-false").firstDayOfWeek)	undefined
+String(new Intl.Locale("en-u-fw-mon").calendar)	undefined
+String(new Intl.Locale("en-u-fw-mon").calendars)	undefined
+String(new Intl.Locale("en-u-fw-mon").collation)	undefined
+String(new Intl.Locale("en-u-fw-mon").collations)	undefined
+String(new Intl.Locale("en-u-fw-mon").hourCycle)	undefined
+String(new Intl.Locale("en-u-fw-mon").hourCycles)	undefined
+String(new Intl.Locale("en-u-fw-mon").numberingSystem)	undefined
+String(new Intl.Locale("en-u-fw-mon").numberingSystems)	undefined
+String(new Intl.Locale("en-u-fw-mon").caseFirst)	undefined
+String(new Intl.Locale("en-u-fw-mon").numeric)	false
+String(new Intl.Locale("en-u-fw-mon").language)	en
+String(new Intl.Locale("en-u-fw-mon").script)	undefined
+String(new Intl.Locale("en-u-fw-mon").region)	undefined
+String(new Intl.Locale("en-u-fw-mon").baseName)	en
+String(new Intl.Locale("en-u-fw-mon").firstDayOfWeek)	mon
+String(new Intl.Locale("en-u-fw-sun").calendar)	undefined
+String(new Intl.Locale("en-u-fw-sun").calendars)	undefined
+String(new Intl.Locale("en-u-fw-sun").collation)	undefined
+String(new Intl.Locale("en-u-fw-sun").collations)	undefined
+String(new Intl.Locale("en-u-fw-sun").hourCycle)	undefined
+String(new Intl.Locale("en-u-fw-sun").hourCycles)	undefined
+String(new Intl.Locale("en-u-fw-sun").numberingSystem)	undefined
+String(new Intl.Locale("en-u-fw-sun").numberingSystems)	undefined
+String(new Intl.Locale("en-u-fw-sun").caseFirst)	undefined
+String(new Intl.Locale("en-u-fw-sun").numeric)	false
+String(new Intl.Locale("en-u-fw-sun").language)	en
+String(new Intl.Locale("en-u-fw-sun").script)	undefined
+String(new Intl.Locale("en-u-fw-sun").region)	undefined
+String(new Intl.Locale("en-u-fw-sun").baseName)	en
+String(new Intl.Locale("en-u-fw-sun").firstDayOfWeek)	sun
+String(new Intl.Locale("en-u-ca-gregory-hc-h12-nu-latn").calendar)	gregory
+String(new Intl.Locale("en-u-ca-gregory-hc-h12-nu-latn").calendars)	undefined
+String(new Intl.Locale("en-u-ca-gregory-hc-h12-nu-latn").collation)	undefined
+String(new Intl.Locale("en-u-ca-gregory-hc-h12-nu-latn").collations)	undefined
+String(new Intl.Locale("en-u-ca-gregory-hc-h12-nu-latn").hourCycle)	h12
+String(new Intl.Locale("en-u-ca-gregory-hc-h12-nu-latn").hourCycles)	undefined
+String(new Intl.Locale("en-u-ca-gregory-hc-h12-nu-latn").numberingSystem)	latn
+String(new Intl.Locale("en-u-ca-gregory-hc-h12-nu-latn").numberingSystems)	undefined
+String(new Intl.Locale("en-u-ca-gregory-hc-h12-nu-latn").caseFirst)	undefined
+String(new Intl.Locale("en-u-ca-gregory-hc-h12-nu-latn").numeric)	false
+String(new Intl.Locale("en-u-ca-gregory-hc-h12-nu-latn").language)	en
+String(new Intl.Locale("en-u-ca-gregory-hc-h12-nu-latn").script)	undefined
+String(new Intl.Locale("en-u-ca-gregory-hc-h12-nu-latn").region)	undefined
+String(new Intl.Locale("en-u-ca-gregory-hc-h12-nu-latn").baseName)	en
+String(new Intl.Locale("en-u-ca-gregory-hc-h12-nu-latn").firstDayOfWeek)	undefined
+new Intl.Locale("en", { calendar: "buddhist" }).toString()	en-u-ca-buddhist
+new Intl.Locale("en-u-ca-gregory-hc-h23", { calendar: "buddhist" }).toString()	en-u-ca-buddhist-hc-h23
+new Intl.Locale("en", { calendar: "bogus" }).toString()	en-u-ca-bogus
+new Intl.Locale("en-u-ca-gregory-hc-h23", { calendar: "bogus" }).toString()	en-u-ca-bogus-hc-h23
+new Intl.Locale("en", { calendar: "islamic-civil" }).toString()	en-u-ca-islamic-civil
+new Intl.Locale("en-u-ca-gregory-hc-h23", { calendar: "islamic-civil" }).toString()	en-u-ca-islamic-civil-hc-h23
+new Intl.Locale("en", { hourCycle: "h11" }).toString()	en-u-hc-h11
+new Intl.Locale("en-u-ca-gregory-hc-h23", { hourCycle: "h11" }).toString()	en-u-ca-gregory-hc-h11
+new Intl.Locale("en", { hourCycle: "h12" }).toString()	en-u-hc-h12
+new Intl.Locale("en-u-ca-gregory-hc-h23", { hourCycle: "h12" }).toString()	en-u-ca-gregory-hc-h12
+new Intl.Locale("en", { hourCycle: "h23" }).toString()	en-u-hc-h23
+new Intl.Locale("en-u-ca-gregory-hc-h23", { hourCycle: "h23" }).toString()	en-u-ca-gregory-hc-h23
+new Intl.Locale("en", { hourCycle: "h24" }).toString()	en-u-hc-h24
+new Intl.Locale("en-u-ca-gregory-hc-h23", { hourCycle: "h24" }).toString()	en-u-ca-gregory-hc-h24
+new Intl.Locale("en", { hourCycle: "x" }).toString()	throw
+new Intl.Locale("en-u-ca-gregory-hc-h23", { hourCycle: "x" }).toString()	throw
+new Intl.Locale("en", { collation: "phonebk" }).toString()	en-u-co-phonebk
+new Intl.Locale("en-u-ca-gregory-hc-h23", { collation: "phonebk" }).toString()	en-u-ca-gregory-co-phonebk-hc-h23
+new Intl.Locale("en", { numberingSystem: "arab" }).toString()	en-u-nu-arab
+new Intl.Locale("en-u-ca-gregory-hc-h23", { numberingSystem: "arab" }).toString()	en-u-ca-gregory-hc-h23-nu-arab
+new Intl.Locale("en", { numeric: true }).toString()	en-u-kn
+new Intl.Locale("en-u-ca-gregory-hc-h23", { numeric: true }).toString()	en-u-ca-gregory-hc-h23-kn
+new Intl.Locale("en", { caseFirst: "upper" }).toString()	en-u-kf-upper
+new Intl.Locale("en-u-ca-gregory-hc-h23", { caseFirst: "upper" }).toString()	en-u-ca-gregory-hc-h23-kf-upper
+new Intl.Locale("en", { firstDayOfWeek: "mon" }).toString()	en-u-fw-mon
+new Intl.Locale("en-u-ca-gregory-hc-h23", { firstDayOfWeek: "mon" }).toString()	en-u-ca-gregory-fw-mon-hc-h23
+new Intl.Locale("en", { firstDayOfWeek: 7 }).toString()	en-u-fw-sun
+new Intl.Locale("en-u-ca-gregory-hc-h23", { firstDayOfWeek: 7 }).toString()	en-u-ca-gregory-fw-sun-hc-h23
+new Intl.Locale("ja", { calendar: "buddhist" }).toString()	ja-u-ca-buddhist
+new Intl.Locale("ja-u-ca-gregory-hc-h23", { calendar: "buddhist" }).toString()	ja-u-ca-buddhist-hc-h23
+new Intl.Locale("ja", { calendar: "bogus" }).toString()	ja-u-ca-bogus
+new Intl.Locale("ja-u-ca-gregory-hc-h23", { calendar: "bogus" }).toString()	ja-u-ca-bogus-hc-h23
+new Intl.Locale("ja", { calendar: "islamic-civil" }).toString()	ja-u-ca-islamic-civil
+new Intl.Locale("ja-u-ca-gregory-hc-h23", { calendar: "islamic-civil" }).toString()	ja-u-ca-islamic-civil-hc-h23
+new Intl.Locale("ja", { hourCycle: "h11" }).toString()	ja-u-hc-h11
+new Intl.Locale("ja-u-ca-gregory-hc-h23", { hourCycle: "h11" }).toString()	ja-u-ca-gregory-hc-h11
+new Intl.Locale("ja", { hourCycle: "h12" }).toString()	ja-u-hc-h12
+new Intl.Locale("ja-u-ca-gregory-hc-h23", { hourCycle: "h12" }).toString()	ja-u-ca-gregory-hc-h12
+new Intl.Locale("ja", { hourCycle: "h23" }).toString()	ja-u-hc-h23
+new Intl.Locale("ja-u-ca-gregory-hc-h23", { hourCycle: "h23" }).toString()	ja-u-ca-gregory-hc-h23
+new Intl.Locale("ja", { hourCycle: "h24" }).toString()	ja-u-hc-h24
+new Intl.Locale("ja-u-ca-gregory-hc-h23", { hourCycle: "h24" }).toString()	ja-u-ca-gregory-hc-h24
+new Intl.Locale("ja", { hourCycle: "x" }).toString()	throw
+new Intl.Locale("ja-u-ca-gregory-hc-h23", { hourCycle: "x" }).toString()	throw
+new Intl.Locale("ja", { collation: "phonebk" }).toString()	ja-u-co-phonebk
+new Intl.Locale("ja-u-ca-gregory-hc-h23", { collation: "phonebk" }).toString()	ja-u-ca-gregory-co-phonebk-hc-h23
+new Intl.Locale("ja", { numberingSystem: "arab" }).toString()	ja-u-nu-arab
+new Intl.Locale("ja-u-ca-gregory-hc-h23", { numberingSystem: "arab" }).toString()	ja-u-ca-gregory-hc-h23-nu-arab
+new Intl.Locale("ja", { numeric: true }).toString()	ja-u-kn
+new Intl.Locale("ja-u-ca-gregory-hc-h23", { numeric: true }).toString()	ja-u-ca-gregory-hc-h23-kn
+new Intl.Locale("ja", { caseFirst: "upper" }).toString()	ja-u-kf-upper
+new Intl.Locale("ja-u-ca-gregory-hc-h23", { caseFirst: "upper" }).toString()	ja-u-ca-gregory-hc-h23-kf-upper
+new Intl.Locale("ja", { firstDayOfWeek: "mon" }).toString()	ja-u-fw-mon
+new Intl.Locale("ja-u-ca-gregory-hc-h23", { firstDayOfWeek: "mon" }).toString()	ja-u-ca-gregory-fw-mon-hc-h23
+new Intl.Locale("ja", { firstDayOfWeek: 7 }).toString()	ja-u-fw-sun
+new Intl.Locale("ja-u-ca-gregory-hc-h23", { firstDayOfWeek: 7 }).toString()	ja-u-ca-gregory-fw-sun-hc-h23
+new Intl.Locale("ar", { calendar: "buddhist" }).toString()	ar-u-ca-buddhist
+new Intl.Locale("ar-u-ca-gregory-hc-h23", { calendar: "buddhist" }).toString()	ar-u-ca-buddhist-hc-h23
+new Intl.Locale("ar", { calendar: "bogus" }).toString()	ar-u-ca-bogus
+new Intl.Locale("ar-u-ca-gregory-hc-h23", { calendar: "bogus" }).toString()	ar-u-ca-bogus-hc-h23
+new Intl.Locale("ar", { calendar: "islamic-civil" }).toString()	ar-u-ca-islamic-civil
+new Intl.Locale("ar-u-ca-gregory-hc-h23", { calendar: "islamic-civil" }).toString()	ar-u-ca-islamic-civil-hc-h23
+new Intl.Locale("ar", { hourCycle: "h11" }).toString()	ar-u-hc-h11
+new Intl.Locale("ar-u-ca-gregory-hc-h23", { hourCycle: "h11" }).toString()	ar-u-ca-gregory-hc-h11
+new Intl.Locale("ar", { hourCycle: "h12" }).toString()	ar-u-hc-h12
+new Intl.Locale("ar-u-ca-gregory-hc-h23", { hourCycle: "h12" }).toString()	ar-u-ca-gregory-hc-h12
+new Intl.Locale("ar", { hourCycle: "h23" }).toString()	ar-u-hc-h23
+new Intl.Locale("ar-u-ca-gregory-hc-h23", { hourCycle: "h23" }).toString()	ar-u-ca-gregory-hc-h23
+new Intl.Locale("ar", { hourCycle: "h24" }).toString()	ar-u-hc-h24
+new Intl.Locale("ar-u-ca-gregory-hc-h23", { hourCycle: "h24" }).toString()	ar-u-ca-gregory-hc-h24
+new Intl.Locale("ar", { hourCycle: "x" }).toString()	throw
+new Intl.Locale("ar-u-ca-gregory-hc-h23", { hourCycle: "x" }).toString()	throw
+new Intl.Locale("ar", { collation: "phonebk" }).toString()	ar-u-co-phonebk
+new Intl.Locale("ar-u-ca-gregory-hc-h23", { collation: "phonebk" }).toString()	ar-u-ca-gregory-co-phonebk-hc-h23
+new Intl.Locale("ar", { numberingSystem: "arab" }).toString()	ar-u-nu-arab
+new Intl.Locale("ar-u-ca-gregory-hc-h23", { numberingSystem: "arab" }).toString()	ar-u-ca-gregory-hc-h23-nu-arab
+new Intl.Locale("ar", { numeric: true }).toString()	ar-u-kn
+new Intl.Locale("ar-u-ca-gregory-hc-h23", { numeric: true }).toString()	ar-u-ca-gregory-hc-h23-kn
+new Intl.Locale("ar", { caseFirst: "upper" }).toString()	ar-u-kf-upper
+new Intl.Locale("ar-u-ca-gregory-hc-h23", { caseFirst: "upper" }).toString()	ar-u-ca-gregory-hc-h23-kf-upper
+new Intl.Locale("ar", { firstDayOfWeek: "mon" }).toString()	ar-u-fw-mon
+new Intl.Locale("ar-u-ca-gregory-hc-h23", { firstDayOfWeek: "mon" }).toString()	ar-u-ca-gregory-fw-mon-hc-h23
+new Intl.Locale("ar", { firstDayOfWeek: 7 }).toString()	ar-u-fw-sun
+new Intl.Locale("ar-u-ca-gregory-hc-h23", { firstDayOfWeek: 7 }).toString()	ar-u-ca-gregory-fw-sun-hc-h23
+new Intl.Locale("de", { calendar: "buddhist" }).toString()	de-u-ca-buddhist
+new Intl.Locale("de-u-ca-gregory-hc-h23", { calendar: "buddhist" }).toString()	de-u-ca-buddhist-hc-h23
+new Intl.Locale("de", { calendar: "bogus" }).toString()	de-u-ca-bogus
+new Intl.Locale("de-u-ca-gregory-hc-h23", { calendar: "bogus" }).toString()	de-u-ca-bogus-hc-h23
+new Intl.Locale("de", { calendar: "islamic-civil" }).toString()	de-u-ca-islamic-civil
+new Intl.Locale("de-u-ca-gregory-hc-h23", { calendar: "islamic-civil" }).toString()	de-u-ca-islamic-civil-hc-h23
+new Intl.Locale("de", { hourCycle: "h11" }).toString()	de-u-hc-h11
+new Intl.Locale("de-u-ca-gregory-hc-h23", { hourCycle: "h11" }).toString()	de-u-ca-gregory-hc-h11
+new Intl.Locale("de", { hourCycle: "h12" }).toString()	de-u-hc-h12
+new Intl.Locale("de-u-ca-gregory-hc-h23", { hourCycle: "h12" }).toString()	de-u-ca-gregory-hc-h12
+new Intl.Locale("de", { hourCycle: "h23" }).toString()	de-u-hc-h23
+new Intl.Locale("de-u-ca-gregory-hc-h23", { hourCycle: "h23" }).toString()	de-u-ca-gregory-hc-h23
+new Intl.Locale("de", { hourCycle: "h24" }).toString()	de-u-hc-h24
+new Intl.Locale("de-u-ca-gregory-hc-h23", { hourCycle: "h24" }).toString()	de-u-ca-gregory-hc-h24
+new Intl.Locale("de", { hourCycle: "x" }).toString()	throw
+new Intl.Locale("de-u-ca-gregory-hc-h23", { hourCycle: "x" }).toString()	throw
+new Intl.Locale("de", { collation: "phonebk" }).toString()	de-u-co-phonebk
+new Intl.Locale("de-u-ca-gregory-hc-h23", { collation: "phonebk" }).toString()	de-u-ca-gregory-co-phonebk-hc-h23
+new Intl.Locale("de", { numberingSystem: "arab" }).toString()	de-u-nu-arab
+new Intl.Locale("de-u-ca-gregory-hc-h23", { numberingSystem: "arab" }).toString()	de-u-ca-gregory-hc-h23-nu-arab
+new Intl.Locale("de", { numeric: true }).toString()	de-u-kn
+new Intl.Locale("de-u-ca-gregory-hc-h23", { numeric: true }).toString()	de-u-ca-gregory-hc-h23-kn
+new Intl.Locale("de", { caseFirst: "upper" }).toString()	de-u-kf-upper
+new Intl.Locale("de-u-ca-gregory-hc-h23", { caseFirst: "upper" }).toString()	de-u-ca-gregory-hc-h23-kf-upper
+new Intl.Locale("de", { firstDayOfWeek: "mon" }).toString()	de-u-fw-mon
+new Intl.Locale("de-u-ca-gregory-hc-h23", { firstDayOfWeek: "mon" }).toString()	de-u-ca-gregory-fw-mon-hc-h23
+new Intl.Locale("de", { firstDayOfWeek: 7 }).toString()	de-u-fw-sun
+new Intl.Locale("de-u-ca-gregory-hc-h23", { firstDayOfWeek: 7 }).toString()	de-u-ca-gregory-fw-sun-hc-h23
+new Intl.Locale("th", { calendar: "buddhist" }).toString()	th-u-ca-buddhist
+new Intl.Locale("th-u-ca-gregory-hc-h23", { calendar: "buddhist" }).toString()	th-u-ca-buddhist-hc-h23
+new Intl.Locale("th", { calendar: "bogus" }).toString()	th-u-ca-bogus
+new Intl.Locale("th-u-ca-gregory-hc-h23", { calendar: "bogus" }).toString()	th-u-ca-bogus-hc-h23
+new Intl.Locale("th", { calendar: "islamic-civil" }).toString()	th-u-ca-islamic-civil
+new Intl.Locale("th-u-ca-gregory-hc-h23", { calendar: "islamic-civil" }).toString()	th-u-ca-islamic-civil-hc-h23
+new Intl.Locale("th", { hourCycle: "h11" }).toString()	th-u-hc-h11
+new Intl.Locale("th-u-ca-gregory-hc-h23", { hourCycle: "h11" }).toString()	th-u-ca-gregory-hc-h11
+new Intl.Locale("th", { hourCycle: "h12" }).toString()	th-u-hc-h12
+new Intl.Locale("th-u-ca-gregory-hc-h23", { hourCycle: "h12" }).toString()	th-u-ca-gregory-hc-h12
+new Intl.Locale("th", { hourCycle: "h23" }).toString()	th-u-hc-h23
+new Intl.Locale("th-u-ca-gregory-hc-h23", { hourCycle: "h23" }).toString()	th-u-ca-gregory-hc-h23
+new Intl.Locale("th", { hourCycle: "h24" }).toString()	th-u-hc-h24
+new Intl.Locale("th-u-ca-gregory-hc-h23", { hourCycle: "h24" }).toString()	th-u-ca-gregory-hc-h24
+new Intl.Locale("th", { hourCycle: "x" }).toString()	throw
+new Intl.Locale("th-u-ca-gregory-hc-h23", { hourCycle: "x" }).toString()	throw
+new Intl.Locale("th", { collation: "phonebk" }).toString()	th-u-co-phonebk
+new Intl.Locale("th-u-ca-gregory-hc-h23", { collation: "phonebk" }).toString()	th-u-ca-gregory-co-phonebk-hc-h23
+new Intl.Locale("th", { numberingSystem: "arab" }).toString()	th-u-nu-arab
+new Intl.Locale("th-u-ca-gregory-hc-h23", { numberingSystem: "arab" }).toString()	th-u-ca-gregory-hc-h23-nu-arab
+new Intl.Locale("th", { numeric: true }).toString()	th-u-kn
+new Intl.Locale("th-u-ca-gregory-hc-h23", { numeric: true }).toString()	th-u-ca-gregory-hc-h23-kn
+new Intl.Locale("th", { caseFirst: "upper" }).toString()	th-u-kf-upper
+new Intl.Locale("th-u-ca-gregory-hc-h23", { caseFirst: "upper" }).toString()	th-u-ca-gregory-hc-h23-kf-upper
+new Intl.Locale("th", { firstDayOfWeek: "mon" }).toString()	th-u-fw-mon
+new Intl.Locale("th-u-ca-gregory-hc-h23", { firstDayOfWeek: "mon" }).toString()	th-u-ca-gregory-fw-mon-hc-h23
+new Intl.Locale("th", { firstDayOfWeek: 7 }).toString()	th-u-fw-sun
+new Intl.Locale("th-u-ca-gregory-hc-h23", { firstDayOfWeek: 7 }).toString()	th-u-ca-gregory-fw-sun-hc-h23
+JSON.stringify(new Intl.Locale("en").getCalendars())	["gregory"]
+JSON.stringify(new Intl.Locale("en").getCollations())	["emoji","eor"]
+JSON.stringify(new Intl.Locale("en").getHourCycles())	["h12"]
+JSON.stringify(new Intl.Locale("en").getNumberingSystems())	["latn"]
+JSON.stringify(new Intl.Locale("en").getTextInfo())	{"direction":"ltr"}
+JSON.stringify(new Intl.Locale("en").getWeekInfo())	{"firstDay":7,"weekend":[6,7]}
+JSON.stringify(new Intl.Locale("en").getTimeZones())	undefined
+JSON.stringify(new Intl.Locale("en-US").getCalendars())	["gregory"]
+JSON.stringify(new Intl.Locale("en-US").getCollations())	["emoji","eor"]
+JSON.stringify(new Intl.Locale("en-US").getHourCycles())	["h12"]
+JSON.stringify(new Intl.Locale("en-US").getNumberingSystems())	["latn"]
+JSON.stringify(new Intl.Locale("en-US").getTextInfo())	{"direction":"ltr"}
+JSON.stringify(new Intl.Locale("en-US").getWeekInfo())	{"firstDay":7,"weekend":[6,7]}
+JSON.stringify(new Intl.Locale("en-US").getTimeZones())	["America/Adak","America/Anchorage","America/Boise","America/Chicago","America/Denver","America/Detroit","America/Indiana/Knox","America/Indiana/Marengo","America/Indiana/Petersburg","America/Indiana/Tell_City","America/Indiana/Vevay","America/Indiana/Vincennes","America/Indiana/Winamac","America/Indianapolis","America/Juneau","America/Kentucky/Monticello","America/Los_Angeles","America/Louisville","America/Menominee","America/Metlakatla","America/New_York","America/Nome","America/North_Dakota/Beulah","America/North_Dakota/Center","America/North_Dakota/New_Salem","America/Phoenix","America/Sitka","America/Yakutat","Pacific/Honolulu"]
+JSON.stringify(new Intl.Locale("ar-EG").getCalendars())	["gregory","coptic","islamic","islamic-civil","islamic-tbla"]
+JSON.stringify(new Intl.Locale("ar-EG").getCollations())	["compat","emoji","eor"]
+JSON.stringify(new Intl.Locale("ar-EG").getHourCycles())	["h12"]
+JSON.stringify(new Intl.Locale("ar-EG").getNumberingSystems())	["arab"]
+JSON.stringify(new Intl.Locale("ar-EG").getTextInfo())	{"direction":"rtl"}
+JSON.stringify(new Intl.Locale("ar-EG").getWeekInfo())	{"firstDay":6,"weekend":[5,6]}
+JSON.stringify(new Intl.Locale("ar-EG").getTimeZones())	["Africa/Cairo"]
+JSON.stringify(new Intl.Locale("ja").getCalendars())	["gregory","japanese"]
+JSON.stringify(new Intl.Locale("ja").getCollations())	["emoji","eor","unihan"]
+JSON.stringify(new Intl.Locale("ja").getHourCycles())	["h23"]
+JSON.stringify(new Intl.Locale("ja").getNumberingSystems())	["latn"]
+JSON.stringify(new Intl.Locale("ja").getTextInfo())	{"direction":"ltr"}
+JSON.stringify(new Intl.Locale("ja").getWeekInfo())	{"firstDay":7,"weekend":[6,7]}
+JSON.stringify(new Intl.Locale("ja").getTimeZones())	undefined
+JSON.stringify(new Intl.Locale("de-DE").getCalendars())	["gregory"]
+JSON.stringify(new Intl.Locale("de-DE").getCollations())	["emoji","eor","phonebk"]
+JSON.stringify(new Intl.Locale("de-DE").getHourCycles())	["h23"]
+JSON.stringify(new Intl.Locale("de-DE").getNumberingSystems())	["latn"]
+JSON.stringify(new Intl.Locale("de-DE").getTextInfo())	{"direction":"ltr"}
+JSON.stringify(new Intl.Locale("de-DE").getWeekInfo())	{"firstDay":1,"weekend":[6,7]}
+JSON.stringify(new Intl.Locale("de-DE").getTimeZones())	["Europe/Berlin","Europe/Busingen"]
+JSON.stringify(new Intl.Locale("pt-BR").getCalendars())	["gregory"]
+JSON.stringify(new Intl.Locale("pt-BR").getCollations())	["emoji","eor"]
+JSON.stringify(new Intl.Locale("pt-BR").getHourCycles())	["h23"]
+JSON.stringify(new Intl.Locale("pt-BR").getNumberingSystems())	["latn"]
+JSON.stringify(new Intl.Locale("pt-BR").getTextInfo())	{"direction":"ltr"}
+JSON.stringify(new Intl.Locale("pt-BR").getWeekInfo())	{"firstDay":7,"weekend":[6,7]}
+JSON.stringify(new Intl.Locale("pt-BR").getTimeZones())	["America/Araguaina","America/Bahia","America/Belem","America/Boa_Vista","America/Campo_Grande","America/Cuiaba","America/Eirunepe","America/Fortaleza","America/Maceio","America/Manaus","America/Noronha","America/Porto_Velho","America/Recife","America/Rio_Branco","America/Santarem","America/Sao_Paulo"]
+JSON.stringify(new Intl.Locale("he").getCalendars())	["gregory","hebrew","islamic","islamic-civil","islamic-tbla"]
+JSON.stringify(new Intl.Locale("he").getCollations())	["emoji","eor"]
+JSON.stringify(new Intl.Locale("he").getHourCycles())	["h23"]
+JSON.stringify(new Intl.Locale("he").getNumberingSystems())	["latn"]
+JSON.stringify(new Intl.Locale("he").getTextInfo())	{"direction":"rtl"}
+JSON.stringify(new Intl.Locale("he").getWeekInfo())	{"firstDay":7,"weekend":[5,6]}
+JSON.stringify(new Intl.Locale("he").getTimeZones())	undefined
+JSON.stringify(new Intl.Locale("fa").getCalendars())	["persian","gregory","islamic","islamic-civil","islamic-tbla"]
+JSON.stringify(new Intl.Locale("fa").getCollations())	["emoji","eor"]
+JSON.stringify(new Intl.Locale("fa").getHourCycles())	["h23"]
+JSON.stringify(new Intl.Locale("fa").getNumberingSystems())	["arabext"]
+JSON.stringify(new Intl.Locale("fa").getTextInfo())	{"direction":"rtl"}
+JSON.stringify(new Intl.Locale("fa").getWeekInfo())	{"firstDay":6,"weekend":[5]}
+JSON.stringify(new Intl.Locale("fa").getTimeZones())	undefined
+JSON.stringify(new Intl.Locale("th").getCalendars())	["buddhist","gregory"]
+JSON.stringify(new Intl.Locale("th").getCollations())	["emoji","eor"]
+JSON.stringify(new Intl.Locale("th").getHourCycles())	["h23"]
+JSON.stringify(new Intl.Locale("th").getNumberingSystems())	["latn"]
+JSON.stringify(new Intl.Locale("th").getTextInfo())	{"direction":"ltr"}
+JSON.stringify(new Intl.Locale("th").getWeekInfo())	{"firstDay":7,"weekend":[6,7]}
+JSON.stringify(new Intl.Locale("th").getTimeZones())	undefined
+JSON.stringify(new Intl.Locale("ru").getCalendars())	["gregory"]
+JSON.stringify(new Intl.Locale("ru").getCollations())	["emoji","eor"]
+JSON.stringify(new Intl.Locale("ru").getHourCycles())	["h23"]
+JSON.stringify(new Intl.Locale("ru").getNumberingSystems())	["latn"]
+JSON.stringify(new Intl.Locale("ru").getTextInfo())	{"direction":"ltr"}
+JSON.stringify(new Intl.Locale("ru").getWeekInfo())	{"firstDay":1,"weekend":[6,7]}
+JSON.stringify(new Intl.Locale("ru").getTimeZones())	undefined
+JSON.stringify(new Intl.Locale("zh-TW").getCalendars())	["gregory","roc","chinese"]
+JSON.stringify(new Intl.Locale("zh-TW").getCollations())	["emoji","eor","pinyin","stroke","unihan","zhuyin"]
+JSON.stringify(new Intl.Locale("zh-TW").getHourCycles())	["h12"]
+JSON.stringify(new Intl.Locale("zh-TW").getNumberingSystems())	["latn"]
+JSON.stringify(new Intl.Locale("zh-TW").getTextInfo())	{"direction":"ltr"}
+JSON.stringify(new Intl.Locale("zh-TW").getWeekInfo())	{"firstDay":7,"weekend":[6,7]}
+JSON.stringify(new Intl.Locale("zh-TW").getTimeZones())	["Asia/Taipei"]
+JSON.stringify(new Intl.Locale("hi").getCalendars())	["gregory","indian"]
+JSON.stringify(new Intl.Locale("hi").getCollations())	["emoji","eor"]
+JSON.stringify(new Intl.Locale("hi").getHourCycles())	["h12"]
+JSON.stringify(new Intl.Locale("hi").getNumberingSystems())	["latn"]
+JSON.stringify(new Intl.Locale("hi").getTextInfo())	{"direction":"ltr"}
+JSON.stringify(new Intl.Locale("hi").getWeekInfo())	{"firstDay":7,"weekend":[7]}
+JSON.stringify(new Intl.Locale("hi").getTimeZones())	undefined
+JSON.stringify(new Intl.Locale("tr").getCalendars())	["gregory","islamic-civil","islamic-tbla"]
+JSON.stringify(new Intl.Locale("tr").getCollations())	["emoji","eor"]
+JSON.stringify(new Intl.Locale("tr").getHourCycles())	["h23"]
+JSON.stringify(new Intl.Locale("tr").getNumberingSystems())	["latn"]
+JSON.stringify(new Intl.Locale("tr").getTextInfo())	{"direction":"ltr"}
+JSON.stringify(new Intl.Locale("tr").getWeekInfo())	{"firstDay":1,"weekend":[6,7]}
+JSON.stringify(new Intl.Locale("tr").getTimeZones())	undefined
+new Intl.Locale(new Intl.Locale("pt-BR")).toString()	pt-BR
+new Intl.Locale("en").toString === Intl.Locale.prototype.toString	true

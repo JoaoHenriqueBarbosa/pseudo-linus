@@ -1,0 +1,624 @@
+new Intl.NumberFormat("ga", {"notation":"compact","compactDisplay":"short"}).format(1234567)	1.2M
+new Intl.NumberFormat("ga", {"notation":"compact","compactDisplay":"long"}).format(1234567)	1.2 milliún
+new Intl.NumberFormat("ga", {"notation":"compact","compactDisplay":"short","maximumFractionDigits":2}).format(98765.4321)	98.77k
+new Intl.NumberFormat("ga", {"notation":"scientific"}).format(123456.789)	1.235E5
+new Intl.NumberFormat("ga", {"notation":"scientific","maximumFractionDigits":0}).format(0.000345)	3E-4
+new Intl.NumberFormat("ga", {"notation":"engineering"}).format(123456.789)	123.457E3
+new Intl.NumberFormat("ga", {"notation":"engineering","minimumFractionDigits":2}).format(0.0000345)	34.50E-6
+new Intl.NumberFormat("ga", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"short"}).format(1234.5)	1,234.5 km/u
+new Intl.NumberFormat("ga", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"long"}).format(1)	1 km/u
+new Intl.NumberFormat("ga", {"style":"unit","unit":"celsius","unitDisplay":"narrow"}).format(-3.5)	-3.5°C
+new Intl.NumberFormat("ga", {"style":"unit","unit":"byte","unitDisplay":"long","notation":"compact"}).format(2500000)	2.5M beart
+new Intl.NumberFormat("ga", {"style":"currency","currency":"EUR","currencyDisplay":"code"}).format(1234.5)	EUR 1,234.50
+new Intl.NumberFormat("ga", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).format(1)	1.00 euro
+new Intl.NumberFormat("ga", {"style":"currency","currency":"USD","currencyDisplay":"narrowSymbol"}).format(-1234.567)	-$1,234.57
+new Intl.NumberFormat("ga", {"style":"currency","currency":"JPY","currencySign":"accounting"}).format(-5000)	(¥5,000)
+new Intl.NumberFormat("ga", {"signDisplay":"exceptZero"}).format(0)	0
+new Intl.NumberFormat("ga", {"signDisplay":"negative"}).format(0)	0
+new Intl.NumberFormat("ga", {"signDisplay":"always","style":"percent"}).format(0.256)	+26%
+new Intl.NumberFormat("ga", {"roundingMode":"halfEven","maximumFractionDigits":0}).format(2.5)	2
+new Intl.NumberFormat("ga", {"roundingMode":"floor","maximumFractionDigits":1}).format(-1.25)	-1.3
+new Intl.NumberFormat("ga", {"roundingIncrement":5,"minimumFractionDigits":2,"maximumFractionDigits":2}).format(1.23)	1.25
+new Intl.NumberFormat("ga", {"roundingIncrement":250,"maximumFractionDigits":0}).format(1234)	1,250
+new Intl.NumberFormat("ga", {"trailingZeroDisplay":"stripIfInteger","minimumFractionDigits":2}).format(12)	12
+new Intl.NumberFormat("ga", {"roundingPriority":"morePrecision","maximumSignificantDigits":3,"maximumFractionDigits":1}).format(1.2345)	1.23
+new Intl.NumberFormat("ga", {"useGrouping":"min2"}).format(1234)	1234
+new Intl.NumberFormat("ga", {}).format(12345678901234567890.123456789)	12,345,678,901,234,567,000
+new Intl.NumberFormat("ga", {"notation":"compact"}).format(123456789012345678901234567890)	123,456,789,012,345,680T
+JSON.stringify(new Intl.NumberFormat("ga", {"notation":"compact","compactDisplay":"long"}).formatToParts(1234567))	[{"type":"integer","value":"1"},{"type":"decimal","value":"."},{"type":"fraction","value":"2"},{"type":"literal","value":" "},{"type":"compact","value":"milliún"}]
+JSON.stringify(new Intl.NumberFormat("ga", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).formatToParts(-1234.5))	[{"type":"minusSign","value":"-"},{"type":"integer","value":"1"},{"type":"group","value":","},{"type":"integer","value":"234"},{"type":"decimal","value":"."},{"type":"fraction","value":"50"},{"type":"literal","value":" "},{"type":"currency","value":"euro"}]
+JSON.stringify(new Intl.NumberFormat("ga", {"notation":"scientific","signDisplay":"always"}).formatToParts(0.00123))	[{"type":"plusSign","value":"+"},{"type":"integer","value":"1"},{"type":"decimal","value":"."},{"type":"fraction","value":"23"},{"type":"exponentSeparator","value":"E"},{"type":"exponentMinusSign","value":"-"},{"type":"exponentInteger","value":"3"}]
+new Intl.NumberFormat("ga", {"style":"unit","unit":"meter","unitDisplay":"long"}).formatRange(1, 5)	1–5 mhéadar
+new Intl.NumberFormat("ga", {"style":"currency","currency":"EUR","maximumFractionDigits":0}).formatRange(3, 3.2)	~€3
+new Intl.NumberFormat("ga", {"notation":"compact"}).formatRange(1500, 2500000)	1.5k – 2.5M
+JSON.stringify(new Intl.NumberFormat("ga", {"maximumFractionDigits":0}).formatRangeToParts(10, 20))	[{"type":"integer","value":"10","source":"startRange"},{"type":"literal","value":"–","source":"shared"},{"type":"integer","value":"20","source":"endRange"}]
+new Intl.NumberFormat("gl", {"notation":"compact","compactDisplay":"short"}).format(1234567)	1,2 M
+new Intl.NumberFormat("gl", {"notation":"compact","compactDisplay":"long"}).format(1234567)	1,2 millóns
+new Intl.NumberFormat("gl", {"notation":"compact","compactDisplay":"short","maximumFractionDigits":2}).format(98765.4321)	98.765,43
+new Intl.NumberFormat("gl", {"notation":"scientific"}).format(123456.789)	1,235E5
+new Intl.NumberFormat("gl", {"notation":"scientific","maximumFractionDigits":0}).format(0.000345)	3E-4
+new Intl.NumberFormat("gl", {"notation":"engineering"}).format(123456.789)	123,457E3
+new Intl.NumberFormat("gl", {"notation":"engineering","minimumFractionDigits":2}).format(0.0000345)	34,50E-6
+new Intl.NumberFormat("gl", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"short"}).format(1234.5)	1.234,5 km/h
+new Intl.NumberFormat("gl", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"long"}).format(1)	1 quilómetro por hora
+new Intl.NumberFormat("gl", {"style":"unit","unit":"celsius","unitDisplay":"narrow"}).format(-3.5)	-3,5 °C
+new Intl.NumberFormat("gl", {"style":"unit","unit":"byte","unitDisplay":"long","notation":"compact"}).format(2500000)	2,5 M bytes
+new Intl.NumberFormat("gl", {"style":"currency","currency":"EUR","currencyDisplay":"code"}).format(1234.5)	1.234,50 EUR
+new Intl.NumberFormat("gl", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).format(1)	1,00 euros
+new Intl.NumberFormat("gl", {"style":"currency","currency":"USD","currencyDisplay":"narrowSymbol"}).format(-1234.567)	-1.234,57 $
+new Intl.NumberFormat("gl", {"style":"currency","currency":"JPY","currencySign":"accounting"}).format(-5000)	(5.000 JP¥)
+new Intl.NumberFormat("gl", {"signDisplay":"exceptZero"}).format(0)	0
+new Intl.NumberFormat("gl", {"signDisplay":"negative"}).format(0)	0
+new Intl.NumberFormat("gl", {"signDisplay":"always","style":"percent"}).format(0.256)	+26 %
+new Intl.NumberFormat("gl", {"roundingMode":"halfEven","maximumFractionDigits":0}).format(2.5)	2
+new Intl.NumberFormat("gl", {"roundingMode":"floor","maximumFractionDigits":1}).format(-1.25)	-1,3
+new Intl.NumberFormat("gl", {"roundingIncrement":5,"minimumFractionDigits":2,"maximumFractionDigits":2}).format(1.23)	1,25
+new Intl.NumberFormat("gl", {"roundingIncrement":250,"maximumFractionDigits":0}).format(1234)	1.250
+new Intl.NumberFormat("gl", {"trailingZeroDisplay":"stripIfInteger","minimumFractionDigits":2}).format(12)	12
+new Intl.NumberFormat("gl", {"roundingPriority":"morePrecision","maximumSignificantDigits":3,"maximumFractionDigits":1}).format(1.2345)	1,23
+new Intl.NumberFormat("gl", {"useGrouping":"min2"}).format(1234)	1234
+new Intl.NumberFormat("gl", {}).format(12345678901234567890.123456789)	12.345.678.901.234.567.000
+new Intl.NumberFormat("gl", {"notation":"compact"}).format(123456789012345678901234567890)	123.456.789.012.345.680 B
+JSON.stringify(new Intl.NumberFormat("gl", {"notation":"compact","compactDisplay":"long"}).formatToParts(1234567))	[{"type":"integer","value":"1"},{"type":"decimal","value":","},{"type":"fraction","value":"2"},{"type":"literal","value":" "},{"type":"compact","value":"millóns"}]
+JSON.stringify(new Intl.NumberFormat("gl", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).formatToParts(-1234.5))	[{"type":"minusSign","value":"-"},{"type":"integer","value":"1"},{"type":"group","value":"."},{"type":"integer","value":"234"},{"type":"decimal","value":","},{"type":"fraction","value":"50"},{"type":"literal","value":" "},{"type":"currency","value":"euros"}]
+JSON.stringify(new Intl.NumberFormat("gl", {"notation":"scientific","signDisplay":"always"}).formatToParts(0.00123))	[{"type":"plusSign","value":"+"},{"type":"integer","value":"1"},{"type":"decimal","value":","},{"type":"fraction","value":"23"},{"type":"exponentSeparator","value":"E"},{"type":"exponentMinusSign","value":"-"},{"type":"exponentInteger","value":"3"}]
+new Intl.NumberFormat("gl", {"style":"unit","unit":"meter","unitDisplay":"long"}).formatRange(1, 5)	1–5 metros
+new Intl.NumberFormat("gl", {"style":"currency","currency":"EUR","maximumFractionDigits":0}).formatRange(3, 3.2)	~3 €
+new Intl.NumberFormat("gl", {"notation":"compact"}).formatRange(1500, 2500000)	1500–2,5 M
+JSON.stringify(new Intl.NumberFormat("gl", {"maximumFractionDigits":0}).formatRangeToParts(10, 20))	[{"type":"integer","value":"10","source":"startRange"},{"type":"literal","value":"–","source":"shared"},{"type":"integer","value":"20","source":"endRange"}]
+new Intl.NumberFormat("eu", {"notation":"compact","compactDisplay":"short"}).format(1234567)	1,2 M
+new Intl.NumberFormat("eu", {"notation":"compact","compactDisplay":"long"}).format(1234567)	1,2 milioi
+new Intl.NumberFormat("eu", {"notation":"compact","compactDisplay":"short","maximumFractionDigits":2}).format(98765.4321)	98.765,43
+new Intl.NumberFormat("eu", {"notation":"scientific"}).format(123456.789)	1,235E5
+new Intl.NumberFormat("eu", {"notation":"scientific","maximumFractionDigits":0}).format(0.000345)	3E−4
+new Intl.NumberFormat("eu", {"notation":"engineering"}).format(123456.789)	123,457E3
+new Intl.NumberFormat("eu", {"notation":"engineering","minimumFractionDigits":2}).format(0.0000345)	34,50E−6
+new Intl.NumberFormat("eu", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"short"}).format(1234.5)	1.234,5 km/h
+new Intl.NumberFormat("eu", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"long"}).format(1)	1 kilometro orduko
+new Intl.NumberFormat("eu", {"style":"unit","unit":"celsius","unitDisplay":"narrow"}).format(-3.5)	−3,5 °C
+new Intl.NumberFormat("eu", {"style":"unit","unit":"byte","unitDisplay":"long","notation":"compact"}).format(2500000)	2,5 M byte
+new Intl.NumberFormat("eu", {"style":"currency","currency":"EUR","currencyDisplay":"code"}).format(1234.5)	1.234,50 EUR
+new Intl.NumberFormat("eu", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).format(1)	1,00 euro
+new Intl.NumberFormat("eu", {"style":"currency","currency":"USD","currencyDisplay":"narrowSymbol"}).format(-1234.567)	−1.234,57 $
+new Intl.NumberFormat("eu", {"style":"currency","currency":"JPY","currencySign":"accounting"}).format(-5000)	(5.000 JP¥)
+new Intl.NumberFormat("eu", {"signDisplay":"exceptZero"}).format(0)	0
+new Intl.NumberFormat("eu", {"signDisplay":"negative"}).format(0)	0
+new Intl.NumberFormat("eu", {"signDisplay":"always","style":"percent"}).format(0.256)	+% 26
+new Intl.NumberFormat("eu", {"roundingMode":"halfEven","maximumFractionDigits":0}).format(2.5)	2
+new Intl.NumberFormat("eu", {"roundingMode":"floor","maximumFractionDigits":1}).format(-1.25)	−1,3
+new Intl.NumberFormat("eu", {"roundingIncrement":5,"minimumFractionDigits":2,"maximumFractionDigits":2}).format(1.23)	1,25
+new Intl.NumberFormat("eu", {"roundingIncrement":250,"maximumFractionDigits":0}).format(1234)	1.250
+new Intl.NumberFormat("eu", {"trailingZeroDisplay":"stripIfInteger","minimumFractionDigits":2}).format(12)	12
+new Intl.NumberFormat("eu", {"roundingPriority":"morePrecision","maximumSignificantDigits":3,"maximumFractionDigits":1}).format(1.2345)	1,23
+new Intl.NumberFormat("eu", {"useGrouping":"min2"}).format(1234)	1234
+new Intl.NumberFormat("eu", {}).format(12345678901234567890.123456789)	12.345.678.901.234.567.000
+new Intl.NumberFormat("eu", {"notation":"compact"}).format(123456789012345678901234567890)	123.456.789.012.345.680 B
+JSON.stringify(new Intl.NumberFormat("eu", {"notation":"compact","compactDisplay":"long"}).formatToParts(1234567))	[{"type":"integer","value":"1"},{"type":"decimal","value":","},{"type":"fraction","value":"2"},{"type":"literal","value":" "},{"type":"compact","value":"milioi"}]
+JSON.stringify(new Intl.NumberFormat("eu", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).formatToParts(-1234.5))	[{"type":"minusSign","value":"−"},{"type":"integer","value":"1"},{"type":"group","value":"."},{"type":"integer","value":"234"},{"type":"decimal","value":","},{"type":"fraction","value":"50"},{"type":"literal","value":" "},{"type":"currency","value":"euro"}]
+JSON.stringify(new Intl.NumberFormat("eu", {"notation":"scientific","signDisplay":"always"}).formatToParts(0.00123))	[{"type":"plusSign","value":"+"},{"type":"integer","value":"1"},{"type":"decimal","value":","},{"type":"fraction","value":"23"},{"type":"exponentSeparator","value":"E"},{"type":"exponentMinusSign","value":"−"},{"type":"exponentInteger","value":"3"}]
+new Intl.NumberFormat("eu", {"style":"unit","unit":"meter","unitDisplay":"long"}).formatRange(1, 5)	1-5 metro
+new Intl.NumberFormat("eu", {"style":"currency","currency":"EUR","maximumFractionDigits":0}).formatRange(3, 3.2)	~3 €
+new Intl.NumberFormat("eu", {"notation":"compact"}).formatRange(1500, 2500000)	1500-2,5 M
+JSON.stringify(new Intl.NumberFormat("eu", {"maximumFractionDigits":0}).formatRangeToParts(10, 20))	[{"type":"integer","value":"10","source":"startRange"},{"type":"literal","value":"-","source":"shared"},{"type":"integer","value":"20","source":"endRange"}]
+new Intl.NumberFormat("is", {"notation":"compact","compactDisplay":"short"}).format(1234567)	1,2 m.
+new Intl.NumberFormat("is", {"notation":"compact","compactDisplay":"long"}).format(1234567)	1,2 milljónir
+new Intl.NumberFormat("is", {"notation":"compact","compactDisplay":"short","maximumFractionDigits":2}).format(98765.4321)	98,77 þ.
+new Intl.NumberFormat("is", {"notation":"scientific"}).format(123456.789)	1,235E5
+new Intl.NumberFormat("is", {"notation":"scientific","maximumFractionDigits":0}).format(0.000345)	3E-4
+new Intl.NumberFormat("is", {"notation":"engineering"}).format(123456.789)	123,457E3
+new Intl.NumberFormat("is", {"notation":"engineering","minimumFractionDigits":2}).format(0.0000345)	34,50E-6
+new Intl.NumberFormat("is", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"short"}).format(1234.5)	1.234,5 km/klst.
+new Intl.NumberFormat("is", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"long"}).format(1)	1 kílómetri á klukkustund
+new Intl.NumberFormat("is", {"style":"unit","unit":"celsius","unitDisplay":"narrow"}).format(-3.5)	-3,5°C
+new Intl.NumberFormat("is", {"style":"unit","unit":"byte","unitDisplay":"long","notation":"compact"}).format(2500000)	2,5 m. bæti
+new Intl.NumberFormat("is", {"style":"currency","currency":"EUR","currencyDisplay":"code"}).format(1234.5)	1.234,50 EUR
+new Intl.NumberFormat("is", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).format(1)	1,00 evra
+new Intl.NumberFormat("is", {"style":"currency","currency":"USD","currencyDisplay":"narrowSymbol"}).format(-1234.567)	-1.234,57 $
+new Intl.NumberFormat("is", {"style":"currency","currency":"JPY","currencySign":"accounting"}).format(-5000)	-5.000 JP¥
+new Intl.NumberFormat("is", {"signDisplay":"exceptZero"}).format(0)	0
+new Intl.NumberFormat("is", {"signDisplay":"negative"}).format(0)	0
+new Intl.NumberFormat("is", {"signDisplay":"always","style":"percent"}).format(0.256)	+26%
+new Intl.NumberFormat("is", {"roundingMode":"halfEven","maximumFractionDigits":0}).format(2.5)	2
+new Intl.NumberFormat("is", {"roundingMode":"floor","maximumFractionDigits":1}).format(-1.25)	-1,3
+new Intl.NumberFormat("is", {"roundingIncrement":5,"minimumFractionDigits":2,"maximumFractionDigits":2}).format(1.23)	1,25
+new Intl.NumberFormat("is", {"roundingIncrement":250,"maximumFractionDigits":0}).format(1234)	1.250
+new Intl.NumberFormat("is", {"trailingZeroDisplay":"stripIfInteger","minimumFractionDigits":2}).format(12)	12
+new Intl.NumberFormat("is", {"roundingPriority":"morePrecision","maximumSignificantDigits":3,"maximumFractionDigits":1}).format(1.2345)	1,23
+new Intl.NumberFormat("is", {"useGrouping":"min2"}).format(1234)	1234
+new Intl.NumberFormat("is", {}).format(12345678901234567890.123456789)	12.345.678.901.234.567.000
+new Intl.NumberFormat("is", {"notation":"compact"}).format(123456789012345678901234567890)	123.456.789.012.345.680 bn
+JSON.stringify(new Intl.NumberFormat("is", {"notation":"compact","compactDisplay":"long"}).formatToParts(1234567))	[{"type":"integer","value":"1"},{"type":"decimal","value":","},{"type":"fraction","value":"2"},{"type":"literal","value":" "},{"type":"compact","value":"milljónir"}]
+JSON.stringify(new Intl.NumberFormat("is", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).formatToParts(-1234.5))	[{"type":"minusSign","value":"-"},{"type":"integer","value":"1"},{"type":"group","value":"."},{"type":"integer","value":"234"},{"type":"decimal","value":","},{"type":"fraction","value":"50"},{"type":"literal","value":" "},{"type":"currency","value":"evrur"}]
+JSON.stringify(new Intl.NumberFormat("is", {"notation":"scientific","signDisplay":"always"}).formatToParts(0.00123))	[{"type":"plusSign","value":"+"},{"type":"integer","value":"1"},{"type":"decimal","value":","},{"type":"fraction","value":"23"},{"type":"exponentSeparator","value":"E"},{"type":"exponentMinusSign","value":"-"},{"type":"exponentInteger","value":"3"}]
+new Intl.NumberFormat("is", {"style":"unit","unit":"meter","unitDisplay":"long"}).formatRange(1, 5)	1–5 metrar
+new Intl.NumberFormat("is", {"style":"currency","currency":"EUR","maximumFractionDigits":0}).formatRange(3, 3.2)	~3 EUR
+new Intl.NumberFormat("is", {"notation":"compact"}).formatRange(1500, 2500000)	1,5 þ. – 2,5 m.
+JSON.stringify(new Intl.NumberFormat("is", {"maximumFractionDigits":0}).formatRangeToParts(10, 20))	[{"type":"integer","value":"10","source":"startRange"},{"type":"literal","value":"–","source":"shared"},{"type":"integer","value":"20","source":"endRange"}]
+new Intl.NumberFormat("br", {"notation":"compact","compactDisplay":"short"}).format(1234567)	1,2M
+new Intl.NumberFormat("br", {"notation":"compact","compactDisplay":"long"}).format(1234567)	1,2 milion
+new Intl.NumberFormat("br", {"notation":"compact","compactDisplay":"short","maximumFractionDigits":2}).format(98765.4321)	98,77k
+new Intl.NumberFormat("br", {"notation":"scientific"}).format(123456.789)	1,235E5
+new Intl.NumberFormat("br", {"notation":"scientific","maximumFractionDigits":0}).format(0.000345)	3E-4
+new Intl.NumberFormat("br", {"notation":"engineering"}).format(123456.789)	123,457E3
+new Intl.NumberFormat("br", {"notation":"engineering","minimumFractionDigits":2}).format(0.0000345)	34,50E-6
+new Intl.NumberFormat("br", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"short"}).format(1234.5)	1 234,5 km/h
+new Intl.NumberFormat("br", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"long"}).format(1)	1 c'hilometr dre eur
+new Intl.NumberFormat("br", {"style":"unit","unit":"celsius","unitDisplay":"narrow"}).format(-3.5)	-3,5°C
+new Intl.NumberFormat("br", {"style":"unit","unit":"byte","unitDisplay":"long","notation":"compact"}).format(2500000)	2,5M okted
+new Intl.NumberFormat("br", {"style":"currency","currency":"EUR","currencyDisplay":"code"}).format(1234.5)	1 234,50 EUR
+new Intl.NumberFormat("br", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).format(1)	1,00 euro
+new Intl.NumberFormat("br", {"style":"currency","currency":"USD","currencyDisplay":"narrowSymbol"}).format(-1234.567)	-1 234,57 $
+new Intl.NumberFormat("br", {"style":"currency","currency":"JPY","currencySign":"accounting"}).format(-5000)	(5 000 JPY)
+new Intl.NumberFormat("br", {"signDisplay":"exceptZero"}).format(0)	0
+new Intl.NumberFormat("br", {"signDisplay":"negative"}).format(0)	0
+new Intl.NumberFormat("br", {"signDisplay":"always","style":"percent"}).format(0.256)	+26 %
+new Intl.NumberFormat("br", {"roundingMode":"halfEven","maximumFractionDigits":0}).format(2.5)	2
+new Intl.NumberFormat("br", {"roundingMode":"floor","maximumFractionDigits":1}).format(-1.25)	-1,3
+new Intl.NumberFormat("br", {"roundingIncrement":5,"minimumFractionDigits":2,"maximumFractionDigits":2}).format(1.23)	1,25
+new Intl.NumberFormat("br", {"roundingIncrement":250,"maximumFractionDigits":0}).format(1234)	1 250
+new Intl.NumberFormat("br", {"trailingZeroDisplay":"stripIfInteger","minimumFractionDigits":2}).format(12)	12
+new Intl.NumberFormat("br", {"roundingPriority":"morePrecision","maximumSignificantDigits":3,"maximumFractionDigits":1}).format(1.2345)	1,23
+new Intl.NumberFormat("br", {"useGrouping":"min2"}).format(1234)	1234
+new Intl.NumberFormat("br", {}).format(12345678901234567890.123456789)	12 345 678 901 234 567 000
+new Intl.NumberFormat("br", {"notation":"compact"}).format(123456789012345678901234567890)	123 456 789 012 345 680T
+JSON.stringify(new Intl.NumberFormat("br", {"notation":"compact","compactDisplay":"long"}).formatToParts(1234567))	[{"type":"integer","value":"1"},{"type":"decimal","value":","},{"type":"fraction","value":"2"},{"type":"literal","value":" "},{"type":"compact","value":"milion"}]
+JSON.stringify(new Intl.NumberFormat("br", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).formatToParts(-1234.5))	[{"type":"minusSign","value":"-"},{"type":"integer","value":"1"},{"type":"group","value":" "},{"type":"integer","value":"234"},{"type":"decimal","value":","},{"type":"fraction","value":"50"},{"type":"literal","value":" "},{"type":"currency","value":"euro"}]
+JSON.stringify(new Intl.NumberFormat("br", {"notation":"scientific","signDisplay":"always"}).formatToParts(0.00123))	[{"type":"plusSign","value":"+"},{"type":"integer","value":"1"},{"type":"decimal","value":","},{"type":"fraction","value":"23"},{"type":"exponentSeparator","value":"E"},{"type":"exponentMinusSign","value":"-"},{"type":"exponentInteger","value":"3"}]
+new Intl.NumberFormat("br", {"style":"unit","unit":"meter","unitDisplay":"long"}).formatRange(1, 5)	1–5 metr
+new Intl.NumberFormat("br", {"style":"currency","currency":"EUR","maximumFractionDigits":0}).formatRange(3, 3.2)	~3 €
+new Intl.NumberFormat("br", {"notation":"compact"}).formatRange(1500, 2500000)	1,5k – 2,5M
+JSON.stringify(new Intl.NumberFormat("br", {"maximumFractionDigits":0}).formatRangeToParts(10, 20))	[{"type":"integer","value":"10","source":"startRange"},{"type":"literal","value":"–","source":"shared"},{"type":"integer","value":"20","source":"endRange"}]
+new Intl.NumberFormat("fy", {"notation":"compact","compactDisplay":"short"}).format(1234567)	1,2 mln.
+new Intl.NumberFormat("fy", {"notation":"compact","compactDisplay":"long"}).format(1234567)	1,2 miljoen
+new Intl.NumberFormat("fy", {"notation":"compact","compactDisplay":"short","maximumFractionDigits":2}).format(98765.4321)	98,77K
+new Intl.NumberFormat("fy", {"notation":"scientific"}).format(123456.789)	1,235E5
+new Intl.NumberFormat("fy", {"notation":"scientific","maximumFractionDigits":0}).format(0.000345)	3E-4
+new Intl.NumberFormat("fy", {"notation":"engineering"}).format(123456.789)	123,457E3
+new Intl.NumberFormat("fy", {"notation":"engineering","minimumFractionDigits":2}).format(0.0000345)	34,50E-6
+new Intl.NumberFormat("fy", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"short"}).format(1234.5)	1.234,5 km/h
+new Intl.NumberFormat("fy", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"long"}).format(1)	1 kilometer de oere
+new Intl.NumberFormat("fy", {"style":"unit","unit":"celsius","unitDisplay":"narrow"}).format(-3.5)	-3,5°
+new Intl.NumberFormat("fy", {"style":"unit","unit":"byte","unitDisplay":"long","notation":"compact"}).format(2500000)	2,5 mln. byte
+new Intl.NumberFormat("fy", {"style":"currency","currency":"EUR","currencyDisplay":"code"}).format(1234.5)	EUR 1.234,50
+new Intl.NumberFormat("fy", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).format(1)	1,00 euro
+new Intl.NumberFormat("fy", {"style":"currency","currency":"USD","currencyDisplay":"narrowSymbol"}).format(-1234.567)	$ 1.234,57-
+new Intl.NumberFormat("fy", {"style":"currency","currency":"JPY","currencySign":"accounting"}).format(-5000)	(JP¥ 5.000)
+new Intl.NumberFormat("fy", {"signDisplay":"exceptZero"}).format(0)	0
+new Intl.NumberFormat("fy", {"signDisplay":"negative"}).format(0)	0
+new Intl.NumberFormat("fy", {"signDisplay":"always","style":"percent"}).format(0.256)	+26%
+new Intl.NumberFormat("fy", {"roundingMode":"halfEven","maximumFractionDigits":0}).format(2.5)	2
+new Intl.NumberFormat("fy", {"roundingMode":"floor","maximumFractionDigits":1}).format(-1.25)	-1,3
+new Intl.NumberFormat("fy", {"roundingIncrement":5,"minimumFractionDigits":2,"maximumFractionDigits":2}).format(1.23)	1,25
+new Intl.NumberFormat("fy", {"roundingIncrement":250,"maximumFractionDigits":0}).format(1234)	1.250
+new Intl.NumberFormat("fy", {"trailingZeroDisplay":"stripIfInteger","minimumFractionDigits":2}).format(12)	12
+new Intl.NumberFormat("fy", {"roundingPriority":"morePrecision","maximumSignificantDigits":3,"maximumFractionDigits":1}).format(1.2345)	1,23
+new Intl.NumberFormat("fy", {"useGrouping":"min2"}).format(1234)	1234
+new Intl.NumberFormat("fy", {}).format(12345678901234567890.123456789)	12.345.678.901.234.567.000
+new Intl.NumberFormat("fy", {"notation":"compact"}).format(123456789012345678901234567890)	123.456.789.012.345.680 bln.
+JSON.stringify(new Intl.NumberFormat("fy", {"notation":"compact","compactDisplay":"long"}).formatToParts(1234567))	[{"type":"integer","value":"1"},{"type":"decimal","value":","},{"type":"fraction","value":"2"},{"type":"literal","value":" "},{"type":"compact","value":"miljoen"}]
+JSON.stringify(new Intl.NumberFormat("fy", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).formatToParts(-1234.5))	[{"type":"minusSign","value":"-"},{"type":"integer","value":"1"},{"type":"group","value":"."},{"type":"integer","value":"234"},{"type":"decimal","value":","},{"type":"fraction","value":"50"},{"type":"literal","value":" "},{"type":"currency","value":"euro"}]
+JSON.stringify(new Intl.NumberFormat("fy", {"notation":"scientific","signDisplay":"always"}).formatToParts(0.00123))	[{"type":"plusSign","value":"+"},{"type":"integer","value":"1"},{"type":"decimal","value":","},{"type":"fraction","value":"23"},{"type":"exponentSeparator","value":"E"},{"type":"exponentMinusSign","value":"-"},{"type":"exponentInteger","value":"3"}]
+new Intl.NumberFormat("fy", {"style":"unit","unit":"meter","unitDisplay":"long"}).formatRange(1, 5)	1-5 meter
+new Intl.NumberFormat("fy", {"style":"currency","currency":"EUR","maximumFractionDigits":0}).formatRange(3, 3.2)	€ 3~
+new Intl.NumberFormat("fy", {"notation":"compact"}).formatRange(1500, 2500000)	1,5K - 2,5 mln.
+JSON.stringify(new Intl.NumberFormat("fy", {"maximumFractionDigits":0}).formatRangeToParts(10, 20))	[{"type":"integer","value":"10","source":"startRange"},{"type":"literal","value":"-","source":"shared"},{"type":"integer","value":"20","source":"endRange"}]
+new Intl.NumberFormat("si", {"notation":"compact","compactDisplay":"short"}).format(1234567)	මි1.2
+new Intl.NumberFormat("si", {"notation":"compact","compactDisplay":"long"}).format(1234567)	මිලියන 1.2
+new Intl.NumberFormat("si", {"notation":"compact","compactDisplay":"short","maximumFractionDigits":2}).format(98765.4321)	ද98.77
+new Intl.NumberFormat("si", {"notation":"scientific"}).format(123456.789)	1.235E5
+new Intl.NumberFormat("si", {"notation":"scientific","maximumFractionDigits":0}).format(0.000345)	3E-4
+new Intl.NumberFormat("si", {"notation":"engineering"}).format(123456.789)	123.457E3
+new Intl.NumberFormat("si", {"notation":"engineering","minimumFractionDigits":2}).format(0.0000345)	34.50E-6
+new Intl.NumberFormat("si", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"short"}).format(1234.5)	කිමී/පැ 1,234.5
+new Intl.NumberFormat("si", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"long"}).format(1)	පැයට කිලෝමීටර් 1
+new Intl.NumberFormat("si", {"style":"unit","unit":"celsius","unitDisplay":"narrow"}).format(-3.5)	-3.5°
+new Intl.NumberFormat("si", {"style":"unit","unit":"byte","unitDisplay":"long","notation":"compact"}).format(2500000)	බයිට් මි2.5
+new Intl.NumberFormat("si", {"style":"currency","currency":"EUR","currencyDisplay":"code"}).format(1234.5)	EUR 1,234.50
+new Intl.NumberFormat("si", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).format(1)	යුරෝ1.00
+new Intl.NumberFormat("si", {"style":"currency","currency":"USD","currencyDisplay":"narrowSymbol"}).format(-1234.567)	-$1,234.57
+new Intl.NumberFormat("si", {"style":"currency","currency":"JPY","currencySign":"accounting"}).format(-5000)	(JP¥5,000)
+new Intl.NumberFormat("si", {"signDisplay":"exceptZero"}).format(0)	0
+new Intl.NumberFormat("si", {"signDisplay":"negative"}).format(0)	0
+new Intl.NumberFormat("si", {"signDisplay":"always","style":"percent"}).format(0.256)	+26%
+new Intl.NumberFormat("si", {"roundingMode":"halfEven","maximumFractionDigits":0}).format(2.5)	2
+new Intl.NumberFormat("si", {"roundingMode":"floor","maximumFractionDigits":1}).format(-1.25)	-1.3
+new Intl.NumberFormat("si", {"roundingIncrement":5,"minimumFractionDigits":2,"maximumFractionDigits":2}).format(1.23)	1.25
+new Intl.NumberFormat("si", {"roundingIncrement":250,"maximumFractionDigits":0}).format(1234)	1,250
+new Intl.NumberFormat("si", {"trailingZeroDisplay":"stripIfInteger","minimumFractionDigits":2}).format(12)	12
+new Intl.NumberFormat("si", {"roundingPriority":"morePrecision","maximumSignificantDigits":3,"maximumFractionDigits":1}).format(1.2345)	1.23
+new Intl.NumberFormat("si", {"useGrouping":"min2"}).format(1234)	1234
+new Intl.NumberFormat("si", {}).format(12345678901234567890.123456789)	12,345,678,901,234,567,000
+new Intl.NumberFormat("si", {"notation":"compact"}).format(123456789012345678901234567890)	ට්‍රි123,456,789,012,345,680
+JSON.stringify(new Intl.NumberFormat("si", {"notation":"compact","compactDisplay":"long"}).formatToParts(1234567))	[{"type":"compact","value":"මිලියන"},{"type":"literal","value":" "},{"type":"integer","value":"1"},{"type":"decimal","value":"."},{"type":"fraction","value":"2"}]
+JSON.stringify(new Intl.NumberFormat("si", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).formatToParts(-1234.5))	[{"type":"currency","value":"යුරෝ"},{"type":"minusSign","value":"-"},{"type":"integer","value":"1"},{"type":"group","value":","},{"type":"integer","value":"234"},{"type":"decimal","value":"."},{"type":"fraction","value":"50"}]
+JSON.stringify(new Intl.NumberFormat("si", {"notation":"scientific","signDisplay":"always"}).formatToParts(0.00123))	[{"type":"plusSign","value":"+"},{"type":"integer","value":"1"},{"type":"decimal","value":"."},{"type":"fraction","value":"23"},{"type":"exponentSeparator","value":"E"},{"type":"exponentMinusSign","value":"-"},{"type":"exponentInteger","value":"3"}]
+new Intl.NumberFormat("si", {"style":"unit","unit":"meter","unitDisplay":"long"}).formatRange(1, 5)	මීටර් 1–5
+new Intl.NumberFormat("si", {"style":"currency","currency":"EUR","maximumFractionDigits":0}).formatRange(3, 3.2)	~€3
+new Intl.NumberFormat("si", {"notation":"compact"}).formatRange(1500, 2500000)	ද1.5 – මි2.5
+JSON.stringify(new Intl.NumberFormat("si", {"maximumFractionDigits":0}).formatRangeToParts(10, 20))	[{"type":"integer","value":"10","source":"startRange"},{"type":"literal","value":"–","source":"shared"},{"type":"integer","value":"20","source":"endRange"}]
+new Intl.NumberFormat("ne", {"notation":"compact","compactDisplay":"short"}).format(1234567)	१२ लाख
+new Intl.NumberFormat("ne", {"notation":"compact","compactDisplay":"long"}).format(1234567)	१.२ करोड
+new Intl.NumberFormat("ne", {"notation":"compact","compactDisplay":"short","maximumFractionDigits":2}).format(98765.4321)	९८.७७ हजार
+new Intl.NumberFormat("ne", {"notation":"scientific"}).format(123456.789)	१.२३५E५
+new Intl.NumberFormat("ne", {"notation":"scientific","maximumFractionDigits":0}).format(0.000345)	३E-४
+new Intl.NumberFormat("ne", {"notation":"engineering"}).format(123456.789)	१२३.४५७E३
+new Intl.NumberFormat("ne", {"notation":"engineering","minimumFractionDigits":2}).format(0.0000345)	३४.५०E-६
+new Intl.NumberFormat("ne", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"short"}).format(1234.5)	१,२३४.५ kph
+new Intl.NumberFormat("ne", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"long"}).format(1)	१ किलोमिटर प्रति घण्टा
+new Intl.NumberFormat("ne", {"style":"unit","unit":"celsius","unitDisplay":"narrow"}).format(-3.5)	-३.५°से
+new Intl.NumberFormat("ne", {"style":"unit","unit":"byte","unitDisplay":"long","notation":"compact"}).format(2500000)	२५ लाखबाइट
+new Intl.NumberFormat("ne", {"style":"currency","currency":"EUR","currencyDisplay":"code"}).format(1234.5)	EUR १,२३४.५०
+new Intl.NumberFormat("ne", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).format(1)	१.०० युरो
+new Intl.NumberFormat("ne", {"style":"currency","currency":"USD","currencyDisplay":"narrowSymbol"}).format(-1234.567)	-$ १,२३४.५७
+new Intl.NumberFormat("ne", {"style":"currency","currency":"JPY","currencySign":"accounting"}).format(-5000)	-JP¥ ५,०००
+new Intl.NumberFormat("ne", {"signDisplay":"exceptZero"}).format(0)	०
+new Intl.NumberFormat("ne", {"signDisplay":"negative"}).format(0)	०
+new Intl.NumberFormat("ne", {"signDisplay":"always","style":"percent"}).format(0.256)	+२६%
+new Intl.NumberFormat("ne", {"roundingMode":"halfEven","maximumFractionDigits":0}).format(2.5)	२
+new Intl.NumberFormat("ne", {"roundingMode":"floor","maximumFractionDigits":1}).format(-1.25)	-१.३
+new Intl.NumberFormat("ne", {"roundingIncrement":5,"minimumFractionDigits":2,"maximumFractionDigits":2}).format(1.23)	१.२५
+new Intl.NumberFormat("ne", {"roundingIncrement":250,"maximumFractionDigits":0}).format(1234)	१,२५०
+new Intl.NumberFormat("ne", {"trailingZeroDisplay":"stripIfInteger","minimumFractionDigits":2}).format(12)	१२
+new Intl.NumberFormat("ne", {"roundingPriority":"morePrecision","maximumSignificantDigits":3,"maximumFractionDigits":1}).format(1.2345)	१.२३
+new Intl.NumberFormat("ne", {"useGrouping":"min2"}).format(1234)	१२३४
+new Intl.NumberFormat("ne", {}).format(12345678901234567890.123456789)	१,२३,४५,६७,८९,०१,२३,४५,६७,०००
+new Intl.NumberFormat("ne", {"notation":"compact"}).format(123456789012345678901234567890)	१२,३४,५६,७८,९०,१२,३४,५६८ शंख
+JSON.stringify(new Intl.NumberFormat("ne", {"notation":"compact","compactDisplay":"long"}).formatToParts(1234567))	[{"type":"integer","value":"१"},{"type":"decimal","value":"."},{"type":"fraction","value":"२"},{"type":"literal","value":" "},{"type":"compact","value":"करोड"}]
+JSON.stringify(new Intl.NumberFormat("ne", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).formatToParts(-1234.5))	[{"type":"minusSign","value":"-"},{"type":"integer","value":"१"},{"type":"group","value":","},{"type":"integer","value":"२३४"},{"type":"decimal","value":"."},{"type":"fraction","value":"५०"},{"type":"literal","value":" "},{"type":"currency","value":"युरो"}]
+JSON.stringify(new Intl.NumberFormat("ne", {"notation":"scientific","signDisplay":"always"}).formatToParts(0.00123))	[{"type":"plusSign","value":"+"},{"type":"integer","value":"१"},{"type":"decimal","value":"."},{"type":"fraction","value":"२३"},{"type":"exponentSeparator","value":"E"},{"type":"exponentMinusSign","value":"-"},{"type":"exponentInteger","value":"३"}]
+new Intl.NumberFormat("ne", {"style":"unit","unit":"meter","unitDisplay":"long"}).formatRange(1, 5)	१–५ मिटर
+new Intl.NumberFormat("ne", {"style":"currency","currency":"EUR","maximumFractionDigits":0}).formatRange(3, 3.2)	~€ ३
+new Intl.NumberFormat("ne", {"notation":"compact"}).formatRange(1500, 2500000)	१.५ हजार – २५ लाख
+JSON.stringify(new Intl.NumberFormat("ne", {"maximumFractionDigits":0}).formatRangeToParts(10, 20))	[{"type":"integer","value":"१०","source":"startRange"},{"type":"literal","value":"–","source":"shared"},{"type":"integer","value":"२०","source":"endRange"}]
+new Intl.NumberFormat("bo", {"notation":"compact","compactDisplay":"short"}).format(1234567)	1.2M
+new Intl.NumberFormat("bo", {"notation":"compact","compactDisplay":"long"}).format(1234567)	1.2M
+new Intl.NumberFormat("bo", {"notation":"compact","compactDisplay":"short","maximumFractionDigits":2}).format(98765.4321)	98.77K
+new Intl.NumberFormat("bo", {"notation":"scientific"}).format(123456.789)	1.235E5
+new Intl.NumberFormat("bo", {"notation":"scientific","maximumFractionDigits":0}).format(0.000345)	3E-4
+new Intl.NumberFormat("bo", {"notation":"engineering"}).format(123456.789)	123.457E3
+new Intl.NumberFormat("bo", {"notation":"engineering","minimumFractionDigits":2}).format(0.0000345)	34.50E-6
+new Intl.NumberFormat("bo", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"short"}).format(1234.5)	1,234.5 km/h
+new Intl.NumberFormat("bo", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"long"}).format(1)	1 km/h
+new Intl.NumberFormat("bo", {"style":"unit","unit":"celsius","unitDisplay":"narrow"}).format(-3.5)	-3.5°C
+new Intl.NumberFormat("bo", {"style":"unit","unit":"byte","unitDisplay":"long","notation":"compact"}).format(2500000)	2.5M byte
+new Intl.NumberFormat("bo", {"style":"currency","currency":"EUR","currencyDisplay":"code"}).format(1234.5)	EUR 1,234.50
+new Intl.NumberFormat("bo", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).format(1)	1.00 EUR
+new Intl.NumberFormat("bo", {"style":"currency","currency":"USD","currencyDisplay":"narrowSymbol"}).format(-1234.567)	-$ 1,234.57
+new Intl.NumberFormat("bo", {"style":"currency","currency":"JPY","currencySign":"accounting"}).format(-5000)	-JP¥ 5,000
+new Intl.NumberFormat("bo", {"signDisplay":"exceptZero"}).format(0)	0
+new Intl.NumberFormat("bo", {"signDisplay":"negative"}).format(0)	0
+new Intl.NumberFormat("bo", {"signDisplay":"always","style":"percent"}).format(0.256)	+26%
+new Intl.NumberFormat("bo", {"roundingMode":"halfEven","maximumFractionDigits":0}).format(2.5)	2
+new Intl.NumberFormat("bo", {"roundingMode":"floor","maximumFractionDigits":1}).format(-1.25)	-1.3
+new Intl.NumberFormat("bo", {"roundingIncrement":5,"minimumFractionDigits":2,"maximumFractionDigits":2}).format(1.23)	1.25
+new Intl.NumberFormat("bo", {"roundingIncrement":250,"maximumFractionDigits":0}).format(1234)	1,250
+new Intl.NumberFormat("bo", {"trailingZeroDisplay":"stripIfInteger","minimumFractionDigits":2}).format(12)	12
+new Intl.NumberFormat("bo", {"roundingPriority":"morePrecision","maximumSignificantDigits":3,"maximumFractionDigits":1}).format(1.2345)	1.23
+new Intl.NumberFormat("bo", {"useGrouping":"min2"}).format(1234)	1234
+new Intl.NumberFormat("bo", {}).format(12345678901234567890.123456789)	12,345,678,901,234,567,000
+new Intl.NumberFormat("bo", {"notation":"compact"}).format(123456789012345678901234567890)	123,456,789,012,345,680T
+JSON.stringify(new Intl.NumberFormat("bo", {"notation":"compact","compactDisplay":"long"}).formatToParts(1234567))	[{"type":"integer","value":"1"},{"type":"decimal","value":"."},{"type":"fraction","value":"2"},{"type":"compact","value":"M"}]
+JSON.stringify(new Intl.NumberFormat("bo", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).formatToParts(-1234.5))	[{"type":"minusSign","value":"-"},{"type":"integer","value":"1"},{"type":"group","value":","},{"type":"integer","value":"234"},{"type":"decimal","value":"."},{"type":"fraction","value":"50"},{"type":"literal","value":" "},{"type":"currency","value":"EUR"}]
+JSON.stringify(new Intl.NumberFormat("bo", {"notation":"scientific","signDisplay":"always"}).formatToParts(0.00123))	[{"type":"plusSign","value":"+"},{"type":"integer","value":"1"},{"type":"decimal","value":"."},{"type":"fraction","value":"23"},{"type":"exponentSeparator","value":"E"},{"type":"exponentMinusSign","value":"-"},{"type":"exponentInteger","value":"3"}]
+new Intl.NumberFormat("bo", {"style":"unit","unit":"meter","unitDisplay":"long"}).formatRange(1, 5)	1–5 m
+new Intl.NumberFormat("bo", {"style":"currency","currency":"EUR","maximumFractionDigits":0}).formatRange(3, 3.2)	~€ 3
+new Intl.NumberFormat("bo", {"notation":"compact"}).formatRange(1500, 2500000)	1.5K – 2.5M
+JSON.stringify(new Intl.NumberFormat("bo", {"maximumFractionDigits":0}).formatRangeToParts(10, 20))	[{"type":"integer","value":"10","source":"startRange"},{"type":"literal","value":"–","source":"shared"},{"type":"integer","value":"20","source":"endRange"}]
+new Intl.NumberFormat("ig", {"notation":"compact","compactDisplay":"short"}).format(1234567)	1.2M
+new Intl.NumberFormat("ig", {"notation":"compact","compactDisplay":"long"}).format(1234567)	1.2M
+new Intl.NumberFormat("ig", {"notation":"compact","compactDisplay":"short","maximumFractionDigits":2}).format(98765.4321)	98.77K
+new Intl.NumberFormat("ig", {"notation":"scientific"}).format(123456.789)	1.235E5
+new Intl.NumberFormat("ig", {"notation":"scientific","maximumFractionDigits":0}).format(0.000345)	3E-4
+new Intl.NumberFormat("ig", {"notation":"engineering"}).format(123456.789)	123.457E3
+new Intl.NumberFormat("ig", {"notation":"engineering","minimumFractionDigits":2}).format(0.0000345)	34.50E-6
+new Intl.NumberFormat("ig", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"short"}).format(1234.5)	1,234.5 km/h
+new Intl.NumberFormat("ig", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"long"}).format(1)	1 kilometers per hour
+new Intl.NumberFormat("ig", {"style":"unit","unit":"celsius","unitDisplay":"narrow"}).format(-3.5)	-3.5°C
+new Intl.NumberFormat("ig", {"style":"unit","unit":"byte","unitDisplay":"long","notation":"compact"}).format(2500000)	2.5M byte
+new Intl.NumberFormat("ig", {"style":"currency","currency":"EUR","currencyDisplay":"code"}).format(1234.5)	EUR 1,234.50
+new Intl.NumberFormat("ig", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).format(1)	1.00 euro
+new Intl.NumberFormat("ig", {"style":"currency","currency":"USD","currencyDisplay":"narrowSymbol"}).format(-1234.567)	-$1,234.57
+new Intl.NumberFormat("ig", {"style":"currency","currency":"JPY","currencySign":"accounting"}).format(-5000)	(¥5,000)
+new Intl.NumberFormat("ig", {"signDisplay":"exceptZero"}).format(0)	0
+new Intl.NumberFormat("ig", {"signDisplay":"negative"}).format(0)	0
+new Intl.NumberFormat("ig", {"signDisplay":"always","style":"percent"}).format(0.256)	+26%
+new Intl.NumberFormat("ig", {"roundingMode":"halfEven","maximumFractionDigits":0}).format(2.5)	2
+new Intl.NumberFormat("ig", {"roundingMode":"floor","maximumFractionDigits":1}).format(-1.25)	-1.3
+new Intl.NumberFormat("ig", {"roundingIncrement":5,"minimumFractionDigits":2,"maximumFractionDigits":2}).format(1.23)	1.25
+new Intl.NumberFormat("ig", {"roundingIncrement":250,"maximumFractionDigits":0}).format(1234)	1,250
+new Intl.NumberFormat("ig", {"trailingZeroDisplay":"stripIfInteger","minimumFractionDigits":2}).format(12)	12
+new Intl.NumberFormat("ig", {"roundingPriority":"morePrecision","maximumSignificantDigits":3,"maximumFractionDigits":1}).format(1.2345)	1.23
+new Intl.NumberFormat("ig", {"useGrouping":"min2"}).format(1234)	1234
+new Intl.NumberFormat("ig", {}).format(12345678901234567890.123456789)	12,345,678,901,234,567,000
+new Intl.NumberFormat("ig", {"notation":"compact"}).format(123456789012345678901234567890)	123,456,789,012,345,680T
+JSON.stringify(new Intl.NumberFormat("ig", {"notation":"compact","compactDisplay":"long"}).formatToParts(1234567))	[{"type":"integer","value":"1"},{"type":"decimal","value":"."},{"type":"fraction","value":"2"},{"type":"compact","value":"M"}]
+JSON.stringify(new Intl.NumberFormat("ig", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).formatToParts(-1234.5))	[{"type":"minusSign","value":"-"},{"type":"integer","value":"1"},{"type":"group","value":","},{"type":"integer","value":"234"},{"type":"decimal","value":"."},{"type":"fraction","value":"50"},{"type":"literal","value":" "},{"type":"currency","value":"euro"}]
+JSON.stringify(new Intl.NumberFormat("ig", {"notation":"scientific","signDisplay":"always"}).formatToParts(0.00123))	[{"type":"plusSign","value":"+"},{"type":"integer","value":"1"},{"type":"decimal","value":"."},{"type":"fraction","value":"23"},{"type":"exponentSeparator","value":"E"},{"type":"exponentMinusSign","value":"-"},{"type":"exponentInteger","value":"3"}]
+new Intl.NumberFormat("ig", {"style":"unit","unit":"meter","unitDisplay":"long"}).formatRange(1, 5)	1–5 mita
+new Intl.NumberFormat("ig", {"style":"currency","currency":"EUR","maximumFractionDigits":0}).formatRange(3, 3.2)	~€3
+new Intl.NumberFormat("ig", {"notation":"compact"}).formatRange(1500, 2500000)	1.5K – 2.5M
+JSON.stringify(new Intl.NumberFormat("ig", {"maximumFractionDigits":0}).formatRangeToParts(10, 20))	[{"type":"integer","value":"10","source":"startRange"},{"type":"literal","value":"–","source":"shared"},{"type":"integer","value":"20","source":"endRange"}]
+new Intl.NumberFormat("wo", {"notation":"compact","compactDisplay":"short"}).format(1234567)	1,2M
+new Intl.NumberFormat("wo", {"notation":"compact","compactDisplay":"long"}).format(1234567)	1,2M
+new Intl.NumberFormat("wo", {"notation":"compact","compactDisplay":"short","maximumFractionDigits":2}).format(98765.4321)	98,77K
+new Intl.NumberFormat("wo", {"notation":"scientific"}).format(123456.789)	1,235E5
+new Intl.NumberFormat("wo", {"notation":"scientific","maximumFractionDigits":0}).format(0.000345)	3E-4
+new Intl.NumberFormat("wo", {"notation":"engineering"}).format(123456.789)	123,457E3
+new Intl.NumberFormat("wo", {"notation":"engineering","minimumFractionDigits":2}).format(0.0000345)	34,50E-6
+new Intl.NumberFormat("wo", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"short"}).format(1234.5)	1.234,5 km/h
+new Intl.NumberFormat("wo", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"long"}).format(1)	1 km/h
+new Intl.NumberFormat("wo", {"style":"unit","unit":"celsius","unitDisplay":"narrow"}).format(-3.5)	-3,5°C
+new Intl.NumberFormat("wo", {"style":"unit","unit":"byte","unitDisplay":"long","notation":"compact"}).format(2500000)	2,5M byte
+new Intl.NumberFormat("wo", {"style":"currency","currency":"EUR","currencyDisplay":"code"}).format(1234.5)	EUR 1.234,50
+new Intl.NumberFormat("wo", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).format(1)	1,00 Euro
+new Intl.NumberFormat("wo", {"style":"currency","currency":"USD","currencyDisplay":"narrowSymbol"}).format(-1234.567)	-$ 1.234,57
+new Intl.NumberFormat("wo", {"style":"currency","currency":"JPY","currencySign":"accounting"}).format(-5000)	-JP¥ 5.000
+new Intl.NumberFormat("wo", {"signDisplay":"exceptZero"}).format(0)	0
+new Intl.NumberFormat("wo", {"signDisplay":"negative"}).format(0)	0
+new Intl.NumberFormat("wo", {"signDisplay":"always","style":"percent"}).format(0.256)	+26%
+new Intl.NumberFormat("wo", {"roundingMode":"halfEven","maximumFractionDigits":0}).format(2.5)	2
+new Intl.NumberFormat("wo", {"roundingMode":"floor","maximumFractionDigits":1}).format(-1.25)	-1,3
+new Intl.NumberFormat("wo", {"roundingIncrement":5,"minimumFractionDigits":2,"maximumFractionDigits":2}).format(1.23)	1,25
+new Intl.NumberFormat("wo", {"roundingIncrement":250,"maximumFractionDigits":0}).format(1234)	1.250
+new Intl.NumberFormat("wo", {"trailingZeroDisplay":"stripIfInteger","minimumFractionDigits":2}).format(12)	12
+new Intl.NumberFormat("wo", {"roundingPriority":"morePrecision","maximumSignificantDigits":3,"maximumFractionDigits":1}).format(1.2345)	1,23
+new Intl.NumberFormat("wo", {"useGrouping":"min2"}).format(1234)	1234
+new Intl.NumberFormat("wo", {}).format(12345678901234567890.123456789)	12.345.678.901.234.567.000
+new Intl.NumberFormat("wo", {"notation":"compact"}).format(123456789012345678901234567890)	123.456.789.012.345.680T
+JSON.stringify(new Intl.NumberFormat("wo", {"notation":"compact","compactDisplay":"long"}).formatToParts(1234567))	[{"type":"integer","value":"1"},{"type":"decimal","value":","},{"type":"fraction","value":"2"},{"type":"compact","value":"M"}]
+JSON.stringify(new Intl.NumberFormat("wo", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).formatToParts(-1234.5))	[{"type":"minusSign","value":"-"},{"type":"integer","value":"1"},{"type":"group","value":"."},{"type":"integer","value":"234"},{"type":"decimal","value":","},{"type":"fraction","value":"50"},{"type":"literal","value":" "},{"type":"currency","value":"Euro"}]
+JSON.stringify(new Intl.NumberFormat("wo", {"notation":"scientific","signDisplay":"always"}).formatToParts(0.00123))	[{"type":"plusSign","value":"+"},{"type":"integer","value":"1"},{"type":"decimal","value":","},{"type":"fraction","value":"23"},{"type":"exponentSeparator","value":"E"},{"type":"exponentMinusSign","value":"-"},{"type":"exponentInteger","value":"3"}]
+new Intl.NumberFormat("wo", {"style":"unit","unit":"meter","unitDisplay":"long"}).formatRange(1, 5)	1–5 m
+new Intl.NumberFormat("wo", {"style":"currency","currency":"EUR","maximumFractionDigits":0}).formatRange(3, 3.2)	-€ 3
+new Intl.NumberFormat("wo", {"notation":"compact"}).formatRange(1500, 2500000)	1,5K – 2,5M
+JSON.stringify(new Intl.NumberFormat("wo", {"maximumFractionDigits":0}).formatRangeToParts(10, 20))	[{"type":"integer","value":"10","source":"startRange"},{"type":"literal","value":"–","source":"shared"},{"type":"integer","value":"20","source":"endRange"}]
+new Intl.NumberFormat("ml", {"notation":"compact","compactDisplay":"short"}).format(1234567)	1.2M
+new Intl.NumberFormat("ml", {"notation":"compact","compactDisplay":"long"}).format(1234567)	1.2 ദശലക്ഷം
+new Intl.NumberFormat("ml", {"notation":"compact","compactDisplay":"short","maximumFractionDigits":2}).format(98765.4321)	98.77K
+new Intl.NumberFormat("ml", {"notation":"scientific"}).format(123456.789)	1.235E5
+new Intl.NumberFormat("ml", {"notation":"scientific","maximumFractionDigits":0}).format(0.000345)	3E-4
+new Intl.NumberFormat("ml", {"notation":"engineering"}).format(123456.789)	123.457E3
+new Intl.NumberFormat("ml", {"notation":"engineering","minimumFractionDigits":2}).format(0.0000345)	34.50E-6
+new Intl.NumberFormat("ml", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"short"}).format(1234.5)	1,234.5 കി.മീ/മ.
+new Intl.NumberFormat("ml", {"style":"unit","unit":"kilometer-per-hour","unitDisplay":"long"}).format(1)	1 കിലോമീറ്റർ/മണിക്കൂർ
+new Intl.NumberFormat("ml", {"style":"unit","unit":"celsius","unitDisplay":"narrow"}).format(-3.5)	-3.5°സെ
+new Intl.NumberFormat("ml", {"style":"unit","unit":"byte","unitDisplay":"long","notation":"compact"}).format(2500000)	2.5M ബൈറ്റ്
+new Intl.NumberFormat("ml", {"style":"currency","currency":"EUR","currencyDisplay":"code"}).format(1234.5)	EUR 1,234.50
+new Intl.NumberFormat("ml", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).format(1)	1.00 യൂറോ
+new Intl.NumberFormat("ml", {"style":"currency","currency":"USD","currencyDisplay":"narrowSymbol"}).format(-1234.567)	-$1,234.57
+new Intl.NumberFormat("ml", {"style":"currency","currency":"JPY","currencySign":"accounting"}).format(-5000)	(¥5,000)
+new Intl.NumberFormat("ml", {"signDisplay":"exceptZero"}).format(0)	0
+new Intl.NumberFormat("ml", {"signDisplay":"negative"}).format(0)	0
+new Intl.NumberFormat("ml", {"signDisplay":"always","style":"percent"}).format(0.256)	+26%
+new Intl.NumberFormat("ml", {"roundingMode":"halfEven","maximumFractionDigits":0}).format(2.5)	2
+new Intl.NumberFormat("ml", {"roundingMode":"floor","maximumFractionDigits":1}).format(-1.25)	-1.3
+new Intl.NumberFormat("ml", {"roundingIncrement":5,"minimumFractionDigits":2,"maximumFractionDigits":2}).format(1.23)	1.25
+new Intl.NumberFormat("ml", {"roundingIncrement":250,"maximumFractionDigits":0}).format(1234)	1,250
+new Intl.NumberFormat("ml", {"trailingZeroDisplay":"stripIfInteger","minimumFractionDigits":2}).format(12)	12
+new Intl.NumberFormat("ml", {"roundingPriority":"morePrecision","maximumSignificantDigits":3,"maximumFractionDigits":1}).format(1.2345)	1.23
+new Intl.NumberFormat("ml", {"useGrouping":"min2"}).format(1234)	1234
+new Intl.NumberFormat("ml", {}).format(12345678901234567890.123456789)	1,23,45,67,89,01,23,45,67,000
+new Intl.NumberFormat("ml", {"notation":"compact"}).format(123456789012345678901234567890)	1,23,45,67,89,01,23,45,680T
+JSON.stringify(new Intl.NumberFormat("ml", {"notation":"compact","compactDisplay":"long"}).formatToParts(1234567))	[{"type":"integer","value":"1"},{"type":"decimal","value":"."},{"type":"fraction","value":"2"},{"type":"literal","value":" "},{"type":"compact","value":"ദശലക്ഷം"}]
+JSON.stringify(new Intl.NumberFormat("ml", {"style":"currency","currency":"EUR","currencyDisplay":"name"}).formatToParts(-1234.5))	[{"type":"minusSign","value":"-"},{"type":"integer","value":"1"},{"type":"group","value":","},{"type":"integer","value":"234"},{"type":"decimal","value":"."},{"type":"fraction","value":"50"},{"type":"literal","value":" "},{"type":"currency","value":"യൂറോ"}]
+JSON.stringify(new Intl.NumberFormat("ml", {"notation":"scientific","signDisplay":"always"}).formatToParts(0.00123))	[{"type":"plusSign","value":"+"},{"type":"integer","value":"1"},{"type":"decimal","value":"."},{"type":"fraction","value":"23"},{"type":"exponentSeparator","value":"E"},{"type":"exponentMinusSign","value":"-"},{"type":"exponentInteger","value":"3"}]
+new Intl.NumberFormat("ml", {"style":"unit","unit":"meter","unitDisplay":"long"}).formatRange(1, 5)	1-5 മീറ്റർ
+new Intl.NumberFormat("ml", {"style":"currency","currency":"EUR","maximumFractionDigits":0}).formatRange(3, 3.2)	~€3
+new Intl.NumberFormat("ml", {"notation":"compact"}).formatRange(1500, 2500000)	1.5K - 2.5M
+JSON.stringify(new Intl.NumberFormat("ml", {"maximumFractionDigits":0}).formatRangeToParts(10, 20))	[{"type":"integer","value":"10","source":"startRange"},{"type":"literal","value":"-","source":"shared"},{"type":"integer","value":"20","source":"endRange"}]
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("ga", { type: "cardinal" }).select(n)).join()	other,one,two,few,few,few,few,many,other,other,other,other,other,other
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("ga", { type: "ordinal" }).select(n)).join()	other,one,other,other,other,other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("ga", { minimumFractionDigits: 1 }).select(1)	one
+new Intl.PluralRules("ga", { notation: "compact" }).select(1000000)	other
+JSON.stringify(new Intl.PluralRules("ga", { type: "ordinal" }).resolvedOptions().pluralCategories)	["one","other"]
+JSON.stringify(new Intl.PluralRules("ga").resolvedOptions().pluralCategories)	["one","two","few","many","other"]
+[[0,1],[1,2],[2,5],[1,1],[3,11],[1,100]].map(([a, b]) => new Intl.PluralRules("ga").selectRange(a, b)).join()	one,two,few,other,other,other
+[[1,2],[2,5],[21,22],[100,101]].map(([a, b]) => new Intl.PluralRules("ga", { type: "ordinal" }).selectRange(a, b)).join()	other,other,other,other
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("gl", { type: "cardinal" }).select(n)).join()	other,one,other,other,other,other,other,other,other,other,other,other,other,other
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("gl", { type: "ordinal" }).select(n)).join()	other,other,other,other,other,other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("gl", { minimumFractionDigits: 1 }).select(1)	other
+new Intl.PluralRules("gl", { notation: "compact" }).select(1000000)	other
+JSON.stringify(new Intl.PluralRules("gl", { type: "ordinal" }).resolvedOptions().pluralCategories)	["other"]
+JSON.stringify(new Intl.PluralRules("gl").resolvedOptions().pluralCategories)	["one","other"]
+[[0,1],[1,2],[2,5],[1,1],[3,11],[1,100]].map(([a, b]) => new Intl.PluralRules("gl").selectRange(a, b)).join()	one,other,other,other,other,other
+[[1,2],[2,5],[21,22],[100,101]].map(([a, b]) => new Intl.PluralRules("gl", { type: "ordinal" }).selectRange(a, b)).join()	other,other,other,other
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("eu", { type: "cardinal" }).select(n)).join()	other,one,other,other,other,other,other,other,other,other,other,other,other,other
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("eu", { type: "ordinal" }).select(n)).join()	other,other,other,other,other,other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("eu", { minimumFractionDigits: 1 }).select(1)	one
+new Intl.PluralRules("eu", { notation: "compact" }).select(1000000)	other
+JSON.stringify(new Intl.PluralRules("eu", { type: "ordinal" }).resolvedOptions().pluralCategories)	["other"]
+JSON.stringify(new Intl.PluralRules("eu").resolvedOptions().pluralCategories)	["one","other"]
+[[0,1],[1,2],[2,5],[1,1],[3,11],[1,100]].map(([a, b]) => new Intl.PluralRules("eu").selectRange(a, b)).join()	other,other,other,other,other,other
+[[1,2],[2,5],[21,22],[100,101]].map(([a, b]) => new Intl.PluralRules("eu", { type: "ordinal" }).selectRange(a, b)).join()	other,other,other,other
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("is", { type: "cardinal" }).select(n)).join()	other,one,other,other,other,other,other,other,other,one,other,one,other,other
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("is", { type: "ordinal" }).select(n)).join()	other,other,other,other,other,other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("is", { minimumFractionDigits: 1 }).select(1)	one
+new Intl.PluralRules("is", { notation: "compact" }).select(1000000)	other
+JSON.stringify(new Intl.PluralRules("is", { type: "ordinal" }).resolvedOptions().pluralCategories)	["other"]
+JSON.stringify(new Intl.PluralRules("is").resolvedOptions().pluralCategories)	["one","other"]
+[[0,1],[1,2],[2,5],[1,1],[3,11],[1,100]].map(([a, b]) => new Intl.PluralRules("is").selectRange(a, b)).join()	one,other,other,one,other,other
+[[1,2],[2,5],[21,22],[100,101]].map(([a, b]) => new Intl.PluralRules("is", { type: "ordinal" }).selectRange(a, b)).join()	other,other,other,other
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("br", { type: "cardinal" }).select(n)).join()	other,one,two,few,few,other,other,other,other,one,other,one,other,many
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("br", { type: "ordinal" }).select(n)).join()	other,other,other,other,other,other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("br", { minimumFractionDigits: 1 }).select(1)	one
+new Intl.PluralRules("br", { notation: "compact" }).select(1000000)	many
+JSON.stringify(new Intl.PluralRules("br", { type: "ordinal" }).resolvedOptions().pluralCategories)	["other"]
+JSON.stringify(new Intl.PluralRules("br").resolvedOptions().pluralCategories)	["one","two","few","many","other"]
+[[0,1],[1,2],[2,5],[1,1],[3,11],[1,100]].map(([a, b]) => new Intl.PluralRules("br").selectRange(a, b)).join()	other,other,other,other,other,other
+[[1,2],[2,5],[21,22],[100,101]].map(([a, b]) => new Intl.PluralRules("br", { type: "ordinal" }).selectRange(a, b)).join()	other,other,other,other
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("fy", { type: "cardinal" }).select(n)).join()	other,one,other,other,other,other,other,other,other,other,other,other,other,other
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("fy", { type: "ordinal" }).select(n)).join()	other,other,other,other,other,other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("fy", { minimumFractionDigits: 1 }).select(1)	other
+new Intl.PluralRules("fy", { notation: "compact" }).select(1000000)	other
+JSON.stringify(new Intl.PluralRules("fy", { type: "ordinal" }).resolvedOptions().pluralCategories)	["other"]
+JSON.stringify(new Intl.PluralRules("fy").resolvedOptions().pluralCategories)	["one","other"]
+[[0,1],[1,2],[2,5],[1,1],[3,11],[1,100]].map(([a, b]) => new Intl.PluralRules("fy").selectRange(a, b)).join()	other,other,other,other,other,other
+[[1,2],[2,5],[21,22],[100,101]].map(([a, b]) => new Intl.PluralRules("fy", { type: "ordinal" }).selectRange(a, b)).join()	other,other,other,other
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("si", { type: "cardinal" }).select(n)).join()	one,one,other,other,other,other,other,other,other,other,other,other,other,other
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("si", { type: "ordinal" }).select(n)).join()	other,other,other,other,other,other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("si", { minimumFractionDigits: 1 }).select(1)	one
+new Intl.PluralRules("si", { notation: "compact" }).select(1000000)	other
+JSON.stringify(new Intl.PluralRules("si", { type: "ordinal" }).resolvedOptions().pluralCategories)	["other"]
+JSON.stringify(new Intl.PluralRules("si").resolvedOptions().pluralCategories)	["one","other"]
+[[0,1],[1,2],[2,5],[1,1],[3,11],[1,100]].map(([a, b]) => new Intl.PluralRules("si").selectRange(a, b)).join()	one,other,other,one,other,other
+[[1,2],[2,5],[21,22],[100,101]].map(([a, b]) => new Intl.PluralRules("si", { type: "ordinal" }).selectRange(a, b)).join()	other,other,other,other
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("ne", { type: "cardinal" }).select(n)).join()	other,one,other,other,other,other,other,other,other,other,other,other,other,other
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("ne", { type: "ordinal" }).select(n)).join()	other,one,one,one,one,other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("ne", { minimumFractionDigits: 1 }).select(1)	one
+new Intl.PluralRules("ne", { notation: "compact" }).select(1000000)	other
+JSON.stringify(new Intl.PluralRules("ne", { type: "ordinal" }).resolvedOptions().pluralCategories)	["one","other"]
+JSON.stringify(new Intl.PluralRules("ne").resolvedOptions().pluralCategories)	["one","other"]
+[[0,1],[1,2],[2,5],[1,1],[3,11],[1,100]].map(([a, b]) => new Intl.PluralRules("ne").selectRange(a, b)).join()	one,other,other,other,other,other
+[[1,2],[2,5],[21,22],[100,101]].map(([a, b]) => new Intl.PluralRules("ne", { type: "ordinal" }).selectRange(a, b)).join()	other,other,other,other
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("bo", { type: "cardinal" }).select(n)).join()	other,other,other,other,other,other,other,other,other,other,other,other,other,other
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("bo", { type: "ordinal" }).select(n)).join()	other,other,other,other,other,other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("bo", { minimumFractionDigits: 1 }).select(1)	other
+new Intl.PluralRules("bo", { notation: "compact" }).select(1000000)	other
+JSON.stringify(new Intl.PluralRules("bo", { type: "ordinal" }).resolvedOptions().pluralCategories)	["other"]
+JSON.stringify(new Intl.PluralRules("bo").resolvedOptions().pluralCategories)	["other"]
+[[0,1],[1,2],[2,5],[1,1],[3,11],[1,100]].map(([a, b]) => new Intl.PluralRules("bo").selectRange(a, b)).join()	other,other,other,other,other,other
+[[1,2],[2,5],[21,22],[100,101]].map(([a, b]) => new Intl.PluralRules("bo", { type: "ordinal" }).selectRange(a, b)).join()	other,other,other,other
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("ig", { type: "cardinal" }).select(n)).join()	other,other,other,other,other,other,other,other,other,other,other,other,other,other
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("ig", { type: "ordinal" }).select(n)).join()	other,other,other,other,other,other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("ig", { minimumFractionDigits: 1 }).select(1)	other
+new Intl.PluralRules("ig", { notation: "compact" }).select(1000000)	other
+JSON.stringify(new Intl.PluralRules("ig", { type: "ordinal" }).resolvedOptions().pluralCategories)	["other"]
+JSON.stringify(new Intl.PluralRules("ig").resolvedOptions().pluralCategories)	["other"]
+[[0,1],[1,2],[2,5],[1,1],[3,11],[1,100]].map(([a, b]) => new Intl.PluralRules("ig").selectRange(a, b)).join()	other,other,other,other,other,other
+[[1,2],[2,5],[21,22],[100,101]].map(([a, b]) => new Intl.PluralRules("ig", { type: "ordinal" }).selectRange(a, b)).join()	other,other,other,other
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("wo", { type: "cardinal" }).select(n)).join()	other,other,other,other,other,other,other,other,other,other,other,other,other,other
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("wo", { type: "ordinal" }).select(n)).join()	other,other,other,other,other,other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("wo", { minimumFractionDigits: 1 }).select(1)	other
+new Intl.PluralRules("wo", { notation: "compact" }).select(1000000)	other
+JSON.stringify(new Intl.PluralRules("wo", { type: "ordinal" }).resolvedOptions().pluralCategories)	["other"]
+JSON.stringify(new Intl.PluralRules("wo").resolvedOptions().pluralCategories)	["other"]
+[[0,1],[1,2],[2,5],[1,1],[3,11],[1,100]].map(([a, b]) => new Intl.PluralRules("wo").selectRange(a, b)).join()	other,other,other,other,other,other
+[[1,2],[2,5],[21,22],[100,101]].map(([a, b]) => new Intl.PluralRules("wo", { type: "ordinal" }).selectRange(a, b)).join()	other,other,other,other
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("ml", { type: "cardinal" }).select(n)).join()	other,one,other,other,other,other,other,other,other,other,other,other,other,other
+[0,1,2,3,4,5,6,7,11,21,100,101,1.5,1000000].map(n => new Intl.PluralRules("ml", { type: "ordinal" }).select(n)).join()	other,other,other,other,other,other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("ml", { minimumFractionDigits: 1 }).select(1)	one
+new Intl.PluralRules("ml", { notation: "compact" }).select(1000000)	other
+JSON.stringify(new Intl.PluralRules("ml", { type: "ordinal" }).resolvedOptions().pluralCategories)	["other"]
+JSON.stringify(new Intl.PluralRules("ml").resolvedOptions().pluralCategories)	["one","other"]
+[[0,1],[1,2],[2,5],[1,1],[3,11],[1,100]].map(([a, b]) => new Intl.PluralRules("ml").selectRange(a, b)).join()	one,other,other,other,other,other
+[[1,2],[2,5],[21,22],[100,101]].map(([a, b]) => new Intl.PluralRules("ml", { type: "ordinal" }).selectRange(a, b)).join()	other,other,other,other
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ga", { type: "conjunction", style: "long" }).format(l)).join(" | ")	A agus B | A, B agus C | A, B, C agus D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ga", { type: "conjunction", style: "short" }).format(l)).join(" | ")	A agus B | A, B agus C | A, B, C agus D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ga", { type: "conjunction", style: "narrow" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ga", { type: "disjunction", style: "long" }).format(l)).join(" | ")	A nó B | A, B nó C | A, B, C nó D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ga", { type: "disjunction", style: "short" }).format(l)).join(" | ")	A nó B | A, B nó C | A, B, C nó D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ga", { type: "disjunction", style: "narrow" }).format(l)).join(" | ")	A nó B | A, B nó C | A, B, C nó D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ga", { type: "unit", style: "long" }).format(l)).join(" | ")	A agus B | A, B agus C | A, B, C agus D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ga", { type: "unit", style: "short" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ga", { type: "unit", style: "narrow" }).format(l)).join(" | ")	A B | A B C | A B C D
+JSON.stringify(new Intl.ListFormat("ga", { type: "unit", style: "narrow" }).formatToParts(["x", "y", "z"]))	[{"type":"element","value":"x"},{"type":"literal","value":" "},{"type":"element","value":"y"},{"type":"literal","value":" "},{"type":"element","value":"z"}]
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("gl", { type: "conjunction", style: "long" }).format(l)).join(" | ")	A e B | A, B e C | A, B, C e D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("gl", { type: "conjunction", style: "short" }).format(l)).join(" | ")	A e B | A, B e C | A, B, C e D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("gl", { type: "conjunction", style: "narrow" }).format(l)).join(" | ")	A e B | A, B e C | A, B, C e D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("gl", { type: "disjunction", style: "long" }).format(l)).join(" | ")	A ou B | A, B ou C | A, B, C ou D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("gl", { type: "disjunction", style: "short" }).format(l)).join(" | ")	A ou B | A, B ou C | A, B, C ou D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("gl", { type: "disjunction", style: "narrow" }).format(l)).join(" | ")	A ou B | A, B ou C | A, B, C ou D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("gl", { type: "unit", style: "long" }).format(l)).join(" | ")	A e B | A, B e C | A, B, C e D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("gl", { type: "unit", style: "short" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("gl", { type: "unit", style: "narrow" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+JSON.stringify(new Intl.ListFormat("gl", { type: "unit", style: "narrow" }).formatToParts(["x", "y", "z"]))	[{"type":"element","value":"x"},{"type":"literal","value":", "},{"type":"element","value":"y"},{"type":"literal","value":", "},{"type":"element","value":"z"}]
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("eu", { type: "conjunction", style: "long" }).format(l)).join(" | ")	A eta B | A, B eta C | A, B, C eta D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("eu", { type: "conjunction", style: "short" }).format(l)).join(" | ")	A eta B | A, B eta C | A, B, C eta D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("eu", { type: "conjunction", style: "narrow" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("eu", { type: "disjunction", style: "long" }).format(l)).join(" | ")	A edo B | A, B edo C | A, B, C edo D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("eu", { type: "disjunction", style: "short" }).format(l)).join(" | ")	A edo B | A, B edo C | A, B, C edo D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("eu", { type: "disjunction", style: "narrow" }).format(l)).join(" | ")	A edo B | A, B edo C | A, B, C edo D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("eu", { type: "unit", style: "long" }).format(l)).join(" | ")	A eta B | A, B eta C | A, B, C eta D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("eu", { type: "unit", style: "short" }).format(l)).join(" | ")	A eta B | A, B eta C | A, B, C eta D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("eu", { type: "unit", style: "narrow" }).format(l)).join(" | ")	A eta B | A, B eta C | A, B, C eta D
+JSON.stringify(new Intl.ListFormat("eu", { type: "unit", style: "narrow" }).formatToParts(["x", "y", "z"]))	[{"type":"element","value":"x"},{"type":"literal","value":", "},{"type":"element","value":"y"},{"type":"literal","value":" eta "},{"type":"element","value":"z"}]
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("is", { type: "conjunction", style: "long" }).format(l)).join(" | ")	A og B | A, B og C | A, B, C og D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("is", { type: "conjunction", style: "short" }).format(l)).join(" | ")	A og B | A, B og C | A, B, C og D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("is", { type: "conjunction", style: "narrow" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("is", { type: "disjunction", style: "long" }).format(l)).join(" | ")	A eða B | A, B eða C | A, B, C eða D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("is", { type: "disjunction", style: "short" }).format(l)).join(" | ")	A eða B | A, B eða C | A, B, C eða D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("is", { type: "disjunction", style: "narrow" }).format(l)).join(" | ")	A eða B | A, B eða C | A, B, C eða D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("is", { type: "unit", style: "long" }).format(l)).join(" | ")	A og B | A, B og C | A, B, C og D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("is", { type: "unit", style: "short" }).format(l)).join(" | ")	A og B | A, B og C | A, B, C og D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("is", { type: "unit", style: "narrow" }).format(l)).join(" | ")	A og B | A B og C | A B C og D
+JSON.stringify(new Intl.ListFormat("is", { type: "unit", style: "narrow" }).formatToParts(["x", "y", "z"]))	[{"type":"element","value":"x"},{"type":"literal","value":" "},{"type":"element","value":"y"},{"type":"literal","value":" og "},{"type":"element","value":"z"}]
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("br", { type: "conjunction", style: "long" }).format(l)).join(" | ")	A ha B | A, B ha C | A, B, C ha D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("br", { type: "conjunction", style: "short" }).format(l)).join(" | ")	A & B | A, B & C | A, B, C & D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("br", { type: "conjunction", style: "narrow" }).format(l)).join(" | ")	A & B | A, B & C | A, B, C & D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("br", { type: "disjunction", style: "long" }).format(l)).join(" | ")	A pe B | A, B pe C | A, B, C pe D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("br", { type: "disjunction", style: "short" }).format(l)).join(" | ")	A pe B | A, B pe C | A, B, C pe D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("br", { type: "disjunction", style: "narrow" }).format(l)).join(" | ")	A pe B | A, B pe C | A, B, C pe D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("br", { type: "unit", style: "long" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("br", { type: "unit", style: "short" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("br", { type: "unit", style: "narrow" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+JSON.stringify(new Intl.ListFormat("br", { type: "unit", style: "narrow" }).formatToParts(["x", "y", "z"]))	[{"type":"element","value":"x"},{"type":"literal","value":", "},{"type":"element","value":"y"},{"type":"literal","value":", "},{"type":"element","value":"z"}]
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("fy", { type: "conjunction", style: "long" }).format(l)).join(" | ")	A en B | A, B en C | A, B, C en D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("fy", { type: "conjunction", style: "short" }).format(l)).join(" | ")	A en B | A, B en C | A, B, C en D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("fy", { type: "conjunction", style: "narrow" }).format(l)).join(" | ")	A en B | A, B en C | A, B, C en D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("fy", { type: "disjunction", style: "long" }).format(l)).join(" | ")	A or B | A, B, or C | A, B, C, or D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("fy", { type: "disjunction", style: "short" }).format(l)).join(" | ")	A or B | A, B, or C | A, B, C, or D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("fy", { type: "disjunction", style: "narrow" }).format(l)).join(" | ")	A or B | A, B, or C | A, B, C, or D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("fy", { type: "unit", style: "long" }).format(l)).join(" | ")	A en B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("fy", { type: "unit", style: "short" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("fy", { type: "unit", style: "narrow" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+JSON.stringify(new Intl.ListFormat("fy", { type: "unit", style: "narrow" }).formatToParts(["x", "y", "z"]))	[{"type":"element","value":"x"},{"type":"literal","value":", "},{"type":"element","value":"y"},{"type":"literal","value":", "},{"type":"element","value":"z"}]
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("si", { type: "conjunction", style: "long" }).format(l)).join(" | ")	A සහ B | A, B, සහ C | A, B, C, සහ D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("si", { type: "conjunction", style: "short" }).format(l)).join(" | ")	A සහ B | A, B, සහ C | A, B, C, සහ D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("si", { type: "conjunction", style: "narrow" }).format(l)).join(" | ")	A සහ B | A, B, සහ C | A, B, C, සහ D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("si", { type: "disjunction", style: "long" }).format(l)).join(" | ")	A හෝ B | A, B, හෝ C | A, B, C, හෝ D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("si", { type: "disjunction", style: "short" }).format(l)).join(" | ")	A හෝ B | A, B, හෝ C | A, B, C, හෝ D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("si", { type: "disjunction", style: "narrow" }).format(l)).join(" | ")	A හෝ B | A, B, හෝ C | A, B, C, හෝ D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("si", { type: "unit", style: "long" }).format(l)).join(" | ")	A සහ B | A, B, සහ C | A, B, C, සහ D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("si", { type: "unit", style: "short" }).format(l)).join(" | ")	A සහ B | A, B, සහ C | A, B, C, සහ D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("si", { type: "unit", style: "narrow" }).format(l)).join(" | ")	A සහ B | A, B, සහ C | A, B, C, සහ D
+JSON.stringify(new Intl.ListFormat("si", { type: "unit", style: "narrow" }).formatToParts(["x", "y", "z"]))	[{"type":"element","value":"x"},{"type":"literal","value":", "},{"type":"element","value":"y"},{"type":"literal","value":", සහ "},{"type":"element","value":"z"}]
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ne", { type: "conjunction", style: "long" }).format(l)).join(" | ")	A र B | A, B र C | A, B, C र D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ne", { type: "conjunction", style: "short" }).format(l)).join(" | ")	A र B | A, B र C | A, B, C र D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ne", { type: "conjunction", style: "narrow" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ne", { type: "disjunction", style: "long" }).format(l)).join(" | ")	A वा B | A, B, वा C | A, B, C, वा D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ne", { type: "disjunction", style: "short" }).format(l)).join(" | ")	A वा B | A, B, वा C | A, B, C, वा D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ne", { type: "disjunction", style: "narrow" }).format(l)).join(" | ")	A वा B | A, B, वा C | A, B, C, वा D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ne", { type: "unit", style: "long" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ne", { type: "unit", style: "short" }).format(l)).join(" | ")	A B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ne", { type: "unit", style: "narrow" }).format(l)).join(" | ")	A B | A B C | A B C D
+JSON.stringify(new Intl.ListFormat("ne", { type: "unit", style: "narrow" }).formatToParts(["x", "y", "z"]))	[{"type":"element","value":"x"},{"type":"literal","value":" "},{"type":"element","value":"y"},{"type":"literal","value":" "},{"type":"element","value":"z"}]
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("bo", { type: "conjunction", style: "long" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("bo", { type: "conjunction", style: "short" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("bo", { type: "conjunction", style: "narrow" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("bo", { type: "disjunction", style: "long" }).format(l)).join(" | ")	A or B | A, B, or C | A, B, C, or D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("bo", { type: "disjunction", style: "short" }).format(l)).join(" | ")	A or B | A, B, or C | A, B, C, or D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("bo", { type: "disjunction", style: "narrow" }).format(l)).join(" | ")	A or B | A, B, or C | A, B, C, or D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("bo", { type: "unit", style: "long" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("bo", { type: "unit", style: "short" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("bo", { type: "unit", style: "narrow" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+JSON.stringify(new Intl.ListFormat("bo", { type: "unit", style: "narrow" }).formatToParts(["x", "y", "z"]))	[{"type":"element","value":"x"},{"type":"literal","value":", "},{"type":"element","value":"y"},{"type":"literal","value":", "},{"type":"element","value":"z"}]
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ig", { type: "conjunction", style: "long" }).format(l)).join(" | ")	A na B | A, B, na C | A, B, C, na D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ig", { type: "conjunction", style: "short" }).format(l)).join(" | ")	A na B | A, B, na C | A, B, C, na D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ig", { type: "conjunction", style: "narrow" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ig", { type: "disjunction", style: "long" }).format(l)).join(" | ")	A ma ọ bụ B | A, B, ma ọ bụ C | A, B, C, ma ọ bụ D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ig", { type: "disjunction", style: "short" }).format(l)).join(" | ")	A ma ọ bụ B | A, B, ma ọ bụ C | A, B, C, ma ọ bụ D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ig", { type: "disjunction", style: "narrow" }).format(l)).join(" | ")	A ma ọ bụ B | A, B, ma ọ bụ C | A, B, C, ma ọ bụ D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ig", { type: "unit", style: "long" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ig", { type: "unit", style: "short" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ig", { type: "unit", style: "narrow" }).format(l)).join(" | ")	A B | A, B C | A, B, C D
+JSON.stringify(new Intl.ListFormat("ig", { type: "unit", style: "narrow" }).formatToParts(["x", "y", "z"]))	[{"type":"element","value":"x"},{"type":"literal","value":", "},{"type":"element","value":"y"},{"type":"literal","value":" "},{"type":"element","value":"z"}]
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("wo", { type: "conjunction", style: "long" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("wo", { type: "conjunction", style: "short" }).format(l)).join(" | ")	A & B | A, B, & C | A, B, C, & D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("wo", { type: "conjunction", style: "narrow" }).format(l)).join(" | ")	A & B | A, B, & C | A, B, C, & D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("wo", { type: "disjunction", style: "long" }).format(l)).join(" | ")	A or B | A, B, or C | A, B, C, or D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("wo", { type: "disjunction", style: "short" }).format(l)).join(" | ")	A or B | A, B, or C | A, B, C, or D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("wo", { type: "disjunction", style: "narrow" }).format(l)).join(" | ")	A or B | A, B, or C | A, B, C, or D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("wo", { type: "unit", style: "long" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("wo", { type: "unit", style: "short" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("wo", { type: "unit", style: "narrow" }).format(l)).join(" | ")	A, B | A B C | A B C D
+JSON.stringify(new Intl.ListFormat("wo", { type: "unit", style: "narrow" }).formatToParts(["x", "y", "z"]))	[{"type":"element","value":"x"},{"type":"literal","value":" "},{"type":"element","value":"y"},{"type":"literal","value":" "},{"type":"element","value":"z"}]
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ml", { type: "conjunction", style: "long" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ml", { type: "conjunction", style: "short" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ml", { type: "conjunction", style: "narrow" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ml", { type: "disjunction", style: "long" }).format(l)).join(" | ")	A അല്ലെങ്കിൽ B | A, B, അല്ലെങ്കിൽ C | A, B, C, അല്ലെങ്കിൽ D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ml", { type: "disjunction", style: "short" }).format(l)).join(" | ")	A അല്ലെങ്കിൽ B | A, B, അല്ലെങ്കിൽ C | A, B, C, അല്ലെങ്കിൽ D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ml", { type: "disjunction", style: "narrow" }).format(l)).join(" | ")	A അല്ലെങ്കിൽ B | A, B, അല്ലെങ്കിൽ C | A, B, C, അല്ലെങ്കിൽ D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ml", { type: "unit", style: "long" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ml", { type: "unit", style: "short" }).format(l)).join(" | ")	A, B | A, B, C | A, B, C, D
+[["A","B"],["A","B","C"],["A","B","C","D"]].map(l => new Intl.ListFormat("ml", { type: "unit", style: "narrow" }).format(l)).join(" | ")	A, B | A B C | A B C D
+JSON.stringify(new Intl.ListFormat("ml", { type: "unit", style: "narrow" }).formatToParts(["x", "y", "z"]))	[{"type":"element","value":"x"},{"type":"literal","value":" "},{"type":"element","value":"y"},{"type":"literal","value":" "},{"type":"element","value":"z"}]

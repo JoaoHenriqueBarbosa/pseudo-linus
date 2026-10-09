@@ -163,4 +163,89 @@ mod tests {
         let ascii = create_unicode_character_class_for(unicode_match_property(s("ASCII"), CompileMode::Unicode).unwrap());
         assert_eq!(ascii.ranges8, vec![CharacterRange::new(0, 0x7f)]);
     }
+
+    /// O gerador (`generateYarrUnicodePropertyTables.py`) usa o rapidhash de `hasher.py` mascarado em
+    /// 24 bits, e `String::hash` usa o `StringHasher` do WTF (o mesmo rapidhash com
+    /// `computeHashAndMaskTop8Bits`). Se divergissem, alguma chave de alguma tabela não seria achada.
+    #[test]
+    fn every_table_key_is_found_with_its_own_index() {
+        let tables: [(&str, &HashTable); 5] = [
+            ("general_category", &GENERAL_CATEGORY_HASH_TABLE),
+            ("binary_property", &BINARY_PROPERTY_HASH_TABLE),
+            ("script", &SCRIPT_HASH_TABLE),
+            ("script_extension", &SCRIPT_EXTENSION_HASH_TABLE),
+            ("sequence_property", &SEQUENCE_PROPERTY_HASH_TABLE),
+        ];
+        for (name, table) in tables {
+            assert_eq!(table.values.len(), table.number_of_values as usize, "{name}");
+            for value in table.values {
+                assert_eq!(table.entry(&s(value.key)), value.index, "tabela {name}, chave {}", value.key);
+            }
+        }
+    }
+
+    #[test]
+    fn hash_ignores_string_width() {
+        // Latin1 e UTF-16 só com Latin1 têm o mesmo hash, como no WTF; a tabela é gerada sobre ASCII.
+        let wide = String::from_utf16(&"Greek".encode_utf16().collect::<Vec<u16>>());
+        assert_eq!(wide.hash(), s("Greek").hash());
+        assert_eq!(SCRIPT_HASH_TABLE.entry(&wide), SCRIPT_HASH_TABLE.entry(&s("Greek")));
+        assert_ne!(SCRIPT_HASH_TABLE.entry(&wide), -1);
+    }
+
+    #[test]
+    fn real_property_values_are_found() {
+        let scripts = [
+            "Latin", "Latn", "Greek", "Grek", "Cyrillic", "Cyrl", "Han", "Hani", "Arabic", "Hebrew", "Thai",
+            "Hiragana", "Katakana",
+        ];
+        for name in scripts {
+            assert!(unicode_match_property_value(s("Script"), s(name)).is_some(), "Script={name}");
+            assert!(unicode_match_property_value(s("sc"), s(name)).is_some(), "sc={name}");
+            assert!(unicode_match_property_value(s("Script_Extensions"), s(name)).is_some(), "Script_Extensions={name}");
+            assert!(unicode_match_property_value(s("scx"), s(name)).is_some(), "scx={name}");
+        }
+        for name in ["Lu", "Ll", "Nd", "Lowercase_Letter", "Uppercase_Letter"] {
+            assert!(unicode_match_property_value(s("General_Category"), s(name)).is_some(), "General_Category={name}");
+            assert!(unicode_match_property_value(s("gc"), s(name)).is_some(), "gc={name}");
+        }
+        let binary = [
+            "Alphabetic", "Alpha", "Emoji", "ASCII_Hex_Digit", "AHex", "White_Space", "Uppercase", "Lowercase",
+            "ID_Start", "Any", "ASCII", "Assigned", "Hex_Digit",
+        ];
+        for name in binary {
+            assert!(unicode_match_property(s(name), CompileMode::Unicode).is_some(), "{name}");
+        }
+        // Aliases curtos e longos nomeiam a mesma classe.
+        for (short, long) in [("Lu", "Uppercase_Letter"), ("Ll", "Lowercase_Letter"), ("AHex", "ASCII_Hex_Digit"), ("Alpha", "Alphabetic")] {
+            assert_eq!(
+                unicode_match_property(s(short), CompileMode::Unicode),
+                unicode_match_property(s(long), CompileMode::Unicode),
+                "{short} contra {long}"
+            );
+        }
+        assert_eq!(
+            unicode_match_property_value(s("Script"), s("Latn")),
+            unicode_match_property_value(s("sc"), s("Latin"))
+        );
+        // Propriedades de sequência só existem com a flag v.
+        for name in ["RGI_Emoji", "Basic_Emoji", "Emoji_Keycap_Sequence"] {
+            assert!(unicode_match_property(s(name), CompileMode::Unicode).is_none(), "{name} sem v");
+            assert!(unicode_match_property(s(name), CompileMode::UnicodeSets).is_some(), "{name} com v");
+        }
+    }
+
+    #[test]
+    fn invalid_names_return_none() {
+        for name in ["", "latin", "LATIN", "Latin ", "Lux", "Alphabetical", "Emoji_", "NotAProperty", "Script=Latin", "\u{e9}"] {
+            assert!(unicode_match_property(s(name), CompileMode::Unicode).is_none(), "{name:?}");
+            assert!(unicode_match_property(s(name), CompileMode::UnicodeSets).is_none(), "{name:?} v");
+            assert!(unicode_match_property_value(s("Script"), s(name)).is_none(), "Script={name:?}");
+            assert!(unicode_match_property_value(s("gc"), s(name)).is_none(), "gc={name:?}");
+        }
+        // Nome de propriedade desconhecido ou valor no lugar errado.
+        assert!(unicode_match_property_value(s("Nope"), s("Latin")).is_none());
+        assert!(unicode_match_property_value(s("gc"), s("Latin")).is_none());
+        assert!(unicode_match_property_value(s("Script"), s("Lu")).is_none());
+    }
 }

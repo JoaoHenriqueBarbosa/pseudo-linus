@@ -1,0 +1,700 @@
+new Intl.RelativeTimeFormat("ca", {"style":"long","numeric":"auto"}).format(-1, "day")	ahir
+new Intl.RelativeTimeFormat("ca", {"style":"long","numeric":"auto"}).format(0, "day")	avui
+new Intl.RelativeTimeFormat("ca", {"style":"long","numeric":"auto"}).format(1, "day")	demà
+new Intl.RelativeTimeFormat("ca", {"style":"long","numeric":"auto"}).format(2, "day")	demà passat
+new Intl.RelativeTimeFormat("ca", {"style":"long","numeric":"auto"}).format(0, "year")	enguany
+new Intl.RelativeTimeFormat("ca", {"style":"long","numeric":"auto"}).format(-1, "quarter")	el trimestre passat
+new Intl.RelativeTimeFormat("ca", {"style":"long","numeric":"always"}).format(2.5, "quarter")	d’aquí a 2,5 trimestres
+new Intl.RelativeTimeFormat("ca", {"style":"short","numeric":"auto"}).format(1, "month")	el mes que ve
+new Intl.RelativeTimeFormat("ca", {"style":"short","numeric":"always"}).format(-3, "week")	fa 3 setm.
+new Intl.RelativeTimeFormat("ca", {"style":"narrow","numeric":"auto"}).format(0, "hour")	aquesta hora
+new Intl.RelativeTimeFormat("ca", {"style":"narrow","numeric":"always"}).format(-1, "minute")	fa 1 min
+new Intl.RelativeTimeFormat("ca", {"style":"narrow","numeric":"always"}).format(5, "second")	d’aquí a 5 s
+new Intl.RelativeTimeFormat("ca", {"style":"short","numeric":"always"}).format(-0, "year")	fa 0 anys
+new Intl.RelativeTimeFormat("ca", {"style":"long","numeric":"always"}).format(0, "day")	d’aquí a 0 dies
+new Intl.RelativeTimeFormat("ca", {"style":"long","numeric":"auto"}).format(-0, "week")	aquesta setmana
+new Intl.RelativeTimeFormat("ca", {"style":"narrow","numeric":"auto"}).format(1, "quarter")	trim. vinent
+new Intl.RelativeTimeFormat("ca", {"style":"short","numeric":"always"}).format(-1, "quarter")	fa 1 trim.
+new Intl.RelativeTimeFormat("ca", {"style":"long","numeric":"always"}).format(1.5, "hour")	d’aquí a 1,5 hores
+new Intl.RelativeTimeFormat("ca", {"style":"long","numeric":"always"}).format(-1000000, "month")	fa 1.000.000 mesos
+new Intl.RelativeTimeFormat("ca", {"style":"short","numeric":"always"}).format(0.5, "second")	d’aquí a 0,5 s
+new Intl.RelativeTimeFormat("ca", {"style":"narrow","numeric":"always"}).format(21, "day")	d’aquí a 21 dies
+new Intl.RelativeTimeFormat("ca", {"style":"long","numeric":"always"}).format(1234567.891, "year")	d’aquí a 1.234.567,891 anys
+new Intl.RelativeTimeFormat("ca", {"style":"long","numeric":"auto"}).format(0, "second")	ara
+new Intl.RelativeTimeFormat("ca", {"style":"short","numeric":"auto"}).format(0, "minute")	aquest minut
+new Intl.RelativeTimeFormat("ca", {"style":"long","numeric":"always"}).format(3, "quarters")	d’aquí a 3 trimestres
+new Intl.RelativeTimeFormat("ca", {"style":"short","numeric":"auto"}).format(-2, "quarters")	fa 2 trim.
+JSON.stringify(new Intl.RelativeTimeFormat("ca", {"numeric":"always"}).formatToParts(-3, "day"))	[{"type":"literal","value":"fa "},{"type":"integer","value":"3","unit":"day"},{"type":"literal","value":" dies"}]
+JSON.stringify(new Intl.RelativeTimeFormat("ca", {"numeric":"auto","style":"short"}).formatToParts(1, "day"))	[{"type":"literal","value":"demà"}]
+JSON.stringify(new Intl.RelativeTimeFormat("ca", {"style":"narrow"}).formatToParts(1234.5, "quarter"))	[{"type":"literal","value":"d’aquí a "},{"type":"integer","value":"1","unit":"quarter"},{"type":"group","value":".","unit":"quarter"},{"type":"integer","value":"234","unit":"quarter"},{"type":"decimal","value":",","unit":"quarter"},{"type":"fraction","value":"5","unit":"quarter"},{"type":"literal","value":" trim."}]
+new Intl.ListFormat("ca", {"type":"conjunction","style":"long"}).format(["a","b","c"])	a, b i c
+new Intl.ListFormat("ca", {"type":"disjunction","style":"short"}).format(["a","b"])	a o b
+new Intl.ListFormat("ca", {"type":"unit","style":"narrow"}).format(["a","b","c","d"])	a, b, c i d
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("ca").select(n)).join(",")	other,one,other,other,other,other,other,other,other
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("ca", {"type":"ordinal"}).select(n)).join(",")	other,one,two,one,other,other,other,other,other
+new Intl.PluralRules("ca").resolvedOptions().pluralCategories.join(",")	one,many,other
+new Intl.RelativeTimeFormat("sk", {"style":"long","numeric":"auto"}).format(-1, "day")	včera
+new Intl.RelativeTimeFormat("sk", {"style":"long","numeric":"auto"}).format(0, "day")	dnes
+new Intl.RelativeTimeFormat("sk", {"style":"long","numeric":"auto"}).format(1, "day")	zajtra
+new Intl.RelativeTimeFormat("sk", {"style":"long","numeric":"auto"}).format(2, "day")	pozajtra
+new Intl.RelativeTimeFormat("sk", {"style":"long","numeric":"auto"}).format(0, "year")	tento rok
+new Intl.RelativeTimeFormat("sk", {"style":"long","numeric":"auto"}).format(-1, "quarter")	minulý štvrťrok
+new Intl.RelativeTimeFormat("sk", {"style":"long","numeric":"always"}).format(2.5, "quarter")	o 2,5 štvrťroka
+new Intl.RelativeTimeFormat("sk", {"style":"short","numeric":"auto"}).format(1, "month")	budúci mes.
+new Intl.RelativeTimeFormat("sk", {"style":"short","numeric":"always"}).format(-3, "week")	pred 3 týž.
+new Intl.RelativeTimeFormat("sk", {"style":"narrow","numeric":"auto"}).format(0, "hour")	v tejto hodine
+new Intl.RelativeTimeFormat("sk", {"style":"narrow","numeric":"always"}).format(-1, "minute")	pred 1 min
+new Intl.RelativeTimeFormat("sk", {"style":"narrow","numeric":"always"}).format(5, "second")	o 5 s
+new Intl.RelativeTimeFormat("sk", {"style":"short","numeric":"always"}).format(-0, "year")	pred 0 r.
+new Intl.RelativeTimeFormat("sk", {"style":"long","numeric":"always"}).format(0, "day")	o 0 dní
+new Intl.RelativeTimeFormat("sk", {"style":"long","numeric":"auto"}).format(-0, "week")	tento týždeň
+new Intl.RelativeTimeFormat("sk", {"style":"narrow","numeric":"auto"}).format(1, "quarter")	budúci štvrťr.
+new Intl.RelativeTimeFormat("sk", {"style":"short","numeric":"always"}).format(-1, "quarter")	pred 1 štvrťr.
+new Intl.RelativeTimeFormat("sk", {"style":"long","numeric":"always"}).format(1.5, "hour")	o 1,5 hodiny
+new Intl.RelativeTimeFormat("sk", {"style":"long","numeric":"always"}).format(-1000000, "month")	pred 1 000 000 mesiacmi
+new Intl.RelativeTimeFormat("sk", {"style":"short","numeric":"always"}).format(0.5, "second")	o 0,5 s
+new Intl.RelativeTimeFormat("sk", {"style":"narrow","numeric":"always"}).format(21, "day")	o 21 d.
+new Intl.RelativeTimeFormat("sk", {"style":"long","numeric":"always"}).format(1234567.891, "year")	o 1 234 567,891 roka
+new Intl.RelativeTimeFormat("sk", {"style":"long","numeric":"auto"}).format(0, "second")	teraz
+new Intl.RelativeTimeFormat("sk", {"style":"short","numeric":"auto"}).format(0, "minute")	v tejto minúte
+new Intl.RelativeTimeFormat("sk", {"style":"long","numeric":"always"}).format(3, "quarters")	o 3 štvrťroky
+new Intl.RelativeTimeFormat("sk", {"style":"short","numeric":"auto"}).format(-2, "quarters")	pred 2 štvrťr.
+JSON.stringify(new Intl.RelativeTimeFormat("sk", {"numeric":"always"}).formatToParts(-3, "day"))	[{"type":"literal","value":"pred "},{"type":"integer","value":"3","unit":"day"},{"type":"literal","value":" dňami"}]
+JSON.stringify(new Intl.RelativeTimeFormat("sk", {"numeric":"auto","style":"short"}).formatToParts(1, "day"))	[{"type":"literal","value":"zajtra"}]
+JSON.stringify(new Intl.RelativeTimeFormat("sk", {"style":"narrow"}).formatToParts(1234.5, "quarter"))	[{"type":"literal","value":"o "},{"type":"integer","value":"1","unit":"quarter"},{"type":"group","value":" ","unit":"quarter"},{"type":"integer","value":"234","unit":"quarter"},{"type":"decimal","value":",","unit":"quarter"},{"type":"fraction","value":"5","unit":"quarter"},{"type":"literal","value":" štvrťr."}]
+new Intl.ListFormat("sk", {"type":"conjunction","style":"long"}).format(["a","b","c"])	a, b a c
+new Intl.ListFormat("sk", {"type":"disjunction","style":"short"}).format(["a","b"])	a alebo b
+new Intl.ListFormat("sk", {"type":"unit","style":"narrow"}).format(["a","b","c","d"])	a, b, c, d
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("sk").select(n)).join(",")	other,one,few,few,other,other,other,other,many
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("sk", {"type":"ordinal"}).select(n)).join(",")	other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("sk").resolvedOptions().pluralCategories.join(",")	one,few,many,other
+new Intl.RelativeTimeFormat("sl", {"style":"long","numeric":"auto"}).format(-1, "day")	včeraj
+new Intl.RelativeTimeFormat("sl", {"style":"long","numeric":"auto"}).format(0, "day")	danes
+new Intl.RelativeTimeFormat("sl", {"style":"long","numeric":"auto"}).format(1, "day")	jutri
+new Intl.RelativeTimeFormat("sl", {"style":"long","numeric":"auto"}).format(2, "day")	pojutrišnjem
+new Intl.RelativeTimeFormat("sl", {"style":"long","numeric":"auto"}).format(0, "year")	letos
+new Intl.RelativeTimeFormat("sl", {"style":"long","numeric":"auto"}).format(-1, "quarter")	zadnje četrtletje
+new Intl.RelativeTimeFormat("sl", {"style":"long","numeric":"always"}).format(2.5, "quarter")	čez 2,5 četrtletja
+new Intl.RelativeTimeFormat("sl", {"style":"short","numeric":"auto"}).format(1, "month")	naslednji mes.
+new Intl.RelativeTimeFormat("sl", {"style":"short","numeric":"always"}).format(-3, "week")	pred 3 ted.
+new Intl.RelativeTimeFormat("sl", {"style":"narrow","numeric":"auto"}).format(0, "hour")	v tej uri
+new Intl.RelativeTimeFormat("sl", {"style":"narrow","numeric":"always"}).format(-1, "minute")	pred 1 min
+new Intl.RelativeTimeFormat("sl", {"style":"narrow","numeric":"always"}).format(5, "second")	čez 5 s
+new Intl.RelativeTimeFormat("sl", {"style":"short","numeric":"always"}).format(-0, "year")	pred 0 leti
+new Intl.RelativeTimeFormat("sl", {"style":"long","numeric":"always"}).format(0, "day")	čez 0 dni
+new Intl.RelativeTimeFormat("sl", {"style":"long","numeric":"auto"}).format(-0, "week")	ta teden
+new Intl.RelativeTimeFormat("sl", {"style":"narrow","numeric":"auto"}).format(1, "quarter")	naslednje četrtletje
+new Intl.RelativeTimeFormat("sl", {"style":"short","numeric":"always"}).format(-1, "quarter")	pred 1 četrtl.
+new Intl.RelativeTimeFormat("sl", {"style":"long","numeric":"always"}).format(1.5, "hour")	čez 1,5 ure
+new Intl.RelativeTimeFormat("sl", {"style":"long","numeric":"always"}).format(-1000000, "month")	pred 1.000.000 meseci
+new Intl.RelativeTimeFormat("sl", {"style":"short","numeric":"always"}).format(0.5, "second")	čez 0,5 s
+new Intl.RelativeTimeFormat("sl", {"style":"narrow","numeric":"always"}).format(21, "day")	čez 21 dni
+new Intl.RelativeTimeFormat("sl", {"style":"long","numeric":"always"}).format(1234567.891, "year")	čez 1.234.567,891 leta
+new Intl.RelativeTimeFormat("sl", {"style":"long","numeric":"auto"}).format(0, "second")	zdaj
+new Intl.RelativeTimeFormat("sl", {"style":"short","numeric":"auto"}).format(0, "minute")	to minuto
+new Intl.RelativeTimeFormat("sl", {"style":"long","numeric":"always"}).format(3, "quarters")	čez 3 četrtletja
+new Intl.RelativeTimeFormat("sl", {"style":"short","numeric":"auto"}).format(-2, "quarters")	pred 2 četrtl.
+JSON.stringify(new Intl.RelativeTimeFormat("sl", {"numeric":"always"}).formatToParts(-3, "day"))	[{"type":"literal","value":"pred "},{"type":"integer","value":"3","unit":"day"},{"type":"literal","value":" dnevi"}]
+JSON.stringify(new Intl.RelativeTimeFormat("sl", {"numeric":"auto","style":"short"}).formatToParts(1, "day"))	[{"type":"literal","value":"jutri"}]
+JSON.stringify(new Intl.RelativeTimeFormat("sl", {"style":"narrow"}).formatToParts(1234.5, "quarter"))	[{"type":"literal","value":"čez "},{"type":"integer","value":"1234","unit":"quarter"},{"type":"decimal","value":",","unit":"quarter"},{"type":"fraction","value":"5","unit":"quarter"},{"type":"literal","value":" četr."}]
+new Intl.ListFormat("sl", {"type":"conjunction","style":"long"}).format(["a","b","c"])	a, b in c
+new Intl.ListFormat("sl", {"type":"disjunction","style":"short"}).format(["a","b"])	a ali b
+new Intl.ListFormat("sl", {"type":"unit","style":"narrow"}).format(["a","b","c","d"])	a, b, c in d
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("sl").select(n)).join(",")	other,one,two,few,other,other,other,other,few
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("sl", {"type":"ordinal"}).select(n)).join(",")	other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("sl").resolvedOptions().pluralCategories.join(",")	one,two,few,other
+new Intl.RelativeTimeFormat("lt", {"style":"long","numeric":"auto"}).format(-1, "day")	vakar
+new Intl.RelativeTimeFormat("lt", {"style":"long","numeric":"auto"}).format(0, "day")	šiandien
+new Intl.RelativeTimeFormat("lt", {"style":"long","numeric":"auto"}).format(1, "day")	rytoj
+new Intl.RelativeTimeFormat("lt", {"style":"long","numeric":"auto"}).format(2, "day")	poryt
+new Intl.RelativeTimeFormat("lt", {"style":"long","numeric":"auto"}).format(0, "year")	šiais metais
+new Intl.RelativeTimeFormat("lt", {"style":"long","numeric":"auto"}).format(-1, "quarter")	praėjęs ketvirtis
+new Intl.RelativeTimeFormat("lt", {"style":"long","numeric":"always"}).format(2.5, "quarter")	po 2,5 ketvirčio
+new Intl.RelativeTimeFormat("lt", {"style":"short","numeric":"auto"}).format(1, "month")	kitą mėnesį
+new Intl.RelativeTimeFormat("lt", {"style":"short","numeric":"always"}).format(-3, "week")	prieš 3 sav.
+new Intl.RelativeTimeFormat("lt", {"style":"narrow","numeric":"auto"}).format(0, "hour")	šią valandą
+new Intl.RelativeTimeFormat("lt", {"style":"narrow","numeric":"always"}).format(-1, "minute")	prieš 1 min.
+new Intl.RelativeTimeFormat("lt", {"style":"narrow","numeric":"always"}).format(5, "second")	po 5 s
+new Intl.RelativeTimeFormat("lt", {"style":"short","numeric":"always"}).format(-0, "year")	prieš 0 m.
+new Intl.RelativeTimeFormat("lt", {"style":"long","numeric":"always"}).format(0, "day")	po 0 dienų
+new Intl.RelativeTimeFormat("lt", {"style":"long","numeric":"auto"}).format(-0, "week")	šią savaitę
+new Intl.RelativeTimeFormat("lt", {"style":"narrow","numeric":"auto"}).format(1, "quarter")	kitas ketvirtis
+new Intl.RelativeTimeFormat("lt", {"style":"short","numeric":"always"}).format(-1, "quarter")	prieš 1 ketv.
+new Intl.RelativeTimeFormat("lt", {"style":"long","numeric":"always"}).format(1.5, "hour")	po 1,5 valandos
+new Intl.RelativeTimeFormat("lt", {"style":"long","numeric":"always"}).format(-1000000, "month")	prieš 1 000 000 mėnesių
+new Intl.RelativeTimeFormat("lt", {"style":"short","numeric":"always"}).format(0.5, "second")	po 0,5 sek.
+new Intl.RelativeTimeFormat("lt", {"style":"narrow","numeric":"always"}).format(21, "day")	po 21 d.
+new Intl.RelativeTimeFormat("lt", {"style":"long","numeric":"always"}).format(1234567.891, "year")	po 1 234 567,891 metų
+new Intl.RelativeTimeFormat("lt", {"style":"long","numeric":"auto"}).format(0, "second")	dabar
+new Intl.RelativeTimeFormat("lt", {"style":"short","numeric":"auto"}).format(0, "minute")	šią minutę
+new Intl.RelativeTimeFormat("lt", {"style":"long","numeric":"always"}).format(3, "quarters")	po 3 ketvirčių
+new Intl.RelativeTimeFormat("lt", {"style":"short","numeric":"auto"}).format(-2, "quarters")	prieš 2 ketv.
+JSON.stringify(new Intl.RelativeTimeFormat("lt", {"numeric":"always"}).formatToParts(-3, "day"))	[{"type":"literal","value":"prieš "},{"type":"integer","value":"3","unit":"day"},{"type":"literal","value":" dienas"}]
+JSON.stringify(new Intl.RelativeTimeFormat("lt", {"numeric":"auto","style":"short"}).formatToParts(1, "day"))	[{"type":"literal","value":"rytoj"}]
+JSON.stringify(new Intl.RelativeTimeFormat("lt", {"style":"narrow"}).formatToParts(1234.5, "quarter"))	[{"type":"literal","value":"po "},{"type":"integer","value":"1","unit":"quarter"},{"type":"group","value":" ","unit":"quarter"},{"type":"integer","value":"234","unit":"quarter"},{"type":"decimal","value":",","unit":"quarter"},{"type":"fraction","value":"5","unit":"quarter"},{"type":"literal","value":" ketv."}]
+new Intl.ListFormat("lt", {"type":"conjunction","style":"long"}).format(["a","b","c"])	a, b ir c
+new Intl.ListFormat("lt", {"type":"disjunction","style":"short"}).format(["a","b"])	a ar b
+new Intl.ListFormat("lt", {"type":"unit","style":"narrow"}).format(["a","b","c","d"])	a b c d
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("lt").select(n)).join(",")	other,one,few,few,few,other,one,other,many
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("lt", {"type":"ordinal"}).select(n)).join(",")	other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("lt").resolvedOptions().pluralCategories.join(",")	one,few,many,other
+new Intl.RelativeTimeFormat("lv", {"style":"long","numeric":"auto"}).format(-1, "day")	vakar
+new Intl.RelativeTimeFormat("lv", {"style":"long","numeric":"auto"}).format(0, "day")	šodien
+new Intl.RelativeTimeFormat("lv", {"style":"long","numeric":"auto"}).format(1, "day")	rīt
+new Intl.RelativeTimeFormat("lv", {"style":"long","numeric":"auto"}).format(2, "day")	parīt
+new Intl.RelativeTimeFormat("lv", {"style":"long","numeric":"auto"}).format(0, "year")	šajā gadā
+new Intl.RelativeTimeFormat("lv", {"style":"long","numeric":"auto"}).format(-1, "quarter")	pēdējais ceturksnis
+new Intl.RelativeTimeFormat("lv", {"style":"long","numeric":"always"}).format(2.5, "quarter")	pēc 2,5 ceturkšņiem
+new Intl.RelativeTimeFormat("lv", {"style":"short","numeric":"auto"}).format(1, "month")	nāk. mēn.
+new Intl.RelativeTimeFormat("lv", {"style":"short","numeric":"always"}).format(-3, "week")	pirms 3 ned.
+new Intl.RelativeTimeFormat("lv", {"style":"narrow","numeric":"auto"}).format(0, "hour")	šajā stundā
+new Intl.RelativeTimeFormat("lv", {"style":"narrow","numeric":"always"}).format(-1, "minute")	pirms 1 min
+new Intl.RelativeTimeFormat("lv", {"style":"narrow","numeric":"always"}).format(5, "second")	pēc 5 s
+new Intl.RelativeTimeFormat("lv", {"style":"short","numeric":"always"}).format(-0, "year")	pirms 0 g.
+new Intl.RelativeTimeFormat("lv", {"style":"long","numeric":"always"}).format(0, "day")	pēc 0 dienām
+new Intl.RelativeTimeFormat("lv", {"style":"long","numeric":"auto"}).format(-0, "week")	šajā nedēļā
+new Intl.RelativeTimeFormat("lv", {"style":"narrow","numeric":"auto"}).format(1, "quarter")	nākamais ceturksnis
+new Intl.RelativeTimeFormat("lv", {"style":"short","numeric":"always"}).format(-1, "quarter")	pirms 1 cet.
+new Intl.RelativeTimeFormat("lv", {"style":"long","numeric":"always"}).format(1.5, "hour")	pēc 1,5 stundām
+new Intl.RelativeTimeFormat("lv", {"style":"long","numeric":"always"}).format(-1000000, "month")	pirms 1 000 000 mēnešiem
+new Intl.RelativeTimeFormat("lv", {"style":"short","numeric":"always"}).format(0.5, "second")	pēc 0,5 sek.
+new Intl.RelativeTimeFormat("lv", {"style":"narrow","numeric":"always"}).format(21, "day")	pēc 21 d.
+new Intl.RelativeTimeFormat("lv", {"style":"long","numeric":"always"}).format(1234567.891, "year")	pēc 1 234 567,891 gada
+new Intl.RelativeTimeFormat("lv", {"style":"long","numeric":"auto"}).format(0, "second")	tagad
+new Intl.RelativeTimeFormat("lv", {"style":"short","numeric":"auto"}).format(0, "minute")	šajā minūtē
+new Intl.RelativeTimeFormat("lv", {"style":"long","numeric":"always"}).format(3, "quarters")	pēc 3 ceturkšņiem
+new Intl.RelativeTimeFormat("lv", {"style":"short","numeric":"auto"}).format(-2, "quarters")	pirms 2 cet.
+JSON.stringify(new Intl.RelativeTimeFormat("lv", {"numeric":"always"}).formatToParts(-3, "day"))	[{"type":"literal","value":"pirms "},{"type":"integer","value":"3","unit":"day"},{"type":"literal","value":" dienām"}]
+JSON.stringify(new Intl.RelativeTimeFormat("lv", {"numeric":"auto","style":"short"}).formatToParts(1, "day"))	[{"type":"literal","value":"rīt"}]
+JSON.stringify(new Intl.RelativeTimeFormat("lv", {"style":"narrow"}).formatToParts(1234.5, "quarter"))	[{"type":"literal","value":"pēc "},{"type":"integer","value":"1234","unit":"quarter"},{"type":"decimal","value":",","unit":"quarter"},{"type":"fraction","value":"5","unit":"quarter"},{"type":"literal","value":" cet."}]
+new Intl.ListFormat("lv", {"type":"conjunction","style":"long"}).format(["a","b","c"])	a, b un c
+new Intl.ListFormat("lv", {"type":"disjunction","style":"short"}).format(["a","b"])	a vai b
+new Intl.ListFormat("lv", {"type":"unit","style":"narrow"}).format(["a","b","c","d"])	a b c d
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("lv").select(n)).join(",")	zero,one,other,other,other,zero,one,zero,other
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("lv", {"type":"ordinal"}).select(n)).join(",")	other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("lv").resolvedOptions().pluralCategories.join(",")	zero,one,other
+new Intl.RelativeTimeFormat("et", {"style":"long","numeric":"auto"}).format(-1, "day")	eile
+new Intl.RelativeTimeFormat("et", {"style":"long","numeric":"auto"}).format(0, "day")	täna
+new Intl.RelativeTimeFormat("et", {"style":"long","numeric":"auto"}).format(1, "day")	homme
+new Intl.RelativeTimeFormat("et", {"style":"long","numeric":"auto"}).format(2, "day")	ülehomme
+new Intl.RelativeTimeFormat("et", {"style":"long","numeric":"auto"}).format(0, "year")	käesolev aasta
+new Intl.RelativeTimeFormat("et", {"style":"long","numeric":"auto"}).format(-1, "quarter")	eelmine kvartal
+new Intl.RelativeTimeFormat("et", {"style":"long","numeric":"always"}).format(2.5, "quarter")	2,5 kvartali pärast
+new Intl.RelativeTimeFormat("et", {"style":"short","numeric":"auto"}).format(1, "month")	järgm. kuu
+new Intl.RelativeTimeFormat("et", {"style":"short","numeric":"always"}).format(-3, "week")	3 näd eest
+new Intl.RelativeTimeFormat("et", {"style":"narrow","numeric":"auto"}).format(0, "hour")	praegusel tunnil
+new Intl.RelativeTimeFormat("et", {"style":"narrow","numeric":"always"}).format(-1, "minute")	1 min eest
+new Intl.RelativeTimeFormat("et", {"style":"narrow","numeric":"always"}).format(5, "second")	5 s pärast
+new Intl.RelativeTimeFormat("et", {"style":"short","numeric":"always"}).format(-0, "year")	0 a eest
+new Intl.RelativeTimeFormat("et", {"style":"long","numeric":"always"}).format(0, "day")	0 päeva pärast
+new Intl.RelativeTimeFormat("et", {"style":"long","numeric":"auto"}).format(-0, "week")	käesolev nädal
+new Intl.RelativeTimeFormat("et", {"style":"narrow","numeric":"auto"}).format(1, "quarter")	järgmine kv
+new Intl.RelativeTimeFormat("et", {"style":"short","numeric":"always"}).format(-1, "quarter")	1 kv eest
+new Intl.RelativeTimeFormat("et", {"style":"long","numeric":"always"}).format(1.5, "hour")	1,5 tunni pärast
+new Intl.RelativeTimeFormat("et", {"style":"long","numeric":"always"}).format(-1000000, "month")	1 000 000 kuu eest
+new Intl.RelativeTimeFormat("et", {"style":"short","numeric":"always"}).format(0.5, "second")	0,5 sek pärast
+new Intl.RelativeTimeFormat("et", {"style":"narrow","numeric":"always"}).format(21, "day")	21 p pärast
+new Intl.RelativeTimeFormat("et", {"style":"long","numeric":"always"}).format(1234567.891, "year")	1 234 567,891 aasta pärast
+new Intl.RelativeTimeFormat("et", {"style":"long","numeric":"auto"}).format(0, "second")	nüüd
+new Intl.RelativeTimeFormat("et", {"style":"short","numeric":"auto"}).format(0, "minute")	praegusel minutil
+new Intl.RelativeTimeFormat("et", {"style":"long","numeric":"always"}).format(3, "quarters")	3 kvartali pärast
+new Intl.RelativeTimeFormat("et", {"style":"short","numeric":"auto"}).format(-2, "quarters")	2 kv eest
+JSON.stringify(new Intl.RelativeTimeFormat("et", {"numeric":"always"}).formatToParts(-3, "day"))	[{"type":"integer","value":"3","unit":"day"},{"type":"literal","value":" päeva eest"}]
+JSON.stringify(new Intl.RelativeTimeFormat("et", {"numeric":"auto","style":"short"}).formatToParts(1, "day"))	[{"type":"literal","value":"homme"}]
+JSON.stringify(new Intl.RelativeTimeFormat("et", {"style":"narrow"}).formatToParts(1234.5, "quarter"))	[{"type":"integer","value":"1234","unit":"quarter"},{"type":"decimal","value":",","unit":"quarter"},{"type":"fraction","value":"5","unit":"quarter"},{"type":"literal","value":" kv pärast"}]
+new Intl.ListFormat("et", {"type":"conjunction","style":"long"}).format(["a","b","c"])	a, b ja c
+new Intl.ListFormat("et", {"type":"disjunction","style":"short"}).format(["a","b"])	a või b
+new Intl.ListFormat("et", {"type":"unit","style":"narrow"}).format(["a","b","c","d"])	a b c d
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("et").select(n)).join(",")	other,one,other,other,other,other,other,other,other
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("et", {"type":"ordinal"}).select(n)).join(",")	other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("et").resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.RelativeTimeFormat("sq", {"style":"long","numeric":"auto"}).format(-1, "day")	dje
+new Intl.RelativeTimeFormat("sq", {"style":"long","numeric":"auto"}).format(0, "day")	sot
+new Intl.RelativeTimeFormat("sq", {"style":"long","numeric":"auto"}).format(1, "day")	nesër
+new Intl.RelativeTimeFormat("sq", {"style":"long","numeric":"auto"}).format(2, "day")	pas 2 ditësh
+new Intl.RelativeTimeFormat("sq", {"style":"long","numeric":"auto"}).format(0, "year")	sivjet
+new Intl.RelativeTimeFormat("sq", {"style":"long","numeric":"auto"}).format(-1, "quarter")	tremujorin e kaluar
+new Intl.RelativeTimeFormat("sq", {"style":"long","numeric":"always"}).format(2.5, "quarter")	pas 2,5 tremujorësh
+new Intl.RelativeTimeFormat("sq", {"style":"short","numeric":"auto"}).format(1, "month")	muajin e ardhshëm
+new Intl.RelativeTimeFormat("sq", {"style":"short","numeric":"always"}).format(-3, "week")	3 javë më parë
+new Intl.RelativeTimeFormat("sq", {"style":"narrow","numeric":"auto"}).format(0, "hour")	këtë orë
+new Intl.RelativeTimeFormat("sq", {"style":"narrow","numeric":"always"}).format(-1, "minute")	1 min më parë
+new Intl.RelativeTimeFormat("sq", {"style":"narrow","numeric":"always"}).format(5, "second")	pas 5 sek
+new Intl.RelativeTimeFormat("sq", {"style":"short","numeric":"always"}).format(-0, "year")	0 vjet më parë
+new Intl.RelativeTimeFormat("sq", {"style":"long","numeric":"always"}).format(0, "day")	pas 0 ditësh
+new Intl.RelativeTimeFormat("sq", {"style":"long","numeric":"auto"}).format(-0, "week")	këtë javë
+new Intl.RelativeTimeFormat("sq", {"style":"narrow","numeric":"auto"}).format(1, "quarter")	tremujorin e ardhshëm
+new Intl.RelativeTimeFormat("sq", {"style":"short","numeric":"always"}).format(-1, "quarter")	1 tremujor më parë
+new Intl.RelativeTimeFormat("sq", {"style":"long","numeric":"always"}).format(1.5, "hour")	pas 1,5 orësh
+new Intl.RelativeTimeFormat("sq", {"style":"long","numeric":"always"}).format(-1000000, "month")	1 000 000 muaj më parë
+new Intl.RelativeTimeFormat("sq", {"style":"short","numeric":"always"}).format(0.5, "second")	pas 0,5 sek
+new Intl.RelativeTimeFormat("sq", {"style":"narrow","numeric":"always"}).format(21, "day")	pas 21 ditësh
+new Intl.RelativeTimeFormat("sq", {"style":"long","numeric":"always"}).format(1234567.891, "year")	pas 1 234 567,891 vjetësh
+new Intl.RelativeTimeFormat("sq", {"style":"long","numeric":"auto"}).format(0, "second")	tani
+new Intl.RelativeTimeFormat("sq", {"style":"short","numeric":"auto"}).format(0, "minute")	këtë minutë
+new Intl.RelativeTimeFormat("sq", {"style":"long","numeric":"always"}).format(3, "quarters")	pas 3 tremujorësh
+new Intl.RelativeTimeFormat("sq", {"style":"short","numeric":"auto"}).format(-2, "quarters")	2 tremujorë më parë
+JSON.stringify(new Intl.RelativeTimeFormat("sq", {"numeric":"always"}).formatToParts(-3, "day"))	[{"type":"integer","value":"3","unit":"day"},{"type":"literal","value":" ditë më parë"}]
+JSON.stringify(new Intl.RelativeTimeFormat("sq", {"numeric":"auto","style":"short"}).formatToParts(1, "day"))	[{"type":"literal","value":"nesër"}]
+JSON.stringify(new Intl.RelativeTimeFormat("sq", {"style":"narrow"}).formatToParts(1234.5, "quarter"))	[{"type":"literal","value":"pas "},{"type":"integer","value":"1234","unit":"quarter"},{"type":"decimal","value":",","unit":"quarter"},{"type":"fraction","value":"5","unit":"quarter"},{"type":"literal","value":" tremujorësh"}]
+new Intl.ListFormat("sq", {"type":"conjunction","style":"long"}).format(["a","b","c"])	a, b dhe c
+new Intl.ListFormat("sq", {"type":"disjunction","style":"short"}).format(["a","b"])	a ose b
+new Intl.ListFormat("sq", {"type":"unit","style":"narrow"}).format(["a","b","c","d"])	a, b, c e d
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("sq").select(n)).join(",")	other,one,other,other,other,other,other,other,other
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("sq", {"type":"ordinal"}).select(n)).join(",")	other,one,other,other,other,other,other,other,other
+new Intl.PluralRules("sq").resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.RelativeTimeFormat("af", {"style":"long","numeric":"auto"}).format(-1, "day")	gister
+new Intl.RelativeTimeFormat("af", {"style":"long","numeric":"auto"}).format(0, "day")	vandag
+new Intl.RelativeTimeFormat("af", {"style":"long","numeric":"auto"}).format(1, "day")	môre
+new Intl.RelativeTimeFormat("af", {"style":"long","numeric":"auto"}).format(2, "day")	oormôre
+new Intl.RelativeTimeFormat("af", {"style":"long","numeric":"auto"}).format(0, "year")	hierdie jaar
+new Intl.RelativeTimeFormat("af", {"style":"long","numeric":"auto"}).format(-1, "quarter")	verlede kwartaal
+new Intl.RelativeTimeFormat("af", {"style":"long","numeric":"always"}).format(2.5, "quarter")	oor 2,5 kwartale
+new Intl.RelativeTimeFormat("af", {"style":"short","numeric":"auto"}).format(1, "month")	volgende md.
+new Intl.RelativeTimeFormat("af", {"style":"short","numeric":"always"}).format(-3, "week")	3 w. gelede
+new Intl.RelativeTimeFormat("af", {"style":"narrow","numeric":"auto"}).format(0, "hour")	hierdie uur
+new Intl.RelativeTimeFormat("af", {"style":"narrow","numeric":"always"}).format(-1, "minute")	1 min. gelede
+new Intl.RelativeTimeFormat("af", {"style":"narrow","numeric":"always"}).format(5, "second")	oor 5 s.
+new Intl.RelativeTimeFormat("af", {"style":"short","numeric":"always"}).format(-0, "year")	0 j. gelede
+new Intl.RelativeTimeFormat("af", {"style":"long","numeric":"always"}).format(0, "day")	oor 0 dae
+new Intl.RelativeTimeFormat("af", {"style":"long","numeric":"auto"}).format(-0, "week")	hierdie week
+new Intl.RelativeTimeFormat("af", {"style":"narrow","numeric":"auto"}).format(1, "quarter")	volgende kwartaal
+new Intl.RelativeTimeFormat("af", {"style":"short","numeric":"always"}).format(-1, "quarter")	1 kw. gelede
+new Intl.RelativeTimeFormat("af", {"style":"long","numeric":"always"}).format(1.5, "hour")	oor 1,5 uur
+new Intl.RelativeTimeFormat("af", {"style":"long","numeric":"always"}).format(-1000000, "month")	1 000 000 maande gelede
+new Intl.RelativeTimeFormat("af", {"style":"short","numeric":"always"}).format(0.5, "second")	oor 0,5 s.
+new Intl.RelativeTimeFormat("af", {"style":"narrow","numeric":"always"}).format(21, "day")	oor 21 dae
+new Intl.RelativeTimeFormat("af", {"style":"long","numeric":"always"}).format(1234567.891, "year")	oor 1 234 567,891 jaar
+new Intl.RelativeTimeFormat("af", {"style":"long","numeric":"auto"}).format(0, "second")	nou
+new Intl.RelativeTimeFormat("af", {"style":"short","numeric":"auto"}).format(0, "minute")	hierdie minuut
+new Intl.RelativeTimeFormat("af", {"style":"long","numeric":"always"}).format(3, "quarters")	oor 3 kwartale
+new Intl.RelativeTimeFormat("af", {"style":"short","numeric":"auto"}).format(-2, "quarters")	2 kw. gelede
+JSON.stringify(new Intl.RelativeTimeFormat("af", {"numeric":"always"}).formatToParts(-3, "day"))	[{"type":"integer","value":"3","unit":"day"},{"type":"literal","value":" dae gelede"}]
+JSON.stringify(new Intl.RelativeTimeFormat("af", {"numeric":"auto","style":"short"}).formatToParts(1, "day"))	[{"type":"literal","value":"môre"}]
+JSON.stringify(new Intl.RelativeTimeFormat("af", {"style":"narrow"}).formatToParts(1234.5, "quarter"))	[{"type":"literal","value":"oor "},{"type":"integer","value":"1","unit":"quarter"},{"type":"group","value":" ","unit":"quarter"},{"type":"integer","value":"234","unit":"quarter"},{"type":"decimal","value":",","unit":"quarter"},{"type":"fraction","value":"5","unit":"quarter"},{"type":"literal","value":" kw."}]
+new Intl.ListFormat("af", {"type":"conjunction","style":"long"}).format(["a","b","c"])	a, b en c
+new Intl.ListFormat("af", {"type":"disjunction","style":"short"}).format(["a","b"])	a of b
+new Intl.ListFormat("af", {"type":"unit","style":"narrow"}).format(["a","b","c","d"])	a b c d
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("af").select(n)).join(",")	other,one,other,other,other,other,other,other,other
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("af", {"type":"ordinal"}).select(n)).join(",")	other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("af").resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.RelativeTimeFormat("ga", {"style":"long","numeric":"auto"}).format(-1, "day")	inné
+new Intl.RelativeTimeFormat("ga", {"style":"long","numeric":"auto"}).format(0, "day")	inniu
+new Intl.RelativeTimeFormat("ga", {"style":"long","numeric":"auto"}).format(1, "day")	amárach
+new Intl.RelativeTimeFormat("ga", {"style":"long","numeric":"auto"}).format(2, "day")	arú amárach
+new Intl.RelativeTimeFormat("ga", {"style":"long","numeric":"auto"}).format(0, "year")	i mbliana
+new Intl.RelativeTimeFormat("ga", {"style":"long","numeric":"auto"}).format(-1, "quarter")	an ráithe seo caite
+new Intl.RelativeTimeFormat("ga", {"style":"long","numeric":"always"}).format(2.5, "quarter")	i gceann 2.5 ráithe
+new Intl.RelativeTimeFormat("ga", {"style":"short","numeric":"auto"}).format(1, "month")	an mhí seo chugainn
+new Intl.RelativeTimeFormat("ga", {"style":"short","numeric":"always"}).format(-3, "week")	3 shcht. ó shin
+new Intl.RelativeTimeFormat("ga", {"style":"narrow","numeric":"auto"}).format(0, "hour")	an uair seo
+new Intl.RelativeTimeFormat("ga", {"style":"narrow","numeric":"always"}).format(-1, "minute")	-1 n
+new Intl.RelativeTimeFormat("ga", {"style":"narrow","numeric":"always"}).format(5, "second")	+5 s
+new Intl.RelativeTimeFormat("ga", {"style":"short","numeric":"always"}).format(-0, "year")	0 bl. ó shin
+new Intl.RelativeTimeFormat("ga", {"style":"long","numeric":"always"}).format(0, "day")	i gceann 0 lá
+new Intl.RelativeTimeFormat("ga", {"style":"long","numeric":"auto"}).format(-0, "week")	an tseachtain seo
+new Intl.RelativeTimeFormat("ga", {"style":"narrow","numeric":"auto"}).format(1, "quarter")	an ráithe seo chugainn
+new Intl.RelativeTimeFormat("ga", {"style":"short","numeric":"always"}).format(-1, "quarter")	1 ráithe ó shin
+new Intl.RelativeTimeFormat("ga", {"style":"long","numeric":"always"}).format(1.5, "hour")	i gceann 1.5 uair an chloig
+new Intl.RelativeTimeFormat("ga", {"style":"long","numeric":"always"}).format(-1000000, "month")	1,000,000 mí ó shin
+new Intl.RelativeTimeFormat("ga", {"style":"short","numeric":"always"}).format(0.5, "second")	i gceann 0.5 soic.
+new Intl.RelativeTimeFormat("ga", {"style":"narrow","numeric":"always"}).format(21, "day")	+21 lá
+new Intl.RelativeTimeFormat("ga", {"style":"long","numeric":"always"}).format(1234567.891, "year")	i gceann 1,234,567.891 bliain
+new Intl.RelativeTimeFormat("ga", {"style":"long","numeric":"auto"}).format(0, "second")	anois
+new Intl.RelativeTimeFormat("ga", {"style":"short","numeric":"auto"}).format(0, "minute")	an nóiméad seo
+new Intl.RelativeTimeFormat("ga", {"style":"long","numeric":"always"}).format(3, "quarters")	i gceann 3 ráithe
+new Intl.RelativeTimeFormat("ga", {"style":"short","numeric":"auto"}).format(-2, "quarters")	2 ráithe ó shin
+JSON.stringify(new Intl.RelativeTimeFormat("ga", {"numeric":"always"}).formatToParts(-3, "day"))	[{"type":"integer","value":"3","unit":"day"},{"type":"literal","value":" lá ó shin"}]
+JSON.stringify(new Intl.RelativeTimeFormat("ga", {"numeric":"auto","style":"short"}).formatToParts(1, "day"))	[{"type":"literal","value":"amárach"}]
+JSON.stringify(new Intl.RelativeTimeFormat("ga", {"style":"narrow"}).formatToParts(1234.5, "quarter"))	[{"type":"literal","value":"+"},{"type":"integer","value":"1","unit":"quarter"},{"type":"group","value":",","unit":"quarter"},{"type":"integer","value":"234","unit":"quarter"},{"type":"decimal","value":".","unit":"quarter"},{"type":"fraction","value":"5","unit":"quarter"},{"type":"literal","value":" R"}]
+new Intl.ListFormat("ga", {"type":"conjunction","style":"long"}).format(["a","b","c"])	a, b agus c
+new Intl.ListFormat("ga", {"type":"disjunction","style":"short"}).format(["a","b"])	a nó b
+new Intl.ListFormat("ga", {"type":"unit","style":"narrow"}).format(["a","b","c","d"])	a b c d
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("ga").select(n)).join(",")	other,one,two,few,few,other,other,other,other
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("ga", {"type":"ordinal"}).select(n)).join(",")	other,one,other,other,other,other,other,other,other
+new Intl.PluralRules("ga").resolvedOptions().pluralCategories.join(",")	one,two,few,many,other
+new Intl.RelativeTimeFormat("gl", {"style":"long","numeric":"auto"}).format(-1, "day")	onte
+new Intl.RelativeTimeFormat("gl", {"style":"long","numeric":"auto"}).format(0, "day")	hoxe
+new Intl.RelativeTimeFormat("gl", {"style":"long","numeric":"auto"}).format(1, "day")	mañá
+new Intl.RelativeTimeFormat("gl", {"style":"long","numeric":"auto"}).format(2, "day")	pasadomañá
+new Intl.RelativeTimeFormat("gl", {"style":"long","numeric":"auto"}).format(0, "year")	este ano
+new Intl.RelativeTimeFormat("gl", {"style":"long","numeric":"auto"}).format(-1, "quarter")	o trimestre pasado
+new Intl.RelativeTimeFormat("gl", {"style":"long","numeric":"always"}).format(2.5, "quarter")	en 2,5 trimestres
+new Intl.RelativeTimeFormat("gl", {"style":"short","numeric":"auto"}).format(1, "month")	o próximo mes
+new Intl.RelativeTimeFormat("gl", {"style":"short","numeric":"always"}).format(-3, "week")	hai 3 sem.
+new Intl.RelativeTimeFormat("gl", {"style":"narrow","numeric":"auto"}).format(0, "hour")	esta hora
+new Intl.RelativeTimeFormat("gl", {"style":"narrow","numeric":"always"}).format(-1, "minute")	hai 1 min
+new Intl.RelativeTimeFormat("gl", {"style":"narrow","numeric":"always"}).format(5, "second")	en 5 s
+new Intl.RelativeTimeFormat("gl", {"style":"short","numeric":"always"}).format(-0, "year")	hai 0 anos
+new Intl.RelativeTimeFormat("gl", {"style":"long","numeric":"always"}).format(0, "day")	en 0 días
+new Intl.RelativeTimeFormat("gl", {"style":"long","numeric":"auto"}).format(-0, "week")	esta semana
+new Intl.RelativeTimeFormat("gl", {"style":"narrow","numeric":"auto"}).format(1, "quarter")	trim. seguinte
+new Intl.RelativeTimeFormat("gl", {"style":"short","numeric":"always"}).format(-1, "quarter")	hai 1 trim.
+new Intl.RelativeTimeFormat("gl", {"style":"long","numeric":"always"}).format(1.5, "hour")	en 1,5 horas
+new Intl.RelativeTimeFormat("gl", {"style":"long","numeric":"always"}).format(-1000000, "month")	hai 1.000.000 meses
+new Intl.RelativeTimeFormat("gl", {"style":"short","numeric":"always"}).format(0.5, "second")	en 0,5 s
+new Intl.RelativeTimeFormat("gl", {"style":"narrow","numeric":"always"}).format(21, "day")	en 21 días
+new Intl.RelativeTimeFormat("gl", {"style":"long","numeric":"always"}).format(1234567.891, "year")	en 1.234.567,891 anos
+new Intl.RelativeTimeFormat("gl", {"style":"long","numeric":"auto"}).format(0, "second")	agora
+new Intl.RelativeTimeFormat("gl", {"style":"short","numeric":"auto"}).format(0, "minute")	este minuto
+new Intl.RelativeTimeFormat("gl", {"style":"long","numeric":"always"}).format(3, "quarters")	en 3 trimestres
+new Intl.RelativeTimeFormat("gl", {"style":"short","numeric":"auto"}).format(-2, "quarters")	hai 2 trim.
+JSON.stringify(new Intl.RelativeTimeFormat("gl", {"numeric":"always"}).formatToParts(-3, "day"))	[{"type":"literal","value":"hai "},{"type":"integer","value":"3","unit":"day"},{"type":"literal","value":" días"}]
+JSON.stringify(new Intl.RelativeTimeFormat("gl", {"numeric":"auto","style":"short"}).formatToParts(1, "day"))	[{"type":"literal","value":"mañá"}]
+JSON.stringify(new Intl.RelativeTimeFormat("gl", {"style":"narrow"}).formatToParts(1234.5, "quarter"))	[{"type":"literal","value":"en "},{"type":"integer","value":"1","unit":"quarter"},{"type":"group","value":".","unit":"quarter"},{"type":"integer","value":"234","unit":"quarter"},{"type":"decimal","value":",","unit":"quarter"},{"type":"fraction","value":"5","unit":"quarter"},{"type":"literal","value":" trim."}]
+new Intl.ListFormat("gl", {"type":"conjunction","style":"long"}).format(["a","b","c"])	a, b e c
+new Intl.ListFormat("gl", {"type":"disjunction","style":"short"}).format(["a","b"])	a ou b
+new Intl.ListFormat("gl", {"type":"unit","style":"narrow"}).format(["a","b","c","d"])	a, b, c, d
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("gl").select(n)).join(",")	other,one,other,other,other,other,other,other,other
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("gl", {"type":"ordinal"}).select(n)).join(",")	other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("gl").resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.RelativeTimeFormat("eu", {"style":"long","numeric":"auto"}).format(-1, "day")	atzo
+new Intl.RelativeTimeFormat("eu", {"style":"long","numeric":"auto"}).format(0, "day")	gaur
+new Intl.RelativeTimeFormat("eu", {"style":"long","numeric":"auto"}).format(1, "day")	bihar
+new Intl.RelativeTimeFormat("eu", {"style":"long","numeric":"auto"}).format(2, "day")	etzi
+new Intl.RelativeTimeFormat("eu", {"style":"long","numeric":"auto"}).format(0, "year")	aurten
+new Intl.RelativeTimeFormat("eu", {"style":"long","numeric":"auto"}).format(-1, "quarter")	aurreko hiruhilekoa
+new Intl.RelativeTimeFormat("eu", {"style":"long","numeric":"always"}).format(2.5, "quarter")	2,5 hiruhileko barru
+new Intl.RelativeTimeFormat("eu", {"style":"short","numeric":"auto"}).format(1, "month")	hurrengo hilabetean
+new Intl.RelativeTimeFormat("eu", {"style":"short","numeric":"always"}).format(-3, "week")	duela 3 aste
+new Intl.RelativeTimeFormat("eu", {"style":"narrow","numeric":"auto"}).format(0, "hour")	ordu honetan
+new Intl.RelativeTimeFormat("eu", {"style":"narrow","numeric":"always"}).format(-1, "minute")	duela 1 minutu
+new Intl.RelativeTimeFormat("eu", {"style":"narrow","numeric":"always"}).format(5, "second")	5 segundo barru
+new Intl.RelativeTimeFormat("eu", {"style":"short","numeric":"always"}).format(-0, "year")	duela 0 urte
+new Intl.RelativeTimeFormat("eu", {"style":"long","numeric":"always"}).format(0, "day")	0 egun barru
+new Intl.RelativeTimeFormat("eu", {"style":"long","numeric":"auto"}).format(-0, "week")	aste honetan
+new Intl.RelativeTimeFormat("eu", {"style":"narrow","numeric":"auto"}).format(1, "quarter")	hurrengo hiruhil.
+new Intl.RelativeTimeFormat("eu", {"style":"short","numeric":"always"}).format(-1, "quarter")	duela 1 hiruhileko
+new Intl.RelativeTimeFormat("eu", {"style":"long","numeric":"always"}).format(1.5, "hour")	1,5 ordu barru
+new Intl.RelativeTimeFormat("eu", {"style":"long","numeric":"always"}).format(-1000000, "month")	duela 1.000.000 hilabete
+new Intl.RelativeTimeFormat("eu", {"style":"short","numeric":"always"}).format(0.5, "second")	0,5 segundo barru
+new Intl.RelativeTimeFormat("eu", {"style":"narrow","numeric":"always"}).format(21, "day")	21 egun barru
+new Intl.RelativeTimeFormat("eu", {"style":"long","numeric":"always"}).format(1234567.891, "year")	1.234.567,891 urte barru
+new Intl.RelativeTimeFormat("eu", {"style":"long","numeric":"auto"}).format(0, "second")	orain
+new Intl.RelativeTimeFormat("eu", {"style":"short","numeric":"auto"}).format(0, "minute")	minutu honetan
+new Intl.RelativeTimeFormat("eu", {"style":"long","numeric":"always"}).format(3, "quarters")	3 hiruhileko barru
+new Intl.RelativeTimeFormat("eu", {"style":"short","numeric":"auto"}).format(-2, "quarters")	duela 2 hiruhileko
+JSON.stringify(new Intl.RelativeTimeFormat("eu", {"numeric":"always"}).formatToParts(-3, "day"))	[{"type":"literal","value":"duela "},{"type":"integer","value":"3","unit":"day"},{"type":"literal","value":" egun"}]
+JSON.stringify(new Intl.RelativeTimeFormat("eu", {"numeric":"auto","style":"short"}).formatToParts(1, "day"))	[{"type":"literal","value":"bihar"}]
+JSON.stringify(new Intl.RelativeTimeFormat("eu", {"style":"narrow"}).formatToParts(1234.5, "quarter"))	[{"type":"integer","value":"1","unit":"quarter"},{"type":"group","value":".","unit":"quarter"},{"type":"integer","value":"234","unit":"quarter"},{"type":"decimal","value":",","unit":"quarter"},{"type":"fraction","value":"5","unit":"quarter"},{"type":"literal","value":" hiruhileko barru"}]
+new Intl.ListFormat("eu", {"type":"conjunction","style":"long"}).format(["a","b","c"])	a, b eta c
+new Intl.ListFormat("eu", {"type":"disjunction","style":"short"}).format(["a","b"])	a edo b
+new Intl.ListFormat("eu", {"type":"unit","style":"narrow"}).format(["a","b","c","d"])	a, b, c eta d
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("eu").select(n)).join(",")	other,one,other,other,other,other,other,other,other
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("eu", {"type":"ordinal"}).select(n)).join(",")	other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("eu").resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.RelativeTimeFormat("is", {"style":"long","numeric":"auto"}).format(-1, "day")	í gær
+new Intl.RelativeTimeFormat("is", {"style":"long","numeric":"auto"}).format(0, "day")	í dag
+new Intl.RelativeTimeFormat("is", {"style":"long","numeric":"auto"}).format(1, "day")	á morgun
+new Intl.RelativeTimeFormat("is", {"style":"long","numeric":"auto"}).format(2, "day")	eftir tvo daga
+new Intl.RelativeTimeFormat("is", {"style":"long","numeric":"auto"}).format(0, "year")	á þessu ári
+new Intl.RelativeTimeFormat("is", {"style":"long","numeric":"auto"}).format(-1, "quarter")	síðasti ársfjórðungur
+new Intl.RelativeTimeFormat("is", {"style":"long","numeric":"always"}).format(2.5, "quarter")	eftir 2,5 ársfjórðunga
+new Intl.RelativeTimeFormat("is", {"style":"short","numeric":"auto"}).format(1, "month")	í næsta mán.
+new Intl.RelativeTimeFormat("is", {"style":"short","numeric":"always"}).format(-3, "week")	fyrir 3 vikum
+new Intl.RelativeTimeFormat("is", {"style":"narrow","numeric":"auto"}).format(0, "hour")	þessa stundina
+new Intl.RelativeTimeFormat("is", {"style":"narrow","numeric":"always"}).format(-1, "minute")	-1 mín.
+new Intl.RelativeTimeFormat("is", {"style":"narrow","numeric":"always"}).format(5, "second")	+5 sek.
+new Intl.RelativeTimeFormat("is", {"style":"short","numeric":"always"}).format(-0, "year")	fyrir 0 árum
+new Intl.RelativeTimeFormat("is", {"style":"long","numeric":"always"}).format(0, "day")	eftir 0 daga
+new Intl.RelativeTimeFormat("is", {"style":"long","numeric":"auto"}).format(-0, "week")	í þessari viku
+new Intl.RelativeTimeFormat("is", {"style":"narrow","numeric":"auto"}).format(1, "quarter")	næsti ársfj.
+new Intl.RelativeTimeFormat("is", {"style":"short","numeric":"always"}).format(-1, "quarter")	fyrir 1 ársfj.
+new Intl.RelativeTimeFormat("is", {"style":"long","numeric":"always"}).format(1.5, "hour")	eftir 1,5 klukkustundir
+new Intl.RelativeTimeFormat("is", {"style":"long","numeric":"always"}).format(-1000000, "month")	fyrir 1.000.000 mánuðum
+new Intl.RelativeTimeFormat("is", {"style":"short","numeric":"always"}).format(0.5, "second")	eftir 0,5 sek.
+new Intl.RelativeTimeFormat("is", {"style":"narrow","numeric":"always"}).format(21, "day")	eftir 21 dag
+new Intl.RelativeTimeFormat("is", {"style":"long","numeric":"always"}).format(1234567.891, "year")	eftir 1.234.567,891 ár
+new Intl.RelativeTimeFormat("is", {"style":"long","numeric":"auto"}).format(0, "second")	núna
+new Intl.RelativeTimeFormat("is", {"style":"short","numeric":"auto"}).format(0, "minute")	á þessari mínútu
+new Intl.RelativeTimeFormat("is", {"style":"long","numeric":"always"}).format(3, "quarters")	eftir 3 ársfjórðunga
+new Intl.RelativeTimeFormat("is", {"style":"short","numeric":"auto"}).format(-2, "quarters")	fyrir 2 ársfj.
+JSON.stringify(new Intl.RelativeTimeFormat("is", {"numeric":"always"}).formatToParts(-3, "day"))	[{"type":"literal","value":"fyrir "},{"type":"integer","value":"3","unit":"day"},{"type":"literal","value":" dögum"}]
+JSON.stringify(new Intl.RelativeTimeFormat("is", {"numeric":"auto","style":"short"}).formatToParts(1, "day"))	[{"type":"literal","value":"á morgun"}]
+JSON.stringify(new Intl.RelativeTimeFormat("is", {"style":"narrow"}).formatToParts(1234.5, "quarter"))	[{"type":"literal","value":"eftir "},{"type":"integer","value":"1","unit":"quarter"},{"type":"group","value":".","unit":"quarter"},{"type":"integer","value":"234","unit":"quarter"},{"type":"decimal","value":",","unit":"quarter"},{"type":"fraction","value":"5","unit":"quarter"},{"type":"literal","value":" ársfj."}]
+new Intl.ListFormat("is", {"type":"conjunction","style":"long"}).format(["a","b","c"])	a, b og c
+new Intl.ListFormat("is", {"type":"disjunction","style":"short"}).format(["a","b"])	a eða b
+new Intl.ListFormat("is", {"type":"unit","style":"narrow"}).format(["a","b","c","d"])	a b c og d
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("is").select(n)).join(",")	other,one,other,other,other,other,one,other,other
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("is", {"type":"ordinal"}).select(n)).join(",")	other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("is").resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.RelativeTimeFormat("br", {"style":"long","numeric":"auto"}).format(-1, "day")	decʼh
+new Intl.RelativeTimeFormat("br", {"style":"long","numeric":"auto"}).format(0, "day")	hiziv
+new Intl.RelativeTimeFormat("br", {"style":"long","numeric":"auto"}).format(1, "day")	warcʼhoazh
+new Intl.RelativeTimeFormat("br", {"style":"long","numeric":"auto"}).format(2, "day")	a-benn 2 zeiz
+new Intl.RelativeTimeFormat("br", {"style":"long","numeric":"auto"}).format(0, "year")	hevlene
+new Intl.RelativeTimeFormat("br", {"style":"long","numeric":"auto"}).format(-1, "quarter")	an trimiziad diaraok
+new Intl.RelativeTimeFormat("br", {"style":"long","numeric":"always"}).format(2.5, "quarter")	a-benn 2,5 trimiziad
+new Intl.RelativeTimeFormat("br", {"style":"short","numeric":"auto"}).format(1, "month")	ar miz a zeu
+new Intl.RelativeTimeFormat("br", {"style":"short","numeric":"always"}).format(-3, "week")	3 sizh. zo
+new Intl.RelativeTimeFormat("br", {"style":"narrow","numeric":"auto"}).format(0, "hour")	dʼan eur-mañ
+new Intl.RelativeTimeFormat("br", {"style":"narrow","numeric":"always"}).format(-1, "minute")	-1 min
+new Intl.RelativeTimeFormat("br", {"style":"narrow","numeric":"always"}).format(5, "second")	+5 s
+new Intl.RelativeTimeFormat("br", {"style":"short","numeric":"always"}).format(-0, "year")	0 bl. zo
+new Intl.RelativeTimeFormat("br", {"style":"long","numeric":"always"}).format(0, "day")	a-benn 0 deiz
+new Intl.RelativeTimeFormat("br", {"style":"long","numeric":"auto"}).format(-0, "week")	ar sizhun-mañ
+new Intl.RelativeTimeFormat("br", {"style":"narrow","numeric":"auto"}).format(1, "quarter")	an trim. a zeu
+new Intl.RelativeTimeFormat("br", {"style":"short","numeric":"always"}).format(-1, "quarter")	1 trim. zo
+new Intl.RelativeTimeFormat("br", {"style":"long","numeric":"always"}).format(1.5, "hour")	a-benn 1,5 eur
+new Intl.RelativeTimeFormat("br", {"style":"long","numeric":"always"}).format(-1000000, "month")	1 000 000 a vizioù zo
+new Intl.RelativeTimeFormat("br", {"style":"short","numeric":"always"}).format(0.5, "second")	a-benn 0,5 s
+new Intl.RelativeTimeFormat("br", {"style":"narrow","numeric":"always"}).format(21, "day")	+21 d
+new Intl.RelativeTimeFormat("br", {"style":"long","numeric":"always"}).format(1234567.891, "year")	a-benn 1 234 567,891 vloaz
+new Intl.RelativeTimeFormat("br", {"style":"long","numeric":"auto"}).format(0, "second")	bremañ
+new Intl.RelativeTimeFormat("br", {"style":"short","numeric":"auto"}).format(0, "minute")	ar munut-mañ
+new Intl.RelativeTimeFormat("br", {"style":"long","numeric":"always"}).format(3, "quarters")	a-benn 3 zrimiziad
+new Intl.RelativeTimeFormat("br", {"style":"short","numeric":"auto"}).format(-2, "quarters")	2 trim. zo
+JSON.stringify(new Intl.RelativeTimeFormat("br", {"numeric":"always"}).formatToParts(-3, "day"))	[{"type":"integer","value":"3","unit":"day"},{"type":"literal","value":" deiz zo"}]
+JSON.stringify(new Intl.RelativeTimeFormat("br", {"numeric":"auto","style":"short"}).formatToParts(1, "day"))	[{"type":"literal","value":"warcʼhoazh"}]
+JSON.stringify(new Intl.RelativeTimeFormat("br", {"style":"narrow"}).formatToParts(1234.5, "quarter"))	[{"type":"literal","value":"+"},{"type":"integer","value":"1","unit":"quarter"},{"type":"group","value":" ","unit":"quarter"},{"type":"integer","value":"234","unit":"quarter"},{"type":"decimal","value":",","unit":"quarter"},{"type":"fraction","value":"5","unit":"quarter"},{"type":"literal","value":" trim."}]
+new Intl.ListFormat("br", {"type":"conjunction","style":"long"}).format(["a","b","c"])	a, b ha c
+new Intl.ListFormat("br", {"type":"disjunction","style":"short"}).format(["a","b"])	a pe b
+new Intl.ListFormat("br", {"type":"unit","style":"narrow"}).format(["a","b","c","d"])	a, b, c, d
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("br").select(n)).join(",")	other,one,two,few,other,other,one,other,other
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("br", {"type":"ordinal"}).select(n)).join(",")	other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("br").resolvedOptions().pluralCategories.join(",")	one,two,few,many,other
+new Intl.RelativeTimeFormat("fy", {"style":"long","numeric":"auto"}).format(-1, "day")	gisteren
+new Intl.RelativeTimeFormat("fy", {"style":"long","numeric":"auto"}).format(0, "day")	vandaag
+new Intl.RelativeTimeFormat("fy", {"style":"long","numeric":"auto"}).format(1, "day")	morgen
+new Intl.RelativeTimeFormat("fy", {"style":"long","numeric":"auto"}).format(2, "day")	Oermorgen
+new Intl.RelativeTimeFormat("fy", {"style":"long","numeric":"auto"}).format(0, "year")	dit jier
+new Intl.RelativeTimeFormat("fy", {"style":"long","numeric":"auto"}).format(-1, "quarter")	last quarter
+new Intl.RelativeTimeFormat("fy", {"style":"long","numeric":"always"}).format(2.5, "quarter")	+2,5 Q
+new Intl.RelativeTimeFormat("fy", {"style":"short","numeric":"auto"}).format(1, "month")	folgjende moanne
+new Intl.RelativeTimeFormat("fy", {"style":"short","numeric":"always"}).format(-3, "week")	3 wiken lyn
+new Intl.RelativeTimeFormat("fy", {"style":"narrow","numeric":"auto"}).format(0, "hour")	this hour
+new Intl.RelativeTimeFormat("fy", {"style":"narrow","numeric":"always"}).format(-1, "minute")	1 minút lyn
+new Intl.RelativeTimeFormat("fy", {"style":"narrow","numeric":"always"}).format(5, "second")	Oer 5 sekonden
+new Intl.RelativeTimeFormat("fy", {"style":"short","numeric":"always"}).format(-0, "year")	0 jier lyn
+new Intl.RelativeTimeFormat("fy", {"style":"long","numeric":"always"}).format(0, "day")	Oer 0 deien
+new Intl.RelativeTimeFormat("fy", {"style":"long","numeric":"auto"}).format(-0, "week")	dizze wike
+new Intl.RelativeTimeFormat("fy", {"style":"narrow","numeric":"auto"}).format(1, "quarter")	next quarter
+new Intl.RelativeTimeFormat("fy", {"style":"short","numeric":"always"}).format(-1, "quarter")	-1 Q
+new Intl.RelativeTimeFormat("fy", {"style":"long","numeric":"always"}).format(1.5, "hour")	Oer 1,5 oere
+new Intl.RelativeTimeFormat("fy", {"style":"long","numeric":"always"}).format(-1000000, "month")	1.000.000 moannen lyn
+new Intl.RelativeTimeFormat("fy", {"style":"short","numeric":"always"}).format(0.5, "second")	Oer 0,5 sekonden
+new Intl.RelativeTimeFormat("fy", {"style":"narrow","numeric":"always"}).format(21, "day")	Oer 21 deien
+new Intl.RelativeTimeFormat("fy", {"style":"long","numeric":"always"}).format(1234567.891, "year")	Oer 1.234.567,891 jier
+new Intl.RelativeTimeFormat("fy", {"style":"long","numeric":"auto"}).format(0, "second")	nu
+new Intl.RelativeTimeFormat("fy", {"style":"short","numeric":"auto"}).format(0, "minute")	this minute
+new Intl.RelativeTimeFormat("fy", {"style":"long","numeric":"always"}).format(3, "quarters")	+3 Q
+new Intl.RelativeTimeFormat("fy", {"style":"short","numeric":"auto"}).format(-2, "quarters")	-2 Q
+JSON.stringify(new Intl.RelativeTimeFormat("fy", {"numeric":"always"}).formatToParts(-3, "day"))	[{"type":"integer","value":"3","unit":"day"},{"type":"literal","value":" deien lyn"}]
+JSON.stringify(new Intl.RelativeTimeFormat("fy", {"numeric":"auto","style":"short"}).formatToParts(1, "day"))	[{"type":"literal","value":"morgen"}]
+JSON.stringify(new Intl.RelativeTimeFormat("fy", {"style":"narrow"}).formatToParts(1234.5, "quarter"))	[{"type":"literal","value":"+"},{"type":"integer","value":"1","unit":"quarter"},{"type":"group","value":".","unit":"quarter"},{"type":"integer","value":"234","unit":"quarter"},{"type":"decimal","value":",","unit":"quarter"},{"type":"fraction","value":"5","unit":"quarter"},{"type":"literal","value":" Q"}]
+new Intl.ListFormat("fy", {"type":"conjunction","style":"long"}).format(["a","b","c"])	a, b en c
+new Intl.ListFormat("fy", {"type":"disjunction","style":"short"}).format(["a","b"])	a or b
+new Intl.ListFormat("fy", {"type":"unit","style":"narrow"}).format(["a","b","c","d"])	a, b, c, d
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("fy").select(n)).join(",")	other,one,other,other,other,other,other,other,other
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("fy", {"type":"ordinal"}).select(n)).join(",")	other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("fy").resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.RelativeTimeFormat("si", {"style":"long","numeric":"auto"}).format(-1, "day")	ඊයේ
+new Intl.RelativeTimeFormat("si", {"style":"long","numeric":"auto"}).format(0, "day")	අද
+new Intl.RelativeTimeFormat("si", {"style":"long","numeric":"auto"}).format(1, "day")	හෙට
+new Intl.RelativeTimeFormat("si", {"style":"long","numeric":"auto"}).format(2, "day")	අනිද්දා
+new Intl.RelativeTimeFormat("si", {"style":"long","numeric":"auto"}).format(0, "year")	මෙම වසර
+new Intl.RelativeTimeFormat("si", {"style":"long","numeric":"auto"}).format(-1, "quarter")	පසුගිය කාර්තුව
+new Intl.RelativeTimeFormat("si", {"style":"long","numeric":"always"}).format(2.5, "quarter")	කාර්තු 2.5කින්
+new Intl.RelativeTimeFormat("si", {"style":"short","numeric":"auto"}).format(1, "month")	ඊළඟ මාස.
+new Intl.RelativeTimeFormat("si", {"style":"short","numeric":"always"}).format(-3, "week")	සති 3කට පෙර
+new Intl.RelativeTimeFormat("si", {"style":"narrow","numeric":"auto"}).format(0, "hour")	මෙම පැය
+new Intl.RelativeTimeFormat("si", {"style":"narrow","numeric":"always"}).format(-1, "minute")	මිනිත්තු 1කට පෙර
+new Intl.RelativeTimeFormat("si", {"style":"narrow","numeric":"always"}).format(5, "second")	තත්පර 5කින්
+new Intl.RelativeTimeFormat("si", {"style":"short","numeric":"always"}).format(-0, "year")	වසර 0කට පෙර
+new Intl.RelativeTimeFormat("si", {"style":"long","numeric":"always"}).format(0, "day")	දින 0න්
+new Intl.RelativeTimeFormat("si", {"style":"long","numeric":"auto"}).format(-0, "week")	මෙම සතිය
+new Intl.RelativeTimeFormat("si", {"style":"narrow","numeric":"auto"}).format(1, "quarter")	ඊළඟ කාර්.
+new Intl.RelativeTimeFormat("si", {"style":"short","numeric":"always"}).format(-1, "quarter")	කාර්. 1කට පෙර
+new Intl.RelativeTimeFormat("si", {"style":"long","numeric":"always"}).format(1.5, "hour")	පැය 1.5කින්
+new Intl.RelativeTimeFormat("si", {"style":"long","numeric":"always"}).format(-1000000, "month")	මාස 1,000,000කට පෙර
+new Intl.RelativeTimeFormat("si", {"style":"short","numeric":"always"}).format(0.5, "second")	තත්පර 0.5කින්
+new Intl.RelativeTimeFormat("si", {"style":"narrow","numeric":"always"}).format(21, "day")	දින 21න්
+new Intl.RelativeTimeFormat("si", {"style":"long","numeric":"always"}).format(1234567.891, "year")	වසර 1,234,567.891කින්
+new Intl.RelativeTimeFormat("si", {"style":"long","numeric":"auto"}).format(0, "second")	දැන්
+new Intl.RelativeTimeFormat("si", {"style":"short","numeric":"auto"}).format(0, "minute")	මෙම මිනිත්තුව
+new Intl.RelativeTimeFormat("si", {"style":"long","numeric":"always"}).format(3, "quarters")	කාර්තු 3කින්
+new Intl.RelativeTimeFormat("si", {"style":"short","numeric":"auto"}).format(-2, "quarters")	කාර්. 2කට පෙර
+JSON.stringify(new Intl.RelativeTimeFormat("si", {"numeric":"always"}).formatToParts(-3, "day"))	[{"type":"literal","value":"දින "},{"type":"integer","value":"3","unit":"day"},{"type":"literal","value":"කට පෙර"}]
+JSON.stringify(new Intl.RelativeTimeFormat("si", {"numeric":"auto","style":"short"}).formatToParts(1, "day"))	[{"type":"literal","value":"හෙට"}]
+JSON.stringify(new Intl.RelativeTimeFormat("si", {"style":"narrow"}).formatToParts(1234.5, "quarter"))	[{"type":"literal","value":"කාර්. "},{"type":"integer","value":"1","unit":"quarter"},{"type":"group","value":",","unit":"quarter"},{"type":"integer","value":"234","unit":"quarter"},{"type":"decimal","value":".","unit":"quarter"},{"type":"fraction","value":"5","unit":"quarter"},{"type":"literal","value":"කින්"}]
+new Intl.ListFormat("si", {"type":"conjunction","style":"long"}).format(["a","b","c"])	a, b, සහ c
+new Intl.ListFormat("si", {"type":"disjunction","style":"short"}).format(["a","b"])	a හෝ b
+new Intl.ListFormat("si", {"type":"unit","style":"narrow"}).format(["a","b","c","d"])	a, b, c, සහ d
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("si").select(n)).join(",")	one,one,other,other,other,other,other,other,other
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("si", {"type":"ordinal"}).select(n)).join(",")	other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("si").resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.RelativeTimeFormat("ne", {"style":"long","numeric":"auto"}).format(-1, "day")	हिजो
+new Intl.RelativeTimeFormat("ne", {"style":"long","numeric":"auto"}).format(0, "day")	आज
+new Intl.RelativeTimeFormat("ne", {"style":"long","numeric":"auto"}).format(1, "day")	भोलि
+new Intl.RelativeTimeFormat("ne", {"style":"long","numeric":"auto"}).format(2, "day")	पर्सि
+new Intl.RelativeTimeFormat("ne", {"style":"long","numeric":"auto"}).format(0, "year")	यो वर्ष
+new Intl.RelativeTimeFormat("ne", {"style":"long","numeric":"auto"}).format(-1, "quarter")	अघिल्लो सत्र
+new Intl.RelativeTimeFormat("ne", {"style":"long","numeric":"always"}).format(2.5, "quarter")	२.५सत्रमा
+new Intl.RelativeTimeFormat("ne", {"style":"short","numeric":"auto"}).format(1, "month")	आगामी महिना
+new Intl.RelativeTimeFormat("ne", {"style":"short","numeric":"always"}).format(-3, "week")	३ हप्ता पहिले
+new Intl.RelativeTimeFormat("ne", {"style":"narrow","numeric":"auto"}).format(0, "hour")	यस घडीमा
+new Intl.RelativeTimeFormat("ne", {"style":"narrow","numeric":"always"}).format(-1, "minute")	१ मिनेट पहिले
+new Intl.RelativeTimeFormat("ne", {"style":"narrow","numeric":"always"}).format(5, "second")	५ सेकेन्डमा
+new Intl.RelativeTimeFormat("ne", {"style":"short","numeric":"always"}).format(-0, "year")	० वर्ष अघि
+new Intl.RelativeTimeFormat("ne", {"style":"long","numeric":"always"}).format(0, "day")	० दिनमा
+new Intl.RelativeTimeFormat("ne", {"style":"long","numeric":"auto"}).format(-0, "week")	यो हप्ता
+new Intl.RelativeTimeFormat("ne", {"style":"narrow","numeric":"auto"}).format(1, "quarter")	अर्को सत्र
+new Intl.RelativeTimeFormat("ne", {"style":"short","numeric":"always"}).format(-1, "quarter")	१सत्र अघि
+new Intl.RelativeTimeFormat("ne", {"style":"long","numeric":"always"}).format(1.5, "hour")	१.५ घण्टामा
+new Intl.RelativeTimeFormat("ne", {"style":"long","numeric":"always"}).format(-1000000, "month")	१०,००,००० महिना पहिले
+new Intl.RelativeTimeFormat("ne", {"style":"short","numeric":"always"}).format(0.5, "second")	०.५ सेकेन्डमा
+new Intl.RelativeTimeFormat("ne", {"style":"narrow","numeric":"always"}).format(21, "day")	२१ दिनमा
+new Intl.RelativeTimeFormat("ne", {"style":"long","numeric":"always"}).format(1234567.891, "year")	१२,३४,५६७.८९१ वर्षमा
+new Intl.RelativeTimeFormat("ne", {"style":"long","numeric":"auto"}).format(0, "second")	अहिले
+new Intl.RelativeTimeFormat("ne", {"style":"short","numeric":"auto"}).format(0, "minute")	यही मिनेटमा
+new Intl.RelativeTimeFormat("ne", {"style":"long","numeric":"always"}).format(3, "quarters")	३सत्रमा
+new Intl.RelativeTimeFormat("ne", {"style":"short","numeric":"auto"}).format(-2, "quarters")	२सत्र अघि
+JSON.stringify(new Intl.RelativeTimeFormat("ne", {"numeric":"always"}).formatToParts(-3, "day"))	[{"type":"integer","value":"३","unit":"day"},{"type":"literal","value":" दिन पहिले"}]
+JSON.stringify(new Intl.RelativeTimeFormat("ne", {"numeric":"auto","style":"short"}).formatToParts(1, "day"))	[{"type":"literal","value":"भोलि"}]
+JSON.stringify(new Intl.RelativeTimeFormat("ne", {"style":"narrow"}).formatToParts(1234.5, "quarter"))	[{"type":"integer","value":"१","unit":"quarter"},{"type":"group","value":",","unit":"quarter"},{"type":"integer","value":"२३४","unit":"quarter"},{"type":"decimal","value":".","unit":"quarter"},{"type":"fraction","value":"५","unit":"quarter"},{"type":"literal","value":"सत्रमा"}]
+new Intl.ListFormat("ne", {"type":"conjunction","style":"long"}).format(["a","b","c"])	a, b र c
+new Intl.ListFormat("ne", {"type":"disjunction","style":"short"}).format(["a","b"])	a वा b
+new Intl.ListFormat("ne", {"type":"unit","style":"narrow"}).format(["a","b","c","d"])	a b c d
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("ne").select(n)).join(",")	other,one,other,other,other,other,other,other,other
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("ne", {"type":"ordinal"}).select(n)).join(",")	other,one,one,one,other,other,other,other,other
+new Intl.PluralRules("ne").resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.RelativeTimeFormat("bn", {"style":"long","numeric":"auto"}).format(-1, "day")	গতকাল
+new Intl.RelativeTimeFormat("bn", {"style":"long","numeric":"auto"}).format(0, "day")	আজ
+new Intl.RelativeTimeFormat("bn", {"style":"long","numeric":"auto"}).format(1, "day")	আগামীকাল
+new Intl.RelativeTimeFormat("bn", {"style":"long","numeric":"auto"}).format(2, "day")	আগামী পরশু
+new Intl.RelativeTimeFormat("bn", {"style":"long","numeric":"auto"}).format(0, "year")	এই বছর
+new Intl.RelativeTimeFormat("bn", {"style":"long","numeric":"auto"}).format(-1, "quarter")	গত ত্রৈমাসিক
+new Intl.RelativeTimeFormat("bn", {"style":"long","numeric":"always"}).format(2.5, "quarter")	২.৫ ত্রৈমাসিকে
+new Intl.RelativeTimeFormat("bn", {"style":"short","numeric":"auto"}).format(1, "month")	পরের মাস
+new Intl.RelativeTimeFormat("bn", {"style":"short","numeric":"always"}).format(-3, "week")	৩ সপ্তাহ আগে
+new Intl.RelativeTimeFormat("bn", {"style":"narrow","numeric":"auto"}).format(0, "hour")	এই ঘণ্টায়
+new Intl.RelativeTimeFormat("bn", {"style":"narrow","numeric":"always"}).format(-1, "minute")	১ মিনিট আগে
+new Intl.RelativeTimeFormat("bn", {"style":"narrow","numeric":"always"}).format(5, "second")	৫ সেকেন্ডে
+new Intl.RelativeTimeFormat("bn", {"style":"short","numeric":"always"}).format(-0, "year")	০ বছর পূর্বে
+new Intl.RelativeTimeFormat("bn", {"style":"long","numeric":"always"}).format(0, "day")	০ দিনের মধ্যে
+new Intl.RelativeTimeFormat("bn", {"style":"long","numeric":"auto"}).format(-0, "week")	এই সপ্তাহ
+new Intl.RelativeTimeFormat("bn", {"style":"narrow","numeric":"auto"}).format(1, "quarter")	পরের ত্রৈমাসিক
+new Intl.RelativeTimeFormat("bn", {"style":"short","numeric":"always"}).format(-1, "quarter")	১ ত্রৈমাসিক আগে
+new Intl.RelativeTimeFormat("bn", {"style":"long","numeric":"always"}).format(1.5, "hour")	১.৫ ঘণ্টায়
+new Intl.RelativeTimeFormat("bn", {"style":"long","numeric":"always"}).format(-1000000, "month")	১০,০০,০০০ মাস আগে
+new Intl.RelativeTimeFormat("bn", {"style":"short","numeric":"always"}).format(0.5, "second")	০.৫ সেকেন্ডে
+new Intl.RelativeTimeFormat("bn", {"style":"narrow","numeric":"always"}).format(21, "day")	২১ দিনের মধ্যে
+new Intl.RelativeTimeFormat("bn", {"style":"long","numeric":"always"}).format(1234567.891, "year")	১২,৩৪,৫৬৭.৮৯১ বছরে
+new Intl.RelativeTimeFormat("bn", {"style":"long","numeric":"auto"}).format(0, "second")	এখন
+new Intl.RelativeTimeFormat("bn", {"style":"short","numeric":"auto"}).format(0, "minute")	এই মিনিট
+new Intl.RelativeTimeFormat("bn", {"style":"long","numeric":"always"}).format(3, "quarters")	৩ ত্রৈমাসিকে
+new Intl.RelativeTimeFormat("bn", {"style":"short","numeric":"auto"}).format(-2, "quarters")	২ ত্রৈমাসিক আগে
+JSON.stringify(new Intl.RelativeTimeFormat("bn", {"numeric":"always"}).formatToParts(-3, "day"))	[{"type":"integer","value":"৩","unit":"day"},{"type":"literal","value":" দিন আগে"}]
+JSON.stringify(new Intl.RelativeTimeFormat("bn", {"numeric":"auto","style":"short"}).formatToParts(1, "day"))	[{"type":"literal","value":"আগামীকাল"}]
+JSON.stringify(new Intl.RelativeTimeFormat("bn", {"style":"narrow"}).formatToParts(1234.5, "quarter"))	[{"type":"integer","value":"১","unit":"quarter"},{"type":"group","value":",","unit":"quarter"},{"type":"integer","value":"২৩৪","unit":"quarter"},{"type":"decimal","value":".","unit":"quarter"},{"type":"fraction","value":"৫","unit":"quarter"},{"type":"literal","value":" ত্রৈমাসিকে"}]
+new Intl.ListFormat("bn", {"type":"conjunction","style":"long"}).format(["a","b","c"])	a, b এবং c
+new Intl.ListFormat("bn", {"type":"disjunction","style":"short"}).format(["a","b"])	a বা b
+new Intl.ListFormat("bn", {"type":"unit","style":"narrow"}).format(["a","b","c","d"])	a, b, c, d
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("bn").select(n)).join(",")	one,one,other,other,other,other,other,other,other
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("bn", {"type":"ordinal"}).select(n)).join(",")	other,one,two,two,one,other,other,other,other
+new Intl.PluralRules("bn").resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.RelativeTimeFormat("ta", {"style":"long","numeric":"auto"}).format(-1, "day")	நேற்று
+new Intl.RelativeTimeFormat("ta", {"style":"long","numeric":"auto"}).format(0, "day")	இன்று
+new Intl.RelativeTimeFormat("ta", {"style":"long","numeric":"auto"}).format(1, "day")	நாளை
+new Intl.RelativeTimeFormat("ta", {"style":"long","numeric":"auto"}).format(2, "day")	நாளை மறுநாள்
+new Intl.RelativeTimeFormat("ta", {"style":"long","numeric":"auto"}).format(0, "year")	இந்த ஆண்டு
+new Intl.RelativeTimeFormat("ta", {"style":"long","numeric":"auto"}).format(-1, "quarter")	கடந்த காலாண்டு
+new Intl.RelativeTimeFormat("ta", {"style":"long","numeric":"always"}).format(2.5, "quarter")	2.5 காலாண்டுகளில்
+new Intl.RelativeTimeFormat("ta", {"style":"short","numeric":"auto"}).format(1, "month")	அடுத்த மாதம்
+new Intl.RelativeTimeFormat("ta", {"style":"short","numeric":"always"}).format(-3, "week")	3 வார. முன்
+new Intl.RelativeTimeFormat("ta", {"style":"narrow","numeric":"auto"}).format(0, "hour")	இந்த ஒரு மணிநேரத்தில்
+new Intl.RelativeTimeFormat("ta", {"style":"narrow","numeric":"always"}).format(-1, "minute")	1 நி. முன்
+new Intl.RelativeTimeFormat("ta", {"style":"narrow","numeric":"always"}).format(5, "second")	5 வி.
+new Intl.RelativeTimeFormat("ta", {"style":"short","numeric":"always"}).format(-0, "year")	0 ஆண்டுகளுக்கு முன்
+new Intl.RelativeTimeFormat("ta", {"style":"long","numeric":"always"}).format(0, "day")	0 நாட்களில்
+new Intl.RelativeTimeFormat("ta", {"style":"long","numeric":"auto"}).format(-0, "week")	இந்த வாரம்
+new Intl.RelativeTimeFormat("ta", {"style":"narrow","numeric":"auto"}).format(1, "quarter")	அடுத்த காலாண்டு
+new Intl.RelativeTimeFormat("ta", {"style":"short","numeric":"always"}).format(-1, "quarter")	1 கா. முன்
+new Intl.RelativeTimeFormat("ta", {"style":"long","numeric":"always"}).format(1.5, "hour")	1.5 மணிநேரத்தில்
+new Intl.RelativeTimeFormat("ta", {"style":"long","numeric":"always"}).format(-1000000, "month")	10,00,000 மாதங்களுக்கு முன்
+new Intl.RelativeTimeFormat("ta", {"style":"short","numeric":"always"}).format(0.5, "second")	0.5 விநாடிகளில்
+new Intl.RelativeTimeFormat("ta", {"style":"narrow","numeric":"always"}).format(21, "day")	21 நா.
+new Intl.RelativeTimeFormat("ta", {"style":"long","numeric":"always"}).format(1234567.891, "year")	12,34,567.891 ஆண்டுகளில்
+new Intl.RelativeTimeFormat("ta", {"style":"long","numeric":"auto"}).format(0, "second")	இப்போது
+new Intl.RelativeTimeFormat("ta", {"style":"short","numeric":"auto"}).format(0, "minute")	இந்த ஒரு நிமிடத்தில்
+new Intl.RelativeTimeFormat("ta", {"style":"long","numeric":"always"}).format(3, "quarters")	3 காலாண்டுகளில்
+new Intl.RelativeTimeFormat("ta", {"style":"short","numeric":"auto"}).format(-2, "quarters")	2 கா. முன்
+JSON.stringify(new Intl.RelativeTimeFormat("ta", {"numeric":"always"}).formatToParts(-3, "day"))	[{"type":"integer","value":"3","unit":"day"},{"type":"literal","value":" நாட்களுக்கு முன்"}]
+JSON.stringify(new Intl.RelativeTimeFormat("ta", {"numeric":"auto","style":"short"}).formatToParts(1, "day"))	[{"type":"literal","value":"நாளை"}]
+JSON.stringify(new Intl.RelativeTimeFormat("ta", {"style":"narrow"}).formatToParts(1234.5, "quarter"))	[{"type":"integer","value":"1","unit":"quarter"},{"type":"group","value":",","unit":"quarter"},{"type":"integer","value":"234","unit":"quarter"},{"type":"decimal","value":".","unit":"quarter"},{"type":"fraction","value":"5","unit":"quarter"},{"type":"literal","value":" கா."}]
+new Intl.ListFormat("ta", {"type":"conjunction","style":"long"}).format(["a","b","c"])	a, b மற்றும் c
+new Intl.ListFormat("ta", {"type":"disjunction","style":"short"}).format(["a","b"])	a அல்லது b
+new Intl.ListFormat("ta", {"type":"unit","style":"narrow"}).format(["a","b","c","d"])	a b c d
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("ta").select(n)).join(",")	other,one,other,other,other,other,other,other,other
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("ta", {"type":"ordinal"}).select(n)).join(",")	other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("ta").resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.RelativeTimeFormat("ml", {"style":"long","numeric":"auto"}).format(-1, "day")	ഇന്നലെ
+new Intl.RelativeTimeFormat("ml", {"style":"long","numeric":"auto"}).format(0, "day")	ഇന്ന്
+new Intl.RelativeTimeFormat("ml", {"style":"long","numeric":"auto"}).format(1, "day")	നാളെ
+new Intl.RelativeTimeFormat("ml", {"style":"long","numeric":"auto"}).format(2, "day")	മറ്റന്നാൾ
+new Intl.RelativeTimeFormat("ml", {"style":"long","numeric":"auto"}).format(0, "year")	ഈ വർ‌ഷം
+new Intl.RelativeTimeFormat("ml", {"style":"long","numeric":"auto"}).format(-1, "quarter")	കഴിഞ്ഞ പാദം
+new Intl.RelativeTimeFormat("ml", {"style":"long","numeric":"always"}).format(2.5, "quarter")	2.5 പാദത്തിൽ
+new Intl.RelativeTimeFormat("ml", {"style":"short","numeric":"auto"}).format(1, "month")	അടുത്ത മാസം
+new Intl.RelativeTimeFormat("ml", {"style":"short","numeric":"always"}).format(-3, "week")	3 ആഴ്ച മുമ്പ്
+new Intl.RelativeTimeFormat("ml", {"style":"narrow","numeric":"auto"}).format(0, "hour")	ഈ മണിക്കൂറിൽ
+new Intl.RelativeTimeFormat("ml", {"style":"narrow","numeric":"always"}).format(-1, "minute")	1 മിനിറ്റ് മുമ്പ്
+new Intl.RelativeTimeFormat("ml", {"style":"narrow","numeric":"always"}).format(5, "second")	5 സെക്കൻഡിൽ
+new Intl.RelativeTimeFormat("ml", {"style":"short","numeric":"always"}).format(-0, "year")	0 വർഷം മുമ്പ്
+new Intl.RelativeTimeFormat("ml", {"style":"long","numeric":"always"}).format(0, "day")	0 ദിവസത്തിൽ
+new Intl.RelativeTimeFormat("ml", {"style":"long","numeric":"auto"}).format(-0, "week")	ഈ ആഴ്ച
+new Intl.RelativeTimeFormat("ml", {"style":"narrow","numeric":"auto"}).format(1, "quarter")	അടുത്ത പാദം
+new Intl.RelativeTimeFormat("ml", {"style":"short","numeric":"always"}).format(-1, "quarter")	1 പാദം മുമ്പ്
+new Intl.RelativeTimeFormat("ml", {"style":"long","numeric":"always"}).format(1.5, "hour")	1.5 മണിക്കൂറിൽ
+new Intl.RelativeTimeFormat("ml", {"style":"long","numeric":"always"}).format(-1000000, "month")	10,00,000 മാസം മുമ്പ്
+new Intl.RelativeTimeFormat("ml", {"style":"short","numeric":"always"}).format(0.5, "second")	0.5 സെക്കൻഡിൽ
+new Intl.RelativeTimeFormat("ml", {"style":"narrow","numeric":"always"}).format(21, "day")	21 ദിവസത്തിൽ
+new Intl.RelativeTimeFormat("ml", {"style":"long","numeric":"always"}).format(1234567.891, "year")	12,34,567.891 വർഷത്തിൽ
+new Intl.RelativeTimeFormat("ml", {"style":"long","numeric":"auto"}).format(0, "second")	ഇപ്പോൾ
+new Intl.RelativeTimeFormat("ml", {"style":"short","numeric":"auto"}).format(0, "minute")	ഈ മിനിറ്റിൽ
+new Intl.RelativeTimeFormat("ml", {"style":"long","numeric":"always"}).format(3, "quarters")	3 പാദത്തിൽ
+new Intl.RelativeTimeFormat("ml", {"style":"short","numeric":"auto"}).format(-2, "quarters")	2 പാദം മുമ്പ്
+JSON.stringify(new Intl.RelativeTimeFormat("ml", {"numeric":"always"}).formatToParts(-3, "day"))	[{"type":"integer","value":"3","unit":"day"},{"type":"literal","value":" ദിവസം മുമ്പ്"}]
+JSON.stringify(new Intl.RelativeTimeFormat("ml", {"numeric":"auto","style":"short"}).formatToParts(1, "day"))	[{"type":"literal","value":"നാളെ"}]
+JSON.stringify(new Intl.RelativeTimeFormat("ml", {"style":"narrow"}).formatToParts(1234.5, "quarter"))	[{"type":"integer","value":"1","unit":"quarter"},{"type":"group","value":",","unit":"quarter"},{"type":"integer","value":"234","unit":"quarter"},{"type":"decimal","value":".","unit":"quarter"},{"type":"fraction","value":"5","unit":"quarter"},{"type":"literal","value":" പാദത്തിൽ"}]
+new Intl.ListFormat("ml", {"type":"conjunction","style":"long"}).format(["a","b","c"])	a, b, c
+new Intl.ListFormat("ml", {"type":"disjunction","style":"short"}).format(["a","b"])	a അല്ലെങ്കിൽ b
+new Intl.ListFormat("ml", {"type":"unit","style":"narrow"}).format(["a","b","c","d"])	a b c d
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("ml").select(n)).join(",")	other,one,other,other,other,other,other,other,other
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("ml", {"type":"ordinal"}).select(n)).join(",")	other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("ml").resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.RelativeTimeFormat("ur", {"style":"long","numeric":"auto"}).format(-1, "day")	گزشتہ کل
+new Intl.RelativeTimeFormat("ur", {"style":"long","numeric":"auto"}).format(0, "day")	آج
+new Intl.RelativeTimeFormat("ur", {"style":"long","numeric":"auto"}).format(1, "day")	آئندہ کل
+new Intl.RelativeTimeFormat("ur", {"style":"long","numeric":"auto"}).format(2, "day")	آنے والا پرسوں
+new Intl.RelativeTimeFormat("ur", {"style":"long","numeric":"auto"}).format(0, "year")	اس سال
+new Intl.RelativeTimeFormat("ur", {"style":"long","numeric":"auto"}).format(-1, "quarter")	گزشتہ سہ ماہی
+new Intl.RelativeTimeFormat("ur", {"style":"long","numeric":"always"}).format(2.5, "quarter")	2.5 سہ ماہی میں
+new Intl.RelativeTimeFormat("ur", {"style":"short","numeric":"auto"}).format(1, "month")	اگلے مہینہ
+new Intl.RelativeTimeFormat("ur", {"style":"short","numeric":"always"}).format(-3, "week")	3 ہفتے پہلے
+new Intl.RelativeTimeFormat("ur", {"style":"narrow","numeric":"auto"}).format(0, "hour")	اس گھنٹے
+new Intl.RelativeTimeFormat("ur", {"style":"narrow","numeric":"always"}).format(-1, "minute")	1 منٹ پہلے
+new Intl.RelativeTimeFormat("ur", {"style":"narrow","numeric":"always"}).format(5, "second")	5 سیکنڈ میں
+new Intl.RelativeTimeFormat("ur", {"style":"short","numeric":"always"}).format(-0, "year")	0 سال پہلے
+new Intl.RelativeTimeFormat("ur", {"style":"long","numeric":"always"}).format(0, "day")	0 دنوں میں
+new Intl.RelativeTimeFormat("ur", {"style":"long","numeric":"auto"}).format(-0, "week")	اس ہفتہ
+new Intl.RelativeTimeFormat("ur", {"style":"narrow","numeric":"auto"}).format(1, "quarter")	اگلے سہ ماہی
+new Intl.RelativeTimeFormat("ur", {"style":"short","numeric":"always"}).format(-1, "quarter")	1 سہ ماہی قبل
+new Intl.RelativeTimeFormat("ur", {"style":"long","numeric":"always"}).format(1.5, "hour")	1.5 گھنٹے میں
+new Intl.RelativeTimeFormat("ur", {"style":"long","numeric":"always"}).format(-1000000, "month")	1,000,000 مہینے پہلے
+new Intl.RelativeTimeFormat("ur", {"style":"short","numeric":"always"}).format(0.5, "second")	0.5 سیکنڈ میں
+new Intl.RelativeTimeFormat("ur", {"style":"narrow","numeric":"always"}).format(21, "day")	21 دنوں میں
+new Intl.RelativeTimeFormat("ur", {"style":"long","numeric":"always"}).format(1234567.891, "year")	1,234,567.891 سال میں
+new Intl.RelativeTimeFormat("ur", {"style":"long","numeric":"auto"}).format(0, "second")	اب
+new Intl.RelativeTimeFormat("ur", {"style":"short","numeric":"auto"}).format(0, "minute")	اس منٹ
+new Intl.RelativeTimeFormat("ur", {"style":"long","numeric":"always"}).format(3, "quarters")	3 سہ ماہی میں
+new Intl.RelativeTimeFormat("ur", {"style":"short","numeric":"auto"}).format(-2, "quarters")	2 سہ ماہی قبل
+JSON.stringify(new Intl.RelativeTimeFormat("ur", {"numeric":"always"}).formatToParts(-3, "day"))	[{"type":"integer","value":"3","unit":"day"},{"type":"literal","value":" دنوں پہلے"}]
+JSON.stringify(new Intl.RelativeTimeFormat("ur", {"numeric":"auto","style":"short"}).formatToParts(1, "day"))	[{"type":"literal","value":"آئندہ کل"}]
+JSON.stringify(new Intl.RelativeTimeFormat("ur", {"style":"narrow"}).formatToParts(1234.5, "quarter"))	[{"type":"integer","value":"1","unit":"quarter"},{"type":"group","value":",","unit":"quarter"},{"type":"integer","value":"234","unit":"quarter"},{"type":"decimal","value":".","unit":"quarter"},{"type":"fraction","value":"5","unit":"quarter"},{"type":"literal","value":" سہ ماہی میں"}]
+new Intl.ListFormat("ur", {"type":"conjunction","style":"long"}).format(["a","b","c"])	a، b، اور c
+new Intl.ListFormat("ur", {"type":"disjunction","style":"short"}).format(["a","b"])	a یا b
+new Intl.ListFormat("ur", {"type":"unit","style":"narrow"}).format(["a","b","c","d"])	a، b، c، اور d
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("ur").select(n)).join(",")	other,one,other,other,other,other,other,other,other
+[0, 1, 2, 3, 5, 11, 21, 100, 1.5].map(n => new Intl.PluralRules("ur", {"type":"ordinal"}).select(n)).join(",")	other,other,other,other,other,other,other,other,other
+new Intl.PluralRules("ur").resolvedOptions().pluralCategories.join(",")	one,other

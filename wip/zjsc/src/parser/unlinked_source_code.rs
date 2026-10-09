@@ -7,7 +7,7 @@
 use std::rc::Rc;
 
 use crate::parser::source_provider::SourceProvider;
-use crate::wtf::text::wtf_string::ConversionMode;
+use crate::wtf::text::conversion_mode::ConversionMode;
 use crate::wtf::text::wtf_string::String as WtfString;
 
 /// `class UnlinkedSourceCode`. O `RefPtr<SourceProvider>` vira `Option<Rc<dyn SourceProvider>>`.
@@ -19,11 +19,6 @@ pub struct UnlinkedSourceCode {
 }
 
 impl UnlinkedSourceCode {
-    /// `UnlinkedSourceCode()`.
-    pub fn new() -> UnlinkedSourceCode {
-        UnlinkedSourceCode::default()
-    }
-
     /// `UnlinkedSourceCode(Ref<SourceProvider>&&)`.
     pub fn from_provider(provider: Rc<dyn SourceProvider>) -> UnlinkedSourceCode {
         let end_offset = provider.source().length() as i32;
@@ -136,8 +131,7 @@ mod tests {
         assert_eq!(part.to_utf8(), b"world".to_vec());
         assert!(part == UnlinkedSourceCode::with_offsets(Some(p.clone()), 6, 11));
         assert!(part != whole);
-        assert!(UnlinkedSourceCode::new().is_null());
-        assert!(UnlinkedSourceCode::new().view().is_null());
-        assert!(UnlinkedSourceCode::new() == UnlinkedSourceCode::default());
+        assert!(UnlinkedSourceCode::default().is_null());
+        assert!(UnlinkedSourceCode::default().view().is_null());
     }
 }

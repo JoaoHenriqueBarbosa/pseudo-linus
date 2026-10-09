@@ -1,0 +1,226 @@
+(Temporal.PlainDate.from('2024-01-05').toZonedDateTime('UTC')).toString()	ok:"2024-01-05T00:00:00+00:00[UTC]"
+(Temporal.PlainDateTime.from('2024-01-05T15:04:05.123456789').toZonedDateTime('UTC')).toString()	ok:"2024-01-05T15:04:05.123456789+00:00[UTC]"
+(Temporal.PlainDate.from('2024-01-05').toZonedDateTime('America/New_York')).toString()	ok:"2024-01-05T00:00:00-05:00[America/New_York]"
+(Temporal.PlainDateTime.from('2024-01-05T15:04:05.123456789').toZonedDateTime('America/New_York')).toString()	ok:"2024-01-05T15:04:05.123456789-05:00[America/New_York]"
+(Temporal.PlainDate.from('2024-01-05').toZonedDateTime('Asia/Kolkata')).toString()	ok:"2024-01-05T00:00:00+05:30[Asia/Kolkata]"
+(Temporal.PlainDateTime.from('2024-01-05T15:04:05.123456789').toZonedDateTime('Asia/Kolkata')).toString()	ok:"2024-01-05T15:04:05.123456789+05:30[Asia/Kolkata]"
+(Temporal.PlainDate.from('2024-01-05').toZonedDateTime('Europe/London')).toString()	ok:"2024-01-05T00:00:00+00:00[Europe/London]"
+(Temporal.PlainDateTime.from('2024-01-05T15:04:05.123456789').toZonedDateTime('Europe/London')).toString()	ok:"2024-01-05T15:04:05.123456789+00:00[Europe/London]"
+(Temporal.PlainDate.from('2024-01-05').toZonedDateTime('+05:30')).toString()	ok:"2024-01-05T00:00:00+05:30[+05:30]"
+(Temporal.PlainDateTime.from('2024-01-05T15:04:05.123456789').toZonedDateTime('+05:30')).toString()	ok:"2024-01-05T15:04:05.123456789+05:30[+05:30]"
+(Temporal.PlainDate.from('2024-01-05').toZonedDateTime('-08:00')).toString()	ok:"2024-01-05T00:00:00-08:00[-08:00]"
+(Temporal.PlainDateTime.from('2024-01-05T15:04:05.123456789').toZonedDateTime('-08:00')).toString()	ok:"2024-01-05T15:04:05.123456789-08:00[-08:00]"
+(Temporal.PlainDate.from('2024-01-05').toZonedDateTime('+00:00')).toString()	ok:"2024-01-05T00:00:00+00:00[+00:00]"
+(Temporal.PlainDateTime.from('2024-01-05T15:04:05.123456789').toZonedDateTime('+00:00')).toString()	ok:"2024-01-05T15:04:05.123456789+00:00[+00:00]"
+(Temporal.PlainDate.from('2024-01-05').toZonedDateTime('America/Sao_Paulo')).toString()	ok:"2024-01-05T00:00:00-03:00[America/Sao_Paulo]"
+(Temporal.PlainDateTime.from('2024-01-05T15:04:05.123456789').toZonedDateTime('America/Sao_Paulo')).toString()	ok:"2024-01-05T15:04:05.123456789-03:00[America/Sao_Paulo]"
+(Temporal.PlainDate.from('2024-03-10').toZonedDateTime({timeZone: 'America/New_York'})).toString()	ok:"2024-03-10T00:00:00-05:00[America/New_York]"
+(Temporal.PlainDate.from('2024-03-10').toZonedDateTime({timeZone: 'America/New_York', plainTime: '12:30'})).toString()	ok:"2024-03-10T12:30:00-04:00[America/New_York]"
+(Temporal.PlainDate.from('2024-03-10').toZonedDateTime({timeZone: 'Asia/Kolkata', plainTime: Temporal.PlainTime.from('23:59:59.999')})).toString()	ok:"2024-03-10T23:59:59.999+05:30[Asia/Kolkata]"
+(Temporal.PlainDate.from('2024-03-10').toZonedDateTime({timeZone: 'UTC', plainTime: undefined})).toString()	ok:"2024-03-10T00:00:00+00:00[UTC]"
+(Temporal.PlainDate.from('2024-03-10').toZonedDateTime(Temporal.ZonedDateTime.from('2020-01-01T00:00:00+01:00[Europe/Paris]'))).toString()	ok:"2024-03-10T00:00:00+01:00[Europe/Paris]"
+(Temporal.PlainDate.from('2024-03-10').toZonedDateTime({timeZone: 'America/New_York', plainTime: '02:30'})).toString()	ok:"2024-03-10T03:30:00-04:00[America/New_York]"
+(Temporal.PlainDate.from('2018-11-04').toZonedDateTime('America/Sao_Paulo')).toString()	ok:"2018-11-04T01:00:00-02:00[America/Sao_Paulo]"
+(Temporal.PlainDate.from('2018-11-04').toZonedDateTime({timeZone: 'America/Sao_Paulo', plainTime: '00:30'})).toString()	ok:"2018-11-04T01:30:00-02:00[America/Sao_Paulo]"
+(Temporal.PlainDateTime.from('2024-03-10T02:30').toZonedDateTime('America/New_York', {disambiguation: 'compatible'})).toString()	ok:"2024-03-10T03:30:00-04:00[America/New_York]"
+(Temporal.PlainDateTime.from('2024-11-03T01:30').toZonedDateTime('America/New_York', {disambiguation: 'compatible'})).toString()	ok:"2024-11-03T01:30:00-04:00[America/New_York]"
+(Temporal.PlainDateTime.from('2024-03-31T01:30').toZonedDateTime('Europe/London', {disambiguation: 'compatible'})).toString()	ok:"2024-03-31T02:30:00+01:00[Europe/London]"
+(Temporal.PlainDateTime.from('2024-10-27T01:30').toZonedDateTime('Europe/London', {disambiguation: 'compatible'})).toString()	ok:"2024-10-27T01:30:00+01:00[Europe/London]"
+(Temporal.PlainDateTime.from('2024-03-10T02:30').toZonedDateTime('America/New_York', {disambiguation: 'earlier'})).toString()	ok:"2024-03-10T01:30:00-05:00[America/New_York]"
+(Temporal.PlainDateTime.from('2024-11-03T01:30').toZonedDateTime('America/New_York', {disambiguation: 'earlier'})).toString()	ok:"2024-11-03T01:30:00-04:00[America/New_York]"
+(Temporal.PlainDateTime.from('2024-03-31T01:30').toZonedDateTime('Europe/London', {disambiguation: 'earlier'})).toString()	ok:"2024-03-31T00:30:00+00:00[Europe/London]"
+(Temporal.PlainDateTime.from('2024-10-27T01:30').toZonedDateTime('Europe/London', {disambiguation: 'earlier'})).toString()	ok:"2024-10-27T01:30:00+01:00[Europe/London]"
+(Temporal.PlainDateTime.from('2024-03-10T02:30').toZonedDateTime('America/New_York', {disambiguation: 'later'})).toString()	ok:"2024-03-10T03:30:00-04:00[America/New_York]"
+(Temporal.PlainDateTime.from('2024-11-03T01:30').toZonedDateTime('America/New_York', {disambiguation: 'later'})).toString()	ok:"2024-11-03T01:30:00-05:00[America/New_York]"
+(Temporal.PlainDateTime.from('2024-03-31T01:30').toZonedDateTime('Europe/London', {disambiguation: 'later'})).toString()	ok:"2024-03-31T02:30:00+01:00[Europe/London]"
+(Temporal.PlainDateTime.from('2024-10-27T01:30').toZonedDateTime('Europe/London', {disambiguation: 'later'})).toString()	ok:"2024-10-27T01:30:00+00:00[Europe/London]"
+(Temporal.PlainDateTime.from('2024-03-10T02:30').toZonedDateTime('America/New_York', {disambiguation: 'reject'})).toString()	throw:RangeError: nonexistent instant: local time does not exist in this time zone (DST gap)
+(Temporal.PlainDateTime.from('2024-11-03T01:30').toZonedDateTime('America/New_York', {disambiguation: 'reject'})).toString()	throw:RangeError: ambiguous instant: use a 'disambiguation' option to resolve
+(Temporal.PlainDateTime.from('2024-03-31T01:30').toZonedDateTime('Europe/London', {disambiguation: 'reject'})).toString()	throw:RangeError: nonexistent instant: local time does not exist in this time zone (DST gap)
+(Temporal.PlainDateTime.from('2024-10-27T01:30').toZonedDateTime('Europe/London', {disambiguation: 'reject'})).toString()	throw:RangeError: ambiguous instant: use a 'disambiguation' option to resolve
+(Temporal.PlainDateTime.from('2024-03-10T02:30').toZonedDateTime('America/New_York')).toString()	ok:"2024-03-10T03:30:00-04:00[America/New_York]"
+(Temporal.PlainDateTime.from('2024-11-03T01:30').toZonedDateTime('America/New_York', {})).toString()	ok:"2024-11-03T01:30:00-04:00[America/New_York]"
+(Temporal.PlainDateTime.from('2024-03-10T02:30').toZonedDateTime('America/New_York', {disambiguation: undefined})).toString()	ok:"2024-03-10T03:30:00-04:00[America/New_York]"
+(Temporal.PlainDateTime.from('2024-03-10T02:30').toZonedDateTime('+01:00', {disambiguation: 'reject'})).toString()	ok:"2024-03-10T02:30:00+01:00[+01:00]"
+(Temporal.PlainDateTime.from('2024-03-10T02:30:00.5').toZonedDateTime('America/New_York', {disambiguation: 'later'})).toString()	ok:"2024-03-10T03:30:00.5-04:00[America/New_York]"
+Temporal.PlainDateTime.from('2024-11-03T01:30').toZonedDateTime('America/New_York', {disambiguation: 'later'}).offset	ok:"-05:00"
+Temporal.PlainDateTime.from('2024-11-03T01:30').toZonedDateTime('America/New_York', {disambiguation: 'earlier'}).epochMilliseconds	ok:1730611800000
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime('Asia/Kolkata').timeZoneId	ok:"Asia/Kolkata"
+Temporal.PlainDate.from('2024-03-10').toZonedDateTime('Europe/London').hoursInDay	ok:24
+Temporal.PlainDate.from('2024-03-10').toZonedDateTime('America/New_York').hoursInDay	ok:23
+Temporal.PlainDateTime.from('2024-01-05T15:04').withCalendar('gregory').toZonedDateTime('UTC').calendarId	ok:"gregory"
+Temporal.PlainDate.from('2024-01-05').withCalendar('japanese').toZonedDateTime('UTC').calendarId	ok:"japanese"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime()	throw:TypeError: time zone must be a string or ZonedDateTime
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime()	throw:TypeError: time zone must be a string or ZonedDateTime
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime(undefined)	throw:TypeError: time zone must be a string or ZonedDateTime
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime(undefined)	throw:TypeError: time zone must be a string or ZonedDateTime
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime(null)	throw:TypeError: time zone must be a string or ZonedDateTime
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime(null)	throw:TypeError: time zone must be a string or ZonedDateTime
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime(1)	throw:TypeError: time zone must be a string or ZonedDateTime
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime(1)	throw:TypeError: time zone must be a string or ZonedDateTime
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime(true)	throw:TypeError: time zone must be a string or ZonedDateTime
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime(true)	throw:TypeError: time zone must be a string or ZonedDateTime
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime('')	throw:RangeError: '' is not a valid time zone identifier
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime('')	throw:RangeError: '' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime('Nope/Zone')	throw:RangeError: 'Nope/Zone' is not a valid time zone identifier
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime('Nope/Zone')	throw:RangeError: 'Nope/Zone' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime('+25:00')	throw:RangeError: '+25:00' is not a valid time zone identifier
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime('+25:00')	throw:RangeError: '+25:00' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime('2024-01-05')	throw:RangeError: '2024-01-05' is not a valid time zone identifier
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime('2024-01-05')	throw:RangeError: '2024-01-05' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime('2024-01-05T00:00:00Z')	ok:"2024-01-05T00:00:00+00:00[UTC]"
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime('2024-01-05T00:00:00Z')	ok:"2024-01-05T15:04:00+00:00[UTC]"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime(Symbol('x'))	throw:TypeError: time zone must be a string or ZonedDateTime
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime(Symbol('x'))	throw:TypeError: time zone must be a string or ZonedDateTime
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime({})	throw:TypeError: time zone must be a string or ZonedDateTime
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime({})	throw:TypeError: time zone must be a string or ZonedDateTime
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime({timeZone: 'Nope/Zone'})	throw:RangeError: 'Nope/Zone' is not a valid time zone identifier
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime({timeZone: 'Nope/Zone'})	throw:TypeError: time zone must be a string or ZonedDateTime
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime({timeZone: 1})	throw:TypeError: time zone must be a string or ZonedDateTime
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime({timeZone: 1})	throw:TypeError: time zone must be a string or ZonedDateTime
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime({timeZone: null})	throw:TypeError: time zone must be a string or ZonedDateTime
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime({timeZone: null})	throw:TypeError: time zone must be a string or ZonedDateTime
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime({timeZone: 'UTC', plainTime: 'bogus'})	throw:RangeError: invalid time string
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime({timeZone: 'UTC', plainTime: 'bogus'})	throw:TypeError: time zone must be a string or ZonedDateTime
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime({timeZone: 'UTC', plainTime: null})	throw:TypeError: can only convert to PlainTime from object or string values
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime({timeZone: 'UTC', plainTime: null})	throw:TypeError: time zone must be a string or ZonedDateTime
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime({timeZone: 'UTC', plainTime: 5})	throw:TypeError: can only convert to PlainTime from object or string values
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime({timeZone: 'UTC', plainTime: 5})	throw:TypeError: time zone must be a string or ZonedDateTime
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime('UTC', null)	throw:TypeError: options argument is not an object or undefined
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime('UTC', 5)	throw:TypeError: options argument is not an object or undefined
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime('UTC', 'reject')	throw:TypeError: options argument is not an object or undefined
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime('UTC', true)	throw:TypeError: options argument is not an object or undefined
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime('UTC', {disambiguation: 'bogus'})	throw:RangeError: disambiguation must be one of "compatible", "earlier", "later", or "reject"
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime('UTC', {disambiguation: ''})	throw:RangeError: disambiguation must be one of "compatible", "earlier", "later", or "reject"
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime('UTC', {disambiguation: 'EARLIER'})	throw:RangeError: disambiguation must be one of "compatible", "earlier", "later", or "reject"
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime('UTC', {disambiguation: null})	throw:RangeError: disambiguation must be one of "compatible", "earlier", "later", or "reject"
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime('UTC', {disambiguation: 5})	throw:RangeError: disambiguation must be one of "compatible", "earlier", "later", or "reject"
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime('UTC', {disambiguation: {}})	throw:RangeError: disambiguation must be one of "compatible", "earlier", "later", or "reject"
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime('UTC', function () {})	ok:"2024-01-05T15:04:00+00:00[UTC]"
+Temporal.PlainDateTime.from('2024-01-05T15:04').toZonedDateTime('Nope/Zone', {disambiguation: 'bogus'})	throw:RangeError: 'Nope/Zone' is not a valid time zone identifier
+(Temporal.PlainDateTime.from('+275760-09-13T00:00:00').toZonedDateTime('UTC')).toString()	ok:"+275760-09-13T00:00:00+00:00[UTC]"
+(Temporal.PlainDateTime.from('+275760-09-13T00:00:00.000000001').toZonedDateTime('UTC')).toString()	throw:RangeError: Epoch nanoseconds out of valid Temporal range
+(Temporal.PlainDateTime.from('-271821-04-20T00:00:00').toZonedDateTime('UTC')).toString()	ok:"-271821-04-20T00:00:00+00:00[UTC]"
+(Temporal.PlainDateTime.from('-271821-04-19T23:59:59.999999999').toZonedDateTime('UTC')).toString()	throw:RangeError: Epoch nanoseconds out of valid Temporal range
+(Temporal.PlainDateTime.from('+275760-09-13T00:00:00').toZonedDateTime('-01:00')).toString()	throw:RangeError: Epoch nanoseconds out of valid Temporal range
+(Temporal.PlainDate.from('+275760-09-13').toZonedDateTime('UTC')).toString()	ok:"+275760-09-13T00:00:00+00:00[UTC]"
+(Temporal.PlainDate.from('+275760-09-13').toZonedDateTime('+01:00')).toString()	ok:"+275760-09-13T00:00:00+01:00[+01:00]"
+(Temporal.PlainDate.from('-271821-04-19').toZonedDateTime('UTC')).toString()	throw:RangeError: Epoch nanoseconds out of valid Temporal range
+(Temporal.PlainDate.from('-271821-04-20').toZonedDateTime('UTC')).toString()	ok:"-271821-04-20T00:00:00+00:00[UTC]"
+(Temporal.PlainDate.from('+275760-09-13').toZonedDateTime('America/Vancouver')).toString()	throw:RangeError: Epoch nanoseconds out of valid Temporal range
+(Temporal.PlainDate.from('+275760-09-12').toZonedDateTime('America/Vancouver')).toString()	ok:"+275760-09-12T00:00:00-07:00[America/Vancouver]"
+(Temporal.PlainDate.from('2024-01-05').toZonedDateTime({timeZone: 'UTC', plainTime: {hour: 25}})).toString()	ok:"2024-01-05T23:00:00+00:00[UTC]"
+(Temporal.PlainDate.from('2024-01-05').toZonedDateTime({timeZone: 'UTC', plainTime: {}})).toString()	throw:TypeError: Object must contain at least one Temporal time property
+(Temporal.PlainDate.from('2024-01-05').toZonedDateTime({timeZone: 'UTC', plainTime: {hour: 3}})).toString()	ok:"2024-01-05T03:00:00+00:00[UTC]"
+(Temporal.PlainDate.from('2024-01-05').toZonedDateTime({get timeZone() { throw new Error('x'); }})).toString()	throw:Error: x
+(Temporal.PlainDate.from('2024-01-05').toZonedDateTime(Object.assign(Object.create(null), {timeZone: 'UTC'}))).toString()	ok:"2024-01-05T00:00:00+00:00[UTC]"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime('Asia/Calcutta').timeZoneId	ok:"Asia/Calcutta"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime('europe/london').timeZoneId	ok:"Europe/London"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime('+0530').timeZoneId	ok:"+05:30"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime('+05:30:15').timeZoneId	throw:RangeError: '+05:30:15' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime('2024-01-05T10:00+05:30[UTC]').timeZoneId	ok:"UTC"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("2024-01-05T00:00:00Z").timeZoneId	ok:"UTC"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("2024-01-05T00:00+05:30[UTC]").timeZoneId	ok:"UTC"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("-00:00").timeZoneId	ok:"+00:00"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("-0000").timeZoneId	ok:"+00:00"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("+00").timeZoneId	ok:"+00:00"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("+05").timeZoneId	ok:"+05:00"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("UTC").timeZoneId	ok:"UTC"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("utc").timeZoneId	ok:"UTC"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("etc/utc").timeZoneId	ok:"Etc/UTC"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("uct").timeZoneId	ok:"UCT"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("gmt").timeZoneId	ok:"GMT"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("Etc/GMT+5").timeZoneId	ok:"Etc/GMT+5"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("etc/gmt+5").timeZoneId	ok:"Etc/GMT+5"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("ASIA/CALCUTTA").timeZoneId	ok:"Asia/Calcutta"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("us/pacific").timeZoneId	ok:"US/Pacific"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("japan").timeZoneId	ok:"Japan"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("Z").timeZoneId	throw:RangeError: 'Z' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("z").timeZoneId	throw:RangeError: 'z' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("+24:00").timeZoneId	throw:RangeError: '+24:00' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("+0").timeZoneId	throw:RangeError: '+0' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("+0530:15").timeZoneId	throw:RangeError: '+0530:15' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("+05:30:00").timeZoneId	throw:RangeError: '+05:30:00' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("+053015").timeZoneId	throw:RangeError: '+053015' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("2024-01-05T00:00-03:00").timeZoneId	ok:"-03:00"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("2024-01-05T00:00[Europe/Paris]").timeZoneId	ok:"Europe/Paris"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("2024-01-05T00:00[+01:00]").timeZoneId	ok:"+01:00"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("2024-01-05T00:00[-00:00]").timeZoneId	ok:"+00:00"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("2024-01-05T00:00[!UTC]").timeZoneId	ok:"UTC"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("2024-01-05T00:00+01:00[UTC]").timeZoneId	ok:"UTC"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("2024-01-05T00:00Z[Europe/Paris]").timeZoneId	ok:"Europe/Paris"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("2024-01-05T00:00:00+05:30:15").timeZoneId	throw:RangeError: '2024-01-05T00:00:00+05:30:15' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("2024-01-05T00:00:00+05:30:15[UTC]").timeZoneId	ok:"UTC"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("2024-01-05T00:00[u-ca=iso8601]").timeZoneId	throw:RangeError: '2024-01-05T00:00[u-ca=iso8601]' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("2024-01-05T00:00Z[u-ca=iso8601]").timeZoneId	ok:"UTC"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("[Europe/Paris]").timeZoneId	throw:RangeError: '[Europe/Paris]' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("10:00[UTC]").timeZoneId	ok:"UTC"
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("10:00").timeZoneId	throw:RangeError: '10:00' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("10:00Z").timeZoneId	throw:RangeError: '10:00Z' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("T10:00Z").timeZoneId	throw:RangeError: 'T10:00Z' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("--01-05").timeZoneId	throw:RangeError: '--01-05' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("2024-01").timeZoneId	throw:RangeError: '2024-01' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("12-31").timeZoneId	throw:RangeError: '12-31' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("UTC+1").timeZoneId	throw:RangeError: 'UTC+1' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("UTC/").timeZoneId	throw:RangeError: 'UTC/' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("a//b").timeZoneId	throw:RangeError: 'a//b' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("Europe/Paris/").timeZoneId	throw:RangeError: 'Europe/Paris/' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("Z[UTC]").timeZoneId	throw:RangeError: 'Z[UTC]' is not a valid time zone identifier
+Temporal.PlainDate.from('2024-01-05').toZonedDateTime("\u221205:00").timeZoneId	throw:RangeError: '\u221205:00' is not a valid time zone identifier
+(Temporal.PlainDateTime.from('2024-10-06T02:15').toZonedDateTime('Australia/Lord_Howe', {disambiguation: 'compatible'})).toString()	ok:"2024-10-06T02:45:00+11:00[Australia/Lord_Howe]"
+(Temporal.PlainDateTime.from('2024-10-06T02:00').toZonedDateTime('Australia/Lord_Howe', {disambiguation: 'compatible'})).toString()	ok:"2024-10-06T02:30:00+11:00[Australia/Lord_Howe]"
+(Temporal.PlainDateTime.from('2024-10-06T02:29:59.999999999').toZonedDateTime('Australia/Lord_Howe', {disambiguation: 'compatible'})).toString()	ok:"2024-10-06T02:59:59.999999999+11:00[Australia/Lord_Howe]"
+(Temporal.PlainDateTime.from('2024-04-07T01:45').toZonedDateTime('Australia/Lord_Howe', {disambiguation: 'compatible'})).toString()	ok:"2024-04-07T01:45:00+11:00[Australia/Lord_Howe]"
+(Temporal.PlainDateTime.from('2024-04-07T01:30').toZonedDateTime('Australia/Lord_Howe', {disambiguation: 'compatible'})).toString()	ok:"2024-04-07T01:30:00+11:00[Australia/Lord_Howe]"
+(Temporal.PlainDateTime.from('2011-12-30T00:00').toZonedDateTime('Pacific/Apia', {disambiguation: 'compatible'})).toString()	ok:"2011-12-31T00:00:00+14:00[Pacific/Apia]"
+(Temporal.PlainDateTime.from('2011-12-30T12:00').toZonedDateTime('Pacific/Apia', {disambiguation: 'compatible'})).toString()	ok:"2011-12-31T12:00:00+14:00[Pacific/Apia]"
+(Temporal.PlainDateTime.from('2011-12-30T23:59:59.999999999').toZonedDateTime('Pacific/Apia', {disambiguation: 'compatible'})).toString()	ok:"2011-12-31T23:59:59.999999999+14:00[Pacific/Apia]"
+(Temporal.PlainDateTime.from('2011-12-29T23:59:59.999999999').toZonedDateTime('Pacific/Apia', {disambiguation: 'compatible'})).toString()	ok:"2011-12-29T23:59:59.999999999-10:00[Pacific/Apia]"
+(Temporal.PlainDateTime.from('2011-12-31T00:00').toZonedDateTime('Pacific/Apia', {disambiguation: 'compatible'})).toString()	ok:"2011-12-31T00:00:00+14:00[Pacific/Apia]"
+(Temporal.PlainDateTime.from('2024-10-06T02:15').toZonedDateTime('Australia/Lord_Howe', {disambiguation: 'earlier'})).toString()	ok:"2024-10-06T01:45:00+10:30[Australia/Lord_Howe]"
+(Temporal.PlainDateTime.from('2024-10-06T02:00').toZonedDateTime('Australia/Lord_Howe', {disambiguation: 'earlier'})).toString()	ok:"2024-10-06T01:30:00+10:30[Australia/Lord_Howe]"
+(Temporal.PlainDateTime.from('2024-10-06T02:29:59.999999999').toZonedDateTime('Australia/Lord_Howe', {disambiguation: 'earlier'})).toString()	ok:"2024-10-06T01:59:59.999999999+10:30[Australia/Lord_Howe]"
+(Temporal.PlainDateTime.from('2024-04-07T01:45').toZonedDateTime('Australia/Lord_Howe', {disambiguation: 'earlier'})).toString()	ok:"2024-04-07T01:45:00+11:00[Australia/Lord_Howe]"
+(Temporal.PlainDateTime.from('2024-04-07T01:30').toZonedDateTime('Australia/Lord_Howe', {disambiguation: 'earlier'})).toString()	ok:"2024-04-07T01:30:00+11:00[Australia/Lord_Howe]"
+(Temporal.PlainDateTime.from('2011-12-30T00:00').toZonedDateTime('Pacific/Apia', {disambiguation: 'earlier'})).toString()	ok:"2011-12-29T00:00:00-10:00[Pacific/Apia]"
+(Temporal.PlainDateTime.from('2011-12-30T12:00').toZonedDateTime('Pacific/Apia', {disambiguation: 'earlier'})).toString()	ok:"2011-12-29T12:00:00-10:00[Pacific/Apia]"
+(Temporal.PlainDateTime.from('2011-12-30T23:59:59.999999999').toZonedDateTime('Pacific/Apia', {disambiguation: 'earlier'})).toString()	ok:"2011-12-29T23:59:59.999999999-10:00[Pacific/Apia]"
+(Temporal.PlainDateTime.from('2011-12-29T23:59:59.999999999').toZonedDateTime('Pacific/Apia', {disambiguation: 'earlier'})).toString()	ok:"2011-12-29T23:59:59.999999999-10:00[Pacific/Apia]"
+(Temporal.PlainDateTime.from('2011-12-31T00:00').toZonedDateTime('Pacific/Apia', {disambiguation: 'earlier'})).toString()	ok:"2011-12-31T00:00:00+14:00[Pacific/Apia]"
+(Temporal.PlainDateTime.from('2024-10-06T02:15').toZonedDateTime('Australia/Lord_Howe', {disambiguation: 'later'})).toString()	ok:"2024-10-06T02:45:00+11:00[Australia/Lord_Howe]"
+(Temporal.PlainDateTime.from('2024-10-06T02:00').toZonedDateTime('Australia/Lord_Howe', {disambiguation: 'later'})).toString()	ok:"2024-10-06T02:30:00+11:00[Australia/Lord_Howe]"
+(Temporal.PlainDateTime.from('2024-10-06T02:29:59.999999999').toZonedDateTime('Australia/Lord_Howe', {disambiguation: 'later'})).toString()	ok:"2024-10-06T02:59:59.999999999+11:00[Australia/Lord_Howe]"
+(Temporal.PlainDateTime.from('2024-04-07T01:45').toZonedDateTime('Australia/Lord_Howe', {disambiguation: 'later'})).toString()	ok:"2024-04-07T01:45:00+10:30[Australia/Lord_Howe]"
+(Temporal.PlainDateTime.from('2024-04-07T01:30').toZonedDateTime('Australia/Lord_Howe', {disambiguation: 'later'})).toString()	ok:"2024-04-07T01:30:00+10:30[Australia/Lord_Howe]"
+(Temporal.PlainDateTime.from('2011-12-30T00:00').toZonedDateTime('Pacific/Apia', {disambiguation: 'later'})).toString()	ok:"2011-12-31T00:00:00+14:00[Pacific/Apia]"
+(Temporal.PlainDateTime.from('2011-12-30T12:00').toZonedDateTime('Pacific/Apia', {disambiguation: 'later'})).toString()	ok:"2011-12-31T12:00:00+14:00[Pacific/Apia]"
+(Temporal.PlainDateTime.from('2011-12-30T23:59:59.999999999').toZonedDateTime('Pacific/Apia', {disambiguation: 'later'})).toString()	ok:"2011-12-31T23:59:59.999999999+14:00[Pacific/Apia]"
+(Temporal.PlainDateTime.from('2011-12-29T23:59:59.999999999').toZonedDateTime('Pacific/Apia', {disambiguation: 'later'})).toString()	ok:"2011-12-29T23:59:59.999999999-10:00[Pacific/Apia]"
+(Temporal.PlainDateTime.from('2011-12-31T00:00').toZonedDateTime('Pacific/Apia', {disambiguation: 'later'})).toString()	ok:"2011-12-31T00:00:00+14:00[Pacific/Apia]"
+(Temporal.PlainDateTime.from('2024-10-06T02:15').toZonedDateTime('Australia/Lord_Howe', {disambiguation: 'reject'})).toString()	throw:RangeError: nonexistent instant: local time does not exist in this time zone (DST gap)
+(Temporal.PlainDateTime.from('2024-10-06T02:00').toZonedDateTime('Australia/Lord_Howe', {disambiguation: 'reject'})).toString()	throw:RangeError: nonexistent instant: local time does not exist in this time zone (DST gap)
+(Temporal.PlainDateTime.from('2024-10-06T02:29:59.999999999').toZonedDateTime('Australia/Lord_Howe', {disambiguation: 'reject'})).toString()	throw:RangeError: nonexistent instant: local time does not exist in this time zone (DST gap)
+(Temporal.PlainDateTime.from('2024-04-07T01:45').toZonedDateTime('Australia/Lord_Howe', {disambiguation: 'reject'})).toString()	throw:RangeError: ambiguous instant: use a 'disambiguation' option to resolve
+(Temporal.PlainDateTime.from('2024-04-07T01:30').toZonedDateTime('Australia/Lord_Howe', {disambiguation: 'reject'})).toString()	throw:RangeError: ambiguous instant: use a 'disambiguation' option to resolve
+(Temporal.PlainDateTime.from('2011-12-30T00:00').toZonedDateTime('Pacific/Apia', {disambiguation: 'reject'})).toString()	throw:RangeError: nonexistent instant: local time does not exist in this time zone (DST gap)
+(Temporal.PlainDateTime.from('2011-12-30T12:00').toZonedDateTime('Pacific/Apia', {disambiguation: 'reject'})).toString()	throw:RangeError: nonexistent instant: local time does not exist in this time zone (DST gap)
+(Temporal.PlainDateTime.from('2011-12-30T23:59:59.999999999').toZonedDateTime('Pacific/Apia', {disambiguation: 'reject'})).toString()	throw:RangeError: nonexistent instant: local time does not exist in this time zone (DST gap)
+(Temporal.PlainDateTime.from('2011-12-29T23:59:59.999999999').toZonedDateTime('Pacific/Apia', {disambiguation: 'reject'})).toString()	ok:"2011-12-29T23:59:59.999999999-10:00[Pacific/Apia]"
+(Temporal.PlainDateTime.from('2011-12-31T00:00').toZonedDateTime('Pacific/Apia', {disambiguation: 'reject'})).toString()	ok:"2011-12-31T00:00:00+14:00[Pacific/Apia]"
+(Temporal.PlainDate.from('2024-10-06').toZonedDateTime('Australia/Lord_Howe')).toString()	ok:"2024-10-06T00:00:00+10:30[Australia/Lord_Howe]"
+(Temporal.PlainDate.from('2024-10-06').toZonedDateTime({timeZone: 'Australia/Lord_Howe', plainTime: '02:15'})).toString()	ok:"2024-10-06T02:45:00+11:00[Australia/Lord_Howe]"
+(Temporal.PlainDate.from('2024-04-07').toZonedDateTime({timeZone: 'Australia/Lord_Howe', plainTime: '01:45'})).toString()	ok:"2024-04-07T01:45:00+11:00[Australia/Lord_Howe]"
+(Temporal.PlainDate.from('2011-12-30').toZonedDateTime('Pacific/Apia')).toString()	ok:"2011-12-31T00:00:00+14:00[Pacific/Apia]"
+(Temporal.PlainDate.from('2011-12-30').toZonedDateTime({timeZone: 'Pacific/Apia', plainTime: '12:00'})).toString()	ok:"2011-12-31T12:00:00+14:00[Pacific/Apia]"
+(Temporal.PlainDate.from('2011-12-29').toZonedDateTime('Pacific/Apia')).toString()	ok:"2011-12-29T00:00:00-10:00[Pacific/Apia]"
+(Temporal.PlainDate.from('2011-12-31').toZonedDateTime('Pacific/Apia')).toString()	ok:"2011-12-31T00:00:00+14:00[Pacific/Apia]"
+Temporal.PlainDate.from('2011-12-30').toZonedDateTime('Pacific/Apia').hoursInDay	ok:24
+Temporal.PlainDate.from('2011-12-29').toZonedDateTime('Pacific/Apia').hoursInDay	ok:24
+Temporal.PlainDate.from('2024-10-06').toZonedDateTime('Australia/Lord_Howe').hoursInDay	ok:23.5
+Temporal.PlainDate.from('2024-04-07').toZonedDateTime('Australia/Lord_Howe').hoursInDay	ok:24.5
+Temporal.PlainDate.prototype.toZonedDateTime.call({}, 'UTC')	throw:TypeError: Temporal.PlainDate.prototype.toZonedDateTime called on value that's not a PlainDate
+Temporal.PlainDate.prototype.toZonedDateTime.call(Temporal.PlainDateTime.from('2024-01-05T00:00'), 'UTC')	throw:TypeError: Temporal.PlainDate.prototype.toZonedDateTime called on value that's not a PlainDate
+Temporal.PlainDateTime.prototype.toZonedDateTime.call(Temporal.PlainDate.from('2024-01-05'), 'UTC')	throw:TypeError: Temporal.PlainDateTime.prototype.toZonedDateTime called on value that's not a PlainDateTime
+Temporal.PlainDateTime.prototype.toZonedDateTime.call(1, 'UTC')	throw:TypeError: Temporal.PlainDateTime.prototype.toZonedDateTime called on value that's not a PlainDateTime
+Temporal.PlainDate.prototype.toZonedDateTime.name + '/' + Temporal.PlainDate.prototype.toZonedDateTime.length	ok:"toZonedDateTime/1"
+Temporal.PlainDateTime.prototype.toZonedDateTime.name + '/' + Temporal.PlainDateTime.prototype.toZonedDateTime.length	ok:"toZonedDateTime/1"

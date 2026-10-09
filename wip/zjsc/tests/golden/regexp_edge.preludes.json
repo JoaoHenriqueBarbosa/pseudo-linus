@@ -1,0 +1,3 @@
+[
+"\"use strict\";\nfunction S(v){try{return typeof v===\"string\"?JSON.stringify(v):Object.is(v,-0)?\"-0\":typeof v===\"bigint\"?v+\"n\":typeof v===\"symbol\"?v.toString():typeof v===\"undefined\"?\"undefined\":typeof v===\"function\"?\"function\":Array.isArray(v)?\"[\"+v.map(S).join(\",\")+\"]\":String(v)}catch(e){return \"?\"}}\nfunction T(f){try{return S(f())}catch(e){return \"throw \"+(e&&e.name)+\": \"+(e&&e.message)}}\nfunction M(m){if(m===null)return \"null\";var o={a:Array.from(m),i:m.index,g:m.groups===undefined?\"u\":Object.entries(m.groups)};if(m.indices){o.d=Array.from(m.indices);o.dg=m.indices.groups===undefined?\"u\":Object.entries(m.indices.groups)}return JSON.stringify(o)}\n"
+]

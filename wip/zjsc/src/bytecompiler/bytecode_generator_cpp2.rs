@@ -1,31 +1,28 @@
 // Parte 2 de bytecompiler/BytecodeGenerator.cpp (linhas 1060 a 2002). Juntada por include!.
 // Convenção: `Option<RegisterRef>` é o `RegisterID*` anulável; `RegisterRef` é o `RefPtr<RegisterID>`.
-// Suposições sobre a struct (parte 3): `BytecodeGenerator::with_defaults(vm, code_block_generator,
-// callee_save_space)` devolve a struct com os campos nos valores padrão do C++ (o que o inicializador de
-// membros do .h dá) e os campos são os `m_*` em snake_case. `last_instruction` guarda a última instrução
+// Suposições sobre a struct (parte 3): `BytecodeGenerator::with_defaults(vm, base_code_block,
+// code_generation_mode, scope_node, code_type)` devolve a struct com os campos nos valores padrão do C++
+// (o que o inicializador de membros do .h dá) e os campos são os `m_*` em snake_case. `last_instruction` guarda a última instrução
 // escrita, com `is_op::<Op>()` e `as_op::<Op>()`; `Op*::emit(gen, ...)` escreve a instrução.
 
 impl BytecodeGenerator {
     // BytecodeGenerator.cpp:1060
     pub fn new_for_module_program(
-        vm: &crate::runtime::vm::VM,
+        vm: &std::rc::Rc<crate::runtime::vm::VM>,
         module_program_node: crate::parser::nodes::NodeRef<crate::parser::nodes::ModuleProgramNode>,
-        code_block: &mut crate::bytecode::unlinked_module_program_code_block::UnlinkedModuleProgramCodeBlock,
+        code_block: &std::rc::Rc<std::cell::RefCell<crate::bytecode::unlinked_code_block::UnlinkedModuleProgramCodeBlock>>,
         code_generation_mode: crate::parser::parser_modes::CodeGenerationModeSet,
         parent_scope_tdz_variables: &Option<std::rc::Rc<crate::bytecode::tdz_environment::TDZEnvironmentLink>>,
     ) -> BytecodeGenerator {
         use crate::bytecompiler::bytecode_generator::{Variable, VariableKind};
+        let base = code_block.borrow().base_ref();
         let mut this = BytecodeGenerator::with_defaults(
             vm,
-            Box::new(crate::bytecode::unlinked_code_block_generator::UnlinkedCodeBlockGenerator::new(vm, code_block)),
-            crate::bytecode::code_block::llint_baseline_callee_save_space_as_virtual_registers(),
+            base,
+            code_generation_mode,
+            crate::parser::nodes::ScopeNodeRef::ModuleProgram(module_program_node.clone()),
+            crate::bytecode::code_type::CodeType::ModuleCode,
         );
-        this.code_generation_mode = code_generation_mode;
-        this.scope_node = crate::parser::nodes::ScopeNodeRef::ModuleProgram(module_program_node.clone());
-        this.this_register = RegisterID::new_with_virtual_register(
-            crate::interpreter::call_frame::this_argument_offset(),
-        );
-        this.code_type = crate::bytecode::code_type::CodeType::ModuleCode;
         this.default_allow_call_ignore_result_optimization = !crate::runtime::options::Options::eval_mode();
         this.uses_exceptions = false;
         this.expression_too_deep = false;
@@ -38,7 +35,7 @@ impl BytecodeGenerator {
         this.ecma_mode = crate::runtime::ecma_mode::ECMAMode::strict();
 
         debug_assert!(parent_scope_tdz_variables.is_none());
-        code_block.set_variable_declarations(module_program_node.borrow().var_declarations().clone());
+        code_block.borrow_mut().set_variable_declarations(module_program_node.borrow().var_declarations.clone());
 
         let module_environment_symbol_table = crate::runtime::symbol_table::SymbolTable::create(&this.vm);
         module_environment_symbol_table.borrow_mut().set_uses_sloppy_eval(this.uses_sloppy_eval);
@@ -48,14 +45,14 @@ impl BytecodeGenerator {
 
         let should_capture_all_of_the_things = this.should_emit_debug_hooks() || this.uses_eval();
         if should_capture_all_of_the_things {
-            module_program_node.borrow_mut().var_declarations_mut().mark_all_variables_as_captured();
+            module_program_node.borrow_mut().var_declarations.mark_all_variables_as_captured();
         }
 
         let captures_node = module_program_node.clone();
-        let captures = move |uid: &crate::wtf::text::uniqued_string_impl::UniquedStringImpl| -> bool {
-            captures_node.borrow().captures(uid)
+        let captures = move |uid: &crate::wtf::text::string_impl::UniquedKey| -> bool {
+            captures_node.borrow().var_declarations.captures(uid)
         };
-        let look_up_var_kind = |uid: &crate::wtf::text::uniqued_string_impl::UniquedStringImpl,
+        let look_up_var_kind = |uid: &crate::wtf::text::string_impl::UniquedKey,
                                 entry: &crate::parser::variable_environment::VariableEnvironmentEntry|
          -> crate::runtime::var_offset::VarKind {
             use crate::runtime::var_offset::VarKind;
@@ -76,14 +73,14 @@ impl BytecodeGenerator {
             if captures(uid) { VarKind::Scope } else { VarKind::Stack }
         };
 
-        if module_program_node.borrow().uses_await() {
+        if module_program_node.borrow().uses_await {
             this.needs_generatorification = true;
             this.initialize_next_parameter(); // |this|
             for _ in 0..crate::runtime::js_generator::Argument::NUMBER_OF_ARGUMENTS {
                 this.initialize_next_parameter();
             }
             this.generator_register = Some(
-                this.parameters[crate::runtime::abstract_module_record::Argument::Generator as usize].clone(),
+                RegisterRef::new(&this.parameters[crate::runtime::abstract_module_record::Argument::Generator as usize]),
             );
         }
 
@@ -95,9 +92,9 @@ impl BytecodeGenerator {
         let top_level_scope_register = this.top_level_scope_register.clone();
         this.move_register(top_level_scope_register.as_ref(), scope_register.as_ref().unwrap());
 
-        this.callee_register
-            .borrow_mut()
-            .set_index(crate::interpreter::call_frame::CallFrameSlot::Callee as i32);
+        this.callee_register.set_index(VirtualRegister::new(
+            crate::interpreter::call_frame::CallFrameSlot::Callee as i32,
+        ));
 
         this.code_block.set_num_parameters(
             crate::runtime::abstract_module_record::Argument::NUMBER_OF_ARGUMENTS as u32 + 1,
@@ -105,22 +102,24 @@ impl BytecodeGenerator {
 
         // Agora declara todas as variáveis.
 
+        let star_namespace_private_name = this.vm.property_names.star_namespace_private_name.clone();
         this.create_variable(
-            &this.vm.property_names().star_namespace_private_name(),
+            &star_namespace_private_name,
             crate::runtime::var_offset::VarKind::Scope,
             &module_environment_symbol_table,
             crate::bytecompiler::existing_variable_mode::ExistingVariableMode::VerifyExisting,
         );
-        if module_program_node.borrow().features() & crate::parser::parser_modes::IMPORT_META_FEATURE != 0 {
+        if module_program_node.borrow().features & crate::parser::parser_modes::IMPORT_META_FEATURE != 0 {
+            let meta_private_name = this.vm.property_names.builtin_names().meta_private_name();
             this.create_variable(
-                &this.vm.property_names().builtin_names().meta_private_name(),
+                &meta_private_name,
                 crate::runtime::var_offset::VarKind::Scope,
                 &module_environment_symbol_table,
                 crate::bytecompiler::existing_variable_mode::ExistingVariableMode::VerifyExisting,
             );
         }
 
-        let var_entries: Vec<_> = module_program_node.borrow().var_declarations().iter().collect();
+        let var_entries: Vec<_> = module_program_node.borrow().var_declarations.iter().cloned().collect();
         for (key, value) in var_entries.iter() {
             debug_assert!(!value.is_let() && !value.is_const());
             if !value.is_var() {
@@ -133,7 +132,7 @@ impl BytecodeGenerator {
             if value.is_imported() && !value.is_imported_namespace() {
                 continue;
             }
-            let ident = crate::runtime::identifier::Identifier::from_uid(&this.vm, key);
+            let ident = crate::runtime::identifier::Identifier::from_uid(&this.vm, Some(key));
             let var_kind = look_up_var_kind(key, value);
             this.create_variable(
                 &ident,
@@ -143,10 +142,10 @@ impl BytecodeGenerator {
             );
         }
 
-        let lexical_variables = module_program_node.borrow().lexical_variables().clone();
+        let lexical_variables = module_program_node.borrow().variable_environment.lexical_variables.clone();
         this.instantiate_lexical_variables(
             &lexical_variables,
-            crate::runtime::symbol_table::ScopeType::LetConstScope,
+            crate::bytecompiler::bytecode_generator::ScopeType::LetConstScope,
             &module_environment_symbol_table,
             crate::bytecompiler::bytecode_generator::ScopeRegisterType::Block,
             &look_up_var_kind,
@@ -154,9 +153,9 @@ impl BytecodeGenerator {
 
         // Mantemos a tabela de símbolos no pool de constantes.
         let constant_symbol_table: Option<RegisterRef>;
-        if this.should_emit_type_profiler_hooks() || module_program_node.borrow().uses_await() {
+        if this.should_emit_type_profiler_hooks() || module_program_node.borrow().uses_await {
             constant_symbol_table = Some(this.add_constant_value(
-                crate::runtime::js_value::JSValue::from_cell(module_environment_symbol_table.cell_id()),
+                crate::runtime::js_value::JSValue::from_cell(module_environment_symbol_table.borrow().cell_id()),
                 crate::runtime::js_cjs_value_types::SourceCodeRepresentation::Other,
             ));
         } else {
@@ -165,18 +164,18 @@ impl BytecodeGenerator {
                 crate::runtime::symbol_table::PropagateCloneInvalidationToOriginal::No,
             );
             constant_symbol_table = Some(this.add_constant_value(
-                crate::runtime::js_value::JSValue::from_cell(cloned.cell_id()),
+                crate::runtime::js_value::JSValue::from_cell(cloned.borrow().cell_id()),
                 crate::runtime::js_cjs_value_types::SourceCodeRepresentation::Other,
             ));
         }
         let constant_symbol_table = constant_symbol_table.unwrap();
         let constant_symbol_table_index = constant_symbol_table.borrow().index();
 
-        if module_program_node.borrow().uses_await() {
+        if module_program_node.borrow().uses_await {
             this.generator_frame_symbol_table = Some(module_environment_symbol_table.clone());
             this.generator_frame_symbol_table_index = constant_symbol_table_index;
             let generator_register = this.generator_register();
-            let generator_frame_register = this.generator_frame_register();
+            let generator_frame_register = Some(this.generator_frame_register());
             this.emit_put_internal_field(
                 generator_register,
                 crate::runtime::abstract_module_record::Field::Frame as u32,
@@ -202,16 +201,19 @@ impl BytecodeGenerator {
         // makeFunction supõe que há entradas de TDZ corretas na pilha. Por isso deve ser chamado depois de
         // pôr nosso ambiente léxico na pilha de TDZ corretamente.
 
-        let function_stack: Vec<_> = module_program_node.borrow().function_stack().to_vec();
+        let function_stack: Vec<_> = module_program_node.borrow().variable_environment.function_stack.to_vec();
         for function in function_stack.iter() {
-            let found = module_program_node
+            let function_key = function.ident.borrow().impl_().expect("RELEASE_ASSERT(iterator != end)");
+            let found_value = module_program_node
                 .borrow()
-                .lexical_variables()
-                .find(function.borrow().ident().impl_());
-            let (found_key, found_value) = found.expect("RELEASE_ASSERT(iterator != end)");
+                .variable_environment
+                .lexical_variables
+                .find(&function_key)
+                .cloned()
+                .expect("RELEASE_ASSERT(iterator != end)");
             assert!(!found_value.is_imported());
 
-            let var_kind = look_up_var_kind(&found_key, &found_value);
+            let var_kind = look_up_var_kind(&function_key, &found_value);
             if var_kind == crate::runtime::var_offset::VarKind::Scope {
                 // http://www.ecma-international.org/ecma-262/6.0/#sec-moduledeclarationinstantiation
                 // Seção 15.2.1.16.4, passo 16-a-iv-1.
@@ -265,19 +267,19 @@ impl BytecodeGenerator {
         // Lembra o offset do registro constante da tabela de símbolos mais externa. Essa tabela será
         // clonada ao linkar o code block. Depois, para criar o ambiente do módulo, pegamos a tabela
         // clonada do code block linkado por esse offset.
-        code_block.set_module_environment_symbol_table_constant_register_offset(constant_symbol_table_index);
+        code_block.borrow_mut().set_module_environment_symbol_table_constant_register_offset(constant_symbol_table_index);
         this
     }
 
     // BytecodeGenerator.cpp:1227
     pub fn initialize_default_parameter_values_and_setup_function_scope_stack(
         &mut self,
-        parameters: &mut crate::parser::nodes::FunctionParameters,
+        parameters: &crate::parser::nodes::FunctionParameters,
         is_simple_parameter_list: bool,
         function_node: &crate::parser::nodes::NodeRef<crate::parser::nodes::FunctionNode>,
         function_symbol_table: &crate::runtime::symbol_table::SymbolTableRef,
         symbol_table_constant_index: i32,
-        captures: &dyn Fn(&crate::wtf::text::uniqued_string_impl::UniquedStringImpl) -> bool,
+        captures: &dyn Fn(&crate::wtf::text::string_impl::UniquedKey) -> bool,
         should_create_arguments_variable_in_parameter_scope: bool,
     ) {
         use crate::bytecompiler::bytecode_generator::{NestedScopeType, TDZCheckOptimization, TDZRequirement};
@@ -288,47 +290,48 @@ impl BytecodeGenerator {
             // Isto implementa o passo 21.
             let mut environment = crate::parser::variable_environment::VariableEnvironment::default();
             let mut all_parameter_names: Vec<crate::runtime::identifier::Identifier> = Vec::new();
-            for i in 0..parameters.size() {
-                parameters.at(i).0.collect_bound_identifiers(&mut all_parameter_names);
+            for parameter in parameters.patterns.iter() {
+                parameter.0.collect_bound_identifiers(&mut all_parameter_names);
             }
             if should_create_arguments_variable_in_parameter_scope {
                 all_parameter_names.push(self.property_names().arguments.clone());
             }
-            let mut parameter_set = crate::runtime::identifier::IdentifierSet::default();
+            let mut parameter_set = crate::parser::parser::IdentifierSet::default();
             for ident in all_parameter_names.iter() {
-                parameter_set.add(ident.impl_());
-                let entry = environment.add(ident);
-                entry.set_is_let(); // Com expressões de parâmetro default, os parâmetros agem como "let".
-                if captures(ident.impl_()) {
-                    entry.set_is_captured();
+                let ident_key = ident.impl_().expect("identificador de parâmetro sem impl");
+                parameter_set.add(&ident_key, ());
+                let entry = environment.add(&ident_key);
+                entry.value.set_is_let(); // Com expressões de parâmetro default, os parâmetros agem como "let".
+                if captures(&ident_key) {
+                    entry.value.set_is_captured();
                 }
             }
             // Isto implementa o passo 25 da seção 9.2.12.
             self.push_lexical_scope_internal(
-                &environment,
+                &mut environment,
                 TDZCheckOptimization::Optimize,
                 NestedScopeType::IsNotNested,
                 None,
                 TDZRequirement::UnderTDZ,
-                crate::runtime::symbol_table::ScopeType::LetConstScope,
+                crate::bytecompiler::bytecode_generator::ScopeType::LetConstScope,
                 crate::bytecompiler::bytecode_generator::ScopeRegisterType::Block,
             );
 
             if should_create_arguments_variable_in_parameter_scope {
-                let arguments_variable = self.variable(&self.property_names().arguments.clone());
+                let arguments_variable = self.variable(&self.property_names().arguments.clone(), crate::bytecompiler::bytecode_generator::ThisResolutionType::Local);
                 let arguments_register = self.arguments_register.clone();
                 self.initialize_variable(&arguments_variable, arguments_register);
                 self.lift_tdz_check_if_possible(&arguments_variable);
             }
 
             let temp = self.new_temporary();
-            for i in 0..parameters.size() {
-                let parameter = parameters.at(i);
+            for i in 0..parameters.patterns.len() {
+                let parameter = &parameters.patterns[i];
                 if parameter.0.is_rest_parameter() {
                     continue;
                 }
                 if (i + 1) < self.parameters.len() {
-                    let source = self.parameters[i + 1].clone();
+                    let source = RegisterRef::new(&self.parameters[i + 1]);
                     self.move_register(Some(&temp), &source);
                 } else {
                     self.emit_get_argument(Some(temp.clone()), i as i32);
@@ -336,8 +339,8 @@ impl BytecodeGenerator {
                 if let Some(default_value) = &parameter.1 {
                     let skip_default_parameter_because_not_undefined = self.new_label();
                     let undefined_temp = self.new_temporary();
-                    let is_undefined = self.emit_is_undefined(Some(undefined_temp), Some(temp.clone()));
-                    self.emit_jump_if_false(is_undefined, &skip_default_parameter_because_not_undefined);
+                    let is_undefined = self.emit_is_undefined(Some(undefined_temp), &temp);
+                    self.emit_jump_if_false_raw(is_undefined.as_ref().unwrap(), &skip_default_parameter_because_not_undefined);
                     self.emit_node_expression(Some(temp.clone()), default_value);
                     self.emit_label(&skip_default_parameter_because_not_undefined);
                 }
@@ -352,7 +355,7 @@ impl BytecodeGenerator {
             // Último ato de estranheza dos parâmetros default. Se um "var" tem o mesmo nome de um
             // parâmetro, ele deve começar com o valor do parâmetro. Note que serão ligações distintas.
             // Este é o passo 28 da seção 9.2.12.
-            let var_entries: Vec<_> = function_node.borrow().var_declarations().iter().collect();
+            let var_entries: Vec<_> = function_node.borrow().var_declarations.iter().cloned().collect();
             for (key, value) in var_entries.iter() {
                 if !value.is_var() {
                     // Este é um parâmetro ou o callee.
@@ -360,8 +363,8 @@ impl BytecodeGenerator {
                 }
 
                 if parameter_set.contains(key) {
-                    let ident = crate::runtime::identifier::Identifier::from_uid(&self.vm, key);
-                    let var = self.variable(&ident);
+                    let ident = crate::runtime::identifier::Identifier::from_uid(&self.vm, Some(key));
+                    let var = self.variable(&ident, crate::bytecompiler::bytecode_generator::ThisResolutionType::Local);
                     let scope = self.emit_resolve_scope(None, &var);
                     let value_temp = self.new_temporary();
                     let value = self.emit_get_from_scope(
@@ -388,7 +391,7 @@ impl BytecodeGenerator {
         // Isto completa o passo 28 da seção 9.2.12.
         for (ident, value) in values_to_move_into_vars.iter() {
             debug_assert!(!is_simple_parameter_list);
-            let var = self.variable(ident);
+            let var = self.variable(ident, crate::bytecompiler::bytecode_generator::ThisResolutionType::Local);
             let scope = self.emit_resolve_scope(None, &var);
             self.emit_put_to_scope(
                 scope,
@@ -426,31 +429,31 @@ impl BytecodeGenerator {
             self.arrow_function_context_lexical_environment_register = self.lexical_environment_register.clone();
 
             if self.is_this_used_in_inner_arrow_function() {
-                let offset = function_symbol_table.borrow_mut().take_next_scope_offset(NO_LOCKING_NECESSARY);
-                function_symbol_table.borrow_mut().add(
+                let offset = function_symbol_table.borrow_mut().take_next_scope_offset_locked(NO_LOCKING_NECESSARY);
+                function_symbol_table.borrow_mut().add_locked(
                     NO_LOCKING_NECESSARY,
-                    self.property_names().builtin_names().this_private_name().impl_(),
-                    SymbolTableEntry::new(VarOffset::from_scope_offset(offset)),
+                    self.property_names().builtin_names().this_private_name().impl_().unwrap(),
+                    SymbolTableEntry::from_var_offset(VarOffset::from_scope_offset(offset)),
                 );
             }
 
             if self.code_type == crate::bytecode::code_type::CodeType::FunctionCode
                 && self.is_new_target_used_in_inner_arrow_function()
             {
-                let offset = function_symbol_table.borrow_mut().take_next_scope_offset_locked();
-                function_symbol_table.borrow_mut().add(
+                let offset = function_symbol_table.borrow_mut().take_next_scope_offset_locked(NO_LOCKING_NECESSARY);
+                function_symbol_table.borrow_mut().add_locked(
                     NO_LOCKING_NECESSARY,
-                    self.property_names().builtin_names().new_target_local_private_name().impl_(),
-                    SymbolTableEntry::new(VarOffset::from_scope_offset(offset)),
+                    self.property_names().builtin_names().new_target_local_private_name().impl_().unwrap(),
+                    SymbolTableEntry::from_var_offset(VarOffset::from_scope_offset(offset)),
                 );
             }
 
             if self.needs_derived_constructor_in_arrow_function_lexical_environment() {
-                let offset = function_symbol_table.borrow_mut().take_next_scope_offset(NO_LOCKING_NECESSARY);
-                function_symbol_table.borrow_mut().add(
+                let offset = function_symbol_table.borrow_mut().take_next_scope_offset_locked(NO_LOCKING_NECESSARY);
+                function_symbol_table.borrow_mut().add_locked(
                     NO_LOCKING_NECESSARY,
-                    self.property_names().builtin_names().derived_constructor_private_name().impl_(),
-                    SymbolTableEntry::new(VarOffset::from_scope_offset(offset)),
+                    self.property_names().builtin_names().derived_constructor_private_name().impl_().unwrap(),
+                    SymbolTableEntry::from_var_offset(VarOffset::from_scope_offset(offset)),
                 );
             }
 
@@ -460,34 +463,34 @@ impl BytecodeGenerator {
         let mut environment = crate::parser::variable_environment::VariableEnvironment::default();
 
         if self.is_this_used_in_inner_arrow_function() {
-            let entry = environment.add(&self.property_names().builtin_names().this_private_name());
-            entry.set_is_captured();
-            entry.set_is_let();
+            let entry = environment.add_identifier(&self.property_names().builtin_names().this_private_name());
+            entry.value.set_is_captured();
+            entry.value.set_is_let();
         }
 
         if self.code_type == crate::bytecode::code_type::CodeType::FunctionCode
             && self.is_new_target_used_in_inner_arrow_function()
         {
-            let entry = environment.add(&self.property_names().builtin_names().new_target_local_private_name());
-            entry.set_is_captured();
-            entry.set_is_let();
+            let entry = environment.add_identifier(&self.property_names().builtin_names().new_target_local_private_name());
+            entry.value.set_is_captured();
+            entry.value.set_is_let();
         }
 
         if self.needs_derived_constructor_in_arrow_function_lexical_environment() {
-            let entry = environment.add(&self.property_names().builtin_names().derived_constructor_private_name());
-            entry.set_is_captured();
-            entry.set_is_let();
+            let entry = environment.add_identifier(&self.property_names().builtin_names().derived_constructor_private_name());
+            entry.value.set_is_captured();
+            entry.value.set_is_let();
         }
 
         if environment.size() > 0 {
             let size = self.lexical_scope_stack.len();
             self.push_lexical_scope_internal(
-                &environment,
+                &mut environment,
                 crate::bytecompiler::bytecode_generator::TDZCheckOptimization::Optimize,
                 crate::bytecompiler::bytecode_generator::NestedScopeType::IsNotNested,
                 None,
                 crate::bytecompiler::bytecode_generator::TDZRequirement::UnderTDZ,
-                crate::runtime::symbol_table::ScopeType::LetConstScope,
+                crate::bytecompiler::bytecode_generator::ScopeType::LetConstScope,
                 crate::bytecompiler::bytecode_generator::ScopeRegisterType::Block,
             );
 
@@ -502,33 +505,35 @@ impl BytecodeGenerator {
     pub fn initialize_next_parameter(&mut self) -> RegisterRef {
         let reg = crate::bytecode::virtual_register::virtual_register_for_argument_including_this(
             self.code_block.num_parameters() as i32,
+            0,
         );
-        let new_parameter = self.new_parameter_register();
-        self.parameters.push(new_parameter);
+        // `m_parameters.grow(m_parameters.size() + 1)`: um `RegisterID` novo, de construção padrão.
+        self.parameters.push(std::rc::Rc::new(std::cell::RefCell::new(
+            crate::bytecompiler::register_id::RegisterID::default(),
+        )));
         let parameter = self.register_for(reg);
-        parameter.borrow_mut().set_index_virtual(reg);
+        parameter.borrow_mut().set_index(reg);
         let num_parameters = self.code_block.num_parameters();
         self.code_block.set_num_parameters(num_parameters + 1);
         parameter
     }
 
     // BytecodeGenerator.cpp:1392
-    pub fn initialize_parameters(&mut self, parameters: &mut crate::parser::nodes::FunctionParameters) {
+    pub fn initialize_parameters(&mut self, parameters: &crate::parser::nodes::FunctionParameters) {
         // Garante que o code block conhece todos os nossos parâmetros, e que os parâmetros que precisam
         // de desestruturação foram anotados.
         let this_parameter = self.initialize_next_parameter();
         let this_index = this_parameter.borrow().index();
         self.this_register
-            .borrow_mut()
-            .set_index_virtual(crate::bytecode::virtual_register::VirtualRegister::new(this_index)); // this
+            .set_index(crate::bytecode::virtual_register::VirtualRegister::new(this_index)); // this
 
         let mut non_simple_arguments = false;
-        for i in 0..parameters.size() {
-            let parameter = parameters.at(i);
+        for i in 0..parameters.patterns.len() {
+            let parameter = &parameters.patterns[i];
             let pattern = parameter.0.clone();
-            if pattern.is_rest_parameter() {
+            if let crate::parser::nodes::DestructuringPatternNode::RestParameter(rest) = &pattern {
                 assert!(self.rest_parameter.is_none());
-                self.rest_parameter = pattern.as_rest_parameter_node();
+                self.rest_parameter = Some(rest.clone());
                 non_simple_arguments = true;
                 continue;
             }
@@ -577,18 +582,24 @@ impl BytecodeGenerator {
             is_with_scope,
             symbol_table_constant_index,
         });
-        self.var_scope_lexical_scope_stack_index = self.lexical_scope_stack.len() - 1;
+        self.var_scope_lexical_scope_stack_index = Some(self.lexical_scope_stack.len() - 1);
     }
 
     // BytecodeGenerator.cpp:1432
     pub fn visible_name_for_parameter(
         &mut self,
-        pattern: &crate::parser::nodes::DestructuringPattern,
-    ) -> Option<crate::wtf::text::uniqued_string_impl::UniquedStringImplRef> {
-        if pattern.is_binding_node() {
-            let ident = pattern.as_binding_node().borrow().bound_property().clone();
-            if !self.functions.contains(ident.impl_()) {
-                return Some(ident.impl_());
+        pattern: &crate::parser::nodes::DestructuringPatternNode,
+    ) -> Option<crate::wtf::text::string_impl::UniquedKey> {
+        if let crate::parser::nodes::DestructuringPatternNode::Binding(binding) = pattern {
+            let ident = binding.borrow().bound_property.clone();
+            // `m_functions.contains(ident.impl())`: `impl()` nulo nunca está no conjunto.
+            let uid = ident.impl_();
+            let in_functions = match &uid {
+                Some(key) => self.functions.contains(key),
+                None => false,
+            };
+            if !in_functions {
+                return uid;
             }
         }
         None
@@ -602,7 +613,7 @@ impl BytecodeGenerator {
     }
 
     // BytecodeGenerator.cpp:1449
-    pub fn new_label_scope_impl(&mut self, type_: LabelScopeType, name: Option<&Identifier>) -> Rc<LabelScope> {
+    pub fn new_label_scope(&mut self, type_: LabelScopeType, name: Option<&Identifier>) -> LabelScopeRef {
         crate::wtf::vector::shrink_to_fit(&mut self.label_scopes);
 
         // Aloca um novo escopo de rótulo.
@@ -611,8 +622,9 @@ impl BytecodeGenerator {
         let continue_target = if type_ == LabelScopeType::Loop { Some(self.new_label()) } else { None };
         let depth = self.label_scope_depth();
         self.label_scopes
-            .push(Rc::new(LabelScope::new(type_, name, depth, break_target, continue_target)));
-        self.label_scopes.last().unwrap().clone()
+            .push(Rc::new(LabelScope::new(type_, name.cloned(), depth, break_target, continue_target)));
+        // `return m_labelScopes.last()`: o `Ref<LabelScope>` incrementa a contagem do escopo guardado.
+        LabelScopeRef::new(self.label_scopes.last().unwrap())
     }
 
     // BytecodeGenerator.cpp:1458
@@ -630,37 +642,61 @@ impl BytecodeGenerator {
     // BytecodeGenerator.cpp:1470
     pub fn emit_loop_hint(&mut self) {
         crate::bytecode::bytecode_ops::OpLoopHint::emit(self);
-        self.emit_check_traps();
+        crate::bytecode::bytecode_ops::OpCheckTraps::emit(self);
     }
 
     // BytecodeGenerator.cpp:1476
-    pub fn emit_jump(&mut self, target: &Label) {
-        let bound = target.bind_generator(self);
+    pub fn emit_jump(&mut self, target: &crate::bytecompiler::label::LabelRef) {
+        let bound = target.bind_generator();
         crate::bytecode::bytecode_ops::OpJmp::emit(self, bound);
-    }
-
-    // BytecodeGenerator.cpp:1481
-    pub fn emit_check_traps(&mut self) {
-        crate::bytecode::bytecode_ops::OpCheckTraps::emit(self);
     }
 
     // BytecodeGenerator.cpp:1486
     pub fn rewind(&mut self) {
         debug_assert!(self.last_instruction.is_valid());
         self.disable_peephole_optimization();
-        self.writer.rewind(&self.last_instruction);
+        let last_instruction = self.last_instruction.clone();
+        self.writer.rewind(&last_instruction);
+    }
+
+    /// Emite `emit` tratando `register` como o `RegisterID*` cru do C++ (contagem 0): solta a referência que o
+    /// próprio `RegisterRef` segura e a devolve depois, antes de o `RegisterRef` cair. Sem isso o slot não é
+    /// reaproveitado pelo próximo `newTemporary()` e a fusão `!cond->refCount()` nunca acontece.
+    pub fn with_raw_register<R>(&mut self, register: Option<&crate::bytecompiler::register_id::RegisterIDRef>, emit: impl FnOnce(&mut Self) -> R) -> R {
+        let released = register.map(std::rc::Rc::clone);
+        if let Some(register) = &released {
+            register.borrow_mut().enter_raw();
+        }
+        let result = emit(self);
+        if let Some(register) = &released {
+            register.borrow_mut().leave_raw();
+        }
+        result
+    }
+
+    /// `emitJumpIfTrue(emitXxx(newTemporary(), ...), label)`: o argumento é o `RegisterID*` cru (contagem 0),
+    /// então a fusão do salto pode ocorrer. Acrescenta a soltura da referência que o `RegisterRef` segura.
+    pub fn emit_jump_if_true_raw(&mut self, cond: &RegisterRef, target: &crate::bytecompiler::label::LabelRef) {
+        self.with_raw_register(Some(cond.get()), |generator| generator.emit_jump_if_true(cond, target))
+    }
+
+    /// Versão de `emit_jump_if_true_raw` para `emitJumpIfFalse`.
+    pub fn emit_jump_if_false_raw(&mut self, cond: &RegisterRef, target: &crate::bytecompiler::label::LabelRef) {
+        self.with_raw_register(Some(cond.get()), |generator| generator.emit_jump_if_false(cond, target))
     }
 
     // BytecodeGenerator.cpp:1494
-    pub fn fuse_compare_and_jump<BinOp: crate::bytecode::bytecode_ops::CompareOp, JmpOp: crate::bytecode::bytecode_ops::CompareJumpOp>(
+    pub fn fuse_compare_and_jump<BinOp: crate::bytecode::bytecode_ops_accessors::CompareOp, JmpOp: crate::bytecode::bytecode_ops_jumps::CompareJumpOp>(
         &mut self,
         cond: &RegisterRef,
-        target: &Label,
+        target: &crate::bytecompiler::label::LabelRef,
         swap_operands: bool,
     ) -> bool {
         debug_assert!(self.can_do_peephole_optimization());
         let mut binop = self.last_instruction.as_op::<BinOp>();
         let matches = {
+            // `!cond->refCount()`: quem passa o `RegisterID*` cru do C++ solta a referência do próprio
+            // `RegisterRef` antes (`with_raw_register`); um `RefPtr` vivo (o `temp` do `LogicalOpNode`) impede a fusão.
             let cond = cond.borrow();
             cond.index() == binop.dst().offset() && cond.is_temporary() && crate::wtf::ref_counted::RefCounted::ref_count(&*cond) == 0
         };
@@ -671,7 +707,7 @@ impl BytecodeGenerator {
                 binop.swap_operands();
             }
 
-            let bound = target.bind_generator(self);
+            let bound = target.bind_generator();
             JmpOp::emit(self, binop.lhs(), binop.rhs(), bound);
             return true;
         }
@@ -679,21 +715,22 @@ impl BytecodeGenerator {
     }
 
     // BytecodeGenerator.cpp:1511
-    pub fn fuse_test_and_jmp<UnaryOp: crate::bytecode::bytecode_ops::TestOp, JmpOp: crate::bytecode::bytecode_ops::TestJumpOp>(
+    pub fn fuse_test_and_jmp<UnaryOp: crate::bytecode::bytecode_ops_accessors::TestOp, JmpOp: crate::bytecode::bytecode_ops_jumps::TestJumpOp>(
         &mut self,
         cond: &RegisterRef,
-        target: &Label,
+        target: &crate::bytecompiler::label::LabelRef,
     ) -> bool {
         debug_assert!(self.can_do_peephole_optimization());
         let unop = self.last_instruction.as_op::<UnaryOp>();
         let matches = {
+            // `!cond->refCount()`, como em `fuse_compare_and_jump`.
             let cond = cond.borrow();
             cond.index() == unop.dst().offset() && cond.is_temporary() && crate::wtf::ref_counted::RefCounted::ref_count(&*cond) == 0
         };
         if matches {
             self.rewind();
 
-            let bound = target.bind_generator(self);
+            let bound = target.bind_generator();
             JmpOp::emit(self, unop.operand(), bound);
             return true;
         }
@@ -701,7 +738,7 @@ impl BytecodeGenerator {
     }
 
     // BytecodeGenerator.cpp:1524
-    pub fn emit_jump_if_true(&mut self, cond: &RegisterRef, target: &Label) {
+    pub fn emit_jump_if_true(&mut self, cond: &RegisterRef, target: &crate::bytecompiler::label::LabelRef) {
         use crate::bytecode::bytecode_ops::*;
         use crate::bytecode::opcode::OpcodeID;
         if self.can_do_peephole_optimization() {
@@ -761,12 +798,12 @@ impl BytecodeGenerator {
             }
         }
 
-        let bound = target.bind_generator(self);
+        let bound = target.bind_generator();
         OpJtrue::emit(self, Some(cond.clone()), bound);
     }
 
     // BytecodeGenerator.cpp:1572
-    pub fn emit_jump_if_false(&mut self, cond: &RegisterRef, target: &Label) {
+    pub fn emit_jump_if_false(&mut self, cond: &RegisterRef, target: &crate::bytecompiler::label::LabelRef) {
         use crate::bytecode::bytecode_ops::*;
         use crate::bytecode::opcode::OpcodeID;
         if self.can_do_peephole_optimization() {
@@ -830,56 +867,56 @@ impl BytecodeGenerator {
             }
         }
 
-        let bound = target.bind_generator(self);
+        let bound = target.bind_generator();
         OpJfalse::emit(self, Some(cond.clone()), bound);
     }
 
     // BytecodeGenerator.cpp:1623
-    pub fn emit_jump_if_not_function_call(&mut self, cond: &RegisterRef, target: &Label) {
+    pub fn emit_jump_if_not_function_call(&mut self, cond: &RegisterRef, target: &crate::bytecompiler::label::LabelRef) {
         let constant = self.move_link_time_constant(None, crate::bytecode::link_time_constant::LinkTimeConstant::CallFunction);
-        let bound = target.bind_generator(self);
+        let bound = target.bind_generator();
         crate::bytecode::bytecode_ops::OpJneqPtr::emit(self, Some(cond.clone()), constant, bound);
     }
 
     // BytecodeGenerator.cpp:1628
-    pub fn emit_jump_if_not_function_apply(&mut self, cond: &RegisterRef, target: &Label) {
+    pub fn emit_jump_if_not_function_apply(&mut self, cond: &RegisterRef, target: &crate::bytecompiler::label::LabelRef) {
         let constant = self.move_link_time_constant(None, crate::bytecode::link_time_constant::LinkTimeConstant::ApplyFunction);
-        let bound = target.bind_generator(self);
+        let bound = target.bind_generator();
         crate::bytecode::bytecode_ops::OpJneqPtr::emit(self, Some(cond.clone()), constant, bound);
     }
 
     // BytecodeGenerator.cpp:1633
-    pub fn emit_jump_if_not_eval_function(&mut self, cond: &RegisterRef, target: &Label) {
+    pub fn emit_jump_if_not_eval_function(&mut self, cond: &RegisterRef, target: &crate::bytecompiler::label::LabelRef) {
         let constant = self.move_link_time_constant(None, crate::bytecode::link_time_constant::LinkTimeConstant::EvalFunction);
-        let bound = target.bind_generator(self);
+        let bound = target.bind_generator();
         crate::bytecode::bytecode_ops::OpJneqPtr::emit(self, Some(cond.clone()), constant, bound);
     }
 
     // BytecodeGenerator.cpp:1638
-    pub fn emit_jump_if_empty_property_name_enumerator(&mut self, cond: &RegisterRef, target: &Label) {
+    pub fn emit_jump_if_empty_property_name_enumerator(&mut self, cond: &RegisterRef, target: &crate::bytecompiler::label::LabelRef) {
         let constant = self.move_link_time_constant(
             None,
             crate::bytecode::link_time_constant::LinkTimeConstant::EmptyPropertyNameEnumerator,
         );
-        let bound = target.bind_generator(self);
+        let bound = target.bind_generator();
         crate::bytecode::bytecode_ops::OpJeqPtr::emit(self, Some(cond.clone()), constant, bound);
     }
 
     // BytecodeGenerator.cpp:1643
-    pub fn emit_jump_if_sentinel_string(&mut self, cond: &RegisterRef, target: &Label) {
+    pub fn emit_jump_if_sentinel_string(&mut self, cond: &RegisterRef, target: &crate::bytecompiler::label::LabelRef) {
         let constant = self.move_link_time_constant(None, crate::bytecode::link_time_constant::LinkTimeConstant::SentinelString);
-        let bound = target.bind_generator(self);
+        let bound = target.bind_generator();
         crate::bytecode::bytecode_ops::OpJeqPtr::emit(self, Some(cond.clone()), constant, bound);
     }
 
     // BytecodeGenerator.cpp:1648
-    pub fn emit_wide_jump_if_not_function_has_own_property(&mut self, cond: &RegisterRef, target: &Label) -> u32 {
+    pub fn emit_wide_jump_if_not_function_has_own_property(&mut self, cond: &RegisterRef, target: &crate::bytecompiler::label::LabelRef) -> u32 {
         let constant = self.move_link_time_constant(
             None,
             crate::bytecode::link_time_constant::LinkTimeConstant::HasOwnPropertyFunction,
         );
-        let bound = target.bind_generator(self);
-        crate::bytecode::bytecode_ops::OpJneqPtr::emit_sized(
+        let bound = target.bind_generator();
+        crate::bytecode::bytecode_ops::OpJneqPtr::emit_with_smallest_size_requirement(
             self,
             crate::bytecode::opcode_size::OpcodeSize::Wide32,
             Some(cond.clone()),
@@ -894,11 +931,11 @@ impl BytecodeGenerator {
         &mut self,
         context: &mut crate::bytecompiler::bytecode_generator::ForInContext,
         branch_offset: u32,
-        generic_path: &Label,
+        generic_path: &crate::bytecompiler::label::LabelRef,
     ) {
-        assert!(generic_path.is_bound());
+        assert!(generic_path.borrow().is_bound());
         assert!(!generic_path.is_forward());
-        context.add_has_own_property_jump(branch_offset, generic_path.location());
+        context.add_has_own_property_jump(branch_offset, generic_path.borrow().location());
     }
 
     // BytecodeGenerator.cpp:1661
@@ -930,7 +967,7 @@ impl BytecodeGenerator {
         if self.empty_value_register.is_none() {
             let index = self.add_constant_index();
             self.code_block.add_constant(crate::runtime::js_value::JSValue::empty());
-            self.empty_value_register = Some(self.constant_pool_registers[index as usize].clone());
+            self.empty_value_register = Some(RegisterRef::new(&self.constant_pool_registers[index as usize]));
         }
 
         self.empty_value_register.clone().unwrap()
@@ -948,7 +985,7 @@ impl BytecodeGenerator {
             return self.add_constant_empty_value();
         }
 
-        let mut index = self.next_constant_offset;
+        let mut index = self.next_constant_offset as u32;
 
         if source_code_representation == SourceCodeRepresentation::Double && v.is_int32() {
             v = crate::runtime::js_value::JSValue::double_number(v.as_number());
@@ -962,12 +999,12 @@ impl BytecodeGenerator {
         match self.js_value_map.get(&value_map_key) {
             Some(existing) => index = *existing,
             None => {
-                self.js_value_map.insert(value_map_key, self.next_constant_offset);
+                self.js_value_map.insert(value_map_key, self.next_constant_offset as u32);
                 self.add_constant_index();
                 self.code_block.add_constant_with_representation(v, source_code_representation);
             }
         }
-        self.constant_pool_registers[index as usize].clone()
+        RegisterRef::new(&self.constant_pool_registers[index as usize])
     }
 
     // BytecodeGenerator.cpp:1712
@@ -981,7 +1018,7 @@ impl BytecodeGenerator {
             None => {
                 let index = self.add_constant_index();
                 self.code_block.add_link_time_constant(type_);
-                let register = self.constant_pool_registers[index as usize].clone();
+                let register = RegisterRef::new(&self.constant_pool_registers[index as usize]);
                 self.link_time_constant_registers.insert(type_, register.clone());
                 register
             }
@@ -1002,7 +1039,7 @@ impl BytecodeGenerator {
 
     // BytecodeGenerator.cpp:1732
     pub fn emit_move(&mut self, dst: &RegisterRef, src: &RegisterRef) -> Option<RegisterRef> {
-        self.static_property_analyzer.mov(dst, src);
+        self.static_property_analyzer.mov(&dst.borrow(), &src.borrow());
         if self.can_do_peephole_optimization() && self.last_instruction.is_op::<crate::bytecode::bytecode_ops::OpMov>() {
             let op = self.last_instruction.as_op::<crate::bytecode::bytecode_ops::OpMov>();
             if op.dst() == dst.borrow().virtual_register() {
@@ -1296,7 +1333,7 @@ impl BytecodeGenerator {
 
         let start = start_divot.offset as u32; // Os intervalos incluem os extremos e começam em 0.
         let end = end_divot.offset as u32 - 1; // O fim já passa um do intervalo inclusivo, então subtrai 1.
-        let instruction_offset = self.instructions().len() as u32 - 1;
+        let instruction_offset = self.instructions().position() - 1;
         self.code_block.add_type_profiler_expression_info(instruction_offset, start, end);
     }
 

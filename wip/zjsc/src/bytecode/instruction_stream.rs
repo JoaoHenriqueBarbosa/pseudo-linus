@@ -169,6 +169,17 @@ impl<'a> JSInstruction<'a> {
         T::decode(self.bytes)
     }
 
+    /// `Op::m_metadataID`: o último operando da instrução (`OPCODE_LENGTHS` conta o `metadataID`), lido
+    /// na largura dela. As structs `Op*` do porte não carregam o campo (ver `bytecode_ops_decode.rs`),
+    /// então quem precisa do `bytecode.metadata(codeBlock)` lê o id daqui.
+    pub fn metadata_id(&self) -> u32 {
+        debug_assert!(self.has_metadata());
+        let size = self.width();
+        let first_operand = size.padding() as usize + self.opcode_id_bytes() as usize;
+        let index = OPCODE_LENGTHS[self.opcode_id() as usize] as usize - 1;
+        crate::bytecode::bytecode_ops_decode::read_operand(&self.bytes[first_operand..], index, size)
+    }
+
     /// `asKnownWidth<T, width>()`: o operando começa depois do opcode (e do prefixo, se wide).
     pub fn as_known_width<T: DecodeOp>(&self, width: OpcodeSize) -> T {
         debug_assert!(self.is::<T>());
@@ -236,9 +247,19 @@ macro_rules! base_ref_accessors {
             self.base.with_instruction(|instruction| instruction.opcode_id_enum())
         }
 
+        /// `m_metadataID` da instrução.
+        pub fn metadata_id(&self) -> u32 {
+            self.base.with_instruction(|instruction| instruction.metadata_id())
+        }
+
         /// `ptr()->size()`.
         pub fn size(&self) -> usize {
             self.base.with_instruction(|instruction| instruction.size())
+        }
+
+        /// `ptr()->numberOfCheckpoints()`.
+        pub fn number_of_checkpoints(&self) -> u32 {
+            self.base.with_instruction(|instruction| instruction.number_of_checkpoints())
         }
 
         /// `ptr()->is<T>()`.
@@ -398,19 +419,9 @@ impl InstructionStream {
         self.bytes.borrow().len()
     }
 
-    /// `ownedSizeInBytes()`: o fluxo nunca é emprestado aqui.
-    pub fn owned_size_in_bytes(&self) -> usize {
-        self.size_in_bytes()
-    }
-
-    /// `size()`.
-    pub fn size(&self) -> usize {
-        self.size_in_bytes()
-    }
-
     /// `at(Offset)`.
     pub fn at(&self, offset: u32) -> Ref {
-        debug_assert!((offset as usize) < self.size());
+        debug_assert!((offset as usize) < self.size_in_bytes());
         Ref { base: BaseRef { bytes: self.bytes.clone(), index: offset } }
     }
 
@@ -457,11 +468,6 @@ macro_rules! impl_integral {
 impl_integral!(u8, i8, u16, i16, u32, i32, u64, i64);
 
 impl InstructionStreamWriter {
-    /// `InstructionStreamWriter()`.
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     /// `setInstructionBuffer(InstructionBuffer&&)`: só vale com o escritor e o buffer vazios.
     pub fn set_instruction_buffer(&mut self, buffer: Vec<u8>) {
         assert!(self.stream.bytes.borrow().is_empty());
@@ -536,6 +542,27 @@ impl InstructionStreamWriter {
         *used_buffer = std::mem::take(&mut *self.stream.bytes.borrow_mut());
         result
     }
+
+    /// `m_instructions` (o `friend class BytecodeRewriter` do C++): uma cópia dos bytes escritos.
+    pub fn instruction_bytes(&self) -> Vec<u8> {
+        self.stream.bytes.borrow().clone()
+    }
+
+    /// `m_instructions.removeAt(offset, length)`, usado pelo `BytecodeRewriter`.
+    pub fn remove_at(&mut self, offset: u32, length: usize) {
+        let offset = offset as usize;
+        self.stream.bytes.borrow_mut().drain(offset..offset + length);
+    }
+
+    /// `m_instructions.insertVector(offset, other)`, usado pelo `BytecodeRewriter`.
+    pub fn insert_vector(&mut self, offset: u32, other: &[u8]) {
+        let offset = offset as usize;
+        self.stream.bytes.borrow_mut().splice(offset..offset, other.iter().copied());
+    }
+
+    /// `didMutateBuffer()`: o C++ reaponta o `span` para o buffer; aqui o `Rc` compartilhado já
+    /// enxerga o buffer atual, então não há o que atualizar.
+    pub fn did_mutate_buffer(&mut self) {}
 
     /// `swap(InstructionStreamWriter&)`: troca estado e conteúdo dos buffers (as refs continuam
     /// apontando para o `Rc` de cada escritor, como o `span` é atualizado no C++).

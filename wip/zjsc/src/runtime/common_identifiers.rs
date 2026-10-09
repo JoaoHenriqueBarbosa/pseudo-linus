@@ -326,6 +326,9 @@ pub struct CommonIdentifiers {
     pub source: Identifier,
     pub source_code: Identifier,
     pub source_url: Identifier,
+    /// `originalLine` e `originalColumn`: propriedades que o bun grava no erro (não existem no JSC).
+    pub original_line: Identifier,
+    pub original_column: Identifier,
     pub stack: Identifier,
     pub stack_trace_limit: Identifier,
     pub status: Identifier,
@@ -726,6 +729,8 @@ impl CommonIdentifiers {
             source: Identifier::from_span(vm, b"source"),
             source_code: Identifier::from_span(vm, b"sourceCode"),
             source_url: Identifier::from_span(vm, b"sourceURL"),
+            original_line: Identifier::from_span(vm, b"originalLine"),
+            original_column: Identifier::from_span(vm, b"originalColumn"),
             stack: Identifier::from_span(vm, b"stack"),
             stack_trace_limit: Identifier::from_span(vm, b"stackTraceLimit"),
             status: Identifier::from_span(vm, b"status"),

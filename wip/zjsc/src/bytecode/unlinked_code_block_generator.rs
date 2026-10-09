@@ -7,7 +7,9 @@
 //!
 //! - O `Strong<UnlinkedCodeBlock>` é o `Rc<RefCell<UnlinkedCodeBlock>>` que o bytecompiler já usa. Sem
 //!   heap, `VM& m_vm`, `vm()` e os `ASSERT(m_vm.heap.isDeferred())` não existem; o construtor recebe
-//!   o `&VM` só para manter a assinatura do C++.
+//!   o `&VM` só para manter a assinatura do C++. O C++ passa o `UnlinkedCodeBlock*` do subtipo
+//!   (Program, Function, Eval, ModuleProgram); aqui o chamador passa `subtipo.base_ref()`, o `Rc`
+//!   da base que o subtipo compartilha (ver o design em `unlinked_code_block.rs`).
 //! - `WriteBarrier<Unknown>` é `JSValue` e `WriteBarrier<UnlinkedFunctionExecutable>` é
 //!   `UnlinkedFunctionExecutableRef`; `Vector` é `Vec`.
 //! - `constantRegister(reg)` e `getConstant(reg)` são o mesmo acesso (a barreira desaparece), então só
@@ -337,6 +339,48 @@ impl UnlinkedCodeBlockGenerator {
     /// `replaceOutOfLineJumpTargets()`: devolve o mapa e deixa um vazio no lugar (`std::swap`).
     pub fn replace_out_of_line_jump_targets(&mut self) -> OutOfLineJumpTargets {
         std::mem::take(&mut self.out_of_line_jump_targets)
+    }
+
+    /// `applyModification(BytecodeRewriter&)`: o `writer` é o `m_writer` do rewriter no C++.
+    pub fn apply_modification(
+        &mut self,
+        rewriter: &mut crate::bytecode::bytecode_rewriter::BytecodeRewriter,
+        writer: &mut crate::bytecode::instruction_stream::InstructionStreamWriter,
+    ) {
+        // Before applying the changes, we adjust the jumps based on the original bytecode offset, the offset to the jump target, and
+        // the insertion information.
+
+        rewriter.adjust_jump_targets(self, writer);
+
+        // Then, exception handlers should be adjusted.
+        for handler in &mut self.exception_handlers {
+            handler.base.target = rewriter.adjust_absolute_offset(handler.base.target) as u32;
+            handler.base.start = rewriter.adjust_absolute_offset(handler.base.start) as u32;
+            handler.base.end = rewriter.adjust_absolute_offset(handler.base.end) as u32;
+        }
+
+        for offset in &mut self.op_profile_control_flow_bytecode_offsets {
+            *offset = rewriter.adjust_absolute_offset(*offset) as u32;
+        }
+
+        if !self.type_profiler_info_map.is_empty() {
+            let mut adjusted_type_profiler_info_map: HashMap<u32, TypeProfilerExpressionRange> = HashMap::new();
+            for (key, value) in &self.type_profiler_info_map {
+                adjusted_type_profiler_info_map.insert(rewriter.adjust_absolute_offset(*key) as u32, *value);
+            }
+            std::mem::swap(&mut self.type_profiler_info_map, &mut adjusted_type_profiler_info_map);
+        }
+
+        let mut bytecode_offset_adjustments: Vec<u32> = Vec::new();
+        rewriter.for_each_label_point(|bytecode_offset| {
+            bytecode_offset_adjustments.push(bytecode_offset as u32);
+        });
+        self.expression_info_encoder.remap(bytecode_offset_adjustments, |bytecode_offset| {
+            rewriter.adjust_absolute_offset(bytecode_offset) as u32
+        });
+
+        // Then, modify the unlinked instructions.
+        rewriter.apply_modification(self, writer);
     }
 
     pub fn add_binary_arith_profile(&mut self) -> u32 {

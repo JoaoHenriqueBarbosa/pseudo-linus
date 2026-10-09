@@ -27,15 +27,16 @@
 //
 // O C++ aloca `DisjunctionContext` e `ParenthesesDisjunctionContext` em um `BumpPointerPool`
 // (liberação em pilha: `dealloc(p)` descarta `p` e tudo que foi alocado depois). Aqui cada espécie de
-// contexto vive em um `Vec` do `Interpreter`, endereçada por índice; `dealloc` vira `truncate(índice)`,
+// contexto vive em um `Vec` do `Interpreter`, endereçada por índice; `dealloc` vira `drain(índice..)` para a lista livre,
 // com a mesma semântica de pilha. O `uintptr_t frame[1]` com `numberOfFrames` posições é um
 // `Vec<usize>`. O `ParenthesesDisjunctionContext*` guardado como `uintptr_t` no frame
 // (`BackTrackInfoParentheses::lastContext`) é `Option<usize>`, codificado no frame como índice + 1
-// (0 é o ponteiro nulo). O `BitVector` de grupos nomeados duplicados é um `BTreeSet<u32>` (a iteração
-// em ordem crescente é a mesma). `allocationSize` (cálculo de layout de memória), os números mágicos
+// (0 é o ponteiro nulo). O `BitVector` de grupos nomeados duplicados é um `Vec<u32>` ordenado e sem
+// repetição (a iteração em ordem crescente é a mesma; vazio não aloca). Os contextos liberados vão
+// para listas livres (`free_*_contexts`) e voltam no próximo `alloc`, com `frame` e backup
+// reaproveitados: a pilha não aloca nem solta memória por iteração de parênteses.
+// `allocationSize` (cálculo de layout de memória), os números mágicos
 // de `ASSERT_ENABLED` e `dump(PrintStream&)` não têm contrapartida observável e não são portados.
-
-use std::collections::BTreeSet;
 
 use crate::wtf::text::string_impl::CharType;
 use crate::wtf::unicode::utf8_conversion::{u16_get_supplementary, u16_is_lead, u16_is_trail};
@@ -155,63 +156,70 @@ impl DisjunctionContext {
             frame: vec![0; number_of_frames as usize],
         }
     }
+
+    /// Reaproveita um contexto liberado: o `frame` mantém a capacidade e volta a ter exatamente
+    /// `numberOfFrames` posições zeradas, sem alocar quando a capacidade já basta.
+    pub fn reset(&mut self, number_of_frames: u32) {
+        self.term = 0;
+        self.match_begin = 0;
+        self.match_end = 0;
+        self.frame.clear();
+        self.frame.resize(number_of_frames as usize, 0);
+    }
 }
 
 /// `Interpreter<CharType>::ParenthesesDisjunctionContext`. O `DisjunctionContext` que o C++ constrói
 /// logo após o objeto (`getDisjunctionContext()`) é o campo `disjunction_context`.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ParenthesesDisjunctionContext {
     pub next: Option<usize>,
     pub num_nested_subpatterns: u32,
     pub num_backup_ids: usize,
-    pub duplicate_named_groups: BTreeSet<u32>,
+    /// O `BitVector m_duplicateNamedGroups` do C++: ids em ordem crescente e sem repetição (a
+    /// iteração do `BitVector` é crescente). Vazio, não aloca.
+    pub duplicate_named_groups: Vec<u32>,
     pub subpattern_and_group_id_backup: Vec<u32>,
     pub disjunction_context: DisjunctionContext,
 }
 
 impl ParenthesesDisjunctionContext {
-    /// `ParenthesesDisjunctionContext(pattern, output, term, numDuplicateNamedGroups, duplicateNamedGroups)`.
-    /// `frame_size` é o `m_frameSize` da disjunção do termo (o C++ o reserva depois do objeto).
-    pub fn new(
+    /// `ParenthesesDisjunctionContext(pattern, output, term, numDuplicateNamedGroups, duplicateNamedGroups)`
+    /// sobre um contexto reaproveitado do pool (ou `Default`). O chamador já preencheu
+    /// `duplicate_named_groups`; `num_duplicate_named_groups` é o seu comprimento. `frame_size` é o
+    /// `m_frameSize` da disjunção do termo (o C++ o reserva depois do objeto).
+    pub fn init(
+        &mut self,
         pattern: &BytecodePattern,
         output: &mut [u32],
         term: &ByteTerm,
-        num_duplicate_named_groups: u32,
-        duplicate_named_groups: BTreeSet<u32>,
         frame_size: u32,
-    ) -> ParenthesesDisjunctionContext {
+    ) {
         let num_nested_subpatterns = match term.atom.parentheses_disjunction {
             Some(id) => pattern.parentheses_disjunction(id).num_subpatterns,
             None => 0,
         };
-        let num_backup_ids = (num_nested_subpatterns as usize) * 2 + num_duplicate_named_groups as usize;
+        let num_backup_ids = (num_nested_subpatterns as usize) * 2 + self.duplicate_named_groups.len();
         let first_subpattern_id = term.subpattern_id() as usize;
 
-        let mut backup = vec![0u32; num_backup_ids];
+        self.next = None;
+        self.num_nested_subpatterns = num_nested_subpatterns;
+        self.num_backup_ids = num_backup_ids;
+        self.subpattern_and_group_id_backup.clear();
+        self.subpattern_and_group_id_backup.resize(num_backup_ids, 0);
+        self.disjunction_context.reset(frame_size);
+
         for i in 0..((num_nested_subpatterns as usize) << 1) {
-            backup[i] = output[(first_subpattern_id << 1) + i];
+            self.subpattern_and_group_id_backup[i] = output[(first_subpattern_id << 1) + i];
             output[(first_subpattern_id << 1) + i] = OFFSET_NO_MATCH;
         }
 
-        let mut context = ParenthesesDisjunctionContext {
-            next: None,
-            num_nested_subpatterns,
-            num_backup_ids,
-            duplicate_named_groups,
-            subpattern_and_group_id_backup: backup,
-            disjunction_context: DisjunctionContext::new(frame_size),
-        };
-
-        let mut name_group_idx = 0;
-        for &duplicate_named_group_id in context.duplicate_named_groups.clone().iter() {
-            let offset = pattern.offset_for_duplicate_named_group_id(duplicate_named_group_id) as usize;
-            let backup_offset = context.backup_offset_for_duplicate_named_group(name_group_idx);
-            context.subpattern_and_group_id_backup[backup_offset] = output[offset];
+        for name_group_idx in 0..self.duplicate_named_groups.len() {
+            let offset =
+                pattern.offset_for_duplicate_named_group_id(self.duplicate_named_groups[name_group_idx]) as usize;
+            let backup_offset = self.backup_offset_for_duplicate_named_group(name_group_idx);
+            self.subpattern_and_group_id_backup[backup_offset] = output[offset];
             output[offset] = 0;
-            name_group_idx += 1;
         }
-
-        context
     }
 
     /// `restoreOutput(output, firstSubpatternId)`.
@@ -453,6 +461,9 @@ impl<'a, C: CharType> InputStream<'a, C> {
     }
 }
 
+/// `Options::maxRegExpStackSize()` (192 MB, `runtime/OptionsList.h`).
+const MAX_REG_EXP_STACK_SIZE: usize = 192 * 1024 * 1024;
+
 /// `std::midpoint(low, high)` para `size_t` (arredonda em direção a `low`).
 fn size_midpoint(low: usize, high: usize) -> usize {
     low + (high - low) / 2
@@ -526,9 +537,16 @@ pub struct Interpreter<'a, C: CharType> {
     pub input: InputStream<'a, C>,
     pub disjunction_contexts: Vec<DisjunctionContext>,
     pub parentheses_contexts: Vec<ParenthesesDisjunctionContext>,
+    /// Contextos liberados à espera de reuso (o espaço que o `BumpPointerPool` devolve ao `dealloc`
+    /// e entrega de novo ao próximo `alloc`): alocar de novo reaproveita `frame` e backup.
+    pub free_disjunction_contexts: Vec<DisjunctionContext>,
+    pub free_parentheses_contexts: Vec<ParenthesesDisjunctionContext>,
     pub start_offset: u32,
     pub no_newline_before: u32,
     pub remaining_match_count: u32,
+    /// Bytes vivos nos contextos de retrocesso, contra `MAX_REG_EXP_STACK_SIZE` (o `BumpPointerPool`
+    /// do C++ com `Options::maxRegExpStackSize()`).
+    pub context_bytes: usize,
     /// `m_stackCheck`.
     pub stack_check: crate::yarr::yarr_pattern_cpp1::StackCheck,
 }
@@ -592,30 +610,54 @@ impl<'a, C: CharType> Interpreter<'a, C> {
     /// `allocDisjunctionContext(disjunction)`: devolve o índice do novo contexto. A alocação do Rust
     /// não falha, então o ramo `nullptr` do `ensureCapacity` não existe.
     pub fn alloc_disjunction_context(&mut self, disjunction: &ByteDisjunction) -> usize {
-        self.disjunction_contexts.push(DisjunctionContext::new(disjunction.frame_size));
+        self.context_bytes += Self::disjunction_context_bytes(disjunction.frame_size as usize);
+        let context = match self.free_disjunction_contexts.pop() {
+            Some(mut recycled) => {
+                recycled.reset(disjunction.frame_size);
+                recycled
+            }
+            None => DisjunctionContext::new(disjunction.frame_size),
+        };
+        self.disjunction_contexts.push(context);
         self.disjunction_contexts.len() - 1
+    }
+
+    /// `DisjunctionContext::allocationSize(numberOfFrames)` (build de release, alinhado a 8 bytes).
+    fn disjunction_context_bytes(number_of_frames: usize) -> usize {
+        16 + number_of_frames * std::mem::size_of::<usize>()
+    }
+
+    /// `ParenthesesDisjunctionContext::allocationSize(numBackupIds)` (build de release, alinhado a 8
+    /// bytes), sem o `DisjunctionContext` que vem depois.
+    fn parentheses_context_bytes(num_backup_ids: usize) -> usize {
+        (24 + num_backup_ids * 4).next_multiple_of(8)
     }
 
     /// `freeDisjunctionContext(context)`: `dealloc` descarta o contexto e tudo que veio depois.
     pub fn free_disjunction_context(&mut self, context: usize) {
-        self.disjunction_contexts.truncate(context);
+        for freed in self.disjunction_contexts.drain(context..) {
+            self.context_bytes -= Self::disjunction_context_bytes(freed.frame.len());
+            self.free_disjunction_contexts.push(freed);
+        }
     }
 
     /// `allocParenthesesDisjunctionContext(disjunction, output, term)`: devolve o índice do novo
-    /// contexto (o `output` é o do próprio interpretador).
+    /// contexto (o `output` é o do próprio interpretador), ou `None` quando o orçamento de
+    /// `Options::maxRegExpStackSize` (a pilha de contextos do C++, `ensureCapacity` nulo) estoura;
+    /// o chamador devolve `ErrorNoMemory`.
     pub fn alloc_parentheses_disjunction_context(
         &mut self,
         disjunction: &ByteDisjunction,
         term: &ByteTerm,
-    ) -> usize {
+    ) -> Option<usize> {
         let pattern = self.pattern;
-        let mut duplicate_named_capture_groups: BTreeSet<u32> = BTreeSet::new();
+        let mut context = self.free_parentheses_contexts.pop().unwrap_or_default();
+        context.duplicate_named_groups.clear();
         let first_subpattern_id = term.subpattern_id();
         let num_nested_subpatterns = match term.atom.parentheses_disjunction {
             Some(id) => pattern.parentheses_disjunction(id).num_subpatterns,
             None => 0,
         };
-        let mut num_duplicate_named_groups: u32 = 0;
 
         if pattern.has_duplicate_named_capture_groups() {
             for i in 0..num_nested_subpatterns {
@@ -623,28 +665,38 @@ impl<'a, C: CharType> Interpreter<'a, C> {
                 let duplicate_named_group =
                     pattern.duplicate_named_group_for_subpattern_id[subpattern_id as usize];
                 if duplicate_named_group != 0 {
-                    duplicate_named_capture_groups.insert(duplicate_named_group);
+                    context.duplicate_named_groups.push(duplicate_named_group);
                 }
             }
-
-            num_duplicate_named_groups = duplicate_named_capture_groups.len() as u32;
+            // Ordem crescente e sem repetição, como a iteração do `BitVector`.
+            context.duplicate_named_groups.sort_unstable();
+            context.duplicate_named_groups.dedup();
         }
+        let num_duplicate_named_groups = context.duplicate_named_groups.len() as u32;
 
-        let context = ParenthesesDisjunctionContext::new(
-            pattern,
-            &mut *self.output,
-            term,
-            num_duplicate_named_groups,
-            duplicate_named_capture_groups,
-            disjunction.frame_size,
-        );
+        let size = Self::parentheses_context_bytes(
+            (num_nested_subpatterns as usize) * 2 + num_duplicate_named_groups as usize,
+        ) + Self::disjunction_context_bytes(disjunction.frame_size as usize);
+        // O limite é conferido antes de `init`, que já salva e zera o `output`; no C++ o
+        // `ensureCapacity` falha antes de construir o contexto.
+        if self.context_bytes.saturating_add(size) > MAX_REG_EXP_STACK_SIZE {
+            self.free_parentheses_contexts.push(context);
+            return None;
+        }
+        self.context_bytes += size;
+
+        context.init(pattern, &mut *self.output, term, disjunction.frame_size);
         self.parentheses_contexts.push(context);
-        self.parentheses_contexts.len() - 1
+        Some(self.parentheses_contexts.len() - 1)
     }
 
     /// `freeParenthesesDisjunctionContext(context)`.
     pub fn free_parentheses_disjunction_context(&mut self, context: usize) {
-        self.parentheses_contexts.truncate(context);
+        for freed in self.parentheses_contexts.drain(context..) {
+            self.context_bytes -= Self::parentheses_context_bytes(freed.num_backup_ids)
+                + Self::disjunction_context_bytes(freed.disjunction_context.frame.len());
+            self.free_parentheses_contexts.push(freed);
+        }
     }
 
     /// `testCharacterClass(characterClass, ch)`.

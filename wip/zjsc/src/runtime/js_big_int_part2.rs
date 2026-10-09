@@ -97,7 +97,7 @@ impl JSBigInt {
             // Fast path for 2^n.
             let needed_digits = 1 + (n / DIGIT_BITS as i32);
 
-            let mut result: Vec<Digit> = vec![0; needed_digits as usize];
+            let mut result: Vec<Digit> = try_zeroed_digits(needed_digits as usize)?;
 
             // All bits are zero. Now set the n-th bit.
             let msd: Digit = (1 as Digit) << (n % DIGIT_BITS as i32);

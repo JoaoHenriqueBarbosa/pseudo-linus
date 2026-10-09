@@ -16,10 +16,6 @@ pub struct StaticPropertyAnalyzer {
 }
 
 impl StaticPropertyAnalyzer {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     pub fn create_this(&mut self, dst: &RegisterID, instruction_ref: JSInstructionStreamMutableRef) {
         let is_new_entry = !self.analyses.contains_key(&dst.index());
         if is_new_entry {

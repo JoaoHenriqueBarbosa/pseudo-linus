@@ -50,10 +50,8 @@ pub fn is_impure_nan(value: f64) -> bool {
 
 /// `purifyNaN`.
 pub fn purify_nan(value: f64) -> f64 {
-    if !value.is_nan() {
-        return value;
-    }
-    if is_impure_nan(value) { pnan() } else { value }
+    // PureNaN.h:98: todo NaN vira o NaN puro, sem consultar `isImpureNaN`.
+    if value.is_nan() { pnan() } else { value }
 }
 
 // Constantes de `JSValue` (JSCJSValue.h:389).
@@ -136,6 +134,17 @@ impl JSValue {
     /// `JSValue(JSCell*)`.
     pub fn from_cell(cell: impl Into<usize>) -> JSValue {
         JSValue::Cell(cell.into())
+    }
+
+    /// `jsDynamicCast<JSFunction*>(value)`: `None` se o valor não é uma célula `JSFunction`.
+    pub fn as_js_function(&self) -> Option<crate::runtime::js_function::JSFunctionRef> {
+        let JSValue::Cell(cell_id) = self else {
+            return None;
+        };
+        match crate::runtime::cell_registry::get(*cell_id)? {
+            crate::runtime::cell_registry::CellEntry::Function(function) => Some(function),
+            _ => None,
+        }
     }
 
     /// `JSValue(JSString*)`: a variante `Cell` guarda o `cell_id` da string (veja `js_string`).
@@ -240,6 +249,24 @@ impl JSValue {
         matches!(self, JSValue::Cell(_) | JSValue::Empty | JSValue::Deleted)
     }
 
+    /// `JSValue::pureToBoolean`: o `ToBoolean` sem efeito colateral. Célula `JSString` decide pelo
+    /// comprimento; as demais células seriam `JSCell::pureToBoolean` (objeto: verdadeiro, ou
+    /// `Indeterminate` se mascara `undefined`), e como só há strings no heap por enquanto, o resto fica
+    /// `Indeterminate`.
+    pub fn pure_to_boolean(&self) -> crate::wtf::tri_state::TriState {
+        use crate::wtf::math_extras::is_not_zero_and_ordered;
+        use crate::wtf::tri_state::TriState;
+        match self {
+            JSValue::Bool(b) => TriState::from_bool(*b),
+            JSValue::Int32(i) => TriState::from_bool(*i != 0),
+            JSValue::Double(d) => TriState::from_bool(is_not_zero_and_ordered(*d)),
+            JSValue::Undefined | JSValue::Null => TriState::False,
+            JSValue::Cell(_) if self.is_string() => TriState::from_bool(self.as_js_string().length() != 0),
+            JSValue::Cell(_) => TriState::Indeterminate,
+            JSValue::Empty | JSValue::Deleted => unreachable!("pure_to_boolean em valor vazio ou deletado"),
+        }
+    }
+
     pub fn is_int32(&self) -> bool {
         matches!(self, JSValue::Int32(_))
     }
@@ -272,7 +299,10 @@ impl JSValue {
     }
 
     pub fn as_uint32(&self) -> u32 {
-        self.as_int32() as u32
+        match self {
+            JSValue::Double(d) => *d as u32,
+            _ => self.as_int32() as u32,
+        }
     }
 
     pub fn as_double(&self) -> f64 {
@@ -328,15 +358,8 @@ pub fn js_tdz_value() -> JSValue {
     JSValue::Empty
 }
 
-/// `jsString(JSString*)` como valor: o `JSValue` que carrega a string.
-pub fn js_string(string: crate::runtime::js_string::JSStringRef) -> JSValue {
-    JSValue::from_js_string(string)
-}
-
 /// `jsBoolean`.
-pub fn js_boolean(b: bool) -> JSValue {
-    JSValue::Bool(b)
-}
+pub use JSValue::Bool as js_boolean;
 
 /// `jsNumber(double)`; aceita também `i32` e `u32` por conversão sem perda para `f64`.
 pub fn js_number(d: impl Into<f64>) -> JSValue {
@@ -346,14 +369,7 @@ pub fn js_number(d: impl Into<f64>) -> JSValue {
 }
 
 /// `jsNumber(int32_t)`: `JSValue(int)`.
-pub fn js_number_i32(i: i32) -> JSValue {
-    JSValue::Int32(i)
-}
-
-/// `jsNumber(uint32_t)`: `JSValue(unsigned)`.
-pub fn js_number_u32(i: u32) -> JSValue {
-    JSValue::from_u32(i)
-}
+pub use JSValue::Int32 as js_number_i32;
 
 #[cfg(test)]
 mod tests {
@@ -406,8 +422,8 @@ mod tests {
         assert!(js_number(-0.0).is_double());
         assert!(js_number(0.5).is_double());
         assert!(js_number(4294967295.0).is_double());
-        assert_eq!(js_number_u32(7), JSValue::Int32(7));
-        assert_eq!(js_number_u32(0x8000_0000), JSValue::Double(2147483648.0));
+        assert_eq!(JSValue::from_u32(7), JSValue::Int32(7));
+        assert_eq!(JSValue::from_u32(0x8000_0000), JSValue::Double(2147483648.0));
         assert!(JSValue::double_number(1.0).is_double());
         assert_eq!(JSValue::double_number(1.0).as_number(), 1.0);
     }

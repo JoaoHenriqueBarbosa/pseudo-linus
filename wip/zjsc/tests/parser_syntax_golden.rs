@@ -14,7 +14,8 @@ use zjsc::runtime::implementation_visibility::ImplementationVisibility;
 use zjsc::runtime::source_origin::SourceOrigin;
 use zjsc::runtime::vm::VM;
 use zjsc::wtf::text::text_position::TextPosition;
-use zjsc::wtf::text::wtf_string::{ConversionMode, String as WtfString};
+use zjsc::wtf::text::conversion_mode::ConversionMode;
+use zjsc::wtf::text::wtf_string::String as WtfString;
 use zjsc::parser::source_provider::SourceProviderSourceType;
 use std::rc::Rc;
 

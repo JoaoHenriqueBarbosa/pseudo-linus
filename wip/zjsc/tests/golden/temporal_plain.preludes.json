@@ -1,0 +1,3 @@
+[
+"function T(f){try{return String(f())}catch(e){return e.name+\": \"+e.message}}\n"
+]

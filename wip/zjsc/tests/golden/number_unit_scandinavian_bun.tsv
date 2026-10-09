@@ -1,0 +1,12 @@
+new Intl.NumberFormat("en", {"style":"unit","unit":"mile-scandinavian","unitDisplay":"short"}).format(1)	1 smi
+new Intl.NumberFormat("en", {"style":"unit","unit":"mile-scandinavian","unitDisplay":"short"}).format(2.5)	2.5 smi
+new Intl.NumberFormat("en", {"style":"unit","unit":"mile-scandinavian","unitDisplay":"short"}).format(0)	0 smi
+new Intl.NumberFormat("en", {"style":"unit","unit":"mile-scandinavian","unitDisplay":"narrow"}).format(1)	1smi
+new Intl.NumberFormat("en", {"style":"unit","unit":"mile-scandinavian","unitDisplay":"narrow"}).format(2.5)	2.5smi
+new Intl.NumberFormat("en", {"style":"unit","unit":"mile-scandinavian","unitDisplay":"narrow"}).format(0)	0smi
+new Intl.NumberFormat("en", {"style":"unit","unit":"mile-scandinavian","unitDisplay":"long"}).format(1)	1 mile-scandinavian
+new Intl.NumberFormat("en", {"style":"unit","unit":"mile-scandinavian","unitDisplay":"long"}).format(2.5)	2.5 miles-scandinavian
+new Intl.NumberFormat("en", {"style":"unit","unit":"mile-scandinavian","unitDisplay":"long"}).format(0)	0 miles-scandinavian
+new Intl.NumberFormat("en", {"style":"unit","unit":"mile-scandinavian-per-hour"}).format(3)	3 smi/h
+Intl.supportedValuesOf("unit").filter((u) => ["mile-scandinavian","mile"].includes(u)).join(",")	mile,mile-scandinavian
+Intl.supportedValuesOf("unit").length + ""	45

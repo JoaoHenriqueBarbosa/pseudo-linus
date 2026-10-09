@@ -17,10 +17,6 @@ impl<T> Default for FixedVector<T> {
 }
 
 impl<T> FixedVector<T> {
-    pub fn new() -> FixedVector<T> {
-        FixedVector::default()
-    }
-
     /// `FixedVector(Vector&&)`.
     pub fn from_vec(vector: Vec<T>) -> FixedVector<T> {
         FixedVector { storage: vector.into_boxed_slice() }

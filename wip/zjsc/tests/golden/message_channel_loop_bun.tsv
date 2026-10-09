@@ -1,0 +1,61 @@
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\n\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.onmessage = f;\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.addEventListener('message', f);\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.addEventListener('message', f); b.start();\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\na.onmessage = f; b.onmessage = f;\n"		signal:SIGTERM		1
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\na.onmessage = f; b.addEventListener('message', f);\n"		signal:SIGTERM		1
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\na.addEventListener('message', f); b.addEventListener('message', f);\n"		signal:SIGTERM		1
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\na.addEventListener('message', f); b.addEventListener('message', f); a.start(); b.start();\n"		signal:SIGTERM		1
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.onmessage = f; a.postMessage(1);\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.addEventListener('message', f); a.postMessage(1);\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.onmessage = f; b.postMessage(1);\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\na.postMessage(1);\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.onmessage = f; b.ref();\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.onmessage = f; b.hasRef();\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.onmessage = f; b.ref(); b.unref();\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.onmessage = f; b.unref();\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.onmessage = f; a.postMessage(1); b.unref();\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.addEventListener('message', f); b.ref();\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.ref();\n"		signal:SIGTERM		1
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.hasRef();\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.ref(); b.onmessage = f;\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.onmessage = f; b.ref();\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.ref(); a.onmessage = f;\n"		signal:SIGTERM		1
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.ref(); b.onmessage = f; a.onmessage = f;\n"		signal:SIGTERM		1
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.ref(); b.unref();\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.ref(); b.close();\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.ref(); a.close();\n"		signal:SIGTERM		1
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.ref(); b.addEventListener('message', f);\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.ref(); b.ref(); b.unref();\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\na.ref(); b.ref();\n"		signal:SIGTERM		1
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\na.ref(); b.ref(); a.unref();\n"		signal:SIGTERM		1
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.ref(); a.postMessage(1);\n"		signal:SIGTERM		1
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.ref(); b.onmessage = f; a.postMessage(1);\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\na.onmessage = f; b.onmessage = f; b.unref();\n"		signal:SIGTERM		1
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\na.onmessage = f; b.onmessage = f; a.unref();\n"		signal:SIGTERM		1
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\na.onmessage = f; b.onmessage = f; a.unref(); b.unref();\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\na.onmessage = f; b.onmessage = f; a.close();\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\na.onmessage = f; b.onmessage = f; b.close();\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.onmessage = f; a.postMessage(1); b.close();\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.onmessage = f; a.postMessage(1); a.close();\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.onmessage = f; b.onmessage = null;\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\na.onmessage = f; b.onmessage = f; b.onmessage = null;\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.onmessage = f; a.postMessage(1); b.onmessage = null;\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\na.addEventListener('message', f); b.addEventListener('message', f); b.removeEventListener('message', f);\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.onmessageerror = f;\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\na.onmessageerror = f; b.onmessageerror = f;\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.addEventListener('message', f, { once: true }); b.start();\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.onmessage = f; a.postMessage(1, [n.port2]);\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.onmessage = function (e) { e.ports[0].onmessage = f }; a.postMessage(1, [n.port2]);\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.onmessage = function (e) { e.ports[0].onmessage = f; n.port1.onmessage = f }; a.postMessage(1, [n.port2]);\n"		signal:SIGTERM		1
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nn.port1.onmessage = f; n.port2.onmessage = f; a.postMessage(1, [n.port2]);\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nn.port1.onmessage = f; a.postMessage(1, [n.port2]);\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nn.port1.onmessage = f; n.port2.onmessage = f;\n"		signal:SIGTERM		1
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.onmessage = f; n.port2.onmessage = f;\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\na.postMessage(1); setTimeout(function () { b.onmessage = f }, 10);\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\na.postMessage(1); b.onmessage = f;\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.onmessage = f; a.postMessage(1); b.postMessage(2);\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.onmessage = f; b.ref(); a.close();\n"		0		0
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.onmessage = f; b.ref(); a.onmessage = f;\n"		signal:SIGTERM		1
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\na.onmessage = f; b.onmessage = f; b.ref(); a.unref();\n"		signal:SIGTERM		1
+"var m = new MessageChannel(), a = m.port1, b = m.port2, n = new MessageChannel(), f = function () {};\nb.onmessage = f; b.ref(); a.unref();\n"		0		0

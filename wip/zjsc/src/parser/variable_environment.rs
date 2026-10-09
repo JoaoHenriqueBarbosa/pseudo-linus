@@ -5,12 +5,9 @@
 //!
 //! ORDEM: `InlineMap` (até 9 entradas em ordem de inserção, depois tabela de hash) e as
 //! `UncheckedKeyHashMap`/`UncheckedKeyHashSet` da WTF iteram em ordem de tabela de hash, que o
-//! consumidor (`BytecodeGenerator`, `Parser`, captura de variáveis) pode tornar observável. O
-//! porte guarda tudo em `OrderedKeyMap`: `Vec` de pares com busca linear, ordem de inserção. NÃO
-//! reproduz a ordem de tabela de hash da WTF para mapas com mais de 9 entradas nem a dos
-//! `PrivateNameEnvironment`/`TDZEnvironment`; os pontos que iteram estão marcados com `// ORDEM:`.
-//! Algoritmo igual ao do C++, só a estrutura de dados difere; a decisão fica para depois, com
-//! medição.
+//! `BytecodeGenerator` torna observável (alocação dos registradores dos `let`). O porte usa
+//! `wtf::key_hash_map::KeyHashMap`, reprodução fiel do `HashTable.h`/`InlineMap.h` com o hash real
+//! do `StringImpl` (`IdentifierRepHash`); `OrderedKeyMap` é o nome antigo, agora o `HashTable`.
 //!
 //! O que vira nada: `WTF_MAKE_TZONE_ALLOCATED`, os `HashTraits` (`needsDestruction`, valores vazio
 //! e removido de `CompactTDZEnvironmentKey`), `swap` e `operator=` do `VariableEnvironment`
@@ -26,115 +23,14 @@ use std::rc::Rc;
 use crate::runtime::identifier::Identifier;
 use crate::wtf::text::string_impl::UniquedKey;
 
-// ---------------------------------------------------------------------------------------------
-// OrderedKeyMap: o lugar de InlineMap, UncheckedKeyHashMap e UncheckedKeyHashSet
-// ---------------------------------------------------------------------------------------------
+pub use crate::wtf::key_hash_map::AddResult;
+use crate::wtf::key_hash_map::KeyHashMap;
 
-/// `Map::AddResult` / `PrivateNameEnvironment::AddResult`: `iterator->key`, `iterator->value` e
-/// `isNewEntry`.
-pub struct AddResult<'a, V> {
-    pub key: &'a UniquedKey,
-    pub value: &'a mut V,
-    pub is_new_entry: bool,
-}
+/// `UncheckedKeyHashMap`/`UncheckedKeyHashSet` com `IdentifierRepHash` (ver `wtf::key_hash_map`).
+pub type OrderedKeyMap<V> = KeyHashMap<V>;
 
-/// Mapa por identidade de `UniquedKey`, em ordem de inserção (ver `ORDEM` no topo do módulo).
-#[derive(Clone, Debug)]
-pub struct OrderedKeyMap<V> {
-    entries: Vec<(UniquedKey, V)>,
-}
-
-impl<V> Default for OrderedKeyMap<V> {
-    fn default() -> OrderedKeyMap<V> {
-        OrderedKeyMap { entries: Vec::new() }
-    }
-}
-
-impl<V> OrderedKeyMap<V> {
-    fn position(&self, key: &UniquedKey) -> Option<usize> {
-        self.entries.iter().position(|(entry_key, _)| entry_key == key)
-    }
-
-    pub fn len(&self) -> u32 {
-        self.entries.len() as u32
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.entries.is_empty()
-    }
-
-    pub fn contains(&self, key: &UniquedKey) -> bool {
-        self.position(key).is_some()
-    }
-
-    pub fn find(&self, key: &UniquedKey) -> Option<&V> {
-        self.entries.iter().find(|(entry_key, _)| entry_key == key).map(|(_, value)| value)
-    }
-
-    pub fn find_mut(&mut self, key: &UniquedKey) -> Option<&mut V> {
-        self.entries.iter_mut().find(|(entry_key, _)| entry_key == key).map(|(_, value)| value)
-    }
-
-    /// `add`: não sobrescreve uma entrada existente.
-    pub fn add(&mut self, key: &UniquedKey, value: V) -> AddResult<'_, V> {
-        let (index, is_new_entry) = match self.position(key) {
-            Some(index) => (index, false),
-            None => {
-                self.entries.push((key.clone(), value));
-                (self.entries.len() - 1, true)
-            }
-        };
-        let (entry_key, entry_value) = &mut self.entries[index];
-        AddResult { key: entry_key, value: entry_value, is_new_entry }
-    }
-
-    /// `set`: sobrescreve o valor de uma entrada existente.
-    pub fn set(&mut self, key: &UniquedKey, value: V) -> AddResult<'_, V> {
-        let (index, is_new_entry) = match self.position(key) {
-            Some(index) => {
-                self.entries[index].1 = value;
-                (index, false)
-            }
-            None => {
-                self.entries.push((key.clone(), value));
-                (self.entries.len() - 1, true)
-            }
-        };
-        let (entry_key, entry_value) = &mut self.entries[index];
-        AddResult { key: entry_key, value: entry_value, is_new_entry }
-    }
-
-    pub fn remove(&mut self, key: &UniquedKey) -> bool {
-        match self.position(key) {
-            Some(index) => {
-                self.entries.remove(index);
-                true
-            }
-            None => false,
-        }
-    }
-
-    pub fn iter(&self) -> std::slice::Iter<'_, (UniquedKey, V)> {
-        self.entries.iter()
-    }
-
-    pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, (UniquedKey, V)> {
-        self.entries.iter_mut()
-    }
-
-    pub fn values(&self) -> impl Iterator<Item = &V> + '_ {
-        self.entries.iter().map(|(_, value)| value)
-    }
-
-    pub fn values_mut(&mut self) -> impl Iterator<Item = &mut V> + '_ {
-        self.entries.iter_mut().map(|(_, value)| value)
-    }
-
-    /// Igualdade como conjunto de chaves (o `operator==` do `HashSet`: não depende da ordem).
-    pub fn has_same_keys<W>(&self, other: &OrderedKeyMap<W>) -> bool {
-        self.entries.len() == other.entries.len() && self.entries.iter().all(|(key, _)| other.contains(key))
-    }
-}
+/// `VariableEnvironment::Map`: `InlineMap` de capacidade inline 9.
+type InlineVariableMap = KeyHashMap<VariableEnvironmentEntry, 9>;
 
 // ---------------------------------------------------------------------------------------------
 // VariableEnvironmentEntry
@@ -354,7 +250,7 @@ pub struct RareData {
 #[derive(Clone, Debug, Default)]
 pub struct VariableEnvironment {
     /// `m_map` (`InlineMap` de capacidade inline 9; ver ORDEM no topo).
-    map: OrderedKeyMap<VariableEnvironmentEntry>,
+    map: InlineVariableMap,
     is_everything_captured: bool,
     has_await_using_declaration: bool,
     rare_data: Option<Box<RareData>>,
@@ -363,16 +259,12 @@ pub struct VariableEnvironment {
 impl VariableEnvironment {
     pub const INLINE_MAP_CAPACITY: u32 = 9;
 
-    pub fn new() -> VariableEnvironment {
-        VariableEnvironment::default()
-    }
-
     /// `begin()`/`end()`.
-    pub fn iter(&self) -> std::slice::Iter<'_, (UniquedKey, VariableEnvironmentEntry)> {
+    pub fn iter(&self) -> impl Iterator<Item = &(UniquedKey, VariableEnvironmentEntry)> + '_ {
         self.map.iter()
     }
 
-    pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, (UniquedKey, VariableEnvironmentEntry)> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut (UniquedKey, VariableEnvironmentEntry)> + '_ {
         self.map.iter_mut()
     }
 
@@ -383,7 +275,7 @@ impl VariableEnvironment {
 
     /// `add(const Identifier&)`.
     pub fn add_identifier(&mut self, identifier: &Identifier) -> AddResult<'_, VariableEnvironmentEntry> {
-        self.add(&identifier.impl_().expect("identifier sem StringImpl"))
+        self.add(&identifier.impl_().expect("Identifier::impl() nulo: Identifier.h:96 não tem asserção, o C++ desreferencia o StringImpl* nulo (UB)"))
     }
 
     /// `addPrivateName(const RefPtr<UniquedStringImpl>&)`.
@@ -394,7 +286,7 @@ impl VariableEnvironment {
 
     /// `addPrivateName(const Identifier&)`.
     pub fn add_private_name_identifier(&mut self, identifier: &Identifier) -> AddResult<'_, PrivateNameEntry> {
-        self.add_private_name(&identifier.impl_().expect("identifier sem StringImpl"))
+        self.add_private_name(&identifier.impl_().expect("Identifier::impl() nulo: Identifier.h:96 não tem asserção, o C++ desreferencia o StringImpl* nulo (UB)"))
     }
 
     pub fn size(&self) -> u32 {
@@ -475,6 +367,7 @@ impl VariableEnvironment {
     }
 
     pub fn mark_variable_as_exported(&mut self, identifier: &UniquedKey) {
+        // Invariante: o parser só marca após `hasDeclaredVariable`/`hasLexicallyDeclaredVariable`; do contrário já falhou com semanticFail.
         let entry = self.map.find_mut(identifier).expect("RELEASE_ASSERT: variável a exportar não está no ambiente");
         entry.set_is_exported();
     }
@@ -515,7 +408,7 @@ impl VariableEnvironment {
 
     /// `declarePrivateField(const Identifier&)`.
     pub fn declare_private_field_identifier(&mut self, identifier: &Identifier) -> AddResult<'_, VariableEnvironmentEntry> {
-        self.declare_private_field(&identifier.impl_().expect("identifier sem StringImpl"))
+        self.declare_private_field(&identifier.impl_().expect("Identifier::impl() nulo: Identifier.h:96 não tem asserção, o C++ desreferencia o StringImpl* nulo (UB)"))
     }
 
     /// `declarePrivateMethod(const RefPtr<UniquedStringImpl>&, Traits)`. `additional_traits` são
@@ -541,12 +434,12 @@ impl VariableEnvironment {
 
     /// `declarePrivateMethod(const Identifier&)`.
     pub fn declare_private_method_identifier(&mut self, identifier: &Identifier) -> bool {
-        self.declare_private_method(&identifier.impl_().expect("identifier sem StringImpl"), PrivateNameEntry::NONE)
+        self.declare_private_method(&identifier.impl_().expect("Identifier::impl() nulo: Identifier.h:96 não tem asserção, o C++ desreferencia o StringImpl* nulo (UB)"), PrivateNameEntry::NONE)
     }
 
     /// `declareStaticPrivateMethod(const Identifier&)`.
     pub fn declare_static_private_method(&mut self, identifier: &Identifier) -> bool {
-        self.declare_private_method(&identifier.impl_().expect("identifier sem StringImpl"), PrivateNameEntry::IS_METHOD | PrivateNameEntry::IS_STATIC)
+        self.declare_private_method(&identifier.impl_().expect("Identifier::impl() nulo: Identifier.h:96 não tem asserção, o C++ desreferencia o StringImpl* nulo (UB)"), PrivateNameEntry::IS_METHOD | PrivateNameEntry::IS_STATIC)
     }
 
     pub fn declare_private_accessor(&mut self, identifier: &UniquedKey, accessor_traits: PrivateNameEntry) -> PrivateDeclarationResult {
@@ -602,12 +495,12 @@ impl VariableEnvironment {
 
     /// `declarePrivateSetter(const Identifier&)`.
     pub fn declare_private_setter_identifier(&mut self, identifier: &Identifier) -> PrivateDeclarationResult {
-        self.declare_private_setter(&identifier.impl_().expect("identifier sem StringImpl"), PrivateNameEntry::NONE)
+        self.declare_private_setter(&identifier.impl_().expect("Identifier::impl() nulo: Identifier.h:96 não tem asserção, o C++ desreferencia o StringImpl* nulo (UB)"), PrivateNameEntry::NONE)
     }
 
     /// `declareStaticPrivateSetter(const Identifier&)`.
     pub fn declare_static_private_setter(&mut self, identifier: &Identifier) -> PrivateDeclarationResult {
-        self.declare_private_setter(&identifier.impl_().expect("identifier sem StringImpl"), PrivateNameEntry::IS_STATIC)
+        self.declare_private_setter(&identifier.impl_().expect("Identifier::impl() nulo: Identifier.h:96 não tem asserção, o C++ desreferencia o StringImpl* nulo (UB)"), PrivateNameEntry::IS_STATIC)
     }
 
     /// `declarePrivateGetter(const RefPtr<UniquedStringImpl>&, Traits)`.
@@ -617,22 +510,19 @@ impl VariableEnvironment {
 
     /// `declarePrivateGetter(const Identifier&)`.
     pub fn declare_private_getter_identifier(&mut self, identifier: &Identifier) -> PrivateDeclarationResult {
-        self.declare_private_getter(&identifier.impl_().expect("identifier sem StringImpl"), PrivateNameEntry::NONE)
+        self.declare_private_getter(&identifier.impl_().expect("Identifier::impl() nulo: Identifier.h:96 não tem asserção, o C++ desreferencia o StringImpl* nulo (UB)"), PrivateNameEntry::NONE)
     }
 
     /// `declareStaticPrivateGetter(const Identifier&)`.
     pub fn declare_static_private_getter(&mut self, identifier: &Identifier) -> PrivateDeclarationResult {
-        self.declare_private_getter(&identifier.impl_().expect("identifier sem StringImpl"), PrivateNameEntry::IS_STATIC)
+        self.declare_private_getter(&identifier.impl_().expect("Identifier::impl() nulo: Identifier.h:96 não tem asserção, o C++ desreferencia o StringImpl* nulo (UB)"), PrivateNameEntry::IS_STATIC)
     }
 
     /// `privateNames()`. O C++ exige `privateNamesSize() > 0` (ASSERT); sem `RareData` o porte
     /// devolve um iterador vazio.
     // ORDEM: o C++ itera a tabela de hash.
-    pub fn private_names(&self) -> std::slice::Iter<'_, (UniquedKey, PrivateNameEntry)> {
-        match &self.rare_data {
-            Some(rare_data) => rare_data.private_names.iter(),
-            None => Default::default(),
-        }
+    pub fn private_names(&self) -> impl Iterator<Item = &(UniquedKey, PrivateNameEntry)> + '_ {
+        self.rare_data.iter().flat_map(|rare_data| rare_data.private_names.iter())
     }
 
     pub fn private_names_size(&self) -> u32 {
@@ -681,7 +571,7 @@ impl VariableEnvironment {
     pub fn has_private_name(&self, identifier: &Identifier) -> bool {
         match &self.rare_data {
             None => false,
-            Some(rare_data) => rare_data.private_names.contains(&identifier.impl_().expect("identifier sem StringImpl")),
+            Some(rare_data) => rare_data.private_names.contains(&identifier.impl_().expect("Identifier::impl() nulo: Identifier.h:96 não tem asserção, o C++ desreferencia o StringImpl* nulo (UB)")),
         }
     }
 
@@ -1011,7 +901,7 @@ mod tests {
     #[test]
     fn capture_and_size() {
         let (a, b) = (key(b"a"), key(b"b"));
-        let mut env = VariableEnvironment::new();
+        let mut env = VariableEnvironment::default();
         assert!(env.add(&a).is_new_entry);
         assert!(!env.add(&a).is_new_entry);
         env.add(&b);
@@ -1026,7 +916,7 @@ mod tests {
     #[test]
     fn private_accessors() {
         let name = key(b"x");
-        let mut env = VariableEnvironment::new();
+        let mut env = VariableEnvironment::default();
         assert_eq!(env.declare_private_getter(&name, PrivateNameEntry::NONE), PrivateDeclarationResult::Success);
         assert_eq!(env.declare_private_getter(&name, PrivateNameEntry::NONE), PrivateDeclarationResult::DuplicatedName);
         assert_eq!(env.declare_private_setter(&name, PrivateNameEntry::IS_STATIC), PrivateDeclarationResult::InvalidStaticNonStatic);

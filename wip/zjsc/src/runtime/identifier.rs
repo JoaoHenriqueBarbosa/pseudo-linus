@@ -16,7 +16,8 @@ use std::rc::Rc;
 use crate::runtime::private_name::PrivateName;
 use crate::runtime::vm::VM;
 use crate::wtf::text::atom_string::AtomString;
-use crate::wtf::text::string_impl::{equal_span, CharType, ConversionMode, StringImpl, UniquedKey};
+use crate::wtf::text::conversion_mode::ConversionMode;
+use crate::wtf::text::string_impl::{equal_span, CharType, StringImpl, UniquedKey};
 use crate::wtf::text::symbol_impl::SymbolImpl;
 use crate::wtf::text::wtf_string::String as WtfString;
 
@@ -145,7 +146,16 @@ impl Identifier {
         if characters.is_empty() {
             return Identifier::empty_identifier();
         }
-        Identifier { m_string: AtomString::from_string_impl(Some(&T::create(characters))), m_private: false }
+        // `AtomStringImpl::add(span)`: a versão de 16 bits vira 8 bits quando tudo cabe em Latin1
+        // (`create8BitIfPossible`), como no `Identifier::fromString` do C++.
+        let m_string = if T::SIZE == 1 {
+            let narrow: Vec<u8> = characters.iter().map(|&c| c.to_u16() as u8).collect();
+            AtomString::from_latin1(&narrow)
+        } else {
+            let wide: Vec<u16> = characters.iter().map(|&c| c.to_u16()).collect();
+            AtomString::from_utf16(&wide)
+        };
+        Identifier { m_string, m_private: false }
     }
 
     /// `createLatin1(VM&, std::span<const char16_t>)`: cada unidade cabe em Latin1 por contrato.
@@ -179,15 +189,14 @@ impl Identifier {
         Identifier { m_string: string.clone(), m_private: false }
     }
 
-    /// `fromUid(VM&, UniquedStringImpl* uid)`. O `UniquedKey` não carrega as flags do
-    /// `SymbolImpl`; um símbolo privado que chega por aqui perde `isPrivateName()`. Quem tem o
-    /// `SymbolImpl` em mãos deve usar `from_uid_symbol` ou `from_private_name`.
+    /// `fromUid(VM&, UniquedStringImpl* uid)`. A marca de privado vive no `StringImpl` do símbolo
+    /// (ver `StringImpl::is_private_symbol`), então ela sobrevive como no C++, onde o uid é o símbolo.
     pub fn from_uid(_vm: &VM, uid: Option<&UniquedKey>) -> Identifier {
         match uid {
             None => Identifier::default(),
             Some(uid) => {
                 debug_assert!(uid.0.is_symbol() || uid.0.is_atom());
-                Identifier { m_string: AtomString::from_uniqued(Some(Rc::clone(&uid.0))), m_private: false }
+                Identifier { m_string: AtomString::from_uniqued(Some(Rc::clone(&uid.0))), m_private: uid.0.is_private_symbol() }
             }
         }
     }

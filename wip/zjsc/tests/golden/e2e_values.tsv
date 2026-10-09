@@ -1,0 +1,471 @@
+"abc".toUpperCase()	string	"ABC"
+"ABC".toLowerCase()	string	"abc"
+"hello world".length	number	4026000000000000
+"hello".charAt(1)	string	"e"
+"hello".charCodeAt(1)	number	4059400000000000
+"hello".indexOf("l")	number	4000000000000000
+"hello".lastIndexOf("l")	number	4008000000000000
+"hello".slice(1, -1)	string	"ell"
+"hello".substring(3, 1)	string	"el"
+"a,b,c".split(",")	object	Array<Array>{"0":"a","1":"b","2":"c",~"length":4008000000000000}
+"  pad ".trim()	string	"pad"
+"ab".repeat(3)	string	"ababab"
+"5".padStart(3, "0")	string	"005"
+"5".padEnd(5, "xy")	string	"5xyxy"
+"hello".startsWith("he")	boolean	true
+"hello".endsWith("lo")	boolean	true
+"hello".includes("ell")	boolean	true
+"hello"[1]	string	"e"
+"abc".concat("d", 1)	string	"abcd1"
+"a-b-c".replaceAll("-", "+")	string	"a+b+c"
+"a-b-c".replace("-", "+")	string	"a+b-c"
+"abc".at(-1)	string	"c"
+"abc" < "abd"	boolean	true
+"b" + 1 + 2	string	"b12"
+1 + 2 + "b"	string	"3b"
+"3" * "4"	number	4028000000000000
+"x".codePointAt(0)	number	405e000000000000
+String.fromCharCode(72, 105)	string	"Hi"
+"abc".split("")	object	Array<Array>{"0":"a","1":"b","2":"c",~"length":4008000000000000}
+"a\u00e9".length	number	4000000000000000
+"abc".substr(1, 1)	string	"b"
+var n = 3; `n=${n}`	string	"n=3"
+`a${1 + 1}b${"c"}`	string	"a2bc"
+`line1\nline2`	string	"line1\nline2"
+function tag(s, a) { return s.raw[0] + a } tag`x\ny${5}`	string	"x\\ny5"
+`${[1, 2, 3]}`	string	"1,2,3"
+`${{}}`	string	"[object Object]"
+[1, 2, 3].map(function (x) { return x * 2 })	object	Array<Array>{"0":4000000000000000,"1":4010000000000000,"2":4018000000000000,~"length":4008000000000000}
+[1, 2, 3].map(x => x * x)	object	Array<Array>{"0":3ff0000000000000,"1":4010000000000000,"2":4022000000000000,~"length":4008000000000000}
+[1, 2, 3, 4].filter(x => x % 2 === 0)	object	Array<Array>{"0":4000000000000000,"1":4010000000000000,~"length":4000000000000000}
+[1, 2, 3, 4].reduce((a, b) => a + b, 0)	number	4024000000000000
+[1, 2, 3].reduceRight((a, b) => a + "-" + b)	string	"3-2-1"
+[3, 1, 2].sort()	object	Array<Array>{"0":3ff0000000000000,"1":4000000000000000,"2":4008000000000000,~"length":4008000000000000}
+[10, 9, 1].sort()	object	Array<Array>{"0":3ff0000000000000,"1":4024000000000000,"2":4022000000000000,~"length":4008000000000000}
+[10, 9, 1].sort((a, b) => a - b)	object	Array<Array>{"0":3ff0000000000000,"1":4022000000000000,"2":4024000000000000,~"length":4008000000000000}
+[1, [2, [3, [4]]]].flat()	object	Array<Array>{"0":3ff0000000000000,"1":4000000000000000,"2":Array<Array>{"0":4008000000000000,"1":Array<Array>{"0":4010000000000000,~"length":3ff0000000000000},~"length":4000000000000000},~"length":4008000000000000}
+[1, [2, [3, [4]]]].flat(Infinity)	object	Array<Array>{"0":3ff0000000000000,"1":4000000000000000,"2":4008000000000000,"3":4010000000000000,~"length":4010000000000000}
+[1, 2].flatMap(x => [x, x * 10])	object	Array<Array>{"0":3ff0000000000000,"1":4024000000000000,"2":4000000000000000,"3":4034000000000000,~"length":4010000000000000}
+[1, 2, 3].at(-1)	number	4008000000000000
+[1, 2, 3].includes(2)	boolean	true
+[NaN].includes(NaN)	boolean	true
+[NaN].indexOf(NaN)	number	bff0000000000000
+[1, 2, 3].join("-")	string	"1-2-3"
+[1, null, undefined, 2].join()	string	"1,,,2"
+[1, 2, 3].reverse()	object	Array<Array>{"0":4008000000000000,"1":4000000000000000,"2":3ff0000000000000,~"length":4008000000000000}
+[1, 2, 3, 4].slice(1, 3)	object	Array<Array>{"0":4000000000000000,"1":4008000000000000,~"length":4000000000000000}
+var a = [1, 2, 3, 4]; a.splice(1, 2, "x"); a	object	Array<Array>{"0":3ff0000000000000,"1":"x","2":4010000000000000,~"length":4008000000000000}
+[1, 2, 3].indexOf(4)	number	bff0000000000000
+[1, 2, 3].find(x => x > 1)	number	4000000000000000
+[1, 2, 3].findIndex(x => x > 5)	number	bff0000000000000
+[1, 2, 3].findLast(x => x < 3)	number	4000000000000000
+[1, 2, 3].every(x => x > 0)	boolean	true
+[1, 2, 3].some(x => x > 2)	boolean	true
+var a = []; a.push(1, 2); a.unshift(0); a	object	Array<Array>{"0":0000000000000000,"1":3ff0000000000000,"2":4000000000000000,~"length":4008000000000000}
+var a = [1, 2, 3]; [a.pop(), a.shift(), a]	object	Array<Array>{"0":4008000000000000,"1":3ff0000000000000,"2":Array<Array>{"0":4000000000000000,~"length":3ff0000000000000},~"length":4008000000000000}
+Array.from({ length: 3 }, (_, i) => i * 2)	object	Array<Array>{"0":0000000000000000,"1":4000000000000000,"2":4010000000000000,~"length":4008000000000000}
+Array.of(7, 8)	object	Array<Array>{"0":401c000000000000,"1":4020000000000000,~"length":4000000000000000}
+new Array(3).fill(0)	object	Array<Array>{"0":0000000000000000,"1":0000000000000000,"2":0000000000000000,~"length":4008000000000000}
+Array.isArray([])	boolean	true
+[1, 2, 3].concat([4], 5, [[6]])	object	Array<Array>{"0":3ff0000000000000,"1":4000000000000000,"2":4008000000000000,"3":4010000000000000,"4":4014000000000000,"5":Array<Array>{"0":4018000000000000,~"length":3ff0000000000000},~"length":4018000000000000}
+var a = [1, 2]; a[5] = 9; [a.length, a]	object	Array<Array>{"0":4018000000000000,"1":Array<Array>{"0":3ff0000000000000,"1":4000000000000000,"5":4022000000000000,~"length":4018000000000000},~"length":4000000000000000}
+var a = [1, 2, 3]; a.length = 1; a	object	Array<Array>{"0":3ff0000000000000,~"length":3ff0000000000000}
+[..."abc"].map(c => c.toUpperCase())	object	Array<Array>{"0":"A","1":"B","2":"C",~"length":4008000000000000}
+[1, 2, 3].entries().next()	object	Object<Object>{"value":Array<Array>{"0":0000000000000000,"1":3ff0000000000000,~"length":4000000000000000},"done":false}
+Array.from([1, 2, 3].keys())	object	Array<Array>{"0":0000000000000000,"1":3ff0000000000000,"2":4000000000000000,~"length":4008000000000000}
+[3, 2, 1].toSorted()	object	Array<Array>{"0":3ff0000000000000,"1":4000000000000000,"2":4008000000000000,~"length":4008000000000000}
+[1, 2, 3].with(1, 9)	object	Array<Array>{"0":3ff0000000000000,"1":4022000000000000,"2":4008000000000000,~"length":4008000000000000}
+["b", "a"].sort().toString()	string	"a,b"
+[1, 2, 3].lastIndexOf(3)	number	4000000000000000
+[1, , 3]	object	Array<Array>{"0":3ff0000000000000,"2":4008000000000000,~"length":4008000000000000}
+[[1, 2], [3]].map(a => a.length)	object	Array<Array>{"0":4000000000000000,"1":3ff0000000000000,~"length":4000000000000000}
+({ a: 1, b: "x" })	object	Object<Object>{"a":3ff0000000000000,"b":"x"}
+({ a: 1, ["b" + 1]: 2 })	object	Object<Object>{"a":3ff0000000000000,"b1":4000000000000000}
+var a = 5; ({ a, b: 2 })	object	Object<Object>{"a":4014000000000000,"b":4000000000000000}
+var o = { a: 1 }; o.b = 2; delete o.a; o	object	Object<Object>{"b":4000000000000000}
+({ 1: "a", b: "b", 0: "c" })	object	Object<Object>{"0":"c","1":"a","b":"b"}
+Object.keys({ b: 1, a: 2, 1: 3 })	object	Array<Array>{"0":"1","1":"b","2":"a",~"length":4008000000000000}
+Object.values({ a: 1, b: 2 })	object	Array<Array>{"0":3ff0000000000000,"1":4000000000000000,~"length":4000000000000000}
+Object.entries({ a: 1, b: [2] })	object	Array<Array>{"0":Array<Array>{"0":"a","1":3ff0000000000000,~"length":4000000000000000},"1":Array<Array>{"0":"b","1":Array<Array>{"0":4000000000000000,~"length":3ff0000000000000},~"length":4000000000000000},~"length":4000000000000000}
+Object.assign({}, { a: 1 }, { b: 2 })	object	Object<Object>{"a":3ff0000000000000,"b":4000000000000000}
+Object.fromEntries([["a", 1], ["b", 2]])	object	Object<Object>{"a":3ff0000000000000,"b":4000000000000000}
+Object.freeze({ a: 1 })	object	Object<Object>{"a":3ff0000000000000}
+var o = Object.freeze({ a: 1 }); o.a = 2; o.a	number	3ff0000000000000
+"use strict"; var o = Object.freeze({ a: 1 }); try { o.a = 2 } catch (e) { e.message }	string	"Attempted to assign to readonly property."
+Object.isFrozen(Object.freeze({}))	boolean	true
+Object.getOwnPropertyNames("ab")	object	Array<Array>{"0":"0","1":"1","2":"length",~"length":4008000000000000}
+Object.getOwnPropertyDescriptor({ get x() { return 1 } }, "x")	object	Object<Object>{"get":[function "get x"/0],"set":undefined,"enumerable":true,"configurable":true}
+var o = {}; Object.defineProperty(o, "x", { value: 1 }); o	object	Object<Object>{~"x":3ff0000000000000}
+Object.create(null)	object	Object<null>{}
+Object.create({ inherited: 1 }).inherited	number	3ff0000000000000
+Object.getPrototypeOf([]) === Array.prototype	boolean	true
+"a" in { a: 1 }	boolean	true
+({ a: 1 }).hasOwnProperty("a")	boolean	true
+Object.hasOwn({ a: 1 }, "b")	boolean	false
+({ toString() { return "custom" } }) + ""	string	"custom"
+({ valueOf() { return 42 } }) * 2	number	4055000000000000
+var o = { f() { return this.v }, v: 7 }; o.f()	number	401c000000000000
+Object.is(-0, 0)	boolean	false
+Object.is(NaN, NaN)	boolean	true
+var o = { self: null }; o.self = o; o	object	Object<Object>{"self":#cycle0}
+var a = [1]; a.push(a); a	object	Array<Array>{"0":3ff0000000000000,"1":#cycle0,~"length":4000000000000000}
+var [a, b] = [1, 2]; [b, a]	object	Array<Array>{"0":4000000000000000,"1":3ff0000000000000,~"length":4000000000000000}
+var { x, y: z = 5 } = { x: 1 }; [x, z]	object	Array<Array>{"0":3ff0000000000000,"1":4014000000000000,~"length":4000000000000000}
+var [a, , b = 3, ...rest] = [1, 2, undefined, 4, 5]; [a, b, rest]	object	Array<Array>{"0":3ff0000000000000,"1":4008000000000000,"2":Array<Array>{"0":4010000000000000,"1":4014000000000000,~"length":4000000000000000},~"length":4008000000000000}
+var { a: { b } } = { a: { b: 9 } }; b	number	4022000000000000
+var a = 1, b = 2; [a, b] = [b, a]; [a, b]	object	Array<Array>{"0":4000000000000000,"1":3ff0000000000000,~"length":4000000000000000}
+function f({ a, b = 2 }, [c]) { return a + b + c } f({ a: 1 }, [3])	number	4018000000000000
+var { length } = "hello"; length	number	4014000000000000
+var { a, ...r } = { a: 1, b: 2, c: 3 }; r	object	Object<Object>{"b":4000000000000000,"c":4008000000000000}
+var [x] = null	throw	TypeError: null is not an object (evaluating '[x]')
+var { x } = undefined	throw	TypeError: Cannot destructure property 'x' from null or undefined value
+Math.max(...[1, 5, 3])	number	4014000000000000
+[...[1, 2], ...[3]]	object	Array<Array>{"0":3ff0000000000000,"1":4000000000000000,"2":4008000000000000,~"length":4008000000000000}
+({ ...{ a: 1 }, b: 2 })	object	Object<Object>{"a":3ff0000000000000,"b":4000000000000000}
+function f(...args) { return args.length } f(1, 2, 3)	number	4008000000000000
+[...new Set([1, 1, 2])]	object	Array<Array>{"0":3ff0000000000000,"1":4000000000000000,~"length":4000000000000000}
+[..."hi"]	object	Array<Array>{"0":"h","1":"i",~"length":4000000000000000}
+class A { constructor(x) { this.x = x } get double() { return this.x * 2 } } new A(4).double	number	4020000000000000
+class A { static s = 5; #p = 1; getP() { return this.#p } } [A.s, new A().getP()]	object	Array<Array>{"0":4014000000000000,"1":3ff0000000000000,~"length":4000000000000000}
+class A { m() { return "A" } } class B extends A { m() { return super.m() + "B" } } new B().m()	string	"AB"
+class A { constructor() { this.n = "a" } } class B extends A { constructor() { super(); this.m = "b" } } new B()	object	Object<B>{"n":"a","m":"b"}
+class A {} class B extends A {} [new B() instanceof A, B.name, Object.getPrototypeOf(B) === A]	object	Array<Array>{"0":true,"1":"B","2":true,~"length":4008000000000000}
+class A { static create() { return new this() } } class B extends A {} A.create() instanceof A && B.create() instanceof B	boolean	true
+class A { constructor() { new.target.tag = 1 } } new A(); A.tag	number	3ff0000000000000
+class A { get v() { return 1 } set v(x) { this._v = x } } var a = new A(); a.v = 5; [a.v, a._v]	object	Array<Array>{"0":3ff0000000000000,"1":4014000000000000,~"length":4000000000000000}
+typeof class {}	string	"function"
+class A {} A()	throw	TypeError: Cannot call a class constructor A without |new|
+class A extends null {} typeof A	string	"function"
+class B extends Object { constructor() { this.x = 1 } } new B()	throw	ReferenceError: 'super()' must be called in derived constructor before accessing |this| or returning non-object.
+class A { static #c = 0; static inc() { return ++A.#c } } A.inc() + A.inc()	number	4008000000000000
+class A { toString() { return "A!" } } `${new A()}`	string	"A!"
+var o = { get a() { return 1 }, set a(v) { this._a = v } }; o.a = 3; [o.a, o._a]	object	Array<Array>{"0":3ff0000000000000,"1":4008000000000000,~"length":4000000000000000}
+Object.getOwnPropertyDescriptor(class { static get g() { return 1 } }, "g").get.name	string	"get g"
+class A { static { A.ready = true } } A.ready	boolean	true
+function counter() { var c = 0; return function () { return ++c } } var f = counter(); f(); f(); f()	number	4008000000000000
+var fs = []; for (var i = 0; i < 3; i++) fs.push(() => i); fs.map(f => f())	object	Array<Array>{"0":4008000000000000,"1":4008000000000000,"2":4008000000000000,~"length":4008000000000000}
+var fs = []; for (let i = 0; i < 3; i++) fs.push(() => i); fs.map(f => f())	object	Array<Array>{"0":0000000000000000,"1":3ff0000000000000,"2":4000000000000000,~"length":4008000000000000}
+function add(a) { return b => a + b } add(1)(2)	number	4008000000000000
+(function () { return typeof this })()	string	"object"
+var f = function zzq() { return typeof zzq }; [f(), typeof zzq]	object	Array<Array>{"0":"function","1":"undefined",~"length":4000000000000000}
+function f() { return arguments.length } f(1, 2, 3)	number	4008000000000000
+function f() { return Array.prototype.slice.call(arguments) } f(1, "a")	object	Array<Array>{"0":3ff0000000000000,"1":"a",~"length":4000000000000000}
+function f(a) { arguments[0] = 9; return a } f(1)	number	4022000000000000
+function f(a) { "use strict"; arguments[0] = 9; return a } f(1)	number	3ff0000000000000
+function f(a, b = 2) { return f.length } f(1)	number	3ff0000000000000
+(function () { return arguments })(1, 2)	object	Arguments<Object>{"0":3ff0000000000000,"1":4000000000000000,~"length":4000000000000000,~"callee":[function ""/0],~[Symbol(Symbol.iterator)]:[function "values"/0]}
+function fact(n) { return n <= 1 ? 1 : n * fact(n - 1) } fact(10)	number	414baf8000000000
+function fib(n) { return n < 2 ? n : fib(n - 1) + fib(n - 2) } fib(15)	number	4083100000000000
+var f = (a, b) => a + b; f.length + f.name	string	"2f"
+function f() {} f.name + typeof f.prototype	string	"fobject"
+function f() { return this.x } f.call({ x: 7 })	number	401c000000000000
+function f(a, b) { return a + b } f.apply(null, [1, 2])	number	4008000000000000
+function f(a, b) { return a + this.k + b } f.bind({ k: 10 }, 1)(2)	number	402a000000000000
+(function () { return new.target })()	undefined	undefined
+(function () { return this }).call(5) + 0	number	4014000000000000
+function* g() { yield 1; yield 2; return 3 } [...g()]	object	Array<Array>{"0":3ff0000000000000,"1":4000000000000000,~"length":4000000000000000}
+function* g() { var x = yield 1; yield x * 2 } var it = g(); [it.next().value, it.next(5).value, it.next().done]	object	Array<Array>{"0":3ff0000000000000,"1":4024000000000000,"2":true,~"length":4008000000000000}
+function* g() { yield* [1, 2]; yield* "ab" } Array.from(g())	object	Array<Array>{"0":3ff0000000000000,"1":4000000000000000,"2":"a","3":"b",~"length":4010000000000000}
+function* g() { try { yield 1 } finally { yield "cleanup" } } var it = g(); it.next(); it.return(9)	object	Object<Object>{"value":"cleanup","done":false}
+function* g() { try { yield 1 } catch (e) { yield "caught " + e } } var it = g(); it.next(); it.throw("boom").value	string	"caught boom"
+function* nat() { var n = 0; while (true) yield n++ } var it = nat(); [it.next().value, it.next().value, it.next().value]	object	Array<Array>{"0":0000000000000000,"1":3ff0000000000000,"2":4000000000000000,~"length":4008000000000000}
+var o = { *g() { yield 1 } }; [...o.g()]	object	Array<Array>{"0":3ff0000000000000,~"length":3ff0000000000000}
+var it = { [Symbol.iterator]() { var i = 0; return { next() { return { value: i, done: i++ >= 3 } } } } }; [...it]	object	Array<Array>{"0":0000000000000000,"1":3ff0000000000000,"2":4000000000000000,~"length":4008000000000000}
+Object.prototype.toString.call((function* () {})())	string	"[object Generator]"
+async function f() { return 1 } Object.prototype.toString.call(f())	string	"[object Promise]"
+var m = new Map([[1, "a"], ["k", "b"]]); [m.size, m.get(1), m.has("z")]	object	Array<Array>{"0":4000000000000000,"1":"a","2":false,~"length":4008000000000000}
+new Map([[1, 2]])	object	Map<Map>(3ff0000000000000=>4000000000000000){}
+new Set([1, 2, 2, 3])	object	Set<Set>(3ff0000000000000,4000000000000000,4008000000000000){}
+var s = new Set(); s.add(1).add(1); s.size	number	3ff0000000000000
+var m = new Map(); m.set(NaN, 1); m.get(NaN)	number	3ff0000000000000
+var m = new Map([[1, 2]]); m.delete(1); m.size	number	0000000000000000
+[...new Map([[1, 2], [3, 4]]).keys()]	object	Array<Array>{"0":3ff0000000000000,"1":4008000000000000,~"length":4000000000000000}
+[...new Map([[1, 2], [3, 4]]).entries()]	object	Array<Array>{"0":Array<Array>{"0":3ff0000000000000,"1":4000000000000000,~"length":4000000000000000},"1":Array<Array>{"0":4008000000000000,"1":4010000000000000,~"length":4000000000000000},~"length":4000000000000000}
+var s = new Set([1, 2]); var r = []; s.forEach(v => r.push(v * 2)); r	object	Array<Array>{"0":4000000000000000,"1":4010000000000000,~"length":4000000000000000}
+var o = {}; var wm = new WeakMap([[o, 1]]); wm.get(o)	number	3ff0000000000000
+typeof Symbol("a")	string	"symbol"
+Symbol("desc").toString()	string	"Symbol(desc)"
+Symbol("d").description	string	"d"
+Symbol.for("k") === Symbol.for("k")	boolean	true
+Symbol("k") === Symbol("k")	boolean	false
+var s = Symbol("s"); var o = { [s]: 1, a: 2 }; o	object	Object<Object>{"a":4000000000000000,[Symbol(s)]:3ff0000000000000}
+Object.getOwnPropertySymbols({ [Symbol.iterator]: 1 }).length	number	3ff0000000000000
+Symbol.iterator.toString()	string	"Symbol(Symbol.iterator)"
+Symbol() + ""	throw	TypeError: Cannot convert a symbol to a string
+JSON.parse(`{"a":[1,2,{"b":null}]}`)	object	Object<Object>{"a":Array<Array>{"0":3ff0000000000000,"1":4000000000000000,"2":Object<Object>{"b":null},~"length":4008000000000000}}
+JSON.stringify([1, "a", null, undefined, function () {}])	string	"[1,\"a\",null,null,null]"
+JSON.stringify({ a: undefined, b: 1, c: () => 1 })	string	"{\"b\":1}"
+JSON.stringify({ a: 1, b: [1, 2] }, null, 2)	string	"{\n  \"a\": 1,\n  \"b\": [\n    1,\n    2\n  ]\n}"
+JSON.stringify("he said \"hi\"")	string	"\"he said \\\"hi\\\"\""
+JSON.stringify({ d: new Date(0) })	string	"{\"d\":\"1970-01-01T00:00:00.000Z\"}"
+JSON.stringify(NaN)	string	"null"
+JSON.stringify({ a: 1, b: 2 }, ["a"])	string	"{\"a\":1}"
+JSON.stringify({ a: 1 }, (k, v) => typeof v === "number" ? v + 1 : v)	string	"{\"a\":2}"
+JSON.parse("[1,")	throw	SyntaxError: JSON Parse error: Unexpected EOF
+JSON.parse(`{"a":1}`, (k, v) => typeof v === "number" ? v * 2 : v)	object	Object<Object>{"a":4000000000000000}
+JSON.stringify({ toJSON() { return 5 } })	string	"5"
+JSON.parse("1e3")	number	408f400000000000
+JSON.stringify(1n)	throw	TypeError: JSON.stringify cannot serialize BigInt.
+/(\d+)-(\d+)/.exec("10-20")	object	Array<Array>{"0":"10-20","1":"10","2":"20",~"length":4008000000000000,"index":0000000000000000,"input":"10-20","groups":undefined}
+/a/g.test("banana")	boolean	true
+"banana".match(/an/g)	object	Array<Array>{"0":"an","1":"an",~"length":4000000000000000}
+"banana".match(/(an)(a)/)	object	Array<Array>{"0":"ana","1":"an","2":"a",~"length":4008000000000000,"index":3ff0000000000000,"input":"banana","groups":undefined}
+"banana".replace(/a/g, "A")	string	"bAnAnA"
+"John Smith".replace(/(\w+) (\w+)/, "$2, $1")	string	"Smith, John"
+"abc".replace(/b/, m => m.toUpperCase())	string	"aBc"
+"a1b22c333".split(/\d+/)	object	Array<Array>{"0":"a","1":"b","2":"c","3":"",~"length":4010000000000000}
+"a1b2".split(/(\d)/)	object	Array<Array>{"0":"a","1":"1","2":"b","3":"2","4":"",~"length":4014000000000000}
+/^[a-z]+$/i.test("Hello")	boolean	true
+var re = /a/g; re.test("aa"); re.lastIndex	number	3ff0000000000000
+[..."a1b2".matchAll(/\d/g)].map(m => m[0])	object	Array<Array>{"0":"1","1":"2",~"length":4000000000000000}
+/(?<y>\d{4})-(?<m>\d\d)/.exec("2024-05").groups.y	string	"2024"
+new RegExp("a+", "g").source	string	"a+"
+/a/gi.flags	string	"gi"
+String(/x\/y/)	string	"/x\\/y/"
+"x".match(/y/)	object	null
+"abc".search(/c/)	number	4000000000000000
+/\bfoo\b/.test("a foo b")	boolean	true
+/(a)|(b)/.exec("b")	object	Array<Array>{"0":"b","1":undefined,"2":"b",~"length":4008000000000000,"index":0000000000000000,"input":"b","groups":undefined}
+"abc".replace(/(?=b)/, "-")	string	"a-bc"
+new RegExp("[")	throw	SyntaxError: Invalid regular expression: missing terminating ] for character class
+Date.UTC(2020, 0, 1)	number	4276f5e66e800000
+new Date(0).toISOString()	string	"1970-01-01T00:00:00.000Z"
+new Date(Date.UTC(2024, 1, 29, 12, 30, 45, 123)).toISOString()	string	"2024-02-29T12:30:45.123Z"
+new Date(Date.UTC(2024, 1, 29)).getUTCDay()	number	4010000000000000
+new Date(86400000).getUTCDate()	number	4000000000000000
+new Date("2020-01-01T00:00:00Z").getTime()	number	4276f5e66e800000
+new Date("2020-01-01T00:00:00.000Z").toJSON()	string	"2020-01-01T00:00:00.000Z"
+new Date(NaN).getTime()	number	nan
+new Date(Date.UTC(2000, 11, 31)).getUTCFullYear()	number	409f400000000000
+Date.parse("1970-01-02T00:00:00Z")	number	4194997000000000
+new Date(0).toUTCString()	string	"Thu, 01 Jan 1970 00:00:00 GMT"
+new Date(Date.UTC(2020, 5, 15)).getUTCMonth()	number	4014000000000000
+new Date(NaN).toISOString()	throw	RangeError: Invalid Date
+typeof Date.now()	string	"number"
+new Date(8.64e15 + 1).getTime()	number	nan
+var d = new Date(0); d.setUTCFullYear(2001); d.toISOString()	string	"2001-01-01T00:00:00.000Z"
+new Date(Date.UTC(99, 0)).getUTCFullYear()	number	409f3c0000000000
+new Date(Date.UTC(2020, 0, 31, 23, 59, 59, 999))	object	Date<Date>(4276ffe0c0bff000){}
+Math.floor(-1.5)	number	c000000000000000
+Math.ceil(1.2)	number	4000000000000000
+Math.round(2.5)	number	4008000000000000
+Math.round(-2.5)	number	c000000000000000
+Math.trunc(-4.7)	number	c010000000000000
+Math.sign(-3)	number	bff0000000000000
+Math.abs(-0)	number	0000000000000000
+Math.max()	number	fff0000000000000
+Math.min()	number	7ff0000000000000
+Math.max(1, NaN)	number	nan
+Math.sqrt(2)	number	3ff6a09e667f3bcd
+Math.cbrt(27)	number	4008000000000000
+Math.pow(2, -1)	number	3fe0000000000000
+Math.hypot(3, 4)	number	4014000000000000
+Math.PI	number	400921fb54442d18
+Math.E	number	4005bf0a8b145769
+Math.atan2(1, 1)	number	3fe921fb54442d18
+Math.sin(0)	number	0000000000000000
+Math.cos(Math.PI)	number	bff0000000000000
+Math.log(Math.E)	number	3ff0000000000000
+Math.log2(8)	number	4008000000000000
+Math.log10(1000)	number	4008000000000000
+Math.exp(1)	number	4005bf0a8b145769
+Math.fround(5.5)	number	4016000000000000
+Math.clz32(1)	number	403f000000000000
+Math.imul(65536, 65536)	number	0000000000000000
+(1.005).toFixed(2)	string	"1.00"
+(1234.5678).toFixed(1)	string	"1234.6"
+(0).toFixed(2)	string	"0.00"
+(-1.5).toFixed(0)	string	"-2"
+(255).toString(16)	string	"ff"
+(255).toString(2)	string	"11111111"
+(-255).toString(36)	string	"-73"
+(0.5).toString(2)	string	"0.1"
+(123.456).toPrecision(4)	string	"123.5"
+(0.000123).toPrecision(2)	string	"0.00012"
+(123456).toPrecision(2)	string	"1.2e+5"
+(1e21).toString()	string	"1e+21"
+(1e-7).toString()	string	"1e-7"
+(123.456).toExponential(2)	string	"1.23e+2"
+1e21 + 1	number	444b1ae4d6e2ef50
+0.1 * 3	number	3fd3333333333334
+(25).toString(36)	string	"p"
+Number("12px")	number	nan
+Number("  12  ")	number	4028000000000000
+Number("")	number	0000000000000000
+parseInt("12px")	number	4028000000000000
+parseInt("ff", 16)	number	406fe00000000000
+parseFloat("3.14abc")	number	40091eb851eb851f
+parseInt("0x1f")	number	403f000000000000
+Number.MAX_SAFE_INTEGER	number	433fffffffffffff
+Number.EPSILON	number	3cb0000000000000
+Number.isInteger(5.0)	boolean	true
+Number.isSafeInteger(2 ** 53)	boolean	false
+5e-324	number	0000000000000001
+1.7976931348623157e308 * 10	number	7ff0000000000000
+String(-0)	string	"0"
+1 / (-0)	number	fff0000000000000
+0.1 + 0.7	number	3fe9999999999999
+123456789012345680000 + ""	string	"123456789012345680000"
+(1e21).toFixed(2)	string	"1e+21"
+(1).toFixed(101)	throw	RangeError: toFixed() argument must be between 0 and 100
+2n ** 64n	bigint	18446744073709551616n
+10n / 3n	bigint	3n
+-7n % 3n	bigint	-1n
+BigInt(123) + 1n	bigint	124n
+typeof 1n	string	"bigint"
+1n + 1	throw	TypeError: Invalid mix of BigInt and other type in addition.
+BigInt("0x10")	bigint	16n
+5n > 3	boolean	true
+1n == 1	boolean	true
+1n === 1	boolean	false
+BigInt.asUintN(8, 257n)	bigint	1n
+(123n).toString(16)	string	"7b"
+0n ? "t" : "f"	string	"f"
+BigInt(1.5)	throw	RangeError: Not an integer
+-(2n ** 63n)	bigint	-9223372036854775808n
+1n << 100n	bigint	1267650600228229401496703205376n
+BigInt("x")	throw	SyntaxError: Failed to parse String to BigInt
+typeof undefined	string	"undefined"
+typeof null	string	"object"
+typeof 1	string	"number"
+typeof "s"	string	"string"
+typeof true	string	"boolean"
+typeof {}	string	"object"
+typeof []	string	"object"
+typeof function () {}	string	"function"
+typeof new Date()	string	"object"
+typeof /x/	string	"object"
+typeof Math	string	"object"
+typeof JSON	string	"object"
+typeof NaN	string	"number"
+typeof typeof 1	string	"string"
+typeof nosuchvar	string	"undefined"
+null.x	throw	TypeError: null is not an object (evaluating 'null.x')
+undefined.x	throw	TypeError: undefined is not an object (evaluating 'undefined.x')
+var o = undefined; o.p.q	throw	TypeError: undefined is not an object (evaluating 'o.p')
+nosuchvar	throw	ReferenceError: nosuchvar is not defined
+"use strict"; nosuchvar3 = 1	throw	ReferenceError: nosuchvar3 is not defined
+(void 0)()	throw	TypeError: (void 0) is not a function. (In '(void 0)()', '(void 0)' is undefined)
+var o = {}; o.f()	throw	TypeError: o.f is not a function. (In 'o.f()', 'o.f' is undefined)
+var o = { a: 1 }; o.a()	throw	TypeError: o.a is not a function. (In 'o.a()', 'o.a' is 1)
+new 5	throw	TypeError: 5 is not a constructor (evaluating 'new 5')
+1 +	throw	SyntaxError: Unexpected end of script
+var 1x	throw	SyntaxError: No identifiers allowed directly after numeric literal
+let a = 1; let a = 2	throw	SyntaxError: Cannot declare a let variable twice: 'a'.
+throw new Error("boom")	throw	Error: boom
+throw new TypeError("t")	throw	TypeError: t
+throw 5	throw	Number: undefined
+throw "str"	throw	String: undefined
+throw { a: 1 }	throw	Object: undefined
+new Error("m").message	string	"m"
+new RangeError("r") instanceof Error	boolean	true
+[].reduce((a, b) => a)	throw	TypeError: reduce of empty array with no initial value
+new Array(-1)	throw	RangeError: Array length must be a positive integer of safe magnitude.
+"abc".repeat(-1)	throw	RangeError: String.prototype.repeat argument must be greater than or equal to 0 and not be Infinity
+x => { return	throw	SyntaxError: Unexpected end of script
+class A { constructor() {} constructor() {} }	throw	SyntaxError: Cannot declare multiple constructors in a single class.
+const c = 1; c = 2	throw	TypeError: Attempted to assign to readonly property.
+Symbol() + 1	throw	TypeError: Cannot convert a symbol to a number
+new Symbol()	throw	TypeError: function is not a constructor (evaluating 'new Symbol()')
+({}) instanceof ({})	throw	TypeError: ({}) is not a function. (evaluating '({}) instanceof ({})')
+1 in 1	throw	TypeError: 1 is not an Object. (evaluating '1 in 1')
+var e = new Error("a", { cause: "b" }); e.cause	string	"b"
+try { null.x } catch (e) { e instanceof TypeError }	boolean	true
+try { null.x } catch (e) { [e.name, e.message] }	object	Array<Array>{"0":"TypeError","1":"null is not an object (evaluating 'null.x')",~"length":4000000000000000}
+decodeURIComponent("%")	throw	URIError: URI error
+new Error("x") + ""	string	"Error: x"
+Object.defineProperty(1, "x", {})	throw	TypeError: Properties can only be defined on Objects.
+Reflect.ownKeys(1)	throw	TypeError: Reflect.ownKeys requires the first argument be an object
+var r = ""; outer: for (var i = 0; i < 3; i++) { for (var j = 0; j < 3; j++) { if (j == 1) continue outer; if (i == 2) break outer; r += i + "" + j + "," } } r	string	"00,10,"
+switch (3) { case 1: "one"; case 3: "three"; case 4: "four"; break; default: "d" }	string	"four"
+var r = []; switch ("b") { case "a": r.push("a"); case "b": r.push("b"); case "c": r.push("c"); break; default: r.push("d") } r	object	Array<Array>{"0":"b","1":"c",~"length":4000000000000000}
+switch (9) { default: "d"; break; case 1: "one" }	string	"d"
+function f() { try { return "try" } finally { return "finally" } } f()	string	"finally"
+function f() { try { throw 1 } catch (e) { return "c" + e } finally { } } f()	string	"c1"
+var log = []; function f() { try { log.push("t"); return 1 } finally { log.push("f") } } f(); log	object	Array<Array>{"0":"t","1":"f",~"length":4000000000000000}
+var log = []; for (var i = 0; i < 3; i++) { try { if (i == 1) continue; log.push(i) } finally { log.push("f" + i) } } log	object	Array<Array>{"0":0000000000000000,"1":"f0","2":"f1","3":4000000000000000,"4":"f2",~"length":4014000000000000}
+try { throw new Error("a") } catch ({ message }) { message }	string	"a"
+try { 1 } finally { 2 }	number	3ff0000000000000
+lbl: { 1; break lbl; 2 }	number	3ff0000000000000
+var i = 0; do { i++ } while (i < 5); i	number	4014000000000000
+var i = 0; while (true) { if (++i > 3) break } i	number	4010000000000000
+1; if (true) { 2 } else { 3 }	number	4000000000000000
+5; do { 6; break } while (0)	number	4018000000000000
+var s = 0; for (var i = 0; i < 5; i++) { if (i % 2) continue; s += i } s	number	4018000000000000
+var r = []; for (var k in { a: 1, b: 2 }) r.push(k); r	object	Array<Array>{"0":"a","1":"b",~"length":4000000000000000}
+var r = []; for (var k in [7, 8]) r.push(k); r	object	Array<Array>{"0":"0","1":"1",~"length":4000000000000000}
+var r = []; for (var k in "ab") r.push(k); r	object	Array<Array>{"0":"0","1":"1",~"length":4000000000000000}
+var p = { inh: 1 }; var o = Object.create(p); o.own = 2; var r = []; for (var k in o) r.push(k); r	object	Array<Array>{"0":"own","1":"inh",~"length":4000000000000000}
+var r = []; for (var v of [1, 2, 3]) r.push(v * 2); r	object	Array<Array>{"0":4000000000000000,"1":4010000000000000,"2":4018000000000000,~"length":4008000000000000}
+var r = []; for (var c of "h\u00e9y") r.push(c); r	object	Array<Array>{"0":"h","1":"é","2":"y",~"length":4008000000000000}
+var r = []; for (var [k, v] of new Map([[1, 2]])) r.push(k + v); r	object	Array<Array>{"0":4008000000000000,~"length":3ff0000000000000}
+var r = []; for (var [i, v] of ["a", "b"].entries()) r.push(i + v); r	object	Array<Array>{"0":"0a","1":"1b",~"length":4000000000000000}
+var r = []; for (let x of new Set([1, 2])) r.push(x); r	object	Array<Array>{"0":3ff0000000000000,"1":4000000000000000,~"length":4000000000000000}
+var r = []; for (var k in null) r.push(k); r	object	Array<Array>{~"length":0000000000000000}
+for (var x of 5) {}	throw	TypeError: number is not iterable
+var p = new Proxy({}, { get: (t, k) => "got " + String(k) }); p.foo	string	"got foo"
+var log = []; var p = new Proxy({}, { set(t, k, v) { log.push(k + "=" + v); t[k] = v; return true } }); p.a = 1; p.b = 2; log	object	Array<Array>{"0":"a=1","1":"b=2",~"length":4000000000000000}
+var p = new Proxy({ a: 1 }, { has: (t, k) => k === "zz" }); ["zz" in p, "a" in p]	object	Array<Array>{"0":true,"1":false,~"length":4000000000000000}
+var p = new Proxy({ a: 1, b: 2 }, { ownKeys: () => ["b"], getOwnPropertyDescriptor: (t, k) => ({ value: t[k], enumerable: true, configurable: true }) }); Object.keys(p)	object	Array<Array>{"0":"b",~"length":3ff0000000000000}
+var p = new Proxy(function () { return 1 }, { apply: (t, th, args) => args.length }); p(1, 2, 3)	number	4008000000000000
+var p = new Proxy(class { }, { construct: () => ({ made: true }) }); new p()	object	Object<Object>{"made":true}
+var p = new Proxy({}, { deleteProperty: () => false }); delete p.x	boolean	false
+Reflect.ownKeys({ b: 1, a: 2, [Symbol.iterator]: 3, 0: 4 })	object	Array<Array>{"0":"0","1":"b","2":"a","3":Symbol(Symbol.iterator),~"length":4010000000000000}
+Reflect.has({ a: 1 }, "a")	boolean	true
+Reflect.get({ get a() { return this.b }, b: 1 }, "a", { b: 2 })	number	4000000000000000
+Reflect.set({}, "a", 1)	boolean	true
+Reflect.getPrototypeOf([]) === Array.prototype	boolean	true
+Reflect.apply(Math.max, null, [1, 3, 2])	number	4008000000000000
+Reflect.construct(Date, [0]).getTime()	number	0000000000000000
+Reflect.defineProperty({}, "a", { value: 1 })	boolean	true
+typeof new Proxy({}, {})	string	"object"
+new Proxy({ a: 1 }, {})	object	Object<Object>{"a":3ff0000000000000}
+var r = Proxy.revocable({}, {}); r.revoke(); try { r.proxy.a } catch (e) { e.constructor.name }	string	"TypeError"
+var o = null; o?.a	undefined	undefined
+var o = { a: { b: 1 } }; o?.a?.b	number	3ff0000000000000
+var o = {}; o.f?.()	undefined	undefined
+var o = { f() { return 1 } }; o.f?.()	number	3ff0000000000000
+var a = null; a?.[0]	undefined	undefined
+null ?? "d"	string	"d"
+0 ?? "d"	number	0000000000000000
+0 || "d"	string	"d"
+"" ?? "d"	string	""
+undefined ?? null ?? 3	number	4008000000000000
+var x = null; x ??= 5; x	number	4014000000000000
+var x = 0; x ||= 7; x	number	401c000000000000
+var x = 1; x &&= 9; x	number	4022000000000000
+var o = { a: null }; o.a?.b.c.d	undefined	undefined
+[1, 2, 3] + ""	string	"1,2,3"
+[] + {}	string	"[object Object]"
+({}) + ""	string	"[object Object]"
+1 == "1"	boolean	true
+null == undefined	boolean	true
+null === undefined	boolean	false
+NaN == NaN	boolean	false
+"b" > "a"	boolean	true
+[10] == 10	boolean	true
+void 0	undefined	undefined
+(1, 2, 3)	number	4008000000000000
+var a = 1; a++ + ++a	number	4010000000000000
+var s = "x"; s += 1; s	string	"x1"
+1n + 1n === 2n	boolean	true
+!!"0"	boolean	true
+!![]	boolean	true
++"  "	number	0000000000000000
++[]	number	0000000000000000
++{}	number	nan
+-"5"	number	c014000000000000
+2 ** 3 ** 2	number	4080000000000000
+(-2) ** 2	number	4010000000000000
+7 >>> 1	number	4008000000000000
+1 / 3	number	3fd5555555555555
+isNaN("x")	boolean	true
+isFinite("5")	boolean	true
+encodeURIComponent("a b&c")	string	"a%20b%26c"
+decodeURIComponent("%41")	string	"A"
+parseInt(null)	number	nan
+eval("1 + 1")	number	4000000000000000
+new Function("a", "b", "return a + b")(1, 2)	number	4008000000000000
+new Number(5) + 1	number	4018000000000000
+new Boolean(false) ? 1 : 2	number	3ff0000000000000
+new String("ab")	object	String<String>{"0":"a","1":"b",~"length":4000000000000000}

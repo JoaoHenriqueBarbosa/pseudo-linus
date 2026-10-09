@@ -3,6 +3,7 @@ pub mod character_names;
 pub mod utf8_conversion;
 pub mod case_mapping;
 pub mod case_mapping_tables;
+pub mod normalization;
 pub mod char_direction_table;
 
 /// `u_charDirection` do ICU: a classe bidirecional de `c`, com os valores do enum

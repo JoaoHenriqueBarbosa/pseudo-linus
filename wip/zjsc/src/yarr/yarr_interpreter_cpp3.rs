@@ -472,7 +472,9 @@ impl<'a, C: crate::wtf::text::string_impl::CharType> Interpreter<'a, C> {
             QuantifierType::NonGreedy => {
                 // Se não chegamos ao limite, tentar acrescentar mais um casamento.
                 if back_track.match_amount < term.atom.quantity_max_count as usize {
-                    let context = self.alloc_parentheses_disjunction_context(disjunction_body, term);
+                    let Some(context) = self.alloc_parentheses_disjunction_context(disjunction_body, term) else {
+                        return JSRegExpResult::ErrorNoMemory;
+                    };
                     let result = self.match_non_zero_disjunction(
                         disjunction_body,
                         DisjunctionContextRef::Parentheses(context),
@@ -558,7 +560,9 @@ impl<'a, C: crate::wtf::text::string_impl::CharType> Interpreter<'a, C> {
     ) -> crate::yarr::yarr::JSRegExpResult {
         use crate::yarr::yarr::JSRegExpResult;
         while back_track.match_amount < term.atom.quantity_min_count as usize {
-            let context = self.alloc_parentheses_disjunction_context(disjunction_body, term);
+            let Some(context) = self.alloc_parentheses_disjunction_context(disjunction_body, term) else {
+                return JSRegExpResult::ErrorNoMemory;
+            };
             let mut result = self.match_disjunction(
                 disjunction_body,
                 DisjunctionContextRef::Parentheses(context),
@@ -595,7 +599,9 @@ impl<'a, C: crate::wtf::text::string_impl::CharType> Interpreter<'a, C> {
     ) -> crate::yarr::yarr::JSRegExpResult {
         use crate::yarr::yarr::JSRegExpResult;
         while back_track.match_amount < term.atom.quantity_max_count as usize {
-            let context = self.alloc_parentheses_disjunction_context(disjunction_body, term);
+            let Some(context) = self.alloc_parentheses_disjunction_context(disjunction_body, term) else {
+                return JSRegExpResult::ErrorNoMemory;
+            };
             let result = self.match_non_zero_disjunction(
                 disjunction_body,
                 DisjunctionContextRef::Parentheses(context),

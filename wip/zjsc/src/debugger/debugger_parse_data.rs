@@ -42,10 +42,6 @@ pub struct DebuggerPausePositions {
 }
 
 impl DebuggerPausePositions {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     pub fn append_pause(&mut self, position: JSTextPosition) {
         self.positions.push(DebuggerPausePosition { type_: DebuggerPausePositionType::Pause, position });
     }

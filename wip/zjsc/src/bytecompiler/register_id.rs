@@ -16,6 +16,7 @@ pub type RegisterIDRef = Rc<RefCell<RegisterID>>;
 #[derive(Debug)]
 pub struct RegisterID {
     ref_count: i32,
+    raw_depth: i32,
     virtual_register: VirtualRegister,
     is_temporary: bool,
     did_set_index: bool,
@@ -25,6 +26,7 @@ impl Default for RegisterID {
     fn default() -> Self {
         RegisterID {
             ref_count: 0,
+            raw_depth: 0,
             virtual_register: VirtualRegister::default(),
             is_temporary: false,
             did_set_index: false,
@@ -33,14 +35,9 @@ impl Default for RegisterID {
 }
 
 impl RegisterID {
-    /// `RegisterID()`.
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     /// `RegisterID(VirtualRegister)`.
     pub fn from_virtual_register(virtual_register: VirtualRegister) -> Self {
-        RegisterID { ref_count: 0, virtual_register, is_temporary: false, did_set_index: true }
+        RegisterID { ref_count: 0, raw_depth: 0, virtual_register, is_temporary: false, did_set_index: true }
     }
 
     /// `explicit RegisterID(int index)`.
@@ -55,6 +52,14 @@ impl RegisterID {
 
     pub fn set_temporary(&mut self) {
         self.is_temporary = true;
+    }
+
+    /// `newRegister()` reconstrói o objeto no mesmo lugar: índice novo, sem a marca de temporário, contagem mantida
+    /// (as referências antigas apontam para este mesmo registrador).
+    pub fn reset_for_reuse(&mut self, index: VirtualRegister) {
+        self.virtual_register = index;
+        self.is_temporary = false;
+        self.did_set_index = true;
     }
 
     pub fn index(&self) -> i32 {
@@ -82,7 +87,22 @@ impl RegisterID {
 
     pub fn deref(&mut self) {
         self.ref_count -= 1;
-        debug_assert!(self.ref_count >= 0);
+        // Dentro de `with_raw_register` a contagem observada já está uma abaixo das posses reais: o
+        // `RegisterRef` movido para o chamado cai antes da devolução e o valor passa por -1 de forma transitória.
+        debug_assert!(self.ref_count >= -self.raw_depth);
+    }
+
+    /// Entra num trecho em que o C++ passa o `RegisterID*` cru (ver `with_raw_register`).
+    pub fn enter_raw(&mut self) {
+        self.raw_depth += 1;
+        self.deref();
+    }
+
+    /// Sai do trecho cru: devolve a referência solta em `enter_raw`.
+    pub fn leave_raw(&mut self) {
+        self.ref_();
+        self.raw_depth -= 1;
+        debug_assert!(self.raw_depth >= 0);
     }
 }
 
@@ -111,6 +131,17 @@ impl RegisterRef {
 
     pub fn borrow(&self) -> Ref<'_, RegisterID> {
         self.register.borrow()
+    }
+
+    /// Igualdade de ponteiro do `RegisterID*` do C++. Os handles podem ser cópias do mesmo registrador
+    /// (`this_register()`, `callee_register()`), então além do `Rc` compara o índice virtual quando ele
+    /// é válido.
+    pub fn is_same_register(&self, other: &RegisterRef) -> bool {
+        if Rc::ptr_eq(&self.register, &other.register) {
+            return true;
+        }
+        let a = self.register.borrow().raw_virtual_register();
+        a.is_valid() && a == other.register.borrow().raw_virtual_register()
     }
 
     pub fn borrow_mut(&self) -> RefMut<'_, RegisterID> {

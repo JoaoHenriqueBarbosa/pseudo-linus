@@ -28,6 +28,7 @@ use std::rc::Rc;
 
 use crate::wtf::ascii_ctype::is_unicode_compatible_ascii_whitespace;
 use crate::wtf::dtoa::{number_to_string_and_size, NumberToStringBuffer};
+use crate::wtf::text::conversion_mode::ConversionMode;
 use crate::wtf::text::string_common::equal_prefix;
 use crate::wtf::text::string_impl::{
     self, copy_characters_widen, CharType, StringImpl,
@@ -44,13 +45,6 @@ pub use crate::wtf::text::string_common::NOT_FOUND;
 /// `String::MaxLength`.
 pub const MAX_LENGTH: u32 = StringImpl::MAX_LENGTH;
 
-/// `ConversionMode` de `wtf/text/ConversionMode.h`.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ConversionMode {
-    LenientConversion,
-    StrictConversion,
-    StrictConversionReplacingUnpairedSurrogatesWithFFFD,
-}
 
 /// `UTF8ConversionError` de `wtf/text/UTF8ConversionError.h` (mesma ordem de variantes).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1261,11 +1255,6 @@ fn view_substring(string: &String, start: u32, length: u32) -> String {
 // Funções livres do cabeçalho e do .cpp
 // ---------------------------------------------------------------------------------------------
 
-/// `nullString()`.
-pub fn null_string() -> String {
-    String::default()
-}
-
 /// `emptyString()`: a string vazia atômica e estática.
 pub fn empty_string() -> String {
     String::from(StringImpl::empty())
@@ -1422,6 +1411,34 @@ pub fn make_string_by_joining(strings: &[String], separator: &String) -> String 
     String::from(StringImpl::create16(&result))
 }
 
+/// O que o `JSStringJoiner` faz no `Array.prototype.join` e no `Iterator.prototype.join`: o separador entra
+/// entre dois elementos quaisquer pelo índice (n - 1 separadores), mesmo que os anteriores sejam vazios,
+/// ao contrário de `make_string_by_joining` (que decide pelo acumulado). Cada par `(pedaço, repetições)` vale
+/// `repetições` elementos iguais seguidos, de modo que uma corrida de buracos não aloca uma string por elemento.
+pub fn join_runs_with_separator(runs: &[(String, u64)], separator: &String) -> String {
+    let mut result: Vec<u16> = Vec::new();
+    let mut is_8bit = true;
+    let mut first = true;
+
+    for (piece, repeat) in runs {
+        for _ in 0..*repeat {
+            if !first {
+                append_to_builder(&mut result, &mut is_8bit, separator);
+            }
+            first = false;
+            append_to_builder(&mut result, &mut is_8bit, piece);
+        }
+    }
+
+    if result.is_empty() {
+        return empty_string();
+    }
+    if is_8bit {
+        return String::from(StringImpl::create8_bit_unconditionally(&result));
+    }
+    String::from(StringImpl::create16(&result))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1443,7 +1460,7 @@ mod tests {
         assert!(null.is_null() && null.is_empty());
         assert!(!empty.is_null() && empty.is_empty());
         assert_ne!(null, empty);
-        assert_eq!(null, null_string());
+        assert_eq!(null, String::default());
         assert_eq!(null.length(), 0);
         assert_eq!(null.code_unit_at(0), 0);
     }
@@ -1723,6 +1740,64 @@ mod tests {
         assert!(make_string_by_joining(&[], &s(",")).is_empty());
         // O StringBuilder só põe o separador depois de o acumulado deixar de ser vazio.
         assert_eq!(text(&make_string_by_joining(&[s(""), s("b")], &s(","))), "b");
+    }
+
+    #[test]
+    fn join_runs_empty_and_single() {
+        // `[].join()` é a string vazia, e uma lista só de corridas com zero repetições também.
+        assert!(join_runs_with_separator(&[], &s(",")).is_empty());
+        assert!(!join_runs_with_separator(&[], &s(",")).is_null());
+        assert!(join_runs_with_separator(&[(s("x"), 0)], &s(",")).is_empty());
+        // Um elemento: nenhum separador.
+        assert_eq!(text(&join_runs_with_separator(&[(s("a"), 1)], &s(","))), "a");
+        // Um elemento vazio continua vazio.
+        assert!(join_runs_with_separator(&[(s(""), 1)], &s(",")).is_empty());
+    }
+
+    #[test]
+    fn join_runs_keeps_separator_after_empty_elements() {
+        // `['', 'a'].join(',')` é ",a": o separador entra pelo índice, não pelo acumulado.
+        assert_eq!(text(&join_runs_with_separator(&[(s(""), 1), (s("a"), 1)], &s(","))), ",a");
+        assert_eq!(text(&join_runs_with_separator(&[(s("a"), 1), (s(""), 1)], &s(","))), "a,");
+        // `['', ''].join(',')` é ",", ao contrário de `make_string_by_joining`.
+        assert_eq!(text(&join_runs_with_separator(&[(s(""), 2)], &s(","))), ",");
+        assert_eq!(text(&join_runs_with_separator(&[(s(""), 3)], &s("--"))), "----");
+        // Uma corrida com zero repetições no começo não conta como elemento.
+        assert_eq!(text(&join_runs_with_separator(&[(s("z"), 0), (s("a"), 1), (s("b"), 1)], &s(","))), "a,b");
+    }
+
+    #[test]
+    fn join_runs_expands_repeated_runs() {
+        // `[1, , , 4].join('-')` com buracos: a corrida de dois buracos vale dois elementos vazios.
+        let runs = [(s("1"), 1), (s(""), 2), (s("4"), 1)];
+        assert_eq!(text(&join_runs_with_separator(&runs, &s("-"))), "1---4");
+        assert_eq!(text(&join_runs_with_separator(&[(s("ab"), 3)], &s("|"))), "ab|ab|ab");
+        let mixed = [(s("a"), 2), (s("b"), 1), (s("a"), 2)];
+        assert_eq!(text(&join_runs_with_separator(&mixed, &s(","))), "a,a,b,a,a");
+    }
+
+    #[test]
+    fn join_runs_with_empty_separator() {
+        assert_eq!(text(&join_runs_with_separator(&[(s("a"), 1), (s("b"), 2)], &s(""))), "abb");
+        assert!(join_runs_with_separator(&[(s(""), 5)], &s("")).is_empty());
+    }
+
+    #[test]
+    fn join_runs_width_and_size() {
+        // Só vira 16 bits quando algum pedaço não vazio (ou o separador usado) tem 16 bits.
+        assert!(join_runs_with_separator(&[(s("a"), 2)], &s(",")).is_8bit());
+        let wide = join_runs_with_separator(&[(s("a"), 2)], &s("\u{20ac}"));
+        assert!(!wide.is_8bit());
+        assert_eq!(wide.length(), 3);
+        // Separador de 16 bits sem nenhum uso (um elemento só) mantém o resultado em 8 bits.
+        assert!(join_runs_with_separator(&[(s("a"), 1)], &s("\u{20ac}")).is_8bit());
+        // Tamanho: n elementos de comprimento k com separador de comprimento m dão n * k + (n - 1) * m.
+        let big = join_runs_with_separator(&[(s("ab"), 100_000)], &s(",,"));
+        assert_eq!(big.length(), 100_000 * 2 + 99_999 * 2);
+        assert!(big.is_8bit());
+        // Muitos buracos vazios: só separadores, uma corrida só em memória.
+        let holes = join_runs_with_separator(&[(s(""), 250_001)], &s(","));
+        assert_eq!(holes.length(), 250_000);
     }
 
     #[test]

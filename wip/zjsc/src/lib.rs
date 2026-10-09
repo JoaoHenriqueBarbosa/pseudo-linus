@@ -10,5 +10,8 @@ pub mod bytecode;
 pub mod bytecompiler;
 pub mod runtime;
 pub mod interpreter;
+pub mod llint;
 pub mod parser;
 pub mod debugger;
+pub mod api;
+pub mod wasm;

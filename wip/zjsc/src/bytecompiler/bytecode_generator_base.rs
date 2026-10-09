@@ -17,7 +17,7 @@
 use crate::bytecode::instruction_stream::{InstructionStreamWriter, MutableRef};
 use crate::bytecode::virtual_register::virtual_register_for_local;
 use crate::bytecompiler::label::{GenericLabel, GenericLabelRef, LabelGenerator};
-use crate::bytecompiler::register_id::{RegisterID, RegisterIDRef};
+use crate::bytecompiler::register_id::{RegisterID, RegisterIDRef, RegisterRef};
 use crate::wtf::math_extras::round_up_to_multiple_of;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -134,6 +134,10 @@ pub struct BytecodeGeneratorBase<Traits: BytecodeGeneratorTraits> {
     pub(crate) labels: Vec<Rc<RefCell<GenericLabel<Traits>>>>,
     /// `SegmentedVector<RegisterID, 32>`.
     pub(crate) callee_locals: Vec<RegisterIDRef>,
+    /// Os `RegisterID` devolvidos por `shrinkToFit`, por índice. No C++ o `newRegister()` seguinte reconstrói o
+    /// objeto no mesmo endereço, então um `RegisterID*` cru guardado antes aponta para o novo registrador; aqui o
+    /// `Rc` antigo é reaproveitado para a contagem de referência continuar compartilhada.
+    pub(crate) reclaimed_locals: std::collections::HashMap<usize, RegisterIDRef>,
 }
 
 impl<Traits: BytecodeGeneratorTraits> LabelGenerator for BytecodeGeneratorBase<Traits> {
@@ -145,7 +149,7 @@ impl<Traits: BytecodeGeneratorTraits> LabelGenerator for BytecodeGeneratorBase<T
 impl<Traits: BytecodeGeneratorTraits> BytecodeGeneratorBase<Traits> {
     /// `BytecodeGeneratorBase(typename Traits::CodeBlock, uint32_t virtualRegisterCountForCalleeSaves)`.
     pub fn new(code_block: Traits::CodeBlock, virtual_register_count_for_callee_saves: u32) -> Self {
-        let writer = InstructionStreamWriter::new();
+        let writer = InstructionStreamWriter::default();
         let last_instruction = writer.ref_();
         let mut this = BytecodeGeneratorBase {
             writer,
@@ -155,6 +159,7 @@ impl<Traits: BytecodeGeneratorTraits> BytecodeGeneratorBase<Traits> {
             last_instruction,
             labels: Vec::new(),
             callee_locals: Vec::new(),
+            reclaimed_locals: std::collections::HashMap::new(),
         };
         this.allocate_callee_save_space(virtual_register_count_for_callee_saves);
         this
@@ -164,7 +169,7 @@ impl<Traits: BytecodeGeneratorTraits> BytecodeGeneratorBase<Traits> {
         shrink_to_fit(&mut self.labels);
 
         // Allocate new label ID.
-        let label = Rc::new(RefCell::new(GenericLabel::new()));
+        let label = Rc::new(RefCell::new(GenericLabel::default()));
         let result = GenericLabelRef::new(&label);
         self.labels.push(label);
         result
@@ -177,7 +182,10 @@ impl<Traits: BytecodeGeneratorTraits> BytecodeGeneratorBase<Traits> {
     }
 
     pub(crate) fn reclaim_free_registers(&mut self) {
-        shrink_to_fit(&mut self.callee_locals);
+        while self.callee_locals.last().is_some_and(|last| crate::wtf::ref_counted::RefCounted::ref_count(last) == 0) {
+            let popped = self.callee_locals.pop().unwrap();
+            self.reclaimed_locals.insert(self.callee_locals.len(), popped);
+        }
     }
 
     pub fn emit_label(&mut self, label: &GenericLabelRef<Traits>) {
@@ -203,21 +211,29 @@ impl<Traits: BytecodeGeneratorTraits> BytecodeGeneratorBase<Traits> {
         write_opcode_in::<Traits>(&mut self.writer, size, opcode_id, ops);
     }
 
-    pub fn new_register(&mut self) -> RegisterIDRef {
+    /// `RefPtr<RegisterID> newRegister()`: o armazenamento (`callee_locals`) guarda o `Rc` sem contagem
+    /// e o chamador recebe o `RegisterRef` que a incrementa.
+    pub fn new_register(&mut self) -> RegisterRef {
         let local = virtual_register_for_local(self.callee_locals.len() as i32);
-        let register = Rc::new(RefCell::new(RegisterID::from_virtual_register(local)));
+        let register = match self.reclaimed_locals.remove(&self.callee_locals.len()) {
+            Some(reclaimed) => {
+                reclaimed.borrow_mut().reset_for_reuse(local);
+                reclaimed
+            }
+            None => Rc::new(RefCell::new(RegisterID::from_virtual_register(local))),
+        };
         self.callee_locals.push(Rc::clone(&register));
         let mut num_callee_locals = (self.code_block.num_callee_locals() as usize).max(self.callee_locals.len());
         num_callee_locals = round_up_to_multiple_of(STACK_ALIGNMENT_REGISTERS, num_callee_locals);
         self.code_block.set_num_callee_locals(num_callee_locals as u32);
         assert_eq!(num_callee_locals, self.code_block.num_callee_locals() as usize);
-        register
+        RegisterRef::new(&register)
     }
 
     /// Returns the next available temporary register. Registers returned by `new_temporary`
     /// require a modified form of reference counting: any register with a refcount of 0 is
     /// considered "available", meaning that the next instruction may overwrite it.
-    pub fn new_temporary(&mut self) -> RegisterIDRef {
+    pub fn new_temporary(&mut self) -> RegisterRef {
         self.reclaim_free_registers();
 
         let result = self.new_register();
@@ -225,7 +241,7 @@ impl<Traits: BytecodeGeneratorTraits> BytecodeGeneratorBase<Traits> {
         result
     }
 
-    pub fn new_temporaries(&mut self, count: usize, mut func: impl FnMut(&RegisterIDRef)) {
+    pub fn new_temporaries(&mut self, count: usize, mut func: impl FnMut(&RegisterRef)) {
         self.reclaim_free_registers();
         for _ in 0..count {
             let result = self.new_register();
@@ -235,7 +251,7 @@ impl<Traits: BytecodeGeneratorTraits> BytecodeGeneratorBase<Traits> {
     }
 
     /// Adds an anonymous local var slot. To give this slot a name, add it to `symbolTable()`.
-    pub fn add_var(&mut self) -> RegisterIDRef {
+    pub fn add_var(&mut self) -> RegisterRef {
         let num_vars = self.code_block.num_vars();
         self.code_block.set_num_vars(num_vars + 1);
         let result = self.new_register();

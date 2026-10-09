@@ -103,6 +103,12 @@ macro_rules! define_node_enum {
             $($variant(NodeRef<$ty>)),*
         }
         impl $name {
+            /// Quantas alças `Rc` apontam para este nó (usado pelo `Drop` iterativo das listas encadeadas).
+            pub fn strong_count(&self) -> usize {
+                match self {
+                    $($name::$variant(n) => Rc::strong_count(n)),*
+                }
+            }
             pub fn base(&self) -> std::cell::Ref<'_, $target> {
                 match self {
                     $($name::$variant(n) => std::cell::Ref::map(n.borrow(), |n| -> &$target { n })),*
@@ -179,6 +185,12 @@ pub mod declaration_stacks {
     pub type FunctionStack = Vec<Rc<FunctionMetadataNode>>;
 }
 pub use declaration_stacks::FunctionStack;
+
+/// `FunctionMetadataNode*`: posse compartilhada em `Rc`, sem `RefCell` (só os campos que o parser
+/// altera depois têm mutabilidade interior; ver `FunctionMetadataNode`).
+pub type FunctionMetadataNodeRef = Rc<FunctionMetadataNode>;
+/// `RestParameterNode*`.
+pub type RestParameterNodeRef = NodeRef<RestParameterNode>;
 
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -331,6 +343,18 @@ impl StatementNode {
 
     pub fn set_next(&mut self, next: Option<Statement>) {
         self.next = next;
+    }
+}
+
+/// O C++ guarda os statements num `Vector` e destrói em laço. Aqui eles se encadeiam por `next`
+/// (`Rc`), e o `Drop` padrão recursaria uma vez por statement (estouro de pilha com dezenas de
+/// milhares). Solta a cadeia em laço: só desfaz o encadeamento dos nós que este elo possui sozinho.
+impl Drop for StatementNode {
+    fn drop(&mut self) {
+        let mut current = self.next.take();
+        while let Some(statement) = current {
+            current = if statement.strong_count() == 1 { statement.base_mut().next.take() } else { None };
+        }
     }
 }
 
@@ -2277,6 +2301,34 @@ impl Statement {
 
     pub fn is_define_field_node(&self) -> bool {
         matches!(self, Statement::DefineField(_))
+    }
+}
+
+/// `ScopeNode*` do C++: ponteiro para qualquer subclasse concreta de `ScopeNode`. O gerador de
+/// bytecode recebe `ProgramNode`, `EvalNode`, `ModuleProgramNode` ou `FunctionNode` pelo mesmo campo,
+/// então o ponteiro polimórfico vira um enum fechado de `NodeRef` das quatro subclasses (a hierarquia
+/// é fechada no JSC). `borrow()` devolve o `ScopeNode` base, como o `->` do C++.
+#[derive(Clone)]
+pub enum ScopeNodeRef {
+    Program(NodeRef<ProgramNode>),
+    Eval(NodeRef<EvalNode>),
+    ModuleProgram(NodeRef<ModuleProgramNode>),
+    Function(NodeRef<FunctionNode>),
+}
+
+impl ScopeNodeRef {
+    /// `ScopeNode::isFunctionNode()` (virtual): `false` na base, `true` só em `FunctionNode`.
+    pub fn is_function_node(&self) -> bool {
+        matches!(self, ScopeNodeRef::Function(_))
+    }
+
+    pub fn borrow(&self) -> std::cell::Ref<'_, ScopeNode> {
+        match self {
+            ScopeNodeRef::Program(node) => std::cell::Ref::map(node.borrow(), |n| &**n),
+            ScopeNodeRef::Eval(node) => std::cell::Ref::map(node.borrow(), |n| &**n),
+            ScopeNodeRef::ModuleProgram(node) => std::cell::Ref::map(node.borrow(), |n| &**n),
+            ScopeNodeRef::Function(node) => std::cell::Ref::map(node.borrow(), |n| &**n),
+        }
     }
 }
 

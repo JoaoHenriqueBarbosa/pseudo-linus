@@ -1,0 +1,495 @@
+Temporal.PlainYearMonth.from("2024-02").until("2030-06").toString()	ok	"P6Y4M"
+Temporal.PlainYearMonth.from("2023-02").subtract({months: 25}).toString()	ok	"2021-01"
+Temporal.PlainYearMonth.from("2024-12").subtract({months: 25}).toString()	ok	"2022-11"
+Temporal.PlainYearMonth.from("2024-12").until("2030-06").toString()	ok	"P5Y6M"
+Temporal.PlainYearMonth.from("+275760-09").toPlainDate({day: 31}).toString()	error	RangeError	"date time is out of range of ECMAScript representation"
+Temporal.PlainYearMonth.from("+275760-09").since("2030-06", {largestUnit: "months"}).toString()	ok	"P3284763M"
+Temporal.PlainYearMonth.from("2024-01-31").monthsInYear	ok	12
+Temporal.PlainYearMonth.from("2024-01-31").subtract({months: 25}).toString()	ok	"2021-12"
+Temporal.PlainYearMonth.from("2024-01-31").add({days: 1})	error	RangeError	"Duration must not have units below months for PlainYearMonth arithmetic"
+Temporal.PlainYearMonth.from("202402").toString()	ok	"2024-02"
+Temporal.PlainYearMonth.from("202402").add({days: 1})	error	RangeError	"Duration must not have units below months for PlainYearMonth arithmetic"
+Temporal.PlainYearMonth.from("202402").since("2030-06", {largestUnit: "months"}).toString()	ok	"-P76M"
+Temporal.PlainYearMonth.from({year: 2024, month: 13}, {overflow: "reject"}).toString()	error	RangeError	"date time is out of range of ECMAScript representation"
+Temporal.PlainYearMonth.from({year: 2024, month: 0}, {overflow: "reject"}).toString()	error	RangeError	"month must be positive and finite"
+Temporal.PlainYearMonth.compare("2024-02", "2024-03")	ok	-1
+Temporal.PlainYearMonth.from({year: 2024, monthCode: "M02"}).toString()	ok	"2024-02"
+Temporal.PlainYearMonth.from("2024-02").calendarId	ok	"iso8601"
+JSON.stringify(Temporal.PlainYearMonth.from("2024-02"))	ok	"\"2024-02\""
+Temporal.PlainMonthDay.from("12-31").toString()	ok	"12-31"
+Temporal.PlainMonthDay.from("2024-02-29").toPlainDate({year: 2024}).toString()	ok	"2024-02-29"
+Temporal.PlainMonthDay.from("02-30").day	error	RangeError	"Temporal.PlainMonthDay.from: invalid date string 02-30"
+Temporal.PlainMonthDay.from("02-30").toPlainDate({year: 2023}).toString()	error	RangeError	"Temporal.PlainMonthDay.from: invalid date string 02-30"
+Temporal.PlainMonthDay.from("02-30").toPlainDate({year: 2024}).toString()	error	RangeError	"Temporal.PlainMonthDay.from: invalid date string 02-30"
+Temporal.PlainMonthDay.from("00-10").day	error	RangeError	"Temporal.PlainMonthDay.from: invalid date string 00-10"
+Temporal.PlainMonthDay.from("00-10").toPlainDate({year: 2024}).toString()	error	RangeError	"Temporal.PlainMonthDay.from: invalid date string 00-10"
+Temporal.PlainMonthDay.from("--0229").day	ok	29
+Temporal.PlainMonthDay.from({monthCode: "M02", day: 30}, {overflow: "constrain"}).toString()	ok	"02-29"
+Temporal.PlainMonthDay.from({month: 2, day: 30, year: 2023}, {overflow: "constrain"}).toString()	ok	"02-28"
+Temporal.PlainMonthDay.from("02-29").with({day: 0}, {overflow: "constrain"}).toString()	error	RangeError	"day must be positive and finite"
+Temporal.PlainMonthDay.from("02-29").toJSON()	ok	"02-29"
+Temporal.Instant.from("2024-03-10T12:34:56.789123456Z").round({smallestUnit: "minute", roundingMode: "halfEven"}).toString()	ok	"2024-03-10T12:35:00Z"
+Temporal.Instant.from("2024-03-10T12:34:56.789123456Z").round({smallestUnit: "minute", roundingMode: "halfExpand"}).toString()	ok	"2024-03-10T12:35:00Z"
+Temporal.Instant.from("2024-03-10T12:34:56.789123456Z").round({smallestUnit: "second", roundingMode: "ceil"}).toString()	ok	"2024-03-10T12:34:57Z"
+Temporal.Instant.from("2024-03-10T12:34:56.789123456Z").round({smallestUnit: "second", roundingMode: "floor"}).toString()	ok	"2024-03-10T12:34:56Z"
+Temporal.Instant.from("2024-03-10T12:34:56.789123456Z").round({smallestUnit: "millisecond", roundingMode: "halfExpand"}).toString()	ok	"2024-03-10T12:34:56.789Z"
+Temporal.Instant.from("2024-03-10T12:34:56.789123456Z").round({smallestUnit: "nanosecond", roundingMode: "expand"}).toString()	ok	"2024-03-10T12:34:56.789123456Z"
+Temporal.Instant.from("2024-03-10T12:34:56.789123456Z").round({smallestUnit: "nanosecond", roundingMode: "halfExpand"}).toString()	ok	"2024-03-10T12:34:56.789123456Z"
+Temporal.Instant.from("2024-03-10T12:34:56.789123456Z").round({smallestUnit: "hour", roundingIncrement: 8}).toString()	ok	"2024-03-10T16:00:00Z"
+Temporal.Instant.from("1970-01-01T00:00:00Z").round({smallestUnit: "hour", roundingMode: "trunc"}).toString()	ok	"1970-01-01T00:00:00Z"
+Temporal.Instant.from("1970-01-01T00:00:00Z").round({smallestUnit: "minute", roundingMode: "ceil"}).toString()	ok	"1970-01-01T00:00:00Z"
+Temporal.Instant.from("1970-01-01T00:00:00Z").round({smallestUnit: "second", roundingMode: "floor"}).toString()	ok	"1970-01-01T00:00:00Z"
+Temporal.Instant.from("1970-01-01T00:00:00Z").round({smallestUnit: "second", roundingMode: "halfEven"}).toString()	ok	"1970-01-01T00:00:00Z"
+Temporal.Instant.from("1970-01-01T00:00:00Z").round({smallestUnit: "second", roundingMode: "halfExpand"}).toString()	ok	"1970-01-01T00:00:00Z"
+Temporal.Instant.from("1970-01-01T00:00:00Z").round({smallestUnit: "millisecond", roundingMode: "trunc"}).toString()	ok	"1970-01-01T00:00:00Z"
+Temporal.Instant.from("1970-01-01T00:00:00Z").round({smallestUnit: "millisecond", roundingMode: "halfEven"}).toString()	ok	"1970-01-01T00:00:00Z"
+Temporal.Instant.from("1970-01-01T00:00:00Z").round({smallestUnit: "millisecond", roundingMode: "halfExpand"}).toString()	ok	"1970-01-01T00:00:00Z"
+Temporal.Instant.from("1969-12-31T23:59:59.999999999Z").round({smallestUnit: "millisecond", roundingMode: "halfEven"}).toString()	ok	"1970-01-01T00:00:00Z"
+Temporal.Instant.from("1969-12-31T23:59:59.999999999Z").round({smallestUnit: "microsecond", roundingMode: "expand"}).toString()	ok	"1970-01-01T00:00:00Z"
+Temporal.Instant.from("1969-12-31T23:59:59.999999999Z").round({smallestUnit: "nanosecond", roundingMode: "halfEven"}).toString()	ok	"1969-12-31T23:59:59.999999999Z"
+Temporal.Instant.from("2024-02-29T23:59:59.5Z").round({smallestUnit: "minute", roundingMode: "floor"}).toString()	ok	"2024-02-29T23:59:00Z"
+Temporal.Instant.from("2024-02-29T23:59:59.5Z").round({smallestUnit: "second", roundingMode: "trunc"}).toString()	ok	"2024-02-29T23:59:59Z"
+Temporal.Instant.from("2024-02-29T23:59:59.5Z").round({smallestUnit: "microsecond", roundingMode: "ceil"}).toString()	ok	"2024-02-29T23:59:59.5Z"
+Temporal.Instant.from("2024-02-29T23:59:59.5Z").round({smallestUnit: "microsecond", roundingMode: "floor"}).toString()	ok	"2024-02-29T23:59:59.5Z"
+Temporal.Instant.from("2024-02-29T23:59:59.5Z").since("2025-01-01T00:00Z", {largestUnit: "minutes", smallestUnit: "seconds", roundingMode: "ceil"}).toString()	ok	"-PT440640M"
+Temporal.Instant.from("2024-02-29T23:59:59.5Z").until("2025-01-01T00:00Z", {largestUnit: "auto", smallestUnit: "milliseconds", roundingIncrement: 250}).toString()	ok	"PT26438400.5S"
+Temporal.Instant.from("2024-02-29T23:59:59.5Z").since("2024-02-29T23:59:59.5Z").toString()	ok	"PT0S"
+Temporal.Instant.from("-000001-01-01T00:00:00Z").round({smallestUnit: "hour", roundingMode: "ceil"}).toString()	ok	"-000001-01-01T00:00:00Z"
+Temporal.Instant.from("-000001-01-01T00:00:00Z").round({smallestUnit: "millisecond", roundingMode: "floor"}).toString()	ok	"-000001-01-01T00:00:00Z"
+Temporal.Instant.from("-000001-01-01T00:00:00Z").round({smallestUnit: "millisecond", roundingMode: "expand"}).toString()	ok	"-000001-01-01T00:00:00Z"
+Temporal.Instant.from("-000001-01-01T00:00:00Z").round({smallestUnit: "millisecond", roundingMode: "halfExpand"}).toString()	ok	"-000001-01-01T00:00:00Z"
+Temporal.Instant.from("-000001-01-01T00:00:00Z").round("hour").toString()	ok	"-000001-01-01T00:00:00Z"
+Temporal.Instant.from("-000001-01-01T00:00:00Z").until("2025-01-01T00:00Z", {largestUnit: "auto", smallestUnit: "milliseconds", roundingIncrement: 250}).toString()	ok	"PT63934444800S"
+Temporal.Instant.from("+275760-09-13T00:00:00Z").round({smallestUnit: "hour", roundingMode: "floor"}).toString()	ok	"+275760-09-13T00:00:00Z"
+Temporal.Instant.from("+275760-09-13T00:00:00Z").round({smallestUnit: "minute", roundingMode: "ceil"}).toString()	ok	"+275760-09-13T00:00:00Z"
+Temporal.Instant.from("+275760-09-13T00:00:00Z").round({smallestUnit: "second", roundingMode: "halfEven"}).toString()	ok	"+275760-09-13T00:00:00Z"
+Temporal.Instant.from("+275760-09-13T00:00:00Z").round({smallestUnit: "second", roundingMode: "halfExpand"}).toString()	ok	"+275760-09-13T00:00:00Z"
+Temporal.Instant.from("+275760-09-13T00:00:00Z").round({smallestUnit: "microsecond", roundingMode: "trunc"}).toString()	ok	"+275760-09-13T00:00:00Z"
+Temporal.Instant.from("+275760-09-13T00:00:00Z").round("hour").toString()	ok	"+275760-09-13T00:00:00Z"
+Temporal.Instant.from("+275760-09-13T00:00:00Z").since("+275760-09-13T00:00:00Z").toString()	ok	"PT0S"
+Temporal.Instant.from("2024-03-10T12:34:56+05:30").round({smallestUnit: "hour", roundingMode: "ceil"}).toString()	ok	"2024-03-10T08:00:00Z"
+Temporal.Instant.from("2024-03-10T12:34:56+05:30").round({smallestUnit: "second", roundingMode: "ceil"}).toString()	ok	"2024-03-10T07:04:56Z"
+Temporal.Instant.from("2024-03-10T12:34:56+05:30").round({smallestUnit: "millisecond", roundingMode: "floor"}).toString()	ok	"2024-03-10T07:04:56Z"
+Temporal.Instant.from("2024-01-01T00:00Z").add({days: 1})	error	RangeError	"Adding days not supported by Temporal.Instant. Try Temporal.ZonedDateTime instead"
+Temporal.ZonedDateTime.from("2024-03-10T01:30[America/New_York]").round({smallestUnit: "hour", roundingIncrement: 5})	error	RangeError	"roundingIncrement does not divide evenly"
+Temporal.ZonedDateTime.from("2024-03-10T01:30[America/New_York]").with({day: 31}, {overflow: "reject"})	ok	2024-03-31T01:30:00-04:00[America/New_York]
+Temporal.ZonedDateTime.from("2024-03-10T12:00[America/New_York]").round({smallestUnit: "second", roundingMode: "expand"}).toString()	ok	"2024-03-10T12:00:00-04:00[America/New_York]"
+Temporal.ZonedDateTime.from("2024-03-10T12:00[America/New_York]").getTimeZoneTransition("previous")?.toString()	ok	"2024-03-10T03:00:00-04:00[America/New_York]"
+Temporal.ZonedDateTime.from("2024-03-10T12:00[America/New_York]").with({hour: 2, minute: 30}).toString()	ok	"2024-03-10T03:30:00-04:00[America/New_York]"
+Temporal.ZonedDateTime.from("2024-11-03T00:30[America/New_York]").round({smallestUnit: "day", roundingMode: "trunc"}).toString()	ok	"2024-11-03T00:00:00-04:00[America/New_York]"
+Temporal.ZonedDateTime.from("2024-11-03T00:30[America/New_York]").round({smallestUnit: "hour", roundingMode: "halfExpand"}).toString()	ok	"2024-11-03T01:00:00-04:00[America/New_York]"
+Temporal.ZonedDateTime.from("2024-11-03T00:30[America/New_York]").round({smallestUnit: "second", roundingMode: "ceil"}).toString()	ok	"2024-11-03T00:30:00-04:00[America/New_York]"
+Temporal.ZonedDateTime.from("2024-11-03T00:30[America/New_York]").round({smallestUnit: "second", roundingMode: "halfExpand"}).toString()	ok	"2024-11-03T00:30:00-04:00[America/New_York]"
+Temporal.ZonedDateTime.from("2024-11-03T00:30[America/New_York]").startOfDay().toString()	ok	"2024-11-03T00:00:00-04:00[America/New_York]"
+Temporal.ZonedDateTime.from("2024-11-03T00:30[America/New_York]").getTimeZoneTransition()	error	TypeError	"Temporal.ZonedDateTime.prototype.getTimeZoneTransition requires a 'direction' option"
+Temporal.ZonedDateTime.from("2024-11-03T12:00[America/New_York]").round({smallestUnit: "day", roundingMode: "floor"}).toString()	ok	"2024-11-03T00:00:00-04:00[America/New_York]"
+Temporal.ZonedDateTime.from("2024-11-03T12:00[America/New_York]").round({smallestUnit: "second", roundingMode: "halfEven"}).toString()	ok	"2024-11-03T12:00:00-05:00[America/New_York]"
+Temporal.ZonedDateTime.from("2024-11-03T12:00[America/New_York]").getTimeZoneTransition({direction: "next"})?.toString()	ok	"2025-03-09T03:00:00-04:00[America/New_York]"
+Temporal.ZonedDateTime.from("2018-11-04T12:00[America/Sao_Paulo]").round({smallestUnit: "minute", roundingMode: "floor"}).toString()	ok	"2018-11-04T12:00:00-02:00[America/Sao_Paulo]"
+Temporal.ZonedDateTime.from("2018-11-04T12:00[America/Sao_Paulo]").round({smallestUnit: "second", roundingMode: "ceil"}).toString()	ok	"2018-11-04T12:00:00-02:00[America/Sao_Paulo]"
+Temporal.ZonedDateTime.from("2018-11-04T12:00[America/Sao_Paulo]").hoursInDay	ok	23
+Temporal.ZonedDateTime.from("2024-10-06T12:00[Australia/Lord_Howe]").round({smallestUnit: "hour", roundingMode: "halfExpand"}).toString()	ok	"2024-10-06T12:00:00+11:00[Australia/Lord_Howe]"
+Temporal.ZonedDateTime.from("2024-10-06T12:00[Australia/Lord_Howe]").round({smallestUnit: "minute", roundingMode: "halfEven"}).toString()	ok	"2024-10-06T12:00:00+11:00[Australia/Lord_Howe]"
+Temporal.ZonedDateTime.from("2024-10-06T12:00[Australia/Lord_Howe]").hoursInDay	ok	23.5
+Temporal.ZonedDateTime.from("2024-10-06T12:00[Australia/Lord_Howe]").getTimeZoneTransition("previous")?.toString()	ok	"2024-10-06T02:30:00+11:00[Australia/Lord_Howe]"
+Temporal.ZonedDateTime.from("2024-10-06T12:00[Australia/Lord_Howe]").getTimeZoneTransition()	error	TypeError	"Temporal.ZonedDateTime.prototype.getTimeZoneTransition requires a 'direction' option"
+Temporal.ZonedDateTime.from("2024-10-06T12:00[Australia/Lord_Howe]").round({smallestUnit: "hour", roundingIncrement: 5})	error	RangeError	"roundingIncrement does not divide evenly"
+Temporal.ZonedDateTime.from("2024-04-07T12:00[Australia/Lord_Howe]").round({smallestUnit: "day", roundingMode: "expand"}).toString()	ok	"2024-04-08T00:00:00+10:30[Australia/Lord_Howe]"
+Temporal.ZonedDateTime.from("2024-04-07T12:00[Australia/Lord_Howe]").round({smallestUnit: "hour", roundingMode: "trunc"}).toString()	ok	"2024-04-07T12:00:00+10:30[Australia/Lord_Howe]"
+Temporal.ZonedDateTime.from("2024-04-07T12:00[Australia/Lord_Howe]").round({smallestUnit: "minute", roundingMode: "expand"}).toString()	ok	"2024-04-07T12:00:00+10:30[Australia/Lord_Howe]"
+Temporal.ZonedDateTime.from("2024-04-07T12:00[Australia/Lord_Howe]").round({smallestUnit: "second", roundingMode: "halfEven"}).toString()	ok	"2024-04-07T12:00:00+10:30[Australia/Lord_Howe]"
+Temporal.ZonedDateTime.from("2024-04-07T12:00[Australia/Lord_Howe]").getTimeZoneTransition("sideways")	error	RangeError	"direction must be \"next\" or \"previous\""
+Temporal.ZonedDateTime.from("2011-12-30T12:00[Pacific/Apia]").round({smallestUnit: "day", roundingMode: "expand"}).toString()	ok	"2012-01-01T00:00:00+14:00[Pacific/Apia]"
+Temporal.ZonedDateTime.from("2011-12-30T12:00[Pacific/Apia]").round({smallestUnit: "second", roundingMode: "ceil"}).toString()	ok	"2011-12-31T12:00:00+14:00[Pacific/Apia]"
+Temporal.ZonedDateTime.from("2011-12-30T12:00[Pacific/Apia]").round({smallestUnit: "week"})	error	RangeError	"smallestUnit is a disallowed unit"
+Temporal.ZonedDateTime.from("2011-12-30T12:00[Pacific/Apia]").since("2020-01-01T00:00[UTC]")	ok	-PT70154H
+Temporal.ZonedDateTime.from("2011-12-30T12:00[Pacific/Apia]").with({day: 31}, {overflow: "reject"})	ok	2011-12-31T12:00:00+14:00[Pacific/Apia]
+Temporal.ZonedDateTime.from("2024-06-01T12:00[Asia/Kolkata]").round({smallestUnit: "minute", roundingMode: "floor"}).toString()	ok	"2024-06-01T12:00:00+05:30[Asia/Kolkata]"
+Temporal.ZonedDateTime.from("2024-06-01T12:00[Asia/Kolkata]").round({smallestUnit: "minute", roundingMode: "halfEven"}).toString()	ok	"2024-06-01T12:00:00+05:30[Asia/Kolkata]"
+Temporal.ZonedDateTime.from("2024-06-01T12:00[Asia/Kolkata]").round({smallestUnit: "second", roundingMode: "ceil"}).toString()	ok	"2024-06-01T12:00:00+05:30[Asia/Kolkata]"
+Temporal.ZonedDateTime.from("2024-06-01T12:00[Asia/Kolkata]").round({smallestUnit: "second", roundingMode: "expand"}).toString()	ok	"2024-06-01T12:00:00+05:30[Asia/Kolkata]"
+Temporal.ZonedDateTime.from("2024-06-01T12:00[Asia/Kolkata]").round({smallestUnit: "hour", roundingIncrement: 5})	error	RangeError	"roundingIncrement does not divide evenly"
+Temporal.ZonedDateTime.from("2024-06-01T12:00[UTC]").round({smallestUnit: "day", roundingMode: "trunc"}).toString()	ok	"2024-06-01T00:00:00+00:00[UTC]"
+Temporal.ZonedDateTime.from("2024-06-01T12:00[UTC]").round({smallestUnit: "minute", roundingMode: "expand"}).toString()	ok	"2024-06-01T12:00:00+00:00[UTC]"
+Temporal.ZonedDateTime.from("2024-06-01T12:00[UTC]").round({smallestUnit: "second", roundingMode: "ceil"}).toString()	ok	"2024-06-01T12:00:00+00:00[UTC]"
+Temporal.ZonedDateTime.from("2024-06-01T12:00[UTC]").getTimeZoneTransition("previous")?.toString()	ok	undefined
+Temporal.ZonedDateTime.from("2024-06-01T12:00[UTC]").since("2020-01-01T00:00[UTC]")	ok	PT38724H
+Temporal.ZonedDateTime.from("2024-06-01T12:00+05:45[+05:45]").round({smallestUnit: "day", roundingMode: "ceil"}).toString()	ok	"2024-06-02T00:00:00+05:45[+05:45]"
+Temporal.ZonedDateTime.from("2024-06-01T12:00+05:45[+05:45]").round({smallestUnit: "minute", roundingMode: "ceil"}).toString()	ok	"2024-06-01T12:00:00+05:45[+05:45]"
+Temporal.ZonedDateTime.from("2024-06-01T12:00+05:45[+05:45]").round({smallestUnit: "second", roundingMode: "halfExpand"}).toString()	ok	"2024-06-01T12:00:00+05:45[+05:45]"
+Temporal.ZonedDateTime.from("2024-06-01T12:00+05:45[+05:45]").round({smallestUnit: "week"})	error	RangeError	"smallestUnit is a disallowed unit"
+Temporal.ZonedDateTime.from("2024-06-01T12:00+05:45[+05:45]").round("day").toString()	ok	"2024-06-02T00:00:00+05:45[+05:45]"
+Temporal.ZonedDateTime.from("2024-06-01T12:00+05:45[+05:45]").until("2024-06-01T13:00+05:45[+05:45]", {largestUnit: "hours"}).toString()	ok	"PT1H"
+Temporal.ZonedDateTime.from("2024-06-01T12:00+05:45[+05:45]").with({hour: 2, minute: 30}).toString()	ok	"2024-06-01T02:30:00+05:45[+05:45]"
+Temporal.ZonedDateTime.from("2024-06-01T12:00[UTC]").getTimeZoneTransition("next")	ok	null
+Temporal.Duration.from("P1Y2M3DT4H5M6S").round({smallestUnit: "months", roundingMode: "halfExpand", relativeTo: "2024-03-10T00:00[America/New_York]"}).toString()	ok	"P1Y2M"
+Temporal.Duration.from("P1Y2M3DT4H5M6S").round({largestUnit: "months", relativeTo: "2024-11-03T00:00[America/New_York]"}).toString()	ok	"P14M3DT4H5M6S"
+Temporal.Duration.from("P1Y2M3DT4H5M6S").round({smallestUnit: "months", roundingMode: "halfExpand", relativeTo: "2024-11-03T00:00[America/New_York]"}).toString()	ok	"P1Y2M"
+Temporal.Duration.from("P1Y2M3DT4H5M6S").total({unit: "hours", relativeTo: "2024-02-29"})	ok	10276.085
+Temporal.Duration.from("P1Y2M3DT4H5M6S").round({largestUnit: "hours", relativeTo: "2024-02-29"}).toString()	ok	"PT10276H5M6S"
+Temporal.Duration.from("P1Y2M3DT4H5M6S").total({unit: "months", relativeTo: {year: 2024, month: 1, day: 1, calendar: "hebrew"}})	ok	14.109317528735632
+Temporal.Duration.from("P1M").round({largestUnit: "years", smallestUnit: "days", relativeTo: "2023-01-31"}).toString()	ok	"P28D"
+Temporal.Duration.from("P1M").round({largestUnit: "months", relativeTo: "2024-02-01"}).toString()	ok	"P1M"
+Temporal.Duration.from("P1M").total({unit: "days", relativeTo: "2024-03-10T00:00[America/New_York]"})	ok	31
+Temporal.Duration.from("P1M").total({unit: "months", relativeTo: "2024-02-29"})	ok	1
+Temporal.Duration.from("P1M").round({largestUnit: "hours", relativeTo: "2024-02-29"}).toString()	ok	"PT696H"
+Temporal.Duration.from("P1M").round({smallestUnit: "months", roundingMode: "halfExpand", relativeTo: "2024-02-29"}).toString()	ok	"P1M"
+Temporal.Duration.from("P1M").round({largestUnit: "days"})	error	RangeError	"Cannot round a duration of years, months, or weeks without a relativeTo option"
+Temporal.Duration.from("P30D").round({largestUnit: "months", relativeTo: "2024-02-01"}).toString()	ok	"P1M1D"
+Temporal.Duration.from("P30D").total({unit: "months", relativeTo: "2024-03-10T00:00[America/New_York]"})	ok	0.9676985195154778
+Temporal.Duration.from("P30D").round({largestUnit: "years", smallestUnit: "days", relativeTo: "2024-03-10T00:00[America/New_York]"}).toString()	ok	"P30D"
+Temporal.Duration.from("P30D").total({unit: "months", relativeTo: "2024-11-03T00:00[America/New_York]"})	ok	1
+Temporal.Duration.from("P30D").round({largestUnit: "months", relativeTo: "2024-11-03T00:00[America/New_York]"}).toString()	ok	"P1M"
+Temporal.Duration.from("P30D").round({largestUnit: "months", relativeTo: "2024-02-29"}).toString()	ok	"P1M1D"
+Temporal.Duration.from("P1Y").round({largestUnit: "years", smallestUnit: "days", relativeTo: "2023-01-31"}).toString()	ok	"P1Y"
+Temporal.Duration.from("P1Y").round({largestUnit: "hours", relativeTo: "2023-01-31"}).toString()	ok	"PT8760H"
+Temporal.Duration.from("P1Y").round({largestUnit: "months", relativeTo: "2024-02-01"}).toString()	ok	"P12M"
+Temporal.Duration.from("P1Y").total({unit: "months", relativeTo: "2024-03-10T00:00[America/New_York]"})	ok	12
+Temporal.Duration.from("P1Y").round({largestUnit: "hours", relativeTo: "2024-11-03T00:00[America/New_York]"}).toString()	ok	"PT8761H"
+Temporal.Duration.from("P1Y").total({unit: "days", relativeTo: "2024-02-29"})	ok	365
+Temporal.Duration.from("P1Y").round({largestUnit: "years", smallestUnit: "days", relativeTo: "2024-02-29"}).toString()	ok	"P11M30D"
+Temporal.Duration.from("P1Y").round({smallestUnit: "weeks"})	error	RangeError	"Cannot round a duration of years, months, or weeks without a relativeTo option"
+Temporal.Duration.from("PT36H").total({unit: "months", relativeTo: "2024-01-31"})	ok	0.05172413793103448
+Temporal.Duration.from("PT36H").round({largestUnit: "years", smallestUnit: "days", relativeTo: "2024-01-31"}).toString()	ok	"P2D"
+Temporal.Duration.from("PT36H").round({largestUnit: "months", relativeTo: "2023-01-31"}).toString()	ok	"P1DT12H"
+Temporal.Duration.from("PT36H").total({unit: "hours", relativeTo: "2024-02-01"})	ok	36
+Temporal.Duration.from("PT36H").total({unit: "days", relativeTo: "2024-03-10T00:00[America/New_York]"})	ok	1.5416666666666667
+Temporal.Duration.from("PT36H").total({unit: "months", relativeTo: "2024-03-10T00:00[America/New_York]"})	ok	0.04845222072678331
+Temporal.Duration.from("PT36H").round({largestUnit: "months", relativeTo: "2024-02-29"}).toString()	ok	"P1DT12H"
+Temporal.Duration.from("PT36H").round({largestUnit: "hours", relativeTo: "2024-02-29"}).toString()	ok	"PT36H"
+Temporal.Duration.from("PT36H").round({largestUnit: "days"})	ok	P1DT12H
+Temporal.Duration.from("P1W").round({largestUnit: "hours", relativeTo: "2024-02-01"}).toString()	ok	"PT168H"
+Temporal.Duration.from("P1W").round({smallestUnit: "months", roundingMode: "halfExpand", relativeTo: "2024-02-01"}).toString()	ok	"PT0S"
+Temporal.Duration.from("P1W").round({largestUnit: "years", smallestUnit: "days", relativeTo: "2024-03-10T00:00[America/New_York]"}).toString()	ok	"P7D"
+Temporal.Duration.from("P1W").total({unit: "hours", relativeTo: "2024-11-03T00:00[America/New_York]"})	ok	169
+Temporal.Duration.from("P1W").round({largestUnit: "years", smallestUnit: "days", relativeTo: "2024-11-03T00:00[America/New_York]"}).toString()	ok	"P7D"
+Temporal.Duration.from("P1W").total({unit: "days", relativeTo: "2024-02-29"})	ok	7
+Temporal.Duration.from("P-1M").total({unit: "hours", relativeTo: "2023-01-31"})	error	RangeError	"'P-1M' is not a valid Duration string"
+Temporal.Duration.from("P-1M").total({unit: "months", relativeTo: "2023-01-31"})	error	RangeError	"'P-1M' is not a valid Duration string"
+Temporal.Duration.from("P-1M").total({unit: "hours", relativeTo: "2024-02-01"})	error	RangeError	"'P-1M' is not a valid Duration string"
+Temporal.Duration.from("P-1M").total({unit: "hours", relativeTo: "2024-11-03T00:00[America/New_York]"})	error	RangeError	"'P-1M' is not a valid Duration string"
+Temporal.Duration.from("P-1M").total("hours")	error	RangeError	"'P-1M' is not a valid Duration string"
+Temporal.Duration.from("P1Y-1M").round({largestUnit: "years", smallestUnit: "days", relativeTo: "2024-01-31"}).toString()	error	RangeError	"'P1Y-1M' is not a valid Duration string"
+Temporal.Duration.from("P1Y-1M").round({largestUnit: "months", relativeTo: "2024-02-01"}).toString()	error	RangeError	"'P1Y-1M' is not a valid Duration string"
+Temporal.Duration.from("P1Y-1M").round({largestUnit: "months", relativeTo: "2024-03-10T00:00[America/New_York]"}).toString()	error	RangeError	"'P1Y-1M' is not a valid Duration string"
+Temporal.Duration.from("P1Y-1M").total({unit: "days", relativeTo: "2024-11-03T00:00[America/New_York]"})	error	RangeError	"'P1Y-1M' is not a valid Duration string"
+Temporal.Duration.from("P1Y-1M").total({unit: "months", relativeTo: "2024-11-03T00:00[America/New_York]"})	error	RangeError	"'P1Y-1M' is not a valid Duration string"
+Temporal.Duration.from("P1Y-1M").round({smallestUnit: "months", roundingMode: "halfExpand", relativeTo: "2024-02-29"}).toString()	error	RangeError	"'P1Y-1M' is not a valid Duration string"
+Temporal.Duration.from("P1Y-1M").total({unit: "months", relativeTo: {year: 2024, month: 1, day: 1, calendar: "hebrew"}})	error	RangeError	"'P1Y-1M' is not a valid Duration string"
+Temporal.Duration.from("P2M31D").round({largestUnit: "months", relativeTo: "2024-01-31"}).toString()	ok	"P3M1D"
+Temporal.Duration.from("P2M31D").round({smallestUnit: "months", roundingMode: "halfExpand", relativeTo: "2024-03-10T00:00[America/New_York]"}).toString()	ok	"P3M"
+Temporal.Duration.from("P2M31D").total({unit: "months", relativeTo: "2024-02-29"})	ok	3.032258064516129
+Temporal.Duration.from("P2M31D").total({unit: "days"})	error	RangeError	"Cannot total a duration of years, months, or weeks without a relativeTo option"
+Temporal.Duration.from("P2M31D").total({unit: "weeks", relativeTo: {year: 2024, month: 1, day: 1}})	ok	13
+Temporal.Duration.from("PT0.5S").round({largestUnit: "hours", relativeTo: "2023-01-31"}).toString()	ok	"PT0.5S"
+Temporal.Duration.from("PT0.5S").round({largestUnit: "hours", relativeTo: "2024-02-01"}).toString()	ok	"PT0.5S"
+Temporal.Duration.from("PT0.5S").total({unit: "hours", relativeTo: "2024-03-10T00:00[America/New_York]"})	ok	0.0001388888888888889
+Temporal.Duration.from("PT0.5S").round({largestUnit: "hours", relativeTo: "2024-03-10T00:00[America/New_York]"}).toString()	ok	"PT0.5S"
+Temporal.Duration.from("PT0.5S").total({unit: "months", relativeTo: "2024-11-03T00:00[America/New_York]"})	ok	1.9263368777931884e-7
+Temporal.Duration.from("PT0.5S").round({largestUnit: "months", relativeTo: "2024-11-03T00:00[America/New_York]"}).toString()	ok	"PT0.5S"
+Temporal.Duration.from("PT0.5S").round({smallestUnit: "weeks"})	error	RangeError	"Cannot round a duration of years, months, or weeks without a relativeTo option"
+Temporal.Duration.from("PT0.5S").total({unit: "weeks", relativeTo: {year: 2024, month: 1, day: 1}})	ok	8.267195767195768e-7
+Temporal.Duration.from("P1M1DT25H").total({unit: "days", relativeTo: "2024-01-31"})	ok	31.041666666666668
+Temporal.Duration.from("P1M1DT25H").total({unit: "hours", relativeTo: "2024-01-31"})	ok	745
+Temporal.Duration.from("P1M1DT25H").round({largestUnit: "years", smallestUnit: "days", relativeTo: "2024-01-31"}).toString()	ok	"P1M2D"
+Temporal.Duration.from("P1M1DT25H").round({largestUnit: "months", relativeTo: "2024-01-31"}).toString()	ok	"P1M2DT1H"
+Temporal.Duration.from("P1M1DT25H").round({largestUnit: "years", smallestUnit: "days", relativeTo: "2024-03-10T00:00[America/New_York]"}).toString()	ok	"P1M2D"
+Temporal.Duration.from("P1M1DT25H").round({smallestUnit: "months", roundingMode: "halfExpand", relativeTo: "2024-03-10T00:00[America/New_York]"}).toString()	ok	"P1M"
+Temporal.Duration.from("P1M1DT25H").total({unit: "days", relativeTo: "2024-11-03T00:00[America/New_York]"})	ok	32.041666666666664
+Temporal.Duration.from("P1M1DT25H").total({unit: "hours", relativeTo: "2024-11-03T00:00[America/New_York]"})	ok	770
+Temporal.Duration.from("P1M1DT25H").round({largestUnit: "hours", relativeTo: "2024-11-03T00:00[America/New_York]"}).toString()	ok	"PT770H"
+Temporal.Duration.from("P1M1DT25H").round({largestUnit: "years", smallestUnit: "days", relativeTo: "2024-02-29"}).toString()	ok	"P1M2D"
+Temporal.Duration.from("P1M1DT25H").round({largestUnit: "months", relativeTo: "2024-02-29"}).toString()	ok	"P1M2DT1H"
+Temporal.Duration.from("P1M1DT25H").total({unit: "days"})	error	RangeError	"Cannot total a duration of years, months, or weeks without a relativeTo option"
+Temporal.Duration.compare("P1M", "P30D", {relativeTo: "2024-01-01"})	ok	1
+Temporal.Now.zonedDateTimeISO("UTC").startOfDay().hour	ok	0
+Temporal.PlainDate.from("2024-01-31").with({month: 2}).toString()	ok	"2024-02-29"
+Temporal.PlainDateTime.from("2024-01-31T10:00").with({month: 4, hour: 25}).toString()	ok	"2024-04-30T23:00:00"
+Temporal.PlainDateTime.from("2024-01-31T10:00").with({month: 4, hour: 25}, {overflow: "reject"})	error	RangeError	"date time is out of range of ECMAScript representation"
+Temporal.PlainTime.from("10:00").with({minute: 60}, {overflow: "reject"})	error	RangeError	"minute is out of range"
+Temporal.PlainDate.from("2024-01-31").with({day: 0})	error	RangeError	"day must be positive and finite"
+Temporal.PlainDate.from("2024-02-29[u-ca=hebrew]").toString()	ok	"2024-02-29[u-ca=hebrew]"
+Temporal.PlainDate.from("2024-02-29[u-ca=hebrew]").subtract({months: 13}).toString()	ok	"2023-02-11[u-ca=hebrew]"
+Temporal.PlainDate.from("2024-02-29[u-ca=hebrew]").monthsInYear	ok	13
+Temporal.PlainDate.from("2024-02-29").withCalendar("hebrew").toString()	ok	"2024-02-29[u-ca=hebrew]"
+Temporal.PlainDate.from("2024-02-29[u-ca=hebrew]").toPlainMonthDay().toString()	ok	"1970-02-26[u-ca=hebrew]"
+Temporal.PlainDate.from("2023-09-16").withCalendar("hebrew").toString()	ok	"2023-09-16[u-ca=hebrew]"
+Temporal.PlainDate.from("2023-09-16[u-ca=hebrew]").until("2030-06-15", {largestUnit: "months"})	error	RangeError	"cannot compute difference between dates with different calendars"
+Temporal.PlainDate.from("2025-01-29[u-ca=hebrew]").monthCode	ok	"M04"
+Temporal.PlainDate.from("2025-01-29[u-ca=hebrew]").year	ok	5785
+Temporal.PlainDate.from("2025-01-29[u-ca=hebrew]").era	ok	"am"
+Temporal.PlainDate.from("2025-01-29[u-ca=hebrew]").add({months: 1}).toString()	ok	"2025-02-27[u-ca=hebrew]"
+Temporal.PlainDate.from("2025-01-29[u-ca=hebrew]").add({years: 1, days: 1}).toString()	ok	"2026-01-19[u-ca=hebrew]"
+Temporal.PlainDate.from("2025-01-29[u-ca=hebrew]").subtract({months: 13}).toString()	ok	"2024-01-10[u-ca=hebrew]"
+Temporal.PlainDate.from("2025-01-29").withCalendar("hebrew").toString()	ok	"2025-01-29[u-ca=hebrew]"
+Temporal.PlainDate.from("1989-01-07[u-ca=hebrew]").add({months: 1}).toString()	ok	"1989-02-06[u-ca=hebrew]"
+Temporal.PlainDate.from("1989-01-07[u-ca=hebrew]").add({years: 1, days: 1}).toString()	ok	"1990-01-28[u-ca=hebrew]"
+Temporal.PlainDate.from("2019-04-30[u-ca=hebrew]").era	ok	"am"
+Temporal.PlainDate.from("2019-04-30[u-ca=hebrew]").add({months: 1}).toString()	ok	"2019-05-30[u-ca=hebrew]"
+Temporal.PlainDate.from("2019-04-30[u-ca=hebrew]").daysInMonth	ok	30
+Temporal.PlainDate.from("2019-04-30[u-ca=hebrew]").inLeapYear	ok	true
+Temporal.PlainMonthDay.from({monthCode: "M05L", day: 1, calendar: "hebrew"}).toString()	ok	"1970-02-07[u-ca=hebrew]"
+Temporal.ZonedDateTime.from("2024-02-29T12:00[UTC][u-ca=hebrew]").year	ok	5784
+Temporal.PlainDate.from("2024-02-29[u-ca=chinese]").until("2030-06-15", {largestUnit: "months"})	error	RangeError	"cannot compute difference between dates with different calendars"
+Temporal.PlainDate.from("2023-09-16[u-ca=chinese]").daysInMonth	ok	30
+Temporal.PlainDate.from("2025-01-29[u-ca=chinese]").add({months: 1}).toString()	ok	"2025-02-28[u-ca=chinese]"
+Temporal.PlainDate.from("1989-01-07[u-ca=chinese]").monthCode	ok	"M11"
+Temporal.PlainDate.from("1989-01-07[u-ca=chinese]").add({months: 1}).toString()	ok	"1989-02-05[u-ca=chinese]"
+Temporal.PlainDate.from("2019-04-30[u-ca=chinese]").add({months: 1}).toString()	ok	"2019-05-30[u-ca=chinese]"
+Temporal.PlainDate.from("2019-04-30[u-ca=chinese]").subtract({months: 13}).toString()	ok	"2018-04-11[u-ca=chinese]"
+Temporal.PlainDate.from("1900-01-01[u-ca=chinese]").inLeapYear	ok	false
+Temporal.PlainDate.from("2100-12-31").withCalendar("chinese").toString()	ok	"2100-12-31[u-ca=chinese]"
+Temporal.PlainMonthDay.from("2024-02-29[u-ca=chinese]").toString()	ok	"1972-03-05[u-ca=chinese]"
+Temporal.PlainDate.from({year: 1445, month: 13, day: 1, calendar: "chinese"}).toString()	ok	"1446-01-06[u-ca=chinese]"
+Temporal.ZonedDateTime.from("2024-02-29T12:00[UTC][u-ca=chinese]").year	ok	2024
+Temporal.PlainDate.from("2023-09-16[u-ca=islamic-civil]").year	ok	1445
+Temporal.PlainDate.from("2023-09-16[u-ca=islamic-civil]").toPlainYearMonth().toString()	ok	"2023-09-16[u-ca=islamic-civil]"
+Temporal.PlainDate.from("2025-01-29[u-ca=islamic-civil]").toString()	ok	"2025-01-29[u-ca=islamic-civil]"
+Temporal.PlainDate.from("2025-01-29[u-ca=islamic-civil]").monthCode	ok	"M07"
+Temporal.PlainDate.from("2025-01-29[u-ca=islamic-civil]").add({years: 1, days: 1}).toString()	ok	"2026-01-19[u-ca=islamic-civil]"
+Temporal.PlainDate.from("2025-01-29[u-ca=islamic-civil]").daysInMonth	ok	30
+Temporal.PlainDate.from("1989-01-07[u-ca=islamic-civil]").era	ok	"ah"
+Temporal.PlainDate.from("2019-05-01[u-ca=islamic-civil]").monthsInYear	ok	12
+Temporal.PlainDate.from("2019-05-01[u-ca=islamic-civil]").until("2030-06-15", {largestUnit: "months"})	error	RangeError	"cannot compute difference between dates with different calendars"
+Temporal.PlainDate.from("1900-01-01[u-ca=islamic-civil]").year	ok	1317
+Temporal.PlainDate.from("1900-01-01[u-ca=islamic-civil]").era	ok	"ah"
+Temporal.PlainDate.from("1900-01-01[u-ca=islamic-civil]").add({months: 1}).toString()	ok	"1900-01-30[u-ca=islamic-civil]"
+Temporal.PlainDate.from("1900-01-01[u-ca=islamic-civil]").monthsInYear	ok	12
+Temporal.PlainDate.from("1900-01-01[u-ca=islamic-civil]").toPlainMonthDay().toString()	ok	"1972-10-07[u-ca=islamic-civil]"
+Temporal.PlainDate.from("2100-12-31[u-ca=islamic-civil]").year	ok	1524
+Temporal.PlainDate.from("2100-12-31[u-ca=islamic-civil]").era	ok	"ah"
+Temporal.PlainDate.from("2024-03-10[u-ca=islamic-civil]").toString()	ok	"2024-03-10[u-ca=islamic-civil]"
+Temporal.PlainDate.from("2024-03-10[u-ca=islamic-civil]").monthCode	ok	"M08"
+Temporal.PlainDate.from("2024-03-10[u-ca=islamic-civil]").year	ok	1445
+Temporal.PlainDate.from("2024-03-10[u-ca=islamic-civil]").inLeapYear	ok	true
+Temporal.PlainMonthDay.from("2024-02-29[u-ca=islamic-civil]").toString()	ok	"1972-09-28[u-ca=islamic-civil]"
+Temporal.ZonedDateTime.from("2024-02-29T12:00[UTC][u-ca=islamic-civil]").year	ok	1445
+Temporal.PlainDate.from("2024-02-29[u-ca=islamic-umalqura]").add({years: 1, days: 1}).toString()	ok	"2025-02-19[u-ca=islamic-umalqura]"
+Temporal.PlainDate.from("2024-02-29[u-ca=islamic-umalqura]").monthsInYear	ok	12
+Temporal.PlainDate.from("2023-09-16[u-ca=islamic-umalqura]").daysInMonth	ok	30
+Temporal.PlainDate.from("2025-01-29[u-ca=islamic-umalqura]").toPlainMonthDay().toString()	ok	"1972-09-08[u-ca=islamic-umalqura]"
+Temporal.PlainDate.from("1989-01-07[u-ca=islamic-umalqura]").year	ok	1409
+Temporal.PlainDate.from("1989-01-07[u-ca=islamic-umalqura]").subtract({months: 13}).toString()	ok	"1987-12-20[u-ca=islamic-umalqura]"
+Temporal.PlainDate.from("1989-01-07[u-ca=islamic-umalqura]").inLeapYear	ok	false
+Temporal.PlainDate.from("2019-05-01[u-ca=islamic-umalqura]").monthCode	ok	"M08"
+Temporal.PlainDate.from("2019-05-01[u-ca=islamic-umalqura]").add({months: 1}).toString()	ok	"2019-05-31[u-ca=islamic-umalqura]"
+Temporal.PlainDate.from("2019-04-30[u-ca=islamic-umalqura]").monthCode	ok	"M08"
+Temporal.PlainDate.from("2019-04-30[u-ca=islamic-umalqura]").add({months: 1}).toString()	ok	"2019-05-30[u-ca=islamic-umalqura]"
+Temporal.PlainDate.from("2019-04-30[u-ca=islamic-umalqura]").until("2030-06-15", {largestUnit: "months"})	error	RangeError	"cannot compute difference between dates with different calendars"
+Temporal.PlainDate.from("2019-04-30[u-ca=islamic-umalqura]").toPlainYearMonth().toString()	ok	"2019-04-06[u-ca=islamic-umalqura]"
+Temporal.PlainDate.from("1900-01-01[u-ca=islamic-umalqura]").year	ok	1317
+Temporal.PlainDate.from("1900-01-01[u-ca=islamic-umalqura]").add({years: 1, days: 1}).toString()	ok	"1900-12-23[u-ca=islamic-umalqura]"
+Temporal.PlainDate.from("1900-01-01[u-ca=islamic-umalqura]").subtract({months: 13}).toString()	ok	"1898-12-14[u-ca=islamic-umalqura]"
+Temporal.PlainDate.from("1900-01-01[u-ca=islamic-umalqura]").toPlainYearMonth().toString()	ok	"1899-12-04[u-ca=islamic-umalqura]"
+Temporal.PlainDate.from("2100-12-31[u-ca=islamic-umalqura]").daysInMonth	ok	29
+Temporal.PlainDate.from("2024-03-10[u-ca=islamic-umalqura]").toPlainMonthDay().toString()	ok	"1972-10-07[u-ca=islamic-umalqura]"
+Temporal.PlainYearMonth.from("2024-02-01[u-ca=islamic-umalqura]").toString()	ok	"2024-01-13[u-ca=islamic-umalqura]"
+Temporal.PlainYearMonth.from("2024-02-01[u-ca=islamic-umalqura]").add({months: 6}).toString()	ok	"2024-07-07[u-ca=islamic-umalqura]"
+Temporal.PlainDate.from("2024-02-29[u-ca=islamic-tbla]").era	ok	"ah"
+Temporal.PlainDate.from("2023-09-16[u-ca=islamic-tbla]").add({months: 1}).toString()	ok	"2023-10-16[u-ca=islamic-tbla]"
+Temporal.PlainDate.from("2023-09-16[u-ca=islamic-tbla]").monthsInYear	ok	12
+Temporal.PlainDate.from("1989-01-07[u-ca=islamic-tbla]").toString()	ok	"1989-01-07[u-ca=islamic-tbla]"
+Temporal.PlainDate.from("1989-01-07[u-ca=islamic-tbla]").add({years: 1, days: 1}).toString()	ok	"1989-12-29[u-ca=islamic-tbla]"
+Temporal.PlainDate.from("2019-05-01[u-ca=islamic-tbla]").toString()	ok	"2019-05-01[u-ca=islamic-tbla]"
+Temporal.PlainDate.from("2019-05-01[u-ca=islamic-tbla]").inLeapYear	ok	false
+Temporal.PlainDate.from("2019-04-30[u-ca=islamic-tbla]").add({years: 1, days: 1}).toString()	ok	"2020-04-19[u-ca=islamic-tbla]"
+Temporal.PlainDate.from("1900-01-01[u-ca=islamic-tbla]").daysInMonth	ok	29
+Temporal.PlainDate.from("2100-12-31[u-ca=islamic-tbla]").toString()	ok	"2100-12-31[u-ca=islamic-tbla]"
+Temporal.PlainDate.from("2024-03-10[u-ca=islamic-tbla]").toString()	ok	"2024-03-10[u-ca=islamic-tbla]"
+Temporal.PlainDate.from("2024-03-10[u-ca=islamic-tbla]").add({years: 1, days: 1}).toString()	ok	"2025-03-01[u-ca=islamic-tbla]"
+Temporal.PlainDate.from("2024-03-10[u-ca=islamic-tbla]").daysInMonth	ok	30
+Temporal.PlainDate.from("2024-03-10").withCalendar("islamic-tbla").toString()	ok	"2024-03-10[u-ca=islamic-tbla]"
+Temporal.PlainDate.from("2024-03-10[u-ca=islamic-tbla]").toPlainYearMonth().toString()	ok	"2024-03-10[u-ca=islamic-tbla]"
+Temporal.PlainMonthDay.from({monthCode: "M05L", day: 1, calendar: "islamic-tbla"}).toString()	error	RangeError	"monthCode is not valid for this calendar"
+Temporal.PlainDate.from("2024-02-29[u-ca=islamic-rgsa]").inLeapYear	error	RangeError	"'islamic-rgsa' is not a valid calendar identifier"
+Temporal.PlainDate.from("2024-02-29").withCalendar("islamic-rgsa").toString()	error	RangeError	"invalid calendar identifier: islamic-rgsa"
+Temporal.PlainDate.from("2023-09-16[u-ca=islamic-rgsa]").monthCode	error	RangeError	"'islamic-rgsa' is not a valid calendar identifier"
+Temporal.PlainDate.from("2025-01-29[u-ca=islamic-rgsa]").monthCode	error	RangeError	"'islamic-rgsa' is not a valid calendar identifier"
+Temporal.PlainDate.from("2025-01-29[u-ca=islamic-rgsa]").add({months: 1}).toString()	error	RangeError	"'islamic-rgsa' is not a valid calendar identifier"
+Temporal.PlainDate.from("2025-01-29[u-ca=islamic-rgsa]").add({years: 1, days: 1}).toString()	error	RangeError	"'islamic-rgsa' is not a valid calendar identifier"
+Temporal.PlainDate.from("2025-01-29").withCalendar("islamic-rgsa").toString()	error	RangeError	"invalid calendar identifier: islamic-rgsa"
+Temporal.PlainDate.from("2025-01-29[u-ca=islamic-rgsa]").until("2030-06-15", {largestUnit: "months"})	error	RangeError	"'islamic-rgsa' is not a valid calendar identifier"
+Temporal.PlainDate.from("1989-01-07[u-ca=islamic-rgsa]").era	error	RangeError	"'islamic-rgsa' is not a valid calendar identifier"
+Temporal.PlainDate.from("1989-01-07[u-ca=islamic-rgsa]").add({years: 1, days: 1}).toString()	error	RangeError	"'islamic-rgsa' is not a valid calendar identifier"
+Temporal.PlainDate.from("1989-01-07[u-ca=islamic-rgsa]").inLeapYear	error	RangeError	"'islamic-rgsa' is not a valid calendar identifier"
+Temporal.PlainDate.from("2019-05-01[u-ca=islamic-rgsa]").subtract({months: 13}).toString()	error	RangeError	"'islamic-rgsa' is not a valid calendar identifier"
+Temporal.PlainDate.from("1900-01-01[u-ca=islamic-rgsa]").monthsInYear	error	RangeError	"'islamic-rgsa' is not a valid calendar identifier"
+Temporal.PlainDate.from("1900-01-01[u-ca=islamic-rgsa]").toPlainMonthDay().toString()	error	RangeError	"'islamic-rgsa' is not a valid calendar identifier"
+Temporal.PlainDate.from("2100-12-31[u-ca=islamic-rgsa]").add({months: 1}).toString()	error	RangeError	"'islamic-rgsa' is not a valid calendar identifier"
+Temporal.PlainDate.from("2100-12-31[u-ca=islamic-rgsa]").subtract({months: 13}).toString()	error	RangeError	"'islamic-rgsa' is not a valid calendar identifier"
+Temporal.PlainDate.from("2100-12-31[u-ca=islamic-rgsa]").daysInMonth	error	RangeError	"'islamic-rgsa' is not a valid calendar identifier"
+Temporal.PlainDate.from("2100-12-31[u-ca=islamic-rgsa]").inLeapYear	error	RangeError	"'islamic-rgsa' is not a valid calendar identifier"
+Temporal.PlainDate.from("2024-03-10[u-ca=islamic-rgsa]").monthCode	error	RangeError	"'islamic-rgsa' is not a valid calendar identifier"
+Temporal.PlainDate.from("2024-03-10[u-ca=islamic-rgsa]").monthsInYear	error	RangeError	"'islamic-rgsa' is not a valid calendar identifier"
+Temporal.PlainDate.from("2024-03-10[u-ca=islamic-rgsa]").inLeapYear	error	RangeError	"'islamic-rgsa' is not a valid calendar identifier"
+Temporal.PlainDate.from("2024-02-29[u-ca=islamic]").until("2030-06-15", {largestUnit: "months"})	error	RangeError	"'islamic' is not a valid calendar identifier"
+Temporal.PlainDate.from("2023-09-16[u-ca=islamic]").era	error	RangeError	"'islamic' is not a valid calendar identifier"
+Temporal.PlainDate.from("2023-09-16[u-ca=islamic]").add({months: 1}).toString()	error	RangeError	"'islamic' is not a valid calendar identifier"
+Temporal.PlainDate.from("2023-09-16").withCalendar("islamic").toString()	error	RangeError	"invalid calendar identifier: islamic"
+Temporal.PlainDate.from("2025-01-29[u-ca=islamic]").toString()	error	RangeError	"'islamic' is not a valid calendar identifier"
+Temporal.PlainDate.from("2025-01-29[u-ca=islamic]").add({years: 1, days: 1}).toString()	error	RangeError	"'islamic' is not a valid calendar identifier"
+Temporal.PlainDate.from("2025-01-29[u-ca=islamic]").inLeapYear	error	RangeError	"'islamic' is not a valid calendar identifier"
+Temporal.PlainDate.from("2025-01-29[u-ca=islamic]").until("2030-06-15", {largestUnit: "months"})	error	RangeError	"'islamic' is not a valid calendar identifier"
+Temporal.PlainDate.from("1989-01-07[u-ca=islamic]").add({years: 1, days: 1}).toString()	error	RangeError	"'islamic' is not a valid calendar identifier"
+Temporal.PlainDate.from("1989-01-07[u-ca=islamic]").subtract({months: 13}).toString()	error	RangeError	"'islamic' is not a valid calendar identifier"
+Temporal.PlainDate.from("1989-01-07[u-ca=islamic]").daysInMonth	error	RangeError	"'islamic' is not a valid calendar identifier"
+Temporal.PlainDate.from("1989-01-07[u-ca=islamic]").until("2030-06-15", {largestUnit: "months"})	error	RangeError	"'islamic' is not a valid calendar identifier"
+Temporal.PlainDate.from("2019-05-01[u-ca=islamic]").toString()	error	RangeError	"'islamic' is not a valid calendar identifier"
+Temporal.PlainDate.from("2019-05-01[u-ca=islamic]").monthCode	error	RangeError	"'islamic' is not a valid calendar identifier"
+Temporal.PlainDate.from("2019-05-01[u-ca=islamic]").subtract({months: 13}).toString()	error	RangeError	"'islamic' is not a valid calendar identifier"
+Temporal.PlainDate.from("2019-05-01[u-ca=islamic]").inLeapYear	error	RangeError	"'islamic' is not a valid calendar identifier"
+Temporal.PlainDate.from("2019-04-30[u-ca=islamic]").year	error	RangeError	"'islamic' is not a valid calendar identifier"
+Temporal.PlainDate.from("1900-01-01[u-ca=islamic]").subtract({months: 13}).toString()	error	RangeError	"'islamic' is not a valid calendar identifier"
+Temporal.PlainDate.from("2100-12-31[u-ca=islamic]").year	error	RangeError	"'islamic' is not a valid calendar identifier"
+Temporal.PlainDate.from("2100-12-31[u-ca=islamic]").toPlainMonthDay().toString()	error	RangeError	"'islamic' is not a valid calendar identifier"
+Temporal.PlainDate.from("2024-03-10[u-ca=islamic]").subtract({months: 13}).toString()	error	RangeError	"'islamic' is not a valid calendar identifier"
+Temporal.PlainYearMonth.from("2024-02-01[u-ca=islamic]").toString()	error	RangeError	"'islamic' is not a valid calendar identifier"
+Temporal.PlainDate.from({year: 5784, monthCode: "M05L", day: 1, calendar: "islamic"}).toString()	error	RangeError	"invalid calendar identifier: islamic"
+Temporal.PlainDate.from({year: 1445, month: 13, day: 1, calendar: "islamic"}).toString()	error	RangeError	"invalid calendar identifier: islamic"
+Temporal.ZonedDateTime.from("2024-02-29T12:00[UTC][u-ca=islamic]").year	error	RangeError	"'islamic' is not a valid calendar identifier"
+Temporal.PlainDate.from("2024-02-29[u-ca=japanese]").monthCode	ok	"M02"
+Temporal.PlainDate.from("2024-02-29[u-ca=japanese]").era	ok	"reiwa"
+Temporal.PlainDate.from("2024-02-29[u-ca=japanese]").add({months: 1}).toString()	ok	"2024-03-29[u-ca=japanese]"
+Temporal.PlainDate.from("2024-02-29[u-ca=japanese]").daysInMonth	ok	29
+Temporal.PlainDate.from("2023-09-16").withCalendar("japanese").toString()	ok	"2023-09-16[u-ca=japanese]"
+Temporal.PlainDate.from("2025-01-29[u-ca=japanese]").monthsInYear	ok	12
+Temporal.PlainDate.from("2025-01-29[u-ca=japanese]").toPlainMonthDay().toString()	ok	"1972-01-29[u-ca=japanese]"
+Temporal.PlainDate.from("2019-05-01").withCalendar("japanese").toString()	ok	"2019-05-01[u-ca=japanese]"
+Temporal.PlainDate.from("2019-04-30[u-ca=japanese]").toString()	ok	"2019-04-30[u-ca=japanese]"
+Temporal.PlainDate.from("2019-04-30[u-ca=japanese]").year	ok	2019
+Temporal.PlainDate.from("2019-04-30[u-ca=japanese]").add({years: 1, days: 1}).toString()	ok	"2020-05-01[u-ca=japanese]"
+Temporal.PlainDate.from("2019-04-30[u-ca=japanese]").monthsInYear	ok	12
+Temporal.PlainDate.from("2019-04-30[u-ca=japanese]").until("2030-06-15", {largestUnit: "months"})	error	RangeError	"cannot compute difference between dates with different calendars"
+Temporal.PlainDate.from("1900-01-01[u-ca=japanese]").subtract({months: 13}).toString()	ok	"1898-12-01[u-ca=japanese]"
+Temporal.PlainDate.from("2100-12-31[u-ca=japanese]").subtract({months: 13}).toString()	ok	"2099-11-30[u-ca=japanese]"
+Temporal.PlainDate.from("2100-12-31[u-ca=japanese]").daysInMonth	ok	31
+Temporal.PlainDate.from("2024-03-10[u-ca=japanese]").daysInMonth	ok	31
+Temporal.ZonedDateTime.from("2024-02-29T12:00[UTC][u-ca=japanese]").add({months: 1}).toString()	ok	"2024-03-29T12:00:00+00:00[UTC][u-ca=japanese]"
+Temporal.PlainDate.from("2024-02-29[u-ca=dangi]").toPlainYearMonth().toString()	ok	"2024-02-10[u-ca=dangi]"
+Temporal.PlainDate.from("2024-02-29[u-ca=dangi]").toPlainMonthDay().toString()	ok	"1972-03-05[u-ca=dangi]"
+Temporal.PlainDate.from("2023-09-16[u-ca=dangi]").toPlainMonthDay().toString()	ok	"1972-09-09[u-ca=dangi]"
+Temporal.PlainDate.from("2025-01-29[u-ca=dangi]").toPlainMonthDay().toString()	ok	"1972-02-15[u-ca=dangi]"
+Temporal.PlainDate.from("1989-01-07[u-ca=dangi]").monthCode	ok	"M11"
+Temporal.PlainDate.from("1989-01-07[u-ca=dangi]").year	ok	1988
+Temporal.PlainDate.from("2019-04-30[u-ca=dangi]").era	ok	undefined
+Temporal.PlainDate.from("2019-04-30[u-ca=dangi]").add({years: 1, days: 1}).toString()	ok	"2020-04-19[u-ca=dangi]"
+Temporal.PlainDate.from("2019-04-30[u-ca=dangi]").daysInMonth	ok	30
+Temporal.PlainDate.from("2019-04-30[u-ca=dangi]").monthsInYear	ok	12
+Temporal.PlainDate.from("1900-01-01[u-ca=dangi]").toString()	ok	"1900-01-01[u-ca=dangi]"
+Temporal.PlainDate.from("1900-01-01[u-ca=dangi]").daysInMonth	ok	30
+Temporal.PlainDate.from("2100-12-31[u-ca=dangi]").year	ok	2100
+Temporal.PlainDate.from("2100-12-31[u-ca=dangi]").add({years: 1, days: 1}).toString()	ok	"2102-01-20[u-ca=dangi]"
+Temporal.PlainDate.from("2100-12-31[u-ca=dangi]").subtract({months: 13}).toString()	ok	"2099-12-12[u-ca=dangi]"
+Temporal.PlainDate.from("2100-12-31[u-ca=dangi]").until("2030-06-15", {largestUnit: "months"})	error	RangeError	"cannot compute difference between dates with different calendars"
+Temporal.PlainDate.from("2024-03-10[u-ca=dangi]").monthCode	ok	"M02"
+Temporal.PlainDate.from("2024-03-10[u-ca=dangi]").inLeapYear	ok	false
+Temporal.PlainYearMonth.from("2024-02-01[u-ca=dangi]").add({months: 6}).toString()	ok	"2024-07-06[u-ca=dangi]"
+Temporal.PlainDate.from("2024-02-29[u-ca=indian]").daysInMonth	ok	30
+Temporal.PlainDate.from("2024-02-29").withCalendar("indian").toString()	ok	"2024-02-29[u-ca=indian]"
+Temporal.PlainDate.from("2023-09-16[u-ca=indian]").monthCode	ok	"M06"
+Temporal.PlainDate.from("2023-09-16[u-ca=indian]").inLeapYear	ok	false
+Temporal.PlainDate.from("2025-01-29[u-ca=indian]").toString()	ok	"2025-01-29[u-ca=indian]"
+Temporal.PlainDate.from("2025-01-29[u-ca=indian]").year	ok	1946
+Temporal.PlainDate.from("2025-01-29[u-ca=indian]").toPlainYearMonth().toString()	ok	"2025-01-21[u-ca=indian]"
+Temporal.PlainDate.from("1989-01-07[u-ca=indian]").monthCode	ok	"M10"
+Temporal.PlainDate.from("1989-01-07[u-ca=indian]").until("2030-06-15", {largestUnit: "months"})	error	RangeError	"cannot compute difference between dates with different calendars"
+Temporal.PlainDate.from("1989-01-07[u-ca=indian]").toPlainMonthDay().toString()	ok	"1972-01-07[u-ca=indian]"
+Temporal.PlainDate.from("2019-05-01[u-ca=indian]").year	ok	1941
+Temporal.PlainDate.from("2019-05-01[u-ca=indian]").toPlainMonthDay().toString()	ok	"1972-05-01[u-ca=indian]"
+Temporal.PlainDate.from("2019-04-30[u-ca=indian]").monthsInYear	ok	12
+Temporal.PlainDate.from("2019-04-30[u-ca=indian]").toPlainYearMonth().toString()	ok	"2019-04-21[u-ca=indian]"
+Temporal.PlainDate.from("2019-04-30[u-ca=indian]").toPlainMonthDay().toString()	ok	"1972-04-30[u-ca=indian]"
+Temporal.PlainDate.from("1900-01-01").withCalendar("indian").toString()	ok	"1900-01-01[u-ca=indian]"
+Temporal.PlainDate.from("1900-01-01[u-ca=indian]").until("2030-06-15", {largestUnit: "months"})	error	RangeError	"cannot compute difference between dates with different calendars"
+Temporal.PlainDate.from("2100-12-31[u-ca=indian]").toString()	ok	"2100-12-31[u-ca=indian]"
+Temporal.PlainDate.from("2100-12-31[u-ca=indian]").era	ok	"shaka"
+Temporal.PlainDate.from("2100-12-31[u-ca=indian]").daysInMonth	ok	30
+Temporal.PlainDate.from("2100-12-31").withCalendar("indian").toString()	ok	"2100-12-31[u-ca=indian]"
+Temporal.PlainYearMonth.from("2024-02-01[u-ca=indian]").add({months: 6}).toString()	ok	"2024-07-23[u-ca=indian]"
+Temporal.PlainDate.from({year: 5784, monthCode: "M05L", day: 1, calendar: "indian"}).toString()	error	RangeError	"monthCode is not valid for this calendar"
+Temporal.PlainDate.from("2024-02-29[u-ca=persian]").daysInMonth	ok	29
+Temporal.PlainDate.from("2025-01-29[u-ca=persian]").add({months: 1}).toString()	ok	"2025-02-28[u-ca=persian]"
+Temporal.PlainDate.from("2025-01-29[u-ca=persian]").inLeapYear	ok	true
+Temporal.PlainDate.from("2025-01-29[u-ca=persian]").toPlainMonthDay().toString()	ok	"1972-01-30[u-ca=persian]"
+Temporal.PlainDate.from("1989-01-07[u-ca=persian]").toString()	ok	"1989-01-07[u-ca=persian]"
+Temporal.PlainDate.from("1989-01-07[u-ca=persian]").until("2030-06-15", {largestUnit: "months"})	error	RangeError	"cannot compute difference between dates with different calendars"
+Temporal.PlainDate.from("2019-05-01[u-ca=persian]").until("2030-06-15", {largestUnit: "months"})	error	RangeError	"cannot compute difference between dates with different calendars"
+Temporal.PlainDate.from("1900-01-01[u-ca=persian]").toString()	ok	"1900-01-01[u-ca=persian]"
+Temporal.PlainDate.from("2100-12-31[u-ca=persian]").toString()	ok	"2100-12-31[u-ca=persian]"
+Temporal.PlainDate.from("2024-03-10[u-ca=persian]").toString()	ok	"2024-03-10[u-ca=persian]"
+Temporal.PlainDate.from("2024-03-10").withCalendar("persian").toString()	ok	"2024-03-10[u-ca=persian]"
+Temporal.PlainDate.from({year: 2024, month: 1, day: 30, calendar: "persian"}, {overflow: "reject"}).toString()	ok	"2645-04-19[u-ca=persian]"
+Temporal.ZonedDateTime.from("2024-02-29T12:00[UTC][u-ca=persian]").year	ok	1402
+Temporal.PlainDate.from("1989-01-07[u-ca=roc]").until("2030-06-15", {largestUnit: "months"})	error	RangeError	"cannot compute difference between dates with different calendars"
+Temporal.PlainDate.from("2019-05-01[u-ca=roc]").toPlainMonthDay().toString()	ok	"1972-05-01[u-ca=roc]"
+Temporal.PlainDate.from("1900-01-01[u-ca=roc]").until("2030-06-15", {largestUnit: "months"})	error	RangeError	"cannot compute difference between dates with different calendars"
+Temporal.PlainDate.from("1900-01-01[u-ca=roc]").toPlainMonthDay().toString()	ok	"1972-01-01[u-ca=roc]"
+Temporal.PlainDate.from("2100-12-31[u-ca=roc]").monthCode	ok	"M12"
+Temporal.PlainDate.from("2100-12-31[u-ca=roc]").toPlainYearMonth().toString()	ok	"2100-12-01[u-ca=roc]"
+Temporal.PlainDate.from("2024-03-10[u-ca=roc]").daysInMonth	ok	31
+Temporal.PlainDate.from("2024-03-10[u-ca=roc]").monthsInYear	ok	12
+Temporal.PlainDate.from("2024-03-10[u-ca=roc]").inLeapYear	ok	true
+Temporal.PlainDate.from("2024-03-10[u-ca=roc]").toPlainYearMonth().toString()	ok	"2024-03-01[u-ca=roc]"
+Temporal.PlainDate.from({year: 5784, monthCode: "M05L", day: 1, calendar: "roc"}).toString()	error	RangeError	"monthCode is not valid for this calendar"
+Temporal.PlainDate.from("2024-02-29[u-ca=buddhist]").add({months: 1}).toString()	ok	"2024-03-29[u-ca=buddhist]"
+Temporal.PlainDate.from("2024-02-29[u-ca=buddhist]").toPlainMonthDay().toString()	ok	"1972-02-29[u-ca=buddhist]"
+Temporal.PlainDate.from("2025-01-29[u-ca=buddhist]").year	ok	2568
+Temporal.PlainDate.from("2025-01-29[u-ca=buddhist]").era	ok	"be"
+Temporal.PlainDate.from("2025-01-29[u-ca=buddhist]").subtract({months: 13}).toString()	ok	"2023-12-29[u-ca=buddhist]"
+Temporal.PlainDate.from("2025-01-29[u-ca=buddhist]").daysInMonth	ok	31
+Temporal.PlainDate.from("2025-01-29[u-ca=buddhist]").monthsInYear	ok	12
+Temporal.PlainDate.from("2025-01-29").withCalendar("buddhist").toString()	ok	"2025-01-29[u-ca=buddhist]"
+Temporal.PlainDate.from("1989-01-07[u-ca=buddhist]").era	ok	"be"
+Temporal.PlainDate.from("1989-01-07[u-ca=buddhist]").daysInMonth	ok	31
+Temporal.PlainDate.from("1989-01-07[u-ca=buddhist]").toPlainMonthDay().toString()	ok	"1972-01-07[u-ca=buddhist]"
+Temporal.PlainDate.from("2019-05-01[u-ca=buddhist]").monthCode	ok	"M05"
+Temporal.PlainDate.from("2019-05-01[u-ca=buddhist]").era	ok	"be"
+Temporal.PlainDate.from("2019-05-01[u-ca=buddhist]").add({years: 1, days: 1}).toString()	ok	"2020-05-02[u-ca=buddhist]"
+Temporal.PlainDate.from("2019-05-01[u-ca=buddhist]").inLeapYear	ok	false
+Temporal.PlainDate.from("2019-05-01[u-ca=buddhist]").toPlainYearMonth().toString()	ok	"2019-05-01[u-ca=buddhist]"
+Temporal.PlainDate.from("2019-05-01[u-ca=buddhist]").toPlainMonthDay().toString()	ok	"1972-05-01[u-ca=buddhist]"
+Temporal.PlainDate.from("2019-04-30[u-ca=buddhist]").daysInMonth	ok	30
+Temporal.PlainDate.from("1900-01-01[u-ca=buddhist]").monthCode	ok	"M01"
+Temporal.PlainDate.from("1900-01-01[u-ca=buddhist]").monthsInYear	ok	12
+Temporal.PlainDate.from("1900-01-01[u-ca=buddhist]").toPlainYearMonth().toString()	ok	"1900-01-01[u-ca=buddhist]"
+Temporal.PlainDate.from("2100-12-31[u-ca=buddhist]").subtract({months: 13}).toString()	ok	"2099-11-30[u-ca=buddhist]"
+Temporal.PlainDate.from("2024-03-10[u-ca=buddhist]").add({months: 1}).toString()	ok	"2024-04-10[u-ca=buddhist]"
+Temporal.PlainDate.from("2024-03-10[u-ca=buddhist]").subtract({months: 13}).toString()	ok	"2023-02-10[u-ca=buddhist]"
+Temporal.PlainDate.from("2024-03-10[u-ca=buddhist]").daysInMonth	ok	31
+Temporal.PlainMonthDay.from({monthCode: "M05L", day: 1, calendar: "buddhist"}).toString()	error	RangeError	"monthCode is not valid for this calendar"
+Temporal.PlainDate.from("2023-09-16[u-ca=coptic]").monthCode	ok	"M01"
+Temporal.PlainDate.from("2023-09-16[u-ca=coptic]").inLeapYear	ok	false
+Temporal.PlainDate.from("2023-09-16[u-ca=coptic]").toPlainMonthDay().toString()	ok	"1972-09-15[u-ca=coptic]"
+Temporal.PlainDate.from("2025-01-29[u-ca=coptic]").toString()	ok	"2025-01-29[u-ca=coptic]"
+Temporal.PlainDate.from("1989-01-07[u-ca=coptic]").subtract({months: 13}).toString()	ok	"1988-01-08[u-ca=coptic]"
+Temporal.PlainDate.from("1989-01-07").withCalendar("coptic").toString()	ok	"1989-01-07[u-ca=coptic]"
+Temporal.PlainDate.from("2019-05-01[u-ca=coptic]").add({months: 1}).toString()	ok	"2019-05-31[u-ca=coptic]"
+Temporal.PlainDate.from("2019-04-30[u-ca=coptic]").add({years: 1, days: 1}).toString()	ok	"2020-05-01[u-ca=coptic]"
+Temporal.PlainDate.from("2019-04-30").withCalendar("coptic").toString()	ok	"2019-04-30[u-ca=coptic]"
+Temporal.PlainDate.from("1900-01-01[u-ca=coptic]").monthsInYear	ok	13
+Temporal.PlainDate.from("1900-01-01[u-ca=coptic]").toPlainYearMonth().toString()	ok	"1899-12-10[u-ca=coptic]"
+Temporal.PlainDate.from("2100-12-31[u-ca=coptic]").subtract({months: 13}).toString()	ok	"2099-12-31[u-ca=coptic]"
+Temporal.PlainDate.from("2100-12-31[u-ca=coptic]").toPlainYearMonth().toString()	ok	"2100-12-11[u-ca=coptic]"
+Temporal.PlainDate.from("2024-03-10[u-ca=coptic]").subtract({months: 13}).toString()	ok	"2023-03-10[u-ca=coptic]"
+Temporal.PlainDate.from("2024-03-10[u-ca=coptic]").monthsInYear	ok	13
+Temporal.PlainDate.from("2024-03-10[u-ca=coptic]").until("2030-06-15", {largestUnit: "months"})	error	RangeError	"cannot compute difference between dates with different calendars"
+Temporal.PlainMonthDay.from({monthCode: "M05L", day: 1, calendar: "coptic"}).toString()	error	RangeError	"monthCode is not valid for this calendar"
+Temporal.PlainDate.from({year: 1445, month: 13, day: 1, calendar: "coptic"}).toString()	ok	"1729-09-04[u-ca=coptic]"
+Temporal.PlainDate.from("2024-02-29[u-ca=ethiopic]").monthCode	ok	"M06"
+Temporal.PlainDate.from("2024-02-29[u-ca=ethiopic]").subtract({months: 13}).toString()	ok	"2023-02-28[u-ca=ethiopic]"
+Temporal.PlainDate.from("2025-01-29").withCalendar("ethiopic").toString()	ok	"2025-01-29[u-ca=ethiopic]"
+Temporal.PlainDate.from("1989-01-07[u-ca=ethiopic]").add({years: 1, days: 1}).toString()	ok	"1990-01-08[u-ca=ethiopic]"
+Temporal.PlainDate.from("2019-05-01[u-ca=ethiopic]").toString()	ok	"2019-05-01[u-ca=ethiopic]"
+Temporal.PlainDate.from("2019-05-01[u-ca=ethiopic]").add({years: 1, days: 1}).toString()	ok	"2020-05-02[u-ca=ethiopic]"
+Temporal.PlainDate.from("2019-05-01[u-ca=ethiopic]").inLeapYear	ok	true
+Temporal.PlainDate.from("2019-04-30[u-ca=ethiopic]").daysInMonth	ok	30
+Temporal.PlainDate.from("2019-04-30[u-ca=ethiopic]").monthsInYear	ok	13
+Temporal.PlainDate.from("2019-04-30[u-ca=ethiopic]").toPlainMonthDay().toString()	ok	"1972-04-30[u-ca=ethiopic]"
+Temporal.PlainDate.from("1900-01-01[u-ca=ethiopic]").daysInMonth	ok	30
+Temporal.PlainDate.from("1900-01-01").withCalendar("ethiopic").toString()	ok	"1900-01-01[u-ca=ethiopic]"
+Temporal.PlainDate.from("2024-03-10[u-ca=ethiopic]").monthCode	ok	"M07"
+Temporal.PlainDate.from("2024-03-10[u-ca=ethiopic]").subtract({months: 13}).toString()	ok	"2023-03-10[u-ca=ethiopic]"
+Temporal.PlainYearMonth.from("2024-02-01[u-ca=ethiopic]").toString()	ok	"2024-01-10[u-ca=ethiopic]"
+Temporal.PlainDate.from({era: "showa", eraYear: 64, month: 1, day: 7, calendar: "japanese"}).toString()	ok	"1989-01-07[u-ca=japanese]"
+Temporal.PlainDate.from({era: "meiji", eraYear: 6, month: 1, day: 1, calendar: "japanese"}).toString()	ok	"1873-01-01[u-ca=japanese]"
+Temporal.PlainDate.from("2024-01-01[!u-ca=hebrew]").calendarId	ok	"hebrew"
