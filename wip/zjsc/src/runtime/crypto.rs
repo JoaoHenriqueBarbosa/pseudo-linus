@@ -752,9 +752,14 @@ fn base64_url_text(bytes: &[u8]) -> String {
     String::from_utf8_lossy(&base64_encode(bytes, BASE64_URL, false)).into_owned()
 }
 
-/// A decodificação base64url leniente do bun: entrada inválida vira vazio.
+/// A decodificação base64url leniente do bun: entrada inválida vira vazio. O JWK grava base64url sem padding, e o
+/// decodificador compartilhado (`binascii`) exige o `=`, então o padding é completado antes.
 fn base64_url_bytes(text: &str) -> Vec<u8> {
-    base64_decode(text.replace('-', "+").replace('_', "/").as_bytes(), false).unwrap_or_default()
+    let mut standard = text.replace('-', "+").replace('_', "/");
+    while standard.len() % 4 != 0 {
+        standard.push('=');
+    }
+    base64_decode(standard.as_bytes(), false).unwrap_or_default()
 }
 
 /// Os usos que uma chave de curva elíptica aceita: assinar/verificar (ECDSA, Ed25519) ou derivar (ECDH, X25519, a pública
@@ -1888,7 +1893,7 @@ fn oct_jwk_secret(
         return Err(dom_error(global_object, call, "DataError", "JWK \"alg\" does not match the requested algorithm"));
     }
     // A decodificação base64url do bun é leniente: entrada inválida vira chave vazia.
-    Ok(base64_decode(k.replace('-', "+").replace('_', "/").as_bytes(), false).unwrap_or_default())
+    Ok(base64_url_bytes(k))
 }
 
 /// A chave AES de um JWK (`CryptoKeyAES` via `CryptoAlgorithmAES_*::importKey`, ramo `Jwk`): todo defeito é o mesmo
@@ -1901,7 +1906,7 @@ fn aes_jwk_secret(id: AlgorithmId, jwk: &Jwk, extractable: bool, usages: u16) ->
     if invalid {
         return None;
     }
-    let secret = base64_decode(k.replace('-', "+").replace('_', "/").as_bytes(), false).unwrap_or_default();
+    let secret = base64_url_bytes(k);
     let alg = jwk_aes_alg(id, secret.len());
     (jwk.alg.as_deref().is_none_or(|given| given == alg)).then_some(secret)
 }
