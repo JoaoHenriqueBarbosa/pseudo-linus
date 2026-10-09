@@ -204,13 +204,27 @@ impl ModuleHost for FileUrlHost {
     }
 }
 
+/// Quando o `log` é lido, como em cada gerador de golden: na continuação do `await import(main)`
+/// (`gen-module-more-golden.js`, `gen-module-edge-golden.js`) ou depois de um `setTimeout(0)` a mais
+/// (`gen-module-golden.js`). O que o laço de eventos rodar depois disso não entra no `log`.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum LogPoint {
+    EntrySettled,
+    NextTimeout,
+}
+
 /// Avalia o mapa de arquivos `files` (chave, fonte) a partir do módulo `entry` (por exemplo `main.mjs`) num
 /// realm novo, depois de definir os globais `log` (array) e `L(x)` (que empurra `String(x)` em `log`).
-/// Esvazia as microtarefas e devolve o `log` serializado em JSON e o erro que rejeitou a avaliação, se houve.
-/// Um módulo que nunca termina (top-level await pendente) devolve o erro `pending`.
-pub fn evaluate_module_map(files: &[(String, String)], entry: &str) -> ModuleMapOutcome {
+/// Roda o laço de eventos até o ponto de leitura `log_point` e devolve o `log` serializado em JSON e o erro que
+/// rejeitou a avaliação, se houve. Um módulo que nunca termina (top-level await pendente) devolve o erro `pending`.
+pub fn evaluate_module_map_until(files: &[(String, String)], entry: &str, log_point: LogPoint) -> ModuleMapOutcome {
     let host = FileUrlHost { inner: MemoryModuleHost::new(files.iter().cloned()) };
-    evaluate_logged_module(Rc::new(host), &format!("./{entry}"))
+    evaluate_logged_module(Rc::new(host), &format!("./{entry}"), log_point)
+}
+
+/// [`evaluate_module_map_until`] com o `log` lido quando a entrada assenta.
+pub fn evaluate_module_map(files: &[(String, String)], entry: &str) -> ModuleMapOutcome {
+    evaluate_module_map_until(files, entry, LogPoint::EntrySettled)
 }
 
 /// Como [`evaluate_module_map`], mas o grafo vem de um [`ModuleFs`] (`import` estático e `import()` dinâmico
@@ -218,10 +232,69 @@ pub fn evaluate_module_map(files: &[(String, String)], entry: &str) -> ModuleMap
 /// de chave `entry_key` (caminho absoluto, ex. `/app/main.mjs`).
 pub fn evaluate_module_with_fs(fs: Rc<dyn ModuleFs>, source: &str, entry_key: &str) -> ModuleMapOutcome {
     let host = EntryHost { specifier: entry_key.to_owned(), source: source.to_owned(), inner: Rc::new(FsModuleHost::new(fs)) };
-    evaluate_logged_module(Rc::new(host), entry_key)
+    evaluate_logged_module(Rc::new(host), entry_key, LogPoint::EntrySettled)
 }
 
-fn evaluate_logged_module(host: Rc<dyn ModuleHost>, entry_specifier: &str) -> ModuleMapOutcome {
+/// O erro como os geradores dos goldens de módulo o escrevem: `Nome: mensagem` para um `Error` (inclusive o
+/// `ResolveMessage` e o `BuildMessage`, que o bun faz herdar de `Error`), `throw <String(valor)>` para o resto.
+fn describe_rejection(global_object: &crate::runtime::js_global_object::JSGlobalObjectRef, reason: JSValue) -> String {
+    let formatter = "(function (e) { return e instanceof Error ? e.name + ': ' + e.message : 'throw ' + String(e); })";
+    let text = evaluate(global_object, &program_source(formatter)).ok().and_then(|function| {
+        crate::runtime::call_data::call_with_error_message(global_object, function, JSValue::undefined(), &[reason], "formatador do erro").ok()
+    });
+    match text {
+        Some(value) if value.is_string() => {
+            String::from_utf8_lossy(&value.as_js_string().value().utf8(ConversionMode::LenientConversion)).into_owned()
+        }
+        _ => {
+            global_object.vm().clear_exception();
+            describe_exception(&reason)
+        }
+    }
+}
+
+/// O `log` serializado em JSON, ou `"null"`.
+fn logged(global_object: &crate::runtime::js_global_object::JSGlobalObjectRef) -> String {
+    match evaluate(global_object, &program_source("JSON.stringify(log)")) {
+        Ok(value) if value.is_string() => {
+            let bytes = value.as_js_string().value().utf8(ConversionMode::LenientConversion);
+            String::from_utf8_lossy(&bytes).into_owned()
+        }
+        _ => "null".to_owned(),
+    }
+}
+
+thread_local! {
+    /// O global do programa em curso, o ponto de leitura do `log` e o `log` lido nele.
+    static SETTLED_LOG: std::cell::RefCell<(Option<crate::runtime::js_global_object::JSGlobalObjectRef>, LogPoint, Option<String>)> =
+        const { std::cell::RefCell::new((None, LogPoint::EntrySettled, None)) };
+}
+
+/// Lê o `log` e para o laço de eventos: o que ainda estiver na fila não entra mais no `log`.
+fn take_log_and_halt() {
+    let global_object = SETTLED_LOG.with(|slot| slot.borrow().0.clone());
+    if let Some(global_object) = global_object {
+        let text = logged(&global_object);
+        SETTLED_LOG.with(|slot| slot.borrow_mut().2 = Some(text));
+    }
+    crate::runtime::timers::halt_event_loop();
+}
+
+/// A avaliação do módulo de entrada assentou: lê o `log` agora, ou depois de um `setTimeout(0)`.
+fn entry_settled(global_object: &crate::runtime::js_global_object::JSGlobalObject) {
+    match SETTLED_LOG.with(|slot| slot.borrow().1) {
+        LogPoint::EntrySettled => take_log_and_halt(),
+        LogPoint::NextTimeout => crate::runtime::timers::schedule_native(global_object, 0.0, Rc::new(|_| take_log_and_halt())),
+    }
+}
+
+fn entry_settled_reaction_body(global_object: &crate::runtime::js_global_object::JSGlobalObject, _call: &crate::runtime::host_call::HostCall) -> crate::runtime::host_call::HostResult {
+    entry_settled(global_object);
+    Ok(JSValue::undefined())
+}
+crate::host_function!(entry_settled_reaction, entry_settled_reaction_body);
+
+fn evaluate_logged_module(host: Rc<dyn ModuleHost>, entry_specifier: &str, log_point: LogPoint) -> ModuleMapOutcome {
     crate::runtime::cell_registry::run_program(|| {
         let (vm, global_object) = new_global_object();
         let _finalizer = VmFinalizer::new(&vm);
@@ -229,8 +302,20 @@ fn evaluate_logged_module(host: Rc<dyn ModuleHost>, entry_specifier: &str) -> Mo
         // `evaluate` devolve `Err` se o prelúdio falhar, o que seria bug do porte, não do caso.
         let prelude = "globalThis.log = []; globalThis.L = (x) => { log.push(String(x)); };";
         let _ = evaluate(&global_object, &program_source(prelude));
+        // Como no bun, o `import()` de um módulo novo é uma leitura entregue pelo laço de eventos (uma macrotask):
+        // o laço roda até o ponto de leitura do `log`.
+        crate::runtime::timers::enable_event_loop();
+        SETTLED_LOG.with(|slot| *slot.borrow_mut() = (Some(global_object.clone()), log_point, None));
         let promise = load_and_evaluate_module(&global_object, entry_specifier);
         vm.drain_microtasks();
+        if promise.status() == PromiseStatus::Pending {
+            let reaction = crate::runtime::timers::native(&global_object, "", 1, entry_settled_reaction);
+            promise.perform_promise_then(&*global_object, reaction, reaction, JSValue::undefined());
+            crate::runtime::timers::run_event_loop_until_held(&global_object);
+        } else if log_point == LogPoint::NextTimeout {
+            entry_settled(&global_object);
+            crate::runtime::timers::run_event_loop_until_held(&global_object);
+        }
         let error = match promise.status() {
             PromiseStatus::Fulfilled => None,
             PromiseStatus::Rejected => {
@@ -239,13 +324,9 @@ fn evaluate_logged_module(host: Rc<dyn ModuleHost>, entry_specifier: &str) -> Mo
             }
             PromiseStatus::Pending => Some("pending".to_owned()),
         };
-        let log_json = match evaluate(&global_object, &program_source("JSON.stringify(log)")) {
-            Ok(value) if value.is_string() => {
-                let bytes = value.as_js_string().value().utf8(ConversionMode::LenientConversion);
-                String::from_utf8_lossy(&bytes).into_owned()
-            }
-            _ => "null".to_owned(),
-        };
+        let settled = SETTLED_LOG.with(|slot| std::mem::take(&mut slot.borrow_mut().2));
+        SETTLED_LOG.with(|slot| slot.borrow_mut().0 = None);
+        let log_json = settled.unwrap_or_else(|| logged(&global_object));
         ModuleMapOutcome { log_json, error }
     })
 }

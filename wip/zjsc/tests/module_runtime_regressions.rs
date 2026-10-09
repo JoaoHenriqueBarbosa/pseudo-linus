@@ -47,6 +47,22 @@ fn deferred_namespace_evaluates_on_has_and_missing_get() {
     }
 }
 
+/// O `import()` de um módulo novo é uma leitura que o laço de eventos entrega: o que ninguém espera não roda antes
+/// do fim do módulo de entrada, e duas leituras rodam uma de cada vez, cada uma com as suas microtasks.
+#[test]
+fn dynamic_import_loads_in_a_macrotask() {
+    let (log, error) = run(&[("main.mjs", "L('main'); import('./a.mjs'); L('end');"), ("a.mjs", "L('a');")]);
+    assert_eq!(error, None);
+    assert_eq!(log, r#"["main","end"]"#);
+    let (log, error) = run(&[
+        ("main.mjs", "await Promise.all([import('./o1.mjs'), import('./o2.mjs')]); L('done');"),
+        ("o1.mjs", "L('o1 start'); await null; L('o1 end');"),
+        ("o2.mjs", "L('o2 start'); await null; await null; L('o2 end');"),
+    ]);
+    assert_eq!(error, None);
+    assert_eq!(log, r#"["o1 start","o1 end","o2 start","o2 end","done"]"#);
+}
+
 /// `import.meta` do Bun: nenhuma propriedade própria, os valores vêm de um protótipo escondido que lê pelo `this`
 /// (`@@toStringTag` `ImportMeta`); `getPrototypeOf` dá `null`, mas o `[[Prototype]]` de verdade continua lá.
 #[test]

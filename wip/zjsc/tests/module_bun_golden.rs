@@ -8,7 +8,7 @@
 //! pelo texto exato `Nome: mensagem`: o porte imita essa camada em `src/runtime/js_module_loader.rs`.
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
-use zjsc::api::module::evaluate_module_map;
+use zjsc::api::module::{evaluate_module_map_until, LogPoint};
 
 const GOLDEN: &str = include_str!("golden/module_bun.tsv");
 
@@ -88,7 +88,8 @@ fn json_quote(text: &str) -> String {
 
 /// O resultado no formato do golden, ou o motivo de o porte não ter chegado lá.
 fn run(files: &[(String, String)]) -> Result<(String, Option<String>), String> {
-    let outcome = catch_unwind(AssertUnwindSafe(|| evaluate_module_map(files, "main.mjs")));
+    // O gerador espera um `setTimeout(0)` depois do `await import(main)` antes de imprimir o `log`.
+    let outcome = catch_unwind(AssertUnwindSafe(|| evaluate_module_map_until(files, "main.mjs", LogPoint::NextTimeout)));
     match outcome {
         Ok(outcome) => Ok((outcome.log_json, outcome.error)),
         Err(panic) => {
