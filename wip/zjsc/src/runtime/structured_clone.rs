@@ -253,6 +253,10 @@ fn clone_special(global_object: &JSGlobalObject, call: &HostCall, value: &JSValu
         let source = ObjectRef::from_value(value).ok_or(Thrown::Pending)?;
         return clone_error(global_object, &source, cell, memory).map(Some);
     }
+    if let Some(created) = crate::runtime::crypto::clone_crypto_key(global_object, value) {
+        memory.push((cell, created));
+        return Ok(Some(created));
+    }
     if let Some(state) = state_of(*value) {
         // `Blob` e `File` (`BlobTag` do WebCore): o clone leva os bytes, o `type`, o nome e o `lastModified`; propriedades
         // extras e o protótipo de subclasse se perdem.

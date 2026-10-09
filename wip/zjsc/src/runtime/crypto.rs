@@ -707,6 +707,13 @@ fn create_key(global_object: &JSGlobalObject, state: KeyState) -> JSValue {
     key
 }
 
+/// `structuredClone` de uma `CryptoKey` (`CryptoKeyTag` do WebCore): a chave nova leva o mesmo estado (tipo, algoritmo, usos,
+/// material e `extractable`); `None` quando `value` não é uma chave.
+pub(crate) fn clone_crypto_key(global_object: &JSGlobalObject, value: &JSValue) -> Option<JSValue> {
+    let state = KEYS.with(|keys| keys.borrow().get(&value.encode()).cloned())?;
+    Some(create_key(global_object, state))
+}
+
 fn hmac_secret_key(hash: usize, secret: Vec<u8>, extractable: bool, usages: u16) -> KeyState {
     KeyState { aes: None, asym: None, rsa: None, pq: None, hash, secret, extractable, usages, algorithm: None, usages_value: None }
 }
