@@ -796,13 +796,20 @@ fn key_type_name(key: &KeyState) -> &'static str {
 
 /// A curva do algoritmo: o `namedCurve` obrigatório do ECDSA/ECDH (curva desconhecida é `NotSupportedError`), ou a fixa do
 /// Ed25519/X25519.
-fn asym_curve(global_object: &JSGlobalObject, call: &HostCall, id: AlgorithmId, algorithm: JSValue) -> Result<Curve, Thrown> {
+/// No `importKey` (`importing`), medido no bun 1.4.2, a curva desconhecida é `DataError` `Invalid keyData`.
+fn asym_curve(global_object: &JSGlobalObject, call: &HostCall, id: AlgorithmId, algorithm: JSValue, importing: bool) -> Result<Curve, Thrown> {
     match id {
         AlgorithmId::Ed25519 => Ok(Curve::Ed25519),
         AlgorithmId::X25519 => Ok(Curve::X25519),
         _ => {
             let name = required_member(global_object, algorithm, "EcKeyParams", "namedCurve", "DOMString")?;
-            Curve::from_named(&string_of(global_object, name)?).ok_or_else(|| dom_error(global_object, call, "NotSupportedError", NOT_SUPPORTED))
+            Curve::from_named(&string_of(global_object, name)?).ok_or_else(|| {
+                if importing {
+                    dom_error(global_object, call, "DataError", "Invalid keyData")
+                } else {
+                    dom_error(global_object, call, "NotSupportedError", NOT_SUPPORTED)
+                }
+            })
         }
     }
 }
@@ -1027,7 +1034,7 @@ fn pq_jwk_members(key: &KeyState, pq: Pq) -> Vec<(&'static str, JwkMember)> {
 
 /// `generateKey` de ECDSA, ECDH, Ed25519 e X25519: o `CryptoKeyPair` (`privateKey` e `publicKey`, nessa ordem).
 fn generate_asym_key(global_object: &JSGlobalObject, call: &HostCall, id: AlgorithmId, usages: u16) -> HostResult {
-    let curve = asym_curve(global_object, call, id, call.argument(0))?;
+    let curve = asym_curve(global_object, call, id, call.argument(0), false)?;
     // O par aceita os usos das duas metades (`sign` e `verify`); a privada fica com os dela e a pública com os dela
     // (medido no bun 1.4.2). Uso fora das duas metades, `SyntaxError`; privada sem nenhum uso, `Usages cannot be empty`.
     let private_usages = usages & asym_usages(id, true);
@@ -1055,6 +1062,10 @@ fn asym_jwk_material(global_object: &JSGlobalObject, call: &HostCall, jwk: &Jwk,
     let invalid = || dom_error(global_object, call, "DataError", "Invalid keyData");
     let nist = asym.curve.is_nist();
     if jwk.kty.as_deref() != Some(if nist { "EC" } else { "OKP" }) {
+        return Err(invalid());
+    }
+    // Medido no bun 1.4.2: o JWK de curva NIST sem `crv` é `Invalid keyData`.
+    if nist && jwk.crv.is_none() {
         return Err(invalid());
     }
     if jwk.crv.as_deref().is_some_and(|crv| crv != asym.curve.name()) {
@@ -1122,7 +1133,7 @@ fn import_asym_key(
     extractable: bool,
     usages: u16,
 ) -> Result<KeyState, Thrown> {
-    let curve = asym_curve(global_object, call, id, algorithm)?;
+    let curve = asym_curve(global_object, call, id, algorithm, true)?;
     // `toKeyData`: `jwk` ausente (`null`/`undefined`) é `DataError`; outro valor que não é objeto, `TypeError`.
     if format == "jwk" && jwk.is_none() {
         return Err(missing_jwk_error(global_object, call, false));
