@@ -196,6 +196,25 @@ fn throw_coded_message_with_attributes(
     own: &[(&str, NetworkProperty)],
     attributes: &dyn Fn(&str) -> u32,
 ) -> Thrown {
+    throw_coded_message_in_frame(global_object, kind, message, code, own, attributes, true)
+}
+
+/// Lança o erro de validação de `process.exit`: `code` próprio e enumerável, e a pilha sem o frame nativo `exit`
+/// (medido no bun 1.4.2: o relato de erro não capturado mostra ` code: "ERR_..."` e só o frame do chamador).
+pub(crate) fn throw_validation_error(global_object: &JSGlobalObject, kind: ErrorType, message: &str, code: &str) -> Thrown {
+    let own = [("code", NetworkProperty::Text(code))];
+    throw_coded_message_in_frame(global_object, kind, WtfString::from_utf8(message.as_bytes()), None, &own, &locked_attributes, false)
+}
+
+fn throw_coded_message_in_frame(
+    global_object: &JSGlobalObject,
+    kind: ErrorType,
+    message: WtfString,
+    code: Option<&str>,
+    own: &[(&str, NetworkProperty)],
+    attributes: &dyn Fn(&str) -> u32,
+    include_top_native: bool,
+) -> Thrown {
     let vm = global_object.vm();
     let structure = match code {
         Some(code) if code != OWN_CODE => coded_structure(global_object, kind, code),
@@ -214,7 +233,7 @@ fn throw_coded_message_with_attributes(
     }
     let top = vm.top_call_frame();
     if top != 0 {
-        if let Some(frames) = capture_frames(global_object, CallFrame::create(top), None, true) {
+        if let Some(frames) = capture_frames(global_object, CallFrame::create(top), None, include_top_native) {
             instance.set_pending_stack(frames);
         }
     }
