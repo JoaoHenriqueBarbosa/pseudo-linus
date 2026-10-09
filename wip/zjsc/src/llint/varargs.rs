@@ -290,8 +290,14 @@ impl Interpreter {
         let (length, callee_frame) =
             self.size_frame_for_varargs(global_object, call_frame, arguments, num_used_stack_slots, first_var_arg as u32, &site)?;
 
-        // varargsSetup: setupVarargsFrameAndSetThis.
-        self.load_varargs(global_object, callee_frame, arguments, first_var_arg as u32, length)?;
+        // varargsSetup: setupVarargsFrameAndSetThis. Como o `sp` do C++ já desceu ao frame do callee
+        // (`slow_path_size_frame_for_varargs`), o JS que `loadVarargs` roda (getter de índice, proxy) monta os
+        // frames dele abaixo dos argumentos já copiados, sem sobrescrevê-los.
+        let saved_sp = self.sp();
+        self.set_sp(callee_frame.registers());
+        let loaded = self.load_varargs(global_object, callee_frame, arguments, first_var_arg as u32, length);
+        self.set_sp(saved_sp);
+        loaded?;
         callee_frame.set_argument_count_including_this(&self.stack, length as i32 + 1);
         callee_frame.set_this_value(&self.stack, this_value);
         self.call_prepared_frame(call_frame, code_block, global_object, callee_frame, callee_value, kind, tail, pc, return_pc)

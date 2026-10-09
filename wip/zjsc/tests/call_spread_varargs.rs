@@ -336,3 +336,17 @@ fn named_function_expression_strict_assignment_by_child_throws() {
         assert!(is_true(&wrapped), "esperado TypeError em: {source}");
     }
 }
+
+/// Regressão (Wikipedia no chromium headless): o JS que `loadVarargs` roda (getter de índice) monta os frames dele
+/// abaixo dos argumentos já copiados, porque o `sp` desce ao frame do callee como no C++. Antes o getter sobrescrevia
+/// os argumentos do `push` nativo e o frame lia um registrador que não era `JSValue`.
+#[test]
+fn varargs_getter_does_not_clobber_copied_arguments() {
+    assert!(is_true(
+        "function deep(n) { var a = [n, n + 1, n + 2, n + 3]; return n > 0 ? deep(n - 1) + a.length : 0; } \
+         var src = { length: 64 }; \
+         for (var i = 0; i < 64; i++) (function (i) { Object.defineProperty(src, i, { get: function () { deep(20); return { v: i }; } }); })(i); \
+         var out = []; Array.prototype.push.apply(out, src); \
+         out.length === 64 && out.every(function (x, i) { return x && x.v === i; })"
+    ));
+}
