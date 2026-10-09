@@ -38,7 +38,8 @@ opções ainda não são lidas), `BuildMessage` e `ResolveMessage` agora no obje
 onde `putDirect` não encaminha), `global_order_bun_golden` verde (o mínimo de 150 programas era de um golden antigo, o
 gerador atual produz 2), `function_source` verde (golden regenerado). Sobras medidas: `buffer` 2 (data/fuso do bun e o
 `inspect` de extras do `Buffer` com aspas simples onde o bun usa duplas), `global_navigator` 3 (`R = ...` sem declarar
-em modo estrito, regeneração dá o mesmo golden), `global_semantics` 3 (ordem `a,d` contra `d,a` e `#0` contra `#23`).
+em modo estrito, regeneração dá o mesmo golden), `global_semantics` 2 (ordem `a,d` do bun contra `d,a` do porte em uma das três formas do programa; o `#0` contra `#23` foi
+consertado: os nomes privados do `SymbolTable` do global passavam a `getOwnPropertySymbols`).
 `console_dir` (30): o golden roda o fonte cru como script e o bun o transpila, então o nome do frame (`<anonymous>`) e as
 posições mapeadas não batem; o conserto é o gerador gravar o texto canônico com o mapa de posições (`prepareProgram`).
 
