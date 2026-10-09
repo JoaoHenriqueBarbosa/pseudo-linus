@@ -235,7 +235,15 @@ defineHtml('HTMLDialogElement', ['dialog'], (cls) => {
 });
 defineHtml('HTMLSlotElement', ['slot'], (cls) => {
   reflect(cls, [['name', 'name']]);
-  Object.assign(cls.prototype, { assignedNodes() { return []; }, assignedElements() { return []; } });
+  // Atribuição manual por nome: o slot nomeado recebe os filhos do host com `slot` igual; o padrão, os sem `slot`.
+  const assigned = (slot) => {
+    let root = slot.parentNode;
+    while (root && !(root instanceof ShadowRoot)) root = root.parentNode;
+    if (!root) return [];
+    const name = slot.getAttribute('name') || '';
+    return Array.from(root.__host.childNodes).filter((n) => (n.nodeType === 1 ? (n.getAttribute('slot') || '') === name : n.nodeType === 3 && name === ''));
+  };
+  Object.assign(cls.prototype, { assignedNodes() { return assigned(this); }, assignedElements() { return assigned(this).filter((n) => n.nodeType === 1); } });
 });
 defineHtml('HTMLTableElement', ['table']);
 defineHtml('HTMLTableRowElement', ['tr'], (cls) => Object.defineProperty(cls.prototype, 'cells', { get() { const self = this; return liveList(HTMLCollection.prototype, () => Array.from(self.children).filter((c) => /^(td|th)$/i.test(c.localName))); }, configurable: true }));
@@ -346,6 +354,7 @@ const upgradeElement = (el, def) => {
   Object.setPrototypeOf(el, def.ctor.prototype);
   upgrading = el;
   try { new def.ctor(); } catch (error) { upgrading = null; reportError(error); return; }
+  op('setDefined', idOf(el));
   if (def.observed.size && typeof el.attributeChangedCallback === 'function') {
     for (const name of attrNames(idOf(el))) if (def.observed.has(name)) invokeReaction(() => el.attributeChangedCallback(name, null, el.getAttribute(name)));
   }
@@ -369,6 +378,16 @@ function afterInsert(node) {
     if (def && !el.__upgraded && connected) upgradeElement(el, def);
     else if (def && el.__upgraded && connected && typeof el.connectedCallback === 'function') invokeReaction(() => el.connectedCallback());
     if (connected && el.localName === 'script') runDynamicScript(el);
+    for (const child of Array.from(el.children)) walk(child);
+  };
+  walk(node);
+}
+
+// Chamado depois de um nó conectado sair da árvore: `disconnectedCallback` dos custom elements da subárvore.
+function afterRemove(node) {
+  if (node.nodeType !== 1) return;
+  const walk = (el) => {
+    if (el.__upgraded && typeof el.disconnectedCallback === 'function') invokeReaction(() => el.disconnectedCallback());
     for (const child of Array.from(el.children)) walk(child);
   };
   walk(node);

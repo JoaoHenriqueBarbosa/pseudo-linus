@@ -1,0 +1,114 @@
+{
+ "url": "https://lab.test/lab-modules/",
+ "recorded_at": 1791500000,
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://lab.test/lab-modules/app.mjs",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "c8074ee3a0c58f14143d5bf1b769ad1162cd8f5d69b6e4b9529bc84a310cc49a"
+  },
+  {
+   "method": "GET",
+   "url": "https://lab.test/lab-modules/broken.mjs",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "8bdb933617d57fd46ac9e5d5f3805823b86af3d83469f8887d99c9fbfdec534f"
+  },
+  {
+   "method": "GET",
+   "url": "https://lab.test/lab-modules/config.json",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/json"
+    ]
+   ],
+   "body": "d49eb07fd73d87a5da7e47495758857d983dc71dbea84f3ae30bd196b1af523e"
+  },
+  {
+   "method": "GET",
+   "url": "https://lab.test/lab-modules/cycle-a.mjs",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "f5190796bca95537331d3c3d6a330e83af7dc7b41d0872598f4d4cf822c2f361"
+  },
+  {
+   "method": "GET",
+   "url": "https://lab.test/lab-modules/cycle-b.mjs",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "a506bb2443e20d5797cdceee7b3f84a9779b29c0e56d35a7961bb0e89057f489"
+  },
+  {
+   "method": "GET",
+   "url": "https://lab.test/lab-modules/",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "body": "cd453a6cb2eab247d24fdb90bdd64c0e1de47815f29425a7c0cdd092d82409da"
+  },
+  {
+   "method": "GET",
+   "url": "https://lab.test/lab-modules/late.mjs",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "82dca9eda409fcb34dfe043b75ef96f4280c7bf318b52d182e736b49aa6a8f01"
+  },
+  {
+   "method": "GET",
+   "url": "https://lab.test/lab-modules/state.mjs",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "f37d389e970b94dc7a320ee6d86b110a6d530eb075761855e60eafce6802f883"
+  },
+  {
+   "method": "GET",
+   "url": "https://lab.test/lab-modules/lib/describe.mjs",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/javascript; charset=utf-8"
+    ]
+   ],
+   "body": "32d758966c2625bd1c46f0191fc27b50539f8db6c383d5941243a9126b44af15"
+  }
+ ]
+}

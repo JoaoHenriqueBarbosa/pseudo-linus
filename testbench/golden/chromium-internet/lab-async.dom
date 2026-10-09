@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head>
+<meta charset="utf-8">
+<title>lab: assíncrono</title>
+</head>
+<body>
+<h1>Ordem assíncrona</h1>
+<p>Ticks: <span id="ticks">5</span></p>
+<pre id="log">1 síncrono
+2 async antes do await
+9 síncrono final (deve ser o segundo)
+3 then 1
+4 queueMicrotask
+4b async depois do await
+5 then 2 encadeado
+any b
+allSettled rejected,fulfilled
+AggregateError: AggregateError 1
+6 setTimeout 0
+7 microtarefa dentro do timeout
+8 all 1,2,3
+10 setTimeout 100
+11 race rápido
+12 setTimeout 200
+13 argumentos extras: xy
+14 for await 0,1,2
+15 interval parado em 5
+16 timeout de 2s dentro do orçamento</pre>
+<pre id="summary">raf: number
+idle: number boolean
+unhandledrejection: sem catch
+timeouts encadeados: 50</pre>
+<script>
+  // O Chromium headless deixa o tempo real vazar no virtual: abaixo de uns 10ms a ordem entre timers, quadros e
+  // ociosidade muda de uma execução para outra. Por isso os timers daqui ficam a 50ms ou mais uns dos outros, e o que não
+  // tem posição garantida (rAF, idle, unhandledrejection) só entra no resumo do fim.
+  var lines = [];
+  function log(line) { lines.push(String(line)); document.getElementById('log').textContent = lines.join('\n'); }
+  var seen = {};
+
+  log('1 síncrono');
+  setTimeout(function () { log('6 setTimeout 0'); Promise.resolve().then(function () { log('7 microtarefa dentro do timeout'); }); }, 0);
+  setTimeout(function () { log('12 setTimeout 200'); }, 200);
+  setTimeout(function () { log('10 setTimeout 100'); }, 100);
+  Promise.resolve().then(function () { log('3 then 1'); return null; }).then(function () { log('5 then 2 encadeado'); });
+  queueMicrotask(function () { log('4 queueMicrotask'); });
+  (async function () { log('2 async antes do await'); await null; log('4b async depois do await'); })();
+  requestAnimationFrame(function (t) { seen.raf = typeof t; });
+  requestIdleCallback(function (deadline) { seen.idle = typeof deadline.timeRemaining() + ' ' + typeof deadline.didTimeout; }, { timeout: 500 });
+
+  Promise.all([1, Promise.resolve(2), new Promise(function (r) { setTimeout(function () { r(3); }, 50); })]).then(function (v) { log('8 all ' + v.join(',')); });
+  Promise.race([new Promise(function (r) { setTimeout(function () { r('lento'); }, 800); }), new Promise(function (r) { setTimeout(function () { r('rápido'); }, 150); })]).then(function (v) { log('11 race ' + v); });
+  Promise.any([Promise.reject(new Error('a')), Promise.resolve('b')]).then(function (v) { log('any ' + v); });
+  Promise.allSettled([Promise.reject(new TypeError('x')), 1]).then(function (r) { log('allSettled ' + r.map(function (s) { return s.status; }).join(',')); });
+  Promise.any([Promise.reject(1)]).catch(function (e) { log('AggregateError: ' + e.constructor.name + ' ' + e.errors.length); });
+
+  async function* generator() { for (var i = 0; i < 3; i++) { await new Promise(function (r) { setTimeout(r, 300); }); yield i; } }
+  (async function () { var out = []; for await (var v of generator()) out.push(v); log('14 for await ' + out.join(',')); })();
+
+  window.addEventListener('unhandledrejection', function (e) { seen.unhandled = String(e.reason); e.preventDefault(); });
+  Promise.reject('sem catch');
+
+  var ticks = 0;
+  var id = setInterval(function () {
+    ticks += 1;
+    document.getElementById('ticks').textContent = String(ticks);
+    if (ticks === 5) { clearInterval(id); log('15 interval parado em 5'); }
+  }, 300);
+
+  var chained = 0;
+  (function next() { if (++chained < 50) setTimeout(next, 0); else seen.chained = chained; })();
+  setTimeout(function () { log('16 timeout de 2s dentro do orçamento'); }, 2000);
+  setTimeout(function () { log('timeout de 60s fora do orçamento'); }, 60000);
+  var cancelled = setTimeout(function () { log('cancelado não roda'); }, 1);
+  clearTimeout(cancelled);
+  setTimeout(function (a, b) { log('13 argumentos extras: ' + a + b); }, 250, 'x', 'y');
+  setTimeout(function () {
+    document.getElementById('summary').textContent = [
+      'raf: ' + seen.raf,
+      'idle: ' + seen.idle,
+      'unhandledrejection: ' + seen.unhandled,
+      'timeouts encadeados: ' + seen.chained
+    ].join('\n');
+  }, 2500);
+  log('9 síncrono final (deve ser o segundo)');
+</script>
+
+
+</body></html>

@@ -334,6 +334,11 @@ impl DomHost for Bridge {
                 self.mutate(|m| m.set_attribute(id, qname, value));
                 Ok(DomArg::Undefined)
             }
+            "setDefined" => {
+                let id = id_arg(args, 0)?;
+                self.doc.borrow_mut().get_node_mut(id).ok_or_else(illegal)?.set_defined();
+                Ok(DomArg::Undefined)
+            }
             "removeAttr" => {
                 let id = id_arg(args, 0)?;
                 let name = str_arg(args, 1)?;

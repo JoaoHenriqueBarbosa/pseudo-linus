@@ -1,0 +1,18 @@
+{
+ "url": "https://lab.test/lab-async/",
+ "recorded_at": 1791500000,
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://lab.test/lab-async/",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/html; charset=utf-8"
+    ]
+   ],
+   "body": "fc90b0aa8af2043c7a834e6c391e3021f970c0a8ca773078b9b226314fde6abf"
+  }
+ ]
+}

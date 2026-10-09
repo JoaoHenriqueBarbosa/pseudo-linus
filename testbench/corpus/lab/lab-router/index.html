@@ -50,14 +50,15 @@
   var u = new URL('/api/itens?pagina=2&ordem=asc', location.href);
   u.searchParams.append('filtro', 'ç ã');
   log('URL: ' + u.href);
+  // A travessia do histórico passa pelo processo do navegador e leva tempo real: passos a 300ms ficam fora da corrida.
   setTimeout(function () {
     log('history.back()');
     history.back();
     setTimeout(function () {
       location.hash = 'secao';
-      setTimeout(function () { history.go(-1); }, 20);
-    }, 20);
-  }, 20);
+      setTimeout(function () { history.go(-1); }, 300);
+    }, 300);
+  }, 300);
 </script>
 </body>
 </html>

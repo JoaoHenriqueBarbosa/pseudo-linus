@@ -7,7 +7,7 @@ use blitz_html::DocumentHtmlParser;
 use html5ever::ParseOpts;
 use html5ever::tendril::TendrilSink;
 use html5ever::tree_builder::TreeBuilderOpts;
-use markup5ever::QualName;
+use markup5ever::{LocalName, QualName, ns};
 
 /// Parseia `html` num documento novo, com as opções do navegador (scripting ligado: `<noscript>` vira texto).
 pub fn parse(html: &str) -> BaseDocument {
@@ -90,18 +90,26 @@ pub fn detach_children(mutr: &mut DocumentMutator<'_>, parent: NodeId) {
 /// Mesmas opções do documento: scripting ligado, então o conteúdo de `<noscript>` vira texto como no Chromium.
 pub fn set_inner_html(mutr: &mut DocumentMutator<'_>, context: NodeId, html: &str) {
     detach_children(mutr, context);
+    // A raiz de sombra (na ponte, um elemento sem namespace) não é elemento HTML: o contexto do parse é o host, que
+    // (como todo host de `attachShadow`) põe o parser no modo de corpo. Sem isso o html5ever trata o fragmento como
+    // conteúdo estrangeiro, sem namespace.
+    let is_element = mutr.doc.get_node(context).and_then(|n| n.element_data()).is_some_and(|e| e.name.ns != ns!());
+    let parse_context = if is_element { context } else { mutr.create_element(QualName::new(None, ns!(html), LocalName::from("div")), Vec::new()) };
     let sink = DocumentHtmlParser::new(mutr);
     let opts = ParseOpts {
         tree_builder: TreeBuilderOpts { scripting_enabled: true, drop_doctype: true, ..Default::default() },
         ..Default::default()
     };
-    html5ever::driver::parse_fragment_for_element(sink, opts, context, false, None).from_utf8().read_from(&mut html.as_bytes()).unwrap();
+    html5ever::driver::parse_fragment_for_element(sink, opts, parse_context, false, None).from_utf8().read_from(&mut html.as_bytes()).unwrap();
     // O html5ever cria uma raiz de fragmento sob o documento: os filhos dela passam ao contexto e ela some.
     let document_id = mutr.doc.root_node().id;
     let fragment_root = mutr.last_child_id(document_id).unwrap();
     let children = mutr.child_ids(fragment_root);
     mutr.append_children(context, &children);
     mutr.remove_and_drop_node(fragment_root);
+    if !is_element {
+        mutr.remove_and_drop_node(parse_context);
+    }
 }
 
 /// Elementos sem conteúdo nem tag de fechamento.

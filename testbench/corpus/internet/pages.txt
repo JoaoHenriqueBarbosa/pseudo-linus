@@ -1,4 +1,4 @@
-# id|grupo|url   (grupo: static = página que vem pronta do servidor; spa = a página se monta no navegador por JS)
+# id|grupo|url   (grupo: static = página que vem pronta do servidor; spa = a página se monta no navegador por JS; lab = SPA própria do laboratório, testbench/corpus/lab)
 example-com|static|https://example.com/
 iana-example|static|https://www.iana.org/help/example-domains
 cern-www|static|http://info.cern.ch/hypertext/WWW/TheProject.html
@@ -35,3 +35,9 @@ nextjs-org|spa|https://nextjs.org/
 vite-dev|spa|https://vite.dev/
 htmx-org|spa|https://htmx.org/
 preactjs-com|spa|https://preactjs.com/
+lab-modules|lab|https://lab.test/lab-modules/
+lab-components|lab|https://lab.test/lab-components/
+lab-observers|lab|https://lab.test/lab-observers/
+lab-router|lab|https://lab.test/lab-router/
+lab-network|lab|https://lab.test/lab-network/
+lab-async|lab|https://lab.test/lab-async/

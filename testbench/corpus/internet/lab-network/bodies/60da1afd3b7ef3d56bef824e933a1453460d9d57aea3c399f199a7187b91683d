@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>lab: rede</title>
+</head>
+<body>
+<h1>Rede</h1>
+<ul id="itens"></ul>
+<pre id="log"></pre>
+<script>
+  var lines = [];
+  function log(line) { lines.push(String(line)); document.getElementById('log').textContent = lines.join('\n'); }
+
+  async function main() {
+    var r = await fetch('api/itens.json');
+    log('fetch: ' + r.status + ' ' + r.ok + ' type=' + r.type + ' ct=' + r.headers.get('content-type') + ' url=' + r.url.replace(location.origin, ''));
+    var itens = await r.json();
+    itens.forEach(function (i) { var li = document.createElement('li'); li.textContent = i.nome; document.getElementById('itens').appendChild(li); });
+
+    var detalhe = await fetch('api/item/' + itens[1].id + '.json').then(function (x) { return x.json(); });
+    log('encadeado: ' + detalhe.descricao);
+
+    await new Promise(function (resolve) {
+      var xhr = new XMLHttpRequest();
+      var states = [];
+      xhr.onreadystatechange = function () { states.push(xhr.readyState); };
+      xhr.onload = function () { log('XHR: status=' + xhr.status + ' estados=' + states.join(',') + ' texto=' + xhr.responseText.trim() + ' header=' + xhr.getResponseHeader('X-Lab')); resolve(); };
+      xhr.open('GET', 'api/texto.txt');
+      xhr.send();
+      log('XHR enviado, readyState=' + xhr.readyState);
+    });
+
+    var json = new XMLHttpRequest();
+    json.responseType = 'json';
+    json.open('GET', 'api/itens.json');
+    await new Promise(function (resolve) { json.onloadend = resolve; json.send(); });
+    log('XHR json: ' + Array.isArray(json.response) + ' ' + json.response.length);
+
+    var sync = new XMLHttpRequest();
+    sync.open('GET', 'api/texto.txt', false);
+    sync.send();
+    log('XHR síncrono: ' + sync.status + ' ' + sync.responseText.trim());
+
+    var bin = await fetch('api/dados.bin').then(function (x) { return x.arrayBuffer(); });
+    log('arrayBuffer: ' + bin.byteLength + ' bytes, primeiros ' + Array.from(new Uint8Array(bin).slice(0, 4)).join(','));
+
+    var faltando = await fetch('api/nao-existe.json');
+    log('404: ok=' + faltando.ok + ' status=' + faltando.status);
+
+    try { await fetch('https://cdn.lab.test/sem-cors.json'); log('sem CORS: não deveria passar'); } catch (e) { log('sem CORS: ' + e.name + ': ' + e.message); }
+    var comCors = await fetch('https://cdn.lab.test/com-cors.json').then(function (x) { return x.json(); });
+    log('com CORS: ' + comCors.ok);
+
+    var controller = new AbortController();
+    var pending = fetch('api/itens.json', { signal: controller.signal });
+    controller.abort();
+    try { await pending; } catch (e) { log('abort: ' + e.name); }
+
+    var posted = await fetch('api/eco', { method: 'POST', body: JSON.stringify({ a: 1 }), headers: { 'Content-Type': 'application/json' } });
+    log('POST: ' + posted.status + ' ' + (await posted.text()).trim());
+
+    var headers = new Headers({ 'X-Um': '1' });
+    headers.append('X-Um', '2');
+    log('Headers: ' + headers.get('x-um') + ' has=' + headers.has('X-UM'));
+    var clone = (await fetch('api/texto.txt')).clone();
+    log('clone: ' + (await clone.text()).trim());
+    log('fim');
+  }
+  main().catch(function (e) { log('falhou: ' + e.name + ': ' + e.message); });
+</script>
+</body>
+</html>

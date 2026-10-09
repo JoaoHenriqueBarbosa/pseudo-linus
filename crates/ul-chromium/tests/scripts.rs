@@ -95,6 +95,17 @@ fn no_server_runtime_globals() {
     for name in ["process", "Bun", "require", "module", "exports", "global", "Buffer", "__dirname", "__filename", "setImmediate", "$plHook", "__pl_dom", "__pl_eval"] {
         assert!(!log.split_whitespace().any(|g| g == name), "global {name} visível");
     }
+    // Binding léxico de topo não é propriedade do global: só o `typeof` o enxerga.
+    let (_, log) = run(&[("/", "<script>console.log(typeof $plHook, typeof hook, typeof op)</script>")]);
+    assert_eq!(log, "undefined undefined undefined\n");
+}
+
+/// O innerHTML da raiz de sombra cria elementos HTML (o contexto é o host) e o slot atribui por nome.
+#[test]
+fn shadow_root_slots() {
+    let script = "<div id=h><span slot=a>x</span><em>y</em></div><script>var r = document.getElementById('h').attachShadow({mode:'open'}); r.innerHTML = '<slot name=a></slot><slot></slot>'; var s = r.querySelector('slot'); console.log(s.constructor.name, s.namespaceURI,s.assignedNodes().map(n => n.textContent).join(), r.querySelector('slot:not([name])').assignedElements().map(n => n.localName).join())</script>";
+    let (_, log) = run(&[("/", script)]);
+    assert_eq!(log, "HTMLSlotElement http://www.w3.org/1999/xhtml x em\n");
 }
 
 #[test]

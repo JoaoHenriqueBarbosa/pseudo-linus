@@ -32,18 +32,23 @@ class Location {
 tag(Location, 'Location');
 const location = Object.create(Location.prototype);
 
-// Muda só o fragmento: dispara hashchange. Qualquer outra mudança é navegação, que o hospedeiro executa.
+// Muda só o fragmento: cria entrada no histórico, dispara popstate na hora e hashchange numa tarefa. Qualquer outra
+// mudança é navegação, que o hospedeiro executa.
 function navigate(url) {
   const old = pageState.url;
   if (url === old) return;
-  const strip = (u) => u.replace(/#.*$/, '');
-  if (strip(url) === strip(old)) {
+  if (sameDocument(url, old)) {
+    history.__entries.splice(history.__index + 1);
+    history.__entries.push({ state: null, url });
+    history.__index++;
     pageState.url = url;
+    window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
     setTimeout(() => { window.dispatchEvent(new HashChangeEvent('hashchange', { oldURL: old, newURL: url })); }, 0);
     return;
   }
   op('navigate', url);
 }
+const sameDocument = (a, b) => a.replace(/#.*$/, '') === b.replace(/#.*$/, '');
 
 class History {
   constructor() { throw new TypeError('Illegal constructor'); }
@@ -63,18 +68,25 @@ class History {
   go(delta) {
     const target = this.__index + (delta | 0);
     if (!delta || target < 0 || target >= this.__entries.length) return;
-    this.__index = target;
     const entry = this.__entries[target];
+    // A primeira entrada é o about:blank de onde o headless partiu: voltar até ela é sair do documento.
+    if (target === 0) { op('navigate', entry.url); return; }
+    const old = pageState.url;
+    this.__index = target;
     pageState.url = entry.url;
-    setTimeout(() => window.dispatchEvent(new PopStateEvent('popstate', { state: entry.state })), 0);
+    setTimeout(() => {
+      window.dispatchEvent(new PopStateEvent('popstate', { state: entry.state }));
+      if (old !== entry.url && sameDocument(old, entry.url)) window.dispatchEvent(new HashChangeEvent('hashchange', { oldURL: old, newURL: entry.url }));
+    }, 0);
   }
   back() { this.go(-1); }
   forward() { this.go(1); }
 }
 tag(History, 'History');
 const history = Object.create(History.prototype);
-hidden(history, '__entries', [{ state: null, url: pageState.url }]);
-hidden(history, '__index', 0);
+// O headless abre about:blank e só então navega para a URL pedida: o histórico começa com duas entradas.
+hidden(history, '__entries', [{ state: null, url: 'about:blank' }, { state: null, url: pageState.url }]);
+hidden(history, '__index', 1);
 
 class Navigator {
   constructor() { throw new TypeError('Illegal constructor'); }
@@ -365,6 +377,9 @@ const realFetch = (input, init = {}) => new Promise((resolve, reject) => {
     if (result === null) return reject(new TypeError('Failed to fetch'));
     const response = new Response(result[0] === 204 || result[0] === 205 || result[0] === 304 ? null : rawBytes(result[4]), { status: result[0], statusText: result[1], headers: headerList(result[3]) });
     Object.defineProperty(response, 'url', { value: result[2], configurable: true });
+    // A resposta filtrada: `basic` na mesma origem, `cors` na que passou pelo CORS.
+    Object.defineProperty(response, 'type', { value: new URL(result[2]).origin === new URL(pageState.url).origin ? 'basic' : 'cors', configurable: true });
+    Object.defineProperty(response, 'redirected', { value: result[2] !== url.replace(/#.*$/, ''), configurable: true });
     resolve(response);
   }, 0);
 });

@@ -15,7 +15,10 @@ use crate::runtime::host_call::{HostCall, HostResult, Thrown};
 use crate::runtime::js_global_object::{JSGlobalObject, JSGlobalObjectRef};
 use crate::runtime::js_module_loader::rust_string;
 use crate::runtime::js_promise::Status;
-use crate::runtime::js_value::JSValue;
+use crate::runtime::js_string::js_string;
+use crate::runtime::js_value::{js_number, JSValue};
+use crate::runtime::object_to_primitive::call_function;
+use crate::wtf::text::wtf_string::String as WtfString;
 use crate::runtime::implementation_visibility::ImplementationVisibility;
 use crate::runtime::native_class_support::install_global_function_with_visibility;
 use crate::runtime::program_executable::ProgramExecutable;
@@ -42,6 +45,17 @@ fn pl_eval_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     Ok(JSValue::undefined())
 }
 host_function!(pl_eval, pl_eval_body);
+
+/// Um valor do programa escondido que o hospedeiro guarda para chamar depois ([`PageRunner::call_hidden`]).
+pub struct HostHandle(JSValue);
+
+/// Argumento de [`PageRunner::call_hidden`].
+#[derive(Clone, Copy)]
+pub enum HostArg<'a> {
+    Str(&'a str),
+    Num(f64),
+    Null,
+}
 
 /// O programa em curso: avalia scripts no global da página.
 pub struct PageRunner {
@@ -74,9 +88,34 @@ impl PageRunner {
     /// Como [`PageRunner::eval`], para o código do hospedeiro (o DOM em JavaScript e as chamadas ao gancho dele):
     /// as funções criadas são builtins para a página, sem nome de arquivo nem frame no `Error.stack`.
     pub fn eval_hidden(&self, source: &str) -> Result<(), String> {
+        self.eval_hidden_value(source).map(|_| ())
+    }
+
+    /// Como [`PageRunner::eval_hidden`], guardando o valor de completude do programa (a função gancho do DOM, que
+    /// assim não precisa de binding global que a página enxergue). Sem coletor no porte, o valor vive até o fim.
+    pub fn eval_hidden_value(&self, source: &str) -> Result<HostHandle, String> {
         let result = crate::api::eval::evaluate_hidden_program(&self.global_object, source);
         self.vm.drain_microtasks();
-        result.map(|_| ()).map_err(|exception| describe_exception(&exception))
+        result.map(HostHandle).map_err(|exception| describe_exception(&exception))
+    }
+
+    /// Chama a função de `handle` com `args` a partir do hospedeiro (sem frame da página) e esvazia as microtarefas.
+    pub fn call_hidden(&self, handle: &HostHandle, args: &[HostArg]) -> Result<(), String> {
+        let args: Vec<JSValue> = args
+            .iter()
+            .map(|arg| match arg {
+                HostArg::Str(text) => JSValue::from_js_string(js_string(&self.vm, &WtfString::from_utf8(text.as_bytes()))),
+                HostArg::Num(number) => js_number(*number),
+                HostArg::Null => JSValue::null(),
+            })
+            .collect();
+        let result = call_function(&self.global_object, handle.0, JSValue::undefined(), &args).ok_or_else(|| {
+            let exception = self.vm.exception().map(|exception| describe_exception(&exception.value())).unwrap_or_default();
+            self.vm.clear_exception();
+            exception
+        });
+        self.vm.drain_microtasks();
+        result.map(|_| ())
     }
 
     /// Roda o laço de eventos (timers, immediates, microtarefas) no relógio virtual do motor até esvaziar ou até

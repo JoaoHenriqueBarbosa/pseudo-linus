@@ -9,7 +9,7 @@ use blitz_dom::{BaseDocument, NodeId};
 use sysabi::sys;
 use ul_net::net::client::RequestSpec;
 use ul_net::net::url;
-use zjsc::api::embed::run_page;
+use zjsc::api::embed::{run_page, HostArg};
 use zjsc::runtime::console_host::ConsoleHost;
 
 use crate::bridge::{Bridge, USER_AGENT};
@@ -72,24 +72,6 @@ pub struct Page {
     pub console: Rc<dyn ConsoleHost>,
 }
 
-/// Texto JavaScript entre aspas para chamar o gancho.
-fn js_quote(text: &str) -> String {
-    let mut out = String::from("\"");
-    for c in text.chars() {
-        match c {
-            '"' => out.push_str("\\\""),
-            '\\' => out.push_str("\\\\"),
-            '\n' => out.push_str("\\n"),
-            '\r' => out.push_str("\\r"),
-            '\u{2028}' => out.push_str("\\u2028"),
-            '\u{2029}' => out.push_str("\\u2029"),
-            c => out.push(c),
-        }
-    }
-    out.push('"');
-    out
-}
-
 impl Page {
     /// Busca `url` (`file:`, `http:` ou `https:`) e monta o documento.
     pub fn load(url: &str, fetcher: Fetcher) -> Result<Page, String> {
@@ -137,17 +119,21 @@ impl Page {
         let module_bridge = self.bridge.clone();
         let module_fetch: zjsc::api::browser_modules::ModuleFetch = Rc::new(move |address: &str| fetch_text(&module_bridge.fetcher, address, "*/*"));
         run_page(self.console.clone(), bridge.clone(), &document_url, module_fetch, |runner| {
-            let prelude = format!("let $plHook = (function () {{ 'use strict';\n{}{}\nreturn hook;\n}})();", PRELUDE_PARTS.concat(), PRELUDE_TAIL);
-            if let Err(error) = runner.eval_hidden(&prelude) {
-                // O prelúdio é parte do navegador: falha dele é bug nosso e a página fica sem DOM de script.
-                eprintln!("chromium: prelúdio falhou: {error}");
-                return;
-            }
-            let call = |expression: &str| {
-                let _ = runner.eval_hidden(&format!("$plHook({expression})"));
+            // O valor do programa é a função gancho: o hospedeiro a guarda, sem binding global que a página veja.
+            let prelude = format!("(function () {{ 'use strict';\n{}{}\nreturn hook;\n}})();", PRELUDE_PARTS.concat(), PRELUDE_TAIL);
+            let hook = match runner.eval_hidden_value(&prelude) {
+                Ok(hook) => hook,
+                Err(error) => {
+                    // O prelúdio é parte do navegador: falha dele é bug nosso e a página fica sem DOM de script.
+                    eprintln!("chromium: prelúdio falhou: {error}");
+                    return;
+                }
+            };
+            let call = |args: &[HostArg]| {
+                let _ = runner.call_hidden(&hook, args);
             };
             let run_script = |info: &ScriptInfo| {
-                let node = info.node.as_u64();
+                let node = HostArg::Num(info.node.as_u64() as f64);
                 if info.kind == ScriptKind::Module {
                     // `document.currentScript` é `null` durante um módulo; a busca é do carregador de módulos.
                     let result = match &info.src {
@@ -158,21 +144,21 @@ impl Page {
                         }
                     };
                     if let Err(message) = result {
-                        call(&format!("'scriptError', {}, {}", js_quote(&message), js_quote(info.src.as_deref().unwrap_or(&document_url))));
+                        call(&[HostArg::Str("scriptError"), HostArg::Str(&message), HostArg::Str(info.src.as_deref().unwrap_or(&document_url))]);
                     }
                     return;
                 }
                 let Some((source, name)) = self.script_source(info) else {
-                    call(&format!("'fire', {node}, 'error'"));
+                    call(&[HostArg::Str("fire"), node, HostArg::Str("error")]);
                     return;
                 };
-                call(&format!("'currentScript', {node}"));
+                call(&[HostArg::Str("currentScript"), HostArg::Num(info.node.as_u64() as f64)]);
                 if let Err(message) = runner.eval(&source, &name) {
-                    call(&format!("'scriptError', {}, {}", js_quote(&message), js_quote(&name)));
+                    call(&[HostArg::Str("scriptError"), HostArg::Str(&message), HostArg::Str(&name)]);
                 }
-                call("'currentScript', null");
+                call(&[HostArg::Str("currentScript"), HostArg::Null]);
                 if info.src.is_some() {
-                    call(&format!("'fire', {node}, 'load'"));
+                    call(&[HostArg::Str("fire"), node, HostArg::Str("load")]);
                 }
             };
             for info in scripts.iter().filter(|s| s.kind == ScriptKind::Sync) {
@@ -184,13 +170,13 @@ impl Page {
             for info in scripts.iter().filter(|s| matches!(s.kind, ScriptKind::Defer | ScriptKind::Module)) {
                 run_script(info);
             }
-            call("'interactive'");
+            call(&[HostArg::Str("interactive")]);
             for info in scripts.iter().filter(|s| s.kind == ScriptKind::Async) {
                 run_script(info);
             }
             // As folhas de `<link rel=stylesheet>` chegam antes do `load` da janela; cada uma dispara `load` ou `error`.
             for (node, ok) in self.stylesheet_results() {
-                call(&format!("'fire', {}, '{}'", node.as_u64(), if ok { "load" } else { "error" }));
+                call(&[HostArg::Str("fire"), HostArg::Num(node.as_u64() as f64), HostArg::Str(if ok { "load" } else { "error" })]);
             }
             runner.run_event_loop_for(budget);
         });

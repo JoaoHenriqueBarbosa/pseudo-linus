@@ -170,8 +170,10 @@ class Node extends EventTarget {
     if (child.parentNode !== this) throw domException("Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.", 'NotFoundError');
     const previous = child.previousSibling;
     const next = child.nextSibling;
+    const wasConnected = child.isConnected;
     op('remove', idOf(child));
     mutationHook.record({ type: 'childList', target: this, removedNodes: [child], addedNodes: [], previousSibling: previous, nextSibling: next });
+    if (wasConnected) afterRemove(child);
     return child;
   }
   replaceChild(node, child) {

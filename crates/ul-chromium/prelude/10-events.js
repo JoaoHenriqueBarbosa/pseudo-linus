@@ -52,10 +52,12 @@ class EventTarget {
 tag(EventTarget, 'EventTarget');
 
 // O pai de um alvo no caminho do evento: nó -> pai; documento -> janela.
-const eventParent = (target) => {
+const eventParent = (target, event) => {
   if (isNode(target)) {
     const parent = op('parent', ids.get(target));
     if (parent !== null) return wrappers.get(parent) || wrap(parent);
+    // A raiz de sombra só passa o evento ao host quando ele é `composed`.
+    if (target.__host) return event && event.composed ? target.__host : null;
     return target.nodeType === 9 && target.__window ? target.__window : null;
   }
   return null;
@@ -128,7 +130,7 @@ const dispatch = (target, event) => {
   event.__dispatching = true;
   event.target = event.__targetOverride || target;
   const path = [];
-  for (let node = target; node; node = eventParent(node)) path.push(node);
+  for (let node = target; node; node = eventParent(node, event)) path.push(node);
   event.__path = path.slice();
   const run = (node, phase) => {
     event.currentTarget = node;
