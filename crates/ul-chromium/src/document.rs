@@ -68,10 +68,18 @@ pub fn qualified_attr_name(name: &QualName) -> String {
     }
 }
 
+/// Desliga os filhos de `parent` sem descartá-los: no DOM, um nó removido continua existindo enquanto a página o
+/// referencia (e pode voltar à árvore).
+pub fn detach_children(mutr: &mut DocumentMutator<'_>, parent: NodeId) {
+    for child in mutr.child_ids(parent).to_vec() {
+        mutr.remove_node(child);
+    }
+}
+
 /// Parseia `html` como fragmento no contexto de `context` e põe o resultado como filhos dele (substitui o que havia).
 /// Mesmas opções do documento: scripting ligado, então o conteúdo de `<noscript>` vira texto como no Chromium.
 pub fn set_inner_html(mutr: &mut DocumentMutator<'_>, context: NodeId, html: &str) {
-    mutr.remove_and_drop_all_children(context);
+    detach_children(mutr, context);
     let sink = DocumentHtmlParser::new(mutr);
     let opts = ParseOpts {
         tree_builder: TreeBuilderOpts { scripting_enabled: true, drop_doctype: true, ..Default::default() },

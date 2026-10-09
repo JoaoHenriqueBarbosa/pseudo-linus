@@ -38,19 +38,25 @@ fn err(name: &str, message: impl Into<String>) -> DomError {
     DomError { name: name.to_owned(), message: message.into() }
 }
 
+/// O que o Chromium lança quando um método de DOM recebe um `this` ou argumento que não é o objeto certo. Os erros
+/// internos da ponte (id que não resolve, argumento de tipo errado) chegam à página só assim.
+fn illegal() -> DomError {
+    err("TypeError", "Illegal invocation")
+}
+
 /// Os ids cruzam a ponte como número JavaScript: o `NodeId` do Blitz é um `u64` (índice mais versão do slot), e a
 /// versão só sobe quando um slot é reaproveitado, então o valor cabe nos 53 bits exatos de um `f64`.
 fn id_arg(args: &[DomArg], index: usize) -> Result<NodeId, DomError> {
     match args.get(index) {
         Some(DomArg::Num(n)) if *n >= 0.0 => Ok(NodeId::from_u64(*n as u64)),
-        _ => Err(err("TypeError", "id de nó inválido")),
+        _ => Err(illegal()),
     }
 }
 
 fn str_arg(args: &[DomArg], index: usize) -> Result<&str, DomError> {
     match args.get(index) {
         Some(DomArg::Str(s)) => Ok(s),
-        _ => Err(err("TypeError", "argumento de texto esperado")),
+        _ => Err(illegal()),
     }
 }
 
@@ -234,7 +240,7 @@ impl DomHost for Bridge {
             "docElement" => {
                 let doc = self.doc.borrow();
                 let root = match opt_id(args, 0) {
-                    Some(id) => doc.get_node(id).ok_or_else(|| err("TypeError", "nó inexistente"))?,
+                    Some(id) => doc.get_node(id).ok_or_else(illegal)?,
                     None => doc.root_node(),
                 };
                 Ok(root.children.iter().copied().find(|&c| doc.get_node(c).is_some_and(|n| n.is_element())).map_or(DomArg::Null, num))
@@ -242,7 +248,7 @@ impl DomHost for Bridge {
             "doctype" => Ok(self.doctype.clone().map_or(DomArg::Null, DomArg::Str)),
             "kind" => {
                 let doc = self.doc.borrow();
-                let node = doc.get_node(id_arg(args, 0)?).ok_or_else(|| err("TypeError", "nó inexistente"))?;
+                let node = doc.get_node(id_arg(args, 0)?).ok_or_else(illegal)?;
                 Ok(DomArg::Num(match &node.data {
                     NodeData::Element(e) if &*e.name.local == FRAGMENT => 11.0,
                     NodeData::Element(e) if &*e.name.local == SUBDOCUMENT => 9.0,
@@ -254,7 +260,7 @@ impl DomHost for Bridge {
             }
             "name" => {
                 let doc = self.doc.borrow();
-                let node = doc.get_node(id_arg(args, 0)?).ok_or_else(|| err("TypeError", "nó inexistente"))?;
+                let node = doc.get_node(id_arg(args, 0)?).ok_or_else(illegal)?;
                 Ok(DomArg::Str(match &node.data {
                     NodeData::Element(e) => e.name.local.to_string(),
                     NodeData::Text(_) => "#text".to_owned(),
@@ -264,7 +270,7 @@ impl DomHost for Bridge {
             }
             "ns" => {
                 let doc = self.doc.borrow();
-                let node = doc.get_node(id_arg(args, 0)?).ok_or_else(|| err("TypeError", "nó inexistente"))?;
+                let node = doc.get_node(id_arg(args, 0)?).ok_or_else(illegal)?;
                 Ok(node.element_data().map_or(DomArg::Null, |e| DomArg::Str(e.name.ns.to_string())))
             }
             "parent" => {
@@ -277,7 +283,7 @@ impl DomHost for Bridge {
             }
             "attrs" => {
                 let doc = self.doc.borrow();
-                let node = doc.get_node(id_arg(args, 0)?).ok_or_else(|| err("TypeError", "nó inexistente"))?;
+                let node = doc.get_node(id_arg(args, 0)?).ok_or_else(illegal)?;
                 let mut flat = Vec::new();
                 if let Some(element) = node.element_data() {
                     for attr in element.attrs.iter() {
@@ -290,7 +296,7 @@ impl DomHost for Bridge {
             "getAttr" => {
                 let doc = self.doc.borrow();
                 let wanted = str_arg(args, 1)?;
-                let node = doc.get_node(id_arg(args, 0)?).ok_or_else(|| err("TypeError", "nó inexistente"))?;
+                let node = doc.get_node(id_arg(args, 0)?).ok_or_else(illegal)?;
                 Ok(node
                     .element_data()
                     .and_then(|e| e.attrs.iter().find(|a| attr_matches(&a.name, wanted)))
@@ -322,7 +328,7 @@ impl DomHost for Bridge {
             }
             "data" => {
                 let doc = self.doc.borrow();
-                let node = doc.get_node(id_arg(args, 0)?).ok_or_else(|| err("TypeError", "nó inexistente"))?;
+                let node = doc.get_node(id_arg(args, 0)?).ok_or_else(illegal)?;
                 Ok(DomArg::Str(match &node.data {
                     NodeData::Text(t) => t.content.clone(),
                     NodeData::Comment { contents } => contents.clone(),
@@ -452,7 +458,7 @@ impl DomHost for Bridge {
                 let id = id_arg(args, 0)?;
                 let text = str_arg(args, 1)?;
                 self.mutate(|m| {
-                    m.remove_and_drop_all_children(id);
+                    document::detach_children(m, id);
                     if !text.is_empty() {
                         let node = m.create_text_node(text);
                         m.append_children(id, &[node]);
@@ -460,7 +466,7 @@ impl DomHost for Bridge {
                 });
                 Ok(DomArg::Undefined)
             }
-            other => Err(err("NotSupportedError", format!("operação de DOM desconhecida: {other}"))),
+            _ => Err(illegal()),
         }
     }
 }

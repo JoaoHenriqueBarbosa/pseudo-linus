@@ -1,0 +1,206 @@
+{
+ "url": "https://preactjs.com/",
+ "recorded_at": 1791584824,
+ "entries": [
+  {
+   "method": "GET",
+   "url": "https://preactjs.com/",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/html; charset=UTF-8"
+    ]
+   ],
+   "body": "edeb0003cd0f09139ddf03daa11273bfabf965e7a24cc756a00eaf851cf9c377"
+  },
+  {
+   "method": "GET",
+   "url": "https://preactjs.com/assets/index-Dzp56PZO.css",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "text/css; charset=UTF-8"
+    ],
+    [
+     "link",
+     "\"\""
+    ]
+   ],
+   "body": "2de9c9bb8439227cb5e0c2a5d17e71f6694ff0ec9e1fb1ad03b2c3b54e8f3b21"
+  },
+  {
+   "method": "GET",
+   "url": "https://preactjs.com/sponsor-icons.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "link",
+     "\"\""
+    ]
+   ],
+   "body": "281868750a29a04db7680a0e5e4d4f0787b59dfff105299b533409d6147a809f"
+  },
+  {
+   "method": "GET",
+   "url": "https://preactjs.com/contributors.json",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/json"
+    ],
+    [
+     "link",
+     "\"\""
+    ]
+   ],
+   "body": "0d9b16af7e60e1164535b8e24029bb8368d78152c37c981092061a36b84f92da"
+  },
+  {
+   "method": "GET",
+   "url": "https://preactjs.com/home/size.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "link",
+     "\"\""
+    ]
+   ],
+   "body": "8db0c0e8cc295d4518d3d21397a0f053cdc4d3a1b7933af85fbe0d5acedfe5b2"
+  },
+  {
+   "method": "GET",
+   "url": "https://preactjs.com/home/metal.svg",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ],
+    [
+     "link",
+     "\"\""
+    ]
+   ],
+   "body": "d6d05a635ea26a89b54e65a7e8328f4920d32f5826f952288ca51541ef63a2b7"
+  },
+  {
+   "method": "GET",
+   "url": "https://preactjs.com/.netlify/functions/release?repo=preact",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/json"
+    ]
+   ],
+   "body": "b12555cfef76900c87345eaa5a469667337ad50144d4497e14ff7e88d6afea2d"
+  },
+  {
+   "method": "GET",
+   "url": "https://www.google-analytics.com/analytics.js",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "text/javascript"
+    ]
+   ],
+   "body": "f1a61277e3f902f50ab42015d8b07218db9b7601bb0967e54a52bfdcb4fa7e81"
+  },
+  {
+   "method": "GET",
+   "url": "https://preactjs.com/assets/index-BTqsRQeh.js",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/javascript; charset=UTF-8"
+    ],
+    [
+     "link",
+     "\"\""
+    ]
+   ],
+   "body": "cd09de994674595a2354d67729f37b3ab389a10a141f2917827713727ab5d8c8"
+  },
+  {
+   "method": "GET",
+   "url": "data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 490 490\" width=\"16\" height=\"16\"><path fill=\"none\" stroke=\"%238c68cf\" stroke-width=\"36\" stroke-linecap=\"round\" d=\"m280,278a153,153 0 1,0-2,2l170,170m-91-117 110,110-26,26-110-110\"/></svg>",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/svg+xml"
+    ]
+   ],
+   "body": "b4cbbc83683f90041bc6829c9fc638ae0f40bec7b4d2f1aaf870c504fd36c7a1"
+  },
+  {
+   "method": "GET",
+   "url": "https://preactjs.com/.netlify/functions/repos?org=preactjs",
+   "status": 200,
+   "headers": [
+    [
+     "x-content-type-options",
+     "nosniff"
+    ],
+    [
+     "content-type",
+     "application/json"
+    ]
+   ],
+   "body": "b3561802fcae3d86e88b7a6073b76d51d7bfb9e7cb853b29784a08099d3f9e94"
+  },
+  {
+   "method": "GET",
+   "url": "https://preactjs.com/favicon.ico",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "image/vnd.microsoft.icon"
+    ],
+    [
+     "link",
+     "\"\""
+    ]
+   ],
+   "body": "11d4e710d72acae9f19bd577e9003d08dec5a17e8a738fc2c013d0136dab69e2"
+  },
+  {
+   "method": "GET",
+   "url": "https://preactjs.com/content/en/index.json",
+   "status": 200,
+   "headers": [
+    [
+     "content-type",
+     "application/json"
+    ],
+    [
+     "link",
+     "\"\""
+    ]
+   ],
+   "body": "bbd8f020aa9d93fabd18012e3a7501b1b6a55a76f2e2e8344fcdba388968ccb2"
+  }
+ ]
+}

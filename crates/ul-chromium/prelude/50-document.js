@@ -133,7 +133,7 @@ tag(Document, 'HTMLDocument');
 mixin(Document.prototype, ParentNode);
 mixin(Document.prototype, { getElementsByTagName: Element.prototype.getElementsByTagName, getElementsByTagNameNS: Element.prototype.getElementsByTagNameNS, getElementsByClassName: Element.prototype.getElementsByClassName });
 Object.defineProperty(Document.prototype, 'getElementById', { value: Document.prototype.getElementById, writable: true, configurable: true });
-defineHandlerProperties(Document.prototype, ['readystatechange', 'visibilitychange', 'fullscreenchange', 'selectionchange', 'DOMContentLoaded', 'pointerlockchange', 'freeze', 'resume']);
+defineHandlerProperties(Document.prototype, [...GLOBAL_HANDLERS, 'readystatechange', 'visibilitychange', 'fullscreenchange', 'fullscreenerror', 'pointerlockchange', 'pointerlockerror', 'freeze', 'resume', 'prerenderingchange', 'beforecopy', 'beforecut', 'beforepaste', 'search', 'webkitfullscreenchange', 'webkitfullscreenerror']);
 
 function documentWrite(html) {
   const current = document.__currentScript;

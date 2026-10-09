@@ -415,7 +415,7 @@ const hook = (name, a, b) => {
       if (window.dispatchEvent(event)) console.error('Uncaught ' + a);
       break;
     }
-    case 'currentScript': hidden(document, '__currentScript', a === null ? null : wrappers.get(a) || null); break;
+    case 'currentScript': hidden(document, '__currentScript', a === null ? null : wrap(a)); break;
     case 'url': pageState.url = a; break;
     default: break;
   }

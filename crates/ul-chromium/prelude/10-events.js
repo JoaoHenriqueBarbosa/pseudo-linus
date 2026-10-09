@@ -12,20 +12,25 @@ const storeOf = (target) => {
   return store;
 };
 
+// `addEventListener(...)` chamado solto no topo da página: no navegador o `this` ausente é a janela.
+const targetOf = (self) => (self === undefined || self === null ? globalThis : self);
+
 class EventTarget {
   addEventListener(type, callback, options) {
+    const self = targetOf(this);
     if (callback === null || callback === undefined) return;
     const opts = typeof options === 'boolean' ? { capture: options } : options || {};
     const entry = { callback, capture: !!opts.capture, once: !!opts.once, passive: !!opts.passive, removed: false };
-    const list = storeOf(this).get(String(type)) || [];
+    const list = storeOf(self).get(String(type)) || [];
     if (list.some((e) => e.callback === callback && e.capture === entry.capture)) return;
     list.push(entry);
-    storeOf(this).set(String(type), list);
-    if (opts.signal) opts.signal.addEventListener('abort', () => this.removeEventListener(type, callback, entry.capture), { once: true });
+    storeOf(self).set(String(type), list);
+    if (opts.signal) opts.signal.addEventListener('abort', () => self.removeEventListener(type, callback, entry.capture), { once: true });
   }
   removeEventListener(type, callback, options) {
+    const self = targetOf(this);
     const capture = typeof options === 'boolean' ? options : !!(options && options.capture);
-    const list = storeOf(this).get(String(type));
+    const list = storeOf(self).get(String(type));
     if (!list) return;
     const index = list.findIndex((e) => e.callback === callback && e.capture === capture);
     if (index >= 0) {
@@ -36,7 +41,7 @@ class EventTarget {
   dispatchEvent(event) {
     if (!(event instanceof Event)) throw new TypeError("Failed to execute 'dispatchEvent' on 'EventTarget': parameter 1 is not of type 'Event'.");
     if (event.__dispatching) throw domException('The event is already being dispatched.', 'InvalidStateError');
-    return dispatch(this, event);
+    return dispatch(targetOf(this), event);
   }
 }
 tag(EventTarget, 'EventTarget');
@@ -51,10 +56,15 @@ const eventParent = (target) => {
   return null;
 };
 
+const describeError = (error) => {
+  if (error && typeof error === 'object' && 'message' in error) return `${error.name || 'Error'}: ${error.message}`;
+  return String(error);
+};
+
 const reportError = (error) => {
-  const event = new ErrorEvent('error', { message: error && error.message !== undefined ? String(error.message) : String(error), error, cancelable: true });
+  const event = new ErrorEvent('error', { message: 'Uncaught ' + describeError(error), error, cancelable: true });
   const handled = !window.dispatchEvent(event);
-  if (!handled) console.error('Uncaught ' + (error && error.stack ? error.stack : String(error)));
+  if (!handled) console.error('Uncaught ' + describeError(error));
 };
 
 const invoke = (target, event, entry) => {
@@ -97,8 +107,13 @@ const callHandlerProperty = (target, event) => {
   if (handler === undefined) handler = attributeHandler(target, event.type);
   if (typeof handler !== 'function') return;
   try {
+    // `onerror` da janela recebe os campos do ErrorEvent como argumentos, e `true` cancela o relato.
+    if (event.type === 'error' && target === globalThis && event instanceof ErrorEvent) {
+      if (handler.call(target, event.message, event.filename, event.lineno, event.colno, event.error) === true) event.preventDefault();
+      return;
+    }
     const result = handler.call(target, event);
-    if (event.type === 'error' && target === globalThis ? result === true : result === false) event.preventDefault();
+    if (result === false) event.preventDefault();
   } catch (error) {
     reportError(error);
   }
@@ -211,6 +226,9 @@ const AnimationEvent = named('AnimationEvent', eventClass('AnimationEvent', Even
 const TransitionEvent = named('TransitionEvent', eventClass('TransitionEvent', Event, { propertyName: '', elapsedTime: 0, pseudoElement: '' }));
 const PageTransitionEvent = named('PageTransitionEvent', eventClass('PageTransitionEvent', Event, { persisted: false }));
 const SubmitEvent = named('SubmitEvent', eventClass('SubmitEvent', Event, { submitter: null }));
+
+// GlobalEventHandlers do Chromium 154: os `on<tipo>` de HTMLElement, SVGElement, MathMLElement, Document e Window.
+const GLOBAL_HANDLERS = ['abort', 'animationend', 'animationiteration', 'animationstart', 'auxclick', 'beforeinput', 'beforematch', 'beforetoggle', 'beforexrselect', 'blur', 'cancel', 'canplay', 'canplaythrough', 'change', 'click', 'close', 'contentvisibilityautostatechange', 'contextlost', 'contextmenu', 'contextrestored', 'copy', 'cuechange', 'cut', 'dblclick', 'drag', 'dragend', 'dragenter', 'dragleave', 'dragover', 'dragstart', 'drop', 'durationchange', 'emptied', 'ended', 'error', 'focus', 'formdata', 'gotpointercapture', 'input', 'invalid', 'keydown', 'keypress', 'keyup', 'load', 'loadeddata', 'loadedmetadata', 'loadstart', 'lostpointercapture', 'mousedown', 'mouseenter', 'mouseleave', 'mousemove', 'mouseout', 'mouseover', 'mouseup', 'mousewheel', 'paste', 'pause', 'play', 'playing', 'pointercancel', 'pointerdown', 'pointerenter', 'pointerleave', 'pointermove', 'pointerout', 'pointerover', 'pointerrawupdate', 'pointerup', 'progress', 'ratechange', 'reset', 'resize', 'scroll', 'scrollend', 'scrollsnapchange', 'scrollsnapchanging', 'securitypolicyviolation', 'seeked', 'seeking', 'select', 'selectionchange', 'selectstart', 'slotchange', 'stalled', 'submit', 'suspend', 'timeupdate', 'toggle', 'transitioncancel', 'transitionend', 'transitionrun', 'transitionstart', 'volumechange', 'waiting', 'webkitanimationend', 'webkitanimationiteration', 'webkitanimationstart', 'webkittransitionend', 'wheel'];
 
 // Os `on<tipo>` das interfaces de evento: propriedade que guarda um único tratador por tipo.
 const defineHandlerProperties = (proto, types) => {

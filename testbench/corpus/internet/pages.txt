@@ -34,4 +34,4 @@ angular-dev|spa|https://angular.dev/
 nextjs-org|spa|https://nextjs.org/
 vite-dev|spa|https://vite.dev/
 htmx-org|spa|https://htmx.org/
-solidjs|spa|https://www.solidjs.com/
+preactjs-com|spa|https://preactjs.com/
