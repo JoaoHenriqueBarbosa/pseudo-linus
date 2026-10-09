@@ -1050,7 +1050,9 @@ fn calendar_parts(state: &DateTimeFormatState, fields: &Fields, moment: &Moment)
     };
     let time = time_parts(state, fields, moment);
     if !parts.is_empty() && !time.is_empty() {
-        parts.push(date_time_joiner(state, fields));
+        // Medido no bun: com calendário não gregoriano `ja` junta com espaço e `fr` com ` à ` ou espaço, como no `iso8601`.
+        let native_ja_fr = native_date.is_some() && matches!(state.locale.split(['-', '_']).next(), Some("ja" | "fr"));
+        parts.push(if native_ja_fr { iso_date_time_joiner(state, fields) } else { date_time_joiner(state, fields) });
     }
     parts.extend(time);
     parts
