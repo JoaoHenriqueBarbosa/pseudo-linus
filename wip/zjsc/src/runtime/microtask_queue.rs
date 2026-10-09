@@ -282,6 +282,16 @@ impl VM {
         *self.promise_rejection_state.unhandled_rejection_reporter.borrow_mut() = reporter;
     }
 
+    /// Instala o relato do tratador que chega depois da rejeição: recebe a promessa.
+    pub fn set_rejection_handled_reporter(&self, reporter: Option<Rc<dyn Fn(&JSGlobalObject, JSValue)>>) {
+        *self.promise_rejection_state.rejection_handled_reporter.borrow_mut() = reporter;
+    }
+
+    /// O relato do tratador novo, quando o embedder instalou um.
+    pub(crate) fn rejection_handled_reporter(&self) -> Option<Rc<dyn Fn(&JSGlobalObject, JSValue)>> {
+        self.promise_rejection_state.rejection_handled_reporter.borrow().clone()
+    }
+
     /// Instala o `Bun__reportUnhandledError` (símbolo fraco do embedder).
     pub fn set_unhandled_error_reporter(&self, reporter: Option<Rc<dyn Fn(&JSGlobalObject, JSValue)>>) {
         *self.promise_rejection_state.unhandled_error_reporter.borrow_mut() = reporter;
@@ -306,6 +316,9 @@ pub struct PromiseRejectionState {
     unhandled_error_reporter: RefCell<Option<Rc<dyn Fn(&JSGlobalObject, JSValue)>>>,
     /// O embedder que relata a rejeição sem tratador (o `reason`) no lugar do `unhandledRejectionCallback` de JS.
     unhandled_rejection_reporter: RefCell<Option<Rc<dyn Fn(&JSGlobalObject, JSValue, JSValue)>>>,
+    /// O embedder que ouve o tratador novo numa promessa rejeitada (o `rejectionhandled` do navegador) no lugar do
+    /// `rejectionHandled` do `process`.
+    rejection_handled_reporter: RefCell<Option<Rc<dyn Fn(&JSGlobalObject, JSValue)>>>,
 }
 
 impl std::fmt::Debug for PromiseRejectionState {
@@ -398,5 +411,29 @@ mod tests {
         assert!(!vm.default_microtask_queue.is_performing_microtask_checkpoint());
         assert!(vm.default_microtask_queue.is_empty());
         assert!(run(&global_object, "n === 1").is_true());
+    }
+
+    #[test]
+    fn embedder_hears_unhandled_rejections_and_late_handlers() {
+        use std::cell::RefCell;
+        use std::rc::Rc;
+        let (vm, global_object) = new_global_object();
+        let events = Rc::new(RefCell::new(Vec::<String>::new()));
+        let (unhandled, handled) = (events.clone(), events.clone());
+        vm.set_unhandled_rejection_reporter(Some(Rc::new(move |_: &crate::runtime::js_global_object::JSGlobalObject, _: JSValue, reason: JSValue| {
+            unhandled.borrow_mut().push(format!("unhandled {}", reason.as_number()));
+        })));
+        let seen_promise = Rc::new(RefCell::new(JSValue::undefined()));
+        let handled_promise = seen_promise.clone();
+        vm.set_rejection_handled_reporter(Some(Rc::new(move |_: &crate::runtime::js_global_object::JSGlobalObject, promise: JSValue| {
+            handled.borrow_mut().push("handled".to_owned());
+            *handled_promise.borrow_mut() = promise;
+        })));
+        run(&global_object, "var late = Promise.reject(7);");
+        vm.drain_microtasks();
+        run(&global_object, "late.catch(function () {});");
+        vm.drain_microtasks();
+        assert_eq!(*events.borrow(), vec!["unhandled 7".to_owned(), "handled".to_owned()]);
+        assert!(*seen_promise.borrow() == run(&global_object, "late"));
     }
 }
