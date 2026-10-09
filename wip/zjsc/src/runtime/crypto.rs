@@ -1212,7 +1212,13 @@ fn ecdsa_hash(global_object: &JSGlobalObject, call: &HostCall, algorithm: JSValu
 
 /// A chave que é o `member` (`publicKey` do ECDH/X25519) do dicionário `algorithm`.
 fn public_key_member(global_object: &JSGlobalObject, algorithm: JSValue, dictionary: &str) -> Result<KeyState, Thrown> {
-    let member = required_member(global_object, algorithm, dictionary, "publicKey", "CryptoKey")?;
+    // O dicionário do WebCrypto chama o membro `public`, mas as mensagens do bun o citam como `publicKey` (medido no bun
+    // 1.4.2), então a leitura e o texto do erro usam nomes diferentes.
+    let member = dictionary_member(global_object, algorithm, "public");
+    if member.is_undefined() {
+        let message = format!("Member {dictionary}.publicKey is required and must be an instance of CryptoKey");
+        return Err(throw_coded_type_error(global_object, &message, "ERR_MISSING_OPTION"));
+    }
     KEYS.with(|keys| keys.borrow().get(&member.encode()).cloned()).ok_or_else(|| {
         let message = format!("Member {dictionary}.publicKey must be an instance of CryptoKey");
         throw_coded_type_error(global_object, &message, "ERR_INVALID_ARG_TYPE")
