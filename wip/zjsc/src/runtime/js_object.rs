@@ -1049,6 +1049,12 @@ impl JSObject {
         if let Some(answer) = self.string_object_own_slot(vm, property_name, slot) {
             return answer;
         }
+        // `JSModuleNamespaceObject::getOwnPropertySlotCommon`: o namespace adiado avalia o módulo antes de responder.
+        if let Some(namespace) = js_module_namespace_object::exotic_of(self) {
+            if !namespace.prepare_own_property_slot(vm, property_name, slot) {
+                return false;
+            }
+        }
         if self.get_own_non_index_property_slot(vm, &structure, property_name, slot) {
             return true;
         }
