@@ -795,10 +795,14 @@ pub fn format_parts(settings: &NumberSettings, input: &NumericInput) -> Vec<Part
     };
     if special.is_none() && matches!(settings.notation, Notation::Scientific | Notation::Engineering) {
         number.push(("exponentSeparator".to_string(), "E".to_string()));
+        // Medido no bun: o expoente usa os dígitos e o sinal de menos do locale (`ne`: `E५`, `eu`: `E−4`).
+        let local_exponent = decimal_format.as_ref().and_then(|format| format.number(&exponent.unsigned_abs().to_string(), ""));
+        let local_minus = decimal_format.as_ref().and_then(|format| format.sign(true).0.into_iter().find(|(kind, _)| kind == "minusSign"));
         if exponent < 0 {
-            number.push(("exponentMinusSign".to_string(), "-".to_string()));
+            number.push(("exponentMinusSign".to_string(), local_minus.map_or_else(|| "-".to_string(), |(_, text)| text)));
         }
-        number.push(("exponentInteger".to_string(), exponent.unsigned_abs().to_string()));
+        let digits = local_exponent.map(|parts| parts.into_iter().map(|(_, text)| text).collect::<String>());
+        number.push(("exponentInteger".to_string(), digits.unwrap_or_else(|| exponent.unsigned_abs().to_string())));
     }
     // Os operandos de plural do número formatado (as casas visíveis contam). No compacto o ICU escolhe a forma
     // pelo número na ordem original, não pelo significando: `1 trillion euros` e `1 M euros`, no plural
