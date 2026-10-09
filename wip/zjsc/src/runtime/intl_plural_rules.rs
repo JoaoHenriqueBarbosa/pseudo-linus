@@ -9,7 +9,7 @@
 
 use crate::host_function;
 use crate::runtime::lookup::{native_entry};
-use crate::runtime::default_number_format::{format_parts, NumberSettings, NumericInput, Style, UseGrouping};
+use crate::runtime::default_number_format::{format_parts_with_exponent, NumberSettings, NumericInput, Style, UseGrouping};
 use crate::runtime::host_call::{HostCall, HostResult, Thrown};
 use crate::runtime::icu_plural;
 use crate::runtime::intl_locale_data::Language;
@@ -105,14 +105,15 @@ fn initialize(global_object: &JSGlobalObject, locales: JSValue, options_value: J
     Ok(PluralRulesState { locale: plural_locale, kind, settings })
 }
 
-/// Os dígitos (inteiro, fração) do número formatado com as opções da instância, sem sinal nem agrupamento.
-fn visible_digits(state: &PluralRulesState, input: &NumericInput) -> (String, String) {
+/// Os dígitos (inteiro, fração) do número formatado com as opções da instância, sem sinal nem agrupamento, e o expoente de
+/// dez que a notação mostra.
+fn visible_digits(state: &PluralRulesState, input: &NumericInput) -> (String, String, i32) {
     let mut settings = state.settings.clone();
     settings.style = Style::Decimal;
     settings.use_grouping = UseGrouping::False;
-    let parts = format_parts(&settings, input);
+    let (parts, exponent) = format_parts_with_exponent(&settings, input);
     let collect = |kind: &str| -> String { parts.iter().filter(|part| part.0 == kind).map(|part| part.1.as_str()).collect() };
-    (collect("integer"), collect("fraction"))
+    (collect("integer"), collect("fraction"), exponent)
 }
 
 fn is_infinite(input: &NumericInput) -> bool {
@@ -136,26 +137,15 @@ fn icu4c_integer_operand(integer: String) -> String {
     if trimmed.is_empty() { integer } else { trimmed.to_string() }
 }
 
-/// Os dígitos visíveis e o expoente compacto do número: na notação compacta o número sai escalado (`1.5M`
-/// mostra `1` e `5`), e o expoente de dez que sobrou (6) é o operando `c` das regras. O expoente sai da
-/// diferença entre as casas inteiras do valor e as dos dígitos escalados; fora do compacto é zero.
-/// LACUNA: um arredondamento que sobe de grandeza (`999999` virando `1M`) dá o expoente uma casa abaixo.
+/// Os dígitos visíveis e o expoente do número (operando `e` do ICU4C): o de dez do compacto (`1.5M` mostra `1` e `5`,
+/// expoente 6; `999999` sobe para `1M`) ou o da científica e da engenharia; fora dessas notações é zero. Um expoente
+/// negativo (`0.99` vira `9.9E-1`) vai como 255, que as regras tratam como `e` fora de `0..5`, o que o icu4x não
+/// representa de outro modo.
 fn visible_operands(state: &PluralRulesState, input: &NumericInput) -> (String, String, u8) {
-    let (integer, fraction) = visible_digits(state, input);
+    let (integer, fraction, exponent) = visible_digits(state, input);
     let integer = icu4c_integer_operand(integer);
-    if state.settings.notation != Notation::Compact {
-        return (integer, fraction, 0);
-    }
-    let value_digits = match input {
-        NumericInput::Double(value) => {
-            let magnitude = value.abs();
-            if magnitude < 1.0 { 0 } else { (magnitude.log10().floor() as usize) + 1 }
-        }
-        NumericInput::Decimal { digits, .. } => digits.trim_start_matches('0').len(),
-    };
-    let exponent = value_digits.saturating_sub(integer.trim_start_matches('0').len().max(1));
-    let exponent = if integer.trim_start_matches('0').is_empty() { 0 } else { exponent };
-    (integer, fraction, u8::try_from(exponent).unwrap_or(0))
+    let exponent = if exponent < 0 { u8::MAX } else { u8::try_from(exponent).unwrap_or(u8::MAX) };
+    (integer, fraction, exponent)
 }
 
 /// `IntlPluralRules::select`: a categoria do número formatado.

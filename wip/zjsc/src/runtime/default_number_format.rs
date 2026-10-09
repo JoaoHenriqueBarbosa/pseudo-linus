@@ -683,6 +683,12 @@ fn unscale_digits(integer: &str, fraction: &str, exponent: u8) -> (String, Strin
 
 /// `unumf_formatDouble`/`unumf_formatDecimal` com os campos: as partes do número formatado.
 pub fn format_parts(settings: &NumberSettings, input: &NumericInput) -> Vec<Part> {
+    format_parts_with_exponent(settings, input).0
+}
+
+/// Como [`format_parts`], devolvendo também o expoente de dez que a notação mostra (o da científica ou o do compacto,
+/// já com a subida de ordem do arredondamento, `999999` em `1M`): o operando `e` das regras de plural do ICU4C.
+pub fn format_parts_with_exponent(settings: &NumberSettings, input: &NumericInput) -> (Vec<Part>, i32) {
     let (mut negative, mut digits, special) = match input {
         NumericInput::Double(value) => {
             if value.is_nan() {
@@ -816,7 +822,7 @@ pub fn format_parts(settings: &NumberSettings, input: &NumericInput) -> Vec<Part
 
     // Moeda e unidade das línguas medidas no bun (`icu_number_data`): o padrão inteiro vem da tabela.
     if let Some(parts) = localized_parts(settings, decimal_format.as_ref(), sign_part, accounting, category.unwrap_or("other"), &number) {
-        return with_currency_spacing(settings, parts);
+        return (with_currency_spacing(settings, parts), exponent + i32::from(compact_exponent));
     }
 
     // O sinal do locale (o `ar` põe a marca bidirecional junto do menos); o contábil troca o menos pelo parêntese.
@@ -882,7 +888,7 @@ pub fn format_parts(settings: &NumberSettings, input: &NumericInput) -> Vec<Part
     } else {
         parts.extend(sign_suffix);
     }
-    with_currency_spacing(settings, parts)
+    (with_currency_spacing(settings, parts), exponent + i32::from(compact_exponent))
 }
 
 /// Com `∞` e `NaN` o ICU não insere o espaço entre a moeda (símbolo ou código) e o número, porque o
