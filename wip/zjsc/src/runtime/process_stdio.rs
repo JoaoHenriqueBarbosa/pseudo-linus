@@ -256,6 +256,8 @@ const TASK_FINISH: i32 = 0;
 const TASK_WRITE_AFTER_END: i32 = 1;
 const TASK_CALLBACK: i32 = 2;
 const TASK_ALREADY_FINISHED: i32 = 3;
+/// O `finish` de `end` espera um segundo `nextTick` (medido: um tick do usuário agendado logo depois de `end` roda antes).
+const TASK_FINISH_LATE: i32 = 7;
 
 /// Agenda no fim da fila de ticks a tarefa `kind` do stream `stream` (descritor `fd`) com o `callback` do usuário.
 fn queue_task(global_object: &JSGlobalObject, fd: usize, kind: i32, callback: JSValue, stream: JSValue) {
@@ -275,7 +277,8 @@ fn deferred_task_body(global_object: &JSGlobalObject, call: &HostCall) -> HostRe
     let fd = call.argument(0).as_number() as usize;
     let (kind, callback, stream) = (call.argument(1).as_number() as i32, call.argument(2), call.argument(3));
     match kind {
-        TASK_FINISH => {
+        TASK_FINISH => queue_task(global_object, fd, TASK_FINISH_LATE, callback, stream),
+        TASK_FINISH_LATE => {
             update_state(fd, |state| state.finished = true);
             run_callback(global_object, callback, &[JSValue::null()])?;
             let extra = with_slot(fd, |slot| std::mem::take(&mut slot.pending_end));
@@ -698,7 +701,8 @@ fn sync_events(global_object: &JSGlobalObject, stream: JSValue, fd: usize, repla
 /// O objeto que `new Stream()`/`new EventEmitter()` devolve: `_events` vazio, `_eventsCount` 0 e `_maxListeners`
 /// `undefined`, nesta ordem (medido); sem `new` o node lança o `TypeError` do `this` indefinido.
 fn new_emitter_object(global_object: &JSGlobalObject, call: &HostCall, slot: &'static LocalKey<Cell<Option<JSValue>>>) -> HostResult {
-    if call.new_target().is_undefined() {
+    // Com `new` o alvo é uma função; numa chamada comum ele é o `this`, que o principal sloppy do porte deixa ser o global.
+    if !call.new_target().is_callable() {
         return Err(Thrown::type_error("undefined is not an object (evaluating 'this._events')"));
     }
     let vm = global_object.vm();
