@@ -11,9 +11,13 @@ description = "chromium --headless do pseudo-linus: busca a página pelo cliente
 sysabi = { workspace = true }
 ul-common = { workspace = true }
 ul-net = { path = "../ul-net" }
-# Parser de HTML conforme a especificação (o mesmo do Servo); a árvore é a nossa (`dom.rs`).
-html5ever = "0.40"
-markup5ever = "0.40"
+# Parser de HTML conforme a especificação (o mesmo do Servo), na versão que o blitz-html usa.
+html5ever = "0.39"
+markup5ever = "0.39"
+# O DOM, o parser e os seletores vêm do Blitz (Dioxus), não de uma árvore própria.
+blitz-dom = "=0.3.0-beta.2"
+blitz-html = "=0.3.0-beta.2"
+blitz-traits = "=0.3.0-beta.2"
 # Motor JavaScript: o JavaScriptCore portado, ainda fora do workspace (ver wip/zjsc).
 zjsc = { path = "../../wip/zjsc" }
 
