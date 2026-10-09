@@ -193,6 +193,8 @@ thread_local! {
     static KEYS: RefCell<HashMap<EncodedJSValue, KeyState>> = RefCell::new(HashMap::new());
     /// Por realm (`cell_id`): o protótipo de `CryptoKey`.
     static KEY_PROTOTYPES: RefCell<Vec<(usize, EncodedJSValue)>> = const { RefCell::new(Vec::new()) };
+    /// Por realm (`cell_id`): o construtor `SubtleCrypto`, o único `this` que `SubtleCrypto.supports` aceita.
+    static SUBTLE_CONSTRUCTORS: RefCell<Vec<(usize, EncodedJSValue)>> = const { RefCell::new(Vec::new()) };
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`).
@@ -200,6 +202,7 @@ pub(crate) fn reset_for_program() {
     let _ = INSTANCES.try_with(|instances| instances.borrow_mut().clear());
     let _ = KEYS.try_with(|keys| keys.borrow_mut().clear());
     let _ = KEY_PROTOTYPES.try_with(|prototypes| prototypes.borrow_mut().clear());
+    let _ = SUBTLE_CONSTRUCTORS.try_with(|constructors| constructors.borrow_mut().clear());
 }
 
 fn is_crypto(value: JSValue) -> bool {
@@ -2953,6 +2956,11 @@ fn supports_operation(global_object: &JSGlobalObject, call: &HostCall, operation
 /// `SubtleCrypto.supports(operation, algorithm[, extra])`: estático e síncrono, devolve booleano. Faltando argumento lança
 /// `ERR_MISSING_ARGS`; `ToString` de símbolo no 1º ou 2º argumento lança o `TypeError` do motor; o resto é `false`.
 fn supports_body_impl(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    // Medido no bun: o `this` é conferido antes dos argumentos e só o próprio construtor `SubtleCrypto` serve.
+    let this_is_constructor = SUBTLE_CONSTRUCTORS.with(|constructors| constructors.borrow().iter().any(|(_, constructor)| *constructor == call.this_value().encode()));
+    if !this_is_constructor {
+        return Err(throw_coded_type_error(global_object, "Value of \"this\" must be of type SubtleCrypto constructor", "ERR_INVALID_THIS"));
+    }
     if call.argument_count() < 2 {
         return Err(throw_coded_type_error(global_object, "Not enough arguments", "ERR_MISSING_ARGS"));
     }
@@ -3073,6 +3081,7 @@ pub fn install_crypto(global_object: &JSGlobalObject) {
     if let Some(constructor_object) = JSObject::from_value(&subtle_constructor.as_value()) {
         crate::runtime::event_target::put_methods(global_object, &constructor_object, &[("supports", 2, subtle_supports as NativeFunction)]);
     }
+    SUBTLE_CONSTRUCTORS.with(|constructors| constructors.borrow_mut().push((global_object.cell_id(), subtle_constructor.as_value().encode())));
     install_global(global_object, "SubtleCrypto", subtle_constructor.as_value());
 
     let (key_prototype, key_constructor) =
