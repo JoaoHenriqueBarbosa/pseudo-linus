@@ -79,6 +79,10 @@ impl ModuleHost for UrlModuleHost {
         true
     }
 
+    fn json_named_exports(&self) -> bool {
+        false
+    }
+
     fn import_meta_url(&self, key: &str) -> String {
         shown_url(key).to_owned()
     }

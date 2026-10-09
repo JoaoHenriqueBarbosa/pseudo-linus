@@ -18,3 +18,19 @@ fn write_through_namespace_prototype_is_readonly() {
     assert_eq!(error, None);
     assert_eq!(log, r#"["TypeError: Attempted to assign to readonly property."]"#);
 }
+
+/// O módulo JSON do Bun exporta as chaves do objeto de topo; o que não é objeto exporta `__esModule`.
+#[test]
+fn json_module_exports_top_level_keys() {
+    let (log, error) = run(&[
+        (
+            "main.mjs",
+            "import * as d from './d.json'; import * as e from './e.json'; import { a } from './d.json'; \
+             L(Object.keys(d)); L(JSON.stringify(d.default)); L(a); L(Object.keys(e)); L(e.__esModule);",
+        ),
+        ("d.json", r#"{"b":1,"a":2,"default":3}"#),
+        ("e.json", "[1,2]"),
+    ]);
+    assert_eq!(error, None);
+    assert_eq!(log, r#"["a,b,default","{\"b\":1,\"a\":2,\"default\":3}","2","__esModule,default","true"]"#);
+}
