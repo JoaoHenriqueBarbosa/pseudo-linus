@@ -303,8 +303,9 @@ pub fn evaluate_main_script_reporting_signal(
     url: &str,
     console: Rc<dyn crate::runtime::console_host::ConsoleHost>,
 ) -> (i32, bool, Option<i32>) {
-    crate::runtime::process_system::begin_main_script(url);
     run_program(|| {
+        // Dentro do programa: o início de `run_program` solta o anterior e o reset dele apagaria o caminho.
+        crate::runtime::process_system::begin_main_script(url);
         let (vm, global_object) = new_global_object();
         let _finalizer = VmFinalizer::new(&vm);
         global_object.set_console_host(console);
