@@ -246,6 +246,11 @@ pub(crate) fn read_body(global_object: &JSGlobalObject, read: Read, bytes: &[u8]
             array.with_vector_mut(|destination| destination[..bytes.len()].copy_from_slice(bytes));
             Ok(resolved_promise(global_object, array.as_value()))
         }
+        Read::Json if bytes.is_empty() => {
+            // Corpo vazio: o bun usa a mensagem do V8-style, não a do `JSON.parse` (medido no bun 1.4.2).
+            let error = crate::runtime::error::create_syntax_error(global_object, &WtfString::from_utf8(b"Unexpected end of JSON input")).as_value();
+            Ok(JSPromise::rejected_promise(global_object, error).as_value())
+        }
         Read::Json => match json_parse(global_object, &WtfString::from_utf8_replacing_invalid_sequences(bytes), None, false) {
             Ok(value) => Ok(resolved_promise(global_object, value)),
             Err(JsonError::Syntax(message)) => {

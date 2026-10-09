@@ -586,12 +586,10 @@ fn evaluate_cjs_program_inner(
         text.extend(utf16_units("})"));
         let origin = SourceOrigin::new(URL::from_string(&WtfString::from_latin1(format!("file:///{url}").as_bytes())));
         // Sem mapa de posições, o bun embrulha o módulo sem mudar linha nem coluna: o corpo está na linha 1. O cabeçalho
-        // do porte ocupa a linha 0, para que a quebra de linha do wrapper não desloque o corpo.
-        let start_position = if position_runs.is_empty() && !strict {
-            TextPosition::new(OrdinalNumber::from_zero_based_int(-1), OrdinalNumber::from_zero_based_int(0))
-        } else {
-            TextPosition::default()
-        };
+        // do porte ocupa a linha 1 e o corpo a 2; o mapa identidade com deslocamento de uma linha acerta tanto as
+        // linhas de `stack` quanto as dos executáveis de função (o `SourceCode` de função prende a primeira linha em 1,
+        // então um `start_position` negativo não chega a elas).
+        let start_position = TextPosition::default();
         let named = make_source(
             &wtf_from_units(&text),
             &origin,
@@ -600,7 +598,10 @@ fn evaluate_cjs_program_inner(
             start_position,
             SourceProviderSourceType::Program,
         );
-        if !position_runs.is_empty() {
+        if position_runs.is_empty() && !strict {
+            let map = PositionMap::new(&[1, 1, 0, 0], 1).expect("mapa de posições");
+            named.provider().expect("SourceCode sem provedor").set_position_map(Rc::new(map));
+        } else if !position_runs.is_empty() {
             // Golden: diretiva na linha 1, corpo a partir da 2. Porte: cabeçalho na 1, corpo a partir da 2.
             // Sem diretiva o corpo começa na linha 1 do golden e na 2 do porte.
             let line_shift = if strict { 0 } else { 1 };
