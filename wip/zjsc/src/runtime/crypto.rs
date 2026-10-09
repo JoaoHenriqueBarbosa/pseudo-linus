@@ -2984,6 +2984,11 @@ fn supports_body_impl(global_object: &JSGlobalObject, call: &HostCall) -> HostRe
         return Err(throw_coded_type_error(global_object, "Not enough arguments", "ERR_MISSING_ARGS"));
     }
     let operation = string_of(global_object, call.argument(0))?;
+    // A conversão que lança deixa a exceção pendente (e um texto vazio): nada mais roda, como no bun (`toString` do
+    // primeiro argumento antes de qualquer leitura do dicionário).
+    if global_object.vm().exception().is_some() {
+        return Err(Thrown::Pending);
+    }
     let algorithm = call.argument(1);
     // `ToString` do próprio `algorithm` (símbolo) lança; um `name` ilegível dentro do dicionário (símbolo, getter que lança) é `false`.
     let name = match algorithm_name_core(global_object, algorithm) {
