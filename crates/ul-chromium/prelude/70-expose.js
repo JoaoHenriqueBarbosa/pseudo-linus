@@ -29,7 +29,7 @@ const windowGlobals = {
   localStorage: makeStorage(), sessionStorage: makeStorage(), customElements,
   getComputedStyle, matchMedia, fetch: realFetch, XMLHttpRequest, MutationObserver, MutationRecord, ResizeObserver, IntersectionObserver, PerformanceObserver,
   Node, Element, HTMLElement, HTMLUnknownElement, SVGElement, SVGGraphicsElement, SVGSVGElement, MathMLElement, Text, Comment, CDATASection, CharacterData, DocumentFragment, ShadowRoot, DocumentType, Document, Attr, NamedNodeMap, NodeList, HTMLCollection,
-  DOMTokenList, CSSStyleDeclaration, CSSStyleSheet, DOMRect, DOMRectReadOnly: DOMRect, Range, Selection, TreeWalker, NodeIterator, DOMParser, XMLSerializer, Location, History, Navigator, Storage, CustomElementRegistry,
+  DOMTokenList, CSSStyleDeclaration, CSSStyleSheet, DOMRect, DOMRectReadOnly: DOMRect, Range, Selection, TreeWalker, NodeIterator, DOMParser, XMLSerializer, DOMImplementation, XPathEvaluator, XPathExpression, XPathResult, Location, History, Navigator, Storage, CustomElementRegistry,
   EventTarget, Event, CustomEvent, UIEvent, MouseEvent, PointerEvent, WheelEvent, KeyboardEvent, FocusEvent, InputEvent, ErrorEvent, MessageEvent, HashChangeEvent, PopStateEvent, ProgressEvent, TouchEvent, AnimationEvent, TransitionEvent, PageTransitionEvent, SubmitEvent,
   HTMLDocument: Document,
 };
@@ -75,6 +75,57 @@ for (const [name, value] of [['setTimeout', browserTimer(engineSetTimeout)], ['s
   Object.defineProperty(globalThis, name, { value, writable: true, configurable: true, enumerable: true });
 }
 for (const name of ['setImmediate', 'clearImmediate']) delete globalThis[name];
+
+// Navigation Timing do navegador: `performance.timing`, `performance.navigation`, a entrada `navigation` e os nomes
+// legados (`navigationStart`, `domContentLoadedEventEnd`...) aceitos como marcas por `performance.measure`. Os
+// instantes são os do carregamento desta página, em ms desde a origem de tempo.
+{
+  const origin = Math.round(performance.timeOrigin);
+  const marks = { navigationStart: 0, fetchStart: 1, domainLookupStart: 1, domainLookupEnd: 1, connectStart: 1, connectEnd: 1, secureConnectionStart: 0, requestStart: 2, responseStart: 3, responseEnd: 4, unloadEventStart: 0, unloadEventEnd: 0, redirectStart: 0, redirectEnd: 0, domLoading: 5 };
+  const lifecycle = { domInteractive: null, domContentLoadedEventStart: null, domContentLoadedEventEnd: null, domComplete: null, loadEventStart: null, loadEventEnd: null };
+  document.addEventListener('readystatechange', () => {
+    const now = Math.round(performance.now());
+    if (document.readyState === 'interactive') lifecycle.domInteractive = now;
+    if (document.readyState === 'complete') lifecycle.domComplete = now;
+  });
+  document.addEventListener('DOMContentLoaded', () => { lifecycle.domContentLoadedEventStart = lifecycle.domContentLoadedEventEnd = Math.round(performance.now()); }, { capture: true });
+  window.addEventListener('load', () => { lifecycle.loadEventStart = Math.round(performance.now()); setTimeout(() => { lifecycle.loadEventEnd = Math.round(performance.now()); }, 0); }, { capture: true });
+  const relative = (name) => (name in marks ? marks[name] : name in lifecycle ? lifecycle[name] : undefined);
+  class PerformanceTiming {
+    constructor() { throw new TypeError('Illegal constructor'); }
+    toJSON() { const out = {}; for (const k of [...Object.keys(marks), ...Object.keys(lifecycle)]) out[k] = this[k]; return out; }
+  }
+  for (const name of [...Object.keys(marks), ...Object.keys(lifecycle)]) {
+    Object.defineProperty(PerformanceTiming.prototype, name, { get() { const v = relative(name); return v === null || (v === 0 && name !== 'navigationStart' && marks[name] === 0) ? 0 : origin + v; }, configurable: true, enumerable: true });
+  }
+  tag(PerformanceTiming, 'PerformanceTiming');
+  const timing = Object.create(PerformanceTiming.prototype);
+  class PerformanceNavigation {
+    constructor() { throw new TypeError('Illegal constructor'); }
+    get type() { return 0; }
+    get redirectCount() { return 0; }
+    toJSON() { return { type: 0, redirectCount: 0 }; }
+  }
+  Object.assign(PerformanceNavigation, { TYPE_NAVIGATE: 0, TYPE_RELOAD: 1, TYPE_BACK_FORWARD: 2, TYPE_RESERVED: 255 });
+  tag(PerformanceNavigation, 'PerformanceNavigation');
+  const navigation = Object.create(PerformanceNavigation.prototype);
+  Object.defineProperty(performance, 'timing', { get: () => timing, configurable: true, enumerable: true });
+  Object.defineProperty(performance, 'navigation', { get: () => navigation, configurable: true, enumerable: true });
+  const engineMeasure = performance.measure.bind(performance);
+  const resolveMark = (value) => { if (typeof value === 'string') { const v = relative(value); if (v !== undefined) { if (v === null) throw domException(`Failed to execute 'measure' on 'Performance': '${value}' is empty: either the event hasn't happened yet, or it would provide cross-origin timing information.`, 'InvalidAccessError'); return v; } } return value; };
+  Object.defineProperty(performance, 'measure', {
+    value: function measure(name, startOrOptions, endMark) {
+      if (startOrOptions && typeof startOrOptions === 'object') return engineMeasure(name, { ...startOrOptions, start: resolveMark(startOrOptions.start), end: resolveMark(startOrOptions.end) });
+      const start = resolveMark(startOrOptions);
+      const end = resolveMark(endMark);
+      if (typeof start === 'number' || typeof end === 'number') return engineMeasure(name, { start: start === undefined ? 0 : start, end: end === undefined ? performance.now() : end });
+      return engineMeasure(name, startOrOptions, endMark);
+    },
+    writable: true, configurable: true, enumerable: true,
+  });
+  Object.assign(globalThis, { PerformanceTiming, PerformanceNavigation });
+  for (const key of ['PerformanceTiming', 'PerformanceNavigation']) Object.defineProperty(globalThis, key, { enumerable: false });
+}
 
 const scheduleFrame = (cb) => setTimeout(() => cb(performance.now()), 16);
 Object.assign(globalThis, {

@@ -69,6 +69,9 @@ class Document extends Node {
   get scrollingElement() { return this.documentElement; }
   get timeline() { return { currentTime: performance.now() }; }
   get implementation() { return domImplementation; }
+  evaluate(expression, contextNode, resolver, type, result) { return XPathEvaluator.prototype.evaluate(expression, contextNode, resolver, type, result); }
+  createExpression(expression) { return XPathEvaluator.prototype.createExpression(expression); }
+  createNSResolver(node) { return node; }
   createElement(name) {
     name = toStr(name);
     if (!/^[A-Za-z][^\s\/>]*$/.test(name) && !/^[A-Za-z_:][-A-Za-z0-9_:.]*$/.test(name)) throw domException(`Failed to execute 'createElement' on 'Document': The tag name provided ('${name}') is not a valid name.`, 'InvalidCharacterError');

@@ -135,13 +135,16 @@ const parseDeclarations = (text) => {
 };
 class CSSStyleDeclaration {
   constructor() { throw new TypeError('Illegal constructor'); }
-  __list() { return parseDeclarations(this.__element.getAttribute('style') || ''); }
+  // O bloco de declarações é o do motor de CSS: o atributo lido passa pela serialização canônica (a que o Chromium
+  // mostra em `cssText` e grava no atributo depois de uma escrita via CSSOM).
+  __list() { const raw = this.__element.getAttribute('style'); return raw ? parseDeclarations(op('normalizeStyle', raw)) : []; }
   __save(list) {
     if (list.length === 0 && this.__element.getAttribute('style') === null) return;
-    this.__element.setAttribute('style', list.map((d) => `${d.name}: ${d.value}${d.priority ? ' !important' : ''};`).join(' '));
+    const text = list.map((d) => `${d.name}: ${d.value}${d.priority ? ' !important' : ''};`).join(' ');
+    this.__element.setAttribute('style', op('normalizeStyle', text));
   }
-  get cssText() { return this.__list().map((d) => `${d.name}: ${d.value}${d.priority ? ' !important' : ''};`).join(' '); }
-  set cssText(v) { this.__element.setAttribute('style', String(v)); this.__save(parseDeclarations(String(v))); }
+  get cssText() { const raw = this.__element.getAttribute('style'); return raw ? op('normalizeStyle', raw) : ''; }
+  set cssText(v) { this.__element.setAttribute('style', op('normalizeStyle', String(v))); }
   get length() { return this.__list().length; }
   item(i) { const l = this.__list(); return i < l.length ? l[i].name : ''; }
   getPropertyValue(name) { const n = String(name); const d = this.__list().find((x) => x.name === (n.startsWith('--') ? n : n.toLowerCase())); return d ? d.value : ''; }

@@ -435,6 +435,7 @@ impl DomHost for Bridge {
                 let found = doc.query_selector_all_in(top, selector).map_err(|_| err("SyntaxError", format!("'{selector}' is not a valid selector.")))?;
                 Ok(DomArg::Bool(found.contains(&id)))
             }
+            "normalizeStyle" => Ok(DomArg::Str(document::normalize_style(str_arg(args, 0)?))),
             "innerHTML" => Ok(DomArg::Str(document::inner_html(&self.doc.borrow(), id_arg(args, 0)?))),
             "outerHTML" => Ok(DomArg::Str(document::outer_html(&self.doc.borrow(), id_arg(args, 0)?))),
             "setInnerHTML" => {

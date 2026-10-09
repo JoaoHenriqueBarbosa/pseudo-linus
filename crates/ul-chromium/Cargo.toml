@@ -19,6 +19,10 @@ encoding_rs = "0.8"
 blitz-dom = "=0.3.0-beta.2"
 blitz-html = "=0.3.0-beta.2"
 blitz-traits = "=0.3.0-beta.2"
+# O motor de CSS do Servo (o mesmo que o Blitz usa): parse e serialização canônica do `style` escrito via CSSOM.
+stylo = "=0.20.0"
+selectors = "=0.40.0"
+url = "2.5"
 # Motor JavaScript: o JavaScriptCore portado, ainda fora do workspace (ver wip/zjsc).
 zjsc = { path = "../../wip/zjsc" }
 

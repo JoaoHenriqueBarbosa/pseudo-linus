@@ -39,6 +39,20 @@ pub fn hide_nonces(doc: &mut BaseDocument) {
     }
 }
 
+/// A serialização canônica de um bloco de declarações (`element.style.cssText` depois de uma escrita via CSSOM):
+/// valores computados de especificação (`0` vira `0px`), aliases trocados (`word-wrap` vira `overflow-wrap`) e o
+/// que não parseia descartado. É o stylo do Blitz.
+pub fn normalize_style(text: &str) -> String {
+    use style::properties::parse_style_attribute;
+    use style::stylesheets::{CssRuleType, UrlExtraData};
+    let base = url::Url::parse("about:blank").expect("about:blank");
+    let data = UrlExtraData(style::servo_arc::Arc::new(base));
+    let block = parse_style_attribute(text, &data, None, selectors::matching::QuirksMode::NoQuirks, CssRuleType::Style);
+    let mut out = String::new();
+    let _ = block.to_css(&mut out);
+    out
+}
+
 /// O nome do atributo como a serialização o escreve: os de `xml`, `xmlns` e `xlink` levam o prefixo.
 pub fn qualified_attr_name(name: &QualName) -> String {
     let local: &str = &name.local;

@@ -36,6 +36,7 @@ def main():
         ["chromium", "--headless", "--no-sandbox", "--disable-gpu", "--remote-debugging-port=9222",
          "--user-data-dir=/tmp/profile", "--disable-quic", "about:blank"],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    started = int(time.time())
     try:
         ws_url = None
         for _ in range(100):
@@ -50,7 +51,7 @@ def main():
     finally:
         proc.terminate()
     with open(os.path.join(out, "tape.json"), "w") as f:
-        json.dump({"url": url, "entries": entries}, f, indent=1, ensure_ascii=False)
+        json.dump({"url": url, "recorded_at": started, "entries": entries}, f, indent=1, ensure_ascii=False)
         f.write("\n")
     print(f"{len(entries)} entradas")
 

@@ -105,6 +105,24 @@ fn push_apply_in_timer() {
 }
 
 #[test]
+fn xpath_attribute_prefix_query() {
+    let html = r#"<body><div id=a hx-on:click="x"></div><p id=b data-hx-on:load="y"></p><span id=c class=z></span><script>
+        var r = document.evaluate('.//*[@*[ starts-with(name(), "hx-on:")] or @*[ starts-with(name(), "data-hx-on:")]]', document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+        var ids = []; for (var i = 0; i < r.snapshotLength; i++) ids.push(r.snapshotItem(i).id);
+        console.log(ids.join(','), document.evaluate('count(//span[@class="z"])', document, null, 0, null).numberValue, document.evaluate('string(//p/@id)', document, null, 2, null).stringValue);
+    </script>"#;
+    let (_, log) = run(&[("/", html)]);
+    assert_eq!(log, "a,b 1 b\n");
+}
+
+#[test]
+fn cssom_write_serializes_canonically() {
+    let script = "<body><p id=p></p><script>var p = document.getElementById('p'); p.style.cssText = 'border: 0; clip: rect(0 0 0 0); word-wrap: normal; margin: -1px'; console.log(p.getAttribute('style'))</script>";
+    let (_, log) = run(&[("/", script)]);
+    assert_eq!(log, "border: 0px; clip: rect(0px, 0px, 0px, 0px); overflow-wrap: normal; margin: -1px;\n");
+}
+
+#[test]
 fn hidden_is_on_html_element_prototype() {
     let (_, log) = run(&[("/", "<script>console.log(Object.getOwnPropertyNames(HTMLElement.prototype).includes('hidden'), 'hidden' in Element.prototype)</script>")]);
     assert_eq!(log, "true false\n");

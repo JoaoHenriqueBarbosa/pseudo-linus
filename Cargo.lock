@@ -7182,10 +7182,13 @@ dependencies = [
  "html5ever",
  "markup5ever",
  "pl-testing",
+ "selectors",
  "serde_json",
+ "stylo",
  "sysabi",
  "ul-common",
  "ul-net",
+ "url",
  "zjsc",
 ]
 

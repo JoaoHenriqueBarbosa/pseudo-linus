@@ -3,9 +3,10 @@
 FROM debian:trixie-slim@sha256:a99cfc517144bc59b1978475ec53b46ecabec7e43635402ee5b77cc54cd1b20a
 
 ENV DEBIAN_FRONTEND=noninteractive
-# python3-websockets e openssl: o gravador de fitas (CDP) e o servidor de replay com TLS.
+# python3-websockets e openssl: o gravador de fitas (CDP) e o servidor de replay com TLS. faketime: o golden roda no
+# instante em que a fita foi gravada, para páginas que leem o relógio ("há 10 horas") se repetirem.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends chromium fonts-dejavu fonts-liberation ca-certificates python3 python3-websockets openssl \
+ && apt-get install -y --no-install-recommends chromium fonts-dejavu fonts-liberation ca-certificates python3 python3-websockets openssl faketime \
  && rm -rf /var/lib/apt/lists/*
 
 ENV LC_ALL=C.UTF-8 TZ=UTC HOME=/root

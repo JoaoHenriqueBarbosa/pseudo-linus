@@ -4,8 +4,12 @@
 //! meta. Páginas que o próprio oráculo não repete (`unstable.txt`) ficam fora.
 
 use std::collections::HashMap;
+use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
+use std::sync::Mutex;
+
+use sysabi::testkit::TestKit;
 
 use ul_chromium::fetch::Fetcher;
 use ul_chromium::page::Page;
@@ -103,6 +107,29 @@ impl zjsc::runtime::console_host::ConsoleHost for StderrConsole {
     }
 }
 
+/// A página que o programa `tape-page` vai rodar: o diretório da fita e a URL.
+static CURRENT: Mutex<Option<(PathBuf, String)>> = Mutex::new(None);
+
+/// Programa do sandbox de teste: carrega a página de `CURRENT` sobre a fita e escreve o DOM no stdout. Um pânico do
+/// motor vira status de saída diferente de zero, e a medição das outras páginas segue.
+fn tape_page_main(ctx: &mut sysabi::Ctx, _argv: &[std::ffi::OsString]) -> i32 {
+    let (dir, address) = CURRENT.lock().unwrap().clone().unwrap();
+    let mut page = match Page::load(&address, tape_fetcher(&dir)) {
+        Ok(page) => page,
+        Err(message) => {
+            let _ = ctx.stderr().write_all(message.as_bytes());
+            return 1;
+        }
+    };
+    page.budget_ms = BUDGET_MS;
+    if std::env::var("CONSOLE").is_ok() {
+        page.console = Rc::new(StderrConsole);
+    }
+    page.run();
+    let _ = ctx.stdout().write_all(page.dump_dom().as_bytes());
+    0
+}
+
 #[test]
 fn internet_scoreboard() {
     let corpus = bench().join("corpus/internet");
@@ -117,25 +144,20 @@ fn internet_scoreboard() {
             continue;
         }
         let Ok(expected) = std::fs::read_to_string(golden.join(format!("{id}.dom"))) else { continue };
+        // As outras saídas legítimas do oráculo (ordem de rede diferente entre execuções): `<id>.<n>.dom`.
+        let variants: Vec<String> = (1..).map_while(|n| std::fs::read_to_string(golden.join(format!("{id}.{n}.dom"))).ok()).collect();
         eprintln!("página: {id}");
-        let fetcher = tape_fetcher(&corpus.join(id));
-        let console = std::env::var("CONSOLE").is_ok();
-        // Um pânico do motor numa página conta como divergência dela e não derruba a medição das outras.
-        let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| match Page::load(address, fetcher) {
-            Ok(mut page) => {
-                page.budget_ms = BUDGET_MS;
-                if console {
-                    page.console = Rc::new(StderrConsole);
-                }
-                page.run();
-                page.dump_dom()
-            }
-            Err(message) => format!("falha ao carregar: {message}"),
-        }));
-        let actual = outcome.unwrap_or_else(|_| "pânico".to_owned());
+        let tape: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(corpus.join(id).join("tape.json")).unwrap()).unwrap();
+        let recorded_at = tape["recorded_at"].as_i64().unwrap_or(0);
+        *CURRENT.lock().unwrap() = Some((corpus.join(id), address.to_owned()));
+        // A página roda num pseudo-processo no instante da gravação: o `Date` dela lê o mesmo relógio que o oráculo
+        // tinha sob o faketime.
+        let kit = TestKit::new().programs(vec![sysabi::Program::bin("tape-page", tape_page_main)]).time(recorded_at);
+        let run = kit.run(&["tape-page"], b"");
+        let actual = if run.status == sysabi::WaitStatus::Exited(0) { run.stdout_str() } else { format!("pânico ou falha: {}", run.stderr_str()) };
         let slot = groups.entry(group.to_owned()).or_default();
         slot.1 += 1;
-        if actual == expected {
+        if actual == expected || variants.contains(&actual) {
             slot.0 += 1;
         } else {
             slot.2.push(id.to_owned());
