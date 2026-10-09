@@ -232,6 +232,7 @@ const TouchEvent = named('TouchEvent', eventClass('TouchEvent', UIEvent, {}));
 const AnimationEvent = named('AnimationEvent', eventClass('AnimationEvent', Event, { animationName: '', elapsedTime: 0, pseudoElement: '' }));
 const TransitionEvent = named('TransitionEvent', eventClass('TransitionEvent', Event, { propertyName: '', elapsedTime: 0, pseudoElement: '' }));
 const PageTransitionEvent = named('PageTransitionEvent', eventClass('PageTransitionEvent', Event, { persisted: false }));
+const PromiseRejectionEvent = named('PromiseRejectionEvent', eventClass('PromiseRejectionEvent', Event, { promise: undefined, reason: undefined }));
 const SubmitEvent = named('SubmitEvent', eventClass('SubmitEvent', Event, { submitter: null }));
 
 // GlobalEventHandlers do Chromium 154: os `on<tipo>` de HTMLElement, SVGElement, MathMLElement, Document e Window.

@@ -119,11 +119,37 @@ impl PageRunner {
     }
 
     /// Roda o laço de eventos (timers, immediates, microtarefas) no relógio virtual do motor até esvaziar ou até
-    /// passarem `budget_ms` de tempo virtual (o `--virtual-time-budget` do Chromium); o que sobrar de timers fica sem
-    /// disparar. Só deve ser chamado uma vez por página: o laço parado pelo orçamento não é retomável.
+    /// passarem `budget_ms` de tempo virtual (o `--virtual-time-budget` do Chromium). Pode ser chamado de novo: o
+    /// relógio virtual continua de onde parou.
     pub fn run_event_loop_for(&self, budget_ms: f64) {
-        crate::runtime::timers::schedule_native(&self.global_object, budget_ms, Rc::new(|_| crate::runtime::timers::halt_event_loop()));
-        crate::runtime::timers::run_event_loop_until_held(&self.global_object);
+        crate::runtime::timers::run_event_loop_for(&self.global_object, budget_ms);
+    }
+
+    /// A latência de rede do `import()` dinâmico de módulo ainda não carregado.
+    pub fn set_network_latency_ms(&self, milliseconds: f64) {
+        self.modules.set_network_latency_ms(milliseconds);
+    }
+
+    /// Entrega ao hospedeiro as rejeições sem tratador: `handle` recebe `("unhandled", promise, reason)` ao fim de
+    /// cada checkpoint e `("handled", promise)` quando o tratador chega depois. Tira o tratamento padrão do bun.
+    pub fn set_rejection_hook(&self, handle: &HostHandle) {
+        let function = handle.0;
+        let notify = move |global_object: &JSGlobalObject, args: &[JSValue]| {
+            let vm = global_object.vm();
+            if call_function(global_object, function, JSValue::undefined(), args).is_none() {
+                vm.clear_exception();
+            }
+        };
+        let notify = Rc::new(notify);
+        let unhandled = notify.clone();
+        self.vm.set_unhandled_rejection_reporter(Some(Rc::new(move |global_object: &JSGlobalObject, promise, reason| {
+            let kind = JSValue::from_js_string(js_string(global_object.vm(), &WtfString::from_utf8(b"unhandled")));
+            unhandled(global_object, &[kind, promise, reason]);
+        })));
+        self.vm.set_rejection_handled_reporter(Some(Rc::new(move |global_object: &JSGlobalObject, promise| {
+            let kind = JSValue::from_js_string(js_string(global_object.vm(), &WtfString::from_utf8(b"handled")));
+            notify(global_object, &[kind, promise]);
+        })));
     }
 
     /// Só as microtarefas pendentes.

@@ -1,6 +1,8 @@
 // ---- Window: location, history, navigator, storage, observers, XHR, fetch e o gancho de ciclo de vida.
 
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36';
+// A ida e volta de rede em tempo virtual (o NETWORK_LATENCY_MS do hospedeiro): o que já está na fila roda antes.
+const NETWORK_LATENCY_MS = 1;
 const pageState = { url: op('pageUrl') };
 
 class Location {
@@ -354,7 +356,7 @@ class XMLHttpRequest extends EventTarget {
       this.dispatchEvent(new ProgressEvent('load', { lengthComputable: true, loaded: bytes.length, total: bytes.length }));
       this.dispatchEvent(new ProgressEvent('loadend', { lengthComputable: true, loaded: bytes.length, total: bytes.length }));
     };
-    if (s.async) setTimeout(run, 0); else run();
+    if (s.async) setTimeout(run, NETWORK_LATENCY_MS); else run();
   }
 }
 tag(XMLHttpRequest, 'XMLHttpRequest');
@@ -381,7 +383,7 @@ const realFetch = (input, init = {}) => new Promise((resolve, reject) => {
     Object.defineProperty(response, 'type', { value: new URL(result[2]).origin === new URL(pageState.url).origin ? 'basic' : 'cors', configurable: true });
     Object.defineProperty(response, 'redirected', { value: result[2] !== url.replace(/#.*$/, ''), configurable: true });
     resolve(response);
-  }, 0);
+  }, NETWORK_LATENCY_MS);
 });
 
 // ---- Scripts inseridos pela página.
@@ -404,13 +406,14 @@ function runDynamicScript(el) {
       if (result === null || result[0] >= 400) { el.dispatchEvent(new Event('error')); return; }
       execScript(el, decodeBody(rawBytes(result[4]), result[5]), result[2]);
       el.dispatchEvent(new Event('load'));
-    }, 0);
+    }, NETWORK_LATENCY_MS);
     return;
   }
   execScript(el, el.textContent, pageState.url);
 }
 
 // ---- Gancho de ciclo de vida, chamado pelo hospedeiro.
+const reportedRejections = new WeakSet();
 const hook = (name, a, b) => {
   switch (name) {
     case 'interactive': {
@@ -437,6 +440,19 @@ const hook = (name, a, b) => {
     }
     case 'currentScript': hidden(document, '__currentScript', a === null ? null : wrap(a)); break;
     case 'url': pageState.url = a; break;
+    // Rejeições sem tratador, do rastreador do motor. `handled` também chega para a promessa tratada no mesmo
+    // checkpoint, que nunca foi relatada: só as relatadas ganham `rejectionhandled`.
+    case 'unhandled': {
+      reportedRejections.add(a);
+      const event = new PromiseRejectionEvent('unhandledrejection', { promise: a, reason: b, cancelable: true });
+      if (window.dispatchEvent(event)) console.error('Uncaught (in promise)', b);
+      break;
+    }
+    case 'handled': {
+      if (!reportedRejections.delete(a)) break;
+      setTimeout(() => window.dispatchEvent(new PromiseRejectionEvent('rejectionhandled', { promise: a, reason: undefined })), 0);
+      break;
+    }
     default: break;
   }
 };

@@ -33,7 +33,7 @@ const windowGlobals = {
   getComputedStyle, matchMedia, fetch: realFetch, XMLHttpRequest, MutationObserver, MutationRecord, ResizeObserver, IntersectionObserver, PerformanceObserver,
   Node, Element, HTMLElement, HTMLUnknownElement, SVGElement, SVGGraphicsElement, SVGSVGElement, MathMLElement, Text, Comment, CDATASection, CharacterData, DocumentFragment, ShadowRoot, DocumentType, Document, Attr, NamedNodeMap, NodeList, HTMLCollection,
   DOMTokenList, CSSStyleDeclaration, CSSStyleSheet, DOMRect, DOMRectReadOnly: DOMRect, Range, Selection, TreeWalker, NodeIterator, DOMParser, XMLSerializer, DOMImplementation, XPathEvaluator, XPathExpression, XPathResult, SVGAnimatedString, Location, History, Navigator, Storage, CustomElementRegistry,
-  EventTarget, Event, CustomEvent, UIEvent, MouseEvent, PointerEvent, WheelEvent, KeyboardEvent, FocusEvent, InputEvent, ErrorEvent, MessageEvent, HashChangeEvent, PopStateEvent, ProgressEvent, TouchEvent, AnimationEvent, TransitionEvent, PageTransitionEvent, SubmitEvent,
+  EventTarget, Event, CustomEvent, UIEvent, MouseEvent, PointerEvent, WheelEvent, KeyboardEvent, FocusEvent, InputEvent, ErrorEvent, MessageEvent, HashChangeEvent, PopStateEvent, ProgressEvent, TouchEvent, AnimationEvent, TransitionEvent, PageTransitionEvent, SubmitEvent, PromiseRejectionEvent,
   HTMLDocument: Document,
 };
 for (const [key, value] of Object.entries(windowGlobals)) Object.defineProperty(globalThis, key, { value, writable: true, configurable: true, enumerable: key === 'document' || key === 'location' ? true : false });

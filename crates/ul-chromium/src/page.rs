@@ -72,6 +72,9 @@ pub struct Page {
     pub console: Rc<dyn ConsoleHost>,
 }
 
+/// A ida e volta de rede de uma busca em tempo virtual: o que já estava na fila de tarefas roda antes da resposta.
+const NETWORK_LATENCY_MS: f64 = 1.0;
+
 impl Page {
     /// Busca `url` (`file:`, `http:` ou `https:`) e monta o documento.
     pub fn load(url: &str, fetcher: Fetcher) -> Result<Page, String> {
@@ -129,6 +132,8 @@ impl Page {
                     return;
                 }
             };
+            runner.set_rejection_hook(&hook);
+            runner.set_network_latency_ms(NETWORK_LATENCY_MS);
             let call = |args: &[HostArg]| {
                 let _ = runner.call_hidden(&hook, args);
             };
@@ -167,7 +172,13 @@ impl Page {
                 run_script(info);
                 bridge.restore_following(held);
             }
-            for info in scripts.iter().filter(|s| matches!(s.kind, ScriptKind::Defer | ScriptKind::Module)) {
+            let deferred: Vec<&ScriptInfo> = scripts.iter().filter(|s| matches!(s.kind, ScriptKind::Defer | ScriptKind::Module)).collect();
+            if !deferred.is_empty() {
+                // Scripts adiados e módulos esperam a rede (a busca deles e a do que já foi pedido): nesse meio tempo
+                // as tarefas já na fila andam.
+                runner.run_event_loop_for(2.0 * NETWORK_LATENCY_MS);
+            }
+            for info in deferred {
                 run_script(info);
             }
             call(&[HostArg::Str("interactive")]);
