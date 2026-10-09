@@ -523,7 +523,9 @@ fn test_integrity_level(global_object: &JSGlobalObject, object: &JSObject, level
 
 /// `is<JSFinalObject>(object) && !hasIndexedProperties(object->indexingType())`: o atalho por estrutura.
 fn is_final_object_without_indexed_properties(object: &JSObject) -> bool {
-    object.type_() == JSType::FinalObjectType && !has_indexed_properties(object.cell().indexing_type())
+    object.type_() == JSType::FinalObjectType
+        && !has_indexed_properties(object.cell().indexing_type())
+        && !crate::runtime::process_env::is_env(object)
 }
 
 /// `objectConstructorSeal(globalObject, object)`.
