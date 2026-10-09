@@ -2355,6 +2355,10 @@ fn kw_transform(key: &[u8], data: &[u8], unwrap: bool) -> Result<Vec<u8>, String
             if unwrap { kek.unwrap_vec(data) } else { kek.wrap_vec(data) }
         }};
     }
+    // Medido no bun 1.4.2: o `wrapKey` recusa dado que não seja múltiplo de 8 bytes ou tenha menos de 16.
+    if !unwrap && (data.len() % 8 != 0 || data.len() < 16) {
+        return Err(OPERATION_FAILED.to_owned());
+    }
     let result = match key.len() {
         16 => run!(KekAes128),
         24 => run!(KekAes192),
