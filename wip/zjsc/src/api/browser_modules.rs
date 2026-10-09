@@ -3,7 +3,7 @@
 //! import map, rede que falha e cada URL como registro único (o mapa do carregador) seguem o Chromium. Nada da
 //! resolução do Node ou do Bun (`node_modules`, extensões implícitas, `index.js`, `node:`).
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use crate::parser::source_provider::SourceProviderSourceType;
@@ -22,11 +22,18 @@ pub struct UrlModuleHost {
     document_url: String,
     /// Os fontes de `<script type=module>` inline, servidos pela chave (a URL do documento com um sufixo único).
     inline: RefCell<Vec<(String, String)>>,
+    /// A ida e volta da rede do `import()` (ms de relógio virtual); `None` busca na hora.
+    network_latency_ms: Cell<Option<f64>>,
 }
 
 impl UrlModuleHost {
     pub fn new(document_url: &str, fetch: ModuleFetch) -> Self {
-        UrlModuleHost { fetch, document_url: document_url.to_owned(), inline: RefCell::new(Vec::new()) }
+        UrlModuleHost { fetch, document_url: document_url.to_owned(), inline: RefCell::new(Vec::new()), network_latency_ms: Cell::new(None) }
+    }
+
+    /// A latência da rede: o `import()` de módulo novo busca e liga numa tarefa de timer `milliseconds` depois.
+    pub fn set_network_latency_ms(&self, milliseconds: f64) {
+        self.network_latency_ms.set(Some(milliseconds));
     }
 
     /// O especificador que o Chromium resolve: absoluto (com esquema) ou começando por `/`, `./` ou `../`. A falha do
@@ -78,6 +85,10 @@ impl ModuleHost for UrlModuleHost {
 
     fn resolve_dynamic(&self, specifier: &str, referrer: Option<&str>) -> Result<String, String> {
         self.resolve_with(specifier, referrer, true)
+    }
+
+    fn network_latency_ms(&self) -> Option<f64> {
+        self.network_latency_ms.get()
     }
 
     fn fetch(&self, key: &str) -> Result<String, String> {
@@ -210,6 +221,35 @@ mod tests {
         );
         assert_eq!(error, None);
         assert_eq!(log, r#"[7,"TypeError: Failed to fetch dynamically imported module: https://site.test/app/missing.js"]"#);
+    }
+
+    #[test]
+    fn dynamic_import_waits_for_the_network_and_the_loop_runs_in_slices() {
+        let files: HashMap<String, String> = [("https://site.test/app/m.js".to_owned(), "log.push('m');".to_owned())].into_iter().collect();
+        let logs = run_program(|| {
+            let (vm, global_object) = new_global_object();
+            let _finalizer = VmFinalizer::new(&vm);
+            let host = Rc::new(UrlModuleHost::new("https://site.test/app/index.html", Rc::new(move |url: &str| files.get(url).cloned())));
+            host.set_network_latency_ms(1.0);
+            install_url_module_loader(&global_object, host);
+            crate::runtime::timers::enable_event_loop();
+            let script = "globalThis.log = []; setTimeout(() => log.push('t0'), 0); setTimeout(() => log.push('t15'), 15); \
+                          import('./m.js').then(() => log.push('then')); import('react').catch(() => log.push('bare'));";
+            evaluate(&global_object, &program_source(script)).expect("script");
+            vm.drain_microtasks();
+            let read = || {
+                let value = evaluate(&global_object, &program_source("JSON.stringify(log)")).expect("log");
+                String::from_utf8_lossy(&value.as_js_string().value().utf8(ConversionMode::LenientConversion)).into_owned()
+            };
+            let before = read();
+            crate::runtime::timers::run_event_loop_for(&global_object, 10.0);
+            let first = read();
+            crate::runtime::timers::run_event_loop_for(&global_object, 10.0);
+            (before, first, read())
+        });
+        assert_eq!(logs.0, r#"["bare"]"#);
+        assert_eq!(logs.1, r#"["bare","t0","m","then"]"#);
+        assert_eq!(logs.2, r#"["bare","t0","m","then","t15"]"#);
     }
 
     #[test]

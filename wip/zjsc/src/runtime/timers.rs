@@ -126,6 +126,8 @@ struct State {
     in_loop: bool,
     /// `true` depois de uma exceção fatal não capturada: nenhum callback mais roda e o laço termina.
     halted: bool,
+    /// Fim de uma fatia de [`run_event_loop_for`]: o laço sai e a próxima chamada o retoma de onde parou.
+    paused: bool,
     loads: Vec<Load>,
     next_id: u32,
     next_seq: u64,
@@ -801,6 +803,14 @@ pub fn run_event_loop(global_object: &JSGlobalObject) {
     }
 }
 
+/// Roda o laço por `budget_ms` de tempo virtual (o `--virtual-time-budget` do Chromium, em fatias): o que vence até
+/// lá dispara, o resto fica na fila para a chamada seguinte, que retoma o relógio de onde esta parou. `false` quando
+/// o laço parou de vez (exceção fatal).
+pub fn run_event_loop_for(global_object: &JSGlobalObject, budget_ms: f64) -> bool {
+    schedule_native(global_object, budget_ms, Rc::new(|_| STATE.with(|state| state.borrow_mut().paused = true)));
+    run_event_loop_until_held(global_object)
+}
+
 /// O laço de `run_event_loop`, mas em vez de parar para sempre quando só restam fontes que seguram o processo sem
 /// trabalho pendente (canal com `ref`, ouvinte de `message`), devolve `true`. `false` é o laço que terminou.
 pub fn run_event_loop_until_held(global_object: &JSGlobalObject) -> bool {
@@ -817,6 +827,9 @@ pub fn run_event_loop_until_held(global_object: &JSGlobalObject) -> bool {
     loop {
         if STATE.with(|state| state.borrow().halted) {
             return false;
+        }
+        if STATE.with(|state| std::mem::take(&mut state.borrow_mut().paused)) {
+            return true;
         }
         if STATE.with(|state| state.borrow().alive()) {
             run_due_loads(global_object);

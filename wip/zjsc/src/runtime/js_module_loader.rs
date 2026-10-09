@@ -122,6 +122,12 @@ pub trait ModuleHost {
         self.resolve(specifier, referrer)
     }
 
+    /// A ida e volta da rede de um `import()` de módulo ainda não carregado, em ms de relógio virtual: a busca e a
+    /// ligação rodam numa tarefa de timer depois desse atraso (o navegador). `None` é a leitura do bun.
+    fn network_latency_ms(&self) -> Option<f64> {
+        None
+    }
+
     /// Falha de `resolve` e de `fetch` vira `TypeError` com a mensagem do host (o navegador: `Failed to resolve
     /// module specifier`, `Failed to fetch dynamically imported module`), não o `ResolveMessage` nem o `Error` do Bun.
     fn failures_are_type_errors(&self) -> bool {
@@ -1002,7 +1008,20 @@ fn request_import_module(
         // Módulo novo: a leitura do arquivo é uma macrotask no bun, o corpo e o `.then` só rodam quando o laço
         // de eventos a entrega (depois de esvaziar a fila de microtasks inteira). Módulo já carregado, ou sem
         // laço de eventos: os saltos de microtask medidos.
-        if !already_loaded && event_loop_is_driven() {
+        if let (false, Some(latency)) = (already_loaded, loader.host.network_latency_ms()) {
+            // O navegador: a resposta da rede é uma tarefa de timer, depois das que já estão na fila.
+            let promise = Rc::clone(&state_promise);
+            let pending = RefCell::new(Some(pending));
+            crate::runtime::timers::schedule_native(
+                global_object,
+                latency,
+                Rc::new(move |global_object| {
+                    if let Some(pending) = pending.borrow_mut().take() {
+                        finish_pending_import(global_object, &promise, pending);
+                    }
+                }),
+            );
+        } else if !already_loaded && event_loop_is_driven() {
             let promise = Rc::clone(&state_promise);
             schedule_module_load(Box::new(move |global_object| finish_pending_import(global_object, &promise, pending)));
         } else {
