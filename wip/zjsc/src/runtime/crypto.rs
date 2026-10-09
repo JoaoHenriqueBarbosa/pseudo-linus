@@ -2900,8 +2900,8 @@ fn supports_derive_length(global_object: &JSGlobalObject, value: JSValue) -> Res
 }
 
 /// A tabela de `SubtleCrypto.supports` (medida no bun 1.4.2): cada operação resolve o algoritmo com o mesmo
-/// [`resolve_algorithm`] das operações reais, e falha de normalização é `false`. `wrapKey`, `unwrapKey` e `get key length` dão
-/// `false` em toda combinação medida.
+/// [`resolve_algorithm`] das operações reais, e falha de normalização é `false`. `get key length` dá `false` em toda
+/// combinação medida.
 fn supports_operation(global_object: &JSGlobalObject, call: &HostCall, operation: &str, lower_name: &str, algorithm: JSValue) -> Result<bool, Thrown> {
     use AlgorithmId::*;
     let extra = call.argument(2);
@@ -2923,6 +2923,13 @@ fn supports_operation(global_object: &JSGlobalObject, call: &HostCall, operation
                 return Ok(false);
             }
             if operation == "deriveBits" { supports_derive_length(global_object, extra) } else { supports_target_key(global_object, call, extra, true) }
+        }
+        // Medido no bun 1.4.2: só `AES-KW` e `RSA-OAEP` embrulham, e o 3º argumento tem de ser um algoritmo de chave importável.
+        "wrapKey" | "unwrapKey" => {
+            if !resolved(Operation::WrapKey).is_some_and(|id| matches!(id, AesKw | RsaOaep)) {
+                return Ok(false);
+            }
+            supports_target_key(global_object, call, extra, false)
         }
         "encapsulateBits" | "decapsulateBits" => Ok(resolved(Operation::Encapsulate).is_some()),
         "encapsulateKey" | "decapsulateKey" => {
