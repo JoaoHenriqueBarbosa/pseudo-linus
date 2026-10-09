@@ -138,13 +138,13 @@ impl Page {
         let module_fetch: zjsc::api::browser_modules::ModuleFetch = Rc::new(move |address: &str| fetch_text(&module_bridge.fetcher, address, "*/*"));
         run_page(self.console.clone(), bridge.clone(), &document_url, module_fetch, |runner| {
             let prelude = format!("let $plHook = (function () {{ 'use strict';\n{}{}\nreturn hook;\n}})();", PRELUDE_PARTS.concat(), PRELUDE_TAIL);
-            if let Err(error) = runner.eval(&prelude, "chrome-prelude") {
+            if let Err(error) = runner.eval_hidden(&prelude) {
                 // O prelúdio é parte do navegador: falha dele é bug nosso e a página fica sem DOM de script.
                 eprintln!("chromium: prelúdio falhou: {error}");
                 return;
             }
             let call = |expression: &str| {
-                let _ = runner.eval(&format!("$plHook({expression})"), "chrome-hook");
+                let _ = runner.eval_hidden(&format!("$plHook({expression})"));
             };
             let run_script = |info: &ScriptInfo| {
                 let node = info.node.as_u64();

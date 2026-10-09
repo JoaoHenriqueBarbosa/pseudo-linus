@@ -16,7 +16,8 @@ use crate::runtime::js_global_object::{JSGlobalObject, JSGlobalObjectRef};
 use crate::runtime::js_module_loader::rust_string;
 use crate::runtime::js_promise::Status;
 use crate::runtime::js_value::JSValue;
-use crate::runtime::native_class_support::install_global_function;
+use crate::runtime::implementation_visibility::ImplementationVisibility;
+use crate::runtime::native_class_support::install_global_function_with_visibility;
 use crate::runtime::program_executable::ProgramExecutable;
 use crate::runtime::vm::VM;
 
@@ -70,6 +71,14 @@ impl PageRunner {
         result.map(|_| ()).map_err(|exception| describe_exception(&exception))
     }
 
+    /// Como [`PageRunner::eval`], para o código do hospedeiro (o DOM em JavaScript e as chamadas ao gancho dele):
+    /// as funções criadas são builtins para a página, sem nome de arquivo nem frame no `Error.stack`.
+    pub fn eval_hidden(&self, source: &str) -> Result<(), String> {
+        let result = crate::api::eval::evaluate_hidden_program(&self.global_object, source);
+        self.vm.drain_microtasks();
+        result.map(|_| ()).map_err(|exception| describe_exception(&exception))
+    }
+
     /// Roda o laço de eventos (timers, immediates, microtarefas) no relógio virtual do motor até esvaziar ou até
     /// passarem `budget_ms` de tempo virtual (o `--virtual-time-budget` do Chromium); o que sobrar de timers fica sem
     /// disparar. Só deve ser chamado uma vez por página: o laço parado pelo orçamento não é retomável.
@@ -92,7 +101,7 @@ pub fn run_page<T>(console: Rc<dyn ConsoleHost>, dom: Rc<dyn DomHost>, document_
         let _finalizer = VmFinalizer::new(&vm);
         global_object.set_console_host(console);
         dom_bridge::install(&global_object, dom);
-        install_global_function(&global_object, "__pl_eval", 2, pl_eval);
+        install_global_function_with_visibility(&global_object, "__pl_eval", 2, pl_eval, ImplementationVisibility::Private);
         let modules = Rc::new(UrlModuleHost::new(document_url, fetch));
         install_url_module_loader(&global_object, modules.clone());
         PAGE_GLOBAL.with(|slot| *slot.borrow_mut() = Some(global_object.clone()));

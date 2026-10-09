@@ -16,7 +16,8 @@ use crate::runtime::js_global_object::JSGlobalObject;
 use crate::runtime::js_module_loader::rust_string;
 use crate::runtime::js_object::JSObject;
 use crate::runtime::js_value::{js_number, JSValue};
-use crate::runtime::native_class_support::install_global_function;
+use crate::runtime::implementation_visibility::ImplementationVisibility;
+use crate::runtime::native_class_support::install_global_function_with_visibility;
 use crate::runtime::process_shape::{array_value, text_value};
 
 /// Um valor que cruza a ponte: o que o JavaScript e o hospedeiro trocam.
@@ -54,7 +55,7 @@ pub(crate) fn reset_for_program() {
 /// Instala o hospedeiro e a função global `__pl_dom`.
 pub fn install(global_object: &JSGlobalObject, host: Rc<dyn DomHost>) {
     DOM_HOST.with(|slot| *slot.borrow_mut() = Some(host));
-    install_global_function(global_object, "__pl_dom", 1, pl_dom);
+    install_global_function_with_visibility(global_object, "__pl_dom", 1, pl_dom, ImplementationVisibility::Private);
 }
 
 fn to_arg(global_object: &JSGlobalObject, value: JSValue) -> DomArg {
