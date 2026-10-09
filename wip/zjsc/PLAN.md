@@ -88,6 +88,11 @@ que sobram: coluna do caret em erros de CJS (mapa de posições, cerca de 15), `
 callback de `nextTick` (o wrapper CJS do bun trata `function` sloppy como estrita), o frame `at emitTick (unknown)` nos
 ouvintes de `warning`, e streams de `stdout`/`stdin` (`_events`, construtores sem `new`, `ReadStream`/`WriteStream` com `new`).
 
+Pista medida para a coluna do caret (2026-10-09, bun 1.4.2, arquivo CJS em disco): `function f() {\n return new Error('abc');\n}\nfunction h() { return f(); }\nconsole.log(h().stack);`
+imprime só `at main.js:5:13` (o frame de `f` e o de `h` somem e a posição é a da chamada `h()` no topo); `setTimeout(function () { throw new Error('in timer'); }, 0);`
+relata a coluna 52, o `)` que fecha `new Error('in timer')`, e não o `new` (32). O bun não monta a pilha do JSC como o porte: antes de
+mexer no mapa de posições, medir quais frames o bun mantém e qual divot usa por tipo de expressão.
+
 Ainda abertos (catalogados, sem ordem de atacar agora):
 - `buffer`: 6 casos exigem o global `Bun` (`Bun.inspect`), que não existe no porte; 1 caso (`Buffer.from(new Date(0))`)
   depende do fuso do bun (`America/Sao_Paulo`), não é bug do porte.
