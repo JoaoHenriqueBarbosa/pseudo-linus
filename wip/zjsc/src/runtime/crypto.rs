@@ -2837,9 +2837,11 @@ fn decapsulate_key_body_impl(global_object: &JSGlobalObject, call: &HostCall) ->
 /// Os conversores de parâmetros lançam; no `supports` o lançamento vira `false`: a exceção pendente some e só a falha do
 /// próprio motor propaga.
 fn succeeds<T>(global_object: &JSGlobalObject, result: Result<T, Thrown>) -> Result<bool, Thrown> {
+    // Medido no bun 1.4.2: `valueOf` que lança, símbolo e `BigInt` num membro numérico do dicionário valem `false`. Uma
+    // conversão que lança pode devolver `Ok` com a exceção pendente.
     match result {
-        Ok(_) => Ok(true),
-        Err(Thrown::Pending) => {
+        Ok(_) if global_object.vm().exception().is_none() => Ok(true),
+        Ok(_) | Err(Thrown::Pending | Thrown::TypeError(_) | Thrown::RangeError(_)) => {
             global_object.vm().clear_exception();
             Ok(false)
         }
