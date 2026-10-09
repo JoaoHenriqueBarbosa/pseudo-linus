@@ -23,7 +23,8 @@ use crate::runtime::js_global_object::JSGlobalObject;
 use crate::runtime::js_object::{JSObject, PutError};
 use crate::runtime::js_string::js_string;
 use crate::runtime::js_value::JSValue;
-use crate::runtime::node_error::throw_coded_type_error;
+use crate::runtime::error_type::ErrorType;
+use crate::runtime::node_error::throw_validation_error;
 use crate::runtime::object_constructor::construct_empty_object;
 use crate::runtime::property_descriptor::PropertyDescriptor;
 use crate::runtime::property_name::PropertyName;
@@ -121,7 +122,7 @@ pub(crate) fn before_put(vm: &VM, name: Option<&PropertyName>, value: JSValue) -
 pub(crate) fn before_define(vm: &VM, descriptor: &PropertyDescriptor) -> Result<PropertyDescriptor, PutError> {
     let global_object = current_global_object();
     if descriptor.is_accessor_descriptor() {
-        return Err(pending(throw_coded_type_error(&global_object, ACCESSOR_MESSAGE, DEFINE_CODE)));
+        return Err(pending(throw_validation_error(&global_object, ErrorType::TypeError, ACCESSOR_MESSAGE, DEFINE_CODE)));
     }
     let complete = descriptor.configurable_present()
         && descriptor.configurable()
@@ -130,7 +131,7 @@ pub(crate) fn before_define(vm: &VM, descriptor: &PropertyDescriptor) -> Result<
         && descriptor.writable_present()
         && descriptor.writable();
     if !complete {
-        return Err(pending(throw_coded_type_error(&global_object, DESCRIPTOR_MESSAGE, DEFINE_CODE)));
+        return Err(pending(throw_validation_error(&global_object, ErrorType::TypeError, DESCRIPTOR_MESSAGE, DEFINE_CODE)));
     }
     let mut coerced = *descriptor;
     coerced.set_value(coerce_value(vm, descriptor.value())?);
