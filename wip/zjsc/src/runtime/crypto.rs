@@ -759,6 +759,10 @@ fn base64_url_text(bytes: &[u8]) -> String {
 /// A decodificação base64url leniente do bun: entrada inválida vira vazio. O JWK grava base64url sem padding, e o
 /// decodificador compartilhado (`binascii`) exige o `=`, então o padding é completado antes.
 fn base64_url_bytes(text: &str) -> Vec<u8> {
+    // Medido no bun: `+` e `/` não são base64url, a entrada inteira vira vazio.
+    if text.contains(['+', '/']) {
+        return Vec::new();
+    }
     let mut standard = text.replace('-', "+").replace('_', "/");
     while standard.len() % 4 != 0 {
         standard.push('=');
@@ -1066,7 +1070,7 @@ fn asym_jwk_material(global_object: &JSGlobalObject, call: &HostCall, jwk: &Jwk,
         Curve::Ed25519 => Some("Ed25519"),
         Curve::X25519 => None,
     };
-    if asym.id != AlgorithmId::Ecdh && jwk.alg.as_deref().is_some_and(|alg| Some(alg) != expected_alg && !(asym.id == AlgorithmId::Ed25519 && alg == "EdDSA")) {
+    if !matches!(asym.id, AlgorithmId::Ecdh | AlgorithmId::X25519) && jwk.alg.as_deref().is_some_and(|alg| Some(alg) != expected_alg && !(asym.id == AlgorithmId::Ed25519 && alg == "EdDSA")) {
         return Err(dom_error(global_object, call, "DataError", "JWK \"alg\" does not match the requested algorithm"));
     }
     let key_ops_bad = jwk.key_ops.as_deref().is_some_and(|operations| has_duplicate(operations) || usage_mask_of(operations) & usages != usages);
@@ -1074,6 +1078,11 @@ fn asym_jwk_material(global_object: &JSGlobalObject, call: &HostCall, jwk: &Jwk,
         return Err(invalid());
     }
     let size = asym.curve.field_size();
+    // Medido no bun: numa chave OKP privada o `x` é ignorado (mesmo errado, curto ou vazio) e só o `d` de 32 bytes vale.
+    if let (false, Some(d)) = (nist, jwk.d.as_deref()) {
+        let secret = base64_url_bytes(d);
+        return if secret.len() == size { Ok((secret, true)) } else { Err(invalid()) };
+    }
     let x = base64_url_bytes(jwk.x.as_deref().ok_or_else(invalid)?);
     let public = if nist {
         let y = base64_url_bytes(jwk.y.as_deref().ok_or_else(invalid)?);
