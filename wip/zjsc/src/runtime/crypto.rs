@@ -1380,7 +1380,7 @@ fn finish_derive_key(
     usages: u16,
 ) -> HostResult {
     let shared = derive_asym_bits(global_object, call, params, base, target_bits, (USAGE_DERIVE_KEY, "deriveKey"))?;
-    let key = import_secret(global_object, call, "raw", Some(shared), None, call.argument(2), call.argument(3).to_boolean(), usages)?;
+    let key = import_secret(global_object, call, "raw-secret", Some(shared), None, call.argument(2), call.argument(3).to_boolean(), usages)?;
     Ok(create_key(global_object, key))
 }
 
