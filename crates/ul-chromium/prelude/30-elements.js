@@ -316,22 +316,31 @@ class Element extends Node {
     hidden(this, '__shadow', root);
     return root;
   }
-  get clientWidth() { return 0; }
-  get clientHeight() { return 0; }
-  get clientTop() { return 0; }
-  get clientLeft() { return 0; }
-  get offsetWidth() { return 0; }
-  get offsetHeight() { return 0; }
-  get offsetTop() { return 0; }
-  get offsetLeft() { return 0; }
-  get offsetParent() { return null; }
-  get scrollWidth() { return 0; }
-  get scrollHeight() { return 0; }
+  // No elemento raiz, client* é a janela (sem barra de rolagem: o headless não desenha nenhuma).
+  get clientWidth() { if (this === document.documentElement) return VIEWPORT.width; const b = boxOf(this); return b ? Math.round(b.width - b.border[1] - b.border[3]) : 0; }
+  get clientHeight() { if (this === document.documentElement) return VIEWPORT.height; const b = boxOf(this); return b ? Math.round(b.height - b.border[0] - b.border[2]) : 0; }
+  get clientTop() { const b = boxOf(this); return b ? Math.round(b.border[0]) : 0; }
+  get clientLeft() { const b = boxOf(this); return b ? Math.round(b.border[3]) : 0; }
+  get offsetWidth() { const b = boxOf(this); return b ? Math.round(b.width) : 0; }
+  get offsetHeight() { const b = boxOf(this); return b ? Math.round(b.height) : 0; }
+  get offsetTop() { const b = boxOf(this); const p = this.offsetParent && boxOf(this.offsetParent); return b ? Math.round(b.y - (p ? p.y + p.border[0] : 0)) : 0; }
+  get offsetLeft() { const b = boxOf(this); const p = this.offsetParent && boxOf(this.offsetParent); return b ? Math.round(b.x - (p ? p.x + p.border[3] : 0)) : 0; }
+  get offsetParent() {
+    if (!this.isConnected || this.localName === 'body' || this.localName === 'html') return null;
+    for (let el = this.parentElement; el; el = el.parentElement) {
+      if (el.localName === 'body' || /^(td|th|table)$/.test(el.localName)) return el;
+      const position = el.style && el.style.position;
+      if (position && position !== 'static') return el;
+    }
+    return null;
+  }
+  get scrollWidth() { return this.clientWidth; }
+  get scrollHeight() { return this.clientHeight; }
   get scrollTop() { return 0; }
   set scrollTop(v) {}
   get scrollLeft() { return 0; }
   set scrollLeft(v) {}
-  getBoundingClientRect() { return new DOMRect(0, 0, 0, 0); }
+  getBoundingClientRect() { const b = boxOf(this); return b ? new DOMRect(b.x, b.y, b.width, b.height) : new DOMRect(0, 0, 0, 0); }
   getClientRects() { return []; }
   scrollIntoView() {}
   scrollTo() {}
@@ -370,6 +379,13 @@ class DOMRect {
   toJSON() { return { x: this.x, y: this.y, width: this.width, height: this.height, top: this.top, right: this.right, bottom: this.bottom, left: this.left }; }
 }
 tag(DOMRect, 'DOMRect');
+
+// A caixa de borda do layout do hospedeiro (estilo e layout do Blitz na janela de 800x600); `null` desconectado.
+const boxOf = (el) => {
+  if (!el.isConnected) return null;
+  const v = op('box', idOf(el));
+  return v && { x: v[0], y: v[1], width: v[2], height: v[3], border: v.slice(4, 8), padding: v.slice(8, 12) };
+};
 
 // Reflexão de atributos: propriedade <-> atributo, com o tipo do valor.
 const reflect = (cls, spec) => {

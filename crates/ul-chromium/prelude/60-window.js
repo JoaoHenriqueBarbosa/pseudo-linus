@@ -3,6 +3,8 @@
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36';
 // A ida e volta de rede em tempo virtual (o NETWORK_LATENCY_MS do hospedeiro): o que já está na fila roda antes.
 const NETWORK_LATENCY_MS = 1;
+// A janela do headless medida no oráculo (o WINDOW do hospedeiro): conteúdo 780x493, janela 780x580, tela 800x600.
+const VIEWPORT = Object.freeze({ width: 780, height: 493, outerWidth: 780, outerHeight: 580 });
 const pageState = { url: op('pageUrl') };
 
 class Location {
@@ -212,8 +214,8 @@ const matchMedia = (query) => {
   const q = String(query).toLowerCase();
   const evalOne = (c) => {
     let m;
-    if ((m = /\(\s*min-width\s*:\s*(\d+(?:\.\d+)?)px\s*\)/.exec(c))) return 800 >= +m[1];
-    if ((m = /\(\s*max-width\s*:\s*(\d+(?:\.\d+)?)px\s*\)/.exec(c))) return 800 <= +m[1];
+    if ((m = /\(\s*min-width\s*:\s*(\d+(?:\.\d+)?)px\s*\)/.exec(c))) return VIEWPORT.width >= +m[1];
+    if ((m = /\(\s*max-width\s*:\s*(\d+(?:\.\d+)?)px\s*\)/.exec(c))) return VIEWPORT.width <= +m[1];
     if (/prefers-color-scheme\s*:\s*light/.test(c)) return true;
     if (/prefers-color-scheme\s*:\s*dark/.test(c) || /prefers-reduced-motion\s*:\s*reduce/.test(c)) return false;
     if (/^\s*(all|screen)\s*$/.test(c)) return true;
@@ -252,6 +254,8 @@ class MutationObserver {
 }
 tag(MutationObserver, 'MutationObserver');
 mutationHook.record = (rec) => {
+  // Toda mutação pode mudar o layout: os observadores de tamanho e interseção medem de novo no próximo quadro.
+  if (renderObservers.size) requestRender();
   if (!observers.size) return;
   for (const observer of observers) {
     for (const reg of observer.__regs) {
@@ -281,9 +285,121 @@ mutationHook.record = (rec) => {
     });
   }
 };
-class ResizeObserver { constructor(cb) { hidden(this, '__cb', cb); } observe() {} unobserve() {} disconnect() {} }
+// ---- ResizeObserver e IntersectionObserver: medidos na atualização de renderização (um quadro de 16ms), sobre o
+// layout do hospedeiro. A janela é a raiz do IntersectionObserver e não rola.
+const renderObservers = new Set();
+let renderPending = false;
+const requestRender = () => {
+  if (renderPending) return;
+  renderPending = true;
+  setTimeout(() => {
+    renderPending = false;
+    // Medido no oráculo: as entregas de ResizeObserver saem antes das de IntersectionObserver no mesmo quadro.
+    const all = Array.from(renderObservers);
+    for (const observer of all) if (observer instanceof ResizeObserver) observer.__measure();
+    for (const observer of all) if (!(observer instanceof ResizeObserver)) observer.__measure();
+  }, 16);
+};
+const sizeEntry = (inlineSize, blockSize) => Object.freeze([Object.freeze({ inlineSize, blockSize })]);
+class ResizeObserverEntry {
+  constructor() { throw new TypeError('Illegal constructor'); }
+}
+tag(ResizeObserverEntry, 'ResizeObserverEntry');
+class ResizeObserver {
+  constructor(cb) {
+    if (typeof cb !== 'function') throw new TypeError("Failed to construct 'ResizeObserver': parameter 1 is not of type 'ResizeObserverCallback'.");
+    hidden(this, '__cb', cb);
+    hidden(this, '__targets', new Map());
+  }
+  observe(target) {
+    if (!this.__targets.has(target)) this.__targets.set(target, null);
+    renderObservers.add(this);
+    requestRender();
+  }
+  unobserve(target) { this.__targets.delete(target); }
+  disconnect() { this.__targets.clear(); renderObservers.delete(this); }
+  __measure() {
+    const entries = [];
+    for (const [target, last] of this.__targets) {
+      const b = boxOf(target);
+      const width = b ? b.width - b.border[1] - b.border[3] - b.padding[1] - b.padding[3] : 0;
+      const height = b ? b.height - b.border[0] - b.border[2] - b.padding[0] - b.padding[2] : 0;
+      // A primeira observação de um alvo de tamanho zero não entra: o tamanho registrado começa em 0x0.
+      const previous = last || { width: 0, height: 0, first: true };
+      if (previous.width === width && previous.height === height && !(previous.first && b)) continue;
+      this.__targets.set(target, { width, height });
+      const entry = Object.create(ResizeObserverEntry.prototype);
+      Object.defineProperties(entry, {
+        target: { value: target, enumerable: true },
+        contentRect: { value: new DOMRect(b ? b.padding[3] : 0, b ? b.padding[0] : 0, width, height), enumerable: true },
+        borderBoxSize: { value: sizeEntry(b ? b.width : 0, b ? b.height : 0), enumerable: true },
+        contentBoxSize: { value: sizeEntry(width, height), enumerable: true },
+        devicePixelContentBoxSize: { value: sizeEntry(width, height), enumerable: true },
+      });
+      entries.push(entry);
+    }
+    if (entries.length) invokeReaction(() => this.__cb.call(this, entries, this));
+  }
+}
 tag(ResizeObserver, 'ResizeObserver');
-class IntersectionObserver { constructor(cb, options) { hidden(this, '__cb', cb); this.root = (options && options.root) || null; this.rootMargin = (options && options.rootMargin) || '0px'; this.thresholds = [0]; } observe() {} unobserve() {} disconnect() {} takeRecords() { return []; } }
+class IntersectionObserverEntry {
+  constructor() { throw new TypeError('Illegal constructor'); }
+}
+tag(IntersectionObserverEntry, 'IntersectionObserverEntry');
+class IntersectionObserver {
+  constructor(cb, options) {
+    if (typeof cb !== 'function') throw new TypeError("Failed to construct 'IntersectionObserver': parameter 1 is not of type 'IntersectionObserverCallback'.");
+    hidden(this, '__cb', cb);
+    hidden(this, '__targets', new Map());
+    const threshold = options && options.threshold !== undefined ? options.threshold : 0;
+    const list = (Array.isArray(threshold) ? threshold : [threshold]).map(Number);
+    if (list.some((t) => !(t >= 0 && t <= 1))) throw new RangeError("Failed to construct 'IntersectionObserver': Threshold values must be numbers between 0 and 1");
+    Object.defineProperties(this, {
+      root: { value: (options && options.root) || null, enumerable: true },
+      rootMargin: { value: (options && options.rootMargin) || '0px 0px 0px 0px', enumerable: true },
+      thresholds: { value: Object.freeze(list.sort((a, b) => a - b)), enumerable: true },
+    });
+  }
+  observe(target) {
+    if (!this.__targets.has(target)) this.__targets.set(target, -1);
+    renderObservers.add(this);
+    requestRender();
+  }
+  unobserve(target) { this.__targets.delete(target); }
+  disconnect() { this.__targets.clear(); renderObservers.delete(this); }
+  takeRecords() { return []; }
+  __measure() {
+    const entries = [];
+    const root = { x: 0, y: 0, width: windowMetrics.innerWidth, height: windowMetrics.innerHeight };
+    for (const [target, last] of this.__targets) {
+      const b = boxOf(target) || { x: 0, y: 0, width: 0, height: 0 };
+      const left = Math.max(b.x, root.x), top = Math.max(b.y, root.y);
+      const right = Math.min(b.x + b.width, root.x + root.width), bottom = Math.min(b.y + b.height, root.y + root.height);
+      const isIntersecting = target.isConnected && right >= left && bottom >= top;
+      const area = b.width * b.height;
+      const ratio = isIntersecting ? (area > 0 ? ((right - left) * (bottom - top)) / area : 1) : 0;
+      // O índice do limiar cruzado: -1 é "ainda não medido", que sempre entrega.
+      let index = isIntersecting ? this.thresholds.filter((t) => ratio >= t).length : 0;
+      if (!isIntersecting) index = 0;
+      const state = index * 2 + (isIntersecting ? 1 : 0);
+      if (state === last) continue;
+      this.__targets.set(target, state);
+      const entry = Object.create(IntersectionObserverEntry.prototype);
+      Object.defineProperties(entry, {
+        time: { value: performance.now(), enumerable: true },
+        rootBounds: { value: new DOMRect(root.x, root.y, root.width, root.height), enumerable: true },
+        boundingClientRect: { value: new DOMRect(b.x, b.y, b.width, b.height), enumerable: true },
+        intersectionRect: { value: isIntersecting ? new DOMRect(left, top, right - left, bottom - top) : new DOMRect(0, 0, 0, 0), enumerable: true },
+        isIntersecting: { value: isIntersecting, enumerable: true },
+        intersectionRatio: { value: ratio, enumerable: true },
+        target: { value: target, enumerable: true },
+        isVisible: { value: false, enumerable: true },
+      });
+      entries.push(entry);
+    }
+    if (entries.length) invokeReaction(() => this.__cb.call(this, entries, this));
+  }
+}
 tag(IntersectionObserver, 'IntersectionObserver');
 class PerformanceObserver { constructor(cb) { hidden(this, '__cb', cb); } observe() {} disconnect() {} takeRecords() { return []; } static get supportedEntryTypes() { return []; } }
 tag(PerformanceObserver, 'PerformanceObserver');

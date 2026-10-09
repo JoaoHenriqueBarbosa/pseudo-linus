@@ -139,6 +139,18 @@ impl BaseDocument {
                 // })
             }
             NodeData::Element(element_data) | NodeData::AnonymousBlock(element_data) => {
+                // pseudo-linus: um list-item vazio com marcador de fora ainda tem a linha do marcador (o Chromium
+                // dá ao `<li></li>` a altura de uma linha).
+                if matches!(
+                    element_data.list_item_data.as_deref(),
+                    Some(crate::node::ListItemLayout { position: crate::node::ListItemLayoutPosition::Outside(_), .. })
+                ) && node.children.is_empty()
+                {
+                    let line_height = resolved_line_height.unwrap_or(16.0);
+                    return compute_leaf_layout(inputs, node.style(), resolve_calc_value, |_known_size, _available_space| {
+                        taffy::Size { width: 0.0, height: line_height }
+                    });
+                }
                 // TODO: deduplicate with single-line text input
                 if *element_data.name.local == *"textarea" {
                     let rows = element_data

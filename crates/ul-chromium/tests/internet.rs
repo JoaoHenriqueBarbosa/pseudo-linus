@@ -110,7 +110,7 @@ impl zjsc::runtime::console_host::ConsoleHost for StderrConsole {
 /// A página que o programa `tape-page` vai rodar: o diretório da fita e a URL.
 static CURRENT: Mutex<Option<(PathBuf, String)>> = Mutex::new(None);
 
-/// Programa do sandbox de teste: carrega a página de `CURRENT` sobre a fita e escreve o DOM no stdout. Um pânico do
+/// Programa do sandbox de teste: carrega a página de `CURRENT` sobre a fita e deixa o DOM em `DUMP`. Um pânico do
 /// motor vira status de saída diferente de zero, e a medição das outras páginas segue.
 fn tape_page_main(ctx: &mut sysabi::Ctx, _argv: &[std::ffi::OsString]) -> i32 {
     let (dir, address) = CURRENT.lock().unwrap().clone().unwrap();
@@ -126,9 +126,12 @@ fn tape_page_main(ctx: &mut sysabi::Ctx, _argv: &[std::ffi::OsString]) -> i32 {
         page.console = Rc::new(StderrConsole);
     }
     page.run();
-    let _ = ctx.stdout().write_all(page.dump_dom().as_bytes());
+    // O DOM volta por memória: o pipe de stdout do TestKit tem 1 MiB, menos que algumas páginas (wikipedia-debian).
+    *DUMP.lock().unwrap() = Some(page.dump_dom());
     0
 }
+
+static DUMP: Mutex<Option<String>> = Mutex::new(None);
 
 #[test]
 fn internet_scoreboard() {
@@ -154,7 +157,11 @@ fn internet_scoreboard() {
         // tinha sob o faketime.
         let kit = TestKit::new().programs(vec![sysabi::Program::bin("tape-page", tape_page_main)]).time(recorded_at);
         let run = kit.run(&["tape-page"], b"");
-        let actual = if run.status == sysabi::WaitStatus::Exited(0) { run.stdout_str() } else { format!("pânico ou falha: {}", run.stderr_str()) };
+        let dump = DUMP.lock().unwrap().take();
+        let actual = match (run.status == sysabi::WaitStatus::Exited(0), dump) {
+            (true, Some(dump)) => dump,
+            _ => format!("pânico ou falha ({:?}): {}", run.status, run.stderr_str()),
+        };
         let slot = groups.entry(group.to_owned()).or_default();
         slot.1 += 1;
         if actual == expected || variants.contains(&actual) {

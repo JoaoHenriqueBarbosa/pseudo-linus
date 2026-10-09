@@ -311,6 +311,9 @@ class SVGGraphicsElement extends SVGElement {
 tag(SVGGraphicsElement, 'SVGGraphicsElement');
 class SVGSVGElement extends SVGGraphicsElement {
   createSVGPoint() { return { x: 0, y: 0 }; }
+  createSVGRect() { return new DOMRect(); }
+  createSVGMatrix() { return { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }; }
+  createSVGNumber() { return { value: 0 }; }
   get viewBox() { return { baseVal: { x: 0, y: 0, width: 0, height: 0 } }; }
 }
 tag(SVGSVGElement, 'SVGSVGElement');

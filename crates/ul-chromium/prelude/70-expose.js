@@ -30,7 +30,7 @@ const windowGlobals = {
   window, self: window, globalThis: window, frames: window, top: window, parent: window, document, location, history, navigator, CSS, NodeFilter,
   screen: { width: 800, height: 600, availWidth: 800, availHeight: 600, availLeft: 0, availTop: 0, colorDepth: 24, pixelDepth: 24, orientation: { type: 'landscape-primary', angle: 0, addEventListener() {}, removeEventListener() {} } },
   localStorage: makeStorage(), sessionStorage: makeStorage(), customElements,
-  getComputedStyle, matchMedia, fetch: realFetch, XMLHttpRequest, MutationObserver, MutationRecord, ResizeObserver, IntersectionObserver, PerformanceObserver,
+  getComputedStyle, matchMedia, fetch: realFetch, XMLHttpRequest, MutationObserver, MutationRecord, ResizeObserver, ResizeObserverEntry, IntersectionObserver, IntersectionObserverEntry, PerformanceObserver,
   Node, Element, HTMLElement, HTMLUnknownElement, SVGElement, SVGGraphicsElement, SVGSVGElement, MathMLElement, Text, Comment, CDATASection, CharacterData, DocumentFragment, ShadowRoot, DocumentType, Document, Attr, NamedNodeMap, NodeList, HTMLCollection,
   DOMTokenList, CSSStyleDeclaration, CSSStyleSheet, DOMRect, DOMRectReadOnly: DOMRect, Range, Selection, TreeWalker, NodeIterator, DOMParser, XMLSerializer, DOMImplementation, XPathEvaluator, XPathExpression, XPathResult, SVGAnimatedString, Location, History, Navigator, Storage, CustomElementRegistry,
   EventTarget, Event, CustomEvent, UIEvent, MouseEvent, PointerEvent, WheelEvent, KeyboardEvent, FocusEvent, InputEvent, ErrorEvent, MessageEvent, HashChangeEvent, PopStateEvent, ProgressEvent, TouchEvent, AnimationEvent, TransitionEvent, PageTransitionEvent, SubmitEvent, PromiseRejectionEvent,
@@ -40,7 +40,7 @@ for (const [key, value] of Object.entries(windowGlobals)) Object.defineProperty(
 Object.defineProperty(globalThis, 'document', { value: document, writable: false, configurable: false, enumerable: true });
 Object.defineProperty(globalThis, 'location', { get: () => location, set: (v) => { location.href = v; }, configurable: false, enumerable: true });
 
-const windowMetrics = { innerWidth: 800, innerHeight: 600, outerWidth: 800, outerHeight: 600, devicePixelRatio: 1, scrollX: 0, scrollY: 0, pageXOffset: 0, pageYOffset: 0, screenX: 0, screenY: 0, screenLeft: 0, screenTop: 0, length: 0, closed: false, opener: null, name: '', status: '', isSecureContext: pageState.url.startsWith('https:') || pageState.url.startsWith('http://localhost'), origin: location.origin === 'null' ? 'null' : location.origin, crossOriginIsolated: false, originAgentCluster: true };
+const windowMetrics = { innerWidth: VIEWPORT.width, innerHeight: VIEWPORT.height, outerWidth: VIEWPORT.outerWidth, outerHeight: VIEWPORT.outerHeight, devicePixelRatio: 1, scrollX: 0, scrollY: 0, pageXOffset: 0, pageYOffset: 0, screenX: 0, screenY: 0, screenLeft: 0, screenTop: 0, length: 0, closed: false, opener: null, name: '', status: '', isSecureContext: pageState.url.startsWith('https:') || pageState.url.startsWith('http://localhost'), origin: location.origin === 'null' ? 'null' : location.origin, crossOriginIsolated: false, originAgentCluster: true };
 for (const [key, value] of Object.entries(windowMetrics)) Object.defineProperty(globalThis, key, { value, writable: true, configurable: true, enumerable: true });
 
 // Métodos de EventTarget na própria janela.
@@ -144,7 +144,7 @@ Object.assign(globalThis, {
   postMessage(message, targetOrigin) { setTimeout(() => window.dispatchEvent(new MessageEvent('message', { data: message, origin: location.origin, source: window })), 0); },
   Image: class Image { constructor(w, h) { const img = document.createElement('img'); if (w !== undefined) img.setAttribute('width', w); if (h !== undefined) img.setAttribute('height', h); return img; } },
   Option: class Option { constructor(text = '', value, defaultSelected, selected) { const o = document.createElement('option'); if (text !== '') o.textContent = text; if (value !== undefined) o.setAttribute('value', value); if (defaultSelected) o.setAttribute('selected', ''); if (selected) o.selected = true; return o; } },
-  visualViewport: Object.assign(Object.create(EventTarget.prototype), { width: 800, height: 600, scale: 1, offsetLeft: 0, offsetTop: 0, pageLeft: 0, pageTop: 0 }),
+  visualViewport: Object.assign(Object.create(EventTarget.prototype), { width: VIEWPORT.width, height: VIEWPORT.height, scale: 1, offsetLeft: 0, offsetTop: 0, pageLeft: 0, pageTop: 0 }),
 });
 for (const key of ['requestAnimationFrame', 'cancelAnimationFrame', 'requestIdleCallback', 'cancelIdleCallback', 'alert', 'confirm', 'prompt', 'print', 'open', 'close', 'stop', 'focus', 'blur', 'scrollTo', 'scrollBy', 'scroll', 'moveTo', 'moveBy', 'resizeTo', 'resizeBy', 'getSelection', 'reportError', 'postMessage', 'Image', 'Option', 'visualViewport']) {
   Object.defineProperty(globalThis, key, { enumerable: false });

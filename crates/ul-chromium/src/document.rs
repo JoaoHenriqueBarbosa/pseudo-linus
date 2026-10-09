@@ -4,6 +4,7 @@
 use blitz_dom::node::NodeData;
 use blitz_dom::{BaseDocument, DocumentConfig, DocumentMutator, NodeId};
 use blitz_html::DocumentHtmlParser;
+use blitz_traits::shell::{ColorScheme, Viewport};
 use html5ever::ParseOpts;
 use html5ever::tendril::TendrilSink;
 use html5ever::tree_builder::TreeBuilderOpts;
@@ -14,9 +15,17 @@ pub fn parse(html: &str) -> BaseDocument {
     parse_at(html, "about:blank")
 }
 
+/// A janela de conteúdo do `chromium --headless`, medida no oráculo: `--window-size` padrão de 800x600, menos a moldura
+/// que ele ainda desconta (innerWidth 780, innerHeight 493; outer 780x580).
+pub const WINDOW: (u32, u32) = (780, 493);
+
+fn config(base_url: &str) -> DocumentConfig {
+    DocumentConfig { base_url: Some(base_url.to_owned()), viewport: Some(Viewport::new(WINDOW.0, WINDOW.1, 1.0, ColorScheme::Light)), ..DocumentConfig::default() }
+}
+
 /// [`parse`] com a URL do documento como base (o Blitz resolve por ela os `href` de folhas e imagens).
 pub fn parse_at(html: &str, base_url: &str) -> BaseDocument {
-    let mut doc = BaseDocument::new(DocumentConfig { base_url: Some(base_url.to_owned()), ..DocumentConfig::default() });
+    let mut doc = BaseDocument::new(config(base_url));
     {
         let mut mutr = doc.mutate();
         let sink = DocumentHtmlParser::new(&mut mutr);
@@ -29,9 +38,44 @@ pub fn parse_at(html: &str, base_url: &str) -> BaseDocument {
     doc
 }
 
+/// A caixa de `id` em coordenadas da janela, depois de estilo e layout: `[x, y, largura, altura]` da caixa de borda
+/// e as bordas e preenchimentos (`[topo, direita, base, esquerda]` de cada). `None` para nó que não é elemento.
+pub fn layout_box(doc: &mut BaseDocument, id: NodeId) -> Option<[f64; 12]> {
+    doc.resolve(0.0);
+    let node = doc.get_node(id)?;
+    if !node.is_element() {
+        return None;
+    }
+    // O layout sem o arredondamento do taffy: o Chromium mede em frações (21.44 do margin do h1, não 21).
+    let layout = node.unrounded_layout();
+    let (mut x, mut y) = (layout.location.x, layout.location.y);
+    let mut parent = node.layout_parent.get();
+    while let Some(id) = parent {
+        let ancestor = doc.get_node(id)?;
+        x += ancestor.unrounded_layout().location.x - ancestor.scroll_offset().x as f32;
+        y += ancestor.unrounded_layout().location.y - ancestor.scroll_offset().y as f32;
+        parent = ancestor.layout_parent.get();
+    }
+    let (b, p) = (layout.border, layout.padding);
+    Some([
+        f64::from(x),
+        f64::from(y),
+        f64::from(layout.size.width),
+        f64::from(layout.size.height),
+        f64::from(b.top),
+        f64::from(b.right),
+        f64::from(b.bottom),
+        f64::from(b.left),
+        f64::from(p.top),
+        f64::from(p.right),
+        f64::from(p.bottom),
+        f64::from(p.left),
+    ])
+}
+
 /// Parseia `xml` (o `application/xml` do `DOMParser`) com o xml5ever, num documento novo.
 pub fn parse_xml(xml: &str, base_url: &str) -> BaseDocument {
-    let mut doc = BaseDocument::new(DocumentConfig { base_url: Some(base_url.to_owned()), ..DocumentConfig::default() });
+    let mut doc = BaseDocument::new(config(base_url));
     {
         let mut mutr = doc.mutate();
         DocumentHtmlParser::parse_xml_into_mutator(&mut mutr, xml);
