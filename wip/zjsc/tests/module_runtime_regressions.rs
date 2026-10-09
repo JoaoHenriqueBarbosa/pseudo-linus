@@ -35,6 +35,18 @@ fn json_module_exports_top_level_keys() {
     assert_eq!(log, r#"["a,b,default","{\"b\":1,\"a\":2,\"default\":3}","2","__esModule,default","true"]"#);
 }
 
+/// O namespace de `import defer` avalia o módulo no `in` e na leitura de uma chave ausente (`[[HasProperty]]` e
+/// `[[Get]]` passam pelo `[[GetOwnProperty]]` adiado).
+#[test]
+fn deferred_namespace_evaluates_on_has_and_missing_get() {
+    for (probe, shown) in [("L('x' in ns);", "true"), ("L(ns.nope);", "undefined")] {
+        let main = format!("import defer * as ns from './d.mjs'; L('main'); {probe} L('end');");
+        let (log, error) = run(&[("main.mjs", &main), ("d.mjs", "L('d eval'); export const x = 'dx';")]);
+        assert_eq!(error, None);
+        assert_eq!(log, format!(r#"["main","d eval","{shown}","end"]"#));
+    }
+}
+
 /// `import.meta` do Bun: nenhuma propriedade própria, os valores vêm de um protótipo escondido que lê pelo `this`
 /// (`@@toStringTag` `ImportMeta`); `getPrototypeOf` dá `null`, mas o `[[Prototype]]` de verdade continua lá.
 #[test]

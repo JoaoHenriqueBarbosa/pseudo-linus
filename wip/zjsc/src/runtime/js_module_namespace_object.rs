@@ -57,7 +57,7 @@ use crate::runtime::js_object::{JSNonFinalObject, JSObject, PutError, JS_NON_FIN
 use crate::runtime::js_string::js_string;
 use crate::runtime::js_symbol_table_object::symbol_table_get;
 use crate::runtime::js_type::JSType;
-use crate::runtime::js_type_info::{TypeInfo, IS_IMMUTABLE_PROTOTYPE_EXOTIC_OBJECT};
+use crate::runtime::js_type_info::{TypeInfo, IS_IMMUTABLE_PROTOTYPE_EXOTIC_OBJECT, OVERRIDES_GET_OWN_PROPERTY_SLOT, OVERRIDES_PUT};
 use crate::runtime::js_value::{js_boolean, EncodedJSValue, JSValue};
 use crate::interpreter::call_frame::NativeCallFrame;
 use crate::runtime::implementation_visibility::ImplementationVisibility;
@@ -240,7 +240,8 @@ fn export_setter(global_object: &JSGlobalObject, _this_value: EncodedJSValue, _v
 
 impl JSModuleNamespaceObject {
     /// `StructureFlags` (a parte que o porte representa).
-    pub const STRUCTURE_FLAGS: u32 = JSNonFinalObject::STRUCTURE_FLAGS | IS_IMMUTABLE_PROTOTYPE_EXOTIC_OBJECT;
+    pub const STRUCTURE_FLAGS: u32 =
+        JSNonFinalObject::STRUCTURE_FLAGS | OVERRIDES_GET_OWN_PROPERTY_SLOT | OVERRIDES_PUT | IS_IMMUTABLE_PROTOTYPE_EXOTIC_OBJECT;
 
     /// `createStructure(vm, globalObject, prototype)`.
     pub fn create_structure(vm: &VM, global_object: &JSGlobalObject, prototype: JSValue) -> crate::runtime::structure::StructureRef {
@@ -431,6 +432,16 @@ impl JSModuleNamespaceObject {
     /// O `ExportEntry` cujo nome é o índice `index` (`export { a as "0" }`).
     fn index_export(&self, index: u32) -> Option<&NamespaceExport> {
         self.exports.iter().find(|export| PropertyName::from_identifier(&export.export_name).parse_index() == Some(index))
+    }
+
+    /// O início de `getOwnPropertySlotCommon` para um nome que não é índice: num namespace adiado, a chave que não é
+    /// de símbolo (nem o `then`) avalia o módulo (fora de `VMInquiry`). Falso com a exceção pendente.
+    pub fn prepare_own_property_slot(&self, vm: &VM, property_name: &PropertyName, slot: &mut PropertySlot) -> bool {
+        if !self.is_deferred || self.is_symbol_like_namespace_key(vm, property_name) || slot.internal_method_type() == InternalMethodType::VMInquiry {
+            return true;
+        }
+        let Some(global_object) = self.structure().realm() else { return true };
+        self.ensure_deferred_namespace_evaluation(&global_object).is_ok()
     }
 
     /// `getOwnPropertySlotByIndex(cell, globalObject, index, slot)` (`getOwnPropertySlotCommon` com o nome
