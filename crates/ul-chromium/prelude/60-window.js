@@ -410,7 +410,11 @@ const hook = (name, a, b) => {
       break;
     }
     case 'fire': { const el = wrappers.get(a) || wrap(a); el.dispatchEvent(new Event(b)); break; }
-    case 'scriptError': window.dispatchEvent(new ErrorEvent('error', { message: 'Uncaught ' + a, filename: b || '', cancelable: true })); break;
+    case 'scriptError': {
+      const event = new ErrorEvent('error', { message: 'Uncaught ' + a, filename: b || '', cancelable: true });
+      if (window.dispatchEvent(event)) console.error('Uncaught ' + a);
+      break;
+    }
     case 'currentScript': hidden(document, '__currentScript', a === null ? null : wrappers.get(a) || null); break;
     case 'url': pageState.url = a; break;
     default: break;

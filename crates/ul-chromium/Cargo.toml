@@ -24,6 +24,7 @@ zjsc = { path = "../../wip/zjsc" }
 
 [dev-dependencies]
 serde_json = "1"
+zjsc = { path = "../../wip/zjsc" }
 sysabi = { workspace = true, features = ["testkit"] }
 pl-testing = { path = "../pl-testing" }
 

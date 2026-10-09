@@ -84,6 +84,25 @@ fn tape_fetcher(dir: &Path) -> Fetcher {
     })
 }
 
+/// `CONSOLE=1`: o `console.*` da página vai para o stderr do teste (diagnóstico de divergência).
+#[derive(Debug)]
+struct StderrConsole;
+
+impl zjsc::runtime::console_host::ConsoleHost for StderrConsole {
+    fn write_stdout(&self, bytes: &[u8]) {
+        eprint!("{}", String::from_utf8_lossy(bytes));
+    }
+    fn write_stderr(&self, bytes: &[u8]) {
+        eprint!("{}", String::from_utf8_lossy(bytes));
+    }
+    fn read_stdin_line(&self) -> Option<String> {
+        None
+    }
+    fn read_stdin_rest(&self) -> Vec<u8> {
+        Vec::new()
+    }
+}
+
 #[test]
 fn internet_scoreboard() {
     let corpus = bench().join("corpus/internet");
@@ -98,15 +117,22 @@ fn internet_scoreboard() {
             continue;
         }
         let Ok(expected) = std::fs::read_to_string(golden.join(format!("{id}.dom"))) else { continue };
+        eprintln!("página: {id}");
         let fetcher = tape_fetcher(&corpus.join(id));
-        let actual = match Page::load(address, fetcher) {
+        let console = std::env::var("CONSOLE").is_ok();
+        // Um pânico do motor numa página conta como divergência dela e não derruba a medição das outras.
+        let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| match Page::load(address, fetcher) {
             Ok(mut page) => {
                 page.budget_ms = BUDGET_MS;
+                if console {
+                    page.console = Rc::new(StderrConsole);
+                }
                 page.run();
                 page.dump_dom()
             }
             Err(message) => format!("falha ao carregar: {message}"),
-        };
+        }));
+        let actual = outcome.unwrap_or_else(|_| "pânico".to_owned());
         let slot = groups.entry(group.to_owned()).or_default();
         slot.1 += 1;
         if actual == expected {

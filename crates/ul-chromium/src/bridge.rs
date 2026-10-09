@@ -21,6 +21,8 @@ pub const USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
 /// Nome local do elemento que emula o `DocumentFragment` (o Blitz não tem esse tipo de nó). Não é nome válido de
 /// elemento, então não colide com nada que a página crie.
 const FRAGMENT: &str = "#document-fragment";
+/// A raiz de um documento criado por `DOMImplementation` (o Blitz só tem um nó de documento por árvore).
+const SUBDOCUMENT: &str = "#document";
 
 pub struct Bridge {
     pub doc: RefCell<BaseDocument>,
@@ -231,7 +233,10 @@ impl DomHost for Bridge {
             "root" => Ok(num(self.doc.borrow().root_node().id)),
             "docElement" => {
                 let doc = self.doc.borrow();
-                let root = doc.root_node();
+                let root = match opt_id(args, 0) {
+                    Some(id) => doc.get_node(id).ok_or_else(|| err("TypeError", "nó inexistente"))?,
+                    None => doc.root_node(),
+                };
                 Ok(root.children.iter().copied().find(|&c| doc.get_node(c).is_some_and(|n| n.is_element())).map_or(DomArg::Null, num))
             }
             "doctype" => Ok(self.doctype.clone().map_or(DomArg::Null, DomArg::Str)),
@@ -240,6 +245,7 @@ impl DomHost for Bridge {
                 let node = doc.get_node(id_arg(args, 0)?).ok_or_else(|| err("TypeError", "nó inexistente"))?;
                 Ok(DomArg::Num(match &node.data {
                     NodeData::Element(e) if &*e.name.local == FRAGMENT => 11.0,
+                    NodeData::Element(e) if &*e.name.local == SUBDOCUMENT => 9.0,
                     NodeData::Element(_) | NodeData::AnonymousBlock(_) => 1.0,
                     NodeData::Text(_) => 3.0,
                     NodeData::Comment { .. } => 8.0,
@@ -344,6 +350,30 @@ impl DomHost for Bridge {
             "createFragment" => {
                 let qname = QualName::new(None, ns!(), LocalName::from(FRAGMENT));
                 Ok(num(self.mutate(|m| m.create_element(qname, Vec::<Attribute>::new()))))
+            }
+            // `DOMImplementation.createHTMLDocument`: um documento à parte, com `html`, `head`, `body` e o `title`
+            // pedido. A raiz é um elemento marcado, como o fragmento.
+            "createDocument" => {
+                let title = match args.first() {
+                    Some(DomArg::Str(t)) => Some(t.clone()),
+                    _ => None,
+                };
+                Ok(num(self.mutate(|m| {
+                    let html_name = |local: &str| QualName::new(None, ns!(html), LocalName::from(local));
+                    let root = m.create_element(QualName::new(None, ns!(), LocalName::from(SUBDOCUMENT)), Vec::new());
+                    let html = m.create_element(html_name("html"), Vec::new());
+                    let head = m.create_element(html_name("head"), Vec::new());
+                    let body = m.create_element(html_name("body"), Vec::new());
+                    if let Some(title) = &title {
+                        let element = m.create_element(html_name("title"), Vec::new());
+                        let text = m.create_text_node(title);
+                        m.append_children(element, &[text]);
+                        m.append_children(head, &[element]);
+                    }
+                    m.append_children(html, &[head, body]);
+                    m.append_children(root, &[html]);
+                    root
+                })))
             }
             "createText" => Ok(num(self.mutate(|m| m.create_text_node(str_arg(args, 0).unwrap_or(""))))),
             "createComment" => Ok(num(self.mutate(|m| m.create_comment_node(str_arg(args, 0).unwrap_or(""))))),

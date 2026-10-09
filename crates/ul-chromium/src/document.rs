@@ -11,7 +11,12 @@ use markup5ever::QualName;
 
 /// Parseia `html` num documento novo, com as opções do navegador (scripting ligado: `<noscript>` vira texto).
 pub fn parse(html: &str) -> BaseDocument {
-    let mut doc = BaseDocument::new(DocumentConfig::default());
+    parse_at(html, "about:blank")
+}
+
+/// [`parse`] com a URL do documento como base (o Blitz resolve por ela os `href` de folhas e imagens).
+pub fn parse_at(html: &str, base_url: &str) -> BaseDocument {
+    let mut doc = BaseDocument::new(DocumentConfig { base_url: Some(base_url.to_owned()), ..DocumentConfig::default() });
     {
         let mut mutr = doc.mutate();
         let sink = DocumentHtmlParser::new(&mut mutr);
@@ -22,6 +27,16 @@ pub fn parse(html: &str) -> BaseDocument {
         html5ever::parse_document(sink, opts).from_utf8().read_from(&mut html.as_bytes()).unwrap();
     }
     doc
+}
+
+/// Nonce hiding (HTML, "nonce attributes"): com CSP entregue por cabeçalho, o atributo `nonce` de cada elemento fica
+/// vazio depois da inserção (a propriedade `nonce` guardaria o valor; o DOM serializado mostra `nonce=""`).
+pub fn hide_nonces(doc: &mut BaseDocument) {
+    let targets: Vec<NodeId> = doc.query_selector_all("[nonce]").map(|found| found.to_vec()).unwrap_or_default();
+    let mut mutr = doc.mutate();
+    for id in targets {
+        mutr.set_attribute(id, QualName::new(None, markup5ever::ns!(), markup5ever::local_name!("nonce")), "");
+    }
 }
 
 /// O nome do atributo como a serialização o escreve: os de `xml`, `xmlns` e `xlink` levam o prefixo.

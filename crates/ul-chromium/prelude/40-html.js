@@ -36,6 +36,7 @@ class HTMLElement extends Element {
   attachInternals() { return { setFormValue() {}, setValidity() {}, checkValidity: () => true, form: null, states: new Set(), shadowRoot: null }; }
 }
 tag(HTMLElement, 'HTMLElement');
+reflect(HTMLElement, [['title', 'title'], ['lang', 'lang'], ['dir', 'dir', 'enum'], ['hidden', 'hidden', 'bool'], ['accessKey', 'accesskey'], ['draggable', 'draggable', 'bool'], ['tabIndex', 'tabindex', 'long'], ['nonce', 'nonce']]);
 
 const htmlByTag = new Map();
 const defineHtml = (name, tags, install) => {
@@ -284,6 +285,7 @@ class SVGElement extends Element {
   get style() { return styleOf(this); }
 }
 tag(SVGElement, 'SVGElement');
+reflect(SVGElement, [['tabIndex', 'tabindex', 'long'], ['nonce', 'nonce']]);
 class SVGGraphicsElement extends SVGElement {
   getBBox() { return new DOMRect(0, 0, 0, 0); }
   getCTM() { return null; }

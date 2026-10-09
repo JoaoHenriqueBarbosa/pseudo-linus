@@ -1,6 +1,11 @@
 // ---- Exposição: o que a página enxerga como globais, e o gancho devolvido ao hospedeiro.
 
 const window = globalThis;
+// O que o motor traz do runtime de servidor (bun) não existe numa janela; `SharedArrayBuffer` o Chromium só expõe com
+// isolamento cross-origin, que nenhuma página daqui pede.
+for (const name of ['process', 'Bun', 'Buffer', 'global', 'BuildMessage', 'ResolveMessage', 'ShadowRealm', 'SharedArrayBuffer', 'require', 'module', 'exports', '__dirname', '__filename']) {
+  if (Object.prototype.hasOwnProperty.call(globalThis, name) && !delete globalThis[name]) throw new Error('global não removível: ' + name);
+}
 const document = wrap(op('root'));
 hidden(document, '__window', window);
 hidden(document, '__readyState', 'loading');
@@ -40,6 +45,36 @@ for (const key of ['addEventListener', 'removeEventListener', 'dispatchEvent']) 
 defineHandlerProperties(globalThis, ['load', 'unload', 'beforeunload', 'error', 'resize', 'scroll', 'hashchange', 'popstate', 'message', 'pageshow', 'pagehide', 'storage', 'online', 'offline', 'focus', 'blur', 'languagechange', 'visibilitychange', 'orientationchange', 'unhandledrejection', 'rejectionhandled', 'beforeprint', 'afterprint', 'click', 'keydown', 'keyup', 'keypress', 'mousedown', 'mouseup', 'mousemove', 'wheel', 'touchstart', 'touchmove', 'touchend', 'pointerdown', 'pointerup', 'pointermove', 'contextmenu', 'dblclick', 'input', 'change', 'submit', 'animationend', 'transitionend']);
 // Eventos de elemento: `on<tipo>` em Element (a propriedade vive no protótipo, o tratador no nó).
 defineHandlerProperties(Element.prototype, ['click', 'dblclick', 'mousedown', 'mouseup', 'mousemove', 'mouseover', 'mouseout', 'mouseenter', 'mouseleave', 'contextmenu', 'keydown', 'keyup', 'keypress', 'focus', 'blur', 'focusin', 'focusout', 'input', 'change', 'submit', 'reset', 'select', 'scroll', 'wheel', 'touchstart', 'touchmove', 'touchend', 'touchcancel', 'pointerdown', 'pointerup', 'pointermove', 'pointerover', 'pointerout', 'pointerenter', 'pointerleave', 'pointercancel', 'drag', 'dragstart', 'dragend', 'dragover', 'dragenter', 'dragleave', 'drop', 'load', 'error', 'abort', 'animationstart', 'animationend', 'animationiteration', 'transitionend', 'transitionstart', 'transitionrun', 'transitioncancel', 'copy', 'cut', 'paste', 'toggle', 'invalid', 'cancel', 'close', 'canplay', 'play', 'pause', 'ended', 'loadeddata', 'loadedmetadata', 'timeupdate', 'volumechange', 'beforeinput', 'resize', 'fullscreenchange']);
+
+// Timers do navegador: exceção num callback é relatada (evento `error` da janela) e o laço segue, ao contrário do bun,
+// onde ela encerra o processo. Handler em texto é avaliado no escopo global, como `setTimeout('código')`.
+const guarded = (handler) => {
+  if (typeof handler !== 'function') {
+    const code = String(handler);
+    return () => { try { evalGlobal(code, pageState.url); } catch (error) { reportError(error); } };
+  }
+  return function (...args) { try { return handler.apply(this, args); } catch (error) { reportError(error); } };
+};
+const engineSetTimeout = setTimeout;
+const engineSetInterval = setInterval;
+const engineClearTimeout = clearTimeout;
+const engineQueueMicrotask = queueMicrotask;
+// O id do navegador é um inteiro positivo; o do motor é um objeto à moda do node, então guardamos o mapa.
+const timerHandles = new Map();
+let nextTimerId = 1;
+const browserTimer = (engine) => function (handler, delay, ...args) {
+  const id = nextTimerId++;
+  const wrapped = guarded(handler);
+  const once = engine === engineSetTimeout;
+  const handle = engine(function () { if (once) timerHandles.delete(id); return wrapped.apply(window, arguments); }, Math.max(0, Number(delay) || 0), ...args);
+  timerHandles.set(id, handle);
+  return id;
+};
+const clearBrowserTimer = (id) => { const handle = timerHandles.get(id); if (handle !== undefined) { engineClearTimeout(handle); timerHandles.delete(id); } };
+for (const [name, value] of [['setTimeout', browserTimer(engineSetTimeout)], ['setInterval', browserTimer(engineSetInterval)], ['clearTimeout', clearBrowserTimer], ['clearInterval', clearBrowserTimer], ['queueMicrotask', (cb) => engineQueueMicrotask(guarded(cb))]]) {
+  Object.defineProperty(globalThis, name, { value, writable: true, configurable: true, enumerable: true });
+}
+for (const name of ['setImmediate', 'clearImmediate']) delete globalThis[name];
 
 const scheduleFrame = (cb) => setTimeout(() => cb(performance.now()), 16);
 Object.assign(globalThis, {

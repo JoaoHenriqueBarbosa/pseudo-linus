@@ -14,7 +14,7 @@ class Document extends Node {
   constructor() { throw new TypeError('Illegal constructor'); }
   get __html() { return true; }
   get nodeName() { return '#document'; }
-  get documentElement() { return wrapOrNull(op('docElement')); }
+  get documentElement() { return wrapOrNull(op('docElement', idOf(this))); }
   get head() { const html = this.documentElement; return html ? Array.from(html.children).find((c) => c.localName === 'head') || null : null; }
   get body() { const html = this.documentElement; return html ? Array.from(html.children).find((c) => c.localName === 'body' || c.localName === 'frameset') || null : null; }
   set body(value) { const html = this.documentElement; const old = this.body; if (old) html.replaceChild(value, old); else html.appendChild(value); }
@@ -68,6 +68,7 @@ class Document extends Node {
   set adoptedStyleSheets(v) { this.__adopted = v; }
   get scrollingElement() { return this.documentElement; }
   get timeline() { return { currentTime: performance.now() }; }
+  get implementation() { return domImplementation; }
   createElement(name) {
     name = toStr(name);
     if (!/^[A-Za-z][^\s\/>]*$/.test(name) && !/^[A-Za-z_:][-A-Za-z0-9_:.]*$/.test(name)) throw domException(`Failed to execute 'createElement' on 'Document': The tag name provided ('${name}') is not a valid name.`, 'InvalidCharacterError');
@@ -140,6 +141,23 @@ function documentWrite(html) {
   if (!parent) return;
   parent.insertBefore(fragment, current ? current.nextSibling : null);
 }
+
+class DOMImplementation {
+  constructor() { throw new TypeError('Illegal constructor'); }
+  createHTMLDocument(title) { return wrap(op('createDocument', title === undefined ? null : String(title))); }
+  createDocument() { return wrap(op('createDocument', null)); }
+  createDocumentType(name, publicId, systemId) {
+    const o = Object.create(DocumentType.prototype);
+    ids.set(o, -2);
+    hidden(o, 'name', String(name));
+    hidden(o, 'publicId', String(publicId));
+    hidden(o, 'systemId', String(systemId));
+    return o;
+  }
+  hasFeature() { return true; }
+}
+tag(DOMImplementation, 'DOMImplementation');
+const domImplementation = Object.create(DOMImplementation.prototype);
 
 class Selection {
   get rangeCount() { return 0; }

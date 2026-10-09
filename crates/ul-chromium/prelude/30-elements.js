@@ -389,4 +389,5 @@ const reflect = (cls, spec) => {
     });
   }
 };
-reflect(Element, [['title', 'title'], ['lang', 'lang'], ['dir', 'dir', 'enum'], ['hidden', 'hidden', 'bool'], ['accessKey', 'accesskey'], ['draggable', 'draggable', 'bool'], ['tabIndex', 'tabindex', 'long'], ['nonce', 'nonce'], ['ariaLabel', 'aria-label'], ['role', 'role']]);
+// ARIAMixin vive em Element; o resto da reflexão global é de HTMLElement e SVGElement (`40-html.js`), como na IDL.
+reflect(Element, [['ariaLabel', 'aria-label'], ['role', 'role']]);

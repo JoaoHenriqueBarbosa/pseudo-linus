@@ -67,6 +67,8 @@ pub struct Page {
     pub bridge: Rc<Bridge>,
     /// Orçamento de tempo virtual para o laço de eventos depois do carregamento, em ms.
     pub budget_ms: f64,
+    /// Para onde vai o `console.*` da página (mudo por padrão; os testes de diagnóstico trocam).
+    pub console: Rc<dyn ConsoleHost>,
 }
 
 /// Texto JavaScript entre aspas para chamar o gancho.
@@ -90,9 +92,12 @@ fn js_quote(text: &str) -> String {
 impl Page {
     /// Busca `url` (`file:`, `http:` ou `https:`) e monta o documento.
     pub fn load(url: &str, fetcher: Fetcher) -> Result<Page, String> {
-        let (bytes, final_url, content_type) = fetch_document(url, &fetcher)?;
+        let (bytes, final_url, content_type, header_csp) = fetch_document(url, &fetcher)?;
         let source = encoding::decode(&bytes, content_type.as_deref());
-        let doc = document::parse(&source);
+        let mut doc = document::parse_at(&source, &final_url);
+        if header_csp {
+            document::hide_nonces(&mut doc);
+        }
         let bridge = Bridge {
             doc: RefCell::new(doc),
             doctype: document::sniff_doctype(&source),
@@ -100,7 +105,7 @@ impl Page {
             url: RefCell::new(final_url),
             navigation: RefCell::new(None),
         };
-        Ok(Page { bridge: Rc::new(bridge), budget_ms: 500.0 })
+        Ok(Page { bridge: Rc::new(bridge), budget_ms: 500.0, console: Rc::new(SilentConsole) })
     }
 
     /// A navegação que a página pediu (`location.href = ...`) e ainda não aconteceu.
@@ -127,7 +132,7 @@ impl Page {
         let scripts = self.collect_scripts();
         let bridge = self.bridge.clone();
         let budget = self.budget_ms;
-        run_page(Rc::new(SilentConsole), bridge.clone(), |runner| {
+        run_page(self.console.clone(), bridge.clone(), |runner| {
             let prelude = format!("let $plHook = (function () {{ 'use strict';\n{}{}\nreturn hook;\n}})();", PRELUDE_PARTS.concat(), PRELUDE_TAIL);
             if let Err(error) = runner.eval(&prelude, "chrome-prelude") {
                 // O prelúdio é parte do navegador: falha dele é bug nosso e a página fica sem DOM de script.
@@ -165,8 +170,37 @@ impl Page {
             for info in scripts.iter().filter(|s| s.kind == ScriptKind::Async) {
                 run_script(info);
             }
+            // As folhas de `<link rel=stylesheet>` chegam antes do `load` da janela; cada uma dispara `load` ou `error`.
+            for (node, ok) in self.stylesheet_results() {
+                call(&format!("'fire', {}, '{}'", node.as_u64(), if ok { "load" } else { "error" }));
+            }
             runner.run_event_loop_for(budget);
         });
+    }
+
+    /// Busca cada `<link rel=stylesheet href>` do documento e diz se chegou (status de sucesso).
+    fn stylesheet_results(&self) -> Vec<(NodeId, bool)> {
+        let links: Vec<(NodeId, String)> = {
+            let doc = self.bridge.doc.borrow();
+            let base = self.bridge.url.borrow().clone();
+            let found = doc.query_selector_all("link[href]").map(|f| f.to_vec()).unwrap_or_default();
+            found
+                .into_iter()
+                .filter_map(|id| {
+                    let node = doc.get_node(id)?;
+                    let rel = node.attr(markup5ever::local_name!("rel"))?.to_ascii_lowercase();
+                    if !rel.split_ascii_whitespace().any(|r| r == "stylesheet") || rel.split_ascii_whitespace().any(|r| r == "alternate") {
+                        return None;
+                    }
+                    let href = node.attr(markup5ever::local_name!("href"))?;
+                    let resolved = url::parse(&base, false).ok().and_then(|b| url::resolve(&b, href).ok()).map(|u| u.to_string_with(false))?;
+                    Some((id, resolved))
+                })
+                .collect()
+        };
+        let headers = vec![("User-Agent".to_owned(), USER_AGENT.to_owned()), ("Accept".to_owned(), "text/css,*/*;q=0.1".to_owned())];
+        let spec = RequestSpec { headers: &headers, ..RequestSpec::default() };
+        links.into_iter().map(|(id, address)| (id, (self.bridge.fetcher)(&address, &spec).is_ok_and(|r| r.status < 400))).collect()
     }
 
     /// Os `<script>` do documento, em ordem de árvore, com o jeito de executar cada um.
@@ -245,15 +279,17 @@ fn collect(doc: &BaseDocument, id: NodeId, base: &str, out: &mut Vec<ScriptInfo>
     }
 }
 
-fn fetch_document(address: &str, fetcher: &Fetcher) -> Result<(Vec<u8>, String, Option<String>), String> {
+/// O documento: bytes, URL final, `Content-Type` e se veio CSP por cabeçalho (o que liga o nonce hiding).
+fn fetch_document(address: &str, fetcher: &Fetcher) -> Result<(Vec<u8>, String, Option<String>, bool), String> {
     if let Some(path) = address.strip_prefix("file://") {
         let bytes = sys::read_file(path.as_bytes()).map_err(|_| "net::ERR_FILE_NOT_FOUND".to_owned())?;
-        return Ok((bytes, address.to_owned(), None));
+        return Ok((bytes, address.to_owned(), None, false));
     }
     let headers = vec![("User-Agent".to_owned(), USER_AGENT.to_owned()), ("Accept".to_owned(), "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8".to_owned()), ("Accept-Language".to_owned(), "en-US,en;q=0.9".to_owned())];
     let spec = RequestSpec { headers: &headers, ..RequestSpec::default() };
     let response = fetcher(address, &spec).map_err(|e| e.net_error().to_owned())?;
     let final_url = response.url.to_string_with(true);
     let content_type = response.header("Content-Type");
-    Ok((response.body, final_url, content_type))
+    let header_csp = response.header("Content-Security-Policy").is_some();
+    Ok((response.body, final_url, content_type, header_csp))
 }
