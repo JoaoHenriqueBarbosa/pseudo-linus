@@ -551,6 +551,11 @@ pub(crate) fn own_function(name: &str) -> Option<(u32, NativeFunction)> {
     }
 }
 
+/// `delete process.exitCode` (o objeto `process`): o bun lança `TypeError` mesmo em modo frouxo (o acessor não é configurável).
+pub(crate) fn is_process_object(object: &JSObject) -> bool {
+    EXIT.with(|state| state.borrow().process).is_some_and(|process| process.is_cell() && process.as_cell() == object.cell_id())
+}
+
 /// Registra o `process` do `exit` e instala o acessor `exitCode` (enumerável, não configurável).
 pub(crate) fn install_exit_code(global_object: &JSGlobalObject, process: &JSObject) {
     EXIT.with(|state| state.borrow_mut().process = Some(process.as_value()));

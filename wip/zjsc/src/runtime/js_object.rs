@@ -1977,6 +1977,9 @@ impl JSObject {
             let target_object: &JSObject = &target;
             return target_object.delete_property(vm, property_name, slot);
         }
+        if crate::runtime::process_exit::is_process_object(self) && *property_name == PropertyName::from_identifier(&Identifier::from_span(vm, b"exitCode")) {
+            return Err(PutError::TypeError(crate::runtime::error_messages::UNABLE_TO_DELETE_PROPERTY_ERROR));
+        }
         // `ErrorConstructor::deleteProperty`: apagar `stackTraceLimit` limpa o espelho do global.
         crate::runtime::error_natives::error_constructor_delete_property(self, vm, property_name);
         // `JSGenericTypedArrayView::deleteProperty`.
