@@ -29,8 +29,9 @@ impl UrlModuleHost {
         UrlModuleHost { fetch, document_url: document_url.to_owned(), inline: RefCell::new(Vec::new()) }
     }
 
-    /// O especificador que o Chromium resolve: absoluto (com esquema) ou começando por `/`, `./` ou `../`.
-    fn resolve_against(&self, specifier: &str, base: &str) -> Result<String, String> {
+    /// O especificador que o Chromium resolve: absoluto (com esquema) ou começando por `/`, `./` ou `../`. A falha do
+    /// `import()` dinâmico tem a forma curta, com aspas simples (medido no Chromium 154).
+    fn resolve_against(&self, specifier: &str, base: &str, dynamic: bool) -> Result<String, String> {
         let units = |text: &str| text.encode_utf16().collect::<Vec<u16>>();
         let relative = specifier.starts_with('/') || specifier.starts_with("./") || specifier.starts_with("../");
         let parsed = if relative {
@@ -39,10 +40,26 @@ impl UrlModuleHost {
             crate::runtime::url::parse_with_base(&units(specifier), None)
         };
         parsed.map(|url| rust_string(url.string())).ok_or_else(|| {
+            if dynamic {
+                return format!("Failed to resolve module specifier '{specifier}'");
+            }
             format!(
                 "Failed to resolve module specifier \"{specifier}\". Relative references must start with either \"/\", \"./\", or \"../\"."
             )
         })
+    }
+
+    fn resolve_with(&self, specifier: &str, referrer: Option<&str>, dynamic: bool) -> Result<String, String> {
+        if referrer.is_none() && self.inline.borrow().iter().any(|(key, _)| key == specifier) {
+            return Ok(specifier.to_owned());
+        }
+        // A origem de um script clássico é `file:///<url do script>` (o nome do programa): a base é a URL dele. Sem
+        // referrer (código sem origem), a do documento.
+        let base = match referrer {
+            Some(referrer) => referrer.strip_prefix("file:///").filter(|url| url.contains("://")).unwrap_or(referrer),
+            None => &self.document_url,
+        };
+        self.resolve_against(specifier, shown_url(base), dynamic)
     }
 }
 
@@ -56,16 +73,11 @@ fn shown_url(key: &str) -> &str {
 
 impl ModuleHost for UrlModuleHost {
     fn resolve(&self, specifier: &str, referrer: Option<&str>) -> Result<String, String> {
-        if referrer.is_none() && self.inline.borrow().iter().any(|(key, _)| key == specifier) {
-            return Ok(specifier.to_owned());
-        }
-        // A origem de um script clássico é `file:///<url do script>` (o nome do programa): a base é a URL dele. Sem
-        // referrer (código sem origem), a do documento.
-        let base = match referrer {
-            Some(referrer) => referrer.strip_prefix("file:///").filter(|url| url.contains("://")).unwrap_or(referrer),
-            None => &self.document_url,
-        };
-        self.resolve_against(specifier, shown_url(base))
+        self.resolve_with(specifier, referrer, false)
+    }
+
+    fn resolve_dynamic(&self, specifier: &str, referrer: Option<&str>) -> Result<String, String> {
+        self.resolve_with(specifier, referrer, true)
     }
 
     fn fetch(&self, key: &str) -> Result<String, String> {
@@ -88,7 +100,7 @@ impl ModuleHost for UrlModuleHost {
     }
 
     fn import_meta_resolve(&self, specifier: &str, referrer: &str, _sync: bool) -> Result<String, String> {
-        self.resolve_against(specifier, shown_url(referrer))
+        self.resolve_against(specifier, shown_url(referrer), false)
     }
 
     /// No navegador o tipo vem do `type` do pedido (JSON com `with { type: 'json' }`), nunca da extensão.
@@ -202,5 +214,18 @@ mod tests {
         );
         assert_eq!(error, None);
         assert_eq!(log, r#"[7,"TypeError: Failed to fetch dynamically imported module: https://site.test/app/missing.js"]"#);
+    }
+
+    #[test]
+    fn dynamic_import_resolution_failure_has_the_short_message() {
+        let (log, error) = run(
+            &[],
+            "for (const s of ['react', 'http://[bad']) { try { await import(s); } catch (e) { log.push(e.name + ': ' + e.message); } }",
+        );
+        assert_eq!(error, None);
+        assert_eq!(
+            log,
+            r#"["TypeError: Failed to resolve module specifier 'react'","TypeError: Failed to resolve module specifier 'http://[bad'"]"#
+        );
     }
 }
