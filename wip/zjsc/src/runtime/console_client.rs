@@ -315,6 +315,13 @@ pub(crate) fn format_arguments(global_object: &JSGlobalObject, arguments: &[JSVa
     format_line(global_object, &script_arguments, &mut out, Formatter::new()).then(|| String::from_utf16_lossy(&out))
 }
 
+/// O texto de um único `value` no formato do `Bun.inspect` (string entre aspas duplas, como dentro de um objeto), com o
+/// `formatter` dado. `None` com exceção pendente.
+pub(crate) fn inspect_one(global_object: &JSGlobalObject, mut formatter: Formatter, value: JSValue) -> Option<String> {
+    let mut out = Vec::new();
+    formatter.push_object(global_object, &mut out, value).then(|| String::from_utf16_lossy(&out))
+}
+
 impl HostConsoleClient {
     /// Escreve `text` no stdout ou no stderr do host, se houver.
     fn write(global_object: &JSGlobalObject, to_stderr: bool, text: &[u16]) {
