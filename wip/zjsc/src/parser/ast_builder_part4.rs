@@ -49,6 +49,7 @@ fn make_delete_node(&mut self, location: &JSTokenLocation, expr: Option<Expressi
             };
             Some(Expression::DeleteDot(make(crate::parser::nodes::DeleteDotNode::new(location, base, ident, divot, start, end))))
         }
+        // Invariante: o parser só chama aqui depois de testar `isDotAccessorNode()` (ASSERT no C++).
         _ => panic!("ASSERT(expr->isDotAccessorNode())"),
     }
 }
@@ -191,6 +192,7 @@ fn make_function_call_node(&mut self, location: &JSTokenLocation, func: Option<E
                 None => with_subexpression_info!(FunctionCallDot, FunctionCallDotNode::new(location, base, ident, dot_type, args.get().clone(), divot, divot_start, divot_end, is_optional_call)),
             })
         }
+        // Invariante: ramo selecionado pelo parser só para `isDotAccessorNode()` (ASSERT no C++).
         _ => panic!("ASSERT(func->isDotAccessorNode())"),
     }
 }
@@ -265,6 +267,7 @@ fn make_assign_node(&mut self, location: &JSTokenLocation, loc: Option<Expressio
             node.throwable.set_subexpression_info(&dot_divot, dot_divot_end);
             Some(Expression::ReadModifyDot(make(node)))
         }
+        // Invariante: ramo selecionado pelo parser só para `isDotAccessorNode()` (ASSERT no C++).
         _ => panic!("ASSERT(loc->isDotAccessorNode())"),
     }
 }

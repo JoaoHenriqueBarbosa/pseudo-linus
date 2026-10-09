@@ -212,6 +212,7 @@ impl<'a> TreeBuilder for SyntaxChecker<'a> {
 
     /// `static NO_RETURN_DUE_TO_CRASH FunctionMetadataNode* getMetadata(ParserFunctionInfo<SyntaxChecker>&)`.
     fn get_metadata(_function_info: &ParserFunctionInfo<SyntaxChecker<'a>>) -> std::rc::Rc<crate::parser::nodes::FunctionMetadataNode> {
+        // Invariante: `getMetadata` só é chamado com `CREATES_AST`, que o SyntaxChecker não tem.
         panic!("RELEASE_ASSERT_NOT_REACHED");
     }
 

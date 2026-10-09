@@ -450,6 +450,7 @@ impl<T: CharType> Parser<T> {
             DeclarationType::LetDeclaration => DestructuringKind::DestructureToLet,
             DeclarationType::ConstDeclaration => DestructuringKind::DestructureToConst,
             DeclarationType::UsingDeclaration | DeclarationType::AwaitUsingDeclaration => {
+                // Invariante: destructuring de using/await using é rejeitado antes, na gramática de `using`.
                 panic!("RELEASE_ASSERT_NOT_REACHED")
             }
         }
@@ -495,13 +496,13 @@ impl<T: CharType> Parser<T> {
     }
 
     pub fn current_scope(&self) -> ScopeRef {
-        self.current_scope.expect("m_currentScope nulo")
+        self.current_scope.expect("sem ASSERT em Parser.h:1270: currentScope() devolve m_currentScope e o chamador o desreferencia (UB no C++ se nulo)")
     }
 
     fn current_variable_scope(&self) -> ScopeRef {
         let mut scope = self.current_scope();
         while !self.scope_stack[scope].allows_var_declarations() {
-            scope = self.scope_stack[scope].containing_scope().expect("containingScope nulo");
+            scope = self.scope_stack[scope].containing_scope().expect("sem ASSERT em Parser.h:1277: currentVariableScope desreferencia containingScope() sem conferir nulo (UB no C++); a raiz sempre allowsVarDeclarations");
         }
         scope
     }
@@ -509,7 +510,7 @@ impl<T: CharType> Parser<T> {
     fn current_lexical_declaration_scope(&self) -> ScopeRef {
         let mut scope = self.current_scope();
         while !self.scope_stack[scope].allows_lexical_declarations() {
-            scope = self.scope_stack[scope].containing_scope().expect("containingScope nulo");
+            scope = self.scope_stack[scope].containing_scope().expect("sem ASSERT em Parser.h:1285: currentLexicalDeclarationScope desreferencia containingScope() sem conferir nulo (UB no C++); a raiz sempre allowsLexicalDeclarations");
         }
         scope
     }
@@ -647,7 +648,7 @@ impl<T: CharType> Parser<T> {
         debug_assert!(Some(scope) == self.current_scope);
         debug_assert!(self.scope_stack.len() > 1);
         let last = self.current_scope();
-        let parent = self.scope_stack[last].containing_scope().expect("containingScope nulo");
+        let parent = self.scope_stack[last].containing_scope().expect("ASSERT(m_scopeStack.size() > 1) em Parser.h:1386: popScopeInternal só roda com ao menos dois escopos, então o atual tem containingScope (Parser.h:1388)");
 
         self.scope_stack[last].finalize_lexical_environment();
 
@@ -707,7 +708,7 @@ impl<T: CharType> Parser<T> {
     #[inline(always)]
     fn pop_scope_cleanup(&mut self, cleanup_scope: &mut AutoCleanupLexicalScope, should_track_closed_variables: bool) -> (VariableEnvironment, FunctionStack) {
         assert!(cleanup_scope.is_valid());
-        let scope = cleanup_scope.scope().expect("escopo nulo");
+        let scope = cleanup_scope.scope().expect("RELEASE_ASSERT(cleanupScope.isValid()) em Parser.h:1428: um AutoCleanupLexicalScope válido guarda o escopo que popScope lê em Parser.h:1429");
         cleanup_scope.set_popped();
         self.pop_scope_internal(scope, should_track_closed_variables, false, &[])
     }
@@ -726,7 +727,7 @@ impl<T: CharType> Parser<T> {
             }
 
             self.scope_stack[scope].add_variable_being_hoisted(ident);
-            scope = self.scope_stack[scope].containing_scope().expect("containingScope nulo");
+            scope = self.scope_stack[scope].containing_scope().expect("sem ASSERT em Parser.h:1446: declareVariable sobe containingScope() sem conferir nulo (UB no C++); a raiz sempre allowsVarDeclarations e encerra o laço");
         }
     }
 
@@ -749,7 +750,7 @@ impl<T: CharType> Parser<T> {
 
         let scope = self.current_lexical_declaration_scope();
         if self.scope_stack[scope].is_catch_block_scope() {
-            let containing = self.scope_stack[scope].containing_scope().expect("containingScope nulo");
+            let containing = self.scope_stack[scope].containing_scope().expect("sem ASSERT em Parser.h:1461: scope->containingScope()->hasLexicallyDeclaredVariable desreferencia sem conferir nulo (UB no C++); um escopo de catch sempre tem pai");
             if self.scope_stack[containing].has_lexically_declared_variable_identifier(ident) {
                 return DeclarationResult::INVALID_DUPLICATE_DECLARATION;
             }
@@ -771,7 +772,7 @@ impl<T: CharType> Parser<T> {
 
         let lexical_variable_scope = self.current_lexical_declaration_scope();
         if self.scope_stack[lexical_variable_scope].is_catch_block_scope() {
-            let containing = self.scope_stack[lexical_variable_scope].containing_scope().expect("containingScope nulo");
+            let containing = self.scope_stack[lexical_variable_scope].containing_scope().expect("sem ASSERT em Parser.h:1480: lexicalVariableScope->containingScope()->hasLexicallyDeclaredVariable desreferencia sem conferir nulo (UB no C++); um escopo de catch sempre tem pai");
             if self.scope_stack[containing].has_lexically_declared_variable_identifier(ident) {
                 return (DeclarationResult::INVALID_DUPLICATE_DECLARATION, lexical_variable_scope);
             }
@@ -799,7 +800,7 @@ impl<T: CharType> Parser<T> {
         if self.scope_stack[scope].is_generator_function_boundary() || self.scope_stack[scope].is_async_function_boundary() {
             // The formal parameters which need to be verified for Generators and Async Function bodies occur
             // in the outer wrapper function, so pick the outer scope here.
-            scope = self.scope_stack[scope].containing_scope().expect("containingScope nulo");
+            scope = self.scope_stack[scope].containing_scope().expect("sem ASSERT em Parser.h:1510: hasDeclaredParameter desreferencia containingScope() sem conferir nulo (UB no C++); o corpo de generator/async sempre tem o wrapper externo");
         }
         self.scope_stack[scope].has_declared_parameter_identifier(ident)
     }

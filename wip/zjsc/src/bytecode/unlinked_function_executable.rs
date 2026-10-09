@@ -16,34 +16,52 @@
 //!   quando não há nome, e aqui o nulo é `Identifier::null_identifier()`, sem precisar da VM.
 //! - O cache de bytecode (`m_isGeneratedFromCache`, `m_isCached`, `m_decoder`, os offsets do
 //!   `CachedFunctionExecutable`, `decodeCachedCodeBlocks`) não existe: o cache de bytecode do
-//!   `CodeCache` é uma camada do runtime que ainda não foi portada.
-//! - Ainda sem porte, por dependerem de camadas posteriores (`FunctionExecutable`, `CodeCache`,
-//!   `BuiltinExecutables`, `Parser::parse<FunctionNode>` + `BytecodeGenerator::generate`):
-//!   `unlinkedCodeBlockFor` (e o `generateUnlinkedFunctionCodeBlock` estático), `fromGlobalCode`,
-//!   `linkedSourceCode` e `link`. `clearCode` não mexe no conjunto do heap
-//!   (`unlinkedFunctionExecutableSpaceAndSet`), que não existe.
+//!   `CodeCache` é uma camada do runtime que ainda não foi portada. O `CodeCache::updateCache` que o
+//!   `generateUnlinkedFunctionCodeBlock` chama só repassa ao `SourceProvider::updateCache` (no-op sem o
+//!   cache de bytecode), então some.
+//! - `unlinkedCodeBlockFor` e `generateUnlinkedFunctionCodeBlock` recebem `&Rc<VM>` porque o
+//!   `parse<FunctionNode>` do porte guarda o `Rc<VM>`. `fromGlobalCode` pega esse `Rc` do
+//!   `JSGlobalObject::vm_rc()`. O `SourceProfiler::g_profilerHook` do `link` (gancho do embedder, sempre
+//!   nulo neste porte) some. `unlinkedFunctionExecutableSpaceAndSet.set.add(this)` e `clearCode` não
+//!   mexem no conjunto do heap, que não existe.
 
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use crate::bytecode::code_type::CodeType;
 use crate::bytecode::executable_info::{
-    DerivedContextType, EvalContextType, NeedsClassFieldInitializer,
+    DerivedContextType, EvalContextType, ExecutableInfo, NeedsClassFieldInitializer,
 };
 use crate::bytecode::unlinked_code_block::UnlinkedFunctionCodeBlock;
-use crate::parser::nodes::FunctionMetadataNode;
+use crate::bytecode::watchpoint::StringFireDetail;
+use crate::bytecompiler::bytecode_generator::BytecodeGenerator;
+use crate::parser::nodes::{node, FunctionMetadataNode};
+use crate::parser::parser_error::ParserError;
 use crate::parser::parser_modes::{
-    is_arrow_function_parse_mode, CodeFeatures, FunctionMode, JSParserScriptMode, LexicallyScopedFeatures,
-    PrivateBrandRequirement, SourceParseMode, SuperBinding, NO_FEATURES, STRICT_MODE_LEXICALLY_SCOPED_FEATURE,
+    is_arrow_function_parse_mode, is_function_parse_mode, CodeFeatures, CodeGenerationModeSet, FunctionMode,
+    JSParserBuiltinMode, JSParserScriptMode, LexicallyScopedFeatures, PrivateBrandRequirement, SourceParseMode,
+    SuperBinding, NO_FEATURES, STRICT_MODE_LEXICALLY_SCOPED_FEATURE,
 };
+use crate::parser::parser::parse;
 use crate::parser::parser_tokens::JSTextPosition;
 use crate::parser::source_code::SourceCode;
 use crate::parser::variable_environment::{PrivateNameEnvironment, TDZEnvironmentLink};
+use crate::runtime::builtin_executables::BuiltinExecutables;
+use crate::runtime::code_specialization_kind::CodeSpecializationKind;
 use crate::runtime::construct_ability::ConstructAbility;
 use crate::runtime::constructor_kind::ConstructorKind;
+use crate::runtime::function_executable::FunctionExecutable;
+use crate::runtime::function_overrides::{FunctionOverrideInfo, FunctionOverrides};
 use crate::runtime::identifier::Identifier;
 use crate::runtime::implementation_visibility::ImplementationVisibility;
 use crate::runtime::inline_attribute::InlineAttribute;
+use crate::runtime::intrinsic::Intrinsic;
+use crate::runtime::js_global_object::JSGlobalObject;
+use crate::runtime::js_object::JSObjectHandle;
+use crate::runtime::options_list::Options;
+use crate::runtime::script_executable::ScriptExecutableRef;
 use crate::runtime::vm::VM;
+use crate::wtf::fixed_vector::FixedVector;
 use crate::wtf::text::wtf_string::String as WtfString;
 
 /// `UnlinkedFunctionExecutable::ClassElementDefinition::Kind` (`ClassElementDefinitionKind` no porte).
@@ -508,4 +526,256 @@ impl UnlinkedFunctionExecutable {
         }
         self.ensure_rare_data().class_element_definitions = class_element_definitions;
     }
+
+    /// `linkedSourceCode(const SourceCode& passedParentSource) const`.
+    pub fn linked_source_code(&self, passed_parent_source: &SourceCode) -> SourceCode {
+        let default_constructor_source;
+        let parent_source = if !self.is_builtin_default_class_constructor {
+            passed_parent_source
+        } else {
+            default_constructor_source = BuiltinExecutables::default_constructor_source_code(self.constructor_kind());
+            &default_constructor_source
+        };
+        let start_column = self.linked_start_column(parent_source.start_column().one_based_int() as u32);
+        let start_offset = (parent_source.start_offset() as u32).wrapping_add(self.start_offset);
+        let first_line = (parent_source.first_line().one_based_int() as u32).wrapping_add(self.first_line_offset);
+        SourceCode::with_offsets(
+            parent_source.provider().cloned(),
+            start_offset as i32,
+            start_offset.wrapping_add(self.source_length) as i32,
+            first_line as i32,
+            start_column as i32,
+        )
+    }
+
+    /// `link(VM&, ScriptExecutable* topLevelExecutable, const SourceCode& passedParentSource,
+    /// std::optional<int> overrideLineNumber, Intrinsic, bool isInsideOrdinaryFunction)`.
+    /// `top_level_executable` nulo é `None`.
+    pub fn link(
+        this: &UnlinkedFunctionExecutableRef,
+        vm: &VM,
+        top_level_executable: Option<ScriptExecutableRef>,
+        passed_parent_source: &SourceCode,
+        override_line_number: Option<i32>,
+        intrinsic: Intrinsic,
+        is_inside_ordinary_function: bool,
+    ) -> Rc<RefCell<FunctionExecutable>> {
+        let source = this.borrow().linked_source_code(passed_parent_source);
+        let mut override_info = FunctionOverrideInfo::default();
+        let mut has_function_override = false;
+        if Options::function_overrides().is_some() {
+            has_function_override = FunctionOverrides::initialize_override_for(&source, &mut override_info);
+        }
+
+        let result = FunctionExecutable::create(vm, top_level_executable, &source, this, intrinsic, is_inside_ordinary_function);
+        if this.borrow().singleton_has_been_invalidated {
+            result
+                .borrow_mut()
+                .singleton()
+                .invalidate(vm, &StringFireDetail::new("Singleton was previously invalidated"));
+        }
+        if let Some(override_line_number) = override_line_number {
+            result.borrow_mut().set_override_line_number(override_line_number);
+        }
+
+        if has_function_override {
+            result.borrow_mut().override_info(&override_info);
+        }
+
+        result
+    }
+
+    /// `static fromGlobalCode(const Identifier&, JSGlobalObject*, const SourceCode&, LexicallyScopedFeatures,
+    /// JSObject*& exception, int overrideLineNumber, std::optional<int> functionConstructorParametersEndPosition)`.
+    pub fn from_global_code(
+        name: &Identifier,
+        global_object: &JSGlobalObject,
+        source: &SourceCode,
+        lexically_scoped_features: LexicallyScopedFeatures,
+        exception: &mut Option<JSObjectHandle>,
+        override_line_number: i32,
+        function_constructor_parameters_end_position: Option<i32>,
+    ) -> Option<UnlinkedFunctionExecutableRef> {
+        let mut error = ParserError::new();
+        let vm = global_object.vm_rc();
+        let code_generation_mode = global_object.default_code_generation_mode();
+        let executable = vm.code_cache().get_unlinked_global_function_executable(
+            &vm,
+            name,
+            source,
+            lexically_scoped_features,
+            code_generation_mode,
+            function_constructor_parameters_end_position,
+            &mut error,
+        );
+
+        if global_object.has_debugger() {
+            global_object.debugger().source_parsed(
+                global_object,
+                source.provider().expect("fromGlobalCode sem SourceProvider"),
+                error.line(),
+                error.message(),
+            );
+        }
+
+        if error.is_valid() {
+            *exception = error.to_error_object_override_line(global_object, source, override_line_number).map(|instance| {
+                // O bun mostra a linha do erro no fonte embrulhado em `    at <parse> (:N)` (só `new Function`).
+                instance.set_parse_frame_line(instance.line());
+                instance.as_object()
+            });
+            return None;
+        }
+
+        executable
+    }
+
+    /// `unlinkedCodeBlockFor(VM&, const SourceCode&, CodeSpecializationKind, OptionSet<CodeGenerationMode>,
+    /// ParserError&, SourceParseMode)`. Nulo (com `error` válido) é `None`.
+    pub fn unlinked_code_block_for(
+        &mut self,
+        vm: &Rc<VM>,
+        source: &SourceCode,
+        specialization_kind: CodeSpecializationKind,
+        code_generation_mode: CodeGenerationModeSet,
+        error: &mut ParserError,
+        parse_mode: SourceParseMode,
+    ) -> Option<Rc<RefCell<UnlinkedFunctionCodeBlock>>> {
+        match specialization_kind {
+            CodeSpecializationKind::CodeForCall => {
+                if let Some(code_block) = &self.unlinked_code_block_for_call {
+                    return Some(Rc::clone(code_block));
+                }
+            }
+            CodeSpecializationKind::CodeForConstruct => {
+                if let Some(code_block) = &self.unlinked_code_block_for_construct {
+                    return Some(Rc::clone(code_block));
+                }
+            }
+        }
+
+        let function_kind = if self.is_builtin_function() {
+            UnlinkedFunctionKind::UnlinkedBuiltinFunction
+        } else {
+            UnlinkedFunctionKind::UnlinkedNormalFunction
+        };
+        let result = generate_unlinked_function_code_block(
+            vm,
+            self,
+            source,
+            specialization_kind,
+            code_generation_mode,
+            function_kind,
+            error,
+            parse_mode,
+        );
+
+        if error.is_valid() {
+            return None;
+        }
+
+        let result = result?;
+        match specialization_kind {
+            CodeSpecializationKind::CodeForCall => self.unlinked_code_block_for_call = Some(Rc::clone(&result)),
+            CodeSpecializationKind::CodeForConstruct => self.unlinked_code_block_for_construct = Some(Rc::clone(&result)),
+        }
+        Some(result)
+    }
+}
+
+/// `static generateUnlinkedFunctionCodeBlock(VM&, UnlinkedFunctionExecutable*, const SourceCode&,
+/// CodeSpecializationKind, OptionSet<CodeGenerationMode>, UnlinkedFunctionKind, ParserError&, SourceParseMode)`.
+#[allow(clippy::too_many_arguments)]
+fn generate_unlinked_function_code_block(
+    vm: &Rc<VM>,
+    executable: &mut UnlinkedFunctionExecutable,
+    source: &SourceCode,
+    kind: CodeSpecializationKind,
+    code_generation_mode: CodeGenerationModeSet,
+    function_kind: UnlinkedFunctionKind,
+    error: &mut ParserError,
+    parse_mode: SourceParseMode,
+) -> Option<Rc<RefCell<UnlinkedFunctionCodeBlock>>> {
+    let builtin_mode =
+        if executable.is_builtin_function() { JSParserBuiltinMode::Builtin } else { JSParserBuiltinMode::NotBuiltin };
+    let script_mode = executable.script_mode();
+    debug_assert!(is_function_parse_mode(executable.parse_mode()));
+    // `FixedVector<ClassElementDefinition>*`: o `RareData` guarda um `Vec`, então a cópia (de `Identifier`
+    // compartilhados) é o ponteiro do C++.
+    let class_element_definitions = executable.class_element_definitions().cloned().map(FixedVector::from_vec);
+    let function = parse::<crate::parser::nodes::FunctionNode>(
+        vm,
+        source,
+        &executable.name(),
+        executable.implementation_visibility(),
+        builtin_mode,
+        executable.lexically_scoped_features(),
+        script_mode,
+        executable.parse_mode(),
+        executable.function_mode(),
+        executable.super_binding(),
+        error,
+        executable.constructor_kind(),
+        executable.derived_context_type(),
+        EvalContextType::None,
+        None,
+        class_element_definitions.as_ref(),
+        false,
+    );
+
+    let Some(mut function) = function else {
+        debug_assert!(error.is_valid());
+        return None;
+    };
+
+    function.finish_parsing(executable.name(), executable.function_mode());
+    executable.record_parse(
+        function.features,
+        function.lexically_scoped_features,
+        function.var_declarations.has_captured_variables(),
+    );
+
+    let is_class_context =
+        executable.super_binding() == SuperBinding::Needed || executable.parse_mode() == SourceParseMode::ClassFieldInitializerMode;
+
+    let result = UnlinkedFunctionCodeBlock::create(
+        CodeType::FunctionCode,
+        &ExecutableInfo::new(
+            kind == CodeSpecializationKind::CodeForConstruct,
+            executable.private_brand_requirement(),
+            function_kind == UnlinkedFunctionKind::UnlinkedBuiltinFunction,
+            executable.constructor_kind(),
+            script_mode,
+            executable.super_binding(),
+            parse_mode,
+            executable.derived_context_type(),
+            executable.needs_class_field_initializer(),
+            false,
+            is_class_context,
+            executable.eval_context_type(),
+            executable.is_builtin_default_class_constructor(),
+        ),
+        code_generation_mode.to_raw(),
+    );
+
+    let parent_scope_tdz_variables = executable.parent_scope_tdz_variables();
+    let generator_or_async_wrapper_function_parameter_names =
+        executable.generator_or_async_wrapper_function_parameter_names().map(|names| names.as_slice());
+    let parent_private_name_environment = executable.parent_private_name_environment();
+    let function = node(*function);
+    *error = BytecodeGenerator::generate_for::<crate::parser::nodes::FunctionNode, UnlinkedFunctionCodeBlock>(
+        vm,
+        &function,
+        source,
+        &result,
+        code_generation_mode,
+        &parent_scope_tdz_variables,
+        generator_or_async_wrapper_function_parameter_names,
+        parent_private_name_environment,
+    );
+
+    if error.is_valid() {
+        return None;
+    }
+    Some(result)
 }

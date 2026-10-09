@@ -146,6 +146,27 @@ pub struct ArrayProfile {
     pub observed_array_modes: u32,
 }
 
+/// `enum class IterationMode : uint16_t` (`IterationModeMetadata.h`).
+#[repr(u16)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum IterationMode {
+    Generic = 1 << 0,
+    FastArray = 1 << 1,
+    FastMap = 1 << 2,
+    FastSet = 1 << 3,
+    FastString = 1 << 4,
+    FastArrayValues = 1 << 5,
+    FastArrayKeys = 1 << 6,
+    FastArrayEntries = 1 << 7,
+    FastMapKeys = 1 << 8,
+    FastMapValues = 1 << 9,
+    FastMapEntries = 1 << 10,
+    FastSetValues = 1 << 11,
+    FastSetEntries = 1 << 12,
+    FastAsyncGenerator = 1 << 13,
+    AsyncFromSync = 1 << 14,
+}
+
 /// `IterationModeMetadata`.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct IterationModeMetadata {

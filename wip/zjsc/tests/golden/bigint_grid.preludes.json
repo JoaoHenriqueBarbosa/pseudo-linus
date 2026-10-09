@@ -1,0 +1,3 @@
+[
+"\"use strict\";\nvar S=v=>typeof v==\"symbol\"?String(v):typeof v==\"bigint\"?v+\"n\":Object.is(v,-0)?\"-0\":typeof v==\"string\"?JSON.stringify(v):String(v),T=f=>{try{return S(f())}catch(e){return\"!\"+e.name+\":\"+e.message}};\n"
+]

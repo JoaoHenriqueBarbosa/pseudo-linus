@@ -44,9 +44,10 @@ use crate::wtf::text::string_common::{
     find_ignoring_ascii_case_spans, find_inner, reverse_find, reverse_find_8_char16, reverse_find_inner, unit,
     NOT_FOUND,
 };
+use crate::wtf::text::conversion_mode::ConversionMode;
 use crate::wtf::text::string_hasher;
 use crate::wtf::text::string_impl::{
-    self, copy_characters_convert, u16_is_single, CaseConvertType, CharType, ConversionMode, StringImpl,
+    self, copy_characters_convert, u16_is_single, CaseConvertType, CharType, StringImpl,
     UTF8ConversionError,
 };
 use crate::wtf::text::wtf_string::{
@@ -177,11 +178,6 @@ impl PartialEq for StringView<'_> {
 impl Eq for StringView<'_> {}
 
 impl<'a> StringView<'a> {
-    /// `StringView()`: a visão nula.
-    pub fn new() -> StringView<'a> {
-        StringView::default()
-    }
-
     /// Os caracteres da visão, para o despacho por largura (`with_view!`).
     pub fn data(&self) -> StringViewData<'a> {
         self.data
@@ -1181,11 +1177,6 @@ pub fn starts_with_letters_ignoring_ascii_case(string: StringView, lowercase_let
     })
 }
 
-/// `nullStringView()`.
-pub fn null_string_view<'a>() -> StringView<'a> {
-    StringView::default()
-}
-
 /// `emptyStringView()`: a visão vazia não nula (`""_span`).
 pub fn empty_string_view<'a>() -> StringView<'a> {
     StringView::from(&[] as &[u8])
@@ -1318,7 +1309,7 @@ mod tests {
 
     #[test]
     fn null_empty_and_lengths() {
-        let null = StringView::new();
+        let null = StringView::default();
         assert!(null.is_null() && null.is_empty() && null.is_8bit());
         assert_eq!(null.length(), 0);
         let empty = empty_string_view();
@@ -1344,7 +1335,7 @@ mod tests {
         let wide = WtfString::from_utf16(&[0x20AC]);
         assert!(!StringView::from(&wide).is_8bit());
         assert_eq!(view.to_string(), hello);
-        assert!(StringView::new().to_string().is_null());
+        assert!(StringView::default().to_string().is_null());
     }
 
     #[test]
@@ -1372,7 +1363,7 @@ mod tests {
         assert_eq!(view.reverse_find(latin1(b"o"), u32::MAX), 7);
         assert_eq!(view.reverse_find(latin1(b"lo"), u32::MAX), 3);
         assert_eq!(view.reverse_find(latin1(b""), 4), 4);
-        assert_eq!(view.reverse_find(StringView::new(), 4), NOT_FOUND);
+        assert_eq!(view.reverse_find(StringView::default(), 4), NOT_FOUND);
         assert_eq!(view.reverse_find_latin1(b"or", u32::MAX), 7);
         assert_eq!(view.reverse_find_character('l' as u16, u32::MAX), 9);
         assert_eq!(view.find_ignoring_ascii_case(latin1(b"WORLD"), 0), 6);
@@ -1450,7 +1441,7 @@ mod tests {
         assert!(latin1(b"   ").trim(|c| c == ' ' as u16).is_empty());
         assert_eq!(latin1(b"aBc").convert_to_ascii_lowercase(), WtfString::from_latin1(b"abc"));
         assert_eq!(latin1(b"aBc").convert_to_ascii_uppercase(), WtfString::from_latin1(b"ABC"));
-        assert!(StringView::new().convert_to_ascii_lowercase().is_null());
+        assert!(StringView::default().convert_to_ascii_lowercase().is_null());
         let mut destination = [0u16; 3];
         latin1(b"aBc").get_characters_with_ascii_case(CaseConvertType::Upper, &mut destination);
         assert_eq!(destination, [0x41, 0x42, 0x43]);
@@ -1459,7 +1450,7 @@ mod tests {
     #[test]
     fn conversions_and_replace() {
         assert_eq!(latin1(b"caf\xE9").utf8(ConversionMode::LenientConversion), "café".as_bytes());
-        assert_eq!(StringView::new().utf8(ConversionMode::LenientConversion), Vec::<u8>::new());
+        assert_eq!(StringView::default().utf8(ConversionMode::LenientConversion), Vec::<u8>::new());
         assert_eq!(&*latin1(b"ab").upconverted_characters(), &[0x61u16, 0x62]);
         assert_eq!(latin1(b"1.5").to_double(), (1.5, true));
         let mut buffer: Vec<u16> = vec![0x78];

@@ -81,7 +81,7 @@ impl<T: CharType> Parser<T> {
         let old_statement_depth = self.statement_depth;
         let result = (|| -> Option<B::Statement> {
             self.statement_depth += 1;
-            fail_if_stack_overflow!(self);
+            fail_if_stack_overflow!(self, crate::runtime::vm::stack_cost::STATEMENT_LEVEL);
             let mut result: Option<B::Statement> = None;
             let mut should_set_end_offset = true;
             let mut should_set_pause_location = false;

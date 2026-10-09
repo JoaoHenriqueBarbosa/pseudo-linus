@@ -543,7 +543,7 @@ impl UnlinkedCodeBlock {
     }
 
     pub fn instructions_size(&self) -> usize {
-        self.instructions().size()
+        self.instructions().size_in_bytes()
     }
 
     pub fn num_callee_locals(&self) -> u32 {

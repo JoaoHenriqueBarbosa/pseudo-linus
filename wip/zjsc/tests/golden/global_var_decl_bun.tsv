@@ -1,0 +1,81 @@
+script	undefined	var undefined = 1;	undefined|undefined,false,false,false
+script	undefined	function undefined() {}	SCRIPTERR TypeError: Can't declare global function 'undefined': property must be either configurable or both writable and enumerable
+script	undefined	let undefined = 1;	SCRIPTERR SyntaxError: Can't create duplicate variable that shadows a global property: 'undefined'
+script	undefined	class undefined {}	SCRIPTERR SyntaxError: Can't create duplicate variable that shadows a global property: 'undefined'
+eval	undefined	var undefined = 1;	undefined|undefined,false,false,false
+eval	undefined	function undefined() {}	ERR TypeError: Can't declare global function 'undefined': property must be either configurable or both writable and enumerable|undefined|undefined,false,false,false
+eval	undefined	let undefined = 1;	undefined|undefined,false,false,false
+indirect	undefined	var undefined = 1;	undefined|undefined,false,false,false
+indirect	undefined	function undefined() {}	ERR TypeError: Can't declare global function 'undefined': property must be either configurable or both writable and enumerable|undefined|undefined,false,false,false
+script	NaN	var NaN = 1;	number|number,false,false,false
+script	NaN	function NaN() {}	SCRIPTERR TypeError: Can't declare global function 'NaN': property must be either configurable or both writable and enumerable
+script	NaN	let NaN = 1;	SCRIPTERR SyntaxError: Can't create duplicate variable that shadows a global property: 'NaN'
+script	NaN	class NaN {}	SCRIPTERR SyntaxError: Can't create duplicate variable that shadows a global property: 'NaN'
+eval	NaN	var NaN = 1;	number|number,false,false,false
+eval	NaN	function NaN() {}	ERR TypeError: Can't declare global function 'NaN': property must be either configurable or both writable and enumerable|number|number,false,false,false
+eval	NaN	let NaN = 1;	number|number,false,false,false
+indirect	NaN	var NaN = 1;	number|number,false,false,false
+indirect	NaN	function NaN() {}	ERR TypeError: Can't declare global function 'NaN': property must be either configurable or both writable and enumerable|number|number,false,false,false
+script	Infinity	var Infinity = 1;	number|number,false,false,false
+script	Infinity	function Infinity() {}	SCRIPTERR TypeError: Can't declare global function 'Infinity': property must be either configurable or both writable and enumerable
+script	Infinity	let Infinity = 1;	SCRIPTERR SyntaxError: Can't create duplicate variable that shadows a global property: 'Infinity'
+script	Infinity	class Infinity {}	SCRIPTERR SyntaxError: Can't create duplicate variable that shadows a global property: 'Infinity'
+eval	Infinity	var Infinity = 1;	number|number,false,false,false
+eval	Infinity	function Infinity() {}	ERR TypeError: Can't declare global function 'Infinity': property must be either configurable or both writable and enumerable|number|number,false,false,false
+eval	Infinity	let Infinity = 1;	number|number,false,false,false
+indirect	Infinity	var Infinity = 1;	number|number,false,false,false
+indirect	Infinity	function Infinity() {}	ERR TypeError: Can't declare global function 'Infinity': property must be either configurable or both writable and enumerable|number|number,false,false,false
+script	globalThis	var globalThis = 1;	number|number,true,false,true
+script	globalThis	function globalThis() {}	function|function,true,true,false
+script	globalThis	let globalThis = 1;	number|object,true,false,true
+script	globalThis	class globalThis {}	function|object,true,false,true
+eval	globalThis	var globalThis = 1;	number|number,true,false,true
+eval	globalThis	function globalThis() {}	function|function,true,true,true
+eval	globalThis	let globalThis = 1;	object|object,true,false,true
+indirect	globalThis	var globalThis = 1;	number|number,true,false,true
+indirect	globalThis	function globalThis() {}	function|function,true,true,true
+script	Math	var Math = 1;	number|number,true,false,true
+script	Math	let Math = 1;	number|object,true,false,true
+indirect	Math	function Math() {}	function|function,true,true,true
+script	Array	var Array = 1;	number|number,true,false,true
+script	Array	let Array = 1;	number|function,true,false,true
+indirect	Array	function Array() {}	function|function,true,true,true
+script	eval	var eval = 1;	number|number,true,false,true
+script	eval	let eval = 1;	number|function,true,false,true
+indirect	eval	function eval() {}	function|function,true,true,true
+script	Object	var Object = 1;	number|number,true,false,true
+script	Object	let Object = 1;	number|function,true,false,true
+indirect	Object	function Object() {}	function|function,true,true,true
+script	navigator	var navigator = 1;	number|number,true,true,true
+script	navigator	let navigator = 1;	number|object,true,true,true
+indirect	navigator	function navigator() {}	function|function,true,true,true
+script	self	var self = 1;	number|number,true,true,true
+script	self	let self = 1;	number|accessor,undefined,true,true
+indirect	self	function self() {}	function|function,true,true,true
+script	global	var global = 1;	number|number,true,true,true
+script	global	let global = 1;	number|object,true,true,true
+indirect	global	function global() {}	function|function,true,true,true
+script	atob	var atob = 1;	number|number,true,true,true
+script	atob	let atob = 1;	number|function,true,true,true
+indirect	atob	function atob() {}	function|function,true,true,true
+script	NaN	var NaN = 1; out.push(String(NaN));	NaN|number|number,false,false,false
+script	NaN	NaN = 1; out.push(String(NaN));	NaN|number|number,false,false,false
+script	NaN	"use strict"; NaN = 1;	SCRIPTERR TypeError: Attempted to assign to readonly property.
+script	NaN	(function () { "use strict"; try { NaN = 1; } catch (e) { out.push(e.name + ': ' + e.message); } })();	TypeError: Attempted to assign to readonly property.|number|number,false,false,false
+script	NaN	(function () { try { NaN = 1; } catch (e) { out.push(e.name + ': ' + e.message); } out.push(String(NaN)); })();	NaN|number|number,false,false,false
+eval	NaN	var NaN = 1; out.push(String(NaN));	NaN|number|number,false,false,false
+indirect	NaN	var NaN = 2; out.push(String(NaN));	NaN|number|number,false,false,false
+script	Infinity	var Infinity = 1; out.push(String(Infinity));	Infinity|number|number,false,false,false
+script	Infinity	Infinity = 1; out.push(String(Infinity));	Infinity|number|number,false,false,false
+script	Infinity	"use strict"; Infinity = 1;	SCRIPTERR TypeError: Attempted to assign to readonly property.
+script	Infinity	(function () { "use strict"; try { Infinity = 1; } catch (e) { out.push(e.name + ': ' + e.message); } })();	TypeError: Attempted to assign to readonly property.|number|number,false,false,false
+script	Infinity	(function () { try { Infinity = 1; } catch (e) { out.push(e.name + ': ' + e.message); } out.push(String(Infinity)); })();	Infinity|number|number,false,false,false
+eval	Infinity	var Infinity = 1; out.push(String(Infinity));	Infinity|number|number,false,false,false
+indirect	Infinity	var Infinity = 2; out.push(String(Infinity));	Infinity|number|number,false,false,false
+script	undefined	var undefined = 1; out.push(String(undefined));	undefined|undefined|undefined,false,false,false
+script	undefined	undefined = 1; out.push(String(undefined));	undefined|undefined|undefined,false,false,false
+script	undefined	"use strict"; undefined = 1;	SCRIPTERR TypeError: Attempted to assign to readonly property.
+script	undefined	(function () { "use strict"; try { undefined = 1; } catch (e) { out.push(e.name + ': ' + e.message); } })();	TypeError: Attempted to assign to readonly property.|undefined|undefined,false,false,false
+script	undefined	(function () { try { undefined = 1; } catch (e) { out.push(e.name + ': ' + e.message); } out.push(String(undefined)); })();	undefined|undefined|undefined,false,false,false
+eval	undefined	var undefined = 1; out.push(String(undefined));	undefined|undefined|undefined,false,false,false
+indirect	undefined	var undefined = 2; out.push(String(undefined));	undefined|undefined|undefined,false,false,false

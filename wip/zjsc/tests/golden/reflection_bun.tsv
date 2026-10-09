@@ -1,0 +1,1751 @@
+var log = []; var h = new Proxy({}, {get(t, k) { return function (...a) { log.push(k); return Reflect[k](...a); }; }}); var p = new Proxy({x: 0}, h); p.x; log.join()	ok	"get"
+var seen; var p = new Proxy({x: 0}, {get(...a) { seen = a.length + typeof a[0] + typeof a[1]; return Reflect.get(...a); }}); try { p.x; } catch (e) {} seen	ok	"3objectstring"
+var p = new Proxy({x: 0}, {get: 1}); p.x	error	TypeError	"'get' property of a Proxy's handler should be callable"
+var p = new Proxy({x: 0}, {get: null}); p.x; 'ok'	ok	"ok"
+var p = new Proxy({x: 0}, {get: undefined}); p.x; 'ok'	ok	"ok"
+var p = new Proxy({x: 0}, {get get() { throw new RangeError('g'); }}); p.x	error	RangeError	"g"
+var p = new Proxy({x: 0}, {get() { throw new SyntaxError('boom'); }}); p.x	error	SyntaxError	"boom"
+var self; var p = new Proxy({x: 0}, {get() { self = this; return Reflect.get(...arguments); }}); try { p.x; } catch (e) {} typeof self	ok	"object"
+var log = []; var h = new Proxy({}, {get(t, k) { return function (...a) { log.push(k); return Reflect[k](...a); }; }}); var p = new Proxy({x: 0}, h); p.x = 1; log.join()	ok	"set,getOwnPropertyDescriptor,defineProperty"
+var seen; var p = new Proxy({x: 0}, {set(...a) { seen = a.length + typeof a[0] + typeof a[1]; return Reflect.set(...a); }}); try { p.x = 1; } catch (e) {} seen	ok	"4objectstring"
+var p = new Proxy({x: 0}, {set: 1}); p.x = 1	error	TypeError	"'set' property of a Proxy's handler should be callable"
+var p = new Proxy({x: 0}, {set: null}); p.x = 1; 'ok'	ok	"ok"
+var p = new Proxy({x: 0}, {set: undefined}); p.x = 1; 'ok'	ok	"ok"
+var p = new Proxy({x: 0}, {get set() { throw new RangeError('g'); }}); p.x = 1	error	RangeError	"g"
+var p = new Proxy({x: 0}, {set() { throw new SyntaxError('boom'); }}); p.x = 1	error	SyntaxError	"boom"
+var self; var p = new Proxy({x: 0}, {set() { self = this; return Reflect.set(...arguments); }}); try { p.x = 1; } catch (e) {} typeof self	ok	"object"
+var log = []; var h = new Proxy({}, {get(t, k) { return function (...a) { log.push(k); return Reflect[k](...a); }; }}); var p = new Proxy({x: 0}, h); 'x' in p; log.join()	ok	"has"
+var seen; var p = new Proxy({x: 0}, {has(...a) { seen = a.length + typeof a[0] + typeof a[1]; return Reflect.has(...a); }}); try { 'x' in p; } catch (e) {} seen	ok	"2objectstring"
+var p = new Proxy({x: 0}, {has: 1}); 'x' in p	error	TypeError	"'has' property of a Proxy's handler should be callable"
+var p = new Proxy({x: 0}, {has: null}); 'x' in p; 'ok'	ok	"ok"
+var p = new Proxy({x: 0}, {has: undefined}); 'x' in p; 'ok'	ok	"ok"
+var p = new Proxy({x: 0}, {get has() { throw new RangeError('g'); }}); 'x' in p	error	RangeError	"g"
+var p = new Proxy({x: 0}, {has() { throw new SyntaxError('boom'); }}); 'x' in p	error	SyntaxError	"boom"
+var self; var p = new Proxy({x: 0}, {has() { self = this; return Reflect.has(...arguments); }}); try { 'x' in p; } catch (e) {} typeof self	ok	"object"
+var log = []; var h = new Proxy({}, {get(t, k) { return function (...a) { log.push(k); return Reflect[k](...a); }; }}); var p = new Proxy({x: 0}, h); delete p.x; log.join()	ok	"deleteProperty"
+var seen; var p = new Proxy({x: 0}, {deleteProperty(...a) { seen = a.length + typeof a[0] + typeof a[1]; return Reflect.deleteProperty(...a); }}); try { delete p.x; } catch (e) {} seen	ok	"2objectstring"
+var p = new Proxy({x: 0}, {deleteProperty: 1}); delete p.x	error	TypeError	"'deleteProperty' property of a Proxy's handler should be callable"
+var p = new Proxy({x: 0}, {deleteProperty: null}); delete p.x; 'ok'	ok	"ok"
+var p = new Proxy({x: 0}, {deleteProperty: undefined}); delete p.x; 'ok'	ok	"ok"
+var p = new Proxy({x: 0}, {get deleteProperty() { throw new RangeError('g'); }}); delete p.x	error	RangeError	"g"
+var p = new Proxy({x: 0}, {deleteProperty() { throw new SyntaxError('boom'); }}); delete p.x	error	SyntaxError	"boom"
+var self; var p = new Proxy({x: 0}, {deleteProperty() { self = this; return Reflect.deleteProperty(...arguments); }}); try { delete p.x; } catch (e) {} typeof self	ok	"object"
+var log = []; var h = new Proxy({}, {get(t, k) { return function (...a) { log.push(k); return Reflect[k](...a); }; }}); var p = new Proxy({x: 0}, h); Object.defineProperty(p, 'x', {value: 1, configurable: true}); log.join()	ok	"defineProperty"
+var seen; var p = new Proxy({x: 0}, {defineProperty(...a) { seen = a.length + typeof a[0] + typeof a[1]; return Reflect.defineProperty(...a); }}); try { Object.defineProperty(p, 'x', {value: 1, configurable: true}); } catch (e) {} seen	ok	"3objectstring"
+var p = new Proxy({x: 0}, {defineProperty: 1}); Object.defineProperty(p, 'x', {value: 1, configurable: true})	error	TypeError	"'defineProperty' property of a Proxy's handler should be callable"
+var p = new Proxy({x: 0}, {defineProperty: null}); Object.defineProperty(p, 'x', {value: 1, configurable: true}); 'ok'	ok	"ok"
+var p = new Proxy({x: 0}, {defineProperty: undefined}); Object.defineProperty(p, 'x', {value: 1, configurable: true}); 'ok'	ok	"ok"
+var p = new Proxy({x: 0}, {get defineProperty() { throw new RangeError('g'); }}); Object.defineProperty(p, 'x', {value: 1, configurable: true})	error	RangeError	"g"
+var p = new Proxy({x: 0}, {defineProperty() { throw new SyntaxError('boom'); }}); Object.defineProperty(p, 'x', {value: 1, configurable: true})	error	SyntaxError	"boom"
+var self; var p = new Proxy({x: 0}, {defineProperty() { self = this; return Reflect.defineProperty(...arguments); }}); try { Object.defineProperty(p, 'x', {value: 1, configurable: true}); } catch (e) {} typeof self	ok	"object"
+var log = []; var h = new Proxy({}, {get(t, k) { return function (...a) { log.push(k); return Reflect[k](...a); }; }}); var p = new Proxy({x: 0}, h); Object.getOwnPropertyDescriptor(p, 'x'); log.join()	ok	"getOwnPropertyDescriptor"
+var seen; var p = new Proxy({x: 0}, {getOwnPropertyDescriptor(...a) { seen = a.length + typeof a[0] + typeof a[1]; return Reflect.getOwnPropertyDescriptor(...a); }}); try { Object.getOwnPropertyDescriptor(p, 'x'); } catch (e) {} seen	ok	"2objectstring"
+var p = new Proxy({x: 0}, {getOwnPropertyDescriptor: 1}); Object.getOwnPropertyDescriptor(p, 'x')	error	TypeError	"'getOwnPropertyDescriptor' property of a Proxy's handler should be callable"
+var p = new Proxy({x: 0}, {getOwnPropertyDescriptor: null}); Object.getOwnPropertyDescriptor(p, 'x'); 'ok'	ok	"ok"
+var p = new Proxy({x: 0}, {getOwnPropertyDescriptor: undefined}); Object.getOwnPropertyDescriptor(p, 'x'); 'ok'	ok	"ok"
+var p = new Proxy({x: 0}, {get getOwnPropertyDescriptor() { throw new RangeError('g'); }}); Object.getOwnPropertyDescriptor(p, 'x')	error	RangeError	"g"
+var p = new Proxy({x: 0}, {getOwnPropertyDescriptor() { throw new SyntaxError('boom'); }}); Object.getOwnPropertyDescriptor(p, 'x')	error	SyntaxError	"boom"
+var self; var p = new Proxy({x: 0}, {getOwnPropertyDescriptor() { self = this; return Reflect.getOwnPropertyDescriptor(...arguments); }}); try { Object.getOwnPropertyDescriptor(p, 'x'); } catch (e) {} typeof self	ok	"object"
+var log = []; var h = new Proxy({}, {get(t, k) { return function (...a) { log.push(k); return Reflect[k](...a); }; }}); var p = new Proxy({x: 0}, h); Reflect.ownKeys(p); log.join()	ok	"ownKeys"
+var seen; var p = new Proxy({x: 0}, {ownKeys(...a) { seen = a.length + typeof a[0] + typeof a[1]; return Reflect.ownKeys(...a); }}); try { Reflect.ownKeys(p); } catch (e) {} seen	ok	"1objectundefined"
+var p = new Proxy({x: 0}, {ownKeys: 1}); Reflect.ownKeys(p)	error	TypeError	"'ownKeys' property of a Proxy's handler should be callable"
+var p = new Proxy({x: 0}, {ownKeys: null}); Reflect.ownKeys(p); 'ok'	ok	"ok"
+var p = new Proxy({x: 0}, {ownKeys: undefined}); Reflect.ownKeys(p); 'ok'	ok	"ok"
+var p = new Proxy({x: 0}, {get ownKeys() { throw new RangeError('g'); }}); Reflect.ownKeys(p)	error	RangeError	"g"
+var p = new Proxy({x: 0}, {ownKeys() { throw new SyntaxError('boom'); }}); Reflect.ownKeys(p)	error	SyntaxError	"boom"
+var self; var p = new Proxy({x: 0}, {ownKeys() { self = this; return Reflect.ownKeys(...arguments); }}); try { Reflect.ownKeys(p); } catch (e) {} typeof self	ok	"object"
+var log = []; var h = new Proxy({}, {get(t, k) { return function (...a) { log.push(k); return Reflect[k](...a); }; }}); var p = new Proxy({x: 0}, h); Object.getPrototypeOf(p); log.join()	ok	"getPrototypeOf"
+var seen; var p = new Proxy({x: 0}, {getPrototypeOf(...a) { seen = a.length + typeof a[0] + typeof a[1]; return Reflect.getPrototypeOf(...a); }}); try { Object.getPrototypeOf(p); } catch (e) {} seen	ok	"1objectundefined"
+var p = new Proxy({x: 0}, {getPrototypeOf: 1}); Object.getPrototypeOf(p)	error	TypeError	"'getPrototypeOf' property of a Proxy's handler should be callable"
+var p = new Proxy({x: 0}, {getPrototypeOf: null}); Object.getPrototypeOf(p); 'ok'	ok	"ok"
+var p = new Proxy({x: 0}, {getPrototypeOf: undefined}); Object.getPrototypeOf(p); 'ok'	ok	"ok"
+var p = new Proxy({x: 0}, {get getPrototypeOf() { throw new RangeError('g'); }}); Object.getPrototypeOf(p)	error	RangeError	"g"
+var p = new Proxy({x: 0}, {getPrototypeOf() { throw new SyntaxError('boom'); }}); Object.getPrototypeOf(p)	error	SyntaxError	"boom"
+var self; var p = new Proxy({x: 0}, {getPrototypeOf() { self = this; return Reflect.getPrototypeOf(...arguments); }}); try { Object.getPrototypeOf(p); } catch (e) {} typeof self	ok	"object"
+var log = []; var h = new Proxy({}, {get(t, k) { return function (...a) { log.push(k); return Reflect[k](...a); }; }}); var p = new Proxy({x: 0}, h); Object.setPrototypeOf(p, null); log.join()	ok	"setPrototypeOf"
+var seen; var p = new Proxy({x: 0}, {setPrototypeOf(...a) { seen = a.length + typeof a[0] + typeof a[1]; return Reflect.setPrototypeOf(...a); }}); try { Object.setPrototypeOf(p, null); } catch (e) {} seen	ok	"2objectobject"
+var p = new Proxy({x: 0}, {setPrototypeOf: 1}); Object.setPrototypeOf(p, null)	error	TypeError	"'setPrototypeOf' property of a Proxy's handler should be callable"
+var p = new Proxy({x: 0}, {setPrototypeOf: null}); Object.setPrototypeOf(p, null); 'ok'	ok	"ok"
+var p = new Proxy({x: 0}, {setPrototypeOf: undefined}); Object.setPrototypeOf(p, null); 'ok'	ok	"ok"
+var p = new Proxy({x: 0}, {get setPrototypeOf() { throw new RangeError('g'); }}); Object.setPrototypeOf(p, null)	error	RangeError	"g"
+var p = new Proxy({x: 0}, {setPrototypeOf() { throw new SyntaxError('boom'); }}); Object.setPrototypeOf(p, null)	error	SyntaxError	"boom"
+var self; var p = new Proxy({x: 0}, {setPrototypeOf() { self = this; return Reflect.setPrototypeOf(...arguments); }}); try { Object.setPrototypeOf(p, null); } catch (e) {} typeof self	ok	"object"
+var log = []; var h = new Proxy({}, {get(t, k) { return function (...a) { log.push(k); return Reflect[k](...a); }; }}); var p = new Proxy({x: 0}, h); Object.isExtensible(p); log.join()	ok	"isExtensible"
+var seen; var p = new Proxy({x: 0}, {isExtensible(...a) { seen = a.length + typeof a[0] + typeof a[1]; return Reflect.isExtensible(...a); }}); try { Object.isExtensible(p); } catch (e) {} seen	ok	"1objectundefined"
+var p = new Proxy({x: 0}, {isExtensible: 1}); Object.isExtensible(p)	error	TypeError	"'isExtensible' property of a Proxy's handler should be callable"
+var p = new Proxy({x: 0}, {isExtensible: null}); Object.isExtensible(p); 'ok'	ok	"ok"
+var p = new Proxy({x: 0}, {isExtensible: undefined}); Object.isExtensible(p); 'ok'	ok	"ok"
+var p = new Proxy({x: 0}, {get isExtensible() { throw new RangeError('g'); }}); Object.isExtensible(p)	error	RangeError	"g"
+var p = new Proxy({x: 0}, {isExtensible() { throw new SyntaxError('boom'); }}); Object.isExtensible(p)	error	SyntaxError	"boom"
+var self; var p = new Proxy({x: 0}, {isExtensible() { self = this; return Reflect.isExtensible(...arguments); }}); try { Object.isExtensible(p); } catch (e) {} typeof self	ok	"object"
+var log = []; var h = new Proxy({}, {get(t, k) { return function (...a) { log.push(k); return Reflect[k](...a); }; }}); var p = new Proxy({x: 0}, h); Object.preventExtensions(p); log.join()	ok	"preventExtensions"
+var seen; var p = new Proxy({x: 0}, {preventExtensions(...a) { seen = a.length + typeof a[0] + typeof a[1]; return Reflect.preventExtensions(...a); }}); try { Object.preventExtensions(p); } catch (e) {} seen	ok	"1objectundefined"
+var p = new Proxy({x: 0}, {preventExtensions: 1}); Object.preventExtensions(p)	error	TypeError	"'preventExtensions' property of a Proxy's handler should be callable"
+var p = new Proxy({x: 0}, {preventExtensions: null}); Object.preventExtensions(p); 'ok'	ok	"ok"
+var p = new Proxy({x: 0}, {preventExtensions: undefined}); Object.preventExtensions(p); 'ok'	ok	"ok"
+var p = new Proxy({x: 0}, {get preventExtensions() { throw new RangeError('g'); }}); Object.preventExtensions(p)	error	RangeError	"g"
+var p = new Proxy({x: 0}, {preventExtensions() { throw new SyntaxError('boom'); }}); Object.preventExtensions(p)	error	SyntaxError	"boom"
+var self; var p = new Proxy({x: 0}, {preventExtensions() { self = this; return Reflect.preventExtensions(...arguments); }}); try { Object.preventExtensions(p); } catch (e) {} typeof self	ok	"object"
+var log = []; var h = new Proxy({}, {get(t, k) { return function (...a) { log.push(k); return Reflect[k](...a); }; }}); var p = new Proxy(function () { return {a: 1}; }, h); p(); log.join()	ok	"apply"
+var seen; var p = new Proxy(function () { return {a: 1}; }, {apply(...a) { seen = a.length + typeof a[0] + typeof a[1]; return Reflect.apply(...a); }}); try { p(); } catch (e) {} seen	ok	"3functionundefined"
+var p = new Proxy(function () { return {a: 1}; }, {apply: 1}); p()	error	TypeError	"'apply' property of a Proxy's handler should be callable"
+var p = new Proxy(function () { return {a: 1}; }, {apply: null}); p(); 'ok'	ok	"ok"
+var p = new Proxy(function () { return {a: 1}; }, {apply: undefined}); p(); 'ok'	ok	"ok"
+var p = new Proxy(function () { return {a: 1}; }, {get apply() { throw new RangeError('g'); }}); p()	error	RangeError	"g"
+var p = new Proxy(function () { return {a: 1}; }, {apply() { throw new SyntaxError('boom'); }}); p()	error	SyntaxError	"boom"
+var self; var p = new Proxy(function () { return {a: 1}; }, {apply() { self = this; return Reflect.apply(...arguments); }}); try { p(); } catch (e) {} typeof self	ok	"object"
+var log = []; var h = new Proxy({}, {get(t, k) { return function (...a) { log.push(k); return Reflect[k](...a); }; }}); var p = new Proxy(function () { return {a: 1}; }, h); new p(); log.join()	ok	"construct,get"
+var seen; var p = new Proxy(function () { return {a: 1}; }, {construct(...a) { seen = a.length + typeof a[0] + typeof a[1]; return Reflect.construct(...a); }}); try { new p(); } catch (e) {} seen	ok	"3functionobject"
+var p = new Proxy(function () { return {a: 1}; }, {construct: 1}); new p()	error	TypeError	"'construct' property of a Proxy's handler should be callable"
+var p = new Proxy(function () { return {a: 1}; }, {construct: null}); new p(); 'ok'	ok	"ok"
+var p = new Proxy(function () { return {a: 1}; }, {construct: undefined}); new p(); 'ok'	ok	"ok"
+var p = new Proxy(function () { return {a: 1}; }, {get construct() { throw new RangeError('g'); }}); new p()	error	RangeError	"g"
+var p = new Proxy(function () { return {a: 1}; }, {construct() { throw new SyntaxError('boom'); }}); new p()	error	SyntaxError	"boom"
+var self; var p = new Proxy(function () { return {a: 1}; }, {construct() { self = this; return Reflect.construct(...arguments); }}); try { new p(); } catch (e) {} typeof self	ok	"object"
+var t = {}; Object.defineProperty(t, 'x', {value: 1}); var p = new Proxy(t, {get() { return 2; }}); p.x	error	TypeError	"Proxy handler's 'get' result of a non-configurable and non-writable property should be the same value as the target's property"
+var t = {}; Object.defineProperty(t, 'x', {value: 1}); var p = new Proxy(t, {get() { return 1; }}); p.x	ok	1
+var t = {}; Object.defineProperty(t, 'x', {set(v) {}}); var p = new Proxy(t, {get() { return 2; }}); p.x	error	TypeError	"Proxy handler's 'get' result of a non-configurable accessor property without a getter should be undefined"
+var t = {}; Object.defineProperty(t, 'x', {get() {}, set(v) {}}); var p = new Proxy(t, {get() { return undefined; }}); p.x	ok	undefined
+var t = {}; Object.defineProperty(t, 'x', {value: 1, writable: true}); var p = new Proxy(t, {get() { return 2; }}); p.x	ok	2
+var t = {}; Object.defineProperty(t, 'x', {value: 1}); var p = new Proxy(t, {set() { return true; }}); p.x = 2	error	TypeError	"Proxy handler's 'set' on a non-configurable and non-writable property on 'target' should either return false or be the same value already on the 'target'"
+var t = {}; Object.defineProperty(t, 'x', {value: 1}); var p = new Proxy(t, {set() { return true; }}); p.x = 1; 'ok'	ok	"ok"
+var t = {}; Object.defineProperty(t, 'x', {get() {}}); var p = new Proxy(t, {set() { return true; }}); p.x = 1	error	TypeError	"Proxy handler's 'set' method on a non-configurable accessor property without a setter should return false"
+'use strict'; var p = new Proxy({}, {set() { return false; }}); p.x = 1	error	TypeError	"Proxy object's 'set' trap returned falsy value for property 'x'"
+var p = new Proxy({}, {set() { return false; }}); p.x = 1; 'sloppy'	ok	"sloppy"
+'use strict'; var p = new Proxy({}, {defineProperty() { return false; }}); p.x = 1	error	TypeError	"Proxy's 'defineProperty' trap returned falsy value for property 'x'"
+'use strict'; var p = new Proxy({}, {deleteProperty() { return false; }}); delete p.x	error	TypeError	"Unable to delete property."
+var p = new Proxy({}, {deleteProperty() { return false; }}); delete p.x	ok	false
+var t = {}; Object.defineProperty(t, 'x', {value: 1}); var p = new Proxy(t, {has() { return false; }}); 'x' in p	error	TypeError	"Proxy 'has' must return 'true' for non-configurable properties"
+var t = {x: 1}; Object.preventExtensions(t); var p = new Proxy(t, {has() { return false; }}); 'x' in p	error	TypeError	"Proxy 'has' must return 'true' for a non-extensible 'target' object with a configurable property"
+var t = {x: 1}; Object.preventExtensions(t); var p = new Proxy(t, {has() { return true; }}); 'x' in p	ok	true
+var t = {}; Object.defineProperty(t, 'x', {value: 1}); var p = new Proxy(t, {deleteProperty() { return true; }}); delete p.x	error	TypeError	"Proxy handler's 'deleteProperty' method should return false when the target's property is not configurable"
+var t = {x: 1}; Object.preventExtensions(t); var p = new Proxy(t, {deleteProperty() { return true; }}); delete p.x	error	TypeError	"Proxy handler's 'deleteProperty' method should return false when the target has property and is not extensible"
+var t = {x: 1}; var p = new Proxy(t, {deleteProperty() { return true; }}); delete p.x	ok	true
+var t = {}; Object.defineProperty(t, 'x', {value: 1}); var p = new Proxy(t, {defineProperty() { return true; }}); Object.defineProperty(p, 'x', {value: 2})	error	TypeError	"Proxy's 'defineProperty' trap did not define a property on its target that is compatible with the trap's input descriptor"
+var t = {}; var p = new Proxy(t, {defineProperty() { return true; }}); Object.preventExtensions(t); Object.defineProperty(p, 'x', {value: 2})	error	TypeError	"Proxy's 'defineProperty' trap returned true even though getOwnPropertyDescriptor of the Proxy's target returned undefined and the target is non-extensible"
+var t = {}; var p = new Proxy(t, {defineProperty() { return true; }}); Object.defineProperty(p, 'x', {value: 2, configurable: false})	error	TypeError	"Proxy's 'defineProperty' trap returned true for a non-configurable field even though getOwnPropertyDescriptor of the Proxy's target returned undefined"
+var t = {}; Object.defineProperty(t, 'x', {value: 1, configurable: true, writable: true}); var p = new Proxy(t, {defineProperty() { return true; }}); Object.defineProperty(p, 'x', {value: 2, configurable: false})	error	TypeError	"Proxy's 'defineProperty' trap did not define a non-configurable property on its target even though the input descriptor to the trap said it must do so"
+var t = {}; Object.defineProperty(t, 'x', {value: 1, configurable: false, writable: true}); var p = new Proxy(t, {defineProperty() { return true; }}); Object.defineProperty(p, 'x', {value: 2, writable: false})	error	TypeError	"Proxy's 'defineProperty' trap returned true for a non-writable input descriptor when the target's property is non-configurable and writable"
+var t = {}; Object.defineProperty(t, 'x', {value: 1, configurable: false, writable: true}); var p = new Proxy(t, {defineProperty() { return true; }}); Object.defineProperty(p, 'x', {value: 2, writable: false, configurable: false})	error	TypeError	"Proxy's 'defineProperty' trap returned true for a non-writable input descriptor when the target's property is non-configurable and writable"
+var p = new Proxy({}, {defineProperty() { return false; }}); Object.defineProperty(p, 'x', {value: 1})	error	TypeError	"Proxy's 'defineProperty' trap returned falsy value for property 'x'"
+var p = new Proxy({}, {defineProperty() { return false; }}); Reflect.defineProperty(p, 'x', {value: 1})	ok	false
+var p = new Proxy({}, {getPrototypeOf() { return 1; }}); Object.getPrototypeOf(p)	error	TypeError	"Proxy handler's 'getPrototypeOf' trap should either return an object or null"
+var p = new Proxy({}, {getPrototypeOf() { return undefined; }}); Object.getPrototypeOf(p)	error	TypeError	"Proxy handler's 'getPrototypeOf' trap should either return an object or null"
+var t = {}; Object.preventExtensions(t); var p = new Proxy(t, {getPrototypeOf() { return Array.prototype; }}); Object.getPrototypeOf(p)	error	TypeError	"Proxy's 'getPrototypeOf' trap for a non-extensible target should return the same value as the target's prototype"
+var t = {}; Object.preventExtensions(t); var p = new Proxy(t, {getPrototypeOf() { return Object.prototype; }}); Object.getPrototypeOf(p) === Object.prototype	ok	true
+var p = new Proxy({}, {setPrototypeOf() { return false; }}); Object.setPrototypeOf(p, null)	error	TypeError	"Proxy 'setPrototypeOf' returned false indicating it could not set the prototype value. The operation was expected to succeed"
+var p = new Proxy({}, {setPrototypeOf() { return false; }}); Reflect.setPrototypeOf(p, null)	ok	false
+var t = {}; Object.preventExtensions(t); var p = new Proxy(t, {setPrototypeOf() { return true; }}); Object.setPrototypeOf(p, Array.prototype)	error	TypeError	"Proxy 'setPrototypeOf' trap returned true when its target is non-extensible and the new prototype value is not the same as the current prototype value. It should have returned false"
+var t = {}; Object.preventExtensions(t); var p = new Proxy(t, {setPrototypeOf() { return true; }}); Object.setPrototypeOf(p, Object.prototype)	ok	{}
+var p = new Proxy({}, {isExtensible() { return false; }}); Object.isExtensible(p)	error	TypeError	"Proxy object's 'isExtensible' trap returned false when the target is extensible. It should have returned true"
+var p = new Proxy({}, {isExtensible() { return true; }}); Object.isExtensible(p)	ok	true
+var t = {}; Object.preventExtensions(t); var p = new Proxy(t, {isExtensible() { return true; }}); Object.isExtensible(p)	error	TypeError	"Proxy object's 'isExtensible' trap returned true when the target is non-extensible. It should have returned false"
+var p = new Proxy({}, {preventExtensions() { return true; }}); Object.preventExtensions(p)	error	TypeError	"Proxy's 'preventExtensions' trap returned true even though its target is extensible. It should have returned false"
+var p = new Proxy({}, {preventExtensions() { return false; }}); Object.preventExtensions(p)	error	TypeError	"Unable to prevent extension in Object.preventExtensions"
+var p = new Proxy({}, {preventExtensions() { return false; }}); Reflect.preventExtensions(p)	ok	false
+var t = {}; Object.preventExtensions(t); var p = new Proxy(t, {preventExtensions() { return true; }}); Object.preventExtensions(p) === p	ok	true
+var p = new Proxy({}, {ownKeys() { return 1; }}); Reflect.ownKeys(p)	error	TypeError	"Proxy handler's 'ownKeys' method must return an object"
+var p = new Proxy({}, {ownKeys() { return [1]; }}); Reflect.ownKeys(p)	error	TypeError	"Proxy handler's 'ownKeys' method must return an array-like object containing only Strings and Symbols"
+var p = new Proxy({}, {ownKeys() { return [{}]; }}); Reflect.ownKeys(p)	error	TypeError	"Proxy handler's 'ownKeys' method must return an array-like object containing only Strings and Symbols"
+var p = new Proxy({}, {ownKeys() { return ['a', 'a']; }}); Reflect.ownKeys(p)	error	TypeError	"Proxy handler's 'ownKeys' trap result must not contain any duplicate names"
+var p = new Proxy({}, {ownKeys() { return ['a', 'a']; }}); Object.keys(p)	error	TypeError	"Proxy handler's 'ownKeys' trap result must not contain any duplicate names"
+var p = new Proxy({}, {ownKeys() { return [Symbol.iterator, Symbol.iterator]; }}); Reflect.ownKeys(p)	error	TypeError	"Proxy handler's 'ownKeys' trap result must not contain any duplicate names"
+var p = new Proxy({}, {ownKeys() { return {length: 2, 0: 'a', 1: 'b'}; }}); Reflect.ownKeys(p)	ok	["a","b"]
+var p = new Proxy({}, {ownKeys() { return {length: 1, 0: 'a'}; }}); Reflect.ownKeys(p)	ok	["a"]
+var p = new Proxy({}, {ownKeys() { return ['b', 'a']; }}); Reflect.ownKeys(p)	ok	["b","a"]
+var t = {}; Object.defineProperty(t, 'x', {value: 1}); var p = new Proxy(t, {ownKeys() { return []; }}); Reflect.ownKeys(p)	error	TypeError	"Proxy object's 'target' has the non-configurable property 'x' that was not in the result from the 'ownKeys' trap"
+var t = {x: 1}; Object.preventExtensions(t); var p = new Proxy(t, {ownKeys() { return []; }}); Reflect.ownKeys(p)	error	TypeError	"Proxy object's non-extensible 'target' has configurable property 'x' that was not in the result from the 'ownKeys' trap"
+var t = {x: 1}; Object.preventExtensions(t); var p = new Proxy(t, {ownKeys() { return ['x', 'y']; }}); Reflect.ownKeys(p)	error	TypeError	"Proxy handler's 'ownKeys' method returned a key that was not present in its non-extensible target"
+var t = {x: 1}; Object.preventExtensions(t); var p = new Proxy(t, {ownKeys() { return ['x']; }}); Reflect.ownKeys(p)	ok	["x"]
+var t = {x: 1}; var p = new Proxy(t, {ownKeys() { return ['y']; }}); Reflect.ownKeys(p)	ok	["y"]
+var p = new Proxy({}, {ownKeys() { return ['y', 'x']; }}); Object.getOwnPropertyNames(p)	ok	["y","x"]
+var p = new Proxy({}, {ownKeys() { return ['y', Symbol.iterator]; }}); Object.getOwnPropertySymbols(p).length	ok	1
+var p = new Proxy({}, {getOwnPropertyDescriptor() { return 1; }}); Object.getOwnPropertyDescriptor(p, 'x')	error	TypeError	"result of 'getOwnPropertyDescriptor' call should either be an Object or undefined"
+var p = new Proxy({}, {getOwnPropertyDescriptor() { return {value: 1, configurable: false}; }}); Object.getOwnPropertyDescriptor(p, 'x')	error	TypeError	"Result from 'getOwnPropertyDescriptor' can't be non-configurable when the 'target' doesn't have it as an own property or if it is a configurable own property on 'target'"
+var p = new Proxy({}, {getOwnPropertyDescriptor() { return {value: 1, configurable: true}; }}); Object.getOwnPropertyDescriptor(p, 'x')	ok	{value:1,writable:false,enumerable:false,configurable:true}
+var p = new Proxy({}, {getOwnPropertyDescriptor() { return {get() {}, value: 1, configurable: true}; }}); Object.getOwnPropertyDescriptor(p, 'x')	error	TypeError	"Invalid property.  'value' present on property with getter or setter."
+var p = new Proxy({}, {getOwnPropertyDescriptor() { return {get: 1, configurable: true}; }}); Object.getOwnPropertyDescriptor(p, 'x')	error	TypeError	"Getter must be a function."
+var p = new Proxy({}, {getOwnPropertyDescriptor() { return undefined; }}); Object.getOwnPropertyDescriptor(p, 'x')	ok	undefined
+var t = {}; Object.defineProperty(t, 'x', {value: 1}); var p = new Proxy(t, {getOwnPropertyDescriptor() { return undefined; }}); Object.getOwnPropertyDescriptor(p, 'x')	error	TypeError	"When the result of 'getOwnPropertyDescriptor' is undefined the target must be configurable"
+var t = {x: 1}; Object.preventExtensions(t); var p = new Proxy(t, {getOwnPropertyDescriptor() { return undefined; }}); Object.getOwnPropertyDescriptor(p, 'x')	error	TypeError	"When 'getOwnPropertyDescriptor' returns undefined, the 'target' of a Proxy should be extensible"
+var t = {x: 1}; Object.preventExtensions(t); var p = new Proxy(t, {getOwnPropertyDescriptor() { return {value: 1, configurable: true}; }}); Object.getOwnPropertyDescriptor(p, 'y')	error	TypeError	"Result from 'getOwnPropertyDescriptor' fails the IsCompatiblePropertyDescriptor test"
+var t = {x: 1}; var p = new Proxy(t, {getOwnPropertyDescriptor() { return {value: 2, configurable: false, writable: true}; }}); Object.getOwnPropertyDescriptor(p, 'x')	error	TypeError	"Result from 'getOwnPropertyDescriptor' can't be non-configurable when the 'target' doesn't have it as an own property or if it is a configurable own property on 'target'"
+var t = {x: 1}; var p = new Proxy(t, {getOwnPropertyDescriptor() { return {value: 1, configurable: true, writable: true, enumerable: true}; }}); Object.getOwnPropertyDescriptor(p, 'x')	ok	{value:1,writable:true,enumerable:true,configurable:true}
+var t = {}; Object.defineProperty(t, 'x', {value: 1, writable: true}); var p = new Proxy(t, {getOwnPropertyDescriptor() { return {value: 1, configurable: false, writable: false}; }}); Object.getOwnPropertyDescriptor(p, 'x')	error	TypeError	"Result from 'getOwnPropertyDescriptor' can't be non-configurable and non-writable when the target's property is writable"
+var t = {}; Object.defineProperty(t, 'x', {value: 1, writable: true, configurable: true}); var p = new Proxy(t, {getOwnPropertyDescriptor() { return {value: 1, configurable: false, writable: false}; }}); Object.getOwnPropertyDescriptor(p, 'x')	error	TypeError	"Result from 'getOwnPropertyDescriptor' can't be non-configurable when the 'target' doesn't have it as an own property or if it is a configurable own property on 'target'"
+var p = new Proxy(function () {}, {apply: 1}); p()	error	TypeError	"'apply' property of a Proxy's handler should be callable"
+var p = new Proxy(function () {}, {construct() { return 1; }}); new p	error	TypeError	"Result from Proxy handler's 'construct' method should be an object"
+var p = new Proxy(function () {}, {construct() { return {a: 1}; }}); new p	ok	{a:1}
+var p = new Proxy(function () {}, {construct() { return undefined; }}); new p	error	TypeError	"Result from Proxy handler's 'construct' method should be an object"
+var p = new Proxy({}, {apply() {}}); p()	error	TypeError	"p is not a function. (In 'p()', 'p' is an instance of ProxyObject)"
+var p = new Proxy({}, {construct() {}}); new p	error	TypeError	"ProxyObject is not a constructor (evaluating 'new p')"
+var p = new Proxy(() => 1, {construct() { return {}; }}); new p	error	TypeError	"function is not a constructor (evaluating 'new p')"
+var p = new Proxy(function () {}, {apply() { return 5; }}); p.call(null) + p.apply(null, [])	ok	10
+new Proxy	error	TypeError	"A Proxy's 'target' should be an Object"
+Proxy()	error	TypeError	"calling Proxy constructor without new is invalid"
+Proxy({}, {})	error	TypeError	"calling Proxy constructor without new is invalid"
+new Proxy({})	error	TypeError	"A Proxy's 'handler' should be an Object"
+new Proxy(1, {})	error	TypeError	"A Proxy's 'target' should be an Object"
+new Proxy({}, 1)	error	TypeError	"A Proxy's 'handler' should be an Object"
+new Proxy(null, {})	error	TypeError	"A Proxy's 'target' should be an Object"
+new Proxy({}, null)	error	TypeError	"A Proxy's 'handler' should be an Object"
+new Proxy(undefined, undefined)	error	TypeError	"A Proxy's 'target' should be an Object"
+new Proxy('s', {})	error	TypeError	"A Proxy's 'target' should be an Object"
+new Proxy(Symbol(), {})	error	TypeError	"A Proxy's 'target' should be an Object"
+typeof new Proxy({}, {})	ok	"object"
+typeof new Proxy(function () {}, {})	ok	"function"
+typeof new Proxy(class {}, {})	ok	"function"
+typeof new Proxy(() => 1, {})	ok	"function"
+typeof new Proxy([], {})	ok	"object"
+typeof Proxy	ok	"function"
+Proxy.length	ok	2
+Proxy.name	ok	"Proxy"
+Proxy.prototype	ok	undefined
+Object.getOwnPropertyNames(Proxy).sort().join()	ok	"length,name,revocable"
+Object.getPrototypeOf(Proxy) === Function.prototype	ok	true
+Proxy.revocable.length	ok	2
+Proxy.revocable.name	ok	"revocable"
+new Proxy.revocable({}, {})	error	TypeError	"function is not a constructor (evaluating 'new Proxy.revocable({}, {})')"
+Proxy.revocable(1, {})	error	TypeError	"A Proxy's 'target' should be an Object"
+Proxy.revocable({}, 1)	error	TypeError	"A Proxy's 'handler' should be an Object"
+var r = Proxy.revocable({}, {}); Object.keys(r).join()	ok	"proxy,revoke"
+var r = Proxy.revocable({}, {}); typeof r.proxy + typeof r.revoke	ok	"objectfunction"
+var r = Proxy.revocable({}, {}); r.revoke.length + r.revoke.name + '|'	ok	"0|"
+var r = Proxy.revocable({}, {}); r.revoke(); r.revoke(); 'twice'	ok	"twice"
+var r = Proxy.revocable({}, {}); r.revoke(); r.proxy.x	error	TypeError	"Proxy has already been revoked. No more operations are allowed to be performed on it"
+var r = Proxy.revocable({}, {}); r.revoke(); r.proxy.x = 1	error	TypeError	"Proxy has already been revoked. No more operations are allowed to be performed on it"
+var r = Proxy.revocable({}, {}); r.revoke(); 'x' in r.proxy	error	TypeError	"Proxy has already been revoked. No more operations are allowed to be performed on it"
+var r = Proxy.revocable({}, {}); r.revoke(); delete r.proxy.x	error	TypeError	"Proxy has already been revoked. No more operations are allowed to be performed on it"
+var r = Proxy.revocable({}, {}); r.revoke(); Object.keys(r.proxy)	error	TypeError	"Proxy has already been revoked. No more operations are allowed to be performed on it"
+var r = Proxy.revocable({}, {}); r.revoke(); Object.getPrototypeOf(r.proxy)	error	TypeError	"Proxy has already been revoked. No more operations are allowed to be performed on it"
+var r = Proxy.revocable({}, {}); r.revoke(); Object.setPrototypeOf(r.proxy, null)	error	TypeError	"Proxy has already been revoked. No more operations are allowed to be performed on it"
+var r = Proxy.revocable({}, {}); r.revoke(); Object.isExtensible(r.proxy)	error	TypeError	"Proxy has already been revoked. No more operations are allowed to be performed on it"
+var r = Proxy.revocable({}, {}); r.revoke(); Object.preventExtensions(r.proxy)	error	TypeError	"Proxy has already been revoked. No more operations are allowed to be performed on it"
+var r = Proxy.revocable({}, {}); r.revoke(); Object.getOwnPropertyDescriptor(r.proxy, 'x')	error	TypeError	"Proxy has already been revoked. No more operations are allowed to be performed on it"
+var r = Proxy.revocable({}, {}); r.revoke(); Object.defineProperty(r.proxy, 'x', {})	error	TypeError	"Proxy has already been revoked. No more operations are allowed to be performed on it"
+var r = Proxy.revocable(function () {}, {}); r.revoke(); r.proxy()	error	TypeError	"Proxy has already been revoked. No more operations are allowed to be performed on it"
+var r = Proxy.revocable(function () {}, {}); r.revoke(); new r.proxy	error	TypeError	"Proxy has already been revoked. No more operations are allowed to be performed on it"
+var r = Proxy.revocable({}, {}); r.revoke(); typeof r.proxy	ok	"object"
+var r = Proxy.revocable(function () {}, {}); r.revoke(); typeof r.proxy	ok	"function"
+var r = Proxy.revocable([], {}); r.revoke(); Array.isArray(r.proxy)	error	TypeError	"Array.isArray cannot be called on a Proxy that has been revoked"
+var r = Proxy.revocable({}, {}); r.revoke(); Array.isArray(r.proxy)	error	TypeError	"Array.isArray cannot be called on a Proxy that has been revoked"
+var r = Proxy.revocable({}, {}); r.revoke(); Object.prototype.toString.call(r.proxy)	error	TypeError	"Object.prototype.toString cannot be called on a Proxy that has been revoked"
+var r = Proxy.revocable({}, {}); r.revoke(); new Proxy(r.proxy, {}); 'ok'	ok	"ok"
+var r = Proxy.revocable({}, {}); r.revoke(); JSON.stringify(r.proxy)	error	TypeError	"Proxy has already been revoked. No more operations are allowed to be performed on it"
+var r = Proxy.revocable({}, {}); r.revoke(); String(r.proxy)	error	TypeError	"Proxy has already been revoked. No more operations are allowed to be performed on it"
+var r = Proxy.revocable({}, {}); r.revoke(); r.proxy instanceof Object	error	TypeError	"Proxy has already been revoked. No more operations are allowed to be performed on it"
+var r = Proxy.revocable({}, {}); r.revoke(); Object.prototype.hasOwnProperty.call(r.proxy, 'x')	error	TypeError	"Proxy has already been revoked. No more operations are allowed to be performed on it"
+var r = Proxy.revocable({}, {}); r.revoke(); Reflect.ownKeys(r.proxy)	error	TypeError	"Proxy has already been revoked. No more operations are allowed to be performed on it"
+var r = Proxy.revocable({}, {get() { r.revoke(); return 1; }}); r.proxy.x + ',' + (function () { try { r.proxy.y } catch (e) { return e.name } })()	ok	"1,TypeError"
+var r = Proxy.revocable({}, {}); Object.freeze(r.proxy); r.revoke(); 'frozen'	ok	"frozen"
+var p = new Proxy({}, {}); p.__proto__ === Object.prototype	ok	true
+var p = new Proxy({}, {}); p instanceof Object	ok	true
+var p = new Proxy([], {}); p instanceof Array	ok	true
+var p = new Proxy(function () {}, {}); p instanceof Function	ok	true
+var p = new Proxy({}, {}); Object.prototype.toString.call(p)	ok	"[object Object]"
+var p = new Proxy([], {}); Object.prototype.toString.call(p)	ok	"[object Array]"
+var p = new Proxy(function () {}, {}); Object.prototype.toString.call(p)	ok	"[object Function]"
+var p = new Proxy(new Date(0), {}); Object.prototype.toString.call(p)	ok	"[object Object]"
+var p = new Proxy(new Date(0), {}); p.getTime()	error	TypeError	"Type error"
+var p = new Proxy(new Map(), {}); p.size	error	TypeError	"Map operation called on non-Map object"
+var p = new Proxy(new Map(), {}); p.set(1, 2)	error	TypeError	"Map operation called on non-Map object"
+var p = new Proxy(new Set(), {}); p.add(1)	error	TypeError	"Set operation called on non-Set object"
+var p = new Proxy(new Map(), {get(t, k) { var v = Reflect.get(t, k, t); return typeof v === 'function' ? v.bind(t) : v; }}); p.set(1, 2).size	ok	1
+var p = new Proxy(/a/, {}); p.test('a')	error	TypeError	"Builtin RegExp exec can only be called on a RegExp object"
+var p = new Proxy(/a/, {}); Object.prototype.toString.call(p)	ok	"[object Object]"
+var p = new Proxy(Promise.resolve(1), {}); p.then(() => 1)	error	TypeError	"|this| is not a Promise"
+var p = new Proxy(new Error('m'), {}); Object.prototype.toString.call(p)	ok	"[object Object]"
+var p = new Proxy(new Error('m'), {}); p.message	ok	"m"
+var p = new Proxy(Object('s'), {}); p.length	ok	1
+var p = new Proxy(new Number(1), {}); p.valueOf()	error	TypeError	"thisNumberValue called on incompatible object"
+var p = new Proxy(new Uint8Array(2), {}); p.length	error	TypeError	"Receiver should be a typed array view"
+var p = new Proxy(new Uint8Array(2), {}); p[0] = 5; p[0]	ok	5
+var p = new Proxy(new Uint8Array(2), {}); p.fill(1)	error	TypeError	"Receiver should be a typed array view"
+var p = new Proxy(new Uint8Array(2), {}); Array.from(p).join()	error	TypeError	"Receiver should be a typed array view"
+var p = new Proxy(function f(a, b) { return a + b; }, {}); p(1, 2)	ok	3
+var p = new Proxy(function f(a, b) { return a + b; }, {}); p.length + p.name	ok	"2f"
+var p = new Proxy(function f(a, b) { return this; }, {}); p.call(7) === 7 || typeof p.call(7)	ok	"object"
+var p = new Proxy(function f(a, b) { return [a, b]; }, {}); p.apply(null, [1, 2])	ok	[1,2]
+var p = new Proxy(function f(a, b) { return [a, b]; }, {}); p.bind(null, 1)(2)	ok	[1,2]
+var p = new Proxy(function f() { return new.target === undefined; }, {}); p()	ok	true
+var p = new Proxy(function f() { this.v = 1; }, {}); new p	ok	{v:1}
+var p = new Proxy(function f() { this.v = 1; }, {}); new p instanceof p	ok	true
+var p = new Proxy(function f() { this.v = 1; }, {}); Object.getPrototypeOf(new p) === p.prototype	ok	true
+var p = new Proxy(function () {}, {apply(t, th, a) { return a.length; }}); p(1, 2, 3)	ok	3
+var p = new Proxy(function () {}, {apply(t, th, a) { return Array.isArray(a); }}); p()	ok	true
+var p = new Proxy(function () {}, {apply(t, th, a) { return th; }}); p.call(3)	ok	3
+var p = new Proxy(function () {}, {apply(t, th, a) { return th; }}); ({m: p}).m() !== undefined	ok	true
+var p = new Proxy(function () {}, {construct(t, a, nt) { return {nt: nt === p, n: a.length}; }}); new p(1, 2)	ok	{nt:true,n:2}
+var p = new Proxy(function () {}, {construct(t, a, nt) { return {nt: nt === p}; }}); Reflect.construct(p, [], Array)	ok	{nt:false}
+var p = new Proxy(class A { constructor(x) { this.x = x; } }, {}); new p(4)	ok	{x:4}
+var p = new Proxy(class A { constructor(x) { this.x = x; } }, {}); p(4)	error	TypeError	"Cannot call a class constructor A without |new|"
+var p = new Proxy(class A { static s() { return 9; } }, {}); p.s()	ok	9
+var p = new Proxy(class A { }, {}); typeof p + p.name	ok	"functionA"
+var p = new Proxy(class A { }, {}); class B extends p { } new B instanceof p	ok	true
+var p = new Proxy(class A { constructor() { this.nt = new.target === B; } }, {}); class B extends p { } new B().nt	ok	true
+class A { constructor() { this.nt = new.target.name; } } var p = new Proxy(A, {construct(t, a, nt) { return Reflect.construct(t, a, nt); }}); class B extends p { } new B().nt	ok	"B"
+class A { } var p = new Proxy(A, {get(t, k, r) { return k === 'prototype' ? {tag: 1} : Reflect.get(t, k, r); }}); Object.getPrototypeOf(new p).tag	error	TypeError	"Proxy handler's 'get' result of a non-configurable and non-writable property should be the same value as the target's property"
+var p = new Proxy(class { }, {}); Function.prototype.toString.call(p)	ok	"function ProxyObject() { [native code] }"
+var p = new Proxy(function () {}, {}); Function.prototype.toString.call(p)	ok	"function ProxyObject() { [native code] }"
+var p = new Proxy({}, {}); Function.prototype.toString.call(p)	error	TypeError	"Type error"
+var p = new Proxy([1, 2, 3], {}); p.length	ok	3
+var p = new Proxy([1, 2, 3], {}); Array.isArray(p)	ok	true
+var p = new Proxy([1, 2, 3], {}); p.map(x => x * 2)	ok	[2,4,6]
+var p = new Proxy([1, 2, 3], {}); p.push(4); p.length	ok	4
+var p = new Proxy([1, 2, 3], {}); p.concat([4])	ok	[1,2,3,4]
+var p = new Proxy([1, 2, 3], {}); [].concat(p)	ok	[1,2,3]
+var p = new Proxy([1, 2, 3], {}); [...p]	ok	[1,2,3]
+var p = new Proxy([1, 2, 3], {}); JSON.stringify(p)	ok	"[1,2,3]"
+var p = new Proxy([1, 2, 3], {}); Object.keys(p)	ok	["0","1","2"]
+var p = new Proxy([1, 2, 3], {}); p.splice(1, 1)	ok	[2]
+var p = new Proxy([3, 1, 2], {}); p.sort()	ok	[1,2,3]
+var p = new Proxy([1, 2, 3], {}); p.reverse()	ok	[3,2,1]
+var p = new Proxy([1, 2, 3], {}); p.length = 1; p	ok	[1]
+var p = new Proxy([1, 2, 3], {}); delete p[0]; p	ok	[2,3]
+var p = new Proxy([1, 2, 3], {}); Array.prototype.slice.call(p, 1)	ok	[2,3]
+var p = new Proxy([1, 2, 3], {}); Array.from(p)	ok	[1,2,3]
+var p = new Proxy([1, 2, 3], {}); p.constructor === Array	ok	true
+var p = new Proxy([1, 2, 3], {}); p.flat()	ok	[1,2,3]
+var log = []; var p = new Proxy([1, 2], {get(t, k, r) { log.push(String(k)); return Reflect.get(t, k, r); }}); p.map(x => x); log.join()	ok	"map,length,constructor,0,1"
+var log = []; var p = new Proxy([1, 2], {has(t, k) { log.push(String(k)); return Reflect.has(t, k); }}); p.forEach(x => x); log.join()	ok	"0,1"
+var log = []; var p = new Proxy([1, 2], {get(t, k, r) { log.push(String(k)); return Reflect.get(t, k, r); }}); p.join(); log.join()	ok	"join,length,0,1"
+var log = []; var p = new Proxy([1, 2], {get(t, k, r) { log.push(String(k)); return Reflect.get(t, k, r); }}); [...p]; log.join()	ok	"Symbol(Symbol.iterator),length,0,length,1,length"
+var log = []; var p = new Proxy([1, 2], {get(t, k, r) { log.push(String(k)); return Reflect.get(t, k, r); }}); JSON.stringify(p); log.join()	ok	"toJSON,length,0,1"
+var log = []; var p = new Proxy([1, 2], {set(t, k, v, r) { log.push(String(k)); return Reflect.set(t, k, v, r); }}); p.push(9); log.join()	ok	"2,length"
+var log = []; var p = new Proxy([1, 2], {defineProperty(t, k, d) { log.push(String(k)); return Reflect.defineProperty(t, k, d); }}); p.push(9); log.join()	ok	"2,length"
+var log = []; var p = new Proxy([1, 2, 3], {deleteProperty(t, k) { log.push(String(k)); return Reflect.deleteProperty(t, k); }}); p.pop(); log.join()	ok	"2"
+var log = []; var p = new Proxy([1, 2, 3], {getOwnPropertyDescriptor(t, k) { log.push(String(k)); return Reflect.getOwnPropertyDescriptor(t, k); }}); Object.keys(p); log.join()	ok	"0,1,2,length"
+var log = []; var p = new Proxy({a: 1, b: 2}, {ownKeys(t) { log.push('ownKeys'); return Reflect.ownKeys(t); }, getOwnPropertyDescriptor(t, k) { log.push('gopd:' + k); return Reflect.getOwnPropertyDescriptor(t, k); }, get(t, k, r) { log.push('get:' + String(k)); return Reflect.get(t, k, r); }}); Object.entries(p); log.join()	ok	"ownKeys,gopd:a,get:a,gopd:b,get:b"
+var log = []; var p = new Proxy({a: 1, b: 2}, {ownKeys(t) { log.push('ownKeys'); return Reflect.ownKeys(t); }, getOwnPropertyDescriptor(t, k) { log.push('gopd:' + k); return Reflect.getOwnPropertyDescriptor(t, k); }, get(t, k, r) { log.push('get:' + String(k)); return Reflect.get(t, k, r); }}); ({...p}); log.join()	ok	"ownKeys,gopd:a,get:a,gopd:b,get:b"
+var log = []; var p = new Proxy({a: 1, b: 2}, {ownKeys(t) { log.push('ownKeys'); return Reflect.ownKeys(t); }, getOwnPropertyDescriptor(t, k) { log.push('gopd:' + k); return Reflect.getOwnPropertyDescriptor(t, k); }, get(t, k, r) { log.push('get:' + String(k)); return Reflect.get(t, k, r); }}); Object.assign({}, p); log.join()	ok	"ownKeys,gopd:a,get:a,gopd:b,get:b"
+var log = []; var p = new Proxy({a: 1, b: 2}, {ownKeys(t) { log.push('ownKeys'); return Reflect.ownKeys(t); }, getOwnPropertyDescriptor(t, k) { log.push('gopd:' + k); return Reflect.getOwnPropertyDescriptor(t, k); }}); for (var k in p); log.join()	ok	"ownKeys,gopd:a,gopd:b"
+var log = []; var p = new Proxy({a: 1, b: 2}, {getPrototypeOf(t) { log.push('gpo'); return null; }, ownKeys(t) { log.push('ownKeys'); return Reflect.ownKeys(t); }, getOwnPropertyDescriptor(t, k) { log.push('gopd:' + k); return Reflect.getOwnPropertyDescriptor(t, k); }}); for (var k in p); log.join()	ok	"ownKeys,gpo,gopd:a,gopd:b"
+var log = []; var p = new Proxy({a: 1, b: 2}, {ownKeys(t) { log.push('ownKeys'); return Reflect.ownKeys(t); }, getOwnPropertyDescriptor(t, k) { log.push('gopd:' + k); return Reflect.getOwnPropertyDescriptor(t, k); }}); Object.keys(p); log.join()	ok	"ownKeys,gopd:a,gopd:b"
+var log = []; var p = new Proxy({a: 1}, {get(t, k, r) { log.push(typeof k === 'symbol' ? k.toString() : k); return Reflect.get(t, k, r); }}); `${p}`; log.join()	ok	"Symbol(Symbol.toPrimitive),toString,Symbol(Symbol.toStringTag)"
+var log = []; var p = new Proxy({a: 1}, {get(t, k, r) { log.push(typeof k === 'symbol' ? k.toString() : k); return Reflect.get(t, k, r); }}); p + ''; log.join()	ok	"Symbol(Symbol.toPrimitive),valueOf,toString,Symbol(Symbol.toStringTag)"
+var log = []; var p = new Proxy({a: 1}, {get(t, k, r) { log.push(typeof k === 'symbol' ? k.toString() : k); return Reflect.get(t, k, r); }}); +p; log.join()	ok	"Symbol(Symbol.toPrimitive),valueOf,toString,Symbol(Symbol.toStringTag)"
+var log = []; var p = new Proxy({a: 1}, {get(t, k, r) { log.push(typeof k === 'symbol' ? k.toString() : k); return Reflect.get(t, k, r); }}); p instanceof Object; log.join()	ok	""
+var log = []; var p = new Proxy({a: 1}, {get(t, k, r) { log.push(typeof k === 'symbol' ? k.toString() : k); return Reflect.get(t, k, r); }}); [p].flat(); log.join()	ok	""
+var log = []; var p = new Proxy({a: 1}, {get(t, k, r) { log.push(typeof k === 'symbol' ? k.toString() : k); return Reflect.get(t, k, r); }}); Promise.resolve(p); log.join()	ok	"then"
+var log = []; var p = new Proxy({a: 1}, {get(t, k, r) { log.push(typeof k === 'symbol' ? k.toString() : k); return Reflect.get(t, k, r); }}); [].concat(p); log.join()	ok	"Symbol(Symbol.isConcatSpreadable)"
+var log = []; var p = new Proxy({a: 1}, {get(t, k, r) { log.push(typeof k === 'symbol' ? k.toString() : k); return Reflect.get(t, k, r); }}); Object.prototype.toString.call(p); log.join()	ok	"Symbol(Symbol.toStringTag)"
+var log = []; var p = new Proxy({a: 1}, {get(t, k, r) { log.push(typeof k === 'symbol' ? k.toString() : k); return Reflect.get(t, k, r); }}); JSON.stringify(p); log.join()	ok	"toJSON,a"
+var log = []; var p = new Proxy({a: 1}, {get(t, k, r) { log.push(typeof k === 'symbol' ? k.toString() : k); return Reflect.get(t, k, r); }}); String(p); log.join()	ok	"Symbol(Symbol.toPrimitive),toString,Symbol(Symbol.toStringTag)"
+var log = []; var p = new Proxy({a: 1}, {get(t, k, r) { log.push(typeof k === 'symbol' ? k.toString() : k); return Reflect.get(t, k, r); }}); p == 1; log.join()	ok	"Symbol(Symbol.toPrimitive),valueOf,toString,Symbol(Symbol.toStringTag)"
+var log = []; var p = new Proxy({a: 1}, {get(t, k, r) { log.push(typeof k === 'symbol' ? k.toString() : k); return Reflect.get(t, k, r); }}); new Date(p); log.join()	ok	"Symbol(Symbol.toPrimitive),valueOf,toString,Symbol(Symbol.toStringTag)"
+var log = []; var p = new Proxy({a: 1}, {get(t, k, r) { log.push(typeof k === 'symbol' ? k.toString() : k); return Reflect.get(t, k, r); }}); typeof p; log.join()	ok	""
+var log = []; var p = new Proxy({a: 1}, {get(t, k, r) { log.push(typeof k === 'symbol' ? k.toString() : k); return Reflect.get(t, k, r); }}); var {a} = p; log.join()	ok	"a"
+var log = []; var p = new Proxy({a: 1}, {get(t, k, r) { log.push(typeof k === 'symbol' ? k.toString() : k); return Reflect.get(t, k, r); }}); var {...r} = p; log.join()	ok	"a"
+var log = []; var p = new Proxy([1], {get(t, k, r) { log.push(typeof k === 'symbol' ? k.toString() : k); return Reflect.get(t, k, r); }}); var [x] = p; log.join()	ok	"Symbol(Symbol.iterator),length,0"
+var log = []; var p = new Proxy({a: 1}, {get(t, k, r) { log.push(typeof k === 'symbol' ? k.toString() : k); return Reflect.get(t, k, r); }}); with (p) { a; } log.join()	ok	"Symbol(Symbol.unscopables),a"
+var log = []; var proto = new Proxy({}, {get(t, k, r) { log.push('get:' + String(k) + (r === o)); return 1; }}); var o = Object.create(proto); o.x	ok	1
+var log = []; var proto = new Proxy({}, {has(t, k) { log.push('has:' + String(k)); return false; }}); var o = Object.create(proto); 'x' in o; log.join()	ok	"has:x"
+var log = []; var proto = new Proxy({}, {set(t, k, v, r) { log.push('set:' + String(k) + (r === o)); return true; }}); var o = Object.create(proto); o.x = 1; log.join() + Object.keys(o).length	ok	"set:xtrue0"
+var log = []; var proto = new Proxy({}, {set(t, k, v, r) { log.push('set'); return false; }}); var o = Object.create(proto); o.x = 1; log.join() + Object.keys(o).length	ok	"set0"
+var proto = new Proxy({}, {set(t, k, v, r) { return Reflect.set(t, k, v, r); }}); var o = Object.create(proto); o.x = 1; Object.keys(o).join()	ok	"x"
+var log = []; var proto = new Proxy({}, {defineProperty(t, k, d) { log.push('dp'); return Reflect.defineProperty(t, k, d); }, getOwnPropertyDescriptor(t, k) { log.push('gopd'); return Reflect.getOwnPropertyDescriptor(t, k); }}); var o = Object.create(proto); o.x = 1; log.join()	ok	""
+var log = []; var proto = new Proxy({}, {getOwnPropertyDescriptor(t, k) { log.push('gopd'); return undefined; }, ownKeys(t) { log.push('ok'); return []; }}); var o = Object.create(proto); o.x = 1; for (var k in o); log.join()	ok	"ok"
+var proto = new Proxy({a: 1}, {}); var o = Object.create(proto); o.a	ok	1
+var proto = new Proxy({a: 1}, {}); var o = Object.create(proto); o.hasOwnProperty('a')	ok	false
+var proto = new Proxy({a: 1}, {}); var o = Object.create(proto); 'a' in o	ok	true
+var proto = new Proxy({a: 1}, {}); var o = Object.create(proto); var k = []; for (var x in o) k.push(x); k.join()	ok	"a"
+var proto = new Proxy({}, {get(t, k, r) { return typeof k === 'string' ? k + '!' : undefined; }}); var o = Object.create(proto); o.foo + o.bar	ok	"foo!bar!"
+var proto = new Proxy({}, {get(t, k, r) { return r; }}); var o = Object.create(proto); o.z === o	ok	true
+var proto = new Proxy({}, {getPrototypeOf() { return Array.prototype; }}); var o = Object.create(proto); o instanceof Array	ok	true
+var proto = new Proxy({}, {getPrototypeOf() { return Array.prototype; }}); var o = Object.create(proto); Array.prototype.isPrototypeOf(o)	ok	true
+var p = new Proxy({}, {getPrototypeOf() { return Array.prototype; }}); p instanceof Array	ok	true
+var p = new Proxy({}, {getPrototypeOf() { return Array.prototype; }}); p.__proto__ === Array.prototype	ok	true
+var p = new Proxy({}, {getPrototypeOf() { return Array.prototype; }}); Array.prototype.isPrototypeOf(p)	ok	true
+var p = new Proxy({}, {getPrototypeOf() { return null; }}); p instanceof Object	ok	false
+var p = new Proxy({}, {getPrototypeOf() { return null; }}); Object.prototype.isPrototypeOf(p)	ok	false
+var p = new Proxy({}, {getPrototypeOf() { throw new EvalError('x'); }}); p instanceof Object	error	EvalError	"x"
+var p = new Proxy({}, {}); var o = {__proto__: p}; o.z = 1; Object.keys(o).join()	ok	"z"
+var p = new Proxy({}, {}); Object.setPrototypeOf(Object.create(null), p); 'ok'	ok	"ok"
+var p = new Proxy({}, {}); var o = Object.create(p); Object.setPrototypeOf(p, o)	ok	{}
+var p = new Proxy({}, {}); var o = Object.create(p); Reflect.setPrototypeOf(p, o)	ok	true
+var a = {}; var p = new Proxy(a, {}); var o = Object.create(p); Object.setPrototypeOf(a, o)	ok	{}
+var a = {}; var b = Object.create(a); Object.setPrototypeOf(a, b)	error	TypeError	"cyclic __proto__ value"
+var a = {}; var b = Object.create(a); Reflect.setPrototypeOf(a, b)	ok	false
+var a = {}; Object.setPrototypeOf(a, a)	error	TypeError	"cyclic __proto__ value"
+var a = {}; a.__proto__ = a	error	TypeError	"cyclic __proto__ value"
+var a = {}; var p = new Proxy(a, {getPrototypeOf() { return null; }}); Object.setPrototypeOf(a, Object.create(p)); 'ok'	ok	"ok"
+var t = {x: 1}; var p = new Proxy(t, {}); var o = Object.create(p); Reflect.get(o, 'x', {x: 2})	ok	1
+var t = {get x() { return this.v; }, v: 1}; var p = new Proxy(t, {}); Reflect.get(p, 'x', {v: 5})	ok	5
+var t = {get x() { return this.v; }, v: 1}; var p = new Proxy(t, {}); p.x	ok	1
+var t = {get x() { return this === p; }}; var p = new Proxy(t, {}); p.x	ok	true
+var t = {set x(v) { this.w = v; }}; var p = new Proxy(t, {}); p.x = 3; Object.keys(t).join() + Object.keys(p).join()	ok	"x,wx,w"
+var t = {set x(v) { this.w = v; }}; var p = new Proxy(t, {set(t, k, v, r) { return Reflect.set(t, k, v, r); }}); p.x = 3; Object.keys(t).join() + '|' + Object.keys(p).join()	ok	"x,w|x,w"
+var t = {}; var p = new Proxy(t, {set(t, k, v, r) { return Reflect.set(t, k, v, r); }}); p.x = 3; Object.keys(t).join()	ok	"x"
+var t = {}; var log = []; var p = new Proxy(t, {set(t, k, v, r) { return Reflect.set(t, k, v, r); }, defineProperty(t, k, d) { log.push(JSON.stringify(d)); return Reflect.defineProperty(t, k, d); }}); p.x = 3; p.x = 4; log.join()	ok	"{\"value\":3,\"writable\":true,\"enumerable\":true,\"configurable\":true},{\"value\":4}"
+var t = {}; var log = []; var p = new Proxy(t, {set(t, k, v, r) { return Reflect.set(t, k, v, r); }, getOwnPropertyDescriptor(t, k) { log.push('gopd'); return Reflect.getOwnPropertyDescriptor(t, k); }, defineProperty(t, k, d) { log.push('dp'); return Reflect.defineProperty(t, k, d); }}); p.x = 3; log.join()	ok	"gopd,dp"
+var t = Object.freeze({x: 1}); var p = new Proxy(t, {}); p.x = 2; p.x	ok	1
+'use strict'; var t = Object.freeze({x: 1}); var p = new Proxy(t, {}); p.x = 2	error	TypeError	"Attempted to assign to readonly property."
+'use strict'; var t = Object.freeze({x: 1}); var p = new Proxy(t, {}); delete p.x	error	TypeError	"Unable to delete property."
+'use strict'; var t = Object.freeze({x: 1}); var p = new Proxy(t, {}); p.y = 2	error	TypeError	"Attempting to define property on object that is not extensible."
+'use strict'; var t = Object.freeze({x: 1}); var p = new Proxy(t, {}); Object.defineProperty(p, 'y', {value: 1})	error	TypeError	"Attempting to define property on object that is not extensible."
+var t = Object.freeze({x: 1}); var p = new Proxy(t, {}); Object.isFrozen(p)	ok	true
+var t = Object.seal({x: 1}); var p = new Proxy(t, {}); Object.isSealed(p) + ',' + Object.isFrozen(p)	ok	"true,false"
+var p = new Proxy({x: 1}, {}); Object.freeze(p); Object.isFrozen(p)	ok	true
+var t = {x: 1}; var p = new Proxy(t, {}); Object.freeze(p); Object.isFrozen(t)	ok	true
+var t = {x: 1}; var p = new Proxy(t, {}); Object.seal(p); Object.isSealed(t)	ok	true
+var t = {x: 1}; var p = new Proxy(t, {}); Object.preventExtensions(p); Object.isExtensible(t)	ok	false
+Reflect.apply(Math.max, null, [1, 3, 2])	ok	3
+Reflect.apply(1, null, [])	error	TypeError	"Reflect.apply requires the first argument be a function"
+Reflect.apply(Math.max, null)	error	TypeError	"Reflect.apply requires the third argument be an object"
+Reflect.apply(Math.max, null, 1)	error	TypeError	"Reflect.apply requires the third argument be an object"
+Reflect.apply(Math.max, null, 'ab')	error	TypeError	"Reflect.apply requires the third argument be an object"
+Reflect.apply(function () { return this; }, 5, [])	ok	{}
+Reflect.apply(function () { 'use strict'; return this; }, 5, [])	ok	5
+Reflect.apply(Math.max, null, {length: 2, 0: 4, 1: 9})	ok	9
+Reflect.apply(Math.max, null, null)	error	TypeError	"Reflect.apply requires the third argument be an object"
+Reflect.apply()	error	TypeError	"Reflect.apply requires the first argument be a function"
+Reflect.apply(class {}, null, [])	error	TypeError	"Cannot call a class constructor without |new|"
+Reflect.apply.length	ok	3
+Reflect.apply.name	ok	"apply"
+typeof Reflect.apply	ok	"function"
+new Reflect.apply	error	TypeError	"function is not a constructor (evaluating 'new Reflect.apply')"
+Object.getOwnPropertyDescriptor(Reflect, 'apply').enumerable + ',' + Object.getOwnPropertyDescriptor(Reflect, 'apply').writable	ok	"false,true"
+Reflect.construct(Date, [0])	ok	{}
+Reflect.construct(Date)	error	TypeError	"Reflect.construct requires the second argument be an object"
+Reflect.construct(1, [])	error	TypeError	"Reflect.construct requires the first argument be a constructor"
+Reflect.construct(function () {}, 1)	error	TypeError	"Reflect.construct requires the second argument be an object"
+Reflect.construct(function () {}, [], 1)	error	TypeError	"Reflect.construct requires the third argument be a constructor if present"
+Reflect.construct(() => 1, [])	error	TypeError	"Reflect.construct requires the first argument be a constructor"
+Reflect.construct(function () {}, [], () => 1)	error	TypeError	"Reflect.construct requires the third argument be a constructor if present"
+Reflect.construct(class { constructor() { this.nt = new.target; } }, [], Array).nt === Array	ok	true
+Reflect.construct(function () { this.nt = new.target; }, [], Object).nt === Object	ok	true
+Reflect.construct(Array, [3], Object) instanceof Array	ok	false
+Reflect.construct(Array, [3], Object).length	ok	3
+Reflect.construct(Object.getPrototypeOf(async function () {}).constructor, [], Object)	ok	[fn anonymous]
+Reflect.construct(Math.max, [])	error	TypeError	"Reflect.construct requires the first argument be a constructor"
+Reflect.construct(function () {}, {length: 1, 0: 1})	ok	{}
+Reflect.construct(Symbol, [])	error	TypeError	"function is not a constructor (evaluating 'Reflect.construct(Symbol, [])')"
+Reflect.construct(class A { constructor(x) { this.x = x; } }, [7]).x	ok	7
+Reflect.construct(Boolean, [1], Date) instanceof Date	ok	true
+Reflect.construct(Object, [], function () {}.bind()) instanceof Object	ok	true
+Reflect.construct(Function, ['return 1'], Array) instanceof Array	ok	true
+Reflect.construct(Promise, [function () {}], Object)	ok	{}
+Reflect.construct(Map, [], null)	error	TypeError	"Reflect.construct requires the third argument be a constructor if present"
+Reflect.construct(function () {}, [], function () {}).constructor === Object	ok	false
+Reflect.construct(function () {}, [], Object.assign(function () {}, {prototype: 1})) instanceof Object	ok	true
+Reflect.construct.length	ok	2
+Reflect.construct.name	ok	"construct"
+typeof Reflect.construct	ok	"function"
+new Reflect.construct	error	TypeError	"function is not a constructor (evaluating 'new Reflect.construct')"
+Object.getOwnPropertyDescriptor(Reflect, 'construct').enumerable + ',' + Object.getOwnPropertyDescriptor(Reflect, 'construct').writable	ok	"false,true"
+Reflect.defineProperty({}, 'x', {value: 1})	ok	true
+Reflect.defineProperty(1, 'x', {})	error	TypeError	"Reflect.defineProperty requires the first argument be an object"
+Reflect.defineProperty({}, 'x', 1)	error	TypeError	"Property description must be an object."
+Reflect.defineProperty({}, 'x')	error	TypeError	"Property description must be an object."
+Reflect.defineProperty(Object.freeze({}), 'x', {value: 1})	ok	false
+Reflect.defineProperty(Object.freeze({x: 1}), 'x', {value: 1})	ok	true
+Reflect.defineProperty({}, 'x', {get: 1})	error	TypeError	"Getter must be a function."
+Reflect.defineProperty({}, 'x', {value: 1, get() {}})	error	TypeError	"Invalid property.  'value' present on property with getter or setter."
+Reflect.defineProperty([], 'length', {value: -1})	error	RangeError	"Invalid array length"
+Reflect.defineProperty([], 'length', {value: 2})	ok	true
+Reflect.defineProperty([], 'length', {value: 'a'})	error	RangeError	"Invalid array length"
+Reflect.defineProperty({}, Symbol.iterator, {value: 1})	ok	true
+Reflect.defineProperty({}, {toString() { throw new RangeError('k'); }}, {})	error	RangeError	"k"
+Reflect.defineProperty.length	ok	3
+Reflect.defineProperty.name	ok	"defineProperty"
+typeof Reflect.defineProperty	ok	"function"
+new Reflect.defineProperty	error	TypeError	"function is not a constructor (evaluating 'new Reflect.defineProperty')"
+Object.getOwnPropertyDescriptor(Reflect, 'defineProperty').enumerable + ',' + Object.getOwnPropertyDescriptor(Reflect, 'defineProperty').writable	ok	"false,true"
+Reflect.deleteProperty({x: 1}, 'x')	ok	true
+Reflect.deleteProperty(Object.freeze({x: 1}), 'x')	ok	false
+Reflect.deleteProperty(1, 'x')	error	TypeError	"Reflect.deleteProperty requires the first argument be an object"
+Reflect.deleteProperty([], 'length')	ok	false
+Reflect.deleteProperty({}, 'x')	ok	true
+Reflect.deleteProperty(function f() {}, 'name')	ok	true
+Reflect.deleteProperty(function f() {}, 'prototype')	ok	false
+Reflect.deleteProperty([1], 0)	ok	true
+Reflect.deleteProperty(Object.seal({x: 1}), 'x')	ok	false
+Reflect.deleteProperty.length	ok	2
+Reflect.deleteProperty.name	ok	"deleteProperty"
+typeof Reflect.deleteProperty	ok	"function"
+new Reflect.deleteProperty	error	TypeError	"function is not a constructor (evaluating 'new Reflect.deleteProperty')"
+Object.getOwnPropertyDescriptor(Reflect, 'deleteProperty').enumerable + ',' + Object.getOwnPropertyDescriptor(Reflect, 'deleteProperty').writable	ok	"false,true"
+Reflect.get({x: 1}, 'x')	ok	1
+Reflect.get({get x() { return this; }}, 'x', 5)	ok	{}
+Reflect.get(1, 'x')	error	TypeError	"Reflect.get requires the first argument be an object"
+Reflect.get({}, 'x')	ok	undefined
+Reflect.get([7], 0)	ok	7
+Reflect.get('s', 'length')	error	TypeError	"Reflect.get requires the first argument be an object"
+Reflect.get(null, 'x')	error	TypeError	"Reflect.get requires the first argument be an object"
+Reflect.get({}, {toString() { return 'k'; }})	ok	undefined
+Reflect.get({y: 1}, 'y', null)	ok	1
+Reflect.get(function () {}, 'length')	ok	0
+Reflect.get.length	ok	2
+Reflect.get.name	ok	"get"
+typeof Reflect.get	ok	"function"
+new Reflect.get	error	TypeError	"function is not a constructor (evaluating 'new Reflect.get')"
+Object.getOwnPropertyDescriptor(Reflect, 'get').enumerable + ',' + Object.getOwnPropertyDescriptor(Reflect, 'get').writable	ok	"false,true"
+Reflect.getOwnPropertyDescriptor({x: 1}, 'x')	ok	{value:1,writable:true,enumerable:true,configurable:true}
+Reflect.getOwnPropertyDescriptor({}, 'x')	ok	undefined
+Reflect.getOwnPropertyDescriptor(1, 'x')	error	TypeError	"Reflect.getOwnPropertyDescriptor requires the first argument be an object"
+Reflect.getOwnPropertyDescriptor([], 'length')	ok	{value:0,writable:true,enumerable:false,configurable:false}
+Reflect.getOwnPropertyDescriptor(function f() {}, 'name')	ok	{value:"f",writable:false,enumerable:false,configurable:true}
+Reflect.getOwnPropertyDescriptor({get x() { return 1; }}, 'x')	ok	{get:[fn get x],set:undefined,enumerable:true,configurable:true}
+Reflect.getOwnPropertyDescriptor(Object.freeze({x: 1}), 'x')	ok	{value:1,writable:false,enumerable:true,configurable:false}
+Reflect.getOwnPropertyDescriptor('ab', 0)	error	TypeError	"Reflect.getOwnPropertyDescriptor requires the first argument be an object"
+Reflect.getOwnPropertyDescriptor(Math, 'PI')	ok	{value:3.141592653589793,writable:false,enumerable:false,configurable:false}
+Reflect.getOwnPropertyDescriptor.length	ok	2
+Reflect.getOwnPropertyDescriptor.name	ok	"getOwnPropertyDescriptor"
+typeof Reflect.getOwnPropertyDescriptor	ok	"function"
+new Reflect.getOwnPropertyDescriptor	error	TypeError	"function is not a constructor (evaluating 'new Reflect.getOwnPropertyDescriptor')"
+Object.getOwnPropertyDescriptor(Reflect, 'getOwnPropertyDescriptor').enumerable + ',' + Object.getOwnPropertyDescriptor(Reflect, 'getOwnPropertyDescriptor').writable	ok	"false,true"
+Reflect.getPrototypeOf({}) === Object.prototype	ok	true
+Reflect.getPrototypeOf(1)	error	TypeError	"Reflect.getPrototypeOf requires the first argument be an object"
+Reflect.getPrototypeOf(null)	error	TypeError	"Reflect.getPrototypeOf requires the first argument be an object"
+Reflect.getPrototypeOf(Object.create(null))	ok	null
+Reflect.getPrototypeOf(function () {}) === Function.prototype	ok	true
+Reflect.getPrototypeOf([]) === Array.prototype	ok	true
+Reflect.getPrototypeOf(Object.create(Array.prototype)) === Array.prototype	ok	true
+Reflect.getPrototypeOf()	error	TypeError	"Reflect.getPrototypeOf requires the first argument be an object"
+Reflect.getPrototypeOf.length	ok	1
+Reflect.getPrototypeOf.name	ok	"getPrototypeOf"
+typeof Reflect.getPrototypeOf	ok	"function"
+new Reflect.getPrototypeOf	error	TypeError	"function is not a constructor (evaluating 'new Reflect.getPrototypeOf')"
+Object.getOwnPropertyDescriptor(Reflect, 'getPrototypeOf').enumerable + ',' + Object.getOwnPropertyDescriptor(Reflect, 'getPrototypeOf').writable	ok	"false,true"
+Reflect.has({x: 1}, 'x')	ok	true
+Reflect.has({}, 'toString')	ok	true
+Reflect.has(1, 'x')	error	TypeError	"Reflect.has requires the first argument be an object"
+Reflect.has([], 'length')	ok	true
+Reflect.has({}, Symbol.iterator)	ok	false
+Reflect.has([], Symbol.iterator)	ok	true
+Reflect.has(Object.create({y: 1}), 'y')	ok	true
+Reflect.has(function () {}, 'call')	ok	true
+Reflect.has.length	ok	2
+Reflect.has.name	ok	"has"
+typeof Reflect.has	ok	"function"
+new Reflect.has	error	TypeError	"function is not a constructor (evaluating 'new Reflect.has')"
+Object.getOwnPropertyDescriptor(Reflect, 'has').enumerable + ',' + Object.getOwnPropertyDescriptor(Reflect, 'has').writable	ok	"false,true"
+Reflect.isExtensible({})	ok	true
+Reflect.isExtensible(Object.freeze({}))	ok	false
+Reflect.isExtensible(1)	error	TypeError	"Reflect.isExtensible requires the first argument be an object"
+Reflect.isExtensible(Object.preventExtensions({}))	ok	false
+Reflect.isExtensible()	error	TypeError	"Reflect.isExtensible requires the first argument be an object"
+Reflect.isExtensible(Object.seal({}))	ok	false
+Reflect.isExtensible.length	ok	1
+Reflect.isExtensible.name	ok	"isExtensible"
+typeof Reflect.isExtensible	ok	"function"
+new Reflect.isExtensible	error	TypeError	"function is not a constructor (evaluating 'new Reflect.isExtensible')"
+Object.getOwnPropertyDescriptor(Reflect, 'isExtensible').enumerable + ',' + Object.getOwnPropertyDescriptor(Reflect, 'isExtensible').writable	ok	"false,true"
+Reflect.ownKeys({b: 1, a: 2, 1: 0, 0: 0})	ok	["0","1","b","a"]
+Reflect.ownKeys(1)	error	TypeError	"Reflect.ownKeys requires the first argument be an object"
+Reflect.ownKeys([1, 2])	ok	["0","1","length"]
+Reflect.ownKeys(function f() {})	ok	["length","name","prototype"]
+Reflect.ownKeys({[Symbol.iterator]: 1, x: 2})	ok	["x",Symbol(Symbol.iterator)]
+Reflect.ownKeys('ab')	error	TypeError	"Reflect.ownKeys requires the first argument be an object"
+Reflect.ownKeys(new String('ab'))	ok	["0","1","length"]
+Reflect.ownKeys(class A { static s() {} })	ok	["length","name","prototype","s"]
+Reflect.ownKeys(Object.create({y: 1}))	ok	[]
+Reflect.ownKeys(new Error('m'))	ok	["message","originalLine","originalColumn","line","column","sourceURL","stack"]
+Reflect.ownKeys(/a/g)	ok	["lastIndex"]
+Reflect.ownKeys(new Uint8Array(2))	ok	["0","1"]
+Reflect.ownKeys(Object.freeze({x: 1}))	ok	["x"]
+Reflect.ownKeys(function () { return arguments; }(1, 2))	ok	["0","1","length","callee",Symbol(Symbol.iterator)]
+Reflect.ownKeys(new Proxy({a: 1}, {}))	ok	["a"]
+Reflect.ownKeys.length	ok	1
+Reflect.ownKeys.name	ok	"ownKeys"
+typeof Reflect.ownKeys	ok	"function"
+new Reflect.ownKeys	error	TypeError	"function is not a constructor (evaluating 'new Reflect.ownKeys')"
+Object.getOwnPropertyDescriptor(Reflect, 'ownKeys').enumerable + ',' + Object.getOwnPropertyDescriptor(Reflect, 'ownKeys').writable	ok	"false,true"
+Reflect.preventExtensions({})	ok	true
+Reflect.preventExtensions(1)	error	TypeError	"Reflect.preventExtensions requires the first argument be an object"
+Reflect.preventExtensions(Object.freeze({}))	ok	true
+Reflect.preventExtensions([])	ok	true
+Reflect.preventExtensions.length	ok	1
+Reflect.preventExtensions.name	ok	"preventExtensions"
+typeof Reflect.preventExtensions	ok	"function"
+new Reflect.preventExtensions	error	TypeError	"function is not a constructor (evaluating 'new Reflect.preventExtensions')"
+Object.getOwnPropertyDescriptor(Reflect, 'preventExtensions').enumerable + ',' + Object.getOwnPropertyDescriptor(Reflect, 'preventExtensions').writable	ok	"false,true"
+Reflect.set({}, 'x', 1)	ok	true
+Reflect.set(Object.freeze({x: 1}), 'x', 2)	ok	false
+Reflect.set({}, 'x', 1, {})	ok	true
+Reflect.set({set x(v) { this.w = v; }}, 'x', 1, {})	ok	true
+Reflect.set(1, 'x', 1)	error	TypeError	"Reflect.set requires the first argument be an object"
+Reflect.set({}, 'x', 1, 1)	ok	false
+Reflect.set([], 'length', 3)	ok	true
+Reflect.set([], 'length', -1)	error	RangeError	"Invalid array length"
+Reflect.set({get x() { return 1; }}, 'x', 1)	ok	false
+Reflect.set({}, 'x', 1, Object.freeze({}))	ok	false
+Reflect.set({}, 'x', 1, Object.freeze({x: 0}))	ok	false
+Reflect.set({}, 'x', 1, {x: 0})	ok	true
+Reflect.set({x: 1}, 'x', 2, {get x() { return 1; }})	ok	false
+Reflect.set({}, 'x', 1, [])	ok	true
+Reflect.set([], 0, 1, {})	ok	true
+Reflect.set({}, 'x')	ok	true
+Reflect.set(function f() {}, 'name', 'g')	ok	false
+Reflect.set({set x(v) { this.w = v; }}, 'x', 1, new Proxy({}, {}))	ok	true
+Reflect.set.length	ok	3
+Reflect.set.name	ok	"set"
+typeof Reflect.set	ok	"function"
+new Reflect.set	error	TypeError	"function is not a constructor (evaluating 'new Reflect.set')"
+Object.getOwnPropertyDescriptor(Reflect, 'set').enumerable + ',' + Object.getOwnPropertyDescriptor(Reflect, 'set').writable	ok	"false,true"
+Reflect.setPrototypeOf({}, null)	ok	true
+Reflect.setPrototypeOf({}, 1)	error	TypeError	"Reflect.setPrototypeOf requires the second argument be either an object or null"
+Reflect.setPrototypeOf(1, null)	error	TypeError	"Reflect.setPrototypeOf requires the first argument be an object"
+Reflect.setPrototypeOf({}, {}) 	ok	true
+Reflect.setPrototypeOf(Object.preventExtensions({}), {})	ok	false
+Reflect.setPrototypeOf(Object.preventExtensions({}), Object.prototype)	ok	true
+Reflect.setPrototypeOf(Object.prototype, {})	ok	false
+Reflect.setPrototypeOf(Object.prototype, null)	ok	true
+Reflect.setPrototypeOf(Object.prototype, Object.prototype)	ok	false
+Reflect.setPrototypeOf(function () {}, null)	ok	true
+Reflect.setPrototypeOf({}, undefined)	error	TypeError	"Reflect.setPrototypeOf requires the second argument be either an object or null"
+Reflect.setPrototypeOf.length	ok	2
+Reflect.setPrototypeOf.name	ok	"setPrototypeOf"
+typeof Reflect.setPrototypeOf	ok	"function"
+new Reflect.setPrototypeOf	error	TypeError	"function is not a constructor (evaluating 'new Reflect.setPrototypeOf')"
+Object.getOwnPropertyDescriptor(Reflect, 'setPrototypeOf').enumerable + ',' + Object.getOwnPropertyDescriptor(Reflect, 'setPrototypeOf').writable	ok	"false,true"
+Object.getOwnPropertyNames(Reflect).sort().join()	ok	"apply,construct,defineProperty,deleteProperty,get,getOwnPropertyDescriptor,getPrototypeOf,has,isExtensible,ownKeys,preventExtensions,set,setPrototypeOf"
+Object.getOwnPropertySymbols(Reflect).length + String(Reflect[Symbol.toStringTag])	ok	"1Reflect"
+Object.prototype.toString.call(Reflect)	ok	"[object Reflect]"
+typeof Reflect	ok	"object"
+Object.getPrototypeOf(Reflect) === Object.prototype	ok	true
+Reflect()	error	TypeError	"Reflect is not a function. (In 'Reflect()', 'Reflect' is an instance of Reflect)"
+new Reflect	error	TypeError	"Reflect is not a constructor (evaluating 'new Reflect')"
+Reflect.toString()	ok	"[object Reflect]"
+Object.getOwnPropertyDescriptor(Reflect, Symbol.toStringTag).writable	ok	false
+Object.keys(Reflect).length	ok	0
+var log = []; Reflect.construct(function () {}, {get length() { log.push('len'); return 0; }}); log.join()	ok	"len"
+var log = []; var nt = new Proxy(function () {}, {get(t, k) { log.push(String(k)); return t[k]; }}); Reflect.construct(function () {}, [], nt); log.join()	ok	"prototype"
+var log = []; var nt = new Proxy(function () {}, {get(t, k) { log.push(String(k)); return t[k]; }}); Reflect.construct(function () {}, [], nt); log.length	ok	1
+Reflect.construct(function () { return new.target; }, [], Array) === Array	ok	true
+var F = function () {}; F.prototype = null; Object.getPrototypeOf(Reflect.construct(F, [])) === Object.prototype	ok	true
+var F = function () {}; var NT = function () {}; NT.prototype = Array.prototype; Object.getPrototypeOf(Reflect.construct(F, [], NT)) === Array.prototype	ok	true
+Object.getPrototypeOf(Reflect.construct(Date, [0], Array)) === Array.prototype	ok	true
+Object.getPrototypeOf(Reflect.construct(Error, ['m'], Array)) === Array.prototype	ok	true
+Reflect.construct(Error, ['m'], Array).message	ok	"m"
+Reflect.construct(Array, [2], Object).length	ok	2
+Object.prototype.toString.call(Reflect.construct(Array, [2], Object))	ok	"[object Array]"
+Object.prototype.toString.call(Reflect.construct(Map, [], Object))	ok	"[object Object]"
+Reflect.apply(Function.prototype.call, Math.max, [null, 1, 5])	ok	5
+Reflect.apply(Reflect.apply, null, [Math.max, null, [1, 2]])	ok	2
+Reflect.ownKeys(Reflect.getOwnPropertyDescriptor({get x() { return 1; }}, 'x')).join()	ok	"get,set,enumerable,configurable"
+Reflect.ownKeys(Reflect.getOwnPropertyDescriptor({x: 1}, 'x')).join()	ok	"value,writable,enumerable,configurable"
+Reflect.defineProperty({}, 'x', {get: undefined})	ok	true
+var o = {}; Reflect.defineProperty(o, 'x', {get: undefined}); Object.getOwnPropertyDescriptor(o, 'x').set	ok	undefined
+var o = {}; Reflect.set(o, 'x', 1, o); o.x	ok	1
+var o = {}; var r = {}; Reflect.set(o, 'x', 1, r); o.x + ',' + r.x	ok	"undefined,1"
+var o = {x: 1}; var r = {}; Object.defineProperty(r, 'x', {value: 0, writable: true, configurable: false}); Reflect.set(o, 'x', 5, r); r.x	ok	5
+var o = {x: 1}; var r = {}; Object.defineProperty(r, 'x', {get() { return 0; }, configurable: true}); Reflect.set(o, 'x', 5, r)	ok	false
+var o = {x: 1}; var r = {}; Object.defineProperty(r, 'x', {value: 0, writable: false, configurable: true}); Reflect.set(o, 'x', 5, r)	ok	false
+var o = {}; var r = Object.create(null); Reflect.set(o, 'x', 5, r); r.x	ok	5
+Reflect.set([], 0, 'a', [])	ok	true
+var a = []; Reflect.set(a, 'length', 2); a.length	ok	2
+var a = [1, 2, 3]; Reflect.set(a, 'length', 1); a.join()	ok	"1"
+var a = [1, 2, 3]; Object.defineProperty(a, 1, {value: 9, configurable: false}); Reflect.set(a, 'length', 0) + ',' + a.length	ok	"false,2"
+var a = [1, 2, 3]; Object.defineProperty(a, 1, {value: 9, configurable: false}); Reflect.deleteProperty(a, 'length')	ok	false
+var a = [1, 2, 3]; Object.defineProperty(a, 1, {value: 9, configurable: false}); Reflect.defineProperty(a, 'length', {value: 0}) + ',' + a.length	ok	"false,2"
+var a = [1, 2, 3]; Object.defineProperty(a, 'length', {writable: false}); Reflect.set(a, 3, 1) + ',' + a.length	ok	"false,3"
+var a = [1, 2, 3]; Object.defineProperty(a, 'length', {writable: false}); Reflect.defineProperty(a, 3, {value: 1})	ok	false
+var a = [1, 2, 3]; Object.defineProperty(a, 'length', {writable: false}); a.push(1)	error	TypeError	"Attempted to assign to readonly property."
+var a = [1, 2, 3]; Object.defineProperty(a, 'length', {writable: false}); a.pop()	error	TypeError	"Attempted to assign to readonly property."
+'use strict'; var a = [1]; Object.freeze(a); a.push(2)	error	TypeError	"Attempted to assign to readonly property."
+'use strict'; var a = [1]; Object.freeze(a); a[0] = 2	error	TypeError	"Attempted to assign to readonly property."
+'use strict'; var a = [1]; Object.freeze(a); a.length = 0	error	TypeError	"Array length is not writable"
+'use strict'; var a = [1]; Object.freeze(a); a.pop()	error	TypeError	"Unable to delete property."
+Object.getOwnPropertyDescriptors(new Proxy({a: 1}, {}))	ok	{a:{value:1,writable:true,enumerable:true,configurable:true}}
+Object.getOwnPropertyNames(new Proxy({a: 1}, {}))	ok	["a"]
+Object.keys(new Proxy({a: 1}, {}))	ok	["a"]
+Object.values(new Proxy({a: 1}, {}))	ok	[1]
+Object.entries(new Proxy({a: 1}, {}))	ok	[["a",1]]
+Object.isFrozen(new Proxy({a: 1}, {})) + ',' + Object.isSealed(new Proxy({a: 1}, {})) + ',' + Object.isExtensible(new Proxy({a: 1}, {}))	ok	"false,false,true"
+var o = new Proxy({a: 1}, {}); Object.freeze(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.isExtensible(o)	ok	"true,true,false"
+var o = new Proxy({a: 1}, {}); Object.seal(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.getOwnPropertyDescriptors(o).length	ok	"false,true,undefined"
+var o = new Proxy({a: 1}, {}); Object.preventExtensions(o); Object.isExtensible(o)	ok	false
+var o = new Proxy({a: 1}, {}); Object.defineProperty(o, 'zz', {value: 1, enumerable: true}); Object.getOwnPropertyDescriptor(o, 'zz')	ok	{value:1,writable:false,enumerable:true,configurable:false}
+var o = new Proxy({a: 1}, {}); Object.freeze(o); Object.defineProperty(o, 'zz', {value: 1})	error	TypeError	"Attempting to define property on object that is not extensible."
+var o = new Proxy({a: 1}, {}); Object.freeze(o); Object.getOwnPropertyDescriptors(o)	ok	{a:{value:1,writable:false,enumerable:true,configurable:false}}
+Object.assign({}, new Proxy({a: 1}, {}))	ok	{a:1}
+({...new Proxy({a: 1}, {})})	ok	{a:1}
+Object.fromEntries(Object.entries(new Proxy({a: 1}, {})))	ok	{a:1}
+Object.prototype.hasOwnProperty.call(new Proxy({a: 1}, {}), 'a') + ',' + Object.hasOwn(new Proxy({a: 1}, {}), 0)	ok	"true,false"
+Object.prototype.propertyIsEnumerable.call(new Proxy({a: 1}, {}), 'length') + ',' + Object.prototype.propertyIsEnumerable.call(new Proxy({a: 1}, {}), 0)	ok	"false,false"
+Object.prototype.toString.call(new Proxy({a: 1}, {}))	ok	"[object Object]"
+Object.prototype.toLocaleString.call(new Proxy({a: 1}, {})) === Object.prototype.toString.call(new Proxy({a: 1}, {}))	ok	true
+Object.getOwnPropertySymbols(new Proxy({a: 1}, {})).length	ok	0
+Object.getPrototypeOf(new Proxy({a: 1}, {})) === null	ok	false
+Object.getOwnPropertyDescriptors([1, 2])	ok	{0:{value:1,writable:true,enumerable:true,configurable:true},1:{value:2,writable:true,enumerable:true,configurable:true},length:{value:2,writable:true,enumerable:false,configurable:false}}
+Object.getOwnPropertyNames([1, 2])	ok	["0","1","length"]
+Object.keys([1, 2])	ok	["0","1"]
+Object.values([1, 2])	ok	[1,2]
+Object.entries([1, 2])	ok	[["0",1],["1",2]]
+Object.isFrozen([1, 2]) + ',' + Object.isSealed([1, 2]) + ',' + Object.isExtensible([1, 2])	ok	"false,false,true"
+var o = [1, 2]; Object.freeze(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.isExtensible(o)	ok	"true,true,false"
+var o = [1, 2]; Object.seal(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.getOwnPropertyDescriptors(o).length	ok	"false,true,[object Object]"
+var o = [1, 2]; Object.preventExtensions(o); Object.isExtensible(o)	ok	false
+var o = [1, 2]; Object.defineProperty(o, 'zz', {value: 1, enumerable: true}); Object.getOwnPropertyDescriptor(o, 'zz')	ok	{value:1,writable:false,enumerable:true,configurable:false}
+var o = [1, 2]; Object.freeze(o); Object.defineProperty(o, 'zz', {value: 1})	error	TypeError	"Attempting to define property on object that is not extensible."
+var o = [1, 2]; Object.freeze(o); Object.getOwnPropertyDescriptors(o)	ok	{0:{value:1,writable:false,enumerable:true,configurable:false},1:{value:2,writable:false,enumerable:true,configurable:false},length:{value:2,writable:false,enumerable:false,configurable:false}}
+Object.assign({}, [1, 2])	ok	{0:1,1:2}
+({...[1, 2]})	ok	{0:1,1:2}
+Object.fromEntries(Object.entries([1, 2]))	ok	{0:1,1:2}
+Object.prototype.hasOwnProperty.call([1, 2], 'a') + ',' + Object.hasOwn([1, 2], 0)	ok	"false,true"
+Object.prototype.propertyIsEnumerable.call([1, 2], 'length') + ',' + Object.prototype.propertyIsEnumerable.call([1, 2], 0)	ok	"false,true"
+Object.prototype.toString.call([1, 2])	ok	"[object Array]"
+Object.prototype.toLocaleString.call([1, 2]) === Object.prototype.toString.call([1, 2])	ok	false
+Object.getOwnPropertySymbols([1, 2]).length	ok	0
+Object.getPrototypeOf([1, 2]) === null	ok	false
+Object.getOwnPropertyDescriptors([, 1, , 2])	ok	{1:{value:1,writable:true,enumerable:true,configurable:true},3:{value:2,writable:true,enumerable:true,configurable:true},length:{value:4,writable:true,enumerable:false,configurable:false}}
+Object.getOwnPropertyNames([, 1, , 2])	ok	["1","3","length"]
+Object.keys([, 1, , 2])	ok	["1","3"]
+Object.values([, 1, , 2])	ok	[1,2]
+Object.entries([, 1, , 2])	ok	[["1",1],["3",2]]
+Object.isFrozen([, 1, , 2]) + ',' + Object.isSealed([, 1, , 2]) + ',' + Object.isExtensible([, 1, , 2])	ok	"false,false,true"
+var o = [, 1, , 2]; Object.freeze(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.isExtensible(o)	ok	"true,true,false"
+var o = [, 1, , 2]; Object.seal(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.getOwnPropertyDescriptors(o).length	ok	"false,true,[object Object]"
+var o = [, 1, , 2]; Object.preventExtensions(o); Object.isExtensible(o)	ok	false
+var o = [, 1, , 2]; Object.defineProperty(o, 'zz', {value: 1, enumerable: true}); Object.getOwnPropertyDescriptor(o, 'zz')	ok	{value:1,writable:false,enumerable:true,configurable:false}
+var o = [, 1, , 2]; Object.freeze(o); Object.defineProperty(o, 'zz', {value: 1})	error	TypeError	"Attempting to define property on object that is not extensible."
+var o = [, 1, , 2]; Object.freeze(o); Object.getOwnPropertyDescriptors(o)	ok	{1:{value:1,writable:false,enumerable:true,configurable:false},3:{value:2,writable:false,enumerable:true,configurable:false},length:{value:4,writable:false,enumerable:false,configurable:false}}
+Object.assign({}, [, 1, , 2])	ok	{1:1,3:2}
+({...[, 1, , 2]})	ok	{1:1,3:2}
+Object.fromEntries(Object.entries([, 1, , 2]))	ok	{1:1,3:2}
+Object.prototype.hasOwnProperty.call([, 1, , 2], 'a') + ',' + Object.hasOwn([, 1, , 2], 0)	ok	"false,false"
+Object.prototype.propertyIsEnumerable.call([, 1, , 2], 'length') + ',' + Object.prototype.propertyIsEnumerable.call([, 1, , 2], 0)	ok	"false,false"
+Object.prototype.toString.call([, 1, , 2])	ok	"[object Array]"
+Object.prototype.toLocaleString.call([, 1, , 2]) === Object.prototype.toString.call([, 1, , 2])	ok	false
+Object.getOwnPropertySymbols([, 1, , 2]).length	ok	0
+Object.getPrototypeOf([, 1, , 2]) === null	ok	false
+Object.getOwnPropertyDescriptors(new String('ab'))	ok	{0:{value:"a",writable:false,enumerable:true,configurable:false},1:{value:"b",writable:false,enumerable:true,configurable:false},length:{value:2,writable:false,enumerable:false,configurable:false}}
+Object.getOwnPropertyNames(new String('ab'))	ok	["0","1","length"]
+Object.keys(new String('ab'))	ok	["0","1"]
+Object.values(new String('ab'))	ok	["a","b"]
+Object.entries(new String('ab'))	ok	[["0","a"],["1","b"]]
+Object.isFrozen(new String('ab')) + ',' + Object.isSealed(new String('ab')) + ',' + Object.isExtensible(new String('ab'))	ok	"false,false,true"
+var o = new String('ab'); Object.freeze(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.isExtensible(o)	ok	"true,true,false"
+var o = new String('ab'); Object.seal(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.getOwnPropertyDescriptors(o).length	ok	"true,true,[object Object]"
+var o = new String('ab'); Object.preventExtensions(o); Object.isExtensible(o)	ok	false
+var o = new String('ab'); Object.defineProperty(o, 'zz', {value: 1, enumerable: true}); Object.getOwnPropertyDescriptor(o, 'zz')	ok	{value:1,writable:false,enumerable:true,configurable:false}
+var o = new String('ab'); Object.freeze(o); Object.defineProperty(o, 'zz', {value: 1})	error	TypeError	"Attempting to define property on object that is not extensible."
+var o = new String('ab'); Object.freeze(o); Object.getOwnPropertyDescriptors(o)	ok	{0:{value:"a",writable:false,enumerable:true,configurable:false},1:{value:"b",writable:false,enumerable:true,configurable:false},length:{value:2,writable:false,enumerable:false,configurable:false}}
+Object.assign({}, new String('ab'))	ok	{0:"a",1:"b"}
+({...new String('ab')})	ok	{0:"a",1:"b"}
+Object.fromEntries(Object.entries(new String('ab')))	ok	{0:"a",1:"b"}
+Object.prototype.hasOwnProperty.call(new String('ab'), 'a') + ',' + Object.hasOwn(new String('ab'), 0)	ok	"false,true"
+Object.prototype.propertyIsEnumerable.call(new String('ab'), 'length') + ',' + Object.prototype.propertyIsEnumerable.call(new String('ab'), 0)	ok	"false,true"
+Object.prototype.toString.call(new String('ab'))	ok	"[object String]"
+Object.prototype.toLocaleString.call(new String('ab')) === Object.prototype.toString.call(new String('ab'))	ok	false
+Object.getOwnPropertySymbols(new String('ab')).length	ok	0
+Object.getPrototypeOf(new String('ab')) === null	ok	false
+Object.getOwnPropertyDescriptors((function () { return arguments; })(1, 2))	ok	{0:{value:1,writable:true,enumerable:true,configurable:true},1:{value:2,writable:true,enumerable:true,configurable:true},length:{value:2,writable:true,enumerable:false,configurable:true},callee:{value:[fn ],writable:true,enumerable:false,configurable:true},Symbol(Symbol.iterator):{value:[fn values],writable:true,enumerable:false,configurable:true}}
+Object.getOwnPropertyNames((function () { return arguments; })(1, 2))	ok	["0","1","length","callee"]
+Object.keys((function () { return arguments; })(1, 2))	ok	["0","1"]
+Object.values((function () { return arguments; })(1, 2))	ok	[1,2]
+Object.entries((function () { return arguments; })(1, 2))	ok	[["0",1],["1",2]]
+Object.isFrozen((function () { return arguments; })(1, 2)) + ',' + Object.isSealed((function () { return arguments; })(1, 2)) + ',' + Object.isExtensible((function () { return arguments; })(1, 2))	ok	"false,false,true"
+var o = (function () { return arguments; })(1, 2); Object.freeze(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.isExtensible(o)	ok	"true,true,false"
+var o = (function () { return arguments; })(1, 2); Object.seal(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.getOwnPropertyDescriptors(o).length	ok	"false,true,[object Object]"
+var o = (function () { return arguments; })(1, 2); Object.preventExtensions(o); Object.isExtensible(o)	ok	false
+var o = (function () { return arguments; })(1, 2); Object.defineProperty(o, 'zz', {value: 1, enumerable: true}); Object.getOwnPropertyDescriptor(o, 'zz')	ok	{value:1,writable:false,enumerable:true,configurable:false}
+var o = (function () { return arguments; })(1, 2); Object.freeze(o); Object.defineProperty(o, 'zz', {value: 1})	error	TypeError	"Attempting to define property on object that is not extensible."
+var o = (function () { return arguments; })(1, 2); Object.freeze(o); Object.getOwnPropertyDescriptors(o)	ok	{0:{value:1,writable:false,enumerable:true,configurable:false},1:{value:2,writable:false,enumerable:true,configurable:false},length:{value:2,writable:false,enumerable:false,configurable:false},callee:{value:[fn ],writable:false,enumerable:false,configurable:false},Symbol(Symbol.iterator):{value:[fn values],writable:false,enumerable:false,configurable:false}}
+Object.assign({}, (function () { return arguments; })(1, 2))	ok	{0:1,1:2}
+({...(function () { return arguments; })(1, 2)})	ok	{0:1,1:2}
+Object.fromEntries(Object.entries((function () { return arguments; })(1, 2)))	ok	{0:1,1:2}
+Object.prototype.hasOwnProperty.call((function () { return arguments; })(1, 2), 'a') + ',' + Object.hasOwn((function () { return arguments; })(1, 2), 0)	ok	"false,true"
+Object.prototype.propertyIsEnumerable.call((function () { return arguments; })(1, 2), 'length') + ',' + Object.prototype.propertyIsEnumerable.call((function () { return arguments; })(1, 2), 0)	ok	"false,true"
+Object.prototype.toString.call((function () { return arguments; })(1, 2))	ok	"[object Arguments]"
+Object.prototype.toLocaleString.call((function () { return arguments; })(1, 2)) === Object.prototype.toString.call((function () { return arguments; })(1, 2))	ok	true
+Object.getOwnPropertySymbols((function () { return arguments; })(1, 2)).length	ok	1
+Object.getPrototypeOf((function () { return arguments; })(1, 2)) === null	ok	false
+Object.getOwnPropertyDescriptors(new Uint8Array([1, 2]))	ok	{0:{value:1,writable:true,enumerable:true,configurable:true},1:{value:2,writable:true,enumerable:true,configurable:true}}
+Object.getOwnPropertyNames(new Uint8Array([1, 2]))	ok	["0","1"]
+Object.keys(new Uint8Array([1, 2]))	ok	["0","1"]
+Object.values(new Uint8Array([1, 2]))	ok	[1,2]
+Object.entries(new Uint8Array([1, 2]))	ok	[["0",1],["1",2]]
+Object.isFrozen(new Uint8Array([1, 2])) + ',' + Object.isSealed(new Uint8Array([1, 2])) + ',' + Object.isExtensible(new Uint8Array([1, 2]))	ok	"false,false,true"
+var o = new Uint8Array([1, 2]); Object.freeze(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.isExtensible(o)	error	TypeError	"Attempting to store non-configurable property on a typed array at index: 0"
+var o = new Uint8Array([1, 2]); Object.seal(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.getOwnPropertyDescriptors(o).length	error	TypeError	"Attempting to store non-configurable property on a typed array at index: 0"
+var o = new Uint8Array([1, 2]); Object.preventExtensions(o); Object.isExtensible(o)	ok	false
+var o = new Uint8Array([1, 2]); Object.defineProperty(o, 'zz', {value: 1, enumerable: true}); Object.getOwnPropertyDescriptor(o, 'zz')	ok	{value:1,writable:false,enumerable:true,configurable:false}
+var o = new Uint8Array([1, 2]); Object.freeze(o); Object.defineProperty(o, 'zz', {value: 1})	error	TypeError	"Attempting to store non-configurable property on a typed array at index: 0"
+var o = new Uint8Array([1, 2]); Object.freeze(o); Object.getOwnPropertyDescriptors(o)	error	TypeError	"Attempting to store non-configurable property on a typed array at index: 0"
+Object.assign({}, new Uint8Array([1, 2]))	ok	{0:1,1:2}
+({...new Uint8Array([1, 2])})	ok	{0:1,1:2}
+Object.fromEntries(Object.entries(new Uint8Array([1, 2])))	ok	{0:1,1:2}
+Object.prototype.hasOwnProperty.call(new Uint8Array([1, 2]), 'a') + ',' + Object.hasOwn(new Uint8Array([1, 2]), 0)	ok	"false,true"
+Object.prototype.propertyIsEnumerable.call(new Uint8Array([1, 2]), 'length') + ',' + Object.prototype.propertyIsEnumerable.call(new Uint8Array([1, 2]), 0)	ok	"false,true"
+Object.prototype.toString.call(new Uint8Array([1, 2]))	ok	"[object Uint8Array]"
+Object.prototype.toLocaleString.call(new Uint8Array([1, 2])) === Object.prototype.toString.call(new Uint8Array([1, 2]))	ok	false
+Object.getOwnPropertySymbols(new Uint8Array([1, 2])).length	ok	0
+Object.getPrototypeOf(new Uint8Array([1, 2])) === null	ok	false
+Object.getOwnPropertyDescriptors(function f(a) {})	ok	{length:{value:1,writable:false,enumerable:false,configurable:true},name:{value:"f",writable:false,enumerable:false,configurable:true},prototype:{value:{constructor:[fn f]},writable:true,enumerable:false,configurable:false}}
+Object.getOwnPropertyNames(function f(a) {})	ok	["length","name","prototype"]
+Object.keys(function f(a) {})	ok	[]
+Object.values(function f(a) {})	ok	[]
+Object.entries(function f(a) {})	ok	[]
+Object.isFrozen(function f(a) {}) + ',' + Object.isSealed(function f(a) {}) + ',' + Object.isExtensible(function f(a) {})	ok	"false,false,true"
+var o = function f(a) {}; Object.freeze(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.isExtensible(o)	ok	"true,true,false"
+var o = function f(a) {}; Object.seal(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.getOwnPropertyDescriptors(o).length	ok	"false,true,[object Object]"
+var o = function f(a) {}; Object.preventExtensions(o); Object.isExtensible(o)	ok	false
+var o = function f(a) {}; Object.defineProperty(o, 'zz', {value: 1, enumerable: true}); Object.getOwnPropertyDescriptor(o, 'zz')	ok	{value:1,writable:false,enumerable:true,configurable:false}
+var o = function f(a) {}; Object.freeze(o); Object.defineProperty(o, 'zz', {value: 1})	error	TypeError	"Attempting to define property on object that is not extensible."
+var o = function f(a) {}; Object.freeze(o); Object.getOwnPropertyDescriptors(o)	ok	{length:{value:1,writable:false,enumerable:false,configurable:false},name:{value:"f",writable:false,enumerable:false,configurable:false},prototype:{value:{constructor:[fn f]},writable:false,enumerable:false,configurable:false}}
+Object.assign({}, function f(a) {})	ok	{}
+({...function f(a) {}})	ok	{}
+Object.fromEntries(Object.entries(function f(a) {}))	ok	{}
+Object.prototype.hasOwnProperty.call(function f(a) {}, 'a') + ',' + Object.hasOwn(function f(a) {}, 0)	ok	"false,false"
+Object.prototype.propertyIsEnumerable.call(function f(a) {}, 'length') + ',' + Object.prototype.propertyIsEnumerable.call(function f(a) {}, 0)	ok	"false,false"
+Object.prototype.toString.call(function f(a) {})	ok	"[object Function]"
+Object.prototype.toLocaleString.call(function f(a) {}) === Object.prototype.toString.call(function f(a) {})	ok	false
+Object.getOwnPropertySymbols(function f(a) {}).length	ok	0
+Object.getPrototypeOf(function f(a) {}) === null	ok	false
+Object.getOwnPropertyNames(new Error('m'))	ok	["message","originalLine","originalColumn","line","column","sourceURL","stack"]
+Object.keys(new Error('m'))	ok	[]
+Object.values(new Error('m'))	ok	[]
+Object.entries(new Error('m'))	ok	[]
+Object.isFrozen(new Error('m')) + ',' + Object.isSealed(new Error('m')) + ',' + Object.isExtensible(new Error('m'))	ok	"false,false,true"
+var o = new Error('m'); Object.freeze(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.isExtensible(o)	ok	"true,true,false"
+var o = new Error('m'); Object.seal(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.getOwnPropertyDescriptors(o).length	ok	"false,true,undefined"
+var o = new Error('m'); Object.preventExtensions(o); Object.isExtensible(o)	ok	false
+var o = new Error('m'); Object.defineProperty(o, 'zz', {value: 1, enumerable: true}); Object.getOwnPropertyDescriptor(o, 'zz')	ok	{value:1,writable:false,enumerable:true,configurable:false}
+var o = new Error('m'); Object.freeze(o); Object.defineProperty(o, 'zz', {value: 1})	error	TypeError	"Attempting to define property on object that is not extensible."
+Object.assign({}, new Error('m'))	ok	{}
+({...new Error('m')})	ok	{}
+Object.fromEntries(Object.entries(new Error('m')))	ok	{}
+Object.prototype.hasOwnProperty.call(new Error('m'), 'a') + ',' + Object.hasOwn(new Error('m'), 0)	ok	"false,false"
+Object.prototype.propertyIsEnumerable.call(new Error('m'), 'length') + ',' + Object.prototype.propertyIsEnumerable.call(new Error('m'), 0)	ok	"false,false"
+Object.prototype.toString.call(new Error('m'))	ok	"[object Error]"
+Object.prototype.toLocaleString.call(new Error('m')) === Object.prototype.toString.call(new Error('m'))	ok	false
+Object.getOwnPropertySymbols(new Error('m')).length	ok	0
+Object.getPrototypeOf(new Error('m')) === null	ok	false
+Object.getOwnPropertyDescriptors(new Date(0))	ok	{}
+Object.getOwnPropertyNames(new Date(0))	ok	[]
+Object.keys(new Date(0))	ok	[]
+Object.values(new Date(0))	ok	[]
+Object.entries(new Date(0))	ok	[]
+Object.isFrozen(new Date(0)) + ',' + Object.isSealed(new Date(0)) + ',' + Object.isExtensible(new Date(0))	ok	"false,false,true"
+var o = new Date(0); Object.freeze(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.isExtensible(o)	ok	"true,true,false"
+var o = new Date(0); Object.seal(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.getOwnPropertyDescriptors(o).length	ok	"true,true,undefined"
+var o = new Date(0); Object.preventExtensions(o); Object.isExtensible(o)	ok	false
+var o = new Date(0); Object.defineProperty(o, 'zz', {value: 1, enumerable: true}); Object.getOwnPropertyDescriptor(o, 'zz')	ok	{value:1,writable:false,enumerable:true,configurable:false}
+var o = new Date(0); Object.freeze(o); Object.defineProperty(o, 'zz', {value: 1})	error	TypeError	"Attempting to define property on object that is not extensible."
+var o = new Date(0); Object.freeze(o); Object.getOwnPropertyDescriptors(o)	ok	{}
+Object.assign({}, new Date(0))	ok	{}
+({...new Date(0)})	ok	{}
+Object.fromEntries(Object.entries(new Date(0)))	ok	{}
+Object.prototype.hasOwnProperty.call(new Date(0), 'a') + ',' + Object.hasOwn(new Date(0), 0)	ok	"false,false"
+Object.prototype.propertyIsEnumerable.call(new Date(0), 'length') + ',' + Object.prototype.propertyIsEnumerable.call(new Date(0), 0)	ok	"false,false"
+Object.prototype.toString.call(new Date(0))	ok	"[object Date]"
+Object.prototype.toLocaleString.call(new Date(0)) === Object.prototype.toString.call(new Date(0))	ok	false
+Object.getOwnPropertySymbols(new Date(0)).length	ok	0
+Object.getPrototypeOf(new Date(0)) === null	ok	false
+Object.getOwnPropertyDescriptors(/a/g)	ok	{lastIndex:{value:0,writable:true,enumerable:false,configurable:false}}
+Object.getOwnPropertyNames(/a/g)	ok	["lastIndex"]
+Object.keys(/a/g)	ok	[]
+Object.values(/a/g)	ok	[]
+Object.entries(/a/g)	ok	[]
+Object.isFrozen(/a/g) + ',' + Object.isSealed(/a/g) + ',' + Object.isExtensible(/a/g)	ok	"false,false,true"
+var o = /a/g; Object.freeze(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.isExtensible(o)	ok	"true,true,false"
+var o = /a/g; Object.seal(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.getOwnPropertyDescriptors(o).length	ok	"false,true,undefined"
+var o = /a/g; Object.preventExtensions(o); Object.isExtensible(o)	ok	false
+var o = /a/g; Object.defineProperty(o, 'zz', {value: 1, enumerable: true}); Object.getOwnPropertyDescriptor(o, 'zz')	ok	{value:1,writable:false,enumerable:true,configurable:false}
+var o = /a/g; Object.freeze(o); Object.defineProperty(o, 'zz', {value: 1})	error	TypeError	"Attempting to define property on object that is not extensible."
+var o = /a/g; Object.freeze(o); Object.getOwnPropertyDescriptors(o)	ok	{lastIndex:{value:0,writable:false,enumerable:false,configurable:false}}
+Object.assign({}, /a/g)	ok	{}
+({.../a/g})	ok	{}
+Object.fromEntries(Object.entries(/a/g))	ok	{}
+Object.prototype.hasOwnProperty.call(/a/g, 'a') + ',' + Object.hasOwn(/a/g, 0)	ok	"false,false"
+Object.prototype.propertyIsEnumerable.call(/a/g, 'length') + ',' + Object.prototype.propertyIsEnumerable.call(/a/g, 0)	ok	"false,false"
+Object.prototype.toString.call(/a/g)	ok	"[object RegExp]"
+Object.prototype.toLocaleString.call(/a/g) === Object.prototype.toString.call(/a/g)	ok	false
+Object.getOwnPropertySymbols(/a/g).length	ok	0
+Object.getPrototypeOf(/a/g) === null	ok	false
+Object.getOwnPropertyDescriptors(Object.assign(Object.create(null), {a: 1}))	ok	{a:{value:1,writable:true,enumerable:true,configurable:true}}
+Object.getOwnPropertyNames(Object.assign(Object.create(null), {a: 1}))	ok	["a"]
+Object.keys(Object.assign(Object.create(null), {a: 1}))	ok	["a"]
+Object.values(Object.assign(Object.create(null), {a: 1}))	ok	[1]
+Object.entries(Object.assign(Object.create(null), {a: 1}))	ok	[["a",1]]
+Object.isFrozen(Object.assign(Object.create(null), {a: 1})) + ',' + Object.isSealed(Object.assign(Object.create(null), {a: 1})) + ',' + Object.isExtensible(Object.assign(Object.create(null), {a: 1}))	ok	"false,false,true"
+var o = Object.assign(Object.create(null), {a: 1}); Object.freeze(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.isExtensible(o)	ok	"true,true,false"
+var o = Object.assign(Object.create(null), {a: 1}); Object.seal(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.getOwnPropertyDescriptors(o).length	ok	"false,true,undefined"
+var o = Object.assign(Object.create(null), {a: 1}); Object.preventExtensions(o); Object.isExtensible(o)	ok	false
+var o = Object.assign(Object.create(null), {a: 1}); Object.defineProperty(o, 'zz', {value: 1, enumerable: true}); Object.getOwnPropertyDescriptor(o, 'zz')	ok	{value:1,writable:false,enumerable:true,configurable:false}
+var o = Object.assign(Object.create(null), {a: 1}); Object.freeze(o); Object.defineProperty(o, 'zz', {value: 1})	error	TypeError	"Attempting to define property on object that is not extensible."
+var o = Object.assign(Object.create(null), {a: 1}); Object.freeze(o); Object.getOwnPropertyDescriptors(o)	ok	{a:{value:1,writable:false,enumerable:true,configurable:false}}
+Object.assign({}, Object.assign(Object.create(null), {a: 1}))	ok	{a:1}
+({...Object.assign(Object.create(null), {a: 1})})	ok	{a:1}
+Object.fromEntries(Object.entries(Object.assign(Object.create(null), {a: 1})))	ok	{a:1}
+Object.prototype.hasOwnProperty.call(Object.assign(Object.create(null), {a: 1}), 'a') + ',' + Object.hasOwn(Object.assign(Object.create(null), {a: 1}), 0)	ok	"true,false"
+Object.prototype.propertyIsEnumerable.call(Object.assign(Object.create(null), {a: 1}), 'length') + ',' + Object.prototype.propertyIsEnumerable.call(Object.assign(Object.create(null), {a: 1}), 0)	ok	"false,false"
+Object.prototype.toString.call(Object.assign(Object.create(null), {a: 1}))	ok	"[object Object]"
+Object.prototype.toLocaleString.call(Object.assign(Object.create(null), {a: 1})) === Object.prototype.toString.call(Object.assign(Object.create(null), {a: 1}))	error	TypeError	"Type error"
+Object.getOwnPropertySymbols(Object.assign(Object.create(null), {a: 1})).length	ok	0
+Object.getPrototypeOf(Object.assign(Object.create(null), {a: 1})) === null	ok	true
+Object.getOwnPropertyDescriptors({[Symbol.iterator]: 1, a: 2})	ok	{a:{value:2,writable:true,enumerable:true,configurable:true},Symbol(Symbol.iterator):{value:1,writable:true,enumerable:true,configurable:true}}
+Object.getOwnPropertyNames({[Symbol.iterator]: 1, a: 2})	ok	["a"]
+Object.keys({[Symbol.iterator]: 1, a: 2})	ok	["a"]
+Object.values({[Symbol.iterator]: 1, a: 2})	ok	[2]
+Object.entries({[Symbol.iterator]: 1, a: 2})	ok	[["a",2]]
+Object.isFrozen({[Symbol.iterator]: 1, a: 2}) + ',' + Object.isSealed({[Symbol.iterator]: 1, a: 2}) + ',' + Object.isExtensible({[Symbol.iterator]: 1, a: 2})	ok	"false,false,true"
+var o = {[Symbol.iterator]: 1, a: 2}; Object.freeze(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.isExtensible(o)	ok	"true,true,false"
+var o = {[Symbol.iterator]: 1, a: 2}; Object.seal(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.getOwnPropertyDescriptors(o).length	ok	"false,true,undefined"
+var o = {[Symbol.iterator]: 1, a: 2}; Object.preventExtensions(o); Object.isExtensible(o)	ok	false
+var o = {[Symbol.iterator]: 1, a: 2}; Object.defineProperty(o, 'zz', {value: 1, enumerable: true}); Object.getOwnPropertyDescriptor(o, 'zz')	ok	{value:1,writable:false,enumerable:true,configurable:false}
+var o = {[Symbol.iterator]: 1, a: 2}; Object.freeze(o); Object.defineProperty(o, 'zz', {value: 1})	error	TypeError	"Attempting to define property on object that is not extensible."
+var o = {[Symbol.iterator]: 1, a: 2}; Object.freeze(o); Object.getOwnPropertyDescriptors(o)	ok	{a:{value:2,writable:false,enumerable:true,configurable:false},Symbol(Symbol.iterator):{value:1,writable:false,enumerable:true,configurable:false}}
+Object.assign({}, {[Symbol.iterator]: 1, a: 2})	ok	{a:2,Symbol(Symbol.iterator):1}
+({...{[Symbol.iterator]: 1, a: 2}})	ok	{a:2,Symbol(Symbol.iterator):1}
+Object.fromEntries(Object.entries({[Symbol.iterator]: 1, a: 2}))	ok	{a:2}
+Object.prototype.hasOwnProperty.call({[Symbol.iterator]: 1, a: 2}, 'a') + ',' + Object.hasOwn({[Symbol.iterator]: 1, a: 2}, 0)	ok	"true,false"
+Object.prototype.propertyIsEnumerable.call({[Symbol.iterator]: 1, a: 2}, 'length') + ',' + Object.prototype.propertyIsEnumerable.call({[Symbol.iterator]: 1, a: 2}, 0)	ok	"false,false"
+Object.prototype.toString.call({[Symbol.iterator]: 1, a: 2})	ok	"[object Object]"
+Object.prototype.toLocaleString.call({[Symbol.iterator]: 1, a: 2}) === Object.prototype.toString.call({[Symbol.iterator]: 1, a: 2})	ok	true
+Object.getOwnPropertySymbols({[Symbol.iterator]: 1, a: 2}).length	ok	1
+Object.getPrototypeOf({[Symbol.iterator]: 1, a: 2}) === null	ok	false
+Object.getOwnPropertyDescriptors({get a() { return 1; }, set a(v) {}})	ok	{a:{get:[fn get a],set:[fn set a],enumerable:true,configurable:true}}
+Object.getOwnPropertyNames({get a() { return 1; }, set a(v) {}})	ok	["a"]
+Object.keys({get a() { return 1; }, set a(v) {}})	ok	["a"]
+Object.values({get a() { return 1; }, set a(v) {}})	ok	[1]
+Object.entries({get a() { return 1; }, set a(v) {}})	ok	[["a",1]]
+Object.isFrozen({get a() { return 1; }, set a(v) {}}) + ',' + Object.isSealed({get a() { return 1; }, set a(v) {}}) + ',' + Object.isExtensible({get a() { return 1; }, set a(v) {}})	ok	"false,false,true"
+var o = {get a() { return 1; }, set a(v) {}}; Object.freeze(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.isExtensible(o)	ok	"true,true,false"
+var o = {get a() { return 1; }, set a(v) {}}; Object.seal(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.getOwnPropertyDescriptors(o).length	ok	"true,true,undefined"
+var o = {get a() { return 1; }, set a(v) {}}; Object.preventExtensions(o); Object.isExtensible(o)	ok	false
+var o = {get a() { return 1; }, set a(v) {}}; Object.defineProperty(o, 'zz', {value: 1, enumerable: true}); Object.getOwnPropertyDescriptor(o, 'zz')	ok	{value:1,writable:false,enumerable:true,configurable:false}
+var o = {get a() { return 1; }, set a(v) {}}; Object.freeze(o); Object.defineProperty(o, 'zz', {value: 1})	error	TypeError	"Attempting to define property on object that is not extensible."
+var o = {get a() { return 1; }, set a(v) {}}; Object.freeze(o); Object.getOwnPropertyDescriptors(o)	ok	{a:{get:[fn get a],set:[fn set a],enumerable:true,configurable:false}}
+Object.assign({}, {get a() { return 1; }, set a(v) {}})	ok	{a:1}
+({...{get a() { return 1; }, set a(v) {}}})	ok	{a:1}
+Object.fromEntries(Object.entries({get a() { return 1; }, set a(v) {}}))	ok	{a:1}
+Object.prototype.hasOwnProperty.call({get a() { return 1; }, set a(v) {}}, 'a') + ',' + Object.hasOwn({get a() { return 1; }, set a(v) {}}, 0)	ok	"true,false"
+Object.prototype.propertyIsEnumerable.call({get a() { return 1; }, set a(v) {}}, 'length') + ',' + Object.prototype.propertyIsEnumerable.call({get a() { return 1; }, set a(v) {}}, 0)	ok	"false,false"
+Object.prototype.toString.call({get a() { return 1; }, set a(v) {}})	ok	"[object Object]"
+Object.prototype.toLocaleString.call({get a() { return 1; }, set a(v) {}}) === Object.prototype.toString.call({get a() { return 1; }, set a(v) {}})	ok	true
+Object.getOwnPropertySymbols({get a() { return 1; }, set a(v) {}}).length	ok	0
+Object.getPrototypeOf({get a() { return 1; }, set a(v) {}}) === null	ok	false
+Object.getOwnPropertyDescriptors(class K { static m() {} static x = 1; })	ok	{length:{value:0,writable:false,enumerable:false,configurable:true},name:{value:"K",writable:false,enumerable:false,configurable:true},prototype:{value:{constructor:[fn K]},writable:false,enumerable:false,configurable:false},m:{value:[fn m],writable:true,enumerable:false,configurable:true},x:{value:1,writable:true,enumerable:true,configurable:true}}
+Object.getOwnPropertyNames(class K { static m() {} static x = 1; })	ok	["length","name","prototype","m","x"]
+Object.keys(class K { static m() {} static x = 1; })	ok	["x"]
+Object.values(class K { static m() {} static x = 1; })	ok	[1]
+Object.entries(class K { static m() {} static x = 1; })	ok	[["x",1]]
+Object.isFrozen(class K { static m() {} static x = 1; }) + ',' + Object.isSealed(class K { static m() {} static x = 1; }) + ',' + Object.isExtensible(class K { static m() {} static x = 1; })	ok	"false,false,true"
+var o = class K { static m() {} static x = 1; }; Object.freeze(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.isExtensible(o)	ok	"true,true,false"
+var o = class K { static m() {} static x = 1; }; Object.seal(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.getOwnPropertyDescriptors(o).length	ok	"false,true,[object Object]"
+var o = class K { static m() {} static x = 1; }; Object.preventExtensions(o); Object.isExtensible(o)	ok	false
+var o = class K { static m() {} static x = 1; }; Object.defineProperty(o, 'zz', {value: 1, enumerable: true}); Object.getOwnPropertyDescriptor(o, 'zz')	ok	{value:1,writable:false,enumerable:true,configurable:false}
+var o = class K { static m() {} static x = 1; }; Object.freeze(o); Object.defineProperty(o, 'zz', {value: 1})	error	TypeError	"Attempting to define property on object that is not extensible."
+var o = class K { static m() {} static x = 1; }; Object.freeze(o); Object.getOwnPropertyDescriptors(o)	ok	{length:{value:0,writable:false,enumerable:false,configurable:false},name:{value:"K",writable:false,enumerable:false,configurable:false},prototype:{value:{constructor:[fn K]},writable:false,enumerable:false,configurable:false},m:{value:[fn m],writable:false,enumerable:false,configurable:false},x:{value:1,writable:false,enumerable:true,configurable:false}}
+Object.assign({}, class K { static m() {} static x = 1; })	ok	{x:1}
+({...class K { static m() {} static x = 1; }})	ok	{x:1}
+Object.fromEntries(Object.entries(class K { static m() {} static x = 1; }))	ok	{x:1}
+Object.prototype.hasOwnProperty.call(class K { static m() {} static x = 1; }, 'a') + ',' + Object.hasOwn(class K { static m() {} static x = 1; }, 0)	ok	"false,false"
+Object.prototype.propertyIsEnumerable.call(class K { static m() {} static x = 1; }, 'length') + ',' + Object.prototype.propertyIsEnumerable.call(class K { static m() {} static x = 1; }, 0)	ok	"false,false"
+Object.prototype.toString.call(class K { static m() {} static x = 1; })	ok	"[object Function]"
+Object.prototype.toLocaleString.call(class K { static m() {} static x = 1; }) === Object.prototype.toString.call(class K { static m() {} static x = 1; })	ok	false
+Object.getOwnPropertySymbols(class K { static m() {} static x = 1; }).length	ok	0
+Object.getPrototypeOf(class K { static m() {} static x = 1; }) === null	ok	false
+Object.getOwnPropertyDescriptors(new Map([[1, 2]]))	ok	{}
+Object.getOwnPropertyNames(new Map([[1, 2]]))	ok	[]
+Object.keys(new Map([[1, 2]]))	ok	[]
+Object.values(new Map([[1, 2]]))	ok	[]
+Object.entries(new Map([[1, 2]]))	ok	[]
+Object.isFrozen(new Map([[1, 2]])) + ',' + Object.isSealed(new Map([[1, 2]])) + ',' + Object.isExtensible(new Map([[1, 2]]))	ok	"false,false,true"
+var o = new Map([[1, 2]]); Object.freeze(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.isExtensible(o)	ok	"true,true,false"
+var o = new Map([[1, 2]]); Object.seal(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.getOwnPropertyDescriptors(o).length	ok	"true,true,undefined"
+var o = new Map([[1, 2]]); Object.preventExtensions(o); Object.isExtensible(o)	ok	false
+var o = new Map([[1, 2]]); Object.defineProperty(o, 'zz', {value: 1, enumerable: true}); Object.getOwnPropertyDescriptor(o, 'zz')	ok	{value:1,writable:false,enumerable:true,configurable:false}
+var o = new Map([[1, 2]]); Object.freeze(o); Object.defineProperty(o, 'zz', {value: 1})	error	TypeError	"Attempting to define property on object that is not extensible."
+var o = new Map([[1, 2]]); Object.freeze(o); Object.getOwnPropertyDescriptors(o)	ok	{}
+Object.assign({}, new Map([[1, 2]]))	ok	{}
+({...new Map([[1, 2]])})	ok	{}
+Object.fromEntries(Object.entries(new Map([[1, 2]])))	ok	{}
+Object.prototype.hasOwnProperty.call(new Map([[1, 2]]), 'a') + ',' + Object.hasOwn(new Map([[1, 2]]), 0)	ok	"false,false"
+Object.prototype.propertyIsEnumerable.call(new Map([[1, 2]]), 'length') + ',' + Object.prototype.propertyIsEnumerable.call(new Map([[1, 2]]), 0)	ok	"false,false"
+Object.prototype.toString.call(new Map([[1, 2]]))	ok	"[object Map]"
+Object.prototype.toLocaleString.call(new Map([[1, 2]])) === Object.prototype.toString.call(new Map([[1, 2]]))	ok	true
+Object.getOwnPropertySymbols(new Map([[1, 2]])).length	ok	0
+Object.getPrototypeOf(new Map([[1, 2]])) === null	ok	false
+Object.getOwnPropertyDescriptors((function g(a, b) {}).bind(null, 1))	ok	{length:{value:1,writable:false,enumerable:false,configurable:true},name:{value:"bound g",writable:false,enumerable:false,configurable:true}}
+Object.getOwnPropertyNames((function g(a, b) {}).bind(null, 1))	ok	["length","name"]
+Object.keys((function g(a, b) {}).bind(null, 1))	ok	[]
+Object.values((function g(a, b) {}).bind(null, 1))	ok	[]
+Object.entries((function g(a, b) {}).bind(null, 1))	ok	[]
+Object.isFrozen((function g(a, b) {}).bind(null, 1)) + ',' + Object.isSealed((function g(a, b) {}).bind(null, 1)) + ',' + Object.isExtensible((function g(a, b) {}).bind(null, 1))	ok	"false,false,true"
+var o = (function g(a, b) {}).bind(null, 1); Object.freeze(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.isExtensible(o)	ok	"true,true,false"
+var o = (function g(a, b) {}).bind(null, 1); Object.seal(o); Object.isFrozen(o) + ',' + Object.isSealed(o) + ',' + Object.getOwnPropertyDescriptors(o).length	ok	"true,true,[object Object]"
+var o = (function g(a, b) {}).bind(null, 1); Object.preventExtensions(o); Object.isExtensible(o)	ok	false
+var o = (function g(a, b) {}).bind(null, 1); Object.defineProperty(o, 'zz', {value: 1, enumerable: true}); Object.getOwnPropertyDescriptor(o, 'zz')	ok	{value:1,writable:false,enumerable:true,configurable:false}
+var o = (function g(a, b) {}).bind(null, 1); Object.freeze(o); Object.defineProperty(o, 'zz', {value: 1})	error	TypeError	"Attempting to define property on object that is not extensible."
+var o = (function g(a, b) {}).bind(null, 1); Object.freeze(o); Object.getOwnPropertyDescriptors(o)	ok	{length:{value:1,writable:false,enumerable:false,configurable:false},name:{value:"bound g",writable:false,enumerable:false,configurable:false}}
+Object.assign({}, (function g(a, b) {}).bind(null, 1))	ok	{}
+({...(function g(a, b) {}).bind(null, 1)})	ok	{}
+Object.fromEntries(Object.entries((function g(a, b) {}).bind(null, 1)))	ok	{}
+Object.prototype.hasOwnProperty.call((function g(a, b) {}).bind(null, 1), 'a') + ',' + Object.hasOwn((function g(a, b) {}).bind(null, 1), 0)	ok	"false,false"
+Object.prototype.propertyIsEnumerable.call((function g(a, b) {}).bind(null, 1), 'length') + ',' + Object.prototype.propertyIsEnumerable.call((function g(a, b) {}).bind(null, 1), 0)	ok	"false,false"
+Object.prototype.toString.call((function g(a, b) {}).bind(null, 1))	ok	"[object Function]"
+Object.prototype.toLocaleString.call((function g(a, b) {}).bind(null, 1)) === Object.prototype.toString.call((function g(a, b) {}).bind(null, 1))	ok	false
+Object.getOwnPropertySymbols((function g(a, b) {}).bind(null, 1)).length	ok	0
+Object.getPrototypeOf((function g(a, b) {}).bind(null, 1)) === null	ok	false
+Object.defineProperty	ok	[fn defineProperty]
+Object.defineProperty(1, 'x', {})	error	TypeError	"Properties can only be defined on Objects."
+Object.defineProperty({}, 'x')	error	TypeError	"Property description must be an object."
+Object.defineProperty({}, 'x', 1)	error	TypeError	"Property description must be an object."
+Object.defineProperty({}, 'x', null)	error	TypeError	"Property description must be an object."
+Object.defineProperty({}, 'x', {get: 1})	error	TypeError	"Getter must be a function."
+Object.defineProperty({}, 'x', {set: 'a'})	error	TypeError	"Setter must be a function."
+Object.defineProperty({}, 'x', {get() {}, value: 1})	error	TypeError	"Invalid property.  'value' present on property with getter or setter."
+Object.defineProperty({}, 'x', {set() {}, writable: true})	error	TypeError	"Invalid property.  'writable' present on property with getter or setter."
+Object.defineProperty({}, 'x', {get: undefined, value: 1})	error	TypeError	"Invalid property.  'value' present on property with getter or setter."
+Object.defineProperty({}, 'x', {get: null})	error	TypeError	"Getter must be a function."
+Object.defineProperty({}, 'x', {value: 1}) !== undefined	ok	true
+var o = {}; Object.defineProperty(o, 'x', {value: 1}); Object.defineProperty(o, 'x', {value: 2})	error	TypeError	"Attempting to change value of a readonly property."
+var o = {}; Object.defineProperty(o, 'x', {value: 1}); Object.defineProperty(o, 'x', {value: 1}); 'same'	ok	"same"
+var o = {}; Object.defineProperty(o, 'x', {value: NaN}); Object.defineProperty(o, 'x', {value: NaN}); 'nan'	ok	"nan"
+var o = {}; Object.defineProperty(o, 'x', {value: 0}); Object.defineProperty(o, 'x', {value: -0})	error	TypeError	"Attempting to change value of a readonly property."
+var o = {}; Object.defineProperty(o, 'x', {value: 1}); Object.defineProperty(o, 'x', {enumerable: true})	error	TypeError	"Attempting to change enumerable attribute of unconfigurable property."
+var o = {}; Object.defineProperty(o, 'x', {value: 1}); Object.defineProperty(o, 'x', {get() {}})	error	TypeError	"Attempting to change access mechanism for an unconfigurable property."
+var o = {}; Object.defineProperty(o, 'x', {get() {}}); Object.defineProperty(o, 'x', {value: 1})	error	TypeError	"Attempting to change access mechanism for an unconfigurable property."
+var o = {}; Object.defineProperty(o, 'x', {get() {}}); Object.defineProperty(o, 'x', {get() {}})	error	TypeError	"Attempting to change the getter of an unconfigurable property."
+var o = {}; Object.defineProperty(o, 'x', {value: 1, writable: true}); Object.defineProperty(o, 'x', {writable: false}); Object.defineProperty(o, 'x', {writable: true})	error	TypeError	"Attempting to change writable attribute of unconfigurable property."
+var o = {}; Object.defineProperty(o, 'x', {value: 1, writable: true}); Object.defineProperty(o, 'x', {value: 2}); o.x	ok	2
+var o = Object.freeze({}); Object.defineProperty(o, 'x', {value: 1})	error	TypeError	"Attempting to define property on object that is not extensible."
+Object.defineProperty([], 'length', {value: -1})	error	RangeError	"Invalid array length"
+Object.defineProperty([], 'length', {value: 1.5})	error	RangeError	"Invalid array length"
+Object.defineProperty([], 'length', {get() {}})	error	TypeError	"Attempting to change access mechanism for an unconfigurable property."
+Object.defineProperty([], 'length', {enumerable: true})	error	TypeError	"Attempting to change enumerable attribute of unconfigurable property."
+Object.defineProperty([], 'length', {configurable: true})	error	TypeError	"Attempting to change configurable attribute of unconfigurable property."
+Object.defineProperty([], 4294967295, {value: 1}).length	ok	0
+Object.defineProperty([], 4294967294, {value: 1}).length	ok	4294967295
+Object.defineProperty(new String('ab'), 0, {value: 'z'})	error	TypeError	"Attempting to change value of a readonly property."
+Object.defineProperty(new String('ab'), 0, {value: 'a'}) instanceof String	ok	true
+Object.defineProperty(new String('ab'), 'length', {value: 5})	error	TypeError	"Attempting to change value of a readonly property."
+Object.defineProperty(new String('ab'), 2, {value: 'z'})[2]	ok	"z"
+Object.defineProperty(new Uint8Array(2), 0, {value: 5})[0]	ok	5
+Object.defineProperty(new Uint8Array(2), 0, {get() {}})	error	TypeError	"Attempting to store accessor property on a typed array at index: 0"
+Object.defineProperty(new Uint8Array(2), 0, {value: 5, configurable: false})	error	TypeError	"Attempting to store non-configurable property on a typed array at index: 0"
+Object.defineProperty(new Uint8Array(2), 0, {value: 5, enumerable: false})	error	TypeError	"Attempting to store non-enumerable property on a typed array at index: 0"
+Object.defineProperty(new Uint8Array(2), 5, {value: 5})	error	TypeError	"Attempting to store out-of-bounds property on a typed array at index: 5"
+Object.defineProperty((function () { return arguments; })(1), 0, {get() { return 7; }})[0]	ok	7
+(function (a) { Object.defineProperty(arguments, 0, {value: 9}); return a; })(1)	ok	9
+(function (a) { Object.defineProperty(arguments, 0, {writable: false}); a = 5; return arguments[0]; })(1)	ok	1
+(function (a) { Object.defineProperty(arguments, 0, {get() { return 3; }}); a = 5; return arguments[0] + ',' + a; })(1)	ok	"3,5"
+(function (a) { arguments[0] = 4; return a; })(1)	ok	4
+(function (a) { 'use strict'; arguments[0] = 4; return a; })(1)	ok	1
+(function (a) { delete arguments[0]; arguments[0] = 4; return a; })(1)	ok	1
+Object.defineProperties	ok	[fn defineProperties]
+Object.defineProperties({}, {x: {value: 1}, y: {get() { return 2; }}}).y	ok	2
+Object.defineProperties({}, undefined)	error	TypeError	"undefined is not an object (evaluating 'Object.defineProperties({}, undefined)')"
+Object.defineProperties({}, null)	error	TypeError	"null is not an object (evaluating 'Object.defineProperties({}, null)')"
+Object.defineProperties(1, {})	error	TypeError	"Properties can only be defined on Objects."
+Object.defineProperties({}, 1)	ok	{}
+Object.defineProperties({}, {x: 1})	error	TypeError	"Property description must be an object."
+Object.defineProperties({}, {x: {value: 1}, y: 1})	error	TypeError	"Property description must be an object."
+var o = {}; try { Object.defineProperties(o, {x: {value: 1}, y: 1}); } catch (e) {} Object.getOwnPropertyNames(o).join()	ok	""
+Object.defineProperties({}, {y: {value: 1}, x: {value: 2}}) && Object.getOwnPropertyNames(Object.defineProperties({}, {y: {value: 1}, x: {value: 2}})).join()	ok	"y,x"
+var log = []; Object.defineProperties({}, new Proxy({a: {value: 1}, b: {value: 2}}, {ownKeys(t) { log.push('ownKeys'); return Reflect.ownKeys(t); }, getOwnPropertyDescriptor(t, k) { log.push('gopd:' + k); return Reflect.getOwnPropertyDescriptor(t, k); }, get(t, k, r) { log.push('get:' + String(k)); return Reflect.get(t, k, r); }})); log.join()	ok	"ownKeys,gopd:a,get:a,gopd:b,get:b"
+var log = []; Object.defineProperty({}, 'x', new Proxy({value: 1, writable: true}, {has(t, k) { log.push('has:' + k); return k in t; }, get(t, k, r) { log.push('get:' + k); return t[k]; }})); log.join()	ok	"has:enumerable,has:configurable,has:value,get:value,has:writable,get:writable,has:get,has:set"
+var o = {}; Object.defineProperties(o, {[Symbol.iterator]: {value: 1}, a: {value: 2}}); Reflect.ownKeys(o).length	ok	2
+Object.defineProperties(Object.create(null), {x: {value: 1, enumerable: true}}).x	ok	1
+Object.defineProperties({}, Object.create({x: {value: 1}}))	ok	{}
+Object.getOwnPropertyDescriptors({a: 1, get b() { return 2; }})	ok	{a:{value:1,writable:true,enumerable:true,configurable:true},b:{get:[fn get b],set:undefined,enumerable:true,configurable:true}}
+Object.getOwnPropertyDescriptors(1)	ok	{}
+Object.getOwnPropertyDescriptors('ab')	ok	{0:{value:"a",writable:false,enumerable:true,configurable:false},1:{value:"b",writable:false,enumerable:true,configurable:false},length:{value:2,writable:false,enumerable:false,configurable:false}}
+Object.getOwnPropertyDescriptors(null)	error	TypeError	"null is not an object (evaluating 'Object.getOwnPropertyDescriptors(null)')"
+Object.getOwnPropertyDescriptors(undefined)	error	TypeError	"undefined is not an object (evaluating 'Object.getOwnPropertyDescriptors(undefined)')"
+Object.getOwnPropertyDescriptors()	error	TypeError	"undefined is not an object (evaluating 'Object.getOwnPropertyDescriptors()')"
+Object.getOwnPropertyDescriptors(Symbol('s'))	ok	{}
+Object.getOwnPropertyDescriptors(function f() {})	ok	{length:{value:0,writable:false,enumerable:false,configurable:true},name:{value:"f",writable:false,enumerable:false,configurable:true},prototype:{value:{constructor:[fn f]},writable:true,enumerable:false,configurable:false}}
+Object.getOwnPropertyDescriptors(new Proxy({a: 1}, {getOwnPropertyDescriptor() { return undefined; }}))	ok	{}
+Object.getOwnPropertyDescriptors(new Proxy({a: 1}, {ownKeys() { return ['a', 'b']; }, getOwnPropertyDescriptor(t, k) { return k === 'b' ? undefined : Reflect.getOwnPropertyDescriptor(t, k); }}))	ok	{a:{value:1,writable:true,enumerable:true,configurable:true}}
+var log = []; Object.getOwnPropertyDescriptors(new Proxy({a: 1, b: 2}, {ownKeys(t) { log.push('ownKeys'); return Reflect.ownKeys(t); }, getOwnPropertyDescriptor(t, k) { log.push('gopd:' + k); return Reflect.getOwnPropertyDescriptor(t, k); }})); log.join()	ok	"ownKeys,gopd:a,gopd:b"
+Object.getOwnPropertyDescriptor(1, 'x')	ok	undefined
+Object.getOwnPropertyDescriptor('abc', 1)	ok	{value:"b",writable:false,enumerable:true,configurable:false}
+Object.getOwnPropertyDescriptor(null, 'x')	error	TypeError	"null is not an object (evaluating 'Object.getOwnPropertyDescriptor(null, 'x')')"
+Object.getOwnPropertyDescriptor(undefined, 'x')	error	TypeError	"undefined is not an object (evaluating 'Object.getOwnPropertyDescriptor(undefined, 'x')')"
+Object.getOwnPropertyDescriptor({}, {toString() { throw new URIError('ts'); }})	error	URIError	"ts"
+Object.getOwnPropertyDescriptor({a: 1}, 'a')	ok	{value:1,writable:true,enumerable:true,configurable:true}
+Object.getOwnPropertyNames(1)	ok	[]
+Object.getOwnPropertyNames('ab')	ok	["0","1","length"]
+Object.getOwnPropertyNames(null)	error	TypeError	"null is not an object (evaluating 'Object.getOwnPropertyNames(null)')"
+Object.getOwnPropertyNames(Symbol())	ok	[]
+Object.getOwnPropertySymbols(null)	error	TypeError	"null is not an object (evaluating 'Object.getOwnPropertySymbols(null)')"
+Object.getOwnPropertySymbols(1)	ok	[]
+Object.entries(null)	error	TypeError	"Object.entries requires that input parameter not be null or undefined"
+Object.entries(undefined)	error	TypeError	"Object.entries requires that input parameter not be null or undefined"
+Object.entries('ab')	ok	[["0","a"],["1","b"]]
+Object.entries(1)	ok	[]
+Object.entries({b: 1, a: 2, 1: 3})	ok	[["1",3],["b",1],["a",2]]
+Object.entries(new Proxy({a: 1, b: 2}, {getOwnPropertyDescriptor(t, k) { return k === 'a' ? undefined : Reflect.getOwnPropertyDescriptor(t, k); }}))	ok	[["b",2]]
+Object.entries(new Proxy({a: 1}, {get() { return 'g'; }}))	ok	[["a","g"]]
+Object.entries(new Proxy({a: 1}, {ownKeys() { return ['a', 'a']; }}))	error	TypeError	"Proxy handler's 'ownKeys' trap result must not contain any duplicate names"
+Object.entries({get a() { delete this.b; return 1; }, b: 2})	ok	[["a",1]]
+Object.entries(Object.defineProperty({a: 1}, 'h', {value: 2, enumerable: false}))	ok	[["a",1]]
+Object.entries({[Symbol()]: 1})	ok	[]
+Object.values('ab')	ok	["a","b"]
+Object.values(null)	error	TypeError	"Object.values requires that input parameter not be null or undefined"
+Object.values(new Proxy({a: 1, b: 2}, {get(t, k) { return String(k) + '!'; }}))	ok	["a!","b!"]
+Object.keys(null)	error	TypeError	"null is not an object (evaluating 'Object.keys(null)')"
+Object.keys(1)	ok	[]
+Object.keys('ab')	ok	["0","1"]
+Object.keys(new Proxy({a: 1}, {ownKeys() { return ['a', Symbol.iterator]; }}))	ok	["a"]
+Object.keys(new Proxy({a: 1}, {ownKeys() { return ['z']; }, getOwnPropertyDescriptor() { return {value: 1, configurable: true, enumerable: true}; }}))	ok	["z"]
+Object.keys(new Proxy({a: 1}, {ownKeys() { return ['z']; }, getOwnPropertyDescriptor() { return {value: 1, configurable: true, enumerable: false}; }}))	ok	[]
+Object.fromEntries	ok	[fn fromEntries]
+Object.fromEntries([['a', 1], ['b', 2]])	ok	{a:1,b:2}
+Object.fromEntries([])	ok	{}
+Object.fromEntries()	error	TypeError	"undefined is not an object"
+Object.fromEntries(null)	error	TypeError	"null is not an object"
+Object.fromEntries(1)	error	TypeError	"number is not iterable"
+Object.fromEntries([1])	error	TypeError	"Object.fromEntries requires the first iterable parameter yields objects"
+Object.fromEntries(['ab'])	error	TypeError	"Object.fromEntries requires the first iterable parameter yields objects"
+Object.fromEntries([[]])	ok	{undefined:undefined}
+Object.fromEntries([['a']])	ok	{a:undefined}
+Object.fromEntries([[1, 2], [1, 3]])	ok	{1:3}
+Object.fromEntries(new Map([['x', 1]]))	ok	{x:1}
+Object.fromEntries([[Symbol.iterator, 1]]).constructor === Object	ok	true
+Object.fromEntries([['__proto__', 1]]).__proto__	ok	1
+Object.getPrototypeOf(Object.fromEntries([['__proto__', {}]])) === Object.prototype	ok	true
+Object.fromEntries({[Symbol.iterator]: function* () { yield ['q', 1]; }})	ok	{q:1}
+Object.fromEntries([new Proxy(['k', 'v'], {})])	ok	{k:"v"}
+Object.fromEntries([{0: 'k', 1: 'v'}])	ok	{k:"v"}
+Object.fromEntries([{}])	ok	{undefined:undefined}
+Object.fromEntries({[Symbol.iterator]() { return {next() { return 1; }}; }})	error	TypeError	"Iterator result interface is not an object."
+var closed = false; try { Object.fromEntries({[Symbol.iterator]() { return {next() { return {value: 1, done: false}; }, return() { closed = true; return {}; }}; }}); } catch (e) {} closed	ok	true
+Object.groupBy	ok	[fn groupBy]
+Object.groupBy([1, 2, 3], x => x % 2 ? 'odd' : 'even')	ok	{odd:[1,3],even:[2]}
+Object.groupBy([], x => x)	ok	{}
+Object.groupBy()	error	TypeError	"Object.groupBy requires that the first argument not be null or undefined"
+Object.groupBy([1])	error	TypeError	"Object.groupBy requires that the second argument must be a function"
+Object.groupBy(null, x => x)	error	TypeError	"Object.groupBy requires that the first argument not be null or undefined"
+Object.groupBy('abc', c => c < 'b')	ok	{true:["a"],false:["b","c"]}
+Object.getPrototypeOf(Object.groupBy([1], x => x))	ok	null
+Object.groupBy([1, 2], x => Symbol.iterator)	ok	{Symbol(Symbol.iterator):[1,2]}
+Object.groupBy([1, 2], (x, i) => i)	ok	{0:[1],1:[2]}
+Object.groupBy([1, 2], function () { return typeof this; })	ok	{object:[1,2]}
+Object.groupBy([1], x => { throw new TypeError('cb'); })	error	TypeError	"cb"
+Object.groupBy(1, x => x)	error	TypeError	"Object.groupBy requires that the property of the first argument, items[Symbol.iterator] be a function"
+Object.groupBy({}, x => x)	error	TypeError	"Object.groupBy requires that the property of the first argument, items[Symbol.iterator] be a function"
+Object.groupBy(new Set([1, 2]), x => x > 1)	ok	{false:[1],true:[2]}
+Map.groupBy([1, 2, 3], x => x % 2).get(1)	ok	[1,3]
+Map.groupBy([1, 2, 3], x => x % 2).size	ok	2
+Map.groupBy([-0, 0], x => x).size	ok	1
+Map.groupBy([1], 1)	error	TypeError	"Map.groupBy requires that the second argument must be a function"
+Object.freeze	ok	[fn freeze]
+Object.freeze(1)	ok	1
+Object.freeze('s')	ok	"s"
+Object.freeze(undefined)	ok	undefined
+Object.freeze({a: 1})	ok	{a:1}
+Object.freeze(Symbol.iterator) === Symbol.iterator	ok	true
+Object.freeze(new Uint8Array(0)).length	ok	0
+Object.freeze(new Uint8Array(1))	error	TypeError	"Attempting to store non-configurable property on a typed array at index: 0"
+Object.freeze(new Uint8Array(0)) instanceof Uint8Array	ok	true
+Object.seal(new Uint8Array(1)) instanceof Uint8Array	error	TypeError	"Attempting to store non-configurable property on a typed array at index: 0"
+Object.isFrozen(Object.seal(new Uint8Array(1)))	error	TypeError	"Attempting to store non-configurable property on a typed array at index: 0"
+Object.isFrozen(1) + ',' + Object.isSealed('a') + ',' + Object.isExtensible(1)	ok	"true,true,false"
+Object.isFrozen(Object.freeze(function () {}))	ok	true
+Object.isFrozen(Object.freeze([1, 2]))	ok	true
+Object.isFrozen(Object.preventExtensions({}))	ok	true
+Object.isFrozen(Object.preventExtensions({a: 1}))	ok	false
+Object.isSealed(Object.preventExtensions({a: 1}))	ok	false
+var o = Object.preventExtensions({a: 1}); Object.defineProperty(o, 'a', {configurable: false}); Object.isSealed(o) + ',' + Object.isFrozen(o)	ok	"true,false"
+var o = Object.preventExtensions({a: 1}); Object.defineProperty(o, 'a', {configurable: false, writable: false}); Object.isFrozen(o)	ok	true
+var o = Object.preventExtensions({get a() { return 1; }}); Object.defineProperty(o, 'a', {configurable: false}); Object.isFrozen(o)	ok	true
+var p = new Proxy({a: 1}, {preventExtensions() { return false; }}); Object.freeze(p)	error	TypeError	"Unable to prevent extension in Object.freeze"
+var p = new Proxy({a: 1}, {preventExtensions() { return false; }}); Object.seal(p)	error	TypeError	"Unable to prevent extension in Object.seal"
+var p = new Proxy({a: 1}, {defineProperty() { return false; }}); Object.freeze(p)	error	TypeError	"Proxy's 'defineProperty' trap returned falsy value for property 'a'"
+var p = new Proxy({a: 1}, {defineProperty() { return false; }}); Object.seal(p)	error	TypeError	"Proxy's 'defineProperty' trap returned falsy value for property 'a'"
+var log = []; var p = new Proxy({a: 1, b: 2}, {preventExtensions(t) { log.push('pe'); return Reflect.preventExtensions(t); }, ownKeys(t) { log.push('ok'); return Reflect.ownKeys(t); }, getOwnPropertyDescriptor(t, k) { log.push('gopd:' + k); return Reflect.getOwnPropertyDescriptor(t, k); }, defineProperty(t, k, d) { log.push('dp:' + k + ':' + Object.keys(d).join('/')); return Reflect.defineProperty(t, k, d); }}); Object.freeze(p); log.join()	ok	"pe,ok,gopd:a,dp:a:writable/configurable,gopd:b,dp:b:writable/configurable"
+var log = []; var p = new Proxy({a: 1, b: 2}, {preventExtensions(t) { log.push('pe'); return Reflect.preventExtensions(t); }, ownKeys(t) { log.push('ok'); return Reflect.ownKeys(t); }, getOwnPropertyDescriptor(t, k) { log.push('gopd:' + k); return Reflect.getOwnPropertyDescriptor(t, k); }, defineProperty(t, k, d) { log.push('dp:' + k + ':' + Object.keys(d).join('/')); return Reflect.defineProperty(t, k, d); }}); Object.seal(p); log.join()	ok	"pe,ok,dp:a:configurable,dp:b:configurable"
+var log = []; var p = new Proxy({a: 1, b: 2}, {isExtensible(t) { log.push('ie'); return Reflect.isExtensible(t); }, ownKeys(t) { log.push('ok'); return Reflect.ownKeys(t); }, getOwnPropertyDescriptor(t, k) { log.push('gopd:' + k); return Reflect.getOwnPropertyDescriptor(t, k); }}); Object.isFrozen(p); log.join()	ok	"ie"
+var log = []; var p = new Proxy({a: 1, b: 2}, {isExtensible(t) { log.push('ie'); return Reflect.isExtensible(t); }, ownKeys(t) { log.push('ok'); return Reflect.ownKeys(t); }, getOwnPropertyDescriptor(t, k) { log.push('gopd:' + k); return Reflect.getOwnPropertyDescriptor(t, k); }}); Object.isSealed(p); log.join()	ok	"ie"
+var log = []; var p = new Proxy({a: 1, b: 2}, {isExtensible(t) { log.push('ie'); return Reflect.isExtensible(t); }}); Object.isExtensible(p) + ',' + Object.isFrozen(p); log.join()	ok	"ie,ie"
+var log = []; var p = new Proxy({a: 1, b: 2}, {ownKeys(t) { log.push('ok'); return Reflect.ownKeys(t); }, getOwnPropertyDescriptor(t, k) { log.push('gopd:' + k); return Reflect.getOwnPropertyDescriptor(t, k); }}); Object.getOwnPropertyDescriptors(p); log.join()	ok	"ok,gopd:a,gopd:b"
+var log = []; var p = new Proxy({a: 1, b: 2}, {ownKeys(t) { log.push('ok'); return Reflect.ownKeys(t); }, getOwnPropertyDescriptor(t, k) { log.push('gopd:' + k); return Reflect.getOwnPropertyDescriptor(t, k); }}); Object.getOwnPropertyNames(p); log.join()	ok	"ok"
+var log = []; var p = new Proxy({a: 1, b: 2}, {ownKeys(t) { log.push('ok'); return Reflect.ownKeys(t); }, getOwnPropertyDescriptor(t, k) { log.push('gopd:' + k); return Reflect.getOwnPropertyDescriptor(t, k); }}); Object.values(p); log.join()	ok	"ok,gopd:a,gopd:b"
+var log = []; var p = new Proxy({a: 1, b: 2}, {ownKeys(t) { log.push('ok'); return Reflect.ownKeys(t); }, getOwnPropertyDescriptor(t, k) { log.push('gopd:' + k); return Reflect.getOwnPropertyDescriptor(t, k); }}); Object.hasOwn(p, 'a'); Object.prototype.hasOwnProperty.call(p, 'b'); Object.prototype.propertyIsEnumerable.call(p, 'a'); log.join()	ok	"gopd:a,gopd:b,gopd:a"
+var log = []; var p = new Proxy({a: 1, b: 2}, {has(t, k) { log.push('has:' + String(k)); return Reflect.has(t, k); }}); Reflect.has(p, 'a'); 'b' in p; Object.prototype.hasOwnProperty.call(p, 'a'); log.join()	ok	"has:a,has:b"
+var log = []; var p = new Proxy({a: 1}, {getPrototypeOf(t) { log.push('gpo'); return Reflect.getPrototypeOf(t); }}); Object.prototype.isPrototypeOf.call(Object.prototype, p); p instanceof Object; Object.getPrototypeOf(p); p.__proto__; log.join()	ok	"gpo,gpo,gpo,gpo"
+var log = []; var p = new Proxy({a: 1}, {setPrototypeOf(t, v) { log.push('spo'); return Reflect.setPrototypeOf(t, v); }}); Object.setPrototypeOf(p, null); p.__proto__ = null; Reflect.setPrototypeOf(p, null); log.join()	ok	"spo,spo"
+var log = []; var p = new Proxy({a: 1}, {setPrototypeOf(t, v) { log.push('spo'); return Reflect.setPrototypeOf(t, v); }}); Object.setPrototypeOf(p, 1); log.join()	error	TypeError	"Prototype value can only be an object or null"
+var log = []; var p = new Proxy({a: 1}, {setPrototypeOf(t, v) { log.push('spo'); return Reflect.setPrototypeOf(t, v); }}); Object.create(p); Object.setPrototypeOf({}, p); log.join()	ok	""
+var o = {}; o.__proto__ = Array.prototype; o instanceof Array	ok	true
+var o = {}; o.__proto__ = 1; Object.getPrototypeOf(o) === Object.prototype	ok	true
+var o = {}; o.__proto__ = undefined; Object.getPrototypeOf(o) === Object.prototype	ok	true
+var o = {}; o.__proto__ = null; Object.getPrototypeOf(o)	ok	null
+var o = Object.create(null); o.__proto__ = {}; Object.keys(o).join()	ok	"__proto__"
+({__proto__: null}).__proto__	ok	undefined
+Object.getPrototypeOf({__proto__: null})	ok	null
+Object.getOwnPropertyNames({__proto__: []}).length	ok	0
+Object.getOwnPropertyNames({'__proto__': 1}).join()	ok	""
+Object.getOwnPropertyNames({['__proto__']: 1}).join()	ok	"__proto__"
+var __proto__ = 1; Object.getOwnPropertyNames({__proto__}).join()	ok	"__proto__"
+Object.getOwnPropertyNames({__proto__() {}}).join()	ok	"__proto__"
+({__proto__: 1, a: 2}).a	ok	2
+Object.getPrototypeOf({__proto__: 1}) === Object.prototype	ok	true
+JSON.parse('{"__proto__": 1}').__proto__	ok	1
+Object.getOwnPropertyNames(JSON.parse('{"__proto__": 1}')).join()	ok	"__proto__"
+Object.getPrototypeOf(JSON.parse('{"__proto__": []}')) === Object.prototype	ok	true
+Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').get.name	ok	"get __proto__"
+Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').set.name	ok	"set __proto__"
+Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').enumerable + ',' + Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').configurable	ok	"false,true"
+Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').get.call(1) === Number.prototype	ok	true
+Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').get.call(undefined)	error	TypeError	"undefined is not an object (evaluating 'Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').get.call(undefined)')"
+Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').get.call(null)	error	TypeError	"null is not an object (evaluating 'Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').get.call(null)')"
+Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').set.call(undefined, {})	error	TypeError	"Object.prototype.__proto__ called on null or undefined"
+Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').set.call(null, {})	error	TypeError	"Object.prototype.__proto__ called on null or undefined"
+Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').set.call(1, {})	ok	undefined
+Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').set.call({}, 1)	ok	undefined
+Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').set.call(Object.freeze({}), {})	error	TypeError	"Attempted to assign to readonly property."
+Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').set.call(Object.freeze({}), Object.prototype)	ok	undefined
+Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').set.call(Object.prototype, {})	error	TypeError	"Cannot set prototype of immutable prototype object"
+Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').set.call({}, undefined)	ok	undefined
+Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').set.length	ok	0
+var a = {}; var b = {__proto__: a}; a.__proto__ = b	error	TypeError	"cyclic __proto__ value"
+Object.prototype.__proto__ = {}	error	TypeError	"Cannot set prototype of immutable prototype object"
+Object.prototype.__proto__ = null	ok	null
+Object.setPrototypeOf(Object.prototype, {})	error	TypeError	"Cannot set prototype of immutable prototype object"
+Object.setPrototypeOf(Object.prototype, null) === Object.prototype	ok	true
+Object.setPrototypeOf(1, null)	ok	1
+Object.setPrototypeOf(undefined, null)	error	TypeError	"Cannot set prototype of undefined or null"
+Object.setPrototypeOf({}, 1)	error	TypeError	"Prototype value can only be an object or null"
+Object.setPrototypeOf({})	error	TypeError	"Prototype value can only be an object or null"
+Object.setPrototypeOf({}, undefined)	error	TypeError	"Prototype value can only be an object or null"
+Object.setPrototypeOf(Object.freeze({}), null)	error	TypeError	"Attempted to assign to readonly property."
+Object.setPrototypeOf(Object.freeze({}), Object.prototype) !== undefined	ok	true
+Object.setPrototypeOf(function () {}, null) instanceof Function	ok	false
+Object.setPrototypeOf(1, {}) === 1	ok	true
+Object.getPrototypeOf(1) === Number.prototype	ok	true
+Object.getPrototypeOf('s') === String.prototype	ok	true
+Object.getPrototypeOf(null)	error	TypeError	"null is not an object (evaluating 'Object.getPrototypeOf(null)')"
+Object.getPrototypeOf(undefined)	error	TypeError	"undefined is not an object (evaluating 'Object.getPrototypeOf(undefined)')"
+Object.getPrototypeOf(Symbol()) === Symbol.prototype	ok	true
+Object.create(1)	error	TypeError	"Object prototype may only be an Object or null."
+Object.create()	error	TypeError	"Object prototype may only be an Object or null."
+Object.create(undefined)	error	TypeError	"Object prototype may only be an Object or null."
+Object.create(null, {x: {value: 1}}).x	ok	1
+Object.create({}, 1)	ok	{}
+Object.create({}, null)	error	TypeError	"null is not an object (evaluating 'Object.create({}, null)')"
+Object.create({}, {x: 1})	error	TypeError	"Property description must be an object."
+var o = {}; o.__defineGetter__('x', function () { return 1; }); o.x	ok	1
+var o = {}; o.__defineGetter__('x', 1)	error	TypeError	"invalid getter usage"
+var o = {}; o.__defineGetter__('x')	error	TypeError	"invalid getter usage"
+var o = {}; o.__defineSetter__('x', function (v) { this.v = v; }); o.x = 3; o.v	ok	3
+var o = {}; o.__defineSetter__('x', 'a')	error	TypeError	"invalid setter usage"
+var o = {}; o.__defineGetter__('x', function () {}); Object.getOwnPropertyDescriptor(o, 'x')	ok	{get:[fn ],set:undefined,enumerable:true,configurable:true}
+var o = {}; o.__defineGetter__('x', function () {}); o.__defineSetter__('x', function () {}); Object.keys(Object.getOwnPropertyDescriptor(o, 'x')).join()	ok	"get,set,enumerable,configurable"
+var o = {}; o.__defineGetter__('x', function () {}); Object.getOwnPropertyDescriptor(o, 'x').enumerable + ',' + Object.getOwnPropertyDescriptor(o, 'x').configurable	ok	"true,true"
+var o = Object.freeze({}); o.__defineGetter__('x', function () {})	error	TypeError	"Attempting to define property on object that is not extensible."
+var o = {}; Object.defineProperty(o, 'x', {value: 1}); o.__defineGetter__('x', function () {})	error	TypeError	"Attempting to change configurable attribute of unconfigurable property."
+Object.prototype.__defineGetter__.call(undefined, 'x', function () {})	error	TypeError	"undefined is not an object (evaluating 'Object.prototype.__defineGetter__.call(undefined, 'x', function () {})')"
+Object.prototype.__defineGetter__.call(null, 'x', function () {})	error	TypeError	"null is not an object (evaluating 'Object.prototype.__defineGetter__.call(null, 'x', function () {})')"
+Object.prototype.__defineGetter__.call(1, 'x', function () {})	ok	undefined
+var p = new Proxy({}, {}); p.__defineGetter__('x', function () { return 4; }); p.x	ok	4
+var log = []; var p = new Proxy({}, {defineProperty(t, k, d) { log.push(k + ':' + Object.keys(d).join('/')); return Reflect.defineProperty(t, k, d); }}); p.__defineGetter__('x', function () {}); log.join()	ok	"x:get/enumerable/configurable"
+var o = {get x() { return 1; }, set x(v) {}}; o.__lookupGetter__('x').name	ok	"get x"
+var o = {get x() { return 1; }}; o.__lookupGetter__('y')	ok	undefined
+var o = {x: 1}; o.__lookupGetter__('x')	ok	undefined
+var o = {set x(v) {}}; o.__lookupGetter__('x')	ok	undefined
+var o = {set x(v) {}}; o.__lookupSetter__('x').name	ok	"set x"
+var o = Object.create({get x() { return 1; }}); typeof o.__lookupGetter__('x')	ok	"function"
+var o = Object.create({get x() { return 1; }}); Object.defineProperty(o, 'x', {value: 1}); o.__lookupGetter__('x')	ok	undefined
+Object.prototype.__lookupGetter__.call(undefined, 'x')	error	TypeError	"undefined is not an object (evaluating 'Object.prototype.__lookupGetter__.call(undefined, 'x')')"
+Object.prototype.__lookupSetter__.call(null, 'x')	error	TypeError	"null is not an object (evaluating 'Object.prototype.__lookupSetter__.call(null, 'x')')"
+Object.prototype.__lookupGetter__.call(1, 'x')	ok	undefined
+var p = new Proxy({get x() { return 1; }}, {}); typeof p.__lookupGetter__('x')	ok	"function"
+var log = []; var p = new Proxy({}, {getOwnPropertyDescriptor(t, k) { log.push('gopd:' + String(k)); return undefined; }, getPrototypeOf(t) { log.push('gpo'); return null; }}); p.__lookupGetter__('x'); log.join()	ok	"gopd:x,gpo"
+Object.getOwnPropertyDescriptor(Object.prototype, '__defineGetter__').enumerable	ok	false
+Object.prototype.__defineGetter__.length + ',' + Object.prototype.__lookupSetter__.length	ok	"2,1"
+Object.getOwnPropertyNames(Object.prototype).sort().join()	ok	"__defineGetter__,__defineSetter__,__lookupGetter__,__lookupSetter__,__proto__,constructor,hasOwnProperty,isPrototypeOf,propertyIsEnumerable,toLocaleString,toString,valueOf"
+Object.getOwnPropertyNames(Object).sort().join()	ok	"assign,create,defineProperties,defineProperty,entries,freeze,fromEntries,getOwnPropertyDescriptor,getOwnPropertyDescriptors,getOwnPropertyNames,getOwnPropertySymbols,getPrototypeOf,groupBy,hasOwn,is,isExtensible,isFrozen,isSealed,keys,length,name,preventExtensions,prototype,seal,setPrototypeOf,values"
+Object.length + Object.name	ok	"1Object"
+Object.assign.length + Object.entries.length + Object.fromEntries.length + Object.groupBy.length + Object.hasOwn.length	ok	8
+Object.assign({}, null, undefined, 'ab', 1, {c: 3})	ok	{0:"a",1:"b",c:3}
+Object.assign(null, {})	error	TypeError	"Object.assign requires that input parameter not be null or undefined"
+Object.assign(undefined)	error	TypeError	"Object.assign requires that input parameter not be null or undefined"
+Object.assign(Object.freeze({}), {a: 1})	error	TypeError	"Attempting to define property on object that is not extensible."
+Object.assign(Object.freeze({a: 0}), {a: 1})	error	TypeError	"Attempted to assign to readonly property."
+Object.assign({}, {get a() { return 1; }}).a	ok	1
+Object.assign({set a(v) { this.z = v; }}, {a: 3}).z	ok	3
+Object.assign(new Proxy({}, {set(t, k, v) { return false; }}), {a: 1})	error	TypeError	"Proxy object's 'set' trap returned falsy value for property 'a'"
+Object.assign(new Proxy({}, {set(t, k, v, r) { t[k] = v * 2; return true; }}), {a: 1}).a	ok	2
+Object.assign({}, new Proxy({a: 1}, {ownKeys() { return ['a', 'a']; }}))	error	TypeError	"Proxy handler's 'ownKeys' trap result must not contain any duplicate names"
+Object.hasOwn(null, 'a')	error	TypeError	"null is not an object (evaluating 'Object.hasOwn(null, 'a')')"
+Object.hasOwn(undefined, 'a')	error	TypeError	"undefined is not an object (evaluating 'Object.hasOwn(undefined, 'a')')"
+Object.hasOwn('ab', 1)	ok	true
+Object.hasOwn({a: 1}, 'a')	ok	true
+Object.hasOwn({}, {toString() { throw new RangeError('k'); }})	error	RangeError	"k"
+Object.hasOwn(null, {toString() { throw new RangeError('k'); }})	error	TypeError	"null is not an object (evaluating 'Object.hasOwn(null, {toString() { throw new RangeError('k'); }})')"
+Object.is(NaN, NaN) + ',' + Object.is(0, -0)	ok	"true,false"
+Object.getOwnPropertyDescriptor({get a() { return 1; }}, 'a').set	ok	undefined
+Object.getOwnPropertyDescriptor(Object.getOwnPropertyDescriptor({get a() { return 1; }}, 'a'), 'get').value.name	ok	"get a"
+Object.keys(Object.getOwnPropertyDescriptor({a: 1}, 'a')).join()	ok	"value,writable,enumerable,configurable"
+Object.keys(Object.getOwnPropertyDescriptor({get a() { return 1; }}, 'a')).join()	ok	"get,set,enumerable,configurable"
+typeof Symbol.iterator	ok	"symbol"
+String(Symbol.iterator)	ok	"Symbol(Symbol.iterator)"
+Symbol.iterator === undefined ? 'undef' : Symbol.iterator.description	ok	"Symbol.iterator"
+var d = Object.getOwnPropertyDescriptor(Symbol, 'iterator'); d ? [d.writable, d.enumerable, d.configurable].join() : 'none'	ok	"false,false,false"
+typeof Symbol.asyncIterator	ok	"symbol"
+String(Symbol.asyncIterator)	ok	"Symbol(Symbol.asyncIterator)"
+Symbol.asyncIterator === undefined ? 'undef' : Symbol.asyncIterator.description	ok	"Symbol.asyncIterator"
+var d = Object.getOwnPropertyDescriptor(Symbol, 'asyncIterator'); d ? [d.writable, d.enumerable, d.configurable].join() : 'none'	ok	"false,false,false"
+typeof Symbol.hasInstance	ok	"symbol"
+String(Symbol.hasInstance)	ok	"Symbol(Symbol.hasInstance)"
+Symbol.hasInstance === undefined ? 'undef' : Symbol.hasInstance.description	ok	"Symbol.hasInstance"
+var d = Object.getOwnPropertyDescriptor(Symbol, 'hasInstance'); d ? [d.writable, d.enumerable, d.configurable].join() : 'none'	ok	"false,false,false"
+typeof Symbol.isConcatSpreadable	ok	"symbol"
+String(Symbol.isConcatSpreadable)	ok	"Symbol(Symbol.isConcatSpreadable)"
+Symbol.isConcatSpreadable === undefined ? 'undef' : Symbol.isConcatSpreadable.description	ok	"Symbol.isConcatSpreadable"
+var d = Object.getOwnPropertyDescriptor(Symbol, 'isConcatSpreadable'); d ? [d.writable, d.enumerable, d.configurable].join() : 'none'	ok	"false,false,false"
+typeof Symbol.match	ok	"symbol"
+String(Symbol.match)	ok	"Symbol(Symbol.match)"
+Symbol.match === undefined ? 'undef' : Symbol.match.description	ok	"Symbol.match"
+var d = Object.getOwnPropertyDescriptor(Symbol, 'match'); d ? [d.writable, d.enumerable, d.configurable].join() : 'none'	ok	"false,false,false"
+typeof Symbol.matchAll	ok	"symbol"
+String(Symbol.matchAll)	ok	"Symbol(Symbol.matchAll)"
+Symbol.matchAll === undefined ? 'undef' : Symbol.matchAll.description	ok	"Symbol.matchAll"
+var d = Object.getOwnPropertyDescriptor(Symbol, 'matchAll'); d ? [d.writable, d.enumerable, d.configurable].join() : 'none'	ok	"false,false,false"
+typeof Symbol.replace	ok	"symbol"
+String(Symbol.replace)	ok	"Symbol(Symbol.replace)"
+Symbol.replace === undefined ? 'undef' : Symbol.replace.description	ok	"Symbol.replace"
+var d = Object.getOwnPropertyDescriptor(Symbol, 'replace'); d ? [d.writable, d.enumerable, d.configurable].join() : 'none'	ok	"false,false,false"
+typeof Symbol.search	ok	"symbol"
+String(Symbol.search)	ok	"Symbol(Symbol.search)"
+Symbol.search === undefined ? 'undef' : Symbol.search.description	ok	"Symbol.search"
+var d = Object.getOwnPropertyDescriptor(Symbol, 'search'); d ? [d.writable, d.enumerable, d.configurable].join() : 'none'	ok	"false,false,false"
+typeof Symbol.species	ok	"symbol"
+String(Symbol.species)	ok	"Symbol(Symbol.species)"
+Symbol.species === undefined ? 'undef' : Symbol.species.description	ok	"Symbol.species"
+var d = Object.getOwnPropertyDescriptor(Symbol, 'species'); d ? [d.writable, d.enumerable, d.configurable].join() : 'none'	ok	"false,false,false"
+typeof Symbol.split	ok	"symbol"
+String(Symbol.split)	ok	"Symbol(Symbol.split)"
+Symbol.split === undefined ? 'undef' : Symbol.split.description	ok	"Symbol.split"
+var d = Object.getOwnPropertyDescriptor(Symbol, 'split'); d ? [d.writable, d.enumerable, d.configurable].join() : 'none'	ok	"false,false,false"
+typeof Symbol.toPrimitive	ok	"symbol"
+String(Symbol.toPrimitive)	ok	"Symbol(Symbol.toPrimitive)"
+Symbol.toPrimitive === undefined ? 'undef' : Symbol.toPrimitive.description	ok	"Symbol.toPrimitive"
+var d = Object.getOwnPropertyDescriptor(Symbol, 'toPrimitive'); d ? [d.writable, d.enumerable, d.configurable].join() : 'none'	ok	"false,false,false"
+typeof Symbol.toStringTag	ok	"symbol"
+String(Symbol.toStringTag)	ok	"Symbol(Symbol.toStringTag)"
+Symbol.toStringTag === undefined ? 'undef' : Symbol.toStringTag.description	ok	"Symbol.toStringTag"
+var d = Object.getOwnPropertyDescriptor(Symbol, 'toStringTag'); d ? [d.writable, d.enumerable, d.configurable].join() : 'none'	ok	"false,false,false"
+typeof Symbol.unscopables	ok	"symbol"
+String(Symbol.unscopables)	ok	"Symbol(Symbol.unscopables)"
+Symbol.unscopables === undefined ? 'undef' : Symbol.unscopables.description	ok	"Symbol.unscopables"
+var d = Object.getOwnPropertyDescriptor(Symbol, 'unscopables'); d ? [d.writable, d.enumerable, d.configurable].join() : 'none'	ok	"false,false,false"
+typeof Symbol.dispose	ok	"symbol"
+String(Symbol.dispose)	ok	"Symbol(Symbol.dispose)"
+Symbol.dispose === undefined ? 'undef' : Symbol.dispose.description	ok	"Symbol.dispose"
+var d = Object.getOwnPropertyDescriptor(Symbol, 'dispose'); d ? [d.writable, d.enumerable, d.configurable].join() : 'none'	ok	"false,false,false"
+typeof Symbol.asyncDispose	ok	"symbol"
+String(Symbol.asyncDispose)	ok	"Symbol(Symbol.asyncDispose)"
+Symbol.asyncDispose === undefined ? 'undef' : Symbol.asyncDispose.description	ok	"Symbol.asyncDispose"
+var d = Object.getOwnPropertyDescriptor(Symbol, 'asyncDispose'); d ? [d.writable, d.enumerable, d.configurable].join() : 'none'	ok	"false,false,false"
+typeof Symbol.metadata	ok	"undefined"
+String(Symbol.metadata)	ok	"undefined"
+Symbol.metadata === undefined ? 'undef' : Symbol.metadata.description	ok	"undef"
+var d = Object.getOwnPropertyDescriptor(Symbol, 'metadata'); d ? [d.writable, d.enumerable, d.configurable].join() : 'none'	ok	"none"
+typeof Symbol.observable	ok	"undefined"
+String(Symbol.observable)	ok	"undefined"
+Symbol.observable === undefined ? 'undef' : Symbol.observable.description	ok	"undef"
+var d = Object.getOwnPropertyDescriptor(Symbol, 'observable'); d ? [d.writable, d.enumerable, d.configurable].join() : 'none'	ok	"none"
+typeof Symbol.nonexistent	ok	"undefined"
+String(Symbol.nonexistent)	ok	"undefined"
+Symbol.nonexistent === undefined ? 'undef' : Symbol.nonexistent.description	ok	"undef"
+var d = Object.getOwnPropertyDescriptor(Symbol, 'nonexistent'); d ? [d.writable, d.enumerable, d.configurable].join() : 'none'	ok	"none"
+Symbol()	ok	Symbol()
+Symbol('a')	ok	Symbol(a)
+Symbol('a').toString()	ok	"Symbol(a)"
+Symbol().toString()	ok	"Symbol()"
+Symbol('a').description	ok	"a"
+Symbol().description	ok	undefined
+Symbol('').description	ok	""
+Symbol(undefined).description	ok	undefined
+Symbol(null).description	ok	"null"
+Symbol(1).description	ok	"1"
+Symbol({toString() { return 'ts'; }}).description	ok	"ts"
+Symbol(Symbol())	error	TypeError	"Cannot convert a symbol to a string"
+new Symbol	error	TypeError	"function is not a constructor (evaluating 'new Symbol')"
+new Symbol('a')	error	TypeError	"function is not a constructor (evaluating 'new Symbol('a')')"
+Symbol('a') + ''	error	TypeError	"Cannot convert a symbol to a string"
+Symbol('a') + 1	error	TypeError	"Cannot convert a symbol to a number"
+`${Symbol('a')}`	error	TypeError	"Cannot convert a symbol to a string"
+String(Symbol('a'))	ok	"Symbol(a)"
+Symbol('a') == Symbol('a')	ok	false
+Symbol.for('a') === Symbol.for('a')	ok	true
+Symbol.for('a') === Symbol('a')	ok	false
+Symbol.keyFor(Symbol.for('k'))	ok	"k"
+Symbol.keyFor(Symbol('k'))	ok	undefined
+Symbol.keyFor(Symbol.iterator)	ok	undefined
+Symbol.keyFor('k')	error	TypeError	"Symbol.keyFor requires that the first argument be a symbol"
+Symbol.keyFor()	error	TypeError	"Symbol.keyFor requires that the first argument be a symbol"
+Symbol.keyFor(1)	error	TypeError	"Symbol.keyFor requires that the first argument be a symbol"
+Symbol.for()	ok	Symbol(undefined)
+Symbol.for(undefined).description	ok	"undefined"
+Symbol.for(1).description	ok	"1"
+Symbol.for(Symbol())	error	TypeError	"Cannot convert a symbol to a string"
+Symbol.for('').description	ok	""
+Symbol.for('a').description	ok	"a"
+Symbol.for.length + Symbol.keyFor.length + Symbol.length	ok	2
+typeof Object(Symbol())	ok	"object"
+Object(Symbol('q')).description	ok	"q"
+Object(Symbol('q')) == Symbol('q')	ok	false
+var s = Symbol('q'); Object(s) == s	ok	true
+var s = Symbol('q'); Object(s).valueOf() === s	ok	true
+var s = Symbol('q'); Object(s)[Symbol.toPrimitive]('default') === s	ok	true
+Symbol.prototype[Symbol.toPrimitive].name	ok	"[Symbol.toPrimitive]"
+Symbol.prototype[Symbol.toPrimitive].call(1)	error	TypeError	"Symbol.prototype.valueOf requires that |this| be a symbol or a symbol object"
+Symbol.prototype.toString.call(1)	error	TypeError	"Symbol.prototype.toString requires that |this| be a symbol or a symbol object"
+Symbol.prototype.toString.call({})	error	TypeError	"Symbol.prototype.toString requires that |this| be a symbol or a symbol object"
+Symbol.prototype.valueOf.call(1)	error	TypeError	"Symbol.prototype.valueOf requires that |this| be a symbol or a symbol object"
+Symbol.prototype.description	error	TypeError	"Symbol.prototype.description requires that |this| be a symbol or a symbol object"
+Object.getOwnPropertyDescriptor(Symbol.prototype, 'description').get.call(1)	error	TypeError	"Symbol.prototype.description requires that |this| be a symbol or a symbol object"
+Object.getOwnPropertyDescriptor(Symbol.prototype, 'description').get.call(Symbol('z'))	ok	"z"
+Symbol.prototype[Symbol.toStringTag]	ok	"Symbol"
+Object.prototype.toString.call(Symbol())	ok	"[object Symbol]"
+Object.getOwnPropertyNames(Symbol.prototype).sort().join()	ok	"constructor,description,toString,valueOf"
+Object.getOwnPropertyNames(Symbol).sort().join()	ok	"asyncDispose,asyncIterator,dispose,for,hasInstance,isConcatSpreadable,iterator,keyFor,length,match,matchAll,name,prototype,replace,search,species,split,toPrimitive,toStringTag,unscopables"
+Object.getOwnPropertyDescriptor(Symbol.prototype, Symbol.toPrimitive).writable + ',' + Object.getOwnPropertyDescriptor(Symbol.prototype, Symbol.toPrimitive).configurable	ok	"false,true"
+var o = {[Symbol.toPrimitive](h) { return h; }}; `${o}` + (o + '') + (+{[Symbol.toPrimitive](h) { return h === 'number' ? 5 : 0; }})	ok	"stringdefault5"
+var o = {[Symbol.toPrimitive]: 1}; o + ''	error	TypeError	"Symbol.toPrimitive is not a function, undefined, or null"
+var o = {[Symbol.toPrimitive]: null, toString() { return 'ts'; }}; o + ''	ok	"ts"
+var o = {[Symbol.toPrimitive]() { return {}; }}; o + ''	error	TypeError	"Symbol.toPrimitive returned an object"
+var o = {[Symbol.toPrimitive]() { return 1n; }}; +o	error	TypeError	"Conversion from 'BigInt' to 'number' is not allowed."
+var o = {[Symbol.toPrimitive]() { return Symbol(); }}; o + ''	error	TypeError	"Cannot convert a symbol to a string"
+var o = {get [Symbol.toPrimitive]() { throw new RangeError('tp'); }}; o + ''	error	RangeError	"tp"
+class A { static [Symbol.hasInstance](v) { return v === 1; } } 1 instanceof A	ok	true
+class A { static [Symbol.hasInstance](v) { return 1; } } 2 instanceof A	ok	true
+var o = {[Symbol.hasInstance]: 1}; 1 instanceof o	error	TypeError	"o[Symbol.hasInstance] is not a function, undefined, or null. (evaluating '1 instanceof o')"
+var o = {[Symbol.hasInstance]: null}; 1 instanceof o	error	TypeError	"o is not a function. (evaluating '1 instanceof o')"
+var o = {}; 1 instanceof o	error	TypeError	"o is not a function. (evaluating '1 instanceof o')"
+var f = function () {}; Object.defineProperty(f, Symbol.hasInstance, {value: () => true}); 1 instanceof f	ok	true
+Function.prototype[Symbol.hasInstance].call(Array, [])	ok	true
+Function.prototype[Symbol.hasInstance].call({}, [])	ok	false
+Function.prototype[Symbol.hasInstance].call(Array.bind(), [])	ok	true
+Object.getOwnPropertyDescriptor(Function.prototype, Symbol.hasInstance).writable	ok	false
+var o = {length: 2, 0: 'a', 1: 'b', [Symbol.isConcatSpreadable]: true}; [0].concat(o)	ok	[0,"a","b"]
+var a = [1]; a[Symbol.isConcatSpreadable] = false; [0].concat(a).length	ok	2
+[0].concat(new Proxy([1, 2], {}))	ok	[0,1,2]
+[0].concat(new Proxy([1, 2], {get(t, k, r) { return k === Symbol.isConcatSpreadable ? false : Reflect.get(t, k, r); }})).length	ok	2
+var o = {[Symbol.iterator]: function* () { yield 1; yield 2; }}; [...o]	ok	[1,2]
+var o = {[Symbol.iterator]: 1}; [...o]	error	TypeError	"Spread syntax requires ...iterable[Symbol.iterator] to be a function"
+var o = {[Symbol.iterator]() { return 1; }}; [...o]	error	TypeError	"undefined is not a function"
+var o = {[Symbol.iterator]() { return {}; }}; [...o]	error	TypeError	"undefined is not a function"
+var o = {[Symbol.iterator]() { return {next() { return 1; }}; }}; [...o]	error	TypeError	"Iterator result interface is not an object"
+var o = {[Symbol.iterator]() { return {next: 1}; }}; [...o]	error	TypeError	"1 is not a function"
+var o = {[Symbol.iterator]: null}; for (var x of o);	error	TypeError	"{} is not iterable"
+for (var x of 1);	error	TypeError	"number is not iterable"
+for (var x of {});	error	TypeError	"{} is not iterable"
+var [a] = {}	error	TypeError	"{} is not iterable"
+var [a] = null	error	TypeError	"null is not an object (evaluating '[a]')"
+var {a} = null	error	TypeError	"Cannot destructure property 'a' from null or undefined value"
+var {a} = undefined	error	TypeError	"Cannot destructure property 'a' from null or undefined value"
+var {} = null	error	TypeError	"Cannot destructure null or undefined value"
+[...undefined]	error	TypeError	"Spread syntax requires ...iterable not be null or undefined"
+Math.max(...1)	error	TypeError	"Spread syntax requires ...iterable[Symbol.iterator] to be a function"
+new Set(1)	error	TypeError	"Type error"
+new Map([1])	error	TypeError	"Type error"
+new Map(1)	error	TypeError	"Type error"
+Array.from({[Symbol.iterator]: 1})	error	TypeError	"Array.from requires that the property of the first argument, items[Symbol.iterator], when exists, be a function"
+Symbol.iterator.toString() + Symbol.iterator.description	ok	"Symbol(Symbol.iterator)Symbol.iterator"
+var o = {[Symbol.toStringTag]: 'Tag'}; String(o)	ok	"[object Tag]"
+var o = {[Symbol.toStringTag]: 1}; String(o)	ok	"[object Object]"
+class A { get [Symbol.toStringTag]() { return 'Q'; } } String(new A)	ok	"[object Q]"
+Object.prototype.toString.call(new Proxy([], {}))	ok	"[object Array]"
+Object.prototype.toString.call(new Proxy({}, {get(t, k) { return k === Symbol.toStringTag ? 'Fake' : undefined; }}))	ok	"[object Fake]"
+Object.prototype.toString.call(new Proxy(function () {}, {}))	ok	"[object Function]"
+Object.prototype.toString.call(Object.assign(function () {}, {[Symbol.toStringTag]: 'F'}))	ok	"[object F]"
+[Symbol.toStringTag, Symbol.iterator].map(String).join()	ok	"Symbol(Symbol.toStringTag),Symbol(Symbol.iterator)"
+Object.getOwnPropertySymbols(Array.prototype[Symbol.unscopables]).length	ok	0
+Object.keys(Array.prototype[Symbol.unscopables]).join()	ok	"at,copyWithin,entries,fill,find,findIndex,findLast,findLastIndex,flat,flatMap,includes,keys,toReversed,toSorted,toSpliced,values"
+Object.getPrototypeOf(Array.prototype[Symbol.unscopables])	ok	null
+var a = {x: 1, [Symbol.unscopables]: {x: true}}; var x = 0; with (a) { x; }	ok	0
+class S extends Array { static get [Symbol.species]() { return Array; } } new S(1, 2).map(x => x) instanceof S	ok	false
+class S extends Array { } new S(1, 2).map(x => x) instanceof S	ok	true
+class S extends Array { static get [Symbol.species]() { return null; } } new S(1, 2).map(x => x) instanceof S	ok	false
+class S extends Array { static get [Symbol.species]() { return 1; } } new S(1, 2).map(x => x)	error	TypeError	"Species construction did not get a valid constructor"
+Array[Symbol.species] === Array	ok	true
+Object.getOwnPropertyDescriptor(Array, Symbol.species).get.name	ok	"get [Symbol.species]"
+Object.getOwnPropertyDescriptor(Map, Symbol.species).set	ok	undefined
+'abc'.replace({[Symbol.replace](s, r) { return s + r; }}, 'Z')	ok	"abcZ"
+'abc'.search({[Symbol.search](s) { return 7; }})	ok	7
+'abc'.split({[Symbol.split](s, l) { return [s, l]; }}, 2)	ok	["abc",2]
+'abc'.match({[Symbol.match](s) { return 'm' + s; }})	ok	"mabc"
+'abc'.matchAll({[Symbol.matchAll](s) { return 'ma' + s; }})	ok	"maabc"
+'abc'.startsWith({[Symbol.match]: true, toString() { return 'a'; }})	error	TypeError	"Argument to String.prototype.startsWith cannot be a RegExp"
+'abc'.includes(/a/)	error	TypeError	"Argument to String.prototype.includes cannot be a RegExp"
+'abc'.matchAll(/a/)	error	TypeError	"String.prototype.matchAll argument must not be a non-global regular expression"
+'abc'.replaceAll(/a/, 'z')	error	TypeError	"String.prototype.replaceAll argument must not be a non-global regular expression"
+RegExp.prototype[Symbol.matchAll].call(1)	error	TypeError	"RegExp.prototype.@@matchAll requires that |this| be an Object"
+RegExp.prototype[Symbol.replace].call(1)	error	TypeError	"RegExp.prototype.@@replace requires that |this| be an Object"
+RegExp.prototype[Symbol.split].call(1)	error	TypeError	"RegExp.prototype.@@split requires that |this| be an Object"
+RegExp.prototype[Symbol.search].call(1)	error	TypeError	"RegExp.prototype.@@search requires that |this| be an Object"
+RegExp.prototype[Symbol.match].call(1)	error	TypeError	"RegExp.prototype.@@match requires that |this| be an Object"
+var s = Symbol('k'); var o = {[s]: 1}; Object.getOwnPropertySymbols(o)[0] === s	ok	true
+var o = {[Symbol('a')]: 1, b: 2}; JSON.stringify(o)	ok	"{\"b\":2}"
+var o = {[Symbol('a')]: 1}; Object.keys(o).length + ',' + Object.entries(o).length + ',' + Reflect.ownKeys(o).length	ok	"0,0,1"
+var s = Symbol('a'); var o = {}; o[s] = 1; Object.assign({}, o)[s]	ok	1
+var s = Symbol('a'); var o = {[s]: 1}; ({...o})[s]	ok	1
+Symbol.prototype.constructor === Symbol	ok	true
+Object(Symbol()) instanceof Symbol	ok	true
+Symbol() instanceof Symbol	ok	false
+typeof Symbol.prototype	ok	"object"
+Symbol.name + Symbol.prototype.toString.name + Symbol.for.name	ok	"SymboltoStringfor"
+Symbol('a').constructor === Symbol	ok	true
+Symbol('a').toString === Symbol.prototype.toString	ok	true
+Symbol.iterator in Array.prototype	ok	true
+Object.getOwnPropertyDescriptor(Symbol, 'prototype').writable	ok	false
+Object.getOwnPropertyDescriptor(Symbol, 'iterator').configurable	ok	false
+Symbol.iterator = 1; Symbol.iterator.toString()	ok	"Symbol(Symbol.iterator)"
+'use strict'; Symbol.iterator = 1	error	TypeError	"Attempted to assign to readonly property."
+'use strict'; var s = Symbol(); s.x = 1	error	TypeError	"Attempted to assign to readonly property."
+var s = Symbol(); s.x = 1; s.x	ok	undefined
+var s = Symbol(); s.description = 'z'; s.description	ok	undefined
+Symbol().toString.call(Symbol('x'))	ok	"Symbol(x)"
+isNaN(Symbol())	error	TypeError	"Cannot convert a symbol to a number"
+Number(Symbol())	error	TypeError	"Cannot convert a symbol to a number"
++Symbol()	error	TypeError	"Cannot convert a symbol to a number"
+Symbol() + ''	error	TypeError	"Cannot convert a symbol to a string"
+Symbol() < 1	error	TypeError	"Cannot convert a symbol to a number"
+BigInt(Symbol())	error	TypeError	"Invalid argument type in ToBigInt operation"
+Boolean(Symbol())	ok	true
+!Symbol()	ok	false
+JSON.stringify(Symbol())	ok	undefined
+JSON.stringify([Symbol()])	ok	"[null]"
+JSON.stringify({a: Symbol()})	ok	"{}"
+JSON.stringify(Object(Symbol()))	ok	"{}"
+[Symbol('x')].join()	error	TypeError	"Cannot convert a symbol to a string"
+[Symbol('x')].toString()	error	TypeError	"Cannot convert a symbol to a string"
+[Symbol('x')].includes(Symbol('x'))	ok	false
+var s = Symbol('x'); [s].includes(s) + ',' + [s].indexOf(s)	ok	"true,0"
+var s = Symbol('x'); new Map([[s, 1]]).get(s)	ok	1
+var s = Symbol('x'); new WeakMap().set(s, 1).get(s)	ok	1
+new WeakMap().set(Symbol.for('x'), 1)	error	TypeError	"WeakMap keys must be objects or non-registered symbols"
+new WeakSet().add(Symbol('x')).has(Symbol('x'))	ok	false
+new WeakSet().add(Symbol.for('x'))	error	TypeError	"WeakSet values must be objects or non-registered symbols"
+new WeakSet().add(Symbol.iterator).has(Symbol.iterator)	ok	true
+typeof WeakRef	ok	"function"
+WeakRef.length + WeakRef.name	ok	"1WeakRef"
+WeakRef()	error	TypeError	"calling WeakRef constructor without new is invalid"
+new WeakRef	error	TypeError	"First argument to WeakRef should be an object or a non-registered symbol"
+new WeakRef(1)	error	TypeError	"First argument to WeakRef should be an object or a non-registered symbol"
+new WeakRef('s')	error	TypeError	"First argument to WeakRef should be an object or a non-registered symbol"
+new WeakRef(null)	error	TypeError	"First argument to WeakRef should be an object or a non-registered symbol"
+new WeakRef(undefined)	error	TypeError	"First argument to WeakRef should be an object or a non-registered symbol"
+new WeakRef(Symbol())	ok	{}
+new WeakRef(Symbol.for('r'))	error	TypeError	"First argument to WeakRef should be an object or a non-registered symbol"
+new WeakRef(Symbol.iterator).deref() === Symbol.iterator	ok	true
+var s = Symbol('w'); new WeakRef(s).deref() === s	ok	true
+var o = {}; new WeakRef(o).deref() === o	ok	true
+var o = function () {}; new WeakRef(o).deref() === o	ok	true
+var o = new Proxy({}, {}); new WeakRef(o).deref() === o	ok	true
+new WeakRef({}).deref().constructor === Object	ok	true
+Object.prototype.toString.call(new WeakRef({}))	ok	"[object WeakRef]"
+WeakRef.prototype[Symbol.toStringTag]	ok	"WeakRef"
+Object.getOwnPropertyNames(WeakRef.prototype).sort().join()	ok	"constructor,deref"
+WeakRef.prototype.deref.length + WeakRef.prototype.deref.name	ok	"0deref"
+WeakRef.prototype.deref.call({})	error	TypeError	"Called WeakRef function on a non-WeakRef object"
+WeakRef.prototype.deref.call(1)	error	TypeError	"Called WeakRef function on non-object"
+WeakRef.prototype.deref.call(new WeakMap())	error	TypeError	"Called WeakRef function on a non-WeakRef object"
+WeakRef.prototype.constructor === WeakRef	ok	true
+Object.getPrototypeOf(new WeakRef({})) === WeakRef.prototype	ok	true
+class W extends WeakRef { } new W({}) instanceof W	ok	true
+class W extends WeakRef { } new W({}).deref() !== undefined	ok	true
+Reflect.construct(WeakRef, [{}], Array) instanceof Array	ok	true
+Reflect.construct(WeakRef, [{}], Array).deref !== undefined	ok	false
+Reflect.construct(WeakRef, [1], Array)	error	TypeError	"First argument to WeakRef should be an object or a non-registered symbol"
+new WeakRef({}) instanceof WeakRef	ok	true
+Object.keys(new WeakRef({})).length	ok	0
+JSON.stringify(new WeakRef({}))	ok	"{}"
+Object.getOwnPropertyDescriptor(WeakRef.prototype, 'deref').enumerable	ok	false
+typeof FinalizationRegistry	ok	"function"
+FinalizationRegistry.length + FinalizationRegistry.name	ok	"1FinalizationRegistry"
+FinalizationRegistry()	error	TypeError	"calling FinalizationRegistry constructor without new is invalid"
+new FinalizationRegistry	error	TypeError	"First argument to FinalizationRegistry should be a function"
+new FinalizationRegistry(1)	error	TypeError	"First argument to FinalizationRegistry should be a function"
+new FinalizationRegistry(null)	error	TypeError	"First argument to FinalizationRegistry should be a function"
+new FinalizationRegistry({})	error	TypeError	"First argument to FinalizationRegistry should be a function"
+new FinalizationRegistry(() => {}) instanceof FinalizationRegistry	ok	true
+Object.prototype.toString.call(new FinalizationRegistry(() => {}))	ok	"[object FinalizationRegistry]"
+FinalizationRegistry.prototype[Symbol.toStringTag]	ok	"FinalizationRegistry"
+Object.getOwnPropertyNames(FinalizationRegistry.prototype).sort().join()	ok	"constructor,register,unregister"
+FinalizationRegistry.prototype.register.length + ',' + FinalizationRegistry.prototype.unregister.length	ok	"2,1"
+var r = new FinalizationRegistry(() => {}); r.register({}, 1)	ok	undefined
+var r = new FinalizationRegistry(() => {}); r.register({}, 1) === undefined	ok	true
+var r = new FinalizationRegistry(() => {}); r.register(1, 1)	error	TypeError	"register requires an object or a non-registered symbol as the target"
+var r = new FinalizationRegistry(() => {}); r.register(null, 1)	error	TypeError	"register requires an object or a non-registered symbol as the target"
+var r = new FinalizationRegistry(() => {}); r.register()	error	TypeError	"register requires an object or a non-registered symbol as the target"
+var r = new FinalizationRegistry(() => {}); var o = {}; r.register(o, o)	error	TypeError	"register expects the target object and the holdings parameter are not the same. Otherwise, the target can never be collected"
+var r = new FinalizationRegistry(() => {}); var o = {}; r.register(o, 1, 1)	error	TypeError	"register requires an object or a non-registered symbol as the unregistration token"
+var r = new FinalizationRegistry(() => {}); var o = {}; r.register(o, 1, o)	ok	undefined
+var r = new FinalizationRegistry(() => {}); var o = {}; r.register(o, 1, undefined)	ok	undefined
+var r = new FinalizationRegistry(() => {}); var o = {}; r.register(o, 1, null)	error	TypeError	"register requires an object or a non-registered symbol as the unregistration token"
+var r = new FinalizationRegistry(() => {}); var o = {}; r.register(o, 1, Symbol())	ok	undefined
+var r = new FinalizationRegistry(() => {}); var o = {}; r.register(o, 1, Symbol.for('k'))	error	TypeError	"register requires an object or a non-registered symbol as the unregistration token"
+var r = new FinalizationRegistry(() => {}); r.register(Symbol(), 1)	ok	undefined
+var r = new FinalizationRegistry(() => {}); r.register(Symbol.for('k'), 1)	error	TypeError	"register requires an object or a non-registered symbol as the target"
+var r = new FinalizationRegistry(() => {}); r.register(Symbol.iterator, 1)	ok	undefined
+var r = new FinalizationRegistry(() => {}); r.unregister({})	ok	false
+var r = new FinalizationRegistry(() => {}); r.unregister(1)	error	TypeError	"unregister requires an object or a non-registered symbol as the unregistration token"
+var r = new FinalizationRegistry(() => {}); r.unregister()	error	TypeError	"unregister requires an object or a non-registered symbol as the unregistration token"
+var r = new FinalizationRegistry(() => {}); r.unregister(Symbol())	ok	false
+var r = new FinalizationRegistry(() => {}); r.unregister(Symbol.for('k'))	error	TypeError	"unregister requires an object or a non-registered symbol as the unregistration token"
+var r = new FinalizationRegistry(() => {}); var t = {}; r.register({}, 1, t); r.unregister(t)	ok	true
+var r = new FinalizationRegistry(() => {}); var t = {}; r.register({}, 1, t); r.unregister(t) + ',' + r.unregister(t)	ok	"true,false"
+var r = new FinalizationRegistry(() => {}); var t = {}; r.register({}, 1, t); r.register({}, 2, t); r.unregister(t)	ok	true
+var r = new FinalizationRegistry(() => {}); r.register({}, 1, {}); r.unregister({})	ok	false
+var r = new FinalizationRegistry(() => {}); var s = Symbol('t'); r.register({}, 1, s); r.unregister(s)	ok	true
+FinalizationRegistry.prototype.register.call({}, {}, 1)	error	TypeError	"Called FinalizationRegistry function on a non-FinalizationRegistry object"
+FinalizationRegistry.prototype.unregister.call({}, {})	error	TypeError	"Called FinalizationRegistry function on a non-FinalizationRegistry object"
+FinalizationRegistry.prototype.register.call(new WeakRef({}), {}, 1)	error	TypeError	"Called FinalizationRegistry function on a non-FinalizationRegistry object"
+FinalizationRegistry.prototype.cleanupSome	ok	undefined
+typeof new FinalizationRegistry(() => {}).cleanupSome	ok	"undefined"
+class F extends FinalizationRegistry { } new F(() => {}) instanceof F	ok	true
+Reflect.construct(FinalizationRegistry, [() => {}], Array) instanceof Array	ok	true
+Reflect.construct(FinalizationRegistry, [1], Array)	error	TypeError	"First argument to FinalizationRegistry should be a function"
+Object.keys(new FinalizationRegistry(() => {})).length	ok	0
+JSON.stringify(new FinalizationRegistry(() => {}))	ok	"{}"
+Object.getPrototypeOf(FinalizationRegistry.prototype) === Object.prototype	ok	true
+JSON.stringify(new Proxy({a: 1, b: [1, 2]}, {}))	ok	"{\"a\":1,\"b\":[1,2]}"
+JSON.stringify(new Proxy([1, 2, 3], {}))	ok	"[1,2,3]"
+JSON.stringify(new Proxy(function () {}, {}))	ok	undefined
+JSON.stringify([new Proxy(function () {}, {})])	ok	"[null]"
+JSON.stringify({a: new Proxy(function () {}, {})})	ok	"{}"
+JSON.stringify(new Proxy(new Date(0), {}))	error	TypeError	"Type error"
+JSON.stringify(new Proxy(new Map(), {}))	ok	"{}"
+JSON.stringify(new Proxy({}, {get(t, k) { return k === 'toJSON' ? () => 'tj' : undefined; }}))	ok	"\"tj\""
+JSON.stringify({a: new Proxy({}, {get(t, k) { return k === 'toJSON' ? (key) => 'tj:' + key : undefined; }})})	ok	"{\"a\":\"tj:a\"}"
+JSON.stringify(new Proxy({a: 1}, {ownKeys() { return ['a', 'b']; }, getOwnPropertyDescriptor(t, k) { return {value: 1, enumerable: true, configurable: true}; }, get(t, k) { return k; }}))	ok	"{\"a\":\"a\",\"b\":\"b\"}"
+JSON.stringify(new Proxy({a: 1, b: 2}, {ownKeys() { return ['b', 'a']; }}))	ok	"{\"b\":2,\"a\":1}"
+JSON.stringify(new Proxy({a: 1, b: 2}, {getOwnPropertyDescriptor(t, k) { return k === 'a' ? undefined : Reflect.getOwnPropertyDescriptor(t, k); }}))	ok	"{\"b\":2}"
+JSON.stringify(new Proxy({a: 1}, {get() { return 'g'; }}))	ok	"{\"a\":\"g\"}"
+JSON.stringify(new Proxy([1, 2], {get(t, k, r) { return k === 'length' ? 1 : Reflect.get(t, k, r); }}))	ok	"[1]"
+JSON.stringify(new Proxy({a: 1}, {ownKeys() { throw new RangeError('ok'); }}))	error	RangeError	"ok"
+JSON.stringify(new Proxy({a: 1}, {get() { throw new RangeError('gt'); }}))	error	RangeError	"gt"
+var log = []; JSON.stringify(new Proxy({a: 1, b: 2}, {ownKeys(t) { log.push('ownKeys'); return Reflect.ownKeys(t); }, getOwnPropertyDescriptor(t, k) { log.push('gopd:' + k); return Reflect.getOwnPropertyDescriptor(t, k); }, get(t, k, r) { log.push('get:' + String(k)); return Reflect.get(t, k, r); }})); log.join()	ok	"get:toJSON,ownKeys,gopd:a,gopd:b,get:a,get:b"
+var log = []; JSON.stringify(new Proxy([1, 2], {get(t, k, r) { log.push('get:' + String(k)); return Reflect.get(t, k, r); }, has(t, k) { log.push('has:' + String(k)); return Reflect.has(t, k); }})); log.join()	ok	"get:toJSON,get:length,get:0,get:1"
+var r = Proxy.revocable({}, {}); r.revoke(); JSON.stringify({a: r.proxy})	error	TypeError	"Proxy has already been revoked. No more operations are allowed to be performed on it"
+var r = Proxy.revocable([], {}); r.revoke(); JSON.stringify([r.proxy])	error	TypeError	"Proxy has already been revoked. No more operations are allowed to be performed on it"
+JSON.stringify({toJSON() { return 1; }})	ok	"1"
+JSON.stringify({toJSON: 1, a: 2})	ok	"{\"toJSON\":1,\"a\":2}"
+JSON.stringify({toJSON() { return undefined; }})	ok	undefined
+JSON.stringify([{toJSON() { return undefined; }}])	ok	"[null]"
+JSON.stringify({a: {toJSON() { return undefined; }}})	ok	"{}"
+JSON.stringify({a: {toJSON(k) { return k; }}})	ok	"{\"a\":\"a\"}"
+JSON.stringify([{toJSON(k) { return typeof k + k; }}])	ok	"[\"string0\"]"
+JSON.stringify({toJSON(k) { return typeof k + k; }})	ok	"\"string\""
+JSON.stringify({toJSON() { return this; }})	ok	"{}"
+JSON.stringify({toJSON() { return {toJSON() { return 2; }}; }})	ok	"{}"
+JSON.stringify({toJSON() { throw new RangeError('tj'); }})	error	RangeError	"tj"
+JSON.stringify({get toJSON() { throw new RangeError('gtj'); }})	error	RangeError	"gtj"
+JSON.stringify(Object.assign(() => 1, {toJSON() { return 3; }}))	ok	"3"
+JSON.stringify(1n)	error	TypeError	"JSON.stringify cannot serialize BigInt."
+BigInt.prototype.toJSON = function () { return 'big'; }; JSON.stringify({a: 1n})	ok	"{\"a\":\"big\"}"
+BigInt.prototype.toJSON = function () { return this.toString(); }; JSON.stringify([5n])	ok	"[\"5\"]"
+JSON.stringify(Object(1n))	error	TypeError	"JSON.stringify cannot serialize BigInt."
+JSON.stringify({a: 1n})	error	TypeError	"JSON.stringify cannot serialize BigInt."
+JSON.stringify({toJSON() { return 1n; }})	error	TypeError	"JSON.stringify cannot serialize BigInt."
+String.prototype.toJSON = function () { return 'sj'; }; JSON.stringify('x')	ok	"\"x\""
+Number.prototype.toJSON = function () { return 'nj'; }; JSON.stringify(1)	ok	"1"
+Boolean.prototype.toJSON = function () { return 'bj'; }; JSON.stringify([true])	ok	"[true]"
+Object.prototype.toJSON = function () { return 'oj'; }; JSON.stringify({a: 1})	ok	"\"oj\""
+Array.prototype.toJSON = function () { return 'aj'; }; JSON.stringify([1])	ok	"\"aj\""
+JSON.stringify(new Date(NaN))	ok	"null"
+JSON.stringify({d: new Date(0)})	ok	"{\"d\":\"1970-01-01T00:00:00.000Z\"}"
+Date.prototype.toJSON.call({toISOString() { return 'iso'; }})	ok	"iso"
+Date.prototype.toJSON.call({toISOString: 1})	error	TypeError	"toISOString is not a function"
+Date.prototype.toJSON.call({valueOf() { return NaN; }, toISOString() { return 'iso'; }})	ok	null
+Date.prototype.toJSON.call(1)	error	TypeError	"toISOString is not a function"
+Date.prototype.toJSON.call(undefined)	error	TypeError	"undefined is not an object (evaluating 'Date.prototype.toJSON.call(undefined)')"
+var a = {}; a.a = a; JSON.stringify(a)	error	TypeError	"JSON.stringify cannot serialize cyclic structures."
+var a = []; a[0] = a; JSON.stringify(a)	error	TypeError	"JSON.stringify cannot serialize cyclic structures."
+var a = {}; var b = {a: a}; a.b = b; JSON.stringify(a)	error	TypeError	"JSON.stringify cannot serialize cyclic structures."
+var a = {}; JSON.stringify({x: a, y: a})	ok	"{\"x\":{},\"y\":{}}"
+var p = new Proxy({}, {}); var a = {p: p}; p.a = a; JSON.stringify(a)	error	TypeError	"JSON.stringify cannot serialize cyclic structures."
+JSON.stringify({a: 1}, ['a', 'b'])	ok	"{\"a\":1}"
+JSON.stringify({a: 1, b: 2}, new Proxy(['b'], {}))	ok	"{\"b\":2}"
+JSON.stringify({a: 1, b: 2}, new Proxy(['b'], {get(t, k) { return k === 'length' ? 2 : k === '0' ? 'a' : k === '1' ? 'b' : undefined; }}))	ok	"{\"a\":1,\"b\":2}"
+JSON.stringify({a: 1, b: 2}, [new String('a'), new Number(1), {}, null, 'b', 'b'])	ok	"{\"a\":1,\"b\":2}"
+JSON.stringify({a: 1, b: 2}, function (k, v) { return k === 'a' ? undefined : v; })	ok	"{\"b\":2}"
+JSON.stringify({a: [1, {b: 2}]}, function (k, v) { return typeof v === 'number' ? v + 1 : v; })	ok	"{\"a\":[2,{\"b\":3}]}"
+JSON.stringify({a: 1}, function (k, v) { return this === undefined ? 'u' : typeof this; })	ok	"\"object\""
+JSON.stringify({a: 1}, function (k, v) { return k === '' ? [this[''] === v] : v; })	ok	"[true]"
+JSON.stringify({a: 1}, null, 2)	ok	"{\n  \"a\": 1\n}"
+JSON.stringify({a: [1, {b: 2}], c: []}, null, '--')	ok	"{\n--\"a\": [\n----1,\n----{\n------\"b\": 2\n----}\n--],\n--\"c\": []\n}"
+JSON.stringify({a: 1}, null, 20)	ok	"{\n          \"a\": 1\n}"
+JSON.stringify({a: 1}, null, 'abcdefghijkl')	ok	"{\nabcdefghij\"a\": 1\n}"
+JSON.stringify({a: 1}, null, new Number(3))	ok	"{\n   \"a\": 1\n}"
+JSON.stringify({a: 1}, null, new String('x'))	ok	"{\nx\"a\": 1\n}"
+JSON.stringify({a: 1}, null, -1)	ok	"{\"a\":1}"
+JSON.stringify({a: 1}, null, 1.9)	ok	"{\n \"a\": 1\n}"
+JSON.stringify({a: 1}, null, {})	ok	"{\"a\":1}"
+JSON.stringify({a: {}, b: []}, null, 2)	ok	"{\n  \"a\": {},\n  \"b\": []\n}"
+JSON.stringify(new Proxy({a: [1]}, {}), null, 2)	ok	"{\n  \"a\": [\n    1\n  ]\n}"
+JSON.stringify(undefined)	ok	undefined
+JSON.stringify(function () {})	ok	undefined
+JSON.stringify(NaN)	ok	"null"
+JSON.stringify(-0)	ok	"0"
+JSON.stringify(Infinity)	ok	"null"
+JSON.stringify([undefined, function () {}, Symbol(), NaN])	ok	"[null,null,null,null]"
+JSON.stringify({a: undefined, b: function () {}, c: Symbol()})	ok	"{}"
+JSON.stringify(new String('s'))	ok	"\"s\""
+JSON.stringify(Object('s'))	ok	"\"s\""
+JSON.stringify(new Number(1))	ok	"1"
+JSON.stringify(new Boolean(false))	ok	"false"
+JSON.stringify('\u2028\ud800')	ok	"\"
+JSON.stringify('\u007f\u0000')	ok	"\"\\u0000\""
+JSON.stringify({[Symbol()]: 1, 2: 1, b: 1, 1: 1})	ok	"{\"1\":1,\"2\":1,\"b\":1}"
+JSON.stringify(Object.create({inherited: 1}))	ok	"{}"
+JSON.stringify(Object.defineProperty({}, 'h', {value: 1}))	ok	"{}"
+JSON.stringify(new Uint8Array([1, 2]))	ok	"{\"0\":1,\"1\":2}"
+JSON.stringify(new Error('m'))	ok	"{}"
+JSON.stringify(/a/)	ok	"{}"
+JSON.stringify(new Set([1]))	ok	"{}"
+JSON.stringify(Math)	ok	"{}"
+JSON.stringify(globalThis.undefinedVar)	ok	undefined
+JSON.stringify({}, () => { throw new RangeError('rep'); })	error	RangeError	"rep"
+JSON.stringify({a: 1}, 1)	ok	"{\"a\":1}"
+JSON.stringify({a: 1}, {})	ok	"{\"a\":1}"
+JSON.parse('{"a": 1}')	ok	{a:1}
+JSON.parse('')	error	SyntaxError	"JSON Parse error: Unexpected EOF"
+JSON.parse()	error	SyntaxError	"JSON Parse error: Unexpected identifier \"undefined\""
+JSON.parse(undefined)	error	SyntaxError	"JSON Parse error: Unexpected identifier \"undefined\""
+JSON.parse(null)	ok	null
+JSON.parse('{')	error	SyntaxError	"JSON Parse error: Expected '}'"
+JSON.parse('{"a"}')	error	SyntaxError	"JSON Parse error: Expected ':' before value in object property definition"
+JSON.parse('[1,]')	error	SyntaxError	"JSON Parse error: Unexpected comma at the end of array expression"
+JSON.parse('{"a":1,}')	error	SyntaxError	"JSON Parse error: Property name must be a string literal"
+JSON.parse("{'a':1}")	error	SyntaxError	"JSON Parse error: Single quotes (') are not allowed in JSON"
+JSON.parse('01')	error	SyntaxError	"JSON Parse error: Unable to parse JSON string"
+JSON.parse('1e')	error	SyntaxError	"JSON Parse error: Unable to parse JSON string"
+JSON.parse('nul')	error	SyntaxError	"JSON Parse error: Unexpected identifier \"nul\""
+JSON.parse('"\\x"')	error	SyntaxError	"JSON Parse error: Invalid escape character x"
+JSON.parse('"a\nb"')	error	SyntaxError	"JSON Parse error: Unterminated string"
+JSON.parse('[1] 2')	error	SyntaxError	"JSON Parse error: Unable to parse JSON string"
+JSON.parse('  [1]  ')	ok	[1]
+JSON.parse('\u00a0[1]')	error	SyntaxError	"JSON Parse error: Unrecognized token ' '"
+JSON.parse('-0')	ok	-0
+JSON.parse('1E2')	ok	100
+JSON.parse('"\\ud800"').length	ok	1
+JSON.parse({toString() { return '[1]'; }})	ok	[1]
+JSON.parse(new Proxy({toString() { return '2'; }}, {}))	ok	2
+JSON.parse('[1,2]', function (k, v) { return Array.isArray(v) ? v : v * 2; })	ok	[2,4]
+JSON.parse('{"a":{"b":1}}', function (k, v) { return k === 'b' ? undefined : v; })	ok	{a:{}}
+JSON.parse('[1,2,3]', function (k, v) { return k === '1' ? undefined : v; })	ok	[1,3]
+var log = []; JSON.parse('{"a":[1,2],"b":{"c":3}}', function (k, v) { log.push(k); return v; }); log.join()	ok	"0,1,a,c,b,"
+JSON.parse('{"a":1}', function (k, v) { return k === '' ? this[''] === v : v; })	ok	true
+JSON.parse('{"a":1}', 1)	ok	{a:1}
+JSON.parse('{"a":1,"a":2}').a	ok	2
+JSON.parse('[1]', function (k, v) { if (k === '0') this[1] = 5; return v; })	ok	[1,5]
+JSON.parse('[1,2]', function (k, v) { if (k === '0') this.length = 1; return v; })	ok	[1]
+JSON.parse('{"a":1,"b":2}', function (k, v) { if (k === 'a') delete this.b; return v; })	ok	{a:1}
+JSON.parse('{"a":1}', function (k, v) { if (k === 'a') Object.defineProperty(this, 'a', {configurable: false}); return k === 'a' ? 9 : v; })	ok	{a:1}
+JSON.parse('[0]', function (k, v) { return k === '' ? new Proxy(v, {}) : v; })	ok	[0]
+JSON.parse('{"a":[1]}', function (k, v) { return k === 'a' ? new Proxy(v, {}) : v; })	ok	{a:[1]}
+JSON.parse('{"a":1}', function (k, v, ctx) { return typeof ctx; })	ok	"object"
+JSON.parse('{"a":1.0}', function (k, v, ctx) { return k === 'a' ? ctx.source : v; })	ok	{a:"1.0"}
+JSON.rawJSON('1')	ok	{rawJSON:"1"}
+JSON.isRawJSON(JSON.rawJSON('1'))	ok	true
+JSON.stringify({a: JSON.rawJSON('1e1000')})	ok	"{\"a\":1e1000}"
+JSON.stringify(Object.getOwnPropertyNames(JSON).sort())	ok	"[\"isRawJSON\",\"parse\",\"rawJSON\",\"stringify\"]"
+JSON[Symbol.toStringTag]	ok	"JSON"
+Object.prototype.toString.call(JSON)	ok	"[object JSON]"
+JSON.stringify.length + JSON.parse.length	ok	5
+typeof JSON.stringify.call	ok	"function"
+new JSON.parse('1')	error	TypeError	"function is not a constructor (evaluating 'new JSON.parse('1')')"
+new JSON.stringify(1)	error	TypeError	"function is not a constructor (evaluating 'new JSON.stringify(1)')"
+JSON.stringify.call(null, {a: 1})	ok	"{\"a\":1}"

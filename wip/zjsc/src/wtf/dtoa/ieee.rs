@@ -11,19 +11,9 @@ pub fn double_to_uint64(d: f64) -> u64 {
     d.to_bits()
 }
 
-/// `uint64_to_double`.
-pub fn uint64_to_double(d64: u64) -> f64 {
-    f64::from_bits(d64)
-}
-
 /// `float_to_uint32`.
 pub fn float_to_uint32(f: f32) -> u32 {
     f.to_bits()
-}
-
-/// `uint32_to_float`.
-pub fn uint32_to_float(d32: u32) -> f32 {
-    f32::from_bits(d32)
 }
 
 /// Auxiliares para doubles.
@@ -211,7 +201,7 @@ impl Double {
     }
 
     pub fn value(&self) -> f64 {
-        uint64_to_double(self.d64)
+        f64::from_bits(self.d64)
     }
 
     /// Tamanho do significando para uma dada ordem de grandeza. Se v = f*2^e com
@@ -393,7 +383,7 @@ impl Single {
     }
 
     pub fn value(&self) -> f32 {
-        uint32_to_float(self.d32)
+        f32::from_bits(self.d32)
     }
 
     pub fn infinity() -> f32 {

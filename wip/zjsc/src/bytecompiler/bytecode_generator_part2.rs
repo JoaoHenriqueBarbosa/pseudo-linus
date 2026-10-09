@@ -6,7 +6,7 @@ impl BytecodeGenerator {
     // BytecodeGenerator.h:502
     pub fn emit_node_in_tail_position_statement(
         &mut self,
-        dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
+        dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         n: &crate::parser::nodes::Statement,
     ) {
         // Node::emitCode assume que dst, se dado, é um local ou um temporário referenciado.
@@ -14,8 +14,8 @@ impl BytecodeGenerator {
             self.emit_throw_expression_too_deep_exception();
             return;
         }
-        if n.needs_debug_hook() {
-            self.emit_debug_hook_statement(n);
+        if n.base().needs_debug_hook() {
+            self.emit_debug_hook_statement_data(n, None);
         }
         n.emit_bytecode(self, dst);
     }
@@ -29,7 +29,7 @@ impl BytecodeGenerator {
 
     // BytecodeGenerator.h:529
     pub fn emit_node_statement(&mut self, n: &crate::parser::nodes::Statement) {
-        self.emit_node_dst_statement(None, n);
+        self.emit_node(None, n);
     }
 
     // BytecodeGenerator.h:534
@@ -40,9 +40,9 @@ impl BytecodeGenerator {
     // BytecodeGenerator.h:539
     pub fn emit_node_expression(
         &mut self,
-        dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
+        dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         n: &crate::parser::nodes::Expression,
-    ) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         let saved_tail = self.allow_tail_call_optimization;
         let saved_ignore = self.allow_call_ignore_result_optimization;
         self.allow_tail_call_optimization = false;
@@ -56,9 +56,9 @@ impl BytecodeGenerator {
     // BytecodeGenerator.h:546
     pub fn emit_node_in_tail_position_from_return_node(
         &mut self,
-        dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
+        dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         n: &crate::parser::nodes::Expression,
-    ) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         let saved_ignore = self.allow_call_ignore_result_optimization;
         self.allow_call_ignore_result_optimization = false;
         let result = self.emit_node_in_tail_position_expression(dst, n);
@@ -69,9 +69,9 @@ impl BytecodeGenerator {
     // BytecodeGenerator.h:552
     pub fn emit_node_in_tail_position_from_expr_statement_node(
         &mut self,
-        dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
+        dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         n: &crate::parser::nodes::Expression,
-    ) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         let saved_tail = self.allow_tail_call_optimization;
         self.allow_tail_call_optimization = false;
         let result = self.emit_node_in_tail_position_expression(dst, n);
@@ -83,7 +83,7 @@ impl BytecodeGenerator {
     pub fn emit_node_in_ignore_result_position_expression(
         &mut self,
         n: &crate::parser::nodes::Expression,
-    ) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         let saved_tail = self.allow_tail_call_optimization;
         let saved_ignore = self.allow_call_ignore_result_optimization;
         self.allow_tail_call_optimization = false;
@@ -98,15 +98,15 @@ impl BytecodeGenerator {
     // BytecodeGenerator.h:564
     pub fn emit_node_in_tail_position_expression(
         &mut self,
-        dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
+        dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         n: &crate::parser::nodes::Expression,
-    ) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         // Node::emitCode assume que dst, se dado, é um local ou um temporário referenciado.
         if !self.vm.is_safe_to_recurse() {
             return self.emit_throw_expression_too_deep_exception();
         }
-        if n.needs_debug_hook() {
-            self.emit_debug_hook_expression(n);
+        if n.base().needs_debug_hook() {
+            self.emit_debug_hook_expression_data(n, None);
         }
         n.emit_bytecode(self, dst)
     }
@@ -115,7 +115,7 @@ impl BytecodeGenerator {
     pub fn emit_node_expression_no_dst(
         &mut self,
         n: &crate::parser::nodes::Expression,
-    ) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_node_expression(None, n)
     }
 
@@ -123,7 +123,7 @@ impl BytecodeGenerator {
     pub fn emit_node_in_tail_position_expression_no_dst(
         &mut self,
         n: &crate::parser::nodes::Expression,
-    ) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_node_in_tail_position_expression(None, n)
     }
 
@@ -131,21 +131,22 @@ impl BytecodeGenerator {
     pub fn emit_define_class_elements(
         &mut self,
         n: &crate::parser::nodes::NodeRef<crate::parser::nodes::PropertyListNode>,
-        constructor: &std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>,
-        prototype: &std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>,
+        constructor: &crate::bytecompiler::bytecode_generator::RegisterRef,
+        prototype: &crate::bytecompiler::bytecode_generator::RegisterRef,
         instance_element_definitions: &mut Vec<crate::bytecode::unlinked_function_executable::ClassElementDefinition>,
         static_element_definitions: &mut Vec<crate::bytecode::unlinked_function_executable::ClassElementDefinition>,
-    ) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         if !self.vm.is_safe_to_recurse() {
             return self.emit_throw_expression_too_deep_exception();
         }
         if n.borrow().needs_debug_hook() {
-            self.emit_debug_hook_property_list(n);
+            self.emit_debug_hook_expression_data(&crate::parser::nodes::Expression::PropertyList(n.clone()), None);
         }
-        n.borrow().emit_bytecode_class_elements(
+        crate::parser::nodes::PropertyListNode::emit_bytecode(
+            n,
             self,
-            constructor.clone(),
-            prototype.clone(),
+            Some(constructor.clone()),
+            Some(prototype.clone()),
             Some(instance_element_definitions),
             Some(static_element_definitions),
         )
@@ -154,13 +155,13 @@ impl BytecodeGenerator {
     // BytecodeGenerator.h:596
     pub fn emit_node_for_property_dst(
         &mut self,
-        dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
+        dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         node: &crate::parser::nodes::Expression,
-    ) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         if node.is_string() {
             if let crate::parser::nodes::Expression::String(string_node) = node {
-                if let Some(index) = crate::runtime::identifier::parse_index_identifier(string_node.borrow().value()) {
-                    return self.emit_load_js_value(dst, crate::runtime::js_value::js_number_u32(index));
+                if let Some(index) = crate::runtime::identifier::parse_index_identifier(&string_node.borrow().value) {
+                    return self.emit_load_js_value(dst, crate::runtime::js_value::JSValue::from_u32(index));
                 }
             }
         }
@@ -171,7 +172,7 @@ impl BytecodeGenerator {
     pub fn emit_node_for_property(
         &mut self,
         n: &crate::parser::nodes::Expression,
-    ) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_node_for_property_dst(None, n)
     }
 
@@ -179,8 +180,8 @@ impl BytecodeGenerator {
     pub fn emit_node_in_condition_context(
         &mut self,
         n: &crate::parser::nodes::Expression,
-        true_target: &mut crate::bytecompiler::label::Label,
-        false_target: &mut crate::bytecompiler::label::Label,
+        true_target: &crate::bytecompiler::label::LabelRef,
+        false_target: &crate::bytecompiler::label::LabelRef,
         fall_through_mode: crate::parser::nodes::FallThroughMode,
     ) {
         if !self.vm.is_safe_to_recurse() {
@@ -199,15 +200,15 @@ impl BytecodeGenerator {
     ) {
         // Não emite expression info se os dados puderem causar uma falha depois. Nesse caso só se usa
         // a informação errada numa mensagem de erro, sem falhar.
-        if !divot.is_valid() || !divot_start.is_valid() || !divot_end.is_valid() {
+        if !divot.is_set() || !divot_start.is_set() || !divot_end.is_set() {
             return;
         }
 
-        if self.is_private_builtin_function() {
+        if self.is_builtin_function() {
             return;
         }
-        let source_offset = self.scope_node.borrow().source().start_offset();
-        let first_line = self.scope_node.borrow().source().first_line().one_based_int() as u32;
+        let source_offset = self.scope_node.borrow().source.start_offset() as u32;
+        let first_line = self.scope_node.borrow().source.first_line().one_based_int() as u32;
 
         let divot_offset = (divot.offset as u32).wrapping_sub(source_offset);
         let start_offset = (divot.offset as u32).wrapping_sub(divot_start.offset as u32);
@@ -229,7 +230,7 @@ impl BytecodeGenerator {
 
         let column = divot_offset - line_start;
 
-        let instruction_offset = self.instructions().len() as u32;
+        let instruction_offset = self.instructions().size_in_bytes() as u32;
         self.code_block.add_expression_info(
             instruction_offset,
             divot_offset,
@@ -251,7 +252,7 @@ impl BytecodeGenerator {
         n: &crate::parser::nodes::Expression,
         right_has_assignments: bool,
         right_is_pure: bool,
-    ) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         if self.left_hand_side_needs_copy(right_has_assignments, right_is_pure) {
             let dst = self.new_temporary();
             self.emit_node_expression(Some(dst.clone()), n);
@@ -267,7 +268,7 @@ impl BytecodeGenerator {
         n: &crate::parser::nodes::Expression,
         right_has_assignments: bool,
         right_is_pure: bool,
-    ) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         if self.left_hand_side_needs_copy(right_has_assignments, right_is_pure) {
             let dst = self.new_temporary();
             self.emit_node_for_property_dst(Some(dst.clone()), n);
@@ -324,9 +325,9 @@ impl BytecodeGenerator {
     // BytecodeGenerator.h:719 a 727: template<UnaryOp> requires (opcodeID != op_negate)
     pub fn emit_unary_op<U: crate::bytecode::bytecode_ops::UnaryOpcode>(
         &mut self,
-        dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
-        src: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
-    ) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+        dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
+        src: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
+    ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         if U::OPCODE_ID == crate::bytecode::opcode::OpcodeID::op_unsigned {
             let profile = self.code_block.add_unary_arith_profile();
             U::emit_with_profile(self, dst.clone(), src, profile);
@@ -342,11 +343,11 @@ impl BytecodeGenerator {
     // BytecodeGenerator.h:731 a 742
     pub fn emit_binary_op<B: crate::bytecode::bytecode_ops::BinaryOpcode>(
         &mut self,
-        dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
-        src1: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
-        src2: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
+        dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
+        src1: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
+        src2: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         types: crate::parser::result_type::OperandTypes,
-    ) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         use crate::bytecode::opcode::OpcodeID;
         let id = B::OPCODE_ID;
         if id == OpcodeID::op_add
@@ -374,10 +375,10 @@ impl BytecodeGenerator {
     // BytecodeGenerator.h:746 a 752: template<EqOp>
     pub fn emit_equality_op<E: crate::bytecode::bytecode_ops::BinaryOpcode>(
         &mut self,
-        dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
-        src1: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
-        src2: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
-    ) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+        dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
+        src1: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
+        src2: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
+    ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         // static_assert(EqOp::opcodeID == op_eq || EqOp::opcodeID == op_stricteq)
         if !self.emit_equality_op_impl(dst.clone(), src1.clone(), src2.clone()) {
             E::emit(self, dst.clone(), src1, src2);
@@ -459,12 +460,12 @@ impl BytecodeGenerator {
     pub fn emit_direct_set_prototype_of(
         &mut self,
         mode: crate::bytecompiler::bytecode_generator::InvalidPrototypeMode,
-        base: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
-        prototype: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
+        base: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
+        prototype: Option<crate::bytecompiler::bytecode_generator::RegisterRef>,
         divot: &crate::parser::parser_tokens::JSTextPosition,
         divot_start: &crate::parser::parser_tokens::JSTextPosition,
         divot_end: &crate::parser::parser_tokens::JSTextPosition,
-    ) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         let set_prototype_direct = self.move_link_time_constant(
             None,
             if mode == crate::bytecompiler::bytecode_generator::InvalidPrototypeMode::Throw {
@@ -476,9 +477,9 @@ impl BytecodeGenerator {
 
         let mut args = crate::bytecompiler::bytecode_generator::CallArguments::new(self, None, 1);
         let this_register = args.this_register();
-        self.r#move(this_register, base.clone());
+        self.move_register(this_register.as_ref(), base.as_ref().unwrap());
         let argument_register = args.argument_register(0);
-        self.r#move(argument_register, prototype);
+        self.move_register(argument_register.as_ref(), prototype.as_ref().unwrap());
 
         let temporary = self.new_temporary();
         self.emit_call_ignore_result(
@@ -602,62 +603,62 @@ impl BytecodeGenerator {
     // pub fn emit_is_cell_with_type(&mut self, dst, src, js_type: JSType) -> Option<..>;  // .cpp
 
     // BytecodeGenerator.h:960 a 971, 987 a 989: um forwarder de uma linha no C++, mantido porque cada um fixa o JSType
-    pub fn emit_is_generator(&mut self, dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>, src: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    pub fn emit_is_generator(&mut self, dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>, src: &crate::bytecompiler::bytecode_generator::RegisterRef) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_is_cell_with_type(dst, src, crate::runtime::js_type::JSType::JSGeneratorType)
     }
-    pub fn emit_is_iterator_helper(&mut self, dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>, src: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    pub fn emit_is_iterator_helper(&mut self, dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>, src: &crate::bytecompiler::bytecode_generator::RegisterRef) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_is_cell_with_type(dst, src, crate::runtime::js_type::JSType::JSIteratorHelperType)
     }
-    pub fn emit_is_js_array(&mut self, dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>, src: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    pub fn emit_is_js_array(&mut self, dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>, src: &crate::bytecompiler::bytecode_generator::RegisterRef) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_is_cell_with_type(dst, src, crate::runtime::js_type::JSType::ArrayType)
     }
-    pub fn emit_is_promise(&mut self, dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>, src: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    pub fn emit_is_promise(&mut self, dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>, src: &crate::bytecompiler::bytecode_generator::RegisterRef) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_is_cell_with_type(dst, src, crate::runtime::js_type::JSType::JSPromiseType)
     }
-    pub fn emit_is_proxy_object(&mut self, dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>, src: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    pub fn emit_is_proxy_object(&mut self, dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>, src: &crate::bytecompiler::bytecode_generator::RegisterRef) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_is_cell_with_type(dst, src, crate::runtime::js_type::JSType::ProxyObjectType)
     }
-    pub fn emit_is_reg_exp_object(&mut self, dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>, src: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    pub fn emit_is_reg_exp_object(&mut self, dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>, src: &crate::bytecompiler::bytecode_generator::RegisterRef) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_is_cell_with_type(dst, src, crate::runtime::js_type::JSType::RegExpObjectType)
     }
-    pub fn emit_is_map(&mut self, dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>, src: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    pub fn emit_is_map(&mut self, dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>, src: &crate::bytecompiler::bytecode_generator::RegisterRef) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_is_cell_with_type(dst, src, crate::runtime::js_type::JSType::JSMapType)
     }
-    pub fn emit_is_set(&mut self, dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>, src: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    pub fn emit_is_set(&mut self, dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>, src: &crate::bytecompiler::bytecode_generator::RegisterRef) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_is_cell_with_type(dst, src, crate::runtime::js_type::JSType::JSSetType)
     }
-    pub fn emit_is_shadow_realm(&mut self, dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>, src: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    pub fn emit_is_shadow_realm(&mut self, dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>, src: &crate::bytecompiler::bytecode_generator::RegisterRef) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_is_cell_with_type(dst, src, crate::runtime::js_type::JSType::ShadowRealmType)
     }
-    pub fn emit_is_array_iterator(&mut self, dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>, src: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    pub fn emit_is_array_iterator(&mut self, dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>, src: &crate::bytecompiler::bytecode_generator::RegisterRef) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_is_cell_with_type(dst, src, crate::runtime::js_type::JSType::JSArrayIteratorType)
     }
-    pub fn emit_is_wrap_for_valid_iterator(&mut self, dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>, src: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    pub fn emit_is_wrap_for_valid_iterator(&mut self, dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>, src: &crate::bytecompiler::bytecode_generator::RegisterRef) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_is_cell_with_type(dst, src, crate::runtime::js_type::JSType::JSWrapForValidIteratorType)
     }
-    pub fn emit_is_reg_exp_string_iterator(&mut self, dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>, src: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    pub fn emit_is_reg_exp_string_iterator(&mut self, dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>, src: &crate::bytecompiler::bytecode_generator::RegisterRef) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_is_cell_with_type(dst, src, crate::runtime::js_type::JSType::JSRegExpStringIteratorType)
     }
     // BytecodeGenerator.h:972 a 975 (.cpp): emit_is_object, emit_is_callable, emit_is_constructor, emit_is_number (dst, src)
     // BytecodeGenerator.h:976
-    pub fn emit_is_null(&mut self, dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>, src: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    pub fn emit_is_null(&mut self, dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>, src: &crate::bytecompiler::bytecode_generator::RegisterRef) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         let null_value = self.emit_load_js_value(None, crate::runtime::js_value::js_null());
-        self.emit_equality_op::<crate::bytecode::bytecode_ops::OpStricteq>(dst, src, null_value)
+        self.emit_equality_op::<crate::bytecode::bytecode_ops::OpStricteq>(dst, Some(src.clone()), null_value)
     }
     // BytecodeGenerator.h:977
-    pub fn emit_is_undefined(&mut self, dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>, src: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    pub fn emit_is_undefined(&mut self, dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>, src: &crate::bytecompiler::bytecode_generator::RegisterRef) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         let undefined_value = self.emit_load_js_value(None, crate::runtime::js_value::js_undefined());
-        self.emit_equality_op::<crate::bytecode::bytecode_ops::OpStricteq>(dst, src, undefined_value)
+        self.emit_equality_op::<crate::bytecode::bytecode_ops::OpStricteq>(dst, Some(src.clone()), undefined_value)
     }
     // BytecodeGenerator.h:978 e 979 (.cpp): emit_is_undefined_or_null(dst, src), emit_is_empty(dst, src)
     // BytecodeGenerator.h:980
-    pub fn emit_is_derived_array(&mut self, dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>, src: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    pub fn emit_is_derived_array(&mut self, dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>, src: &crate::bytecompiler::bytecode_generator::RegisterRef) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_is_cell_with_type(dst, src, crate::runtime::js_type::JSType::DerivedArrayType)
     }
-    pub fn emit_is_disposable_stack(&mut self, dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>, src: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    pub fn emit_is_disposable_stack(&mut self, dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>, src: &crate::bytecompiler::bytecode_generator::RegisterRef) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_is_cell_with_type(dst, src, crate::runtime::js_type::JSType::DisposableStackType)
     }
-    pub fn emit_is_async_disposable_stack(&mut self, dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>, src: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    pub fn emit_is_async_disposable_stack(&mut self, dst: Option<crate::bytecompiler::bytecode_generator::RegisterRef>, src: &crate::bytecompiler::bytecode_generator::RegisterRef) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         self.emit_is_cell_with_type(dst, src, crate::runtime::js_type::JSType::AsyncDisposableStackType)
     }
     // BytecodeGenerator.h:983 e 984 (.cpp)

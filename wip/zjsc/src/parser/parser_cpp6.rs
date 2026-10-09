@@ -586,6 +586,7 @@ impl<T: CharType> Parser<T> {
         if context.is_import_meta(expr) {
             return "import.meta";
         }
+        // Invariante: só é chamada com a expressão de uma meta-propriedade (new.target ou import.meta).
         unreachable!()
     }
 

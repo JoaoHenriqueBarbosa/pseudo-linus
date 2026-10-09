@@ -283,7 +283,7 @@ impl<T: CharType> Parser<T> {
             if !self.scope_stack[current].has_containing_scope() || self.scope_stack[current].is_static_block_boundary() {
                 return false;
             }
-            current = self.scope_stack[current].containing_scope().expect("containingScope nulo");
+            current = self.scope_stack[current].containing_scope().expect("containingScope nulo"); // Invariante: o laço só sobe enquanto o escopo não é o da raiz, que sempre tem pai.
         }
         true
     }
@@ -294,7 +294,7 @@ impl<T: CharType> Parser<T> {
             if !self.scope_stack[current].has_containing_scope() || self.scope_stack[current].is_static_block_boundary() {
                 return false;
             }
-            current = self.scope_stack[current].containing_scope().expect("containingScope nulo");
+            current = self.scope_stack[current].containing_scope().expect("containingScope nulo"); // Invariante: o laço só sobe enquanto o escopo não é o da raiz, que sempre tem pai.
         }
         true
     }
@@ -318,7 +318,7 @@ impl<T: CharType> Parser<T> {
             if !self.scope_stack[current].has_containing_scope() {
                 return None;
             }
-            current = self.scope_stack[current].containing_scope().expect("containingScope nulo");
+            current = self.scope_stack[current].containing_scope().expect("containingScope nulo"); // Invariante: o laço só sobe enquanto o escopo não é o da raiz, que sempre tem pai.
         }
     }
 
@@ -344,10 +344,6 @@ impl<T: CharType> Parser<T> {
             return true;
         }
         self.allow_automatic_semicolon()
-    }
-
-    fn can_recurse(&self) -> bool {
-        self.vm.is_safe_to_recurse()
     }
 
     fn last_token_end_position(&self) -> JSTextPosition {
@@ -745,7 +741,7 @@ fn parse_with_char_type<T: CharType, P: ParsedNode>(
     if log_builtin_errors && builtin_mode == JSParserBuiltinMode::Builtin && result.is_none() {
         debug_assert!(error.is_valid());
         if error.type_() != ErrorType::StackOverflow {
-            eprintln!("Unexpected error compiling builtin: {} on line {} for function {}.", String::from_utf8_lossy(&error.message().utf8(crate::wtf::text::wtf_string::ConversionMode::LenientConversion)), error.line(), String::from_utf8_lossy(&name.utf8()));
+            eprintln!("Unexpected error compiling builtin: {} on line {} for function {}.", String::from_utf8_lossy(&error.message().utf8(crate::wtf::text::conversion_mode::ConversionMode::LenientConversion)), error.line(), String::from_utf8_lossy(&name.utf8()));
         }
     }
     result

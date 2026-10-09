@@ -278,6 +278,7 @@ impl ASTBuilder {
             t::DIVIDE => self.make_div_node(location, left, right, has_assignment),
             t::MOD => self.make_mod_node(location, left, right, has_assignment),
             t::POW => self.make_pow_node(location, left, right, has_assignment),
+            // Invariante: o parser só entrega tokens da tabela de precedência binária (CRASH() no C++).
             _ => panic!("CRASH: operador binário desconhecido"),
         };
         Some(node)

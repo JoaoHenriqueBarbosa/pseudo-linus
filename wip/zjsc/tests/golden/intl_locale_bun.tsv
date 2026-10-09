@@ -1,0 +1,1900 @@
+new Intl.NumberFormat("ar-u-nu-latn").resolvedOptions().locale	ar-u-nu-latn
+new Intl.DateTimeFormat("ar-u-nu-latn").resolvedOptions().locale	ar-u-nu-latn
+new Intl.Collator("ar-u-nu-latn").resolvedOptions().locale	ar
+new Intl.PluralRules("ar-u-nu-latn").resolvedOptions().locale	ar
+new Intl.ListFormat("ar-u-nu-latn").resolvedOptions().locale	ar
+new Intl.RelativeTimeFormat("ar-u-nu-latn").resolvedOptions().locale	ar-u-nu-latn
+new Intl.NumberFormat("ar-u-nu-latn").resolvedOptions().numberingSystem	latn
+new Intl.DateTimeFormat("ar-u-nu-latn").resolvedOptions().calendar	gregory
+new Intl.DateTimeFormat("ar-u-nu-latn").resolvedOptions().hourCycle	undefined
+new Intl.Collator("ar-u-nu-latn").resolvedOptions().collation	default
+new Intl.Collator("ar-u-nu-latn").resolvedOptions().numeric	false
+new Intl.Collator("ar-u-nu-latn").resolvedOptions().caseFirst	false
+new Intl.NumberFormat("th-u-ca-buddhist").resolvedOptions().locale	th
+new Intl.DateTimeFormat("th-u-ca-buddhist").resolvedOptions().locale	th-u-ca-buddhist
+new Intl.Collator("th-u-ca-buddhist").resolvedOptions().locale	th
+new Intl.PluralRules("th-u-ca-buddhist").resolvedOptions().locale	th
+new Intl.ListFormat("th-u-ca-buddhist").resolvedOptions().locale	th
+new Intl.RelativeTimeFormat("th-u-ca-buddhist").resolvedOptions().locale	th
+new Intl.NumberFormat("th-u-ca-buddhist").resolvedOptions().numberingSystem	latn
+new Intl.DateTimeFormat("th-u-ca-buddhist").resolvedOptions().calendar	buddhist
+new Intl.DateTimeFormat("th-u-ca-buddhist").resolvedOptions().hourCycle	undefined
+new Intl.Collator("th-u-ca-buddhist").resolvedOptions().collation	default
+new Intl.Collator("th-u-ca-buddhist").resolvedOptions().numeric	false
+new Intl.Collator("th-u-ca-buddhist").resolvedOptions().caseFirst	false
+new Intl.NumberFormat("ja-u-ca-japanese").resolvedOptions().locale	ja
+new Intl.DateTimeFormat("ja-u-ca-japanese").resolvedOptions().locale	ja-u-ca-japanese
+new Intl.Collator("ja-u-ca-japanese").resolvedOptions().locale	ja
+new Intl.PluralRules("ja-u-ca-japanese").resolvedOptions().locale	ja
+new Intl.ListFormat("ja-u-ca-japanese").resolvedOptions().locale	ja
+new Intl.RelativeTimeFormat("ja-u-ca-japanese").resolvedOptions().locale	ja
+new Intl.NumberFormat("ja-u-ca-japanese").resolvedOptions().numberingSystem	latn
+new Intl.DateTimeFormat("ja-u-ca-japanese").resolvedOptions().calendar	japanese
+new Intl.DateTimeFormat("ja-u-ca-japanese").resolvedOptions().hourCycle	undefined
+new Intl.Collator("ja-u-ca-japanese").resolvedOptions().collation	default
+new Intl.Collator("ja-u-ca-japanese").resolvedOptions().numeric	false
+new Intl.Collator("ja-u-ca-japanese").resolvedOptions().caseFirst	false
+new Intl.NumberFormat("zh-u-ca-chinese").resolvedOptions().locale	zh
+new Intl.DateTimeFormat("zh-u-ca-chinese").resolvedOptions().locale	zh-u-ca-chinese
+new Intl.Collator("zh-u-ca-chinese").resolvedOptions().locale	zh
+new Intl.PluralRules("zh-u-ca-chinese").resolvedOptions().locale	zh
+new Intl.ListFormat("zh-u-ca-chinese").resolvedOptions().locale	zh
+new Intl.RelativeTimeFormat("zh-u-ca-chinese").resolvedOptions().locale	zh
+new Intl.NumberFormat("zh-u-ca-chinese").resolvedOptions().numberingSystem	latn
+new Intl.DateTimeFormat("zh-u-ca-chinese").resolvedOptions().calendar	chinese
+new Intl.DateTimeFormat("zh-u-ca-chinese").resolvedOptions().hourCycle	undefined
+new Intl.Collator("zh-u-ca-chinese").resolvedOptions().collation	default
+new Intl.Collator("zh-u-ca-chinese").resolvedOptions().numeric	false
+new Intl.Collator("zh-u-ca-chinese").resolvedOptions().caseFirst	false
+new Intl.NumberFormat("hi-IN-u-nu-deva").resolvedOptions().locale	hi-IN-u-nu-deva
+new Intl.DateTimeFormat("hi-IN-u-nu-deva").resolvedOptions().locale	hi-IN-u-nu-deva
+new Intl.Collator("hi-IN-u-nu-deva").resolvedOptions().locale	hi
+new Intl.PluralRules("hi-IN-u-nu-deva").resolvedOptions().locale	hi-IN
+new Intl.ListFormat("hi-IN-u-nu-deva").resolvedOptions().locale	hi-IN
+new Intl.RelativeTimeFormat("hi-IN-u-nu-deva").resolvedOptions().locale	hi-IN-u-nu-deva
+new Intl.NumberFormat("hi-IN-u-nu-deva").resolvedOptions().numberingSystem	deva
+new Intl.DateTimeFormat("hi-IN-u-nu-deva").resolvedOptions().calendar	gregory
+new Intl.DateTimeFormat("hi-IN-u-nu-deva").resolvedOptions().hourCycle	undefined
+new Intl.Collator("hi-IN-u-nu-deva").resolvedOptions().collation	default
+new Intl.Collator("hi-IN-u-nu-deva").resolvedOptions().numeric	false
+new Intl.Collator("hi-IN-u-nu-deva").resolvedOptions().caseFirst	false
+new Intl.NumberFormat("de-u-co-phonebk").resolvedOptions().locale	de
+new Intl.DateTimeFormat("de-u-co-phonebk").resolvedOptions().locale	de
+new Intl.Collator("de-u-co-phonebk").resolvedOptions().locale	de-u-co-phonebk
+new Intl.PluralRules("de-u-co-phonebk").resolvedOptions().locale	de
+new Intl.ListFormat("de-u-co-phonebk").resolvedOptions().locale	de
+new Intl.RelativeTimeFormat("de-u-co-phonebk").resolvedOptions().locale	de
+new Intl.NumberFormat("de-u-co-phonebk").resolvedOptions().numberingSystem	latn
+new Intl.DateTimeFormat("de-u-co-phonebk").resolvedOptions().calendar	gregory
+new Intl.DateTimeFormat("de-u-co-phonebk").resolvedOptions().hourCycle	undefined
+new Intl.Collator("de-u-co-phonebk").resolvedOptions().collation	phonebk
+new Intl.Collator("de-u-co-phonebk").resolvedOptions().numeric	false
+new Intl.Collator("de-u-co-phonebk").resolvedOptions().caseFirst	false
+new Intl.NumberFormat("sv-u-kf-upper").resolvedOptions().locale	sv
+new Intl.DateTimeFormat("sv-u-kf-upper").resolvedOptions().locale	sv
+new Intl.Collator("sv-u-kf-upper").resolvedOptions().locale	sv-u-kf-upper
+new Intl.PluralRules("sv-u-kf-upper").resolvedOptions().locale	sv
+new Intl.ListFormat("sv-u-kf-upper").resolvedOptions().locale	sv
+new Intl.RelativeTimeFormat("sv-u-kf-upper").resolvedOptions().locale	sv
+new Intl.NumberFormat("sv-u-kf-upper").resolvedOptions().numberingSystem	latn
+new Intl.DateTimeFormat("sv-u-kf-upper").resolvedOptions().calendar	gregory
+new Intl.DateTimeFormat("sv-u-kf-upper").resolvedOptions().hourCycle	undefined
+new Intl.Collator("sv-u-kf-upper").resolvedOptions().collation	default
+new Intl.Collator("sv-u-kf-upper").resolvedOptions().numeric	false
+new Intl.Collator("sv-u-kf-upper").resolvedOptions().caseFirst	upper
+new Intl.NumberFormat("en-u-hc-h23").resolvedOptions().locale	en
+new Intl.DateTimeFormat("en-u-hc-h23").resolvedOptions().locale	en-u-hc-h23
+new Intl.Collator("en-u-hc-h23").resolvedOptions().locale	en
+new Intl.PluralRules("en-u-hc-h23").resolvedOptions().locale	en
+new Intl.ListFormat("en-u-hc-h23").resolvedOptions().locale	en
+new Intl.RelativeTimeFormat("en-u-hc-h23").resolvedOptions().locale	en
+new Intl.NumberFormat("en-u-hc-h23").resolvedOptions().numberingSystem	latn
+new Intl.DateTimeFormat("en-u-hc-h23").resolvedOptions().calendar	gregory
+new Intl.DateTimeFormat("en-u-hc-h23").resolvedOptions().hourCycle	undefined
+new Intl.Collator("en-u-hc-h23").resolvedOptions().collation	default
+new Intl.Collator("en-u-hc-h23").resolvedOptions().numeric	false
+new Intl.Collator("en-u-hc-h23").resolvedOptions().caseFirst	false
+new Intl.NumberFormat("en-US-u-hc-h12").resolvedOptions().locale	en-US
+new Intl.DateTimeFormat("en-US-u-hc-h12").resolvedOptions().locale	en-US-u-hc-h12
+new Intl.Collator("en-US-u-hc-h12").resolvedOptions().locale	en-US
+new Intl.PluralRules("en-US-u-hc-h12").resolvedOptions().locale	en-US
+new Intl.ListFormat("en-US-u-hc-h12").resolvedOptions().locale	en-US
+new Intl.RelativeTimeFormat("en-US-u-hc-h12").resolvedOptions().locale	en-US
+new Intl.NumberFormat("en-US-u-hc-h12").resolvedOptions().numberingSystem	latn
+new Intl.DateTimeFormat("en-US-u-hc-h12").resolvedOptions().calendar	gregory
+new Intl.DateTimeFormat("en-US-u-hc-h12").resolvedOptions().hourCycle	undefined
+new Intl.Collator("en-US-u-hc-h12").resolvedOptions().collation	default
+new Intl.Collator("en-US-u-hc-h12").resolvedOptions().numeric	false
+new Intl.Collator("en-US-u-hc-h12").resolvedOptions().caseFirst	false
+new Intl.NumberFormat("pt-BR-u-nu-arab").resolvedOptions().locale	pt-BR-u-nu-arab
+new Intl.DateTimeFormat("pt-BR-u-nu-arab").resolvedOptions().locale	pt-BR-u-nu-arab
+new Intl.Collator("pt-BR-u-nu-arab").resolvedOptions().locale	pt
+new Intl.PluralRules("pt-BR-u-nu-arab").resolvedOptions().locale	pt-BR
+new Intl.ListFormat("pt-BR-u-nu-arab").resolvedOptions().locale	pt-BR
+new Intl.RelativeTimeFormat("pt-BR-u-nu-arab").resolvedOptions().locale	pt-BR-u-nu-arab
+new Intl.NumberFormat("pt-BR-u-nu-arab").resolvedOptions().numberingSystem	arab
+new Intl.DateTimeFormat("pt-BR-u-nu-arab").resolvedOptions().calendar	gregory
+new Intl.DateTimeFormat("pt-BR-u-nu-arab").resolvedOptions().hourCycle	undefined
+new Intl.Collator("pt-BR-u-nu-arab").resolvedOptions().collation	default
+new Intl.Collator("pt-BR-u-nu-arab").resolvedOptions().numeric	false
+new Intl.Collator("pt-BR-u-nu-arab").resolvedOptions().caseFirst	false
+new Intl.NumberFormat("ar-EG-u-nu-latn").resolvedOptions().locale	ar-EG-u-nu-latn
+new Intl.DateTimeFormat("ar-EG-u-nu-latn").resolvedOptions().locale	ar-EG-u-nu-latn
+new Intl.Collator("ar-EG-u-nu-latn").resolvedOptions().locale	ar
+new Intl.PluralRules("ar-EG-u-nu-latn").resolvedOptions().locale	ar-EG
+new Intl.ListFormat("ar-EG-u-nu-latn").resolvedOptions().locale	ar-EG
+new Intl.RelativeTimeFormat("ar-EG-u-nu-latn").resolvedOptions().locale	ar-EG-u-nu-latn
+new Intl.NumberFormat("ar-EG-u-nu-latn").resolvedOptions().numberingSystem	latn
+new Intl.DateTimeFormat("ar-EG-u-nu-latn").resolvedOptions().calendar	gregory
+new Intl.DateTimeFormat("ar-EG-u-nu-latn").resolvedOptions().hourCycle	undefined
+new Intl.Collator("ar-EG-u-nu-latn").resolvedOptions().collation	default
+new Intl.Collator("ar-EG-u-nu-latn").resolvedOptions().numeric	false
+new Intl.Collator("ar-EG-u-nu-latn").resolvedOptions().caseFirst	false
+new Intl.NumberFormat("fa-u-ca-persian").resolvedOptions().locale	fa
+new Intl.DateTimeFormat("fa-u-ca-persian").resolvedOptions().locale	fa-u-ca-persian
+new Intl.Collator("fa-u-ca-persian").resolvedOptions().locale	fa
+new Intl.PluralRules("fa-u-ca-persian").resolvedOptions().locale	fa
+new Intl.ListFormat("fa-u-ca-persian").resolvedOptions().locale	fa
+new Intl.RelativeTimeFormat("fa-u-ca-persian").resolvedOptions().locale	fa
+new Intl.NumberFormat("fa-u-ca-persian").resolvedOptions().numberingSystem	arabext
+new Intl.DateTimeFormat("fa-u-ca-persian").resolvedOptions().calendar	persian
+new Intl.DateTimeFormat("fa-u-ca-persian").resolvedOptions().hourCycle	undefined
+new Intl.Collator("fa-u-ca-persian").resolvedOptions().collation	default
+new Intl.Collator("fa-u-ca-persian").resolvedOptions().numeric	false
+new Intl.Collator("fa-u-ca-persian").resolvedOptions().caseFirst	false
+new Intl.NumberFormat("he-u-ca-hebrew").resolvedOptions().locale	he
+new Intl.DateTimeFormat("he-u-ca-hebrew").resolvedOptions().locale	he-u-ca-hebrew
+new Intl.Collator("he-u-ca-hebrew").resolvedOptions().locale	he
+new Intl.PluralRules("he-u-ca-hebrew").resolvedOptions().locale	he
+new Intl.ListFormat("he-u-ca-hebrew").resolvedOptions().locale	he
+new Intl.RelativeTimeFormat("he-u-ca-hebrew").resolvedOptions().locale	he
+new Intl.NumberFormat("he-u-ca-hebrew").resolvedOptions().numberingSystem	latn
+new Intl.DateTimeFormat("he-u-ca-hebrew").resolvedOptions().calendar	hebrew
+new Intl.DateTimeFormat("he-u-ca-hebrew").resolvedOptions().hourCycle	undefined
+new Intl.Collator("he-u-ca-hebrew").resolvedOptions().collation	default
+new Intl.Collator("he-u-ca-hebrew").resolvedOptions().numeric	false
+new Intl.Collator("he-u-ca-hebrew").resolvedOptions().caseFirst	false
+new Intl.NumberFormat("en-u-kn").resolvedOptions().locale	en
+new Intl.DateTimeFormat("en-u-kn").resolvedOptions().locale	en
+new Intl.Collator("en-u-kn").resolvedOptions().locale	en-u-kn
+new Intl.PluralRules("en-u-kn").resolvedOptions().locale	en
+new Intl.ListFormat("en-u-kn").resolvedOptions().locale	en
+new Intl.RelativeTimeFormat("en-u-kn").resolvedOptions().locale	en
+new Intl.NumberFormat("en-u-kn").resolvedOptions().numberingSystem	latn
+new Intl.DateTimeFormat("en-u-kn").resolvedOptions().calendar	gregory
+new Intl.DateTimeFormat("en-u-kn").resolvedOptions().hourCycle	undefined
+new Intl.Collator("en-u-kn").resolvedOptions().collation	default
+new Intl.Collator("en-u-kn").resolvedOptions().numeric	true
+new Intl.Collator("en-u-kn").resolvedOptions().caseFirst	false
+new Intl.NumberFormat("en-u-kn-false").resolvedOptions().locale	en
+new Intl.DateTimeFormat("en-u-kn-false").resolvedOptions().locale	en
+new Intl.Collator("en-u-kn-false").resolvedOptions().locale	en-u-kn-false
+new Intl.PluralRules("en-u-kn-false").resolvedOptions().locale	en
+new Intl.ListFormat("en-u-kn-false").resolvedOptions().locale	en
+new Intl.RelativeTimeFormat("en-u-kn-false").resolvedOptions().locale	en
+new Intl.NumberFormat("en-u-kn-false").resolvedOptions().numberingSystem	latn
+new Intl.DateTimeFormat("en-u-kn-false").resolvedOptions().calendar	gregory
+new Intl.DateTimeFormat("en-u-kn-false").resolvedOptions().hourCycle	undefined
+new Intl.Collator("en-u-kn-false").resolvedOptions().collation	default
+new Intl.Collator("en-u-kn-false").resolvedOptions().numeric	false
+new Intl.Collator("en-u-kn-false").resolvedOptions().caseFirst	false
+new Intl.NumberFormat("es-u-co-trad").resolvedOptions().locale	es
+new Intl.DateTimeFormat("es-u-co-trad").resolvedOptions().locale	es
+new Intl.Collator("es-u-co-trad").resolvedOptions().locale	es-u-co-trad
+new Intl.PluralRules("es-u-co-trad").resolvedOptions().locale	es
+new Intl.ListFormat("es-u-co-trad").resolvedOptions().locale	es
+new Intl.RelativeTimeFormat("es-u-co-trad").resolvedOptions().locale	es
+new Intl.NumberFormat("es-u-co-trad").resolvedOptions().numberingSystem	latn
+new Intl.DateTimeFormat("es-u-co-trad").resolvedOptions().calendar	gregory
+new Intl.DateTimeFormat("es-u-co-trad").resolvedOptions().hourCycle	undefined
+new Intl.Collator("es-u-co-trad").resolvedOptions().collation	trad
+new Intl.Collator("es-u-co-trad").resolvedOptions().numeric	false
+new Intl.Collator("es-u-co-trad").resolvedOptions().caseFirst	false
+new Intl.NumberFormat("zh-u-co-pinyin").resolvedOptions().locale	zh
+new Intl.DateTimeFormat("zh-u-co-pinyin").resolvedOptions().locale	zh
+new Intl.Collator("zh-u-co-pinyin").resolvedOptions().locale	zh-u-co-pinyin
+new Intl.PluralRules("zh-u-co-pinyin").resolvedOptions().locale	zh
+new Intl.ListFormat("zh-u-co-pinyin").resolvedOptions().locale	zh
+new Intl.RelativeTimeFormat("zh-u-co-pinyin").resolvedOptions().locale	zh
+new Intl.NumberFormat("zh-u-co-pinyin").resolvedOptions().numberingSystem	latn
+new Intl.DateTimeFormat("zh-u-co-pinyin").resolvedOptions().calendar	gregory
+new Intl.DateTimeFormat("zh-u-co-pinyin").resolvedOptions().hourCycle	undefined
+new Intl.Collator("zh-u-co-pinyin").resolvedOptions().collation	pinyin
+new Intl.Collator("zh-u-co-pinyin").resolvedOptions().numeric	false
+new Intl.Collator("zh-u-co-pinyin").resolvedOptions().caseFirst	false
+new Intl.NumberFormat("de-u-nu-hanidec-ca-gregory").resolvedOptions().locale	de-u-nu-hanidec
+new Intl.DateTimeFormat("de-u-nu-hanidec-ca-gregory").resolvedOptions().locale	de-u-ca-gregory-nu-hanidec
+new Intl.Collator("de-u-nu-hanidec-ca-gregory").resolvedOptions().locale	de
+new Intl.PluralRules("de-u-nu-hanidec-ca-gregory").resolvedOptions().locale	de
+new Intl.ListFormat("de-u-nu-hanidec-ca-gregory").resolvedOptions().locale	de
+new Intl.RelativeTimeFormat("de-u-nu-hanidec-ca-gregory").resolvedOptions().locale	de-u-nu-hanidec
+new Intl.NumberFormat("de-u-nu-hanidec-ca-gregory").resolvedOptions().numberingSystem	hanidec
+new Intl.DateTimeFormat("de-u-nu-hanidec-ca-gregory").resolvedOptions().calendar	gregory
+new Intl.DateTimeFormat("de-u-nu-hanidec-ca-gregory").resolvedOptions().hourCycle	undefined
+new Intl.Collator("de-u-nu-hanidec-ca-gregory").resolvedOptions().collation	default
+new Intl.Collator("de-u-nu-hanidec-ca-gregory").resolvedOptions().numeric	false
+new Intl.Collator("de-u-nu-hanidec-ca-gregory").resolvedOptions().caseFirst	false
+new Intl.NumberFormat("en-u-foo-bar").resolvedOptions().locale	en
+new Intl.DateTimeFormat("en-u-foo-bar").resolvedOptions().locale	en
+new Intl.Collator("en-u-foo-bar").resolvedOptions().locale	en
+new Intl.PluralRules("en-u-foo-bar").resolvedOptions().locale	en
+new Intl.ListFormat("en-u-foo-bar").resolvedOptions().locale	en
+new Intl.RelativeTimeFormat("en-u-foo-bar").resolvedOptions().locale	en
+new Intl.NumberFormat("en-u-foo-bar").resolvedOptions().numberingSystem	latn
+new Intl.DateTimeFormat("en-u-foo-bar").resolvedOptions().calendar	gregory
+new Intl.DateTimeFormat("en-u-foo-bar").resolvedOptions().hourCycle	undefined
+new Intl.Collator("en-u-foo-bar").resolvedOptions().collation	default
+new Intl.Collator("en-u-foo-bar").resolvedOptions().numeric	false
+new Intl.Collator("en-u-foo-bar").resolvedOptions().caseFirst	false
+new Intl.NumberFormat("fr-u-ca-xxxx").resolvedOptions().locale	fr
+new Intl.DateTimeFormat("fr-u-ca-xxxx").resolvedOptions().locale	fr
+new Intl.Collator("fr-u-ca-xxxx").resolvedOptions().locale	fr
+new Intl.PluralRules("fr-u-ca-xxxx").resolvedOptions().locale	fr
+new Intl.ListFormat("fr-u-ca-xxxx").resolvedOptions().locale	fr
+new Intl.RelativeTimeFormat("fr-u-ca-xxxx").resolvedOptions().locale	fr
+new Intl.NumberFormat("fr-u-ca-xxxx").resolvedOptions().numberingSystem	latn
+new Intl.DateTimeFormat("fr-u-ca-xxxx").resolvedOptions().calendar	gregory
+new Intl.DateTimeFormat("fr-u-ca-xxxx").resolvedOptions().hourCycle	undefined
+new Intl.Collator("fr-u-ca-xxxx").resolvedOptions().collation	default
+new Intl.Collator("fr-u-ca-xxxx").resolvedOptions().numeric	false
+new Intl.Collator("fr-u-ca-xxxx").resolvedOptions().caseFirst	false
+new Intl.NumberFormat("en-u-nu-arab", {"numberingSystem":"latn"}).resolvedOptions().locale	en
+new Intl.NumberFormat("en-u-nu-arab", {"numberingSystem":"latn"}).resolvedOptions().numberingSystem	latn
+new Intl.NumberFormat("en-u-nu-arab", {"numberingSystem":"deva"}).resolvedOptions().locale	en
+new Intl.NumberFormat("en-u-nu-arab", {"numberingSystem":"deva"}).resolvedOptions().numberingSystem	deva
+new Intl.NumberFormat("en", {"numberingSystem":"arab"}).resolvedOptions().locale	en
+new Intl.NumberFormat("en", {"numberingSystem":"arab"}).resolvedOptions().numberingSystem	arab
+new Intl.NumberFormat("en-u-nu-arab", {"numberingSystem":"bogus"}).resolvedOptions().locale	en-u-nu-arab
+new Intl.NumberFormat("en-u-nu-arab", {"numberingSystem":"bogus"}).resolvedOptions().numberingSystem	arab
+new Intl.NumberFormat("en-u-nu-xxxxxxxxx", {}).resolvedOptions().locale	ERR RangeError: invalid language tag: en-u-nu-xxxxxxxxx
+new Intl.NumberFormat("en-u-nu-xxxxxxxxx", {}).resolvedOptions().numberingSystem	ERR RangeError: invalid language tag: en-u-nu-xxxxxxxxx
+new Intl.DateTimeFormat("en-u-ca-buddhist", {"calendar":"japanese"}).resolvedOptions().locale	en
+new Intl.DateTimeFormat("en-u-ca-buddhist", {"calendar":"japanese"}).resolvedOptions().calendar	japanese
+new Intl.DateTimeFormat("en-u-ca-buddhist", {"calendar":"japanese"}).resolvedOptions().hourCycle	undefined
+new Intl.DateTimeFormat("en-u-ca-buddhist", {"calendar":"buddhist"}).resolvedOptions().locale	en-u-ca-buddhist
+new Intl.DateTimeFormat("en-u-ca-buddhist", {"calendar":"buddhist"}).resolvedOptions().calendar	buddhist
+new Intl.DateTimeFormat("en-u-ca-buddhist", {"calendar":"buddhist"}).resolvedOptions().hourCycle	undefined
+new Intl.DateTimeFormat("en-u-hc-h23", {"hourCycle":"h12"}).resolvedOptions().locale	en
+new Intl.DateTimeFormat("en-u-hc-h23", {"hourCycle":"h12"}).resolvedOptions().calendar	gregory
+new Intl.DateTimeFormat("en-u-hc-h23", {"hourCycle":"h12"}).resolvedOptions().hourCycle	undefined
+new Intl.DateTimeFormat("en-u-hc-h23", {"hour12":true}).resolvedOptions().locale	en
+new Intl.DateTimeFormat("en-u-hc-h23", {"hour12":true}).resolvedOptions().calendar	gregory
+new Intl.DateTimeFormat("en-u-hc-h23", {"hour12":true}).resolvedOptions().hourCycle	undefined
+new Intl.DateTimeFormat("en-u-hc-h23", {"hour12":false}).resolvedOptions().locale	en
+new Intl.DateTimeFormat("en-u-hc-h23", {"hour12":false}).resolvedOptions().calendar	gregory
+new Intl.DateTimeFormat("en-u-hc-h23", {"hour12":false}).resolvedOptions().hourCycle	undefined
+new Intl.DateTimeFormat("ja-u-hc-h11", {}).resolvedOptions().locale	ja-u-hc-h11
+new Intl.DateTimeFormat("ja-u-hc-h11", {}).resolvedOptions().calendar	gregory
+new Intl.DateTimeFormat("ja-u-hc-h11", {}).resolvedOptions().hourCycle	undefined
+new Intl.DateTimeFormat("en-u-ca-buddhist-nu-thai", {}).resolvedOptions().locale	en-u-ca-buddhist-nu-thai
+new Intl.DateTimeFormat("en-u-ca-buddhist-nu-thai", {}).resolvedOptions().calendar	buddhist
+new Intl.DateTimeFormat("en-u-ca-buddhist-nu-thai", {}).resolvedOptions().hourCycle	undefined
+new Intl.Collator("sv-u-kf-upper", {"caseFirst":"lower"}).resolvedOptions().locale	sv
+new Intl.Collator("sv-u-kf-upper", {"caseFirst":"lower"}).resolvedOptions().collation	default
+new Intl.Collator("sv-u-kf-upper", {"caseFirst":"lower"}).resolvedOptions().caseFirst	lower
+new Intl.Collator("sv-u-kf-upper", {"caseFirst":"false"}).resolvedOptions().locale	sv
+new Intl.Collator("sv-u-kf-upper", {"caseFirst":"false"}).resolvedOptions().collation	default
+new Intl.Collator("sv-u-kf-upper", {"caseFirst":"false"}).resolvedOptions().caseFirst	false
+new Intl.Collator("en-u-kn", {"numeric":false}).resolvedOptions().locale	en
+new Intl.Collator("en-u-kn", {"numeric":false}).resolvedOptions().collation	default
+new Intl.Collator("en-u-kn", {"numeric":false}).resolvedOptions().caseFirst	false
+new Intl.Collator("en-u-kn-false", {"numeric":true}).resolvedOptions().locale	en
+new Intl.Collator("en-u-kn-false", {"numeric":true}).resolvedOptions().collation	default
+new Intl.Collator("en-u-kn-false", {"numeric":true}).resolvedOptions().caseFirst	false
+new Intl.Collator("de-u-co-phonebk", {"collation":"eor"}).resolvedOptions().locale	de
+new Intl.Collator("de-u-co-phonebk", {"collation":"eor"}).resolvedOptions().collation	eor
+new Intl.Collator("de-u-co-phonebk", {"collation":"eor"}).resolvedOptions().caseFirst	false
+new Intl.Collator("de-u-co-phonebk", {"usage":"search"}).resolvedOptions().locale	de
+new Intl.Collator("de-u-co-phonebk", {"usage":"search"}).resolvedOptions().collation	default
+new Intl.Collator("de-u-co-phonebk", {"usage":"search"}).resolvedOptions().caseFirst	false
+new Intl.Collator("de-u-co-search", {}).resolvedOptions().locale	de
+new Intl.Collator("de-u-co-search", {}).resolvedOptions().collation	default
+new Intl.Collator("de-u-co-search", {}).resolvedOptions().caseFirst	false
+new Intl.Collator("de-u-co-standard", {}).resolvedOptions().locale	de
+new Intl.Collator("de-u-co-standard", {}).resolvedOptions().collation	default
+new Intl.Collator("de-u-co-standard", {}).resolvedOptions().caseFirst	false
+new Intl.Collator("en-u-co-emoji", {}).resolvedOptions().locale	en-u-co-emoji
+new Intl.Collator("en-u-co-emoji", {}).resolvedOptions().collation	emoji
+new Intl.Collator("en-u-co-emoji", {}).resolvedOptions().caseFirst	false
+Intl.NumberFormat.supportedLocalesOf(["ar-u-nu-latn", "th-u-ca-buddhist", "xx-u-nu-latn", "de-u-co-phonebk"])	["ar-u-nu-latn","th-u-ca-buddhist","de-u-co-phonebk"]
+Intl.DateTimeFormat.supportedLocalesOf(["ar-u-nu-latn", "th-u-ca-buddhist", "xx-u-nu-latn", "de-u-co-phonebk"])	["ar-u-nu-latn","th-u-ca-buddhist","de-u-co-phonebk"]
+Intl.Collator.supportedLocalesOf(["ar-u-nu-latn", "th-u-ca-buddhist", "xx-u-nu-latn", "de-u-co-phonebk"])	["ar-u-nu-latn","th-u-ca-buddhist","de-u-co-phonebk"]
+Intl.PluralRules.supportedLocalesOf(["ar-u-nu-latn", "th-u-ca-buddhist", "xx-u-nu-latn", "de-u-co-phonebk"])	["ar-u-nu-latn","th-u-ca-buddhist","de-u-co-phonebk"]
+Intl.ListFormat.supportedLocalesOf(["ar-u-nu-latn", "th-u-ca-buddhist", "xx-u-nu-latn", "de-u-co-phonebk"])	["ar-u-nu-latn","th-u-ca-buddhist","de-u-co-phonebk"]
+Intl.RelativeTimeFormat.supportedLocalesOf(["ar-u-nu-latn", "th-u-ca-buddhist", "xx-u-nu-latn", "de-u-co-phonebk"])	["ar-u-nu-latn","th-u-ca-buddhist","de-u-co-phonebk"]
+new Intl.Locale("en").language	en
+new Intl.Locale("en").script	undefined
+new Intl.Locale("en").region	undefined
+new Intl.Locale("en").baseName	en
+new Intl.Locale("en").calendar	undefined
+new Intl.Locale("en").collation	undefined
+new Intl.Locale("en").hourCycle	undefined
+new Intl.Locale("en").caseFirst	undefined
+new Intl.Locale("en").numeric	false
+new Intl.Locale("en").numberingSystem	undefined
+new Intl.Locale("en").variants	undefined
+new Intl.Locale("en").firstDayOfWeek	undefined
+new Intl.Locale("en").toString()	en
+new Intl.Locale("en").maximize().toString()	en-Latn-US
+new Intl.Locale("en").minimize().toString()	en
+new Intl.Locale("en-US").language	en
+new Intl.Locale("en-US").script	undefined
+new Intl.Locale("en-US").region	US
+new Intl.Locale("en-US").baseName	en-US
+new Intl.Locale("en-US").calendar	undefined
+new Intl.Locale("en-US").collation	undefined
+new Intl.Locale("en-US").hourCycle	undefined
+new Intl.Locale("en-US").caseFirst	undefined
+new Intl.Locale("en-US").numeric	false
+new Intl.Locale("en-US").numberingSystem	undefined
+new Intl.Locale("en-US").variants	undefined
+new Intl.Locale("en-US").firstDayOfWeek	undefined
+new Intl.Locale("en-US").toString()	en-US
+new Intl.Locale("en-US").maximize().toString()	en-Latn-US
+new Intl.Locale("en-US").minimize().toString()	en
+new Intl.Locale("pt-BR").language	pt
+new Intl.Locale("pt-BR").script	undefined
+new Intl.Locale("pt-BR").region	BR
+new Intl.Locale("pt-BR").baseName	pt-BR
+new Intl.Locale("pt-BR").calendar	undefined
+new Intl.Locale("pt-BR").collation	undefined
+new Intl.Locale("pt-BR").hourCycle	undefined
+new Intl.Locale("pt-BR").caseFirst	undefined
+new Intl.Locale("pt-BR").numeric	false
+new Intl.Locale("pt-BR").numberingSystem	undefined
+new Intl.Locale("pt-BR").variants	undefined
+new Intl.Locale("pt-BR").firstDayOfWeek	undefined
+new Intl.Locale("pt-BR").toString()	pt-BR
+new Intl.Locale("pt-BR").maximize().toString()	pt-Latn-BR
+new Intl.Locale("pt-BR").minimize().toString()	pt
+new Intl.Locale("zh-Hans-CN").language	zh
+new Intl.Locale("zh-Hans-CN").script	Hans
+new Intl.Locale("zh-Hans-CN").region	CN
+new Intl.Locale("zh-Hans-CN").baseName	zh-Hans-CN
+new Intl.Locale("zh-Hans-CN").calendar	undefined
+new Intl.Locale("zh-Hans-CN").collation	undefined
+new Intl.Locale("zh-Hans-CN").hourCycle	undefined
+new Intl.Locale("zh-Hans-CN").caseFirst	undefined
+new Intl.Locale("zh-Hans-CN").numeric	false
+new Intl.Locale("zh-Hans-CN").numberingSystem	undefined
+new Intl.Locale("zh-Hans-CN").variants	undefined
+new Intl.Locale("zh-Hans-CN").firstDayOfWeek	undefined
+new Intl.Locale("zh-Hans-CN").toString()	zh-Hans-CN
+new Intl.Locale("zh-Hans-CN").maximize().toString()	zh-Hans-CN
+new Intl.Locale("zh-Hans-CN").minimize().toString()	zh
+new Intl.Locale("zh-CN").language	zh
+new Intl.Locale("zh-CN").script	undefined
+new Intl.Locale("zh-CN").region	CN
+new Intl.Locale("zh-CN").baseName	zh-CN
+new Intl.Locale("zh-CN").calendar	undefined
+new Intl.Locale("zh-CN").collation	undefined
+new Intl.Locale("zh-CN").hourCycle	undefined
+new Intl.Locale("zh-CN").caseFirst	undefined
+new Intl.Locale("zh-CN").numeric	false
+new Intl.Locale("zh-CN").numberingSystem	undefined
+new Intl.Locale("zh-CN").variants	undefined
+new Intl.Locale("zh-CN").firstDayOfWeek	undefined
+new Intl.Locale("zh-CN").toString()	zh-CN
+new Intl.Locale("zh-CN").maximize().toString()	zh-Hans-CN
+new Intl.Locale("zh-CN").minimize().toString()	zh
+new Intl.Locale("zh-TW").language	zh
+new Intl.Locale("zh-TW").script	undefined
+new Intl.Locale("zh-TW").region	TW
+new Intl.Locale("zh-TW").baseName	zh-TW
+new Intl.Locale("zh-TW").calendar	undefined
+new Intl.Locale("zh-TW").collation	undefined
+new Intl.Locale("zh-TW").hourCycle	undefined
+new Intl.Locale("zh-TW").caseFirst	undefined
+new Intl.Locale("zh-TW").numeric	false
+new Intl.Locale("zh-TW").numberingSystem	undefined
+new Intl.Locale("zh-TW").variants	undefined
+new Intl.Locale("zh-TW").firstDayOfWeek	undefined
+new Intl.Locale("zh-TW").toString()	zh-TW
+new Intl.Locale("zh-TW").maximize().toString()	zh-Hant-TW
+new Intl.Locale("zh-TW").minimize().toString()	zh-TW
+new Intl.Locale("zh-Hant-TW").language	zh
+new Intl.Locale("zh-Hant-TW").script	Hant
+new Intl.Locale("zh-Hant-TW").region	TW
+new Intl.Locale("zh-Hant-TW").baseName	zh-Hant-TW
+new Intl.Locale("zh-Hant-TW").calendar	undefined
+new Intl.Locale("zh-Hant-TW").collation	undefined
+new Intl.Locale("zh-Hant-TW").hourCycle	undefined
+new Intl.Locale("zh-Hant-TW").caseFirst	undefined
+new Intl.Locale("zh-Hant-TW").numeric	false
+new Intl.Locale("zh-Hant-TW").numberingSystem	undefined
+new Intl.Locale("zh-Hant-TW").variants	undefined
+new Intl.Locale("zh-Hant-TW").firstDayOfWeek	undefined
+new Intl.Locale("zh-Hant-TW").toString()	zh-Hant-TW
+new Intl.Locale("zh-Hant-TW").maximize().toString()	zh-Hant-TW
+new Intl.Locale("zh-Hant-TW").minimize().toString()	zh-TW
+new Intl.Locale("ar-EG").language	ar
+new Intl.Locale("ar-EG").script	undefined
+new Intl.Locale("ar-EG").region	EG
+new Intl.Locale("ar-EG").baseName	ar-EG
+new Intl.Locale("ar-EG").calendar	undefined
+new Intl.Locale("ar-EG").collation	undefined
+new Intl.Locale("ar-EG").hourCycle	undefined
+new Intl.Locale("ar-EG").caseFirst	undefined
+new Intl.Locale("ar-EG").numeric	false
+new Intl.Locale("ar-EG").numberingSystem	undefined
+new Intl.Locale("ar-EG").variants	undefined
+new Intl.Locale("ar-EG").firstDayOfWeek	undefined
+new Intl.Locale("ar-EG").toString()	ar-EG
+new Intl.Locale("ar-EG").maximize().toString()	ar-Arab-EG
+new Intl.Locale("ar-EG").minimize().toString()	ar
+new Intl.Locale("iw").language	iw
+new Intl.Locale("iw").script	undefined
+new Intl.Locale("iw").region	undefined
+new Intl.Locale("iw").baseName	he
+new Intl.Locale("iw").calendar	undefined
+new Intl.Locale("iw").collation	undefined
+new Intl.Locale("iw").hourCycle	undefined
+new Intl.Locale("iw").caseFirst	undefined
+new Intl.Locale("iw").numeric	false
+new Intl.Locale("iw").numberingSystem	undefined
+new Intl.Locale("iw").variants	undefined
+new Intl.Locale("iw").firstDayOfWeek	undefined
+new Intl.Locale("iw").toString()	he
+new Intl.Locale("iw").maximize().toString()	he-Hebr-IL
+new Intl.Locale("iw").minimize().toString()	he
+new Intl.Locale("he").language	he
+new Intl.Locale("he").script	undefined
+new Intl.Locale("he").region	undefined
+new Intl.Locale("he").baseName	he
+new Intl.Locale("he").calendar	undefined
+new Intl.Locale("he").collation	undefined
+new Intl.Locale("he").hourCycle	undefined
+new Intl.Locale("he").caseFirst	undefined
+new Intl.Locale("he").numeric	false
+new Intl.Locale("he").numberingSystem	undefined
+new Intl.Locale("he").variants	undefined
+new Intl.Locale("he").firstDayOfWeek	undefined
+new Intl.Locale("he").toString()	he
+new Intl.Locale("he").maximize().toString()	he-Hebr-IL
+new Intl.Locale("he").minimize().toString()	he
+new Intl.Locale("iw-IL").language	iw
+new Intl.Locale("iw-IL").script	undefined
+new Intl.Locale("iw-IL").region	IL
+new Intl.Locale("iw-IL").baseName	he-IL
+new Intl.Locale("iw-IL").calendar	undefined
+new Intl.Locale("iw-IL").collation	undefined
+new Intl.Locale("iw-IL").hourCycle	undefined
+new Intl.Locale("iw-IL").caseFirst	undefined
+new Intl.Locale("iw-IL").numeric	false
+new Intl.Locale("iw-IL").numberingSystem	undefined
+new Intl.Locale("iw-IL").variants	undefined
+new Intl.Locale("iw-IL").firstDayOfWeek	undefined
+new Intl.Locale("iw-IL").toString()	he-IL
+new Intl.Locale("iw-IL").maximize().toString()	he-Hebr-IL
+new Intl.Locale("iw-IL").minimize().toString()	he
+new Intl.Locale("in").language	in
+new Intl.Locale("in").script	undefined
+new Intl.Locale("in").region	undefined
+new Intl.Locale("in").baseName	id
+new Intl.Locale("in").calendar	undefined
+new Intl.Locale("in").collation	undefined
+new Intl.Locale("in").hourCycle	undefined
+new Intl.Locale("in").caseFirst	undefined
+new Intl.Locale("in").numeric	false
+new Intl.Locale("in").numberingSystem	undefined
+new Intl.Locale("in").variants	undefined
+new Intl.Locale("in").firstDayOfWeek	undefined
+new Intl.Locale("in").toString()	id
+new Intl.Locale("in").maximize().toString()	id-Latn-ID
+new Intl.Locale("in").minimize().toString()	id
+new Intl.Locale("id").language	id
+new Intl.Locale("id").script	undefined
+new Intl.Locale("id").region	undefined
+new Intl.Locale("id").baseName	id
+new Intl.Locale("id").calendar	undefined
+new Intl.Locale("id").collation	undefined
+new Intl.Locale("id").hourCycle	undefined
+new Intl.Locale("id").caseFirst	undefined
+new Intl.Locale("id").numeric	false
+new Intl.Locale("id").numberingSystem	undefined
+new Intl.Locale("id").variants	undefined
+new Intl.Locale("id").firstDayOfWeek	undefined
+new Intl.Locale("id").toString()	id
+new Intl.Locale("id").maximize().toString()	id-Latn-ID
+new Intl.Locale("id").minimize().toString()	id
+new Intl.Locale("in-ID").language	in
+new Intl.Locale("in-ID").script	undefined
+new Intl.Locale("in-ID").region	ID
+new Intl.Locale("in-ID").baseName	id-ID
+new Intl.Locale("in-ID").calendar	undefined
+new Intl.Locale("in-ID").collation	undefined
+new Intl.Locale("in-ID").hourCycle	undefined
+new Intl.Locale("in-ID").caseFirst	undefined
+new Intl.Locale("in-ID").numeric	false
+new Intl.Locale("in-ID").numberingSystem	undefined
+new Intl.Locale("in-ID").variants	undefined
+new Intl.Locale("in-ID").firstDayOfWeek	undefined
+new Intl.Locale("in-ID").toString()	id-ID
+new Intl.Locale("in-ID").maximize().toString()	id-Latn-ID
+new Intl.Locale("in-ID").minimize().toString()	id
+new Intl.Locale("sh").language	sh
+new Intl.Locale("sh").script	undefined
+new Intl.Locale("sh").region	undefined
+new Intl.Locale("sh").baseName	sh
+new Intl.Locale("sh").calendar	undefined
+new Intl.Locale("sh").collation	undefined
+new Intl.Locale("sh").hourCycle	undefined
+new Intl.Locale("sh").caseFirst	undefined
+new Intl.Locale("sh").numeric	false
+new Intl.Locale("sh").numberingSystem	undefined
+new Intl.Locale("sh").variants	undefined
+new Intl.Locale("sh").firstDayOfWeek	undefined
+new Intl.Locale("sh").toString()	sh
+new Intl.Locale("sh").maximize().toString()	sh
+new Intl.Locale("sh").minimize().toString()	sh
+new Intl.Locale("sh-RS").language	sh
+new Intl.Locale("sh-RS").script	undefined
+new Intl.Locale("sh-RS").region	RS
+new Intl.Locale("sh-RS").baseName	sh-RS
+new Intl.Locale("sh-RS").calendar	undefined
+new Intl.Locale("sh-RS").collation	undefined
+new Intl.Locale("sh-RS").hourCycle	undefined
+new Intl.Locale("sh-RS").caseFirst	undefined
+new Intl.Locale("sh-RS").numeric	false
+new Intl.Locale("sh-RS").numberingSystem	undefined
+new Intl.Locale("sh-RS").variants	undefined
+new Intl.Locale("sh-RS").firstDayOfWeek	undefined
+new Intl.Locale("sh-RS").toString()	sh-RS
+new Intl.Locale("sh-RS").maximize().toString()	sh-RS
+new Intl.Locale("sh-RS").minimize().toString()	sh-RS
+new Intl.Locale("sr-Latn").language	sr
+new Intl.Locale("sr-Latn").script	Latn
+new Intl.Locale("sr-Latn").region	undefined
+new Intl.Locale("sr-Latn").baseName	sr-Latn
+new Intl.Locale("sr-Latn").calendar	undefined
+new Intl.Locale("sr-Latn").collation	undefined
+new Intl.Locale("sr-Latn").hourCycle	undefined
+new Intl.Locale("sr-Latn").caseFirst	undefined
+new Intl.Locale("sr-Latn").numeric	false
+new Intl.Locale("sr-Latn").numberingSystem	undefined
+new Intl.Locale("sr-Latn").variants	undefined
+new Intl.Locale("sr-Latn").firstDayOfWeek	undefined
+new Intl.Locale("sr-Latn").toString()	sr-Latn
+new Intl.Locale("sr-Latn").maximize().toString()	sr-Latn-RS
+new Intl.Locale("sr-Latn").minimize().toString()	sr-Latn
+new Intl.Locale("no").language	no
+new Intl.Locale("no").script	undefined
+new Intl.Locale("no").region	undefined
+new Intl.Locale("no").baseName	no
+new Intl.Locale("no").calendar	undefined
+new Intl.Locale("no").collation	undefined
+new Intl.Locale("no").hourCycle	undefined
+new Intl.Locale("no").caseFirst	undefined
+new Intl.Locale("no").numeric	false
+new Intl.Locale("no").numberingSystem	undefined
+new Intl.Locale("no").variants	undefined
+new Intl.Locale("no").firstDayOfWeek	undefined
+new Intl.Locale("no").toString()	no
+new Intl.Locale("no").maximize().toString()	no-Latn-NO
+new Intl.Locale("no").minimize().toString()	no
+new Intl.Locale("nb").language	nb
+new Intl.Locale("nb").script	undefined
+new Intl.Locale("nb").region	undefined
+new Intl.Locale("nb").baseName	nb
+new Intl.Locale("nb").calendar	undefined
+new Intl.Locale("nb").collation	undefined
+new Intl.Locale("nb").hourCycle	undefined
+new Intl.Locale("nb").caseFirst	undefined
+new Intl.Locale("nb").numeric	false
+new Intl.Locale("nb").numberingSystem	undefined
+new Intl.Locale("nb").variants	undefined
+new Intl.Locale("nb").firstDayOfWeek	undefined
+new Intl.Locale("nb").toString()	nb
+new Intl.Locale("nb").maximize().toString()	nb-Latn-NO
+new Intl.Locale("nb").minimize().toString()	nb
+new Intl.Locale("tl").language	tl
+new Intl.Locale("tl").script	undefined
+new Intl.Locale("tl").region	undefined
+new Intl.Locale("tl").baseName	tl
+new Intl.Locale("tl").calendar	undefined
+new Intl.Locale("tl").collation	undefined
+new Intl.Locale("tl").hourCycle	undefined
+new Intl.Locale("tl").caseFirst	undefined
+new Intl.Locale("tl").numeric	false
+new Intl.Locale("tl").numberingSystem	undefined
+new Intl.Locale("tl").variants	undefined
+new Intl.Locale("tl").firstDayOfWeek	undefined
+new Intl.Locale("tl").toString()	tl
+new Intl.Locale("tl").maximize().toString()	fil-Latn-PH
+new Intl.Locale("tl").minimize().toString()	tl
+new Intl.Locale("fil").language	fil
+new Intl.Locale("fil").script	undefined
+new Intl.Locale("fil").region	undefined
+new Intl.Locale("fil").baseName	fil
+new Intl.Locale("fil").calendar	undefined
+new Intl.Locale("fil").collation	undefined
+new Intl.Locale("fil").hourCycle	undefined
+new Intl.Locale("fil").caseFirst	undefined
+new Intl.Locale("fil").numeric	false
+new Intl.Locale("fil").numberingSystem	undefined
+new Intl.Locale("fil").variants	undefined
+new Intl.Locale("fil").firstDayOfWeek	undefined
+new Intl.Locale("fil").toString()	fil
+new Intl.Locale("fil").maximize().toString()	fil-Latn-PH
+new Intl.Locale("fil").minimize().toString()	fil
+new Intl.Locale("mo").language	mo
+new Intl.Locale("mo").script	undefined
+new Intl.Locale("mo").region	undefined
+new Intl.Locale("mo").baseName	ro
+new Intl.Locale("mo").calendar	undefined
+new Intl.Locale("mo").collation	undefined
+new Intl.Locale("mo").hourCycle	undefined
+new Intl.Locale("mo").caseFirst	undefined
+new Intl.Locale("mo").numeric	false
+new Intl.Locale("mo").numberingSystem	undefined
+new Intl.Locale("mo").variants	undefined
+new Intl.Locale("mo").firstDayOfWeek	undefined
+new Intl.Locale("mo").toString()	ro
+new Intl.Locale("mo").maximize().toString()	ro-Latn-RO
+new Intl.Locale("mo").minimize().toString()	ro
+new Intl.Locale("ro").language	ro
+new Intl.Locale("ro").script	undefined
+new Intl.Locale("ro").region	undefined
+new Intl.Locale("ro").baseName	ro
+new Intl.Locale("ro").calendar	undefined
+new Intl.Locale("ro").collation	undefined
+new Intl.Locale("ro").hourCycle	undefined
+new Intl.Locale("ro").caseFirst	undefined
+new Intl.Locale("ro").numeric	false
+new Intl.Locale("ro").numberingSystem	undefined
+new Intl.Locale("ro").variants	undefined
+new Intl.Locale("ro").firstDayOfWeek	undefined
+new Intl.Locale("ro").toString()	ro
+new Intl.Locale("ro").maximize().toString()	ro-Latn-RO
+new Intl.Locale("ro").minimize().toString()	ro
+new Intl.Locale("jw").language	jw
+new Intl.Locale("jw").script	undefined
+new Intl.Locale("jw").region	undefined
+new Intl.Locale("jw").baseName	jv
+new Intl.Locale("jw").calendar	undefined
+new Intl.Locale("jw").collation	undefined
+new Intl.Locale("jw").hourCycle	undefined
+new Intl.Locale("jw").caseFirst	undefined
+new Intl.Locale("jw").numeric	false
+new Intl.Locale("jw").numberingSystem	undefined
+new Intl.Locale("jw").variants	undefined
+new Intl.Locale("jw").firstDayOfWeek	undefined
+new Intl.Locale("jw").toString()	jv
+new Intl.Locale("jw").maximize().toString()	jv-Latn-ID
+new Intl.Locale("jw").minimize().toString()	jv
+new Intl.Locale("jv").language	jv
+new Intl.Locale("jv").script	undefined
+new Intl.Locale("jv").region	undefined
+new Intl.Locale("jv").baseName	jv
+new Intl.Locale("jv").calendar	undefined
+new Intl.Locale("jv").collation	undefined
+new Intl.Locale("jv").hourCycle	undefined
+new Intl.Locale("jv").caseFirst	undefined
+new Intl.Locale("jv").numeric	false
+new Intl.Locale("jv").numberingSystem	undefined
+new Intl.Locale("jv").variants	undefined
+new Intl.Locale("jv").firstDayOfWeek	undefined
+new Intl.Locale("jv").toString()	jv
+new Intl.Locale("jv").maximize().toString()	jv-Latn-ID
+new Intl.Locale("jv").minimize().toString()	jv
+new Intl.Locale("und").language	und
+new Intl.Locale("und").script	undefined
+new Intl.Locale("und").region	undefined
+new Intl.Locale("und").baseName	und
+new Intl.Locale("und").calendar	undefined
+new Intl.Locale("und").collation	undefined
+new Intl.Locale("und").hourCycle	undefined
+new Intl.Locale("und").caseFirst	undefined
+new Intl.Locale("und").numeric	false
+new Intl.Locale("und").numberingSystem	undefined
+new Intl.Locale("und").variants	undefined
+new Intl.Locale("und").firstDayOfWeek	undefined
+new Intl.Locale("und").toString()	und
+new Intl.Locale("und").maximize().toString()	en-Latn-US
+new Intl.Locale("und").minimize().toString()	en
+new Intl.Locale("und-Latn").language	und
+new Intl.Locale("und-Latn").script	Latn
+new Intl.Locale("und-Latn").region	undefined
+new Intl.Locale("und-Latn").baseName	und-Latn
+new Intl.Locale("und-Latn").calendar	undefined
+new Intl.Locale("und-Latn").collation	undefined
+new Intl.Locale("und-Latn").hourCycle	undefined
+new Intl.Locale("und-Latn").caseFirst	undefined
+new Intl.Locale("und-Latn").numeric	false
+new Intl.Locale("und-Latn").numberingSystem	undefined
+new Intl.Locale("und-Latn").variants	undefined
+new Intl.Locale("und-Latn").firstDayOfWeek	undefined
+new Intl.Locale("und-Latn").toString()	und-Latn
+new Intl.Locale("und-Latn").maximize().toString()	en-Latn-US
+new Intl.Locale("und-Latn").minimize().toString()	en
+new Intl.Locale("und-US").language	und
+new Intl.Locale("und-US").script	undefined
+new Intl.Locale("und-US").region	US
+new Intl.Locale("und-US").baseName	und-US
+new Intl.Locale("und-US").calendar	undefined
+new Intl.Locale("und-US").collation	undefined
+new Intl.Locale("und-US").hourCycle	undefined
+new Intl.Locale("und-US").caseFirst	undefined
+new Intl.Locale("und-US").numeric	false
+new Intl.Locale("und-US").numberingSystem	undefined
+new Intl.Locale("und-US").variants	undefined
+new Intl.Locale("und-US").firstDayOfWeek	undefined
+new Intl.Locale("und-US").toString()	und-US
+new Intl.Locale("und-US").maximize().toString()	en-Latn-US
+new Intl.Locale("und-US").minimize().toString()	en
+new Intl.Locale("und-Hans").language	und
+new Intl.Locale("und-Hans").script	Hans
+new Intl.Locale("und-Hans").region	undefined
+new Intl.Locale("und-Hans").baseName	und-Hans
+new Intl.Locale("und-Hans").calendar	undefined
+new Intl.Locale("und-Hans").collation	undefined
+new Intl.Locale("und-Hans").hourCycle	undefined
+new Intl.Locale("und-Hans").caseFirst	undefined
+new Intl.Locale("und-Hans").numeric	false
+new Intl.Locale("und-Hans").numberingSystem	undefined
+new Intl.Locale("und-Hans").variants	undefined
+new Intl.Locale("und-Hans").firstDayOfWeek	undefined
+new Intl.Locale("und-Hans").toString()	und-Hans
+new Intl.Locale("und-Hans").maximize().toString()	zh-Hans-CN
+new Intl.Locale("und-Hans").minimize().toString()	zh
+new Intl.Locale("en-GB-oxendict").language	en
+new Intl.Locale("en-GB-oxendict").script	undefined
+new Intl.Locale("en-GB-oxendict").region	GB
+new Intl.Locale("en-GB-oxendict").baseName	en-GB-oxendict
+new Intl.Locale("en-GB-oxendict").calendar	undefined
+new Intl.Locale("en-GB-oxendict").collation	undefined
+new Intl.Locale("en-GB-oxendict").hourCycle	undefined
+new Intl.Locale("en-GB-oxendict").caseFirst	undefined
+new Intl.Locale("en-GB-oxendict").numeric	false
+new Intl.Locale("en-GB-oxendict").numberingSystem	undefined
+new Intl.Locale("en-GB-oxendict").variants	oxendict
+new Intl.Locale("en-GB-oxendict").firstDayOfWeek	undefined
+new Intl.Locale("en-GB-oxendict").toString()	en-GB-oxendict
+new Intl.Locale("en-GB-oxendict").maximize().toString()	en-Latn-GB-oxendict
+new Intl.Locale("en-GB-oxendict").minimize().toString()	en-GB-oxendict
+new Intl.Locale("ca-valencia").language	ca
+new Intl.Locale("ca-valencia").script	undefined
+new Intl.Locale("ca-valencia").region	undefined
+new Intl.Locale("ca-valencia").baseName	ca-valencia
+new Intl.Locale("ca-valencia").calendar	undefined
+new Intl.Locale("ca-valencia").collation	undefined
+new Intl.Locale("ca-valencia").hourCycle	undefined
+new Intl.Locale("ca-valencia").caseFirst	undefined
+new Intl.Locale("ca-valencia").numeric	false
+new Intl.Locale("ca-valencia").numberingSystem	undefined
+new Intl.Locale("ca-valencia").variants	valencia
+new Intl.Locale("ca-valencia").firstDayOfWeek	undefined
+new Intl.Locale("ca-valencia").toString()	ca-valencia
+new Intl.Locale("ca-valencia").maximize().toString()	ca-Latn-ES-valencia
+new Intl.Locale("ca-valencia").minimize().toString()	ca-valencia
+new Intl.Locale("sl-rozaj-biske").language	sl
+new Intl.Locale("sl-rozaj-biske").script	undefined
+new Intl.Locale("sl-rozaj-biske").region	undefined
+new Intl.Locale("sl-rozaj-biske").baseName	sl-biske-rozaj
+new Intl.Locale("sl-rozaj-biske").calendar	undefined
+new Intl.Locale("sl-rozaj-biske").collation	undefined
+new Intl.Locale("sl-rozaj-biske").hourCycle	undefined
+new Intl.Locale("sl-rozaj-biske").caseFirst	undefined
+new Intl.Locale("sl-rozaj-biske").numeric	false
+new Intl.Locale("sl-rozaj-biske").numberingSystem	undefined
+new Intl.Locale("sl-rozaj-biske").variants	biske-rozaj
+new Intl.Locale("sl-rozaj-biske").firstDayOfWeek	undefined
+new Intl.Locale("sl-rozaj-biske").toString()	sl-biske-rozaj
+new Intl.Locale("sl-rozaj-biske").maximize().toString()	sl-Latn-SI-biske-rozaj
+new Intl.Locale("sl-rozaj-biske").minimize().toString()	sl-biske-rozaj
+new Intl.Locale("de-1996").language	de
+new Intl.Locale("de-1996").script	undefined
+new Intl.Locale("de-1996").region	undefined
+new Intl.Locale("de-1996").baseName	de-1996
+new Intl.Locale("de-1996").calendar	undefined
+new Intl.Locale("de-1996").collation	undefined
+new Intl.Locale("de-1996").hourCycle	undefined
+new Intl.Locale("de-1996").caseFirst	undefined
+new Intl.Locale("de-1996").numeric	false
+new Intl.Locale("de-1996").numberingSystem	undefined
+new Intl.Locale("de-1996").variants	1996
+new Intl.Locale("de-1996").firstDayOfWeek	undefined
+new Intl.Locale("de-1996").toString()	de-1996
+new Intl.Locale("de-1996").maximize().toString()	de-Latn-DE-1996
+new Intl.Locale("de-1996").minimize().toString()	de-1996
+new Intl.Locale("en-US-posix").language	en
+new Intl.Locale("en-US-posix").script	undefined
+new Intl.Locale("en-US-posix").region	US
+new Intl.Locale("en-US-posix").baseName	en-US-u-va-posix
+new Intl.Locale("en-US-posix").calendar	undefined
+new Intl.Locale("en-US-posix").collation	undefined
+new Intl.Locale("en-US-posix").hourCycle	undefined
+new Intl.Locale("en-US-posix").caseFirst	undefined
+new Intl.Locale("en-US-posix").numeric	false
+new Intl.Locale("en-US-posix").numberingSystem	undefined
+new Intl.Locale("en-US-posix").variants	posix
+new Intl.Locale("en-US-posix").firstDayOfWeek	undefined
+new Intl.Locale("en-US-posix").toString()	en-US-u-va-posix
+new Intl.Locale("en-US-posix").maximize().toString()	en-Latn-US-u-va-posix
+new Intl.Locale("en-US-posix").minimize().toString()	en-u-va-posix
+new Intl.Locale("es-419").language	es
+new Intl.Locale("es-419").script	undefined
+new Intl.Locale("es-419").region	419
+new Intl.Locale("es-419").baseName	es-419
+new Intl.Locale("es-419").calendar	undefined
+new Intl.Locale("es-419").collation	undefined
+new Intl.Locale("es-419").hourCycle	undefined
+new Intl.Locale("es-419").caseFirst	undefined
+new Intl.Locale("es-419").numeric	false
+new Intl.Locale("es-419").numberingSystem	undefined
+new Intl.Locale("es-419").variants	undefined
+new Intl.Locale("es-419").firstDayOfWeek	undefined
+new Intl.Locale("es-419").toString()	es-419
+new Intl.Locale("es-419").maximize().toString()	es-Latn-419
+new Intl.Locale("es-419").minimize().toString()	es-419
+new Intl.Locale("en-u-ca-gregory").language	en
+new Intl.Locale("en-u-ca-gregory").script	undefined
+new Intl.Locale("en-u-ca-gregory").region	undefined
+new Intl.Locale("en-u-ca-gregory").baseName	en
+new Intl.Locale("en-u-ca-gregory").calendar	gregory
+new Intl.Locale("en-u-ca-gregory").collation	undefined
+new Intl.Locale("en-u-ca-gregory").hourCycle	undefined
+new Intl.Locale("en-u-ca-gregory").caseFirst	undefined
+new Intl.Locale("en-u-ca-gregory").numeric	false
+new Intl.Locale("en-u-ca-gregory").numberingSystem	undefined
+new Intl.Locale("en-u-ca-gregory").variants	undefined
+new Intl.Locale("en-u-ca-gregory").firstDayOfWeek	undefined
+new Intl.Locale("en-u-ca-gregory").toString()	en-u-ca-gregory
+new Intl.Locale("en-u-ca-gregory").maximize().toString()	en-Latn-US-u-ca-gregory
+new Intl.Locale("en-u-ca-gregory").minimize().toString()	en-u-ca-gregory
+new Intl.Locale("th-u-ca-buddhist-nu-thai").language	th
+new Intl.Locale("th-u-ca-buddhist-nu-thai").script	undefined
+new Intl.Locale("th-u-ca-buddhist-nu-thai").region	undefined
+new Intl.Locale("th-u-ca-buddhist-nu-thai").baseName	th
+new Intl.Locale("th-u-ca-buddhist-nu-thai").calendar	buddhist
+new Intl.Locale("th-u-ca-buddhist-nu-thai").collation	undefined
+new Intl.Locale("th-u-ca-buddhist-nu-thai").hourCycle	undefined
+new Intl.Locale("th-u-ca-buddhist-nu-thai").caseFirst	undefined
+new Intl.Locale("th-u-ca-buddhist-nu-thai").numeric	false
+new Intl.Locale("th-u-ca-buddhist-nu-thai").numberingSystem	thai
+new Intl.Locale("th-u-ca-buddhist-nu-thai").variants	undefined
+new Intl.Locale("th-u-ca-buddhist-nu-thai").firstDayOfWeek	undefined
+new Intl.Locale("th-u-ca-buddhist-nu-thai").toString()	th-u-ca-buddhist-nu-thai
+new Intl.Locale("th-u-ca-buddhist-nu-thai").maximize().toString()	th-Thai-TH-u-ca-buddhist-nu-thai
+new Intl.Locale("th-u-ca-buddhist-nu-thai").minimize().toString()	th-u-ca-buddhist-nu-thai
+new Intl.Locale("ja-u-ca-japanese-hc-h23").language	ja
+new Intl.Locale("ja-u-ca-japanese-hc-h23").script	undefined
+new Intl.Locale("ja-u-ca-japanese-hc-h23").region	undefined
+new Intl.Locale("ja-u-ca-japanese-hc-h23").baseName	ja
+new Intl.Locale("ja-u-ca-japanese-hc-h23").calendar	japanese
+new Intl.Locale("ja-u-ca-japanese-hc-h23").collation	undefined
+new Intl.Locale("ja-u-ca-japanese-hc-h23").hourCycle	h23
+new Intl.Locale("ja-u-ca-japanese-hc-h23").caseFirst	undefined
+new Intl.Locale("ja-u-ca-japanese-hc-h23").numeric	false
+new Intl.Locale("ja-u-ca-japanese-hc-h23").numberingSystem	undefined
+new Intl.Locale("ja-u-ca-japanese-hc-h23").variants	undefined
+new Intl.Locale("ja-u-ca-japanese-hc-h23").firstDayOfWeek	undefined
+new Intl.Locale("ja-u-ca-japanese-hc-h23").toString()	ja-u-ca-japanese-hc-h23
+new Intl.Locale("ja-u-ca-japanese-hc-h23").maximize().toString()	ja-Jpan-JP-u-ca-japanese-hc-h23
+new Intl.Locale("ja-u-ca-japanese-hc-h23").minimize().toString()	ja-u-ca-japanese-hc-h23
+new Intl.Locale("de-u-co-phonebk-kn-kf-upper").language	de
+new Intl.Locale("de-u-co-phonebk-kn-kf-upper").script	undefined
+new Intl.Locale("de-u-co-phonebk-kn-kf-upper").region	undefined
+new Intl.Locale("de-u-co-phonebk-kn-kf-upper").baseName	de
+new Intl.Locale("de-u-co-phonebk-kn-kf-upper").calendar	undefined
+new Intl.Locale("de-u-co-phonebk-kn-kf-upper").collation	phonebk
+new Intl.Locale("de-u-co-phonebk-kn-kf-upper").hourCycle	undefined
+new Intl.Locale("de-u-co-phonebk-kn-kf-upper").caseFirst	upper
+new Intl.Locale("de-u-co-phonebk-kn-kf-upper").numeric	true
+new Intl.Locale("de-u-co-phonebk-kn-kf-upper").numberingSystem	undefined
+new Intl.Locale("de-u-co-phonebk-kn-kf-upper").variants	undefined
+new Intl.Locale("de-u-co-phonebk-kn-kf-upper").firstDayOfWeek	undefined
+new Intl.Locale("de-u-co-phonebk-kn-kf-upper").toString()	de-u-co-phonebk-kf-upper-kn
+new Intl.Locale("de-u-co-phonebk-kn-kf-upper").maximize().toString()	de-Latn-DE-u-co-phonebk-kf-upper-kn
+new Intl.Locale("de-u-co-phonebk-kn-kf-upper").minimize().toString()	de-u-co-phonebk-kf-upper-kn
+new Intl.Locale("sv-u-kf-upper").language	sv
+new Intl.Locale("sv-u-kf-upper").script	undefined
+new Intl.Locale("sv-u-kf-upper").region	undefined
+new Intl.Locale("sv-u-kf-upper").baseName	sv
+new Intl.Locale("sv-u-kf-upper").calendar	undefined
+new Intl.Locale("sv-u-kf-upper").collation	undefined
+new Intl.Locale("sv-u-kf-upper").hourCycle	undefined
+new Intl.Locale("sv-u-kf-upper").caseFirst	upper
+new Intl.Locale("sv-u-kf-upper").numeric	false
+new Intl.Locale("sv-u-kf-upper").numberingSystem	undefined
+new Intl.Locale("sv-u-kf-upper").variants	undefined
+new Intl.Locale("sv-u-kf-upper").firstDayOfWeek	undefined
+new Intl.Locale("sv-u-kf-upper").toString()	sv-u-kf-upper
+new Intl.Locale("sv-u-kf-upper").maximize().toString()	sv-Latn-SE-u-kf-upper
+new Intl.Locale("sv-u-kf-upper").minimize().toString()	sv-u-kf-upper
+new Intl.Locale("en-t-hi").language	en
+new Intl.Locale("en-t-hi").script	undefined
+new Intl.Locale("en-t-hi").region	undefined
+new Intl.Locale("en-t-hi").baseName	en
+new Intl.Locale("en-t-hi").calendar	undefined
+new Intl.Locale("en-t-hi").collation	undefined
+new Intl.Locale("en-t-hi").hourCycle	undefined
+new Intl.Locale("en-t-hi").caseFirst	undefined
+new Intl.Locale("en-t-hi").numeric	false
+new Intl.Locale("en-t-hi").numberingSystem	undefined
+new Intl.Locale("en-t-hi").variants	undefined
+new Intl.Locale("en-t-hi").firstDayOfWeek	undefined
+new Intl.Locale("en-t-hi").toString()	en-t-hi
+new Intl.Locale("en-t-hi").maximize().toString()	en-Latn-US-t-hi
+new Intl.Locale("en-t-hi").minimize().toString()	en-t-hi
+new Intl.Locale("en-t-hi-m0-abc").language	en
+new Intl.Locale("en-t-hi-m0-abc").script	undefined
+new Intl.Locale("en-t-hi-m0-abc").region	undefined
+new Intl.Locale("en-t-hi-m0-abc").baseName	en
+new Intl.Locale("en-t-hi-m0-abc").calendar	undefined
+new Intl.Locale("en-t-hi-m0-abc").collation	undefined
+new Intl.Locale("en-t-hi-m0-abc").hourCycle	undefined
+new Intl.Locale("en-t-hi-m0-abc").caseFirst	undefined
+new Intl.Locale("en-t-hi-m0-abc").numeric	false
+new Intl.Locale("en-t-hi-m0-abc").numberingSystem	undefined
+new Intl.Locale("en-t-hi-m0-abc").variants	undefined
+new Intl.Locale("en-t-hi-m0-abc").firstDayOfWeek	undefined
+new Intl.Locale("en-t-hi-m0-abc").toString()	en-t-hi-m0-abc
+new Intl.Locale("en-t-hi-m0-abc").maximize().toString()	en-Latn-US-t-hi-m0-abc
+new Intl.Locale("en-t-hi-m0-abc").minimize().toString()	en-t-hi-m0-abc
+new Intl.Locale("ja-t-it-x0-xyz").language	ja
+new Intl.Locale("ja-t-it-x0-xyz").script	undefined
+new Intl.Locale("ja-t-it-x0-xyz").region	undefined
+new Intl.Locale("ja-t-it-x0-xyz").baseName	ja
+new Intl.Locale("ja-t-it-x0-xyz").calendar	undefined
+new Intl.Locale("ja-t-it-x0-xyz").collation	undefined
+new Intl.Locale("ja-t-it-x0-xyz").hourCycle	undefined
+new Intl.Locale("ja-t-it-x0-xyz").caseFirst	undefined
+new Intl.Locale("ja-t-it-x0-xyz").numeric	false
+new Intl.Locale("ja-t-it-x0-xyz").numberingSystem	undefined
+new Intl.Locale("ja-t-it-x0-xyz").variants	undefined
+new Intl.Locale("ja-t-it-x0-xyz").firstDayOfWeek	undefined
+new Intl.Locale("ja-t-it-x0-xyz").toString()	ja-t-it-x0-xyz
+new Intl.Locale("ja-t-it-x0-xyz").maximize().toString()	ja-Jpan-JP-t-it-x0-xyz
+new Intl.Locale("ja-t-it-x0-xyz").minimize().toString()	ja-t-it-x0-xyz
+new Intl.Locale("hi-IN-u-nu-deva").language	hi
+new Intl.Locale("hi-IN-u-nu-deva").script	undefined
+new Intl.Locale("hi-IN-u-nu-deva").region	IN
+new Intl.Locale("hi-IN-u-nu-deva").baseName	hi-IN
+new Intl.Locale("hi-IN-u-nu-deva").calendar	undefined
+new Intl.Locale("hi-IN-u-nu-deva").collation	undefined
+new Intl.Locale("hi-IN-u-nu-deva").hourCycle	undefined
+new Intl.Locale("hi-IN-u-nu-deva").caseFirst	undefined
+new Intl.Locale("hi-IN-u-nu-deva").numeric	false
+new Intl.Locale("hi-IN-u-nu-deva").numberingSystem	deva
+new Intl.Locale("hi-IN-u-nu-deva").variants	undefined
+new Intl.Locale("hi-IN-u-nu-deva").firstDayOfWeek	undefined
+new Intl.Locale("hi-IN-u-nu-deva").toString()	hi-IN-u-nu-deva
+new Intl.Locale("hi-IN-u-nu-deva").maximize().toString()	hi-Deva-IN-u-nu-deva
+new Intl.Locale("hi-IN-u-nu-deva").minimize().toString()	hi-u-nu-deva
+new Intl.Locale("ar-u-nu-latn").language	ar
+new Intl.Locale("ar-u-nu-latn").script	undefined
+new Intl.Locale("ar-u-nu-latn").region	undefined
+new Intl.Locale("ar-u-nu-latn").baseName	ar
+new Intl.Locale("ar-u-nu-latn").calendar	undefined
+new Intl.Locale("ar-u-nu-latn").collation	undefined
+new Intl.Locale("ar-u-nu-latn").hourCycle	undefined
+new Intl.Locale("ar-u-nu-latn").caseFirst	undefined
+new Intl.Locale("ar-u-nu-latn").numeric	false
+new Intl.Locale("ar-u-nu-latn").numberingSystem	latn
+new Intl.Locale("ar-u-nu-latn").variants	undefined
+new Intl.Locale("ar-u-nu-latn").firstDayOfWeek	undefined
+new Intl.Locale("ar-u-nu-latn").toString()	ar-u-nu-latn
+new Intl.Locale("ar-u-nu-latn").maximize().toString()	ar-Arab-EG-u-nu-latn
+new Intl.Locale("ar-u-nu-latn").minimize().toString()	ar-u-nu-latn
+new Intl.Locale("en-x-private").language	en
+new Intl.Locale("en-x-private").script	undefined
+new Intl.Locale("en-x-private").region	undefined
+new Intl.Locale("en-x-private").baseName	en
+new Intl.Locale("en-x-private").calendar	undefined
+new Intl.Locale("en-x-private").collation	undefined
+new Intl.Locale("en-x-private").hourCycle	undefined
+new Intl.Locale("en-x-private").caseFirst	undefined
+new Intl.Locale("en-x-private").numeric	false
+new Intl.Locale("en-x-private").numberingSystem	undefined
+new Intl.Locale("en-x-private").variants	undefined
+new Intl.Locale("en-x-private").firstDayOfWeek	undefined
+new Intl.Locale("en-x-private").toString()	en-x-private
+new Intl.Locale("en-x-private").maximize().toString()	en-Latn-US-x-private
+new Intl.Locale("en-x-private").minimize().toString()	en-x-private
+new Intl.Locale("x-foo").language	ERR RangeError: invalid language tag
+new Intl.Locale("x-foo").script	ERR RangeError: invalid language tag
+new Intl.Locale("x-foo").region	ERR RangeError: invalid language tag
+new Intl.Locale("x-foo").baseName	ERR RangeError: invalid language tag
+new Intl.Locale("x-foo").calendar	ERR RangeError: invalid language tag
+new Intl.Locale("x-foo").collation	ERR RangeError: invalid language tag
+new Intl.Locale("x-foo").hourCycle	ERR RangeError: invalid language tag
+new Intl.Locale("x-foo").caseFirst	ERR RangeError: invalid language tag
+new Intl.Locale("x-foo").numeric	ERR RangeError: invalid language tag
+new Intl.Locale("x-foo").numberingSystem	ERR RangeError: invalid language tag
+new Intl.Locale("x-foo").variants	ERR RangeError: invalid language tag
+new Intl.Locale("x-foo").firstDayOfWeek	ERR RangeError: invalid language tag
+new Intl.Locale("x-foo").toString()	ERR RangeError: invalid language tag
+new Intl.Locale("x-foo").maximize().toString()	ERR RangeError: invalid language tag
+new Intl.Locale("x-foo").minimize().toString()	ERR RangeError: invalid language tag
+new Intl.Locale("en-u-attr-ca-gregory").language	en
+new Intl.Locale("en-u-attr-ca-gregory").script	undefined
+new Intl.Locale("en-u-attr-ca-gregory").region	undefined
+new Intl.Locale("en-u-attr-ca-gregory").baseName	en
+new Intl.Locale("en-u-attr-ca-gregory").calendar	gregory
+new Intl.Locale("en-u-attr-ca-gregory").collation	undefined
+new Intl.Locale("en-u-attr-ca-gregory").hourCycle	undefined
+new Intl.Locale("en-u-attr-ca-gregory").caseFirst	undefined
+new Intl.Locale("en-u-attr-ca-gregory").numeric	false
+new Intl.Locale("en-u-attr-ca-gregory").numberingSystem	undefined
+new Intl.Locale("en-u-attr-ca-gregory").variants	undefined
+new Intl.Locale("en-u-attr-ca-gregory").firstDayOfWeek	undefined
+new Intl.Locale("en-u-attr-ca-gregory").toString()	en-u-attr-ca-gregory
+new Intl.Locale("en-u-attr-ca-gregory").maximize().toString()	en-Latn-US-u-attr-ca-gregory
+new Intl.Locale("en-u-attr-ca-gregory").minimize().toString()	en-u-attr-ca-gregory
+new Intl.Locale("en-u-fw-mon").language	en
+new Intl.Locale("en-u-fw-mon").script	undefined
+new Intl.Locale("en-u-fw-mon").region	undefined
+new Intl.Locale("en-u-fw-mon").baseName	en
+new Intl.Locale("en-u-fw-mon").calendar	undefined
+new Intl.Locale("en-u-fw-mon").collation	undefined
+new Intl.Locale("en-u-fw-mon").hourCycle	undefined
+new Intl.Locale("en-u-fw-mon").caseFirst	undefined
+new Intl.Locale("en-u-fw-mon").numeric	false
+new Intl.Locale("en-u-fw-mon").numberingSystem	undefined
+new Intl.Locale("en-u-fw-mon").variants	undefined
+new Intl.Locale("en-u-fw-mon").firstDayOfWeek	mon
+new Intl.Locale("en-u-fw-mon").toString()	en-u-fw-mon
+new Intl.Locale("en-u-fw-mon").maximize().toString()	en-Latn-US-u-fw-mon
+new Intl.Locale("en-u-fw-mon").minimize().toString()	en-u-fw-mon
+new Intl.Locale("en-u-rg-gbzzzz").language	en
+new Intl.Locale("en-u-rg-gbzzzz").script	undefined
+new Intl.Locale("en-u-rg-gbzzzz").region	undefined
+new Intl.Locale("en-u-rg-gbzzzz").baseName	en
+new Intl.Locale("en-u-rg-gbzzzz").calendar	undefined
+new Intl.Locale("en-u-rg-gbzzzz").collation	undefined
+new Intl.Locale("en-u-rg-gbzzzz").hourCycle	undefined
+new Intl.Locale("en-u-rg-gbzzzz").caseFirst	undefined
+new Intl.Locale("en-u-rg-gbzzzz").numeric	false
+new Intl.Locale("en-u-rg-gbzzzz").numberingSystem	undefined
+new Intl.Locale("en-u-rg-gbzzzz").variants	undefined
+new Intl.Locale("en-u-rg-gbzzzz").firstDayOfWeek	undefined
+new Intl.Locale("en-u-rg-gbzzzz").toString()	en-u-rg-gbzzzz
+new Intl.Locale("en-u-rg-gbzzzz").maximize().toString()	en-Latn-US-u-rg-gbzzzz
+new Intl.Locale("en-u-rg-gbzzzz").minimize().toString()	en-u-rg-gbzzzz
+new Intl.Locale("en-u-sd-usca").language	en
+new Intl.Locale("en-u-sd-usca").script	undefined
+new Intl.Locale("en-u-sd-usca").region	undefined
+new Intl.Locale("en-u-sd-usca").baseName	en
+new Intl.Locale("en-u-sd-usca").calendar	undefined
+new Intl.Locale("en-u-sd-usca").collation	undefined
+new Intl.Locale("en-u-sd-usca").hourCycle	undefined
+new Intl.Locale("en-u-sd-usca").caseFirst	undefined
+new Intl.Locale("en-u-sd-usca").numeric	false
+new Intl.Locale("en-u-sd-usca").numberingSystem	undefined
+new Intl.Locale("en-u-sd-usca").variants	undefined
+new Intl.Locale("en-u-sd-usca").firstDayOfWeek	undefined
+new Intl.Locale("en-u-sd-usca").toString()	en-u-sd-usca
+new Intl.Locale("en-u-sd-usca").maximize().toString()	en-Latn-US-u-sd-usca
+new Intl.Locale("en-u-sd-usca").minimize().toString()	en-u-sd-usca
+new Intl.Locale("en-u-tz-brsao").language	en
+new Intl.Locale("en-u-tz-brsao").script	undefined
+new Intl.Locale("en-u-tz-brsao").region	undefined
+new Intl.Locale("en-u-tz-brsao").baseName	en
+new Intl.Locale("en-u-tz-brsao").calendar	undefined
+new Intl.Locale("en-u-tz-brsao").collation	undefined
+new Intl.Locale("en-u-tz-brsao").hourCycle	undefined
+new Intl.Locale("en-u-tz-brsao").caseFirst	undefined
+new Intl.Locale("en-u-tz-brsao").numeric	false
+new Intl.Locale("en-u-tz-brsao").numberingSystem	undefined
+new Intl.Locale("en-u-tz-brsao").variants	undefined
+new Intl.Locale("en-u-tz-brsao").firstDayOfWeek	undefined
+new Intl.Locale("en-u-tz-brsao").toString()	en-u-tz-brsao
+new Intl.Locale("en-u-tz-brsao").maximize().toString()	en-Latn-US-u-tz-brsao
+new Intl.Locale("en-u-tz-brsao").minimize().toString()	en-u-tz-brsao
+new Intl.Locale("fr-CA").language	fr
+new Intl.Locale("fr-CA").script	undefined
+new Intl.Locale("fr-CA").region	CA
+new Intl.Locale("fr-CA").baseName	fr-CA
+new Intl.Locale("fr-CA").calendar	undefined
+new Intl.Locale("fr-CA").collation	undefined
+new Intl.Locale("fr-CA").hourCycle	undefined
+new Intl.Locale("fr-CA").caseFirst	undefined
+new Intl.Locale("fr-CA").numeric	false
+new Intl.Locale("fr-CA").numberingSystem	undefined
+new Intl.Locale("fr-CA").variants	undefined
+new Intl.Locale("fr-CA").firstDayOfWeek	undefined
+new Intl.Locale("fr-CA").toString()	fr-CA
+new Intl.Locale("fr-CA").maximize().toString()	fr-Latn-CA
+new Intl.Locale("fr-CA").minimize().toString()	fr-CA
+new Intl.Locale("pt-PT").language	pt
+new Intl.Locale("pt-PT").script	undefined
+new Intl.Locale("pt-PT").region	PT
+new Intl.Locale("pt-PT").baseName	pt-PT
+new Intl.Locale("pt-PT").calendar	undefined
+new Intl.Locale("pt-PT").collation	undefined
+new Intl.Locale("pt-PT").hourCycle	undefined
+new Intl.Locale("pt-PT").caseFirst	undefined
+new Intl.Locale("pt-PT").numeric	false
+new Intl.Locale("pt-PT").numberingSystem	undefined
+new Intl.Locale("pt-PT").variants	undefined
+new Intl.Locale("pt-PT").firstDayOfWeek	undefined
+new Intl.Locale("pt-PT").toString()	pt-PT
+new Intl.Locale("pt-PT").maximize().toString()	pt-Latn-PT
+new Intl.Locale("pt-PT").minimize().toString()	pt-PT
+new Intl.Locale("en-Latn-US").language	en
+new Intl.Locale("en-Latn-US").script	Latn
+new Intl.Locale("en-Latn-US").region	US
+new Intl.Locale("en-Latn-US").baseName	en-Latn-US
+new Intl.Locale("en-Latn-US").calendar	undefined
+new Intl.Locale("en-Latn-US").collation	undefined
+new Intl.Locale("en-Latn-US").hourCycle	undefined
+new Intl.Locale("en-Latn-US").caseFirst	undefined
+new Intl.Locale("en-Latn-US").numeric	false
+new Intl.Locale("en-Latn-US").numberingSystem	undefined
+new Intl.Locale("en-Latn-US").variants	undefined
+new Intl.Locale("en-Latn-US").firstDayOfWeek	undefined
+new Intl.Locale("en-Latn-US").toString()	en-Latn-US
+new Intl.Locale("en-Latn-US").maximize().toString()	en-Latn-US
+new Intl.Locale("en-Latn-US").minimize().toString()	en
+new Intl.Locale("ZH-hANS-cn").language	zh
+new Intl.Locale("ZH-hANS-cn").script	Hans
+new Intl.Locale("ZH-hANS-cn").region	CN
+new Intl.Locale("ZH-hANS-cn").baseName	zh-Hans-CN
+new Intl.Locale("ZH-hANS-cn").calendar	undefined
+new Intl.Locale("ZH-hANS-cn").collation	undefined
+new Intl.Locale("ZH-hANS-cn").hourCycle	undefined
+new Intl.Locale("ZH-hANS-cn").caseFirst	undefined
+new Intl.Locale("ZH-hANS-cn").numeric	false
+new Intl.Locale("ZH-hANS-cn").numberingSystem	undefined
+new Intl.Locale("ZH-hANS-cn").variants	undefined
+new Intl.Locale("ZH-hANS-cn").firstDayOfWeek	undefined
+new Intl.Locale("ZH-hANS-cn").toString()	zh-Hans-CN
+new Intl.Locale("ZH-hANS-cn").maximize().toString()	zh-Hans-CN
+new Intl.Locale("ZH-hANS-cn").minimize().toString()	zh
+new Intl.Locale("EN-us").language	en
+new Intl.Locale("EN-us").script	undefined
+new Intl.Locale("EN-us").region	US
+new Intl.Locale("EN-us").baseName	en-US
+new Intl.Locale("EN-us").calendar	undefined
+new Intl.Locale("EN-us").collation	undefined
+new Intl.Locale("EN-us").hourCycle	undefined
+new Intl.Locale("EN-us").caseFirst	undefined
+new Intl.Locale("EN-us").numeric	false
+new Intl.Locale("EN-us").numberingSystem	undefined
+new Intl.Locale("EN-us").variants	undefined
+new Intl.Locale("EN-us").firstDayOfWeek	undefined
+new Intl.Locale("EN-us").toString()	en-US
+new Intl.Locale("EN-us").maximize().toString()	en-Latn-US
+new Intl.Locale("EN-us").minimize().toString()	en
+new Intl.Locale("sr-ME").language	sr
+new Intl.Locale("sr-ME").script	undefined
+new Intl.Locale("sr-ME").region	ME
+new Intl.Locale("sr-ME").baseName	sr-ME
+new Intl.Locale("sr-ME").calendar	undefined
+new Intl.Locale("sr-ME").collation	undefined
+new Intl.Locale("sr-ME").hourCycle	undefined
+new Intl.Locale("sr-ME").caseFirst	undefined
+new Intl.Locale("sr-ME").numeric	false
+new Intl.Locale("sr-ME").numberingSystem	undefined
+new Intl.Locale("sr-ME").variants	undefined
+new Intl.Locale("sr-ME").firstDayOfWeek	undefined
+new Intl.Locale("sr-ME").toString()	sr-ME
+new Intl.Locale("sr-ME").maximize().toString()	sr-Latn-ME
+new Intl.Locale("sr-ME").minimize().toString()	sr-ME
+new Intl.Locale("sr-Latn-ME").language	sr
+new Intl.Locale("sr-Latn-ME").script	Latn
+new Intl.Locale("sr-Latn-ME").region	ME
+new Intl.Locale("sr-Latn-ME").baseName	sr-Latn-ME
+new Intl.Locale("sr-Latn-ME").calendar	undefined
+new Intl.Locale("sr-Latn-ME").collation	undefined
+new Intl.Locale("sr-Latn-ME").hourCycle	undefined
+new Intl.Locale("sr-Latn-ME").caseFirst	undefined
+new Intl.Locale("sr-Latn-ME").numeric	false
+new Intl.Locale("sr-Latn-ME").numberingSystem	undefined
+new Intl.Locale("sr-Latn-ME").variants	undefined
+new Intl.Locale("sr-Latn-ME").firstDayOfWeek	undefined
+new Intl.Locale("sr-Latn-ME").toString()	sr-Latn-ME
+new Intl.Locale("sr-Latn-ME").maximize().toString()	sr-Latn-ME
+new Intl.Locale("sr-Latn-ME").minimize().toString()	sr-ME
+new Intl.Locale("ru-RU").language	ru
+new Intl.Locale("ru-RU").script	undefined
+new Intl.Locale("ru-RU").region	RU
+new Intl.Locale("ru-RU").baseName	ru-RU
+new Intl.Locale("ru-RU").calendar	undefined
+new Intl.Locale("ru-RU").collation	undefined
+new Intl.Locale("ru-RU").hourCycle	undefined
+new Intl.Locale("ru-RU").caseFirst	undefined
+new Intl.Locale("ru-RU").numeric	false
+new Intl.Locale("ru-RU").numberingSystem	undefined
+new Intl.Locale("ru-RU").variants	undefined
+new Intl.Locale("ru-RU").firstDayOfWeek	undefined
+new Intl.Locale("ru-RU").toString()	ru-RU
+new Intl.Locale("ru-RU").maximize().toString()	ru-Cyrl-RU
+new Intl.Locale("ru-RU").minimize().toString()	ru
+new Intl.Locale("en-US").getCalendars()	["gregory"]
+new Intl.Locale("en-US").getCollations()	["emoji","eor"]
+new Intl.Locale("en-US").getHourCycles()	["h12"]
+new Intl.Locale("en-US").getNumberingSystems()	["latn"]
+new Intl.Locale("en-US").getTextInfo()	{"direction":"ltr"}
+new Intl.Locale("en-US").getTimeZones()	["America/Adak","America/Anchorage","America/Boise","America/Chicago","America/Denver","America/Detroit","America/Indiana/Knox","America/Indiana/Marengo","America/Indiana/Petersburg","America/Indiana/Tell_City","America/Indiana/Vevay","America/Indiana/Vincennes","America/Indiana/Winamac","America/Indianapolis","America/Juneau","America/Kentucky/Monticello","America/Los_Angeles","America/Louisville","America/Menominee","America/Metlakatla","America/New_York","America/Nome","America/North_Dakota/Beulah","America/North_Dakota/Center","America/North_Dakota/New_Salem","America/Phoenix","America/Sitka","America/Yakutat","Pacific/Honolulu"]
+new Intl.Locale("en-US").getWeekInfo()	{"firstDay":7,"weekend":[6,7]}
+new Intl.Locale("en-US").calendars	undefined
+new Intl.Locale("en-US").collations	undefined
+new Intl.Locale("en-US").hourCycles	undefined
+new Intl.Locale("en-US").numberingSystems	undefined
+new Intl.Locale("en-US").textInfo	undefined
+new Intl.Locale("en-US").timeZones	undefined
+new Intl.Locale("en-US").weekInfo	undefined
+new Intl.Locale("pt-BR").getCalendars()	["gregory"]
+new Intl.Locale("pt-BR").getCollations()	["emoji","eor"]
+new Intl.Locale("pt-BR").getHourCycles()	["h23"]
+new Intl.Locale("pt-BR").getNumberingSystems()	["latn"]
+new Intl.Locale("pt-BR").getTextInfo()	{"direction":"ltr"}
+new Intl.Locale("pt-BR").getTimeZones()	["America/Araguaina","America/Bahia","America/Belem","America/Boa_Vista","America/Campo_Grande","America/Cuiaba","America/Eirunepe","America/Fortaleza","America/Maceio","America/Manaus","America/Noronha","America/Porto_Velho","America/Recife","America/Rio_Branco","America/Santarem","America/Sao_Paulo"]
+new Intl.Locale("pt-BR").getWeekInfo()	{"firstDay":7,"weekend":[6,7]}
+new Intl.Locale("pt-BR").calendars	undefined
+new Intl.Locale("pt-BR").collations	undefined
+new Intl.Locale("pt-BR").hourCycles	undefined
+new Intl.Locale("pt-BR").numberingSystems	undefined
+new Intl.Locale("pt-BR").textInfo	undefined
+new Intl.Locale("pt-BR").timeZones	undefined
+new Intl.Locale("pt-BR").weekInfo	undefined
+new Intl.Locale("ar-EG").getCalendars()	["gregory","coptic","islamic","islamic-civil","islamic-tbla"]
+new Intl.Locale("ar-EG").getCollations()	["compat","emoji","eor"]
+new Intl.Locale("ar-EG").getHourCycles()	["h12"]
+new Intl.Locale("ar-EG").getNumberingSystems()	["arab"]
+new Intl.Locale("ar-EG").getTextInfo()	{"direction":"rtl"}
+new Intl.Locale("ar-EG").getTimeZones()	["Africa/Cairo"]
+new Intl.Locale("ar-EG").getWeekInfo()	{"firstDay":6,"weekend":[5,6]}
+new Intl.Locale("ar-EG").calendars	undefined
+new Intl.Locale("ar-EG").collations	undefined
+new Intl.Locale("ar-EG").hourCycles	undefined
+new Intl.Locale("ar-EG").numberingSystems	undefined
+new Intl.Locale("ar-EG").textInfo	undefined
+new Intl.Locale("ar-EG").timeZones	undefined
+new Intl.Locale("ar-EG").weekInfo	undefined
+new Intl.Locale("th-u-ca-buddhist").getCalendars()	["buddhist"]
+new Intl.Locale("th-u-ca-buddhist").getCollations()	["emoji","eor"]
+new Intl.Locale("th-u-ca-buddhist").getHourCycles()	["h23"]
+new Intl.Locale("th-u-ca-buddhist").getNumberingSystems()	["latn"]
+new Intl.Locale("th-u-ca-buddhist").getTextInfo()	{"direction":"ltr"}
+new Intl.Locale("th-u-ca-buddhist").getTimeZones()	undefined
+new Intl.Locale("th-u-ca-buddhist").getWeekInfo()	{"firstDay":7,"weekend":[6,7]}
+new Intl.Locale("th-u-ca-buddhist").calendars	undefined
+new Intl.Locale("th-u-ca-buddhist").collations	undefined
+new Intl.Locale("th-u-ca-buddhist").hourCycles	undefined
+new Intl.Locale("th-u-ca-buddhist").numberingSystems	undefined
+new Intl.Locale("th-u-ca-buddhist").textInfo	undefined
+new Intl.Locale("th-u-ca-buddhist").timeZones	undefined
+new Intl.Locale("th-u-ca-buddhist").weekInfo	undefined
+new Intl.Locale("ja-JP").getCalendars()	["gregory","japanese"]
+new Intl.Locale("ja-JP").getCollations()	["emoji","eor","unihan"]
+new Intl.Locale("ja-JP").getHourCycles()	["h23"]
+new Intl.Locale("ja-JP").getNumberingSystems()	["latn"]
+new Intl.Locale("ja-JP").getTextInfo()	{"direction":"ltr"}
+new Intl.Locale("ja-JP").getTimeZones()	["Asia/Tokyo"]
+new Intl.Locale("ja-JP").getWeekInfo()	{"firstDay":7,"weekend":[6,7]}
+new Intl.Locale("ja-JP").calendars	undefined
+new Intl.Locale("ja-JP").collations	undefined
+new Intl.Locale("ja-JP").hourCycles	undefined
+new Intl.Locale("ja-JP").numberingSystems	undefined
+new Intl.Locale("ja-JP").textInfo	undefined
+new Intl.Locale("ja-JP").timeZones	undefined
+new Intl.Locale("ja-JP").weekInfo	undefined
+new Intl.Locale("he").getCalendars()	["gregory","hebrew","islamic","islamic-civil","islamic-tbla"]
+new Intl.Locale("he").getCollations()	["emoji","eor"]
+new Intl.Locale("he").getHourCycles()	["h23"]
+new Intl.Locale("he").getNumberingSystems()	["latn"]
+new Intl.Locale("he").getTextInfo()	{"direction":"rtl"}
+new Intl.Locale("he").getTimeZones()	undefined
+new Intl.Locale("he").getWeekInfo()	{"firstDay":7,"weekend":[5,6]}
+new Intl.Locale("he").calendars	undefined
+new Intl.Locale("he").collations	undefined
+new Intl.Locale("he").hourCycles	undefined
+new Intl.Locale("he").numberingSystems	undefined
+new Intl.Locale("he").textInfo	undefined
+new Intl.Locale("he").timeZones	undefined
+new Intl.Locale("he").weekInfo	undefined
+new Intl.Locale("fa-AF").getCalendars()	["persian","gregory","islamic","islamic-civil","islamic-tbla"]
+new Intl.Locale("fa-AF").getCollations()	["emoji","eor"]
+new Intl.Locale("fa-AF").getHourCycles()	["h23"]
+new Intl.Locale("fa-AF").getNumberingSystems()	["arabext"]
+new Intl.Locale("fa-AF").getTextInfo()	{"direction":"rtl"}
+new Intl.Locale("fa-AF").getTimeZones()	["Asia/Kabul"]
+new Intl.Locale("fa-AF").getWeekInfo()	{"firstDay":6,"weekend":[4,5]}
+new Intl.Locale("fa-AF").calendars	undefined
+new Intl.Locale("fa-AF").collations	undefined
+new Intl.Locale("fa-AF").hourCycles	undefined
+new Intl.Locale("fa-AF").numberingSystems	undefined
+new Intl.Locale("fa-AF").textInfo	undefined
+new Intl.Locale("fa-AF").timeZones	undefined
+new Intl.Locale("fa-AF").weekInfo	undefined
+new Intl.Locale("de-u-co-phonebk-hc-h23").getCalendars()	["gregory"]
+new Intl.Locale("de-u-co-phonebk-hc-h23").getCollations()	["phonebk"]
+new Intl.Locale("de-u-co-phonebk-hc-h23").getHourCycles()	["h23"]
+new Intl.Locale("de-u-co-phonebk-hc-h23").getNumberingSystems()	["latn"]
+new Intl.Locale("de-u-co-phonebk-hc-h23").getTextInfo()	{"direction":"ltr"}
+new Intl.Locale("de-u-co-phonebk-hc-h23").getTimeZones()	undefined
+new Intl.Locale("de-u-co-phonebk-hc-h23").getWeekInfo()	{"firstDay":1,"weekend":[6,7]}
+new Intl.Locale("de-u-co-phonebk-hc-h23").calendars	undefined
+new Intl.Locale("de-u-co-phonebk-hc-h23").collations	undefined
+new Intl.Locale("de-u-co-phonebk-hc-h23").hourCycles	undefined
+new Intl.Locale("de-u-co-phonebk-hc-h23").numberingSystems	undefined
+new Intl.Locale("de-u-co-phonebk-hc-h23").textInfo	undefined
+new Intl.Locale("de-u-co-phonebk-hc-h23").timeZones	undefined
+new Intl.Locale("de-u-co-phonebk-hc-h23").weekInfo	undefined
+new Intl.Locale("und").getCalendars()	["gregory"]
+new Intl.Locale("und").getCollations()	["emoji","eor"]
+new Intl.Locale("und").getHourCycles()	["h12"]
+new Intl.Locale("und").getNumberingSystems()	["latn"]
+new Intl.Locale("und").getTextInfo()	{"direction":"ltr"}
+new Intl.Locale("und").getTimeZones()	undefined
+new Intl.Locale("und").getWeekInfo()	{"firstDay":7,"weekend":[6,7]}
+new Intl.Locale("und").calendars	undefined
+new Intl.Locale("und").collations	undefined
+new Intl.Locale("und").hourCycles	undefined
+new Intl.Locale("und").numberingSystems	undefined
+new Intl.Locale("und").textInfo	undefined
+new Intl.Locale("und").timeZones	undefined
+new Intl.Locale("und").weekInfo	undefined
+new Intl.Locale("zh-Hant-TW").getCalendars()	["gregory","roc","chinese"]
+new Intl.Locale("zh-Hant-TW").getCollations()	["emoji","eor","pinyin","stroke","unihan","zhuyin"]
+new Intl.Locale("zh-Hant-TW").getHourCycles()	["h12"]
+new Intl.Locale("zh-Hant-TW").getNumberingSystems()	["latn"]
+new Intl.Locale("zh-Hant-TW").getTextInfo()	{"direction":"ltr"}
+new Intl.Locale("zh-Hant-TW").getTimeZones()	["Asia/Taipei"]
+new Intl.Locale("zh-Hant-TW").getWeekInfo()	{"firstDay":7,"weekend":[6,7]}
+new Intl.Locale("zh-Hant-TW").calendars	undefined
+new Intl.Locale("zh-Hant-TW").collations	undefined
+new Intl.Locale("zh-Hant-TW").hourCycles	undefined
+new Intl.Locale("zh-Hant-TW").numberingSystems	undefined
+new Intl.Locale("zh-Hant-TW").textInfo	undefined
+new Intl.Locale("zh-Hant-TW").timeZones	undefined
+new Intl.Locale("zh-Hant-TW").weekInfo	undefined
+new Intl.Locale("en", {"calendar":"buddhist"}).toString()	en-u-ca-buddhist
+new Intl.Locale("en", {"calendar":"islamic-civil"}).toString()	en-u-ca-islamic-civil
+new Intl.Locale("en", {"calendar":"bad_cal"}).toString()	ERR RangeError: calendar is not a well-formed calendar value
+new Intl.Locale("en", {"calendar":""}).toString()	ERR RangeError: calendar is not a well-formed calendar value
+new Intl.Locale("en", {"collation":"phonebk"}).toString()	en-u-co-phonebk
+new Intl.Locale("en", {"collation":"x"}).toString()	ERR RangeError: collation is not a well-formed collation value
+new Intl.Locale("en", {"hourCycle":"h12"}).toString()	en-u-hc-h12
+new Intl.Locale("en", {"hourCycle":"h24"}).toString()	en-u-hc-h24
+new Intl.Locale("en", {"hourCycle":"h99"}).toString()	ERR RangeError: hourCycle must be "h11", "h12", "h23", or "h24"
+new Intl.Locale("en", {"caseFirst":"upper"}).toString()	en-u-kf-upper
+new Intl.Locale("en", {"caseFirst":"false"}).toString()	en-u-kf-false
+new Intl.Locale("en", {"caseFirst":"bogus"}).toString()	ERR RangeError: caseFirst must be either "upper", "lower", or "false"
+new Intl.Locale("en", {"numeric":true}).toString()	en-u-kn
+new Intl.Locale("en", {"numeric":false}).toString()	en-u-kn-false
+new Intl.Locale("en", {"numeric":"yes"}).toString()	en-u-kn
+new Intl.Locale("en", {"numberingSystem":"arab"}).toString()	en-u-nu-arab
+new Intl.Locale("en", {"numberingSystem":"toolongvalue"}).toString()	ERR RangeError: numberingSystem is not a well-formed numbering system value
+new Intl.Locale("en", {"language":"fr"}).toString()	fr
+new Intl.Locale("en", {"language":"xx-yy"}).toString()	ERR RangeError: language is not a well-formed language value
+new Intl.Locale("en", {"script":"Latn"}).toString()	en-Latn
+new Intl.Locale("en", {"script":"latin"}).toString()	ERR RangeError: script is not a well-formed script value
+new Intl.Locale("en", {"region":"BR"}).toString()	en-BR
+new Intl.Locale("en", {"region":"bra"}).toString()	ERR RangeError: region is not a well-formed region value
+new Intl.Locale("en", {"region":"123"}).toString()	en-123
+new Intl.Locale("en", {"variants":"1996"}).toString()	en-1996
+new Intl.Locale("en", {"firstDayOfWeek":"mon"}).toString()	en-u-fw-mon
+new Intl.Locale("en", {"firstDayOfWeek":7}).toString()	en-u-fw-sun
+new Intl.Locale("en", {"firstDayOfWeek":0}).toString()	en-u-fw-sun
+new Intl.Locale("en", {"firstDayOfWeek":"xyz"}).toString()	en-u-fw-xyz
+new Intl.Locale("en", {"language":"pt","region":"PT","calendar":"gregory","hourCycle":"h23"}).toString()	pt-PT-u-ca-gregory-hc-h23
+new Intl.Locale("en", {"script":"Hans","region":"TW"}).toString()	en-Hans-TW
+new Intl.Locale("en-US", {"calendar":"buddhist"}).toString()	en-US-u-ca-buddhist
+new Intl.Locale("en-US", {"calendar":"islamic-civil"}).toString()	en-US-u-ca-islamic-civil
+new Intl.Locale("en-US", {"calendar":"bad_cal"}).toString()	ERR RangeError: calendar is not a well-formed calendar value
+new Intl.Locale("en-US", {"calendar":""}).toString()	ERR RangeError: calendar is not a well-formed calendar value
+new Intl.Locale("en-US", {"collation":"phonebk"}).toString()	en-US-u-co-phonebk
+new Intl.Locale("en-US", {"collation":"x"}).toString()	ERR RangeError: collation is not a well-formed collation value
+new Intl.Locale("en-US", {"hourCycle":"h12"}).toString()	en-US-u-hc-h12
+new Intl.Locale("en-US", {"hourCycle":"h24"}).toString()	en-US-u-hc-h24
+new Intl.Locale("en-US", {"hourCycle":"h99"}).toString()	ERR RangeError: hourCycle must be "h11", "h12", "h23", or "h24"
+new Intl.Locale("en-US", {"caseFirst":"upper"}).toString()	en-US-u-kf-upper
+new Intl.Locale("en-US", {"caseFirst":"false"}).toString()	en-US-u-kf-false
+new Intl.Locale("en-US", {"caseFirst":"bogus"}).toString()	ERR RangeError: caseFirst must be either "upper", "lower", or "false"
+new Intl.Locale("en-US", {"numeric":true}).toString()	en-US-u-kn
+new Intl.Locale("en-US", {"numeric":false}).toString()	en-US-u-kn-false
+new Intl.Locale("en-US", {"numeric":"yes"}).toString()	en-US-u-kn
+new Intl.Locale("en-US", {"numberingSystem":"arab"}).toString()	en-US-u-nu-arab
+new Intl.Locale("en-US", {"numberingSystem":"toolongvalue"}).toString()	ERR RangeError: numberingSystem is not a well-formed numbering system value
+new Intl.Locale("en-US", {"language":"fr"}).toString()	fr-US
+new Intl.Locale("en-US", {"language":"xx-yy"}).toString()	ERR RangeError: language is not a well-formed language value
+new Intl.Locale("en-US", {"script":"Latn"}).toString()	en-Latn-US
+new Intl.Locale("en-US", {"script":"latin"}).toString()	ERR RangeError: script is not a well-formed script value
+new Intl.Locale("en-US", {"region":"BR"}).toString()	en-BR
+new Intl.Locale("en-US", {"region":"bra"}).toString()	ERR RangeError: region is not a well-formed region value
+new Intl.Locale("en-US", {"region":"123"}).toString()	en-123
+new Intl.Locale("en-US", {"variants":"1996"}).toString()	en-US-1996
+new Intl.Locale("en-US", {"firstDayOfWeek":"mon"}).toString()	en-US-u-fw-mon
+new Intl.Locale("en-US", {"firstDayOfWeek":7}).toString()	en-US-u-fw-sun
+new Intl.Locale("en-US", {"firstDayOfWeek":0}).toString()	en-US-u-fw-sun
+new Intl.Locale("en-US", {"firstDayOfWeek":"xyz"}).toString()	en-US-u-fw-xyz
+new Intl.Locale("en-US", {"language":"pt","region":"PT","calendar":"gregory","hourCycle":"h23"}).toString()	pt-PT-u-ca-gregory-hc-h23
+new Intl.Locale("en-US", {"script":"Hans","region":"TW"}).toString()	en-Hans-TW
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"calendar":"buddhist"}).toString()	en-u-ca-buddhist-hc-h23
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"calendar":"islamic-civil"}).toString()	en-u-ca-islamic-civil-hc-h23
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"calendar":"bad_cal"}).toString()	ERR RangeError: calendar is not a well-formed calendar value
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"calendar":""}).toString()	ERR RangeError: calendar is not a well-formed calendar value
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"collation":"phonebk"}).toString()	en-u-ca-gregory-co-phonebk-hc-h23
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"collation":"x"}).toString()	ERR RangeError: collation is not a well-formed collation value
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"hourCycle":"h12"}).toString()	en-u-ca-gregory-hc-h12
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"hourCycle":"h24"}).toString()	en-u-ca-gregory-hc-h24
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"hourCycle":"h99"}).toString()	ERR RangeError: hourCycle must be "h11", "h12", "h23", or "h24"
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"caseFirst":"upper"}).toString()	en-u-ca-gregory-hc-h23-kf-upper
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"caseFirst":"false"}).toString()	en-u-ca-gregory-hc-h23-kf-false
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"caseFirst":"bogus"}).toString()	ERR RangeError: caseFirst must be either "upper", "lower", or "false"
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"numeric":true}).toString()	en-u-ca-gregory-hc-h23-kn
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"numeric":false}).toString()	en-u-ca-gregory-hc-h23-kn-false
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"numeric":"yes"}).toString()	en-u-ca-gregory-hc-h23-kn
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"numberingSystem":"arab"}).toString()	en-u-ca-gregory-hc-h23-nu-arab
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"numberingSystem":"toolongvalue"}).toString()	ERR RangeError: numberingSystem is not a well-formed numbering system value
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"language":"fr"}).toString()	fr-u-ca-gregory-hc-h23
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"language":"xx-yy"}).toString()	ERR RangeError: language is not a well-formed language value
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"script":"Latn"}).toString()	en-Latn-u-ca-gregory-hc-h23
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"script":"latin"}).toString()	ERR RangeError: script is not a well-formed script value
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"region":"BR"}).toString()	en-BR-u-ca-gregory-hc-h23
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"region":"bra"}).toString()	ERR RangeError: region is not a well-formed region value
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"region":"123"}).toString()	en-123-u-ca-gregory-hc-h23
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"variants":"1996"}).toString()	en-1996-u-ca-gregory-hc-h23
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"firstDayOfWeek":"mon"}).toString()	en-u-ca-gregory-fw-mon-hc-h23
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"firstDayOfWeek":7}).toString()	en-u-ca-gregory-fw-sun-hc-h23
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"firstDayOfWeek":0}).toString()	en-u-ca-gregory-fw-sun-hc-h23
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"firstDayOfWeek":"xyz"}).toString()	en-u-ca-gregory-fw-xyz-hc-h23
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"language":"pt","region":"PT","calendar":"gregory","hourCycle":"h23"}).toString()	pt-PT-u-ca-gregory-hc-h23
+new Intl.Locale("en-u-ca-gregory-hc-h23", {"script":"Hans","region":"TW"}).toString()	en-Hans-TW-u-ca-gregory-hc-h23
+new Intl.Locale("zh-Hant", {"calendar":"buddhist"}).toString()	zh-Hant-u-ca-buddhist
+new Intl.Locale("zh-Hant", {"calendar":"islamic-civil"}).toString()	zh-Hant-u-ca-islamic-civil
+new Intl.Locale("zh-Hant", {"calendar":"bad_cal"}).toString()	ERR RangeError: calendar is not a well-formed calendar value
+new Intl.Locale("zh-Hant", {"calendar":""}).toString()	ERR RangeError: calendar is not a well-formed calendar value
+new Intl.Locale("zh-Hant", {"collation":"phonebk"}).toString()	zh-Hant-u-co-phonebk
+new Intl.Locale("zh-Hant", {"collation":"x"}).toString()	ERR RangeError: collation is not a well-formed collation value
+new Intl.Locale("zh-Hant", {"hourCycle":"h12"}).toString()	zh-Hant-u-hc-h12
+new Intl.Locale("zh-Hant", {"hourCycle":"h24"}).toString()	zh-Hant-u-hc-h24
+new Intl.Locale("zh-Hant", {"hourCycle":"h99"}).toString()	ERR RangeError: hourCycle must be "h11", "h12", "h23", or "h24"
+new Intl.Locale("zh-Hant", {"caseFirst":"upper"}).toString()	zh-Hant-u-kf-upper
+new Intl.Locale("zh-Hant", {"caseFirst":"false"}).toString()	zh-Hant-u-kf-false
+new Intl.Locale("zh-Hant", {"caseFirst":"bogus"}).toString()	ERR RangeError: caseFirst must be either "upper", "lower", or "false"
+new Intl.Locale("zh-Hant", {"numeric":true}).toString()	zh-Hant-u-kn
+new Intl.Locale("zh-Hant", {"numeric":false}).toString()	zh-Hant-u-kn-false
+new Intl.Locale("zh-Hant", {"numeric":"yes"}).toString()	zh-Hant-u-kn
+new Intl.Locale("zh-Hant", {"numberingSystem":"arab"}).toString()	zh-Hant-u-nu-arab
+new Intl.Locale("zh-Hant", {"numberingSystem":"toolongvalue"}).toString()	ERR RangeError: numberingSystem is not a well-formed numbering system value
+new Intl.Locale("zh-Hant", {"language":"fr"}).toString()	fr-Hant
+new Intl.Locale("zh-Hant", {"language":"xx-yy"}).toString()	ERR RangeError: language is not a well-formed language value
+new Intl.Locale("zh-Hant", {"script":"Latn"}).toString()	zh-Latn
+new Intl.Locale("zh-Hant", {"script":"latin"}).toString()	ERR RangeError: script is not a well-formed script value
+new Intl.Locale("zh-Hant", {"region":"BR"}).toString()	zh-Hant-BR
+new Intl.Locale("zh-Hant", {"region":"bra"}).toString()	ERR RangeError: region is not a well-formed region value
+new Intl.Locale("zh-Hant", {"region":"123"}).toString()	zh-Hant-123
+new Intl.Locale("zh-Hant", {"variants":"1996"}).toString()	zh-Hant-1996
+new Intl.Locale("zh-Hant", {"firstDayOfWeek":"mon"}).toString()	zh-Hant-u-fw-mon
+new Intl.Locale("zh-Hant", {"firstDayOfWeek":7}).toString()	zh-Hant-u-fw-sun
+new Intl.Locale("zh-Hant", {"firstDayOfWeek":0}).toString()	zh-Hant-u-fw-sun
+new Intl.Locale("zh-Hant", {"firstDayOfWeek":"xyz"}).toString()	zh-Hant-u-fw-xyz
+new Intl.Locale("zh-Hant", {"language":"pt","region":"PT","calendar":"gregory","hourCycle":"h23"}).toString()	pt-Hant-PT-u-ca-gregory-hc-h23
+new Intl.Locale("zh-Hant", {"script":"Hans","region":"TW"}).toString()	zh-Hans-TW
+new Intl.Locale("de-u-co-phonebk", {"calendar":"buddhist"}).toString()	de-u-ca-buddhist-co-phonebk
+new Intl.Locale("de-u-co-phonebk", {"calendar":"islamic-civil"}).toString()	de-u-ca-islamic-civil-co-phonebk
+new Intl.Locale("de-u-co-phonebk", {"calendar":"bad_cal"}).toString()	ERR RangeError: calendar is not a well-formed calendar value
+new Intl.Locale("de-u-co-phonebk", {"calendar":""}).toString()	ERR RangeError: calendar is not a well-formed calendar value
+new Intl.Locale("de-u-co-phonebk", {"collation":"phonebk"}).toString()	de-u-co-phonebk
+new Intl.Locale("de-u-co-phonebk", {"collation":"x"}).toString()	ERR RangeError: collation is not a well-formed collation value
+new Intl.Locale("de-u-co-phonebk", {"hourCycle":"h12"}).toString()	de-u-co-phonebk-hc-h12
+new Intl.Locale("de-u-co-phonebk", {"hourCycle":"h24"}).toString()	de-u-co-phonebk-hc-h24
+new Intl.Locale("de-u-co-phonebk", {"hourCycle":"h99"}).toString()	ERR RangeError: hourCycle must be "h11", "h12", "h23", or "h24"
+new Intl.Locale("de-u-co-phonebk", {"caseFirst":"upper"}).toString()	de-u-co-phonebk-kf-upper
+new Intl.Locale("de-u-co-phonebk", {"caseFirst":"false"}).toString()	de-u-co-phonebk-kf-false
+new Intl.Locale("de-u-co-phonebk", {"caseFirst":"bogus"}).toString()	ERR RangeError: caseFirst must be either "upper", "lower", or "false"
+new Intl.Locale("de-u-co-phonebk", {"numeric":true}).toString()	de-u-co-phonebk-kn
+new Intl.Locale("de-u-co-phonebk", {"numeric":false}).toString()	de-u-co-phonebk-kn-false
+new Intl.Locale("de-u-co-phonebk", {"numeric":"yes"}).toString()	de-u-co-phonebk-kn
+new Intl.Locale("de-u-co-phonebk", {"numberingSystem":"arab"}).toString()	de-u-co-phonebk-nu-arab
+new Intl.Locale("de-u-co-phonebk", {"numberingSystem":"toolongvalue"}).toString()	ERR RangeError: numberingSystem is not a well-formed numbering system value
+new Intl.Locale("de-u-co-phonebk", {"language":"fr"}).toString()	fr-u-co-phonebk
+new Intl.Locale("de-u-co-phonebk", {"language":"xx-yy"}).toString()	ERR RangeError: language is not a well-formed language value
+new Intl.Locale("de-u-co-phonebk", {"script":"Latn"}).toString()	de-Latn-u-co-phonebk
+new Intl.Locale("de-u-co-phonebk", {"script":"latin"}).toString()	ERR RangeError: script is not a well-formed script value
+new Intl.Locale("de-u-co-phonebk", {"region":"BR"}).toString()	de-BR-u-co-phonebk
+new Intl.Locale("de-u-co-phonebk", {"region":"bra"}).toString()	ERR RangeError: region is not a well-formed region value
+new Intl.Locale("de-u-co-phonebk", {"region":"123"}).toString()	de-123-u-co-phonebk
+new Intl.Locale("de-u-co-phonebk", {"variants":"1996"}).toString()	de-1996-u-co-phonebk
+new Intl.Locale("de-u-co-phonebk", {"firstDayOfWeek":"mon"}).toString()	de-u-co-phonebk-fw-mon
+new Intl.Locale("de-u-co-phonebk", {"firstDayOfWeek":7}).toString()	de-u-co-phonebk-fw-sun
+new Intl.Locale("de-u-co-phonebk", {"firstDayOfWeek":0}).toString()	de-u-co-phonebk-fw-sun
+new Intl.Locale("de-u-co-phonebk", {"firstDayOfWeek":"xyz"}).toString()	de-u-co-phonebk-fw-xyz
+new Intl.Locale("de-u-co-phonebk", {"language":"pt","region":"PT","calendar":"gregory","hourCycle":"h23"}).toString()	pt-PT-u-ca-gregory-co-phonebk-hc-h23
+new Intl.Locale("de-u-co-phonebk", {"script":"Hans","region":"TW"}).toString()	de-Hans-TW-u-co-phonebk
+new Intl.Locale("")	ERR RangeError: invalid language tag
+new Intl.Locale("e")	ERR RangeError: invalid language tag
+new Intl.Locale("en_US")	ERR RangeError: invalid language tag
+new Intl.Locale("en-")	ERR RangeError: invalid language tag
+new Intl.Locale("-en")	ERR RangeError: invalid language tag
+new Intl.Locale("en--US")	ERR RangeError: invalid language tag
+new Intl.Locale("123")	ERR RangeError: invalid language tag
+new Intl.Locale("en-US-US")	ERR RangeError: invalid language tag
+new Intl.Locale("en-Latn-Latn")	ERR RangeError: invalid language tag
+new Intl.Locale("toolonglanguage")	ERR RangeError: invalid language tag
+new Intl.Locale("abcd")	ERR RangeError: invalid language tag
+new Intl.Locale("en-u")	ERR RangeError: invalid language tag
+new Intl.Locale("en-u-")	ERR RangeError: invalid language tag
+new Intl.Locale("en-u-a")	ERR RangeError: invalid language tag
+new Intl.Locale("en-t")	ERR RangeError: invalid language tag
+new Intl.Locale("en-x")	ERR RangeError: invalid language tag
+new Intl.Locale("en-x-")	ERR RangeError: invalid language tag
+new Intl.Locale("en-a-b")	ERR RangeError: invalid language tag
+new Intl.Locale("en-a-bb-a-cc")	ERR RangeError: invalid language tag
+new Intl.Locale("en-u-ca-gregory-u-ca-buddhist")	ERR RangeError: invalid language tag
+new Intl.Locale("en-1234-1234")	ERR RangeError: invalid language tag
+new Intl.Locale("i-klingon")	ERR RangeError: invalid language tag
+new Intl.Locale("en-US-a")	ERR RangeError: invalid language tag
+new Intl.Locale("en-\u00e9")	ERR RangeError: invalid language tag
+new Intl.Locale(" en")	ERR RangeError: invalid language tag
+new Intl.Locale("en ")	ERR RangeError: invalid language tag
+new Intl.Locale("root")	ERR RangeError: invalid language tag
+new Intl.Locale("und-u-ca")	{}
+new Intl.Locale("en-u-ca-")	ERR RangeError: invalid language tag
+new Intl.Locale("en-u-ca-gregory-ca-buddhist")	{}
+Intl.getCanonicalLocales("")	ERR RangeError: invalid language tag: 
+Intl.getCanonicalLocales("e")	ERR RangeError: invalid language tag: e
+Intl.getCanonicalLocales("en_US")	ERR RangeError: invalid language tag: en_US
+Intl.getCanonicalLocales("en-")	ERR RangeError: invalid language tag: en-
+Intl.getCanonicalLocales("-en")	ERR RangeError: invalid language tag: -en
+Intl.getCanonicalLocales("en--US")	ERR RangeError: invalid language tag: en--US
+Intl.getCanonicalLocales("123")	ERR RangeError: invalid language tag: 123
+Intl.getCanonicalLocales("en-US-US")	ERR RangeError: invalid language tag: en-US-US
+Intl.getCanonicalLocales("en-Latn-Latn")	ERR RangeError: invalid language tag: en-Latn-Latn
+Intl.getCanonicalLocales("toolonglanguage")	ERR RangeError: invalid language tag: toolonglanguage
+Intl.getCanonicalLocales("abcd")	ERR RangeError: invalid language tag: abcd
+Intl.getCanonicalLocales("en-u")	ERR RangeError: invalid language tag: en-u
+Intl.getCanonicalLocales("en-u-")	ERR RangeError: invalid language tag: en-u-
+Intl.getCanonicalLocales("en-u-a")	ERR RangeError: invalid language tag: en-u-a
+Intl.getCanonicalLocales("en-t")	ERR RangeError: invalid language tag: en-t
+Intl.getCanonicalLocales("en-x")	ERR RangeError: invalid language tag: en-x
+Intl.getCanonicalLocales("en-x-")	ERR RangeError: invalid language tag: en-x-
+Intl.getCanonicalLocales("en-a-b")	ERR RangeError: invalid language tag: en-a-b
+Intl.getCanonicalLocales("en-a-bb-a-cc")	ERR RangeError: invalid language tag: en-a-bb-a-cc
+Intl.getCanonicalLocales("en-u-ca-gregory-u-ca-buddhist")	ERR RangeError: invalid language tag: en-u-ca-gregory-u-ca-buddhist
+Intl.getCanonicalLocales("en-1234-1234")	ERR RangeError: invalid language tag: en-1234-1234
+Intl.getCanonicalLocales("i-klingon")	ERR RangeError: invalid language tag: i-klingon
+Intl.getCanonicalLocales("en-US-a")	ERR RangeError: invalid language tag: en-US-a
+Intl.getCanonicalLocales("en-\u00e9")	ERR RangeError: invalid language tag: en-é
+Intl.getCanonicalLocales(" en")	ERR RangeError: invalid language tag:  en
+Intl.getCanonicalLocales("en ")	ERR RangeError: invalid language tag: en 
+Intl.getCanonicalLocales("root")	ERR RangeError: invalid language tag: root
+Intl.getCanonicalLocales("und-u-ca")	["und-u-ca"]
+Intl.getCanonicalLocales("en-u-ca-")	ERR RangeError: invalid language tag: en-u-ca-
+Intl.getCanonicalLocales("en-u-ca-gregory-ca-buddhist")	["en-u-ca-gregory"]
+new Intl.Locale(undefined)	ERR TypeError: First argument to Intl.Locale must be a string or an object
+Intl.getCanonicalLocales(undefined)	[]
+new Intl.Locale("en", undefined).toString()	en
+new Intl.Locale(null)	ERR TypeError: First argument to Intl.Locale must be a string or an object
+Intl.getCanonicalLocales(null)	ERR TypeError: null is not an object (evaluating 'Intl.getCanonicalLocales(null)')
+new Intl.Locale("en", null).toString()	ERR TypeError: null is not an object (evaluating 'new Intl.Locale("en", null)')
+new Intl.Locale(1)	ERR TypeError: First argument to Intl.Locale must be a string or an object
+Intl.getCanonicalLocales(1)	[]
+new Intl.Locale("en", 1).toString()	en
+new Intl.Locale(true)	ERR TypeError: First argument to Intl.Locale must be a string or an object
+Intl.getCanonicalLocales(true)	[]
+new Intl.Locale("en", true).toString()	en
+new Intl.Locale({})	ERR RangeError: invalid language tag
+Intl.getCanonicalLocales({})	[]
+new Intl.Locale("en", {}).toString()	en
+new Intl.Locale([])	ERR RangeError: invalid language tag
+Intl.getCanonicalLocales([])	[]
+new Intl.Locale("en", []).toString()	en
+new Intl.Locale([null])	ERR RangeError: invalid language tag
+Intl.getCanonicalLocales([null])	ERR TypeError: locale value must be a string or object
+new Intl.Locale("en", [null]).toString()	en
+new Intl.Locale([1])	ERR RangeError: invalid language tag
+Intl.getCanonicalLocales([1])	ERR TypeError: locale value must be a string or object
+new Intl.Locale("en", [1]).toString()	en
+new Intl.Locale([undefined])	ERR RangeError: invalid language tag
+Intl.getCanonicalLocales([undefined])	ERR TypeError: locale value must be a string or object
+new Intl.Locale("en", [undefined]).toString()	en
+new Intl.Locale(Symbol())	ERR TypeError: First argument to Intl.Locale must be a string or an object
+Intl.getCanonicalLocales(Symbol())	[]
+new Intl.Locale("en", Symbol()).toString()	en
+new Intl.Locale(Object('en'))	{}
+Intl.getCanonicalLocales(Object('en'))	ERR RangeError: invalid language tag: e
+new Intl.Locale("en", Object('en')).toString()	en
+new Intl.Locale({toString(){return 'pt-br'}})	{}
+Intl.getCanonicalLocales({toString(){return 'pt-br'}})	[]
+new Intl.Locale("en", {toString(){return 'pt-br'}}).toString()	en
+new Intl.Locale(new Intl.Locale('en-us'))	{}
+Intl.getCanonicalLocales(new Intl.Locale('en-us'))	["en-US"]
+new Intl.Locale("en", new Intl.Locale('en-us')).toString()	en-US-u-kn-false
+Intl.Locale("en")	ERR TypeError: calling Locale constructor without new is invalid
+Intl.Locale.length	1
+Intl.Locale.name	Locale
+Object.prototype.toString.call(new Intl.Locale("en"))	[object Intl.Locale]
+Intl.Locale.prototype[Symbol.toStringTag]	Intl.Locale
+Object.getOwnPropertyNames(Intl.Locale.prototype).sort()	["baseName","calendar","caseFirst","collation","constructor","firstDayOfWeek","getCalendars","getCollations","getHourCycles","getNumberingSystems","getTextInfo","getTimeZones","getWeekInfo","hourCycle","language","maximize","minimize","numberingSystem","numeric","region","script","toString","variants"]
+String(new Intl.Locale("pt-BR"))	pt-BR
+new Intl.Locale("pt-BR") + ""	pt-BR
+JSON.stringify(new Intl.Locale("pt-BR"))	{}
+new Intl.Locale(new Intl.Locale("pt-BR-u-ca-gregory"), {region: "PT"}).toString()	pt-PT-u-ca-gregory
+Intl.Locale.prototype.maximize.call({})	ERR TypeError: Intl.Locale.prototype.maximize called on value that's not a Locale
+Intl.Locale.prototype.toString.call("en")	ERR TypeError: Intl.Locale.prototype.toString called on value that's not a Locale
+Object.getOwnPropertyDescriptor(Intl.Locale.prototype, "language").get.name	get language
+Object.getOwnPropertyDescriptor(Intl.Locale.prototype, "language").set	undefined
+Intl.Locale.prototype.getWeekInfo.length	0
+Intl.Locale.prototype.maximize.name	maximize
+Intl.getCanonicalLocales("iw")	["he"]
+Intl.getCanonicalLocales("he")	["he"]
+Intl.getCanonicalLocales("in")	["id"]
+Intl.getCanonicalLocales("id")	["id"]
+Intl.getCanonicalLocales("ji")	["yi"]
+new Intl.Locale("ji").toString()	yi
+Intl.getCanonicalLocales("yi")	["yi"]
+new Intl.Locale("yi").toString()	yi
+Intl.getCanonicalLocales("jw")	["jv"]
+Intl.getCanonicalLocales("mo")	["ro"]
+Intl.getCanonicalLocales("sh")	["sh"]
+Intl.getCanonicalLocales("tl")	["tl"]
+Intl.getCanonicalLocales("fil")	["fil"]
+Intl.getCanonicalLocales("no")	["no"]
+Intl.getCanonicalLocales("nb")	["nb"]
+Intl.getCanonicalLocales("nn")	["nn"]
+new Intl.Locale("nn").toString()	nn
+Intl.getCanonicalLocales("cmn")	["cmn"]
+new Intl.Locale("cmn").toString()	cmn
+Intl.getCanonicalLocales("cmn-CN")	["cmn-CN"]
+new Intl.Locale("cmn-CN").toString()	cmn-CN
+Intl.getCanonicalLocales("zh-CN")	["zh-CN"]
+Intl.getCanonicalLocales("zh-cmn-Hans-CN")	ERR RangeError: invalid language tag: zh-cmn-Hans-CN
+new Intl.Locale("zh-cmn-Hans-CN").toString()	ERR RangeError: invalid language tag
+Intl.getCanonicalLocales("und")	["und"]
+Intl.getCanonicalLocales("und-u-ca-gregory")	["und-u-ca-gregory"]
+new Intl.Locale("und-u-ca-gregory").toString()	und-u-ca-gregory
+Intl.getCanonicalLocales("en-US-u-ca-gregory")	["en-US-u-ca-gregory"]
+new Intl.Locale("en-US-u-ca-gregory").toString()	en-US-u-ca-gregory
+Intl.getCanonicalLocales("EN-US")	["en-US"]
+new Intl.Locale("EN-US").toString()	en-US
+Intl.getCanonicalLocales("en-us")	["en-US"]
+new Intl.Locale("en-us").toString()	en-US
+Intl.getCanonicalLocales("En-uS")	["en-US"]
+new Intl.Locale("En-uS").toString()	en-US
+Intl.getCanonicalLocales("zh-hans-cn")	["zh-Hans-CN"]
+new Intl.Locale("zh-hans-cn").toString()	zh-Hans-CN
+Intl.getCanonicalLocales("sr-latn-rs")	["sr-Latn-RS"]
+new Intl.Locale("sr-latn-rs").toString()	sr-Latn-RS
+Intl.getCanonicalLocales("sr-yu")	["sr-YU"]
+new Intl.Locale("sr-yu").toString()	sr-YU
+Intl.getCanonicalLocales("sr-cs")	["sr-CS"]
+new Intl.Locale("sr-cs").toString()	sr-CS
+Intl.getCanonicalLocales("sr-CS")	["sr-CS"]
+new Intl.Locale("sr-CS").toString()	sr-CS
+Intl.getCanonicalLocales("en-GB")	["en-GB"]
+new Intl.Locale("en-GB").toString()	en-GB
+Intl.getCanonicalLocales("en-gb-oed")	ERR RangeError: invalid language tag: en-gb-oed
+new Intl.Locale("en-gb-oed").toString()	ERR RangeError: invalid language tag
+new Intl.Locale("i-klingon").toString()	ERR RangeError: invalid language tag
+Intl.getCanonicalLocales("i-enochian")	ERR RangeError: invalid language tag: i-enochian
+new Intl.Locale("i-enochian").toString()	ERR RangeError: invalid language tag
+Intl.getCanonicalLocales("art-lojban")	["jbo"]
+new Intl.Locale("art-lojban").toString()	jbo
+Intl.getCanonicalLocales("zh-min-nan")	ERR RangeError: invalid language tag: zh-min-nan
+new Intl.Locale("zh-min-nan").toString()	ERR RangeError: invalid language tag
+Intl.getCanonicalLocales("zh-hakka")	["hak"]
+new Intl.Locale("zh-hakka").toString()	hak
+Intl.getCanonicalLocales("sgn-be-fr")	ERR RangeError: invalid language tag: sgn-be-fr
+new Intl.Locale("sgn-be-fr").toString()	ERR RangeError: invalid language tag
+Intl.getCanonicalLocales("de-DE-1901")	["de-DE-1901"]
+new Intl.Locale("de-DE-1901").toString()	de-DE-1901
+Intl.getCanonicalLocales("de-1901-1996")	["de-1901-1996"]
+new Intl.Locale("de-1901-1996").toString()	de-1901-1996
+Intl.getCanonicalLocales("de-1996-1901")	["de-1901-1996"]
+new Intl.Locale("de-1996-1901").toString()	de-1901-1996
+Intl.getCanonicalLocales("en-u-ca-islamicc")	["en-u-ca-islamic-civil"]
+new Intl.Locale("en-u-ca-islamicc").toString()	en-u-ca-islamic-civil
+Intl.getCanonicalLocales("en-u-ca-ethiopic-amete-alem")	["en-u-ca-ethioaa"]
+new Intl.Locale("en-u-ca-ethiopic-amete-alem").toString()	en-u-ca-ethioaa
+Intl.getCanonicalLocales("en-u-ms-imperial")	["en-u-ms-uksystem"]
+new Intl.Locale("en-u-ms-imperial").toString()	en-u-ms-uksystem
+Intl.getCanonicalLocales("en-u-ms-uksystem")	["en-u-ms-uksystem"]
+new Intl.Locale("en-u-ms-uksystem").toString()	en-u-ms-uksystem
+Intl.getCanonicalLocales("en-u-tz-cnckg")	["en-u-tz-cnsha"]
+new Intl.Locale("en-u-tz-cnckg").toString()	en-u-tz-cnsha
+Intl.getCanonicalLocales("en-u-tz-eire")	["en-u-tz-iedub"]
+new Intl.Locale("en-u-tz-eire").toString()	en-u-tz-iedub
+Intl.getCanonicalLocales("en-u-kb-yes")	["en-u-kb"]
+new Intl.Locale("en-u-kb-yes").toString()	en-u-kb
+Intl.getCanonicalLocales("en-u-kb-true")	["en-u-kb"]
+new Intl.Locale("en-u-kb-true").toString()	en-u-kb
+Intl.getCanonicalLocales("en-u-kn-true")	["en-u-kn"]
+new Intl.Locale("en-u-kn-true").toString()	en-u-kn
+Intl.getCanonicalLocales("en-u-kn-yes")	["en-u-kn"]
+new Intl.Locale("en-u-kn-yes").toString()	en-u-kn
+Intl.getCanonicalLocales("en-u-kn")	["en-u-kn"]
+new Intl.Locale("en-u-kn").toString()	en-u-kn
+Intl.getCanonicalLocales("en-u-kn-")	ERR RangeError: invalid language tag: en-u-kn-
+new Intl.Locale("en-u-kn-").toString()	ERR RangeError: invalid language tag
+Intl.getCanonicalLocales("en-u-ca-gregorian")	ERR RangeError: invalid language tag: en-u-ca-gregorian
+new Intl.Locale("en-u-ca-gregorian").toString()	ERR RangeError: invalid language tag
+Intl.getCanonicalLocales("en-u-co-dict")	["en-u-co-dict"]
+new Intl.Locale("en-u-co-dict").toString()	en-u-co-dict
+Intl.getCanonicalLocales("en-u-co-direct")	["en-u-co-direct"]
+new Intl.Locale("en-u-co-direct").toString()	en-u-co-direct
+Intl.getCanonicalLocales("en-u-ks-primary")	["en-u-ks-level1"]
+new Intl.Locale("en-u-ks-primary").toString()	en-u-ks-level1
+Intl.getCanonicalLocales("en-u-ks-level1")	["en-u-ks-level1"]
+new Intl.Locale("en-u-ks-level1").toString()	en-u-ks-level1
+Intl.getCanonicalLocales("en-u-nu-latn")	["en-u-nu-latn"]
+new Intl.Locale("en-u-nu-latn").toString()	en-u-nu-latn
+Intl.getCanonicalLocales("en-u-ca-iso8601")	["en-u-ca-iso8601"]
+new Intl.Locale("en-u-ca-iso8601").toString()	en-u-ca-iso8601
+Intl.getCanonicalLocales("en-u-ca-gregory-fw-mon")	["en-u-ca-gregory-fw-mon"]
+new Intl.Locale("en-u-ca-gregory-fw-mon").toString()	en-u-ca-gregory-fw-mon
+Intl.getCanonicalLocales("en-u-fw-MON")	["en-u-fw-mon"]
+new Intl.Locale("en-u-fw-MON").toString()	en-u-fw-mon
+Intl.getCanonicalLocales("en-U-CA-GREGORY")	["en-u-ca-gregory"]
+new Intl.Locale("en-U-CA-GREGORY").toString()	en-u-ca-gregory
+Intl.getCanonicalLocales("en-Latn-US-t-ja-Jpan")	["en-Latn-US-t-ja-jpan"]
+new Intl.Locale("en-Latn-US-t-ja-Jpan").toString()	en-Latn-US-t-ja-jpan
+Intl.getCanonicalLocales("en-t-ja-m0-names")	["en-t-ja-m0-names"]
+new Intl.Locale("en-t-ja-m0-names").toString()	en-t-ja-m0-names
+Intl.getCanonicalLocales("en-t-m0-names-ja")	ERR RangeError: invalid language tag: en-t-m0-names-ja
+new Intl.Locale("en-t-m0-names-ja").toString()	ERR RangeError: invalid language tag
+Intl.getCanonicalLocales("en-t-ja-a-bb")	["en-a-bb-t-ja"]
+new Intl.Locale("en-t-ja-a-bb").toString()	en-a-bb-t-ja
+Intl.getCanonicalLocales("en-z-ab-a-cd")	["en-a-cd-z-ab"]
+new Intl.Locale("en-z-ab-a-cd").toString()	en-a-cd-z-ab
+Intl.getCanonicalLocales("en-a-cd-z-ab")	["en-a-cd-z-ab"]
+new Intl.Locale("en-a-cd-z-ab").toString()	en-a-cd-z-ab
+Intl.getCanonicalLocales("en-x-foo-a-bar")	["en-x-foo-a-bar"]
+new Intl.Locale("en-x-foo-a-bar").toString()	en-x-foo-a-bar
+Intl.getCanonicalLocales("ja-Latn-t-it")	["ja-Latn-t-it"]
+new Intl.Locale("ja-Latn-t-it").toString()	ja-Latn-t-it
+Intl.getCanonicalLocales("ca-ES-valencia")	["ca-ES-valencia"]
+new Intl.Locale("ca-ES-valencia").toString()	ca-ES-valencia
+Intl.getCanonicalLocales("ca-valencia-ES")	ERR RangeError: invalid language tag: ca-valencia-ES
+new Intl.Locale("ca-valencia-ES").toString()	ERR RangeError: invalid language tag
+Intl.getCanonicalLocales("pt-BR-x-private")	["pt-BR-x-private"]
+new Intl.Locale("pt-BR-x-private").toString()	pt-BR-x-private
+Intl.getCanonicalLocales("sl-nedis-rozaj")	["sl-nedis-rozaj"]
+new Intl.Locale("sl-nedis-rozaj").toString()	sl-nedis-rozaj
+Intl.getCanonicalLocales("sl-rozaj-nedis")	["sl-nedis-rozaj"]
+new Intl.Locale("sl-rozaj-nedis").toString()	sl-nedis-rozaj
+Intl.getCanonicalLocales("en-u-rg-GBZZZZ")	["en-u-rg-gbzzzz"]
+new Intl.Locale("en-u-rg-GBZZZZ").toString()	en-u-rg-gbzzzz
+Intl.getCanonicalLocales("en-u-sd-USCA")	["en-u-sd-usca"]
+new Intl.Locale("en-u-sd-USCA").toString()	en-u-sd-usca
+Intl.getCanonicalLocales("en-u-vt-0020")	["en-u-vt-0020"]
+new Intl.Locale("en-u-vt-0020").toString()	en-u-vt-0020
+Intl.getCanonicalLocales("en-u-lb-loose")	["en-u-lb-loose"]
+new Intl.Locale("en-u-lb-loose").toString()	en-u-lb-loose
+Intl.getCanonicalLocales("en-u-lw-phrase")	["en-u-lw-phrase"]
+new Intl.Locale("en-u-lw-phrase").toString()	en-u-lw-phrase
+Intl.getCanonicalLocales("en-u-ss-none")	["en-u-ss-none"]
+new Intl.Locale("en-u-ss-none").toString()	en-u-ss-none
+Intl.getCanonicalLocales("en-u-em-emoji")	["en-u-em-emoji"]
+new Intl.Locale("en-u-em-emoji").toString()	en-u-em-emoji
+Intl.getCanonicalLocales("en-u-dx-latn")	["en-u-dx-latn"]
+new Intl.Locale("en-u-dx-latn").toString()	en-u-dx-latn
+Intl.getCanonicalLocales("ar-u-nu-arab")	["ar-u-nu-arab"]
+new Intl.Locale("ar-u-nu-arab").toString()	ar-u-nu-arab
+Intl.getCanonicalLocales("ar-u-nu-arabext")	["ar-u-nu-arabext"]
+new Intl.Locale("ar-u-nu-arabext").toString()	ar-u-nu-arabext
+Intl.getCanonicalLocales("th-u-nu-thai")	["th-u-nu-thai"]
+new Intl.Locale("th-u-nu-thai").toString()	th-u-nu-thai
+Intl.getCanonicalLocales("en-u-nu-fullwide")	["en-u-nu-fullwide"]
+new Intl.Locale("en-u-nu-fullwide").toString()	en-u-nu-fullwide
+Intl.getCanonicalLocales("hi-u-nu-deva")	["hi-u-nu-deva"]
+new Intl.Locale("hi-u-nu-deva").toString()	hi-u-nu-deva
+Intl.getCanonicalLocales("ro-MD")	["ro-MD"]
+new Intl.Locale("ro-MD").toString()	ro-MD
+Intl.getCanonicalLocales("ro-md")	["ro-MD"]
+new Intl.Locale("ro-md").toString()	ro-MD
+Intl.getCanonicalLocales("mo-MD")	["ro-MD"]
+new Intl.Locale("mo-MD").toString()	ro-MD
+Intl.getCanonicalLocales("tl-PH")	["tl-PH"]
+new Intl.Locale("tl-PH").toString()	tl-PH
+Intl.getCanonicalLocales("iw-IL")	["he-IL"]
+Intl.getCanonicalLocales("in-ID")	["id-ID"]
+Intl.getCanonicalLocales("ji-US")	["yi-US"]
+new Intl.Locale("ji-US").toString()	yi-US
+Intl.getCanonicalLocales("sh-RS")	["sh-RS"]
+Intl.getCanonicalLocales("sh-Latn")	["sh-Latn"]
+new Intl.Locale("sh-Latn").toString()	sh-Latn
+Intl.getCanonicalLocales("sr-Latn-RS")	["sr-Latn-RS"]
+new Intl.Locale("sr-Latn-RS").toString()	sr-Latn-RS
+Intl.getCanonicalLocales("scc")	["scc"]
+new Intl.Locale("scc").toString()	scc
+Intl.getCanonicalLocales("scr")	["scr"]
+new Intl.Locale("scr").toString()	scr
+Intl.getCanonicalLocales("swh")	["swh"]
+new Intl.Locale("swh").toString()	swh
+Intl.getCanonicalLocales("ar-arb")	ERR RangeError: invalid language tag: ar-arb
+new Intl.Locale("ar-arb").toString()	ERR RangeError: invalid language tag
+Intl.getCanonicalLocales("arb")	["arb"]
+new Intl.Locale("arb").toString()	arb
+Intl.getCanonicalLocales("arb-SA")	["arb-SA"]
+new Intl.Locale("arb-SA").toString()	arb-SA
+Intl.getCanonicalLocales("hbs")	["hbs"]
+new Intl.Locale("hbs").toString()	hbs
+Intl.getCanonicalLocales("hbs-Latn")	["hbs-Latn"]
+new Intl.Locale("hbs-Latn").toString()	hbs-Latn
+Intl.getCanonicalLocales(["en","EN","en-us","en-US"])	["en","en-US"]
+Intl.getCanonicalLocales(["pt-BR","pt-br","PT-BR"])	["pt-BR"]
+Intl.getCanonicalLocales(["iw","he"])	["he"]
+Intl.getCanonicalLocales(["zh-CN","zh-Hans-CN"])	["zh-CN","zh-Hans-CN"]
+Intl.getCanonicalLocales(["en","xx-invalid"])	["en","xx-invalid"]
+Intl.getCanonicalLocales(["en",1])	ERR TypeError: locale value must be a string or object
+Intl.getCanonicalLocales(["en",null])	ERR TypeError: locale value must be a string or object
+Intl.getCanonicalLocales("en")	["en"]
+Intl.getCanonicalLocales(["en","fr","en","de","fr"])	["en","fr","de"]
+Intl.getCanonicalLocales(["de","en-US","und","ja"])	["de","en-US","und","ja"]
+Intl.getCanonicalLocales({"0":"en","1":"pt","length":2})	["en","pt"]
+Intl.getCanonicalLocales({"0":"en-x","length":1})	ERR RangeError: invalid language tag: en-x
+Intl.getCanonicalLocales([null,null,null])	ERR TypeError: locale value must be a string or object
+Intl.getCanonicalLocales.length	1
+Intl.getCanonicalLocales.name	getCanonicalLocales
+Intl.getCanonicalLocales()	[]
+Intl.getCanonicalLocales(new Intl.Locale("en-US"))	["en-US"]
+Intl.getCanonicalLocales([new Intl.Locale("en-US"), "pt"])	["en-US","pt"]
+Intl.getCanonicalLocales(new String("en"))	ERR RangeError: invalid language tag: e
+Intl.supportedValuesOf("calendar").length	16
+(function (l) { var h = 2166136261, s = l.join(","); for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(16); })(Intl.supportedValuesOf("calendar"))	ad318b51
+Intl.supportedValuesOf("calendar").slice(0, 10)	["buddhist","chinese","coptic","dangi","ethioaa","ethiopic","gregory","hebrew","indian","islamic-civil"]
+Intl.supportedValuesOf("calendar").slice(-10)	["gregory","hebrew","indian","islamic-civil","islamic-tbla","islamic-umalqura","iso8601","japanese","persian","roc"]
+Intl.supportedValuesOf("calendar").join() === Intl.supportedValuesOf("calendar").slice().sort().join()	true
+new Set(Intl.supportedValuesOf("calendar")).size === Intl.supportedValuesOf("calendar").length	true
+Object.isFrozen(Intl.supportedValuesOf("calendar"))	false
+Intl.supportedValuesOf("calendar") === Intl.supportedValuesOf("calendar")	false
+Array.isArray(Intl.supportedValuesOf("calendar"))	true
+Intl.supportedValuesOf("collation").length	12
+(function (l) { var h = 2166136261, s = l.join(","); for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(16); })(Intl.supportedValuesOf("collation"))	ba353bc4
+Intl.supportedValuesOf("collation").slice(0, 10)	["compat","dict","emoji","eor","phonebk","phonetic","pinyin","searchjl","stroke","trad"]
+Intl.supportedValuesOf("collation").slice(-10)	["emoji","eor","phonebk","phonetic","pinyin","searchjl","stroke","trad","unihan","zhuyin"]
+Intl.supportedValuesOf("collation").join() === Intl.supportedValuesOf("collation").slice().sort().join()	true
+new Set(Intl.supportedValuesOf("collation")).size === Intl.supportedValuesOf("collation").length	true
+Object.isFrozen(Intl.supportedValuesOf("collation"))	false
+Intl.supportedValuesOf("collation") === Intl.supportedValuesOf("collation")	false
+Array.isArray(Intl.supportedValuesOf("collation"))	true
+Intl.supportedValuesOf("currency").length	307
+(function (l) { var h = 2166136261, s = l.join(","); for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(16); })(Intl.supportedValuesOf("currency"))	fc043dde
+Intl.supportedValuesOf("currency").slice(0, 10)	["ADP","AED","AFA","AFN","ALK","ALL","AMD","ANG","AOA","AOK"]
+Intl.supportedValuesOf("currency").slice(-10)	["ZAL","ZAR","ZMK","ZMW","ZRN","ZRZ","ZWD","ZWG","ZWL","ZWR"]
+Intl.supportedValuesOf("currency").join() === Intl.supportedValuesOf("currency").slice().sort().join()	true
+new Set(Intl.supportedValuesOf("currency")).size === Intl.supportedValuesOf("currency").length	true
+Object.isFrozen(Intl.supportedValuesOf("currency"))	false
+Intl.supportedValuesOf("currency") === Intl.supportedValuesOf("currency")	false
+Array.isArray(Intl.supportedValuesOf("currency"))	true
+Intl.supportedValuesOf("numberingSystem").length	78
+(function (l) { var h = 2166136261, s = l.join(","); for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(16); })(Intl.supportedValuesOf("numberingSystem"))	61bf0fdb
+Intl.supportedValuesOf("numberingSystem").slice(0, 10)	["adlm","ahom","arab","arabext","bali","beng","bhks","brah","cakm","cham"]
+Intl.supportedValuesOf("numberingSystem").slice(-10)	["tamldec","telu","thai","tibt","tirh","tnsa","tols","vaii","wara","wcho"]
+Intl.supportedValuesOf("numberingSystem").join() === Intl.supportedValuesOf("numberingSystem").slice().sort().join()	true
+new Set(Intl.supportedValuesOf("numberingSystem")).size === Intl.supportedValuesOf("numberingSystem").length	true
+Object.isFrozen(Intl.supportedValuesOf("numberingSystem"))	false
+Intl.supportedValuesOf("numberingSystem") === Intl.supportedValuesOf("numberingSystem")	false
+Array.isArray(Intl.supportedValuesOf("numberingSystem"))	true
+Intl.supportedValuesOf("timeZone").length	445
+(function (l) { var h = 2166136261, s = l.join(","); for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(16); })(Intl.supportedValuesOf("timeZone"))	f40148df
+Intl.supportedValuesOf("timeZone").slice(0, 10)	["Africa/Abidjan","Africa/Accra","Africa/Addis_Ababa","Africa/Algiers","Africa/Asmara","Africa/Bamako","Africa/Bangui","Africa/Banjul","Africa/Bissau","Africa/Blantyre"]
+Intl.supportedValuesOf("timeZone").slice(-10)	["Pacific/Pohnpei","Pacific/Port_Moresby","Pacific/Rarotonga","Pacific/Saipan","Pacific/Tahiti","Pacific/Tarawa","Pacific/Tongatapu","Pacific/Wake","Pacific/Wallis","UTC"]
+Intl.supportedValuesOf("timeZone").join() === Intl.supportedValuesOf("timeZone").slice().sort().join()	true
+new Set(Intl.supportedValuesOf("timeZone")).size === Intl.supportedValuesOf("timeZone").length	true
+Object.isFrozen(Intl.supportedValuesOf("timeZone"))	false
+Intl.supportedValuesOf("timeZone") === Intl.supportedValuesOf("timeZone")	false
+Array.isArray(Intl.supportedValuesOf("timeZone"))	true
+Intl.supportedValuesOf("unit").length	45
+(function (l) { var h = 2166136261, s = l.join(","); for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(16); })(Intl.supportedValuesOf("unit"))	af8bc194
+Intl.supportedValuesOf("unit").slice(0, 10)	["acre","bit","byte","celsius","centimeter","day","degree","fahrenheit","fluid-ounce","foot"]
+Intl.supportedValuesOf("unit").slice(-10)	["percent","petabyte","pound","second","stone","terabit","terabyte","week","yard","year"]
+Intl.supportedValuesOf("unit").join() === Intl.supportedValuesOf("unit").slice().sort().join()	true
+new Set(Intl.supportedValuesOf("unit")).size === Intl.supportedValuesOf("unit").length	true
+Object.isFrozen(Intl.supportedValuesOf("unit"))	false
+Intl.supportedValuesOf("unit") === Intl.supportedValuesOf("unit")	false
+Array.isArray(Intl.supportedValuesOf("unit"))	true
+Intl.supportedValuesOf("")	ERR RangeError: Unknown key for Intl.supportedValuesOf
+Intl.supportedValuesOf("Calendar")	ERR RangeError: Unknown key for Intl.supportedValuesOf
+Intl.supportedValuesOf("calendars")	ERR RangeError: Unknown key for Intl.supportedValuesOf
+Intl.supportedValuesOf("numberingsystem")	ERR RangeError: Unknown key for Intl.supportedValuesOf
+Intl.supportedValuesOf("timezone")	ERR RangeError: Unknown key for Intl.supportedValuesOf
+Intl.supportedValuesOf("script")	ERR RangeError: Unknown key for Intl.supportedValuesOf
+Intl.supportedValuesOf("region")	ERR RangeError: Unknown key for Intl.supportedValuesOf
+Intl.supportedValuesOf("language")	ERR RangeError: Unknown key for Intl.supportedValuesOf
+Intl.supportedValuesOf("locale")	ERR RangeError: Unknown key for Intl.supportedValuesOf
+Intl.supportedValuesOf("units")	ERR RangeError: Unknown key for Intl.supportedValuesOf
+Intl.supportedValuesOf("currencies")	ERR RangeError: Unknown key for Intl.supportedValuesOf
+Intl.supportedValuesOf("undefined")	ERR RangeError: Unknown key for Intl.supportedValuesOf
+Intl.supportedValuesOf("null")	ERR RangeError: Unknown key for Intl.supportedValuesOf
+Intl.supportedValuesOf()	ERR RangeError: Unknown key for Intl.supportedValuesOf
+Intl.supportedValuesOf(null)	ERR RangeError: Unknown key for Intl.supportedValuesOf
+Intl.supportedValuesOf({toString(){return "unit"}}).length	45
+Intl.supportedValuesOf.length	1
+Intl.supportedValuesOf.name	supportedValuesOf

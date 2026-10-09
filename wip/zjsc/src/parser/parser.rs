@@ -245,7 +245,7 @@ pub enum PrivateAccessorType {
 /// `uid` do `Identifier::impl()`: o parser nunca pergunta por um `Identifier` nulo (o C++ desreferencia
 /// o ponteiro sem checar).
 fn uid(ident: &Identifier) -> UniquedKey {
-    ident.impl_().unwrap()
+    ident.impl_().expect("Identifier::impl() nulo: Identifier.h:96 não tem asserção, o C++ desreferencia o StringImpl* nulo (UB)")
 }
 
 /// `struct Scope`. Sem cópia (`WTF_MAKE_NONCOPYABLE`); movível.
@@ -358,8 +358,8 @@ impl Scope {
             constructor_kind: ConstructorKind::None,
             inner_arrow_function_features: 0,
             sloppy_mode_function_hoisting_candidates: Vec::new(),
-            lexical_variables: VariableEnvironment::new(),
-            declared_variables: VariableEnvironment::new(),
+            lexical_variables: VariableEnvironment::default(),
+            declared_variables: VariableEnvironment::default(),
             declared_parameters: UniquedStringImplPtrSet::default(),
             variables_being_hoisted: UniquedStringImplPtrSet::default(),
             labels: Vec::new(),

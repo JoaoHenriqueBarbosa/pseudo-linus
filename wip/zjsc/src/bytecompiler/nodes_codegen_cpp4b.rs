@@ -1,5 +1,5 @@
 // NodesCodegen.cpp, linhas 3633 a 4333: `emitReadModifyAssignment` até `IfElseNode::emitBytecode`
-// (incluído por include!, sem `use`; usa o `Cpp4Reg` e o `cpp4_is_ignored_result` da fatia anterior,
+// (incluído por include!, sem `use`; usa o `Cpp4Reg` da fatia anterior,
 // `cpp4`, e o `cpp2_string_value` da `cpp2`).
 //
 // Mesmas convenções da `cpp4`: registrador é `Option<RegisterRef>` (o `RegisterID*` nulo do C++),
@@ -120,7 +120,8 @@ impl crate::parser::nodes::ReadModifyResolveNode {
                 return result;
             }
 
-            if generator.left_hand_side_needs_copy(self.right_has_assignments, self.right.is_pure(generator)) {
+            let right_is_pure = self.right.is_pure(generator);
+            if generator.left_hand_side_needs_copy(self.right_has_assignments, right_is_pure) {
                 let result = Some(generator.new_temporary());
                 generator.move_register(result.as_ref(), &local);
                 cpp4b_emit_read_modify_assignment(
@@ -190,13 +191,13 @@ fn cpp4b_emit_short_circuit_assignment(
     generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
     value: &crate::bytecompiler::bytecode_generator::RegisterRef,
     oper: crate::parser::nodes::Operator,
-    after_assignment: &crate::bytecompiler::label::Label,
+    after_assignment: &crate::bytecompiler::label::LabelRef,
 ) {
     match oper {
         crate::parser::nodes::Operator::CoalesceEq => {
             let temporary = Some(generator.new_temporary());
             let is_nullish = generator.emit_is_undefined_or_null(temporary, value);
-            generator.emit_jump_if_false(is_nullish.as_ref().unwrap(), after_assignment);
+            generator.emit_jump_if_false_raw(is_nullish.as_ref().unwrap(), after_assignment);
         }
         crate::parser::nodes::Operator::OrEq => generator.emit_jump_if_true(value, after_assignment),
         crate::parser::nodes::Operator::AndEq => generator.emit_jump_if_false(value, after_assignment),
@@ -239,7 +240,8 @@ impl crate::parser::nodes::ShortCircuitReadModifyResolveNode {
                 return generator.move_register(dst.as_ref(), result.as_ref().unwrap());
             }
 
-            if generator.left_hand_side_needs_copy(self.right_has_assignments, self.right.is_pure(generator)) {
+            let right_is_pure = self.right.is_pure(generator);
+            if generator.left_hand_side_needs_copy(self.right_has_assignments, right_is_pure) {
                 let result = Some(generator.temp_destination(dst.as_ref()));
                 generator.move_register(result.as_ref(), &local);
 
@@ -392,7 +394,7 @@ impl crate::parser::nodes::AssignResolveNode {
             generator.emit_expression_info(&new_divot, &divot_start, &new_divot);
             generator.emit_tdz_check_if_necessary(&var, None, scope.clone());
         }
-        if cpp4_is_ignored_result(generator, &dst) {
+        if generator.is_ignored_dst(dst.as_ref()) {
             dst = None;
         }
         let result = generator.emit_node_expression(dst, &self.right); // Execute side effects first.
@@ -444,7 +446,7 @@ impl crate::parser::nodes::AssignDotNode {
         let value = generator.destination_for_assign_result(dst.as_ref());
         let result = generator.emit_node_expression(value, &self.right);
         generator.emit_expression_info(&self.throwable.divot, &self.throwable.divot_start, &self.throwable.divot_end);
-        let forward_result = if cpp4_is_ignored_result(generator, &dst) {
+        let forward_result = if generator.is_ignored_dst(dst.as_ref()) {
             result
         } else {
             let temporary = Some(generator.temp_destination(result.as_ref()));
@@ -565,14 +567,14 @@ impl crate::parser::nodes::AssignBracketNode {
         let result = generator.emit_node_expression(value, &self.right);
 
         generator.emit_expression_info(&self.throwable.divot, &self.throwable.divot_start, &self.throwable.divot_end);
-        let forward_result = if cpp4_is_ignored_result(generator, &dst) {
+        let forward_result = if generator.is_ignored_dst(dst.as_ref()) {
             result
         } else {
             let temporary = Some(generator.temp_destination(result.as_ref()));
             generator.move_register(temporary.as_ref(), result.as_ref().unwrap())
         };
 
-        if crate::parser::nodes::is_non_index_string_element(&self.subscript) {
+        if nodes_codegen_is_non_index_string_element(&self.subscript) {
             let name = cpp2_string_value(&self.subscript);
             if self.base_expr.is_super_node() {
                 let this_value = Some(generator.ensure_this());
@@ -729,12 +731,12 @@ impl crate::parser::nodes::CommaNode {
         &self,
         this: &crate::parser::nodes::Expression,
         generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
-        true_target: &crate::bytecompiler::label::Label,
-        false_target: &crate::bytecompiler::label::Label,
+        true_target: &crate::bytecompiler::label::LabelRef,
+        false_target: &crate::bytecompiler::label::LabelRef,
         fall_through_mode: crate::parser::nodes::FallThroughMode,
     ) {
         if this.base().needs_debug_hook() {
-            generator.emit_debug_hook_expression(this, None);
+            generator.emit_debug_hook_expression_data(this, None);
         }
 
         let mut expr = self.expr.clone();
@@ -797,15 +799,15 @@ impl crate::parser::nodes::BlockNode {
         };
         generator.push_lexical_scope(
             &self.variable_environment,
-            crate::runtime::symbol_table::ScopeType::LetConstScope,
+            crate::bytecompiler::bytecode_generator::ScopeType::LetConstScope,
             crate::bytecompiler::bytecode_generator::TDZCheckOptimization::Optimize,
             crate::bytecompiler::bytecode_generator::NestedScopeType::IsNested,
             None,
             true,
         );
 
-        let using_count = self.variable_environment.lexical_variables.using_declaration_count();
-        let has_await_using = self.variable_environment.lexical_variables.has_await_using_declaration();
+        let using_count = self.variable_environment.using_declaration_count();
+        let has_await_using = self.variable_environment.has_await_using_declaration();
         generator.emit_body_with_using_if_needed(using_count, has_await_using, &mut |generator| {
             statements.borrow().emit_bytecode(generator, dst.clone());
         });

@@ -1,0 +1,3 @@
+[
+"\"use strict\";\nglobalThis.F = (v, d = 0) => typeof v === 'symbol' ? v.toString() : typeof v === 'function' ? '[fn ' + v.name + ']' : typeof v === 'string' ? JSON.stringify(v) : typeof v === 'bigint' ? v + 'n' : Array.isArray(v) ? '[' + v.map(x => F(x, d + 1)).join(',') + ']' : v && typeof v === 'object' ? (d > 3 ? '{...}' : '{' + Reflect.ownKeys(v).map(k => String(k) + ':' + F(v[k], d + 1)).join(',') + '}') : String(v);\nglobalThis.run = f => { try { return F(f()); } catch (e) { return '!' + (e && e.name) + ': ' + (e && e.message); } };\n"
+]

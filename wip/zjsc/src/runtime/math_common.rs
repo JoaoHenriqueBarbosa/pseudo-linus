@@ -240,7 +240,7 @@ pub fn operation_math_pow(x: f64, y: f64) -> f64 {
         return result;
     }
     // `mathPowInternal` no Linux x86_64 é `pow`.
-    x.powf(y)
+    crate::runtime::glibc_math::pow(x, y)
 }
 
 /// `operationToInt32`.

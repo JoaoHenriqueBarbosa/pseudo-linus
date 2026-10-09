@@ -1,0 +1,3 @@
+[
+"\"use strict\";\nfunction S(v){var t=typeof v;if(t===\"string\")return JSON.stringify(v);if(t===\"symbol\")return String(v);if(t===\"function\")return \"fn\";return Object.is(v,-0)?\"-0\":t===\"bigint\"?v+\"n\":String(v)}\nfunction T(f){try{return S(f())}catch(e){return \"throw \"+(e&&e.name)+\": \"+(e&&e.message)}}\n"
+]

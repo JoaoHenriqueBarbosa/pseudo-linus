@@ -1,3 +1,4 @@
+const { emitRow } = require("./golden-prelude.js");
 // Gera tests/golden/parse_double.tsv no bun 1.4.2: literais decimais e o double que Number()
 // devolve (bits em hexadecimal). Number() de um literal decimal completo usa o parseDouble da WTF.
 let seed = 0x9e3779b9;
@@ -12,4 +13,4 @@ for (let i = 0; i < 3000; i++) {
   cases.push(int + frac + exp);
 }
 const dv = new DataView(new ArrayBuffer(8));
-console.log(cases.map((s) => { dv.setFloat64(0, Number(s)); return s + "\t" + dv.getBigUint64(0).toString(16).padStart(16, "0"); }).join("\n"));
+emitRow(cases.map((s) => { dv.setFloat64(0, Number(s)); return s + "\t" + dv.getBigUint64(0).toString(16).padStart(16, "0"); }).join("\n"));

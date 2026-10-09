@@ -2,7 +2,7 @@
 //!
 //! `addUTF8Bytes(CFStringRef)` e o ramo `PLATFORM(COCOA)` não existem em Linux.
 
-use crate::wtf::text::string_impl::ConversionMode;
+use crate::wtf::text::conversion_mode::ConversionMode;
 use crate::wtf::text::string_view::StringView;
 use crate::wtf::text::wtf_string::String as WtfString;
 

@@ -310,7 +310,7 @@ pub trait TargetLabelOp: DecodeOp {}
 
 /// `GenericBoundLabel::saveTarget` só consulta o gerador para rótulos presos a ele; o setter do
 /// bytecode recebe sempre um rótulo por deslocamento (`Offset`), então a posição nunca é pedida.
-struct NoGenerator;
+pub(crate) struct NoGenerator;
 
 impl LabelGenerator for NoGenerator {
     fn writer_position(&self) -> i32 {

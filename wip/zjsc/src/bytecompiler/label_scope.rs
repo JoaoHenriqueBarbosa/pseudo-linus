@@ -4,7 +4,7 @@
 //! `breakTargetMayBeBound()`. `LabelScopeRef` faz o papel de `Ref<LabelScope>`/`RefPtr<LabelScope>`
 //! (o `LabelScopePtr` do gerador): incrementa ao clonar, decrementa ao soltar.
 
-use std::cell::{Ref, RefCell};
+use std::cell::Cell;
 use std::rc::Rc;
 
 use crate::bytecompiler::label::{LabelRef};
@@ -18,7 +18,7 @@ pub enum LabelScopeType {
 }
 
 pub struct LabelScope {
-    ref_count: i32,
+    ref_count: Cell<i32>,
     type_: LabelScopeType,
     name: Option<Identifier>,
     scope_depth: i32,
@@ -28,7 +28,7 @@ pub struct LabelScope {
 
 impl crate::wtf::ref_counted::RefCounted for LabelScope {
     fn ref_count(&self) -> i32 {
-        self.ref_count
+        self.ref_count.get()
     }
 }
 
@@ -40,7 +40,7 @@ impl LabelScope {
         break_target: LabelRef,
         continue_target: Option<LabelRef>,
     ) -> Self {
-        LabelScope { ref_count: 0, type_, name, scope_depth, break_target, continue_target }
+        LabelScope { ref_count: Cell::new(0), type_, name, scope_depth, break_target, continue_target }
     }
 
     pub fn break_target(&self) -> &LabelRef {
@@ -63,17 +63,17 @@ impl LabelScope {
         self.scope_depth
     }
 
-    pub fn ref_(&mut self) {
-        self.ref_count += 1;
+    pub fn ref_(&self) {
+        self.ref_count.set(self.ref_count.get() + 1);
     }
 
-    pub fn deref(&mut self) {
-        self.ref_count -= 1;
-        debug_assert!(self.ref_count >= 0);
+    pub fn deref(&self) {
+        self.ref_count.set(self.ref_count.get() - 1);
+        debug_assert!(self.ref_count.get() >= 0);
     }
 
     pub fn has_one_ref(&self) -> bool {
-        self.ref_count == 1
+        self.ref_count.get() == 1
     }
 
     pub fn break_target_may_be_bound(&self) -> bool {
@@ -87,23 +87,29 @@ impl LabelScope {
     }
 }
 
-/// `Ref<LabelScope>`/`RefPtr<LabelScope>`.
+/// `Ref<LabelScope>`/`RefPtr<LabelScope>`. O `LabelScope` não muda depois de criado (os membros são
+/// `const` no C++), só a contagem, que é `Cell`; por isso o compartilhamento é `Rc<LabelScope>`
+/// e o acesso aos alvos é direto, por `Deref`.
 pub struct LabelScopeRef {
-    scope: Rc<RefCell<LabelScope>>,
+    scope: Rc<LabelScope>,
 }
 
 impl LabelScopeRef {
-    pub fn new(scope: &Rc<RefCell<LabelScope>>) -> Self {
-        scope.borrow_mut().ref_();
+    pub fn new(scope: &Rc<LabelScope>) -> Self {
+        scope.ref_();
         LabelScopeRef { scope: Rc::clone(scope) }
     }
 
-    pub fn get(&self) -> &Rc<RefCell<LabelScope>> {
+    pub fn get(&self) -> &Rc<LabelScope> {
         &self.scope
     }
+}
 
-    pub fn borrow(&self) -> Ref<'_, LabelScope> {
-        self.scope.borrow()
+impl std::ops::Deref for LabelScopeRef {
+    type Target = LabelScope;
+
+    fn deref(&self) -> &LabelScope {
+        &self.scope
     }
 }
 
@@ -115,6 +121,6 @@ impl Clone for LabelScopeRef {
 
 impl Drop for LabelScopeRef {
     fn drop(&mut self) {
-        self.scope.borrow_mut().deref();
+        self.scope.deref();
     }
 }

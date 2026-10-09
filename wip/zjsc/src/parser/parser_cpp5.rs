@@ -328,7 +328,7 @@ impl<T: CharType> Parser<T> {
         debug_assert!(requirements != FunctionNameRequirements::Unnamed, "Currently, there is no caller that uses FunctionNameRequirements::Unnamed for class syntax.");
         debug_assert!(!(requirements == FunctionNameRequirements::None && info.class_name.is_none()), "When specifying FunctionNameRequirements::None, we need to initialize info.className with the default value in the caller side.");
         if self.match_(IDENT) || self.is_allowed_identifier_await(&self.token) {
-            let class_name = self.token.data.ident.clone().expect("ASSERT(m_token.m_data.ident)");
+            let class_name = self.token.data.ident.clone().expect("ASSERT(m_token.m_data.ident)"); // Invariante: o lexer sempre preenche `ident` nos tokens IDENT, STRING e PRIVATENAME já conferidos acima.
             info.class_name = Some(class_name.clone());
             self.next(LexerFlagSet::empty());
             let declaration_result = self.scope_stack[class_head_scope.scope()].declare_lexical_variable(&class_name, true, DeclarationImportType::NotImported, false, false);
@@ -449,7 +449,7 @@ impl<T: CharType> Parser<T> {
                             }
                         }
                         // `[[fallthrough]]` para `case AWAIT:`.
-                        ident = self.token.data.ident.clone().expect("ASSERT(ident)");
+                        ident = self.token.data.ident.clone().expect("ASSERT(ident)"); // Invariante: o lexer preenche `ident` em IDENT, PRIVATENAME, STRING e palavras-chave usadas como nome.
                         let escaped = self.token.data.escaped;
                         self.next(LexerFlagSet::empty());
                         if parse_mode == SourceParseMode::MethodMode && !escaped && (self.match_identifier_or_keyword() || self.match_(STRING) || self.match_(DOUBLE) || self.match_(INTEGER) || self.match_(BIGINT) || self.match_(OPENBRACKET) || self.match_(PRIVATENAME)) {
@@ -471,7 +471,7 @@ impl<T: CharType> Parser<T> {
                         consume_or_fail!(self, @hook { class_cleanup!(self); }, CLOSEBRACKET, "Expected '", "]", "' to ", "end", " a ", "computed property name");
                     }
                     PRIVATENAME => {
-                        ident = self.token.data.ident.clone().expect("ASSERT(ident)");
+                        ident = self.token.data.ident.clone().expect("ASSERT(ident)"); // Invariante: o lexer preenche `ident` em IDENT, PRIVATENAME, STRING e palavras-chave usadas como nome.
                         fail_if_true!(self, @hook { class_cleanup!(self); }, is_getter || is_setter, "Cannot parse class method with private name");
                         self.next(LexerFlagSet::empty());
                         if self.match_(OPENPAREN) {
@@ -507,7 +507,7 @@ impl<T: CharType> Parser<T> {
                     }
                 }
                 if take_named_keyword {
-                    ident = self.token.data.ident.clone().expect("ASSERT(ident)");
+                    ident = self.token.data.ident.clone().expect("ASSERT(ident)"); // Invariante: o lexer preenche `ident` em IDENT, PRIVATENAME, STRING e palavras-chave usadas como nome.
                     self.next(LexerFlagSet::empty());
                 }
                 break;
@@ -516,7 +516,7 @@ impl<T: CharType> Parser<T> {
             let property: B::Property;
             if is_getter || is_setter {
                 if self.match_(PRIVATENAME) {
-                    ident = self.token.data.ident.clone().expect("ASSERT(m_token.m_data.ident)");
+                    ident = self.token.data.ident.clone().expect("ASSERT(m_token.m_data.ident)"); // Invariante: o lexer sempre preenche `ident` nos tokens IDENT, STRING e PRIVATENAME já conferidos acima.
 
                     let declaration_result = if is_setter {
                         self.scope_stack[class_scope.scope()].declare_private_setter(&ident, tag)
@@ -980,7 +980,7 @@ impl<T: CharType> Parser<T> {
         // http://www.ecma-international.org/ecma-262/6.0/#sec-exports
         let specifier_location = self.token_location();
         fail_if_false!(self, self.match_(STRING), "Imported modules names must be string literals");
-        let module_name = self.token.data.ident.clone().expect("ASSERT(m_token.m_data.ident)");
+        let module_name = self.token.data.ident.clone().expect("ASSERT(m_token.m_data.ident)"); // Invariante: o lexer sempre preenche `ident` nos tokens IDENT, STRING e PRIVATENAME já conferidos acima.
         self.next(LexerFlagSet::empty());
         Some(context.create_module_name(&specifier_location, &module_name))
     }

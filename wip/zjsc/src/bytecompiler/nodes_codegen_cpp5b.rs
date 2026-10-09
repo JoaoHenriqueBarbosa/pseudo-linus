@@ -8,14 +8,13 @@
 // O `ForOfNode::emitBytecode` recebe `this` como `NodeRef<ForOfNode>` porque o `emitEnumeration`
 // guarda o nó do laço.
 //
-// Dependências ainda não portadas, assumidas com o nome do C++ em snake_case:
-// `DestructuringPatternNode::bind_value` e `JSPropertyNameEnumerator::InitMode` (valor 0 em
-// `JSPropertyNameEnumerator.h:45`, constante local abaixo até a classe existir).
+// Dependências: todas já portadas (conferido por grep em 2026-10-08). `DestructuringPatternNode::bind_value`
+// está na cpp7 (impl do enum) e `JSPropertyNameEnumerator::InitMode` em `runtime/js_property_name_enumerator.rs`.
 
 type Cpp5bReg = Option<crate::bytecompiler::bytecode_generator::RegisterRef>;
 
 /// `JSPropertyNameEnumerator::InitMode` (`runtime/JSPropertyNameEnumerator.h:45`).
-const CPP5B_ENUMERATOR_INIT_MODE: u32 = 0;
+const CPP5B_ENUMERATOR_INIT_MODE: u32 = crate::runtime::js_property_name_enumerator::INIT_MODE as u32;
 
 impl crate::parser::nodes::ForInNode {
     pub fn try_get_bound_local(
@@ -23,14 +22,14 @@ impl crate::parser::nodes::ForInNode {
         generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator,
     ) -> Cpp5bReg {
         if self.lexpr.is_resolve_node() {
-            let ident = self.lexpr.as_resolve_node().borrow().identifier().clone();
+            let ident = self.lexpr.as_resolve_node().unwrap().borrow().ident.clone();
             return generator
                 .variable(&ident, crate::bytecompiler::bytecode_generator::ThisResolutionType::Local)
                 .local();
         }
 
         if self.lexpr.is_destructuring_node() {
-            let assign_node = self.lexpr.as_destructuring_node();
+            let assign_node = self.lexpr.as_destructuring_node().unwrap();
             let binding = assign_node.borrow().bindings.clone();
             let crate::parser::nodes::DestructuringPatternNode::Binding(simple_binding) = &binding else {
                 return None;
@@ -89,7 +88,7 @@ impl crate::parser::nodes::ForInNode {
                 crate::runtime::get_put_info::InitializationMode::NotInitialization,
             );
         }
-        let start = self.lexpr.position().clone();
+        let start = self.lexpr.base().position().clone();
         let end = start.clone() + ident.length();
         generator.emit_profile_type_variable(property_name.clone(), &var, &start, &end);
     }
@@ -100,19 +99,19 @@ impl crate::parser::nodes::ForInNode {
         property_name: Cpp5bReg,
     ) {
         if self.lexpr.is_resolve_node() {
-            let ident = self.lexpr.as_resolve_node().borrow().identifier().clone();
+            let ident = self.lexpr.as_resolve_node().unwrap().borrow().ident.clone();
             self.emit_resolve_variable_for_loop_header(generator, &property_name, &ident);
             return;
         }
 
         if self.lexpr.is_assign_resolve_node() {
-            let ident = self.lexpr.as_assign_resolve_node().borrow().identifier().clone();
+            let ident = self.lexpr.as_assign_resolve_node().unwrap().borrow().ident.clone();
             self.emit_resolve_variable_for_loop_header(generator, &property_name, &ident);
             return;
         }
 
         if self.lexpr.is_dot_accessor_node() {
-            let assign_node = self.lexpr.as_dot_accessor_node();
+            let assign_node = self.lexpr.as_dot_accessor_node().unwrap();
             let assign_node = assign_node.borrow();
             let base = generator.emit_node_expression_no_dst(&assign_node.base.base_expr);
             generator.emit_expression_info(
@@ -130,7 +129,7 @@ impl crate::parser::nodes::ForInNode {
         }
 
         if self.lexpr.is_bracket_accessor_node() {
-            let assign_node = self.lexpr.as_bracket_accessor_node();
+            let assign_node = self.lexpr.as_bracket_accessor_node().unwrap();
             let assign_node = assign_node.borrow();
             let base = generator.emit_node_expression_no_dst(&assign_node.base_expr);
             let subscript = generator.emit_node_for_property(&assign_node.subscript);
@@ -154,7 +153,7 @@ impl crate::parser::nodes::ForInNode {
         }
 
         if self.lexpr.is_destructuring_node() {
-            let assign_node = self.lexpr.as_destructuring_node();
+            let assign_node = self.lexpr.as_destructuring_node().unwrap();
             let binding = assign_node.borrow().bindings.clone();
             let crate::parser::nodes::DestructuringPatternNode::Binding(simple_binding) = &binding else {
                 binding.bind_value(generator, property_name);
@@ -200,9 +199,9 @@ impl crate::parser::nodes::ForInNode {
         let mut for_loop_symbol_table: Cpp5bReg = None;
         generator.push_lexical_scope(
             &self.variable_environment,
-            crate::bytecompiler::bytecode_generator_part3::ScopeType::LetConstScope,
-            crate::bytecompiler::bytecode_generator_part3::TDZCheckOptimization::Optimize,
-            crate::bytecompiler::bytecode_generator_part3::NestedScopeType::IsNested,
+            crate::bytecompiler::bytecode_generator::ScopeType::LetConstScope,
+            crate::bytecompiler::bytecode_generator::TDZCheckOptimization::Optimize,
+            crate::bytecompiler::bytecode_generator::NestedScopeType::IsNested,
             Some(&mut for_loop_symbol_table),
             true,
         );
@@ -218,15 +217,15 @@ impl crate::parser::nodes::ForInNode {
 
         let base_variable = generator.try_resolve_variable(&self.expr);
 
-        let profiler_start_offset = self.statement.start_offset();
-        let profiler_end_offset = self.statement.end_offset() + if self.statement.is_block() { 1 } else { 0 };
+        let profiler_start_offset = self.statement.base().start_offset();
+        let profiler_end_offset = self.statement.base().end_offset() + if self.statement.is_block() { 1 } else { 0 };
 
         {
             let enumerator = Some(generator.new_temporary());
             let mode_temp = Some(generator.new_temporary());
             let mode = generator.emit_load_js_value(
                 mode_temp,
-                crate::runtime::js_value::js_number_u32(CPP5B_ENUMERATOR_INIT_MODE),
+                crate::runtime::js_value::JSValue::from_u32(CPP5B_ENUMERATOR_INIT_MODE),
             );
             let index_temp = Some(generator.new_temporary());
             let index = generator.emit_load_js_value(index_temp, crate::runtime::js_value::js_number_i32(0));
@@ -237,7 +236,7 @@ impl crate::parser::nodes::ForInNode {
             let enumerator = generator.emit_get_property_enumerator(enumerator_dst, base.as_ref().unwrap()).or(enumerator);
             generator.emit_jump_if_empty_property_name_enumerator(
                 enumerator.as_ref().unwrap(),
-                &scope.break_target().borrow(),
+                scope.break_target(),
             );
 
             generator.emit_label(scope.continue_target().expect("o laço sempre tem continueTarget"));
@@ -257,7 +256,7 @@ impl crate::parser::nodes::ForInNode {
                 base.as_ref().unwrap(),
                 enumerator.as_ref().unwrap(),
             );
-            generator.emit_jump_if_sentinel_string(property_name.as_ref().unwrap(), &scope.break_target().borrow());
+            generator.emit_jump_if_sentinel_string(property_name.as_ref().unwrap(), scope.break_target());
 
             self.emit_loop_header(generator, property_name.clone());
 
@@ -265,17 +264,19 @@ impl crate::parser::nodes::ForInNode {
 
             generator.push_for_in_scope(
                 local.clone(),
-                property_name,
-                index,
-                enumerator,
-                mode,
+                property_name.clone(),
+                index.clone(),
+                enumerator.clone(),
+                mode.clone(),
                 base_variable,
             );
+            // Os `RefPtr<RegisterID>` do C++ vivem até o fim do bloco; mover para `push_for_in_scope` (que
+            // retorna cedo sem `local`) soltaria `mode`, `index` e `enumerator` e o corpo reusaria os registros.
             generator.emit_node(dst.as_ref(), &self.statement);
             generator.pop_for_in_scope(local);
 
             generator.emit_profile_control_flow(profiler_end_offset);
-            generator.emit_jump(&scope.continue_target().expect("o laço sempre tem continueTarget").borrow());
+            generator.emit_jump(scope.continue_target().expect("o laço sempre tem continueTarget"));
 
             generator.emit_label(scope.break_target());
         }
@@ -306,9 +307,9 @@ impl crate::parser::nodes::ForOfNode {
         let mut for_loop_symbol_table: Cpp5bReg = None;
         generator.push_lexical_scope(
             &node.variable_environment,
-            crate::bytecompiler::bytecode_generator_part3::ScopeType::LetConstScope,
-            crate::bytecompiler::bytecode_generator_part3::TDZCheckOptimization::Optimize,
-            crate::bytecompiler::bytecode_generator_part3::NestedScopeType::IsNested,
+            crate::bytecompiler::bytecode_generator::ScopeType::LetConstScope,
+            crate::bytecompiler::bytecode_generator::TDZCheckOptimization::Optimize,
+            crate::bytecompiler::bytecode_generator::NestedScopeType::IsNested,
             Some(&mut for_loop_symbol_table),
             true,
         );
@@ -317,7 +318,7 @@ impl crate::parser::nodes::ForOfNode {
         let mut extractor = |generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator, value: Cpp5bReg| {
             let mut emit_body = |generator: &mut crate::bytecompiler::bytecode_generator::BytecodeGenerator| {
                 if node.lexpr.is_resolve_node() {
-                    let ident = node.lexpr.as_resolve_node().borrow().identifier().clone();
+                    let ident = node.lexpr.as_resolve_node().unwrap().borrow().ident.clone();
                     let var = generator
                         .variable(&ident, crate::bytecompiler::bytecode_generator::ThisResolutionType::Local);
                     if let Some(local) = var.local() {
@@ -358,14 +359,14 @@ impl crate::parser::nodes::ForOfNode {
                             },
                         );
                     }
-                    let start = node.lexpr.position().clone();
+                    let start = node.lexpr.base().position().clone();
                     let end = start.clone() + ident.length();
                     generator.emit_profile_type_variable(value.clone(), &var, &start, &end);
                     if is_using_declaration {
                         generator.emit_prepare_disposable(value.clone(), &node.throwable.divot_start, is_await_using_declaration);
                     }
                 } else if node.lexpr.is_dot_accessor_node() {
-                    let assign_node = node.lexpr.as_dot_accessor_node();
+                    let assign_node = node.lexpr.as_dot_accessor_node().unwrap();
                     let assign_node = assign_node.borrow();
                     let base = generator.emit_node_expression_no_dst(&assign_node.base.base_expr);
                     generator.emit_expression_info(
@@ -380,7 +381,7 @@ impl crate::parser::nodes::ForOfNode {
                         &assign_node.throwable.divot_end,
                     );
                 } else if node.lexpr.is_bracket_accessor_node() {
-                    let assign_node = node.lexpr.as_bracket_accessor_node();
+                    let assign_node = node.lexpr.as_bracket_accessor_node().unwrap();
                     let assign_node = assign_node.borrow();
                     let base = generator.emit_node_expression_no_dst(&assign_node.base_expr);
                     let subscript = generator.emit_node_for_property(&assign_node.subscript);
@@ -403,11 +404,11 @@ impl crate::parser::nodes::ForOfNode {
                     );
                 } else {
                     debug_assert!(node.lexpr.is_destructuring_node());
-                    let assign_node = node.lexpr.as_destructuring_node();
+                    let assign_node = node.lexpr.as_destructuring_node().unwrap();
                     let bindings = assign_node.borrow().bindings.clone();
                     bindings.bind_value(generator, value.clone());
                 }
-                generator.emit_profile_control_flow(node.statement.start_offset());
+                generator.emit_profile_control_flow(node.statement.base().start_offset());
                 generator.emit_node(dst.as_ref(), &node.statement);
             };
 
@@ -421,7 +422,7 @@ impl crate::parser::nodes::ForOfNode {
         };
         generator.emit_enumeration(&node.throwable, &node.expr, &mut extractor, Some(this), for_loop_symbol_table);
         generator.pop_lexical_scope(&node.variable_environment);
-        generator.emit_profile_control_flow(node.statement.end_offset() + if node.statement.is_block() { 1 } else { 0 });
+        generator.emit_profile_control_flow(node.statement.base().end_offset() + if node.statement.is_block() { 1 } else { 0 });
     }
 }
 
@@ -439,7 +440,6 @@ impl crate::parser::nodes::ContinueNode {
         let scope = generator.continue_target(&self.ident);
         debug_assert!(scope.is_some());
         let scope = scope.unwrap();
-        let scope = scope.borrow();
 
         if generator.label_scope_depth() != scope.scope_depth() {
             return None;
@@ -456,14 +456,13 @@ impl crate::parser::nodes::ContinueNode {
         let scope = generator.continue_target(&self.ident);
         debug_assert!(scope.is_some());
         let scope = scope.unwrap();
-        let scope = scope.borrow();
         let continue_target = scope.continue_target().expect("o laço sempre tem continueTarget").clone();
 
         let has_finally = generator.emit_jump_via_finally_if_needed(scope.scope_depth(), &continue_target);
         if !has_finally {
             let lexical_scope_index = generator.label_scope_depth_to_lexical_scope_index(scope.scope_depth());
             generator.restore_scope_register_at(lexical_scope_index);
-            generator.emit_jump(&continue_target.borrow());
+            generator.emit_jump(&continue_target);
         }
 
         generator.emit_profile_control_flow(self.end_offset());
@@ -484,7 +483,6 @@ impl crate::parser::nodes::BreakNode {
         let scope = generator.break_target(&self.ident);
         debug_assert!(scope.is_some());
         let scope = scope.unwrap();
-        let scope = scope.borrow();
 
         if generator.label_scope_depth() != scope.scope_depth() {
             return None;
@@ -501,14 +499,13 @@ impl crate::parser::nodes::BreakNode {
         let scope = generator.break_target(&self.ident);
         debug_assert!(scope.is_some());
         let scope = scope.unwrap();
-        let scope = scope.borrow();
         let break_target = scope.break_target().clone();
 
         let has_finally = generator.emit_jump_via_finally_if_needed(scope.scope_depth(), &break_target);
         if !has_finally {
             let lexical_scope_index = generator.label_scope_depth_to_lexical_scope_index(scope.scope_depth());
             generator.restore_scope_register_at(lexical_scope_index);
-            generator.emit_jump(&break_target.borrow());
+            generator.emit_jump(&break_target);
         }
 
         generator.emit_profile_control_flow(self.end_offset());
@@ -526,7 +523,7 @@ impl crate::parser::nodes::ReturnNode {
         debug_assert!(generator.code_type() == crate::bytecode::code_type::CodeType::FunctionCode);
 
         if let Some(register) = &dst {
-            if std::rc::Rc::ptr_eq(register, &generator.ignored_result()) {
+            if generator.is_ignored_result(register) {
                 dst = None;
             }
         }
@@ -541,8 +538,12 @@ impl crate::parser::nodes::ReturnNode {
                 return_register = generator.emit_node_in_tail_position_from_return_node(dst, value);
             }
             if generator.parse_mode() == crate::parser::parser_modes::SourceParseMode::AsyncGeneratorBodyMode {
-                let temp = Some(generator.new_temporary());
-                return_register = generator.emit_await(temp, return_register.as_ref().unwrap(), self.position());
+                let temp = generator.new_temporary();
+                // `newTemporary()` cru no C++ (contagem 0): o `jstricteq` do await reaproveita o slot.
+                let raw_temp = temp.get().clone();
+                let position = self.position();
+                let src = return_register.as_ref().unwrap();
+                return_register = generator.with_raw_register(Some(&raw_temp), |generator| generator.emit_await(Some(temp), src, position));
             }
         } else {
             return_register = generator.emit_load_js_value(dst, crate::runtime::js_value::JSValue::Undefined);
@@ -582,7 +583,7 @@ impl crate::parser::nodes::WithNode {
         let scope = generator.emit_node_expression_no_dst(&self.expr);
         let divot_start = self.divot.clone() - self.expression_length;
         generator.emit_expression_info(&self.divot, &divot_start, &self.divot);
-        generator.emit_push_with_scope(scope.as_ref().unwrap());
+        generator.emit_push_with_scope(scope.clone());
         if generator.should_be_concerned_with_completion_value() && self.statement.has_early_break_or_continue() {
             generator.emit_load_js_value(dst.clone(), crate::runtime::js_value::JSValue::Undefined);
         }
@@ -630,7 +631,7 @@ fn cpp5b_process_clause_list(
         let clause_expression = node.borrow().clause.borrow().expr.clone().expect("o case tem expressão");
         literal_vector.push(clause_expression.clone());
         if clause_expression.is_number() {
-            let value = clause_expression.as_number_node().borrow().value;
+            let value = clause_expression.as_number_node().unwrap().value;
             let int_val = crate::wtf::math_extras::truncate_double_to_int32(value);
             // `(typeForTable & ~SwitchNumber)`: qualquer bit fora de SwitchNumber.
             if ((*type_for_table as i32) & !(Cpp5bSwitchKind::SwitchNumber as i32)) != 0 || (int_val as f64) != value {
@@ -652,7 +653,7 @@ fn cpp5b_process_clause_list(
                 *type_for_table = Cpp5bSwitchKind::SwitchNeither;
                 break;
             }
-            let string_node = clause_expression.as_string_node();
+            let string_node = clause_expression.as_string_node().unwrap();
             let value = string_node.borrow().value.clone();
             let value = value.string();
             *single_character_switch &= value.length() == 1;

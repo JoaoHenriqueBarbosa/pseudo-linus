@@ -257,9 +257,14 @@ macro_rules! match_or_fail {
 /// `#define failIfStackOverflow()`.
 macro_rules! fail_if_stack_overflow {
     ($p:expr) => {
-        if !$p.can_recurse() {
-            fail_with_stack_overflow!($p);
-        }
+        fail_if_stack_overflow!($p, crate::runtime::vm::stack_cost::PARSER_LEVEL);
+    };
+    ($p:expr, $cost:expr) => {
+        // O frame lógico fica reservado até o fim do bloco que expandiu a macro (o nível de recursão inteiro).
+        let _logical_stack_frame = match $p.vm.enter_logical_frame($cost) {
+            Some(frame) => frame,
+            None => fail_with_stack_overflow!($p),
+        };
     };
 }
 

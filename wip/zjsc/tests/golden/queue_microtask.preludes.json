@@ -1,0 +1,3 @@
+[
+"globalThis.R = \"\";\nglobalThis.L = function (x) { R += x + \";\"; };\nglobalThis.tick = function (n, label) {\n  var p = Promise.resolve();\n  for (var i = 0; i < n; i++) p = p.then(function () {});\n  return p.then(function () { L(label); });\n};\nglobalThis.thenable = function (v, label) {\n  return { then: function (res) { L(\"then:\" + label); res(v); } };\n};\nglobalThis.ok = function (v) { L(\"v:\" + JSON.stringify(v)); };\nglobalThis.bad = function (e) { L(\"e:\" + (e && e.name) + (e && e.name === \"Error\" ? \":\" + e.message : \"\")); };\n"
+]

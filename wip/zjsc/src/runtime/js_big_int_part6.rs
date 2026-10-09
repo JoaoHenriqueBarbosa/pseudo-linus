@@ -54,6 +54,22 @@ impl ImplResult {
         matches!(self, ImplResult::Empty)
     }
 
+    /// Ponte para o `JSValue` que o C++ devolve de `ImplResult` (`JSValue()`, `JSBigInt*` ou BigInt32):
+    /// o BigInt do heap vira célula do registro central (`CellEntry::BigInt`). Com `USE(BIGINT32)`
+    /// igual a 0 o `BigInt32` não existe como valor; o resíduo (`zero_impl`, conversões) vira célula.
+    pub fn into_js_value(self, vm: &crate::runtime::vm::VM) -> crate::runtime::js_value::JSValue {
+        use crate::runtime::cell_registry::{insert, CellEntry};
+        use crate::runtime::js_value::JSValue;
+        let big_int = match self {
+            ImplResult::Empty => return JSValue::empty(),
+            ImplResult::Heap(big_int) => big_int,
+            ImplResult::BigInt32(value) => {
+                JSBigInt::create_from_i32(value).expect("BigInt de um dígito sempre cabe")
+            }
+        };
+        JSValue::from_cell(insert(CellEntry::BigInt(std::rc::Rc::new(big_int.with_structure(vm)))))
+    }
+
     /// `JSValue::asHeapBigInt()`. Só vale para `Heap` (com `USE(BIGINT32)` igual a 0 é o único caso
     /// não vazio).
     pub fn as_heap_big_int(&self) -> &JSBigInt {
@@ -589,7 +605,7 @@ impl JSBigInt {
 
         if p == length {
             // `USE(BIGINT32)` é 0: `createZero(vm)`.
-            return ImplResult::Heap(JSBigInt::create_zero());
+            return ImplResult::Heap(JSBigInt::default());
         }
 
         // The idea is to pick the largest limit such that:
@@ -651,7 +667,13 @@ impl JSBigInt {
                 };
                 // The parts can outnumber the digits of the result by one: the last part is short,
                 // and the bit estimate above is tighter than a digit per part.
-                let mut result_vector: Vec<Digit> = vec![0; (result_length as usize).max(num_parts)];
+                let mut result_vector: Vec<Digit> = match try_zeroed_digits((result_length as usize).max(num_parts)) {
+                    Ok(vector) => vector,
+                    Err(error) => {
+                        Self::throw_big_int_error(null_or_global_object_for_oom, vm, &error);
+                        return ImplResult::Empty;
+                    }
+                };
                 let mut vm_check = || vm.exception().is_some();
                 let mut interrupt = InterruptCheck::new(if null_or_global_object_for_oom.is_some() {
                     Some(&mut vm_check as &mut dyn FnMut() -> bool)
@@ -675,8 +697,10 @@ impl JSBigInt {
         }
 
         let limit0: u32 = '0' as u32 + if radix < 10 { radix } else { 10 };
-        let limita: u32 = 'a' as u32 + (radix as i32 - 10) as u32;
-        let limit_upper_a: u32 = 'A' as u32 + (radix as i32 - 10) as u32;
+        // Aritmética em `int` como no C++ (`'a' + (static_cast<int32_t>(radix) - 10)`): com radix < 10 a
+        // soma em `u32` estouraria. O resultado fica abaixo de 'a' e 'A', então nenhuma letra casa.
+        let limita: u32 = ('a' as i32 + (radix as i32 - 10)) as u32;
+        let limit_upper_a: u32 = ('A' as i32 + (radix as i32 - 10)) as u32;
         let mut result_vector: Vec<Digit> = Vec::new();
         while p < length {
             let mut digit: u64 = 0;

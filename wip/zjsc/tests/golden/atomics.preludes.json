@@ -1,0 +1,3 @@
+[
+"function F(f){try{var v=f();return typeof v==='bigint'?v+'n':JSON.stringify(v,function(k,x){return typeof x==='bigint'?x+'n':Object.is(x,-0)?'-0':x===undefined?'undef':typeof x==='number'&&!isFinite(x)?String(x):x})}catch(e){return 'throw '+e.name+': '+e.message}}\n"
+]

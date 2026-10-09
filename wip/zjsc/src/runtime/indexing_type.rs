@@ -1,6 +1,6 @@
-//! Constantes e predicados puros de `runtime/IndexingType.h`. `indexingTypeForValue`,
-//! `leastUpperBoundOfIndexingTypes` e `dumpIndexingType` não entram aqui (dependem de `JSValue`,
-//! `IndexingTypeInlines.h`, `.cpp` e `PrintStream`).
+//! Constantes e predicados puros de `runtime/IndexingType.h`, mais `indexingTypeForValue`,
+//! `leastUpperBoundOfIndexingTypes` e `leastUpperBoundOfIndexingTypeAndValue`, as três que o
+//! bytecompiler usa. `dumpIndexingType` e as variantes de especulação (DFG) não entram aqui.
 
 /// `typedef uint8_t IndexingType`.
 pub type IndexingType = u8;
@@ -102,4 +102,62 @@ pub const fn array_index_from_indexing_type(indexing_type: IndexingType) -> u32 
             >> INDEXING_SHAPE_SHIFT;
     }
     ((indexing_type & INDEXING_SHAPE_MASK) >> INDEXING_SHAPE_SHIFT) as u32
+}
+
+/// `indexingTypeForValue(JSValue)` de `IndexingTypeInlines.h`.
+pub fn indexing_type_for_value(value: crate::runtime::js_value::JSValue) -> IndexingType {
+    if value.is_int32() {
+        return INT32_SHAPE;
+    }
+
+    if value.is_number()
+        && value.as_number() == value.as_number()
+        && crate::runtime::options::Options::with(|options| options.allow_double_shape)
+    {
+        return DOUBLE_SHAPE;
+    }
+
+    CONTIGUOUS_SHAPE
+}
+
+/// `leastUpperBoundOfIndexingTypes(IndexingType, IndexingType)` de `IndexingType.cpp`.
+pub fn least_upper_bound_of_indexing_types(a: IndexingType, b: IndexingType) -> IndexingType {
+    // It doesn't make sense to LUB something that is an array with something that isn't.
+    debug_assert!((a & IS_ARRAY) == (b & IS_ARRAY));
+
+    // Boy, this sure is easy right now.
+    a.max(b)
+}
+
+/// `dumpIndexingType` de `IndexingType.cpp` (o `IndexingTypeDump` do `Structure::dump`).
+pub fn dump_indexing_type(indexing_type: IndexingType) -> String {
+    let basic_name = match indexing_type & ALL_ARRAY_TYPES {
+        NON_ARRAY => "NonArray",
+        NON_ARRAY_WITH_INT32 => "NonArrayWithInt32",
+        NON_ARRAY_WITH_DOUBLE => "NonArrayWithDouble",
+        NON_ARRAY_WITH_CONTIGUOUS => "NonArrayWithContiguous",
+        NON_ARRAY_WITH_ARRAY_STORAGE => "NonArrayWithArrayStorage",
+        NON_ARRAY_WITH_SLOW_PUT_ARRAY_STORAGE => "NonArrayWithSlowPutArrayStorage",
+        ARRAY_CLASS => "ArrayClass",
+        ARRAY_WITH_UNDECIDED => "ArrayWithUndecided",
+        ARRAY_WITH_INT32 => "ArrayWithInt32",
+        ARRAY_WITH_DOUBLE => "ArrayWithDouble",
+        ARRAY_WITH_CONTIGUOUS => "ArrayWithContiguous",
+        ARRAY_WITH_ARRAY_STORAGE => "ArrayWithArrayStorage",
+        ARRAY_WITH_SLOW_PUT_ARRAY_STORAGE => "ArrayWithSlowPutArrayStorage",
+        COPY_ON_WRITE_ARRAY_WITH_INT32 => "CopyOnWriteArrayWithInt32",
+        COPY_ON_WRITE_ARRAY_WITH_DOUBLE => "CopyOnWriteArrayWithDouble",
+        COPY_ON_WRITE_ARRAY_WITH_CONTIGUOUS => "CopyOnWriteArrayWithContiguous",
+        _ => "Unknown!",
+    };
+    let suffix = if indexing_type & MAY_HAVE_INDEXED_ACCESSORS != 0 { "|MayHaveIndexedAccessors" } else { "" };
+    format!("{basic_name}{suffix}")
+}
+
+/// `leastUpperBoundOfIndexingTypeAndValue(IndexingType, JSValue)` de `IndexingType.cpp`.
+pub fn least_upper_bound_of_indexing_type_and_value(
+    indexing_type: IndexingType,
+    value: crate::runtime::js_value::JSValue,
+) -> IndexingType {
+    least_upper_bound_of_indexing_types(indexing_type, indexing_type_for_value(value) | (indexing_type & IS_ARRAY))
 }

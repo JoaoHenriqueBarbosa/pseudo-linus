@@ -7,9 +7,9 @@
 // `Ref<Label>`/`RefPtr<Label>` é `LabelRef`; `std::optional<FinallyContext>` é `Option<Rc<RefCell<..>>>`
 // porque o gerador guarda o contexto em `ControlFlowScope`.
 //
-// Dependências ainda não portadas, assumidas com o nome do C++ em snake_case:
-// `ScopeNode::{start_line, start_start_offset, start_offset, line_start_offset, last_line,
-// using_declaration_count, has_await_using_declaration, emit_statements_bytecode}`.
+// Dependências: todas já portadas (conferido por grep em 2026-10-08). `start_line`/`start_start_offset`
+// em `parser/nodes_part2.rs`, `start_offset`/`line_start_offset`/`last_line`/`using_declaration_count`/
+// `has_await_using_declaration` em `parser/nodes.rs`, `emit_statements_bytecode` neste arquivo.
 
 impl crate::parser::nodes::CaseBlockNode {
     pub fn try_table_switch(
@@ -120,11 +120,11 @@ impl crate::parser::nodes::CaseBlockNode {
                             switch_expression.clone(),
                         )
                         .expect("emitEqualityOp devolve o dst");
-                    generator.emit_jump_if_true(&comparison, &clause_label.borrow());
+                    generator.emit_jump_if_true_raw(&comparison, &clause_label);
                     list = node.borrow().next.clone();
                 }
             }
-            generator.emit_jump(&default_label.borrow());
+            generator.emit_jump(&default_label);
         }
 
         let mut i: usize = 0;
@@ -178,7 +178,7 @@ impl crate::parser::nodes::SwitchNode {
 
         generator.push_lexical_scope(
             &self.variable_environment,
-            crate::runtime::symbol_table::ScopeType::LetConstScope,
+            crate::bytecompiler::bytecode_generator::ScopeType::LetConstScope,
             crate::bytecompiler::bytecode_generator::TDZCheckOptimization::DoNotOptimize,
             crate::bytecompiler::bytecode_generator::NestedScopeType::IsNested,
             None,
@@ -186,8 +186,8 @@ impl crate::parser::nodes::SwitchNode {
         );
 
         generator.emit_body_with_using_if_needed(
-            self.using_declaration_count(),
-            self.has_await_using_declaration(),
+            self.variable_environment.using_declaration_count(),
+            self.variable_environment.has_await_using_declaration(),
             &mut |generator| {
                 self.block.borrow().emit_bytecode_for_block(generator, r0.clone(), dst.clone());
             },
@@ -249,13 +249,7 @@ impl crate::parser::nodes::TryNode {
         // optimizer knows they may be jumped to from anywhere.
         debug_assert!(self.catch_block.is_some() || self.finally_block.is_some());
 
-        let ignored_result = generator.ignored_result();
-        let is_ignored = |register: &Cpp5bReg| -> bool {
-            match register {
-                Some(register) => std::rc::Rc::ptr_eq(register, &ignored_result),
-                None => false,
-            }
-        };
+        // `registerOrNull == ignoredResult()` direto no gerador (sem closure, que prenderia o `&mut`).
 
         let mut try_catch_dst = dst.clone();
         if generator.should_be_concerned_with_completion_value() {
@@ -307,7 +301,7 @@ impl crate::parser::nodes::TryNode {
 
         let local_scope_count_before_try_block = generator.local_scope_count();
 
-        if is_ignored(&try_catch_dst) {
+        if generator.is_ignored_dst(try_catch_dst.as_ref()) {
             generator.emit_node_in_ignore_result_position_statement(&self.try_block);
         } else {
             generator.emit_node(try_catch_dst.as_ref(), &self.try_block);
@@ -315,9 +309,9 @@ impl crate::parser::nodes::TryNode {
 
         if self.catch_block.is_some() {
             if self.finally_block.is_some() {
-                generator.emit_jump(&finally_label.clone().expect("finallyLabel").borrow());
+                generator.emit_jump(&finally_label.clone().expect("finallyLabel"));
             } else {
-                generator.emit_jump(&catch_end_label.clone().expect("catchEndLabel").borrow());
+                generator.emit_jump(&catch_end_label.clone().expect("catchEndLabel"));
             }
         }
 
@@ -354,22 +348,25 @@ impl crate::parser::nodes::TryNode {
 
             if let Some(catch_pattern) = &self.catch_pattern {
                 let scope_type = if catch_pattern.is_binding_node() {
-                    crate::runtime::symbol_table::ScopeType::CatchScopeWithSimpleParameter
+                    crate::bytecompiler::bytecode_generator::ScopeType::CatchScopeWithSimpleParameter
                 } else {
-                    crate::runtime::symbol_table::ScopeType::CatchScope
+                    crate::bytecompiler::bytecode_generator::ScopeType::CatchScope
                 };
-                generator.emit_push_catch_scope(&mut self.variable_environment.lexical_variables().borrow_mut(), scope_type);
+                // `lexicalVariables()` do C++ é mutável por um `this` const; aqui o nó é `&self`, então a
+                // cópia vale pelo par push/pop (ver errs-nodes-cpp6-5c.md).
+                let mut catch_environment = self.variable_environment.lexical_variables.clone();
+                generator.emit_push_catch_scope(&mut catch_environment, scope_type);
                 catch_pattern.bind_value(generator, thrown_value_register.clone());
             }
 
-            generator.emit_profile_control_flow(self.try_block.end_offset() + 1);
+            generator.emit_profile_control_flow(self.try_block.base().end_offset() + 1);
 
             if generator.should_be_concerned_with_completion_value() {
                 generator.emit_load_js_value(try_catch_dst.clone(), crate::runtime::js_value::JSValue::Undefined);
             }
 
             if self.finally_block.is_some() {
-                if is_ignored(&try_catch_dst) {
+                if generator.is_ignored_dst(try_catch_dst.as_ref()) {
                     generator.emit_node_in_ignore_result_position_statement(catch_block);
                 } else {
                     generator.emit_node(try_catch_dst.as_ref(), catch_block);
@@ -379,7 +376,8 @@ impl crate::parser::nodes::TryNode {
             }
 
             if self.catch_pattern.is_some() {
-                generator.emit_pop_catch_scope(&mut self.variable_environment.lexical_variables().borrow_mut());
+                let mut catch_environment = self.variable_environment.lexical_variables.clone();
+                generator.pop_lexical_scope_internal(&mut catch_environment);
             }
 
             if self.finally_block.is_some() {
@@ -393,7 +391,7 @@ impl crate::parser::nodes::TryNode {
             }
 
             generator.emit_label(&catch_end_label.clone().expect("catchEndLabel"));
-            generator.emit_profile_control_flow(catch_block.end_offset() + 1);
+            generator.emit_profile_control_flow(catch_block.base().end_offset() + 1);
         }
 
         if let Some(finally_block) = &self.finally_block {
@@ -419,14 +417,14 @@ impl crate::parser::nodes::TryNode {
             }
 
             let finally_start_offset = match &self.catch_block {
-                Some(catch_block) => catch_block.end_offset() + 1,
-                None => self.try_block.end_offset() + 1,
+                Some(catch_block) => catch_block.base().end_offset() + 1,
+                None => self.try_block.base().end_offset() + 1,
             };
 
             // The completion value of a finally block is ignored *just* when it is a normal completion.
             if generator.should_be_concerned_with_completion_value() {
                 debug_assert!(!match (&dst, &try_catch_dst) {
-                    (Some(a), Some(b)) => std::rc::Rc::ptr_eq(a, b),
+                    (Some(a), Some(b)) => a.is_same_register(b),
                     (None, None) => true,
                     _ => false,
                 });
@@ -445,7 +443,7 @@ impl crate::parser::nodes::TryNode {
 
             generator.emit_finally_completion(&mut finally_context.borrow_mut(), &finally_end_label);
             generator.emit_label(&finally_end_label);
-            generator.emit_profile_control_flow(finally_block.end_offset() + 1);
+            generator.emit_profile_control_flow(finally_block.base().end_offset() + 1);
         }
     }
 }
@@ -473,8 +471,8 @@ fn cpp5c_emit_program_node_bytecode(
     generator.emit_profile_control_flow(scope_node.start_start_offset());
 
     generator.emit_body_with_using_if_needed(
-        scope_node.using_declaration_count(),
-        scope_node.has_await_using_declaration(),
+        scope_node.variable_environment.using_declaration_count(),
+        scope_node.variable_environment.has_await_using_declaration(),
         &mut |generator| {
             scope_node.emit_statements_bytecode(generator, dst_register.clone());
         },
@@ -483,7 +481,7 @@ fn cpp5c_emit_program_node_bytecode(
     generator.emit_debug_hook(
         DebugHookType::DidExecuteProgram,
         &crate::parser::parser_tokens::JSTextPosition::new(
-            scope_node.last_line(),
+            scope_node.last_line() as i32,
             scope_node.start_offset(),
             scope_node.line_start_offset(),
         ),
@@ -553,8 +551,8 @@ impl crate::parser::nodes::EvalNode {
         generator.emit_load_js_value(dst_register.clone(), crate::runtime::js_value::JSValue::Undefined);
 
         generator.emit_body_with_using_if_needed(
-            self.base.using_declaration_count(),
-            self.base.has_await_using_declaration(),
+            self.base.variable_environment.using_declaration_count(),
+            self.base.variable_environment.has_await_using_declaration(),
             &mut |generator| {
                 self.base.emit_statements_bytecode(generator, dst_register.clone());
             },
@@ -563,7 +561,7 @@ impl crate::parser::nodes::EvalNode {
         generator.emit_debug_hook(
             DebugHookType::DidExecuteProgram,
             &crate::parser::parser_tokens::JSTextPosition::new(
-                self.base.last_line(),
+                self.base.last_line() as i32,
                 self.base.start_offset(),
                 self.base.line_start_offset(),
             ),

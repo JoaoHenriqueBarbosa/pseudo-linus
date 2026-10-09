@@ -376,10 +376,15 @@ impl JSBigInt {
             if let Some(global_object) = null_or_global_object_for_oom {
                 global_object.throw_out_of_memory_error(vm, None);
             }
-            return crate::wtf::text::wtf_string::null_string();
+            return crate::wtf::text::wtf_string::String::default();
         }
 
-        let mut result_string: Vec<u8> = vec![0; chars_required];
+        let Some(mut result_string) = crate::runtime::fallible_alloc::try_filled_vec(0u8, chars_required) else {
+            if let Some(global_object) = null_or_global_object_for_oom {
+                global_object.throw_out_of_memory_error(vm, None);
+            }
+            return crate::wtf::text::wtf_string::String::default();
+        };
         let mut digit: Digit = 0;
         // Keeps track of how many unprocessed bits there are in {digit}.
         let mut available_bits: u32 = 0;
@@ -437,11 +442,16 @@ impl JSBigInt {
             if let Some(global_object) = null_or_global_object_for_oom {
                 global_object.throw_out_of_memory_error(vm, None);
             }
-            return crate::wtf::text::wtf_string::null_string();
+            return crate::wtf::text::wtf_string::String::default();
         }
 
         if length as usize >= TO_STRING_FAST_THRESHOLD {
-            let mut buffer: Vec<u8> = vec![0; maximum_characters_required as usize];
+            let Some(mut buffer) = crate::runtime::fallible_alloc::try_filled_vec(0u8, maximum_characters_required as usize) else {
+                if let Some(global_object) = null_or_global_object_for_oom {
+                    global_object.throw_out_of_memory_error(vm, None);
+                }
+                return crate::wtf::text::wtf_string::String::default();
+            };
             let mut vm_check = || vm.exception().is_some();
             let mut interrupt = InterruptCheck::new(if null_or_global_object_for_oom.is_some() {
                 Some(&mut vm_check as &mut dyn FnMut() -> bool)
@@ -454,7 +464,7 @@ impl JSBigInt {
                 formatter.result_start()
             };
             if interrupt.interrupted() {
-                return crate::wtf::text::wtf_string::null_string();
+                return crate::wtf::text::wtf_string::String::default();
             }
             let end = buffer.len();
             assert!(start < end);
@@ -486,8 +496,22 @@ impl JSBigInt {
             // {rest} holds the part of the BigInt that we haven't looked at yet. Not to be confused
             // with "remainder"! In the first round, divide the input; from then on divide the rest.
             // O C++ divide o resto em lugar; aqui dois buffers se alternam.
-            let mut rest: Vec<Digit> = vec![0; length as usize];
-            let mut next_rest: Vec<Digit> = vec![0; length as usize];
+            let (Some(mut rest), Some(mut next_rest)) = (
+                crate::runtime::fallible_alloc::try_filled_vec::<Digit>(0, length as usize),
+                crate::runtime::fallible_alloc::try_filled_vec::<Digit>(0, length as usize),
+            ) else {
+                if let Some(global_object) = null_or_global_object_for_oom {
+                    global_object.throw_out_of_memory_error(vm, None);
+                }
+                return crate::wtf::text::wtf_string::String::default();
+            };
+            // Reserva o texto inteiro de uma vez: o `push` do laço nunca cresce (e nunca aborta).
+            if result_string.try_reserve_exact(maximum_characters_required as usize).is_err() {
+                if let Some(global_object) = null_or_global_object_for_oom {
+                    global_object.throw_out_of_memory_error(vm, None);
+                }
+                return crate::wtf::text::wtf_string::String::default();
+            }
             let mut dividend_len = 0;
             let mut first_round = true;
             loop {

@@ -40,9 +40,9 @@ impl Variable {
         format!(
             "{{ident = {}, offset = {}, local = {}, attributes = {}, kind = {}, symbolTableConstantIndex = {}, isLexicallyScoped = {}}}",
             String::from_utf8_lossy(&self.ident.utf8()),
-            self.offset.dump_string(),
+            format!("{:?}", self.offset),
             match &self.local {
-                Some(local) => format!("{:p}", std::rc::Rc::as_ptr(local)),
+                Some(local) => format!("{:p}", std::rc::Rc::as_ptr(local.get())),
                 None => String::from("(nil)"),
             },
             self.attributes,
@@ -59,17 +59,32 @@ impl FinallyContext {
         generator: &mut BytecodeGenerator,
         finally_label: crate::bytecompiler::label::LabelRef,
     ) -> FinallyContext {
-        let mut context = FinallyContext::with_outer(
-            generator.current_finally_context.clone(),
-            Some(finally_label),
-        );
+        let mut context = FinallyContext {
+            outer_context: generator.current_finally_context.clone(),
+            finally_label: Some(finally_label),
+            number_of_breaks_or_continues: 0,
+            handles_returns: false,
+            jumps: Vec::new(),
+            completion_record: Default::default(),
+        };
         context.completion_record.type_register = Some(generator.new_temporary());
         context.completion_record.value_register = Some(generator.new_temporary());
         let completion_type_register = context.completion_type_register();
-        generator.emit_load_completion_type(completion_type_register.as_ref(), CompletionType::NORMAL);
+        generator.emit_load_completion_type(completion_type_register, CompletionType::NORMAL);
         let completion_value_register = context.completion_value_register();
         generator.move_empty_value(completion_value_register);
         context
+    }
+}
+
+/// `pattern->boundProperty()` de `BindingNode` (o C++ chama `as<BindingNode>`; o padrão já foi
+/// conferido com `isBindingNode()`).
+fn binding_bound_property(pattern: &crate::parser::nodes::DestructuringPatternNode) -> Identifier {
+    match pattern {
+        crate::parser::nodes::DestructuringPatternNode::Binding(binding) => {
+            binding.borrow().bound_property.clone()
+        }
+        _ => unreachable!("o parâmetro simples é sempre um BindingNode"),
     }
 }
 
@@ -96,7 +111,7 @@ impl BytecodeGenerator {
             let try_end_label = self.new_emitted_label();
             self.pop_try(try_data.as_ref().unwrap(), &try_end_label);
 
-            self.emit_out_of_line_catch_handler(info.thrown_value.as_ref(), None, try_data.as_ref());
+            self.emit_out_of_line_catch_handler(info.thrown_value, None, try_data.as_ref());
         }
     }
 
@@ -119,7 +134,7 @@ impl BytecodeGenerator {
             }
         }
 
-        let this_virtual_register = self.this_register.borrow().virtual_register();
+        let this_virtual_register = self.this_register.virtual_register();
         self.code_block.set_this_register(this_virtual_register);
 
         self.emit_log_shadow_chicken_prologue_if_necessary();
@@ -128,9 +143,9 @@ impl BytecodeGenerator {
             // If we have declared a variable named "arguments" and we are using arguments then we should
             // perform that assignment now.
             if self.need_to_initialize_arguments {
-                let arguments_variable = self.variable(&self.property_names().arguments.clone());
+                let arguments_variable = self.variable(&self.property_names().arguments.clone(), crate::bytecompiler::bytecode_generator::ThisResolutionType::Local);
                 let arguments_register = self.arguments_register.clone();
-                self.initialize_variable(&arguments_variable, arguments_register.as_ref());
+                self.initialize_variable(&arguments_variable, arguments_register);
             }
 
             {
@@ -141,13 +156,13 @@ impl BytecodeGenerator {
                     let metadata = &function_pair.0;
                     let function_type = function_pair.1;
                     if function_type == FunctionVariableType::NormalFunctionVariable {
-                        let var = self.variable(&metadata.borrow().ident());
+                        let var = self.variable(&metadata.ident.borrow().clone(), crate::bytecompiler::bytecode_generator::ThisResolutionType::Local);
                         if let Some(local) = var.local() {
                             self.emit_new_function(Some(local), metadata);
                         } else {
                             let temp = self.new_temporary();
                             self.emit_new_function(Some(temp.clone()), metadata);
-                            self.initialize_variable(&var, Some(&temp));
+                            self.initialize_variable(&var, Some(temp));
                         }
                     } else if function_type == FunctionVariableType::TopLevelFunctionVariable {
                         let temp = self.new_temporary();
@@ -169,7 +184,7 @@ impl BytecodeGenerator {
                             //     }
                             // ```
                             // Therefore, we're guaranteed to have this resolve to a top level variable.
-                            let ident = metadata.borrow().ident();
+                            let ident = metadata.ident.borrow().clone();
                             let top_level_object_scope = if should_hoist_in_eval {
                                 self.emit_resolve_scope_for_hoisting_func_decl_in_eval(None, &ident)
                             } else {
@@ -180,20 +195,20 @@ impl BytecodeGenerator {
                             self.move_register(Some(&new_scope), top_level_object_scope.as_ref().unwrap());
                             top_level_scope = Some(new_scope);
                         }
-                        let ident = metadata.borrow().ident();
+                        let ident = metadata.ident.borrow().clone();
                         if should_hoist_in_eval {
                             self.emit_put_to_scope_dynamic(
-                                top_level_scope.as_ref(),
+                                top_level_scope.clone(),
                                 &ident,
-                                Some(&temp),
+                                Some(temp),
                                 ResolveMode::ThrowIfNotFound,
                                 InitializationMode::NotInitialization,
                             );
                         } else {
                             self.emit_put_to_scope(
-                                top_level_scope.as_ref(),
+                                top_level_scope.clone(),
                                 &Variable::from_ident(&ident),
-                                Some(&temp),
+                                Some(temp),
                                 ResolveMode::ThrowIfNotFound,
                                 InitializationMode::NotInitialization,
                             );
@@ -205,13 +220,19 @@ impl BytecodeGenerator {
             }
 
             let scope_node = self.scope_node.clone();
-            scope_node.emit_bytecode(self, None);
+            // `m_scopeNode->emitBytecode(*this)` é virtual no C++: despacho pela variante concreta.
+            match &scope_node {
+                crate::parser::nodes::ScopeNodeRef::Program(node) => node.borrow().emit_bytecode(self, None),
+                crate::parser::nodes::ScopeNodeRef::Eval(node) => node.borrow().emit_bytecode(self, None),
+                crate::parser::nodes::ScopeNodeRef::ModuleProgram(node) => node.borrow().emit_bytecode(self, None),
+                crate::parser::nodes::ScopeNodeRef::Function(node) => node.borrow().emit_bytecode(self, None),
+            }
         } else {
             // At this point we would have emitted an unconditional throw followed by some nonsense that's
             // just an artifact of how this generator is structured. That code never runs, but it confuses
             // bytecode analyses because it constitutes an unterminated basic block. So, we terminate the
             // basic block the strongest way possible.
-            self.emit_unreachable();
+            crate::bytecode::bytecode_ops::OpUnreachable::emit(self);
         }
 
         let handlers_to_emit = std::mem::take(&mut self.exception_handlers_to_emit);
@@ -231,9 +252,9 @@ impl BytecodeGenerator {
                 last_instruction_offset,
             );
             if handler.completion_type_register.is_valid() {
-                let completion_type_register = std::rc::Rc::new(std::cell::RefCell::new(
+                let completion_type_register = RegisterRef::new(&std::rc::Rc::new(std::cell::RefCell::new(
                     RegisterID::from_virtual_register(handler.completion_type_register),
-                ));
+                )));
                 let handler_type = try_data.borrow().handler_type;
                 let completion_type = if handler_type == HandlerType::Finally
                     || handler_type == HandlerType::SynthesizedFinally
@@ -242,7 +263,7 @@ impl BytecodeGenerator {
                 } else {
                     CompletionType::NORMAL
                 };
-                self.emit_load_completion_type(Some(&completion_type_register), completion_type);
+                self.emit_load_completion_type(Some(completion_type_register), completion_type);
             }
 
             let target = try_data.borrow().target.clone();
@@ -255,7 +276,8 @@ impl BytecodeGenerator {
             debug_assert!(info.catch_start_label.is_some() && info.thrown_value.is_some());
             self.emit_label(info.catch_start_label.as_ref().unwrap());
             let scope_node = self.scope_node.clone();
-            let divot = crate::parser::parser::JSTextPosition::new(
+            let scope_node = scope_node.borrow();
+            let divot = crate::parser::parser_tokens::JSTextPosition::new(
                 scope_node.first_line(),
                 scope_node.start_offset(),
                 scope_node.line_start_offset(),
@@ -274,7 +296,7 @@ impl BytecodeGenerator {
                 let result = self.new_temporary();
                 self.emit_call_ignore_result(
                     Some(result),
-                    reject_promise.as_ref().unwrap(),
+                    reject_promise,
                     ExpectedFunction::NoExpectedFunction,
                     &mut args,
                     &divot,
@@ -283,7 +305,7 @@ impl BytecodeGenerator {
                     DebuggableCall::No,
                 );
                 let promise_register = self.promise_register();
-                self.emit_return(promise_register.as_ref().unwrap());
+                self.emit_return(promise_register);
             } else {
                 // If we are not creating a promise yet, we can just do `return @newRejectedPromise(thrownValue)`.
                 let new_rejected_promise =
@@ -295,7 +317,7 @@ impl BytecodeGenerator {
                 let result = self.new_temporary();
                 self.emit_call(
                     Some(result.clone()),
-                    new_rejected_promise.as_ref().unwrap(),
+                    new_rejected_promise,
                     ExpectedFunction::NoExpectedFunction,
                     &mut args,
                     &divot,
@@ -303,7 +325,7 @@ impl BytecodeGenerator {
                     &divot,
                     DebuggableCall::No,
                 );
-                self.emit_return(&result);
+                self.emit_return(Some(result));
             }
         }
 
@@ -311,8 +333,8 @@ impl BytecodeGenerator {
 
         let try_ranges = self.try_ranges.clone();
         for range in try_ranges.iter() {
-            let start = range.start.borrow_mut().bind().target_value();
-            let end = range.end.borrow_mut().bind().target_value();
+            let start = range.start.borrow_mut().bind().target(&*self);
+            let end = range.end.borrow_mut().bind().target(&*self);
 
             // This will happen for empty try blocks and for some cases of finally blocks:
             //
@@ -345,7 +367,7 @@ impl BytecodeGenerator {
             let info = crate::bytecode::handler_info::UnlinkedHandlerInfo::new(
                 start as u32,
                 end as u32,
-                target.borrow_mut().bind().target_value() as u32,
+                target.borrow_mut().bind().target(&*self) as u32,
                 handler_type,
             );
             self.code_block.add_exception_handler(info);
@@ -360,10 +382,10 @@ impl BytecodeGenerator {
         }
 
         assert!(
-            (self.code_block.num_callee_locals() as u32)
+            (crate::bytecompiler::bytecode_generator_base::GeneratorCodeBlock::num_callee_locals(&self.code_block))
                 < crate::bytecode::virtual_register::FIRST_CONSTANT_REGISTER_INDEX as u32
         );
-        size = self.instructions().len() as u32;
+        size = self.instructions().size_in_bytes() as u32;
         let finalized = self.writer.finalize();
         if !self.code_block.finalize(finalized) {
             return (ParserError::with_type(ErrorType::OutOfMemory), size);
@@ -383,26 +405,24 @@ impl BytecodeGenerator {
 
     /// `BytecodeGenerator::BytecodeGenerator(VM&, ProgramNode*, UnlinkedProgramCodeBlock*, ...)`.
     pub fn new_program(
-        vm: &mut crate::runtime::vm::VM,
+        vm: &Rc<crate::runtime::vm::VM>,
         program_node: NodeRef<crate::parser::nodes::ProgramNode>,
-        code_block: &mut crate::bytecode::unlinked_code_block::UnlinkedProgramCodeBlock,
+        code_block: &Rc<std::cell::RefCell<crate::bytecode::unlinked_code_block::UnlinkedProgramCodeBlock>>,
         code_generation_mode: crate::parser::parser_modes::CodeGenerationModeSet,
         parent_scope_tdz_variables: &Option<Rc<TDZEnvironmentLink>>,
         _generator_or_async_wrapper_function_parameter_names: Option<&Vec<Identifier>>,
         _parent_private_name_environment: Option<&PrivateNameEnvironment>,
     ) -> BytecodeGenerator {
+        let base = code_block.borrow().base_ref();
         let mut this = BytecodeGenerator::with_defaults(
             vm,
-            code_block.as_unlinked_code_block_mut(),
+            base,
             code_generation_mode,
-            crate::bytecompiler::bytecode_generator::Scope::Program(program_node.clone()),
+            crate::parser::nodes::ScopeNodeRef::Program(program_node.clone()),
             CodeType::GlobalCode,
         );
         {
             let node = program_node.borrow();
-            this.this_register = std::rc::Rc::new(std::cell::RefCell::new(RegisterID::from_virtual_register(
-                crate::interpreter::call_frame::this_argument_offset(),
-            )));
             this.uses_exceptions = false;
             this.expression_too_deep = false;
             this.is_builtin_function = false;
@@ -421,7 +441,7 @@ impl BytecodeGenerator {
 
         this.allocate_scope();
 
-        let function_stack = program_node.borrow().function_stack().clone();
+        let function_stack = program_node.borrow().base.variable_environment.function_stack.clone();
 
         for function in function_stack.iter() {
             this.functions_to_initialize
@@ -429,12 +449,16 @@ impl BytecodeGenerator {
         }
 
         if crate::runtime::options::Options::validate_bytecode() {
-            for entry in program_node.borrow().var_declarations().iter() {
+            for entry in program_node.borrow().base.var_declarations.iter() {
                 assert!(entry.1.is_var());
             }
         }
-        code_block.set_variable_declarations(program_node.borrow().var_declarations().clone());
-        code_block.set_lexical_declarations(program_node.borrow().lexical_variables().clone());
+        code_block
+            .borrow_mut()
+            .set_variable_declarations(program_node.borrow().base.var_declarations.clone());
+        code_block
+            .borrow_mut()
+            .set_lexical_declarations(program_node.borrow().base.variable_environment.lexical_variables.clone());
         // Even though this program may have lexical variables that go under TDZ, when linking the get_from_scope/put_to_scope
         // operations we emit we will have ResolveTypes that implictly do TDZ checks. Therefore, we don't need
         // additional TDZ checks on top of those. This is why we can omit pushing programNode->lexicalVariables()
@@ -449,29 +473,30 @@ impl BytecodeGenerator {
 
     /// `BytecodeGenerator::BytecodeGenerator(VM&, FunctionNode*, UnlinkedFunctionCodeBlock*, ...)`.
     pub fn new_function(
-        vm: &mut crate::runtime::vm::VM,
+        vm: &Rc<crate::runtime::vm::VM>,
         function_node: NodeRef<crate::parser::nodes::FunctionNode>,
-        code_block: &mut crate::bytecode::unlinked_code_block::UnlinkedFunctionCodeBlock,
+        code_block: &crate::bytecode::unlinked_code_block::UnlinkedFunctionCodeBlock,
         code_generation_mode: crate::parser::parser_modes::CodeGenerationModeSet,
         parent_scope_tdz_variables: &Option<Rc<TDZEnvironmentLink>>,
         generator_or_async_wrapper_function_parameter_names: Option<&Vec<Identifier>>,
         parent_private_name_environment: Option<&PrivateNameEnvironment>,
     ) -> BytecodeGenerator {
-        use crate::parser::parser::SourceParseMode;
+        use crate::parser::parser_modes::SourceParseMode;
         use crate::runtime::constructor_kind::ConstructorKind;
+        let base = code_block.base_ref();
         let mut this = BytecodeGenerator::with_defaults(
             vm,
-            code_block.as_unlinked_code_block_mut(),
+            base.clone(),
             code_generation_mode,
-            crate::bytecompiler::bytecode_generator::Scope::Function(function_node.clone()),
+            crate::parser::nodes::ScopeNodeRef::Function(function_node.clone()),
             CodeType::FunctionCode,
         );
         this.default_allow_call_ignore_result_optimization = !crate::runtime::options::Options::eval_mode();
         // FIXME: This should be a flag
         this.uses_exceptions = false;
         this.expression_too_deep = false;
-        this.is_builtin_function = code_block.is_builtin_function();
-        this.is_builtin_default_class_constructor = code_block.is_builtin_default_class_constructor();
+        this.is_builtin_function = base.borrow().is_builtin_function();
+        this.is_builtin_default_class_constructor = base.borrow().is_builtin_default_class_constructor();
         this.uses_sloppy_eval = function_node.borrow().uses_eval() && !function_node.borrow().is_strict_mode();
         // FIXME: We should be able to have tail call elimination with the profiler
         // enabled. This is currently not possible because the profiler expects
@@ -488,35 +513,31 @@ impl BytecodeGenerator {
         this.needs_to_update_arrow_function_context =
             function_node.borrow().uses_arrow_function() || function_node.borrow().uses_eval();
         this.ecma_mode = ECMAMode::from_bool(function_node.borrow().is_strict_mode());
-        this.derived_context_type = code_block.derived_context_type();
+        this.derived_context_type = base.borrow().derived_context_type();
 
-        // `#if USE(BUN_JSC_ADDITIONS)`
-        {
-            let source = this.scope_node.source();
-            this.is_private_builtin_function = this.is_builtin_function
-                && (source.provider().is_none() || source.provider().unwrap().source_url().is_none());
-        }
+        // `#if USE(BUN_JSC_ADDITIONS)` m_isPrivateBuiltinFunction: fora (BytecodeGenerator.h usa o ramo #else,
+        // `is_private_builtin_function()` devolve `is_builtin_function`).
         let ecma_mode = this.ecma_mode;
         this.push_private_access_names(parent_private_name_environment);
 
-        let function_symbol_table = SymbolTable::create(&mut this.vm);
+        let function_symbol_table = SymbolTable::create(&this.vm);
         function_symbol_table.borrow_mut().set_uses_sloppy_eval(this.uses_sloppy_eval);
         let mut symbol_table_constant_index: i32 = 0;
 
         this.cached_parent_tdz = parent_scope_tdz_variables.clone();
         this.generator_or_async_wrapper_function_parameter_names =
-            generator_or_async_wrapper_function_parameter_names.cloned();
+            generator_or_async_wrapper_function_parameter_names.map(|names| Rc::new(names.clone()));
 
-        let parameters = function_node.borrow().parameters().clone();
+        let parameters = function_node.borrow().parameters.clone().expect("FunctionNode sem FunctionParameters");
         // http://www.ecma-international.org/ecma-262/6.0/index.html#sec-functiondeclarationinstantiation
         // This implements IsSimpleParameterList in the Ecma 2015 spec.
         // If IsSimpleParameterList is false, we will create a strict-mode like arguments object.
         // IsSimpleParameterList is false if the argument list contains any default parameter values,
         // a rest parameter, or any destructuring patterns.
         // If we do have default parameters, destructuring parameters, or a rest parameter, our parameters will be allocated in a different scope.
-        let is_simple_parameter_list = parameters.borrow().is_simple_parameter_list();
+        let is_simple_parameter_list = parameters.borrow().is_simple_parameter_list;
 
-        let parse_mode = code_block.parse_mode();
+        let parse_mode = base.borrow().parse_mode();
 
         let contains_arrow_or_eval_but_not_in_arrow_block = ((function_node.borrow().uses_arrow_function()
             && function_node.borrow().do_any_inner_arrow_functions_use_any_feature())
@@ -529,7 +550,7 @@ impl BytecodeGenerator {
         let mut should_capture_all_of_the_things = this.should_emit_debug_hooks() || this.uses_eval();
         this.needs_arguments = (|| {
             if parse_mode != SourceParseMode::ClassFieldInitializerMode {
-                if !code_block.is_arrow_function() {
+                if !base.borrow().is_arrow_function() {
                     if function_node.borrow().uses_arrow_function() && this.is_arguments_used_in_inner_arrow_function() {
                         return true;
                     }
@@ -575,7 +596,7 @@ impl BytecodeGenerator {
                 if this.needs_arguments {
                     should_capture_some_of_the_things = true;
                 }
-                if parameters.borrow().size() != 0 {
+                if parameters.borrow().patterns.len() != 0 {
                     should_capture_some_of_the_things = true;
                     should_capture_all_of_the_things = true;
                 }
@@ -583,25 +604,25 @@ impl BytecodeGenerator {
         }
 
         if should_capture_all_of_the_things {
-            function_node.borrow_mut().var_declarations_mut().mark_all_variables_as_captured();
+            function_node.borrow_mut().base.var_declarations.mark_all_variables_as_captured();
         }
 
         let needs_arguments = this.needs_arguments;
         let arguments_impl = this.property_names().arguments.impl_();
-        let captures = |uid: &UniquedStringImpl| -> bool {
+        let captures = |uid: &crate::wtf::text::string_impl::UniquedKey| -> bool {
             if !should_capture_some_of_the_things {
                 return false;
             }
-            if needs_arguments && uid == &arguments_impl {
+            if needs_arguments && Some(uid) == arguments_impl.as_ref() {
                 // Actually, we only need to capture the arguments object when we "need full activation"
                 // because of name scopes. But historically we did it this way, so for now we just preserve
                 // the old behavior.
                 // FIXME: https://bugs.webkit.org/show_bug.cgi?id=143072
                 return true;
             }
-            function_node.borrow().captures(uid)
+            function_node.borrow().base.var_declarations.captures(uid)
         };
-        let var_kind = |uid: &UniquedStringImpl| -> VarKind {
+        let var_kind = |uid: &crate::wtf::text::string_impl::UniquedKey| -> VarKind {
             if captures(uid) {
                 VarKind::Scope
             } else {
@@ -609,15 +630,15 @@ impl BytecodeGenerator {
             }
         };
 
-        this.callee_register.borrow_mut().set_index(CallFrameSlot::CALLEE);
+        this.callee_register.set_index(VirtualRegister::new(CallFrameSlot::CALLEE));
 
-        this.initialize_parameters(&parameters);
+        this.initialize_parameters(&parameters.borrow());
         debug_assert!(!(is_simple_parameter_list && this.rest_parameter.is_some()));
 
         this.emit_enter();
 
         if is_generator_or_async_function_body_parse_mode(parse_mode) {
-            this.generator_register = Some(this.parameters[crate::runtime::js_generator::Argument::Generator as usize].clone());
+            this.generator_register = Some(RegisterRef::new(&this.parameters[crate::runtime::js_generator::Argument::Generator as usize]));
         }
 
         this.allocate_scope();
@@ -626,9 +647,9 @@ impl BytecodeGenerator {
             ConstructorKind::None => {}
             ConstructorKind::Naked => {
                 if !this.is_constructor() {
-                    let constructor_name = function_node.borrow().ident().string().string().clone();
+                    let constructor_name = function_node.borrow().ident.string().string().clone();
                     if constructor_name.is_null() || constructor_name.is_empty() {
-                        this.emit_throw_type_error_str("Cannot call a constructor without |new|");
+                        this.emit_throw_type_error("Cannot call a constructor without |new|");
                     } else {
                         let error_message_str = crate::wtf::text::try_make_string_dyn(&[
                             &"Cannot call a constructor ",
@@ -636,10 +657,10 @@ impl BytecodeGenerator {
                             &" without |new|",
                         ]);
                         match error_message_str {
-                            None => this.emit_throw_type_error_str("Cannot call a constructor without |new|"),
+                            None => this.emit_throw_type_error("Cannot call a constructor without |new|"),
                             Some(message) => {
                                 let identifier = Identifier::from_string(&this.vm, &message);
-                                this.emit_throw_type_error(&identifier)
+                                this.emit_throw_type_error_identifier(&identifier)
                             }
                         }
                     }
@@ -648,9 +669,9 @@ impl BytecodeGenerator {
             }
             ConstructorKind::Base | ConstructorKind::Extends => {
                 if !this.is_constructor() {
-                    let constructor_name = function_node.borrow().ident().string().string().clone();
+                    let constructor_name = function_node.borrow().ident.string().string().clone();
                     if constructor_name.is_null() || constructor_name.is_empty() {
-                        this.emit_throw_type_error_str("Cannot call a class constructor without |new|");
+                        this.emit_throw_type_error("Cannot call a class constructor without |new|");
                     } else {
                         let error_message_str = crate::wtf::text::try_make_string_dyn(&[
                             &"Cannot call a class constructor ",
@@ -658,10 +679,10 @@ impl BytecodeGenerator {
                             &" without |new|",
                         ]);
                         match error_message_str {
-                            None => this.emit_throw_type_error_str("Cannot call a class constructor without |new|"),
+                            None => this.emit_throw_type_error("Cannot call a class constructor without |new|"),
                             Some(message) => {
                                 let identifier = Identifier::from_string(&this.vm, &message);
-                                this.emit_throw_type_error(&identifier)
+                                this.emit_throw_type_error_identifier(&identifier)
                             }
                         }
                     }
@@ -670,14 +691,14 @@ impl BytecodeGenerator {
             }
         }
 
-        if function_name_is_in_scope(&function_node.borrow().ident(), function_node.borrow().function_mode()) {
+        if function_name_is_in_scope(&function_node.borrow().ident, function_node.borrow().function_mode) {
             debug_assert!(parse_mode != SourceParseMode::GeneratorBodyMode);
             debug_assert!(!is_async_function_body_parse_mode(parse_mode));
             let is_dynamic_scope = function_name_scope_is_dynamic(this.uses_eval(), ecma_mode.is_strict());
-            let is_function_name_captured = captures(function_node.borrow().ident().impl_());
+            let is_function_name_captured = captures(&function_node.borrow().ident.impl_().unwrap());
             let mark_as_captured = is_dynamic_scope || is_function_name_captured;
-            let callee_register = this.callee_register.clone();
-            this.emit_push_function_name_scope(&function_node.borrow().ident(), &callee_register, mark_as_captured);
+            let callee_register = this.callee_register();
+            this.emit_push_function_name_scope(&function_node.borrow().ident, Some(callee_register), mark_as_captured);
         }
 
         if should_capture_some_of_the_things {
@@ -688,7 +709,13 @@ impl BytecodeGenerator {
             || should_capture_some_of_the_things
             || this.should_emit_type_profiler_hooks()
         {
-            symbol_table_constant_index = this.add_constant_value_symbol_table(&function_symbol_table).index();
+            symbol_table_constant_index = this
+                .add_constant_value(
+                    crate::runtime::js_value::JSValue::from_cell(function_symbol_table.borrow().cell_id()),
+                    crate::runtime::js_cjs_value_types::SourceCodeRepresentation::Other,
+                )
+                .borrow()
+                .index();
         }
 
         // We can allocate the "var" environment if we don't have default parameter expressions. If we have
@@ -704,8 +731,8 @@ impl BytecodeGenerator {
 
         // Need to know what our functions are called. Parameters have some goofy behaviors when it
         // comes to functions of the same name.
-        for function in function_node.borrow().function_stack().iter() {
-            this.functions.insert(function.borrow().ident().impl_().clone());
+        for function in function_node.borrow().base.variable_environment.function_stack.iter() {
+            this.functions.insert(function.ident.borrow().impl_().unwrap());
         }
 
         if this.needs_arguments {
@@ -725,12 +752,12 @@ impl BytecodeGenerator {
             // use DirectArguments. With ScopedArguments, we lift all of our arguments into the
             // activation.
             let mut captures_any_parameter_by_name = false;
-            if function_node.borrow().has_captured_variables() {
-                for i in 0..parameters.borrow().size() {
-                    let pattern = parameters.borrow().at(i).0.clone();
+            if function_node.borrow().base.var_declarations.has_captured_variables() {
+                for i in 0..parameters.borrow().patterns.len() {
+                    let pattern = parameters.borrow().patterns[i].0.clone();
                     debug_assert!(pattern.is_binding_node());
-                    let ident = pattern.as_binding_node().bound_property();
-                    if captures(ident.impl_()) {
+                    let ident = binding_bound_property(&pattern);
+                    if captures(&ident.impl_().unwrap()) {
                         captures_any_parameter_by_name = true;
                         break;
                     }
@@ -741,7 +768,7 @@ impl BytecodeGenerator {
                 debug_assert!(this.lexical_environment_register.is_some());
                 let success = function_symbol_table
                     .borrow_mut()
-                    .try_set_arguments_length(&mut this.vm, parameters.borrow().size());
+                    .try_set_arguments_length(&this.vm, parameters.borrow().patterns.len() as u32);
                 if !success {
                     this.out_of_memory_during_construction = true;
                     return this;
@@ -751,11 +778,11 @@ impl BytecodeGenerator {
                 // Either it's a binding node with no function overlap, in which case it gets a name
                 // in the symbol table - or it just gets space reserved in the symbol table. Either
                 // way we lift the value into the scope.
-                for i in 0..parameters.borrow().size() as u32 {
+                for i in 0..parameters.borrow().patterns.len() as u32 {
                     let offset = function_symbol_table.borrow_mut().take_next_scope_offset();
                     let success = function_symbol_table
                         .borrow_mut()
-                        .try_set_argument_offset(&mut this.vm, i, offset);
+                        .try_set_argument_offset(&this.vm, i, offset);
                     if !success {
                         this.out_of_memory_during_construction = true;
                         return this;
@@ -763,13 +790,13 @@ impl BytecodeGenerator {
 
                     let mut var_or_anonymous: u32 = u32::MAX;
 
-                    let pattern = parameters.borrow().at(i as usize).0.clone();
-                    if let Some(name) = visible_name_for_parameter(&pattern) {
+                    let pattern = parameters.borrow().patterns[i as usize].0.clone();
+                    if let Some(name) = this.visible_name_for_parameter(&pattern) {
                         let var_offset = VarOffset::from_scope_offset(offset);
-                        let entry = SymbolTableEntry::new(var_offset);
+                        let entry = SymbolTableEntry::from_var_offset(var_offset);
                         function_symbol_table.borrow_mut().set(name, entry);
 
-                        let ident = pattern.as_binding_node().bound_property();
+                        let ident = binding_bound_property(&pattern);
 
                         var_or_anonymous = this.add_constant(&ident);
                     }
@@ -779,7 +806,7 @@ impl BytecodeGenerator {
                         &mut this,
                         lexical_environment_register.as_ref().unwrap(),
                         var_or_anonymous,
-                        virtual_register_for_argument_including_this(1 + i as i32),
+                        virtual_register_for_argument_including_this(1 + i as i32, 0),
                         GetPutInfo::new(
                             ResolveMode::ThrowIfNotFound,
                             ResolveType::ResolvedClosureVar,
@@ -803,12 +830,14 @@ impl BytecodeGenerator {
             } else {
                 // We're going to put all parameters into the DirectArguments object. First ensure
                 // that the symbol table knows that this is happening.
-                for i in 0..parameters.borrow().size() {
-                    let pattern = parameters.borrow().at(i).0.clone();
-                    if let Some(name) = visible_name_for_parameter(&pattern) {
+                for i in 0..parameters.borrow().patterns.len() {
+                    let pattern = parameters.borrow().patterns[i].0.clone();
+                    if let Some(name) = this.visible_name_for_parameter(&pattern) {
                         function_symbol_table.borrow_mut().set(
                             name,
-                            SymbolTableEntry::new(VarOffset::from_direct_arguments_offset(DirectArgumentsOffset::new(i as u32))),
+                            SymbolTableEntry::from_var_offset(VarOffset::from_direct_arguments_offset(DirectArgumentsOffset::new(
+                                i as u32,
+                            ))),
                         );
                     }
                 }
@@ -821,9 +850,9 @@ impl BytecodeGenerator {
             // captured, lift them into the scope. We cannot do this if we have default parameter expressions
             // because when default parameter expressions exist, they belong in their own lexical environment
             // separate from the "var" lexical environment.
-            for i in 0..parameters.borrow().size() {
-                let pattern = parameters.borrow().at(i).0.clone();
-                let name = visible_name_for_parameter(&pattern);
+            for i in 0..parameters.borrow().patterns.len() {
+                let pattern = parameters.borrow().patterns[i].0.clone();
+                let name = this.visible_name_for_parameter(&pattern);
                 let name = match name {
                     Some(name) => name,
                     None => continue,
@@ -834,7 +863,9 @@ impl BytecodeGenerator {
                     // be accessed directly.
                     function_symbol_table.borrow_mut().set(
                         name,
-                        SymbolTableEntry::new(VarOffset::from_virtual_register(virtual_register_for_argument_including_this(1 + i as i32))),
+                        SymbolTableEntry::from_var_offset(VarOffset::from_virtual_register(
+                            virtual_register_for_argument_including_this(1 + i as i32, 0),
+                        )),
                     );
                     continue;
                 }
@@ -842,8 +873,8 @@ impl BytecodeGenerator {
                 let offset = function_symbol_table.borrow_mut().take_next_scope_offset();
                 function_symbol_table
                     .borrow_mut()
-                    .set(name, SymbolTableEntry::new(VarOffset::from_scope_offset(offset)));
-                let ident = pattern.as_binding_node().bound_property();
+                    .set(name, SymbolTableEntry::from_var_offset(VarOffset::from_scope_offset(offset)));
+                let ident = binding_bound_property(&pattern);
 
                 let lexical_environment_register = this.lexical_environment_register.clone();
                 let constant = this.add_constant(&ident);
@@ -851,7 +882,7 @@ impl BytecodeGenerator {
                     &mut this,
                     lexical_environment_register.as_ref().unwrap(),
                     constant,
-                    virtual_register_for_argument_including_this(1 + i as i32),
+                    virtual_register_for_argument_including_this(1 + i as i32, 0),
                     GetPutInfo::new(
                         ResolveMode::ThrowIfNotFound,
                         ResolveType::ResolvedClosureVar,
@@ -902,10 +933,10 @@ impl BytecodeGenerator {
             // argument value had already been properly initialized.
 
             let mut have_parameter_named_arguments = false;
-            for i in 0..parameters.borrow().size() {
-                let pattern = parameters.borrow().at(i).0.clone();
-                let name = visible_name_for_parameter(&pattern);
-                if name.as_ref() == Some(&arguments_impl) {
+            for i in 0..parameters.borrow().patterns.len() {
+                let pattern = parameters.borrow().patterns[i].0.clone();
+                let name = this.visible_name_for_parameter(&pattern);
+                if name == arguments_impl {
                     have_parameter_named_arguments = true;
                     break;
                 }
@@ -925,7 +956,7 @@ impl BytecodeGenerator {
                 let arguments_identifier = this.property_names().arguments.clone();
                 this.create_variable(
                     &arguments_identifier,
-                    var_kind(arguments_identifier.impl_()),
+                    var_kind(&arguments_identifier.impl_().unwrap()),
                     &function_symbol_table,
                     ExistingVariableMode::VerifyExisting,
                 );
@@ -934,33 +965,33 @@ impl BytecodeGenerator {
             }
         }
 
-        for function in function_node.borrow().function_stack().iter() {
-            let ident = function.borrow().ident();
+        for function in function_node.borrow().base.variable_environment.function_stack.iter() {
+            let ident = function.ident.borrow().clone();
             this.create_variable(
                 &ident,
-                var_kind(ident.impl_()),
+                var_kind(&ident.impl_().unwrap()),
                 &function_symbol_table,
                 ExistingVariableMode::VerifyExisting,
             );
             this.functions_to_initialize
                 .push((function.clone(), FunctionVariableType::NormalFunctionVariable));
         }
-        for entry in function_node.borrow().var_declarations().iter() {
+        for entry in function_node.borrow().base.var_declarations.iter() {
             debug_assert!(!entry.1.is_let() && !entry.1.is_const());
             if !entry.1.is_var() {
                 // This is either a parameter or callee.
                 continue;
             }
-            if should_create_arguments_variable_in_parameter_scope && entry.0 == arguments_impl {
+            if should_create_arguments_variable_in_parameter_scope && Some(&entry.0) == arguments_impl.as_ref() {
                 continue;
             }
             if let Some(names) = generator_or_async_wrapper_function_parameter_names {
-                if names.iter().any(|name| name.impl_() == &entry.0) {
+                if names.iter().any(|name| name.impl_().as_ref() == Some(&entry.0)) {
                     continue;
                 }
             }
             this.create_variable(
-                &Identifier::from_uid(&this.vm, &entry.0),
+                &Identifier::from_uid(&this.vm, Some(&entry.0)),
                 var_kind(&entry.0),
                 &function_symbol_table,
                 ExistingVariableMode::IgnoreExisting,
@@ -977,13 +1008,13 @@ impl BytecodeGenerator {
         let should_emit_to_this = |this: &BytecodeGenerator| -> bool {
             if function_node.borrow().uses_this()
                 || this.uses_eval()
-                || this.scope_node.do_any_inner_arrow_functions_use_this()
-                || this.scope_node.do_any_inner_arrow_functions_use_eval()
+                || this.scope_node.borrow().do_any_inner_arrow_functions_use_this()
+                || this.scope_node.borrow().do_any_inner_arrow_functions_use_eval()
             {
                 return true;
             }
             if (function_node.borrow().uses_super_property()
-                || this.scope_node.do_any_inner_arrow_functions_use_super_property())
+                || this.scope_node.borrow().do_any_inner_arrow_functions_use_super_property())
                 && !ecma_mode.is_strict()
             {
                 // We must emit to_this when we're not in strict mode because we
@@ -1011,7 +1042,7 @@ impl BytecodeGenerator {
 
                 // FIXME: Emit to_this only when Generator uses it.
                 // https://bugs.webkit.org/show_bug.cgi?id=151586
-                this.emit_to_this();
+                this.emit_to_this_this_register();
             }
 
             SourceParseMode::AsyncArrowFunctionMode
@@ -1020,7 +1051,7 @@ impl BytecodeGenerator {
                 debug_assert!(!this.is_constructor());
                 debug_assert!(this.constructor_kind() == ConstructorKind::None);
 
-                let is_async_function_without_await = this.scope_node.is_async_function_without_await();
+                let is_async_function_without_await = this.scope_node.borrow().is_async_function_without_await();
                 // Check if this async function body doesn't use await.
                 // If so, we can skip generator creation entirely.
                 if !is_async_function_without_await {
@@ -1039,7 +1070,7 @@ impl BytecodeGenerator {
                     }
                 }
                 if will_emit_to_this {
-                    this.emit_to_this();
+                    this.emit_to_this_this_register();
                 }
 
                 if !is_async_function_without_await {
@@ -1050,9 +1081,9 @@ impl BytecodeGenerator {
                     let generator_register = this.generator_register();
                     let promise_register = this.promise_register();
                     this.emit_put_internal_field(
-                        generator_register.as_ref().unwrap(),
+                        generator_register,
                         crate::runtime::js_async_function_generator::Field::Context as u32,
-                        promise_register.as_ref().unwrap(),
+                        promise_register,
                     );
                 }
             }
@@ -1071,7 +1102,7 @@ impl BytecodeGenerator {
 
             _ => {
                 if this.is_constructor() {
-                    let this_register = this.this_register.clone();
+                    let this_register = this.this_register();
                     if let Some(new_target_register) = this.new_target_register.clone() {
                         this.move_register(Some(&new_target_register), &this_register);
                     }
@@ -1082,14 +1113,14 @@ impl BytecodeGenerator {
                         ConstructorKind::None | ConstructorKind::Base => {
                             this.emit_create_this(Some(this_register.clone()));
                             if this.private_brand_requirement() == PrivateBrandRequirement::Needed {
-                                this.emit_install_private_brand(&this_register);
+                                this.emit_install_private_brand(Some(this_register.clone()));
                             }
 
-                            let callee_register = this.callee_register.clone();
-                            let position = this.scope_node.position();
+                            let callee_register = this.callee_register();
+                            let position = *this.scope_node.borrow().position();
                             this.emit_instance_field_initialization_if_needed(
                                 Some(this_register.clone()),
-                                &callee_register,
+                                Some(callee_register),
                                 &position,
                                 &position,
                                 &position,
@@ -1103,7 +1134,7 @@ impl BytecodeGenerator {
                     match this.constructor_kind() {
                         ConstructorKind::None => {
                             if should_emit_to_this(&this) {
-                                this.emit_to_this();
+                                this.emit_to_this_this_register();
                             }
                         }
                         ConstructorKind::Naked | ConstructorKind::Base | ConstructorKind::Extends => {
@@ -1125,12 +1156,12 @@ impl BytecodeGenerator {
                 this.emit_load_this_from_arrow_function_lexical_environment();
             }
 
-            if this.scope_node.needs_new_target_register_for_this_scope() {
+            if this.scope_node.borrow().needs_new_target_register_for_this_scope() {
                 this.emit_load_new_target_from_arrow_function_lexical_environment();
             }
         }
 
-        if this.needs_to_update_arrow_function_context() && !code_block.is_arrow_function() {
+        if this.needs_to_update_arrow_function_context() && !base.borrow().is_arrow_function() {
             let can_reuse_lexical_environment = is_simple_parameter_list;
             this.initialize_arrow_function_context_scope_if_needed(
                 Some(&function_symbol_table),
@@ -1154,7 +1185,7 @@ impl BytecodeGenerator {
             // All "addVar()"s needs to happen before "initializeDefaultParameterValuesAndSetupFunctionScopeStack()" is called
             // because a function's default parameter ExpressionNodes will use temporary registers.
             generator.initialize_default_parameter_values_and_setup_function_scope_stack(
-                &parameters,
+                &parameters.borrow(),
                 is_simple_parameter_list,
                 &function_node,
                 &function_symbol_table,
@@ -1175,18 +1206,18 @@ impl BytecodeGenerator {
                 this.emit_load_this_from_arrow_function_lexical_environment();
             }
 
-            if this.scope_node.needs_new_target_register_for_this_scope() {
+            if this.scope_node.borrow().needs_new_target_register_for_this_scope() {
                 this.emit_load_new_target_from_arrow_function_lexical_environment();
             }
         }
 
         if is_generator_wrapper_parse_mode(parse_mode) {
             let generator_register = this.generator_register.clone();
-            let callee_register = this.callee_register.clone();
+            let callee_register = this.callee_register();
             this.emit_create_generator(generator_register, Some(callee_register));
         } else if is_async_generator_wrapper_parse_mode(parse_mode) {
             let generator_register = this.generator_register.clone();
-            let callee_register = this.callee_register.clone();
+            let callee_register = this.callee_register();
             this.emit_create_async_generator(generator_register, Some(callee_register));
         }
 
@@ -1205,7 +1236,10 @@ impl BytecodeGenerator {
                 // Generatorification inserts lexical environment creation if necessary. Otherwise, we convert it to op_mov frame, `undefined`.
                 let generator_frame_register = this.generator_frame_register();
                 let scope_register = this.scope_register();
-                let undefined_constant = this.add_constant_value_js(crate::runtime::js_value::JSValue::Undefined);
+                let undefined_constant = this.add_constant_value(
+                    crate::runtime::js_value::JSValue::Undefined,
+                    crate::runtime::js_cjs_value_types::SourceCodeRepresentation::Other,
+                );
                 OpCreateGeneratorFrameEnvironment::emit(
                     &mut this,
                     &generator_frame_register,
@@ -1221,16 +1255,16 @@ impl BytecodeGenerator {
             let generator_register = this.generator_register();
             let generator_frame_register = this.generator_frame_register();
             this.emit_put_internal_field(
-                generator_register.as_ref().unwrap(),
+                generator_register,
                 crate::runtime::js_generator::Field::Frame as u32,
-                &generator_frame_register,
+                Some(generator_frame_register),
             );
         }
 
         let should_initialize_block_scoped_functions = false; // We generate top-level function declarations in ::generate().
         let scope_node = this.scope_node.clone();
         this.push_lexical_scope(
-            &scope_node,
+            &scope_node.borrow().variable_environment,
             ScopeType::LetConstScope,
             TDZCheckOptimization::Optimize,
             NestedScopeType::IsNotNested,

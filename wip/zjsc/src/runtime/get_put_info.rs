@@ -9,8 +9,7 @@
 //!   (o tipo não existe lá), e `bytecode_generator_cpp1`/`cpp1c` usam `ECMAMode` sem caminho confirmado.
 //! - Nenhum `use` cita `code_type` nem `resolve_type` como módulo: `ResolveType` mora aqui.
 //!
-//! Fora deste módulo (dependem de tipos ainda não portados): `struct ResolveOp` (guarda `Structure*`,
-//! `JSLexicalEnvironment*`, `InlineWatchpointSet*`) e `friend class LLIntOffsetsExtractor`.
+//! Fora deste módulo: `friend class LLIntOffsetsExtractor`.
 
 use std::fmt;
 
@@ -274,6 +273,60 @@ impl GetPutInfo {
 pub enum GetOrPut {
     Get,
     Put,
+}
+
+/// O `InlineWatchpointSet*` de `ResolveOp`: o conjunto de watchpoints da `SymbolTableEntry`. A entrada do
+/// porte nunca o tem (`watchpointSet()` é sempre nulo), então hoje o campo é sempre `None`.
+#[derive(Clone, Debug)]
+pub struct ResolveWatchpointSet(pub crate::bytecode::watchpoint::WatchpointSetRef);
+
+impl ResolveWatchpointSet {
+    /// O "endereço" do conjunto, o que o metadata guarda.
+    pub fn identity(&self) -> usize {
+        std::rc::Rc::as_ptr(&self.0) as *const () as usize
+    }
+
+    /// `watchpointSet->invalidate(vm, PutToScopeFireDetail(codeBlock, ident))`.
+    pub fn invalidate_for_put_to_scope(
+        &self,
+        vm: &crate::runtime::vm::VM,
+        _code_block: &crate::bytecode::code_block::CodeBlockRef,
+        _ident: &crate::runtime::identifier::Identifier,
+    ) {
+        self.0.borrow_mut().invalidate_with_reason(vm, "Executed op_put_to_scope");
+    }
+}
+
+/// `struct ResolveOp`.
+#[derive(Clone)]
+pub struct ResolveOp {
+    pub type_: ResolveType,
+    pub depth: u32,
+    pub structure: Option<crate::runtime::structure::StructureRef>,
+    /// `JSLexicalEnvironment*`: o escopo léxico ou de módulo (`JSScopeRef::LexicalEnvironment` ou `ModuleEnvironment`).
+    pub lexical_environment: Option<crate::runtime::js_scope::JSScopeRef>,
+    pub watchpoint_set: Option<ResolveWatchpointSet>,
+    pub operand: usize,
+    pub imported_name: Option<crate::wtf::text::string_impl::UniquedKey>,
+}
+
+impl ResolveOp {
+    /// `ResolveOp(type, depth, structure, lexicalEnvironment, watchpointSet, operand, importedName)`.
+    pub fn new(
+        type_: ResolveType,
+        depth: u32,
+        structure: Option<crate::runtime::structure::StructureRef>,
+        lexical_environment: Option<crate::runtime::js_scope::JSScopeRef>,
+        watchpoint_set: Option<ResolveWatchpointSet>,
+        operand: usize,
+    ) -> ResolveOp {
+        ResolveOp { type_, depth, structure, lexical_environment, watchpoint_set, operand, imported_name: None }
+    }
+
+    /// `ResolveOp(Dynamic, 0, nullptr, nullptr, nullptr, 0)`.
+    pub fn dynamic() -> ResolveOp {
+        ResolveOp::new(ResolveType::Dynamic, 0, None, None, None, 0)
+    }
 }
 
 /// `WTF::printInternal(PrintStream&, JSC::ResolveMode)`.

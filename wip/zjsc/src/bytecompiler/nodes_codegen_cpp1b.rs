@@ -7,25 +7,8 @@
 // `GetterSetterMap` do C++ (hash por `UniquedStringImpl*`) vira `Vec` com busca linear por `Identifier`:
 // a ordem de iteração do `privateAccessorMap` só decide a ordem dos registradores temporários.
 
+// `ArrayNode::isSimpleArray` já vive em parser/nodes.rs (só lê a árvore).
 impl crate::parser::nodes::ArrayNode {
-    /// `ArrayNode::isSimpleArray`.
-    pub fn is_simple_array(&self) -> bool {
-        if self.elision != 0 {
-            return false;
-        }
-        let mut ptr = self.element.clone();
-        while let Some(current) = ptr {
-            if current.borrow().elision != 0 {
-                return false;
-            }
-            if current.borrow().node.is_spread_expression() {
-                return false;
-            }
-            ptr = current.borrow().next.clone();
-        }
-        true
-    }
-
     /// `ArrayNode::toArgumentList`: o `ParserArena` do C++ some, a posse é compartilhada.
     pub fn to_argument_list(
         &self,
@@ -60,7 +43,7 @@ impl crate::parser::nodes::ObjectLiteralNode {
     ) -> Option<crate::bytecompiler::bytecode_generator::RegisterRef> {
         let list = match &self.list {
             None => {
-                if nodes_codegen_is_ignored_result(generator, &dst) {
+                if generator.is_ignored_dst(dst.as_ref()) {
                     return None;
                 }
                 let final_dst = generator.final_destination(dst.as_ref(), None);
@@ -86,7 +69,7 @@ impl crate::parser::nodes::ObjectLiteralNode {
                 let final_dst = generator.final_destination(dst.as_ref(), Some(&function));
                 return generator.emit_call(
                     Some(final_dst),
-                    &function,
+                    Some(function.clone()),
                     crate::bytecompiler::bytecode_generator::ExpectedFunction::NoExpectedFunction,
                     &mut args,
                     &position,
@@ -124,7 +107,7 @@ impl crate::parser::nodes::ObjectLiteralNode {
                 let temp_dst = generator.temp_destination(dst.as_ref());
                 new_object = generator.emit_call(
                     Some(temp_dst),
-                    &function,
+                    Some(function.clone()),
                     crate::bytecompiler::bytecode_generator::ExpectedFunction::NoExpectedFunction,
                     &mut args,
                     &position,
@@ -176,13 +159,13 @@ fn emit_put_home_object(
 fn nodes_codegen_needs_home_object(node: &crate::parser::nodes::Expression) -> bool {
     match node {
         crate::parser::nodes::Expression::FuncExpr(n) => {
-            n.borrow().base.metadata.super_binding == crate::parser::nodes::SuperBinding::Needed
+            n.borrow().metadata.super_binding == crate::parser::parser_modes::SuperBinding::Needed
         }
         crate::parser::nodes::Expression::ArrowFuncExpr(n) => {
-            n.borrow().base.metadata.super_binding == crate::parser::nodes::SuperBinding::Needed
+            n.borrow().metadata.super_binding == crate::parser::parser_modes::SuperBinding::Needed
         }
         crate::parser::nodes::Expression::MethodDefinition(n) => {
-            n.borrow().base.metadata.super_binding == crate::parser::nodes::SuperBinding::Needed
+            n.borrow().metadata.super_binding == crate::parser::parser_modes::SuperBinding::Needed
         }
         _ => false,
     }
@@ -195,7 +178,7 @@ fn nodes_codegen_make_class_element_definition(
     use crate::bytecode::unlinked_function_executable::ClassElementDefinitionKind as Kind;
 
     let node = list.node.borrow();
-    let initializer_position = node.assign.as_ref().map(|initializer| *initializer.position());
+    let initializer_position = node.assign.as_ref().map(|initializer| *initializer.base().position());
 
     let mut kind = Kind::FieldWithLiteralPropertyKey;
     if node.is_static_class_block() {
@@ -207,7 +190,7 @@ fn nodes_codegen_make_class_element_definition(
     }
 
     crate::bytecode::unlinked_function_executable::ClassElementDefinition {
-        name: node.name.clone().expect("elemento de classe tem nome"),
+        ident: node.name.clone().expect("elemento de classe tem nome"),
         position: *list.position(),
         initializer_position,
         kind,
@@ -248,7 +231,8 @@ impl crate::parser::nodes::PropertyListNode {
         let mut list = Some(this.clone());
         while let Some(p) = list {
             let property = p.borrow().node.clone();
-            let position = *p.borrow().position();
+            // O C++ usa `position()` do próprio `this` (a cabeça da lista), não o do elemento corrente.
+            let position = *this.borrow().position();
             if property.borrow().type_ & crate::parser::nodes::PropertyNode::PRIVATE_FIELD != 0 {
                 if create_private_symbol.is_none() {
                     create_private_symbol = generator.move_link_time_constant(
@@ -263,16 +247,20 @@ impl crate::parser::nodes::PropertyListNode {
                 generator.emit_load_js_value(arguments.this_register(), crate::runtime::js_value::js_undefined());
                 generator.emit_load_identifier(arguments.argument_register(0), &name);
                 let final_dst = generator.final_destination(None, Some(&create_private_symbol));
-                let symbol = generator.emit_call(
-                    Some(final_dst),
-                    &create_private_symbol,
-                    crate::bytecompiler::bytecode_generator::ExpectedFunction::NoExpectedFunction,
-                    &mut arguments,
-                    &position,
-                    &position,
-                    &position,
-                    crate::bytecompiler::bytecode_generator::DebuggableCall::No,
-                );
+                // O destino é o `RegisterID*` cru do C++ (contagem 0): o call frame reaproveita o slot.
+                let raw_dst = final_dst.get().clone();
+                let symbol = generator.with_raw_register(Some(&raw_dst), |generator| {
+                    generator.emit_call(
+                        Some(final_dst),
+                        Some(create_private_symbol.clone()),
+                        crate::bytecompiler::bytecode_generator::ExpectedFunction::NoExpectedFunction,
+                        &mut arguments,
+                        &position,
+                        &position,
+                        &position,
+                        crate::bytecompiler::bytecode_generator::DebuggableCall::No,
+                    )
+                });
 
                 let var = generator.variable(&name, crate::bytecompiler::bytecode_generator::ThisResolutionType::Local);
                 generator.emit_put_to_scope(
@@ -346,7 +334,7 @@ impl crate::parser::nodes::PropertyListNode {
                         if property_node.borrow().type_ & PropertyNode::PRIVATE_GETTER != 0 {
                             generator.property_names().builtin_names().get_private_name().clone()
                         } else {
-                            generator.property_names().builtin_names().set_private_name().clone()
+                            generator.property_names().builtin_names().set_dup_private_name().clone()
                         };
                     generator.emit_direct_put_by_id(Some(getter_setter_obj.clone()), &setter_or_getter_ident, Some(value));
                 };
@@ -530,7 +518,7 @@ impl crate::parser::nodes::PropertyListNode {
                         if generator.should_set_function_name(&assign) {
                             let temporary = generator.new_temporary();
                             property_name = generator.emit_to_property_key(Some(temporary), property_name);
-                            generator.emit_set_function_name(&value, property_name.as_ref().expect("chave"));
+                            generator.emit_set_function_name(Some(value.clone()), property_name.clone());
                         }
                         if type_ & PropertyNode::GETTER != 0 {
                             generator.emit_put_getter_by_val(dst.clone(), property_name, attributes, Some(value));
@@ -680,7 +668,7 @@ impl crate::parser::nodes::PropertyListNode {
             }
 
             if should_set_function_name {
-                generator.emit_set_function_name(&value, property_name.as_ref().expect("chave"));
+                generator.emit_set_function_name(Some(value.clone()), property_name.clone());
             }
             generator.emit_call_define_property(
                 new_obj,
@@ -698,7 +686,7 @@ impl crate::parser::nodes::PropertyListNode {
         let identifier = node.borrow().name.clone();
         if let Some(identifier) = identifier {
             debug_assert!(property_name.is_none());
-            let optional_index = crate::runtime::identifier::parse_index_impl(identifier.impl_());
+            let optional_index = crate::runtime::identifier::parse_index_identifier(&identifier);
             match optional_index {
                 None => {
                     generator.emit_direct_put_by_id(new_obj, &identifier, Some(value));
@@ -713,7 +701,7 @@ impl crate::parser::nodes::PropertyListNode {
         }
 
         if should_set_function_name {
-            generator.emit_set_function_name(&value, property_name.as_ref().expect("chave"));
+            generator.emit_set_function_name(Some(value.clone()), property_name.clone());
         }
         generator.emit_direct_put_by_val(new_obj, property_name, Some(value));
     }
@@ -751,7 +739,7 @@ impl crate::parser::nodes::PropertyListNode {
                     crate::parser::result_type::ResultType::string_type(),
                 ),
             );
-            generator.emit_jump_if_false(&comparison.expect("emitBinaryOp devolve registro"), &valid_property_name_label);
+            generator.emit_jump_if_false_raw(&comparison.expect("emitBinaryOp devolve registro"), &valid_property_name_label);
             generator.emit_throw_type_error("Cannot declare a static field named 'prototype'");
             generator.emit_label(&valid_property_name_label);
         }
@@ -773,7 +761,7 @@ impl crate::parser::nodes::PropertyListNode {
 fn nodes_codegen_is_non_index_string_element(element: &crate::parser::nodes::Expression) -> bool {
     match element {
         crate::parser::nodes::Expression::String(node) => {
-            crate::runtime::identifier::parse_index_impl(node.borrow().value.impl_()).is_none()
+            crate::runtime::identifier::parse_index_identifier(&node.borrow().value).is_none()
         }
         _ => false,
     }
@@ -828,7 +816,7 @@ impl crate::parser::nodes::BracketAccessorNode {
             generator.emit_node_for_left_hand_side(&self.base_expr, self.subscript_has_assignments, subscript_is_pure)
         };
 
-        if self.base_expr.is_optional_chain_base() {
+        if self.base_expr.base().is_optional_chain_base {
             generator.emit_optional_check(base.as_ref().expect("base avaliada"));
         }
 
@@ -870,7 +858,7 @@ impl crate::parser::nodes::DotAccessorNode {
             base = emit_super_base_for_callee(generator);
         } else {
             base = generator.emit_node_expression_no_dst(&self.base.base_expr);
-            if self.base.base_expr.is_optional_chain_base() {
+            if self.base.base_expr.base().is_optional_chain_base {
                 generator.emit_optional_check(base.as_ref().expect("base avaliada"));
             }
         }
@@ -939,7 +927,7 @@ impl crate::parser::nodes::BaseDotNode {
                 generator.move_register(args.this_register().as_ref(), &base.expect("base avaliada"));
                 return generator.emit_call(
                     dst,
-                    &getter_function,
+                    Some(getter_function.clone()),
                     crate::bytecompiler::bytecode_generator::ExpectedFunction::NoExpectedFunction,
                     &mut args,
                     &position,

@@ -4,26 +4,24 @@
 impl BytecodeGenerator {
     /// `BytecodeGenerator::BytecodeGenerator(VM&, EvalNode*, UnlinkedEvalCodeBlock*, ...)`.
     pub fn new_eval(
-        vm: &mut crate::runtime::vm::VM,
+        vm: &std::rc::Rc<crate::runtime::vm::VM>,
         eval_node: crate::parser::nodes::NodeRef<crate::parser::nodes::EvalNode>,
-        code_block: &mut crate::bytecode::unlinked_code_block::UnlinkedEvalCodeBlock,
+        code_block: &std::rc::Rc<std::cell::RefCell<crate::bytecode::unlinked_code_block::UnlinkedEvalCodeBlock>>,
         code_generation_mode: crate::parser::parser_modes::CodeGenerationModeSet,
         parent_scope_tdz_variables: &Option<std::rc::Rc<crate::bytecode::tdz_environment::TDZEnvironmentLink>>,
         _generator_or_async_wrapper_function_parameter_names: Option<&Vec<crate::runtime::identifier::Identifier>>,
         parent_private_name_environment: Option<&crate::parser::variable_environment::PrivateNameEnvironment>,
     ) -> BytecodeGenerator {
+        let base = code_block.borrow().base_ref();
         let mut this = BytecodeGenerator::with_defaults(
             vm,
-            code_block.as_unlinked_code_block_mut(),
+            base.clone(),
             code_generation_mode,
-            crate::bytecompiler::bytecode_generator::Scope::Eval(eval_node.clone()),
+            crate::parser::nodes::ScopeNodeRef::Eval(eval_node.clone()),
             crate::bytecode::code_type::CodeType::EvalCode,
         );
         {
             let node = eval_node.borrow();
-            this.this_register = std::rc::Rc::new(std::cell::RefCell::new(RegisterID::from_virtual_register(
-                crate::interpreter::call_frame::this_argument_offset(),
-            )));
             this.uses_exceptions = false;
             this.expression_too_deep = false;
             this.is_builtin_function = false;
@@ -33,7 +31,7 @@ impl BytecodeGenerator {
             this.needs_to_update_arrow_function_context = node.uses_arrow_function() || node.uses_eval();
             this.ecma_mode = ECMAMode::from_bool(node.is_strict_mode());
         }
-        this.derived_context_type = code_block.derived_context_type();
+        this.derived_context_type = base.borrow().derived_context_type();
 
         this.code_block.set_num_parameters(1);
 
@@ -49,9 +47,9 @@ impl BytecodeGenerator {
         let scope_register = this.scope_register();
         this.move_register(top_level_scope_register.as_ref(), scope_register.as_ref().unwrap());
 
-        let function_stack = eval_node.borrow().function_stack().clone();
+        let function_stack = eval_node.borrow().base.variable_environment.function_stack.clone();
         for function in function_stack.iter() {
-            let made = this.make_function(&function.borrow());
+            let made = this.make_function(function);
             this.code_block.add_function_decl(made);
             this.functions_to_initialize
                 .push((function.clone(), FunctionVariableType::TopLevelFunctionVariable));
@@ -59,23 +57,23 @@ impl BytecodeGenerator {
 
         let mut variables: Vec<crate::runtime::identifier::Identifier> = Vec::new();
         let mut hoisted_functions: Vec<crate::runtime::identifier::Identifier> = Vec::new();
-        for entry in eval_node.borrow().var_declarations().iter() {
+        for entry in eval_node.borrow().base.var_declarations.iter() {
             debug_assert!(entry.1.is_var());
-            debug_assert!(entry.0.is_atom() || entry.0.is_symbol());
+            debug_assert!(entry.0 .0.is_atom() || entry.0 .0.is_symbol());
             if entry.1.is_sloppy_mode_hoisted_function() {
-                hoisted_functions.push(crate::runtime::identifier::Identifier::from_uid(&this.vm, &entry.0));
+                hoisted_functions.push(crate::runtime::identifier::Identifier::from_uid(&this.vm, Some(&entry.0)));
             } else if !entry.1.is_function() {
-                variables.push(crate::runtime::identifier::Identifier::from_uid(&this.vm, &entry.0));
+                variables.push(crate::runtime::identifier::Identifier::from_uid(&this.vm, Some(&entry.0)));
             }
         }
-        code_block.adopt_variables(variables);
-        code_block.adopt_function_hoisting_candidates(hoisted_functions);
+        code_block.borrow_mut().adopt_variables(variables);
+        code_block.borrow_mut().adopt_function_hoisting_candidates(hoisted_functions);
 
         if eval_node.borrow().needs_new_target_register_for_this_scope() {
             this.new_target_register = Some(this.add_var());
         }
 
-        if code_block.is_arrow_function_context()
+        if base.borrow().is_arrow_function_context()
             && (eval_node.borrow().uses_this() || eval_node.borrow().uses_super_property())
         {
             this.emit_load_this_from_arrow_function_lexical_environment();
@@ -86,7 +84,7 @@ impl BytecodeGenerator {
         }
 
         if this.needs_to_update_arrow_function_context()
-            && !code_block.is_arrow_function_context()
+            && !base.borrow().is_arrow_function_context()
             && !this.is_derived_constructor_context()
         {
             this.initialize_arrow_function_context_scope_if_needed(None, false);
@@ -96,7 +94,7 @@ impl BytecodeGenerator {
         let should_initialize_block_scoped_functions = false; // We generate top-level function declarations in ::generate().
         let scope_node = this.scope_node.clone();
         this.push_lexical_scope(
-            &scope_node,
+            &scope_node.borrow().variable_environment,
             ScopeType::LetConstScope,
             TDZCheckOptimization::Optimize,
             NestedScopeType::IsNotNested,

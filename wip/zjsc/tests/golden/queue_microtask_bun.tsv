@@ -1,0 +1,32 @@
+"L(typeof globalThis.queueMicrotask);"	"function;"	0
+"L(JSON.stringify(Object.getOwnPropertyDescriptor(globalThis, 'queueMicrotask'), (k, v) => typeof v === 'function' ? 'fn' : v));"	"{\"value\":\"fn\",\"writable\":true,\"enumerable\":true,\"configurable\":true};"	0
+"L(queueMicrotask.name); L(queueMicrotask.length); L(Function.prototype.toString.call(queueMicrotask));"	"queueMicrotask;1;function queueMicrotask() { [native code] };"	0
+"L(queueMicrotask.hasOwnProperty('prototype')); L(Object.getPrototypeOf(queueMicrotask) === Function.prototype);"	"false;true;"	0
+"L(String(queueMicrotask(() => {})));"	"undefined;"	0
+"queueMicrotask(() => L('q')); L('sync');"	"sync;q;"	0
+"Promise.resolve().then(() => L('p1')); queueMicrotask(() => L('q')); Promise.resolve().then(() => L('p2'));"	"p1;q;p2;"	0
+"queueMicrotask(() => L('q1')); queueMicrotask(() => L('q2')); Promise.resolve().then(() => L('p')); queueMicrotask(() => L('q3'));"	"q1;q2;p;q3;"	0
+"queueMicrotask(() => { L('q1'); queueMicrotask(() => L('q-inner')); Promise.resolve().then(() => L('p-inner')); }); queueMicrotask(() => L('q2'));"	"q1;q2;q-inner;p-inner;"	0
+"Promise.resolve().then(() => { L('p1'); queueMicrotask(() => L('q-in-p')); }).then(() => L('p2'));"	"p1;q-in-p;p2;"	0
+"queueMicrotask(function () { L(typeof this); L(this === globalThis); L(arguments.length); });"	"object;true;0;"	0
+"queueMicrotask((...a) => L(a.length), 1, 2, 3);"	"0;"	0
+"(async () => { L('a1'); await null; L('a2'); })(); queueMicrotask(() => L('q')); tick(2, 't2');"	"a1;a2;q;t2;"	0
+"queueMicrotask(() => L('q')); (async () => { L('a1'); await null; L('a2'); })(); tick(2, 't2');"	"a1;q;a2;t2;"	0
+"try { queueMicrotask(undefined); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError)); }"	"TypeError:The \"callback\" argument must be of type function. Received undefined:true;"	0
+"try { queueMicrotask(1); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError)); }"	"TypeError:The \"callback\" argument must be of type function. Received type number (1):true;"	0
+"try { queueMicrotask('x'); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError)); }"	"TypeError:The \"callback\" argument must be of type function. Received type string ('x'):true;"	0
+"try { queueMicrotask({}); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError)); }"	"TypeError:The \"callback\" argument must be of type function. Received an instance of Object:true;"	0
+"try { queueMicrotask(null); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError)); }"	"TypeError:The \"callback\" argument must be of type function. Received null:true;"	0
+"try { queueMicrotask(true); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError)); }"	"TypeError:The \"callback\" argument must be of type function. Received type boolean (true):true;"	0
+"try { queueMicrotask([]); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError)); }"	"TypeError:The \"callback\" argument must be of type function. Received an instance of Array:true;"	0
+"try { queueMicrotask(Symbol()); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError)); }"	"TypeError:The \"callback\" argument must be of type function. Received type symbol (Symbol()):true;"	0
+"try { queueMicrotask(); L('no-throw'); } catch (e) { L(e.name + ':' + e.message); }"	"TypeError:The \"callback\" argument must be of type function. Received undefined;"	0
+"try { new queueMicrotask(() => {}); L('no-throw'); } catch (e) { L(e.name); }"	"TypeError;"	0
+"var f = queueMicrotask; f.call(undefined, () => L('called')); f.apply(null, [() => L('applied')]); f.bind(1)(() => L('bound'));"	"called;applied;bound;"	0
+"var q = queueMicrotask; queueMicrotask = 5; L(typeof queueMicrotask); queueMicrotask = q; L(typeof queueMicrotask);"	"number;function;"	0
+"L(delete globalThis.queueMicrotask); L(typeof globalThis.queueMicrotask);"	"true;undefined;"	0
+"L(Object.keys(globalThis).includes('queueMicrotask')); L(Object.getOwnPropertyNames(globalThis).includes('queueMicrotask'));"	"true;true;"	0
+"queueMicrotask(() => { L('q1'); throw new Error('boom'); }); queueMicrotask(() => L('q2')); Promise.resolve().then(() => L('p'));"	"q1;q2;p;"	0
+"queueMicrotask(() => { throw 5; }); queueMicrotask(() => L('q2'));"	"q2;"	0
+"queueMicrotask(() => { L('q1'); queueMicrotask(() => L('q-inner')); throw new TypeError('x'); }); queueMicrotask(() => L('q2')); Promise.resolve().then(() => L('p'));"	"q1;q2;p;q-inner;"	0
+"queueMicrotask(() => { throw new Error('boom'); }); Promise.resolve().then(() => L('p1')).then(() => L('p2')); (async () => { await null; L('a'); })();"	"p1;a;p2;"	0

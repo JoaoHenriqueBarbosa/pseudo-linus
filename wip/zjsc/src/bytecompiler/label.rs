@@ -140,11 +140,6 @@ impl<Traits> crate::wtf::ref_counted::RefCounted for GenericLabel<Traits> {
 impl<Traits> GenericLabel<Traits> {
     const INVALID_LOCATION: u32 = u32::MAX;
 
-    /// `GenericLabel() = default`.
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     /// Escrita de `m_location` usada por `setLocation` (em `BytecodeGeneratorBaseInlines.h`).
     pub fn set_location_raw(&mut self, location: u32) {
         self.location = location;
@@ -156,7 +151,10 @@ impl<Traits> GenericLabel<Traits> {
         if !self.is_forward() {
             return GenericBoundLabel::backward(self.location as i32);
         }
-        GenericBoundLabel::forward(label.clone())
+        // O `Ref<Label>` do `GenericBoundLabel` incrementa a contagem por `ref_()` aqui mesmo: clonar o
+        // `GenericLabelRef` faria `borrow_mut()` num `RefCell` que o chamador já tem emprestado.
+        self.ref_();
+        GenericBoundLabel::forward(GenericLabelRef { label: Rc::clone(&label.label) })
     }
 
     /// `bind(unsigned offset)`.
@@ -229,6 +227,16 @@ impl<Traits> GenericLabelRef<Traits> {
 
     pub fn borrow_mut(&self) -> RefMut<'_, GenericLabel<Traits>> {
         self.label.borrow_mut()
+    }
+
+    /// `label->bind(this)` com o rótulo na forma de referência (o `Label*` do C++).
+    pub fn bind_generator(&self) -> GenericBoundLabel<Traits> {
+        self.label.borrow_mut().bind_generator(self)
+    }
+
+    /// `label->isForward()`.
+    pub fn is_forward(&self) -> bool {
+        self.label.borrow().is_forward()
     }
 }
 

@@ -1,0 +1,3 @@
+[
+"\"use strict\";\nvar L=[];function S(v){var t=typeof v;if(t===\"string\")return JSON.stringify(v);if(t===\"symbol\")return String(v);if(t===\"function\")return \"fn\";if(v===null||t!==\"object\")return Object.is(v,-0)?\"-0\":t===\"bigint\"?v+\"n\":String(v);return \"obj\"}\nfunction T(f){var r;try{r=S(f())}catch(e){r=\"throw \"+(e&&e.name)+\": \"+(e&&e.message)}return L.length?L.join()+\"=>\"+r:r}\nfunction O(v,n){return{valueOf(){L.push(n);return v}}}\n"
+]

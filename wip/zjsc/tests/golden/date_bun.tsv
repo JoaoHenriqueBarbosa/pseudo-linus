@@ -1,0 +1,1302 @@
+America/Sao_Paulo	new Date(0).getTime()	number	0
+America/Sao_Paulo	new Date(1e12).getTime()	number	1000000000000
+America/Sao_Paulo	new Date(-1).getTime()	number	-1
+America/Sao_Paulo	new Date(8.64e15).getTime()	number	8640000000000000
+America/Sao_Paulo	new Date(8.64e15 + 1).getTime()	number	NaN
+America/Sao_Paulo	new Date(-8.64e15).getTime()	number	-8640000000000000
+America/Sao_Paulo	new Date(-8.64e15 - 1).getTime()	number	NaN
+America/Sao_Paulo	new Date(1.9).getTime()	number	1
+America/Sao_Paulo	new Date(-1.9).getTime()	number	-1
+America/Sao_Paulo	new Date(NaN).getTime()	number	NaN
+America/Sao_Paulo	new Date(Infinity).getTime()	number	NaN
+America/Sao_Paulo	new Date(undefined).getTime()	number	NaN
+America/Sao_Paulo	new Date(null).getTime()	number	0
+America/Sao_Paulo	new Date(true).getTime()	number	1
+America/Sao_Paulo	new Date(false).getTime()	number	0
+America/Sao_Paulo	new Date('').getTime()	number	NaN
+America/Sao_Paulo	new Date('2024-02-29').getTime()	number	1709164800000
+America/Sao_Paulo	new Date('2024-02-29T12:00:00Z').getTime()	number	1709208000000
+America/Sao_Paulo	new Date(new Date(123456789)).getTime()	number	123456789
+America/Sao_Paulo	new Date({ valueOf() { return 42 } }).getTime()	number	42
+America/Sao_Paulo	new Date({ toString() { return '2000-01-01T00:00:00Z' } }).getTime()	number	946684800000
+America/Sao_Paulo	new Date([2020]).getTime()	number	1577836800000
+America/Sao_Paulo	new Date(2024, 0).getTime()	number	1704078000000
+America/Sao_Paulo	new Date(2024, 0, 1).getTime()	number	1704078000000
+America/Sao_Paulo	new Date(2024, 0, 1, 12).getTime()	number	1704121200000
+America/Sao_Paulo	new Date(2024, 0, 1, 12, 30).getTime()	number	1704123000000
+America/Sao_Paulo	new Date(2024, 0, 1, 12, 30, 45).getTime()	number	1704123045000
+America/Sao_Paulo	new Date(2024, 0, 1, 12, 30, 45, 678).getTime()	number	1704123045678
+America/Sao_Paulo	new Date(99, 0).getFullYear()	number	1999
+America/Sao_Paulo	new Date(0, 0).getFullYear()	number	1900
+America/Sao_Paulo	new Date(100, 0).getFullYear()	number	100
+America/Sao_Paulo	new Date(-1, 0).getFullYear()	number	-1
+America/Sao_Paulo	new Date(2024, 12, 1).getTime()	number	1735700400000
+America/Sao_Paulo	new Date(2024, -1, 1).getTime()	number	1701399600000
+America/Sao_Paulo	new Date(2024, 0, 0).getTime()	number	1703991600000
+America/Sao_Paulo	new Date(2024, 0, 32).getTime()	number	1706756400000
+America/Sao_Paulo	new Date(2024, 0, 1, 25).getTime()	number	1704168000000
+America/Sao_Paulo	new Date(2024, 0, 1, 0, 61).getTime()	number	1704081660000
+America/Sao_Paulo	new Date(2024, 0, 1, 0, 0, 61).getTime()	number	1704078061000
+America/Sao_Paulo	new Date(2024, 0, 1, 0, 0, 0, 1001).getTime()	number	1704078001001
+America/Sao_Paulo	new Date(2024, NaN).getTime()	number	NaN
+America/Sao_Paulo	new Date(2024, 0, Infinity).getTime()	number	NaN
+America/Sao_Paulo	new Date(275760, 8, 13).getTime()	number	NaN
+America/Sao_Paulo	new Date(275760, 8, 14).getTime()	number	NaN
+America/Sao_Paulo	new Date(-271821, 3, 20).getTime()	number	-8639999988812000
+America/Sao_Paulo	new Date(-271821, 3, 19).getTime()	number	NaN
+America/Sao_Paulo	typeof Date()	string	"string"
+America/Sao_Paulo	Date(0).length > 20	boolean	true
+America/Sao_Paulo	typeof Date.now()	string	"number"
+America/Sao_Paulo	Date.now() > 1.7e12	boolean	true
+America/Sao_Paulo	Date.length	number	7
+America/Sao_Paulo	Date.UTC.length	number	7
+America/Sao_Paulo	Date.prototype.constructor === Date	boolean	true
+America/Sao_Paulo	Object.prototype.toString.call(new Date(0))	string	"[object Date]"
+America/Sao_Paulo	new Date(0) instanceof Date	boolean	true
+America/Sao_Paulo	Date.prototype.setHours.length	number	4
+America/Sao_Paulo	Date.prototype.setMinutes.length	number	3
+America/Sao_Paulo	Date.prototype.setFullYear.length	number	3
+America/Sao_Paulo	Date.prototype.toJSON.length	number	1
+America/Sao_Paulo	Date.prototype[Symbol.toPrimitive].name	string	"[Symbol.toPrimitive]"
+America/Sao_Paulo	Date.prototype[Symbol.toPrimitive].length	number	1
+America/Sao_Paulo	Date.name	string	"Date"
+America/Sao_Paulo	Date.parse("2024")	number	1704067200000
+America/Sao_Paulo	Date.parse("2024-02")	number	1706745600000
+America/Sao_Paulo	Date.parse("2024-02-29")	number	1709164800000
+America/Sao_Paulo	Date.parse("2024-02-30")	number	1709251200000
+America/Sao_Paulo	Date.parse("2023-02-29")	number	1677628800000
+America/Sao_Paulo	Date.parse("2024-13-01")	number	NaN
+America/Sao_Paulo	Date.parse("2024-00-10")	number	NaN
+America/Sao_Paulo	Date.parse("2024-01-00")	number	NaN
+America/Sao_Paulo	Date.parse("2024-01-32")	number	NaN
+America/Sao_Paulo	Date.parse("2024-02-29T10")	number	NaN
+America/Sao_Paulo	Date.parse("2024-02-29T10:30")	number	1709213400000
+America/Sao_Paulo	Date.parse("2024-02-29T10:30:45")	number	1709213445000
+America/Sao_Paulo	Date.parse("2024-02-29T10:30:45.1")	number	1709213445100
+America/Sao_Paulo	Date.parse("2024-02-29T10:30:45.12")	number	1709213445120
+America/Sao_Paulo	Date.parse("2024-02-29T10:30:45.123")	number	1709213445123
+America/Sao_Paulo	Date.parse("2024-02-29T10:30:45.123456")	number	1709213445123
+America/Sao_Paulo	Date.parse("2024-02-29T10:30:45Z")	number	1709202645000
+America/Sao_Paulo	Date.parse("2024-02-29T10:30:45.123Z")	number	1709202645123
+America/Sao_Paulo	Date.parse("2024-02-29T10:30:45+01:00")	number	1709199045000
+America/Sao_Paulo	Date.parse("2024-02-29T10:30:45-03:00")	number	1709213445000
+America/Sao_Paulo	Date.parse("2024-02-29T10:30:45+0100")	number	1709199045000
+America/Sao_Paulo	Date.parse("2024-02-29T10:30:45+01")	number	NaN
+America/Sao_Paulo	Date.parse("2024-02-29T24:00:00Z")	number	1709251200000
+America/Sao_Paulo	Date.parse("2024-02-29T24:00:01Z")	number	NaN
+America/Sao_Paulo	Date.parse("2024-02-29T25:00:00Z")	number	NaN
+America/Sao_Paulo	Date.parse("2024-02-29T10:60:00Z")	number	NaN
+America/Sao_Paulo	Date.parse("2024-02-29T10:30:60Z")	number	NaN
+America/Sao_Paulo	Date.parse("2024-02-29 10:30:45")	number	1709213445000
+America/Sao_Paulo	Date.parse("2024-02-29 10:30:45Z")	number	1709202645000
+America/Sao_Paulo	Date.parse("2024-02-29t10:30:45z")	number	1709202645000
+America/Sao_Paulo	Date.parse("+002024-02-29T00:00:00Z")	number	1709164800000
+America/Sao_Paulo	Date.parse("-000001-01-01T00:00:00Z")	number	-62198755200000
+America/Sao_Paulo	Date.parse("-000000-01-01T00:00:00Z")	number	NaN
+America/Sao_Paulo	Date.parse("+275760-09-13T00:00:00.000Z")	number	8640000000000000
+America/Sao_Paulo	Date.parse("+275760-09-13T00:00:00.001Z")	number	NaN
+America/Sao_Paulo	Date.parse("-271821-04-20T00:00:00.000Z")	number	-8640000000000000
+America/Sao_Paulo	Date.parse("-271821-04-19T23:59:59.999Z")	number	NaN
+America/Sao_Paulo	Date.parse("0000-01-01T00:00:00Z")	number	-62167219200000
+America/Sao_Paulo	Date.parse("0001-01-01T00:00:00Z")	number	-62135596800000
+America/Sao_Paulo	Date.parse("1970-01-01T00:00:00Z")	number	0
+America/Sao_Paulo	Date.parse("1969-12-31T23:59:59.999Z")	number	-1
+America/Sao_Paulo	Date.parse("1900-01-01")	number	-2208988800000
+America/Sao_Paulo	Date.parse("1900-01-01T00:00:00")	number	-2208977612000
+America/Sao_Paulo	Date.parse("2018-11-04T00:00:00")	number	1541300400000
+America/Sao_Paulo	Date.parse("2018-11-04T01:00:00")	number	1541300400000
+America/Sao_Paulo	Date.parse("2019-02-16T23:59:59")	number	1550368799000
+America/Sao_Paulo	Date.parse("2019-02-17T00:00:00")	number	1550372400000
+America/Sao_Paulo	Date.parse("2019-02-17T01:00:00")	number	1550376000000
+America/Sao_Paulo	Date.parse("2024-02-29T")	number	NaN
+America/Sao_Paulo	Date.parse("T10:30")	number	NaN
+America/Sao_Paulo	Date.parse("2024-2-9")	number	1707447600000
+America/Sao_Paulo	Date.parse("2024-02-9")	number	1707447600000
+America/Sao_Paulo	Date.parse("24-02-09")	number	NaN
+America/Sao_Paulo	Date.parse("garbage")	number	NaN
+America/Sao_Paulo	Date.parse("")	number	NaN
+America/Sao_Paulo	Date.parse(" ")	number	NaN
+America/Sao_Paulo	Date.parse("2024-02-29Zjunk")	number	NaN
+America/Sao_Paulo	new Date(NaN).setYear(99)	number	915156000000
+America/Sao_Paulo	new Date(NaN).getYear()	number	NaN
+America/Sao_Paulo	new Date(0).setYear(100)	number	-58979922812000
+America/Sao_Paulo	new Date(0).setYear(NaN)	number	NaN
+America/Sao_Paulo	new Date(0).setYear(1899)	number	-2208988412000
+America/Sao_Paulo	new Date(0).getYear()	number	69
+America/Sao_Paulo	new Date(2000, 0).getYear()	number	100
+America/Sao_Paulo	Date.UTC(2020)	number	1577836800000
+America/Sao_Paulo	Date.UTC(2020, 0)	number	1577836800000
+America/Sao_Paulo	Date.UTC(99)	number	915148800000
+America/Sao_Paulo	Date.UTC(NaN)	number	NaN
+America/Sao_Paulo	Date.UTC(2020, NaN)	number	NaN
+America/Sao_Paulo	new Date(0).setMonth(NaN)	number	NaN
+America/Sao_Paulo	new Date(0).setUTCMonth(NaN)	number	NaN
+America/Sao_Paulo	new Date(0).setHours()	number	NaN
+America/Sao_Paulo	new Date(0).setDate(NaN)	number	NaN
+America/Sao_Paulo	new Date(NaN).setFullYear(2020)	number	1577847600000
+America/Sao_Paulo	new Date(NaN).setUTCFullYear(2020, 1, 1)	number	1580515200000
+America/Sao_Paulo	new Date(NaN).setMonth(1)	number	NaN
+America/Sao_Paulo	new Date(NaN).setHours(1)	number	NaN
+America/Sao_Paulo	new Date(NaN).setMilliseconds(1)	number	NaN
+America/Sao_Paulo	new Date(0).setTime()	number	NaN
+America/Sao_Paulo	new Date(0).setMinutes(1, NaN)	number	NaN
+America/Sao_Paulo	new Date(-1e8 * 864e5).toUTCString()	string	"Tue, 20 Apr -271821 00:00:00 GMT"
+America/Sao_Paulo	new Date(-62198755200000).toUTCString()	string	"Fri, 01 Jan -0001 00:00:00 GMT"
+America/Sao_Paulo	new Date(-62198755200000).toDateString()	string	"Thu Dec 31 -0002"
+America/Sao_Paulo	new Date(8.64e15).toUTCString()	string	"Sat, 13 Sep 275760 00:00:00 GMT"
+America/Sao_Paulo	new Date(NaN).toUTCString()	string	"Invalid Date"
+America/Sao_Paulo	new Date(NaN).toDateString()	string	"Invalid Date"
+America/Sao_Paulo	new Date(NaN).toLocaleDateString()	string	"Invalid Date"
+America/Sao_Paulo	new Date(0).toLocaleDateString()	string	"12/31/1969"
+America/Sao_Paulo	new Date(-62198755200000).toLocaleDateString()	string	"12/31/3"
+America/Sao_Paulo	new Date(2e12).toUTCString()	string	"Wed, 18 May 2033 03:33:20 GMT"
+America/Sao_Paulo	new Date(2e12).toLocaleDateString()	string	"5/18/2033"
+America/Sao_Paulo	new Date(2e12).toDateString()	string	"Wed May 18 2033"
+America/Sao_Paulo	Date.parse('1/2/2000')	number	946778400000
+America/Sao_Paulo	Date.parse('2000/01/02')	number	946778400000
+America/Sao_Paulo	Date.parse('12 Jan 2000 UT')	number	947635200000
+America/Sao_Paulo	Date.parse('Jan 1 2000 10:00 PST')	number	946749600000
+America/Sao_Paulo	Date.parse('Sat, 01 Jan 2000 00:00:00 GMT+0100')	number	946681200000
+America/Sao_Paulo	Date.parse('1 January 2000')	number	946692000000
+America/Sao_Paulo	Date.parse('January 1, 2000 12:00 AM')	number	946692000000
+America/Sao_Paulo	Date.parse('2000')	number	946684800000
+America/Sao_Paulo	Date.parse('99')	number	915156000000
+America/Sao_Paulo	Date.parse('1/1/49')	number	2493082800000
+America/Sao_Paulo	Date.parse('1/1/50')	number	-631144800000
+America/Sao_Paulo	Date.parse('Jan 1 70')	number	10800000
+America/Sao_Paulo	Date.parse('Thu Jan 01 1970 00:00:00 GMT+0000 (UTC)')	number	0
+America/Sao_Paulo	Date.parse('2000-01-01 10:00')	number	946728000000
+America/Sao_Paulo	Date.parse('2000-1-1')	number	946692000000
+America/Sao_Paulo	Date.parse('Jan 32 2000')	number	NaN
+America/Sao_Paulo	Date.parse('12:00 Jan 1 2000')	number	946735200000
+America/Sao_Paulo	Date.parse('1 Jan 2000 24:00')	number	946778400000
+America/Sao_Paulo	Date.parse('10:00 PM 1/1/2000')	number	946771200000
+America/Sao_Paulo	Date.parse("Thu, 29 Feb 2024 23:05:09 GMT")	number	1709247909000
+America/Sao_Paulo	Date.parse("Thu, 29 Feb 2024 23:05:09 +0000")	number	1709247909000
+America/Sao_Paulo	Date.parse("Thu, 29 Feb 2024 20:05:09 -0300")	number	1709247909000
+America/Sao_Paulo	Date.parse("Thu, 29 Feb 2024 23:05:09")	number	1709258709000
+America/Sao_Paulo	Date.parse("29 Feb 2024")	number	1709175600000
+America/Sao_Paulo	Date.parse("29 Feb 2024 10:00")	number	1709211600000
+America/Sao_Paulo	Date.parse("29 Feb 2024 10:00 GMT+0200")	number	1709193600000
+America/Sao_Paulo	Date.parse("Feb 29 2024")	number	1709175600000
+America/Sao_Paulo	Date.parse("Feb 29, 2024")	number	1709175600000
+America/Sao_Paulo	Date.parse("February 29, 2024")	number	1709175600000
+America/Sao_Paulo	Date.parse("February 29, 2024 10:30:00")	number	1709213400000
+America/Sao_Paulo	Date.parse("feb 29 2024")	number	1709175600000
+America/Sao_Paulo	Date.parse("FEBRUARY 29 2024")	number	1709175600000
+America/Sao_Paulo	Date.parse("Feb 30 2024")	number	1709262000000
+America/Sao_Paulo	Date.parse("Feb 29 2023")	number	1677639600000
+America/Sao_Paulo	Date.parse("Thu Feb 29 2024 20:05:09 GMT-0300 (Brasilia Standard Time)")	number	1709247909000
+America/Sao_Paulo	Date.parse("Thu Feb 29 2024 20:05:09 GMT-0300")	number	1709247909000
+America/Sao_Paulo	Date.parse("Thu Feb 29 2024 20:05:09 GMT+0000 (Coordinated Universal Time)")	number	1709237109000
+America/Sao_Paulo	Date.parse("Thu Feb 29 2024")	number	1709175600000
+America/Sao_Paulo	Date.parse("Thu Feb 29 2024 20:05:09")	number	1709247909000
+America/Sao_Paulo	Date.parse("Fri Feb 29 2024")	number	1709175600000
+America/Sao_Paulo	Date.parse("2024/02/29")	number	1709175600000
+America/Sao_Paulo	Date.parse("2024/02/29 10:30")	number	1709213400000
+America/Sao_Paulo	Date.parse("2/29/2024")	number	1709175600000
+America/Sao_Paulo	Date.parse("02/29/2024")	number	1709175600000
+America/Sao_Paulo	Date.parse("02/29/2024 10:30:45")	number	1709213445000
+America/Sao_Paulo	Date.parse("02/29/2024 10:30:45 PM")	number	1709256645000
+America/Sao_Paulo	Date.parse("02/29/2024 12:30 AM")	number	1709177400000
+America/Sao_Paulo	Date.parse("02/29/2024 12:30 PM")	number	1709220600000
+America/Sao_Paulo	Date.parse("13/01/2024")	number	NaN
+America/Sao_Paulo	Date.parse("1/1/70")	number	10800000
+America/Sao_Paulo	Date.parse("1/1/49")	number	2493082800000
+America/Sao_Paulo	Date.parse("1/1/50")	number	-631144800000
+America/Sao_Paulo	Date.parse("1/1/99")	number	915156000000
+America/Sao_Paulo	Date.parse("1/1/100")	number	-59011448012000
+America/Sao_Paulo	Date.parse("Jan 1 70")	number	10800000
+America/Sao_Paulo	Date.parse("Jan 1 2000 00:00:00 UTC")	number	946684800000
+America/Sao_Paulo	Date.parse("Jan 1 2000 00:00:00 GMT")	number	946684800000
+America/Sao_Paulo	Date.parse("Jan 1 2000 00:00:00 Z")	number	946684800000
+America/Sao_Paulo	Date.parse("Jan 1 2000 00:00:00 EST")	number	946702800000
+America/Sao_Paulo	Date.parse("Jan 1 2000 00:00:00 EDT")	number	946699200000
+America/Sao_Paulo	Date.parse("Jan 1 2000 00:00:00 PST")	number	946713600000
+America/Sao_Paulo	Date.parse("Jan 1 2000 00:00:00 PDT")	number	946710000000
+America/Sao_Paulo	Date.parse("Jan 1 2000 00:00:00 CST")	number	946706400000
+America/Sao_Paulo	Date.parse("Jan 1 2000 00:00:00 MST")	number	946710000000
+America/Sao_Paulo	Date.parse("Jan 1 2000 00:00:00 +05:30")	number	946665000000
+America/Sao_Paulo	Date.parse("Jan 1 2000 00:00:00 UTC+3")	number	946674000000
+America/Sao_Paulo	Date.parse("Jan 1 2000 24:00:00")	number	946778400000
+America/Sao_Paulo	Date.parse("Jan 1 2000 10:30:45.5")	number	946729845500
+America/Sao_Paulo	Date.parse("1 January 2000")	number	946692000000
+America/Sao_Paulo	Date.parse("1 Jan 2000 (comment) 10:00")	number	946728000000
+America/Sao_Paulo	Date.parse("Sat, 01 Jan 2000 00:00:00 GMT")	number	946684800000
+America/Sao_Paulo	Date.parse("Sat, 01 Jan 2000 00:00:00 UT")	number	946684800000
+America/Sao_Paulo	Date.parse("Sat, 01 Jan 2000 00:00:00 gmt")	number	946684800000
+America/Sao_Paulo	Date.parse("Jan 2000")	number	946692000000
+America/Sao_Paulo	Date.parse("2000 Jan 1")	number	946692000000
+America/Sao_Paulo	Date.parse("Tuesday, March 5, 2019")	number	1551754800000
+America/Sao_Paulo	Date.parse("Mar 10 2019")	number	1552186800000
+America/Sao_Paulo	Date.parse("12:00")	number	NaN
+America/Sao_Paulo	Date.parse("10:30:45")	number	NaN
+America/Sao_Paulo	Date.parse("Mon")	number	NaN
+America/Sao_Paulo	Date.parse("now")	number	NaN
+America/Sao_Paulo	Date.parse("today")	number	NaN
+America/Sao_Paulo	Date.parse("1e3")	number	NaN
+America/Sao_Paulo	Date.parse("12345")	number	327403393200000
+America/Sao_Paulo	Date.parse("-1")	number	978314400000
+America/Sao_Paulo	Date.parse("0")	number	946692000000
+America/Sao_Paulo	Date.parse("99999999999999999999")	number	NaN
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); Date.parse(d.toString()) === Math.floor(d.getTime() / 1000) * 1000	boolean	true
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); Date.parse(d.toUTCString()) === Math.floor(d.getTime() / 1000) * 1000	boolean	true
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); Date.parse(d.toISOString()) === d.getTime()	boolean	true
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); Date.parse(d.toDateString()) === new Date(2024, 1, 29).getTime()	boolean	true
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); new Date(d.toString()).getTime()	number	1709247909000
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); new Date(d.toLocaleString('en-US')).getTime()	number	1709247909000
+America/Sao_Paulo	new Date('2024-02-29T10:00:00').toISOString()	string	"2024-02-29T13:00:00.000Z"
+America/Sao_Paulo	new Date('2024-02-29').toISOString()	string	"2024-02-29T00:00:00.000Z"
+America/Sao_Paulo	new Date('Feb 29 2024').toISOString()	string	"2024-02-29T03:00:00.000Z"
+America/Sao_Paulo	new Date('invalid').toISOString()	throw	RangeError: Invalid Date
+America/Sao_Paulo	new Date(NaN).toJSON()	object	null
+America/Sao_Paulo	new Date(NaN).toString()	string	"Invalid Date"
+America/Sao_Paulo	new Date(NaN).toTimeString()	string	"Invalid Date"
+America/Sao_Paulo	new Date(NaN).toLocaleString()	string	"Invalid Date"
+America/Sao_Paulo	new Date(NaN).toLocaleDateString('en-US')	string	"Invalid Date"
+America/Sao_Paulo	new Date(NaN).toLocaleTimeString('pt-BR')	string	"Invalid Date"
+America/Sao_Paulo	String(new Date(NaN))	string	"Invalid Date"
+America/Sao_Paulo	new Date(NaN).getFullYear()	number	NaN
+America/Sao_Paulo	new Date(NaN).getTimezoneOffset()	number	NaN
+America/Sao_Paulo	new Date(NaN).valueOf()	number	NaN
+America/Sao_Paulo	isNaN(new Date('x'))	boolean	true
+America/Sao_Paulo	new Date('x') + 1	string	"Invalid Date1"
+America/Sao_Paulo	JSON.stringify({ a: new Date(NaN) })	string	"{\"a\":null}"
+America/Sao_Paulo	JSON.stringify({ a: new Date(0) })	string	"{\"a\":\"1970-01-01T00:00:00.000Z\"}"
+America/Sao_Paulo	new Date(-62198755200000).toISOString()	string	"-000001-01-01T00:00:00.000Z"
+America/Sao_Paulo	new Date(-62198755200000).toString()	string	"Thu Dec 31 -0002 20:53:32 GMT-0306 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(-62167219200000).toISOString()	string	"0000-01-01T00:00:00.000Z"
+America/Sao_Paulo	new Date(-62167219200000).toString()	string	"Fri Dec 31 -0001 20:53:32 GMT-0306 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(-62135596800000).toISOString()	string	"0001-01-01T00:00:00.000Z"
+America/Sao_Paulo	new Date(-62135596800000).toString()	string	"Sun Dec 31 0000 20:53:32 GMT-0306 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(-100000000000000).toISOString()	string	"-001199-02-15T14:13:20.000Z"
+America/Sao_Paulo	new Date(-100000000000000).toString()	string	"Thu Feb 15 -1199 11:06:52 GMT-0306 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(-8640000000000000).toISOString()	string	"-271821-04-20T00:00:00.000Z"
+America/Sao_Paulo	new Date(-8640000000000000).toString()	string	"Mon Apr 19 -271821 20:53:32 GMT-0306 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(8640000000000000).toISOString()	string	"+275760-09-13T00:00:00.000Z"
+America/Sao_Paulo	new Date(8640000000000000).toString()	string	"Fri Sep 12 275760 21:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(253402300800000).toISOString()	string	"+010000-01-01T00:00:00.000Z"
+America/Sao_Paulo	new Date(253402300800000).toString()	string	"Fri Dec 31 9999 21:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(253402300799999).toISOString()	string	"9999-12-31T23:59:59.999Z"
+America/Sao_Paulo	new Date(253402300799999).toString()	string	"Fri Dec 31 9999 20:59:59 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(100000000000000).toISOString()	string	"5138-11-16T09:46:40.000Z"
+America/Sao_Paulo	new Date(100000000000000).toString()	string	"Wed Nov 16 5138 06:46:40 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(-30000000000000).toISOString()	string	"1019-05-04T18:40:00.000Z"
+America/Sao_Paulo	new Date(-30000000000000).toString()	string	"Tue May 04 1019 15:33:32 GMT-0306 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(-2177452800000).toISOString()	string	"1901-01-01T00:00:00.000Z"
+America/Sao_Paulo	new Date(-2177452800000).toString()	string	"Mon Dec 31 1900 20:53:32 GMT-0306 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(-62198755200000).getUTCFullYear()	number	-1
+America/Sao_Paulo	new Date(-8.64e15).toUTCString()	string	"Tue, 20 Apr -271821 00:00:00 GMT"
+America/Sao_Paulo	new Date(8.64e15).toDateString()	string	"Fri Sep 12 275760"
+America/Sao_Paulo	new Date(-8.64e15).toDateString()	string	"Mon Apr 19 -271821"
+America/Sao_Paulo	new Date(-8.64e15).toTimeString()	string	"20:53:32 GMT-0306 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(8.64e15).getFullYear()	number	275760
+America/Sao_Paulo	new Date(-8.64e15).getFullYear()	number	-271821
+America/Sao_Paulo	new Date(-8.64e15).getDay()	number	1
+America/Sao_Paulo	new Date(8.64e15).getTimezoneOffset()	number	180
+America/Sao_Paulo	new Date(Date.UTC(-1, 0, 1)).toISOString()	string	"-000001-01-01T00:00:00.000Z"
+America/Sao_Paulo	new Date(Date.UTC(0, 0, 1)).toISOString()	string	"1900-01-01T00:00:00.000Z"
+America/Sao_Paulo	new Date(Date.UTC(10000, 0, 1)).toISOString()	string	"+010000-01-01T00:00:00.000Z"
+America/Sao_Paulo	new Date(Date.UTC(10000, 0, 1)).toUTCString()	string	"Sat, 01 Jan 10000 00:00:00 GMT"
+America/Sao_Paulo	new Date(Date.UTC(10000, 0, 1)).toString()	string	"Fri Dec 31 9999 21:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(Date.UTC(10000, 0, 1)).toJSON()	string	"+010000-01-01T00:00:00.000Z"
+America/Sao_Paulo	new Date(Date.UTC(-10000, 0, 1)).toString()	string	"Fri Dec 31 -10001 20:53:32 GMT-0306 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(Date.UTC(-10000, 0, 1)).toISOString()	string	"-010000-01-01T00:00:00.000Z"
+America/Sao_Paulo	new Date(Date.UTC(5, 0, 1)).toISOString()	string	"1905-01-01T00:00:00.000Z"
+America/Sao_Paulo	new Date(Date.UTC(5, 0, 1)).getUTCFullYear()	number	1905
+America/Sao_Paulo	new Date(Date.UTC(275760, 8, 13)).toISOString()	string	"+275760-09-13T00:00:00.000Z"
+America/Sao_Paulo	new Date(Date.UTC(275760, 8, 13, 0, 0, 0, 1)).getTime()	number	NaN
+America/Sao_Paulo	new Date(Date.UTC(-271821, 3, 20)).getTime()	number	-8640000000000000
+America/Sao_Paulo	Date.UTC()	number	NaN
+America/Sao_Paulo	Date.UTC(2024)	number	1704067200000
+America/Sao_Paulo	Date.UTC(2024, 1)	number	1706745600000
+America/Sao_Paulo	Date.UTC(2024, 1, 29)	number	1709164800000
+America/Sao_Paulo	Date.UTC(2024, 1, 29, 23)	number	1709247600000
+America/Sao_Paulo	Date.UTC(2024, 1, 29, 23, 5)	number	1709247900000
+America/Sao_Paulo	Date.UTC(2024, 1, 29, 23, 5, 9)	number	1709247909000
+America/Sao_Paulo	Date.UTC(2024, 1, 29, 23, 5, 9, 7)	number	1709247909007
+America/Sao_Paulo	Date.UTC(0)	number	-2208988800000
+America/Sao_Paulo	Date.UTC(100)	number	-59011459200000
+America/Sao_Paulo	Date.UTC(-1)	number	-62198755200000
+America/Sao_Paulo	Date.UTC(1970, 0, 1)	number	0
+America/Sao_Paulo	Date.UTC(1969, 11, 31, 23, 59, 59, 999)	number	-1
+America/Sao_Paulo	Date.UTC(2024, 12)	number	1735689600000
+America/Sao_Paulo	Date.UTC(2024, -1)	number	1701388800000
+America/Sao_Paulo	Date.UTC(2024, 0, 0)	number	1703980800000
+America/Sao_Paulo	Date.UTC(2024, 0, 1, 24)	number	1704153600000
+America/Sao_Paulo	Date.UTC(2024, 0, 1, 0, 0, 0, -1)	number	1704067199999
+America/Sao_Paulo	Date.UTC(2024, NaN)	number	NaN
+America/Sao_Paulo	Date.UTC(2024, 0, 1.9)	number	1704067200000
+America/Sao_Paulo	Date.UTC('2024', '1')	number	1706745600000
+America/Sao_Paulo	Date.UTC(undefined)	number	NaN
+America/Sao_Paulo	Date.UTC(null)	number	-2208988800000
+America/Sao_Paulo	Date.UTC(2024, undefined)	number	NaN
+America/Sao_Paulo	Date.UTC(275760, 8, 13)	number	8640000000000000
+America/Sao_Paulo	Date.UTC(275760, 8, 13, 0, 0, 0, 1)	number	NaN
+America/Sao_Paulo	Date.UTC(-271821, 3, 20)	number	-8640000000000000
+America/Sao_Paulo	Date.UTC(-271821, 3, 19, 23, 59, 59, 999)	number	NaN
+America/Sao_Paulo	Date.UTC(1e10)	number	NaN
+America/Sao_Paulo	Date.UTC(2024, 1e10)	number	NaN
+America/Sao_Paulo	Date.UTC(2024, 0, 1, 0, 0, 0, 8.64e15)	number	NaN
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setMilliseconds(1000)	number	1709247910000
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setMilliseconds(-1)	number	1709247908999
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setSeconds(60)	number	1709247960007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setSeconds(-1, 500)	number	1709247899500
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setMinutes(60)	number	1709251209007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setMinutes(-1, 30, 100)	number	1709247570100
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setHours(24)	number	1709262309007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setHours(-1)	number	1709172309007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setHours(25, 61, 61, 1001)	number	1709269322001
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setDate(0)	number	1706742309007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setDate(31)	number	1709420709007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setDate(32)	number	1709507109007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setDate(-1)	number	1706655909007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setMonth(12)	number	1738191909007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setMonth(-1)	number	1703891109007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setMonth(1, 31)	number	1709420709007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setMonth(11, 32)	number	1735772709007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setFullYear(2023)	number	1677711909007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setFullYear(2023, 1, 29)	number	1677711909007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setFullYear(2025, 13, 1)	number	1769987109007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setFullYear(-1)	number	-62193574102993
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setFullYear(275760, 8, 14)	number	NaN
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setFullYear(NaN)	number	NaN
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setUTCMilliseconds(1000)	number	1709247910000
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setUTCSeconds(61)	number	1709247961007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setUTCMinutes(61)	number	1709251269007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setUTCHours(48)	number	1709337909007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setUTCDate(0)	number	1706742309007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setUTCDate(30)	number	1709334309007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setUTCMonth(12, 31)	number	1738364709007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setUTCMonth(-1)	number	1703891109007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setUTCFullYear(2023, 1, 29)	number	1677711909007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setUTCFullYear(100)	number	-59006278490993
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setTime(NaN)	number	NaN
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setTime(8.64e15)	number	8640000000000000
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setTime(8.64e15 + 1)	number	NaN
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setTime(1.9)	number	1
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setTime('5')	number	5
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setTime()	number	NaN
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setHours()	number	NaN
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setHours(NaN); d.getTime()	number	NaN
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setHours(NaN); d.setHours(1)	number	NaN
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setFullYear(2020); d.getTime()	number	1583017509007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); var n = new Date(NaN); n.setFullYear(2024); n.getTime()	number	1704078000000
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); var n = new Date(NaN); n.setFullYear(2024, 0, 1); n.toISOString()	string	"2024-01-01T03:00:00.000Z"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); var n = new Date(NaN); n.setUTCFullYear(2024); n.toISOString()	string	"2024-01-01T00:00:00.000Z"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); var n = new Date(NaN); n.setMonth(1); n.getTime()	number	NaN
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); var n = new Date(NaN); n.setMilliseconds(5)	number	NaN
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setYear ? 'has' : 'no'	string	"has"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setYear(99); d.getFullYear()	number	1999
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setYear(2005); d.getFullYear()	number	2005
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getYear()	number	124
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toGMTString === d.toUTCString	boolean	true
+America/Sao_Paulo	new Date(2024, 0, 31).setMonth(1)	number	1709348400000
+America/Sao_Paulo	new Date(2024, 0, 31, 12).setMonth(1, 30)	number	1709305200000
+America/Sao_Paulo	new Date(2023, 0, 31).setMonth(1)	number	1677812400000
+America/Sao_Paulo	new Date(2024, 11, 31).setDate(367)	number	1764644400000
+America/Sao_Paulo	new Date(2024, 11, 31).setDate(1e9)	number	NaN
+America/Sao_Paulo	new Date(2024, 0, 1).setDate(1e12)	number	NaN
+America/Sao_Paulo	new Date(0).setUTCHours(1e9)	number	3600000000000000
+America/Sao_Paulo	new Date(0).setMinutes(1e12)	number	NaN
+America/Sao_Paulo	new Date(0).setSeconds(Infinity)	number	NaN
+America/Sao_Paulo	new Date(0).setMonth(1e10)	number	NaN
+America/Sao_Paulo	new Date(2024, 0, 1).setHours(1, 2, 3, 4)	number	1704081723004
+America/Sao_Paulo	new Date(2024, 0, 1).setMinutes(1, 2, 3)	number	1704078062003
+America/Sao_Paulo	new Date(2024, 0, 1).setSeconds(1, 2)	number	1704078001002
+America/Sao_Paulo	new Date(2024, 0, 1).setDate(15)	number	1705287600000
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getTime()	number	1709247909007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.valueOf()	number	1709247909007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getFullYear()	number	2024
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getMonth()	number	1
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getDate()	number	29
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getDay()	number	4
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getHours()	number	20
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getMinutes()	number	5
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getSeconds()	number	9
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getMilliseconds()	number	7
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getUTCFullYear()	number	2024
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getUTCMonth()	number	1
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getUTCDate()	number	29
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getUTCDay()	number	4
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getUTCHours()	number	23
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getUTCMinutes()	number	5
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getUTCSeconds()	number	9
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getUTCMilliseconds()	number	7
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getTimezoneOffset()	number	180
+America/Sao_Paulo	new Date(2019, 1, 17, 0, 30).getTimezoneOffset()	number	180
+America/Sao_Paulo	new Date(2019, 1, 17, 12).getTimezoneOffset()	number	180
+America/Sao_Paulo	new Date(2018, 10, 4, 12).getTimezoneOffset()	number	120
+America/Sao_Paulo	new Date(2018, 11, 1).getTimezoneOffset()	number	120
+America/Sao_Paulo	new Date(2018, 5, 1).getTimezoneOffset()	number	180
+America/Sao_Paulo	new Date(1990, 0, 1).getTimezoneOffset()	number	120
+America/Sao_Paulo	new Date(1950, 0, 1).getTimezoneOffset()	number	120
+America/Sao_Paulo	new Date(1900, 0, 1).getTimezoneOffset()	number	186
+America/Sao_Paulo	new Date(1800, 0, 1).getTimezoneOffset()	number	186
+America/Sao_Paulo	new Date(2100, 0, 1).getTimezoneOffset()	number	180
+America/Sao_Paulo	new Date(2100, 6, 1).getTimezoneOffset()	number	180
+America/Sao_Paulo	new Date(-1e13).getTimezoneOffset()	number	186
+America/Sao_Paulo	new Date(1e13).getTimezoneOffset()	number	180
+America/Sao_Paulo	new Date(0).getHours()	number	21
+America/Sao_Paulo	new Date(0).getDate()	number	31
+America/Sao_Paulo	new Date(-1).getDate()	number	31
+America/Sao_Paulo	new Date(-1).getDay()	number	3
+America/Sao_Paulo	new Date(0).getDay()	number	3
+America/Sao_Paulo	new Date(-86400000 * 365 * 100).getDay()	number	1
+America/Sao_Paulo	Date.prototype.getTime.call({})	throw	TypeError: Type error
+America/Sao_Paulo	Date.prototype.getTime.call(1)	throw	TypeError: Type error
+America/Sao_Paulo	Date.prototype.toISOString.call({})	throw	TypeError: Type error
+America/Sao_Paulo	Date.prototype.setTime.call({}, 1)	throw	TypeError: Type error
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toString()	string	"Thu Feb 29 2024 20:05:09 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(0).toString()	string	"Wed Dec 31 1969 21:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toDateString()	string	"Thu Feb 29 2024"
+America/Sao_Paulo	new Date(0).toDateString()	string	"Wed Dec 31 1969"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toTimeString()	string	"20:05:09 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(0).toTimeString()	string	"21:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toISOString()	string	"2024-02-29T23:05:09.007Z"
+America/Sao_Paulo	new Date(0).toISOString()	string	"1970-01-01T00:00:00.000Z"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toJSON()	string	"2024-02-29T23:05:09.007Z"
+America/Sao_Paulo	new Date(0).toJSON()	string	"1970-01-01T00:00:00.000Z"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toUTCString()	string	"Thu, 29 Feb 2024 23:05:09 GMT"
+America/Sao_Paulo	new Date(0).toUTCString()	string	"Thu, 01 Jan 1970 00:00:00 GMT"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toGMTString()	string	"Thu, 29 Feb 2024 23:05:09 GMT"
+America/Sao_Paulo	new Date(0).toGMTString()	string	"Thu, 01 Jan 1970 00:00:00 GMT"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toJSON(1)	string	"2024-02-29T23:05:09.007Z"
+America/Sao_Paulo	Date.prototype.toJSON.call({ toISOString() { return 'x' } })	string	"x"
+America/Sao_Paulo	Date.prototype.toJSON.call({ valueOf() { return NaN }, toISOString() { return 'x' } })	object	null
+America/Sao_Paulo	Date.prototype.toJSON.call({ valueOf() { return 1 } })	throw	TypeError: toISOString is not a function
+America/Sao_Paulo	Date.prototype.toJSON.call({ valueOf() { return 1 }, toISOString() { return 'ok' } })	string	"ok"
+America/Sao_Paulo	new Date(2024, 0, 1, 0, 0, 0, 5).toString()	string	"Mon Jan 01 2024 00:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(2024, 6, 1, 15, 4, 5).toString()	string	"Mon Jul 01 2024 15:04:05 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(2024, 6, 1, 15, 4, 5).toTimeString()	string	"15:04:05 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(2024, 6, 1, 15, 4, 5).toUTCString()	string	"Mon, 01 Jul 2024 18:04:05 GMT"
+America/Sao_Paulo	new Date(2024, 6, 1, 15, 4, 5).toLocaleString()	string	"7/1/2024, 3:04:05 PM"
+America/Sao_Paulo	new Date(2024, 0, 1, 12, 0, 0).toLocaleTimeString()	string	"12:00:00 PM"
+America/Sao_Paulo	new Date(2024, 0, 1, 12, 0, 0).toLocaleDateString()	string	"1/1/2024"
+America/Sao_Paulo	new Date(5, 0, 1).toString()	string	"Sun Jan 01 1905 00:00:00 GMT-0306 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(2024, 0, 1).toDateString()	string	"Mon Jan 01 2024"
+America/Sao_Paulo	String(new Date(0))	string	"Wed Dec 31 1969 21:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(0) + ''	string	"Wed Dec 31 1969 21:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	`${new Date(0)}`	string	"Wed Dec 31 1969 21:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	'' + new Date(0)	string	"Wed Dec 31 1969 21:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("en-US")	string	"2/29/2024, 8:05:09 PM"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleDateString("en-US")	string	"2/29/2024"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleTimeString("en-US")	string	"8:05:09 PM"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("en-US", { timeZone: 'UTC' })	string	"2/29/2024, 11:05:09 PM"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleDateString("en-US", { timeZone: 'UTC' })	string	"2/29/2024"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleTimeString("en-US", { timeZone: 'UTC' })	string	"11:05:09 PM"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' })	string	"February 29, 2024"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleDateString("en-US", { weekday: 'long' })	string	"Thursday"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleDateString("en-US", { month: 'short' })	string	"Feb"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleTimeString("en-US", { hour12: false })	string	"20:05:09"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit' })	string	"08:05 PM"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("en-US", { timeZone: 'America/New_York' })	string	"2/29/2024, 6:05:09 PM"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("en-US", { timeZone: 'Asia/Tokyo', timeZoneName: 'short' })	string	"3/1/2024, 8:05:09 AM GMT+9"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("en-US", { dateStyle: 'full', timeStyle: 'long' })	string	"Thursday, February 29, 2024 at 8:05:09 PM GMT-3"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("en-US", { dateStyle: 'short' })	string	"2/29/24"
+America/Sao_Paulo	new Date(2019, 1, 17, 0, 30).toLocaleString("en-US")	string	"2/17/2019, 12:30:00 AM"
+America/Sao_Paulo	new Date(2018, 10, 4, 12).toLocaleString("en-US")	string	"11/4/2018, 12:00:00 PM"
+America/Sao_Paulo	new Date(0).toLocaleString("en-US")	string	"12/31/1969, 9:00:00 PM"
+America/Sao_Paulo	new Date(-62198755200000).toLocaleDateString("en-US", { timeZone: 'UTC' })	string	"1/1/2"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("pt-BR")	string	"29/02/2024, 20:05:09"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleDateString("pt-BR")	string	"29/02/2024"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleTimeString("pt-BR")	string	"20:05:09"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("pt-BR", { timeZone: 'UTC' })	string	"29/02/2024, 23:05:09"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleDateString("pt-BR", { timeZone: 'UTC' })	string	"29/02/2024"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleTimeString("pt-BR", { timeZone: 'UTC' })	string	"23:05:09"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleDateString("pt-BR", { year: 'numeric', month: 'long', day: 'numeric' })	string	"29 de fevereiro de 2024"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleDateString("pt-BR", { weekday: 'long' })	string	"quinta-feira"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleDateString("pt-BR", { month: 'short' })	string	"fev."
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleTimeString("pt-BR", { hour12: false })	string	"20:05:09"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })	string	"20:05"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("pt-BR", { timeZone: 'America/New_York' })	string	"29/02/2024, 18:05:09"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("pt-BR", { timeZone: 'Asia/Tokyo', timeZoneName: 'short' })	string	"01/03/2024, 8:05:09 GMT+9"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("pt-BR", { dateStyle: 'full', timeStyle: 'long' })	string	"quinta-feira, 29 de fevereiro de 2024 às 20:05:09 BRT"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("pt-BR", { dateStyle: 'short' })	string	"29/02/2024"
+America/Sao_Paulo	new Date(2019, 1, 17, 0, 30).toLocaleString("pt-BR")	string	"17/02/2019, 00:30:00"
+America/Sao_Paulo	new Date(2018, 10, 4, 12).toLocaleString("pt-BR")	string	"04/11/2018, 12:00:00"
+America/Sao_Paulo	new Date(0).toLocaleString("pt-BR")	string	"31/12/1969, 21:00:00"
+America/Sao_Paulo	new Date(-62198755200000).toLocaleDateString("pt-BR", { timeZone: 'UTC' })	string	"01/01/2"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString()	string	"2/29/2024, 8:05:09 PM"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleDateString()	string	"2/29/2024"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleTimeString()	string	"8:05:09 PM"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString(undefined)	string	"2/29/2024, 8:05:09 PM"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString('xx-invalid-locale-zzzzzzzzzz')	throw	RangeError: invalid language tag: xx-invalid-locale-zzzzzzzzzz
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString('en-US', { timeZone: 'Nowhere/Land' })	throw	RangeError: invalid time zone: Nowhere/Land
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d[Symbol.toPrimitive]('number')	number	1709247909007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d[Symbol.toPrimitive]('string')	string	"Thu Feb 29 2024 20:05:09 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d[Symbol.toPrimitive]('default')	string	"Thu Feb 29 2024 20:05:09 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d[Symbol.toPrimitive]('bogus')	throw	TypeError: Expected primitive hint to match one of 'default', 'number', 'string'.
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d[Symbol.toPrimitive]()	throw	TypeError: Date.prototype[Symbol.toPrimitive] expected a first argument.
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d[Symbol.toPrimitive](1)	throw	TypeError: Primitive hint is not a string.
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); +d	number	1709247909007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d - 0	number	1709247909007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d + 0	string	"Thu Feb 29 2024 20:05:09 GMT-0300 (Brasilia Standard Time)0"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d + 1 === d.toString() + '1'	boolean	true
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d * 1	number	1709247909007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d > new Date(0)	boolean	true
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d == d.getTime()	boolean	false
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d == d.toString()	boolean	true
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d - new Date(0)	number	1709247909007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); Number(d)	number	1709247909007
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); String(d) === d.toString()	boolean	true
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); `${d}` === d.toString()	boolean	true
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.valueOf() === d.getTime()	boolean	true
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); Object.prototype.valueOf.call(d) === d	boolean	true
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); typeof (d + '')	string	"string"
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toJSON() === d.toISOString()	boolean	true
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); JSON.stringify(d)	string	"\"2024-02-29T23:05:09.007Z\""
+America/Sao_Paulo	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); JSON.stringify([d])	string	"[\"2024-02-29T23:05:09.007Z\"]"
+America/Sao_Paulo	var o = { [Symbol.toPrimitive]: Date.prototype[Symbol.toPrimitive] }; o[Symbol.toPrimitive]('number')	string	"[object Object]"
+America/Sao_Paulo	Date.prototype[Symbol.toPrimitive].call({ valueOf() { return 7 }, toString() { return 's' } }, 'number')	number	7
+America/Sao_Paulo	Date.prototype[Symbol.toPrimitive].call({ valueOf() { return 7 }, toString() { return 's' } }, 'string')	string	"s"
+America/Sao_Paulo	Date.prototype[Symbol.toPrimitive].call({ valueOf() { return 7 }, toString() { return 's' } }, 'default')	string	"s"
+America/Sao_Paulo	Date.prototype[Symbol.toPrimitive].call(1, 'number')	throw	TypeError: Date.prototype[Symbol.toPrimitive] expected |this| to be an object.
+America/Sao_Paulo	Date.prototype[Symbol.toPrimitive].call({}, 'x')	throw	TypeError: Expected primitive hint to match one of 'default', 'number', 'string'.
+America/Sao_Paulo	Object.getOwnPropertyDescriptor(Date.prototype, Symbol.toPrimitive).writable	boolean	false
+America/Sao_Paulo	Object.getOwnPropertyDescriptor(Date.prototype, Symbol.toPrimitive).configurable	boolean	true
+America/Sao_Paulo	Date.prototype.valueOf.call({})	throw	TypeError: Type error
+America/Sao_Paulo	var s = new Date(5); s.valueOf = function () { return 9 }; +s	number	9
+America/Sao_Paulo	var s = new Date(5); s.toString = function () { return 'z' }; s + ''	string	"z"
+America/Sao_Paulo	new Date(0) < new Date(1)	boolean	true
+America/Sao_Paulo	new Date(5) == new Date(5)	boolean	false
+America/Sao_Paulo	new Date(5) <= new Date(5)	boolean	true
+America/Sao_Paulo	Math.max(new Date(1), new Date(2))	number	2
+America/Sao_Paulo	new Date(2018, 1, 17, 23, 30).getTimezoneOffset()	number	120
+America/Sao_Paulo	new Date(2018, 1, 18, 0, 30).getTimezoneOffset()	number	180
+America/Sao_Paulo	new Date(2018, 1, 18, 1, 30).getTimezoneOffset()	number	180
+America/Sao_Paulo	new Date(2018, 1, 18, 2, 0).getTimezoneOffset()	number	180
+America/Sao_Paulo	new Date(2018, 10, 3, 23, 59).getTimezoneOffset()	number	180
+America/Sao_Paulo	new Date(2018, 10, 4, 0, 0).getTimezoneOffset()	number	120
+America/Sao_Paulo	new Date(2018, 10, 4, 0, 30).getHours()	number	1
+America/Sao_Paulo	new Date(2018, 10, 4, 1, 0).getHours()	number	1
+America/Sao_Paulo	new Date(2018, 10, 4, 1, 30).toString()	string	"Sun Nov 04 2018 01:30:00 GMT-0200 (Brasilia Summer Time)"
+America/Sao_Paulo	new Date(2018, 10, 4, 2, 0).toString()	string	"Sun Nov 04 2018 02:00:00 GMT-0200 (Brasilia Summer Time)"
+America/Sao_Paulo	new Date(2019, 1, 16, 23, 30).toString()	string	"Sat Feb 16 2019 23:30:00 GMT-0200 (Brasilia Summer Time)"
+America/Sao_Paulo	new Date(2019, 1, 16, 23, 59, 59).toString()	string	"Sat Feb 16 2019 23:59:59 GMT-0200 (Brasilia Summer Time)"
+America/Sao_Paulo	new Date(2019, 1, 17, 0, 0).toString()	string	"Sun Feb 17 2019 00:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(2019, 1, 17, 0, 30).toString()	string	"Sun Feb 17 2019 00:30:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(2019, 1, 17, 1, 0).toString()	string	"Sun Feb 17 2019 01:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(2019, 1, 17, 1, 30).toString()	string	"Sun Feb 17 2019 01:30:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(2019, 1, 17, 2, 0).toString()	string	"Sun Feb 17 2019 02:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(2019, 1, 17, 23, 0).toString()	string	"Sun Feb 17 2019 23:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(2019, 1, 18, 0, 0).toString()	string	"Mon Feb 18 2019 00:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(2019, 1, 18, 0, 0).toISOString()	string	"2019-02-18T03:00:00.000Z"
+America/Sao_Paulo	new Date(2019, 1, 17, 0, 0).toISOString()	string	"2019-02-17T03:00:00.000Z"
+America/Sao_Paulo	new Date(2019, 1, 17, 0, 0, 0).getTime()	number	1550372400000
+America/Sao_Paulo	new Date(2019, 1, 17, 1, 0, 0).getTime()	number	1550376000000
+America/Sao_Paulo	new Date(Date.UTC(2019, 1, 17, 1, 59, 59)).toString()	string	"Sat Feb 16 2019 23:59:59 GMT-0200 (Brasilia Summer Time)"
+America/Sao_Paulo	new Date(Date.UTC(2019, 1, 17, 2, 0, 0)).toString()	string	"Sat Feb 16 2019 23:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(Date.UTC(2019, 1, 17, 2, 0, 0)).getHours()	number	23
+America/Sao_Paulo	new Date(Date.UTC(2019, 1, 17, 1, 59, 59)).getHours()	number	23
+America/Sao_Paulo	new Date(Date.UTC(2018, 10, 4, 2, 59, 59)).toString()	string	"Sat Nov 03 2018 23:59:59 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(Date.UTC(2018, 10, 4, 3, 0, 0)).toString()	string	"Sun Nov 04 2018 01:00:00 GMT-0200 (Brasilia Summer Time)"
+America/Sao_Paulo	new Date(Date.UTC(2018, 10, 4, 3, 0, 0)).getHours()	number	1
+America/Sao_Paulo	new Date(Date.UTC(2018, 10, 4, 2, 59, 59)).getTimezoneOffset()	number	180
+America/Sao_Paulo	new Date(Date.UTC(2018, 10, 4, 3, 0, 0)).getTimezoneOffset()	number	120
+America/Sao_Paulo	new Date(Date.UTC(2018, 1, 18, 1, 59, 59)).getTimezoneOffset()	number	120
+America/Sao_Paulo	new Date(Date.UTC(2018, 1, 18, 2, 0, 0)).getTimezoneOffset()	number	180
+America/Sao_Paulo	new Date(Date.UTC(2019, 0, 15, 12)).toTimeString()	string	"10:00:00 GMT-0200 (Brasilia Summer Time)"
+America/Sao_Paulo	new Date(Date.UTC(2019, 5, 15, 12)).toTimeString()	string	"09:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(Date.UTC(2018, 11, 15, 12)).toTimeString()	string	"10:00:00 GMT-0200 (Brasilia Summer Time)"
+America/Sao_Paulo	Date.parse('2019-02-17T00:00:00')	number	1550372400000
+America/Sao_Paulo	Date.parse('2019-02-16T23:59:59')	number	1550368799000
+America/Sao_Paulo	Date.parse('2018-11-04T00:00:00')	number	1541300400000
+America/Sao_Paulo	Date.parse('2018-11-04T01:00:00')	number	1541300400000
+America/Sao_Paulo	Date.parse('Nov 4 2018 00:30')	number	1541302200000
+America/Sao_Paulo	Date.parse('Feb 17 2019 00:30')	number	1550374200000
+America/Sao_Paulo	Date.parse('Feb 17 2019 01:30')	number	1550377800000
+America/Sao_Paulo	Date.parse('Feb 17 2019 02:00')	number	1550379600000
+America/Sao_Paulo	new Date(2019, 1, 17).setHours(1)	number	1550376000000
+America/Sao_Paulo	new Date(2019, 1, 17).setHours(0, 30)	number	1550374200000
+America/Sao_Paulo	new Date(2018, 10, 4).setHours(0, 30)	number	1541302200000
+America/Sao_Paulo	new Date(2018, 10, 4).setHours(1)	number	1541300400000
+America/Sao_Paulo	new Date(2018, 10, 4).setHours(2)	number	1541304000000
+America/Sao_Paulo	new Date(2018, 10, 3, 23, 30).setMinutes(90)	number	1541302200000
+America/Sao_Paulo	new Date(2019, 1, 16, 23, 30).setMinutes(90)	number	1550374200000
+America/Sao_Paulo	new Date(2019, 1, 16, 12).setDate(17)	number	1550415600000
+America/Sao_Paulo	new Date(2019, 1, 16, 12).setDate(18)	number	1550502000000
+America/Sao_Paulo	new Date(2019, 1, 17, 12).getDate() - new Date(2019, 1, 16, 12).getDate()	number	1
+America/Sao_Paulo	(new Date(2019, 1, 18) - new Date(2019, 1, 17)) / 3600000	number	24
+America/Sao_Paulo	(new Date(2018, 10, 5) - new Date(2018, 10, 4)) / 3600000	number	23
+America/Sao_Paulo	(new Date(2018, 10, 4, 12) - new Date(2018, 10, 3, 12)) / 3600000	number	23
+America/Sao_Paulo	(new Date(2019, 1, 17, 12) - new Date(2019, 1, 16, 12)) / 3600000	number	25
+America/Sao_Paulo	new Date(2019, 1, 17, 0, 0).toLocaleString('pt-BR')	string	"17/02/2019, 00:00:00"
+America/Sao_Paulo	new Date(2018, 10, 4, 12).toLocaleTimeString('en-US')	string	"12:00:00 PM"
+America/Sao_Paulo	new Date(2019, 0, 1).toString()	string	"Tue Jan 01 2019 00:00:00 GMT-0200 (Brasilia Summer Time)"
+America/Sao_Paulo	new Date(2019, 6, 1).toString()	string	"Mon Jul 01 2019 00:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(2017, 0, 1).toString()	string	"Sun Jan 01 2017 00:00:00 GMT-0200 (Brasilia Summer Time)"
+America/Sao_Paulo	new Date(2017, 9, 15).toString()	string	"Sun Oct 15 2017 01:00:00 GMT-0200 (Brasilia Summer Time)"
+America/Sao_Paulo	new Date(2017, 9, 16).toString()	string	"Mon Oct 16 2017 00:00:00 GMT-0200 (Brasilia Summer Time)"
+America/Sao_Paulo	new Date(2017, 9, 15, 0).getTimezoneOffset()	number	120
+America/Sao_Paulo	new Date(1985, 0, 1).toString()	string	"Tue Jan 01 1985 00:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(1970, 0, 1).toString()	string	"Thu Jan 01 1970 00:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(2024, 0, 1).toString()	string	"Mon Jan 01 2024 00:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(2064, 0, 1).toString()	string	"Tue Jan 01 2064 00:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(2037, 0, 1).toString()	string	"Thu Jan 01 2037 00:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	new Date(2038, 0, 1).toString()	string	"Fri Jan 01 2038 00:00:00 GMT-0300 (Brasilia Standard Time)"
+America/Sao_Paulo	Object.getOwnPropertyNames(Date.prototype).length	number	48
+America/Sao_Paulo	Object.getOwnPropertyNames(Date).sort().join()	string	"UTC,length,name,now,parse,prototype"
+America/Sao_Paulo	Object.getOwnPropertyDescriptor(Date, 'prototype').writable	boolean	false
+America/Sao_Paulo	Date.prototype.toString.name	string	"toString"
+America/Sao_Paulo	Date.prototype.toGMTString.name	string	"toUTCString"
+America/Sao_Paulo	Date.prototype.getYear.name	string	"getYear"
+America/Sao_Paulo	Object.getPrototypeOf(Date.prototype) === Object.prototype	boolean	true
+America/Sao_Paulo	Date.prototype.getTime.call(Date.prototype)	throw	TypeError: Type error
+America/Sao_Paulo	class D2 extends Date {}; new D2(5).getTime()	number	5
+America/Sao_Paulo	class D2 extends Date {}; new D2(5) instanceof Date	boolean	true
+America/Sao_Paulo	class D2 extends Date {}; Object.prototype.toString.call(new D2(5))	string	"[object Date]"
+America/Sao_Paulo	Reflect.construct(Date, [5], Object).getTime ? 1 : 0	number	0
+America/Sao_Paulo	Reflect.construct(Date, [5], Object) instanceof Date	boolean	false
+America/Sao_Paulo	Date.call(new Date(0)).length > 10	boolean	true
+UTC	new Date(0).getTime()	number	0
+UTC	new Date(1e12).getTime()	number	1000000000000
+UTC	new Date(-1).getTime()	number	-1
+UTC	new Date(8.64e15).getTime()	number	8640000000000000
+UTC	new Date(8.64e15 + 1).getTime()	number	NaN
+UTC	new Date(-8.64e15).getTime()	number	-8640000000000000
+UTC	new Date(-8.64e15 - 1).getTime()	number	NaN
+UTC	new Date(1.9).getTime()	number	1
+UTC	new Date(-1.9).getTime()	number	-1
+UTC	new Date(NaN).getTime()	number	NaN
+UTC	new Date(Infinity).getTime()	number	NaN
+UTC	new Date(undefined).getTime()	number	NaN
+UTC	new Date(null).getTime()	number	0
+UTC	new Date(true).getTime()	number	1
+UTC	new Date(false).getTime()	number	0
+UTC	new Date('').getTime()	number	NaN
+UTC	new Date('2024-02-29').getTime()	number	1709164800000
+UTC	new Date('2024-02-29T12:00:00Z').getTime()	number	1709208000000
+UTC	new Date(new Date(123456789)).getTime()	number	123456789
+UTC	new Date({ valueOf() { return 42 } }).getTime()	number	42
+UTC	new Date({ toString() { return '2000-01-01T00:00:00Z' } }).getTime()	number	946684800000
+UTC	new Date([2020]).getTime()	number	1577836800000
+UTC	new Date(2024, 0).getTime()	number	1704067200000
+UTC	new Date(2024, 0, 1).getTime()	number	1704067200000
+UTC	new Date(2024, 0, 1, 12).getTime()	number	1704110400000
+UTC	new Date(2024, 0, 1, 12, 30).getTime()	number	1704112200000
+UTC	new Date(2024, 0, 1, 12, 30, 45).getTime()	number	1704112245000
+UTC	new Date(2024, 0, 1, 12, 30, 45, 678).getTime()	number	1704112245678
+UTC	new Date(99, 0).getFullYear()	number	1999
+UTC	new Date(0, 0).getFullYear()	number	1900
+UTC	new Date(100, 0).getFullYear()	number	100
+UTC	new Date(-1, 0).getFullYear()	number	-1
+UTC	new Date(2024, 12, 1).getTime()	number	1735689600000
+UTC	new Date(2024, -1, 1).getTime()	number	1701388800000
+UTC	new Date(2024, 0, 0).getTime()	number	1703980800000
+UTC	new Date(2024, 0, 32).getTime()	number	1706745600000
+UTC	new Date(2024, 0, 1, 25).getTime()	number	1704157200000
+UTC	new Date(2024, 0, 1, 0, 61).getTime()	number	1704070860000
+UTC	new Date(2024, 0, 1, 0, 0, 61).getTime()	number	1704067261000
+UTC	new Date(2024, 0, 1, 0, 0, 0, 1001).getTime()	number	1704067201001
+UTC	new Date(2024, NaN).getTime()	number	NaN
+UTC	new Date(2024, 0, Infinity).getTime()	number	NaN
+UTC	new Date(275760, 8, 13).getTime()	number	8640000000000000
+UTC	new Date(275760, 8, 14).getTime()	number	NaN
+UTC	new Date(-271821, 3, 20).getTime()	number	-8640000000000000
+UTC	new Date(-271821, 3, 19).getTime()	number	NaN
+UTC	typeof Date()	string	"string"
+UTC	Date(0).length > 20	boolean	true
+UTC	typeof Date.now()	string	"number"
+UTC	Date.now() > 1.7e12	boolean	true
+UTC	Date.length	number	7
+UTC	Date.UTC.length	number	7
+UTC	Date.prototype.constructor === Date	boolean	true
+UTC	Object.prototype.toString.call(new Date(0))	string	"[object Date]"
+UTC	new Date(0) instanceof Date	boolean	true
+UTC	Date.prototype.setHours.length	number	4
+UTC	Date.prototype.setMinutes.length	number	3
+UTC	Date.prototype.setFullYear.length	number	3
+UTC	Date.prototype.toJSON.length	number	1
+UTC	Date.prototype[Symbol.toPrimitive].name	string	"[Symbol.toPrimitive]"
+UTC	Date.prototype[Symbol.toPrimitive].length	number	1
+UTC	Date.name	string	"Date"
+UTC	Date.parse("2024")	number	1704067200000
+UTC	Date.parse("2024-02")	number	1706745600000
+UTC	Date.parse("2024-02-29")	number	1709164800000
+UTC	Date.parse("2024-02-30")	number	1709251200000
+UTC	Date.parse("2023-02-29")	number	1677628800000
+UTC	Date.parse("2024-13-01")	number	NaN
+UTC	Date.parse("2024-00-10")	number	NaN
+UTC	Date.parse("2024-01-00")	number	NaN
+UTC	Date.parse("2024-01-32")	number	NaN
+UTC	Date.parse("2024-02-29T10")	number	NaN
+UTC	Date.parse("2024-02-29T10:30")	number	1709202600000
+UTC	Date.parse("2024-02-29T10:30:45")	number	1709202645000
+UTC	Date.parse("2024-02-29T10:30:45.1")	number	1709202645100
+UTC	Date.parse("2024-02-29T10:30:45.12")	number	1709202645120
+UTC	Date.parse("2024-02-29T10:30:45.123")	number	1709202645123
+UTC	Date.parse("2024-02-29T10:30:45.123456")	number	1709202645123
+UTC	Date.parse("2024-02-29T10:30:45Z")	number	1709202645000
+UTC	Date.parse("2024-02-29T10:30:45.123Z")	number	1709202645123
+UTC	Date.parse("2024-02-29T10:30:45+01:00")	number	1709199045000
+UTC	Date.parse("2024-02-29T10:30:45-03:00")	number	1709213445000
+UTC	Date.parse("2024-02-29T10:30:45+0100")	number	1709199045000
+UTC	Date.parse("2024-02-29T10:30:45+01")	number	NaN
+UTC	Date.parse("2024-02-29T24:00:00Z")	number	1709251200000
+UTC	Date.parse("2024-02-29T24:00:01Z")	number	NaN
+UTC	Date.parse("2024-02-29T25:00:00Z")	number	NaN
+UTC	Date.parse("2024-02-29T10:60:00Z")	number	NaN
+UTC	Date.parse("2024-02-29T10:30:60Z")	number	NaN
+UTC	Date.parse("2024-02-29 10:30:45")	number	1709202645000
+UTC	Date.parse("2024-02-29 10:30:45Z")	number	1709202645000
+UTC	Date.parse("2024-02-29t10:30:45z")	number	1709202645000
+UTC	Date.parse("+002024-02-29T00:00:00Z")	number	1709164800000
+UTC	Date.parse("-000001-01-01T00:00:00Z")	number	-62198755200000
+UTC	Date.parse("-000000-01-01T00:00:00Z")	number	NaN
+UTC	Date.parse("+275760-09-13T00:00:00.000Z")	number	8640000000000000
+UTC	Date.parse("+275760-09-13T00:00:00.001Z")	number	NaN
+UTC	Date.parse("-271821-04-20T00:00:00.000Z")	number	-8640000000000000
+UTC	Date.parse("-271821-04-19T23:59:59.999Z")	number	NaN
+UTC	Date.parse("0000-01-01T00:00:00Z")	number	-62167219200000
+UTC	Date.parse("0001-01-01T00:00:00Z")	number	-62135596800000
+UTC	Date.parse("1970-01-01T00:00:00Z")	number	0
+UTC	Date.parse("1969-12-31T23:59:59.999Z")	number	-1
+UTC	Date.parse("1900-01-01")	number	-2208988800000
+UTC	Date.parse("1900-01-01T00:00:00")	number	-2208988800000
+UTC	Date.parse("2018-11-04T00:00:00")	number	1541289600000
+UTC	Date.parse("2018-11-04T01:00:00")	number	1541293200000
+UTC	Date.parse("2019-02-16T23:59:59")	number	1550361599000
+UTC	Date.parse("2019-02-17T00:00:00")	number	1550361600000
+UTC	Date.parse("2019-02-17T01:00:00")	number	1550365200000
+UTC	Date.parse("2024-02-29T")	number	NaN
+UTC	Date.parse("T10:30")	number	NaN
+UTC	Date.parse("2024-2-9")	number	1707436800000
+UTC	Date.parse("2024-02-9")	number	1707436800000
+UTC	Date.parse("24-02-09")	number	NaN
+UTC	Date.parse("garbage")	number	NaN
+UTC	Date.parse("")	number	NaN
+UTC	Date.parse(" ")	number	NaN
+UTC	Date.parse("2024-02-29Zjunk")	number	NaN
+UTC	new Date(NaN).setYear(99)	number	915148800000
+UTC	new Date(NaN).getYear()	number	NaN
+UTC	new Date(0).setYear(100)	number	-59011459200000
+UTC	new Date(0).setYear(NaN)	number	NaN
+UTC	new Date(0).setYear(1899)	number	-2240524800000
+UTC	new Date(0).getYear()	number	70
+UTC	new Date(2000, 0).getYear()	number	100
+UTC	Date.UTC(2020)	number	1577836800000
+UTC	Date.UTC(2020, 0)	number	1577836800000
+UTC	Date.UTC(99)	number	915148800000
+UTC	Date.UTC(NaN)	number	NaN
+UTC	Date.UTC(2020, NaN)	number	NaN
+UTC	new Date(0).setMonth(NaN)	number	NaN
+UTC	new Date(0).setUTCMonth(NaN)	number	NaN
+UTC	new Date(0).setHours()	number	NaN
+UTC	new Date(0).setDate(NaN)	number	NaN
+UTC	new Date(NaN).setFullYear(2020)	number	1577836800000
+UTC	new Date(NaN).setUTCFullYear(2020, 1, 1)	number	1580515200000
+UTC	new Date(NaN).setMonth(1)	number	NaN
+UTC	new Date(NaN).setHours(1)	number	NaN
+UTC	new Date(NaN).setMilliseconds(1)	number	NaN
+UTC	new Date(0).setTime()	number	NaN
+UTC	new Date(0).setMinutes(1, NaN)	number	NaN
+UTC	new Date(-1e8 * 864e5).toUTCString()	string	"Tue, 20 Apr -271821 00:00:00 GMT"
+UTC	new Date(-62198755200000).toUTCString()	string	"Fri, 01 Jan -0001 00:00:00 GMT"
+UTC	new Date(-62198755200000).toDateString()	string	"Fri Jan 01 -0001"
+UTC	new Date(8.64e15).toUTCString()	string	"Sat, 13 Sep 275760 00:00:00 GMT"
+UTC	new Date(NaN).toUTCString()	string	"Invalid Date"
+UTC	new Date(NaN).toDateString()	string	"Invalid Date"
+UTC	new Date(NaN).toLocaleDateString()	string	"Invalid Date"
+UTC	new Date(0).toLocaleDateString()	string	"1/1/1970"
+UTC	new Date(-62198755200000).toLocaleDateString()	string	"1/1/2"
+UTC	new Date(2e12).toUTCString()	string	"Wed, 18 May 2033 03:33:20 GMT"
+UTC	new Date(2e12).toLocaleDateString()	string	"5/18/2033"
+UTC	new Date(2e12).toDateString()	string	"Wed May 18 2033"
+UTC	Date.parse('1/2/2000')	number	946771200000
+UTC	Date.parse('2000/01/02')	number	946771200000
+UTC	Date.parse('12 Jan 2000 UT')	number	947635200000
+UTC	Date.parse('Jan 1 2000 10:00 PST')	number	946749600000
+UTC	Date.parse('Sat, 01 Jan 2000 00:00:00 GMT+0100')	number	946681200000
+UTC	Date.parse('1 January 2000')	number	946684800000
+UTC	Date.parse('January 1, 2000 12:00 AM')	number	946684800000
+UTC	Date.parse('2000')	number	946684800000
+UTC	Date.parse('99')	number	915148800000
+UTC	Date.parse('1/1/49')	number	2493072000000
+UTC	Date.parse('1/1/50')	number	-631152000000
+UTC	Date.parse('Jan 1 70')	number	0
+UTC	Date.parse('Thu Jan 01 1970 00:00:00 GMT+0000 (UTC)')	number	0
+UTC	Date.parse('2000-01-01 10:00')	number	946720800000
+UTC	Date.parse('2000-1-1')	number	946684800000
+UTC	Date.parse('Jan 32 2000')	number	NaN
+UTC	Date.parse('12:00 Jan 1 2000')	number	946728000000
+UTC	Date.parse('1 Jan 2000 24:00')	number	946771200000
+UTC	Date.parse('10:00 PM 1/1/2000')	number	946764000000
+UTC	Date.parse("Thu, 29 Feb 2024 23:05:09 GMT")	number	1709247909000
+UTC	Date.parse("Thu, 29 Feb 2024 23:05:09 +0000")	number	1709247909000
+UTC	Date.parse("Thu, 29 Feb 2024 20:05:09 -0300")	number	1709247909000
+UTC	Date.parse("Thu, 29 Feb 2024 23:05:09")	number	1709247909000
+UTC	Date.parse("29 Feb 2024")	number	1709164800000
+UTC	Date.parse("29 Feb 2024 10:00")	number	1709200800000
+UTC	Date.parse("29 Feb 2024 10:00 GMT+0200")	number	1709193600000
+UTC	Date.parse("Feb 29 2024")	number	1709164800000
+UTC	Date.parse("Feb 29, 2024")	number	1709164800000
+UTC	Date.parse("February 29, 2024")	number	1709164800000
+UTC	Date.parse("February 29, 2024 10:30:00")	number	1709202600000
+UTC	Date.parse("feb 29 2024")	number	1709164800000
+UTC	Date.parse("FEBRUARY 29 2024")	number	1709164800000
+UTC	Date.parse("Feb 30 2024")	number	1709251200000
+UTC	Date.parse("Feb 29 2023")	number	1677628800000
+UTC	Date.parse("Thu Feb 29 2024 20:05:09 GMT-0300 (Brasilia Standard Time)")	number	1709247909000
+UTC	Date.parse("Thu Feb 29 2024 20:05:09 GMT-0300")	number	1709247909000
+UTC	Date.parse("Thu Feb 29 2024 20:05:09 GMT+0000 (Coordinated Universal Time)")	number	1709237109000
+UTC	Date.parse("Thu Feb 29 2024")	number	1709164800000
+UTC	Date.parse("Thu Feb 29 2024 20:05:09")	number	1709237109000
+UTC	Date.parse("Fri Feb 29 2024")	number	1709164800000
+UTC	Date.parse("2024/02/29")	number	1709164800000
+UTC	Date.parse("2024/02/29 10:30")	number	1709202600000
+UTC	Date.parse("2/29/2024")	number	1709164800000
+UTC	Date.parse("02/29/2024")	number	1709164800000
+UTC	Date.parse("02/29/2024 10:30:45")	number	1709202645000
+UTC	Date.parse("02/29/2024 10:30:45 PM")	number	1709245845000
+UTC	Date.parse("02/29/2024 12:30 AM")	number	1709166600000
+UTC	Date.parse("02/29/2024 12:30 PM")	number	1709209800000
+UTC	Date.parse("13/01/2024")	number	NaN
+UTC	Date.parse("1/1/70")	number	0
+UTC	Date.parse("1/1/49")	number	2493072000000
+UTC	Date.parse("1/1/50")	number	-631152000000
+UTC	Date.parse("1/1/99")	number	915148800000
+UTC	Date.parse("1/1/100")	number	-59011459200000
+UTC	Date.parse("Jan 1 70")	number	0
+UTC	Date.parse("Jan 1 2000 00:00:00 UTC")	number	946684800000
+UTC	Date.parse("Jan 1 2000 00:00:00 GMT")	number	946684800000
+UTC	Date.parse("Jan 1 2000 00:00:00 Z")	number	946684800000
+UTC	Date.parse("Jan 1 2000 00:00:00 EST")	number	946702800000
+UTC	Date.parse("Jan 1 2000 00:00:00 EDT")	number	946699200000
+UTC	Date.parse("Jan 1 2000 00:00:00 PST")	number	946713600000
+UTC	Date.parse("Jan 1 2000 00:00:00 PDT")	number	946710000000
+UTC	Date.parse("Jan 1 2000 00:00:00 CST")	number	946706400000
+UTC	Date.parse("Jan 1 2000 00:00:00 MST")	number	946710000000
+UTC	Date.parse("Jan 1 2000 00:00:00 +05:30")	number	946665000000
+UTC	Date.parse("Jan 1 2000 00:00:00 UTC+3")	number	946674000000
+UTC	Date.parse("Jan 1 2000 24:00:00")	number	946771200000
+UTC	Date.parse("Jan 1 2000 10:30:45.5")	number	946722645500
+UTC	Date.parse("1 January 2000")	number	946684800000
+UTC	Date.parse("1 Jan 2000 (comment) 10:00")	number	946720800000
+UTC	Date.parse("Sat, 01 Jan 2000 00:00:00 GMT")	number	946684800000
+UTC	Date.parse("Sat, 01 Jan 2000 00:00:00 UT")	number	946684800000
+UTC	Date.parse("Sat, 01 Jan 2000 00:00:00 gmt")	number	946684800000
+UTC	Date.parse("Jan 2000")	number	946684800000
+UTC	Date.parse("2000 Jan 1")	number	946684800000
+UTC	Date.parse("Tuesday, March 5, 2019")	number	1551744000000
+UTC	Date.parse("Mar 10 2019")	number	1552176000000
+UTC	Date.parse("12:00")	number	NaN
+UTC	Date.parse("10:30:45")	number	NaN
+UTC	Date.parse("Mon")	number	NaN
+UTC	Date.parse("now")	number	NaN
+UTC	Date.parse("today")	number	NaN
+UTC	Date.parse("1e3")	number	NaN
+UTC	Date.parse("12345")	number	327403382400000
+UTC	Date.parse("-1")	number	978307200000
+UTC	Date.parse("0")	number	946684800000
+UTC	Date.parse("99999999999999999999")	number	NaN
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); Date.parse(d.toString()) === Math.floor(d.getTime() / 1000) * 1000	boolean	true
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); Date.parse(d.toUTCString()) === Math.floor(d.getTime() / 1000) * 1000	boolean	true
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); Date.parse(d.toISOString()) === d.getTime()	boolean	true
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); Date.parse(d.toDateString()) === new Date(2024, 1, 29).getTime()	boolean	true
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); new Date(d.toString()).getTime()	number	1709247909000
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); new Date(d.toLocaleString('en-US')).getTime()	number	1709247909000
+UTC	new Date('2024-02-29T10:00:00').toISOString()	string	"2024-02-29T10:00:00.000Z"
+UTC	new Date('2024-02-29').toISOString()	string	"2024-02-29T00:00:00.000Z"
+UTC	new Date('Feb 29 2024').toISOString()	string	"2024-02-29T00:00:00.000Z"
+UTC	new Date('invalid').toISOString()	throw	RangeError: Invalid Date
+UTC	new Date(NaN).toJSON()	object	null
+UTC	new Date(NaN).toString()	string	"Invalid Date"
+UTC	new Date(NaN).toTimeString()	string	"Invalid Date"
+UTC	new Date(NaN).toLocaleString()	string	"Invalid Date"
+UTC	new Date(NaN).toLocaleDateString('en-US')	string	"Invalid Date"
+UTC	new Date(NaN).toLocaleTimeString('pt-BR')	string	"Invalid Date"
+UTC	String(new Date(NaN))	string	"Invalid Date"
+UTC	new Date(NaN).getFullYear()	number	NaN
+UTC	new Date(NaN).getTimezoneOffset()	number	NaN
+UTC	new Date(NaN).valueOf()	number	NaN
+UTC	isNaN(new Date('x'))	boolean	true
+UTC	new Date('x') + 1	string	"Invalid Date1"
+UTC	JSON.stringify({ a: new Date(NaN) })	string	"{\"a\":null}"
+UTC	JSON.stringify({ a: new Date(0) })	string	"{\"a\":\"1970-01-01T00:00:00.000Z\"}"
+UTC	new Date(-62198755200000).toISOString()	string	"-000001-01-01T00:00:00.000Z"
+UTC	new Date(-62198755200000).toString()	string	"Fri Jan 01 -0001 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(-62167219200000).toISOString()	string	"0000-01-01T00:00:00.000Z"
+UTC	new Date(-62167219200000).toString()	string	"Sat Jan 01 0000 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(-62135596800000).toISOString()	string	"0001-01-01T00:00:00.000Z"
+UTC	new Date(-62135596800000).toString()	string	"Mon Jan 01 0001 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(-100000000000000).toISOString()	string	"-001199-02-15T14:13:20.000Z"
+UTC	new Date(-100000000000000).toString()	string	"Thu Feb 15 -1199 14:13:20 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(-8640000000000000).toISOString()	string	"-271821-04-20T00:00:00.000Z"
+UTC	new Date(-8640000000000000).toString()	string	"Tue Apr 20 -271821 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(8640000000000000).toISOString()	string	"+275760-09-13T00:00:00.000Z"
+UTC	new Date(8640000000000000).toString()	string	"Sat Sep 13 275760 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(253402300800000).toISOString()	string	"+010000-01-01T00:00:00.000Z"
+UTC	new Date(253402300800000).toString()	string	"Sat Jan 01 10000 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(253402300799999).toISOString()	string	"9999-12-31T23:59:59.999Z"
+UTC	new Date(253402300799999).toString()	string	"Fri Dec 31 9999 23:59:59 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(100000000000000).toISOString()	string	"5138-11-16T09:46:40.000Z"
+UTC	new Date(100000000000000).toString()	string	"Wed Nov 16 5138 09:46:40 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(-30000000000000).toISOString()	string	"1019-05-04T18:40:00.000Z"
+UTC	new Date(-30000000000000).toString()	string	"Tue May 04 1019 18:40:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(-2177452800000).toISOString()	string	"1901-01-01T00:00:00.000Z"
+UTC	new Date(-2177452800000).toString()	string	"Tue Jan 01 1901 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(-62198755200000).getUTCFullYear()	number	-1
+UTC	new Date(-8.64e15).toUTCString()	string	"Tue, 20 Apr -271821 00:00:00 GMT"
+UTC	new Date(8.64e15).toDateString()	string	"Sat Sep 13 275760"
+UTC	new Date(-8.64e15).toDateString()	string	"Tue Apr 20 -271821"
+UTC	new Date(-8.64e15).toTimeString()	string	"00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(8.64e15).getFullYear()	number	275760
+UTC	new Date(-8.64e15).getFullYear()	number	-271821
+UTC	new Date(-8.64e15).getDay()	number	2
+UTC	new Date(8.64e15).getTimezoneOffset()	number	0
+UTC	new Date(Date.UTC(-1, 0, 1)).toISOString()	string	"-000001-01-01T00:00:00.000Z"
+UTC	new Date(Date.UTC(0, 0, 1)).toISOString()	string	"1900-01-01T00:00:00.000Z"
+UTC	new Date(Date.UTC(10000, 0, 1)).toISOString()	string	"+010000-01-01T00:00:00.000Z"
+UTC	new Date(Date.UTC(10000, 0, 1)).toUTCString()	string	"Sat, 01 Jan 10000 00:00:00 GMT"
+UTC	new Date(Date.UTC(10000, 0, 1)).toString()	string	"Sat Jan 01 10000 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(Date.UTC(10000, 0, 1)).toJSON()	string	"+010000-01-01T00:00:00.000Z"
+UTC	new Date(Date.UTC(-10000, 0, 1)).toString()	string	"Sat Jan 01 -10000 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(Date.UTC(-10000, 0, 1)).toISOString()	string	"-010000-01-01T00:00:00.000Z"
+UTC	new Date(Date.UTC(5, 0, 1)).toISOString()	string	"1905-01-01T00:00:00.000Z"
+UTC	new Date(Date.UTC(5, 0, 1)).getUTCFullYear()	number	1905
+UTC	new Date(Date.UTC(275760, 8, 13)).toISOString()	string	"+275760-09-13T00:00:00.000Z"
+UTC	new Date(Date.UTC(275760, 8, 13, 0, 0, 0, 1)).getTime()	number	NaN
+UTC	new Date(Date.UTC(-271821, 3, 20)).getTime()	number	-8640000000000000
+UTC	Date.UTC()	number	NaN
+UTC	Date.UTC(2024)	number	1704067200000
+UTC	Date.UTC(2024, 1)	number	1706745600000
+UTC	Date.UTC(2024, 1, 29)	number	1709164800000
+UTC	Date.UTC(2024, 1, 29, 23)	number	1709247600000
+UTC	Date.UTC(2024, 1, 29, 23, 5)	number	1709247900000
+UTC	Date.UTC(2024, 1, 29, 23, 5, 9)	number	1709247909000
+UTC	Date.UTC(2024, 1, 29, 23, 5, 9, 7)	number	1709247909007
+UTC	Date.UTC(0)	number	-2208988800000
+UTC	Date.UTC(100)	number	-59011459200000
+UTC	Date.UTC(-1)	number	-62198755200000
+UTC	Date.UTC(1970, 0, 1)	number	0
+UTC	Date.UTC(1969, 11, 31, 23, 59, 59, 999)	number	-1
+UTC	Date.UTC(2024, 12)	number	1735689600000
+UTC	Date.UTC(2024, -1)	number	1701388800000
+UTC	Date.UTC(2024, 0, 0)	number	1703980800000
+UTC	Date.UTC(2024, 0, 1, 24)	number	1704153600000
+UTC	Date.UTC(2024, 0, 1, 0, 0, 0, -1)	number	1704067199999
+UTC	Date.UTC(2024, NaN)	number	NaN
+UTC	Date.UTC(2024, 0, 1.9)	number	1704067200000
+UTC	Date.UTC('2024', '1')	number	1706745600000
+UTC	Date.UTC(undefined)	number	NaN
+UTC	Date.UTC(null)	number	-2208988800000
+UTC	Date.UTC(2024, undefined)	number	NaN
+UTC	Date.UTC(275760, 8, 13)	number	8640000000000000
+UTC	Date.UTC(275760, 8, 13, 0, 0, 0, 1)	number	NaN
+UTC	Date.UTC(-271821, 3, 20)	number	-8640000000000000
+UTC	Date.UTC(-271821, 3, 19, 23, 59, 59, 999)	number	NaN
+UTC	Date.UTC(1e10)	number	NaN
+UTC	Date.UTC(2024, 1e10)	number	NaN
+UTC	Date.UTC(2024, 0, 1, 0, 0, 0, 8.64e15)	number	NaN
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setMilliseconds(1000)	number	1709247910000
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setMilliseconds(-1)	number	1709247908999
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setSeconds(60)	number	1709247960007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setSeconds(-1, 500)	number	1709247899500
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setMinutes(60)	number	1709251209007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setMinutes(-1, 30, 100)	number	1709247570100
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setHours(24)	number	1709251509007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setHours(-1)	number	1709161509007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setHours(25, 61, 61, 1001)	number	1709258522001
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setDate(0)	number	1706742309007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setDate(31)	number	1709420709007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setDate(32)	number	1709507109007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setDate(-1)	number	1706655909007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setMonth(12)	number	1738191909007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setMonth(-1)	number	1703891109007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setMonth(1, 31)	number	1709420709007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setMonth(11, 32)	number	1735772709007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setFullYear(2023)	number	1677711909007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setFullYear(2023, 1, 29)	number	1677711909007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setFullYear(2025, 13, 1)	number	1769987109007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setFullYear(-1)	number	-62193574490993
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setFullYear(275760, 8, 14)	number	NaN
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setFullYear(NaN)	number	NaN
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setUTCMilliseconds(1000)	number	1709247910000
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setUTCSeconds(61)	number	1709247961007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setUTCMinutes(61)	number	1709251269007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setUTCHours(48)	number	1709337909007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setUTCDate(0)	number	1706742309007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setUTCDate(30)	number	1709334309007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setUTCMonth(12, 31)	number	1738364709007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setUTCMonth(-1)	number	1703891109007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setUTCFullYear(2023, 1, 29)	number	1677711909007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setUTCFullYear(100)	number	-59006278490993
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setTime(NaN)	number	NaN
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setTime(8.64e15)	number	8640000000000000
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setTime(8.64e15 + 1)	number	NaN
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setTime(1.9)	number	1
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setTime('5')	number	5
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setTime()	number	NaN
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setHours()	number	NaN
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setHours(NaN); d.getTime()	number	NaN
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setHours(NaN); d.setHours(1)	number	NaN
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setFullYear(2020); d.getTime()	number	1583017509007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); var n = new Date(NaN); n.setFullYear(2024); n.getTime()	number	1704067200000
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); var n = new Date(NaN); n.setFullYear(2024, 0, 1); n.toISOString()	string	"2024-01-01T00:00:00.000Z"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); var n = new Date(NaN); n.setUTCFullYear(2024); n.toISOString()	string	"2024-01-01T00:00:00.000Z"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); var n = new Date(NaN); n.setMonth(1); n.getTime()	number	NaN
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); var n = new Date(NaN); n.setMilliseconds(5)	number	NaN
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setYear ? 'has' : 'no'	string	"has"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setYear(99); d.getFullYear()	number	1999
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.setYear(2005); d.getFullYear()	number	2005
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getYear()	number	124
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toGMTString === d.toUTCString	boolean	true
+UTC	new Date(2024, 0, 31).setMonth(1)	number	1709337600000
+UTC	new Date(2024, 0, 31, 12).setMonth(1, 30)	number	1709294400000
+UTC	new Date(2023, 0, 31).setMonth(1)	number	1677801600000
+UTC	new Date(2024, 11, 31).setDate(367)	number	1764633600000
+UTC	new Date(2024, 11, 31).setDate(1e9)	number	NaN
+UTC	new Date(2024, 0, 1).setDate(1e12)	number	NaN
+UTC	new Date(0).setUTCHours(1e9)	number	3600000000000000
+UTC	new Date(0).setMinutes(1e12)	number	NaN
+UTC	new Date(0).setSeconds(Infinity)	number	NaN
+UTC	new Date(0).setMonth(1e10)	number	NaN
+UTC	new Date(2024, 0, 1).setHours(1, 2, 3, 4)	number	1704070923004
+UTC	new Date(2024, 0, 1).setMinutes(1, 2, 3)	number	1704067262003
+UTC	new Date(2024, 0, 1).setSeconds(1, 2)	number	1704067201002
+UTC	new Date(2024, 0, 1).setDate(15)	number	1705276800000
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getTime()	number	1709247909007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.valueOf()	number	1709247909007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getFullYear()	number	2024
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getMonth()	number	1
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getDate()	number	29
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getDay()	number	4
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getHours()	number	23
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getMinutes()	number	5
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getSeconds()	number	9
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getMilliseconds()	number	7
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getUTCFullYear()	number	2024
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getUTCMonth()	number	1
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getUTCDate()	number	29
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getUTCDay()	number	4
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getUTCHours()	number	23
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getUTCMinutes()	number	5
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getUTCSeconds()	number	9
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getUTCMilliseconds()	number	7
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.getTimezoneOffset()	number	0
+UTC	new Date(2019, 1, 17, 0, 30).getTimezoneOffset()	number	0
+UTC	new Date(2019, 1, 17, 12).getTimezoneOffset()	number	0
+UTC	new Date(2018, 10, 4, 12).getTimezoneOffset()	number	0
+UTC	new Date(2018, 11, 1).getTimezoneOffset()	number	0
+UTC	new Date(2018, 5, 1).getTimezoneOffset()	number	0
+UTC	new Date(1990, 0, 1).getTimezoneOffset()	number	0
+UTC	new Date(1950, 0, 1).getTimezoneOffset()	number	0
+UTC	new Date(1900, 0, 1).getTimezoneOffset()	number	0
+UTC	new Date(1800, 0, 1).getTimezoneOffset()	number	0
+UTC	new Date(2100, 0, 1).getTimezoneOffset()	number	0
+UTC	new Date(2100, 6, 1).getTimezoneOffset()	number	0
+UTC	new Date(-1e13).getTimezoneOffset()	number	0
+UTC	new Date(1e13).getTimezoneOffset()	number	0
+UTC	new Date(0).getHours()	number	0
+UTC	new Date(0).getDate()	number	1
+UTC	new Date(-1).getDate()	number	31
+UTC	new Date(-1).getDay()	number	3
+UTC	new Date(0).getDay()	number	4
+UTC	new Date(-86400000 * 365 * 100).getDay()	number	2
+UTC	Date.prototype.getTime.call({})	throw	TypeError: Type error
+UTC	Date.prototype.getTime.call(1)	throw	TypeError: Type error
+UTC	Date.prototype.toISOString.call({})	throw	TypeError: Type error
+UTC	Date.prototype.setTime.call({}, 1)	throw	TypeError: Type error
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toString()	string	"Thu Feb 29 2024 23:05:09 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(0).toString()	string	"Thu Jan 01 1970 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toDateString()	string	"Thu Feb 29 2024"
+UTC	new Date(0).toDateString()	string	"Thu Jan 01 1970"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toTimeString()	string	"23:05:09 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(0).toTimeString()	string	"00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toISOString()	string	"2024-02-29T23:05:09.007Z"
+UTC	new Date(0).toISOString()	string	"1970-01-01T00:00:00.000Z"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toJSON()	string	"2024-02-29T23:05:09.007Z"
+UTC	new Date(0).toJSON()	string	"1970-01-01T00:00:00.000Z"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toUTCString()	string	"Thu, 29 Feb 2024 23:05:09 GMT"
+UTC	new Date(0).toUTCString()	string	"Thu, 01 Jan 1970 00:00:00 GMT"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toGMTString()	string	"Thu, 29 Feb 2024 23:05:09 GMT"
+UTC	new Date(0).toGMTString()	string	"Thu, 01 Jan 1970 00:00:00 GMT"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toJSON(1)	string	"2024-02-29T23:05:09.007Z"
+UTC	Date.prototype.toJSON.call({ toISOString() { return 'x' } })	string	"x"
+UTC	Date.prototype.toJSON.call({ valueOf() { return NaN }, toISOString() { return 'x' } })	object	null
+UTC	Date.prototype.toJSON.call({ valueOf() { return 1 } })	throw	TypeError: toISOString is not a function
+UTC	Date.prototype.toJSON.call({ valueOf() { return 1 }, toISOString() { return 'ok' } })	string	"ok"
+UTC	new Date(2024, 0, 1, 0, 0, 0, 5).toString()	string	"Mon Jan 01 2024 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2024, 6, 1, 15, 4, 5).toString()	string	"Mon Jul 01 2024 15:04:05 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2024, 6, 1, 15, 4, 5).toTimeString()	string	"15:04:05 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2024, 6, 1, 15, 4, 5).toUTCString()	string	"Mon, 01 Jul 2024 15:04:05 GMT"
+UTC	new Date(2024, 6, 1, 15, 4, 5).toLocaleString()	string	"7/1/2024, 3:04:05 PM"
+UTC	new Date(2024, 0, 1, 12, 0, 0).toLocaleTimeString()	string	"12:00:00 PM"
+UTC	new Date(2024, 0, 1, 12, 0, 0).toLocaleDateString()	string	"1/1/2024"
+UTC	new Date(5, 0, 1).toString()	string	"Sun Jan 01 1905 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2024, 0, 1).toDateString()	string	"Mon Jan 01 2024"
+UTC	String(new Date(0))	string	"Thu Jan 01 1970 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(0) + ''	string	"Thu Jan 01 1970 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	`${new Date(0)}`	string	"Thu Jan 01 1970 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	'' + new Date(0)	string	"Thu Jan 01 1970 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("en-US")	string	"2/29/2024, 11:05:09 PM"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleDateString("en-US")	string	"2/29/2024"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleTimeString("en-US")	string	"11:05:09 PM"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("en-US", { timeZone: 'UTC' })	string	"2/29/2024, 11:05:09 PM"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleDateString("en-US", { timeZone: 'UTC' })	string	"2/29/2024"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleTimeString("en-US", { timeZone: 'UTC' })	string	"11:05:09 PM"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' })	string	"February 29, 2024"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleDateString("en-US", { weekday: 'long' })	string	"Thursday"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleDateString("en-US", { month: 'short' })	string	"Feb"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleTimeString("en-US", { hour12: false })	string	"23:05:09"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit' })	string	"11:05 PM"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("en-US", { timeZone: 'America/New_York' })	string	"2/29/2024, 6:05:09 PM"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("en-US", { timeZone: 'Asia/Tokyo', timeZoneName: 'short' })	string	"3/1/2024, 8:05:09 AM GMT+9"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("en-US", { dateStyle: 'full', timeStyle: 'long' })	string	"Thursday, February 29, 2024 at 11:05:09 PM UTC"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("en-US", { dateStyle: 'short' })	string	"2/29/24"
+UTC	new Date(2019, 1, 17, 0, 30).toLocaleString("en-US")	string	"2/17/2019, 12:30:00 AM"
+UTC	new Date(2018, 10, 4, 12).toLocaleString("en-US")	string	"11/4/2018, 12:00:00 PM"
+UTC	new Date(0).toLocaleString("en-US")	string	"1/1/1970, 12:00:00 AM"
+UTC	new Date(-62198755200000).toLocaleDateString("en-US", { timeZone: 'UTC' })	string	"1/1/2"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("pt-BR")	string	"29/02/2024, 23:05:09"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleDateString("pt-BR")	string	"29/02/2024"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleTimeString("pt-BR")	string	"23:05:09"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("pt-BR", { timeZone: 'UTC' })	string	"29/02/2024, 23:05:09"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleDateString("pt-BR", { timeZone: 'UTC' })	string	"29/02/2024"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleTimeString("pt-BR", { timeZone: 'UTC' })	string	"23:05:09"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleDateString("pt-BR", { year: 'numeric', month: 'long', day: 'numeric' })	string	"29 de fevereiro de 2024"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleDateString("pt-BR", { weekday: 'long' })	string	"quinta-feira"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleDateString("pt-BR", { month: 'short' })	string	"fev."
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleTimeString("pt-BR", { hour12: false })	string	"23:05:09"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })	string	"23:05"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("pt-BR", { timeZone: 'America/New_York' })	string	"29/02/2024, 18:05:09"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("pt-BR", { timeZone: 'Asia/Tokyo', timeZoneName: 'short' })	string	"01/03/2024, 8:05:09 GMT+9"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("pt-BR", { dateStyle: 'full', timeStyle: 'long' })	string	"quinta-feira, 29 de fevereiro de 2024 às 23:05:09 UTC"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString("pt-BR", { dateStyle: 'short' })	string	"29/02/2024"
+UTC	new Date(2019, 1, 17, 0, 30).toLocaleString("pt-BR")	string	"17/02/2019, 00:30:00"
+UTC	new Date(2018, 10, 4, 12).toLocaleString("pt-BR")	string	"04/11/2018, 12:00:00"
+UTC	new Date(0).toLocaleString("pt-BR")	string	"01/01/1970, 00:00:00"
+UTC	new Date(-62198755200000).toLocaleDateString("pt-BR", { timeZone: 'UTC' })	string	"01/01/2"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString()	string	"2/29/2024, 11:05:09 PM"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleDateString()	string	"2/29/2024"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleTimeString()	string	"11:05:09 PM"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString(undefined)	string	"2/29/2024, 11:05:09 PM"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString('xx-invalid-locale-zzzzzzzzzz')	throw	RangeError: invalid language tag: xx-invalid-locale-zzzzzzzzzz
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toLocaleString('en-US', { timeZone: 'Nowhere/Land' })	throw	RangeError: invalid time zone: Nowhere/Land
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d[Symbol.toPrimitive]('number')	number	1709247909007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d[Symbol.toPrimitive]('string')	string	"Thu Feb 29 2024 23:05:09 GMT+0000 (Coordinated Universal Time)"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d[Symbol.toPrimitive]('default')	string	"Thu Feb 29 2024 23:05:09 GMT+0000 (Coordinated Universal Time)"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d[Symbol.toPrimitive]('bogus')	throw	TypeError: Expected primitive hint to match one of 'default', 'number', 'string'.
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d[Symbol.toPrimitive]()	throw	TypeError: Date.prototype[Symbol.toPrimitive] expected a first argument.
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d[Symbol.toPrimitive](1)	throw	TypeError: Primitive hint is not a string.
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); +d	number	1709247909007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d - 0	number	1709247909007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d + 0	string	"Thu Feb 29 2024 23:05:09 GMT+0000 (Coordinated Universal Time)0"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d + 1 === d.toString() + '1'	boolean	true
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d * 1	number	1709247909007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d > new Date(0)	boolean	true
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d == d.getTime()	boolean	false
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d == d.toString()	boolean	true
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d - new Date(0)	number	1709247909007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); Number(d)	number	1709247909007
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); String(d) === d.toString()	boolean	true
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); `${d}` === d.toString()	boolean	true
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.valueOf() === d.getTime()	boolean	true
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); Object.prototype.valueOf.call(d) === d	boolean	true
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); typeof (d + '')	string	"string"
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); d.toJSON() === d.toISOString()	boolean	true
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); JSON.stringify(d)	string	"\"2024-02-29T23:05:09.007Z\""
+UTC	var d = new Date(Date.UTC(2024,1,29,23,5,9,7)); JSON.stringify([d])	string	"[\"2024-02-29T23:05:09.007Z\"]"
+UTC	var o = { [Symbol.toPrimitive]: Date.prototype[Symbol.toPrimitive] }; o[Symbol.toPrimitive]('number')	string	"[object Object]"
+UTC	Date.prototype[Symbol.toPrimitive].call({ valueOf() { return 7 }, toString() { return 's' } }, 'number')	number	7
+UTC	Date.prototype[Symbol.toPrimitive].call({ valueOf() { return 7 }, toString() { return 's' } }, 'string')	string	"s"
+UTC	Date.prototype[Symbol.toPrimitive].call({ valueOf() { return 7 }, toString() { return 's' } }, 'default')	string	"s"
+UTC	Date.prototype[Symbol.toPrimitive].call(1, 'number')	throw	TypeError: Date.prototype[Symbol.toPrimitive] expected |this| to be an object.
+UTC	Date.prototype[Symbol.toPrimitive].call({}, 'x')	throw	TypeError: Expected primitive hint to match one of 'default', 'number', 'string'.
+UTC	Object.getOwnPropertyDescriptor(Date.prototype, Symbol.toPrimitive).writable	boolean	false
+UTC	Object.getOwnPropertyDescriptor(Date.prototype, Symbol.toPrimitive).configurable	boolean	true
+UTC	Date.prototype.valueOf.call({})	throw	TypeError: Type error
+UTC	var s = new Date(5); s.valueOf = function () { return 9 }; +s	number	9
+UTC	var s = new Date(5); s.toString = function () { return 'z' }; s + ''	string	"z"
+UTC	new Date(0) < new Date(1)	boolean	true
+UTC	new Date(5) == new Date(5)	boolean	false
+UTC	new Date(5) <= new Date(5)	boolean	true
+UTC	Math.max(new Date(1), new Date(2))	number	2
+UTC	new Date(2018, 1, 17, 23, 30).getTimezoneOffset()	number	0
+UTC	new Date(2018, 1, 18, 0, 30).getTimezoneOffset()	number	0
+UTC	new Date(2018, 1, 18, 1, 30).getTimezoneOffset()	number	0
+UTC	new Date(2018, 1, 18, 2, 0).getTimezoneOffset()	number	0
+UTC	new Date(2018, 10, 3, 23, 59).getTimezoneOffset()	number	0
+UTC	new Date(2018, 10, 4, 0, 0).getTimezoneOffset()	number	0
+UTC	new Date(2018, 10, 4, 0, 30).getHours()	number	0
+UTC	new Date(2018, 10, 4, 1, 0).getHours()	number	1
+UTC	new Date(2018, 10, 4, 1, 30).toString()	string	"Sun Nov 04 2018 01:30:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2018, 10, 4, 2, 0).toString()	string	"Sun Nov 04 2018 02:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2019, 1, 16, 23, 30).toString()	string	"Sat Feb 16 2019 23:30:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2019, 1, 16, 23, 59, 59).toString()	string	"Sat Feb 16 2019 23:59:59 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2019, 1, 17, 0, 0).toString()	string	"Sun Feb 17 2019 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2019, 1, 17, 0, 30).toString()	string	"Sun Feb 17 2019 00:30:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2019, 1, 17, 1, 0).toString()	string	"Sun Feb 17 2019 01:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2019, 1, 17, 1, 30).toString()	string	"Sun Feb 17 2019 01:30:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2019, 1, 17, 2, 0).toString()	string	"Sun Feb 17 2019 02:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2019, 1, 17, 23, 0).toString()	string	"Sun Feb 17 2019 23:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2019, 1, 18, 0, 0).toString()	string	"Mon Feb 18 2019 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2019, 1, 18, 0, 0).toISOString()	string	"2019-02-18T00:00:00.000Z"
+UTC	new Date(2019, 1, 17, 0, 0).toISOString()	string	"2019-02-17T00:00:00.000Z"
+UTC	new Date(2019, 1, 17, 0, 0, 0).getTime()	number	1550361600000
+UTC	new Date(2019, 1, 17, 1, 0, 0).getTime()	number	1550365200000
+UTC	new Date(Date.UTC(2019, 1, 17, 1, 59, 59)).toString()	string	"Sun Feb 17 2019 01:59:59 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(Date.UTC(2019, 1, 17, 2, 0, 0)).toString()	string	"Sun Feb 17 2019 02:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(Date.UTC(2019, 1, 17, 2, 0, 0)).getHours()	number	2
+UTC	new Date(Date.UTC(2019, 1, 17, 1, 59, 59)).getHours()	number	1
+UTC	new Date(Date.UTC(2018, 10, 4, 2, 59, 59)).toString()	string	"Sun Nov 04 2018 02:59:59 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(Date.UTC(2018, 10, 4, 3, 0, 0)).toString()	string	"Sun Nov 04 2018 03:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(Date.UTC(2018, 10, 4, 3, 0, 0)).getHours()	number	3
+UTC	new Date(Date.UTC(2018, 10, 4, 2, 59, 59)).getTimezoneOffset()	number	0
+UTC	new Date(Date.UTC(2018, 10, 4, 3, 0, 0)).getTimezoneOffset()	number	0
+UTC	new Date(Date.UTC(2018, 1, 18, 1, 59, 59)).getTimezoneOffset()	number	0
+UTC	new Date(Date.UTC(2018, 1, 18, 2, 0, 0)).getTimezoneOffset()	number	0
+UTC	new Date(Date.UTC(2019, 0, 15, 12)).toTimeString()	string	"12:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(Date.UTC(2019, 5, 15, 12)).toTimeString()	string	"12:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(Date.UTC(2018, 11, 15, 12)).toTimeString()	string	"12:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	Date.parse('2019-02-17T00:00:00')	number	1550361600000
+UTC	Date.parse('2019-02-16T23:59:59')	number	1550361599000
+UTC	Date.parse('2018-11-04T00:00:00')	number	1541289600000
+UTC	Date.parse('2018-11-04T01:00:00')	number	1541293200000
+UTC	Date.parse('Nov 4 2018 00:30')	number	1541291400000
+UTC	Date.parse('Feb 17 2019 00:30')	number	1550363400000
+UTC	Date.parse('Feb 17 2019 01:30')	number	1550367000000
+UTC	Date.parse('Feb 17 2019 02:00')	number	1550368800000
+UTC	new Date(2019, 1, 17).setHours(1)	number	1550365200000
+UTC	new Date(2019, 1, 17).setHours(0, 30)	number	1550363400000
+UTC	new Date(2018, 10, 4).setHours(0, 30)	number	1541291400000
+UTC	new Date(2018, 10, 4).setHours(1)	number	1541293200000
+UTC	new Date(2018, 10, 4).setHours(2)	number	1541296800000
+UTC	new Date(2018, 10, 3, 23, 30).setMinutes(90)	number	1541291400000
+UTC	new Date(2019, 1, 16, 23, 30).setMinutes(90)	number	1550363400000
+UTC	new Date(2019, 1, 16, 12).setDate(17)	number	1550404800000
+UTC	new Date(2019, 1, 16, 12).setDate(18)	number	1550491200000
+UTC	new Date(2019, 1, 17, 12).getDate() - new Date(2019, 1, 16, 12).getDate()	number	1
+UTC	(new Date(2019, 1, 18) - new Date(2019, 1, 17)) / 3600000	number	24
+UTC	(new Date(2018, 10, 5) - new Date(2018, 10, 4)) / 3600000	number	24
+UTC	(new Date(2018, 10, 4, 12) - new Date(2018, 10, 3, 12)) / 3600000	number	24
+UTC	(new Date(2019, 1, 17, 12) - new Date(2019, 1, 16, 12)) / 3600000	number	24
+UTC	new Date(2019, 1, 17, 0, 0).toLocaleString('pt-BR')	string	"17/02/2019, 00:00:00"
+UTC	new Date(2018, 10, 4, 12).toLocaleTimeString('en-US')	string	"12:00:00 PM"
+UTC	new Date(2019, 0, 1).toString()	string	"Tue Jan 01 2019 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2019, 6, 1).toString()	string	"Mon Jul 01 2019 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2017, 0, 1).toString()	string	"Sun Jan 01 2017 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2017, 9, 15).toString()	string	"Sun Oct 15 2017 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2017, 9, 16).toString()	string	"Mon Oct 16 2017 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2017, 9, 15, 0).getTimezoneOffset()	number	0
+UTC	new Date(1985, 0, 1).toString()	string	"Tue Jan 01 1985 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(1970, 0, 1).toString()	string	"Thu Jan 01 1970 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2024, 0, 1).toString()	string	"Mon Jan 01 2024 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2064, 0, 1).toString()	string	"Tue Jan 01 2064 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2037, 0, 1).toString()	string	"Thu Jan 01 2037 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	new Date(2038, 0, 1).toString()	string	"Fri Jan 01 2038 00:00:00 GMT+0000 (Coordinated Universal Time)"
+UTC	Object.getOwnPropertyNames(Date.prototype).length	number	48
+UTC	Object.getOwnPropertyNames(Date).sort().join()	string	"UTC,length,name,now,parse,prototype"
+UTC	Object.getOwnPropertyDescriptor(Date, 'prototype').writable	boolean	false
+UTC	Date.prototype.toString.name	string	"toString"
+UTC	Date.prototype.toGMTString.name	string	"toUTCString"
+UTC	Date.prototype.getYear.name	string	"getYear"
+UTC	Object.getPrototypeOf(Date.prototype) === Object.prototype	boolean	true
+UTC	Date.prototype.getTime.call(Date.prototype)	throw	TypeError: Type error
+UTC	class D2 extends Date {}; new D2(5).getTime()	number	5
+UTC	class D2 extends Date {}; new D2(5) instanceof Date	boolean	true
+UTC	class D2 extends Date {}; Object.prototype.toString.call(new D2(5))	string	"[object Date]"
+UTC	Reflect.construct(Date, [5], Object).getTime ? 1 : 0	number	0
+UTC	Reflect.construct(Date, [5], Object) instanceof Date	boolean	false
+UTC	Date.call(new Date(0)).length > 10	boolean	true

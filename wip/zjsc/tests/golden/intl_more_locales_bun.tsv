@@ -1,0 +1,1700 @@
+new Intl.NumberFormat("am").format(1234567.891)	1,234,567.891
+new Intl.NumberFormat("am", { style: "percent" }).format(1234567.891)	123,456,789%
+new Intl.NumberFormat("am", { style: "currency", currency: "USD" }).format(1234567.891)	US$1,234,567.89
+new Intl.NumberFormat("am").format(0.256)	0.256
+new Intl.NumberFormat("am", { style: "percent" }).format(0.256)	26%
+new Intl.NumberFormat("am", { style: "currency", currency: "USD" }).format(0.256)	US$0.26
+new Intl.NumberFormat("am").format(-42)	-42
+new Intl.NumberFormat("am", { style: "percent" }).format(-42)	-4,200%
+new Intl.NumberFormat("am", { style: "currency", currency: "USD" }).format(-42)	-US$42.00
+new Intl.NumberFormat("am").format(0)	0
+new Intl.NumberFormat("am", { style: "percent" }).format(0)	0%
+new Intl.NumberFormat("am", { style: "currency", currency: "USD" }).format(0)	US$0.00
+new Intl.NumberFormat("am", { notation: "compact" }).format(1234)	1.2 ሺ
+new Intl.NumberFormat("am", { notation: "compact", compactDisplay: "long" }).format(1234)	1.2 ሺ
+new Intl.NumberFormat("am", { notation: "compact" }).format(1234567)	1.2 ሚ
+new Intl.NumberFormat("am", { notation: "compact", compactDisplay: "long" }).format(1234567)	1.2 ሚሊዮን
+new Intl.NumberFormat("am", { notation: "compact" }).format(1500000000)	1.5 ቢ
+new Intl.NumberFormat("am", { notation: "compact", compactDisplay: "long" }).format(1500000000)	1.5 ቢሊዮን
+new Intl.NumberFormat("am").resolvedOptions().numberingSystem	latn
+new Intl.PluralRules("am", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.PluralRules("am", { type: "cardinal" }).select(0)	one
+new Intl.PluralRules("am", { type: "cardinal" }).select(1)	one
+new Intl.PluralRules("am", { type: "cardinal" }).select(2)	other
+new Intl.PluralRules("am", { type: "cardinal" }).select(3)	other
+new Intl.PluralRules("am", { type: "cardinal" }).select(5)	other
+new Intl.PluralRules("am", { type: "cardinal" }).select(11)	other
+new Intl.PluralRules("am", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("am", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("am", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("am", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("am", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("am", { type: "ordinal" }).select(1)	other
+new Intl.PluralRules("am", { type: "ordinal" }).select(2)	other
+new Intl.PluralRules("am", { type: "ordinal" }).select(3)	other
+new Intl.PluralRules("am", { type: "ordinal" }).select(5)	other
+new Intl.PluralRules("am", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("am", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("am", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("am", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("am", { type: "conjunction" }).format(["A", "B"])	A እና B
+new Intl.ListFormat("am", { type: "conjunction" }).format(["A", "B", "C"])	A፣ B እና C
+new Intl.ListFormat("am", { type: "disjunction" }).format(["A", "B"])	A ወይም B
+new Intl.ListFormat("am", { type: "disjunction" }).format(["A", "B", "C"])	A፣ B ወይም C
+new Intl.RelativeTimeFormat("am").format(-1, "day")	ከ1 ቀን በፊት
+new Intl.RelativeTimeFormat("am", { numeric: "auto" }).format(-1, "day")	ትናንት
+new Intl.RelativeTimeFormat("am").format(0, "day")	በ0 ቀን ውስጥ
+new Intl.RelativeTimeFormat("am", { numeric: "auto" }).format(0, "day")	ዛሬ
+new Intl.RelativeTimeFormat("am").format(1, "day")	በ1 ቀን ውስጥ
+new Intl.RelativeTimeFormat("am", { numeric: "auto" }).format(1, "day")	ነገ
+new Intl.RelativeTimeFormat("am").format(2, "day")	በ2 ቀናት ውስጥ
+new Intl.RelativeTimeFormat("am", { numeric: "auto" }).format(2, "day")	ከነገ ወዲያ
+new Intl.RelativeTimeFormat("am").format(-1, "month")	ከ1 ወር በፊት
+new Intl.RelativeTimeFormat("am", { numeric: "auto" }).format(-1, "month")	ያለፈው ወር
+new Intl.RelativeTimeFormat("am").format(0, "month")	በ0 ወር ውስጥ
+new Intl.RelativeTimeFormat("am", { numeric: "auto" }).format(0, "month")	በዚህ ወር
+new Intl.RelativeTimeFormat("am").format(1, "month")	በ1 ወር ውስጥ
+new Intl.RelativeTimeFormat("am", { numeric: "auto" }).format(1, "month")	የሚቀጥለው ወር
+new Intl.RelativeTimeFormat("am").format(2, "month")	በ2 ወራት ውስጥ
+new Intl.RelativeTimeFormat("am", { numeric: "auto" }).format(2, "month")	በ2 ወራት ውስጥ
+new Intl.DateTimeFormat("am", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	ቅዳሜ 9 ማርች 2024
+new Intl.DateTimeFormat("am", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	9 ማርች 2024
+new Intl.DateTimeFormat("am", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	11:08 ከሰዓት
+new Intl.DateTimeFormat("am", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("am").compare("a", "b")	-1
+new Intl.Collator("am").compare("b", "a")	1
+new Intl.Collator("am").compare("a", "A")	-1
+new Intl.Collator("am").compare("z", "a")	1
+new Intl.Collator("am").compare("résumé", "resume")	1
+new Intl.NumberFormat("my").format(1234567.891)	၁,၂၃၄,၅၆၇.၈၉၁
+new Intl.NumberFormat("my", { style: "percent" }).format(1234567.891)	၁၂၃,၄၅၆,၇၈၉%
+new Intl.NumberFormat("my", { style: "currency", currency: "USD" }).format(1234567.891)	၁,၂၃၄,၅၆၇.၈၉ US$
+new Intl.NumberFormat("my").format(0.256)	၀.၂၅၆
+new Intl.NumberFormat("my", { style: "percent" }).format(0.256)	၂၆%
+new Intl.NumberFormat("my", { style: "currency", currency: "USD" }).format(0.256)	၀.၂၆ US$
+new Intl.NumberFormat("my").format(-42)	-၄၂
+new Intl.NumberFormat("my", { style: "percent" }).format(-42)	-၄,၂၀၀%
+new Intl.NumberFormat("my", { style: "currency", currency: "USD" }).format(-42)	-၄၂.၀၀ US$
+new Intl.NumberFormat("my").format(0)	၀
+new Intl.NumberFormat("my", { style: "percent" }).format(0)	၀%
+new Intl.NumberFormat("my", { style: "currency", currency: "USD" }).format(0)	၀.၀၀ US$
+new Intl.NumberFormat("my", { notation: "compact" }).format(1234)	၁.၂ ထောင်
+new Intl.NumberFormat("my", { notation: "compact", compactDisplay: "long" }).format(1234)	၁.၂ ထောင်
+new Intl.NumberFormat("my", { notation: "compact" }).format(1234567)	၁.၂ သန်း
+new Intl.NumberFormat("my", { notation: "compact", compactDisplay: "long" }).format(1234567)	၁.၂ သန်း
+new Intl.NumberFormat("my", { notation: "compact" }).format(1500000000)	၁၅၀ ဋေ
+new Intl.NumberFormat("my", { notation: "compact", compactDisplay: "long" }).format(1500000000)	၁၅၀ ကုဋေ
+new Intl.NumberFormat("my").resolvedOptions().numberingSystem	mymr
+new Intl.PluralRules("my", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("my", { type: "cardinal" }).select(0)	other
+new Intl.PluralRules("my", { type: "cardinal" }).select(1)	other
+new Intl.PluralRules("my", { type: "cardinal" }).select(2)	other
+new Intl.PluralRules("my", { type: "cardinal" }).select(3)	other
+new Intl.PluralRules("my", { type: "cardinal" }).select(5)	other
+new Intl.PluralRules("my", { type: "cardinal" }).select(11)	other
+new Intl.PluralRules("my", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("my", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("my", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("my", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("my", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("my", { type: "ordinal" }).select(1)	other
+new Intl.PluralRules("my", { type: "ordinal" }).select(2)	other
+new Intl.PluralRules("my", { type: "ordinal" }).select(3)	other
+new Intl.PluralRules("my", { type: "ordinal" }).select(5)	other
+new Intl.PluralRules("my", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("my", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("my", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("my", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("my", { type: "conjunction" }).format(["A", "B"])	Aနှင့် B
+new Intl.ListFormat("my", { type: "conjunction" }).format(["A", "B", "C"])	A - Bနှင့် C
+new Intl.ListFormat("my", { type: "disjunction" }).format(["A", "B"])	A သို့မဟုတ် B
+new Intl.ListFormat("my", { type: "disjunction" }).format(["A", "B", "C"])	A - B သို့မဟုတ် C
+new Intl.RelativeTimeFormat("my").format(-1, "day")	ပြီးခဲ့သည့် ၁ ရက်
+new Intl.RelativeTimeFormat("my", { numeric: "auto" }).format(-1, "day")	မနေ့က
+new Intl.RelativeTimeFormat("my").format(0, "day")	၀ ရက်အတွင်း
+new Intl.RelativeTimeFormat("my", { numeric: "auto" }).format(0, "day")	ယနေ့
+new Intl.RelativeTimeFormat("my").format(1, "day")	၁ ရက်အတွင်း
+new Intl.RelativeTimeFormat("my", { numeric: "auto" }).format(1, "day")	မနက်ဖြန်
+new Intl.RelativeTimeFormat("my").format(2, "day")	၂ ရက်အတွင်း
+new Intl.RelativeTimeFormat("my", { numeric: "auto" }).format(2, "day")	သန်ဘက်ခါ
+new Intl.RelativeTimeFormat("my").format(-1, "month")	ပြီးခဲ့သည့် ၁ လ
+new Intl.RelativeTimeFormat("my", { numeric: "auto" }).format(-1, "month")	ပြီးခဲ့သည့်လ
+new Intl.RelativeTimeFormat("my").format(0, "month")	၀ လအတွင်း
+new Intl.RelativeTimeFormat("my", { numeric: "auto" }).format(0, "month")	ယခုလ
+new Intl.RelativeTimeFormat("my").format(1, "month")	၁ လအတွင်း
+new Intl.RelativeTimeFormat("my", { numeric: "auto" }).format(1, "month")	လာမည့်လ
+new Intl.RelativeTimeFormat("my").format(2, "month")	၂ လအတွင်း
+new Intl.RelativeTimeFormat("my", { numeric: "auto" }).format(2, "month")	၂ လအတွင်း
+new Intl.DateTimeFormat("my", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	၂၀၂၄ မတ် ၉ စနေ
+new Intl.DateTimeFormat("my", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	၂၀၂၄ မတ် ၉
+new Intl.DateTimeFormat("my", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	၂၃:၀၈
+new Intl.DateTimeFormat("my", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("my").compare("a", "b")	-1
+new Intl.Collator("my").compare("b", "a")	1
+new Intl.Collator("my").compare("a", "A")	-1
+new Intl.Collator("my").compare("z", "a")	1
+new Intl.Collator("my").compare("résumé", "resume")	1
+new Intl.NumberFormat("km").format(1234567.891)	1,234,567.891
+new Intl.NumberFormat("km", { style: "percent" }).format(1234567.891)	123,456,789%
+new Intl.NumberFormat("km", { style: "currency", currency: "USD" }).format(1234567.891)	1,234,567.89$
+new Intl.NumberFormat("km").format(0.256)	0.256
+new Intl.NumberFormat("km", { style: "percent" }).format(0.256)	26%
+new Intl.NumberFormat("km", { style: "currency", currency: "USD" }).format(0.256)	0.26$
+new Intl.NumberFormat("km").format(-42)	-42
+new Intl.NumberFormat("km", { style: "percent" }).format(-42)	-4,200%
+new Intl.NumberFormat("km", { style: "currency", currency: "USD" }).format(-42)	-42.00$
+new Intl.NumberFormat("km").format(0)	0
+new Intl.NumberFormat("km", { style: "percent" }).format(0)	0%
+new Intl.NumberFormat("km", { style: "currency", currency: "USD" }).format(0)	0.00$
+new Intl.NumberFormat("km", { notation: "compact" }).format(1234)	1.2ពាន់
+new Intl.NumberFormat("km", { notation: "compact", compactDisplay: "long" }).format(1234)	1.2 ពាន់
+new Intl.NumberFormat("km", { notation: "compact" }).format(1234567)	1.2 លាន
+new Intl.NumberFormat("km", { notation: "compact", compactDisplay: "long" }).format(1234567)	1.2 លាន
+new Intl.NumberFormat("km", { notation: "compact" }).format(1500000000)	1.5 ប៊ីលាន
+new Intl.NumberFormat("km", { notation: "compact", compactDisplay: "long" }).format(1500000000)	1.5 ប៊ីលាន
+new Intl.NumberFormat("km").resolvedOptions().numberingSystem	latn
+new Intl.PluralRules("km", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("km", { type: "cardinal" }).select(0)	other
+new Intl.PluralRules("km", { type: "cardinal" }).select(1)	other
+new Intl.PluralRules("km", { type: "cardinal" }).select(2)	other
+new Intl.PluralRules("km", { type: "cardinal" }).select(3)	other
+new Intl.PluralRules("km", { type: "cardinal" }).select(5)	other
+new Intl.PluralRules("km", { type: "cardinal" }).select(11)	other
+new Intl.PluralRules("km", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("km", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("km", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("km", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("km", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("km", { type: "ordinal" }).select(1)	other
+new Intl.PluralRules("km", { type: "ordinal" }).select(2)	other
+new Intl.PluralRules("km", { type: "ordinal" }).select(3)	other
+new Intl.PluralRules("km", { type: "ordinal" }).select(5)	other
+new Intl.PluralRules("km", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("km", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("km", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("km", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("km", { type: "conjunction" }).format(["A", "B"])	A និង​B
+new Intl.ListFormat("km", { type: "conjunction" }).format(["A", "B", "C"])	A, B និង C
+new Intl.ListFormat("km", { type: "disjunction" }).format(["A", "B"])	A ឬ B
+new Intl.ListFormat("km", { type: "disjunction" }).format(["A", "B", "C"])	A, B ឬ C
+new Intl.RelativeTimeFormat("km").format(-1, "day")	1 ថ្ងៃ​មុន
+new Intl.RelativeTimeFormat("km", { numeric: "auto" }).format(-1, "day")	ម្សិលមិញ
+new Intl.RelativeTimeFormat("km").format(0, "day")	0 ថ្ងៃទៀត
+new Intl.RelativeTimeFormat("km", { numeric: "auto" }).format(0, "day")	ថ្ងៃ​នេះ
+new Intl.RelativeTimeFormat("km").format(1, "day")	1 ថ្ងៃទៀត
+new Intl.RelativeTimeFormat("km", { numeric: "auto" }).format(1, "day")	ថ្ងៃ​ស្អែក
+new Intl.RelativeTimeFormat("km").format(2, "day")	2 ថ្ងៃទៀត
+new Intl.RelativeTimeFormat("km", { numeric: "auto" }).format(2, "day")	​ខាន​ស្អែក
+new Intl.RelativeTimeFormat("km").format(-1, "month")	1 ខែមុន
+new Intl.RelativeTimeFormat("km", { numeric: "auto" }).format(-1, "month")	ខែ​មុន
+new Intl.RelativeTimeFormat("km").format(0, "month")	0 ខែទៀត
+new Intl.RelativeTimeFormat("km", { numeric: "auto" }).format(0, "month")	ខែ​នេះ
+new Intl.RelativeTimeFormat("km").format(1, "month")	1 ខែទៀត
+new Intl.RelativeTimeFormat("km", { numeric: "auto" }).format(1, "month")	ខែ​ក្រោយ
+new Intl.RelativeTimeFormat("km").format(2, "month")	2 ខែទៀត
+new Intl.RelativeTimeFormat("km", { numeric: "auto" }).format(2, "month")	2 ខែទៀត
+new Intl.DateTimeFormat("km", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	សៅរ៍ 9 មីនា 2024
+new Intl.DateTimeFormat("km", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	9 មីនា 2024
+new Intl.DateTimeFormat("km", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	11:08 PM
+new Intl.DateTimeFormat("km", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("km").compare("a", "b")	-1
+new Intl.Collator("km").compare("b", "a")	1
+new Intl.Collator("km").compare("a", "A")	-1
+new Intl.Collator("km").compare("z", "a")	1
+new Intl.Collator("km").compare("résumé", "resume")	1
+new Intl.NumberFormat("lo").format(1234567.891)	1.234.567,891
+new Intl.NumberFormat("lo", { style: "percent" }).format(1234567.891)	123.456.789%
+new Intl.NumberFormat("lo", { style: "currency", currency: "USD" }).format(1234567.891)	US$1.234.567,89
+new Intl.NumberFormat("lo").format(0.256)	0,256
+new Intl.NumberFormat("lo", { style: "percent" }).format(0.256)	26%
+new Intl.NumberFormat("lo", { style: "currency", currency: "USD" }).format(0.256)	US$0,26
+new Intl.NumberFormat("lo").format(-42)	-42
+new Intl.NumberFormat("lo", { style: "percent" }).format(-42)	-4.200%
+new Intl.NumberFormat("lo", { style: "currency", currency: "USD" }).format(-42)	US$-42,00
+new Intl.NumberFormat("lo").format(0)	0
+new Intl.NumberFormat("lo", { style: "percent" }).format(0)	0%
+new Intl.NumberFormat("lo", { style: "currency", currency: "USD" }).format(0)	US$0,00
+new Intl.NumberFormat("lo", { notation: "compact" }).format(1234)	1,2 ພັນ
+new Intl.NumberFormat("lo", { notation: "compact", compactDisplay: "long" }).format(1234)	1,2 ພັນ
+new Intl.NumberFormat("lo", { notation: "compact" }).format(1234567)	1,2 ລ້ານ
+new Intl.NumberFormat("lo", { notation: "compact", compactDisplay: "long" }).format(1234567)	1,2 ລ້ານ
+new Intl.NumberFormat("lo", { notation: "compact" }).format(1500000000)	1,5 ຕື້
+new Intl.NumberFormat("lo", { notation: "compact", compactDisplay: "long" }).format(1500000000)	1,5 ຕື້
+new Intl.NumberFormat("lo").resolvedOptions().numberingSystem	latn
+new Intl.PluralRules("lo", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("lo", { type: "cardinal" }).select(0)	other
+new Intl.PluralRules("lo", { type: "cardinal" }).select(1)	other
+new Intl.PluralRules("lo", { type: "cardinal" }).select(2)	other
+new Intl.PluralRules("lo", { type: "cardinal" }).select(3)	other
+new Intl.PluralRules("lo", { type: "cardinal" }).select(5)	other
+new Intl.PluralRules("lo", { type: "cardinal" }).select(11)	other
+new Intl.PluralRules("lo", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("lo", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("lo", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("lo", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.PluralRules("lo", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("lo", { type: "ordinal" }).select(1)	one
+new Intl.PluralRules("lo", { type: "ordinal" }).select(2)	other
+new Intl.PluralRules("lo", { type: "ordinal" }).select(3)	other
+new Intl.PluralRules("lo", { type: "ordinal" }).select(5)	other
+new Intl.PluralRules("lo", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("lo", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("lo", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("lo", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("lo", { type: "conjunction" }).format(["A", "B"])	A ແລະ B
+new Intl.ListFormat("lo", { type: "conjunction" }).format(["A", "B", "C"])	A, B, C
+new Intl.ListFormat("lo", { type: "disjunction" }).format(["A", "B"])	A ຫຼື B
+new Intl.ListFormat("lo", { type: "disjunction" }).format(["A", "B", "C"])	A, B ຫຼື C
+new Intl.RelativeTimeFormat("lo").format(-1, "day")	1 ມື້ກ່ອນ
+new Intl.RelativeTimeFormat("lo", { numeric: "auto" }).format(-1, "day")	ມື້ວານ
+new Intl.RelativeTimeFormat("lo").format(0, "day")	ໃນອີກ 0 ມື້
+new Intl.RelativeTimeFormat("lo", { numeric: "auto" }).format(0, "day")	ມື້ນີ້
+new Intl.RelativeTimeFormat("lo").format(1, "day")	ໃນອີກ 1 ມື້
+new Intl.RelativeTimeFormat("lo", { numeric: "auto" }).format(1, "day")	ມື້ອື່ນ
+new Intl.RelativeTimeFormat("lo").format(2, "day")	ໃນອີກ 2 ມື້
+new Intl.RelativeTimeFormat("lo", { numeric: "auto" }).format(2, "day")	ມື້ຮື
+new Intl.RelativeTimeFormat("lo").format(-1, "month")	1 ເດືອນກ່ອນ
+new Intl.RelativeTimeFormat("lo", { numeric: "auto" }).format(-1, "month")	ເດືອນແລ້ວ
+new Intl.RelativeTimeFormat("lo").format(0, "month")	ໃນອີກ 0 ເດືອນ
+new Intl.RelativeTimeFormat("lo", { numeric: "auto" }).format(0, "month")	ເດືອນນີ້
+new Intl.RelativeTimeFormat("lo").format(1, "month")	ໃນອີກ 1 ເດືອນ
+new Intl.RelativeTimeFormat("lo", { numeric: "auto" }).format(1, "month")	ເດືອນໜ້າ
+new Intl.RelativeTimeFormat("lo").format(2, "month")	ໃນອີກ 2 ເດືອນ
+new Intl.RelativeTimeFormat("lo", { numeric: "auto" }).format(2, "month")	ໃນອີກ 2 ເດືອນ
+new Intl.DateTimeFormat("lo", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	ວັນເສົາ, 9 ມີນາ 2024
+new Intl.DateTimeFormat("lo", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	9 ມ.ນ. 2024
+new Intl.DateTimeFormat("lo", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	23:08
+new Intl.DateTimeFormat("lo", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("lo").compare("a", "b")	-1
+new Intl.Collator("lo").compare("b", "a")	1
+new Intl.Collator("lo").compare("a", "A")	-1
+new Intl.Collator("lo").compare("z", "a")	1
+new Intl.Collator("lo").compare("résumé", "resume")	1
+new Intl.NumberFormat("mn").format(1234567.891)	1,234,567.891
+new Intl.NumberFormat("mn", { style: "percent" }).format(1234567.891)	123,456,789%
+new Intl.NumberFormat("mn", { style: "currency", currency: "USD" }).format(1234567.891)	$ 1,234,567.89
+new Intl.NumberFormat("mn").format(0.256)	0.256
+new Intl.NumberFormat("mn", { style: "percent" }).format(0.256)	26%
+new Intl.NumberFormat("mn", { style: "currency", currency: "USD" }).format(0.256)	$ 0.26
+new Intl.NumberFormat("mn").format(-42)	-42
+new Intl.NumberFormat("mn", { style: "percent" }).format(-42)	-4,200%
+new Intl.NumberFormat("mn", { style: "currency", currency: "USD" }).format(-42)	-$ 42.00
+new Intl.NumberFormat("mn").format(0)	0
+new Intl.NumberFormat("mn", { style: "percent" }).format(0)	0%
+new Intl.NumberFormat("mn", { style: "currency", currency: "USD" }).format(0)	$ 0.00
+new Intl.NumberFormat("mn", { notation: "compact" }).format(1234)	1.2 мян
+new Intl.NumberFormat("mn", { notation: "compact", compactDisplay: "long" }).format(1234)	1.2 мянга
+new Intl.NumberFormat("mn", { notation: "compact" }).format(1234567)	1.2 сая
+new Intl.NumberFormat("mn", { notation: "compact", compactDisplay: "long" }).format(1234567)	1.2 сая
+new Intl.NumberFormat("mn", { notation: "compact" }).format(1500000000)	1.5 тэрбум
+new Intl.NumberFormat("mn", { notation: "compact", compactDisplay: "long" }).format(1500000000)	1.5 тэрбум
+new Intl.NumberFormat("mn").resolvedOptions().numberingSystem	latn
+new Intl.PluralRules("mn", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.PluralRules("mn", { type: "cardinal" }).select(0)	other
+new Intl.PluralRules("mn", { type: "cardinal" }).select(1)	one
+new Intl.PluralRules("mn", { type: "cardinal" }).select(2)	other
+new Intl.PluralRules("mn", { type: "cardinal" }).select(3)	other
+new Intl.PluralRules("mn", { type: "cardinal" }).select(5)	other
+new Intl.PluralRules("mn", { type: "cardinal" }).select(11)	other
+new Intl.PluralRules("mn", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("mn", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("mn", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("mn", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("mn", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("mn", { type: "ordinal" }).select(1)	other
+new Intl.PluralRules("mn", { type: "ordinal" }).select(2)	other
+new Intl.PluralRules("mn", { type: "ordinal" }).select(3)	other
+new Intl.PluralRules("mn", { type: "ordinal" }).select(5)	other
+new Intl.PluralRules("mn", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("mn", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("mn", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("mn", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("mn", { type: "conjunction" }).format(["A", "B"])	A, B
+new Intl.ListFormat("mn", { type: "conjunction" }).format(["A", "B", "C"])	A, B, C
+new Intl.ListFormat("mn", { type: "disjunction" }).format(["A", "B"])	A эсвэл B
+new Intl.ListFormat("mn", { type: "disjunction" }).format(["A", "B", "C"])	A, B, C зэргийн аль нэг
+new Intl.RelativeTimeFormat("mn").format(-1, "day")	1 өдрийн өмнө
+new Intl.RelativeTimeFormat("mn", { numeric: "auto" }).format(-1, "day")	өчигдөр
+new Intl.RelativeTimeFormat("mn").format(0, "day")	0 өдрийн дараа
+new Intl.RelativeTimeFormat("mn", { numeric: "auto" }).format(0, "day")	өнөөдөр
+new Intl.RelativeTimeFormat("mn").format(1, "day")	1 өдрийн дараа
+new Intl.RelativeTimeFormat("mn", { numeric: "auto" }).format(1, "day")	маргааш
+new Intl.RelativeTimeFormat("mn").format(2, "day")	2 өдрийн дараа
+new Intl.RelativeTimeFormat("mn", { numeric: "auto" }).format(2, "day")	нөгөөдөр
+new Intl.RelativeTimeFormat("mn").format(-1, "month")	1 сарын өмнө
+new Intl.RelativeTimeFormat("mn", { numeric: "auto" }).format(-1, "month")	өнгөрсөн сар
+new Intl.RelativeTimeFormat("mn").format(0, "month")	0 сарын дараа
+new Intl.RelativeTimeFormat("mn", { numeric: "auto" }).format(0, "month")	энэ сар
+new Intl.RelativeTimeFormat("mn").format(1, "month")	1 сарын дараа
+new Intl.RelativeTimeFormat("mn", { numeric: "auto" }).format(1, "month")	ирэх сар
+new Intl.RelativeTimeFormat("mn").format(2, "month")	2 сарын дараа
+new Intl.RelativeTimeFormat("mn", { numeric: "auto" }).format(2, "month")	2 сарын дараа
+new Intl.DateTimeFormat("mn", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	2024 оны гуравдугаар сарын 9, бямба гараг
+new Intl.DateTimeFormat("mn", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	2024 оны 3-р сарын 9
+new Intl.DateTimeFormat("mn", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	23:08
+new Intl.DateTimeFormat("mn", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("mn").compare("a", "b")	-1
+new Intl.Collator("mn").compare("b", "a")	1
+new Intl.Collator("mn").compare("a", "A")	-1
+new Intl.Collator("mn").compare("z", "a")	1
+new Intl.Collator("mn").compare("résumé", "resume")	1
+new Intl.NumberFormat("ps").format(1234567.891)	۱٬۲۳۴٬۵۶۷٫۸۹۱
+new Intl.NumberFormat("ps", { style: "percent" }).format(1234567.891)	۱۲۳٬۴۵۶٬۷۸۹٪
+new Intl.NumberFormat("ps", { style: "currency", currency: "USD" }).format(1234567.891)	$ ۱٬۲۳۴٬۵۶۷٫۸۹
+new Intl.NumberFormat("ps").format(0.256)	۰٫۲۵۶
+new Intl.NumberFormat("ps", { style: "percent" }).format(0.256)	۲۶٪
+new Intl.NumberFormat("ps", { style: "currency", currency: "USD" }).format(0.256)	$ ۰٫۲۶
+new Intl.NumberFormat("ps").format(-42)	‎-‎۴۲
+new Intl.NumberFormat("ps", { style: "percent" }).format(-42)	‎-‎۴٬۲۰۰٪
+new Intl.NumberFormat("ps", { style: "currency", currency: "USD" }).format(-42)	‎-‎$ ۴۲٫۰۰
+new Intl.NumberFormat("ps").format(0)	۰
+new Intl.NumberFormat("ps", { style: "percent" }).format(0)	۰٪
+new Intl.NumberFormat("ps", { style: "currency", currency: "USD" }).format(0)	$ ۰٫۰۰
+new Intl.NumberFormat("ps", { notation: "compact" }).format(1234)	۱٫۲K
+new Intl.NumberFormat("ps", { notation: "compact", compactDisplay: "long" }).format(1234)	۱۲۳۴
+new Intl.NumberFormat("ps", { notation: "compact" }).format(1234567)	۱٫۲M
+new Intl.NumberFormat("ps", { notation: "compact", compactDisplay: "long" }).format(1234567)	۱٬۲۳۴٬۵۶۷
+new Intl.NumberFormat("ps", { notation: "compact" }).format(1500000000)	۱٫۵B
+new Intl.NumberFormat("ps", { notation: "compact", compactDisplay: "long" }).format(1500000000)	۱٫۵G
+new Intl.NumberFormat("ps").resolvedOptions().numberingSystem	arabext
+new Intl.PluralRules("ps", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.PluralRules("ps", { type: "cardinal" }).select(0)	other
+new Intl.PluralRules("ps", { type: "cardinal" }).select(1)	one
+new Intl.PluralRules("ps", { type: "cardinal" }).select(2)	other
+new Intl.PluralRules("ps", { type: "cardinal" }).select(3)	other
+new Intl.PluralRules("ps", { type: "cardinal" }).select(5)	other
+new Intl.PluralRules("ps", { type: "cardinal" }).select(11)	other
+new Intl.PluralRules("ps", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("ps", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("ps", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("ps", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("ps", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("ps", { type: "ordinal" }).select(1)	other
+new Intl.PluralRules("ps", { type: "ordinal" }).select(2)	other
+new Intl.PluralRules("ps", { type: "ordinal" }).select(3)	other
+new Intl.PluralRules("ps", { type: "ordinal" }).select(5)	other
+new Intl.PluralRules("ps", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("ps", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("ps", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("ps", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("ps", { type: "conjunction" }).format(["A", "B"])	A او B
+new Intl.ListFormat("ps", { type: "conjunction" }).format(["A", "B", "C"])	A، B، او C
+new Intl.ListFormat("ps", { type: "disjunction" }).format(["A", "B"])	A or B
+new Intl.ListFormat("ps", { type: "disjunction" }).format(["A", "B", "C"])	A, B, یا C
+new Intl.RelativeTimeFormat("ps").format(-1, "day")	۱ ورځ مخکې
+new Intl.RelativeTimeFormat("ps", { numeric: "auto" }).format(-1, "day")	پرون
+new Intl.RelativeTimeFormat("ps").format(0, "day")	په ۰ ورځو کې
+new Intl.RelativeTimeFormat("ps", { numeric: "auto" }).format(0, "day")	نن
+new Intl.RelativeTimeFormat("ps").format(1, "day")	په ۱ ورځ کې
+new Intl.RelativeTimeFormat("ps", { numeric: "auto" }).format(1, "day")	سبا
+new Intl.RelativeTimeFormat("ps").format(2, "day")	په ۲ ورځو کې
+new Intl.RelativeTimeFormat("ps", { numeric: "auto" }).format(2, "day")	په ۲ ورځو کې
+new Intl.RelativeTimeFormat("ps").format(-1, "month")	۱ مياشت مخکې
+new Intl.RelativeTimeFormat("ps", { numeric: "auto" }).format(-1, "month")	تېره مياشت
+new Intl.RelativeTimeFormat("ps").format(0, "month")	په ۰ مياشتو کې
+new Intl.RelativeTimeFormat("ps", { numeric: "auto" }).format(0, "month")	دا مياشت
+new Intl.RelativeTimeFormat("ps").format(1, "month")	په ۱ مياشت کې
+new Intl.RelativeTimeFormat("ps", { numeric: "auto" }).format(1, "month")	راتلونکې مياشت
+new Intl.RelativeTimeFormat("ps").format(2, "month")	په ۲ مياشتو کې
+new Intl.RelativeTimeFormat("ps", { numeric: "auto" }).format(2, "month")	په ۲ مياشتو کې
+new Intl.DateTimeFormat("ps", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	AP ۱۴۰۲ کب ۱۹, اونۍ
+new Intl.DateTimeFormat("ps", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	AP ۱۴۰۲ کب ۱۹
+new Intl.DateTimeFormat("ps", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	۲۳:۰۸
+new Intl.DateTimeFormat("ps", { timeZone: "UTC" }).resolvedOptions().calendar	persian
+new Intl.Collator("ps").compare("a", "b")	-1
+new Intl.Collator("ps").compare("b", "a")	1
+new Intl.Collator("ps").compare("a", "A")	-1
+new Intl.Collator("ps").compare("z", "a")	1
+new Intl.Collator("ps").compare("résumé", "resume")	1
+new Intl.NumberFormat("sd").format(1234567.891)	١٬٢٣٤٬٥٦٧.٨٩١
+new Intl.NumberFormat("sd", { style: "percent" }).format(1234567.891)	١٢٣٬٤٥٦٬٧٨٩٪؜
+new Intl.NumberFormat("sd", { style: "currency", currency: "USD" }).format(1234567.891)	١٬٢٣٤٬٥٦٧.٨٩ US$
+new Intl.NumberFormat("sd").format(0.256)	٠.٢٥٦
+new Intl.NumberFormat("sd", { style: "percent" }).format(0.256)	٢٦٪؜
+new Intl.NumberFormat("sd", { style: "currency", currency: "USD" }).format(0.256)	٠.٢٦ US$
+new Intl.NumberFormat("sd").format(-42)	؜-٤٢
+new Intl.NumberFormat("sd", { style: "percent" }).format(-42)	؜-٤٬٢٠٠٪؜
+new Intl.NumberFormat("sd", { style: "currency", currency: "USD" }).format(-42)	؜-٤٢.٠٠ US$
+new Intl.NumberFormat("sd").format(0)	٠
+new Intl.NumberFormat("sd", { style: "percent" }).format(0)	٠٪؜
+new Intl.NumberFormat("sd", { style: "currency", currency: "USD" }).format(0)	٠.٠٠ US$
+new Intl.NumberFormat("sd", { notation: "compact" }).format(1234)	١.٢ هزار
+new Intl.NumberFormat("sd", { notation: "compact", compactDisplay: "long" }).format(1234)	١.٢ ھزار
+new Intl.NumberFormat("sd", { notation: "compact" }).format(1234567)	١.٢ ملين
+new Intl.NumberFormat("sd", { notation: "compact", compactDisplay: "long" }).format(1234567)	١.٢ ملين
+new Intl.NumberFormat("sd", { notation: "compact" }).format(1500000000)	١.٥ بلين
+new Intl.NumberFormat("sd", { notation: "compact", compactDisplay: "long" }).format(1500000000)	١.٥ بلين
+new Intl.NumberFormat("sd").resolvedOptions().numberingSystem	arab
+new Intl.PluralRules("sd", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.PluralRules("sd", { type: "cardinal" }).select(0)	other
+new Intl.PluralRules("sd", { type: "cardinal" }).select(1)	one
+new Intl.PluralRules("sd", { type: "cardinal" }).select(2)	other
+new Intl.PluralRules("sd", { type: "cardinal" }).select(3)	other
+new Intl.PluralRules("sd", { type: "cardinal" }).select(5)	other
+new Intl.PluralRules("sd", { type: "cardinal" }).select(11)	other
+new Intl.PluralRules("sd", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("sd", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("sd", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("sd", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("sd", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("sd", { type: "ordinal" }).select(1)	other
+new Intl.PluralRules("sd", { type: "ordinal" }).select(2)	other
+new Intl.PluralRules("sd", { type: "ordinal" }).select(3)	other
+new Intl.PluralRules("sd", { type: "ordinal" }).select(5)	other
+new Intl.PluralRules("sd", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("sd", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("sd", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("sd", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("sd", { type: "conjunction" }).format(["A", "B"])	A ۽ B
+new Intl.ListFormat("sd", { type: "conjunction" }).format(["A", "B", "C"])	A، B، ۽ C
+new Intl.ListFormat("sd", { type: "disjunction" }).format(["A", "B"])	A يا B
+new Intl.ListFormat("sd", { type: "disjunction" }).format(["A", "B", "C"])	A, B, يا C
+new Intl.RelativeTimeFormat("sd").format(-1, "day")	١ ڏينهن پهرين
+new Intl.RelativeTimeFormat("sd", { numeric: "auto" }).format(-1, "day")	ڪل
+new Intl.RelativeTimeFormat("sd").format(0, "day")	٠ ڏينهن ۾
+new Intl.RelativeTimeFormat("sd", { numeric: "auto" }).format(0, "day")	اڄ
+new Intl.RelativeTimeFormat("sd").format(1, "day")	١ ڏينهن ۾
+new Intl.RelativeTimeFormat("sd", { numeric: "auto" }).format(1, "day")	سڀاڻي
+new Intl.RelativeTimeFormat("sd").format(2, "day")	٢ ڏينهن ۾
+new Intl.RelativeTimeFormat("sd", { numeric: "auto" }).format(2, "day")	٢ ڏينهن ۾
+new Intl.RelativeTimeFormat("sd").format(-1, "month")	١ مهينا پهرين
+new Intl.RelativeTimeFormat("sd", { numeric: "auto" }).format(-1, "month")	پوئين مهيني
+new Intl.RelativeTimeFormat("sd").format(0, "month")	٠ مهينن ۾
+new Intl.RelativeTimeFormat("sd", { numeric: "auto" }).format(0, "month")	هن مهيني
+new Intl.RelativeTimeFormat("sd").format(1, "month")	١ مهيني ۾
+new Intl.RelativeTimeFormat("sd", { numeric: "auto" }).format(1, "month")	اڳين مهيني
+new Intl.RelativeTimeFormat("sd").format(2, "month")	٢ مهينن ۾
+new Intl.RelativeTimeFormat("sd", { numeric: "auto" }).format(2, "month")	٢ مهينن ۾
+new Intl.DateTimeFormat("sd", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	ڇنڇر, مارچ ٩, ٢٠٢٤
+new Intl.DateTimeFormat("sd", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	٢٠٢٤ مارچ ٩
+new Intl.DateTimeFormat("sd", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	١١:٠٨ شام
+new Intl.DateTimeFormat("sd", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("sd").compare("a", "b")	-1
+new Intl.Collator("sd").compare("b", "a")	1
+new Intl.Collator("sd").compare("a", "A")	-1
+new Intl.Collator("sd").compare("z", "a")	1
+new Intl.Collator("sd").compare("résumé", "resume")	1
+new Intl.NumberFormat("so").format(1234567.891)	1,234,567.891
+new Intl.NumberFormat("so", { style: "percent" }).format(1234567.891)	123,456,789%
+new Intl.NumberFormat("so", { style: "currency", currency: "USD" }).format(1234567.891)	US$1,234,567.89
+new Intl.NumberFormat("so").format(0.256)	0.256
+new Intl.NumberFormat("so", { style: "percent" }).format(0.256)	26%
+new Intl.NumberFormat("so", { style: "currency", currency: "USD" }).format(0.256)	US$0.26
+new Intl.NumberFormat("so").format(-42)	-42
+new Intl.NumberFormat("so", { style: "percent" }).format(-42)	-4,200%
+new Intl.NumberFormat("so", { style: "currency", currency: "USD" }).format(-42)	-US$42.00
+new Intl.NumberFormat("so").format(0)	0
+new Intl.NumberFormat("so", { style: "percent" }).format(0)	0%
+new Intl.NumberFormat("so", { style: "currency", currency: "USD" }).format(0)	US$0.00
+new Intl.NumberFormat("so", { notation: "compact" }).format(1234)	1.2K
+new Intl.NumberFormat("so", { notation: "compact", compactDisplay: "long" }).format(1234)	1.2 Kun
+new Intl.NumberFormat("so", { notation: "compact" }).format(1234567)	1.2M
+new Intl.NumberFormat("so", { notation: "compact", compactDisplay: "long" }).format(1234567)	1.2 Milyan
+new Intl.NumberFormat("so", { notation: "compact" }).format(1500000000)	1.5B
+new Intl.NumberFormat("so", { notation: "compact", compactDisplay: "long" }).format(1500000000)	1.5 Bilyan
+new Intl.NumberFormat("so").resolvedOptions().numberingSystem	latn
+new Intl.PluralRules("so", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.PluralRules("so", { type: "cardinal" }).select(0)	other
+new Intl.PluralRules("so", { type: "cardinal" }).select(1)	one
+new Intl.PluralRules("so", { type: "cardinal" }).select(2)	other
+new Intl.PluralRules("so", { type: "cardinal" }).select(3)	other
+new Intl.PluralRules("so", { type: "cardinal" }).select(5)	other
+new Intl.PluralRules("so", { type: "cardinal" }).select(11)	other
+new Intl.PluralRules("so", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("so", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("so", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("so", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("so", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("so", { type: "ordinal" }).select(1)	other
+new Intl.PluralRules("so", { type: "ordinal" }).select(2)	other
+new Intl.PluralRules("so", { type: "ordinal" }).select(3)	other
+new Intl.PluralRules("so", { type: "ordinal" }).select(5)	other
+new Intl.PluralRules("so", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("so", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("so", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("so", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("so", { type: "conjunction" }).format(["A", "B"])	A iyo B
+new Intl.ListFormat("so", { type: "conjunction" }).format(["A", "B", "C"])	A, B iyo C
+new Intl.ListFormat("so", { type: "disjunction" }).format(["A", "B"])	A ama B
+new Intl.ListFormat("so", { type: "disjunction" }).format(["A", "B", "C"])	A, B ama C
+new Intl.RelativeTimeFormat("so").format(-1, "day")	1 maalin kahor
+new Intl.RelativeTimeFormat("so", { numeric: "auto" }).format(-1, "day")	Shalay
+new Intl.RelativeTimeFormat("so").format(0, "day")	0 maalmood
+new Intl.RelativeTimeFormat("so", { numeric: "auto" }).format(0, "day")	Maanta
+new Intl.RelativeTimeFormat("so").format(1, "day")	1 maalin
+new Intl.RelativeTimeFormat("so", { numeric: "auto" }).format(1, "day")	Berri
+new Intl.RelativeTimeFormat("so").format(2, "day")	2 maalmood
+new Intl.RelativeTimeFormat("so", { numeric: "auto" }).format(2, "day")	2 maalmood
+new Intl.RelativeTimeFormat("so").format(-1, "month")	1 bil kahor
+new Intl.RelativeTimeFormat("so", { numeric: "auto" }).format(-1, "month")	Bishii hore
+new Intl.RelativeTimeFormat("so").format(0, "month")	0 bilood
+new Intl.RelativeTimeFormat("so", { numeric: "auto" }).format(0, "month")	Bishan
+new Intl.RelativeTimeFormat("so").format(1, "month")	1 bil
+new Intl.RelativeTimeFormat("so", { numeric: "auto" }).format(1, "month")	Bisha danbe
+new Intl.RelativeTimeFormat("so").format(2, "month")	2 bilood
+new Intl.RelativeTimeFormat("so", { numeric: "auto" }).format(2, "month")	2 bilood
+new Intl.DateTimeFormat("so", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	Sabti, Maarso 9, 2024
+new Intl.DateTimeFormat("so", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	09-Mar-2024
+new Intl.DateTimeFormat("so", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	11:08 GD
+new Intl.DateTimeFormat("so", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("so").compare("a", "b")	-1
+new Intl.Collator("so").compare("b", "a")	1
+new Intl.Collator("so").compare("a", "A")	-1
+new Intl.Collator("so").compare("z", "a")	1
+new Intl.Collator("so").compare("résumé", "resume")	1
+new Intl.NumberFormat("fil").format(1234567.891)	1,234,567.891
+new Intl.NumberFormat("fil", { style: "percent" }).format(1234567.891)	123,456,789%
+new Intl.NumberFormat("fil", { style: "currency", currency: "USD" }).format(1234567.891)	$1,234,567.89
+new Intl.NumberFormat("fil").format(0.256)	0.256
+new Intl.NumberFormat("fil", { style: "percent" }).format(0.256)	26%
+new Intl.NumberFormat("fil", { style: "currency", currency: "USD" }).format(0.256)	$0.26
+new Intl.NumberFormat("fil").format(-42)	-42
+new Intl.NumberFormat("fil", { style: "percent" }).format(-42)	-4,200%
+new Intl.NumberFormat("fil", { style: "currency", currency: "USD" }).format(-42)	-$42.00
+new Intl.NumberFormat("fil").format(0)	0
+new Intl.NumberFormat("fil", { style: "percent" }).format(0)	0%
+new Intl.NumberFormat("fil", { style: "currency", currency: "USD" }).format(0)	$0.00
+new Intl.NumberFormat("fil", { notation: "compact" }).format(1234)	1.2K
+new Intl.NumberFormat("fil", { notation: "compact", compactDisplay: "long" }).format(1234)	1.2 libo
+new Intl.NumberFormat("fil", { notation: "compact" }).format(1234567)	1.2M
+new Intl.NumberFormat("fil", { notation: "compact", compactDisplay: "long" }).format(1234567)	1.2 milyon
+new Intl.NumberFormat("fil", { notation: "compact" }).format(1500000000)	1.5B
+new Intl.NumberFormat("fil", { notation: "compact", compactDisplay: "long" }).format(1500000000)	1.5 bilyon
+new Intl.NumberFormat("fil").resolvedOptions().numberingSystem	latn
+new Intl.PluralRules("fil", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.PluralRules("fil", { type: "cardinal" }).select(0)	one
+new Intl.PluralRules("fil", { type: "cardinal" }).select(1)	one
+new Intl.PluralRules("fil", { type: "cardinal" }).select(2)	one
+new Intl.PluralRules("fil", { type: "cardinal" }).select(3)	one
+new Intl.PluralRules("fil", { type: "cardinal" }).select(5)	one
+new Intl.PluralRules("fil", { type: "cardinal" }).select(11)	one
+new Intl.PluralRules("fil", { type: "cardinal" }).select(21)	one
+new Intl.PluralRules("fil", { type: "cardinal" }).select(100)	one
+new Intl.PluralRules("fil", { type: "cardinal" }).select(1.5)	one
+new Intl.PluralRules("fil", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.PluralRules("fil", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("fil", { type: "ordinal" }).select(1)	one
+new Intl.PluralRules("fil", { type: "ordinal" }).select(2)	other
+new Intl.PluralRules("fil", { type: "ordinal" }).select(3)	other
+new Intl.PluralRules("fil", { type: "ordinal" }).select(5)	other
+new Intl.PluralRules("fil", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("fil", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("fil", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("fil", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("fil", { type: "conjunction" }).format(["A", "B"])	A at B
+new Intl.ListFormat("fil", { type: "conjunction" }).format(["A", "B", "C"])	A, B, at C
+new Intl.ListFormat("fil", { type: "disjunction" }).format(["A", "B"])	A o B
+new Intl.ListFormat("fil", { type: "disjunction" }).format(["A", "B", "C"])	A, B, o C
+new Intl.RelativeTimeFormat("fil").format(-1, "day")	1 araw ang nakalipas
+new Intl.RelativeTimeFormat("fil", { numeric: "auto" }).format(-1, "day")	kahapon
+new Intl.RelativeTimeFormat("fil").format(0, "day")	sa 0 araw
+new Intl.RelativeTimeFormat("fil", { numeric: "auto" }).format(0, "day")	ngayong araw
+new Intl.RelativeTimeFormat("fil").format(1, "day")	sa 1 araw
+new Intl.RelativeTimeFormat("fil", { numeric: "auto" }).format(1, "day")	bukas
+new Intl.RelativeTimeFormat("fil").format(2, "day")	sa 2 araw
+new Intl.RelativeTimeFormat("fil", { numeric: "auto" }).format(2, "day")	Samakalawa
+new Intl.RelativeTimeFormat("fil").format(-1, "month")	1 buwan ang nakalipas
+new Intl.RelativeTimeFormat("fil", { numeric: "auto" }).format(-1, "month")	nakaraang buwan
+new Intl.RelativeTimeFormat("fil").format(0, "month")	sa 0 buwan
+new Intl.RelativeTimeFormat("fil", { numeric: "auto" }).format(0, "month")	ngayong buwan
+new Intl.RelativeTimeFormat("fil").format(1, "month")	sa 1 buwan
+new Intl.RelativeTimeFormat("fil", { numeric: "auto" }).format(1, "month")	susunod na buwan
+new Intl.RelativeTimeFormat("fil").format(2, "month")	sa 2 buwan
+new Intl.RelativeTimeFormat("fil", { numeric: "auto" }).format(2, "month")	sa 2 buwan
+new Intl.DateTimeFormat("fil", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	Sabado, Marso 9, 2024
+new Intl.DateTimeFormat("fil", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	Mar 9, 2024
+new Intl.DateTimeFormat("fil", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	11:08 PM
+new Intl.DateTimeFormat("fil", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("fil").compare("a", "b")	-1
+new Intl.Collator("fil").compare("b", "a")	1
+new Intl.Collator("fil").compare("a", "A")	-1
+new Intl.Collator("fil").compare("z", "a")	1
+new Intl.Collator("fil").compare("résumé", "resume")	1
+new Intl.NumberFormat("ha").format(1234567.891)	1,234,567.891
+new Intl.NumberFormat("ha", { style: "percent" }).format(1234567.891)	123,456,789%
+new Intl.NumberFormat("ha", { style: "currency", currency: "USD" }).format(1234567.891)	$ 1,234,567.89
+new Intl.NumberFormat("ha").format(0.256)	0.256
+new Intl.NumberFormat("ha", { style: "percent" }).format(0.256)	26%
+new Intl.NumberFormat("ha", { style: "currency", currency: "USD" }).format(0.256)	$ 0.26
+new Intl.NumberFormat("ha").format(-42)	-42
+new Intl.NumberFormat("ha", { style: "percent" }).format(-42)	-4,200%
+new Intl.NumberFormat("ha", { style: "currency", currency: "USD" }).format(-42)	-$ 42.00
+new Intl.NumberFormat("ha").format(0)	0
+new Intl.NumberFormat("ha", { style: "percent" }).format(0)	0%
+new Intl.NumberFormat("ha", { style: "currency", currency: "USD" }).format(0)	$ 0.00
+new Intl.NumberFormat("ha", { notation: "compact" }).format(1234)	1.2K
+new Intl.NumberFormat("ha", { notation: "compact", compactDisplay: "long" }).format(1234)	Dubu 1.2
+new Intl.NumberFormat("ha", { notation: "compact" }).format(1234567)	1.2M
+new Intl.NumberFormat("ha", { notation: "compact", compactDisplay: "long" }).format(1234567)	Miliyan 1.2
+new Intl.NumberFormat("ha", { notation: "compact" }).format(1500000000)	1.5B
+new Intl.NumberFormat("ha", { notation: "compact", compactDisplay: "long" }).format(1500000000)	Biliyan 1.5
+new Intl.NumberFormat("ha").resolvedOptions().numberingSystem	latn
+new Intl.PluralRules("ha", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.PluralRules("ha", { type: "cardinal" }).select(0)	other
+new Intl.PluralRules("ha", { type: "cardinal" }).select(1)	one
+new Intl.PluralRules("ha", { type: "cardinal" }).select(2)	other
+new Intl.PluralRules("ha", { type: "cardinal" }).select(3)	other
+new Intl.PluralRules("ha", { type: "cardinal" }).select(5)	other
+new Intl.PluralRules("ha", { type: "cardinal" }).select(11)	other
+new Intl.PluralRules("ha", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("ha", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("ha", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("ha", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("ha", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("ha", { type: "ordinal" }).select(1)	other
+new Intl.PluralRules("ha", { type: "ordinal" }).select(2)	other
+new Intl.PluralRules("ha", { type: "ordinal" }).select(3)	other
+new Intl.PluralRules("ha", { type: "ordinal" }).select(5)	other
+new Intl.PluralRules("ha", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("ha", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("ha", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("ha", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("ha", { type: "conjunction" }).format(["A", "B"])	A da B
+new Intl.ListFormat("ha", { type: "conjunction" }).format(["A", "B", "C"])	A, B, da C
+new Intl.ListFormat("ha", { type: "disjunction" }).format(["A", "B"])	A ko B
+new Intl.ListFormat("ha", { type: "disjunction" }).format(["A", "B", "C"])	A, B ko C
+new Intl.RelativeTimeFormat("ha").format(-1, "day")	kwana 1 da ya gabata
+new Intl.RelativeTimeFormat("ha", { numeric: "auto" }).format(-1, "day")	jiya
+new Intl.RelativeTimeFormat("ha").format(0, "day")	a cikin kwanaki 0
+new Intl.RelativeTimeFormat("ha", { numeric: "auto" }).format(0, "day")	yau
+new Intl.RelativeTimeFormat("ha").format(1, "day")	a cikin kwanaki 1
+new Intl.RelativeTimeFormat("ha", { numeric: "auto" }).format(1, "day")	gobe
+new Intl.RelativeTimeFormat("ha").format(2, "day")	a cikin kwanaki 2
+new Intl.RelativeTimeFormat("ha", { numeric: "auto" }).format(2, "day")	a cikin kwanaki 2
+new Intl.RelativeTimeFormat("ha").format(-1, "month")	wata 1 da ya gabata
+new Intl.RelativeTimeFormat("ha", { numeric: "auto" }).format(-1, "month")	watan da ya gabata
+new Intl.RelativeTimeFormat("ha").format(0, "month")	a cikin watanni 0
+new Intl.RelativeTimeFormat("ha", { numeric: "auto" }).format(0, "month")	wannan watan
+new Intl.RelativeTimeFormat("ha").format(1, "month")	a cikin watan 1
+new Intl.RelativeTimeFormat("ha", { numeric: "auto" }).format(1, "month")	wata na gaba
+new Intl.RelativeTimeFormat("ha").format(2, "month")	a cikin watanni 2
+new Intl.RelativeTimeFormat("ha", { numeric: "auto" }).format(2, "month")	a cikin watanni 2
+new Intl.DateTimeFormat("ha", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	Asabar 9 Maris, 2024
+new Intl.DateTimeFormat("ha", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	9 Mar, 2024
+new Intl.DateTimeFormat("ha", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	23:08
+new Intl.DateTimeFormat("ha", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("ha").compare("a", "b")	-1
+new Intl.Collator("ha").compare("b", "a")	1
+new Intl.Collator("ha").compare("a", "A")	-1
+new Intl.Collator("ha").compare("z", "a")	1
+new Intl.Collator("ha").compare("résumé", "resume")	1
+new Intl.NumberFormat("yo").format(1234567.891)	1,234,567.891
+new Intl.NumberFormat("yo", { style: "percent" }).format(1234567.891)	123,456,789%
+new Intl.NumberFormat("yo", { style: "currency", currency: "USD" }).format(1234567.891)	$1,234,567.89
+new Intl.NumberFormat("yo").format(0.256)	0.256
+new Intl.NumberFormat("yo", { style: "percent" }).format(0.256)	26%
+new Intl.NumberFormat("yo", { style: "currency", currency: "USD" }).format(0.256)	$0.26
+new Intl.NumberFormat("yo").format(-42)	-42
+new Intl.NumberFormat("yo", { style: "percent" }).format(-42)	-4,200%
+new Intl.NumberFormat("yo", { style: "currency", currency: "USD" }).format(-42)	-$42.00
+new Intl.NumberFormat("yo").format(0)	0
+new Intl.NumberFormat("yo", { style: "percent" }).format(0)	0%
+new Intl.NumberFormat("yo", { style: "currency", currency: "USD" }).format(0)	$0.00
+new Intl.NumberFormat("yo", { notation: "compact" }).format(1234)	1.2K
+new Intl.NumberFormat("yo", { notation: "compact", compactDisplay: "long" }).format(1234)	1.2 ẹgbẹ̀rún
+new Intl.NumberFormat("yo", { notation: "compact" }).format(1234567)	1.2M
+new Intl.NumberFormat("yo", { notation: "compact", compactDisplay: "long" }).format(1234567)	1.2 mílíọ̀nù
+new Intl.NumberFormat("yo", { notation: "compact" }).format(1500000000)	1.5G
+new Intl.NumberFormat("yo", { notation: "compact", compactDisplay: "long" }).format(1500000000)	1.5 bilíọ̀nù
+new Intl.NumberFormat("yo").resolvedOptions().numberingSystem	latn
+new Intl.PluralRules("yo", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("yo", { type: "cardinal" }).select(0)	other
+new Intl.PluralRules("yo", { type: "cardinal" }).select(1)	other
+new Intl.PluralRules("yo", { type: "cardinal" }).select(2)	other
+new Intl.PluralRules("yo", { type: "cardinal" }).select(3)	other
+new Intl.PluralRules("yo", { type: "cardinal" }).select(5)	other
+new Intl.PluralRules("yo", { type: "cardinal" }).select(11)	other
+new Intl.PluralRules("yo", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("yo", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("yo", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("yo", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("yo", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("yo", { type: "ordinal" }).select(1)	other
+new Intl.PluralRules("yo", { type: "ordinal" }).select(2)	other
+new Intl.PluralRules("yo", { type: "ordinal" }).select(3)	other
+new Intl.PluralRules("yo", { type: "ordinal" }).select(5)	other
+new Intl.PluralRules("yo", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("yo", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("yo", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("yo", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("yo", { type: "conjunction" }).format(["A", "B"])	A àtiB
+new Intl.ListFormat("yo", { type: "conjunction" }).format(["A", "B", "C"])	A, B, C
+new Intl.ListFormat("yo", { type: "disjunction" }).format(["A", "B"])	A tàbí B
+new Intl.ListFormat("yo", { type: "disjunction" }).format(["A", "B", "C"])	A, B, tabi C
+new Intl.RelativeTimeFormat("yo").format(-1, "day")	-1 d
+new Intl.RelativeTimeFormat("yo", { numeric: "auto" }).format(-1, "day")	Àná
+new Intl.RelativeTimeFormat("yo").format(0, "day")	+0 d
+new Intl.RelativeTimeFormat("yo", { numeric: "auto" }).format(0, "day")	Òní
+new Intl.RelativeTimeFormat("yo").format(1, "day")	+1 d
+new Intl.RelativeTimeFormat("yo", { numeric: "auto" }).format(1, "day")	Ọ̀la
+new Intl.RelativeTimeFormat("yo").format(2, "day")	+2 d
+new Intl.RelativeTimeFormat("yo", { numeric: "auto" }).format(2, "day")	òtúùnla
+new Intl.RelativeTimeFormat("yo").format(-1, "month")	-1 m
+new Intl.RelativeTimeFormat("yo", { numeric: "auto" }).format(-1, "month")	óṣù tó kọjá
+new Intl.RelativeTimeFormat("yo").format(0, "month")	+0 m
+new Intl.RelativeTimeFormat("yo", { numeric: "auto" }).format(0, "month")	oṣù yìí
+new Intl.RelativeTimeFormat("yo").format(1, "month")	+1 m
+new Intl.RelativeTimeFormat("yo", { numeric: "auto" }).format(1, "month")	óṣù tó ń bọ̀,
+new Intl.RelativeTimeFormat("yo").format(2, "month")	+2 m
+new Intl.RelativeTimeFormat("yo", { numeric: "auto" }).format(2, "month")	+2 m
+new Intl.DateTimeFormat("yo", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	Ọjọ́ Àbámẹ́ta, 9 Oṣù Ẹrẹ̀nà 2024
+new Intl.DateTimeFormat("yo", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	9 03 2024
+new Intl.DateTimeFormat("yo", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	23:8
+new Intl.DateTimeFormat("yo", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("yo").compare("a", "b")	-1
+new Intl.Collator("yo").compare("b", "a")	1
+new Intl.Collator("yo").compare("a", "A")	-1
+new Intl.Collator("yo").compare("z", "a")	1
+new Intl.Collator("yo").compare("résumé", "resume")	1
+new Intl.NumberFormat("zu").format(1234567.891)	1,234,567.891
+new Intl.NumberFormat("zu", { style: "percent" }).format(1234567.891)	123,456,789%
+new Intl.NumberFormat("zu", { style: "currency", currency: "USD" }).format(1234567.891)	$1,234,567.89
+new Intl.NumberFormat("zu").format(0.256)	0.256
+new Intl.NumberFormat("zu", { style: "percent" }).format(0.256)	26%
+new Intl.NumberFormat("zu", { style: "currency", currency: "USD" }).format(0.256)	$0.26
+new Intl.NumberFormat("zu").format(-42)	-42
+new Intl.NumberFormat("zu", { style: "percent" }).format(-42)	-4,200%
+new Intl.NumberFormat("zu", { style: "currency", currency: "USD" }).format(-42)	-$42.00
+new Intl.NumberFormat("zu").format(0)	0
+new Intl.NumberFormat("zu", { style: "percent" }).format(0)	0%
+new Intl.NumberFormat("zu", { style: "currency", currency: "USD" }).format(0)	$0.00
+new Intl.NumberFormat("zu", { notation: "compact" }).format(1234)	1.2K
+new Intl.NumberFormat("zu", { notation: "compact", compactDisplay: "long" }).format(1234)	1.2 inkulungwane
+new Intl.NumberFormat("zu", { notation: "compact" }).format(1234567)	1.2M
+new Intl.NumberFormat("zu", { notation: "compact", compactDisplay: "long" }).format(1234567)	1.2 isigidi
+new Intl.NumberFormat("zu", { notation: "compact" }).format(1500000000)	1.5B
+new Intl.NumberFormat("zu", { notation: "compact", compactDisplay: "long" }).format(1500000000)	1.5 isigidi sezigidi
+new Intl.NumberFormat("zu").resolvedOptions().numberingSystem	latn
+new Intl.PluralRules("zu", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.PluralRules("zu", { type: "cardinal" }).select(0)	one
+new Intl.PluralRules("zu", { type: "cardinal" }).select(1)	one
+new Intl.PluralRules("zu", { type: "cardinal" }).select(2)	other
+new Intl.PluralRules("zu", { type: "cardinal" }).select(3)	other
+new Intl.PluralRules("zu", { type: "cardinal" }).select(5)	other
+new Intl.PluralRules("zu", { type: "cardinal" }).select(11)	other
+new Intl.PluralRules("zu", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("zu", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("zu", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("zu", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("zu", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("zu", { type: "ordinal" }).select(1)	other
+new Intl.PluralRules("zu", { type: "ordinal" }).select(2)	other
+new Intl.PluralRules("zu", { type: "ordinal" }).select(3)	other
+new Intl.PluralRules("zu", { type: "ordinal" }).select(5)	other
+new Intl.PluralRules("zu", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("zu", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("zu", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("zu", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("zu", { type: "conjunction" }).format(["A", "B"])	A ne-B
+new Intl.ListFormat("zu", { type: "conjunction" }).format(["A", "B", "C"])	A, B, ne-C
+new Intl.ListFormat("zu", { type: "disjunction" }).format(["A", "B"])	A or B
+new Intl.ListFormat("zu", { type: "disjunction" }).format(["A", "B", "C"])	A, B, or C
+new Intl.RelativeTimeFormat("zu").format(-1, "day")	osukwini olungu-1 olwedlule
+new Intl.RelativeTimeFormat("zu", { numeric: "auto" }).format(-1, "day")	izolo
+new Intl.RelativeTimeFormat("zu").format(0, "day")	osukwini olungu-0 oluzayo
+new Intl.RelativeTimeFormat("zu", { numeric: "auto" }).format(0, "day")	namhlanje
+new Intl.RelativeTimeFormat("zu").format(1, "day")	osukwini olungu-1 oluzayo
+new Intl.RelativeTimeFormat("zu", { numeric: "auto" }).format(1, "day")	kusasa
+new Intl.RelativeTimeFormat("zu").format(2, "day")	ezinsukwini ezingu-2 ezizayo
+new Intl.RelativeTimeFormat("zu", { numeric: "auto" }).format(2, "day")	usuku olulandela olwakusasa
+new Intl.RelativeTimeFormat("zu").format(-1, "month")	1 inyanga edlule
+new Intl.RelativeTimeFormat("zu", { numeric: "auto" }).format(-1, "month")	inyanga edlule
+new Intl.RelativeTimeFormat("zu").format(0, "month")	enyangeni engu-0
+new Intl.RelativeTimeFormat("zu", { numeric: "auto" }).format(0, "month")	le nyanga
+new Intl.RelativeTimeFormat("zu").format(1, "month")	enyangeni engu-1
+new Intl.RelativeTimeFormat("zu", { numeric: "auto" }).format(1, "month")	inyanga ezayo
+new Intl.RelativeTimeFormat("zu").format(2, "month")	ezinyangeni ezingu-2 ezizayo
+new Intl.RelativeTimeFormat("zu", { numeric: "auto" }).format(2, "month")	ezinyangeni ezingu-2 ezizayo
+new Intl.DateTimeFormat("zu", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	UMgqibelo, Mashi 9, 2024
+new Intl.DateTimeFormat("zu", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	Mas 9, 2024
+new Intl.DateTimeFormat("zu", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	23:08
+new Intl.DateTimeFormat("zu", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("zu").compare("a", "b")	-1
+new Intl.Collator("zu").compare("b", "a")	1
+new Intl.Collator("zu").compare("a", "A")	-1
+new Intl.Collator("zu").compare("z", "a")	1
+new Intl.Collator("zu").compare("résumé", "resume")	1
+new Intl.NumberFormat("xh").format(1234567.891)	1 234 567.891
+new Intl.NumberFormat("xh", { style: "percent" }).format(1234567.891)	123 456 789%
+new Intl.NumberFormat("xh", { style: "currency", currency: "USD" }).format(1234567.891)	$1 234 567.89
+new Intl.NumberFormat("xh").format(0.256)	0.256
+new Intl.NumberFormat("xh", { style: "percent" }).format(0.256)	26%
+new Intl.NumberFormat("xh", { style: "currency", currency: "USD" }).format(0.256)	$0.26
+new Intl.NumberFormat("xh").format(-42)	-42
+new Intl.NumberFormat("xh", { style: "percent" }).format(-42)	-4 200%
+new Intl.NumberFormat("xh", { style: "currency", currency: "USD" }).format(-42)	-$42.00
+new Intl.NumberFormat("xh").format(0)	0
+new Intl.NumberFormat("xh", { style: "percent" }).format(0)	0%
+new Intl.NumberFormat("xh", { style: "currency", currency: "USD" }).format(0)	$0.00
+new Intl.NumberFormat("xh", { notation: "compact" }).format(1234)	1.2K
+new Intl.NumberFormat("xh", { notation: "compact", compactDisplay: "long" }).format(1234)	1.2K
+new Intl.NumberFormat("xh", { notation: "compact" }).format(1234567)	1.2M
+new Intl.NumberFormat("xh", { notation: "compact", compactDisplay: "long" }).format(1234567)	1.2M
+new Intl.NumberFormat("xh", { notation: "compact" }).format(1500000000)	1.5G
+new Intl.NumberFormat("xh", { notation: "compact", compactDisplay: "long" }).format(1500000000)	1.5G
+new Intl.NumberFormat("xh").resolvedOptions().numberingSystem	latn
+new Intl.PluralRules("xh", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.PluralRules("xh", { type: "cardinal" }).select(0)	other
+new Intl.PluralRules("xh", { type: "cardinal" }).select(1)	one
+new Intl.PluralRules("xh", { type: "cardinal" }).select(2)	other
+new Intl.PluralRules("xh", { type: "cardinal" }).select(3)	other
+new Intl.PluralRules("xh", { type: "cardinal" }).select(5)	other
+new Intl.PluralRules("xh", { type: "cardinal" }).select(11)	other
+new Intl.PluralRules("xh", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("xh", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("xh", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("xh", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("xh", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("xh", { type: "ordinal" }).select(1)	other
+new Intl.PluralRules("xh", { type: "ordinal" }).select(2)	other
+new Intl.PluralRules("xh", { type: "ordinal" }).select(3)	other
+new Intl.PluralRules("xh", { type: "ordinal" }).select(5)	other
+new Intl.PluralRules("xh", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("xh", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("xh", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("xh", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("xh", { type: "conjunction" }).format(["A", "B"])	A, B
+new Intl.ListFormat("xh", { type: "conjunction" }).format(["A", "B", "C"])	A, B, C
+new Intl.ListFormat("xh", { type: "disjunction" }).format(["A", "B"])	A or B
+new Intl.ListFormat("xh", { type: "disjunction" }).format(["A", "B", "C"])	A, B, or C
+new Intl.RelativeTimeFormat("xh").format(-1, "day")	-1 d
+new Intl.RelativeTimeFormat("xh", { numeric: "auto" }).format(-1, "day")	izolo
+new Intl.RelativeTimeFormat("xh").format(0, "day")	+0 d
+new Intl.RelativeTimeFormat("xh", { numeric: "auto" }).format(0, "day")	namhlanje
+new Intl.RelativeTimeFormat("xh").format(1, "day")	+1 d
+new Intl.RelativeTimeFormat("xh", { numeric: "auto" }).format(1, "day")	ngomso
+new Intl.RelativeTimeFormat("xh").format(2, "day")	+2 d
+new Intl.RelativeTimeFormat("xh", { numeric: "auto" }).format(2, "day")	+2 d
+new Intl.RelativeTimeFormat("xh").format(-1, "month")	-1 m
+new Intl.RelativeTimeFormat("xh", { numeric: "auto" }).format(-1, "month")	inyanga ephelileyo
+new Intl.RelativeTimeFormat("xh").format(0, "month")	+0 m
+new Intl.RelativeTimeFormat("xh", { numeric: "auto" }).format(0, "month")	kule nyanga
+new Intl.RelativeTimeFormat("xh").format(1, "month")	+1 m
+new Intl.RelativeTimeFormat("xh", { numeric: "auto" }).format(1, "month")	kwinyanga ezayo
+new Intl.RelativeTimeFormat("xh").format(2, "month")	+2 m
+new Intl.RelativeTimeFormat("xh", { numeric: "auto" }).format(2, "month")	+2 m
+new Intl.DateTimeFormat("xh", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	Mgqibelo, Matshi 9, 2024
+new Intl.DateTimeFormat("xh", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	Mat 9, 2024
+new Intl.DateTimeFormat("xh", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	23:08
+new Intl.DateTimeFormat("xh", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("xh").compare("a", "b")	-1
+new Intl.Collator("xh").compare("b", "a")	1
+new Intl.Collator("xh").compare("a", "A")	-1
+new Intl.Collator("xh").compare("z", "a")	1
+new Intl.Collator("xh").compare("résumé", "resume")	1
+new Intl.NumberFormat("cy").format(1234567.891)	1,234,567.891
+new Intl.NumberFormat("cy", { style: "percent" }).format(1234567.891)	123,456,789%
+new Intl.NumberFormat("cy", { style: "currency", currency: "USD" }).format(1234567.891)	US$1,234,567.89
+new Intl.NumberFormat("cy").format(0.256)	0.256
+new Intl.NumberFormat("cy", { style: "percent" }).format(0.256)	26%
+new Intl.NumberFormat("cy", { style: "currency", currency: "USD" }).format(0.256)	US$0.26
+new Intl.NumberFormat("cy").format(-42)	-42
+new Intl.NumberFormat("cy", { style: "percent" }).format(-42)	-4,200%
+new Intl.NumberFormat("cy", { style: "currency", currency: "USD" }).format(-42)	-US$42.00
+new Intl.NumberFormat("cy").format(0)	0
+new Intl.NumberFormat("cy", { style: "percent" }).format(0)	0%
+new Intl.NumberFormat("cy", { style: "currency", currency: "USD" }).format(0)	US$0.00
+new Intl.NumberFormat("cy", { notation: "compact" }).format(1234)	1.2K
+new Intl.NumberFormat("cy", { notation: "compact", compactDisplay: "long" }).format(1234)	1.2 mil
+new Intl.NumberFormat("cy", { notation: "compact" }).format(1234567)	1.2M
+new Intl.NumberFormat("cy", { notation: "compact", compactDisplay: "long" }).format(1234567)	1.2 miliwn
+new Intl.NumberFormat("cy", { notation: "compact" }).format(1500000000)	1.5B
+new Intl.NumberFormat("cy", { notation: "compact", compactDisplay: "long" }).format(1500000000)	1.5 biliwn
+new Intl.NumberFormat("cy").resolvedOptions().numberingSystem	latn
+new Intl.PluralRules("cy", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	zero,one,two,few,many,other
+new Intl.PluralRules("cy", { type: "cardinal" }).select(0)	zero
+new Intl.PluralRules("cy", { type: "cardinal" }).select(1)	one
+new Intl.PluralRules("cy", { type: "cardinal" }).select(2)	two
+new Intl.PluralRules("cy", { type: "cardinal" }).select(3)	few
+new Intl.PluralRules("cy", { type: "cardinal" }).select(5)	other
+new Intl.PluralRules("cy", { type: "cardinal" }).select(11)	other
+new Intl.PluralRules("cy", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("cy", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("cy", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("cy", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	zero,one,two,few,many,other
+new Intl.PluralRules("cy", { type: "ordinal" }).select(0)	zero
+new Intl.PluralRules("cy", { type: "ordinal" }).select(1)	one
+new Intl.PluralRules("cy", { type: "ordinal" }).select(2)	two
+new Intl.PluralRules("cy", { type: "ordinal" }).select(3)	few
+new Intl.PluralRules("cy", { type: "ordinal" }).select(5)	many
+new Intl.PluralRules("cy", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("cy", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("cy", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("cy", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("cy", { type: "conjunction" }).format(["A", "B"])	A a(c) B
+new Intl.ListFormat("cy", { type: "conjunction" }).format(["A", "B", "C"])	A, B, a(c) C
+new Intl.ListFormat("cy", { type: "disjunction" }).format(["A", "B"])	A neu B
+new Intl.ListFormat("cy", { type: "disjunction" }).format(["A", "B", "C"])	A, B neu C
+new Intl.RelativeTimeFormat("cy").format(-1, "day")	1 diwrnod yn ôl
+new Intl.RelativeTimeFormat("cy", { numeric: "auto" }).format(-1, "day")	ddoe
+new Intl.RelativeTimeFormat("cy").format(0, "day")	ymhen 0 diwrnod
+new Intl.RelativeTimeFormat("cy", { numeric: "auto" }).format(0, "day")	heddiw
+new Intl.RelativeTimeFormat("cy").format(1, "day")	ymhen diwrnod
+new Intl.RelativeTimeFormat("cy", { numeric: "auto" }).format(1, "day")	yfory
+new Intl.RelativeTimeFormat("cy").format(2, "day")	ymhen deuddydd
+new Intl.RelativeTimeFormat("cy", { numeric: "auto" }).format(2, "day")	drennydd
+new Intl.RelativeTimeFormat("cy").format(-1, "month")	1 mis yn ôl
+new Intl.RelativeTimeFormat("cy", { numeric: "auto" }).format(-1, "month")	mis diwethaf
+new Intl.RelativeTimeFormat("cy").format(0, "month")	ymhen 0 mis
+new Intl.RelativeTimeFormat("cy", { numeric: "auto" }).format(0, "month")	y mis hwn
+new Intl.RelativeTimeFormat("cy").format(1, "month")	ymhen mis
+new Intl.RelativeTimeFormat("cy", { numeric: "auto" }).format(1, "month")	mis nesaf
+new Intl.RelativeTimeFormat("cy").format(2, "month")	ymhen deufis
+new Intl.RelativeTimeFormat("cy", { numeric: "auto" }).format(2, "month")	ymhen deufis
+new Intl.DateTimeFormat("cy", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	Dydd Sadwrn, 9 Mawrth 2024
+new Intl.DateTimeFormat("cy", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	9 Maw 2024
+new Intl.DateTimeFormat("cy", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	23:08
+new Intl.DateTimeFormat("cy", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("cy").compare("a", "b")	-1
+new Intl.Collator("cy").compare("b", "a")	1
+new Intl.Collator("cy").compare("a", "A")	-1
+new Intl.Collator("cy").compare("z", "a")	1
+new Intl.Collator("cy").compare("résumé", "resume")	1
+new Intl.NumberFormat("gd").format(1234567.891)	1,234,567.891
+new Intl.NumberFormat("gd", { style: "percent" }).format(1234567.891)	123,456,789%
+new Intl.NumberFormat("gd", { style: "currency", currency: "USD" }).format(1234567.891)	$1,234,567.89
+new Intl.NumberFormat("gd").format(0.256)	0.256
+new Intl.NumberFormat("gd", { style: "percent" }).format(0.256)	26%
+new Intl.NumberFormat("gd", { style: "currency", currency: "USD" }).format(0.256)	$0.26
+new Intl.NumberFormat("gd").format(-42)	-42
+new Intl.NumberFormat("gd", { style: "percent" }).format(-42)	-4,200%
+new Intl.NumberFormat("gd", { style: "currency", currency: "USD" }).format(-42)	-$42.00
+new Intl.NumberFormat("gd").format(0)	0
+new Intl.NumberFormat("gd", { style: "percent" }).format(0)	0%
+new Intl.NumberFormat("gd", { style: "currency", currency: "USD" }).format(0)	$0.00
+new Intl.NumberFormat("gd", { notation: "compact" }).format(1234)	1.2K
+new Intl.NumberFormat("gd", { notation: "compact", compactDisplay: "long" }).format(1234)	1.2 mìle
+new Intl.NumberFormat("gd", { notation: "compact" }).format(1234567)	1.2M
+new Intl.NumberFormat("gd", { notation: "compact", compactDisplay: "long" }).format(1234567)	1.2 millean
+new Intl.NumberFormat("gd", { notation: "compact" }).format(1500000000)	1.5B
+new Intl.NumberFormat("gd", { notation: "compact", compactDisplay: "long" }).format(1500000000)	1.5 billean
+new Intl.NumberFormat("gd").resolvedOptions().numberingSystem	latn
+new Intl.PluralRules("gd", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	one,two,few,other
+new Intl.PluralRules("gd", { type: "cardinal" }).select(0)	other
+new Intl.PluralRules("gd", { type: "cardinal" }).select(1)	one
+new Intl.PluralRules("gd", { type: "cardinal" }).select(2)	two
+new Intl.PluralRules("gd", { type: "cardinal" }).select(3)	few
+new Intl.PluralRules("gd", { type: "cardinal" }).select(5)	few
+new Intl.PluralRules("gd", { type: "cardinal" }).select(11)	one
+new Intl.PluralRules("gd", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("gd", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("gd", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("gd", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	one,two,few,other
+new Intl.PluralRules("gd", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("gd", { type: "ordinal" }).select(1)	one
+new Intl.PluralRules("gd", { type: "ordinal" }).select(2)	two
+new Intl.PluralRules("gd", { type: "ordinal" }).select(3)	few
+new Intl.PluralRules("gd", { type: "ordinal" }).select(5)	other
+new Intl.PluralRules("gd", { type: "ordinal" }).select(11)	one
+new Intl.PluralRules("gd", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("gd", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("gd", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("gd", { type: "conjunction" }).format(["A", "B"])	A agus B
+new Intl.ListFormat("gd", { type: "conjunction" }).format(["A", "B", "C"])	A, B agus C
+new Intl.ListFormat("gd", { type: "disjunction" }).format(["A", "B"])	A no B
+new Intl.ListFormat("gd", { type: "disjunction" }).format(["A", "B", "C"])	A, B no C
+new Intl.RelativeTimeFormat("gd").format(-1, "day")	1 latha air ais
+new Intl.RelativeTimeFormat("gd", { numeric: "auto" }).format(-1, "day")	an-dè
+new Intl.RelativeTimeFormat("gd").format(0, "day")	an ceann 0 latha
+new Intl.RelativeTimeFormat("gd", { numeric: "auto" }).format(0, "day")	an-diugh
+new Intl.RelativeTimeFormat("gd").format(1, "day")	an ceann 1 latha
+new Intl.RelativeTimeFormat("gd", { numeric: "auto" }).format(1, "day")	a-màireach
+new Intl.RelativeTimeFormat("gd").format(2, "day")	an ceann 2 latha
+new Intl.RelativeTimeFormat("gd", { numeric: "auto" }).format(2, "day")	an-earar
+new Intl.RelativeTimeFormat("gd").format(-1, "month")	1 mhìos air ais
+new Intl.RelativeTimeFormat("gd", { numeric: "auto" }).format(-1, "month")	am mìos seo chaidh
+new Intl.RelativeTimeFormat("gd").format(0, "month")	an ceann 0 mìosa
+new Intl.RelativeTimeFormat("gd", { numeric: "auto" }).format(0, "month")	am mìos seo
+new Intl.RelativeTimeFormat("gd").format(1, "month")	an ceann 1 mhìosa
+new Intl.RelativeTimeFormat("gd", { numeric: "auto" }).format(1, "month")	an ath-mhìos
+new Intl.RelativeTimeFormat("gd").format(2, "month")	an ceann 2 mhìosa
+new Intl.RelativeTimeFormat("gd", { numeric: "auto" }).format(2, "month")	an ceann 2 mhìosa
+new Intl.DateTimeFormat("gd", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	DiSathairne, 9mh dhen Mhàrt 2024
+new Intl.DateTimeFormat("gd", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	9mh Màrt 2024
+new Intl.DateTimeFormat("gd", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	23:08
+new Intl.DateTimeFormat("gd", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("gd").compare("a", "b")	-1
+new Intl.Collator("gd").compare("b", "a")	1
+new Intl.Collator("gd").compare("a", "A")	-1
+new Intl.Collator("gd").compare("z", "a")	1
+new Intl.Collator("gd").compare("résumé", "resume")	1
+new Intl.NumberFormat("lb").format(1234567.891)	1.234.567,891
+new Intl.NumberFormat("lb", { style: "percent" }).format(1234567.891)	123.456.789 %
+new Intl.NumberFormat("lb", { style: "currency", currency: "USD" }).format(1234567.891)	1.234.567,89 $
+new Intl.NumberFormat("lb").format(0.256)	0,256
+new Intl.NumberFormat("lb", { style: "percent" }).format(0.256)	26 %
+new Intl.NumberFormat("lb", { style: "currency", currency: "USD" }).format(0.256)	0,26 $
+new Intl.NumberFormat("lb").format(-42)	-42
+new Intl.NumberFormat("lb", { style: "percent" }).format(-42)	-4.200 %
+new Intl.NumberFormat("lb", { style: "currency", currency: "USD" }).format(-42)	-42,00 $
+new Intl.NumberFormat("lb").format(0)	0
+new Intl.NumberFormat("lb", { style: "percent" }).format(0)	0 %
+new Intl.NumberFormat("lb", { style: "currency", currency: "USD" }).format(0)	0,00 $
+new Intl.NumberFormat("lb", { notation: "compact" }).format(1234)	1,2 Dsd.
+new Intl.NumberFormat("lb", { notation: "compact", compactDisplay: "long" }).format(1234)	1,2 Dausend
+new Intl.NumberFormat("lb", { notation: "compact" }).format(1234567)	1,2 Mio.
+new Intl.NumberFormat("lb", { notation: "compact", compactDisplay: "long" }).format(1234567)	1,2 Milliounen
+new Intl.NumberFormat("lb", { notation: "compact" }).format(1500000000)	1,5 Mrd.
+new Intl.NumberFormat("lb", { notation: "compact", compactDisplay: "long" }).format(1500000000)	1,5 Milliarden
+new Intl.NumberFormat("lb").resolvedOptions().numberingSystem	latn
+new Intl.PluralRules("lb", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.PluralRules("lb", { type: "cardinal" }).select(0)	other
+new Intl.PluralRules("lb", { type: "cardinal" }).select(1)	one
+new Intl.PluralRules("lb", { type: "cardinal" }).select(2)	other
+new Intl.PluralRules("lb", { type: "cardinal" }).select(3)	other
+new Intl.PluralRules("lb", { type: "cardinal" }).select(5)	other
+new Intl.PluralRules("lb", { type: "cardinal" }).select(11)	other
+new Intl.PluralRules("lb", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("lb", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("lb", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("lb", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("lb", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("lb", { type: "ordinal" }).select(1)	other
+new Intl.PluralRules("lb", { type: "ordinal" }).select(2)	other
+new Intl.PluralRules("lb", { type: "ordinal" }).select(3)	other
+new Intl.PluralRules("lb", { type: "ordinal" }).select(5)	other
+new Intl.PluralRules("lb", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("lb", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("lb", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("lb", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("lb", { type: "conjunction" }).format(["A", "B"])	A a(n) B
+new Intl.ListFormat("lb", { type: "conjunction" }).format(["A", "B", "C"])	A, B a(n) C
+new Intl.ListFormat("lb", { type: "disjunction" }).format(["A", "B"])	A or B
+new Intl.ListFormat("lb", { type: "disjunction" }).format(["A", "B", "C"])	A, B, or C
+new Intl.RelativeTimeFormat("lb").format(-1, "day")	virun 1 Dag
+new Intl.RelativeTimeFormat("lb", { numeric: "auto" }).format(-1, "day")	gëschter
+new Intl.RelativeTimeFormat("lb").format(0, "day")	a(n) 0 Deeg
+new Intl.RelativeTimeFormat("lb", { numeric: "auto" }).format(0, "day")	haut
+new Intl.RelativeTimeFormat("lb").format(1, "day")	an 1 Dag
+new Intl.RelativeTimeFormat("lb", { numeric: "auto" }).format(1, "day")	muer
+new Intl.RelativeTimeFormat("lb").format(2, "day")	a(n) 2 Deeg
+new Intl.RelativeTimeFormat("lb", { numeric: "auto" }).format(2, "day")	a(n) 2 Deeg
+new Intl.RelativeTimeFormat("lb").format(-1, "month")	virun 1 Mount
+new Intl.RelativeTimeFormat("lb", { numeric: "auto" }).format(-1, "month")	leschte Mount
+new Intl.RelativeTimeFormat("lb").format(0, "month")	a(n) 0 Méint
+new Intl.RelativeTimeFormat("lb", { numeric: "auto" }).format(0, "month")	dëse Mount
+new Intl.RelativeTimeFormat("lb").format(1, "month")	an 1 Mount
+new Intl.RelativeTimeFormat("lb", { numeric: "auto" }).format(1, "month")	nächste Mount
+new Intl.RelativeTimeFormat("lb").format(2, "month")	a(n) 2 Méint
+new Intl.RelativeTimeFormat("lb", { numeric: "auto" }).format(2, "month")	a(n) 2 Méint
+new Intl.DateTimeFormat("lb", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	Samschdeg, 9. Mäerz 2024
+new Intl.DateTimeFormat("lb", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	9. Mäe. 2024
+new Intl.DateTimeFormat("lb", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	23:08
+new Intl.DateTimeFormat("lb", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("lb").compare("a", "b")	-1
+new Intl.Collator("lb").compare("b", "a")	1
+new Intl.Collator("lb").compare("a", "A")	-1
+new Intl.Collator("lb").compare("z", "a")	1
+new Intl.Collator("lb").compare("résumé", "resume")	1
+new Intl.NumberFormat("mt").format(1234567.891)	1,234,567.891
+new Intl.NumberFormat("mt", { style: "percent" }).format(1234567.891)	123,456,789%
+new Intl.NumberFormat("mt", { style: "currency", currency: "USD" }).format(1234567.891)	US$1,234,567.89
+new Intl.NumberFormat("mt").format(0.256)	0.256
+new Intl.NumberFormat("mt", { style: "percent" }).format(0.256)	26%
+new Intl.NumberFormat("mt", { style: "currency", currency: "USD" }).format(0.256)	US$0.26
+new Intl.NumberFormat("mt").format(-42)	-42
+new Intl.NumberFormat("mt", { style: "percent" }).format(-42)	-4,200%
+new Intl.NumberFormat("mt", { style: "currency", currency: "USD" }).format(-42)	-US$42.00
+new Intl.NumberFormat("mt").format(0)	0
+new Intl.NumberFormat("mt", { style: "percent" }).format(0)	0%
+new Intl.NumberFormat("mt", { style: "currency", currency: "USD" }).format(0)	US$0.00
+new Intl.NumberFormat("mt", { notation: "compact" }).format(1234)	1.2K
+new Intl.NumberFormat("mt", { notation: "compact", compactDisplay: "long" }).format(1234)	1.2K
+new Intl.NumberFormat("mt", { notation: "compact" }).format(1234567)	1.2M
+new Intl.NumberFormat("mt", { notation: "compact", compactDisplay: "long" }).format(1234567)	1.2M
+new Intl.NumberFormat("mt", { notation: "compact" }).format(1500000000)	1.5G
+new Intl.NumberFormat("mt", { notation: "compact", compactDisplay: "long" }).format(1500000000)	1.5G
+new Intl.NumberFormat("mt").resolvedOptions().numberingSystem	latn
+new Intl.PluralRules("mt", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	one,two,few,many,other
+new Intl.PluralRules("mt", { type: "cardinal" }).select(0)	few
+new Intl.PluralRules("mt", { type: "cardinal" }).select(1)	one
+new Intl.PluralRules("mt", { type: "cardinal" }).select(2)	two
+new Intl.PluralRules("mt", { type: "cardinal" }).select(3)	few
+new Intl.PluralRules("mt", { type: "cardinal" }).select(5)	few
+new Intl.PluralRules("mt", { type: "cardinal" }).select(11)	many
+new Intl.PluralRules("mt", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("mt", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("mt", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("mt", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("mt", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("mt", { type: "ordinal" }).select(1)	other
+new Intl.PluralRules("mt", { type: "ordinal" }).select(2)	other
+new Intl.PluralRules("mt", { type: "ordinal" }).select(3)	other
+new Intl.PluralRules("mt", { type: "ordinal" }).select(5)	other
+new Intl.PluralRules("mt", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("mt", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("mt", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("mt", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("mt", { type: "conjunction" }).format(["A", "B"])	A u B
+new Intl.ListFormat("mt", { type: "conjunction" }).format(["A", "B", "C"])	A, B, u C
+new Intl.ListFormat("mt", { type: "disjunction" }).format(["A", "B"])	A or B
+new Intl.ListFormat("mt", { type: "disjunction" }).format(["A", "B", "C"])	A, B, or C
+new Intl.RelativeTimeFormat("mt").format(-1, "day")	ġurnata ilu
+new Intl.RelativeTimeFormat("mt", { numeric: "auto" }).format(-1, "day")	lbieraħ
+new Intl.RelativeTimeFormat("mt").format(0, "day")	fi żmien 0 ġranet oħra
+new Intl.RelativeTimeFormat("mt", { numeric: "auto" }).format(0, "day")	illum
+new Intl.RelativeTimeFormat("mt").format(1, "day")	fi żmien ġurnata
+new Intl.RelativeTimeFormat("mt", { numeric: "auto" }).format(1, "day")	għada
+new Intl.RelativeTimeFormat("mt").format(2, "day")	fi żmien jumejn oħra
+new Intl.RelativeTimeFormat("mt", { numeric: "auto" }).format(2, "day")	fi żmien jumejn oħra
+new Intl.RelativeTimeFormat("mt").format(-1, "month")	xahar ilu
+new Intl.RelativeTimeFormat("mt", { numeric: "auto" }).format(-1, "month")	ix-xahar li għadda
+new Intl.RelativeTimeFormat("mt").format(0, "month")	fi 0 xhur oħra
+new Intl.RelativeTimeFormat("mt", { numeric: "auto" }).format(0, "month")	dan ix-xahar
+new Intl.RelativeTimeFormat("mt").format(1, "month")	sa xahar ieħor
+new Intl.RelativeTimeFormat("mt", { numeric: "auto" }).format(1, "month")	ix-xahar id-dieħel
+new Intl.RelativeTimeFormat("mt").format(2, "month")	fi xahrejn oħra
+new Intl.RelativeTimeFormat("mt", { numeric: "auto" }).format(2, "month")	fi xahrejn oħra
+new Intl.DateTimeFormat("mt", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	Is-Sibt, 9 ta’ Marzu 2024
+new Intl.DateTimeFormat("mt", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	09 Mar 2024
+new Intl.DateTimeFormat("mt", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	23:08
+new Intl.DateTimeFormat("mt", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("mt").compare("a", "b")	-1
+new Intl.Collator("mt").compare("b", "a")	1
+new Intl.Collator("mt").compare("a", "A")	-1
+new Intl.Collator("mt").compare("z", "a")	1
+new Intl.Collator("mt").compare("résumé", "resume")	1
+new Intl.NumberFormat("fo").format(1234567.891)	1.234.567,891
+new Intl.NumberFormat("fo", { style: "percent" }).format(1234567.891)	123.456.789 %
+new Intl.NumberFormat("fo", { style: "currency", currency: "USD" }).format(1234567.891)	1.234.567,89 US$
+new Intl.NumberFormat("fo").format(0.256)	0,256
+new Intl.NumberFormat("fo", { style: "percent" }).format(0.256)	26 %
+new Intl.NumberFormat("fo", { style: "currency", currency: "USD" }).format(0.256)	0,26 US$
+new Intl.NumberFormat("fo").format(-42)	−42
+new Intl.NumberFormat("fo", { style: "percent" }).format(-42)	−4.200 %
+new Intl.NumberFormat("fo", { style: "currency", currency: "USD" }).format(-42)	−42,00 US$
+new Intl.NumberFormat("fo").format(0)	0
+new Intl.NumberFormat("fo", { style: "percent" }).format(0)	0 %
+new Intl.NumberFormat("fo", { style: "currency", currency: "USD" }).format(0)	0,00 US$
+new Intl.NumberFormat("fo", { notation: "compact" }).format(1234)	1,2 tús.
+new Intl.NumberFormat("fo", { notation: "compact", compactDisplay: "long" }).format(1234)	1,2 túsund
+new Intl.NumberFormat("fo", { notation: "compact" }).format(1234567)	1,2 mió.
+new Intl.NumberFormat("fo", { notation: "compact", compactDisplay: "long" }).format(1234567)	1,2 milliónir
+new Intl.NumberFormat("fo", { notation: "compact" }).format(1500000000)	1,5 mia.
+new Intl.NumberFormat("fo", { notation: "compact", compactDisplay: "long" }).format(1500000000)	1,5 milliardir
+new Intl.NumberFormat("fo").resolvedOptions().numberingSystem	latn
+new Intl.PluralRules("fo", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.PluralRules("fo", { type: "cardinal" }).select(0)	other
+new Intl.PluralRules("fo", { type: "cardinal" }).select(1)	one
+new Intl.PluralRules("fo", { type: "cardinal" }).select(2)	other
+new Intl.PluralRules("fo", { type: "cardinal" }).select(3)	other
+new Intl.PluralRules("fo", { type: "cardinal" }).select(5)	other
+new Intl.PluralRules("fo", { type: "cardinal" }).select(11)	other
+new Intl.PluralRules("fo", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("fo", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("fo", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("fo", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("fo", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("fo", { type: "ordinal" }).select(1)	other
+new Intl.PluralRules("fo", { type: "ordinal" }).select(2)	other
+new Intl.PluralRules("fo", { type: "ordinal" }).select(3)	other
+new Intl.PluralRules("fo", { type: "ordinal" }).select(5)	other
+new Intl.PluralRules("fo", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("fo", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("fo", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("fo", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("fo", { type: "conjunction" }).format(["A", "B"])	A og B
+new Intl.ListFormat("fo", { type: "conjunction" }).format(["A", "B", "C"])	A, B, og C
+new Intl.ListFormat("fo", { type: "disjunction" }).format(["A", "B"])	A ella B
+new Intl.ListFormat("fo", { type: "disjunction" }).format(["A", "B", "C"])	A, B, ella C
+new Intl.RelativeTimeFormat("fo").format(-1, "day")	1 dagur síðan
+new Intl.RelativeTimeFormat("fo", { numeric: "auto" }).format(-1, "day")	í gjár
+new Intl.RelativeTimeFormat("fo").format(0, "day")	um 0 dagar
+new Intl.RelativeTimeFormat("fo", { numeric: "auto" }).format(0, "day")	í dag
+new Intl.RelativeTimeFormat("fo").format(1, "day")	um 1 dag
+new Intl.RelativeTimeFormat("fo", { numeric: "auto" }).format(1, "day")	í morgin
+new Intl.RelativeTimeFormat("fo").format(2, "day")	um 2 dagar
+new Intl.RelativeTimeFormat("fo", { numeric: "auto" }).format(2, "day")	í ovurmorgin
+new Intl.RelativeTimeFormat("fo").format(-1, "month")	1 mánað síðan
+new Intl.RelativeTimeFormat("fo", { numeric: "auto" }).format(-1, "month")	seinasta mánað
+new Intl.RelativeTimeFormat("fo").format(0, "month")	um 0 mánaðir
+new Intl.RelativeTimeFormat("fo", { numeric: "auto" }).format(0, "month")	henda mánaðin
+new Intl.RelativeTimeFormat("fo").format(1, "month")	um 1 mánað
+new Intl.RelativeTimeFormat("fo", { numeric: "auto" }).format(1, "month")	næsta mánað
+new Intl.RelativeTimeFormat("fo").format(2, "month")	um 2 mánaðir
+new Intl.RelativeTimeFormat("fo", { numeric: "auto" }).format(2, "month")	um 2 mánaðir
+new Intl.DateTimeFormat("fo", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	leygardagur, 9. mars 2024
+new Intl.DateTimeFormat("fo", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	09.03.2024
+new Intl.DateTimeFormat("fo", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	23:08
+new Intl.DateTimeFormat("fo", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("fo").compare("a", "b")	-1
+new Intl.Collator("fo").compare("b", "a")	1
+new Intl.Collator("fo").compare("a", "A")	-1
+new Intl.Collator("fo").compare("z", "a")	1
+new Intl.Collator("fo").compare("résumé", "resume")	1
+new Intl.NumberFormat("ky").format(1234567.891)	1 234 567,891
+new Intl.NumberFormat("ky", { style: "percent" }).format(1234567.891)	123 456 789%
+new Intl.NumberFormat("ky", { style: "currency", currency: "USD" }).format(1234567.891)	1 234 567,89 USD
+new Intl.NumberFormat("ky").format(0.256)	0,256
+new Intl.NumberFormat("ky", { style: "percent" }).format(0.256)	26%
+new Intl.NumberFormat("ky", { style: "currency", currency: "USD" }).format(0.256)	0,26 USD
+new Intl.NumberFormat("ky").format(-42)	-42
+new Intl.NumberFormat("ky", { style: "percent" }).format(-42)	-4 200%
+new Intl.NumberFormat("ky", { style: "currency", currency: "USD" }).format(-42)	-42,00 USD
+new Intl.NumberFormat("ky").format(0)	0
+new Intl.NumberFormat("ky", { style: "percent" }).format(0)	0%
+new Intl.NumberFormat("ky", { style: "currency", currency: "USD" }).format(0)	0,00 USD
+new Intl.NumberFormat("ky", { notation: "compact" }).format(1234)	1,2 миң
+new Intl.NumberFormat("ky", { notation: "compact", compactDisplay: "long" }).format(1234)	1,2 миң
+new Intl.NumberFormat("ky", { notation: "compact" }).format(1234567)	1,2 млн
+new Intl.NumberFormat("ky", { notation: "compact", compactDisplay: "long" }).format(1234567)	1,2 миллион
+new Intl.NumberFormat("ky", { notation: "compact" }).format(1500000000)	1,5 млд
+new Intl.NumberFormat("ky", { notation: "compact", compactDisplay: "long" }).format(1500000000)	1,5 миллиард
+new Intl.NumberFormat("ky").resolvedOptions().numberingSystem	latn
+new Intl.PluralRules("ky", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.PluralRules("ky", { type: "cardinal" }).select(0)	other
+new Intl.PluralRules("ky", { type: "cardinal" }).select(1)	one
+new Intl.PluralRules("ky", { type: "cardinal" }).select(2)	other
+new Intl.PluralRules("ky", { type: "cardinal" }).select(3)	other
+new Intl.PluralRules("ky", { type: "cardinal" }).select(5)	other
+new Intl.PluralRules("ky", { type: "cardinal" }).select(11)	other
+new Intl.PluralRules("ky", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("ky", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("ky", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("ky", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("ky", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("ky", { type: "ordinal" }).select(1)	other
+new Intl.PluralRules("ky", { type: "ordinal" }).select(2)	other
+new Intl.PluralRules("ky", { type: "ordinal" }).select(3)	other
+new Intl.PluralRules("ky", { type: "ordinal" }).select(5)	other
+new Intl.PluralRules("ky", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("ky", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("ky", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("ky", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("ky", { type: "conjunction" }).format(["A", "B"])	A жана B
+new Intl.ListFormat("ky", { type: "conjunction" }).format(["A", "B", "C"])	A, B жана C
+new Intl.ListFormat("ky", { type: "disjunction" }).format(["A", "B"])	A же B
+new Intl.ListFormat("ky", { type: "disjunction" }).format(["A", "B", "C"])	A, B же C
+new Intl.RelativeTimeFormat("ky").format(-1, "day")	1 күн мурун
+new Intl.RelativeTimeFormat("ky", { numeric: "auto" }).format(-1, "day")	кечээ
+new Intl.RelativeTimeFormat("ky").format(0, "day")	0 күндөн кийин
+new Intl.RelativeTimeFormat("ky", { numeric: "auto" }).format(0, "day")	бүгүн
+new Intl.RelativeTimeFormat("ky").format(1, "day")	1 күндөн кийин
+new Intl.RelativeTimeFormat("ky", { numeric: "auto" }).format(1, "day")	эртең
+new Intl.RelativeTimeFormat("ky").format(2, "day")	2 күндөн кийин
+new Intl.RelativeTimeFormat("ky", { numeric: "auto" }).format(2, "day")	бүрсүгүнү
+new Intl.RelativeTimeFormat("ky").format(-1, "month")	1 ай мурун
+new Intl.RelativeTimeFormat("ky", { numeric: "auto" }).format(-1, "month")	өткөн айда
+new Intl.RelativeTimeFormat("ky").format(0, "month")	0 айдан кийин
+new Intl.RelativeTimeFormat("ky", { numeric: "auto" }).format(0, "month")	бул айда
+new Intl.RelativeTimeFormat("ky").format(1, "month")	1 айдан кийин
+new Intl.RelativeTimeFormat("ky", { numeric: "auto" }).format(1, "month")	эмдиги айда
+new Intl.RelativeTimeFormat("ky").format(2, "month")	2 айдан кийин
+new Intl.RelativeTimeFormat("ky", { numeric: "auto" }).format(2, "month")	2 айдан кийин
+new Intl.DateTimeFormat("ky", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	2024-ж., 9-март, ишемби
+new Intl.DateTimeFormat("ky", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	2024-ж., 9-мар.
+new Intl.DateTimeFormat("ky", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	23:08
+new Intl.DateTimeFormat("ky", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("ky").compare("a", "b")	-1
+new Intl.Collator("ky").compare("b", "a")	1
+new Intl.Collator("ky").compare("a", "A")	-1
+new Intl.Collator("ky").compare("z", "a")	1
+new Intl.Collator("ky").compare("résumé", "resume")	1
+new Intl.NumberFormat("tg").format(1234567.891)	1 234 567,891
+new Intl.NumberFormat("tg", { style: "percent" }).format(1234567.891)	123 456 789%
+new Intl.NumberFormat("tg", { style: "currency", currency: "USD" }).format(1234567.891)	1 234 567,89 $
+new Intl.NumberFormat("tg").format(0.256)	0,256
+new Intl.NumberFormat("tg", { style: "percent" }).format(0.256)	26%
+new Intl.NumberFormat("tg", { style: "currency", currency: "USD" }).format(0.256)	0,26 $
+new Intl.NumberFormat("tg").format(-42)	-42
+new Intl.NumberFormat("tg", { style: "percent" }).format(-42)	-4 200%
+new Intl.NumberFormat("tg", { style: "currency", currency: "USD" }).format(-42)	-42,00 $
+new Intl.NumberFormat("tg").format(0)	0
+new Intl.NumberFormat("tg", { style: "percent" }).format(0)	0%
+new Intl.NumberFormat("tg", { style: "currency", currency: "USD" }).format(0)	0,00 $
+new Intl.NumberFormat("tg", { notation: "compact" }).format(1234)	1,2 ҳзр.
+new Intl.NumberFormat("tg", { notation: "compact", compactDisplay: "long" }).format(1234)	1,2 ҳазор
+new Intl.NumberFormat("tg", { notation: "compact" }).format(1234567)	1,2 млн.
+new Intl.NumberFormat("tg", { notation: "compact", compactDisplay: "long" }).format(1234567)	1,2 миллион
+new Intl.NumberFormat("tg", { notation: "compact" }).format(1500000000)	1,5 млрд.
+new Intl.NumberFormat("tg", { notation: "compact", compactDisplay: "long" }).format(1500000000)	1,5 миллиард
+new Intl.NumberFormat("tg").resolvedOptions().numberingSystem	latn
+new Intl.PluralRules("tg", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("tg", { type: "cardinal" }).select(0)	other
+new Intl.PluralRules("tg", { type: "cardinal" }).select(1)	other
+new Intl.PluralRules("tg", { type: "cardinal" }).select(2)	other
+new Intl.PluralRules("tg", { type: "cardinal" }).select(3)	other
+new Intl.PluralRules("tg", { type: "cardinal" }).select(5)	other
+new Intl.PluralRules("tg", { type: "cardinal" }).select(11)	other
+new Intl.PluralRules("tg", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("tg", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("tg", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("tg", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("tg", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("tg", { type: "ordinal" }).select(1)	other
+new Intl.PluralRules("tg", { type: "ordinal" }).select(2)	other
+new Intl.PluralRules("tg", { type: "ordinal" }).select(3)	other
+new Intl.PluralRules("tg", { type: "ordinal" }).select(5)	other
+new Intl.PluralRules("tg", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("tg", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("tg", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("tg", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("tg", { type: "conjunction" }).format(["A", "B"])	A ва B
+new Intl.ListFormat("tg", { type: "conjunction" }).format(["A", "B", "C"])	A, B, C
+new Intl.ListFormat("tg", { type: "disjunction" }).format(["A", "B"])	A, ё B
+new Intl.ListFormat("tg", { type: "disjunction" }).format(["A", "B", "C"])	A, B, ё C
+new Intl.RelativeTimeFormat("tg").format(-1, "day")	1 рӯз пеш
+new Intl.RelativeTimeFormat("tg", { numeric: "auto" }).format(-1, "day")	дирӯз
+new Intl.RelativeTimeFormat("tg").format(0, "day")	пас аз 0 рӯз
+new Intl.RelativeTimeFormat("tg", { numeric: "auto" }).format(0, "day")	имрӯз
+new Intl.RelativeTimeFormat("tg").format(1, "day")	пас аз 1 рӯз
+new Intl.RelativeTimeFormat("tg", { numeric: "auto" }).format(1, "day")	фардо
+new Intl.RelativeTimeFormat("tg").format(2, "day")	пас аз 2 рӯз
+new Intl.RelativeTimeFormat("tg", { numeric: "auto" }).format(2, "day")	пас аз 2 рӯз
+new Intl.RelativeTimeFormat("tg").format(-1, "month")	1 моҳ пеш
+new Intl.RelativeTimeFormat("tg", { numeric: "auto" }).format(-1, "month")	моҳи гузашта
+new Intl.RelativeTimeFormat("tg").format(0, "month")	пас аз 0 моҳ
+new Intl.RelativeTimeFormat("tg", { numeric: "auto" }).format(0, "month")	моҳи ҷорӣ
+new Intl.RelativeTimeFormat("tg").format(1, "month")	пас аз 1 моҳ
+new Intl.RelativeTimeFormat("tg", { numeric: "auto" }).format(1, "month")	моҳи оянда
+new Intl.RelativeTimeFormat("tg").format(2, "month")	пас аз 2 моҳ
+new Intl.RelativeTimeFormat("tg", { numeric: "auto" }).format(2, "month")	пас аз 2 моҳ
+new Intl.DateTimeFormat("tg", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	Шанбе, 09 Март 2024
+new Intl.DateTimeFormat("tg", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	09 Мар 2024
+new Intl.DateTimeFormat("tg", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	23:08
+new Intl.DateTimeFormat("tg", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("tg").compare("a", "b")	-1
+new Intl.Collator("tg").compare("b", "a")	1
+new Intl.Collator("tg").compare("a", "A")	-1
+new Intl.Collator("tg").compare("z", "a")	1
+new Intl.Collator("tg").compare("résumé", "resume")	1
+new Intl.NumberFormat("tk").format(1234567.891)	1 234 567,891
+new Intl.NumberFormat("tk", { style: "percent" }).format(1234567.891)	123 456 789 %
+new Intl.NumberFormat("tk", { style: "currency", currency: "USD" }).format(1234567.891)	1 234 567,89 US$
+new Intl.NumberFormat("tk").format(0.256)	0,256
+new Intl.NumberFormat("tk", { style: "percent" }).format(0.256)	26 %
+new Intl.NumberFormat("tk", { style: "currency", currency: "USD" }).format(0.256)	0,26 US$
+new Intl.NumberFormat("tk").format(-42)	-42
+new Intl.NumberFormat("tk", { style: "percent" }).format(-42)	-4 200 %
+new Intl.NumberFormat("tk", { style: "currency", currency: "USD" }).format(-42)	-42,00 US$
+new Intl.NumberFormat("tk").format(0)	0
+new Intl.NumberFormat("tk", { style: "percent" }).format(0)	0 %
+new Intl.NumberFormat("tk", { style: "currency", currency: "USD" }).format(0)	0,00 US$
+new Intl.NumberFormat("tk", { notation: "compact" }).format(1234)	1,2 müň
+new Intl.NumberFormat("tk", { notation: "compact", compactDisplay: "long" }).format(1234)	1,2 müň
+new Intl.NumberFormat("tk", { notation: "compact" }).format(1234567)	1,2 mln
+new Intl.NumberFormat("tk", { notation: "compact", compactDisplay: "long" }).format(1234567)	1,2 million
+new Intl.NumberFormat("tk", { notation: "compact" }).format(1500000000)	1,5 mlrd
+new Intl.NumberFormat("tk", { notation: "compact", compactDisplay: "long" }).format(1500000000)	1,5 milliard
+new Intl.NumberFormat("tk").resolvedOptions().numberingSystem	latn
+new Intl.PluralRules("tk", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.PluralRules("tk", { type: "cardinal" }).select(0)	other
+new Intl.PluralRules("tk", { type: "cardinal" }).select(1)	one
+new Intl.PluralRules("tk", { type: "cardinal" }).select(2)	other
+new Intl.PluralRules("tk", { type: "cardinal" }).select(3)	other
+new Intl.PluralRules("tk", { type: "cardinal" }).select(5)	other
+new Intl.PluralRules("tk", { type: "cardinal" }).select(11)	other
+new Intl.PluralRules("tk", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("tk", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("tk", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("tk", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	few,other
+new Intl.PluralRules("tk", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("tk", { type: "ordinal" }).select(1)	other
+new Intl.PluralRules("tk", { type: "ordinal" }).select(2)	other
+new Intl.PluralRules("tk", { type: "ordinal" }).select(3)	other
+new Intl.PluralRules("tk", { type: "ordinal" }).select(5)	other
+new Intl.PluralRules("tk", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("tk", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("tk", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("tk", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("tk", { type: "conjunction" }).format(["A", "B"])	A we B
+new Intl.ListFormat("tk", { type: "conjunction" }).format(["A", "B", "C"])	A, B we C
+new Intl.ListFormat("tk", { type: "disjunction" }).format(["A", "B"])	A ýa-da B
+new Intl.ListFormat("tk", { type: "disjunction" }).format(["A", "B", "C"])	A, B ýa-da C
+new Intl.RelativeTimeFormat("tk").format(-1, "day")	1 gün öň
+new Intl.RelativeTimeFormat("tk", { numeric: "auto" }).format(-1, "day")	düýn
+new Intl.RelativeTimeFormat("tk").format(0, "day")	0 günden
+new Intl.RelativeTimeFormat("tk", { numeric: "auto" }).format(0, "day")	şu gün
+new Intl.RelativeTimeFormat("tk").format(1, "day")	1 günden
+new Intl.RelativeTimeFormat("tk", { numeric: "auto" }).format(1, "day")	ertir
+new Intl.RelativeTimeFormat("tk").format(2, "day")	2 günden
+new Intl.RelativeTimeFormat("tk", { numeric: "auto" }).format(2, "day")	2 günden
+new Intl.RelativeTimeFormat("tk").format(-1, "month")	1 aý öň
+new Intl.RelativeTimeFormat("tk", { numeric: "auto" }).format(-1, "month")	geçen aý
+new Intl.RelativeTimeFormat("tk").format(0, "month")	0 aýdan
+new Intl.RelativeTimeFormat("tk", { numeric: "auto" }).format(0, "month")	şu aý
+new Intl.RelativeTimeFormat("tk").format(1, "month")	1 aýdan
+new Intl.RelativeTimeFormat("tk", { numeric: "auto" }).format(1, "month")	indiki aý
+new Intl.RelativeTimeFormat("tk").format(2, "month")	2 aýdan
+new Intl.RelativeTimeFormat("tk", { numeric: "auto" }).format(2, "month")	2 aýdan
+new Intl.DateTimeFormat("tk", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	9 mart 2024 şenbe
+new Intl.DateTimeFormat("tk", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	9 mart 2024
+new Intl.DateTimeFormat("tk", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	23:08
+new Intl.DateTimeFormat("tk", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("tk").compare("a", "b")	-1
+new Intl.Collator("tk").compare("b", "a")	1
+new Intl.Collator("tk").compare("a", "A")	-1
+new Intl.Collator("tk").compare("z", "a")	1
+new Intl.Collator("tk").compare("résumé", "resume")	1
+new Intl.NumberFormat("tt").format(1234567.891)	1 234 567,891
+new Intl.NumberFormat("tt", { style: "percent" }).format(1234567.891)	123 456 789 %
+new Intl.NumberFormat("tt", { style: "currency", currency: "USD" }).format(1234567.891)	1 234 567,89 $
+new Intl.NumberFormat("tt").format(0.256)	0,256
+new Intl.NumberFormat("tt", { style: "percent" }).format(0.256)	26 %
+new Intl.NumberFormat("tt", { style: "currency", currency: "USD" }).format(0.256)	0,26 $
+new Intl.NumberFormat("tt").format(-42)	-42
+new Intl.NumberFormat("tt", { style: "percent" }).format(-42)	-4 200 %
+new Intl.NumberFormat("tt", { style: "currency", currency: "USD" }).format(-42)	-42,00 $
+new Intl.NumberFormat("tt").format(0)	0
+new Intl.NumberFormat("tt", { style: "percent" }).format(0)	0 %
+new Intl.NumberFormat("tt", { style: "currency", currency: "USD" }).format(0)	0,00 $
+new Intl.NumberFormat("tt", { notation: "compact" }).format(1234)	1,2 мең
+new Intl.NumberFormat("tt", { notation: "compact", compactDisplay: "long" }).format(1234)	1,2 мең
+new Intl.NumberFormat("tt", { notation: "compact" }).format(1234567)	1,2 млн
+new Intl.NumberFormat("tt", { notation: "compact", compactDisplay: "long" }).format(1234567)	1,2 миллион
+new Intl.NumberFormat("tt", { notation: "compact" }).format(1500000000)	1,5 млрд
+new Intl.NumberFormat("tt", { notation: "compact", compactDisplay: "long" }).format(1500000000)	1,5 миллиард
+new Intl.NumberFormat("tt").resolvedOptions().numberingSystem	latn
+new Intl.PluralRules("tt", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("tt", { type: "cardinal" }).select(0)	other
+new Intl.PluralRules("tt", { type: "cardinal" }).select(1)	other
+new Intl.PluralRules("tt", { type: "cardinal" }).select(2)	other
+new Intl.PluralRules("tt", { type: "cardinal" }).select(3)	other
+new Intl.PluralRules("tt", { type: "cardinal" }).select(5)	other
+new Intl.PluralRules("tt", { type: "cardinal" }).select(11)	other
+new Intl.PluralRules("tt", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("tt", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("tt", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("tt", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("tt", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("tt", { type: "ordinal" }).select(1)	other
+new Intl.PluralRules("tt", { type: "ordinal" }).select(2)	other
+new Intl.PluralRules("tt", { type: "ordinal" }).select(3)	other
+new Intl.PluralRules("tt", { type: "ordinal" }).select(5)	other
+new Intl.PluralRules("tt", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("tt", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("tt", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("tt", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("tt", { type: "conjunction" }).format(["A", "B"])	A һәм B
+new Intl.ListFormat("tt", { type: "conjunction" }).format(["A", "B", "C"])	A, B һәм C
+new Intl.ListFormat("tt", { type: "disjunction" }).format(["A", "B"])	A яки B
+new Intl.ListFormat("tt", { type: "disjunction" }).format(["A", "B", "C"])	A, B, яки C
+new Intl.RelativeTimeFormat("tt").format(-1, "day")	1 көн элек
+new Intl.RelativeTimeFormat("tt", { numeric: "auto" }).format(-1, "day")	кичә
+new Intl.RelativeTimeFormat("tt").format(0, "day")	0 көннән
+new Intl.RelativeTimeFormat("tt", { numeric: "auto" }).format(0, "day")	бүген
+new Intl.RelativeTimeFormat("tt").format(1, "day")	1 көннән
+new Intl.RelativeTimeFormat("tt", { numeric: "auto" }).format(1, "day")	иртәгә
+new Intl.RelativeTimeFormat("tt").format(2, "day")	2 көннән
+new Intl.RelativeTimeFormat("tt", { numeric: "auto" }).format(2, "day")	2 көннән
+new Intl.RelativeTimeFormat("tt").format(-1, "month")	1 ай элек
+new Intl.RelativeTimeFormat("tt", { numeric: "auto" }).format(-1, "month")	узган айда
+new Intl.RelativeTimeFormat("tt").format(0, "month")	0 айдан
+new Intl.RelativeTimeFormat("tt", { numeric: "auto" }).format(0, "month")	бу айда
+new Intl.RelativeTimeFormat("tt").format(1, "month")	1 айдан
+new Intl.RelativeTimeFormat("tt", { numeric: "auto" }).format(1, "month")	киләсе айда
+new Intl.RelativeTimeFormat("tt").format(2, "month")	2 айдан
+new Intl.RelativeTimeFormat("tt", { numeric: "auto" }).format(2, "month")	2 айдан
+new Intl.DateTimeFormat("tt", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	9 март, 2024 ел, шимбә
+new Intl.DateTimeFormat("tt", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	9 мар., 2024 ел
+new Intl.DateTimeFormat("tt", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	23:08
+new Intl.DateTimeFormat("tt", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("tt").compare("a", "b")	-1
+new Intl.Collator("tt").compare("b", "a")	1
+new Intl.Collator("tt").compare("a", "A")	-1
+new Intl.Collator("tt").compare("z", "a")	1
+new Intl.Collator("tt").compare("résumé", "resume")	1
+new Intl.NumberFormat("ku").format(1234567.891)	1.234.567,891
+new Intl.NumberFormat("ku", { style: "percent" }).format(1234567.891)	%123.456.789
+new Intl.NumberFormat("ku", { style: "currency", currency: "USD" }).format(1234567.891)	1.234.567,89 $
+new Intl.NumberFormat("ku").format(0.256)	0,256
+new Intl.NumberFormat("ku", { style: "percent" }).format(0.256)	%26
+new Intl.NumberFormat("ku", { style: "currency", currency: "USD" }).format(0.256)	0,26 $
+new Intl.NumberFormat("ku").format(-42)	-42
+new Intl.NumberFormat("ku", { style: "percent" }).format(-42)	-%4.200
+new Intl.NumberFormat("ku", { style: "currency", currency: "USD" }).format(-42)	-42,00 $
+new Intl.NumberFormat("ku").format(0)	0
+new Intl.NumberFormat("ku", { style: "percent" }).format(0)	%0
+new Intl.NumberFormat("ku", { style: "currency", currency: "USD" }).format(0)	0,00 $
+new Intl.NumberFormat("ku", { notation: "compact" }).format(1234)	1,2H
+new Intl.NumberFormat("ku", { notation: "compact", compactDisplay: "long" }).format(1234)	1,2 hezar
+new Intl.NumberFormat("ku", { notation: "compact" }).format(1234567)	1,2MN
+new Intl.NumberFormat("ku", { notation: "compact", compactDisplay: "long" }).format(1234567)	1,2 milyon
+new Intl.NumberFormat("ku", { notation: "compact" }).format(1500000000)	1,5MR
+new Intl.NumberFormat("ku", { notation: "compact", compactDisplay: "long" }).format(1500000000)	1,5 milyar
+new Intl.NumberFormat("ku").resolvedOptions().numberingSystem	latn
+new Intl.PluralRules("ku", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.PluralRules("ku", { type: "cardinal" }).select(0)	other
+new Intl.PluralRules("ku", { type: "cardinal" }).select(1)	one
+new Intl.PluralRules("ku", { type: "cardinal" }).select(2)	other
+new Intl.PluralRules("ku", { type: "cardinal" }).select(3)	other
+new Intl.PluralRules("ku", { type: "cardinal" }).select(5)	other
+new Intl.PluralRules("ku", { type: "cardinal" }).select(11)	other
+new Intl.PluralRules("ku", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("ku", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("ku", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("ku", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	other
+new Intl.PluralRules("ku", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("ku", { type: "ordinal" }).select(1)	other
+new Intl.PluralRules("ku", { type: "ordinal" }).select(2)	other
+new Intl.PluralRules("ku", { type: "ordinal" }).select(3)	other
+new Intl.PluralRules("ku", { type: "ordinal" }).select(5)	other
+new Intl.PluralRules("ku", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("ku", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("ku", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("ku", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("ku", { type: "conjunction" }).format(["A", "B"])	A û B
+new Intl.ListFormat("ku", { type: "conjunction" }).format(["A", "B", "C"])	A, B û C
+new Intl.ListFormat("ku", { type: "disjunction" }).format(["A", "B"])	A an B
+new Intl.ListFormat("ku", { type: "disjunction" }).format(["A", "B", "C"])	A, B an C
+new Intl.RelativeTimeFormat("ku").format(-1, "day")	berî 1 rojê
+new Intl.RelativeTimeFormat("ku", { numeric: "auto" }).format(-1, "day")	duh
+new Intl.RelativeTimeFormat("ku").format(0, "day")	piştî 0 rojan
+new Intl.RelativeTimeFormat("ku", { numeric: "auto" }).format(0, "day")	îro
+new Intl.RelativeTimeFormat("ku").format(1, "day")	piştî 1 rojê
+new Intl.RelativeTimeFormat("ku", { numeric: "auto" }).format(1, "day")	sibê
+new Intl.RelativeTimeFormat("ku").format(2, "day")	piştî 2 rojan
+new Intl.RelativeTimeFormat("ku", { numeric: "auto" }).format(2, "day")	piştî 2 rojan
+new Intl.RelativeTimeFormat("ku").format(-1, "month")	berî 1 mehê
+new Intl.RelativeTimeFormat("ku", { numeric: "auto" }).format(-1, "month")	meha borî
+new Intl.RelativeTimeFormat("ku").format(0, "month")	piştî 0 mehan
+new Intl.RelativeTimeFormat("ku", { numeric: "auto" }).format(0, "month")	ev meh
+new Intl.RelativeTimeFormat("ku").format(1, "month")	piştî 1 mehê
+new Intl.RelativeTimeFormat("ku", { numeric: "auto" }).format(1, "month")	meha were
+new Intl.RelativeTimeFormat("ku").format(2, "month")	piştî 2 mehan
+new Intl.RelativeTimeFormat("ku", { numeric: "auto" }).format(2, "month")	piştî 2 mehan
+new Intl.DateTimeFormat("ku", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	şemî, 9ê adara 2024an
+new Intl.DateTimeFormat("ku", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	9 adr, 2024
+new Intl.DateTimeFormat("ku", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	23:08
+new Intl.DateTimeFormat("ku", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("ku").compare("a", "b")	-1
+new Intl.Collator("ku").compare("b", "a")	1
+new Intl.Collator("ku").compare("a", "A")	-1
+new Intl.Collator("ku").compare("z", "a")	1
+new Intl.Collator("ku").compare("résumé", "resume")	1
+new Intl.NumberFormat("or").format(1234567.891)	12,34,567.891
+new Intl.NumberFormat("or", { style: "percent" }).format(1234567.891)	123,456,789%
+new Intl.NumberFormat("or", { style: "currency", currency: "USD" }).format(1234567.891)	$1,234,567.89
+new Intl.NumberFormat("or").format(0.256)	0.256
+new Intl.NumberFormat("or", { style: "percent" }).format(0.256)	26%
+new Intl.NumberFormat("or", { style: "currency", currency: "USD" }).format(0.256)	$0.26
+new Intl.NumberFormat("or").format(-42)	-42
+new Intl.NumberFormat("or", { style: "percent" }).format(-42)	-4,200%
+new Intl.NumberFormat("or", { style: "currency", currency: "USD" }).format(-42)	-$42.00
+new Intl.NumberFormat("or").format(0)	0
+new Intl.NumberFormat("or", { style: "percent" }).format(0)	0%
+new Intl.NumberFormat("or", { style: "currency", currency: "USD" }).format(0)	$0.00
+new Intl.NumberFormat("or", { notation: "compact" }).format(1234)	1.2ହ
+new Intl.NumberFormat("or", { notation: "compact", compactDisplay: "long" }).format(1234)	1.2 ହଜାର
+new Intl.NumberFormat("or", { notation: "compact" }).format(1234567)	1.2ନି
+new Intl.NumberFormat("or", { notation: "compact", compactDisplay: "long" }).format(1234567)	1.2 ନିୟୁତ
+new Intl.NumberFormat("or", { notation: "compact" }).format(1500000000)	1.5ବି
+new Intl.NumberFormat("or", { notation: "compact", compactDisplay: "long" }).format(1500000000)	1.5 ଶହକୋଟି
+new Intl.NumberFormat("or").resolvedOptions().numberingSystem	latn
+new Intl.PluralRules("or", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.PluralRules("or", { type: "cardinal" }).select(0)	other
+new Intl.PluralRules("or", { type: "cardinal" }).select(1)	one
+new Intl.PluralRules("or", { type: "cardinal" }).select(2)	other
+new Intl.PluralRules("or", { type: "cardinal" }).select(3)	other
+new Intl.PluralRules("or", { type: "cardinal" }).select(5)	other
+new Intl.PluralRules("or", { type: "cardinal" }).select(11)	other
+new Intl.PluralRules("or", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("or", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("or", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("or", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	one,two,few,many,other
+new Intl.PluralRules("or", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("or", { type: "ordinal" }).select(1)	one
+new Intl.PluralRules("or", { type: "ordinal" }).select(2)	two
+new Intl.PluralRules("or", { type: "ordinal" }).select(3)	two
+new Intl.PluralRules("or", { type: "ordinal" }).select(5)	one
+new Intl.PluralRules("or", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("or", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("or", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("or", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("or", { type: "conjunction" }).format(["A", "B"])	A ଓ B
+new Intl.ListFormat("or", { type: "conjunction" }).format(["A", "B", "C"])	A, B, ଓ C
+new Intl.ListFormat("or", { type: "disjunction" }).format(["A", "B"])	A କିମ୍ବା B
+new Intl.ListFormat("or", { type: "disjunction" }).format(["A", "B", "C"])	A, B କିମ୍ବା C
+new Intl.RelativeTimeFormat("or").format(-1, "day")	1 ଦିନ ପୂର୍ବେ
+new Intl.RelativeTimeFormat("or", { numeric: "auto" }).format(-1, "day")	ଗତକାଲି
+new Intl.RelativeTimeFormat("or").format(0, "day")	0 ଦିନରେ
+new Intl.RelativeTimeFormat("or", { numeric: "auto" }).format(0, "day")	ଆଜି
+new Intl.RelativeTimeFormat("or").format(1, "day")	1 ଦିନରେ
+new Intl.RelativeTimeFormat("or", { numeric: "auto" }).format(1, "day")	ଆସନ୍ତାକାଲି
+new Intl.RelativeTimeFormat("or").format(2, "day")	2 ଦିନରେ
+new Intl.RelativeTimeFormat("or", { numeric: "auto" }).format(2, "day")	2 ଦିନରେ
+new Intl.RelativeTimeFormat("or").format(-1, "month")	1 ମାସ ପୂର୍ବେ
+new Intl.RelativeTimeFormat("or", { numeric: "auto" }).format(-1, "month")	ଗତ ମାସ
+new Intl.RelativeTimeFormat("or").format(0, "month")	0 ମାସରେ
+new Intl.RelativeTimeFormat("or", { numeric: "auto" }).format(0, "month")	ଏହି ମାସ
+new Intl.RelativeTimeFormat("or").format(1, "month")	1 ମାସରେ
+new Intl.RelativeTimeFormat("or", { numeric: "auto" }).format(1, "month")	ଆଗାମୀ ମାସ
+new Intl.RelativeTimeFormat("or").format(2, "month")	2 ମାସରେ
+new Intl.RelativeTimeFormat("or", { numeric: "auto" }).format(2, "month")	2 ମାସରେ
+new Intl.DateTimeFormat("or", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	ଶନିବାର, ମାର୍ଚ୍ଚ 9, 2024
+new Intl.DateTimeFormat("or", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	ମାର୍ଚ୍ଚ 9, 2024
+new Intl.DateTimeFormat("or", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	11:08 PM
+new Intl.DateTimeFormat("or", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("or").compare("a", "b")	-1
+new Intl.Collator("or").compare("b", "a")	1
+new Intl.Collator("or").compare("a", "A")	-1
+new Intl.Collator("or").compare("z", "a")	1
+new Intl.Collator("or").compare("résumé", "resume")	1
+new Intl.NumberFormat("as").format(1234567.891)	১২,৩৪,৫৬৭.৮৯১
+new Intl.NumberFormat("as", { style: "percent" }).format(1234567.891)	১২,৩৪,৫৬,৭৮৯%
+new Intl.NumberFormat("as", { style: "currency", currency: "USD" }).format(1234567.891)	US$ ১২,৩৪,৫৬৭.৮৯
+new Intl.NumberFormat("as").format(0.256)	০.২৫৬
+new Intl.NumberFormat("as", { style: "percent" }).format(0.256)	২৬%
+new Intl.NumberFormat("as", { style: "currency", currency: "USD" }).format(0.256)	US$ ০.২৬
+new Intl.NumberFormat("as").format(-42)	-৪২
+new Intl.NumberFormat("as", { style: "percent" }).format(-42)	-৪,২০০%
+new Intl.NumberFormat("as", { style: "currency", currency: "USD" }).format(-42)	-US$ ৪২.০০
+new Intl.NumberFormat("as").format(0)	০
+new Intl.NumberFormat("as", { style: "percent" }).format(0)	০%
+new Intl.NumberFormat("as", { style: "currency", currency: "USD" }).format(0)	US$ ০.০০
+new Intl.NumberFormat("as", { notation: "compact" }).format(1234)	১.২ হাজাৰ
+new Intl.NumberFormat("as", { notation: "compact", compactDisplay: "long" }).format(1234)	১.২ হাজাৰ
+new Intl.NumberFormat("as", { notation: "compact" }).format(1234567)	১.২ নিযুত
+new Intl.NumberFormat("as", { notation: "compact", compactDisplay: "long" }).format(1234567)	১.২ নিযুত
+new Intl.NumberFormat("as", { notation: "compact" }).format(1500000000)	১.৫ শঃ কোঃ
+new Intl.NumberFormat("as", { notation: "compact", compactDisplay: "long" }).format(1500000000)	১.৫ শত কোটি
+new Intl.NumberFormat("as").resolvedOptions().numberingSystem	beng
+new Intl.PluralRules("as", { type: "cardinal" }).resolvedOptions().pluralCategories.join(",")	one,other
+new Intl.PluralRules("as", { type: "cardinal" }).select(0)	one
+new Intl.PluralRules("as", { type: "cardinal" }).select(1)	one
+new Intl.PluralRules("as", { type: "cardinal" }).select(2)	other
+new Intl.PluralRules("as", { type: "cardinal" }).select(3)	other
+new Intl.PluralRules("as", { type: "cardinal" }).select(5)	other
+new Intl.PluralRules("as", { type: "cardinal" }).select(11)	other
+new Intl.PluralRules("as", { type: "cardinal" }).select(21)	other
+new Intl.PluralRules("as", { type: "cardinal" }).select(100)	other
+new Intl.PluralRules("as", { type: "cardinal" }).select(1.5)	other
+new Intl.PluralRules("as", { type: "ordinal" }).resolvedOptions().pluralCategories.join(",")	one,two,few,many,other
+new Intl.PluralRules("as", { type: "ordinal" }).select(0)	other
+new Intl.PluralRules("as", { type: "ordinal" }).select(1)	one
+new Intl.PluralRules("as", { type: "ordinal" }).select(2)	two
+new Intl.PluralRules("as", { type: "ordinal" }).select(3)	two
+new Intl.PluralRules("as", { type: "ordinal" }).select(5)	one
+new Intl.PluralRules("as", { type: "ordinal" }).select(11)	other
+new Intl.PluralRules("as", { type: "ordinal" }).select(21)	other
+new Intl.PluralRules("as", { type: "ordinal" }).select(100)	other
+new Intl.PluralRules("as", { type: "ordinal" }).select(1.5)	other
+new Intl.ListFormat("as", { type: "conjunction" }).format(["A", "B"])	A আৰু B
+new Intl.ListFormat("as", { type: "conjunction" }).format(["A", "B", "C"])	A, B আৰু C
+new Intl.ListFormat("as", { type: "disjunction" }).format(["A", "B"])	A বা B
+new Intl.ListFormat("as", { type: "disjunction" }).format(["A", "B", "C"])	A, B বা C
+new Intl.RelativeTimeFormat("as").format(-1, "day")	১ দিন পূৰ্বে
+new Intl.RelativeTimeFormat("as", { numeric: "auto" }).format(-1, "day")	কালি
+new Intl.RelativeTimeFormat("as").format(0, "day")	০ দিনত
+new Intl.RelativeTimeFormat("as", { numeric: "auto" }).format(0, "day")	আজি
+new Intl.RelativeTimeFormat("as").format(1, "day")	১ দিনত
+new Intl.RelativeTimeFormat("as", { numeric: "auto" }).format(1, "day")	কাইলৈ
+new Intl.RelativeTimeFormat("as").format(2, "day")	২ দিনত
+new Intl.RelativeTimeFormat("as", { numeric: "auto" }).format(2, "day")	পৰহিলৈ
+new Intl.RelativeTimeFormat("as").format(-1, "month")	১ মাহ পূৰ্বে
+new Intl.RelativeTimeFormat("as", { numeric: "auto" }).format(-1, "month")	যোৱা মাহ
+new Intl.RelativeTimeFormat("as").format(0, "month")	০ মাহত
+new Intl.RelativeTimeFormat("as", { numeric: "auto" }).format(0, "month")	এই মাহ
+new Intl.RelativeTimeFormat("as").format(1, "month")	১ মাহত
+new Intl.RelativeTimeFormat("as", { numeric: "auto" }).format(1, "month")	অহা মাহ
+new Intl.RelativeTimeFormat("as").format(2, "month")	২ মাহত
+new Intl.RelativeTimeFormat("as", { numeric: "auto" }).format(2, "month")	২ মাহত
+new Intl.DateTimeFormat("as", { dateStyle: "full", timeZone: "UTC" }).format(1710025680000)	শনিবাৰ, ৯ মাৰ্চ, ২০২৪
+new Intl.DateTimeFormat("as", { dateStyle: "medium", timeZone: "UTC" }).format(1710025680000)	০৯-০৩-২০২৪
+new Intl.DateTimeFormat("as", { timeStyle: "short", timeZone: "UTC" }).format(1710025680000)	অপৰাহ্ন ১১.০৮
+new Intl.DateTimeFormat("as", { timeZone: "UTC" }).resolvedOptions().calendar	gregory
+new Intl.Collator("as").compare("a", "b")	-1
+new Intl.Collator("as").compare("b", "a")	1
+new Intl.Collator("as").compare("a", "A")	-1
+new Intl.Collator("as").compare("z", "a")	1
+new Intl.Collator("as").compare("résumé", "resume")	1

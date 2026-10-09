@@ -47,14 +47,20 @@ pub struct SymbolImpl {
     string: Rc<StringImpl>,
     /// `m_owner`.
     owner: Rc<StringImpl>,
-    /// `m_hashForSymbolShiftedWithFlagCount`. O `RegisteredSymbolImpl::createPrivate` o reescreve
-    /// depois da construção.
-    hash_for_symbol_shifted_with_flag_count: Cell<u32>,
+    // `m_hashForSymbolShiftedWithFlagCount` mora no `StringImpl` do símbolo (ver o campo lá), para
+    // `existingSymbolAwareHash()` alcançá-lo. O `RegisteredSymbolImpl::createPrivate` o reescreve.
     /// `m_flags`.
     flags: Flags,
     /// `RegisteredSymbolImpl::m_symbolRegistry`, que vive no derivado no C++; fica aqui para
     /// `symbolRegistry()` responder sem o `static_cast`.
     symbol_registry: Cell<Option<SymbolRegistryId>>,
+}
+
+/// Grava no `StringImpl` do símbolo a marca de privado, que o `Identifier::from_uid` lê.
+fn mark_if_private(string: &StringImpl, flags: Flags) {
+    if flags & S_FLAG_IS_PRIVATE != 0 {
+        string.mark_private_symbol();
+    }
 }
 
 /// `SymbolImpl::nextHashForSymbol()`.
@@ -88,10 +94,11 @@ impl SymbolImpl {
         } else {
             StringImpl::new_symbol16(rep.span16())
         };
+        mark_if_private(&string, flags);
+        string.set_hash_for_symbol_shifted_with_flag_count(next_hash_for_symbol());
         SymbolImpl {
             string: Rc::new(string),
             owner,
-            hash_for_symbol_shifted_with_flag_count: Cell::new(next_hash_for_symbol()),
             flags,
             symbol_registry: Cell::new(None),
         }
@@ -99,10 +106,12 @@ impl SymbolImpl {
 
     /// `SymbolImpl(Flags)`: o símbolo nulo.
     fn null_symbol(flags: Flags) -> SymbolImpl {
+        let string = StringImpl::new_null_symbol();
+        mark_if_private(&string, flags);
+        string.set_hash_for_symbol_shifted_with_flag_count(next_hash_for_symbol());
         SymbolImpl {
-            string: Rc::new(StringImpl::new_null_symbol()),
+            string: Rc::new(string),
             owner: StringImpl::empty(),
-            hash_for_symbol_shifted_with_flag_count: Cell::new(next_hash_for_symbol()),
             flags: flags | S_FLAG_IS_NULL_SYMBOL,
             symbol_registry: Cell::new(None),
         }
@@ -115,12 +124,12 @@ impl SymbolImpl {
 
     /// `hashForSymbol()`.
     pub fn hash_for_symbol(&self) -> u32 {
-        self.hash_for_symbol_shifted_with_flag_count.get() >> StringImpl::S_FLAG_COUNT
+        self.string.hash_for_symbol_shifted_with_flag_count() >> StringImpl::S_FLAG_COUNT
     }
 
     /// `m_hashForSymbolShiftedWithFlagCount`.
     pub fn hash_for_symbol_shifted_with_flag_count(&self) -> u32 {
-        self.hash_for_symbol_shifted_with_flag_count.get()
+        self.string.hash_for_symbol_shifted_with_flag_count()
     }
 
     /// `isNullSymbol()`.
@@ -165,6 +174,26 @@ impl SymbolImpl {
     /// substring; o buffer aqui é sempre próprio, então o dono é `rep`.
     pub fn create(rep: &Rc<StringImpl>) -> Rc<SymbolImpl> {
         Rc::new(Self::with_characters(rep, rep.clone(), S_FLAG_DEFAULT))
+    }
+
+    /// DIVERGÊNCIA: no C++ um `UniquedStringImpl*` de símbolo É o `SymbolImpl` (`static_cast`). Aqui a
+    /// chave de propriedade é só o `StringImpl` do símbolo, então este construtor reconstrói um
+    /// `SymbolImpl` que adota o mesmo `StringImpl` (a mesma identidade de chave) quando nenhum
+    /// `Symbol` guardou o original, como acontece com os símbolos conhecidos instalados por
+    /// `Identifier`. O `StringImpl` precisa ser de espécie símbolo.
+    pub fn adopt(string: &Rc<StringImpl>, flags: Flags) -> Rc<SymbolImpl> {
+        debug_assert!(string.is_symbol());
+        mark_if_private(string, flags);
+        // Adotar o mesmo `StringImpl` duas vezes mantém o hash já atribuído a ele.
+        if string.hash_for_symbol_shifted_with_flag_count() == 0 {
+            string.set_hash_for_symbol_shifted_with_flag_count(next_hash_for_symbol());
+        }
+        Rc::new(SymbolImpl {
+            string: Rc::clone(string),
+            owner: StringImpl::empty(),
+            flags,
+            symbol_registry: Cell::new(None),
+        })
     }
 }
 
@@ -215,10 +244,11 @@ impl StaticSymbolImpl {
                 string_hasher::compute_literal_hash_and_mask_top8_bits::<u16>(characters),
             ),
         };
+        mark_if_private(&string, self.flags);
+        string.set_hash_for_symbol_shifted_with_flag_count(hash << StringImpl::S_FLAG_COUNT);
         Rc::new(SymbolImpl {
             string: Rc::new(string),
             owner: StringImpl::empty(),
-            hash_for_symbol_shifted_with_flag_count: Cell::new(hash << StringImpl::S_FLAG_COUNT),
             flags: self.flags,
             symbol_registry: Cell::new(None),
         })
@@ -278,8 +308,8 @@ impl RegisteredSymbolImpl {
         // process.
         symbol
             .symbol
-            .hash_for_symbol_shifted_with_flag_count
-            .set(rep.hash() << StringImpl::S_FLAG_COUNT);
+            .string
+            .set_hash_for_symbol_shifted_with_flag_count(rep.hash() << StringImpl::S_FLAG_COUNT);
         Rc::new(symbol)
     }
 
@@ -321,6 +351,24 @@ mod tests {
         assert_eq!(first, (1 << StringImpl::S_FLAG_COUNT) | (1 << 31));
         assert_eq!(second, (2 << StringImpl::S_FLAG_COUNT) | (1 << 31));
         assert_eq!(first >> StringImpl::S_FLAG_COUNT, (1 << 23) | 1);
+    }
+
+    #[test]
+    fn existing_symbol_aware_hash_follows_the_counter_not_the_address() {
+        let rep = StringImpl::create(b"priv");
+        let a = SymbolImpl::create(&rep);
+        let b = SymbolImpl::create(&rep);
+        let (ha, hb) = (a.string_impl().existing_symbol_aware_hash(), b.string_impl().existing_symbol_aware_hash());
+        assert_eq!(ha, a.hash_for_symbol());
+        assert_eq!(hb, b.hash_for_symbol());
+        // Mesmo conteúdo, símbolos distintos: o contador avança de um em um.
+        assert_eq!(hb, ha + 1);
+        assert_eq!(a.string_impl().symbol_aware_hash(), ha);
+        // Fora de símbolo vale o hash do conteúdo.
+        assert_eq!(rep.existing_symbol_aware_hash(), rep.existing_hash());
+        // Adotar de novo mantém o hash.
+        let again = SymbolImpl::adopt(a.string_impl(), S_FLAG_DEFAULT);
+        assert_eq!(again.hash_for_symbol(), ha);
     }
 
     #[test]

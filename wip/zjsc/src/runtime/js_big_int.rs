@@ -80,6 +80,8 @@ pub enum BigIntError {
     TooBig,
     /// `throwRangeError(..., "Negative exponent is not allowed"_s)` (usado a partir da linha 638).
     NegativeExponent,
+    /// `throwRangeError(..., "0 is an invalid divisor value."_s)` de `divideImpl` e `remainderImpl`.
+    InvalidDivisor,
 }
 
 impl BigIntError {
@@ -89,6 +91,7 @@ impl BigIntError {
             BigIntError::OutOfMemory => "Out of memory",
             BigIntError::TooBig => "BigInt generated from this operation is too big",
             BigIntError::NegativeExponent => "Negative exponent is not allowed",
+            BigIntError::InvalidDivisor => "0 is an invalid divisor value.",
         }
     }
 }
@@ -112,6 +115,12 @@ pub const MAX_LENGTH: u32 = MAX_LENGTH_BITS / DIGIT_BITS;
 const _: () = assert!(MAX_LENGTH_BITS % DIGIT_BITS == 0);
 
 pub const MAX_COMBA_FIXED_SIZE: usize = 16;
+
+/// `Vec<Digit>` zerado de `length` dígitos: a falta de memória é `OutOfMemory`, nunca um abort. Todo
+/// buffer de resultado (e de rascunho) de tamanho derivado de expoente, deslocamento ou texto passa aqui.
+pub(crate) fn try_zeroed_digits(length: usize) -> Result<Vec<Digit>, BigIntError> {
+    crate::runtime::fallible_alloc::try_filled_vec(0, length).ok_or(BigIntError::OutOfMemory)
+}
 
 pub const MAX_CACHED_MOD_DIVISOR_SIZE: u32 = 32;
 pub const MAX_FIXED_CACHED_MOD_DIVISOR_SIZE: u32 = 4;
@@ -149,6 +158,9 @@ pub fn normalize<D: Copy + PartialEq + Default>(mut x: &[D]) -> &[D] {
     x
 }
 
+/// Referência de célula do registro central (`CellEntry::BigInt`); o `JSBigInt` é imutável depois de criado.
+pub type JSBigIntRef = std::rc::Rc<JSBigInt>;
+
 /// `JSBigInt` (célula do heap no C++). `digits.len()` é o `m_length`; `sign` é o `perCellBit`.
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct JSBigInt {
@@ -156,6 +168,54 @@ pub struct JSBigInt {
     digits: Vec<Digit>,
     /// `m_hash`
     hash: u32,
+    /// `JSCell::m_structureID`: a `vm.bigIntStructure`; `None` até a célula entrar no registro.
+    structure: BigIntStructure,
+}
+
+/// `const ClassInfo JSBigInt::s_info`.
+pub static BIG_INT_S_INFO: crate::runtime::class_info::ClassInfo =
+    crate::runtime::class_info::ClassInfo { class_name: "BigInt", parent_class: None, static_prop_hash_table: None, inherits_js_type_range: None };
+
+/// A `Structure` de um `JSBigInt`. Fora da igualdade: dois BigInts valem o mesmo pelos dígitos e pelo sinal.
+#[derive(Clone, Debug, Default)]
+pub struct BigIntStructure(Option<crate::runtime::structure::StructureRef>);
+
+impl PartialEq for BigIntStructure {
+    fn eq(&self, _other: &BigIntStructure) -> bool {
+        true
+    }
+}
+
+impl Eq for BigIntStructure {}
+
+impl JSBigInt {
+    /// `JSBigInt::createStructure(vm, globalObject, prototype)`: `TypeInfo(HeapBigIntType, StructureFlags)`.
+    pub fn create_structure(
+        vm: &crate::runtime::vm::VM,
+        global_object: Option<&crate::runtime::js_global_object::JSGlobalObject>,
+        prototype: crate::runtime::js_value::JSValue,
+    ) -> crate::runtime::structure::StructureRef {
+        use crate::runtime::js_type::JSType;
+        use crate::runtime::js_type_info::{TypeInfo, STRUCTURE_IS_IMMORTAL};
+        crate::runtime::structure::Structure::create(
+            vm,
+            global_object,
+            prototype,
+            TypeInfo::new(JSType::HeapBigIntType, STRUCTURE_IS_IMMORTAL),
+            &BIG_INT_S_INFO,
+        )
+    }
+
+    /// `JSCell::structure()`.
+    pub fn structure(&self) -> Option<&crate::runtime::structure::StructureRef> {
+        self.structure.0.as_ref()
+    }
+
+    /// Dá à célula a `vm.bigIntStructure` (o C++ a grava no `JSCell` ao alocar).
+    pub fn with_structure(mut self, vm: &crate::runtime::vm::VM) -> JSBigInt {
+        self.structure = BigIntStructure(Some(vm.big_int_structure()));
+        self
+    }
 }
 
 impl JSBigInt {
@@ -175,48 +235,31 @@ impl JSBigInt {
     // FATIA2: `createStructure` (Structure, TypeInfo(HeapBigIntType, StructureFlags), info()) e
     // `s_info` (ClassInfo) dependem de Structure/VM, ainda não portados.
 
-    /// `createZero(VM&)` e `tryCreateZero(VM&)`. O C++ devolve a célula cacheada em
-    /// `vm.heapBigIntConstantZero`; FATIA2: apontar para o zero do VM quando o heap existir.
-    pub fn try_create_zero() -> JSBigInt {
-        JSBigInt::default()
-    }
-
-    fn create_zero() -> JSBigInt {
-        JSBigInt::try_create_zero()
-    }
+    // `createZero(VM&)` e `tryCreateZero(VM&)` são `JSBigInt::default()`. O C++ devolve a célula
+    // cacheada em `vm.heapBigIntConstantZero`; FATIA2: apontar para o zero do VM quando o heap existir.
 
     /// `createWithLength(JSGlobalObject* nullOrGlobalObjectForOOM, VM&, unsigned)`. O C++ lança
     /// só se `nullOrGlobalObjectForOOM` existe; as variantes `try_*` descartam o erro.
-    fn create_with_length_impl(length: u32) -> Result<JSBigInt, BigIntError> {
+    pub fn create_with_length(length: u32) -> Result<JSBigInt, BigIntError> {
         if length > MAX_LENGTH {
             return Err(BigIntError::TooBig);
         }
-        let mut digits: Vec<Digit> = Vec::new();
-        if digits.try_reserve_exact(length as usize).is_err() {
-            return Err(BigIntError::OutOfMemory);
-        }
         // O C++ deixa os dígitos sem inicializar; aqui nascem zerados (`initialize` os zera de novo).
-        digits.resize(length as usize, 0);
-        Ok(JSBigInt { sign: false, digits, hash: 0 })
+        Ok(JSBigInt { sign: false, digits: try_zeroed_digits(length as usize)?, hash: 0, structure: BigIntStructure::default() })
     }
 
     /// `JSBigInt::tryCreateWithLength(VM&, unsigned)`
     pub fn try_create_with_length(length: u32) -> Option<JSBigInt> {
-        JSBigInt::create_with_length_impl(length).ok()
-    }
-
-    /// `JSBigInt::createWithLength(JSGlobalObject*, unsigned)`
-    pub fn create_with_length(length: u32) -> Result<JSBigInt, BigIntError> {
-        JSBigInt::create_with_length_impl(length)
+        JSBigInt::create_with_length(length).ok()
     }
 
     /// `createFrom(JSGlobalObject*, VM&, int32_t)` (o `nullOrGlobalObjectForOOM` vira o `Result`).
     /// Cobre também `createFrom(JSGlobalObject*, int32_t)` e `tryCreateFrom(VM&, int32_t)`.
     pub fn create_from_i32(value: i32) -> Result<JSBigInt, BigIntError> {
         if value == 0 {
-            return Ok(JSBigInt::create_zero());
+            return Ok(JSBigInt::default());
         }
-        let mut big_int = JSBigInt::create_with_length_impl(1)?;
+        let mut big_int = JSBigInt::create_with_length(1)?;
         if value < 0 {
             big_int.set_digit(0, (-1 * (value as i64)) as Digit);
             big_int.set_sign(true);
@@ -234,7 +277,7 @@ impl JSBigInt {
     /// `JSBigInt::createFrom(JSGlobalObject*, uint32_t)`
     pub fn create_from_u32(value: u32) -> Result<JSBigInt, BigIntError> {
         if value == 0 {
-            return Ok(JSBigInt::create_zero());
+            return Ok(JSBigInt::default());
         }
         let mut big_int = JSBigInt::create_with_length(1)?;
         big_int.set_digit(0, value as Digit);
@@ -244,7 +287,7 @@ impl JSBigInt {
     /// `JSBigInt::tryCreateFromImpl(JSGlobalObject*, uint64_t value, bool sign)`
     fn try_create_from_u64_impl(value: u64, sign: bool) -> Result<JSBigInt, BigIntError> {
         if value == 0 {
-            return Ok(JSBigInt::create_zero());
+            return Ok(JSBigInt::default());
         }
         // `sizeof(Digit) == 8`: o ramo de dois dígitos de 32 bits não existe neste alvo.
         let mut big_int = JSBigInt::create_with_length(1)?;
@@ -274,7 +317,7 @@ impl JSBigInt {
     /// `JSBigInt::createFrom(JSGlobalObject*, Int128)`
     pub fn create_from_i128(value: i128) -> Result<JSBigInt, BigIntError> {
         if value == 0 {
-            return Ok(JSBigInt::create_zero());
+            return Ok(JSBigInt::default());
         }
 
         let unsigned_value: u128;
@@ -304,7 +347,7 @@ impl JSBigInt {
     /// `JSBigInt::createFrom(JSGlobalObject*, bool)`
     pub fn create_from_bool(value: bool) -> Result<JSBigInt, BigIntError> {
         if !value {
-            return Ok(JSBigInt::create_zero());
+            return Ok(JSBigInt::default());
         }
         let mut big_int = JSBigInt::create_with_length(1)?;
         big_int.set_digit(0, value as Digit);
@@ -314,7 +357,7 @@ impl JSBigInt {
     /// `JSBigInt::createFrom(JSGlobalObject*, double)`. O valor precisa ser inteiro (`isInteger`).
     pub fn create_from_f64(value: f64) -> Result<JSBigInt, BigIntError> {
         if value == 0.0 {
-            return Ok(JSBigInt::create_zero());
+            return Ok(JSBigInt::default());
         }
 
         let sign = value < 0.0; // -0 já foi tratado acima.
@@ -370,18 +413,13 @@ impl JSBigInt {
     pub fn try_create_from_impl(sign: bool, digits: &[Digit]) -> Result<JSBigInt, BigIntError> {
         let digits = normalize(digits);
         if digits.is_empty() {
-            return Ok(JSBigInt::create_zero());
+            return Ok(JSBigInt::default());
         }
 
-        let mut result = JSBigInt::create_with_length_impl(digits.len() as u32)?;
+        let mut result = JSBigInt::create_with_length(digits.len() as u32)?;
         result.digits.copy_from_slice(digits);
         result.set_sign(sign);
         Ok(result)
-    }
-
-    /// `JSBigInt::tryCreateFrom(JSGlobalObject*, VM&, bool sign, std::span<const Digit>)`
-    pub fn try_create_from(sign: bool, digits: &[Digit]) -> Result<JSBigInt, BigIntError> {
-        JSBigInt::try_create_from_impl(sign, digits)
     }
 
     /// `JSBigInt::tryCreateFromWords(VM&, std::span<const uint64_t>, bool sign)`
@@ -393,7 +431,7 @@ impl JSBigInt {
         }
 
         if word_count == 0 {
-            return Some(JSBigInt::try_create_zero());
+            return Some(JSBigInt::default());
         }
 
         // Confere o limite de tamanho.
@@ -681,3 +719,4 @@ include!("js_big_int_part5.rs");
 include!("js_big_int_part6.rs");
 include!("js_big_int_part7.rs");
 include!("js_big_int_part8.rs");
+include!("js_big_int_part9.rs");

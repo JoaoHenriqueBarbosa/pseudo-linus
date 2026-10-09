@@ -1,0 +1,907 @@
+"setTimeout(function () {}, 30); L(typeof globalThis.setTimeout);"	"function;"	0
+"setTimeout(function () {}, 30); L(JSON.stringify(Object.getOwnPropertyDescriptor(globalThis, 'setTimeout'), (k, v) => typeof v === 'function' ? 'fn' : v));"	"{\"value\":\"fn\",\"writable\":true,\"enumerable\":true,\"configurable\":true};"	0
+"setTimeout(function () {}, 30); L(setTimeout.name); L(setTimeout.length); L(Function.prototype.toString.call(setTimeout));"	"setTimeout;1;function setTimeout() { [native code] };"	0
+"setTimeout(function () {}, 30); L(setTimeout.hasOwnProperty('prototype')); L(Object.getPrototypeOf(setTimeout) === Function.prototype);"	"false;true;"	0
+"setTimeout(function () {}, 30); L(Object.keys(globalThis).includes('setTimeout')); L(Object.getOwnPropertyNames(globalThis).includes('setTimeout'));"	"true;true;"	0
+"setTimeout(function () {}, 30); try { new setTimeout(() => {}); L('no-throw'); } catch (e) { L(e.name); }"	"TypeError;"	0
+"setTimeout(function () {}, 30); L(typeof globalThis.setInterval);"	"function;"	0
+"setTimeout(function () {}, 30); L(JSON.stringify(Object.getOwnPropertyDescriptor(globalThis, 'setInterval'), (k, v) => typeof v === 'function' ? 'fn' : v));"	"{\"value\":\"fn\",\"writable\":true,\"enumerable\":true,\"configurable\":true};"	0
+"setTimeout(function () {}, 30); L(setInterval.name); L(setInterval.length); L(Function.prototype.toString.call(setInterval));"	"setInterval;1;function setInterval() { [native code] };"	0
+"setTimeout(function () {}, 30); L(setInterval.hasOwnProperty('prototype')); L(Object.getPrototypeOf(setInterval) === Function.prototype);"	"false;true;"	0
+"setTimeout(function () {}, 30); L(Object.keys(globalThis).includes('setInterval')); L(Object.getOwnPropertyNames(globalThis).includes('setInterval'));"	"true;true;"	0
+"setTimeout(function () {}, 30); try { new setInterval(() => {}); L('no-throw'); } catch (e) { L(e.name); }"	"TypeError;"	0
+"setTimeout(function () {}, 30); L(typeof globalThis.setImmediate);"	"function;"	0
+"setTimeout(function () {}, 30); L(JSON.stringify(Object.getOwnPropertyDescriptor(globalThis, 'setImmediate'), (k, v) => typeof v === 'function' ? 'fn' : v));"	"{\"value\":\"fn\",\"writable\":true,\"enumerable\":true,\"configurable\":true};"	0
+"setTimeout(function () {}, 30); L(setImmediate.name); L(setImmediate.length); L(Function.prototype.toString.call(setImmediate));"	"setImmediate;1;function setImmediate() { [native code] };"	0
+"setTimeout(function () {}, 30); L(setImmediate.hasOwnProperty('prototype')); L(Object.getPrototypeOf(setImmediate) === Function.prototype);"	"false;true;"	0
+"setTimeout(function () {}, 30); L(Object.keys(globalThis).includes('setImmediate')); L(Object.getOwnPropertyNames(globalThis).includes('setImmediate'));"	"true;true;"	0
+"setTimeout(function () {}, 30); try { new setImmediate(() => {}); L('no-throw'); } catch (e) { L(e.name); }"	"TypeError;"	0
+"setTimeout(function () {}, 30); L(typeof globalThis.clearTimeout);"	"function;"	0
+"setTimeout(function () {}, 30); L(JSON.stringify(Object.getOwnPropertyDescriptor(globalThis, 'clearTimeout'), (k, v) => typeof v === 'function' ? 'fn' : v));"	"{\"value\":\"fn\",\"writable\":true,\"enumerable\":true,\"configurable\":true};"	0
+"setTimeout(function () {}, 30); L(clearTimeout.name); L(clearTimeout.length); L(Function.prototype.toString.call(clearTimeout));"	"clearTimeout;1;function clearTimeout() { [native code] };"	0
+"setTimeout(function () {}, 30); L(clearTimeout.hasOwnProperty('prototype')); L(Object.getPrototypeOf(clearTimeout) === Function.prototype);"	"false;true;"	0
+"setTimeout(function () {}, 30); L(Object.keys(globalThis).includes('clearTimeout')); L(Object.getOwnPropertyNames(globalThis).includes('clearTimeout'));"	"true;true;"	0
+"setTimeout(function () {}, 30); try { new clearTimeout(() => {}); L('no-throw'); } catch (e) { L(e.name); }"	"TypeError;"	0
+"setTimeout(function () {}, 30); L(typeof globalThis.clearInterval);"	"function;"	0
+"setTimeout(function () {}, 30); L(JSON.stringify(Object.getOwnPropertyDescriptor(globalThis, 'clearInterval'), (k, v) => typeof v === 'function' ? 'fn' : v));"	"{\"value\":\"fn\",\"writable\":true,\"enumerable\":true,\"configurable\":true};"	0
+"setTimeout(function () {}, 30); L(clearInterval.name); L(clearInterval.length); L(Function.prototype.toString.call(clearInterval));"	"clearInterval;1;function clearInterval() { [native code] };"	0
+"setTimeout(function () {}, 30); L(clearInterval.hasOwnProperty('prototype')); L(Object.getPrototypeOf(clearInterval) === Function.prototype);"	"false;true;"	0
+"setTimeout(function () {}, 30); L(Object.keys(globalThis).includes('clearInterval')); L(Object.getOwnPropertyNames(globalThis).includes('clearInterval'));"	"true;true;"	0
+"setTimeout(function () {}, 30); try { new clearInterval(() => {}); L('no-throw'); } catch (e) { L(e.name); }"	"TypeError;"	0
+"setTimeout(function () {}, 30); L(typeof globalThis.clearImmediate);"	"function;"	0
+"setTimeout(function () {}, 30); L(JSON.stringify(Object.getOwnPropertyDescriptor(globalThis, 'clearImmediate'), (k, v) => typeof v === 'function' ? 'fn' : v));"	"{\"value\":\"fn\",\"writable\":true,\"enumerable\":true,\"configurable\":true};"	0
+"setTimeout(function () {}, 30); L(clearImmediate.name); L(clearImmediate.length); L(Function.prototype.toString.call(clearImmediate));"	"clearImmediate;1;function clearImmediate() { [native code] };"	0
+"setTimeout(function () {}, 30); L(clearImmediate.hasOwnProperty('prototype')); L(Object.getPrototypeOf(clearImmediate) === Function.prototype);"	"false;true;"	0
+"setTimeout(function () {}, 30); L(Object.keys(globalThis).includes('clearImmediate')); L(Object.getOwnPropertyNames(globalThis).includes('clearImmediate'));"	"true;true;"	0
+"setTimeout(function () {}, 30); try { new clearImmediate(() => {}); L('no-throw'); } catch (e) { L(e.name); }"	"TypeError;"	0
+"setTimeout(function () {}, 30); var set = ['clearImmediate','clearInterval','clearTimeout','queueMicrotask','setImmediate','setInterval','setTimeout'];L(Object.getOwnPropertyNames(globalThis).filter(n => set.includes(n)).join(','));L(Object.keys(globalThis).filter(n => set.includes(n)).join(','));"	"clearImmediate,clearInterval,clearTimeout,queueMicrotask,setImmediate,setInterval,setTimeout;clearImmediate,clearInterval,clearTimeout,queueMicrotask,setImmediate,setInterval,setTimeout;"	0
+"setTimeout(function () {}, 30); var s = setTimeout; setTimeout = 5; L(typeof setTimeout); setTimeout = s; L(typeof setTimeout);"	"number;function;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 1); var P = Object.getPrototypeOf(t); L(typeof t); L(t.constructor.name); L(Object.keys(t).length); L(Object.getOwnPropertyNames(t).length); L(Reflect.ownKeys(t).length); clearTimeout(t);"	"object;Timeout;0;0;0;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 1); var P = Object.getPrototypeOf(t); L(Reflect.ownKeys(P).map(String).join(',')); clearTimeout(t);"	"_destroyed,_idleStart,_idleTimeout,_onTimeout,_repeat,close,hasRef,ref,refresh,unref,constructor,Symbol(Symbol.dispose),Symbol(Symbol.toPrimitive),Symbol(Symbol.toStringTag);"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 1); var P = Object.getPrototypeOf(t); L(Object.getPrototypeOf(P) === Object.prototype); L(P.constructor.name); L(P.constructor.length); L(Function.prototype.toString.call(P.constructor)); clearTimeout(t);"	"true;Timeout;0;function Timeout() { [native code] };"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 1); var P = Object.getPrototypeOf(t); L(Object.prototype.toString.call(t)); L(JSON.stringify(t)); L(typeof P[Symbol.toPrimitive]); L(P[Symbol.toStringTag]); clearTimeout(t);"	"[object Timeout];{};function;Timeout;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 1); var P = Object.getPrototypeOf(t); Reflect.ownKeys(P).forEach(k => { var d = Object.getOwnPropertyDescriptor(P, k); L(String(k) + '=' + (d.get ? 'acc:' + d.get.name + '/' + (d.set ? d.set.name : '-') : typeof d.value + ':' + (typeof d.value === 'function' ? d.value.length + ':' + d.value.name : '')) + (d.enumerable ? 'E' : 'e') + (d.configurable ? 'C' : 'c') + (d.writable ? 'W' : 'w')); }); clearTimeout(t);"	"_destroyed=acc:get _destroyed/-Ecw;_idleStart=acc:get _idleStart/set _idleStartEcw;_idleTimeout=acc:get _idleTimeout/set _idleTimeoutEcw;_onTimeout=acc:get _onTimeout/set _onTimeoutEcw;_repeat=acc:get _repeat/set _repeatEcw;close=function:0:closeEcW;hasRef=function:0:hasRefEcW;ref=function:0:refEcW;refresh=function:0:refreshEcW;unref=function:0:unrefEcW;constructor=function:0:TimeouteCW;Symbol(Symbol.dispose)=function:1:disposeeCw;Symbol(Symbol.toPrimitive)=function:1:toPrimitiveeCw;Symbol(Symbol.toStringTag)=string:eCw;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 1); var P = Object.getPrototypeOf(t); L(String(t) === String(+t)); L(typeof (+t)); L(Number.isInteger(+t)); L(`${t}` === String(t)); L(typeof t[Symbol.toPrimitive]('string')); clearTimeout(t);"	"true;number;true;true;number;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 1); var P = Object.getPrototypeOf(t); L(t.hasRef()); L(t.unref() === t); L(t.hasRef()); L(t.ref() === t); L(t.hasRef()); clearTimeout(t);"	"true;true;false;true;true;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 1); var P = Object.getPrototypeOf(t); L(t._destroyed); clearTimeout(t); L(t._destroyed); L(t.hasRef());"	"false;true;false;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 1); var P = Object.getPrototypeOf(t); L(t[Symbol.dispose] === P[Symbol.dispose]); t[Symbol.dispose](); L(t._destroyed);"	"true;true;"	0
+"setTimeout(function () {}, 30); var a = setTimeout(() => {}, 1); var b = setTimeout(() => {}, 1); var c = setTimeout(() => {}, 1); L((+b - +a) + ',' + (+c - +b)); clearTimeout(a); clearTimeout(b); clearTimeout(c);"	"1,1;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 1); var P = Object.getPrototypeOf(t); L(typeof t); L(t.constructor.name); L(Object.keys(t).length); L(Object.getOwnPropertyNames(t).length); L(Reflect.ownKeys(t).length); clearInterval(t);"	"object;Timeout;0;0;0;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 1); var P = Object.getPrototypeOf(t); L(Reflect.ownKeys(P).map(String).join(',')); clearInterval(t);"	"_destroyed,_idleStart,_idleTimeout,_onTimeout,_repeat,close,hasRef,ref,refresh,unref,constructor,Symbol(Symbol.dispose),Symbol(Symbol.toPrimitive),Symbol(Symbol.toStringTag);"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 1); var P = Object.getPrototypeOf(t); L(Object.getPrototypeOf(P) === Object.prototype); L(P.constructor.name); L(P.constructor.length); L(Function.prototype.toString.call(P.constructor)); clearInterval(t);"	"true;Timeout;0;function Timeout() { [native code] };"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 1); var P = Object.getPrototypeOf(t); L(Object.prototype.toString.call(t)); L(JSON.stringify(t)); L(typeof P[Symbol.toPrimitive]); L(P[Symbol.toStringTag]); clearInterval(t);"	"[object Timeout];{};function;Timeout;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 1); var P = Object.getPrototypeOf(t); Reflect.ownKeys(P).forEach(k => { var d = Object.getOwnPropertyDescriptor(P, k); L(String(k) + '=' + (d.get ? 'acc:' + d.get.name + '/' + (d.set ? d.set.name : '-') : typeof d.value + ':' + (typeof d.value === 'function' ? d.value.length + ':' + d.value.name : '')) + (d.enumerable ? 'E' : 'e') + (d.configurable ? 'C' : 'c') + (d.writable ? 'W' : 'w')); }); clearInterval(t);"	"_destroyed=acc:get _destroyed/-Ecw;_idleStart=acc:get _idleStart/set _idleStartEcw;_idleTimeout=acc:get _idleTimeout/set _idleTimeoutEcw;_onTimeout=acc:get _onTimeout/set _onTimeoutEcw;_repeat=acc:get _repeat/set _repeatEcw;close=function:0:closeEcW;hasRef=function:0:hasRefEcW;ref=function:0:refEcW;refresh=function:0:refreshEcW;unref=function:0:unrefEcW;constructor=function:0:TimeouteCW;Symbol(Symbol.dispose)=function:1:disposeeCw;Symbol(Symbol.toPrimitive)=function:1:toPrimitiveeCw;Symbol(Symbol.toStringTag)=string:eCw;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 1); var P = Object.getPrototypeOf(t); L(String(t) === String(+t)); L(typeof (+t)); L(Number.isInteger(+t)); L(`${t}` === String(t)); L(typeof t[Symbol.toPrimitive]('string')); clearInterval(t);"	"true;number;true;true;number;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 1); var P = Object.getPrototypeOf(t); L(t.hasRef()); L(t.unref() === t); L(t.hasRef()); L(t.ref() === t); L(t.hasRef()); clearInterval(t);"	"true;true;false;true;true;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 1); var P = Object.getPrototypeOf(t); L(t._destroyed); clearInterval(t); L(t._destroyed); L(t.hasRef());"	"false;true;false;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 1); var P = Object.getPrototypeOf(t); L(t[Symbol.dispose] === P[Symbol.dispose]); t[Symbol.dispose](); L(t._destroyed);"	"true;true;"	0
+"setTimeout(function () {}, 30); var a = setInterval(() => {}, 1); var b = setInterval(() => {}, 1); var c = setInterval(() => {}, 1); L((+b - +a) + ',' + (+c - +b)); clearInterval(a); clearInterval(b); clearInterval(c);"	"1,1;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => {}); var P = Object.getPrototypeOf(t); L(typeof t); L(t.constructor.name); L(Object.keys(t).length); L(Object.getOwnPropertyNames(t).length); L(Reflect.ownKeys(t).length); clearImmediate(t);"	"object;Immediate;0;0;0;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => {}); var P = Object.getPrototypeOf(t); L(Reflect.ownKeys(P).map(String).join(',')); clearImmediate(t);"	"_destroyed,hasRef,ref,unref,constructor,Symbol(Symbol.dispose),Symbol(Symbol.toPrimitive),Symbol(Symbol.toStringTag);"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => {}); var P = Object.getPrototypeOf(t); L(Object.getPrototypeOf(P) === Object.prototype); L(P.constructor.name); L(P.constructor.length); L(Function.prototype.toString.call(P.constructor)); clearImmediate(t);"	"true;Immediate;0;function Immediate() { [native code] };"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => {}); var P = Object.getPrototypeOf(t); L(Object.prototype.toString.call(t)); L(JSON.stringify(t)); L(typeof P[Symbol.toPrimitive]); L(P[Symbol.toStringTag]); clearImmediate(t);"	"[object Immediate];{};function;Immediate;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => {}); var P = Object.getPrototypeOf(t); Reflect.ownKeys(P).forEach(k => { var d = Object.getOwnPropertyDescriptor(P, k); L(String(k) + '=' + (d.get ? 'acc:' + d.get.name + '/' + (d.set ? d.set.name : '-') : typeof d.value + ':' + (typeof d.value === 'function' ? d.value.length + ':' + d.value.name : '')) + (d.enumerable ? 'E' : 'e') + (d.configurable ? 'C' : 'c') + (d.writable ? 'W' : 'w')); }); clearImmediate(t);"	"_destroyed=acc:get _destroyed/-Ecw;hasRef=function:0:hasRefEcW;ref=function:0:refEcW;unref=function:0:unrefEcW;constructor=function:0:ImmediateeCW;Symbol(Symbol.dispose)=function:1:disposeeCw;Symbol(Symbol.toPrimitive)=function:1:toPrimitiveeCw;Symbol(Symbol.toStringTag)=string:eCw;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => {}); var P = Object.getPrototypeOf(t); L(String(t) === String(+t)); L(typeof (+t)); L(Number.isInteger(+t)); L(`${t}` === String(t)); L(typeof t[Symbol.toPrimitive]('string')); clearImmediate(t);"	"true;number;true;true;number;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => {}); var P = Object.getPrototypeOf(t); L(t.hasRef()); L(t.unref() === t); L(t.hasRef()); L(t.ref() === t); L(t.hasRef()); clearImmediate(t);"	"true;true;false;true;true;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => {}); var P = Object.getPrototypeOf(t); L(t._destroyed); clearImmediate(t); L(t._destroyed); L(t.hasRef());"	"false;true;false;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => {}); var P = Object.getPrototypeOf(t); L(t[Symbol.dispose] === P[Symbol.dispose]); t[Symbol.dispose](); L(t._destroyed);"	"true;true;"	0
+"setTimeout(function () {}, 30); var a = setImmediate(() => {}); var b = setImmediate(() => {}); var c = setImmediate(() => {}); L((+b - +a) + ',' + (+c - +b)); clearImmediate(a); clearImmediate(b); clearImmediate(c);"	"1,1;"	0
+"setTimeout(function () {}, 30); var a = setTimeout(() => {}, 1), b = setInterval(() => {}, 1), c = setImmediate(() => {}), d = setTimeout(() => {}, 1); L([+b - +a, +c - +b, +d - +c].join()); clearTimeout(a); clearInterval(b); clearImmediate(c); clearTimeout(d);"	"1,1,1;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 1); L(t._destroyed + ':' + t._idleTimeout + ':' + typeof t._onTimeout + ':' + t._repeat + ':' + typeof t._idleStart); clearTimeout(t);"	"false:1:function:null:number;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 1); t._idleTimeout = 50; L(t._idleTimeout); t._onTimeout = 5; L(t._onTimeout); t._repeat = 7; L(t._repeat); t._destroyed = true; L(t._destroyed); clearTimeout(t);"	"50;5;7;false;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 1); L(t.close() === t); L(t._destroyed); L(t.hasRef());"	"true;true;false;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 1); L(t.refresh() === t); L(t._destroyed); clearTimeout(t);"	"true;false;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 1); L(t._destroyed + ':' + t._idleTimeout + ':' + typeof t._onTimeout + ':' + t._repeat + ':' + typeof t._idleStart); clearInterval(t);"	"false:1:function:1:number;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 1); t._idleTimeout = 50; L(t._idleTimeout); t._onTimeout = 5; L(t._onTimeout); t._repeat = 7; L(t._repeat); t._destroyed = true; L(t._destroyed); clearInterval(t);"	"50;5;7;false;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 1); L(t.close() === t); L(t._destroyed); L(t.hasRef());"	"true;true;false;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 1); L(t.refresh() === t); L(t._destroyed); clearInterval(t);"	"true;false;"	0
+"setTimeout(function () {}, 30); try { setTimeout(); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setTimeout requires 1 argument (a function):true:false;"	0
+"setTimeout(function () {}, 30); try { setTimeout(undefined); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setTimeout expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setTimeout(null); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setTimeout expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setTimeout(1); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setTimeout expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setTimeout('x'); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setTimeout expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setTimeout({}); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setTimeout expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setTimeout([]); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setTimeout expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setTimeout(true); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setTimeout expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setTimeout(Symbol()); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setTimeout expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setTimeout(1n); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setTimeout expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setTimeout('function'); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setTimeout expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setTimeout(/x/); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setTimeout expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setTimeout(new Date(0)); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setTimeout expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { var h1 = setTimeout.call(undefined, () => { L('called'); clearTimeout(h1); }); var h2 = setTimeout.call(null, () => { L('called2'); clearTimeout(h2); }); var h3 = setTimeout.apply(1, [() => { L('applied'); clearTimeout(h3); }]); } catch (e) { L(e.name); }"	"called;called2;applied;"	0
+"setTimeout(function () {}, 30); try { setInterval(); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setInterval requires 1 argument (a function):true:false;"	0
+"setTimeout(function () {}, 30); try { setInterval(undefined); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setInterval expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setInterval(null); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setInterval expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setInterval(1); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setInterval expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setInterval('x'); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setInterval expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setInterval({}); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setInterval expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setInterval([]); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setInterval expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setInterval(true); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setInterval expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setInterval(Symbol()); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setInterval expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setInterval(1n); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setInterval expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setInterval('function'); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setInterval expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setInterval(/x/); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setInterval expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setInterval(new Date(0)); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setInterval expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { var h1 = setInterval.call(undefined, () => { L('called'); clearInterval(h1); }); var h2 = setInterval.call(null, () => { L('called2'); clearInterval(h2); }); var h3 = setInterval.apply(1, [() => { L('applied'); clearInterval(h3); }]); } catch (e) { L(e.name); }"	"called;called2;applied;"	0
+"setTimeout(function () {}, 30); try { setImmediate(); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setImmediate requires 1 argument (a function):true:false;"	0
+"setTimeout(function () {}, 30); try { setImmediate(undefined); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setImmediate expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setImmediate(null); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setImmediate expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setImmediate(1); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setImmediate expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setImmediate('x'); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setImmediate expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setImmediate({}); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setImmediate expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setImmediate([]); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setImmediate expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setImmediate(true); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setImmediate expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setImmediate(Symbol()); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setImmediate expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setImmediate(1n); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setImmediate expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setImmediate('function'); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setImmediate expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setImmediate(/x/); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setImmediate expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { setImmediate(new Date(0)); L('no-throw'); } catch (e) { L(e.name + ':' + e.message + ':' + (e instanceof TypeError) + ':' + Object.getOwnPropertyNames(e).includes('code')); }"	"TypeError:setImmediate expects a function:true:false;"	0
+"setTimeout(function () {}, 30); try { var h1 = setImmediate.call(undefined, () => { L('called'); clearImmediate(h1); }); var h2 = setImmediate.call(null, () => { L('called2'); clearImmediate(h2); }); var h3 = setImmediate.apply(1, [() => { L('applied'); clearImmediate(h3); }]); } catch (e) { L(e.name); }"	"called;called2;applied;"	0
+"setTimeout(function () {}, 30); try { setTimeout(() => {}, Symbol()); L('no-throw'); } catch (e) { L(e.name + ':' + e.message); }"	"TypeError:Cannot convert a symbol to a number;"	0
+"setTimeout(function () {}, 30); try { setInterval(() => {}, Symbol()); L('no-throw'); } catch (e) { L(e.name + ':' + e.message); }"	"TypeError:Cannot convert a symbol to a number;"	0
+"setTimeout(function () {}, 30); try { setTimeout(() => {}, 1n); L('no-throw'); } catch (e) { L(e.name + ':' + e.message); }"	"TypeError:Conversion from 'BigInt' to 'number' is not allowed.;"	0
+"setTimeout(function () {}, 30); try { setImmediate(() => L('i'), Symbol()); L('no-throw'); } catch (e) { L(e.name + ':' + e.message); }"	"no-throw;i;"	0
+"setTimeout(function () {}, 30); try { setTimeout(() => {}, { valueOf() { throw new RangeError('vo'); } }); L('no-throw'); } catch (e) { L(e.name + ':' + e.message); }"	"RangeError:vo;"	0
+"setTimeout(function () {}, 30); try { L(String(clearTimeout())); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearTimeout(undefined))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearTimeout(null))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearTimeout(1))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearTimeout('x'))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearTimeout({}))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearTimeout([]))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearTimeout(true))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearTimeout(Symbol()))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearTimeout(1n))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearTimeout(-1))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearTimeout(NaN))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearTimeout(1e9))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearTimeout(1.5))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearInterval())); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearInterval(undefined))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearInterval(null))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearInterval(1))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearInterval('x'))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearInterval({}))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearInterval([]))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearInterval(true))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearInterval(Symbol()))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearInterval(1n))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearInterval(-1))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearInterval(NaN))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearInterval(1e9))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearInterval(1.5))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearImmediate())); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearImmediate(undefined))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearImmediate(null))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearImmediate(1))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearImmediate('x'))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearImmediate({}))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearImmediate([]))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearImmediate(true))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearImmediate(Symbol()))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearImmediate(1n))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearImmediate(-1))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearImmediate(NaN))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearImmediate(1e9))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); try { L(String(clearImmediate(1.5))); } catch (e) { L(e.name + ':' + e.message); }"	"undefined;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, undefined); L(t._idleTimeout); clearTimeout(t);"	"1;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, undefined); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"1:1;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, null); L(t._idleTimeout); clearTimeout(t);"	"1;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, null); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"1:1;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 0); L(t._idleTimeout); clearTimeout(t);"	"1;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 0); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"1:1;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 0.5); L(t._idleTimeout); clearTimeout(t);"	"1;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 0.5); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"1:1;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 1); L(t._idleTimeout); clearTimeout(t);"	"1;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 1); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"1:1;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 1.5); L(t._idleTimeout); clearTimeout(t);"	"1;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 1.5); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"1:1;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 2.7); L(t._idleTimeout); clearTimeout(t);"	"2;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 2.7); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"2:2;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, '5'); L(t._idleTimeout); clearTimeout(t);"	"5;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, '5'); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"5:5;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, -3); L(t._idleTimeout); clearTimeout(t);"	"1;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, -3); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"1:1;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, NaN); L(t._idleTimeout); clearTimeout(t);"	"1;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, NaN); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"1:1;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, true); L(t._idleTimeout); clearTimeout(t);"	"1;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, true); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"1:1;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, false); L(t._idleTimeout); clearTimeout(t);"	"1;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, false); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"1:1;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 'abc'); L(t._idleTimeout); clearTimeout(t);"	"1;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 'abc'); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"1:1;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, ''); L(t._idleTimeout); clearTimeout(t);"	"1;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, ''); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"1:1;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 2147483647); L(t._idleTimeout); clearTimeout(t);"	"2147483647;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 2147483647); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"2147483647:2147483647;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 2147483648); L(t._idleTimeout); clearTimeout(t);"	"1;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 2147483648); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"1:1;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, Infinity); L(t._idleTimeout); clearTimeout(t);"	"1;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, Infinity); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"1:1;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, -Infinity); L(t._idleTimeout); clearTimeout(t);"	"1;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, -Infinity); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"1:1;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 1e10); L(t._idleTimeout); clearTimeout(t);"	"1;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 1e10); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"1:1;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, ({ valueOf() { return 3; } })); L(t._idleTimeout); clearTimeout(t);"	"3;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, ({ valueOf() { return 3; } })); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"3:3;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, [7]); L(t._idleTimeout); clearTimeout(t);"	"7;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, [7]); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"7:7;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, '  9  '); L(t._idleTimeout); clearTimeout(t);"	"9;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, '  9  '); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"9:9;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 0x10); L(t._idleTimeout); clearTimeout(t);"	"16;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 0x10); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"16:16;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, 1e1); L(t._idleTimeout); clearTimeout(t);"	"10;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, 1e1); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"10:10;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => {}, -0); L(t._idleTimeout); clearTimeout(t);"	"1;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => {}, -0); L(t._idleTimeout + ':' + t._repeat); clearInterval(t);"	"1:1;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setTimeout(() => L('b'), 0); setTimeout(() => L('c'), 0);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setTimeout(() => L('b'), 0); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setTimeout(() => L('b'), 0); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setTimeout(() => L('b'), 0); setImmediate(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setTimeout(() => L('b'), 0); queueMicrotask(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setTimeout(() => L('b'), 0); Promise.resolve().then(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setTimeout(() => L('b'), 0); (async () => { await null; L('c'); })();"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setTimeout(() => L('b'), 10); setTimeout(() => L('c'), 0);"	"a;c;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setTimeout(() => L('b'), 10); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setTimeout(() => L('b'), 10); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setTimeout(() => L('b'), 10); setImmediate(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setTimeout(() => L('b'), 10); queueMicrotask(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setTimeout(() => L('b'), 10); Promise.resolve().then(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setTimeout(() => L('b'), 10); (async () => { await null; L('c'); })();"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setTimeout(() => L('b'), 20); setTimeout(() => L('c'), 0);"	"a;c;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setTimeout(() => L('b'), 20); setTimeout(() => L('c'), 10);"	"a;c;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setTimeout(() => L('b'), 20); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setTimeout(() => L('b'), 20); setImmediate(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setTimeout(() => L('b'), 20); queueMicrotask(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setTimeout(() => L('b'), 20); Promise.resolve().then(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setTimeout(() => L('b'), 20); (async () => { await null; L('c'); })();"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setImmediate(() => L('b')); setTimeout(() => L('c'), 0);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setImmediate(() => L('b')); setTimeout(() => L('c'), 10);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setImmediate(() => L('b')); setTimeout(() => L('c'), 20);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setImmediate(() => L('b')); setImmediate(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setImmediate(() => L('b')); queueMicrotask(() => L('c'));"	"c;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setImmediate(() => L('b')); Promise.resolve().then(() => L('c'));"	"c;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); setImmediate(() => L('b')); (async () => { await null; L('c'); })();"	"c;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); queueMicrotask(() => L('b')); setTimeout(() => L('c'), 0);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); queueMicrotask(() => L('b')); setTimeout(() => L('c'), 10);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); queueMicrotask(() => L('b')); setTimeout(() => L('c'), 20);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); queueMicrotask(() => L('b')); setImmediate(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); queueMicrotask(() => L('b')); queueMicrotask(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); queueMicrotask(() => L('b')); Promise.resolve().then(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); queueMicrotask(() => L('b')); (async () => { await null; L('c'); })();"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); Promise.resolve().then(() => L('b')); setTimeout(() => L('c'), 0);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); Promise.resolve().then(() => L('b')); setTimeout(() => L('c'), 10);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); Promise.resolve().then(() => L('b')); setTimeout(() => L('c'), 20);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); Promise.resolve().then(() => L('b')); setImmediate(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); Promise.resolve().then(() => L('b')); queueMicrotask(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); Promise.resolve().then(() => L('b')); Promise.resolve().then(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); Promise.resolve().then(() => L('b')); (async () => { await null; L('c'); })();"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); (async () => { await null; L('b'); })(); setTimeout(() => L('c'), 0);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); (async () => { await null; L('b'); })(); setTimeout(() => L('c'), 10);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); (async () => { await null; L('b'); })(); setTimeout(() => L('c'), 20);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); (async () => { await null; L('b'); })(); setImmediate(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); (async () => { await null; L('b'); })(); queueMicrotask(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); (async () => { await null; L('b'); })(); Promise.resolve().then(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 0); (async () => { await null; L('b'); })(); (async () => { await null; L('c'); })();"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setTimeout(() => L('b'), 0); setTimeout(() => L('c'), 0);"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setTimeout(() => L('b'), 0); setTimeout(() => L('c'), 10);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setTimeout(() => L('b'), 0); setTimeout(() => L('c'), 20);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setTimeout(() => L('b'), 0); setImmediate(() => L('c'));"	"c;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setTimeout(() => L('b'), 0); queueMicrotask(() => L('c'));"	"c;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setTimeout(() => L('b'), 0); Promise.resolve().then(() => L('c'));"	"c;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setTimeout(() => L('b'), 0); (async () => { await null; L('c'); })();"	"c;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setTimeout(() => L('b'), 10); setTimeout(() => L('c'), 0);"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setTimeout(() => L('b'), 10); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setTimeout(() => L('b'), 10); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setTimeout(() => L('b'), 10); setImmediate(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setTimeout(() => L('b'), 10); queueMicrotask(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setTimeout(() => L('b'), 10); Promise.resolve().then(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setTimeout(() => L('b'), 10); (async () => { await null; L('c'); })();"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setTimeout(() => L('b'), 20); setTimeout(() => L('c'), 0);"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setTimeout(() => L('b'), 20); setTimeout(() => L('c'), 10);"	"a;c;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setTimeout(() => L('b'), 20); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setTimeout(() => L('b'), 20); setImmediate(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setTimeout(() => L('b'), 20); queueMicrotask(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setTimeout(() => L('b'), 20); Promise.resolve().then(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setTimeout(() => L('b'), 20); (async () => { await null; L('c'); })();"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setImmediate(() => L('b')); setTimeout(() => L('c'), 0);"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setImmediate(() => L('b')); setTimeout(() => L('c'), 10);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setImmediate(() => L('b')); setTimeout(() => L('c'), 20);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setImmediate(() => L('b')); setImmediate(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setImmediate(() => L('b')); queueMicrotask(() => L('c'));"	"c;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setImmediate(() => L('b')); Promise.resolve().then(() => L('c'));"	"c;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); setImmediate(() => L('b')); (async () => { await null; L('c'); })();"	"c;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); queueMicrotask(() => L('b')); setTimeout(() => L('c'), 0);"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); queueMicrotask(() => L('b')); setTimeout(() => L('c'), 10);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); queueMicrotask(() => L('b')); setTimeout(() => L('c'), 20);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); queueMicrotask(() => L('b')); setImmediate(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); queueMicrotask(() => L('b')); queueMicrotask(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); queueMicrotask(() => L('b')); Promise.resolve().then(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); queueMicrotask(() => L('b')); (async () => { await null; L('c'); })();"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); Promise.resolve().then(() => L('b')); setTimeout(() => L('c'), 0);"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); Promise.resolve().then(() => L('b')); setTimeout(() => L('c'), 10);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); Promise.resolve().then(() => L('b')); setTimeout(() => L('c'), 20);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); Promise.resolve().then(() => L('b')); setImmediate(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); Promise.resolve().then(() => L('b')); queueMicrotask(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); Promise.resolve().then(() => L('b')); Promise.resolve().then(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); Promise.resolve().then(() => L('b')); (async () => { await null; L('c'); })();"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); (async () => { await null; L('b'); })(); setTimeout(() => L('c'), 0);"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); (async () => { await null; L('b'); })(); setTimeout(() => L('c'), 10);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); (async () => { await null; L('b'); })(); setTimeout(() => L('c'), 20);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); (async () => { await null; L('b'); })(); setImmediate(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); (async () => { await null; L('b'); })(); queueMicrotask(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); (async () => { await null; L('b'); })(); Promise.resolve().then(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 10); (async () => { await null; L('b'); })(); (async () => { await null; L('c'); })();"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setTimeout(() => L('b'), 0); setTimeout(() => L('c'), 0);"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setTimeout(() => L('b'), 0); setTimeout(() => L('c'), 10);"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setTimeout(() => L('b'), 0); setTimeout(() => L('c'), 20);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setTimeout(() => L('b'), 0); setImmediate(() => L('c'));"	"c;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setTimeout(() => L('b'), 0); queueMicrotask(() => L('c'));"	"c;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setTimeout(() => L('b'), 0); Promise.resolve().then(() => L('c'));"	"c;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setTimeout(() => L('b'), 0); (async () => { await null; L('c'); })();"	"c;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setTimeout(() => L('b'), 10); setTimeout(() => L('c'), 0);"	"c;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setTimeout(() => L('b'), 10); setTimeout(() => L('c'), 10);"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setTimeout(() => L('b'), 10); setTimeout(() => L('c'), 20);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setTimeout(() => L('b'), 10); setImmediate(() => L('c'));"	"c;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setTimeout(() => L('b'), 10); queueMicrotask(() => L('c'));"	"c;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setTimeout(() => L('b'), 10); Promise.resolve().then(() => L('c'));"	"c;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setTimeout(() => L('b'), 10); (async () => { await null; L('c'); })();"	"c;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setTimeout(() => L('b'), 20); setTimeout(() => L('c'), 0);"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setTimeout(() => L('b'), 20); setTimeout(() => L('c'), 10);"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setTimeout(() => L('b'), 20); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setTimeout(() => L('b'), 20); setImmediate(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setTimeout(() => L('b'), 20); queueMicrotask(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setTimeout(() => L('b'), 20); Promise.resolve().then(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setTimeout(() => L('b'), 20); (async () => { await null; L('c'); })();"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setImmediate(() => L('b')); setTimeout(() => L('c'), 0);"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setImmediate(() => L('b')); setTimeout(() => L('c'), 10);"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setImmediate(() => L('b')); setTimeout(() => L('c'), 20);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setImmediate(() => L('b')); setImmediate(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setImmediate(() => L('b')); queueMicrotask(() => L('c'));"	"c;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setImmediate(() => L('b')); Promise.resolve().then(() => L('c'));"	"c;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); setImmediate(() => L('b')); (async () => { await null; L('c'); })();"	"c;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); queueMicrotask(() => L('b')); setTimeout(() => L('c'), 0);"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); queueMicrotask(() => L('b')); setTimeout(() => L('c'), 10);"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); queueMicrotask(() => L('b')); setTimeout(() => L('c'), 20);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); queueMicrotask(() => L('b')); setImmediate(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); queueMicrotask(() => L('b')); queueMicrotask(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); queueMicrotask(() => L('b')); Promise.resolve().then(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); queueMicrotask(() => L('b')); (async () => { await null; L('c'); })();"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); Promise.resolve().then(() => L('b')); setTimeout(() => L('c'), 0);"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); Promise.resolve().then(() => L('b')); setTimeout(() => L('c'), 10);"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); Promise.resolve().then(() => L('b')); setTimeout(() => L('c'), 20);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); Promise.resolve().then(() => L('b')); setImmediate(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); Promise.resolve().then(() => L('b')); queueMicrotask(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); Promise.resolve().then(() => L('b')); Promise.resolve().then(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); Promise.resolve().then(() => L('b')); (async () => { await null; L('c'); })();"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); (async () => { await null; L('b'); })(); setTimeout(() => L('c'), 0);"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); (async () => { await null; L('b'); })(); setTimeout(() => L('c'), 10);"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); (async () => { await null; L('b'); })(); setTimeout(() => L('c'), 20);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); (async () => { await null; L('b'); })(); setImmediate(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); (async () => { await null; L('b'); })(); queueMicrotask(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); (async () => { await null; L('b'); })(); Promise.resolve().then(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 20); (async () => { await null; L('b'); })(); (async () => { await null; L('c'); })();"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setTimeout(() => L('b'), 0); setTimeout(() => L('c'), 0);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setTimeout(() => L('b'), 0); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setTimeout(() => L('b'), 0); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setTimeout(() => L('b'), 0); setImmediate(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setTimeout(() => L('b'), 0); queueMicrotask(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setTimeout(() => L('b'), 0); Promise.resolve().then(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setTimeout(() => L('b'), 0); (async () => { await null; L('c'); })();"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setTimeout(() => L('b'), 10); setTimeout(() => L('c'), 0);"	"a;c;b;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setTimeout(() => L('b'), 10); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setTimeout(() => L('b'), 10); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setTimeout(() => L('b'), 10); setImmediate(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setTimeout(() => L('b'), 10); queueMicrotask(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setTimeout(() => L('b'), 10); Promise.resolve().then(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setTimeout(() => L('b'), 10); (async () => { await null; L('c'); })();"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setTimeout(() => L('b'), 20); setTimeout(() => L('c'), 0);"	"a;c;b;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setTimeout(() => L('b'), 20); setTimeout(() => L('c'), 10);"	"a;c;b;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setTimeout(() => L('b'), 20); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setTimeout(() => L('b'), 20); setImmediate(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setTimeout(() => L('b'), 20); queueMicrotask(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setTimeout(() => L('b'), 20); Promise.resolve().then(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setTimeout(() => L('b'), 20); (async () => { await null; L('c'); })();"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setImmediate(() => L('b')); setTimeout(() => L('c'), 0);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setImmediate(() => L('b')); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setImmediate(() => L('b')); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setImmediate(() => L('b')); setImmediate(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setImmediate(() => L('b')); queueMicrotask(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setImmediate(() => L('b')); Promise.resolve().then(() => L('c'));"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); setImmediate(() => L('b')); (async () => { await null; L('c'); })();"	"c;a;b;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); queueMicrotask(() => L('b')); setTimeout(() => L('c'), 0);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); queueMicrotask(() => L('b')); setTimeout(() => L('c'), 10);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); queueMicrotask(() => L('b')); setTimeout(() => L('c'), 20);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); queueMicrotask(() => L('b')); setImmediate(() => L('c'));"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); queueMicrotask(() => L('b')); queueMicrotask(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); queueMicrotask(() => L('b')); Promise.resolve().then(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); queueMicrotask(() => L('b')); (async () => { await null; L('c'); })();"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); Promise.resolve().then(() => L('b')); setTimeout(() => L('c'), 0);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); Promise.resolve().then(() => L('b')); setTimeout(() => L('c'), 10);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); Promise.resolve().then(() => L('b')); setTimeout(() => L('c'), 20);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); Promise.resolve().then(() => L('b')); setImmediate(() => L('c'));"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); Promise.resolve().then(() => L('b')); queueMicrotask(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); Promise.resolve().then(() => L('b')); Promise.resolve().then(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); Promise.resolve().then(() => L('b')); (async () => { await null; L('c'); })();"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); (async () => { await null; L('b'); })(); setTimeout(() => L('c'), 0);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); (async () => { await null; L('b'); })(); setTimeout(() => L('c'), 10);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); (async () => { await null; L('b'); })(); setTimeout(() => L('c'), 20);"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); (async () => { await null; L('b'); })(); setImmediate(() => L('c'));"	"b;a;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); (async () => { await null; L('b'); })(); queueMicrotask(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); (async () => { await null; L('b'); })(); Promise.resolve().then(() => L('c'));"	"b;c;a;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('a')); (async () => { await null; L('b'); })(); (async () => { await null; L('c'); })();"	"b;c;a;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setTimeout(() => L('b'), 0); setTimeout(() => L('c'), 0);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setTimeout(() => L('b'), 0); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setTimeout(() => L('b'), 0); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setTimeout(() => L('b'), 0); setImmediate(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setTimeout(() => L('b'), 0); queueMicrotask(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setTimeout(() => L('b'), 0); Promise.resolve().then(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setTimeout(() => L('b'), 0); (async () => { await null; L('c'); })();"	"a;c;b;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setTimeout(() => L('b'), 10); setTimeout(() => L('c'), 0);"	"a;c;b;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setTimeout(() => L('b'), 10); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setTimeout(() => L('b'), 10); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setTimeout(() => L('b'), 10); setImmediate(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setTimeout(() => L('b'), 10); queueMicrotask(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setTimeout(() => L('b'), 10); Promise.resolve().then(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setTimeout(() => L('b'), 10); (async () => { await null; L('c'); })();"	"a;c;b;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setTimeout(() => L('b'), 20); setTimeout(() => L('c'), 0);"	"a;c;b;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setTimeout(() => L('b'), 20); setTimeout(() => L('c'), 10);"	"a;c;b;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setTimeout(() => L('b'), 20); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setTimeout(() => L('b'), 20); setImmediate(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setTimeout(() => L('b'), 20); queueMicrotask(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setTimeout(() => L('b'), 20); Promise.resolve().then(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setTimeout(() => L('b'), 20); (async () => { await null; L('c'); })();"	"a;c;b;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setImmediate(() => L('b')); setTimeout(() => L('c'), 0);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setImmediate(() => L('b')); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setImmediate(() => L('b')); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setImmediate(() => L('b')); setImmediate(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setImmediate(() => L('b')); queueMicrotask(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setImmediate(() => L('b')); Promise.resolve().then(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); setImmediate(() => L('b')); (async () => { await null; L('c'); })();"	"a;c;b;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); queueMicrotask(() => L('b')); setTimeout(() => L('c'), 0);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); queueMicrotask(() => L('b')); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); queueMicrotask(() => L('b')); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); queueMicrotask(() => L('b')); setImmediate(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); queueMicrotask(() => L('b')); queueMicrotask(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); queueMicrotask(() => L('b')); Promise.resolve().then(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); queueMicrotask(() => L('b')); (async () => { await null; L('c'); })();"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); Promise.resolve().then(() => L('b')); setTimeout(() => L('c'), 0);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); Promise.resolve().then(() => L('b')); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); Promise.resolve().then(() => L('b')); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); Promise.resolve().then(() => L('b')); setImmediate(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); Promise.resolve().then(() => L('b')); queueMicrotask(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); Promise.resolve().then(() => L('b')); Promise.resolve().then(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); Promise.resolve().then(() => L('b')); (async () => { await null; L('c'); })();"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); (async () => { await null; L('b'); })(); setTimeout(() => L('c'), 0);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); (async () => { await null; L('b'); })(); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); (async () => { await null; L('b'); })(); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); (async () => { await null; L('b'); })(); setImmediate(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); (async () => { await null; L('b'); })(); queueMicrotask(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); (async () => { await null; L('b'); })(); Promise.resolve().then(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => L('a')); (async () => { await null; L('b'); })(); (async () => { await null; L('c'); })();"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setTimeout(() => L('b'), 0); setTimeout(() => L('c'), 0);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setTimeout(() => L('b'), 0); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setTimeout(() => L('b'), 0); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setTimeout(() => L('b'), 0); setImmediate(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setTimeout(() => L('b'), 0); queueMicrotask(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setTimeout(() => L('b'), 0); Promise.resolve().then(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setTimeout(() => L('b'), 0); (async () => { await null; L('c'); })();"	"a;c;b;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setTimeout(() => L('b'), 10); setTimeout(() => L('c'), 0);"	"a;c;b;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setTimeout(() => L('b'), 10); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setTimeout(() => L('b'), 10); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setTimeout(() => L('b'), 10); setImmediate(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setTimeout(() => L('b'), 10); queueMicrotask(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setTimeout(() => L('b'), 10); Promise.resolve().then(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setTimeout(() => L('b'), 10); (async () => { await null; L('c'); })();"	"a;c;b;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setTimeout(() => L('b'), 20); setTimeout(() => L('c'), 0);"	"a;c;b;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setTimeout(() => L('b'), 20); setTimeout(() => L('c'), 10);"	"a;c;b;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setTimeout(() => L('b'), 20); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setTimeout(() => L('b'), 20); setImmediate(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setTimeout(() => L('b'), 20); queueMicrotask(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setTimeout(() => L('b'), 20); Promise.resolve().then(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setTimeout(() => L('b'), 20); (async () => { await null; L('c'); })();"	"a;c;b;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setImmediate(() => L('b')); setTimeout(() => L('c'), 0);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setImmediate(() => L('b')); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setImmediate(() => L('b')); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setImmediate(() => L('b')); setImmediate(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setImmediate(() => L('b')); queueMicrotask(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setImmediate(() => L('b')); Promise.resolve().then(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); setImmediate(() => L('b')); (async () => { await null; L('c'); })();"	"a;c;b;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); queueMicrotask(() => L('b')); setTimeout(() => L('c'), 0);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); queueMicrotask(() => L('b')); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); queueMicrotask(() => L('b')); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); queueMicrotask(() => L('b')); setImmediate(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); queueMicrotask(() => L('b')); queueMicrotask(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); queueMicrotask(() => L('b')); Promise.resolve().then(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); queueMicrotask(() => L('b')); (async () => { await null; L('c'); })();"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); Promise.resolve().then(() => L('b')); setTimeout(() => L('c'), 0);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); Promise.resolve().then(() => L('b')); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); Promise.resolve().then(() => L('b')); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); Promise.resolve().then(() => L('b')); setImmediate(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); Promise.resolve().then(() => L('b')); queueMicrotask(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); Promise.resolve().then(() => L('b')); Promise.resolve().then(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); Promise.resolve().then(() => L('b')); (async () => { await null; L('c'); })();"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); (async () => { await null; L('b'); })(); setTimeout(() => L('c'), 0);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); (async () => { await null; L('b'); })(); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); (async () => { await null; L('b'); })(); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); (async () => { await null; L('b'); })(); setImmediate(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); (async () => { await null; L('b'); })(); queueMicrotask(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); (async () => { await null; L('b'); })(); Promise.resolve().then(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => L('a')); (async () => { await null; L('b'); })(); (async () => { await null; L('c'); })();"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setTimeout(() => L('b'), 0); setTimeout(() => L('c'), 0);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setTimeout(() => L('b'), 0); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setTimeout(() => L('b'), 0); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setTimeout(() => L('b'), 0); setImmediate(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setTimeout(() => L('b'), 0); queueMicrotask(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setTimeout(() => L('b'), 0); Promise.resolve().then(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setTimeout(() => L('b'), 0); (async () => { await null; L('c'); })();"	"a;c;b;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setTimeout(() => L('b'), 10); setTimeout(() => L('c'), 0);"	"a;c;b;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setTimeout(() => L('b'), 10); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setTimeout(() => L('b'), 10); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setTimeout(() => L('b'), 10); setImmediate(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setTimeout(() => L('b'), 10); queueMicrotask(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setTimeout(() => L('b'), 10); Promise.resolve().then(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setTimeout(() => L('b'), 10); (async () => { await null; L('c'); })();"	"a;c;b;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setTimeout(() => L('b'), 20); setTimeout(() => L('c'), 0);"	"a;c;b;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setTimeout(() => L('b'), 20); setTimeout(() => L('c'), 10);"	"a;c;b;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setTimeout(() => L('b'), 20); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setTimeout(() => L('b'), 20); setImmediate(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setTimeout(() => L('b'), 20); queueMicrotask(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setTimeout(() => L('b'), 20); Promise.resolve().then(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setTimeout(() => L('b'), 20); (async () => { await null; L('c'); })();"	"a;c;b;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setImmediate(() => L('b')); setTimeout(() => L('c'), 0);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setImmediate(() => L('b')); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setImmediate(() => L('b')); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setImmediate(() => L('b')); setImmediate(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setImmediate(() => L('b')); queueMicrotask(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setImmediate(() => L('b')); Promise.resolve().then(() => L('c'));"	"a;c;b;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); setImmediate(() => L('b')); (async () => { await null; L('c'); })();"	"a;c;b;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); queueMicrotask(() => L('b')); setTimeout(() => L('c'), 0);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); queueMicrotask(() => L('b')); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); queueMicrotask(() => L('b')); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); queueMicrotask(() => L('b')); setImmediate(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); queueMicrotask(() => L('b')); queueMicrotask(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); queueMicrotask(() => L('b')); Promise.resolve().then(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); queueMicrotask(() => L('b')); (async () => { await null; L('c'); })();"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); Promise.resolve().then(() => L('b')); setTimeout(() => L('c'), 0);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); Promise.resolve().then(() => L('b')); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); Promise.resolve().then(() => L('b')); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); Promise.resolve().then(() => L('b')); setImmediate(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); Promise.resolve().then(() => L('b')); queueMicrotask(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); Promise.resolve().then(() => L('b')); Promise.resolve().then(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); Promise.resolve().then(() => L('b')); (async () => { await null; L('c'); })();"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); (async () => { await null; L('b'); })(); setTimeout(() => L('c'), 0);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); (async () => { await null; L('b'); })(); setTimeout(() => L('c'), 10);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); (async () => { await null; L('b'); })(); setTimeout(() => L('c'), 20);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); (async () => { await null; L('b'); })(); setImmediate(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); (async () => { await null; L('b'); })(); queueMicrotask(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); (async () => { await null; L('b'); })(); Promise.resolve().then(() => L('c'));"	"a;b;c;"	0
+"setTimeout(function () {}, 30); (async () => { await null; L('a'); })(); (async () => { await null; L('b'); })(); (async () => { await null; L('c'); })();"	"a;b;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }, 0); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }, 0); setTimeout(() => L('sib'), 0);"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }, 0); setTimeout(() => L('sib'), 10);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }, 0); setImmediate(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }, 0); queueMicrotask(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }, 0); Promise.resolve().then(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }, 0); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }, 0); setTimeout(() => L('sib'), 0);"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }, 0); setTimeout(() => L('sib'), 10);"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }, 0); setImmediate(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }, 0); queueMicrotask(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }, 0); Promise.resolve().then(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }, 0); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }, 0); setTimeout(() => L('sib'), 0);"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }, 0); setTimeout(() => L('sib'), 10);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }, 0); setImmediate(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }, 0); queueMicrotask(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }, 0); Promise.resolve().then(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }, 0); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }, 0); setTimeout(() => L('sib'), 0);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }, 0); setTimeout(() => L('sib'), 10);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }, 0); setImmediate(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }, 0); queueMicrotask(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }, 0); Promise.resolve().then(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }, 0); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }, 0); setTimeout(() => L('sib'), 0);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }, 0); setTimeout(() => L('sib'), 10);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }, 0); setImmediate(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }, 0); queueMicrotask(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }, 0); Promise.resolve().then(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }, 10); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }, 10); setTimeout(() => L('sib'), 0);"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }, 10); setTimeout(() => L('sib'), 10);"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }, 10); setImmediate(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }, 10); queueMicrotask(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }, 10); Promise.resolve().then(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }, 10); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }, 10); setTimeout(() => L('sib'), 0);"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }, 10); setTimeout(() => L('sib'), 10);"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }, 10); setImmediate(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }, 10); queueMicrotask(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }, 10); Promise.resolve().then(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }, 10); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }, 10); setTimeout(() => L('sib'), 0);"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }, 10); setTimeout(() => L('sib'), 10);"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }, 10); setImmediate(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }, 10); queueMicrotask(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }, 10); Promise.resolve().then(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }, 10); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }, 10); setTimeout(() => L('sib'), 0);"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }, 10); setTimeout(() => L('sib'), 10);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }, 10); setImmediate(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }, 10); queueMicrotask(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }, 10); Promise.resolve().then(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }, 10); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }, 10); setTimeout(() => L('sib'), 0);"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }, 10); setTimeout(() => L('sib'), 10);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }, 10); setImmediate(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }, 10); queueMicrotask(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }, 10); Promise.resolve().then(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }); setTimeout(() => L('sib'), 0);"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }); setTimeout(() => L('sib'), 10);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }); setImmediate(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }); queueMicrotask(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }); Promise.resolve().then(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }); setTimeout(() => L('sib'), 0);"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }); setTimeout(() => L('sib'), 10);"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }); setImmediate(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }); queueMicrotask(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }); Promise.resolve().then(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }); setTimeout(() => L('sib'), 0);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }); setTimeout(() => L('sib'), 10);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }); setImmediate(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }); queueMicrotask(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }); Promise.resolve().then(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }); setTimeout(() => L('sib'), 0);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }); setTimeout(() => L('sib'), 10);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }); setImmediate(() => L('sib'));"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }); queueMicrotask(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }); Promise.resolve().then(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }); setTimeout(() => L('sib'), 0);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }); setTimeout(() => L('sib'), 10);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }); setImmediate(() => L('sib'));"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }); queueMicrotask(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }); Promise.resolve().then(() => L('sib'));"	"sib;out;after-in;in;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }); setTimeout(() => L('sib'), 0);"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }); setTimeout(() => L('sib'), 10);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }); setImmediate(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }); queueMicrotask(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }); Promise.resolve().then(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }); setTimeout(() => L('sib'), 0);"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }); setTimeout(() => L('sib'), 10);"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }); setImmediate(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }); queueMicrotask(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }); Promise.resolve().then(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }); setTimeout(() => L('sib'), 0);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }); setTimeout(() => L('sib'), 10);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }); setImmediate(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }); queueMicrotask(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }); Promise.resolve().then(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }); setTimeout(() => L('sib'), 0);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }); setTimeout(() => L('sib'), 10);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }); setImmediate(() => L('sib'));"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }); queueMicrotask(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }); Promise.resolve().then(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }); setTimeout(() => L('sib'), 0);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }); setTimeout(() => L('sib'), 10);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }); setImmediate(() => L('sib'));"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }); queueMicrotask(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); queueMicrotask(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }); Promise.resolve().then(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }); setTimeout(() => L('sib'), 0);"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }); setTimeout(() => L('sib'), 10);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }); setImmediate(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }); queueMicrotask(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); setTimeout(() => L('in'), 0); L('after-in'); }); Promise.resolve().then(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }); setTimeout(() => L('sib'), 0);"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }); setTimeout(() => L('sib'), 10);"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }); setImmediate(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }); queueMicrotask(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); setTimeout(() => L('in'), 10); L('after-in'); }); Promise.resolve().then(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }); setTimeout(() => L('sib'), 0);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }); setTimeout(() => L('sib'), 10);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }); setImmediate(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }); queueMicrotask(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); setImmediate(() => L('in')); L('after-in'); }); Promise.resolve().then(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }); setTimeout(() => L('sib'), 0);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }); setTimeout(() => L('sib'), 10);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }); setImmediate(() => L('sib'));"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }); queueMicrotask(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); queueMicrotask(() => L('in')); L('after-in'); }); Promise.resolve().then(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }); "	"out;after-in;in;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }); setTimeout(() => L('sib'), 0);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }); setTimeout(() => L('sib'), 10);"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }); setImmediate(() => L('sib'));"	"out;after-in;in;sib;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }); queueMicrotask(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); Promise.resolve().then(() => { L('out'); Promise.resolve().then(() => L('in')); L('after-in'); }); Promise.resolve().then(() => L('sib'));"	"out;after-in;sib;in;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('a'); Promise.resolve().then(() => L('a-p')); }, 0); setTimeout(() => { L('b'); queueMicrotask(() => L('b-q')); }, 0); setTimeout(() => L('c'), 0);"	"a;a-p;b;b-q;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('a'); (async () => { await null; L('a-aw'); })(); }, 0); setTimeout(() => L('b'), 0);"	"a;a-aw;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('a'); Promise.resolve().then(() => { L('a-p1'); return Promise.resolve(); }).then(() => L('a-p2')); }, 0); setTimeout(() => L('b'), 0); setTimeout(() => L('c'), 0);"	"a;a-p1;a-p2;b;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('a'); throw new Error('boom'); }, 0); setTimeout(() => L('b'), 0); Promise.resolve().then(() => L('p'));"	"p;a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('a'); Promise.reject(new Error('r')).catch(() => L('a-catch')); }, 0); setTimeout(() => L('b'), 0);"	"a;a-catch;b;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('a'); Promise.resolve().then(() => L('a-p')); }); setImmediate(() => { L('b'); queueMicrotask(() => L('b-q')); }); setImmediate(() => L('c'));"	"a;a-p;b;b-q;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('a'); (async () => { await null; L('a-aw'); })(); }); setImmediate(() => L('b'));"	"a;a-aw;b;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('a'); Promise.resolve().then(() => { L('a-p1'); return Promise.resolve(); }).then(() => L('a-p2')); }); setImmediate(() => L('b')); setImmediate(() => L('c'));"	"a;a-p1;a-p2;b;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('a'); throw new Error('boom'); }); setImmediate(() => L('b')); Promise.resolve().then(() => L('p'));"	"p;a;b;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('a'); Promise.reject(new Error('r')).catch(() => L('a-catch')); }); setImmediate(() => L('b'));"	"a;a-catch;b;"	0
+"setTimeout(function () {}, 30); (async () => { L('s'); await new Promise(r => setTimeout(r, 10)); L('after10'); await new Promise(r => setTimeout(r, 10)); L('after20'); })(); setTimeout(() => L('t15'), 15);"	"s;after10;t15;after20;"	0
+"setTimeout(function () {}, 30); (async () => { for (var i = 0; i < 3; i++) { await new Promise(r => setImmediate(r)); L('imm' + i); } })(); setTimeout(() => L('t0'), 0);"	"imm0;imm1;imm2;t0;"	0
+"setTimeout(function () {}, 30); var p = new Promise(r => setTimeout(() => r('v'), 5)); p.then(v => L('then:' + v)); setTimeout(() => L('t10'), 10);"	"then:v;t10;"	0
+"setTimeout(function () {}, 30); Promise.all([1, 2, 3].map(n => new Promise(r => setTimeout(() => r(n), 20 - n * 5)))).then(v => L('all:' + v.join())); Promise.race([new Promise(r => setTimeout(() => r('slow'), 15)), new Promise(r => setTimeout(() => r('fast'), 5))]).then(v => L('race:' + v));"	"race:fast;all:1,2,3;"	0
+"setTimeout(function () {}, 30); var sleep = (ms) => new Promise(r => setTimeout(r, ms)); (async () => { var order = []; await Promise.all([sleep(15).then(() => order.push('a')), sleep(5).then(() => order.push('b')), sleep(10).then(() => order.push('c'))]); L(order.join()); })();"	"b,c,a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('t5'), 5); (async () => { await 1; L('a1'); await new Promise(r => setTimeout(r, 0)); L('a2'); })();"	"a1;a2;t5;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('t0:10'), 10); setTimeout(() => L('t1:5'), 5); setTimeout(() => L('t2:15'), 15);"	"t1:5;t0:10;t2:15;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('t0:10'), 10); setTimeout(() => L('t1:5'), 5); setTimeout(() => L('t2:15'), 15); setImmediate(() => L('imm')); queueMicrotask(() => L('micro'));"	"micro;imm;t1:5;t0:10;t2:15;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('t0:15'), 15); setTimeout(() => L('t1:10'), 10); setTimeout(() => L('t2:5'), 5);"	"t2:5;t1:10;t0:15;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('t0:15'), 15); setTimeout(() => L('t1:10'), 10); setTimeout(() => L('t2:5'), 5); setImmediate(() => L('imm')); queueMicrotask(() => L('micro'));"	"micro;imm;t2:5;t1:10;t0:15;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('t0:5'), 5); setTimeout(() => L('t1:5'), 5); setTimeout(() => L('t2:5'), 5);"	"t0:5;t1:5;t2:5;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('t0:5'), 5); setTimeout(() => L('t1:5'), 5); setTimeout(() => L('t2:5'), 5); setImmediate(() => L('imm')); queueMicrotask(() => L('micro'));"	"micro;imm;t0:5;t1:5;t2:5;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('t0:0'), 0); setTimeout(() => L('t1:0'), 0); setTimeout(() => L('t2:0'), 0);"	"t0:0;t1:0;t2:0;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('t0:0'), 0); setTimeout(() => L('t1:0'), 0); setTimeout(() => L('t2:0'), 0); setImmediate(() => L('imm')); queueMicrotask(() => L('micro'));"	"micro;imm;t0:0;t1:0;t2:0;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('t0:20'), 20); setTimeout(() => L('t1:10'), 10); setTimeout(() => L('t2:0'), 0);"	"t2:0;t1:10;t0:20;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('t0:20'), 20); setTimeout(() => L('t1:10'), 10); setTimeout(() => L('t2:0'), 0); setImmediate(() => L('imm')); queueMicrotask(() => L('micro'));"	"micro;imm;t2:0;t1:10;t0:20;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('t0:0'), 0); setTimeout(() => L('t1:10'), 10); setTimeout(() => L('t2:20'), 20);"	"t0:0;t1:10;t2:20;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('t0:0'), 0); setTimeout(() => L('t1:10'), 10); setTimeout(() => L('t2:20'), 20); setImmediate(() => L('imm')); queueMicrotask(() => L('micro'));"	"micro;imm;t0:0;t1:10;t2:20;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('t0:10'), 10); setTimeout(() => L('t1:10'), 10); setTimeout(() => L('t2:5'), 5);"	"t2:5;t0:10;t1:10;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('t0:10'), 10); setTimeout(() => L('t1:10'), 10); setTimeout(() => L('t2:5'), 5); setImmediate(() => L('imm')); queueMicrotask(() => L('micro'));"	"micro;imm;t2:5;t0:10;t1:10;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('t0:1'), 1); setTimeout(() => L('t1:1'), 1); setTimeout(() => L('t2:10'), 10);"	"t0:1;t1:1;t2:10;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('t0:1'), 1); setTimeout(() => L('t1:1'), 1); setTimeout(() => L('t2:10'), 10); setImmediate(() => L('imm')); queueMicrotask(() => L('micro'));"	"micro;imm;t0:1;t1:1;t2:10;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('t0:5'), 5); setTimeout(() => L('t1:15'), 15); setTimeout(() => L('t2:10'), 10); setTimeout(() => L('t3:20'), 20); setTimeout(() => L('t4:0'), 0);"	"t4:0;t0:5;t2:10;t1:15;t3:20;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('t0:5'), 5); setTimeout(() => L('t1:15'), 15); setTimeout(() => L('t2:10'), 10); setTimeout(() => L('t3:20'), 20); setTimeout(() => L('t4:0'), 0); setImmediate(() => L('imm')); queueMicrotask(() => L('micro'));"	"micro;imm;t4:0;t0:5;t2:10;t1:15;t3:20;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('t0:20'), 20); setTimeout(() => L('t1:15'), 15); setTimeout(() => L('t2:10'), 10); setTimeout(() => L('t3:5'), 5); setTimeout(() => L('t4:0'), 0);"	"t4:0;t3:5;t2:10;t1:15;t0:20;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('t0:20'), 20); setTimeout(() => L('t1:15'), 15); setTimeout(() => L('t2:10'), 10); setTimeout(() => L('t3:5'), 5); setTimeout(() => L('t4:0'), 0); setImmediate(() => L('imm')); queueMicrotask(() => L('micro'));"	"micro;imm;t4:0;t3:5;t2:10;t1:15;t0:20;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), 5); setTimeout(() => L('b'), 5.9); setTimeout(() => L('c'), 5.1);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('a'), '10'); setTimeout(() => L('b'), 5); setTimeout(() => L('c'), undefined); setTimeout(() => L('d'), -5); setTimeout(() => L('e'), NaN);"	"c;d;e;b;a;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('big'), 2 ** 31); setTimeout(() => L('t10'), 10); setTimeout(() => L('inf'), Infinity); setTimeout(() => L('t0'), 0);"	"big;inf;t0;t10;"	0
+"setTimeout(function () {}, 30); var n = 0; var iv = setInterval(() => { L('iv' + n); if (++n === 3) clearInterval(iv); }, 7);"	"iv0;iv1;iv2;"	0
+"setTimeout(function () {}, 30); var n = 0; var iv = setInterval(() => { L('iv' + n); if (++n === 3) clearInterval(iv); }, 7); setTimeout(() => L('t10'), 10); setTimeout(() => L('t20'), 20); setTimeout(() => L('t3'), 3);"	"t3;iv0;t10;iv1;t20;iv2;"	0
+"setTimeout(function () {}, 30); var n = 0; var iv = setInterval(() => { L('iv' + n); if (++n === 3) clearInterval(iv); }, 7); setImmediate(() => L('imm')); queueMicrotask(() => L('micro'));"	"micro;imm;iv0;iv1;iv2;"	0
+"setTimeout(function () {}, 30); var n = 0; var iv = setInterval(() => { L('iv' + n); if (++n === 2) clearTimeout(iv); }, 8);"	"iv0;iv1;"	0
+"setTimeout(function () {}, 30); var n = 0; var iv = setInterval(() => { L('iv' + n); n++; Promise.resolve().then(() => L('p' + (n - 1))); if (n === 3) clearInterval(iv); }, 6);"	"iv0;p0;iv1;p1;iv2;p2;"	0
+"setTimeout(function () {}, 30); var n = 0; var iv = setInterval(() => { L('iv' + n); if (++n === 2) throw new Error('x'); if (n === 4) clearInterval(iv); }, 6); setTimeout(() => L('t15'), 15);"	"iv0;iv1;t15;iv2;iv3;"	0
+"setTimeout(function () {}, 30); var n = 0; var iv = setInterval(function () { L(this === iv); if (++n === 2) clearInterval(this); }, 6);"	"true;true;"	0
+"setTimeout(function () {}, 30); var n = 0; var iv = setInterval((a, b) => { L('args:' + a + b); if (++n === 2) clearInterval(iv); }, 6, 'x', 'y');"	"args:xy;args:xy;"	0
+"setTimeout(function () {}, 30); var iv = setInterval(() => { L('never'); }, 6); clearInterval(iv); setTimeout(() => L('t10'), 10);"	"t10;"	0
+"setTimeout(function () {}, 30); var n = 0; var iv = setInterval(() => { L('iv' + n); if (++n === 2) { clearInterval(iv); iv = setInterval(() => { L('second'); clearInterval(iv); }, 3); } }, 6);"	"iv0;iv1;second;"	0
+"setTimeout(function () {}, 30); var n = 0; var iv = setInterval(() => { L('iv'); if (++n === 2) clearInterval(iv); }, 0);"	"iv;iv;"	0
+"setTimeout(function () {}, 30); var n = 0; var iv = setInterval(() => { L('iv'); setTimeout(() => L('inner'), 0); if (++n === 2) clearInterval(iv); }, 6);"	"iv;inner;iv;inner;"	0
+"setTimeout(function () {}, 30); var n = 0; var iv = setInterval(() => { L('iv' + n + ':' + iv._repeat + ':' + iv._idleTimeout); if (++n === 2) clearInterval(iv); }, 6);"	"iv0:6:6;iv1:6:6;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('i1')); setImmediate(() => L('i2')); setImmediate(() => L('i3'));"	"i1;i2;i3;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('i1'); setImmediate(() => L('i1-in')); }); setImmediate(() => L('i2'));"	"i1;i2;i1-in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('i1'); setImmediate(() => { L('i1-in'); setImmediate(() => L('i1-in-in')); }); }); setImmediate(() => L('i2')); setImmediate(() => L('i3'));"	"i1;i2;i3;i1-in;i1-in-in;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('i1'); setTimeout(() => L('t0'), 0); setImmediate(() => L('i-in')); });"	"i1;i-in;t0;"	0
+"setTimeout(function () {}, 30); setImmediate((a, b, c) => L('args:' + a + b + c + arguments.length), 1, 2);"	""	0
+"setTimeout(function () {}, 30); setImmediate(function (a, b) { L('args:' + a + b + ':' + arguments.length + ':' + (this === globalThis) + ':' + typeof this + ':' + this.constructor.name); }, 'x', 'y');"	"args:xy:2:false:object:Immediate;"	0
+"setTimeout(function () {}, 30); setImmediate((...r) => L('rest:' + r.length), 1, 2, 3, 4, 5);"	"rest:5;"	0
+"setTimeout(function () {}, 30); setImmediate(() => L('ignored'), 100, 'extra');"	"ignored;"	0
+"setTimeout(function () {}, 30); var im = setImmediate(function () { L(this === im); L(this._destroyed); }); L(im._destroyed);"	"false;true;false;"	0
+"setTimeout(function () {}, 30); var im = setImmediate(() => L('x')); setImmediate(() => L(im._destroyed));"	"x;true;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('a'); }); queueMicrotask(() => L('m')); Promise.resolve().then(() => L('p')); setTimeout(() => L('t'), 0);"	"m;p;a;t;"	0
+"setTimeout(function () {}, 30); var n = 0; (function loop() { L('loop' + n); if (++n < 4) setImmediate(loop); })();"	"loop0;loop1;loop2;loop3;"	0
+"setTimeout(function () {}, 30); var n = 0; (function loop() { L('loop' + n); if (++n < 3) setImmediate(loop); })(); setTimeout(() => L('t0'), 0); setTimeout(() => L('t10'), 10);"	"loop0;loop1;loop2;t0;t10;"	0
+"setTimeout(function () {}, 30); var i1 = setImmediate(() => L('i1')); var i2 = setImmediate(() => { L('i2'); clearImmediate(i3); }); var i3 = setImmediate(() => L('i3'));"	"i1;i2;"	0
+"setTimeout(function () {}, 30); var i1 = setImmediate(() => { L('i1'); clearImmediate(i1); });"	"i1;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('fired'), 5); clearTimeout(t); L('end');"	"end;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('fired'), 5); clearTimeout(+t); L('end');"	"end;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('fired'), 5); clearTimeout(String(+t)); L('end');"	"end;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('fired'), 5); clearTimeout((+t) + 1); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('fired'), 5); clearTimeout(' ' + (+t) + ' '); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('fired'), 5); clearInterval(t); L('end');"	"end;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('fired'), 5); clearInterval(+t); L('end');"	"end;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('fired'), 5); clearInterval(String(+t)); L('end');"	"end;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('fired'), 5); clearInterval((+t) + 1); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('fired'), 5); clearInterval(' ' + (+t) + ' '); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('fired'), 5); clearImmediate(t); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('fired'), 5); clearImmediate(+t); L('end');"	"end;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('fired'), 5); clearImmediate(String(+t)); L('end');"	"end;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('fired'), 5); clearImmediate((+t) + 1); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('fired'), 5); clearImmediate(' ' + (+t) + ' '); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => { L('fired'); clearInterval(t); }, 5); clearTimeout(t); L('end');"	"end;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => { L('fired'); clearInterval(t); }, 5); clearTimeout(+t); L('end');"	"end;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => { L('fired'); clearInterval(t); }, 5); clearTimeout(String(+t)); L('end');"	"end;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => { L('fired'); clearInterval(t); }, 5); clearTimeout((+t) + 1); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => { L('fired'); clearInterval(t); }, 5); clearTimeout(' ' + (+t) + ' '); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => { L('fired'); clearInterval(t); }, 5); clearInterval(t); L('end');"	"end;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => { L('fired'); clearInterval(t); }, 5); clearInterval(+t); L('end');"	"end;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => { L('fired'); clearInterval(t); }, 5); clearInterval(String(+t)); L('end');"	"end;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => { L('fired'); clearInterval(t); }, 5); clearInterval((+t) + 1); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => { L('fired'); clearInterval(t); }, 5); clearInterval(' ' + (+t) + ' '); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => { L('fired'); clearInterval(t); }, 5); clearImmediate(t); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => { L('fired'); clearInterval(t); }, 5); clearImmediate(+t); L('end');"	"end;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => { L('fired'); clearInterval(t); }, 5); clearImmediate(String(+t)); L('end');"	"end;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => { L('fired'); clearInterval(t); }, 5); clearImmediate((+t) + 1); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => { L('fired'); clearInterval(t); }, 5); clearImmediate(' ' + (+t) + ' '); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => L('fired')); clearTimeout(t); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => L('fired')); clearTimeout(+t); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => L('fired')); clearTimeout(String(+t)); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => L('fired')); clearTimeout((+t) + 1); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => L('fired')); clearTimeout(' ' + (+t) + ' '); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => L('fired')); clearInterval(t); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => L('fired')); clearInterval(+t); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => L('fired')); clearInterval(String(+t)); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => L('fired')); clearInterval((+t) + 1); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => L('fired')); clearInterval(' ' + (+t) + ' '); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => L('fired')); clearImmediate(t); L('end');"	"end;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => L('fired')); clearImmediate(+t); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => L('fired')); clearImmediate(String(+t)); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => L('fired')); clearImmediate((+t) + 1); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => L('fired')); clearImmediate(' ' + (+t) + ' '); L('end');"	"end;fired;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('a'), 5); clearTimeout(t); clearTimeout(t); setTimeout(() => L('b'), 10);"	"b;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('a'), 5); setTimeout(() => { L('b'); clearTimeout(t); }, 3); setTimeout(() => { L('c'); clearTimeout(t); }, 8);"	"b;c;"	0
+"setTimeout(function () {}, 30); var a = setTimeout(() => { L('a'); clearTimeout(b); }, 5); var b = setTimeout(() => L('b'), 5); var c = setTimeout(() => L('c'), 5);"	"a;c;"	0
+"setTimeout(function () {}, 30); var a = setTimeout(() => { L('a'); clearTimeout(a); }, 5); setTimeout(() => L('b'), 5);"	"a;b;"	0
+"setTimeout(function () {}, 30); var a = setTimeout(() => L('a'), 5); var b = setTimeout(() => { L('b'); a.refresh(); }, 3); setTimeout(() => L('c'), 6);"	"b;c;a;"	0
+"setTimeout(function () {}, 30); var a = setTimeout(() => L('a'), 5); setTimeout(() => { L('b'); a.refresh(); }, 8); setTimeout(() => L('c'), 10); setTimeout(() => L('d'), 14);"	"a;b;c;a;d;"	0
+"setTimeout(function () {}, 30); var a = setTimeout(() => L('a'), 5); a.refresh(); a.refresh(); setTimeout(() => L('b'), 3);"	"b;a;"	0
+"setTimeout(function () {}, 30); var a = setTimeout(() => L('a'), 2); setTimeout(() => { L('b'); a.refresh(); }, 6); setTimeout(() => L('c'), 12);"	"a;b;a;c;"	0
+"setTimeout(function () {}, 30); var n = 0; var a = setTimeout(() => { L('a' + n); if (++n < 3) a.refresh(); }, 4);"	"a0;a1;a2;"	0
+"setTimeout(function () {}, 30); var a = setTimeout(() => L('a'), 5); a.close(); setTimeout(() => L('b'), 8);"	"b;"	0
+"setTimeout(function () {}, 30); var a = setTimeout(() => L('a'), 5); a[Symbol.dispose](); var i = setImmediate(() => L('i')); i[Symbol.dispose]();"	""	0
+"setTimeout(function () {}, 30); var a = setTimeout(() => L('a'), 5); clearInterval(a); var b = setInterval(() => { L('b'); clearTimeout(b); }, 5);"	"b;"	0
+"setTimeout(function () {}, 30); var a = setTimeout(() => L('a'), 5); var n = +a; clearTimeout(n); var b = setTimeout(() => L('b'), 5); clearTimeout(String(+b));"	""	0
+"setTimeout(function () {}, 30); var t = setTimeout(function () { L(this === t); L(typeof this); L(this === globalThis); L(arguments.length); }, 1);"	"true;object;false;0;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => { L(this === undefined); L(typeof this); }, 1);"	"false;object;"	0
+"setTimeout(function () {}, 30); setTimeout((...a) => L('timeout:' + a.length + ':' + a.join()), 1);"	"timeout:0:;"	0
+"setTimeout(function () {}, 30); setTimeout(function () { L('arguments:' + arguments.length); }, 1);"	"arguments:0;"	0
+"setTimeout(function () {}, 30); var k = 0; var iv = setInterval((...a) => { L('interval:' + a.length + ':' + a.join()); if (++k === 2) clearInterval(iv); }, 3);"	"interval:0:;interval:0:;"	0
+"setTimeout(function () {}, 30); setImmediate((...a) => L('immediate:' + a.length + ':' + a.join()));"	"immediate:0:;"	0
+"setTimeout(function () {}, 30); setTimeout((...a) => L('timeout:' + a.length + ':' + a.join()), 1, 10);"	"timeout:1:10;"	0
+"setTimeout(function () {}, 30); setTimeout(function () { L('arguments:' + arguments.length); }, 1, 10);"	"arguments:1;"	0
+"setTimeout(function () {}, 30); var k = 0; var iv = setInterval((...a) => { L('interval:' + a.length + ':' + a.join()); if (++k === 2) clearInterval(iv); }, 3, 10);"	"interval:1:10;interval:1:10;"	0
+"setTimeout(function () {}, 30); setImmediate((...a) => L('immediate:' + a.length + ':' + a.join()), 10);"	"immediate:1:10;"	0
+"setTimeout(function () {}, 30); setTimeout((...a) => L('timeout:' + a.length + ':' + a.join()), 1, 10, 11);"	"timeout:2:10,11;"	0
+"setTimeout(function () {}, 30); setTimeout(function () { L('arguments:' + arguments.length); }, 1, 10, 11);"	"arguments:2;"	0
+"setTimeout(function () {}, 30); var k = 0; var iv = setInterval((...a) => { L('interval:' + a.length + ':' + a.join()); if (++k === 2) clearInterval(iv); }, 3, 10, 11);"	"interval:2:10,11;interval:2:10,11;"	0
+"setTimeout(function () {}, 30); setImmediate((...a) => L('immediate:' + a.length + ':' + a.join()), 10, 11);"	"immediate:2:10,11;"	0
+"setTimeout(function () {}, 30); setTimeout((...a) => L('timeout:' + a.length + ':' + a.join()), 1, 10, 11, 12);"	"timeout:3:10,11,12;"	0
+"setTimeout(function () {}, 30); setTimeout(function () { L('arguments:' + arguments.length); }, 1, 10, 11, 12);"	"arguments:3;"	0
+"setTimeout(function () {}, 30); var k = 0; var iv = setInterval((...a) => { L('interval:' + a.length + ':' + a.join()); if (++k === 2) clearInterval(iv); }, 3, 10, 11, 12);"	"interval:3:10,11,12;interval:3:10,11,12;"	0
+"setTimeout(function () {}, 30); setImmediate((...a) => L('immediate:' + a.length + ':' + a.join()), 10, 11, 12);"	"immediate:3:10,11,12;"	0
+"setTimeout(function () {}, 30); setTimeout((...a) => L('timeout:' + a.length + ':' + a.join()), 1, 10, 11, 12, 13, 14, 15);"	"timeout:6:10,11,12,13,14,15;"	0
+"setTimeout(function () {}, 30); setTimeout(function () { L('arguments:' + arguments.length); }, 1, 10, 11, 12, 13, 14, 15);"	"arguments:6;"	0
+"setTimeout(function () {}, 30); var k = 0; var iv = setInterval((...a) => { L('interval:' + a.length + ':' + a.join()); if (++k === 2) clearInterval(iv); }, 3, 10, 11, 12, 13, 14, 15);"	"interval:6:10,11,12,13,14,15;interval:6:10,11,12,13,14,15;"	0
+"setTimeout(function () {}, 30); setImmediate((...a) => L('immediate:' + a.length + ':' + a.join()), 10, 11, 12, 13, 14, 15);"	"immediate:6:10,11,12,13,14,15;"	0
+"setTimeout(function () {}, 30); setTimeout((a, b) => L(typeof a + typeof b + (a === obj) + (b === undefined)), 1, globalThis.obj = {});"	"objectundefinedtruetrue;"	0
+"setTimeout(function () {}, 30); var r = setTimeout(() => 'ret', 1); L(typeof r); setTimeout(async () => { L('async'); await null; L('async2'); }, 1); setTimeout(() => L('next'), 1);"	"object;async;async2;next;"	0
+"setTimeout(function () {}, 30); setTimeout(function named() { L(named.name); L(this.constructor.name); }, 1);"	"named;Timeout;"	0
+"setTimeout(function () {}, 30); class C { m() { return 'm'; } } var c = new C(); setTimeout(c.m.bind(c), 1); setTimeout(function () { L(typeof this); }.bind(5), 1);"	"object;"	0
+"setTimeout(function () {}, 30); setTimeout(new Proxy(function () { L('proxy'); }, {}), 1);"	"proxy;"	0
+"setTimeout(function () {}, 30); setTimeout(async function* () {}, 1); setTimeout(function* () { L('gen-not-run'); }, 1); L('ok');"	"ok;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('unref-fired'), 10); t.unref(); L(t.hasRef());"	"false;unref-fired;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('a'), 10); t.unref(); setTimeout(() => L('b'), 20);"	"a;b;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('a'), 20); t.unref(); setTimeout(() => L('b'), 10);"	"b;a;"	0
+"setTimeout(function () {}, 30); var t = setInterval(() => L('iv'), 6); t.unref(); setTimeout(() => { L('stop'); clearInterval(t); }, 15);"	"iv;iv;stop;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('a'), 10); t.unref(); t.ref(); L(t.hasRef());"	"true;a;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => L('imm')); t.unref(); setTimeout(() => L('t'), 5);"	"imm;t;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('a'), 5); clearTimeout(t); L(t.hasRef()); L(t._destroyed);"	"false;true;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => { L(t._destroyed + ':' + t.hasRef()); }, 5); setTimeout(() => L(t._destroyed + ':' + t.hasRef()), 10);"	"false:true;true:false;"	0
+"setTimeout(function () {}, 30); var t = setImmediate(() => { L(t._destroyed + ':' + t.hasRef()); }); setTimeout(() => L(t._destroyed + ':' + t.hasRef()), 5);"	"false:false;true:false;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => { L('x'); }, 5); setTimeout(() => L(t._onTimeout === undefined ? 'undef' : typeof t._onTimeout), 10);"	"x;function;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => { L('orig'); }, 5); t._onTimeout = () => L('replaced');"	"replaced;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => { L('a'); }, 5); t._idleTimeout = 12; t.refresh(); setTimeout(() => L('b'), 8); setTimeout(() => L('c'), 14);"	"a;b;c;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => { L('orig'); }, 5); t._onTimeout = null; setTimeout(() => L('after'), 10);"	"after;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { throw new Error('a'); }, 1); setTimeout(() => L('b'), 1); setTimeout(() => L('c'), 5);"	"b;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { throw 5; }, 1); setImmediate(() => L('i')); setTimeout(() => L('c'), 5);"	"i;c;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { throw new Error('a'); }); setImmediate(() => L('b')); queueMicrotask(() => L('m'));"	"m;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { Promise.reject(new Error('unhandled')); L('a'); }, 1); setTimeout(() => L('b'), 5);"	"a;b;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { try { null.x; } catch (e) { L(e.name); } }, 1);"	"TypeError;"	0
+"setTimeout(function () {}, 30); var n = 0; (function again() { L('t' + n); if (++n < 4) setTimeout(again, 3); })();"	"t0;t1;t2;t3;"	0
+"setTimeout(function () {}, 30); var n = 0; (function again() { L('t' + n); if (++n < 4) setTimeout(again, 0); })(); setTimeout(() => L('x'), 10);"	"t0;t1;t2;t3;x;"	0
+"setTimeout(function () {}, 30); var n = 0; (function again() { L('t' + n); if (++n < 3) { setTimeout(again, 4); setImmediate(() => L('i' + n)); } })();"	"t0;i1;t1;i2;t2;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('a'); setTimeout(() => L('a-in'), 3); }, 5); setTimeout(() => { L('b'); setTimeout(() => L('b-in'), 3); }, 5); setTimeout(() => L('c'), 9);"	"a;b;a-in;b-in;c;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { L('a'); setImmediate(() => L('a-imm')); queueMicrotask(() => L('a-m')); }, 5); setTimeout(() => L('b'), 5);"	"a;a-m;b;a-imm;"	0
+"setTimeout(function () {}, 30); var order = []; for (var i = 0; i < 5; i++) { (function (k) { setTimeout(() => L('t' + k), (k * 7) % 5 * 3); })(i); }"	"t0;t3;t1;t4;t2;"	0
+"setTimeout(function () {}, 30); for (var i = 0; i < 4; i++) setImmediate(() => L('i' + i)); for (let j = 0; j < 4; j++) setImmediate(() => L('j' + j));"	"i4;i4;i4;i4;j0;j1;j2;j3;"	0
+"setTimeout(function () {}, 30); for (let i = 0; i < 4; i++) setTimeout(() => L('t' + i), 5 * (4 - i));"	"t3;t2;t1;t0;"	0
+"setTimeout(function () {}, 30); var t = setTimeout(() => L('late'), 25); setTimeout(() => { L('mid'); }, 12); setImmediate(() => L('imm'));"	"imm;mid;late;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { setImmediate(() => L('A')); setTimeout(() => L('B'), 0); });"	"A;B;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { setTimeout(() => L('B'), 0); setImmediate(() => L('A')); });"	"A;B;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { setImmediate(() => L('A')); setTimeout(() => L('B'), 0); }, 0);"	"A;B;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { setTimeout(() => L('B'), 0); setImmediate(() => L('A')); }, 0);"	"A;B;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('B'), 0); setImmediate(() => L('A'));"	"A;B;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { setImmediate(() => L('A')); setTimeout(() => L('B'), 1); });"	"A;B;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { setTimeout(() => L('B'), 1); setImmediate(() => L('A')); });"	"A;B;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { setImmediate(() => L('A')); setTimeout(() => L('B'), 1); }, 0);"	"A;B;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { setTimeout(() => L('B'), 1); setImmediate(() => L('A')); }, 0);"	"A;B;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('B'), 1); setImmediate(() => L('A'));"	"A;B;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { setImmediate(() => L('A')); setTimeout(() => L('B'), 2); });"	"A;B;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { setTimeout(() => L('B'), 2); setImmediate(() => L('A')); });"	"A;B;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { setImmediate(() => L('A')); setTimeout(() => L('B'), 2); }, 0);"	"A;B;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { setTimeout(() => L('B'), 2); setImmediate(() => L('A')); }, 0);"	"A;B;"	0
+"setTimeout(function () {}, 30); setTimeout(() => L('B'), 2); setImmediate(() => L('A'));"	"A;B;"	0
+"setTimeout(function () {}, 30); setImmediate(() => { L('A1'); setImmediate(() => L('A2')); setTimeout(() => L('B'), 0); });"	"A1;A2;B;"	0
+"setTimeout(function () {}, 30); setTimeout(() => { setImmediate(() => { L('A1'); setImmediate(() => L('A2')); setTimeout(() => L('B'), 0); }); }, 0);"	"A1;A2;B;"	0
+"setTimeout(function () {}, 30); var cnt = 0; (function f() { L('t' + cnt); if (++cnt < 4) setTimeout(f, 0); })(); setImmediate(() => L('A'));"	"t0;A;t1;t2;t3;"	0

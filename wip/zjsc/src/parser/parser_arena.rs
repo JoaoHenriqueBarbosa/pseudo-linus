@@ -208,4 +208,15 @@ impl ParserArena {
     pub fn identifier_arena(&mut self) -> Rc<RefCell<IdentifierArena>> {
         Rc::clone(self.identifier_arena.get_or_insert_with(|| Rc::new(RefCell::new(IdentifierArena::new()))))
     }
+
+    /// `identifierArena()` para quem só tem `&ParserArena` (o `ScopeNode` emprestado do bytecompiler).
+    /// O parser sempre criou a arena de identificadores antes de entregar a árvore (o `Lexer` a
+    /// pede no construtor), então a criação sob demanda não acontece aqui.
+    pub fn shared_identifier_arena(&self) -> Rc<RefCell<IdentifierArena>> {
+        Rc::clone(
+            self.identifier_arena
+                .as_ref()
+                .expect("ParserArena entregue pelo parser sem IdentifierArena"),
+        )
+    }
 }

@@ -447,6 +447,17 @@ impl FunctionMetadataNode {
         self.function_mode.set(function_mode);
     }
 
+    /// `isConstructorAndNeedsClassFieldInitializer()`: o campo `m_needsClassFieldInitializer`.
+    pub fn is_constructor_and_needs_class_field_initializer(&self) -> bool {
+        self.needs_class_field_initializer.get()
+    }
+
+    /// `setNeedsClassFieldInitializer(bool)`.
+    pub fn set_needs_class_field_initializer(&self, value: bool) {
+        debug_assert!(!value || self.constructor_kind != ConstructorKind::None);
+        self.needs_class_field_initializer.set(value);
+    }
+
     /// `ecmaName()`: o nome próprio quando existe, senão o da especificação.
     pub fn ecma_name(&self) -> Identifier {
         let ident = self.ident.borrow();
@@ -455,6 +466,21 @@ impl FunctionMetadataNode {
         } else {
             ident.clone()
         }
+    }
+
+    /// `setEcmaName`: `m_ecmaName = m_name.isNull() ? name : m_name`.
+    pub fn set_ecma_name(&self, name: &Identifier) {
+        let own_name = self.ident.borrow().clone();
+        *self.ecma_name.borrow_mut() = if own_name.is_null() { name.clone() } else { own_name };
+    }
+
+    pub fn set_class_source(&self, class_source: &SourceCode) {
+        *self.class_source.borrow_mut() = class_source.clone();
+    }
+
+    /// `overrideName(const Identifier&)`: `m_ident = ident`.
+    pub fn override_name(&self, ident: &Identifier) {
+        *self.ident.borrow_mut() = ident.clone();
     }
 
     pub fn set_end_position(&self, position: JSTextPosition) {

@@ -1,0 +1,3 @@
+[
+"function S(v,d){d=d||0;var t=typeof v;if(t===\"string\")return \"\\\"\"+Array.from({length:v.length},(_,i)=>{var c=v.charCodeAt(i);return c>31&&c<127&&c!==34&&c!==92?v[i]:\"\\\\u\"+(c+65536).toString(16).slice(1)}).join(\"\")+\"\\\"\";if(t===\"bigint\")return String(v)+\"n\";if(t===\"symbol\")return String(v);if(t===\"function\")return \"fn\";if(v===null||t!==\"object\")return Object.is(v,-0)?\"-0\":String(v);if(d>3)return \"...\";if(Array.isArray(v))return \"[\"+Array.from({length:v.length},(_,i)=>i in v?S(v[i],d+1):\"<hole>\").join(\",\")+\"]\";return \"{\"+Reflect.ownKeys(v).map(k=>S(k)+\":\"+S(v[k],d+1)).join(\",\")+\"}\"}\nfunction T(f){try{return S(f())}catch(e){return \"throw \"+(e&&e.name)+\": \"+(e&&e.message)}}\n"
+]

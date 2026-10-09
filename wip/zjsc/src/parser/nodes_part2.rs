@@ -725,7 +725,7 @@ impl SourceElements {
     }
 
     /// Os statements na ordem do `m_next`, a partir do `m_head`.
-    fn iter(&self) -> impl Iterator<Item = Statement> {
+    pub fn iter(&self) -> impl Iterator<Item = Statement> {
         std::iter::successors(self.head.clone(), |statement| statement.base().next())
     }
 

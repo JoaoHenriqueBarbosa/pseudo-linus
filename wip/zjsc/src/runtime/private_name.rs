@@ -3,7 +3,7 @@
 use std::rc::Rc;
 
 use crate::wtf::text::string_impl::StringImpl;
-use crate::wtf::text::symbol_impl::{PrivateSymbolImpl, SymbolImpl};
+use crate::wtf::text::symbol_impl::{PrivateSymbolImpl, RegisteredSymbolImpl, SymbolImpl};
 
 /// O `const Ref<SymbolImpl> m_uid` do C++. O `PrivateSymbolImpl` é um `SymbolImpl` no C++ (herança);
 /// no porte é um embrulho com `Deref`, então a posse guarda qual dos dois é.
@@ -11,6 +11,8 @@ use crate::wtf::text::symbol_impl::{PrivateSymbolImpl, SymbolImpl};
 enum Uid {
     Symbol(Rc<SymbolImpl>),
     Private(Rc<PrivateSymbolImpl>),
+    /// O `RegisteredSymbolImpl` de `Symbol.for` (também um `SymbolImpl` no C++).
+    Registered(Rc<RegisteredSymbolImpl>),
 }
 
 /// `class PrivateName`.
@@ -35,11 +37,17 @@ impl PrivateName {
         PrivateName { m_uid: Uid::Private(PrivateSymbolImpl::create(description)) }
     }
 
+    /// `PrivateName(SymbolImpl& uid)` para o `RegisteredSymbolImpl` que `SymbolRegistry::symbolForKey` devolve.
+    pub fn with_registered_symbol(uid: Rc<RegisteredSymbolImpl>) -> PrivateName {
+        PrivateName { m_uid: Uid::Registered(uid) }
+    }
+
     /// `uid()`.
     pub fn uid(&self) -> &SymbolImpl {
         match &self.m_uid {
             Uid::Symbol(symbol) => symbol,
             Uid::Private(symbol) => symbol,
+            Uid::Registered(symbol) => symbol,
         }
     }
 }

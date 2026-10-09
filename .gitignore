@@ -2,6 +2,8 @@
 /testbench/target/
 /testbench/experiments/*/target/
 /wip/*/target/
+# Cópia de trabalho do zjsc onde o integrador compila (rsync de wip/zjsc) com o alvo de build ao lado.
+/target-zjsc-snap/
 /testbench/corpus/agent/
 /testbench/corpus/upstream/
 # O scratch é versionado (trabalho que só existia nele se perdeu quando uma worktree foi limpa);

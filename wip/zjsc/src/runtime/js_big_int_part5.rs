@@ -200,7 +200,7 @@ impl JSBigInt {
             return Err(BigIntError::TooBig);
         }
         digits.resize(result_length as usize, 0);
-        let mut big_int = JSBigInt { sign: result_sign, digits, hash: 0 };
+        let mut big_int = JSBigInt { sign: result_sign, digits, hash: 0, structure: BigIntStructure::default() };
 
         let mut interrupt = InterruptCheck::new(None);
         let mut length = JSBigInt::multiply_digits_into(&mut interrupt, x_span, y_span, &mut big_int.digits).len();

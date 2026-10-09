@@ -988,3 +988,253 @@
 "(?<1a>.)"	uv	!Invalid flags supplied to RegExp constructor.
 "(?<1a>.)"	x	!Invalid flags supplied to RegExp constructor.
 "(?<1a>.)"	dg	invalid group specifier name
+"(?s-s:.)"		invalid regular expression modifier
+"(?s-s:.)"	u	invalid regular expression modifier
+"(?s-s:.)"	v	invalid regular expression modifier
+"(?s-s:.)"	i	invalid regular expression modifier
+"(?s-s:.)"	iu	invalid regular expression modifier
+"(?s-s:.)"	y	invalid regular expression modifier
+"(?s-s:.)"	gimsuy	invalid regular expression modifier
+"(?s-s:.)"	uv	!Invalid flags supplied to RegExp constructor.
+"(?s-s:.)"	x	!Invalid flags supplied to RegExp constructor.
+"(?s-s:.)"	dg	invalid regular expression modifier
+"(?-s:.)"		ok
+"(?-s:.)"	u	ok
+"(?-s:.)"	v	ok
+"(?-s:.)"	i	ok
+"(?-s:.)"	iu	ok
+"(?-s:.)"	y	ok
+"(?-s:.)"	gimsuy	ok
+"(?-s:.)"	uv	!Invalid flags supplied to RegExp constructor.
+"(?-s:.)"	x	!Invalid flags supplied to RegExp constructor.
+"(?-s:.)"	dg	ok
+"(?i-:a)"		ok
+"(?i-:a)"	u	ok
+"(?i-:a)"	v	ok
+"(?i-:a)"	i	ok
+"(?i-:a)"	iu	ok
+"(?i-:a)"	y	ok
+"(?i-:a)"	gimsuy	ok
+"(?i-:a)"	uv	!Invalid flags supplied to RegExp constructor.
+"(?i-:a)"	x	!Invalid flags supplied to RegExp constructor.
+"(?i-:a)"	dg	ok
+"(?ims-:a)"		ok
+"(?ims-:a)"	u	ok
+"(?ims-:a)"	v	ok
+"(?ims-:a)"	i	ok
+"(?ims-:a)"	iu	ok
+"(?ims-:a)"	y	ok
+"(?ims-:a)"	gimsuy	ok
+"(?ims-:a)"	uv	!Invalid flags supplied to RegExp constructor.
+"(?ims-:a)"	x	!Invalid flags supplied to RegExp constructor.
+"(?ims-:a)"	dg	ok
+"(?<=a)\\k<n>(?<n>b)"		ok
+"(?<=a)\\k<n>(?<n>b)"	u	ok
+"(?<=a)\\k<n>(?<n>b)"	v	ok
+"(?<=a)\\k<n>(?<n>b)"	i	ok
+"(?<=a)\\k<n>(?<n>b)"	iu	ok
+"(?<=a)\\k<n>(?<n>b)"	y	ok
+"(?<=a)\\k<n>(?<n>b)"	gimsuy	ok
+"(?<=a)\\k<n>(?<n>b)"	uv	!Invalid flags supplied to RegExp constructor.
+"(?<=a)\\k<n>(?<n>b)"	x	!Invalid flags supplied to RegExp constructor.
+"(?<=a)\\k<n>(?<n>b)"	dg	ok
+"(?<=\\1(a))b"		ok
+"(?<=\\1(a))b"	u	ok
+"(?<=\\1(a))b"	v	ok
+"(?<=\\1(a))b"	i	ok
+"(?<=\\1(a))b"	iu	ok
+"(?<=\\1(a))b"	y	ok
+"(?<=\\1(a))b"	gimsuy	ok
+"(?<=\\1(a))b"	uv	!Invalid flags supplied to RegExp constructor.
+"(?<=\\1(a))b"	x	!Invalid flags supplied to RegExp constructor.
+"(?<=\\1(a))b"	dg	ok
+"(?<=(a)\\1)b"		ok
+"(?<=(a)\\1)b"	u	ok
+"(?<=(a)\\1)b"	v	ok
+"(?<=(a)\\1)b"	i	ok
+"(?<=(a)\\1)b"	iu	ok
+"(?<=(a)\\1)b"	y	ok
+"(?<=(a)\\1)b"	gimsuy	ok
+"(?<=(a)\\1)b"	uv	!Invalid flags supplied to RegExp constructor.
+"(?<=(a)\\1)b"	x	!Invalid flags supplied to RegExp constructor.
+"(?<=(a)\\1)b"	dg	ok
+"(?<a>x)|(?<a>x)(?<a>y)"		duplicate group specifier name
+"(?<a>x)|(?<a>x)(?<a>y)"	u	duplicate group specifier name
+"(?<a>x)|(?<a>x)(?<a>y)"	v	duplicate group specifier name
+"(?<a>x)|(?<a>x)(?<a>y)"	i	duplicate group specifier name
+"(?<a>x)|(?<a>x)(?<a>y)"	iu	duplicate group specifier name
+"(?<a>x)|(?<a>x)(?<a>y)"	y	duplicate group specifier name
+"(?<a>x)|(?<a>x)(?<a>y)"	gimsuy	duplicate group specifier name
+"(?<a>x)|(?<a>x)(?<a>y)"	uv	!Invalid flags supplied to RegExp constructor.
+"(?<a>x)|(?<a>x)(?<a>y)"	x	!Invalid flags supplied to RegExp constructor.
+"(?<a>x)|(?<a>x)(?<a>y)"	dg	duplicate group specifier name
+"[^\\q{abc}]"		ok
+"[^\\q{abc}]"	u	invalid escaped character for Unicode pattern
+"[^\\q{abc}]"	v	negated class set may contain strings
+"[^\\q{abc}]"	i	ok
+"[^\\q{abc}]"	iu	invalid escaped character for Unicode pattern
+"[^\\q{abc}]"	y	ok
+"[^\\q{abc}]"	gimsuy	invalid escaped character for Unicode pattern
+"[^\\q{abc}]"	uv	!Invalid flags supplied to RegExp constructor.
+"[^\\q{abc}]"	x	!Invalid flags supplied to RegExp constructor.
+"[^\\q{abc}]"	dg	ok
+"[\\p{RGI_Emoji}]"		ok
+"[\\p{RGI_Emoji}]"	u	invalid property expression
+"[\\p{RGI_Emoji}]"	v	ok
+"[\\p{RGI_Emoji}]"	i	ok
+"[\\p{RGI_Emoji}]"	iu	invalid property expression
+"[\\p{RGI_Emoji}]"	y	ok
+"[\\p{RGI_Emoji}]"	gimsuy	invalid property expression
+"[\\p{RGI_Emoji}]"	uv	!Invalid flags supplied to RegExp constructor.
+"[\\p{RGI_Emoji}]"	x	!Invalid flags supplied to RegExp constructor.
+"[\\p{RGI_Emoji}]"	dg	ok
+"[^\\p{RGI_Emoji}]"		ok
+"[^\\p{RGI_Emoji}]"	u	invalid property expression
+"[^\\p{RGI_Emoji}]"	v	negated class set may contain strings
+"[^\\p{RGI_Emoji}]"	i	ok
+"[^\\p{RGI_Emoji}]"	iu	invalid property expression
+"[^\\p{RGI_Emoji}]"	y	ok
+"[^\\p{RGI_Emoji}]"	gimsuy	invalid property expression
+"[^\\p{RGI_Emoji}]"	uv	!Invalid flags supplied to RegExp constructor.
+"[^\\p{RGI_Emoji}]"	x	!Invalid flags supplied to RegExp constructor.
+"[^\\p{RGI_Emoji}]"	dg	ok
+"\\P{RGI_Emoji}"		ok
+"\\P{RGI_Emoji}"	u	invalid property expression
+"\\P{RGI_Emoji}"	v	negated class set may contain strings
+"\\P{RGI_Emoji}"	i	ok
+"\\P{RGI_Emoji}"	iu	invalid property expression
+"\\P{RGI_Emoji}"	y	ok
+"\\P{RGI_Emoji}"	gimsuy	invalid property expression
+"\\P{RGI_Emoji}"	uv	!Invalid flags supplied to RegExp constructor.
+"\\P{RGI_Emoji}"	x	!Invalid flags supplied to RegExp constructor.
+"\\P{RGI_Emoji}"	dg	ok
+"\\p{Basic_Emoji}"		ok
+"\\p{Basic_Emoji}"	u	invalid property expression
+"\\p{Basic_Emoji}"	v	ok
+"\\p{Basic_Emoji}"	i	ok
+"\\p{Basic_Emoji}"	iu	invalid property expression
+"\\p{Basic_Emoji}"	y	ok
+"\\p{Basic_Emoji}"	gimsuy	invalid property expression
+"\\p{Basic_Emoji}"	uv	!Invalid flags supplied to RegExp constructor.
+"\\p{Basic_Emoji}"	x	!Invalid flags supplied to RegExp constructor.
+"\\p{Basic_Emoji}"	dg	ok
+"[\\p{RGI_Emoji}--\\q{x}]"		range out of order in character class
+"[\\p{RGI_Emoji}--\\q{x}]"	u	invalid property expression
+"[\\p{RGI_Emoji}--\\q{x}]"	v	ok
+"[\\p{RGI_Emoji}--\\q{x}]"	i	range out of order in character class
+"[\\p{RGI_Emoji}--\\q{x}]"	iu	invalid property expression
+"[\\p{RGI_Emoji}--\\q{x}]"	y	range out of order in character class
+"[\\p{RGI_Emoji}--\\q{x}]"	gimsuy	invalid property expression
+"[\\p{RGI_Emoji}--\\q{x}]"	uv	!Invalid flags supplied to RegExp constructor.
+"[\\p{RGI_Emoji}--\\q{x}]"	x	!Invalid flags supplied to RegExp constructor.
+"[\\p{RGI_Emoji}--\\q{x}]"	dg	range out of order in character class
+"[[a-z]--[aeiou]]"		ok
+"[[a-z]--[aeiou]]"	u	unmatched ] or } bracket for Unicode pattern
+"[[a-z]--[aeiou]]"	v	ok
+"[[a-z]--[aeiou]]"	i	ok
+"[[a-z]--[aeiou]]"	iu	unmatched ] or } bracket for Unicode pattern
+"[[a-z]--[aeiou]]"	y	ok
+"[[a-z]--[aeiou]]"	gimsuy	unmatched ] or } bracket for Unicode pattern
+"[[a-z]--[aeiou]]"	uv	!Invalid flags supplied to RegExp constructor.
+"[[a-z]--[aeiou]]"	x	!Invalid flags supplied to RegExp constructor.
+"[[a-z]--[aeiou]]"	dg	ok
+"[\\p{L}&&\\p{N}]"		ok
+"[\\p{L}&&\\p{N}]"	u	ok
+"[\\p{L}&&\\p{N}]"	v	ok
+"[\\p{L}&&\\p{N}]"	i	ok
+"[\\p{L}&&\\p{N}]"	iu	ok
+"[\\p{L}&&\\p{N}]"	y	ok
+"[\\p{L}&&\\p{N}]"	gimsuy	ok
+"[\\p{L}&&\\p{N}]"	uv	!Invalid flags supplied to RegExp constructor.
+"[\\p{L}&&\\p{N}]"	x	!Invalid flags supplied to RegExp constructor.
+"[\\p{L}&&\\p{N}]"	dg	ok
+"[a--b&&c]"		range out of order in character class
+"[a--b&&c]"	u	range out of order in character class
+"[a--b&&c]"	v	invalid operation in class set
+"[a--b&&c]"	i	range out of order in character class
+"[a--b&&c]"	iu	range out of order in character class
+"[a--b&&c]"	y	range out of order in character class
+"[a--b&&c]"	gimsuy	range out of order in character class
+"[a--b&&c]"	uv	!Invalid flags supplied to RegExp constructor.
+"[a--b&&c]"	x	!Invalid flags supplied to RegExp constructor.
+"[a--b&&c]"	dg	range out of order in character class
+"[\\q{abc|d}x]"		ok
+"[\\q{abc|d}x]"	u	invalid escaped character for Unicode pattern
+"[\\q{abc|d}x]"	v	ok
+"[\\q{abc|d}x]"	i	ok
+"[\\q{abc|d}x]"	iu	invalid escaped character for Unicode pattern
+"[\\q{abc|d}x]"	y	ok
+"[\\q{abc|d}x]"	gimsuy	invalid escaped character for Unicode pattern
+"[\\q{abc|d}x]"	uv	!Invalid flags supplied to RegExp constructor.
+"[\\q{abc|d}x]"	x	!Invalid flags supplied to RegExp constructor.
+"[\\q{abc|d}x]"	dg	ok
+"[\\q{}]"		ok
+"[\\q{}]"	u	invalid escaped character for Unicode pattern
+"[\\q{}]"	v	ok
+"[\\q{}]"	i	ok
+"[\\q{}]"	iu	invalid escaped character for Unicode pattern
+"[\\q{}]"	y	ok
+"[\\q{}]"	gimsuy	invalid escaped character for Unicode pattern
+"[\\q{}]"	uv	!Invalid flags supplied to RegExp constructor.
+"[\\q{}]"	x	!Invalid flags supplied to RegExp constructor.
+"[\\q{}]"	dg	ok
+"[\\q{a"		missing terminating ] for character class
+"[\\q{a"	u	invalid escaped character for Unicode pattern
+"[\\q{a"	v	missing terminating } for class string disjunction
+"[\\q{a"	i	missing terminating ] for character class
+"[\\q{a"	iu	invalid escaped character for Unicode pattern
+"[\\q{a"	y	missing terminating ] for character class
+"[\\q{a"	gimsuy	invalid escaped character for Unicode pattern
+"[\\q{a"	uv	!Invalid flags supplied to RegExp constructor.
+"[\\q{a"	x	!Invalid flags supplied to RegExp constructor.
+"[\\q{a"	dg	missing terminating ] for character class
+"(?<!a)+"		invalid quantifier
+"(?<!a)+"	u	invalid quantifier
+"(?<!a)+"	v	invalid quantifier
+"(?<!a)+"	i	invalid quantifier
+"(?<!a)+"	iu	invalid quantifier
+"(?<!a)+"	y	invalid quantifier
+"(?<!a)+"	gimsuy	invalid quantifier
+"(?<!a)+"	uv	!Invalid flags supplied to RegExp constructor.
+"(?<!a)+"	x	!Invalid flags supplied to RegExp constructor.
+"(?<!a)+"	dg	invalid quantifier
+"(?<=a)*"		invalid quantifier
+"(?<=a)*"	u	invalid quantifier
+"(?<=a)*"	v	invalid quantifier
+"(?<=a)*"	i	invalid quantifier
+"(?<=a)*"	iu	invalid quantifier
+"(?<=a)*"	y	invalid quantifier
+"(?<=a)*"	gimsuy	invalid quantifier
+"(?<=a)*"	uv	!Invalid flags supplied to RegExp constructor.
+"(?<=a)*"	x	!Invalid flags supplied to RegExp constructor.
+"(?<=a)*"	dg	invalid quantifier
+"(?=a){2}"		ok
+"(?=a){2}"	u	nothing to repeat
+"(?=a){2}"	v	nothing to repeat
+"(?=a){2}"	i	ok
+"(?=a){2}"	iu	nothing to repeat
+"(?=a){2}"	y	ok
+"(?=a){2}"	gimsuy	nothing to repeat
+"(?=a){2}"	uv	!Invalid flags supplied to RegExp constructor.
+"(?=a){2}"	x	!Invalid flags supplied to RegExp constructor.
+"(?=a){2}"	dg	ok
+"(?=a)?"		ok
+"(?=a)?"	u	nothing to repeat
+"(?=a)?"	v	nothing to repeat
+"(?=a)?"	i	ok
+"(?=a)?"	iu	nothing to repeat
+"(?=a)?"	y	ok
+"(?=a)?"	gimsuy	nothing to repeat
+"(?=a)?"	uv	!Invalid flags supplied to RegExp constructor.
+"(?=a)?"	x	!Invalid flags supplied to RegExp constructor.
+"(?=a)?"	dg	ok
+"(?:(?=a))*"		ok
+"(?:(?=a))*"	u	ok
+"(?:(?=a))*"	v	ok
+"(?:(?=a))*"	i	ok
+"(?:(?=a))*"	iu	ok
+"(?:(?=a))*"	y	ok
+"(?:(?=a))*"	gimsuy	ok
+"(?:(?=a))*"	uv	!Invalid flags supplied to RegExp constructor.
+"(?:(?=a))*"	x	!Invalid flags supplied to RegExp constructor.
+"(?:(?=a))*"	dg	ok

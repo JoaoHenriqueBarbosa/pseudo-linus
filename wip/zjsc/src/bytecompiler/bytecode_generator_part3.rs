@@ -1,8 +1,10 @@
 // Parte 3 de bytecompiler/BytecodeGenerator.h (linhas 1000 a 1480 do .h). Juntada por include!.
-// Convenção: `Option<Rc<RefCell<RegisterID>>>` é o `RegisterID*` anulável do C++; o `RefPtr<RegisterID>`
-// é `Rc<RefCell<RegisterID>>`. Os membros da base `BytecodeGeneratorBase<JSGeneratorTraits>`
-// (`m_codeBlock`, `m_writer`, `m_calleeLocals`, `m_lastInstruction`, `m_lastOpcodeID`, `m_vm`)
-// ficam achatados na mesma struct, como nas partes anteriores.
+// Convenção: `RegisterID*` e `RefPtr<RegisterID>` do gerador são `RegisterRef` (anulável: `Option<RegisterRef>`).
+// O armazenamento (`parameters`, `constant_pool_registers`, `callee_locals`) guarda `Rc<RefCell<RegisterID>>`
+// sem contagem; os acessores devolvem `RegisterRef::new(&armazenamento)`. Os membros da base `BytecodeGeneratorBase<JSGeneratorTraits>`
+// (`m_codeBlock`, `m_writer`, `m_calleeLocals`, `m_lastInstruction`, `m_lastOpcodeID`, `m_labels`)
+// vivem no campo `base`; o `Deref`/`DerefMut` da struct para a base é a herança do C++ (o acesso
+// `self.writer` e a chamada `self.new_label()` resolvem na superclasse, como em `m_writer`/`newLabel()`).
 // O ramo `USE(BUN_JSC_ADDITIONS)` não é compilado: vale o `#else` (`isPrivateBuiltinFunction` repassa
 // `isBuiltinFunction`) e o campo `m_isPrivateBuiltinFunction` não existe.
 
@@ -63,7 +65,7 @@ pub enum FunctionVariableType {
 
 /// `TDZMap`: `UncheckedKeyHashMap<RefPtr<UniquedStringImpl>, TDZNecessityLevel, IdentifierRepHash>`.
 pub type TDZMap = std::collections::HashMap<
-    std::rc::Rc<crate::runtime::identifier::UniquedStringImpl>,
+    crate::wtf::text::string_impl::UniquedKey,
     TDZNecessityLevel,
 >;
 
@@ -74,7 +76,7 @@ pub type TDZStackEntry = (
 );
 
 /// `BigIntMapEntry`.
-pub type BigIntMapEntry = (std::rc::Rc<crate::runtime::identifier::UniquedStringImpl>, u8, bool);
+pub type BigIntMapEntry = (Option<crate::wtf::text::string_impl::UniquedKey>, u8, bool);
 
 /// `class PreservedTDZStack` (BytecodeGenerator.h:1294). `friend class BytecodeGenerator`.
 #[derive(Default)]
@@ -83,18 +85,19 @@ pub struct PreservedTDZStack {
 }
 
 /// `struct LexicalScopeStackEntry` (privado).
+#[derive(Clone)]
 pub struct LexicalScopeStackEntry {
     pub symbol_table: Option<std::rc::Rc<std::cell::RefCell<crate::runtime::symbol_table::SymbolTable>>>,
-    pub scope: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
+    pub scope: Option<crate::bytecompiler::register_id::RegisterRef>,
     pub is_with_scope: bool,
     pub symbol_table_constant_index: i32,
 }
 
 /// `struct AsyncFuncParametersTryCatchInfo` (privado).
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct AsyncFuncParametersTryCatchInfo {
-    pub catch_start_label: Option<std::rc::Rc<crate::bytecompiler::label::Label>>,
-    pub thrown_value: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
+    pub catch_start_label: Option<crate::bytecompiler::label::LabelRef>,
+    pub thrown_value: Option<crate::bytecompiler::register_id::RegisterRef>,
 }
 
 /// `struct CatchEntry` (privado).
@@ -115,13 +118,11 @@ pub struct LastDebugHook {
 /// snake_case do `m_` correspondente. `RegisterID*` anulável vira `Option<RegisterRef>`;
 /// `SegmentedVector<T, N>` vira `Vec<T>` (os ponteiros do C++ para dentro dele viram `Rc`).
 pub struct BytecodeGenerator {
-    // Campos da base `BytecodeGeneratorBase<JSGeneratorTraits>`.
-    // `CodeBlock m_codeBlock` da base, com `CodeBlock = std::unique_ptr<UnlinkedCodeBlockGenerator>`.
-    pub code_block: Box<crate::bytecode::unlinked_code_block_generator::UnlinkedCodeBlockGenerator>,
-    pub writer: crate::bytecode::instruction_stream::JSInstructionStreamWriter,
-    pub callee_locals: Vec<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
-    pub last_instruction: crate::bytecode::instruction_stream::MutableRef,
-    pub last_opcode_id: crate::bytecode::opcode::OpcodeID,
+    /// A superclasse `BytecodeGeneratorBase<JSGeneratorTraits>` (`m_codeBlock`, `m_writer`, `m_labels`,
+    /// `m_calleeLocals`, `m_lastInstruction`, `m_lastOpcodeID`), alcançada por `Deref`/`DerefMut`.
+    pub base: crate::bytecompiler::bytecode_generator_base::BytecodeGeneratorBase<
+        crate::bytecompiler::bytecode_generator::JSGeneratorTraits,
+    >,
 
     // Campos da própria classe.
     pub code_generation_mode: crate::parser::parser_modes::CodeGenerationModeSet,
@@ -132,29 +133,31 @@ pub struct BytecodeGenerator {
     pub private_names_stack: Vec<crate::parser::variable_environment::PrivateNameEnvironment>,
     pub var_scope_lexical_scope_stack_index: Option<usize>,
     pub scope_node: crate::parser::nodes::ScopeNodeRef,
-    pub functions: std::collections::HashSet<std::rc::Rc<crate::runtime::identifier::UniquedStringImpl>>,
+    pub functions: std::collections::HashSet<crate::wtf::text::string_impl::UniquedKey>,
     pub ignored_result_register: crate::bytecompiler::register_id::RegisterID,
     pub this_register: crate::bytecompiler::register_id::RegisterID,
+    /// `RegisterID m_calleeRegister`: por valor no C++, mas o gerador entrega o registrador por
+    /// identidade (`&m_calleeRegister`), então aqui é `RegisterRef` (os usos fazem `borrow_mut`/`clone`).
     pub callee_register: crate::bytecompiler::register_id::RegisterID,
-    pub scope_register: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
+    pub scope_register: Option<crate::bytecompiler::register_id::RegisterRef>,
     // Só Eval e Module configuram este registrador.
-    pub top_level_scope_register: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
-    pub arguments_register: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
-    pub lexical_environment_register: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
-    pub generator_register: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
-    pub empty_value_register: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
-    pub new_target_register: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
+    pub top_level_scope_register: Option<crate::bytecompiler::register_id::RegisterRef>,
+    pub arguments_register: Option<crate::bytecompiler::register_id::RegisterRef>,
+    pub lexical_environment_register: Option<crate::bytecompiler::register_id::RegisterRef>,
+    pub generator_register: Option<crate::bytecompiler::register_id::RegisterRef>,
+    pub empty_value_register: Option<crate::bytecompiler::register_id::RegisterRef>,
+    pub new_target_register: Option<crate::bytecompiler::register_id::RegisterRef>,
     // Grafia do C++ preservada: `m_isDerivedConstuctor`.
-    pub is_derived_constuctor: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
+    pub is_derived_constuctor: Option<crate::bytecompiler::register_id::RegisterRef>,
     pub link_time_constant_registers: std::collections::HashMap<
         crate::bytecode::link_time_constant::LinkTimeConstant,
-        std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>,
+        crate::bytecompiler::register_id::RegisterRef,
     >,
-    pub arrow_function_context_lexical_environment_register: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
-    pub promise_register: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
+    pub arrow_function_context_lexical_environment_register: Option<crate::bytecompiler::register_id::RegisterRef>,
+    pub promise_register: Option<crate::bytecompiler::register_id::RegisterRef>,
     pub current_finally_context: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::bytecode_generator::FinallyContext>>>,
     pub parameters: Vec<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
-    pub label_scopes: Vec<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::label_scope::LabelScope>>>,
+    pub label_scopes: Vec<std::rc::Rc<crate::bytecompiler::label_scope::LabelScope>>,
     pub constant_pool_registers: Vec<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
     pub finally_depth: u32,
     pub local_scope_depth: u32,
@@ -175,7 +178,7 @@ pub struct BytecodeGenerator {
     pub async_func_parameters_try_catch_info: Option<AsyncFuncParametersTryCatchInfo>,
     pub try_ranges: Vec<crate::bytecompiler::bytecode_generator::TryRange>,
     pub try_data: Vec<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::bytecode_generator::TryData>>>,
-    pub optional_chain_target_stack: Vec<std::rc::Rc<crate::bytecompiler::label::Label>>,
+    pub optional_chain_target_stack: Vec<crate::bytecompiler::label::LabelRef>,
     pub next_constant_offset: i32,
     // Constant pool.
     pub identifier_map: crate::bytecompiler::bytecode_generator::IdentifierMap,
@@ -184,7 +187,7 @@ pub struct BytecodeGenerator {
         u32,
     >,
     pub string_map: std::collections::HashMap<
-        std::rc::Rc<crate::runtime::identifier::UniquedStringImpl>,
+        Option<crate::wtf::text::string_impl::UniquedKey>,
         crate::runtime::js_string::JSStringRef,
     >,
     pub big_int_map: std::collections::HashMap<BigIntMapEntry, crate::runtime::js_value::JSValue>,
@@ -251,6 +254,22 @@ pub struct BytecodeGenerator {
 //         needs_to_update_arrow_function_context, needs_arguments); ecma_mode; derived_context_type
 // Campos: exception_handlers_to_emit: Vector<CatchEntry>; last_debug_hook
 
+impl std::ops::Deref for BytecodeGenerator {
+    type Target = crate::bytecompiler::bytecode_generator_base::BytecodeGeneratorBase<
+        crate::bytecompiler::bytecode_generator::JSGeneratorTraits,
+    >;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+
+impl std::ops::DerefMut for BytecodeGenerator {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.base
+    }
+}
+
 /// `class StrictModeScope : private SetForScope<ECMAMode>` (BytecodeGenerator.h:1441). Guarda o valor
 /// anterior e o restaura em `Drop`; o gerador é acessado pelo chamador via `generator()`.
 pub struct StrictModeScope<'a> {
@@ -280,6 +299,106 @@ impl BytecodeGenerator {
     pub const CURRENT_LEXICAL_SCOPE_INDEX: i32 = -2;
     pub const OUTERMOST_LEXICAL_SCOPE_INDEX: i32 = -1;
 
+    /// O que o C++ faz antes do corpo de qualquer construtor do `BytecodeGenerator`: o
+    /// `BytecodeGeneratorBase(makeUnique<UnlinkedCodeBlockGenerator>(vm, codeBlock),
+    /// CodeBlock::llintBaselineCalleeSaveSpaceAsVirtualRegisters())` e o inicializador de membros do .h
+    /// (`m_codeGenerationMode`, `m_scopeNode`, `m_thisRegister(thisArgumentOffset)`, `m_codeType` e
+    /// os `{ false }`/`{ nullptr }`/`{ 0 }` dos demais). `code_block` é a base (`base_ref()`) do
+    /// subtipo `Unlinked*CodeBlock`; os construtores só sobrescrevem o que diverge do padrão.
+    pub fn with_defaults(
+        vm: &std::rc::Rc<crate::runtime::vm::VM>,
+        code_block: std::rc::Rc<std::cell::RefCell<crate::bytecode::unlinked_code_block::UnlinkedCodeBlock>>,
+        code_generation_mode: crate::parser::parser_modes::CodeGenerationModeSet,
+        scope_node: crate::parser::nodes::ScopeNodeRef,
+        code_type: crate::bytecode::code_type::CodeType,
+    ) -> BytecodeGenerator {
+        let generator = crate::bytecode::unlinked_code_block_generator::UnlinkedCodeBlockGenerator::new(vm, code_block);
+        let base = crate::bytecompiler::bytecode_generator_base::BytecodeGeneratorBase::<
+            crate::bytecompiler::bytecode_generator::JSGeneratorTraits,
+        >::new(
+            generator,
+            crate::bytecode::code_block::llint_baseline_callee_save_space_as_virtual_registers(),
+        );
+        BytecodeGenerator {
+            base,
+            code_generation_mode,
+            lexical_scope_stack: Vec::new(),
+            cached_parent_tdz: None,
+            generator_or_async_wrapper_function_parameter_names: None,
+            tdz_stack: Vec::new(),
+            private_names_stack: Vec::new(),
+            var_scope_lexical_scope_stack_index: None,
+            scope_node,
+            functions: std::collections::HashSet::new(),
+            ignored_result_register: crate::bytecompiler::register_id::RegisterID::default(),
+            this_register: crate::bytecompiler::register_id::RegisterID::from_index(
+                crate::interpreter::call_frame::this_argument_offset(),
+            ),
+            callee_register: crate::bytecompiler::register_id::RegisterID::default(),
+            scope_register: None,
+            top_level_scope_register: None,
+            arguments_register: None,
+            lexical_environment_register: None,
+            generator_register: None,
+            empty_value_register: None,
+            new_target_register: None,
+            is_derived_constuctor: None,
+            link_time_constant_registers: std::collections::HashMap::new(),
+            arrow_function_context_lexical_environment_register: None,
+            promise_register: None,
+            current_finally_context: None,
+            parameters: Vec::new(),
+            label_scopes: Vec::new(),
+            constant_pool_registers: Vec::new(),
+            finally_depth: 0,
+            local_scope_depth: 0,
+            local_scope_count: 0,
+            code_type,
+            control_flow_scope_stack: Vec::new(),
+            switch_context_stack: Vec::new(),
+            for_in_context_stack: Vec::new(),
+            try_context_stack: Vec::new(),
+            using_scope_stack: Vec::new(),
+            yield_points: 0,
+            needs_generatorification: false,
+            generator_frame_symbol_table: None,
+            generator_frame_symbol_table_index: 0,
+            functions_to_initialize: Vec::new(),
+            need_to_initialize_arguments: false,
+            rest_parameter: None,
+            async_func_parameters_try_catch_info: None,
+            try_ranges: Vec::new(),
+            try_data: Vec::new(),
+            optional_chain_target_stack: Vec::new(),
+            next_constant_offset: 0,
+            identifier_map: Default::default(),
+            js_value_map: std::collections::HashMap::new(),
+            string_map: std::collections::HashMap::new(),
+            big_int_map: std::collections::HashMap::new(),
+            template_object_descriptor_set: std::collections::HashSet::new(),
+            template_descriptor_map: std::collections::HashMap::new(),
+            static_property_analyzer: crate::bytecompiler::static_property_analyzer::StaticPropertyAnalyzer::default(),
+            vm: vm.clone(),
+            default_allow_call_ignore_result_optimization: false,
+            uses_exceptions: false,
+            expression_too_deep: false,
+            is_builtin_function: false,
+            is_builtin_default_class_constructor: false,
+            uses_sloppy_eval: false,
+            allow_tail_call_optimization: false,
+            allow_call_ignore_result_optimization: false,
+            needs_to_update_arrow_function_context: false,
+            needs_arguments: false,
+            ecma_mode: crate::runtime::ecma_mode::ECMAMode::sloppy(),
+            derived_context_type: crate::bytecode::executable_info::DerivedContextType::None,
+            exception_handlers_to_emit: Vec::new(),
+            last_debug_hook: LastDebugHook {
+                position: crate::parser::parser_tokens::JSTextPosition::default(),
+                type_: crate::interpreter::interpreter::DebugHookType::DidExecuteProgram,
+            },
+        }
+    }
+
     // BytecodeGenerator.h:1004 (declaração)
     // pub fn try_resolve_variable(&mut self, node: &Expression) -> Option<Variable>;  // .cpp
 
@@ -300,7 +419,7 @@ impl BytecodeGenerator {
     // pub fn emit_throw(&mut self, value: &RegisterRef);  // .cpp
     // pub fn emit_argument_count(&mut self, dst: Option<RegisterRef>) -> Option<RegisterRef>;  // .cpp
     // pub fn emit_throw_static_error_register(&mut self, ty: ErrorTypeWithExtension, message: &RegisterRef);  // .cpp
-    // pub fn emit_throw_static_error_identifier(&mut self, ty: ErrorTypeWithExtension, message: &Identifier);  // .cpp
+    // pub fn emit_throw_static_error(&mut self, ty: ErrorTypeWithExtension, message: &Identifier);  // .cpp (a sobrecarga de Register é `emit_throw_static_error_register`)
     // pub fn emit_throw_reference_error(&mut self, message: &str);  // .cpp
     // pub fn emit_throw_type_error(&mut self, message: &str);  // .cpp
     // pub fn emit_throw_type_error_identifier(&mut self, message: &Identifier);  // .cpp
@@ -315,26 +434,26 @@ impl BytecodeGenerator {
     // pub fn emit_put_derived_constructor_to_arrow_function_context_scope(&mut self);  // .cpp
     // pub fn emit_load_derived_constructor_from_arrow_function_lexical_environment(&mut self) -> Option<RegisterRef>;  // .cpp
     // pub fn emit_load_derived_constructor(&mut self) -> Option<RegisterRef>;  // .cpp
-    // pub fn emit_debug_hook_position(&mut self, ty: DebugHookType, position: &JSTextPosition, data: Option<RegisterRef>);  // .cpp
-    // pub fn emit_debug_hook_statement(&mut self, node: &Statement, data: Option<RegisterRef>);  // .cpp
-    // pub fn emit_debug_hook_expression(&mut self, node: &Expression, data: Option<RegisterRef>);  // .cpp
+    // pub fn emit_debug_hook(&mut self, ty: DebugHookType, position: &JSTextPosition, data: Option<RegisterRef>);  // .cpp
+    // pub fn emit_debug_hook_statement_data(&mut self, node: &Statement, data: Option<RegisterRef>);  // .cpp
+    // pub fn emit_debug_hook_expression_data(&mut self, node: &Expression, data: Option<RegisterRef>);  // .cpp
     // pub fn emit_will_leave_call_frame_debug_hook(&mut self);  // .cpp
 
     // BytecodeGenerator.h:1067
     pub fn emit_load_completion_type(
         &mut self,
-        dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
+        dst: Option<crate::bytecompiler::register_id::RegisterRef>,
         ty: crate::bytecompiler::bytecode_generator::CompletionType,
-    ) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    ) -> Option<crate::bytecompiler::register_id::RegisterRef> {
         self.emit_load_js_value(dst, crate::runtime::js_value::js_number_i32(ty.0))
     }
 
     // BytecodeGenerator.h:1068
     pub fn emit_load_resume_mode(
         &mut self,
-        dst: Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>>,
+        dst: Option<crate::bytecompiler::register_id::RegisterRef>,
         mode: crate::runtime::js_generator::ResumeMode,
-    ) -> Option<std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>> {
+    ) -> Option<crate::bytecompiler::register_id::RegisterRef> {
         self.emit_load_js_value(dst, crate::runtime::js_value::js_number_i32(mode as i32))
     }
 
@@ -369,23 +488,31 @@ impl BytecodeGenerator {
     // pub fn emit_delegate_yield(&mut self, argument: &RegisterRef, node: &ThrowableExpressionData) -> Option<RegisterRef>;  // .cpp
 
     // BytecodeGenerator.h:1111
-    pub fn generator_state_register(&self) -> std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>> {
-        self.parameters[crate::runtime::js_generator::Argument::State as usize].clone()
+    pub fn generator_state_register(&self) -> crate::bytecompiler::register_id::RegisterRef {
+        crate::bytecompiler::register_id::RegisterRef::new(
+            &self.parameters[crate::runtime::js_generator::Argument::State as usize],
+        )
     }
 
     // BytecodeGenerator.h:1112
-    pub fn generator_value_register(&self) -> std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>> {
-        self.parameters[crate::runtime::js_generator::Argument::Value as usize].clone()
+    pub fn generator_value_register(&self) -> crate::bytecompiler::register_id::RegisterRef {
+        crate::bytecompiler::register_id::RegisterRef::new(
+            &self.parameters[crate::runtime::js_generator::Argument::Value as usize],
+        )
     }
 
     // BytecodeGenerator.h:1113
-    pub fn generator_resume_mode_register(&self) -> std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>> {
-        self.parameters[crate::runtime::js_generator::Argument::ResumeMode as usize].clone()
+    pub fn generator_resume_mode_register(&self) -> crate::bytecompiler::register_id::RegisterRef {
+        crate::bytecompiler::register_id::RegisterRef::new(
+            &self.parameters[crate::runtime::js_generator::Argument::ResumeMode as usize],
+        )
     }
 
     // BytecodeGenerator.h:1114
-    pub fn generator_frame_register(&self) -> std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>> {
-        self.parameters[crate::runtime::js_generator::Argument::Frame as usize].clone()
+    pub fn generator_frame_register(&self) -> crate::bytecompiler::register_id::RegisterRef {
+        crate::bytecompiler::register_id::RegisterRef::new(
+            &self.parameters[crate::runtime::js_generator::Argument::Frame as usize],
+        )
     }
 
     // BytecodeGenerator.h:1116
@@ -401,7 +528,7 @@ impl BytecodeGenerator {
     // BytecodeGenerator.h:1120
     pub fn should_emit_debug_hooks(&self) -> bool {
         self.code_generation_mode.contains(crate::parser::parser_modes::CodeGenerationMode::Debugger)
-            && !self.is_private_builtin_function()
+            && !self.is_builtin_function()
     }
 
     // BytecodeGenerator.h:1121
@@ -431,10 +558,6 @@ impl BytecodeGenerator {
         self.is_builtin_function
     }
 
-    // BytecodeGenerator.h:1134 (ramo #else de USE(BUN_JSC_ADDITIONS))
-    pub fn is_private_builtin_function(&self) -> bool {
-        self.is_builtin_function()
-    }
 
     // BytecodeGenerator.h:1138
     pub fn is_builtin_default_class_constructor(&self) -> bool {
@@ -474,7 +597,7 @@ impl BytecodeGenerator {
 
     // BytecodeGenerator.h:1166
     pub fn emit_to_this_this_register(&mut self) {
-        let this_register = std::rc::Rc::new(std::cell::RefCell::new(self.this_register.clone()));
+        let this_register = self.this_register();
         self.emit_to_this(&this_register);
     }
 
@@ -504,9 +627,9 @@ impl BytecodeGenerator {
     // BytecodeGenerator.h:1197
     pub fn kill(
         &mut self,
-        dst: &std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>>,
-    ) -> std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>> {
-        self.static_property_analyzer.kill(dst);
+        dst: &crate::bytecompiler::register_id::RegisterRef,
+    ) -> crate::bytecompiler::register_id::RegisterRef {
+        self.static_property_analyzer.kill_register(&dst.borrow());
         dst.clone()
     }
 
@@ -521,22 +644,30 @@ impl BytecodeGenerator {
     // pub fn initialize_next_parameter(&mut self) -> Option<RegisterRef>;  // .cpp
     // pub fn visible_name_for_parameter(&mut self, pattern: &DestructuringPatternNode) -> Option<Rc<UniquedStringImpl>>;  // .cpp
 
+    // BytecodeGenerator.h: `RegisterID* calleeRegister() { return &m_calleeRegister; }`
+    pub fn callee_register(&self) -> crate::bytecompiler::register_id::RegisterRef {
+        crate::bytecompiler::register_id::RegisterRef::new(&std::rc::Rc::new(std::cell::RefCell::new(
+            crate::bytecompiler::register_id::RegisterID::from_virtual_register(self.callee_register.virtual_register()),
+        )))
+    }
+
     // BytecodeGenerator.h:1209
     pub fn register_for(
         &self,
         reg: crate::bytecode::virtual_register::VirtualRegister,
-    ) -> std::rc::Rc<std::cell::RefCell<crate::bytecompiler::register_id::RegisterID>> {
+    ) -> crate::bytecompiler::register_id::RegisterRef {
         if reg.is_local() {
-            return self.callee_locals[reg.to_local() as usize].clone();
+            return crate::bytecompiler::register_id::RegisterRef::new(&self.callee_locals[reg.to_local() as usize]);
         }
 
-        if reg.offset() == crate::bytecode::virtual_register::CallFrameSlot::CALLEE {
-            // `m_calleeRegister` é membro por valor no C++; o chamador que precisa de identidade usa o campo.
-            return std::rc::Rc::new(std::cell::RefCell::new(self.callee_register.clone()));
+        if reg.offset() == crate::interpreter::call_frame::CallFrameSlot::Callee as i32 {
+            // `&m_calleeRegister`: o campo é `RegisterID` por valor; o handle novo compartilha só o
+            // índice virtual (igual a `this_register()`).
+            return self.callee_register();
         }
 
         debug_assert!(!self.parameters.is_empty());
-        self.parameters[reg.to_argument() as usize].clone()
+        crate::bytecompiler::register_id::RegisterRef::new(&self.parameters[reg.to_argument() as usize])
     }
 
     // pub fn has_constant(&self, ident: &Identifier) -> bool;  // .cpp
@@ -549,10 +680,10 @@ impl BytecodeGenerator {
         &mut self,
         metadata: &crate::parser::nodes::FunctionMetadataNode,
     ) -> crate::runtime::unlinked_function_executable::UnlinkedFunctionExecutableRef {
-        use crate::parser::parser_modes::{
-            ConstructorKind, DerivedContextType, EvalContextType, NeedsClassFieldInitializer, SourceParseMode,
-        };
+        use crate::bytecode::executable_info::{DerivedContextType, EvalContextType, NeedsClassFieldInitializer};
+        use crate::parser::parser_modes::SourceParseMode;
         use crate::runtime::construct_ability::ConstructAbility;
+        use crate::runtime::constructor_kind::ConstructorKind;
 
         let mut new_derived_context_type = DerivedContextType::None;
         let mut new_eval_context_type = EvalContextType::FunctionEvalContext;
@@ -562,8 +693,8 @@ impl BytecodeGenerator {
         } else {
             NeedsClassFieldInitializer::No
         };
-        let mut private_brand_requirement = metadata.private_brand_requirement();
-        let metadata_parse_mode = metadata.parse_mode();
+        let mut private_brand_requirement = metadata.private_brand_requirement.get();
+        let metadata_parse_mode = metadata.parse_mode;
         if matches!(
             metadata_parse_mode,
             SourceParseMode::ArrowFunctionMode
@@ -586,9 +717,9 @@ impl BytecodeGenerator {
 
         // FIXME do upstream: estes flags, ParserModes e a propagação para os XXXCodeBlocks deviam ser reorganizados.
         // https://bugs.webkit.org/show_bug.cgi?id=151547
-        let parse_mode = metadata.parse_mode();
+        let parse_mode = metadata.parse_mode;
         let mut construct_ability = crate::parser::parser_modes::construct_ability_for_parse_mode(parse_mode);
-        if parse_mode == SourceParseMode::MethodMode && metadata.constructor_kind() != ConstructorKind::None {
+        if parse_mode == SourceParseMode::MethodMode && metadata.constructor_kind != ConstructorKind::None {
             construct_ability = ConstructAbility::CanConstruct;
         }
 
@@ -600,7 +731,7 @@ impl BytecodeGenerator {
 
         crate::runtime::unlinked_function_executable::UnlinkedFunctionExecutable::create(
             &self.vm,
-            self.scope_node.source(),
+            &self.scope_node.borrow().source,
             metadata,
             if self.is_builtin_function() {
                 crate::runtime::unlinked_function_executable::UnlinkedFunctionKind::UnlinkedBuiltinFunction

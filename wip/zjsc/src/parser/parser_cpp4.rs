@@ -124,12 +124,12 @@ impl<T: CharType> Parser<T> {
         self.statement_depth += 1;
         let mut non_trivial_expression_count: i32 = 0;
         // failIfStackOverflow()
-        if !self.can_recurse() {
+        let Some(_logical_stack_frame) = self.vm.enter_logical_frame(crate::runtime::vm::stack_cost::STATEMENT_LEVEL) else {
             update_error_message!(self, @hook { self.statement_depth = old_statement_depth; }, false, "Stack exhausted");
             self.has_stack_overflow = true;
             self.statement_depth = old_statement_depth;
             return None;
-        }
+        };
         let mut result: Option<B::Statement> = None;
         let mut should_set_end_offset = true;
         let mut should_set_pause_location = false;

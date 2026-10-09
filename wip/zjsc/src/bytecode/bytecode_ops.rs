@@ -34,7 +34,7 @@ use crate::bytecode::virtual_register::VirtualRegister;
 use crate::bytecompiler::bytecode_generator_base::{Fitted, Fits, OpcodeSize};
 use crate::bytecompiler::label::{GenericBoundLabel, JSGeneratorTraits, LabelGenerator};
 use crate::bytecompiler::profile_type_bytecode_flag::ProfileTypeBytecodeFlag;
-use crate::bytecompiler::register_id::RegisterIDRef;
+use crate::bytecompiler::register_id::{RegisterIDRef, RegisterRef};
 use crate::interpreter::interpreter::DebugHookType;
 use crate::parser::result_type::{OperandTypes, ResultType};
 use crate::runtime::ecma_mode::ECMAMode;
@@ -76,6 +76,43 @@ pub trait IntoOperand<T> {
 impl<T> IntoOperand<T> for T {
     fn into_operand(self) -> T {
         self
+    }
+}
+
+impl IntoOperand<VirtualRegister> for &RegisterRef {
+    fn into_operand(self) -> VirtualRegister {
+        VirtualRegister::from_register_id(&self.borrow())
+    }
+}
+
+impl IntoOperand<VirtualRegister> for RegisterRef {
+    fn into_operand(self) -> VirtualRegister {
+        (&self).into_operand()
+    }
+}
+
+impl IntoOperand<VirtualRegister> for Option<RegisterRef> {
+    fn into_operand(self) -> VirtualRegister {
+        (&self).into_operand()
+    }
+}
+
+impl IntoOperand<VirtualRegister> for &Option<RegisterRef> {
+    fn into_operand(self) -> VirtualRegister {
+        self.as_ref().map_or_else(VirtualRegister::default, IntoOperand::into_operand)
+    }
+}
+
+impl IntoOperand<VirtualRegister> for Option<&RegisterRef> {
+    fn into_operand(self) -> VirtualRegister {
+        self.map_or_else(VirtualRegister::default, IntoOperand::into_operand)
+    }
+}
+
+/// `JSType` é `enum JSType : uint8_t`; o campo do operando é o byte.
+impl IntoOperand<u8> for crate::runtime::js_type::JSType {
+    fn into_operand(self) -> u8 {
+        self as u8
     }
 }
 
@@ -521,6 +558,9 @@ macro_rules! bytecode_op {
 
         // Lado de leitura (`decode`, construtores por largura): `bytecode_ops_decode.rs`.
         impl_op_decode!($name { $($field: $ty),* });
+
+        // `Op*::dump`: `bytecode_dumper.rs`.
+        $crate::bytecode::bytecode_dumper::impl_op_dump!($name, $id { $($field),* });
     };
 }
 
@@ -1106,6 +1146,15 @@ bytecode_op!(
 
 bytecode_op!(
     OpJneqPtr, op_jneq_ptr {
+        value: VirtualRegister,
+        special_pointer: VirtualRegister,
+        target_label: BoundLabel,
+    }
+);
+
+// `op :jeq_ptr` tem os mesmos `args:` do `jneq_ptr`, mas sem `metadata:`.
+bytecode_op!(
+    OpJeqPtr, op_jeq_ptr {
         value: VirtualRegister,
         special_pointer: VirtualRegister,
         target_label: BoundLabel,

@@ -1,0 +1,3 @@
+[
+"\"use strict\";\nfunction P(a){return a.map(function(x){return x.type+\":\"+x.value+(x.source?\":\"+x.source:\"\")}).join(\"|\")}\nfunction T(f){try{return f()}catch(e){return \"throw \"+(e&&e.name)+\": \"+(e&&e.message)}}\n"
+]

@@ -457,19 +457,19 @@ impl<D: Delegate> EscapeSink<D> for CharacterClassParserDelegate {
 
     // parseEscape() nunca deve chamar estes métodos de delegate com inCharacterClass ligado.
     fn assertion_word_boundary(&mut self, _delegate: &mut D, _error_code: &mut ErrorCode, _invert: bool) {
-        unreachable!();
+        unreachable!("RELEASE_ASSERT_NOT_REACHED() em YarrParser.h:366 (assertionWordBoundary)");
     }
 
     fn atom_back_reference(&mut self, _delegate: &mut D, _error_code: &mut ErrorCode, _subpattern_id: u32) {
-        unreachable!();
+        unreachable!("RELEASE_ASSERT_NOT_REACHED() em YarrParser.h:367 (atomBackReference)");
     }
 
     fn atom_named_back_reference(&mut self, _delegate: &mut D, _error_code: &mut ErrorCode, _subpattern_name: &String) {
-        unreachable!();
+        unreachable!("RELEASE_ASSERT_NOT_REACHED() em YarrParser.h:368 (atomNamedBackReference)");
     }
 
     fn atom_named_forward_reference(&mut self, _delegate: &mut D, _error_code: &mut ErrorCode, _subpattern_name: &String) {
-        unreachable!();
+        unreachable!("RELEASE_ASSERT_NOT_REACHED() em YarrParser.h:369 (atomNamedForwardReference)");
     }
 }
 
@@ -867,19 +867,19 @@ impl<D: Delegate> EscapeSink<D> for ClassSetParserDelegate {
 
     // parseEscape() nunca deve chamar estes métodos de delegate com inCharacterClass ligado.
     fn assertion_word_boundary(&mut self, _delegate: &mut D, _error_code: &mut ErrorCode, _invert: bool) {
-        unreachable!();
+        unreachable!("RELEASE_ASSERT_NOT_REACHED() em YarrParser.h:771 (assertionWordBoundary)");
     }
 
     fn atom_back_reference(&mut self, _delegate: &mut D, _error_code: &mut ErrorCode, _subpattern_id: u32) {
-        unreachable!();
+        unreachable!("RELEASE_ASSERT_NOT_REACHED() em YarrParser.h:772 (atomBackReference)");
     }
 
     fn atom_named_back_reference(&mut self, _delegate: &mut D, _error_code: &mut ErrorCode, _subpattern_name: &String) {
-        unreachable!();
+        unreachable!("RELEASE_ASSERT_NOT_REACHED() em YarrParser.h:773 (atomNamedBackReference)");
     }
 
     fn atom_named_forward_reference(&mut self, _delegate: &mut D, _error_code: &mut ErrorCode, _subpattern_name: &String) {
-        unreachable!();
+        unreachable!("RELEASE_ASSERT_NOT_REACHED() em YarrParser.h:774 (atomNamedForwardReference)");
     }
 }
 
@@ -934,23 +934,23 @@ impl<D: Delegate> EscapeSink<D> for ClassStringDisjunctionParserDelegate {
     // parseEscape() nunca deve chamar estes métodos de delegate ao tratar uma disjunção de strings
     // de classe.
     fn assertion_word_boundary(&mut self, _delegate: &mut D, _error_code: &mut ErrorCode, _invert: bool) {
-        unreachable!();
+        unreachable!("RELEASE_ASSERT_NOT_REACHED() em YarrParser.h:840 (assertionWordBoundary)");
     }
 
     fn atom_back_reference(&mut self, _delegate: &mut D, _error_code: &mut ErrorCode, _subpattern_id: u32) {
-        unreachable!();
+        unreachable!("RELEASE_ASSERT_NOT_REACHED() em YarrParser.h:841 (atomBackReference)");
     }
 
     fn atom_named_back_reference(&mut self, _delegate: &mut D, _error_code: &mut ErrorCode, _subpattern_name: &String) {
-        unreachable!();
+        unreachable!("RELEASE_ASSERT_NOT_REACHED() em YarrParser.h:842 (atomNamedBackReference)");
     }
 
     fn atom_named_forward_reference(&mut self, _delegate: &mut D, _error_code: &mut ErrorCode, _subpattern_name: &String) {
-        unreachable!();
+        unreachable!("RELEASE_ASSERT_NOT_REACHED() em YarrParser.h:843 (atomNamedForwardReference)");
     }
 
     fn atom_built_in_character_class(&mut self, _delegate: &mut D, _error_code: &mut ErrorCode, _class_id: BuiltInCharacterClassID, _invert: bool) {
-        unreachable!();
+        unreachable!("RELEASE_ASSERT_NOT_REACHED() em YarrParser.h:844 (atomBuiltInCharacterClass)");
     }
 }
 

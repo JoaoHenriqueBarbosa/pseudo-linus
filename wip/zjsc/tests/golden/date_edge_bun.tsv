@@ -1,0 +1,1969 @@
+UTC	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(-13); d.toISOString()	string	"2018-12-31T12:30:15.500Z"
+America/Sao_Paulo	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(-13); d.toISOString()	string	"2018-12-31T14:30:15.500Z"
+Europe/London	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(-13); d.toISOString()	string	"2018-12-31T12:30:15.500Z"
+Asia/Kolkata	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(-13); d.toISOString()	string	"2018-12-31T07:00:15.500Z"
+Australia/Lord_Howe	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(-13); d.toISOString()	string	"2018-12-31T01:30:15.500Z"
+Pacific/Apia	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(-13); d.toISOString()	string	"2018-12-30T22:30:15.500Z"
+UTC	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(-1); d.toISOString()	string	"2019-12-31T12:30:15.500Z"
+America/Sao_Paulo	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(-1); d.toISOString()	string	"2019-12-31T15:30:15.500Z"
+Europe/London	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(-1); d.toISOString()	string	"2019-12-31T12:30:15.500Z"
+Asia/Kolkata	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(-1); d.toISOString()	string	"2019-12-31T07:00:15.500Z"
+Australia/Lord_Howe	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(-1); d.toISOString()	string	"2019-12-31T01:30:15.500Z"
+Pacific/Apia	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(-1); d.toISOString()	string	"2019-12-30T22:30:15.500Z"
+UTC	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(0); d.toISOString()	string	"2020-01-31T12:30:15.500Z"
+America/Sao_Paulo	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(0); d.toISOString()	string	"2020-01-31T15:30:15.500Z"
+Europe/London	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(0); d.toISOString()	string	"2020-01-31T12:30:15.500Z"
+Asia/Kolkata	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(0); d.toISOString()	string	"2020-01-31T07:00:15.500Z"
+Australia/Lord_Howe	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(0); d.toISOString()	string	"2020-01-31T01:30:15.500Z"
+Pacific/Apia	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(0); d.toISOString()	string	"2020-01-30T22:30:15.500Z"
+UTC	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(1); d.toISOString()	string	"2020-03-02T12:30:15.500Z"
+America/Sao_Paulo	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(1); d.toISOString()	string	"2020-03-02T15:30:15.500Z"
+Europe/London	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(1); d.toISOString()	string	"2020-03-02T12:30:15.500Z"
+Asia/Kolkata	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(1); d.toISOString()	string	"2020-03-02T07:00:15.500Z"
+Australia/Lord_Howe	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(1); d.toISOString()	string	"2020-03-02T01:30:15.500Z"
+Pacific/Apia	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(1); d.toISOString()	string	"2020-03-01T22:30:15.500Z"
+UTC	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(12); d.toISOString()	string	"2021-01-31T12:30:15.500Z"
+America/Sao_Paulo	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(12); d.toISOString()	string	"2021-01-31T15:30:15.500Z"
+Europe/London	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(12); d.toISOString()	string	"2021-01-31T12:30:15.500Z"
+Asia/Kolkata	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(12); d.toISOString()	string	"2021-01-31T07:00:15.500Z"
+Australia/Lord_Howe	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(12); d.toISOString()	string	"2021-01-31T01:30:15.500Z"
+Pacific/Apia	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(12); d.toISOString()	string	"2021-01-30T22:30:15.500Z"
+UTC	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(13); d.toISOString()	string	"2021-03-03T12:30:15.500Z"
+America/Sao_Paulo	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(13); d.toISOString()	string	"2021-03-03T15:30:15.500Z"
+Europe/London	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(13); d.toISOString()	string	"2021-03-03T12:30:15.500Z"
+Asia/Kolkata	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(13); d.toISOString()	string	"2021-03-03T07:00:15.500Z"
+Australia/Lord_Howe	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(13); d.toISOString()	string	"2021-03-03T01:30:15.500Z"
+Pacific/Apia	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(13); d.toISOString()	string	"2021-03-02T22:30:15.500Z"
+UTC	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(25); d.toISOString()	string	"2022-03-03T12:30:15.500Z"
+America/Sao_Paulo	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(25); d.toISOString()	string	"2022-03-03T15:30:15.500Z"
+Europe/London	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(25); d.toISOString()	string	"2022-03-03T12:30:15.500Z"
+Asia/Kolkata	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(25); d.toISOString()	string	"2022-03-03T07:00:15.500Z"
+Australia/Lord_Howe	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(25); d.toISOString()	string	"2022-03-03T01:30:15.500Z"
+Pacific/Apia	var d = new Date(2020, 0, 31, 12, 30, 15, 500); d.setMonth(25); d.toISOString()	string	"2022-03-02T23:30:15.500Z"
+UTC	var d = new Date(2021, 1, 15, 8); d.setDate(-31); d.toISOString()	string	"2020-12-31T08:00:00.000Z"
+America/Sao_Paulo	var d = new Date(2021, 1, 15, 8); d.setDate(-31); d.toISOString()	string	"2020-12-31T11:00:00.000Z"
+Europe/London	var d = new Date(2021, 1, 15, 8); d.setDate(-31); d.toISOString()	string	"2020-12-31T08:00:00.000Z"
+Asia/Kolkata	var d = new Date(2021, 1, 15, 8); d.setDate(-31); d.toISOString()	string	"2020-12-31T02:30:00.000Z"
+Australia/Lord_Howe	var d = new Date(2021, 1, 15, 8); d.setDate(-31); d.toISOString()	string	"2020-12-30T21:00:00.000Z"
+Pacific/Apia	var d = new Date(2021, 1, 15, 8); d.setDate(-31); d.toISOString()	string	"2020-12-30T18:00:00.000Z"
+UTC	var d = new Date(2021, 1, 15, 8); d.setDate(-1); d.toISOString()	string	"2021-01-30T08:00:00.000Z"
+America/Sao_Paulo	var d = new Date(2021, 1, 15, 8); d.setDate(-1); d.toISOString()	string	"2021-01-30T11:00:00.000Z"
+Europe/London	var d = new Date(2021, 1, 15, 8); d.setDate(-1); d.toISOString()	string	"2021-01-30T08:00:00.000Z"
+Asia/Kolkata	var d = new Date(2021, 1, 15, 8); d.setDate(-1); d.toISOString()	string	"2021-01-30T02:30:00.000Z"
+Australia/Lord_Howe	var d = new Date(2021, 1, 15, 8); d.setDate(-1); d.toISOString()	string	"2021-01-29T21:00:00.000Z"
+Pacific/Apia	var d = new Date(2021, 1, 15, 8); d.setDate(-1); d.toISOString()	string	"2021-01-29T18:00:00.000Z"
+UTC	var d = new Date(2021, 1, 15, 8); d.setDate(0); d.toISOString()	string	"2021-01-31T08:00:00.000Z"
+America/Sao_Paulo	var d = new Date(2021, 1, 15, 8); d.setDate(0); d.toISOString()	string	"2021-01-31T11:00:00.000Z"
+Europe/London	var d = new Date(2021, 1, 15, 8); d.setDate(0); d.toISOString()	string	"2021-01-31T08:00:00.000Z"
+Asia/Kolkata	var d = new Date(2021, 1, 15, 8); d.setDate(0); d.toISOString()	string	"2021-01-31T02:30:00.000Z"
+Australia/Lord_Howe	var d = new Date(2021, 1, 15, 8); d.setDate(0); d.toISOString()	string	"2021-01-30T21:00:00.000Z"
+Pacific/Apia	var d = new Date(2021, 1, 15, 8); d.setDate(0); d.toISOString()	string	"2021-01-30T18:00:00.000Z"
+UTC	var d = new Date(2021, 1, 15, 8); d.setDate(1); d.toISOString()	string	"2021-02-01T08:00:00.000Z"
+America/Sao_Paulo	var d = new Date(2021, 1, 15, 8); d.setDate(1); d.toISOString()	string	"2021-02-01T11:00:00.000Z"
+Europe/London	var d = new Date(2021, 1, 15, 8); d.setDate(1); d.toISOString()	string	"2021-02-01T08:00:00.000Z"
+Asia/Kolkata	var d = new Date(2021, 1, 15, 8); d.setDate(1); d.toISOString()	string	"2021-02-01T02:30:00.000Z"
+Australia/Lord_Howe	var d = new Date(2021, 1, 15, 8); d.setDate(1); d.toISOString()	string	"2021-01-31T21:00:00.000Z"
+Pacific/Apia	var d = new Date(2021, 1, 15, 8); d.setDate(1); d.toISOString()	string	"2021-01-31T18:00:00.000Z"
+UTC	var d = new Date(2021, 1, 15, 8); d.setDate(29); d.toISOString()	string	"2021-03-01T08:00:00.000Z"
+America/Sao_Paulo	var d = new Date(2021, 1, 15, 8); d.setDate(29); d.toISOString()	string	"2021-03-01T11:00:00.000Z"
+Europe/London	var d = new Date(2021, 1, 15, 8); d.setDate(29); d.toISOString()	string	"2021-03-01T08:00:00.000Z"
+Asia/Kolkata	var d = new Date(2021, 1, 15, 8); d.setDate(29); d.toISOString()	string	"2021-03-01T02:30:00.000Z"
+Australia/Lord_Howe	var d = new Date(2021, 1, 15, 8); d.setDate(29); d.toISOString()	string	"2021-02-28T21:00:00.000Z"
+Pacific/Apia	var d = new Date(2021, 1, 15, 8); d.setDate(29); d.toISOString()	string	"2021-02-28T18:00:00.000Z"
+UTC	var d = new Date(2021, 1, 15, 8); d.setDate(30); d.toISOString()	string	"2021-03-02T08:00:00.000Z"
+America/Sao_Paulo	var d = new Date(2021, 1, 15, 8); d.setDate(30); d.toISOString()	string	"2021-03-02T11:00:00.000Z"
+Europe/London	var d = new Date(2021, 1, 15, 8); d.setDate(30); d.toISOString()	string	"2021-03-02T08:00:00.000Z"
+Asia/Kolkata	var d = new Date(2021, 1, 15, 8); d.setDate(30); d.toISOString()	string	"2021-03-02T02:30:00.000Z"
+Australia/Lord_Howe	var d = new Date(2021, 1, 15, 8); d.setDate(30); d.toISOString()	string	"2021-03-01T21:00:00.000Z"
+Pacific/Apia	var d = new Date(2021, 1, 15, 8); d.setDate(30); d.toISOString()	string	"2021-03-01T18:00:00.000Z"
+UTC	var d = new Date(2021, 1, 15, 8); d.setDate(32); d.toISOString()	string	"2021-03-04T08:00:00.000Z"
+America/Sao_Paulo	var d = new Date(2021, 1, 15, 8); d.setDate(32); d.toISOString()	string	"2021-03-04T11:00:00.000Z"
+Europe/London	var d = new Date(2021, 1, 15, 8); d.setDate(32); d.toISOString()	string	"2021-03-04T08:00:00.000Z"
+Asia/Kolkata	var d = new Date(2021, 1, 15, 8); d.setDate(32); d.toISOString()	string	"2021-03-04T02:30:00.000Z"
+Australia/Lord_Howe	var d = new Date(2021, 1, 15, 8); d.setDate(32); d.toISOString()	string	"2021-03-03T21:00:00.000Z"
+Pacific/Apia	var d = new Date(2021, 1, 15, 8); d.setDate(32); d.toISOString()	string	"2021-03-03T18:00:00.000Z"
+UTC	var d = new Date(2021, 1, 15, 8); d.setDate(61); d.toISOString()	string	"2021-04-02T08:00:00.000Z"
+America/Sao_Paulo	var d = new Date(2021, 1, 15, 8); d.setDate(61); d.toISOString()	string	"2021-04-02T11:00:00.000Z"
+Europe/London	var d = new Date(2021, 1, 15, 8); d.setDate(61); d.toISOString()	string	"2021-04-02T07:00:00.000Z"
+Asia/Kolkata	var d = new Date(2021, 1, 15, 8); d.setDate(61); d.toISOString()	string	"2021-04-02T02:30:00.000Z"
+Australia/Lord_Howe	var d = new Date(2021, 1, 15, 8); d.setDate(61); d.toISOString()	string	"2021-04-01T21:00:00.000Z"
+Pacific/Apia	var d = new Date(2021, 1, 15, 8); d.setDate(61); d.toISOString()	string	"2021-04-01T18:00:00.000Z"
+UTC	var d = new Date(2021, 1, 15, 8); d.setDate(366); d.toISOString()	string	"2022-02-01T08:00:00.000Z"
+America/Sao_Paulo	var d = new Date(2021, 1, 15, 8); d.setDate(366); d.toISOString()	string	"2022-02-01T11:00:00.000Z"
+Europe/London	var d = new Date(2021, 1, 15, 8); d.setDate(366); d.toISOString()	string	"2022-02-01T08:00:00.000Z"
+Asia/Kolkata	var d = new Date(2021, 1, 15, 8); d.setDate(366); d.toISOString()	string	"2022-02-01T02:30:00.000Z"
+Australia/Lord_Howe	var d = new Date(2021, 1, 15, 8); d.setDate(366); d.toISOString()	string	"2022-01-31T21:00:00.000Z"
+Pacific/Apia	var d = new Date(2021, 1, 15, 8); d.setDate(366); d.toISOString()	string	"2022-01-31T19:00:00.000Z"
+UTC	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(0, 90); d.toISOString()	string	"2020-06-15T01:30:03.000Z"
+America/Sao_Paulo	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(0, 90); d.toISOString()	string	"2020-06-15T04:30:03.000Z"
+Europe/London	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(0, 90); d.toISOString()	string	"2020-06-15T00:30:03.000Z"
+Asia/Kolkata	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(0, 90); d.toISOString()	string	"2020-06-14T20:00:03.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(0, 90); d.toISOString()	string	"2020-06-14T15:00:03.000Z"
+Pacific/Apia	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(0, 90); d.toISOString()	string	"2020-06-14T12:30:03.000Z"
+UTC	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(0, 90, 3600, 1500); d.getTime()	number	1592188201500
+America/Sao_Paulo	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(0, 90, 3600, 1500); d.getTime()	number	1592199001500
+Europe/London	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(0, 90, 3600, 1500); d.getTime()	number	1592184601500
+Asia/Kolkata	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(0, 90, 3600, 1500); d.getTime()	number	1592168401500
+Australia/Lord_Howe	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(0, 90, 3600, 1500); d.getTime()	number	1592150401500
+Pacific/Apia	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(0, 90, 3600, 1500); d.getTime()	number	1592141401500
+UTC	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(23, 61); d.toISOString()	string	"2020-06-16T00:01:03.000Z"
+America/Sao_Paulo	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(23, 61); d.toISOString()	string	"2020-06-16T03:01:03.000Z"
+Europe/London	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(23, 61); d.toISOString()	string	"2020-06-15T23:01:03.000Z"
+Asia/Kolkata	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(23, 61); d.toISOString()	string	"2020-06-15T18:31:03.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(23, 61); d.toISOString()	string	"2020-06-15T13:31:03.000Z"
+Pacific/Apia	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(23, 61); d.toISOString()	string	"2020-06-15T11:01:03.000Z"
+UTC	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(23, 61, 3600, 1500); d.getTime()	number	1592269261500
+America/Sao_Paulo	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(23, 61, 3600, 1500); d.getTime()	number	1592280061500
+Europe/London	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(23, 61, 3600, 1500); d.getTime()	number	1592265661500
+Asia/Kolkata	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(23, 61, 3600, 1500); d.getTime()	number	1592249461500
+Australia/Lord_Howe	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(23, 61, 3600, 1500); d.getTime()	number	1592231461500
+Pacific/Apia	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(23, 61, 3600, 1500); d.getTime()	number	1592222461500
+UTC	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(24, 0); d.toISOString()	string	"2020-06-16T00:00:03.000Z"
+America/Sao_Paulo	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(24, 0); d.toISOString()	string	"2020-06-16T03:00:03.000Z"
+Europe/London	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(24, 0); d.toISOString()	string	"2020-06-15T23:00:03.000Z"
+Asia/Kolkata	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(24, 0); d.toISOString()	string	"2020-06-15T18:30:03.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(24, 0); d.toISOString()	string	"2020-06-15T13:30:03.000Z"
+Pacific/Apia	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(24, 0); d.toISOString()	string	"2020-06-15T11:00:03.000Z"
+UTC	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(24, 0, 3600, 1500); d.getTime()	number	1592269201500
+America/Sao_Paulo	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(24, 0, 3600, 1500); d.getTime()	number	1592280001500
+Europe/London	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(24, 0, 3600, 1500); d.getTime()	number	1592265601500
+Asia/Kolkata	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(24, 0, 3600, 1500); d.getTime()	number	1592249401500
+Australia/Lord_Howe	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(24, 0, 3600, 1500); d.getTime()	number	1592231401500
+Pacific/Apia	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(24, 0, 3600, 1500); d.getTime()	number	1592222401500
+UTC	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(25, 120); d.toISOString()	string	"2020-06-16T03:00:03.000Z"
+America/Sao_Paulo	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(25, 120); d.toISOString()	string	"2020-06-16T06:00:03.000Z"
+Europe/London	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(25, 120); d.toISOString()	string	"2020-06-16T02:00:03.000Z"
+Asia/Kolkata	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(25, 120); d.toISOString()	string	"2020-06-15T21:30:03.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(25, 120); d.toISOString()	string	"2020-06-15T16:30:03.000Z"
+Pacific/Apia	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(25, 120); d.toISOString()	string	"2020-06-15T14:00:03.000Z"
+UTC	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(25, 120, 3600, 1500); d.getTime()	number	1592280001500
+America/Sao_Paulo	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(25, 120, 3600, 1500); d.getTime()	number	1592290801500
+Europe/London	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(25, 120, 3600, 1500); d.getTime()	number	1592276401500
+Asia/Kolkata	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(25, 120, 3600, 1500); d.getTime()	number	1592260201500
+Australia/Lord_Howe	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(25, 120, 3600, 1500); d.getTime()	number	1592242201500
+Pacific/Apia	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(25, 120, 3600, 1500); d.getTime()	number	1592233201500
+UTC	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(-1, -1); d.toISOString()	string	"2020-06-14T22:59:03.000Z"
+America/Sao_Paulo	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(-1, -1); d.toISOString()	string	"2020-06-15T01:59:03.000Z"
+Europe/London	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(-1, -1); d.toISOString()	string	"2020-06-14T21:59:03.000Z"
+Asia/Kolkata	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(-1, -1); d.toISOString()	string	"2020-06-14T17:29:03.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(-1, -1); d.toISOString()	string	"2020-06-14T12:29:03.000Z"
+Pacific/Apia	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(-1, -1); d.toISOString()	string	"2020-06-14T09:59:03.000Z"
+UTC	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(-1, -1, 3600, 1500); d.getTime()	number	1592179141500
+America/Sao_Paulo	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(-1, -1, 3600, 1500); d.getTime()	number	1592189941500
+Europe/London	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(-1, -1, 3600, 1500); d.getTime()	number	1592175541500
+Asia/Kolkata	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(-1, -1, 3600, 1500); d.getTime()	number	1592159341500
+Australia/Lord_Howe	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(-1, -1, 3600, 1500); d.getTime()	number	1592141341500
+Pacific/Apia	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(-1, -1, 3600, 1500); d.getTime()	number	1592132341500
+UTC	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(48, 1440); d.toISOString()	string	"2020-06-18T00:00:03.000Z"
+America/Sao_Paulo	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(48, 1440); d.toISOString()	string	"2020-06-18T03:00:03.000Z"
+Europe/London	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(48, 1440); d.toISOString()	string	"2020-06-17T23:00:03.000Z"
+Asia/Kolkata	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(48, 1440); d.toISOString()	string	"2020-06-17T18:30:03.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(48, 1440); d.toISOString()	string	"2020-06-17T13:30:03.000Z"
+Pacific/Apia	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(48, 1440); d.toISOString()	string	"2020-06-17T11:00:03.000Z"
+UTC	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(48, 1440, 3600, 1500); d.getTime()	number	1592442001500
+America/Sao_Paulo	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(48, 1440, 3600, 1500); d.getTime()	number	1592452801500
+Europe/London	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(48, 1440, 3600, 1500); d.getTime()	number	1592438401500
+Asia/Kolkata	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(48, 1440, 3600, 1500); d.getTime()	number	1592422201500
+Australia/Lord_Howe	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(48, 1440, 3600, 1500); d.getTime()	number	1592404201500
+Pacific/Apia	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(48, 1440, 3600, 1500); d.getTime()	number	1592395201500
+UTC	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(12, -750); d.toISOString()	string	"2020-06-14T23:30:03.000Z"
+America/Sao_Paulo	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(12, -750); d.toISOString()	string	"2020-06-15T02:30:03.000Z"
+Europe/London	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(12, -750); d.toISOString()	string	"2020-06-14T22:30:03.000Z"
+Asia/Kolkata	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(12, -750); d.toISOString()	string	"2020-06-14T18:00:03.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(12, -750); d.toISOString()	string	"2020-06-14T13:00:03.000Z"
+Pacific/Apia	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(12, -750); d.toISOString()	string	"2020-06-14T10:30:03.000Z"
+UTC	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(12, -750, 3600, 1500); d.getTime()	number	1592181001500
+America/Sao_Paulo	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(12, -750, 3600, 1500); d.getTime()	number	1592191801500
+Europe/London	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(12, -750, 3600, 1500); d.getTime()	number	1592177401500
+Asia/Kolkata	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(12, -750, 3600, 1500); d.getTime()	number	1592161201500
+Australia/Lord_Howe	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(12, -750, 3600, 1500); d.getTime()	number	1592143201500
+Pacific/Apia	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(12, -750, 3600, 1500); d.getTime()	number	1592134201500
+UTC	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(100, 0); d.toISOString()	string	"2020-06-19T04:00:03.000Z"
+America/Sao_Paulo	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(100, 0); d.toISOString()	string	"2020-06-19T07:00:03.000Z"
+Europe/London	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(100, 0); d.toISOString()	string	"2020-06-19T03:00:03.000Z"
+Asia/Kolkata	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(100, 0); d.toISOString()	string	"2020-06-18T22:30:03.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(100, 0); d.toISOString()	string	"2020-06-18T17:30:03.000Z"
+Pacific/Apia	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(100, 0); d.toISOString()	string	"2020-06-18T15:00:03.000Z"
+UTC	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(100, 0, 3600, 1500); d.getTime()	number	1592542801500
+America/Sao_Paulo	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(100, 0, 3600, 1500); d.getTime()	number	1592553601500
+Europe/London	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(100, 0, 3600, 1500); d.getTime()	number	1592539201500
+Asia/Kolkata	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(100, 0, 3600, 1500); d.getTime()	number	1592523001500
+Australia/Lord_Howe	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(100, 0, 3600, 1500); d.getTime()	number	1592505001500
+Pacific/Apia	var d = new Date(2020, 5, 15, 1, 2, 3); d.setHours(100, 0, 3600, 1500); d.getTime()	number	1592496001500
+UTC	var d = new Date(2020, 0, 1); d.setSeconds(-1); d.toISOString()	string	"2019-12-31T23:59:59.000Z"
+America/Sao_Paulo	var d = new Date(2020, 0, 1); d.setSeconds(-1); d.toISOString()	string	"2020-01-01T02:59:59.000Z"
+Europe/London	var d = new Date(2020, 0, 1); d.setSeconds(-1); d.toISOString()	string	"2019-12-31T23:59:59.000Z"
+Asia/Kolkata	var d = new Date(2020, 0, 1); d.setSeconds(-1); d.toISOString()	string	"2019-12-31T18:29:59.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 0, 1); d.setSeconds(-1); d.toISOString()	string	"2019-12-31T12:59:59.000Z"
+Pacific/Apia	var d = new Date(2020, 0, 1); d.setSeconds(-1); d.toISOString()	string	"2019-12-31T09:59:59.000Z"
+UTC	var d = new Date(2020, 0, 1); d.setSeconds(60); d.toISOString()	string	"2020-01-01T00:01:00.000Z"
+America/Sao_Paulo	var d = new Date(2020, 0, 1); d.setSeconds(60); d.toISOString()	string	"2020-01-01T03:01:00.000Z"
+Europe/London	var d = new Date(2020, 0, 1); d.setSeconds(60); d.toISOString()	string	"2020-01-01T00:01:00.000Z"
+Asia/Kolkata	var d = new Date(2020, 0, 1); d.setSeconds(60); d.toISOString()	string	"2019-12-31T18:31:00.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 0, 1); d.setSeconds(60); d.toISOString()	string	"2019-12-31T13:01:00.000Z"
+Pacific/Apia	var d = new Date(2020, 0, 1); d.setSeconds(60); d.toISOString()	string	"2019-12-31T10:01:00.000Z"
+UTC	var d = new Date(2020, 0, 1); d.setSeconds(3600); d.toISOString()	string	"2020-01-01T01:00:00.000Z"
+America/Sao_Paulo	var d = new Date(2020, 0, 1); d.setSeconds(3600); d.toISOString()	string	"2020-01-01T04:00:00.000Z"
+Europe/London	var d = new Date(2020, 0, 1); d.setSeconds(3600); d.toISOString()	string	"2020-01-01T01:00:00.000Z"
+Asia/Kolkata	var d = new Date(2020, 0, 1); d.setSeconds(3600); d.toISOString()	string	"2019-12-31T19:30:00.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 0, 1); d.setSeconds(3600); d.toISOString()	string	"2019-12-31T14:00:00.000Z"
+Pacific/Apia	var d = new Date(2020, 0, 1); d.setSeconds(3600); d.toISOString()	string	"2019-12-31T11:00:00.000Z"
+UTC	var d = new Date(2020, 0, 1); d.setSeconds(86400); d.toISOString()	string	"2020-01-02T00:00:00.000Z"
+America/Sao_Paulo	var d = new Date(2020, 0, 1); d.setSeconds(86400); d.toISOString()	string	"2020-01-02T03:00:00.000Z"
+Europe/London	var d = new Date(2020, 0, 1); d.setSeconds(86400); d.toISOString()	string	"2020-01-02T00:00:00.000Z"
+Asia/Kolkata	var d = new Date(2020, 0, 1); d.setSeconds(86400); d.toISOString()	string	"2020-01-01T18:30:00.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 0, 1); d.setSeconds(86400); d.toISOString()	string	"2020-01-01T13:00:00.000Z"
+Pacific/Apia	var d = new Date(2020, 0, 1); d.setSeconds(86400); d.toISOString()	string	"2020-01-01T10:00:00.000Z"
+UTC	var d = new Date(2020, 0, 1); d.setSeconds(1000000000); d.toISOString()	string	"2051-09-09T01:46:40.000Z"
+America/Sao_Paulo	var d = new Date(2020, 0, 1); d.setSeconds(1000000000); d.toISOString()	string	"2051-09-09T04:46:40.000Z"
+Europe/London	var d = new Date(2020, 0, 1); d.setSeconds(1000000000); d.toISOString()	string	"2051-09-09T00:46:40.000Z"
+Asia/Kolkata	var d = new Date(2020, 0, 1); d.setSeconds(1000000000); d.toISOString()	string	"2051-09-08T20:16:40.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 0, 1); d.setSeconds(1000000000); d.toISOString()	string	"2051-09-08T15:16:40.000Z"
+Pacific/Apia	var d = new Date(2020, 0, 1); d.setSeconds(1000000000); d.toISOString()	string	"2051-09-08T12:46:40.000Z"
+UTC	var d = new Date(2020, 0, 1); d.setMilliseconds(-1); d.toISOString()	string	"2019-12-31T23:59:59.999Z"
+America/Sao_Paulo	var d = new Date(2020, 0, 1); d.setMilliseconds(-1); d.toISOString()	string	"2020-01-01T02:59:59.999Z"
+Europe/London	var d = new Date(2020, 0, 1); d.setMilliseconds(-1); d.toISOString()	string	"2019-12-31T23:59:59.999Z"
+Asia/Kolkata	var d = new Date(2020, 0, 1); d.setMilliseconds(-1); d.toISOString()	string	"2019-12-31T18:29:59.999Z"
+Australia/Lord_Howe	var d = new Date(2020, 0, 1); d.setMilliseconds(-1); d.toISOString()	string	"2019-12-31T12:59:59.999Z"
+Pacific/Apia	var d = new Date(2020, 0, 1); d.setMilliseconds(-1); d.toISOString()	string	"2019-12-31T09:59:59.999Z"
+UTC	var d = new Date(2020, 0, 1); d.setMilliseconds(1000); d.toISOString()	string	"2020-01-01T00:00:01.000Z"
+America/Sao_Paulo	var d = new Date(2020, 0, 1); d.setMilliseconds(1000); d.toISOString()	string	"2020-01-01T03:00:01.000Z"
+Europe/London	var d = new Date(2020, 0, 1); d.setMilliseconds(1000); d.toISOString()	string	"2020-01-01T00:00:01.000Z"
+Asia/Kolkata	var d = new Date(2020, 0, 1); d.setMilliseconds(1000); d.toISOString()	string	"2019-12-31T18:30:01.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 0, 1); d.setMilliseconds(1000); d.toISOString()	string	"2019-12-31T13:00:01.000Z"
+Pacific/Apia	var d = new Date(2020, 0, 1); d.setMilliseconds(1000); d.toISOString()	string	"2019-12-31T10:00:01.000Z"
+UTC	var d = new Date(2020, 0, 1); d.setMilliseconds(86400000); d.toISOString()	string	"2020-01-02T00:00:00.000Z"
+America/Sao_Paulo	var d = new Date(2020, 0, 1); d.setMilliseconds(86400000); d.toISOString()	string	"2020-01-02T03:00:00.000Z"
+Europe/London	var d = new Date(2020, 0, 1); d.setMilliseconds(86400000); d.toISOString()	string	"2020-01-02T00:00:00.000Z"
+Asia/Kolkata	var d = new Date(2020, 0, 1); d.setMilliseconds(86400000); d.toISOString()	string	"2020-01-01T18:30:00.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 0, 1); d.setMilliseconds(86400000); d.toISOString()	string	"2020-01-01T13:00:00.000Z"
+Pacific/Apia	var d = new Date(2020, 0, 1); d.setMilliseconds(86400000); d.toISOString()	string	"2020-01-01T10:00:00.000Z"
+UTC	var d = new Date(2020, 0, 1); d.setMilliseconds(1000000000000); d.toISOString()	string	"2051-09-09T01:46:40.000Z"
+America/Sao_Paulo	var d = new Date(2020, 0, 1); d.setMilliseconds(1000000000000); d.toISOString()	string	"2051-09-09T04:46:40.000Z"
+Europe/London	var d = new Date(2020, 0, 1); d.setMilliseconds(1000000000000); d.toISOString()	string	"2051-09-09T00:46:40.000Z"
+Asia/Kolkata	var d = new Date(2020, 0, 1); d.setMilliseconds(1000000000000); d.toISOString()	string	"2051-09-08T20:16:40.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 0, 1); d.setMilliseconds(1000000000000); d.toISOString()	string	"2051-09-08T15:16:40.000Z"
+Pacific/Apia	var d = new Date(2020, 0, 1); d.setMilliseconds(1000000000000); d.toISOString()	string	"2051-09-08T12:46:40.000Z"
+UTC	var d = new Date(2020, 0, 31); d.setMonth(1); d.setDate(0); d.toISOString()	string	"2020-02-29T00:00:00.000Z"
+America/Sao_Paulo	var d = new Date(2020, 0, 31); d.setMonth(1); d.setDate(0); d.toISOString()	string	"2020-02-29T03:00:00.000Z"
+Europe/London	var d = new Date(2020, 0, 31); d.setMonth(1); d.setDate(0); d.toISOString()	string	"2020-02-29T00:00:00.000Z"
+Asia/Kolkata	var d = new Date(2020, 0, 31); d.setMonth(1); d.setDate(0); d.toISOString()	string	"2020-02-28T18:30:00.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 0, 31); d.setMonth(1); d.setDate(0); d.toISOString()	string	"2020-02-28T13:00:00.000Z"
+Pacific/Apia	var d = new Date(2020, 0, 31); d.setMonth(1); d.setDate(0); d.toISOString()	string	"2020-02-28T10:00:00.000Z"
+UTC	var d = new Date(2020, 0, 31); d.setMonth(1, 30); d.toISOString()	string	"2020-03-01T00:00:00.000Z"
+America/Sao_Paulo	var d = new Date(2020, 0, 31); d.setMonth(1, 30); d.toISOString()	string	"2020-03-01T03:00:00.000Z"
+Europe/London	var d = new Date(2020, 0, 31); d.setMonth(1, 30); d.toISOString()	string	"2020-03-01T00:00:00.000Z"
+Asia/Kolkata	var d = new Date(2020, 0, 31); d.setMonth(1, 30); d.toISOString()	string	"2020-02-29T18:30:00.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 0, 31); d.setMonth(1, 30); d.toISOString()	string	"2020-02-29T13:00:00.000Z"
+Pacific/Apia	var d = new Date(2020, 0, 31); d.setMonth(1, 30); d.toISOString()	string	"2020-02-29T10:00:00.000Z"
+UTC	var d = new Date(2020, 11, 31); d.setMonth(12); d.setMonth(-1); d.toISOString()	string	"2020-12-31T00:00:00.000Z"
+America/Sao_Paulo	var d = new Date(2020, 11, 31); d.setMonth(12); d.setMonth(-1); d.toISOString()	string	"2020-12-31T03:00:00.000Z"
+Europe/London	var d = new Date(2020, 11, 31); d.setMonth(12); d.setMonth(-1); d.toISOString()	string	"2020-12-31T00:00:00.000Z"
+Asia/Kolkata	var d = new Date(2020, 11, 31); d.setMonth(12); d.setMonth(-1); d.toISOString()	string	"2020-12-30T18:30:00.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 11, 31); d.setMonth(12); d.setMonth(-1); d.toISOString()	string	"2020-12-30T13:00:00.000Z"
+Pacific/Apia	var d = new Date(2020, 11, 31); d.setMonth(12); d.setMonth(-1); d.toISOString()	string	"2020-12-30T10:00:00.000Z"
+UTC	var d = new Date(2020, 1, 29); d.setFullYear(2021); d.toISOString()	string	"2021-03-01T00:00:00.000Z"
+America/Sao_Paulo	var d = new Date(2020, 1, 29); d.setFullYear(2021); d.toISOString()	string	"2021-03-01T03:00:00.000Z"
+Europe/London	var d = new Date(2020, 1, 29); d.setFullYear(2021); d.toISOString()	string	"2021-03-01T00:00:00.000Z"
+Asia/Kolkata	var d = new Date(2020, 1, 29); d.setFullYear(2021); d.toISOString()	string	"2021-02-28T18:30:00.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 1, 29); d.setFullYear(2021); d.toISOString()	string	"2021-02-28T13:00:00.000Z"
+Pacific/Apia	var d = new Date(2020, 1, 29); d.setFullYear(2021); d.toISOString()	string	"2021-02-28T10:00:00.000Z"
+UTC	var d = new Date(2020, 1, 29); d.setFullYear(2021, 1, 29); d.toISOString()	string	"2021-03-01T00:00:00.000Z"
+America/Sao_Paulo	var d = new Date(2020, 1, 29); d.setFullYear(2021, 1, 29); d.toISOString()	string	"2021-03-01T03:00:00.000Z"
+Europe/London	var d = new Date(2020, 1, 29); d.setFullYear(2021, 1, 29); d.toISOString()	string	"2021-03-01T00:00:00.000Z"
+Asia/Kolkata	var d = new Date(2020, 1, 29); d.setFullYear(2021, 1, 29); d.toISOString()	string	"2021-02-28T18:30:00.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 1, 29); d.setFullYear(2021, 1, 29); d.toISOString()	string	"2021-02-28T13:00:00.000Z"
+Pacific/Apia	var d = new Date(2020, 1, 29); d.setFullYear(2021, 1, 29); d.toISOString()	string	"2021-02-28T10:00:00.000Z"
+UTC	var d = new Date(2020, 1, 29); d.setFullYear(2021, 13, 0); d.toISOString()	string	"2022-01-31T00:00:00.000Z"
+America/Sao_Paulo	var d = new Date(2020, 1, 29); d.setFullYear(2021, 13, 0); d.toISOString()	string	"2022-01-31T03:00:00.000Z"
+Europe/London	var d = new Date(2020, 1, 29); d.setFullYear(2021, 13, 0); d.toISOString()	string	"2022-01-31T00:00:00.000Z"
+Asia/Kolkata	var d = new Date(2020, 1, 29); d.setFullYear(2021, 13, 0); d.toISOString()	string	"2022-01-30T18:30:00.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 1, 29); d.setFullYear(2021, 13, 0); d.toISOString()	string	"2022-01-30T13:00:00.000Z"
+Pacific/Apia	var d = new Date(2020, 1, 29); d.setFullYear(2021, 13, 0); d.toISOString()	string	"2022-01-30T11:00:00.000Z"
+UTC	var d = new Date(NaN); d.setFullYear(2020); d.toISOString()	string	"2020-01-01T00:00:00.000Z"
+America/Sao_Paulo	var d = new Date(NaN); d.setFullYear(2020); d.toISOString()	string	"2020-01-01T03:00:00.000Z"
+Europe/London	var d = new Date(NaN); d.setFullYear(2020); d.toISOString()	string	"2020-01-01T00:00:00.000Z"
+Asia/Kolkata	var d = new Date(NaN); d.setFullYear(2020); d.toISOString()	string	"2019-12-31T18:30:00.000Z"
+Australia/Lord_Howe	var d = new Date(NaN); d.setFullYear(2020); d.toISOString()	string	"2019-12-31T13:00:00.000Z"
+Pacific/Apia	var d = new Date(NaN); d.setFullYear(2020); d.toISOString()	string	"2019-12-31T10:00:00.000Z"
+any	var d = new Date(NaN); d.setMonth(1); String(d.getTime())	string	"NaN"
+any	var d = new Date(NaN); d.setHours(1); String(d.getTime())	string	"NaN"
+any	var d = new Date(NaN); d.setUTCFullYear(2020, 5, 5); d.toISOString()	string	"2020-06-05T00:00:00.000Z"
+any	var d = new Date(0); d.setMonth(); String(d.getTime())	string	"NaN"
+any	var d = new Date(0); d.setHours(NaN, 1); String(d.getTime())	string	"NaN"
+any	var d = new Date(0); d.setDate(Infinity); String(d.getTime())	string	"NaN"
+any	var d = new Date(0); d.setTime(8.64e15 + 1); String(d.getTime())	string	"NaN"
+any	var d = new Date(0); d.setTime('12'); d.getTime()	number	12
+any	var d = new Date(0); d.setUTCHours(25, 61, 61, 1001); d.toISOString()	string	"1970-01-02T02:02:02.001Z"
+UTC	var d = new Date(2020, 0, 31); d.setUTCMonth(1); d.toISOString()	string	"2020-03-02T00:00:00.000Z"
+America/Sao_Paulo	var d = new Date(2020, 0, 31); d.setUTCMonth(1); d.toISOString()	string	"2020-03-02T03:00:00.000Z"
+Europe/London	var d = new Date(2020, 0, 31); d.setUTCMonth(1); d.toISOString()	string	"2020-03-02T00:00:00.000Z"
+Asia/Kolkata	var d = new Date(2020, 0, 31); d.setUTCMonth(1); d.toISOString()	string	"2020-03-01T18:30:00.000Z"
+Australia/Lord_Howe	var d = new Date(2020, 0, 31); d.setUTCMonth(1); d.toISOString()	string	"2020-03-01T13:00:00.000Z"
+Pacific/Apia	var d = new Date(2020, 0, 31); d.setUTCMonth(1); d.toISOString()	string	"2020-03-01T10:00:00.000Z"
+UTC	var d = new Date(0); d.setMinutes(1.9); d.getTime()	number	60000
+America/Sao_Paulo	var d = new Date(0); d.setMinutes(1.9); d.getTime()	number	60000
+Europe/London	var d = new Date(0); d.setMinutes(1.9); d.getTime()	number	60000
+Asia/Kolkata	var d = new Date(0); d.setMinutes(1.9); d.getTime()	number	-1740000
+Australia/Lord_Howe	var d = new Date(0); d.setMinutes(1.9); d.getTime()	number	60000
+Pacific/Apia	var d = new Date(0); d.setMinutes(1.9); d.getTime()	number	60000
+UTC	var d = new Date(0); d.setMinutes(-1.9); d.getTime()	number	-60000
+America/Sao_Paulo	var d = new Date(0); d.setMinutes(-1.9); d.getTime()	number	-60000
+Europe/London	var d = new Date(0); d.setMinutes(-1.9); d.getTime()	number	-60000
+Asia/Kolkata	var d = new Date(0); d.setMinutes(-1.9); d.getTime()	number	-1860000
+Australia/Lord_Howe	var d = new Date(0); d.setMinutes(-1.9); d.getTime()	number	-60000
+Pacific/Apia	var d = new Date(0); d.setMinutes(-1.9); d.getTime()	number	-60000
+any	var d = new Date(0); d.setSeconds(1, 2, 3); d.getTime()	number	1002
+UTC	new Date(0).setMonth(13)	number	34214400000
+America/Sao_Paulo	new Date(0).setMonth(13)	number	5356800000
+Europe/London	new Date(0).setMonth(13)	number	34214400000
+Asia/Kolkata	new Date(0).setMonth(13)	number	34214400000
+Australia/Lord_Howe	new Date(0).setMonth(13)	number	34214400000
+Pacific/Apia	new Date(0).setMonth(13)	number	5356800000
+UTC	new Date(0).setDate(0)	number	-86400000
+America/Sao_Paulo	new Date(0).setDate(0)	number	-2678400000
+Europe/London	new Date(0).setDate(0)	number	-86400000
+Asia/Kolkata	new Date(0).setDate(0)	number	-86400000
+Australia/Lord_Howe	new Date(0).setDate(0)	number	-86400000
+Pacific/Apia	new Date(0).setDate(0)	number	-2678400000
+UTC	new Date(0).setYear(99)	number	915148800000
+America/Sao_Paulo	new Date(0).setYear(99)	number	946681200000
+Europe/London	new Date(0).setYear(99)	number	915152400000
+Asia/Kolkata	new Date(0).setYear(99)	number	915148800000
+Australia/Lord_Howe	new Date(0).setYear(99)	number	915145200000
+Pacific/Apia	new Date(0).setYear(99)	number	946684800000
+UTC	new Date(0).setYear(100)	number	-59011459200000
+America/Sao_Paulo	new Date(0).setYear(100)	number	-58979922812000
+Europe/London	new Date(0).setYear(100)	number	-59011455525000
+Asia/Kolkata	new Date(0).setYear(100)	number	-59011460608000
+Australia/Lord_Howe	new Date(0).setYear(100)	number	-59011461380000
+Pacific/Apia	new Date(0).setYear(100)	number	-58980007984000
+any	new Date(0).setYear(NaN)	number	NaN
+any	var d = new Date(2000, 0, 1); d.setYear(99); d.getFullYear()	number	1999
+any	var d = new Date(2000, 0, 1); d.setYear(2005); d.getFullYear()	number	2005
+any	var d = new Date(0); d.setMonth(1).toString().length > 0	boolean	true
+any	typeof new Date(0).setHours(1)	string	"number"
+UTC	new Date(1541300399000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(1541300399000).getTimezoneOffset()	number	180
+Europe/London	new Date(1541300399000).getTimezoneOffset()	number	0
+Asia/Kolkata	new Date(1541300399000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(1541300399000).getTimezoneOffset()	number	-660
+Pacific/Apia	new Date(1541300399000).getTimezoneOffset()	number	-840
+UTC	new Date(1541300399000).toString()	string	"Sun Nov 04 2018 02:59:59 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(1541300399000).toString()	string	"Sat Nov 03 2018 23:59:59 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(1541300399000).toString()	string	"Sun Nov 04 2018 02:59:59 GMT+0000 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(1541300399000).toString()	string	"Sun Nov 04 2018 08:29:59 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(1541300399000).toString()	string	"Sun Nov 04 2018 13:59:59 GMT+1100 (Lord Howe Daylight Time)"
+Pacific/Apia	new Date(1541300399000).toString()	string	"Sun Nov 04 2018 16:59:59 GMT+1400 (Samoa Daylight Time)"
+UTC	new Date(1541300399000).getHours() + ':' + new Date(1541300399000).getMinutes()	string	"2:59"
+America/Sao_Paulo	new Date(1541300399000).getHours() + ':' + new Date(1541300399000).getMinutes()	string	"23:59"
+Europe/London	new Date(1541300399000).getHours() + ':' + new Date(1541300399000).getMinutes()	string	"2:59"
+Asia/Kolkata	new Date(1541300399000).getHours() + ':' + new Date(1541300399000).getMinutes()	string	"8:29"
+Australia/Lord_Howe	new Date(1541300399000).getHours() + ':' + new Date(1541300399000).getMinutes()	string	"13:59"
+Pacific/Apia	new Date(1541300399000).getHours() + ':' + new Date(1541300399000).getMinutes()	string	"16:59"
+UTC	new Date(1541300400000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(1541300400000).getTimezoneOffset()	number	120
+Europe/London	new Date(1541300400000).getTimezoneOffset()	number	0
+Asia/Kolkata	new Date(1541300400000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(1541300400000).getTimezoneOffset()	number	-660
+Pacific/Apia	new Date(1541300400000).getTimezoneOffset()	number	-840
+UTC	new Date(1541300400000).toString()	string	"Sun Nov 04 2018 03:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(1541300400000).toString()	string	"Sun Nov 04 2018 01:00:00 GMT-0200 (Brasilia Summer Time)"
+Europe/London	new Date(1541300400000).toString()	string	"Sun Nov 04 2018 03:00:00 GMT+0000 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(1541300400000).toString()	string	"Sun Nov 04 2018 08:30:00 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(1541300400000).toString()	string	"Sun Nov 04 2018 14:00:00 GMT+1100 (Lord Howe Daylight Time)"
+Pacific/Apia	new Date(1541300400000).toString()	string	"Sun Nov 04 2018 17:00:00 GMT+1400 (Samoa Daylight Time)"
+UTC	new Date(1541300400000).getHours() + ':' + new Date(1541300400000).getMinutes()	string	"3:0"
+America/Sao_Paulo	new Date(1541300400000).getHours() + ':' + new Date(1541300400000).getMinutes()	string	"1:0"
+Europe/London	new Date(1541300400000).getHours() + ':' + new Date(1541300400000).getMinutes()	string	"3:0"
+Asia/Kolkata	new Date(1541300400000).getHours() + ':' + new Date(1541300400000).getMinutes()	string	"8:30"
+Australia/Lord_Howe	new Date(1541300400000).getHours() + ':' + new Date(1541300400000).getMinutes()	string	"14:0"
+Pacific/Apia	new Date(1541300400000).getHours() + ':' + new Date(1541300400000).getMinutes()	string	"17:0"
+UTC	new Date(1550368799000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(1550368799000).getTimezoneOffset()	number	120
+Europe/London	new Date(1550368799000).getTimezoneOffset()	number	0
+Asia/Kolkata	new Date(1550368799000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(1550368799000).getTimezoneOffset()	number	-660
+Pacific/Apia	new Date(1550368799000).getTimezoneOffset()	number	-840
+UTC	new Date(1550368799000).toString()	string	"Sun Feb 17 2019 01:59:59 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(1550368799000).toString()	string	"Sat Feb 16 2019 23:59:59 GMT-0200 (Brasilia Summer Time)"
+Europe/London	new Date(1550368799000).toString()	string	"Sun Feb 17 2019 01:59:59 GMT+0000 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(1550368799000).toString()	string	"Sun Feb 17 2019 07:29:59 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(1550368799000).toString()	string	"Sun Feb 17 2019 12:59:59 GMT+1100 (Lord Howe Daylight Time)"
+Pacific/Apia	new Date(1550368799000).toString()	string	"Sun Feb 17 2019 15:59:59 GMT+1400 (Samoa Daylight Time)"
+UTC	new Date(1550368799000).getHours() + ':' + new Date(1550368799000).getMinutes()	string	"1:59"
+America/Sao_Paulo	new Date(1550368799000).getHours() + ':' + new Date(1550368799000).getMinutes()	string	"23:59"
+Europe/London	new Date(1550368799000).getHours() + ':' + new Date(1550368799000).getMinutes()	string	"1:59"
+Asia/Kolkata	new Date(1550368799000).getHours() + ':' + new Date(1550368799000).getMinutes()	string	"7:29"
+Australia/Lord_Howe	new Date(1550368799000).getHours() + ':' + new Date(1550368799000).getMinutes()	string	"12:59"
+Pacific/Apia	new Date(1550368799000).getHours() + ':' + new Date(1550368799000).getMinutes()	string	"15:59"
+UTC	new Date(1550368800000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(1550368800000).getTimezoneOffset()	number	180
+Europe/London	new Date(1550368800000).getTimezoneOffset()	number	0
+Asia/Kolkata	new Date(1550368800000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(1550368800000).getTimezoneOffset()	number	-660
+Pacific/Apia	new Date(1550368800000).getTimezoneOffset()	number	-840
+UTC	new Date(1550368800000).toString()	string	"Sun Feb 17 2019 02:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(1550368800000).toString()	string	"Sat Feb 16 2019 23:00:00 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(1550368800000).toString()	string	"Sun Feb 17 2019 02:00:00 GMT+0000 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(1550368800000).toString()	string	"Sun Feb 17 2019 07:30:00 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(1550368800000).toString()	string	"Sun Feb 17 2019 13:00:00 GMT+1100 (Lord Howe Daylight Time)"
+Pacific/Apia	new Date(1550368800000).toString()	string	"Sun Feb 17 2019 16:00:00 GMT+1400 (Samoa Daylight Time)"
+UTC	new Date(1550368800000).getHours() + ':' + new Date(1550368800000).getMinutes()	string	"2:0"
+America/Sao_Paulo	new Date(1550368800000).getHours() + ':' + new Date(1550368800000).getMinutes()	string	"23:0"
+Europe/London	new Date(1550368800000).getHours() + ':' + new Date(1550368800000).getMinutes()	string	"2:0"
+Asia/Kolkata	new Date(1550368800000).getHours() + ':' + new Date(1550368800000).getMinutes()	string	"7:30"
+Australia/Lord_Howe	new Date(1550368800000).getHours() + ':' + new Date(1550368800000).getMinutes()	string	"13:0"
+Pacific/Apia	new Date(1550368800000).getHours() + ':' + new Date(1550368800000).getMinutes()	string	"16:0"
+UTC	new Date(1616893199000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(1616893199000).getTimezoneOffset()	number	180
+Europe/London	new Date(1616893199000).getTimezoneOffset()	number	0
+Asia/Kolkata	new Date(1616893199000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(1616893199000).getTimezoneOffset()	number	-660
+Pacific/Apia	new Date(1616893199000).getTimezoneOffset()	number	-840
+UTC	new Date(1616893199000).toString()	string	"Sun Mar 28 2021 00:59:59 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(1616893199000).toString()	string	"Sat Mar 27 2021 21:59:59 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(1616893199000).toString()	string	"Sun Mar 28 2021 00:59:59 GMT+0000 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(1616893199000).toString()	string	"Sun Mar 28 2021 06:29:59 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(1616893199000).toString()	string	"Sun Mar 28 2021 11:59:59 GMT+1100 (Lord Howe Daylight Time)"
+Pacific/Apia	new Date(1616893199000).toString()	string	"Sun Mar 28 2021 14:59:59 GMT+1400 (Samoa Daylight Time)"
+UTC	new Date(1616893199000).getHours() + ':' + new Date(1616893199000).getMinutes()	string	"0:59"
+America/Sao_Paulo	new Date(1616893199000).getHours() + ':' + new Date(1616893199000).getMinutes()	string	"21:59"
+Europe/London	new Date(1616893199000).getHours() + ':' + new Date(1616893199000).getMinutes()	string	"0:59"
+Asia/Kolkata	new Date(1616893199000).getHours() + ':' + new Date(1616893199000).getMinutes()	string	"6:29"
+Australia/Lord_Howe	new Date(1616893199000).getHours() + ':' + new Date(1616893199000).getMinutes()	string	"11:59"
+Pacific/Apia	new Date(1616893199000).getHours() + ':' + new Date(1616893199000).getMinutes()	string	"14:59"
+UTC	new Date(1616893200000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(1616893200000).getTimezoneOffset()	number	180
+Europe/London	new Date(1616893200000).getTimezoneOffset()	number	-60
+Asia/Kolkata	new Date(1616893200000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(1616893200000).getTimezoneOffset()	number	-660
+Pacific/Apia	new Date(1616893200000).getTimezoneOffset()	number	-840
+UTC	new Date(1616893200000).toString()	string	"Sun Mar 28 2021 01:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(1616893200000).toString()	string	"Sat Mar 27 2021 22:00:00 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(1616893200000).toString()	string	"Sun Mar 28 2021 02:00:00 GMT+0100 (British Summer Time)"
+Asia/Kolkata	new Date(1616893200000).toString()	string	"Sun Mar 28 2021 06:30:00 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(1616893200000).toString()	string	"Sun Mar 28 2021 12:00:00 GMT+1100 (Lord Howe Daylight Time)"
+Pacific/Apia	new Date(1616893200000).toString()	string	"Sun Mar 28 2021 15:00:00 GMT+1400 (Samoa Daylight Time)"
+UTC	new Date(1616893200000).getHours() + ':' + new Date(1616893200000).getMinutes()	string	"1:0"
+America/Sao_Paulo	new Date(1616893200000).getHours() + ':' + new Date(1616893200000).getMinutes()	string	"22:0"
+Europe/London	new Date(1616893200000).getHours() + ':' + new Date(1616893200000).getMinutes()	string	"2:0"
+Asia/Kolkata	new Date(1616893200000).getHours() + ':' + new Date(1616893200000).getMinutes()	string	"6:30"
+Australia/Lord_Howe	new Date(1616893200000).getHours() + ':' + new Date(1616893200000).getMinutes()	string	"12:0"
+Pacific/Apia	new Date(1616893200000).getHours() + ':' + new Date(1616893200000).getMinutes()	string	"15:0"
+UTC	new Date(1635641999000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(1635641999000).getTimezoneOffset()	number	180
+Europe/London	new Date(1635641999000).getTimezoneOffset()	number	-60
+Asia/Kolkata	new Date(1635641999000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(1635641999000).getTimezoneOffset()	number	-660
+Pacific/Apia	new Date(1635641999000).getTimezoneOffset()	number	-780
+UTC	new Date(1635641999000).toString()	string	"Sun Oct 31 2021 00:59:59 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(1635641999000).toString()	string	"Sat Oct 30 2021 21:59:59 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(1635641999000).toString()	string	"Sun Oct 31 2021 01:59:59 GMT+0100 (British Summer Time)"
+Asia/Kolkata	new Date(1635641999000).toString()	string	"Sun Oct 31 2021 06:29:59 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(1635641999000).toString()	string	"Sun Oct 31 2021 11:59:59 GMT+1100 (Lord Howe Daylight Time)"
+Pacific/Apia	new Date(1635641999000).toString()	string	"Sun Oct 31 2021 13:59:59 GMT+1300 (Samoa Standard Time)"
+UTC	new Date(1635641999000).getHours() + ':' + new Date(1635641999000).getMinutes()	string	"0:59"
+America/Sao_Paulo	new Date(1635641999000).getHours() + ':' + new Date(1635641999000).getMinutes()	string	"21:59"
+Europe/London	new Date(1635641999000).getHours() + ':' + new Date(1635641999000).getMinutes()	string	"1:59"
+Asia/Kolkata	new Date(1635641999000).getHours() + ':' + new Date(1635641999000).getMinutes()	string	"6:29"
+Australia/Lord_Howe	new Date(1635641999000).getHours() + ':' + new Date(1635641999000).getMinutes()	string	"11:59"
+Pacific/Apia	new Date(1635641999000).getHours() + ':' + new Date(1635641999000).getMinutes()	string	"13:59"
+UTC	new Date(1635642000000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(1635642000000).getTimezoneOffset()	number	180
+Europe/London	new Date(1635642000000).getTimezoneOffset()	number	0
+Asia/Kolkata	new Date(1635642000000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(1635642000000).getTimezoneOffset()	number	-660
+Pacific/Apia	new Date(1635642000000).getTimezoneOffset()	number	-780
+UTC	new Date(1635642000000).toString()	string	"Sun Oct 31 2021 01:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(1635642000000).toString()	string	"Sat Oct 30 2021 22:00:00 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(1635642000000).toString()	string	"Sun Oct 31 2021 01:00:00 GMT+0000 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(1635642000000).toString()	string	"Sun Oct 31 2021 06:30:00 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(1635642000000).toString()	string	"Sun Oct 31 2021 12:00:00 GMT+1100 (Lord Howe Daylight Time)"
+Pacific/Apia	new Date(1635642000000).toString()	string	"Sun Oct 31 2021 14:00:00 GMT+1300 (Samoa Standard Time)"
+UTC	new Date(1635642000000).getHours() + ':' + new Date(1635642000000).getMinutes()	string	"1:0"
+America/Sao_Paulo	new Date(1635642000000).getHours() + ':' + new Date(1635642000000).getMinutes()	string	"22:0"
+Europe/London	new Date(1635642000000).getHours() + ':' + new Date(1635642000000).getMinutes()	string	"1:0"
+Asia/Kolkata	new Date(1635642000000).getHours() + ':' + new Date(1635642000000).getMinutes()	string	"6:30"
+Australia/Lord_Howe	new Date(1635642000000).getHours() + ':' + new Date(1635642000000).getMinutes()	string	"12:0"
+Pacific/Apia	new Date(1635642000000).getHours() + ':' + new Date(1635642000000).getMinutes()	string	"14:0"
+UTC	new Date(1617461999000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(1617461999000).getTimezoneOffset()	number	180
+Europe/London	new Date(1617461999000).getTimezoneOffset()	number	-60
+Asia/Kolkata	new Date(1617461999000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(1617461999000).getTimezoneOffset()	number	-660
+Pacific/Apia	new Date(1617461999000).getTimezoneOffset()	number	-780
+UTC	new Date(1617461999000).toString()	string	"Sat Apr 03 2021 14:59:59 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(1617461999000).toString()	string	"Sat Apr 03 2021 11:59:59 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(1617461999000).toString()	string	"Sat Apr 03 2021 15:59:59 GMT+0100 (British Summer Time)"
+Asia/Kolkata	new Date(1617461999000).toString()	string	"Sat Apr 03 2021 20:29:59 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(1617461999000).toString()	string	"Sun Apr 04 2021 01:59:59 GMT+1100 (Lord Howe Daylight Time)"
+Pacific/Apia	new Date(1617461999000).toString()	string	"Sun Apr 04 2021 03:59:59 GMT+1300 (Samoa Standard Time)"
+UTC	new Date(1617461999000).getHours() + ':' + new Date(1617461999000).getMinutes()	string	"14:59"
+America/Sao_Paulo	new Date(1617461999000).getHours() + ':' + new Date(1617461999000).getMinutes()	string	"11:59"
+Europe/London	new Date(1617461999000).getHours() + ':' + new Date(1617461999000).getMinutes()	string	"15:59"
+Asia/Kolkata	new Date(1617461999000).getHours() + ':' + new Date(1617461999000).getMinutes()	string	"20:29"
+Australia/Lord_Howe	new Date(1617461999000).getHours() + ':' + new Date(1617461999000).getMinutes()	string	"1:59"
+Pacific/Apia	new Date(1617461999000).getHours() + ':' + new Date(1617461999000).getMinutes()	string	"3:59"
+UTC	new Date(1617462000000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(1617462000000).getTimezoneOffset()	number	180
+Europe/London	new Date(1617462000000).getTimezoneOffset()	number	-60
+Asia/Kolkata	new Date(1617462000000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(1617462000000).getTimezoneOffset()	number	-630
+Pacific/Apia	new Date(1617462000000).getTimezoneOffset()	number	-780
+UTC	new Date(1617462000000).toString()	string	"Sat Apr 03 2021 15:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(1617462000000).toString()	string	"Sat Apr 03 2021 12:00:00 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(1617462000000).toString()	string	"Sat Apr 03 2021 16:00:00 GMT+0100 (British Summer Time)"
+Asia/Kolkata	new Date(1617462000000).toString()	string	"Sat Apr 03 2021 20:30:00 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(1617462000000).toString()	string	"Sun Apr 04 2021 01:30:00 GMT+1030 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(1617462000000).toString()	string	"Sun Apr 04 2021 04:00:00 GMT+1300 (Samoa Standard Time)"
+UTC	new Date(1617462000000).getHours() + ':' + new Date(1617462000000).getMinutes()	string	"15:0"
+America/Sao_Paulo	new Date(1617462000000).getHours() + ':' + new Date(1617462000000).getMinutes()	string	"12:0"
+Europe/London	new Date(1617462000000).getHours() + ':' + new Date(1617462000000).getMinutes()	string	"16:0"
+Asia/Kolkata	new Date(1617462000000).getHours() + ':' + new Date(1617462000000).getMinutes()	string	"20:30"
+Australia/Lord_Howe	new Date(1617462000000).getHours() + ':' + new Date(1617462000000).getMinutes()	string	"1:30"
+Pacific/Apia	new Date(1617462000000).getHours() + ':' + new Date(1617462000000).getMinutes()	string	"4:0"
+UTC	new Date(1633186799000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(1633186799000).getTimezoneOffset()	number	180
+Europe/London	new Date(1633186799000).getTimezoneOffset()	number	-60
+Asia/Kolkata	new Date(1633186799000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(1633186799000).getTimezoneOffset()	number	-630
+Pacific/Apia	new Date(1633186799000).getTimezoneOffset()	number	-780
+UTC	new Date(1633186799000).toString()	string	"Sat Oct 02 2021 14:59:59 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(1633186799000).toString()	string	"Sat Oct 02 2021 11:59:59 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(1633186799000).toString()	string	"Sat Oct 02 2021 15:59:59 GMT+0100 (British Summer Time)"
+Asia/Kolkata	new Date(1633186799000).toString()	string	"Sat Oct 02 2021 20:29:59 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(1633186799000).toString()	string	"Sun Oct 03 2021 01:29:59 GMT+1030 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(1633186799000).toString()	string	"Sun Oct 03 2021 03:59:59 GMT+1300 (Samoa Standard Time)"
+UTC	new Date(1633186799000).getHours() + ':' + new Date(1633186799000).getMinutes()	string	"14:59"
+America/Sao_Paulo	new Date(1633186799000).getHours() + ':' + new Date(1633186799000).getMinutes()	string	"11:59"
+Europe/London	new Date(1633186799000).getHours() + ':' + new Date(1633186799000).getMinutes()	string	"15:59"
+Asia/Kolkata	new Date(1633186799000).getHours() + ':' + new Date(1633186799000).getMinutes()	string	"20:29"
+Australia/Lord_Howe	new Date(1633186799000).getHours() + ':' + new Date(1633186799000).getMinutes()	string	"1:29"
+Pacific/Apia	new Date(1633186799000).getHours() + ':' + new Date(1633186799000).getMinutes()	string	"3:59"
+UTC	new Date(1633186800000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(1633186800000).getTimezoneOffset()	number	180
+Europe/London	new Date(1633186800000).getTimezoneOffset()	number	-60
+Asia/Kolkata	new Date(1633186800000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(1633186800000).getTimezoneOffset()	number	-630
+Pacific/Apia	new Date(1633186800000).getTimezoneOffset()	number	-780
+UTC	new Date(1633186800000).toString()	string	"Sat Oct 02 2021 15:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(1633186800000).toString()	string	"Sat Oct 02 2021 12:00:00 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(1633186800000).toString()	string	"Sat Oct 02 2021 16:00:00 GMT+0100 (British Summer Time)"
+Asia/Kolkata	new Date(1633186800000).toString()	string	"Sat Oct 02 2021 20:30:00 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(1633186800000).toString()	string	"Sun Oct 03 2021 01:30:00 GMT+1030 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(1633186800000).toString()	string	"Sun Oct 03 2021 04:00:00 GMT+1300 (Samoa Standard Time)"
+UTC	new Date(1633186800000).getHours() + ':' + new Date(1633186800000).getMinutes()	string	"15:0"
+America/Sao_Paulo	new Date(1633186800000).getHours() + ':' + new Date(1633186800000).getMinutes()	string	"12:0"
+Europe/London	new Date(1633186800000).getHours() + ':' + new Date(1633186800000).getMinutes()	string	"16:0"
+Asia/Kolkata	new Date(1633186800000).getHours() + ':' + new Date(1633186800000).getMinutes()	string	"20:30"
+Australia/Lord_Howe	new Date(1633186800000).getHours() + ':' + new Date(1633186800000).getMinutes()	string	"1:30"
+Pacific/Apia	new Date(1633186800000).getHours() + ':' + new Date(1633186800000).getMinutes()	string	"4:0"
+UTC	new Date(1325239199000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(1325239199000).getTimezoneOffset()	number	120
+Europe/London	new Date(1325239199000).getTimezoneOffset()	number	0
+Asia/Kolkata	new Date(1325239199000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(1325239199000).getTimezoneOffset()	number	-660
+Pacific/Apia	new Date(1325239199000).getTimezoneOffset()	number	600
+UTC	new Date(1325239199000).toString()	string	"Fri Dec 30 2011 09:59:59 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(1325239199000).toString()	string	"Fri Dec 30 2011 07:59:59 GMT-0200 (Brasilia Summer Time)"
+Europe/London	new Date(1325239199000).toString()	string	"Fri Dec 30 2011 09:59:59 GMT+0000 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(1325239199000).toString()	string	"Fri Dec 30 2011 15:29:59 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(1325239199000).toString()	string	"Fri Dec 30 2011 20:59:59 GMT+1100 (Lord Howe Daylight Time)"
+Pacific/Apia	new Date(1325239199000).toString()	string	"Thu Dec 29 2011 23:59:59 GMT-1000 (Samoa Daylight Time)"
+UTC	new Date(1325239199000).getHours() + ':' + new Date(1325239199000).getMinutes()	string	"9:59"
+America/Sao_Paulo	new Date(1325239199000).getHours() + ':' + new Date(1325239199000).getMinutes()	string	"7:59"
+Europe/London	new Date(1325239199000).getHours() + ':' + new Date(1325239199000).getMinutes()	string	"9:59"
+Asia/Kolkata	new Date(1325239199000).getHours() + ':' + new Date(1325239199000).getMinutes()	string	"15:29"
+Australia/Lord_Howe	new Date(1325239199000).getHours() + ':' + new Date(1325239199000).getMinutes()	string	"20:59"
+Pacific/Apia	new Date(1325239199000).getHours() + ':' + new Date(1325239199000).getMinutes()	string	"23:59"
+UTC	new Date(1325239200000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(1325239200000).getTimezoneOffset()	number	120
+Europe/London	new Date(1325239200000).getTimezoneOffset()	number	0
+Asia/Kolkata	new Date(1325239200000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(1325239200000).getTimezoneOffset()	number	-660
+Pacific/Apia	new Date(1325239200000).getTimezoneOffset()	number	-840
+UTC	new Date(1325239200000).toString()	string	"Fri Dec 30 2011 10:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(1325239200000).toString()	string	"Fri Dec 30 2011 08:00:00 GMT-0200 (Brasilia Summer Time)"
+Europe/London	new Date(1325239200000).toString()	string	"Fri Dec 30 2011 10:00:00 GMT+0000 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(1325239200000).toString()	string	"Fri Dec 30 2011 15:30:00 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(1325239200000).toString()	string	"Fri Dec 30 2011 21:00:00 GMT+1100 (Lord Howe Daylight Time)"
+Pacific/Apia	new Date(1325239200000).toString()	string	"Sat Dec 31 2011 00:00:00 GMT+1400 (Samoa Daylight Time)"
+UTC	new Date(1325239200000).getHours() + ':' + new Date(1325239200000).getMinutes()	string	"10:0"
+America/Sao_Paulo	new Date(1325239200000).getHours() + ':' + new Date(1325239200000).getMinutes()	string	"8:0"
+Europe/London	new Date(1325239200000).getHours() + ':' + new Date(1325239200000).getMinutes()	string	"10:0"
+Asia/Kolkata	new Date(1325239200000).getHours() + ':' + new Date(1325239200000).getMinutes()	string	"15:30"
+Australia/Lord_Howe	new Date(1325239200000).getHours() + ':' + new Date(1325239200000).getMinutes()	string	"21:0"
+Pacific/Apia	new Date(1325239200000).getHours() + ':' + new Date(1325239200000).getMinutes()	string	"0:0"
+UTC	new Date(1617447599000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(1617447599000).getTimezoneOffset()	number	180
+Europe/London	new Date(1617447599000).getTimezoneOffset()	number	-60
+Asia/Kolkata	new Date(1617447599000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(1617447599000).getTimezoneOffset()	number	-660
+Pacific/Apia	new Date(1617447599000).getTimezoneOffset()	number	-840
+UTC	new Date(1617447599000).toString()	string	"Sat Apr 03 2021 10:59:59 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(1617447599000).toString()	string	"Sat Apr 03 2021 07:59:59 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(1617447599000).toString()	string	"Sat Apr 03 2021 11:59:59 GMT+0100 (British Summer Time)"
+Asia/Kolkata	new Date(1617447599000).toString()	string	"Sat Apr 03 2021 16:29:59 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(1617447599000).toString()	string	"Sat Apr 03 2021 21:59:59 GMT+1100 (Lord Howe Daylight Time)"
+Pacific/Apia	new Date(1617447599000).toString()	string	"Sun Apr 04 2021 00:59:59 GMT+1400 (Samoa Daylight Time)"
+UTC	new Date(1617447599000).getHours() + ':' + new Date(1617447599000).getMinutes()	string	"10:59"
+America/Sao_Paulo	new Date(1617447599000).getHours() + ':' + new Date(1617447599000).getMinutes()	string	"7:59"
+Europe/London	new Date(1617447599000).getHours() + ':' + new Date(1617447599000).getMinutes()	string	"11:59"
+Asia/Kolkata	new Date(1617447599000).getHours() + ':' + new Date(1617447599000).getMinutes()	string	"16:29"
+Australia/Lord_Howe	new Date(1617447599000).getHours() + ':' + new Date(1617447599000).getMinutes()	string	"21:59"
+Pacific/Apia	new Date(1617447599000).getHours() + ':' + new Date(1617447599000).getMinutes()	string	"0:59"
+UTC	new Date(1617447600000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(1617447600000).getTimezoneOffset()	number	180
+Europe/London	new Date(1617447600000).getTimezoneOffset()	number	-60
+Asia/Kolkata	new Date(1617447600000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(1617447600000).getTimezoneOffset()	number	-660
+Pacific/Apia	new Date(1617447600000).getTimezoneOffset()	number	-840
+UTC	new Date(1617447600000).toString()	string	"Sat Apr 03 2021 11:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(1617447600000).toString()	string	"Sat Apr 03 2021 08:00:00 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(1617447600000).toString()	string	"Sat Apr 03 2021 12:00:00 GMT+0100 (British Summer Time)"
+Asia/Kolkata	new Date(1617447600000).toString()	string	"Sat Apr 03 2021 16:30:00 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(1617447600000).toString()	string	"Sat Apr 03 2021 22:00:00 GMT+1100 (Lord Howe Daylight Time)"
+Pacific/Apia	new Date(1617447600000).toString()	string	"Sun Apr 04 2021 01:00:00 GMT+1400 (Samoa Daylight Time)"
+UTC	new Date(1617447600000).getHours() + ':' + new Date(1617447600000).getMinutes()	string	"11:0"
+America/Sao_Paulo	new Date(1617447600000).getHours() + ':' + new Date(1617447600000).getMinutes()	string	"8:0"
+Europe/London	new Date(1617447600000).getHours() + ':' + new Date(1617447600000).getMinutes()	string	"12:0"
+Asia/Kolkata	new Date(1617447600000).getHours() + ':' + new Date(1617447600000).getMinutes()	string	"16:30"
+Australia/Lord_Howe	new Date(1617447600000).getHours() + ':' + new Date(1617447600000).getMinutes()	string	"22:0"
+Pacific/Apia	new Date(1617447600000).getHours() + ':' + new Date(1617447600000).getMinutes()	string	"1:0"
+UTC	new Date(-764208000000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(-764208000000).getTimezoneOffset()	number	180
+Europe/London	new Date(-764208000000).getTimezoneOffset()	number	0
+Asia/Kolkata	new Date(-764208000000).getTimezoneOffset()	number	-390
+Australia/Lord_Howe	new Date(-764208000000).getTimezoneOffset()	number	-600
+Pacific/Apia	new Date(-764208000000).getTimezoneOffset()	number	690
+UTC	new Date(-764208000000).toString()	string	"Sun Oct 14 1945 00:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(-764208000000).toString()	string	"Sat Oct 13 1945 21:00:00 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(-764208000000).toString()	string	"Sun Oct 14 1945 00:00:00 GMT+0000 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(-764208000000).toString()	string	"Sun Oct 14 1945 06:30:00 GMT+0630 (GMT+05:30)"
+Australia/Lord_Howe	new Date(-764208000000).toString()	string	"Sun Oct 14 1945 10:00:00 GMT+1000 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(-764208000000).toString()	string	"Sat Oct 13 1945 12:30:00 GMT-1130 (Samoa Standard Time)"
+UTC	new Date(-764208000000).getHours() + ':' + new Date(-764208000000).getMinutes()	string	"0:0"
+America/Sao_Paulo	new Date(-764208000000).getHours() + ':' + new Date(-764208000000).getMinutes()	string	"21:0"
+Europe/London	new Date(-764208000000).getHours() + ':' + new Date(-764208000000).getMinutes()	string	"0:0"
+Asia/Kolkata	new Date(-764208000000).getHours() + ':' + new Date(-764208000000).getMinutes()	string	"6:30"
+Australia/Lord_Howe	new Date(-764208000000).getHours() + ':' + new Date(-764208000000).getMinutes()	string	"10:0"
+Pacific/Apia	new Date(-764208000000).getHours() + ':' + new Date(-764208000000).getMinutes()	string	"12:30"
+UTC	new Date(631152000000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(631152000000).getTimezoneOffset()	number	120
+Europe/London	new Date(631152000000).getTimezoneOffset()	number	0
+Asia/Kolkata	new Date(631152000000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(631152000000).getTimezoneOffset()	number	-660
+Pacific/Apia	new Date(631152000000).getTimezoneOffset()	number	660
+UTC	new Date(631152000000).toString()	string	"Mon Jan 01 1990 00:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(631152000000).toString()	string	"Sun Dec 31 1989 22:00:00 GMT-0200 (Brasilia Summer Time)"
+Europe/London	new Date(631152000000).toString()	string	"Mon Jan 01 1990 00:00:00 GMT+0000 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(631152000000).toString()	string	"Mon Jan 01 1990 05:30:00 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(631152000000).toString()	string	"Mon Jan 01 1990 11:00:00 GMT+1100 (Lord Howe Daylight Time)"
+Pacific/Apia	new Date(631152000000).toString()	string	"Sun Dec 31 1989 13:00:00 GMT-1100 (Samoa Standard Time)"
+UTC	new Date(631152000000).getHours() + ':' + new Date(631152000000).getMinutes()	string	"0:0"
+America/Sao_Paulo	new Date(631152000000).getHours() + ':' + new Date(631152000000).getMinutes()	string	"22:0"
+Europe/London	new Date(631152000000).getHours() + ':' + new Date(631152000000).getMinutes()	string	"0:0"
+Asia/Kolkata	new Date(631152000000).getHours() + ':' + new Date(631152000000).getMinutes()	string	"5:30"
+Australia/Lord_Howe	new Date(631152000000).getHours() + ':' + new Date(631152000000).getMinutes()	string	"11:0"
+Pacific/Apia	new Date(631152000000).getHours() + ':' + new Date(631152000000).getMinutes()	string	"13:0"
+UTC	new Date(1590969600000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(1590969600000).getTimezoneOffset()	number	180
+Europe/London	new Date(1590969600000).getTimezoneOffset()	number	-60
+Asia/Kolkata	new Date(1590969600000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(1590969600000).getTimezoneOffset()	number	-630
+Pacific/Apia	new Date(1590969600000).getTimezoneOffset()	number	-780
+UTC	new Date(1590969600000).toString()	string	"Mon Jun 01 2020 00:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(1590969600000).toString()	string	"Sun May 31 2020 21:00:00 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(1590969600000).toString()	string	"Mon Jun 01 2020 01:00:00 GMT+0100 (British Summer Time)"
+Asia/Kolkata	new Date(1590969600000).toString()	string	"Mon Jun 01 2020 05:30:00 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(1590969600000).toString()	string	"Mon Jun 01 2020 10:30:00 GMT+1030 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(1590969600000).toString()	string	"Mon Jun 01 2020 13:00:00 GMT+1300 (Samoa Standard Time)"
+UTC	new Date(1590969600000).getHours() + ':' + new Date(1590969600000).getMinutes()	string	"0:0"
+America/Sao_Paulo	new Date(1590969600000).getHours() + ':' + new Date(1590969600000).getMinutes()	string	"21:0"
+Europe/London	new Date(1590969600000).getHours() + ':' + new Date(1590969600000).getMinutes()	string	"1:0"
+Asia/Kolkata	new Date(1590969600000).getHours() + ':' + new Date(1590969600000).getMinutes()	string	"5:30"
+Australia/Lord_Howe	new Date(1590969600000).getHours() + ':' + new Date(1590969600000).getMinutes()	string	"10:30"
+Pacific/Apia	new Date(1590969600000).getHours() + ':' + new Date(1590969600000).getMinutes()	string	"13:0"
+UTC	new Date(-5364662400000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(-5364662400000).getTimezoneOffset()	number	186
+Europe/London	new Date(-5364662400000).getTimezoneOffset()	number	1
+Asia/Kolkata	new Date(-5364662400000).getTimezoneOffset()	number	-353
+Australia/Lord_Howe	new Date(-5364662400000).getTimezoneOffset()	number	-636
+Pacific/Apia	new Date(-5364662400000).getTimezoneOffset()	number	-753
+UTC	new Date(-5364662400000).toString()	string	"Wed Jan 01 1800 00:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(-5364662400000).toString()	string	"Tue Dec 31 1799 20:53:32 GMT-0306 (Brasilia Standard Time)"
+Europe/London	new Date(-5364662400000).toString()	string	"Tue Dec 31 1799 23:58:45 GMT-0001 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(-5364662400000).toString()	string	"Wed Jan 01 1800 05:53:28 GMT+0553 (India Standard Time)"
+Australia/Lord_Howe	new Date(-5364662400000).toString()	string	"Wed Jan 01 1800 10:36:20 GMT+1036 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(-5364662400000).toString()	string	"Wed Jan 01 1800 12:33:04 GMT+1233 (Samoa Standard Time)"
+UTC	new Date(-5364662400000).getHours() + ':' + new Date(-5364662400000).getMinutes()	string	"0:0"
+America/Sao_Paulo	new Date(-5364662400000).getHours() + ':' + new Date(-5364662400000).getMinutes()	string	"20:53"
+Europe/London	new Date(-5364662400000).getHours() + ':' + new Date(-5364662400000).getMinutes()	string	"23:58"
+Asia/Kolkata	new Date(-5364662400000).getHours() + ':' + new Date(-5364662400000).getMinutes()	string	"5:53"
+Australia/Lord_Howe	new Date(-5364662400000).getHours() + ':' + new Date(-5364662400000).getMinutes()	string	"10:36"
+Pacific/Apia	new Date(-5364662400000).getHours() + ':' + new Date(-5364662400000).getMinutes()	string	"12:33"
+UTC	new Date(-2208988800000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(-2208988800000).getTimezoneOffset()	number	186
+Europe/London	new Date(-2208988800000).getTimezoneOffset()	number	0
+Asia/Kolkata	new Date(-2208988800000).getTimezoneOffset()	number	-321
+Australia/Lord_Howe	new Date(-2208988800000).getTimezoneOffset()	number	-600
+Pacific/Apia	new Date(-2208988800000).getTimezoneOffset()	number	686
+UTC	new Date(-2208988800000).toString()	string	"Mon Jan 01 1900 00:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(-2208988800000).toString()	string	"Sun Dec 31 1899 20:53:32 GMT-0306 (Brasilia Standard Time)"
+Europe/London	new Date(-2208988800000).toString()	string	"Mon Jan 01 1900 00:00:00 GMT+0000 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(-2208988800000).toString()	string	"Mon Jan 01 1900 05:21:10 GMT+0521 (India Standard Time)"
+Australia/Lord_Howe	new Date(-2208988800000).toString()	string	"Mon Jan 01 1900 10:00:00 GMT+1000 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(-2208988800000).toString()	string	"Sun Dec 31 1899 12:33:04 GMT-1126 (Samoa Standard Time)"
+UTC	new Date(-2208988800000).getHours() + ':' + new Date(-2208988800000).getMinutes()	string	"0:0"
+America/Sao_Paulo	new Date(-2208988800000).getHours() + ':' + new Date(-2208988800000).getMinutes()	string	"20:53"
+Europe/London	new Date(-2208988800000).getHours() + ':' + new Date(-2208988800000).getMinutes()	string	"0:0"
+Asia/Kolkata	new Date(-2208988800000).getHours() + ':' + new Date(-2208988800000).getMinutes()	string	"5:21"
+Australia/Lord_Howe	new Date(-2208988800000).getHours() + ':' + new Date(-2208988800000).getMinutes()	string	"10:0"
+Pacific/Apia	new Date(-2208988800000).getHours() + ':' + new Date(-2208988800000).getMinutes()	string	"12:33"
+UTC	new Date(-1000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(-1000).getTimezoneOffset()	number	180
+Europe/London	new Date(-1000).getTimezoneOffset()	number	-60
+Asia/Kolkata	new Date(-1000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(-1000).getTimezoneOffset()	number	-600
+Pacific/Apia	new Date(-1000).getTimezoneOffset()	number	660
+UTC	new Date(-1000).toString()	string	"Wed Dec 31 1969 23:59:59 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(-1000).toString()	string	"Wed Dec 31 1969 20:59:59 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(-1000).toString()	string	"Thu Jan 01 1970 00:59:59 GMT+0100 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(-1000).toString()	string	"Thu Jan 01 1970 05:29:59 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(-1000).toString()	string	"Thu Jan 01 1970 09:59:59 GMT+1000 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(-1000).toString()	string	"Wed Dec 31 1969 12:59:59 GMT-1100 (Samoa Standard Time)"
+UTC	new Date(-1000).getHours() + ':' + new Date(-1000).getMinutes()	string	"23:59"
+America/Sao_Paulo	new Date(-1000).getHours() + ':' + new Date(-1000).getMinutes()	string	"20:59"
+Europe/London	new Date(-1000).getHours() + ':' + new Date(-1000).getMinutes()	string	"0:59"
+Asia/Kolkata	new Date(-1000).getHours() + ':' + new Date(-1000).getMinutes()	string	"5:29"
+Australia/Lord_Howe	new Date(-1000).getHours() + ':' + new Date(-1000).getMinutes()	string	"9:59"
+Pacific/Apia	new Date(-1000).getHours() + ':' + new Date(-1000).getMinutes()	string	"12:59"
+UTC	new Date(2145830400000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(2145830400000).getTimezoneOffset()	number	180
+Europe/London	new Date(2145830400000).getTimezoneOffset()	number	0
+Asia/Kolkata	new Date(2145830400000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(2145830400000).getTimezoneOffset()	number	-660
+Pacific/Apia	new Date(2145830400000).getTimezoneOffset()	number	-780
+UTC	new Date(2145830400000).toString()	string	"Thu Dec 31 2037 00:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(2145830400000).toString()	string	"Wed Dec 30 2037 21:00:00 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(2145830400000).toString()	string	"Thu Dec 31 2037 00:00:00 GMT+0000 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(2145830400000).toString()	string	"Thu Dec 31 2037 05:30:00 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(2145830400000).toString()	string	"Thu Dec 31 2037 11:00:00 GMT+1100 (Lord Howe Daylight Time)"
+Pacific/Apia	new Date(2145830400000).toString()	string	"Thu Dec 31 2037 13:00:00 GMT+1300 (Samoa Standard Time)"
+UTC	new Date(2145830400000).getHours() + ':' + new Date(2145830400000).getMinutes()	string	"0:0"
+America/Sao_Paulo	new Date(2145830400000).getHours() + ':' + new Date(2145830400000).getMinutes()	string	"21:0"
+Europe/London	new Date(2145830400000).getHours() + ':' + new Date(2145830400000).getMinutes()	string	"0:0"
+Asia/Kolkata	new Date(2145830400000).getHours() + ':' + new Date(2145830400000).getMinutes()	string	"5:30"
+Australia/Lord_Howe	new Date(2145830400000).getHours() + ':' + new Date(2145830400000).getMinutes()	string	"11:0"
+Pacific/Apia	new Date(2145830400000).getHours() + ':' + new Date(2145830400000).getMinutes()	string	"13:0"
+UTC	new Date(4118083200000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(4118083200000).getTimezoneOffset()	number	180
+Europe/London	new Date(4118083200000).getTimezoneOffset()	number	-60
+Asia/Kolkata	new Date(4118083200000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(4118083200000).getTimezoneOffset()	number	-630
+Pacific/Apia	new Date(4118083200000).getTimezoneOffset()	number	-780
+UTC	new Date(4118083200000).toString()	string	"Thu Jul 01 2100 00:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(4118083200000).toString()	string	"Wed Jun 30 2100 21:00:00 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(4118083200000).toString()	string	"Thu Jul 01 2100 01:00:00 GMT+0100 (British Summer Time)"
+Asia/Kolkata	new Date(4118083200000).toString()	string	"Thu Jul 01 2100 05:30:00 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(4118083200000).toString()	string	"Thu Jul 01 2100 10:30:00 GMT+1030 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(4118083200000).toString()	string	"Thu Jul 01 2100 13:00:00 GMT+1300 (Samoa Standard Time)"
+UTC	new Date(4118083200000).getHours() + ':' + new Date(4118083200000).getMinutes()	string	"0:0"
+America/Sao_Paulo	new Date(4118083200000).getHours() + ':' + new Date(4118083200000).getMinutes()	string	"21:0"
+Europe/London	new Date(4118083200000).getHours() + ':' + new Date(4118083200000).getMinutes()	string	"1:0"
+Asia/Kolkata	new Date(4118083200000).getHours() + ':' + new Date(4118083200000).getMinutes()	string	"5:30"
+Australia/Lord_Howe	new Date(4118083200000).getHours() + ':' + new Date(4118083200000).getMinutes()	string	"10:30"
+Pacific/Apia	new Date(4118083200000).getHours() + ':' + new Date(4118083200000).getMinutes()	string	"13:0"
+UTC	new Date(32503680000000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(32503680000000).getTimezoneOffset()	number	180
+Europe/London	new Date(32503680000000).getTimezoneOffset()	number	0
+Asia/Kolkata	new Date(32503680000000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(32503680000000).getTimezoneOffset()	number	-660
+Pacific/Apia	new Date(32503680000000).getTimezoneOffset()	number	-780
+UTC	new Date(32503680000000).toString()	string	"Wed Jan 01 3000 00:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(32503680000000).toString()	string	"Tue Dec 31 2999 21:00:00 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(32503680000000).toString()	string	"Wed Jan 01 3000 00:00:00 GMT+0000 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(32503680000000).toString()	string	"Wed Jan 01 3000 05:30:00 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(32503680000000).toString()	string	"Wed Jan 01 3000 11:00:00 GMT+1100 (Lord Howe Daylight Time)"
+Pacific/Apia	new Date(32503680000000).toString()	string	"Wed Jan 01 3000 13:00:00 GMT+1300 (Samoa Standard Time)"
+UTC	new Date(32503680000000).getHours() + ':' + new Date(32503680000000).getMinutes()	string	"0:0"
+America/Sao_Paulo	new Date(32503680000000).getHours() + ':' + new Date(32503680000000).getMinutes()	string	"21:0"
+Europe/London	new Date(32503680000000).getHours() + ':' + new Date(32503680000000).getMinutes()	string	"0:0"
+Asia/Kolkata	new Date(32503680000000).getHours() + ':' + new Date(32503680000000).getMinutes()	string	"5:30"
+Australia/Lord_Howe	new Date(32503680000000).getHours() + ':' + new Date(32503680000000).getMinutes()	string	"11:0"
+Pacific/Apia	new Date(32503680000000).getHours() + ':' + new Date(32503680000000).getMinutes()	string	"13:0"
+UTC	new Date(2018, 10, 4, 0, 30).toISOString()	string	"2018-11-04T00:30:00.000Z"
+America/Sao_Paulo	new Date(2018, 10, 4, 0, 30).toISOString()	string	"2018-11-04T03:30:00.000Z"
+Europe/London	new Date(2018, 10, 4, 0, 30).toISOString()	string	"2018-11-04T00:30:00.000Z"
+Asia/Kolkata	new Date(2018, 10, 4, 0, 30).toISOString()	string	"2018-11-03T19:00:00.000Z"
+Australia/Lord_Howe	new Date(2018, 10, 4, 0, 30).toISOString()	string	"2018-11-03T13:30:00.000Z"
+Pacific/Apia	new Date(2018, 10, 4, 0, 30).toISOString()	string	"2018-11-03T10:30:00.000Z"
+UTC	new Date(2018, 10, 4, 1, 0).toISOString()	string	"2018-11-04T01:00:00.000Z"
+America/Sao_Paulo	new Date(2018, 10, 4, 1, 0).toISOString()	string	"2018-11-04T03:00:00.000Z"
+Europe/London	new Date(2018, 10, 4, 1, 0).toISOString()	string	"2018-11-04T01:00:00.000Z"
+Asia/Kolkata	new Date(2018, 10, 4, 1, 0).toISOString()	string	"2018-11-03T19:30:00.000Z"
+Australia/Lord_Howe	new Date(2018, 10, 4, 1, 0).toISOString()	string	"2018-11-03T14:00:00.000Z"
+Pacific/Apia	new Date(2018, 10, 4, 1, 0).toISOString()	string	"2018-11-03T11:00:00.000Z"
+UTC	new Date(2019, 1, 16, 23, 30).toISOString()	string	"2019-02-16T23:30:00.000Z"
+America/Sao_Paulo	new Date(2019, 1, 16, 23, 30).toISOString()	string	"2019-02-17T01:30:00.000Z"
+Europe/London	new Date(2019, 1, 16, 23, 30).toISOString()	string	"2019-02-16T23:30:00.000Z"
+Asia/Kolkata	new Date(2019, 1, 16, 23, 30).toISOString()	string	"2019-02-16T18:00:00.000Z"
+Australia/Lord_Howe	new Date(2019, 1, 16, 23, 30).toISOString()	string	"2019-02-16T12:30:00.000Z"
+Pacific/Apia	new Date(2019, 1, 16, 23, 30).toISOString()	string	"2019-02-16T09:30:00.000Z"
+UTC	new Date(2021, 2, 28, 1, 30).toISOString()	string	"2021-03-28T01:30:00.000Z"
+America/Sao_Paulo	new Date(2021, 2, 28, 1, 30).toISOString()	string	"2021-03-28T04:30:00.000Z"
+Europe/London	new Date(2021, 2, 28, 1, 30).toISOString()	string	"2021-03-28T01:30:00.000Z"
+Asia/Kolkata	new Date(2021, 2, 28, 1, 30).toISOString()	string	"2021-03-27T20:00:00.000Z"
+Australia/Lord_Howe	new Date(2021, 2, 28, 1, 30).toISOString()	string	"2021-03-27T14:30:00.000Z"
+Pacific/Apia	new Date(2021, 2, 28, 1, 30).toISOString()	string	"2021-03-27T11:30:00.000Z"
+UTC	new Date(2021, 9, 31, 1, 30).toISOString()	string	"2021-10-31T01:30:00.000Z"
+America/Sao_Paulo	new Date(2021, 9, 31, 1, 30).toISOString()	string	"2021-10-31T04:30:00.000Z"
+Europe/London	new Date(2021, 9, 31, 1, 30).toISOString()	string	"2021-10-31T00:30:00.000Z"
+Asia/Kolkata	new Date(2021, 9, 31, 1, 30).toISOString()	string	"2021-10-30T20:00:00.000Z"
+Australia/Lord_Howe	new Date(2021, 9, 31, 1, 30).toISOString()	string	"2021-10-30T14:30:00.000Z"
+Pacific/Apia	new Date(2021, 9, 31, 1, 30).toISOString()	string	"2021-10-30T12:30:00.000Z"
+UTC	new Date(2021, 3, 4, 2, 15).toISOString()	string	"2021-04-04T02:15:00.000Z"
+America/Sao_Paulo	new Date(2021, 3, 4, 2, 15).toISOString()	string	"2021-04-04T05:15:00.000Z"
+Europe/London	new Date(2021, 3, 4, 2, 15).toISOString()	string	"2021-04-04T01:15:00.000Z"
+Asia/Kolkata	new Date(2021, 3, 4, 2, 15).toISOString()	string	"2021-04-03T20:45:00.000Z"
+Australia/Lord_Howe	new Date(2021, 3, 4, 2, 15).toISOString()	string	"2021-04-03T15:45:00.000Z"
+Pacific/Apia	new Date(2021, 3, 4, 2, 15).toISOString()	string	"2021-04-03T12:15:00.000Z"
+UTC	new Date(2021, 9, 3, 2, 15).toISOString()	string	"2021-10-03T02:15:00.000Z"
+America/Sao_Paulo	new Date(2021, 9, 3, 2, 15).toISOString()	string	"2021-10-03T05:15:00.000Z"
+Europe/London	new Date(2021, 9, 3, 2, 15).toISOString()	string	"2021-10-03T01:15:00.000Z"
+Asia/Kolkata	new Date(2021, 9, 3, 2, 15).toISOString()	string	"2021-10-02T20:45:00.000Z"
+Australia/Lord_Howe	new Date(2021, 9, 3, 2, 15).toISOString()	string	"2021-10-02T15:45:00.000Z"
+Pacific/Apia	new Date(2021, 9, 3, 2, 15).toISOString()	string	"2021-10-02T13:15:00.000Z"
+UTC	new Date(2011, 11, 30, 12).toISOString()	string	"2011-12-30T12:00:00.000Z"
+America/Sao_Paulo	new Date(2011, 11, 30, 12).toISOString()	string	"2011-12-30T14:00:00.000Z"
+Europe/London	new Date(2011, 11, 30, 12).toISOString()	string	"2011-12-30T12:00:00.000Z"
+Asia/Kolkata	new Date(2011, 11, 30, 12).toISOString()	string	"2011-12-30T06:30:00.000Z"
+Australia/Lord_Howe	new Date(2011, 11, 30, 12).toISOString()	string	"2011-12-30T01:00:00.000Z"
+Pacific/Apia	new Date(2011, 11, 30, 12).toISOString()	string	"2011-12-30T22:00:00.000Z"
+UTC	new Date(2011, 11, 31, 12).toISOString()	string	"2011-12-31T12:00:00.000Z"
+America/Sao_Paulo	new Date(2011, 11, 31, 12).toISOString()	string	"2011-12-31T14:00:00.000Z"
+Europe/London	new Date(2011, 11, 31, 12).toISOString()	string	"2011-12-31T12:00:00.000Z"
+Asia/Kolkata	new Date(2011, 11, 31, 12).toISOString()	string	"2011-12-31T06:30:00.000Z"
+Australia/Lord_Howe	new Date(2011, 11, 31, 12).toISOString()	string	"2011-12-31T01:00:00.000Z"
+Pacific/Apia	new Date(2011, 11, 31, 12).toISOString()	string	"2011-12-30T22:00:00.000Z"
+UTC	var d = new Date(2021, 2, 28, 0, 30); d.setHours(1, 30); d.toISOString()	string	"2021-03-28T01:30:00.000Z"
+America/Sao_Paulo	var d = new Date(2021, 2, 28, 0, 30); d.setHours(1, 30); d.toISOString()	string	"2021-03-28T04:30:00.000Z"
+Europe/London	var d = new Date(2021, 2, 28, 0, 30); d.setHours(1, 30); d.toISOString()	string	"2021-03-28T01:30:00.000Z"
+Asia/Kolkata	var d = new Date(2021, 2, 28, 0, 30); d.setHours(1, 30); d.toISOString()	string	"2021-03-27T20:00:00.000Z"
+Australia/Lord_Howe	var d = new Date(2021, 2, 28, 0, 30); d.setHours(1, 30); d.toISOString()	string	"2021-03-27T14:30:00.000Z"
+Pacific/Apia	var d = new Date(2021, 2, 28, 0, 30); d.setHours(1, 30); d.toISOString()	string	"2021-03-27T11:30:00.000Z"
+UTC	var d = new Date(2021, 9, 31, 0, 30); d.setHours(d.getHours() + 1); d.toISOString()	string	"2021-10-31T01:30:00.000Z"
+America/Sao_Paulo	var d = new Date(2021, 9, 31, 0, 30); d.setHours(d.getHours() + 1); d.toISOString()	string	"2021-10-31T04:30:00.000Z"
+Europe/London	var d = new Date(2021, 9, 31, 0, 30); d.setHours(d.getHours() + 1); d.toISOString()	string	"2021-10-31T00:30:00.000Z"
+Asia/Kolkata	var d = new Date(2021, 9, 31, 0, 30); d.setHours(d.getHours() + 1); d.toISOString()	string	"2021-10-30T20:00:00.000Z"
+Australia/Lord_Howe	var d = new Date(2021, 9, 31, 0, 30); d.setHours(d.getHours() + 1); d.toISOString()	string	"2021-10-30T14:30:00.000Z"
+Pacific/Apia	var d = new Date(2021, 9, 31, 0, 30); d.setHours(d.getHours() + 1); d.toISOString()	string	"2021-10-30T12:30:00.000Z"
+UTC	var d = new Date(2018, 10, 3, 23, 59); d.setMinutes(d.getMinutes() + 1); d.toISOString()	string	"2018-11-04T00:00:00.000Z"
+America/Sao_Paulo	var d = new Date(2018, 10, 3, 23, 59); d.setMinutes(d.getMinutes() + 1); d.toISOString()	string	"2018-11-04T03:00:00.000Z"
+Europe/London	var d = new Date(2018, 10, 3, 23, 59); d.setMinutes(d.getMinutes() + 1); d.toISOString()	string	"2018-11-04T00:00:00.000Z"
+Asia/Kolkata	var d = new Date(2018, 10, 3, 23, 59); d.setMinutes(d.getMinutes() + 1); d.toISOString()	string	"2018-11-03T18:30:00.000Z"
+Australia/Lord_Howe	var d = new Date(2018, 10, 3, 23, 59); d.setMinutes(d.getMinutes() + 1); d.toISOString()	string	"2018-11-03T13:00:00.000Z"
+Pacific/Apia	var d = new Date(2018, 10, 3, 23, 59); d.setMinutes(d.getMinutes() + 1); d.toISOString()	string	"2018-11-03T10:00:00.000Z"
+UTC	var d = new Date(2021, 2, 27, 1, 30); d.setDate(28); d.toISOString()	string	"2021-03-28T01:30:00.000Z"
+America/Sao_Paulo	var d = new Date(2021, 2, 27, 1, 30); d.setDate(28); d.toISOString()	string	"2021-03-28T04:30:00.000Z"
+Europe/London	var d = new Date(2021, 2, 27, 1, 30); d.setDate(28); d.toISOString()	string	"2021-03-28T01:30:00.000Z"
+Asia/Kolkata	var d = new Date(2021, 2, 27, 1, 30); d.setDate(28); d.toISOString()	string	"2021-03-27T20:00:00.000Z"
+Australia/Lord_Howe	var d = new Date(2021, 2, 27, 1, 30); d.setDate(28); d.toISOString()	string	"2021-03-27T14:30:00.000Z"
+Pacific/Apia	var d = new Date(2021, 2, 27, 1, 30); d.setDate(28); d.toISOString()	string	"2021-03-27T11:30:00.000Z"
+UTC	new Date(2021, 2, 28, 1, 30).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(2021, 2, 28, 1, 30).getTimezoneOffset()	number	180
+Europe/London	new Date(2021, 2, 28, 1, 30).getTimezoneOffset()	number	-60
+Asia/Kolkata	new Date(2021, 2, 28, 1, 30).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(2021, 2, 28, 1, 30).getTimezoneOffset()	number	-660
+Pacific/Apia	new Date(2021, 2, 28, 1, 30).getTimezoneOffset()	number	-840
+UTC	new Date(2021, 9, 31, 1, 30).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(2021, 9, 31, 1, 30).getTimezoneOffset()	number	180
+Europe/London	new Date(2021, 9, 31, 1, 30).getTimezoneOffset()	number	-60
+Asia/Kolkata	new Date(2021, 9, 31, 1, 30).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(2021, 9, 31, 1, 30).getTimezoneOffset()	number	-660
+Pacific/Apia	new Date(2021, 9, 31, 1, 30).getTimezoneOffset()	number	-780
+UTC	new Date(2018, 10, 4, 0, 30).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(2018, 10, 4, 0, 30).getTimezoneOffset()	number	120
+Europe/London	new Date(2018, 10, 4, 0, 30).getTimezoneOffset()	number	0
+Asia/Kolkata	new Date(2018, 10, 4, 0, 30).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(2018, 10, 4, 0, 30).getTimezoneOffset()	number	-660
+Pacific/Apia	new Date(2018, 10, 4, 0, 30).getTimezoneOffset()	number	-840
+UTC	new Date('2021-03-28T01:30:00').toISOString()	string	"2021-03-28T01:30:00.000Z"
+America/Sao_Paulo	new Date('2021-03-28T01:30:00').toISOString()	string	"2021-03-28T04:30:00.000Z"
+Europe/London	new Date('2021-03-28T01:30:00').toISOString()	string	"2021-03-28T01:30:00.000Z"
+Asia/Kolkata	new Date('2021-03-28T01:30:00').toISOString()	string	"2021-03-27T20:00:00.000Z"
+Australia/Lord_Howe	new Date('2021-03-28T01:30:00').toISOString()	string	"2021-03-27T14:30:00.000Z"
+Pacific/Apia	new Date('2021-03-28T01:30:00').toISOString()	string	"2021-03-27T11:30:00.000Z"
+UTC	new Date('2021-10-31T01:30:00').toISOString()	string	"2021-10-31T01:30:00.000Z"
+America/Sao_Paulo	new Date('2021-10-31T01:30:00').toISOString()	string	"2021-10-31T04:30:00.000Z"
+Europe/London	new Date('2021-10-31T01:30:00').toISOString()	string	"2021-10-31T00:30:00.000Z"
+Asia/Kolkata	new Date('2021-10-31T01:30:00').toISOString()	string	"2021-10-30T20:00:00.000Z"
+Australia/Lord_Howe	new Date('2021-10-31T01:30:00').toISOString()	string	"2021-10-30T14:30:00.000Z"
+Pacific/Apia	new Date('2021-10-31T01:30:00').toISOString()	string	"2021-10-30T12:30:00.000Z"
+UTC	new Date('2018-11-04T00:30:00').toISOString()	string	"2018-11-04T00:30:00.000Z"
+America/Sao_Paulo	new Date('2018-11-04T00:30:00').toISOString()	string	"2018-11-04T03:30:00.000Z"
+Europe/London	new Date('2018-11-04T00:30:00').toISOString()	string	"2018-11-04T00:30:00.000Z"
+Asia/Kolkata	new Date('2018-11-04T00:30:00').toISOString()	string	"2018-11-03T19:00:00.000Z"
+Australia/Lord_Howe	new Date('2018-11-04T00:30:00').toISOString()	string	"2018-11-03T13:30:00.000Z"
+Pacific/Apia	new Date('2018-11-04T00:30:00').toISOString()	string	"2018-11-03T10:30:00.000Z"
+UTC	new Date(1941, 5, 1).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(1941, 5, 1).getTimezoneOffset()	number	180
+Europe/London	new Date(1941, 5, 1).getTimezoneOffset()	number	-120
+Asia/Kolkata	new Date(1941, 5, 1).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(1941, 5, 1).getTimezoneOffset()	number	-600
+Pacific/Apia	new Date(1941, 5, 1).getTimezoneOffset()	number	690
+UTC	new Date(1995, 0, 1).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(1995, 0, 1).getTimezoneOffset()	number	120
+Europe/London	new Date(1995, 0, 1).getTimezoneOffset()	number	0
+Asia/Kolkata	new Date(1995, 0, 1).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(1995, 0, 1).getTimezoneOffset()	number	-660
+Pacific/Apia	new Date(1995, 0, 1).getTimezoneOffset()	number	660
+UTC	new Date(1995, 6, 1).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(1995, 6, 1).getTimezoneOffset()	number	180
+Europe/London	new Date(1995, 6, 1).getTimezoneOffset()	number	-60
+Asia/Kolkata	new Date(1995, 6, 1).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(1995, 6, 1).getTimezoneOffset()	number	-630
+Pacific/Apia	new Date(1995, 6, 1).getTimezoneOffset()	number	660
+UTC	new Date(2020, 0, 1).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(2020, 0, 1).getTimezoneOffset()	number	180
+Europe/London	new Date(2020, 0, 1).getTimezoneOffset()	number	0
+Asia/Kolkata	new Date(2020, 0, 1).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(2020, 0, 1).getTimezoneOffset()	number	-660
+Pacific/Apia	new Date(2020, 0, 1).getTimezoneOffset()	number	-840
+UTC	new Date(2020, 6, 1).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(2020, 6, 1).getTimezoneOffset()	number	180
+Europe/London	new Date(2020, 6, 1).getTimezoneOffset()	number	-60
+Asia/Kolkata	new Date(2020, 6, 1).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(2020, 6, 1).getTimezoneOffset()	number	-630
+Pacific/Apia	new Date(2020, 6, 1).getTimezoneOffset()	number	-780
+any	new Date(NaN).getTimezoneOffset()	number	NaN
+any	String(new Date(NaN).getTimezoneOffset())	string	"NaN"
+UTC	new Date(1700000000123).toLocaleString('en-US', {})	string	"11/14/2023, 10:13:20 PM"
+America/Sao_Paulo	new Date(1700000000123).toLocaleString('en-US', {})	string	"11/14/2023, 7:13:20 PM"
+Europe/London	new Date(1700000000123).toLocaleString('en-US', {})	string	"11/14/2023, 10:13:20 PM"
+Asia/Kolkata	new Date(1700000000123).toLocaleString('en-US', {})	string	"11/15/2023, 3:43:20 AM"
+Australia/Lord_Howe	new Date(1700000000123).toLocaleString('en-US', {})	string	"11/15/2023, 9:13:20 AM"
+Pacific/Apia	new Date(1700000000123).toLocaleString('en-US', {})	string	"11/15/2023, 11:13:20 AM"
+any	new Date(1700000000123).toLocaleString('en-US', { timeZone: 'UTC' })	string	"11/14/2023, 10:13:20 PM"
+any	new Date(1700000000123).toLocaleString('en-US', { timeZone: 'America/Sao_Paulo', hour12: false })	string	"11/14/2023, 19:13:20"
+any	new Date(1700000000123).toLocaleString('en-US', { dateStyle: 'full', timeZone: 'UTC' })	string	"Tuesday, November 14, 2023"
+any	new Date(1700000000123).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short', timeZone: 'UTC' })	string	"11/14/23, 10:13 PM"
+any	new Date(1700000000123).toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })	string	"November 14, 2023"
+any	new Date(1700000000123).toLocaleString('en-US', { weekday: 'long', timeZone: 'UTC' })	string	"Tuesday"
+any	new Date(1700000000123).toLocaleString('en-US', { month: 'short', timeZone: 'UTC' })	string	"Nov"
+any	new Date(1700000000123).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })	string	"03:43 AM"
+any	new Date(1700000000123).toLocaleString('en-US', { timeZone: 'Pacific/Apia', timeZoneName: 'short' })	string	"11/15/2023, 11:13:20 AM GMT+13"
+any	new Date(1700000000123).toLocaleString('en-US', { era: 'short', year: 'numeric', timeZone: 'UTC' })	string	"2023 AD"
+any	new Date(1700000000123).toLocaleString('en-US', { hourCycle: 'h23', hour: 'numeric', timeZone: 'UTC' })	string	"22"
+any	new Date(0).toLocaleDateString('en-US', { timeZone: 'UTC' })	string	"1/1/1970"
+any	new Date(0).toLocaleTimeString('en-US', { timeZone: 'UTC' })	string	"12:00:00 AM"
+any	new Date(0).toLocaleDateString('en-US', { dateStyle: 'medium', timeZone: 'Europe/London' })	string	"Jan 1, 1970"
+any	new Date(1609459200000).toLocaleDateString('en-US', { timeZone: 'UTC' })	string	"1/1/2021"
+any	new Date(1609459200000).toLocaleTimeString('en-US', { timeZone: 'UTC' })	string	"12:00:00 AM"
+any	new Date(1609459200000).toLocaleDateString('en-US', { dateStyle: 'medium', timeZone: 'Europe/London' })	string	"Jan 1, 2021"
+any	new Date(1700000000123).toLocaleDateString('en-US', { timeZone: 'UTC' })	string	"11/14/2023"
+any	new Date(1700000000123).toLocaleTimeString('en-US', { timeZone: 'UTC' })	string	"10:13:20 PM"
+any	new Date(1700000000123).toLocaleDateString('en-US', { dateStyle: 'medium', timeZone: 'Europe/London' })	string	"Nov 14, 2023"
+any	new Date(NaN).toLocaleString('en-US')	string	"Invalid Date"
+any	new Date(0).toLocaleDateString('en-US', { timeZone: 'Nowhere/Land' })	throw	RangeError: invalid time zone: Nowhere/Land
+UTC	new Date(1700000000123).toLocaleString('pt-BR', {})	string	"14/11/2023, 22:13:20"
+America/Sao_Paulo	new Date(1700000000123).toLocaleString('pt-BR', {})	string	"14/11/2023, 19:13:20"
+Europe/London	new Date(1700000000123).toLocaleString('pt-BR', {})	string	"14/11/2023, 22:13:20"
+Asia/Kolkata	new Date(1700000000123).toLocaleString('pt-BR', {})	string	"15/11/2023, 03:43:20"
+Australia/Lord_Howe	new Date(1700000000123).toLocaleString('pt-BR', {})	string	"15/11/2023, 09:13:20"
+Pacific/Apia	new Date(1700000000123).toLocaleString('pt-BR', {})	string	"15/11/2023, 11:13:20"
+any	new Date(1700000000123).toLocaleString('pt-BR', { timeZone: 'UTC' })	string	"14/11/2023, 22:13:20"
+any	new Date(1700000000123).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', hour12: false })	string	"14/11/2023, 19:13:20"
+any	new Date(1700000000123).toLocaleString('pt-BR', { dateStyle: 'full', timeZone: 'UTC' })	string	"terça-feira, 14 de novembro de 2023"
+any	new Date(1700000000123).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short', timeZone: 'UTC' })	string	"14/11/2023, 22:13"
+any	new Date(1700000000123).toLocaleString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })	string	"14 de novembro de 2023"
+any	new Date(1700000000123).toLocaleString('pt-BR', { weekday: 'long', timeZone: 'UTC' })	string	"terça-feira"
+any	new Date(1700000000123).toLocaleString('pt-BR', { month: 'short', timeZone: 'UTC' })	string	"nov."
+any	new Date(1700000000123).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })	string	"03:43"
+any	new Date(1700000000123).toLocaleString('pt-BR', { timeZone: 'Pacific/Apia', timeZoneName: 'short' })	string	"15/11/2023, 11:13:20 GMT+13"
+any	new Date(1700000000123).toLocaleString('pt-BR', { era: 'short', year: 'numeric', timeZone: 'UTC' })	string	"2023 d.C."
+any	new Date(1700000000123).toLocaleString('pt-BR', { hourCycle: 'h23', hour: 'numeric', timeZone: 'UTC' })	string	"22"
+any	new Date(0).toLocaleDateString('pt-BR', { timeZone: 'UTC' })	string	"01/01/1970"
+any	new Date(0).toLocaleTimeString('pt-BR', { timeZone: 'UTC' })	string	"00:00:00"
+any	new Date(0).toLocaleDateString('pt-BR', { dateStyle: 'medium', timeZone: 'Europe/London' })	string	"1 de jan. de 1970"
+any	new Date(1609459200000).toLocaleDateString('pt-BR', { timeZone: 'UTC' })	string	"01/01/2021"
+any	new Date(1609459200000).toLocaleTimeString('pt-BR', { timeZone: 'UTC' })	string	"00:00:00"
+any	new Date(1609459200000).toLocaleDateString('pt-BR', { dateStyle: 'medium', timeZone: 'Europe/London' })	string	"1 de jan. de 2021"
+any	new Date(1700000000123).toLocaleDateString('pt-BR', { timeZone: 'UTC' })	string	"14/11/2023"
+any	new Date(1700000000123).toLocaleTimeString('pt-BR', { timeZone: 'UTC' })	string	"22:13:20"
+any	new Date(1700000000123).toLocaleDateString('pt-BR', { dateStyle: 'medium', timeZone: 'Europe/London' })	string	"14 de nov. de 2023"
+any	new Date(NaN).toLocaleString('pt-BR')	string	"Invalid Date"
+any	new Date(0).toLocaleDateString('pt-BR', { timeZone: 'Nowhere/Land' })	throw	RangeError: invalid time zone: Nowhere/Land
+UTC	new Date(1700000000123).toLocaleString('de-DE', {})	string	"14.11.2023, 22:13:20"
+America/Sao_Paulo	new Date(1700000000123).toLocaleString('de-DE', {})	string	"14.11.2023, 19:13:20"
+Europe/London	new Date(1700000000123).toLocaleString('de-DE', {})	string	"14.11.2023, 22:13:20"
+Asia/Kolkata	new Date(1700000000123).toLocaleString('de-DE', {})	string	"15.11.2023, 03:43:20"
+Australia/Lord_Howe	new Date(1700000000123).toLocaleString('de-DE', {})	string	"15.11.2023, 09:13:20"
+Pacific/Apia	new Date(1700000000123).toLocaleString('de-DE', {})	string	"15.11.2023, 11:13:20"
+any	new Date(1700000000123).toLocaleString('de-DE', { timeZone: 'UTC' })	string	"14.11.2023, 22:13:20"
+any	new Date(1700000000123).toLocaleString('de-DE', { timeZone: 'America/Sao_Paulo', hour12: false })	string	"14.11.2023, 19:13:20"
+any	new Date(1700000000123).toLocaleString('de-DE', { dateStyle: 'full', timeZone: 'UTC' })	string	"Dienstag, 14. November 2023"
+any	new Date(1700000000123).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short', timeZone: 'UTC' })	string	"14.11.23, 22:13"
+any	new Date(1700000000123).toLocaleString('de-DE', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })	string	"14. November 2023"
+any	new Date(1700000000123).toLocaleString('de-DE', { weekday: 'long', timeZone: 'UTC' })	string	"Dienstag"
+any	new Date(1700000000123).toLocaleString('de-DE', { month: 'short', timeZone: 'UTC' })	string	"Nov"
+any	new Date(1700000000123).toLocaleString('de-DE', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })	string	"03:43"
+any	new Date(1700000000123).toLocaleString('de-DE', { timeZone: 'Pacific/Apia', timeZoneName: 'short' })	string	"15.11.2023, 11:13:20 GMT+13"
+any	new Date(1700000000123).toLocaleString('de-DE', { era: 'short', year: 'numeric', timeZone: 'UTC' })	string	"2023 n. Chr."
+any	new Date(1700000000123).toLocaleString('de-DE', { hourCycle: 'h23', hour: 'numeric', timeZone: 'UTC' })	string	"22 Uhr"
+any	new Date(0).toLocaleDateString('de-DE', { timeZone: 'UTC' })	string	"1.1.1970"
+any	new Date(0).toLocaleTimeString('de-DE', { timeZone: 'UTC' })	string	"00:00:00"
+any	new Date(0).toLocaleDateString('de-DE', { dateStyle: 'medium', timeZone: 'Europe/London' })	string	"01.01.1970"
+any	new Date(1609459200000).toLocaleDateString('de-DE', { timeZone: 'UTC' })	string	"1.1.2021"
+any	new Date(1609459200000).toLocaleTimeString('de-DE', { timeZone: 'UTC' })	string	"00:00:00"
+any	new Date(1609459200000).toLocaleDateString('de-DE', { dateStyle: 'medium', timeZone: 'Europe/London' })	string	"01.01.2021"
+any	new Date(1700000000123).toLocaleDateString('de-DE', { timeZone: 'UTC' })	string	"14.11.2023"
+any	new Date(1700000000123).toLocaleTimeString('de-DE', { timeZone: 'UTC' })	string	"22:13:20"
+any	new Date(1700000000123).toLocaleDateString('de-DE', { dateStyle: 'medium', timeZone: 'Europe/London' })	string	"14.11.2023"
+any	new Date(NaN).toLocaleString('de-DE')	string	"Invalid Date"
+any	new Date(0).toLocaleDateString('de-DE', { timeZone: 'Nowhere/Land' })	throw	RangeError: invalid time zone: Nowhere/Land
+UTC	new Date(1700000000123).toLocaleString('ja-JP', {})	string	"2023/11/14 22:13:20"
+America/Sao_Paulo	new Date(1700000000123).toLocaleString('ja-JP', {})	string	"2023/11/14 19:13:20"
+Europe/London	new Date(1700000000123).toLocaleString('ja-JP', {})	string	"2023/11/14 22:13:20"
+Asia/Kolkata	new Date(1700000000123).toLocaleString('ja-JP', {})	string	"2023/11/15 3:43:20"
+Australia/Lord_Howe	new Date(1700000000123).toLocaleString('ja-JP', {})	string	"2023/11/15 9:13:20"
+Pacific/Apia	new Date(1700000000123).toLocaleString('ja-JP', {})	string	"2023/11/15 11:13:20"
+any	new Date(1700000000123).toLocaleString('ja-JP', { timeZone: 'UTC' })	string	"2023/11/14 22:13:20"
+any	new Date(1700000000123).toLocaleString('ja-JP', { timeZone: 'America/Sao_Paulo', hour12: false })	string	"2023/11/14 19:13:20"
+any	new Date(1700000000123).toLocaleString('ja-JP', { dateStyle: 'full', timeZone: 'UTC' })	string	"2023年11月14日火曜日"
+any	new Date(1700000000123).toLocaleString('ja-JP', { dateStyle: 'short', timeStyle: 'short', timeZone: 'UTC' })	string	"2023/11/14 22:13"
+any	new Date(1700000000123).toLocaleString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })	string	"2023年11月14日"
+any	new Date(1700000000123).toLocaleString('ja-JP', { weekday: 'long', timeZone: 'UTC' })	string	"火曜日"
+any	new Date(1700000000123).toLocaleString('ja-JP', { month: 'short', timeZone: 'UTC' })	string	"11月"
+any	new Date(1700000000123).toLocaleString('ja-JP', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })	string	"03:43"
+any	new Date(1700000000123).toLocaleString('ja-JP', { timeZone: 'Pacific/Apia', timeZoneName: 'short' })	string	"2023/11/15 11:13:20 GMT+13"
+any	new Date(1700000000123).toLocaleString('ja-JP', { era: 'short', year: 'numeric', timeZone: 'UTC' })	string	"西暦2023年"
+any	new Date(1700000000123).toLocaleString('ja-JP', { hourCycle: 'h23', hour: 'numeric', timeZone: 'UTC' })	string	"22時"
+any	new Date(0).toLocaleDateString('ja-JP', { timeZone: 'UTC' })	string	"1970/1/1"
+any	new Date(0).toLocaleTimeString('ja-JP', { timeZone: 'UTC' })	string	"0:00:00"
+any	new Date(0).toLocaleDateString('ja-JP', { dateStyle: 'medium', timeZone: 'Europe/London' })	string	"1970/01/01"
+any	new Date(1609459200000).toLocaleDateString('ja-JP', { timeZone: 'UTC' })	string	"2021/1/1"
+any	new Date(1609459200000).toLocaleTimeString('ja-JP', { timeZone: 'UTC' })	string	"0:00:00"
+any	new Date(1609459200000).toLocaleDateString('ja-JP', { dateStyle: 'medium', timeZone: 'Europe/London' })	string	"2021/01/01"
+any	new Date(1700000000123).toLocaleDateString('ja-JP', { timeZone: 'UTC' })	string	"2023/11/14"
+any	new Date(1700000000123).toLocaleTimeString('ja-JP', { timeZone: 'UTC' })	string	"22:13:20"
+any	new Date(1700000000123).toLocaleDateString('ja-JP', { dateStyle: 'medium', timeZone: 'Europe/London' })	string	"2023/11/14"
+any	new Date(NaN).toLocaleString('ja-JP')	string	"Invalid Date"
+any	new Date(0).toLocaleDateString('ja-JP', { timeZone: 'Nowhere/Land' })	throw	RangeError: invalid time zone: Nowhere/Land
+UTC	new Date(1700000000123).toLocaleString('ar-EG', {})	string	"١٤‏/١١‏/٢٠٢٣، ١٠:١٣:٢٠ م"
+America/Sao_Paulo	new Date(1700000000123).toLocaleString('ar-EG', {})	string	"١٤‏/١١‏/٢٠٢٣، ٧:١٣:٢٠ م"
+Europe/London	new Date(1700000000123).toLocaleString('ar-EG', {})	string	"١٤‏/١١‏/٢٠٢٣، ١٠:١٣:٢٠ م"
+Asia/Kolkata	new Date(1700000000123).toLocaleString('ar-EG', {})	string	"١٥‏/١١‏/٢٠٢٣، ٣:٤٣:٢٠ ص"
+Australia/Lord_Howe	new Date(1700000000123).toLocaleString('ar-EG', {})	string	"١٥‏/١١‏/٢٠٢٣، ٩:١٣:٢٠ ص"
+Pacific/Apia	new Date(1700000000123).toLocaleString('ar-EG', {})	string	"١٥‏/١١‏/٢٠٢٣، ١١:١٣:٢٠ ص"
+any	new Date(1700000000123).toLocaleString('ar-EG', { timeZone: 'UTC' })	string	"١٤‏/١١‏/٢٠٢٣، ١٠:١٣:٢٠ م"
+any	new Date(1700000000123).toLocaleString('ar-EG', { timeZone: 'America/Sao_Paulo', hour12: false })	string	"١٤‏/١١‏/٢٠٢٣، ١٩:١٣:٢٠"
+any	new Date(1700000000123).toLocaleString('ar-EG', { dateStyle: 'full', timeZone: 'UTC' })	string	"الثلاثاء، ١٤ نوفمبر ٢٠٢٣"
+any	new Date(1700000000123).toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short', timeZone: 'UTC' })	string	"١٤‏/١١‏/٢٠٢٣، ١٠:١٣ م"
+any	new Date(1700000000123).toLocaleString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })	string	"١٤ نوفمبر ٢٠٢٣"
+any	new Date(1700000000123).toLocaleString('ar-EG', { weekday: 'long', timeZone: 'UTC' })	string	"الثلاثاء"
+any	new Date(1700000000123).toLocaleString('ar-EG', { month: 'short', timeZone: 'UTC' })	string	"نوفمبر"
+any	new Date(1700000000123).toLocaleString('ar-EG', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' })	string	"٠٣:٤٣ ص"
+any	new Date(1700000000123).toLocaleString('ar-EG', { timeZone: 'Pacific/Apia', timeZoneName: 'short' })	string	"١٥‏/١١‏/٢٠٢٣، ١١:١٣:٢٠ ص غرينتش+١٣"
+any	new Date(1700000000123).toLocaleString('ar-EG', { era: 'short', year: 'numeric', timeZone: 'UTC' })	string	"٢٠٢٣ م"
+any	new Date(1700000000123).toLocaleString('ar-EG', { hourCycle: 'h23', hour: 'numeric', timeZone: 'UTC' })	string	"٢٢"
+any	new Date(0).toLocaleDateString('ar-EG', { timeZone: 'UTC' })	string	"١‏/١‏/١٩٧٠"
+any	new Date(0).toLocaleTimeString('ar-EG', { timeZone: 'UTC' })	string	"١٢:٠٠:٠٠ ص"
+any	new Date(0).toLocaleDateString('ar-EG', { dateStyle: 'medium', timeZone: 'Europe/London' })	string	"٠١‏/٠١‏/١٩٧٠"
+any	new Date(1609459200000).toLocaleDateString('ar-EG', { timeZone: 'UTC' })	string	"١‏/١‏/٢٠٢١"
+any	new Date(1609459200000).toLocaleTimeString('ar-EG', { timeZone: 'UTC' })	string	"١٢:٠٠:٠٠ ص"
+any	new Date(1609459200000).toLocaleDateString('ar-EG', { dateStyle: 'medium', timeZone: 'Europe/London' })	string	"٠١‏/٠١‏/٢٠٢١"
+any	new Date(1700000000123).toLocaleDateString('ar-EG', { timeZone: 'UTC' })	string	"١٤‏/١١‏/٢٠٢٣"
+any	new Date(1700000000123).toLocaleTimeString('ar-EG', { timeZone: 'UTC' })	string	"١٠:١٣:٢٠ م"
+any	new Date(1700000000123).toLocaleDateString('ar-EG', { dateStyle: 'medium', timeZone: 'Europe/London' })	string	"١٤‏/١١‏/٢٠٢٣"
+any	new Date(NaN).toLocaleString('ar-EG')	string	"Invalid Date"
+any	new Date(0).toLocaleDateString('ar-EG', { timeZone: 'Nowhere/Land' })	throw	RangeError: invalid time zone: Nowhere/Land
+any	new Date(0).toLocaleString('xx-invalid-locale-zz')	throw	RangeError: invalid language tag: xx-invalid-locale-zz
+any	new Date(0).toLocaleDateString(undefined, { timeZone: 'UTC' })	string	"1/1/1970"
+any	new Date(0).toLocaleString(['pt-BR', 'en-US'], { timeZone: 'UTC' })	string	"01/01/1970, 00:00:00"
+any	new Date(0).toLocaleString('en-US', { dateStyle: 'full', year: 'numeric' })	throw	TypeError: dateStyle and timeStyle may not be used with other DateTimeFormat options
+any	new Date(0).toLocaleTimeString('en-US', { dateStyle: 'short' })	throw	TypeError: dateStyle is specified while formatting time is requested
+any	new Date(0).toLocaleDateString('en-US', { timeStyle: 'short' })	throw	TypeError: timeStyle is specified while formatting date is requested
+any	new Date(8.64e15).toLocaleString('en-US', { timeZone: 'UTC' })	string	"9/13/275760, 12:00:00 AM"
+any	new Date(-8.64e15).toLocaleString('en-US', { timeZone: 'UTC' })	string	"4/20/271822, 12:00:00 AM"
+any	new Date(0).toLocaleString('en-US', { hour12: true, hourCycle: 'h23', timeZone: 'UTC' })	string	"1/1/1970, 12:00:00 AM"
+any	typeof Date.prototype[Symbol.toPrimitive]	string	"function"
+any	Date.prototype[Symbol.toPrimitive].length	number	1
+any	Date.prototype[Symbol.toPrimitive].name	string	"[Symbol.toPrimitive]"
+any	new Date(0)[Symbol.toPrimitive]('number')	number	0
+any	new Date(0)[Symbol.toPrimitive]('string').length > 0	boolean	true
+any	new Date(0)[Symbol.toPrimitive]('default') === new Date(0).toString()	boolean	true
+any	new Date(0)[Symbol.toPrimitive]('bogus')	throw	TypeError: Expected primitive hint to match one of 'default', 'number', 'string'.
+any	new Date(0)[Symbol.toPrimitive]()	throw	TypeError: Date.prototype[Symbol.toPrimitive] expected a first argument.
+any	new Date(0)[Symbol.toPrimitive](1)	throw	TypeError: Primitive hint is not a string.
+any	Date.prototype[Symbol.toPrimitive].call({}, 'number')	string	"[object Object]"
+any	Date.prototype[Symbol.toPrimitive].call({ valueOf() { return 7 }, toString() { return 's' } }, 'number')	number	7
+any	Date.prototype[Symbol.toPrimitive].call({ valueOf() { return 7 }, toString() { return 's' } }, 'default')	string	"s"
+any	Date.prototype[Symbol.toPrimitive].call(1, 'number')	throw	TypeError: Date.prototype[Symbol.toPrimitive] expected |this| to be an object.
+any	Date.prototype[Symbol.toPrimitive].call(undefined, 'number')	throw	TypeError: Date.prototype[Symbol.toPrimitive] expected |this| to be an object.
+any	new Date(5) + 1 === new Date(5).toString() + '1'	boolean	true
+any	new Date(5) - 1	number	4
+any	+new Date(5)	number	5
+any	`${new Date(NaN)}`	string	"Invalid Date"
+any	new Date(5) * 2	number	10
+UTC	[new Date(5)] + ''.length	string	"Thu Jan 01 1970 00:00:00 GMT+0000 (Coordinated Universal Time)0"
+America/Sao_Paulo	[new Date(5)] + ''.length	string	"Wed Dec 31 1969 21:00:00 GMT-0300 (Brasilia Standard Time)0"
+Europe/London	[new Date(5)] + ''.length	string	"Thu Jan 01 1970 01:00:00 GMT+0100 (Greenwich Mean Time)0"
+Asia/Kolkata	[new Date(5)] + ''.length	string	"Thu Jan 01 1970 05:30:00 GMT+0530 (India Standard Time)0"
+Australia/Lord_Howe	[new Date(5)] + ''.length	string	"Thu Jan 01 1970 10:00:00 GMT+1000 (Lord Howe Standard Time)0"
+Pacific/Apia	[new Date(5)] + ''.length	string	"Wed Dec 31 1969 13:00:00 GMT-1100 (Samoa Standard Time)0"
+any	new Date(5) == new Date(5).toString()	boolean	true
+any	new Date(5) == 5	boolean	false
+any	new Date(5) < 6	boolean	true
+any	new Date(5) > new Date(4)	boolean	true
+UTC	var d = new Date(5); d[Symbol.toPrimitive] = () => 9; d + 1	string	"Thu Jan 01 1970 00:00:00 GMT+0000 (Coordinated Universal Time)1"
+America/Sao_Paulo	var d = new Date(5); d[Symbol.toPrimitive] = () => 9; d + 1	string	"Wed Dec 31 1969 21:00:00 GMT-0300 (Brasilia Standard Time)1"
+Europe/London	var d = new Date(5); d[Symbol.toPrimitive] = () => 9; d + 1	string	"Thu Jan 01 1970 01:00:00 GMT+0100 (Greenwich Mean Time)1"
+Asia/Kolkata	var d = new Date(5); d[Symbol.toPrimitive] = () => 9; d + 1	string	"Thu Jan 01 1970 05:30:00 GMT+0530 (India Standard Time)1"
+Australia/Lord_Howe	var d = new Date(5); d[Symbol.toPrimitive] = () => 9; d + 1	string	"Thu Jan 01 1970 10:00:00 GMT+1000 (Lord Howe Standard Time)1"
+Pacific/Apia	var d = new Date(5); d[Symbol.toPrimitive] = () => 9; d + 1	string	"Wed Dec 31 1969 13:00:00 GMT-1100 (Samoa Standard Time)1"
+any	var d = new Date(5); d[Symbol.toPrimitive] = undefined; d - 1	number	4
+UTC	var d = new Date(5); d[Symbol.toPrimitive] = null; d + ''.length	string	"Thu Jan 01 1970 00:00:00 GMT+0000 (Coordinated Universal Time)0"
+America/Sao_Paulo	var d = new Date(5); d[Symbol.toPrimitive] = null; d + ''.length	string	"Wed Dec 31 1969 21:00:00 GMT-0300 (Brasilia Standard Time)0"
+Europe/London	var d = new Date(5); d[Symbol.toPrimitive] = null; d + ''.length	string	"Thu Jan 01 1970 01:00:00 GMT+0100 (Greenwich Mean Time)0"
+Asia/Kolkata	var d = new Date(5); d[Symbol.toPrimitive] = null; d + ''.length	string	"Thu Jan 01 1970 05:30:00 GMT+0530 (India Standard Time)0"
+Australia/Lord_Howe	var d = new Date(5); d[Symbol.toPrimitive] = null; d + ''.length	string	"Thu Jan 01 1970 10:00:00 GMT+1000 (Lord Howe Standard Time)0"
+Pacific/Apia	var d = new Date(5); d[Symbol.toPrimitive] = null; d + ''.length	string	"Wed Dec 31 1969 13:00:00 GMT-1100 (Samoa Standard Time)0"
+UTC	var d = new Date(5); d[Symbol.toPrimitive] = 3; d + 1	string	"Thu Jan 01 1970 00:00:00 GMT+0000 (Coordinated Universal Time)1"
+America/Sao_Paulo	var d = new Date(5); d[Symbol.toPrimitive] = 3; d + 1	string	"Wed Dec 31 1969 21:00:00 GMT-0300 (Brasilia Standard Time)1"
+Europe/London	var d = new Date(5); d[Symbol.toPrimitive] = 3; d + 1	string	"Thu Jan 01 1970 01:00:00 GMT+0100 (Greenwich Mean Time)1"
+Asia/Kolkata	var d = new Date(5); d[Symbol.toPrimitive] = 3; d + 1	string	"Thu Jan 01 1970 05:30:00 GMT+0530 (India Standard Time)1"
+Australia/Lord_Howe	var d = new Date(5); d[Symbol.toPrimitive] = 3; d + 1	string	"Thu Jan 01 1970 10:00:00 GMT+1000 (Lord Howe Standard Time)1"
+Pacific/Apia	var d = new Date(5); d[Symbol.toPrimitive] = 3; d + 1	string	"Wed Dec 31 1969 13:00:00 GMT-1100 (Samoa Standard Time)1"
+any	var d = new Date(5); d.valueOf = () => 99; d - 0	number	99
+any	var d = new Date(5); d.toString = () => 'x'; d + 1	string	"x1"
+UTC	var d = new Date(5); d[Symbol.toPrimitive] = () => ({}); d + 1	string	"Thu Jan 01 1970 00:00:00 GMT+0000 (Coordinated Universal Time)1"
+America/Sao_Paulo	var d = new Date(5); d[Symbol.toPrimitive] = () => ({}); d + 1	string	"Wed Dec 31 1969 21:00:00 GMT-0300 (Brasilia Standard Time)1"
+Europe/London	var d = new Date(5); d[Symbol.toPrimitive] = () => ({}); d + 1	string	"Thu Jan 01 1970 01:00:00 GMT+0100 (Greenwich Mean Time)1"
+Asia/Kolkata	var d = new Date(5); d[Symbol.toPrimitive] = () => ({}); d + 1	string	"Thu Jan 01 1970 05:30:00 GMT+0530 (India Standard Time)1"
+Australia/Lord_Howe	var d = new Date(5); d[Symbol.toPrimitive] = () => ({}); d + 1	string	"Thu Jan 01 1970 10:00:00 GMT+1000 (Lord Howe Standard Time)1"
+Pacific/Apia	var d = new Date(5); d[Symbol.toPrimitive] = () => ({}); d + 1	string	"Wed Dec 31 1969 13:00:00 GMT-1100 (Samoa Standard Time)1"
+any	JSON.stringify(Object.getOwnPropertyDescriptor(Date.prototype, Symbol.toPrimitive))	string	"{\"writable\":false,\"enumerable\":false,\"configurable\":true}"
+any	Object.prototype.toString.call(new Date(0))	string	"[object Date]"
+any	Object.prototype.toString.call(Date.prototype)	string	"[object Object]"
+any	String(Date.prototype)	throw	TypeError: Type error
+any	Date.prototype.getTime.call(Date.prototype)	throw	TypeError: Type error
+any	Date.UTC(0)	number	-2208988800000
+any	Date.UTC(0, 0, 1)	number	-2208988800000
+any	Date.UTC(0, 11, 31, 23, 59, 59, 999)	number	-2177452800001
+any	new Date(0, 0).getFullYear()	number	1900
+any	new Date(0, 0).getTime() === new Date(1900 + Math.trunc(0), 0).getTime()	boolean	true
+any	Date.UTC(1)	number	-2177452800000
+any	Date.UTC(1, 0, 1)	number	-2177452800000
+any	Date.UTC(1, 11, 31, 23, 59, 59, 999)	number	-2145916800001
+any	new Date(1, 0).getFullYear()	number	1901
+any	new Date(1, 0).getTime() === new Date(1900 + Math.trunc(1), 0).getTime()	boolean	true
+any	Date.UTC(49)	number	-662688000000
+any	Date.UTC(49, 0, 1)	number	-662688000000
+any	Date.UTC(49, 11, 31, 23, 59, 59, 999)	number	-631152000001
+any	new Date(49, 0).getFullYear()	number	1949
+any	new Date(49, 0).getTime() === new Date(1900 + Math.trunc(49), 0).getTime()	boolean	true
+any	Date.UTC(50)	number	-631152000000
+any	Date.UTC(50, 0, 1)	number	-631152000000
+any	Date.UTC(50, 11, 31, 23, 59, 59, 999)	number	-599616000001
+any	new Date(50, 0).getFullYear()	number	1950
+any	new Date(50, 0).getTime() === new Date(1900 + Math.trunc(50), 0).getTime()	boolean	true
+any	Date.UTC(99)	number	915148800000
+any	Date.UTC(99, 0, 1)	number	915148800000
+any	Date.UTC(99, 11, 31, 23, 59, 59, 999)	number	946684799999
+any	new Date(99, 0).getFullYear()	number	1999
+any	new Date(99, 0).getTime() === new Date(1900 + Math.trunc(99), 0).getTime()	boolean	true
+any	Date.UTC(100)	number	-59011459200000
+any	Date.UTC(100, 0, 1)	number	-59011459200000
+any	Date.UTC(100, 11, 31, 23, 59, 59, 999)	number	-58979923200001
+any	new Date(100, 0).getFullYear()	number	100
+any	new Date(100, 0).getTime() === new Date(1900 + Math.trunc(100), 0).getTime()	boolean	false
+any	Date.UTC(-1)	number	-62198755200000
+any	Date.UTC(-1, 0, 1)	number	-62198755200000
+any	Date.UTC(-1, 11, 31, 23, 59, 59, 999)	number	-62167219200001
+any	new Date(-1, 0).getFullYear()	number	-1
+any	new Date(-1, 0).getTime() === new Date(1900 + Math.trunc(-1), 0).getTime()	boolean	false
+any	Date.UTC(99.9)	number	915148800000
+any	Date.UTC(99.9, 0, 1)	number	915148800000
+any	Date.UTC(99.9, 11, 31, 23, 59, 59, 999)	number	946684799999
+any	new Date(99.9, 0).getFullYear()	number	1999
+any	new Date(99.9, 0).getTime() === new Date(1900 + Math.trunc(99.9), 0).getTime()	boolean	true
+any	Date.UTC(0.5)	number	-2208988800000
+any	Date.UTC(0.5, 0, 1)	number	-2208988800000
+any	Date.UTC(0.5, 11, 31, 23, 59, 59, 999)	number	-2177452800001
+any	new Date(0.5, 0).getFullYear()	number	1900
+any	new Date(0.5, 0).getTime() === new Date(1900 + Math.trunc(0.5), 0).getTime()	boolean	true
+any	Date.UTC(-0.5)	number	-2208988800000
+any	Date.UTC(-0.5, 0, 1)	number	-2208988800000
+any	Date.UTC(-0.5, 11, 31, 23, 59, 59, 999)	number	-2177452800001
+any	new Date(-0.5, 0).getFullYear()	number	1900
+any	new Date(-0.5, 0).getTime() === new Date(1900 + Math.trunc(-0.5), 0).getTime()	boolean	true
+any	Date.UTC(1900)	number	-2208988800000
+any	Date.UTC(1900, 0, 1)	number	-2208988800000
+any	Date.UTC(1900, 11, 31, 23, 59, 59, 999)	number	-2177452800001
+any	new Date(1900, 0).getFullYear()	number	1900
+any	new Date(1900, 0).getTime() === new Date(1900 + Math.trunc(1900), 0).getTime()	boolean	false
+any	Date.UTC(1899)	number	-2240524800000
+any	Date.UTC(1899, 0, 1)	number	-2240524800000
+any	Date.UTC(1899, 11, 31, 23, 59, 59, 999)	number	-2208988800001
+any	new Date(1899, 0).getFullYear()	number	1899
+any	new Date(1899, 0).getTime() === new Date(1900 + Math.trunc(1899), 0).getTime()	boolean	false
+any	Date.UTC()	number	NaN
+any	Date.UTC(NaN)	number	NaN
+any	Date.UTC(2020, NaN)	number	NaN
+any	Date.UTC(275760, 8, 13)	number	8640000000000000
+any	Date.UTC(275760, 8, 13, 0, 0, 0, 1)	number	NaN
+any	Date.UTC(-271821, 3, 20)	number	-8640000000000000
+any	Date.UTC(-271821, 3, 19, 23, 59, 59, 999)	number	NaN
+any	Date.UTC(2020, 12)	number	1609459200000
+any	Date.UTC(2020, -1)	number	1575158400000
+any	Date.UTC(2020, 0, 0)	number	1577750400000
+any	Date.UTC(2020, 0, 32)	number	1580515200000
+any	Date.UTC(2020, 0, 1, 24)	number	1577923200000
+any	Date.UTC(2020, 0, 1, 0, 60)	number	1577840400000
+any	Date.UTC(2020, 0, 1, 0, 0, 60)	number	1577836860000
+any	Date.UTC(2020, 0, 1, 0, 0, 0, 1000)	number	1577836801000
+any	Date.UTC('2020', '1', '1')	number	1580515200000
+any	Date.UTC(null)	number	-2208988800000
+any	Date.UTC(undefined, 0)	number	NaN
+any	Date.UTC(2020.9, 1.9, 1.9)	number	1580515200000
+any	Date.UTC(Infinity)	number	NaN
+any	Date.UTC(1e20)	number	NaN
+any	Date.UTC.length	number	7
+any	Date.UTC(2020, 0, 1, 0, 0, 0, 0.9)	number	1577836800000
+any	new Date(Date.UTC(99, 0, 1)).toISOString()	string	"1999-01-01T00:00:00.000Z"
+any	new Date(Date.UTC(100, 0, 1)).toISOString()	string	"0100-01-01T00:00:00.000Z"
+any	new Date(Date.UTC(0, 0, 1)).toISOString()	string	"1900-01-01T00:00:00.000Z"
+any	new Date(Date.UTC(-1, 0, 1)).toISOString()	string	"-000001-01-01T00:00:00.000Z"
+any	new Date(99, 11, 31).getFullYear()	number	1999
+any	new Date(0, 0, 1, 0, 0, 0, 0).getFullYear()	number	1900
+any	new Date(99, 0, 1).getYear()	number	99
+any	new Date(2000, 0, 1).getYear()	number	100
+any	new Date(1899, 0, 1).getYear()	number	-1
+UTC	new Date(0, 0).toISOString()	string	"1900-01-01T00:00:00.000Z"
+America/Sao_Paulo	new Date(0, 0).toISOString()	string	"1900-01-01T03:06:28.000Z"
+Europe/London	new Date(0, 0).toISOString()	string	"1900-01-01T00:00:00.000Z"
+Asia/Kolkata	new Date(0, 0).toISOString()	string	"1899-12-31T18:38:50.000Z"
+Australia/Lord_Howe	new Date(0, 0).toISOString()	string	"1899-12-31T14:00:00.000Z"
+Pacific/Apia	new Date(0, 0).toISOString()	string	"1900-01-01T11:26:56.000Z"
+any	new Date(2020, 0, 1, 0, 0, 0, 0, 99).getTime() === new Date(2020, 0, 1).getTime()	boolean	true
+any	var d = new Date(0); d.setFullYear(50); d.getFullYear()	number	50
+any	var d = new Date(0); d.setUTCFullYear(99); d.toISOString()	string	"0099-01-01T00:00:00.000Z"
+any	var d = new Date(0); d.setUTCFullYear(0); d.toISOString()	string	"0000-01-01T00:00:00.000Z"
+any	var d = new Date(0); d.setUTCFullYear(-1); d.toISOString()	string	"-000001-01-01T00:00:00.000Z"
+any	new Date('0099-01-01T00:00:00Z').getTime()	number	-59042995200000
+any	new Date('0000-01-01T00:00:00Z').toISOString()	string	"0000-01-01T00:00:00.000Z"
+any	new Date('-000001-01-01T00:00:00Z').toISOString()	string	"-000001-01-01T00:00:00.000Z"
+any	new Date('-000000-01-01T00:00:00Z').getTime()	number	NaN
+any	new Date('+275760-09-13T00:00:00Z').getTime()	number	8640000000000000
+any	new Date('+275760-09-13T00:00:00.001Z').getTime()	number	NaN
+any	new Date(8640000000000000).getTime()	number	8640000000000000
+any	String(new Date(8640000000000000).getTime())	string	"8640000000000000"
+any	new Date(8640000000000000).getTime() === 0	boolean	false
+any	Object.is(new Date(8640000000000000).getTime(), -0)	boolean	false
+any	new Date(8640000000000000).toUTCString()	string	"Sat, 13 Sep 275760 00:00:00 GMT"
+UTC	new Date(8640000000000000).toString()	string	"Sat Sep 13 275760 00:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(8640000000000000).toString()	string	"Fri Sep 12 275760 21:00:00 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(8640000000000000).toString()	string	"Sat Sep 13 275760 01:00:00 GMT+0100 (British Summer Time)"
+Asia/Kolkata	new Date(8640000000000000).toString()	string	"Sat Sep 13 275760 05:30:00 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(8640000000000000).toString()	string	"Sat Sep 13 275760 10:30:00 GMT+1030 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(8640000000000000).toString()	string	"Sat Sep 13 275760 13:00:00 GMT+1300 (Samoa Standard Time)"
+any	Date.prototype.toISOString.call(new Date(8640000000000000))	string	"+275760-09-13T00:00:00.000Z"
+any	new Date(8640000000000000).getUTCFullYear()	number	275760
+any	new Date(8640000000000000).getFullYear()	number	275760
+any	String(new Date(8640000000000000).toJSON())	string	"+275760-09-13T00:00:00.000Z"
+any	JSON.stringify({ d: new Date(8640000000000000) })	string	"{\"d\":\"+275760-09-13T00:00:00.000Z\"}"
+UTC	new Date(8640000000000000).getDay()	number	6
+America/Sao_Paulo	new Date(8640000000000000).getDay()	number	5
+Europe/London	new Date(8640000000000000).getDay()	number	6
+Asia/Kolkata	new Date(8640000000000000).getDay()	number	6
+Australia/Lord_Howe	new Date(8640000000000000).getDay()	number	6
+Pacific/Apia	new Date(8640000000000000).getDay()	number	6
+UTC	new Date(8640000000000000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(8640000000000000).getTimezoneOffset()	number	180
+Europe/London	new Date(8640000000000000).getTimezoneOffset()	number	-60
+Asia/Kolkata	new Date(8640000000000000).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(8640000000000000).getTimezoneOffset()	number	-630
+Pacific/Apia	new Date(8640000000000000).getTimezoneOffset()	number	-780
+any	new Date(-8640000000000000).getTime()	number	-8640000000000000
+any	String(new Date(-8640000000000000).getTime())	string	"-8640000000000000"
+any	new Date(-8640000000000000).getTime() === 0	boolean	false
+any	Object.is(new Date(-8640000000000000).getTime(), -0)	boolean	false
+any	new Date(-8640000000000000).toUTCString()	string	"Tue, 20 Apr -271821 00:00:00 GMT"
+UTC	new Date(-8640000000000000).toString()	string	"Tue Apr 20 -271821 00:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(-8640000000000000).toString()	string	"Mon Apr 19 -271821 20:53:32 GMT-0306 (Brasilia Standard Time)"
+Europe/London	new Date(-8640000000000000).toString()	string	"Mon Apr 19 -271821 23:58:45 GMT-0001 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(-8640000000000000).toString()	string	"Tue Apr 20 -271821 05:53:28 GMT+0553 (India Standard Time)"
+Australia/Lord_Howe	new Date(-8640000000000000).toString()	string	"Tue Apr 20 -271821 10:36:20 GMT+1036 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(-8640000000000000).toString()	string	"Tue Apr 20 -271821 12:33:04 GMT+1233 (Samoa Standard Time)"
+any	Date.prototype.toISOString.call(new Date(-8640000000000000))	string	"-271821-04-20T00:00:00.000Z"
+any	new Date(-8640000000000000).getUTCFullYear()	number	-271821
+any	new Date(-8640000000000000).getFullYear()	number	-271821
+any	String(new Date(-8640000000000000).toJSON())	string	"-271821-04-20T00:00:00.000Z"
+any	JSON.stringify({ d: new Date(-8640000000000000) })	string	"{\"d\":\"-271821-04-20T00:00:00.000Z\"}"
+UTC	new Date(-8640000000000000).getDay()	number	2
+America/Sao_Paulo	new Date(-8640000000000000).getDay()	number	1
+Europe/London	new Date(-8640000000000000).getDay()	number	1
+Asia/Kolkata	new Date(-8640000000000000).getDay()	number	2
+Australia/Lord_Howe	new Date(-8640000000000000).getDay()	number	2
+Pacific/Apia	new Date(-8640000000000000).getDay()	number	2
+UTC	new Date(-8640000000000000).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(-8640000000000000).getTimezoneOffset()	number	186
+Europe/London	new Date(-8640000000000000).getTimezoneOffset()	number	1
+Asia/Kolkata	new Date(-8640000000000000).getTimezoneOffset()	number	-353
+Australia/Lord_Howe	new Date(-8640000000000000).getTimezoneOffset()	number	-636
+Pacific/Apia	new Date(-8640000000000000).getTimezoneOffset()	number	-753
+any	new Date(8640000000000001).getTime()	number	NaN
+any	String(new Date(8640000000000001).getTime())	string	"NaN"
+any	new Date(8640000000000001).getTime() === 0	boolean	false
+any	Object.is(new Date(8640000000000001).getTime(), -0)	boolean	false
+any	new Date(8640000000000001).toUTCString()	string	"Invalid Date"
+any	new Date(8640000000000001).toString()	string	"Invalid Date"
+any	Date.prototype.toISOString.call(new Date(8640000000000001))	throw	RangeError: Invalid Date
+any	new Date(8640000000000001).getUTCFullYear()	number	NaN
+any	new Date(8640000000000001).getFullYear()	number	NaN
+any	String(new Date(8640000000000001).toJSON())	string	"null"
+any	JSON.stringify({ d: new Date(8640000000000001) })	string	"{\"d\":null}"
+any	new Date(8640000000000001).getDay()	number	NaN
+any	new Date(8640000000000001).getTimezoneOffset()	number	NaN
+any	new Date(-8640000000000001).getTime()	number	NaN
+any	String(new Date(-8640000000000001).getTime())	string	"NaN"
+any	new Date(-8640000000000001).getTime() === 0	boolean	false
+any	Object.is(new Date(-8640000000000001).getTime(), -0)	boolean	false
+any	new Date(-8640000000000001).toUTCString()	string	"Invalid Date"
+any	new Date(-8640000000000001).toString()	string	"Invalid Date"
+any	Date.prototype.toISOString.call(new Date(-8640000000000001))	throw	RangeError: Invalid Date
+any	new Date(-8640000000000001).getUTCFullYear()	number	NaN
+any	new Date(-8640000000000001).getFullYear()	number	NaN
+any	String(new Date(-8640000000000001).toJSON())	string	"null"
+any	JSON.stringify({ d: new Date(-8640000000000001) })	string	"{\"d\":null}"
+any	new Date(-8640000000000001).getDay()	number	NaN
+any	new Date(-8640000000000001).getTimezoneOffset()	number	NaN
+any	new Date(8639999999999999).getTime()	number	8639999999999999
+any	String(new Date(8639999999999999).getTime())	string	"8639999999999999"
+any	new Date(8639999999999999).getTime() === 0	boolean	false
+any	Object.is(new Date(8639999999999999).getTime(), -0)	boolean	false
+any	new Date(8639999999999999).toUTCString()	string	"Fri, 12 Sep 275760 23:59:59 GMT"
+UTC	new Date(8639999999999999).toString()	string	"Fri Sep 12 275760 23:59:59 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(8639999999999999).toString()	string	"Fri Sep 12 275760 20:59:59 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(8639999999999999).toString()	string	"Sat Sep 13 275760 00:59:59 GMT+0100 (British Summer Time)"
+Asia/Kolkata	new Date(8639999999999999).toString()	string	"Sat Sep 13 275760 05:29:59 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(8639999999999999).toString()	string	"Sat Sep 13 275760 10:29:59 GMT+1030 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(8639999999999999).toString()	string	"Sat Sep 13 275760 12:59:59 GMT+1300 (Samoa Standard Time)"
+any	Date.prototype.toISOString.call(new Date(8639999999999999))	string	"+275760-09-12T23:59:59.999Z"
+any	new Date(8639999999999999).getUTCFullYear()	number	275760
+any	new Date(8639999999999999).getFullYear()	number	275760
+any	String(new Date(8639999999999999).toJSON())	string	"+275760-09-12T23:59:59.999Z"
+any	JSON.stringify({ d: new Date(8639999999999999) })	string	"{\"d\":\"+275760-09-12T23:59:59.999Z\"}"
+UTC	new Date(8639999999999999).getDay()	number	5
+America/Sao_Paulo	new Date(8639999999999999).getDay()	number	5
+Europe/London	new Date(8639999999999999).getDay()	number	6
+Asia/Kolkata	new Date(8639999999999999).getDay()	number	6
+Australia/Lord_Howe	new Date(8639999999999999).getDay()	number	6
+Pacific/Apia	new Date(8639999999999999).getDay()	number	6
+UTC	new Date(8639999999999999).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(8639999999999999).getTimezoneOffset()	number	180
+Europe/London	new Date(8639999999999999).getTimezoneOffset()	number	-60
+Asia/Kolkata	new Date(8639999999999999).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(8639999999999999).getTimezoneOffset()	number	-630
+Pacific/Apia	new Date(8639999999999999).getTimezoneOffset()	number	-780
+any	new Date(-8639999999999999).getTime()	number	-8639999999999999
+any	String(new Date(-8639999999999999).getTime())	string	"-8639999999999999"
+any	new Date(-8639999999999999).getTime() === 0	boolean	false
+any	Object.is(new Date(-8639999999999999).getTime(), -0)	boolean	false
+any	new Date(-8639999999999999).toUTCString()	string	"Tue, 20 Apr -271821 00:00:00 GMT"
+UTC	new Date(-8639999999999999).toString()	string	"Tue Apr 20 -271821 00:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(-8639999999999999).toString()	string	"Mon Apr 19 -271821 20:53:32 GMT-0306 (Brasilia Standard Time)"
+Europe/London	new Date(-8639999999999999).toString()	string	"Mon Apr 19 -271821 23:58:45 GMT-0001 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(-8639999999999999).toString()	string	"Tue Apr 20 -271821 05:53:28 GMT+0553 (India Standard Time)"
+Australia/Lord_Howe	new Date(-8639999999999999).toString()	string	"Tue Apr 20 -271821 10:36:20 GMT+1036 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(-8639999999999999).toString()	string	"Tue Apr 20 -271821 12:33:04 GMT+1233 (Samoa Standard Time)"
+any	Date.prototype.toISOString.call(new Date(-8639999999999999))	string	"-271821-04-20T00:00:00.001Z"
+any	new Date(-8639999999999999).getUTCFullYear()	number	-271821
+any	new Date(-8639999999999999).getFullYear()	number	-271821
+any	String(new Date(-8639999999999999).toJSON())	string	"-271821-04-20T00:00:00.001Z"
+any	JSON.stringify({ d: new Date(-8639999999999999) })	string	"{\"d\":\"-271821-04-20T00:00:00.001Z\"}"
+UTC	new Date(-8639999999999999).getDay()	number	2
+America/Sao_Paulo	new Date(-8639999999999999).getDay()	number	1
+Europe/London	new Date(-8639999999999999).getDay()	number	1
+Asia/Kolkata	new Date(-8639999999999999).getDay()	number	2
+Australia/Lord_Howe	new Date(-8639999999999999).getDay()	number	2
+Pacific/Apia	new Date(-8639999999999999).getDay()	number	2
+UTC	new Date(-8639999999999999).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(-8639999999999999).getTimezoneOffset()	number	186
+Europe/London	new Date(-8639999999999999).getTimezoneOffset()	number	1
+Asia/Kolkata	new Date(-8639999999999999).getTimezoneOffset()	number	-353
+Australia/Lord_Howe	new Date(-8639999999999999).getTimezoneOffset()	number	-636
+Pacific/Apia	new Date(-8639999999999999).getTimezoneOffset()	number	-753
+any	new Date(1e+300).getTime()	number	NaN
+any	String(new Date(1e+300).getTime())	string	"NaN"
+any	new Date(1e+300).getTime() === 0	boolean	false
+any	Object.is(new Date(1e+300).getTime(), -0)	boolean	false
+any	new Date(1e+300).toUTCString()	string	"Invalid Date"
+any	new Date(1e+300).toString()	string	"Invalid Date"
+any	Date.prototype.toISOString.call(new Date(1e+300))	throw	RangeError: Invalid Date
+any	new Date(1e+300).getUTCFullYear()	number	NaN
+any	new Date(1e+300).getFullYear()	number	NaN
+any	String(new Date(1e+300).toJSON())	string	"null"
+any	JSON.stringify({ d: new Date(1e+300) })	string	"{\"d\":null}"
+any	new Date(1e+300).getDay()	number	NaN
+any	new Date(1e+300).getTimezoneOffset()	number	NaN
+any	new Date(-0).getTime()	number	0
+any	String(new Date(-0).getTime())	string	"0"
+any	new Date(-0).getTime() === 0	boolean	true
+any	Object.is(new Date(-0).getTime(), -0)	boolean	false
+any	new Date(-0).toUTCString()	string	"Thu, 01 Jan 1970 00:00:00 GMT"
+UTC	new Date(-0).toString()	string	"Thu Jan 01 1970 00:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(-0).toString()	string	"Wed Dec 31 1969 21:00:00 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(-0).toString()	string	"Thu Jan 01 1970 01:00:00 GMT+0100 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(-0).toString()	string	"Thu Jan 01 1970 05:30:00 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(-0).toString()	string	"Thu Jan 01 1970 10:00:00 GMT+1000 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(-0).toString()	string	"Wed Dec 31 1969 13:00:00 GMT-1100 (Samoa Standard Time)"
+any	Date.prototype.toISOString.call(new Date(-0))	string	"1970-01-01T00:00:00.000Z"
+any	new Date(-0).getUTCFullYear()	number	1970
+UTC	new Date(-0).getFullYear()	number	1970
+America/Sao_Paulo	new Date(-0).getFullYear()	number	1969
+Europe/London	new Date(-0).getFullYear()	number	1970
+Asia/Kolkata	new Date(-0).getFullYear()	number	1970
+Australia/Lord_Howe	new Date(-0).getFullYear()	number	1970
+Pacific/Apia	new Date(-0).getFullYear()	number	1969
+any	String(new Date(-0).toJSON())	string	"1970-01-01T00:00:00.000Z"
+any	JSON.stringify({ d: new Date(-0) })	string	"{\"d\":\"1970-01-01T00:00:00.000Z\"}"
+UTC	new Date(-0).getDay()	number	4
+America/Sao_Paulo	new Date(-0).getDay()	number	3
+Europe/London	new Date(-0).getDay()	number	4
+Asia/Kolkata	new Date(-0).getDay()	number	4
+Australia/Lord_Howe	new Date(-0).getDay()	number	4
+Pacific/Apia	new Date(-0).getDay()	number	3
+UTC	new Date(-0).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(-0).getTimezoneOffset()	number	180
+Europe/London	new Date(-0).getTimezoneOffset()	number	-60
+Asia/Kolkata	new Date(-0).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(-0).getTimezoneOffset()	number	-600
+Pacific/Apia	new Date(-0).getTimezoneOffset()	number	660
+any	new Date(0.9).getTime()	number	0
+any	String(new Date(0.9).getTime())	string	"0"
+any	new Date(0.9).getTime() === 0	boolean	true
+any	Object.is(new Date(0.9).getTime(), -0)	boolean	false
+any	new Date(0.9).toUTCString()	string	"Thu, 01 Jan 1970 00:00:00 GMT"
+UTC	new Date(0.9).toString()	string	"Thu Jan 01 1970 00:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(0.9).toString()	string	"Wed Dec 31 1969 21:00:00 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(0.9).toString()	string	"Thu Jan 01 1970 01:00:00 GMT+0100 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(0.9).toString()	string	"Thu Jan 01 1970 05:30:00 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(0.9).toString()	string	"Thu Jan 01 1970 10:00:00 GMT+1000 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(0.9).toString()	string	"Wed Dec 31 1969 13:00:00 GMT-1100 (Samoa Standard Time)"
+any	Date.prototype.toISOString.call(new Date(0.9))	string	"1970-01-01T00:00:00.000Z"
+any	new Date(0.9).getUTCFullYear()	number	1970
+UTC	new Date(0.9).getFullYear()	number	1970
+America/Sao_Paulo	new Date(0.9).getFullYear()	number	1969
+Europe/London	new Date(0.9).getFullYear()	number	1970
+Asia/Kolkata	new Date(0.9).getFullYear()	number	1970
+Australia/Lord_Howe	new Date(0.9).getFullYear()	number	1970
+Pacific/Apia	new Date(0.9).getFullYear()	number	1969
+any	String(new Date(0.9).toJSON())	string	"1970-01-01T00:00:00.000Z"
+any	JSON.stringify({ d: new Date(0.9) })	string	"{\"d\":\"1970-01-01T00:00:00.000Z\"}"
+UTC	new Date(0.9).getDay()	number	4
+America/Sao_Paulo	new Date(0.9).getDay()	number	3
+Europe/London	new Date(0.9).getDay()	number	4
+Asia/Kolkata	new Date(0.9).getDay()	number	4
+Australia/Lord_Howe	new Date(0.9).getDay()	number	4
+Pacific/Apia	new Date(0.9).getDay()	number	3
+UTC	new Date(0.9).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(0.9).getTimezoneOffset()	number	180
+Europe/London	new Date(0.9).getTimezoneOffset()	number	-60
+Asia/Kolkata	new Date(0.9).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(0.9).getTimezoneOffset()	number	-600
+Pacific/Apia	new Date(0.9).getTimezoneOffset()	number	660
+any	new Date(-0.9).getTime()	number	0
+any	String(new Date(-0.9).getTime())	string	"0"
+any	new Date(-0.9).getTime() === 0	boolean	true
+any	Object.is(new Date(-0.9).getTime(), -0)	boolean	false
+any	new Date(-0.9).toUTCString()	string	"Thu, 01 Jan 1970 00:00:00 GMT"
+UTC	new Date(-0.9).toString()	string	"Thu Jan 01 1970 00:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(-0.9).toString()	string	"Wed Dec 31 1969 21:00:00 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(-0.9).toString()	string	"Thu Jan 01 1970 01:00:00 GMT+0100 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(-0.9).toString()	string	"Thu Jan 01 1970 05:30:00 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(-0.9).toString()	string	"Thu Jan 01 1970 10:00:00 GMT+1000 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(-0.9).toString()	string	"Wed Dec 31 1969 13:00:00 GMT-1100 (Samoa Standard Time)"
+any	Date.prototype.toISOString.call(new Date(-0.9))	string	"1970-01-01T00:00:00.000Z"
+any	new Date(-0.9).getUTCFullYear()	number	1970
+UTC	new Date(-0.9).getFullYear()	number	1970
+America/Sao_Paulo	new Date(-0.9).getFullYear()	number	1969
+Europe/London	new Date(-0.9).getFullYear()	number	1970
+Asia/Kolkata	new Date(-0.9).getFullYear()	number	1970
+Australia/Lord_Howe	new Date(-0.9).getFullYear()	number	1970
+Pacific/Apia	new Date(-0.9).getFullYear()	number	1969
+any	String(new Date(-0.9).toJSON())	string	"1970-01-01T00:00:00.000Z"
+any	JSON.stringify({ d: new Date(-0.9) })	string	"{\"d\":\"1970-01-01T00:00:00.000Z\"}"
+UTC	new Date(-0.9).getDay()	number	4
+America/Sao_Paulo	new Date(-0.9).getDay()	number	3
+Europe/London	new Date(-0.9).getDay()	number	4
+Asia/Kolkata	new Date(-0.9).getDay()	number	4
+Australia/Lord_Howe	new Date(-0.9).getDay()	number	4
+Pacific/Apia	new Date(-0.9).getDay()	number	3
+UTC	new Date(-0.9).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(-0.9).getTimezoneOffset()	number	180
+Europe/London	new Date(-0.9).getTimezoneOffset()	number	-60
+Asia/Kolkata	new Date(-0.9).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(-0.9).getTimezoneOffset()	number	-600
+Pacific/Apia	new Date(-0.9).getTimezoneOffset()	number	660
+any	new Date(Infinity).getTime()	number	NaN
+any	String(new Date(Infinity).getTime())	string	"NaN"
+any	new Date(Infinity).getTime() === 0	boolean	false
+any	Object.is(new Date(Infinity).getTime(), -0)	boolean	false
+any	new Date(Infinity).toUTCString()	string	"Invalid Date"
+any	new Date(Infinity).toString()	string	"Invalid Date"
+any	Date.prototype.toISOString.call(new Date(Infinity))	throw	RangeError: Invalid Date
+any	new Date(Infinity).getUTCFullYear()	number	NaN
+any	new Date(Infinity).getFullYear()	number	NaN
+any	String(new Date(Infinity).toJSON())	string	"null"
+any	JSON.stringify({ d: new Date(Infinity) })	string	"{\"d\":null}"
+any	new Date(Infinity).getDay()	number	NaN
+any	new Date(Infinity).getTimezoneOffset()	number	NaN
+any	new Date(-Infinity).getTime()	number	NaN
+any	String(new Date(-Infinity).getTime())	string	"NaN"
+any	new Date(-Infinity).getTime() === 0	boolean	false
+any	Object.is(new Date(-Infinity).getTime(), -0)	boolean	false
+any	new Date(-Infinity).toUTCString()	string	"Invalid Date"
+any	new Date(-Infinity).toString()	string	"Invalid Date"
+any	Date.prototype.toISOString.call(new Date(-Infinity))	throw	RangeError: Invalid Date
+any	new Date(-Infinity).getUTCFullYear()	number	NaN
+any	new Date(-Infinity).getFullYear()	number	NaN
+any	String(new Date(-Infinity).toJSON())	string	"null"
+any	JSON.stringify({ d: new Date(-Infinity) })	string	"{\"d\":null}"
+any	new Date(-Infinity).getDay()	number	NaN
+any	new Date(-Infinity).getTimezoneOffset()	number	NaN
+any	new Date(8.64e15).toISOString()	string	"+275760-09-13T00:00:00.000Z"
+any	new Date(-8.64e15).toISOString()	string	"-271821-04-20T00:00:00.000Z"
+UTC	new Date(8.64e15).toString()	string	"Sat Sep 13 275760 00:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(8.64e15).toString()	string	"Fri Sep 12 275760 21:00:00 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(8.64e15).toString()	string	"Sat Sep 13 275760 01:00:00 GMT+0100 (British Summer Time)"
+Asia/Kolkata	new Date(8.64e15).toString()	string	"Sat Sep 13 275760 05:30:00 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(8.64e15).toString()	string	"Sat Sep 13 275760 10:30:00 GMT+1030 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(8.64e15).toString()	string	"Sat Sep 13 275760 13:00:00 GMT+1300 (Samoa Standard Time)"
+UTC	new Date(-8.64e15).toString()	string	"Tue Apr 20 -271821 00:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(-8.64e15).toString()	string	"Mon Apr 19 -271821 20:53:32 GMT-0306 (Brasilia Standard Time)"
+Europe/London	new Date(-8.64e15).toString()	string	"Mon Apr 19 -271821 23:58:45 GMT-0001 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(-8.64e15).toString()	string	"Tue Apr 20 -271821 05:53:28 GMT+0553 (India Standard Time)"
+Australia/Lord_Howe	new Date(-8.64e15).toString()	string	"Tue Apr 20 -271821 10:36:20 GMT+1036 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(-8.64e15).toString()	string	"Tue Apr 20 -271821 12:33:04 GMT+1233 (Samoa Standard Time)"
+UTC	new Date(8.64e15).toDateString()	string	"Sat Sep 13 275760"
+America/Sao_Paulo	new Date(8.64e15).toDateString()	string	"Fri Sep 12 275760"
+Europe/London	new Date(8.64e15).toDateString()	string	"Sat Sep 13 275760"
+Asia/Kolkata	new Date(8.64e15).toDateString()	string	"Sat Sep 13 275760"
+Australia/Lord_Howe	new Date(8.64e15).toDateString()	string	"Sat Sep 13 275760"
+Pacific/Apia	new Date(8.64e15).toDateString()	string	"Sat Sep 13 275760"
+UTC	new Date(-8.64e15).toTimeString()	string	"00:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(-8.64e15).toTimeString()	string	"20:53:32 GMT-0306 (Brasilia Standard Time)"
+Europe/London	new Date(-8.64e15).toTimeString()	string	"23:58:45 GMT-0001 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(-8.64e15).toTimeString()	string	"05:53:28 GMT+0553 (India Standard Time)"
+Australia/Lord_Howe	new Date(-8.64e15).toTimeString()	string	"10:36:20 GMT+1036 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(-8.64e15).toTimeString()	string	"12:33:04 GMT+1233 (Samoa Standard Time)"
+UTC	new Date(8.64e15).getMonth() + ',' + new Date(8.64e15).getDate()	string	"8,13"
+America/Sao_Paulo	new Date(8.64e15).getMonth() + ',' + new Date(8.64e15).getDate()	string	"8,12"
+Europe/London	new Date(8.64e15).getMonth() + ',' + new Date(8.64e15).getDate()	string	"8,13"
+Asia/Kolkata	new Date(8.64e15).getMonth() + ',' + new Date(8.64e15).getDate()	string	"8,13"
+Australia/Lord_Howe	new Date(8.64e15).getMonth() + ',' + new Date(8.64e15).getDate()	string	"8,13"
+Pacific/Apia	new Date(8.64e15).getMonth() + ',' + new Date(8.64e15).getDate()	string	"8,13"
+UTC	new Date(-8.64e15).getMonth() + ',' + new Date(-8.64e15).getDate()	string	"3,20"
+America/Sao_Paulo	new Date(-8.64e15).getMonth() + ',' + new Date(-8.64e15).getDate()	string	"3,19"
+Europe/London	new Date(-8.64e15).getMonth() + ',' + new Date(-8.64e15).getDate()	string	"3,19"
+Asia/Kolkata	new Date(-8.64e15).getMonth() + ',' + new Date(-8.64e15).getDate()	string	"3,20"
+Australia/Lord_Howe	new Date(-8.64e15).getMonth() + ',' + new Date(-8.64e15).getDate()	string	"3,20"
+Pacific/Apia	new Date(-8.64e15).getMonth() + ',' + new Date(-8.64e15).getDate()	string	"3,20"
+any	new Date(-8.64e15).getUTCDay()	number	2
+any	var d = new Date(8.64e15); d.setUTCMilliseconds(1); String(d.getTime())	string	"NaN"
+any	var d = new Date(8.64e15); d.setUTCMilliseconds(-1); d.getTime()	number	8639999999999999
+any	var d = new Date(-8.64e15); d.setUTCMilliseconds(-1); String(d.getTime())	string	"NaN"
+any	var d = new Date(8.64e15); d.setUTCDate(d.getUTCDate() + 1); String(d.getTime())	string	"NaN"
+any	var d = new Date(8.64e15 - 1); d.setUTCMonth(0); d.getTime()	number	8639978918399999
+any	var d = new Date(0); d.setUTCFullYear(275760, 8, 14); String(d.getTime())	string	"NaN"
+any	var d = new Date(0); d.setUTCFullYear(275760, 8, 13); d.getTime()	number	8640000000000000
+UTC	var d = new Date(0); d.setFullYear(275760, 8, 13); String(d.getTime())	string	"8640000000000000"
+America/Sao_Paulo	var d = new Date(0); d.setFullYear(275760, 8, 13); String(d.getTime())	string	"NaN"
+Europe/London	var d = new Date(0); d.setFullYear(275760, 8, 13); String(d.getTime())	string	"8640000000000000"
+Asia/Kolkata	var d = new Date(0); d.setFullYear(275760, 8, 13); String(d.getTime())	string	"8640000000000000"
+Australia/Lord_Howe	var d = new Date(0); d.setFullYear(275760, 8, 13); String(d.getTime())	string	"8639999998200000"
+Pacific/Apia	var d = new Date(0); d.setFullYear(275760, 8, 13); String(d.getTime())	string	"NaN"
+UTC	var d = new Date(0); d.setFullYear(-271821, 3, 20); String(d.getTime())	string	"-8640000000000000"
+America/Sao_Paulo	var d = new Date(0); d.setFullYear(-271821, 3, 20); String(d.getTime())	string	"-8639999913212000"
+Europe/London	var d = new Date(0); d.setFullYear(-271821, 3, 20); String(d.getTime())	string	"-8639999996325000"
+Asia/Kolkata	var d = new Date(0); d.setFullYear(-271821, 3, 20); String(d.getTime())	string	"NaN"
+Australia/Lord_Howe	var d = new Date(0); d.setFullYear(-271821, 3, 20); String(d.getTime())	string	"NaN"
+Pacific/Apia	var d = new Date(0); d.setFullYear(-271821, 3, 20); String(d.getTime())	string	"-8639999998384000"
+any	new Date(8.64e15, 0).getTime()	number	NaN
+UTC	new Date(275760, 8, 13).getTime()	number	8640000000000000
+America/Sao_Paulo	new Date(275760, 8, 13).getTime()	number	NaN
+Europe/London	new Date(275760, 8, 13).getTime()	number	8639999996400000
+Asia/Kolkata	new Date(275760, 8, 13).getTime()	number	8639999980200000
+Australia/Lord_Howe	new Date(275760, 8, 13).getTime()	number	8639999962200000
+Pacific/Apia	new Date(275760, 8, 13).getTime()	number	8639999953200000
+UTC	new Date(275760, 8, 13, 0, 0, 0, 1).getTime()	number	NaN
+America/Sao_Paulo	new Date(275760, 8, 13, 0, 0, 0, 1).getTime()	number	NaN
+Europe/London	new Date(275760, 8, 13, 0, 0, 0, 1).getTime()	number	8639999996400001
+Asia/Kolkata	new Date(275760, 8, 13, 0, 0, 0, 1).getTime()	number	8639999980200001
+Australia/Lord_Howe	new Date(275760, 8, 13, 0, 0, 0, 1).getTime()	number	8639999962200001
+Pacific/Apia	new Date(275760, 8, 13, 0, 0, 0, 1).getTime()	number	NaN
+any	new Date(-271821, 3, 19).getTime()	number	NaN
+UTC	new Date(-271821, 3, 20).getTime()	number	-8640000000000000
+America/Sao_Paulo	new Date(-271821, 3, 20).getTime()	number	-8639999988812000
+Europe/London	new Date(-271821, 3, 20).getTime()	number	-8639999999925000
+Asia/Kolkata	new Date(-271821, 3, 20).getTime()	number	NaN
+Australia/Lord_Howe	new Date(-271821, 3, 20).getTime()	number	NaN
+Pacific/Apia	new Date(-271821, 3, 20).getTime()	number	NaN
+any	new Date(8.64e15).getTime() - new Date(-8.64e15).getTime()	number	17280000000000000
+any	Date.UTC(275760, 8, 13) === 8.64e15	boolean	true
+any	new Date(8.64e15).valueOf() === 8.64e15	boolean	true
+any	new Date('275760-09-13T00:00:00.000Z').getTime()	number	NaN
+any	new Date('+275760-09-13T00:00:00.000Z').toISOString()	string	"+275760-09-13T00:00:00.000Z"
+any	new Date('+275760-09-13T00:00:00.000+01:00').getTime()	number	8639999996400000
+any	new Date('-271821-04-20T00:00:00.000Z').getTime()	number	-8640000000000000
+any	new Date('-271821-04-20T00:00:00.000Z').toISOString()	string	"-271821-04-20T00:00:00.000Z"
+any	new Date('-271821-04-19T23:59:59.999Z').getTime()	number	NaN
+any	new Date(2 ** 53).getTime()	number	NaN
+any	new Date(2 ** 31).getTime()	number	2147483648
+any	new Date(-(2 ** 31)).getTime()	number	-2147483648
+any	new Date(2 ** 32).getUTCFullYear()	number	1970
+any	new Date(NaN).toISOString()	throw	RangeError: Invalid Date
+any	new Date(NaN).toJSON()	object	null
+any	JSON.stringify(new Date(NaN))	string	"null"
+any	JSON.stringify({ a: new Date(NaN), b: [new Date(NaN)] })	string	"{\"a\":null,\"b\":[null]}"
+any	String(new Date(NaN))	string	"Invalid Date"
+any	new Date(NaN).toString()	string	"Invalid Date"
+any	new Date(NaN).toDateString()	string	"Invalid Date"
+any	new Date(NaN).toTimeString()	string	"Invalid Date"
+any	new Date(NaN).toUTCString()	string	"Invalid Date"
+any	new Date(NaN).toGMTString()	string	"Invalid Date"
+any	String(new Date('x').getTime())	string	"NaN"
+any	new Date('x').getFullYear()	number	NaN
+any	new Date().setTime(NaN)	number	NaN
+any	Date.prototype.toJSON.call({ toISOString() { return 'z' } })	string	"z"
+any	Date.prototype.toJSON.call({ valueOf() { return NaN }, toISOString() { return 'z' } })	object	null
+any	Date.prototype.toJSON.call({ valueOf() { return Infinity }, toISOString() { return 'z' } })	object	null
+any	Date.prototype.toJSON.call({ valueOf() { return 1 }, toISOString() { return 'z' } })	string	"z"
+any	Date.prototype.toJSON.call({ valueOf() { return 1 } })	throw	TypeError: toISOString is not a function
+any	Date.prototype.toJSON.call({ valueOf() { return 1 }, toISOString: 3 })	throw	TypeError: toISOString is not a function
+any	Date.prototype.toJSON.call(1)	throw	TypeError: toISOString is not a function
+any	Date.prototype.toJSON.call(undefined)	throw	TypeError: undefined is not an object (evaluating 'Date.prototype.toJSON.call(undefined)')
+any	Date.prototype.toJSON.call(null)	throw	TypeError: null is not an object (evaluating 'Date.prototype.toJSON.call(null)')
+any	Date.prototype.toJSON.call('2020')	throw	TypeError: toISOString is not a function
+any	Date.prototype.toJSON.call({ toISOString() { return 'q' }, valueOf() { return 'abc' } })	string	"q"
+any	Date.prototype.toISOString.call({})	throw	TypeError: Type error
+any	Date.prototype.toISOString.call(1)	throw	TypeError: Type error
+any	Date.prototype.toISOString.call(new Date(0))	string	"1970-01-01T00:00:00.000Z"
+any	Date.prototype.toJSON.length	number	1
+any	Date.prototype.toISOString.length	number	0
+any	new Date(0).toJSON()	string	"1970-01-01T00:00:00.000Z"
+any	new Date(-1).toISOString()	string	"1969-12-31T23:59:59.999Z"
+any	new Date(-62198755200000).toISOString()	string	"-000001-01-01T00:00:00.000Z"
+any	new Date(-62167219200001).toISOString()	string	"-000001-12-31T23:59:59.999Z"
+any	new Date(253402300800000).toISOString()	string	"+010000-01-01T00:00:00.000Z"
+any	new Date(253402300799999).toISOString()	string	"9999-12-31T23:59:59.999Z"
+any	new Date(-62198755200001).toISOString()	string	"-000002-12-31T23:59:59.999Z"
+any	new Date(1e12).toISOString()	string	"2001-09-09T01:46:40.000Z"
+any	new Date(1.9).toISOString()	string	"1970-01-01T00:00:00.001Z"
+any	new Date(-1.9).toISOString()	string	"1969-12-31T23:59:59.999Z"
+any	new Date(0.5).getMilliseconds()	number	0
+any	Date.parse('2020-13-01')	number	NaN
+any	Date.parse('2020-02-30')	number	1583020800000
+any	Date.parse('2020-02-29T24:00:00Z')	number	1583020800000
+any	Date.parse('2020-02-29T24:00:01Z')	number	NaN
+any	Date.parse('2020-02-29T25:00:00Z')	number	NaN
+any	Date.parse('')	number	NaN
+any	Date.parse()	number	NaN
+any	JSON.parse(JSON.stringify({ d: new Date(0) })).d	string	"1970-01-01T00:00:00.000Z"
+any	new Date(JSON.parse(JSON.stringify(new Date(123456789)))).getTime()	number	123456789
+any	new Date({ valueOf() { return 5 } }).getTime()	number	5
+UTC	new Date({ valueOf() { return '5' } }).getTime()	number	988675200000
+America/Sao_Paulo	new Date({ valueOf() { return '5' } }).getTime()	number	988686000000
+Europe/London	new Date({ valueOf() { return '5' } }).getTime()	number	988671600000
+Asia/Kolkata	new Date({ valueOf() { return '5' } }).getTime()	number	988655400000
+Australia/Lord_Howe	new Date({ valueOf() { return '5' } }).getTime()	number	988637400000
+Pacific/Apia	new Date({ valueOf() { return '5' } }).getTime()	number	988714800000
+any	new Date({ toString() { return '2020-01-01T00:00:00Z' } }).getTime()	number	1577836800000
+any	new Date({ valueOf() { return {} }, toString() { return '1970-01-01T00:00:01Z' } }).getTime()	number	1000
+any	new Date({ valueOf() { return {} }, toString() { return {} } }).getTime()	throw	TypeError: No default value
+any	new Date({ [Symbol.toPrimitive]() { return 42 } }).getTime()	number	42
+any	new Date({ [Symbol.toPrimitive](hint) { return hint } }).getTime()	number	NaN
+any	new Date({ [Symbol.toPrimitive](hint) { return 'x' + hint } }).getTime()	number	NaN
+any	new Date(new Date(7)).getTime()	number	7
+any	new Date(new Date(NaN)).getTime()	number	NaN
+any	new Date(new Number(9)).getTime()	number	9
+any	new Date(new String('1970-01-01T00:00:00.008Z')).getTime()	number	8
+any	new Date(true).getTime()	number	1
+any	new Date(null).getTime()	number	0
+any	new Date(undefined).getTime()	number	NaN
+any	new Date([]).getTime()	number	NaN
+UTC	new Date([5]).getTime()	number	988675200000
+America/Sao_Paulo	new Date([5]).getTime()	number	988686000000
+Europe/London	new Date([5]).getTime()	number	988671600000
+Asia/Kolkata	new Date([5]).getTime()	number	988655400000
+Australia/Lord_Howe	new Date([5]).getTime()	number	988637400000
+Pacific/Apia	new Date([5]).getTime()	number	988714800000
+UTC	new Date('5').getTime()	number	988675200000
+America/Sao_Paulo	new Date('5').getTime()	number	988686000000
+Europe/London	new Date('5').getTime()	number	988671600000
+Asia/Kolkata	new Date('5').getTime()	number	988655400000
+Australia/Lord_Howe	new Date('5').getTime()	number	988637400000
+Pacific/Apia	new Date('5').getTime()	number	988714800000
+any	new Date(1n === 1n ? 3 : 0).getTime()	number	3
+any	(() => { try { return new Date(1n).getTime() } catch (e) { return e.name } })()	string	"TypeError"
+any	(() => { try { return new Date(Symbol()).getTime() } catch (e) { return e.name } })()	string	"TypeError"
+any	(() => { try { return new Date(0, 0, Symbol()).getTime() } catch (e) { return e.name } })()	string	"TypeError"
+any	(() => { try { return Date.UTC(0n) } catch (e) { return e.name } })()	string	"TypeError"
+any	typeof Date()	string	"string"
+any	Date(0) === Date(1)	boolean	true
+any	typeof Date.now()	string	"number"
+any	Date.now() > 1.6e12	boolean	true
+any	Date.length	number	7
+any	new Date(0, 0).constructor === Date	boolean	true
+any	Object.getPrototypeOf(new Date(0)) === Date.prototype	boolean	true
+any	var calls = []; new Date({ valueOf() { calls.push('v'); return 1 }, toString() { calls.push('s'); return '2' } }); calls.join('')	string	"v"
+any	var calls = []; var d = new Date(0); d.setHours({ valueOf() { calls.push('h'); return 1 } }, { valueOf() { calls.push('m'); return 2 } }); calls.join('')	string	"hm"
+any	var calls = []; var d = new Date(NaN); d.setHours({ valueOf() { calls.push('h'); return 1 } }, { valueOf() { calls.push('m'); return 2 } }); calls.join('')	string	"hm"
+any	var calls = []; Date.UTC({ valueOf() { calls.push('y'); return 1 } }, { valueOf() { calls.push('m'); return 1 } }, { valueOf() { calls.push('d'); return 1 } }); calls.join('')	string	"ymd"
+any	var d = new Date(0); d.setTime({ valueOf() { return 77 } }); d.getTime()	number	77
+UTC	var d = new Date(0); d.setMonth({ valueOf() { d.setTime(NaN); return 1 } }); String(d.getTime())	string	"2678400000"
+America/Sao_Paulo	var d = new Date(0); d.setMonth({ valueOf() { d.setTime(NaN); return 1 } }); String(d.getTime())	string	"-26179200000"
+Europe/London	var d = new Date(0); d.setMonth({ valueOf() { d.setTime(NaN); return 1 } }); String(d.getTime())	string	"2678400000"
+Asia/Kolkata	var d = new Date(0); d.setMonth({ valueOf() { d.setTime(NaN); return 1 } }); String(d.getTime())	string	"2678400000"
+Australia/Lord_Howe	var d = new Date(0); d.setMonth({ valueOf() { d.setTime(NaN); return 1 } }); String(d.getTime())	string	"2678400000"
+Pacific/Apia	var d = new Date(0); d.setMonth({ valueOf() { d.setTime(NaN); return 1 } }); String(d.getTime())	string	"-26179200000"
+UTC	var d = new Date(0); d.setHours({ valueOf() { d.setTime(86400000 * 10); return 1 } }); d.getTime()	number	3600000
+America/Sao_Paulo	var d = new Date(0); d.setHours({ valueOf() { d.setTime(86400000 * 10); return 1 } }); d.getTime()	number	-72000000
+Europe/London	var d = new Date(0); d.setHours({ valueOf() { d.setTime(86400000 * 10); return 1 } }); d.getTime()	number	0
+Asia/Kolkata	var d = new Date(0); d.setHours({ valueOf() { d.setTime(86400000 * 10); return 1 } }); d.getTime()	number	-14400000
+Australia/Lord_Howe	var d = new Date(0); d.setHours({ valueOf() { d.setTime(86400000 * 10); return 1 } }); d.getTime()	number	-32400000
+Pacific/Apia	var d = new Date(0); d.setHours({ valueOf() { d.setTime(86400000 * 10); return 1 } }); d.getTime()	number	-43200000
+any	Date.prototype.valueOf.call({})	throw	TypeError: Type error
+any	Date.prototype.valueOf.call(new Date(3))	number	3
+any	Date.prototype.getTime.call(1)	throw	TypeError: Type error
+any	Date.prototype.setTime.call({}, 1)	throw	TypeError: Type error
+any	Date.prototype.getFullYear.call('x')	throw	TypeError: Type error
+any	new Date(0).valueOf() === new Date(0).getTime()	boolean	true
+any	typeof new Date(0).valueOf()	string	"number"
+any	Object.is(new Date(-0).valueOf(), 0)	boolean	true
+any	new Date(1) < new Date(2)	boolean	true
+any	new Date(1) <= new Date(1)	boolean	true
+any	new Date(1) >= new Date(2)	boolean	false
+any	new Date(1) == new Date(1)	boolean	false
+any	new Date(1) === new Date(1)	boolean	false
+any	new Date(1) != new Date(1)	boolean	true
+any	+new Date(1) === +new Date(1)	boolean	true
+any	new Date(NaN) < new Date(1)	boolean	false
+any	new Date(NaN) > new Date(1)	boolean	false
+any	new Date(NaN) == new Date(NaN)	boolean	false
+any	+new Date(NaN) === +new Date(NaN)	boolean	false
+any	Object.is(+new Date(NaN), NaN)	boolean	true
+any	new Date(NaN) <= new Date(NaN)	boolean	false
+any	new Date(0) - new Date(1000)	number	-1000
+any	new Date(2020, 0, 2) - new Date(2020, 0, 1)	number	86400000
+UTC	new Date(2021, 2, 29) - new Date(2021, 2, 28)	number	86400000
+America/Sao_Paulo	new Date(2021, 2, 29) - new Date(2021, 2, 28)	number	86400000
+Europe/London	new Date(2021, 2, 29) - new Date(2021, 2, 28)	number	82800000
+Asia/Kolkata	new Date(2021, 2, 29) - new Date(2021, 2, 28)	number	86400000
+Australia/Lord_Howe	new Date(2021, 2, 29) - new Date(2021, 2, 28)	number	86400000
+Pacific/Apia	new Date(2021, 2, 29) - new Date(2021, 2, 28)	number	86400000
+UTC	new Date(2021, 10, 1) - new Date(2021, 9, 31)	number	86400000
+America/Sao_Paulo	new Date(2021, 10, 1) - new Date(2021, 9, 31)	number	86400000
+Europe/London	new Date(2021, 10, 1) - new Date(2021, 9, 31)	number	90000000
+Asia/Kolkata	new Date(2021, 10, 1) - new Date(2021, 9, 31)	number	86400000
+Australia/Lord_Howe	new Date(2021, 10, 1) - new Date(2021, 9, 31)	number	86400000
+Pacific/Apia	new Date(2021, 10, 1) - new Date(2021, 9, 31)	number	86400000
+UTC	new Date(2018, 10, 5) - new Date(2018, 10, 4)	number	86400000
+America/Sao_Paulo	new Date(2018, 10, 5) - new Date(2018, 10, 4)	number	82800000
+Europe/London	new Date(2018, 10, 5) - new Date(2018, 10, 4)	number	86400000
+Asia/Kolkata	new Date(2018, 10, 5) - new Date(2018, 10, 4)	number	86400000
+Australia/Lord_Howe	new Date(2018, 10, 5) - new Date(2018, 10, 4)	number	86400000
+Pacific/Apia	new Date(2018, 10, 5) - new Date(2018, 10, 4)	number	86400000
+any	new Date(2019, 1, 18) - new Date(2019, 1, 17)	number	86400000
+UTC	new Date(2011, 11, 31) - new Date(2011, 11, 30)	number	86400000
+America/Sao_Paulo	new Date(2011, 11, 31) - new Date(2011, 11, 30)	number	86400000
+Europe/London	new Date(2011, 11, 31) - new Date(2011, 11, 30)	number	86400000
+Asia/Kolkata	new Date(2011, 11, 31) - new Date(2011, 11, 30)	number	86400000
+Australia/Lord_Howe	new Date(2011, 11, 31) - new Date(2011, 11, 30)	number	86400000
+Pacific/Apia	new Date(2011, 11, 31) - new Date(2011, 11, 30)	number	0
+UTC	new Date(2021, 3, 5) - new Date(2021, 3, 4)	number	86400000
+America/Sao_Paulo	new Date(2021, 3, 5) - new Date(2021, 3, 4)	number	86400000
+Europe/London	new Date(2021, 3, 5) - new Date(2021, 3, 4)	number	86400000
+Asia/Kolkata	new Date(2021, 3, 5) - new Date(2021, 3, 4)	number	86400000
+Australia/Lord_Howe	new Date(2021, 3, 5) - new Date(2021, 3, 4)	number	88200000
+Pacific/Apia	new Date(2021, 3, 5) - new Date(2021, 3, 4)	number	90000000
+any	new Date(2021, 9, 3) - new Date(2021, 9, 2)	number	86400000
+any	[new Date(3), new Date(1), new Date(2)].sort((a, b) => a - b).map(Number).join()	string	"1,2,3"
+any	[new Date(3), new Date(NaN), new Date(1)].sort((a, b) => a - b).map(Number).join()	string	"3,NaN,1"
+any	Math.max(new Date(3), new Date(5))	number	5
+any	Math.min(new Date(3), new Date(NaN))	number	NaN
+any	new Date(0) > null	boolean	false
+any	new Date(0) >= null	boolean	true
+any	new Date(0) > undefined	boolean	false
+any	new Date(0) < '1'	boolean	true
+any	new Date(1) > '0'	boolean	true
+any	new Date(0) + new Date(0) === new Date(0).toString() + new Date(0).toString()	boolean	true
+any	new Date(2020, 0, 1).getTime() === new Date('2020-01-01T00:00:00').getTime()	boolean	true
+any	new Date('2020-01-01').getTime() === Date.UTC(2020, 0, 1)	boolean	true
+any	new Date('2020-01-01T00:00').getTime() === new Date(2020, 0, 1).getTime()	boolean	true
+any	new Date(2020, 0, 1, 12).getDay()	number	3
+UTC	new Date(2020, 0, 1).getUTCDate()	number	1
+America/Sao_Paulo	new Date(2020, 0, 1).getUTCDate()	number	1
+Europe/London	new Date(2020, 0, 1).getUTCDate()	number	1
+Asia/Kolkata	new Date(2020, 0, 1).getUTCDate()	number	31
+Australia/Lord_Howe	new Date(2020, 0, 1).getUTCDate()	number	31
+Pacific/Apia	new Date(2020, 0, 1).getUTCDate()	number	31
+UTC	new Date(2020, 0, 1).getUTCHours()	number	0
+America/Sao_Paulo	new Date(2020, 0, 1).getUTCHours()	number	3
+Europe/London	new Date(2020, 0, 1).getUTCHours()	number	0
+Asia/Kolkata	new Date(2020, 0, 1).getUTCHours()	number	18
+Australia/Lord_Howe	new Date(2020, 0, 1).getUTCHours()	number	13
+Pacific/Apia	new Date(2020, 0, 1).getUTCHours()	number	10
+UTC	new Date(2020, 0, 1).getUTCDay()	number	3
+America/Sao_Paulo	new Date(2020, 0, 1).getUTCDay()	number	3
+Europe/London	new Date(2020, 0, 1).getUTCDay()	number	3
+Asia/Kolkata	new Date(2020, 0, 1).getUTCDay()	number	2
+Australia/Lord_Howe	new Date(2020, 0, 1).getUTCDay()	number	2
+Pacific/Apia	new Date(2020, 0, 1).getUTCDay()	number	2
+UTC	new Date(2021, 2, 28, 12).getUTCHours()	number	12
+America/Sao_Paulo	new Date(2021, 2, 28, 12).getUTCHours()	number	15
+Europe/London	new Date(2021, 2, 28, 12).getUTCHours()	number	11
+Asia/Kolkata	new Date(2021, 2, 28, 12).getUTCHours()	number	6
+Australia/Lord_Howe	new Date(2021, 2, 28, 12).getUTCHours()	number	1
+Pacific/Apia	new Date(2021, 2, 28, 12).getUTCHours()	number	22
+UTC	new Date(2021, 9, 31, 12).getUTCHours()	number	12
+America/Sao_Paulo	new Date(2021, 9, 31, 12).getUTCHours()	number	15
+Europe/London	new Date(2021, 9, 31, 12).getUTCHours()	number	12
+Asia/Kolkata	new Date(2021, 9, 31, 12).getUTCHours()	number	6
+Australia/Lord_Howe	new Date(2021, 9, 31, 12).getUTCHours()	number	1
+Pacific/Apia	new Date(2021, 9, 31, 12).getUTCHours()	number	23
+UTC	new Date(Date.UTC(2020, 0, 1)).getDate()	number	1
+America/Sao_Paulo	new Date(Date.UTC(2020, 0, 1)).getDate()	number	31
+Europe/London	new Date(Date.UTC(2020, 0, 1)).getDate()	number	1
+Asia/Kolkata	new Date(Date.UTC(2020, 0, 1)).getDate()	number	1
+Australia/Lord_Howe	new Date(Date.UTC(2020, 0, 1)).getDate()	number	1
+Pacific/Apia	new Date(Date.UTC(2020, 0, 1)).getDate()	number	1
+UTC	new Date(Date.UTC(2020, 0, 1)).getHours()	number	0
+America/Sao_Paulo	new Date(Date.UTC(2020, 0, 1)).getHours()	number	21
+Europe/London	new Date(Date.UTC(2020, 0, 1)).getHours()	number	0
+Asia/Kolkata	new Date(Date.UTC(2020, 0, 1)).getHours()	number	5
+Australia/Lord_Howe	new Date(Date.UTC(2020, 0, 1)).getHours()	number	11
+Pacific/Apia	new Date(Date.UTC(2020, 0, 1)).getHours()	number	14
+UTC	new Date(Date.UTC(2020, 0, 1)).getMinutes()	number	0
+America/Sao_Paulo	new Date(Date.UTC(2020, 0, 1)).getMinutes()	number	0
+Europe/London	new Date(Date.UTC(2020, 0, 1)).getMinutes()	number	0
+Asia/Kolkata	new Date(Date.UTC(2020, 0, 1)).getMinutes()	number	30
+Australia/Lord_Howe	new Date(Date.UTC(2020, 0, 1)).getMinutes()	number	0
+Pacific/Apia	new Date(Date.UTC(2020, 0, 1)).getMinutes()	number	0
+UTC	new Date(Date.UTC(2020, 0, 1)).getDay()	number	3
+America/Sao_Paulo	new Date(Date.UTC(2020, 0, 1)).getDay()	number	2
+Europe/London	new Date(Date.UTC(2020, 0, 1)).getDay()	number	3
+Asia/Kolkata	new Date(Date.UTC(2020, 0, 1)).getDay()	number	3
+Australia/Lord_Howe	new Date(Date.UTC(2020, 0, 1)).getDay()	number	3
+Pacific/Apia	new Date(Date.UTC(2020, 0, 1)).getDay()	number	3
+UTC	new Date(Date.UTC(2020, 5, 30, 23, 59)).getDate()	number	30
+America/Sao_Paulo	new Date(Date.UTC(2020, 5, 30, 23, 59)).getDate()	number	30
+Europe/London	new Date(Date.UTC(2020, 5, 30, 23, 59)).getDate()	number	1
+Asia/Kolkata	new Date(Date.UTC(2020, 5, 30, 23, 59)).getDate()	number	1
+Australia/Lord_Howe	new Date(Date.UTC(2020, 5, 30, 23, 59)).getDate()	number	1
+Pacific/Apia	new Date(Date.UTC(2020, 5, 30, 23, 59)).getDate()	number	1
+UTC	new Date(Date.UTC(2011, 11, 30, 10)).getDate()	number	30
+America/Sao_Paulo	new Date(Date.UTC(2011, 11, 30, 10)).getDate()	number	30
+Europe/London	new Date(Date.UTC(2011, 11, 30, 10)).getDate()	number	30
+Asia/Kolkata	new Date(Date.UTC(2011, 11, 30, 10)).getDate()	number	30
+Australia/Lord_Howe	new Date(Date.UTC(2011, 11, 30, 10)).getDate()	number	30
+Pacific/Apia	new Date(Date.UTC(2011, 11, 30, 10)).getDate()	number	31
+UTC	new Date(Date.UTC(2011, 11, 30, 9)).getDate()	number	30
+America/Sao_Paulo	new Date(Date.UTC(2011, 11, 30, 9)).getDate()	number	30
+Europe/London	new Date(Date.UTC(2011, 11, 30, 9)).getDate()	number	30
+Asia/Kolkata	new Date(Date.UTC(2011, 11, 30, 9)).getDate()	number	30
+Australia/Lord_Howe	new Date(Date.UTC(2011, 11, 30, 9)).getDate()	number	30
+Pacific/Apia	new Date(Date.UTC(2011, 11, 30, 9)).getDate()	number	29
+UTC	new Date(Date.UTC(2011, 11, 31)).getDate()	number	31
+America/Sao_Paulo	new Date(Date.UTC(2011, 11, 31)).getDate()	number	30
+Europe/London	new Date(Date.UTC(2011, 11, 31)).getDate()	number	31
+Asia/Kolkata	new Date(Date.UTC(2011, 11, 31)).getDate()	number	31
+Australia/Lord_Howe	new Date(Date.UTC(2011, 11, 31)).getDate()	number	31
+Pacific/Apia	new Date(Date.UTC(2011, 11, 31)).getDate()	number	31
+UTC	new Date(Date.UTC(2021, 3, 3, 14, 30)).getMinutes()	number	30
+America/Sao_Paulo	new Date(Date.UTC(2021, 3, 3, 14, 30)).getMinutes()	number	30
+Europe/London	new Date(Date.UTC(2021, 3, 3, 14, 30)).getMinutes()	number	30
+Asia/Kolkata	new Date(Date.UTC(2021, 3, 3, 14, 30)).getMinutes()	number	0
+Australia/Lord_Howe	new Date(Date.UTC(2021, 3, 3, 14, 30)).getMinutes()	number	30
+Pacific/Apia	new Date(Date.UTC(2021, 3, 3, 14, 30)).getMinutes()	number	30
+UTC	new Date(Date.UTC(2021, 9, 2, 15, 30)).getMinutes()	number	30
+America/Sao_Paulo	new Date(Date.UTC(2021, 9, 2, 15, 30)).getMinutes()	number	30
+Europe/London	new Date(Date.UTC(2021, 9, 2, 15, 30)).getMinutes()	number	30
+Asia/Kolkata	new Date(Date.UTC(2021, 9, 2, 15, 30)).getMinutes()	number	0
+Australia/Lord_Howe	new Date(Date.UTC(2021, 9, 2, 15, 30)).getMinutes()	number	30
+Pacific/Apia	new Date(Date.UTC(2021, 9, 2, 15, 30)).getMinutes()	number	30
+UTC	new Date(Date.UTC(2021, 6, 1)).getMinutes()	number	0
+America/Sao_Paulo	new Date(Date.UTC(2021, 6, 1)).getMinutes()	number	0
+Europe/London	new Date(Date.UTC(2021, 6, 1)).getMinutes()	number	0
+Asia/Kolkata	new Date(Date.UTC(2021, 6, 1)).getMinutes()	number	30
+Australia/Lord_Howe	new Date(Date.UTC(2021, 6, 1)).getMinutes()	number	30
+Pacific/Apia	new Date(Date.UTC(2021, 6, 1)).getMinutes()	number	0
+UTC	new Date(Date.UTC(2021, 6, 1)).getHours()	number	0
+America/Sao_Paulo	new Date(Date.UTC(2021, 6, 1)).getHours()	number	21
+Europe/London	new Date(Date.UTC(2021, 6, 1)).getHours()	number	1
+Asia/Kolkata	new Date(Date.UTC(2021, 6, 1)).getHours()	number	5
+Australia/Lord_Howe	new Date(Date.UTC(2021, 6, 1)).getHours()	number	10
+Pacific/Apia	new Date(Date.UTC(2021, 6, 1)).getHours()	number	13
+UTC	new Date(Date.UTC(1970, 0, 1)).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(Date.UTC(1970, 0, 1)).getTimezoneOffset()	number	180
+Europe/London	new Date(Date.UTC(1970, 0, 1)).getTimezoneOffset()	number	-60
+Asia/Kolkata	new Date(Date.UTC(1970, 0, 1)).getTimezoneOffset()	number	-330
+Australia/Lord_Howe	new Date(Date.UTC(1970, 0, 1)).getTimezoneOffset()	number	-600
+Pacific/Apia	new Date(Date.UTC(1970, 0, 1)).getTimezoneOffset()	number	660
+UTC	new Date(Date.UTC(1900, 0, 1)).getTimezoneOffset()	number	0
+America/Sao_Paulo	new Date(Date.UTC(1900, 0, 1)).getTimezoneOffset()	number	186
+Europe/London	new Date(Date.UTC(1900, 0, 1)).getTimezoneOffset()	number	0
+Asia/Kolkata	new Date(Date.UTC(1900, 0, 1)).getTimezoneOffset()	number	-321
+Australia/Lord_Howe	new Date(Date.UTC(1900, 0, 1)).getTimezoneOffset()	number	-600
+Pacific/Apia	new Date(Date.UTC(1900, 0, 1)).getTimezoneOffset()	number	686
+UTC	new Date(0).toDateString()	string	"Thu Jan 01 1970"
+America/Sao_Paulo	new Date(0).toDateString()	string	"Wed Dec 31 1969"
+Europe/London	new Date(0).toDateString()	string	"Thu Jan 01 1970"
+Asia/Kolkata	new Date(0).toDateString()	string	"Thu Jan 01 1970"
+Australia/Lord_Howe	new Date(0).toDateString()	string	"Thu Jan 01 1970"
+Pacific/Apia	new Date(0).toDateString()	string	"Wed Dec 31 1969"
+UTC	new Date(0).toTimeString()	string	"00:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(0).toTimeString()	string	"21:00:00 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(0).toTimeString()	string	"01:00:00 GMT+0100 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(0).toTimeString()	string	"05:30:00 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(0).toTimeString()	string	"10:00:00 GMT+1000 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(0).toTimeString()	string	"13:00:00 GMT-1100 (Samoa Standard Time)"
+UTC	new Date(0).toString()	string	"Thu Jan 01 1970 00:00:00 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(0).toString()	string	"Wed Dec 31 1969 21:00:00 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(0).toString()	string	"Thu Jan 01 1970 01:00:00 GMT+0100 (Greenwich Mean Time)"
+Asia/Kolkata	new Date(0).toString()	string	"Thu Jan 01 1970 05:30:00 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(0).toString()	string	"Thu Jan 01 1970 10:00:00 GMT+1000 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(0).toString()	string	"Wed Dec 31 1969 13:00:00 GMT-1100 (Samoa Standard Time)"
+UTC	new Date(0).toLocaleString()	string	"1/1/1970, 12:00:00 AM"
+America/Sao_Paulo	new Date(0).toLocaleString()	string	"12/31/1969, 9:00:00 PM"
+Europe/London	new Date(0).toLocaleString()	string	"1/1/1970, 1:00:00 AM"
+Asia/Kolkata	new Date(0).toLocaleString()	string	"1/1/1970, 5:30:00 AM"
+Australia/Lord_Howe	new Date(0).toLocaleString()	string	"1/1/1970, 10:00:00 AM"
+Pacific/Apia	new Date(0).toLocaleString()	string	"12/31/1969, 1:00:00 PM"
+UTC	new Date(0).toLocaleDateString()	string	"1/1/1970"
+America/Sao_Paulo	new Date(0).toLocaleDateString()	string	"12/31/1969"
+Europe/London	new Date(0).toLocaleDateString()	string	"1/1/1970"
+Asia/Kolkata	new Date(0).toLocaleDateString()	string	"1/1/1970"
+Australia/Lord_Howe	new Date(0).toLocaleDateString()	string	"1/1/1970"
+Pacific/Apia	new Date(0).toLocaleDateString()	string	"12/31/1969"
+UTC	new Date(0).toLocaleTimeString()	string	"12:00:00 AM"
+America/Sao_Paulo	new Date(0).toLocaleTimeString()	string	"9:00:00 PM"
+Europe/London	new Date(0).toLocaleTimeString()	string	"1:00:00 AM"
+Asia/Kolkata	new Date(0).toLocaleTimeString()	string	"5:30:00 AM"
+Australia/Lord_Howe	new Date(0).toLocaleTimeString()	string	"10:00:00 AM"
+Pacific/Apia	new Date(0).toLocaleTimeString()	string	"1:00:00 PM"
+UTC	new Date(1e12).toString()	string	"Sun Sep 09 2001 01:46:40 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(1e12).toString()	string	"Sat Sep 08 2001 22:46:40 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(1e12).toString()	string	"Sun Sep 09 2001 02:46:40 GMT+0100 (British Summer Time)"
+Asia/Kolkata	new Date(1e12).toString()	string	"Sun Sep 09 2001 07:16:40 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(1e12).toString()	string	"Sun Sep 09 2001 12:16:40 GMT+1030 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(1e12).toString()	string	"Sat Sep 08 2001 14:46:40 GMT-1100 (Samoa Standard Time)"
+UTC	new Date(-1e12).toString()	string	"Sun Apr 24 1938 22:13:20 GMT+0000 (Coordinated Universal Time)"
+America/Sao_Paulo	new Date(-1e12).toString()	string	"Sun Apr 24 1938 19:13:20 GMT-0300 (Brasilia Standard Time)"
+Europe/London	new Date(-1e12).toString()	string	"Sun Apr 24 1938 23:13:20 GMT+0100 (British Summer Time)"
+Asia/Kolkata	new Date(-1e12).toString()	string	"Mon Apr 25 1938 03:43:20 GMT+0530 (India Standard Time)"
+Australia/Lord_Howe	new Date(-1e12).toString()	string	"Mon Apr 25 1938 08:13:20 GMT+1000 (Lord Howe Standard Time)"
+Pacific/Apia	new Date(-1e12).toString()	string	"Sun Apr 24 1938 10:43:20 GMT-1130 (Samoa Standard Time)"
