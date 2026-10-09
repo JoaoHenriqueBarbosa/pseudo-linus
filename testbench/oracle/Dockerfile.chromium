@@ -1,0 +1,11 @@
+# Oráculo do navegador (fase 5): o chromium do Debian 13 com as fontes que o roadmap fixa. Camada à parte da
+# imagem principal do oráculo para não mexer nas versões das ferramentas GNU; mesma base, mesmo digest.
+FROM debian:trixie-slim@sha256:a99cfc517144bc59b1978475ec53b46ecabec7e43635402ee5b77cc54cd1b20a
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends chromium fonts-dejavu fonts-liberation ca-certificates python3 \
+ && rm -rf /var/lib/apt/lists/*
+
+ENV LC_ALL=C.UTF-8 TZ=UTC HOME=/root
+WORKDIR /work

@@ -262,7 +262,7 @@ pub fn evaluate_named_script_running_timers_reporting_uncaught(source: &str, url
 }
 
 /// O `SourceCode` de um `Program` com a origem `file:///url` e o nome de arquivo `url`.
-fn named_program_source(source: &str, url: &str) -> SourceCode {
+pub(crate) fn named_program_source(source: &str, url: &str) -> SourceCode {
     let origin = SourceOrigin::new(URL::from_string(&WtfString::from_latin1(format!("file:///{url}").as_bytes())));
     make_source(
         &WtfString::from_utf8(source.as_bytes()),
@@ -737,6 +737,7 @@ pub(crate) fn reset_for_program() {
     let _ = CJS_FILENAME.try_with(|name| name.borrow_mut().clear());
     let _ = CJS_FS.try_with(|fs| fs.borrow_mut().take());
     crate::api::builtin_modules::reset_for_program();
+    crate::runtime::dom_bridge::reset_for_program();
     let taken = CJS_STATE.try_with(|state| state.borrow_mut().take());
     drop(taken);
 }

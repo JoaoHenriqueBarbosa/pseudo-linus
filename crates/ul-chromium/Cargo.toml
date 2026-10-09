@@ -1,0 +1,25 @@
+[package]
+name = "ul-chromium"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "chromium --headless do pseudo-linus: busca a página pelo cliente do curl, monta o DOM com o html5ever, roda os scripts no JavaScriptCore portado (zjsc) e serializa o resultado"
+
+[dependencies]
+sysabi = { workspace = true }
+ul-common = { workspace = true }
+ul-net = { path = "../ul-net" }
+# Parser de HTML conforme a especificação (o mesmo do Servo); a árvore é a nossa (`dom.rs`).
+html5ever = "0.40"
+markup5ever = "0.40"
+# Motor JavaScript: o JavaScriptCore portado, ainda fora do workspace (ver wip/zjsc).
+zjsc = { path = "../../wip/zjsc" }
+
+[dev-dependencies]
+sysabi = { workspace = true, features = ["testkit"] }
+pl-testing = { path = "../pl-testing" }
+
+[lints]
+workspace = true
