@@ -62,7 +62,13 @@ use crate::runtime::js_function::{call_host_function_as_constructor, JSFunction}
 use crate::runtime::js_global_object::JSGlobalObject;
 use crate::runtime::js_microtask::{resolve_deferred_import_namespace, take_pending_exception};
 use crate::runtime::js_module_record::{ModuleResult, Status as RecordStatus};
-use crate::runtime::js_object::{JSFinalObject, JSObject, JSObjectRef};
+use crate::runtime::js_object::{register_get_prototype_method, JSFinalObject, JSObject, JSObjectRef, JS_FINAL_OBJECT_INFO};
+use crate::runtime::class_info::ClassInfo;
+use crate::runtime::collection_support::put_to_string_tag;
+use crate::runtime::custom_getter_setter::CustomGetterSetter;
+use crate::runtime::js_type::JSType;
+use crate::runtime::js_type_info::{TypeInfo, OVERRIDES_GET_PROTOTYPE};
+use crate::runtime::structure::Structure;
 use crate::runtime::js_typeof::js_type_string_for_value;
 use crate::runtime::structure::StructureRef;
 use crate::runtime::vm::VM;
@@ -74,7 +80,7 @@ use crate::runtime::js_value::{js_null, EncodedJSValue, JSValue};
 use crate::runtime::microtask::InternalMicrotask;
 use crate::runtime::module_analyzer::ModuleAnalyzer;
 use crate::runtime::own_property_names::get_own_property_names;
-use crate::runtime::property_attribute::DONT_ENUM;
+use crate::runtime::property_attribute::{CUSTOM_ACCESSOR, DONT_ENUM};
 use crate::runtime::property_name::PropertyName;
 use crate::runtime::property_name_array::PropertyNameArrayBuilder;
 use crate::runtime::script_fetch_parameters::{ScriptFetchParameters, ScriptFetchParametersRef, ScriptFetchParametersType};
@@ -187,9 +193,12 @@ thread_local! {
     static MESSAGE_STRUCTURES: RefCell<[Option<StructureRef>; 2]> = const { RefCell::new([None, None]) };
     /// O estado de cada instância de `ResolveMessage` e `BuildMessage` (a chave é o valor codificado da instância).
     static MESSAGE_STATES: RefCell<HashMap<EncodedJSValue, MessageState>> = RefCell::new(HashMap::new());
-    /// Os `import.meta` já criados (o valor codificado de cada objeto): `import.meta.resolve` só vale com
-    /// `this` sendo um deles (no Bun, `TypeError: import.meta.resolve must be bound to an import.meta object`).
-    static IMPORT_META_OBJECTS: RefCell<std::collections::HashSet<EncodedJSValue>> = RefCell::new(std::collections::HashSet::new());
+    /// Os `import.meta` já criados (o valor codificado de cada objeto) com os valores que o protótipo escondido
+    /// serve: `import.meta.resolve` só vale com `this` sendo um deles (no Bun, `TypeError: import.meta.resolve
+    /// must be bound to an import.meta object`).
+    static IMPORT_META_OBJECTS: RefCell<HashMap<EncodedJSValue, Vec<(Identifier, JSValue)>>> = RefCell::new(HashMap::new());
+    /// A `Structure` dos `import.meta` do realm (protótipo escondido, `OverridesGetPrototype`).
+    static IMPORT_META_STRUCTURE: RefCell<Option<StructureRef>> = const { RefCell::new(None) };
 }
 
 /// Índice (e parâmetro const dos nativos) da classe `ResolveMessage`.
@@ -650,6 +659,8 @@ pub(crate) fn reset_for_program() {
     let _ = MESSAGE_STRUCTURES.try_with(|slots| *slots.borrow_mut() = [None, None]);
     let _ = MESSAGE_STATES.try_with(|states| states.borrow_mut().clear());
     let _ = PENDING_IMPORTS.try_with(|pending| pending.borrow_mut().clear());
+    let _ = IMPORT_META_OBJECTS.try_with(|objects| objects.borrow_mut().clear());
+    let _ = IMPORT_META_STRUCTURE.try_with(|slot| slot.borrow_mut().take());
 }
 
 fn loader() -> Option<Rc<ModuleLoader>> {
@@ -1145,18 +1156,21 @@ pub fn load_and_evaluate_module(global_object: &JSGlobalObject, specifier: &str)
 }
 
 /// `createImportMetaProperties(globalObject, key, moduleRecord, scriptFetcher)`: o objeto de `import.meta`.
+///
+/// O `ImportMeta` do bun 1.4.2, medido: sem nenhuma propriedade própria; `url`, `path`, `main`, `resolve` e os
+/// demais são acessores customizados de um protótipo escondido, compartilhado e com `@@toStringTag` `ImportMeta`,
+/// que leem o valor pelo `this` (num objeto derivado dão `undefined`; atribuir cria a propriedade própria). O
+/// `getPrototypeOf` mente `null`, mas o `[[Prototype]]` de verdade é esse protótipo (`'hasOwnProperty' in
+/// import.meta` vale, `setPrototypeOf(import.meta, null)` apaga tudo).
 pub fn create_import_meta_properties(global_object: &JSGlobalObject, key: &Identifier) -> ModuleResult<JSValue> {
     let vm = global_object.vm();
-    let object = new_null_prototype_object(global_object);
-    IMPORT_META_OBJECTS.with(|objects| objects.borrow_mut().insert(object.as_value().encode()));
+    let structure = import_meta_structure(global_object);
+    let object = JSFinalObject::create(vm, &structure);
+    let mut values: Vec<(Identifier, JSValue)> = Vec::new();
     if let Some(loader) = loader() {
         let key_string = key_text(key);
         let url = loader.host.import_meta_url(&key_string);
-        // No Bun nenhuma dessas propriedades aparece em `Object.keys(import.meta)` nem em `JSON.stringify`,
-        // mas todas respondem a `in` e à leitura: aqui são não enumeráveis.
-        let define = |name: &[u8], value: JSValue| {
-            object.put_direct(vm, &PropertyName::from_identifier(&Identifier::from_span(vm, name)), value, DONT_ENUM);
-        };
+        let mut define = |name: &[u8], value: JSValue| values.push((Identifier::from_span(vm, name), value));
         let text_value = |text: &str| JSValue::from_js_string(js_string(vm, &WtfString::from_utf8(text.as_bytes())));
         define(b"url", text_value(&url));
         // `file:///caminho` dá `path`/`filename`, `dirname`/`dir` e `file` (o nome do arquivo), como o Bun; o caminho
@@ -1188,7 +1202,69 @@ pub fn create_import_meta_properties(global_object: &JSGlobalObject, key: &Ident
             define(name, native.as_value());
         }
     }
+    IMPORT_META_OBJECTS.with(|objects| objects.borrow_mut().insert(object.as_value().encode(), values));
     Ok(object.as_value())
+}
+
+/// Os nomes que o protótipo escondido do `ImportMeta` serve.
+const IMPORT_META_NAMES: [&[u8]; 9] = [b"url", b"path", b"filename", b"dirname", b"dir", b"file", b"main", b"resolve", b"resolveSync"];
+
+static IMPORT_META_S_INFO: ClassInfo =
+    ClassInfo { class_name: "Object", parent_class: Some(&JS_FINAL_OBJECT_INFO), static_prop_hash_table: None, inherits_js_type_range: None };
+
+/// `ImportMeta::getPrototype`: sempre `null`.
+fn import_meta_get_prototype(_object: &JSObject, _global_object: &JSGlobalObject) -> Result<JSValue, Thrown> {
+    Ok(js_null())
+}
+
+/// A `Structure` dos `import.meta` do realm (criada na primeira vez, com o protótipo escondido).
+fn import_meta_structure(global_object: &JSGlobalObject) -> StructureRef {
+    if let Some(structure) = IMPORT_META_STRUCTURE.with(|slot| slot.borrow().clone()) {
+        return structure;
+    }
+    let vm = global_object.vm();
+    let prototype = JSFinalObject::create(
+        vm,
+        &JSFinalObject::create_structure(vm, Some(global_object), global_object.object_prototype().as_value(), JSFinalObject::DEFAULT_INLINE_CAPACITY),
+    );
+    put_to_string_tag(vm, &prototype, "ImportMeta");
+    for name in IMPORT_META_NAMES {
+        let custom = CustomGetterSetter::create(vm, import_meta_getter, Some(import_meta_setter));
+        prototype.put_direct_custom_accessor(vm, &PropertyName::from_identifier(&Identifier::from_span(vm, name)), &custom, CUSTOM_ACCESSOR | DONT_ENUM);
+    }
+    register_get_prototype_method(&IMPORT_META_S_INFO, import_meta_get_prototype);
+    let structure = Structure::create_with_indexing_type(
+        vm,
+        Some(global_object),
+        prototype.as_value(),
+        TypeInfo::new(JSType::FinalObjectType, OVERRIDES_GET_PROTOTYPE),
+        &IMPORT_META_S_INFO,
+        JSFinalObject::DEFAULT_INDEXING_TYPE,
+        JSFinalObject::DEFAULT_INLINE_CAPACITY,
+    );
+    IMPORT_META_STRUCTURE.with(|slot| *slot.borrow_mut() = Some(structure.clone()));
+    structure
+}
+
+/// O valor de `name` do `import.meta` que é o `this`; `undefined` para qualquer outro `this`.
+fn import_meta_getter(_global_object: &JSGlobalObject, this_value: EncodedJSValue, property_name: &PropertyName) -> EncodedJSValue {
+    let uid = property_name.uid();
+    IMPORT_META_OBJECTS.with(|objects| {
+        objects
+            .borrow()
+            .get(&this_value)
+            .and_then(|values| values.iter().find(|(name, _)| name.impl_().as_ref() == uid).map(|(_, value)| *value))
+            .unwrap_or(JSValue::undefined())
+            .encode()
+    })
+}
+
+/// Atribuir cria a propriedade própria (enumerável) no `this`.
+fn import_meta_setter(global_object: &JSGlobalObject, this_value: EncodedJSValue, value: EncodedJSValue, property_name: &PropertyName) -> bool {
+    match JSObject::from_value(&JSValue::decode(this_value)) {
+        Some(object) => object.put_direct(global_object.vm(), property_name, JSValue::decode(value), 0),
+        None => false,
+    }
 }
 
 type NativeFn = fn(&JSGlobalObject, &mut NativeCallFrame<'_>) -> EncodedJSValue;
@@ -1222,7 +1298,7 @@ fn resolve_for_import_meta(global_object: &JSGlobalObject, call_frame: &mut Nati
     // objeto de escopo como `this` (célula: passa, mas sem chamador, ver abaixo); `r.call(undefined)` e a
     // variável local entregam `undefined` e o bun recusa. A distinção sai do bytecode do
     // `FunctionCallResolveNode`, não daqui.
-    let bound = if sync { this_value.is_cell() } else { IMPORT_META_OBJECTS.with(|objects| objects.borrow().contains(&this_value.encode())) };
+    let bound = if sync { this_value.is_cell() } else { IMPORT_META_OBJECTS.with(|objects| objects.borrow().contains_key(&this_value.encode())) };
     if !bound {
         let name = if sync { "resolveSync" } else { "resolve" };
         throw_native_type_error(global_object, &format!("import.meta.{name} must be bound to an import.meta object"));
@@ -1247,7 +1323,7 @@ fn resolve_for_import_meta(global_object: &JSGlobalObject, call_frame: &mut Nati
     // Se falso, a busca nem chega ao host: o bun resolveria contra o diretório de trabalho, que o sandbox não tem.
     let mut search = true;
     let parent = call_frame.argument(1);
-    let meta_this = IMPORT_META_OBJECTS.with(|objects| objects.borrow().contains(&this_value.encode()));
+    let meta_this = IMPORT_META_OBJECTS.with(|objects| objects.borrow().contains_key(&this_value.encode()));
     if sync && !meta_this {
         // Medido: `resolveSync` com `this` que não é o `import.meta` (`{}`, `Object.create(import.meta)`, o
         // objeto de escopo da chamada solta) não tem chamador: cita `undefined` e procura no diretório de
