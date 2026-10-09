@@ -59,7 +59,10 @@ use crate::runtime::vm::VM;
 use crate::runtime::array_buffer::{ArrayBuffer, ArrayBufferRef};
 use crate::runtime::intl_support::wtf_to_rust;
 use crate::runtime::intl_support::to_rust_string;
-use crate::runtime::js_promise::JSPromise;
+use crate::runtime::js_promise::{JSPromise, JSPromiseRef};
+use crate::runtime::body::ReadKind;
+use crate::runtime::headers::header_value;
+use crate::runtime::response;
 use crate::runtime::js_promise_host::PromiseHost;
 use crate::runtime::js_array_buffer::to_js_array_buffer;
 use crate::wasm::page_count::PageCount;
@@ -284,10 +287,13 @@ fn create_class_instance(global_object: &JSGlobalObject, class: &'static str, st
 
 /// `WebAssembly.compile(bytes)`.
 fn compile_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let result = bytes_from_value(global_object, call.argument(0))
+    settle(global_object, compile_value(global_object, call.argument(0)))
+}
+
+fn compile_value(global_object: &JSGlobalObject, source: JSValue) -> HostResult {
+    bytes_from_value(global_object, source)
         .and_then(|bytes| compile_bytes(&bytes))
-        .map(|state| create_class_instance(global_object, "Module", Box::new(state)));
-    settle(global_object, result)
+        .map(|state| create_class_instance(global_object, "Module", Box::new(state)))
 }
 
 /// `WebAssembly.instantiate(bytes | module, imports)`: com bytes `{ module, instance }`, com `Module` só a
@@ -297,10 +303,14 @@ fn instantiate_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResu
     if !imports.is_undefined() && !imports.is_object() {
         return settle(global_object, Err(throw_type_error_with_source(global_object, "second argument to WebAssembly.instantiate must be undefined or an Object")));
     }
-    let module_info = IntlInstance::from_value(&call.argument(0)).and_then(|cell| cell.state::<ModuleState>().map(|state| Rc::clone(&state.info)));
-    let result = match module_info {
+    settle(global_object, instantiate_value(global_object, call.argument(0), imports))
+}
+
+fn instantiate_value(global_object: &JSGlobalObject, source: JSValue, imports: JSValue) -> HostResult {
+    let module_info = IntlInstance::from_value(&source).and_then(|cell| cell.state::<ModuleState>().map(|state| Rc::clone(&state.info)));
+    match module_info {
         Some(info) => link_instance(global_object, &info, imports).map(|state| create_class_instance(global_object, "Instance", Box::new(state))),
-        None => bytes_from_value(global_object, call.argument(0))
+        None => bytes_from_value(global_object, source)
             .and_then(|bytes| compile_bytes(&bytes))
             .and_then(|state| {
                 let info = Rc::clone(&state.info);
@@ -311,8 +321,7 @@ fn instantiate_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResu
                 put(global_object, &result, "instance", instance);
                 Ok(result.as_value())
             }),
-    };
-    settle(global_object, result)
+    }
 }
 
 host_function!(web_assembly_validate, validate_body);
@@ -354,19 +363,142 @@ pub(crate) fn received_description(global_object: &JSGlobalObject, value: JSValu
     format!("an instance of {name}")
 }
 
-/// `compileStreaming` e `instantiateStreaming`: sem `Response` no porte, todo argumento é rejeitado como no bun
-/// rejeita um valor que não é `Response` nem promessa de `Response`.
-/// LACUNA: um `Response` de verdade (e uma promessa dele) ainda não é aceito.
-fn streaming_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    let message = format!(
-        "The \"source\" argument must be an instance of Response or an Promise resolving to Response. Received {}",
-        received_description(global_object, call.argument(0))
-    );
-    settle(global_object, Err(Thrown::type_error(&message)))
+/// Um `compileStreaming`/`instantiateStreaming` em andamento: a promessa devolvida e, no `instantiate`, as
+/// importações (`None` é o `compile`).
+struct Streaming {
+    promise: JSPromiseRef,
+    imports: Option<JSValue>,
 }
 
-host_function!(web_assembly_compile_streaming, streaming_body);
-host_function!(web_assembly_instantiate_streaming, streaming_body);host_function!(web_assembly_compile, compile_body);
+thread_local! {
+    /// `cell_id` de cada reação nativa pendente -> o streaming que ela continua.
+    static STREAMINGS: RefCell<HashMap<usize, Rc<Streaming>>> = RefCell::new(HashMap::new());
+}
+
+/// Pendura `on_fulfilled` e a rejeição que repassa o motivo em `awaited`, as duas continuando `streaming`.
+fn continue_streaming(global_object: &JSGlobalObject, awaited: &JSPromiseRef, streaming: Rc<Streaming>, on_fulfilled: NativeFunction) {
+    let fulfilled = crate::runtime::timers::native(global_object, "", 1, on_fulfilled);
+    let rejected = crate::runtime::timers::native(global_object, "", 1, streaming_rejected);
+    STREAMINGS.with(|table| {
+        let mut table = table.borrow_mut();
+        for reaction in [fulfilled, rejected] {
+            if let JSValue::Cell(id) = reaction {
+                table.insert(id, Rc::clone(&streaming));
+            }
+        }
+    });
+    awaited.perform_promise_then(global_object, fulfilled, rejected, js_undefined());
+}
+
+/// Tira o streaming da reação que roda (e da irmã, que não vai mais rodar).
+fn take_streaming(reaction: usize) -> Option<Rc<Streaming>> {
+    STREAMINGS.with(|table| {
+        let mut table = table.borrow_mut();
+        let streaming = table.remove(&reaction)?;
+        table.retain(|_, other| !Rc::ptr_eq(other, &streaming));
+        Some(streaming)
+    })
+}
+
+fn finish_streaming(global_object: &JSGlobalObject, streaming: &Streaming, result: HostResult) -> HostResult {
+    match result {
+        Ok(value) => streaming.promise.resolve(global_object, value),
+        Err(thrown) => {
+            let error = thrown_to_value(global_object, thrown);
+            streaming.promise.reject(global_object, error);
+        }
+    }
+    Ok(js_undefined())
+}
+
+/// `compileStreaming(source)` e `instantiateStreaming(source, imports)` do bun 1.4.2 (medidos): a fonte é um
+/// `Response` ou uma promessa dele; o `Content-Type` (sem os brancos das pontas, sem caixa) tem de ser
+/// `application/wasm`, o status de sucesso e o corpo ainda não lido, nessa ordem.
+fn streaming_body(global_object: &JSGlobalObject, call: &HostCall, instantiate: bool) -> HostResult {
+    let imports = call.argument(1);
+    if instantiate && !imports.is_undefined() && !imports.is_object() {
+        return settle(
+            global_object,
+            Err(throw_type_error_with_source(global_object, "second argument to WebAssembly.instantiateStreaming must be undefined or an Object")),
+        );
+    }
+    let awaited = match crate::runtime::js_promise_host::host_result(global_object, JSPromise::resolved_promise(global_object, call.argument(0))) {
+        Ok(awaited) => awaited,
+        Err(thrown) => return settle(global_object, Err(thrown)),
+    };
+    let promise = JSPromise::create(global_object.vm(), &global_object.promise_structure());
+    let streaming = Rc::new(Streaming { promise: promise.clone(), imports: instantiate.then_some(imports) });
+    continue_streaming(global_object, &awaited, streaming, streaming_response);
+    Ok(promise.as_value())
+}
+
+/// A fonte resolveu: confere o `Response` e lê o corpo.
+fn streaming_response_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let Some(streaming) = take_streaming(call.callee()) else { return Ok(js_undefined()) };
+    let source = call.argument(0);
+    let checked = response_body_reader(global_object, source).and_then(|state| {
+        let read = response::read_response(global_object, source, state, ReadKind::ArrayBuffer)?;
+        JSPromise::from_value(&read).ok_or_else(|| Thrown::type_error("WebAssembly response body has already been used"))
+    });
+    match checked {
+        Ok(read) => {
+            continue_streaming(global_object, &read, streaming, streaming_bytes);
+            Ok(js_undefined())
+        }
+        Err(thrown) => finish_streaming(global_object, &streaming, Err(thrown)),
+    }
+}
+
+fn response_body_reader(global_object: &JSGlobalObject, source: JSValue) -> Result<response::ResponseState, Thrown> {
+    let Some(state) = response::state_of(source) else {
+        return Err(Thrown::type_error(&format!(
+            "The \"source\" argument must be an instance of Response or an Promise resolving to Response. Received {}",
+            received_description(global_object, source)
+        )));
+    };
+    let content_type = header_value(state.headers, "content-type");
+    let mime = content_type.as_deref().map(|value| String::from_utf8_lossy(value).trim_matches(|c: char| c.is_ascii_whitespace()).to_owned());
+    if !mime.as_deref().is_some_and(|mime| mime.eq_ignore_ascii_case("application/wasm")) {
+        return Err(Thrown::type_error(&format!("WebAssembly response has unsupported MIME type '{}'", mime.as_deref().unwrap_or("null"))));
+    }
+    if !(200..=299).contains(&state.status) {
+        return Err(Thrown::type_error(&format!("WebAssembly response has status code {}", state.status)));
+    }
+    if state.body.as_ref().is_some_and(|body| body.is_used()) {
+        return Err(Thrown::type_error("WebAssembly response body has already been used"));
+    }
+    Ok(state)
+}
+
+/// O corpo chegou: compila (e instancia).
+fn streaming_bytes_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let Some(streaming) = take_streaming(call.callee()) else { return Ok(js_undefined()) };
+    let result = match streaming.imports {
+        Some(imports) => instantiate_value(global_object, call.argument(0), imports),
+        None => compile_value(global_object, call.argument(0)),
+    };
+    finish_streaming(global_object, &streaming, result)
+}
+
+fn streaming_rejected_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    let Some(streaming) = take_streaming(call.callee()) else { return Ok(js_undefined()) };
+    streaming.promise.reject(global_object, call.argument(0));
+    Ok(js_undefined())
+}
+
+fn compile_streaming_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    streaming_body(global_object, call, false)
+}
+
+fn instantiate_streaming_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    streaming_body(global_object, call, true)
+}
+
+host_function!(web_assembly_compile_streaming, compile_streaming_body);
+host_function!(web_assembly_instantiate_streaming, instantiate_streaming_body);
+host_function!(streaming_response, streaming_response_body);
+host_function!(streaming_bytes, streaming_bytes_body);
+host_function!(streaming_rejected, streaming_rejected_body);host_function!(web_assembly_compile, compile_body);
 host_function!(web_assembly_instantiate, instantiate_body);
 host_function!(web_assembly_module_custom_sections, module_custom_sections_body);
 
@@ -401,6 +533,7 @@ pub(crate) fn reset_for_program() {
     let _ = WRAPPER_STRUCTURES.try_with(|map| map.borrow_mut().clear());
     let _ = CLASS_CONSTRUCTORS.try_with(|map| map.borrow_mut().clear());
     let _ = WRAPPERS.try_with(|map| map.borrow_mut().clear());
+    let _ = STREAMINGS.try_with(|map| map.borrow_mut().clear());
 }
 
 /// Parâmetros e resultados da função `function_index_space`.
@@ -1723,4 +1856,50 @@ fn install_instance_class(global_object: &JSGlobalObject, namespace: &JSObject) 
     put_to_string_tag(vm, &instance_prototype, "WebAssembly.Instance");
     let instance_structure = IntlInstance::create_structure(vm, Some(global_object), instance_prototype.as_value());
     WRAPPER_STRUCTURES.with(|structures| structures.borrow_mut().insert("Instance", instance_structure));
+}
+
+#[cfg(test)]
+mod streaming_tests {
+    use crate::api::eval::{evaluate, new_global_object, program_source, VmFinalizer};
+    use crate::runtime::cell_registry::run_program;
+    use crate::wtf::text::conversion_mode::ConversionMode;
+
+    /// Roda `script` (que preenche o array global `log`) e devolve o `log` em JSON depois das microtarefas.
+    fn run(script: &str) -> String {
+        run_program(|| {
+            let (vm, global_object) = new_global_object();
+            let _finalizer = VmFinalizer::new(&vm);
+            evaluate(&global_object, &program_source(&format!("globalThis.log = []; {script}"))).expect("script");
+            vm.drain_microtasks();
+            let value = evaluate(&global_object, &program_source("JSON.stringify(log)")).expect("log");
+            String::from_utf8_lossy(&value.as_js_string().value().utf8(ConversionMode::LenientConversion)).into_owned()
+        })
+    }
+
+    /// Medido no bun 1.4.2.
+    #[test]
+    fn response_sources_compile_and_bad_ones_reject_like_bun() {
+        let log = run(
+            "const b = new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0]); \
+             const wasm = (type, status) => new Response(b, { status, headers: { 'content-type': type } }); \
+             const note = (p) => p.then(r => log.push(Object.prototype.toString.call(r) + (r.instance ? ' inst' : '')), e => log.push(e.name + ': ' + e.message)); \
+             const page = wasm('application/wasm'); Object.defineProperty(page, 'url', { value: 'https://x/a.wasm', configurable: true }); \
+             note(WebAssembly.instantiateStreaming(Promise.resolve(page), {})); \
+             note(WebAssembly.compileStreaming(wasm(' Application/WASM '))); \
+             note(WebAssembly.compileStreaming(new Response(b))); \
+             note(WebAssembly.compileStreaming(wasm('application/wasm', 404))); \
+             note(WebAssembly.compileStreaming(5)); \
+             const used = wasm('application/wasm'); used.arrayBuffer(); note(WebAssembly.compileStreaming(used));",
+        );
+        assert_eq!(
+            log,
+            concat!(
+                r#"["TypeError: WebAssembly response has unsupported MIME type 'null'","#,
+                r#""TypeError: WebAssembly response has status code 404","#,
+                r#""TypeError: The \"source\" argument must be an instance of Response or an Promise resolving to Response. Received type number (5)","#,
+                r#""TypeError: WebAssembly response body has already been used","#,
+                r#""[object Object] inst","[object WebAssembly.Module]"]"#
+            )
+        );
+    }
 }

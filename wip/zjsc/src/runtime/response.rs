@@ -294,14 +294,18 @@ fn body_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
 
 /// As leituras: marcam o uso do corpo no estado guardado.
 fn read_method(global_object: &JSGlobalObject, call: &HostCall, kind: ReadKind) -> HostResult {
-    let state = method_state(global_object, call)?;
+    read_response(global_object, call.this_value(), method_state(global_object, call)?, kind)
+}
+
+/// A leitura `kind` do corpo de `response` (o `Response` cujo estado é `state`): a promessa do método de mesmo nome.
+pub(crate) fn read_response(global_object: &JSGlobalObject, response: JSValue, state: ResponseState, kind: ReadKind) -> HostResult {
     let mut body = state.body.clone();
     let result = consume_kind(global_object, kind, state.headers, &mut body)?;
     if state.fetched {
         remove_header(state.headers, "content-type");
     }
     INSTANCES.with(|instances| {
-        if let Some(stored) = instances.borrow_mut().get_mut(&call.this_value().encode()) {
+        if let Some(stored) = instances.borrow_mut().get_mut(&response.encode()) {
             stored.body = body;
             stored.fetched = false;
         }
