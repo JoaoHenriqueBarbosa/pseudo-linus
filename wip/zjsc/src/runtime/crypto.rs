@@ -1174,6 +1174,11 @@ fn get_public_key_body_impl(global_object: &JSGlobalObject, call: &HostCall) -> 
 /// As verificações de `exportKey` de uma chave de curva elíptica: extraível, formato que o tipo exporta.
 fn check_asym_exportable(global_object: &JSGlobalObject, call: &HostCall, key: &KeyState, format: &str) -> Result<(), Thrown> {
     let asym = key.asym.expect("chave de curva elíptica");
+    // Medido no bun 1.4.2: `raw-public` de chave privada é recusado antes da conferência de `extractable`.
+    if format == "raw-public" && asym.private {
+        let message = format!("Unable to export {} private key using raw-public format", asym_name(asym.id));
+        return Err(dom_error(global_object, call, "NotSupportedError", &message));
+    }
     if !key.extractable {
         return Err(dom_error(global_object, call, "InvalidAccessError", "key is not extractable"));
     }
@@ -1343,7 +1348,15 @@ fn derive_key_body_impl(global_object: &JSGlobalObject, call: &HostCall) -> Host
         }
         // O ChaCha20-Poly1305 não tem `length`: o bun deriva sempre 256 bits (medido com PBKDF2, HKDF, ECDH e X25519).
         AlgorithmId::ChaCha20Poly1305 => return finish_derive_key(global_object, call, params, &base, || Ok(Some(256)), usages),
-        AlgorithmId::Hmac => hmac_params(global_object, call, derived)?,
+        AlgorithmId::Hmac => {
+            let parsed = hmac_params(global_object, call, derived)?;
+            // `length` é `[EnforceRange] unsigned long`: o `-1` do `derivedKeyType` é `TypeError` antes dos testes da chave base.
+            let length = dictionary_member(global_object, derived, "length");
+            if !length.is_undefined() {
+                enforce_unsigned_long(global_object, length)?;
+            }
+            parsed
+        }
         // Um `derivedKeyType` HKDF/PBKDF2 não tem tamanho: o bun deriva o segredo inteiro (como `deriveBits` com `length` nulo).
         AlgorithmId::Hkdf | AlgorithmId::Pbkdf2 => return finish_derive_key(global_object, call, params, &base, || Ok(None), usages),
         _ => return Err(not_supported(global_object, call)),
@@ -1961,7 +1974,14 @@ fn import_aes_key(
         ("raw", _) if chacha => return Err(dom_error(global_object, call, "NotSupportedError", NOT_SUPPORTED)),
         ("raw" | "raw-secret", _) => bytes.unwrap_or_default(),
         ("jwk", Some(jwk)) if chacha => oct_jwk_secret(global_object, call, &jwk, Some("C20P"), "enc", extractable, usages)?,
-        ("jwk", Some(jwk)) => aes_jwk_secret(id, &jwk, extractable, usages).unwrap_or_default(),
+        // Medido no bun: `key_ops` duplicado com usos vazios é o `SyntaxError` dos usos; os demais JWK recusados, `DataError`.
+        ("jwk", Some(jwk)) => match aes_jwk_secret(id, &jwk, extractable, usages) {
+            Some(secret) => secret,
+            None if usages == 0 && jwk.k.is_some() && jwk.kty.as_deref() == Some("oct") && jwk.key_ops.as_deref().is_some_and(has_duplicate) => {
+                return Err(throw_native_syntax_error(global_object, "Usages cannot be empty when importing a secret key."));
+            }
+            None => Vec::new(),
+        },
         _ => return Err(dom_error(global_object, call, "NotSupportedError", NOT_SUPPORTED)),
     };
     if chacha && secret.len() != 32 {
