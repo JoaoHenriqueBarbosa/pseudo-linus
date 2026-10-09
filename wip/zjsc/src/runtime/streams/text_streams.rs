@@ -45,7 +45,7 @@ use crate::runtime::js_value::{EncodedJSValue, JSValue};
 use crate::runtime::native_class_support::{create_native_class_with_length, install_global_with_attributes, instance_structure, throw_coded_type_error};
 use crate::runtime::native_function::NativeFunction;
 use crate::runtime::property_name::PropertyName;
-use crate::runtime::text_decoder::{decode_chunk, decoder_from_arguments, input_bytes, invalid_encoded_data, text_value, DecoderState};
+use crate::runtime::text_decoder::{check_options, decode_chunk, decoder_from_arguments, input_bytes, invalid_encoded_data, text_value, DecoderState};
 use crate::runtime::text_encoder::{string_units, uint8_array_from};
 use crate::wtf::text::wtf_string::String as WtfString;
 
@@ -241,6 +241,25 @@ fn inspect_entry(global_object: &JSGlobalObject, entry: &EntryRef, options: JSVa
     inspect_composite(global_object, kind.name(), stream, fields, Vec::new(), options)
 }
 
+/// `reduceToSingleString` do Node (`compact: 3`): numa linha só se couber em `breakLength` (a indentação conta).
+fn fits_one_line(fields: &[String], indentation: f64, break_length: f64) -> bool {
+    let count = fields.len() as f64;
+    let total: f64 = fields.iter().map(|field| field.chars().count() as f64).sum::<f64>() + count + (count + 1.0 + 10.0) + indentation;
+    total <= break_length && fields.iter().all(|field| !field.contains('\n'))
+}
+
+/// Reaplica a quebra de linha do `util.inspect` a um objeto aninhado (`Nome { a, b }`, indentação 2) que o texto das
+/// pontas montou numa linha só; os campos (booleanos e nomes de estado) não têm vírgula dentro.
+fn reduce_nested(text: &str, break_length: f64) -> String {
+    let Some((name, inner)) = text.split_once(" { ").and_then(|(name, rest)| Some((name, rest.strip_suffix(" }")?))) else { return text.to_owned() };
+    let fields: Vec<String> = inner.split(", ").map(str::to_owned).collect();
+    if fits_one_line(&fields, 2.0, break_length) {
+        text.to_owned()
+    } else {
+        format!("{name} {{\n    {}\n  }}", fields.join(",\n    "))
+    }
+}
+
 /// `Nome { campos..., readable, writable }` como o `util.inspect` do bun monta para as classes que embrulham um
 /// `TransformStream` (as de texto e as de compressão): `fields` são os campos antes das duas pontas.
 pub(super) fn inspect_composite(global_object: &JSGlobalObject, name: &str, stream: JSValue, mut fields: Vec<String>, tail: Vec<String>, options: JSValue) -> Result<String, Thrown> {
@@ -257,16 +276,12 @@ pub(super) fn inspect_composite(global_object: &JSGlobalObject, name: &str, stre
         Some(None) => f64::INFINITY,
         Some(Some(length)) => length,
     };
-    let readable = side_text(global_object, stream, "ReadableStream", ts_readable, depth - 1.0)?;
-    let writable = side_text(global_object, stream, "WritableStream", ts_writable, depth - 1.0)?;
+    let readable = reduce_nested(&side_text(global_object, stream, "ReadableStream", ts_readable, depth - 1.0)?, break_length);
+    let writable = reduce_nested(&side_text(global_object, stream, "WritableStream", ts_writable, depth - 1.0)?, break_length);
     fields.push(format!("readable: {readable}"));
     fields.push(format!("writable: {writable}"));
     fields.extend(tail);
-    // `reduceToSingleString` do Node (`compact: 3`): numa linha só se couber em `breakLength`.
-    let count = fields.len() as f64;
-    let total: f64 = fields.iter().map(|field| field.chars().count() as f64).sum::<f64>() + count + (count + 1.0 + 10.0);
-    let single_line = total <= break_length && fields.iter().all(|field| !field.contains('\n'));
-    Ok(if single_line {
+    Ok(if fits_one_line(&fields, 0.0, break_length) {
         format!("{name} {{ {} }}", fields.join(", "))
     } else {
         format!("{name} {{\n  {}\n}}", fields.join(",\n  "))
@@ -290,7 +305,11 @@ pub(super) fn construct_inner_stream(global_object: &JSGlobalObject, transformer
 fn construct_body(global_object: &JSGlobalObject, call: &HostCall, kind: Kind) -> HostResult {
     let role = match kind {
         Kind::Encoder => Role::Encoder { pending_high: None },
-        Kind::Decoder => Role::Decoder(decoder_from_arguments(global_object, call)?),
+        Kind::Decoder => {
+            // Medido no bun: aqui o tipo de `options` é conferido antes do rótulo (o `TextDecoder` confere o rótulo antes).
+            check_options(global_object, call.argument(1))?;
+            Role::Decoder(decoder_from_arguments(global_object, call)?)
+        }
     };
     let structure = derived_structure(global_object, call, instance_structure)?;
     let instance = JSFinalObject::create(global_object.vm(), &structure).as_value();
