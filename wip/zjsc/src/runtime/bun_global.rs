@@ -16,16 +16,17 @@ use crate::runtime::js_value::JSValue;
 use crate::runtime::native_function::NativeFunction;
 use crate::runtime::object_constructor::construct_empty_object;
 use crate::runtime::property_name::PropertyName;
-use crate::runtime::console_client::format_arguments;
+use crate::runtime::console_client::inspect_one;
+use crate::runtime::console_format::Formatter;
 use crate::runtime::host_call::Thrown;
 use crate::runtime::implementation_visibility::ImplementationVisibility;
 use crate::wtf::text::wtf_string::String as WtfString;
 
 /// `Bun.inspect(value, options)`.
 fn inspect_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    // O formatador do `console.log` (strings entre aspas duplas, arrays e objetos longos em linhas), que é o do bun;
-    // `util.inspect` tem outro estilo. As opções (`depth`, `colors`) ainda não são lidas.
-    let Some(text) = format_arguments(global_object, &[call.argument(0)]) else { return Err(Thrown::Pending) };
+    // O formatador do bun (strings entre aspas duplas, arrays e objetos longos em linhas); `util.inspect` tem outro
+    // estilo. As opções (`depth`, `colors`) ainda não são lidas.
+    let Some(text) = inspect_one(global_object, Formatter::new(), call.argument(0)) else { return Err(Thrown::Pending) };
     Ok(JSValue::from_js_string(js_string(global_object.vm(), &WtfString::from_utf8(text.as_bytes()))))
 }
 

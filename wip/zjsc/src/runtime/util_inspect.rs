@@ -315,6 +315,11 @@ pub(crate) fn inspect_with_options(global_object: &JSGlobalObject, value: JSValu
     state.format_value(value, 0)
 }
 
+/// O valor de uma propriedade extra de `Buffer` no formato do `Bun.inspect`, numa linha só (string entre aspas duplas).
+fn bun_inspect_one(global_object: &JSGlobalObject, value: JSValue) -> Result<String, Thrown> {
+    crate::runtime::console_client::inspect_one(global_object, crate::runtime::console_format::Formatter::single_line(), value).ok_or(Thrown::Pending)
+}
+
 /// As propriedades próprias enumeráveis de texto (fora os índices) de um `Buffer`, como o `inspect` dele as junta depois
 /// dos bytes: `x: 1, y: "q"`, numa linha só (`breakLength` infinito, `compact: true`). Vazio sem propriedades.
 pub(crate) fn inspect_buffer_extras(global_object: &JSGlobalObject, value: JSValue) -> Result<String, Thrown> {
@@ -328,16 +333,15 @@ pub(crate) fn inspect_buffer_extras(global_object: &JSGlobalObject, value: JSVal
         let name = String::from_utf16_lossy(&wtf_string_to_units(&name));
         // O getter é chamado (o valor entra, não `[Getter]`) e a chave sai crua, sem aspas (medido no bun 1.4.2).
         let member = get_property(global_object, value, &name)?;
-        let (separator, shown) = state.format_property_value(member, 0, false)?;
-        output.push(format!("{name}:{separator}{shown}"));
+        output.push(format!("{name}: {}", bun_inspect_one(global_object, member)?));
     }
     // As chaves de símbolo vêm depois das de texto, rotuladas só pela descrição (`Symbol('t')` vira `t`, o vazio fica `: 1`).
     for symbol in state.enumerable_symbols(value)? {
         let Some(identifier) = symbol.to_property_key(global_object) else { continue };
         let member = get_value_property(global_object, value, &PropertyName::from_identifier(&identifier))?;
-        let (separator, shown) = state.format_property_value(member, 0, false)?;
+        let shown = bun_inspect_one(global_object, member)?;
         let label = as_symbol(symbol).description(global_object.vm()).map_or_else(String::new, |text| String::from_utf16_lossy(&wtf_string_to_units(&text.value())));
-        output.push(format!("{label}:{separator}{shown}"));
+        output.push(format!("{label}: {shown}"));
     }
     Ok(output.join(", "))
 }
@@ -1567,7 +1571,7 @@ impl State<'_> {
             } else {
                 self.stylize(String::from_utf16_lossy(&quoted_name(&name.encode_utf16().collect::<Vec<u16>>())), (32, 39))
             };
-            output.push(format!("{label}:{separator}{shown}"));
+            output.push(format!("{label}: {shown}"));
         }
         for symbol in self.enumerable_symbols(value)? {
             let Some(identifier) = symbol.to_property_key(self.global_object) else { continue };
