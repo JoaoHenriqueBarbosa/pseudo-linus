@@ -33,6 +33,15 @@ frame retomado de microtarefa, e o `position_map.rs` do porte remapeia todos.
 `function_source` ficou verde: o golden era antigo (o bun atual imprime a função ESM com o recuo de 2 espaços, o golden
 guardava o de 4 de outra classificação de módulo) e foi regenerado com `scripts/gen-function-source-golden.js`.
 
+Mais corrigido nesta passada: global `Bun` com `Bun.inspect(value)` (formatador do `console.log`, `src/runtime/bun_global.rs`; as
+opções ainda não são lidas), `BuildMessage` e `ResolveMessage` agora no objeto global (antes caíam no proxy `globalThis`,
+onde `putDirect` não encaminha), `global_order_bun_golden` verde (o mínimo de 150 programas era de um golden antigo, o
+gerador atual produz 2), `function_source` verde (golden regenerado). Sobras medidas: `buffer` 2 (data/fuso do bun e o
+`inspect` de extras do `Buffer` com aspas simples onde o bun usa duplas), `global_navigator` 3 (`R = ...` sem declarar
+em modo estrito, regeneração dá o mesmo golden), `global_semantics` 3 (ordem `a,d` contra `d,a` e `#0` contra `#23`).
+`console_dir` (30): o golden roda o fonte cru como script e o bun o transpila, então o nome do frame (`<anonymous>`) e as
+posições mapeadas não batem; o conserto é o gerador gravar o texto canônico com o mapa de posições (`prepareProgram`).
+
 Corrigido e medido: `blob_bun_golden` verde (`null`/`undefined` nas partes do `new Blob` não contam, `Blob.text()` com BOM
 `FF FE` decodifica UTF-16LE, JSON de corpo vazio rejeita com `Unexpected end of JSON input`, `Blob` global enumerável).
 `cjs_require` caiu de 6 para 3 divergências: o wrapper CJS sem mapa de posições agora usa o mapa identidade com
