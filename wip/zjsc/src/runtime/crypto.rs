@@ -2902,7 +2902,19 @@ fn supports_params(global_object: &JSGlobalObject, call: &HostCall, id: Algorith
 /// do `encapsulateKey`/`decapsulateKey` (qualquer AES, HMAC com `hash`, `HKDF`, `PBKDF2`; o AES não valida o `length`).
 fn supports_target_key(global_object: &JSGlobalObject, call: &HostCall, extra: JSValue, derive: bool) -> Result<bool, Thrown> {
     use AlgorithmId::*;
-    let Some(name) = algorithm_name_core(global_object, extra)? else { return Ok(false) };
+    // Um `name` ilegível (getter que lança) no dicionário é `false`, como no algoritmo principal.
+    let name = match algorithm_name_core(global_object, extra) {
+        Err(Thrown::Pending) if JSObject::from_value(&extra).is_some() => None,
+        other => other?,
+    };
+    if global_object.vm().exception().is_some() && JSObject::from_value(&extra).is_some() {
+        global_object.vm().clear_exception();
+        return Ok(false);
+    }
+    let Some(name) = name else {
+        global_object.vm().clear_exception();
+        return Ok(false);
+    };
     let Ok(id) = resolve_algorithm(&name, Operation::ImportKey) else { return Ok(false) };
     match id {
         AesCtr | AesCbc | AesGcm | AesCfb | AesKw if derive => {
