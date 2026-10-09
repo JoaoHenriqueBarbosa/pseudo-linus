@@ -15,6 +15,15 @@ se for rápido, senão deixa IN_SCOPE como está e anota), divergência de confo
 
 ### Segunda passada de correções (2026-10-09, depois do commit 9c21851a)
 
+Medição parcial da suíte completa (137 de ~403 binários, 43 falhas distintas). Os goldens de `error*`, `eval*`,
+`function_*`, `generator_*`, `global_*`, `headers`, `fetch_types`, `file_formdata`, `dialogs*`, `display_names`,
+`datetime_range`, `dom_exception`, `duration_format`, `hostile_input` e `esm_module_load` entraram no repositório só no
+commit 9c21851a, então esta foi a primeira medição deles: as divergências são trabalho de conformidade nunca fechado, não
+regressão. Famílias com causa comum já vistas: colunas e linhas de `stack` em CJS (`error_stack`: o bun dá 4:10, o porte
+2:42, mapa de posições do golden), indentação do `Function.prototype.toString` de função de CJS (`function_source`, o
+bun mantém o recuo de 2 espaços do wrapper), e `Intl` (`datetime_*`, `display_names`, `duration_format`).
+Prioridade quando a conformidade for retomada: `error_stack` e `function_source` (um conserto cada, afetam muitos casos).
+
 Corrigido e medido: `blob_bun_golden` verde (`null`/`undefined` nas partes do `new Blob` não contam, `Blob.text()` com BOM
 `FF FE` decodifica UTF-16LE, JSON de corpo vazio rejeita com `Unexpected end of JSON input`, `Blob` global enumerável).
 `cjs_require` caiu de 6 para 3 divergências: o wrapper CJS sem mapa de posições agora usa o mapa identidade com
