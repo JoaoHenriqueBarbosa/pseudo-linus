@@ -124,14 +124,18 @@ pub fn list_parts<T: ListText + Clone>(locale: &str, kind: ListType, style: List
         rules.iter().find(|(from, _, predicate)| *from == text && predicate_holds(*predicate, &chars)).map_or(text, |(_, to, _)| to)
     };
     let mut parts: Vec<(String, T)> = Vec::new();
+    // Medido no bun: o elemento vazio não sai e os literais que ficam vizinhos viram um só (`["a", "", "c"]` dá
+    // `a`, `, , and `, `c`); o ICU também não emite literal vazio.
+    let mut pending = String::new();
     let mut push = |piece: Piece<'_, T>| match piece {
-        Piece::Literal(text) => {
-            // O ICU não emite literal vazio.
-            if !text.is_empty() {
-                parts.push(("literal".to_string(), T::from_literal(text)));
+        Piece::Literal(text) => pending.push_str(text),
+        Piece::Element(text) if text.leading_chars().is_empty() => {}
+        Piece::Element(text) => {
+            if !pending.is_empty() {
+                parts.push(("literal".to_string(), T::from_literal(&std::mem::take(&mut pending))));
             }
+            parts.push(("element".to_string(), text.clone()));
         }
-        Piece::Element(text) => parts.push(("element".to_string(), text.clone())),
     };
     match items {
         [] => {}
@@ -154,6 +158,9 @@ pub fn list_parts<T: ListText + Clone>(locale: &str, kind: ListType, style: List
             push(Piece::Element(last));
             push(Piece::Literal(patterns[base + 7]));
         }
+    }
+    if !pending.is_empty() {
+        parts.push(("literal".to_string(), T::from_literal(&pending)));
     }
     parts
 }
