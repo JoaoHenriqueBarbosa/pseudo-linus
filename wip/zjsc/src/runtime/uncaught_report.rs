@@ -375,7 +375,7 @@ fn error_properties(global_object: &JSGlobalObject, error: &ErrorInstanceRef, co
         let code = object.get(global_object, name);
         (code.is_string() && !global_object.vm().exception().is_some()).then(|| wtf_string_to_units(&code.to_wtf_string())).filter(|units| units.iter().all(|unit| *unit < 256))
     });
-    let mut formatter = Formatter::with_depth(1, 1).with_colors(colors);
+    let mut formatter = Formatter::with_depth(1, 1).with_colors(colors).inside_error_report();
     let mut out = Vec::new();
     for (units, name) in &entries {
         if is(units, "message") || is(units, "name") || is(units, "stack") || (code.is_some() && is(units, "code")) {

@@ -26,8 +26,14 @@
 //! objeto comum e as não enumeráveis próprias ainda saem como o bun não os imprime (como objeto comum). Aninhamento acima de
 //! 512 níveis vira `[Array]` para não estourar a pilha do host. A estimativa de um `bigint` de nível superior conta o `n`.
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
+
+thread_local! {
+    /// Os objetos que os formatadores de fora estão imprimindo quando um `Error` aninhado é relatado (ver
+    /// `Formatter::inside_error_report`).
+    static ENCLOSING_SEEN: RefCell<Vec<usize>> = const { RefCell::new(Vec::new()) };
+}
 
 use crate::host_function;
 use crate::runtime::call_data::{call, get_call_data, get_construct_data, CallData};
@@ -363,6 +369,13 @@ impl Formatter {
         Formatter { depth, max_depth, ..Formatter::new() }
     }
 
+    /// O formatador das propriedades de um `Error` dentro de outro valor: o bun usa o mesmo `Formatter` (um só mapa de
+    /// visitados), então os objetos que os níveis de fora estão imprimindo continuam valendo como `[Circular]`.
+    pub(crate) fn inside_error_report(mut self) -> Formatter {
+        self.seen = ENCLOSING_SEEN.with(|seen| seen.borrow().clone());
+        self
+    }
+
     /// Soma à estimativa o texto que quem chama escreveu (outros argumentos e o espaço entre eles).
     pub fn note(&mut self, count: usize) {
         self.est += count;
@@ -484,7 +497,9 @@ impl Formatter {
             // `Tag::Error` (`print_error` do ConsoleObject.rs): `print_errorlike_object`, o mesmo relato do erro não capturado
             // (trecho do fonte, `^`, cabeçalho, propriedades, frames), sem o rodapé.
             let mut report = Vec::new();
+            let outer = ENCLOSING_SEEN.with(|seen| std::mem::replace(&mut *seen.borrow_mut(), self.seen.clone()));
             append_error_report(&mut report, global_object, "", error, self.colors);
+            ENCLOSING_SEEN.with(|seen| *seen.borrow_mut() = outer);
             out.extend(String::from_utf8_lossy(&report).encode_utf16());
             return !has_exception(global_object);
         }

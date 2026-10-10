@@ -95,6 +95,18 @@ fn console_error_main_matches_bun() {
     });
 }
 
+/// Um `Error` cujo array próprio o contém (linha 282 do TSV): o bun imprime o erro aninhado uma vez e o array dele como
+/// `[Circular]`, porque o relato do erro usa o mesmo mapa de visitados do valor de fora. Antes estourava a pilha nativa.
+#[test]
+fn error_inside_its_own_property_is_circular() {
+    let console = Rc::new(MemoryConsole::new(b""));
+    let source = "var e = new Error('m'); e.list = [e]; console.log(e)";
+    let _ = evaluate_named_script_with_console(source, "console_object_more_case.js", "R", Some(console.clone()));
+    let stdout = String::from_utf8_lossy(&console.stdout_bytes()).into_owned();
+    assert_eq!(stdout.matches("list: [\n").count(), 1, "{stdout}");
+    assert_eq!(stdout.matches("list: [Circular],").count(), 1, "{stdout}");
+}
+
 #[test]
 fn console_object_more_match_bun() {
     let mut failures = Vec::new();
