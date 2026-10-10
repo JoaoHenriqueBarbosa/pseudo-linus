@@ -175,8 +175,15 @@ pub struct UnlinkedSimpleJumpTable {
 }
 
 impl UnlinkedSimpleJumpTable {
-    /// `offsetForValue(int32_t)`.
+    /// `offsetForValue(int32_t)`. A tabela em lista (switch esparso) guarda pares chave/deslocamento.
     pub fn offset_for_value(&self, value: i32) -> i32 {
+        if self.is_list() {
+            return self
+                .branch_offsets
+                .chunks_exact(2)
+                .find(|pair| pair[0] == value)
+                .map_or(self.default_offset, |pair| pair[1]);
+        }
         if value >= self.min && (value.wrapping_sub(self.min) as u32 as usize) < self.branch_offsets.len() {
             let offset = self.branch_offsets[value.wrapping_sub(self.min) as usize];
             if offset != 0 {
