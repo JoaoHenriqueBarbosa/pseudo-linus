@@ -5049,16 +5049,18 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let ref_ = self.new_symbol(kind, name);
 
         if member.is_none() {
-            // SAFETY: `name` is `'static`.
-            unsafe {
-                self.module_scope_mut().members.put(&self.store, 
-                    name,
-                    js_ast::scope::Member {
-                        ref_,
-                        loc: bun_ast::Loc::EMPTY,
-                    },
-                )
-            };
+            let key = self.symbols[ref_.inner_index() as usize].original_name;
+            let module_scope = self.module_scope;
+            js_ast::Scope::put_member_with_hash(
+                &mut self.store,
+                module_scope,
+                key,
+                js_ast::scope::Members::hash(name),
+                js_ast::scope::Member {
+                    ref_,
+                    loc: bun_ast::Loc::EMPTY,
+                },
+            );
             return Ok(ref_);
         }
 
