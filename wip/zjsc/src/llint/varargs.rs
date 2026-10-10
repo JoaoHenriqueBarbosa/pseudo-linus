@@ -391,6 +391,7 @@ impl Interpreter {
             return Ok(JSValue::undefined());
         }
         let program = callee_frame.unchecked_argument(&self.stack, 0);
+        let program = crate::runtime::dynamic_code_guard::guard_eval(global_object, program).map_err(|()| LLIntFailure::Thrown)?;
         if !program.is_string() {
             return Ok(program);
         }

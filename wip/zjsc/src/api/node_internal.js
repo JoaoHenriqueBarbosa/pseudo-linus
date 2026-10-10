@@ -42,6 +42,9 @@
   }
 
   function invalidArgType(name, expected, actual) {
+    // Os validadores do bun são C++: o nome ausente vira o texto "undefined" (`validateFunction(fn)` sem nome dá
+    // `The "undefined" argument must be of type function`, medido no bun 1.4.2).
+    name = `${name}`;
     if (!ArrayIsArray(expected)) expected = [expected];
     let message = "The ";
     if (name.endsWith(" argument")) {
@@ -154,6 +157,9 @@
     MULTIPLE_CALLBACK: () => makeError("Error", "ERR_MULTIPLE_CALLBACK", "Callback called multiple times"),
     METHOD_NOT_IMPLEMENTED: name => makeError("Error", "ERR_METHOD_NOT_IMPLEMENTED", `The ${name} method is not implemented`),
     UNHANDLED_ERROR: stringified => makeError("Error", "ERR_UNHANDLED_ERROR", `Unhandled error. (${stringified})`),
+    INVALID_ASYNC_ID: (type, id) => makeError("RangeError", "ERR_INVALID_ASYNC_ID", `Invalid ${type} value: ${id}`),
+    ASYNC_TYPE: type => makeError("TypeError", "ERR_ASYNC_TYPE", `Invalid name for async "type": ${type}`),
+    ASYNC_CALLBACK: name => makeError("TypeError", "ERR_ASYNC_CALLBACK", `${name} must be a function`),
   };
 
   // `AbortError` do bun: o protótipo traz `name` e `code`, e `constructor` continua o de `Error`.

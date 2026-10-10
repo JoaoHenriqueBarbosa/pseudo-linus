@@ -205,9 +205,19 @@ fn can_parse_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult
 fn parse_static_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     let (input, base) = url_arguments(global_object, call)?;
     let Some(url) = parse_with_base(&input, base.as_deref()) else { return Ok(JSValue::null()) };
+    Ok(create_url_object(global_object, url))
+}
+
+/// Uma instância de `URL` com o protótipo original, como o `DOMURL::create` do C++ (`URL.parse`, `Bun.pathToFileURL`).
+pub(crate) fn create_url_object(global_object: &JSGlobalObject, url: URL) -> JSValue {
     let prototype = PROTOTYPE.with(|slot| *slot.borrow()).expect("URL não instalado");
     let structure = instance_structure(global_object.vm(), Some(global_object), prototype);
-    Ok(new_instance(global_object, &structure, url))
+    new_instance(global_object, &structure, url)
+}
+
+/// A URL de uma instância de `URL` (o `WebCoreCast<JSDOMURL>` do C++), ou nada para outro valor.
+pub(crate) fn url_of(value: JSValue) -> Option<URL> {
+    with_url(value, |state| state.url.clone())
 }
 
 /// Um UUID v4 em minúsculas (`WTF::UUID::createVersion4`), dos bytes de `cryptographicallyRandomNumber`.

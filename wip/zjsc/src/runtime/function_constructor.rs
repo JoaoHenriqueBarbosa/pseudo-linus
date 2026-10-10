@@ -151,6 +151,10 @@ pub fn construct_function(
         }
     };
 
+    let code = match crate::runtime::dynamic_code_guard::guard_function_source(global_object, code) {
+        Ok(code) => code,
+        Err(()) => return Err(LLIntFailure::Thrown),
+    };
     let lexically_scoped_features: LexicallyScopedFeatures = if global_object.global_scope_extension().is_some() {
         TAINTED_BY_WITH_SCOPE_LEXICALLY_SCOPED_FEATURE
     } else {

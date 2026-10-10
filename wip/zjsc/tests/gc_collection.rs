@@ -118,6 +118,47 @@ fn timer_callbacks_and_arguments_survive() {
     assert_eq!(stressed(&program), "xy");
 }
 
+/// Roda `program` como `/app/main.js` coletando a cada alocação e devolve o que ele imprimiu. O programa principal
+/// passa pelo ponto seguro do laço no topo (`stressed` avalia um programa sem esse caminho e não chega a coletar).
+fn stressed_main(program: &str) -> String {
+    let console = std::rc::Rc::new(zjsc::runtime::console_host::MemoryConsole::new(b""));
+    gc::set_stress_for_thread(Some(1));
+    let before = gc::statistics().collections;
+    let (code, _, _) = zjsc::api::eval::evaluate_main_script_reporting_signal(program, "/app/main.js", console.clone());
+    let collections = gc::statistics().collections - before;
+    gc::set_stress_for_thread(None);
+    let stderr = String::from_utf8_lossy(&console.stderr_bytes()).into_owned();
+    assert_eq!(code, 0, "stderr:\n{stderr}");
+    assert!(collections >= 1, "o programa não coletou");
+    String::from_utf8_lossy(&console.stdout_bytes()).into_owned()
+}
+
+/// A fila de `process.nextTick` só segura o callback (uma closure sobre objeto que nada mais alcança) e os argumentos.
+/// Ela não era raiz do coletor. Ignorado enquanto o corpo do `/app/main.js` não passa por ponto seguro: o
+/// `safe_point` só coleta com `native_depth() == 1`, e o programa principal (CJS ou ESM) roda um nível abaixo, então
+/// nenhuma coleta cai entre o agendamento e o tick e o teste não distingue a raiz da falta dela.
+#[test]
+#[ignore = "o programa principal não coleta: o safe_point exige native_depth 1"]
+fn next_tick_callbacks_and_arguments_survive() {
+    let program = format!("{CHURN} (function () {{ var o = {{ v: 'c' }}; process.nextTick((x, y) => {{ console.log(o.v + x.v + y[0]); }}, {{ v: 'x' }}, ['y']); }})(); churn();");
+    assert_eq!(stressed_main(&program), "cxy\n");
+}
+
+/// O contexto do `AsyncLocalStorage` capturado por promessa, `await`, `queueMicrotask`, `nextTick` e timer só é
+/// alcançado pelo agendamento: a coleta no meio não pode levá-lo.
+#[test]
+fn async_local_storage_context_survives() {
+    let program = format!("{CHURN} var R = ''; var als = new (require('async_hooks').AsyncLocalStorage)();
+        als.run({{ k: [ 's' ] }}, () => {{
+            Promise.resolve().then(() => {{ R += 'p' + als.getStore().k[0]; }});
+            queueMicrotask(() => {{ R += 'q' + als.getStore().k[0]; }});
+            process.nextTick(() => {{ R += 'n' + als.getStore().k[0]; }});
+            setTimeout(() => {{ churn(); R += 't' + als.getStore().k[0]; }}, 1);
+            (async () => {{ await null; R += 'a' + als.getStore().k[0]; }})();
+        }}); churn(); setTimeout(() => console.log(R), 20);");
+    assert_eq!(stressed_main(&program), "nspsqsasts\n");
+}
+
 #[test]
 fn async_functions_and_microtask_arguments_survive() {
     let program = format!("{CHURN} var R = ''; async function f(o) {{ churn(); await null; churn(); await {{ then(r) {{ churn(); r(o.k); }} }}; R += o.k; }}

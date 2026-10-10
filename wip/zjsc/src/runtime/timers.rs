@@ -106,6 +106,8 @@ struct Entry {
     seq: u64,
     destroyed: bool,
     refed: bool,
+    /// O contexto assíncrono do agendamento (`AsyncContextFrame::withAsyncContextIfNeeded`), vazio sem rastreamento.
+    async_context: JSValue,
 }
 
 /// Uma carga de módulo (o `import()` de um módulo ainda não carregado): no bun a leitura do arquivo é uma
@@ -167,6 +169,7 @@ pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
             marker.value(entry.callback.js_value());
             marker.values(&entry.args);
             marker.value(entry.repeat);
+            marker.value(entry.async_context);
         }
         marker.value(state.timeout_prototype);
         marker.value(state.immediate_prototype);
@@ -567,6 +570,7 @@ fn register(global_object: &JSGlobalObject, kind: Kind, callback: Callback, args
                 seq,
                 destroyed: false,
                 refed: !native,
+                async_context: vm.captured_async_context(),
             },
         );
         if !native {
@@ -708,13 +712,14 @@ pub fn add_set_functions(global_object: &JSGlobalObject) {
 }
 
 /// Chama o callback; a exceção vai ao relatório de erro não capturado (`uncaughtException`) e o laço segue.
-fn invoke(global_object: &JSGlobalObject, callback: &Callback, this_value: JSValue, args: &[JSValue]) {
+fn invoke(global_object: &JSGlobalObject, callback: &Callback, this_value: JSValue, args: &[JSValue], async_context: JSValue) {
     if STATE.with(|state| state.borrow().halted) {
         return;
     }
     // A entrada pode cair durante a chamada (`clearTimeout` de dentro, timeout de disparo único): o que o laço
     // segura aqui fica enraizado até o callback voltar.
-    let _roots = crate::runtime::gc::RootScope::new(&[&[callback.js_value(), this_value][..], args].concat());
+    let _roots = crate::runtime::gc::RootScope::new(&[&[callback.js_value(), this_value, async_context][..], args].concat());
+    let scope = crate::runtime::js_microtask::AsyncContextSwapScope::new(global_object.vm(), async_context);
     match callback {
         Callback::Js(function) => match call_microtask(global_object, *function, this_value, args, "callback is not a function") {
             Err(CallThrown::Value(error)) => global_object.vm().report_unhandled_error(global_object, error),
@@ -722,6 +727,8 @@ fn invoke(global_object: &JSGlobalObject, callback: &Callback, this_value: JSVal
         },
         Callback::Native(action) => action(global_object),
     }
+    // As microtarefas que o callback agendou levam o próprio contexto; a drenagem roda fora do dele.
+    drop(scope);
     // `process.exit()` descarta as microtarefas pendentes.
     if !crate::runtime::process_exit::exit_requested() {
         global_object.vm().drain_microtasks();
@@ -794,13 +801,13 @@ fn run_due_timers(global_object: &JSGlobalObject, budget: &mut usize) {
                 .entries
                 .get(&cell)
                 .filter(|entry| !entry.destroyed && entry.seq == seq)
-                .map(|entry| (entry.callback.clone(), entry.args.clone()))
+                .map(|entry| (entry.callback.clone(), entry.args.clone(), entry.async_context))
         });
-        let Some((callback, args)) = call else {
+        let Some((callback, args, async_context)) = call else {
             continue;
         };
         *budget -= 1;
-        invoke(global_object, &callback, JSValue::Cell(cell), &args);
+        invoke(global_object, &callback, JSValue::Cell(cell), &args, async_context);
         let now = waiter_list_manager::virtual_now();
         STATE.with(|state| {
             let mut state = state.borrow_mut();
@@ -838,14 +845,14 @@ fn run_immediates(global_object: &JSGlobalObject, budget: &mut usize) {
         let call = STATE.with(|state| {
             state.borrow_mut().entries.get_mut(cell).filter(|entry| !entry.destroyed).map(|entry| {
                 entry.refed = false;
-                (entry.callback.clone(), entry.args.clone())
+                (entry.callback.clone(), entry.args.clone(), entry.async_context)
             })
         });
-        let Some((callback, args)) = call else {
+        let Some((callback, args, async_context)) = call else {
             continue;
         };
         *budget -= 1;
-        invoke(global_object, &callback, JSValue::Cell(*cell), &args);
+        invoke(global_object, &callback, JSValue::Cell(*cell), &args, async_context);
         STATE.with(|state| {
             if let Some(entry) = state.borrow_mut().entries.get_mut(cell) {
                 entry.destroyed = true;

@@ -1,0 +1,15 @@
+[workspace]
+resolver = "2"
+members = ["ast", "bun_core", "bun_core_macros"]
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+
+[workspace.dependencies]
+bitflags = "2"
+enum-map = "2"
+strum = { version = "0.26", features = ["derive"] }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"

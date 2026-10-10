@@ -28,10 +28,11 @@ fn queue_microtask_body(global_object: &JSGlobalObject, call: &HostCall) -> Host
         );
         return Err(throw_coded_type_error(global_object, &message, "ERR_INVALID_ARG_TYPE"));
     }
-    global_object
-        .vm()
-        .default_microtask_queue
-        .enqueue(QueuedTask::new(global_object.cell_id(), InternalMicrotask::InvokeFunctionJob, 0, &[callback]));
+    // `arguments[1]` é o contexto assíncrono do agendamento (o `AsyncContextFrame` do bun), vazio sem rastreamento.
+    let vm = global_object.vm();
+    let async_context = vm.captured_async_context();
+    vm.default_microtask_queue
+        .enqueue(QueuedTask::new(global_object.cell_id(), InternalMicrotask::InvokeFunctionJob, 0, &[callback, async_context]));
     Ok(JSValue::undefined())
 }
 

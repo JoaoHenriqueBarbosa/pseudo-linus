@@ -12,8 +12,7 @@
 //!
 //! DIVERGÊNCIAS:
 //! - `MicrotaskCallCache` não existe (ver `js_microtask.rs`): `callMicrotask` é `call_microtask`.
-//! - `AsyncContextSwapScope` (contexto assíncrono do Bun) não existe: o contexto é o de
-//!   `PromiseHost::async_context` (`undefined`) e o `arguments[3]` das tarefas não é reinstalado.
+//! - `AsyncContextSwapScope` é o de `js_microtask.rs`: as tarefas daqui reinstalam o contexto de `arguments[3]`.
 //! - `generator->realm()` é o realm da `Structure` da célula (`Structure::realm`).
 //! - Uma exceção de terminação vinda de `callMicrotask` (`clearExceptionExceptTermination` falso) aborta o
 //!   passo e fica pendente no `VM`, como no C++; `PromiseHost::resolve`/`reject` não deixam exceção, então
@@ -528,10 +527,12 @@ pub fn async_generator_driver_resume_generator(generator: &JSAsyncGenerator, res
 /// tarefa roda no realm da célula do contexto (`generator->realm()`), não no do laço de microtasks, por isso
 /// o `global_object` do laço não é usado. `AsyncFunctionResume` e `AsyncGeneratorDriverResume` são de
 /// `js_microtask.rs`.
-pub fn run_async_internal_microtask(_global_object: &JSGlobalObject, task: InternalMicrotask, payload: u8, arguments: [JSValue; 4]) {
+pub fn run_async_internal_microtask(global_object: &JSGlobalObject, task: InternalMicrotask, payload: u8, arguments: [JSValue; 4]) {
     let resolution = arguments[1];
     let context = arguments[2];
     let status = status_of_payload(payload);
+    // `arguments[3]` é o contexto assíncrono do agendamento.
+    let _async_context_scope = crate::runtime::js_microtask::AsyncContextSwapScope::new(global_object.vm(), arguments[3]);
 
     match task {
         InternalMicrotask::AsyncFromSyncIteratorContinue | InternalMicrotask::AsyncFromSyncIteratorDone => {
