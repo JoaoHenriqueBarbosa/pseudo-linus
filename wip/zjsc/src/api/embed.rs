@@ -56,6 +56,18 @@ fn pl_set_code_guard_body(_global_object: &JSGlobalObject, call: &HostCall) -> H
 }
 host_function!(pl_set_code_guard, pl_set_code_guard_body);
 
+/// `__pl_microtask_checkpoint()`: o "perform a microtask checkpoint" do HTML, que o navegador roda quando a pilha de
+/// JavaScript fica vazia (depois de cada ouvinte de um evento despachado por uma tarefa do navegador, por exemplo).
+/// Como no HTML, não faz nada se um checkpoint já está em curso.
+fn pl_microtask_checkpoint_body(global_object: &JSGlobalObject, _call: &HostCall) -> HostResult {
+    let vm = global_object.vm();
+    if !vm.default_microtask_queue.is_performing_microtask_checkpoint() {
+        vm.drain_microtasks();
+    }
+    Ok(JSValue::undefined())
+}
+host_function!(pl_microtask_checkpoint, pl_microtask_checkpoint_body);
+
 /// Um valor do programa escondido que o hospedeiro guarda para chamar depois ([`PageRunner::call_hidden`]).
 pub struct HostHandle(JSValue);
 
@@ -214,6 +226,7 @@ pub fn run_page<T>(console: Rc<dyn ConsoleHost>, dom: Rc<dyn DomHost>, document_
         dom_bridge::install(&global_object, dom);
         install_global_function_with_visibility(&global_object, "__pl_eval", 2, pl_eval, ImplementationVisibility::Private);
         install_global_function_with_visibility(&global_object, "__pl_set_code_guard", 1, pl_set_code_guard, ImplementationVisibility::Private);
+        install_global_function_with_visibility(&global_object, "__pl_microtask_checkpoint", 0, pl_microtask_checkpoint, ImplementationVisibility::Private);
         install_global_function_with_visibility(
             &global_object,
             "__pl_private",
