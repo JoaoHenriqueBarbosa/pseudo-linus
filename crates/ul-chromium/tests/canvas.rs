@@ -103,10 +103,7 @@ fn webp_data_url_matches_oracle() {
         let oracle: serde_json::Value = serde_json::from_str(measured).unwrap();
         wrong.extend(oracle.as_object().unwrap().iter().filter(|(key, want)| &ours[key.as_str()] != *want).map(|(key, _)| key.clone()));
     }
-    // Pendente, e não exclusão: o smooth sem perdas (400x400) é o preditor com min_bits diferente de max_bits, ainda
-    // não portado. Caso que passar sai daqui.
-    let pending = ["smoothLossless"];
-    assert_eq!(wrong, pending);
+    assert!(wrong.is_empty(), "{wrong:?}");
 }
 
 /// A rasterização contra o oráculo: as cenas de `testbench/oracle/measured/canvas-raster.html` rodam aqui e os pixels

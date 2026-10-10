@@ -1,8 +1,9 @@
 //! `enc/predictor_enc.c` do libwebp 1.5.0 no alcance do Skia: a imagem de resíduos do preditor no esforço baixo
-//! (método 0, preditor 11 fixo) e no esforço do método 3 (busca do melhor preditor por bloco, sem subamostragem
-//! adicional, porque com o método até 4 o mínimo e o máximo de bits coincidem), e o `VP8LOptimizeSampling`.
+//! (método 0, preditor 11 fixo) e no esforço maior (busca do melhor preditor por bloco em cada tamanho de
+//! `min_bits` a `max_bits`, com a escolha do tamanho pela entropia), e o `VP8LOptimizeSampling`.
 
-use super::dsp::{combined_shannon_entropy, div_round, predict, sub_pixels, sub_sample_size, ARGB_BLACK, LOG_2_PRECISION_BITS};
+use super::dsp::{combined_shannon_entropy, div_round, fast_slog2, predict, sub_pixels, sub_sample_size, ARGB_BLACK, LOG_2_PRECISION_BITS};
+use super::MAX_TRANSFORM_BITS;
 
 const HISTO_SIZE: usize = 4 * 256;
 const SPATIAL_PREDICTOR_BIAS: i64 = 15 << LOG_2_PRECISION_BITS;
@@ -177,8 +178,10 @@ pub fn optimize_sampling(image: &mut [u32], full_width: usize, full_height: usiz
     best_bits
 }
 
-/// `ComputeResidualsForTile` só no nível de subamostragem 0: o histograma de resíduos de cada modo no bloco.
-fn residuals_for_tile(width: usize, height: usize, tile_x: usize, tile_y: usize, bits: u32, argb: &[u32], exact: bool, histos: &mut [u32]) {
+/// `ComputeResidualsForTile`: o histograma de resíduos de cada modo no bloco de `bits` (o nível 0), somado também
+/// aos superblocos dos níveis 1 a `update_up_to`. `histos` guarda os níveis em sequência, `NUM_PRED_MODES`
+/// histogramas cada.
+fn residuals_for_tile(width: usize, height: usize, tile_x: usize, tile_y: usize, bits: u32, update_up_to: usize, argb: &[u32], exact: bool, histos: &mut [u32]) {
     let start_x = tile_x << bits;
     let start_y = tile_y << bits;
     let tile_size = 1usize << bits;
@@ -190,7 +193,6 @@ fn residuals_for_tile(width: usize, height: usize, tile_x: usize, tile_y: usize,
     let mut upper = vec![0u32; width + 1];
     let mut current = vec![0u32; width + 1];
     for mode in 0..NUM_PRED_MODES {
-        let histo = &mut histos[mode * HISTO_SIZE..(mode + 1) * HISTO_SIZE];
         if start_y > 0 {
             let n = max_x + have_left + 1;
             let from = (start_y - 1) * width + context_start_x;
@@ -203,11 +205,145 @@ fn residuals_for_tile(width: usize, height: usize, tile_x: usize, tile_y: usize,
             let from = y * width + context_start_x;
             current[context_start_x..context_start_x + n].copy_from_slice(&argb[from..from + n]);
             residual(width, &mut upper, &mut current, mode as u32, start_x, start_x + max_x, y, exact, &mut residuals);
-            for &r in &residuals {
-                update_histo(histo, r);
+            for level in 0..=update_up_to {
+                let histo = histo_argb(histos, level, mode);
+                for &r in &residuals {
+                    update_histo(histo, r);
+                }
             }
         }
     }
+}
+
+/// `GetHistoArgb`: o histograma do modo `mode` no nível de subamostragem `level`.
+fn histo_argb(all: &mut [u32], level: usize, mode: usize) -> &mut [u32] {
+    let at = (level * NUM_PRED_MODES + mode) * HISTO_SIZE;
+    &mut all[at..at + HISTO_SIZE]
+}
+
+/// Os histogramas e modos de cada nível de subamostragem de `GetBestPredictorsAndSubSampling`.
+struct Levels {
+    all_argb: Vec<u32>,
+    accumulated: Vec<u32>,
+    pred_histos: Vec<u32>,
+    modes: Vec<Vec<u32>>,
+}
+
+impl Levels {
+    /// `GetBestPredictorForTile`: o modo de menor custo do superbloco (`tile_x`, `tile_y`) no nível `level`.
+    fn best_predictor_for_tile(&mut self, level: usize, tile_x: usize, tile_y: usize, tiles_per_row: usize) {
+        let modes = &mut self.modes[level];
+        let left_mode = if tile_x > 0 { (modes[tile_y * tiles_per_row + tile_x - 1] >> 8) & 0xff } else { 0xff };
+        let above_mode = if tile_y > 0 { (modes[(tile_y - 1) * tiles_per_row + tile_x] >> 8) & 0xff } else { 0xff };
+        let accumulated = &mut self.accumulated[level * HISTO_SIZE..(level + 1) * HISTO_SIZE];
+        let histo = |mode: usize| (level * NUM_PRED_MODES + mode) * HISTO_SIZE;
+        let (mut best_diff, mut best_mode) = (i64::MAX, 0usize);
+        for mode in 0..NUM_PRED_MODES {
+            let cur = prediction_cost_spatial(accumulated, &self.all_argb[histo(mode)..histo(mode) + HISTO_SIZE], mode as u32, left_mode, above_mode);
+            if cur < best_diff {
+                best_diff = cur;
+                best_mode = mode;
+            }
+        }
+        for (a, h) in accumulated.iter_mut().zip(&self.all_argb[histo(best_mode)..histo(best_mode) + HISTO_SIZE]) {
+            *a += h;
+        }
+        modes[tile_y * tiles_per_row + tile_x] = ARGB_BLACK | ((best_mode as u32) << 8);
+        self.pred_histos[level * NUM_PRED_MODES + best_mode] += 1;
+    }
+}
+
+/// `VP8LShannonEntropy`.
+fn shannon_entropy(x: &[u32]) -> u64 {
+    let (mut sum, mut retval) = (0u32, 0u64);
+    for &v in x.iter().filter(|&&v| v != 0) {
+        sum += v;
+        retval += fast_slog2(v);
+    }
+    fast_slog2(sum) - retval
+}
+
+/// `GetBestPredictorsAndSubSampling`: escolhe o modo de cada bloco em todos os tamanhos de `min_bits` a `max_bits`,
+/// percorrendo os blocos em zigue-zague para fechar os superblocos o quanto antes, e fica com o tamanho de menor
+/// entropia. Devolve a imagem de modos (já pelo `VP8LOptimizeSampling`) e os bits.
+fn best_predictors_and_sub_sampling(width: usize, height: usize, min_bits: u32, max_bits: u32, argb: &[u32], exact: bool) -> (Vec<u32>, u32) {
+    let tiles_per_row = sub_sample_size(width, min_bits);
+    let tiles_per_col = sub_sample_size(height, min_bits);
+    let max_level = (max_bits - min_bits) as usize;
+    let mut levels = Levels {
+        all_argb: vec![0; (max_level + 1) * NUM_PRED_MODES * HISTO_SIZE],
+        accumulated: vec![0; (max_level + 1) * HISTO_SIZE],
+        pred_histos: vec![0; (max_level + 1) * NUM_PRED_MODES],
+        modes: (0..=max_level).map(|level| vec![0; sub_sample_size(width, min_bits + level as u32) * sub_sample_size(height, min_bits + level as u32)]).collect(),
+    };
+    // Até o superbloco de lado 2^4 cada resíduo entra direto no histograma dele; acima disso, o histograma do nível
+    // de baixo é somado quando ele fecha.
+    let update_up_to = (4.min(max_bits).max(min_bits) - min_bits) as usize;
+    let max_tile_size = 1usize << max_level;
+    let (mut local_x, mut local_y, mut max_tile_x, mut max_tile_y, mut tile_x, mut tile_y) = (0usize, 0usize, 0usize, 0usize, 0usize, 0usize);
+    while tile_y < tiles_per_col {
+        residuals_for_tile(width, height, tile_x, tile_y, min_bits, update_up_to, argb, exact, &mut levels.all_argb);
+        let mut level = 0;
+        loop {
+            levels.best_predictor_for_tile(level, tile_x >> level, tile_y >> level, sub_sample_size(width, min_bits + level as u32));
+            if level == max_level {
+                break;
+            }
+            level += 1;
+            if level > update_up_to {
+                let (below, above) = levels.all_argb.split_at_mut(level * NUM_PRED_MODES * HISTO_SIZE);
+                for (a, b) in above[..NUM_PRED_MODES * HISTO_SIZE].iter_mut().zip(&below[(level - 1) * NUM_PRED_MODES * HISTO_SIZE..]) {
+                    *a += b;
+                }
+            }
+            let side = 1usize << level;
+            if !((tile_x == tiles_per_row - 1 || (local_x + 1) % side == 0) && (tile_y == tiles_per_col - 1 || (local_y + 1) % side == 0)) {
+                level -= 1;
+                break;
+            }
+        }
+        levels.all_argb[..HISTO_SIZE * NUM_PRED_MODES * (level + 1)].fill(0);
+        if level == max_level {
+            if tile_x == tiles_per_row - 1 {
+                max_tile_x = 0;
+                max_tile_y += 1;
+            } else {
+                max_tile_x += 1;
+            }
+            local_x = 0;
+            local_y = 0;
+        } else {
+            let (mut coord_x, mut coord_y) = (local_x >> level, local_y >> level);
+            if tile_x == tiles_per_row - 1 && coord_x % 2 == 0 {
+                coord_y += 1;
+            } else if coord_x % 2 == 0 {
+                coord_x += 1;
+            } else {
+                coord_y += 1;
+                coord_x -= 1;
+            }
+            local_x = coord_x << level;
+            local_y = coord_y << level;
+        }
+        tile_x = max_tile_x * max_tile_size + local_x;
+        tile_y = max_tile_y * max_tile_size + local_y;
+    }
+    let (mut best_cost, mut best_level) = (i64::MAX, 0usize);
+    for level in 0..=max_level {
+        let accumulated = &levels.accumulated[level * HISTO_SIZE..(level + 1) * HISTO_SIZE];
+        let mut cost = shannon_entropy(&levels.pred_histos[level * NUM_PRED_MODES..(level + 1) * NUM_PRED_MODES]) as i64;
+        for plane in 0..4 {
+            cost += shannon_entropy(&accumulated[plane * 256..plane * 256 + 256]) as i64;
+        }
+        if cost < best_cost {
+            best_cost = cost;
+            best_level = level;
+        }
+    }
+    let mut modes = std::mem::take(&mut levels.modes[best_level]);
+    let best_bits = optimize_sampling(&mut modes, width, height, min_bits + best_level as u32, MAX_TRANSFORM_BITS);
+    modes.truncate(sub_sample_size(width, best_bits) * sub_sample_size(height, best_bits));
+    (modes, best_bits)
 }
 
 /// `VP8LResidualImage`: a imagem de modos (em `ARGB_BLACK | modo << 8`) e os bits do bloco; `argb` passa a ter os
@@ -219,39 +355,7 @@ pub fn residual_image(width: usize, height: usize, min_bits: u32, max_bits: u32,
         copy_image_with_prediction(width, height, max_bits, &image, argb, true, exact);
         return (image, max_bits);
     }
-    debug_assert_eq!(min_bits, max_bits);
-    let bits = min_bits;
-    let tiles_per_row = sub_sample_size(width, bits);
-    let tiles_per_col = sub_sample_size(height, bits);
-    let mut modes = vec![0u32; tiles_per_row * tiles_per_col];
-    let mut all_argb = vec![0u32; NUM_PRED_MODES * HISTO_SIZE];
-    let mut accumulated = vec![0u32; HISTO_SIZE];
-    for tile_y in 0..tiles_per_col {
-        for tile_x in 0..tiles_per_row {
-            residuals_for_tile(width, height, tile_x, tile_y, bits, argb, exact, &mut all_argb);
-            // `GetBestPredictorForTile`.
-            let left_mode = if tile_x > 0 { (modes[tile_y * tiles_per_row + tile_x - 1] >> 8) & 0xff } else { 0xff };
-            let above_mode = if tile_y > 0 { (modes[(tile_y - 1) * tiles_per_row + tile_x] >> 8) & 0xff } else { 0xff };
-            let (mut best_diff, mut best_mode) = (i64::MAX, 0usize);
-            for mode in 0..NUM_PRED_MODES {
-                let histo = &all_argb[mode * HISTO_SIZE..(mode + 1) * HISTO_SIZE];
-                let cur = prediction_cost_spatial(&accumulated, histo, mode as u32, left_mode, above_mode);
-                if cur < best_diff {
-                    best_diff = cur;
-                    best_mode = mode;
-                }
-            }
-            for (a, h) in accumulated.iter_mut().zip(&all_argb[best_mode * HISTO_SIZE..(best_mode + 1) * HISTO_SIZE]) {
-                *a += h;
-            }
-            modes[tile_y * tiles_per_row + tile_x] = ARGB_BLACK | ((best_mode as u32) << 8);
-            all_argb.fill(0);
-        }
-    }
-    // Com um único nível de subamostragem a escolha final do C é sempre esse nível.
-    let best_bits = optimize_sampling(&mut modes, width, height, bits, 9);
-    let n = sub_sample_size(width, best_bits) * sub_sample_size(height, best_bits);
-    modes.truncate(n);
+    let (modes, best_bits) = best_predictors_and_sub_sampling(width, height, min_bits, max_bits, argb, exact);
     copy_image_with_prediction(width, height, best_bits, &modes, argb, false, exact);
     (modes, best_bits)
 }
