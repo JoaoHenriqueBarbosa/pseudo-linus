@@ -115,16 +115,16 @@ impl ExtObject for WeakRef {
         Some(h)
     }
 
-    fn eq_value(&self, other: &Value) -> Option<bool> {
-        let Value::Ext(o) = other else { return Some(false) };
+    fn eq_value(&self, other: &Value) -> Option<PyResult<bool>> {
+        let Value::Ext(o) = other else { return Some(Ok(false)) };
         let me = self.me.upgrade()?;
         if std::ptr::addr_eq(Rc::as_ptr(o), Rc::as_ptr(&me)) {
-            return Some(true);
+            return Some(Ok(true));
         }
         // Duas referências só são iguais por valor quando as duas estão vivas; mortas, só por identidade.
         match (self.upgrade(), o.referent()) {
             (Some(a), Some(b)) => Some(crate::object::py_eq(&a, &b)),
-            _ => Some(false),
+            _ => Some(Ok(false)),
         }
     }
 

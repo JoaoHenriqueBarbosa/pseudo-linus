@@ -233,7 +233,7 @@ enum IterNode {
 
 /// Um iterador preguiçoso embutido (ver [`LazyParts`]) com os valores convertidos em itens.
 enum LazyNode {
-    Seq { kind: &'static str, items: Vec<Item>, pos: usize },
+    Seq { kind: &'static str, items: Vec<Item>, pos: usize, source: Option<Item>, exhausted: bool },
     Reversed { kind: &'static str, items: Vec<Item>, next: usize },
     Map { func: Item, iters: Vec<IterNode> },
     Filter { func: Item, iter: IterNode },
@@ -337,7 +337,7 @@ enum FoldNode {
     Any,
     All,
     Extend { target: Item },
-    Sorted { key: Option<Item>, reverse: bool, items: Vec<Item>, pairs: Vec<(Item, Item)> },
+    Sorted { key: Option<Item>, reverse: bool, items: Vec<Item>, pairs: Vec<(Item, Item)>, target: Option<Item> },
 }
 
 /// `generator::Layer` com o iterador preguiçoso como item.
@@ -371,6 +371,7 @@ enum DunderNode {
     Boolean { negate: bool },
     Truth { how: TruthUse, len: bool },
     Iter,
+    Text(&'static str),
     Callback(Box<CallbackNode>),
     Signal,
     Import(Box<ImportNode>),
@@ -435,6 +436,8 @@ struct CoreNode {
     /// Nó `Globals`.
     globals: u32,
     frame: FrameNode,
+    /// A função que criou o gerador.
+    func: Option<Item>,
     flags: GenFlags,
     returned: Option<Item>,
 }
@@ -1023,7 +1026,9 @@ impl Encoder {
 
     fn lazy(&mut self, parts: LazyParts) -> Result<LazyNode, ImageError> {
         Ok(match parts {
-            LazyParts::Seq { kind, items, pos } => LazyNode::Seq { kind, items: self.items(&items)?, pos },
+            LazyParts::Seq { kind, items, pos, source, exhausted } => {
+                LazyNode::Seq { kind, items: self.items(&items)?, pos, source: self.opt_item(source.as_ref())?, exhausted }
+            }
             LazyParts::Reversed { kind, items, next } => LazyNode::Reversed { kind, items: self.items(&items)?, next },
             LazyParts::Map { func, iters } => LazyNode::Map { func: self.item(&func)?, iters: self.iters(iters)? },
             LazyParts::Filter { func, iter } => LazyNode::Filter { func: self.item(&func)?, iter: self.iter(iter)? },
@@ -1167,12 +1172,18 @@ impl Encoder {
             Fold::Any => FoldNode::Any,
             Fold::All => FoldNode::All,
             Fold::Extend { target } => FoldNode::Extend { target: self.item(target)? },
-            Fold::Sorted { key, reverse, items, pairs } => {
+            Fold::Sorted { key, reverse, items, pairs, target } => {
                 let mut kept = Vec::with_capacity(pairs.len());
                 for (k, v) in pairs {
                     kept.push((self.item(k)?, self.item(v)?));
                 }
-                FoldNode::Sorted { key: self.opt_item(key.as_ref())?, reverse: *reverse, items: self.items(items)?, pairs: kept }
+                FoldNode::Sorted {
+                    key: self.opt_item(key.as_ref())?,
+                    reverse: *reverse,
+                    items: self.items(items)?,
+                    pairs: kept,
+                    target: self.opt_item(target.as_ref())?,
+                }
             }
         })
     }
@@ -1191,6 +1202,10 @@ impl Encoder {
     fn dunder(&mut self, d: &Dunder) -> Result<DunderNode, ImageError> {
         Ok(match d {
             Dunder::Chain(c) => {
+                // A busca numa lista que espera a igualdade ainda não tem nó: a imagem recusa em vez de perdê-la.
+                if c.scan.is_some() {
+                    return Err(ImageError::Unsupported("list scan"));
+                }
                 let mut rest = Vec::with_capacity(c.rest.len());
                 for a in &c.rest {
                     rest.push(AttemptNode { recv: self.item(&a.recv)?, name: a.name, other: self.item(&a.other)?, invert: a.invert });
@@ -1202,6 +1217,7 @@ impl Encoder {
             Dunder::Boolean { negate } => DunderNode::Boolean { negate: *negate },
             Dunder::Truth { how, len } => DunderNode::Truth { how: *how, len: *len },
             Dunder::Iter => DunderNode::Iter,
+            Dunder::Text(name) => DunderNode::Text(name),
             Dunder::Callback(s) => DunderNode::Callback(Box::new(self.callback_node(s)?)),
             Dunder::Signal => DunderNode::Signal,
             Dunder::Import(run) => DunderNode::Import(Box::new(ImportNode {
@@ -1242,7 +1258,8 @@ impl Encoder {
         let (frame, flags, returned) = c.inspect(|frame, flags, returned| -> Result<_, ImageError> {
             Ok((self.frame(frame)?, flags, self.opt_item(returned)?))
         })?;
-        Ok(CoreNode { kind: c.kind(), globals, frame, flags, returned })
+        let func = self.opt_item(c.function().map(Value::Function).as_ref())?;
+        Ok(CoreNode { kind: c.kind(), globals, frame, func, flags, returned })
     }
 
     fn role(&mut self, role: GenRole) -> Result<RoleNode, ImageError> {
@@ -1558,12 +1575,18 @@ impl Rebuilt {
             FoldNode::Any => Fold::Any,
             FoldNode::All => Fold::All,
             FoldNode::Extend { target } => Fold::Extend { target: self.value(*target)? },
-            FoldNode::Sorted { key, reverse, items, pairs } => {
+            FoldNode::Sorted { key, reverse, items, pairs, target } => {
                 let mut kept = Vec::with_capacity(pairs.len());
                 for (k, v) in pairs {
                     kept.push((self.value(*k)?, self.value(*v)?));
                 }
-                Fold::Sorted { key: self.opt(key)?, reverse: *reverse, items: self.values_of(items)?, pairs: kept }
+                Fold::Sorted {
+                    key: self.opt(key)?,
+                    reverse: *reverse,
+                    items: self.values_of(items)?,
+                    pairs: kept,
+                    target: self.opt(target)?,
+                }
             }
         })
     }
@@ -1590,13 +1613,14 @@ impl Rebuilt {
                 for a in &c.rest {
                     rest.push(Attempt { recv: self.value(a.recv)?, name: a.name, other: self.value(a.other)?, invert: a.invert });
                 }
-                Dunder::Chain(Chain { kind: c.kind, a: self.value(c.a)?, b: self.value(c.b)?, rest, invert: c.invert })
+                Dunder::Chain(Chain { kind: c.kind, a: self.value(c.a)?, b: self.value(c.b)?, rest, invert: c.invert, scan: None })
             }
             DunderNode::Push => Dunder::Push,
             DunderNode::Discard => Dunder::Discard,
             DunderNode::Boolean { negate } => Dunder::Boolean { negate: *negate },
             DunderNode::Truth { how, len } => Dunder::Truth { how: *how, len: *len },
             DunderNode::Iter => Dunder::Iter,
+            DunderNode::Text(name) => Dunder::Text(name),
             DunderNode::Callback(s) => Dunder::Callback(Box::new(self.callback_of(s)?)),
             DunderNode::Signal => Dunder::Signal,
             DunderNode::Import(n) => {
@@ -1641,7 +1665,9 @@ impl Rebuilt {
 
     fn lazy(&self, node: &LazyNode) -> Result<LazyParts, ImageError> {
         Ok(match node {
-            LazyNode::Seq { kind, items, pos } => LazyParts::Seq { kind: *kind, items: self.values_of(items)?, pos: *pos },
+            LazyNode::Seq { kind, items, pos, source, exhausted } => {
+                LazyParts::Seq { kind: *kind, items: self.values_of(items)?, pos: *pos, source: self.opt(source)?, exhausted: *exhausted }
+            }
             LazyNode::Reversed { kind, items, next } => {
                 LazyParts::Reversed { kind: *kind, items: self.values_of(items)?, next: *next }
             }
@@ -1732,7 +1758,11 @@ fn iter_deps(it: &IterNode, out: &mut Vec<usize>) {
 
 fn lazy_deps(lazy: &LazyNode, out: &mut Vec<usize>) {
     match lazy {
-        LazyNode::Seq { items, .. } | LazyNode::Reversed { items, .. } => items.iter().for_each(|i| push_dep(out, i)),
+        LazyNode::Seq { items, source, .. } => {
+            items.iter().for_each(|i| push_dep(out, i));
+            source.iter().for_each(|i| push_dep(out, i));
+        }
+        LazyNode::Reversed { items, .. } => items.iter().for_each(|i| push_dep(out, i)),
         LazyNode::Map { func, iters } => {
             push_dep(out, func);
             iters.iter().for_each(|it| iter_deps(it, out));
@@ -2264,6 +2294,9 @@ impl HeapImage {
                 let stack = rb.slots(&c.frame.stack)?;
                 let handled = rb.values_of(&c.frame.handled)?;
                 let returned = rb.opt(&c.returned)?;
+                if let Some(Value::Function(f)) = rb.opt(&c.func)? {
+                    core.set_function(Some(f));
+                }
                 core.edit(|frame, ret| {
                     frame.stack = stack;
                     frame.blocks = Rebuilt::blocks(&c.frame.blocks);

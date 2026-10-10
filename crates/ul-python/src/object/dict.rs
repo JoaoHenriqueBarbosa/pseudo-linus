@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use super::{hash, is, py_eq, repr_into, ObjError, ReprStack, Value};
+use super::{eq_bool, hash, repr_into, ObjError, ReprStack, Value};
 
 /// Contador global das mutações: cada `set`/`remove` dá ao dict um número novo, que as visões vivas
 /// das globais (`globalsview`) comparam para saber se houve escrita desde a última sincronização.
@@ -47,22 +47,27 @@ impl Dict {
     }
 
     /// Posição da chave em `entries`, se presente.
-    fn find(&self, h: i64, key: &Value) -> Option<usize> {
-        self.index.get(&h)?.iter().copied().find(|&i| match &self.entries[i] {
-            Some((_, k, _)) => is(k, key) || py_eq(k, key),
-            None => false,
-        })
+    fn find(&self, h: i64, key: &Value) -> Result<Option<usize>, ObjError> {
+        let Some(slots) = self.index.get(&h) else { return Ok(None) };
+        for &i in slots {
+            if let Some((_, k, _)) = &self.entries[i]
+                && eq_bool(k, key)?
+            {
+                return Ok(Some(i));
+            }
+        }
+        Ok(None)
     }
 
     /// `d[key]`; `None` quando ausente (o `KeyError` é do chamador). Chave sem hash é `TypeError`.
     pub fn get(&self, key: &Value) -> Result<Option<Value>, ObjError> {
         let h = hash(key)?;
-        Ok(self.find(h, key).and_then(|i| self.entries[i].as_ref().map(|(_, _, v)| v.clone())))
+        Ok(self.find(h, key)?.and_then(|i| self.entries[i].as_ref().map(|(_, _, v)| v.clone())))
     }
 
     pub fn contains(&self, key: &Value) -> Result<bool, ObjError> {
         let h = hash(key)?;
-        Ok(self.find(h, key).is_some())
+        Ok(self.find(h, key)?.is_some())
     }
 
     /// `d[key] = value`. Chave já presente mantém o objeto-chave original e a posição, como o
@@ -70,7 +75,7 @@ impl Dict {
     pub fn set(&mut self, key: Value, value: Value) -> Result<(), ObjError> {
         let h = hash(&key)?;
         self.generation = GENERATION.fetch_add(1, Ordering::Relaxed);
-        if let Some(i) = self.find(h, &key) {
+        if let Some(i) = self.find(h, &key)? {
             if let Some((_, _, v)) = &mut self.entries[i] {
                 *v = value;
             }
@@ -85,7 +90,7 @@ impl Dict {
     /// `del d[key]` / `d.pop(key)`: devolve o valor removido, ou `None` se a chave não existia.
     pub fn remove(&mut self, key: &Value) -> Result<Option<Value>, ObjError> {
         let h = hash(key)?;
-        let Some(i) = self.find(h, key) else { return Ok(None) };
+        let Some(i) = self.find(h, key)? else { return Ok(None) };
         self.generation = GENERATION.fetch_add(1, Ordering::Relaxed);
         let removed = self.entries[i].take().map(|(_, _, v)| v);
         if let Some(slots) = self.index.get_mut(&h) {
@@ -169,10 +174,15 @@ pub(super) fn dict_repr(d: &Dict, id: usize, out: &mut String, stack: &mut ReprS
 
 /// `dict_equal`: mesmo tamanho e, para cada chave de `a`, o valor em `b` idêntico ou igual. A ordem
 /// não conta.
-pub(super) fn dict_eq(a: &Dict, b: &Dict) -> bool {
-    a.len() == b.len()
-        && a.iter().all(|(k, v)| match b.get(k) {
-            Ok(Some(w)) => is(v, &w) || py_eq(v, &w),
-            _ => false,
-        })
+pub(super) fn dict_eq(a: &Dict, b: &Dict) -> crate::vm::PyResult<bool> {
+    if a.len() != b.len() {
+        return Ok(false);
+    }
+    for (k, v) in a.iter() {
+        let Some(w) = b.get(k)? else { return Ok(false) };
+        if !eq_bool(v, &w)? {
+            return Ok(false);
+        }
+    }
+    Ok(true)
 }

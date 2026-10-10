@@ -15,7 +15,6 @@ mod scanner;
 mod types;
 
 use std::cell::{Cell, RefCell};
-use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use crate::modules::ModuleBuilder;
@@ -445,18 +444,5 @@ pub fn build_core(_vm: &mut Vm) -> Rc<ModuleObj> {
 /// `yaml._yaml`: o módulo que o `import` entrega no lugar do `.so`. Leva só os nomes públicos da
 /// camada em Python; os auxiliares com `_` e os dados do arquivo embutido ficam de fora (o
 /// carregador de extensões põe `__file__`, `__package__` e `__doc__` do `.so`).
-pub fn build_yaml_native(vm: &mut Vm) -> PyResult<Rc<ModuleObj>> {
-    let inner = crate::modules::import_checked(vm, "_yaml_impl")?;
-    let hidden = ["__file__", "__cached__", "__package__", "__builtins__", "__doc__", "__spec__", "__loader__"];
-    let attrs: BTreeMap<String, Value> = inner
-        .attrs
-        .borrow()
-        .iter()
-        .filter(|(name, _)| (!name.starts_with('_') || (name.starts_with("__") && name.ends_with("__"))) && !hidden.contains(&name.as_str()))
-        .map(|(name, value)| (name.clone(), value.clone()))
-        .collect();
-    Ok(Rc::new(ModuleObj { name: crate::object::intern("yaml._yaml"), attrs: RefCell::new(attrs) }))
-}
-
 #[cfg(test)]
 mod tests;

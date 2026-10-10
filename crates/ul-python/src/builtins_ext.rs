@@ -314,10 +314,12 @@ pub(crate) fn mapping_proxy(vm: &mut Vm, mapping: Value) -> PyResult<Value> {
     vm.call(&class, vec![mapping], Vec::new())
 }
 
-/// O nome do tipo de `builtins` que o shim em Python `cls` (`memoryview`, `complex`, os grupos de exceção)
-/// emula: só uma classe do módulo `builtins` com linha na tabela do oráculo.
+/// O nome do tipo em C que o shim em Python `cls` (`memoryview`, `complex`, os grupos de exceção, o
+/// `greenlet.greenlet`) emula: uma classe do módulo `builtins` ou de `C_EXTENSION_TYPES` com linha na tabela do oráculo.
 fn emulated_name(cls: &Rc<crate::object::ClassObj>) -> Option<&'static str> {
-    (cls.module() == "builtins").then(|| crate::object::intern(&cls.name)).filter(|n| type_vars(n).is_some())
+    let module = cls.module();
+    let listed = module == "builtins" || crate::object::C_EXTENSION_TYPES.contains(&(module.as_str(), cls.name.as_str()));
+    listed.then(|| crate::object::intern(&cls.name)).filter(|n| type_vars(n).is_some())
 }
 
 /// O `__flags__` de um shim em Python de um tipo de `builtins`, da tabela do oráculo.
@@ -352,6 +354,11 @@ pub(crate) fn emulated_type_dict(vm: &mut Vm, cls: &Rc<crate::object::ClassObj>)
 /// `__text_signature__` da tabela do oráculo. Só a leitura do programa (`load_attr`) passa por aqui: as chamadas
 /// internas do shim (`cls._parse`) e a construção da classe seguem pelo dicionário dela.
 pub(crate) fn emulated_class_attr(cls: &Rc<crate::object::ClassObj>, name: &str) -> Option<Value> {
+    // O `__dict__` do `type` é descritor de dados do metatipo: vence o `__dict__` das instâncias (o do `greenlet`)
+    // guardado no dicionário do tipo.
+    if name == "__dict__" {
+        return None;
+    }
     let tname = emulated_name(cls)?;
     if name == "__text_signature__" {
         return Some(crate::typeattrs::type_text_signature(tname).map_or(Value::None, Value::str));
@@ -423,11 +430,13 @@ pub(crate) fn merge_dir(vm: &mut Vm, obj: &Value) -> Value {
     Value::list(names.into_iter().map(Value::str).collect())
 }
 
-/// As chaves do dicionário da instância (nenhuma quando a classe emula um tipo C ou tem `__slots__`
-/// em toda a herança: o estado aparece pelos descritores da classe, nunca pelos nomes gravados).
+/// As chaves do dicionário da instância (nenhuma quando a classe tem `__slots__` em toda a herança, ou emula um tipo
+/// C sem dicionário: o estado aparece pelos descritores da classe, nunca pelos nomes gravados). O tipo C com
+/// dicionário (o `greenlet`, que nomeia `__dict__` no `__slots__` do shim) mostra o que o programa gravou nele.
 fn instance_dict_keys(i: &Rc<crate::object::InstanceObj>) -> Vec<String> {
     let class = i.class();
-    if class.emulates_c_type() || !class.slots_allow("__dict__") {
+    let c_dict = class.mro().iter().any(|c| c.emulates_c_type() && c.declared_slots().is_some_and(|s| s.iter().any(|n| n == "__dict__")));
+    if (class.emulates_c_type() && !c_dict) || !class.slots_allow("__dict__") {
         return Vec::new();
     }
     let fields = class.slot_fields();
@@ -1175,10 +1184,10 @@ impl crate::object::ExtObject for CodeSource {
         Some(self)
     }
     /// `code_richcompare`: o arquivo não entra na comparação.
-    fn eq_value(&self, other: &Value) -> Option<bool> {
+    fn eq_value(&self, other: &Value) -> Option<PyResult<bool>> {
         let Value::Ext(o) = other else { return None };
         let o = o.as_any()?.downcast_ref::<CodeSource>()?;
-        Some(crate::tbobj::code_eq(&self.code, &o.code))
+        Some(Ok(crate::tbobj::code_eq(&self.code, &o.code)))
     }
     fn hash_value(&self) -> Option<i64> {
         Some(crate::tbobj::code_hash(&self.code))

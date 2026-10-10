@@ -216,7 +216,7 @@ pub fn code_eq(a: &crate::compile::Code, b: &crate::compile::Code) -> bool {
         && ea.exceptiontable == eb.exceptiontable
         && ea.names == eb.names
         && ea.consts.len() == eb.consts.len()
-        && ea.consts.iter().zip(&eb.consts).all(|(x, y)| crate::object::py_eq(x, y))
+        && ea.consts.iter().zip(&eb.consts).all(|(x, y)| crate::object::py_eq(x, y).unwrap_or(false))
         && (la.varnames, la.cellvars, la.freevars) == (lb.varnames, lb.cellvars, lb.freevars)
         && a.functions.len() == b.functions.len()
         && a.functions.iter().zip(&b.functions).all(|(x, y)| code_eq(x, y))
@@ -331,11 +331,11 @@ impl ExtObject for CodeObject {
     }
 
     /// `code_richcompare`: o `co_filename` não entra na comparação.
-    fn eq_value(&self, other: &Value) -> Option<bool> {
+    fn eq_value(&self, other: &Value) -> Option<PyResult<bool>> {
         let Value::Ext(o) = other else { return None };
         let o = o.as_any()?.downcast_ref::<CodeObject>()?;
         match (&self.code, &o.code) {
-            (Some(a), Some(b)) => Some(self.name == o.name && code_eq(a, b)),
+            (Some(a), Some(b)) => Some(Ok(self.name == o.name && code_eq(a, b))),
             _ => None,
         }
     }

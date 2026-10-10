@@ -1,5 +1,7 @@
 """Coletor de lixo: a VM usa contagem de referências, então não há ciclos a varrer."""
 
+import _sys
+
 # Os `__del__` não dependem do coletor: rodam quando a última referência cai. Objetos que só se
 # alcançam em ciclo não têm referência final para cair e ficam sem finalizar até a saída do
 # interpretador, que finaliza tudo o que ainda vive. `collect()` não detecta ciclos: não finaliza nem
@@ -69,7 +71,10 @@ def get_referrers(*objs):
 
 
 def get_referents(*objs):
-    return []
+    referents = []
+    for obj in objs:
+        referents.extend(_sys._referents(obj))
+    return referents
 
 
 def is_tracked(obj):

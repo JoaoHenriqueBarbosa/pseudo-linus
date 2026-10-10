@@ -1,0 +1,24 @@
+dict {}
+vars {}
+dir_cls ['GreenletExit', '__bool__', '__class__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getstate__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '_stack_saved', 'dead', 'error', 'getcurrent', 'gettrace', 'gr_context', 'gr_frame', 'parent', 'run', 'settrace', 'switch', 'throw']
+dir_inst_extra []
+getcurrent builtin_function_or_method greenlet._greenlet getcurrent
+getcurrent same_as_cls True True
+gettrace builtin_function_or_method greenlet._greenlet gettrace
+gettrace same_as_cls True True
+settrace builtin_function_or_method greenlet._greenlet settrace
+settrace same_as_cls True True
+cls greenlet greenlet greenlet greenlet greenlet._greenlet
+module_names ['CLOCKS_PER_SEC', 'GREENLET_USE_CONTEXT_VARS', 'GREENLET_USE_GC', 'GREENLET_USE_STANDARD_THREADING', 'GREENLET_USE_TRACING', 'GreenletExit', 'UnswitchableGreenlet', '_C_API', 'enable_optional_cleanup', 'error', 'get_clocks_used_doing_optional_cleanup', 'get_pending_cleanup_count', 'get_total_main_greenlets', 'getcurrent', 'gettrace', 'greenlet', 'set_thread_local', 'settrace']
+cls_dict ['GreenletExit', '__bool__', '__dict__', '__doc__', '__getstate__', '__init__', '__new__', '__repr__', '_stack_saved', 'dead', 'error', 'getcurrent', 'gettrace', 'gr_context', 'gr_frame', 'parent', 'run', 'settrace', 'switch', 'throw']
+pickle_like TypeError cannot pickle 'greenlet' object
+pickle_like TypeError cannot serialize 'greenlet.greenlet' object
+pickle_like TypeError cannot serialize 'greenlet.greenlet' object
+getstate True
+del False False False
+flags 0x45500
+x {'x': 1} {'x': 1} ['x']
+sub_vars ['__module__', '__firstlineno__', '__static_attributes__', '__doc__']
+errors ['__module__', '__weakref__', '__doc__'] ['__module__', '__weakref__', '__doc__']
+unswitchable ['__new__', '__init__', 'force_switch_error', 'force_slp_switch_error', '__doc__']
+weakref True

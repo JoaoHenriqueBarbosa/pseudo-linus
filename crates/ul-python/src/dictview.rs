@@ -127,7 +127,7 @@ impl ExtObject for DictView {
                 Value::Tuple(t) if t.len() == 2 => {
                     let found = self.dict.borrow().get(&t[0]);
                     Some(match found {
-                        Ok(Some(v)) => Ok(crate::object::py_eq(&v, &t[1])),
+                        Ok(Some(v)) => crate::object::py_eq(&v, &t[1]),
                         Ok(None) => Ok(false),
                         Err(e) => Err(e.into()),
                     })

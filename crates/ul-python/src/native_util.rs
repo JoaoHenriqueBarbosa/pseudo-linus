@@ -103,6 +103,23 @@ pub fn want_int(v: &Value) -> PyResult<i64> {
     }
 }
 
+/// Normaliza o `start`/`stop` de `list.index` e `tuple.index`: negativo soma o tamanho, e tudo é limitado a
+/// `0..=len`.
+pub(crate) fn norm_bound(v: Option<&Value>, len: usize, default: usize) -> PyResult<usize> {
+    match v {
+        None | Some(Value::None) => Ok(default),
+        Some(x) => {
+            let i = want_int(x)?;
+            if i < 0 {
+                let j = i.saturating_add(len as i64);
+                Ok(if j < 0 { 0 } else { j as usize })
+            } else {
+                Ok(i.min(len as i64) as usize)
+            }
+        }
+    }
+}
+
 /// `ValueError` com a mensagem.
 pub fn value_error(msg: impl Into<String>) -> crate::vm::PyException {
     exc("ValueError", msg)

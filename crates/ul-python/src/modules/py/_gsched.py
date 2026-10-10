@@ -27,6 +27,8 @@ class _Green:
         self.deadline = None
         self.idents = [_thread._MAIN_IDENT]
         self.hooks = (None, None)
+        # O contexto corrente do `contextvars` (o `ts->context` do C): nasce na primeira consulta, vazio.
+        self.ctx = None
 
 
 # `main` é a thread principal (tid 0); `_cur[0]`, a que roda agora.
@@ -161,10 +163,29 @@ def wait(cond, timeout, what):
 def preempt():
     """A fatia de tempo da thread que roda venceu (a VM chama entre instruções): como a GIL ao fim do
     `sys.getswitchinterval()`, a vez passa à thread pronta que espera há mais tempo. Sem ninguém pronto, a
-    thread segue sem esperar; no meio do escalonador (`_busy`), a troca fica para a próxima fatia."""
+    thread segue sem esperar; no meio do escalonador (`_busy`), a troca fica para a próxima fatia. Antes, rodam
+    os pedidos de `at_safe_point`."""
+    if _safe and can_switch():
+        if _busy[0]:
+            _sys._gt_urge()
+        else:
+            while _safe:
+                _safe.pop(0)()
     if _busy[0] or not _queue or not can_switch():
         return
     _yield_slice()
+
+
+# O que espera o próximo ponto seguro do laço mais externo (`at_safe_point`).
+_safe = []
+
+
+def at_safe_point(func):
+    """Roda `func()` no próximo ponto seguro do laço mais externo, entre duas instruções, onde uma troca de segmento
+    vale: o caminho de quem precisa trocar mas foi chamado por dentro de uma nativa (o `__del__` de um greenlet
+    suspenso, que roda na finalização)."""
+    _safe.append(func)
+    _sys._gt_urge()
 
 
 @_atomic

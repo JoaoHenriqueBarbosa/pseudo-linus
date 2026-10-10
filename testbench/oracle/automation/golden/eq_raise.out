@@ -1,0 +1,24 @@
+list.index KeyError 'boom'
+list.count KeyError 'boom'
+list.remove KeyError 'boom'
+in_list KeyError 'boom'
+in_tuple KeyError 'boom'
+tuple.index KeyError 'boom'
+tuple.count KeyError 'boom'
+range.index KeyError 'boom'
+range.count KeyError 'boom'
+list_eq KeyError 'boom'
+tuple_eq KeyError 'boom'
+dict_eq KeyError 'boom'
+dict_key LookupError a
+set_in LookupError d
+set_add LookupError e
+operator.eq KeyError 'boom'
+operator.contains KeyError 'boom'
+operator.countOf KeyError 'boom'
+operator.indexOf KeyError 'boom'
+items_in KeyError 'boom'
+iter_sentinel KeyError 'boom'
+weakref_eq ValueError ref
+shrink_in False []
+shrink_index 2 is not in list

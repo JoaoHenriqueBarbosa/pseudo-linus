@@ -26,7 +26,7 @@
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use crate::compile::Code;
 use crate::fork::{suspend, SuspendRequest};
@@ -84,6 +84,8 @@ thread_local! {
     /// Espelho de `!SCHED.entries.is_empty()`: há outra thread verde (nova ou suspensa). O laço de instruções
     /// o lê a cada instrução, então o caso comum (nenhuma outra thread) custa uma leitura de `Cell`.
     static OTHERS: Cell<bool> = const { Cell::new(false) };
+    /// Há pedido de `_gsched.at_safe_point` esperando: a próxima olhada da fatia vence na hora (`_gt_urge`).
+    static URGED: Cell<bool> = const { Cell::new(false) };
 }
 
 /// Reflete em `OTHERS` o estado de `entries`; toda mutação de `Sched::entries` termina chamando isto.
@@ -274,54 +276,47 @@ fn can_switch(vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::Bool(vm.rust_nest.get() == 1))
 }
 
-/// A fatia de tempo das threads verdes, o `sys.getswitchinterval()` da GIL: uma thread que roda sem bloquear
-/// passa a vez quando a fatia vence, como o pedido de troca (`eval_breaker`) do CPython.
+/// A fatia das threads verdes, o `sys.getswitchinterval()` da GIL: uma thread que roda sem bloquear passa a vez
+/// quando a fatia vence, como o pedido de troca (`eval_breaker`) do CPython. A fatia é medida em instruções, não em
+/// segundos de relógio: o que o CPython cumpre em 5 ms o laço daqui cumpre em muito mais tempo (num build de
+/// depuração, ou com a máquina carregada), e uma fatia de relógio venceria no meio de um `Thread.start` ou de um
+/// `Event.wait`, reordenando saídas que no CPython não se reordenam. Contada, a troca cai sempre no mesmo ponto.
 struct Slice {
-    /// Quando a thread que roda ganhou a vez.
-    start: Instant,
-    interval: Duration,
-    /// Instruções desde a última olhada no relógio.
-    ticks: u32,
+    /// O `sys.getswitchinterval()` em segundos.
+    interval: f64,
+    /// Instruções que a thread que roda executou desde que ganhou a vez (só contam com outra thread viva).
+    used: u64,
 }
 
-/// De quantas em quantas instruções o laço olha o relógio (só com outra thread viva).
-const SLICE_CHECK_EVERY: u32 = 64;
+/// Quantas instruções do laço o CPython cumpre por segundo num laço de Python puro (da ordem de 4 x 10^7); a fatia
+/// de `interval` segundos vale `interval` vezes isto.
+const SLICE_INSTRUCTIONS_PER_SECOND: f64 = 40_000_000.0;
 
 thread_local! {
-    static SLICE: RefCell<Slice> = RefCell::new(Slice {
-        start: Instant::now(),
-        interval: Duration::from_micros(5000),
-        ticks: 0,
-    });
+    static SLICE: RefCell<Slice> = const { RefCell::new(Slice { interval: 0.005, used: 0 }) };
 }
 
 /// Começa a fatia da thread que acabou de ganhar a vez.
 fn restart_slice() {
-    SLICE.with(|s| {
-        let mut s = s.borrow_mut();
-        s.start = Instant::now();
-        s.ticks = 0;
-    });
+    SLICE.with(|s| s.borrow_mut().used = 0);
 }
 
 /// Entre instruções: a fatia da thread que roda venceu e há outra thread para quem passar a vez. Quando vence,
 /// a fatia recomeça (sem ninguém pronto, a thread segue e só volta a perguntar no fim da próxima).
 pub(crate) fn slice_expired() -> bool {
+    if URGED.with(|u| u.replace(false)) {
+        return true;
+    }
     if !OTHERS.with(Cell::get) {
         return false;
     }
     SLICE.with(|s| {
         let mut s = s.borrow_mut();
-        s.ticks += 1;
-        if s.ticks < SLICE_CHECK_EVERY {
+        s.used += 1;
+        if (s.used as f64) < (s.interval * SLICE_INSTRUCTIONS_PER_SECOND).max(1.0) {
             return false;
         }
-        s.ticks = 0;
-        let now = Instant::now();
-        if now.saturating_duration_since(s.start) < s.interval {
-            return false;
-        }
-        s.start = now;
+        s.used = 0;
         true
     })
 }
@@ -335,7 +330,14 @@ fn interval(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
         _ => return Err(crate::vm::type_error("_gt_interval() takes a number of seconds")),
     };
     let interval = Duration::try_from_secs_f64(secs).map_err(|_| exc("ValueError", "switch interval must be strictly positive"))?;
-    SLICE.with(|s| s.borrow_mut().interval = interval);
+    SLICE.with(|s| s.borrow_mut().interval = interval.as_secs_f64());
+    Ok(Value::None)
+}
+
+/// `_gt_urge()`: o `_gsched.preempt` roda no próximo ponto seguro do laço mais externo, mesmo sem a fatia vencer
+/// e sem outra thread (o caminho do `_gsched.at_safe_point`).
+fn urge(_vm: &mut Vm, _args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
+    URGED.with(|u| u.set(true));
     Ok(Value::None)
 }
 
@@ -348,4 +350,5 @@ pub(crate) fn register(builder: ModuleBuilder) -> ModuleBuilder {
         .func("_gt_current", current)
         .func("_gt_can_switch", can_switch)
         .func("_gt_interval", interval)
+        .func("_gt_urge", urge)
 }

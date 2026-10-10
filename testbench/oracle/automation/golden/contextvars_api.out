@@ -1,0 +1,59 @@
+mod_file /usr/lib/python3.13/lib-dynload/_contextvars.cpython-313-x86_64-linux-gnu.so
+mod_doc Context Variables
+mod_dir ['Context', 'ContextVar', 'Token', '__doc__', '__file__', '__loader__', '__name__', '__package__', '__spec__', 'copy_context']
+cv_all ('Context', 'ContextVar', 'Token', 'copy_context')
+cv_dir ['Context', 'ContextVar', 'Token', 'copy_context']
+types ['_contextvars.Context', '_contextvars.ContextVar', '_contextvars.Token']
+same True
+repr_v <ContextVar name='v' default=1 at 0x?>
+repr_w <ContextVar name='w' at 0x?>
+name v
+get_default 1
+get_missing LookupError <ContextVar name='w' at 0x?>
+get_arg 5
+after_set 10
+token_repr <Token var=<ContextVar name='v' default=1 at 0x?> at 0x?>
+token_var True
+token_old True
+missing_repr <Token.MISSING>
+missing_type <class 'Token.MISSING'>
+old_value 10
+reset None
+after_reset 10
+reset_again RuntimeError <Token used var=<ContextVar name='v' default=1 at 0x?> at 0x?> has already been used once
+used_repr <Token used var=<ContextVar name='v' default=1 at 0x?> at 0x?>
+reset_wrong_var ValueError <Token var=<ContextVar name='v' default=1 at 0x?> at 0x?> was created by a different ContextVar
+reset_bad TypeError expected an instance of Token, got 5
+ctx_type <class '_contextvars.Context'>
+ctx_len 1
+ctx_get 10
+ctx_in (True, False)
+ctx_keys True
+ctx_values [10]
+ctx_items [('v', 10)]
+ctx_iter ['v']
+ctx_getm dflt
+ctx_missing_key KeyError <ContextVar name='w' at 0x?>
+ctx_bad_key TypeError a ContextVar key was expected, got 'x'
+ctx_bad_in TypeError a ContextVar key was expected, got 'x'
+ctx_hash TypeError unhashable type: '_contextvars.Context'
+ctx_eq True
+run (10, 7, 2)
+run_isolated outside
+run_ctx_sees 7
+run_twice RuntimeError cannot enter context: <_contextvars.Context object at 0x?> is already entered
+new_ctx 0
+new_ctx_args TypeError Context() does not accept any arguments
+cv_noname TypeError ContextVar() takes exactly 1 positional argument (0 given)
+cv_badname TypeError context variable name must be a str
+token_new RuntimeError Tokens can only be created by ContextVars
+sub_ctx TypeError type '_contextvars.Context' is not an acceptable base type
+sub_cv TypeError type '_contextvars.ContextVar' is not an acceptable base type
+sub_token TypeError type '_contextvars.Token' is not an acceptable base type
+generic _contextvars.ContextVar[int]
+pickle_cv TypeError cannot pickle '_contextvars.ContextVar' object
+pickle_ctx TypeError cannot pickle '_contextvars.Context' object
+readonly AttributeError readonly attribute
+thread [(1, 'none', 0)]
+asyncio ([1, 2], 'outer')
+after_asyncio main
