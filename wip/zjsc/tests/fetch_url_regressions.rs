@@ -1,0 +1,45 @@
+//! Regressões de Fetch API e de URL, medidas no bun 1.4.2. Cada caso fixa uma divergência dos goldens
+//! `fetch_types` e `url` que já fechou.
+use zjsc::api::module::evaluate_module_map;
+
+fn log_of(source: &str) -> String {
+    let outcome = evaluate_module_map(&[("main.mjs".to_owned(), source.to_owned())], "main.mjs");
+    assert_eq!(outcome.error, None);
+    outcome.log_json
+}
+
+/// O esquema em maiúsculas é baixado e reconhecido como especial: host minúsculo, porta padrão fora.
+#[test]
+fn uppercase_scheme_is_special() {
+    let log = log_of("L(new URL('HTTP://EXAMPLE.com:80/A b').href); L(new Request('HTTP://EXAMPLE.com:80/A b?c d#e').url);");
+    assert_eq!(log, r#"["http://example.com/A%20b","http://example.com/A%20b?c%20d#e"]"#);
+}
+
+/// Um array de verdade no corpo são as partes de um `Blob`, sem `Content-Type`; `Set` vira texto.
+#[test]
+fn array_body_is_blob_parts() {
+    let log = log_of(
+        "const r = new Response([1, [2, 3]]); L(r.headers.get('content-type')); L(await r.text()); \
+         L(await new Response(new Set([1])).text());",
+    );
+    assert_eq!(log, r#"["null","12,3","[object Set]"]"#);
+}
+
+/// O `blob()` leva o `Content-Type` do cabeçalho como está, sem baixar a caixa.
+#[test]
+fn blob_keeps_header_case() {
+    let log = log_of(
+        "L((await new Response(new URLSearchParams('a=1')).blob()).type); \
+         L((await new Response('x', { headers: { 'content-type': 'Text/HTML;Charset=UTF-8' } }).blob()).type);",
+    );
+    assert_eq!(log, r#"["application/x-www-form-urlencoded;charset=UTF-8","Text/HTML;Charset=UTF-8"]"#);
+}
+
+/// `Response.json` de um BigInt de topo tem a mensagem própria; dentro de objeto, a do `JSON.stringify`.
+#[test]
+fn response_json_bigint_message() {
+    let log = log_of(
+        "for (const v of [1n, { a: 1n }]) { try { Response.json(v); } catch (e) { L(e.name + ': ' + e.message); } }",
+    );
+    assert_eq!(log, r#"["TypeError: Do not know how to serialize a BigInt","TypeError: JSON.stringify cannot serialize BigInt."]"#);
+}
