@@ -115,19 +115,20 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         let body_loc = func.body.loc;
-        let body_stmts: &'a [Stmt] = (&self.store[func.body.stmts]);
+        let body_stmts: &'a [Stmt] = self.arena.alloc_slice_copy(&self.store[func.body.stmts]);
 
         self.push_scope_for_visit_pass(ScopeKind::FunctionArgs, open_parens_loc)
             .expect("unreachable");
-        let args: &mut [G::Arg] = (&mut self.store[func.args]);
+        let mut args = self.store[func.args].to_vec();
         self.visit_args(
-            args,
+            &mut args,
             &VisitArgsOpts {
                 has_rest_arg: func.flags.contains(flags::Function::HasRestArg),
                 body: body_stmts,
                 is_unique_formal_parameters: true,
             },
         );
+        self.store[func.args].clone_from_slice(&args);
 
         self.push_scope_for_visit_pass(ScopeKind::FunctionBody, body_loc)
             .expect("unreachable");
@@ -197,13 +198,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             && func.arguments_ref.is_valid()
             && self.symbols[func.arguments_ref.inner_index() as usize].use_count_estimate > 0
             && Self::is_simple_parameter_list(
-                (&self.store[func.args]),
+                &self.store[func.args],
                 func.flags.contains(flags::Function::HasRestArg),
             )
         {
-            for arg in (&self.store[func.args]) {
-                if let BData::BIdentifier(id) = arg.binding.data {
-                    self.record_assignment(self.store[id].r#ref);
+            for index in 0..func.args.len() {
+                if let BData::BIdentifier(id) = self.store[func.args][index].binding.data {
+                    let id_ref = self.store[id].r#ref;
+                    self.record_assignment(id_ref);
                 }
             }
         }
@@ -267,8 +269,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
     // `Vec<Expr>` is not `Copy`; mutate in place.
     pub(crate) fn visit_ts_decorators(&mut self, decs: &mut ExprNodeList) {
-        for dec in (&mut self.store[*decs]) {
-            self.visit_expr(dec);
+        let decs = *decs;
+        for index in 0..decs.len() {
+            let mut dec = self.store[decs][index];
+            self.visit_expr(&mut dec);
+            self.store[decs][index] = dec;
         }
     }
 
@@ -770,13 +775,18 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 ); self.store[st].value = arg_a; }
             }
             StmtData::SLocal(mut st) => {
-                for dec in (&mut self.store[self.store[st].decls]) {
-                    self.visit_binding(dec.binding, None);
-                    if let Some(val) = dec.value.as_mut() {
+                let decls = self.store[st].decls;
+                for index in 0..decls.len() {
+                    let binding = self.store[decls][index].binding;
+                    self.visit_binding(binding, None);
+                    let mut value = self.store[decls][index].value;
+                    if let Some(val) = value.as_mut() {
                         self.visit_expr(val);
                     }
+                    self.store[decls][index].value = value;
                 }
-                self.store[st].kind = self.select_local_kind(self.store[st].kind);
+                let local_kind = self.store[st].kind;
+                self.store[st].kind = self.select_local_kind(local_kind);
             }
             _ => {
                 self.panic("Unexpected stmt in visitForLoopInit", format_args!(""));

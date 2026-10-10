@@ -63,6 +63,17 @@ texto e o mesmo mapa de posições do bun. A decisão e a medição que a susten
   mantém. O que não casa (nenhum argumento usa `p`, o empréstimo é uma faixa `items[i]` segurada) fica para a mão.
   Regenerar o diagnóstico depois de qualquer edição, porque os deslocamentos de byte só valem para o arquivo que o
   rustc viu.
+- Padrões da parte 17 (empréstimos do `Store` que o içador não cura), todos à mão ou por script curto:
+  - Faixa do `Store` segurada durante um laço que chama método de `p`: o laço vira índice
+    (`for index in 0..faixa.len()`), o elemento sai por cópia (`p.store[faixa][index]`) e, se o corpo muda o
+    elemento, grava de volta. `rewrite_stmt_range` (`lower_decorators.rs`) é o mesmo molde para `&mut [Stmt]`.
+  - Argumento `&p.store[..]` para método `&mut self`: a chamada recebe uma cópia (`.to_vec()` para faixa, `.clone()`
+    para nó). A diferença para o upstream: a função não enxerga mais mudanças feitas no nó durante a chamada.
+  - Campo de nó visitado por `p.visit_expr(&mut p.store[e].campo)`: copia o campo, visita a cópia, grava de volta
+    (`{ let mut arg_a = ..; CHAMADA(&mut arg_a); ..campo = arg_a; }`); só vale para campo `Copy`.
+  - `generate_temp_ref`, `generate_temp_ref_with_scope` e `new_symbol` recebem `&[u8]`, não `&'a [u8]`: o nome já é
+    copiado para o `Store`, e o `'a` prendia `p.store` emprestado por todo o resto da função. Quem passa
+    `p.store.str(..)` copia antes (`.to_vec()`).
 - Mudança sistemática no parser copiado (`js_parser/src`), por `sed`: o `VecExt::append(&mut X.generated, y);` e o
   `VecExt::append(&mut X.children, y);` de uma linha viram `X.generated.push(y);` e `X.children.push(y);` (os dois
   campos de `Scope` são `Vec`; o `VecExt::append` saiu do `bun_collections` por ser sinônimo do `push`). Os outros

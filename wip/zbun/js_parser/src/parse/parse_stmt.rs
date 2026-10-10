@@ -1211,7 +1211,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // "export * as ns from 'path'"
                     p.lexer.next()?;
                     let name = p.parse_clause_alias(b"export")?;
-                    namespace_ref = p.store_name_in_ref(p.store.str(name));
+                    let name_bytes = p.arena_str(name);
+                    namespace_ref = p.store_name_in_ref(name_bytes);
                     alias = Some(G::ExportStarAlias {
                         loc: p.lexer.loc(),
                         original_name: p.store.alloc_str(p.store.str(name)),
@@ -1311,9 +1312,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         );
                     }
 
-                    let import_record_index =
-                        p.add_import_record(ImportKind::Stmt, parsed_path.loc, p.store.str(parsed_path.text));
-                    let path_name = fs::PathName::init(p.store.str(parsed_path.text));
+                    let path_text = p.arena_str(parsed_path.text);
+                    let import_record_index = p.add_import_record(ImportKind::Stmt, parsed_path.loc, path_text);
+                    let path_name = fs::PathName::init(path_text);
                     let namespace_ref = {
                         use std::io::Write as _;
                         let mut buf: Vec<u8> = Vec::new();

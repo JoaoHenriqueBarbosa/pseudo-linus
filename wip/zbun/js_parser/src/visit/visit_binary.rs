@@ -104,21 +104,26 @@ pub struct BinaryExpressionVisitor {
 }
 
 impl BinaryExpressionVisitor {
+    /// Trabalha numa cópia do nó (`with_node!`): o `Store` não fica emprestado enquanto `p` visita os filhos.
     pub(crate) fn visit_right_and_finish<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool>(
         v: &mut Self,
         p: &mut P<'a, TYPESCRIPT, SCAN_ONLY>,
     ) -> Expr {
-        // `v.e: StoreRef<E::Binary>` is the safe arena back-reference (Copy).
-        // Snapshot the handle for the identity check / tail re-wrap, then take
-        // the working `&mut` via `StoreRef::DerefMut`: the arena-backref
-        // invariant is encapsulated there. The borrow is on the `v.e` field
-        // only, so `v.loc` reads below split-borrow cleanly.
-        let e_handle: StoreRef<E::Binary> = v.e;
-        let e_ptr: *mut E::Binary = e_handle.as_ptr();
-        let e_ = &mut p.store[v.e];
+        let node = v.e;
+        with_node!(p, node, e_ => Self::visit_right_and_finish_node(v, p, e_))
+    }
 
-        let is_call_target =
-            matches!(p.call_target, ExprData::EBinary(ptr) if core::ptr::eq(ptr.as_ptr(), e_ptr));
+    fn visit_right_and_finish_node<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool>(
+        v: &mut Self,
+        p: &mut P<'a, TYPESCRIPT, SCAN_ONLY>,
+        e_: &mut E::Binary,
+    ) -> Expr {
+        let e_handle: StoreRef<E::Binary> = v.e;
+
+        let is_call_target = matches!(
+            p.call_target,
+            ExprData::EBinary(ptr) if core::ptr::eq(&raw const p.store[ptr], &raw const p.store[e_handle])
+        );
         let was_anonymous_named_expr = e_.right.is_anonymous_named(&p.store);
         let prev_decorator_class_name = p.decorator_class_name;
 
@@ -718,15 +723,21 @@ impl BinaryExpressionVisitor {
         }
     }
 
+    /// Trabalha numa cópia do nó (`with_node!`), como `visit_right_and_finish`.
     pub(crate) fn check_and_prepare<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool>(
         v: &mut Self,
         p: &mut P<'a, TYPESCRIPT, SCAN_ONLY>,
     ) -> Option<Expr> {
-        // Snapshot the `Copy` arena handle before taking the working `&mut`
-        // via `StoreRef::DerefMut`, so the early-return re-wrap below does not
-        // overlap `e_`'s borrow of `v.e`.
+        let node = v.e;
+        with_node!(p, node, e_ => Self::check_and_prepare_node(v, p, e_))
+    }
+
+    fn check_and_prepare_node<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool>(
+        v: &mut Self,
+        p: &mut P<'a, TYPESCRIPT, SCAN_ONLY>,
+        e_: &mut E::Binary,
+    ) -> Option<Expr> {
         let e_handle: StoreRef<E::Binary> = v.e;
-        let e_: &mut E::Binary = &mut p.store[v.e];
         match e_.left.data {
             // Special-case private identifiers
             ExprData::EPrivateIdentifier(mut private) => {

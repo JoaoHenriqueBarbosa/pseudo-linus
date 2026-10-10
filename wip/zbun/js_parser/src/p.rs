@@ -1947,11 +1947,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         match binding.data {
             js_ast::b::B::BMissing(_) => {}
             js_ast::b::B::BIdentifier(ident) => {
-                let ident = (&self.store[ident]);
-                // `Symbol.original_name` is an arena-owned `StoreStr` valid for 'a.
-                let name: &'a [u8] = self.store.str(self.symbols[ident.r#ref.inner_index() as usize]
-                    .original_name);
-                self.record_export(binding.loc, name, ident.r#ref)
+                let ident_ref = self.store[ident].r#ref;
+                let name = self.arena_str(self.symbols[ident_ref.inner_index() as usize].original_name);
+                self.record_export(binding.loc, name, ident_ref)
                     .expect("unreachable");
             }
             js_ast::b::B::BArray(array) => {
@@ -1969,6 +1967,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
             }
         }
+    }
+
+    /// Os bytes de uma `StoreStr` copiados para a arena do parser: `&'a [u8]` que não prende o `Store`, para as
+    /// funções que ainda guardam o nome como chave de mapa (`named_exports`, `Scope.members`, `ImportRecord.path`).
+    pub(crate) fn arena_str(&self, text: js_ast::StoreStr) -> &'a [u8] {
+        self.arena.alloc_slice_copy(self.store.str(text))
     }
 
     pub(crate) fn record_export(

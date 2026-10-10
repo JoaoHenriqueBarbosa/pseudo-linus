@@ -343,7 +343,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // "export * as ns from 'path'"
         if let Some(alias) = &data.alias {
             if p.options.features.replace_exports.count() > 0 {
-                let alias_name = p.store.str(alias.original_name);
+                let alias_name = p.arena_str(alias.original_name);
                 if let Some(entry) = p
                     .options
                     .features
@@ -924,8 +924,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             p.symbols[name_ref.inner_index() as usize].set_call_ignores_this(true);
         }
         let name_symbol = &p.symbols[name_ref.inner_index() as usize];
-        let original_name: &'a [u8] = p.store.str(name_symbol.original_name);
         let remove_overwritten = name_symbol.remove_overwritten_function_declaration();
+        let original_name = p.arena_str(name_symbol.original_name);
 
         // Handle exporting this function from a namespace
         if data.func.flags.contains(flags::Function::IsExport)
