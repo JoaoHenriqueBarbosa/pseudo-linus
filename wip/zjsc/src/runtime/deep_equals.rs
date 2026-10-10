@@ -23,6 +23,7 @@ use crate::runtime::host_function_support::ObjectRef;
 use crate::runtime::identifier::{parse_index_identifier, Identifier};
 use crate::runtime::indexing_type::has_indexed_properties;
 use crate::runtime::js_array_buffer::JSArrayBuffer;
+use crate::runtime::js_data_view::JSDataView;
 use crate::runtime::js_generic_typed_array_view::JSGenericTypedArrayView;
 use crate::runtime::js_global_object::JSGlobalObject;
 use crate::runtime::js_map::JSMap;
@@ -629,25 +630,32 @@ fn loose_float_contents_equal(a: &[u8], b: &[u8], width: usize) -> bool {
 
 /// O ramo das typed arrays: o mesmo tipo, o mesmo `byteLength`, e o conteúdo (por bytes; as de ponto flutuante no
 /// modo comum por `==`). No estrito, propriedades a mais mandam para a comparação de propriedades.
-fn typed_arrays_equal(o1: &ObjectRef, o2: &ObjectRef, mode: Mode) -> Option<bool> {
+fn typed_arrays_equal(global_object: &JSGlobalObject, mode: Mode, stack: &mut Stack, o1: &ObjectRef, o2: &ObjectRef) -> Result<Option<bool>, Thrown> {
     let (c1_type, c2_type) = (o1.type_(), o2.type_());
     if c1_type != c2_type {
-        return Some(false);
+        return Ok(Some(false));
     }
     let (Some(left), Some(right)) = (JSGenericTypedArrayView::from_cell_id(o1.cell_id()), JSGenericTypedArrayView::from_cell_id(o2.cell_id())) else {
-        return Some(false);
+        return Ok(Some(false));
     };
     let compare_own_properties = mode.strict && (has_extra_own_properties(&o1.structure()) || has_extra_own_properties(&o2.structure()));
-    let equal_tail = if compare_own_properties { None } else { Some(true) };
+    // Todas as saídas "bytes iguais" passam pelo mesmo fim: em modo Node as chaves próprias que não são índice, no
+    // estrito as propriedades a mais mandam para a comparação de propriedades, e senão é igual.
+    let equal_tail = |stack: &mut Stack| -> Result<Option<bool>, Thrown> {
+        if mode.check_prototypes {
+            return non_index_own_properties_equal(global_object, mode, stack, o1, o2).map(Some);
+        }
+        Ok(if compare_own_properties { None } else { Some(true) })
+    };
     let byte_length = left.byte_length();
     if right.byte_length() != byte_length {
-        return Some(false);
+        return Ok(Some(false));
     }
     if byte_length == 0 {
-        return equal_tail;
+        return equal_tail(stack);
     }
     if right.is_detached() || left.is_detached() {
-        return Some(false);
+        return Ok(Some(false));
     }
     // `vector == rightVector`: as duas visões leem a mesma memória.
     let same_vector = match (left.existing_buffer(), right.existing_buffer()) {
@@ -655,7 +663,7 @@ fn typed_arrays_equal(o1: &ObjectRef, o2: &ObjectRef, mode: Mode) -> Option<bool
         _ => false,
     };
     if same_vector {
-        return equal_tail;
+        return equal_tail(stack);
     }
     let width = match c1_type {
         JSType::Float16ArrayType => Some(2),
@@ -670,9 +678,9 @@ fn typed_arrays_equal(o1: &ObjectRef, o2: &ObjectRef, mode: Mode) -> Option<bool
         })
     });
     if !contents_equal {
-        return Some(false);
+        return Ok(Some(false));
     }
-    equal_tail
+    equal_tail(stack)
 }
 
 /// O que o `Bun.deepEquals` compara dos objetos do WebCore (`JSDOMWrapperType`): o `href` do `URL`, os pares do
@@ -731,6 +739,12 @@ fn wrapper_kind(object: &ObjectRef) -> Option<(bool, JSValue)> {
 /// `specialObjectsDequal(globalObject, ..., c1, c2)`: `Some` decide, `None` segue para arrays e propriedades.
 fn special_objects_dequal(global_object: &JSGlobalObject, mode: Mode, stack: &mut Stack, o1: &ObjectRef, o2: &ObjectRef) -> Result<Option<bool>, Thrown> {
     let (c1_type, c2_type) = (o1.type_(), o2.type_());
+    // O Node nunca acha iguais dois `WeakMap`, `WeakSet` ou `Promise` distintos (o conteúdo não se inspeciona).
+    if mode.check_prototypes
+        && [c1_type, c2_type].iter().any(|kind| matches!(kind, JSType::JSWeakMapType | JSType::JSWeakSetType | JSType::JSPromiseType))
+    {
+        return Ok(Some(false));
+    }
     match c1_type {
         JSType::JSSetType => {
             let (Some(set1), Some(set2)) = (JSSet::from_cell_id(o1.cell_id()), JSSet::from_cell_id(o2.cell_id())) else { return Ok(Some(false)) };
@@ -761,7 +775,7 @@ fn special_objects_dequal(global_object: &JSGlobalObject, mode: Mode, stack: &mu
                     return Ok(Some(false));
                 }
             }
-            Ok(Some(true))
+            Ok(if mode.check_prototypes { None } else { Some(true) })
         }
         JSType::JSMapType => {
             let (Some(map1), Some(map2)) = (JSMap::from_cell_id(o1.cell_id()), JSMap::from_cell_id(o2.cell_id())) else { return Ok(Some(false)) };
@@ -795,7 +809,7 @@ fn special_objects_dequal(global_object: &JSGlobalObject, mode: Mode, stack: &mu
                     return Ok(Some(false));
                 }
             }
-            Ok(Some(true))
+            Ok(if mode.check_prototypes { None } else { Some(true) })
         }
         JSType::ArrayBufferType => {
             if c2_type != JSType::ArrayBufferType {
@@ -809,14 +823,51 @@ fn special_objects_dequal(global_object: &JSGlobalObject, mode: Mode, stack: &mu
             if left.is_detached() || right.is_detached() {
                 return Err(Thrown::type_error("Cannot perform Construct on a detached ArrayBuffer"));
             }
-            Ok(Some(left.with_bytes(|a| right.with_bytes(|b| a == b))))
+            if !left.with_bytes(|a| right.with_bytes(|b| a == b)) {
+                return Ok(Some(false));
+            }
+            // O Node compara também as propriedades próprias enumeráveis do `ArrayBuffer`.
+            Ok(if mode.check_prototypes { None } else { Some(true) })
+        }
+        JSType::DataViewType => {
+            if !mode.check_prototypes {
+                // O `Bun.deepEquals` compara `DataView` como objeto comum; os bytes ficam para as instâncias do Node.
+                return Ok(None);
+            }
+            if c2_type != JSType::DataViewType {
+                return Ok(Some(false));
+            }
+            let (Some(left), Some(right)) = (JSDataView::from_cell_id(o1.cell_id()), JSDataView::from_cell_id(o2.cell_id())) else { return Ok(Some(false)) };
+            if left.is_detached() || right.is_detached() {
+                return Err(Thrown::type_error("Cannot perform get DataView.prototype.byteLength on a detached or out-of-bounds ArrayBuffer"));
+            }
+            let (length1, length2) = (left.view_byte_length().unwrap_or(0), right.view_byte_length().unwrap_or(0));
+            if length1 != length2 {
+                return Ok(Some(false));
+            }
+            let (offset1, offset2) = (left.byte_offset_raw(), right.byte_offset_raw());
+            let equal = left.possibly_shared_buffer().with_bytes(|a| {
+                right.possibly_shared_buffer().with_bytes(|b| a.get(offset1..offset1 + length1) == b.get(offset2..offset2 + length2))
+            });
+            if !equal {
+                return Ok(Some(false));
+            }
+            non_index_own_properties_equal(global_object, mode, stack, o1, o2).map(Some)
         }
         JSType::JSDateType => {
             if c2_type != JSType::JSDateType {
                 return Ok(Some(false));
             }
             let (Some(left), Some(right)) = (DateInstance::from_cell_id(o1.cell_id()), DateInstance::from_cell_id(o2.cell_id())) else { return Ok(Some(false)) };
-            Ok(Some(left.internal_number() == right.internal_number()))
+            let (time1, time2) = (left.internal_number(), right.internal_number());
+            if mode.check_prototypes {
+                // Duas datas inválidas são iguais para o Node, que compara também as propriedades próprias.
+                if time1 != time2 && !(time1.is_nan() && time2.is_nan()) {
+                    return Ok(Some(false));
+                }
+                return Ok(None);
+            }
+            Ok(Some(time1 == time2))
         }
         JSType::RegExpObjectType => {
             if c2_type != JSType::RegExpObjectType {
@@ -825,7 +876,18 @@ fn special_objects_dequal(global_object: &JSGlobalObject, mode: Mode, stack: &mu
             let (Some(left), Some(right)) = (RegExpObject::from_cell_id(o1.cell_id()), RegExpObject::from_cell_id(o2.cell_id())) else { return Ok(Some(false)) };
             let (left, right) = (left.reg_exp(), right.reg_exp());
             // `regExp()->key()`: o par (flags, padrão).
-            Ok(Some(left.flags() == right.flags() && left.pattern() == right.pattern()))
+            if left.flags() != right.flags() || left.pattern() != right.pattern() {
+                return Ok(Some(false));
+            }
+            if mode.check_prototypes {
+                // O Node compara também o `lastIndex` e as propriedades próprias.
+                let (index1, index2) = (RegExpObject::from_cell_id(o1.cell_id()).map(|r| r.get_last_index()), RegExpObject::from_cell_id(o2.cell_id()).map(|r| r.get_last_index()));
+                if !same_value(index1.unwrap_or(JSValue::undefined()), index2.unwrap_or(JSValue::undefined())) {
+                    return Ok(Some(false));
+                }
+                return Ok(None);
+            }
+            Ok(Some(true))
         }
         JSType::ErrorInstanceType => {
             if c2_type != JSType::ErrorInstanceType {
@@ -844,13 +906,13 @@ fn special_objects_dequal(global_object: &JSGlobalObject, mode: Mode, stack: &mu
         | JSType::Float32ArrayType
         | JSType::Float64ArrayType
         | JSType::BigInt64ArrayType
-        | JSType::BigUint64ArrayType => Ok(typed_arrays_equal(o1, o2, mode)),
+        | JSType::BigUint64ArrayType => typed_arrays_equal(global_object, mode, stack, o1, o2),
         JSType::StringObjectType => {
             // A instância de subclasse de `String` é `DerivedStringObjectType`; só o modo que ignora o protótipo a aceita.
             if c2_type != JSType::StringObjectType && !(mode.strict && mode.skip_prototype_identity && c2_type == JSType::DerivedStringObjectType) {
                 return Ok(Some(false));
             }
-            if !mode.skip_prototype_identity && calculated_class_name(o1) != calculated_class_name(o2) {
+            if !mode.check_prototypes && !mode.skip_prototype_identity && calculated_class_name(o1) != calculated_class_name(o2) {
                 return Ok(Some(false));
             }
             let (Some(left), Some(right)) = (StringObject::from_cell_id(o1.cell_id()), StringObject::from_cell_id(o2.cell_id())) else { return Ok(Some(false)) };

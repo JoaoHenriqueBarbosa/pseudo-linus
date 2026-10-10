@@ -13,3 +13,14 @@ fn node_util_deep_strict_equal_matches_bun() {
         include_str!("golden/node_util_deep_strict_equal_main.expected.txt"),
     );
 }
+
+/// A parte dos objetos especiais: `Set`, `Map`, buffers, `DataView`, datas, `RegExp`, typed arrays, invólucros, erros e
+/// os que o Node nunca acha iguais (`WeakMap`, `WeakSet`, `Promise`).
+#[test]
+#[ignore = "o util só entra no BUILTINS com MIMEType e MIMEParams"]
+fn node_util_deep_strict_equal_special_objects_match_bun() {
+    main_golden::assert_main_script_matches(
+        include_str!("golden/node_util_deep_strict_equal_special_main.js"),
+        include_str!("golden/node_util_deep_strict_equal_special_main.expected.txt"),
+    );
+}
