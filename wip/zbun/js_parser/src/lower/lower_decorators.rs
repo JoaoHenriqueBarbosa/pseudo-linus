@@ -476,9 +476,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
             }
             js_ast::ExprData::ETemplate(e) => {
-                if let Some(t) = &mut self.store[*e].tag {
+                let mut slot = self.store[*e].tag;
+                if let Some(t) = &mut slot {
                     self.rewrite_expr(t, kind);
                 }
+                self.store[*e].tag = slot;
                 // SAFETY: arena-owned slice; unique access via `&mut e`.
                 for part in e.parts_mut().iter_mut() {
                     self.rewrite_expr(&mut part.value, kind);
@@ -525,9 +527,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
                 }
                 js_ast::StmtData::SReturn(ret) => {
-                    if let Some(v) = &mut self.store[*ret].value {
+                    let mut slot = self.store[*ret].value;
+                    if let Some(v) = &mut slot {
                         self.rewrite_expr(v, kind);
                     }
+                    self.store[*ret].value = slot;
                 }
                 js_ast::StmtData::SThrow(data) => self.rewrite_expr(&mut self.store[*data].value, kind),
                 js_ast::StmtData::SIf(data) => {
@@ -537,24 +541,32 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let mut yes = self.store[*data].yes;
                     self.rewrite_stmts(core::slice::from_mut(&mut yes), kind);
                     self.store[*data].yes = yes;
-                    if let Some(no) = &mut self.store[*data].no {
+                    let mut slot = self.store[*data].no;
+                    if let Some(no) = &mut slot {
                         self.rewrite_stmts(core::slice::from_mut(no), kind);
                     }
+                    self.store[*data].no = slot;
                 }
                 js_ast::StmtData::SBlock(data) => {
                     let stmts = (&mut self.store[self.store[*data].stmts]);
                     self.rewrite_stmts(stmts, kind);
                 }
                 js_ast::StmtData::SFor(data) => {
-                    if let Some(fi) = &mut self.store[*data].init {
+                    let mut slot = self.store[*data].init;
+                    if let Some(fi) = &mut slot {
                         self.rewrite_stmts(core::slice::from_mut(fi), kind);
                     }
-                    if let Some(t) = &mut self.store[*data].test {
+                    self.store[*data].init = slot;
+                    let mut slot = self.store[*data].test;
+                    if let Some(t) = &mut slot {
                         self.rewrite_expr(t, kind);
                     }
-                    if let Some(u) = &mut self.store[*data].update {
+                    self.store[*data].test = slot;
+                    let mut slot = self.store[*data].update;
+                    if let Some(u) = &mut slot {
                         self.rewrite_expr(u, kind);
                     }
+                    self.store[*data].update = slot;
                     let mut body = self.store[*data].body;
                     self.rewrite_stmts(core::slice::from_mut(&mut body), kind);
                     self.store[*data].body = body;
@@ -607,14 +619,18 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 js_ast::StmtData::STry(data) => {
                     let body = (&mut self.store[self.store[*data].body]);
                     self.rewrite_stmts(body, kind);
-                    if let Some(c) = &mut self.store[*data].catch {
+                    let mut slot = self.store[*data].catch;
+                    if let Some(c) = &mut slot {
                         let cb = (&mut self.store[c.body]);
                         self.rewrite_stmts(cb, kind);
                     }
-                    if let Some(f) = &mut self.store[*data].finally {
+                    self.store[*data].catch = slot;
+                    let mut slot = self.store[*data].finally;
+                    if let Some(f) = &mut slot {
                         let fb = (&mut self.store[f.stmts]);
                         self.rewrite_stmts(fb, kind);
                     }
+                    self.store[*data].finally = slot;
                 }
                 js_ast::StmtData::SLabel(data) => {
                     let mut s = self.store[*data].stmt;
@@ -821,9 +837,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
             js_ast::ExprData::EAwait(e) => self.rewrite_private_accesses_in_expr(&mut self.store[*e].value, map),
             js_ast::ExprData::EYield(e) => {
-                if let Some(v) = &mut self.store[*e].value {
+                let mut slot = self.store[*e].value;
+                if let Some(v) = &mut slot {
                     self.rewrite_private_accesses_in_expr(v, map);
                 }
+                self.store[*e].value = slot;
             }
             js_ast::ExprData::ENew(e) => {
                 let mut t = self.store[*e].target;
@@ -849,9 +867,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 }
             }
             js_ast::ExprData::ETemplate(e) => {
-                if let Some(t) = &mut self.store[*e].tag {
+                let mut slot = self.store[*e].tag;
+                if let Some(t) = &mut slot {
                     self.rewrite_private_accesses_in_expr(t, map);
                 }
+                self.store[*e].tag = slot;
                 // SAFETY: see `rewrite_expr` ETemplate.
                 for part in e.parts_mut().iter_mut() {
                     self.rewrite_private_accesses_in_expr(&mut part.value, map);
@@ -934,9 +954,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     self.rewrite_private_accesses_in_expr(&mut self.store[*data].value, map)
                 }
                 js_ast::StmtData::SReturn(data) => {
-                    if let Some(v) = &mut self.store[*data].value {
+                    let mut slot = self.store[*data].value;
+                    if let Some(v) = &mut slot {
                         self.rewrite_private_accesses_in_expr(v, map);
                     }
+                    self.store[*data].value = slot;
                 }
                 js_ast::StmtData::SThrow(data) => {
                     self.rewrite_private_accesses_in_expr(&mut self.store[*data].value, map)
@@ -955,24 +977,32 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let mut yes = self.store[*data].yes;
                     self.rewrite_private_accesses_in_stmts(core::slice::from_mut(&mut yes), map);
                     self.store[*data].yes = yes;
-                    if let Some(no) = &mut self.store[*data].no {
+                    let mut slot = self.store[*data].no;
+                    if let Some(no) = &mut slot {
                         self.rewrite_private_accesses_in_stmts(core::slice::from_mut(no), map);
                     }
+                    self.store[*data].no = slot;
                 }
                 js_ast::StmtData::SBlock(data) => {
                     let stmts = (&mut self.store[self.store[*data].stmts]);
                     self.rewrite_private_accesses_in_stmts(stmts, map);
                 }
                 js_ast::StmtData::SFor(data) => {
-                    if let Some(fi) = &mut self.store[*data].init {
+                    let mut slot = self.store[*data].init;
+                    if let Some(fi) = &mut slot {
                         self.rewrite_private_accesses_in_stmts(core::slice::from_mut(fi), map);
                     }
-                    if let Some(t) = &mut self.store[*data].test {
+                    self.store[*data].init = slot;
+                    let mut slot = self.store[*data].test;
+                    if let Some(t) = &mut slot {
                         self.rewrite_private_accesses_in_expr(t, map);
                     }
-                    if let Some(u) = &mut self.store[*data].update {
+                    self.store[*data].test = slot;
+                    let mut slot = self.store[*data].update;
+                    if let Some(u) = &mut slot {
                         self.rewrite_private_accesses_in_expr(u, map);
                     }
+                    self.store[*data].update = slot;
                     let mut body = self.store[*data].body;
                     self.rewrite_private_accesses_in_stmts(core::slice::from_mut(&mut body), map);
                     self.store[*data].body = body;
@@ -1025,14 +1055,18 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 js_ast::StmtData::STry(data) => {
                     let body = (&mut self.store[self.store[*data].body]);
                     self.rewrite_private_accesses_in_stmts(body, map);
-                    if let Some(c) = &mut self.store[*data].catch {
+                    let mut slot = self.store[*data].catch;
+                    if let Some(c) = &mut slot {
                         let cb = (&mut self.store[c.body]);
                         self.rewrite_private_accesses_in_stmts(cb, map);
                     }
-                    if let Some(f) = &mut self.store[*data].finally {
+                    self.store[*data].catch = slot;
+                    let mut slot = self.store[*data].finally;
+                    if let Some(f) = &mut slot {
                         let fb = (&mut self.store[f.stmts]);
                         self.rewrite_private_accesses_in_stmts(fb, map);
                     }
+                    self.store[*data].finally = slot;
                 }
                 js_ast::StmtData::SLabel(data) => {
                     let mut s = self.store[*data].stmt;
