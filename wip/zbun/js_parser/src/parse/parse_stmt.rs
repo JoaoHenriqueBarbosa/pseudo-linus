@@ -1215,7 +1215,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     namespace_ref = p.store_name_in_ref(name_bytes);
                     alias = Some(G::ExportStarAlias {
                         loc: p.lexer.loc(),
-                        original_name: p.store.alloc_str(p.store.str(name)),
+                        original_name: { let arg_a = p.store.str(name); p.store.alloc_str( arg_a) },
                     });
                     p.lexer.next()?;
                     p.lexer.expect_contextual_keyword(b"from")?;

@@ -584,7 +584,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         p.fn_or_arrow_data_parse = old_fn_or_arrow_data;
 
         let ret_stmt = p.s(S::Return { value: Some(expr) }, expr.loc);
-        let stmts: &'a mut [Stmt] = p.arena.alloc_slice_copy(&[ret_stmt]);
+        let stmts = [ret_stmt];
 
         p.pop_scope();
         let has_react_hooks_suppression =

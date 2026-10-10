@@ -974,8 +974,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 );
                 let wrapped = p.wrap_value_for_server_component_reference(func_expr, original_name);
                 let binding = p.b(B::Identifier { r#ref: name_ref }, name.loc);
-                stmts.push(p.s(
-                    S::Local {
+                stmts.push({ let arg_a = S::Local {
                         kind: S::Kind::KVar,
                         is_export: true,
                         decls: p.store.alloc_slice((&[G::Decl {
@@ -983,9 +982,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             value: Some(wrapped),
                         }]).to_vec()),
                         ..Default::default()
-                    },
+                    }; p.s( arg_a,
                     stmt.loc,
-                ));
+                ) });
             } else {
                 stmts.push(*stmt);
             }

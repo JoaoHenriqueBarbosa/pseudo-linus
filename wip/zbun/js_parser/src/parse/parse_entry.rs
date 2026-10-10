@@ -589,9 +589,8 @@ impl<'a> Parser<'a> {
 
         // Optionally call a runtime API function to transform the expression
         if !runtime_api_call.is_empty() {
-            let args_slice: &mut [Expr] = p.arena.alloc_slice_fill_with(1, |_| expr);
-            let args = Vec::from_arena_slice(args_slice);
-            final_expr = p.call_runtime(expr.loc, runtime_api_call, p.store.alloc_slice(args));
+            let args = p.store.alloc_slice([expr]);
+            final_expr = p.call_runtime(expr.loc, runtime_api_call, args);
         }
 
         let ns_export_part = js_ast::Part {
@@ -600,10 +599,10 @@ impl<'a> Parser<'a> {
         };
 
         let lazy_data = p.store.alloc(final_expr.data);
-        let stmts: &mut [Stmt] = p.arena.alloc_slice_fill_with(1, |_| Stmt {
+        let stmts = { let single_item = Stmt {
             data: js_ast::StmtData::SLazyExport(lazy_data),
             loc: expr.loc,
-        });
+        }; p.store.alloc_slice([single_item]) };
         let part = js_ast::Part {
             stmts: stmts.into(),
             symbol_uses: p.take_symbol_uses()?,
@@ -702,32 +701,30 @@ fn lower_one_date_time_literal<'a>(
             let loc = expr.loc;
             p.record_usage(ref_);
             let namespace = p.new_expr(E::Identifier::init(ref_), loc);
-            let class_dot = p.new_expr(
-                E::Dot {
+            let class_dot = { let arg_a = E::Dot {
                     target: namespace,
                     name: p.store.alloc_str(class),
                     name_loc: loc,
                     can_be_removed_if_unused: true,
                     ..Default::default()
-                },
+                }; p.new_expr( arg_a,
                 loc,
-            );
-            let from_dot = p.new_expr(
-                E::Dot {
+            ) };
+            let from_dot = { let arg_a = E::Dot {
                     target: class_dot,
                     name: p.store.alloc_str(b"from"),
                     name_loc: loc,
                     can_be_removed_if_unused: true,
                     ..Default::default()
-                },
+                }; p.new_expr( arg_a,
                 loc,
-            );
-            let arg = p.new_expr(E::String::init(p.store.alloc_str(text)), loc);
-            let args_slice: &mut [Expr] = p.arena.alloc_slice_fill_with(1, |_| arg);
+            ) };
+            let arg = { let arg_a = E::String::init(p.store.alloc_str(text)); p.new_expr( arg_a, loc) };
+            let args = p.store.alloc_slice([arg]);
             *expr = p.new_expr(
                 E::Call {
                     target: from_dot,
-                    args: p.store.alloc_slice(Vec::from_arena_slice(args_slice)),
+                    args,
                     can_be_unwrapped_if_unused: E::CallUnwrap::IfUnused,
                     ..Default::default()
                 },
@@ -922,10 +919,10 @@ impl<'a> Parser<'a> {
 
         // --inspect-brk
         if p.options.features.set_breakpoint_on_first_line {
-            let debugger_stmts = p.arena.alloc_slice_fill_with(1, |_| Stmt {
+            let debugger_stmts = { let single_item = Stmt {
                 data: js_ast::StmtData::SDebugger(Default::default()),
                 loc: bun_ast::Loc::EMPTY,
-            });
+            }; p.store.alloc_slice([single_item]) };
             before.push(js_ast::Part {
                 stmts: debugger_stmts.into(),
                 ..Default::default()
@@ -1158,9 +1155,7 @@ impl<'a> Parser<'a> {
                 let count = (uses_dirname as usize) + (uses_filename as usize);
                 let mut declared_symbols =
                     bun_ast::DeclaredSymbolList::init_capacity(count).expect("unreachable");
-                let decls = p
-                    .arena
-                    .alloc_slice_fill_with::<G::Decl, _>(count, |_| G::Decl::default());
+                let mut decls = vec![G::Decl::default(); count];
                 if uses_dirname {
                     decls[0] = G::Decl {
                         binding: p.b(
@@ -1204,22 +1199,17 @@ impl<'a> Parser<'a> {
                     });
                 }
 
-                let part_stmts = p.arena.alloc_slice_fill_with(1, |_| {
+                let decl_list = p.store.alloc_slice(core::mem::take(&mut decls));
+                let part_stmts = { let single_item = {
                     p.s(
                         S::Local {
                             kind: js_ast::LocalKind::KVar,
-                            decls: {
-                                let mut dl = G::DeclList::init_capacity(decls.len());
-                                for d in decls.iter_mut() {
-                                    dl.append_assume_capacity(core::mem::take(d));
-                                }
-                                dl
-                            },
+                            decls: decl_list,
                             ..Default::default()
                         },
                         bun_ast::Loc::EMPTY,
                     )
-                });
+                }; p.store.alloc_slice([single_item]) };
                 before.push(js_ast::Part {
                     stmts: part_stmts.into(),
                     declared_symbols,
@@ -1384,16 +1374,7 @@ impl<'a> Parser<'a> {
 
         if p.should_unwrap_commonjs_to_esm() {
             if !p.imports_to_convert_from_require.as_slice().is_empty() {
-                let all_stmts = p.arena.alloc_slice_fill_with::<Stmt, _>(
-                    p.imports_to_convert_from_require.len(),
-                    |_| Stmt {
-                        loc: bun_ast::Loc::EMPTY,
-                        data: js_ast::StmtData::SEmpty(S::Empty {}),
-                    },
-                );
                 before.reserve(p.imports_to_convert_from_require.len());
-
-                let mut remaining_stmts: &mut [Stmt] = all_stmts;
 
                 for i in 0..p.imports_to_convert_from_require.len() {
                     // borrowck: copy out the three Copy fields so the
@@ -1407,12 +1388,10 @@ impl<'a> Parser<'a> {
                             deferred_import.import_record_id,
                         )
                     };
-                    let (import_part_stmts, rest) = remaining_stmts.split_at_mut(1);
-                    remaining_stmts = rest;
-
                     p.module_scope_mut().generated.push(ns_ref);
 
-                    import_part_stmts[0] = Stmt::alloc(
+                    let import_stmt = Stmt::alloc(
+                        &mut p.store,
                         S::Import {
                             star_name_loc: ns_loc,
                             import_record_index: import_record_id,
@@ -1424,6 +1403,7 @@ impl<'a> Parser<'a> {
                         },
                         ns_loc,
                     );
+                    let import_part_stmts = p.store.alloc_slice([import_stmt]);
                     let mut declared_symbols =
                         bun_ast::DeclaredSymbolList::init_capacity(1).expect("unreachable");
                     declared_symbols.append_assume_capacity(DeclaredSymbol {
@@ -1431,7 +1411,7 @@ impl<'a> Parser<'a> {
                         is_top_level: true,
                     });
                     before.push(js_ast::Part {
-                        stmts: import_part_stmts.into(),
+                        stmts: import_part_stmts,
                         declared_symbols,
                         tag: bun_ast::PartTag::ImportToConvertFromRequire,
                         // This part has a single symbol, so it may be removed if unused.
@@ -1439,7 +1419,6 @@ impl<'a> Parser<'a> {
                         ..Default::default()
                     });
                 }
-                debug_assert!(remaining_stmts.is_empty());
             }
 
             if p.commonjs_named_exports.count() > 0 {
@@ -1878,9 +1857,7 @@ impl<'a> Parser<'a> {
             let count = (uses_dirname as usize) + (uses_filename as usize);
             let mut declared_symbols =
                 bun_ast::DeclaredSymbolList::init_capacity(count).expect("unreachable");
-            let decls = p
-                .arena
-                .alloc_slice_fill_with::<G::Decl, _>(count, |_| G::Decl::default());
+            let mut decls = vec![G::Decl::default(); count];
             if uses_dirname {
                 // var __dirname = import.meta
                 let import_meta = p.new_expr(E::ImportMeta {}, bun_ast::Loc::EMPTY);
@@ -1932,22 +1909,17 @@ impl<'a> Parser<'a> {
                 });
             }
 
-            let part_stmts = p.arena.alloc_slice_fill_with(1, |_| {
+            let decl_list = p.store.alloc_slice(core::mem::take(&mut decls));
+            let part_stmts = { let single_item = {
                 p.s(
                     S::Local {
                         kind: js_ast::LocalKind::KVar,
-                        decls: {
-                            let mut dl = G::DeclList::init_capacity(decls.len());
-                            for d in decls.iter_mut() {
-                                dl.append_assume_capacity(core::mem::take(d));
-                            }
-                            dl
-                        },
+                        decls: decl_list,
                         ..Default::default()
                     },
                     bun_ast::Loc::EMPTY,
                 )
-            });
+            }; p.store.alloc_slice([single_item]) };
             before.push(js_ast::Part {
                 stmts: part_stmts.into(),
                 declared_symbols,
@@ -2071,7 +2043,7 @@ impl<'a> Parser<'a> {
                     },
                     bun_ast::Loc::EMPTY,
                 );
-                let part_stmts = p.arena.alloc_slice_fill_with(1, |_| local_stmt);
+                let part_stmts = { let single_item = local_stmt; p.store.alloc_slice([single_item]) };
 
                 before.push(js_ast::Part {
                     stmts: part_stmts.into(),
@@ -2132,7 +2104,7 @@ impl<'a> Parser<'a> {
                     bun_ast::Loc::EMPTY,
                 );
 
-                let part_stmts = p.arena.alloc_slice_fill_with(1, |_| import_stmt);
+                let part_stmts = { let single_item = import_stmt; p.store.alloc_slice([single_item]) };
                 before.push(js_ast::Part {
                     stmts: part_stmts.into(),
                     declared_symbols,
@@ -2313,7 +2285,7 @@ impl<'a> Parser<'a> {
                     }
                 }
                 before.push(js_ast::Part {
-                    stmts: p.arena.alloc_slice_copy(&rc_stmts).into(),
+                    stmts: p.store.alloc_slice(rc_stmts.to_vec()),
                     tag: js_ast::PartTag::ReactCompiler,
                     declared_symbols,
                     import_record_indices,

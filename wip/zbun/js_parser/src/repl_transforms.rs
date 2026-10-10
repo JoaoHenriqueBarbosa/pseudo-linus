@@ -156,14 +156,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                         hoisted_stmts.push(self.s(
                             S::Local {
                                 kind: S::Kind::KVar,
-                                decls: repl_one_decl(
-                                    bump,
-                                    Binding::alloc(
-                                        bump,
-                                        B::Identifier { r#ref: name_ref },
-                                        name_loc.loc,
-                                    ),
-                                ),
+                                decls: { let decl_binding = self.b(B::Identifier { r#ref: name_ref }, name_loc.loc); repl_one_decl(&mut self.store, decl_binding) },
                                 ..Default::default()
                             },
                             stmt.loc,
@@ -220,14 +213,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                         hoisted_stmts.push(self.s(
                             S::Local {
                                 kind: S::Kind::KVar,
-                                decls: repl_one_decl(
-                                    bump,
-                                    Binding::alloc(
-                                        bump,
-                                        B::Identifier { r#ref: name_ref },
-                                        name_loc.loc,
-                                    ),
-                                ),
+                                decls: { let decl_binding = self.b(B::Identifier { r#ref: name_ref }, name_loc.loc); repl_one_decl(&mut self.store, decl_binding) },
                                 ..Default::default()
                             },
                             stmt.loc,
@@ -300,16 +286,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                         hoisted_stmts.push(self.s(
                             S::Local {
                                 kind: S::Kind::KVar,
-                                decls: repl_one_decl(
-                                    bump,
-                                    Binding::alloc(
-                                        bump,
-                                        B::Identifier {
-                                            r#ref: self.store[import_data].namespace_ref,
-                                        },
-                                        stmt.loc,
-                                    ),
-                                ),
+                                decls: { let decl_binding = self.b(B::Identifier { r#ref: self.store[import_data].namespace_ref, }, stmt.loc); repl_one_decl(&mut self.store, decl_binding) },
                                 ..Default::default()
                             },
                             stmt.loc,
@@ -343,14 +320,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
                         hoisted_stmts.push(self.s(
                             S::Local {
                                 kind: S::Kind::KVar,
-                                decls: repl_one_decl(
-                                    bump,
-                                    Binding::alloc(
-                                        bump,
-                                        B::Identifier { r#ref: default_ref },
-                                        default_name.loc,
-                                    ),
-                                ),
+                                decls: { let decl_binding = self.b(B::Identifier { r#ref: default_ref }, default_name.loc); repl_one_decl(&mut self.store, decl_binding) },
                                 ..Default::default()
                             },
                             stmt.loc,
@@ -557,23 +527,13 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
         loc: bun_ast::Loc,
     ) -> Result<(), bun_alloc::AllocError> {
         // Store the module in the namespace ref: var __ns = await import('mod')
-        hoisted_stmts.push(self.s(
-            S::Local {
+        hoisted_stmts.push({ let arg_a = S::Local {
                 kind: S::Kind::KVar,
-                decls: repl_one_decl(
-                    bump,
-                    Binding::alloc(
-                        bump,
-                        B::Identifier {
-                            r#ref: import_data.namespace_ref,
-                        },
-                        loc,
-                    ),
-                ),
+                decls: { let decl_binding = self.b(B::Identifier { r#ref: import_data.namespace_ref, }, loc); repl_one_decl(&mut self.store, decl_binding) },
                 ..Default::default()
-            },
+            }; self.s( arg_a,
             loc,
-        ));
+        ) });
         let left = self.new_expr(
             E::Identifier {
                 ref_: import_data.namespace_ref,
@@ -600,17 +560,13 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
         // For each named import: var name; name = __ns.originalName;
         for item in import_items.iter() {
             let item_ref = item.name.ref_;
-            hoisted_stmts.push(self.s(
-                S::Local {
+            hoisted_stmts.push({ let arg_a = S::Local {
                     kind: S::Kind::KVar,
-                    decls: repl_one_decl(
-                        bump,
-                        Binding::alloc(bump, B::Identifier { r#ref: item_ref }, item.name.loc),
-                    ),
+                    decls: { let decl_binding = self.b(B::Identifier { r#ref: item_ref }, item.name.loc); repl_one_decl(&mut self.store, decl_binding) },
                     ..Default::default()
-                },
+                }; self.s( arg_a,
                 loc,
-            ));
+            ) });
             let ns_ref_expr = self.new_expr(
                 E::Identifier {
                     ref_: import_data.namespace_ref,
@@ -620,15 +576,14 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
             );
             // `alias` is an arena-owned `StoreStr` valid for 'a.
             let alias_str: &'static [u8] = self.store.str(item.alias);
-            let prop_access = self.new_expr(
-                E::Dot {
+            let prop_access = { let arg_a = E::Dot {
                     target: ns_ref_expr,
                     name: self.store.alloc_str(alias_str),
                     name_loc: item.name.loc,
                     ..Default::default()
-                },
+                }; self.new_expr( arg_a,
                 loc,
-            );
+            ) };
             let left = self.new_expr(
                 E::Identifier {
                     ref_: item_ref,
@@ -886,12 +841,11 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
     }
 }
 
-/// Bump-allocate a single-element `G::DeclList`.
+/// Uma `G::DeclList` de um só elemento, gravada no `Store`.
 #[inline]
-fn repl_one_decl(bump: &Bump, binding: Binding) -> G::DeclList {
-    let slice: &mut [G::Decl] = bump.alloc_slice_fill_with(1, |_| G::Decl {
+fn repl_one_decl(store: &mut bun_ast::store::Store, binding: Binding) -> G::DeclList {
+    store.alloc_slice([G::Decl {
         binding,
         value: None,
-    });
-    G::DeclList::from_arena_slice(slice)
+    }])
 }

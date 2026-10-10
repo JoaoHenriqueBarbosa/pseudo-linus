@@ -425,27 +425,10 @@ impl<'a> ConvertESMExportsForHmr<'a> {
                 if p.store[stmt].items.is_empty() {
                     p.store[stmt].items = items;
                 } else {
-                    // Allocate the concatenated slice in the arena.
-                    // ClauseItem fields are all bitwise-copyable; copy raw to avoid Clone bound.
-                    let prev_len = p.store[stmt].items.len();
-                    let concat = p.arena.alloc_slice_fill_with(prev_len + items_len, |_| {
-                        js_ast::ClauseItem::default()
-                    });
-                    // SAFETY: src/dst non-overlapping arena allocations of correct length;
-                    // ClauseItem is POD-shaped.
-                    unsafe {
-                        core::ptr::copy_nonoverlapping(
-                            p.store[stmt].items.as_ptr(),
-                            concat.as_mut_ptr(),
-                            prev_len,
-                        );
-                        core::ptr::copy_nonoverlapping(
-                            items.as_ptr(),
-                            concat.as_mut_ptr().add(prev_len),
-                            items_len,
-                        );
-                    }
-                    p.store[stmt].items = p.store.alloc_slice(concat);
+                    let mut concat = p.store[p.store[stmt].items].to_vec();
+                    concat.extend_from_slice(&p.store[items]);
+                    let concat_items = p.store.alloc_slice(concat);
+                    p.store[stmt].items = concat_items;
                 }
             }
             if namespace_ref.is_valid() {
@@ -597,9 +580,8 @@ impl<'a> ConvertESMExportsForHmr<'a> {
             p.current_scope_mut().generated.push(arg1);
 
             // 'get abc() { return abc }'
-            let body_stmts = p
-                .arena
-                .alloc_slice_copy(&[Stmt::alloc(&mut p.store, S::Return { value: Some(id) }, loc)]);
+            let return_stmt = Stmt::alloc(&mut p.store, S::Return { value: Some(id) }, loc);
+            let body_stmts = [return_stmt];
             self.export_props.push(G::Property {
                 kind: G::PropertyKind::Get,
                 key: Some(key),

@@ -697,11 +697,8 @@ impl<'a> ImportScanner<'a> {
                     // This monomorphization is the parser `P` only (see fn-level TODO).
                     if !HOT_MODULE_RELOADING_TRANSFORMATIONS && will_transform_to_common_js {
                         let expr = core::mem::take(&mut p.store[st].value).to_expr(&mut p.store);
-                        // Arena allocation that persists in the AST.
-                        let export_default_args = p.arena.alloc_slice_fill_default::<Expr>(2);
-                        export_default_args[0] = p.module_exports(expr.loc);
-                        export_default_args[1] = expr;
-                        let args = p.store.alloc_slice((export_default_args).to_vec());
+                        let module_exports = p.module_exports(expr.loc);
+                        let args = p.store.alloc_slice([module_exports, expr]);
                         let value = p.call_runtime(expr.loc, b"__exportDefault", args);
                         stmt = p.s(
                             S::SExpr {

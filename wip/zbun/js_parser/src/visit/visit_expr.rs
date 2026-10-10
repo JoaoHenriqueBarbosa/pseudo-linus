@@ -1496,7 +1496,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         p.in_branch_condition = true;
         { let mut arg_a = p.store[e_].test; p.visit_expr( &mut arg_a); p.store[e_].test = arg_a; }
         p.in_branch_condition = prev_in_branch;
-        p.ignore_namespace_local_test_use(&p.store[e_].test);
+        { let arg_a = &p.store[e_].test; p.ignore_namespace_local_test_use( arg_a) };
 
         p.store[e_].test = SideEffects::simplify_boolean(p, p.store[e_].test);
 
