@@ -227,3 +227,35 @@ com a mesma superfície, e o backend, em vez de `exec` de um Chrome, abre uma se
 gravar a transcrição CDP de `new Bun.WebView()` contra um Chromium real e contra o `ul-chromium`), a forma de
 localização do executável (`PATH`, variável de ambiente, `chrome`/`chromium`), e como o `ul-chromium` expõe o canal
 (pipe em processo). Esta frente só deixa o ponto de encaixe anotado.
+
+## 10. Degrau de saída: "o driver do Playwright sobe no bun do plinus"
+
+Critério: o driver do Playwright (Node v24.21 mais `playwright-core` 1.63.0, 34 arquivos JS, 14 MB, `node >= 20`)
+inicia e conversa com o `ul-chromium` pelo bun do pseudo-linus. Os requisitos abaixo vêm do levantamento do fork do
+Playwright, informados pela coordenação (não os medi eu mesmo). Um requisito além dos módulos: `child_process.spawn`
+precisa de `stdio` com 5 posições, com pipes extras nos descritores 3 e 4, que é o canal do
+`--remote-debugging-pipe` do Chromium.
+
+Ordem de dependência (cada módulo só pesa quando o anterior serve a ele) e situação em 2026-10-10:
+
+| Ordem | Módulo | Situação |
+|---|---|---|
+| 1 | `buffer`, `os`, `module`, `vm` | já registrados no zjsc |
+| 2 | `events` | entregue pelo fork de goldens (6c307dab) |
+| 3 | `path` (com `path/posix`, `path/win32`) | degrau 1 desta frente, em teste (falta só `matchesGlob`, que espera o `Bun.Glob`) |
+| 4 | `string_decoder`, `stream` | entregues pelo fork de goldens (8894ed4d) |
+| 5 | `constants`, `url`, `util`, `assert` | falta; puros, sem hospedeiro; `util` (45 chaves no bun) e `assert` (22) são os maiores |
+| 6 | `process` como módulo, `tty` | o objeto `process` global existe; falta `require("process")` e `tty` |
+| 7 | `zlib`, `crypto` | falta; `crypto.subtle` existe, o `node:crypto` (68 chaves) e o `zlib` (47) não |
+| 8 | `async_hooks` | entra na rodada 17 do fork de goldens |
+| 9 | `readline` | falta; depende de `stream` e de `events` |
+| 10 | `fs` (108 chaves) | falta; exige o trait de sistema de arquivos com escrita (hoje o `ModuleFs` só lê) |
+| 11 | `child_process` (com `stdio` de 5 posições) | falta; exige processo filho no kernel, pipes extras e `stream`; é o degrau que liga o Chromium |
+| 12 | `net`, `dns`, `tls`, `http`, `https`, `http2` | falta; exigem rede do sandbox; `http2` é o maior arquivo do `src/js/node` (259 KB) |
+| 13 | `inspector` | falta; no bun é um stub, a medir |
+
+Dos 26 módulos que o driver pede: 6 entregues (`buffer`, `events`, `module`, `os`, `vm`, `stream`), `process` parcial
+(o objeto global existe, falta `require("process")`), `path` em teste, e 18 faltando (`fs`, `net`, `child_process`,
+`crypto`, `assert`, `dns`, `http`, `http2`, `https`, `readline`, `tls`, `url`, `util`, `zlib`, `async_hooks`,
+`constants`, `inspector`, `tty`). O `string_decoder` também já entrou, embora o driver não o peça diretamente. O
+caminho crítico é `fs`, `child_process` e `net`, que dependem do hospedeiro e não só de JavaScript.

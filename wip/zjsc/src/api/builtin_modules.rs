@@ -18,6 +18,7 @@ use crate::runtime::identifier::Identifier;
 use crate::runtime::js_global_object::JSGlobalObject;
 use crate::runtime::js_value::JSValue;
 use crate::runtime::object_constructor::{construct_array_of, construct_empty_object, enumerable_own_entries};
+use crate::runtime::string_regexp_support::get_object_property;
 
 /// Monta o objeto do módulo. Roda uma vez por programa; o resultado é guardado no cache do registro.
 pub(crate) type Installer = fn(&JSGlobalObject) -> HostResult;
@@ -55,6 +56,9 @@ pub(crate) static BUILTINS: &[BuiltinEntry] = &[
     BuiltinEntry { name: "events", scheme: Scheme::Both, install: crate::api::node_events::install_events_module },
     BuiltinEntry { name: "module", scheme: Scheme::Both, install: install_module_module },
     BuiltinEntry { name: "os", scheme: Scheme::Both, install: crate::runtime::node_os::install_os_module },
+    BuiltinEntry { name: "path", scheme: Scheme::Both, install: crate::runtime::node_path::install_path_module },
+    BuiltinEntry { name: "path/posix", scheme: Scheme::Both, install: install_path_posix },
+    BuiltinEntry { name: "path/win32", scheme: Scheme::Both, install: install_path_win32 },
     BuiltinEntry { name: "stream", scheme: Scheme::Both, install: crate::api::node_stream::install_stream_module },
     BuiltinEntry { name: "string_decoder", scheme: Scheme::Both, install: crate::api::node_stream::install_string_decoder_module },
     BuiltinEntry { name: "vm", scheme: Scheme::Both, install: crate::api::eval::install_vm_module },
@@ -87,6 +91,22 @@ pub(crate) fn known_builtin_specifier(specifier: &str) -> Option<String> {
         return None;
     }
     Some(if specifier == "bun" || specifier.starts_with("bun:") { specifier.to_owned() } else { format!("node:{specifier}") })
+}
+
+/// `require("path/posix")` e `require("path/win32")` devolvem o mesmo objeto de `require("path").posix` e `.win32`
+/// (medido no bun 1.4.2: `require("path/posix") === require("path")`), então saem do módulo `path` já carregado.
+fn path_flavor(global_object: &JSGlobalObject, flavor: &str) -> HostResult {
+    let path = BUILTINS.iter().find(|entry| entry.name == "path").expect("o módulo path consta em BUILTINS");
+    let module = load(global_object, path)?;
+    get_object_property(global_object, module, &Identifier::from_span(global_object.vm(), flavor.as_bytes()))
+}
+
+fn install_path_posix(global_object: &JSGlobalObject) -> HostResult {
+    path_flavor(global_object, "posix")
+}
+
+fn install_path_win32(global_object: &JSGlobalObject) -> HostResult {
+    path_flavor(global_object, "win32")
 }
 
 /// Instalador de `node:module`: por ora só `builtinModules`, o array da tabela `BUILTIN_MODULE_NAMES`.
