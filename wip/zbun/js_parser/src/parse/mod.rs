@@ -814,7 +814,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         }
 
                         let decls = p.parse_and_declare_decls(js_ast::symbol::Kind::Other, opts)?;
-                        let decls_slice = bun_collections::RawSlice::new(decls.slice());
+                        let decls_slice = decls;
                         return Ok(ExprOrLetStmt {
                             stmt_or_expr: js_ast::StmtOrExpr::Stmt(p.s(
                                 S::Local {
@@ -850,7 +850,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // p.markSyntaxFeature(.using, token_range.loc);
                 opts.is_using_statement = true;
                 let decls = p.parse_and_declare_decls(js_ast::symbol::Kind::Constant, opts)?;
-                let decls_slice = bun_collections::RawSlice::new(decls.slice());
+                let decls_slice = decls;
                 if opts.is_typescript_declare {
                     // TypeScript does not allow "using" declarations in ambient
                     // contexts ("declare using x", "declare namespace { using x }").
@@ -910,7 +910,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         opts.is_using_statement = true;
                         let decls =
                             p.parse_and_declare_decls(js_ast::symbol::Kind::Constant, opts)?;
-                        let decls_slice = bun_collections::RawSlice::new(decls.slice());
+                        let decls_slice = decls;
                         if opts.is_typescript_declare {
                             p.log().add_error(
                                 Some(p.source),

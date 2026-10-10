@@ -702,7 +702,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let call_args = p.parse_call_args()?;
             (call_args.list, call_args.loc)
         } else {
-            (bun_alloc::AstAlloc::vec(), bun_ast::Loc::EMPTY)
+            (Vec::new(), bun_ast::Loc::EMPTY)
         };
 
         Ok(p.new_expr(

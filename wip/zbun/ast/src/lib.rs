@@ -116,7 +116,7 @@ pub mod part {
 }
 pub use nodes::{
     DeclaredSymbol, DeclaredSymbolList, Dependency, ExportsKind, InlinedEnumValue, InlinedEnumValueDecoded,
-    NamedExport, NamedImport, Part, PartTag, PropertyUse, TlaCheck,
+    NamedExport, NamedImport, Part, PartImportRecordIndices, PartTag, PropertyUse, TlaCheck,
 };
 pub use ts::{TSNamespaceMember, TSNamespaceMemberMap, TSNamespaceScope};
 pub use transpiler_cache::RuntimeTranspilerCache;

@@ -597,7 +597,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             bad_async_range = None;
                             // Keep the "let"/"using" declarations visible to the for-in/for-of
                             // checks below ("forbid_initializers"), like the "var"/"const" arms.
-                            decls_ptr = bun_ast::StoreSlice::new(res.decls.slice());
+                            decls_ptr = res.decls;
                             init_ = Some(stmt);
                         }
                         js_ast::StmtOrExpr::Expr(expr) => {
@@ -1941,7 +1941,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // of the declared bindings. That "export var" statement will later
                 // cause identifiers to be transformed into property accesses.
                 if opts.scope.is_namespace() && opts.is_export {
-                    let mut decls: G::DeclList = bun_alloc::AstAlloc::vec();
+                    let mut decls: G::DeclList = Vec::new();
                     match &stmt.data {
                         js_ast::StmtData::SLocal(local) => {
                             let mut _decls = bun_alloc::ArenaVec::<G::Decl>::with_capacity_in(

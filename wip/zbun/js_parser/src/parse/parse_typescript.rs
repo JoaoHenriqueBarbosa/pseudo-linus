@@ -35,7 +35,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     pub(crate) fn parse_type_script_decorators(&mut self) -> Result<ExprNodeList, Error> {
         let p = self;
         if !Self::IS_TYPESCRIPT_ENABLED && !p.options.features.standard_decorators {
-            return Ok(bun_alloc::AstAlloc::vec());
+            return Ok(Vec::new());
         }
 
         let mut decorators: BumpVec<'_, ExprNodeIndex> = BumpVec::new_in(p.arena);

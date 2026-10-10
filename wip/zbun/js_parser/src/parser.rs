@@ -845,19 +845,17 @@ impl<'a> JSXTag<'a> {
 
 pub struct ExprOrLetStmt {
     pub(crate) stmt_or_expr: js_ast::StmtOrExpr,
-    // `decls` borrows the heap buffer that was just moved into `S::Local`.
-    // The buffer pointer is stable across
-    // the move, but borrowck can't see that: store as `RawSlice` to record the
-    // outlives-holder invariant without a per-site unsafe cast. Read by the
+    // `decls` is the list that was just moved into `S::Local`. Read by the
     // for-loop parser so for-in/for-of heads can validate "let"/"using" decls.
-    pub(crate) decls: bun_collections::RawSlice<G::Decl>,
+    // No porte, a lista é uma faixa do `Store` (`Copy`), e o `RawSlice` do upstream sai.
+    pub(crate) decls: G::DeclList,
 }
 
 impl Default for ExprOrLetStmt {
     fn default() -> Self {
         Self {
             stmt_or_expr: js_ast::StmtOrExpr::default(),
-            decls: bun_collections::RawSlice::EMPTY,
+            decls: G::DeclList::EMPTY,
         }
     }
 }
@@ -1362,7 +1360,7 @@ impl Default for PropertyOpts {
             class_has_extends: false,
             allow_ts_decorators: false,
             is_ts_abstract: false,
-            ts_decorators: bun_alloc::AstAlloc::vec(),
+            ts_decorators: Vec::new(),
             has_argument_decorators: false,
             has_class_decorators: false,
         }

@@ -421,7 +421,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             &mut args,
                             p.new_expr(
                                 E::Object {
-                                    properties: bun_alloc::AstAlloc::take(&mut e_.properties),
+                                    properties: core::mem::take(&mut e_.properties),
                                     ..Default::default()
                                 },
                                 expr.loc,
@@ -580,7 +580,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             key: Some(children_key),
                             value: Some(p.new_expr(
                                 E::Array {
-                                    items: bun_alloc::AstAlloc::take(&mut e_.children),
+                                    items: core::mem::take(&mut e_.children),
                                     is_single_line: children_single_line,
                                     ..Default::default()
                                 },
@@ -611,7 +611,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         &mut args,
                         p.new_expr(
                             E::Object {
-                                properties: bun_alloc::AstAlloc::take(props),
+                                properties: core::mem::take(props),
                                 ..Default::default()
                             },
                             expr.loc,

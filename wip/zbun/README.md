@@ -24,6 +24,12 @@ texto e o mesmo mapa de posições do bun. A decisão e a medição que a susten
 - Mudança sistemática nos arquivos de payload copiados (`s.rs`): toda struct ganha `#[derive(Clone)]` (ou `Clone` entra
   no `derive` que já existe), por ferramenta (`awk`), porque o `clone_in` do `Store` pede `T: Clone`. Nenhum outro
   texto muda.
+- Mudança sistemática no parser copiado (`js_parser/src`), por ferramenta (`sed`): o `AstAlloc` do upstream (o
+  alocador de vetores da arena, `unsafe impl Allocator` sobre o mimalloc) sai, como já saiu dos nós do `bun_ast`, que
+  guardam `Vec` e `Box` comuns. `AstAlloc::vec()` vira `Vec::new()`, `AstAlloc::take(x)` vira `core::mem::take(x)`,
+  `AstAlloc::vec_from_slice(x)` e `AstVec::<Stmt>::from_slice(x)`/`from_arena_slice(x)` viram `<[_]>::to_vec(x)`,
+  `ast_box` vira `Box::new`, e o `StringHashMap<_, AstAlloc>` perde o parâmetro. O `RawSlice` do `ExprOrLetStmt`
+  vira `G::DeclList` (faixa `Copy` do `Store`), à mão.
 
 ## Próximos passos (parser e printer)
 

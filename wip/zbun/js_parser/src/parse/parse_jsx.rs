@@ -29,7 +29,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         let mut previous_string_with_backslash_loc = bun_ast::Loc::default();
-        let mut properties = bun_alloc::AstAlloc::vec();
+        let mut properties = Vec::new();
         let mut key_prop_i: i32 = -1;
         let mut flags = flags::JSXElementBitset::empty();
         let mut start_tag: Option<ExprNodeIndex> = None;

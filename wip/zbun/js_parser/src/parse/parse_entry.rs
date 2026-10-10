@@ -2260,7 +2260,7 @@ impl<'a> Parser<'a> {
             if !rc_stmts.is_empty() {
                 let mut declared_symbols = bun_ast::DeclaredSymbolList::default();
                 let mut import_record_indices: js_ast::PartImportRecordIndices =
-                    bun_alloc::AstAlloc::vec();
+                    Vec::new();
                 for stmt in &rc_stmts {
                     match &stmt.data {
                         js_ast::StmtData::SImport(import) => {
@@ -2282,7 +2282,7 @@ impl<'a> Parser<'a> {
                                         alias_loc: item.alias_loc,
                                         namespace_ref: import.namespace_ref,
                                         import_record_index: import.import_record_index,
-                                        local_parts_with_uses: bun_alloc::AstAlloc::vec(),
+                                        local_parts_with_uses: Vec::new(),
                                         alias_is_star: false,
                                         is_exported: false,
                                     },

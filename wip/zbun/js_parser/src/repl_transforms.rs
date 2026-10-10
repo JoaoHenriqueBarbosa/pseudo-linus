@@ -505,7 +505,7 @@ impl<'a, const TS: bool, const SCAN: bool> P<'a, TS, SCAN> {
         let iife = self.new_expr(
             E::Call {
                 target: arrow,
-                args: bun_alloc::AstAlloc::vec(),
+                args: Vec::new(),
                 ..Default::default()
             },
             bun_ast::Loc::EMPTY,

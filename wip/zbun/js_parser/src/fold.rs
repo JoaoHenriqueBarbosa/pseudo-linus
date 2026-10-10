@@ -244,7 +244,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     // Not bound to an export, it reads `ns.a`.
                                     if let Some(import_record_index) = dynamic_record {
                                         symbol.namespace_alias =
-                                            Some(bun_alloc::ast_box(G::NamespaceAlias {
+                                            Some(Box::new(G::NamespaceAlias {
                                                 namespace_ref: id.ref_,
                                                 alias: js_ast::StoreStr::new(name),
                                                 import_record_index,

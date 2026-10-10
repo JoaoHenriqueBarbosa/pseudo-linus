@@ -75,7 +75,7 @@ fn prop_copy(p: &Property) -> Property {
         kind: p.kind,
         flags: p.flags,
         class_static_block: p.class_static_block,
-        ts_decorators: bun_alloc::AstAlloc::vec(),
+        ts_decorators: Vec::new(),
         key: p.key,
         value: p.value,
         // SAFETY: this duplicates ownership of any heap allocation inside
@@ -243,7 +243,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         self.new_expr(
             E::New {
                 target,
-                args: bun_alloc::AstAlloc::vec(),
+                args: Vec::new(),
                 close_parens_loc: l,
                 ..Default::default()
             },
@@ -264,7 +264,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         self.new_expr(
             E::New {
                 target,
-                args: bun_alloc::AstAlloc::vec(),
+                args: Vec::new(),
                 close_parens_loc: l,
                 ..Default::default()
             },
@@ -283,7 +283,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             l,
         );
         let stmts = bump.alloc_slice_copy(&[stmt]);
-        let stmts_list = bun_alloc::AstVec::<Stmt>::from_arena_slice(stmts);
+        let stmts_list = <[Stmt]>::to_vec(stmts);
         let sb = bump.alloc(G::ClassStaticBlock {
             loc: l,
             stmts: stmts_list,
@@ -1174,7 +1174,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // exit, freeing the buffer that `E::Array { items }` (Phase-2/5 below)
         // still pointed at → use-after-poison in `expr_can_be_removed_if_unused`.
         let mut class_decorators: ExprNodeList =
-            bun_alloc::AstAlloc::take(&mut class.ts_decorators);
+            core::mem::take(&mut class.ts_decorators);
         let class_decorators_len = class_decorators.len_u32() as usize;
 
         let init_ref = p.new_sym(js_ast::symbol::Kind::Other, b"_init");
@@ -1211,7 +1211,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // Move ownership into the AST node: `class_decorators` is not read
             // again on this branch (Phase-5's else-arm only runs when
             // `class_dec_ref` is `None`, i.e. `class_decorators_len == 0`).
-            let items = bun_alloc::AstAlloc::take(&mut class_decorators);
+            let items = core::mem::take(&mut class_decorators);
             let arr = p.new_expr(
                 E::Array {
                     items,
@@ -2065,7 +2065,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // `class_dec_ref` is `None` ⇒ `class_decorators_len == 0`, so
                 // this is an empty list. Still `take` (not `ptr::read`) so the
                 // local can never own a second copy of a live buffer.
-                let items = bun_alloc::AstAlloc::take(&mut class_decorators);
+                let items = core::mem::take(&mut class_decorators);
                 p.new_expr(
                     E::Array {
                         items,
@@ -2145,7 +2145,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             suffix_exprs.push(p.new_expr(
                                 E::Call {
                                     target: iife_body,
-                                    args: bun_alloc::AstAlloc::vec(),
+                                    args: Vec::new(),
                                     ..Default::default()
                                 },
                                 loc,
