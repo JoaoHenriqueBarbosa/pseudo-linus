@@ -59,3 +59,14 @@ fn response_json_bigint_message() {
     );
     assert_eq!(log, r#"["TypeError: Do not know how to serialize a BigInt","TypeError: JSON.stringify cannot serialize BigInt."]"#);
 }
+
+/// O `body` lido pela primeira vez depois de uma leitura nasce travado; o que já tinha sido lido antes segue
+/// destravado.
+#[test]
+fn body_created_after_read_is_locked() {
+    let log = log_of(
+        "const x = new Response(new URLSearchParams('a=1')); await x.formData(); L(x.body.locked); \
+         const y = new Response('abc'); const s = y.body; await y.text(); L(s.locked); L(y.body === s);",
+    );
+    assert_eq!(log, r#"["true","false","true"]"#);
+}
