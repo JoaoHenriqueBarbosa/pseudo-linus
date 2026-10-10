@@ -96,6 +96,11 @@ impl<T> StoreSlice<T> {
     }
 
     #[inline]
+    pub const fn len_u32(self) -> u32 {
+        self.len
+    }
+
+    #[inline]
     pub const fn is_empty(self) -> bool {
         self.len == 0
     }

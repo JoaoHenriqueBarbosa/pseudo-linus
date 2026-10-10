@@ -862,7 +862,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     // is this a require("something")
                     if self.load_name_from_ref(ident.ref_) == b"require" && self.store[call].args.len_u32() == 1
                     {
-                        if let js_ast::ExprData::EString(s) = self.store[call].args.at(0).data {
+                        if let js_ast::ExprData::EString(s) = self.store[self.store[call].args][0].data {
                             let _ = self.add_import_record(
                                 ImportKind::Require,
                                 loc,
@@ -8412,9 +8412,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // payloads bind owned + `mut`, letting `to_utf8` mutate the EString in
         // place and `arr.items.slice_mut()` write through `DerefMut` into the
         // underlying arena slots.
-        match call.args.at(0).data {
+        match self.store[call.args][0].data {
             js_ast::ExprData::EString(mut str_) => {
-                let loc = call.args.at(0).loc;
+                let loc = self.store[call.args][0].loc;
                 let Some(d) = self.rewrite_import_meta_hot_accept_string(&mut str_, loc) else {
                     return;
                 };

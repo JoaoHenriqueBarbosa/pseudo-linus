@@ -1674,7 +1674,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                 if let_decls.len() > 0 {
                     let decls = self.store.alloc_slice(let_decls);
-                    let loc = decls.at(0).value.unwrap().loc;
+                    let loc = self.store[decls][0].value.unwrap().loc;
                     before.push(p.s(
                         S::Local {
                             kind: LocalKind::KLet,
@@ -1694,7 +1694,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         }
                     } else {
                         let decls = self.store.alloc_slice(var_decls);
-                        let loc = decls.at(0).value.unwrap().loc;
+                        let loc = self.store[decls][0].value.unwrap().loc;
                         before.push(p.s(
                             S::Local {
                                 kind: LocalKind::KVar,

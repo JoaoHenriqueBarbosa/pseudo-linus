@@ -344,7 +344,7 @@ impl<'a> ImportScanner<'a> {
                             let name = p.store.str(symbol.original_name);
                             let member = p
                                 .module_scope()
-                                .get_member_with_hash(name, js_ast::scope::Members::hash(name));
+                                .get_member_with_hash(&p.store, name, js_ast::scope::Members::hash(name));
                             if let Some(member) = member {
                                 if member.ref_.eql(link) {
                                     p.log().add_symbol_already_declared_error(

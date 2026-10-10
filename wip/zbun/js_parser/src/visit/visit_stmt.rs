@@ -2002,7 +2002,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if init2.kind.is_using() && p.options.features.lower_using {
                     // fn lowerUsingDeclarationInForOf()
                     let loc = data.init.loc;
-                    let binding = init2.decls.at(0).binding;
+                    let binding = p.store[init2.decls][0].binding;
                     // `StoreRef<B::Identifier>` is `Copy` + `Deref`/`DerefMut` over the
                     // arena node, so hoisting it to a local lets every read/write below
                     // go through the safe accessor instead of a raw `as_ptr()` deref.

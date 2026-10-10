@@ -350,7 +350,7 @@ impl SideEffects {
                 let len = p.store[e_object].properties.len_u32() as usize;
                 let mut has_spread = false;
                 for i in 0..len {
-                    if p.store[e_object].properties.at(i).kind == G::PropertyKind::Spread {
+                    if p.store[p.store[e_object].properties][i].kind == G::PropertyKind::Spread {
                         has_spread = true;
                         break;
                     }
@@ -359,12 +359,11 @@ impl SideEffects {
                     // Spread properties must always be evaluated
                     let mut end: usize = 0;
                     for j in 0..len {
-                        let kind = p.store[e_object].properties.at(j).kind;
+                        let kind = p.store[p.store[e_object].properties][j].kind;
                         if kind != G::PropertyKind::Spread {
-                            let prev_value = p.store[e_object].properties.at(j).value.unwrap();
-                            let is_computed = p.store[e_object]
-                                .properties
-                                .at(j)
+                            let prev_value = p.store[p.store[e_object].properties][j].value.unwrap();
+                            let is_computed = p.store[p.store[e_object]
+                                .properties][j]
                                 .flags
                                 .contains(bun_ast::flags::Property::IsComputed);
                             let value = Self::simplify_unused_expr(p, prev_value);
@@ -395,9 +394,9 @@ impl SideEffects {
                 // Otherwise, the object can be completely removed. We only need to keep any
                 // object properties with side effects. Apply this simplification recursively.
                 for i in 0..len {
-                    let flags = p.store[e_object].properties.at(i).flags;
-                    let key = p.store[e_object].properties.at(i).key;
-                    let value = p.store[e_object].properties.at(i).value;
+                    let flags = p.store[p.store[e_object].properties][i].flags;
+                    let key = p.store[p.store[e_object].properties][i].key;
+                    let value = p.store[p.store[e_object].properties][i].value;
                     if flags.contains(bun_ast::flags::Property::IsComputed) {
                         // Make sure "ToString" is still evaluated on the key
                         let key_expr = key.unwrap();
@@ -433,7 +432,7 @@ impl SideEffects {
                 // the missing items instead and leave the array expression there.
                 let mut has_spread = false;
                 for i in 0..len {
-                    if matches!(p.store[arr].items.at(i).data, ExprData::ESpread(_)) {
+                    if matches!(p.store[p.store[arr].items][i].data, ExprData::ESpread(_)) {
                         has_spread = true;
                         break;
                     }

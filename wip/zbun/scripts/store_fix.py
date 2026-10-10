@@ -146,6 +146,7 @@ def collect(diagnostics):
                 ("StoreSlice", "slice_mut"): "slice",
                 ("StoreSlice", "iter"): "iter",
                 ("StoreSlice", "iter_mut"): "iter",
+                ("StoreSlice", "at"): "at",
                 ("StoreRef", "get"): "get",
                 ("StoreRef", "get_mut"): "get_mut",
             }
@@ -298,6 +299,11 @@ def main():
                     borrow = "&mut " if member == "slice_mut" else "&"
                     ops.append((begin, 0, f"({borrow}{store}[{star}".encode(), 1))
                     ops.append((recv_end, call_end - recv_end, b"])", 0))
+                elif kind == "at":
+                    # `r.at(i)` -> `STORE[r][i]`
+                    ops.append((begin, 0, f"{store}[{star}".encode(), 1))
+                    ops.append((recv_end, byte_end + 1 - recv_end, b"][", 0))
+                    ops.append((call_end - 1, 1, b"]", 0))
                 elif kind == "iter":
                     ops.append((begin, 0, f"{store}[{star}".encode(), 1))
                     ops.append((recv_end, dot + 1 - recv_end, b"].", 0))
