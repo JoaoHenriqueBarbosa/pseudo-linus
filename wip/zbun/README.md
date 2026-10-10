@@ -68,7 +68,7 @@ No porte, o ponteiro vira índice e a memória vira um dono explícito:
 |---|---|---|---|
 | `bun_ast` | `op.rs` | portado | nada (cópia) |
 | `bun_ast` | `target.rs` | portado | nada (cópia) |
-| `bun_ast` | `nodes.rs` | parcial: `AssignTarget`, `StoreRef`, `StoreSlice`, `StoreStr` | os três `Store*` viram índices (seção "Arena tipada"); o arquivo cresce item a item |
+| `bun_ast` | `nodes.rs` | parcial: `AssignTarget`, `OptionalChain`, `StoreRef`, `StoreSlice`, `StoreStr` | os três `Store*` viram índices (seção "Arena tipada"); o arquivo cresce item a item |
 | `bun_ast` | `new_store.rs` | substituído | a arena de blocos do mimalloc vira `Store` com um `Vec` por tipo (`define_store!`), sem `unsafe` |
 | `bun_ast` | `lib.rs` | parcial: `RefTag`, `Ref`, `Loc`, `Range` | trecho igual ao upstream, menos `range_of_identifier`, que pede o iterador de codepoints e as tabelas de identificador do `bun_core`; o logger e `Source` entram em seguida |
 | `bun_ast` | `base.rs` | portado | nada (cópia), menos o travessão de um comentário |
@@ -77,5 +77,6 @@ No porte, o ponteiro vira índice e a memória vira um dono explícito:
 | `bun_ast` | `nodes.rs` (`ImportItemStatus`) | portado | nada |
 | `bun_ast` | `loader.rs` | pendente | pede `bun_core::assert_ffi_discr!` e `bun_collections::StringArrayHashMap` |
 | `bun_core` | `comptime_string_map.rs` | portado, com os 8 testes do upstream | sem o `impl HasLength for &crate::String`, que volta com o porte de `bun_core::String` |
+| `bun_core` | `strings` (`string/immutable.rs`, `string/immutable/unicode.rs`, `strings_impl` de `lib.rs`) | parcial: ASCII, igualdade e ordem, surrogates, WTF-8, `CodepointIterator`, UTF-8 para UTF-16 e volta | onde o upstream chama o simdutf, roda o laço escalar que o próprio upstream usa quando o simdutf recusa a entrada; para entrada válida os dois dão as mesmas unidades, então o porte usa sempre o laço. `eql_long` compara fatias no lugar da leitura por palavras com ponteiro |
 | `bun_core_macros` | `comptime_string_map.rs` | portado | nada (cópia) |
 | `bun_core_macros` | `lib.rs` | parcial: só os dois proc-macros do mapa | `pretty_fmt!` e os derives de contagem de referência entram quando pedidos |

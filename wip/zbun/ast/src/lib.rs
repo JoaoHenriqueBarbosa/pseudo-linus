@@ -16,7 +16,7 @@ pub mod target;
 pub use base::{Index, IndexInt};
 pub use g as G;
 pub use new_store::{NodeStore, Stored};
-pub use nodes::{AssignTarget, ImportItemStatus, StoreRef, StoreSlice, StoreStr};
+pub use nodes::{AssignTarget, ImportItemStatus, OptionalChain, StoreRef, StoreSlice, StoreStr};
 pub use symbol::Symbol;
 pub use target::Target;
 

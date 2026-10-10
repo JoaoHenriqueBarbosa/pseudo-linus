@@ -176,6 +176,18 @@ pub enum ImportItemStatus {
 }
 
 #[repr(u8)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, strum::IntoStaticStr)]
+#[strum(serialize_all = "snake_case")]
+pub enum OptionalChain {
+    /// "a?.b"
+    Start,
+
+    /// "a?.b.c" => ".c" is OptionalChain::Continuation
+    /// "(a?.b).c" => ".c" is None
+    Continuation,
+}
+
+#[repr(u8)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Default, strum::IntoStaticStr)]
 #[strum(serialize_all = "snake_case")]
 pub enum AssignTarget {

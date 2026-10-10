@@ -9,6 +9,7 @@ path = "src/lib.rs"
 
 [dependencies]
 bun_core_macros = { path = "../bun_core_macros" }
+strum.workspace = true
 
 [dev-dependencies]
 bstr = { version = "1", default-features = false, features = ["alloc"] }
