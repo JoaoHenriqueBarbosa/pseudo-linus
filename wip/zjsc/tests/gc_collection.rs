@@ -138,7 +138,6 @@ fn stressed_main(program: &str) -> String {
 /// `safe_point` só coleta com `native_depth() == 1`, e o programa principal (CJS ou ESM) roda um nível abaixo, então
 /// nenhuma coleta cai entre o agendamento e o tick e o teste não distingue a raiz da falta dela.
 #[test]
-#[ignore = "o programa principal não coleta: o safe_point exige native_depth 1"]
 fn next_tick_callbacks_and_arguments_survive() {
     let program = format!("{CHURN} (function () {{ var o = {{ v: 'c' }}; process.nextTick((x, y) => {{ console.log(o.v + x.v + y[0]); }}, {{ v: 'x' }}, ['y']); }})(); churn();");
     assert_eq!(stressed_main(&program), "cxy\n");
