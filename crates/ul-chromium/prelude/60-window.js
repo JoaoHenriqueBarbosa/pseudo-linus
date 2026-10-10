@@ -79,18 +79,13 @@ class Location {
 tag(Location, 'Location');
 const location = Object.create(Location.prototype);
 
-// Muda só o fragmento: cria entrada no histórico, dispara popstate na hora e hashchange numa tarefa. Qualquer outra
-// mudança é navegação, que o hospedeiro executa.
+// Muda só o fragmento: a navegação do mesmo documento da Navigation API (`67-navigation.js`), com popstate na hora e
+// hashchange numa tarefa. Qualquer outra mudança é navegação, que o hospedeiro executa.
 function navigate(url) {
   const old = pageState.url;
   if (url === old) return;
   if (sameDocument(url, old)) {
-    history[P.__entries].splice(history[P.__index] + 1);
-    history[P.__entries].push({ state: null, url });
-    history[P.__index]++;
-    pageState.url = url;
-    window.dispatchEvent(new PopStateEvent('popstate', { state: null }));
-    setTimeout(() => { window.dispatchEvent(new HashChangeEvent('hashchange', { oldURL: old, newURL: url })); }, 0);
+    fragmentNavigation(url, 'push', { position: callerPosition() });
     return;
   }
   op('navigate', url);
@@ -110,21 +105,15 @@ class History {
     if (a.origin !== b.origin && !(a.protocol === 'file:' && b.protocol === 'file:')) throw domException(`Failed to execute 'pushState' on 'History': A history state object with URL '${next}' cannot be created in a document with origin '${b.origin}' and URL '${pageState.url}'.`, 'SecurityError');
     return next;
   }
-  pushState(state, title, url) { const next = this[P.__check](url); this[P.__entries].splice(this[P.__index] + 1); this[P.__entries].push({ state, url: next }); this[P.__index]++; pageState.url = next; }
-  replaceState(state, title, url) { const next = this[P.__check](url); this[P.__entries][this[P.__index]] = { state, url: next }; pageState.url = next; }
+  pushState(state, title, url) { historyStateNavigation('push', state, this[P.__check](url)); }
+  replaceState(state, title, url) { historyStateNavigation('replace', state, this[P.__check](url)); }
   go(delta) {
     const target = this[P.__index] + (delta | 0);
     if (!delta || target < 0 || target >= this[P.__entries].length) return;
     const entry = this[P.__entries][target];
     // A primeira entrada é o about:blank de onde o headless partiu: voltar até ela é sair do documento.
     if (target === 0) { op('navigate', entry.url); return; }
-    const old = pageState.url;
-    this[P.__index] = target;
-    pageState.url = entry.url;
-    setTimeout(() => {
-      window.dispatchEvent(new PopStateEvent('popstate', { state: entry.state }));
-      if (old !== entry.url && sameDocument(old, entry.url)) window.dispatchEvent(new HashChangeEvent('hashchange', { oldURL: old, newURL: entry.url }));
-    }, 0);
+    traverseHistory(target);
   }
   back() { this.go(-1); }
   forward() { this.go(1); }

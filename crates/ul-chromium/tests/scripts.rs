@@ -27,7 +27,7 @@ fn window_own_properties_match_the_oracle() {
     // nunca imitado pela metade). A catraca só desce: 34 interfaces faltando quando o teste entrou.
     let present: Vec<&(String, String)> = expected.iter().filter(|e| actual.contains(e)).collect();
     assert_eq!(actual.iter().collect::<Vec<_>>(), present);
-    assert!(missing.len() <= 2, "faltam {missing:?}");
+    assert!(missing.len() <= 1, "faltam {missing:?}");
 }
 
 /// As interfaces simples da janela, com os retornos e as mensagens que o oráculo deu (página em `http://127.0.0.1`).
@@ -199,6 +199,25 @@ fn trusted_types_csp_as_the_oracle() {
 /// Quando o CSP de um `<meta http-equiv>` passa a valer, medido no oráculo: o inserido por script vale na hora da
 /// inserção no `<head>` e não se desfaz ao remover; fora do `<head>` e o `Report-Only` não valem; o do documento só
 /// vale a partir do script que o segue na ordem do documento.
+/// A Navigation API como o oráculo em tempo real: a forma das interfaces, a ordem dos eventos e das promessas em cada
+/// tipo de navegação (fragmento, `pushState`, `replaceState`, `location.hash`, percursos, interceptação, cancelamento,
+/// aborto por outra navegação, `updateCurrentEntry`, `reload` interceptado, URL inválido e `javascript:`).
+#[test]
+fn navigation_api_as_the_oracle() {
+    let (_, log) = common::run_at_for(
+        "http://127.0.0.1:8000/p",
+        &[],
+        &[("/p", r#"<pre id=o></pre><script src="/probe.js"></script>"#), ("/probe.js", include_str!("fixtures/navigation.js"))],
+        Some(30000.0),
+    );
+    assert_eq!(log, include_str!("fixtures/navigation.expected"));
+    // A ativação no `--dump-dom` do oráculo: o histórico começa no about:blank e a página entra por `push`.
+    let probe = "addEventListener('load', () => setTimeout(() => console.log(JSON.stringify([history.length, navigation.activation.navigationType, \
+        navigation.entries().length, navigation.activation.from])), 0))";
+    let (_, log) = run(&[("/", &format!("<script>{probe}</script>"))]);
+    assert_eq!(log, "[2,\"push\",1,null]\n");
+}
+
 #[test]
 fn trusted_types_meta_timing_as_the_oracle() {
     let (_, log) = common::run_at(

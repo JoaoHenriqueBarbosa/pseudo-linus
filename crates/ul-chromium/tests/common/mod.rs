@@ -55,8 +55,16 @@ pub fn run(files: &[(&str, &str)]) -> (String, String) {
 /// Como `run`, com o endereço da página e os cabeçalhos extras de toda resposta (COOP e COEP, por exemplo).
 #[allow(dead_code)]
 pub fn run_at(address: &str, headers: &[(&str, &str)], files: &[(&str, &str)]) -> (String, String) {
+    run_at_for(address, headers, files, None)
+}
+
+/// `run_at` com o `--virtual-time-budget` em `budget_ms` (sem ele, o padrão do `Page`).
+pub fn run_at_for(address: &str, headers: &[(&str, &str)], files: &[(&str, &str)], budget_ms: Option<f64>) -> (String, String) {
     install_image_fonts();
     let mut page = Page::load(address, serve(files, headers)).unwrap();
+    if let Some(budget) = budget_ms {
+        page.budget_ms = budget;
+    }
     let console = Rc::new(Capture::default());
     page.console = console.clone();
     page.run();

@@ -83,15 +83,17 @@ const refreshPolicies = () => {
   if (changed || !guardInstalled) recomputePolicies();
 };
 
-// A posição do código da página que chamou o sink: a primeira moldura da pilha com URL (as do navegador não têm).
-const callerPosition = () => {
-  const stack = new Error().stack;
+// A posição do código da página numa pilha: a primeira moldura com URL (as do navegador não têm), com ou sem nome de
+// função (`at f (url:1:2)` ou `at url:1:2`). `null` sem ela.
+const stackPosition = (stack) => {
   for (const line of String(stack).split('\n').slice(1)) {
-    const found = /(?:\(|at )(.+?):(\d+):(\d+)\)?$/.exec(line);
+    const found = /\((.+?):(\d+):(\d+)\)$/.exec(line) || /at (.+?):(\d+):(\d+)$/.exec(line);
     if (found && found[1] !== '<anonymous>' && !found[1].startsWith('eval at ')) return [found[1], Number(found[2]), Number(found[3])];
   }
-  return ['', 0, 0];
+  return null;
 };
+// A posição do código da página que chamou o navegador.
+const callerPosition = () => stackPosition(new Error().stack) || ['', 0, 0];
 const reportViolation = (policy, directive, blockedURI, sample, position) => {
   const [sourceFile, lineNumber, columnNumber] = position;
   const event = new SecurityPolicyViolationEvent('securitypolicyviolation', {

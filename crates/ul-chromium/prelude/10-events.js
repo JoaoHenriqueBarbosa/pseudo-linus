@@ -52,6 +52,8 @@ class EventTarget {
 tag(EventTarget, 'EventTarget');
 
 // O pai de um alvo no caminho do evento: nó -> pai; documento -> janela.
+// O pai de propagação de quem não é nó (a requisição do IndexedDB sobe para a transação, que sobe para o banco).
+const eventParents = new WeakMap();
 const eventParent = (target, event) => {
   if (isNode(target)) {
     const parent = op('parent', ids.get(target));
@@ -60,7 +62,7 @@ const eventParent = (target, event) => {
     if (target[P.__host]) return event && event.composed ? target[P.__host] : null;
     return target.nodeType === 9 && target[P.__window] ? target[P.__window] : null;
   }
-  return null;
+  return eventParents.get(target) || null;
 };
 
 const describeError = (error) => {
@@ -80,6 +82,9 @@ const reportError = (error) => {
 // O `window.event` do Blink: o evento cujo ouvinte está rodando, `undefined` fora de despacho e quando o alvo está
 // numa árvore sombra.
 let currentEvent;
+// Quantas exceções os ouvintes lançaram: quem despacha compara antes e depois (no IndexedDB, a exceção num tratador
+// aborta a transação).
+let listenerFailures = 0;
 const invoke = (target, event, entry) => {
   event[P.__passive] = entry.passive;
   const previous = currentEvent;
@@ -88,6 +93,7 @@ const invoke = (target, event, entry) => {
     if (typeof entry.callback === 'function') entry.callback.call(target, event);
     else if (entry.callback && typeof entry.callback.handleEvent === 'function') entry.callback.handleEvent(event);
   } catch (error) {
+    listenerFailures++;
     reportError(error);
   }
   currentEvent = previous;
@@ -131,11 +137,23 @@ const callHandlerProperty = (target, event) => {
     const result = handler.call(target, event);
     if (result === false) event.preventDefault();
   } catch (error) {
+    listenerFailures++;
     reportError(error);
   }
 };
 
+// Evento despachado por uma tarefa do navegador, com a pilha de JavaScript vazia: o HTML roda um checkpoint de
+// microtarefas depois de cada ouvinte ("clean up after running script"). Dentro de um ouvinte a pilha já não está
+// vazia, então o despacho aninhado não faz checkpoint.
+let emptyStackDispatch = false;
+const dispatchFromTask = (target, event) => {
+  emptyStackDispatch = true;
+  try { return target.dispatchEvent(event); } finally { emptyStackDispatch = false; }
+};
+
 const dispatch = (target, event) => {
+  const checkpoint = emptyStackDispatch;
+  emptyStackDispatch = false;
   event[P.__dispatching] = true;
   event.target = event[P.__targetOverride] || target;
   const path = [];
@@ -151,9 +169,13 @@ const dispatch = (target, event) => {
       if (phase === 3 && entry.capture) continue;
       if (entry.once) node.removeEventListener(event.type, entry.callback, entry.capture);
       invoke(node, event, entry);
+      if (checkpoint) microtaskCheckpoint();
       if (event[P.__stopImmediate]) return;
     }
-    if (phase !== 1) callHandlerProperty(node, event);
+    if (phase !== 1) {
+      callHandlerProperty(node, event);
+      if (checkpoint) microtaskCheckpoint();
+    }
   };
   for (let i = path.length - 1; i > 0 && !event[P.__stop]; i--) run(path[i], 1);
   if (!event[P.__stop]) run(path[0], 2);
