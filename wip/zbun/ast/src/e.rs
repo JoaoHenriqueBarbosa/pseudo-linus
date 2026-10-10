@@ -1728,6 +1728,38 @@ impl Import {
     pub fn is_import_record_null(&self) -> bool {
         self.import_record_index == u32::MAX
     }
+
+    pub fn import_record_loader(&self, store: &Store) -> Option<crate::Loader> {
+        let crate::ExprData::EObject(obj) = self.options.data else {
+            return None;
+        };
+        let obj = &store[obj];
+        let with = obj.get(store, b"with").or_else(|| obj.get(store, b"assert"))?;
+        let crate::ExprData::EObject(with_obj) = with.data else {
+            return None;
+        };
+        let with_obj = &store[with_obj];
+        let str_ = &store[with_obj.get(store, b"type")?.data.e_string()?];
+
+        if !str_.is_utf16 {
+            if let Some(loader) = crate::Loader::from_string(store.str(str_.data)) {
+                if loader == crate::Loader::Sqlite {
+                    let Some(embed) = with_obj.get(store, b"embed") else {
+                        return Some(loader);
+                    };
+                    let Some(embed_str) = embed.data.e_string() else {
+                        return Some(loader);
+                    };
+                    if store[embed_str].eql_comptime(store, b"true") {
+                        return Some(crate::Loader::SqliteEmbedded);
+                    }
+                }
+                return Some(loader);
+            }
+        }
+
+        None
+    }
 }
 
 pub use G::Class;

@@ -86,7 +86,9 @@ No porte, o ponteiro vira índice e a memória vira um dono explícito:
 | `bun_ast` | `b.rs` | portado, menos `write_to_hasher` | `B` tem 8 bytes e `Binding` 12; os acessores de lista recebem o `Store` |
 | `bun_ast` | `binding.rs` | portado | `ToExprWrapper<C>` guarda um `fn(&mut C, Loc, Ref) -> Expr` no lugar do trampolim com `*mut c_void` e do `BackRef` do bump; o `Store` vem do contexto (`C: AsMut<Store>`) |
 | `bun_ast` | `nodes.rs` (`ImportItemStatus`) | portado | nada |
-| `bun_ast` | `loader.rs` | pendente | pede `bun_core::assert_ffi_discr!` e `bun_collections::StringArrayHashMap` |
+| `bun_ast` | `loader.rs` | portado (cópia) | sem os sinônimos de grafia `is_type_script` e `is_java_script_like` (repasse de uma linha, proibido no repositório); um travessão de comentário trocado |
+| `bun_core` | `assert_ffi_discr!` (de `src/opaque/lib.rs`) | portado | nada (cópia) |
+| `bun_collections` | `array_hash_map.rs` | parcial: `StringArrayHashMap` | entradas em dois `Vec` na ordem de inserção, com a remoção por troca do Zig, e índice no `HashMap` da biblioteca padrão no lugar do `ArrayHashMap` com 25 trechos `unsafe`; a ordem observável é a mesma. Sem contexto nem alocador genéricos, sem o mapa sem caixa do Windows e sem os sinônimos `contains_key` e `put_assume_capacity` |
 | `bun_core` | `comptime_string_map.rs` | portado, com os 8 testes do upstream | sem o `impl HasLength for &crate::String`, que volta com o porte de `bun_core::String` |
 | `bun_core` | `strings` (`string/immutable.rs`, `string/immutable/unicode.rs`, `strings_impl` de `lib.rs`) | parcial: ASCII, igualdade e ordem, surrogates, WTF-8, `CodepointIterator`, UTF-8 para UTF-16 e volta | onde o upstream chama o simdutf, roda o laço escalar que o próprio upstream usa quando o simdutf recusa a entrada; para entrada válida os dois dão as mesmas unidades, então o porte usa sempre o laço. `eql_long` compara fatias no lugar da leitura por palavras com ponteiro |
 | `bun_core_macros` | `comptime_string_map.rs` | portado | nada (cópia) |
@@ -106,6 +108,6 @@ No porte, o ponteiro vira índice e a memória vira um dono explícito:
 - Os métodos que mudam nó guardado (`Object::put`, `get_or_put_object`, `Array::push`, `Template::fold`) recebem
   `(store, this: StoreRef<_>)`; a corda de `fold` é montada numa cópia da `EString` e gravada de volta.
 - `alphabetize_*` e `package_json_sort` usam o `sort_by` estável, que dá a mesma ordem do `index_sort` estável.
-- Pendentes: `EString::hash` (wyhash), `is_identifier` (`lexer_tables`), o `Display` de `EString` e
-  `Import::import_record_loader` (o `Loader`).
+- Pendentes: `EString::hash` (wyhash), `is_identifier` (`lexer_tables`) e o `Display` de `EString`.
+  `Import::import_record_loader` entrou com o `loader.rs`, e recebe o `Store`.
 | `bun_core_macros` | `lib.rs` | parcial: só os dois proc-macros do mapa | `pretty_fmt!` e os derives de contagem de referência entram quando pedidos |

@@ -58,6 +58,7 @@ pub mod binding;
 pub mod e;
 pub mod expr;
 pub mod g;
+pub mod loader;
 pub mod new_store;
 pub mod nodes;
 pub mod op;
@@ -76,6 +77,7 @@ pub use e::CallUnwrap as CanBeUnwrapped;
 pub use expr::{Data as ExprData, Expr, PrimitiveType as KnownPrimitive, Tag as ExprTag};
 pub use g as G;
 pub use g::NamespaceAlias;
+pub use loader::{Loader, LoaderHashTable, SideEffects};
 pub use new_store::{NodeStore, Stored};
 pub use nodes::{
     ArrayBinding, AssignTarget, BindingNodeIndex, Case, Catch, ClauseItem, EnumValue, ExprNodeIndex, ExprNodeList,
