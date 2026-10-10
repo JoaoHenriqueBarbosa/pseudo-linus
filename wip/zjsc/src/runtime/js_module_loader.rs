@@ -550,14 +550,26 @@ fn referrer_path(referrer: Option<&str>) -> String {
 }
 
 /// A mensagem e o código que o resolvedor do bun dá a `specifier` que não resolve: `node:` desconhecido é
-/// `ERR_UNKNOWN_BUILTIN_MODULE`, caminho (relativo, absoluto ou `file:`) é `Cannot find module`, o resto
-/// (especificador "nu") é `Cannot find package`.
+/// `ERR_UNKNOWN_BUILTIN_MODULE`, caminho (relativo, absoluto, `file:` ou com letra de unidade, `C:\x`) é `Cannot find
+/// module`, o resto (especificador "nu") é `Cannot find package`. Sem referrer (o `parent` vazio de
+/// `import.meta.resolve`) é sempre `Cannot find module '<especificador>' from ''` (medido no bun 1.4.2).
 fn unresolved_specifier_message(specifier: &str, referrer: &str) -> (String, &'static str, String) {
     if specifier.starts_with("node:") {
         return (format!("No such built-in module: {specifier}"), "ERR_UNKNOWN_BUILTIN_MODULE", specifier.to_owned());
     }
     let shown = specifier.strip_prefix("file://").unwrap_or(specifier);
-    let is_path = shown.starts_with("./") || shown.starts_with("../") || shown.starts_with('/') || shown.starts_with('\\') || shown.is_empty() || shown == "." || shown == "..";
+    if referrer.is_empty() {
+        return (format!("Cannot find module '{shown}' from ''"), "ERR_MODULE_NOT_FOUND", shown.to_owned());
+    }
+    let drive = shown.as_bytes().get(..3).is_some_and(|head| head[0].is_ascii_alphabetic() && head[1] == b':' && matches!(head[2], b'\\' | b'/'));
+    let is_path = drive
+        || shown.starts_with("./")
+        || shown.starts_with("../")
+        || shown.starts_with('/')
+        || shown.starts_with('\\')
+        || shown.is_empty()
+        || shown == "."
+        || shown == "..";
     if is_path {
         return (format!("Cannot find module '{shown}' imported from {referrer}"), "ERR_MODULE_NOT_FOUND", shown.to_owned());
     }
@@ -1395,12 +1407,15 @@ fn resolve_for_import_meta(global_object: &JSGlobalObject, call_frame: &mut Nati
             cited = Some("undefined".to_owned());
         }
     } else if parent.is_string() {
-        // O segundo argumento: string troca o chamador como origem da resolução de `resolve` e, em
-        // `resolveSync`, só quando é caminho absoluto (o relativo é ignorado). O texto citado na mensagem de
-        // falha é a string como veio.
+        // O segundo argumento: string troca o chamador como origem da resolução de `resolve`. Em `resolveSync` o
+        // caminho absoluto vale como origem; o relativo (e o vazio) o bun resolve contra o diretório de trabalho, que
+        // o sandbox não tem: só o módulo embutido resolve (medido: `resolveSync('./a.mjs', 'q')` lança citando `q`,
+        // `resolveSync('node:path', './q')` dá `node:path`). O texto citado na mensagem de falha é a string como veio.
         let text = rust_string(&parent.as_js_string().value());
         if !sync || text.starts_with('/') {
             referrer = parent_referrer(&text);
+        } else if crate::api::builtin_modules::known_builtin_specifier(&specifier).is_none() {
+            search = false;
         }
         cited = Some(text);
     } else if sync && call_frame.argument_count() > 1 {
@@ -1417,12 +1432,7 @@ fn resolve_for_import_meta(global_object: &JSGlobalObject, call_frame: &mut Nati
                 let url = loader.host.import_meta_url(&caller);
                 referrer_path(Some(url.as_str()))
             });
-            let (mut message, code, shown) = unresolved_specifier_message(&specifier, &shown_referrer);
-            if shown_referrer.is_empty() {
-                if let Some(head) = message.strip_suffix(" imported from ") {
-                    message = format!("{head} from ''");
-                }
-            }
+            let (message, code, shown) = unresolved_specifier_message(&specifier, &shown_referrer);
             let _ = throw_resolve_message(global_object, &message, code, &shown, &shown_referrer);
             JSValue::undefined().encode()
         }

@@ -85,3 +85,30 @@ fn import_meta_is_the_bun_import_meta_object() {
         )
     );
 }
+
+/// `import.meta.resolveSync` com `parent` relativo ou vazio não acha caminho (o bun o resolve contra o diretório de
+/// trabalho) mas acha o módulo embutido; sem referrer a mensagem é `Cannot find module '<x>' from ''`; `C:\x` é
+/// caminho.
+#[test]
+fn resolve_sync_parent_builtins_and_messages() {
+    let (log, error) = run(&[
+        (
+            "main.mjs",
+            "const t = (f) => { try { L(JSON.stringify(f())); } catch (e) { L(e.message); } }; \
+             t(() => import.meta.resolveSync('./a.mjs', './s/')); t(() => import.meta.resolveSync('./a.mjs', '')); \
+             t(() => import.meta.resolveSync('node:path')); t(() => import.meta.resolveSync('node:fs/promises', './q')); \
+             t(() => import.meta.resolveSync('node:nope')); t(() => import.meta.resolveSync('fs', 'q')); \
+             t(() => import.meta.resolve('nopkg/x', '')); t(() => import.meta.resolve('C:\\\\x'));",
+        ),
+        ("a.mjs", "export {};"),
+    ]);
+    assert_eq!(error, None);
+    assert_eq!(
+        log,
+        concat!(
+            r#"["Cannot find module './a.mjs' imported from ./s/","Cannot find module './a.mjs' from ''","\"node:path\"","#,
+            r#""\"node:fs/promises\"","No such built-in module: node:nope","\"node:fs\"","Cannot find module 'nopkg/x' from ''","#,
+            r#""Cannot find module 'C:\\x' imported from /main.mjs"]"#
+        )
+    );
+}
