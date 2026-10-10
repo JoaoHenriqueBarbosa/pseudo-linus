@@ -402,6 +402,12 @@ pub trait Syscalls: Send + Sync {
     /// Espera a thread `tid` terminar (`pthread_join`). ESRCH se não existe, EINVAL se já foi juntada,
     /// EDEADLK se for a própria.
     fn join_thread(&self, tid: Tid) -> SysResult<()>;
+    /// Reserva uma vaga de tarefa para uma thread que o programa mantém por conta própria, sem thread do SO (as
+    /// threads do `_thread` do interpretador Python são pilhas de quadros da VM): conta no `RLIMIT_NPROC` do usuário
+    /// como qualquer thread de `clone`. EAGAIN quando o limite vale (não é root) e o usuário já o atingiu.
+    fn reserve_task(&self) -> SysResult<()>;
+    /// Devolve uma vaga de [`Syscalls::reserve_task`] (a thread acabou). Sem vaga reservada, não faz nada.
+    fn release_task(&self);
     fn gettid(&self) -> Tid;
     /// CPUs em que o processo pode rodar (`sched_getaffinity`): as CPUs virtuais do sandbox.
     fn sched_getaffinity(&self) -> Vec<usize>;

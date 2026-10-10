@@ -59,6 +59,19 @@ fn scene_matches(name: &str, scene: &str, golden: &str) {
     assert_eq!(got, golden, "cena {name}");
 }
 
+/// O limite de threads: com `RLIMIT_NPROC` posto 4 acima das tarefas que o usuário já tem, `Thread.start()` e
+/// `_thread.start_new_thread` dão `RuntimeError: can't start new thread` quando o limite já foi atingido (a thread de
+/// `clone` conta no limite), a thread que falhou não existe, e as vagas voltam quando as threads acabam.
+#[test]
+#[ignore = "WIP: o script trava antes do primeiro print (as sondas isoladas de import, /proc, setrlimit e thread passam) e a exec roda como root, que o RLIMIT_NPROC não limita"]
+fn thread_limit_scene_matches_the_oracle() {
+    scene_matches(
+        "thread_limit",
+        include_str!("../../../testbench/oracle/automation/cases/thread_limit.py"),
+        include_str!("../../../testbench/oracle/automation/golden/thread_limit.out"),
+    );
+}
+
 #[test]
 fn gl_api_scene_matches_the_oracle() {
     scene_matches(

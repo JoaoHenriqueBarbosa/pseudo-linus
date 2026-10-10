@@ -227,6 +227,21 @@ fn referents(vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     Ok(Value::list(crate::referents::referents(vm, &obj)))
 }
 
+/// `_task_reserve()`: a vaga de tarefa de uma thread nova de `_thread`, que conta no `RLIMIT_NPROC` do usuário como a
+/// thread de `clone` do CPython. Com o limite atingido: `RuntimeError("can't start new thread")`.
+fn task_reserve(_vm: &mut Vm, _args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("_task_reserve", &kw)?;
+    sysabi::sys::current().reserve_task().map_err(|_| exc("RuntimeError", "can't start new thread"))?;
+    Ok(Value::None)
+}
+
+/// `_task_release()`: devolve a vaga de `_task_reserve` (a thread acabou).
+fn task_release(_vm: &mut Vm, _args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("_task_release", &kw)?;
+    sysabi::sys::current().release_task();
+    Ok(Value::None)
+}
+
 fn mark_builtin(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     if let Some(Value::Function(f)) = args.first() {
         f.no_bind.set(true);
@@ -317,6 +332,8 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
         .func("_exc_hint", exc_hint)
         .func("_builtin", mark_builtin)
         .func("_referents", referents)
+        .func("_task_reserve", task_reserve)
+        .func("_task_release", task_release)
         .func("_source_line", source_line)
         .func("_frame_body", frame_body)
         .func("getrefcount", getrefcount)
