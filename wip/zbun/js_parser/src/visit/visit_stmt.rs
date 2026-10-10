@@ -414,6 +414,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 {
                     p.decorator_class_name = Some(js_ast::ClauseItem::DEFAULT_ALIAS);
                 }
+                #[cfg(feature = "react_compiler")]
                 if p.react_compiler.is_some()
                     && let Some(in_hoc) = p.react_compiler_candidate_expr(expr)
                 {
@@ -594,6 +595,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         p.react_refresh.hook_ctx_storage =
                             Some(core::ptr::NonNull::from(&mut react_hook_data));
 
+                        #[cfg(feature = "react_compiler")]
                         if p.react_compiler.is_some() {
                             p.react_compiler_candidate_name = Some(
                                 func.func
@@ -904,6 +906,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let prev_hook_storage = p.react_refresh.hook_ctx_storage;
         p.react_refresh.hook_ctx_storage = Some(core::ptr::NonNull::from(&mut react_hook_data));
 
+        #[cfg(feature = "react_compiler")]
         if p.react_compiler.is_some() && p.current_scope == p.module_scope {
             p.react_compiler_candidate_name = data.func.name.map(|n| n.ref_);
         }
@@ -1376,6 +1379,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             };
         }
 
+        #[cfg(feature = "react_compiler")]
         if is_top_level
             && p.react_compiler.is_some()
             && let Some(in_hoc) = p.react_compiler_candidate_expr(&data.value)

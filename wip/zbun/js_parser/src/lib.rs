@@ -43,6 +43,46 @@ pub use p::P;
 #[cfg(feature = "parser")]
 pub use parse::parse_entry::{Options as ParserOptions, Parser};
 
+/// Only the JSC-free constants. No upstream, o `MacroContext` leva a um runtime de JS por FFI
+/// (`bun_js_parser_jsc`), que fica fora do porte por decisão da coordenação. Aqui ele é um tipo sem valor: o
+/// `options.macro_context` é sempre `None`, e os caminhos que chamariam a macro são inalcançáveis pelo tipo, sem
+/// fachada que finja rodar uma.
+#[allow(non_snake_case)]
+pub mod Macro {
+    pub const NAMESPACE: &[u8] = b"macro";
+    pub const NAMESPACE_WITH_COLON: &[u8] = b"macro:";
+
+    #[inline]
+    pub fn is_macro_path(str_: &[u8]) -> bool {
+        str_.starts_with(NAMESPACE_WITH_COLON)
+    }
+
+    /// Values are owned (`Box<[u8]>`).
+    pub type MacroRemapEntry = bun_collections::StringArrayHashMap<Box<[u8]>>;
+
+    pub enum MacroContext {}
+
+    #[cfg(feature = "parser")]
+    impl MacroContext {
+        #[allow(clippy::too_many_arguments)]
+        pub(crate) fn call(
+            &mut self,
+            _import_record_path: &[u8],
+            _source_dir: &[u8],
+            _log: &mut bun_ast::Log,
+            _source: &bun_ast::Source,
+            _import_range: bun_ast::Range,
+            _caller: bun_ast::Expr,
+            _function_name: &[u8],
+        ) -> Result<bun_ast::Expr, crate::Error> {
+            match *self {}
+        }
+        pub(crate) fn get_remap(&self, _path: &[u8]) -> Option<&'static MacroRemapEntry> {
+            match *self {}
+        }
+    }
+}
+
 #[cfg(feature = "parser")]
 use bun_ast::{Ast, Ref};
 

@@ -2626,6 +2626,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             ..Default::default()
         };
         let rc_binding = p.react_compiler_candidate_name.take();
+        #[cfg(feature = "react_compiler")]
         if rc_binding.is_some() {
             let mut flags = bun_ast::flags::FUNCTION_NONE;
             if e_.is_async {
@@ -2648,16 +2649,21 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
         p.visit_stmts_and_prepend_temp_refs(&mut stmts_list, &mut temp_opts)
             .expect("unreachable");
-        p.react_compiler_pending = None;
-        if let Some(result) = p.react_compiler_result.take() {
-            e_.args = result.args;
-            e_.is_async = result.flags.contains(bun_ast::flags::Function::IsAsync);
-            e_.has_rest_arg = result.flags.contains(bun_ast::flags::Function::HasRestArg);
-            e_.prefer_expr = false;
-            if let Some(b) = rc_binding.filter(|r| *r != js_ast::Ref::NONE) {
-                p.record_usage(b);
+        #[cfg(feature = "react_compiler")]
+        {
+            p.react_compiler_pending = None;
+            if let Some(result) = p.react_compiler_result.take() {
+                e_.args = result.args;
+                e_.is_async = result.flags.contains(bun_ast::flags::Function::IsAsync);
+                e_.has_rest_arg = result.flags.contains(bun_ast::flags::Function::HasRestArg);
+                e_.prefer_expr = false;
+                if let Some(b) = rc_binding.filter(|r| *r != js_ast::Ref::NONE) {
+                    p.record_usage(b);
+                }
             }
         }
+        #[cfg(not(feature = "react_compiler"))]
+        let _ = rc_binding;
         p.pop_scope();
         p.pop_scope();
 

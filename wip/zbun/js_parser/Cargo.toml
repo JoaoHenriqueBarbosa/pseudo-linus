@@ -29,6 +29,10 @@ strum.workspace = true
 [features]
 # O parser copiado do upstream, enquanto não compila (README, "Próximos passos", passo 2).
 parser = []
+# Ganchos de crates que ficam fora do porte por decisão da coordenação. Ligar exige portar a crate antes; enquanto
+# isso, a opção `--react-compiler` não pode chegar ao parser.
+react_compiler = []
+crash_handler = []
 
 [lints]
 workspace = true

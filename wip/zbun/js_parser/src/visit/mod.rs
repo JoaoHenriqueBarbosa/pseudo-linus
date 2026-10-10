@@ -137,6 +137,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             kind: StmtsKind::FnBody,
         };
         let rc_binding = self.react_compiler_candidate_name.take();
+        #[cfg(feature = "react_compiler")]
         if rc_binding.is_some() {
             self.react_compiler_pending = Some(bun_react_compiler::PendingCompile {
                 args: func.args,
@@ -153,14 +154,19 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
         self.visit_stmts_and_prepend_temp_refs(&mut stmts, &mut temp_opts)
             .expect("unreachable");
-        self.react_compiler_pending = None;
-        if let Some(result) = self.react_compiler_result.take() {
-            func.args = result.args;
-            func.flags = result.flags;
-            if let Some(b) = rc_binding.filter(|r| *r != js_ast::Ref::NONE) {
-                self.record_usage(b);
+        #[cfg(feature = "react_compiler")]
+        {
+            self.react_compiler_pending = None;
+            if let Some(result) = self.react_compiler_result.take() {
+                func.args = result.args;
+                func.flags = result.flags;
+                if let Some(b) = rc_binding.filter(|r| *r != js_ast::Ref::NONE) {
+                    self.record_usage(b);
+                }
             }
         }
+        #[cfg(not(feature = "react_compiler"))]
+        let _ = rc_binding;
 
         if self.options.features.react_fast_refresh {
             // react_refresh.hook_ctx_storage is `Option<NonNull<Option<HookContext>>>`
@@ -337,6 +343,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         }
                     }
                 }
+                #[cfg(feature = "react_compiler")]
                 if self.react_compiler.is_some()
                     && self.current_scope == self.module_scope
                     && let BData::BIdentifier(id) = decl.binding.data
@@ -1489,6 +1496,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // Consume before recursing so a nested function body's `visit_stmts`
         // doesn't compile the wrong target.
+        #[cfg(feature = "react_compiler")]
         let rc_pending = if kind == StmtsKind::FnBody {
             p.react_compiler_pending.take()
         } else {
@@ -1763,6 +1771,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // if this fails it means that scope pushing/popping is not balanced
         debug_assert!(p.current_scope == initial_scope);
 
+        #[cfg(feature = "react_compiler")]
         if let Some(pending) = rc_pending
             && let Some(mut rc) = p.react_compiler.take()
         {

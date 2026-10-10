@@ -458,6 +458,7 @@ pub struct P<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> {
     /// only applicable when `.options.features.react_compiler` is set.
     /// populated before visit pass starts; `take()`n at each post-visit
     /// hook site so a `ReactCompilerHost(&mut P)` can borrow alongside it.
+    #[cfg(feature = "react_compiler")]
     pub(crate) react_compiler: Option<Box<bun_react_compiler::ReactCompilerState>>,
     /// Binding name from the `S::Function` / `S::Local` / `S::ExportDefault`
     /// statement currently being visited. Set in `visit_stmt`, consumed by
@@ -468,9 +469,11 @@ pub struct P<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> {
     pub(crate) react_compiler_in_react_hoc: bool,
     /// See [`bun_react_compiler::PendingCompile`]. Set by `visit_func` /
     /// arrow-visit, consumed inside `visit_stmts` between visit and mangle.
+    #[cfg(feature = "react_compiler")]
     pub(crate) react_compiler_pending: Option<bun_react_compiler::PendingCompile>,
     /// Compiled args/flags written by the `visit_stmts` hook for `visit_func` /
     /// arrow-visit to apply to the original `G::Fn` / `E::Arrow`.
+    #[cfg(feature = "react_compiler")]
     pub(crate) react_compiler_result: Option<bun_react_compiler::CompileResult>,
 
     /// only applicable when `.options.features.server_components` is
@@ -9775,10 +9778,13 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             enclosing_namespace_arg_ref: None,
             jsx_imports: crate::JSXImportSymbols::default(),
             react_refresh: ReactRefresh::default(),
+            #[cfg(feature = "react_compiler")]
             react_compiler: None,
             react_compiler_candidate_name: None,
             react_compiler_in_react_hoc: false,
+            #[cfg(feature = "react_compiler")]
             react_compiler_pending: None,
+            #[cfg(feature = "react_compiler")]
             react_compiler_result: None,
             server_components_wrap_ref: Ref::NONE,
             jest: Jest::default(),

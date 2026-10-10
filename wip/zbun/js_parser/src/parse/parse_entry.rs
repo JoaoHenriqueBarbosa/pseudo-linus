@@ -738,6 +738,8 @@ impl<'a> Parser<'a> {
     fn _parse<const TS: bool>(self) -> Result<crate::Result<'a>, Error> {
         // `Source.path` is `Path<'static>`, so
         // `path.text` satisfies `Action::Parse(&'static [u8])` directly.
+        // O `scoped_action` só rotula o relatório de queda do `bun_crash_handler`, que fica fora do porte.
+        #[cfg(feature = "crash_handler")]
         let _action_guard = bun_crash_handler::scoped_action(bun_crash_handler::Action::Parse(
             self.source.path.text,
         ));
@@ -866,12 +868,14 @@ impl<'a> Parser<'a> {
         }
 
         // A second guard dropped at end of `_parse` restores the previous action.
+        #[cfg(feature = "crash_handler")]
         let _visit_action_guard =
             bun_crash_handler::scoped_action(bun_crash_handler::Action::Visit(source.path.text));
 
         let mut visit_tracer = bun_core::perf::trace("JSParser::visit");
         p.prepare_for_visit_pass()?;
 
+        #[cfg(feature = "react_compiler")]
         if p.options.features.react_compiler.is_enabled() {
             let rc_options = bun_react_compiler::ReactCompilerOptions {
                 enabled: true,
@@ -2243,6 +2247,7 @@ impl<'a> Parser<'a> {
             )?;
         }
 
+        #[cfg(feature = "react_compiler")]
         if let Some(rc_state) = p.react_compiler.take() {
             let mut rc_stmts: Vec<Stmt> = Vec::new();
             let result = bun_react_compiler::finish(
