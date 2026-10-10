@@ -80,6 +80,14 @@ fn module_statics_reject_non_modules_with_the_jsc_message() {
     assert_eq!(run(program), expected);
 }
 
+/// O getter `Instance.prototype.exports` com `this` que não é instância, medido no bun 1.4.2.
+#[test]
+fn instance_exports_getter_rejects_non_instances_with_the_jsc_message() {
+    let program = "var g = Object.getOwnPropertyDescriptor(WebAssembly.Instance.prototype, 'exports').get; \
+                   [undefined, 1, {}, WebAssembly.Instance.prototype].map(function (t) { try { g.call(t); return 'ok' } catch (e) { return e.message } }).join('|')";
+    assert_eq!(run(program), vec!["expected |this| value to be an instance of WebAssembly.Instance"; 4].join("|"));
+}
+
 /// Os acessores dos protótipos, medidos no bun 1.4.2: `Instance.exports` e `Global.value` são `JSC_NATIVE_GETTER` (o
 /// `toString` traz o `get `), `Memory.buffer` e `Table.length` são `CustomAccessor` (o `toString` traz o nome puro).
 #[test]

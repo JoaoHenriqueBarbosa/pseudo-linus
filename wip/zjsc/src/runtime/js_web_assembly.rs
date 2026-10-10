@@ -1142,11 +1142,12 @@ fn link_instance_in_call(global_object: &JSGlobalObject, info: &Rc<ModuleInforma
     })
 }
 
-/// O getter `WebAssembly.Instance.prototype.exports`.
+/// O getter `WebAssembly.Instance.prototype.exports` (`webAssemblyInstanceProtoGetterExports`: a mensagem do
+/// `getInstance`, medida no bun 1.4.2 com `undefined`, primitivo, objeto comum e o próprio protótipo).
 fn instance_exports_body(_global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     with_instance::<InstanceState, _>(
         call.this_value(),
-        "WebAssembly.Instance.exports getter called with non WebAssembly.Instance |this|",
+        "expected |this| value to be an instance of WebAssembly.Instance",
         |state, _| Ok(state.exports),
     )
 }
