@@ -1,9 +1,12 @@
 //! Tradução de `WTF/wtf/text/StringHasher.h`, `StringHasherInlines.h` e do `RapidHash.h` que o
 //! `StringHasher` usa de fato (o `SuperFastHash.h` não participa do hash do `StringImpl`).
 //!
-//! O hash de string do WebKit é o rapidhash: se todos os caracteres de um buffer de 16 bits são
-//! Latin1, cada um vira um byte (assim `"ABC"` Latin1 e `u"ABC"` têm o mesmo hash); caso contrário
-//! os `2N` bytes little-endian entram como estão.
+//! O hash de string do WebKit é o rapidhash com semente zero (o núcleo está no
+//! `ul_common::hash::rapidhash`, que o WTF do Blink e o `Bun.hash` também usam): se todos os caracteres
+//! de um buffer de 16 bits são Latin1, cada um vira um byte (assim `"ABC"` Latin1 e `u"ABC"` têm o
+//! mesmo hash); caso contrário os `2N` bytes little-endian entram como estão.
+
+use ul_common::hash::rapidhash::{rapidhash_by, WEBKIT_SEED};
 
 use crate::wtf::text::string_impl::CharType;
 
@@ -13,9 +16,6 @@ pub const STRING_HASHING_START_VALUE: u32 = 0x9E37_79B9;
 /// Oito bits do hash são reservados para as flags do `StringImpl`.
 pub const FLAG_COUNT: u32 = 8;
 pub const MASK_HASH: u32 = (1u32 << (u32::BITS - FLAG_COUNT)) - 1;
-
-/// Segredos do rapidhash (`RapidHash::secret`).
-const SECRET: [u64; 3] = [0x2d35_8dcc_aa6c_78a5, 0x8bb8_4b93_962e_acc9, 0x4b33_a62e_d433_d4a3];
 
 /// Equivalente do parâmetro de template `Converter` do C++: transforma o caractere antes de entrar
 /// no hash. `IS_DEFAULT` marca o `DefaultConverter`, que dispara o caminho Latin1/bytes crus.
@@ -81,162 +81,24 @@ pub fn compute_literal_hash_and_mask_top8_bits<T: CharType>(characters: &[T]) ->
     compute_hash_and_mask_top8_bits::<T>(characters)
 }
 
-fn rapid_mul128(a: u64, b: u64) -> (u64, u64) {
-    let r = (a as u128) * (b as u128);
-    (r as u64, (r >> 64) as u64)
-}
-
-fn rapid_mix(a: u64, b: u64) -> u64 {
-    let (lo, hi) = rapid_mul128(a, b);
-    lo ^ hi
-}
-
-/// Núcleo do rapidhash com leitores por índice.
-/// `read64(off)` lê 8 bytes, `read32(off)` lê 4 bytes, `read_small(off, k)` lê 1 a 3 bytes.
-fn rapidhash_impl(
-    len: usize,
-    read64: &dyn Fn(usize) -> u64,
-    read32: &dyn Fn(usize) -> u64,
-    read_small: &dyn Fn(usize, usize) -> u64,
-) -> u64 {
-    let mut seed = rapid_mix(SECRET[0], SECRET[1]) ^ (len as u64);
-    let a: u64;
-    let b: u64;
-
-    if len <= 16 {
-        if len >= 4 {
-            let delta = if len >= 8 { 4 } else { 0 };
-            a = (read32(0) << 32) | read32(len - 4);
-            b = (read32(delta) << 32) | read32(len - 4 - delta);
-        } else if len > 0 {
-            a = read_small(0, len);
-            b = 0;
-        } else {
-            a = 0;
-            b = 0;
-        }
-    } else {
-        let mut i = len;
-        let mut off = 0usize;
-        if i > 48 {
-            let mut see1 = seed;
-            let mut see2 = seed;
-            loop {
-                seed = rapid_mix(read64(off) ^ SECRET[0], read64(off + 8) ^ seed);
-                see1 = rapid_mix(read64(off + 16) ^ SECRET[1], read64(off + 24) ^ see1);
-                see2 = rapid_mix(read64(off + 32) ^ SECRET[2], read64(off + 40) ^ see2);
-                off += 48;
-                i -= 48;
-                if i < 48 {
-                    break;
-                }
-            }
-            seed ^= see1 ^ see2;
-        }
-        if i > 16 {
-            seed = rapid_mix(read64(off) ^ SECRET[2], read64(off + 8) ^ seed ^ SECRET[1]);
-            if i > 32 {
-                seed = rapid_mix(read64(off + 16) ^ SECRET[2], read64(off + 24) ^ seed);
-            }
-        }
-
-        a = read64(off + i - 16);
-        b = read64(off + i - 8);
-    }
-
-    let a = a ^ SECRET[1];
-    let b = b ^ seed;
-    let (a_lo, a_hi) = rapid_mul128(a, b);
-    rapid_mix(a_lo ^ SECRET[0] ^ (len as u64), a_hi ^ SECRET[1])
-}
-
-/// Despacho do `RapidHash::rapidhash`:
-/// - 1 byte por caractere: cada byte é `fold_byte(c)`;
+/// Despacho do `RapidHash::rapidhash`, com a semente do WebKit:
+/// - 1 byte por caractere: cada byte é o caractere truncado;
 /// - 2 bytes com `DefaultConverter`: se tudo é Latin1, um byte por caractere (o byte baixo); senão
 ///   os `2N` bytes little-endian crus;
-/// - 2 bytes com conversor próprio: sempre um byte por caractere.
+/// - 2 bytes com conversor próprio: sempre um byte por caractere, o OR-fold `(conv & 0xFF) | (conv >> 8)`.
 fn rapidhash<T: CharType, C: Converter>(data: &[T]) -> u64 {
+    let unit = |index: usize| -> u32 { data[index].into() };
     if T::SIZE == 2 && C::IS_DEFAULT && !data.iter().all(|c| Into::<u32>::into(*c) <= 0xFF) {
-        return rapidhash_raw_bytes(data);
+        return rapidhash_by(WEBKIT_SEED, 2 * data.len(), |index| (unit(index >> 1) >> (8 * (index & 1))) as u8);
     }
-    rapidhash_one_byte_per_char::<T, C>(data)
-}
-
-/// Um byte por caractere. Com `DefaultConverter` é o truncamento simples; com conversor próprio
-/// é o OR-fold `(conv & 0xFF) | (conv >> 8)`.
-fn rapidhash_one_byte_per_char<T: CharType, C: Converter>(data: &[T]) -> u64 {
-    let fold_byte = |idx: usize| -> u8 {
-        let value: u32 = data[idx].into();
+    rapidhash_by(WEBKIT_SEED, data.len(), |index| {
         if C::IS_DEFAULT {
-            value as u8
+            unit(index) as u8
         } else {
-            let conv = C::convert(value as u16);
+            let conv = C::convert(unit(index) as u16);
             ((conv & 0xFF) | (conv >> 8)) as u8
         }
-    };
-
-    let read64 = |off: usize| -> u64 {
-        let mut result = 0u64;
-        for i in 0..8 {
-            result |= (fold_byte(off + i) as u64) << (i * 8);
-        }
-        result
-    };
-
-    let read32 = |off: usize| -> u64 {
-        let mut result = 0u64;
-        for i in 0..4 {
-            result |= (fold_byte(off + i) as u64) << (i * 8);
-        }
-        result
-    };
-
-    let read_small = |off: usize, k: usize| -> u64 {
-        ((fold_byte(off) as u64) << 56)
-            | ((fold_byte(off + (k >> 1)) as u64) << 32)
-            | (fold_byte(off + k - 1) as u64)
-    };
-
-    rapidhash_impl(data.len(), &read64, &read32, &read_small)
-}
-
-/// Os `2N` bytes little-endian de um buffer de 16 bits. Só entra quando há ao menos um caractere
-/// fora do Latin1.
-fn rapidhash_raw_bytes<T: CharType>(data: &[T]) -> u64 {
-    let byte_length = 2 * data.len();
-
-    let read_byte = |bi: usize| -> u8 {
-        let c: u32 = data[bi >> 1].into();
-        if bi & 1 != 0 {
-            (c >> 8) as u8
-        } else {
-            c as u8
-        }
-    };
-
-    let read64 = |off: usize| -> u64 {
-        let mut r = 0u64;
-        for i in 0..8 {
-            r |= (read_byte(off + i) as u64) << (i * 8);
-        }
-        r
-    };
-
-    let read32 = |off: usize| -> u64 {
-        let mut r = 0u64;
-        for i in 0..4 {
-            r |= (read_byte(off + i) as u64) << (i * 8);
-        }
-        r
-    };
-
-    let read_small = |off: usize, k: usize| -> u64 {
-        ((read_byte(off) as u64) << 56)
-            | ((read_byte(off + (k >> 1)) as u64) << 32)
-            | (read_byte(off + k - 1) as u64)
-    };
-
-    rapidhash_impl(byte_length, &read64, &read32, &read_small)
+    })
 }
 
 #[cfg(test)]
@@ -276,6 +138,15 @@ mod tests {
             compute_literal_hash_and_mask_top8_bits::<u8>(b"length"),
             compute_hash_and_mask_top8_bits::<u8>(b"length")
         );
+    }
+
+    /// O texto de 16 bits do caminho padrão é o mesmo hash de texto do WTF que o `ul_common` dá.
+    #[test]
+    fn default_converter_is_the_wtf_text_hash() {
+        for text in ["", "a", "length", "ação", "中文", "😀 emoji"] {
+            let units: Vec<u16> = text.encode_utf16().collect();
+            assert_eq!(compute_hash_and_mask_top8_bits::<u16>(&units), ul_common::hash::rapidhash::wtf_string_hash(WEBKIT_SEED, &units), "{text}");
+        }
     }
 
     #[test]
