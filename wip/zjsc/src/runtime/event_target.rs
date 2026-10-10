@@ -230,7 +230,7 @@ pub(crate) fn create_message_event(global_object: &JSGlobalObject, data: JSValue
     let Some(structure) = structure else { return Err(Thrown::Unported("MessageEvent sem instalação no realm")) };
     let mut state = EventState::new("message".encode_utf16().collect(), false, false, false, None, true);
     state.class = "MessageEvent";
-    state.fields = vec![data, string_value(global_object, &[]), string_value(global_object, &[]), js_null(), frozen_array(global_object, ports)];
+    state.fields = vec![data, string_value(global_object, &[]), string_value(global_object, &[]), js_null(), frozen_array(global_object, ports)?];
     Ok(build_event(global_object, &structure, state))
 }
 
@@ -384,6 +384,10 @@ fn construct_event_of(global_object: &JSGlobalObject, call: &HostCall, custom: b
     }
     let kind = kind_argument(global_object, call.argument(0))?;
     let options = call.argument(1);
+    // Medido no bun 1.4.2: o `CustomEvent` não acrescenta o ` Received ...` ao texto do `Event`.
+    if custom && !(options.is_undefined_or_null() || options.is_object()) {
+        return Err(throw_coded_type_error(global_object, "The \"options\" argument must be of type object.", "ERR_INVALID_ARG_TYPE"));
+    }
     check_options(global_object, options)?;
     let bubbles = option_flag(global_object, options, "bubbles")?;
     let cancelable = option_flag(global_object, options, "cancelable")?;
@@ -545,22 +549,30 @@ fn read_extra_fields(global_object: &JSGlobalObject, options: JSValue, class: &s
                     &format!("MessageEvent constructor: Expected eventInitDict.source (\"{shown}\") to be an instance of MessagePort."),
                 ));
             }
-            Ok(vec![data, origin, last_event_id, if source.is_undefined() { js_null() } else { source }, frozen_array(global_object, &port_list)])
+            Ok(vec![data, origin, last_event_id, if source.is_undefined() { js_null() } else { source }, frozen_array(global_object, &port_list)?])
         }
         // code, reason, wasClean.
         _ => {
             let code = init_unsigned(global_object, options, "code", 16)?;
-            let reason = init_string(global_object, options, "reason")?;
+            // Medido no bun 1.4.2: o `reason` símbolo do `CloseEvent` lança o texto do `String(símbolo)` do JS, não o do
+            // conversor nativo que os outros eventos usam (`Cannot convert a symbol to a string`).
+            let reason = init_member(global_object, options, "reason")?;
+            if reason.is_symbol() {
+                return Err(Thrown::TypeError("Cannot convert a Symbol value to a string".to_string()));
+            }
+            let reason = string_of(global_object, reason)?;
             let was_clean = boolean(init_member(global_object, options, "wasClean")?.to_boolean());
             Ok(vec![was_clean, code, reason])
         }
     }
 }
 
-fn frozen_array(global_object: &JSGlobalObject, elements: &[JSValue]) -> JSValue {
+/// O array congelado como o `Object.freeze` do JS (o `length` também fica só de leitura, e `Object.isFrozen` é `true`,
+/// medido no bun 1.4.2 com o `ports` de `new MessageEvent('x')`); o `freeze` de baixo nível deixa o `length` gravável.
+fn frozen_array(global_object: &JSGlobalObject, elements: &[JSValue]) -> Result<JSValue, Thrown> {
     let array = construct_array(global_object.vm(), &global_object.array_structure(), elements);
-    array.freeze(global_object.vm());
-    array.as_value()
+    crate::runtime::object_constructor::object_constructor_freeze(global_object, &array)?;
+    Ok(array.as_value())
 }
 
 /// `new ErrorEvent(type, init)`, `new MessageEvent(type, init)` e `new CloseEvent(type, init)`.
@@ -570,7 +582,11 @@ fn construct_extra_event(global_object: &JSGlobalObject, call: &HostCall, class:
     }
     let kind = kind_argument(global_object, call.argument(0))?;
     let options = call.argument(1);
-    check_options(global_object, options)?;
+    // Medido no bun 1.4.2: `ErrorEvent`, `MessageEvent` e `CloseEvent` recusam o `init` que não é objeto com o
+    // `TypeError` genérico do conversor de dicionário (`Type error`, sem `code`).
+    if !(options.is_undefined_or_null() || options.is_object()) {
+        return Err(Thrown::TypeError("Type error".to_string()));
+    }
     let bubbles = option_flag(global_object, options, "bubbles")?;
     let cancelable = option_flag(global_object, options, "cancelable")?;
     let composed = option_flag(global_object, options, "composed")?;
@@ -832,7 +848,15 @@ fn same_listener(a: &Listener, b: &Listener) -> bool {
 }
 
 fn event_target_add_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    add_listener_to(global_object, call, call.this_value())
+    add_listener_to(global_object, call, prototype_target(global_object, call))
+}
+
+/// O alvo dos métodos de `EventTarget.prototype`: o `this`, ou o `globalThis` (que é um `EventTarget`) quando o `this`
+/// é `null` ou `undefined`, como no bun 1.4.2 (`addEventListener.call(null)` é `Not enough arguments`, e
+/// `dispatchEvent.call(null, new Event('a'))` despacha no global).
+fn prototype_target(global_object: &JSGlobalObject, call: &HostCall) -> JSValue {
+    let this = call.this_value();
+    if this.is_undefined_or_null() { global_target(global_object) } else { this }
 }
 
 fn add_listener_to(global_object: &JSGlobalObject, call: &HostCall, target: JSValue) -> HostResult {
@@ -857,7 +881,7 @@ fn add_listener_to(global_object: &JSGlobalObject, call: &HostCall, target: JSVa
 }
 
 fn event_target_remove_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    remove_listener_from(global_object, call, call.this_value())
+    remove_listener_from(global_object, call, prototype_target(global_object, call))
 }
 
 fn remove_listener_from(global_object: &JSGlobalObject, call: &HostCall, target: JSValue) -> HostResult {
@@ -919,7 +943,7 @@ fn invoke(global_object: &JSGlobalObject, target: JSValue, event: JSValue, liste
 }
 
 fn event_target_dispatch_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    dispatch_event_on(global_object, call, call.this_value())
+    dispatch_event_on(global_object, call, prototype_target(global_object, call))
 }
 
 fn dispatch_event_on(global_object: &JSGlobalObject, call: &HostCall, target: JSValue) -> HostResult {
