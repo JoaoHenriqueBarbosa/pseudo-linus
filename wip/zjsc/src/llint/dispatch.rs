@@ -142,10 +142,13 @@ impl CallInfo {
 
 /// O que uma chamada devolve ao laço: o valor do callee, ou, em `op_tail_call`/`op_tail_call_varargs` para um
 /// callee de script, o frame do callee já posto no lugar do frame do chamador (o laço o executa sem crescer a
-/// pilha nativa).
+/// pilha nativa). Em cauda para um nativo, o frame do chamador já foi trocado pelo do nativo no C++, então o valor
+/// dele volta direto a quem chamou o chamador (`TailReturn`): o bytecode depois do `op_tail_call` nunca roda (o
+/// `await` que o `return` de um async generator emite depois da chamada, por exemplo).
 pub(super) enum CallOutcome {
     Value(JSValue),
     TailCall { frame: CallFrame, entry: LLIntEntry },
+    TailReturn(JSValue),
 }
 
 /// Como `dispatch_loop_from` termina sem exceção: `op_ret`, ou a troca de frame de uma chamada em cauda.
@@ -485,6 +488,7 @@ impl Interpreter {
             let value = match value {
                 CallOutcome::Value(value) => value,
                 CallOutcome::TailCall { frame, entry } => return Ok(LoopExit::TailCall { frame, entry }),
+                CallOutcome::TailReturn(value) => return Ok(LoopExit::Return(value)),
             };
             if let Some(dst) = dst {
                 call_frame.set_unchecked_r(&mut self.stack, dst, Register::from(value));
@@ -564,7 +568,10 @@ impl Interpreter {
             Some(function) if !function.is_host_function() => function,
             // handleHostCall (`getJSFunction` nulo, `InternalFunction`, `NativeExecutable`): o `CallData` do
             // valor decide entre a função nativa e o `TypeError`.
-            _ => return self.handle_host_call(callee_frame, callee_value, kind, global_object, &site, tail).map(CallOutcome::Value),
+            _ => {
+                let value = self.handle_host_call(callee_frame, callee_value, kind, global_object, &site, tail)?;
+                return Ok(if tail { CallOutcome::TailReturn(value) } else { CallOutcome::Value(value) });
+            }
         };
         // setUpCall: `createNotAConstructorError` quando `kind` é construct e o executável não constrói.
         if kind == CodeSpecializationKind::CodeForConstruct

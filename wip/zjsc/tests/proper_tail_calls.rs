@@ -128,3 +128,22 @@ fn bound_tail_call_unwraps_only_at_a_monomorphic_site() {
          var t; try { t = f(1000000); } catch (e) { t = e instanceof RangeError; } t === true"
     ));
 }
+
+// Medido no bun 1.4.2: em modo estrito o `return chamada()` de um async generator é `op_tail_call`, e o `await` que o
+// `return` emite depois nunca roda, nem quando o callee é nativo (`Promise.resolve`): o valor do resultado é a própria
+// promessa. Dentro de `try` com `finally` não há cauda e o valor é esperado. Antes a cauda para nativo seguia o
+// bytecode depois do `op_tail_call` e esperava a promessa.
+#[test]
+fn tail_call_to_a_native_returns_from_the_caller_frame() {
+    let source = "'use strict'; const out = []; \
+        const show = (tag, g) => g.next().then(() => g.next()).then((r) => out.push(tag + '=' + (r.value instanceof Promise ? 'promise' : r.value))); \
+        const o = { m() { return Promise.resolve('V'); } }; \
+        const cases = [['method', async function* () { yield 0; return Promise.resolve('V'); }], \
+          ['js', async function* () { yield 0; return o.m(); }], \
+          ['fin', async function* () { try { yield 0; } finally { return Promise.resolve('V'); } }], \
+          ['try_fin', async function* () { try { yield 0; return Promise.resolve('V'); } finally {} }]]; \
+        (async () => { for (const [tag, f] of cases) await show(tag, f()); globalThis.R = out.join(); })();";
+    let value = zjsc::api::eval::evaluate_named_script_result(source, "main.js", "R").expect("sem exceção");
+    let text = String::from_utf8_lossy(&value.to_wtf_string().utf8(zjsc::wtf::text::conversion_mode::ConversionMode::LenientConversion)).into_owned();
+    assert_eq!(text, "method=promise,js=promise,fin=promise,try_fin=V");
+}
