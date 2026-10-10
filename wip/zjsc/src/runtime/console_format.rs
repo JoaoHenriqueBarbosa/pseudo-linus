@@ -554,26 +554,40 @@ impl Formatter {
         Some(self.format(global_object, out, result))
     }
 
-    /// As chaves próprias enumeráveis: índices (só para objeto), nomes na ordem de criação e depois símbolos.
+    /// As chaves próprias: índices enumeráveis (só para objeto), nomes na ordem de criação e depois símbolos. Os nomes e
+    /// os símbolos incluem os não enumeráveis: o `forEachPropertyImpl` percorre a estrutura inteira (medido no bun 1.4.2,
+    /// `Object.defineProperty({}, 'x', {value: 1})` sai `{ x: 1 }`).
     fn keys(global_object: &JSGlobalObject, value: JSValue, is_array: bool) -> Option<Vec<Key>> {
         let vm = global_object.vm();
         let mut keys = Vec::new();
         for key in global_object.own_enumerable_string_keys(value).ok()? {
-            match key {
-                JsonKey::Index(index) => {
-                    if !is_array {
-                        let mut text = Vec::new();
-                        push_quoted(&mut text, &index.to_string().bytes().map(u16::from).collect::<Vec<u16>>());
-                        keys.push(Key { text, est: index.to_string().len() + 2, name: PropertyName::from_identifier(&Identifier::from_u32(vm, index)), is_tag: false, bare: false, symbol: false });
-                    }
+            if let JsonKey::Index(index) = key {
+                if !is_array {
+                    let mut text = Vec::new();
+                    push_quoted(&mut text, &index.to_string().bytes().map(u16::from).collect::<Vec<u16>>());
+                    keys.push(Key { text, est: index.to_string().len() + 2, name: PropertyName::from_identifier(&Identifier::from_u32(vm, index)), is_tag: false, bare: false, symbol: false });
                 }
-                JsonKey::Name(name) => keys.push(name_key(global_object, &name)),
             }
         }
         let object = value.as_object();
-        let symbols = own_property_keys(global_object, &object, PropertyNameMode::Symbols, DontEnumPropertiesMode::Exclude).ok()?;
+        let names = own_property_keys(global_object, &object, PropertyNameMode::Strings, DontEnumPropertiesMode::Include).ok()?;
+        for index in 0..names.length() {
+            let name = names.get_by_index(vm, index).to_wtf_string();
+            // O `length` do array não está na estrutura.
+            if name.impl_().is_some_and(|text| crate::runtime::identifier::parse_index_impl(text).is_some()) || (is_array && same_text(&wtf_string_to_units(&name), "length")) {
+                continue;
+            }
+            keys.push(name_key(global_object, &name));
+        }
+        let symbols = own_property_keys(global_object, &object, PropertyNameMode::Symbols, DontEnumPropertiesMode::Include).ok()?;
         for index in 0..symbols.length() {
-            keys.push(symbol_key(global_object, symbols.get_by_index(vm, index))?);
+            let key = symbol_key(global_object, symbols.get_by_index(vm, index))?;
+            // O `@@toStringTag` não enumerável fica de fora (ele só dá o nome antes do `{`).
+            let mut descriptor = crate::runtime::property_descriptor::PropertyDescriptor::default();
+            if key.is_tag && !(object.get_own_property_descriptor(vm, &key.name, &mut descriptor) && descriptor.enumerable()) {
+                continue;
+            }
+            keys.push(key);
         }
         Some(keys)
     }
