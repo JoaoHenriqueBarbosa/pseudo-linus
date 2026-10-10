@@ -1409,7 +1409,8 @@ impl JSObject {
                 None => break,
             }
         }
-        false
+        // A cadeia inteira falhou: o acesso nomeado da janela, se o hospedeiro instalou um neste global.
+        crate::runtime::global_named_lookup::lookup(self, property_name, slot)
     }
 
     /// `getPropertySlot(globalObject, unsigned propertyName, slot)`.

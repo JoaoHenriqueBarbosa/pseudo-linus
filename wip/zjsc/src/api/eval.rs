@@ -1675,6 +1675,29 @@ mod hidden_program_tests {
         assert!(!callback.contains("make"), "{callback}");
     }
 
+    /// O acesso nomeado da janela, com o caso medido no Chromium 154 (`<div id=h><form name=f><p id=two><p id=two>`
+    /// e `var v` com `<div id=v>`): declaração vem antes, ausente segue o `ReferenceError` e o `typeof`.
+    #[test]
+    fn global_named_lookup_answers_after_the_whole_chain() {
+        let shown = run_program(|| {
+            let (vm, global_object) = new_global_object();
+            let _finalizer = VmFinalizer::new(&vm);
+            let hook = evaluate_hidden_program(
+                &global_object,
+                "const named = { h: { localName: 'div' }, f: { localName: 'form' }, two: [1, 2], v: { localName: 'div' } }; \
+                 (function (name) { return Object.hasOwn(named, name) ? named[name] : undefined; })",
+            )
+            .unwrap_or_else(|error| panic!("prelúdio: {}", describe_exception(&error)));
+            crate::runtime::global_named_lookup::set_global_named_lookup(&global_object, hook);
+            let page = "var v = 1; let missing; try { missing = nope; } catch (e) { missing = e.name; } \
+                        [h.localName, window.f.localName, two.length, v, 'h' in window, typeof nope, missing, globalThis.toString === Object.prototype.toString].join('|')";
+            let value = evaluate(&global_object, &named_program_source(&format!("var window = globalThis; {page}"), "page.js"))
+                .unwrap_or_else(|error| panic!("página: {}", describe_exception(&error)));
+            String::from_utf8_lossy(&value.to_wtf_string().utf8(ConversionMode::LenientConversion)).into_owned()
+        });
+        assert_eq!(shown, "div|form|2|1|true|undefined|ReferenceError|true");
+    }
+
     /// O `createPrivateSymbol` do JSC entregue ao prelúdio: a chave privada não aparece para a página por nenhum
     /// caminho de enumeração nem de cópia, e o acesso por ela não passa pelas armadilhas de um Proxy.
     #[test]
