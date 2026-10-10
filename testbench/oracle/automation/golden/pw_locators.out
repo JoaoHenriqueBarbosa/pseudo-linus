@@ -1,0 +1,44 @@
+by_role-button: "Enviar"
+by_role-heading: "Olá, automação"
+by_role-checkbox: false
+by_role-link: "/second.html"
+by_label: "name"
+by_placeholder: "name"
+by_text: "dois"
+by_text-exact: "um"
+by_test_id: 0
+css-count: 3
+nth: "três"
+first-last: ["um", "três"]
+all_text_contents: ["um", "dois", "três"]
+all_inner_texts: ["um", "dois", "três"]
+filter: 1
+filter-not: 2
+chain: "dois"
+xpath: "dois"
+text-selector: 1
+locator-fill: null
+locator-value: "Cris"
+locator-click: null
+locator-out: "oi Cris"
+locator-evaluate: "title"
+locator-evaluate_all: 3
+locator-bbox: true
+locator-is_visible: true
+locator-wait_for: null
+locator-wait_for-attached-missing: !TimeoutError: Locator.wait_for: Timeout 300ms exceeded.
+expect-text: null
+expect-visible: null
+expect-hidden-fail: !AssertionError: Locator expected to be hidden
+expect-value: null
+expect-count: null
+expect-attr: null
+expect-title: null
+expect-url: null
+expect-not: null
+expect-css: null
+wait_for_selector: "JSHandle@node"
+wait_for_selector-detached: null
+wait_for_timeout: null
+strict-violation: !Error: Locator.text_content: Error: strict mode violation: locator("li") resolved to 3 elements:
+aria-snapshot: "- heading \"Olá, automação\" [level=1]\n- text: Nome\n- textbox \"Nome\":\n  - /placeho"

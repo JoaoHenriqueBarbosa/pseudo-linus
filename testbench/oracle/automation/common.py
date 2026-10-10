@@ -21,6 +21,28 @@ def serve():
     return server
 
 
+def record_pyppeteer():
+    """O pyppeteer fala WebSocket, não pipe: grava no nível da conexão dele (`Connection`), com as mesmas linhas
+    do `cdp_tee`. Só age com `CDP_TEE_LOG`."""
+    if not os.environ.get("CDP_TEE_LOG"):
+        return
+    import cdp_log
+    from pyppeteer import connection
+
+    send, receive = connection.Connection._async_send, connection.Connection._on_message
+
+    async def logged_send(self, message, callback_id):
+        cdp_log.record("out", message)
+        return await send(self, message, callback_id)
+
+    async def logged_receive(self, message):
+        cdp_log.record("in", message)
+        return await receive(self, message)
+
+    connection.Connection._async_send = logged_send
+    connection.Connection._on_message = logged_receive
+
+
 def show(value):
     if isinstance(value, (bytes, bytearray)):
         return f"<{len(value)} bytes>"

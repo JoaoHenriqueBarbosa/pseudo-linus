@@ -1,0 +1,47 @@
+version: "Chrome"
+ws-endpoint: "browser"
+goto: [200, ".0.0.1:8765/", true]
+title: "Fixture da automação"
+url: "http://127.0.0.1:8765/"
+content-head: "<!DOCTYPE html><html lang=\"en\"><head>\n  "
+evaluate: [1, "a", {"x": 1}]
+evaluate-arg: 42
+evaluate-promise: "depois"
+evaluate-throw: !ElementHandleError: Evaluation failed: Error: quebrou
+$eval: "Olá, automação"
+$$eval: ["um", "dois", "três"]
+$: true
+$-missing: null
+$$: 3
+type: null
+click: null
+out: "oi Hal"
+waitForSelector: true
+waitForFunction: true
+waitForSelector-timeout: !TimeoutError: Waiting for selector "#nao" failed: timeout 300ms exceeds.
+select: ["g"]
+focus: null
+keyboard: null
+hover: null
+setViewport: null
+viewport: {"height": 300, "width": 500}
+inner: [500, 300]
+cookies-set: null
+cookies: [["k", "v"]]
+setUserAgent: null
+ua: "PP-Teste/1.0"
+emulateMedia: null
+print: true
+screenshot: [500, 300]
+pdf: <5 bytes>
+setContent: null
+setContent-text: "novo"
+addScriptTag: true
+added: 5
+reload: 200
+goBack: null
+target: ["page", 4]
+pages: 2
+consoles: [["log", "clicado Hal"], ["warning", "aviso 1 JSHandle@object"], ["log", "clicado Hal"], ["warning", "aviso 1 JSHandle@object"]]
+errors: []
+requests: [["GET", ".0.0.1:8765/", "document"], ["GET", ".0.0.1:8765/", "document"]]

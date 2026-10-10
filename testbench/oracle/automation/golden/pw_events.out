@@ -1,0 +1,18 @@
+lifecycle: ["domcontentloaded", "load"]
+console: [["log", "clicado Eva", 2, ".0.0.1:8765/"], ["warning", "aviso 1 {a: 1}", 3, ".0.0.1:8765/"]]
+expect_console: ["error", "erro [1, 2]"]
+console-args: ["erro", [1, 2]]
+pageerror: ["assíncrono"]
+expect_response: [200, "/api.json", {"items": [1, 2, 3], "nome": "automação", "ok": true}]
+response-text: "{\"ok\": true, \"items\": [1, 2, 3], \"nome\": \"automação\"}\n"
+response-headers: ["content-length", "content-type"]
+request-info: ["GET", "fetch", true]
+requests: [["GET", ".0.0.1:8765/", "document", true], ["GET", "765/api.json", "fetch", false]]
+responses: [[200, ".0.0.1:8765/"], [200, "765/api.json"]]
+finished: [".0.0.1:8765/", "765/api.json"]
+dialog-result: false
+dialog: [["confirm", "certeza?"]]
+dialog-accept: true
+popup: ["/second.html", "Segunda", true]
+popup-pages: 2
+navigated: "/second.html"

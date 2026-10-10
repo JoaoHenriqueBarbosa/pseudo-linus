@@ -1,0 +1,50 @@
+eval-number: 2
+eval-string: "ab"
+eval-null: null
+eval-undefined: null
+eval-bool: true
+eval-array: [1, "x", null, [2]]
+eval-object: {"a": 1, "b": {"c": [1, 2]}}
+eval-nan: NaN
+eval-inf: Infinity
+eval-neg-zero: -0.0
+eval-bigint: 100000000000000000000
+eval-date: "1970-01-01 00:00:00+00:00"
+eval-regexp: {"r": {"f": "gi", "p": "a+"}}
+eval-map: {}
+eval-set: {}
+eval-error: "x"
+eval-typed: [1, 2, 3]
+eval-symbol: null
+eval-function: 1
+eval-promise: 7
+eval-later: "depois"
+eval-page-fn: {"items": [1, 2, 3], "nome": "automação", "ok": true}
+eval-throw: !Error: Page.evaluate: Error: quebrou
+eval-syntax: !Error: Page.evaluate: SyntaxError: Unexpected end of input
+eval-reference: !Error: Page.evaluate: ReferenceError: naoExiste is not defined
+eval-type: !Error: Page.evaluate: TypeError: Cannot read properties of null (reading 'x')
+eval-ua-has-chrome: true
+eval-webdriver: true
+eval-plugins: 5
+eval-languages: ["en-US", "en"]
+eval-location: "http://127.0.0.1:8765/"
+arg-number: 42
+arg-object: 4
+arg-list: "xy"
+arg-none: false
+arg-nan: true
+handle-tag: "BODY"
+handle-props: ["a", "b"]
+handle-json: {"a": [1, 2]}
+element-text: "Olá, automação"
+element-bbox: true
+query_all: 3
+eval_on_selector: "Olá, automação"
+eval_on_selector_all: ["um", "dois", "três"]
+eval_on_selector-missing: !Error: Page.eval_on_selector: Failed to find element matching selector "#nao"
+wait_for_function: "true"
+add_script_tag: "JSHandle@node"
+added: 5
+add_style_tag: true
+computed-color: "rgb(255, 0, 0)"
