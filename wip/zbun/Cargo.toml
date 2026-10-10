@@ -7,6 +7,7 @@ edition = "2024"
 license = "MIT"
 
 [workspace.dependencies]
+bitflags = "2"
 enum-map = "2"
 strum = { version = "0.26", features = ["derive"] }
 

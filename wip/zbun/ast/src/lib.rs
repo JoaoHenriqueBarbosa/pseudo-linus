@@ -5,13 +5,19 @@
 
 use core::fmt;
 
+pub mod base;
+pub mod g;
 pub mod new_store;
 pub mod nodes;
 pub mod op;
+pub mod symbol;
 pub mod target;
 
+pub use base::{Index, IndexInt};
+pub use g as G;
 pub use new_store::{NodeStore, Stored};
-pub use nodes::{AssignTarget, StoreRef, StoreSlice, StoreStr};
+pub use nodes::{AssignTarget, ImportItemStatus, StoreRef, StoreSlice, StoreStr};
+pub use symbol::Symbol;
 pub use target::Target;
 
 // ───────────────────────────────────────────────────────────────────────────

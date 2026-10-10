@@ -71,7 +71,10 @@ No porte, o ponteiro vira índice e a memória vira um dono explícito:
 | `bun_ast` | `nodes.rs` | parcial: `AssignTarget`, `StoreRef`, `StoreSlice`, `StoreStr` | os três `Store*` viram índices (seção "Arena tipada"); o arquivo cresce item a item |
 | `bun_ast` | `new_store.rs` | substituído | a arena de blocos do mimalloc vira `Store` com um `Vec` por tipo (`define_store!`), sem `unsafe` |
 | `bun_ast` | `lib.rs` | parcial: `RefTag`, `Ref`, `Loc`, `Range` | trecho igual ao upstream, menos `range_of_identifier`, que pede o iterador de codepoints e as tabelas de identificador do `bun_core`; o logger e `Source` entram em seguida |
-| `bun_ast` | `base.rs` | pendente | pede `symbol.rs` |
+| `bun_ast` | `base.rs` | portado | nada (cópia), menos o travessão de um comentário |
+| `bun_ast` | `symbol.rs` | parcial: `Symbol`, `SymbolFlags`, `SlotNamespace`, `Kind`, `Use` | `namespace_alias` é `Option<Box<_>>` no lugar do `AstBox`; o `Map` de duas camadas do bundler (com `unsafe`) fica fora, o transpilador usa a tabela plana |
+| `bun_ast` | `g.rs` | parcial: `NamespaceAlias` | o arquivo cresce item a item |
+| `bun_ast` | `nodes.rs` (`ImportItemStatus`) | portado | nada |
 | `bun_ast` | `loader.rs` | pendente | pede `bun_core::assert_ffi_discr!` e `bun_collections::StringArrayHashMap` |
 | `bun_core` | `comptime_string_map.rs` | portado, com os 8 testes do upstream | sem o `impl HasLength for &crate::String`, que volta com o porte de `bun_core::String` |
 | `bun_core_macros` | `comptime_string_map.rs` | portado | nada (cópia) |

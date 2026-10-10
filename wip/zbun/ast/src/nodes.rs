@@ -165,6 +165,17 @@ impl StoreStr {
 }
 
 #[repr(u8)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, strum::IntoStaticStr)]
+#[strum(serialize_all = "snake_case")]
+pub enum ImportItemStatus {
+    None,
+    /// The linker doesn't report import/export mismatch errors
+    Generated,
+    /// The printer will replace this import with "undefined"
+    Missing,
+}
+
+#[repr(u8)]
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Default, strum::IntoStaticStr)]
 #[strum(serialize_all = "snake_case")]
 pub enum AssignTarget {
