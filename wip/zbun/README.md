@@ -47,7 +47,7 @@ Estado do passo 1: feito (`import_record`, `ImportKind`, `part`, `runtime`, `ast
 169 erros de resolução antes de chegar aos tipos. O que falta, por grupo:
 
 - crates e módulos do upstream que o parser importa e o porte ainda não tem: `bun_crash_handler`, `bun_react_compiler`,
-  `bun_alloc::{ArenaVec, ArenaVecExt, arena_format, AllocError}`, `bun_collections::{VecExt, HashMap,
+  `bun_collections::{VecExt, HashMap,
   StringHashMap, StringSet, object_pool}`, `bun_ast::{Flags, fold_string_addition, RuntimeTranspilerCache,
   expr::{EFlags, Equality, LooseEql, StrictEql}}`;
 - 48 trechos `unsafe` (25 em `p.rs`, 8 em `lower/`, 5 em `visit/mod.rs`, 4 em `parse_entry.rs`, 3 em `parser.rs`,
@@ -148,7 +148,7 @@ No porte, o ponteiro vira índice e a memória vira um dono explícito:
 | `bun_core` | `util.rs`, `result.rs` e `lib.rs` | parcial: `GenericIndex`, `GenericIndexOptional`, `trim`, `impl_tag_error!`, os reexports `parse_int`, `ParseIntError` e `wtf::parse_double` | nada (cópia); `Environment` só com `IS_NATIVE = true` (o porte roda nativo) |
 | `bun_core_macros` | `lib.rs` | parcial: só os dois proc-macros do mapa | `pretty_fmt!` e os derives de contagem de referência entram quando pedidos |
 | `bun_collections` | `bit_set.rs` | parcial: `IntegerBitSet` | nada (cópia do subconjunto que o lexer usa) |
-| `bun_alloc` | `lib.rs` | parcial: `Arena` | o bump do mimalloc vira um `typed_arena` para bytes e outro para `u16`, sem `unsafe`; `alloc_slice_copy` e `alloc_slice_fill_default` |
+| `bun_alloc` | `lib.rs` | parcial: `Arena`, `ArenaVec`, `ArenaVecExt`, `ArenaString`, `arena_format!`, `vec_from_iter_in`, `AllocError`, com teste | o bump do mimalloc vira um `typed_arena` para bytes e outro para `u16`, sem `unsafe`; `ArenaVec` guarda um `Vec` comum e a arena (só tempo de vida e `bump()`); `into_bump_slice` só para `u8`/`u16`, as listas de nós vão ao `Store` por `into_vec` + `store.alloc_slice` |
 | `bun_ast` | `lexer_log.rs` | portado (cópia) | nada |
 | `bun_ast` | `lib.rs` (o `logger`) | parcial: `Kind`, `Level`, `Location`, `Data`, `Msg`, `Log`, `Path`, `Source`, `range_data`, `alloc_print` e as posições de erro | `Msg` sem `metadata`; o `Log` não tem o `LineColumnTracker` (só acelera a conta de linha, o resultado é o mesmo) nem o `tracked_range_data`, que virou a chamada direta de `range_data` (era repasse); `Span` entra em `nodes.rs` |
 | `bun_js_parser` | `lexer.rs` | portado (cópia por Bash, travessões e en dashes trocados por ferramenta), com testes dos oito casos do plano | ver "lexer.rs" abaixo |
