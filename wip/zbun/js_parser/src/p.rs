@@ -3917,19 +3917,20 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             // `&mut *scope` write below.
             debug_assert!(self.store[parent].kind == js_ast::scope::Kind::FunctionArgs);
 
-            for (key, value) in self.store[parent].members.iter() {
+            // Os membros do escopo de argumentos saem para uma lista antes: a tabela de membros mora no `Store` e
+            // lê os nomes dele, então ler um escopo e gravar no outro não coexistem.
+            let parent_members: Vec<(js_ast::StoreStr, js_ast::scope::Member)> =
+                self.store[parent].members.iter().map(|(key, value)| (key, *value)).collect();
+            let mut members = core::mem::take(&mut self.store[scope].members);
+            for (key, value) in parent_members {
                 // Don't copy down the optional function expression name. Re-declaring
                 // the name of a function expression is allowed.
-                let value = *value;
                 let adjacent_kind = self.symbols[value.ref_.inner_index() as usize].kind;
                 if adjacent_kind != js_ast::symbol::Kind::HoistedFunction {
-                    // SAFETY: `key` derefs to a slice into source text / the
-                    // lexer string-table (see `get_or_put_member_with_hash`),
-                    // both of which outlive every arena-backed `Scope`. Avoids
-                    // a per-argument `mi_heap_malloc` on every function body.
-                    unsafe { self.store[scope].members.put(key, value) };
+                    members.put(&self.store, key, value);
                 }
             }
+            self.store[scope].members = members;
         }
 
         // Remember the length in case we call popAndDiscardScope() later
