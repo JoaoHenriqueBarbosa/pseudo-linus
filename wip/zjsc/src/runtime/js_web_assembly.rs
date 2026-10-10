@@ -1008,8 +1008,14 @@ fn global_import(import: &Import, info: &ModuleInformation, value: JSValue) -> R
     Ok(ImportValue::Global(Rc::new(RefCell::new(Global::new(ty, Mutability::Immutable, bits)))))
 }
 
-/// A leitura das importações na ordem do módulo (`WebAssemblyModuleRecord::link`, modo `FromJS`).
-fn read_imports(global_object: &JSGlobalObject, info: &ModuleInformation, import_object: JSValue) -> Result<Vec<ImportValue>, Thrown> {
+/// A leitura das importações na ordem do módulo (`WebAssemblyModuleRecord::link`, modo `FromJS`). `wasm_imports`
+/// recebe, por índice no espaço de funções, o wrapper de cada função importada que já é wasm exportada.
+fn read_imports(
+    global_object: &JSGlobalObject,
+    info: &ModuleInformation,
+    import_object: JSValue,
+    wasm_imports: &mut Vec<(u32, JSValue)>,
+) -> Result<Vec<ImportValue>, Thrown> {
     let vm = global_object.vm();
     if import_object.is_undefined() {
         if !info.imports.is_empty() {
@@ -1041,6 +1047,7 @@ fn read_imports(global_object: &JSGlobalObject, info: &ModuleInformation, import
                         if target.arguments != arguments || target.returns != returns {
                             return Err(link("imported function", "signature doesn't match the provided WebAssembly function's signature"));
                         }
+                        wasm_imports.push((import.kind_index, value));
                     }
                 }
                 ImportValue::Function(host_function_for(value, arguments, returns))
@@ -1102,12 +1109,17 @@ fn construct_instance_body(global_object: &JSGlobalObject, call: &HostCall) -> H
 
 /// `WebAssemblyModuleRecord::link` + `evaluate`: lê as importações, instancia e monta o `exports`.
 fn link_instance(global_object: &JSGlobalObject, info: &Rc<ModuleInformation>, import_object: JSValue) -> Result<InstanceState, Thrown> {
-    let imports = read_imports(global_object, info, import_object)?;
+    let mut wasm_imports = Vec::new();
+    let imports = read_imports(global_object, info, import_object, &mut wasm_imports)?;
     let instance = match Instance::instantiate(Rc::clone(info), imports) {
         Ok(instance) => Rc::new(instance),
         Err(error) => return Err(wasm_error_to_thrown(global_object, error, None)),
     };
     crate::wasm::wasm_instance::register_instance(&instance);
+    // A função wasm importada é a da dona: reexportada ou lida pela tabela, é o mesmo wrapper (`i.r === a.f`).
+    for (index, wrapper) in wasm_imports {
+        set_function_wrapper(func_ref(instance.id(), index), wrapper.encode() as u64);
+    }
     let exports = create_exports_object(global_object, &instance, info)?;
     Ok(InstanceState { exports })
 }
@@ -1953,5 +1965,21 @@ mod streaming_tests {
              log.push(e.r.name, e.r.length, e.own.name, e.r());",
         );
         assert_eq!(log, r#"["",0,"1",1]"#);
+    }
+
+    /// Medido no bun 1.4.2: a função wasm importada de outra instância é a da dona, reexportada ou por `ref.func`
+    /// (`i.r === a.f`, nome "0"); só o import vindo do JS ganha wrapper novo de nome vazio.
+    #[test]
+    fn imported_wasm_function_is_the_owner_wrapper() {
+        let log = run(
+            "const prov = new Uint8Array([0,97,115,109,1,0,0,0, 1,5,1,0x60,0,1,0x7f, 3,2,1,0, 7,5,1,1,102,0,0, 10,6,1,4,0,0x41,10,0x0b]); \
+             const imp = new Uint8Array([0,97,115,109,1,0,0,0, 1,9,2,0x60,0,1,0x7f,0x60,0,1,0x70, 2,9,1,3,101,110,118,1,102,0,0, \
+               3,2,1,1, 7,10,2,1,114,0,0,2,114,102,0,1, 9,5,1,3,0,1,0, 10,6,1,4,0,0xd2,0,0x0b]); \
+             const a = new WebAssembly.Instance(new WebAssembly.Module(prov)).exports; \
+             const i = new WebAssembly.Instance(new WebAssembly.Module(imp), { env: { f: a.f } }).exports; \
+             const j = new WebAssembly.Instance(new WebAssembly.Module(imp), { env: { f: () => 3 } }).exports; \
+             log.push(i.r === a.f, i.rf() === a.f, i.r.name, j.r.name, j.r === j.rf(), j.r());",
+        );
+        assert_eq!(log, r#"[true,true,"0","",true,3]"#);
     }
 }
