@@ -1352,6 +1352,14 @@ impl EString {
 impl EString {
     pub const EMPTY: EString = EString::init(Str::EMPTY);
 
+    pub fn is_identifier(&mut self, store: &mut Store) -> bool {
+        if !self.is_utf8() {
+            return crate::lexer_tables::is_identifier_utf16(self.slice16(store));
+        }
+        let text = self.slice(store);
+        crate::lexer_tables::is_identifier(store.str(text))
+    }
+
     /// Compares two strings lexicographically for JavaScript semantics.
     /// Both strings must share the same encoding (UTF-8 vs UTF-16).
     #[inline]

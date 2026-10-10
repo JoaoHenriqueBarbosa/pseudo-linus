@@ -5,7 +5,11 @@
 pub mod comptime_string_map;
 pub mod fmt;
 pub mod generic_index;
+pub mod identifier;
+pub mod lexer_tables;
 pub mod strings;
+
+pub use strings::CodePoint;
 
 pub use generic_index::{GenericIndex, GenericIndexInt, GenericIndexOptional};
 

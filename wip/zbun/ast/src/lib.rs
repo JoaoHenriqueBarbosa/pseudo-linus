@@ -58,6 +58,7 @@ pub mod binding;
 pub mod e;
 pub mod expr;
 pub mod g;
+pub mod lexer_tables;
 pub mod loader;
 pub mod new_store;
 pub mod nodes;
