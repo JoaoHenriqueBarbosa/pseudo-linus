@@ -299,6 +299,7 @@ pub mod throw_scope;
 pub mod batched_transition_optimizer;
 pub mod exception;
 pub mod stack_frame;
+pub mod dynamic_code_guard;
 pub mod v8_stack;
 pub mod js_call_site;
 pub mod call_site_prototype;

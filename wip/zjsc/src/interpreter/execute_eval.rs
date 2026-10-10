@@ -271,6 +271,7 @@ impl Interpreter {
         tainted_origin: SourceTaintedOrigin,
         eval_origin: Option<String>,
     ) -> LLIntResult<JSValue> {
+        let x = crate::runtime::dynamic_code_guard::guard_eval(global_object, x).map_err(|()| LLIntFailure::Thrown)?;
         if !x.is_string() {
             return Ok(x);
         }
