@@ -330,8 +330,8 @@ class Element extends Node {
     return root;
   }
   // No elemento raiz, client* é a janela (sem barra de rolagem: o headless não desenha nenhuma).
-  get clientWidth() { if (this === document.documentElement) return VIEWPORT.width; const b = boxOf(this); return b ? Math.round(b.width - b.border[1] - b.border[3]) : 0; }
-  get clientHeight() { if (this === document.documentElement) return VIEWPORT.height; const b = boxOf(this); return b ? Math.round(b.height - b.border[0] - b.border[2]) : 0; }
+  get clientWidth() { if (this === document.documentElement) return VIEWPORT.width; const b = boxOf(this); return b ? Math.round(b.width - b.border[1] - b.border[3] - b.scrollbar[0]) : 0; }
+  get clientHeight() { if (this === document.documentElement) return VIEWPORT.height; const b = boxOf(this); return b ? Math.round(b.height - b.border[0] - b.border[2] - b.scrollbar[1]) : 0; }
   get clientTop() { const b = boxOf(this); return b ? Math.round(b.border[0]) : 0; }
   get clientLeft() { const b = boxOf(this); return b ? Math.round(b.border[3]) : 0; }
   get offsetWidth() { const b = boxOf(this); return b ? Math.round(b.width) : 0; }
@@ -398,7 +398,7 @@ tag(DOMRect, 'DOMRect');
 const boxOf = (el) => {
   if (!el.isConnected) return null;
   const v = op('box', idOf(el));
-  return v && { x: v[0], y: v[1], width: v[2], height: v[3], border: v.slice(4, 8), padding: v.slice(8, 12) };
+  return v && { x: v[0], y: v[1], width: v[2], height: v[3], border: v.slice(4, 8), padding: v.slice(8, 12), scrollbar: v.slice(12, 14) };
 };
 
 // Reflexão de atributos: propriedade <-> atributo, com o tipo do valor.

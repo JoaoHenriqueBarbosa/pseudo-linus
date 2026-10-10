@@ -396,7 +396,21 @@ function afterRemove(node) {
   walk(node);
 }
 
+// A imagem cuja `src` a página define é buscada (conectada ou não, como no Chromium) e dispara `load` ou `error`
+// quando a resposta chega; a última `src` vence.
+function loadImage(img, src) {
+  const url = src === '' ? '' : resolveUrl(src);
+  hidden(img, '__imageUrl', url);
+  setTimeout(() => {
+    if (img[P.__imageUrl] !== url) return;
+    const result = url === '' ? null : netFetch('GET', url, [], null);
+    const ok = result !== null && result[0] >= 200 && result[0] < 300;
+    img.dispatchEvent(new Event(ok ? 'load' : 'error'));
+  }, NETWORK_LATENCY_MS);
+}
+
 function attributeChanged(el, name, oldValue, newValue) {
+  if (name === 'src' && el.localName === 'img' && el.namespaceURI === HTML_NS && newValue !== null) loadImage(el, newValue);
   mutationHook.record({ type: 'attributes', target: el, attributeName: name, oldValue });
   const def = customByCtor.get(el.constructor);
   if (def && def.observed.has(name) && typeof el.attributeChangedCallback === 'function') invokeReaction(() => el.attributeChangedCallback(name, oldValue, newValue));

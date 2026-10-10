@@ -39,8 +39,9 @@ pub fn parse_at(html: &str, base_url: &str) -> BaseDocument {
 }
 
 /// A caixa de `id` em coordenadas da janela, depois de estilo e layout: `[x, y, largura, altura]` da caixa de borda
-/// e as bordas e preenchimentos (`[topo, direita, base, esquerda]` de cada). `None` para nó que não é elemento.
-pub fn layout_box(doc: &mut BaseDocument, id: NodeId) -> Option<[f64; 12]> {
+/// e as bordas e preenchimentos (`[topo, direita, base, esquerda]` de cada), e por fim a largura da barra vertical e
+/// a altura da horizontal. `None` para nó que não é elemento.
+pub fn layout_box(doc: &mut BaseDocument, id: NodeId) -> Option<[f64; 14]> {
     doc.resolve(0.0);
     let node = doc.get_node(id)?;
     if !node.is_element() {
@@ -70,6 +71,8 @@ pub fn layout_box(doc: &mut BaseDocument, id: NodeId) -> Option<[f64; 12]> {
         f64::from(p.right),
         f64::from(p.bottom),
         f64::from(p.left),
+        f64::from(layout.scrollbar_size.width),
+        f64::from(layout.scrollbar_size.height),
     ])
 }
 

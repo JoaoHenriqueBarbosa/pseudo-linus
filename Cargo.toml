@@ -66,3 +66,6 @@ tracking-allocator = { path = "vendor/tracking-allocator" }
 # blitz-dom 0.3.0-beta.2 vendorizado: o `:defined` dele é sempre falso. No Chromium só o custom
 # element ainda sem upgrade fica de fora; o upgrade liga o ElementState::DEFINED pela ponte.
 blitz-dom = { path = "vendor/blitz-dom" }
+# stylo_taffy 0.3.0-beta.2 vendorizado: a barra de rolagem dele tem 0px e `overflow: auto` vira `scroll`. O Chromium
+# reserva 15px só em `overflow: scroll` (`auto` sem transbordo não tem barra).
+stylo_taffy = { path = "vendor/stylo_taffy" }
