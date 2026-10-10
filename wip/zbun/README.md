@@ -29,6 +29,8 @@ texto e o mesmo mapa de posições do bun. A decisão e a medição que a susten
 | `bun_ast` | `op.rs` | portado | nada (cópia) |
 | `bun_ast` | `target.rs` | portado | nada (cópia) |
 | `bun_ast` | `nodes.rs` | parcial: `AssignTarget` | o arquivo cresce item a item, na ordem em que os outros módulos pedem |
+| `bun_ast` | `lib.rs` | parcial: `RefTag` e `Ref` | trecho igual ao upstream; o resto do arquivo (logger, `Source`, `Range`, `Loc`) entra em seguida |
+| `bun_ast` | `base.rs` | pendente | pede `symbol.rs` |
 | `bun_ast` | `loader.rs` | pendente | pede `bun_core::assert_ffi_discr!` e `bun_collections::StringArrayHashMap` |
 | `bun_core` | `comptime_string_map.rs` | portado, com os 8 testes do upstream | sem o `impl HasLength for &crate::String`, que volta com o porte de `bun_core::String` |
 | `bun_core_macros` | `comptime_string_map.rs` | portado | nada (cópia) |
