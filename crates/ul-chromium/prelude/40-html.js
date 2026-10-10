@@ -381,6 +381,7 @@ function afterInsert(node) {
     if (def && !el[P.__upgraded] && connected) upgradeElement(el, def);
     else if (def && el[P.__upgraded] && connected && typeof el.connectedCallback === 'function') invokeReaction(() => el.connectedCallback());
     if (connected && el.localName === 'script') runDynamicScript(el);
+    if (connected && el.localName === 'link') loadLink(el);
     for (const child of Array.from(el.children)) walk(child);
   };
   walk(node);
@@ -394,6 +395,22 @@ function afterRemove(node) {
     for (const child of Array.from(el.children)) walk(child);
   };
   walk(node);
+}
+
+// O `<link>` que a página insere e que o Chromium busca (folha de estilo, preload, modulepreload) dispara `load` ou
+// `error` quando a resposta chega. Só a primeira inserção busca.
+function loadLink(link) {
+  if (link[P.__linkStarted]) return;
+  const rel = lower(link.getAttribute('rel') || '').split(/[ \t\n\f\r]+/);
+  const href = link.getAttribute('href');
+  if (href === null || href === '' || !rel.some((r) => r === 'stylesheet' || r === 'preload' || r === 'modulepreload')) return;
+  hidden(link, '__linkStarted', true);
+  const url = resolveUrl(href);
+  setTimeout(() => {
+    const result = netFetch('GET', url, [], null);
+    const ok = result !== null && result[0] >= 200 && result[0] < 300;
+    link.dispatchEvent(new Event(ok ? 'load' : 'error'));
+  }, NETWORK_LATENCY_MS);
 }
 
 // A imagem cuja `src` a página define é buscada (conectada ou não, como no Chromium) e dispara `load` ou `error`

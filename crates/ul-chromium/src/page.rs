@@ -70,6 +70,8 @@ pub struct Page {
     pub budget_ms: f64,
     /// A semente do `Math.random` (o `--js-flags=--random-seed` do Chromium); `None` é entropia do sistema.
     pub random_seed: Option<u64>,
+    /// Script de diagnóstico que roda antes do primeiro script da página (só a bancada usa, com `INSPECT=arquivo`).
+    pub inspector: Option<String>,
     /// Para onde vai o `console.*` da página (mudo por padrão; os testes de diagnóstico trocam).
     pub console: Rc<dyn ConsoleHost>,
 }
@@ -95,7 +97,7 @@ impl Page {
             navigation: RefCell::new(None),
             unsynced_styles: RefCell::new(Vec::new()),
         };
-        Ok(Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, console: Rc::new(SilentConsole) })
+        Ok(Page { bridge: Rc::new(bridge), budget_ms: 500.0, random_seed: None, inspector: None, console: Rc::new(SilentConsole) })
     }
 
     /// A navegação que a página pediu (`location.href = ...`) e ainda não aconteceu.
@@ -141,6 +143,11 @@ impl Page {
             runner.set_network_latency_ms(NETWORK_LATENCY_MS);
             if let Some(seed) = self.random_seed {
                 runner.set_random_seed(seed);
+            }
+            if let Some(source) = &self.inspector {
+                if let Err(error) = runner.eval(source, "inspector.js") {
+                    eprintln!("inspector: {error}");
+                }
             }
             let call = |args: &[HostArg]| {
                 let _ = runner.call_hidden(&hook, args);

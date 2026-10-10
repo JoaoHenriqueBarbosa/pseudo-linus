@@ -64,7 +64,12 @@ fn tape_fetcher(dir: &Path) -> Fetcher {
         let Some(k) = key(item["method"].as_str().unwrap(), address) else { continue };
         table.entry(k).or_insert_with(|| Rc::new(Entry { status: item["status"].as_u64().unwrap() as u16, headers, body }));
     }
+    // FETCHES=1 lista no stderr cada busca da página (diagnóstico de recurso que falta na fita).
+    let trace = std::env::var("FETCHES").is_ok();
     Rc::new(move |target: &str, spec: &ul_net::net::client::RequestSpec<'_>| {
+        if trace {
+            eprintln!("busca: {} {target}", spec.method);
+        }
         let mut current = url::parse(target, false).map_err(FetchError::InvalidUrl)?;
         let mut method = spec.method.to_owned();
         for _ in 0..=spec.max_redirects {
@@ -124,6 +129,8 @@ fn tape_page_main(ctx: &mut sysabi::Ctx, _argv: &[std::ffi::OsString]) -> i32 {
     page.budget_ms = BUDGET_MS;
     // A mesma semente do oráculo (`--js-flags=--random-seed=1` em replay-dump.sh).
     page.random_seed = Some(1);
+    // INSPECT=arquivo.js roda um script de diagnóstico antes dos da página (o caminho é visto de dentro do contêiner).
+    page.inspector = std::env::var("INSPECT").ok().and_then(|path| std::fs::read_to_string(path).ok());
     if std::env::var("CONSOLE").is_ok() {
         page.console = Rc::new(StderrConsole);
     }
