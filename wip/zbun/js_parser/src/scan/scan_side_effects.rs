@@ -1,9 +1,8 @@
 #![warn(unused_must_use)]
 use crate::p::P;
-use bun_alloc::Arena as Bump;
 use bun_ast::e::CallUnwrap;
 use bun_ast::symbol;
-use bun_ast::{self, Binding, E, Expr, ExprData, G, Op, Stmt, StmtData, StoreRef};
+use bun_ast::{self, Binding, E, Expr, ExprData, G, NodeStore as _, Op, Stmt, StmtData, Store, StoreRef};
 use bun_collections::VecExt;
 
 #[repr(u8)]
@@ -547,7 +546,7 @@ impl SideEffects {
         }
     }
 
-    fn find_identifiers(binding: Binding, decls: &mut Vec<G::Decl>) {
+    fn find_identifiers(store: &Store, binding: Binding, decls: &mut Vec<G::Decl>) {
         match binding.data {
             bun_ast::binding::Data::BIdentifier(_) => {
                 decls.push(G::Decl {
@@ -556,22 +555,23 @@ impl SideEffects {
                 });
             }
             bun_ast::binding::Data::BArray(array) => {
-                for item in array.items.slice() {
-                    Self::find_identifiers(item.binding, decls);
+                for item in &store[store[array].items] {
+                    Self::find_identifiers(store, item.binding, decls);
                 }
             }
             bun_ast::binding::Data::BObject(obj) => {
-                for item in obj.properties.slice() {
-                    Self::find_identifiers(item.value, decls);
+                for item in &store[store[obj].properties] {
+                    Self::find_identifiers(store, item.value, decls);
                 }
             }
             _ => {}
         }
     }
 
-    fn should_keep_stmts_in_dead_control_flow(stmts: bun_ast::StmtNodeList, bump: &Bump) -> bool {
-        for child in stmts.slice() {
-            if Self::should_keep_stmt_in_dead_control_flow(*child, bump) {
+    fn should_keep_stmts_in_dead_control_flow(store: &mut Store, stmts: bun_ast::StmtNodeList) -> bool {
+        for i in 0..stmts.len() {
+            let child = store[stmts][i];
+            if Self::should_keep_stmt_in_dead_control_flow(store, child) {
                 return true;
             }
         }
@@ -591,7 +591,7 @@ impl SideEffects {
     /// assign to a global variable instead.
     ///
     /// Caller is expected to first check `p.options.dead_code_elimination` so we only check it once.
-    pub(crate) fn should_keep_stmt_in_dead_control_flow(stmt: Stmt, bump: &Bump) -> bool {
+    pub(crate) fn should_keep_stmt_in_dead_control_flow(store: &mut Store, stmt: Stmt) -> bool {
         match stmt.data {
             // Omit these statements entirely
             StmtData::SEmpty(_)
@@ -603,61 +603,65 @@ impl SideEffects {
             | StmtData::SClass(_)
             | StmtData::SDebugger(_) => false,
 
-            StmtData::SLocal(mut local) => {
-                if local.kind != bun_ast::S::Kind::KVar {
+            StmtData::SLocal(local) => {
+                if store[local].kind != bun_ast::S::Kind::KVar {
                     // Omit these statements entirely
                     return false;
                 }
 
                 // Omit everything except the identifiers
+                let decls = store[local].decls;
 
                 // common case: single var foo = blah, don't need to allocate
-                if local.decls.len_u32() == 1
+                if decls.len_u32() == 1
                     && matches!(
-                        local.decls.at(0).binding.data,
+                        store[decls][0].binding.data,
                         bun_ast::binding::Data::BIdentifier(_)
                     )
                 {
-                    let prev_binding = local.decls.at(0).binding;
-                    *local.decls.mut_(0) = G::Decl {
+                    let prev_binding = store[decls][0].binding;
+                    store[decls][0] = G::Decl {
                         binding: prev_binding,
                         value: None,
                     };
                     return true;
                 }
 
-                let mut decls: Vec<G::Decl> = Vec::with_capacity(local.decls.len_u32() as usize);
-                for i in 0..(local.decls.len_u32() as usize) {
-                    let binding = local.decls.at(i).binding;
-                    Self::find_identifiers(binding, &mut decls);
+                let mut found: Vec<G::Decl> = Vec::with_capacity(decls.len());
+                for i in 0..decls.len() {
+                    let binding = store[decls][i].binding;
+                    Self::find_identifiers(store, binding, &mut found);
                 }
 
                 // Drop the statement entirely when the destructuring pattern binds no
                 // identifiers: e.g. `if (0) var []`. An empty `var;` is invalid syntax,
                 // and the printer asserts it never sees an empty decl list.
-                if decls.is_empty() {
+                if found.is_empty() {
                     return false;
                 }
 
-                local.decls = G::DeclList::move_from_list(decls);
+                let list = store.alloc_slice(found);
+                store[local].decls = list;
                 true
             }
 
             StmtData::SBlock(block) => {
-                Self::should_keep_stmts_in_dead_control_flow(block.stmts, bump)
+                let stmts = store[block].stmts;
+                Self::should_keep_stmts_in_dead_control_flow(store, stmts)
             }
 
             StmtData::STry(try_stmt) => {
-                if Self::should_keep_stmts_in_dead_control_flow(try_stmt.body, bump) {
+                let body = store[try_stmt].body;
+                if Self::should_keep_stmts_in_dead_control_flow(store, body) {
                     return true;
                 }
-                if let Some(catch_stmt) = &try_stmt.catch {
-                    if Self::should_keep_stmts_in_dead_control_flow(catch_stmt.body, bump) {
+                if let Some(catch_body) = store[try_stmt].catch.as_ref().map(|catch_stmt| catch_stmt.body) {
+                    if Self::should_keep_stmts_in_dead_control_flow(store, catch_body) {
                         return true;
                     }
                 }
-                if let Some(finally_stmt) = &try_stmt.finally {
-                    if Self::should_keep_stmts_in_dead_control_flow(finally_stmt.stmts, bump) {
+                if let Some(finally_stmts) = store[try_stmt].finally.as_ref().map(|finally_stmt| finally_stmt.stmts) {
+                    if Self::should_keep_stmts_in_dead_control_flow(store, finally_stmts) {
                         return true;
                     }
                 }
@@ -665,44 +669,51 @@ impl SideEffects {
             }
 
             StmtData::SIf(if_) => {
-                if Self::should_keep_stmt_in_dead_control_flow(if_.yes, bump) {
+                let (yes, no) = (store[if_].yes, store[if_].no);
+                if Self::should_keep_stmt_in_dead_control_flow(store, yes) {
                     return true;
                 }
-                match if_.no {
-                    Some(no) => Self::should_keep_stmt_in_dead_control_flow(no, bump),
+                match no {
+                    Some(no) => Self::should_keep_stmt_in_dead_control_flow(store, no),
                     None => false,
                 }
             }
 
             StmtData::SWhile(while_) => {
-                Self::should_keep_stmt_in_dead_control_flow(while_.body, bump)
+                let body = store[while_].body;
+                Self::should_keep_stmt_in_dead_control_flow(store, body)
             }
 
             StmtData::SDoWhile(do_while) => {
-                Self::should_keep_stmt_in_dead_control_flow(do_while.body, bump)
+                let body = store[do_while].body;
+                Self::should_keep_stmt_in_dead_control_flow(store, body)
             }
 
             StmtData::SFor(for_) => {
-                if let Some(init_) = for_.init {
-                    if Self::should_keep_stmt_in_dead_control_flow(init_, bump) {
+                let (init, body) = (store[for_].init, store[for_].body);
+                if let Some(init_) = init {
+                    if Self::should_keep_stmt_in_dead_control_flow(store, init_) {
                         return true;
                     }
                 }
-                Self::should_keep_stmt_in_dead_control_flow(for_.body, bump)
+                Self::should_keep_stmt_in_dead_control_flow(store, body)
             }
 
             StmtData::SForIn(for_) => {
-                Self::should_keep_stmt_in_dead_control_flow(for_.init, bump)
-                    || Self::should_keep_stmt_in_dead_control_flow(for_.body, bump)
+                let (init, body) = (store[for_].init, store[for_].body);
+                Self::should_keep_stmt_in_dead_control_flow(store, init)
+                    || Self::should_keep_stmt_in_dead_control_flow(store, body)
             }
 
             StmtData::SForOf(for_) => {
-                Self::should_keep_stmt_in_dead_control_flow(for_.init, bump)
-                    || Self::should_keep_stmt_in_dead_control_flow(for_.body, bump)
+                let (init, body) = (store[for_].init, store[for_].body);
+                Self::should_keep_stmt_in_dead_control_flow(store, init)
+                    || Self::should_keep_stmt_in_dead_control_flow(store, body)
             }
 
             StmtData::SLabel(label) => {
-                Self::should_keep_stmt_in_dead_control_flow(label.stmt, bump)
+                let inner = store[label].stmt;
+                Self::should_keep_stmt_in_dead_control_flow(store, inner)
             }
 
             _ => true,

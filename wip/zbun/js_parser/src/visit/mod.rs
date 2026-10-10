@@ -1714,7 +1714,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 let mut end: usize = 0;
                 for idx in 0..visited.len() {
                     let item = visited[idx];
-                    if !SideEffects::should_keep_stmt_in_dead_control_flow(item, p.arena) {
+                    if !SideEffects::should_keep_stmt_in_dead_control_flow(&mut p.store, item) {
                         continue;
                     }
 
@@ -1860,7 +1860,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         for stmt in stmts.iter().copied() {
             if is_control_flow_dead
                 && dead_code_elimination
-                && !SideEffects::should_keep_stmt_in_dead_control_flow(stmt, p.arena)
+                && !SideEffects::should_keep_stmt_in_dead_control_flow(&mut p.store, stmt)
             {
                 // Strip unnecessary statements if the control flow is dead here
                 continue;
