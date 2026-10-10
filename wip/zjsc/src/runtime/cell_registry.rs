@@ -622,6 +622,7 @@ fn reset_program_state() {
     crate::runtime::global_named_lookup::reset_for_program();
     crate::runtime::cpu_clock::reset_for_program();
     crate::parser::source_provider::reset_for_program();
+    crate::runtime::time_clamper::reset_for_program();
     crate::runtime::js_string::reset_for_program();
     crate::runtime::symbol::reset_for_program();
     crate::runtime::reg_exp::reset_for_program();
