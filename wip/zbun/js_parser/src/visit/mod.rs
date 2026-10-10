@@ -1289,7 +1289,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             },
                             bind_loc,
                         );
-                        injected.push(Stmt::assign(dot, arg_ident));
+                        injected.push(Stmt::assign(&mut self.store, dot, arg_ident));
 
                         if use_define {
                             // New symbol so renaming can't desync the field from the arg.
@@ -1342,7 +1342,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     key.loc,
                                 ),
                             };
-                            injected.push(Stmt::assign(target, init));
+                            injected.push(Stmt::assign(&mut self.store, target, init));
                         }
                         // Keep `#x;` for brand; keep decorated props for `lower_class`.
                         if is_private || prop.ts_decorators.len_u32() > 0 {

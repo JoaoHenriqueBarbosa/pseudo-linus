@@ -3535,7 +3535,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let members = &scope_ref.members;
                     let mut v = BumpVec::with_capacity_in(members.count(), arena);
                     for (k, m) in members.iter() {
-                        v.push((self.store.alloc_str(k), *m));
+                        v.push((self.store.alloc_str(self.store.str(k)), *m));
                     }
                     v
                 };
@@ -3548,10 +3548,10 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let mut symbol_idx = value.ref_.inner_index() as usize;
 
                     // `Symbol.original_name` is an arena-owned `StoreStr` valid for 'a.
-                    let name: &'a [u8] = self.symbols[symbol_idx].original_name.slice();
+                    let name: &'a [u8] = self.store.str(self.symbols[symbol_idx].original_name);
                     let mut hash: Option<u32> = None;
 
-                    if scope_parent.kind == js_ast::scope::Kind::CatchBinding
+                    if self.store[scope_parent].kind == js_ast::scope::Kind::CatchBinding
                         && self.symbols[symbol_idx].kind != js_ast::symbol::Kind::Hoisted
                     {
                         hash = Some(Scope::get_member_hash(name));
@@ -3605,7 +3605,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         if self.will_use_renamer() {
                             // `Symbol.original_name` is an arena-owned `StoreStr` valid for 'a.
                             let original_name: &'a [u8] =
-                                self.symbols[symbol_idx].original_name.slice();
+                                self.store.str(self.symbols[symbol_idx].original_name);
                             let hoisted_ref =
                                 self.new_symbol(js_ast::symbol::Kind::Hoisted, original_name);
                             // No live `&` borrow of `scope` exists here (the members
@@ -6976,7 +6976,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         name_loc,
                     );
                     let right = self.new_expr(E::Object::default(), name_loc);
-                    break 'arg_expr Expr::assign(
+                    break 'arg_expr Expr::assign(&mut self.store, 
                         Expr::init_identifier(name_ref, name_loc),
                         self.new_expr(
                             E::Binary {
@@ -7482,9 +7482,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                         // remove fields with decorators from class body. Move static members outside of class.
                         if prop.flags.contains(Flags::Property::IsStatic) {
-                            static_members.push(Stmt::assign(target, initializer));
+                            static_members.push(Stmt::assign(&mut self.store, target, initializer));
                         } else {
-                            instance_members.push(Stmt::assign(target, initializer));
+                            instance_members.push(Stmt::assign(&mut self.store, target, initializer));
                         }
                         continue;
                     }
@@ -7674,7 +7674,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
                     let lhs = self.new_expr(E::Identifier::init(class_ref), class_name.loc);
                     let rhs = self.call_runtime(stmt.loc, b"__legacyDecorateClassTS", args);
-                    stmts.push(Stmt::assign(lhs, rhs));
+                    stmts.push(Stmt::assign(&mut self.store, lhs, rhs));
 
                     self.record_usage(class_ref);
                     self.record_usage(class_ref);
@@ -9878,7 +9878,7 @@ impl LowerUsingDeclarationsContext {
                 self.has_await_using = true;
             }
             let local_kind = p.store[local].kind;
-            for decl in p.store[local].decls.slice_mut() {
+            for decl in (&mut p.store[p.store[local].decls]) {
                 if let Some(decl_value) = &mut decl.value {
                     let value_loc = decl_value.loc;
                     p.record_usage(self.stack_ref);
@@ -9957,7 +9957,7 @@ impl LowerUsingDeclarationsContext {
                     // arena-owned `StoreSlice<ClauseItem>` valid for 'a; the source
                     // slot is never read again (this whole stmt is dropped via the
                     // `continue` below): safe to `ptr::read` each item.
-                    let items = p.store[data].items.slice();
+                    let items = (&p.store[p.store[data].items]);
                     exports.reserve(items.len());
                     for item in items {
                         // SAFETY: arena-owned slot never read again (stmt dropped
@@ -9980,7 +9980,7 @@ impl LowerUsingDeclarationsContext {
                         // Writing `local.kind` inside the decls loop would alias through
                         // StoreRef DerefMut; hoist the kind write below.
                         let mut any_ident = false;
-                        for decl in p.store[local].decls.slice() {
+                        for decl in (&p.store[p.store[local].decls]) {
                             if let js_ast::b::B::BIdentifier(identifier) = decl.binding.data {
                                 let id_ref = p.store[identifier].r#ref;
                                 exports.push(js_ast::ClauseItem {

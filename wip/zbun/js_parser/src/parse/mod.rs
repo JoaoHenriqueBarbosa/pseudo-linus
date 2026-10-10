@@ -470,7 +470,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             {
                 p.lexer.next()?;
                 let rhs = p.parse_expr(Level::Comma)?;
-                item = Expr::assign(item, rhs);
+                item = Expr::assign(&mut self.store, item, rhs);
             }
 
             items_list.push(item);

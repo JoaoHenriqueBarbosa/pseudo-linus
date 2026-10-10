@@ -211,7 +211,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     /// recordUsage + Expr.assign.
     fn assign_to(&mut self, ref_: Ref, value: Expr, l: bun_ast::Loc) -> Expr {
         self.record_usage(ref_);
-        Expr::assign(
+        Expr::assign(&mut self.store, 
             self.new_expr(
                 E::Identifier {
                     ref_,
@@ -1985,7 +1985,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             for sb_ptr in extracted_static_blocks.iter_mut() {
                 // `StoreRef::DerefMut`: arena-owned, safe under the StoreRef invariant.
                 let sb = &mut self.store[*sb_ptr];
-                p.rewrite_private_accesses_in_stmts(sb.stmts.slice_mut(), &private_lowered_map);
+                p.rewrite_private_accesses_in_stmts((&mut self.store[sb.stmts]), &private_lowered_map);
             }
             for elem in static_non_field_elements.iter_mut() {
                 p.rewrite_private_accesses_in_expr(elem, &private_lowered_map);
@@ -2095,7 +2095,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     StaticElementKind::Block => {
                         // `StoreRef::DerefMut`: arena-owned, safe under the StoreRef invariant.
                         let sb = &mut self.store[extracted_static_blocks[elem.index]];
-                        let stmts_slice = sb.stmts.slice_mut();
+                        let stmts_slice = (&mut self.store[sb.stmts]);
                         p.rewrite_stmts(
                             stmts_slice,
                             RewriteKind::ReplaceThis {
@@ -2177,7 +2177,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         } else {
                             let cn_e = p.use_ref(class_name_ref, class_name_loc);
                             let assign_target = p.member_target(cn_e, &entry.prop);
-                            suffix_exprs.push(Expr::assign(assign_target, run_init_call));
+                            suffix_exprs.push(Expr::assign(&mut self.store, assign_target, run_init_call));
                         }
 
                         // Extra initializer
@@ -2263,7 +2263,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 } else {
                     let t_e = p.new_expr(E::This {}, loc);
                     let mt = p.member_target(t_e, &entry.prop);
-                    constructor_inject_stmts.push(Stmt::assign(mt, run_init_call));
+                    constructor_inject_stmts.push(Stmt::assign(&mut self.store, mt, run_init_call));
                 }
 
                 // Extra initializer
@@ -2299,7 +2299,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     js_ast::ExprData::EFunction(f) => &mut self.store[*f],
                     _ => unreachable!(),
                 };
-                let body_slice: &[Stmt] = func.func.body.stmts.slice();
+                let body_slice: &[Stmt] = (&self.store[func.func.body.stmts]);
                 let mut body_stmts = BumpVec::<Stmt>::with_capacity_in(
                     body_slice.len() + constructor_inject_stmts.len(),
                     bump,
@@ -2459,7 +2459,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                 });
                                 if let Some(val) = decl_item.value {
                                     p.record_usage(ref_);
-                                    comma_parts.push(Expr::assign(
+                                    comma_parts.push(Expr::assign(&mut self.store, 
                                         p.new_expr(
                                             E::Identifier {
                                                 ref_,

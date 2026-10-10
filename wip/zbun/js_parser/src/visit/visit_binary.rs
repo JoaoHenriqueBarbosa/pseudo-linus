@@ -118,13 +118,13 @@ impl BinaryExpressionVisitor {
 
         let is_call_target =
             matches!(p.call_target, ExprData::EBinary(ptr) if core::ptr::eq(ptr.as_ptr(), e_ptr));
-        let was_anonymous_named_expr = e_.right.is_anonymous_named();
+        let was_anonymous_named_expr = e_.right.is_anonymous_named(&p.store);
         let prev_decorator_class_name = p.decorator_class_name;
 
         // Propagate name for anonymous decorated class expressions in assignments
         if e_.op == Op::Code::BinAssign && was_anonymous_named_expr {
             if let ExprData::EClass(class) = &e_.right.data {
-                if p.store[class].should_lower_standard_decorators {
+                if p.store[*class].should_lower_standard_decorators {
                     if let ExprData::EIdentifier(ident) = e_.left.data {
                         p.decorator_class_name = Some(p.load_name_from_ref(ident.ref_));
                     }
@@ -437,16 +437,16 @@ impl BinaryExpressionVisitor {
 
                     // "(x + 'abc') + 'xyz'" => "'abcxyz'"
                     if let Some(left) = e_.left.data.e_binary() {
-                        if left.op == Op::Code::BinAdd {
+                        if p.store[left].op == Op::Code::BinAdd {
                             if let Some(result) = fold_string_addition(
-                                left.right,
+                                p.store[left].right,
                                 e_.right,
                                 p.arena,
                                 FoldStringAdditionKind::NestedLeft,
                             ) {
                                 return p.new_expr(
                                     E::Binary {
-                                        left: left.left,
+                                        left: p.store[left].left,
                                         right: result,
                                         op: Op::Code::BinAdd,
                                     },
@@ -698,9 +698,9 @@ impl BinaryExpressionVisitor {
                 // This optimization is specifically to target this pattern in HMR:
                 //    `import.meta.hot.data.etc ??= init()`
                 if let Some(dot) = e_.left.data.e_dot() {
-                    if let Some(obj) = dot.target.data.e_object() {
+                    if let Some(obj) = p.store[dot].target.data.e_object() {
                         if obj.properties.len_u32() == 0 {
-                            if dot.name != b"__proto__" {
+                            if p.store[dot].name != b"__proto__" {
                                 return e_.right;
                             }
                         }

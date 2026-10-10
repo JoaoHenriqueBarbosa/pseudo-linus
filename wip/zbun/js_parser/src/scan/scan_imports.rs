@@ -207,7 +207,7 @@ impl<'a> ImportScanner<'a> {
                         }
 
                         // Remove items if they are unused
-                        let items: &mut [js_ast::ClauseItem] = st.items.slice_mut();
+                        let items: &mut [js_ast::ClauseItem] = (&mut p.store[st.items]);
                         if !items.is_empty() {
                             found_imports = true;
                             let mut items_end: usize = 0;
@@ -276,7 +276,7 @@ impl<'a> ImportScanner<'a> {
                                 && found_imports
                                 && st.star_name_loc.is_empty()
                                 // SAFETY: arena-owned slice; see above.
-                                && st.items.slice().is_empty()
+                                && (&p.store[st.items]).is_empty()
                                 && st.default_name.is_none())
                         {
                             // internal imports are presumed to be always used
@@ -313,9 +313,8 @@ impl<'a> ImportScanner<'a> {
                             .star_name_loc
                             .to_nullable()
                             .map(|loc| (st.namespace_ref, loc));
-                        let item_bindings = st
-                            .items
-                            .slice()
+                        let item_bindings = (&p.store[st
+                            .items])
                             .iter()
                             .map(|item| (item.name.ref_, item.name.loc));
 
@@ -370,7 +369,7 @@ impl<'a> ImportScanner<'a> {
                     let existing_count = existing_items.map(|m| m.count()).unwrap_or(0);
 
                     // SAFETY: arena-owned slice; valid for AST arena lifetime.
-                    let st_items: &[js_ast::ClauseItem] = st.items.slice();
+                    let st_items: &[js_ast::ClauseItem] = (&p.store[st.items]);
 
                     if p.options.bundle {
                         if !st.star_name_loc.is_empty() && existing_count > 0 {

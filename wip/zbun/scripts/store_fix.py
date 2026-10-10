@@ -227,22 +227,30 @@ def main():
                     print(f"pulado: {name}:{line_index + 1} {kind} (store=None)")
                     continue
                 if kind == "store_arg":
-                    # `(/* &mut Store */, a, b)` -> `(&mut p.store, a, b)`. O rustc às vezes sugere também trocar a ordem
-                    # dos outros argumentos; essa sugestão não vale: só se aplica quando, sem o marcador, a lista é a
-                    # original.
-                    squeeze = lambda t: re.sub(rb"\s+", b"", t)
+                    # `(a, b)` -> `(&mut p.store, a, b)`, por inserção, e só quando o Store é o primeiro ou o último
+                    # argumento da assinatura. A sugestão do rustc também troca a ordem dos outros argumentos quando
+                    # os tipos coincidem (dois `Expr`), então ela só serve para achar a posição do marcador.
                     marker = re.search(rb"/\* &(mut )?Store \*/", member.encode()).group(0)
-                    suggestion = squeeze(member.encode())
-                    marker = squeeze(marker)
-                    without = suggestion.replace(marker + b",", b"", 1) if marker + b"," in suggestion else (
-                        suggestion.replace(b"," + marker, b"", 1) if b"," + marker in suggestion else suggestion.replace(marker, b"", 1)
-                    )
-                    if without != squeeze(data[byte_start:byte_end]):
+                    sugg_inner = member.encode()[1:-1].strip()
+                    placeholder = (b"&mut " if b"mut" in marker else b"&") + store.encode()
+                    original_inner = data[byte_start + 1 : byte_end - 1]
+                    if data[byte_start : byte_start + 1] != b"(":
                         skipped += 1
-                        print(f"pulado: {name}:{line_index + 1} store_arg com argumentos reordenados pelo rustc")
+                        print(f"pulado: {name}:{line_index + 1} store_arg sem parêntese")
                         continue
-                    text = member.replace("/* &mut Store */", f"&mut {store}").replace("/* &Store */", f"&{store}")
-                    ops.append((byte_start, byte_end - byte_start, text.encode(), 2))
+                    if not original_inner.strip():
+                        ops.append((byte_start + 1, 0, placeholder, 1))
+                    elif sugg_inner.startswith(marker):
+                        ops.append((byte_start + 1, 0, placeholder + b", ", 1))
+                    elif sugg_inner.endswith(marker):
+                        end_at = byte_end - 1
+                        while data[end_at - 1 : end_at] in (b" ", b"\t", b"\r", b"\n", b","):
+                            end_at -= 1
+                        ops.append((end_at, 0, b", " + placeholder, 1))
+                    else:
+                        skipped += 1
+                        print(f"pulado: {name}:{line_index + 1} store_arg no meio da lista")
+                        continue
                 else:
                     before = data[:byte_start].rstrip()
                     if kind == "wrap_str" and before.endswith((b"==", b"!=")):

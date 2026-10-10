@@ -163,7 +163,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // (`module_exports` builds via `new_expr`, `visit_expr` mutates parser state).
         let lhs = p.module_exports(stmt.loc);
         p.visit_expr(&mut data.value);
-        stmts.push(Stmt::assign(lhs, data.value));
+        stmts.push(Stmt::assign(&mut p.store, lhs, data.value));
         p.record_usage(p.module_ref);
         Ok(())
     }
@@ -937,7 +937,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             stmts.reserve(3);
             stmts.push(*stmt);
             let func_name = data.func.name.expect("infallible: name checked");
-            stmts.push(Stmt::assign(
+            stmts.push(Stmt::assign(&mut p.store, 
                 p.new_expr(
                     E::Dot {
                         target: Expr::init_identifier(enclosing_namespace_arg_ref, stmt.loc),
@@ -1103,7 +1103,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             let class_name_ref = class_name.ref_;
             let original_name = p.store.str(p.symbols[class_name_ref.inner_index() as usize]
                 .original_name);
-            stmts.push(Stmt::assign(
+            stmts.push(Stmt::assign(&mut p.store, 
                 p.new_expr(
                     E::Dot {
                         target: Expr::init_identifier(
@@ -1170,7 +1170,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     let lhs = Binding::to_expr(&d.binding, ctx, wrapper);
                     stmts.push(p.s(
                         S::SExpr {
-                            value: Expr::assign(lhs, val),
+                            value: Expr::assign(&mut p.store, lhs, val),
                             ..Default::default()
                         },
                         stmt.loc,
@@ -1942,11 +1942,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if local.kind == S::Kind::KVar {
                     // Lower for-in variable initializers in case the output is used in strict mode
                     if local.decls.len_u32() == 1 {
-                        let decl: &mut G::Decl = &mut local.decls.slice_mut()[0];
+                        let decl: &mut G::Decl = &mut (&mut p.store[local.decls])[0];
                         if let js_ast::binding::Data::BIdentifier(b_id) = decl.binding.data {
                             if let Some(val) = decl.value {
                                 let id_ref = p.store[b_id].r#ref;
-                                stmts.push(Stmt::assign(
+                                stmts.push(Stmt::assign(&mut p.store, 
                                     Expr::init_identifier(id_ref, decl.binding.loc),
                                     val,
                                 ));
@@ -1956,7 +1956,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
 
                     let relocate = p.maybe_relocate_vars_to_top_level(
-                        local.decls.slice(),
+                        (&p.store[local.decls]),
                         RelocateVarsMode::ForInOrForOf,
                     );
                     if let Some(relocated_stmt) = relocate.stmt {
@@ -2314,7 +2314,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
             let assign_target = if is_assign_target {
                 // "Enum.Name = value"
-                Expr::assign(
+                Expr::assign(&mut p.store, 
                     p.new_expr(
                         E::Dot {
                             target: Expr::init_identifier(data.arg, value.loc),
@@ -2328,7 +2328,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 )
             } else {
                 // "Enum['Name'] = value"
-                Expr::assign(
+                Expr::assign(&mut p.store, 
                     p.new_expr(
                         E::Index {
                             target: Expr::init_identifier(data.arg, value.loc),
@@ -2349,7 +2349,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 value_exprs.push(assign_target);
             } else {
                 // "Enum[assignTarget] = 'Name'"
-                value_exprs.push(Expr::assign(
+                value_exprs.push(Expr::assign(&mut p.store, 
                     p.new_expr(
                         E::Index {
                             target: Expr::init_identifier(data.arg, value.loc),
