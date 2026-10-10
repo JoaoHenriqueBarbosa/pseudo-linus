@@ -30,6 +30,16 @@ texto e o mesmo mapa de posições do bun. A decisão e a medição que a susten
   `AstAlloc::vec_from_slice(x)` e `AstVec::<Stmt>::from_slice(x)`/`from_arena_slice(x)` viram `<[_]>::to_vec(x)`,
   `ast_box` vira `Box::new`, e o `StringHashMap<_, AstAlloc>` perde o parâmetro. O `RawSlice` do `ExprOrLetStmt`
   vira `G::DeclList` (faixa `Copy` do `Store`), à mão.
+- Mudança sistemática no parser copiado (`js_parser/src`), o passe do Store (acessos a nó e a lista pelo `Store` do
+  `P`, no lugar do `Deref` do `StoreRef`): a parte mecânica roda por `scripts/store_fix.py`, guiada pelos diagnósticos
+  do `cargo check --message-format=json` (E0609, E0277 de índice por referência e E0599 de `slice`, `slice_mut`,
+  `iter`, `get` e `get_mut` em `StoreStr`, `StoreSlice` e `StoreRef`). Cada rodada é conferida pelo compilador e o
+  resto é à mão. O `store` é `self.store` ou `p.store`, conforme a assinatura da função que envolve o trecho.
+- `Log` e `Source` (`bun_ast::logger`) ganham as famílias `add_*` e `range_of_*` do `lib.rs` do upstream que o parser
+  chama. O upstream tem dois laços de `range_of_identifier`: o do logger (pula o escape `\u{...}` também no começo,
+  zera a largura depois dele e inclui o último ponto de código no fim do arquivo) e o do lexer, que o parser chama e
+  que não tem essas três correções. As mensagens de erro do bun saem do segundo, então os dois ficam, num laço só com
+  a diferença no parâmetro `FIXED` (`logger::range_of_identifier::<FIXED>`).
 - Dependências que o upstream resolve por FFI ou por outra crate e que aqui moram no `ul-common`, para o zjsc e o
   zbun não terem cada um a sua cópia:
   - `bun_ast::math::pow` (no upstream, a FFI `Bun__JSC__operationMathPow`) é `ul_common::libm::operation_math_pow`,

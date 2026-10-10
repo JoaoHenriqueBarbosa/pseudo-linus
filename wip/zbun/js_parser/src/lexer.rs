@@ -3358,63 +3358,9 @@ pub(crate) fn is_whitespace(codepoint: CodePoint) -> bool {
 
 pub use bun_core::identifier::{is_identifier, is_identifier_utf16};
 
+/// O laço sem a correção do escape que o lexer do upstream tem; o do logger é `Source::range_of_identifier`.
 pub fn range_of_identifier(source: &Source, loc: Loc) -> Range {
-    let contents = &source.contents;
-    if loc.start == -1 || usize::try_from(loc.start).expect("int cast") >= contents.len() {
-        return Range::NONE;
-    }
-
-    let iter = CodepointIterator::init(&contents[loc.to_usize()..]);
-    let mut cursor = strings::Cursor::default();
-
-    let mut r = Range { loc, len: 0 };
-    if iter.bytes.is_empty() {
-        return r;
-    }
-    let text = iter.bytes;
-    let end = u32::try_from(text.len()).expect("int cast");
-
-    if !iter.next(&mut cursor) {
-        return r;
-    }
-
-    // Handle private names
-    if cursor.c == 0x23 {
-        if !iter.next(&mut cursor) {
-            r.len = 1;
-            return r;
-        }
-    }
-
-    if is_identifier_start(cursor.c) || cursor.c == 0x5C {
-        while iter.next(&mut cursor) {
-            if cursor.c == 0x5C {
-                // Search for the end of the identifier
-
-                // Skip over bracketed unicode escapes such as "\u{10000}"
-                if cursor.i + 2 < end
-                    && text[cursor.i as usize + 1] == b'u'
-                    && text[cursor.i as usize + 2] == b'{'
-                {
-                    cursor.i += 2;
-                    while cursor.i < end {
-                        if text[cursor.i as usize] == b'}' {
-                            cursor.i += 1;
-                            break;
-                        }
-                        cursor.i += 1;
-                    }
-                }
-            } else if !is_identifier_continue(cursor.c) {
-                r.len = i32::try_from(cursor.i).expect("int cast");
-                return r;
-            }
-        }
-
-        r.len = i32::try_from(cursor.i).expect("int cast");
-    }
-
-    r
+    bun_ast::logger::range_of_identifier::<false>(&source.contents, loc)
 }
 
 #[inline]

@@ -318,6 +318,168 @@ impl Log {
     pub fn add_msg(&mut self, msg: Msg) {
         self.msgs.push(msg);
     }
+
+    #[inline]
+    pub fn add_debug_fmt(&mut self, source: Option<&Source>, l: Loc, args: fmt::Arguments<'_>) {
+        if !Kind::Debug.should_print(self.level) {
+            return;
+        }
+        let text = alloc_print(args);
+        self.add_formatted_msg(Kind::Debug, source, Range { loc: l, ..Default::default() }, text, Box::default(), false)
+    }
+
+    #[cold]
+    pub fn add_range_error(&mut self, source: Option<&Source>, r: Range, text: &'static [u8]) {
+        self.errors += 1;
+        let data = range_data(source, r, text);
+        self.add_msg(Msg { kind: Kind::Err, data, ..Default::default() })
+    }
+
+    #[inline]
+    pub fn add_range_error_fmt(&mut self, source: Option<&Source>, r: Range, args: fmt::Arguments<'_>) {
+        let text = alloc_print(args);
+        self.add_formatted_msg(Kind::Err, source, r, text, Box::default(), false)
+    }
+
+    #[inline]
+    pub fn add_error_fmt<'a>(&mut self, source: impl Into<Option<&'a Source>>, l: Loc, args: fmt::Arguments<'_>) {
+        let text = alloc_print(args);
+        self.add_formatted_msg(Kind::Err, source.into(), Range { loc: l, ..Default::default() }, text, Box::default(), false)
+    }
+
+    #[inline]
+    pub fn add_warning_fmt(&mut self, source: Option<&Source>, l: Loc, args: fmt::Arguments<'_>) {
+        if !Kind::Warn.should_print(self.level) {
+            return;
+        }
+        let text = alloc_print(args);
+        self.add_formatted_msg(Kind::Warn, source, Range { loc: l, ..Default::default() }, text, Box::default(), false)
+    }
+
+    #[inline]
+    pub fn add_range_warning_fmt(&mut self, source: Option<&Source>, r: Range, args: fmt::Arguments<'_>) {
+        if !Kind::Warn.should_print(self.level) {
+            return;
+        }
+        let text = alloc_print(args);
+        self.add_formatted_msg(Kind::Warn, source, r, text, Box::default(), false)
+    }
+
+    #[cold]
+    pub fn add_range_warning_fmt_with_note(
+        &mut self,
+        source: Option<&Source>,
+        r: Range,
+        args: fmt::Arguments<'_>,
+        note_args: fmt::Arguments<'_>,
+        note_range: Range,
+    ) {
+        if !Kind::Warn.should_print(self.level) {
+            return;
+        }
+        self.warnings += 1;
+        let notes: Box<[Data]> = Box::new([range_data(source, note_range, alloc_print(note_args))]);
+        let data = range_data(source, r, alloc_print(args));
+        self.add_msg(Msg { kind: Kind::Warn, data, notes, ..Default::default() })
+    }
+
+    #[inline]
+    pub fn add_range_warning_fmt_with_notes(
+        &mut self,
+        source: Option<&Source>,
+        r: Range,
+        notes: Box<[Data]>,
+        args: fmt::Arguments<'_>,
+    ) {
+        let text = alloc_print(args);
+        self.add_formatted_msg(Kind::Warn, source, r, text, notes, false)
+    }
+
+    #[cold]
+    pub fn add_range_error_fmt_with_note(
+        &mut self,
+        source: Option<&Source>,
+        r: Range,
+        args: fmt::Arguments<'_>,
+        note_args: fmt::Arguments<'_>,
+        note_range: Range,
+    ) {
+        if !Kind::Err.should_print(self.level) {
+            return;
+        }
+        self.errors += 1;
+        let notes: Box<[Data]> = Box::new([range_data(source, note_range, alloc_print(note_args))]);
+        let data = range_data(source, r, alloc_print(args));
+        self.add_msg(Msg { kind: Kind::Err, data, notes, ..Default::default() })
+    }
+
+    #[cold]
+    pub fn add_warning(&mut self, source: Option<&Source>, l: Loc, text: &'static [u8]) {
+        if !Kind::Warn.should_print(self.level) {
+            return;
+        }
+        self.warnings += 1;
+        let data = range_data(source, Range { loc: l, ..Default::default() }, text);
+        self.add_msg(Msg { kind: Kind::Warn, data, ..Default::default() })
+    }
+
+    #[cold]
+    pub fn add_warning_with_note(&mut self, source: Option<&Source>, l: Loc, warn: &'static [u8], note_args: fmt::Arguments<'_>) {
+        if !Kind::Warn.should_print(self.level) {
+            return;
+        }
+        self.warnings += 1;
+        let notes: Box<[Data]> =
+            Box::new([range_data(source, Range { loc: l, ..Default::default() }, alloc_print(note_args))]);
+        let data = range_data(None, Range::NONE, warn);
+        self.add_msg(Msg { kind: Kind::Warn, data, notes, ..Default::default() })
+    }
+
+    #[cold]
+    pub fn add_range_debug(&mut self, source: Option<&Source>, r: Range, text: &'static [u8]) {
+        if !Kind::Debug.should_print(self.level) {
+            return;
+        }
+        let data = range_data(source, r, text);
+        self.add_msg(Msg { kind: Kind::Debug, data, ..Default::default() })
+    }
+
+    #[inline]
+    pub fn add_range_error_with_notes(&mut self, source: Option<&Source>, r: Range, text: impl IntoText, notes: Box<[Data]>) {
+        self.add_range_error_with_notes_text(source, r, text.into_text(), notes)
+    }
+
+    #[cold]
+    fn add_range_error_with_notes_text(&mut self, source: Option<&Source>, r: Range, text: Cow<'static, [u8]>, notes: Box<[Data]>) {
+        self.errors += 1;
+        let data = range_data(source, r, text);
+        self.add_msg(Msg { kind: Kind::Err, data, notes, ..Default::default() })
+    }
+
+    /// Generic only over the text conversion; the body is shared so each `&[u8; N]` literal length does not get its
+    /// own copy.
+    #[inline]
+    pub fn add_error(&mut self, source: Option<&Source>, loc: Loc, text: impl IntoText) {
+        self.add_error_text(source, loc, text.into_text());
+    }
+
+    #[cold]
+    fn add_error_text(&mut self, source: Option<&Source>, loc: Loc, text: Cow<'static, [u8]>) {
+        self.errors += 1;
+        let data = range_data(source, Range { loc, ..Default::default() }, text);
+        self.add_msg(Msg { kind: Kind::Err, data, ..Default::default() })
+    }
+
+    pub fn add_symbol_already_declared_error(&mut self, source: &Source, name: &[u8], new_loc: Loc, old_loc: Loc) {
+        let note_text = alloc_print(format_args!("\"{}\" was originally declared here", bstr::BStr::new(name)));
+        let notes: Box<[Data]> = Box::new([range_data(Some(source), source.range_of_identifier(old_loc), note_text)]);
+        self.add_range_error_fmt_with_notes(
+            Some(source),
+            source.range_of_identifier(new_loc),
+            notes,
+            format_args!("\"{}\" has already been declared", bstr::BStr::new(name)),
+        )
+    }
 }
 
 #[derive(Clone, Copy, Default)]
@@ -339,6 +501,70 @@ pub fn alloc_print(args: fmt::Arguments<'_>) -> Cow<'static, [u8]> {
 #[inline]
 pub fn range_data(source: Option<&Source>, r: Range, text: impl IntoText) -> Data {
     Data { text: text.into_text(), location: Location::init_or_null(source, r) }
+}
+
+/// O identificador que começa em `loc`, nos dois laços que o upstream tem: o do logger (`FIXED`, que pula o escape
+/// `\u{...}` também no começo, zera a largura depois dele e inclui o último ponto de código no fim do arquivo) e o do
+/// lexer (`!FIXED`), que o parser chama. A diferença é de comportamento medido no upstream, então vira parâmetro em vez
+/// de segunda cópia (README, "logger").
+pub fn range_of_identifier<const FIXED: bool>(contents: &[u8], loc: Loc) -> Range {
+    if loc.start < 0 || (loc.start as usize) >= contents.len() {
+        return Range::NONE;
+    }
+    let text = &contents[loc.start as usize..];
+    let mut r = Range { loc, len: 0 };
+    if text.is_empty() {
+        return r;
+    }
+    let end = text.len() as u32;
+
+    let iter = CodepointIterator::init(text);
+    let mut cursor = Cursor::default();
+    if !iter.next(&mut cursor) {
+        return r;
+    }
+
+    // Handle private names
+    if cursor.c == '#' as i32 && !iter.next(&mut cursor) {
+        r.len = 1;
+        return r;
+    }
+
+    // Skip over bracketed unicode escapes such as "\u{10000}".
+    let skip_bracketed_escape = |cursor: &mut Cursor| {
+        if cursor.i + 2 < end && text[cursor.i as usize + 1] == b'u' && text[cursor.i as usize + 2] == b'{' {
+            cursor.i += 2;
+            while cursor.i < end {
+                if text[cursor.i as usize] == b'}' {
+                    cursor.i += 1;
+                    break;
+                }
+                cursor.i += 1;
+            }
+            if FIXED {
+                cursor.width = 0;
+            }
+        }
+    };
+
+    if bun_core::identifier::is_identifier_start(cursor.c) || cursor.c == '\\' as i32 {
+        if FIXED && cursor.c == '\\' as i32 {
+            skip_bracketed_escape(&mut cursor);
+        }
+        while iter.next(&mut cursor) {
+            if cursor.c == '\\' as i32 {
+                skip_bracketed_escape(&mut cursor);
+            } else if !crate::lexer_tables::is_identifier_continue(cursor.c) {
+                r.len = i32::try_from(cursor.i).expect("int cast");
+                return r;
+            }
+        }
+
+        // EOF dentro do identificador: o cursor guarda o deslocamento e a largura do último ponto de código lido.
+        r.len = i32::try_from(if FIXED { cursor.i + cursor.width as u32 } else { cursor.i }).expect("int cast");
+    }
+
+    r
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -511,6 +737,56 @@ impl Source {
             AddErrorOptions { source: Some(self), loc: Loc::EMPTY, len: 0, redact_sensitive_information: false },
         );
         Err(SourceTooLarge)
+    }
+
+    /// O identificador que começa em `loc`. É o `range_of_identifier` do logger do upstream, com a correção dos
+    /// escapes `\u{...}` (README, "logger"); o do lexer, que o parser chama, é o mesmo laço sem ela.
+    pub fn range_of_identifier(&self, loc: Loc) -> Range {
+        range_of_identifier::<true>(&self.contents, loc)
+    }
+
+    pub fn text_for_range(&self, r: Range) -> &[u8] {
+        &self.contents[r.loc.i()..r.end_i()]
+    }
+
+    pub fn range_of_operator_before(&self, loc: Loc, op: &[u8]) -> Range {
+        let text = &self.contents[0..loc.i()];
+        if let Some(index) = bun_core::strings::last_index_of(text, op) {
+            return Range { loc: crate::usize2loc(index), len: i32::try_from(op.len()).expect("int cast") };
+        }
+
+        Range { loc, ..Default::default() }
+    }
+
+    pub fn range_of_string(&self, loc: Loc) -> Range {
+        if loc.start < 0 {
+            return Range::NONE;
+        }
+
+        let text = &self.contents[loc.i()..];
+
+        if text.is_empty() {
+            return Range::NONE;
+        }
+
+        let quote = text[0];
+
+        if quote == b'"' || quote == b'\'' {
+            let mut i: usize = 1;
+            let mut c: u8;
+            while i < text.len() {
+                c = text[i];
+
+                if c == quote {
+                    return Range { loc, len: i32::try_from(i + 1).expect("int cast") };
+                } else if c == b'\\' {
+                    i += 1;
+                }
+                i += 1;
+            }
+        }
+
+        Range { loc, len: 0 }
     }
 
     pub(crate) fn init_error_position(&self, offset_loc: Loc) -> ErrorPosition {
