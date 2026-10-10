@@ -35,6 +35,22 @@ fn blob_keeps_header_case() {
     assert_eq!(log, r#"["application/x-www-form-urlencoded;charset=UTF-8","Text/HTML;Charset=UTF-8"]"#);
 }
 
+/// `URL`, `URLSearchParams` e `FormData` convertem texto como `USVString` do WebIDL (o Symbol tem a mensagem dos
+/// bindings); `Headers` segue com a do JSC.
+#[test]
+fn usv_string_symbol_message() {
+    let log = log_of(
+        "const t = (f) => { try { f(); return 'ok'; } catch (e) { return e.message; } }; \
+         L(t(() => new URL(Symbol()))); L(t(() => { new URL('http://a/').search = Symbol(); })); \
+         L(t(() => new URLSearchParams().append('a', Symbol()))); L(t(() => new URLSearchParams([['a', Symbol()]]))); \
+         L(t(() => new URLSearchParams({ a: Symbol() }))); L(t(() => new FormData().append(Symbol(), 'x'))); \
+         L(t(() => new Headers().append(Symbol(), 'x')));",
+    );
+    let usv = "Cannot convert a Symbol value to a string";
+    let expected: Vec<&str> = vec![usv, usv, usv, usv, usv, usv, "Cannot convert a symbol to a string"];
+    assert_eq!(log, format!("[{}]", expected.iter().map(|text| format!("\"{text}\"")).collect::<Vec<_>>().join(",")));
+}
+
 /// `Response.json` de um BigInt de topo tem a mensagem própria; dentro de objeto, a do `JSON.stringify`.
 #[test]
 fn response_json_bigint_message() {

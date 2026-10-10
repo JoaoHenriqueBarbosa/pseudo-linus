@@ -58,6 +58,14 @@ pub(crate) trait WebIterable: 'static {
     const ITEM_NEEDS_ITERATOR: bool = false;
     /// A mensagem de um par da sequência que não tem exatamente dois elementos.
     const SUB_SEQUENCE_ERROR: &'static str = "Type error";
+    /// Os textos do construtor são `USVString` do WebIDL (o Symbol tem a mensagem dos bindings, ver
+    /// [`usv_units_of`]); `false` é a conversão do JSC.
+    const USV_STRINGS: bool = false;
+
+    /// Um texto do construtor (nome ou valor de um par), com a conversão da classe.
+    fn units(global_object: &JSGlobalObject, value: JSValue) -> Result<Units, Thrown> {
+        if Self::USV_STRINGS { usv_units_of(global_object, value) } else { units_of(global_object, value) }
+    }
 
     /// A ordem em que a iteração enxerga a lista.
     fn ordered(entries: &Pairs<Self::Value>) -> Cow<'_, Pairs<Self::Value>> {
@@ -120,6 +128,15 @@ pub(crate) fn reset_for_program() {
 pub(crate) fn units_of(global_object: &JSGlobalObject, value: JSValue) -> Result<Units, Thrown> {
     let text = pending_or(global_object, value.to_wtf_string())?;
     Ok((0..text.length()).map(|index| text.code_unit_at(index)).collect())
+}
+
+/// A conversão `IDLUSVString` dos bindings do WebCore (`URL`, `URLSearchParams`, `FormData`): o Symbol é recusado com
+/// a mensagem do WebIDL, não a do `toString` do JSC que `Headers`, `Blob` e `TextEncoder` mostram (medido no bun 1.4.2).
+pub(crate) fn usv_units_of(global_object: &JSGlobalObject, value: JSValue) -> Result<Units, Thrown> {
+    if value.is_symbol() {
+        return Err(Thrown::type_error("Cannot convert a Symbol value to a string"));
+    }
+    units_of(global_object, value)
 }
 
 pub(crate) fn string_value(global_object: &JSGlobalObject, units: &[u16]) -> JSValue {
@@ -300,9 +317,9 @@ fn pairs_of_record<C: WebIterable>(global_object: &JSGlobalObject, init: JSValue
         if key.is_symbol() {
             return Err(Thrown::type_error("Cannot convert a symbol to a string"));
         }
-        let name = units_of(global_object, identifier_to_js_value(vm, &key))?;
+        let name = C::units(global_object, identifier_to_js_value(vm, &key))?;
         let value = get_value_property(global_object, init, &PropertyName::from_identifier(&key))?;
-        let value = C::text(units_of(global_object, value)?);
+        let value = C::text(C::units(global_object, value)?);
         C::push(&mut pairs, name, value)?;
     }
     Ok(pairs)
@@ -329,7 +346,7 @@ fn pairs_of_sequence<C: WebIterable>(global_object: &JSGlobalObject, init: JSVal
         if parts.len() != 2 {
             return Err(Thrown::type_error(C::SUB_SEQUENCE_ERROR));
         }
-        let (name, value) = (units_of(global_object, parts[0])?, C::text(units_of(global_object, parts[1])?));
+        let (name, value) = (C::units(global_object, parts[0])?, C::text(C::units(global_object, parts[1])?));
         C::push(&mut pairs, name, value)
     })?;
     Ok(pairs)
