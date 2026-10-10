@@ -53,6 +53,10 @@ pub enum Op {
     JumpIfTrueOrPop(u32),
     /// Troca o iterável do topo pelo iterador dele.
     GetIter,
+    /// `GET_ITER` do primeiro iterável de uma compreensão, feito fora da função dela: o iterador (um objeto) vai
+    /// para a pilha e vira o argumento `.0`. Só o que é iterável sem código do usuário vira objeto; instância e
+    /// classe seguem como vieram e o `__iter__` roda quando o laço começa.
+    GetIterValue,
     /// Empilha o próximo item do iterador do topo; esgotado, descarta o iterador e salta.
     ForIter(u32),
     /// Chamada: função, `argc` posicionais e, se `kwnames` aponta uma tupla de nomes em `consts`,
@@ -1409,7 +1413,7 @@ impl Compiler {
                 }
             }
             S::For { target, iter, body, orelse, .. } => {
-                self.expr(iter)?;
+                self.iter_expr(iter)?;
                 self.at(&stmt.pos);
                 self.emit(Op::GetIter);
                 let top = self.emit(Op::ForIter(0));
@@ -2543,7 +2547,7 @@ impl Compiler {
     ) -> Result<(), CompileError> {
         // O primeiro iterável é avaliado no escopo de fora, com o alvo ainda visível.
         let first = &generators[0];
-        self.expr(&first.iter)?;
+        self.iter_expr(&first.iter)?;
         self.at(&first.iter.pos);
         self.emit(if first.is_async != 0 { Op::GetAIter } else { Op::GetIter });
         self.line = line;
@@ -2611,6 +2615,18 @@ impl Compiler {
         Ok(())
     }
 
+    /// O iterável de um `for` ou de uma compreensão. O otimizador de AST do CPython (`fold_iter`) troca a lista literal
+    /// sem estrela por tupla, constante quando todos os elementos são: o laço percorre um `tuple_iterator`.
+    fn iter_expr(&mut self, iter: &Expr) -> Result<(), CompileError> {
+        match &iter.kind {
+            E::List { elts, ctx } if !elts.iter().any(|e| matches!(e.kind, E::Starred { .. })) => {
+                let tuple = Expr { kind: E::Tuple { elts: elts.clone(), ctx: *ctx }, pos: iter.pos };
+                self.expr(&tuple)
+            }
+            _ => self.expr(iter),
+        }
+    }
+
     /// Compreensão como função `<listcomp>`, `<genexpr>` etc. chamada com o primeiro iterável.
     fn comprehension_function(
         &mut self,
@@ -2673,7 +2689,13 @@ impl Compiler {
         let idx = (self.code.functions.len() - 1) as u32;
         self.emit(Op::MakeFunction { code: idx, ndefaults: 0, kwdefaults: None });
         self.bind_open_cell();
-        self.expr(&generators[0].iter)?;
+        self.iter_expr(&generators[0].iter)?;
+        // O primeiro iterável vira iterador do lado de fora, como o `GET_ITER` do CPython: a função recebe o
+        // iterador em `.0` (é o que `gc.get_referents` e `f_locals` do gerador mostram), e um iterável que não é
+        // iterável dá o `TypeError` na criação, não no primeiro passo. (O laço assíncrono chama o `__aiter__` dentro.)
+        if generators[0].is_async == 0 {
+            self.emit(Op::GetIterValue);
+        }
         self.line = line;
         self.emit(Op::Call { argc: 1, kwnames: None });
         if is_async && kind != 3 {
@@ -2700,7 +2722,7 @@ impl Compiler {
             if depth == 0 {
                 self.emit_load(".0");
             } else {
-                self.expr(&g.iter)?;
+                self.iter_expr(&g.iter)?;
             }
         }
         self.at(&g.iter.pos);

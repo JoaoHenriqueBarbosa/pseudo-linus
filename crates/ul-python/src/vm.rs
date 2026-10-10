@@ -936,6 +936,18 @@ impl PyIter {
     }
 }
 
+/// O argumento `.0` de uma compreensão (`GET_ITER` do primeiro iterável, feito do lado de fora). Lista, tupla, string
+/// e `range` viram o objeto iterador vivo (`list_iterator`...), que a função e o `gc.get_referents` enxergam; um valor
+/// que não é iterável dá o `TypeError` já na criação. Instância e classe (o `__iter__` pode ser código do usuário), dict,
+/// conjunto, bytes e os objetos nativos seguem como vieram: o `GET_ITER` de dentro da função faz o resto.
+fn iterator_value(v: Value) -> PyResult<Value> {
+    match &v {
+        Value::List(_) | Value::Tuple(_) | Value::Str(_) | Value::Range(_) => Ok(crate::lazy::IterBox::new(get_iter(&v)?)),
+        Value::Instance(_) | Value::Class(_) | Value::Dict(_) | Value::Set(_) | Value::Bytes(_) | Value::ByteArray(_) | Value::Ext(_) | Value::Native(_) => Ok(v),
+        _ => get_iter(&v).map(|_| v),
+    }
+}
+
 pub(crate) fn get_iter(v: &Value) -> PyResult<PyIter> {
     Ok(match v {
         Value::List(l) => PyIter::List(l.clone(), 0),
@@ -4009,6 +4021,10 @@ impl Vm {
             Op::GetIter => {
                 let v = pop(stack)?;
                 stack.push(Slot::Iter(get_iter(&v)?));
+            }
+            Op::GetIterValue => {
+                let v = pop(stack)?;
+                stack.push(Slot::Val(iterator_value(v)?));
             }
             Op::ForIter(t) => {
                 let next = match stack.last_mut() {
