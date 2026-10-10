@@ -67,7 +67,7 @@ thread_local! {
 
 /// Fim do programa (`cell_registry::reset_program_state`): todas as chaves são `cell_id` e os valores
 /// apontam para células do programa que acabou.
-/// As raízes do coletor: as funções de `promising` e `Suspending`; as retomadas são opacas e adiam a coleta.
+/// As raízes do coletor: as funções de `promising` e `Suspending`.
 pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
     for table in [&PROMISING, &SUSPENDING] {
         table.with(|entries| {
@@ -77,7 +77,11 @@ pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
             }
         });
     }
-    marker.defer_while(RESUMPTIONS.with(|resumptions| !resumptions.borrow().is_empty()));
+}
+
+/// A execução suspensa vive com a reação que a retoma, e segura a promessa de `promising`.
+pub(crate) fn visit_side_table(marker: &mut crate::runtime::gc::Marker, phase: crate::runtime::gc::SidePhase) -> bool {
+    crate::runtime::gc::side_table(&RESUMPTIONS, marker, phase, |resumption, out| out.push(resumption.promise.as_value()))
 }
 
 pub(crate) fn reset_for_program() {

@@ -200,8 +200,7 @@ struct ModuleLoader {
     registry: RefCell<HashMap<(String, ScriptFetchParametersType), AbstractModuleRecordRef>>,
 }
 
-/// As raízes do coletor: os objetos `import.meta` e o que eles guardam; as mensagens e as importações pendentes são
-/// opacas e adiam a coleta.
+/// As raízes do coletor: os objetos `import.meta` e o que eles guardam.
 pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
     IMPORT_META_OBJECTS.with(|objects| {
         for (object, properties) in objects.borrow().iter() {
@@ -209,8 +208,17 @@ pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
             properties.iter().for_each(|(_, value)| marker.value(*value));
         }
     });
-    marker.defer_while(MESSAGE_STATES.with(|states| !states.borrow().is_empty()));
-    marker.defer_while(PENDING_IMPORTS.with(|imports| !imports.borrow().is_empty()));
+}
+
+/// O estado de `ResolveMessage` e `BuildMessage` é campo da instância (os valores gravados em `message` e `stack`
+/// vivem com ela); a importação pendente vive com a promessa interna do `import()` que a microtask segura.
+pub(crate) fn visit_side_table(marker: &mut crate::runtime::gc::Marker, phase: crate::runtime::gc::SidePhase) -> bool {
+    let messages = crate::runtime::gc::side_table(&MESSAGE_STATES, marker, phase, |state, out| {
+        out.extend(state.message_override);
+        out.extend(state.stack_override);
+    });
+    let imports = crate::runtime::gc::side_table(&PENDING_IMPORTS, marker, phase, |_, _| {});
+    messages | imports
 }
 
 thread_local! {

@@ -155,6 +155,12 @@ impl JSCellButterfly {
         }
     }
 
+    /// `JSCellButterfly::visitChildren`: os elementos do vetor (o `spread` os guarda aqui até o `new_array_with_spread`
+    /// ou a chamada com `...` os copiar).
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        (0..self.length()).for_each(|index| marker.value(self.get(index)));
+    }
+
     /// Identidade da célula (o valor que `JSValue::from_cell` guarda).
     pub fn cell_id(&self) -> usize {
         self.cell_id

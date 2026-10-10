@@ -27,6 +27,13 @@ struct ExceptionState {
     payload: Vec<JSValue>,
 }
 
+/// `JSWebAssemblyException::visitChildren`: o payload.
+pub(crate) fn visit_state(state: &dyn std::any::Any, marker: &mut crate::runtime::gc::Marker) {
+    if let Some(state) = state.downcast_ref::<ExceptionState>() {
+        marker.values(&state.payload);
+    }
+}
+
 const NOT_EXCEPTION_MESSAGE: &str = "WebAssembly.Exception operation called on non-Exception object";
 
 fn call_exception_body(_global_object: &JSGlobalObject, _call: &HostCall) -> HostResult {

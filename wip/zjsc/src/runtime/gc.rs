@@ -141,6 +141,9 @@ fn visit_side_tables(marker: &mut Marker, phase: SidePhase) -> bool {
         rt::performance::visit_side_table,
         rt::performance_observer::visit_side_table,
         rt::web_iterable::visit_side_table,
+        rt::js_web_assembly::visit_side_table,
+        rt::js_web_assembly_jspi::visit_side_table,
+        rt::js_module_loader::visit_side_table,
     ] {
         progressed |= visit(marker, phase);
     }
@@ -156,11 +159,28 @@ pub(crate) enum SidePhase {
     Sweep,
 }
 
+/// A chave de uma tabela lateral: o valor codificado da célula ou o `cell_id` dela.
+pub(crate) trait SideKey: Copy + Eq + std::hash::Hash {
+    fn cell_id(self) -> Option<usize>;
+}
+
+impl SideKey for crate::runtime::js_value::EncodedJSValue {
+    fn cell_id(self) -> Option<usize> {
+        if let JSValue::Cell(cell_id) = JSValue::decode(self) { Some(cell_id) } else { None }
+    }
+}
+
+impl SideKey for usize {
+    fn cell_id(self) -> Option<usize> {
+        Some(self)
+    }
+}
+
 /// Uma tabela lateral por célula (o estado que no C++ é campo do próprio objeto: o `URL` do `DOMURL`, o
 /// `AbortSignal`, o `Request`): a entrada vive enquanto o objeto da chave vive, e o que ela segura é filho dele.
 /// `children` põe em `out` os valores que o estado segura. Na fase `Mark` devolve se marcou algo novo.
-pub(crate) fn side_table<S>(
-    table: &'static std::thread::LocalKey<std::cell::RefCell<HashMap<crate::runtime::js_value::EncodedJSValue, S>>>,
+pub(crate) fn side_table<K: SideKey, S>(
+    table: &'static std::thread::LocalKey<std::cell::RefCell<HashMap<K, S>>>,
     marker: &mut Marker,
     phase: SidePhase,
     children: impl Fn(&S, &mut Vec<JSValue>),
@@ -175,13 +195,13 @@ pub(crate) fn side_table<S>(
 }
 
 /// O `side_table` de um mapa que mora dentro de outro estado do módulo.
-pub(crate) fn side_map<S>(
-    map: &mut HashMap<crate::runtime::js_value::EncodedJSValue, S>,
+pub(crate) fn side_map<K: SideKey, S>(
+    map: &mut HashMap<K, S>,
     marker: &mut Marker,
     phase: SidePhase,
     children: impl Fn(&S, &mut Vec<JSValue>),
 ) -> bool {
-    let key_doomed = |marker: &Marker, key: i64| matches!(JSValue::decode(key), JSValue::Cell(cell_id) if marker.is_doomed(cell_id));
+    let key_doomed = |marker: &Marker, key: K| key.cell_id().is_some_and(|cell_id| marker.is_doomed(cell_id));
     if phase == SidePhase::Sweep {
         map.retain(|key, _| !key_doomed(marker, *key));
         return false;

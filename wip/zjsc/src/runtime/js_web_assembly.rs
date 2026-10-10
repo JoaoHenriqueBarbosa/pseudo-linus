@@ -503,6 +503,14 @@ host_function!(web_assembly_module_custom_sections, module_custom_sections_body)
 // WebAssembly.Instance
 // ---------------------------------------------------------------------------------------------
 
+/// `JSWebAssemblyInstance::visitChildren` (o `exports` congelado) e `JSWebAssemblyMemory::visitChildren` (o
+/// `ArrayBuffer` que o `buffer` entregou por último).
+pub(crate) fn visit_state(state: &dyn std::any::Any, marker: &mut crate::runtime::gc::Marker) {
+    if let Some(state) = state.downcast_ref::<InstanceState>() {
+        marker.value(state.exports);
+    }
+}
+
 /// `JSWebAssemblyInstance`: a instância e o objeto `exports` já congelado.
 struct InstanceState {
     exports: JSValue,
@@ -523,17 +531,28 @@ thread_local! {
 
 /// Fim do programa (`cell_registry::reset_program_state`): tudo que a ponte JS de WebAssembly guarda por
 /// `cell_id` ou por `JSValue` (funções exportadas, externrefs internados, estruturas e wrappers) morre com o VM.
-/// As raízes do coletor: os valores externos, os construtores e os wrappers; a compilação em curso e o estado das
-/// funções exportadas são opacos e adiam a coleta enquanto existirem.
+/// As raízes do coletor: os valores externos, os que as instâncias seguram, os construtores e os wrappers.
 pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
     EXTERN_VALUES.with(|values| marker.values(&values.borrow()));
+    INSTANCE_VALUES.with(|values| marker.values(&values.borrow()));
+    crate::wasm::wasm_instance::function_wrappers().into_iter().for_each(|wrapper| marker.encoded(wrapper as i64));
     CLASS_CONSTRUCTORS.with(|constructors| constructors.borrow().values().for_each(|value| marker.value(*value)));
     WRAPPERS.with(|wrappers| wrappers.borrow().values().for_each(|value| marker.value(*value)));
-    marker.defer_while(STREAMINGS.with(|streamings| !streamings.borrow().is_empty()));
-    marker.defer_while(EXPORTED_FUNCTIONS.with(|functions| !functions.borrow().is_empty()));
+}
+
+/// A compilação em curso vive com a reação que a continua (a promessa e as importações), e a função exportada leva
+/// a instância (que não tem valores do programa fora de `INSTANCE_VALUES`).
+pub(crate) fn visit_side_table(marker: &mut crate::runtime::gc::Marker, phase: crate::runtime::gc::SidePhase) -> bool {
+    let streamings = crate::runtime::gc::side_table(&STREAMINGS, marker, phase, |streaming, out| {
+        out.push(streaming.promise.as_value());
+        out.extend(streaming.imports);
+    });
+    let exported = crate::runtime::gc::side_table(&EXPORTED_FUNCTIONS, marker, phase, |_, _| {});
+    streamings | exported
 }
 
 pub(crate) fn reset_for_program() {
+    let _ = INSTANCE_VALUES.try_with(|values| values.borrow_mut().clear());
     let _ = EXPORTED_FUNCTIONS.try_with(|map| map.borrow_mut().clear());
     let _ = EXTERN_VALUES.try_with(|values| values.borrow_mut().clear());
     let _ = EXTERN_INDEX.try_with(|index| index.borrow_mut().clear());
@@ -648,6 +667,10 @@ thread_local! {
     static EXTERN_VALUES: RefCell<Vec<JSValue>> = const { RefCell::new(Vec::new()) };
     /// O valor codificado -> o índice em `EXTERN_VALUES`, para o mesmo valor dar os mesmos bits (`ref.eq`).
     static EXTERN_INDEX: RefCell<HashMap<i64, usize>> = RefCell::new(HashMap::new());
+    /// Os valores JS que as instâncias seguram fora das células: as funções importadas (o `importFunction` que o
+    /// `JSWebAssemblyInstance` visita) e as exceções JS que atravessam o wasm sem virar `externref` (podem ficar
+    /// num `exnref`). A instância é `Rc` fora do coletor, então eles vivem como os `externref` internados.
+    static INSTANCE_VALUES: RefCell<Vec<JSValue>> = const { RefCell::new(Vec::new()) };
 }
 
 /// `externref` (nulo ou não) e `(ref extern)`, `anyref` e `(ref any)`.
@@ -808,6 +831,7 @@ pub(crate) fn capture_pending_exception(global_object: &JSGlobalObject) -> WasmE
         return WasmError::Exception { tag: crate::wasm::wasm_instance::TagRef(crate::runtime::js_web_assembly_tag::js_tag()), payload: vec![bits] };
     }
     vm.clear_exception();
+    INSTANCE_VALUES.with(|values| values.borrow_mut().push(value));
     WasmError::JsException(crate::wasm::wasm_instance::JsThrown(Rc::new(value)))
 }
 
@@ -905,6 +929,7 @@ pub(crate) fn multi_result_values(global_object: &JSGlobalObject, result: JSValu
 /// A importação de função (`WasmToJS`): uma função de outra instância é chamada direto; qualquer outra
 /// função JS é chamada com `this` indefinido e o resultado convertido pelo tipo declarado.
 fn host_function_for(callee: JSValue, arguments: Vec<Type>, returns: Vec<Type>) -> HostFunction {
+    INSTANCE_VALUES.with(|values| values.borrow_mut().push(callee));
     Rc::new(move |bits: &[u64]| {
         if let JSValue::Cell(cell_id) = callee {
             if let Some(target) = EXPORTED_FUNCTIONS.with(|table| table.borrow().get(&cell_id).cloned()) {

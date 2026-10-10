@@ -134,6 +134,12 @@ pub fn set_function_wrapper(reference: u64, wrapper: u64) {
     FUNC_REFS.with(|registry| registry.borrow_mut().wrappers.insert(reference as u32, wrapper));
 }
 
+/// Os wrappers JS do registro (o `JSValue` codificado de cada um), que o coletor mantém: a identidade da função
+/// entre instâncias, Table e Global depende de o mesmo wrapper voltar.
+pub fn function_wrappers() -> Vec<u64> {
+    FUNC_REFS.with(|registry| registry.borrow().wrappers.values().copied().collect())
+}
+
 /// `ref.i31`: o bit 43 marca o inteiro de 31 bits (os 31 bits baixos); não colide com a função (bit 40),
 /// o `exnref` (bit 42) nem com o `null` e as células do JS.
 pub const I31_REF_TAG: u64 = 1 << 43;

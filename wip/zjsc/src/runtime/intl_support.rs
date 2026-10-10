@@ -104,6 +104,14 @@ impl IntlInstance {
         cell
     }
 
+    /// `visitChildren`: a função ligada (`m_boundFormat`, `m_boundCompare`) e o que o estado da classe segura. O
+    /// estado é `Box<dyn Any>`: as classes cujo estado guarda valores do programa (as de WebAssembly) marcam os dela.
+    pub(crate) fn visit_children(&self, marker: &mut crate::runtime::gc::Marker) {
+        marker.value(self.bound.get());
+        crate::runtime::js_web_assembly::visit_state(&*self.state, marker);
+        crate::runtime::js_web_assembly_exception::visit_state(&*self.state, marker);
+    }
+
     /// `dynamicDowncast<IntlInstance>(value)`.
     pub fn from_value(value: &JSValue) -> Option<IntlInstanceRef> {
         match value {

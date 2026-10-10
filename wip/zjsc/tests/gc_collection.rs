@@ -309,6 +309,28 @@ fn queued_port_messages_survive_the_batch() {
     assert_eq!(stressed(&program), "a,12,b");
 }
 
+/// Os erros de WebAssembly (a mensagem nasce no nativo) e o estado dos wrappers sobrevivem à coleta.
+#[test]
+fn webassembly_errors_and_wrappers_survive() {
+    let program = format!("{CHURN} var T = (f) => {{ try {{ var v = f(); return typeof v === 'string' ? v : 'x'; }} catch (e) {{ return e.name + ': ' + e.message; }} }};
+        var bytes = [0,97,115,109,1,0,0,0, 1,4,1,0x60,0,0, 13,3,1,0,0, 7,9,2, 1,97,0,0, 1,97,0,0];
+        var a = T(() => {{ new WebAssembly.Module(new Uint8Array(bytes)); return 'ok'; }});
+        churn();
+        var m = new WebAssembly.Memory({{ initial: 1 }}); var b = m.buffer; churn();
+        R = a.slice(0, 22) + '|' + (m.buffer === b) + '|' + m.buffer.byteLength;");
+    assert_eq!(stressed(&program), "CompileError: WebAssem|true|65536");
+}
+
+/// `[...texto]` e `map` sobre as strings de um caractere: os valores que o spread cria e o `map` lê.
+#[test]
+fn string_spread_and_map_survive() {
+    let program = "function leb(n) { var o = []; do { var b = n & 127; n >>= 7; if (n) b |= 128; o.push(b); } while (n); return o; }
+        function str(s) { return [...leb(s.length), ...[...s].map(c => c.charCodeAt(0))]; }
+        var out = []; for (var i = 0; i < 40; i++) out.push(str('run' + i).join('.'));
+        R = out[0] + '|' + out[39];";
+    assert_eq!(stressed(program), "4.114.117.110.48|5.114.117.110.51.57");
+}
+
 /// Cada tipo de dono sozinho, para a lápide apontar a aresta que falta.
 fn survives(setup: &str, step: &str, check: &str, expected: &str) {
     let program = format!("{setup}; for (let i = 0; i < 250000; i++) {{ const g = {{ i: i }}; if (i % 1000 === 0) {{ {step}; }} }} String({check})");

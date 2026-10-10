@@ -695,14 +695,15 @@ impl ArrayBuffer {
         !self.contents.borrow().has_data()
     }
 
-    /// `m_wrapper.get()`: o `cell_id` do `JSArrayBuffer`.
+    /// `m_wrapper.get()`: o `cell_id` do `JSArrayBuffer`. O `Weak` do C++ vira `None` quando o coletor solta o
+    /// wrapper (a conferência de geração do registro: o id varrido não acha mais a célula).
     pub fn wrapper(&self) -> Option<usize> {
-        self.wrapper.get()
+        self.wrapper.get().filter(|cell_id| crate::runtime::cell_registry::get_for_marking(*cell_id).is_some())
     }
 
     /// `m_wrapper = Weak<JSArrayBuffer>(&wrapper, ...)` (o `registerWrapper` do `TypedArrayController`).
     pub fn set_wrapper(&self, cell_id: usize) {
-        debug_assert!(self.wrapper.get().is_none());
+        debug_assert!(self.wrapper().is_none());
         self.wrapper.set(Some(cell_id));
     }
 
