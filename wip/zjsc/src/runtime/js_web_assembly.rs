@@ -309,7 +309,7 @@ fn instantiate_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResu
 fn instantiate_value(global_object: &JSGlobalObject, source: JSValue, imports: JSValue) -> HostResult {
     let module_info = IntlInstance::from_value(&source).and_then(|cell| cell.state::<ModuleState>().map(|state| Rc::clone(&state.info)));
     match module_info {
-        Some(info) => link_instance(global_object, &info, imports).map(|state| create_class_instance(global_object, "Instance", Box::new(state))),
+        Some(info) => link_instance_in_call(global_object, &info, imports).map(|state| create_class_instance(global_object, "Instance", Box::new(state))),
         None => bytes_from_value(global_object, source)
             .and_then(|bytes| compile_bytes(&bytes))
             .and_then(|state| {
@@ -1092,7 +1092,7 @@ fn construct_instance_body(global_object: &JSGlobalObject, call: &HostCall) -> H
         let info = IntlInstance::from_value(&call.argument(0))
             .and_then(|cell| cell.state::<ModuleState>().map(|state| Rc::clone(&state.info)))
             .ok_or_else(|| throw_type_error_with_source(global_object, "first argument to WebAssembly.Instance must be a WebAssembly.Module"))?;
-        Ok(Box::new(link_instance(global_object, &info, call.argument(1))?))
+        Ok(Box::new(link_instance_in_call(global_object, &info, call.argument(1))?))
     })
 }
 
@@ -1106,6 +1106,20 @@ fn link_instance(global_object: &JSGlobalObject, info: &Rc<ModuleInformation>, i
     crate::wasm::wasm_instance::register_instance(&instance);
     let exports = create_exports_object(global_object, &instance, info)?;
     Ok(InstanceState { exports })
+}
+
+/// `link_instance` dentro da chamada nativa (`new WebAssembly.Instance`, `WebAssembly.instantiate(Module)`): os
+/// erros do link ganham o ` (evaluating '...')` da chamada, como no C++, que os cria com `defaultSourceAppender`
+/// ainda no quadro dela. Só o `instantiate(bytes)` liga depois da compilação assíncrona, sem quadro (medido no bun).
+fn link_instance_in_call(global_object: &JSGlobalObject, info: &Rc<ModuleInformation>, import_object: JSValue) -> Result<InstanceState, Thrown> {
+    link_instance(global_object, info, import_object).map_err(|thrown| {
+        let with_source = |message: &str| wtf_to_rust(&append_default_source_to_native_message(global_object, message));
+        match thrown {
+            Thrown::WebAssembly(kind, message) => Thrown::WebAssembly(kind, with_source(&message)),
+            Thrown::TypeError(message) => Thrown::TypeError(with_source(&message)),
+            other => other,
+        }
+    })
 }
 
 /// O getter `WebAssembly.Instance.prototype.exports`.
@@ -1874,6 +1888,27 @@ mod streaming_tests {
             let value = evaluate(&global_object, &program_source("JSON.stringify(log)")).expect("log");
             String::from_utf8_lossy(&value.as_js_string().value().utf8(ConversionMode::LenientConversion)).into_owned()
         })
+    }
+
+    /// Medido no bun 1.4.2: o erro do link feito na chamada nativa (`new Instance`, `instantiate(Module)`) tem o
+    /// ` (evaluating '...')` da chamada; o do `instantiate(bytes)`, que liga depois da compilação, não tem. (O bun
+    /// mostra o trecho reimpresso pelo transpilador, com aspas duplas; aqui é o fonte como foi escrito.)
+    #[test]
+    fn link_errors_carry_the_call_site_only_inside_the_call() {
+        let log = run(
+            "const b = new Uint8Array([0,97,115,109,1,0,0,0, 2,8,1,1,109,1,103,3,127,0]); const m = new WebAssembly.Module(b); \
+             try { new WebAssembly.Instance(m, { m: { g: 'x' } }); } catch (e) { log.push(e.name + ': ' + e.message); } \
+             WebAssembly.instantiate(m, { m: { g: 'x' } }).catch(e => log.push('module: ' + e.message)); \
+             WebAssembly.instantiate(b, { m: { g: 'x' } }).catch(e => log.push('bytes: ' + e.message));",
+        );
+        assert_eq!(
+            log,
+            concat!(
+                r#"["LinkError: imported global m:g must be a number (evaluating 'new WebAssembly.Instance(m, { m: { g: 'x' } })')","#,
+                r#""module: imported global m:g must be a number (evaluating 'WebAssembly.instantiate(m, { m: { g: 'x' } })')","#,
+                r#""bytes: imported global m:g must be a number"]"#
+            )
+        );
     }
 
     /// Medido no bun 1.4.2.
