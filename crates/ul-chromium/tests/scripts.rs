@@ -410,6 +410,15 @@ console.log(crossOriginIsolated, 'SharedArrayBuffer' in self, typeof SharedArray
 }
 
 #[test]
+fn computed_style_inside_display_none_resolves_on_demand() {
+    // O estilo de um elemento que a travessia não estilizou sai sob demanda; o contexto do stylo tem que ser descartado
+    // ainda no estado de layout (em debug, o stylo confere isso ao rodar as tarefas sequenciais).
+    let script = "<body><div style='display:none'><p id=p style='color: rgb(1, 2, 3)'>x</p></div><script>console.log(getComputedStyle(document.getElementById('p')).color)</script>";
+    let (_, log) = run(&[("/", script)]);
+    assert_eq!(log, "rgb(1, 2, 3)\n");
+}
+
+#[test]
 fn frames_after_load_follow_the_oracle_rule() {
     // Medido no oráculo (testbench/oracle/measured/frames.html, sob --virtual-time-budget, duas rodadas): a cadeia de
     // rAF pedida durante o parse ou no load sai 1 quadro depois do load, e uma segunda volta só quando o compositor

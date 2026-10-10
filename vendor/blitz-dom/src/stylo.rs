@@ -204,6 +204,10 @@ impl crate::document::BaseDocument {
         let mut thread_local = style::context::ThreadLocalStyleContext::new();
         let mut context = StyleContext { shared: &shared, thread_local: &mut thread_local };
         let styles = style::traversal::resolve_style(&mut context, element, style::stylist::RuleInclusion::All, None, None);
+        // O contexto por thread roda as tarefas sequenciais ao ser descartado, e o stylo exige o estado de layout nessa
+        // hora: ele sai antes do `exit`.
+        drop(context);
+        drop(thread_local);
         style::thread_state::exit(ThreadState::LAYOUT);
         Some(styles.primary().clone())
     }
