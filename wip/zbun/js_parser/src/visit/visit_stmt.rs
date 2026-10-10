@@ -88,38 +88,38 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 Ok(())
             }
 
-            StmtData::SEnum(mut sr) => {
-                Self::s_enum(p, stmts, stmt, &mut p.store[sr], was_after_after_const_local_prefix)
+            StmtData::SEnum(sr) => {
+                with_node!(p, sr, data => Self::s_enum(p, stmts, stmt, data, was_after_after_const_local_prefix))
             }
-            StmtData::SLocal(mut sr) => {
-                Self::s_local(p, stmts, stmt, &mut p.store[sr], was_after_after_const_local_prefix)
+            StmtData::SLocal(sr) => {
+                with_node!(p, sr, data => Self::s_local(p, stmts, stmt, data, was_after_after_const_local_prefix))
             }
 
-            StmtData::SImport(mut sr) => Self::s_import(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SExportClause(mut sr) => Self::s_export_clause(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SExportFrom(mut sr) => Self::s_export_from(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SExportStar(mut sr) => Self::s_export_star(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SExportDefault(mut sr) => Self::s_export_default(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SFunction(mut sr) => Self::s_function(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SClass(mut sr) => Self::s_class(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SExportEquals(mut sr) => Self::s_export_equals(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SBreak(mut sr) => Self::s_break(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SContinue(mut sr) => Self::s_continue(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SLabel(mut sr) => Self::s_label(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SExpr(mut sr) => Self::s_expr(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SThrow(mut sr) => Self::s_throw(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SReturn(mut sr) => Self::s_return(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SBlock(mut sr) => Self::s_block(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SWith(mut sr) => Self::s_with(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SWhile(mut sr) => Self::s_while(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SDoWhile(mut sr) => Self::s_do_while(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SIf(mut sr) => Self::s_if(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SFor(mut sr) => Self::s_for(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SForIn(mut sr) => Self::s_for_in(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SForOf(mut sr) => Self::s_for_of(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::STry(mut sr) => Self::s_try(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SSwitch(mut sr) => Self::s_switch(p, stmts, stmt, &mut p.store[sr]),
-            StmtData::SNamespace(mut sr) => Self::s_namespace(p, stmts, stmt, &mut p.store[sr]),
+            StmtData::SImport(sr) => with_node!(p, sr, data => Self::s_import(p, stmts, stmt, data)),
+            StmtData::SExportClause(sr) => with_node!(p, sr, data => Self::s_export_clause(p, stmts, stmt, data)),
+            StmtData::SExportFrom(sr) => with_node!(p, sr, data => Self::s_export_from(p, stmts, stmt, data)),
+            StmtData::SExportStar(sr) => with_node!(p, sr, data => Self::s_export_star(p, stmts, stmt, data)),
+            StmtData::SExportDefault(sr) => with_node!(p, sr, data => Self::s_export_default(p, stmts, stmt, data)),
+            StmtData::SFunction(sr) => with_node!(p, sr, data => Self::s_function(p, stmts, stmt, data)),
+            StmtData::SClass(sr) => with_node!(p, sr, data => Self::s_class(p, stmts, stmt, data)),
+            StmtData::SExportEquals(sr) => with_node!(p, sr, data => Self::s_export_equals(p, stmts, stmt, data)),
+            StmtData::SBreak(sr) => with_node!(p, sr, data => Self::s_break(p, stmts, stmt, data)),
+            StmtData::SContinue(sr) => with_node!(p, sr, data => Self::s_continue(p, stmts, stmt, data)),
+            StmtData::SLabel(sr) => with_node!(p, sr, data => Self::s_label(p, stmts, stmt, data)),
+            StmtData::SExpr(sr) => with_node!(p, sr, data => Self::s_expr(p, stmts, stmt, data)),
+            StmtData::SThrow(sr) => with_node!(p, sr, data => Self::s_throw(p, stmts, stmt, data)),
+            StmtData::SReturn(sr) => with_node!(p, sr, data => Self::s_return(p, stmts, stmt, data)),
+            StmtData::SBlock(sr) => with_node!(p, sr, data => Self::s_block(p, stmts, stmt, data)),
+            StmtData::SWith(sr) => with_node!(p, sr, data => Self::s_with(p, stmts, stmt, data)),
+            StmtData::SWhile(sr) => with_node!(p, sr, data => Self::s_while(p, stmts, stmt, data)),
+            StmtData::SDoWhile(sr) => with_node!(p, sr, data => Self::s_do_while(p, stmts, stmt, data)),
+            StmtData::SIf(sr) => with_node!(p, sr, data => Self::s_if(p, stmts, stmt, data)),
+            StmtData::SFor(sr) => with_node!(p, sr, data => Self::s_for(p, stmts, stmt, data)),
+            StmtData::SForIn(sr) => with_node!(p, sr, data => Self::s_for_in(p, stmts, stmt, data)),
+            StmtData::SForOf(sr) => with_node!(p, sr, data => Self::s_for_of(p, stmts, stmt, data)),
+            StmtData::STry(sr) => with_node!(p, sr, data => Self::s_try(p, stmts, stmt, data)),
+            StmtData::SSwitch(sr) => with_node!(p, sr, data => Self::s_switch(p, stmts, stmt, data)),
+            StmtData::SNamespace(sr) => with_node!(p, sr, data => Self::s_namespace(p, stmts, stmt, data)),
 
             // Only used by the bundler for lazy export ASTs.
             StmtData::SLazyExport(_) => unreachable!(),

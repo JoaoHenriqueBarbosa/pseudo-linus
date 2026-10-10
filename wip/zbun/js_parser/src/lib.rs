@@ -1,5 +1,26 @@
 //! `bun_js_parser`: o lexer, o parser e as transformações do bun 1.4.2, portados para Rust seguro.
 
+/// Empresta um nó do `Store` a uma função que também recebe o `P`. No upstream a função recebia `&mut S::If` (um
+/// ponteiro para dentro da arena) junto com `p`; no porte o nó vive no `p.store`, e as duas referências mutáveis não
+/// coexistem. O nó é copiado para fora, a função roda sobre a cópia e o resultado é gravado de volta.
+///
+/// Vale onde o nó só é alcançável por `data` durante a chamada: a visita é em árvore (cada nó é visitado uma vez, pelo
+/// pai) e quem guarda o nó guarda o `StoreRef`, não uma referência. Onde a visita reentra no mesmo nó por outro
+/// caminho, o lugar tipado (`bun_ast::place`) é o certo, ver "Regras do porte" no README.
+///
+/// `with_node!(p, r, data => corpo)`: `corpo` usa `p` e `data` (um `&mut` para a cópia) e devolve o resultado.
+#[cfg(feature = "parser")]
+macro_rules! with_node {
+    ($p:expr, $r:expr, $data:ident => $body:expr) => {{
+        let node_ref = $r;
+        let mut node = $p.store[node_ref].clone();
+        let $data = &mut node;
+        let result = $body;
+        $p.store[node_ref] = node;
+        result
+    }};
+}
+
 pub mod lexer;
 
 #[cfg(test)]

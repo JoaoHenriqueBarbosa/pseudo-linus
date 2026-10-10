@@ -2164,7 +2164,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // Check if the bundler_feature_flag_ref is set before calling the function
         // to avoid stack memory usage from copying values back and forth.
         if p.bundler_feature_flag_ref.is_valid() {
-            if let Some(result) = Self::maybe_replace_bundler_feature_call(p, &mut p.store[e_], expr.loc) {
+            if let Some(result) = with_node!(p, e_, data => Self::maybe_replace_bundler_feature_call(p, data, expr.loc)) {
                 *e = result;
                 return;
             }

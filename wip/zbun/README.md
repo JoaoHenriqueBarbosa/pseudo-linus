@@ -34,7 +34,11 @@ texto e o mesmo mapa de posições do bun. A decisão e a medição que a susten
   `P`, no lugar do `Deref` do `StoreRef`): a parte mecânica roda por `scripts/store_fix.py`, guiada pelos diagnósticos
   do `cargo check --message-format=json` (E0609, E0277 de índice por referência e E0599 de `slice`, `slice_mut`,
   `iter`, `get` e `get_mut` em `StoreStr`, `StoreSlice` e `StoreRef`). Cada rodada é conferida pelo compilador e o
-  resto é à mão. O `store` é `self.store` ou `p.store`, conforme a assinatura da função que envolve o trecho.
+  resto é à mão. O `store` é `self.store` ou `p.store`, conforme a assinatura da função que envolve o trecho; depois de
+  `let p = self;` (51 métodos) o `self` já foi movido e só `p.store` vale. O subcomando `ctors` troca os construtores
+  (`StoreStr::new`, `E::Str::new` e as listas) por `STORE.alloc_str`/`alloc_slice`, e o `selfalias` reescreve os
+  `self.store` que ficaram depois do alias (256 trocas); os dois são regras de texto conferidas pelo compilador a cada
+  rodada, e um lookbehind impede que `BStr::new` case como `Str::new`.
 - Mudança sistemática no parser copiado (`js_parser/src`), por `sed`: o `VecExt::append(&mut X.generated, y);` e o
   `VecExt::append(&mut X.children, y);` de uma linha viram `X.generated.push(y);` e `X.children.push(y);` (os dois
   campos de `Scope` são `Vec`; o `VecExt::append` saiu do `bun_collections` por ser sinônimo do `push`). Os outros
