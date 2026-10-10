@@ -317,6 +317,7 @@ pub mod module_analyzer;
 pub mod synthetic_module_record;
 pub mod js_wrapper_object;
 pub mod date_instance;
+pub mod deep_equals;
 pub mod host_function_support;
 pub mod js_string_builder;
 pub mod literal_parser;

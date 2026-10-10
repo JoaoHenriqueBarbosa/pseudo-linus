@@ -2,7 +2,7 @@
 //! (`HasStaticPropertyTable`) e `@@toStringTag` `Bun`. As entradas `PropertyCallback` nascem no primeiro acesso, as
 //! `Function` viram funções nativas, e a ordem de `Object.getOwnPropertyNames(Bun)` é a da tabela. Aqui ficam só as
 //! entradas que o porte já sustenta, na posição que têm na tabela do bun 1.4.2; as demais (servidor, arquivos,
-//! transpilador, `deepEquals`, `stringWidth`...) entram nos degraus seguintes do plano (`wip/notes/bun-on-zjsc-plan.md`).
+//! transpilador, `stringWidth`...) entram nos degraus seguintes do plano (`wip/notes/bun-on-zjsc-plan.md`).
 //!
 //! Propriedade de dados comum do global; na ordem de chaves vem entre `global` e `File`, o que a tabela `ORDER` de
 //! `js_global_object_init.rs` já resolve.
@@ -16,6 +16,7 @@ use crate::runtime::console_client::inspect_one;
 use crate::runtime::console_format::Formatter;
 use crate::runtime::current_realm::current_global_object;
 use crate::runtime::date_instance::DateInstance;
+use crate::runtime::deep_equals::{deep_equals, Mode};
 use crate::runtime::host_call::{pending_or, HostCall, HostResult, Thrown};
 use crate::runtime::implementation_visibility::ImplementationVisibility;
 use crate::runtime::intrinsic::Intrinsic;
@@ -306,9 +307,24 @@ fn create_peek(vm: &VM, _bun: &JSObject) -> JSValue {
     peek
 }
 
+/// `functionBunDeepEquals`: menos de dois argumentos lança `TypeError`; `strict` e `skipPrototype` só valem como
+/// booleano `true`.
+fn deep_equals_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
+    if call.argument_count() < 2 {
+        return Err(Thrown::type_error("Expected 2 values to compare"));
+    }
+    let is_true = |value: JSValue| value.is_boolean() && value.as_boolean();
+    let strict = is_true(call.argument(2));
+    let mode = Mode { strict, skip_prototype_identity: strict && is_true(call.argument(3)) };
+    Ok(JSValue::Bool(deep_equals(global_object, mode, call.argument(0), call.argument(1))?))
+}
+
+host_function!(bun_deep_equals, deep_equals_body);
+
 /// `bunObjectTable` de `BunObject.cpp`, na ordem do `@begin`, só com as entradas portadas.
-static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 13] = [
+static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 14] = [
     lazy_entry_with_attributes("argv", DONT_DELETE, create_argv),
+    native_function_entry("deepEquals", DONT_DELETE, bun_deep_equals, 2, Intrinsic::NoIntrinsic),
     lazy_entry_with_attributes("env", READ_ONLY | DONT_DELETE, create_env),
     native_function_entry("escapeHTML", DONT_DELETE, bun_escape_html, 2, Intrinsic::NoIntrinsic),
     native_function_entry("fileURLToPath", DONT_DELETE, bun_file_url_to_path, 1, Intrinsic::NoIntrinsic),
