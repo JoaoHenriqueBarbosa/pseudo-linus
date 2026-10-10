@@ -93,9 +93,11 @@ fn weak_references_follow_the_collector() {
 /// Coleta a cada alocação nesta thread enquanto roda `program` (com timers) e devolve `globalThis.R`. Cada caso
 /// abaixo é uma aresta ou raiz que o `ZJSC_GC_STRESS` acusou: sem ela, a lápide do build de depuração dá pânico.
 fn stressed(program: &str) -> String {
+    let before = gc::statistics().collections;
     gc::set_stress_for_thread(Some(1));
     let result = zjsc::api::eval::evaluate_named_script_running_timers_reporting_uncaught(program, "/app/main.js", "R");
     gc::set_stress_for_thread(None);
+    assert!(gc::statistics().collections > before, "o programa rodou sem nenhuma coleta: o caso não testa raiz nenhuma");
     let value = result.expect("sem exceção não capturada").unwrap_or_else(|_| panic!("o programa lançou exceção"));
     String::from_utf8_lossy(&value.to_wtf_string().utf8(ConversionMode::LenientConversion)).into_owned()
 }
