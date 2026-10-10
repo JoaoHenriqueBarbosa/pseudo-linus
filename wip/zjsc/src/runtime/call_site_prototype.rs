@@ -92,6 +92,11 @@ macro_rules! call_site_method {
     ($host:ident, $body:ident, $name:literal, |$global_object:ident, $site:ident| $result:expr) => {
         fn $body($global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
             let $site = receiver(call, $name)?;
+            if crate::runtime::stack_frame::v8_stack_format() {
+                if let Some(value) = crate::runtime::v8_stack::call_site_method($global_object, $site.frame(), $name) {
+                    return Ok(value);
+                }
+            }
             Ok($result)
         }
         host_function!($host, $body);
@@ -169,7 +174,12 @@ call_site_method!(call_site_to_string, to_string_body, "toString", |global_objec
 
 /// `getTypeName` devolve `Result` (lê `constructor` e `name`, que podem lançar), então não usa o macro.
 fn get_type_name_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
-    receiver(call, "getTypeName")?;
+    let site = receiver(call, "getTypeName")?;
+    if crate::runtime::stack_frame::v8_stack_format() {
+        if let Some(value) = crate::runtime::v8_stack::call_site_method(global_object, site.frame(), "getTypeName") {
+            return Ok(value);
+        }
+    }
     // Medido no `bun` 1.4.2: sempre a string `"undefined"` (`typeof` é `string`), em qualquer frame.
     Ok(string_value(global_object.vm(), "undefined"))
 }

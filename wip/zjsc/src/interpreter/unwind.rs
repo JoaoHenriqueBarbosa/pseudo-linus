@@ -139,7 +139,10 @@ impl Interpreter {
         // O código de `eval` só entra pela função nativa `eval`, que o `Bun` mostra como frame logo depois
         // dele. Quando o `eval` foi chamado como função (frame nativo de verdade) é esse frame que aparece.
         let mut pending_native_eval = false;
+        // O frame anterior do percurso entrou como frame nativo.
+        let mut native_pushed_last = false;
         StackVisitor::visit(self, Some(top_call_frame), false, |frame| {
+            let previous_native = std::mem::take(&mut native_pushed_last);
             if std::mem::take(&mut pending_native_eval) && !frame.is_native_frame() && frames.len() < limit {
                 frames.push(StackFrame::native_eval());
             }
@@ -175,14 +178,30 @@ impl Interpreter {
                 }
             } else if frame.is_native_frame() {
                 if (frame.index() > 0 || include_top_native) && !frame.is_implementation_visibility_private() {
+                    let before = frames.len();
                     frames.extend(self.native_stack_frame_for(vm, frame));
+                    native_pushed_last = frames.len() > before;
+                    return IterationStatus::Continue;
                 }
             } else if frame.code_block().is_some()
                 && !frame.is_implementation_visibility_private()
                 && !(frame.index() > 0 && Self::is_in_tail_call(frame))
             {
+                // O V8 escreve `new Uint8Array (<anonymous>)`: o construtor nativo se conhece pela instrução de quem
+                // o chamou.
+                if previous_native && crate::runtime::stack_frame::v8_stack_format() && Self::is_constructing(frame) {
+                    if let Some(native) = frames.last_mut() {
+                        native.is_constructor = true;
+                    }
+                }
+                // O `eval` direto não tem frame no V8, nem quando o fonte dele não compila.
+                if previous_native && crate::runtime::stack_frame::v8_stack_format() && Self::current_opcode_is(frame, &[OpcodeID::op_call_direct_eval]) {
+                    frames.pop();
+                }
                 frames.push(self.stack_frame_for(frame));
-                pending_native_eval = frame.code_type() == FrameCodeType::Eval;
+                // O V8 não mostra frame para o `eval` direto; o indireto é um frame nativo de verdade, que o
+                // percurso já encontra.
+                pending_native_eval = frame.code_type() == FrameCodeType::Eval && !crate::runtime::stack_frame::v8_stack_format();
             }
             IterationStatus::Continue
         });
@@ -271,12 +290,24 @@ impl Interpreter {
 
     /// A instrução corrente do frame é `op_tail_call` ou `op_tail_call_varargs`.
     fn is_in_tail_call(frame: &Frame) -> bool {
+        Self::current_opcode_is(frame, &[OpcodeID::op_tail_call, OpcodeID::op_tail_call_varargs])
+    }
+
+    /// A instrução corrente do frame constrói (`new`, `super(...)`).
+    fn is_constructing(frame: &Frame) -> bool {
+        Self::current_opcode_is(
+            frame,
+            &[OpcodeID::op_construct, OpcodeID::op_construct_varargs, OpcodeID::op_super_construct, OpcodeID::op_super_construct_varargs],
+        )
+    }
+
+    fn current_opcode_is(frame: &Frame, opcodes: &[OpcodeID]) -> bool {
         let Some(code_block) = frame.code_block() else {
             return false;
         };
         let block = code_block.borrow();
         let instruction = block.instructions().at(frame.bytecode_index().offset());
-        matches!(instruction.opcode_id_enum(), OpcodeID::op_tail_call | OpcodeID::op_tail_call_varargs)
+        opcodes.contains(&instruction.opcode_id_enum())
     }
 
     /// `StackFrame` de um frame de função nativa (`JSObject` chamado sem `CodeBlock`): o nome é o da função de

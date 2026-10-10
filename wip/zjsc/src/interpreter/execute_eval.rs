@@ -269,6 +269,7 @@ impl Interpreter {
         x: JSValue,
         caller_source_origin: &SourceOrigin,
         tainted_origin: SourceTaintedOrigin,
+        eval_origin: Option<String>,
     ) -> LLIntResult<JSValue> {
         if !x.is_string() {
             return Ok(x);
@@ -289,6 +290,10 @@ impl Interpreter {
             TextPosition::default(),
             SourceProviderSourceType::Program,
         );
+        // Formato de pilha do V8: os frames do código mostram de onde o `eval` veio.
+        if let (Some(origin), Some(provider)) = (eval_origin, source.provider()) {
+            provider.set_eval_origin(origin);
+        }
         let eval = try_create_indirect_eval(
             global_object,
             &source,

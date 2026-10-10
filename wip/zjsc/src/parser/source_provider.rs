@@ -81,6 +81,9 @@ pub struct SourceProviderBase {
     /// O fonte passou pelo transpilador do bun, que tira os comentários: as diretivas `//# sourceURL=` e
     /// `//# sourceMappingURL=` não chegam ao motor (medido no bun 1.4.2, o arquivo principal não se renomeia).
     comments_stripped: Cell<bool>,
+    /// No formato de pilha do V8, o fonte de `eval` e de `new Function` guarda de onde veio (`eval at f (url:L:C)`),
+    /// que os frames dele escrevem no lugar da URL.
+    eval_origin: RefCell<Option<String>>,
 }
 
 impl SourceProviderBase {
@@ -110,6 +113,7 @@ impl SourceProviderBase {
             raw_columns: Cell::new(false),
             hidden: Cell::new(false),
             comments_stripped: Cell::new(false),
+            eval_origin: RefCell::new(None),
         }
     }
 }
@@ -165,6 +169,16 @@ pub trait SourceProvider: std::fmt::Debug {
     /// Instala o mapa de posições.
     fn set_position_map(&self, map: Rc<PositionMap>) {
         *self.base().position_map.borrow_mut() = Some(map);
+    }
+
+    /// De onde veio o fonte de `eval` ou `new Function` (`eval at f (url:L:C)`), no formato de pilha do V8.
+    fn eval_origin(&self) -> Option<String> {
+        self.base().eval_origin.borrow().clone()
+    }
+
+    /// Grava a origem do `eval` (ver `eval_origin`).
+    fn set_eval_origin(&self, origin: String) {
+        *self.base().eval_origin.borrow_mut() = Some(origin);
     }
 
     /// `memoryCost()` (Bun).

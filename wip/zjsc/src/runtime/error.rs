@@ -24,11 +24,21 @@ fn create_error_instance(global_object: &JSGlobalObject, error_type: ErrorType, 
     // `ErrorInstance::finishCreation`: só grava `message` quando há mensagem (o `TypeError` da fronteira do
     // `ShadowRealm` pode nascer com ela vazia; o `message` do protótipo, "", responde).
     let vm = global_object.vm();
+    let message = &v8_or_jsc_message(error_type, message);
     let instance = ErrorInstance::create(vm, global_object.error_structure_for(error_type), message.clone(), error_type);
     if !message.is_empty() {
         crate::runtime::error_natives::put_message_property(vm, &instance, message);
     }
     instance.as_object()
+}
+
+/// No formato de pilha do V8 o erro que o motor cria leva a mensagem do V8 ([`crate::runtime::v8_stack::v8_message`]).
+pub(crate) fn v8_or_jsc_message(error_type: ErrorType, message: &WtfString) -> WtfString {
+    if !crate::runtime::stack_frame::v8_stack_format() {
+        return message.clone();
+    }
+    let text = String::from_utf8_lossy(&message.utf8(crate::wtf::text::conversion_mode::ConversionMode::LenientConversion)).into_owned();
+    crate::runtime::v8_stack::v8_message(error_type, &text).map_or_else(|| message.clone(), |v8| WtfString::from_utf8(v8.as_bytes()))
 }
 
 /// `createError(JSGlobalObject*, const String&)`.
@@ -97,7 +107,7 @@ pub fn create_out_of_memory_error_with_message(global_object: &JSGlobalObject, m
 /// `createStackOverflowError(JSGlobalObject*)`.
 pub fn create_stack_overflow_error(global_object: &JSGlobalObject) -> JSObjectHandle {
     let vm = global_object.vm();
-    let message = WtfString::from_latin1(b"Maximum call stack size exceeded.");
+    let message = v8_or_jsc_message(ErrorType::RangeError, &WtfString::from_latin1(b"Maximum call stack size exceeded."));
     let error = ErrorInstance::create(vm, global_object.error_structure_for(ErrorType::RangeError), message.clone(), ErrorType::RangeError);
     crate::runtime::error_natives::put_message_property(vm, &error, &message);
     error.set_stack_overflow_error();

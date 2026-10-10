@@ -68,9 +68,10 @@ impl ParserError {
         source: &SourceCode,
         override_line_number: i32,
     ) -> Option<ErrorInstanceRef> {
-        let data = self.to_error_data_override_line(source, override_line_number)?;
+        let mut data = self.to_error_data_override_line(source, override_line_number)?;
         let vm = global_object.vm();
         let error_type = data.error_type.unwrap_or(ErrorType::SyntaxError);
+        data.message = crate::runtime::error::v8_or_jsc_message(error_type, &data.message);
         let message = data.message.clone();
         let instance = ErrorInstance::create_with_data(vm, global_object.error_structure_for(error_type), data);
         // `ErrorInstance::finishCreation` grava `message` (`DontEnum`) quando não vazia.

@@ -292,6 +292,24 @@ fn transpiled_source(text: &WtfString, origin: &SourceOrigin, url: WtfString) ->
     code
 }
 
+/// Roda `source` como o `<script src=url>` clássico de uma página do navegador: os modos do V8 que o navegador liga
+/// (`Error.stack`, `CallSite` e mensagens; `toString(radix)`), a origem é a própria URL e o fonte não passa por
+/// transpilador. Depois de esvaziar as microtarefas devolve a variável global `result_name`.
+pub fn evaluate_browser_script_result(source: &str, url: &str, result_name: &str) -> Result<JSValue, JSValue> {
+    run_program(|| {
+        crate::runtime::stack_frame::set_v8_stack_format(true);
+        crate::runtime::number_prototype::set_v8_radix_strings(true);
+        let (vm, global_object) = new_global_object();
+        let _finalizer = VmFinalizer::new(&vm);
+        let url_text = WtfString::from_latin1(url.as_bytes());
+        let origin = SourceOrigin::new(URL::from_string(&url_text));
+        let code = make_source(&wtf_from_units(&utf16_units(source)), &origin, SourceTaintedOrigin::Untainted, url_text, TextPosition::default(), SourceProviderSourceType::Program);
+        let _ = evaluate(&global_object, &code);
+        vm.drain_microtasks();
+        read_global_result(&global_object, result_name)
+    })
+}
+
 /// `bun arquivo.js`: roda `source` (arquivo `url`) como o programa principal sobre um global novo com `console`
 /// instalado e devolve o código de saída. Uma exceção não capturada do topo é relatada no stderr do console
 /// (`uncaught_report.rs`) e dá o código 1; as microtarefas só esvaziam quando o script termina sem lançar.
@@ -1317,7 +1335,7 @@ pub fn evaluate_indirect_eval(source: &str) -> Result<JSValue, JSValue> {
 /// Um `(0, eval)(source)` no `global_object`: o valor de completão, ou a exceção lançada como `Err`.
 fn indirect_eval(vm: &VM, global_object: &JSGlobalObjectRef, source: &[u16]) -> Result<JSValue, JSValue> {
     let argument = JSValue::from_js_string(js_string(vm, &wtf_from_units(source)));
-    let result = vm.interpreter().global_func_eval(global_object, argument, &SourceOrigin::default(), SourceTaintedOrigin::Untainted);
+    let result = vm.interpreter().global_func_eval(global_object, argument, &SourceOrigin::default(), SourceTaintedOrigin::Untainted, None);
     match result {
         Ok(value) => completion(vm, value),
         Err(LLIntFailure::Thrown) => completion(vm, JSValue::empty()),

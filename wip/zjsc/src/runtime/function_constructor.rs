@@ -285,7 +285,7 @@ fn construct_function_host(
     function_construction_mode: FunctionConstructionMode,
     new_target: Option<JSValue>,
 ) -> HostResult {
-    construct_function_for_caller(
+    let function = construct_function_for_caller(
         global_object,
         call.arguments(),
         &call.caller_source_origin(global_object),
@@ -293,8 +293,18 @@ fn construct_function_host(
         function_construction_mode,
         new_target,
     )
-    .map(|function| function.as_value())
-    .map_err(thrown_from_llint)
+    .map_err(thrown_from_llint)?;
+    // Formato de pilha do V8: os frames da função criada mostram de onde ela veio (`eval at f (url:L:C)`).
+    if crate::runtime::stack_frame::v8_stack_format() {
+        if let (Some(frame), Some(created)) = (call.native_frame(), function.as_value().as_js_function()) {
+            if !created.is_host_function() {
+                if let Some(provider) = created.js_executable().borrow().source().provider() {
+                    provider.set_eval_origin(crate::runtime::v8_stack::eval_origin(global_object, frame));
+                }
+            }
+        }
+    }
+    Ok(function.as_value())
 }
 
 /// As duas funções nativas de um construtor de função: o `call` (`new.target` ausente) e o `construct`.

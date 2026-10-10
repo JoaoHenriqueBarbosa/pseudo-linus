@@ -149,8 +149,10 @@ pub(crate) fn capture_frames(
     include_top_native: bool,
 ) -> Option<Vec<StackFrame>> {
     // Medido no `bun` 1.4.2: com `Error.stackTraceLimit` 0, negativo, `NaN`, não numérico ou apagado, `new Error`
-    // e o erro lançado pelo motor não ganham a propriedade `stack` (`'stack' in e` é `false`).
-    let limit = global_object.stack_trace_limit.get().filter(|&limit| limit != 0)? as usize;
+    // e o erro lançado pelo motor não ganham a propriedade `stack` (`'stack' in e` é `false`). No V8 o 0 dá o
+    // cabeçalho sozinho (`Error: zero`, medido no Chromium 154).
+    let v8 = crate::runtime::stack_frame::v8_stack_format();
+    let limit = global_object.stack_trace_limit.get().filter(|&limit| v8 || limit != 0)? as usize;
     Some(global_object.vm().interpreter().get_stack_trace(global_object.vm(), call_frame, limit, caller, include_top_native))
 }
 
@@ -208,6 +210,11 @@ fn error_constructor_capture_stack_trace(global_object: &JSGlobalObject, call_fr
         let target = caller_argument.as_js_function().and_then(|function| function.as_bound_function().map(|bound| bound.target_function()));
         target.filter(JSValue::is_cell).unwrap_or(caller_argument).as_cell()
     });
+    if crate::runtime::stack_frame::v8_stack_format() {
+        let frames = capture_frames(global_object, call_frame.call_frame(), caller, false);
+        crate::runtime::v8_stack::capture_into(global_object, &object, frames);
+        return JSValue::undefined().encode();
+    }
     let frames = capture_frames_for_capture_stack_trace(global_object, call_frame.call_frame(), caller);
 
     // Medido no `bun` 1.4.2: num `ErrorInstance` o cabeçalho `name: message` é montado na leitura de `stack`
@@ -584,14 +591,21 @@ pub fn init_error_classes(
     // (`DontEnum`, comprimento 1).
     *global_object.error_constructor.borrow_mut() = Some(error_constructor.as_value());
     crate::runtime::call_site_prototype::install_call_site(vm, global_object, object_prototype);
-    error_constructor.put_direct_without_transition(
-        vm,
-        &PropertyName::from_identifier(&vm.property_names.stack_trace_limit),
-        js_number(f64::from(
-            global_object.stack_trace_limit.get().unwrap_or_else(Options::default_error_stack_trace_limit),
-        )),
-        0,
-    );
+    // No V8 a ordem é `captureStackTrace,isError,stackTraceLimit`, sem as extensões do bun (medido no Chromium 154).
+    let v8 = crate::runtime::stack_frame::v8_stack_format();
+    let put_stack_trace_limit = || {
+        error_constructor.put_direct_without_transition(
+            vm,
+            &PropertyName::from_identifier(&vm.property_names.stack_trace_limit),
+            js_number(f64::from(
+                global_object.stack_trace_limit.get().unwrap_or_else(Options::default_error_stack_trace_limit),
+            )),
+            0,
+        );
+    };
+    if !v8 {
+        put_stack_trace_limit();
+    }
     put_direct_native_function_without_transition(
         vm,
         global_object,
@@ -614,12 +628,29 @@ pub fn init_error_classes(
         Intrinsic::ErrorIsErrorIntrinsic,
         FUNCTION_ATTRIBUTES,
     );
+    if v8 {
+        put_stack_trace_limit();
+    } else {
+        install_bun_stack_extensions(vm, global_object, &error_constructor);
+    }
 
-    // Extensões do `bun` (medido: `Object.getOwnPropertyNames(Error)` termina em `appendStackTrace,prepareStackTrace`).
+    // Os nativos: protótipo com o `Error.prototype` como protótipo, construtor com o `Error` como protótipo.
+    for error_type in NATIVE_ERROR_TYPES {
+        let structure = prototype_structure(vm, global_object, error_prototype.as_value());
+        let prototype = create_error_prototype_object(vm, &structure, error_type_name(error_type), |_| {});
+        prototype.did_become_prototype(vm);
+        let instance_structure = ErrorInstance::create_structure(vm, Some(global_object), prototype.as_value());
+        global_object.error_structures.borrow_mut().push((error_type, instance_structure));
+        create_constructor(vm, global_object, error_type, constructor_structure(error_constructor.as_value(), 0), &prototype);
+    }
+}
+
+/// Extensões do `bun` (medido: `Object.getOwnPropertyNames(Error)` termina em `appendStackTrace,prepareStackTrace`).
+fn install_bun_stack_extensions(vm: &VM, global_object: &JSGlobalObject, error_constructor: &JSFunctionRef) {
     put_direct_native_function_without_transition(
         vm,
         global_object,
-        &error_constructor,
+        error_constructor,
         &Identifier::from_span(vm, b"appendStackTrace".as_slice()),
         APPEND_STACK_TRACE_LENGTH,
         error_constructor_append_stack_trace,
@@ -644,14 +675,4 @@ pub fn init_error_classes(
         default_prepare.as_value(),
         FUNCTION_ATTRIBUTES,
     );
-
-    // Os nativos: protótipo com o `Error.prototype` como protótipo, construtor com o `Error` como protótipo.
-    for error_type in NATIVE_ERROR_TYPES {
-        let structure = prototype_structure(vm, global_object, error_prototype.as_value());
-        let prototype = create_error_prototype_object(vm, &structure, error_type_name(error_type), |_| {});
-        prototype.did_become_prototype(vm);
-        let instance_structure = ErrorInstance::create_structure(vm, Some(global_object), prototype.as_value());
-        global_object.error_structures.borrow_mut().push((error_type, instance_structure));
-        create_constructor(vm, global_object, error_type, constructor_structure(error_constructor.as_value(), 0), &prototype);
-    }
 }
