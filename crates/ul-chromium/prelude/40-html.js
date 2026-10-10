@@ -32,6 +32,11 @@ class HTMLElement extends Element {
   set autofocus(v) { this.toggleAttribute('autofocus', !!v); }
   get enterKeyHint() { return this.getAttribute('enterkeyhint') ?? ''; }
   get inputMode() { return this.getAttribute('inputmode') ?? ''; }
+  // offset* são de HTMLElement (no SVG e no MathML não existem; bibliotecas como o motion testam `'offsetHeight' in el`).
+  get offsetWidth() { const b = boxOf(this); return b ? Math.round(b.width) : 0; }
+  get offsetHeight() { const b = boxOf(this); return b ? Math.round(b.height) : 0; }
+  get offsetTop() { const b = boxOf(this); const p = this.offsetParent && boxOf(this.offsetParent); return b ? Math.round(b.y - (p ? p.y + p.border[0] : 0)) : 0; }
+  get offsetLeft() { const b = boxOf(this); const p = this.offsetParent && boxOf(this.offsetParent); return b ? Math.round(b.x - (p ? p.x + p.border[3] : 0)) : 0; }
   get offsetParent() { return null; }
   attachInternals() { return { setFormValue() {}, setValidity() {}, checkValidity: () => true, form: null, states: new Set(), shadowRoot: null }; }
 }

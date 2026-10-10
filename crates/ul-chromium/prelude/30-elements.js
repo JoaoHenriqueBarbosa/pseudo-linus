@@ -337,19 +337,6 @@ class Element extends Node {
   get clientHeight() { if (this === document.documentElement) return VIEWPORT.height; const b = boxOf(this); return b ? Math.round(b.height - b.border[0] - b.border[2] - b.scrollbar[1]) : 0; }
   get clientTop() { const b = boxOf(this); return b ? Math.round(b.border[0]) : 0; }
   get clientLeft() { const b = boxOf(this); return b ? Math.round(b.border[3]) : 0; }
-  get offsetWidth() { const b = boxOf(this); return b ? Math.round(b.width) : 0; }
-  get offsetHeight() { const b = boxOf(this); return b ? Math.round(b.height) : 0; }
-  get offsetTop() { const b = boxOf(this); const p = this.offsetParent && boxOf(this.offsetParent); return b ? Math.round(b.y - (p ? p.y + p.border[0] : 0)) : 0; }
-  get offsetLeft() { const b = boxOf(this); const p = this.offsetParent && boxOf(this.offsetParent); return b ? Math.round(b.x - (p ? p.x + p.border[3] : 0)) : 0; }
-  get offsetParent() {
-    if (!this.isConnected || this.localName === 'body' || this.localName === 'html') return null;
-    for (let el = this.parentElement; el; el = el.parentElement) {
-      if (el.localName === 'body' || /^(td|th|table)$/.test(el.localName)) return el;
-      const position = el.style && el.style.position;
-      if (position && position !== 'static') return el;
-    }
-    return null;
-  }
   get scrollWidth() { return this.clientWidth; }
   get scrollHeight() { return this.clientHeight; }
   get scrollTop() { return 0; }
