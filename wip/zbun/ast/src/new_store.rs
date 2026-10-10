@@ -99,7 +99,9 @@ fn to_u32(n: usize) -> u32 {
 macro_rules! define_store {
     ($(#[$meta:meta])* $vis:vis struct $store:ident { $($field:ident: $node:ty),* $(,)? }) => {
         $(#[$meta])*
-        #[derive(Default)]
+        // `Clone`: o `Store` de cada arquivo nasce como cópia do `define_store` (README, "`Define` com um `Store` por
+        // arquivo").
+        #[derive(Default, Clone)]
         $vis struct $store {
             bytes: Vec<u8>,
             utf16: Vec<u16>,

@@ -27,6 +27,7 @@ use bun_collections::StringArrayHashMap;
 /// hierarchical scope-based identifier lookup in JavaScript. Lookup now needs
 /// to search sibling scopes in addition to parent scopes. This is accomplished
 /// by sharing the map of exported members between all matching sibling scopes.
+#[derive(Clone)]
 pub struct TSNamespaceScope {
     /// This is specific to this namespace block. It's the argument of the
     /// immediately-invoked function expression that the namespace block is

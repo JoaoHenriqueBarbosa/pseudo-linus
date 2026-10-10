@@ -641,6 +641,19 @@ pub fn index_of_char_usize(slice: &[u8], char: u8) -> Option<usize> {
     slice.iter().position(|&b| b == char)
 }
 
+pub fn last_index_of_char(self_: &[u8], char: u8) -> Option<usize> {
+    self_.iter().rposition(|&b| b == char)
+}
+
+/// Count the occurrences of a character in an ASCII byte array.
+pub fn count_char(self_: &[u8], char: u8) -> usize {
+    self_.iter().filter(|&&b| b == char).count()
+}
+
+pub fn eql(self_: &[u8], other: &[u8]) -> bool {
+    self_ == other
+}
+
 pub fn index_of(self_: &[u8], str: &[u8]) -> Option<usize> {
     let self_len = self_.len();
     let str_len = str.len();

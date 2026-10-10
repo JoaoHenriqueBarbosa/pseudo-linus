@@ -13,6 +13,7 @@ bun_alloc = { path = "../bun_alloc" }
 bun_ast = { path = "../ast" }
 bun_collections = { path = "../bun_collections" }
 bun_core = { path = "../bun_core" }
+bun_wyhash = { path = "../bun_wyhash" }
 bytemuck.workspace = true
 strum.workspace = true
 

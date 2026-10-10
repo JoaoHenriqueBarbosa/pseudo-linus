@@ -284,6 +284,7 @@ impl Members {
     }
 }
 
+#[derive(Clone)]
 pub struct Scope {
     pub kind: Kind,
     /// O escopo pai, dono deste pela lista `children`.

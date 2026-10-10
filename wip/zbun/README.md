@@ -101,7 +101,7 @@ No porte, o ponteiro vira índice e a memória vira um dono explícito:
   que recebem só o nó passam a receber também `&Store` ou `&mut Store`; essa é a mudança sistemática do porte nos
   arquivos de `ast`, `js_parser` e `js_printer`.
 
-## `Define` com um `Store` por arquivo (passo 2, proposta)
+## `Define` com um `Store` por arquivo (passo 2, decidido (B))
 
 No upstream, `DefineData.value` é um `ExprData` cujos `StoreRef` apontam para nós de vida de processo (tabelas
 `'static`, o `bump` do bundler ou o `Store` de thread onde o `parse_env_json` monta objetos). O `Define` é montado
@@ -129,8 +129,12 @@ Nas duas, o `Define` deixa de precisar de `unsafe impl Send/Sync`: um `Store` é
 `OnceLock` guarda a tabela de globais puros sem o embrulho `SyncDefineData`. Os nomes e a estrutura do upstream
 (`DefineData`, `DotDefine`, `Define`, `Flags`) ficam; muda só a origem dos índices.
 
-Recomendação: (B), por manter o comportamento de compartilhamento e o `value_for_define` do upstream sem código
-novo; (A) só se defines grandes forem um caso de uso real.
+Decidido: (B), pela coordenação. Feito em `js_parser/src/lib.rs` (`mod defines`, com `Define.store`) e
+`defines_table.rs` (sem o `SyncDefineData` e os seus dois `unsafe impl`), com teste em `defines_tests.rs`. O
+`DefineData::init_static_string` recebe o `store` do `Define` no lugar do `&'static E::EString`. O `Store` e o
+`ArrayHashMap` ganharam `Clone`. Com defines grandes (um `--define` de objeto JSON grande) a cópia por arquivo vira
+custo, e nesse dia a (A) volta à mesa. O `Prefill` em posições fixas ainda não existe; quando entrar, o
+`define_store` passa a nascer de `Store::new()`.
 
 ## Estado por arquivo
 

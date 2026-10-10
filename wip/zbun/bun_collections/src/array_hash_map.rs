@@ -35,7 +35,9 @@ impl OwnKey<u32> for u32 {
     }
 }
 
-/// `std.ArrayHashMap(K, V)`: as entradas na ordem de inserção.
+/// `std.ArrayHashMap(K, V)`: as entradas na ordem de inserção. O `Clone` do trait serve ao `derive` do `Store`; o
+/// `clone` inerente, falível como o do upstream, continua sendo o da chamada por método.
+#[derive(Clone)]
 pub struct ArrayHashMap<K, V> {
     keys: Vec<K>,
     values: Vec<V>,
