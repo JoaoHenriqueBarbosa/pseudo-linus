@@ -25,46 +25,21 @@ RUSAGE_THREAD = 1
 
 error = OSError
 
-_limits = {
-    RLIMIT_CPU: (RLIM_INFINITY, RLIM_INFINITY),
-    RLIMIT_FSIZE: (RLIM_INFINITY, RLIM_INFINITY),
-    RLIMIT_DATA: (RLIM_INFINITY, RLIM_INFINITY),
-    RLIMIT_STACK: (8388608, RLIM_INFINITY),
-    RLIMIT_CORE: (RLIM_INFINITY, RLIM_INFINITY),
-    RLIMIT_RSS: (RLIM_INFINITY, RLIM_INFINITY),
-    RLIMIT_NPROC: (RLIM_INFINITY, RLIM_INFINITY),
-    RLIMIT_NOFILE: (1048576, 1048576),
-    RLIMIT_MEMLOCK: (8388608, 8388608),
-    RLIMIT_AS: (RLIM_INFINITY, RLIM_INFINITY),
-    # O 10 é o `RLIMIT_LOCKS` do kernel: o glibc 2.41 não o exporta, e o `resource` do Debian não tem o nome.
-    10: (RLIM_INFINITY, RLIM_INFINITY),
-    RLIMIT_SIGPENDING: (RLIM_INFINITY, RLIM_INFINITY),
-    RLIMIT_MSGQUEUE: (819200, 819200),
-    RLIMIT_NICE: (0, 0),
-    RLIMIT_RTPRIO: (0, 0),
-    RLIMIT_RTTIME: (RLIM_INFINITY, RLIM_INFINITY),
-}
-
-
-def getrlimit(resource):
-    if resource not in _limits:
-        raise ValueError('invalid resource specified')
-    return _limits[resource]
-
-
-def setrlimit(resource, limits):
-    if resource not in _limits:
-        raise ValueError('invalid resource specified')
-    soft, hard = limits
-    cur_soft, cur_hard = _limits[resource]
-    if cur_hard != RLIM_INFINITY and (hard == RLIM_INFINITY or hard > cur_hard):
-        raise ValueError('not allowed to raise maximum limit')
-    if hard != RLIM_INFINITY and (soft == RLIM_INFINITY or soft > hard):
-        raise ValueError('current limit exceeds maximum limit')
-    _limits[resource] = (soft, hard)
+# Os limites vivem no kernel (`RLIMIT_NPROC` e `RLIMIT_NOFILE` valem de verdade); o `_os` só os mostra e grava.
+from _os import getrlimit, setrlimit
 
 
 def prlimit(pid, resource, limits=None):
+    import errno
+    import operator
+    import os
+    pid = operator.index(pid)
+    if pid != 0 and pid != os.getpid():
+        if pid < 0:
+            raise ProcessLookupError(errno.ESRCH, os.strerror(errno.ESRCH))
+        os.kill(pid, 0)
+        # O kernel do sandbox só tem os limites do processo que chama.
+        raise PermissionError(errno.EPERM, os.strerror(errno.EPERM))
     old = getrlimit(resource)
     if limits is not None:
         setrlimit(resource, limits)
