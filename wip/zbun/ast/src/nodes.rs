@@ -617,6 +617,7 @@ pub type DependencyList = Vec<Dependency>;
 /// splitting analysis. Individual parts of a file can be discarded by tree
 /// shaking and can be assigned to separate chunks (i.e. output files) by code
 /// splitting.
+#[derive(Clone)]
 pub struct Part {
     pub stmts: StoreSlice<Stmt>,
     pub scopes: Vec<StoreRef<crate::Scope>>,

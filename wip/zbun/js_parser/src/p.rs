@@ -8841,35 +8841,19 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // Potentially remove some statements, then filter out parts to remove any
                 // with no statements
                 for idx in begin..parts.len() {
-                    // A shallow bitwise copy leaves `parts[idx]` intact so the outer
-                    // multi-pass loop (which restarts at `begin = parts_end`) re-scans
-                    // real data on the next iteration. `mem::take` would zero the slot
-                    // and degrade this to a single pass, so use `ptr::read`; the
-                    // duplicate is non-owning (paired with `ptr::write`/`forget`
-                    // below to avoid double-drop of arena-backed Vec fields).
-                    // SAFETY: idx < parts.len(); Part fields are arena/bump-backed
-                    // (Borrowed-origin BabyLists, raw stmt slices), so the bitwise copy is
-                    // a valid non-owning duplicate.
-                    let mut part = core::mem::ManuallyDrop::new(unsafe {
-                        core::ptr::read(&raw const parts[idx])
-                    });
+                    // O upstream copia a parte por valor (`var part = parts[idx]`) e deixa `parts[idx]` intacto: a
+                    // passada seguinte (que recomeça em `begin = parts_end`) relê dados reais. Aqui a cópia é um
+                    // `clone`, que dá os mesmos valores sem dividir dono.
+                    let mut part = parts[idx].clone();
                     self.import_records_for_current_part.clear();
                     self.declared_symbols.clear_retaining_capacity();
 
-                    let result = match ImportScanner::scan::<TYPESCRIPT, SCAN_ONLY, false>(
+                    let result = ImportScanner::scan::<TYPESCRIPT, SCAN_ONLY, false>(
                         self,
                         (&mut self.store[part.stmts]),
                         wrap_mode != WrapMode::None,
                         None,
-                    ) {
-                        Ok(r) => r,
-                        Err(e) => {
-                            // `part` is a bitwise duplicate of `parts[idx]` held in
-                            // `ManuallyDrop`; let it fall out of scope so the source
-                            // slot keeps sole ownership.
-                            return Err(e);
-                        }
-                    };
+                    )?;
                     kept_import_equals = kept_import_equals || result.kept_import_equals;
                     removed_import_equals = removed_import_equals || result.removed_import_equals;
 
@@ -8884,16 +8868,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             part.can_be_removed_if_unused = false;
                         }
                         if part.declared_symbols.len() == 0 {
-                            // SAFETY: `part` is a bitwise duplicate of `parts[idx]`
-                            // (via `ptr::read` above); the old `declared_symbols`
-                            // is still owned by that slot. Overwrite without running
-                            // Drop, which would double-free the original.
-                            unsafe {
-                                core::ptr::write(
-                                    &raw mut part.declared_symbols,
-                                    self.declared_symbols.clone(),
-                                );
-                            }
+                            part.declared_symbols = self.declared_symbols.clone();
                         } else {
                             part.declared_symbols
                                 .append_list(&self.declared_symbols)
@@ -8901,62 +8876,14 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         }
 
                         if part.import_record_indices.is_empty() {
-                            // Bump-arena slice; Vec::from_bump_slice marks origin
-                            // Borrowed so Drop is a no-op (arena ownership).
-                            // The *old* value is a bitwise duplicate of
-                            // `parts[idx].import_record_indices` and may be Owned -
-                            // overwrite without running Drop, which would double-free the original.
-                            // SAFETY: bitwise duplicate field: overwrite without
-                            // running Drop (see `declared_symbols` above).
-                            unsafe {
-                                core::ptr::write(
-                                    &raw mut part.import_record_indices,
-                                    Vec::from_arena_slice(arena.alloc_slice_copy(
-                                        self.import_records_for_current_part.as_slice(),
-                                    )),
-                                );
-                            }
+                            part.import_record_indices = self.import_records_for_current_part.as_slice().to_vec();
                         } else {
                             part.import_record_indices
                                 .append_slice(self.import_records_for_current_part.as_slice());
                         }
 
-                        // Wipe the source slot's heap-backed maps so a multi-pass
-                        // re-scan of `idx` never aliases the compacted survivor.
-                        // SAFETY: `idx < parts.len()`; field-only write, `part` owns the old bits.
-                        unsafe {
-                            let src = parts.as_mut_ptr().add(idx);
-                            core::ptr::write(&raw mut (*src).symbol_uses, Default::default());
-                            core::ptr::write(
-                                &raw mut (*src).import_symbol_property_uses,
-                                Default::default(),
-                            );
-                        }
-                        // SAFETY: bitwise overwrite: the old slot value is intentionally not
-                        // dropped (its fields are arena-owned, so abandoning it does not leak).
-                        unsafe {
-                            core::ptr::write(
-                                parts.as_mut_ptr().add(parts_end),
-                                core::mem::ManuallyDrop::into_inner(part),
-                            )
-                        };
+                        parts[parts_end] = part;
                         parts_end += 1;
-                    } else {
-                        // Filtered out; free the global-heap maps and clear the
-                        // alias in `parts[idx]` so a re-scan never sees freed handles.
-                        drop(core::mem::take(&mut part.symbol_uses));
-                        drop(core::mem::take(&mut part.import_symbol_property_uses));
-                        // SAFETY: `idx < parts.len()`; field-only write, old bits just freed above.
-                        unsafe {
-                            let slot = parts.as_mut_ptr().add(idx);
-                            core::ptr::write(&raw mut (*slot).symbol_uses, Default::default());
-                            core::ptr::write(
-                                &raw mut (*slot).import_symbol_property_uses,
-                                Default::default(),
-                            );
-                        }
-                        // `part` is `ManuallyDrop`; falls out of scope without dropping.
-                        let _ = part;
                     }
                 }
 
@@ -8968,12 +8895,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
 
             // leave the first part in there for namespace export when bundling
-            // `truncate` would drop slots that may alias kept parts (the loop
-            // above did `ptr::read` without clearing the source), so use
-            // `set_len`, which runs no destructors.
-            // SAFETY: `parts_end <= parts.len()`; tail slots are abandoned
-            // (arena-/process-lifetime).
-            unsafe { parts.set_len(parts_end) };
+            parts.truncate(parts_end);
 
             // Do a second pass for exported items now that imported items are filled out.
             // This isn't done for HMR because it already deletes all `.s_export_clause`s
