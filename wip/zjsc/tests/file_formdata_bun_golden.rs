@@ -45,3 +45,14 @@ fn file_formdata_matches_bun() {
         }
     });
 }
+
+/// `instanceof File` olha o estado (o construtor não tem `ImplementsDefaultHasInstance`), mas o
+/// `Function.prototype[Symbol.hasInstance]` segue a cadeia, que é a de `Blob` (medido no bun 1.4.2).
+#[test]
+fn file_instanceof_uses_the_custom_has_instance() {
+    let source = "var f = new File(['x'], 'a'), H = Function.prototype[Symbol.hasInstance]; var R = [new Blob([]) instanceof File, f instanceof File, \
+                  f instanceof Blob, H.call(File, f), H.call(File, new Blob([])), f.slice(0, 1) instanceof File, Object.create(File.prototype) instanceof File].join(' ')";
+    let value = zjsc::api::eval::evaluate_named_script_result(source, "file_formdata_case.js", "R").expect("R");
+    let text = String::from_utf8_lossy(&value.to_wtf_string().utf8(zjsc::wtf::text::conversion_mode::ConversionMode::LenientConversion)).into_owned();
+    assert_eq!(text, "false true true true true true false");
+}
