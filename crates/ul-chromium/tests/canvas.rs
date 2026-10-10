@@ -74,6 +74,19 @@ fn premultiply_round_trip_matches_oracle() {
     assert_eq!(probe_output(include_str!("../../../testbench/oracle/measured/canvas-premul.html")), serde_json::from_str::<serde_json::Value>(include_str!("canvas-premul.json")).unwrap());
 }
 
+/// Os gradientes contra `testbench/oracle/measured/canvas-gradient.html` (linear com pontos quebrados, várias paradas,
+/// transformação, `globalAlpha`, cônica e radial concêntrica): pixel a pixel iguais aos do Chromium, dither incluído.
+#[test]
+fn gradients_match_oracle() {
+    let ours = probe_output(include_str!("../../../testbench/oracle/measured/canvas-gradient.html"));
+    let oracle: serde_json::Value = serde_json::from_str(include_str!("canvas-gradient.json")).unwrap();
+    for (key, want) in oracle.as_object().unwrap() {
+        let (got, want) = (ours[key].as_array().unwrap(), want.as_array().unwrap());
+        let wrong = got.iter().zip(want).filter(|(a, b)| a != b).count();
+        assert_eq!(wrong, 0, "{key}: {wrong} de {} canais diferentes", want.len());
+    }
+}
+
 /// O `toDataURL('image/webp')` contra o oráculo, byte a byte: `canvas-webp.html` (cenas desenhadas), `canvas-webp-scenes.html`
 /// (pixels postos com putImageData: com perdas, alfa, sem perdas, WebGL) e `canvas-webp-icc.html` (quando entra o
 /// perfil sRGB).
@@ -90,9 +103,9 @@ fn webp_data_url_matches_oracle() {
         let oracle: serde_json::Value = serde_json::from_str(measured).unwrap();
         wrong.extend(oracle.as_object().unwrap().iter().filter(|(key, want)| &ours[key.as_str()] != *want).map(|(key, _)| key.clone()));
     }
-    // Pendentes, e não exclusões: os gradientes falham nos pixels do canvas, não no codificador; o smooth sem perdas
-    // (400x400) é o preditor com min_bits diferente de max_bits, ainda não portado. Caso que passar sai daqui.
-    let pending = ["gradient", "gradientBogusQ", "gradientQ90", "smoothLossless"];
+    // Pendente, e não exclusão: o smooth sem perdas (400x400) é o preditor com min_bits diferente de max_bits, ainda
+    // não portado. Caso que passar sai daqui.
+    let pending = ["smoothLossless"];
     assert_eq!(wrong, pending);
 }
 

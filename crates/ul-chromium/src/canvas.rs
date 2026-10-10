@@ -14,6 +14,7 @@ use vello_cpu::peniko::{BlendMode, Compose, Extend, Fill, Gradient, ImageAlphaTy
 use vello_cpu::{ImageSource, Mask, PaintType, PixelMetadata, Pixmap, RenderContext, Resources};
 use zjsc::runtime::dom_bridge::DomArg;
 
+use crate::canvas_gradient::SkiaGradient;
 use crate::canvas_text::{baseline_shift, draw_glyph, shape, CanvasFont};
 
 /// O maior lado que o rasterizador aceita; canvas maior fica sem bitmap (o Chromium também recusa a superfície).
@@ -664,7 +665,8 @@ impl Surface {
                 }
             }
             None => {
-                if let Some(pushed) = set_paint(scene, list(cmd, 3), alpha, source, quality, ctm) {
+                let area = path.bounding_box().intersect(Rect::new(0.0, 0.0, f64::from(w), f64::from(h)));
+                if let Some(pushed) = set_paint(scene, list(cmd, 3), alpha, source, quality, ctm, area) {
                     scene.set_fill_rule(rule);
                     scene.fill_path(&path);
                     if pushed {
@@ -750,8 +752,14 @@ fn pop_layers(scene: &mut RenderContext, clips: &[DomArg], had_mode: bool) {
 /// A pintura do prelúdio: ['color', r, g, b, a], ['linear', x0, y0, x1, y1, paradas], ['radial', x0, y0, r0, x1,
 /// y1, r1, paradas], ['conic', ângulo, x, y, paradas] ou ['pattern', repetição, matriz]. `None` quando nada é
 /// pintado (gradiente sem paradas ou degenerado); `Some(true)` quando abriu a camada de recorte do padrão que não se
-/// repete em algum eixo, que o chamador fecha.
-fn set_paint(scene: &mut RenderContext, paint: &[DomArg], alpha: f64, source: Option<Arc<Pixmap>>, quality: ImageQuality, ctm: Affine) -> Option<bool> {
+/// repete em algum eixo, que o chamador fecha. `area` é o retângulo do dispositivo que o desenho pode tocar.
+fn set_paint(scene: &mut RenderContext, paint: &[DomArg], alpha: f64, source: Option<Arc<Pixmap>>, quality: ImageQuality, ctm: Affine, area: Rect) -> Option<bool> {
+    if let Some((brush, origin)) = skia_gradient(paint, alpha, ctm, area) {
+        scene.set_transform(Affine::IDENTITY);
+        scene.set_paint_transform(origin);
+        scene.set_paint(brush);
+        return Some(false);
+    }
     let stops = |i: usize| -> Vec<(f32, AlphaColor<Srgb>)> { list(paint, i).iter().filter_map(|s| if let DomArg::List(s) = s { Some((num(s, 0) as f32, color(&s[1..], alpha))) } else { None }).collect() };
     let gradient = |g: Gradient, stops: Vec<(f32, AlphaColor<Srgb>)>| -> PaintType {
         let mut g = g.with_stops(stops.as_slice()).with_extend(Extend::Pad);
@@ -811,4 +819,34 @@ fn set_paint(scene: &mut RenderContext, paint: &[DomArg], alpha: f64, source: Op
     }
     scene.set_paint(brush);
     Some(pushed)
+}
+
+/// O gradiente pelo shader do Skia (`canvas_gradient`): os pixels de `area` saem calculados como no Chromium, com o
+/// dither, e entram na cena como imagem sem filtragem, alinhada aos pixels. `None` quando não é gradiente, quando
+/// tem menos de duas paradas ou é degenerado (o chamador decide) e no radial de dois centros, que segue pelo vello.
+fn skia_gradient(paint: &[DomArg], alpha: f64, ctm: Affine, area: Rect) -> Option<(PaintType, Affine)> {
+    let kind = text(paint, 0);
+    let stops_at = match kind {
+        "linear" => 5,
+        "radial" => 7,
+        "conic" => 4,
+        _ => return None,
+    };
+    let stops: Vec<(f32, [f32; 4])> = list(paint, stops_at)
+        .iter()
+        .filter_map(|s| if let DomArg::List(s) = s { Some((num(s, 0) as f32, [(num(s, 1) / 255.0) as f32, (num(s, 2) / 255.0) as f32, (num(s, 3) / 255.0) as f32, num(s, 4) as f32])) } else { None })
+        .collect();
+    if stops.len() < 2 {
+        return None;
+    }
+    let points: Vec<f64> = (1..stops_at).map(|i| num(paint, i)).collect();
+    let gradient = SkiaGradient::new(kind, &points, stops, ctm, alpha)?;
+    let (x0, y0) = (area.x0.floor().max(0.0), area.y0.floor().max(0.0));
+    let (x1, y1) = (area.x1.ceil(), area.y1.ceil());
+    if !(x1 > x0 && y1 > y0) {
+        return None;
+    }
+    let pixels = gradient.rasterize(x0 as u32, y0 as u32, clamp_side((x1 - x0) as u32), clamp_side((y1 - y0) as u32));
+    let brush = PaintType::Image(ImageBrush { image: ImageSource::Pixmap(Arc::new(pixels)), sampler: ImageSampler::default().with_quality(ImageQuality::Low) });
+    Some((brush, Affine::translate((x0, y0))))
 }
