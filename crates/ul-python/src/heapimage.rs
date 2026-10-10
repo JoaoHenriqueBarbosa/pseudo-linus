@@ -233,7 +233,7 @@ enum IterNode {
 
 /// Um iterador preguiçoso embutido (ver [`LazyParts`]) com os valores convertidos em itens.
 enum LazyNode {
-    Seq { kind: &'static str, items: Vec<Item>, pos: usize },
+    Seq { kind: &'static str, items: Vec<Item>, pos: usize, source: Option<Item>, exhausted: bool },
     Reversed { kind: &'static str, items: Vec<Item>, next: usize },
     Map { func: Item, iters: Vec<IterNode> },
     Filter { func: Item, iter: IterNode },
@@ -436,6 +436,8 @@ struct CoreNode {
     /// Nó `Globals`.
     globals: u32,
     frame: FrameNode,
+    /// A função que criou o gerador.
+    func: Option<Item>,
     flags: GenFlags,
     returned: Option<Item>,
 }
@@ -1024,7 +1026,9 @@ impl Encoder {
 
     fn lazy(&mut self, parts: LazyParts) -> Result<LazyNode, ImageError> {
         Ok(match parts {
-            LazyParts::Seq { kind, items, pos } => LazyNode::Seq { kind, items: self.items(&items)?, pos },
+            LazyParts::Seq { kind, items, pos, source, exhausted } => {
+                LazyNode::Seq { kind, items: self.items(&items)?, pos, source: self.opt_item(source.as_ref())?, exhausted }
+            }
             LazyParts::Reversed { kind, items, next } => LazyNode::Reversed { kind, items: self.items(&items)?, next },
             LazyParts::Map { func, iters } => LazyNode::Map { func: self.item(&func)?, iters: self.iters(iters)? },
             LazyParts::Filter { func, iter } => LazyNode::Filter { func: self.item(&func)?, iter: self.iter(iter)? },
@@ -1254,7 +1258,8 @@ impl Encoder {
         let (frame, flags, returned) = c.inspect(|frame, flags, returned| -> Result<_, ImageError> {
             Ok((self.frame(frame)?, flags, self.opt_item(returned)?))
         })?;
-        Ok(CoreNode { kind: c.kind(), globals, frame, flags, returned })
+        let func = self.opt_item(c.function().map(Value::Function).as_ref())?;
+        Ok(CoreNode { kind: c.kind(), globals, frame, func, flags, returned })
     }
 
     fn role(&mut self, role: GenRole) -> Result<RoleNode, ImageError> {
@@ -1660,7 +1665,9 @@ impl Rebuilt {
 
     fn lazy(&self, node: &LazyNode) -> Result<LazyParts, ImageError> {
         Ok(match node {
-            LazyNode::Seq { kind, items, pos } => LazyParts::Seq { kind: *kind, items: self.values_of(items)?, pos: *pos },
+            LazyNode::Seq { kind, items, pos, source, exhausted } => {
+                LazyParts::Seq { kind: *kind, items: self.values_of(items)?, pos: *pos, source: self.opt(source)?, exhausted: *exhausted }
+            }
             LazyNode::Reversed { kind, items, next } => {
                 LazyParts::Reversed { kind: *kind, items: self.values_of(items)?, next: *next }
             }
@@ -1751,7 +1758,11 @@ fn iter_deps(it: &IterNode, out: &mut Vec<usize>) {
 
 fn lazy_deps(lazy: &LazyNode, out: &mut Vec<usize>) {
     match lazy {
-        LazyNode::Seq { items, .. } | LazyNode::Reversed { items, .. } => items.iter().for_each(|i| push_dep(out, i)),
+        LazyNode::Seq { items, source, .. } => {
+            items.iter().for_each(|i| push_dep(out, i));
+            source.iter().for_each(|i| push_dep(out, i));
+        }
+        LazyNode::Reversed { items, .. } => items.iter().for_each(|i| push_dep(out, i)),
         LazyNode::Map { func, iters } => {
             push_dep(out, func);
             iters.iter().for_each(|it| iter_deps(it, out));
@@ -2283,6 +2294,9 @@ impl HeapImage {
                 let stack = rb.slots(&c.frame.stack)?;
                 let handled = rb.values_of(&c.frame.handled)?;
                 let returned = rb.opt(&c.returned)?;
+                if let Some(Value::Function(f)) = rb.opt(&c.func)? {
+                    core.set_function(Some(f));
+                }
                 core.edit(|frame, ret| {
                     frame.stack = stack;
                     frame.blocks = Rebuilt::blocks(&c.frame.blocks);

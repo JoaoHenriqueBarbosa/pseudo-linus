@@ -446,11 +446,23 @@ struct SeqIter {
     items: Vec<Value>,
     pos: Cell<usize>,
     kind: &'static str,
+    /// O contêiner de que o iterador nasceu (o `it_seq` do `listiterator`, o `di_dict` do `dictiter`...): o que o
+    /// `gc.get_referents` mostra. `None` nos iteradores que não guardam a origem (`range`).
+    source: Option<Value>,
+    /// O `next` já bateu no fim: o CPython solta a origem nessa hora e não a visita mais.
+    exhausted: Cell<bool>,
 }
 
 /// O iterador de sequência (`iter(lista)`) numa posição dada, para a imagem do heap refazê-lo.
-pub(crate) fn seq_iter(kind: &'static str, items: Vec<Value>, pos: usize) -> Value {
-    Value::Ext(Rc::new(SeqIter { items, pos: Cell::new(pos), kind }))
+pub(crate) fn seq_iter(kind: &'static str, items: Vec<Value>, pos: usize, source: Option<Value>, exhausted: bool) -> Value {
+    Value::Ext(Rc::new(SeqIter { items, pos: Cell::new(pos), kind, source, exhausted: Cell::new(exhausted) }))
+}
+
+/// O iterador de sequência sobre `source` na posição `pos`, como o objeto que o CPython guarda no lugar do iterador
+/// interno de um `for` (o `enumerate`, o `zip`, o `map` e o `filter` guardam o iterador da origem).
+pub(crate) fn seq_iter_over(kind: &'static str, source: Value, pos: usize) -> Value {
+    let items = iterate(&source).unwrap_or_default();
+    seq_iter(kind, items, pos, Some(source), false)
 }
 
 impl ExtObject for SeqIter {
@@ -463,7 +475,13 @@ impl ExtObject for SeqIter {
             kind: self.kind,
             items: self.items.clone(),
             pos: self.pos.get(),
+            source: self.source.clone(),
+            exhausted: self.exhausted.get(),
         }))
+    }
+
+    fn referents(&self) -> Vec<Value> {
+        if self.exhausted.get() { Vec::new() } else { self.source.clone().into_iter().collect() }
     }
 
     fn repr(&self) -> String {
@@ -503,7 +521,10 @@ impl ExtObject for SeqIter {
                 self.pos.set(i + 1);
                 Ok(Some(v.clone()))
             }
-            None => Ok(None),
+            None => {
+                self.exhausted.set(true);
+                Ok(None)
+            }
         }
     }
 }
@@ -535,7 +556,9 @@ pub(crate) fn make_iter(v: &Value) -> PyResult<Value> {
         _ => "iterator",
     };
     let items = iterate(v)?;
-    Ok(Value::Ext(Rc::new(SeqIter { items, pos: Cell::new(0), kind })))
+    // O `range_iterator` guarda só os números; os demais, a origem.
+    let source = (!matches!(v, Value::Range(_))).then(|| v.clone());
+    Ok(seq_iter(kind, items, 0, source, false))
 }
 
 fn b_iter(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {

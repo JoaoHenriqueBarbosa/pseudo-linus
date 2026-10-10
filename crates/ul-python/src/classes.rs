@@ -1004,22 +1004,22 @@ pub(crate) fn new_cell(args: &[Value]) -> PyResult<Value> {
 pub(crate) fn function_closure(f: &FuncObj) -> Value {
     let free = crate::cpybc::layout(&f.code).freevars;
     let Some(outer) = f.closure.as_ref().filter(|_| !free.is_empty()) else { return Value::None };
-    let cells = free
-        .iter()
-        .map(|name| {
-            let mut scope = Some(outer.clone());
-            let mut home = outer.clone();
-            while let Some(env) = scope {
-                if !env.is_class && env.vars.borrow().contains_key(name) {
-                    home = env;
-                    break;
-                }
-                scope = env.parent.clone();
-            }
-            Value::Ext(Rc::new(FreeCell { env: home, name: name.to_string() }))
-        })
-        .collect();
-    Value::tuple(cells)
+    Value::tuple(free.iter().map(|name| frame_cell(outer, name)).collect())
+}
+
+/// A `cell` da variável `name` como a enxerga o escopo `start`: aponta para o escopo de função mais interno, a partir
+/// de `start`, que define o nome (o próprio `start` quando é uma variável dele que uma função de dentro fecha).
+pub(crate) fn frame_cell(start: &Rc<Env>, name: &str) -> Value {
+    let mut scope = Some(start.clone());
+    let mut home = start.clone();
+    while let Some(env) = scope {
+        if !env.is_class && env.vars.borrow().contains_key(name) {
+            home = env;
+            break;
+        }
+        scope = env.parent.clone();
+    }
+    Value::Ext(Rc::new(FreeCell { env: home, name: name.to_string() }))
 }
 
 /// Refaz um objeto nativo a partir da imagem do heap (o inverso de [`ExtObject::image`]).

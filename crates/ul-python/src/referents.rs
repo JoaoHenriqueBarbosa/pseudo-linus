@@ -4,7 +4,7 @@
 
 use std::rc::Rc;
 
-use crate::object::{ClassObj, Descriptor, Dict, FuncObj, InstanceObj, Value};
+use crate::object::{is_builtin_type, ClassObj, Descriptor, Dict, FuncObj, InstanceObj, ModuleObj, NativeFn, Value};
 use crate::vm::Vm;
 
 /// Os objetos que o objeto `value` referencia, como o `gc.get_referents(value)`.
@@ -20,10 +20,11 @@ pub(crate) fn referents(vm: &mut Vm, value: &Value) -> Vec<Value> {
         Value::BoundFn(b) => vec![Value::Function(b.1.clone()), b.0.clone()],
         // O método de um tipo embutido (`[].append`): o `m_self`.
         Value::Bound(b) => vec![b.recv.clone()],
-        // `len`: o `m_self` (o módulo `builtins`) e o `m_module` (o nome dele).
-        Value::Builtin(_) => {
-            crate::modules::import(vm, "builtins").map(|m| vec![Value::Module(m), Value::str("builtins")]).unwrap_or_default()
-        }
+        // `meth_traverse`: o `m_self` e o `m_module`. Uma função de módulo (`len`, `os.getcwd`) tem o módulo dela como
+        // `m_self` e o nome dele como `m_module`; um tipo de C (`int`, `list`) é um tipo estático e não visita nada.
+        Value::Builtin(_) => native_owner(vm, None),
+        Value::NativeFn(n) if is_builtin_type(n.name) => Vec::new(),
+        Value::NativeFn(n) => native_owner(vm, Some(n)),
         // O `m_dict` do módulo.
         Value::Module(m) => {
             let mut d = Dict::default();
@@ -38,10 +39,31 @@ pub(crate) fn referents(vm: &mut Vm, value: &Value) -> Vec<Value> {
         Value::Ext(e) => match e.descriptor() {
             Some(descriptor) => descriptor_referents(vm, &descriptor),
             None if value.type_name() == "cell" => vm.load_attr(value, "cell_contents").ok().into_iter().collect(),
-            None => Vec::new(),
+            None => e.referents(),
         },
         _ => Vec::new(),
     }
+}
+
+/// O módulo dono de uma função nativa e o nome dele: o `m_self` e o `m_module`. Sem `native` (`Value::Builtin`) é o
+/// `builtins`; com ele, o primeiro módulo carregado (o `builtins` antes) cujo atributo é essa função.
+fn native_owner(vm: &mut Vm, native: Option<&Rc<NativeFn>>) -> Vec<Value> {
+    let builtins = crate::modules::import(vm, "builtins");
+    let owns = |m: &Rc<ModuleObj>| match native {
+        None => true,
+        // A mesma função, não só o mesmo objeto: `len` avaliado de dentro de um escopo pode ser um `NativeFn` novo.
+        Some(n) => m.attrs.borrow().values().any(|v| {
+            matches!(v, Value::NativeFn(other) if Rc::ptr_eq(other, n) || (other.name == n.name && other.f as usize == n.f as usize))
+        }),
+    };
+    let owner = builtins.filter(|m| owns(m)).or_else(|| vm.modules.borrow().values().find(|m| owns(m)).cloned());
+    owner.map_or_else(Vec::new, |m| {
+        let name = match m.attrs.borrow().get("__name__") {
+            Some(Value::Str(s)) => Value::Str(s.clone()),
+            _ => Value::str(m.name),
+        };
+        vec![Value::Module(m), name]
+    })
 }
 
 /// `prop_traverse` (o `get`, o `set` e o `del` que existem) e `sm_traverse`/`cm_traverse` (o callable e o `__dict__`
