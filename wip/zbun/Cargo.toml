@@ -15,6 +15,7 @@ enumset = "1"
 # A versão do upstream (Cargo.lock do bun 1.4.2): a ordem de iteração da tabela de membros do escopo é a dele.
 hashbrown = { version = "=0.15.5", default-features = false, features = ["inline-more"] }
 strum = { version = "0.26", features = ["derive"] }
+thiserror = "2"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
