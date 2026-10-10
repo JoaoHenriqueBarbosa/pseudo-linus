@@ -27,7 +27,7 @@ fn window_own_properties_match_the_oracle() {
     // nunca imitado pela metade). A catraca só desce: 34 interfaces faltando quando o teste entrou.
     let present: Vec<&(String, String)> = expected.iter().filter(|e| actual.contains(e)).collect();
     assert_eq!(actual.iter().collect::<Vec<_>>(), present);
-    assert!(missing.len() <= 5, "faltam {missing:?}");
+    assert!(missing.len() <= 3, "faltam {missing:?}");
 }
 
 /// As interfaces simples da janela, com os retornos e as mensagens que o oráculo deu (página em `http://127.0.0.1`).
@@ -125,6 +125,43 @@ setTimeout(() => { out.push(order.join()); console.log(out.join('\n')); }, 50);"
     let (head, order) = log.trim_end().rsplit_once('\n').unwrap_or_else(|| panic!("log: {log:?}"));
     assert_eq!(head, expected.join("\n"));
     assert!(["y-before,ub,y-after,uv,timeout0,bg,d5", "y-before,ub,y-after,uv,timeout0,d5,bg"].contains(&order), "{order}");
+}
+
+/// A API de sistema de arquivos legada como o oráculo: argumentos validados na hora, erros em tarefa própria e o
+/// armazenamento temporário ou persistente sem resposta (o headless não tem cota concedida).
+#[test]
+fn legacy_file_system_as_the_oracle() {
+    let script = r#"const out = []; const t = (f) => { try { return String(f()); } catch (e) { return e.name + ': ' + e.message; } };
+out.push(webkitRequestFileSystem.length, webkitResolveLocalFileSystemURL.length, t(() => webkitRequestFileSystem(0, 10)), t(() => webkitRequestFileSystem(0, 10, 5)), t(() => webkitRequestFileSystem(0, 10, null)), t(() => webkitResolveLocalFileSystemURL('x', () => {}, 5)));
+for (const type of [0, 1, 2, 3, 4, -1, 65536, 65537]) webkitRequestFileSystem(type, 10, () => out.push(type + ' ok'), (e) => out.push(type + ' ' + e.name + ' ' + e.code + ' ' + (e instanceof DOMException)));
+for (const url of ['x', '/relative', location.origin + '/x', 'filesystem:', 'filesystem:http://other.example/temporary/', 'filesystem:' + location.origin + '/bogus/', 'filesystem:' + location.origin + '/temporary/', 'filesystem:' + location.origin + '/persistent/a'])
+  webkitResolveLocalFileSystemURL(url, () => out.push(url + ' ok'), (e) => out.push(url.replace(location.origin, 'O') + ' ' + e.name));
+out.push('sync');
+setTimeout(() => console.log(out.join('\n')), 50);"#;
+    let (_, log) = run(&[("/", &format!("<script>{script}</script>"))]);
+    let request = "Failed to execute 'webkitRequestFileSystem' on 'Window'";
+    let resolve = "Failed to execute 'webkitResolveLocalFileSystemURL' on 'Window'";
+    let sync = [
+        "3".to_owned(), "2".to_owned(),
+        format!("TypeError: {request}: 3 arguments required, but only 2 present."),
+        format!("TypeError: {request}: parameter 3 is not of type 'Object'."),
+        format!("TypeError: {request}: parameter 3 is not of type 'Object'."),
+        format!("TypeError: {resolve}: parameter 3 is not of type 'Object'."),
+        "sync".to_owned(),
+    ];
+    let lines: Vec<&str> = log.lines().collect();
+    assert_eq!(lines[..sync.len()], sync.iter().map(String::as_str).collect::<Vec<_>>()[..], "{log}");
+    // Cada erro chega em tarefa própria; a ordem entre eles é a de postagem.
+    let want = [
+        "2 SecurityError 18 true", "3 SecurityError 18 true", "4 InvalidModificationError 13 true", "-1 InvalidModificationError 13 true",
+        "x EncodingError", "/relative EncodingError", "O/x EncodingError", "filesystem: SecurityError",
+        "filesystem:http://other.example/temporary/ SecurityError", "filesystem:O/bogus/ EncodingError", "filesystem:O/temporary/ NotFoundError",
+    ];
+    let mut got: Vec<&str> = lines[sync.len()..].to_vec();
+    got.sort_unstable();
+    let mut want = want.to_vec();
+    want.sort_unstable();
+    assert_eq!(got, want, "{log}");
 }
 
 #[test]

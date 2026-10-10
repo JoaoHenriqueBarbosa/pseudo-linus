@@ -302,6 +302,50 @@ readonly('crashReport', () => crashReport);
 readonly('launchQueue', () => launchQueue);
 readonly('speechSynthesis', () => speechSynthesis);
 replaceable('scheduler', () => scheduler);
+
+// ---- API de sistema de arquivos legada (`webkitRequestFileSystem`, `webkitResolveLocalFileSystemURL`). O headless
+// não tem cota concedida: o pedido de armazenamento temporário ou persistente nunca termina (nem sucesso nem erro),
+// os demais tipos falham na hora, em tarefa própria, com o erro medido no oráculo.
+const fileSystemFunction = (name, length, body) => {
+  const holder = { [name](...args) { return body(args, arguments.length); } };
+  Object.defineProperty(holder[name], 'length', { value: length });
+  return holder[name];
+};
+const callbackArgument = (operation, position, value) => {
+  if (value !== undefined && value !== null && typeof value !== 'function' && typeof value !== 'object') {
+    throw new TypeError(`Failed to execute '${operation}' on 'Window': parameter ${position} is not of type 'Object'.`);
+  }
+};
+const failLater = (errorCallback, message, name) => {
+  if (typeof errorCallback !== 'function') return;
+  setTimeout(() => errorCallback(domException(message, name)), 0);
+};
+const requestFileSystem = fileSystemFunction('webkitRequestFileSystem', 3, ([type, , success, failure], count) => {
+  requireArguments('webkitRequestFileSystem', 3, count);
+  callbackArgument('webkitRequestFileSystem', 3, success);
+  if (success === null) throw new TypeError("Failed to execute 'webkitRequestFileSystem' on 'Window': parameter 3 is not of type 'Object'.");
+  callbackArgument('webkitRequestFileSystem', 4, failure);
+  const kind = Number(type) >>> 0 & 0xFFFF;
+  if (kind === 2 || kind === 3) failLater(failure, 'It was determined that certain files are unsafe for access within a Web application, or that too many calls are being made on file resources.', 'SecurityError');
+  else if (kind >= 4) failLater(failure, 'The object can not be modified in this way.', 'InvalidModificationError');
+});
+const resolveFileSystemUrl = fileSystemFunction('webkitResolveLocalFileSystemURL', 2, ([address, success, failure], count) => {
+  requireArguments('webkitResolveLocalFileSystemURL', 2, count);
+  callbackArgument('webkitResolveLocalFileSystemURL', 2, success);
+  if (success === null) throw new TypeError("Failed to execute 'webkitResolveLocalFileSystemURL' on 'Window': parameter 2 is not of type 'Object'.");
+  callbackArgument('webkitResolveLocalFileSystemURL', 3, failure);
+  const text = String(address);
+  const encoding = 'A URI supplied to the API was malformed, or the resulting Data URL has exceeded the URL length limitations for Data URLs.';
+  if (!text.startsWith('filesystem:')) return failLater(failure, encoding, 'EncodingError');
+  let inner;
+  try { inner = new URL(text.slice('filesystem:'.length)); } catch { inner = null; }
+  if (inner === null || inner.origin !== location.origin) {
+    return failLater(failure, 'It was determined that certain files are unsafe for access within a Web application, or that too many calls are being made on file resources.', 'SecurityError');
+  }
+  if (/^\/temporary(\/|$)/.test(inner.pathname)) failLater(failure, 'A requested file or directory could not be found at the time an operation was processed.', 'NotFoundError');
+  else if (!/^\/persistent(\/|$)/.test(inner.pathname)) failLater(failure, encoding, 'EncodingError');
+});
+Object.assign(globalThis, { webkitRequestFileSystem: requestFileSystem, webkitResolveLocalFileSystemURL: resolveFileSystemUrl });
 const windowApis = { Viewport, CrashReportContext, LaunchParams, LaunchQueue, SpeechSynthesis, SpeechSynthesisEvent, SpeechSynthesisErrorEvent, SpeechSynthesisVoice, SpeechSynthesisUtterance, Scheduler, TaskController, TaskSignal, TaskPriorityChangeEvent };
 Object.assign(globalThis, windowApis);
 for (const key of Object.keys(windowApis)) Object.defineProperty(globalThis, key, { enumerable: false });
