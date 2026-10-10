@@ -114,6 +114,66 @@ impl Marker {
     pub fn abort(&mut self) {
         self.aborted = true;
     }
+
+    /// Um módulo do host segura estado que o coletor não sabe percorrer (closures que capturam valores, árvores de
+    /// estado de stream): enquanto `held`, a coleta não acontece, como um `DeferGC` com motivo.
+    pub fn defer_while(&mut self, held: bool) {
+        if held {
+            self.aborted = true;
+        }
+    }
+}
+
+thread_local! {
+    static HOST_ROOTS: std::cell::RefCell<Vec<fn(&mut Marker)>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+
+/// O gancho do embedder (o ul-chromium registra o estado do DOM aqui): a função marca com `Marker::value`/`cell` o
+/// que o host segura e adia a coleta com `Marker::defer_while` para o que ainda não sabe percorrer.
+pub fn register_host_roots(visit: fn(&mut Marker)) {
+    HOST_ROOTS.with(|roots| roots.borrow_mut().push(visit));
+}
+
+/// As raízes dos módulos do host (os `thread_local`s que guardam valores do programa), consultadas antes da
+/// marcação: um módulo com estado opaco adia a coleta sem gastar a marcação inteira.
+fn visit_host_roots(marker: &mut Marker) {
+    use crate::runtime as rt;
+    rt::timers::visit_gc_roots(marker);
+    rt::process_stdio::visit_gc_roots(marker);
+    rt::js_web_assembly::visit_gc_roots(marker);
+    rt::crypto::visit_gc_roots(marker);
+    rt::js_web_assembly_jspi::visit_gc_roots(marker);
+    rt::event_target::visit_gc_roots(marker);
+    rt::js_module_loader::visit_gc_roots(marker);
+    rt::url::visit_gc_roots(marker);
+    rt::performance_observer::visit_gc_roots(marker);
+    rt::abort_signal::visit_gc_roots(marker);
+    rt::web_iterable::visit_gc_roots(marker);
+    rt::response::visit_gc_roots(marker);
+    rt::request::visit_gc_roots(marker);
+    rt::queuing_strategy::visit_gc_roots(marker);
+    rt::message_channel::visit_gc_roots(marker);
+    rt::js_arguments_objects::visit_gc_roots(marker);
+    rt::global_named_lookup::visit_gc_roots(marker);
+    rt::broadcast_channel::visit_gc_roots(marker);
+    rt::blob::visit_gc_roots(marker);
+    rt::array_prototype::visit_gc_roots(marker);
+    rt::url_search_params::visit_gc_roots(marker);
+    rt::text_encoder::visit_gc_roots(marker);
+    rt::text_decoder::visit_gc_roots(marker);
+    rt::process_shape::visit_gc_roots(marker);
+    rt::process_env::visit_gc_roots(marker);
+    rt::ordered_hash_table_storage::visit_gc_roots(marker);
+    rt::node_buffer::visit_gc_roots(marker);
+    rt::js_web_assembly_gc_object::visit_gc_roots(marker);
+    rt::headers::visit_gc_roots(marker);
+    rt::form_data::visit_gc_roots(marker);
+    rt::file::visit_gc_roots(marker);
+    rt::current_realm::visit_gc_roots(marker);
+    rt::console_format::visit_gc_roots(marker);
+    rt::streams::visit_gc_roots(marker);
+    crate::api::builtin_modules::visit_gc_roots(marker);
+    HOST_ROOTS.with(|roots| roots.borrow().iter().for_each(|visit| visit(marker)));
 }
 
 #[derive(Default)]
@@ -346,6 +406,10 @@ fn mark_and_sweep(
     for cell_id in pinned {
         marker.cell(cell_id);
     }
+    visit_host_roots(&mut marker);
+    if marker.aborted {
+        return (0, Vec::new());
+    }
     STATE.with(|state| {
         let mut state = state.borrow_mut();
         for &cell_id in state.roots.keys().chain(state.prototypes.iter()).chain(state.scoped_roots.iter()) {
@@ -371,7 +435,6 @@ fn mark_and_sweep(
     };
     interpreter.visit_gc_roots(&mut marker);
     vm.visit_gc_roots(&mut marker);
-    crate::runtime::timers::visit_gc_roots(&mut marker);
     // A marcação forte e os efêmeros (`Heap::runFixpointPhase`): o valor de `WeakMap` cuja chave ficou marcada é
     // marcado, e o que ele alcança pode marcar outra chave; repete até nada mudar.
     loop {

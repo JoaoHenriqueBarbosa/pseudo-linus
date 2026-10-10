@@ -198,6 +198,27 @@ thread_local! {
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`).
+/// As raízes do coletor: as instâncias, os protótipos e os construtores; o estado das chaves é opaco e adia a coleta
+/// enquanto existir.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    INSTANCES.with(|instances| {
+        for (cell_id, first, second) in instances.borrow().iter() {
+            marker.cell(*cell_id);
+            marker.encoded(*first);
+            marker.encoded(*second);
+        }
+    });
+    for table in [&KEY_PROTOTYPES, &SUBTLE_CONSTRUCTORS] {
+        table.with(|entries| {
+            for (cell_id, value) in entries.borrow().iter() {
+                marker.cell(*cell_id);
+                marker.encoded(*value);
+            }
+        });
+    }
+    marker.defer_while(KEYS.with(|keys| !keys.borrow().is_empty()));
+}
+
 pub(crate) fn reset_for_program() {
     let _ = INSTANCES.try_with(|instances| instances.borrow_mut().clear());
     let _ = KEYS.try_with(|keys| keys.borrow_mut().clear());

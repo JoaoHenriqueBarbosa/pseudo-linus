@@ -120,6 +120,12 @@ thread_local! {
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): o que foi guardado é do programa.
+/// O estado das instâncias e dos iteradores é opaco: adia a coleta enquanto existir.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    marker.defer_while(INSTANCES.with(|instances| !instances.borrow().is_empty()));
+    marker.defer_while(ITERATORS.with(|iterators| !iterators.borrow().is_empty()));
+}
+
 pub(crate) fn reset_for_program() {
     let _ = INSTANCES.try_with(|instances| instances.borrow_mut().clear());
     let _ = ITERATORS.try_with(|iterators| iterators.borrow_mut().clear());

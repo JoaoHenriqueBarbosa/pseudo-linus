@@ -167,6 +167,33 @@ struct EventState {
     in_passive: bool,
 }
 
+/// Os ouvintes dos alvos, os sinais que os registraram e o estado dos eventos seguram valores do programa.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    SIGNAL_LISTENERS.with(|table| {
+        for (signal, links) in table.borrow().iter() {
+            marker.encoded(*signal);
+            for (target, listener) in links {
+                marker.value(*target);
+                marker.value(listener.callback);
+            }
+        }
+    });
+    TARGETS.with(|table| {
+        for (target, listeners) in table.borrow().iter() {
+            marker.encoded(*target);
+            listeners.iter().for_each(|listener| marker.value(listener.callback));
+        }
+    });
+    EVENTS.with(|table| {
+        for (event, state) in table.borrow().iter() {
+            marker.encoded(*event);
+            marker.values(&[state.target, state.current_target]);
+            marker.value(state.detail);
+            marker.values(&state.fields);
+        }
+    });
+}
+
 thread_local! {
     static NEXT_LISTENER_ID: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
     /// A `Structure` das instâncias de `Event` de cada realm (chave: `cell_id`), para os eventos que o código nativo cria.

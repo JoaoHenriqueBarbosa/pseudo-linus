@@ -641,6 +641,11 @@ thread_local! {
 
 /// Fim do programa (`cell_registry::reset_program_state`): a pilha tem `cell_id` de objetos do programa
 /// (sobra se um erro interrompeu um `join`).
+/// As raízes do coletor: os objetos que o `join` está visitando.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    STRING_RECURSION_VISITED.with(|visited| visited.borrow().iter().for_each(|cell_id| marker.cell(*cell_id)));
+}
+
 pub(crate) fn reset_for_program() {
     let _ = STRING_RECURSION_VISITED.try_with(|visited| visited.borrow_mut().clear());
 }

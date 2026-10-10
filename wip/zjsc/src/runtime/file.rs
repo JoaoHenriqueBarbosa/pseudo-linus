@@ -31,6 +31,11 @@ use crate::runtime::property_name::PropertyName;
 static CONSTRUCTOR_S_INFO: ClassInfo =
     ClassInfo { class_name: "Function", parent_class: Some(&INTERNAL_FUNCTION_S_INFO), static_prop_hash_table: None, inherits_js_type_range: None };
 
+/// As raízes do coletor: o construtor `File`.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    marker.encoded(FILE_CONSTRUCTOR.with(Cell::get));
+}
+
 thread_local! {
     /// O construtor `File` do realm, para o `instanceof` conferir o alvo.
     static FILE_CONSTRUCTOR: Cell<EncodedJSValue> = const { Cell::new(0) };

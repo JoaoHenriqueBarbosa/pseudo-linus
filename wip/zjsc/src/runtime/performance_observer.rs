@@ -110,6 +110,14 @@ thread_local! {
 }
 
 /// Fim do programa: os observadores guardam objetos do programa.
+/// As raízes do coletor: o protótipo e as listas (sem valores dentro); os observadores guardam o callback e adiam a
+/// coleta enquanto existirem.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    marker.value(LIST_PROTOTYPE.with(Cell::get));
+    LISTS.with(|lists| lists.borrow().keys().for_each(|list| marker.encoded(*list)));
+    marker.defer_while(OBSERVERS.with(|observers| !observers.borrow().is_empty()));
+}
+
 pub(crate) fn reset_for_program() {
     let taken = OBSERVERS.try_with(|observers| std::mem::take(&mut *observers.borrow_mut()));
     drop(taken);

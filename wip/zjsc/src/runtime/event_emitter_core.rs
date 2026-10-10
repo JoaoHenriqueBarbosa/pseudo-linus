@@ -29,6 +29,11 @@ pub(crate) struct ListenerTable {
 }
 
 impl ListenerTable {
+    /// Os ouvintes registrados são raízes: o emissor os segura enquanto existirem.
+    pub(crate) fn visit_gc_roots(&self, marker: &mut crate::runtime::gc::Marker) {
+        self.entries.iter().for_each(|listener| marker.value(listener.function));
+    }
+
     /// `emitter.on(event, function)` (ou `once`): entra no fim da lista do evento.
     pub(crate) fn add(&mut self, event: &str, function: JSValue, once: bool) {
         self.entries.push(Listener { event: event.to_owned(), function, once });

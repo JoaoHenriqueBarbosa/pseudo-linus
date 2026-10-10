@@ -67,6 +67,19 @@ thread_local! {
 
 /// Fim do programa (`cell_registry::reset_program_state`): todas as chaves são `cell_id` e os valores
 /// apontam para células do programa que acabou.
+/// As raízes do coletor: as funções de `promising` e `Suspending`; as retomadas são opacas e adiam a coleta.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    for table in [&PROMISING, &SUSPENDING] {
+        table.with(|entries| {
+            for (cell_id, value) in entries.borrow().iter() {
+                marker.cell(*cell_id);
+                marker.value(*value);
+            }
+        });
+    }
+    marker.defer_while(RESUMPTIONS.with(|resumptions| !resumptions.borrow().is_empty()));
+}
+
 pub(crate) fn reset_for_program() {
     let _ = PROMISING.try_with(|map| map.borrow_mut().clear());
     let _ = SUSPENDING.try_with(|map| map.borrow_mut().clear());

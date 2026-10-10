@@ -127,6 +127,21 @@ struct Slot {
 /// `Writable()`, `Readable()`, `WriteStream(path)` e `ReadStream(path)`.
 const STDIO_SLOTS: usize = 3;
 
+/// As raízes do coletor: os protótipos, o objeto do stdin, os objetos dos fluxos, os ouvintes e os callbacks de `end`
+/// de cada `Slot` (o resto do estado dos fluxos não guarda valores).
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    for prototype in [&READABLE_PROTOTYPE, &WRITABLE_PROTOTYPE, &STREAM_PROTOTYPE, &EMITTER_PROTOTYPE, &WRITE_PROTOTYPE, &READ_PROTOTYPE, &STDIN_OBJECT] {
+        marker.value(prototype.with(Cell::get));
+    }
+    OBJECT_SLOTS.with(|slots| slots.borrow().iter().for_each(|(_, cell_id)| marker.cell(*cell_id)));
+    SLOTS.with(|slots| {
+        for slot in slots.borrow().iter() {
+            slot.listeners.visit_gc_roots(marker);
+            marker.values(&slot.pending_end);
+        }
+    });
+}
+
 thread_local! {
     static SLOTS: RefCell<Vec<Slot>> = const { RefCell::new(Vec::new()) };
     /// A identidade de cada objeto que não é stdio (o `encode` do valor) e o seu `Slot`.

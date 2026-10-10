@@ -90,6 +90,13 @@ thread_local! {
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): os canais e a fila guardam objetos do programa.
+/// As raízes do coletor: os canais e as portas fechadas; as entregas na fila guardam valores e adiam a coleta.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    CHANNELS.with(|channels| channels.borrow().keys().for_each(|channel| marker.encoded(*channel)));
+    CLOSED_PORTS.with(|ports| ports.borrow().iter().for_each(|port| marker.encoded(*port)));
+    marker.defer_while(QUEUE.with(|queue| !queue.borrow().is_empty()));
+}
+
 pub(crate) fn reset_for_program() {
     let channels = CHANNELS.try_with(|channels| std::mem::take(&mut *channels.borrow_mut()));
     drop(channels);

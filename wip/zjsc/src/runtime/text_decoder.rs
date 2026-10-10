@@ -677,6 +677,11 @@ thread_local! {
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): os estados guardados são do programa.
+/// As raízes do coletor: as instâncias (o estado é só de bytes).
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    DECODERS.with(|decoders| decoders.borrow().keys().for_each(|decoder| marker.encoded(*decoder)));
+}
+
 pub(crate) fn reset_for_program() {
     let _ = DECODERS.try_with(|decoders| decoders.borrow_mut().clear());
 }

@@ -29,6 +29,14 @@ pub fn set_global_named_lookup(global_object: &JSGlobalObject, function: JSValue
 }
 
 /// Fim do programa.
+/// As raízes do coletor: o gancho instalado.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    if let Some((cell_id, value)) = HOOK.with(|hook| *hook.borrow()) {
+        marker.cell(cell_id);
+        marker.value(value);
+    }
+}
+
 pub(crate) fn reset_for_program() {
     let _ = HOOK.try_with(|hook| hook.borrow_mut().take());
     let _ = ACTIVE.try_with(|active| active.set(false));

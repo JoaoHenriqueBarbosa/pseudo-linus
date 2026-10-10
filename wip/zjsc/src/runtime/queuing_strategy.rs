@@ -98,6 +98,12 @@ thread_local! {
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): o que foi guardado é do programa.
+/// As raízes do coletor: as instâncias (a chave do brand check não pode ser reaproveitada) e as funções `size`.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    INSTANCES.with(|instances| instances.borrow().keys().for_each(|instance| marker.encoded(*instance)));
+    SIZE_FUNCTIONS.with(|functions| functions.borrow().values().for_each(|function| marker.encoded(*function)));
+}
+
 pub(crate) fn reset_for_program() {
     let _ = INSTANCES.try_with(|instances| instances.borrow_mut().clear());
     let _ = SIZE_FUNCTIONS.try_with(|functions| functions.borrow_mut().clear());

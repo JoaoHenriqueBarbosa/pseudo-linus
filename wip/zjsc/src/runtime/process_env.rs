@@ -56,6 +56,13 @@ thread_local! {
 }
 
 /// Fim do programa (`process_shape::reset_for_program`).
+/// As raízes do coletor: o objeto `process.env`.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    if let Some(cell_id) = ENV_CELL.with(Cell::get) {
+        marker.cell(cell_id);
+    }
+}
+
 pub(crate) fn reset_for_program() {
     let _ = ENV_CELL.try_with(|cell| cell.set(None));
     // `ENVIRONMENT` é configuração do embedder (`set_environment`), feita antes de `run_program`: sobrevive ao reset.

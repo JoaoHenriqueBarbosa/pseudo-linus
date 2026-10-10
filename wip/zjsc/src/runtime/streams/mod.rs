@@ -182,6 +182,17 @@ fn is_instance(value: JSValue, kind: Kind) -> bool {
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): o que foi guardado é do programa.
+/// As raízes do coletor: as instâncias (a chave do brand check) e os protótipos e construtores guardados; o estado de
+/// streams, leitores, controladores e transformadores (com reações em closures) é opaco e adia a coleta enquanto
+/// existir.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    INSTANCES.with(|instances| instances.borrow().keys().for_each(|instance| marker.encoded(*instance)));
+    readable::visit_gc_roots(marker);
+    marker.defer_while(writable_js::holds_state() || transform_js::holds_state());
+    text_streams::visit_gc_roots(marker);
+    marker.defer_while(compression_streams::holds_state());
+}
+
 pub(crate) fn reset_for_program() {
     let _ = INSTANCES.try_with(|instances| instances.borrow_mut().clear());
     readable::reset_for_program();

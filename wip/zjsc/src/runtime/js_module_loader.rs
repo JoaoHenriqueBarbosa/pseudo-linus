@@ -200,6 +200,19 @@ struct ModuleLoader {
     registry: RefCell<HashMap<(String, ScriptFetchParametersType), AbstractModuleRecordRef>>,
 }
 
+/// As raízes do coletor: os objetos `import.meta` e o que eles guardam; as mensagens e as importações pendentes são
+/// opacas e adiam a coleta.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    IMPORT_META_OBJECTS.with(|objects| {
+        for (object, properties) in objects.borrow().iter() {
+            marker.encoded(*object);
+            properties.iter().for_each(|(_, value)| marker.value(*value));
+        }
+    });
+    marker.defer_while(MESSAGE_STATES.with(|states| !states.borrow().is_empty()));
+    marker.defer_while(PENDING_IMPORTS.with(|imports| !imports.borrow().is_empty()));
+}
+
 thread_local! {
     static LOADER: RefCell<Option<Rc<ModuleLoader>>> = const { RefCell::new(None) };
     /// A `Structure` das instâncias de cada classe de mensagem do bun do realm em curso (`RESOLVE`, `BUILD`;

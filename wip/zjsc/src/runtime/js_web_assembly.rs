@@ -523,6 +523,16 @@ thread_local! {
 
 /// Fim do programa (`cell_registry::reset_program_state`): tudo que a ponte JS de WebAssembly guarda por
 /// `cell_id` ou por `JSValue` (funções exportadas, externrefs internados, estruturas e wrappers) morre com o VM.
+/// As raízes do coletor: os valores externos, os construtores e os wrappers; a compilação em curso e o estado das
+/// funções exportadas são opacos e adiam a coleta enquanto existirem.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    EXTERN_VALUES.with(|values| marker.values(&values.borrow()));
+    CLASS_CONSTRUCTORS.with(|constructors| constructors.borrow().values().for_each(|value| marker.value(*value)));
+    WRAPPERS.with(|wrappers| wrappers.borrow().values().for_each(|value| marker.value(*value)));
+    marker.defer_while(STREAMINGS.with(|streamings| !streamings.borrow().is_empty()));
+    marker.defer_while(EXPORTED_FUNCTIONS.with(|functions| !functions.borrow().is_empty()));
+}
+
 pub(crate) fn reset_for_program() {
     let _ = EXPORTED_FUNCTIONS.try_with(|map| map.borrow_mut().clear());
     let _ = EXTERN_VALUES.try_with(|values| values.borrow_mut().clear());

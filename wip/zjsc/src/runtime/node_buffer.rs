@@ -74,6 +74,11 @@ pub(crate) fn inspect_max_bytes() -> f64 {
 }
 
 /// Fim do programa (`cell_registry::reset_program_state`): a estrutura e o protótipo guardados são do programa.
+/// As raízes do coletor: o protótipo do `Buffer`.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    marker.value(BUFFER_PROTOTYPE.with(|prototype| *prototype.borrow()));
+}
+
 pub(crate) fn reset_for_program() {
     let _ = INSPECT_MAX_BYTES.try_with(|max| max.set(DEFAULT_INSPECT_MAX_BYTES));
     let _ = BUFFER_STRUCTURE.try_with(|structure| structure.borrow_mut().take());

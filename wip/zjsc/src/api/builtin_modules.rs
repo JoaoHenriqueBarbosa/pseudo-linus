@@ -189,6 +189,11 @@ pub(crate) fn cached(name: &'static str, build: impl FnOnce() -> HostResult) -> 
 }
 
 /// Fim do programa (`eval::reset_for_program`): o cache é do programa.
+/// As raízes do coletor: os módulos embutidos já criados.
+pub(crate) fn visit_gc_roots(marker: &mut crate::runtime::gc::Marker) {
+    CACHE.with(|cache| cache.borrow().iter().for_each(|(_, value)| marker.value(*value)));
+}
+
 pub(crate) fn reset_for_program() {
     let taken = CACHE.try_with(|cache| std::mem::take(&mut *cache.borrow_mut()));
     drop(taken);
