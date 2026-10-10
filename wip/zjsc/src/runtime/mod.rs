@@ -344,6 +344,8 @@ pub mod symbol_prototype;
 pub mod symbol_constructor;
 pub mod object_constructor;
 pub mod object_bindings;
+pub mod hash_algorithms;
+pub mod hash_object;
 pub mod string_width_per_code_point;
 pub mod big_integer;
 pub mod uint16_with_fraction;

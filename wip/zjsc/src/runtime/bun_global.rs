@@ -119,6 +119,11 @@ fn create_argv(_vm: &VM, _bun: &JSObject) -> JSValue {
     process_argv(&current_global_object())
 }
 
+/// `BunObject_lazyPropCb_wrap_hash`.
+fn create_hash(_vm: &VM, _bun: &JSObject) -> JSValue {
+    crate::runtime::hash_object::create(&current_global_object())
+}
+
 fn create_env(_vm: &VM, _bun: &JSObject) -> JSValue {
     crate::runtime::process_env::env_value(&current_global_object())
 }
@@ -374,12 +379,13 @@ fn string_width_body(global_object: &JSGlobalObject, call: &HostCall) -> HostRes
 host_function!(bun_string_width, string_width_body);
 
 /// `bunObjectTable` de `BunObject.cpp`, na ordem do `@begin`, só com as entradas portadas.
-static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 16] = [
+static BUN_OBJECT_TABLE_VALUES: [HashTableValue; 17] = [
     lazy_entry_with_attributes("argv", DONT_DELETE, create_argv),
     native_function_entry("deepEquals", DONT_DELETE, bun_deep_equals, 2, Intrinsic::NoIntrinsic),
     lazy_entry_with_attributes("env", READ_ONLY | DONT_DELETE, create_env),
     native_function_entry("escapeHTML", DONT_DELETE, bun_escape_html, 2, Intrinsic::NoIntrinsic),
     native_function_entry("fileURLToPath", DONT_DELETE, bun_file_url_to_path, 1, Intrinsic::NoIntrinsic),
+    lazy_entry_with_attributes("hash", DONT_DELETE, create_hash),
     lazy_entry_with_attributes("inspect", DONT_DELETE, create_inspect),
     custom_accessor_entry_with_attributes("main", DONT_DELETE, main_getter, main_setter),
     native_function_entry("nanoseconds", DONT_DELETE, bun_nanoseconds, 0, Intrinsic::NoIntrinsic),
