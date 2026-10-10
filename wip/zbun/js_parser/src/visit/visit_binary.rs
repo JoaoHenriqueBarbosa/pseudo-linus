@@ -736,7 +736,7 @@ impl BinaryExpressionVisitor {
 
                     // Unlike regular identifiers, there are no unbound private identifiers
                     let kind = p.symbols[result.r#ref.inner_index() as usize].kind;
-                    if !Symbol::is_kind_private(kind) {
+                    if !kind.is_private() {
                         let r = bun_ast::Range {
                             loc: e_.left.loc,
                             len: i32::try_from(name.len()).expect("int cast"),

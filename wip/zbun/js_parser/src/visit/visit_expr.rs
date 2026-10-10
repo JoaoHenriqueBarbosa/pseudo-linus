@@ -924,7 +924,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 // Unlike regular identifiers, there are no unbound private identifiers
                 let kind: js_ast::symbol::Kind =
                     p.symbols[result.r#ref.inner_index() as usize].kind;
-                if !Symbol::is_kind_private(kind) {
+                if !kind.is_private() {
                     let r = bun_ast::Range {
                         loc: e_.index.loc,
                         len: i32::try_from(name.len()).expect("int cast"),

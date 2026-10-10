@@ -27,7 +27,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // This function can show up in profiling.
         // That's part of why we do this.
         // Instead of rehashing `name` for every scope, we do it just once.
-        let hash = Scope::get_member_hash(name);
+        let hash = js_ast::scope::Members::hash(name);
 
         let ref_: Ref = 'brk: {
             // `Scope.parent` is an arena-backref `Option<StoreRef<Scope>>`; walk via the

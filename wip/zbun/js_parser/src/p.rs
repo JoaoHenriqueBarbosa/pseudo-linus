@@ -3375,14 +3375,23 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         // ECMAScript modules are always interpreted as strict mode. This has to be
         // done before "hoistSymbols" because strict mode can alter hoisting (!).
         if self.esm_import_keyword.len > 0 {
-            self.module_scope_mut()
-                .recursive_set_strict_mode(js_ast::StrictModeKind::ImplicitStrictModeImport);
+            js_ast::Scope::recursive_set_strict_mode(
+                &mut self.store,
+                self.module_scope,
+                js_ast::StrictModeKind::ImplicitStrictModeImport,
+            );
         } else if self.esm_export_keyword.len > 0 {
-            self.module_scope_mut()
-                .recursive_set_strict_mode(js_ast::StrictModeKind::ImplicitStrictModeExport);
+            js_ast::Scope::recursive_set_strict_mode(
+                &mut self.store,
+                self.module_scope,
+                js_ast::StrictModeKind::ImplicitStrictModeExport,
+            );
         } else if self.top_level_await_keyword.len > 0 {
-            self.module_scope_mut()
-                .recursive_set_strict_mode(js_ast::StrictModeKind::ImplicitStrictModeTopLevelAwait);
+            js_ast::Scope::recursive_set_strict_mode(
+                &mut self.store,
+                self.module_scope,
+                js_ast::StrictModeKind::ImplicitStrictModeTopLevelAwait,
+            );
         }
 
         self.hoist_symbols(self.module_scope_ref());
@@ -3554,7 +3563,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     if self.store[scope_parent].kind == js_ast::scope::Kind::CatchBinding
                         && self.symbols[symbol_idx].kind != js_ast::symbol::Kind::Hoisted
                     {
-                        hash = Some(Scope::get_member_hash(name));
+                        hash = Some(js_ast::scope::Members::hash(name));
                         if let Some(existing_member) =
                             scope_parent.get_member_with_hash(name, hash.unwrap())
                         {
@@ -3620,7 +3629,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     }
 
                     if hash.is_none() {
-                        hash = Some(Scope::get_member_hash(name));
+                        hash = Some(js_ast::scope::Members::hash(name));
                     }
 
                     while let Some(mut _scope_ptr) = __scope {
@@ -4999,7 +5008,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         kind: js_ast::symbol::Kind,
         name: &'static [u8],
     ) -> Result<Ref, crate::Error> {
-        let name_hash = Scope::get_member_hash(name);
+        let name_hash = js_ast::scope::Members::hash(name);
         // SAFETY: arena-owned Scope pointer valid for parser 'a lifetime; shared
         // borrow only (`get_member_with_hash` takes `&self`), so the later
         // re-derivations at L4149/L4160 cannot overlap a stale unique tag.
