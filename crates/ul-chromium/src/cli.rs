@@ -6,6 +6,7 @@ use std::io::Write as _;
 use sysabi::Ctx;
 
 use crate::devtools;
+use crate::disk_profile::DiskProfile;
 use crate::fetch;
 use crate::page::Page;
 
@@ -18,6 +19,8 @@ pub struct Options {
     pub virtual_time_budget: Option<f64>,
     /// `--remote-debugging-port`, `--remote-debugging-pipe` e `--remote-allow-origins`.
     pub devtools: devtools::server::Options,
+    /// `--user-data-dir=<caminho>`: onde o navegador grava o perfil no disco.
+    pub user_data_dir: Option<String>,
     pub urls: Vec<String>,
 }
 
@@ -35,7 +38,10 @@ pub fn parse(args: &[String]) -> Options {
             flag if flag.starts_with("--remote-allow-origins=") => {
                 options.devtools.allowed_origins = flag["--remote-allow-origins=".len()..].split(',').map(str::to_owned).collect();
             }
-            flag if flag.starts_with("--user-data-dir=") => options.devtools.user_data_dir = true,
+            flag if flag.starts_with("--user-data-dir=") => {
+                options.devtools.user_data_dir = true;
+                options.user_data_dir = Some(flag["--user-data-dir=".len()..].to_owned());
+            }
             flag if flag.starts_with("--") => {}
             url => options.urls.push(url.to_owned()),
         }
@@ -52,7 +58,10 @@ pub fn main(ctx: &mut Ctx, argv: &[OsString]) -> i32 {
     // Com o DevTools remoto o navegador fica de pé servindo o protocolo; sem URL, a aba abre em `about:blank`.
     if options.devtools.port.is_some() || options.devtools.pipe {
         let url = options.urls.first().cloned().unwrap_or_else(|| "about:blank".to_owned());
-        return devtools::server::run(ctx, &options.devtools, &url);
+        let disk = DiskProfile::start(options.user_data_dir.as_deref().map(str::as_bytes));
+        let code = devtools::server::run(ctx, &options.devtools, &url);
+        disk.finish();
+        return code;
     }
     let Some(first) = options.urls.first() else { return 0 };
     let mut address = first.clone();

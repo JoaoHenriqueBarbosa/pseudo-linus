@@ -7,6 +7,7 @@ pub mod canvas_gradient;
 pub mod canvas_text;
 pub mod cli;
 pub mod devtools;
+pub mod disk_profile;
 pub mod document;
 pub mod encoding;
 pub mod fetch;
