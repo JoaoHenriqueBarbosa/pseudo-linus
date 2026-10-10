@@ -66,11 +66,13 @@ pub mod new_store;
 pub mod nodes;
 pub mod op;
 pub mod s;
+pub mod scope;
 pub mod stmt;
 pub mod store;
 pub mod symbol;
 pub mod target;
 pub mod ts;
+pub mod use_directive;
 
 pub use b as B;
 pub use base::{Index, IndexInt};
@@ -89,8 +91,11 @@ pub use new_store::{NodeStore, Stored};
 pub use nodes::{
     ArrayBinding, AssignTarget, BindingNodeIndex, Case, Catch, ClauseItem, EnumValue, ExprNodeIndex, ExprNodeList,
     Finally, ImportItemStatus, LocRef, OptionalChain, Span, StmtNodeIndex, StmtNodeList, StmtOrExpr, StoreRef,
-    StoreSlice, StoreStr,
+    StoreSlice, StoreStr, StrictModeKind,
 };
+pub use scope::Scope;
+pub use ts::{TSNamespaceMember, TSNamespaceMemberMap, TSNamespaceScope};
+pub use use_directive::UseDirective;
 
 /// In range for every position in a source that passed [`Source::check_parseable_len`].
 #[inline]

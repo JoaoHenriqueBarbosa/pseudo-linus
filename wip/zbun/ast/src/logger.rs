@@ -136,7 +136,7 @@ impl Location {
                 line: crate::usize2loc(data.line_count).start,
                 column: crate::usize2loc(data.column_count).start,
                 length: if r.len > -1 { u32::try_from(r.len).expect("int cast") as usize } else { 1 },
-                line_text: Some(Cow::Owned(trim_left(full_line, b"\n\r").to_vec())),
+                line_text: Some(Cow::Owned(bun_core::strings::trim_left(full_line, b"\n\r").to_vec())),
                 offset: usize::try_from(r.loc.start.max(0)).expect("int cast"),
             });
         }
@@ -148,12 +148,6 @@ impl Location {
 #[inline]
 fn is_utf8_char_boundary(b: u8) -> bool {
     (b as i8) >= -0x40
-}
-
-/// `bun_core::trim_left`.
-fn trim_left<'a>(slice: &'a [u8], values_to_strip: &[u8]) -> &'a [u8] {
-    let begin = slice.iter().position(|b| !values_to_strip.contains(b)).unwrap_or(slice.len());
-    &slice[begin..]
 }
 
 // ───────────────────────────────────────────────────────────────────────────

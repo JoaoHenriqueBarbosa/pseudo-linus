@@ -692,6 +692,12 @@ pub fn is_all_whitespace(slice: &[u8]) -> bool {
     slice.iter().all(|c| WHITESPACE_CHARS.contains(c))
 }
 
+/// `bun.strings.trimLeft`: tira do começo os bytes que estão em `values_to_strip`.
+pub fn trim_left<'a>(slice: &'a [u8], values_to_strip: &[u8]) -> &'a [u8] {
+    let begin = slice.iter().position(|b| !values_to_strip.contains(b)).unwrap_or(slice.len());
+    &slice[begin..]
+}
+
 /// `input` começa com `prefix` e o que vem depois não continua um identificador:
 ///
 /// ```text

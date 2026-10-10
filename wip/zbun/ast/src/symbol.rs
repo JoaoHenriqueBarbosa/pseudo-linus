@@ -322,14 +322,12 @@ impl Kind {
     }
 
     #[inline]
-    #[allow(dead_code)]
-    pub(crate) fn is_hoisted(self) -> bool {
+    pub fn is_hoisted(self) -> bool {
         matches!(self, Kind::Hoisted | Kind::HoistedFunction)
     }
 
     #[inline]
-    #[allow(dead_code)]
-    pub(crate) fn is_hoisted_or_function(self) -> bool {
+    pub fn is_hoisted_or_function(self) -> bool {
         matches!(
             self,
             Kind::Hoisted | Kind::HoistedFunction | Kind::GeneratorOrAsyncFunction

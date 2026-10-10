@@ -15,6 +15,7 @@ bun_core = { path = "../bun_core" }
 bun_wyhash = { path = "../bun_wyhash" }
 enum-map.workspace = true
 enumset.workspace = true
+hashbrown.workspace = true
 strum.workspace = true
 
 [lints]

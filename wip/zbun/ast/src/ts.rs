@@ -1,8 +1,85 @@
-//! `src/ast/ts.rs` do upstream, parcial: `Metadata`, o tipo dos metadados de decorators que `G::Property`, `G::Arg`
-//! e `G::Fn` carregam. `TSNamespaceScope` e `TSNamespaceMember` entram com o `StringArrayHashMap` do
-//! `bun_collections`.
+//! `src/ast/ts.rs` do upstream: `TSNamespaceScope`, `TSNamespaceMember` e `Metadata`, o tipo dos metadados de
+//! decorators que `G::Property`, `G::Arg` e `G::Fn` carregam. Os mapas por nome são o `StringArrayHashMap` do
+//! `bun_collections` (chave própria, ordem de inserção) e vivem no `Store`, como os nós.
 
+use crate::Loc;
 use crate::base::Ref;
+use crate::e::EString;
+use crate::nodes::StoreRef;
+use bun_collections::StringArrayHashMap;
+
+/// This is for TypeScript "enum" and "namespace" blocks. Each block can
+/// potentially be instantiated multiple times. The exported members of each
+/// block are merged into a single namespace while the non-exported code is
+/// still scoped to just within that block:
+///
+///    let x = 1;
+///    namespace Foo {
+///      let x = 2;
+///      export let y = 3;
+///    }
+///    namespace Foo {
+///      console.log(x); // 1
+///      console.log(y); // 3
+///    }
+///
+/// This is a form of identifier lookup that works differently than the
+/// hierarchical scope-based identifier lookup in JavaScript. Lookup now needs
+/// to search sibling scopes in addition to parent scopes. This is accomplished
+/// by sharing the map of exported members between all matching sibling scopes.
+pub struct TSNamespaceScope {
+    /// This is specific to this namespace block. It's the argument of the
+    /// immediately-invoked function expression that the namespace block is
+    /// compiled into:
+    ///
+    ///   var ns;
+    ///   (function (ns2) {
+    ///     ns2.x = 123;
+    ///   })(ns || (ns = {}));
+    ///
+    /// This variable is "ns2" in the above example.
+    pub arg_ref: Ref,
+
+    /// This is shared between all sibling namespace blocks: the same index in the `Store`.
+    pub exported_members: StoreRef<TSNamespaceMemberMap>,
+
+    /// This is a lazily-generated map of identifiers that actually represent
+    /// property accesses to this namespace's properties. Unique per namespace
+    /// block because the argument symbol is specific to that block.
+    pub property_accesses: StringArrayHashMap<Ref>,
+
+    /// Implicit references only work namespace-to-namespace and enum-to-enum,
+    /// so we only allow enum/enum and namespace/namespace interactions.
+    pub is_enum_scope: bool,
+}
+
+pub type TSNamespaceMemberMap = StringArrayHashMap<TSNamespaceMember>;
+
+#[derive(Clone, Copy)]
+pub struct TSNamespaceMember {
+    pub loc: Loc,
+    pub data: Data,
+}
+
+#[derive(Clone, Copy)]
+pub enum Data {
+    /// "namespace ns { export let it }"
+    Property,
+    /// "namespace ns { export namespace it {} }"
+    Namespace(StoreRef<TSNamespaceMemberMap>),
+    /// "enum ns { it }"
+    EnumNumber(f64),
+    /// "enum ns { it = 'it' }"
+    EnumString(StoreRef<EString>),
+    /// "enum ns { it = something() }"
+    EnumProperty,
+}
+
+impl Data {
+    pub fn is_enum(&self) -> bool {
+        matches!(self, Data::EnumNumber(_) | Data::EnumString(_) | Data::EnumProperty)
+    }
+}
 
 // ── TypeScript::Metadata ───────────────────────────────────────────────────
 // Decorator-metadata type tag attached to `G.Property` / `G.FnArg` / `G.Fn`.

@@ -78,7 +78,10 @@ No porte, o ponteiro vira índice e a memória vira um dono explícito:
 | `bun_ast` | `base.rs` | portado | nada (cópia), menos o travessão de um comentário |
 | `bun_ast` | `symbol.rs` | parcial: `Symbol`, `SymbolFlags`, `SlotNamespace`, `Kind`, `Use` | `namespace_alias` é `Option<Box<_>>` no lugar do `AstBox`; o `Map` de duas camadas do bundler (com `unsafe`) fica fora, o transpilador usa a tabela plana |
 | `bun_ast` | `g.rs` | portado | listas viram faixas do `Store`; `can_be_moved` e `init_return_expr` recebem o `Store`; os `deep_clone` entram com o de `expr.rs` |
-| `bun_ast` | `ts.rs` | parcial: `Metadata` | `TSNamespaceScope` e `TSNamespaceMember` entram com o `StringArrayHashMap` |
+| `bun_ast` | `ts.rs` | portado | `TSNamespaceScope.property_accesses` e `TSNamespaceMemberMap` são o `StringArrayHashMap` do porte, sem contexto nem alocador genéricos; o mapa compartilhado entre namespaces irmãos é o mesmo índice no `Store` |
+| `bun_ast` | `scope.rs` | portado, com teste dos membros | os nomes dos membros são `StoreStr`, então as buscas recebem `&Store` e `get_or_put_hashed`/`put` deixam de ser `unsafe` (o nome já é uma faixa do `Store`); `AstBox`/`AstVec` viram `Box`/`Vec`; a tabela é o `hashbrown` 0.15.5 do upstream com o mesmo hash, para a ordem de iteração ser a dele; `recursive_set_strict_mode` recebe o `Store` e o índice; saem os sinônimos de repasse `Members::count` e `Scope::get_member_hash` e o `get_or_put_member_with_hash` (repasse para `members`) |
+| `bun_ast` | `use_directive.rs` | portado (cópia) | nada |
+| `bun_ast` | `nodes.rs` (`StrictModeKind`) | portado | nada |
 | `bun_ast` | `e.rs` | portado, menos os nós de JSON | ver "e.rs" abaixo |
 | `bun_ast` | `expr.rs` | parcial: `Expr`, `Query`, `IntoExprData`, `init`, `Tag`, `PrimitiveType`, `Data`, os acessores, `can_be_const_value`, `can_be_moved`, `is_safe_to_string` | `init` recebe o `Store`; `allocate` (via bump) some, há um dono só; `Data` mantém 12 bytes e `Expr` 16. Pendentes: `deep_clone`, `write_to_hasher`, `known_primitive`, as dobras e o acesso por caminho |
 | `bun_ast` | `s.rs` | portado (cópia) | todos os tipos derivam `Clone` para o `clone_in` (inserido por ferramenta), `ExportDefault::can_be_moved` recebe o `Store` |

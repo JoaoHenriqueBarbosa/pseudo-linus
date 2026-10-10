@@ -80,6 +80,10 @@ crate::define_store! {
         array_bindings: crate::ArrayBinding,
         b_properties: B::Property,
         template_parts: E::TemplatePart,
+        // Escopos e os mapas de namespace do TypeScript
+        scopes: crate::Scope,
+        ts_namespace_scopes: crate::TSNamespaceScope,
+        ts_namespace_member_maps: crate::TSNamespaceMemberMap,
     }
 }
 
