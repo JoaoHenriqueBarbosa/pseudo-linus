@@ -295,14 +295,17 @@ let firstFrameDone = false;
 const requestRender = () => {
   if (renderPending || firstFrameDone) return;
   renderPending = true;
-  setTimeout(() => {
-    renderPending = false;
-    firstFrameDone = true;
-    // Medido no oráculo: as entregas de ResizeObserver saem antes das de IntersectionObserver no mesmo quadro.
-    const all = Array.from(renderObservers);
-    for (const observer of all) if (observer instanceof ResizeObserver) observer[P.__measure]();
-    for (const observer of all) if (!(observer instanceof ResizeObserver)) observer[P.__measure]();
-  }, 16);
+  setTimeout(renderFrame, 16);
+};
+// O único quadro do headless; um segundo pedido não mede nada.
+const renderFrame = () => {
+  if (firstFrameDone) return;
+  renderPending = false;
+  firstFrameDone = true;
+  // Medido no oráculo: as entregas de ResizeObserver saem antes das de IntersectionObserver no mesmo quadro.
+  const all = Array.from(renderObservers);
+  for (const observer of all) if (observer instanceof ResizeObserver) observer[P.__measure]();
+  for (const observer of all) if (!(observer instanceof ResizeObserver)) observer[P.__measure]();
 };
 const sizeEntry = (inlineSize, blockSize) => Object.freeze([Object.freeze({ inlineSize, blockSize })]);
 class ResizeObserverEntry {

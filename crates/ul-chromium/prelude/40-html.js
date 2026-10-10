@@ -221,8 +221,24 @@ defineHtml('HTMLCanvasElement', ['canvas'], (cls) => {
 });
 for (const [name, tags] of [['HTMLVideoElement', ['video']], ['HTMLAudioElement', ['audio']]]) {
   defineHtml(name, tags, (cls) => {
-    reflect(cls, [['src', 'src', 'url'], ['autoplay', 'autoplay', 'bool'], ['loop', 'loop', 'bool'], ['muted', 'muted', 'bool'], ['controls', 'controls', 'bool'], ['preload', 'preload'], ['poster', 'poster', 'url'], ['crossOrigin', 'crossorigin']]);
+    reflect(cls, [['src', 'src', 'url'], ['autoplay', 'autoplay', 'bool'], ['loop', 'loop', 'bool'], ['defaultMuted', 'muted', 'bool'], ['controls', 'controls', 'bool'], ['preload', 'preload'], ['poster', 'poster', 'url'], ['crossOrigin', 'crossorigin']]);
+    // `muted` é estado da mídia, não reflete o atributo (esse é o `defaultMuted`); começa com a presença dele.
+    Object.defineProperty(cls.prototype, 'muted', { get() { return this[P.__muted] ?? this.hasAttribute('muted'); }, set(v) { hidden(this, '__muted', Boolean(v)); }, configurable: true, enumerable: true });
     Object.defineProperties(cls.prototype, { paused: { get() { return true; }, configurable: true }, ended: { get() { return false; }, configurable: true }, currentTime: { get() { return 0; }, set() {}, configurable: true }, duration: { get() { return NaN; }, configurable: true }, readyState: { get() { return 0; }, configurable: true }, volume: { get() { return 1; }, set() {}, configurable: true } });
+    Object.defineProperty(cls.prototype, 'textTracks', {
+      // A mesma lista a cada leitura, com os índices refeitos a partir dos `<track>` filhos (lista viva).
+      get() {
+        if (!this[P.__textTracks]) hidden(this, '__textTracks', Object.create(TextTrackList.prototype));
+        const list = this[P.__textTracks];
+        const tracks = Array.from(this.children).filter((c) => c.localName === 'track').map((c) => c.track);
+        for (const key of Object.keys(list)) delete list[key];
+        tracks.forEach((t, i) => Object.defineProperty(list, i, { value: t, enumerable: true, configurable: true }));
+        hidden(list, '__length', tracks.length);
+        return list;
+      },
+      configurable: true,
+      enumerable: true,
+    });
     Object.assign(cls.prototype, { play() { return Promise.reject(domException('The play() request was interrupted because the media has no source.', 'NotSupportedError')); }, pause() {}, load() {}, canPlayType() { return ''; } });
   });
 }
@@ -265,7 +281,42 @@ defineHtml('HTMLTimeElement', ['time'], (cls) => reflect(cls, [['dateTime', 'dat
 defineHtml('HTMLDataElement', ['data'], (cls) => reflect(cls, [['value', 'value']]));
 defineHtml('HTMLAreaElement', ['area'], (cls) => reflect(cls, [['href', 'href', 'url'], ['alt', 'alt'], ['target', 'target'], ['shape', 'shape'], ['coords', 'coords']]));
 defineHtml('HTMLMapElement', ['map'], (cls) => reflect(cls, [['name', 'name']]));
-defineHtml('HTMLTrackElement', ['track'], (cls) => reflect(cls, [['src', 'src', 'url'], ['kind', 'kind'], ['srclang', 'srclang'], ['label', 'label'], ['default', 'default', 'bool']]));
+class TextTrack extends EventTarget {
+  constructor() { throw new TypeError('Illegal constructor'); }
+  get kind() { const k = this[P.__trackElement].kind; return k || 'subtitles'; }
+  get label() { return this[P.__trackElement].label; }
+  get language() { return this[P.__trackElement].srclang; }
+  get id() { return this[P.__trackElement].id; }
+  get inBandMetadataTrackDispatchType() { return ''; }
+  // Sem mídia carregando (o headless não toca vídeo), a faixa fica desativada e sem pistas.
+  get mode() { return 'disabled'; }
+  set mode(v) {}
+  get cues() { return null; }
+  get activeCues() { return null; }
+  addCue() {}
+  removeCue() {}
+}
+tag(TextTrack, 'TextTrack');
+class TextTrackList extends EventTarget {
+  constructor() { throw new TypeError('Illegal constructor'); }
+  get length() { return this[P.__length] || 0; }
+  getTrackById(id) { return Array.from({ length: this.length }, (_, i) => this[i]).find((t) => t.id === String(id)) || null; }
+  [Symbol.iterator]() { return Array.from({ length: this.length }, (_, i) => this[i])[Symbol.iterator](); }
+}
+tag(TextTrackList, 'TextTrackList');
+defineHtml('HTMLTrackElement', ['track'], (cls) => {
+  reflect(cls, [['src', 'src', 'url'], ['kind', 'kind'], ['srclang', 'srclang'], ['label', 'label'], ['default', 'default', 'bool']]);
+  Object.defineProperty(cls.prototype, 'track', {
+    get() {
+      if (!this[P.__track]) { const track = Object.create(TextTrack.prototype); hidden(track, '__trackElement', this); hidden(this, '__track', track); }
+      return this[P.__track];
+    },
+    configurable: true,
+    enumerable: true,
+  });
+  Object.defineProperty(cls.prototype, 'readyState', { get() { return 0; }, configurable: true, enumerable: true });
+  Object.assign(cls, { NONE: 0, LOADING: 1, LOADED: 2, ERROR: 3 });
+});
 defineHtml('HTMLPictureElement', ['picture']);
 defineHtml('HTMLHtmlElement', ['html']);
 defineHtml('HTMLHeadElement', ['head']);
@@ -317,6 +368,88 @@ class SVGSVGElement extends SVGGraphicsElement {
   get viewBox() { return { baseVal: { x: 0, y: 0, width: 0, height: 0 } }; }
 }
 tag(SVGSVGElement, 'SVGSVGElement');
+// As interfaces SVG do Chromium 154, com a hierarquia da IDL: [nome, pai, tags].
+const svgByTag = new Map([['svg', SVGSVGElement]]);
+const SVG_INTERFACES = [
+  ['SVGGeometryElement', 'SVGGraphicsElement', []],
+  ['SVGTextContentElement', 'SVGGraphicsElement', []],
+  ['SVGTextPositioningElement', 'SVGTextContentElement', []],
+  ['SVGGradientElement', 'SVGElement', []],
+  ['SVGComponentTransferFunctionElement', 'SVGElement', []],
+  ['SVGAElement', 'SVGGraphicsElement', ['a']],
+  ['SVGAnimationElement', 'SVGElement', []],
+  ['SVGAnimateElement', 'SVGAnimationElement', ['animate']],
+  ['SVGAnimateMotionElement', 'SVGAnimationElement', ['animateMotion']],
+  ['SVGAnimateTransformElement', 'SVGAnimationElement', ['animateTransform']],
+  ['SVGSetElement', 'SVGAnimationElement', ['set']],
+  ['SVGCircleElement', 'SVGGeometryElement', ['circle']],
+  ['SVGEllipseElement', 'SVGGeometryElement', ['ellipse']],
+  ['SVGLineElement', 'SVGGeometryElement', ['line']],
+  ['SVGPathElement', 'SVGGeometryElement', ['path']],
+  ['SVGPolygonElement', 'SVGGeometryElement', ['polygon']],
+  ['SVGPolylineElement', 'SVGGeometryElement', ['polyline']],
+  ['SVGRectElement', 'SVGGeometryElement', ['rect']],
+  ['SVGClipPathElement', 'SVGElement', ['clipPath']],
+  ['SVGDefsElement', 'SVGGraphicsElement', ['defs']],
+  ['SVGDescElement', 'SVGElement', ['desc']],
+  ['SVGFilterElement', 'SVGElement', ['filter']],
+  ['SVGForeignObjectElement', 'SVGGraphicsElement', ['foreignObject']],
+  ['SVGGElement', 'SVGGraphicsElement', ['g']],
+  ['SVGImageElement', 'SVGGraphicsElement', ['image']],
+  ['SVGLinearGradientElement', 'SVGGradientElement', ['linearGradient']],
+  ['SVGRadialGradientElement', 'SVGGradientElement', ['radialGradient']],
+  ['SVGMarkerElement', 'SVGElement', ['marker']],
+  ['SVGMaskElement', 'SVGElement', ['mask']],
+  ['SVGMetadataElement', 'SVGElement', ['metadata']],
+  ['SVGMPathElement', 'SVGElement', ['mpath']],
+  ['SVGPatternElement', 'SVGElement', ['pattern']],
+  ['SVGScriptElement', 'SVGElement', ['script']],
+  ['SVGStopElement', 'SVGElement', ['stop']],
+  ['SVGStyleElement', 'SVGElement', ['style']],
+  ['SVGSwitchElement', 'SVGGraphicsElement', ['switch']],
+  ['SVGSymbolElement', 'SVGElement', ['symbol']],
+  ['SVGTextElement', 'SVGTextPositioningElement', ['text']],
+  ['SVGTextPathElement', 'SVGTextContentElement', ['textPath']],
+  ['SVGTSpanElement', 'SVGTextPositioningElement', ['tspan']],
+  ['SVGTitleElement', 'SVGElement', ['title']],
+  ['SVGUseElement', 'SVGGraphicsElement', ['use']],
+  ['SVGViewElement', 'SVGElement', ['view']],
+  ['SVGFEBlendElement', 'SVGElement', ['feBlend']],
+  ['SVGFEColorMatrixElement', 'SVGElement', ['feColorMatrix']],
+  ['SVGFEComponentTransferElement', 'SVGElement', ['feComponentTransfer']],
+  ['SVGFECompositeElement', 'SVGElement', ['feComposite']],
+  ['SVGFEConvolveMatrixElement', 'SVGElement', ['feConvolveMatrix']],
+  ['SVGFEDiffuseLightingElement', 'SVGElement', ['feDiffuseLighting']],
+  ['SVGFEDisplacementMapElement', 'SVGElement', ['feDisplacementMap']],
+  ['SVGFEDistantLightElement', 'SVGElement', ['feDistantLight']],
+  ['SVGFEDropShadowElement', 'SVGElement', ['feDropShadow']],
+  ['SVGFEFloodElement', 'SVGElement', ['feFlood']],
+  ['SVGFEFuncAElement', 'SVGComponentTransferFunctionElement', ['feFuncA']],
+  ['SVGFEFuncBElement', 'SVGComponentTransferFunctionElement', ['feFuncB']],
+  ['SVGFEFuncGElement', 'SVGComponentTransferFunctionElement', ['feFuncG']],
+  ['SVGFEFuncRElement', 'SVGComponentTransferFunctionElement', ['feFuncR']],
+  ['SVGFEGaussianBlurElement', 'SVGElement', ['feGaussianBlur']],
+  ['SVGFEImageElement', 'SVGElement', ['feImage']],
+  ['SVGFEMergeElement', 'SVGElement', ['feMerge']],
+  ['SVGFEMergeNodeElement', 'SVGElement', ['feMergeNode']],
+  ['SVGFEMorphologyElement', 'SVGElement', ['feMorphology']],
+  ['SVGFEOffsetElement', 'SVGElement', ['feOffset']],
+  ['SVGFEPointLightElement', 'SVGElement', ['fePointLight']],
+  ['SVGFESpecularLightingElement', 'SVGElement', ['feSpecularLighting']],
+  ['SVGFESpotLightElement', 'SVGElement', ['feSpotLight']],
+  ['SVGFETileElement', 'SVGElement', ['feTile']],
+  ['SVGFETurbulenceElement', 'SVGElement', ['feTurbulence']],
+];
+const svgClasses = { SVGElement, SVGGraphicsElement, SVGSVGElement };
+for (const [name, parent, tags] of SVG_INTERFACES) {
+  const cls = { [name]: class extends svgClasses[parent] {} }[name];
+  tag(cls, name);
+  svgClasses[name] = cls;
+  for (const t of tags) svgByTag.set(t, cls);
+}
+Object.assign(svgClasses.SVGGeometryElement.prototype, { getTotalLength() { return 0; }, getPointAtLength() { return { x: 0, y: 0 }; }, isPointInFill() { return false; }, isPointInStroke() { return false; } });
+Object.assign(svgClasses.SVGTextContentElement.prototype, { getNumberOfChars() { return this.textContent.length; }, getComputedTextLength() { return 0; } });
+for (const name of Object.keys(svgClasses)) Object.defineProperty(globalThis, name, { value: svgClasses[name], writable: true, configurable: true, enumerable: false });
 class MathMLElement extends Element {}
 tag(MathMLElement, 'MathMLElement');
 
@@ -326,7 +459,7 @@ function elementPrototype(local, ns) {
     if (cls) return cls.prototype;
     return (local.includes('-') ? HTMLElement : HTMLUnknownElement).prototype;
   }
-  if (ns === SVG_NS) return (local === 'svg' ? SVGSVGElement : /^(svg|g|path|rect|circle|ellipse|line|polyline|polygon|text|tspan|use|image|foreignObject)$/.test(local) ? SVGGraphicsElement : SVGElement).prototype;
+  if (ns === SVG_NS) return (svgByTag.get(local) || SVGElement).prototype;
   if (ns === MATHML_NS) return MathMLElement.prototype;
   return Element.prototype;
 }

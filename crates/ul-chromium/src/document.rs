@@ -104,9 +104,56 @@ pub fn normalize_style(text: &str) -> String {
     use style::stylesheets::{CssRuleType, UrlExtraData};
     let base = url::Url::parse("about:blank").expect("about:blank");
     let data = UrlExtraData(style::servo_arc::Arc::new(base));
-    let block = parse_style_attribute(text, &data, None, selectors::matching::QuirksMode::NoQuirks, CssRuleType::Style);
+    let text = blink_precision(text);
+    let block = parse_style_attribute(&text, &data, None, selectors::matching::QuirksMode::NoQuirks, CssRuleType::Style);
     let mut out = String::new();
     let _ = block.to_css(&mut out);
+    out
+}
+
+/// O Blink guarda os números de CSS em double e os serializa com seis algarismos significativos; o stylo guarda em f32,
+/// que muda o sexto algarismo (`55.319148...%` sai `55.3192%`). Os números decimais do texto chegam ao stylo já
+/// arredondados como o Blink os escreveria. Strings, `url(...)` e números colados a identificadores ficam intactos.
+fn blink_precision(text: &str) -> String {
+    let bytes = text.as_bytes();
+    let mut out = String::with_capacity(text.len());
+    let mut i = 0;
+    let mut quote: Option<u8> = None;
+    let mut in_url = false;
+    while i < bytes.len() {
+        let c = bytes[i];
+        if let Some(q) = quote {
+            if c == b'\\' && i + 1 < bytes.len() {
+                out.push_str(&text[i..i + 2]);
+                i += 2;
+                continue;
+            }
+            if c == q {
+                quote = None;
+            }
+        } else if in_url {
+            if c == b')' {
+                in_url = false;
+            }
+        } else if c == b'"' || c == b'\'' {
+            quote = Some(c);
+        } else if text[i..].len() >= 4 && text[i..i + 4].eq_ignore_ascii_case("url(") {
+            in_url = true;
+        } else if (c.is_ascii_digit() || c == b'.') && !bytes[..i].last().is_some_and(|p| p.is_ascii_alphanumeric() || matches!(p, b'_' | b'#' | b'\\') || *p >= 0x80) {
+            let end = i + bytes[i..].iter().take_while(|b| b.is_ascii_digit() || **b == b'.').count();
+            let number = &text[i..end];
+            let digits = number.bytes().filter(u8::is_ascii_digit).skip_while(|d| *d == b'0').count();
+            match number.parse::<f64>() {
+                Ok(value) if number.contains('.') && digits > 6 => out.push_str(&format!("{:.5e}", value).parse::<f64>().unwrap_or(value).to_string()),
+                _ => out.push_str(number),
+            }
+            i = end;
+            continue;
+        }
+        let len = text[i..].chars().next().map_or(1, char::len_utf8);
+        out.push_str(&text[i..i + len]);
+        i += len;
+    }
     out
 }
 

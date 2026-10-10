@@ -30,7 +30,7 @@ const windowGlobals = {
   window, self: window, globalThis: window, frames: window, top: window, parent: window, document, location, history, navigator, CSS, NodeFilter,
   screen: { width: 800, height: 600, availWidth: 800, availHeight: 600, availLeft: 0, availTop: 0, colorDepth: 24, pixelDepth: 24, orientation: { type: 'landscape-primary', angle: 0, addEventListener() {}, removeEventListener() {} } },
   localStorage: makeStorage(), sessionStorage: makeStorage(), customElements,
-  getComputedStyle, matchMedia, fetch: realFetch, XMLHttpRequest, MutationObserver, MutationRecord, ResizeObserver, ResizeObserverEntry, IntersectionObserver, IntersectionObserverEntry, PerformanceObserver,
+  getComputedStyle, matchMedia, fetch: realFetch, XMLHttpRequest, MutationObserver, MutationRecord, ResizeObserver, ResizeObserverEntry, IntersectionObserver, IntersectionObserverEntry, TextTrack, TextTrackList, PerformanceObserver,
   Node, Element, HTMLElement, HTMLUnknownElement, SVGElement, SVGGraphicsElement, SVGSVGElement, MathMLElement, Text, Comment, CDATASection, CharacterData, DocumentFragment, ShadowRoot, DocumentType, Document, Attr, NamedNodeMap, NodeList, HTMLCollection,
   DOMTokenList, CSSStyleDeclaration, CSSStyleSheet, DOMRect, DOMRectReadOnly: DOMRect, Range, Selection, TreeWalker, NodeIterator, DOMParser, XMLSerializer, DOMImplementation, XPathEvaluator, XPathExpression, XPathResult, SVGAnimatedString, Location, History, Navigator, Storage, CustomElementRegistry,
   EventTarget, Event, CustomEvent, UIEvent, MouseEvent, PointerEvent, WheelEvent, KeyboardEvent, FocusEvent, InputEvent, ErrorEvent, MessageEvent, HashChangeEvent, PopStateEvent, ProgressEvent, TouchEvent, AnimationEvent, TransitionEvent, PageTransitionEvent, SubmitEvent, PromiseRejectionEvent,
@@ -135,7 +135,9 @@ const scheduleFrame = (cb) => setTimeout(() => cb(performance.now()), 16);
 Object.assign(globalThis, {
   requestAnimationFrame: scheduleFrame,
   cancelAnimationFrame: (id) => clearTimeout(id),
-  requestIdleCallback: (cb) => setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 50 }), 1),
+  // O período ocioso vem depois de um quadro: o headless já pintou o seu (e entregou os observadores) quando o
+  // callback roda, e o que ele observa não recebe entrega.
+  requestIdleCallback: (cb) => setTimeout(() => { renderFrame(); cb({ didTimeout: false, timeRemaining: () => 50 }); }, 16),
   cancelIdleCallback: (id) => clearTimeout(id),
   alert() {}, confirm() { return false; }, prompt() { return null; }, print() {}, open() { return null; }, close() {}, stop() {}, focus() {}, blur() {},
   scrollTo() {}, scrollBy() {}, scroll() {}, moveTo() {}, moveBy() {}, resizeTo() {}, resizeBy() {},
