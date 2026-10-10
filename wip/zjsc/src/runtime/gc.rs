@@ -328,9 +328,12 @@ pub(crate) fn forget_tombstone(cell_id: usize) {
 }
 
 /// `Heap::collectIfNecessaryOrDefer` no ponto seguro do interpretador: coleta se o limite de alocações foi
-/// passado, só uma execução do `llint` está na pilha nativa e não há `DeferGC`.
+/// passado e não há `DeferGC`, em qualquer profundidade (o corpo do programa, módulos, callbacks chamados por
+/// nativos). Os frames JS de baixo estão na pilha de registradores que a varredura conservadora percorre; o valor
+/// que um nativo segura num local Rust enquanto chama JS precisa estar enraizado (`RootScope`), e a lápide do build
+/// de depuração acusa o que faltar.
 pub(crate) fn safe_point(interpreter: &crate::interpreter::interpreter::Interpreter, vm: &crate::runtime::vm::VM) {
-    if interpreter.native_depth() != 1 || vm.heap().is_deferred() {
+    if vm.heap().is_deferred() {
         return;
     }
     let due = STATE.with(|state| {
