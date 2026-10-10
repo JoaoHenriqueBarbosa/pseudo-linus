@@ -212,7 +212,9 @@ pub(crate) fn native_function_with_constructor(
     constructor: NativeFunction,
 ) -> crate::runtime::js_function::JSFunctionRef {
     let vm = global_object.vm();
-    JSFunction::create_native(
+    // Quem pendura propriedades na função não pode transitar a `hostFunctionStructure` compartilhada, que
+    // no bun segue folha (o `, Leaf` do dump de bytecode).
+    JSFunction::create_native_with_own_structure(
         vm,
         global_object,
         length,

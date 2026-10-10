@@ -133,7 +133,7 @@ pub fn create_host_custom_accessor_getter_function(
     getter: NativeFunction,
 ) -> JSFunctionRef {
     let public_name = WtfString::from_utf8(name.as_bytes());
-    let created = JSFunction::create_native(
+    let created = JSFunction::create_native_with_own_structure(
         vm,
         global_object,
         0,
@@ -155,7 +155,7 @@ pub fn create_host_custom_accessor_getter_function(
 /// com `set <name>` em `name` e `length` 1.
 pub fn create_host_custom_accessor_setter_function(vm: &VM, global_object: &JSGlobalObject, name: &str, setter: NativeFunction) -> JSFunctionRef {
     let public_name = WtfString::from_utf8(name.as_bytes());
-    let created = JSFunction::create_native(
+    let created = JSFunction::create_native_with_own_structure(
         vm,
         global_object,
         1,
@@ -208,7 +208,7 @@ fn create(
     pointer: CustomFunctionPointer,
 ) -> JSFunctionRef {
     let public_name = property_name.public_name().map_or_else(empty_string, |uid| WtfString::from(std::rc::Rc::clone(&uid.0)));
-    let created = JSFunction::create_native(
+    let created = JSFunction::create_native_with_own_structure(
         vm,
         global_object,
         length,

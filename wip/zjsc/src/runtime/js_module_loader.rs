@@ -480,7 +480,7 @@ pub fn install_message_classes(global_object: &JSGlobalObject) {
 
     let vm = global_object.vm();
     let native = |name: &str, length: u32, function: NativeFn, construct: NativeFn| {
-        JSFunction::create_native(
+        JSFunction::create_native_with_own_structure(
             vm,
             global_object,
             length,

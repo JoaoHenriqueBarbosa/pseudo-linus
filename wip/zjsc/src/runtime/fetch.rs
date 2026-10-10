@@ -378,7 +378,7 @@ host_function!(preconnect_fn, preconnect_body);
 /// Instala `fetch` no global (propriedade de dados comum, como as demais funções web do bun).
 pub fn install_fetch(global_object: &JSGlobalObject) {
     let vm = global_object.vm();
-    let function = JSFunction::create_native(
+    let function = JSFunction::create_native_with_own_structure(
         vm,
         global_object,
         1,

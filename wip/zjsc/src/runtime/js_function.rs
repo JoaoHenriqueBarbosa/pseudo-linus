@@ -207,6 +207,36 @@ impl JSFunction {
         )
     }
 
+    /// `create_native` numa `Structure` própria, irmã da `hostFunctionStructure()`: a função que ganha propriedades na
+    /// instalação (o `prototype` de um construtor, um método pendurado, um `name` reificado) não pode transitar da
+    /// estrutura compartilhada das funções de host. No C++ esses objetos são `InternalFunction` ou subclasses com
+    /// estrutura própria, e a `hostFunctionStructure()` segue folha (`Leaf` no dump do bytecode, medido no bun 1.4.2).
+    #[allow(clippy::too_many_arguments)]
+    pub fn create_native_with_own_structure(
+        vm: &VM,
+        global_object: &JSGlobalObject,
+        length: u32,
+        name: &WtfString,
+        native_function: NativeFunction,
+        implementation_visibility: ImplementationVisibility,
+        intrinsic: Intrinsic,
+        native_constructor: NativeFunction,
+    ) -> JSFunctionRef {
+        let prototype = global_object.host_function_structure().stored_prototype();
+        let structure = JSFunction::create_structure(vm, global_object, prototype);
+        JSFunction::create_native_with_structure(
+            vm,
+            global_object,
+            structure,
+            length,
+            name,
+            native_function,
+            implementation_visibility,
+            intrinsic,
+            native_constructor,
+        )
+    }
+
     /// `create_native` com a `Structure` escolhida pelo chamador (as subclasses de `JSFunction` com
     /// `HasStaticPropertyTable`, como `NumberConstructor`, trocam o `ClassInfo` e as flags).
     #[allow(clippy::too_many_arguments)]
