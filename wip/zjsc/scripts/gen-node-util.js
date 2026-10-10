@@ -20,6 +20,8 @@ const transpiler = new Bun.Transpiler({ loader: "ts", minifyWhitespace: false, i
 
 // As trocas comuns a todos os arquivos.
 const common = [
+  // O `primordials` já é o da fábrica: `const primordials = require(...)` viraria `const primordials = primordials`.
+  [/^[ \t]*const primordials = require\("internal\/primordials"\);\n/gm, ""],
   [/require\("internal\/primordials"\)/g, "primordials"],
   [/require\("internal\/validators"\)/g, "host.internal.validators"],
   [/require\("internal\/shared"\)/g, "host.internal"],
@@ -37,7 +39,7 @@ const common = [
   [/\.\$apply\(/g, ".apply("],
   [/\$isJSArray\(/g, "host.isJSArray("],
   [/\$isArray\b/g, "ArrayIsArrayIntrinsic"],
-  [/\$isObject\(/g, "isObject("],
+  [/\$isObject\(/g, "isObjectIntrinsic("],
   [/\$isPromise\(/g, "host.isPromise("],
   [/\$min\(/g, "MathMinIntrinsic("],
   [/^export default /m, "return "],
@@ -88,11 +90,12 @@ function convert(name) {
   return code;
 }
 
-const indent = text => text.replace(/^/gm, "  ").replace(/[ ]+$/gm, "");
+// O código convertido não é reindentado: um `template literal` de várias linhas (o `\n${" ".repeat(n)}` do `inspect`) ganharia
+// espaços no começo de cada linha e mudaria o texto que o módulo produz.
 
 // Cada interno num escopo próprio: `const nome = (() => { ...; return exports; })();`.
 function scoped(variable, name) {
-  return `const ${variable} = (() => {\n${indent(convert(name))}\n})();\n`;
+  return `const ${variable} = (() => {\n${convert(name)}\n})();\n`;
 }
 
 let out = "// GERADO por `scripts/gen-node-util.js` a partir do `util.ts` e dos internos que ele usa, do bun 1.4.2. Não editar à mão.\n";
@@ -102,14 +105,14 @@ out += "  const { codes } = host.internal;\n";
 out += "  // `$isArray` e `$min`: os intrínsecos guardados antes de qualquer código do usuário.\n";
 out += "  const ArrayIsArrayIntrinsic = Array.isArray;\n";
 out += "  const MathMinIntrinsic = Math.min;\n";
-out += "  // `$isObject`: objeto ou função.\n";
-out += '  const isObject = value => (typeof value === "object" && value !== null) || typeof value === "function";\n';
-out += indent(scoped("primordials", "internal/primordials.js"));
-out += indent(scoped("ttyModule", "internal/tty"));
-out += indent(scoped("colorsModule", "internal/util/colors"));
-out += indent(scoped("inspectModule", "internal/util/inspect.js"));
-out += indent(scoped("promisifyModule", "internal/promisify"));
-out += indent(scoped("deprecateModule", "internal/util/deprecate"));
-out += indent(convert("node/util.ts"));
+out += "  // `$isObject`: objeto ou função. O nome não é `isObject` porque o `util.ts` declara a função `isObject` do `util`.\n";
+out += '  const isObjectIntrinsic = value => (typeof value === "object" && value !== null) || typeof value === "function";\n';
+out += scoped("primordials", "internal/primordials.js");
+out += scoped("ttyModule", "internal/tty");
+out += scoped("colorsModule", "internal/util/colors");
+out += scoped("inspectModule", "internal/util/inspect.js");
+out += scoped("promisifyModule", "internal/promisify");
+out += scoped("deprecateModule", "internal/util/deprecate");
+out += convert("node/util.ts");
 out += "\n})\n";
 process.stdout.write(out);

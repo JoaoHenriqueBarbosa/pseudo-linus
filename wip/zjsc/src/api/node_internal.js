@@ -315,6 +315,30 @@
     return options;
   }
 
+  const kCustomPromisifyArgsSymbol = Symbol("customPromisifyArgs");
+
+  let utilModule;
+  class ErrnoException extends Error {
+    // Os `errno: number; syscall: string;` do TypeScript viram campos de classe: nascem antes do `code` (medido:
+    // `message,errno,syscall,code`).
+    errno;
+    syscall;
+    constructor(err, syscall, original) {
+      utilModule ??= host.requireBuiltin("node:util");
+      const code = utilModule.getSystemErrorName(err);
+      const message = original ? `${syscall} ${code} ${original}` : `${syscall} ${code}`;
+
+      super(message);
+
+      this.errno = err;
+      this.code = code;
+      this.syscall = syscall;
+    }
+    get ["constructor"]() {
+      return Error;
+    }
+  }
+
   class NotImplementedError extends Error {
     // O `code: string;` do TypeScript vira campo de classe: `code` nasce antes de `name` (medido: `code,name`).
     code;
@@ -439,6 +463,8 @@
     kEmptyObject,
     kResistStopPropagation,
     resistStopPropagation,
+    kCustomPromisifyArgsSymbol,
+    ErrnoException,
     throwNotImplemented,
     isInsideNodeModules,
     once,

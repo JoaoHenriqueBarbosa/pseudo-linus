@@ -178,7 +178,7 @@ fn get_if_property_exists(global_object: &JSGlobalObject, object: &JSObject, pro
 }
 
 /// `putOwnDataPropertyMayBeIndex(globalObject, propertyName, value, slot)`.
-fn put_own_data_property_may_be_index(
+pub(crate) fn put_own_data_property_may_be_index(
     vm: &VM,
     object: &JSObject,
     property_name: &PropertyName,

@@ -1001,8 +1001,9 @@ cjs_accessors!(
     (cjs_set_paths, cjs_set_paths_body, 21),
 );
 
-/// A mensagem do `TypeError` de `module._compile` com o nome do arquivo que não é texto.
-fn describe_for_path_error(value: JSValue) -> &'static str {
+/// O tipo no `got ...` das mensagens de validador de propriedade (`The "x" property must be of type string, got number`):
+/// o `typeof`, com `object` para `null` e `array` para arrays.
+pub(crate) fn typeof_for_property_error(value: JSValue) -> &'static str {
     if value.is_null() {
         "object"
     } else if JSArray::from_value(&value).is_some() {
@@ -1051,7 +1052,7 @@ fn cjs_compile_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResu
     let name = call.argument(1);
     let is_string_object = JSObject::from_value(&name).is_some_and(|object| matches!(object.type_(), JSType::StringObjectType | JSType::DerivedStringObjectType));
     if !(name.is_string() || name.is_symbol() || is_string_object) {
-        let message = format!("The \"path\" property must be of type string, got {}", describe_for_path_error(name));
+        let message = format!("The \"path\" property must be of type string, got {}", typeof_for_property_error(name));
         return Err(throw_coded_type_error(global_object, &message, "ERR_INVALID_ARG_TYPE"));
     }
     let file = to_string_value(global_object, name)?.value();

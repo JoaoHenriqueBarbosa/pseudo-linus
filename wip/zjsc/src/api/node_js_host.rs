@@ -151,7 +151,10 @@ fn module_factory(realm: &JSGlobalObject, source: &str, name: &str) -> JSValue {
 pub(crate) fn run_factory(global_object: &JSGlobalObject, source: &str, name: &str, host: &JSObjectRef) -> JSValue {
     let factory = module_factory(&current_global_object(), source, name);
     call_microtask(global_object, factory, JSValue::undefined(), &[host.as_value()], "o módulo embutido não é uma função").unwrap_or_else(|thrown| {
-        let detail = global_object.vm().exception().map_or_else(|| format!("{thrown:?}"), |exception| describe_exception(&exception.value()));
+        let detail = match &thrown {
+            crate::runtime::js_promise_host::Thrown::Value(value) => describe_exception(value),
+            _ => global_object.vm().exception().map_or_else(|| format!("{thrown:?}"), |exception| describe_exception(&exception.value())),
+        };
         panic!("node:{name}: a fábrica lançou {detail}")
     })
 }
