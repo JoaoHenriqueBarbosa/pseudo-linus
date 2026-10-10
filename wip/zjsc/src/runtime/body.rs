@@ -108,6 +108,11 @@ impl Body {
             (None, false) => &self.bytes,
         };
         let stream = bytes_stream(global_object, content);
+        // Medido no bun 1.4.2: o `body` lido pela primeira vez depois de uma leitura (`text()`, `formData()`...) já
+        // nasce travado; o que foi lido antes da leitura segue destravado.
+        if self.used {
+            lock_stream(global_object, stream);
+        }
         self.stream = Some(stream);
         stream
     }
