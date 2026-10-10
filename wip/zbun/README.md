@@ -46,8 +46,8 @@ Estado do passo 1: feito (`import_record`, `ImportKind`, `part`, `runtime`, `ast
 `SlotCounts`). Medida do passo 2 (cópia de todo o `js_parser` restante, 2026-10-10): a primeira compilação para em
 169 erros de resolução antes de chegar aos tipos. O que falta, por grupo:
 
-- crates e módulos do upstream que o parser importa e o porte ainda não tem: `bun_crash_handler`, `bun_react_compiler`, `bun_core::{Output, feature_flags,
-  todo_panic}`, `bun_alloc::{ArenaVec, ArenaVecExt, arena_format, AllocError}`, `bun_collections::{VecExt, HashMap,
+- crates e módulos do upstream que o parser importa e o porte ainda não tem: `bun_crash_handler`, `bun_react_compiler`,
+  `bun_alloc::{ArenaVec, ArenaVecExt, arena_format, AllocError}`, `bun_collections::{VecExt, HashMap,
   StringHashMap, StringSet, object_pool}`, `bun_ast::{Flags, fold_string_addition, RuntimeTranspilerCache,
   expr::{EFlags, Equality, LooseEql, StrictEql}}`;
 - 48 trechos `unsafe` (25 em `p.rs`, 8 em `lower/`, 5 em `visit/mod.rs`, 4 em `parse_entry.rs`, 3 em `parser.rs`,
@@ -157,6 +157,8 @@ No porte, o ponteiro vira índice e a memória vira um dono explícito:
 | `bun_core` | `strings` (`split`, `tokenize`) | portado, com teste | o `next` inerente do `SplitIterator` e o do `Iterator` (repasse) viram um só, no `Iterator` |
 | `bun_core` | `fmt` (`fmt_identifier`, `FormatValidIdentifier`) | portado, com teste | o `write_bytes` sem checagem vira `from_utf8` checado (só recebe codepoints de identificador); o `has_needed_gap`, que ninguém lia, sai |
 | `bun_paths` | `lib.rs` (`NODE_MODULES_NEEDLE`, `fs::{PathName, Path}`) | parcial, com testes | só POSIX; `Path` só com `init` e `name`; `dir_with_trailing_slash` (ponteiro cru, o parser não usa) e `into_static` ficam fora |
+| `bun_core` | `feature_flags.rs` | parcial: as quatro flags que o parser e o printer leem | nada |
+| `bun_core` | `output.rs` (`panic`, `error_writer`, `todo_panic!`) | parcial, com teste | `error_writer` é o `stderr` do processo (o upstream lê o fluxo do thread-local da CLI); o `todo_panic!` não marca o contador do relatório de falha |
 
 ### `lexer.rs`
 

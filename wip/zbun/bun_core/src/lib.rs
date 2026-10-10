@@ -3,11 +3,15 @@
 #![forbid(unsafe_code)]
 
 pub mod comptime_string_map;
+pub mod feature_flags;
 pub mod fmt;
 pub mod generic_index;
 pub mod identifier;
 pub mod lexer_tables;
+pub mod output;
 pub mod strings;
+
+pub use output as Output;
 
 pub use strings::CodePoint;
 
