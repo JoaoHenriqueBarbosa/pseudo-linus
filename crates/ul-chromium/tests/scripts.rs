@@ -400,23 +400,8 @@ fn cross_origin_isolation_needs_coop_coep_in_a_secure_context() {
     let script = "<script>var nows = []; for (var i = 0; i < 40; i++) { for (var j = 0, s = 0; j < 4000 * i; j++) s += j; nows.push(performance.now()); }\
 console.log(crossOriginIsolated, 'SharedArrayBuffer' in self, typeof SharedArrayBuffer, nows.every(function (v) { return Math.abs(v * 10 - Math.round(v * 10)) < 1e-6; }), nows.every(function (v) { return Math.abs(v * 200 - Math.round(v * 200)) < 1e-6; }))</script>";
     let page = |address: &str, isolate: bool| {
-        common::install_image_fonts();
-        let body = script.to_owned();
-        let fetcher: Fetcher = Rc::new(move |target: &str, _spec: &ul_net::net::client::RequestSpec<'_>| {
-            let parsed = url::parse(target, false).map_err(FetchError::InvalidUrl)?;
-            let mut headers = vec![(b"content-type".to_vec(), b"text/html".to_vec())];
-            if isolate {
-                headers.push((b"cross-origin-opener-policy".to_vec(), b"same-origin".to_vec()));
-                headers.push((b"cross-origin-embedder-policy".to_vec(), b"require-corp".to_vec()));
-            }
-            Ok(Response { status: 200, reason: String::new(), headers, body: body.clone().into_bytes(), url: parsed })
-        });
-        let mut page = Page::load(address, fetcher).unwrap();
-        let console = Rc::new(Capture::default());
-        page.console = console.clone();
-        page.run();
-        let log = console.0.borrow().clone();
-        log
+        let headers: &[(&str, &str)] = if isolate { &[("cross-origin-opener-policy", "same-origin"), ("cross-origin-embedder-policy", "require-corp")] } else { &[] };
+        common::run_at(address, headers, &[("/", script)]).1
     };
     assert_eq!(page("http://127.0.0.1/", false), "false false undefined true true\n");
     let isolated = page("http://127.0.0.1/", true);

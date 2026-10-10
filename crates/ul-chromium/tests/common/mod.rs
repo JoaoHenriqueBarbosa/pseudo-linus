@@ -28,9 +28,10 @@ impl zjsc::runtime::console_host::ConsoleHost for Capture {
     }
 }
 
-/// Serve `files` (caminho, corpo) em `http://t.test/`; o resto é 404.
-fn serve(files: &[(&str, &str)]) -> Fetcher {
+/// Serve `files` (caminho, corpo) em qualquer host; o resto é 404. `headers` entram em toda resposta.
+fn serve(files: &[(&str, &str)], headers: &[(&str, &str)]) -> Fetcher {
     let files: Vec<(String, String)> = files.iter().map(|(p, b)| ((*p).to_owned(), (*b).to_owned())).collect();
+    let extra: Vec<(Vec<u8>, Vec<u8>)> = headers.iter().map(|(n, v)| (n.as_bytes().to_vec(), v.as_bytes().to_vec())).collect();
     Rc::new(move |target: &str, _spec: &ul_net::net::client::RequestSpec<'_>| {
         let parsed = url::parse(target, false).map_err(FetchError::InvalidUrl)?;
         let found = files.iter().find(|(p, _)| *p == parsed.target());
@@ -39,15 +40,23 @@ fn serve(files: &[(&str, &str)]) -> Fetcher {
             None => (404, (String::new(), String::new())),
         };
         let kind = if body.0.ends_with(".js") { "text/javascript" } else { "text/html; charset=utf-8" };
-        Ok(Response { status, reason: String::new(), headers: vec![(b"content-type".to_vec(), kind.as_bytes().to_vec())], body: body.1.into_bytes(), url: parsed })
+        let mut response_headers = vec![(b"content-type".to_vec(), kind.as_bytes().to_vec())];
+        response_headers.extend(extra.iter().cloned());
+        Ok(Response { status, reason: String::new(), headers: response_headers, body: body.1.into_bytes(), url: parsed })
     })
 }
 
 /// Roda a página servida de `files` (com as fontes da imagem) e devolve o DOM despejado e o console.
 #[allow(dead_code)]
 pub fn run(files: &[(&str, &str)]) -> (String, String) {
+    run_at("http://t.test/", &[], files)
+}
+
+/// Como `run`, com o endereço da página e os cabeçalhos extras de toda resposta (COOP e COEP, por exemplo).
+#[allow(dead_code)]
+pub fn run_at(address: &str, headers: &[(&str, &str)], files: &[(&str, &str)]) -> (String, String) {
     install_image_fonts();
-    let mut page = Page::load("http://t.test/", serve(files)).unwrap();
+    let mut page = Page::load(address, serve(files, headers)).unwrap();
     let console = Rc::new(Capture::default());
     page.console = console.clone();
     page.run();
