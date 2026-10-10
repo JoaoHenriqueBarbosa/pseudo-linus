@@ -78,11 +78,18 @@ fn svg_size(bytes: &[u8]) -> Option<(u32, u32)> {
 
 /// O `toDataURL`: `mime;base64,dados`. PNG por padrão; `image/jpeg` com a qualidade pedida (0.92 sem ela). O tipo
 /// que o Chromium não codifica vira PNG.
-pub fn encode(mime: &str, quality: f64, width: u32, height: u32, rgba: &[u8]) -> String {
+/// `icc` diz se o canvas leva o perfil sRGB no WebP (o JPEG leva sempre).
+pub fn encode(mime: &str, quality: f64, icc: bool, width: u32, height: u32, rgba: &[u8]) -> String {
     let (kind, bytes) = match mime.to_ascii_lowercase().as_str() {
         "image/jpeg" => {
             let quality = if (0.0..=1.0).contains(&quality) { quality } else { 0.92 };
             ("image/jpeg", encode_jpeg(width, height, rgba, quality))
+        }
+        // Qualidade 1 é sem perdas; fora de [0, 1], 0,8. O ICCP é o perfil do APP2 sem o cabeçalho `ICC_PROFILE`.
+        "image/webp" => {
+            let quality = if (0.0..=1.0).contains(&quality) { quality } else { 0.8 };
+            let options = crate::webp::Options { quality: (quality * 100.0) as f32, lossless: quality == 1.0, icc: icc.then(|| &JPEG_SRGB_ICC[18..]) };
+            ("image/webp", crate::webp::encode(rgba, width as usize, height as usize, &options))
         }
         _ => ("image/png", encode_png(width, height, rgba)),
     };

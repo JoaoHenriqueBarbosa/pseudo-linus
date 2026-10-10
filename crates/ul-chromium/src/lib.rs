@@ -11,6 +11,7 @@ pub mod fetch;
 pub mod fonts;
 pub mod imaging;
 pub mod page;
+pub mod webp;
 
 /// Os programas deste crate.
 pub fn programs() -> Vec<sysabi::Program> {

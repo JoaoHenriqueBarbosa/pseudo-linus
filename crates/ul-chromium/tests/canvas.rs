@@ -67,6 +67,29 @@ fn text_baselines_match_oracle() {
     assert_eq!(ours, oracle);
 }
 
+/// O `toDataURL('image/webp')` contra o oráculo, byte a byte: `canvas-webp.html` (cenas desenhadas), `canvas-webp-scenes.html`
+/// (pixels postos com putImageData: com perdas, alfa, sem perdas, WebGL) e `canvas-webp-icc.html` (quando entra o
+/// perfil sRGB).
+#[test]
+fn webp_data_url_matches_oracle() {
+    let probes = [
+        (include_str!("../../../testbench/oracle/measured/canvas-webp.html"), include_str!("canvas-webp.json")),
+        (include_str!("../../../testbench/oracle/measured/canvas-webp-scenes.html"), include_str!("canvas-webp-scenes.json")),
+        (include_str!("../../../testbench/oracle/measured/canvas-webp-icc.html"), include_str!("canvas-webp-icc.json")),
+    ];
+    let mut wrong = Vec::new();
+    for (probe, measured) in probes {
+        let ours = probe_output(probe);
+        let oracle: serde_json::Value = serde_json::from_str(measured).unwrap();
+        wrong.extend(oracle.as_object().unwrap().iter().filter(|(key, want)| &ours[key.as_str()] != *want).map(|(key, _)| key.clone()));
+    }
+    // Pendentes, e não exclusões: os gradientes e o alfa aleatório falham nos pixels do canvas (a volta da
+    // premultiplicação do oráculo arredonda par em binário32), não no codificador; o smooth sem perdas (400x400) é o
+    // preditor com min_bits diferente de max_bits, ainda não portado. Caso que passar sai daqui.
+    let pending = ["gradient", "gradientBogusQ", "gradientQ90", "alphaNoise", "alphaNoiseLossless", "alphaNoiseQ50", "smoothLossless"];
+    assert_eq!(wrong, pending);
+}
+
 /// A rasterização contra o oráculo: as cenas de `testbench/oracle/measured/canvas-raster.html` rodam aqui e os pixels
 /// se comparam com os do Chromium (`canvas-raster.json`). O antisserrilhado do vello não é o do Skia bit a bit, então
 /// a régua é a de quem olha a imagem: diferença média por canal até 1,5 e no máximo 2% dos canais fora de 40.

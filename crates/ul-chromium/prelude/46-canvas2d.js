@@ -381,7 +381,15 @@ const canvasCommon = (s) => {
   const st = s.state;
   return [st.transform, st.globalAlpha, st.globalCompositeOperation, st.clips, [st.shadowColor, st.shadowBlur, st.shadowOffsetX, st.shadowOffsetY], st.imageSmoothingEnabled, st.imageSmoothingQuality];
 };
-const canvasDraw = (s, cmd, source = null) => op('canvasDraw', s.surface, canvasCommon(s), cmd, source);
+// O desenho cria o PaintCanvas do Chromium (o que põe o perfil sRGB no WebP), menos o fill e o stroke de caminho vazio,
+// que voltam antes.
+const canvasDraw = (s, cmd, source = null) => {
+  const path = (cmd[0] === 'fill' || cmd[0] === 'stroke') && cmd[1][0];
+  if (!path || path.some((o) => o[0] !== 'X')) s.touched = true;
+  op('canvasDraw', s.surface, canvasCommon(s), cmd, source);
+};
+// Os métodos que tocam o PaintCanvas sem desenhar (medidos no oráculo pelo ICC do toDataURL WebP).
+const CANVAS_2D_TOUCHING = new Set(['save', 'scale', 'rotate', 'translate', 'transform', 'setTransform', 'resetTransform', 'clip', 'isPointInPath', 'isPointInStroke']);
 // O caminho a desenhar: o do contexto (já com a transformação de cada chamada) ou um Path2D na transformação atual.
 const canvasPathArg = (s, path) => (path instanceof Path2D ? [pathState(path).ops, s.state.transform] : [s.path.ops, []]);
 const canvasStrokeArg = (st) => [st.lineWidth, st.lineCap, st.lineJoin, st.miterLimit, st.lineDash, st.lineDashOffset];
@@ -552,6 +560,7 @@ const CANVAS_2D_IMPL = {
     if (cx1 <= cx0 || cy1 <= cy0) return;
     const region = new Uint8Array((cx1 - cx0) * (cy1 - cy0) * 4);
     for (let row = cy0; row < cy1; row++) region.set(src.data.subarray((row * src.width + cx0) * 4, (row * src.width + cx1) * 4), (row - cy0) * (cx1 - cx0) * 4);
+    s.touched = true;
     op('canvasWrite', s.surface, dx + cx0, dy + cy0, cx1 - cx0, cy1 - cy0, latin1Of(region));
   },
 };
@@ -573,6 +582,7 @@ for (const name of ['closePath', 'moveTo', 'lineTo', 'quadraticCurveTo', 'bezier
       [name](...args) {
         c2d(this);
         if (args.length < arity) throw new TypeError(`Failed to execute '${name}' on 'CanvasRenderingContext2D': ${arity} argument${arity === 1 ? '' : 's'} required, but only ${args.length} present.`);
+        if (CANVAS_2D_TOUCHING.has(name)) c2d(this).touched = true;
         return impl.apply(this, args);
       },
     }[name];
@@ -649,7 +659,10 @@ const canvasDataURL = (canvas, type, quality) => {
   if (width === 0 || height === 0) return 'data:,';
   const surface = canvasSurfaceOf(canvas);
   const q = typeof quality === 'number' && quality >= 0 && quality <= 1 ? quality : -1;
-  return 'data:' + op('canvasEncode', surface, width, height, type === undefined ? 'image/png' : String(type), q);
+  // O perfil sRGB do WebP: sempre no WebGL; no 2D, só depois que algo tocou o PaintCanvas (o resize não desfaz).
+  const context = canvasContextOf(canvas);
+  const icc = surface !== null && (!canvas2dStates.has(context) || canvas2dStates.get(context).touched === true);
+  return 'data:' + op('canvasEncode', surface, width, height, type === undefined ? 'image/png' : String(type), q, icc);
 };
 // O resize do canvas zera o bitmap e o estado do contexto 2D (a especificação manda reiniciar o contexto).
 const canvasResized = (canvas) => {

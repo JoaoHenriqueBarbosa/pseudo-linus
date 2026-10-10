@@ -461,7 +461,8 @@ impl DomHost for Bridge {
                     Some(DomArg::Num(index)) => self.canvases.borrow_mut().get_mut(*index as usize).ok_or_else(illegal)?.rgba().2,
                     _ => vec![0; (width as usize) * (height as usize) * 4],
                 };
-                Ok(DomArg::Str(crate::imaging::encode(str_arg(args, 3)?, num_arg(args, 4).unwrap_or(-1.0), width, height, &rgba)))
+                let icc = matches!(args.get(5), Some(DomArg::Bool(true)));
+                Ok(DomArg::Str(crate::imaging::encode(str_arg(args, 3)?, num_arg(args, 4).unwrap_or(-1.0), icc, width, height, &rgba)))
             }
             // [caminho, regra, traço ([] no isPointInPath), transformação, x, y] → acerto.
             "canvasHit" => {
