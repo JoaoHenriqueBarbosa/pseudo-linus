@@ -104,6 +104,10 @@ No porte, o ponteiro vira índice e a memória vira um dono explícito:
 | `bun_ast` | `use_directive.rs` | portado (cópia) | nada |
 | `bun_ast` | `import_record.rs` | portado (cópia) | o `bun_paths::fs::Path` vira um `Path` local com `pretty` e `text` como faixas do `Store` e namespace `&'static`; `original_path` é `StoreStr`; `List` é `Vec` |
 | `bun_ast` | `lib.rs` (`ImportKind`, `part`) | portado | nada |
+| `bun_ast` | `runtime.rs` | portado (cópia), com o teste do upstream | sem `Runtime::source_code` (o `runtime.out.js` embutido, só do bundler); saem os repasses `count`, `get_ptr` e `contains` do `ReplaceableExportMap`, que já tem `Deref` para o mapa |
+| `bun_ast` | `ast_result.rs` | portado | sem tempo de vida: listas em `Vec`, mapas no `ArrayHashMap`/`HashMap` do porte; `module_scope` é `Option<StoreRef<Scope>>` (o escopo vive no `Store` que o parser entrega com a `Ast`); `empty_in(arena)` vira `Default`, e `from_parts` recebe o `Vec` |
+| `bun_ast` | `char_freq.rs` | portado (cópia) | nada |
+| `bun_ast` | `nodes.rs` (`SlotCounts`, `NameMinifier`) | portado | as duas funções de nome curto do upstream (o mesmo laço com cabeça e cauda diferentes) viram uma só com a tabela como parâmetro, e perdem o `Result` de alocação |
 | `bun_ast` | `nodes.rs` (`Part`, `DeclaredSymbolList`, `ExportsKind`, `TlaCheck`, `InlinedEnumValue`, `NamedImport`, `NamedExport`, `Dependency`, `PropertyUse`) | portado | `DeclaredSymbolList` troca o `MultiArrayList` por dois `Vec` (as mesmas colunas); `Part.scopes` é `Vec<StoreRef<Scope>>`; o `InlinedEnumValue` codifica o índice da `E::String` no lugar do endereço, com o mesmo NaN-boxing para números; os métodos de capacidade perdem o `Result` de alocação que nunca falha aqui |
 | `bun_ast` | `nodes.rs` (`StrictModeKind`) | portado | nada |
 | `bun_ast` | `e.rs` | portado, menos os nós de JSON | ver "e.rs" abaixo |

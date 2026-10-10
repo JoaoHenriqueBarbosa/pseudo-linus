@@ -170,8 +170,10 @@ pub enum SlotNamespace {
 }
 
 // Inherent associated types are nightly-only; expose as a free alias.
-#[allow(dead_code)]
 pub(crate) type SlotNamespaceCountsArray = enum_map::EnumMap<SlotNamespace, u32>;
+
+/// A tabela de símbolos de um arquivo; no upstream é um `ArenaVec`.
+pub type List = Vec<Symbol>;
 
 impl Symbol {
     /// This is for generating cross-chunk imports and exports for code splitting.

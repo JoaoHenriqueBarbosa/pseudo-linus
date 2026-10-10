@@ -30,6 +30,12 @@ impl OwnKey<[u8]> for Box<[u8]> {
     }
 }
 
+impl OwnKey<u32> for u32 {
+    fn own(key: &u32) -> Self {
+        *key
+    }
+}
+
 /// `std.ArrayHashMap(K, V)`: as entradas na ordem de inserção.
 pub struct ArrayHashMap<K, V> {
     keys: Vec<K>,

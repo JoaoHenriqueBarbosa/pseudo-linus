@@ -343,6 +343,65 @@ pub struct Span {
     pub range: crate::Range,
 }
 
+// EnumMap<_, u32>::default() zero-fills.
+#[derive(Copy, Clone, Default)]
+pub struct SlotCounts {
+    pub slots: crate::symbol::SlotNamespaceCountsArray,
+}
+
+impl SlotCounts {
+    pub fn union_max(&mut self, other: SlotCounts) {
+        for (a, b) in self.slots.values_mut().zip(other.slots.values()) {
+            if *a < *b {
+                *a = *b;
+            }
+        }
+    }
+}
+
+pub struct NameMinifier {
+    pub head: Vec<u8>,
+    pub(crate) tail: Vec<u8>,
+}
+
+impl NameMinifier {
+    pub(crate) const DEFAULT_HEAD: &'static [u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_$";
+    pub(crate) const DEFAULT_TAIL: &'static [u8] =
+        b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_$";
+
+    pub fn init() -> NameMinifier {
+        NameMinifier { head: Vec::new(), tail: Vec::new() }
+    }
+
+    /// No upstream devolve `Result<(), AllocError>`; a alocação aqui não falha.
+    pub fn number_to_minified_name(&self, name: &mut Vec<u8>, i_: isize) {
+        name.clear();
+        Self::append_minified_name(name, &self.head, &self.tail, i_);
+    }
+
+    pub fn default_number_to_minified_name(i_: isize) -> Vec<u8> {
+        let mut name = Vec::new();
+        Self::append_minified_name(&mut name, Self::DEFAULT_HEAD, Self::DEFAULT_TAIL, i_);
+        name
+    }
+
+    /// O corpo comum das duas funções do upstream (que o repetem com a cabeça e a cauda trocadas).
+    fn append_minified_name(name: &mut Vec<u8>, head: &[u8], tail: &[u8], i_: isize) {
+        const COUNT: isize = crate::char_freq::CHAR_FREQ_COUNT as isize;
+        let mut i = i_;
+        let mut j = usize::try_from(i.rem_euclid(54)).expect("int cast");
+        name.extend_from_slice(&head[j..j + 1]);
+        i = i.div_euclid(54);
+
+        while i > 0 {
+            i -= 1;
+            j = usize::try_from(i.rem_euclid(COUNT)).expect("int cast");
+            name.extend_from_slice(&tail[j..j + 1]);
+            i = i.div_euclid(COUNT);
+        }
+    }
+}
+
 /// TLA => Top Level Await
 #[derive(Copy, Clone)]
 pub struct TlaCheck {

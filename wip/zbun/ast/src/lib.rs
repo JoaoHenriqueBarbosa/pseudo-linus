@@ -58,6 +58,15 @@ pub mod binding;
 pub mod e;
 pub mod expr;
 pub mod g;
+pub mod ast_result;
+pub mod char_freq;
+pub mod runtime;
+pub use ast_result::{
+    Ast, CommonJSExportValue, CommonJSNamedExport, CommonJSNamedExports, ConstValuesMap, NamedExports, NamedImports,
+    TopLevelSymbolToParts, TsEnumsMap,
+};
+pub use char_freq::CharFreq;
+pub use nodes::{NameMinifier, SlotCounts};
 pub mod import_record;
 pub mod lexer_log;
 pub mod lexer_tables;
