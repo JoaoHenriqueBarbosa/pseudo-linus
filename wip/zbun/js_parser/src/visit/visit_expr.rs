@@ -2600,11 +2600,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         p.push_scope_for_visit_pass(js_ast::scope::Kind::FunctionBody, p.store[e_].body.loc)
             .expect("unreachable");
 
-        // hook_ctx_storage is a raw NonNull so a stack local is fine; we manually
-        // restore `prev` on every exit path below.
-        let mut react_hook_data: Option<crate::parser::HookContext> = None;
-        let prev_hook_ctx = p.react_refresh.hook_ctx_storage;
-        p.react_refresh.hook_ctx_storage = Some(core::ptr::NonNull::from(&mut react_hook_data));
+        // A função em visita ganha um contexto de hooks vazio no topo da pilha, desempilhado em toda saída abaixo.
+        p.react_refresh.hook_ctx_stack.push(None);
 
         // bumpalo Vec cannot adopt an existing slice, so this copies.
         // PERF: profile if it shows up on a hot path (react-refresh only).
@@ -2659,7 +2656,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         // Restore before any further `p.*` call so the stack-local pointer
         // never escapes this frame.
-        p.react_refresh.hook_ctx_storage = prev_hook_ctx;
+        let mut react_hook_data = p.react_refresh.hook_ctx_stack.pop().flatten();
 
         if let Some(hook) = react_hook_data.as_mut() {
             'try_mark_hook: {
@@ -2710,9 +2707,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             return;
         }
 
-        let mut react_hook_data: Option<crate::parser::HookContext> = None;
-        let prev_hook_ctx = p.react_refresh.hook_ctx_storage;
-        p.react_refresh.hook_ctx_storage = Some(core::ptr::NonNull::from(&mut react_hook_data));
+        p.react_refresh.hook_ctx_stack.push(None);
 
         // For function *expressions* the .function_args scope is pushed at the
         // `function` keyword loc, not at open_parens_loc. (s_function correctly
@@ -2720,7 +2715,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         p.store[e_].func = { let arg_a = core::mem::take(&mut p.store[e_].func); p.visit_func( arg_a, expr.loc, true) };
 
         // Restore now so the stack-local pointer never escapes this frame.
-        p.react_refresh.hook_ctx_storage = prev_hook_ctx;
+        let mut react_hook_data = p.react_refresh.hook_ctx_stack.pop().flatten();
 
         // Remove unused function names when minifying (only when bundling is enabled)
         // unless --keep-names is specified

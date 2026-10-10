@@ -171,20 +171,17 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         let _ = rc_binding;
 
         if self.options.features.react_fast_refresh {
-            // react_refresh.hook_ctx_storage is `Option<NonNull<Option<HookContext>>>`
-            // pointing at a stack-local on the visitStmt caller frame.
-            // `ReactRefresh::hook_ctx_mut` centralises the raw-pointer deref and returns a
-            // borrow detached from `self` (the storage is on the caller's stack frame), so
-            // it can be held across the `&mut self` method call below.
+            // O contexto sai do topo da pilha de hooks durante a chamada e volta depois.
             let hook_ctx = self
                 .react_refresh
-                .hook_ctx_mut()
-                .expect("caller did not init hook storage. any function can have react hooks!");
+                .hook_ctx_stack
+                .last_mut()
+                .expect("caller did not init hook storage. any function can have react hooks!")
+                .take();
             if let Some(hook) = hook_ctx.as_ref() {
-                // `handle_react_refresh_post_visit_function_body` does not re-enter
-                // `hook_ctx_storage` (it only touches `stmts` and unrelated `P` fields).
                 self.handle_react_refresh_post_visit_function_body(&mut stmts, hook);
             }
+            *self.react_refresh.hook_ctx_stack.last_mut().unwrap() = hook_ctx;
         }
 
         func.body = G::FnBody {
@@ -373,12 +370,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     if let Some(last_hook) = self.react_refresh.last_hook_seen {
                         if let Some(call) = decl.value.unwrap().data.e_call() {
                             if core::ptr::eq(last_hook, &raw const self.store[call]) {
-                                // disjoint field borrows: `react_refresh.hook_ctx_storage`
-                                // points at caller-frame stack storage (detached lifetime via
-                                // `hook_ctx_mut`), and `symbols` is an independent field of `P`.
+                                // `react_refresh` e `symbols` são campos disjuntos de `P`.
                                 let hasher = &mut self
                                     .react_refresh
-                                    .hook_ctx_mut()
+                                    .hook_ctx_stack
+                                    .last_mut()
                                     .unwrap()
                                     .as_mut()
                                     .unwrap()

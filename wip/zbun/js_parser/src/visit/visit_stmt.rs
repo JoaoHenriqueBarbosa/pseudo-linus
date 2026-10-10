@@ -591,10 +591,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             js_ast::ClauseItem::DEFAULT_ALIAS
                         };
 
-                        let mut react_hook_data: Option<crate::parser::HookContext> = None;
-                        let prev = p.react_refresh.hook_ctx_storage;
-                        p.react_refresh.hook_ctx_storage =
-                            Some(core::ptr::NonNull::from(&mut react_hook_data));
+                        p.react_refresh.hook_ctx_stack.push(None);
 
                         #[cfg(feature = "react_compiler")]
                         if p.react_compiler.is_some() {
@@ -612,7 +609,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         p.react_compiler_candidate_name = None;
 
                         if p.is_control_flow_dead {
-                            p.react_refresh.hook_ctx_storage = prev;
+                            p.react_refresh.hook_ctx_stack.pop();
                             restore_dead!();
                             record_on_exit!();
                             return Ok(());
@@ -627,6 +624,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         // react_fast_refresh temp-var emission that follows.
                         let func_name = func.func.name;
 
+                        let mut react_hook_data = p.react_refresh.hook_ctx_stack.last_mut().and_then(Option::take);
                         if let Some(hook) = react_hook_data.as_mut() {
                             let signature_cb = hook.signature_cb;
                             stmts.push(p.get_react_refresh_hook_signal_decl(signature_cb));
@@ -640,6 +638,9 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             data.value = js_ast::StmtOrExpr::Expr(
                                 p.get_react_refresh_hook_signal_init(hook, func_expr),
                             );
+                        }
+                        if let Some(top) = p.react_refresh.hook_ctx_stack.last_mut() {
+                            *top = react_hook_data;
                         }
 
                         if mark_for_replace {
@@ -662,7 +663,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                                     bun_ast::Loc::EMPTY,
                                     &entry,
                                 );
-                                p.react_refresh.hook_ctx_storage = prev;
+                                p.react_refresh.hook_ctx_stack.pop();
                                 restore_dead!();
                                 record_on_exit!();
                                 return Ok(());
@@ -771,7 +772,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                             stmts.push(*stmt);
                         }
 
-                        p.react_refresh.hook_ctx_storage = prev;
+                        p.react_refresh.hook_ctx_stack.pop();
                         restore_dead!();
                         record_on_exit!();
                         return Ok(());
@@ -900,12 +901,8 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             p.is_control_flow_dead = true;
         }
 
-        // Unconditionally point p.react_refresh.hook_ctx_storage at this stack-local
-        // before visit_func and restore it afterwards. Field is `Option<NonNull<_>>`
-        // (Copy), so save/set/restore are trivial; no `'a` constraint to fight.
-        let mut react_hook_data: Option<crate::parser::HookContext> = None;
-        let prev_hook_storage = p.react_refresh.hook_ctx_storage;
-        p.react_refresh.hook_ctx_storage = Some(core::ptr::NonNull::from(&mut react_hook_data));
+        // A função em visita ganha um contexto de hooks vazio no topo da pilha, desempilhado ao sair.
+        p.react_refresh.hook_ctx_stack.push(None);
 
         #[cfg(feature = "react_compiler")]
         if p.react_compiler.is_some() && p.current_scope == p.module_scope {
@@ -950,7 +947,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         } else if !mark_as_dead {
             if remove_overwritten {
                 // restore on early return.
-                p.react_refresh.hook_ctx_storage = prev_hook_storage;
+                p.react_refresh.hook_ctx_stack.pop();
                 if mark_as_dead {
                     p.is_control_flow_dead = original_is_dead;
                 }
@@ -1005,6 +1002,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
 
         let mut rr: Result<(), Error> = Ok(());
         if p.options.features.react_fast_refresh {
+            let mut react_hook_data = p.react_refresh.hook_ctx_stack.last_mut().and_then(Option::take);
             if let Some(hook) = react_hook_data.as_mut() {
                 let signature_cb = hook.signature_cb;
                 stmts.push(p.get_react_refresh_hook_signal_decl(signature_cb));
@@ -1020,10 +1018,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                     bun_ast::Loc::EMPTY,
                 ));
             }
+            if let Some(top) = p.react_refresh.hook_ctx_stack.last_mut() {
+                *top = react_hook_data;
+            }
 
             if p.current_scope == p.module_scope {
-                // Restore hook_ctx_storage/is_control_flow_dead before propagating Err so the
-                // stack-local `react_hook_data` ptr is never left in p.react_refresh on the OOM path.
+                // Desempilha o contexto de hooks e restaura is_control_flow_dead antes de propagar o Err.
                 rr = p.handle_react_refresh_register(
                     stmts,
                     original_name,
@@ -1033,7 +1033,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
         }
 
-        p.react_refresh.hook_ctx_storage = prev_hook_storage;
+        p.react_refresh.hook_ctx_stack.pop();
         if mark_as_dead {
             p.is_control_flow_dead = original_is_dead;
         }

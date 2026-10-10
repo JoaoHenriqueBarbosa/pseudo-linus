@@ -1779,11 +1779,10 @@ pub struct ReactRefresh<'a> {
     /// and then it will insert `var _s = ...`, add the `_s()` call at
     /// the start of the function, and then add the call to `_s(func, ...)`.
     ///
-    /// A raw nullable pointer to stack storage on the visiting fn frame,
-    /// modeled as `Option<NonNull<_>>`
-    /// (Copy) so the save/set/restore dance in visitStmt/visitExpr can take a
-    /// stack-local address without the `'a` borrow the visitor cannot satisfy.
-    pub(crate) hook_ctx_storage: Option<core::ptr::NonNull<Option<HookContext>>>,
+    /// O upstream aponta para um `?HookContext` na pilha do quadro que visita a função e restaura o ponteiro
+    /// anterior na saída. Aqui os contextos são uma pilha própria: o quadro empilha `None` ao entrar e desempilha
+    /// ao sair, e o topo é o contexto da função em visita.
+    pub(crate) hook_ctx_stack: Vec<Option<HookContext>>,
 
     /// This is the most recently generated `_s` call. This is used to compare
     /// against seen calls to plain identifiers when in "export default" and in
@@ -1803,7 +1802,7 @@ impl<'a> Default for ReactRefresh<'a> {
             create_signature_ref: Ref::NONE,
             force_reset: false,
             last_hook_seen: None,
-            hook_ctx_storage: None,
+            hook_ctx_stack: Vec::new(),
             latest_signature_ref: Ref::NONE,
             _phantom: core::marker::PhantomData,
         }
@@ -1817,25 +1816,6 @@ pub struct HookContext {
 }
 
 impl ReactRefresh<'_> {
-    /// Reborrow the stack-allocated `Option<HookContext>` that
-    /// `hook_ctx_storage` points at. The returned
-    /// borrow is detached from `self` because the storage lives on a *caller*
-    /// stack frame (set/restored around each visit), disjoint from the parser
-    /// struct. Centralises the one `unsafe` so call sites in `p.rs` /
-    /// `visit/mod.rs` stay safe; callers must not hold two results live at
-    /// once (same uniqueness contract as `P::log()`).
-    #[inline]
-    #[allow(clippy::mut_from_ref)]
-    pub(crate) fn hook_ctx_mut<'s>(&self) -> Option<&'s mut Option<HookContext>> {
-        // SAFETY: `hook_ctx_storage` is `Some` only while a `visit_*` frame
-        // higher on the stack has installed `&mut react_hook_data` (a stack
-        // local) and will restore the previous value before returning, so the
-        // pointee is live and at a stable address for any `'s` not outlasting
-        // that frame. The storage is disjoint from `*self`, so `&mut self`
-        // calls between accessor uses do not invalidate the returned borrow.
-        self.hook_ctx_storage.map(|p| unsafe { &mut *p.as_ptr() })
-    }
-
     /// https://github.com/facebook/react/blob/d1afcb43fd506297109c32ff462f6f659f9110ae/packages/react-refresh/src/ReactFreshBabelPlugin.js#L42
     pub(crate) fn is_componentish_name(id: &[u8]) -> bool {
         if id.is_empty() {

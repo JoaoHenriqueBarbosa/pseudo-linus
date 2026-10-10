@@ -8516,14 +8516,12 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
     ) {
         debug_assert!(self.options.features.react_fast_refresh);
         debug_assert!(ReactRefresh::is_hook_name(original_name));
-        // `ReactRefresh::hook_ctx_mut` centralises the
-        // raw-pointer deref and returns a borrow detached from `self` (the
-        // storage is on a caller stack frame), so we can call other `&mut self`
-        // methods (generate_temp_ref_with_scope, declared_symbols.append) while
-        // holding it.
-        let Some(ctx_storage) = self.react_refresh.hook_ctx_mut() else {
+        // O contexto sai do topo da pilha de hooks e volta no fim, para a função poder chamar outros
+        // métodos `&mut self` enquanto o usa.
+        let Some(top) = self.react_refresh.hook_ctx_stack.last_mut() else {
             return; // not in a function, ignore this hook call.
         };
+        let mut ctx_storage = top.take();
 
         // if this function has no hooks recorded, initialize a hook context
         // every function visit provides stack storage, which it will inspect at visit finish.
@@ -8546,7 +8544,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
             }
 
             let signature_cb = self.generate_temp_ref_with_scope(Some(b"_s"), scope);
-            *ctx_storage = Some(crate::HookContext {
+            ctx_storage = Some(crate::HookContext {
                 hasher: Wyhash::init(0),
                 signature_cb,
                 user_hooks: Default::default(),
@@ -8616,6 +8614,7 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
         }
 
         ctx.hasher.update(b"\x00");
+        *self.react_refresh.hook_ctx_stack.last_mut().unwrap() = ctx_storage;
     }
 
     pub(crate) fn handle_react_refresh_post_visit_function_body(
