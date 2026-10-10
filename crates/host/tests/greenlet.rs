@@ -62,9 +62,14 @@ fn scene_matches_as(name: &str, scene: &str, golden: &str, user: Option<&str>) {
     assert_eq!(r["stderr"], "", "{r}");
     assert_eq!(r["exit_code"], 0, "{r}");
     let got = r["stdout"].as_str().unwrap();
-    for (n, (want, have)) in golden.lines().zip(got.lines()).enumerate() {
-        assert_eq!(have, want, "linha {} da cena {name}; saída inteira:\n{got}", n + 1);
-    }
+    let diffs: Vec<String> = golden
+        .lines()
+        .zip(got.lines())
+        .enumerate()
+        .filter(|(_, (want, have))| want != have)
+        .map(|(n, (want, have))| format!("linha {}: tinha {have:?}, o oráculo deu {want:?}", n + 1))
+        .collect();
+    assert!(diffs.is_empty(), "cena {name}: {} linhas diferem:\n{}", diffs.len(), diffs.join("\n"));
     assert_eq!(got, golden, "cena {name}");
 }
 
@@ -101,6 +106,17 @@ fn list_sort_compare_scene_matches_the_oracle() {
         "list_sort_compare",
         include_str!("../../../testbench/oracle/automation/cases/list_sort_compare.py"),
         include_str!("../../../testbench/oracle/automation/golden/list_sort_compare.out"),
+    );
+}
+
+/// O switch de greenlet dentro de um dunder de usuário chamado por código nativo (`%s`, `format`, `__eq__` na busca de
+/// chave em dict e set, operadores, `__index__`, `__getattr__`...).
+#[test]
+fn gl_dunders_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_dunders",
+        include_str!("../../../testbench/oracle/automation/cases/gl_dunders.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_dunders.out"),
     );
 }
 

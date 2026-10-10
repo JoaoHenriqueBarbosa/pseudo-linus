@@ -84,7 +84,7 @@ use crate::object::{
     AttrMap, BoundMethod, ClassObj, Dict, Env, ExcChain, ExcObj, ExtImage, FileKind, FuncObj, InstanceObj, LocalMap, ModuleObj,
     Native, NativeFn, NativeFnPtr, OpaqueImage, PyFile, Range, Set, SetTable, TableSlot, Value, VarMap,
 };
-use crate::vm::{Attempt, Block, CallLink, Callee, Chain, ChainKind, Dunder, Frame, Slot, TbEntry, TruthUse, Vm};
+use crate::vm::{Attempt, Block, CallLink, Callee, Chain, ChainKind, Dunder, Frame, ReplayOp, ReplayRun, Slot, TbEntry, TruthUse, Vm};
 
 /// Por que uma imagem não pôde ser feita ou refeita.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -371,11 +371,25 @@ enum DunderNode {
     Boolean { negate: bool },
     Truth { how: TruthUse, len: bool },
     Iter,
+    Builtin(crate::vm::BuiltinUse),
     Text(&'static str),
     Callback(Box<CallbackNode>),
     Signal,
     Import(Box<ImportNode>),
     Exec(Box<ExecNode>),
+    Replay(Box<ReplayNode>),
+}
+
+/// `vm::ReplayRun`: a nativa (ou a instrução) a repetir e o memo das chamadas de usuário já feitas (só os resultados que
+/// voltaram com valor).
+struct ReplayNode {
+    op: ReplayOpNode,
+    memo: Vec<Item>,
+}
+
+enum ReplayOpNode {
+    Call { func: Item, args: Vec<Item>, kwargs: Vec<(String, Item)> },
+    Step { instr: crate::compile::Op, operands: Vec<Item> },
 }
 
 /// `modrun::ImportRun`: o módulo cujo corpo roda e a cadeia do `import` que falta.
@@ -1223,9 +1237,30 @@ impl Encoder {
             Dunder::Boolean { negate } => DunderNode::Boolean { negate: *negate },
             Dunder::Truth { how, len } => DunderNode::Truth { how: *how, len: *len },
             Dunder::Iter => DunderNode::Iter,
+            Dunder::Builtin(use_) => DunderNode::Builtin(*use_),
             Dunder::Text(name) => DunderNode::Text(name),
             Dunder::Callback(s) => DunderNode::Callback(Box::new(self.callback_node(s)?)),
             Dunder::Signal => DunderNode::Signal,
+            Dunder::Replay(run) => {
+                let op = match &run.op {
+                    ReplayOp::Call { func, args, kwargs } => {
+                        let mut kept = Vec::with_capacity(kwargs.len());
+                        for (name, v) in kwargs {
+                            kept.push((name.clone(), self.item(v)?));
+                        }
+                        ReplayOpNode::Call { func: self.item(func)?, args: self.items(args)?, kwargs: kept }
+                    }
+                    ReplayOp::Step { instr, operands } => ReplayOpNode::Step { instr: *instr, operands: self.items(operands)? },
+                };
+                let mut memo = Vec::with_capacity(run.memo.len());
+                for done in &run.memo {
+                    match done {
+                        Ok(v) => memo.push(self.item(v)?),
+                        Err(_) => return Err(ImageError::Unsupported("a replayed call that raised")),
+                    }
+                }
+                DunderNode::Replay(Box::new(ReplayNode { op, memo }))
+            }
             Dunder::Import(run) => DunderNode::Import(Box::new(ImportNode {
                 name: run.name.clone(),
                 module: self.item(&Value::Module(run.module.clone()))?,
@@ -1633,9 +1668,27 @@ impl Rebuilt {
             DunderNode::Boolean { negate } => Dunder::Boolean { negate: *negate },
             DunderNode::Truth { how, len } => Dunder::Truth { how: *how, len: *len },
             DunderNode::Iter => Dunder::Iter,
+            DunderNode::Builtin(use_) => Dunder::Builtin(*use_),
             DunderNode::Text(name) => Dunder::Text(name),
             DunderNode::Callback(s) => Dunder::Callback(Box::new(self.callback_of(s)?)),
             DunderNode::Signal => Dunder::Signal,
+            DunderNode::Replay(n) => {
+                let op = match &n.op {
+                    ReplayOpNode::Call { func, args, kwargs } => {
+                        let mut kept = Vec::with_capacity(kwargs.len());
+                        for (name, v) in kwargs {
+                            kept.push((name.clone(), self.value(*v)?));
+                        }
+                        ReplayOp::Call { func: self.value(*func)?, args: self.values_of(args)?, kwargs: kept }
+                    }
+                    ReplayOpNode::Step { instr, operands } => ReplayOp::Step { instr: *instr, operands: self.values_of(operands)? },
+                };
+                let mut memo = Vec::with_capacity(n.memo.len());
+                for v in &n.memo {
+                    memo.push(Ok(self.value(*v)?));
+                }
+                Dunder::Replay(Box::new(ReplayRun { op, memo }))
+            }
             DunderNode::Import(n) => {
                 let Value::Module(module) = self.value(n.module)? else {
                     return Err(ImageError::Malformed("an import step that points at a non-module"));

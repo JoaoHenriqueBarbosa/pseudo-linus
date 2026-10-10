@@ -1080,7 +1080,8 @@ fn render_field(vm: &mut Vm, ctx: &mut Ctx, field: &str, depth: u32) -> PyResult
     } else {
         spec
     };
-    format_value(&obj, &spec)
+    // O `__format__` de usuário vale (`PyObject_Format`).
+    vm.format_value(&obj, &spec)
 }
 
 fn positional(ctx: &Ctx, idx: usize) -> PyResult<Value> {

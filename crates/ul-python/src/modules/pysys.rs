@@ -246,6 +246,40 @@ fn task_release(_vm: &mut Vm, _args: Vec<Value>, kw: Kw) -> PyResult<Value> {
     Ok(Value::None)
 }
 
+/// O `dict` e o hash de `_dict_get_known` e `_dict_set_known`.
+/// Uma instância de subclasse de `dict` (o `Counter`) leva o `dict` no `payload`.
+fn known_hash_args(name: &str, args: &[Value]) -> PyResult<(Rc<std::cell::RefCell<crate::object::Dict>>, i64)> {
+    let dict = match args.first() {
+        Some(Value::Dict(d)) => Some(d.clone()),
+        Some(Value::Instance(i)) => match &*i.payload.borrow() {
+            Some(Value::Dict(d)) => Some(d.clone()),
+            _ => None,
+        },
+        _ => None,
+    };
+    match (dict, args.get(2)) {
+        (Some(d), Some(Value::Int(h))) if args.len() == 4 => Ok((d, *h)),
+        _ => Err(crate::vm::type_error(format!("{name}: bad arguments"))),
+    }
+}
+
+/// `_dict_get_known(d, key, hash, default)`: o `_PyDict_GetItem_KnownHash` do `_count_elements` do C, que busca a
+/// chave com o hash já calculado (o `__hash__` de usuário roda uma vez por elemento, como no CPython).
+fn dict_get_known(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("_dict_get_known", &kw)?;
+    let (d, h) = known_hash_args("_dict_get_known", &args)?;
+    let found = d.borrow().get_hashed(h, &args[1])?;
+    Ok(found.unwrap_or_else(|| args[3].clone()))
+}
+
+/// `_dict_set_known(d, key, hash, value)`: o `_PyDict_SetItem_KnownHash` do mesmo laço.
+fn dict_set_known(_vm: &mut Vm, args: Vec<Value>, kw: Kw) -> PyResult<Value> {
+    no_kwargs("_dict_set_known", &kw)?;
+    let (d, h) = known_hash_args("_dict_set_known", &args)?;
+    d.borrow_mut().set_hashed(h, args[1].clone(), args[3].clone())?;
+    Ok(Value::None)
+}
+
 fn mark_builtin(_vm: &mut Vm, args: Vec<Value>, _kw: Kw) -> PyResult<Value> {
     if let Some(Value::Function(f)) = args.first() {
         f.no_bind.set(true);
@@ -337,6 +371,8 @@ pub fn build(vm: &mut Vm) -> Rc<ModuleObj> {
         .func("_builtin", mark_builtin)
         .func("_referents", referents)
         .func("_task_reserve", task_reserve)
+        .func("_dict_get_known", dict_get_known)
+        .func("_dict_set_known", dict_set_known)
         .func("_task_release", task_release)
         .func("_source_line", source_line)
         .func("_frame_body", frame_body)

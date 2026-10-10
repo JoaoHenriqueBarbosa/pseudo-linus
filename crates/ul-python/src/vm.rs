@@ -650,6 +650,10 @@ fn base_exception_new(_vm: &mut Vm, args: Vec<Value>, _kw: crate::object::Kw) ->
 }
 
 pub(crate) fn note_text_error(e: PyException, depth: usize) {
+    // A suspensão de uma nativa repetida não é erro do programa: a repetição a resolve.
+    if e.kind == crate::replay::SUSPEND {
+        return;
+    }
     TEXT_ERROR.with(|t| {
         let mut t = t.borrow_mut();
         if t.is_none() {
@@ -921,8 +925,14 @@ impl PyIter {
                 }
                 Some(Value::Int(v))
             }
-            PyIter::Native(n) => native_next(n)?,
-            PyIter::Ext(e) => e.iter_next()?,
+            PyIter::Native(n) => {
+                crate::replay::iterator_advanced();
+                native_next(n)?
+            }
+            PyIter::Ext(e) => {
+                crate::replay::iterator_advanced();
+                e.iter_next()?
+            }
             PyIter::Inst(v) => {
                 let mut vm = current().ok_or_else(|| internal("no vm"))?;
                 match vm.call_dunder(v, "__next__", Vec::new()) {
@@ -1539,6 +1549,61 @@ pub(crate) enum TruthUse {
     Not,
 }
 
+/// A nativa de um só argumento cujo método mágico o laço de instruções roda em quadro (ver `Dunder::Builtin`).
+#[derive(Clone, Copy)]
+pub(crate) enum BuiltinUse {
+    Len,
+    /// `bool(x)`: o `__bool__`, ou (`len`) o `__len__` na falta dele.
+    Bool { len: bool },
+    /// `abs(x)` e `round(x[, n])`: o que o método devolve vale como está.
+    Plain,
+    Int,
+    Float,
+    Bytes,
+}
+
+impl BuiltinUse {
+    /// O método de usuário (função Python) que a nativa `name` chamaria sobre `x` com `argc` argumentos, e o que fazer
+    /// com o resultado. `None` deixa a nativa como está.
+    fn of(name: &str, x: &Value, argc: usize) -> Option<(Rc<FuncObj>, BuiltinUse)> {
+        let Value::Instance(i) = x else { return None };
+        let method = |dunder: &str| match i.class().lookup(dunder) {
+            Some(Value::Function(f)) => Some(f),
+            _ => None,
+        };
+        match (name, argc) {
+            ("len", 1) => method("__len__").map(|f| (f, BuiltinUse::Len)),
+            ("bool", 1) => match i.class().lookup("__bool__") {
+                Some(Value::Function(f)) => Some((f, BuiltinUse::Bool { len: false })),
+                Some(_) => None,
+                None => method("__len__").map(|f| (f, BuiltinUse::Bool { len: true })),
+            },
+            ("abs", 1) => method("__abs__").map(|f| (f, BuiltinUse::Plain)),
+            ("round", 1 | 2) => method("__round__").map(|f| (f, BuiltinUse::Plain)),
+            ("int", 1) => method("__int__").map(|f| (f, BuiltinUse::Int)),
+            ("float", 1) => method("__float__").map(|f| (f, BuiltinUse::Float)),
+            ("bytes", 1) => method("__bytes__").map(|f| (f, BuiltinUse::Bytes)),
+            _ => None,
+        }
+    }
+
+    /// O que o método devolveu, conferido como a nativa confere.
+    fn result(self, v: Value) -> PyResult<Value> {
+        match self {
+            BuiltinUse::Len => len_result(v).map(Value::Int),
+            BuiltinUse::Bool { len: false } => bool_result(&v).map(Value::Bool),
+            BuiltinUse::Bool { len: true } => len_result(v).map(|n| Value::Bool(n != 0)),
+            BuiltinUse::Plain => Ok(v),
+            BuiltinUse::Int if matches!(v, Value::Int(_) | Value::Big(_)) => Ok(v),
+            BuiltinUse::Float if matches!(v, Value::Float(_)) => Ok(v),
+            BuiltinUse::Bytes if matches!(v, Value::Bytes(_)) => Ok(v),
+            BuiltinUse::Int => Err(type_error(format!("__int__ returned non-int (type {})", v.type_name()))),
+            BuiltinUse::Float => Err(type_error(format!("__float__ returned non-float (type {})", v.type_name()))),
+            BuiltinUse::Bytes => Err(type_error(format!("__bytes__ returned non-bytes (type {})", v.type_name()))),
+        }
+    }
+}
+
 /// O que fazer com o valor que o quadro de um método mágico devolve.
 pub(crate) enum Dunder {
     Chain(Chain),
@@ -1552,6 +1617,9 @@ pub(crate) enum Dunder {
     Truth { how: TruthUse, len: bool },
     /// `__iter__` de um `for`: o iterador vai para a pilha.
     Iter,
+    /// `len(x)`, `bool(x)`, `abs(x)`, `round(x)`, `int(x)`, `float(x)` ou `bytes(x)` com o método de usuário em Python:
+    /// o resultado, conferido como o da nativa, vai para a pilha.
+    Builtin(BuiltinUse),
     /// `repr(x)` ou `str(x)` com `__repr__`/`__str__` em Python (o nome do método): o texto vai para a pilha, e
     /// outro tipo é o `TypeError` do `PyObject_Repr`/`PyObject_Str`.
     Text(&'static str),
@@ -1569,6 +1637,27 @@ pub(crate) enum Dunder {
     /// O código de um `exec` ou `eval`: ao fechar, as globais e o `locals` recebem o que ele criou e o valor sai
     /// (`Vm::close_exec`).
     Exec(Box<crate::builtins_ext::ExecRun>),
+    /// Uma chamada de usuário de dentro de uma nativa repetida (ver `replay.rs`): o resultado (ou a exceção) entra no
+    /// memo e a nativa roda de novo.
+    Replay(Box<ReplayRun>),
+}
+
+/// O que se repete: a chamada da nativa, ou a instrução do laço sobre os operandos que ela consumiu.
+pub(crate) enum ReplayOp {
+    Call { func: Value, args: Vec<Value>, kwargs: Vec<(String, Value)> },
+    Step { instr: Op, operands: Vec<Value> },
+}
+
+/// Uma nativa repetida com o memo das chamadas de usuário já feitas.
+pub(crate) struct ReplayRun {
+    pub(crate) op: ReplayOp,
+    pub(crate) memo: Vec<PyResult<Value>>,
+}
+
+/// O que a repetição deu: terminou (com o salto da instrução, se houver) ou pede o quadro de uma chamada de usuário.
+pub(crate) enum ReplayStatus {
+    Done(Option<usize>),
+    Spawn(Callee),
 }
 
 impl Dunder {
@@ -2217,6 +2306,20 @@ impl Vm {
                     Op::Subscript | Op::StoreSubscript | Op::DeleteSubscript if instance_at(stack, 1) => {
                         self.dunder_op(code, op, stack, env, &mut spawn)
                     }
+                    // Chave, argumento de formatação ou elemento que é instância: o `__hash__`, o `__eq__`, o `__format__`
+                    // e o `__str__` dela rodam em quadro (repetição da instrução, `replay.rs`).
+                    Op::Compare(_)
+                    | Op::Binary { .. }
+                    | Op::Subscript
+                    | Op::StoreSubscript
+                    | Op::DeleteSubscript
+                    | Op::FormatValue { .. }
+                    | Op::BuildSet(_)
+                    | Op::BuildDict(_)
+                        if crate::replay::step_operands(op, stack).is_some() && !crate::replay::active(self.rust_nest.get()) =>
+                    {
+                        self.step_replayed(code, op, stack, env, &mut spawn)
+                    }
                     // Unários, `iter()` de um `for`, gravação e remoção de atributo e abertura de `with`
                     // sobre instância: o método mágico em Python também ganha quadro.
                     Op::Unary(UnaryOp::USub | UnaryOp::UAdd | UnaryOp::Invert)
@@ -2578,6 +2681,26 @@ impl Vm {
                         }
                     }
                     Closed::Call(outcome, on_stop, then) => match (outcome, on_stop, then) {
+                        // O método de usuário de uma nativa repetida voltou (com valor ou exceção): vai para o memo e a
+                        // nativa roda de novo, no quadro do chamador.
+                        (outcome, _, Some(Dunder::Replay(run))) => {
+                            let mut run = *run;
+                            run.memo.push(outcome);
+                            let code = caller.code.clone();
+                            let env = caller.env.clone();
+                            match self.replay_run(run, Some((&code, &env)), &mut caller.stack) {
+                                Ok(ReplayStatus::Done(jump)) => {
+                                    if let Some(target) = jump {
+                                        caller.pc = target;
+                                    }
+                                }
+                                Ok(ReplayStatus::Spawn(callee)) => next_spawn = Some(callee),
+                                Err(e) => {
+                                    caller.pc -= 1;
+                                    pending = Some(e);
+                                }
+                            }
+                        }
                         (Ok(v), _, Some(then)) => {
                             let stepped = self.finish_dunder(then, v);
                             let (callee, error) = land_step(caller, stepped);
@@ -2702,6 +2825,9 @@ impl Vm {
     }
 
     pub(crate) fn call_function(&mut self, f: &Rc<FuncObj>, args: Vec<Value>, kwargs: Vec<(String, Value)>) -> PyResult<Value> {
+        if let Some(replayed) = crate::replay::intercept(self.rust_nest.get(), f, &args, &kwargs) {
+            return replayed;
+        }
         match self.enter_function(f, args, kwargs)? {
             Entered::Done(v) => Ok(v),
             Entered::Frame(mut callee) => {
@@ -2737,8 +2863,27 @@ impl Vm {
             {
                 return self.open_dunder(&f, vec![x.clone()], Dunder::Text(dunder)).and_then(entered_of);
             }
+            // `len(x)`, `bool(x)`, `abs(x)`, `int(x)`... com o método de usuário em Python: o quadro dele roda no laço.
+            if let (Some(name), [], [x, ..]) = (crate::fold::builtin_name(func), &kwargs[..], &args[..])
+                && let Some((f, use_)) = BuiltinUse::of(name, x, args.len())
+            {
+                return self.open_dunder(&f, args, Dunder::Builtin(use_)).and_then(entered_of);
+            }
             if let Some((root, collect)) = collect_source(func, &args, &kwargs)? {
                 return self.start_pull(root, ResumeUse::Collect(Box::new(collect))).and_then(entered_of);
+            }
+            // Nativa pura até o fim (`'{}'.format(x)`, `d.get(x)`, `sorted(xs)`...) com método de usuário no caminho: a
+            // repetição roda esse método em quadro, onde o greenlet troca.
+            if crate::replay::native_call(func, &args, &kwargs) && !crate::replay::active(self.rust_nest.get()) {
+                let mut scratch = Vec::new();
+                let run = ReplayRun { op: ReplayOp::Call { func: func.clone(), args, kwargs }, memo: Vec::new() };
+                return match self.replay_run(run, None, &mut scratch)? {
+                    ReplayStatus::Done(_) => Ok(Entered::Done(match scratch.pop() {
+                        Some(Slot::Val(v)) => v,
+                        _ => Value::None,
+                    })),
+                    ReplayStatus::Spawn(callee) => Ok(Entered::Frame(callee)),
+                };
             }
         }
         match func {
@@ -3431,7 +3576,80 @@ impl Vm {
                 *spawn = callee;
                 Ok(jump)
             }
-            None => self.step(code, instr, stack, env),
+            None => self.step_replayed(code, instr, stack, env, spawn),
+        }
+    }
+
+    /// A instrução `instr`, repetida (ver `replay.rs`) quando algum operando pode chamar método de usuário.
+    fn step_replayed(
+        &mut self,
+        code: &Rc<Code>,
+        instr: Op,
+        stack: &mut Vec<Slot>,
+        env: &Rc<Env>,
+        spawn: &mut Option<Callee>,
+    ) -> PyResult<Option<usize>> {
+        let count = match crate::replay::step_operands(instr, stack) {
+            Some(count) if !crate::replay::active(self.rust_nest.get()) => count,
+            _ => return self.step(code, instr, stack, env),
+        };
+        let operands: Vec<Value> = stack
+            .drain(stack.len() - count..)
+            .map(|slot| match slot {
+                Slot::Val(v) => v,
+                _ => Value::None,
+            })
+            .collect();
+        let run = ReplayRun { op: ReplayOp::Step { instr, operands }, memo: Vec::new() };
+        match self.replay_run(run, Some((code, env)), stack)? {
+            ReplayStatus::Done(jump) => Ok(jump),
+            ReplayStatus::Spawn(callee) => {
+                *spawn = Some(callee);
+                Ok(None)
+            }
+        }
+    }
+
+    /// Roda a nativa (ou a instrução) com o memo; se ela pediu uma chamada de usuário, abre o quadro dela com a
+    /// repetição pendente (`Dunder::Replay`). O resultado fica no topo de `stack`.
+    pub(crate) fn replay_run(
+        &mut self,
+        run: ReplayRun,
+        frame: Option<(&Rc<Code>, &Rc<Env>)>,
+        stack: &mut Vec<Slot>,
+    ) -> PyResult<ReplayStatus> {
+        let ReplayRun { op, mut memo } = run;
+        loop {
+            let base = stack.len();
+            let noted_before = TEXT_ERROR_SET.with(Cell::get);
+            crate::replay::begin(self.rust_nest.get(), memo);
+            let result = match (&op, frame) {
+                (ReplayOp::Call { func, args, kwargs }, _) => self.call(func, args.clone(), kwargs.clone()).map(|v| {
+                    stack.push(Slot::Val(v));
+                    None
+                }),
+                (ReplayOp::Step { instr, operands }, Some((code, env))) => {
+                    stack.extend(operands.iter().cloned().map(Slot::Val));
+                    self.step(code, *instr, stack, env)
+                }
+                (ReplayOp::Step { .. }, None) => Err(internal("a replayed instruction without a frame")),
+            };
+            let (taken, need) = crate::replay::end();
+            memo = taken;
+            let Some(need) = need else { return result.map(ReplayStatus::Done) };
+            // O erro de texto que esta passada anotou volta a ser anotado na passada que terminar.
+            if !noted_before {
+                take_text_error();
+            }
+            stack.truncate(base);
+            match self.enter_function(&need.func, need.args, need.kwargs) {
+                Ok(Entered::Done(v)) => memo.push(Ok(v)),
+                Ok(Entered::Frame(mut callee)) => {
+                    callee.link.then = Some(Dunder::Replay(Box::new(ReplayRun { op, memo })));
+                    return Ok(ReplayStatus::Spawn(callee));
+                }
+                Err(e) => memo.push(Err(e)),
+            }
         }
     }
 
@@ -3606,8 +3824,10 @@ impl Vm {
             Dunder::Boolean { negate } => Ok(Next::Value(Value::Bool(v.is_true() != negate))),
             Dunder::Iter => iterator_from_dunder(v).map(Next::Iter),
             Dunder::Text(name) => crate::classes::text_result(name, v).map(Next::Value),
+            Dunder::Builtin(use_) => use_.result(v).map(Next::Value),
             Dunder::Callback(callback) => self.resume_callback(*callback, Some(v)),
             Dunder::Import(_) | Dunder::Exec(_) => Err(internal("a module body closed as a method")),
+            Dunder::Replay(_) => Err(internal("a replayed call closed as a method")),
             Dunder::Truth { how, len } => {
                 let truth = if len { len_result(v)? != 0 } else { bool_result(&v)? };
                 Ok(match how {
@@ -5173,6 +5393,10 @@ impl Vm {
             }
             parts.push(part);
         }
+        // Numa repetição que ainda espera um `__str__` de usuário, nada sai: o `print` roda de novo com o texto pronto.
+        if crate::replay::suspended(self.rust_nest.get()) {
+            return Err(crate::replay::suspension());
+        }
         let text = if failure.is_some() {
             let mut t = parts.join(&sep);
             if !parts.is_empty() {
@@ -6581,6 +6805,10 @@ pub(crate) fn slice_bounds(len: i64, s: &(Value, Value, Value)) -> PyResult<(i64
             Value::None => Ok(None),
             Value::Int(i) => Ok(Some(*i)),
             Value::Bool(b) => Ok(Some(i64::from(*b))),
+            Value::Instance(i) if i.class().lookup("__index__").is_some() => match number_index(v)? {
+                Value::Int(n) => Ok(Some(n)),
+                _ => Ok(Some(i64::MAX)),
+            },
             _ => Err(type_error("slice indices must be integers or None or have an __index__ method")),
         }
     };
@@ -6683,8 +6911,17 @@ pub(crate) fn subscript(container: &Value, index: &Value) -> PyResult<Value> {
         return Err(type_error(format!("'{}' object is not subscriptable", container.type_name())));
     }
     let seq_index = |what: &str| -> PyResult<i64> {
-        as_index(index)
-            .ok_or_else(|| type_error(format!("{what} indices must be integers or slices, not {}", index.type_name())))
+        if let Some(i) = as_index(index) {
+            return Ok(i);
+        }
+        // `__index__` de usuário (`PyNumber_AsSsize_t`): o que não cabe num `Py_ssize_t` é `IndexError`.
+        if matches!(index, Value::Instance(i) if i.class().lookup("__index__").is_some()) {
+            return match number_index(index)? {
+                Value::Int(n) => Ok(n),
+                other => Err(exc("IndexError", format!("cannot fit '{}' into an index-sized integer", other.type_name()))),
+            };
+        }
+        Err(type_error(format!("{what} indices must be integers or slices, not {}", index.type_name())))
     };
     match container {
         Value::Ext(e) => match e.getitem(index) {
@@ -7198,31 +7435,33 @@ fn binary_native(op: Operator, a: &Value, b: &Value, inplace: bool) -> PyResult<
 
 /// `|`, `&`, `-` e `^` entre conjuntos (e as versões `|=`... que mudam o da esquerda).
 fn set_binary(op: Operator, x: &Rc<RefCell<Set>>, y: &Rc<RefCell<Set>>, inplace: bool) -> PyResult<Value> {
-    let xs: Vec<Value> = x.borrow().iter().cloned().collect();
-    let ys: Vec<Value> = y.borrow().iter().cloned().collect();
+    // Os hashes guardados nas entradas servem às operações entre conjuntos (`set_merge`, `set_contains_entry`):
+    // o CPython não chama o `__hash__` de novo aqui.
+    let xs = x.borrow().hashed_items();
+    let ys = y.borrow().hashed_items();
     // O resultado tem o tipo do operando da esquerda; `frozenset |= x` não existe, o nome é religado.
     let frozen = x.borrow().is_frozen();
     let inplace = inplace && !frozen;
     let mut out = Set::new();
     match op {
         Operator::BitOr => {
-            for v in xs.iter().chain(ys.iter()) {
-                out.add(v.clone())?;
+            for (h, v) in xs.iter().chain(ys.iter()) {
+                out.add_hashed(*h, v.clone())?;
             }
         }
         Operator::BitAnd => {
             let yb = y.borrow();
-            for v in &xs {
-                if yb.contains(v)? {
-                    out.add(v.clone())?;
+            for (h, v) in &xs {
+                if yb.contains_hashed(*h, v)? {
+                    out.add_hashed(*h, v.clone())?;
                 }
             }
         }
         Operator::Sub => {
             let yb = y.borrow();
-            for v in &xs {
-                if !yb.contains(v)? {
-                    out.add(v.clone())?;
+            for (h, v) in &xs {
+                if !yb.contains_hashed(*h, v)? {
+                    out.add_hashed(*h, v.clone())?;
                 }
             }
         }
@@ -7230,11 +7469,10 @@ fn set_binary(op: Operator, x: &Rc<RefCell<Set>>, y: &Rc<RefCell<Set>>, inplace:
             // `set_symmetric_difference`: cópia do da direita, alternando cada item do da esquerda; o `^=`
             // (`set_symmetric_difference_update`) altera o da esquerda com os itens do da direita.
             let (mut base, items) = if inplace { (x.borrow().clone(), &ys) } else { (y.borrow().clone(), &xs) };
-            for v in items {
-                if base.contains(v)? {
-                    base.discard(v)?;
-                } else {
-                    base.add(v.clone())?;
+            // Como o `set_discard_entry` seguido do `set_add_entry` do CPython: uma só busca quando o item estava lá.
+            for (h, v) in items {
+                if !base.discard_hashed(*h, v)? {
+                    base.add_hashed(*h, v.clone())?;
                 }
             }
             out = base;

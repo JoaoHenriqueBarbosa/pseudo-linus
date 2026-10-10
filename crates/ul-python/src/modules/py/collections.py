@@ -18,6 +18,17 @@ from _weakref import proxy as _proxy
 
 def _count_elements(mapping, iterable):
     'Tally elements from the iterable.'
+    # O `_count_elements` do C: com `dict` (ou subclasse sem `get` e `__setitem__` próprios), o hash de cada
+    # elemento é calculado uma vez e serve à busca e à gravação; no resto, o `get` e o `[]=` do objeto.
+    tp = type(mapping)
+    if isinstance(mapping, dict) and tp.get is dict.get and tp.__setitem__ is dict.__setitem__:
+        from _sys import _dict_get_known, _dict_set_known
+        absent = object()
+        for elem in iterable:
+            h = hash(elem)
+            old = _dict_get_known(mapping, elem, h, absent)
+            _dict_set_known(mapping, elem, h, 1 if old is absent else old + 1)
+        return
     mapping_get = mapping.get
     for elem in iterable:
         mapping[elem] = mapping_get(elem, 0) + 1
@@ -469,23 +480,28 @@ class Counter(dict):
 
     def update(self, iterable=None, /, **kwds):
         if iterable is not None:
-            if hasattr(iterable, 'items'):
-                for elem, count in iterable.items():
-                    self[elem] = self.get(elem, 0) + count
+            if isinstance(iterable, _collections_abc.Mapping):
+                if self:
+                    self_get = self.get
+                    for elem, count in iterable.items():
+                        self[elem] = count + self_get(elem, 0)
+                else:
+                    # fast path when counter is empty
+                    super().update(iterable)
             else:
-                for elem in iterable:
-                    self[elem] = self.get(elem, 0) + 1
+                _count_elements(self, iterable)
         if kwds:
             self.update(kwds)
 
     def subtract(self, iterable=None, /, **kwds):
         if iterable is not None:
-            if hasattr(iterable, 'items'):
+            self_get = self.get
+            if isinstance(iterable, _collections_abc.Mapping):
                 for elem, count in iterable.items():
-                    self[elem] = self.get(elem, 0) - count
+                    self[elem] = self_get(elem, 0) - count
             else:
                 for elem in iterable:
-                    self[elem] = self.get(elem, 0) - 1
+                    self[elem] = self_get(elem, 0) - 1
         if kwds:
             self.subtract(kwds)
 
