@@ -187,6 +187,7 @@ fn sleep_body(global_object: &JSGlobalObject, call: &HostCall) -> HostResult {
     crate::runtime::timers::schedule_native_with_ref(
         global_object,
         f64::from(countdown),
+        vec![promise.as_value()],
         Rc::new(move |global: &JSGlobalObject| fired.resolve(global, JSValue::undefined())),
         true,
     );
