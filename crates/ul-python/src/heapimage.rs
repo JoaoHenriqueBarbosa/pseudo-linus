@@ -337,7 +337,7 @@ enum FoldNode {
     Any,
     All,
     Extend { target: Item },
-    Sorted { key: Option<Item>, reverse: bool, items: Vec<Item>, pairs: Vec<(Item, Item)>, target: Option<Item> },
+    Sorted { key: Option<Item>, reverse: bool, items: Vec<Item>, pairs: Vec<(Item, Item)>, target: Option<Item>, restore: Option<(Item, Vec<Item>)> },
 }
 
 /// `generator::Layer` com o iterador preguiçoso como item.
@@ -1174,7 +1174,7 @@ impl Encoder {
             Fold::Any => FoldNode::Any,
             Fold::All => FoldNode::All,
             Fold::Extend { target } => FoldNode::Extend { target: self.item(target)? },
-            Fold::Sorted { key, reverse, items, pairs, target } => {
+            Fold::Sorted { key, reverse, items, pairs, target, restore } => {
                 let mut kept = Vec::with_capacity(pairs.len());
                 for (k, v) in pairs {
                     kept.push((self.item(k)?, self.item(v)?));
@@ -1185,6 +1185,10 @@ impl Encoder {
                     items: self.items(items)?,
                     pairs: kept,
                     target: self.opt_item(target.as_ref())?,
+                    restore: match restore {
+                        Some(r) => Some((self.item(&Value::List(r.list.clone()))?, self.items(&r.saved)?)),
+                        None => None,
+                    },
                 }
             }
         })
@@ -1577,7 +1581,7 @@ impl Rebuilt {
             FoldNode::Any => Fold::Any,
             FoldNode::All => Fold::All,
             FoldNode::Extend { target } => Fold::Extend { target: self.value(*target)? },
-            FoldNode::Sorted { key, reverse, items, pairs, target } => {
+            FoldNode::Sorted { key, reverse, items, pairs, target, restore } => {
                 let mut kept = Vec::with_capacity(pairs.len());
                 for (k, v) in pairs {
                     kept.push((self.value(*k)?, self.value(*v)?));
@@ -1588,6 +1592,13 @@ impl Rebuilt {
                     items: self.values_of(items)?,
                     pairs: kept,
                     target: self.opt(target)?,
+                    restore: match restore {
+                        Some((list, saved)) => match self.value(*list)? {
+                            Value::List(list) => Some(crate::fold::SortRestore { list, saved: self.values_of(saved)? }),
+                            _ => return Err(ImageError::Malformed("a sort restore that is not a list")),
+                        },
+                        None => None,
+                    },
                 }
             }
         })
