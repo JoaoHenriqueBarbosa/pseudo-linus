@@ -8,6 +8,15 @@ const devtoolsAgent = (() => {
   const jsonParse = JSON.parse;
   const ownKeys = Reflect.ownKeys;
   const getOwnDescriptor = Object.getOwnPropertyDescriptor;
+  // O `stack` próprio do erro, que no V8 é um acessor próprio (`get` e `set`, medido no oráculo) que o inspetor lê
+  // como texto; `undefined` quando não há.
+  const ownStack = (error) => {
+    try {
+      const item = getOwnDescriptor(error, 'stack');
+      const text = item && ('value' in item ? item.value : item.get && call(item.get, error));
+      return typeof text === 'string' ? text : undefined;
+    } catch { return undefined; }
+  };
   const getPrototypeOf = Object.getPrototypeOf;
   const objectToString = Object.prototype.toString;
   const functionToString = Function.prototype.toString;
@@ -102,8 +111,8 @@ const devtoolsAgent = (() => {
     if (brand(dateGetTime, value)) return { subtype: 'date', className: name, description: call(dateToString, value) };
     if (value instanceof RegExp) return { subtype: 'regexp', className: name, description: call(regexpToString, value) };
     if (value instanceof Error) {
-      const stack = getOwnDescriptor(value, 'stack');
-      const description = stack && typeof stack.value === 'string' ? stack.value : String(value.name) + ': ' + String(value.message);
+      const stack = ownStack(value);
+      const description = stack !== undefined ? stack : String(value.name) + ': ' + String(value.message);
       return { subtype: 'error', className: name, description };
     }
     if (value instanceof Promise) return { subtype: 'promise', className: name, description: 'Promise' };
@@ -264,9 +273,9 @@ const devtoolsAgent = (() => {
   // Linha e coluna (base 0) da primeira moldura do `stack`, a posição que o V8 dá à exceção.
   const stackPosition = (error) => {
     try {
-      const stack = getOwnDescriptor(error, 'stack');
-      if (!stack || typeof stack.value !== 'string') return undefined;
-      const found = /:(\d+):(\d+)\)?(?:\n|$)/.exec(stack.value);
+      const stack = ownStack(error);
+      if (stack === undefined) return undefined;
+      const found = /:(\d+):(\d+)\)?(?:\n|$)/.exec(stack);
       return found ? [Number(found[1]) - 1, Number(found[2]) - 1] : undefined;
     } catch { return undefined; }
   };
@@ -393,6 +402,8 @@ const devtoolsAgent = (() => {
       let item;
       try { item = getOwnDescriptor(value, key); } catch { continue; }
       if (!item) continue;
+      // O inspetor mostra o `stack` do erro pelo valor, embora seja acessor.
+      if (mirror.subtype === 'error' && key === 'stack') item = { value: ownStack(value) };
       if (!('value' in item)) { properties.push({ name: key, type: 'accessor' }); continue; }
       const inner = item.value;
       const entry = { name: key };
@@ -463,7 +474,7 @@ const devtoolsAgent = (() => {
   // Exceção que ninguém tratou (o relato do navegador depois do evento `error` da janela).
   const uncaught = (error) => {
     state.exceptionId++;
-    const frames = error instanceof Error ? callFrames(getOwnDescriptor(error, 'stack')?.value || '', 0) : [];
+    const frames = error instanceof Error ? callFrames(ownStack(error) || '', 0) : [];
     const top = frames[0];
     const details = { exceptionId: state.exceptionId, text: 'Uncaught', lineNumber: top ? top.lineNumber : 0, columnNumber: top ? top.columnNumber : 0 };
     if (top) details.scriptId = top.scriptId;

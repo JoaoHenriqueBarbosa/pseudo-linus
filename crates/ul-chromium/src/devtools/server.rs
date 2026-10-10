@@ -20,6 +20,9 @@ pub struct Options {
     pub pipe: bool,
     /// `--remote-allow-origins=a,b`.
     pub allowed_origins: Vec<String>,
+    /// `--user-data-dir=...`: com ele, o primeiro alvo criado entra na janela inicial; sem ele, abre uma janela nova,
+    /// com os seus popups do omnibox (medido no oráculo).
+    pub user_data_dir: bool,
 }
 
 struct Target {
@@ -75,9 +78,10 @@ pub struct Browser {
     quit: bool,
     /// Abas a fechar depois da resposta corrente.
     closing: Vec<String>,
-    /// Janelas abertas até aqui: a da aba inicial e a do primeiro alvo criado, cada uma com os seus popups do omnibox
-    /// (as abas seguintes entram na segunda janela, como no oráculo).
+    /// Janelas abertas até aqui: a da aba inicial e, sem `--user-data-dir`, a do primeiro alvo criado, cada uma com
+    /// os seus popups do omnibox (as abas seguintes entram na última janela, como no oráculo).
     windows: usize,
+    max_windows: usize,
     schema: super::protocol::Schema,
 }
 
@@ -153,6 +157,7 @@ impl Browser {
             quit: false,
             closing: Vec::new(),
             windows: 0,
+            max_windows: if options.user_data_dir { 1 } else { 2 },
             schema: super::protocol::Schema::load(),
         }
     }
@@ -199,10 +204,10 @@ impl Browser {
     }
 
     fn open_target(&mut self, url: &str, startup: bool, wait: bool) -> String {
-        if self.windows < 2 {
+        if self.windows < self.max_windows {
             self.windows += 1;
             for (ui, _) in crate::page::WEBUI_DOCUMENTS {
-                self.spawn_target("browser_ui", ui, "Omnibox Popup", true, wait);
+                self.spawn_target("browser_ui", ui, "", true, false);
             }
         }
         let shown = if url.is_empty() { "about:blank" } else { url };
@@ -214,7 +219,11 @@ impl Browser {
         let id = token();
         let Ok(link) = target::spawn(id.clone(), url.to_owned(), startup, wait) else { return id };
         let window_id = (super::random_i64() & 0x7FFF_FFFF).max(1);
-        self.targets.push(Target { id: id.clone(), kind, title: title.to_owned(), url: url.to_owned(), link, window_id, pending: Vec::new(), inbox: Vec::new() });
+        let mut entry = Target { id: id.clone(), kind, title: title.to_owned(), url: url.to_owned(), link, window_id, pending: Vec::new(), inbox: Vec::new() };
+        if kind == "browser_ui" {
+            Self::settle(&mut entry);
+        }
+        self.targets.push(entry);
         let info = self.info(&id).expect("alvo recém-criado");
         self.broadcast_discovery("Target.targetCreated", Json::object([("targetInfo", info)]));
         // A conexão com `setAutoAttach` anexa cada alvo novo.
@@ -737,6 +746,31 @@ impl Browser {
         for key in done {
             self.drop_conn(key);
         }
+    }
+
+    /// Espera o popup do omnibox carregar o documento e ganhar o título: no oráculo os popups já estão prontos
+    /// (título "Omnibox Popup") em poucos milissegundos, antes de qualquer cliente os ver. As linhas que não são de
+    /// título ficam na caixa de entrada do alvo.
+    fn settle(entry: &mut Target) {
+        let mut buffer = vec![0u8; 65536];
+        let mut rest = Vec::new();
+        while entry.title.is_empty() || entry.title == entry.url {
+            let Ok(n @ 1..) = sysabi::sys::read(entry.link.events, &mut buffer) else { break };
+            entry.inbox.extend_from_slice(&buffer[..n]);
+            while let Some(end) = entry.inbox.iter().position(|&b| b == b'\n') {
+                let line: Vec<u8> = entry.inbox.drain(..=end).collect();
+                let info = line.strip_prefix(b"I").and_then(|json| json::parse(&String::from_utf8_lossy(&json[..json.len() - 1])).ok());
+                match info {
+                    Some(info) => {
+                        entry.title = info.get("title").and_then(Json::as_str).unwrap_or_default().to_owned();
+                        entry.url = info.get("url").and_then(Json::as_str).unwrap_or_default().to_owned();
+                    }
+                    None => rest.extend_from_slice(&line),
+                }
+            }
+        }
+        rest.append(&mut entry.inbox);
+        entry.inbox = rest;
     }
 
     fn on_target_readable(&mut self, id: &str) {

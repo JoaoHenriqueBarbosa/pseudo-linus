@@ -86,7 +86,8 @@ fn cdp_client(_ctx: &mut Ctx, argv: &[OsString]) -> i32 {
     let scenarios: Value = serde_json::from_str(SCENARIOS).unwrap();
     let scenario = scenarios.as_array().unwrap().iter().find(|s| s["name"] == name.as_str()).unwrap().clone();
     let s = sys::current();
-    let argv: Vec<Vec<u8>> = ["chromium", "--headless", "--no-sandbox", "--disable-gpu", &format!("--remote-debugging-port={PORT}"), "about:blank"]
+    // Os mesmos argumentos com que o `cdp-record.py` gravou o oráculo.
+    let argv: Vec<Vec<u8>> = ["chromium", "--headless", "--no-sandbox", "--disable-gpu", &format!("--remote-debugging-port={PORT}"), "--user-data-dir=/tmp/profile", "about:blank"]
         .iter()
         .map(|a| a.as_bytes().to_vec())
         .collect();
@@ -195,6 +196,24 @@ fn normalize(value: &Value, key: &str) -> Value {
     let token = |s: &str| s.len() == 32 && s.bytes().all(|b| b.is_ascii_digit() || (b'A'..=b'F').contains(&b));
     let uuid = |s: &str| s.len() == 36 && s.bytes().all(|b| b == b'-' || b.is_ascii_digit() || (b'a'..=b'f').contains(&b));
     match value {
+        // O título do popup do omnibox depende de quanto ele já carregou quando o cliente pergunta. O oráculo gravou
+        // "", "Omnibox Popup" e o título provisório, que é o host no popup da raiz e a URL inteira no
+        // `omnibox_popup_aim.html`. Só esses valem; outro fica como veio e diverge.
+        Value::Object(map) if map.get("type").and_then(Value::as_str) == Some("browser_ui") => {
+            let provisional = match map.get("url").and_then(Value::as_str) {
+                Some("chrome://omnibox-popup.top-chrome/") => "chrome://omnibox-popup.top-chrome",
+                Some(url) => url,
+                None => "",
+            };
+            Value::Object(
+                map.iter()
+                    .map(|(k, v)| {
+                        let measured = v.as_str().is_some_and(|t| t.is_empty() || t == "Omnibox Popup" || t == provisional);
+                        (k.clone(), if k == "title" && measured { Value::String("<omnibox>".into()) } else { normalize(v, k) })
+                    })
+                    .collect(),
+            )
+        }
         Value::Object(map) => Value::Object(map.iter().map(|(k, v)| (k.clone(), normalize(v, k))).collect()),
         // O `getTargets` do oráculo sai na ordem de um mapa de hash, que muda de uma execução para outra: qualquer
         // ordem vale, então a comparação é como conjunto.

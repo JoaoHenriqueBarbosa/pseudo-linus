@@ -38,6 +38,13 @@ fn canvas_measure_text() {
     assert_eq!(log, "22.7880859375 8 9 7.199999809265137 45.5859375 4\n");
 }
 
+/// A pilha de erro da página no formato do V8: o frame do script clássico com URL, linha e coluna.
+#[test]
+fn error_stack_in_v8_format() {
+    let (_, log) = run(&[("/", "<script>\nfunction f() { return new Error('boom') }\nconsole.log(f().stack)</script>")]);
+    assert!(log.contains("    at f ("), "{log}");
+}
+
 #[test]
 fn timer_exception_does_not_stop_the_page() {
     let (dom, log) = run(&[("/", "<body><script>setTimeout(() => { throw new Error('x') }, 0); setTimeout(() => document.body.append('depois'), 5)</script>")]);

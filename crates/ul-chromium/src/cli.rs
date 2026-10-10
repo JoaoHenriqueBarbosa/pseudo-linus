@@ -35,6 +35,7 @@ pub fn parse(args: &[String]) -> Options {
             flag if flag.starts_with("--remote-allow-origins=") => {
                 options.devtools.allowed_origins = flag["--remote-allow-origins=".len()..].split(',').map(str::to_owned).collect();
             }
+            flag if flag.starts_with("--user-data-dir=") => options.devtools.user_data_dir = true,
             flag if flag.starts_with("--") => {}
             url => options.urls.push(url.to_owned()),
         }
@@ -88,6 +89,6 @@ mod tests {
         let args: Vec<String> = ["--headless", "--no-sandbox", "--disable-gpu", "--virtual-time-budget=15000", "--dump-dom", "file:///a.html"].map(String::from).to_vec();
         assert_eq!(parse(&args), Options { headless: true, dump_dom: true, virtual_time_budget: Some(15000.0), urls: vec!["file:///a.html".into()], ..Options::default() });
         let args: Vec<String> = ["--headless", "--remote-debugging-port=0", "--remote-allow-origins=*"].map(String::from).to_vec();
-        assert_eq!(parse(&args).devtools, devtools::server::Options { port: Some(0), pipe: false, allowed_origins: vec!["*".into()] });
+        assert_eq!(parse(&args).devtools, devtools::server::Options { port: Some(0), pipe: false, allowed_origins: vec!["*".into()], user_data_dir: false });
     }
 }
