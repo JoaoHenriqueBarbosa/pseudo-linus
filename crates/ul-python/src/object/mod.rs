@@ -571,6 +571,7 @@ const C_EXTENSION_MODULES: &[(&str, &str)] = &[
     ("_sre", "_sre"),
     ("_sqlite3", "_sqlite3"),
     ("_typing", "_typing"),
+    ("greenlet._greenlet", "greenlet._greenlet"),
 ];
 
 /// Funções soltas de módulos que no CPython misturam Python e C, como `(módulo daqui, módulo do CPython,
@@ -882,7 +883,8 @@ impl ClassObj {
     /// aparecer, porque o tipo real não tem `__dict__` nem esses nomes.
     pub fn emulates_c_type(&self) -> bool {
         matches!(self.dict.borrow().get("__module__"), Some(Value::Str(m))
-            if m.as_str() == "builtins" || BUILTIN_MODULES.contains(&m.as_str()) || C_TYPE_MODULES.contains(&m.as_str()))
+            if m.as_str() == "builtins" || BUILTIN_MODULES.contains(&m.as_str()) || C_TYPE_MODULES.contains(&m.as_str())
+                || C_EXTENSION_TYPES.contains(&(m.as_str(), self.name.as_str())))
     }
 
     /// O tipo de C é estático (sem `Py_TPFLAGS_HEAPTYPE`): o `__module__` sai do `tp_name`, fora do `__dict__`
@@ -1569,11 +1571,19 @@ pub(crate) const FROZEN_MODULES: &[&str] = &[
 /// público (`_datetime` dá `datetime.timezone`): os tipos são de C, o módulo não é embutido.
 pub(crate) const C_TYPE_MODULES: &[&str] = &["datetime"];
 
+/// Tipos em C de extensões de terceiros que aqui são classes Python, como `(__module__, nome)`: o `greenlet.greenlet`
+/// do greenlet 3.5.6. Os outros nomes do módulo (as exceções `greenlet.error` e `GreenletExit`, feitas por
+/// `PyErr_NewException`) seguem classes de verdade.
+pub(crate) const C_EXTENSION_TYPES: &[(&str, &str)] =
+    &[("greenlet", "greenlet"), ("greenlet._greenlet", "UnswitchableGreenlet")];
+
 /// Os tipos estáticos de C fora de `builtins` (`__module__` ausente do `__dict__` e sem `Py_TPFLAGS_HEAPTYPE`),
-/// levantados no oráculo sobre os módulos embutidos, `datetime` e `types`.
+/// levantados no oráculo sobre os módulos embutidos, `datetime` e `types`, e o `greenlet.greenlet` (oráculo de
+/// automação).
 pub(crate) const STATIC_C_TYPES: &[(&str, &str)] = &[
     ("collections", "OrderedDict"), ("datetime", "date"), ("datetime", "datetime"), ("datetime", "time"),
-    ("datetime", "timedelta"), ("datetime", "timezone"), ("datetime", "tzinfo"), ("pickle", "PickleBuffer"),
+    ("datetime", "timedelta"), ("datetime", "timezone"), ("datetime", "tzinfo"), ("greenlet", "greenlet"),
+    ("greenlet._greenlet", "UnswitchableGreenlet"), ("pickle", "PickleBuffer"),
     ("sys", "flags"), ("sys", "float_info"), ("sys", "hash_info"), ("sys", "int_info"), ("sys", "thread_info"),
     ("sys", "version_info"), ("types", "GenericAlias"), ("types", "SimpleNamespace"), ("types", "UnionType"),
     ("weakref", "CallableProxyType"), ("weakref", "ProxyType"), ("weakref", "ReferenceType"),

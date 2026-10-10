@@ -48,15 +48,26 @@ fn instance_slots_added(cls: &Rc<ClassObj>) -> &'static [&'static str] {
     if cls.emulates_c_type() {
         return &[];
     }
+    // Uma base que já dá o dicionário ou a lista de referências fracas às instâncias (sem `__slots__`, ou com o nome
+    // no `__slots__`, como o shim do `greenlet`, que tem os dois no C) dispensa o descritor na subclasse.
+    let (mut dict, mut weak) = (false, false);
     for base in cls.mro().into_iter().skip(1) {
         if !base.dict.borrow().contains_key("__slots__") {
             return &[];
         }
+        let slots = base.declared_slots().unwrap_or_default();
+        dict |= slots.iter().any(|s| s == "__dict__");
+        weak |= slots.iter().any(|s| s == "__weakref__");
     }
     if cls.mro().iter().any(|c| c.builtin_base.is_some_and(|b| EXC_CLASSES.iter().any(|(n, _)| *n == b))) {
         return &["__weakref__"];
     }
-    &["__dict__", "__weakref__"]
+    match (dict, weak) {
+        (false, false) => &["__dict__", "__weakref__"],
+        (true, false) => &["__weakref__"],
+        (false, true) => &["__dict__"],
+        (true, true) => &[],
+    }
 }
 
 /// O leiaute das instâncias de uma classe (o que o `compatible_for_assignment` do CPython compara):
@@ -371,7 +382,19 @@ fn lookup_public(cls: &Rc<ClassObj>, name: &str) -> Option<Value> {
             return None;
         }
     }
-    cls.lookup(name)
+    let found = cls.lookup(name)?;
+    // O shim de um tipo em C com linha na tabela do oráculo só mostra os métodos mágicos que o tipo real tem: o
+    // `__del__` com que o shim do `greenlet` mata o segmento solto existe para a finalização da VM, não para o programa.
+    if name.starts_with("__") && name.ends_with("__") {
+        let owner = cls.mro().into_iter().find(|c| c.dict.borrow().contains_key(name));
+        let hidden = owner.is_some_and(|c| {
+            c.emulates_c_type() && crate::builtins_ext::type_dir(&c.name).is_some_and(|names| !names.contains(&name))
+        });
+        if hidden {
+            return None;
+        }
+    }
+    Some(found)
 }
 
 /// `true` se `name` é um campo de `__slots__` de alguma classe da herança (não de um shim de tipo em C).
@@ -2642,14 +2665,14 @@ impl Vm {
                 for (name, member) in slot_members(cls) {
                     d.set(Value::str(name), member)?;
                 }
-                // O `type` sempre grava `__doc__` e, se nenhuma base já dá um `__dict__` às
-                // instâncias, acrescenta os descritores `__dict__` e `__weakref__`.
-                if !cls.dict.borrow().contains_key("__doc__") {
-                    d.set(Value::str("__doc__"), Value::None)?;
-                }
+                // O `type` acrescenta, se nenhuma base já dá um `__dict__` às instâncias, os descritores
+                // `__dict__` e `__weakref__` e, depois deles, o `__doc__` quando o corpo não tem docstring.
                 for slot in instance_slots_added(cls) {
                     let desc = GetSetDescriptor { name: slot, owner: Value::Class(cls.clone()) };
                     d.set(Value::str(*slot), Value::Ext(Rc::new(desc)))?;
+                }
+                if !cls.dict.borrow().contains_key("__doc__") {
+                    d.set(Value::str("__doc__"), Value::None)?;
                 }
                 return Ok(Value::dict(d));
             }

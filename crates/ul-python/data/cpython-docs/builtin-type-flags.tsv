@@ -131,3 +131,5 @@ method_descriptor	0x25982
 wrapper_descriptor	0x25182
 classmethod_descriptor	0x5182
 method-wrapper	0x5182
+greenlet	0x45500
+UnswitchableGreenlet	0x45500

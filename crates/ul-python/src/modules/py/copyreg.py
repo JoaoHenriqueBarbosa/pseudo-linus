@@ -240,8 +240,8 @@ def _object_getstate(self):
 
 
 def _object_reduce(self):
-    """`object.__reduce__`: reconstrução pelo protocolo 0/1."""
-    return _object_reduce_ex(self, 1)
+    """`object.__reduce__`: o `_common_reduce(self, 0)` do C."""
+    return _object_reduce_ex(self, 0)
 
 
 def _object_reduce_ex(self, proto=0):
@@ -257,6 +257,12 @@ def _object_reduce_ex(self, proto=0):
     # `BaseException` tem `__reduce__` próprio (`BaseException_reduce`): nunca passa pelo protocolo de `object`.
     if isinstance(self, BaseException):
         return _exception_reduce(self)
+    if proto < 2:
+        # `copyreg._reduce_ex`: a primeira base sem `Py_TPFLAGS_HEAPTYPE` decide, antes de pedir o estado (um tipo de C
+        # exato, como o `greenlet.greenlet`, nem chega ao `__getstate__`).
+        base = next((k for k in cls.__mro__ if hasattr(k, '__flags__') and not k.__flags__ & _HEAPTYPE), object)
+        if base is cls and base is not object:
+            raise TypeError("cannot pickle %r object" % cls.__name__)
     own_getstate = any(k is not object and '__getstate__' in k.__dict__ for k in cls.__mro__)
     if proto < 2 and getattr(cls, '__slots__', None) and not own_getstate:
         raise TypeError("a class that defines __slots__ without defining __getstate__ cannot be pickled")
@@ -281,14 +287,6 @@ def _object_reduce_ex(self, proto=0):
         listitems = iter(self) if isinstance(self, list) else None
         dictitems = iter(self.items()) if isinstance(self, dict) else None
         return __newobj__, (cls,) + tuple(args), state, listitems, dictitems
-    base = object
-    for candidate in (tuple, list, dict, set, frozenset, str, bytes, int, float):
-        if isinstance(self, candidate):
-            base = candidate
-            break
-    # `copyreg._reduce_ex`: um tipo embutido exato não se reconstrói pelo protocolo 0 e 1.
-    if base is cls and base is not object:
-        raise TypeError("cannot pickle %r object" % cls.__name__)
     return _reconstructor, (cls, base, None if base is object else base(self)), state
 
 

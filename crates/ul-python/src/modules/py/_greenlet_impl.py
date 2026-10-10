@@ -8,12 +8,15 @@ Os greenlets pertencem à thread que os criou. A thread de `threading` que roda 
 greenlet corrente dela (`glet`) e o gancho de `settrace` (`gtrace`); o `tid` dela acompanha o segmento do greenlet
 que roda, para o escalonador das threads retomar a thread no greenlet certo.
 
-O módulo é entregue ao programa com o nome `greenlet._greenlet`; este arquivo não existe para ele.
+O módulo é entregue ao programa com o nome `greenlet._greenlet`; este arquivo não existe para ele. Como no C, as
+funções de nível de módulo são `builtin_function_or_method` (`C_EXTENSION_MODULES`) e o `greenlet.greenlet` é um tipo
+estático (`C_EXTENSION_TYPES`, com as linhas das tabelas do oráculo): o estado de cada greenlet mora no campo
+`_greenlet__st` do `__slots__`, fora do `__dict__`, e o `__del__` só existe para a finalização da VM.
 """
 
-__name__ = 'greenlet'
+__name__ = 'greenlet._greenlet'
 
-import sys
+import sys as _sysmod
 import _sys
 import _gsched
 
@@ -24,21 +27,16 @@ GREENLET_USE_CONTEXT_VARS = 1
 GREENLET_USE_STANDARD_THREADING = 1
 
 
-class error(Exception):
-    pass
-
-
-class GreenletExit(BaseException):
-    pass
-
-
-GreenletExit.__doc__ = None
-error.__doc__ = None
+# Como o `PyErr_NewException("greenlet.error", ...)`: o dicionário só com `__module__`, sem o que o `class` acrescenta.
+error = type('error', (Exception,), {'__module__': 'greenlet'})
+GreenletExit = type('GreenletExit', (BaseException,), {'__module__': 'greenlet'})
 
 # A caixa da troca: `('switch', args, kwargs)` ou `('throw', exceção)`, posta por quem troca e tirada por quem retoma.
 _box = [None]
 # Os greenlets que perderam a última referência suspensos: a morte deles (o `GreenletExit`) roda no ponto seguro.
 _doomed = []
+_getattr = object.__getattribute__
+_setattr = object.__setattr__
 
 
 class _State:
@@ -57,6 +55,11 @@ class _State:
         self.context = None
 
 
+def _st(glet):
+    """O estado de `glet`, lido como o C lê o campo da struct: sem passar por `__getattribute__` de subclasse."""
+    return _getattr(glet, '_greenlet__st')
+
+
 def _thread():
     return _gsched.current()
 
@@ -69,7 +72,7 @@ def _current():
         glet = object.__new__(greenlet)
         state = _State(green, None, True)
         state.tid = green.tid
-        glet.__dict__['_st'] = state
+        _setattr(glet, '_greenlet__st', state)
         green.glet = glet
         green.gtrace = None
     return glet
@@ -102,7 +105,7 @@ def _exited(owner):
 
 
 def _check_thread(target):
-    owner = target.__dict__['_st'].owner
+    owner = _st(target).owner
     if owner is not _thread():
         if _exited(owner):
             raise error('cannot switch to a different thread (which happens to have exited)')
@@ -143,19 +146,9 @@ def _exception(typ, val, tb):
 
 def _resolve(target):
     """O greenlet que de fato recebe a troca: um morto passa adiante ao primeiro ancestral vivo."""
-    while target.__dict__['_st'].dead:
-        target = target.__dict__['_st'].parent
+    while _st(target).dead:
+        target = _st(target).parent
     return target
-
-
-def _run_of(target):
-    state = target.__dict__['_st']
-    if state.run is not None:
-        return state.run
-    run = type(target).run
-    if isinstance(run, property):
-        raise AttributeError('run')
-    return run.__get__(target, type(target))
 
 
 def _trace(event, origin, target):
@@ -177,9 +170,9 @@ def _enter(target, payload, run, finishing):
     """Passa o controle do greenlet corrente a `target`; `run` é o corpo, quando `target` ainda não começou, e
     `finishing` diz que o segmento corrente acabou. Nenhum quadro daqui segura o greenlet que sai: suspenso, ele só
     vive enquanto o programa o segurar (e o `__del__` o mata quando soltar)."""
-    state = target.__dict__['_st']
+    state = _st(target)
     green = _thread()
-    origin_state = green.glet.__dict__['_st']
+    origin_state = _st(green.glet)
     if not _sys._gt_can_switch():
         # Dentro de um callback de nativa a VM não troca de segmento (`gthread.rs`): nada muda antes do erro.
         raise RuntimeError('cannot switch threads inside a callback of the interpreter')
@@ -188,7 +181,7 @@ def _enter(target, payload, run, finishing):
         state.tid = _sys._gt_spawn(lambda state=state, run=run: _entry(state, run))
     del run
     if not finishing:
-        origin_state.frame = sys._getframe(0)
+        origin_state.frame = _sysmod._getframe(0)
     _box[0] = payload
     green.glet = target
     green.tid = state.tid
@@ -210,7 +203,8 @@ def _switch_to(target, payload, event):
         if payload[0] == 'throw':
             raise payload[1]
         return _unpack(payload[1], payload[2])
-    run = None if target.__dict__['_st'].started else _run_of(target)
+    # O `PyRequireAttr(self, "run")` do `g_initialstub`: o `run` de uma subclasse vence o campo do tipo.
+    run = None if _st(target).started else getattr(target, 'run')
     _trace(event, origin, target)
     del origin
     return _enter(target, payload, run, False)
@@ -235,9 +229,9 @@ def _entry(state, run):
     me = _thread().glet
     target = _resolve(state.parent)
     while True:
-        parent_state = target.__dict__['_st']
+        parent_state = _st(target)
         try:
-            run = None if parent_state.started else _run_of(target)
+            run = None if parent_state.started else getattr(target, 'run')
             _trace('switch' if result[0] == 'switch' else 'throw', me, target)
             break
         except BaseException as exc:
@@ -250,6 +244,49 @@ def _entry(state, run):
     _enter(target, result, run, True)
 
 
+def _get_parent(glet):
+    return _st(glet).parent
+
+
+def _set_parent(glet, value):
+    _check(value)
+    state = _st(glet)
+    if state.main:
+        raise AttributeError('cannot set the parent of a main greenlet')
+    probe = value
+    while probe is not None:
+        if probe is glet:
+            raise ValueError('cyclic parent chain')
+        probe = _st(probe).parent
+    if _st(value).owner is not state.owner:
+        raise ValueError('parent cannot be on a different thread')
+    state.parent = value
+
+
+def _no_delete_parent(glet):
+    raise AttributeError("can't delete attribute")
+
+
+def _get_run(glet):
+    state = _st(glet)
+    if state.main:
+        raise AttributeError('Main greenlets do not have a run attribute.')
+    if state.started or state.run is None:
+        raise AttributeError('run')
+    return state.run
+
+
+def _set_run(glet, value):
+    state = _st(glet)
+    if state.started:
+        raise AttributeError('run cannot be set after the start of the greenlet')
+    state.run = value
+
+
+def _del_run(glet):
+    _set_run(glet, None)
+
+
 class greenlet:
     """greenlet(run=None, parent=None) -> greenlet
 
@@ -258,17 +295,19 @@ Creates a new greenlet object (without running it).
  - *run* -- The callable to invoke.
  - *parent* -- The parent greenlet. The default is the current greenlet."""
 
+    __slots__ = ('__st', '__dict__', '__weakref__')
+
     def __new__(cls, *args, **kwargs):
         self = object.__new__(cls)
         current = _current()
-        self.__dict__['_st'] = _State(_thread(), current, False)
+        _setattr(self, '_greenlet__st', _State(_thread(), current, False))
         return self
 
     def __init__(self, run=None, parent=None):
         if run is not None:
-            greenlet.run.__set__(self, run)
+            _set_run(self, run)
         if parent is not None:
-            greenlet.parent.__set__(self, parent)
+            _set_parent(self, parent)
 
     def switch(self, *args, **kwargs):
         """switch(*args, **kwargs)
@@ -309,83 +348,40 @@ from ``g_raiser`` to ``g``.
         return _switch_to(self, ('throw', _exception(typ, val, tb)), 'throw')
 
     def __bool__(self):
-        state = self.__dict__['_st']
+        state = _st(self)
         return state.started and not state.dead
 
     @property
     def dead(self):
-        state = self.__dict__['_st']
+        state = _st(self)
         return state.dead and not state.main
 
     @property
     def gr_frame(self):
-        state = self.__dict__['_st']
+        state = _st(self)
         if not state.started or state.dead or self is getattr(_thread(), 'glet', None):
             return None
         return state.frame
 
     @property
     def gr_context(self):
-        return self.__dict__['_st'].context
+        return _st(self).context
 
     @gr_context.setter
     def gr_context(self, value):
         if value is not None and type(value).__name__ != 'Context':
             raise TypeError('greenlet context must be a contextvars.Context or None')
-        self.__dict__['_st'].context = value
+        _st(self).context = value
 
-    @property
-    def parent(self):
-        return self.__dict__['_st'].parent
-
-    @parent.setter
-    def parent(self, value):
-        _check(value)
-        state = self.__dict__['_st']
-        if state.main:
-            raise AttributeError('cannot set the parent of a main greenlet')
-        probe = value
-        while probe is not None:
-            if probe is self:
-                raise ValueError('cyclic parent chain')
-            probe = probe.__dict__['_st'].parent
-        if value.__dict__['_st'].owner is not state.owner:
-            raise ValueError('parent cannot be on a different thread')
-        state.parent = value
-
-    @parent.deleter
-    def parent(self):
-        raise AttributeError("can't delete attribute")
-
-    @property
-    def run(self):
-        state = self.__dict__['_st']
-        if state.main:
-            raise AttributeError('Main greenlets do not have a run attribute.')
-        if state.started or state.run is None:
-            raise AttributeError('run')
-        return state.run
-
-    @run.setter
-    def run(self, value):
-        state = self.__dict__['_st']
-        if state.started:
-            raise AttributeError('run cannot be set after the start of the greenlet')
-        state.run = value
-
-    @run.deleter
-    def run(self):
-        state = self.__dict__['_st']
-        if state.started:
-            raise AttributeError('run cannot be set after the start of the greenlet')
-        state.run = None
+    parent = property(_get_parent, _set_parent, _no_delete_parent)
+    run = property(_get_run, _set_run, _del_run)
 
     def __getstate__(self):
-        raise TypeError("cannot serialize '%s' object" % type(self).__name__)
+        raise TypeError("cannot serialize '%s' object" % _tp_name(self))
 
     def __repr__(self):
-        state = self.__dict__['_st']
-        name = 'greenlet.greenlet' if type(self) is greenlet else type(self).__name__
+        state = _st(self)
+        name = _tp_name(self)
         otid = id(state.owner) & 0xffffffffffff
         if state.dead and not state.main:
             return '<%s object at 0x%x (otid=0x%x) %sdead>' % (
@@ -401,8 +397,11 @@ from ``g_raiser`` to ``g``.
             ' started' if state.started else ' pending', ' main' if state.main else '')
 
     def __del__(self):
-        state = self.__dict__.get('_st')
-        if state is None or state.main or not state.started or state.dead:
+        try:
+            state = _st(self)
+        except AttributeError:
+            return
+        if state.main or not state.started or state.dead:
             return
         if state.owner is not _thread():
             return
@@ -415,7 +414,7 @@ def _reap():
     como o `kill` do C no descarte. Um erro aqui vira `sys.unraisablehook`."""
     while _doomed:
         glet = _doomed.pop(0)
-        state = glet.__dict__['_st']
+        state = _st(glet)
         if state.dead:
             continue
         state.parent = _current()
@@ -423,23 +422,26 @@ def _reap():
             _switch_to(glet, ('throw', GreenletExit()), 'throw')
         except BaseException as exc:
             import _unraisable
-            sys.unraisablehook(_unraisable.UnraisableHookArgs((type(exc), exc, exc.__traceback__, None, glet)))
+            _sysmod.unraisablehook(_unraisable.UnraisableHookArgs((type(exc), exc, exc.__traceback__, None, glet)))
 
 
 greenlet.GreenletExit = GreenletExit
 greenlet.error = error
-greenlet.getcurrent = staticmethod(getcurrent)
-greenlet.gettrace = staticmethod(gettrace)
-greenlet.settrace = staticmethod(settrace)
+# As mesmas funções de módulo, como no `tp_methods` com `METH_STATIC`: `greenlet.getcurrent is greenlet.greenlet.getcurrent`.
+greenlet.getcurrent = _sys._builtin(getcurrent)
+greenlet.gettrace = _sys._builtin(gettrace)
+greenlet.settrace = _sys._builtin(settrace)
 greenlet.__module__ = 'greenlet'
+
+
+def _tp_name(glet):
+    """O `tp_name` do tipo de `glet`: `greenlet.greenlet` no estático, o nome da classe numa subclasse."""
+    return 'greenlet.greenlet' if type(glet) is greenlet else type(glet).__name__
 
 
 class UnswitchableGreenlet(greenlet):
     force_switch_error = False
     force_slp_switch_error = False
-
-
-UnswitchableGreenlet.__module__ = 'greenlet._greenlet'
 
 
 def set_thread_local(key, value):
@@ -464,10 +466,6 @@ def enable_optional_cleanup(enabled):
 
 def get_clocks_used_doing_optional_cleanup():
     return 0 if _cleanup[0] else None
-
-
-def get_tstate_trash_delete_nesting():
-    return 0
 
 
 import _capsule

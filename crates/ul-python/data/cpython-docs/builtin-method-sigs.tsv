@@ -1039,6 +1039,20 @@ socket	get_inheritable
 socket	makefile
 socket	sendfile
 socket	set_inheritable
+greenlet	GreenletExit
+greenlet	__bool__	($self, /)
+greenlet	__getstate__	($self, /)
+greenlet	__init__	($self, /, *args, **kwargs)
+greenlet	__new__	($type, *args, **kwargs)
+greenlet	__repr__	($self, /)
+greenlet	error
+greenlet	getcurrent	($self, /)
+greenlet	gettrace	($self, /)
+greenlet	settrace
+greenlet	switch
+greenlet	throw
+UnswitchableGreenlet	__init__	($self, /, *args, **kwargs)
+UnswitchableGreenlet	__new__	($type, *args, **kwargs)
 module	__text_signature__	(name, doc=None)
 module	__dir__	($self, /)
 module	__getattribute__	($self, name, /)

@@ -78,3 +78,14 @@ fn eq_raise_scene_matches_the_oracle() {
         include_str!("../../../testbench/oracle/automation/golden/eq_raise.out"),
     );
 }
+
+/// O estado interno não aparece em nada que o programa enxergue (`__dict__`, `vars`, `dir`, `__del__`, `__slots__`),
+/// o tipo é estático como no C e as funções de módulo são `builtin_function_or_method` de `greenlet._greenlet`.
+#[test]
+fn gl_leaks_scene_matches_the_oracle() {
+    scene_matches(
+        "gl_leaks",
+        include_str!("../../../testbench/oracle/automation/cases/gl_leaks.py"),
+        include_str!("../../../testbench/oracle/automation/golden/gl_leaks.out"),
+    );
+}
